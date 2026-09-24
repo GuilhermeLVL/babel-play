@@ -1,10 +1,11 @@
 import { ChartColumn, Download, FileAudio, Layers, Lock, type LucideIcon, Video } from 'lucide-react';
 
-import { apiFetch } from '../../../data/api';
+import { apiFetch, exportarApkg } from '../../../data/api';
 import type { useMetricasDaSessao } from '../../../lib/analise/metricasDaSessao';
 import { caminhoDoAudio } from '../../../lib/audioDaSessao';
 import { data } from '../../../lib/i18n';
 import type { Recording } from '../../../types';
+import { toast } from '../../Toast';
 import { Dialogo, fecharDialogoDe, IconeEmBloco } from '../../ui';
 
 /**
@@ -13,12 +14,18 @@ import { Dialogo, fecharDialogoDe, IconeEmBloco } from '../../ui';
  * As quatro opções do protótipo, na ordem dele, cada uma com o que o app REALMENTE baixa:
  * - Áudio: o arquivo gravado nesta sessão (tracejado e com cadeado quando não há áudio).
  * - Vídeo: sempre bloqueado — só-áudio, ou vídeo de plataforma de terceiros (direitos autorais).
- * - Flashcards para Anki: o baralho real, em CSV (palavra; fonética; tradução; frase). O
- *   protótipo promete áudio nos cartões; o CSV não leva, então a descrição não promete.
- * - Métricas e desempenho: o relatório em Markdown (o protótipo diz CSV; o app gera .md).
+ * - Flashcards para Anki: as palavras DESTA sessão num `.apkg` (o mesmo gerador do Vocabulário),
+ *   com a frase de exemplo. O protótipo promete áudio nos cartões; o `.apkg` não leva, então a
+ *   descrição não promete.
+ * - Métricas e desempenho: CSV com ritmo, pausas, vícios e o vocabulário da transcrição.
  */
 
 type Stats = ReturnType<typeof useMetricasDaSessao>['stats'];
+interface Ritmo {
+  ppm: number | null;
+  pausasLongas: number | null;
+  vicios: number | null;
+}
 interface CartaoDoBaralho {
   word: string;
   phonetics?: string;
@@ -45,19 +52,22 @@ function Opcao({
   desc,
   trava,
   aoEscolher,
+  aoTravado,
 }: {
   icone: LucideIcon;
   titulo: string;
   desc: string;
   trava?: boolean;
   aoEscolher?: (el: HTMLElement) => void;
+  /** O aviso do protótipo ao clicar numa opção bloqueada. */
+  aoTravado?: () => void;
 }) {
   return (
     <button
       type="button"
       className={`cartao ${trava ? 'tracejado' : 'clicavel'} fonte`}
       aria-disabled={trava || undefined}
-      onClick={(e) => !trava && aoEscolher?.(e.currentTarget)}
+      onClick={(e) => (trava ? aoTravado?.() : aoEscolher?.(e.currentTarget))}
     >
       <IconeEmBloco icone={icone} />
       <span style={{ flex: 1 }}>
@@ -78,11 +88,14 @@ export default function ExportarSessao({
   recording,
   vocabCards,
   stats,
+  ritmo,
   aoFechar,
 }: {
   recording: Recording;
+  /** As palavras DESTA sessão que estão no caderno. */
   vocabCards: CartaoDoBaralho[];
   stats: Stats;
+  ritmo: Ritmo;
   aoFechar: () => void;
 }) {
   const baixarAudio = async (el: HTMLElement) => {
@@ -106,36 +119,49 @@ export default function ExportarSessao({
                 ? 'm4a'
                 : 'audio';
       baixar(blob, `audio_sessao_${recording.id}.${ext}`);
-    } catch {
-      /* download best-effort */
+      toast.ok('Áudio da sessão: download iniciado');
+    } catch (e) {
+      toast.error('Não deu para baixar o áudio da sessão.', { detail: e });
     }
   };
 
-  // Deck REAL do usuário (nada hardcoded).
-  const baixarAnki = (el: HTMLElement) => {
-    const esc = (v?: string) => (v || '').replace(/;/g, ',').replace(/\n/g, ' ');
-    const rows = vocabCards.map((c) => `${esc(c.word)};${esc(c.phonetics)};${esc(c.translation)};${esc(c.sentence)}`);
-    const content = `Word;Phonetic;Translation;Sentence\n` + rows.join('\n') + '\n';
-    baixar(new Blob([content], { type: 'text/csv;charset=utf-8;' }), `vocab_anki_${recording.id}.csv`);
+  // As palavras desta sessão, num baralho do Anki de verdade (o gerador do servidor).
+  const baixarAnki = async (el: HTMLElement) => {
     fecharDialogoDe(el);
+    try {
+      const blob = await exportarApkg(
+        vocabCards
+          .filter((c) => (c.translation ?? '').trim())
+          .map((c) => ({ frente: c.word, verso: c.translation ?? '', exemplo: c.sentence })),
+        `Babel Play · ${recording.title}`,
+      );
+      baixar(blob, `babel-sessao-${recording.id}.apkg`);
+      toast.ok('Flashcards para Anki: download iniciado');
+    } catch (e) {
+      toast.error('Não deu para gerar o baralho do Anki.', { detail: e });
+    }
   };
 
   const baixarMetricas = (el: HTMLElement) => {
-    const content =
-      `# Relatório de Sessão - Babel Play\n\n` +
-      `**Sessão:** ${recording.title}\n` +
-      `**Tipo:** ${recording.type}\n` +
-      `**Total de Palavras:** ${recording.wordCount}\n\n` +
-      `## Estatísticas do Texto (transcrição)\n` +
-      `- Palavras: ${stats.wordCount}\n` +
-      `- Vocábulos únicos: ${stats.uniqueWords}\n` +
-      `- Frases: ${stats.sentenceCount}\n` +
-      `- Densidade lexical: ${stats.lexicalDensityPct != null ? `${stats.lexicalDensityPct}%` : 'sem régua para este idioma'}
-` +
-      `- Razão tipo/token: ${Math.round(stats.typeTokenRatio * 100)}/100\n` +
-      `- Facilidade de leitura (Flesch): ${stats.readingEase != null ? stats.readingEase : '-'}\n\n` +
-      `Gerado em ${data(new Date())}`;
-    baixar(new Blob([content], { type: 'text/markdown;charset=utf-8;' }), `relatorio_sessao_${recording.id}.md`);
+    const vazio = (v: number | null | undefined) => (v == null ? '' : String(v));
+    const linhas: Array<[string, string]> = [
+      ['sessao', recording.title],
+      ['gerado_em', data(new Date())],
+      ['palavras_por_minuto', vazio(ritmo.ppm)],
+      ['pausas_longas', vazio(ritmo.pausasLongas)],
+      ['vicios_de_linguagem', vazio(ritmo.vicios)],
+      ['palavras', String(stats.wordCount)],
+      ['palavras_unicas', String(stats.uniqueWords)],
+      ['frases', String(stats.sentenceCount)],
+      ['densidade_lexical_pct', vazio(stats.lexicalDensityPct)],
+      ['riqueza_ttr_pct', String(Math.round(stats.typeTokenRatio * 100))],
+      ['facilidade_de_leitura', vazio(stats.readingEase)],
+      ['palavras_no_caderno', String(vocabCards.length)],
+    ];
+    const cel = (v: string) => (/[",\n;]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
+    const csv = ['metrica,valor', ...linhas.map(([k, v]) => `${k},${cel(v)}`)].join('\n') + '\n';
+    baixar(new Blob([csv], { type: 'text/csv;charset=utf-8;' }), `metricas_sessao_${recording.id}.csv`);
+    toast.ok('Métricas e desempenho: download iniciado');
     fecharDialogoDe(el);
   };
 
@@ -161,6 +187,7 @@ export default function ExportarSessao({
           }
           trava={!temAudio}
           aoEscolher={(el) => void baixarAudio(el)}
+          aoTravado={() => toast.info('Áudio: esta sessão não tem gravação')}
         />
         <Opcao
           icone={Video}
@@ -171,17 +198,30 @@ export default function ExportarSessao({
               : 'Download bloqueado: esta sessão é só de áudio.'
           }
           trava
+          aoTravado={() =>
+            toast.info(
+              recording.type === 'video'
+                ? 'Vídeo: download bloqueado pelos direitos da plataforma de origem'
+                : 'Vídeo: download bloqueado, esta sessão é só de áudio',
+            )
+          }
         />
         <Opcao
           icone={Layers}
           titulo="Flashcards para Anki"
-          desc={`${n === 1 ? 'A palavra' : `As ${n} palavras`}, com tradução e frase de exemplo.`}
-          aoEscolher={baixarAnki}
+          desc={
+            n
+              ? `${n === 1 ? 'A palavra' : `As ${n} palavras`} desta sessão, com frase de exemplo.`
+              : 'Nenhuma palavra desta sessão no caderno ainda.'
+          }
+          trava={n === 0}
+          aoEscolher={(el) => void baixarAnki(el)}
+          aoTravado={() => toast.info('Flashcards: guarde uma palavra desta sessão primeiro')}
         />
         <Opcao
           icone={ChartColumn}
           titulo="Métricas e desempenho"
-          desc="Relatório .md com palavras, frases e legibilidade."
+          desc="CSV com ritmo, pausas e vocabulário."
           aoEscolher={baixarMetricas}
         />
       </div>

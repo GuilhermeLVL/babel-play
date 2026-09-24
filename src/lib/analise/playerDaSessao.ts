@@ -12,19 +12,19 @@ import { sentenceHasComplexWord } from '@core';
 import type { Dispatch, RefObject, SetStateAction } from 'react';
 import React from 'react';
 
-import { getVoicePref,pickVoice } from '../tts';
+import { getVoicePref, pickVoice } from '../tts';
 import type { FalaDaAnalise } from './tiposDaAnalise';
 
-/** mm:ss (ou hh:mm:ss) a partir de segundos — o relógio do player e dos trechos. */
+/** m:ss (ou h:mm:ss) a partir de segundos — o `seg()` do protótipo: o relógio do player e dos trechos. */
 export function formatSeconds(secs: number): string {
   const h = Math.floor(secs / 3600);
   const m = Math.floor((secs % 3600) / 60);
   const s = Math.floor(secs % 60);
   const pad = (n: number) => n.toString().padStart(2, '0');
   if (h > 0) {
-    return `${pad(h)}:${pad(m)}:${pad(s)}`;
+    return `${h}:${pad(m)}:${pad(s)}`;
   }
-  return `${pad(m)}:${pad(s)}`;
+  return `${m}:${pad(s)}`;
 }
 
 /** Tudo que o player precisa da tela — por parâmetro, sem contexto novo. */
@@ -57,8 +57,6 @@ export interface DepsDoPlayerDaSessao {
   setAudioDuration: Dispatch<SetStateAction<number>>;
   setPeaks: Dispatch<SetStateAction<number[]>>;
   setShadowingSentenceIndex: Dispatch<SetStateAction<number | null>>;
-  setShadowingStep: Dispatch<SetStateAction<'idle' | 'recording' | 'processing' | 'result'>>;
-  setShadowingScore: (v: null) => void;
 }
 
 export function usePlayerDaSessao(deps: DepsDoPlayerDaSessao) {
@@ -85,8 +83,6 @@ export function usePlayerDaSessao(deps: DepsDoPlayerDaSessao) {
     setAudioDuration,
     setPeaks,
     setShadowingSentenceIndex,
-    setShadowingStep,
-    setShadowingScore,
   } = deps;
 
   // Mantém um ref do índice ativo para a narração TTS retomar do ponto certo sem re-disparar o efeito.
@@ -113,7 +109,15 @@ export function usePlayerDaSessao(deps: DepsDoPlayerDaSessao) {
         setSeekNonce((n) => n + 1);
       }
     },
-    [hasRealAudio, parsedSentences, audioRef, activeSentenceIndexRef, setCurrentTime, setActiveSentenceIndex, setSeekNonce],
+    [
+      hasRealAudio,
+      parsedSentences,
+      audioRef,
+      activeSentenceIndexRef,
+      setCurrentTime,
+      setActiveSentenceIndex,
+      setSeekNonce,
+    ],
   );
 
   const playFrom = React.useCallback(
@@ -232,8 +236,6 @@ export function usePlayerDaSessao(deps: DepsDoPlayerDaSessao) {
     setCurrentTime(0);
     setActiveSentenceIndex(-1);
     setShadowingSentenceIndex(null);
-    setShadowingStep('idle');
-    setShadowingScore(null);
     setAudioDuration(0);
     setPeaks([]);
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
@@ -246,8 +248,6 @@ export function usePlayerDaSessao(deps: DepsDoPlayerDaSessao) {
     setCurrentTime,
     setActiveSentenceIndex,
     setShadowingSentenceIndex,
-    setShadowingStep,
-    setShadowingScore,
     setAudioDuration,
     setPeaks,
   ]);

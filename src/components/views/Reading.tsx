@@ -390,49 +390,57 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
     localStorage.setItem('reading_layout_width', width);
   };
 
-  const [annotations, setAnnotations] = useState<Annotation[]>(() => {
-    const saved = localStorage.getItem('readingAnnotations');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        console.error(e);
-      }
+  /* AS ANOTAÇÕES SÃO DA SESSÃO. A chave era uma só ('readingAnnotations'), indexada pela posição da
+     frase: o grifo da frase 3 de uma sessão aparecia na frase 3 de qualquer outra. */
+  const chaveDasNotas = `readingAnnotations:${recording?.id ?? 'sem-sessao'}`;
+  const lerNotas = (chave: string): Annotation[] => {
+    try {
+      const salvo = localStorage.getItem(chave);
+      return salvo ? (JSON.parse(salvo) as Annotation[]) : [];
+    } catch {
+      return [];
     }
-    // Começa VAZIO — anotações reais são criadas pelo usuário (sem mocks).
-    return [];
-  });
+  };
+  const [annotations, setAnnotations] = useState<Annotation[]>(() => lerNotas(chaveDasNotas));
+  const notasDe = useRef(chaveDasNotas);
+  useEffect(() => {
+    if (notasDe.current === chaveDasNotas) return;
+    notasDe.current = chaveDasNotas;
+    setAnnotations(lerNotas(chaveDasNotas));
+  }, [chaveDasNotas]);
 
   useEffect(() => {
-    localStorage.setItem('readingAnnotations', JSON.stringify(annotations));
+    try {
+      localStorage.setItem(notasDe.current, JSON.stringify(annotations));
+    } catch {
+      /* sem armazenamento: as notas valem só nesta abertura */
+    }
   }, [annotations]);
 
   // Freehand Canvas Drawing States
   const [isDrawModeActive, setIsDrawModeActive] = useState(false);
   const [drawTool, setDrawTool] = useState<'pen' | 'highlighter' | 'eraser'>('pen');
-  const [brushColor, setBrushColor] = useState('#ef4444');
-  const [brushSize, setBrushSize] = useState(5);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const isDrawingRef = useRef(false);
 
-  // Helper to convert HEX to RGBA
-  const hexToRGBA = (hex: string, alpha: number) => {
-    const r = parseInt(hex.slice(1, 3), 16) || 0;
-    const g = parseInt(hex.slice(3, 5), 16) || 0;
-    const b = parseInt(hex.slice(5, 7), 16) || 0;
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-  };
-
+  /* Redimensionar o canvas APAGA o que estava nele: o desenho é guardado antes e redesenhado
+     depois (o protótipo guarda em `E.desenho`). */
   const syncCanvasSize = () => {
     const canvas = canvasRef.current;
     const container = canvas?.parentElement;
     if (canvas && container) {
+      const antes = canvas.width && canvas.height ? canvas.toDataURL() : null;
       canvas.width = container.scrollWidth;
       canvas.height = container.scrollHeight;
       const ctx = canvas.getContext('2d');
       if (ctx) {
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
+        if (antes) {
+          const img = new Image();
+          img.onload = () => ctx.drawImage(img, 0, 0);
+          img.src = antes;
+        }
       }
     }
   };
@@ -451,13 +459,14 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
     }
   }, [isDrawModeActive, fontSize, viewMode]);
 
-  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const startDrawing = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     isDrawingRef.current = true;
+    canvas.setPointerCapture(e.pointerId);
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
@@ -465,21 +474,17 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
     ctx.beginPath();
     ctx.moveTo(x, y);
 
-    if (drawTool === 'eraser') {
-      ctx.globalCompositeOperation = 'destination-out';
-      ctx.lineWidth = brushSize * 2.5;
-    } else {
-      ctx.globalCompositeOperation = 'source-over';
-      ctx.lineWidth = brushSize;
-      if (drawTool === 'highlighter') {
-        ctx.strokeStyle = hexToRGBA(brushColor, 0.4);
-      } else {
-        ctx.strokeStyle = brushColor;
-      }
-    }
+    // Caneta no destaque (3 px), marca-texto no âmbar translúcido (16 px), borracha larga (22 px).
+    const cor = getComputedStyle(document.documentElement)
+      .getPropertyValue(drawTool === 'highlighter' ? '--warn' : '--accent')
+      .trim();
+    ctx.globalCompositeOperation = drawTool === 'eraser' ? 'destination-out' : 'source-over';
+    ctx.globalAlpha = drawTool === 'highlighter' ? 0.35 : 1;
+    ctx.strokeStyle = cor || '#E8542B';
+    ctx.lineWidth = drawTool === 'highlighter' ? 16 : drawTool === 'eraser' ? 22 : 3;
   };
 
-  const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const draw = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (!isDrawingRef.current) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -703,7 +708,12 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
 
   const ensureDetection = async (index: number): Promise<LangDetection | null> => {
     if (index in detectionsRef.current) return detectionsRef.current[index];
-    const det = await detectLanguage(studyTexts[index]?.original || '');
+    const texto = studyTexts[index]?.original || '';
+    const bruta = await detectLanguage(texto);
+    /* Frase curta engana o detector (a sessão de demonstração, em inglês, saía como polonês em
+       "improve retention"). Com menos de 4 palavras ou confiança abaixo de 0,6 não há sinal: vale o
+       idioma declarado da sessão, como já acontece quando o detector não responde. */
+    const det = bruta && bruta.confidence >= 0.6 && texto.trim().split(/\s+/).length >= 4 ? bruta : null;
     detectionsRef.current[index] = det;
     setDetections((prev) => ({ ...prev, [index]: det }));
     return det;
@@ -1457,49 +1467,14 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
                   </button>
                 ))}
               </div>
-              {drawTool !== 'eraser' && (
-                <div className="linha" style={{ gap: 6 }} role="group" aria-label="Cor">
-                  {[
-                    { hex: '#ef4444', name: 'Vermelho' },
-                    { hex: '#f59e0b', name: 'Amarelo' },
-                    { hex: '#10b981', name: 'Verde' },
-                    { hex: '#3b82f6', name: 'Azul' },
-                    { hex: '#8b5cf6', name: 'Roxo' },
-                    { hex: '#374151', name: 'Grafite' },
-                  ].map((c) => (
-                    <button
-                      key={c.hex}
-                      type="button"
-                      onClick={() => setBrushColor(c.hex)}
-                      aria-pressed={brushColor === c.hex}
-                      aria-label={c.name}
-                      title={c.name}
-                      style={{
-                        width: 22,
-                        height: 22,
-                        borderRadius: '50%',
-                        background: c.hex,
-                        border: 0,
-                        boxShadow: brushColor === c.hex ? '0 0 0 2px var(--canvas), 0 0 0 4px var(--accent)' : 'none',
-                      }}
-                    />
-                  ))}
-                </div>
-              )}
-              <label className="linha mut" style={{ gap: 6, fontSize: 12 }}>
-                Espessura
-                <input
-                  type="range"
-                  className="trilho"
-                  min="2"
-                  max="25"
-                  step="1"
-                  value={brushSize}
-                  onChange={(e) => setBrushSize(parseInt(e.target.value))}
-                  style={{ ['--p' as string]: `${((brushSize - 2) / 23) * 100}%`, width: 110 }}
-                />
-              </label>
-              <button type="button" className="btn btn-outline peq" onClick={clearCanvas}>
+              <button
+                type="button"
+                className="btn btn-outline peq"
+                onClick={() => {
+                  clearCanvas();
+                  toast.info('Desenhos apagados');
+                }}
+              >
                 <Trash2 aria-hidden /> Limpar tudo
               </button>
             </>
@@ -1545,10 +1520,10 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
             {/* Desenho livre por cima do texto */}
             <canvas
               ref={canvasRef}
-              onMouseDown={startDrawing}
-              onMouseMove={draw}
-              onMouseUp={stopDrawing}
-              onMouseLeave={stopDrawing}
+              onPointerDown={startDrawing}
+              onPointerMove={draw}
+              onPointerUp={stopDrawing}
+              onPointerCancel={stopDrawing}
               aria-label="Área de desenho"
               style={{
                 position: 'absolute',

@@ -88,6 +88,8 @@ export function sessionToRecording(s: SessionRow): Recording {
     audioUrl: m.audioFile ? `/api/sessions/${s.id}/audio` : undefined,
     imageUrl: typeof m.imageUrl === 'string' ? m.imageUrl : undefined,
     pinned: m.pinned === true,
+    idioma: s.sourceLang ?? undefined,
+    pronta: (s.status === 'done' || s.status === 'ready') && (s.wordCount ?? 0) > 0,
   }
 }
 

@@ -7,7 +7,7 @@ import { numero } from '../../lib/i18n';
 import { langLabel } from '../../lib/languages';
 import type { AgeProfileType } from '../../lib/profile';
 import type { VocabCard } from '../../types';
-import { askConfirm, toast } from '../Toast';
+import { toast } from '../Toast';
 import { CabecalhoDeTela, IconeEmBloco, Tela, TituloDeSecao } from '../ui';
 
 /**
@@ -48,9 +48,28 @@ const ORDEM: MotivoDescarte[] = [
   'palavra-curta',
 ];
 
+/* "Está certo assim" não tem coluna no servidor: a decisão fica neste navegador, e o cartão (que
+   nunca saiu do baralho) deixa de aparecer na curadoria. */
+const CHAVE_MANTIDAS = 'curadoria.mantidas';
+function lerMantidas(): string[] {
+  try {
+    const v = JSON.parse(localStorage.getItem(CHAVE_MANTIDAS) ?? '[]');
+    return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+function gravarMantida(id: string) {
+  try {
+    localStorage.setItem(CHAVE_MANTIDAS, JSON.stringify([...new Set([...lerMantidas(), id])]));
+  } catch {
+    /* sem armazenamento: vale só nesta visita */
+  }
+}
+
 export default function CuradoriaBaralho({ triagem, idioma, ageProfile, onVoltar, onMudou }: CuradoriaProps) {
   /** Ids já resolvidos nesta visita — somem da lista sem precisar recarregar tudo. */
-  const [resolvidos, setResolvidos] = useState<Set<string>>(new Set());
+  const [resolvidos, setResolvidos] = useState<Set<string>>(() => new Set(lerMantidas()));
   const [editando, setEditando] = useState<string | null>(null);
   const [rascunho, setRascunho] = useState('');
   const [ocupado, setOcupado] = useState<string | null>(null);
@@ -71,11 +90,33 @@ export default function CuradoriaBaralho({ triagem, idioma, ageProfile, onVoltar
     await onMudou();
   };
 
+  /** "Está certo assim": fica fora da curadoria (guardado neste navegador) e volta aos jogos como está. */
+  const manter = async (card: VocabCard) => {
+    gravarMantida(card.id);
+    toast.ok(`“${card.word}” volta para os jogos como está`);
+    await marcarResolvido(card.id);
+  };
+
+  /** Desfaz um arquivamento: o cartão volta ao baralho e à lista. */
+  const desarquivar = async (ids: string[]) => {
+    for (const id of ids) {
+      try {
+        await updateCard(id, { inDeck: true });
+      } catch {
+        /* o que falhar continua arquivado */
+      }
+    }
+    setResolvidos((prev) => new Set([...prev].filter((x) => !ids.includes(x))));
+    await onMudou();
+  };
+
   const arquivar = async (card: VocabCard) => {
     setOcupado(card.id);
     try {
       await updateCard(card.id, { inDeck: false });
-      toast.ok(`"${card.word}" saiu das rodadas`);
+      toast.ok(`“${card.word}” arquivada: saiu dos jogos.`, {
+        action: { label: 'Desfazer', onClick: () => void desarquivar([card.id]) },
+      });
       await marcarResolvido(card.id);
     } catch (e) {
       toast.error(`Não consegui arquivar: ${(e as Error).message}`);
@@ -100,18 +141,9 @@ export default function CuradoriaBaralho({ triagem, idioma, ageProfile, onVoltar
    * meio deixaria o número menor, e dizer "1.040 arquivadas" quando foram 300 seria mentir.
    */
   const arquivarGrupo = async (motivo: MotivoDescarte, itens: CartaoFora[]) => {
-    const ok = await askConfirm({
-      danger: true,
-      title: `Arquivar ${itens.length} ${itens.length === 1 ? 'palavra' : 'palavras'}?`,
-      detail:
-        `Todas com o mesmo motivo: ${ROTULO_MOTIVO[motivo].titulo.toLowerCase()}. ` +
-        'Elas saem das rodadas e continuam guardadas, nada é apagado, e dá para trazer de volta.',
-      confirmLabel: 'Arquivar todas',
-    });
-    if (!ok) return;
-
     setOcupado(`grupo:${motivo}`);
     let gravadas = 0;
+    const arquivadas: string[] = [];
     try {
       /* Em série e não em `Promise.all`: são centenas de PATCH, e disparar tudo de uma vez sobre o
          servidor local significa esgotar o pool de conexões e receber falhas que não são do dado.
@@ -120,14 +152,20 @@ export default function CuradoriaBaralho({ triagem, idioma, ageProfile, onVoltar
         try {
           await updateCard(card.id, { inDeck: false });
           gravadas++;
+          arquivadas.push(card.id);
         } catch {
           /* conta só as que entraram */
         }
       }
       setResolvidos((prev) => new Set([...prev, ...itens.map((i) => i.card.id)]));
       await onMudou();
-      if (gravadas === itens.length) toast.ok(`${gravadas} saíram das rodadas`);
-      else toast.warn(`${gravadas} de ${itens.length} arquivadas, as outras falharam e continuam na lista`);
+      // Sem confirmação antes (como no protótipo): nada é apagado, e o Desfazer traz todas de volta.
+      const desfazer = { label: 'Desfazer', onClick: () => void desarquivar(arquivadas) };
+      if (gravadas === itens.length) toast.ok(`${gravadas} arquivadas`, { action: desfazer, duration: 8000 });
+      else
+        toast.warn(`${gravadas} de ${itens.length} arquivadas, as outras falharam e continuam na lista`, {
+          action: desfazer,
+        });
     } finally {
       setOcupado(null);
     }
@@ -135,11 +173,14 @@ export default function CuradoriaBaralho({ triagem, idioma, ageProfile, onVoltar
 
   const salvarTraducao = async (card: VocabCard) => {
     const nova = rascunho.trim();
-    if (!nova) return;
+    if (!nova) {
+      toast.warn('Escreva uma tradução curta');
+      return;
+    }
     setOcupado(card.id);
     try {
       await updateCard(card.id, { translation: nova });
-      toast.ok(`"${card.word}" já pode jogar`);
+      toast.ok(`“${card.word}” = ${nova}: volta para os jogos`);
       setEditando(null);
       setRascunho('');
       await marcarResolvido(card.id);
@@ -265,11 +306,7 @@ export default function CuradoriaBaralho({ triagem, idioma, ageProfile, onVoltar
                         placeholder="tradução curta"
                         style={{ minHeight: 36 }}
                       />
-                      <button
-                        type="submit"
-                        className="btn btn-solid peq"
-                        disabled={!rascunho.trim() || ocupado === card.id}
-                      >
+                      <button type="submit" className="btn btn-solid peq" disabled={ocupado === card.id}>
                         <Check aria-hidden /> Salvar
                       </button>
                       <button
@@ -296,8 +333,7 @@ export default function CuradoriaBaralho({ triagem, idioma, ageProfile, onVoltar
                             setEditando(card.id);
                             setRascunho(card.translation || '');
                           }}
-                          title="Escrever a tradução"
-                          aria-label={`Corrigir a tradução de ${card.word}`}
+                          aria-label={`Editar a tradução de ${card.word}`}
                         >
                           <Pencil aria-hidden />
                         </button>
@@ -306,7 +342,6 @@ export default function CuradoriaBaralho({ triagem, idioma, ageProfile, onVoltar
                           className="btn btn-outline peq icone"
                           onClick={() => void arquivar(card)}
                           disabled={ocupado === card.id}
-                          title="Tirar dos jogos (não apaga)"
                           aria-label={`Arquivar ${card.word}`}
                         >
                           <Archive aria-hidden />
@@ -314,9 +349,8 @@ export default function CuradoriaBaralho({ triagem, idioma, ageProfile, onVoltar
                         <button
                           type="button"
                           className="btn btn-outline peq icone"
-                          onClick={() => void marcarResolvido(card.id)}
-                          title="Está certo assim, só não mostrar mais"
-                          aria-label={`Manter ${card.word}`}
+                          onClick={() => void manter(card)}
+                          aria-label={`${card.word} está certo assim`}
                         >
                           <Check aria-hidden />
                         </button>

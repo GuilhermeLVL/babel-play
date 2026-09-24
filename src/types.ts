@@ -14,6 +14,14 @@ export interface Recording {
   imageUrl?: string;
   /** Sessão fixada aparece primeiro na grade. Persistida em `meta.pinned`. */
   pinned?: boolean;
+  /** Idioma do conteúdo (`sessions.source_lang`, ex.: 'en', 'en-US'). Filtro "Idioma" da Biblioteca. */
+  idioma?: string;
+  /**
+   * Pronta para estudar: terminou (`done`/`ready`) E tem texto. Uma importação que ficou no meio
+   * (a transcrição falhou depois de a sessão existir) ou uma sessão em branco não está. Filtro
+   * "Situação" da Biblioteca.
+   */
+  pronta?: boolean;
 }
 
 /**

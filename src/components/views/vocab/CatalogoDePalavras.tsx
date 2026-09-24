@@ -14,7 +14,7 @@
  * FSRS e a procedência. Procedência que o cartão não declara aparece como "—", nunca adivinhada.
  */
 import { AlertTriangle, BookOpen, Inbox, RotateCw, Search } from 'lucide-react';
-import React, { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
+import React, { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { apiFetch } from '../../../data/api';
 import type { VocabCard } from '../../../types';
@@ -32,14 +32,17 @@ export interface ItemCatalogo {
   firstSeenAt: number | null;
   difficultyScore: number | null;
   dueAt: number | null;
+  /** De onde o cartão veio (`vocab_occurrences.origin_kind`): 'sessao', 'trilha', 'manual', 'anki', 'legado'… */
+  origens?: string[];
 }
 
-type Ordem = 'recentes' | 'frequentes' | 'dificuldade' | 'alfabetica';
+type Ordem = 'recentes' | 'frequentes' | 'dificuldade' | 'alfabetica' | 'nivel';
 const ORDENS: Array<{ id: Ordem; rotulo: string }> = [
   { id: 'recentes', rotulo: 'Mais recentes' },
   { id: 'frequentes', rotulo: 'Mais vistas' },
   { id: 'dificuldade', rotulo: 'Mais difíceis' },
   { id: 'alfabetica', rotulo: 'A → Z' },
+  { id: 'nivel', rotulo: 'Nível' },
 ];
 const NIVEIS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2', 'ausente'] as const;
 const ORIGENS = [
@@ -58,21 +61,68 @@ function estadoDe(c: VocabCard | undefined): { rotulo: string; tom: string } | n
   return { rotulo: 'Aprendendo', tom: 'ok' };
 }
 
-/** Procedência que o cartão DECLARA. O resto (manual, anterior à contagem) o deck não diz. */
-function origemDe(c: VocabCard | undefined): string {
-  if (!c) return '—';
-  if (c.daTrilha) return 'Trilha';
-  if (c.daAnki) return 'Anki';
-  if (c.sourceSessionId) return 'Sessão';
+/**
+ * Procedência do cartão: as origens gravadas em `vocab_occurrences` (vêm com a página), na ordem
+ * de quem pesa mais; sem elas, o que o cartão do deck declara. Nada declarado = "—".
+ */
+const ROTULO_DA_ORIGEM: Record<string, string> = {
+  trilha: 'Trilha',
+  anki: 'Anki',
+  sessao: 'Sessão',
+  import: 'Importada',
+  manual: 'Manual',
+  legado: 'Anterior à contagem',
+};
+function origemDe(item: ItemCatalogo, c: VocabCard | undefined): string {
+  const achada = Object.keys(ROTULO_DA_ORIGEM).find((k) => item.origens?.includes(k));
+  if (achada) return ROTULO_DA_ORIGEM[achada];
+  if (c?.daTrilha) return 'Trilha';
+  if (c?.daAnki) return 'Anki';
+  if (c?.sourceSessionId) return 'Sessão';
   return '—';
+}
+
+/** O filtro em uso no catálogo — o escopo "Filtradas" do Exportar usa o mesmo. */
+export interface FiltroDoCatalogo {
+  q: string;
+  niveis: string[];
+  origens: string[];
+  total: number;
+}
+
+/** Os ids de TODAS as palavras que casam com o filtro (o catálogo só carrega 200 por vez). */
+export async function idsDoFiltro(f: FiltroDoCatalogo): Promise<Set<string>> {
+  const ids = new Set<string>();
+  type Cursor = { valor: unknown; id: string } | null;
+  let cursor: Cursor = null;
+  for (let pagina = 0; pagina < 50; pagina++) {
+    const p = new URLSearchParams({ limite: '500', ordem: 'recentes' });
+    if (f.q) p.set('q', f.q);
+    if (f.niveis.length) p.set('niveis', f.niveis.join(','));
+    if (f.origens.length) p.set('origens', f.origens.join(','));
+    if (cursor) {
+      p.set('cursorValor', String(cursor.valor ?? ''));
+      p.set('cursorId', cursor.id);
+    }
+    const res = await apiFetch(`/api/vocab/pagina?${p.toString()}`);
+    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+    const dados = (await res.json()) as { itens: ItemCatalogo[]; proximoCursor: Cursor };
+    dados.itens.forEach((i) => ids.add(i.id));
+    cursor = dados.proximoCursor;
+    if (!cursor) break;
+  }
+  return ids;
 }
 
 export default function CatalogoDePalavras({
   aoAbrirPalavra,
+  aoMudarFiltro,
   cartoes = [],
   rodape,
 }: {
   aoAbrirPalavra?: (id: string) => void;
+  /** Avisa o filtro em uso (e quantas palavras casam) a quem precisa dele: o Exportar. */
+  aoMudarFiltro?: (f: FiltroDoCatalogo) => void;
   /** O deck real da tela: de onde saem o estado, a origem e a contagem por nível. */
   cartoes?: VocabCard[];
   /** O que vem depois da tabela (o aviso de palavras sem tradução). */
@@ -91,6 +141,9 @@ export default function CatalogoDePalavras({
   const [carregando, setCarregando] = useState(true);
   const [carregandoMais, setCarregandoMais] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  /** Quantos cartões há de cada origem (do servidor; o modo sem conta não sabe, e fica sem número). */
+  const [porOrigem, setPorOrigem] = useState<Record<string, number> | null>(null);
+  const campoDeBusca = useRef<HTMLInputElement>(null);
   const [contagem, setContagem] = useState<{ inicioEm: number | null; totalLegado: number; total: number } | null>(
     null,
   );
@@ -130,8 +183,10 @@ export default function CatalogoDePalavras({
         const dados = await res.json();
         setItens((antes) => (proximo ? [...antes, ...dados.itens] : dados.itens));
         setTotal(dados.total);
+        if (!proximo) aoMudarFiltro?.({ q: buscaAplicada.trim(), niveis, origens, total: dados.total });
         if (!temFiltro) setTotalGeral(dados.total);
         setCursor(dados.proximoCursor);
+        if (dados.porOrigem) setPorOrigem(dados.porOrigem);
       } catch (e) {
         // ESTADO DE ERRO REAL. Antes os fetches faziam `.catch(() => [])` e rede caída era
         // indistinguível de baralho vazio.
@@ -141,7 +196,7 @@ export default function CatalogoDePalavras({
         setCarregandoMais(false);
       }
     },
-    [ordem, buscaAplicada, niveis, origens, cursor, temFiltro],
+    [ordem, buscaAplicada, niveis, origens, cursor, temFiltro, aoMudarFiltro],
   );
 
   /* `carregar` fica FORA das deps de propósito: ela depende de `cursor`, que esta chamada zera.
@@ -171,6 +226,7 @@ export default function CatalogoDePalavras({
     setBusca('');
     setNiveis([]);
     setOrigens([]);
+    campoDeBusca.current?.focus();
   };
   const temFiltroDePilula = niveis.length > 0 || origens.length > 0;
   const geral = totalGeral ?? total;
@@ -194,6 +250,7 @@ export default function CatalogoDePalavras({
           <input
             className="campo"
             id="busca-palavra"
+            ref={campoDeBusca}
             placeholder="Buscar palavra ou tradução"
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
@@ -234,17 +291,28 @@ export default function CatalogoDePalavras({
         <span className="label-mono" style={{ marginLeft: 10 }}>
           Origem
         </span>
-        {ORIGENS.map((o) => (
-          <button
-            key={o.id}
-            type="button"
-            className="pill"
-            aria-pressed={origens.includes(o.id)}
-            onClick={() => alternar(origens, setOrigens, o.id)}
-          >
-            {o.rotulo}
-          </button>
-        ))}
+        {ORIGENS.map((o) => {
+          const ativo = origens.includes(o.id);
+          const qtd = porOrigem ? (porOrigem[o.id] ?? 0) : null;
+          return (
+            <button
+              key={o.id}
+              type="button"
+              className="pill"
+              aria-pressed={ativo}
+              disabled={qtd === 0 && !ativo}
+              onClick={() => alternar(origens, setOrigens, o.id)}
+            >
+              {o.rotulo}
+              {qtd !== null && (
+                <>
+                  {' '}
+                  <span className="n">{qtd}</span>
+                </>
+              )}
+            </button>
+          );
+        })}
         {temFiltroDePilula && (
           <button type="button" className="link" style={{ marginLeft: 6 }} onClick={limpar}>
             Limpar
@@ -340,7 +408,7 @@ export default function CatalogoDePalavras({
                         {c.cefrLevel ?? 'sem nível'}
                       </span>
                     </td>
-                    <td className="col-extra mut">{origemDe(cartao)}</td>
+                    <td className="col-extra mut">{origemDe(c, cartao)}</td>
                     <td>{estado ? <span className={`badge ${estado.tom}`}>{estado.rotulo}</span> : '—'}</td>
                   </tr>
                 );

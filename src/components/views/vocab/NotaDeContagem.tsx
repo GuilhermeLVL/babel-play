@@ -12,29 +12,31 @@
  *   2. "sem ocorrências registradas ainda" (`legado`, contagem não começou para ela);
  *   3. "zero ocorrências medidas" — que não existe: todo cartão tem ao menos a de legado.
  */
-import { Info } from 'lucide-react'
-import React from 'react'
+import { Info } from 'lucide-react';
+import React from 'react';
 
 import { data } from '../../../lib/i18n';
 
 /** Data em que a contagem passou a ser real. Vem do banco (menor `occurred_at` não-legado). */
 export function formatarInicio(inicioEm: number | null): string | null {
-  if (!inicioEm) return null
-  return data(new Date(inicioEm), { day: '2-digit', month: 'long', year: 'numeric' })
+  if (!inicioEm) return null;
+  return data(new Date(inicioEm), { day: '2-digit', month: 'long', year: 'numeric' });
 }
 
 export default function NotaDeContagem({
-  inicioEm, totalLegado, total,
+  inicioEm,
+  totalLegado,
+  total,
 }: {
   /** epoch-ms do início da contagem real. `null` = nenhuma ocorrência nova ainda. */
-  inicioEm: number | null
+  inicioEm: number | null;
   /** Quantos cartões só têm a ocorrência de legado. */
-  totalLegado: number
-  total: number
+  totalLegado: number;
+  total: number;
 }) {
-  if (!total) return null
-  const data = formatarInicio(inicioEm)
-  const pctLegado = Math.round((totalLegado / total) * 100)
+  if (!total) return null;
+  const data = formatarInicio(inicioEm);
+  const pctLegado = Math.round((totalLegado / total) * 100);
 
   return (
     <div className="rounded-xl border border-border-subtle bg-surface p-3 flex items-start gap-2">
@@ -42,27 +44,29 @@ export default function NotaDeContagem({
       <div className="text-[12px] text-ink-muted leading-relaxed">
         {data ? (
           <>
-            A contagem de <strong className="text-ink">quantas vezes</strong> você encontra cada palavra
-            começou em <strong className="text-ink">{data}</strong>.
+            A contagem de <strong className="text-ink">quantas vezes</strong> você encontra cada palavra começou em{' '}
+            <strong className="text-ink">{data}</strong>.
           </>
         ) : (
-          <>A contagem de <strong className="text-ink">quantas vezes</strong> você encontra cada palavra começa agora.</>
+          <>
+            A contagem de <strong className="text-ink">quantas vezes</strong> você encontra cada palavra começa agora.
+          </>
         )}
         {totalLegado > 0 && (
           <>
             {' '}
             {pctLegado >= 99 ? 'Todas' : `${totalLegado} de ${total}`} as palavras do seu acervo vêm de antes disso,
-            elas aparecem como <strong className="text-ink">1×</strong> porque os encontros anteriores
-            não foram registrados, não porque só aconteceram uma vez.
+            elas aparecem como <strong className="text-ink">1×</strong> porque os encontros anteriores não foram
+            registrados, não porque só aconteceram uma vez.
           </>
         )}
       </div>
     </div>
-  )
+  );
 }
 
 /** Rótulo honesto para a contagem de uma palavra. Distingue "não medido" de "medido uma vez". */
 export function rotuloDeOcorrencias(occurrences: number, apenasLegado: boolean): string {
-  if (apenasLegado) return 'sem contagem anterior'
-  return occurrences === 1 ? '1 encontro' : `${occurrences} encontros`
+  if (apenasLegado) return 'sem contagem anterior';
+  return occurrences === 1 ? '1 encontro' : `${occurrences} encontros`;
 }

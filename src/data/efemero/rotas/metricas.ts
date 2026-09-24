@@ -151,6 +151,10 @@ export async function perfilEfemero(sessionId: string | null): Promise<AppMetric
     avgRetention,
     avgRetentionConfidence: Math.min(1, retencoes.length / 20),
     vocabByWeek: [...semanas.entries()].sort((a, b) => a[0] - b[0]).map(([weekStart, count]) => ({ weekStart, count })),
+    revisoesRecentes: revs
+      .map((r) => r.reviewedAt)
+      .filter((t) => t >= agora - 8 * DIA)
+      .sort((a, b) => a - b),
     speakingMs,
     wpm,
     wpmConfidence: Math.min(1, speakingMs / 300_000),

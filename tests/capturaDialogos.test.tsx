@@ -68,16 +68,13 @@ describe('Encerrar a sessão (C8)', () => {
   function montar() {
     const props = {
       resumo: '3 falas · 01:20',
+      nFalas: 3,
       retomada: false,
       titulo: 'Reunião',
       aoTrocarTitulo: vi.fn(),
       capa: '',
       aoTrocarCapa: vi.fn(),
-      busca: '',
-      aoTrocarBusca: vi.fn(),
-      aoBuscar: vi.fn(),
-      buscando: false,
-      resultados: [{ id: '1', thumbnail: 'https://x/t.jpg', url: 'https://x/i.jpg', title: 'Oceano' }],
+      buscaInicial: 'Reunião',
       aoEscolherArquivo: vi.fn(),
       aoContinuar: vi.fn(),
       aoSalvar: vi.fn(),
@@ -107,11 +104,14 @@ describe('Encerrar a sessão (C8)', () => {
     expect(p.aoDescartar).toHaveBeenCalled()
   })
 
-  it('as capas: o padrão e os resultados da busca, como rádio', () => {
+  it('as capas: as quatro do protótipo, como rádio, e o botão de buscar imagem', () => {
     const p = montar()
     const padrao = screen.getByRole('radio', { name: 'Padrão' })
     expect(padrao.getAttribute('aria-checked')).toBe('true')
-    fireEvent.click(screen.getByRole('radio', { name: 'Oceano' }))
-    expect(p.aoTrocarCapa).toHaveBeenCalledWith('https://x/i.jpg')
+    expect(screen.getAllByRole('radio')).toHaveLength(4)
+    fireEvent.click(screen.getByRole('radio', { name: 'Capa 3' }))
+    expect(p.aoTrocarCapa).toHaveBeenCalledWith(expect.stringMatching(/^data:image\/svg\+xml,/))
+    fireEvent.click(screen.getByRole('button', { name: 'Buscar imagem de capa' }))
+    expect(screen.getByRole('textbox', { name: 'Buscar imagem de capa' })).toHaveProperty('value', 'Reunião')
   })
 })

@@ -318,7 +318,7 @@ export default function MapaDoConteudo({
         <p className="mut" style={{ fontSize: 12.5, marginTop: 10 }}>
           {saldo.total > 0 && `${saldo.pct}% ${rotuloCobertura[ageProfile]} numa rodada.`}
           {typeof historicoDesde === 'number' &&
-            ` O registro do que caiu em cada rodada começou em ${data(new Date(historicoDesde))}; o que você jogou antes disso não aparece aqui.`}
+            ` O registro do que caiu em cada rodada começou em ${data(new Date(historicoDesde))}.`}
         </p>
       )}
 
@@ -441,9 +441,10 @@ export default function MapaDoConteudo({
 
         {/* Excedente ANUNCIADO, com a saída junto: sem isto a pessoa concluiria que o A1 tem 60
             palavras. O filtro é o que faz o resto aparecer, então ele é dito na mesma frase. */}
-        {ordenados.length > MAX_VISIVEL && (
+        {visiveis.length < saldo.total && (
           <p className="mut" style={{ fontSize: 12.5, marginTop: 12 }}>
-            Mostrando {MAX_VISIVEL} de {numero(ordenados.length)}. Filtre para ver o resto.
+            Mostrando {numero(visiveis.length)} de {numero(saldo.total)}
+            {ordenados.length > MAX_VISIVEL ? '. Filtre para ver o resto.' : ''}
           </p>
         )}
       </section>

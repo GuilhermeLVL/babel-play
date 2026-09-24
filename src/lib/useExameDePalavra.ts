@@ -20,7 +20,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { buildGateway } from '../gateway';
 import { getActiveProfile } from '../gateway/activeProfile';
 import type { VocabCard, VocabWord } from '../types';
-import { DEFAULT_LANG_CONFIG, fetchLangConfig, type LangConfig,onLangConfigChange } from './langConfig';
+import { DEFAULT_LANG_CONFIG, fetchLangConfig, type LangConfig, onLangConfigChange } from './langConfig';
 import { baseLang } from './languages';
 import { speak as ttsSpeak } from './tts';
 import { buildVocabWord, resolveWord, type WordOrigin } from './vocabWord';
@@ -43,6 +43,12 @@ export interface ExameDePalavra {
   falar: (word: string) => void;
   velocidade: number;
   setVelocidade: React.Dispatch<React.SetStateAction<number>>;
+  /**
+   * Traduz uma palavra pelo MESMO caminho do analista (idioma resolvido da frase, tradutor do
+   * perfil ativo). `null` quando não há motor para o par ou ele falhou. O "Adicionar palavra" usa
+   * para o campo de tradução deixado em branco.
+   */
+  traduzir: (word: string, sentence?: string) => Promise<{ traducao: string; motor?: string } | null>;
 }
 
 /**
@@ -158,7 +164,17 @@ export function useExameDePalavra(cartoes: VocabCard[], cartoesVotantes: VocabCa
     );
   };
 
+  const traduzir = async (word: string, sentence?: string) => {
+    try {
+      const { vocab } = await buildVocabWord(originOf(word, sentence), gateway.mt);
+      return vocab.translation ? { traducao: vocab.translation, motor: vocab.mtEngine } : null;
+    } catch {
+      return null;
+    }
+  };
+
   return {
+    traduzir,
     langCfg,
     deckLangPair,
     cardFor,

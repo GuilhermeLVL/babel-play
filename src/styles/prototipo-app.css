@@ -15,7 +15,10 @@
 /* No celular vale a posição do protótipo (acima da dock) — repetida aqui só porque a regra de cima
    vem depois da dele. */
 @container app (max-width: 760px) {
-  .fab { bottom: 80px; right: 14px; }
+  .fab {
+    bottom: 80px;
+    right: 14px;
+  }
 }
 
 /* A janela flutuante do iChat e o aviso dele: no protótipo a moldura não tem menu à direita nem barra
@@ -35,4 +38,17 @@
 
 /* O reset do Tailwind (preflight) põe `svg { display: block }`; o protótipo não tem reset, então lá
    o ícone dentro de um botão segmentado fica na linha do texto. Aqui ele volta a ficar. */
-.seg button svg { display: inline-block; vertical-align: -2px; }
+.seg button svg {
+  display: inline-block;
+  vertical-align: -2px;
+}
+
+/* O preflight também zera o tamanho e o peso dos títulos e a numeração das listas. No protótipo o
+   `h3` do título de seção e a lista de sentidos da gaveta ficam com o padrão do navegador. */
+.tsec h3 {
+  font-size: 1.17em;
+  font-weight: 700;
+}
+.sentidos {
+  list-style: decimal;
+}

@@ -11,15 +11,15 @@ import type { ModelPrepState } from '../../components/ModelPrepPanel';
 import { WebSpeechStt } from '../../gateway/adapters/webSpeech';
 import type { SttSession } from '../../gateway/capabilities';
 import {
-type AudioCapture,
-  startMicCapture, startServerLoopbackCapture,
-  startSystemAudioCapture, startSystemLoopbackCapture, } from '../../gateway/capture/systemAudio';
-import { filterLoopbackDevices,listDevices } from '../audioDevices';
+  type AudioCapture,
+  startMicCapture,
+  startServerLoopbackCapture,
+  startSystemAudioCapture,
+  startSystemLoopbackCapture,
+} from '../../gateway/capture/systemAudio';
+import { filterLoopbackDevices, listDevices } from '../audioDevices';
 import { isTtsActive } from '../tts';
-import {
-  clog, formatTime,   type HandlersDaFonte, type SpeechSegment,
-wordsFromText,
-} from './tiposDaFala';
+import { clog, formatTime, type HandlersDaFonte, type SpeechSegment, wordsFromText } from './tiposDaFala';
 import type { OpcoesDeTraducao } from './traducaoDaFala';
 
 /** Tudo que as fontes precisam da tela — por parâmetro, sem contexto novo nem store global. */
@@ -68,15 +68,39 @@ export interface DepsDasFontesDeAudio {
 
 export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
   const {
-    sysHandlers, micHandlers, prepareModels,
-    systemSourceRef, loopbackDeviceIdRef, inputDeviceIdRef,
-    systemCaptureRef, micCaptureRef, webSpeechRef, webSpeechPartialIdRef, meterRef,
-    isRecordingRef, micStartedAtRef, timerRef,
-    sourceLang, sourceLangRef, targetLangRef,
-    micEnabled, systemEnabled, micEngine, webSpeechSupported,
-    pushLevel, nowRel, anchorSessionClock, translateSegment,
-    marcarMicrofone, setSpeechSegments, setFeedbackMsg, setIsFocusMode, setGuiaDeAudio,
-    setModelPrep, setIsRecording, setMicAbrindo,
+    sysHandlers,
+    micHandlers,
+    prepareModels,
+    systemSourceRef,
+    loopbackDeviceIdRef,
+    inputDeviceIdRef,
+    systemCaptureRef,
+    micCaptureRef,
+    webSpeechRef,
+    webSpeechPartialIdRef,
+    meterRef,
+    isRecordingRef,
+    micStartedAtRef,
+    timerRef,
+    sourceLang,
+    sourceLangRef,
+    targetLangRef,
+    micEnabled,
+    systemEnabled,
+    micEngine,
+    webSpeechSupported,
+    pushLevel,
+    nowRel,
+    anchorSessionClock,
+    translateSegment,
+    marcarMicrofone,
+    setSpeechSegments,
+    setFeedbackMsg,
+    setIsFocusMode,
+    setGuiaDeAudio,
+    setModelPrep,
+    setIsRecording,
+    setMicAbrindo,
   } = deps;
 
   // Inicia a captura do áudio do sistema/aba: pede a fonte (gesto do usuário) e prepara o modelo.
@@ -88,35 +112,51 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
     try {
       const cb = {
         onUtterance: sysHandlers.onUtterance,
-        onSpeechStart: (seq: number) => { clog('VAD: início de fala (sistema, seq', seq, ')'); sysHandlers.onSpeechStart(seq); },
+        onSpeechStart: (seq: number) => {
+          clog('VAD: início de fala (sistema, seq', seq, ')');
+          sysHandlers.onSpeechStart(seq);
+        },
         onPartialAudio: sysHandlers.onPartialAudio,
         onMisfire: (seq: number) => sysHandlers.onMisfire(seq),
         onLevel: pushLevel,
-        onStatus: (msg: string) => { clog('sistema:', msg); setFeedbackMsg(msg); setTimeout(() => setFeedbackMsg(''), 4000); },
-        onError: (err: Error) => { clog('sistema ERRO assíncrono:', err.message); setFeedbackMsg('Erro na captura do sistema: ' + err.message); setTimeout(() => setFeedbackMsg(''), 6000); },
+        onStatus: (msg: string) => {
+          clog('sistema:', msg);
+          setFeedbackMsg(msg);
+          setTimeout(() => setFeedbackMsg(''), 4000);
+        },
+        onError: (err: Error) => {
+          clog('sistema ERRO assíncrono:', err.message);
+          setFeedbackMsg('Erro na captura do sistema: ' + err.message);
+          setTimeout(() => setFeedbackMsg(''), 6000);
+        },
       };
-      systemCaptureRef.current = source === 'server'
-        ? await startServerLoopbackCapture(cb)
-        : source === 'loopback'
-          ? await (async () => {
-              /* Sem dispositivo escolhido E sem nenhum candidato (Stereo Mix / VB-Cable) o getUserMedia
+      systemCaptureRef.current =
+        source === 'server'
+          ? await startServerLoopbackCapture(cb)
+          : source === 'loopback'
+            ? await (async () => {
+                /* Sem dispositivo escolhido E sem nenhum candidato (Stereo Mix / VB-Cable) o getUserMedia
                  abriria o MICROFONE padrão, e a pessoa acharia que o "loopback" estava ligado enquanto
                  ouvia o próprio ambiente. Medido no teste do dono (2026-08-26): sem legenda nenhuma.
                  Melhor recusar com o caminho certo do que capturar a fonte errada em silêncio. */
-              if (!loopbackDeviceIdRef.current) {
-                const { inputs } = await listDevices();
-                if (!filterLoopbackDevices(inputs).detected) {
-                  throw new Error('Nenhum dispositivo de loopback (Stereo Mix / VB-Cable) existe neste computador, sem ele, esta rota captaria o microfone. Use "Compartilhar aba/tela" (marque "compartilhar áudio") ou instale o VB-Audio Cable.');
+                if (!loopbackDeviceIdRef.current) {
+                  const { inputs } = await listDevices();
+                  if (!filterLoopbackDevices(inputs).detected) {
+                    throw new Error(
+                      'Nenhum dispositivo de loopback (Stereo Mix / VB-Cable) existe neste computador, sem ele, esta rota captaria o microfone. Use "Compartilhar aba/tela" (marque "compartilhar áudio") ou instale o VB-Audio Cable.',
+                    );
+                  }
                 }
-              }
-              return startSystemLoopbackCapture(loopbackDeviceIdRef.current || undefined, cb);
-            })()
-          : await startSystemAudioCapture(cb);
+                return startSystemLoopbackCapture(loopbackDeviceIdRef.current || undefined, cb);
+              })()
+            : await startSystemAudioCapture(cb);
       clog('captura do sistema ATIVA ✓');
       if (systemCaptureRef.current) anchorSessionClock(systemCaptureRef.current.startedAtMs, 'system');
-      setFeedbackMsg(micEnabled
-        ? 'Captura DUPLA ativa: microfone (você) + sistema/aba (outros). A transcrição do sistema aparece e refina em tempo real.'
-        : 'Capturando áudio do sistema/aba. A transcrição aparece e refina em tempo real (Whisper local).');
+      setFeedbackMsg(
+        micEnabled
+          ? 'Captura DUPLA ativa: microfone (você) + sistema/aba (outros). A transcrição do sistema aparece e refina em tempo real.'
+          : 'Capturando áudio do sistema/aba. A transcrição aparece e refina em tempo real (Whisper local).',
+      );
       setTimeout(() => setFeedbackMsg(''), 5000);
     } catch (err) {
       clog('getDisplayMedia FALHOU:', (err as Error).message);
@@ -152,12 +192,23 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
     try {
       micCaptureRef.current = await startMicCapture(inputDeviceIdRef.current || undefined, {
         onUtterance: micHandlers.onUtterance,
-        onSpeechStart: (seq) => { clog('VAD: início de fala (mic, seq', seq, ')'); micHandlers.onSpeechStart(seq); },
+        onSpeechStart: (seq) => {
+          clog('VAD: início de fala (mic, seq', seq, ')');
+          micHandlers.onSpeechStart(seq);
+        },
         onPartialAudio: micHandlers.onPartialAudio,
         onMisfire: (seq) => micHandlers.onMisfire(seq),
         onLevel: pushLevel,
-        onStatus: (msg) => { clog('mic:', msg); setFeedbackMsg(msg); setTimeout(() => setFeedbackMsg(''), 4000); },
-        onError: (err) => { clog('mic ERRO assíncrono:', err.message); setFeedbackMsg('Erro no microfone: ' + err.message); setTimeout(() => setFeedbackMsg(''), 6000); },
+        onStatus: (msg) => {
+          clog('mic:', msg);
+          setFeedbackMsg(msg);
+          setTimeout(() => setFeedbackMsg(''), 4000);
+        },
+        onError: (err) => {
+          clog('mic ERRO assíncrono:', err.message);
+          setFeedbackMsg('Erro no microfone: ' + err.message);
+          setTimeout(() => setFeedbackMsg(''), 6000);
+        },
       });
       clog('captura do microfone ATIVA ✓');
       micStartedAtRef.current = micCaptureRef.current?.startedAtMs ?? 0;
@@ -171,7 +222,8 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
       setFeedbackMsg((err as Error).message);
       setTimeout(() => setFeedbackMsg(''), 7000);
       setModelPrep((s) => (s?.error ? s : null));
-      if (!systemEnabled) { // mic era a única fonte → encerra a gravação
+      if (!systemEnabled) {
+        // mic era a única fonte → encerra a gravação
         setIsRecording(false);
         isRecordingRef.current = false;
       }
@@ -196,8 +248,16 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
         for (let i = 0; i < buf.length; i++) s += buf[i] * buf[i];
         pushLevel(Math.min(1, Math.sqrt(s / buf.length) * 4));
       }, 50);
-      meterRef.current = { stop: () => { clearInterval(iv); stream.getTracks().forEach(t => t.stop()); ctx.close().catch(() => {}); } };
-    } catch { /* medidor é opcional */ }
+      meterRef.current = {
+        stop: () => {
+          clearInterval(iv);
+          stream.getTracks().forEach((t) => t.stop());
+          ctx.close().catch(() => {});
+        },
+      };
+    } catch {
+      /* medidor é opcional */
+    }
   };
 
   // MICROFONE via Web Speech API (navegador) — motor PADRÃO: leve, sem baixar modelo, ótimo p/
@@ -215,32 +275,65 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
           if (!clean) return;
           if (!webSpeechPartialIdRef.current) webSpeechPartialIdRef.current = Math.random().toString(36).slice(2, 11);
           const pid = webSpeechPartialIdRef.current;
-          setSpeechSegments(prev => {
-            const idx = prev.findIndex(s => s.id === pid);
-            if (idx !== -1) { const u = [...prev]; u[idx] = { ...u[idx], originalText: clean }; return u; }
-            return [...prev, { id: pid, speakerId, source: 'mic' as const, timestamp: formatTime(timerRef.current), originalText: clean, translatedText: '…', words: [], isPartial: true, tStartMs: nowRel() }];
+          setSpeechSegments((prev) => {
+            const idx = prev.findIndex((s) => s.id === pid);
+            if (idx !== -1) {
+              const u = [...prev];
+              u[idx] = { ...u[idx], originalText: clean };
+              return u;
+            }
+            return [
+              ...prev,
+              {
+                id: pid,
+                speakerId,
+                source: 'mic' as const,
+                timestamp: formatTime(timerRef.current),
+                originalText: clean,
+                translatedText: '…',
+                words: [],
+                isPartial: true,
+                tStartMs: nowRel(),
+              },
+            ];
           });
         },
         onFinal: ({ text }: { text: string }) => {
-          if (isTtsActive()) { webSpeechPartialIdRef.current = null; return; } // anti-eco no final também
+          if (isTtsActive()) {
+            webSpeechPartialIdRef.current = null;
+            return;
+          } // anti-eco no final também
           const clean = text.trim();
           if (!clean) return;
           const uttId = webSpeechPartialIdRef.current ?? Math.random().toString(36).slice(2, 11);
           webSpeechPartialIdRef.current = null;
-          setSpeechSegments(prev => {
-            const existing = prev.find(s => s.id === uttId);
+          setSpeechSegments((prev) => {
+            const existing = prev.find((s) => s.id === uttId);
             const committed: SpeechSegment = {
-              id: uttId, speakerId, source: 'mic', timestamp: formatTime(timerRef.current),
-              originalText: clean, translatedText: '…', words: wordsFromText(clean, sourceLang), isPartial: false,
-              tStartMs: existing?.tStartMs ?? nowRel(), tEndMs: nowRel(),
+              id: uttId,
+              speakerId,
+              source: 'mic',
+              timestamp: formatTime(timerRef.current),
+              originalText: clean,
+              translatedText: '…',
+              words: wordsFromText(clean, sourceLang),
+              isPartial: false,
+              tStartMs: existing?.tStartMs ?? nowRel(),
+              tEndMs: nowRel(),
             };
-            const idx = prev.findIndex(s => s.id === uttId);
-            if (idx !== -1) { const u = [...prev]; u[idx] = committed; return u; }
+            const idx = prev.findIndex((s) => s.id === uttId);
+            if (idx !== -1) {
+              const u = [...prev];
+              u[idx] = committed;
+              return u;
+            }
             return [...prev, committed];
           });
           translateSegment(uttId, clean, from, to, { falada: true });
         },
-        onError: (e: Error) => { clog('web-speech mic erro:', String(e)); },
+        onError: (e: Error) => {
+          clog('web-speech mic erro:', String(e));
+        },
       });
       clog('microfone (Web Speech) ATIVO ✓');
       void startMeter(); // waveform real (a Web Speech não fornece nível)
@@ -251,7 +344,10 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
     } catch (e) {
       setFeedbackMsg('Web Speech indisponível: ' + (e as Error).message + ', troque para o motor Whisper.');
       setTimeout(() => setFeedbackMsg(''), 5000);
-      if (!systemEnabled) { setIsRecording(false); isRecordingRef.current = false; }
+      if (!systemEnabled) {
+        setIsRecording(false);
+        isRecordingRef.current = false;
+      }
     }
   };
 
@@ -281,6 +377,12 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
    */
   const alternarMicrofone = (ligado: boolean) => {
     marcarMicrofone(ligado);
+    // O aviso do protótipo, gravando ou não: diz o que o botão acabou de mudar.
+    setFeedbackMsg(
+      ligado
+        ? 'Microfone ativo: a sua voz entra e é separada das outras'
+        : 'Microfone mudo: só o som do computador entra',
+    );
     if (!isRecordingRef.current) return; // (1) fora da sessão: só a preferência
 
     if (!ligado) {
@@ -288,25 +390,26 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
       /* O motor NAVEGADOR (Web Speech) não grava áudio nenhum — não há blob para preservar,
          então encerrar o reconhecedor É o mudo dele. Ao desmutar, começa outro. */
       if (webSpeechRef.current) {
-        try { webSpeechRef.current.stop(); } catch { /* já parado */ }
+        try {
+          webSpeechRef.current.stop();
+        } catch {
+          /* já parado */
+        }
         webSpeechRef.current = null;
         webSpeechPartialIdRef.current = null;
       }
       clog('microfone MUDO no meio da sessão');
-      setFeedbackMsg('Microfone mudo, só o som do computador entra agora.');
-      setTimeout(() => setFeedbackMsg(''), 2500);
       return;
     }
 
-    if (micCaptureRef.current) {                       // (3) já aberto: só desmuta
+    if (micCaptureRef.current) {
+      // (3) já aberto: só desmuta
       micCaptureRef.current.setMuted(false);
       clog('microfone ATIVO de novo (faixa reabilitada)');
-      setFeedbackMsg('Microfone ativo, sua fala entra a partir de agora.');
-      setTimeout(() => setFeedbackMsg(''), 2500);
       return;
     }
 
-    clog('microfone ATIVO no meio da sessão: abrindo a captura agora');  // (2) primeira vez
+    clog('microfone ATIVO no meio da sessão: abrindo a captura agora'); // (2) primeira vez
     setMicAbrindo(true);
     void startMic().finally(() => setMicAbrindo(false));
   };

@@ -16,20 +16,20 @@
  * opus-mt baixam ARQUIVOS DIFERENTES, e a versão antiga classificava tudo isso como "em cache".
  */
 
-const PREFIXO = 'babel.modelManifest.'
+const PREFIXO = 'babel.modelManifest.';
 
 export interface ArquivoDoModelo {
-  url: string
-  bytes: number
+  url: string;
+  bytes: number;
 }
 
 export interface ManifestoDeModelo {
-  modelId: string
-  dtype: string
-  device: string
-  arquivos: ArquivoDoModelo[]
+  modelId: string;
+  dtype: string;
+  device: string;
+  arquivos: ArquivoDoModelo[];
   /** Soma do que REALMENTE ficou no Cache Storage no momento do registro. */
-  bytesTotais: number
+  bytesTotais: number;
   /**
    * Bytes que o download entregou, segundo o agregado da lib (`progress_total.total`).
    *
@@ -39,17 +39,17 @@ export interface ManifestoDeModelo {
    * (cenário 11/quota reduzida). Ausente em manifestos legados, onde a checagem degrada para o
    * comportamento anterior.
    */
-  bytesEsperados?: number
-  gravadoEm: number
+  bytesEsperados?: number;
+  gravadoEm: number;
 }
 
 export function chaveDoManifesto(modelId: string, dtype: string, device: string): string {
-  return `${PREFIXO}${modelId}|${dtype}|${device}`
+  return `${PREFIXO}${modelId}|${dtype}|${device}`;
 }
 
 export function gravarManifesto(m: ManifestoDeModelo): void {
   try {
-    localStorage.setItem(chaveDoManifesto(m.modelId, m.dtype, m.device), JSON.stringify(m))
+    localStorage.setItem(chaveDoManifesto(m.modelId, m.dtype, m.device), JSON.stringify(m));
   } catch {
     // localStorage cheio ou indisponível — degrada para "não está em cache", que é o lado seguro.
   }
@@ -57,29 +57,28 @@ export function gravarManifesto(m: ManifestoDeModelo): void {
 
 export function lerManifesto(modelId: string, dtype: string, device: string): ManifestoDeModelo | null {
   try {
-    const cru = localStorage.getItem(chaveDoManifesto(modelId, dtype, device))
-    if (!cru) return null
-    const m = JSON.parse(cru) as ManifestoDeModelo
-    if (!m || !Array.isArray(m.arquivos)) return null
-    return m
+    const cru = localStorage.getItem(chaveDoManifesto(modelId, dtype, device));
+    if (!cru) return null;
+    const m = JSON.parse(cru) as ManifestoDeModelo;
+    if (!m || !Array.isArray(m.arquivos)) return null;
+    return m;
   } catch {
-    return null
+    return null;
   }
 }
 
-
 export interface EstadoDoCache {
-  completo: boolean
-  motivo?: 'sem-manifesto' | 'incompleto' | 'gravacao-parcial'
-  faltando: string[]
-  truncados: string[]
-  bytesFaltando: number
-  bytesTotais: number
+  completo: boolean;
+  motivo?: 'sem-manifesto' | 'incompleto' | 'gravacao-parcial';
+  faltando: string[];
+  truncados: string[];
+  bytesFaltando: number;
+  bytesTotais: number;
 }
 
 /** Subconjunto do Cache que usamos — declarado para o teste poder injetar um falso. */
 interface CacheLike {
-  match(req: string | { url: string }): Promise<{ blob(): Promise<{ size: number }> } | undefined>
+  match(req: string | { url: string }): Promise<{ blob(): Promise<{ size: number }> } | undefined>;
 }
 
 /**
@@ -94,9 +93,9 @@ export async function modeloEstaCompleto(
   dtype: string,
   device: string,
 ): Promise<EstadoDoCache> {
-  const m = lerManifesto(modelId, dtype, device)
+  const m = lerManifesto(modelId, dtype, device);
   if (!m) {
-    return { completo: false, motivo: 'sem-manifesto', faltando: [], truncados: [], bytesFaltando: 0, bytesTotais: 0 }
+    return { completo: false, motivo: 'sem-manifesto', faltando: [], truncados: [], bytesFaltando: 0, bytesTotais: 0 };
   }
 
   // A gravação no cache pode ter falhado no meio (quota) e o manifesto registrado menos do que o
@@ -110,31 +109,31 @@ export async function modeloEstaCompleto(
       truncados: [],
       bytesFaltando: m.bytesEsperados - m.bytesTotais,
       bytesTotais: m.bytesEsperados,
-    }
+    };
   }
 
-  const faltando: string[] = []
-  const truncados: string[] = []
-  let bytesFaltando = 0
+  const faltando: string[] = [];
+  const truncados: string[] = [];
+  let bytesFaltando = 0;
 
   for (const arq of m.arquivos) {
-    let tamanho: number | null = null
+    let tamanho: number | null = null;
     try {
-      const res = await cache.match(arq.url)
-      if (res) tamanho = (await res.blob()).size
+      const res = await cache.match(arq.url);
+      if (res) tamanho = (await res.blob()).size;
     } catch {
-      tamanho = null
+      tamanho = null;
     }
     if (tamanho == null) {
-      faltando.push(arq.url)
-      bytesFaltando += arq.bytes
+      faltando.push(arq.url);
+      bytesFaltando += arq.bytes;
     } else if (tamanho !== arq.bytes) {
-      truncados.push(arq.url)
-      bytesFaltando += Math.max(0, arq.bytes - tamanho)
+      truncados.push(arq.url);
+      bytesFaltando += Math.max(0, arq.bytes - tamanho);
     }
   }
 
-  const completo = faltando.length === 0 && truncados.length === 0
+  const completo = faltando.length === 0 && truncados.length === 0;
   return {
     completo,
     motivo: completo ? undefined : 'incompleto',
@@ -142,7 +141,7 @@ export async function modeloEstaCompleto(
     truncados,
     bytesFaltando,
     bytesTotais: m.bytesTotais,
-  }
+  };
 }
 
 /**
@@ -157,35 +156,42 @@ export async function modeloEstaCompleto(
  * o falso-positivo anterior (uma entrada qualquer bastava) e, com o progresso agora por bytes
  * reais, o usuário vê o que está acontecendo em vez de uma afirmação falsa.
  */
-export async function modeloDisponivel(
-  modelId: string,
-  nomeDoCache = 'transformers-cache',
-): Promise<EstadoDoCache> {
-  const vazio: EstadoDoCache = { completo: false, motivo: 'sem-manifesto', faltando: [], truncados: [], bytesFaltando: 0, bytesTotais: 0 }
+export async function modeloDisponivel(modelId: string, nomeDoCache = 'transformers-cache'): Promise<EstadoDoCache> {
+  const vazio: EstadoDoCache = {
+    completo: false,
+    motivo: 'sem-manifesto',
+    faltando: [],
+    truncados: [],
+    bytesFaltando: 0,
+    bytesTotais: 0,
+  };
   try {
-    if (typeof caches === 'undefined') return vazio
-    const chaves: string[] = []
+    if (typeof caches === 'undefined') return vazio;
+    const chaves: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i)
-      if (k && k.startsWith(PREFIXO) && k.includes(modelId)) chaves.push(k)
+      const k = localStorage.key(i);
+      if (k && k.startsWith(PREFIXO) && k.includes(modelId)) chaves.push(k);
     }
-    if (!chaves.length) return vazio
+    if (!chaves.length) return vazio;
 
-    const cache = await caches.open(nomeDoCache)
-    let melhor: EstadoDoCache = vazio
+    const cache = await caches.open(nomeDoCache);
+    let melhor: EstadoDoCache = vazio;
     for (const k of chaves) {
-      const [, dtype, device] = k.slice(PREFIXO.length).split('|')
-      const r = await modeloEstaCompleto(cache as never, modelId, dtype, device)
-      if (r.completo) return r
+      const [, dtype, device] = k.slice(PREFIXO.length).split('|');
+      const r = await modeloEstaCompleto(cache as never, modelId, dtype, device);
+      if (r.completo) return r;
       // Guarda o mais próximo de completo, para a UI poder dizer quanto falta E por quê.
       // (Incluir 'gravacao-parcial' importa: sem isso o motivo virava 'sem-manifesto' e a UI
       // perdia a informação de que o cache existe, só não coube.)
-      if ((r.motivo === 'incompleto' || r.motivo === 'gravacao-parcial') &&
-          (melhor.motivo === 'sem-manifesto' || r.bytesFaltando < melhor.bytesFaltando)) melhor = r
+      if (
+        (r.motivo === 'incompleto' || r.motivo === 'gravacao-parcial') &&
+        (melhor.motivo === 'sem-manifesto' || r.bytesFaltando < melhor.bytesFaltando)
+      )
+        melhor = r;
     }
-    return melhor
+    return melhor;
   } catch {
-    return vazio
+    return vazio;
   }
 }
 
@@ -201,16 +207,16 @@ export async function registrarModeloBaixado(
   nomeDoCache = 'transformers-cache',
 ): Promise<ManifestoDeModelo | null> {
   try {
-    if (typeof caches === 'undefined') return null
-    const cache = await caches.open(nomeDoCache)
-    const arquivos: ArquivoDoModelo[] = []
+    if (typeof caches === 'undefined') return null;
+    const cache = await caches.open(nomeDoCache);
+    const arquivos: ArquivoDoModelo[] = [];
     for (const req of await cache.keys()) {
-      if (!decodeURIComponent(req.url).includes(modelId)) continue
-      const res = await cache.match(req)
-      if (!res) continue
-      arquivos.push({ url: req.url, bytes: (await res.blob()).size })
+      if (!decodeURIComponent(req.url).includes(modelId)) continue;
+      const res = await cache.match(req);
+      if (!res) continue;
+      arquivos.push({ url: req.url, bytes: (await res.blob()).size });
     }
-    if (!arquivos.length) return null
+    if (!arquivos.length) return null;
     const m: ManifestoDeModelo = {
       modelId,
       dtype,
@@ -219,10 +225,54 @@ export async function registrarModeloBaixado(
       bytesTotais: arquivos.reduce((a, b) => a + b.bytes, 0),
       bytesEsperados,
       gravadoEm: Date.now(),
-    }
-    gravarManifesto(m)
-    return m
+    };
+    gravarManifesto(m);
+    return m;
   } catch {
-    return null
+    return null;
   }
+}
+
+/** Quando a cópia mais recente deste modelo foi gravada no navegador (o "baixado em" do protótipo). */
+export function baixadoEm(modelId: string): number | null {
+  let maisNova: number | null = null;
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k || !k.startsWith(PREFIXO) || !k.includes(modelId)) continue;
+      const m = JSON.parse(localStorage.getItem(k) ?? 'null') as ManifestoDeModelo | null;
+      if (m?.gravadoEm && (maisNova === null || m.gravadoEm > maisNova)) maisNova = m.gravadoEm;
+    }
+  } catch {
+    return maisNova;
+  }
+  return maisNova;
+}
+
+/**
+ * "Liberar espaço": apaga do Cache Storage os arquivos deste modelo e os manifestos dele. A próxima
+ * captura baixa tudo de novo. Devolve quantos bytes saíram.
+ */
+export async function apagarModelo(modelId: string, nomeDoCache = 'transformers-cache'): Promise<number> {
+  let bytes = 0;
+  if (typeof caches !== 'undefined') {
+    const cache = await caches.open(nomeDoCache);
+    for (const req of await cache.keys()) {
+      if (!decodeURIComponent(req.url).includes(modelId)) continue;
+      const res = await cache.match(req);
+      if (res) bytes += (await res.blob()).size;
+      await cache.delete(req);
+    }
+  }
+  try {
+    const chaves: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(PREFIXO) && k.includes(modelId)) chaves.push(k);
+    }
+    chaves.forEach((k) => localStorage.removeItem(k));
+  } catch {
+    /* sem localStorage: os manifestos já não valiam */
+  }
+  return bytes;
 }

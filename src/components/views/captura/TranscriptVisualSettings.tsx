@@ -60,7 +60,7 @@ const CAMPOS: Array<{
 ];
 
 /** As classes da prévia no vocabulário do protótipo (`tema-*`, `tam-*`, `fonte-*`). */
-const TEMA: Record<TranscriptSettings['textColor'], string> = {
+export const TEMA: Record<TranscriptSettings['textColor'], string> = {
   standard: 'padrao',
   highContrast: 'contraste',
   sepia: 'sepia',

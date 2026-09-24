@@ -1,8 +1,8 @@
-import { ArrowRight, Check, ImagePlus, Info, Loader2, Search, Square, Trash2 } from 'lucide-react';
+import { ArrowRight, Info, Square, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
-import type { ImageResult } from '../../../data/rotas/imagens';
 import { Dialogo } from '../../ui';
+import SeletorDeCapa from '../../ui/SeletorDeCapa';
 
 /**
  * ENCERRAR A SESSÃO — o `dialogoEncerrar()` do protótipo aprovado (C8), aberto ao parar a captura.
@@ -10,24 +10,20 @@ import { Dialogo } from '../../ui';
  * Título, a fileira de capas `.capas` e o rodapé com as quatro saídas: descartar (com confirmação,
  * como no protótipo), continuar gravando, salvar e ficar, salvar e ir para a análise.
  *
- * As capas são as do app, não os gradientes do protótipo: "Padrão" (o ícone do tipo de mídia), a
- * capa já escolhida e os resultados da busca de imagens (Openverse, sem chave). O botão de imagem
- * abre a busca e o endereço; colar com Ctrl+V e escolher um arquivo continuam valendo.
+ * A fileira de capas é a `SeletorDeCapa` (a mesma de "Editar sessão" na Biblioteca): as quatro capas
+ * do protótipo, a escolhida e a busca de imagens; colar com Ctrl+V e escolher um arquivo valem.
  * O protótipo diz ainda quantas palavras novas foram para o caderno: esse número só existe depois
  * de salvar (o vocabulário é fichado em seguida), então fica de fora.
  */
 export default function EncerrarSessao({
   resumo,
+  nFalas,
   retomada,
   titulo,
   aoTrocarTitulo,
   capa,
   aoTrocarCapa,
-  busca,
-  aoTrocarBusca,
-  aoBuscar,
-  buscando,
-  resultados,
+  buscaInicial,
   aoEscolherArquivo,
   aoContinuar,
   aoSalvar,
@@ -35,17 +31,16 @@ export default function EncerrarSessao({
 }: {
   /** "N falas · mm:ss" */
   resumo: string;
+  /** Quantas falas somem se descartar. */
+  nFalas: number;
   /** Sessão retomada: salvar atualiza o mesmo item da Biblioteca. */
   retomada: boolean;
   titulo: string;
   aoTrocarTitulo: (v: string) => void;
   capa: string;
   aoTrocarCapa: (v: string) => void;
-  busca: string;
-  aoTrocarBusca: (v: string) => void;
-  aoBuscar: () => void;
-  buscando: boolean;
-  resultados: ImageResult[];
+  /** Termo já preenchido na busca de capa (o título da sessão). */
+  buscaInicial: string;
   aoEscolherArquivo: () => void;
   /** Continuar gravando (também é o que o Esc faz). */
   aoContinuar: () => void;
@@ -53,19 +48,13 @@ export default function EncerrarSessao({
   aoDescartar: () => void;
 }) {
   const [descartando, setDescartando] = useState(false);
-  const [buscaAberta, setBuscaAberta] = useState(false);
-
-  const opcoes: Array<{ url: string; thumb: string; rotulo: string }> = [
-    ...(capa && !resultados.some((r) => r.url === capa) ? [{ url: capa, thumb: capa, rotulo: 'Capa escolhida' }] : []),
-    ...resultados.slice(0, 7).map((r) => ({ url: r.url, thumb: r.thumbnail, rotulo: r.title || 'Capa' })),
-  ];
 
   if (descartando) {
     return (
       <Dialogo
         icone={Trash2}
         titulo="Descartar esta captura?"
-        sub="As falas desta captura somem. Não dá para desfazer."
+        sub={`${nFalas === 1 ? 'A fala desta captura some' : `As ${nFalas} falas desta captura somem`}. Não dá para desfazer.`}
         largura=""
         aoFechar={() => setDescartando(false)}
       >
@@ -103,66 +92,13 @@ export default function EncerrarSessao({
             placeholder="Um título para a sessão"
           />
         </div>
-        <div>
-          <span className="label-mono">Capa</span>
-          <div className="capas" role="radiogroup" aria-label="Capa">
-            <button
-              type="button"
-              className="capa-op"
-              role="radio"
-              aria-checked={capa === ''}
-              aria-label="Padrão"
-              title="Padrão: o ícone do tipo de mídia"
-              style={{ background: 'linear-gradient(135deg,var(--accent),var(--warn))' }}
-              onClick={() => aoTrocarCapa('')}
-            >
-              {capa === '' && <Check aria-hidden />}
-            </button>
-            {opcoes.map((o) => (
-              <button
-                key={o.url}
-                type="button"
-                className="capa-op"
-                role="radio"
-                aria-checked={capa === o.url}
-                aria-label={o.rotulo}
-                title={o.rotulo}
-                style={{ background: `center / cover no-repeat url("${o.thumb.replace(/"/g, '%22')}")` }}
-                onClick={() => aoTrocarCapa(o.url)}
-              >
-                {capa === o.url && <Check aria-hidden />}
-              </button>
-            ))}
-            <button
-              type="button"
-              className="capa-op mais"
-              aria-label="Buscar imagem de capa"
-              aria-expanded={buscaAberta}
-              onClick={() => setBuscaAberta((v) => !v)}
-            >
-              <ImagePlus aria-hidden />
-            </button>
-          </div>
-          {buscaAberta && (
-            <div className="pilha entra" style={{ marginTop: 10 }}>
-              <div className="linha" style={{ gap: 8 }}>
-                <label className="busca" style={{ flex: 1, maxWidth: 'none' }}>
-                  <Search aria-hidden />
-                  <span className="sr">Buscar imagem de capa</span>
-                  <input
-                    className="campo"
-                    value={busca}
-                    placeholder="Ex.: reunião, arquitetura, oceano…"
-                    onChange={(e) => aoTrocarBusca(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') aoBuscar();
-                    }}
-                  />
-                </label>
-                <button type="button" className="btn btn-outline" onClick={aoBuscar} disabled={buscando}>
-                  {buscando ? <Loader2 aria-hidden className="animate-spin" /> : <Search aria-hidden />} Buscar
-                </button>
-              </div>
+        <SeletorDeCapa
+          capa={capa}
+          aoTrocar={aoTrocarCapa}
+          buscaInicial={buscaInicial}
+          aoEscolherArquivo={aoEscolherArquivo}
+          extraDaBusca={
+            <>
               <label className="sr" htmlFor="enc-capa-url">
                 Endereço de uma imagem
               </label>
@@ -173,16 +109,9 @@ export default function EncerrarSessao({
                 placeholder="Ou cole o endereço de uma imagem: https://…"
                 onChange={(e) => aoTrocarCapa(e.target.value)}
               />
-            </div>
-          )}
-          <p className="mut aj" style={{ marginTop: 6 }}>
-            Também dá para colar uma imagem com <kbd>Ctrl</kbd>+<kbd>V</kbd> ou{' '}
-            <button type="button" className="link" onClick={aoEscolherArquivo}>
-              escolher um arquivo
-            </button>
-            .
-          </p>
-        </div>
+            </>
+          }
+        />
       </div>
       <div className="dlg-pe col-celular">
         <button

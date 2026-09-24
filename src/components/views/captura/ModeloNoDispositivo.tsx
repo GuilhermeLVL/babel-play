@@ -1,7 +1,14 @@
-import { Check, Cpu, Download, Trash2, TriangleAlert } from 'lucide-react';
+import { Check, Cpu, Download, RefreshCw, Trash2, TriangleAlert } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-import { apagarModelo, baixadoEm, type EstadoDoCache, modeloDisponivel } from '../../../gateway/modelManifest';
+import {
+  apagarModelo,
+  baixadoEm,
+  type EstadoDoCache,
+  modeloDisponivel,
+  type SituacaoDaVersao,
+  situacaoDaVersao,
+} from '../../../gateway/modelManifest';
 import { data } from '../../../lib/i18n';
 import { toast } from '../../Toast';
 import { Dialogo, fecharDialogoDe } from '../../ui';
@@ -14,9 +21,10 @@ import { Dialogo, fecharDialogoDe } from '../../ui';
  * Cache Storage de verdade (`modeloDisponivel`, validado arquivo a arquivo): pronto, incompleto
  * (com quanto falta) ou "baixa na primeira captura". O tamanho é o medido no cache; sem cópia, o
  * estimado pelo roteador; a data é a do manifesto gravado quando o download terminou.
- * "Liberar espaço" apaga os arquivos do Cache Storage (com a confirmação do protótipo). FICA DE
- * FORA "Procurar atualização": os modelos vêm do Hugging Face sem número de versão guardado aqui,
- * então não há com o que comparar.
+ * "Liberar espaço" apaga os arquivos do Cache Storage (com a confirmação do protótipo).
+ * "Procurar atualização" pergunta ao Hugging Face qual é a versão publicada (o commit) e compara com
+ * a que o download guardou no manifesto (`situacaoDaVersao`). Com versão nova, "Atualizar" apaga a
+ * cópia antiga e a próxima captura baixa a nova.
  */
 export interface ModeloDaCaptura {
   id: string;
@@ -45,6 +53,9 @@ export default function ModeloNoDispositivo({
   const [estados, setEstados] = useState<Record<string, EstadoDoCache | undefined>>({});
   const [apagando, setApagando] = useState<'nao' | 'confirmar' | 'rodando'>('nao');
   const [versao, setVersao] = useState(0);
+  /** O que "Procurar atualização" achou para cada modelo (nada antes de procurar). */
+  const [versoes, setVersoes] = useState<Record<string, SituacaoDaVersao>>({});
+  const [procurando, setProcurando] = useState(false);
   const chave = modelos.map((m) => m.id).join('|');
 
   useEffect(() => {
@@ -67,6 +78,38 @@ export default function ModeloNoDispositivo({
     setEstados({});
     setVersao((v) => v + 1);
     toast.ok(`Modelos apagados: ${mb(bytes)} MB liberados`);
+  };
+
+  const procurarAtualizacao = async () => {
+    const baixados = modelos.filter((m) => estados[m.id]?.completo);
+    if (!baixados.length) return;
+    setProcurando(true);
+    const pares = await Promise.all(baixados.map(async (m) => [m.id, await situacaoDaVersao(m.id)] as const));
+    setProcurando(false);
+    setVersoes(Object.fromEntries(pares));
+    const sit = pares.map(([, v]) => v);
+    const velhos = sit.filter((v) => v === 'desatualizado').length;
+    if (velhos) toast.info(velhos === 1 ? 'Há uma versão nova de um modelo' : `Há versão nova de ${velhos} modelos`);
+    else if (sit.includes('sem-rede')) toast.info('Sem conexão com o Hugging Face: não deu para conferir agora');
+    else
+      toast.ok(
+        baixados.length === 1
+          ? 'O modelo está na versão mais nova'
+          : `Os ${baixados.length === 2 ? 'dois' : baixados.length} modelos estão na versão mais nova`,
+      );
+  };
+
+  /** Atualizar = apagar a cópia antiga; a próxima captura baixa a versão publicada. */
+  const atualizar = async (m: ModeloDaCaptura) => {
+    const bytes = await apagarModelo(m.id).catch(() => 0);
+    setVersoes((v) => {
+      const resto = { ...v };
+      delete resto[m.id];
+      return resto;
+    });
+    setEstados({});
+    setVersao((n) => n + 1);
+    toast.ok(`Versão antiga apagada (${mb(bytes)} MB): a nova baixa na próxima captura`);
   };
 
   const total = modelos.reduce((soma, m) => soma + (estados[m.id]?.completo ? estados[m.id]!.bytesTotais : 0), 0);
@@ -129,9 +172,18 @@ export default function ModeloNoDispositivo({
                   {e && !e.completo && e.motivo !== 'sem-manifesto' && e.bytesFaltando > 0
                     ? ` · faltam ${mb(e.bytesFaltando)} MB`
                     : ''}
+                  {versoes[m.id] === 'atual'
+                    ? ' · versão atual'
+                    : versoes[m.id] === 'desatualizado'
+                      ? ' · versão nova disponível'
+                      : ''}
                 </small>
               </div>
-              {!e ? (
+              {versoes[m.id] === 'desatualizado' ? (
+                <button type="button" className="btn btn-outline peq" onClick={() => void atualizar(m)}>
+                  <Download aria-hidden /> Atualizar
+                </button>
+              ) : !e ? (
                 <span className="badge neu">verificando…</span>
               ) : e.completo ? (
                 <span className="badge ok">
@@ -170,6 +222,14 @@ export default function ModeloNoDispositivo({
           onClick={() => setApagando('confirmar')}
         >
           <Trash2 aria-hidden /> Liberar espaço
+        </button>
+        <button
+          type="button"
+          className="btn btn-outline"
+          disabled={!conferido || total === 0 || procurando}
+          onClick={() => void procurarAtualizacao()}
+        >
+          <RefreshCw aria-hidden /> {procurando ? 'Procurando…' : 'Procurar atualização'}
         </button>
         <button type="button" className="btn btn-solid" onClick={(e) => fecharDialogoDe(e.currentTarget)}>
           Fechar

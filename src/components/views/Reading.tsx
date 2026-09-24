@@ -36,6 +36,14 @@ import { ficharCartao } from '../../lib/adicionarAoDeck';
 import { useLangConfig } from '../../lib/langConfig';
 import { detectLanguage, hasNativeDetector, type LangDetection } from '../../lib/langDetect';
 import { baseLang, langLabel, toBcp47 } from '../../lib/languages';
+import {
+  type Anotacao,
+  anotarFrase,
+  lerAnotacoes,
+  notaDaFrase,
+  type TipoDeNota,
+  TIPOS_DE_NOTA,
+} from '../../lib/leitura/anotacaoDaFrase';
 import { micErrorMessage } from '../../lib/mediaErrors';
 import { usePopoverDePalavra } from '../../lib/popoverDePalavra';
 import type { ExerciseId, PracticeSeed } from '../../lib/sentences';
@@ -47,7 +55,7 @@ import { Recording, VocabCard, VocabWord } from '../../types';
 import EditablePanel from '../EditablePanel';
 import LangPicker from '../LangPicker';
 import PopoverFlutuante from '../PopoverFlutuante';
-import { askConfirm, toast } from '../Toast';
+import { toast } from '../Toast';
 import { IconeEmBloco, TituloDeSecao } from '../ui';
 import VocabularyPanel from '../VocabularyPanel';
 
@@ -107,27 +115,8 @@ interface WordPreview {
   context: string; // frase de contexto em que a palavra aparece
 }
 
-interface Annotation {
-  id: string;
-  type: 'highlight' | 'note' | 'audio';
-  textIndex: number;
-  wordIndex: string;
-  wordText: string;
-  content?: string;
-  color?: string;
-  audioUrl?: string;
-  createdAt: number;
-}
-
-type ReadingTool =
-  | 'none'
-  | 'highlight-yellow'
-  | 'highlight-green'
-  | 'highlight-blue'
-  | 'highlight-pink'
-  | 'note'
-  | 'audio'
-  | 'eraser';
+/** As anotações da Leitura (por frase; e as antigas, por palavra): `lib/leitura/anotacaoDaFrase`. */
+type Annotation = Anotacao;
 
 interface ReadingProps {
   recording?: Recording;
@@ -372,7 +361,8 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
   /* Espelho síncrono da pausa: o `onend` da utterance dispara no PAUSE em vários Chromes e
      encadeava a próxima frase — era o "cliquei em pausar e ele recomeçou". */
   const narrationPausedRef = useRef(false);
-  const [selectedTool, setSelectedTool] = useState<ReadingTool>('none');
+  /** A frase clicada no modo interativo: abre a "Anotação semântica" (protótipo). */
+  const [fraseEscolhida, setFraseEscolhida] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<'original' | 'bilingual-intercalated' | 'bilingual-side-by-side'>(
     'bilingual-intercalated',
   );
@@ -395,8 +385,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
   const chaveDasNotas = `readingAnnotations:${recording?.id ?? 'sem-sessao'}`;
   const lerNotas = (chave: string): Annotation[] => {
     try {
-      const salvo = localStorage.getItem(chave);
-      return salvo ? (JSON.parse(salvo) as Annotation[]) : [];
+      return lerAnotacoes(localStorage.getItem(chave));
     } catch {
       return [];
     }
@@ -407,6 +396,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
     if (notasDe.current === chaveDasNotas) return;
     notasDe.current = chaveDasNotas;
     setAnnotations(lerNotas(chaveDasNotas));
+    setFraseEscolhida(null);
   }, [chaveDasNotas]);
 
   useEffect(() => {
@@ -514,9 +504,8 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
   };
 
   // Audio Recording States
-  const [recordingTarget, setRecordingTarget] = useState<{ tIndex: number; wIndex: string; wordText: string } | null>(
-    null,
-  );
+  /** A frase que recebe o comentário em áudio ("Áudio" da Anotação semântica). */
+  const [recordingTarget, setRecordingTarget] = useState<{ tIndex: number; wordText: string } | null>(null);
   const [isRecordingAudio, setIsRecordingAudio] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [playbackAudioUrl, setPlaybackAudioUrl] = useState<string | null>(null);
@@ -528,10 +517,6 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<number | null>(null);
-
-  // Note dialog state
-  const [noteTarget, setNoteTarget] = useState<{ tIndex: number; wIndex: string; wordText: string } | null>(null);
-  const [noteTextInput, setNoteTextInput] = useState('');
 
   // Speech Narration States
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
@@ -673,18 +658,12 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
   const saveRecordedAudio = () => {
     if (!recordingTarget || (!playbackAudioUrl && !recordedBase64)) return;
 
-    setAnnotations([
-      ...annotations,
-      {
-        id: `ann-${Date.now()}`,
-        type: 'audio',
-        textIndex: recordingTarget.tIndex,
-        wordIndex: recordingTarget.wIndex,
-        wordText: recordingTarget.wordText,
+    setAnnotations(
+      anotarFrase(annotations, recordingTarget.tIndex, 'audio', {
         audioUrl: recordedBase64 || playbackAudioUrl || '',
-        createdAt: Date.now(),
-      },
-    ]);
+      }),
+    );
+    toast.ok('Comentário em áudio gravado para esta frase');
 
     setRecordingTarget(null);
     setPlaybackAudioUrl(null);
@@ -985,69 +964,27 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
     [],
   );
 
-  const handleWordClick = (tIndex: number, wIndex: string, wordText: string) => {
-    if (selectedTool === 'none') {
-      // Sem ferramenta de anotação: pronuncia a palavra E abre o Analista de Vocabulário
-      // (o hover continua sendo só a prévia leve; o clique abre a análise completa).
-      // A pronúncia usa o idioma da FRASE (tIndex) — não o da sessão —, logo acerta mesmo quando o
-      // transcript mistura idiomas, e sai na voz que o usuário escolheu para aquele idioma.
-      playWordTTS(wordText, tIndex);
-      // `\p{L}` (Unicode) em vez de [a-zA-Z]: o filtro ASCII destruía palavras acentuadas e não
-      // latinas — "ação" virava "ao", e qualquer palavra em japonês/russo/árabe virava string vazia.
-      const clean = wordText.replace(/[^\p{L}'-]/gu, '').toLowerCase();
-      if (clean) void examineWord(clean, tIndex);
+  const handleWordClick = (tIndex: number, wordText: string) => {
+    // Pronuncia a palavra E abre o Analista de Vocabulário (o hover continua sendo só a prévia).
+    // A pronúncia usa o idioma da FRASE (tIndex) — não o da sessão —, logo acerta mesmo quando o
+    // transcript mistura idiomas, e sai na voz que o usuário escolheu para aquele idioma.
+    playWordTTS(wordText, tIndex);
+    // `\p{L}` (Unicode) em vez de [a-zA-Z]: o filtro ASCII destruía palavras acentuadas e não
+    // latinas — "ação" virava "ao", e qualquer palavra em japonês/russo/árabe virava string vazia.
+    const clean = wordText.replace(/[^\p{L}'-]/gu, '').toLowerCase();
+    if (clean) void examineWord(clean, tIndex);
+  };
+
+  /** "Anotação semântica" (protótipo): um tipo por frase; Áudio grava de verdade; Apagar tira. */
+  const anotar = (tipo: TipoDeNota | 'apagar') => {
+    const i = fraseEscolhida;
+    if (i === null) return;
+    setFraseEscolhida(null);
+    if (tipo === 'audio') {
+      setRecordingTarget({ tIndex: i, wordText: studyTexts[i]?.original ?? '' });
       return;
     }
-
-    if (selectedTool.startsWith('highlight-')) {
-      const colorMap: Record<string, string> = {
-        'highlight-yellow': 'bg-warn-soft text-warn-ink border-b-2 border-warn',
-        'highlight-green': 'bg-good-soft text-good-ink border-b-2 border-good',
-        'highlight-blue': 'bg-rare-soft text-rare-ink border-b-2 border-rare',
-        'highlight-pink': 'bg-error-soft text-error-ink border-b-2 border-error',
-      };
-
-      const labelMap: Record<string, string> = {
-        'highlight-yellow': 'Vocabulário',
-        'highlight-green': 'Gramática',
-        'highlight-blue': 'Expressão',
-        'highlight-pink': 'Dúvida',
-      };
-
-      const exists = annotations.find(
-        (a) => a.textIndex === tIndex && a.wordIndex === wIndex && a.type === 'highlight',
-      );
-      if (exists && exists.color === colorMap[selectedTool]) {
-        setAnnotations(annotations.filter((a) => a.id !== exists.id));
-      } else if (exists) {
-        setAnnotations(
-          annotations.map((a) =>
-            a.id === exists.id ? { ...a, color: colorMap[selectedTool], content: labelMap[selectedTool] } : a,
-          ),
-        );
-      } else {
-        setAnnotations([
-          ...annotations,
-          {
-            id: `ann-${Date.now()}`,
-            type: 'highlight',
-            textIndex: tIndex,
-            wordIndex: wIndex,
-            wordText,
-            color: colorMap[selectedTool],
-            content: labelMap[selectedTool],
-            createdAt: Date.now(),
-          },
-        ]);
-      }
-    } else if (selectedTool === 'note') {
-      setNoteTarget({ tIndex, wIndex, wordText });
-      setNoteTextInput('');
-    } else if (selectedTool === 'audio') {
-      setRecordingTarget({ tIndex, wIndex, wordText });
-    } else if (selectedTool === 'eraser') {
-      setAnnotations(annotations.filter((a) => !(a.textIndex === tIndex && a.wordIndex === wIndex)));
-    }
+    setAnnotations(anotarFrase(annotations, i, tipo));
   };
 
   // (`showTutor` foi removido junto com o botão legado "Estudos & Notas" — a sidebar de notas é
@@ -1196,7 +1133,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
         <React.Fragment key={token.id}>
           <span
             onMouseEnter={(e) => handleMouseEnter(e, token.clean)}
-            onClick={() => handleWordClick(sIdx, token.id, token.original)}
+            onClick={() => handleWordClick(sIdx, token.original)}
             onMouseLeave={handleMouseLeave}
             className={`relative rounded cursor-pointer ${highlightClass} ${hasNote ? 'underline decoration-dashed decoration-warn decoration-2' : ''} ${hasAudio ? 'underline decoration-double decoration-rare decoration-2' : ''}`}
           >
@@ -1205,15 +1142,16 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
         </React.Fragment>
       );
     });
-  const TIPOS_DE_ANOTACAO = [
-    { id: 'highlight-yellow', rotulo: 'Vocabulário', Icone: BookOpen },
-    { id: 'highlight-green', rotulo: 'Gramática', Icone: SpellCheck },
-    { id: 'highlight-blue', rotulo: 'Expressão', Icone: Quote },
-    { id: 'highlight-pink', rotulo: 'Dúvida', Icone: CircleHelp },
-    { id: 'note', rotulo: 'Nota', Icone: StickyNote },
-    { id: 'audio', rotulo: 'Áudio', Icone: Mic },
-    { id: 'eraser', rotulo: 'Apagar', Icone: Eraser },
+  /** Os tipos da "Anotação semântica", na ordem e com os ícones do protótipo. */
+  const ESCOLHAS_DE_NOTA = [
+    ['vocab', 'Vocabulário', BookOpen],
+    ['gram', 'Gramática', SpellCheck],
+    ['expr', 'Expressão', Quote],
+    ['duvida', 'Dúvida', CircleHelp],
+    ['audio', 'Áudio', Mic],
+    ['apagar', 'Apagar', Eraser],
   ] as const;
+  const ICONE_DA_NOTA = { vocab: BookOpen, gram: SpellCheck, expr: Quote, duvida: CircleHelp, audio: Mic } as const;
 
   // Marcação do protótipo aprovado (`abaLeitura`): um cartão de controles e, embaixo, o texto com a
   // coluna "Estudos & notas" (ou o Analista, quando uma palavra está aberta).
@@ -1431,14 +1369,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
 
         <div className="linha" style={{ gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
           <div className="seg" role="group" aria-label="Modo">
-            <button
-              type="button"
-              aria-pressed={!isDrawModeActive}
-              onClick={() => {
-                setIsDrawModeActive(false);
-                setSelectedTool('none');
-              }}
-            >
+            <button type="button" aria-pressed={!isDrawModeActive} onClick={() => setIsDrawModeActive(false)}>
               <MousePointerClick aria-hidden style={{ width: 14, height: 14 }} /> Modo interativo
             </button>
             <button
@@ -1446,7 +1377,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
               aria-pressed={isDrawModeActive}
               onClick={() => {
                 setIsDrawModeActive(true);
-                setSelectedTool('none');
+                setFraseEscolhida(null);
               }}
             >
               <PenTool aria-hidden style={{ width: 14, height: 14 }} /> Desenho livre
@@ -1479,29 +1410,11 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
               </button>
             </>
           ) : (
-            <div className="chips" role="group" aria-label="Anotar: escolha o tipo e clique nas palavras">
-              {TIPOS_DE_ANOTACAO.map(({ id, rotulo, Icone }) => (
-                <button
-                  key={id}
-                  type="button"
-                  className="pill"
-                  aria-pressed={selectedTool === id}
-                  onClick={() => setSelectedTool(selectedTool === id ? 'none' : id)}
-                >
-                  <Icone aria-hidden />
-                  {rotulo}
-                </button>
-              ))}
-            </div>
+            <span className="mut" style={{ fontSize: 12.5 }}>
+              Clique numa frase para anotar: vocabulário, gramática, expressão ou dúvida.
+            </span>
           )}
         </div>
-        {!isDrawModeActive && (
-          <p className="mut" style={{ fontSize: 12.5, marginTop: 10 }}>
-            {selectedTool === 'none'
-              ? 'Clique numa palavra para ouvir. Para anotar, escolha o tipo acima e clique nas palavras.'
-              : 'Clique nas palavras para anotar. Clique no tipo de novo para parar.'}
-          </p>
-        )}
       </section>
 
       <div className="leitura-grade">
@@ -1533,6 +1446,19 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
                 cursor: isDrawModeActive ? 'crosshair' : 'default',
               }}
             />
+            {fraseEscolhida !== null && !isDrawModeActive && (
+              <div className="escolha-nota cartao entra" role="group" aria-label="Anotar a frase">
+                <span className="label-mono">Anotação semântica</span>
+                <div className="chips">
+                  {ESCOLHAS_DE_NOTA.map(([k, r, Icone]) => (
+                    <button key={k} type="button" className="pill" data-anotar={k} onClick={() => anotar(k)}>
+                      <Icone aria-hidden />
+                      {r}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             {studyTexts.length === 0 ? (
               <div className="vazio">
                 <IconeEmBloco icone={BookOpen} />
@@ -1542,9 +1468,30 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
             ) : (
               <div className="leitura" style={{ fontSize: `${fontSize}px` }}>
                 {studyTexts.map((sentenceObj, sIdx) => {
-                  const cls = `frase ${activeNarratingSentenceIndex === sIdx ? 'narrando' : ''}`;
+                  const nota = notaDaFrase(annotations, sIdx);
+                  const cls = `frase ${activeNarratingSentenceIndex === sIdx ? 'narrando' : ''} ${nota?.tipo ? `nota-${nota.tipo}` : ''}`;
+                  /* Clicar na frase abre a "Anotação semântica" dela (a palavra clicada também abre
+                     o Analista). O Enter faz o mesmo pelo teclado. */
+                  const escolher = () => {
+                    if (isDrawModeActive) return;
+                    setFraseEscolhida(sIdx);
+                    requestAnimationFrame(() =>
+                      (document.querySelector('.escolha-nota [data-anotar]') as HTMLElement | null)?.focus({
+                        preventScroll: true,
+                      }),
+                    );
+                  };
                   const original = (
-                    <span className={cls} id={`sentence-${sIdx}`}>
+                    <span
+                      className={cls}
+                      id={`sentence-${sIdx}`}
+                      data-frase={sIdx}
+                      tabIndex={0}
+                      onClick={escolher}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && e.target === e.currentTarget) escolher();
+                      }}
+                    >
                       <SentencePlayButton index={sIdx} />
                       {palavrasDaFrase(sentenceObj.original, sIdx)}
                     </span>
@@ -1594,33 +1541,43 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
           </div>
         ) : (
           <aside className="cartao p5 notas-l" aria-label="Estudos e notas">
-            <TituloDeSecao
-              icone={NotebookPen}
-              titulo="Estudos & notas"
-              nivel="h3"
-              direita={
-                annotations.length > 0 ? (
-                  <button
-                    type="button"
-                    className="link"
-                    onClick={async () => {
-                      const ok = await askConfirm({
-                        title: 'Apagar todas as anotações?',
-                        detail: `${annotations.length} anotação(ões) serão removidas. Não há como desfazer.`,
-                        confirmLabel: 'Apagar tudo',
-                        danger: true,
-                      });
-                      if (ok) setAnnotations([]);
-                    }}
-                  >
-                    Apagar tudo
-                  </button>
-                ) : undefined
-              }
-            />
+            <TituloDeSecao icone={NotebookPen} titulo="Estudos & notas" nivel="h3" />
             {annotations.length ? (
               <div className="pilha">
                 {annotations.map((ann) => {
+                  if (ann.type === 'frase' && ann.tipo) {
+                    const Icone = ICONE_DA_NOTA[ann.tipo];
+                    return (
+                      <div key={ann.id} className="nota-item">
+                        <span className={`badge ${TIPOS_DE_NOTA[ann.tipo].tom}`}>
+                          <Icone aria-hidden /> {TIPOS_DE_NOTA[ann.tipo].rotulo}
+                        </span>
+                        <p>
+                          {studyTexts[ann.textIndex]?.original ?? ''}
+                          {ann.audioUrl && (
+                            <>
+                              <br />
+                              <button
+                                type="button"
+                                className="link"
+                                onClick={() => void new Audio(ann.audioUrl!).play()}
+                              >
+                                <Play aria-hidden /> Ouvir minha gravação
+                              </button>
+                            </>
+                          )}
+                        </p>
+                        <button
+                          type="button"
+                          className="btn btn-outline peq icone"
+                          onClick={() => setAnnotations(annotations.filter((a) => a.id !== ann.id))}
+                          aria-label="Remover nota"
+                        >
+                          <X aria-hidden />
+                        </button>
+                      </div>
+                    );
+                  }
                   const rotulo =
                     ann.type === 'highlight' ? ann.content || 'Marcação' : ann.type === 'note' ? 'Nota' : 'Áudio';
                   const tom = ann.type === 'note' ? 'warn' : ann.type === 'audio' ? 'rare' : 'acc';
@@ -1669,71 +1626,12 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
               <div className="vazio" style={{ padding: '18px 6px' }}>
                 <IconeEmBloco icone={Highlighter} />
                 <h3>Nenhum grifo ou nota</h3>
-                <p>No modo interativo, escolha o tipo de anotação e clique nas palavras.</p>
+                <p>No modo interativo, clique numa frase e escolha o tipo de anotação.</p>
               </div>
             )}
           </aside>
         )}
       </div>
-
-      {/* Sticky note creation popover modal */}
-      {noteTarget && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-surface text-ink rounded-2xl border border-border-subtle shadow-2xl p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-display font-bold text-base flex items-center gap-1.5 text-warn-ink">
-                <StickyNote className="w-5 h-5" /> Adicionar Nota de Estudo
-              </h3>
-              <button onClick={() => setNoteTarget(null)} className="p-1 hover:bg-surface-hover rounded">
-                <X className="w-4 h-4 text-ink-muted" />
-              </button>
-            </div>
-
-            <p className="text-xs text-ink-muted mb-3 font-mono leading-relaxed">
-              Palavra anotada: <strong className="text-ink font-sans text-sm">"{noteTarget.wordText}"</strong>
-            </p>
-
-            <textarea
-              className="w-full h-28 p-3 bg-canvas border border-border-subtle rounded-xl text-sm text-ink outline-none focus:ring-1 focus:ring-accent mb-4 resize-none"
-              placeholder="Escreva suas anotações, regras gramaticais ou insights de uso corporativo aqui..."
-              value={noteTextInput}
-              onChange={(e) => setNoteTextInput(e.target.value)}
-              autoFocus
-            />
-
-            <div className="flex gap-2 justify-end">
-              <button
-                onClick={() => setNoteTarget(null)}
-                className="px-3.5 py-2 rounded-lg bg-surface-hover text-ink-muted text-xs font-bold hover:text-ink"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={() => {
-                  if (noteTextInput.trim()) {
-                    setAnnotations([
-                      ...annotations,
-                      {
-                        id: `ann-${Date.now()}`,
-                        type: 'note',
-                        textIndex: noteTarget.tIndex,
-                        wordIndex: noteTarget.wIndex,
-                        wordText: noteTarget.wordText,
-                        content: noteTextInput,
-                        createdAt: Date.now(),
-                      },
-                    ]);
-                  }
-                  setNoteTarget(null);
-                }}
-                className="px-4 py-2 rounded-lg bg-accent text-white text-xs font-bold hover:bg-accent-ink"
-              >
-                Salvar Nota
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Audio recording memo popover modal */}
       {recordingTarget && (
@@ -1749,7 +1647,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
             </div>
 
             <p className="text-xs text-ink-muted leading-relaxed">
-              Grave sua própria pronúncia ou um comentário falado para:{' '}
+              Grave sua própria pronúncia ou um comentário falado para a frase:{' '}
               <strong className="text-ink">"{recordingTarget.wordText}"</strong>
             </p>
 

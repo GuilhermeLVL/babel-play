@@ -22,6 +22,16 @@ export interface AudioCapture {
    */
   setMuted(muted: boolean): void;
   /**
+   * PAUSA sem encerrar — o "Parar" que abre o Encerrar a sessão com a gravação ainda de pé.
+   *
+   * Diferente do mudo: o gravador PAUSA (o trecho da pausa não entra no áudio salvo) e o VAD
+   * pausa entregando a frase que estava em curso (`submitUserSpeechOnPause`), então nada do que
+   * foi dito se perde. "Continuar gravando" retoma o MESMO gravador — um blob só, sem pedir de
+   * novo o compartilhamento de tela. Quem retoma adianta o relógio das legendas pela duração da
+   * pausa, para elas continuarem coladas no áudio.
+   */
+  setPaused(paused: boolean): void;
+  /**
    * Instante (Date.now(), epoch-ms) em que o MediaRecorder REALMENTE começou a gravar — a
    * ORIGEM (t=0) do áudio salvo. A UI ancora o relógio das legendas a este valor: sem isso, o
    * t0 do clique em START fica ADIANTADO do t0 do recorder por todo o tempo da caixa de
@@ -169,6 +179,8 @@ async function startCaptureFromStream(
   // "faixa com sinal". Usa setInterval (não rAF) p/ continuar medindo mesmo com a aba em segundo plano.
   // MUDO: faixa desabilitada, captura viva. Ver `AudioCapture.setMuted`.
   let muted = false;
+  // PAUSA: gravador e VAD parados, faixa e compartilhamento vivos. Ver `AudioCapture.setPaused`.
+  let paused = false;
 
   let levelCtx: AudioContext | null = null;
   let levelTimer: any = null;
@@ -182,6 +194,7 @@ async function startCaptureFromStream(
     let peak = 0;
     let reported = false;
     levelTimer = setInterval(() => {
+      if (paused) return; // pausado: o waveform fica parado, e o silêncio não vira diagnóstico
       analyser.getFloatTimeDomainData(buf);
       let sum = 0;
       for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
@@ -272,19 +285,7 @@ async function startCaptureFromStream(
 
   vlog(label, 'criando Silero VAD sobre o áudio…');
   try {
-    vad = await criarVad();
-  } catch (e) {
-    vlog(label, 'Silero VAD NÃO subiu:', String(e));
-    await desfazerAbertura();
-    throw new Error(
-      'O detector de fala não pôde ser carregado, então a captura não começou. Os arquivos dele ' +
-        '(silero_vad_legacy.onnx e ort-wasm) não estão sendo servidos pelo app. Recarregue a página; ' +
-        'se continuar, quem instalou o app precisa rodar "npm install" (que os copia para public/).',
-    );
-  }
-
-  async function criarVad(): Promise<MicVAD> {
-    return MicVAD.new({
+    vad = await MicVAD.new({
       baseAssetPath: '/',
       onnxWASMBasePath: '/',
       model: 'legacy', // usa /silero_vad_legacy.onnx
@@ -315,7 +316,8 @@ async function startCaptureFromStream(
           speechStartTs = performance.now();
           vlog(label, 'VAD → corte forçado (fala contínua > ' + MAX_SPEECH_MS + 'ms)');
           Promise.resolve(vad.pause())
-            .then(() => vad.start())
+            // Uma pausa pedida no meio do corte vence: o VAD não volta sozinho.
+            .then(() => (paused ? undefined : vad.start()))
             .catch(() => {})
             .finally(() => {
               forcingCut = false;
@@ -336,6 +338,14 @@ async function startCaptureFromStream(
         resetUtterance();
       },
     });
+  } catch (e) {
+    vlog(label, 'Silero VAD NÃO subiu:', String(e));
+    await desfazerAbertura();
+    throw new Error(
+      'O detector de fala não pôde ser carregado, então a captura não começou. Os arquivos dele ' +
+        '(silero_vad_legacy.onnx e ort-wasm) não estão sendo servidos pelo app. Recarregue a página; ' +
+        'se continuar, quem instalou o app precisa rodar "npm install" (que os copia para public/).',
+    );
   }
 
   vad.start();
@@ -378,6 +388,37 @@ async function startCaptureFromStream(
         cb.onLevel?.(0);
       }
       vlog(label, next ? 'MUDO (faixa desabilitada, gravação segue)' : 'ATIVO');
+    },
+    setPaused(next: boolean): void {
+      if (next === paused) return;
+      paused = next;
+      if (next) {
+        try {
+          if (recorder?.state === 'recording') recorder.pause();
+        } catch {
+          /* gravador sem pausa: segue gravando, o áudio não se perde */
+        }
+        /* `submitUserSpeechOnPause`: a frase em curso é ENTREGUE (vira fala), não descartada. */
+        try {
+          void Promise.resolve(vad.pause()).catch(() => {});
+        } catch {
+          /* ignore */
+        }
+        speechStartTs = 0;
+        cb.onLevel?.(0);
+      } else {
+        try {
+          if (recorder?.state === 'paused') recorder.resume();
+        } catch {
+          /* ignore */
+        }
+        try {
+          void Promise.resolve(vad.start()).catch(() => {});
+        } catch {
+          /* ignore */
+        }
+      }
+      vlog(label, next ? 'PAUSADA (gravador e VAD parados, faixa viva)' : 'RETOMADA');
     },
     async stop(): Promise<Blob | null> {
       clearInterval(partialTimer);
@@ -492,6 +533,7 @@ export async function startSystemAudioCapture(cb: SystemAudioCallbacks): Promise
     return {
       startedAtMs: capture.startedAtMs,
       setMuted: (m) => capture.setMuted(m),
+      setPaused: (p) => capture.setPaused(p),
       async stop(): Promise<Blob | null> {
         const blob = await capture.stop();
         if (activeDisplayStream === stream) {
@@ -674,6 +716,7 @@ export async function startServerLoopbackCapture(cb: SystemAudioCallbacks): Prom
     return {
       startedAtMs: capture.startedAtMs,
       setMuted: (m) => capture.setMuted(m),
+      setPaused: (p) => capture.setPaused(p),
       async stop(): Promise<Blob | null> {
         stopped = true;
         try {

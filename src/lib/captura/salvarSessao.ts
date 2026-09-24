@@ -109,6 +109,13 @@ export interface DepsDeSalvarSessao {
    * quantas palavras foram para o caderno (`null` enquanto o vocabulário é fichado).
    */
   setSessaoSalva: (s: { id: string; palavras: number | null } | null) => void;
+  /**
+   * A PAUSA do Encerrar (protótipo, C8): "Parar" pausa as fontes e abre o diálogo; "Continuar
+   * gravando" retoma as MESMAS fontes. `pausaInicioRef` guarda quando a pausa começou, para o
+   * relógio das legendas pular o trecho que o gravador não gravou.
+   */
+  setPausado: (p: boolean) => void;
+  pausaInicioRef: RefObject<number>;
 }
 
 export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
@@ -164,6 +171,8 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
     setImgQuery,
     setFeedbackMsg,
     setSessaoSalva,
+    setPausado,
+    pausaInicioRef,
   } = deps;
 
   const handleStartRecording = () => {
@@ -247,11 +256,49 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
     setTimeout(() => setFeedbackMsg(''), 3000);
   };
 
-  // Parar a gravação NÃO salva mais direto: encerra as fontes, guarda o áudio e abre o
-  // modal de encerramento (título + capa + destino). A persistência real acontece em
-  // handleFinalizeSave, com o título/capa escolhidos.
-  const handleStopRecording = async () => {
+  /** Alguma fonte ainda aberta (pausada ou não)? É o que decide entre retomar e recomeçar. */
+  const fontesAbertas = () => !!(systemCaptureRef.current || micCaptureRef.current || webSpeechRef.current);
+
+  /** Pausa as fontes SEM encerrá-las (ver `AudioCapture.setPaused`). */
+  const pausarFontes = () => {
+    systemCaptureRef.current?.setPaused(true);
+    micCaptureRef.current?.setPaused(true);
+    /* A Web Speech não grava áudio (não há blob a preservar): encerrar o reconhecedor É a pausa
+       dela, como já é o mudo. Ao retomar, começa outro. */
+    if (webSpeechRef.current) {
+      try {
+        webSpeechRef.current.stop();
+      } catch {}
+      webSpeechRef.current = null;
+      webSpeechPartialIdRef.current = null;
+    }
+    partialIdRef.current = null;
+    pausaInicioRef.current = Date.now();
+    setPausado(true);
+    clog('❚❚ PAUSA (Encerrar aberto, fontes vivas)');
+  };
+
+  /** Retoma as MESMAS fontes e adianta o relógio pela duração da pausa (o gravador não a gravou). */
+  const retomarFontes = () => {
+    const pausa = pausaInicioRef.current ? Date.now() - pausaInicioRef.current : 0;
+    if (sessionStartMsRef.current) sessionStartMsRef.current += pausa;
+    pausaInicioRef.current = 0;
+    systemCaptureRef.current?.setPaused(false);
+    micCaptureRef.current?.setPaused(false);
+    // Microfone pelo motor navegador: o reconhecedor foi encerrado na pausa, começa outro.
+    if (micEnabled && !micCaptureRef.current && !webSpeechRef.current) void startMic();
+    setPausado(false);
+    clog('▶ RETOMADA depois de', Math.round(pausa), 'ms de pausa');
+  };
+
+  /**
+   * ENCERRA as fontes de verdade: fecha o reconhecedor e os gravadores e guarda o áudio da sessão
+   * (misturado, com as duas fontes). Roda no Salvar/Descartar do Encerrar, ou no Parar sem falas.
+   */
+  const encerrarFontes = async () => {
     play('recordStop');
+    setPausado(false);
+    pausaInicioRef.current = 0;
     setIsRecording(false);
     isRecordingRef.current = false;
     partialIdRef.current = null;
@@ -299,13 +346,9 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
     seqToSegmentRef.current.clear();
     lastPartialTextRef.current.clear();
     clog('métricas da sessão:', capMetrics.summary());
+  };
 
-    if (speechSegments.length === 0) {
-      setFeedbackMsg('Nenhuma fala capturada, nada para salvar.');
-      setTimeout(() => setFeedbackMsg(''), 3000);
-      return;
-    }
-
+  const abrirEncerrar = () => {
     // Pré-preenche o modal: retomando → título/capa existentes; senão, título por data.
     if (resumeId) {
       const existing = (recordings ?? []).find((r) => r.id === resumeId);
@@ -320,10 +363,35 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
     setShowSaveModal(true);
   };
 
-  // "Continuar Gravando": fecha o modal e volta a capturar SEM perder o transcript
-  // já feito (o relógio segue de onde parou via `resuming` no handleStartRecording).
+  /**
+   * "PARAR" (protótipo, C8): com falas na tela, a gravação NÃO é encerrada — ela PAUSA e o
+   * Encerrar abre por cima. Salvar ou descartar encerra de verdade; "Continuar gravando" retoma.
+   * Sem fala nenhuma não há o que encerrar: as fontes fecham e a tela avisa.
+   */
+  const handleStopRecording = async () => {
+    if (speechSegments.length > 0 && isRecordingRef.current && fontesAbertas()) {
+      pausarFontes();
+      abrirEncerrar();
+      return;
+    }
+    await encerrarFontes();
+    if (speechSegments.length === 0) {
+      setFeedbackMsg('Nenhuma fala capturada, nada para salvar.');
+      setTimeout(() => setFeedbackMsg(''), 3000);
+      return;
+    }
+    abrirEncerrar();
+  };
+
+  // "Continuar gravando": fecha o modal e volta a capturar SEM perder o transcript nem o áudio.
   const handleCancelStop = () => {
     setShowSaveModal(false);
+    if (isRecordingRef.current && fontesAbertas()) {
+      retomarFontes();
+      setFeedbackMsg('Gravação retomada!');
+      return;
+    }
+    // As fontes já tinham sido encerradas (ex.: o salvar falhou): recomeça a captura.
     setIsRecording(true);
     isRecordingRef.current = true;
     sessionStartMsRef.current = Date.now() - timer * 1000; // continua a linha do tempo
@@ -341,6 +409,8 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
     const title = customSessionTitle.trim() || `Captura ao vivo, ${dataHora(new Date())}`;
     const cover = customSessionImage.trim();
     setShowSaveModal(false);
+    // Vindo do Encerrar com a gravação pausada: agora sim as fontes fecham e o áudio é guardado.
+    if (fontesAbertas()) await encerrarFontes();
     setFeedbackMsg('Salvando sessão…');
     try {
       const nameOf = (id: string) => speakerProfilesRef.current.find((p) => p.id === id)?.name ?? id;
@@ -518,5 +588,6 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
     handleStopRecording,
     handleCancelStop,
     handleFinalizeSave,
+    encerrarFontes,
   };
 }

@@ -41,13 +41,100 @@ export interface ManifestoDeModelo {
    */
   bytesEsperados?: number;
   gravadoEm: number;
+  /**
+   * O commit do repositório no Hugging Face (`sha` da API pública de modelos do Hub) quando a cópia foi
+   * gravada — a VERSÃO baixada. É com ele que "Procurar atualização" compara. Ausente em
+   * manifestos antigos: aí a comparação cai para a data da última mudança do repositório.
+   */
+  revisao?: string;
+}
+
+/** A versão publicada de um modelo no Hugging Face: o commit e a data da última mudança. */
+export interface RevisaoPublicada {
+  sha: string;
+  ultimaMudanca: number;
+}
+
+type Buscar = (url: string, init?: RequestInit) => Promise<Pick<Response, 'ok' | 'json'>>;
+
+/**
+ * Consulta a versão PUBLICADA do modelo (`GET huggingface.co/api/models/:id`, com CORS aberto).
+ * `null` sem rede ou resposta estranha — quem chama diz "não deu para conferir", nunca "atualizado".
+ */
+export async function consultarRevisao(modelId: string, buscar: Buscar = fetch): Promise<RevisaoPublicada | null> {
+  try {
+    const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const t = ctl ? setTimeout(() => ctl.abort(), 8000) : null;
+    const r = await buscar(`https://huggingface.co/api/models/${modelId}`, ctl ? { signal: ctl.signal } : undefined);
+    if (t) clearTimeout(t);
+    if (!r.ok) return null;
+    const j = (await r.json()) as { sha?: unknown; lastModified?: unknown };
+    const ultimaMudanca = typeof j.lastModified === 'string' ? Date.parse(j.lastModified) : NaN;
+    if (typeof j.sha !== 'string' || !j.sha || Number.isNaN(ultimaMudanca)) return null;
+    return { sha: j.sha, ultimaMudanca };
+  } catch {
+    return null;
+  }
+}
+
+/** A cópia gravada mais recente deste modelo (qualquer dtype/device). */
+function manifestoMaisNovo(modelId: string): ManifestoDeModelo | null {
+  let melhor: ManifestoDeModelo | null = null;
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k || !k.startsWith(PREFIXO) || !k.includes(modelId)) continue;
+      const m = JSON.parse(localStorage.getItem(k) ?? 'null') as ManifestoDeModelo | null;
+      if (m?.gravadoEm && (!melhor || m.gravadoEm > melhor.gravadoEm)) melhor = m;
+    }
+  } catch {
+    return melhor;
+  }
+  return melhor;
+}
+
+export type SituacaoDaVersao = 'atual' | 'desatualizado' | 'sem-copia' | 'sem-rede';
+
+/**
+ * "Procurar atualização": a cópia no navegador é a versão publicada agora?
+ *
+ * Com a revisão guardada no download, compara o commit. Em cópias antigas (sem revisão), a
+ * pergunta vira "o repositório mudou DEPOIS que este navegador baixou?" — a data da última
+ * mudança contra a data da gravação. As duas são fatos; nenhuma é palpite.
+ */
+export async function situacaoDaVersao(modelId: string, buscar: Buscar = fetch): Promise<SituacaoDaVersao> {
+  const m = manifestoMaisNovo(modelId);
+  if (!m) return 'sem-copia';
+  const pub = await consultarRevisao(modelId, buscar);
+  if (!pub) return 'sem-rede';
+  if (m.revisao) return m.revisao === pub.sha ? 'atual' : 'desatualizado';
+  return pub.ultimaMudanca > m.gravadoEm ? 'desatualizado' : 'atual';
 }
 
 export function chaveDoManifesto(modelId: string, dtype: string, device: string): string {
   return `${PREFIXO}${modelId}|${dtype}|${device}`;
 }
 
+/** Tipo da mensagem que um Web Worker manda para a janela gravar o manifesto (ver abaixo). */
+export const MENSAGEM_DO_MANIFESTO = 'manifesto-do-modelo';
+
+/**
+ * Grava o manifesto no localStorage da JANELA.
+ *
+ * Quem registra o download são os Web Workers do Whisper e do tradutor, e Worker NÃO tem
+ * localStorage: a gravação lançava `ReferenceError`, o `catch` engolia, e manifesto nenhum era
+ * gravado — a Captura dizia "baixa na primeira captura" com o modelo inteiro no cache, sem "baixado
+ * em" e com o "Liberar espaço" apagado. Dentro de um Worker, o manifesto vai por `postMessage` e o
+ * adaptador na janela chama esta mesma função de lá.
+ */
 export function gravarManifesto(m: ManifestoDeModelo): void {
+  if (typeof localStorage === 'undefined') {
+    const g = globalThis as { postMessage?: (msg: unknown) => void; document?: unknown };
+    if (typeof g.document === 'undefined' && typeof g.postMessage === 'function') {
+      g.postMessage({ type: MENSAGEM_DO_MANIFESTO, manifesto: m });
+    }
+    return;
+  }
   try {
     localStorage.setItem(chaveDoManifesto(m.modelId, m.dtype, m.device), JSON.stringify(m));
   } catch {
@@ -227,6 +314,11 @@ export async function registrarModeloBaixado(
       gravadoEm: Date.now(),
     };
     gravarManifesto(m);
+    // A VERSÃO baixada (o commit publicado agora), para "Procurar atualização" ter com o que
+    // comparar. Best-effort e fora do caminho: sem rede, o manifesto fica sem ela.
+    void consultarRevisao(modelId).then((pub) => {
+      if (pub) gravarManifesto({ ...m, revisao: pub.sha });
+    });
     return m;
   } catch {
     return null;

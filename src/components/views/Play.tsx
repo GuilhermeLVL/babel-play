@@ -183,7 +183,7 @@ import { aoMudarVozes, hasVoiceFor, isTtsSupported, vozesCarregadas } from '../.
 import type { Recording, VocabCard } from '../../types';
 import { LangFlag } from '../LangFlag';
 import AntessalaDaRodada from '../minigames/AntessalaDaRodada';
-import { FAMILIAS, tomDoJogo } from '../minigames/ArteDosJogos';
+import { familiaDoJogo, FAMILIAS, tomDoJogo } from '../minigames/ArteDosJogos';
 import CascaDaRodada from '../minigames/casca/CascaDaRodada';
 import { unidadeDaRodada } from '../minigames/casca/regras';
 import { TabelaDaCobertura } from '../minigames/CoberturaDosIdiomas';
@@ -322,9 +322,9 @@ const ABAS_DE_FONTE: Array<{
    nove culturais caíam todos em "Sintaxe & frases", e o filtro "Vocabulário" escondia o Bao e o
    Tabu, que são de palavra. */
 const habilidadeDoJogoClassico = (id: MinigameId): 'vocab' | 'escuta_fala' | 'frase_gramatica' => {
-  const m = MINIGAMES[id].modalidade;
-  if (m === 'palavra') return 'vocab';
-  if (m === 'frase') return 'frase_gramatica';
+  const f = familiaDoJogo(id);
+  if (f === 'palavra') return 'vocab';
+  if (f === 'frase') return 'frase_gramatica';
   return 'escuta_fala';
 };
 

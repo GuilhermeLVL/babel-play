@@ -1,4 +1,4 @@
-import { type MinigameId,MINIGAMES } from '@core';
+import { type MinigameId, MINIGAMES } from '@core';
 import React from 'react';
 
 /**
@@ -52,10 +52,28 @@ const VIEW = '0 0 160 70';
  * da carta e o comportamento do jogo não têm como divergir.
  */
 export function tomDoJogo(id: MinigameId): string {
+  const f = familiaDoJogo(id);
+  if (f === 'palavra') return 'var(--accent)';
+  if (f === 'frase') return 'var(--good)';
+  return 'var(--rare)'; // escuta
+}
+
+/**
+ * A FAMÍLIA que a grade mostra (cor do ponto e filtro por habilidade). Em regra é a `modalidade`;
+ * três jogos culturais são exceção de APRESENTAÇÃO, como no protótipo aprovado: o Karuta treina
+ * escuta (o narrador descreve a palavra) e Vitendawili e Cadavre exquis treinam frase. O material
+ * deles continua sendo o baralho — por isso a `modalidade` no core segue 'palavra'.
+ */
+const FAMILIA_NA_GRADE: Partial<Record<MinigameId, 'palavra' | 'frase' | 'escuta'>> = {
+  karuta: 'escuta',
+  vitendawili: 'frase',
+  cadavre: 'frase',
+};
+export function familiaDoJogo(id: MinigameId): 'palavra' | 'frase' | 'escuta' {
+  const fixa = FAMILIA_NA_GRADE[id];
+  if (fixa) return fixa;
   const m = MINIGAMES[id].modalidade;
-  if (m === 'palavra') return 'var(--accent)';
-  if (m === 'frase') return 'var(--good)';
-  return 'var(--rare)'; // 'frase-audio' — os três que se ouvem
+  return m === 'palavra' ? 'palavra' : m === 'frase' ? 'frase' : 'escuta';
 }
 
 /** Rótulo curto da família, para a legenda da grade. Três palavras, não uma explicação. */
@@ -71,7 +89,14 @@ export const FAMILIAS: Array<{ rotulo: string; tom: string }> = [
  */
 function Moldura({ tom, children }: { tom: string; children: React.ReactNode }) {
   return (
-    <svg viewBox={VIEW} className="w-full h-full" role="presentation" aria-hidden focusable="false" style={{ color: tom }}>
+    <svg
+      viewBox={VIEW}
+      className="w-full h-full"
+      role="presentation"
+      aria-hidden
+      focusable="false"
+      style={{ color: tom }}
+    >
       {children}
     </svg>
   );
@@ -84,22 +109,34 @@ function ArteMemoria({ tom }: { tom: string }) {
   const cel = (x: number, y: number, aberta = false) => (
     <g key={`${x}-${y}`}>
       <rect
-        x={x} y={y} width={34} height={26} rx={6}
+        x={x}
+        y={y}
+        width={34}
+        height={26}
+        rx={6}
         /* `--surface` e não `--canvas`: a faixa da arte É `--canvas`, então a carta virada
            desaparecia e sobrava a borda. Ver o achado F14 no topo do arquivo. */
         fill="var(--surface)"
         stroke={aberta ? 'currentColor' : 'var(--border-subtle)'}
         strokeWidth={aberta ? 2.5 : 1.5}
       />
-      {aberta
-        ? <rect x={x + 7} y={y + 11} width={20} height={4} rx={2} fill="currentColor" />
-        : <circle cx={x + 17} cy={y + 13} r={3.5} fill="var(--border-subtle)" />}
+      {aberta ? (
+        <rect x={x + 7} y={y + 11} width={20} height={4} rx={2} fill="currentColor" />
+      ) : (
+        <circle cx={x + 17} cy={y + 13} r={3.5} fill="var(--border-subtle)" />
+      )}
     </g>
   );
   return (
     <Moldura tom={tom}>
-      {cel(6, 6, true)}{cel(44, 6)}{cel(82, 6)}{cel(120, 6, true)}
-      {cel(6, 38)}{cel(44, 38)}{cel(82, 38)}{cel(120, 38)}
+      {cel(6, 6, true)}
+      {cel(44, 6)}
+      {cel(82, 6)}
+      {cel(120, 6, true)}
+      {cel(6, 38)}
+      {cel(44, 38)}
+      {cel(82, 38)}
+      {cel(120, 38)}
     </Moldura>
   );
 }
@@ -110,8 +147,17 @@ function ArteCacaPalavras({ tom }: { tom: string }) {
   for (let l = 0; l < 4; l++) {
     for (let c = 0; c < 9; c++) {
       pontos.push(
-        <rect key={`${l}-${c}`} x={8 + c * 16} y={8 + l * 15} width={11} height={11} rx={3}
-          fill="var(--surface)" stroke="var(--border-subtle)" strokeWidth={1} />,
+        <rect
+          key={`${l}-${c}`}
+          x={8 + c * 16}
+          y={8 + l * 15}
+          width={11}
+          height={11}
+          rx={3}
+          fill="var(--surface)"
+          stroke="var(--border-subtle)"
+          strokeWidth={1}
+        />,
       );
     }
   }
@@ -119,10 +165,17 @@ function ArteCacaPalavras({ tom }: { tom: string }) {
     <Moldura tom={tom}>
       {pontos}
       {/* O traço é o gesto do jogo: sem ele isto seria só uma grade. */}
-      <line x1={16} y1={16} x2={112} y2={58} stroke="currentColor" strokeWidth={11}
-        strokeLinecap="round" opacity={0.3} />
-      <line x1={16} y1={16} x2={112} y2={58} stroke="currentColor" strokeWidth={2.5}
-        strokeLinecap="round" />
+      <line
+        x1={16}
+        y1={16}
+        x2={112}
+        y2={58}
+        stroke="currentColor"
+        strokeWidth={11}
+        strokeLinecap="round"
+        opacity={0.3}
+      />
+      <line x1={16} y1={16} x2={112} y2={58} stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" />
     </Moldura>
   );
 }
@@ -130,20 +183,33 @@ function ArteCacaPalavras({ tom }: { tom: string }) {
 /** SOLETRAR — a assinatura do Termo: a linha de quadrados com verde e amarelo. */
 function ArteTermo({ tom }: { tom: string }) {
   const quadrado = (x: number, y: number, estado: 'certa' | 'existe' | 'vazia' | 'cursor') => (
-    <rect key={`${x}-${y}`} x={x} y={y} width={24} height={24} rx={5}
+    <rect
+      key={`${x}-${y}`}
+      x={x}
+      y={y}
+      width={24}
+      height={24}
+      rx={5}
       /* Verde e amarelo aqui são SEMÂNTICOS (acertou / existe fora de lugar) e sobrevivem ao tom
          da família — ver a exceção no topo. O "vazio" virou `--surface` pelo mesmo motivo da
          Memória: pintado de `--canvas`, ele sumia dentro da faixa. */
       fill={estado === 'certa' ? 'var(--good)' : estado === 'existe' ? 'var(--warn)' : 'var(--surface)'}
       stroke={estado === 'cursor' ? 'currentColor' : estado === 'vazia' ? 'var(--border-subtle)' : 'none'}
-      strokeWidth={estado === 'cursor' ? 2.5 : 1.5} />
+      strokeWidth={estado === 'cursor' ? 2.5 : 1.5}
+    />
   );
   return (
     <Moldura tom={tom}>
-      {quadrado(8, 8, 'certa')}{quadrado(38, 8, 'existe')}{quadrado(68, 8, 'vazia')}
-      {quadrado(98, 8, 'certa')}{quadrado(128, 8, 'vazia')}
-      {quadrado(8, 38, 'vazia')}{quadrado(38, 38, 'cursor')}{quadrado(68, 38, 'vazia')}
-      {quadrado(98, 38, 'vazia')}{quadrado(128, 38, 'vazia')}
+      {quadrado(8, 8, 'certa')}
+      {quadrado(38, 8, 'existe')}
+      {quadrado(68, 8, 'vazia')}
+      {quadrado(98, 8, 'certa')}
+      {quadrado(128, 8, 'vazia')}
+      {quadrado(8, 38, 'vazia')}
+      {quadrado(38, 38, 'cursor')}
+      {quadrado(68, 38, 'vazia')}
+      {quadrado(98, 38, 'vazia')}
+      {quadrado(128, 38, 'vazia')}
     </Moldura>
   );
 }
@@ -159,8 +225,13 @@ function ArteDuelo({ tom }: { tom: string }) {
       <line x1={52} y1={35} x2={62} y2={41} stroke="var(--ink)" strokeWidth={2.5} strokeLinecap="round" />
       {/* O raio fica em `--warn` porque ele é o único jogo cronometrado: a pressa é a assinatura
           dele, e uma cor de alerta diz isso mesmo dentro da família "palavra". */}
-      <path d="M108 8 L94 38 h13 l-6 24 22-32 h-14 l7-22 z"
-        fill="var(--warn)" stroke="var(--warn)" strokeWidth={1.5} strokeLinejoin="round" />
+      <path
+        d="M108 8 L94 38 h13 l-6 24 22-32 h-14 l7-22 z"
+        fill="var(--warn)"
+        stroke="var(--warn)"
+        strokeWidth={1.5}
+        strokeLinejoin="round"
+      />
     </Moldura>
   );
 }
@@ -170,18 +241,37 @@ function ArteDuelo({ tom }: { tom: string }) {
 /** FRASE EMBARALHADA — as peças fora de lugar caindo na linha. */
 function ArteEmbaralhada({ tom }: { tom: string }) {
   const chip = (x: number, y: number, w: number, giro: number, ativo = false) => (
-    <rect key={`${x}-${y}`} x={x} y={y} width={w} height={18} rx={9}
+    <rect
+      key={`${x}-${y}`}
+      x={x}
+      y={y}
+      width={w}
+      height={18}
+      rx={9}
       transform={`rotate(${giro} ${x + w / 2} ${y + 9})`}
       fill={ativo ? 'currentColor' : 'var(--surface)'}
-      stroke={ativo ? 'currentColor' : 'var(--border-subtle)'} strokeWidth={1.5} />
+      stroke={ativo ? 'currentColor' : 'var(--border-subtle)'}
+      strokeWidth={1.5}
+    />
   );
   return (
     <Moldura tom={tom}>
-      {chip(10, 6, 34, -7)}{chip(54, 4, 26, 5, true)}{chip(88, 7, 40, -3)}
+      {chip(10, 6, 34, -7)}
+      {chip(54, 4, 26, 5, true)}
+      {chip(88, 7, 40, -3)}
       {/* A linha tracejada é o lugar onde a frase se monta. */}
-      <line x1={10} y1={46} x2={150} y2={46} stroke="var(--border-subtle)" strokeWidth={2}
-        strokeDasharray="6 5" strokeLinecap="round" />
-      {chip(14, 52, 30, 0)}{chip(50, 52, 22, 0)}
+      <line
+        x1={10}
+        y1={46}
+        x2={150}
+        y2={46}
+        stroke="var(--border-subtle)"
+        strokeWidth={2}
+        strokeDasharray="6 5"
+        strokeLinecap="round"
+      />
+      {chip(14, 52, 30, 0)}
+      {chip(50, 52, 22, 0)}
     </Moldura>
   );
 }
@@ -196,11 +286,36 @@ function ArteEmbaralhada({ tom }: { tom: string }) {
 function ArteConectores({ tom }: { tom: string }) {
   return (
     <Moldura tom={tom}>
-      <rect x={8} y={26} width={48} height={18} rx={5} fill="var(--surface)" stroke="var(--border-subtle)" strokeWidth={1.5} />
-      <rect x={104} y={26} width={48} height={18} rx={5} fill="var(--surface)" stroke="var(--border-subtle)" strokeWidth={1.5} />
+      <rect
+        x={8}
+        y={26}
+        width={48}
+        height={18}
+        rx={5}
+        fill="var(--surface)"
+        stroke="var(--border-subtle)"
+        strokeWidth={1.5}
+      />
+      <rect
+        x={104}
+        y={26}
+        width={48}
+        height={18}
+        rx={5}
+        fill="var(--surface)"
+        stroke="var(--border-subtle)"
+        strokeWidth={1.5}
+      />
       {/* O arco é o que o jogo trata: a ligação entre as duas metades da ideia. */}
-      <path d="M40 24 Q80 2 120 24" fill="none" stroke="currentColor" strokeWidth={2}
-        strokeLinecap="round" strokeDasharray="4 4" opacity={0.7} />
+      <path
+        d="M40 24 Q80 2 120 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeDasharray="4 4"
+        opacity={0.7}
+      />
       <rect x={62} y={26} width={36} height={18} rx={9} fill="currentColor" />
     </Moldura>
   );
@@ -214,8 +329,7 @@ function OndaDeApoio({ x = 8, alturas = [10, 20, 30, 18, 26] }: { x?: number; al
   return (
     <>
       {alturas.map((h, i) => (
-        <rect key={i} x={x + i * 8} y={35 - h / 2} width={4} height={h} rx={2}
-          fill="currentColor" opacity={0.4} />
+        <rect key={i} x={x + i * 8} y={35 - h / 2} width={4} height={h} rx={2} fill="currentColor" opacity={0.4} />
       ))}
     </>
   );
@@ -232,8 +346,22 @@ function ArteKaraoke({ tom }: { tom: string }) {
       <path d="M89 37a11 11 0 0 0 22 0" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" />
       <line x1={100} y1={48} x2={100} y2={53} stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" />
       {/* As ondas saindo do microfone: som que SAI, não que entra. */}
-      <path d="M134 26a14 14 0 0 1 0 18" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" opacity={0.6} />
-      <path d="M143 20a24 24 0 0 1 0 30" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" opacity={0.35} />
+      <path
+        d="M134 26a14 14 0 0 1 0 18"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinecap="round"
+        opacity={0.6}
+      />
+      <path
+        d="M143 20a24 24 0 0 1 0 30"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinecap="round"
+        opacity={0.35}
+      />
     </Moldura>
   );
 }
@@ -243,15 +371,28 @@ function ArteEscuta({ tom }: { tom: string }) {
   return (
     <Moldura tom={tom}>
       <OndaDeApoio alturas={[12, 26, 16]} />
-      {[0, 1, 2].map(i => (
+      {[0, 1, 2].map((i) => (
         <g key={i}>
-          <rect x={48} y={10 + i * 18} width={104} height={14} rx={7}
+          <rect
+            x={48}
+            y={10 + i * 18}
+            width={104}
+            height={14}
+            rx={7}
             fill={i === 1 ? 'var(--good-soft)' : 'var(--surface)'}
-            stroke={i === 1 ? 'var(--good)' : 'var(--border-subtle)'} strokeWidth={i === 1 ? 2 : 1.5} />
+            stroke={i === 1 ? 'var(--good)' : 'var(--border-subtle)'}
+            strokeWidth={i === 1 ? 2 : 1.5}
+          />
           {/* O certo leva o tique: é o que transforma "três faixas" em "uma escolha". */}
           {i === 1 && (
-            <path d="M56 27.5l3.5 3.5 6-7" fill="none" stroke="var(--good)" strokeWidth={2.5}
-              strokeLinecap="round" strokeLinejoin="round" />
+            <path
+              d="M56 27.5l3.5 3.5 6-7"
+              fill="none"
+              stroke="var(--good)"
+              strokeWidth={2.5}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           )}
         </g>
       ))}

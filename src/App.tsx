@@ -30,11 +30,15 @@ const ResetPassword = lazyComRecarga(() => import('./components/auth/ResetPasswo
 // `onboarded` é `null` a tela já mostrava "Carregando…", então o fallback do Suspense abaixo é a
 // mesma pintura que o usuário via antes: nada muda na tela, só o momento do download.
 const Onboarding = lazyComRecarga(() => import('./components/Onboarding'));
+// Fase 4: o aceite do responsável só existe para quem abriu o link do convite.
+const AceiteDoResponsavel = lazyComRecarga(() => import('./components/conta/AceiteDoResponsavel'));
 import BuscaGlobal from './components/BuscaGlobal';
+import AvisoDoResponsavel from './components/conta/AvisoDoResponsavel';
 import CartaoDeConvite from './components/conta/CartaoDeConvite';
 import { aceitarAnonimo, exigeConta, porta } from './components/conta/exigeConta';
 import GateDeConta from './components/conta/GateDeConta';
 import ModalDeMigracao from './components/conta/ModalDeMigracao';
+import PerguntaDeIdade from './components/conta/PerguntaDeIdade';
 import FloatingScoreLayer from './components/FloatingScoreLayer';
 import ParticleCanvas from './components/ParticleCanvas';
 import RecompensaDesbloqueada, { tirarDaFila } from './components/RecompensaDesbloqueada';
@@ -42,7 +46,8 @@ import MobileNav from './components/shell/MobileNav';
 import MobileTopBar from './components/shell/MobileTopBar';
 import StudioHeader from './components/StudioHeader';
 import Toaster from './components/Toast';
-import { fetchSessions } from './data/api';
+import { carregarProtecao, fetchSessions } from './data/api';
+import { lerTokenDoConvite } from './lib/conviteNaUrl';
 import { carregarEntitlements } from './lib/entitlements';
 import { useAparencia, useHidratacaoDeAjustes } from './lib/estado/useAparencia';
 import { useGateDeConta } from './lib/estado/useGateDeConta';
@@ -56,6 +61,13 @@ import { useRecompensas } from './lib/estado/useRecompensas';
 import { useSessaoSupabase } from './lib/estado/useSessaoSupabase';
 import { equiparItem } from './lib/galeria/equipar';
 import { useIdiomaDaInterfaceEscolhido } from './lib/langConfig';
+import {
+  aoMudarProtecao,
+  armarProtecao,
+  definirProtecao,
+  estadoDaProtecao,
+  type EstadoDeProtecao,
+} from './lib/protecaoDoMenor';
 import { play } from './lib/soundFx';
 import { authRequired } from './lib/supabase';
 import { Recording, ViewType } from './types';
@@ -122,12 +134,36 @@ export default function App() {
     void carregarEntitlements();
   }, [session]);
 
-  // Fase 2: carrega as sessões reais do backend (substitui o mockData seed).
+  /* PERFIL PROTEGIDO (Fase 4 — ECA Digital, LGPD art. 14). No modo público, a proteção nasce
+     "armada": o funil espera a primeira resposta de `/api/me/idade` antes de mandar dados para a
+     nuvem, para que a conta de menor sem responsável não escreva no servidor nem por um instante.
+     A chave é o id do usuário, e não o objeto da sessão, que muda a cada renovação de token. */
+  const [protecao, setProtecao] = useState<EstadoDeProtecao | null>(() => {
+    if (authRequired) armarProtecao();
+    return null;
+  });
+  useEffect(() => aoMudarProtecao(() => setProtecao(estadoDaProtecao())), []);
+  const idDaConta = (session as { user?: { id?: string } } | null | undefined)?.user?.id ?? null;
+  useEffect(() => {
+    if (!authRequired || session === undefined) return;
+    if (!idDaConta) {
+      definirProtecao(null);
+      return;
+    }
+    armarProtecao();
+    void carregarProtecao();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idDaConta, session === undefined]);
+  const [tokenDoConvite, setTokenDoConvite] = useState<string | null>(lerTokenDoConvite);
+
+  // Fase 2: carrega as sessões reais do backend (substitui o mockData seed). Recarrega quando a
+  // conta passa a (ou deixa de) depender do responsável: os dados trocam entre nuvem e aparelho.
+  const restrita = !!protecao?.restrita;
   useEffect(() => {
     fetchSessions()
       .then(setRecordings)
       .catch(() => setRecordings([]));
-  }, []);
+  }, [restrita]);
 
   const { metrics, recordes, progress, setVersaoDasMetricas } = useMetricas(recordings.length);
 
@@ -277,6 +313,31 @@ export default function App() {
     );
   }
 
+  /* A IDADE antes de tudo o que é da conta: sem ela o app não sabe qual perfil aplicar. */
+  if (authRequired && idDaConta && protecao && !protecao.nascimentoInformado) {
+    return (
+      <>
+        <PerguntaDeIdade aoConcluir={() => void carregarProtecao()} />
+        <Toaster />
+      </>
+    );
+  }
+  /* O LINK DO CONVITE aberto pelo responsável (guardado durante o login). */
+  if (authRequired && idDaConta && tokenDoConvite) {
+    return (
+      <Suspense
+        fallback={
+          <div className="flex h-tela w-full items-center justify-center bg-canvas text-ink-muted text-sm">
+            Carregando…
+          </div>
+        }
+      >
+        <AceiteDoResponsavel token={tokenDoConvite} aoSair={() => setTokenDoConvite(null)} />
+        <Toaster />
+      </Suspense>
+    );
+  }
+
   if (onboarded === null) {
     return (
       <div className="flex h-tela w-full items-center justify-center bg-canvas text-ink-muted text-sm">Carregando…</div>
@@ -388,6 +449,7 @@ export default function App() {
               serem cortados pelo `overflow` de nenhum container de jogo. */}
           <FloatingScoreLayer />
           <LayoutEditorToolbar />
+          {protecao?.restrita && activeView === 'hub' && <AvisoDoResponsavel estado={protecao} />}
           <Suspense
             fallback={<div className="flex-1 flex items-center justify-center text-ink-muted text-sm">Carregando…</div>}
           >

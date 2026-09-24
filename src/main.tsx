@@ -4,13 +4,17 @@ import './index.css';
 import './styles/prototipo.css';
 import './styles/prototipo-app.css';
 
-import {StrictMode} from 'react';
-import {createRoot} from 'react-dom/client';
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
 
 import App from './App.tsx';
 import ErroDaTela from './components/ErroDaTela';
-import {instalarRelatorioDeErros} from './lib/relatorioDeErros';
-import {bootTheme} from './lib/theme';
+import { capturarTokenDoConvite } from './lib/conviteNaUrl';
+import { instalarRelatorioDeErros } from './lib/relatorioDeErros';
+import { bootTheme } from './lib/theme';
+
+// Fase 4: o link do convite ao responsável sai da barra antes que o login ou o roteador o apaguem.
+capturarTokenDoConvite();
 
 // Antes do primeiro render: pinta `data-theme` e `.dark` a partir do localStorage.
 // O servidor reconcilia depois (App → hydrateTheme), mas sem isto haveria um

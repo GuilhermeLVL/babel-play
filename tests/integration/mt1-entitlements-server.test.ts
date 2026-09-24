@@ -3,10 +3,10 @@
  * resolução: subscriptions (autoritativa) → settings.ui.plan (fallback) → default por modo
  * (público=free, local=selfhost), e a derivação dos entitlements por tier.
  */
-import { afterAll, afterEach,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let ent: any
@@ -19,8 +19,12 @@ beforeAll(async () => {
   ;({ subscriptionsRepo: subs } = await h.load('../../server/db/repositories/subscriptions'))
   ;({ settingsRepo } = await h.load('../../server/db/repositories/settings'))
 })
-afterAll(async () => { await h.cleanup() })
-afterEach(() => { delete process.env.AUTH_REQUIRED })
+afterAll(async () => {
+  await h.cleanup()
+})
+afterEach(() => {
+  delete process.env.AUTH_REQUIRED
+})
 
 describe('SaaS Fatia 1a — entitlements server-side', () => {
   it('default por modo: local (AUTH_REQUIRED=0) → selfhost, tudo liberado', async () => {
@@ -55,12 +59,22 @@ describe('SaaS Fatia 1a — entitlements server-side', () => {
     expect(await ent.getPlanForUser(u)).toBe('pro')
   })
 
-  it('assinatura cancelada → free, mesmo com settings.ui.plan=pro (sub manda)', async () => {
+  it('assinatura cancelada sem período pago à frente → free, mesmo com settings.ui.plan=pro (sub manda)', async () => {
     process.env.AUTH_REQUIRED = '1'
     const u = asUserId('u-sub-cancel')
     await settingsRepo.update(u, { ui: { plan: 'pro' } })
     await subs.upsert(u, { plan: 'pro', status: 'canceled' })
     expect(await ent.getPlanForUser(u)).toBe('free')
+    const uVencida = asUserId('u-sub-cancel-vencida')
+    await subs.upsert(uVencida, { plan: 'pro', status: 'canceled', currentPeriodEnd: Date.now() - 60_000 })
+    expect(await ent.getPlanForUser(uVencida)).toBe('free')
+  })
+
+  it('assinatura cancelada com período pago no futuro → mantém o plano até o fim (Decreto 11.034/2022)', async () => {
+    process.env.AUTH_REQUIRED = '1'
+    const u = asUserId('u-sub-cancel-no-periodo')
+    await subs.upsert(u, { plan: 'essencial', status: 'canceled', currentPeriodEnd: Date.now() + 5 * 86_400_000 })
+    expect(await ent.getPlanForUser(u)).toBe('essencial')
   })
 
   it('past_due dentro da graça → mantém o plano; graça expirada → free', async () => {

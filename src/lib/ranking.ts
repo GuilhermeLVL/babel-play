@@ -12,7 +12,13 @@
  * as URLs são as mesmas. Era o servidor do outro lado que não existia.
  *
  * Falha continua virando estado vazio na UI — nunca dados inventados.
+ *
+ * PERFIL PROTEGIDO (Fase 4 do lançamento — ECA Digital): no modo público, PUBLICAR exige conta de
+ * adulto declarado; o envio leva o token da sessão e o servidor recusa menor e idade desconhecida
+ * (403 `perfil_protegido`). As telas nem oferecem o envio a quem está no perfil protegido
+ * (`perfilProtegido()`); ler o placar continua público.
  */
+import { authHeaders } from './authHeaders';
 
 export interface LinhaDoRanking {
   apelido: string;
@@ -26,18 +32,29 @@ const CHAVE_APELIDO = 'babel.apelido';
 const CHAVE_ENVIADO = 'babel.rank_enviado';
 
 export function lerApelido(): string {
-  try { return localStorage.getItem(CHAVE_APELIDO) ?? ''; } catch { return ''; }
+  try {
+    return localStorage.getItem(CHAVE_APELIDO) ?? '';
+  } catch {
+    return '';
+  }
 }
 
 export function salvarApelido(apelido: string): string {
   const limpo = sanearApelido(apelido);
-  try { localStorage.setItem(CHAVE_APELIDO, limpo); } catch { /* sem storage */ }
+  try {
+    localStorage.setItem(CHAVE_APELIDO, limpo);
+  } catch {
+    /* sem storage */
+  }
   return limpo;
 }
 
 /** 3–20 caracteres, letras/números/espaço/_- (o servidor valida de novo — isto é só conforto). */
 export function sanearApelido(bruto: string): string {
-  return bruto.replace(/[^\p{L}\p{N} _-]/gu, '').trim().slice(0, 20);
+  return bruto
+    .replace(/[^\p{L}\p{N} _-]/gu, '')
+    .trim()
+    .slice(0, 20);
 }
 
 export function apelidoValido(apelido: string): boolean {
@@ -45,13 +62,14 @@ export function apelidoValido(apelido: string): boolean {
   return a.length >= 3 && a.length <= 20;
 }
 
-
 function marcarEnviado(jogo: string, pontos: number): void {
   try {
     const m = JSON.parse(localStorage.getItem(CHAVE_ENVIADO) || '{}') as Record<string, number>;
     m[jogo] = Math.max(m[jogo] ?? 0, pontos);
     localStorage.setItem(CHAVE_ENVIADO, JSON.stringify(m));
-  } catch { /* sem storage */ }
+  } catch {
+    /* sem storage */
+  }
 }
 
 export async function lerRanking(jogo: string, limite = 20): Promise<LinhaDoRanking[] | null> {
@@ -63,7 +81,9 @@ export async function lerRanking(jogo: string, limite = 20): Promise<LinhaDoRank
        pontos e combo, sem identidade, e só depois que o usuário escolhe um apelido. Ver o
        cabeçalho do módulo. */
     // ast-grep-ignore: fetch-fora-do-funil
-    const res = await fetch(`/api/rank/${encodeURIComponent(jogo)}?limite=${limite}`, { headers: { accept: 'application/json' } });
+    const res = await fetch(`/api/rank/${encodeURIComponent(jogo)}?limite=${limite}`, {
+      headers: { accept: 'application/json' },
+    });
     if (!res.ok) return null;
     const dados = (await res.json()) as { linhas?: LinhaDoRanking[] };
     return Array.isArray(dados.linhas) ? dados.linhas : null;
@@ -72,17 +92,21 @@ export async function lerRanking(jogo: string, limite = 20): Promise<LinhaDoRank
   }
 }
 
-export async function enviarParaRanking(jogo: string, pontos: number, combo: number): Promise<'ok' | 'indisponivel' | 'recusado'> {
+export async function enviarParaRanking(
+  jogo: string,
+  pontos: number,
+  combo: number,
+): Promise<'ok' | 'indisponivel' | 'recusado'> {
   const apelido = lerApelido();
   if (!apelidoValido(apelido)) return 'recusado';
   try {
     // ast-grep-ignore: fetch-fora-do-funil — mesma exceção do `lerRanking` acima, documentada lá.
     const res = await fetch(`/api/rank/${encodeURIComponent(jogo)}`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', ...(await authHeaders()) },
       body: JSON.stringify({ apelido, pontos, combo }),
     });
-    if (res.status === 429 || res.status === 400) return 'recusado';
+    if (res.status === 429 || res.status === 400 || res.status === 401 || res.status === 403) return 'recusado';
     if (!res.ok) return 'indisponivel';
     marcarEnviado(jogo, pontos);
     return 'ok';

@@ -4,8 +4,9 @@
  * Social (Google/Facebook) + e-mail/senha. Toda a lógica de auth vem de `src/lib/auth.ts` (mensagens
  * genéricas por segurança). Após entrar, o `onAuthStateChange` no App troca a tela sozinho.
  */
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
+import { lerAbertura } from '../data/rotas/idade';
 import * as auth from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import AuthShell from './auth/AuthShell';
@@ -46,22 +47,46 @@ export default function Login({ onContinuarSemConta }: LoginProps = {}) {
   const [erro, setErro] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(false);
+  /* SIGNUP_ENABLED=0 no servidor (Fase 3 — chave de emergência): a porta de "Criar conta" some e a
+     tela explica. Quem já tem conta continua entrando; o servidor recusa conta nova de qualquer jeito. */
+  const [cadastroAberto, setCadastroAberto] = useState(true);
+  useEffect(() => {
+    let vivo = true;
+    void lerAbertura().then((a) => {
+      if (!vivo) return;
+      setCadastroAberto(a.cadastro);
+      if (!a.cadastro) setModo((m) => (m === 'signup' ? 'login' : m));
+    });
+    return () => {
+      vivo = false;
+    };
+  }, []);
 
   const configurado = !!supabase;
   const redirectTo = typeof window !== 'undefined' ? `${window.location.origin}/auth/callback` : undefined;
 
-  function trocaModo(m: Mode) { setModo(m); setErro(null); setAviso(null); }
+  function trocaModo(m: Mode) {
+    setModo(m);
+    setErro(null);
+    setAviso(null);
+  }
 
   async function social(provider: 'google') {
-    setErro(null); setCarregando(true);
+    setErro(null);
+    setCarregando(true);
     const r = await auth.signInWithProvider(provider, redirectTo);
-    if (!r.ok) { setErro(r.message ?? 'Falha no login social.'); setCarregando(false); }
+    if (!r.ok) {
+      setErro(r.message ?? 'Falha no login social.');
+      setCarregando(false);
+    }
     // sucesso → o browser é redirecionado ao provedor; nada a fazer aqui.
   }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    setErro(null); setAviso(null); setCarregando(true);
+    setErro(null);
+    setAviso(null);
+    setCarregando(true);
     try {
       if (modo === 'login') {
         const r = await auth.signInEmail(email, senha);
@@ -79,7 +104,16 @@ export default function Login({ onContinuarSemConta }: LoginProps = {}) {
     }
   }
 
-  const heroRecuperar = { title: (<>Sem<br />estresse.</>), subtitle: 'Enviamos um link seguro pro seu e-mail, você define uma nova senha e volta em segundos.' };
+  const heroRecuperar = {
+    title: (
+      <>
+        Sem
+        <br />
+        estresse.
+      </>
+    ),
+    subtitle: 'Enviamos um link seguro pro seu e-mail, você define uma nova senha e volta em segundos.',
+  };
 
   return (
     <AuthShell hero={modo === 'forgot' ? heroRecuperar : undefined}>
@@ -95,60 +129,143 @@ export default function Login({ onContinuarSemConta }: LoginProps = {}) {
       {configurado && modo !== 'forgot' && (
         <>
           <div className="grid gap-2">
-            <button type="button" onClick={() => social('google')} disabled={carregando}
-              className="btn-outline w-full justify-center disabled:opacity-50">Continuar com Google</button>
+            <button
+              type="button"
+              onClick={() => social('google')}
+              disabled={carregando}
+              className="btn-outline w-full justify-center disabled:opacity-50"
+            >
+              Continuar com Google
+            </button>
           </div>
           <div className="my-5 flex items-center gap-3 text-xs text-ink-faint">
-            <span className="h-px flex-1 bg-border-subtle" />ou<span className="h-px flex-1 bg-border-subtle" />
+            <span className="h-px flex-1 bg-border-subtle" />
+            ou
+            <span className="h-px flex-1 bg-border-subtle" />
           </div>
         </>
       )}
 
       <form onSubmit={submit} className="grid gap-4">
         <div>
-          <label htmlFor="auth-email" className="mb-1 block text-xs font-medium text-ink-muted">E-mail</label>
-          <input id="auth-email" type="email" required autoComplete="email" value={email}
-            onChange={(e) => setEmail(e.target.value)} placeholder="voce@exemplo.com" className="field-input" />
+          <label htmlFor="auth-email" className="mb-1 block text-xs font-medium text-ink-muted">
+            E-mail
+          </label>
+          <input
+            id="auth-email"
+            type="email"
+            required
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="voce@exemplo.com"
+            className="field-input"
+          />
         </div>
 
         {modo !== 'forgot' && (
           <div>
             <div className="mb-1 flex items-center justify-between">
-              <label htmlFor="auth-senha" className="block text-xs font-medium text-ink-muted">Senha</label>
+              <label htmlFor="auth-senha" className="block text-xs font-medium text-ink-muted">
+                Senha
+              </label>
               {modo === 'login' && (
-                <button type="button" onClick={() => trocaModo('forgot')} className="text-xs text-accent-ink underline">Esqueci</button>
+                <button type="button" onClick={() => trocaModo('forgot')} className="text-xs text-accent-ink underline">
+                  Esqueci
+                </button>
               )}
             </div>
-            <PasswordField id="auth-senha" required minLength={6}
-              autoComplete={modo === 'login' ? 'current-password' : 'new-password'} value={senha}
-              onChange={(e) => setSenha(e.target.value)} placeholder="mínimo 6 caracteres" />
+            <PasswordField
+              id="auth-senha"
+              required
+              minLength={6}
+              autoComplete={modo === 'login' ? 'current-password' : 'new-password'}
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+              placeholder="mínimo 6 caracteres"
+            />
           </div>
         )}
 
-        {erro && <p className="text-sm text-error-ink" role="alert">{erro}</p>}
-        {aviso && <p className="text-sm text-good-ink" role="status">{aviso}</p>}
+        {erro && (
+          <p className="text-sm text-error-ink" role="alert">
+            {erro}
+          </p>
+        )}
+        {aviso && (
+          <p className="text-sm text-good-ink" role="status">
+            {aviso}
+          </p>
+        )}
 
-        <button type="submit" disabled={carregando || !configurado} className="btn-ink w-full justify-center disabled:opacity-60">
+        <button
+          type="submit"
+          disabled={carregando || !configurado}
+          className="btn-ink w-full justify-center disabled:opacity-60"
+        >
           {carregando ? 'Aguarde…' : modo === 'login' ? 'Entrar' : modo === 'signup' ? 'Criar conta' : 'Enviar link'}
         </button>
       </form>
 
       <div className="mt-6 border-t border-border-subtle pt-5 text-center text-xs text-ink-muted">
-        {modo === 'login' && (<>Não tem conta? <button type="button" onClick={() => trocaModo('signup')} className="font-medium text-accent-ink underline underline-offset-2">Criar uma conta</button></>)}
-        {modo === 'signup' && (<>Já tem conta? <button type="button" onClick={() => trocaModo('login')} className="font-medium text-accent-ink underline underline-offset-2">Entrar</button></>)}
-        {modo === 'forgot' && (<button type="button" onClick={() => trocaModo('login')} className="font-medium text-accent-ink underline underline-offset-2">← Voltar ao login</button>)}
+        {modo === 'login' && cadastroAberto && (
+          <>
+            Não tem conta?{' '}
+            <button
+              type="button"
+              onClick={() => trocaModo('signup')}
+              className="font-medium text-accent-ink underline underline-offset-2"
+            >
+              Criar uma conta
+            </button>
+          </>
+        )}
+        {modo === 'login' && !cadastroAberto && (
+          <>O cadastro de contas novas está pausado temporariamente. Você pode usar o app sem conta, no seu aparelho.</>
+        )}
+        {modo === 'signup' && (
+          <>
+            Já tem conta?{' '}
+            <button
+              type="button"
+              onClick={() => trocaModo('login')}
+              className="font-medium text-accent-ink underline underline-offset-2"
+            >
+              Entrar
+            </button>
+          </>
+        )}
+        {modo === 'forgot' && (
+          <button
+            type="button"
+            onClick={() => trocaModo('login')}
+            className="font-medium text-accent-ink underline underline-offset-2"
+          >
+            ← Voltar ao login
+          </button>
+        )}
       </div>
 
       {onContinuarSemConta && modo !== 'forgot' && (
         <div className="mt-4 text-center">
-          <button type="button" onClick={onContinuarSemConta} className="btn-outline w-full justify-center">Continuar sem conta</button>
+          <button type="button" onClick={onContinuarSemConta} className="btn-outline w-full justify-center">
+            Continuar sem conta
+          </button>
           {/* E5 — quem cria conta precisa conseguir LER o que está aceitando, antes de aceitar. */}
           <p className="text-[11px] text-ink-faint text-center mt-3">
             Ao criar uma conta você concorda com os{' '}
-            <a href="/termos.html" target="_blank" rel="noopener" className="underline">termos de uso</a> e a{' '}
-            <a href="/privacidade.html" target="_blank" rel="noopener" className="underline">política de privacidade</a>.
+            <a href="/termos.html" target="_blank" rel="noopener" className="underline">
+              termos de uso
+            </a>{' '}
+            e a{' '}
+            <a href="/privacidade.html" target="_blank" rel="noopener" className="underline">
+              política de privacidade
+            </a>
+            .
           </p>
-          <p className="mt-2 text-[11px] text-ink-faint">Transcreva, traduza e jogue com a sessão atual. Nada sai deste navegador até você criar uma conta.</p>
+          <p className="mt-2 text-[11px] text-ink-faint">
+            Transcreva, traduza e jogue com a sessão atual. Nada sai deste navegador até você criar uma conta.
+          </p>
         </div>
       )}
     </AuthShell>

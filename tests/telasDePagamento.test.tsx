@@ -103,6 +103,62 @@ describe('checkout', () => {
   }
 })
 
+describe('quem paga é adulto (Fase 4)', () => {
+  it('conta de menor não vê o formulário: a tela diz que o responsável assina por ela', async () => {
+    mockApi({})
+    const { definirProtecao } = await import('../src/lib/protecaoDoMenor')
+    definirProtecao({
+      nascimentoInformado: true,
+      faixa: '16-17',
+      protegido: true,
+      exigeResponsavel: false,
+      exigeConsentimentoEspecifico: false,
+      vinculo: { estado: 'nenhum' },
+      restrita: false,
+    })
+    const { default: Checkout } = await import('../src/components/views/planos/Checkout')
+    render(
+      <Checkout
+        plano="pro"
+        aoTrocarPlano={() => {}}
+        plan="free"
+        conta={contaGratis}
+        status={{ configurado: true, assinatura: null }}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: /Ir para o pagamento/ }))
+    expect(screen.getByRole('heading', { name: 'Quem assina é o seu responsável' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /Assinar e pagar/ })).toBeNull()
+    definirProtecao(null)
+  })
+
+  it('o responsável assinando pelo menor manda `paraUsuario`', async () => {
+    const chamadas = mockApi({ '/api/billing/assinar': { linkDePagamento: 'https://sandbox.asaas.com/i/9' } })
+    vi.spyOn(window, 'open').mockReturnValue(null)
+    sessionStorage.setItem('babel.checkout.para', JSON.stringify({ id: 'menor-1', nome: 'Bia' }))
+    const { default: Checkout } = await import('../src/components/views/planos/Checkout')
+    render(
+      <Checkout
+        plano="essencial"
+        aoTrocarPlano={() => {}}
+        plan="free"
+        conta={contaGratis}
+        status={{ configurado: true, assinatura: null }}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: /Ir para o pagamento/ }))
+    expect(screen.getByText(/assinando para/i)).toBeTruthy()
+    fireEvent.change(screen.getByLabelText('Nome completo'), { target: { value: 'Maria Souza' } })
+    fireEvent.change(screen.getByLabelText('CPF'), { target: { value: '12345678901' } })
+    fireEvent.change(screen.getByLabelText('E-mail para o recibo'), { target: { value: 'maria@exemplo.com' } })
+    fireEvent.click(screen.getByRole('button', { name: /Assinar e pagar/ }))
+    await waitFor(() => expect(chamadas.some((c) => c.url === '/api/billing/assinar')).toBe(true))
+    const pedido = chamadas.find((c) => c.url === '/api/billing/assinar')!
+    expect(JSON.parse(String(pedido.init?.body)).paraUsuario).toBe('menor-1')
+    sessionStorage.removeItem('babel.checkout.para')
+  })
+})
+
 describe('assinatura confirmada', () => {
   it('não comemora se o servidor não disser active', async () => {
     mockApi({
@@ -141,5 +197,68 @@ describe('cancelar', () => {
     expect(await screen.findByRole('heading', { name: 'Assinatura cancelada' })).toBeTruthy()
     expect(chamadas.filter((c) => c.url === '/api/billing/cancelar')).toHaveLength(1)
     expect(screen.getAllByText(/22\/10\/2026/).length).toBeGreaterThan(0)
+  })
+
+  const hojeIso = () => new Date().toISOString().slice(0, 10)
+  const faturaRecente = [
+    {
+      id: 'pay_1',
+      data: hojeIso(),
+      descricao: 'Pro · mensal',
+      valor: 39.9,
+      metodo: 'cartao',
+      status: 'paga',
+      recibo: null,
+      link: null,
+    },
+  ]
+  const passarAteConfirmar = () => {
+    fireEvent.click(screen.getByRole('button', { name: /Continuar cancelamento/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Pular' }))
+  }
+
+  it('dentro dos 7 dias avisa que o cancelamento devolve tudo, e confirma o pedido na hora com protocolo', async () => {
+    mockApi({
+      '/api/billing/cancelar': {
+        ok: true,
+        valeAte: null,
+        arrependimento: { valor: 39.9, estornado: true, protocolo: 'arrependimento:pay_1', registradoEm: Date.now() },
+      },
+    })
+    const { default: Cancelar } = await import('../src/components/views/planos/Cancelar')
+    render(
+      <Cancelar conta={contaAtiva} faturas={faturaRecente as never} aoCancelado={() => {}} aoReativar={() => {}} />,
+    )
+    passarAteConfirmar()
+    expect(screen.getByText(/reembolso integral/i)).toBeTruthy()
+    expect(screen.queryByText(/peça ao suporte/i), 'o estorno é automático, não pelo suporte').toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: /Confirmar cancelamento/ }))
+    expect(await screen.findByRole('heading', { name: 'Reembolso solicitado' })).toBeTruthy()
+    expect(screen.getByText('arrependimento:pay_1')).toBeTruthy()
+    expect(screen.getAllByText(/R\$ 39,90/).length).toBeGreaterThan(0)
+  })
+
+  it('estorno que falhou: a tela diz que o reembolso será feito manualmente, com prazo', async () => {
+    mockApi({
+      '/api/billing/cancelar': {
+        ok: true,
+        valeAte: null,
+        arrependimento: {
+          valor: 39.9,
+          estornado: false,
+          protocolo: 'arrependimento:pay_1',
+          registradoEm: Date.now(),
+          prazoManualDias: 7,
+        },
+      },
+    })
+    const { default: Cancelar } = await import('../src/components/views/planos/Cancelar')
+    render(
+      <Cancelar conta={contaAtiva} faturas={faturaRecente as never} aoCancelado={() => {}} aoReativar={() => {}} />,
+    )
+    passarAteConfirmar()
+    fireEvent.click(screen.getByRole('button', { name: /Confirmar cancelamento/ }))
+    expect(await screen.findByRole('heading', { name: 'Reembolso solicitado' })).toBeTruthy()
+    expect(screen.getByText(/manualmente em até 7 dias/i)).toBeTruthy()
   })
 })

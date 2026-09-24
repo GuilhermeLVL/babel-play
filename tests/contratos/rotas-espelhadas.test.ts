@@ -51,6 +51,10 @@ const SO_COM_CONTA: Record<string, string> = {
   '/api/health':
     'status do servidor na Ajuda: é a pergunta "o servidor está no ar?", que um espelho local responderia sempre sim. Sem servidor, a tela diz que ele não responde',
   '/api/rank': 'placar público: fala com o servidor real por `fetch` cru, fora do funil, com e sem conta',
+  '/api/responsavel':
+    'o aceite do convite pelo responsável (Fase 4): vínculo e consentimento registrados no servidor, entre DUAS contas — sem conta não existe',
+  '/api/abertura':
+    'as chaves de emergência do SERVIDOR (cadastro e venda): lida por `fetch` cru antes de haver sessão; um espelho local responderia sempre "aberto"',
   '/api/audio':
     'captura do áudio do sistema por WASAPI: PASSA DIRETO (está em `PASSAM_DIRETO`) porque depende de um dispositivo da máquina, e só existe no self-host',
 }

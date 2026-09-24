@@ -52,6 +52,9 @@ export function DialogoBase({
     const d = ref.current;
     if (!d) return;
     if (!d.open) d.showModal?.();
+    /* O `autofocus` do protótipo: o `showModal()` põe o foco no primeiro focável, e o `autoFocus`
+       do React roda antes dele; `data-autofocus` marca quem deve ficar com o foco. */
+    d.querySelector<HTMLElement>('[data-autofocus]')?.focus();
     const aoFecharNativo = () => fechar.current();
     const aoCancelarNativo = (e: Event) => {
       if (!cancelar.current) return;

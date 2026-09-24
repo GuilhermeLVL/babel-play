@@ -1,4 +1,4 @@
-import { expect,type Locator, type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test'
 
 /**
  * Helpers compartilhados entre as suítes de `/jogar` (`baralhos.e2e.ts`, `facetas.e2e.ts`).
@@ -7,19 +7,19 @@ import { expect,type Locator, type Page } from '@playwright/test';
 
 /**
  * Fecha diálogos que podem aparecer sobrepostos: o de recompensa/conquista (`RecompensaDesbloqueada`,
- * título "Conquista feita" ou "Nível N!", botão com `aria-label="Fechar"`) entra ANIMADO, então
+ * `<dialog>` com `.recompensa`, botão "Resgatar e continuar") entra ANIMADO, então
  * pode não estar visível ainda no instante do `goto` — por isso isso é chamado mais de uma vez, não
  * só logo após a navegação.
  */
 export async function fecharSobreposicoes(page: Page) {
-  const dialogoRecompensa = page.locator('div[role="dialog"][aria-labelledby="recompensa-titulo"]');
-  const fecharRecompensa = dialogoRecompensa.getByRole('button', { name: 'Fechar' });
+  const dialogoRecompensa = page.locator('dialog[open]:has(.recompensa)')
+  const fecharRecompensa = dialogoRecompensa.getByRole('button', { name: 'Resgatar e continuar' })
   for (let i = 0; i < 40; i++) {
     if (await fecharRecompensa.isVisible().catch(() => false)) {
-      await fecharRecompensa.click({ timeout: 2000 }).catch(() => {});
-      await page.waitForTimeout(100);
+      await fecharRecompensa.click({ timeout: 2000 }).catch(() => {})
+      await page.waitForTimeout(100)
     } else {
-      break;
+      break
     }
   }
 
@@ -30,9 +30,9 @@ export async function fecharSobreposicoes(page: Page) {
      interceptação sumir até o teste inteiro estourar — sem dizer que o problema era o overlay.
      Com prazo curto e falha engolida, quem chama tenta de novo depois de fechar as sobreposições,
      que é exatamente o laço de `irParaPraticar`. */
-  const fecharSemMudar = page.getByRole('button', { name: 'Fechar sem mudar nada' });
+  const fecharSemMudar = page.getByRole('button', { name: 'Fechar sem mudar nada' })
   if (await fecharSemMudar.isVisible().catch(() => false)) {
-    await fecharSemMudar.click({ timeout: 2000 }).catch(() => {});
+    await fecharSemMudar.click({ timeout: 2000 }).catch(() => {})
   }
 }
 
@@ -44,19 +44,19 @@ export async function fecharSobreposicoes(page: Page) {
 export async function clicarRobusto(page: Page, locator: Locator) {
   for (let i = 0; i < 10; i++) {
     try {
-      await locator.click({ timeout: 3000 });
-      return;
+      await locator.click({ timeout: 3000 })
+      return
     } catch {
-      await fecharSobreposicoes(page);
-      await page.waitForTimeout(200);
+      await fecharSobreposicoes(page)
+      await page.waitForTimeout(200)
     }
   }
-  await locator.click();
+  await locator.click()
 }
 
 export async function irParaPraticar(page: Page) {
-  await page.goto('/jogar');
-  await expect(page.getByRole('main')).toBeVisible();
+  await page.goto('/jogar')
+  await expect(page.getByRole('main')).toBeVisible()
 
   // Tanto a recompensa quanto "O que você vai praticar" podem animar/entrar em momentos
   // diferentes do primeiro `main` visível — repete até a faixa do lobby (botão "Anki") aparecer
@@ -69,11 +69,11 @@ export async function irParaPraticar(page: Page) {
   /* O MARCO DE "LOBBY PRONTO" MUDOU: o botão do Anki desceu para dentro da gaveta do seletor
      (redesenho de 02/09), então esperar por ele aqui esperaria por algo que não está mais na
      tela de partida. O «Trocar» do seletor é o que sempre existe no lobby, e é o novo marco. */
-  const botaoAnki = page.getByRole('button', { name: 'Fonte' });
+  const botaoAnki = page.getByRole('button', { name: 'Fonte' })
   for (let i = 0; i < 20; i++) {
-    await fecharSobreposicoes(page);
-    if (await botaoAnki.isVisible().catch(() => false)) break;
-    await page.waitForTimeout(400);
+    await fecharSobreposicoes(page)
+    if (await botaoAnki.isVisible().catch(() => false)) break
+    await page.waitForTimeout(400)
   }
 }
 
@@ -82,7 +82,10 @@ export async function irParaPraticar(page: Page) {
  * Ver docblock original em `baralhos.e2e.ts` (git history) para o raciocínio completo.
  */
 export async function apareceEmAte(alvo: Locator, ms = 5000): Promise<boolean> {
-  return alvo.waitFor({ state: 'visible', timeout: ms }).then(() => true).catch(() => false);
+  return alvo
+    .waitFor({ state: 'visible', timeout: ms })
+    .then(() => true)
+    .catch(() => false)
 }
 
 /**
@@ -90,14 +93,18 @@ export async function apareceEmAte(alvo: Locator, ms = 5000): Promise<boolean> {
  * original em `baralhos.e2e.ts` (git history).
  */
 export async function baralhosNoServidor(page: Page): Promise<{ quantos: number; porque: string }> {
-  const r = await page.request.get('/api/anki/decks').catch((e) => ({ erro: String(e) }) as never);
-  if (!('ok' in r)) return { quantos: 0, porque: `a chamada a /api/anki/decks falhou: ${(r as { erro: string }).erro}` };
-  if (!r.ok()) return { quantos: 0, porque: `/api/anki/decks respondeu HTTP ${r.status()}` };
-  const corpo = await r.text().catch(() => '');
-  let decks: unknown;
-  try { decks = JSON.parse(corpo); } catch { return { quantos: 0, porque: `/api/anki/decks devolveu algo que não é JSON: ${corpo.slice(0, 120)}` }; }
-  if (!Array.isArray(decks)) return { quantos: 0, porque: `/api/anki/decks devolveu ${typeof decks}, não uma lista` };
-  return { quantos: decks.length, porque: decks.length ? '' : 'o servidor não tem nenhum baralho importado' };
+  const r = await page.request.get('/api/anki/decks').catch((e) => ({ erro: String(e) }) as never)
+  if (!('ok' in r)) return { quantos: 0, porque: `a chamada a /api/anki/decks falhou: ${(r as { erro: string }).erro}` }
+  if (!r.ok()) return { quantos: 0, porque: `/api/anki/decks respondeu HTTP ${r.status()}` }
+  const corpo = await r.text().catch(() => '')
+  let decks: unknown
+  try {
+    decks = JSON.parse(corpo)
+  } catch {
+    return { quantos: 0, porque: `/api/anki/decks devolveu algo que não é JSON: ${corpo.slice(0, 120)}` }
+  }
+  if (!Array.isArray(decks)) return { quantos: 0, porque: `/api/anki/decks devolveu ${typeof decks}, não uma lista` }
+  return { quantos: decks.length, porque: decks.length ? '' : 'o servidor não tem nenhum baralho importado' }
 }
 
 /**
@@ -106,10 +113,10 @@ export async function baralhosNoServidor(page: Page): Promise<{ quantos: number;
  * soltas acima da tela parecendo navegação.
  */
 export async function abrirSeletor(page: Page): Promise<void> {
-  const trocar = page.getByRole('button', { name: 'Fonte' });
-  await trocar.waitFor({ state: 'visible', timeout: 15_000 });
+  const trocar = page.getByRole('button', { name: 'Fonte' })
+  await trocar.waitFor({ state: 'visible', timeout: 15_000 })
   if ((await trocar.getAttribute('aria-expanded')) !== 'true') {
-    await clicarRobusto(page, trocar);
+    await clicarRobusto(page, trocar)
   }
-  await trocar.evaluate((el) => el.getAttribute('aria-expanded'));
+  await trocar.evaluate((el) => el.getAttribute('aria-expanded'))
 }

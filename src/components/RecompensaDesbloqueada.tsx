@@ -1,5 +1,7 @@
 /**
- * RECOMPENSA ENTREGUE NA HORA — o modal de resgate.
+ * RECOMPENSA ENTREGUE NA HORA — o modal de resgate. Desenho: `conquista()` do protótipo aprovado
+ * (`<dialog>` com `.recompensa`, confete de pixel, selos de Seeds/XP, "Resgatar e continuar" e o
+ * link "Ver em Personalizar").
  *
  * Personalizar v3 (2026-08-28): subir de nível ou fechar uma conquista dava um toast de 6 s;
  * quem estava no meio de um jogo precisava lembrar de ir a Personalizar depois. Agora o que
@@ -8,15 +10,19 @@
  *
  * Fila: um evento por vez. `babel.recompensas_vistas` guarda o que já foi mostrado (nível ou
  * conquista) para não repetir em recarga.
+ *
+ * Além do protótipo (recurso real que ele não desenha): os itens liberados, cada um com "Equipar
+ * agora". O protótipo mostra uma frase sob o nome da conquista; o app não tem essa frase por
+ * conquista, então no lugar dela vai o que foi liberado.
  */
-import { Check, Gift,Sparkles, Sprout, Trophy, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { Check, Gift, Sparkles, Sprout } from 'lucide-react';
+import { type CSSProperties, useEffect, useId, useRef, useState } from 'react';
 
 import { TEXTOS } from '../lib/galeria/textos';
-import { comemorar, explodirAleatorio } from '../lib/juice';
-import { COR_DA_RARIDADE, type ItemDaLoja } from '../lib/loja';
+import { comemorar } from '../lib/juice';
+import { type ItemDaLoja, type Raridade } from '../lib/loja';
 import MiniaturaDoItem from './MiniaturaDoItem';
+import { DialogoBase } from './ui';
 
 export type Recompensa =
   | { tipo: 'nivel'; nivel: number; itens: ItemDaLoja[] }
@@ -28,15 +34,27 @@ export type Recompensa =
 
 /** Rotulo e frase de cada tipo, para o JSX parar de ramificar em quatro lugares. */
 const CABECALHO: Record<Recompensa['tipo'], { rotulo: string; frase: string }> = {
-  nivel: { rotulo: 'Subiu de nivel', frase: 'Voce liberou:' },
+  nivel: { rotulo: 'Subiu de nível', frase: 'Você liberou:' },
   conquista: { rotulo: 'Conquista feita', frase: 'Item exclusivo liberado:' },
-  drop: { rotulo: 'Bau da rodada', frase: 'O bau abriu:' },
+  drop: { rotulo: 'Baú da rodada', frase: 'O baú abriu:' },
+};
+
+/** A borda do cartão do item diz a raridade — os mesmos tokens da Loja. */
+const BORDA_DA_RARIDADE: Record<Raridade, string> = {
+  comum: 'var(--border-subtle)',
+  raro: 'var(--rare)',
+  epico: 'var(--epic)',
+  lendario: 'var(--warn)',
 };
 
 export const EVENTO_RODADA_FECHOU = 'babel:rodada-fechou';
 /** O bau da rodada saiu. `detail` traz o que o SERVIDOR sorteou; o App resolve o id no catalogo. */
 export const EVENTO_DROP_GANHO = 'babel:drop-ganho';
-export interface DetalheDoDrop { roundId: string; itemId: string; seeds: number }
+export interface DetalheDoDrop {
+  roundId: string;
+  itemId: string;
+  seeds: number;
+}
 const CHAVE_VISTAS = 'babel.recompensas_vistas';
 
 export function chaveDaRecompensa(r: Recompensa): string {
@@ -45,10 +63,20 @@ export function chaveDaRecompensa(r: Recompensa): string {
   return `conquista:${r.id}`;
 }
 export function recompensasVistas(): Set<string> {
-  try { return new Set(JSON.parse(localStorage.getItem(CHAVE_VISTAS) || '[]') as string[]); } catch { return new Set(); }
+  try {
+    return new Set(JSON.parse(localStorage.getItem(CHAVE_VISTAS) || '[]') as string[]);
+  } catch {
+    return new Set();
+  }
 }
 export function marcarVista(r: Recompensa): void {
-  try { const v = recompensasVistas(); v.add(chaveDaRecompensa(r)); localStorage.setItem(CHAVE_VISTAS, JSON.stringify([...v].slice(-200))); } catch { /* sem storage */ }
+  try {
+    const v = recompensasVistas();
+    v.add(chaveDaRecompensa(r));
+    localStorage.setItem(CHAVE_VISTAS, JSON.stringify([...v].slice(-200)));
+  } catch {
+    /* sem storage */
+  }
 }
 /**
  * A fila não repete: as conquistas são reavaliadas a cada métrica nova, e antes de o usuário fechar
@@ -75,6 +103,34 @@ export function jogoAtivo(): boolean {
   return typeof document !== 'undefined' && document.body.hasAttribute('data-jogo-ativo');
 }
 
+/** Os quadradinhos da marca caindo — `confete()` do protótipo. Some sozinho; nada com movimento reduzido. */
+function Confete() {
+  const [pecas] = useState(() =>
+    Array.from({ length: 26 }, (_, i) => ({
+      left: `${4 + Math.random() * 92}%`,
+      background: ['var(--accent)', 'var(--warn)', 'var(--good)', 'var(--rare)'][i % 4],
+      '--dx': `${(Math.random() - 0.5) * 120}px`,
+      '--r': `${Math.random() * 540}deg`,
+      animationDelay: `${Math.random() * 0.25}s`,
+    })),
+  );
+  const [vivo, setVivo] = useState(
+    () => typeof matchMedia === 'undefined' || !matchMedia('(prefers-reduced-motion: reduce)').matches,
+  );
+  useEffect(() => {
+    const t = setTimeout(() => setVivo(false), 1900);
+    return () => clearTimeout(t);
+  }, []);
+  if (!vivo) return null;
+  return (
+    <div className="confete" aria-hidden>
+      {pecas.map((p, i) => (
+        <i key={i} style={p as CSSProperties} />
+      ))}
+    </div>
+  );
+}
+
 interface Props {
   fila: Recompensa[];
   /** Equipa pelo caminho único (`equiparItem`); devolve `false` quando não equipa. */
@@ -87,99 +143,157 @@ interface Props {
 export default function RecompensaDesbloqueada({ fila, onEquipar, onFechar, onVerPersonalizar }: Props) {
   const atual = fila[0] ?? null;
   const [pronta, setPronta] = useState(() => !jogoAtivo());
-  const [equipados, setEquipados] = useState<Set<string>>(new Set());
 
   // Espera a rodada fechar; enquanto isso o modal não existe na tela.
   useEffect(() => {
     if (!atual) return;
-    if (!jogoAtivo()) { setPronta(true); return; }
+    if (!jogoAtivo()) {
+      setPronta(true);
+      return;
+    }
     setPronta(false);
     const ouvir = () => setPronta(true);
     window.addEventListener(EVENTO_RODADA_FECHOU, ouvir);
     return () => window.removeEventListener(EVENTO_RODADA_FECHOU, ouvir);
   }, [atual]);
 
-  useEffect(() => {
-    if (!atual || !pronta) return;
-    comemorar('subiuNivel', null, { tremer: true });
-    explodirAleatorio(3, 'confete');
-    setEquipados(new Set());
-  }, [atual, pronta]);
-
   if (!atual || !pronta) return null;
+  // Uma recompensa por diálogo: a próxima da fila abre um diálogo novo (e um confete novo).
+  return (
+    <Resgate
+      key={chaveDaRecompensa(atual)}
+      atual={atual}
+      onEquipar={onEquipar}
+      onFechar={onFechar}
+      onVerPersonalizar={onVerPersonalizar}
+    />
+  );
+}
 
-  const itens: ItemDaLoja[] = atual.tipo === 'nivel' ? atual.itens : (atual.item ? [atual.item] : []);
+function Resgate({ atual, onEquipar, onFechar, onVerPersonalizar }: Omit<Props, 'fila'> & { atual: Recompensa }) {
+  const [equipados, setEquipados] = useState<Set<string>>(new Set());
+  const idTitulo = useId();
+  const fechado = useRef(false);
+
+  useEffect(() => {
+    comemorar('subiuNivel', null, { tremer: true });
+  }, []);
+
+  const itens: ItemDaLoja[] = atual.tipo === 'nivel' ? atual.itens : atual.item ? [atual.item] : [];
   const cabecalho = CABECALHO[atual.tipo];
-  const fechar = () => { marcarVista(atual); onFechar(atual); };
+  // Esc (o `close` nativo) e os dois botões passam por aqui; a recompensa sai da fila uma vez só.
+  const fechar = () => {
+    if (fechado.current) return;
+    fechado.current = true;
+    marcarVista(atual);
+    onFechar(atual);
+  };
   const equipar = (i: ItemDaLoja, el: HTMLElement | null) => {
     if (!onEquipar(i)) return;
     setEquipados((s) => new Set(s).add(i.id));
     comemorar('acerto', el, { texto: TEXTOS.emUso });
   };
 
-  return createPortal(
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200" role="dialog" aria-modal="true" aria-labelledby="recompensa-titulo">
-      <div className="card-panel bg-surface w-full max-w-lg max-h-[90vh] overflow-y-auto custom-scrollbar p-6 sm:p-7 space-y-5 animate-in zoom-in-95 duration-200">
-        <div className="flex items-start gap-3">
-          <span className="w-12 h-12 rounded-2xl bg-warn/15 border border-warn text-warn-ink flex items-center justify-center text-2xl shrink-0" aria-hidden>
-            {atual.tipo === 'conquista' ? atual.emoji : atual.tipo === 'drop' ? <Gift className="w-6 h-6" /> : <Sparkles className="w-6 h-6" />}
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="label-mono">{cabecalho.rotulo}</p>
-            <h2 id="recompensa-titulo" className="font-display font-black text-2xl text-ink leading-tight">
-              {atual.tipo === 'nivel' ? `Nível ${atual.nivel}!` : atual.tipo === 'drop' ? atual.item.nome : atual.nome}
-            </h2>
-            {atual.tipo !== 'nivel' && (
-              <p className="flex items-center gap-2 text-[12.5px] mt-1 tabular-nums">
-                <span className="flex items-center gap-1 font-bold text-good-ink"><Sprout className="w-3.5 h-3.5" aria-hidden /> +{atual.seeds} Seeds</span>
-                {atual.tipo === 'conquista' && atual.xp > 0 && <span className="text-ink-muted">+{atual.xp} XP</span>}
-              </p>
-            )}
-          </div>
-          <button onClick={fechar} className="p-1.5 rounded-lg text-ink-faint hover:text-ink hover:bg-surface-hover cursor-pointer" aria-label="Fechar"><X className="w-4 h-4" /></button>
-        </div>
+  const titulo =
+    atual.tipo === 'nivel' ? `Nível ${atual.nivel}!` : atual.tipo === 'drop' ? atual.item.nome : atual.nome;
+  const icone = { width: 44, height: 44, display: 'inline-block', color: 'var(--accent-ink)' };
 
-        {itens.length > 0 ? (
-          <div>
-            <p className="text-[12.5px] text-ink-muted mb-2">{cabecalho.frase}</p>
-            <ul className="space-y-2">
-              {itens.map((i) => {
-                const cor = COR_DA_RARIDADE[i.raridade];
-                const equipado = equipados.has(i.id);
-                const peca = i.tipo !== 'galeria' && i.tipo !== 'aprimoramento';
-                return (
-                  <li key={i.id} className={`flex items-center gap-3 p-3 rounded-2xl border-2 ${cor.borda} ${cor.fundo}`}>
-                    <span className="shrink-0"><MiniaturaDoItem item={i} /></span>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-bold text-[13.5px] text-ink leading-tight truncate">{i.nome}</p>
-                      <p className="text-[11.5px] text-ink-muted truncate">{i.desc}</p>
-                    </div>
-                    {peca ? (
-                      <button
-                        onClick={(e) => equipar(i, e.currentTarget)}
-                        disabled={equipado}
-                        className={`shrink-0 px-3 py-1.5 rounded-xl text-[12px] font-bold cursor-pointer transition-colors ${equipado ? 'bg-good-soft text-good-ink' : 'bg-accent text-accent-contrast hover:brightness-110'}`}
-                      >
-                        {equipado ? <span className="inline-flex items-center gap-1"><Check className="w-3.5 h-3.5" /> {TEXTOS.emUso}</span> : TEXTOS.equiparAgora}
-                      </button>
-                    ) : (
-                      <span className="shrink-0 text-[11px] font-bold text-ink-muted">{TEXTOS.liberado}</span>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        ) : (
-          <p className="text-[13px] text-ink-muted">Nada novo para equipar neste nível — o próximo desbloqueio vem aí. <Trophy className="inline w-4 h-4 text-warn" aria-hidden /></p>
+  return (
+    <DialogoBase rotuloId={idTitulo} aoFechar={fechar}>
+      <div className="recompensa">
+        <Confete />
+        <div className="emoji" aria-hidden>
+          {atual.tipo === 'conquista' ? (
+            atual.emoji
+          ) : atual.tipo === 'drop' ? (
+            <Gift style={icone} />
+          ) : (
+            <Sparkles style={icone} />
+          )}
+        </div>
+        <span className="label-mono" style={{ color: 'var(--accent-ink)' }}>
+          {cabecalho.rotulo}
+        </span>
+        <h2 id={idTitulo}>{titulo}</h2>
+        <p className="mut">
+          {itens.length > 0 ? cabecalho.frase : 'Nada novo para equipar neste nível: o próximo desbloqueio vem aí.'}
+        </p>
+
+        {itens.length > 0 && (
+          <ul className="pilha" style={{ listStyle: 'none', padding: 0, margin: '14px 0 0', textAlign: 'left' }}>
+            {itens.map((i) => {
+              const equipado = equipados.has(i.id);
+              const peca = i.tipo !== 'galeria' && i.tipo !== 'aprimoramento';
+              return (
+                <li
+                  key={i.id}
+                  className="cartao"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: 12,
+                    padding: 12,
+                    borderColor: BORDA_DA_RARIDADE[i.raridade],
+                  }}
+                >
+                  <span style={{ flex: 'none' }}>
+                    <MiniaturaDoItem item={i} />
+                  </span>
+                  <span style={{ flex: '1 1 160px', minWidth: 0 }}>
+                    <b style={{ display: 'block', fontSize: 13.5 }}>{i.nome}</b>
+                    <small className="mut" style={{ display: 'block', fontSize: 12 }}>
+                      {i.desc}
+                    </small>
+                  </span>
+                  {peca ? (
+                    <button
+                      type="button"
+                      className={`btn ${equipado ? 'btn-outline' : 'btn-solid'} peq`}
+                      onClick={(e) => equipar(i, e.currentTarget)}
+                      disabled={equipado}
+                    >
+                      {equipado ? (
+                        <>
+                          <Check aria-hidden /> {TEXTOS.emUso}
+                        </>
+                      ) : (
+                        TEXTOS.equiparAgora
+                      )}
+                    </button>
+                  ) : (
+                    <span className="badge neu">{TEXTOS.liberado}</span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
         )}
 
-        <div className="flex flex-col sm:flex-row gap-2">
-          <button onClick={fechar} className="flex-1 py-3 rounded-xl bg-accent text-accent-contrast font-bold text-[14px] cursor-pointer hover:brightness-110">{TEXTOS.resgatarEContinuar}</button>
-          <button onClick={() => { fechar(); onVerPersonalizar(); }} className="btn-outline justify-center">{TEXTOS.verEmPersonalizar}</button>
+        <div className="linha" style={{ justifyContent: 'center', gap: 8, margin: '16px 0 22px' }}>
+          {atual.tipo !== 'nivel' && (
+            <span className="badge ok">
+              <Sprout aria-hidden /> +{atual.seeds} Seeds
+            </span>
+          )}
+          {atual.tipo === 'conquista' && atual.xp > 0 && <span className="badge acc">+{atual.xp} XP</span>}
         </div>
+
+        <button type="button" className="btn btn-solid bloco" data-autofocus onClick={fechar}>
+          {TEXTOS.resgatarEContinuar}
+        </button>
+        <button
+          type="button"
+          className="link"
+          style={{ marginTop: 8 }}
+          onClick={() => {
+            fechar();
+            onVerPersonalizar();
+          }}
+        >
+          {TEXTOS.verEmPersonalizar}
+        </button>
       </div>
-    </div>,
-    document.body,
+    </DialogoBase>
   );
 }

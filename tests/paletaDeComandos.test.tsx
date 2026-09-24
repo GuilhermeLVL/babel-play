@@ -10,6 +10,7 @@ import React from 'react'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import CommandPalette, { type Command } from '../src/components/CommandPalette'
+import { prepararDialogoNoJsdom } from './_dialogoNoJsdom'
 
 const cmd = (id: string, label: string, grupo: string, extra: Partial<Command> = {}): Command => ({
   id,
@@ -33,12 +34,7 @@ function abrir(extra: Partial<React.ComponentProps<typeof CommandPalette>> = {})
 }
 
 describe('paleta de comandos', () => {
-  // O jsdom não tem `showModal`: sem ele o `<dialog>` fica fechado e fora da árvore acessível.
-  beforeAll(() => {
-    HTMLDialogElement.prototype.showModal ??= function (this: HTMLDialogElement) {
-      this.open = true
-    }
-  })
+  beforeAll(prepararDialogoNoJsdom)
   afterEach(cleanup)
 
   it('sem digitar, mostra as sugestões', () => {

@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import * as auth from '../../lib/auth';
+import { useFotoDoPerfil } from '../../lib/fotoDoPerfil';
 import { t } from '../../lib/i18n';
 import { aoMudarIdentidade, estaAnonimo } from '../../lib/identidade';
 import { authRequired } from '../../lib/supabase';
@@ -28,6 +29,8 @@ interface MenuDaContaProps {
 
 export default function MenuDaConta({ onIr }: MenuDaContaProps) {
   const { perfil, iniciais } = usePerfil();
+  // A foto escolhida em Perfil → Você (guardada neste navegador) vira o avatar do botão.
+  const foto = useFotoDoPerfil(perfil?.id);
   const [aberto, setAberto] = useState(false);
   const [anonimo, setAnonimo] = useState(estaAnonimo);
   useEffect(() => aoMudarIdentidade(() => setAnonimo(estaAnonimo())), []);
@@ -97,7 +100,11 @@ export default function MenuDaConta({ onIr }: MenuDaContaProps) {
         style={iniciais ? { font: '900 12px var(--font-display)' } : undefined}
       >
         {/* Sem nome nem e-mail, o ícone genérico — nunca uma letra inventada. */}
-        {iniciais || <UserRound aria-hidden />}
+        {foto ? (
+          <img src={foto} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+        ) : (
+          iniciais || <UserRound aria-hidden />
+        )}
       </button>
 
       {aberto &&

@@ -41,25 +41,6 @@ export interface ControlClusterProps {
 }
 
 /**
- * Abre Ajustes JÁ na aba Aparência — o `data-ir="ajustes" data-aba-alvo="aparencia"` do protótipo.
- * A tela de Ajustes carrega sob demanda e guarda a aba no próprio estado; o atalho espera a aba
- * existir e a seleciona pelo mesmo controle que a pessoa usaria.
- */
-function abrirAjustesNaAparencia(onChangeView: ControlClusterProps['onChangeView']) {
-  onChangeView('settings');
-  const t0 = Date.now();
-  const tentar = () => {
-    const aba = document.getElementById('aba-aparencia');
-    if (aba) {
-      if (aba.getAttribute('aria-selected') !== 'true') aba.click();
-      return;
-    }
-    if (Date.now() - t0 < 4000) window.setTimeout(tentar, 60);
-  };
-  window.setTimeout(tentar, 0);
-}
-
-/**
  * O RODAPÉ DO MENU — `.cluster` do protótipo aprovado (`montarShell`): busca, sino de notificações,
  * "Som, animações e desempenho" (atalho para Ajustes → Aparência), claro/escuro e a conta. No
  * celular (`enxuto`, a `.topo-movel`), o sino vem primeiro e o atalho de aparência sai.
@@ -107,7 +88,7 @@ export default function ControlCluster(props: ControlClusterProps) {
       {sino}
       <button
         type="button"
-        onClick={() => abrirAjustesNaAparencia(onChangeView)}
+        onClick={() => onChangeView('settings', { aba: 'aparencia' })}
         aria-label={t('Som, animações e desempenho')}
         title={t('Som, animações e desempenho')}
       >

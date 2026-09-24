@@ -12,7 +12,7 @@ import {
   quando,
 } from '../src/lib/notificacoes'
 
-const base = { icone: 'target' as const, detalhe: 'd', ir: 'study' }
+const base = { tipo: 'revisao' as const, icone: 'target' as const, detalhe: 'd', ir: 'study' }
 
 describe('central de notificações', () => {
   beforeEach(() => _zerarNotificacoes())

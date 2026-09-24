@@ -14,12 +14,19 @@
 import { t } from './i18n';
 
 export type TomDaNotificacao = '' | 'good' | 'warn' | 'rare';
+/**
+ * O tipo do aviso nas preferências (Ajustes → Notificações, `lib/preferencias`): quem desliga
+ * "revisão" ou "conquista" no app deixa de ver esses avisos no sino. `sessao` não tem chave lá:
+ * é o recibo de uma ação que a própria pessoa acabou de fazer.
+ */
+export type TipoDaNotificacao = 'revisao' | 'conquista' | 'sessao';
 export type IconeDaNotificacao = 'target' | 'award' | 'trending-up' | 'gift' | 'library' | 'flame';
 
 export interface Notificacao {
   id: string;
   /** Identidade do fato: a mesma chave atualiza a notificação em vez de criar outra. */
   chave: string;
+  tipo: TipoDaNotificacao;
   icone: IconeDaNotificacao;
   tom: TomDaNotificacao;
   titulo: string;
@@ -75,6 +82,7 @@ export function ouvirNotificacoes(o: Ouvinte): () => void {
 
 export interface NovaNotificacao {
   chave: string;
+  tipo: TipoDaNotificacao;
   icone: IconeDaNotificacao;
   tom?: TomDaNotificacao;
   titulo: string;
@@ -95,6 +103,7 @@ export function notificar(n: NovaNotificacao): void {
   const nova: Notificacao = {
     id: existente?.id ?? `n${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
     chave: n.chave,
+    tipo: n.tipo,
     icone: n.icone,
     tom: n.tom ?? '',
     titulo: n.titulo,

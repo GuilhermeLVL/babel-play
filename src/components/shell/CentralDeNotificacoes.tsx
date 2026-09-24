@@ -1,4 +1,15 @@
-import { Award, Bell, BellOff, Flame, Gift, Library, type LucideIcon, Target, TrendingUp } from 'lucide-react';
+import {
+  Award,
+  Bell,
+  BellOff,
+  Flame,
+  Gift,
+  Library,
+  type LucideIcon,
+  Settings,
+  Target,
+  TrendingUp,
+} from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -13,6 +24,7 @@ import {
   ouvirNotificacoes,
   quando,
 } from '../../lib/notificacoes';
+import { usePreferencias } from '../../lib/preferencias';
 import IconeEmBloco from '../ui/IconeEmBloco';
 import { raizDoApp } from './raizDoApp';
 
@@ -25,11 +37,15 @@ const ICONES: Record<IconeDaNotificacao, LucideIcon> = {
   flame: Flame,
 };
 
-/** A lista viva da central, para qualquer componente que precise dela. */
+/**
+ * A lista viva da central, já filtrada pelas preferências: o tipo de aviso desligado em Ajustes →
+ * Notificações (canal "no app") some do sino e da contagem.
+ */
 export function useListaDeNotificacoes(): Notificacao[] {
   const [lista, setLista] = useState(notificacoes);
   useEffect(() => ouvirNotificacoes(setLista), []);
-  return lista;
+  const { avisos } = usePreferencias();
+  return lista.filter((n) => n.tipo === 'sessao' || !n.tipo || avisos[n.tipo]?.app !== false);
 }
 
 /**
@@ -104,6 +120,17 @@ export default function CentralDeNotificacoes({
                     {t('Marcar todas como lidas')}
                   </button>
                 )}
+                <button
+                  type="button"
+                  className="btn btn-outline peq icone"
+                  aria-label={t('Preferências de notificação')}
+                  onClick={() => {
+                    setAberto(false);
+                    onIr('settings', { aba: 'notificacoes' });
+                  }}
+                >
+                  <Settings aria-hidden />
+                </button>
               </div>
             </div>
             <div className="notif-lista">

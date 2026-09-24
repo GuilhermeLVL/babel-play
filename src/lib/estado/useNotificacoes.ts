@@ -20,6 +20,7 @@ export function notificacaoDaRecompensa(r: Recompensa) {
   if (r.tipo === 'conquista')
     return {
       chave,
+      tipo: 'conquista' as const,
       icone: 'award' as const,
       tom: 'good' as const,
       titulo: t('Conquista: {nome}', { nome: r.nome }),
@@ -30,6 +31,7 @@ export function notificacaoDaRecompensa(r: Recompensa) {
   if (r.tipo === 'nivel')
     return {
       chave,
+      tipo: 'conquista' as const,
       icone: 'trending-up' as const,
       tom: 'rare' as const,
       titulo: t('Você subiu para o nível {n}', { n: r.nivel }),
@@ -41,6 +43,7 @@ export function notificacaoDaRecompensa(r: Recompensa) {
     };
   return {
     chave,
+    tipo: 'conquista' as const,
     icone: 'gift' as const,
     tom: 'warn' as const,
     titulo: t('Baú da rodada: {nome}', { nome: r.item.nome }),
@@ -71,6 +74,7 @@ export function useNotificacoes({
     if (!metrics || vencidas <= 0) return;
     notificar({
       chave: `revisao:${hojeLocal()}`,
+      tipo: 'revisao',
       icone: 'target',
       titulo: tp(vencidas, '{n} palavra esperando revisão', '{n} palavras esperando revisão'),
       detalhe: t('Voltaram a vencer hoje. Uma rodada curta resolve.'),
@@ -98,6 +102,7 @@ export function useNotificacoes({
       if (jaNotificado(chave)) return;
       notificar({
         chave,
+        tipo: 'revisao',
         icone: 'flame',
         tom: 'warn',
         titulo: tp(streakDays, 'Sua ofensiva de {n} dia está em risco', 'Sua ofensiva de {n} dias está em risco'),
@@ -115,6 +120,7 @@ export function useNotificacoes({
 export function notificarSessaoSalva(rec: { id: string; title?: string }): void {
   notificar({
     chave: `sessao:${rec.id}`,
+    tipo: 'sessao',
     icone: 'library',
     tom: 'rare',
     titulo: t('Sessão salva: {titulo}', { titulo: rec.title?.trim() || t('sem título') }),

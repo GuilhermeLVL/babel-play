@@ -103,22 +103,45 @@ O Asaas não tem mensalidade: cobra por transação (cartão ~R$ 0,49 + 1,99 % a
    usa **chaves assimétricas (ES256)** — é o que o servidor verifica pelo JWKS.
 8. **Organization → Legal Documents** → aceitar o **DPA** (ver `docs/lgpd/operadores.md`).
 
-## 4. Resend (e-mail do login) — 20 min
+## 4. Resend (e-mail do login e do convite ao responsável) — 30 min
 
-1. resend.com → conta com 2FA → **Domains → Add** `<domínio>` (região São Paulo se oferecida) →
-   criar no Cloudflare DNS os registros **SPF, DKIM e DMARC** que ele mostrar → _Verify_.
-2. **API Keys** → chave com permissão só de envio.
-3. No Supabase → **Authentication → SMTP Settings** → _Enable custom SMTP_: host `smtp.resend.com`,
+1. resend.com → conta com 2FA → **Domains → Add** `<domínio>` (região São Paulo se oferecida). O
+   Resend mostra os registros a criar no **Cloudflare DNS** (todos com a nuvem **cinza**, _DNS only_):
+   - **SPF**: um `MX` e um `TXT` no subdomínio `send.<domínio>` (`v=spf1 include:amazonses.com ~all`).
+     O SPF vale para o _envelope_ (Return-Path) nesse subdomínio, por isso não mexe no SPF do
+     domínio raiz, se já houver um.
+   - **DKIM**: um `TXT` em `resend._domainkey.<domínio>` com a chave pública. É ele que prova que o
+     e-mail saiu de quem controla o domínio.
+   - **DMARC**: um `TXT` em `_dmarc.<domínio>`. Comece com `v=DMARC1; p=none; rua=mailto:<seu e-mail>`
+     para receber os relatórios sem bloquear nada; depois de uma ou duas semanas sem falhas nos
+     relatórios, suba para `p=quarantine`. Sem DMARC, Gmail e Yahoo tratam o remetente como suspeito.
+     Clicar em _Verify_ e esperar os três ficarem **Verified** (minutos a algumas horas).
+2. **Domains → `<domínio>` → Configuration**: **desligar _Click tracking_ e _Open tracking_**. O convite
+   vai para o responsável de um menor; o servidor não rastreia abertura nem clique, e o Resend não
+   deve reescrever o link nem inserir pixel. Aceitar o DPA.
+3. **API Keys** → chave com permissão **Sending access** (só envio), restrita ao domínio. Guarde-a:
+   vai para o Supabase (passo 4) e para o Fly (`RESEND_API_KEY`, passo 8).
+4. No Supabase → **Authentication → SMTP Settings** → _Enable custom SMTP_: host `smtp.resend.com`,
    porta 465, usuário `resend`, senha = a chave, remetente `nao-responda@<domínio>`, nome "Babel Play".
-4. Desligar _open/click tracking_ no Resend. Aceitar o DPA.
-5. **O Resend é pré-requisito do convite ao responsável** (Fase 4: conta de menor de 16 anos fica sem
-   nuvem até o responsável aceitar o convite). Hoje o `EnviadorDeConvite`, em
-   `server/lib/conviteDoResponsavel.ts`, **só registra no log** — e em produção o link não aparece na
-   tela (`CONVITE_LINK_NA_TELA` desligado). Ou seja: **sem implementar o envio pelo Resend, nenhum
-   menor de 16 consegue liberar a conta em produção.** É uma pendência de código (pequena: um
-   `EnviadorDeConvite` que faz `POST https://api.resend.com/emails` com a chave do passo 2, lida de uma
-   variável nova), e fica marcada nas conferências do passo 10. `APP_URL=https://<domínio>` é o que
-   torna o link do convite absoluto.
+5. **O convite ao responsável** (Fase 4: conta de menor de 16 anos fica sem nuvem até o responsável
+   aceitar) sai pela **API HTTP** do Resend — `POST https://api.resend.com/emails`, em
+   `server/lib/conviteDoResponsavel.ts` —, não pelo SMTP do Supabase, que só manda os modelos de login.
+   Precisa de duas variáveis no Fly: `RESEND_API_KEY` (a chave do passo 3) e
+   `EMAIL_REMETENTE="Babel Play <nao-responda@<domínio>>"`, mais `APP_URL=https://<domínio>`, que
+   torna o link absoluto. Sem as duas, o convite só é registrado no log e o boot mostra
+   `[convite] AVISO: ... nenhuma conta de menor de 16 anos consegue liberar a nuvem`.
+   Como o envio se comporta:
+   - e-mail em pt-BR, texto + HTML mínimo: quem pediu (o nome que a conta informou), o que o
+     responsável autoriza, o link, a validade (**7 dias**) e que basta ignorar para recusar — sem
+     imagem, sem link além do convite, sem o e-mail do responsável no corpo;
+   - cada tentativa tem **8 s** de prazo e há no máximo **duas** (só em 5xx, 429, rede ou timeout;
+     a mesma `Idempotency-Key` impede e-mail duplicado); 4xx é definitivo;
+   - se o envio falha, a tela diz "não conseguimos enviar agora, tente de novo em alguns minutos", o
+     convite novo é descartado e o anterior (se havia) continua valendo; o log registra
+     `convite_email_falhou`/`convite_nao_enviado` com o status e o texto do provedor **redigidos**,
+     nunca o destinatário;
+   - no máximo **5 convites por conta em 24 h** (429 `limite_de_convites`), para a rota não virar canal
+     de spam com o domínio do app.
 
 ## 5. Groq e OpenRouter (IA) — 20 min
 
@@ -186,7 +209,8 @@ https://<domínio>/api/health` (liga o `uptime.yml`, o segundo par de olhos, que
      LITESTREAM_ACCESS_KEY_ID=... LITESTREAM_SECRET_ACCESS_KEY=... \
      LLM_BASE_URL=https://api.groq.com/openai/v1 LLM_API_KEY=... LLM_MODEL=openai/gpt-oss-120b \
      LLM_RESERVA_BASE_URL=https://openrouter.ai/api/v1 LLM_RESERVA_API_KEY=... LLM_RESERVA_MODEL=openai/gpt-oss-120b \
-     AI_BUDGET_USD_MONTH=40 APP_URL=https://<domínio> SENTRY_DSN=...
+     AI_BUDGET_USD_MONTH=40 APP_URL=https://<domínio> SENTRY_DSN=... \
+     RESEND_API_KEY=... EMAIL_REMETENTE="Babel Play <nao-responda@<domínio>>"
    ```
    Gere `SECRET_KEY` e `ORIGEM_SEGREDO` com
    `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` e guarde **as duas no
@@ -234,8 +258,10 @@ https://<domínio>/api/health` (liga o `uptime.yml`, o segundo par de olhos, que
 - [ ] Aceitar os DPAs e marcar `docs/lgpd/operadores.md`; atualizar a política de privacidade com os
       operadores novos (a lista está lá).
 - [ ] Ligar alerta de fatura no Fly, no Supabase e no Sentry.
-- [ ] **Convite ao responsável por e-mail implementado** (passo 4.5) e testado com uma conta de 15 anos:
-      o e-mail chega, o responsável aceita e a conta libera a nuvem. **Sem isso, não abra para menores.**
+- [ ] **Convite ao responsável por e-mail** (passo 4.5): `fly logs` **sem** `[convite] AVISO`; testar
+      com uma conta de 15 anos — o e-mail chega (caixa de entrada, não spam; nos cabeçalhos,
+      `spf=pass`, `dkim=pass` e `dmarc=pass`), o link não foi reescrito pelo Resend, o responsável
+      aceita e a conta libera a nuvem. **Sem isso, não abra para menores.**
 - [ ] Testar as três chaves de emergência no staging: `AI_ENABLED=0` (tradução cai para o local),
       `CHECKOUT_ENABLED=0` (assinar responde 503 com mensagem), `SIGNUP_ENABLED=0` (conta nova recebe
       `cadastro_fechado`; desligar também o cadastro no painel do Supabase).

@@ -13,12 +13,12 @@
  * arquivo. Montado antes deles, ele deixaria de ser alcançado.
  */
 import dotenv from 'dotenv'
-import express from 'express'
 import path from 'path'
 
 import { dbReady } from './server/db/db'
 import { seedIfEmpty } from './server/db/seed'
 import { criarApp } from './server/http/app'
+import { montarSpa } from './server/http/estaticos'
 import { authRequired, erroDeAuthEmProducao, mecanismoDe } from './server/lib/auth'
 import { registrarFalhaDeBoot, registrarSucessoDeBoot } from './server/lib/bootStatus'
 import { erroDeMetricasEmProducao, erroDeTrustProxyEmProducao, verificarConfiguracaoNoBoot } from './server/lib/config'
@@ -232,11 +232,9 @@ async function startServer({ prepararDados = true } = {}) {
     app.use(vite.middlewares)
     console.log('Vite dev server mounted as middleware.')
   } else {
-    const distPath = path.join(process.cwd(), 'dist')
-    app.use(express.static(distPath))
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'))
-    })
+    /* Fase 5: chunk com hash fica 1 ano no navegador; o `index.html` sempre revalida. Ver
+       `server/http/estaticos.ts`. */
+    montarSpa(app, path.join(process.cwd(), 'dist'))
     console.log('Serving static assets from dist/ in production.')
   }
 

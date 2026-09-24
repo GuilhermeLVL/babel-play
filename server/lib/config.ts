@@ -140,6 +140,33 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     paraQue: '1 liga o modo público, 0 desliga; sem valor, liga só em produção',
   },
   {
+    nome: 'BACKUP_DIARIO',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      '1 liga o snapshot diário do banco (VACUUM INTO + integrity_check + gzip) enviado ao R2 em `backups/diario/AAAA-MM-DD.db.gz` (server/operacao/snapshot.ts). Exige as `S3_*`',
+  },
+  {
+    nome: 'BACKUP_HEARTBEAT_URL',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'URL chamada (GET) só depois de um snapshot diário enviado E conferido — o heartbeat do UptimeRobot alerta quando ela deixa de ser chamada',
+  },
+  {
+    nome: 'BACKUP_HORA_UTC',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'hora UTC (0–23) do snapshot diário; sem ela, 6 (03h em Brasília, o vale do tráfego)',
+  },
+  {
+    nome: 'BACKUP_S3_BUCKET',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'bucket dos snapshots diários; sem ela, o mesmo `S3_BUCKET` da mídia. Um bucket próprio deixa a regra de retenção (30 dias) separada da mídia',
+  },
+  {
     nome: 'CLUSTER_WORKERS',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
@@ -359,6 +386,25 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     criticidade: 'degrada-capacidade',
     paraQue:
       '1 declara instalação pessoal: é a ÚNICA forma de subir com NODE_ENV=production e AUTH_REQUIRED=0 (GAP-003). Nunca no SaaS público',
+  },
+  {
+    nome: 'SENTRY_DSN',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'DSN do Sentry do SERVIDOR. Definido, todo `log(error)` já saneado (allowlist + redação) vira evento — inclusive os erros do navegador que chegam por /api/erros-do-cliente. Sem e-mail, IP, prompt ou transcrição, por construção (server/lib/sentry.ts)',
+  },
+  {
+    nome: 'SENTRY_ENVIRONMENT',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'ambiente no Sentry (production, staging); sem ela, o NODE_ENV',
+  },
+  {
+    nome: 'SENTRY_RELEASE',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'versão no Sentry; o Dockerfile a preenche com o commit da imagem (build arg VERSAO)',
   },
   {
     nome: 'STORAGE_RECONCILE_HOURS',
@@ -589,6 +635,34 @@ export function erroDeTrustProxyEmProducao(env: NodeJS.ProcessEnv = process.env)
 export function segredoDeOrigem(env: NodeJS.ProcessEnv = process.env): string | undefined {
   const bruto = env.ORIGEM_SEGREDO?.trim()
   return bruto ? bruto : undefined
+}
+
+/** Sentry do servidor: `null` sem `SENTRY_DSN`. O DSN é validado por quem monta o sink. */
+export function configDoSentry(
+  env: NodeJS.ProcessEnv = process.env,
+): { dsn: string; ambiente?: string; release?: string } | null {
+  const dsn = env.SENTRY_DSN?.trim()
+  if (!dsn) return null
+  return {
+    dsn,
+    ambiente: env.SENTRY_ENVIRONMENT?.trim() || env.NODE_ENV || undefined,
+    release: env.SENTRY_RELEASE?.trim() || undefined,
+  }
+}
+
+/**
+ * O snapshot diário está ligado? Devolve a hora UTC e o heartbeat, ou `null`.
+ *
+ * `'1'` exato, pelo mesmo motivo de `metricasHabilitadas`: `BACKUP_DIARIO=0` é como se DESLIGA.
+ * Hora fora de 0–23 cai no padrão em vez de virar um temporizador de horas negativas.
+ */
+export function configDoBackupDiario(
+  env: NodeJS.ProcessEnv = process.env,
+): { horaUtc: number; heartbeatUrl?: string } | null {
+  if (env.BACKUP_DIARIO !== '1') return null
+  const hora = Number(env.BACKUP_HORA_UTC)
+  const heartbeatUrl = env.BACKUP_HEARTBEAT_URL?.trim() || undefined
+  return { horaUtc: Number.isInteger(hora) && hora >= 0 && hora <= 23 ? hora : 6, heartbeatUrl }
 }
 
 /**

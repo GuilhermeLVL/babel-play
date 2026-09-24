@@ -17,3 +17,7 @@
 @container app (max-width: 760px) {
   .fab { bottom: 80px; right: 14px; }
 }
+
+/* O reset do Tailwind (preflight) põe `svg { display: block }`; o protótipo não tem reset, então lá
+   o ícone dentro de um botão segmentado fica na linha do texto. Aqui ele volta a ficar. */
+.seg button svg { display: inline-block; vertical-align: -2px; }

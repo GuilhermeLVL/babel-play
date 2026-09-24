@@ -1,6 +1,33 @@
 import { makeCloze } from '@core';
-import { AlertTriangle,BookOpen, Check, Eraser, Highlighter, MousePointer, Pause, Pen, Play, PlayCircle, Plus, Search, Settings2, SkipBack, SkipForward, Square, StickyNote, Trash2, Volume2, X } from 'lucide-react';
-import React, { useEffect,useRef, useState } from 'react';
+import {
+  AlertTriangle,
+  AudioLines,
+  BookOpen,
+  Check,
+  CircleHelp,
+  Eraser,
+  Highlighter,
+  Mic,
+  MousePointerClick,
+  NotebookPen,
+  Pause,
+  Pen,
+  PenTool,
+  Play,
+  PlayCircle,
+  Plus,
+  Quote,
+  Search,
+  SkipBack,
+  SkipForward,
+  SpellCheck,
+  Square,
+  StickyNote,
+  Trash2,
+  Volume2,
+  X,
+} from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
 
 import { fetchDeck, fetchSessionTranscript, searchImages } from '../../data/api';
 import { buildGateway } from '../../gateway';
@@ -11,16 +38,17 @@ import { detectLanguage, hasNativeDetector, type LangDetection } from '../../lib
 import { baseLang, langLabel, toBcp47 } from '../../lib/languages';
 import { micErrorMessage } from '../../lib/mediaErrors';
 import { usePopoverDePalavra } from '../../lib/popoverDePalavra';
-import type { ExerciseId,PracticeSeed } from '../../lib/sentences';
+import type { ExerciseId, PracticeSeed } from '../../lib/sentences';
 import { seedFromSelection, telaDoExercicio } from '../../lib/sentences';
-import { getVoicePrefs, hasVoiceFor, pickVoice, setVoicePref,speak as ttsSpeak, voicesFor } from '../../lib/tts';
-import type { ResolvedWord,WordOrigin } from '../../lib/vocabWord';
+import { getVoicePrefs, hasVoiceFor, pickVoice, setVoicePref, speak as ttsSpeak, voicesFor } from '../../lib/tts';
+import type { ResolvedWord, WordOrigin } from '../../lib/vocabWord';
 import { buildVocabWord, mtNoteFor, resolveWord, tokenizarTexto } from '../../lib/vocabWord';
 import { Recording, VocabCard, VocabWord } from '../../types';
 import EditablePanel from '../EditablePanel';
 import LangPicker from '../LangPicker';
 import PopoverFlutuante from '../PopoverFlutuante';
-import { askConfirm,toast } from '../Toast';
+import { askConfirm, toast } from '../Toast';
+import { IconeEmBloco, TituloDeSecao } from '../ui';
 import VocabularyPanel from '../VocabularyPanel';
 
 /**
@@ -91,7 +119,15 @@ interface Annotation {
   createdAt: number;
 }
 
-type ReadingTool = 'none' | 'highlight-yellow' | 'highlight-green' | 'highlight-blue' | 'highlight-pink' | 'note' | 'audio' | 'eraser';
+type ReadingTool =
+  | 'none'
+  | 'highlight-yellow'
+  | 'highlight-green'
+  | 'highlight-blue'
+  | 'highlight-pink'
+  | 'note'
+  | 'audio'
+  | 'eraser';
 
 interface ReadingProps {
   recording?: Recording;
@@ -104,10 +140,7 @@ interface ReadingProps {
 
 export default function Reading({ recording, onChangeView }: ReadingProps = {}) {
   // Gateway (MT/LLM) construído uma vez a partir do perfil ativo.
-  const gateway = React.useMemo(
-    () => buildGateway({ profile: getActiveProfile(), cloudConsent: () => true }),
-    []
-  );
+  const gateway = React.useMemo(() => buildGateway({ profile: getActiveProfile(), cloudConsent: () => true }), []);
 
   // Transcrição REAL da sessão (sem mocks). Vazia até carregar / se não houver enunciados.
   const [studyTexts, setStudyTexts] = useState<StudyText[]>([]);
@@ -131,9 +164,9 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
       src: sessionLangs?.src || baseLang(langConfig.mine),
       tgt: sessionLangs?.tgt || baseLang(langConfig.studying),
     }),
-    [sessionLangs, langConfig]
+    [sessionLangs, langConfig],
   );
-  const TRANSCRIPT = studyTexts.map(t => t.original);
+  const TRANSCRIPT = studyTexts.map((t) => t.original);
 
   useEffect(() => {
     if (!recording?.id) {
@@ -147,8 +180,8 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
       .then(({ session, utterances }) => {
         if (cancelled) return;
         const mapped: StudyText[] = (utterances || [])
-          .filter(u => (u.sourceText || '').trim().length > 0)
-          .map(u => ({
+          .filter((u) => (u.sourceText || '').trim().length > 0)
+          .map((u) => ({
             original: u.sourceText || '',
             translation: u.translatedText || '',
             speaker: u.speakerName || '',
@@ -178,7 +211,9 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
   const [vocabCards, setVocabCards] = useState<VocabCard[]>([]);
 
   useEffect(() => {
-    fetchDeck().then(setVocabCards).catch(() => {});
+    fetchDeck()
+      .then(setVocabCards)
+      .catch(() => {});
   }, []);
 
   /**
@@ -190,15 +225,15 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
    */
   const originOfWord = (wordStr: string, context?: string): WordOrigin => {
     const idx = context
-      ? studyTexts.findIndex(t => t.original === context)
-      : studyTexts.findIndex(t => t.original.toLowerCase().includes(wordStr.toLowerCase()));
+      ? studyTexts.findIndex((t) => t.original === context)
+      : studyTexts.findIndex((t) => t.original.toLowerCase().includes(wordStr.toLowerCase()));
     // A palavra pode ter vindo do LADO TRADUZIDO (o popover agora vale nos dois lados): se não
     // está em nenhum original, procura nas traduções e rotula com o idioma-destino.
-    const idxTrad = idx < 0
-      ? studyTexts.findIndex(t => (t.translation || '').toLowerCase().includes(wordStr.toLowerCase()))
-      : -1;
-    const ctx = context || (idx >= 0 ? studyTexts[idx].original : (idxTrad >= 0 ? studyTexts[idxTrad].translation || '' : ''));
-    const declaredLang = idx >= 0 ? langOfSentence(idx) : idxTrad >= 0 ? langPair.tgt : (forcedLang || langPair.src);
+    const idxTrad =
+      idx < 0 ? studyTexts.findIndex((t) => (t.translation || '').toLowerCase().includes(wordStr.toLowerCase())) : -1;
+    const ctx =
+      context || (idx >= 0 ? studyTexts[idx].original : idxTrad >= 0 ? studyTexts[idxTrad].translation || '' : '');
+    const declaredLang = idx >= 0 ? langOfSentence(idx) : idxTrad >= 0 ? langPair.tgt : forcedLang || langPair.src;
     return {
       word: wordStr,
       context: ctx || undefined,
@@ -216,7 +251,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
    * vem de `resolveWord` + `cardLangs`, a partir da FRASE de origem.
    */
   const handleAddWordToDeck = async (wordStr: string, translation?: string | null, context?: string) => {
-    const exists = vocabCards.find(c => c.word.toLowerCase() === wordStr.toLowerCase());
+    const exists = vocabCards.find((c) => c.word.toLowerCase() === wordStr.toLowerCase());
     if (exists) return; // já no deck
     const origin = originOfWord(wordStr, context);
     const sentence = origin.context || '';
@@ -237,7 +272,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
     // RENDERIZA esta tela dentro de si e mantinha uma cópia byte a byte deste bloco.
     // Idiomas REAIS da palavra viajam em `resolved`: o cartão nasce COM idioma (antes nascia `null`).
     const created = await ficharCartao({ word: wordStr, back, sentence, resolved, cloze, sessionId: recording?.id });
-    if (created.length) setVocabCards(prev => [...prev, ...created]);
+    if (created.length) setVocabCards((prev) => [...prev, ...created]);
   };
 
   // --- ANALISTA DE VOCABULÁRIO (painel compartilhado) ---
@@ -267,13 +302,14 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
    * ficam `undefined` até haver fonte real, e a falta de tradução vem com o MOTIVO (`mtNote`).
    */
   const examineWord = async (wordStr: string, sentenceIndex?: number) => {
-    const context = sentenceIndex !== undefined
-      ? (studyTexts[sentenceIndex]?.original || '')
-      : (TRANSCRIPT.find(s => s.toLowerCase().includes(wordStr.toLowerCase())) || '');
+    const context =
+      sentenceIndex !== undefined
+        ? studyTexts[sentenceIndex]?.original || ''
+        : TRANSCRIPT.find((s) => s.toLowerCase().includes(wordStr.toLowerCase())) || '';
     const origin = originOfWord(wordStr, context || undefined);
 
     const cached = previewCacheRef.current.get(wordStr);
-    const known = vocabCards.find(c => c.word.toLowerCase() === wordStr.toLowerCase());
+    const known = vocabCards.find((c) => c.word.toLowerCase() === wordStr.toLowerCase());
     const alreadyTranslated = cached?.translation || known?.translation || '';
 
     setMtNote(null);
@@ -283,28 +319,27 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
     if (alreadyTranslated) {
       const resolved = await resolveWord(origin);
       selectedWordLangRef.current = resolved.lang;
-      setSelectedExamWord(prev =>
-        prev && prev.word === wordStr ? { ...prev, lang: resolved.lang || undefined } : prev
+      setSelectedExamWord((prev) =>
+        prev && prev.word === wordStr ? { ...prev, lang: resolved.lang || undefined } : prev,
       );
       return;
     }
 
     const { vocab, resolved } = await buildVocabWord(origin, gateway.mt);
     selectedWordLangRef.current = resolved.lang;
-    setSelectedExamWord(prev => (prev && prev.word === wordStr ? vocab : prev));
+    setSelectedExamWord((prev) => (prev && prev.word === wordStr ? vocab : prev));
     setMtNote(mtNoteFor(resolved, vocab.translation));
   };
 
   // Adapta a assinatura do painel (VocabWord) para o handler de deck já existente.
   const handleAddVocabWordToDeck = async (w: VocabWord) => {
-    setAddedWords(prev => (prev.includes(w.word) ? prev : [...prev, w.word]));
+    setAddedWords((prev) => (prev.includes(w.word) ? prev : [...prev, w.word]));
     await handleAddWordToDeck(w.word, w.translation || null, w.example);
   };
 
   /** Já fichada? (deck do backend ou adicionada agora, nesta tela) */
   const isWordAdded = (w: VocabWord) =>
-    addedWords.includes(w.word) ||
-    vocabCards.some(c => c.word.toLowerCase() === w.word.toLowerCase());
+    addedWords.includes(w.word) || vocabCards.some((c) => c.word.toLowerCase() === w.word.toLowerCase());
 
   /**
    * "Praticar esta palavra" — manda a palavra do Analista de Vocabulário para o exercício no Estudo.
@@ -337,9 +372,10 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
   /* Espelho síncrono da pausa: o `onend` da utterance dispara no PAUSE em vários Chromes e
      encadeava a próxima frase — era o "cliquei em pausar e ele recomeçou". */
   const narrationPausedRef = useRef(false);
-  const [readingTheme, setReadingTheme] = useState<'light' | 'sepia' | 'dark'>('light');
   const [selectedTool, setSelectedTool] = useState<ReadingTool>('none');
-  const [viewMode, setViewMode] = useState<'original' | 'bilingual-intercalated' | 'bilingual-side-by-side'>('bilingual-intercalated');
+  const [viewMode, setViewMode] = useState<'original' | 'bilingual-intercalated' | 'bilingual-side-by-side'>(
+    'bilingual-intercalated',
+  );
 
   // Largura do leitor: coluna centralizada (foco na leitura) ou espaçada (tela cheia). Persistida.
   // PADRÃO: 'centered' — coluna de leitura confortável, centralizada, com respiro dos dois lados.
@@ -428,7 +464,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
 
     ctx.beginPath();
     ctx.moveTo(x, y);
-    
+
     if (drawTool === 'eraser') {
       ctx.globalCompositeOperation = 'destination-out';
       ctx.lineWidth = brushSize * 2.5;
@@ -473,7 +509,9 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
   };
 
   // Audio Recording States
-  const [recordingTarget, setRecordingTarget] = useState<{ tIndex: number, wIndex: string, wordText: string } | null>(null);
+  const [recordingTarget, setRecordingTarget] = useState<{ tIndex: number; wIndex: string; wordText: string } | null>(
+    null,
+  );
   const [isRecordingAudio, setIsRecordingAudio] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [playbackAudioUrl, setPlaybackAudioUrl] = useState<string | null>(null);
@@ -487,7 +525,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
   const timerRef = useRef<number | null>(null);
 
   // Note dialog state
-  const [noteTarget, setNoteTarget] = useState<{ tIndex: number, wIndex: string, wordText: string } | null>(null);
+  const [noteTarget, setNoteTarget] = useState<{ tIndex: number; wIndex: string; wordText: string } | null>(null);
   const [noteTextInput, setNoteTextInput] = useState('');
 
   // Speech Narration States
@@ -498,7 +536,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
   // Ajustes avançados do narrador (voz, tom) ficam atrás de um disclosure — a barra fica limpa.
   const [showNarratorSettings, setShowNarratorSettings] = useState(false);
   const [narrationMode, setNarrationMode] = useState<NarrationMode>(
-    () => (localStorage.getItem(LS_MODE) as NarrationMode) || DEFAULT_MODE
+    () => (localStorage.getItem(LS_MODE) as NarrationMode) || DEFAULT_MODE,
   );
   /**
    * Override global: '' = desligado (o modo decide o idioma). Qualquer outro valor FORÇA um idioma
@@ -512,7 +550,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
    */
   const [voicePrefs, setVoicePrefs] = useState<Record<string, string>>(getVoicePrefs);
   const [narrationRate, setNarrationRate] = useState<number>(
-    () => parseFloat(localStorage.getItem(LS_RATE) || '') || DEFAULT_RATE
+    () => parseFloat(localStorage.getItem(LS_RATE) || '') || DEFAULT_RATE,
   );
   const [narrationPitch, setNarrationPitch] = useState<number>(1.0);
   const [activeNarratingSentenceIndex, setActiveNarratingSentenceIndex] = useState<number | null>(null);
@@ -520,9 +558,15 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
   const [currentSpeakingLang, setCurrentSpeakingLang] = useState<string | null>(null);
   const currentUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
-  useEffect(() => { localStorage.setItem(LS_MODE, narrationMode); }, [narrationMode]);
-  useEffect(() => { localStorage.setItem(LS_FORCED_LANG, forcedLang); }, [forcedLang]);
-  useEffect(() => { localStorage.setItem(LS_RATE, String(narrationRate)); }, [narrationRate]);
+  useEffect(() => {
+    localStorage.setItem(LS_MODE, narrationMode);
+  }, [narrationMode]);
+  useEffect(() => {
+    localStorage.setItem(LS_FORCED_LANG, forcedLang);
+  }, [forcedLang]);
+  useEffect(() => {
+    localStorage.setItem(LS_RATE, String(narrationRate));
+  }, [narrationRate]);
   // Mantém o store COMPARTILHADO (tts.ts) em dia — é dele que as outras telas leem a voz.
   useEffect(() => {
     for (const lang of Object.keys(voicePrefs)) setVoicePref(lang, voicePrefs[lang] ?? '');
@@ -542,8 +586,14 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
   const [nativeDetector, setNativeDetector] = useState(false);
   useEffect(() => {
     let alive = true;
-    hasNativeDetector().then(ok => { if (alive) setNativeDetector(ok); }).catch(() => {});
-    return () => { alive = false; };
+    hasNativeDetector()
+      .then((ok) => {
+        if (alive) setNativeDetector(ok);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
   }, []);
 
   // Timer for audio recording elapsed seconds
@@ -551,7 +601,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
     if (isRecordingAudio) {
       setRecordingSeconds(0);
       timerRef.current = window.setInterval(() => {
-        setRecordingSeconds(prev => prev + 1);
+        setRecordingSeconds((prev) => prev + 1);
       }, 1000);
     } else {
       if (timerRef.current) {
@@ -597,7 +647,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
       setIsRecordingAudio(true);
     } catch (err) {
       // Sem simulação: falha honesta. Não inicia gravação nem fabrica áudio.
-      console.error("Microfone indisponível:", err);
+      console.error('Microfone indisponível:', err);
       const msg = micErrorMessage(err);
       setRecordingError(msg);
       setIsRecordingAudio(false);
@@ -609,7 +659,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
     if (isRecordingAudio) {
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
         mediaRecorderRef.current.stop();
-        mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+        mediaRecorderRef.current.stream.getTracks().forEach((track) => track.stop());
       }
       setIsRecordingAudio(false);
     }
@@ -627,8 +677,8 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
         wordIndex: recordingTarget.wIndex,
         wordText: recordingTarget.wordText,
         audioUrl: recordedBase64 || playbackAudioUrl || '',
-        createdAt: Date.now()
-      }
+        createdAt: Date.now(),
+      },
     ]);
 
     setRecordingTarget(null);
@@ -655,7 +705,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
     if (index in detectionsRef.current) return detectionsRef.current[index];
     const det = await detectLanguage(studyTexts[index]?.original || '');
     detectionsRef.current[index] = det;
-    setDetections(prev => ({ ...prev, [index]: det }));
+    setDetections((prev) => ({ ...prev, [index]: det }));
     return det;
   };
 
@@ -669,7 +719,9 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
         await ensureDetection(i);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [narrationMode, studyTexts]);
 
@@ -712,8 +764,8 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
     }
 
     // Override global: força um único idioma (e portanto uma única voz) para tudo.
-    const withOverride = forcedLang ? steps.map(st => ({ ...st, lang: forcedLang })) : steps;
-    return withOverride.filter(st => st.text && st.text.trim().length > 0);
+    const withOverride = forcedLang ? steps.map((st) => ({ ...st, lang: forcedLang })) : steps;
+    return withOverride.filter((st) => st.text && st.text.trim().length > 0);
   };
 
   /**
@@ -870,7 +922,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
       const values: Array<LangDetection | null> = Object.values(detections);
       for (const d of values) if (d) set.add(baseLang(d.lang));
       // Alguma frase sem sinal (ou nada detectado ainda) → o fallback é o idioma declarado.
-      if (!values.length || values.some(d => !d)) set.add(baseLang(langPair.src));
+      if (!values.length || values.some((d) => !d)) set.add(baseLang(langPair.src));
       return [...set];
     }
     return [baseLang(langPair.src)];
@@ -878,10 +930,10 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
 
   /** Idiomas narrados SEM nenhuma voz instalada no SO — avisamos em vez de falar com a voz errada. */
   const missingVoiceLangs = React.useMemo(
-    () => narratedLangs.filter(l => !hasVoiceFor(l)),
+    () => narratedLangs.filter((l) => !hasVoiceFor(l)),
     // `voices` entra de propósito: a lista do SO chega assíncrona (evento 'voiceschanged').
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [narratedLangs, voices]
+    [narratedLangs, voices],
   );
 
   /**
@@ -899,7 +951,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
     () => voicesFor(voiceEditLang),
     // idem: depende da lista assíncrona de vozes do SO.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [voiceEditLang, voices]
+    [voiceEditLang, voices],
   );
 
   /**
@@ -907,30 +959,6 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
    * idioma declarado da sessão em estilo apagado e diz no title que foi assumido — jamais vendemos um
    * chute como detecção.
    */
-  const SentenceLangBadge = ({ index }: { index: number }) => {
-    if (narrationMode !== 'auto') return null;
-    if (!(index in detections)) return null;
-    const det = detections[index];
-    if (forcedLang) return null; // override ligado: a detecção não influencia a narração
-    if (det) {
-      return (
-        <span
-          className="ms-2 align-middle inline-flex items-center gap-1 text-[9px] font-mono font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-accent-soft text-accent-ink"
-          title={`Idioma detectado (${det.method === 'native' ? 'detector do navegador' : 'heurística local'}) · confiança ${(det.confidence * 100).toFixed(0)}%`}
-        >
-          {langLabel(det.lang)}
-        </span>
-      );
-    }
-    return (
-      <span
-        className="ms-2 align-middle inline-flex items-center gap-1 text-[9px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded border border-dashed border-border-subtle text-ink-faint"
-        title={`Idioma NÃO detectado (sem sinal suficiente), assumindo o idioma declarado da sessão: ${langLabel(langPair.src)}`}
-      >
-        {langLabel(langPair.src)}?
-      </span>
-    );
-  };
 
   // Rola a frase ativa para o centro da área de leitura — você nunca "perde" o narrador de vista.
   useEffect(() => {
@@ -940,7 +968,12 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
   }, [activeNarratingSentenceIndex]);
 
   // Encerra a fala ao sair da tela (senão o narrador continua tocando em outra view).
-  useEffect(() => () => { if ('speechSynthesis' in window) window.speechSynthesis.cancel(); }, []);
+  useEffect(
+    () => () => {
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    },
+    [],
+  );
 
   const handleWordClick = (tIndex: number, wIndex: string, wordText: string) => {
     if (selectedTool === 'none') {
@@ -961,21 +994,27 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
         'highlight-yellow': 'bg-warn-soft text-warn-ink border-b-2 border-warn',
         'highlight-green': 'bg-good-soft text-good-ink border-b-2 border-good',
         'highlight-blue': 'bg-rare-soft text-rare-ink border-b-2 border-rare',
-        'highlight-pink': 'bg-error-soft text-error-ink border-b-2 border-error'
+        'highlight-pink': 'bg-error-soft text-error-ink border-b-2 border-error',
       };
 
       const labelMap: Record<string, string> = {
         'highlight-yellow': 'Vocabulário',
         'highlight-green': 'Gramática',
         'highlight-blue': 'Expressão',
-        'highlight-pink': 'Dúvida'
+        'highlight-pink': 'Dúvida',
       };
 
-      const exists = annotations.find(a => a.textIndex === tIndex && a.wordIndex === wIndex && a.type === 'highlight');
+      const exists = annotations.find(
+        (a) => a.textIndex === tIndex && a.wordIndex === wIndex && a.type === 'highlight',
+      );
       if (exists && exists.color === colorMap[selectedTool]) {
-        setAnnotations(annotations.filter(a => a.id !== exists.id));
+        setAnnotations(annotations.filter((a) => a.id !== exists.id));
       } else if (exists) {
-        setAnnotations(annotations.map(a => a.id === exists.id ? { ...a, color: colorMap[selectedTool], content: labelMap[selectedTool] } : a));
+        setAnnotations(
+          annotations.map((a) =>
+            a.id === exists.id ? { ...a, color: colorMap[selectedTool], content: labelMap[selectedTool] } : a,
+          ),
+        );
       } else {
         setAnnotations([
           ...annotations,
@@ -987,8 +1026,8 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
             wordText,
             color: colorMap[selectedTool],
             content: labelMap[selectedTool],
-            createdAt: Date.now()
-          }
+            createdAt: Date.now(),
+          },
         ]);
       }
     } else if (selectedTool === 'note') {
@@ -997,11 +1036,11 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
     } else if (selectedTool === 'audio') {
       setRecordingTarget({ tIndex, wIndex, wordText });
     } else if (selectedTool === 'eraser') {
-      setAnnotations(annotations.filter(a => !(a.textIndex === tIndex && a.wordIndex === wIndex)));
+      setAnnotations(annotations.filter((a) => !(a.textIndex === tIndex && a.wordIndex === wIndex)));
     }
   };
 
-    // (`showTutor` foi removido junto com o botão legado "Estudos & Notas" — a sidebar de notas é
+  // (`showTutor` foi removido junto com o botão legado "Estudos & Notas" — a sidebar de notas é
   //  controlada só pelo layoutStore/LayoutStudio agora.)
   /* O TUTOR DESTA TELA FOI REMOVIDO em 08/09, e ele nunca chegou a existir para quem usa.
    *
@@ -1025,7 +1064,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
   };
 
   const handleMouseLeave = popover.agendarFechamento;
-  
+
   /**
    * Pronúncia de UMA palavra (clique/hover).
    *
@@ -1036,7 +1075,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
    * `sentenceIndex` ausente = fora de uma frase (ex.: popover de preview) → cai no idioma da sessão.
    */
   const playWordTTS = (wordStr: string, sentenceIndex?: number) => {
-    const lang = sentenceIndex !== undefined ? langOfSentence(sentenceIndex) : (forcedLang || langPair.src);
+    const lang = sentenceIndex !== undefined ? langOfSentence(sentenceIndex) : forcedLang || langPair.src;
     ttsSpeak(wordStr, {
       lang: toBcp47(lang),
       rate: 0.8,
@@ -1099,18 +1138,6 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hoveredWord]);
 
-  const getThemeClass = () => {
-    if (readingTheme === 'sepia') return 'bg-[#fcf8f2] text-[#4a3c31] border-[#e6d9bf]';
-    if (readingTheme === 'dark') return 'bg-[#161f2d] text-[#e2e8f0] border-[#1e293b]';
-    return 'bg-surface text-ink border-border-subtle';
-  };
-
-  const getCanvasBgClass = () => {
-    if (readingTheme === 'sepia') return 'bg-[#f5ebd7]';
-    if (readingTheme === 'dark') return 'bg-[#0f141c]';
-    return 'bg-canvas';
-  };
-
   /**
    * "Tocar a partir daqui" — aparece ao passar o mouse sobre a frase. É o gesto mais intuitivo de um
    * narrador (e faltava por completo: antes só existia "Ouvir Tudo", sempre do começo). Fica numa
@@ -1124,913 +1151,555 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
         onClick={() => {
           /* Se ESTA frase já está tocando, o botão é um PAUSE de verdade — antes ele mostrava o
              ícone de pausa mas chamava speakFrom() e reiniciava a frase do zero. */
-          if (isActive && isNarrating) { toggleNarration(); return; }
+          if (isActive && isNarrating) {
+            toggleNarration();
+            return;
+          }
           void speakFrom(index);
         }}
         title={isActive && isNarrating && !isNarrationPaused ? 'Pausar' : 'Ouvir a partir desta frase'}
         className={`no-min-target absolute -left-9 top-2 hidden lg:flex w-7 h-7 items-center justify-center rounded-full border transition-all cursor-pointer
-          ${isActive
-            ? 'bg-accent border-accent text-white opacity-100'
-            : 'bg-surface border-border-subtle text-ink-muted opacity-0 group-hover/sent:opacity-100 hover:text-accent hover:border-accent'}`}
+          ${
+            isActive
+              ? 'bg-accent border-accent text-white opacity-100'
+              : 'bg-surface border-border-subtle text-ink-muted opacity-0 group-hover/sent:opacity-100 hover:text-accent hover:border-accent'
+          }`}
       >
-        {isActive && isNarrating && !isNarrationPaused
-          ? <Pause className="w-3 h-3" />
-          : <Play className="w-3 h-3 ms-0.5" />}
+        {isActive && isNarrating && !isNarrationPaused ? (
+          <Pause className="w-3 h-3" />
+        ) : (
+          <Play className="w-3 h-3 ms-0.5" />
+        )}
       </button>
     );
   };
 
+  /* A frase como o protótipo desenha (`.frase`, com a narrada em `.narrando`): as palavras seguem
+     clicáveis (ouvir, anotar, abrir o Analista) e carregam as marcações e as notas da pessoa. */
+  const palavrasDaFrase = (texto: string, sIdx: number) =>
+    tokenizarTexto(texto).map((token) => {
+      const annotation = annotations.find((a) => a.textIndex === sIdx && a.wordIndex === token.id);
+      const highlightClass = annotation?.type === 'highlight' ? annotation.color || 'bg-warn-soft' : '';
+      const hasNote = annotations.some((a) => a.textIndex === sIdx && a.wordIndex === token.id && a.type === 'note');
+      const hasAudio = annotations.some((a) => a.textIndex === sIdx && a.wordIndex === token.id && a.type === 'audio');
+      return (
+        <React.Fragment key={token.id}>
+          <span
+            onMouseEnter={(e) => handleMouseEnter(e, token.clean)}
+            onClick={() => handleWordClick(sIdx, token.id, token.original)}
+            onMouseLeave={handleMouseLeave}
+            className={`relative rounded cursor-pointer ${highlightClass} ${hasNote ? 'underline decoration-dashed decoration-warn decoration-2' : ''} ${hasAudio ? 'underline decoration-double decoration-rare decoration-2' : ''}`}
+          >
+            {token.original}
+          </span>{' '}
+        </React.Fragment>
+      );
+    });
+  const TIPOS_DE_ANOTACAO = [
+    { id: 'highlight-yellow', rotulo: 'Vocabulário', Icone: BookOpen },
+    { id: 'highlight-green', rotulo: 'Gramática', Icone: SpellCheck },
+    { id: 'highlight-blue', rotulo: 'Expressão', Icone: Quote },
+    { id: 'highlight-pink', rotulo: 'Dúvida', Icone: CircleHelp },
+    { id: 'note', rotulo: 'Nota', Icone: StickyNote },
+    { id: 'audio', rotulo: 'Áudio', Icone: Mic },
+    { id: 'eraser', rotulo: 'Apagar', Icone: Eraser },
+  ] as const;
+
+  // Marcação do protótipo aprovado (`abaLeitura`): um cartão de controles e, embaixo, o texto com a
+  // coluna "Estudos & notas" (ou o Analista, quando uma palavra está aberta).
   return (
-    <div className={`flex-1 w-full relative flex flex-col md:flex-row ${getCanvasBgClass()} overflow-hidden`}>
-      
-      {/* Área de leitura. FLUIDA (não mais 65% fixos): antes o painel era travado em 65% da largura
-          e os 35% restantes eram reservados para a `notesSidebar`, que tem `show:false` no
-          layoutStore e portanto NUNCA renderizava. Resultado: um bloco morto de espaço em branco à
-          direita. Agora a área ocupa tudo o que sobra (flex-1) e o texto é CENTRALIZADO numa coluna
-          de leitura confortável, com respiro simétrico dos dois lados. Quando o Analista de
-          Vocabulário abre (clique numa palavra), esta área simplesmente encolhe para caber. */}
-      <EditablePanel
-        viewKey="reading"
-        panelKey="interactiveArea"
-        title="Área Interativa"
-        className="flex flex-col flex-1 min-w-0"
-        canResizeWidth={false}
-        canResizeHeight={false}
-      >
-      <div className="flex-1 transition-all duration-300 h-full overflow-y-auto custom-scrollbar w-full">
-        <div className={`p-4 md:p-6 lg:p-10 mx-auto w-full transition-all duration-300 ${layoutWidth === 'centered' ? 'max-w-5xl' : 'max-w-none px-6 md:px-12'}`}>
-        
-        {/* Top Header */}
-        <header className="mb-6 border-b border-border-subtle pb-4 flex flex-col gap-3">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
-            <div>
-              <div className="flex items-center gap-1.5 text-accent-ink font-bold text-xs tracking-wider uppercase mb-1">
-                <BookOpen className="w-4 h-4 text-accent-ink" />
-                <span>Modo Leitura & Imersão Interativa</span>
-              </div>
-              <h1 className="font-display font-black text-2xl md:text-3xl text-ink tracking-tight">
-                {recording ? `Transcrição: ${recording.title}` : 'Transcrição: Reunião de Engenharia'}
-              </h1>
-            </div>
-
-            {/* Quick custom layout settings */}
-            <div className="flex items-center gap-2 flex-wrap">
-              {/* O trio Claro/Sepia/Escuro saiu: o tema da leitura segue o claro/escuro do app
-                  (um dono so para a mesma preferencia). */}
-              {/* Theme Selection */}
-              <div className="flex bg-surface border border-border-subtle rounded-lg p-0.5">
-                <button 
-                  onClick={() => setReadingTheme('light')} 
-                  className={`px-2.5 py-1 text-xs font-bold rounded ${readingTheme === 'light' ? 'bg-accent text-white shadow-sm' : 'text-ink-muted'}`}
-                >
-                  Claro
-                </button>
-                <button 
-                  onClick={() => setReadingTheme('sepia')} 
-                  className={`px-2.5 py-1 text-xs font-bold rounded ${readingTheme === 'sepia' ? 'bg-[#f7f0e5] text-[#4a3c31] shadow-sm' : 'text-ink-muted'}`}
-                >
-                  Sépia
-                </button>
-                <button 
-                  onClick={() => setReadingTheme('dark')} 
-                  className={`px-2.5 py-1 text-xs font-bold rounded ${readingTheme === 'dark' ? 'bg-[#1e293b] text-white shadow-sm' : 'text-ink-muted'}`}
-                >
-                  Escuro
-                </button>
-              </div>
-
-              {/* Largura da coluna de leitura. "Espaçado" era um rótulo enganoso (significava largura
-                  TOTAL); agora os nomes dizem o que fazem. */}
-              <div className="flex bg-surface border border-border-subtle rounded-lg p-0.5">
-                <button
-                  onClick={() => handleLayoutWidthChange('centered')}
-                  className={`px-2.5 py-1 text-xs font-bold rounded cursor-pointer transition-all ${layoutWidth === 'centered' ? 'bg-accent text-white shadow-sm' : 'text-ink-muted'}`}
-                  title="Coluna de leitura centralizada, com respiro dos dois lados"
-                >
-                  Centralizado
-                </button>
-                <button
-                  onClick={() => handleLayoutWidthChange('full')}
-                  className={`px-2.5 py-1 text-xs font-bold rounded cursor-pointer transition-all ${layoutWidth === 'full' ? 'bg-accent text-white shadow-sm' : 'text-ink-muted'}`}
-                  title="Estende o conteúdo por toda a largura da tela"
-                >
-                  Largura total
-                </button>
-              </div>
-
-              {/* Visualização mora AQUI, junto de A± e largura — as opções de COMO LER num lugar
-                  só (antes ficava noutra barra, lá embaixo, e a tela parecia dois menus brigando). */}
-              <select
-                aria-label="Modo de visualização do texto"
-                value={viewMode}
-                onChange={(e) => setViewMode(e.target.value as 'original' | 'bilingual-intercalated' | 'bilingual-side-by-side')}
-                className="bg-surface border border-border-subtle rounded-lg px-2.5 py-1.5 text-xs font-bold text-ink outline-none cursor-pointer no-min-target"
-              >
-                <option value="original">Original ({langLabel(langPair.src)})</option>
-                <option value="bilingual-intercalated">Intercalado</option>
-                <option value="bilingual-side-by-side">Lado a Lado</option>
-              </select>
-
-              {/* REMOVIDO: o botão "Estudos & Notas" (toggle de `showTutor`). Era herança de uma
-                  versão antiga e, pior, já era um NO-OP: o painel `notesSidebar` tem `show:false`
-                  no layoutStore, então o EditablePanel retornava null mesmo com o toggle ligado. O
-                  painel de notas segue no código, controlado apenas pelo LayoutStudio. */}
-            </div>
+    <div className="entra">
+      <section className="cartao p5 barra-leitura" aria-label="Controles da leitura">
+        <div className="linha" style={{ gap: 10, flexWrap: 'wrap' }}>
+          <div className="seg" role="group" aria-label="Modo de visualização">
+            {(
+              [
+                ['bilingual-intercalated', 'Intercalado'],
+                ['bilingual-side-by-side', 'Lado a lado'],
+                ['original', 'Só o original'],
+              ] as const
+            ).map(([v, r]) => (
+              <button key={v} type="button" aria-pressed={viewMode === v} onClick={() => setViewMode(v)}>
+                {r}
+              </button>
+            ))}
           </div>
-        </header>
-
-        {/* ══════════════ NARRADOR — player compacto ══════════════
-            ANTES: um HUD alto com uma parede de controles (toggle de idioma + select de voz + slider
-            de velocidade + 3 botões), sempre aberto, empurrando o texto pra baixo. O botão dizia
-            "Pausar" mesmo já pausado, não dava pra pular frase, não havia progresso, e mexer na
-            voz/velocidade PARAVA a narração (perdia o lugar).
-            AGORA: uma barra tipo audiobook, ⏮ ▶/⏸ ⏭, progresso "Frase X de N", presets de
-            velocidade, e voz/tom escondidos atrás de um "⚙". A frase ativa rola sozinha pra vista, e
-            clicar em qualquer frase toca a partir dela. */}
-        <div className={`rounded-xl border shadow-sm mb-6 transition-colors ${getThemeClass()}`}>
-          <div className="p-3 flex flex-wrap items-center gap-3">
-
-            {/* Transporte: anterior · play/pause · próxima · parar */}
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => skipSentence(-1)}
-                disabled={!studyTexts.length || activeNarratingSentenceIndex === 0}
-                title="Frase anterior"
-                className="p-1.5 rounded-lg text-ink-muted hover:text-ink hover:bg-surface-hover disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
-              >
-                <SkipBack className="w-4 h-4" />
-              </button>
-
-              <button
-                onClick={toggleNarration}
-                disabled={!studyTexts.length}
-                title={!isNarrating ? 'Ouvir' : isNarrationPaused ? 'Retomar' : 'Pausar'}
-                className="no-min-target w-10 h-10 rounded-full bg-accent hover:bg-accent-ink text-white flex items-center justify-center shadow-btn transition-all hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-              >
-                {isNarrating && !isNarrationPaused
-                  ? <Pause className="w-5 h-5" />
-                  : <Play className="w-5 h-5 ms-0.5" />}
-              </button>
-
-              <button
-                onClick={() => skipSentence(1)}
-                disabled={!studyTexts.length || (activeNarratingSentenceIndex !== null && activeNarratingSentenceIndex >= studyTexts.length - 1)}
-                title="Próxima frase"
-                className="p-1.5 rounded-lg text-ink-muted hover:text-ink hover:bg-surface-hover disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
-              >
-                <SkipForward className="w-4 h-4" />
-              </button>
-
-              {isNarrating && (
-                <button
-                  onClick={stopNarration}
-                  title="Parar e voltar ao início"
-                  className="p-1.5 ms-1 rounded-lg text-ink-muted hover:text-error hover:bg-surface-hover cursor-pointer"
-                >
-                  <Square className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
-
-            {/* Progresso: barra + "Frase X de N" (antes não havia NENHUMA noção de onde você estava) */}
-            <div className="flex-1 min-w-[140px]">
-              <div className="h-1 bg-border-subtle rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-accent transition-all duration-300"
-                  style={{ width: `${studyTexts.length ? ((( activeNarratingSentenceIndex ?? -1) + 1) / studyTexts.length) * 100 : 0}%` }}
-                />
-              </div>
-              <p className="text-[10px] text-ink-muted mt-1 font-mono">
-                {activeNarratingSentenceIndex !== null
-                  ? `Frase ${activeNarratingSentenceIndex + 1} de ${studyTexts.length}${isNarrationPaused ? ' · pausado' : ''}`
-                  : studyTexts.length
-                    ? `${studyTexts.length} frases · toque no ▶ ou clique numa frase`
-                    : 'Sem texto para narrar'}
-              </p>
-            </div>
-
-            {/* Velocidade: presets em vez de um slider minúsculo de passos estranhos (0.65, 0.8…) */}
-            <div className="flex items-center gap-1 bg-canvas border border-border-subtle rounded-lg p-0.5 text-[10px]">
-              {[0.75, 1, 1.25, 1.5].map(r => (
-                <button
-                  key={r}
-                  onClick={() => setNarrationRate(r)}
-                  className={`px-2 py-1 min-h-6 inline-flex items-center justify-center rounded font-bold transition-all cursor-pointer ${narrationRate === r ? 'bg-accent text-white shadow-sm' : 'text-ink-muted hover:text-ink'}`}
-                >
-                  {r}×
-                </button>
-              ))}
-            </div>
-
-            {/* MODO DE LEITURA — substitui o antigo toggle "original / tradução".
-                Bilíngue = shadowing (fala as duas). Auto = detecta o idioma frase a frase. */}
-            <div className="flex items-center gap-1 bg-canvas border border-border-subtle rounded-lg p-0.5 text-[10px]">
-              {NARRATION_MODES.map(m => (
-                <button
-                  key={m.id}
-                  onClick={() => setNarrationMode(m.id)}
-                  title={
-                    m.id === 'auto'
-                      ? `${m.title} · ${nativeDetector ? 'usando o detector on-device do navegador' : 'usando a heurística local (o navegador não tem detector nativo)'}`
-                      : m.id === 'original'
-                        ? `${m.title} (${langLabel(langPair.src)})`
-                        : m.id === 'translation'
-                          ? `${m.title} (${langLabel(langPair.tgt)})`
-                          : m.title
-                  }
-                  className={`px-2 py-1 min-h-6 inline-flex items-center justify-center rounded font-bold transition-all cursor-pointer ${narrationMode === m.id ? 'bg-accent text-white shadow-sm' : 'text-ink-muted hover:text-ink'}`}
-                >
-                  {m.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Avançado (voz, idioma forçado e tom) atrás de um disclosure */}
+          <div className="seg" role="group" aria-label="Largura">
             <button
-              onClick={() => setShowNarratorSettings(v => !v)}
-              title="Voz, idioma e tom"
-              className={`p-1.5 rounded-lg border transition-all cursor-pointer ${showNarratorSettings ? 'bg-accent-soft border-accent text-accent' : 'bg-canvas border-border-subtle text-ink-muted hover:text-ink'}`}
+              type="button"
+              aria-pressed={layoutWidth === 'centered'}
+              onClick={() => handleLayoutWidthChange('centered')}
             >
-              <Settings2 className="w-3.5 h-3.5" />
+              Coluna
+            </button>
+            <button type="button" aria-pressed={layoutWidth === 'full'} onClick={() => handleLayoutWidthChange('full')}>
+              Largura total
             </button>
           </div>
-
-          {showNarratorSettings && (
-            <div className="px-3 pb-3 pt-2 border-t border-border-subtle/60 flex flex-col gap-3 animate-in slide-in-from-top-1 duration-200">
-              <div className="flex flex-wrap items-end gap-4">
-                {/* OVERRIDE GLOBAL — desliga a detecção/modo e força UM idioma para toda a narração. */}
-                <div className="flex flex-col gap-1">
-                  <span className="text-[9px] font-mono text-ink-muted uppercase font-bold">Forçar idioma</span>
-                  {/* Guarda o ISO-639-1 ('pt'); o picker fala BCP-47 — daí a conversão nas pontas. */}
-                  <LangPicker
-                    id="reading-forced-lang"
-                    ariaLabel="Forçar idioma da narração"
-                    value={toBcp47(forcedLang)}
-                    auto={!forcedLang}
-                    allowAuto
-                    autoLabel="Automático (segue o modo)"
-                    onPick={({ auto, code }) => setForcedLang(auto ? '' : baseLang(code || ''))}
-                  />
-                </div>
-
-                {/* VOZ POR IDIOMA. Nos modos bilíngue/auto há mais de um idioma em jogo — o seletor
-                    edita a voz do idioma escolhido (por padrão, o que está sendo narrado agora). */}
-                <div className="flex flex-col gap-1 min-w-[240px]">
-                  <span className="text-[9px] font-mono text-ink-muted uppercase font-bold">
-                    Voz · {langLabel(voiceEditLang)}
-                    {currentSpeakingLang === voiceEditLang && isNarrating && <span className="text-accent"> (narrando agora)</span>}
-                  </span>
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    {narratedLangs.length > 1 && (
-                      <div className="flex items-center gap-0.5 bg-canvas border border-border-subtle rounded-lg p-0.5">
-                        {narratedLangs.map(l => (
-                          <button
-                            key={l}
-                            onClick={() => setVoiceEditLangOverride(l)}
-                            className={`px-1.5 py-1 rounded text-[10px] font-bold uppercase cursor-pointer transition-all ${voiceEditLang === l ? 'bg-accent text-white' : 'text-ink-muted hover:text-ink'}`}
-                            title={`Editar a voz de ${langLabel(l)}`}
-                          >
-                            {l}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                    <select
-                      value={voicePrefs[voiceEditLang] || ''}
-                      onChange={(e) => {
-                        const name = e.target.value;
-                        setVoicePrefs(prev => {
-                          const next = { ...prev };
-                          if (name) next[voiceEditLang] = name;
-                          else delete next[voiceEditLang];
-                          return next;
-                        });
-                      }}
-                      className="bg-canvas border border-border-subtle rounded-lg px-2 py-1 text-xs text-ink outline-none max-w-[260px] cursor-pointer flex-1"
-                    >
-                      <option value="">Melhor voz disponível (automática)</option>
-                      <optgroup label={langLabel(voiceEditLang)}>
-                        {voiceOptions.map(v => (
-                          <option key={v.name} value={v.name}>
-                            {v.name.replace('Microsoft', '').replace('Google', '').trim()} ({v.lang})
-                            {v.neural ? ' · Natural' : ''}{v.local ? ' · Offline' : ' · Rede'}
-                          </option>
-                        ))}
-                      </optgroup>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <span className="text-[9px] font-mono text-ink-muted uppercase font-bold">Tom: {narrationPitch.toFixed(1)}</span>
-                  <input
-                    type="range"
-                    min="0.5" max="1.5" step="0.1"
-                    value={narrationPitch}
-                    onChange={(e) => setNarrationPitch(parseFloat(e.target.value))}
-                    className="w-28 h-1 bg-border-subtle rounded-lg appearance-none cursor-pointer accent-accent"
-                  />
-                </div>
-              </div>
-
-              {/* AVISO HONESTO: sem voz instalada para um idioma NÃO narramos com a voz de outro. */}
-              {missingVoiceLangs.length > 0 && (
-                <div className="flex items-start gap-2 text-[11px] rounded-lg border border-warn/40 bg-warn-soft/40 px-2.5 py-2 text-ink-muted">
-                  <AlertTriangle className="w-3.5 h-3.5 text-warn shrink-0 mt-0.5" />
-                  <span>
-                    Seu sistema não tem voz instalada para{' '}
-                    <b className="text-ink">{missingVoiceLangs.map(l => langLabel(l)).join(', ')}</b>, essas
-                    frases não serão narradas com o sotaque correto. Instale em{' '}
-                    <b className="text-ink">Configurações do Windows → Hora e Idioma → Voz</b>.
-                  </span>
-                </div>
-              )}
-
-              <p className="text-[10px] text-ink-faint">
-                Mudanças de voz, tom, velocidade ou modo são aplicadas na <b className="text-ink-muted">frase atual</b>, a narração continua de onde estava.
-                {narrationMode === 'auto' && !forcedLang && (
-                  <> Detecção de idioma: <b className="text-ink-muted">{nativeDetector ? 'detector on-device do navegador' : 'heurística local'}</b>; frases sem sinal usam o idioma declarado da sessão ({langLabel(langPair.src)}).</>
-                )}
-                {forcedLang && (
-                  <> <b className="text-ink-muted">Idioma forçado</b>, o modo e a detecção estão desligados.</>
-                )}
-              </p>
-            </div>
-          )}
+          <span style={{ flex: 1 }} />
+          <div className="linha narra" style={{ gap: 4 }}>
+            <button
+              type="button"
+              className="btn btn-outline peq icone"
+              onClick={() => skipSentence(-1)}
+              disabled={!studyTexts.length || activeNarratingSentenceIndex === 0}
+              aria-label="Frase anterior"
+            >
+              <SkipBack aria-hidden />
+            </button>
+            <button type="button" className="btn btn-solid peq" onClick={toggleNarration} disabled={!studyTexts.length}>
+              {isNarrating && !isNarrationPaused ? <Pause aria-hidden /> : <Volume2 aria-hidden />}{' '}
+              {!isNarrating ? 'Narrar' : isNarrationPaused ? 'Retomar' : 'Pausar'}
+            </button>
+            <button
+              type="button"
+              className="btn btn-outline peq icone"
+              onClick={() => skipSentence(1)}
+              disabled={
+                !studyTexts.length ||
+                (activeNarratingSentenceIndex !== null && activeNarratingSentenceIndex >= studyTexts.length - 1)
+              }
+              aria-label="Próxima frase"
+            >
+              <SkipForward aria-hidden />
+            </button>
+            <button
+              type="button"
+              className="btn btn-outline peq icone"
+              onClick={stopNarration}
+              disabled={!isNarrating}
+              aria-label="Parar e voltar ao início"
+            >
+              <Square aria-hidden />
+            </button>
+          </div>
+          <button
+            type="button"
+            className="btn btn-outline peq"
+            onClick={() => setShowNarratorSettings((v) => !v)}
+            aria-expanded={showNarratorSettings}
+          >
+            <AudioLines aria-hidden /> Voz, idioma e tom
+          </button>
         </div>
 
-        {/* Study brushes & view toggle bar */}
-        <div className={`p-3 rounded-xl border shadow-sm mb-6 flex flex-col gap-4 ${getThemeClass()}`}>
-          <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-border-subtle/50">
-            <div className="flex items-center gap-2 bg-canvas border border-border-subtle p-0.5 rounded-lg text-xs font-bold">
-              <button
-                onClick={() => {
-                  setIsDrawModeActive(false);
-                  setSelectedTool('none');
-                }}
-                className={`flex items-center gap-1 px-3 py-1.5 rounded-md transition-all ${!isDrawModeActive ? 'bg-surface shadow-sm text-ink' : 'text-ink-muted'}`}
-              >
-                <MousePointer className="w-3.5 h-3.5 text-accent" />
-                <span>Modo Interativo</span>
-              </button>
-              <button
-                onClick={() => {
-                  setIsDrawModeActive(true);
-                  setSelectedTool('none');
-                }}
-                className={`flex items-center gap-1 px-3 py-1.5 rounded-md transition-all ${isDrawModeActive ? 'bg-surface shadow-sm text-ink' : 'text-ink-muted'}`}
-              >
-                <Pen className="w-3.5 h-3.5 text-accent" />
-                <span>Desenho Livre</span>
-              </button>
-            </div>
-
-          </div>
-
-          {isDrawModeActive ? (
-            <div className="flex flex-wrap items-center justify-between gap-4 animate-in fade-in slide-in-from-top-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[11px] font-mono font-bold text-ink-muted">Ferramentas de Desenho:</span>
-                
-                <button
-                  onClick={() => setDrawTool('pen')}
-                  className={`px-3 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all ${
-                    drawTool === 'pen' ? 'bg-accent text-white shadow' : 'bg-canvas hover:bg-surface-hover text-ink-muted'
-                  }`}
-                >
-                  <Pen className="w-3.5 h-3.5" />
-                  <span>Caneta</span>
-                </button>
-
-                <button
-                  onClick={() => setDrawTool('highlighter')}
-                  className={`px-3 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all ${
-                    drawTool === 'highlighter' ? 'bg-accent text-white shadow' : 'bg-canvas hover:bg-surface-hover text-ink-muted'
-                  }`}
-                >
-                  <Highlighter className="w-3.5 h-3.5" />
-                  <span>Marca-Texto</span>
-                </button>
-
-                <button
-                  onClick={() => setDrawTool('eraser')}
-                  className={`px-3 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all ${
-                    drawTool === 'eraser' ? 'bg-accent text-white shadow' : 'bg-canvas hover:bg-surface-hover text-ink-muted'
-                  }`}
-                >
-                  <Eraser className="w-3.5 h-3.5" />
-                  <span>Borracha</span>
-                </button>
-
-                <button
-                  onClick={clearCanvas}
-                  className="px-3 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1 bg-error-soft hover:bg-error hover:text-white text-error-ink transition-all"
-                  title="Limpar todos os desenhos"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>Limpar Tudo</span>
-                </button>
+        {showNarratorSettings && (
+          <div className="exib entra">
+            <div>
+              <span className="label-mono">Velocidade</span>
+              <div className="seg" role="group" aria-label="Velocidade da narração">
+                {[0.75, 1, 1.25, 1.5].map((r) => (
+                  <button key={r} type="button" aria-pressed={narrationRate === r} onClick={() => setNarrationRate(r)}>
+                    {String(r).replace('.', ',')}×
+                  </button>
+                ))}
               </div>
-
-              <div className="flex flex-wrap items-center gap-4">
-                {/* Color Selection */}
-                {drawTool !== 'eraser' && (
-                  <div className="flex items-center gap-1.5 border-s border-border-subtle/50 ps-4">
-                    <span className="text-[11px] font-mono text-ink-muted me-1">Cor:</span>
-                    {[
-                      { hex: '#ef4444', name: 'Vermelho' },
-                      { hex: '#f59e0b', name: 'Amarelo' },
-                      { hex: '#10b981', name: 'Verde' },
-                      { hex: '#3b82f6', name: 'Azul' },
-                      { hex: '#8b5cf6', name: 'Roxo' },
-                      { hex: '#374151', name: 'Grafite' }
-                    ].map(c => (
+            </div>
+            <div>
+              <span className="label-mono">O que narrar</span>
+              <div className="seg" role="group" aria-label="O que narrar">
+                {NARRATION_MODES.map((m) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    aria-pressed={narrationMode === m.id}
+                    onClick={() => setNarrationMode(m.id)}
+                    title={
+                      m.id === 'auto'
+                        ? `${m.title} · ${nativeDetector ? 'usando o detector on-device do navegador' : 'usando a heurística local (o navegador não tem detector nativo)'}`
+                        : m.id === 'original'
+                          ? `${m.title} (${langLabel(langPair.src)})`
+                          : m.id === 'translation'
+                            ? `${m.title} (${langLabel(langPair.tgt)})`
+                            : m.title
+                    }
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <span className="label-mono">Idioma</span>
+              {/* Guarda o ISO-639-1 ('pt'); o picker fala BCP-47 — daí a conversão nas pontas. */}
+              <LangPicker
+                id="reading-forced-lang"
+                ariaLabel="Forçar idioma da narração"
+                value={toBcp47(forcedLang)}
+                auto={!forcedLang}
+                allowAuto
+                autoLabel="Detectar (segue o modo)"
+                onPick={({ auto, code }) => setForcedLang(auto ? '' : baseLang(code || ''))}
+              />
+            </div>
+            <div>
+              <span className="label-mono">
+                Voz · {langLabel(voiceEditLang)}
+                {currentSpeakingLang === voiceEditLang && isNarrating ? ' (narrando agora)' : ''}
+              </span>
+              <div className="linha" style={{ gap: 6, flexWrap: 'wrap' }}>
+                {narratedLangs.length > 1 && (
+                  <div className="seg" role="group" aria-label="Idioma cuja voz editar">
+                    {narratedLangs.map((l) => (
                       <button
-                        key={c.hex}
-                        onClick={() => setBrushColor(c.hex)}
-                        style={{ backgroundColor: c.hex }}
-                        className={`no-min-target shrink-0 w-5 h-5 rounded-full transition-all ${
-                          brushColor === c.hex ? 'ring-2 ring-offset-2 ring-accent scale-110' : 'opacity-80 hover:opacity-100'
-                        }`}
-                        title={c.name}
-                      />
+                        key={l}
+                        type="button"
+                        aria-pressed={voiceEditLang === l}
+                        onClick={() => setVoiceEditLangOverride(l)}
+                      >
+                        {l.toUpperCase()}
+                      </button>
                     ))}
                   </div>
                 )}
+                <select
+                  className="campo"
+                  aria-label="Voz"
+                  style={{ width: 'auto', maxWidth: 280 }}
+                  value={voicePrefs[voiceEditLang] || ''}
+                  onChange={(e) => {
+                    const name = e.target.value;
+                    setVoicePrefs((prev) => {
+                      const next = { ...prev };
+                      if (name) next[voiceEditLang] = name;
+                      else delete next[voiceEditLang];
+                      return next;
+                    });
+                  }}
+                >
+                  <option value="">Melhor voz disponível (automática)</option>
+                  <optgroup label={langLabel(voiceEditLang)}>
+                    {voiceOptions.map((v) => (
+                      <option key={v.name} value={v.name}>
+                        {v.name.replace('Microsoft', '').replace('Google', '').trim()} ({v.lang})
+                        {v.neural ? ' · Natural' : ''}
+                        {v.local ? ' · Offline' : ' · Rede'}
+                      </option>
+                    ))}
+                  </optgroup>
+                </select>
+              </div>
+            </div>
+            <div>
+              <span className="label-mono">Tom · {narrationPitch.toFixed(1)}</span>
+              <input
+                type="range"
+                className="trilho"
+                min="0.5"
+                max="1.5"
+                step="0.1"
+                value={narrationPitch}
+                onChange={(e) => setNarrationPitch(parseFloat(e.target.value))}
+                aria-label="Tom da voz"
+                style={{ ['--p' as string]: `${((narrationPitch - 0.5) / 1) * 100}%`, width: 140 }}
+              />
+            </div>
+            {/* AVISO HONESTO: sem voz instalada para um idioma NÃO narramos com a voz de outro. */}
+            {missingVoiceLangs.length > 0 && (
+              <div className="aviso-info" style={{ flexBasis: '100%' }}>
+                <AlertTriangle aria-hidden />
+                <span>
+                  Seu sistema não tem voz instalada para{' '}
+                  <b style={{ color: 'var(--ink)' }}>{missingVoiceLangs.map((l) => langLabel(l)).join(', ')}</b>: essas
+                  frases não serão narradas com o sotaque correto. Instale em{' '}
+                  <b style={{ color: 'var(--ink)' }}>Configurações do Windows → Hora e Idioma → Voz</b>.
+                </span>
+              </div>
+            )}
+            <p className="mut" style={{ fontSize: 12, flexBasis: '100%' }}>
+              Mudanças de voz, tom, velocidade ou modo valem já na frase atual; a narração continua de onde estava.
+              {narrationMode === 'auto' && !forcedLang && (
+                <>
+                  {' '}
+                  Detecção de idioma: {nativeDetector ? 'detector on-device do navegador' : 'heurística local'}; frases
+                  sem sinal usam o idioma declarado da sessão ({langLabel(langPair.src)}).
+                </>
+              )}
+            </p>
+          </div>
+        )}
 
-                {/* Size Selection */}
-                <div className="flex items-center gap-2 border-s border-border-subtle/50 ps-4">
-                  <span className="text-[11px] font-mono text-ink-muted">Espessura: {brushSize}px</span>
-                  <input
-                    type="range"
-                    min="2"
-                    max="25"
-                    step="1"
-                    value={brushSize}
-                    onChange={(e) => setBrushSize(parseInt(e.target.value))}
-                    className="w-20 h-1 bg-border-subtle rounded-lg appearance-none cursor-pointer accent-accent"
-                  />
-                  {/* Small circle preview of thickness */}
-                  <div className="w-6 h-6 flex items-center justify-center bg-canvas border border-border-subtle rounded-md">
-                    <div
+        <div className="linha" style={{ gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
+          <div className="seg" role="group" aria-label="Modo">
+            <button
+              type="button"
+              aria-pressed={!isDrawModeActive}
+              onClick={() => {
+                setIsDrawModeActive(false);
+                setSelectedTool('none');
+              }}
+            >
+              <MousePointerClick aria-hidden style={{ width: 14, height: 14 }} /> Modo interativo
+            </button>
+            <button
+              type="button"
+              aria-pressed={isDrawModeActive}
+              onClick={() => {
+                setIsDrawModeActive(true);
+                setSelectedTool('none');
+              }}
+            >
+              <PenTool aria-hidden style={{ width: 14, height: 14 }} /> Desenho livre
+            </button>
+          </div>
+          {isDrawModeActive ? (
+            <>
+              <div className="seg" role="group" aria-label="Ferramenta de desenho">
+                {(
+                  [
+                    ['pen', 'Caneta', Pen],
+                    ['highlighter', 'Marca-texto', Highlighter],
+                    ['eraser', 'Borracha', Eraser],
+                  ] as const
+                ).map(([v, r, Icone]) => (
+                  <button key={v} type="button" aria-pressed={drawTool === v} onClick={() => setDrawTool(v)}>
+                    <Icone aria-hidden style={{ width: 14, height: 14 }} /> {r}
+                  </button>
+                ))}
+              </div>
+              {drawTool !== 'eraser' && (
+                <div className="linha" style={{ gap: 6 }} role="group" aria-label="Cor">
+                  {[
+                    { hex: '#ef4444', name: 'Vermelho' },
+                    { hex: '#f59e0b', name: 'Amarelo' },
+                    { hex: '#10b981', name: 'Verde' },
+                    { hex: '#3b82f6', name: 'Azul' },
+                    { hex: '#8b5cf6', name: 'Roxo' },
+                    { hex: '#374151', name: 'Grafite' },
+                  ].map((c) => (
+                    <button
+                      key={c.hex}
+                      type="button"
+                      onClick={() => setBrushColor(c.hex)}
+                      aria-pressed={brushColor === c.hex}
+                      aria-label={c.name}
+                      title={c.name}
                       style={{
-                        width: `${brushSize}px`,
-                        height: `${brushSize}px`,
-                        backgroundColor: drawTool === 'eraser' ? 'var(--ink-faint)' : brushColor,
-                        borderRadius: '50%'
+                        width: 22,
+                        height: 22,
+                        borderRadius: '50%',
+                        background: c.hex,
+                        border: 0,
+                        boxShadow: brushColor === c.hex ? '0 0 0 2px var(--canvas), 0 0 0 4px var(--accent)' : 'none',
                       }}
                     />
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-wrap items-center gap-1.5 animate-in fade-in slide-in-from-top-1">
-              <span className="text-[11px] font-mono font-bold text-ink-muted me-1">Anotações Semânticas:</span>
-              
-              <button
-                onClick={() => setSelectedTool(selectedTool === 'highlight-yellow' ? 'none' : 'highlight-yellow')}
-                className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all ${
-                  selectedTool === 'highlight-yellow'
-                    ? 'bg-warn-soft text-warn-ink ring-2 ring-warn'
-                    : 'bg-canvas hover:bg-warn-soft text-ink-muted'
-                }`}
-              >
-                <Highlighter className="w-3.5 h-3.5 text-warn fill-warn" />
-                <span>Vocabulário</span>
-              </button>
-
-              <button
-                onClick={() => setSelectedTool(selectedTool === 'highlight-green' ? 'none' : 'highlight-green')}
-                className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all ${
-                  selectedTool === 'highlight-green'
-                    ? 'bg-good-soft text-good-ink ring-2 ring-good'
-                    : 'bg-canvas hover:bg-good-soft text-ink-muted'
-                }`}
-              >
-                <Highlighter className="w-3.5 h-3.5 text-good fill-good" />
-                <span>Gramática</span>
-              </button>
-
-              <button
-                onClick={() => setSelectedTool(selectedTool === 'highlight-blue' ? 'none' : 'highlight-blue')}
-                className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all ${
-                  selectedTool === 'highlight-blue'
-                    ? 'bg-rare-soft text-rare-ink ring-2 ring-rare'
-                    : 'bg-canvas hover:bg-rare-soft text-ink-muted'
-                }`}
-              >
-                <Highlighter className="w-3.5 h-3.5 text-rare fill-rare" />
-                <span>Expressão</span>
-              </button>
-
-              <button
-                onClick={() => setSelectedTool(selectedTool === 'highlight-pink' ? 'none' : 'highlight-pink')}
-                className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all ${
-                  selectedTool === 'highlight-pink'
-                    ? 'bg-error-soft text-error-ink ring-2 ring-error'
-                    : 'bg-canvas hover:bg-error-soft text-ink-muted'
-                }`}
-              >
-                <Highlighter className="w-3.5 h-3.5 text-error fill-error" />
-                <span>Dúvida</span>
-              </button>
-
-              <button
-                onClick={() => setSelectedTool(selectedTool === 'note' ? 'none' : 'note')}
-                className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition-all ${
-                  selectedTool === 'note'
-                    ? 'bg-warn-soft text-warn-ink ring-2 ring-warn'
-                    : 'bg-canvas hover:bg-warn-soft text-ink-muted'
-                }`}
-              >
-                <StickyNote className="w-3.5 h-3.5 text-warn" />
-                <span>Nota</span>
-              </button>
-
-              <button
-                onClick={() => setSelectedTool(selectedTool === 'audio' ? 'none' : 'audio')}
-                className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition-all ${
-                  selectedTool === 'audio'
-                    ? 'bg-rare-soft text-rare-ink ring-2 ring-rare'
-                    : 'bg-canvas hover:bg-rare-soft text-ink-muted'
-                }`}
-              >
-                <Volume2 className="w-3.5 h-3.5 text-rare" />
-                <span>Áudio</span>
-              </button>
-
-              <button
-                onClick={() => setSelectedTool(selectedTool === 'eraser' ? 'none' : 'eraser')}
-                className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all ${
-                  selectedTool === 'eraser'
-                    ? 'bg-error-soft text-error-ink ring-2 ring-error'
-                    : 'bg-canvas hover:bg-error-soft text-ink-muted'
-                }`}
-              >
-                <Eraser className="w-3.5 h-3.5 text-error" />
-                <span>Apagar</span>
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* The Core Interactive Transcript Canvas */}
-        <div className={`card-panel p-6 md:p-10 min-h-[50vh] leading-loose transition-all ${getThemeClass()} relative`} style={{ fontSize: `${fontSize}px` }}>
-          
-          {/* Freehand Canvas Drawing Overlay */}
-          <canvas
-            ref={canvasRef}
-            onMouseDown={startDrawing}
-            onMouseMove={draw}
-            onMouseUp={stopDrawing}
-            onMouseLeave={stopDrawing}
-            className={`absolute inset-0 z-10 ${isDrawModeActive ? 'pointer-events-auto cursor-crosshair' : 'pointer-events-none'}`}
-          />
-
-          <p className="mb-6 italic text-[13px] border-s-2 border-accent/50 ps-3 text-ink-muted">
-            Dica: Clique com o mouse em qualquer palavra para ouvir sua pronúncia. Ative os pincéis de grifo acima para categorizar termos, adicionar notas e até comentários gravados em áudio!
-          </p>
-
-          {studyTexts.length === 0 ? (
-            <div className="text-center py-16 px-4">
-              <div className="w-14 h-14 bg-surface-hover rounded-full flex items-center justify-center mx-auto mb-4 text-ink-muted">
-                <BookOpen className="w-7 h-7" />
-              </div>
-              <p className="text-sm text-ink-muted">
-                {transcriptLoaded ? 'Nenhuma transcrição real para esta sessão ainda.' : 'Carregando transcrição…'}
-              </p>
-            </div>
-          ) : viewMode === 'bilingual-side-by-side' ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 divide-y md:divide-y-0 md:divide-x divide-border-subtle">
-              {/* Left Column (Original Text) */}
-              <div className="space-y-6">
-                <span className="text-[10px] font-mono font-bold tracking-wider text-accent uppercase block pb-1 border-b">Texto Original ({langLabel(langPair.src)})</span>
-                {studyTexts.map((sentenceObj, sIdx) => {
-                  const isNarratingActive = activeNarratingSentenceIndex === sIdx;
-                  // Estado ativo por fundo tonal + borda fina completa, como Analysis já faz —
-                  // a listra lateral grossa era o ornamento que a auditoria de design aponta (ux-v2 §1.13).
-                  return (
-                    <div
-                      key={sIdx}
-                      id={`sentence-${sIdx}`}
-                      className={`group/sent relative p-3 rounded-lg transition-all border ${isNarratingActive ? 'bg-accent/10 border-accent/40' : 'border-transparent'}`}
-                    >
-                      <SentencePlayButton index={sIdx} />
-                      {(sentenceObj.speaker || narrationMode === 'auto') && (
-                        <div className="flex items-center flex-wrap mb-1">
-                          {sentenceObj.speaker && (
-                            <span className="text-[10px] uppercase font-mono font-bold text-accent/80">{sentenceObj.speaker}</span>
-                          )}
-                          <SentenceLangBadge index={sIdx} />
-                        </div>
-                      )}
-                      <div>
-                        {tokenizarTexto(sentenceObj.original).map((token) => {
-                          const isContentWord = token.clean.length >= 3;
-                          const annotation = annotations.find(a => a.textIndex === sIdx && a.wordIndex === token.id);
-                          
-                          let highlightClass = '';
-                          if (annotation?.type === 'highlight') {
-                            highlightClass = annotation.color || 'bg-warn-soft';
-                          }
-                          const hasNote = annotations.some(a => a.textIndex === sIdx && a.wordIndex === token.id && a.type === 'note');
-                          const hasAudio = annotations.some(a => a.textIndex === sIdx && a.wordIndex === token.id && a.type === 'audio');
-
-                          return (
-                            <span key={token.id} className="inline-block me-1.5 relative group">
-                              <span
-                                onMouseEnter={(e) => handleMouseEnter(e, token.clean)}
-                                onClick={() => handleWordClick(sIdx, token.id, token.original)}
-                                onMouseLeave={handleMouseLeave}
-                                className={`
-                                  inline px-0.5 rounded cursor-pointer transition-colors duration-150
-                                  ${isContentWord ? 'border-b border-dashed border-accent/30' : ''}
-                                  ${highlightClass}
-                                  ${hasNote ? 'underline decoration-dashed decoration-warn decoration-2 font-medium' : ''}
-                                  ${hasAudio ? 'underline decoration-double decoration-rare decoration-2 font-medium' : ''}
-                                  ${selectedTool !== 'none' ? 'hover:bg-accent/20' : 'hover:bg-surface-hover hover:text-ink'}
-                                `}
-                              >
-                                {token.original}
-                              </span>
-                              {(hasNote || hasAudio) && (
-                                <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 flex gap-0.5 z-10 pointer-events-none scale-75 opacity-90">
-                                  {hasNote && <span className="w-2 h-2 rounded-full bg-warn shadow-sm" />}
-                                  {hasAudio && <span className="w-2 h-2 rounded-full bg-rare shadow-sm" />}
-                                </span>
-                              )}
-                            </span>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Right Column (Translation) */}
-              <div className="space-y-6 md:ps-8">
-                <span className="text-[10px] font-mono font-bold tracking-wider text-accent uppercase block pb-1 border-b">Tradução ({langLabel(langPair.tgt)})</span>
-                {studyTexts.map((sentenceObj, sIdx) => {
-                  const isNarratingActive = activeNarratingSentenceIndex === sIdx;
-                  return (
-                    <div 
-                      key={sIdx} 
-                      className={`p-3 rounded-lg transition-all ${isNarratingActive ? 'bg-accent/5' : ''}`}
-                    >
-                      {sentenceObj.speaker && (
-                        <span className="text-[10px] uppercase font-mono font-bold text-ink-muted block mb-1">{sentenceObj.speaker}</span>
-                      )}
-                      <p className="text-[13.5px] text-ink-muted italic leading-relaxed">
-                        {tokenizarTexto(sentenceObj.translation || '').map((token) => (
-                          <span
-                            key={token.id}
-                            onMouseEnter={(e) => handleMouseEnter(e, token.clean)}
-                            onMouseLeave={handleMouseLeave}
-                            className="inline px-0.5 rounded cursor-pointer hover:bg-surface-hover transition-colors"
-                          >
-                            {token.original}{' '}
-                          </span>
-                        ))}
-                      </p>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ) : (
-            /* Single Column Intercalated */
-            <div className="space-y-6">
-              {studyTexts.map((sentenceObj, sIdx) => {
-                const isNarratingActive = activeNarratingSentenceIndex === sIdx;
-                return (
-                  <div
-                    key={sIdx}
-                    id={`sentence-${sIdx}`}
-                    className={`group/sent relative p-4 rounded-xl border transition-all ${
-                      isNarratingActive
-                        ? 'bg-accent/10 border-accent/40 shadow-sm ps-4'
-                        : 'border-transparent'
-                    }`}
-                  >
-                    <SentencePlayButton index={sIdx} />
-                    {(sentenceObj.speaker || narrationMode === 'auto') && (
-                      <div className="flex items-center flex-wrap mb-1">
-                        {sentenceObj.speaker && (
-                          <span className="text-[11px] uppercase tracking-wider font-mono font-black text-accent">
-                            {sentenceObj.speaker}
-                          </span>
-                        )}
-                        <SentenceLangBadge index={sIdx} />
-                      </div>
-                    )}
-
-                    {/* Original sentence with tokens */}
-                    <div className="leading-relaxed text-ink">
-                      {tokenizarTexto(sentenceObj.original).map((token) => {
-                        const isContentWord = token.clean.length >= 3;
-                        const annotation = annotations.find(a => a.textIndex === sIdx && a.wordIndex === token.id);
-                        
-                        let highlightClass = '';
-                        if (annotation?.type === 'highlight') {
-                          highlightClass = annotation.color || 'bg-warn-soft';
-                        }
-                        const hasNote = annotations.some(a => a.textIndex === sIdx && a.wordIndex === token.id && a.type === 'note');
-                        const hasAudio = annotations.some(a => a.textIndex === sIdx && a.wordIndex === token.id && a.type === 'audio');
-
-                        return (
-                          <span key={token.id} className="inline-block me-1.5 relative group">
-                            <span
-                              onMouseEnter={(e) => handleMouseEnter(e, token.clean)}
-                              onClick={() => handleWordClick(sIdx, token.id, token.original)}
-                              onMouseLeave={handleMouseLeave}
-                              className={`
-                                inline px-0.5 rounded cursor-pointer transition-colors duration-150
-                                ${isContentWord ? 'border-b border-dashed border-accent/30' : ''}
-                                ${highlightClass}
-                                ${hasNote ? 'underline decoration-dashed decoration-warn decoration-2 font-medium' : ''}
-                                ${hasAudio ? 'underline decoration-double decoration-rare decoration-2 font-medium' : ''}
-                                ${selectedTool !== 'none' ? 'hover:bg-accent/20' : 'hover:bg-surface-hover hover:text-ink'}
-                              `}
-                            >
-                              {token.original}
-                            </span>
-                            {(hasNote || hasAudio) && (
-                              <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 flex gap-0.5 z-10 pointer-events-none scale-75 opacity-90">
-                                {hasNote && <span className="w-2 h-2 rounded-full bg-warn shadow-sm" />}
-                                {hasAudio && <span className="w-2 h-2 rounded-full bg-rare shadow-sm" />}
-                              </span>
-                            )}
-                          </span>
-                        );
-                      })}
-                    </div>
-
-                    {/* Intercalated translation if set */}
-                    {viewMode === 'bilingual-intercalated' && (
-                      <div className="text-[13.5px] text-ink-muted italic ps-2 border-s-2 border-border-subtle mt-1.5">
-                        {tokenizarTexto(sentenceObj.translation || '').map((token) => (
-                          <span
-                            key={token.id}
-                            onMouseEnter={(e) => handleMouseEnter(e, token.clean)}
-                            onMouseLeave={handleMouseLeave}
-                            className="inline px-0.5 rounded cursor-pointer hover:bg-surface-hover transition-colors"
-                          >
-                            {token.original}{' '}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
-      </div>
-      </EditablePanel>
-      
-      {/* Sidebar de notas. Sem o botão legado, sua visibilidade vem SÓ do layoutStore
-          (`reading.notesSidebar.show`, hoje `false`), quem quiser a revisão de marcações liga o
-          painel pelo LayoutStudio. O EditablePanel já retorna null quando `show` é false. */}
-        <EditablePanel
-          viewKey="reading"
-          panelKey="notesSidebar"
-          title="Estudos & Notas"
-          className="flex flex-col flex-1 md:flex-none md:shrink-0 lg:border-s border-border-subtle"
-          canResizeWidth={true}
-          canResizeHeight={false}
-          resizeHandlePosition="left"
-          defaultWidth={35}
-        >
-        <div className="flex-1 w-full bg-surface flex flex-col h-full animate-in slide-in-from-right-4 duration-300 z-30 overflow-hidden">
-          
-          {/* Header */}
-          <div className="px-4 py-3.5 border-b border-border-subtle bg-canvas flex justify-between items-center shrink-0">
-            <span className="text-xs font-bold uppercase tracking-wider font-display text-ink flex items-center gap-1.5">
-              Minhas Notas ({annotations.length})
-            </span>
-          </div>
-
-          {/* ANNOTATIONS & VOICE NOTES REVIEW PANEL */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            <div className="flex justify-between items-center pb-2 border-b border-border-subtle">
-              <span className="text-[11px] font-mono font-bold text-ink-muted">REVISÃO DE MARCAÇÕES</span>
-              {annotations.length > 0 && (
-                <button
-                  onClick={async () => {
-                    const ok = await askConfirm({
-                      title: 'Apagar todas as anotações?',
-                      detail: `${annotations.length} anotação(ões) serão removidas. Não há como desfazer.`,
-                      confirmLabel: 'Apagar tudo',
-                      danger: true,
-                    });
-                    if (ok) setAnnotations([]);
-                  }}
-                  className="text-[10px] font-bold text-error-ink hover:underline"
-                >
-                  Apagar Tudo
-                </button>
-              )}
-            </div>
-
-              {annotations.length === 0 ? (
-                <div className="text-center py-12 px-4 space-y-3">
-                  <div className="w-12 h-12 bg-surface-hover rounded-full flex items-center justify-center mx-auto text-ink-muted">
-                    <StickyNote className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-sm text-ink">Nenhum grifo ou nota</h4>
-                    <p className="text-xs text-ink-muted mt-1 leading-relaxed">
-                      Ative uma das ferramentas de grifo ou áudio no painel principal e clique nas palavras para começar a estudar.
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {annotations.map((ann) => (
-                    <div key={ann.id} className="p-3 rounded-xl border border-border-subtle bg-canvas space-y-2 relative group/item shadow-sm">
-                      <button 
-                        onClick={() => setAnnotations(annotations.filter(a => a.id !== ann.id))}
-                        className="absolute top-2.5 right-2.5 p-1 text-ink-muted hover:text-error-ink rounded hover:bg-surface-hover transition-colors"
-                        title="Remover Nota"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-
-                      <div className="flex items-center gap-2">
-                        {ann.type === 'highlight' && (
-                          <span className={`w-2.5 h-2.5 rounded-full ${ann.color ? ann.color.split(' ')[0] : 'bg-warn-soft'}`} />
-                        )}
-                        {ann.type === 'note' && (
-                          <StickyNote className="w-3.5 h-3.5 text-warn" />
-                        )}
-                        {ann.type === 'audio' && (
-                          <Volume2 className="w-3.5 h-3.5 text-rare" />
-                        )}
-                        <span className="text-[10px] font-mono font-bold text-ink-muted uppercase tracking-wider">
-                          {ann.type === 'highlight' ? `Marcação (${ann.content})` : ann.type === 'note' ? 'Nota Escrita' : 'Áudio Comentário'}
-                        </span>
-                      </div>
-
-                      <div className="text-[13px] font-extrabold text-ink leading-snug">
-                        "{ann.wordText}"
-                      </div>
-
-                      {ann.type === 'note' && ann.content && (
-                        <p className="text-xs text-ink-muted bg-surface p-2.5 rounded border border-border-subtle whitespace-pre-wrap leading-relaxed italic">
-                          {ann.content}
-                        </p>
-                      )}
-
-                      {ann.type === 'audio' && (
-                        <div className="flex items-center gap-2 bg-surface p-2 rounded border border-border-subtle">
-                          <button 
-                            onClick={() => {
-                              if (ann.audioUrl) {
-                                const audio = new Audio(ann.audioUrl);
-                                audio.play();
-                              }
-                            }}
-                            className="p-2 rounded-full bg-rare-soft text-rare-ink hover:brightness-95 transition-colors cursor-pointer shrink-0"
-                            title="Ouvir minha gravação de voz"
-                          >
-                            <PlayCircle className="w-5 h-5 fill-rare/10" />
-                          </button>
-                          <div className="flex-1 min-w-0">
-                            <span className="text-[10px] font-mono text-ink-muted block">Comentário em Áudio</span>
-                            <span className="text-[11px] text-ink truncate block">Ouvir minha gravação</span>
-                          </div>
-                        </div>
-                      )}
-
-                      <span className="text-[9px] font-mono text-ink-faint block text-end pt-1">
-                        {ann.createdAt ? new Date(ann.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Agora'}
-                      </span>
-                    </div>
                   ))}
                 </div>
               )}
+              <label className="linha mut" style={{ gap: 6, fontSize: 12 }}>
+                Espessura
+                <input
+                  type="range"
+                  className="trilho"
+                  min="2"
+                  max="25"
+                  step="1"
+                  value={brushSize}
+                  onChange={(e) => setBrushSize(parseInt(e.target.value))}
+                  style={{ ['--p' as string]: `${((brushSize - 2) / 23) * 100}%`, width: 110 }}
+                />
+              </label>
+              <button type="button" className="btn btn-outline peq" onClick={clearCanvas}>
+                <Trash2 aria-hidden /> Limpar tudo
+              </button>
+            </>
+          ) : (
+            <div className="chips" role="group" aria-label="Anotar: escolha o tipo e clique nas palavras">
+              {TIPOS_DE_ANOTACAO.map(({ id, rotulo, Icone }) => (
+                <button
+                  key={id}
+                  type="button"
+                  className="pill"
+                  aria-pressed={selectedTool === id}
+                  onClick={() => setSelectedTool(selectedTool === id ? 'none' : id)}
+                >
+                  <Icone aria-hidden />
+                  {rotulo}
+                </button>
+              ))}
             </div>
-          </div>
+          )}
+        </div>
+        {!isDrawModeActive && (
+          <p className="mut" style={{ fontSize: 12.5, marginTop: 10 }}>
+            {selectedTool === 'none'
+              ? 'Clique numa palavra para ouvir. Para anotar, escolha o tipo acima e clique nas palavras.'
+              : 'Clique nas palavras para anotar. Clique no tipo de novo para parar.'}
+          </p>
+        )}
+      </section>
+
+      <div className="leitura-grade">
+        <EditablePanel
+          viewKey="reading"
+          panelKey="interactiveArea"
+          title="Área Interativa"
+          canResizeWidth={false}
+          canResizeHeight={false}
+        >
+          <section
+            className={`cartao p6 leitura-texto ${layoutWidth === 'centered' ? 'coluna' : ''} ${isDrawModeActive ? 'desenhando' : ''}`}
+            aria-label="Texto da sessão"
+            style={{ position: 'relative' }}
+          >
+            {/* Desenho livre por cima do texto */}
+            <canvas
+              ref={canvasRef}
+              onMouseDown={startDrawing}
+              onMouseMove={draw}
+              onMouseUp={stopDrawing}
+              onMouseLeave={stopDrawing}
+              aria-label="Área de desenho"
+              style={{
+                position: 'absolute',
+                inset: 0,
+                zIndex: 2,
+                pointerEvents: isDrawModeActive ? 'auto' : 'none',
+                cursor: isDrawModeActive ? 'crosshair' : 'default',
+              }}
+            />
+            {studyTexts.length === 0 ? (
+              <div className="vazio">
+                <IconeEmBloco icone={BookOpen} />
+                <h3>{transcriptLoaded ? 'Sem texto nesta sessão' : 'Carregando o texto…'}</h3>
+                {transcriptLoaded && <p>Nenhuma transcrição real para esta sessão ainda.</p>}
+              </div>
+            ) : (
+              <div className="leitura" style={{ fontSize: `${fontSize}px` }}>
+                {studyTexts.map((sentenceObj, sIdx) => {
+                  const cls = `frase ${activeNarratingSentenceIndex === sIdx ? 'narrando' : ''}`;
+                  const original = (
+                    <span className={cls} id={`sentence-${sIdx}`}>
+                      <SentencePlayButton index={sIdx} />
+                      {palavrasDaFrase(sentenceObj.original, sIdx)}
+                    </span>
+                  );
+                  if (viewMode === 'bilingual-side-by-side')
+                    return (
+                      <div key={sIdx} className="lado">
+                        <p>{original}</p>
+                        <p className="trad-l">{sentenceObj.translation}</p>
+                      </div>
+                    );
+                  return (
+                    <p key={sIdx}>
+                      {original}
+                      {viewMode === 'bilingual-intercalated' && sentenceObj.translation && (
+                        <>
+                          <br />
+                          <span className="trad-l">{sentenceObj.translation}</span>
+                        </>
+                      )}
+                    </p>
+                  );
+                })}
+              </div>
+            )}
+          </section>
         </EditablePanel>
 
-      {/* Analista de Vocabulário — coluna à direita; só monta quando há palavra selecionada. */}
-      <VocabularyPanel
-        viewKey="reading"
-        word={selectedExamWord}
-        mtNote={mtNote}
-        onClose={() => { setSelectedExamWord(null); setMtNote(null); }}
-        onSpeak={speakWord}
-        onAddToDeck={handleAddVocabWordToDeck}
-        isAdded={!!selectedExamWord && isWordAdded(selectedExamWord)}
-        ttsSpeed={ttsSpeed}
-        setTtsSpeed={setTtsSpeed}
-        // Sem navegação (Leitura montada fora da Análise) → sem botões de praticar. Nada de botão morto.
-        onPractice={onChangeView ? handlePracticeWord : undefined}
-      />
+        {selectedExamWord ? (
+          <div>
+            <VocabularyPanel
+              viewKey="reading"
+              word={selectedExamWord}
+              mtNote={mtNote}
+              onClose={() => {
+                setSelectedExamWord(null);
+                setMtNote(null);
+              }}
+              onSpeak={speakWord}
+              onAddToDeck={handleAddVocabWordToDeck}
+              isAdded={!!selectedExamWord && isWordAdded(selectedExamWord)}
+              ttsSpeed={ttsSpeed}
+              setTtsSpeed={setTtsSpeed}
+              // Sem navegação (Leitura montada fora da Análise) → sem botões de praticar. Nada de botão morto.
+              onPractice={onChangeView ? handlePracticeWord : undefined}
+            />
+          </div>
+        ) : (
+          <aside className="cartao p5 notas-l" aria-label="Estudos e notas">
+            <TituloDeSecao
+              icone={NotebookPen}
+              titulo="Estudos & notas"
+              nivel="h3"
+              direita={
+                annotations.length > 0 ? (
+                  <button
+                    type="button"
+                    className="link"
+                    onClick={async () => {
+                      const ok = await askConfirm({
+                        title: 'Apagar todas as anotações?',
+                        detail: `${annotations.length} anotação(ões) serão removidas. Não há como desfazer.`,
+                        confirmLabel: 'Apagar tudo',
+                        danger: true,
+                      });
+                      if (ok) setAnnotations([]);
+                    }}
+                  >
+                    Apagar tudo
+                  </button>
+                ) : undefined
+              }
+            />
+            {annotations.length ? (
+              <div className="pilha">
+                {annotations.map((ann) => {
+                  const rotulo =
+                    ann.type === 'highlight' ? ann.content || 'Marcação' : ann.type === 'note' ? 'Nota' : 'Áudio';
+                  const tom = ann.type === 'note' ? 'warn' : ann.type === 'audio' ? 'rare' : 'acc';
+                  return (
+                    <div key={ann.id} className="nota-item">
+                      <span className={`badge ${tom}`}>
+                        {ann.type === 'note' ? (
+                          <StickyNote aria-hidden />
+                        ) : ann.type === 'audio' ? (
+                          <Mic aria-hidden />
+                        ) : (
+                          <Highlighter aria-hidden />
+                        )}{' '}
+                        {rotulo}
+                      </span>
+                      <p>
+                        “{ann.wordText}”
+                        {ann.type === 'note' && ann.content && (
+                          <>
+                            <br />
+                            <span className="mut">{ann.content}</span>
+                          </>
+                        )}
+                        {ann.type === 'audio' && ann.audioUrl && (
+                          <>
+                            <br />
+                            <button type="button" className="link" onClick={() => void new Audio(ann.audioUrl!).play()}>
+                              <Play aria-hidden /> Ouvir minha gravação
+                            </button>
+                          </>
+                        )}
+                      </p>
+                      <button
+                        type="button"
+                        className="btn btn-outline peq icone"
+                        onClick={() => setAnnotations(annotations.filter((a) => a.id !== ann.id))}
+                        aria-label="Remover nota"
+                      >
+                        <X aria-hidden />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="vazio" style={{ padding: '18px 6px' }}>
+                <IconeEmBloco icone={Highlighter} />
+                <h3>Nenhum grifo ou nota</h3>
+                <p>No modo interativo, escolha o tipo de anotação e clique nas palavras.</p>
+              </div>
+            )}
+          </aside>
+        )}
+      </div>
 
       {/* Sticky note creation popover modal */}
       {noteTarget && (
@@ -2044,7 +1713,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
                 <X className="w-4 h-4 text-ink-muted" />
               </button>
             </div>
-            
+
             <p className="text-xs text-ink-muted mb-3 font-mono leading-relaxed">
               Palavra anotada: <strong className="text-ink font-sans text-sm">"{noteTarget.wordText}"</strong>
             </p>
@@ -2058,13 +1727,13 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
             />
 
             <div className="flex gap-2 justify-end">
-              <button 
-                onClick={() => setNoteTarget(null)} 
+              <button
+                onClick={() => setNoteTarget(null)}
                 className="px-3.5 py-2 rounded-lg bg-surface-hover text-ink-muted text-xs font-bold hover:text-ink"
               >
                 Cancelar
               </button>
-              <button 
+              <button
                 onClick={() => {
                   if (noteTextInput.trim()) {
                     setAnnotations([
@@ -2076,8 +1745,8 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
                         wordIndex: noteTarget.wIndex,
                         wordText: noteTarget.wordText,
                         content: noteTextInput,
-                        createdAt: Date.now()
-                      }
+                        createdAt: Date.now(),
+                      },
                     ]);
                   }
                   setNoteTarget(null);
@@ -2105,7 +1774,8 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
             </div>
 
             <p className="text-xs text-ink-muted leading-relaxed">
-              Grave sua própria pronúncia ou um comentário falado para: <strong className="text-ink">"{recordingTarget.wordText}"</strong>
+              Grave sua própria pronúncia ou um comentário falado para:{' '}
+              <strong className="text-ink">"{recordingTarget.wordText}"</strong>
             </p>
 
             {/* Simulated/real visual wave container */}
@@ -2140,9 +1810,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
                   </button>
                 </div>
               ) : recordingError ? (
-                <div className="text-xs text-error font-bold px-2 text-center">
-                  {recordingError}
-                </div>
+                <div className="text-xs text-error font-bold px-2 text-center">{recordingError}</div>
               ) : (
                 <div className="text-xs text-ink-muted">Aguardando início...</div>
               )}
@@ -2160,7 +1828,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
               )}
 
               {isRecordingAudio && (
-                <button 
+                <button
                   onClick={stopVoiceRecording}
                   className="px-4 py-2 rounded-xl bg-error-soft text-error-ink border border-error/40 font-bold text-xs flex items-center gap-1 hover:brightness-105 cursor-pointer"
                 >
@@ -2170,13 +1838,13 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
 
               {playbackAudioUrl && (
                 <>
-                  <button 
+                  <button
                     onClick={startVoiceRecording}
                     className="px-3 py-2 rounded-xl bg-surface-hover text-ink-muted font-bold text-xs cursor-pointer hover:text-ink"
                   >
                     Gravar Novamente
                   </button>
-                  <button 
+                  <button
                     onClick={saveRecordedAudio}
                     className="px-4 py-2 rounded-xl bg-rare-soft text-rare-ink border border-rare/40 font-bold text-xs cursor-pointer hover:brightness-105 shadow-sm"
                   >
@@ -2225,9 +1893,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
                     ) : wordPreview.translation ? (
                       <p className="text-[13px] text-ink-muted">{wordPreview.translation}</p>
                     ) : (
-                      <p className="text-[12px] text-warn-ink">
-                        {wordPreview.note ?? 'Tradução indisponível'}
-                      </p>
+                      <p className="text-[12px] text-warn-ink">{wordPreview.note ?? 'Tradução indisponível'}</p>
                     )}
                   </div>
                   <button
@@ -2246,13 +1912,15 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
                 )}
 
                 <div className="mt-1 pt-3 border-t border-border-subtle flex gap-2">
-                  {vocabCards.some(c => c.word.toLowerCase() === wordPreview.word.toLowerCase() && c.inDeck) ? (
+                  {vocabCards.some((c) => c.word.toLowerCase() === wordPreview.word.toLowerCase() && c.inDeck) ? (
                     <button className="flex-1 py-2 px-3 text-[13px] rounded-lg bg-good-soft text-good font-bold flex items-center justify-center gap-1.5 w-full cursor-not-allowed">
                       <Check className="w-4 h-4" /> Já está no Deck
                     </button>
                   ) : (
                     <button
-                      onClick={() => handleAddWordToDeck(wordPreview.word, wordPreview.translation, wordPreview.context)}
+                      onClick={() =>
+                        handleAddWordToDeck(wordPreview.word, wordPreview.translation, wordPreview.context)
+                      }
                       className="flex-1 btn-solid bg-accent text-white border-none py-2 px-3 text-[13px] hover:scale-[1.02] flex items-center justify-center gap-1.5 w-full cursor-pointer"
                     >
                       <Plus className="w-4 h-4" /> Adicionar ao Deck

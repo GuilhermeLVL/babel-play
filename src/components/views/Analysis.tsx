@@ -3,16 +3,17 @@ import {
   AlertTriangle,
   ArrowLeft,
   BarChart2,
+  BarChart3,
   BookMarked,
   BookOpen,
   Brain,
   Check,
   CheckCircle2,
-  ChevronDown,
   Clock,
+  Cpu,
   Crosshair,
   Download,
-  Edit2,
+  FileAudio,
   FileText,
   Gamepad2,
   LayoutGrid,
@@ -20,37 +21,32 @@ import {
   Lock,
   MessageSquare,
   MessageSquareWarning,
+  MessagesSquare,
   Mic,
-  MoreHorizontal,
+  Pencil,
   Play,
   Plus,
   Search,
   SlidersHorizontal,
   Sparkles,
-  Video,
   Volume2,
   X,
+  Youtube,
   Zap,
 } from 'lucide-react';
-import React, { lazy, Suspense,useEffect, useRef, useState } from 'react';
+import React, { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { CartesianGrid, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis, ZAxis } from 'recharts';
 
-import type { AppMetrics,UtteranceRow } from '../../data/api';
-import {
-  apiFetch,
-  fetchDeck,
-  fetchMetrics,
-  fetchSessionTranscript,
-  fetchSettings,
-} from '../../data/api';
+import type { AppMetrics, UtteranceRow } from '../../data/api';
+import { apiFetch, fetchDeck, fetchMetrics, fetchSessionTranscript, fetchSettings } from '../../data/api';
 import { applyOutputDevice } from '../../lib/audioDevices';
 import { useLangConfig } from '../../lib/langConfig';
 import { baseLang, langLabel } from '../../lib/languages';
 import { usePopoverDePalavra } from '../../lib/popoverDePalavra';
-import { copyDoPerfil, coreOnly } from '../../lib/profile';
-import type { PracticeSeed,Sentence } from '../../lib/sentences';
+import { copyDoPerfil } from '../../lib/profile';
+import type { PracticeSeed, Sentence } from '../../lib/sentences';
 import { toSentences } from '../../lib/sentences';
-import { isTtsSupported,speak as ttsSpeak } from '../../lib/tts';
+import { isTtsSupported, speak as ttsSpeak } from '../../lib/tts';
 import type { WordOrigin } from '../../lib/vocabWord';
 import { tokenizarTexto } from '../../lib/vocabWord';
 import type { VocabWord } from '../../types';
@@ -79,13 +75,14 @@ import { buildGateway } from '../../gateway';
 import { getActiveProfile } from '../../gateway/activeProfile';
 import { criarEdicaoDeFala } from '../../lib/analise/edicaoDeFala';
 import { useMetricasDaSessao } from '../../lib/analise/metricasDaSessao';
-import { criarPalavraDaAnalise,useCacheDeHover } from '../../lib/analise/palavraDaAnalise';
-import { formatSeconds,usePlayerDaSessao } from '../../lib/analise/playerDaSessao';
-import { caminhoDoAudio,useAudioDaSessao } from '../../lib/audioDaSessao';
+import { criarPalavraDaAnalise, useCacheDeHover } from '../../lib/analise/palavraDaAnalise';
+import { formatSeconds, usePlayerDaSessao } from '../../lib/analise/playerDaSessao';
+import { caminhoDoAudio, useAudioDaSessao } from '../../lib/audioDaSessao';
 import { data, numero } from '../../lib/i18n';
 import type { DerivedProgress } from '../../lib/progress';
-import { getTranscriptStyleClasses,TranscriptSettings } from '../../lib/transcriptUtils';
+import { TranscriptSettings } from '../../lib/transcriptUtils';
 import EditablePanel from '../EditablePanel';
+import { Abas, CabecalhoDeTela, TituloDeSecao } from '../ui';
 import PlayerInterativo from './analise/PlayerInterativo';
 
 /** Selo de PROCEDÊNCIA da transcrição (honestidade): de onde vieram as falas desta sessão. */
@@ -159,8 +156,6 @@ export default function Analysis({
    * normalização acima e os deep-links já gravados.
    */
   const modoRevisao = subTab === 'study';
-  // Revela a aba mais densa em Kids/Sênior. Uma vez aberta, fica — quem procurou já sabe onde está.
-  const [showAllTabs, setShowAllTabs] = useState<boolean>(false);
 
   // Real-time Simulated Media Player states
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
@@ -529,7 +524,6 @@ export default function Analysis({
     setTsSettings((prev) => ({ ...prev, [key]: value }));
   };
 
-
   /* NUNCA `return null` aqui: era uma tela PRETA de verdade. Enquanto a lista de gravações ainda
      não chegou (abrir /sessao/<id> direto pela URL) mostra "abrindo"; se a lista chegou e o id
      não existe, diz isso e oferece o caminho de volta. */
@@ -554,213 +548,166 @@ export default function Analysis({
     );
   }
 
-  const isVideo = recording.type === 'video';
-  const isDoc = recording.type === 'document';
-  const isAudio = recording.type === 'audio';
+  /* "Ajustar exibição" do protótipo: os mesmos cinco ajustes (`tsSettings`) em controles segmentados. */
+  const TAMANHOS: [string, string, string][] = [
+    ['small', 'pequeno', 'P'],
+    ['medium', 'medio', 'M'],
+    ['large', 'grande', 'G'],
+    ['xlarge', 'gigante', 'GG'],
+  ];
+  const TEMAS: [string, string, string][] = [
+    ['standard', 'padrao', 'Padrão'],
+    ['sepia', 'sepia', 'Sépia'],
+    ['highContrast', 'contraste', 'Contraste'],
+    ['ocean', 'oceano', 'Oceano'],
+    ['neon', 'neon', 'Neon'],
+  ];
+  const tamanhoAtual = tsSettings.fontSize === 'xxlarge' ? 'xlarge' : tsSettings.fontSize;
+  const classesDoTranscrito = `t-${TEMAS.find(([v]) => v === tsSettings.textColor)?.[1] ?? 'padrao'} f-${tsSettings.fontFamily} s-${TAMANHOS.find(([v]) => v === tamanhoAtual)?.[1] ?? 'medio'}`;
+  const segmento = (rotulo: string, opcoes: [string, string][], atual: string, aoEscolher: (v: string) => void) => (
+    <div>
+      <span className="label-mono">{rotulo}</span>
+      <div className="seg" role="group" aria-label={rotulo}>
+        {opcoes.map(([v, r]) => (
+          <button key={v} type="button" aria-pressed={atual === v} onClick={() => aoEscolher(v)}>
+            {r}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+  const painelDeExibicao = (
+    <div className="exib entra">
+      {segmento(
+        'Ordem',
+        [
+          ['original-first', 'Original primeiro'],
+          ['translated-first', 'Tradução primeiro'],
+        ],
+        tsSettings.displayOrder,
+        (v) => updateSetting('displayOrder', v as typeof tsSettings.displayOrder),
+      )}
+      {segmento(
+        'Original',
+        [
+          ['mostrar', 'Mostrar'],
+          ['ocultar', 'Ocultar'],
+        ],
+        tsSettings.hideOriginal ? 'ocultar' : 'mostrar',
+        (v) => updateSetting('hideOriginal', v === 'ocultar'),
+      )}
+      {segmento(
+        'Tamanho',
+        TAMANHOS.map(([v, , r]) => [v, r]),
+        tamanhoAtual,
+        (v) => updateSetting('fontSize', v as typeof tsSettings.fontSize),
+      )}
+      {segmento(
+        'Fonte',
+        [
+          ['sans', 'Sans'],
+          ['serif', 'Serif'],
+          ['mono', 'Mono'],
+        ],
+        tsSettings.fontFamily,
+        (v) => updateSetting('fontFamily', v as typeof tsSettings.fontFamily),
+      )}
+      {segmento(
+        'Tema do texto',
+        TEMAS.map(([v, , r]) => [v, r]),
+        tsSettings.textColor,
+        (v) => updateSetting('textColor', v as typeof tsSettings.textColor),
+      )}
+    </div>
+  );
+  /** As palavras que ESTA gravação pôs no caderno (o deck inteiro vem do backend). */
+  const palavrasDaSessao = vocabCards.filter((c) => c.sourceSessionId === recording.id);
 
-  const themeBgClass = 'bg-canvas text-ink';
-  let headerBgClass = 'bg-surface/30 border-b border-border-subtle/50';
-  let badgeClass = 'bg-accent-soft text-accent-ink';
-  let backLinkClass = 'text-accent hover:text-accent/80';
-  let selectClass = 'bg-surface border border-border-subtle text-ink';
-  let exportBtnClass = 'btn-ink hover:bg-ink-muted border-none';
-  let activeTabClass = 'bg-accent text-white shadow-btn font-extrabold';
-  let inactiveTabClass = 'text-ink hover:bg-surface-hover font-bold';
-  let tabContainerClass =
-    'bg-canvas border-2 border-border-subtle p-1.5 rounded-2xl w-fit mb-6 flex items-center gap-1 overflow-x-auto max-w-full shadow-card';
-
-  // Cada tipo de gravação ganha um acento semântico (não decorativo): vídeo→error,
-  // documento→good, áudio→rare. Usa sempre -soft (preenchimento) + -ink (texto sobre
-  // superfície) para permanecer legível nos 6 temas — nunca cores cruas do Tailwind.
-  if (isVideo) {
-    headerBgClass = 'bg-surface/30 border-b border-error/20';
-    badgeClass = 'bg-error-soft text-error-ink border border-error/20';
-    backLinkClass = 'text-error-ink hover:text-error';
-    selectClass = 'bg-surface border border-border-subtle text-ink';
-    exportBtnClass = 'btn-solid bg-error-soft text-error-ink border-none';
-    activeTabClass = 'bg-error text-white shadow-btn font-extrabold';
-    inactiveTabClass = 'text-ink hover:bg-surface-hover font-bold';
-    tabContainerClass =
-      'bg-canvas border-2 border-border-subtle p-1.5 rounded-2xl w-fit mb-6 flex items-center gap-1 overflow-x-auto max-w-full shadow-card';
-  } else if (isDoc) {
-    headerBgClass = 'bg-surface/30 border-b border-good/20';
-    badgeClass = 'bg-good-soft text-good-ink border border-good/20';
-    backLinkClass = 'text-good-ink hover:text-good';
-    selectClass = 'bg-surface border border-border-subtle text-ink';
-    exportBtnClass = 'btn-solid bg-good-soft text-good-ink border-none';
-    activeTabClass = 'bg-good text-white shadow-btn font-extrabold';
-    inactiveTabClass = 'text-ink hover:bg-surface-hover font-bold';
-    tabContainerClass =
-      'bg-canvas border-2 border-border-subtle p-1.5 rounded-2xl w-fit mb-6 flex items-center gap-1 overflow-x-auto max-w-full shadow-card';
-  } else if (isAudio) {
-    headerBgClass = 'bg-surface/30 border-b border-rare/20';
-    badgeClass = 'bg-rare-soft text-rare-ink border border-rare/20';
-    backLinkClass = 'text-rare-ink hover:text-rare';
-    selectClass = 'bg-surface border border-border-subtle text-ink';
-    exportBtnClass = 'btn-solid bg-rare-soft text-rare-ink border-none';
-    activeTabClass = 'bg-rare text-white shadow-btn font-extrabold';
-    inactiveTabClass = 'text-ink hover:bg-surface-hover font-bold';
-    tabContainerClass =
-      'bg-canvas border-2 border-border-subtle p-1.5 rounded-2xl w-fit mb-6 flex items-center gap-1 overflow-x-auto max-w-full shadow-card';
-  }
+  /* Marcação do protótipo aprovado (`T.sessao`), o "Figma" do app: cabeçalho com "voltar", rótulo
+     do tipo e duração, título, apoio, o trocador de sessão e Exportar, e as abas sublinhadas. */
+  const IconeDoTipo = recording.type === 'video' ? Youtube : recording.type === 'document' ? FileText : FileAudio;
+  const procedencia = provenanceLabel(realUtterances[0]?.engine);
+  // No perfil padrão os nomes são os do protótipo; kids e sênior mantêm a linguagem deles.
+  const pro = ageProfile === 'pro';
+  const abasDaSessao = [
+    {
+      id: 'transcript',
+      rotulo: pro
+        ? recording.type === 'document'
+          ? 'Texto'
+          : 'Transcrição'
+        : copyDoPerfil(
+            recording.type === 'document' ? 'sessionTab.transcript.doc' : 'sessionTab.transcript',
+            ageProfile,
+          ),
+      icone: <MessagesSquare aria-hidden />,
+    },
+    {
+      id: 'reading',
+      rotulo: pro ? 'Leitura' : copyDoPerfil('sessionTab.reading', ageProfile),
+      icone: <BookOpen aria-hidden />,
+    },
+    {
+      id: 'practice',
+      rotulo: pro ? 'Jogos' : copyDoPerfil('sessionTab.practice', ageProfile),
+      icone: <Gamepad2 aria-hidden />,
+    },
+    {
+      id: 'overview',
+      rotulo: pro ? 'Visão geral & métricas' : copyDoPerfil('sessionTab.overview', ageProfile),
+      icone: <BarChart3 aria-hidden />,
+    },
+  ];
 
   return (
-    <div className={`flex-1 overflow-y-auto h-full relative ${themeBgClass}`}>
-      {/* O overlay "Praticar Pronúncia" que existia aqui era INALCANÇÁVEL — `selectedWord` nascia
-          `null` e o único `setSelectedWord` do arquivo era o `null` do próprio botão de fechar. O
-          comentário dele dizia "(Mockup)". Além de morto, prometia comparar ondas sonoras com uma
-          referência, que é exatamente o que o docstring de `scorePronunciation` declara que o
-          projeto NÃO faz ("não 'fonemas' que não temos como analisar sem um alinhador acústico"), e
-          cravava um significado ("em essência, de forma fundamental") para qualquer palavra.
-          A prática de pronúncia real é o Karaokê, na tela de Jogar. */}
-
-      <div className={`px-6 md:px-10 py-6 md:py-8 shrink-0 pb-0 border-b ${headerBgClass}`}>
-        {/* Back Link to Library */}
-        <button
-          onClick={() => onChangeView('library')}
-          className={`flex items-center gap-1.5 text-[12.5px] font-bold transition-colors mb-3 py-1 group ${backLinkClass}`}
-        >
-          <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
-          <span>Voltar para Biblioteca</span>
-        </button>
-
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-6">
-          <div>
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className={`text-[10px] uppercase font-bold tracking-wider px-2.5 py-1 rounded ${badgeClass}`}>
-                Sessão de{' '}
-                {recording.type === 'video' ? 'YouTube' : recording.type === 'document' ? 'PDF/Documento' : 'Áudio'}
-              </span>
-              {/* C11 — `opacity-70` saiu: era a terceira vez que opacidade sobre texto aparecia
-                  na medição (4,32:1 aqui). A hierarquia já vem do tamanho e do peso; a
-                  opacidade só subtraía contraste. `text-ink-muted` diz a mesma coisa com um
-                  token que o teste de paletas consegue verificar. */}
-              <span className="text-[11.5px] font-semibold flex items-center gap-1 text-ink-muted">
-                {recording.type === 'video' ? (
-                  <Video className="w-3.5 h-3.5" />
-                ) : recording.type === 'document' ? (
-                  <FileText className="w-3.5 h-3.5" />
-                ) : (
-                  <Mic className="w-3.5 h-3.5" />
-                )}
-                {recording.type === 'video'
-                  ? 'Vídeo Aula'
-                  : recording.type === 'document'
-                    ? 'Documento Editorial'
-                    : 'Gravação de Áudio'}
-              </span>
-            </div>
-            <h1 className="font-display font-black text-xl md:text-2xl tracking-tight flex items-center gap-2 flex-wrap">
-              {recording.title}
-              {(() => {
-                const label = provenanceLabel(realUtterances[0]?.engine);
-                return label ? (
-                  <span
-                    className="badge-tag bg-surface border border-border-subtle text-[10px] font-bold"
-                    title="Procedência da transcrição desta sessão"
-                  >
-                    {label}
-                  </span>
-                ) : null;
-              })()}
-            </h1>
-            <p className="text-[12.5px] text-ink-muted mt-1 leading-snug">
-              Análise linguística contextual, práticas ativas e exercícios criados a partir desta mídia específica.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-4">
-            {/* Elegant Session Switcher Dropdown */}
-            <div className="flex items-center gap-2">
-              <span className="text-[12.5px] font-bold text-ink-muted hidden sm:inline">Alternar de Sessão:</span>
-              <div className="relative">
-                {/* C2 — este único `<select>` respondia por 18 dos 23 nós críticos da medição:
-                    ele é renderizado em TODA aba de Sessão, então o mesmo defeito aparecia 6
-                    vezes. O rótulo ao lado é `hidden sm:inline`, ou seja, some no mobile e nunca
-                    foi associado por `for`. `aria-label` vale nos dois viewports. */}
-                <select
-                  aria-label="Alternar de sessão"
-                  id="analysis-session-switcher"
-                  name="analysis-session-switcher"
-                  value={recording.id}
-                  onChange={(e) => onChangeView('analysis', { id: e.target.value })}
-                  className={`appearance-none rounded-xl py-2 ps-3.5 pe-9 text-[12.5px] font-bold outline-none cursor-pointer transition-colors ${selectClass}`}
-                >
-                  {allRecordings.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.title.length > 30 ? r.title.substring(0, 30) + '...' : r.title}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="w-4 h-4 absolute right-3 top-3 opacity-60 pointer-events-none" />
-              </div>
-            </div>
-
-            {/* Saiu daqui o botão "Jogar com esta sessão": era um destino de tela inteira escondido
-                entre os controles do cabeçalho, ao lado de "Exportar". O mesmo conteúdo agora é a
-                aba "Jogos", visível na barra de sub-abas. A tela global de jogos continua existindo
-                pelo menu, ela vive do baralho e não pode depender de uma sessão (`types.ts:80-84`). */}
-            <button className={exportBtnClass} onClick={() => setShowExportModal(true)}>
-              <Download className="w-4 h-4" /> <span>Exportar</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Sub-abas — a ORDEM é a mesma nos três perfis (prática antes de métrica); o que muda é a
-            linguagem e quantas abrem de uma vez. Em Kids/Sênior, "Visão Geral & Métricas" entra no
-            "Ver mais": é a aba mais densa e a menos acionável para quem está começando. Ela continua
-            a um clique, nenhuma aba deixa de existir. */}
-        {/* ABAS COM PRESENÇA (pedido do dono, 2026-08-28: "passou despercebido"). Antes eram
-            texto apagado num trilho fino; agora a aba ativa é um botão sólido na cor do tipo de
-            mídia, as inativas têm a cor do texto principal, e um rótulo diz o que a barra é. */}
-        <p className="label-mono mb-2">O que fazer com esta sessão</p>
-        <div className={tabContainerClass} role="tablist" aria-label="Seções da sessão">
-          <button
-            className={`px-5 py-2.5 rounded-xl text-[14px] font-bold whitespace-nowrap transition-all cursor-pointer ${currentTab === 'transcript' ? activeTabClass : inactiveTabClass}`}
-            onClick={() => onSubTabChange('transcript')}
-            aria-pressed={currentTab === 'transcript'}
-          >
-            {copyDoPerfil(
-              recording.type === 'document' ? 'sessionTab.transcript.doc' : 'sessionTab.transcript',
-              ageProfile,
-            )}
-          </button>
-          <button
-            className={`flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-[14px] font-bold whitespace-nowrap transition-all cursor-pointer ${currentTab === 'reading' ? activeTabClass : inactiveTabClass}`}
-            onClick={() => onSubTabChange('reading')}
-            aria-pressed={currentTab === 'reading'}
-          >
-            <BookOpen className="w-4 h-4" /> {copyDoPerfil('sessionTab.reading', ageProfile)}
-          </button>
-          <button
-            className={`flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-[14px] font-bold whitespace-nowrap transition-all cursor-pointer ${currentTab === 'practice' ? activeTabClass : inactiveTabClass}`}
-            onClick={() => onSubTabChange('practice')}
-            aria-pressed={currentTab === 'practice'}
-          >
-            <Gamepad2 className="w-4 h-4" /> {copyDoPerfil('sessionTab.practice', ageProfile)}
-          </button>
-          {(!coreOnly(ageProfile) || showAllTabs || currentTab === 'overview') && (
-            <button
-              className={`px-5 py-2.5 rounded-xl text-[14px] font-bold whitespace-nowrap transition-all cursor-pointer ${currentTab === 'overview' ? activeTabClass : inactiveTabClass}`}
-              onClick={() => onSubTabChange('overview')}
-              aria-pressed={currentTab === 'overview'}
-            >
-              {copyDoPerfil('sessionTab.overview', ageProfile)}
-            </button>
-          )}
-          {coreOnly(ageProfile) && !showAllTabs && currentTab !== 'overview' && (
-            <button
-              onClick={() => setShowAllTabs(true)}
-              className={`${inactiveTabClass} flex items-center gap-1 px-4 py-2.5 rounded-xl text-[14px] font-bold whitespace-nowrap cursor-pointer`}
-              title={copyDoPerfil('sessionTab.overview', ageProfile)}
-            >
-              <MoreHorizontal className="w-3.5 h-3.5" /> Mais
-            </button>
-          )}
-        </div>
+    <div className="rolagem flex-1 h-full">
+      <div className="tela larga entra" style={{ paddingBottom: 0 }}>
+        <CabecalhoDeTela
+          voltar={{ rotulo: 'Biblioteca', aoClicar: () => onChangeView('library') }}
+          icone={IconeDoTipo}
+          sobrancelha={`Sessão de ${recording.type === 'video' ? 'vídeo' : recording.type === 'document' ? 'documento' : 'áudio'} · ${recording.type === 'document' ? 'texto' : recording.durationStr}${procedencia ? ` · ${procedencia}` : ''}`}
+          titulo={recording.title}
+          sub="Análise do texto, prática ativa e exercícios criados a partir desta mídia."
+          acoes={
+            <>
+              <select
+                aria-label="Alternar de sessão"
+                id="analysis-session-switcher"
+                name="analysis-session-switcher"
+                className="campo"
+                style={{ width: 'auto', minWidth: 200 }}
+                value={recording.id}
+                onChange={(e) => onChangeView('analysis', { id: e.target.value })}
+              >
+                {allRecordings.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.title.length > 30 ? r.title.substring(0, 30) + '…' : r.title}
+                  </option>
+                ))}
+              </select>
+              <button type="button" className="btn btn-outline" onClick={() => setShowExportModal(true)}>
+                <Download aria-hidden /> Exportar
+              </button>
+            </>
+          }
+          abas={
+            <Abas
+              rotuloDoGrupo="O que fazer com esta sessão"
+              ativo={currentTab}
+              aoTrocar={(id) => onSubTabChange(id as typeof currentTab)}
+              itens={abasDaSessao}
+            />
+          }
+        />
       </div>
 
-      <div className="flex-1 flex flex-col min-h-0 p-6 md:p-10 bg-canvas">
+      <div
+        className="tela larga"
+        style={{ paddingTop: 0 }}
+        role="tabpanel"
+        id={`painel-${currentTab}`}
+        aria-labelledby={`aba-${currentTab}`}
+      >
         {expandedAnalysisKpi && (
           <AnalysisExpandedKpi
             kpi={expandedAnalysisKpi}
@@ -1490,472 +1437,307 @@ export default function Analysis({
         )}
 
         {currentTab === 'transcript' && (
-          <div className="animate-in fade-in slide-in-from-bottom-2 flex flex-col lg:flex-row gap-6">
-            <EditablePanel
-              viewKey="analysis"
-              panelKey="transcript"
-              title="Transcrição Integrada"
-              canResizeWidth={false}
-              canResizeHeight={false}
-              className="flex-1"
-              defaultWidth={800} // or something
-              defaultHeight={0}
-            >
-              <div className="card-panel flex flex-col h-full">
-                <div className="px-5 py-4 border-b border-border-subtle flex flex-wrap gap-3 items-center justify-between bg-surface">
-                  <span className="font-display font-extrabold text-[14px]">Transcrição e Tradução Integrada</span>
-                  <div className="flex gap-2 items-center">
-                    <button
-                      onClick={() => setShowSettings(!showSettings)}
-                      className={`p-1.5 rounded-lg border transition-all flex items-center gap-1.5 text-xs font-bold ${showSettings ? 'bg-accent border-accent text-white' : 'bg-surface hover:bg-surface-hover border-border-subtle text-ink-muted'}`}
-                      title="Ajustar exibição do texto"
-                    >
-                      <SlidersHorizontal className="w-3.5 h-3.5" />
-                      <span>Configurações</span>
-                    </button>
-                    {/* Era um `<button className="kpi-pill active">` sem `onClick`: parecia um controle
-                      ligado e não fazia nada, com o agravante de continuar aceso quando o botão ao
-                      lado escondia o original, ou seja, dizia "Bilíngue" numa exibição que não era.
-                      Não é controle nenhum, é o ESTADO de `hideOriginal`, e agora é um rótulo. */}
-                    <span
-                      className={`kpi-pill ${tsSettings.hideOriginal ? '' : 'active'} cursor-default`}
-                      title="Modo de exibição atual do transcrito"
-                    >
-                      {tsSettings.hideOriginal ? 'Monolíngue' : 'Bilíngue'}
-                    </span>
-                    <button
-                      onClick={() => {
-                        updateSetting('hideOriginal', !tsSettings.hideOriginal);
-                      }}
-                      className={`kpi-pill ${tsSettings.hideOriginal ? 'active' : ''}`}
-                    >
-                      {tsSettings.hideOriginal ? 'Só Tradução' : 'Mostrar Original'}
-                    </button>
-                  </div>
+          <div className="entra">
+            {/* Marcação do protótipo aprovado (`abaTranscricao`): o player compacto, e embaixo a grade
+                com a transcrição (cada fala com ouvir, praticar a pronúncia e corrigir) e, ao lado,
+                as palavras desta sessão — ou o Analista, quando uma palavra está aberta. */}
+            <PlayerInterativo
+              recording={recording}
+              ageProfile={ageProfile}
+              parsedSentences={parsedSentences}
+              totalDurationSeconds={totalDurationSeconds}
+              hasRealAudio={hasRealAudio}
+              audioSrc={audioSrc}
+              audioRef={audioRef}
+              audioDuration={audioDuration}
+              setAudioDuration={setAudioDuration}
+              peaks={peaks}
+              isPlaying={isPlaying}
+              setIsPlaying={setIsPlaying}
+              currentTime={currentTime}
+              setCurrentTime={setCurrentTime}
+              playbackSpeed={playbackSpeed}
+              setPlaybackSpeed={setPlaybackSpeed}
+              autoSlowEnabled={autoSlowEnabled}
+              setAutoSlowEnabled={setAutoSlowEnabled}
+              loopMode={loopMode}
+              setLoopMode={setLoopMode}
+              activeSentenceIndex={activeSentenceIndex}
+              seekTo={seekTo}
+              playFrom={playFrom}
+              shadowingSentenceIndex={shadowingSentenceIndex}
+              setShadowingSentenceIndex={setShadowingSentenceIndex}
+              shadowingStep={shadowingStep}
+              setShadowingStep={setShadowingStep}
+              shadowingScore={shadowingScore}
+              setShadowingScore={setShadowingScore}
+              shadowRecRef={shadowRecRef}
+              shadowStartRef={shadowStartRef}
+              langOfSentence={langOfSentence}
+              playWordTTS={playWordTTS}
+              mostrarExib={showSettings}
+              aoAlternarExib={() => setShowSettings(!showSettings)}
+              exib={painelDeExibicao}
+            />
+            {/* Documento não tem player; o "Ajustar exibição" dele fica acima do texto. */}
+            {recording.type === 'document' && (
+              <section className="cartao p5 player" aria-label="Exibição do texto">
+                <div className="linha" style={{ gap: 8 }}>
+                  <span style={{ flex: 1 }} />
+                  <button
+                    type="button"
+                    className="btn btn-outline peq"
+                    onClick={() => setShowSettings(!showSettings)}
+                    aria-expanded={showSettings}
+                  >
+                    <SlidersHorizontal aria-hidden /> Ajustar exibição
+                  </button>
                 </div>
+                {showSettings && painelDeExibicao}
+              </section>
+            )}
 
-                {showSettings && (
-                  <div className="p-4 bg-canvas border-b border-border-subtle grid grid-cols-2 sm:grid-cols-5 gap-3 text-[11px] animate-in slide-in-from-top-2 duration-200 shrink-0">
-                    <div className="space-y-1">
-                      <label
-                        className="font-bold text-ink-muted text-[9px] uppercase tracking-wide"
-                        htmlFor="analysis-font-size"
-                      >
-                        Tamanho
-                      </label>
-                      <select
-                        id="analysis-font-size"
-                        name="analysis-font-size"
-                        value={tsSettings.fontSize}
-                        onChange={(e) => updateSetting('fontSize', e.target.value as any)}
-                        className="w-full bg-surface border border-border-subtle rounded-lg p-1.5 font-bold text-ink cursor-pointer outline-none focus:border-accent"
-                      >
-                        <option value="small">Pequeno</option>
-                        <option value="medium">Médio</option>
-                        <option value="large">Grande</option>
-                        <option value="xlarge">Extra G.</option>
-                        <option value="xxlarge">Gigante</option>
-                      </select>
+            <div className="sessao-grade">
+              <EditablePanel
+                viewKey="analysis"
+                panelKey="transcript"
+                title="Transcrição Integrada"
+                canResizeWidth={false}
+                canResizeHeight={false}
+                defaultHeight={0}
+              >
+                <section className={`cartao transcrito ${classesDoTranscrito}`} aria-label="Transcrição da sessão">
+                  <div className="entre transcrito-cab">
+                    <div className="tsec-t">
+                      <MessagesSquare aria-hidden />
+                      <h2 style={{ fontSize: 16, fontWeight: 700 }}>Transcrição e tradução integradas</h2>
                     </div>
-
-                    <div className="space-y-1">
-                      <label
-                        className="font-bold text-ink-muted text-[9px] uppercase tracking-wide"
-                        htmlFor="analysis-text-color"
-                      >
-                        Tema de Cor
-                      </label>
-                      <select
-                        id="analysis-text-color"
-                        name="analysis-text-color"
-                        value={tsSettings.textColor}
-                        onChange={(e) => updateSetting('textColor', e.target.value as any)}
-                        className="w-full bg-surface border border-border-subtle rounded-lg p-1.5 font-bold text-ink cursor-pointer outline-none focus:border-accent"
-                      >
-                        <option value="standard">Padrão</option>
-                        <option value="highContrast">Contraste</option>
-                        <option value="sepia">Sépia</option>
-                        <option value="ocean">Oceano</option>
-                        <option value="neon">Neon</option>
-                      </select>
-                    </div>
-
-                    <div className="space-y-1">
-                      <label
-                        className="font-bold text-ink-muted text-[9px] uppercase tracking-wide"
-                        htmlFor="analysis-font-family"
-                      >
-                        Fonte
-                      </label>
-                      <select
-                        id="analysis-font-family"
-                        name="analysis-font-family"
-                        value={tsSettings.fontFamily}
-                        onChange={(e) => updateSetting('fontFamily', e.target.value as any)}
-                        className="w-full bg-surface border border-border-subtle rounded-lg p-1.5 font-bold text-ink cursor-pointer outline-none focus:border-accent"
-                      >
-                        <option value="sans">Sans (Inter)</option>
-                        <option value="serif">Serif (Warm)</option>
-                        <option value="mono">Mono (Tech)</option>
-                      </select>
-                    </div>
-
-                    <div className="space-y-1">
-                      <label
-                        className="font-bold text-ink-muted text-[9px] uppercase tracking-wide"
-                        htmlFor="analysis-display-order"
-                      >
-                        Ordem
-                      </label>
-                      <select
-                        id="analysis-display-order"
-                        name="analysis-display-order"
-                        value={tsSettings.displayOrder}
-                        onChange={(e) => updateSetting('displayOrder', e.target.value as any)}
-                        className="w-full bg-surface border border-border-subtle rounded-lg p-1.5 font-bold text-ink cursor-pointer outline-none focus:border-accent"
-                      >
-                        <option value="original-first">Orig. Primeiro</option>
-                        <option value="translated-first">Trad. Primeiro</option>
-                      </select>
-                    </div>
-
-                    <div className="space-y-1 col-span-2 sm:col-span-1">
-                      <label
-                        className="font-bold text-ink-muted text-[9px] uppercase tracking-wide"
-                        htmlFor="analysis-hide-original"
-                      >
-                        Ocultar Orig.
-                      </label>
-                      <select
-                        id="analysis-hide-original"
-                        name="analysis-hide-original"
-                        value={tsSettings.hideOriginal ? 'true' : 'false'}
-                        onChange={(e) => updateSetting('hideOriginal', e.target.value === 'true')}
-                        className="w-full bg-surface border border-border-subtle rounded-lg p-1.5 font-bold text-ink cursor-pointer outline-none focus:border-accent"
-                      >
-                        <option value="false">Mostrar Orig.</option>
-                        <option value="true">Ocultar Orig.</option>
-                      </select>
-                    </div>
+                    {procedencia && (
+                      <span className="badge neu" title="Procedência da transcrição desta sessão">
+                        <Cpu aria-hidden /> {procedencia}
+                      </span>
+                    )}
                   </div>
-                )}
-
-                <PlayerInterativo
-                  recording={recording}
-                  ageProfile={ageProfile}
-                  parsedSentences={parsedSentences}
-                  totalDurationSeconds={totalDurationSeconds}
-                  hasRealAudio={hasRealAudio}
-                  audioSrc={audioSrc}
-                  audioRef={audioRef}
-                  audioDuration={audioDuration}
-                  setAudioDuration={setAudioDuration}
-                  peaks={peaks}
-                  isPlaying={isPlaying}
-                  setIsPlaying={setIsPlaying}
-                  currentTime={currentTime}
-                  setCurrentTime={setCurrentTime}
-                  playbackSpeed={playbackSpeed}
-                  setPlaybackSpeed={setPlaybackSpeed}
-                  autoSlowEnabled={autoSlowEnabled}
-                  setAutoSlowEnabled={setAutoSlowEnabled}
-                  loopMode={loopMode}
-                  setLoopMode={setLoopMode}
-                  activeSentenceIndex={activeSentenceIndex}
-                  seekTo={seekTo}
-                  playFrom={playFrom}
-                  shadowingSentenceIndex={shadowingSentenceIndex}
-                  setShadowingSentenceIndex={setShadowingSentenceIndex}
-                  shadowingStep={shadowingStep}
-                  setShadowingStep={setShadowingStep}
-                  shadowingScore={shadowingScore}
-                  setShadowingScore={setShadowingScore}
-                  shadowRecRef={shadowRecRef}
-                  shadowStartRef={shadowStartRef}
-                  langOfSentence={langOfSentence}
-                  playWordTTS={playWordTTS}
-                />
-
-                {/*
-                `tabIndex={0}` + rótulo: região com rolagem precisa ser alcançável pelo teclado.
-                Sem isso, quem não usa mouse não consegue rolar a transcrição, e ela é o conteúdo
-                principal desta tela. Era a violação `scrollable-region-focusable` do axe.
-              */}
-                <div
-                  tabIndex={0}
-                  role="region"
-                  aria-label="Transcrição da sessão"
-                  className="p-5 space-y-4 max-h-[600px] overflow-y-auto outline-none focus-visible:ring-2 focus-visible:ring-accent rounded"
-                >
                   {parsedSentences.map((sentence, sIdx) => {
-                    const { sizeClasses, fontClass, colorClasses } = getTranscriptStyleClasses(tsSettings);
-                    const originalTokens = tokenizarTexto(sentence.original);
-                    /* Os dois ramos de `displayOrder` desenham a MESMA linha de palavras e só trocam
-                     a ordem em relação à tradução. Tudo o que não é a margem sai daqui uma vez,
-                     senão a duplicação volta na forma de dois blocos de props idênticos. */
                     const propsDosTokens = {
-                      tokens: originalTokens,
+                      tokens: tokenizarTexto(sentence.original),
                       estaNoDeck: (clean: string) => vocabCards.some((c) => c.word.toLowerCase() === clean && c.inDeck),
                       onMouseEnter: handleMouseEnter,
                       onMouseLeave: handleMouseLeave,
                       onExaminar: (clean: string) => examineWord(clean, sentence.original),
                     };
-                    const isActive = sentence.index === activeSentenceIndex;
+                    const isActive = sentence.index === activeSentenceIndex && recording.type !== 'document';
                     const uttId = sentence.id;
                     const isEditing = !!uttId && editingUttId === uttId;
-
+                    const original = !tsSettings.hideOriginal && (
+                      <TokensClicaveis {...propsDosTokens} className="orig" />
+                    );
+                    const traducao = <span className="trad">{sentence.translation}</span>;
                     return (
                       <div
                         key={sIdx}
+                        className={`fala-s ${isActive ? 'ativa' : ''}`}
                         onClick={() => {
-                          // Em modo de edição, o clique não deve buscar/reproduzir.
                           if (isEditing) return;
                           if (recording.type !== 'document') playFrom(sentence.startTime);
                         }}
                         onDoubleClick={() => {
                           if (uttId) startEditUtt(uttId, sentence.original, sentence.translation);
                         }}
-                        /* Trecho ativo: era a listra lateral grossa. O estado agora é dito por
-                         FUNDO tonal + borda completa fina — a listra era ornamento herdado, e o
-                         fundo funciona igual nos 12 pares tema x modo porque usa os mesmos tokens. */
-                        className={`group relative p-3.5 rounded-xl border transition-all duration-300 ${isEditing ? 'cursor-default' : 'cursor-pointer'} ${
-                          isEditing
-                            ? 'bg-surface-hover/40 border-accent shadow-sm'
-                            : isActive && recording.type !== 'document'
-                              ? 'bg-accent-soft/20 border-accent/60 shadow-sm animate-pulse-subtle'
-                              : 'border-transparent hover:bg-surface-hover/40 hover:border-border-subtle'
-                        } ${colorClasses.container}`}
-                        style={{ fontFamily: fontClass }}
                       >
-                        <div className="absolute -left-2 top-3 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col gap-1 z-20">
-                          <button
-                            className="p-1.5 bg-surface border border-border-subtle rounded-lg hover:text-accent shadow-sm transition-colors cursor-pointer"
-                            /* F7 — este botão só aparece no hover do trecho e não tinha nome
-                             acessível: eram 177 "botão" mudos na tela. `aria-label` nomeia;
-                             `tabIndex={-1}` tira da tabulação sequencial, porque clicar no
-                             próprio trecho (logo ao lado, acessível) faz exatamente a mesma
-                             coisa, é atalho de mouse, não um segundo caminho. */
-                            aria-label={
-                              recording.type !== 'document' ? 'Reproduzir este trecho no Estúdio' : 'Ouvir este trecho'
-                            }
-                            tabIndex={-1}
-                            title={recording.type !== 'document' ? 'Reproduzir no Estúdio' : 'Ouvir TTS'}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (recording.type !== 'document') {
-                                playFrom(sentence.startTime);
-                              } else {
-                                // Idioma REAL desta fala (cai para o da sessão quando ausente).
-                                ttsSpeak(sentence.original, { lang: sentence.lang || ttsLang, rate: 0.9 });
-                              }
-                            }}
-                          >
-                            <Play className="w-3.5 h-3.5" />
-                          </button>
-                          {recording.type !== 'document' && (
+                        <div className="fala-cab">
+                          <span className="quem-s">{sentence.speaker}</span>
+                          <span className="tempo tn">{sentence.time}</span>
+                          <div className="fala-acoes">
                             <button
-                              className="p-1.5 bg-surface border border-border-subtle rounded-lg hover:text-accent shadow-sm transition-colors cursor-pointer"
-                              aria-label="Praticar a pronúncia deste trecho"
-                              tabIndex={-1}
-                              title="Praticar Pronúncia (Sombra)"
+                              type="button"
+                              className="btn btn-outline peq icone"
+                              aria-label="Ouvir este trecho"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setShadowingSentenceIndex(sentence.index);
-                                setShadowingStep('idle');
-                                setShadowingScore(null);
+                                if (recording.type !== 'document') playFrom(sentence.startTime);
+                                else ttsSpeak(sentence.original, { lang: sentence.lang || ttsLang, rate: 0.9 });
                               }}
                             >
-                              <Mic className="w-3.5 h-3.5" />
+                              <Play aria-hidden />
                             </button>
-                          )}
-                          {uttId && !isEditing && (
-                            <button
-                              className="p-1.5 bg-surface border border-border-subtle rounded-lg hover:text-accent shadow-sm transition-colors cursor-pointer"
-                              aria-label="Corrigir o texto e a tradução deste trecho"
-                              tabIndex={-1}
-                              title="Corrigir texto e tradução"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                startEditUtt(uttId, sentence.original, sentence.translation);
-                              }}
-                            >
-                              <Edit2 className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-                        </div>
-                        <div className="ps-4 transition-colors">
-                          <div className="text-[10.5px] font-bold text-ink-faint uppercase tracking-widest mb-1.5 flex items-center gap-2">
-                            <span className="font-mono text-ink-muted normal-case tracking-normal">
-                              {sentence.time}
-                            </span>
-                            <span className="bg-surface-hover px-1.5 py-0.5 rounded text-[9px] font-extrabold text-accent">
-                              {sentence.speaker}
-                            </span>
+                            {recording.type !== 'document' && (
+                              <button
+                                type="button"
+                                className="btn btn-outline peq icone"
+                                aria-label="Praticar a pronúncia deste trecho"
+                                aria-pressed={shadowingSentenceIndex === sentence.index}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setShadowingSentenceIndex(sentence.index);
+                                  setShadowingStep('idle');
+                                  setShadowingScore(null);
+                                }}
+                              >
+                                <Mic aria-hidden />
+                              </button>
+                            )}
+                            {uttId && (
+                              <button
+                                type="button"
+                                className="btn btn-outline peq icone"
+                                aria-label="Corrigir o texto e a tradução deste trecho"
+                                aria-pressed={isEditing}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  startEditUtt(uttId, sentence.original, sentence.translation);
+                                }}
+                              >
+                                <Pencil aria-hidden />
+                              </button>
+                            )}
                           </div>
-
+                        </div>
+                        <div className="fala-corpo">
                           {isEditing ? (
-                            // Edição inline: dois campos (original + tradução). Esc cancela,
-                            // Ctrl/Cmd+Enter salva. Salvar → updateUtterance → recalcula tudo.
                             <div
-                              className="flex flex-col gap-2.5"
+                              className="corrige"
                               onClick={(e) => e.stopPropagation()}
                               onDoubleClick={(e) => e.stopPropagation()}
                             >
-                              <div className="space-y-1">
-                                <label
-                                  className="text-[10px] font-mono uppercase tracking-wider text-ink-muted"
-                                  htmlFor="analysis-edit-source"
-                                >
-                                  Texto original (o que foi falado)
-                                </label>
-                                <textarea
-                                  id="analysis-edit-source"
-                                  name="analysis-edit-source"
-                                  autoFocus
-                                  value={editSource}
-                                  onChange={(e) => setEditSource(e.target.value)}
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Escape') {
-                                      e.preventDefault();
-                                      cancelEditUtt();
-                                    }
-                                    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-                                      e.preventDefault();
-                                      if (uttId) saveEditUtt(uttId);
-                                    }
-                                  }}
-                                  rows={2}
-                                  disabled={editSaving}
-                                  className="w-full px-3 py-2 bg-canvas text-[14px] border border-border-subtle rounded-lg outline-none text-ink font-medium focus:border-accent resize-y disabled:opacity-60"
-                                />
-                              </div>
-                              <div className="space-y-1">
-                                <label
-                                  className="text-[10px] font-mono uppercase tracking-wider text-ink-muted"
-                                  htmlFor="analysis-edit-target"
-                                >
-                                  Tradução
-                                </label>
-                                <textarea
-                                  id="analysis-edit-target"
-                                  name="analysis-edit-target"
-                                  value={editTarget}
-                                  onChange={(e) => setEditTarget(e.target.value)}
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Escape') {
-                                      e.preventDefault();
-                                      cancelEditUtt();
-                                    }
-                                    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-                                      e.preventDefault();
-                                      if (uttId) saveEditUtt(uttId);
-                                    }
-                                  }}
-                                  rows={2}
-                                  disabled={editSaving}
-                                  className="w-full px-3 py-2 bg-canvas text-[13px] border border-border-subtle rounded-lg outline-none text-ink-muted font-medium focus:border-accent resize-y disabled:opacity-60"
-                                />
-                              </div>
+                              <label className="sr" htmlFor="analysis-edit-source">
+                                Texto original (o que foi falado)
+                              </label>
+                              <textarea
+                                id="analysis-edit-source"
+                                name="analysis-edit-source"
+                                className="campo"
+                                autoFocus
+                                value={editSource}
+                                onChange={(e) => setEditSource(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Escape') {
+                                    e.preventDefault();
+                                    cancelEditUtt();
+                                  }
+                                  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                                    e.preventDefault();
+                                    if (uttId) saveEditUtt(uttId);
+                                  }
+                                }}
+                                disabled={editSaving}
+                              />
+                              <label className="sr" htmlFor="analysis-edit-target">
+                                Tradução
+                              </label>
+                              <textarea
+                                id="analysis-edit-target"
+                                name="analysis-edit-target"
+                                className="campo"
+                                value={editTarget}
+                                onChange={(e) => setEditTarget(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Escape') {
+                                    e.preventDefault();
+                                    cancelEditUtt();
+                                  }
+                                  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                                    e.preventDefault();
+                                    if (uttId) saveEditUtt(uttId);
+                                  }
+                                }}
+                                disabled={editSaving}
+                              />
                               {editError && (
-                                <p className="text-[11.5px] text-error font-semibold flex items-center gap-1.5">
-                                  <AlertTriangle className="w-3.5 h-3.5 shrink-0" /> {editError}
+                                <p style={{ color: 'var(--error-ink)', fontSize: 12.5, fontWeight: 600 }}>
+                                  <AlertTriangle aria-hidden style={{ width: 14, height: 14, verticalAlign: -2 }} />{' '}
+                                  {editError}
                                 </p>
                               )}
-                              <div className="flex items-center justify-end gap-2 pt-0.5">
+                              <div className="linha" style={{ gap: 8 }}>
                                 <button
-                                  onClick={cancelEditUtt}
+                                  type="button"
+                                  className="btn btn-solid peq"
                                   disabled={editSaving}
-                                  className="btn-outline text-[12px] py-1.5 cursor-pointer disabled:opacity-60"
-                                >
-                                  Cancelar
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    if (uttId) saveEditUtt(uttId);
-                                  }}
-                                  disabled={editSaving}
-                                  className="btn-solid text-[12px] py-1.5 cursor-pointer disabled:opacity-60"
+                                  onClick={() => uttId && saveEditUtt(uttId)}
                                 >
                                   {editSaving ? (
-                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    <Loader2 className="animate-spin" aria-hidden />
                                   ) : (
-                                    <Check className="w-3.5 h-3.5" />
-                                  )}
+                                    <Check aria-hidden />
+                                  )}{' '}
                                   Salvar
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-outline peq"
+                                  disabled={editSaving}
+                                  onClick={cancelEditUtt}
+                                >
+                                  Cancelar
                                 </button>
                               </div>
                             </div>
                           ) : tsSettings.displayOrder === 'original-first' ? (
                             <>
-                              {!tsSettings.hideOriginal && (
-                                <TokensClicaveis
-                                  {...propsDosTokens}
-                                  className={`leading-relaxed mb-2 flex flex-wrap gap-x-1 gap-y-0.5 ${sizeClasses.original} ${colorClasses.original}`}
-                                />
-                              )}
-                              <div
-                                className={`leading-relaxed ${sizeClasses.translated} ${colorClasses.translated} bg-canvas/30 p-2.5 rounded-lg border border-border-subtle/30`}
-                              >
-                                {sentence.translation}
-                              </div>
+                              {original}
+                              {traducao}
                             </>
                           ) : (
                             <>
-                              <div
-                                className={`leading-relaxed mb-2 ${sizeClasses.translated} ${colorClasses.translated} bg-canvas/30 p-2.5 rounded-lg border border-border-subtle/30`}
-                              >
-                                {sentence.translation}
-                              </div>
-                              {!tsSettings.hideOriginal && (
-                                <TokensClicaveis
-                                  {...propsDosTokens}
-                                  className={`leading-relaxed flex flex-wrap gap-x-1 gap-y-0.5 ${sizeClasses.original} ${colorClasses.original}`}
-                                />
-                              )}
+                              {traducao}
+                              {original}
                             </>
                           )}
-
-                          {/* F2 — AS "DICAS DE VOCABULÁRIO" FORAM REMOVIDAS, NÃO SUBSTITUÍDAS.
-                            Eram quatro cards com texto fixo, disparados por `includes()` nas
-                            strings literais `basically`, `leverage`, `heuristics` e `synergy`:
-                            apareciam em qualquer sessão que contivesse a palavra, com um conselho
-                            escrito à mão que nada tinha a ver com o conteúdo da gravação, e
-                            sumiam em qualquer outra, dando a impressão de uma análise que não
-                            existia.
-
-                            Três linhas acima, este mesmo arquivo declara que o produto não
-                            fabrica dado. Não há substituto "real" aqui: gerar uma dica exigiria
-                            um modelo de linguagem, que este painel não chama. Quando não há dica
-                            derivada da sessão, não há card, é o mesmo padrão que a app já aplica
-                            em `AntessalaDaRodada` ("nenhuma palavra difícil neste recorte") e no
-                            selo `sem nível` do catálogo.
-
-                            O caminho real para entender uma palavra continua onde sempre esteve
-                            e funciona para TODAS elas: clicar nela abre o `VocabularyPanel`. */}
                         </div>
                       </div>
                     );
                   })}
-                </div>
-              </div>
-            </EditablePanel>
+                </section>
+              </EditablePanel>
 
-            {/* Analista de Vocabulário — painel compartilhado, só monta ao clicar numa palavra. */}
-            <VocabularyPanel
-              viewKey="analysis"
-              word={selectedExamWord}
-              mtNote={examMtNote}
-              onClose={() => {
-                setSelectedExamWord(null);
-                setExamMtNote(null);
-              }}
-              onSpeak={speakWord}
-              onAddToDeck={handleAddWordToDeck}
-              isAdded={!!selectedExamWord && isWordAdded(selectedExamWord)}
-              ttsSpeed={ttsSpeed}
-              setTtsSpeed={setTtsSpeed}
-              onPractice={handlePracticeWord}
-            />
+              {selectedExamWord ? (
+                /* O Analista de Vocabulário (compartilhado com Captura, Leitura, Estudo e Métricas). */
+                <VocabularyPanel
+                  viewKey="analysis"
+                  word={selectedExamWord}
+                  mtNote={examMtNote}
+                  onClose={() => {
+                    setSelectedExamWord(null);
+                    setExamMtNote(null);
+                  }}
+                  onSpeak={speakWord}
+                  onAddToDeck={handleAddWordToDeck}
+                  isAdded={isWordAdded(selectedExamWord)}
+                  ttsSpeed={ttsSpeed}
+                  setTtsSpeed={setTtsSpeed}
+                  onPractice={handlePracticeWord}
+                />
+              ) : (
+                <aside className="cartao p5 analista" aria-label="Palavras desta sessão">
+                  <TituloDeSecao icone={BookOpen} titulo="Palavras desta sessão" nivel="h3" />
+                  <p className="mut" style={{ fontSize: 12.5, margin: '-6px 0 12px' }}>
+                    Clique numa palavra sublinhada, aqui ou no texto, para abrir o analista.
+                  </p>
+                  {palavrasDaSessao.length ? (
+                    <div className="pilha">
+                      {palavrasDaSessao.map((c) => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          className="linha-palavra"
+                          onClick={() => examineWord(c.word.toLowerCase(), c.sentence || c.word)}
+                        >
+                          <b>{c.word}</b>
+                          <span className="mut">{c.translation}</span>
+                          {c.cefrLevel ? <span className="badge neu">{c.cefrLevel}</span> : <span />}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mut" style={{ fontSize: 12.5 }}>
+                      Nenhuma palavra desta sessão foi para o caderno ainda. Clique numa palavra do texto para
+                      analisá-la e guardá-la.
+                    </p>
+                  )}
+                </aside>
+              )}
+            </div>
           </div>
         )}
 
@@ -1973,12 +1755,8 @@ export default function Analysis({
               <>
                 {/* Saída explícita da revisão. Sem ela, o único caminho de volta seria clicar na aba
                     que já está destacada como ativa, ninguém tenta clicar no que parece selecionado. */}
-                <button
-                  onClick={() => onSubTabChange('practice')}
-                  className={`flex items-center gap-1.5 text-[12.5px] font-bold transition-colors mb-3 py-1 group ${backLinkClass}`}
-                >
-                  <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
-                  <span>Voltar aos jogos</span>
+                <button onClick={() => onSubTabChange('practice')} type="button" className="voltar">
+                  <ArrowLeft aria-hidden /> Voltar aos jogos
                 </button>
                 {/* `key` pelo id da sessão: sem ela, trocar de sessão REUSA a mesma instância e o
                     estado interno sobrevive, a fila de revisão (`reviewCards`), o índice, o

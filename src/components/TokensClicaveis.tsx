@@ -34,45 +34,31 @@ export default function TokensClicaveis({
   onMouseLeave,
   onExaminar,
 }: TokensClicaveisProps) {
+  /* Marcação do protótipo (`palavrasDaFala`): texto corrido; as palavras do caderno ganham o
+     sublinhado pontilhado (`.palavra`), e toda palavra de conteúdo continua clicável (abre o
+     Analista) e mostra a prévia no hover. */
   return (
-    <div className={className}>
-      {tokens.map(token => {
-        // Toda palavra de conteúdo (>=3 letras, alfabética) é interativa:
-        // hover carrega imagem/tradução/contexto reais. Termos já no deck
-        // ficam realçados em verde.
+    <span className={className}>
+      {tokens.map((token) => {
         const isContentWord = token.clean.length >= 3 && /^\p{L}+$/u.test(token.clean);
-        const isWordInDeck = estaNoDeck(token.clean);
-
-        if (isContentWord) {
-          return (
+        if (!isContentWord) return <React.Fragment key={token.id}>{token.original} </React.Fragment>;
+        return (
+          <React.Fragment key={token.id}>
             <span
-              key={token.id}
+              className={estaNoDeck(token.clean) ? 'palavra' : 'w'}
+              style={{ cursor: 'pointer' }}
               onMouseEnter={(e) => onMouseEnter(e, token.clean)}
               onMouseLeave={onMouseLeave}
               onClick={(e) => {
                 e.stopPropagation();
                 onExaminar(token.clean);
               }}
-              className={`cursor-pointer inline-block rounded px-1 transition-colors duration-200 ${
-                isWordInDeck
-                  ? 'bg-good-soft/40 text-good font-bold underline decoration-dashed decoration-good underline-offset-4'
-                  : 'hover:bg-accent-soft/50 hover:text-accent'
-              }`}
             >
               {token.original}
-            </span>
-          );
-        } else {
-          return (
-            <span
-              key={token.id}
-              className="inline-block px-0.5"
-            >
-              {token.original}
-            </span>
-          );
-        }
+            </span>{' '}
+          </React.Fragment>
+        );
       })}
-    </div>
+    </span>
   );
 }

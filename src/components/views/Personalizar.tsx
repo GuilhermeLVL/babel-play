@@ -9,7 +9,6 @@ import {
   Sparkles,
   Type,
   Undo2,
-  Waypoints,
   Zap,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -41,7 +40,7 @@ import {
   setPackCustom,
   setParticulas,
 } from '../../lib/particulas';
-import { estiloDeRastro, readRastro, setRastro } from '../../lib/rastroDoMouse';
+import { readRastro, setRastro } from '../../lib/rastroDoMouse';
 import type { AgeProfileType, MenuPositionType } from '../shell/navItems';
 import { toast } from '../Toast';
 import { IconeEmBloco, TituloDeSecao } from '../ui';
@@ -220,8 +219,8 @@ export default function Personalizar({
                         ? rastroAtual === i.alvo
                         : false
         }
-        /* A ordem do protótipo (Tema, Partículas, Fonte, Menu, Cursor, Emojis), mais o Rastro,
-           que o protótipo não tem e o app tem. */
+        /* Os seis do protótipo, na ordem dele (Tema, Partículas, Fonte, Menu, Cursor, Emojis). O
+           rastro equipado aparece no próprio cartão, com "Equipado". */
         loadout={[
           { chave: 'tema', rotulo: 'Tema', valor: temaNome, icone: Palette },
           {
@@ -244,12 +243,6 @@ export default function Personalizar({
             icone: MousePointer2,
           },
           { chave: 'pack', rotulo: 'Emojis', valor: packNome, icone: Smile },
-          {
-            chave: 'rastro',
-            rotulo: 'Rastro',
-            valor: estiloDeRastro(rastroAtual)?.nome ?? 'sem rastro',
-            icone: Waypoints,
-          },
         ]}
         onIrParaLoja={onIrParaLoja}
         onIrParaPasse={onIrParaPasse}

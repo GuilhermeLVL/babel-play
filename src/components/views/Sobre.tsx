@@ -8,12 +8,12 @@
  *
  * DADOS REAIS NO LUGAR DOS DE MENTIRA. O protótipo desenha um "G" no avatar e cinco redes que só
  * avisam para onde levariam. Aqui o avatar é a foto do GitHub (`lib/criador`) e as redes são as que
- * o dono preencheu; placeholder (`*_AQUI`) some em vez de virar link quebrado. Instagram não existe
- * em `lib/criador` e fica de fora até o dono informar o endereço.
+ * o dono preencheu, na ordem do protótipo (Portfólio, GitHub, LinkedIn, Instagram, E-mail);
+ * placeholder (`*_AQUI`) some em vez de virar link quebrado — preencher `lib/criador` faz o botão
+ * aparecer.
  *
- * POLÍTICA E TERMOS abrem os documentos de verdade (`/privacidade.html`, `/termos.html`). O
- * protótipo os mostra num diálogo com um resumo; o texto jurídico que vale é o das páginas, e um
- * resumo escrito aqui seria uma segunda versão para divergir da primeira.
+ * POLÍTICA E TERMOS abrem o diálogo do protótipo (`sobre/DialogoLegal`), com o texto dele; "Baixar
+ * PDF" abre o documento completo (`/privacidade.html`, `/termos.html`) para imprimir.
  */
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -24,6 +24,7 @@ import {
   Globe,
   HandHeart,
   Heart,
+  Instagram,
   Linkedin,
   Mail,
   MessageCircle,
@@ -35,12 +36,14 @@ import { useState } from 'react';
 
 import { CRIADOR, preenchido } from '../../lib/criador';
 import { CabecalhoDeTela, IconeEmBloco, Tela, TituloDeSecao } from '../ui';
+import DialogoLegal, { type Documento } from './sobre/DialogoLegal';
 
 /** As redes na ordem do protótipo; a primeira preenchida é o botão cheio. */
 const REDES: Array<{ href: string; icone: LucideIcon; rotulo: string }> = [
   { href: CRIADOR.portfolio, icone: Globe, rotulo: 'Portfólio' },
   { href: CRIADOR.github, icone: Github, rotulo: 'GitHub' },
   { href: CRIADOR.linkedin, icone: Linkedin, rotulo: 'LinkedIn' },
+  { href: CRIADOR.instagram, icone: Instagram, rotulo: 'Instagram' },
   { href: CRIADOR.email, icone: Mail, rotulo: 'E-mail' },
 ];
 
@@ -51,6 +54,7 @@ const FATOS = ['Grátis para aprender', 'Código aberto', 'Roda no seu computado
 export default function Sobre({ onVerPlanos }: { onVerPlanos?: (view: string) => void } = {}) {
   const [copiado, setCopiado] = useState(false);
   const [semFoto, setSemFoto] = useState(false);
+  const [legal, setLegal] = useState<Documento | null>(null);
   const copiarPix = async () => {
     try {
       await navigator.clipboard.writeText(CRIADOR.pix);
@@ -224,14 +228,16 @@ export default function Sobre({ onVerPlanos }: { onVerPlanos?: (view: string) =>
           </div>
         )}
         <div className="linha" style={{ gap: 14, marginTop: 18 }}>
-          <a className="link" href="/privacidade.html">
+          <button type="button" className="link" onClick={() => setLegal('privacidade')}>
             Política de privacidade
-          </a>
-          <a className="link" href="/termos.html">
+          </button>
+          <button type="button" className="link" onClick={() => setLegal('termos')}>
             Termos de uso
-          </a>
+          </button>
         </div>
       </section>
+
+      {legal && <DialogoLegal doc={legal} aoFechar={() => setLegal(null)} />}
     </Tela>
   );
 }

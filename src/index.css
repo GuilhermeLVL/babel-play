@@ -815,8 +815,11 @@
     --font-display-val: "Archivo", sans-serif;
     --font-body-val: "Inter", sans-serif;
     --font-mono-val: "IBM Plex Mono", monospace;
-    --radius-card: 16px;
-    --radius-btn: 12px;
+    /* Os cantos de Personalizar → Editar o tema (`applyCustomColors`); sem escolha, os de sempre. */
+    --radius-card: var(--custom-r-card, 16px);
+    --radius-btn: var(--custom-r-btn, 12px);
+    --r-card: var(--custom-r-card, 16px);
+    --r-btn: var(--custom-r-btn, 12px);
     --border-width-card: 2px;
 
     --shadow-card-val: inset 0 1px 0 rgba(255,255,255,0.6), 0 2px 5px rgba(38,36,31,0.08);

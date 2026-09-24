@@ -1,8 +1,8 @@
-import { Check,ChevronDown, Search, Sparkles } from 'lucide-react';
+import { Check, ChevronDown, Search, Sparkles } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-import { langMatches,LANGUAGES } from '../lib/languages';
+import { langMatches, LANGUAGES } from '../lib/languages';
 import { usePosicaoFlutuante } from '../lib/posicaoFlutuante';
 import { LangFlag } from './LangFlag';
 
@@ -53,8 +53,17 @@ export interface LangPickerProps {
 const AUTO_KEY = '__auto__';
 
 export default function LangPicker({
-  value, auto = false, allowAuto = false, autoLabel = 'Detectar automaticamente',
-  onPick, accent = false, block = false, somente, id, ariaLabel, className = '',
+  value,
+  auto = false,
+  allowAuto = false,
+  autoLabel = 'Detectar automaticamente',
+  onPick,
+  accent = false,
+  block = false,
+  somente,
+  id,
+  ariaLabel,
+  className = '',
 }: LangPickerProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -94,9 +103,7 @@ export default function LangPicker({
     if (allowAuto && (!q || `${autoLabel.toLowerCase()} automatico auto`.includes(q))) {
       base.push({ key: AUTO_KEY, label: autoLabel, isAuto: true });
     }
-    const permitido = somente
-      ? new Set(somente.map((c) => c.toLowerCase().split('-')[0]))
-      : null;
+    const permitido = somente ? new Set(somente.map((c) => c.toLowerCase().split('-')[0])) : null;
     for (const l of LANGUAGES) {
       if (permitido && !permitido.has(l.code.toLowerCase().split('-')[0])) continue;
       // `langMatches` casa pelo rótulo nativo, pelo NOME EM PORTUGUÊS e pelo código, tudo sem
@@ -107,15 +114,13 @@ export default function LangPicker({
   }, [query, allowAuto, autoLabel, somente]);
 
   const selectedKey = auto ? AUTO_KEY : value;
-  const selectedLabel = auto
-    ? autoLabel
-    : (LANGUAGES.find(l => l.code === value)?.label ?? value);
+  const selectedLabel = auto ? autoLabel : (LANGUAGES.find((l) => l.code === value)?.label ?? value);
 
   // Ao abrir: foco na busca e destaque já na opção atual (não no topo da lista).
   useEffect(() => {
     if (!open) return;
     setQuery('');
-    const idx = options.findIndex(o => o.key === selectedKey);
+    const idx = options.findIndex((o) => o.key === selectedKey);
     setActiveIdx(idx >= 0 ? idx : 0);
     // rAF: o input só existe depois da pintura.
     const r = requestAnimationFrame(() => searchRef.current?.focus());
@@ -124,13 +129,14 @@ export default function LangPicker({
   }, [open]);
 
   // Filtrar move o destaque para o primeiro resultado (senão o Enter escolhe algo fora da vista).
-  useEffect(() => { if (open) setActiveIdx(0); }, [query, open]);
+  useEffect(() => {
+    if (open) setActiveIdx(0);
+  }, [query, open]);
 
   // Mantém a opção destacada visível durante a navegação por teclado.
   useEffect(() => {
     if (!open) return;
-    listRef.current?.querySelector<HTMLElement>('[data-active="true"]')
-      ?.scrollIntoView({ block: 'nearest' });
+    listRef.current?.querySelector<HTMLElement>('[data-active="true"]')?.scrollIntoView({ block: 'nearest' });
   }, [activeIdx, open]);
 
   // Clique fora / perda de foco fecha (sem engolir cliques dentro do popup).
@@ -155,14 +161,38 @@ export default function LangPicker({
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (!open) {
-      if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(true); }
+      if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        setOpen(true);
+      }
       return;
     }
-    if (e.key === 'Escape') { e.preventDefault(); setOpen(false); triggerRef.current?.focus(); return; }
-    if (e.key === 'ArrowDown') { e.preventDefault(); setActiveIdx(i => Math.min(i + 1, options.length - 1)); return; }
-    if (e.key === 'ArrowUp') { e.preventDefault(); setActiveIdx(i => Math.max(i - 1, 0)); return; }
-    if (e.key === 'Home') { e.preventDefault(); setActiveIdx(0); return; }
-    if (e.key === 'End') { e.preventDefault(); setActiveIdx(options.length - 1); return; }
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      setOpen(false);
+      triggerRef.current?.focus();
+      return;
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveIdx((i) => Math.min(i + 1, options.length - 1));
+      return;
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveIdx((i) => Math.max(i - 1, 0));
+      return;
+    }
+    if (e.key === 'Home') {
+      e.preventDefault();
+      setActiveIdx(0);
+      return;
+    }
+    if (e.key === 'End') {
+      e.preventDefault();
+      setActiveIdx(options.length - 1);
+      return;
+    }
     if (e.key === 'Enter') {
       e.preventDefault();
       const opt = options[activeIdx];
@@ -181,7 +211,7 @@ export default function LangPicker({
         aria-controls={listboxId}
         aria-haspopup="listbox"
         aria-label={ariaLabel}
-        onClick={() => setOpen(o => !o)}
+        onClick={() => setOpen((o) => !o)}
         onKeyDown={onKeyDown}
         className={`flex items-center gap-1.5 border rounded-lg cursor-pointer transition-colors outline-none focus-visible:border-accent ${
           block ? 'w-full justify-between px-3 py-2.5 text-[13px]' : 'px-2 py-1 text-[11px]'
@@ -190,82 +220,92 @@ export default function LangPicker({
         } ${open ? 'border-accent' : ''}`}
       >
         <span className="flex items-center gap-1.5 min-w-0">
-          {auto
-            ? <Sparkles className="w-3.5 h-3.5 text-accent shrink-0" aria-hidden />
-            : <LangFlag code={value} className="w-4 h-3" />}
-          <span className="font-bold truncate">{selectedLabel}</span>
+          {auto ? (
+            <Sparkles className="w-3.5 h-3.5 text-accent shrink-0" aria-hidden />
+          ) : (
+            <LangFlag code={value} className="w-4 h-3" />
+          )}
+          {/* No bloco (Ajustes) o texto tem o peso do `<select class="campo">` do protótipo. */}
+          <span className={`${block ? '' : 'font-bold '}truncate`}>{selectedLabel}</span>
         </span>
-        <ChevronDown className={`w-3.5 h-3.5 shrink-0 opacity-60 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden />
+        <ChevronDown
+          className={`w-3.5 h-3.5 shrink-0 opacity-60 transition-transform ${open ? 'rotate-180' : ''}`}
+          aria-hidden
+        />
       </button>
 
-      {open && caixa && createPortal(
-        <div
-          ref={popupRef}
-          /* MARCA DE PERTENCIMENTO. Esta lista vive num portal no `body`, logo ela está FORA da
+      {open &&
+        caixa &&
+        createPortal(
+          <div
+            ref={popupRef}
+            /* MARCA DE PERTENCIMENTO. Esta lista vive num portal no `body`, logo ela está FORA da
              árvore de quem a abriu. Um contêiner que feche no clique-fora (a gaveta de idiomas do
              Espaço de Gravação) veria o clique num idioma como "clique fora" e sumiria no meio da
              escolha. O atributo deixa esses contêineres reconhecerem a lista como parte da mesma
              interação, via `closest('[data-lang-ui]')`. */
-          data-lang-ui=""
-          // `w-72` (288px) porque "Detectar automaticamente" não cabia em 240 e vinha cortado.
-          // `fixed` + portal no `body`: ver `posicionar` — dentro da árvore, um `.card-panel`
-          // com `overflow: hidden` recortava a lista inteira.
-          style={{ top: caixa.top, left: caixa.left, width: caixa.largura }}
-          className="fixed z-[70] bg-surface border border-border-subtle rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150"
-        >
-          <div className="flex items-center gap-1.5 px-2.5 py-2 border-b border-border-subtle">
-            <Search className="w-3.5 h-3.5 text-ink-faint shrink-0" aria-hidden />
-            <input
-              ref={searchRef}
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={onKeyDown}
-              placeholder="Buscar idioma…"
-              aria-label="Buscar idioma"
-              aria-controls={listboxId}
-              aria-activedescendant={options[activeIdx] ? `${listboxId}-${options[activeIdx].key}` : undefined}
-              className="flex-1 min-w-0 bg-transparent text-[12px] text-ink outline-none placeholder-ink-faint"
-            />
-          </div>
-          <ul
-            ref={listRef}
-            id={listboxId}
-            role="listbox"
-            aria-label={ariaLabel || 'Idiomas'}
-            className="max-h-64 overflow-y-auto custom-scrollbar py-1"
+            data-lang-ui=""
+            // `w-72` (288px) porque "Detectar automaticamente" não cabia em 240 e vinha cortado.
+            // `fixed` + portal no `body`: ver `posicionar` — dentro da árvore, um `.card-panel`
+            // com `overflow: hidden` recortava a lista inteira.
+            style={{ top: caixa.top, left: caixa.left, width: caixa.largura }}
+            className="fixed z-[70] bg-surface border border-border-subtle rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150"
           >
-            {options.length === 0 && (
-              <li className="px-3 py-2 text-[12px] text-ink-faint">Nenhum idioma encontrado.</li>
-            )}
-            {options.map((o, i) => {
-              const isSelected = o.key === selectedKey;
-              const isActive = i === activeIdx;
-              return (
-                <li
-                  key={o.key}
-                  id={`${listboxId}-${o.key}`}
-                  role="option"
-                  aria-selected={isSelected}
-                  data-active={isActive}
-                  onMouseEnter={() => setActiveIdx(i)}
-                  onClick={() => choose(o)}
-                  className={`flex items-center gap-2 px-3 py-1.5 text-[12.5px] cursor-pointer ${
-                    isActive ? 'bg-accent-soft text-accent-ink' : 'text-ink'
-                  } ${isSelected ? 'font-bold' : 'font-medium'}`}
-                >
-                  {o.isAuto
-                    ? <Sparkles className="w-4 h-3 text-accent shrink-0" aria-hidden />
-                    : <LangFlag code={o.code!} className="w-4 h-3" />}
-                  <span className="flex-1 truncate">{o.label}</span>
-                  {isSelected && <Check className="w-3.5 h-3.5 shrink-0 text-accent" aria-hidden />}
-                </li>
-              );
-            })}
-          </ul>
-        </div>,
-        document.body,
-      )}
+            <div className="flex items-center gap-1.5 px-2.5 py-2 border-b border-border-subtle">
+              <Search className="w-3.5 h-3.5 text-ink-faint shrink-0" aria-hidden />
+              <input
+                ref={searchRef}
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={onKeyDown}
+                placeholder="Buscar idioma…"
+                aria-label="Buscar idioma"
+                aria-controls={listboxId}
+                aria-activedescendant={options[activeIdx] ? `${listboxId}-${options[activeIdx].key}` : undefined}
+                className="flex-1 min-w-0 bg-transparent text-[12px] text-ink outline-none placeholder-ink-faint"
+              />
+            </div>
+            <ul
+              ref={listRef}
+              id={listboxId}
+              role="listbox"
+              aria-label={ariaLabel || 'Idiomas'}
+              className="max-h-64 overflow-y-auto custom-scrollbar py-1"
+            >
+              {options.length === 0 && (
+                <li className="px-3 py-2 text-[12px] text-ink-faint">Nenhum idioma encontrado.</li>
+              )}
+              {options.map((o, i) => {
+                const isSelected = o.key === selectedKey;
+                const isActive = i === activeIdx;
+                return (
+                  <li
+                    key={o.key}
+                    id={`${listboxId}-${o.key}`}
+                    role="option"
+                    aria-selected={isSelected}
+                    data-active={isActive}
+                    onMouseEnter={() => setActiveIdx(i)}
+                    onClick={() => choose(o)}
+                    className={`flex items-center gap-2 px-3 py-1.5 text-[12.5px] cursor-pointer ${
+                      isActive ? 'bg-accent-soft text-accent-ink' : 'text-ink'
+                    } ${isSelected ? 'font-bold' : 'font-medium'}`}
+                  >
+                    {o.isAuto ? (
+                      <Sparkles className="w-4 h-3 text-accent shrink-0" aria-hidden />
+                    ) : (
+                      <LangFlag code={o.code!} className="w-4 h-3" />
+                    )}
+                    <span className="flex-1 truncate">{o.label}</span>
+                    {isSelected && <Check className="w-3.5 h-3.5 shrink-0 text-accent" aria-hidden />}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }

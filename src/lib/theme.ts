@@ -22,7 +22,7 @@ import {
 } from './appearance';
 import { applyCursor, readCursor } from './cursores';
 import { applyParticulas, readParticulas } from './particulas';
-import { setSoundFonte,setSoundTheme } from './soundFx';
+import { setSoundFonte, setSoundTheme } from './soundFx';
 
 export const THEME_KEY = 'app_theme';
 export const FONTE_KEY = 'app_fonte';
@@ -46,7 +46,11 @@ export function coerceFonte(value: unknown): FonteType {
 }
 
 export function readFonte(): FonteType {
-  try { return coerceFonte(localStorage.getItem(FONTE_KEY)); } catch { return DEFAULT_FONTE; }
+  try {
+    return coerceFonte(localStorage.getItem(FONTE_KEY));
+  } catch {
+    return DEFAULT_FONTE;
+  }
 }
 
 /**
@@ -65,7 +69,16 @@ export function applyFonte(fonte: FonteType): void {
  * completa no CSS (inclusive modo escuro), mas ausente daqui: `coerceTheme()` caía no
  * `?? DEFAULT_THEME` e quem escolhesse "premium" recebia "babel", sem erro e sem aviso.
  */
-const VALID_THEMES: readonly ThemeType[] = ['babel', 'linear', 'vercel', 'mochi', 'notion', 'premium', 'aurora', 'custom'];
+const VALID_THEMES: readonly ThemeType[] = [
+  'babel',
+  'linear',
+  'vercel',
+  'mochi',
+  'notion',
+  'premium',
+  'aurora',
+  'custom',
+];
 
 /**
  * Presets mortos da versão anterior das Configurações. Eram persistidos em
@@ -113,7 +126,7 @@ export function applyTheme(theme: ThemeType): void {
   } else {
     // Sem isso, um painel com override `data-theme="custom"` herdaria a paleta
     // de um tema global antigo em vez de cair nos defaults do `index.css`.
-    for (const k of ['canvas', 'surface', 'ink', 'accent']) {
+    for (const k of ['canvas', 'surface', 'ink', 'accent', 'r-card', 'r-btn']) {
       root.style.removeProperty(`--custom-${k}`);
     }
   }
@@ -169,7 +182,9 @@ function scheduleServerPatch(patch: Record<string, unknown>): void {
     // Best-effort: a UI já refletiu a mudança; se o servidor cair, o localStorage segura.
     inFlight = inFlight
       .then(() => patchUiSettings(toSend))
-      .catch(() => { /* offline, o espelho local basta */ });
+      .catch(() => {
+        /* offline, o espelho local basta */
+      });
   }, SERVER_DEBOUNCE_MS);
 }
 
@@ -186,17 +201,29 @@ export function persistTheme({ theme, darkMode, customColors, fonte }: PersistOp
     patch.customColors = customColors;
   }
   if (theme !== undefined) {
-    try { localStorage.setItem(THEME_KEY, theme); } catch { /* modo privado */ }
+    try {
+      localStorage.setItem(THEME_KEY, theme);
+    } catch {
+      /* modo privado */
+    }
     applyTheme(theme);
     patch.theme = theme;
   }
   if (darkMode !== undefined) {
-    try { localStorage.setItem(DARK_KEY, darkMode ? 'dark' : 'light'); } catch { /* modo privado */ }
+    try {
+      localStorage.setItem(DARK_KEY, darkMode ? 'dark' : 'light');
+    } catch {
+      /* modo privado */
+    }
     applyDarkMode(darkMode);
     patch.darkMode = darkMode;
   }
   if (fonte !== undefined) {
-    try { localStorage.setItem(FONTE_KEY, fonte); } catch { /* modo privado */ }
+    try {
+      localStorage.setItem(FONTE_KEY, fonte);
+    } catch {
+      /* modo privado */
+    }
     applyFonte(fonte);
     patch.fonte = fonte;
   }
@@ -223,17 +250,29 @@ export function hydrateTheme(ui: Record<string, unknown> | null | undefined): Hy
   }
   if (ui.theme !== undefined) {
     current.theme = coerceTheme(ui.theme);
-    try { localStorage.setItem(THEME_KEY, current.theme); } catch { /* modo privado */ }
+    try {
+      localStorage.setItem(THEME_KEY, current.theme);
+    } catch {
+      /* modo privado */
+    }
     applyTheme(current.theme);
   }
   if (typeof ui.darkMode === 'boolean') {
     current.darkMode = ui.darkMode;
-    try { localStorage.setItem(DARK_KEY, current.darkMode ? 'dark' : 'light'); } catch { /* modo privado */ }
+    try {
+      localStorage.setItem(DARK_KEY, current.darkMode ? 'dark' : 'light');
+    } catch {
+      /* modo privado */
+    }
     applyDarkMode(current.darkMode);
   }
   if (ui.fonte !== undefined) {
     current.fonte = coerceFonte(ui.fonte);
-    try { localStorage.setItem(FONTE_KEY, current.fonte); } catch { /* modo privado */ }
+    try {
+      localStorage.setItem(FONTE_KEY, current.fonte);
+    } catch {
+      /* modo privado */
+    }
     applyFonte(current.fonte);
   }
   return current;

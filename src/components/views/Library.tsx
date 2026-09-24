@@ -1,12 +1,17 @@
 import {
+  ArrowRight,
+  Check,
   Clock,
   Download,
   Eye,
   FileAudio,
   FileText,
   Filter,
+  FolderOpen,
+  Headphones,
   Image as ImageIcon,
-  LayoutDashboard,
+  Info,
+  Library as LibraryIcon,
   Link as LinkIcon,
   Loader2,
   Lock,
@@ -15,7 +20,6 @@ import {
   Package,
   Pencil,
   Pin,
-  Play,
   Plus,
   Search,
   Shield,
@@ -49,8 +53,8 @@ import { usePosicaoFlutuante } from '../../lib/posicaoFlutuante';
 import { Recording } from '../../types';
 import BuscaDeCapa from '../BuscaDeCapa';
 import EditablePanel from '../EditablePanel';
-import InfoHint from '../InfoHint';
 import { askConfirm, toast } from '../Toast';
+import { Abas, CabecalhoDeTela, IconeEmBloco, TituloDeSecao } from '../ui';
 
 type LibraryTab = 'collections' | 'vault';
 
@@ -80,8 +84,6 @@ interface LibraryProps {
   ageProfile?: 'kids' | 'pro' | 'senior';
 }
 
-/** Aba do Cofre (RAG) desligada da interface — ver comentário no botão. */
-const MOSTRAR_COFRE = false as boolean;
 
 export default function Library({ onChangeView, recordings, onRecordingsChange, ageProfile = 'pro' }: LibraryProps) {
   const [showImport, setShowImport] = useState(false);
@@ -89,7 +91,9 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
   const [entitlements, setEntitlements] = useState(() => getEntitlements());
   useEffect(() => onPlanChange(() => setEntitlements(getEntitlements())), []);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<LibraryTab>('collections');
+  // A aba do Cofre (RAG) está desligada (decisão do dono, 26/08): sem índice de embeddings, só a
+  // coleção existe. O estado fica para o dia em que o Cofre voltar com as duas abas.
+  const [activeTab] = useState<LibraryTab>('collections');
   const [filterCategory, setFilterCategory] = useState<'all' | 'video' | 'audio' | 'document'>('all');
   // Painel "Filtros": só sobre campos que existem de verdade em `Recording`.
   // Descartados por falta de dado real:
@@ -103,7 +107,6 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
   const [filterPinned, setFilterPinned] = useState(false);
   const [filterHasAudio, setFilterHasAudio] = useState(false);
   const [filterWordCount, setFilterWordCount] = useState<FaixaDeTamanho>('all');
-  const filtrosBtnRef = useRef<HTMLButtonElement>(null);
   const [creating, setCreating] = useState(false);
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   /** Botão "..." do card cujo menu está aberto — é a âncora da posição do popup. */
@@ -151,7 +154,12 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
   });
 
   // Fixadas primeiro; mantém a ordem original (mais recentes) dentro de cada grupo.
-  const sortedRecordings = [...filteredRecordings].sort((a, b) => Number(!!b.pinned) - Number(!!a.pinned));
+  const [ordem, setOrdem] = useState<'recentes' | 'palavras' | 'az'>('recentes');
+  const sortedRecordings = [...filteredRecordings]
+    .sort((a, b) =>
+      ordem === 'palavras' ? b.wordCount - a.wordCount : ordem === 'az' ? a.title.localeCompare(b.title) : 0,
+    )
+    .sort((a, b) => Number(!!b.pinned) - Number(!!a.pinned));
 
   // Usado tanto no aviso "sem resultado" quanto na contagem "mostrando X de Y" — um único
   // critério do que conta como "algum filtro ativo", para as duas leituras não divergirem.
@@ -448,375 +456,209 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
     }
   };
 
+  /* Marcação do protótipo aprovado (`T.biblioteca`), o "Figma" do app. */
+  const minutosDeAudio = Math.round(
+    items.reduce((soma, r) => {
+      // `durationStr` chega formatado ("m:ss" ou "h:mm:ss"); desmontá-lo é seguro nesse formato só.
+      const partes = r.durationStr.split(':').map(Number);
+      if (partes.some((n) => !Number.isFinite(n))) return soma;
+      const seg = partes.reduce((acc, n) => acc * 60 + n, 0);
+      return soma + seg / 60;
+    }, 0),
+  );
+  const tipoDaCapa = (t: Recording['type']) => (t === 'video' ? 'youtube' : t === 'document' ? 'docs' : 'audio');
+  const IconeDaMidia = (t: Recording['type']) => (t === 'video' ? Youtube : t === 'document' ? FileText : FileAudio);
+  const FONTES = [
+    {
+      key: 'youtube' as const,
+      Icone: Youtube,
+      label: 'Link do YouTube',
+      sub: 'Legenda ou Whisper local',
+      hint: 'Usa a legenda do vídeo quando existe (rápido, com tempos reais). Sem legenda, transcreve o áudio no seu navegador com o Whisper local (mais lento). Precisa do yt-dlp instalado no servidor.',
+    },
+    {
+      key: 'document' as const,
+      Icone: FileText,
+      label: 'Documento de texto',
+      sub: 'PDF, DOCX, TXT',
+      hint: 'Extrai o texto do arquivo e monta uma sessão de estudo (sem áudio, a leitura usa voz sintética). PDF digitalizado, sem camada de texto, não é suportado.',
+    },
+    {
+      key: 'web' as const,
+      Icone: LinkIcon,
+      label: 'Link da web',
+      sub: 'Artigos e blogs',
+      hint: 'Baixa a página e extrai só o artigo principal (sem menus nem anúncios), virando uma sessão de estudo com vocabulário.',
+    },
+    {
+      key: 'local' as const,
+      Icone: Upload,
+      label: 'Áudio local',
+      sub: 'MP3, WAV, M4A',
+      hint: 'Transcreve um arquivo de áudio no seu navegador com o Whisper local, com tempos reais. Só áudio por enquanto, vídeo ainda não.',
+    },
+  ];
+
   return (
-    <div className="flex-1 flex flex-col h-full bg-canvas overflow-hidden">
-      <EditablePanel
-        viewKey="library"
-        panelKey="filters"
-        title="Filtros e Busca"
-        canResizeWidth={false}
-        canResizeHeight={false}
-        defaultHeight={0}
-      >
-        {/* FAIXA DE AÇÕES — o que fica fixo agora é só a barra de ferramentas.
-          Antes este bloco carregava também o título e o subtítulo e ocupava ~170px PERMANENTES
-          da altura da tela, em todas as rolagens. O título desceu para dentro da área rolável
-          (logo abaixo), onde é lido uma vez e sai do caminho; aqui sobrou o que precisa estar
-          sempre ao alcance: abas, busca, filtro e importar. */}
-        {/* `flex-wrap` — sem ele o campo de busca era o ÚNICO item encolhível da linha (as abas e os
-          botões são `shrink-0`), então a 375px ele absorvia todo o excesso e chegava a menos de
-          24px de largura. Medido: axe `target-size` em mobile__biblioteca. Envolver é preferível a
-          esconder: a busca continua na primeira dobra, só desce uma linha. */}
-        <div className="px-4 md:px-8 py-2.5 border-b border-border-subtle shrink-0 flex flex-wrap items-center gap-3">
-          {/* F9 — as abas SOBREVIVEM ao mobile.
-            Era `hidden md:flex`: abaixo de 768px o "Cofre de Memória" simplesmente deixava de
-            existir, sem nenhuma indicação de que havia outra aba. Confirmado no inventário, o
-            passo falhou APENAS no viewport mobile. Esconder uma função por largura de tela é
-            diferente de não ter a função: o usuário de celular não descobre que ela existe. */}
-          {/* UM GRUPO DE ABAS COM UMA ABA SÓ NÃO É UM GRUPO DE ABAS. Com o Cofre desligado
-            (`MOSTRAR_COFRE`, decisão do dono de 2026-08-26), esta caixa renderizava um único
-            botão sempre ativo — moldura, fundo e borda para não oferecer escolha nenhuma, logo
-            no primeiro elemento da tela. Some enquanto o Cofre estiver fora; volta inteira, com
-            as duas abas, no dia em que o índice existir. */}
-          {MOSTRAR_COFRE && (
-            <div className="flex bg-surface-hover p-1 rounded-lg border border-border-subtle shrink-0">
-              <button
-                onClick={() => setActiveTab('collections')}
-                aria-pressed={activeTab === 'collections'}
-                className={`px-3 py-1.5 rounded-md text-[13px] font-bold transition-colors cursor-pointer ${activeTab === 'collections' ? 'bg-surface shadow-sm text-ink' : 'text-ink-muted hover:text-ink'}`}
-              >
-                {ageProfile === 'kids'
-                  ? 'Meus Vídeos & Áudios'
-                  : ageProfile === 'senior'
-                    ? 'Minhas Lições'
-                    : 'Coleções e Mídia'}
-              </button>
-              {/* F9 — as abas SOBREVIVEM ao mobile: esconder uma função por largura de tela é
-                diferente de não ter a função. */}
-              <button
-                onClick={() => setActiveTab('vault')}
-                aria-pressed={activeTab === 'vault'}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[13px] font-bold transition-colors cursor-pointer ${activeTab === 'vault' ? 'bg-surface shadow-sm text-ink' : 'text-ink-muted hover:text-ink'}`}
-              >
-                <Lock className="w-3.5 h-3.5" />{' '}
-                {ageProfile === 'kids'
-                  ? 'Cofre Secreto'
-                  : ageProfile === 'senior'
-                    ? 'Arquivos Seguros'
-                    : 'Cofre de Memória'}
-              </button>
-            </div>
-          )}
-
-          {activeTab === 'collections' && (
-            <>
-              <div className="relative flex-1 min-w-[10rem]">
-                <Search
-                  className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted pointer-events-none"
-                  aria-hidden
-                />
-                <input
-                  id="library-search"
-                  name="library-search"
-                  type="text"
-                  placeholder="Buscar por título ou tag…"
-                  aria-label="Buscar na biblioteca"
-                  className="w-full bg-surface border border-border-subtle rounded-xl py-2 ps-9 pe-4 text-[13px] outline-none focus:border-accent transition-colors"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-              <div className="relative shrink-0">
-                <button
-                  ref={filtrosBtnRef}
-                  type="button"
-                  title="Filtros"
-                  aria-label="Filtros"
-                  aria-haspopup="true"
-                  aria-expanded={showFilters}
-                  aria-controls="library-filters-panel"
-                  onClick={() => setShowFilters((v) => !v)}
-                  className={`btn-outline py-2 min-h-[44px] ${activePanelFilterCount > 0 ? 'border-accent text-accent' : ''}`}
-                >
-                  <Filter className="w-4 h-4" aria-hidden /> <span className="hidden lg:inline">Filtros</span>
-                  {activePanelFilterCount > 0 && (
-                    <span
-                      aria-hidden
-                      className="inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-accent text-white text-[9px] font-bold"
-                    >
-                      {activePanelFilterCount}
-                    </span>
-                  )}
-                </button>
-                {showFilters && (
-                  <PainelDeFiltros
-                    ancora={filtrosBtnRef}
-                    filterPinned={filterPinned}
-                    setFilterPinned={setFilterPinned}
-                    filterHasAudio={filterHasAudio}
-                    setFilterHasAudio={setFilterHasAudio}
-                    filterWordCount={filterWordCount}
-                    setFilterWordCount={setFilterWordCount}
-                    onFechar={() => setShowFilters(false)}
-                    onLimpar={() => {
-                      setFilterPinned(false);
-                      setFilterHasAudio(false);
-                      setFilterWordCount('all');
-                    }}
-                  />
-                )}
-              </div>
-            </>
-          )}
-          {activeTab !== 'collections' && <div className="flex-1" />}
-
-          {/* C2 — o texto é `hidden sm:inline`, então abaixo de 640px sobra só o ícone e o botão
-            fica sem nome nenhum (axe: `button-name`, WCAG 4.1.2). O `aria-label` vale nos dois
-            casos e não muda o layout. */}
-          <button
-            aria-label="Importar mídia ou documento"
-            className="btn-solid cursor-pointer shrink-0 py-2"
-            data-sfx="open"
-            onClick={() => setShowImport(true)}
-          >
-            <Plus className="w-4 h-4" aria-hidden /> <span className="hidden sm:inline">Importar mídia ou doc</span>
-          </button>
-        </div>
-      </EditablePanel>
-
-      <EditablePanel
-        viewKey="library"
-        panelKey="gridList"
-        title="Grade de Mídia"
-        className="flex-1 flex flex-col min-h-0"
-        canResizeWidth={false}
-        canResizeHeight={false}
-        defaultHeight={0}
-      >
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-10 bg-canvas h-full min-h-0">
-          {/* Título dentro da área rolável: informa quando você chega, e sai do caminho depois. */}
-          <header className="mb-6">
-            {/* Mesma regra do Início: no perfil `pro` fica só o título (é o que o design mostra);
-              o rótulo acima dele orienta quem precisa de orientação, não quem pediu densidade. */}
-            {ageProfile !== 'pro' && (
-              <span className="label-mono text-accent flex items-center gap-1.5">
-                {ageProfile === 'kids' ? (
-                  <>
-                    <Package className="w-3.5 h-3.5" aria-hidden />
-                    <span>Seu baú de mídias</span>
-                  </>
-                ) : (
-                  <>
-                    <Eye className="w-3.5 h-3.5" aria-hidden />
-                    <span>Suas lições guardadas</span>
-                  </>
-                )}
-              </span>
-            )}
-            <h1 className="font-display font-black text-2xl md:text-3xl text-ink tracking-tight mt-1 text-balance">
-              {ageProfile === 'kids'
+    <div className="flex-1 flex flex-col h-full overflow-hidden">
+      <div className="rolagem flex-1">
+        <div className="tela larga entra">
+          <CabecalhoDeTela
+            icone={ageProfile === 'kids' ? Package : ageProfile === 'senior' ? Eye : LibraryIcon}
+            sobrancelha={
+              ageProfile === 'kids'
+                ? 'Seu baú de mídias'
+                : ageProfile === 'senior'
+                  ? 'Suas lições guardadas'
+                  : 'Suas mídias'
+            }
+            titulo={
+              ageProfile === 'kids'
                 ? 'Biblioteca de vídeos e cartas'
                 : ageProfile === 'senior'
                   ? 'Minha biblioteca de leitura'
-                  : 'Biblioteca'}
-            </h1>
-          </header>
-
-          {activeTab === 'collections' ? (
-            <div className="animate-in fade-in">
-              {/* Ladrilhos do acervo (referência de design): só os dois campos que `Recording`
-              guarda como número de verdade — "tempo transcrito" ficaria de fora porque só
-              existe `durationStr` já formatado ("8:32"), e somar strings formatadas é o
-              mesmo tipo de conta frágil que este arquivo já evita para `rec.date`. */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6 max-w-lg">
-                <div className="card-panel p-4">
-                  <span className="label-mono text-ink-muted block mb-1">Sessões</span>
-                  <span className="font-display font-black text-xl text-ink">{numero(items.length)}</span>
-                </div>
-                <div className="card-panel p-4">
-                  <span className="label-mono text-ink-muted block mb-1">Palavras extraídas</span>
-                  <span className="font-display font-black text-xl text-ink">
-                    {numero(items.reduce((sum, r) => sum + r.wordCount, 0))}
-                  </span>
-                </div>
-              </div>
-
-              {/* Category Segmented control */}
-              <div className="flex gap-2 mb-6 overflow-x-auto pb-1.5 scrollbar-thin">
-                <button
-                  onClick={() => setFilterCategory('all')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
-                    filterCategory === 'all'
-                      ? 'bg-ink text-ink-contrast border-ink shadow-sm'
-                      : 'bg-surface hover:bg-surface-hover text-ink-muted border-border-subtle'
-                  }`}
-                >
-                  <span>Tudo ({items.length})</span>
-                </button>
-                <button
-                  onClick={() => setFilterCategory('video')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
-                    filterCategory === 'video'
-                      ? 'bg-error-soft text-error-ink border-error/30'
-                      : 'bg-surface hover:bg-surface-hover text-ink-muted border-border-subtle'
-                  }`}
-                >
-                  <Youtube className="w-3.5 h-3.5 text-error" />
-                  <span>YouTube ({items.filter((r) => r.type === 'video').length})</span>
-                </button>
-                <button
-                  onClick={() => setFilterCategory('audio')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
-                    filterCategory === 'audio'
-                      ? 'bg-rare-soft text-rare-ink border-rare/30'
-                      : 'bg-surface hover:bg-surface-hover text-ink-muted border-border-subtle'
-                  }`}
-                >
-                  <FileAudio className="w-3.5 h-3.5 text-rare" />
-                  <span>Áudio ({items.filter((r) => r.type === 'audio').length})</span>
-                </button>
-                <button
-                  onClick={() => setFilterCategory('document')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
-                    filterCategory === 'document'
-                      ? 'bg-good-soft text-good-ink border-good/30'
-                      : 'bg-surface hover:bg-surface-hover text-ink-muted border-border-subtle'
-                  }`}
-                >
-                  <FileText className="w-3.5 h-3.5 text-good" />
-                  <span>Documentos ({items.filter((r) => r.type === 'document').length})</span>
-                </button>
-              </div>
-
-              {/* Só aparece com filtro ativo — sem isso, "Mostrando 12 de 12" seria ruído permanente. */}
-              {isFiltered && (
-                <div className="flex items-center gap-3 -mt-3 mb-5 text-[12px] text-ink-muted">
-                  <span>
-                    Mostrando <strong className="text-ink font-bold">{sortedRecordings.length}</strong> de{' '}
-                    {items.length} {items.length === 1 ? 'sessão' : 'sessões'}
-                  </span>
+                  : 'Biblioteca'
+            }
+            sub="Tudo o que você gravou ou importou vira estudo: transcrição, vocabulário e exercícios."
+            acoes={
+              activeTab === 'collections' ? (
+                <>
+                  <label className="busca" style={{ minWidth: 220 }}>
+                    <Search aria-hidden />
+                    <span className="sr">Buscar na biblioteca</span>
+                    <input
+                      id="library-search"
+                      name="library-search"
+                      className="campo"
+                      placeholder="Buscar por título ou tag"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                  </label>
                   <button
                     type="button"
-                    onClick={clearAllFilters}
-                    className="text-accent font-semibold hover:underline cursor-pointer inline-flex items-center min-h-[44px] px-1"
+                    className="btn btn-outline"
+                    aria-expanded={showFilters}
+                    aria-controls="library-filters-panel"
+                    onClick={() => setShowFilters((v) => !v)}
                   >
-                    Limpar filtros
+                    <Filter aria-hidden /> Filtros
+                    {activePanelFilterCount > 0 && <span className="ponto-filtro" aria-label="filtros ativos" />}
                   </button>
+                  <button
+                    type="button"
+                    className="btn btn-solid"
+                    data-sfx="open"
+                    aria-expanded={showImport}
+                    onClick={() => setShowImport((v) => !v)}
+                  >
+                    <Plus aria-hidden /> Importar
+                  </button>
+                </>
+              ) : undefined
+            }
+          />
+
+          {activeTab === 'collections' ? (
+            <>
+              <div className="ladrilhos">
+                <div className="cartao ladrilho">
+                  <span className="label-mono">Sessões</span>
+                  <span className="v">{numero(items.length)}</span>
                 </div>
-              )}
+                <div className="cartao ladrilho">
+                  <span className="label-mono">Palavras extraídas</span>
+                  <span className="v acc">{numero(items.reduce((sum, r) => sum + r.wordCount, 0))}</span>
+                </div>
+                <div className="cartao ladrilho">
+                  <span className="label-mono">Minutos de áudio</span>
+                  <span className="v">{numero(minutosDeAudio)}</span>
+                </div>
+                <div className="cartao ladrilho">
+                  <span className="label-mono">Fixadas</span>
+                  <span className="v">{numero(items.filter((r) => r.pinned).length)}</span>
+                </div>
+              </div>
 
               {showImport && (
-                <div className="mb-8 animate-in fade-in slide-in-from-top-4">
-                  <div className="card-panel p-6 border-accent/20 bg-accent-soft/30">
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="font-display font-bold text-[18px]">Importar para análise</h3>
-                      <button
-                        className="text-ink-muted hover:text-ink text-[12px] font-bold bg-surface px-3 py-1.5 rounded border border-border-subtle disabled:opacity-50"
-                        disabled={importBusy}
-                        onClick={() => {
-                          setShowImport(false);
-                          setImportSource(null);
-                          setImportUrl('');
-                        }}
-                      >
-                        Cancelar
-                      </button>
+                <section
+                  className="cartao p6 importar entra"
+                  aria-label="Importar para análise"
+                  style={{ marginTop: 18 }}
+                >
+                  <div className="entre">
+                    <div className="tsec-t">
+                      <Plus aria-hidden />
+                      <h2 style={{ fontSize: 18, fontWeight: 700 }}>Importar para análise</h2>
                     </div>
-                    <p className="text-[12.5px] text-ink-muted mb-6">
-                      Importe de um vídeo do YouTube, um documento (.pdf/.docx/.txt), um artigo da web ou um áudio
-                      local, vira uma sessão com transcrição e vocabulário. O idioma é{' '}
-                      <strong className="text-ink font-semibold">detectado do conteúdo</strong>, nunca inventado. Passe
-                      o mouse no ícone de informação de cada opção para ver como funciona.
-                    </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-                      {[
-                        {
-                          key: 'youtube' as const,
-                          icon: <Youtube className="w-5 h-5" />,
-                          label: 'Link do YouTube',
-                          sub: 'Legenda ou Whisper local',
-                          hint: 'Usa a legenda do vídeo quando existe (rápido, com tempos reais). Sem legenda, transcreve o áudio no seu navegador com o Whisper local (mais lento). Precisa do yt-dlp instalado no servidor.',
-                        },
-                        {
-                          key: 'document' as const,
-                          icon: <FileText className="w-5 h-5" />,
-                          label: 'Documento de Texto',
-                          sub: 'PDF, DOCX, TXT',
-                          hint: 'Extrai o texto do arquivo e monta uma sessão de estudo (sem áudio, a leitura usa voz sintética). PDF digitalizado, sem camada de texto, não é suportado.',
-                        },
-                        {
-                          key: 'web' as const,
-                          icon: <LinkIcon className="w-5 h-5" />,
-                          label: 'Link da Web',
-                          sub: 'Artigos e Blogs',
-                          hint: 'Baixa a página e extrai só o artigo principal (sem menus nem anúncios), virando uma sessão de estudo com vocabulário.',
-                        },
-                        {
-                          key: 'local' as const,
-                          icon: <Upload className="w-5 h-5" />,
-                          label: 'Áudio Local',
-                          sub: 'MP3, WAV, M4A',
-                          hint: 'Transcreve um arquivo de áudio no seu navegador com o Whisper local, com tempos reais. Só áudio por enquanto, vídeo ainda não.',
-                        },
-                      ].map((src, idx) => {
-                        const active = importSource === src.key;
-                        // GATE de plano (honesto: mostra com selo "Pro" e explica; nunca esconde).
-                        const gated = src.key === 'youtube' && !entitlements.youtubeImport;
-                        const pick = () => {
-                          if (gated) {
-                            toast.error(
-                              'Importar do YouTube é um recurso Pro, o download roda no servidor (yt-dlp). No plano local/self-host ele é liberado.',
-                            );
-                            return;
-                          }
-                          selectSource(src.key);
-                        };
-                        return (
-                          <div
-                            key={src.key}
-                            role="button"
-                            tabIndex={importBusy ? -1 : 0}
-                            aria-pressed={active}
-                            onClick={pick}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter' || e.key === ' ') {
-                                e.preventDefault();
-                                pick();
-                              }
-                            }}
-                            className={`relative flex flex-col items-center text-center gap-2 p-5 rounded-xl border outline-none transition-all
-                          ${
-                            active
-                              ? 'border-accent bg-accent-soft/40 ring-1 ring-accent/30 shadow-sm'
-                              : 'border-border-subtle bg-surface-hover hover:border-accent/50 hover:-translate-y-0.5'
-                          }
-                          ${importBusy ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer focus-visible:border-accent focus-visible:ring-1 focus-visible:ring-accent/30'}`}
-                          >
-                            <span className="absolute top-2 right-2" onClick={(e) => e.stopPropagation()}>
-                              <InfoHint text={src.hint} align={idx < 2 ? 'left' : 'right'} />
-                            </span>
-                            {gated && (
-                              <span className="absolute top-2 left-2 text-[9px] font-bold uppercase tracking-wide bg-accent-soft text-accent border border-accent/30 rounded-full px-2 py-0.5">
-                                Pro
-                              </span>
-                            )}
-                            <span
-                              className={`flex items-center justify-center w-11 h-11 rounded-xl transition-colors ${active ? 'bg-accent-soft text-accent' : 'bg-canvas text-ink-muted'}`}
-                            >
-                              {src.icon}
-                            </span>
-                            <span className="font-bold text-[13px] text-ink leading-tight">{src.label}</span>
-                            <span className="text-[11px] text-ink-muted leading-snug">{src.sub}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-outline peq"
+                      disabled={importBusy}
+                      onClick={() => {
+                        setShowImport(false);
+                        setImportSource(null);
+                        setImportUrl('');
+                      }}
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                  <p className="mut" style={{ fontSize: 13, margin: '6px 0 16px', maxWidth: '72ch' }}>
+                    Vídeo do YouTube, documento, artigo da web ou áudio local: vira uma sessão com transcrição e
+                    vocabulário. O idioma é <b style={{ color: 'var(--ink)' }}>detectado do conteúdo</b>, nunca
+                    inventado.
+                  </p>
+                  <div className="fontes">
+                    {FONTES.map((f) => {
+                      // GATE de plano (honesto: mostra com selo "Pro" e explica; nunca esconde).
+                      const gated = f.key === 'youtube' && !entitlements.youtubeImport;
+                      return (
+                        <button
+                          key={f.key}
+                          type="button"
+                          className={`cartao fonte-imp ${importSource === f.key ? 'sel' : ''}`}
+                          aria-pressed={importSource === f.key}
+                          disabled={importBusy}
+                          onClick={() => {
+                            if (gated) {
+                              toast.error(
+                                'Importar do YouTube é um recurso Pro, o download roda no servidor (yt-dlp). No plano local/self-host ele é liberado.',
+                              );
+                              return;
+                            }
+                            selectSource(f.key);
+                          }}
+                        >
+                          <IconeEmBloco icone={f.Icone} />
+                          <span style={{ flex: 1, minWidth: 0 }}>
+                            <b>
+                              {f.label}
+                              {gated && (
+                                <span className="badge warn" style={{ marginLeft: 4 }}>
+                                  Pro
+                                </span>
+                              )}
+                            </b>
+                            <small>{f.sub}</small>
+                          </span>
+                          <span className="dica" title={f.hint} aria-label={`Como funciona: ${f.hint}`}>
+                            <Info aria-hidden />
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
 
-                    {(importSource === 'youtube' || importSource === 'web') && (
-                      <div className="flex gap-2 mb-4">
+                  {(importSource === 'youtube' || importSource === 'web') && (
+                    <div className="linha entra" style={{ gap: 10, marginTop: 16, flexWrap: 'wrap' }}>
+                      <label className="busca" style={{ flex: 1 }}>
+                        <LinkIcon aria-hidden />
+                        <span className="sr">Endereço</span>
                         <input
                           id="library-import-url"
                           name="library-import-url"
+                          className="campo"
                           value={importUrl}
                           onChange={(e) => setImportUrl(e.target.value)}
                           onKeyDown={(e) => {
@@ -825,235 +667,349 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
                               else handleImportWeb();
                             }
                           }}
-                          placeholder={
-                            importSource === 'youtube' ? 'Cole o link do vídeo do YouTube' : 'Cole a URL do artigo'
-                          }
+                          placeholder={importSource === 'youtube' ? 'Cole o link do vídeo do YouTube' : 'https://…'}
                           disabled={importBusy}
-                          className="flex-1 bg-surface border border-border-subtle rounded px-3 py-2 text-[13px] text-ink"
                         />
-                        <button
-                          className="btn-solid"
-                          disabled={importBusy || !importUrl.trim()}
-                          onClick={importSource === 'youtube' ? handleImportYoutube : handleImportWeb}
-                        >
-                          {importBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                          Importar
-                        </button>
-                      </div>
-                    )}
-
-                    {(importSource === 'document' || importSource === 'local') && (
-                      <div className="mb-4 flex items-center gap-3 flex-wrap">
-                        <button
-                          className="btn-solid"
-                          disabled={importBusy}
-                          onClick={() =>
-                            importSource === 'document' ? docInputRef.current?.click() : localInputRef.current?.click()
-                          }
-                        >
-                          {importBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                          Escolher arquivo
-                        </button>
-                        <span className="text-[11.5px] text-ink-muted">
-                          {importSource === 'document' ? 'Aceita PDF, DOCX ou TXT' : 'Aceita MP3, WAV ou M4A, só áudio'}
-                        </span>
-                      </div>
-                    )}
-
-                    {importMsg && (
-                      <p className="text-[12px] text-ink-muted mb-4 flex items-center gap-2">
-                        <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
-                        {importMsg}
-                      </p>
-                    )}
-
-                    <input
-                      id="library-doc-file"
-                      name="library-doc-file"
-                      ref={docInputRef}
-                      type="file"
-                      accept=".txt,.pdf,.docx"
-                      className="hidden"
-                      onChange={handleDocFile}
-                    />
-                    <input
-                      id="library-audio-file"
-                      name="library-audio-file"
-                      ref={localInputRef}
-                      type="file"
-                      accept="audio/*"
-                      className="hidden"
-                      onChange={handleLocalFile}
-                    />
-
-                    <div className="flex justify-end border-t border-border-subtle pt-4">
+                      </label>
                       <button
-                        className="text-ink-muted hover:text-ink text-[12px] font-bold inline-flex items-center gap-1.5 disabled:opacity-50"
-                        onClick={createBlankSession}
-                        disabled={creating || importBusy}
+                        type="button"
+                        className="btn btn-solid"
+                        disabled={importBusy || !importUrl.trim()}
+                        onClick={importSource === 'youtube' ? handleImportYoutube : handleImportWeb}
                       >
-                        {creating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
-                        ou criar sessão em branco
+                        {importBusy ? <Loader2 className="animate-spin" aria-hidden /> : <ArrowRight aria-hidden />}{' '}
+                        Importar
                       </button>
                     </div>
-                  </div>
-                </div>
+                  )}
+
+                  {(importSource === 'document' || importSource === 'local') && (
+                    <div className="linha entra" style={{ gap: 10, marginTop: 16, flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        className="soltar"
+                        disabled={importBusy}
+                        onClick={() =>
+                          importSource === 'document' ? docInputRef.current?.click() : localInputRef.current?.click()
+                        }
+                      >
+                        {importBusy ? <Loader2 className="animate-spin" aria-hidden /> : <Upload aria-hidden />}
+                        <span>
+                          <b>Escolher o arquivo</b>{' '}
+                          {importSource === 'document' ? '· PDF, DOCX ou TXT' : '· MP3, WAV ou M4A, só áudio'}
+                        </span>
+                      </button>
+                    </div>
+                  )}
+
+                  {importMsg && (
+                    <p className="mut linha" style={{ fontSize: 12.5, marginTop: 12, gap: 8 }}>
+                      <Loader2 className="animate-spin" aria-hidden style={{ width: 14, height: 14 }} />
+                      {importMsg}
+                    </p>
+                  )}
+
+                  <input
+                    id="library-doc-file"
+                    name="library-doc-file"
+                    ref={docInputRef}
+                    type="file"
+                    accept=".txt,.pdf,.docx"
+                    className="hidden"
+                    onChange={handleDocFile}
+                  />
+                  <input
+                    id="library-audio-file"
+                    name="library-audio-file"
+                    ref={localInputRef}
+                    type="file"
+                    accept="audio/*"
+                    className="hidden"
+                    onChange={handleLocalFile}
+                  />
+
+                  <p className="mut" style={{ fontSize: 12.5, marginTop: 14 }}>
+                    ou{' '}
+                    <button
+                      type="button"
+                      className="link"
+                      onClick={createBlankSession}
+                      disabled={creating || importBusy}
+                    >
+                      criar uma sessão em branco
+                    </button>{' '}
+                    para escrever ou colar depois.
+                  </p>
+                </section>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {sortedRecordings.map((rec) => (
-                  <div
-                    key={rec.id}
-                    className={`card-panel group cursor-pointer hover:border-accent transition-colors flex flex-col ${rec.type === 'document' ? 'hover:border-rare' : ''}`}
-                    onClick={() => onChangeView('analysis', { id: rec.id })}
-                  >
-                    <div
-                      className={`aspect-video relative overflow-hidden flex items-center justify-center transition-colors shrink-0 ${rec.type === 'document' ? 'bg-rare-soft/30 group-hover:bg-rare-soft/50' : 'bg-ink/5 group-hover:bg-ink/10'}`}
+              {showFilters && (
+                <section
+                  id="library-filters-panel"
+                  className="cartao p5 filtros entra"
+                  aria-label="Filtros da biblioteca"
+                  style={{ marginTop: 18 }}
+                >
+                  <div className="entre" style={{ marginBottom: 14 }}>
+                    <b style={{ fontFamily: 'var(--font-display)' }}>
+                      Filtros {activePanelFilterCount > 0 && <span className="n-sec">{activePanelFilterCount}</span>}
+                    </b>
+                    <button
+                      type="button"
+                      className="btn btn-outline peq icone"
+                      onClick={() => setShowFilters(false)}
+                      aria-label="Fechar filtros"
                     >
-                      {rec.imageUrl ? (
-                        <img src={rec.imageUrl} className="w-full h-full object-cover" alt={rec.title} />
-                      ) : rec.type === 'video' ? (
-                        <Youtube className="w-10 h-10 text-ink-muted opacity-50" />
-                      ) : rec.type === 'document' ? (
-                        <FileText className="w-10 h-10 text-rare/50" />
-                      ) : (
-                        <FileAudio className="w-10 h-10 text-ink-muted opacity-50" />
-                      )}
-
-                      <div className="absolute inset-0 bg-ink/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px] z-20">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onChangeView('analysis', { id: rec.id });
-                          }}
-                          className="flex items-center gap-1.5 py-1.5 px-3 bg-surface hover:bg-surface-hover text-ink font-bold text-[11px] rounded-lg shadow-md cursor-pointer transform scale-95 group-hover:scale-100 transition-all border border-border-subtle"
-                        >
-                          {rec.type === 'document' ? (
-                            <LayoutDashboard className="w-3.5 h-3.5 text-rare" />
-                          ) : (
-                            <Play className="w-3.5 h-3.5 text-accent fill-current" />
-                          )}
-                          <span>{rec.type === 'document' ? 'Visualizar' : 'Ver Análise'}</span>
-                        </button>
-                      </div>
-
-                      {rec.type === 'document' && (
-                        <div className="absolute top-2 left-2 bg-surface border border-border-subtle text-ink text-[9px] font-bold px-1.5 py-0.5 rounded uppercase shadow-sm">
-                          PDF / Documento
-                        </div>
-                      )}
-
-                      {rec.pinned && (
-                        <div
-                          className="absolute top-2 right-2 bg-accent text-white p-1.5 rounded-lg border border-accent/20 shadow-md z-10 flex items-center justify-center"
-                          title="Fixado no topo"
-                        >
-                          <Pin className="w-3.5 h-3.5 fill-current" />
-                        </div>
-                      )}
-
-                      <div className="absolute bottom-2 right-2 bg-ink/80 text-ink-contrast text-[10px] font-mono font-bold px-1.5 py-0.5 rounded backdrop-blur-md">
-                        {rec.durationStr}
-                      </div>
-                    </div>
-                    <div className="p-4 flex flex-col flex-1">
-                      <div className="flex justify-between items-start mb-2">
-                        <h3 className="font-display font-bold text-[14px] leading-tight line-clamp-2 pe-2">
-                          {rec.title}
-                        </h3>
-                        <div className="relative">
-                          <button
-                            ref={(el) => {
-                              if (activeMenuId === rec.id) ancoraDoMenu.current = el;
-                            }}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setActiveMenuId(activeMenuId === rec.id ? null : rec.id);
-                            }}
-                            /* Só "⋮" não diz nada a quem usa leitor de tela — o nome precisa dizer de
-                           QUAL mídia é o menu, porque a tela tem um destes por card. */
-                            aria-label={`Ações de "${rec.title}"`}
-                            aria-haspopup="menu"
-                            aria-expanded={activeMenuId === rec.id}
-                            className="text-ink-muted hover:text-ink shrink-0 bg-surface-hover rounded p-1 cursor-pointer"
-                          >
-                            <MoreVertical className="w-4 h-4" />
-                          </button>
-
-                          {activeMenuId === rec.id && (
-                            <MenuDaMidia
-                              ancora={ancoraDoMenu}
-                              rec={rec}
-                              onFechar={() => setActiveMenuId(null)}
-                              onFixar={() => togglePin(rec)}
-                              onEditar={() => openEditModal(rec)}
-                              onRetomar={() => onChangeView('capture', { resumeId: rec.id })}
-                              onExportar={() => exportTranscript(rec)}
-                              onExcluir={() => handleDelete(rec)}
-                            />
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 text-[11.5px] text-ink-muted mb-4 flex-wrap">
-                        <Clock className="w-3.5 h-3.5 shrink-0" />
-                        <span>{rec.date}</span>
-                        <span>·</span>
-                        <span>{numero(rec.wordCount)} palavras</span>
-                      </div>
-                      <div className="flex gap-2 flex-wrap mt-auto">
-                        {rec.type === 'document' ? (
-                          <span className="badge-tag rare">Extraído</span>
-                        ) : (
-                          <span className="badge-tag ok">{rec.status}</span>
-                        )}
-                        {rec.tags.map((tag) => (
-                          <span
-                            key={tag}
-                            className={`badge-tag ${tag.includes('erros') ? 'warn' : tag === 'Vocabulário Business' ? 'border border-border-subtle bg-surface' : 'acc'}`}
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
+                      <X aria-hidden />
+                    </button>
                   </div>
-                ))}
-              </div>
-
-              {sortedRecordings.length === 0 && (
-                // Distingue "biblioteca vazia" de "nada bate com a busca/filtro atual" (mesmo
-                // `isFiltered` da contagem acima) — as ações oferecidas são diferentes (e todas reais).
-                <div className="card-panel p-10 md:p-14 bg-surface border border-dashed border-border-subtle flex flex-col items-center text-center">
-                  <div className="w-14 h-14 rounded-full bg-canvas border border-border-subtle flex items-center justify-center mb-4 text-ink-faint">
-                    {isFiltered ? <Search className="w-7 h-7" /> : <FileAudio className="w-7 h-7" />}
+                  <div className="g-filtros">
+                    <fieldset>
+                      <legend className="label-mono">Mostrar só</legend>
+                      <label className="check">
+                        <input
+                          type="checkbox"
+                          checked={filterPinned}
+                          onChange={(e) => setFilterPinned(e.target.checked)}
+                        />{' '}
+                        Fixadas no topo
+                      </label>
+                      <label className="check">
+                        <input
+                          type="checkbox"
+                          checked={filterHasAudio}
+                          onChange={(e) => setFilterHasAudio(e.target.checked)}
+                        />{' '}
+                        Com áudio gravado
+                      </label>
+                    </fieldset>
+                    <fieldset>
+                      <legend className="label-mono">Tamanho (por palavras)</legend>
+                      {(
+                        [
+                          ['all', 'Qualquer tamanho', ''],
+                          ['short', 'Curta', 'até 2 min de leitura'],
+                          ['medium', 'Média', '2 a 8 min'],
+                          ['long', 'Longa', 'mais de 8 min'],
+                        ] as const
+                      ).map(([v, r, d]) => (
+                        <label key={v} className="op-radio">
+                          <input
+                            type="radio"
+                            name="tam-bib"
+                            value={v}
+                            checked={filterWordCount === v}
+                            onChange={() => setFilterWordCount(v)}
+                          />{' '}
+                          {r}
+                          {d && <small className="mut"> {d}</small>}
+                        </label>
+                      ))}
+                    </fieldset>
                   </div>
-                  <h3 className="font-display font-extrabold text-base text-ink">
-                    {isFiltered ? 'Nenhum resultado' : 'Sua biblioteca está vazia'}
-                  </h3>
-                  <p className="text-[12.5px] text-ink-muted mt-2 max-w-md">
-                    {isFiltered
-                      ? 'Nenhuma mídia corresponde à busca ou aos filtros selecionados. Ajuste os termos ou limpe os filtros.'
-                      : 'Capture uma sessão ao vivo ou importe uma mídia, tudo que você gravar aparece aqui, pronto para análise.'}
-                  </p>
-                  <div className="flex flex-wrap items-center justify-center gap-2 mt-5">
-                    {isFiltered ? (
-                      <button className="btn-outline" onClick={clearAllFilters}>
-                        Limpar busca e filtros
+                  <div
+                    className="entre"
+                    style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border-subtle)' }}
+                  >
+                    <span className="mut tn" style={{ fontSize: 12.5 }} aria-live="polite">
+                      Mostrando {sortedRecordings.length} de {items.length}
+                    </span>
+                    {isFiltered && (
+                      <button type="button" className="link" onClick={clearAllFilters}>
+                        Limpar filtros
                       </button>
-                    ) : (
-                      <>
-                        <button className="btn-solid" onClick={() => onChangeView('capture')}>
-                          <Mic className="w-4 h-4" /> Nova captura
-                        </button>
-                        <button className="btn-outline" data-sfx="open" onClick={() => setShowImport(true)}>
-                          <Plus className="w-4 h-4" /> Importar mídia ou doc
-                        </button>
-                      </>
                     )}
                   </div>
-                </div>
+                </section>
               )}
-            </div>
+
+              <EditablePanel
+                viewKey="library"
+                panelKey="gridList"
+                title="Grade de Mídia"
+                canResizeWidth={false}
+                canResizeHeight={false}
+                defaultHeight={0}
+              >
+                <section className="secao" style={{ marginTop: 36 }}>
+                  <TituloDeSecao
+                    icone={FolderOpen}
+                    titulo="Suas sessões"
+                    direita={
+                      <div className="linha" style={{ gap: 8, flexWrap: 'wrap' }}>
+                        <Abas
+                          variante="pilula"
+                          rotuloDoGrupo="Tipo de mídia"
+                          ativo={filterCategory}
+                          aoTrocar={(id) => setFilterCategory(id as typeof filterCategory)}
+                          itens={[
+                            { id: 'all', rotulo: 'Tudo', contagem: items.length },
+                            {
+                              id: 'video',
+                              rotulo: 'YouTube',
+                              icone: <Youtube aria-hidden />,
+                              contagem: items.filter((r) => r.type === 'video').length,
+                            },
+                            {
+                              id: 'audio',
+                              rotulo: 'Áudio',
+                              icone: <Headphones aria-hidden />,
+                              contagem: items.filter((r) => r.type === 'audio').length,
+                            },
+                            {
+                              id: 'document',
+                              rotulo: 'Documentos',
+                              icone: <FileText aria-hidden />,
+                              contagem: items.filter((r) => r.type === 'document').length,
+                            },
+                          ]}
+                        />
+                        <select
+                          className="campo"
+                          style={{ width: 'auto', minHeight: 34, fontSize: 12.5 }}
+                          aria-label="Ordenar"
+                          value={ordem}
+                          onChange={(e) => setOrdem(e.target.value as typeof ordem)}
+                        >
+                          <option value="recentes">Mais recentes</option>
+                          <option value="palavras">Mais palavras</option>
+                          <option value="az">A–Z</option>
+                        </select>
+                      </div>
+                    }
+                  />
+                  <div role="tabpanel" id={`painel-${filterCategory}`} aria-labelledby={`aba-${filterCategory}`}>
+                    {sortedRecordings.length ? (
+                      <div className="gauto">
+                        {sortedRecordings.map((rec) => {
+                          const Icone = IconeDaMidia(rec.type);
+                          const documento = rec.type === 'document';
+                          return (
+                            <article
+                              key={rec.id}
+                              className="cartao clicavel midia"
+                              tabIndex={0}
+                              aria-label={`Abrir ${rec.title}`}
+                              onClick={() => onChangeView('analysis', { id: rec.id })}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && e.target === e.currentTarget)
+                                  onChangeView('analysis', { id: rec.id });
+                              }}
+                            >
+                              <div className={`capa ${tipoDaCapa(rec.type)}`}>
+                                {rec.imageUrl ? (
+                                  <img
+                                    src={rec.imageUrl}
+                                    alt=""
+                                    style={{
+                                      position: 'absolute',
+                                      inset: 0,
+                                      width: '100%',
+                                      height: '100%',
+                                      objectFit: 'cover',
+                                      borderRadius: 'inherit',
+                                    }}
+                                  />
+                                ) : (
+                                  <Icone aria-hidden />
+                                )}
+                                {rec.durationStr && <span className="dur">{rec.durationStr}</span>}
+                                {rec.pinned && (
+                                  <span className="pino" title="Fixado no topo">
+                                    <Pin aria-hidden />
+                                  </span>
+                                )}
+                              </div>
+                              <div className="corpo">
+                                <div className="entre" style={{ alignItems: 'flex-start', flexWrap: 'nowrap' }}>
+                                  <h3>{rec.title}</h3>
+                                  <div style={{ position: 'relative' }}>
+                                    <button
+                                      type="button"
+                                      className="btn btn-outline peq icone"
+                                      ref={(el) => {
+                                        if (activeMenuId === rec.id) ancoraDoMenu.current = el;
+                                      }}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setActiveMenuId(activeMenuId === rec.id ? null : rec.id);
+                                      }}
+                                      aria-label={`Mais ações: ${rec.title}`}
+                                      aria-haspopup="menu"
+                                      aria-expanded={activeMenuId === rec.id}
+                                    >
+                                      <MoreVertical aria-hidden />
+                                    </button>
+                                    {activeMenuId === rec.id && (
+                                      <MenuDaMidia
+                                        ancora={ancoraDoMenu}
+                                        rec={rec}
+                                        onFechar={() => setActiveMenuId(null)}
+                                        onFixar={() => togglePin(rec)}
+                                        onEditar={() => openEditModal(rec)}
+                                        onRetomar={() => onChangeView('capture', { resumeId: rec.id })}
+                                        onExportar={() => exportTranscript(rec)}
+                                        onExcluir={() => handleDelete(rec)}
+                                      />
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="meta">
+                                  <Clock aria-hidden /> {rec.date} · {numero(rec.wordCount)} palavras
+                                </div>
+                                <div className="linha" style={{ gap: 6, flexWrap: 'wrap' }}>
+                                  <span
+                                    className={`badge ${documento ? 'rare' : rec.status === 'Processado' ? 'ok' : 'warn'}`}
+                                  >
+                                    <Check aria-hidden /> {documento ? 'Extraído' : rec.status}
+                                  </span>
+                                  {rec.tags.map((tag) => (
+                                    <span key={tag} className="badge acc">
+                                      {tag}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            </article>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="cartao">
+                        <div className="vazio">
+                          <IconeEmBloco icone={isFiltered ? Search : FileAudio} />
+                          <h3>{isFiltered ? 'Nenhum resultado' : 'Sua biblioteca está vazia'}</h3>
+                          <p>
+                            {isFiltered
+                              ? 'Nenhuma mídia corresponde à busca ou aos filtros. Ajuste os termos ou limpe os filtros.'
+                              : 'Capture uma sessão ao vivo ou importe uma mídia: tudo aparece aqui, pronto para análise.'}
+                          </p>
+                          {isFiltered ? (
+                            <button type="button" className="btn btn-outline" onClick={clearAllFilters}>
+                              Limpar busca e filtros
+                            </button>
+                          ) : (
+                            <div className="linha" style={{ gap: 8 }}>
+                              <button type="button" className="btn btn-solid" onClick={() => onChangeView('capture')}>
+                                <Mic aria-hidden /> Nova captura
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-outline"
+                                data-sfx="open"
+                                onClick={() => setShowImport(true)}
+                              >
+                                <Plus aria-hidden /> Importar
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </section>
+              </EditablePanel>
+            </>
           ) : (
             /* Cofre de Memória (RAG) — sem índice de embeddings real, então tudo aqui é "Em breve". */
             <div className="animate-in fade-in flex flex-col gap-8 max-w-4xl mx-auto">
@@ -1117,7 +1073,7 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
             </div>
           )}
         </div>
-      </EditablePanel>
+      </div>
 
       {/* Modal: editar capa da sessão (persistido em meta.imageUrl via PATCH /api/sessions/:id/meta) */}
       {editing && (
@@ -1288,8 +1244,6 @@ function MenuDaMidia({
   const caixa = usePosicaoFlutuante(true, ancora, { largura: 192, alturaEstimada: 190 });
   if (!caixa) return null;
 
-  const item =
-    'w-full text-start px-3.5 py-2 text-xs font-semibold hover:bg-surface-hover text-ink flex items-center gap-2 cursor-pointer border-none bg-transparent';
   const agir = (fn: () => void) => (e: React.MouseEvent) => {
     e.stopPropagation();
     onFechar();
@@ -1308,174 +1262,33 @@ function MenuDaMidia({
         }}
       />
       <div
-        style={{ top: caixa.top, left: caixa.left, width: caixa.largura }}
-        className="fixed z-[70] bg-surface border border-border-subtle shadow-2xl rounded-xl py-1 animate-in fade-in duration-100"
+        style={{ position: 'fixed', top: caixa.top, left: caixa.left, right: 'auto', width: caixa.largura, zIndex: 70 }}
+        role="menu"
+        className="menu-midia cartao"
       >
-        <button onClick={agir(onFixar)} className={item}>
-          <Pin className="w-3.5 h-3.5 text-accent" />
+        <button role="menuitem" onClick={agir(onFixar)}>
+          <Pin aria-hidden />
           <span>{rec.pinned ? 'Desafixar do topo' : 'Fixar no topo'}</span>
         </button>
-        <button onClick={agir(onEditar)} className={item}>
-          <Pencil className="w-3.5 h-3.5 text-good" />
+        <button role="menuitem" onClick={agir(onEditar)}>
+          <Pencil aria-hidden />
           <span>Editar título e capa</span>
         </button>
         {/* Retomar captura: só faz sentido para áudio/vídeo (documentos não têm gravação). */}
         {rec.type !== 'document' && (
-          <button onClick={agir(onRetomar)} className={item}>
-            <Mic className="w-3.5 h-3.5 text-accent" />
+          <button role="menuitem" onClick={agir(onRetomar)}>
+            <Mic aria-hidden />
             <span>Retomar captura</span>
           </button>
         )}
-        <button onClick={agir(onExportar)} className={item}>
-          <Download className="w-3.5 h-3.5 text-accent" />
+        <button role="menuitem" onClick={agir(onExportar)}>
+          <Download aria-hidden />
           <span>Exportar transcrição</span>
         </button>
-        <div className="border-t border-border-subtle my-1" />
-        <button
-          onClick={agir(onExcluir)}
-          className="w-full text-start px-3.5 py-2 text-xs font-semibold hover:bg-error-soft text-error flex items-center gap-2 cursor-pointer border-none bg-transparent"
-        >
-          <Trash2 className="w-3.5 h-3.5" />
+        <button role="menuitem" className="perigo" onClick={agir(onExcluir)}>
+          <Trash2 aria-hidden />
           <span>Excluir</span>
         </button>
-      </div>
-    </>,
-    document.body,
-  );
-}
-
-/**
- * PAINEL DE FILTROS — mesmo padrão de portal + `usePosicaoFlutuante` do `MenuDaMidia` acima:
- * um popup dentro do `.card-panel`/da faixa de ferramentas seria recortado (é exatamente o
- * defeito que o menu "..." tinha antes do conserto). Fica em `position: fixed`, ancorado no
- * botão "Filtros".
- *
- * Os 3 controles são deliberadamente os únicos campos de `Recording` que variam de item para
- * item e são estáveis o bastante para filtrar: `pinned`, `audioUrl` e `wordCount`. `type` já
- * tem o segmented control acima — repeti-lo aqui seria o mesmo filtro em dois lugares.
- */
-function PainelDeFiltros({
-  ancora,
-  filterPinned,
-  setFilterPinned,
-  filterHasAudio,
-  setFilterHasAudio,
-  filterWordCount,
-  setFilterWordCount,
-  onFechar,
-  onLimpar,
-}: {
-  ancora: { current: HTMLElement | null };
-  filterPinned: boolean;
-  setFilterPinned: (v: boolean) => void;
-  filterHasAudio: boolean;
-  setFilterHasAudio: (v: boolean) => void;
-  filterWordCount: 'all' | 'short' | 'medium' | 'long';
-  setFilterWordCount: (v: 'all' | 'short' | 'medium' | 'long') => void;
-  onFechar: () => void;
-  onLimpar: () => void;
-}) {
-  // Cabeçalho + 2 checkboxes + separador + legenda + 4 rádios + rodapé, cada linha com o
-  // alvo de toque mínimo de 44px — a estimativa de altura evita que o painel nasça para cima
-  // quando o botão "Filtros" está perto do topo da tela.
-  const caixa = usePosicaoFlutuante(true, ancora, { largura: 260, alturaEstimada: 470 });
-
-  useEffect(() => {
-    const onEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onFechar();
-    };
-    window.addEventListener('keydown', onEsc);
-    return () => window.removeEventListener('keydown', onEsc);
-  }, [onFechar]);
-
-  if (!caixa) return null;
-
-  const linhaCheckbox =
-    'flex items-center gap-2.5 min-h-[44px] px-3.5 rounded-lg hover:bg-surface-hover cursor-pointer text-[13px] font-semibold text-ink';
-  const linhaRadio =
-    'flex items-center gap-2.5 min-h-[44px] px-3.5 rounded-lg hover:bg-surface-hover cursor-pointer text-[12.5px] text-ink';
-
-  const opcoesTamanho: { key: 'all' | 'short' | 'medium' | 'long'; label: string }[] = [
-    { key: 'all', label: 'Qualquer tamanho' },
-    { key: 'short', label: 'Curta, até 2 min de leitura' },
-    { key: 'medium', label: 'Média, 2 a 8 min' },
-    { key: 'long', label: 'Longa, mais de 8 min' },
-  ];
-
-  return createPortal(
-    <>
-      <div
-        className="fixed inset-0 z-[69]"
-        onClick={(e) => {
-          e.stopPropagation();
-          onFechar();
-        }}
-      />
-      <div
-        id="library-filters-panel"
-        role="region"
-        aria-label="Filtros da biblioteca"
-        style={{ top: caixa.top, left: caixa.left, width: caixa.largura }}
-        className="fixed z-[70] bg-surface border border-border-subtle shadow-2xl rounded-xl py-2 animate-in fade-in duration-100"
-      >
-        <div className="flex items-center justify-between px-3.5 pb-1.5 mb-1 border-b border-border-subtle">
-          <span className="font-display font-bold text-[12.5px] text-ink">Filtros</span>
-          <button
-            onClick={onFechar}
-            aria-label="Fechar filtros"
-            className="text-ink-muted hover:text-ink p-1 rounded cursor-pointer min-h-[28px] min-w-[28px] flex items-center justify-center"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
-        </div>
-
-        <label className={linhaCheckbox}>
-          <input
-            type="checkbox"
-            checked={filterPinned}
-            onChange={(e) => setFilterPinned(e.target.checked)}
-            className="w-4 h-4 accent-accent cursor-pointer"
-          />
-          <span>Somente fixadas</span>
-        </label>
-        <label className={linhaCheckbox}>
-          <input
-            type="checkbox"
-            checked={filterHasAudio}
-            onChange={(e) => setFilterHasAudio(e.target.checked)}
-            className="w-4 h-4 accent-accent cursor-pointer"
-          />
-          <span>Com áudio gravado</span>
-        </label>
-
-        <div className="border-t border-border-subtle my-1.5" />
-
-        <fieldset>
-          <legend className="px-3.5 pb-1 text-[10px] font-mono uppercase tracking-wider text-ink-muted">
-            Tamanho (por palavras)
-          </legend>
-          {opcoesTamanho.map((op) => (
-            <label key={op.key} className={linhaRadio}>
-              <input
-                type="radio"
-                name="library-filter-wordcount"
-                checked={filterWordCount === op.key}
-                onChange={() => setFilterWordCount(op.key)}
-                className="w-3.5 h-3.5 accent-accent cursor-pointer"
-              />
-              <span>{op.label}</span>
-            </label>
-          ))}
-        </fieldset>
-
-        <div className="border-t border-border-subtle mt-1.5 pt-1.5 px-1.5">
-          <button
-            onClick={onLimpar}
-            className="w-full text-center text-[11.5px] font-bold text-ink-muted hover:text-ink py-2 min-h-[36px] rounded-lg hover:bg-surface-hover cursor-pointer"
-          >
-            Limpar estes filtros
-          </button>
-        </div>
       </div>
     </>,
     document.body,

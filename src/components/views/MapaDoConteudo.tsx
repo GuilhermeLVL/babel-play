@@ -1,8 +1,9 @@
-import { ArrowLeft, Check, Info } from 'lucide-react';
+import { Check, GraduationCap, List, Map as MapIcon, Search, SlidersHorizontal } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
-import { data, t } from '../../lib/i18n';
+import { data, numero, t } from '../../lib/i18n';
 import type { AgeProfileType } from '../../lib/profile';
+import { CabecalhoDeTela, IconeEmBloco, Tela, TituloDeSecao } from '../ui';
 
 /**
  * MAPA DO CONTEÚDO — o que já caiu, o que nunca caiu, o que eu errei.
@@ -60,7 +61,12 @@ interface MapaProps {
   onEscolherNivel?: (n: string) => void;
   /** Avisa que o histórico começou depois; sem isso o mapa fingiria que o percurso começou do zero. */
   historicoDesde?: number | null;
+  /** "Trocar a fonte": volta aos jogos com a gaveta "O que você vai praticar" aberta. */
+  onTrocarFonte?: () => void;
 }
+
+/** O rótulo do chip começa em maiúscula, como no protótipo ("Inéditos"), em qualquer idioma. */
+const maiuscula = (s: string) => (s ? s[0].toLocaleUpperCase() + s.slice(1) : s);
 
 /**
  * Teto da lista. O A1 da trilha tem 827 palavras: renderizar tudo faz o navegador montar ~800 nós
@@ -92,12 +98,12 @@ function estadoDoItem(it: ItemDoMapa): Estado {
 
 /**
  * Selo por estado. Cada um tem TEXTO, não só cor — daltônico, tema de alto contraste e leitor de
- * tela leem igual. As variantes são as de `.badge-tag` em index.css.
+ * tela leem igual. As variantes são as de `.badge` do protótipo (o `ROT` de `T.mapa`).
  */
 const SELO: Record<Estado, { texto: string; variante: string }> = {
-  vencido: { texto: 'vencida', variante: 'warn' },
-  errado: { texto: 'errei', variante: 'err' },
-  novo: { texto: 'nunca caiu', variante: '' },
+  vencido: { texto: 'vencida', variante: 'acc' },
+  errado: { texto: 'errei', variante: 'warn' },
+  novo: { texto: 'nunca caiu', variante: 'neu' },
   visto: { texto: 'já vi', variante: 'ok' },
 };
 
@@ -123,14 +129,17 @@ type Filtro = (typeof FILTROS)[number];
  * os filtros se sobrepõem: uma palavra vencida que nunca caiu aparece nos dois. Sobreposição é
  * honesta; número que não fecha, não.
  */
-interface Anotado { it: ItemDoMapa; estado: Estado }
+interface Anotado {
+  it: ItemDoMapa;
+  estado: Estado;
+}
 
 const PASSA_NO_FILTRO: Record<Filtro, (a: Anotado) => boolean> = {
   todos: () => true,
-  novos: a => a.it.vezes === 0,
-  errados: a => a.estado === 'errado',
-  vistos: a => a.it.vezes > 0,
-  vencidos: a => a.it.vencido,
+  novos: (a) => a.it.vezes === 0,
+  errados: (a) => a.estado === 'errado',
+  vistos: (a) => a.it.vezes > 0,
+  vencidos: (a) => a.it.vencido,
 };
 
 const ROTULO_FILTRO: Record<Filtro, Record<AgeProfileType, string>> = {
@@ -150,6 +159,7 @@ export default function MapaDoConteudo({
   nivelAtivo,
   onEscolherNivel,
   historicoDesde,
+  onTrocarFonte,
 }: MapaProps) {
   const [filtro, setFiltro] = useState<Filtro>('todos');
 
@@ -158,10 +168,7 @@ export default function MapaDoConteudo({
    * pela lista. Antes de existir este passo, cada uma dessas três leituras reclassificaria os 827
    * itens do A1 por conta própria a cada render.
    */
-  const anotados = useMemo(
-    () => itens.map(it => ({ it, estado: estadoDoItem(it) })),
-    [itens],
-  );
+  const anotados = useMemo(() => itens.map((it) => ({ it, estado: estadoDoItem(it) })), [itens]);
 
   /** Uma passada só: o saldo do topo e as contagens dos chips saem da mesma varredura. */
   const saldo = useMemo(() => {
@@ -207,41 +214,40 @@ export default function MapaDoConteudo({
     const passa = PASSA_NO_FILTRO[filtro];
     const base = filtro === 'todos' ? anotados : anotados.filter(passa);
     // Cópia antes de ordenar: `anotados` é memoizado e ordenar no lugar corromperia o cache.
-    return [...base].sort((a, b) =>
-      PESO[a.estado] - PESO[b.estado] || a.it.titulo.localeCompare(b.it.titulo),
-    );
+    return [...base].sort((a, b) => PESO[a.estado] - PESO[b.estado] || a.it.titulo.localeCompare(b.it.titulo));
   }, [anotados, filtro]);
 
   const visiveis = ordenados.slice(0, MAX_VISIVEL);
 
   const subtitulo: Record<AgeProfileType, string> = {
     kids: 'Tudo que dá para jogar aqui, e como você foi em cada um.',
-    pro: 'Cobertura do conjunto: o que já entrou em rodada, o que nunca entrou e o que ficou errado.',
+    pro: 'O que já caiu nas suas rodadas, o que está vencendo e o que nunca apareceu. Filtre para ver cada grupo.',
     senior: 'Veja o que já apareceu para você e o que ainda falta.',
   };
+  // Rótulos dos ladrilhos: os do perfil `pro` são os do protótipo.
   const rotuloTotal: Record<AgeProfileType, string> = {
     kids: 'para jogar',
-    pro: 'itens no conjunto',
+    pro: 'No conjunto',
     senior: 'palavras ao todo',
   };
   const rotuloNunca: Record<AgeProfileType, string> = {
     kids: 'nunca caíram',
-    pro: 'nunca entraram em rodada',
+    pro: 'Nunca entraram',
     senior: 'ainda não apareceram',
   };
   const rotuloVistos: Record<AgeProfileType, string> = {
     kids: 'você já jogou',
-    pro: 'já vistos',
+    pro: 'Já vistos',
     senior: 'você já viu',
   };
   const rotuloErros: Record<AgeProfileType, string> = {
     kids: 'você errou',
-    pro: 'com erro pendente',
+    pro: 'Erro pendente',
     senior: 'você errou',
   };
   const rotuloVencidos: Record<AgeProfileType, string> = {
     kids: 'pedindo revisão',
-    pro: 'vencidos no agendador',
+    pro: 'Vencidos',
     senior: 'para repetir hoje',
   };
   const rotuloCobertura: Record<AgeProfileType, string> = {
@@ -256,167 +262,178 @@ export default function MapaDoConteudo({
   };
   const txtFiltroVazio: Record<AgeProfileType, string> = {
     kids: 'Nada nesta seleção. Troque o filtro acima.',
-    pro: 'Nenhum item satisfaz este filtro.',
+    pro: 'Troque o filtro acima.',
     senior: 'Nada aqui com este filtro. Escolha outro acima.',
   };
 
+  /* Marcação do protótipo aprovado (`T.mapa` em docs/prototipos/consistencia-telas.html): o
+     cabeçalho com "Mapa do conteúdo", os cinco ladrilhos do saldo, a linha de cobertura, os níveis
+     da trilha em `.niveis` e a lista em `.cartao.p5.secao` com os chips e a `.lista-mapa`. */
   return (
-    <div className="flex-1 overflow-y-auto custom-scrollbar p-6 lg:p-10 pb-28 animate-in fade-in duration-200">
-      <div className="max-w-6xl mx-auto">
-        <header className="mb-6">
-          {/* Mesmo botão de volta da Curadoria: o `py-1` existe para o alvo de toque passar de 24px —
-              a linha de texto sozinha tem ~17px e já foi motivo de correção neste projeto. */}
-          <button
-            onClick={onVoltar}
-            className="flex items-center gap-1.5 text-[13px] text-ink-muted hover:text-ink mb-3 py-1 cursor-pointer"
-          >
-            <ArrowLeft className="w-4 h-4" /> Voltar aos jogos
-          </button>
-          <h1 className="font-display font-black text-2xl text-ink tracking-tight truncate" title={titulo}>
-            {titulo}
-          </h1>
-          <p className="text-[13px] text-ink-muted mt-1 max-w-[70ch]">{subtitulo[ageProfile]}</p>
-        </header>
+    <Tela largura="larga">
+      <CabecalhoDeTela
+        voltar={{ rotulo: t('Jogar'), aoClicar: onVoltar }}
+        sobrancelha="Mapa do conteúdo"
+        icone={MapIcon}
+        titulo={titulo}
+        sub={subtitulo[ageProfile]}
+        acoes={
+          onTrocarFonte ? (
+            <button type="button" className="btn btn-outline" onClick={onTrocarFonte}>
+              <SlidersHorizontal aria-hidden /> Trocar a fonte
+            </button>
+          ) : undefined
+        }
+      />
 
-        {/* O SALDO. É esta faixa — não a lista — que responde "quanto falta"; a lista serve para
-            achar um item específico. Por isso ela vem antes e é lida sem rolar. */}
-        <section className="card-panel bg-surface p-4 mb-5 flex flex-wrap items-center gap-x-6 gap-y-2 text-[13px]">
-          <span className="font-bold text-ink">
-            {saldo.total} <span className="font-semibold text-ink-muted">{rotuloTotal[ageProfile]}</span>
-          </span>
-          <span className="text-ink-muted">
-            <b className="text-ink">{saldo.nunca}</b> {rotuloNunca[ageProfile]}
-          </span>
-          <span className="text-ink-muted">
-            <b className="text-ink">{saldo.jaCairam}</b> {rotuloVistos[ageProfile]}
-          </span>
-          {saldo.porEstado.errado > 0 && (
-            <span className="text-error-ink font-semibold">
-              {saldo.porEstado.errado} {rotuloErros[ageProfile]}
-            </span>
-          )}
-          {saldo.porEstado.vencido > 0 && (
-            <span className="text-warn-ink font-semibold">
-              {saldo.porEstado.vencido} {rotuloVencidos[ageProfile]}
-            </span>
-          )}
-          {saldo.total > 0 && (
-            <span className="text-ink-faint ms-auto">
-              {saldo.pct}% {rotuloCobertura[ageProfile]}
-            </span>
-          )}
-        </section>
+      {/* O SALDO. São estes ladrilhos — não a lista — que respondem "quanto falta"; a lista serve
+          para achar um item específico. Por isso vêm antes e são lidos sem rolar. */}
+      <div className="ladrilhos">
+        <div className="cartao ladrilho">
+          <span className="label-mono">{rotuloTotal[ageProfile]}</span>
+          <span className="v">{numero(saldo.total)}</span>
+        </div>
+        <div className="cartao ladrilho">
+          <span className="label-mono">{rotuloNunca[ageProfile]}</span>
+          <span className="v">{numero(saldo.nunca)}</span>
+        </div>
+        <div className="cartao ladrilho">
+          <span className="label-mono">{rotuloVistos[ageProfile]}</span>
+          <span className="v good">{numero(saldo.jaCairam)}</span>
+        </div>
+        <div className="cartao ladrilho">
+          <span className="label-mono">{rotuloErros[ageProfile]}</span>
+          <span className="v warn">{numero(saldo.porEstado.errado)}</span>
+        </div>
+        <div className="cartao ladrilho">
+          <span className="label-mono">{rotuloVencidos[ageProfile]}</span>
+          <span className="v acc">{numero(saldo.porEstado.vencido)}</span>
+        </div>
+      </div>
 
-        {/* HISTÓRICO PARCIAL, dito em voz alta. Sem esta linha o mapa afirmaria "nunca caiu" sobre
-            palavras que a pessoa já jogou, o registro por item (`item_ref`) só passou a existir na
-            data abaixo, e rodadas anteriores a ela não deixaram rastro de QUAL item caiu. */}
-        {typeof historicoDesde === 'number' && (
-          <p className="flex items-start gap-1.5 text-[11.5px] text-ink-faint mb-5 max-w-[70ch]">
-            <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" aria-hidden />
-            O registro do que caiu em cada rodada começou em{' '}
-            {data(new Date(historicoDesde))}. O que você jogou antes disso não
-            aparece aqui, pode haver palavra marcada como "nunca caiu" que você já viu.
-          </p>
-        )}
+      {/* A COBERTURA e o HISTÓRICO PARCIAL, ditos em voz alta. Sem a segunda frase o mapa afirmaria
+          "nunca caiu" sobre palavras que a pessoa já jogou: o registro por item (`item_ref`) só
+          passou a existir na data abaixo, e rodadas anteriores não deixaram rastro de QUAL item caiu. */}
+      {(saldo.total > 0 || typeof historicoDesde === 'number') && (
+        <p className="mut" style={{ fontSize: 12.5, marginTop: 10 }}>
+          {saldo.total > 0 && `${saldo.pct}% ${rotuloCobertura[ageProfile]} numa rodada.`}
+          {typeof historicoDesde === 'number' &&
+            ` O registro do que caiu em cada rodada começou em ${data(new Date(historicoDesde))}; o que você jogou antes disso não aparece aqui.`}
+        </p>
+      )}
 
-        {/* OS NÍVEIS. Mesmo padrão do PainelTrilha, com um número diferente por baixo: lá a barra
-            mede quanto do nível está NO BARALHO, aqui mede quanto do nível já APARECEU numa rodada.
-            São perguntas distintas, ter a palavra e ter jogado a palavra. */}
-        {niveis && niveis.length > 0 && onEscolherNivel && (
-          <div className="flex flex-wrap gap-1.5 mb-5">
-            {niveis.map(n => {
-              const ativo = n.nivel === nivelAtivo;
+      {/* OS NÍVEIS (só na trilha). Mesmo padrão do PainelTrilha, com um número diferente por baixo:
+          lá a barra mede quanto do nível está NO BARALHO, aqui quanto do nível já APARECEU numa rodada. */}
+      {niveis && niveis.length > 0 && onEscolherNivel && (
+        <section className="secao">
+          <TituloDeSecao
+            icone={GraduationCap}
+            titulo="Níveis da trilha"
+            desc="Um nível fica completo quando 80% das palavras já caíram numa rodada."
+          />
+          <div className="niveis" role="radiogroup" aria-label="Nível da trilha">
+            {niveis.map((n) => {
               const completo = n.pct >= 80;
               return (
                 <button
                   key={n.nivel}
+                  type="button"
+                  className="cartao nivel-trilha"
+                  role="radio"
+                  aria-checked={n.nivel === nivelAtivo}
                   onClick={() => onEscolherNivel(n.nivel)}
-                  className={`px-3 py-2 rounded-xl border text-start transition-all cursor-pointer ${
-                    ativo ? 'border-accent bg-accent-soft' : 'border-border-subtle hover:border-accent'
-                  }`}
                   title={`${n.jaCairam} de ${n.total} palavras do ${n.nivel} já apareceram em alguma rodada`}
                 >
-                  <span className="flex items-center gap-1.5 font-display font-black text-[13px] text-ink">
-                    {n.nivel}
-                    {completo && <Check className="w-3.5 h-3.5 text-good-ink" aria-hidden />}
+                  <span className="linha" style={{ justifyContent: 'space-between' }}>
+                    <b>{n.nivel}</b>
+                    {completo ? (
+                      <span className="badge ok">
+                        <Check aria-hidden /> feito
+                      </span>
+                    ) : (
+                      <span className="mut tn" style={{ fontSize: 12 }}>
+                        {n.pct}%
+                      </span>
+                    )}
                   </span>
-                  <span className="block text-[10px] text-ink-muted font-mono">{n.pct}%</span>
-                  <span className="block h-1 w-12 bg-canvas rounded-full mt-1 overflow-hidden">
-                    <span
-                      className={`block h-full rounded-full ${completo ? 'bg-good' : 'bg-accent'}`}
-                      style={{ width: `${n.pct}%` }}
-                    />
+                  <span className="barra" aria-hidden="true">
+                    <span style={{ width: `${n.pct}%` }} />
                   </span>
+                  <small className="mut tn">{numero(n.total)} palavras</small>
                 </button>
               );
             })}
           </div>
-        )}
+        </section>
+      )}
 
+      <section className="cartao p5 secao">
+        <TituloDeSecao
+          icone={List}
+          titulo="Palavras do conjunto"
+          direita={
+            <span className="mut tn" style={{ fontSize: 12.5 }}>
+              mostrando {numero(visiveis.length)} de {numero(saldo.total)}
+            </span>
+          }
+        />
         {/* OS FILTROS, com a contagem colada. Um filtro que daria zero fica VISÍVEL e desabilitado
-            mostrando o 0: some-lo esconderia a informação mais útil da tela, "não errei nenhuma"
-            e "não existe esse filtro" viram a mesma coisa quando o chip desaparece.
-            `py-2` sobre texto de 12px passa de 24px de alvo. */}
-        <div className="flex flex-wrap gap-1.5 mb-4" role="group" aria-label="Filtrar o mapa">
-          {FILTROS.map(f => {
+            mostrando o 0: sumir com ele esconderia a informação mais útil da tela — "não errei
+            nenhuma" e "não existe esse filtro" viram a mesma coisa quando o chip desaparece. */}
+        <div className="chips" role="radiogroup" aria-label="Filtrar o mapa">
+          {FILTROS.map((f) => {
             const n = contagemDoFiltro[f];
             const ativo = f === filtro;
             return (
               <button
                 key={f}
+                type="button"
+                className="pill"
+                role="radio"
+                aria-checked={ativo}
                 onClick={() => setFiltro(f)}
-                disabled={n === 0}
-                aria-pressed={ativo}
-                className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-full border text-[12px] font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer ${
-                  ativo
-                    ? 'border-accent bg-accent-soft text-accent-ink'
-                    : 'border-border-subtle text-ink-muted hover:border-accent hover:text-ink'
-                }`}
+                disabled={n === 0 && !ativo}
               >
-                {t(ROTULO_FILTRO[f][ageProfile])}
-                <span className="font-mono font-bold text-[11px]">{n}</span>
+                {maiuscula(t(ROTULO_FILTRO[f][ageProfile]))} <span className="n">{numero(n)}</span>
               </button>
             );
           })}
         </div>
 
         {saldo.total === 0 ? (
-          <section className="card-panel bg-surface p-8 text-center">
-            <p className="text-[13px] text-ink-muted">{txtVazio[ageProfile]}</p>
-          </section>
+          <div className="vazio">
+            <IconeEmBloco icone={Search} />
+            <h3>Nada a mapear</h3>
+            <p>{txtVazio[ageProfile]}</p>
+          </div>
         ) : visiveis.length === 0 ? (
           /* Chip desabilitado impede escolher um filtro vazio, mas a lista pode esvaziar DEPOIS —
              trocar de nível troca `itens` sem mexer no filtro em vigor. Sem esta saída, a tela
              ficaria em branco e pareceria quebrada. */
-          <section className="card-panel bg-surface p-8 text-center">
-            <p className="text-[13px] text-ink-muted">{txtFiltroVazio[ageProfile]}</p>
-          </section>
+          <div className="vazio">
+            <IconeEmBloco icone={Search} />
+            <h3>Nenhum item satisfaz este filtro</h3>
+            <p>{txtFiltroVazio[ageProfile]}</p>
+          </div>
         ) : (
-          <ul className="flex flex-col gap-1.5">
+          <ul className="lista-mapa">
             {visiveis.map(({ it, estado }) => (
-              <li
-                key={it.ref}
-                className="card-panel bg-surface p-3 flex flex-wrap items-center gap-x-3 gap-y-1.5"
-              >
-                <span className="font-display font-bold text-[14px] text-ink min-w-[8rem]">
-                  {it.titulo}
+              <li key={it.ref}>
+                <div style={{ minWidth: 0 }}>
+                  <b>{it.titulo}</b>
+                  {/* A pista trunca na tela e fica inteira no `title`: em jogo de frase ela é uma
+                      fala completa, e cortá-la sem saída esconderia o conteúdo do próprio item. */}
+                  {it.pista && (
+                    <small className="mut" title={it.pista}>
+                      {it.pista}
+                    </small>
+                  )}
+                </div>
+                {/* A contagem fica FORA do selo: o selo diz o estado, o número diz o quanto. */}
+                <span className="mut tn" style={{ fontSize: 12 }}>
+                  {it.vezes}× · {it.erros} erro{it.erros === 1 ? '' : 's'}
                 </span>
-                {/* A pista trunca na tela e fica inteira no `title`: em jogo de frase ela é uma fala
-                    completa, e cortá-la sem saída esconderia o conteúdo do próprio item. */}
-                {it.pista && (
-                  <span className="text-[12px] text-ink-muted flex-1 min-w-[10rem] truncate" title={it.pista}>
-                    {it.pista}
-                  </span>
-                )}
-                <span className="flex items-center gap-2 ms-auto shrink-0">
-                  {/* A contagem fica FORA do selo: o selo diz o estado, o número diz o quanto —
-                      juntos num badge só, "já vi" e "já vi 9x" pareceriam o mesmo item. */}
-                  <span className="text-[11px] font-mono text-ink-faint">
-                    {it.vezes === 0 ? '0x' : `${it.vezes}x`}
-                    {it.erros > 0 && ` · ${it.erros} erro${it.erros > 1 ? 's' : ''}`}
-                  </span>
-                  <span className={`badge-tag ${SELO[estado].variante}`}>{SELO[estado].texto}</span>
-                </span>
+                <span className={`badge ${SELO[estado].variante}`}>{SELO[estado].texto}</span>
               </li>
             ))}
           </ul>
@@ -425,11 +442,11 @@ export default function MapaDoConteudo({
         {/* Excedente ANUNCIADO, com a saída junto: sem isto a pessoa concluiria que o A1 tem 60
             palavras. O filtro é o que faz o resto aparecer, então ele é dito na mesma frase. */}
         {ordenados.length > MAX_VISIVEL && (
-          <p className="text-[12px] text-ink-faint mt-3">
-            mostrando {MAX_VISIVEL} de {ordenados.length}, filtre para ver o resto
+          <p className="mut" style={{ fontSize: 12.5, marginTop: 12 }}>
+            Mostrando {MAX_VISIVEL} de {numero(ordenados.length)}. Filtre para ver o resto.
           </p>
         )}
-      </div>
-    </div>
+      </section>
+    </Tela>
   );
 }

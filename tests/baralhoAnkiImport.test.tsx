@@ -11,7 +11,7 @@
  */
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import React from 'react'
-import { afterEach, beforeEach,describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 afterEach(() => cleanup())
 
@@ -86,6 +86,19 @@ beforeEach(() => {
   vi.clearAllMocks()
 })
 
+describe('BaralhoAnki — o voltar diz para onde volta', () => {
+  it('por padrão volta para "Jogar"; aberto do Vocabulário, diz "Vocabulário"', () => {
+    const { unmount } = render(<BaralhoAnki {...props()} />)
+    expect(screen.getByRole('button', { name: 'Jogar' })).toBeTruthy()
+    unmount()
+    const onVoltar = vi.fn()
+    render(<BaralhoAnki {...props({ rotuloVoltar: 'Vocabulário', onVoltar })} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Vocabulário' }))
+    expect(onVoltar).toHaveBeenCalled()
+    expect(screen.queryByText(/Voltar aos jogos/)).toBeNull()
+  })
+})
+
 describe('BaralhoAnki — importar', () => {
   it('mostra o saldo do acervo (novas/atualizadas/iguais/descartadas) depois de importar', async () => {
     mocks.apiFetch.mockResolvedValue(jsonResponse(respostaImport()))
@@ -93,10 +106,12 @@ describe('BaralhoAnki — importar', () => {
 
     escolherArquivo()
 
+    // Os ladrilhos do protótipo (`T.anki`): Novas / Atualizadas / Iguais / Descartadas, e o porquê.
     await waitFor(() => expect(screen.getByText('260')).toBeTruthy())
-    expect(screen.getByText(/atualizadas/)).toBeTruthy()
-    expect(screen.getByText(/iguais ao que já tinha/)).toBeTruthy()
-    expect(screen.getByText(/25 não entraram/)).toBeTruthy()
+    expect(screen.getByText('Atualizadas')).toBeTruthy()
+    expect(screen.getByText('10')).toBeTruthy()
+    expect(screen.getByText('Iguais')).toBeTruthy()
+    expect(screen.getByText(/Por que 25 ficaram de fora/)).toBeTruthy()
   })
 
   it('deixa explícito que nada foi para a fila de estudo ainda', async () => {
@@ -124,14 +139,25 @@ describe('BaralhoAnki — importar', () => {
   })
 
   it('quando não há nada ativável (tudo descartado) o botão não aparece', async () => {
-    mocks.apiFetch.mockResolvedValue(jsonResponse(respostaImport({
-      resumo: { notas: 10, novas: 0, atualizadas: 0, iguais: 0, descartadas: 10, porMotivo: { 'palavra-curta': 10 } },
-    })))
+    mocks.apiFetch.mockResolvedValue(
+      jsonResponse(
+        respostaImport({
+          resumo: {
+            notas: 10,
+            novas: 0,
+            atualizadas: 0,
+            iguais: 0,
+            descartadas: 10,
+            porMotivo: { 'palavra-curta': 10 },
+          },
+        }),
+      ),
+    )
     render(<BaralhoAnki {...props()} />)
 
     escolherArquivo()
 
-    await waitFor(() => expect(screen.getByText(/10 não entraram/)).toBeTruthy())
+    await waitFor(() => expect(screen.getByText(/Por que 10 ficaram de fora/)).toBeTruthy())
     expect(screen.queryByText(/Começar com as primeiras/)).toBeNull()
     expect(screen.getByText(/Nenhuma nota deste baralho passou pela régua/)).toBeTruthy()
   })
@@ -148,11 +174,15 @@ describe('BaralhoAnki — importar', () => {
   })
 
   it('diz quando o arquivo foi truncado (mais notas do que o teto de leitura)', async () => {
-    mocks.apiFetch.mockResolvedValue(jsonResponse(respostaImport({
-      truncado: true,
-      totalNoArquivo: 60000,
-      resumo: { notas: 50000, novas: 50000, atualizadas: 0, iguais: 0, descartadas: 0, porMotivo: {} },
-    })))
+    mocks.apiFetch.mockResolvedValue(
+      jsonResponse(
+        respostaImport({
+          truncado: true,
+          totalNoArquivo: 60000,
+          resumo: { notas: 50000, novas: 50000, atualizadas: 0, iguais: 0, descartadas: 0, porMotivo: {} },
+        }),
+      ),
+    )
     render(<BaralhoAnki {...props()} />)
 
     escolherArquivo()

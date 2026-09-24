@@ -428,6 +428,7 @@ export default function Metrics({
         idioma={baseLang(langCfg.studying)}
         idiomaNativo={baseLang(langCfg.mine)}
         ageProfile={ageProfile}
+        rotuloVoltar="Vocabulário"
         onVoltar={() => setNoAnki(false)}
         onImportou={async () => {
           try {

@@ -97,6 +97,55 @@ export const MOLDURA_FOLGADA = 18; // borda de 1px + 8px de respiro, de cada lad
  */
 export const MOLDURA_MINIMA = 2;
 
+/**
+ * A GEOMETRIA DO DESENHO — as folgas, a moldura e os limites que a conta usa.
+ *
+ * A conta e o desenho têm de falar das MESMAS folgas (é a lição da moldura, acima): se o CSS põe
+ * 5px entre quadrados e a conta supõe 6, o Quarteto volta a estourar. Por isso a geometria é um
+ * parâmetro, e quem desenha passa a do seu CSS. O padrão é a do tabuleiro antigo (Tailwind); a do
+ * protótipo aprovado está em `GEOMETRIA_DO_PROTOTIPO`.
+ */
+export interface GeometriaDoTermo {
+  /** Folga entre quadrados da mesma palavra. */
+  gapCelula: number;
+  /** Folga entre tabuleiros, por quantidade de tabuleiros no degrau. */
+  gapTabuleiro: (tabuleiros: number) => number;
+  /** Molduras a tentar, da mais confortável à mínima, por quantidade de tabuleiros. */
+  molduras: (tabuleiros: number) => number[];
+  /** Piso da altura (ver `CELULA_CONFORTAVEL`). */
+  pisoAltura: number;
+  /** Piso da largura (ver `CELULA_MIN`). */
+  minimo: number;
+  /** Teto do quadrado. */
+  maximo: number;
+}
+
+export const GEOMETRIA_PADRAO: GeometriaDoTermo = {
+  gapCelula: GAP_CELULA,
+  gapTabuleiro: () => GAP_TABULEIRO,
+  molduras: (n) => (n === 1 ? [0] : [MOLDURA_FOLGADA, MOLDURA_MINIMA]),
+  pisoAltura: CELULA_CONFORTAVEL,
+  minimo: CELULA_MIN,
+  maximo: CELULA_MAX,
+};
+
+/**
+ * A do protótipo aprovado (`ajustarTermo` e o CSS de `.tabs-termo` em
+ * docs/prototipos/consistencia-telas.html): 5px entre quadrados; 18px entre tabuleiros (12px no
+ * Quarteto); cada tabuleiro é um cartão `.tab-termo` com 10px de respiro e 1px de borda de cada
+ * lado (22px), mesmo quando é um só; quadrado de até 56px. O piso da altura é 24px, e não 44:
+ * o protótipo quer o teclado visível sem rolar, então a altura aperta o quadrado antes de a área
+ * rolar. O piso da largura segue o do app (22px, o que faz o Quarteto 2×2 caber no celular).
+ */
+export const GEOMETRIA_DO_PROTOTIPO: GeometriaDoTermo = {
+  gapCelula: 5,
+  gapTabuleiro: (n) => (n === 4 ? 12 : 18),
+  molduras: () => [22],
+  pisoAltura: 24,
+  minimo: CELULA_MIN,
+  maximo: 56,
+};
+
 export interface LayoutDoTermo {
   /** Lado do quadrado, em px de layout. */
   celula: number;
@@ -122,17 +171,18 @@ export interface LayoutDoTermo {
  *    vista. Ela serve para a grade CRESCER num monitor grande (era o pedido de 2026-08-28), nunca
  *    para espremer o jogo quando alguém aumenta a fonte.
  */
-function celulaDoArranjo(e: EspacoDoTermo, porFileira: number, moldura: number): number {
+function celulaDoArranjo(e: EspacoDoTermo, porFileira: number, moldura: number, g: GeometriaDoTermo): number {
   const fileiras = Math.ceil(e.tabuleiros / porFileira);
+  const gapTab = g.gapTabuleiro(e.tabuleiros);
 
-  const larguraUtil = e.largura - GAP_TABULEIRO * (porFileira - 1) - moldura * porFileira;
+  const larguraUtil = e.largura - gapTab * (porFileira - 1) - moldura * porFileira;
   const porTabuleiro = larguraUtil / porFileira;
-  const porLargura = (porTabuleiro - GAP_CELULA * (e.colunas - 1)) / e.colunas;
+  const porLargura = (porTabuleiro - g.gapCelula * (e.colunas - 1)) / e.colunas;
 
-  const alturaUtil = e.altura - (e.cabecalho + GAP_TABULEIRO + moldura) * fileiras;
-  const porAltura = (alturaUtil / fileiras - GAP_CELULA * (e.linhas - 1)) / e.linhas;
+  const alturaUtil = e.altura - (e.cabecalho + gapTab + moldura) * fileiras;
+  const porAltura = (alturaUtil / fileiras - g.gapCelula * (e.linhas - 1)) / e.linhas;
 
-  return Math.min(porLargura, Math.max(porAltura, CELULA_CONFORTAVEL), CELULA_MAX);
+  return Math.min(porLargura, Math.max(porAltura, g.pisoAltura), g.maximo);
 }
 
 /**
@@ -147,10 +197,11 @@ function celulaDoArranjo(e: EspacoDoTermo, porFileira: number, moldura: number):
  * Só quando 1×4 espremeria abaixo de `CELULA_MIN` — na prática, celular — o 2×2 entra, e aí
  * rolar entre fileiras é melhor que quadrados ilegíveis.
  */
-export function layoutDoTermo(e: EspacoDoTermo): LayoutDoTermo {
+export function layoutDoTermo(e: EspacoDoTermo, g: GeometriaDoTermo = GEOMETRIA_PADRAO): LayoutDoTermo {
   const arranjos = e.tabuleiros === 4 ? [4, 2] : [e.tabuleiros];
-  // Um tabuleiro só não tem do que ser separado: cartão ali seria enfeite cobrando largura.
-  const molduras = e.tabuleiros === 1 ? [0] : [MOLDURA_FOLGADA, MOLDURA_MINIMA];
+  // Um tabuleiro só não tem do que ser separado: na geometria padrão, cartão ali seria enfeite
+  // cobrando largura. (No protótipo o tabuleiro único também é cartão, e a geometria dele diz isso.)
+  const molduras = g.molduras(e.tabuleiros);
 
   /* Duas preferências em ordem, e a de FORA vale mais: primeiro tenta manter tudo numa fileira
      (mecânica), e só dentro dessa escolha tenta manter o respiro da moldura (conforto). Assim
@@ -159,24 +210,24 @@ export function layoutDoTermo(e: EspacoDoTermo): LayoutDoTermo {
   let melhor = { celula: 0, porFileira: arranjos[0], moldura: molduras[0] };
   for (const porFileira of arranjos) {
     for (const moldura of molduras) {
-      const celula = celulaDoArranjo(e, porFileira, moldura);
+      const celula = celulaDoArranjo(e, porFileira, moldura, g);
       if (celula > melhor.celula) melhor = { celula, porFileira, moldura };
-      if (celula >= CELULA_MIN) break;
+      if (celula >= g.minimo) break;
     }
-    if (melhor.celula >= CELULA_MIN) break;
+    if (melhor.celula >= g.minimo) break;
   }
 
   return {
     // O piso é chão, não teto: abaixo dele a grade rola, mas a letra continua legível. Deixar a
     // célula encolher sem limite entregaria quadrados de 8px, que não são jogo nenhum.
-    celula: Math.max(CELULA_MIN, Math.floor(melhor.celula)),
+    celula: Math.max(g.minimo, Math.floor(melhor.celula)),
     porFileira: melhor.porFileira,
     moldura: melhor.moldura,
-    apertado: melhor.celula < CELULA_MIN,
+    apertado: melhor.celula < g.minimo,
   };
 }
 
 /** A largura que um tabuleiro ocupa com esta célula, moldura incluída. */
-export function larguraDoTabuleiro(celula: number, colunas: number, moldura = 0): number {
-  return celula * colunas + GAP_CELULA * (colunas - 1) + moldura;
+export function larguraDoTabuleiro(celula: number, colunas: number, moldura = 0, gapCelula = GAP_CELULA): number {
+  return celula * colunas + gapCelula * (colunas - 1) + moldura;
 }

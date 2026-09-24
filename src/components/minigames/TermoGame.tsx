@@ -1,17 +1,29 @@
-import type { ItemOutcome, Palpite,RodadaTermo, RoundReport } from '@core';
+import type { ItemOutcome, Palpite, RodadaTermo, RoundReport } from '@core';
 import {
-acertou, dicaDeLetra, estadoDoTecladoMulti, GAP_TABULEIRO,   julgarPalpite, type LayoutDoTermo,
-  layoutDoTermo, letrasCertas,
-modoDeTabuleiros, montarEscada, planoDaEscada, scoreRound,
-  TENTATIVAS_POR_MODO, } from '@core';
-import { ChevronsUp, CornerDownLeft, Delete, Flame,Lightbulb, Sparkles, Volume2, WandSparkles, X } from 'lucide-react';
+  acertou,
+  dicaDeLetra,
+  estadoDoTeclado,
+  type EstadoLetra,
+  GEOMETRIA_DO_PROTOTIPO,
+  julgarPalpite,
+  type LayoutDoTermo,
+  layoutDoTermo,
+  letrasCertas,
+  modoDeTabuleiros,
+  montarEscada,
+  planoDaEscada,
+  scoreRound,
+  TENTATIVAS_POR_MODO,
+} from '@core';
+import { Check, ChevronRight, Delete, Flame, Lightbulb, Sparkles, Volume2, WandSparkles, X } from 'lucide-react';
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { playJuicedError, playJuicedHit, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
-import { multiplicador,pontosDoElemento } from '../../lib/juice';
+import { multiplicador, pontosDoElemento } from '../../lib/juice';
 import { toBcp47 } from '../../lib/languages';
 import type { AgeProfileType } from '../../lib/profile';
 import { speak } from '../../lib/tts';
+import { toast } from '../Toast';
 
 /**
  * SOLETRAR — o jogo de escrever a palavra a partir do significado, em degraus.
@@ -54,26 +66,39 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
   const maxTentativas = TENTATIVAS_POR_MODO[modoDeTabuleiros(nTabuleiros)];
 
   const colunas = grupo?.[0]?.resposta.length ?? 5;
-  const temContexto = !!grupo?.some(r => !!r.contexto);
-  const [layout, setLayout] = useState<LayoutDoTermo>({ celula: 44, porFileira: nTabuleiros, moldura: 0, apertado: false });
+  const temContexto = !!grupo?.some((r) => !!r.contexto);
+  const [layout, setLayout] = useState<LayoutDoTermo>({
+    celula: 44,
+    porFileira: nTabuleiros,
+    moldura: 0,
+    apertado: false,
+  });
 
   useLayoutEffect(() => {
     const raiz = raizRef.current;
     const grade = gradeRef.current;
     if (!raiz || !grade) return;
     const medir = () => {
-      setLayout(layoutDoTermo({
-        largura: grade.clientWidth,
-        /* MEDIDO, NÃO DEDUZIDO. Antes era `raiz.clientHeight - cabeçalho - teclado - 24`, e a
+      setLayout(
+        layoutDoTermo(
+          {
+            largura: grade.clientWidth,
+            /* MEDIDO, NÃO DEDUZIDO. Antes era `raiz.clientHeight - cabeçalho - teclado - 24`, e a
            dedução esquecia tudo que mora entre eles (mensagens de acerto, avisos, margens): a
            grade começava 88px abaixo do que a conta supunha. A área rolável É o orçamento. */
-        altura: areaRef.current?.clientHeight ?? 0,
-        tabuleiros: nTabuleiros,
-        colunas,
-        linhas: maxTentativas,
-        // A pista mora acima de cada tabuleiro; com frase de contexto ela ocupa duas vezes mais.
-        cabecalho: temContexto ? 88 : 44,
-      }));
+            /* O teclado mora na mesma área, logo abaixo dos tabuleiros: sai do orçamento a altura
+           MEDIDA dele e os 16px de margem de `.tabs-termo`. */
+            altura: (areaRef.current?.clientHeight ?? 0) - (tecladoRef.current?.offsetHeight ?? 0) - 16,
+            tabuleiros: nTabuleiros,
+            colunas,
+            linhas: maxTentativas,
+            /* O `header` de cada `.tab-termo` (24px + 6 de folga); com a frase de contexto embaixo
+           da pista, mais uma linha e meia. */
+            cabecalho: temContexto ? 64 : 30,
+          },
+          GEOMETRIA_DO_PROTOTIPO,
+        ),
+      );
       /* A MOLDURA VEM DA CONTA, não de uma classe. Se o padding vivesse só no CSS, ele cobraria
          uma largura que o cálculo não conhece — que é precisamente como os quatro tabuleiros se
          colaram da primeira vez. Aqui quem desenha aplica o número que quem calcula usou. */
@@ -83,7 +108,10 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
     ro.observe(raiz);
     if (areaRef.current) ro.observe(areaRef.current);
     window.addEventListener('resize', medir);
-    return () => { ro.disconnect(); window.removeEventListener('resize', medir); };
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', medir);
+    };
   }, [nTabuleiros, colunas, maxTentativas, temContexto]);
 
   const tamanho = grupo?.[0]?.resposta.length ?? 5;
@@ -101,7 +129,10 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
      vale uma vez por tabuleiro, e o aviso de sinônimo/quase aparece acima da grade. */
   const [dicaPorTab, setDicaPorTab] = useState<boolean[]>([false]);
   const [quaseUsado, setQuaseUsado] = useState<boolean[]>([false]);
-  const [aviso, setAviso] = useState<string | null>(null);
+  /** A linha em digitação treme quando o Enter chega com casa vazia (como no protótipo). */
+  const [treme, setTreme] = useState(false);
+  /** A casa que acabou de receber letra — ganha o "pop" do protótipo. */
+  const [pop, setPop] = useState(-1);
   const resolvidoEmTsRef = useRef<(number | null)[]>([null]);
   const [sequencia, setSequencia] = useState(0);
   const [pontos, setPontos] = useState(0);
@@ -129,9 +160,13 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
   const raizRef = useRef<HTMLDivElement | null>(null);
   /** A área que rola — a altura DELA é o orçamento do tabuleiro, sem dedução nenhuma. */
   const areaRef = useRef<HTMLDivElement | null>(null);
+  /** O teclado — a altura dele sai do orçamento da área (ver `medir`). */
+  const tecladoRef = useRef<HTMLDivElement | null>(null);
 
-  const teclado = useMemo(() => estadoDoTecladoMulti(palpitesPorTab, resolvidos), [palpitesPorTab, resolvidos]);
-  const preenchido = atual.every(l => l !== '');
+  /* O teclado do protótipo marca a letra POR TABULEIRO (`teclasPorTab`): com um só, a tecla pinta
+     inteira; com dois ou quatro, cada tecla ganha uma marquinha por tabuleiro. */
+  const tecladoPorTab = useMemo(() => palpitesPorTab.map((p) => estadoDoTeclado(p)), [palpitesPorTab]);
+  const preenchido = atual.every((l) => l !== '');
 
   /**
    * A linha de partida de cada tentativa: já vem com o que a pessoa SABE — letras reveladas por
@@ -145,7 +180,7 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
     resolv: boolean[] = resolvidos,
     revel: Record<number, Record<number, string>> = reveladas,
   ): string[] => {
-    const alvo = resolv.findIndex(r => !r);
+    const alvo = resolv.findIndex((r) => !r);
     const linha = Array(tam).fill('');
     if (alvo < 0) return linha;
     const certas = letrasCertas(palpites[alvo] ?? [], tam);
@@ -170,7 +205,7 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
     setUsouDica(false);
     setDicaPorTab(Array(n).fill(false));
     setQuaseUsado(Array(n).fill(false));
-    setAviso(null);
+    setPop(-1);
     setFimDoGrupo(false);
     resolvidoEmRef.current = Array(n).fill(null);
     resolvidoEmTsRef.current = Array(n).fill(null);
@@ -232,41 +267,62 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
     }
 
     // Pausa para LER o resultado antes de a tela trocar; maior quando errou, porque há o que ver.
-    setTimeout(() => {
-      if (!temProximo) { encerrarTudo(resultadosRef.current); return; }
-      const proximo = grupos[grupoIdx + 1];
-      setGrupoIdx(i => i + 1);
-      setSubiuDegrau(false);
-      prepararDegrau(proximo.length, proximo[0].resposta.length);
-    }, tudoCerto ? 1500 : 2400);
+    setTimeout(
+      () => {
+        if (!temProximo) {
+          encerrarTudo(resultadosRef.current);
+          return;
+        }
+        const proximo = grupos[grupoIdx + 1];
+        setGrupoIdx((i) => i + 1);
+        setSubiuDegrau(false);
+        prepararDegrau(proximo.length, proximo[0].resposta.length);
+      },
+      tudoCerto ? 1500 : 2400,
+    );
   };
 
   const enviar = () => {
-    if (fimDoGrupo || !grupo || !preenchido) return;
+    if (fimDoGrupo || !grupo) return;
+    if (!preenchido) {
+      // Casa vazia: a linha treme e o aviso diz o tamanho (o protótipo faz igual).
+      setTreme(false);
+      requestAnimationFrame(() => setTreme(true));
+      setTimeout(() => setTreme(false), 450);
+      toast.warn(`A palavra tem ${tamanho} letras`);
+      return;
+    }
     const palpite = atual.join('');
 
     /* JULGAMENTO CONTRA A RODADA (sinônimos e "quase"), não só contra a resposta. */
     const ultima = tentativas + 1 >= maxTentativas;
-    const julgamentos = grupo.map((r, i) => (resolvidos[i] ? null : julgarPalpite(palpite, r, { ultimaTentativa: ultima, quaseJaUsado: quaseUsado[i] })));
-    const gratis = julgamentos.find(j => j && !j.acertou && (j.sinonimo || j.quase));
+    const julgamentos = grupo.map((r, i) =>
+      resolvidos[i] ? null : julgarPalpite(palpite, r, { ultimaTentativa: ultima, quaseJaUsado: quaseUsado[i] }),
+    );
+    const gratis = julgamentos.find((j) => j && !j.acertou && (j.sinonimo || j.quase));
     if (gratis) {
       const i = julgamentos.indexOf(gratis);
-      setAviso(gratis.dica ?? null);
+      // O aviso de sinônimo/quase sai no toast, como os avisos do protótipo.
+      if (gratis.dica) toast.info(gratis.dica);
       if (gratis.sinonimo) {
         const primeira = grupo[i].resposta[0];
-        setReveladas(prev => ({ ...prev, [i]: { ...(prev[i] ?? {}), 0: primeira } }));
+        setReveladas((prev) => ({ ...prev, [i]: { ...(prev[i] ?? {}), 0: primeira } }));
       }
-      if (gratis.quase) setQuaseUsado(q => q.map((v, k) => (k === i ? true : v)));
+      if (gratis.quase) setQuaseUsado((q) => q.map((v, k) => (k === i ? true : v)));
       playJuicedHit(1, undefined, gratis.sinonimo ? 'sinônimo!' : 'quase!');
-      const proxima = linhaInicial(tamanho, palpitesPorTab, resolvidos, gratis.sinonimo ? { ...reveladas, [i]: { ...(reveladas[i] ?? {}), 0: grupo[i].resposta[0] } } : reveladas);
+      const proxima = linhaInicial(
+        tamanho,
+        palpitesPorTab,
+        resolvidos,
+        gratis.sinonimo ? { ...reveladas, [i]: { ...(reveladas[i] ?? {}), 0: grupo[i].resposta[0] } } : reveladas,
+      );
       cursorEscolhidoRef.current = false;
       escrever(proxima, proximaVaga(proxima, 0));
       return;
     }
-    setAviso(null);
 
     const novosPalpites = palpitesPorTab.map((lista, i) =>
-      resolvidos[i] ? lista : [...lista, julgamentos[i]!.palpite]
+      resolvidos[i] ? lista : [...lista, julgamentos[i]!.palpite],
     );
     const novosResolvidos = resolvidos.map((r, i) => r || acertou(novosPalpites[i][novosPalpites[i].length - 1]));
     const fechouAgora = novosResolvidos.filter((r, i) => r && !resolvidos[i]).length;
@@ -295,7 +351,7 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
       const mult = multiplicador(nova);
       const ganho = 10 * fechouAgora * (usouDica ? 1 : mult);
       setSequencia(nova);
-      setPontos(p => p + ganho);
+      setPontos((p) => p + ganho);
       triggerHaptic('success');
       playJuicedHit(nova, undefined, `+${ganho}${mult > 1 && !usouDica ? ` ×${mult}` : ''}`);
     } else {
@@ -304,7 +360,8 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
       playJuicedError(gradeRef.current, undefined);
     }
 
-    if (novosResolvidos.every(Boolean) || tentativasUsadas >= maxTentativas) fecharGrupo(novosResolvidos, tentativasUsadas);
+    if (novosResolvidos.every(Boolean) || tentativasUsadas >= maxTentativas)
+      fecharGrupo(novosResolvidos, tentativasUsadas);
   };
 
   /* ─────────── ESCRITA POR POSIÇÃO ───────────
@@ -348,8 +405,9 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
     const n = [...atualRef.current];
     const pos = Math.min(cursorRef.current, n.length - 1);
     if (pos < 0) return;
-    if (n.every(l => l !== '') && !cursorEscolhidoRef.current) return;
+    if (n.every((l) => l !== '') && !cursorEscolhidoRef.current) return;
     n[pos] = letra;
+    setPop(pos);
     escrever(n, proximaVaga(n, pos + 1));
   };
 
@@ -358,14 +416,20 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
     triggerHaptic('soft');
     const n = [...atualRef.current];
     const pos = Math.max(0, Math.min(cursorRef.current, n.length - 1));
-    if (n[pos]) { escrever(n.map((l, i) => (i === pos ? '' : l)), pos); return; }
+    if (n[pos]) {
+      escrever(
+        n.map((l, i) => (i === pos ? '' : l)),
+        pos,
+      );
+      return;
+    }
     const anterior = Math.max(0, pos - 1);
     n[anterior] = '';
     escrever(n, anterior);
   };
 
   const irPara = (pos: number) => {
-    cursorEscolhidoRef.current = true;   // daqui em diante, digitar é corrigir
+    cursorEscolhidoRef.current = true; // daqui em diante, digitar é corrigir
     cursorRef.current = Math.max(0, Math.min(tamanho - 1, pos));
     setCursor(cursorRef.current);
   };
@@ -383,19 +447,15 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
   /** DICA: revela uma letra de um tabuleiro ainda aberto. O preço é a nota (ver `gradeFor`). */
   const pedirDica = (el: HTMLElement | null) => {
     if (fimDoGrupo || !grupo) return;
-    const alvo = resolvidos.findIndex(r => !r);
+    const alvo = resolvidos.findIndex((r) => !r);
     if (alvo < 0) return;
-    const d = dicaDeLetra(
-      grupo[alvo].resposta,
-      palpitesPorTab[alvo],
-      Object.keys(reveladas[alvo] ?? {}).map(Number),
-    );
+    const d = dicaDeLetra(grupo[alvo].resposta, palpitesPorTab[alvo], Object.keys(reveladas[alvo] ?? {}).map(Number));
     if (!d) return;
     const letra = d.letra.toUpperCase();
     setUsouDica(true);
-    setDicaPorTab(v => v.map((x, k) => (k === alvo ? true : x)));
+    setDicaPorTab((v) => v.map((x, k) => (k === alvo ? true : x)));
     setSequencia(0); // a sequência é mérito; com ajuda ela recomeça
-    setReveladas(prev => ({ ...prev, [alvo]: { ...(prev[alvo] ?? {}), [d.posicao]: letra } }));
+    setReveladas((prev) => ({ ...prev, [alvo]: { ...(prev[alvo] ?? {}), [d.posicao]: letra } }));
     // Entra no palpite de verdade: é o que faz o Enter confirmar e a dica sobreviver ao envio.
     const n = [...atualRef.current];
     n[d.posicao] = letra;
@@ -406,7 +466,7 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
   /** Ouvir a palavra — dica sonora que, de quebra, liga a grafia ao som. */
   const ouvirPalavra = () => {
     if (!grupo) return;
-    const alvo = resolvidos.findIndex(r => !r);
+    const alvo = resolvidos.findIndex((r) => !r);
     if (alvo < 0) return;
     // Ouvir NÃO é dica: não revela letra nenhuma, e ligar grafia ao som é o objetivo do jogo.
     speak(grupo[alvo].palavra || grupo[alvo].resposta, { lang: toBcp47(grupo[alvo].lang || 'en') });
@@ -428,13 +488,32 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
         e.preventDefault();
         foco.blur();
       }
-      if (e.key === 'Enter') { enviar(); return; }
+      if (e.key === 'Enter') {
+        enviar();
+        return;
+      }
       if (e.key === ' ') return;
-      if (e.key === 'Backspace') { e.preventDefault(); apagar(); return; }
-      if (e.key === 'ArrowLeft') { irPara(cursorRef.current - 1); return; }
-      if (e.key === 'ArrowRight') { irPara(cursorRef.current + 1); return; }
-      if (e.key === 'Home') { irPara(0); return; }
-      if (e.key === 'End') { irPara(tamanho - 1); return; }
+      if (e.key === 'Backspace') {
+        e.preventDefault();
+        apagar();
+        return;
+      }
+      if (e.key === 'ArrowLeft') {
+        irPara(cursorRef.current - 1);
+        return;
+      }
+      if (e.key === 'ArrowRight') {
+        irPara(cursorRef.current + 1);
+        return;
+      }
+      if (e.key === 'Home') {
+        irPara(0);
+        return;
+      }
+      if (e.key === 'End') {
+        irPara(tamanho - 1);
+        return;
+      }
       const l = e.key.toUpperCase();
       if (/^[A-Z]$/.test(l)) digitar(l);
     };
@@ -444,20 +523,25 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
 
   if (!grupo) return null;
 
-  const cor = (estado?: string) =>
-    estado === 'certa' ? 'bg-good text-white border-good'
-    : estado === 'existe' ? 'bg-warn text-white border-warn'
-    : estado === 'ausente' ? 'bg-canvas text-ink-faint border-border-subtle'
-    : 'bg-surface text-ink border-border-subtle';
-
   // O nome do degrau acompanha o da carta no lobby: ver "Termo" depois de clicar em "Escrever a
   // palavra" faz a pessoa achar que entrou noutro lugar.
-  const modo = modoDeTabuleiros(nTabuleiros);
-  const nomeDoDegrau = modo === 'termo'
-    ? (ageProfile === 'kids' ? 'Escreva a palavra' : ageProfile === 'senior' ? 'Escrever a palavra' : 'Termo')
-    : modo === 'dueto'
-      ? (ageProfile === 'pro' ? 'Dueto' : 'Duas de uma vez')
-      : (ageProfile === 'pro' ? 'Quarteto' : 'Quatro de uma vez');
+  const nomeDe = (tabuleiros: number) => {
+    const m = modoDeTabuleiros(tabuleiros);
+    return m === 'termo'
+      ? ageProfile === 'kids'
+        ? 'Escreva a palavra'
+        : ageProfile === 'senior'
+          ? 'Escrever a palavra'
+          : 'Termo'
+      : m === 'dueto'
+        ? ageProfile === 'pro'
+          ? 'Dueto'
+          : 'Duas de uma vez'
+        : ageProfile === 'pro'
+          ? 'Quarteto'
+          : 'Quatro de uma vez';
+  };
+  const nomeDoDegrau = nomeDe(nTabuleiros);
 
   /**
    * A CÉLULA É MEDIDA, NÃO ESTIMADA — e a diferença é o Quarteto parar de se colar.
@@ -483,14 +567,37 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
    * quem se mede seria um laço. A raiz é dimensionada pela janela, e muda quando o A± muda —
    * que é exatamente quando esta conta precisa rodar de novo.
    */
-  const estiloCel: React.CSSProperties = {
-    width: layout.celula, height: layout.celula, fontSize: Math.round(layout.celula * 0.46),
+  /* A célula medida entra como `--lt`, a variável do CSS do protótipo (`.tabs-termo`): é dela que
+     saem a largura do quadrado, a fonte e o raio. Quando o Quarteto vira 2×2, a largura máxima
+     força a quebra em duas fileiras — a mesma conta do `ajustarTermo` do protótipo. */
+  const G = GEOMETRIA_DO_PROTOTIPO;
+  const gapTab = G.gapTabuleiro(nTabuleiros);
+  const estiloTabs = {
+    '--lt': `${layout.celula}px`,
+    '--tam': colunas,
+    maxWidth:
+      layout.porFileira < nTabuleiros
+        ? layout.porFileira * (colunas * layout.celula + (colunas - 1) * G.gapCelula + layout.moldura) +
+          (layout.porFileira - 1) * gapTab
+        : undefined,
+  } as React.CSSProperties;
+
+  /** Estado do core → classe do protótipo. */
+  const CLASSE: Record<EstadoLetra, string> = { certa: 'certa', existe: 'lugar', ausente: 'fora' };
+  const ROTULO: Record<EstadoLetra, string> = {
+    certa: 'no lugar certo',
+    existe: 'na palavra, lugar errado',
+    ausente: 'não está na palavra',
   };
+  const plano = grupos.map((g) => g.length);
 
   const mult = multiplicador(sequencia);
 
   return (
-    <div ref={raizRef} className="fixed inset-0 z-50 flex flex-col bg-canvas text-ink select-none overflow-hidden animate-in fade-in duration-200">
+    <div
+      ref={raizRef}
+      className="fixed inset-0 z-50 flex flex-col bg-canvas text-ink select-none overflow-hidden animate-in fade-in duration-200"
+    >
       {/* Topo unificado */}
       <header className="flex items-center justify-between px-6 py-4 border-b border-border-subtle bg-surface/85 backdrop-blur-md shrink-0">
         <div className="flex items-center gap-3">
@@ -505,22 +612,15 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
           <div>
             <div className="flex items-center gap-2">
               <span className="font-display font-black text-lg tracking-wide uppercase text-accent">Termo Arena</span>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-accent-soft text-accent-ink font-semibold">{nomeDoDegrau}</span>
-              {grupos.length > 1 && (
-                <span className="flex items-end gap-1 ml-1" aria-label={`degrau ${grupoIdx + 1} de ${grupos.length}`}>
-                  {grupos.map((g, i) => (
-                    <span
-                      key={i}
-                      title={`${g.length} ${g.length === 1 ? 'palavra' : 'palavras'}`}
-                      className={`w-1.5 rounded-full transition-all ${
-                        i < grupoIdx ? 'h-3 bg-good' : i === grupoIdx ? 'h-4 bg-accent' : 'h-2 bg-border-subtle'
-                      }`}
-                    />
-                  ))}
-                </span>
-              )}
+              <span className="text-xs px-2 py-0.5 rounded-full bg-accent-soft text-accent-ink font-semibold">
+                {nomeDoDegrau}
+              </span>
+              {/* Os tracinhos da escada que moravam aqui viraram a `.escada-termo` do protótipo,
+                  acima dos tabuleiros. */}
             </div>
-            <p className="text-xs text-ink-muted">Adivinhe a palavra secreta em 6 tentativas usando as cores das letras!</p>
+            <p className="text-xs text-ink-muted">
+              Adivinhe a palavra secreta em 6 tentativas usando as cores das letras!
+            </p>
           </div>
         </div>
 
@@ -577,145 +677,229 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
         </div>
       </header>
 
-      <main className="w-full flex-1 min-h-0 flex flex-col items-center gap-1 py-2 overflow-y-auto">
+      <main className="w-full flex-1 min-h-0 flex flex-col items-center gap-1 px-4 pt-4 pb-3 overflow-y-auto">
+        {/* A ESCADA — `.escada-termo` do protótipo: os degraus do plano, o feito em verde, o da vez
+          em destaque, e o tamanho/tentativas do degrau à direita. */}
+        <div className="escada-termo shrink-0" aria-label={`degrau ${grupoIdx + 1} de ${grupos.length}`}>
+          {plano.map((d, i) => (
+            <React.Fragment key={i}>
+              {i > 0 && (
+                <i aria-hidden="true">
+                  <ChevronRight />
+                </i>
+              )}
+              <span className={i < grupoIdx ? 'feito' : i === grupoIdx ? 'vez' : ''}>{nomeDe(d)}</span>
+            </React.Fragment>
+          ))}
+          <small className="mut">
+            {colunas} letras · {maxTentativas} tentativas
+          </small>
+        </div>
 
-      {subiuDegrau && (
-        <p className="flex items-center gap-1.5 text-[13px] font-black text-good-ink mb-2 animate-in fade-in zoom-in">
-          <ChevronsUp className="w-4 h-4" aria-hidden />
-          {grupos[grupoIdx + 1]?.length === 2 ? 'Subiu! Agora são duas ao mesmo tempo' : 'Subiu! Agora são quatro ao mesmo tempo'}
-        </p>
-      )}
-
-      {/* OS TABULEIROS — cada um com A SUA pista logo acima.
+        {/* OS TABULEIROS — `.tabs-termo` > `.tab-termo`, cada um com A SUA pista no `header`.
           As pistas já moraram num bloco separado no topo, e com quatro tabuleiros ninguém sabia
-          qual pista era de qual grade: era preciso contar posições. Colada ao tabuleiro, a
-          correspondência não precisa ser explicada.
-          No Quarteto, quatro colunas quando a tela permite, empilhado 2×2 metade das grades fica
-          fora da tela, e num jogo em que o palpite vale para todas, não ver metade é perder a jogada. */}
-      <div ref={areaRef} className="w-full flex-1 min-h-0 overflow-y-auto custom-scrollbar flex">
-      <div
-        ref={gradeRef}
-        data-tour="tabuleiro"
-        /* `overflow-x-auto` SÓ quando a conta declarou aperto (celular + zoom alto + quarteto).
-           Rolar de lado é degradação honesta; colar os tabuleiros é defeito. */
-        /* `m-auto`: centraliza quando cabe e NÃO corta o topo quando não cabe — que é o que
-           `items-center` faria num container que rola. */
-        className={`w-full max-w-6xl m-auto ${layout.apertado ? 'overflow-x-auto custom-scrollbar' : ''}`}
-      >
-        <div
-          className="grid mx-auto w-max justify-items-center"
-          style={{
-            gridTemplateColumns: `repeat(${layout.porFileira}, max-content)`,
-            columnGap: GAP_TABULEIRO,
-            rowGap: GAP_TABULEIRO,
-          }}
-        >
-        {grupo.map((r, tIdx) => {
-          const certas = letrasCertas(palpitesPorTab[tIdx] ?? [], r.resposta.length);
-          return (
-            /* CADA TABULEIRO NUM CARTÃO quando há mais de um. A folga sozinha é ambígua: entre
-               quadrados da mesma palavra há 6px, entre tabuleiros 28px, e a olho nu 28px ainda
-               pode ser lido como "espaço um pouco maior" em vez de "outra palavra". A borda
-               resolve a ambiguidade sem depender de o olho comparar distâncias. */
+          qual pista era de qual grade. No Quarteto, quatro numa fileira quando a tela permite;
+          2×2 só quando 1×4 espremeria abaixo do legível (ver `layoutDoTermo`). */}
+        {/* A área rolável é o orçamento de altura; tabuleiros e teclado ficam JUNTOS dentro dela
+          (o teclado logo abaixo dos tabuleiros, como no protótipo), e a conta desconta a altura
+          medida do teclado. `m-auto` centraliza quando cabe e NÃO corta o topo quando não cabe. */}
+        <div ref={areaRef} className="w-full flex-1 min-h-0 overflow-y-auto custom-scrollbar flex">
+          <div className="w-full m-auto">
             <div
-              key={tIdx}
-              className={`flex flex-col gap-1.5 transition-opacity ${resolvidos[tIdx] ? 'opacity-45' : ''} ${
-                layout.moldura ? 'rounded-2xl border border-border-subtle bg-canvas/40' : ''
-              }`}
-              style={layout.moldura ? { padding: layout.moldura / 2 - 1 } : undefined}
+              ref={gradeRef}
+              data-tour="tabuleiro"
+              /* `overflow-x-auto` SÓ quando a conta declarou aperto (celular + zoom alto + quarteto).
+           Rolar de lado é degradação honesta; colar os tabuleiros é defeito. `relative`: o selo
+           "Sobe" é absoluto. */
+              className={`relative w-full ${layout.apertado ? 'overflow-x-auto custom-scrollbar' : ''}`}
             >
-              <p
-                data-tour={tIdx === 0 ? 'pista' : undefined}
-                className={`text-center text-[13px] leading-tight px-2 py-1.5 mb-1 rounded-lg transition-colors ${
-                  resolvidos[tIdx] ? 'bg-good-soft text-good-ink font-black tracking-wide'
-                  : fimDoGrupo ? 'bg-error-soft text-error-ink font-black tracking-wide'
-                  : 'text-accent-ink font-extrabold'
-                }`}
-              >
-                {resolvidos[tIdx] || fimDoGrupo ? (r.palavra || r.resposta).toUpperCase() : r.pista || '?'}
-              </p>
-              {/* Pista AMBÍGUA (há sinônimos no acervo): a frase de contexto desempata. */}
-              {!resolvidos[tIdx] && !fimDoGrupo && r.contexto && (
-                <p className="text-center text-[11.5px] italic text-ink-muted px-2 -mt-1 mb-1 max-w-[36ch] mx-auto leading-snug">“{r.contexto}”</p>
+              {subiuDegrau && grupos[grupoIdx + 1] && (
+                <div className="selo-combo" role="status">
+                  Sobe: {nomeDe(grupos[grupoIdx + 1].length)}!
+                </div>
               )}
-              {tIdx === 0 && aviso && !fimDoGrupo && (
-                <p role="status" className="text-center text-[12px] font-semibold text-warn-ink bg-warn-soft border border-warn/30 rounded-lg px-2 py-1 mb-1 max-w-[40ch] mx-auto leading-snug">{aviso}</p>
-              )}
-              {Array.from({ length: maxTentativas }).map((_, linha) => {
-                const p = (palpitesPorTab[tIdx] ?? [])[linha];
-                const digitando = !resolvidos[tIdx] && !fimDoGrupo && linha === (palpitesPorTab[tIdx] ?? []).length;
-                return (
-                  <div key={linha} className="flex gap-1.5 justify-center">
-                    {Array.from({ length: r.resposta.length }).map((_, col) => {
-                      const revelada = reveladas[tIdx]?.[col];
-                      const letra = p ? p.letras[col] : digitando ? atual[col] : '';
-                      const estado = p?.estados[col];
-                      const noCursor = digitando && col === cursor;
-                      // Só marca de onde a letra veio; ela já está no palpite (ver `linhaInicial`).
-                      const ehFantasma = digitando && !!letra && (!!revelada || !!certas[col]);
+              <div className={`tabs-termo n${nTabuleiros}`} style={estiloTabs}>
+                {grupo.map((r, tIdx) => {
+                  const palpites = palpitesPorTab[tIdx] ?? [];
+                  const certas = letrasCertas(palpites, r.resposta.length);
+                  const resolvido = !!resolvidos[tIdx];
+                  const falhou = fimDoGrupo && !resolvido;
+                  const rev = reveladas[tIdx] ?? {};
+                  const temRevelada = Object.keys(rev).length > 0;
+                  return (
+                    <section
+                      key={tIdx}
+                      className={`tab-termo ${resolvido ? 'resolvido' : ''} ${falhou ? 'falhou' : ''}`}
+                      aria-label={`Tabuleiro ${tIdx + 1}: ${r.pista || 'sem pista'}`}
+                    >
+                      <header>
+                        <span
+                          className="pista"
+                          title={r.pista || undefined}
+                          data-tour={tIdx === 0 ? 'pista' : undefined}
+                        >
+                          {r.pista || '?'}
+                        </span>
+                        {resolvido ? (
+                          <span className="selo ok" aria-label={`Acertou: ${r.palavra || r.resposta}`}>
+                            <Check aria-hidden />
+                          </span>
+                        ) : falhou ? (
+                          <span className="selo erro">{r.palavra || r.resposta}</span>
+                        ) : temRevelada ? (
+                          <span className="revela" aria-label="Letras reveladas">
+                            {r.resposta
+                              .split('')
+                              .map((c, i) => (rev[i] ? c : '·'))
+                              .join('')}
+                          </span>
+                        ) : null}
+                      </header>
+                      {/* Pista AMBÍGUA (há sinônimos no acervo): a frase de contexto desempata. */}
+                      {!resolvido && !fimDoGrupo && r.contexto && (
+                        <p
+                          className="mut"
+                          style={{
+                            fontSize: 11.5,
+                            fontStyle: 'italic',
+                            lineHeight: 1.35,
+                            maxWidth: `calc(var(--tam) * var(--lt) + (var(--tam) - 1) * 5px)`,
+                          }}
+                        >
+                          “{r.contexto}”
+                        </p>
+                      )}
+                      <div className="grade-t" role="grid" aria-label="Tentativas">
+                        {Array.from({ length: maxTentativas }).map((_, linha) => {
+                          const p = palpites[linha];
+                          const digitando = !resolvido && !fimDoGrupo && linha === palpites.length;
+                          const venceu = resolvido && linha === palpites.length - 1;
+                          return (
+                            <div
+                              key={linha}
+                              role="row"
+                              className={`linha-termo ${digitando ? 'atual' : ''} ${digitando && treme ? 'treme' : ''} ${venceu ? 'venceu' : ''}`}
+                            >
+                              {Array.from({ length: r.resposta.length }).map((_, col) => {
+                                const estilo = { '--i': col } as React.CSSProperties;
+                                if (!digitando) {
+                                  const letra = p ? p.letras[col] : '';
+                                  const estado = p?.estados[col];
+                                  return (
+                                    <span
+                                      key={col}
+                                      role="gridcell"
+                                      className={`letra ${estado ? CLASSE[estado] : letra ? 'cheia' : ''}`}
+                                      style={estilo}
+                                      aria-label={letra ? `${letra}${estado ? `, ${ROTULO[estado]}` : ''}` : 'vazia'}
+                                    >
+                                      {letra}
+                                    </span>
+                                  );
+                                }
+                                /* A LINHA EM DIGITAÇÃO é de botões: dá para clicar numa casa (ou andar com as
+                         setas) e escrever ali. O cursor ganha a borda e o halo do acento; a letra
+                         que já se sabia (revelada ou verde) aparece mais apagada. */
+                                const letra = atual[col];
+                                const noCursor = col === cursor;
+                                const ehFantasma = !!letra && (!!rev[col] || !!certas[col]);
+                                return (
+                                  <button
+                                    key={col}
+                                    type="button"
+                                    onClick={() => irPara(col)}
+                                    aria-label={`Posição ${col + 1}${letra ? `, letra ${letra}` : ', vazia'}`}
+                                    className={`letra ${letra ? 'cheia' : ''} ${letra && col === pop ? 'pop' : ''}`}
+                                    style={{
+                                      ...estilo,
+                                      cursor: 'pointer',
+                                      ...(noCursor
+                                        ? {
+                                            borderColor: 'var(--accent)',
+                                            boxShadow: '0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent)',
+                                          }
+                                        : null),
+                                      ...(ehFantasma
+                                        ? { color: rev[col] ? 'var(--warn-ink)' : 'var(--ink-muted)' }
+                                        : null),
+                                    }}
+                                  >
+                                    {letra}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* TECLADO — `.teclado` do protótipo, logo abaixo dos tabuleiros (a folga de 16px é a
+          margem de `.tabs-termo`). Com um tabuleiro a tecla pinta inteira; com dois ou quatro,
+          cada tecla leva uma marquinha por tabuleiro (`.k-marcas`) e só apaga quando a letra está
+          fora de TODOS os abertos. */}
+            <div ref={tecladoRef} data-tour="teclado" className="teclado w-full" role="group" aria-label="Teclado">
+              {LINHAS_TECLADO.map((linha, i) => (
+                <div key={linha} className="fila">
+                  {i === 2 && (
+                    <button
+                      type="button"
+                      className="largo"
+                      onClick={enviar}
+                      disabled={fimDoGrupo}
+                      aria-label="Enviar palpite"
+                    >
+                      Enviar
+                    </button>
+                  )}
+                  {linha.split('').map((letra) => {
+                    if (nTabuleiros === 1) {
+                      const e = tecladoPorTab[0]?.[letra];
                       return (
                         <button
-                          key={col}
                           type="button"
-                          tabIndex={digitando ? 0 : -1}
-                          disabled={!digitando}
-                          onClick={() => irPara(col)}
-                          aria-label={digitando ? `Posição ${col + 1}${atual[col] ? `, letra ${atual[col]}` : ', vazia'}` : undefined}
-                          style={estiloCel}
-                          className={`rounded-lg border-2 flex items-center justify-center font-display font-black transition-all ${cor(estado)} ${
-                            digitando ? 'cursor-pointer' : ''
-                          } ${noCursor ? 'border-accent ring-2 ring-accent/40 scale-105' : ''} ${
-                            ehFantasma ? (revelada ? 'text-warn-ink' : 'text-ink-muted') : ''
-                          }`}
+                          key={letra}
+                          className={e ? CLASSE[e] : ''}
+                          onClick={() => digitar(letra)}
+                          aria-label={`${letra}${e ? `, ${ROTULO[e]}` : ''}`}
                         >
                           {letra}
                         </button>
                       );
-                    })}
-                  </div>
-                );
-              })}
+                    }
+                    const todas = grupo.every((_, k) => resolvidos[k] || tecladoPorTab[k]?.[letra] === 'ausente');
+                    return (
+                      <button
+                        type="button"
+                        key={letra}
+                        className={`multi ${todas ? 'fora' : ''}`}
+                        onClick={() => digitar(letra)}
+                        aria-label={letra}
+                      >
+                        {letra}
+                        <span className={`k-marcas q${nTabuleiros}`} aria-hidden="true">
+                          {grupo.map((_, k) => {
+                            const e = tecladoPorTab[k]?.[letra];
+                            return <i key={k} className={resolvidos[k] ? 'feito' : e ? CLASSE[e] : ''} />;
+                          })}
+                        </span>
+                      </button>
+                    );
+                  })}
+                  {i === 2 && (
+                    <button type="button" className="largo" onClick={apagar} aria-label="Apagar letra">
+                      <Delete aria-hidden />
+                    </button>
+                  )}
+                </div>
+              ))}
             </div>
-          );
-        })}
-        </div>
-      </div>
-      </div>
-
-      {/* TECLADO — o estado vem só dos tabuleiros ainda abertos (ver `estadoDoTecladoMulti`).
-          `shrink-0` e irmão do `flex-1` acima: ele RESERVA a própria altura, então nunca rola para
-          fora (que era o objetivo do `sticky bottom-0`) e nunca cobre o tabuleiro (que era o
-          efeito colateral dele). Teclas maiores: o alvo era 44px num monitor onde cabiam 56. */}
-      <div data-tour="teclado" className="flex flex-col gap-1.5 w-full max-w-2xl shrink-0 pt-3 pb-1 bg-canvas/95 z-10">
-        {LINHAS_TECLADO.map((linha, i) => (
-          <div key={linha} className="flex gap-1 sm:gap-1.5 justify-center">
-            {i === 2 && (
-              <button onClick={enviar} disabled={!preenchido || fimDoGrupo} className="px-3 sm:px-4 h-11 sm:h-14 rounded-lg bg-accent text-white font-bold text-[11px] flex items-center gap-1 disabled:opacity-40 cursor-pointer" aria-label="Enviar palpite">
-                <CornerDownLeft className="w-4 h-4" />
-              </button>
-            )}
-            {linha.split('').map(letra => (
-              <button
-                key={letra}
-                onClick={() => digitar(letra)}
-                className={`flex-1 min-w-0 h-11 sm:h-14 rounded-lg border font-bold text-sm sm:text-base transition-colors cursor-pointer ${cor(teclado[letra])}`}
-              >
-                {letra}
-              </button>
-            ))}
-            {i === 2 && (
-              <button onClick={apagar} className="px-3 sm:px-4 h-11 sm:h-14 rounded-lg bg-canvas border border-border-subtle text-ink cursor-pointer" aria-label="Apagar letra">
-                <Delete className="w-4 h-4" />
-              </button>
-            )}
           </div>
-        ))}
-        <p className="text-[10px] text-ink-faint text-center">
-          {ageProfile === 'senior'
-            ? 'Toque num quadrado para escrever nele.'
-            : 'Clique num quadrado (ou use ← →) para escrever fora de ordem.'}
-        </p>
-      </div>
+        </div>
       </main>
     </div>
   );

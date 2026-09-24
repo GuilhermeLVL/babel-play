@@ -17,8 +17,8 @@
  * A dica é o gatilho mais comum porque `pedirDica` chama `proximaVaga(n, d.posicao + 1)`; quando
  * a letra revelada cai na última casa, o cursor já sai fora da linha antes de qualquer digitação.
  */
-import { act,cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach,beforeEach, describe, expect, it, vi } from 'vitest'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import TermoGame from '../src/components/minigames/TermoGame'
 import type { RodadaTermo } from '../src/core'
@@ -42,7 +42,10 @@ afterEach(() => {
 })
 
 /** Passa o tempo do intervalo mais longo (2400 ms, o do erro) dentro de `act`. */
-const passarAPausaDoResultado = () => act(() => { vi.advanceTimersByTime(2400) })
+const passarAPausaDoResultado = () =>
+  act(() => {
+    vi.advanceTimersByTime(2400)
+  })
 
 /** Três palavras de 4 letras: o mínimo que monta a escada (`planoDaEscada`). */
 const RODADAS: RodadaTermo[] = [
@@ -62,12 +65,13 @@ const enviarBtn = () => screen.getByRole('button', { name: /enviar palpite/i }) 
 
 /** As casas da linha em digitação — o que a PESSOA vê, que é a fonte de verdade da queixa. */
 function casasVisiveis(): string[] {
-  return screen.getAllByRole('button')
-    .filter(b => /^Posição \d/.test(b.getAttribute('aria-label') ?? ''))
-    .map(c => (c.textContent ?? '').trim())
+  return screen
+    .getAllByRole('button')
+    .filter((b) => /^Posição \d/.test(b.getAttribute('aria-label') ?? ''))
+    .map((c) => (c.textContent ?? '').trim())
 }
 const linhaVisivel = () => casasVisiveis().join('')
-const linhaCheiaAVista = () => casasVisiveis().every(l => l !== '')
+const linhaCheiaAVista = () => casasVisiveis().every((l) => l !== '')
 
 describe('a linha nunca pode crescer além do tabuleiro', () => {
   it('digitar uma letra a mais NÃO cria uma casa invisível', () => {
@@ -75,7 +79,7 @@ describe('a linha nunca pode crescer além do tabuleiro', () => {
     'CASA'.split('').forEach(teclar)
     expect(linhaVisivel()).toBe('CASA')
 
-    teclar('X')   // a tecla que sobra — o dedo escapou, ou a palavra era mais curta do que parecia
+    teclar('X') // a tecla que sobra — o dedo escapou, ou a palavra era mais curta do que parecia
 
     /* A prova de que a letra extra não foi guardada num lugar invisível: um único Backspace tem
        de tirar a ÚLTIMA letra visível. Se o 'X' tiver virado uma 5ª casa, o backspace some com
@@ -107,8 +111,8 @@ describe('a linha nunca pode crescer além do tabuleiro', () => {
     expect(linhaVisivel()).toBe('CASA')
 
     fireEvent.keyDown(window, { key: 'Enter' })
-    // Acertou: a resposta toma o lugar da pista no tabuleiro.
-    expect(screen.getAllByText('CASA').length).toBeGreaterThan(0)
+    // Acertou: o tabuleiro ganha o selo de acerto com a palavra (o `.selo.ok` do protótipo).
+    expect(screen.getByLabelText('Acertou: casa')).toBeTruthy()
 
     // O degrau fechado agenda a subida. Sem avançar o relógio, o callback ficaria pendente e a
     // cobertura dependeria de quem terminasse primeiro.
@@ -122,7 +126,7 @@ describe('a linha nunca pode crescer além do tabuleiro', () => {
        escreveu "CASX" e clica no X está pedindo para trocar aquela letra. */
     montar()
     'CASX'.split('').forEach(teclar)
-    const ultima = screen.getAllByRole('button').filter(b => /^Posição 4/.test(b.getAttribute('aria-label') ?? ''))[0]
+    const ultima = screen.getAllByRole('button').filter((b) => /^Posição 4/.test(b.getAttribute('aria-label') ?? ''))[0]
     fireEvent.click(ultima)
     teclar('A')
 

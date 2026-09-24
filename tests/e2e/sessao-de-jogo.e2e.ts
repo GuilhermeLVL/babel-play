@@ -12,8 +12,8 @@ import { clicarRobusto, fecharSobreposicoes, irParaPraticar } from './_helpers'
  * costura, e nos tres viewports — a mesa da Memoria vira 3 colunas no celular e o Termo troca o
  * teclado fisico pelo de tela.
  *
- * DETERMINISMO. A Memoria embaralha, mas cada carta carrega o texto no `title` (mesmo virada para
- * baixo), e o teste conhece o baralho que semeou — entao ele le a mesa e fecha os pares sem errar.
+ * DETERMINISMO. A Memoria embaralha, mas cada carta carrega o texto em `data-texto` (mesmo virada
+ * para baixo), e o teste conhece o baralho que semeou — entao ele le a mesa e fecha os pares sem errar.
  * No Termo a pista de cada tabuleiro e a traducao, e o teste digita a palavra que corresponde. O
  * tour guiado de cada jogo e marcado como feito ANTES de abrir a tela (`babel_tour_<jogo>`) e a
  * antessala fica no padrao (pular), senao cada jogo abriria com um overlay de explicacao.
@@ -94,10 +94,11 @@ test.describe('Sessao de jogo', () => {
     expect(total % 2, 'a mesa tem de ter um numero par de cartas').toBe(0)
     expect(total).toBeGreaterThanOrEqual(8)
 
-    /* LER A MESA: o `title` do texto interno existe mesmo com a carta virada para baixo. */
+    /* LER A MESA: cada carta guarda o próprio texto em `data-texto`, mesmo virada para baixo (a
+       carta do protótipo só desenha o texto quando vira). */
     const titulos: string[] = []
     for (let i = 0; i < total; i++) {
-      titulos.push(((await cartas.nth(i).locator('span[title]').first().getAttribute('title')) ?? '').trim())
+      titulos.push(((await cartas.nth(i).getAttribute('data-texto')) ?? '').trim())
     }
     const palavrasNaMesa = titulos.filter((t) => MAPA.has(t))
     expect(
@@ -133,10 +134,10 @@ test.describe('Sessao de jogo', () => {
     await expect(tabuleiro).toBeVisible()
     await expect(page.getByRole('button', { name: 'Enviar palpite' })).toBeVisible()
 
-    /* Cada tabuleiro mostra a pista (traducao) enquanto aberto e a palavra em maiusculas quando
-       fecha. O laco digita a palavra do primeiro tabuleiro aberto e repete ate a rodada acabar.
-       Doze voltas cobrem a escada mais longa (1 + 2 + 4 tabuleiros) com folga. */
-    const pistas = page.locator('[data-tour="tabuleiro"] > div > div > p:first-of-type')
+    /* Cada tabuleiro (`.tab-termo`) mostra a pista (traducao) no cabecalho; fechado, ganha
+       `.resolvido` (ou `.falhou`). O laco digita a palavra do primeiro tabuleiro aberto e repete
+       ate a rodada acabar. Doze voltas cobrem a escada mais longa (1 + 2 + 4) com folga. */
+    const pistas = page.locator('[data-tour="tabuleiro"] .tab-termo:not(.resolvido):not(.falhou) .pista')
     let digitadas = 0
     for (let volta = 0; volta < 12; volta++) {
       if (

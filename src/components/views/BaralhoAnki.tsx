@@ -1,14 +1,27 @@
-import { type MotivoDescarte,motivoLegivel, ROTULO_MOTIVO } from '@core';
+import { type MotivoDescarte, motivoLegivel, ROTULO_MOTIVO } from '@core';
 import JSZip from 'jszip';
-import { AlertTriangle, ArrowLeft, CheckCircle2,Download, FileText, Info, Loader2, Upload } from 'lucide-react';
+import {
+  AlertTriangle,
+  ArrowRight,
+  Check,
+  Download,
+  FileArchive,
+  FileText,
+  Info,
+  Layers,
+  Loader2,
+  Play,
+  Upload,
+} from 'lucide-react';
 import React, { useRef, useState } from 'react';
 
 import { apiFetch, exportarApkg } from '../../data/api';
 import { ativarNotasDoBaralho, type ResultadoAtivar } from '../../data/apiAnki';
-import { t } from '../../lib/i18n';
+import { numero, t } from '../../lib/i18n';
 import type { AgeProfileType } from '../../lib/profile';
 import type { VocabCard } from '../../types';
 import { toast } from '../Toast';
+import { Abas, CabecalhoDeTela, IconeEmBloco, type ItemDeAba, PainelDeAba, Tela } from '../ui';
 
 /**
  * BARALHOS DO ANKI — trazer e levar.
@@ -36,6 +49,18 @@ interface BaralhoAnkiProps {
   ageProfile: AgeProfileType;
   onVoltar: () => void;
   onImportou: () => void | Promise<void>;
+  /**
+   * O rótulo do "voltar" é o nome da tela de ORIGEM: "Jogar" quando vem dos jogos (o padrão, como
+   * no protótipo), "Vocabulário" quando vem de lá. Antes dizia sempre "Voltar aos jogos", e quem
+   * tinha vindo do Vocabulário lia que ia para outro lugar.
+   */
+  rotuloVoltar?: string;
+  /** A aba "Gerenciar" leva à tela de baralhos (`BaralhosAnki`); sem isto a aba não aparece. */
+  onGerenciar?: () => void;
+  /** Quantos baralhos já foram trazidos — a contagem da aba "Gerenciar". */
+  nBaralhos?: number;
+  /** "Jogar com este baralho" depois de ativar: recorta os jogos pelo baralho recém-trazido. */
+  onJogarCom?: (deckId: string, nome: string) => void;
 }
 
 /** Quantas notas oferecer para ativar de uma vez. Mais que isso de uma vez inundaria a fila de
@@ -99,9 +124,23 @@ async function importarBaralhoAnki(arquivo: File, idioma: string, idiomaNativo: 
 }
 
 export default function BaralhoAnki({
-  deck, idioma, idiomaNativo, ageProfile, onVoltar, onImportou,
+  deck,
+  idioma,
+  idiomaNativo,
+  ageProfile,
+  onVoltar,
+  onImportou,
+  rotuloVoltar = 'Jogar',
+  onGerenciar,
+  nBaralhos,
+  onJogarCom,
 }: BaralhoAnkiProps) {
+  const [aba, setAba] = useState<'trazer' | 'levar'>('trazer');
   const [enviando, setEnviando] = useState(false);
+  /** Gerando o `.apkg` para levar — separado de `enviando` (importar), que muda a aba "Trazer". */
+  const [gerando, setGerando] = useState(false);
+  const [nomeExp, setNomeExp] = useState(`Babel Play ${idioma || ''}`.trim());
+  const [incluirFrase, setIncluirFrase] = useState(true);
   const [nomeArquivo, setNomeArquivo] = useState('');
   const [erro, setErro] = useState<string | null>(null);
   const [resultado, setResultado] = useState<ImportAnkiResposta | null>(null);
@@ -133,8 +172,7 @@ export default function BaralhoAnki({
     if (!/\.apkg$/i.test(arquivo.name)) return arquivo;
     try {
       const zip = await JSZip.loadAsync(arquivo);
-      const nome = ['collection.anki21b', 'collection.anki21', 'collection.anki2']
-        .find((n) => zip.file(n));
+      const nome = ['collection.anki21b', 'collection.anki21', 'collection.anki2'].find((n) => zip.file(n));
       if (!nome) return arquivo;
       const dados = await zip.file(nome)!.async('uint8array');
       const enxuto = new JSZip();
@@ -179,7 +217,8 @@ export default function BaralhoAnki({
       const r = await ativarNotasDoBaralho(resultado.deckId, sugestaoAtivar);
       setAtivacao(r);
       await onImportou();
-      if (r.ativadas) toast.ok(`${r.ativadas} ${r.ativadas === 1 ? 'palavra entrou' : 'palavras entraram'} na sua fila`);
+      if (r.ativadas)
+        toast.ok(`${r.ativadas} ${r.ativadas === 1 ? 'palavra entrou' : 'palavras entraram'} na sua fila`);
     } catch (e) {
       setErroAtivar((e as Error).message);
     } finally {
@@ -188,7 +227,7 @@ export default function BaralhoAnki({
   };
 
   /** As palavras que dá para levar: só as que têm tradução — cartão de um lado só não é cartão. */
-  const exportaveis = deck.filter(c => c.inDeck && (c.translation ?? '').trim());
+  const exportaveis = deck.filter((c) => c.inDeck && (c.translation ?? '').trim());
 
   const baixar = (blob: Blob, nome: string) => {
     const a = document.createElement('a');
@@ -200,18 +239,29 @@ export default function BaralhoAnki({
 
   /** `.apkg`: abre no Anki com duplo clique e chega com nome de baralho. */
   const exportarBaralho = async () => {
-    if (!exportaveis.length) { toast.warn('Não há palavras com tradução para exportar.'); return; }
-    setEnviando(true);
+    if (!exportaveis.length) {
+      toast.warn('Não há palavras com tradução para exportar.');
+      return;
+    }
+    setGerando(true);
     try {
+      /* O nome do baralho e a frase de exemplo são escolhas da pessoa (a aba "Levar embora"): sem
+         a frase, o verso leva só a tradução. */
       const blob = await exportarApkg(
-        exportaveis.map(c => ({ frente: c.word, verso: c.translation, exemplo: c.sentence })),
-        `Babel Play ${idioma || ''}`.trim(),
+        exportaveis.map((c) => ({
+          frente: c.word,
+          verso: c.translation,
+          exemplo: incluirFrase ? c.sentence : undefined,
+        })),
+        nomeExp.trim() || `Babel Play ${idioma || ''}`.trim(),
       );
       baixar(blob, `babel-${idioma || 'deck'}-${new Date().toISOString().slice(0, 10)}.apkg`);
       toast.ok(`${exportaveis.length} palavras no arquivo`);
     } catch (e) {
       toast.error(`Não consegui gerar o .apkg: ${(e as Error).message}`);
-    } finally { setEnviando(false); }
+    } finally {
+      setGerando(false);
+    }
   };
 
   /**
@@ -220,207 +270,378 @@ export default function BaralhoAnki({
    * que a versão do Anki recuse o pacote, e o que serve para abrir numa planilha.
    */
   const exportar = () => {
-    const linhas = exportaveis
-      .map(c => [c.word, c.translation, c.sentence ?? '']
-        .map(x => String(x).replace(/\t/g, ' ').replace(/\r?\n/g, ' '))
-        .join('\t'));
-    if (!linhas.length) { toast.warn('Não há palavras com tradução para exportar.'); return; }
+    const linhas = exportaveis.map((c) =>
+      [c.word, c.translation, c.sentence ?? '']
+        .map((x) => String(x).replace(/\t/g, ' ').replace(/\r?\n/g, ' '))
+        .join('\t'),
+    );
+    if (!linhas.length) {
+      toast.warn('Não há palavras com tradução para exportar.');
+      return;
+    }
 
     // O cabeçalho `#separator:tab` é lido pelo Anki e evita a tela de escolher separador.
     const conteudo = ['#separator:tab', '#html:false', ...linhas].join('\n');
-    baixar(new Blob([conteudo], { type: 'text/plain;charset=utf-8' }),
-      `babel-${idioma || 'deck'}-${new Date().toISOString().slice(0, 10)}.txt`);
+    baixar(
+      new Blob([conteudo], { type: 'text/plain;charset=utf-8' }),
+      `babel-${idioma || 'deck'}-${new Date().toISOString().slice(0, 10)}.txt`,
+    );
     toast.ok(`${linhas.length} palavras exportadas`);
   };
 
-  return (
-    <div className="flex-1 overflow-y-auto custom-scrollbar p-6 lg:p-10 pb-28 animate-in fade-in duration-200">
-      <header className="mb-6">
-        <button onClick={onVoltar} className="flex items-center gap-1.5 text-[13px] text-ink-muted hover:text-ink mb-3 py-1 cursor-pointer">
-          <ArrowLeft className="w-4 h-4" /> Voltar aos jogos
-        </button>
-        <h1 className="font-display font-black text-2xl text-ink tracking-tight">
-          {ageProfile === 'kids' ? 'Trazer palavras de fora' : 'Baralhos do Anki'}
-        </h1>
-        <p className="text-[13px] text-ink-muted mt-1 max-w-[70ch]">
-          Traga um baralho pronto que você já tenha, ou leve o seu vocabulário embora. As palavras
-          importadas entram nos jogos como todas as outras.
-        </p>
-      </header>
+  /** O dia de hoje no nome do arquivo (`babel-en-2026-09-23.apkg`), como no protótipo. */
+  const hoje = new Date().toISOString().slice(0, 10);
+  const nomeApkg = `babel-${idioma || 'deck'}-${hoje}.apkg`;
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        {/* ─── IMPORTAR ─── */}
-        <section className="card-panel bg-surface p-5 flex flex-col gap-3">
-          <span className="label-mono flex items-center gap-2">
-            <Upload className="w-4 h-4 text-accent" aria-hidden /> Trazer um baralho
-          </span>
+  /* A PRÉVIA DO .TXT é o começo do arquivo DE VERDADE: o cabeçalho que o Anki lê e as duas primeiras
+     palavras que vão nele (a frase encurtada, só para caber). */
+  const curta = (s: string) => (s.length > 18 ? `${s.slice(0, 16).trimEnd()}…` : s);
+  const previaTxt = [
+    '#separator:tab',
+    '#html:false',
+    ...exportaveis.slice(0, 2).map((c) => [c.word, c.translation, curta(c.sentence ?? '')].join('\t')),
+  ].join('\n');
 
-          <input
-            ref={inputRef}
-            type="file"
-            accept=".apkg,.txt,.csv,.tsv"
-            className="hidden"
-            onChange={e => void escolher(e.target.files?.[0])}
-          />
-          <button
-            onClick={() => inputRef.current?.click()}
-            disabled={enviando}
-            className="py-2.5 px-4 bg-accent hover:bg-accent-ink text-white rounded-xl font-bold text-[13px] shadow-btn disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
+  const etapa: 'escolher' | 'lendo' | 'lido' = resultado ? 'lido' : enviando ? 'lendo' : 'escolher';
+  const idInput = 'anki-arquivo';
+
+  /* ─── TRAZER ─── a marcação do protótipo aprovado (`T.anki`, aba "Trazer"): a área de soltar
+     `.soltar.grande`, a leitura com `.ondas`, e o resultado em `.cartao.p6.pilha` com os ladrilhos
+     do saldo, o mapeamento dos campos, a amostra e o porquê das descartadas. Tudo com o que a rota
+     devolveu de verdade. */
+  const trazer = (
+    <>
+      {/* Um input só, sempre montado: é ele que a área de soltar e o "Escolher outro arquivo" abrem. */}
+      <input
+        ref={inputRef}
+        id={idInput}
+        type="file"
+        className="sr"
+        accept=".apkg,.txt,.csv,.tsv"
+        onChange={(e) => {
+          void escolher(e.target.files?.[0]);
+          e.target.value = '';
+        }}
+      />
+
+      {etapa === 'escolher' && (
+        <section className="cartao p6">
+          <label
+            className="soltar grande"
+            htmlFor={idInput}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault();
+              void escolher(e.dataTransfer.files?.[0]);
+            }}
           >
-            {enviando ? <><Loader2 className="w-4 h-4 animate-spin" /> importando…</> : <><Upload className="w-4 h-4" /> Escolher arquivo</>}
-          </button>
-          <p className="text-[11px] text-ink-faint">
-            Aceita <b>.apkg</b> (o que se baixa do AnkiWeb, inclusive os novos, comprimidos) e
-            texto <b>.txt</b>/<b>.csv</b>.
-          </p>
-
+            <IconeEmBloco icone={Upload} />
+            <span>
+              <b>Solte o arquivo aqui</b> ou clique para escolher
+            </span>
+            <small className="mut">.apkg (Anki, inclusive os novos, comprimidos), .txt, .csv ou .tsv</small>
+          </label>
+          <div className="aviso-info" style={{ marginTop: 14 }}>
+            <Info aria-hidden />
+            <span>
+              No Anki: <b style={{ color: 'var(--ink)' }}>Arquivo → Exportar → Pacote de baralho (.apkg)</b>. O
+              histórico de revisão do Anki não vem junto; a revisão recomeça aqui.
+            </span>
+          </div>
           {erro && (
-            <p className="flex items-start gap-2 text-[12px] text-error-ink bg-error-soft border border-error/20 rounded-lg p-3">
-              <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" aria-hidden /> {erro}
-            </p>
-          )}
-
-          {/* O SALDO DO ACERVO: a importação já aconteceu quando chega aqui. */}
-          {resultado && (
-            <div className="flex flex-col gap-3 border-t border-border-subtle pt-3">
-              <div className="text-[12px] text-ink-muted flex flex-wrap gap-x-4 gap-y-1">
-                <span><b className="text-ink">{resultado.resumo.notas}</b> notas lidas de {nomeArquivo}</span>
-                <span className="font-mono text-[11px]">{resultado.formato}</span>
-              </div>
-              <ul className="flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-ink-muted">
-                <li><b className="text-good-ink">{resultado.resumo.novas}</b> novas</li>
-                {resultado.resumo.atualizadas > 0 && <li><b className="text-ink">{resultado.resumo.atualizadas}</b> atualizadas</li>}
-                {resultado.resumo.iguais > 0 && <li><b className="text-ink">{resultado.resumo.iguais}</b> iguais ao que já tinha</li>}
-              </ul>
-
-              {resultado.campos.length > 0 && (
-                <p className="text-[11px] text-ink-faint">
-                  Campos do baralho: {resultado.campos.join(' · ')} → viram <b>palavra</b>,{' '}
-                  <b>tradução</b>{resultado.campos.length > 2 && <> e <b>frase</b></>}.
-                </p>
-              )}
-
-              {/* Amostra real: a pessoa confere se os lados não vieram trocados. */}
-              {resultado.amostra.length > 0 && (
-                <ul className="flex flex-col gap-1">
-                  {resultado.amostra.map((n, i) => (
-                    <li key={i} className="text-[12px] flex gap-2 items-baseline">
-                      <span className="font-bold text-ink">{n.frente}</span>
-                      <span className="text-ink-faint">=</span>
-                      <span className="text-ink-muted truncate">{n.verso}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-
-              {resultado.resumo.descartadas > 0 && (
-                <>
-                  <p className="text-[12px] text-ink-muted">{resultado.resumo.descartadas} não entraram no acervo:</p>
-                  <ul className="flex flex-col gap-0.5">
-                    {Object.entries(resultado.resumo.porMotivo).map(([motivo, n]) => (
-                      <li key={motivo} className="text-[12px] text-ink-muted">
-                        <b className="text-ink">{n}</b>{' '}
-                        {t(ROTULO_MOTIVO[motivo as MotivoDescarte]?.titulo ?? motivoLegivel(motivo)).toLowerCase()}
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              )}
-
-              {resultado.truncado && (
-                <p className="flex items-start gap-2 text-[11px] text-warn-ink">
-                  <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" aria-hidden />
-                  Este arquivo tem <b>{resultado.totalNoArquivo}</b> notas, mais do que dá para ler
-                  de uma vez; só as primeiras {resultado.resumo.notas} entraram agora. Importe o
-                  mesmo arquivo de novo depois para trazer o resto.
-                </p>
-              )}
-
-              {/* O PONTO DO PRODUTO, dito sem jargão: entrou no acervo, mas ninguém foi para a
-                  fila de revisão ainda. Sem isto, quem importasse 3.600 notas abriria o app amanhã
-                  com 3.600 cartões vencidos. */}
-              <p className="flex items-start gap-2 text-[12px] text-ink-muted bg-canvas border border-border-subtle rounded-lg p-3">
-                <Info className="w-4 h-4 mt-0.5 shrink-0 text-accent" aria-hidden />
-                Essas palavras já estão guardadas, mas nenhuma foi para a sua fila de estudo ainda.
-                Escolha quantas começar agora — o resto espera, sem pressa.
-              </p>
-
-              {!ativacao && podeAtivar > 0 && (
-                <button
-                  onClick={() => void ativar()}
-                  disabled={ativando}
-                  className="py-2.5 px-4 bg-accent hover:bg-accent-ink text-white rounded-xl font-bold text-[13px] shadow-btn disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
-                >
-                  {ativando ? <><Loader2 className="w-4 h-4 animate-spin" /> ativando…</> : `Começar com as primeiras ${sugestaoAtivar}`}
-                </button>
-              )}
-
-              {/* Nada para ativar: a régua recusou tudo. Não mostra botão morto — diz o porquê e
-                  aponta o caminho, em vez de deixar a pessoa clicar em algo que não faz nada. */}
-              {!ativacao && podeAtivar === 0 && (
-                <p className="flex items-start gap-2 text-[12px] text-warn-ink">
-                  <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" aria-hidden />
-                  Nenhuma nota deste baralho passou pela régua de qualidade — reveja o mapeamento
-                  de campos no arquivo original e importe de novo.
-                </p>
-              )}
-
-              {erroAtivar && (
-                <p className="flex items-start gap-2 text-[12px] text-error-ink bg-error-soft border border-error/20 rounded-lg p-3">
-                  <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" aria-hidden /> {erroAtivar}
-                </p>
-              )}
-
-              {ativacao && (
-                <div className="flex flex-col gap-1">
-                  <p className="flex items-center gap-2 text-[13px] font-bold text-good-ink">
-                    <CheckCircle2 className="w-4 h-4 shrink-0" aria-hidden /> {ativacao.ativadas} entraram na sua fila
-                  </p>
-                  {ativacao.restantes > 0 && (
-                    <p className="text-[11px] text-ink-faint">
-                      Ainda há {ativacao.restantes} guardadas no baralho. Traga mais quando quiser,
-                      na Biblioteca de Baralhos.
-                    </p>
-                  )}
-                </div>
-              )}
+            <div className="aviso-info warn" role="alert" style={{ marginTop: 10 }}>
+              <AlertTriangle aria-hidden />
+              <span>{erro}</span>
             </div>
           )}
         </section>
+      )}
 
-        {/* ─── EXPORTAR ─── */}
-        <section className="card-panel bg-surface p-5 flex flex-col gap-3">
-          <span className="label-mono flex items-center gap-2">
-            <Download className="w-4 h-4 text-accent" aria-hidden /> Levar o meu embora
-          </span>
-          <p className="text-[12px] text-ink-muted leading-relaxed">
-            Leva palavra, tradução e a frase de onde ela veio. São <b>{exportaveis.length}</b> palavras
-            com tradução no seu baralho.
+      {etapa === 'lendo' && (
+        <section className="cartao p6">
+          <div className="linha" style={{ gap: 12 }}>
+            <span className="ondas" aria-hidden="true">
+              <i />
+              <i style={{ animationDelay: '.2s' }} />
+              <i style={{ animationDelay: '.4s' }} />
+            </span>
+            <span role="status">
+              Lendo <b>{nomeArquivo}</b>…
+            </span>
+          </div>
+          <div className="barra" style={{ marginTop: 14 }}>
+            <span className="enche" />
+          </div>
+        </section>
+      )}
+
+      {etapa === 'lido' && resultado && (
+        <section className="cartao p6 pilha">
+          <div className="entre">
+            <div className="linha" style={{ gap: 12 }}>
+              <IconeEmBloco icone={FileArchive} />
+              <div>
+                <b>{nomeArquivo}</b>
+                <p className="mut" style={{ fontSize: 12.5 }}>
+                  {resultado.formato === 'apkg'
+                    ? 'Pacote do Anki'
+                    : resultado.formato.charAt(0).toLocaleUpperCase() + resultado.formato.slice(1)}{' '}
+                  · {numero(resultado.resumo.notas)} notas lidas
+                </p>
+              </div>
+            </div>
+            {ativacao && (
+              <span className="badge ok">
+                <Check aria-hidden /> {ativacao.ativadas} entraram na sua fila
+              </span>
+            )}
+          </div>
+
+          {/* O SALDO DO ACERVO: a importação já aconteceu quando chega aqui. */}
+          <div className="ladrilhos" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))' }}>
+            <div className="cartao ladrilho">
+              <span className="label-mono">Novas</span>
+              <span className="v good">{numero(resultado.resumo.novas)}</span>
+            </div>
+            <div className="cartao ladrilho">
+              <span className="label-mono">Atualizadas</span>
+              <span className="v acc">{numero(resultado.resumo.atualizadas)}</span>
+            </div>
+            <div className="cartao ladrilho">
+              <span className="label-mono">Iguais</span>
+              <span className="v">{numero(resultado.resumo.iguais)}</span>
+            </div>
+            <div className="cartao ladrilho">
+              <span className="label-mono">Descartadas</span>
+              <span className="v warn">{numero(resultado.resumo.descartadas)}</span>
+            </div>
+          </div>
+
+          {resultado.campos.length > 0 && (
+            <div>
+              <span className="label-mono">Como os campos foram lidos</span>
+              <div className="mapear">
+                {resultado.campos.slice(0, 3).map((de, i) => (
+                  <span key={de}>
+                    <code>{de}</code>
+                    <ArrowRight aria-hidden />
+                    <b>{['palavra', 'tradução', 'frase'][i]}</b>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Amostra real: a pessoa confere se os lados não vieram trocados. */}
+          {resultado.amostra.length > 0 && (
+            <div>
+              <span className="label-mono">Amostra</span>
+              <ul className="amostra">
+                {resultado.amostra.map((n, i) => (
+                  <li key={i}>
+                    <b>{n.frente}</b> = <span className="mut">{n.verso}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {resultado.resumo.descartadas > 0 && (
+            <details className="det">
+              <summary>
+                Por que {resultado.resumo.descartadas} {resultado.resumo.descartadas === 1 ? 'ficou' : 'ficaram'} de
+                fora
+              </summary>
+              <ul className="mut" style={{ fontSize: 13, marginTop: 8, paddingLeft: 18 }}>
+                {Object.entries(resultado.resumo.porMotivo).map(([motivo, n]) => (
+                  <li key={motivo}>
+                    {n} {t(ROTULO_MOTIVO[motivo as MotivoDescarte]?.titulo ?? motivoLegivel(motivo)).toLowerCase()}
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
+
+          {resultado.truncado && (
+            <div className="aviso-info warn">
+              <Info aria-hidden />
+              <span>
+                Este arquivo tem <b>{resultado.totalNoArquivo}</b> notas, mais do que dá para ler de uma vez; só as
+                primeiras {resultado.resumo.notas} entraram agora. Importe o mesmo arquivo de novo depois para trazer o
+                resto.
+              </span>
+            </div>
+          )}
+
+          {/* Nada para ativar: a régua recusou tudo. Não mostra botão morto — diz o porquê. */}
+          {!ativacao && podeAtivar === 0 && (
+            <div className="aviso-info warn">
+              <AlertTriangle aria-hidden />
+              <span>
+                Nenhuma nota deste baralho passou pela régua de qualidade — reveja o mapeamento de campos no arquivo
+                original e importe de novo.
+              </span>
+            </div>
+          )}
+
+          {erroAtivar && (
+            <div className="aviso-info warn" role="alert">
+              <AlertTriangle aria-hidden />
+              <span>{erroAtivar}</span>
+            </div>
+          )}
+
+          {ativacao ? (
+            <>
+              {ativacao.restantes > 0 && (
+                <p className="mut" style={{ fontSize: 12.5 }}>
+                  Ainda há {ativacao.restantes} guardadas no baralho. Traga mais quando quiser, em Gerenciar.
+                </p>
+              )}
+              <div className="linha" style={{ gap: 8, flexWrap: 'wrap' }}>
+                {onJogarCom && (
+                  <button
+                    type="button"
+                    className="btn btn-solid"
+                    onClick={() => onJogarCom(resultado.deckId, resultado.baralhos[0] || nomeArquivo)}
+                  >
+                    <Play aria-hidden /> Jogar com este baralho
+                  </button>
+                )}
+                {onGerenciar && (
+                  <button type="button" className="btn btn-outline" onClick={onGerenciar}>
+                    <Layers aria-hidden /> Ver em Gerenciar
+                  </button>
+                )}
+                <button type="button" className="btn btn-outline" onClick={() => inputRef.current?.click()}>
+                  Trazer outro arquivo
+                </button>
+              </div>
+            </>
+          ) : (
+            /* O PONTO DO PRODUTO, dito sem jargão: entrou no acervo, mas ninguém foi para a fila de
+               revisão ainda. Sem isto, quem importasse 3.600 notas abriria o app amanhã com 3.600
+               cartões vencidos. */
+            <div className="linha" style={{ gap: 10, flexWrap: 'wrap' }}>
+              {podeAtivar > 0 && (
+                <button type="button" className="btn btn-solid" onClick={() => void ativar()} disabled={ativando}>
+                  {ativando ? (
+                    <>
+                      <Loader2 className="animate-spin" aria-hidden /> Ativando…
+                    </>
+                  ) : (
+                    <>
+                      <Download aria-hidden /> Começar com as primeiras {sugestaoAtivar}
+                    </>
+                  )}
+                </button>
+              )}
+              <button type="button" className="btn btn-outline" onClick={() => inputRef.current?.click()}>
+                Escolher outro arquivo
+              </button>
+              <span className="mut" style={{ fontSize: 12.5 }}>
+                Essas palavras já estão guardadas, mas nenhuma foi para a sua fila de estudo ainda. As outras entram
+                quando você quiser, em lotes de {TETO}, para a revisão não virar uma avalanche.
+              </span>
+            </div>
+          )}
+        </section>
+      )}
+    </>
+  );
+
+  /* ─── LEVAR EMBORA ─── os dois formatos lado a lado (`.g2`), como no protótipo: o `.apkg` é o
+     mais confortável, o texto é o que nunca falha. Em nenhum vai o histórico de revisão. */
+  const levar = (
+    <>
+      <div className="g2">
+        <section className="cartao p6 pilha">
+          <IconeEmBloco icone={Layers} />
+          <h3 style={{ fontSize: 17, fontWeight: 800 }}>Baralho do Anki (.apkg)</h3>
+          <p className="mut" style={{ fontSize: 13 }}>
+            Abre direto no Anki, no AnkiDroid e no AnkiMobile. Frente: palavra; verso: tradução e frase.
           </p>
+          <label className="rot" htmlFor="anki-nome">
+            Nome do baralho
+          </label>
+          <input className="campo" id="anki-nome" value={nomeExp} onChange={(e) => setNomeExp(e.target.value)} />
+          <label className="check">
+            <input type="checkbox" checked={incluirFrase} onChange={(e) => setIncluirFrase(e.target.checked)} /> Incluir
+            a frase de exemplo
+          </label>
           <button
+            type="button"
+            className="btn btn-solid"
             onClick={() => void exportarBaralho()}
-            disabled={enviando || !exportaveis.length}
-            className="py-2.5 px-4 bg-accent hover:bg-accent-ink text-white rounded-xl font-bold text-[13px] shadow-btn disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
+            disabled={gerando || !exportaveis.length}
           >
-            {enviando ? <><Loader2 className="w-4 h-4 animate-spin" /> montando…</> : <><Download className="w-4 h-4" /> Baralho .apkg</>}
+            {gerando ? (
+              <>
+                <Loader2 className="animate-spin" aria-hidden /> Montando…
+              </>
+            ) : (
+              <>
+                <Download aria-hidden /> Baixar {nomeApkg}
+              </>
+            )}
           </button>
-          <button
-            onClick={exportar}
-            disabled={!exportaveis.length}
-            className="py-2.5 px-4 bg-canvas border border-border-subtle hover:border-accent text-ink rounded-xl font-bold text-[13px] disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
-          >
-            <FileText className="w-4 h-4" /> Texto (.txt)
-          </button>
-          {/* Os DOIS, e a diferença dita: o `.apkg` é o mais confortável, o texto é o que nunca
-              falha. Prometer um só seria escolher pela pessoa sem ela saber o custo. */}
-          <p className="text-[11px] text-ink-faint leading-relaxed">
-            O <b>.apkg</b> abre no Anki com duplo clique e já chega com nome de baralho. O
-            <b> .txt</b> é separado por tabulação: o Anki importa sem plugin nenhum, e abre em
-            planilha. Em nenhum dos dois vai o histórico de revisão, o agendamento daqui é outro,
-            e as datas não corresponderiam a nada lá.
+        </section>
+        <section className="cartao p6 pilha">
+          <IconeEmBloco icone={FileText} />
+          <h3 style={{ fontSize: 17, fontWeight: 800 }}>Texto separado por tabulação (.txt)</h3>
+          <p className="mut" style={{ fontSize: 13 }}>
+            Para o Quizlet, uma planilha ou o importador de texto do Anki. Colunas: palavra, tradução, frase.
           </p>
+          <pre className="previa-txt" aria-label="Prévia do arquivo">
+            {previaTxt}
+          </pre>
+          <button type="button" className="btn btn-outline" onClick={exportar} disabled={!exportaveis.length}>
+            <Download aria-hidden /> Baixar .txt
+          </button>
         </section>
       </div>
-    </div>
+      <p className="mut" style={{ fontSize: 12.5, marginTop: 12 }}>
+        <Info style={{ width: 13, height: 13, verticalAlign: -2, display: 'inline' }} aria-hidden /> Vão só as palavras
+        que têm tradução ({exportaveis.length} agora). O histórico de revisão não vai junto.
+      </p>
+    </>
+  );
+
+  const abas: ItemDeAba[] = [
+    { id: 'trazer', rotulo: 'Trazer', icone: <Upload aria-hidden /> },
+    { id: 'levar', rotulo: 'Levar embora', icone: <Download aria-hidden /> },
+    ...(onGerenciar
+      ? [{ id: 'baralhos', rotulo: 'Gerenciar', icone: <Layers aria-hidden />, contagem: nBaralhos }]
+      : []),
+  ];
+
+  return (
+    <Tela largura="larga">
+      <CabecalhoDeTela
+        voltar={{ rotulo: rotuloVoltar, aoClicar: onVoltar }}
+        sobrancelha="Baralhos"
+        icone={Layers}
+        titulo={ageProfile === 'kids' ? 'Trazer palavras de fora' : 'Baralhos do Anki'}
+        sub="Traga o que você já estuda no Anki, leve o seu caderno embora, e escolha o que entra nos jogos."
+        abas={
+          <Abas
+            itens={abas}
+            ativo={aba}
+            rotuloDoGrupo="Baralhos do Anki"
+            aoTrocar={(id) => {
+              // "Gerenciar" é a tela de baralhos que já existe (`BaralhosAnki`): a aba leva até ela.
+              if (id === 'baralhos') onGerenciar?.();
+              else setAba(id as 'trazer' | 'levar');
+            }}
+          />
+        }
+      />
+      <PainelDeAba id="trazer" ativo={aba}>
+        {trazer}
+      </PainelDeAba>
+      <PainelDeAba id="levar" ativo={aba}>
+        {levar}
+      </PainelDeAba>
+    </Tela>
   );
 }

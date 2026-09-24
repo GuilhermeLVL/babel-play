@@ -2,6 +2,7 @@ import { CircleAlert, CloudOff, MailCheck, Send } from 'lucide-react';
 import { useState } from 'react';
 
 import { carregarProtecao, convidarResponsavel, ehFalha } from '../../data/rotas/idade';
+import { t } from '../../lib/i18n';
 import type { EstadoDeProtecao } from '../../lib/protecaoDoMenor';
 import { IconeEmBloco } from '../ui';
 
@@ -13,8 +14,9 @@ import { IconeEmBloco } from '../ui';
  * sem conta (o funil desvia os dados para o servidor local). O que falta é a nuvem, e o cartão diz
  * isso e oferece o convite.
  *
- * O convite vai por e-mail QUANDO o servidor tiver envio configurado; enquanto não tiver, a resposta
- * diz `enviado: false` e, em desenvolvimento, traz o link para testar (`linkDeTeste`).
+ * O convite vai por e-mail (Resend) quando o servidor tem envio configurado; sem ele (dev,
+ * self-host), a resposta diz `enviado: false` e, em desenvolvimento, traz o link para testar
+ * (`linkDeTeste`).
  */
 export default function AvisoDoResponsavel({ estado }: { estado: EstadoDeProtecao }) {
   const [email, setEmail] = useState('');
@@ -36,7 +38,13 @@ export default function AvisoDoResponsavel({ estado }: { estado: EstadoDeProteca
     const r = await convidarResponsavel(email.trim());
     setOcupado(false);
     if (ehFalha(r)) {
-      setErro(`Não consegui criar o convite agora (${r.error}).`);
+      /* As duas recusas que a pessoa resolve esperando têm texto próprio: o e-mail que não saiu
+         (o provedor falhou; o convite anterior continua valendo) e o teto diário de convites. */
+      if (r.code === 'convite_nao_enviado')
+        setErro(t('Não conseguimos enviar o convite agora. Tente de novo em alguns minutos.'));
+      else if (r.code === 'limite_de_convites')
+        setErro(t('Você já enviou muitos convites hoje. Tente de novo amanhã.'));
+      else setErro(`Não consegui criar o convite agora (${r.error}).`);
       return;
     }
     setResultado({ enviado: r.enviado, para: r.emailMascarado, link: r.linkDeTeste });

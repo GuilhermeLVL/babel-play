@@ -12,7 +12,14 @@ import { vinculosRepo } from '../db/repositories/vinculos'
 import { asaasConfigurado } from '../lib/asaas'
 import { authRequired } from '../lib/auth'
 import { adminDoSupabase } from '../lib/config'
-import { enviadorAtual, linkDoConvite, mostrarLinkNaTela } from '../lib/conviteDoResponsavel'
+import {
+  enviadorAtual,
+  ErroDeEnvioDoConvite,
+  LIMITE_DE_CONVITES_POR_DIA,
+  linkDoConvite,
+  mostrarLinkNaTela,
+  type ResultadoDoEnvio,
+} from '../lib/conviteDoResponsavel'
 import { encerrarAssinatura } from '../lib/encerramentoDeAssinatura'
 import { getEntitlementsForUser, getPlanForUser } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
@@ -111,8 +118,13 @@ meRouter.put('/idade', async (req, res) => {
 
 /**
  * O MENOR CONVIDA O RESPONSÁVEL (ECA Digital art. 24). Só quem precisa de vínculo (menor de 16)
- * convida. O token vai no link — enviado pelo `EnviadorDeConvite`, que hoje só registra (ver
- * `server/lib/conviteDoResponsavel.ts`); em desenvolvimento o link volta na resposta.
+ * convida. O token vai no link, por e-mail (Resend) quando o servidor tem envio configurado; sem
+ * ele, o convite só é registrado e, em desenvolvimento, o link volta na resposta (ver
+ * `server/lib/conviteDoResponsavel.ts`).
+ *
+ * Teto de `LIMITE_DE_CONVITES_POR_DIA` por conta em 24 h (429): o endereço é digitado pelo menor e
+ * o remetente é o domínio do app — sem teto, isto seria um canal de spam. Convite cujo e-mail
+ * falhou é descartado e não conta.
  */
 meRouter.post('/responsavel/convite', async (req, res) => {
   const email = z
@@ -136,15 +148,49 @@ meRouter.post('/responsavel/convite', async (req, res) => {
       responderErro(res, 409, 'esta conta já está vinculada a um responsável', 'ja_vinculada')
       return
     }
-    const { token, expiraEm } = await vinculosRepo.convidar(req.userId, email.data)
+    const agora = Date.now()
+    if ((await vinculosRepo.convitesDesde(req.userId, agora - 86_400_000)) >= LIMITE_DE_CONVITES_POR_DIA) {
+      res.setHeader('Retry-After', String(3_600))
+      responderErro(
+        res,
+        429,
+        `você já enviou ${LIMITE_DE_CONVITES_POR_DIA} convites nas últimas 24 horas; tente de novo amanhã`,
+        'limite_de_convites',
+      )
+      return
+    }
+    const { id, token, expiraEm } = await vinculosRepo.convidar(req.userId, email.data, agora)
     const link = linkDoConvite(token)
     const perfil = await usersRepo.get(req.userId)
-    const envio = await enviadorAtual().enviar({
-      para: email.data,
-      link,
-      nomeDoMenor: perfil?.displayName ?? null,
-      exigeConsentimentoEspecifico: estado.exigeConsentimentoEspecifico,
-    })
+    let envio: ResultadoDoEnvio
+    try {
+      envio = await enviadorAtual().enviar({
+        idDoConvite: id,
+        para: email.data,
+        link,
+        quemConvidou: perfil?.displayName?.trim() || perfil?.email || null,
+        exigeConsentimentoEspecifico: estado.exigeConsentimentoEspecifico,
+        expiraEm,
+      })
+    } catch (err) {
+      /* O e-mail não saiu: o convite novo some (não conta no limite, não guarda o e-mail de um
+         terceiro à toa) e o anterior, se havia, continua valendo. O log leva o tipo da falha já
+         redigido — nunca o destinatário. */
+      await vinculosRepo.descartar(req.userId, id)
+      log('warn', {
+        event: 'convite_nao_enviado',
+        error: err instanceof ErroDeEnvioDoConvite ? `${err.tipo}: ${err.message}` : String(err),
+        requestId: req.requestId,
+      })
+      responderErro(
+        res,
+        502,
+        'não conseguimos enviar o convite agora; tente de novo em alguns minutos',
+        'convite_nao_enviado',
+      )
+      return
+    }
+    await vinculosRepo.substituirAnteriores(req.userId, id, agora)
     res.status(201).json({
       enviado: envio.enviado,
       modo: envio.modo,

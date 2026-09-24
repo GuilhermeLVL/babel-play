@@ -12,7 +12,7 @@
  */
 import { createHash, randomBytes, randomUUID } from 'node:crypto'
 
-import { and, desc, eq, gt, isNotNull, isNull } from 'drizzle-orm'
+import { and, desc, eq, gt, isNotNull, isNull, ne, sql } from 'drizzle-orm'
 
 import type { UserId } from '../../lib/authContext'
 import { db } from '../db'
@@ -33,24 +33,23 @@ export interface Aceite {
 
 export const vinculosRepo = {
   /**
-   * Cria um convite e devolve o TOKEN em claro (só existe aqui e no link). Convites pendentes
-   * anteriores do mesmo menor são revogados: vale só o último e-mail informado.
+   * Cria um convite e devolve o TOKEN em claro (só existe aqui e no link).
+   *
+   * NÃO revoga os anteriores: isso só acontece depois que o e-mail SAIU (`substituirAnteriores`).
+   * Se o envio falhar, o convite novo é descartado (`descartar`) e o que já estava na caixa do
+   * responsável continua valendo — revogar antes faria uma falha do provedor de e-mail invalidar
+   * um convite que funcionava.
    */
-  async convidar(menor: UserId, email: string, agora = Date.now()): Promise<{ token: string; expiraEm: number }> {
-    await db
-      .update(vinculosDeResponsavel)
-      .set({ revogadoEm: agora, updatedAt: agora })
-      .where(
-        and(
-          eq(vinculosDeResponsavel.userId, menor),
-          isNull(vinculosDeResponsavel.usadoEm),
-          isNull(vinculosDeResponsavel.revogadoEm),
-        ),
-      )
+  async convidar(
+    menor: UserId,
+    email: string,
+    agora = Date.now(),
+  ): Promise<{ id: string; token: string; expiraEm: number }> {
+    const id = randomUUID()
     const token = randomBytes(32).toString('base64url')
     const expiraEm = agora + VALIDADE_DO_CONVITE_MS
     await db.insert(vinculosDeResponsavel).values({
-      id: randomUUID(),
+      id,
       createdAt: agora,
       updatedAt: agora,
       userId: menor,
@@ -58,7 +57,48 @@ export const vinculosRepo = {
       tokenHash: hashDoToken(token),
       expiraEm,
     })
-    return { token, expiraEm }
+    return { id, token, expiraEm }
+  },
+
+  /** O convite `id` saiu: os outros pendentes do mesmo menor são revogados — vale só o último. */
+  async substituirAnteriores(menor: UserId, id: string, agora = Date.now()): Promise<void> {
+    await db
+      .update(vinculosDeResponsavel)
+      .set({ revogadoEm: agora, updatedAt: agora })
+      .where(
+        and(
+          eq(vinculosDeResponsavel.userId, menor),
+          ne(vinculosDeResponsavel.id, id),
+          isNull(vinculosDeResponsavel.usadoEm),
+          isNull(vinculosDeResponsavel.revogadoEm),
+        ),
+      )
+  },
+
+  /**
+   * O convite `id` NÃO saiu (o e-mail falhou): apaga a linha. DELETE físico, e não revogação,
+   * porque o convite nunca existiu para ninguém — e a linha carrega o e-mail de um terceiro que
+   * não há motivo para guardar (LGPD, necessidade). Também é o que tira a tentativa do limite.
+   */
+  async descartar(menor: UserId, id: string): Promise<void> {
+    await db
+      .delete(vinculosDeResponsavel)
+      .where(
+        and(
+          eq(vinculosDeResponsavel.userId, menor),
+          eq(vinculosDeResponsavel.id, id),
+          isNull(vinculosDeResponsavel.usadoEm),
+        ),
+      )
+  },
+
+  /** Quantos convites este menor criou desde `desde` (todos os estados) — a base do limite diário. */
+  async convitesDesde(menor: UserId, desde: number): Promise<number> {
+    const [r] = await db
+      .select({ n: sql<number>`count(*)` })
+      .from(vinculosDeResponsavel)
+      .where(and(eq(vinculosDeResponsavel.userId, menor), gt(vinculosDeResponsavel.createdAt, desde)))
+    return Number(r?.n ?? 0)
   },
 
   /** O convite pelo token (qualquer estado) — quem decide o que ele permite é o chamador. */

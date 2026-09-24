@@ -213,7 +213,7 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
     paraQue:
-      '`1` devolve o link do convite ao responsável na resposta (desenvolvimento/testes, enquanto não há envio de e-mail). Ausente = ligado fora de produção, desligado em produção',
+      '`1` devolve o link do convite ao responsável na resposta (desenvolvimento/testes, e o self-host sem Resend). Ausente = ligado fora de produção, desligado em produção',
   },
   {
     nome: 'CROSS_ORIGIN_ISOLATION',
@@ -245,6 +245,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     criticidade: 'degrada-capacidade',
     paraQue:
       'teto em ms para drenar as conexoes em curso no SIGTERM antes de sair com 1 (padrao 10.000, o mesmo prazo que o `docker stop` da antes do SIGKILL); ajuste quem roda com `docker stop -t` menor ou `terminationGracePeriodSeconds` diferente',
+  },
+  {
+    nome: 'EMAIL_REMETENTE',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'remetente do e-mail do convite ao responsável, no formato `Babel Play <nao-responda@dominio>`; o domínio precisa estar verificado no Resend (SPF/DKIM). Só vale junto com `RESEND_API_KEY`',
   },
   {
     nome: 'ERROS_DIR',
@@ -382,6 +389,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     criticidade: 'impede-servico',
     paraQue:
       'nº de instâncias independentes. Acima de 1 o boot EXIGE armazenamento compartilhado, senão o áudio some conforme a réplica',
+  },
+  {
+    nome: 'RESEND_API_KEY',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'chave do Resend (só permissão de envio) para o e-mail do convite ao responsável. Sem ela (ou sem `EMAIL_REMETENTE`) o convite só é registrado no log: em produção com AUTH_REQUIRED=1 nenhum menor de 16 consegue liberar a conta, e o boot avisa',
   },
   {
     nome: 'S3_ACCESS_KEY_ID',
@@ -810,13 +824,44 @@ export function lerAppUrl(env: NodeJS.ProcessEnv = process.env): string | null {
 }
 
 /**
- * O link do convite ao responsável pode voltar na resposta? Enquanto não há envio de e-mail, é o
- * único jeito de testar o fluxo. Em PRODUÇÃO só com `CONVITE_LINK_NA_TELA=1` explícito: mostrar o
- * link ao próprio menor deixaria ele mesmo "aceitar" com outra conta.
+ * O link do convite ao responsável pode voltar na resposta? Sem envio de e-mail (dev, testes,
+ * self-host sem Resend), é o único jeito de exercitar o fluxo. Em PRODUÇÃO só com
+ * `CONVITE_LINK_NA_TELA=1` explícito: mostrar o link ao próprio menor deixaria ele mesmo "aceitar"
+ * com outra conta.
  */
 export function linkNaTelaLigado(env: NodeJS.ProcessEnv = process.env): boolean {
   const v = env.CONVITE_LINK_NA_TELA?.trim()
   if (v === '1') return true
   if (v === '0') return false
   return env.NODE_ENV !== 'production'
+}
+
+/**
+ * O envio do convite ao responsável pelo Resend: a chave e o remetente, ou `null` quando falta
+ * qualquer um dos dois. Os dois juntos porque um sem o outro não envia nada — a chave sem
+ * remetente é recusada pelo Resend (422) e o remetente sem chave nem chega a sair.
+ */
+export function configDoResend(env: NodeJS.ProcessEnv = process.env): { chave: string; remetente: string } | null {
+  const chave = env.RESEND_API_KEY?.trim()
+  const remetente = env.EMAIL_REMETENTE?.trim()
+  if (!chave || !remetente) return null
+  return { chave, remetente }
+}
+
+/**
+ * Em produção, no modo público, sem o Resend: o convite ao responsável não sai, e nenhum menor de
+ * 16 anos consegue liberar a nuvem. AVISO e não aborto: o resto do app serve normalmente, e quem
+ * lança só para adultos pode subir assim de propósito. Fora de produção o link aparece na tela
+ * (`linkNaTelaLigado`), e no self-host não existe menor com conta.
+ */
+export function avisoDeConviteSemEmail(
+  env: NodeJS.ProcessEnv = process.env,
+  modoPublico: boolean = authRequired(),
+): string | null {
+  if (env.NODE_ENV !== 'production' || !modoPublico || configDoResend(env)) return null
+  return (
+    'RESEND_API_KEY e EMAIL_REMETENTE ausentes: o convite ao responsável NÃO sai por e-mail, e nenhuma ' +
+    'conta de menor de 16 anos consegue liberar a nuvem. Configure o Resend (docs/LANCAMENTO.md §4) ' +
+    'antes de abrir o app a menores.'
+  )
 }

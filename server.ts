@@ -22,6 +22,7 @@ import { montarSpa } from './server/http/estaticos'
 import { authRequired, erroDeAuthEmProducao, mecanismoDe } from './server/lib/auth'
 import { registrarFalhaDeBoot, registrarSucessoDeBoot } from './server/lib/bootStatus'
 import {
+  avisoDeConviteSemEmail,
   configDoBackupDiario,
   configDoSentry,
   erroDeMetricasEmProducao,
@@ -177,6 +178,10 @@ async function startServer({ prepararDados = true } = {}) {
       `[config] CRÍTICAS ausentes no modo ${configuracao.modoPublico ? 'público' : 'self-host'}: ${configuracao.faltandoCriticas.join(', ')} — /api/health responderá degraded.`,
     )
   }
+  /* O convite ao responsável (Fase 4): em produção, sem o Resend, nenhum menor de 16 libera a conta.
+     AVISA e segue — o resto do app serve, e quem abre só para adultos pode subir assim. */
+  const conviteSemEmail = avisoDeConviteSemEmail()
+  if (conviteSemEmail) console.warn(`[convite] AVISO: ${conviteSemEmail}`)
 
   // P0-2: garante que WAL/busy_timeout já valem ANTES de qualquer escrita (inclusive o seed).
   await dbReady

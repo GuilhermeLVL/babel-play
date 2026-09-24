@@ -40,7 +40,7 @@ function resolveRawKey(): string {
   if (process.env.NODE_ENV === 'production') {
     throw new Error(
       'SECRET_KEY ausente em produção. Defina a variável de ambiente SECRET_KEY (32+ chars aleatórios) — ' +
-      'sem ela os segredos cifrados não podem ser protegidos.',
+        'sem ela os segredos cifrados não podem ser protegidos.',
     )
   }
   const arquivo = arquivoDaChave()
@@ -57,7 +57,9 @@ function resolveRawKey(): string {
       try {
         mkdirSync(path.dirname(arquivo), { recursive: true })
         writeFileSync(arquivo, anterior, { encoding: 'utf8' })
-        console.log(`[crypto] chave de segredos movida de ${legado} para ${arquivo} (mesma chave, segredos preservados)`)
+        console.log(
+          `[crypto] chave de segredos movida de ${legado} para ${arquivo} (mesma chave, segredos preservados)`,
+        )
       } catch {
         // Sem permissao no destino: seguir com a chave antiga e melhor que abortar o boot.
         console.warn(`[crypto] não consegui copiar a chave para ${arquivo}; seguindo com ${legado}`)
@@ -95,9 +97,13 @@ export function encryptSecret(plain: string): string {
   return [iv.toString('base64'), tag.toString('base64'), enc.toString('base64')].join('.')
 }
 
-// Chave do fallback antigo — só para LER segredos cifrados antes desta correção.
-// Nunca é usada para cifrar de novo.
-const LEGACY_KEY = scryptSync('dev-only-insecure-key-change-me', 'babel-play-web:secrets', 32)
+/*
+ * A CHAVE LEGADA SAIU DAQUI (Fase 6 do lançamento). Ela era derivada de uma frase fixa no código e
+ * ficava no processo só para LER blobs antigos e recifrá-los no primeiro uso (S-11). A produção
+ * nasce sem nenhum dado antigo — é o primeiro deploy —, e uma chave pública dentro do servidor de
+ * produção só servia a quem tivesse o banco. Quem roda self-host desde antes da correção migra com
+ * `npx tsx scripts/db/recifrar-segredos-legados.ts --aplicar`, o único lugar onde ela ainda existe.
+ */
 
 function decryptWith(key: Buffer, ivB: string, tagB: string, encB: string): string {
   // authTagLength explícito (achado Semgrep gcm-no-tag-length): sem ele, um tag truncado
@@ -109,23 +115,9 @@ function decryptWith(key: Buffer, ivB: string, tagB: string, encB: string): stri
   return Buffer.concat([decipher.update(Buffer.from(encB, 'base64')), decipher.final()]).toString('utf8')
 }
 
-/**
- * Decifra e sinaliza migração (S-11). Se o blob estava cifrado com a `LEGACY_KEY`, devolve também um
- * `migratedBlob` re-cifrado com a KEY atual — o caller (repo) persiste, migrando no PRIMEIRO uso em
- * vez de esperar o usuário reeditar a credencial (o que podia nunca acontecer, deixando o segredo
- * decifrável por quem tivesse o banco, já que a LEGACY_KEY está no código-fonte).
- */
-export function decryptSecretEx(blob: string): { value: string; migratedBlob: string | null } {
+/** Decifra um blob `iv.tag.ciphertext` com a chave atual. Lança se o blob não for desta chave. */
+export function decryptSecret(blob: string): string {
   const [ivB, tagB, encB] = blob.split('.')
   if (!ivB || !tagB || !encB) throw new Error('segredo malformado')
-  try {
-    return { value: decryptWith(KEY, ivB, tagB, encB), migratedBlob: null }
-  } catch {
-    const value = decryptWith(LEGACY_KEY, ivB, tagB, encB)
-    return { value, migratedBlob: encryptSecret(value) }
-  }
-}
-
-export function decryptSecret(blob: string): string {
-  return decryptSecretEx(blob).value
+  return decryptWith(KEY, ivB, tagB, encB)
 }

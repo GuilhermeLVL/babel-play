@@ -15,8 +15,9 @@
  *     provedor;
  *  5. o STT, que NÃO tem cascata, retenta 429/5xx com espera crescente — e não retenta timeout.
  */
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { esvaziarCacheDeTraducao } from '../../server/ai/cacheDeTraducao'
 import {
   deveRetentar,
   esperaDaRetentativa,
@@ -44,7 +45,11 @@ const ENVS = [
 const BASE_PRIMARIO = 'https://primario-disjuntor.exemplo/v1'
 const BASE_RESERVA = 'https://reserva-disjuntor.exemplo/v1'
 
-function mockReq(userId: any, texto = 'hello there'): any {
+/* Frase DIFERENTE a cada pedido: com o cache de tradução no servidor (Fase 2 do lançamento), a
+   mesma frase repetida sairia do cache depois da primeira entrega, e as falhas seguidas que estes
+   casos encenam nunca chegariam ao provedor. */
+let pedidos = 0
+function mockReq(userId: any, texto = `hello there ${++pedidos}`): any {
   return { userId, body: { text: texto, tgt: 'pt', falada: true }, requestId: 'req-disjuntor' }
 }
 function mockRes(): any {
@@ -109,6 +114,10 @@ function fetchComPrimarioQuebrado(chamadas: string[], statusPrimario = 500) {
 }
 
 const U = () => asUserId('disjuntor')
+
+/* O cache de tradução (Fase 2 do lançamento) é do processo: sem esvaziar, a frase repetida de um
+   caso seria servida do cache no seguinte, e o provedor que o caso encena nem seria chamado. */
+beforeEach(() => esvaziarCacheDeTraducao())
 
 describe('disjuntor por provedor na cascata de tradução', () => {
   it('cinco falhas seguidas abrem; a SEXTA chamada não toca o primário e a reserva serve na hora', async () => {

@@ -13,6 +13,7 @@
  */
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { esvaziarCacheDeTraducao } from '../../server/ai/cacheDeTraducao'
 import { esquecerDisjuntores } from '../../server/ai/disjuntor'
 import { type AppDeTeste, resposta, subirApp } from './_app'
 
@@ -101,6 +102,10 @@ beforeEach(() => {
      não sairia, e o `chamadas` que cada caso confere mediria outra coisa. */
   esquecerDisjuntores()
 })
+
+/* O cache de tradução (Fase 2 do lançamento) é do processo: sem esvaziar, a frase repetida de um
+   caso seria servida do cache no seguinte, e o provedor que o caso encena nem seria chamado. */
+beforeEach(() => esvaziarCacheDeTraducao())
 
 describe('POST /api/ai/mt — tradução gerenciada', () => {
   it('corpo válido + provedor responde → 200, e o provedor recebe o modelo e a chave do env', async () => {

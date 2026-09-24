@@ -11,8 +11,9 @@
  *     (evento próprio, para virar alerta de verdade depois); a 100% a nuvem desliga sozinha até o
  *     mês virar, com mensagem clara, e o cliente cai nos modelos locais.
  */
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { esvaziarCacheDeTraducao } from '../../server/ai/cacheDeTraducao'
 import { esquecerDisjuntores } from '../../server/ai/disjuntor'
 import { asUserId } from '../../server/lib/authContext'
 import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
@@ -78,6 +79,10 @@ async function pro(id: string) {
   await subs.upsert(u, { plan: 'pro', status: 'active' })
   return u
 }
+
+/* O cache de tradução (Fase 2 do lançamento) é do processo: sem esvaziar, a frase repetida de um
+   caso seria servida do cache no seguinte, e o provedor que o caso encena nem seria chamado. */
+beforeEach(() => esvaziarCacheDeTraducao())
 
 describe('AI_ENABLED=0 — a chave de emergência', () => {
   it('tradução, tutor e transcrição respondem 503 ia_desligada sem tocar no provedor', async () => {

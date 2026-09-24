@@ -14,6 +14,7 @@ import { log } from '../lib/logger'
 import { custoDeLlm, portaoDaNuvem, registrarGastoDeIa, responderPortaoFechado } from '../lib/orcamentoDeIa'
 import { responderErro } from '../lib/respostaDeErro'
 import { estimarTokens } from '../lib/usageQuota'
+import { cacheDeTraducao, chaveDeTraducao, MAX_CARACTERES_NO_CACHE } from './cacheDeTraducao'
 import { percorrerCascata } from './cascata'
 import { FUNCOES_DE_IA } from './funcoesDeIa'
 import { type MensagemDeChat, tamanhoDoPrompt } from './llmClient'
@@ -74,6 +75,25 @@ function mensagensDeTextoEscrito(text: string, tgt: string, src?: string): Mensa
   ]
 }
 
+/**
+ * O corpo da resposta. Procedência no PAYLOAD: a origem diz o modelo que REALMENTE serviu — com a
+ * cascata, pode ser o da reserva. `engine` é o id NEUTRO do adaptador (A5).
+ */
+function respostaDeTraducao(texto: string, modelo: string, doCache = false) {
+  return {
+    text: texto,
+    engine: 'server-llm-mt',
+    ...(doCache ? { cache: true } : {}),
+    provenance: {
+      kind: 'ai',
+      origin: modelo,
+      method: 'tradução por LLM',
+      limits:
+        'Tradução gerada por modelo de linguagem — pode conter erros de sentido, registro ou termo técnico. Confira antes de decorar.',
+    },
+  }
+}
+
 export async function mtTranslateProxy(req: Request, res: Response): Promise<void> {
   const parsed = bodySchema.safeParse(req.body ?? {})
   if (!parsed.success) {
@@ -105,6 +125,25 @@ export async function mtTranslateProxy(req: Request, res: Response): Promise<voi
   const provedores = cascataDeNuvem({ modelosGrandes: planoDoUsuario.largerModels })
   if (provedores.length === 0) {
     res.status(501).json({ error: 'tradução por LLM não configurada no servidor (defina LLM_API_KEY)' })
+    return
+  }
+
+  /* CACHE ANTES DE TUDO QUE CUSTA (cacheDeTraducao.ts): a mesma frase, no mesmo par, pelo mesmo
+     modelo, não vai ao provedor de novo — nem gasta cota do usuário, porque não custa nada a ninguém.
+     A chave usa o modelo PLANEJADO (o primeiro da cascata), que é o que o plano promete. */
+  const cacheavel = text.length <= MAX_CARACTERES_NO_CACHE
+  const chave = chaveDeTraducao({
+    texto: text,
+    src,
+    tgt,
+    falada: falada === true,
+    contexto,
+    modelo: provedores[0].model,
+  })
+  const guardada = cacheavel ? cacheDeTraducao.ler(chave) : null
+  if (guardada) {
+    log('info', { event: 'mt_cache_hit', route: '/api/ai/mt', status: 200, requestId: req.requestId })
+    res.json(respostaDeTraducao(guardada.texto, guardada.modelo, true))
     return
   }
 
@@ -178,19 +217,10 @@ export async function mtTranslateProxy(req: Request, res: Response): Promise<voi
       latencyMs: Date.now() - t0,
       requestId: req.requestId,
     })
-    // Procedência no PAYLOAD: a origem diz o modelo que REALMENTE serviu — com a cascata, pode ser
-    // o da reserva. `engine` é o id NEUTRO do adaptador (A5).
-    res.json({
-      text: entregue.texto,
-      engine: 'server-llm-mt',
-      provenance: {
-        kind: 'ai',
-        origin: entregue.model,
-        method: 'tradução por LLM',
-        limits:
-          'Tradução gerada por modelo de linguagem — pode conter erros de sentido, registro ou termo técnico. Confira antes de decorar.',
-      },
-    })
+    if (cacheavel && entregue.texto.length <= MAX_CARACTERES_NO_CACHE * 2) {
+      cacheDeTraducao.guardar(chave, { texto: entregue.texto, modelo: entregue.model })
+    }
+    res.json(respostaDeTraducao(entregue.texto, entregue.model))
   } catch (err) {
     res.status(502).json({ error: `falha na tradução por LLM: ${erroDeRota(err, { event: 'mt_route_error' })}` })
   } finally {

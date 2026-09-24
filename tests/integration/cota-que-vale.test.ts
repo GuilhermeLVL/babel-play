@@ -12,8 +12,9 @@
  *     chamada reserva uma estimativa conservadora ANTES (entrada + `max_tokens`) e acerta pelo
  *     número real do provedor depois.
  */
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { esvaziarCacheDeTraducao } from '../../server/ai/cacheDeTraducao'
 import { esquecerDisjuntores } from '../../server/ai/disjuntor'
 import { asUserId } from '../../server/lib/authContext'
 import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
@@ -67,6 +68,10 @@ async function pro(id: string) {
   await subs.upsert(u, { plan: 'pro', status: 'active' })
   return u
 }
+
+/* O cache de tradução (Fase 2 do lançamento) é do processo: sem esvaziar, a frase repetida de um
+   caso seria servida do cache no seguinte, e o provedor que o caso encena nem seria chamado. */
+beforeEach(() => esvaziarCacheDeTraducao())
 
 describe('falha fechada', () => {
   it('reserva de chamada com o banco fora LANÇA ContadorIndisponivel (não libera)', async () => {

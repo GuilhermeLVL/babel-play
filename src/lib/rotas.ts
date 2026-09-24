@@ -88,6 +88,8 @@ const SEGMENTO: Record<Exclude<ViewDeRota, 'analysis'>, string> = {
  */
 const ALIAS_DE_SEGMENTO: Record<string, { view: ViewDeRota; lojaTab?: EstadoDeRota['lojaTab'] }> = {
   planos: { view: 'planos' },
+  // A tela chama-se Personalizar desde o protótipo aprovado (23/09); o endereço canônico segue /loja.
+  personalizar: { view: 'loja' },
   creditos: { view: 'loja', lojaTab: 'conquistas' },
 };
 const VIEW_DE_SEGMENTO = Object.fromEntries(

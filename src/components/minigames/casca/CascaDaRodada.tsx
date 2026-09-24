@@ -277,7 +277,8 @@ function DialogoDePausa({
             {som && (
               <div className="op-linha" style={{ padding: '6px 4px' }}>
                 <b>
-                  <Volume2 aria-hidden style={{ width: 16, height: 16, verticalAlign: -3 }} /> Sons
+                  <Volume2 aria-hidden style={{ display: 'inline-block', width: 16, height: 16, verticalAlign: -3 }} />{' '}
+                  Sons
                 </b>
                 <button
                   type="button"

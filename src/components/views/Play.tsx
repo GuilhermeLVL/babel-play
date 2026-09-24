@@ -2693,25 +2693,25 @@ export default function Play({
       />,
     );
   }
-  /* Sem a camada `z-[35]`: `ComoSeJoga` já é `fixed inset-0 z-[90]`. Mas PRECISA do portal —
-     `fixed` sozinho não escapa do `transform` que o invólucro da aba deixa (ver `telaCheia`), e
-     sem ele a ficha abriria medida por uma div de altura zero. */
-  if (explicando) {
-    const carta = JOGOS.find((j) => j.id === explicando)!;
-    const ficha = (
-      <ComoSeJoga
-        jogo={explicando}
-        titulo={tituloDoJogo(carta, ageProfile)}
-        ageProfile={ageProfile}
-        onJogar={() => {
-          setExplicando(null);
-          pedirParaJogar({ id: explicando });
-        }}
-        onFechar={() => setExplicando(null)}
-      />
-    );
-    return embutido ? createPortal(ficha, document.body) : ficha;
-  }
+  /* "Como se joga" (o "?" da carta) abre POR CIMA do lobby, como o `dialogoComo()` do protótipo:
+     é um `<dialog>` modal, que vive na camada do topo e não precisa de portal nem de tela própria. */
+  const fichaDoComo = explicando
+    ? (() => {
+        const carta = JOGOS.find((j) => j.id === explicando)!;
+        return (
+          <ComoSeJoga
+            jogo={explicando}
+            titulo={tituloDoJogo(carta, ageProfile)}
+            ageProfile={ageProfile}
+            onJogar={() => {
+              setExplicando(null);
+              pedirParaJogar({ id: explicando });
+            }}
+            onFechar={() => setExplicando(null)}
+          />
+        );
+      })()
+    : null;
   if (importando) {
     return telaCheia(
       <BaralhoAnki
@@ -3071,6 +3071,7 @@ export default function Play({
           feitos de poucas formas. Limitar o conteúdo resolve os dois de uma vez, e de quebra o
           texto para de atravessar a tela inteira, que já é ruim de ler por si só. */}
       {sala}
+      {fichaDoComo}
       {/* Moldura do protótipo: `.tela.larga` (1152 px, respiro 40/40/120). Embutida numa sessão, a
           tela já tem moldura e fica só a largura. */}
       <div className={embutido ? 'max-w-6xl mx-auto' : 'tela larga entra'}>

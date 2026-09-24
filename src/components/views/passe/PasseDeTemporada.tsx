@@ -158,7 +158,17 @@ export default function PasseDeTemporada({
      década é um gesto deliberado, e arrastar a tela de volta seria brigar com quem navegou. */
   useEffect(() => {
     if (Math.ceil(marcador / 10) !== pagina) return;
-    document.getElementById(`passe-slot-${marcador}`)?.scrollIntoView({ inline: 'center', block: 'nearest' });
+    /* Só o TRILHO rola, e só na horizontal. `scrollIntoView` rolava também a página inteira até o
+       passe: abrir Personalizar → Desafios caía no meio da tela, com o topo (Como ganhar, Conquistas)
+       fora de vista. */
+    const casa = document.getElementById(`passe-slot-${marcador}`);
+    let trilho = casa?.parentElement ?? null;
+    while (trilho && !/(auto|scroll)/.test(getComputedStyle(trilho).overflowX)) trilho = trilho.parentElement;
+    if (casa && trilho) {
+      const a = casa.getBoundingClientRect(),
+        t = trilho.getBoundingClientRect();
+      trilho.scrollLeft += a.left - t.left - (t.width - a.width) / 2;
+    }
   }, [marcador, pagina]);
 
   const aoTocar = (s: SlotDoPasse) => {

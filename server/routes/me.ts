@@ -10,6 +10,7 @@ import { adminDoSupabase } from '../lib/config'
 import { getEntitlementsForUser, getPlanForUser } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
 import { log } from '../lib/logger'
+import { portaoDaNuvem } from '../lib/orcamentoDeIa'
 import { capDeArmazenamento, reconciliarSeVencido, usoDeArmazenamento } from '../lib/storageQuota'
 import {
   capForPlan,
@@ -78,11 +79,9 @@ meRouter.get('/exportar', async (req, res) => {
     res.setHeader('Cache-Control', 'no-store')
     res.json(dados)
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        error: erroDeRota(err, { status: 500, event: 'me_exportar_error', route: req.path, requestId: req.requestId }),
-      })
+    res.status(500).json({
+      error: erroDeRota(err, { status: 500, event: 'me_exportar_error', route: req.path, requestId: req.requestId }),
+    })
   }
 })
 
@@ -193,16 +192,14 @@ meRouter.delete('/', async (req, res) => {
     }
     res.json({ ok: true, ...relatorio, arquivos: { apagados, falhas: [] }, login })
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        error: erroDeRota(err, {
-          status: 500,
-          event: 'me_excluir_conta_error',
-          route: req.path,
-          requestId: req.requestId,
-        }),
-      })
+    res.status(500).json({
+      error: erroDeRota(err, {
+        status: 500,
+        event: 'me_excluir_conta_error',
+        route: req.path,
+        requestId: req.requestId,
+      }),
+    })
   }
 })
 
@@ -229,10 +226,11 @@ meRouter.get('/uso', async (req, res) => {
   try {
     const plano = await getPlanForUser(req.userId)
     const janela = new Date().toISOString().slice(0, 7)
-    const [chamadas, segundos, tokens] = await Promise.all([
+    const [chamadas, segundos, tokens, portao] = await Promise.all([
       usageCountersRepo.get(req.userId, METRIC_MANAGED, janela),
       usageCountersRepo.get(req.userId, METRIC_STT_SEGUNDOS, janela),
       usageCountersRepo.get(req.userId, METRIC_LLM_TOKENS, janela),
+      portaoDaNuvem(),
     ])
     const finito = (n: number): number | null => (Number.isFinite(n) ? n : null)
     res.json({
@@ -242,6 +240,10 @@ meRouter.get('/uso', async (req, res) => {
       segundosDeAudio: { usado: segundos, teto: finito(capSegundosParaPlano(plano)) },
       // Tokens viraram TETO na Fase 2 do lançamento: reservados antes da chamada, acertados depois.
       tokensDeLlm: { usado: tokens, teto: finito(capTokensParaPlano(plano)) },
+      /* O PORTÃO GLOBAL (chave de emergência e orçamento do mês), para a tela dizer POR QUE a nuvem
+         não está respondendo. Só o estado e o motivo: o valor em dólares é do operador
+         (`GET /api/admin/ia`), não de cada assinante. */
+      iaDeNuvem: { disponivel: portao.ok, motivo: portao.motivo ?? null, mensagem: portao.mensagem ?? null },
     })
   } catch (err) {
     res.status(500).json({ error: erroDeRota(err, { status: 500, event: 'me_route_error' }) })

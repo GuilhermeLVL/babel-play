@@ -104,6 +104,27 @@ export const VARIAVEIS_POR_PLANO: readonly VariavelDeclarada[] = Object.keys(PLA
 export const VARIAVEIS: readonly VariavelDeclarada[] = [
   ...VARIAVEIS_POR_PLANO,
   {
+    nome: 'AI_BUDGET_USD_MONTH',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'teto de gasto ESTIMADO com IA de nuvem no mês, em US$ (server/lib/orcamentoDeIa.ts). A 80% sai o evento ia_orcamento_alerta_80; a 100% a nuvem desliga até o mês virar. Ausente: US$ 20 no modo público, sem teto no self-host. 0 desliga a nuvem',
+  },
+  {
+    nome: 'AI_ENABLED',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'chave de emergência: 0 desliga TODA IA de nuvem na hora (tradução, transcrição, tutor) e o app segue com os modelos locais. Ausente ou 1: ligada',
+  },
+  {
+    nome: 'AI_PRECOS_MODELOS',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'JSON com o preço por modelo que o orçamento usa: {"modelo": {"entrada": US$/1M, "saida": US$/1M}} para LLM e {"modelo": {"hora": US$}} para STT. Sobrepõe a tabela oficial embutida',
+  },
+  {
     nome: 'ARMAZENAMENTO_COMPARTILHADO',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
@@ -524,4 +545,72 @@ export function adminDoSupabase(env: NodeJS.ProcessEnv = process.env): { base: s
   const chave = env.SUPABASE_SERVICE_ROLE_KEY
   if (!base || !chave) return null
   return { base, chave }
+}
+
+/* ─────────────── IA de nuvem: chave de emergência, orçamento e preços (Fase 2 do lançamento) ─────────────── */
+
+/**
+ * A chave de emergência. `AI_ENABLED=0` (ou `false`/`off`) desliga TODA IA de nuvem na hora — as rotas
+ * respondem 503 com o motivo e o cliente cai nos modelos locais. Ausente = ligada: desligar precisa
+ * ser um ato, não o esquecimento de uma variável.
+ */
+export function iaDeNuvemLigada(env: NodeJS.ProcessEnv = process.env): boolean {
+  const v = env.AI_ENABLED?.trim().toLowerCase()
+  return !(v === '0' || v === 'false' || v === 'off')
+}
+
+/**
+ * O teto padrão do modo público quando `AI_BUDGET_USD_MONTH` não foi definido. Existe porque
+ * "sem variável" não pode significar "sem teto" num serviço aberto (OWASP LLM10). US$ 20 cobre com
+ * folga o lançamento em fatias (a conta de ~US$ 0,80/mês por assinante Essencial típico está em
+ * `src/core/planos.ts`) e é pequeno o bastante para que um vazamento de chave não vire prejuízo.
+ * O dono ajusta pela variável; o self-host não tem teto (a chave é dele).
+ */
+export const ORCAMENTO_PADRAO_USD = 20
+
+export function orcamentoMensalDeIaUsd(
+  env: NodeJS.ProcessEnv = process.env,
+  modoPublico: boolean = authRequired(),
+): number {
+  const bruto = env.AI_BUDGET_USD_MONTH?.trim()
+  if (bruto) {
+    const n = Number(bruto.replace(',', '.'))
+    if (Number.isFinite(n) && n >= 0) return n
+    log('warn', { event: 'config_orcamento_invalido', error: 'AI_BUDGET_USD_MONTH não é um número; usando o padrão' })
+  }
+  return modoPublico ? ORCAMENTO_PADRAO_USD : Infinity
+}
+
+export interface PrecoDeModelo {
+  /** US$ por 1 milhão de tokens de entrada (LLM). */
+  entrada?: number
+  /** US$ por 1 milhão de tokens de saída (LLM). */
+  saida?: number
+  /** US$ por hora de áudio (STT). */
+  hora?: number
+}
+
+/**
+ * Os preços que o operador sobrepôs por env (`AI_PRECOS_MODELOS`, JSON). JSON inválido não derruba
+ * nada: loga e fica com a tabela embutida — o orçamento continua valendo com os preços oficiais.
+ */
+export function precosDeModelosDoEnv(env: NodeJS.ProcessEnv = process.env): Record<string, PrecoDeModelo> {
+  const bruto = env.AI_PRECOS_MODELOS?.trim()
+  if (!bruto) return {}
+  try {
+    const obj = JSON.parse(bruto) as Record<string, PrecoDeModelo>
+    const saida: Record<string, PrecoDeModelo> = {}
+    const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : undefined)
+    for (const [modelo, p] of Object.entries(obj ?? {})) {
+      if (!p || typeof p !== 'object') continue
+      saida[modelo] = { entrada: num(p.entrada), saida: num(p.saida), hora: num(p.hora) }
+    }
+    return saida
+  } catch {
+    log('warn', {
+      event: 'config_precos_invalidos',
+      error: 'AI_PRECOS_MODELOS não é JSON válido; usando a tabela embutida',
+    })
+    return {}
+  }
 }

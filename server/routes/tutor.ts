@@ -28,6 +28,7 @@ import { authRequired } from '../lib/auth'
 import { getEntitlementsForUser } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
 import { log } from '../lib/logger'
+import { custoDeLlm, portaoDaNuvem, registrarGastoDeIa, responderPortaoFechado } from '../lib/orcamentoDeIa'
 import { estimarTokens } from '../lib/usageQuota'
 
 export const tutorRouter = Router()
@@ -60,7 +61,13 @@ export async function tutorChat(req: Request, res: Response): Promise<void> {
 
     if (plano.managedCloudLlm) {
       const provedores = cascataDeNuvem({ modelosGrandes: plano.largerModels })
-      if (provedores.length > 0) {
+      // Chave de emergência e orçamento global: fechado, o hospedado explica; o self-host cai no Ollama.
+      const portao = provedores.length > 0 ? await portaoDaNuvem() : { ok: false }
+      if (provedores.length > 0 && !portao.ok && !selfHost) {
+        responderPortaoFechado(res, portao)
+        return
+      }
+      if (provedores.length > 0 && portao.ok) {
         reserva = await abrirReservaDeLlm(
           req.userId,
           estimarTokens(tamanhoDoPrompt(prep.messages), prep.maxTokens),
@@ -79,6 +86,7 @@ export async function tutorChat(req: Request, res: Response): Promise<void> {
         )
         if (entregue) {
           await reserva.consumir(entregue.tokensEntrada + entregue.tokensSaida)
+          await registrarGastoDeIa(custoDeLlm(entregue.model, entregue.tokensEntrada, entregue.tokensSaida))
           res.json({ text: entregue.texto, engine: 'nuvem', local: false })
           return
         }

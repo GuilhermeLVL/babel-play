@@ -5,6 +5,11 @@
       "teto": "number",
       "usado": "number"
     },
+    "iaDeNuvem": {
+      "disponivel": "boolean",
+      "mensagem": "null",
+      "motivo": "null"
+    },
     "janela": "string",
     "plano": "string",
     "segundosDeAudio": {

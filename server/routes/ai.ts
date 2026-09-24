@@ -3,7 +3,7 @@
  * provider e CRUD de credenciais (segredo write-only). Perfis entram na próxima
  * etapa da Fase 1.
  */
-import { raw,Router } from 'express'
+import { raw, Router } from 'express'
 
 import { mtTranslateProxy } from '../ai/mtProxy'
 import { llmChatProxy, providerTest } from '../ai/proxy'
@@ -13,7 +13,8 @@ import { credentialsRepo } from '../db/repositories/credentials'
 import { sttDeNuvemConfigurado } from '../lib/config'
 import { hasEntitlement } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
-import { createCredentialSchema, idParamSchema,parseOr400 } from '../validation'
+import { portaoDaNuvem } from '../lib/orcamentoDeIa'
+import { createCredentialSchema, idParamSchema, parseOr400 } from '../validation'
 
 export const aiRouter = Router()
 
@@ -41,10 +42,18 @@ aiRouter.get('/stt/available', async (req, res) => {
       res.status(temByok ? 200 : 501).json({ available: temByok })
       return
     }
-    const ok =
-      (await hasEntitlement(req.userId, 'managedCloudStt')) ||
-      (await credentialsRepo.list(req.userId)).length > 0
-    res.status(ok ? 200 : 501).json({ available: ok })
+    const byok = (await credentialsRepo.list(req.userId)).length > 0
+    if (byok) {
+      res.json({ available: true })
+      return
+    }
+    /* A nuvem GERENCIADA também precisa do portão global (chave de emergência e orçamento do mês):
+       responder "disponível" com a nuvem fechada mandaria o roteador para um 503 no meio da captura. */
+    const portao = (await hasEntitlement(req.userId, 'managedCloudStt')) ? await portaoDaNuvem() : null
+    const ok = !!portao?.ok
+    res
+      .status(ok ? 200 : 501)
+      .json(ok ? { available: true } : { available: false, ...(portao ? { motivo: portao.motivo } : {}) })
   } catch (err) {
     // Indeciso = indisponível: mandar o usuário para a nuvem no escuro é o defeito que esta rota corrige.
     res.status(501).json({ available: false, error: erroDeRota(err, { event: 'stt_available_error' }) })
@@ -61,7 +70,11 @@ aiRouter.post('/credentials', async (req, res) => {
   try {
     res.json(await credentialsRepo.create(req.userId, payload))
   } catch (err) {
-    res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'ai_route_error', route: req.path, requestId: req.requestId }) })
+    res
+      .status(400)
+      .json({
+        error: erroDeRota(err, { status: 400, event: 'ai_route_error', route: req.path, requestId: req.requestId }),
+      })
   }
 })
 
@@ -70,6 +83,9 @@ aiRouter.delete('/credentials/:id', async (req, res) => {
   if (!p) return
   // P2-N4: 404 quando nada foi afetado — antes respondia ok até para credencial de outro dono.
   const removeu = await credentialsRepo.remove(req.userId, p.id)
-  if (!removeu) { res.status(404).json({ error: 'credencial não encontrada' }); return }
+  if (!removeu) {
+    res.status(404).json({ error: 'credencial não encontrada' })
+    return
+  }
   res.json({ ok: true })
 })

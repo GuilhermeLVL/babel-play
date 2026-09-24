@@ -11,6 +11,7 @@ import {
 import { getEntitlementsForUser } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
 import { log } from '../lib/logger'
+import { custoDeLlm, portaoDaNuvem, registrarGastoDeIa, responderPortaoFechado } from '../lib/orcamentoDeIa'
 import { responderErro } from '../lib/respostaDeErro'
 import { estimarTokens } from '../lib/usageQuota'
 import { percorrerCascata } from './cascata'
@@ -107,6 +108,13 @@ export async function mtTranslateProxy(req: Request, res: Response): Promise<voi
     return
   }
 
+  // Chave de emergência e orçamento GLOBAL do mês, antes de qualquer cota (orcamentoDeIa.ts).
+  const portao = await portaoDaNuvem()
+  if (!portao.ok) {
+    responderPortaoFechado(res, portao)
+    return
+  }
+
   /* Dois prompts, um por natureza do texto. FALA (microfone): intérprete — sentido, registro
      informal, contexto das falas anteriores (src/lib/traducao/promptComunicativo.ts, compartilhado
      com o eval). TEXTO (legenda do sistema, importação): o tradutor fiel de sempre. Nos dois, o
@@ -161,6 +169,7 @@ export async function mtTranslateProxy(req: Request, res: Response): Promise<voi
     /* O `usage` do provedor acerta a reserva de tokens pelo número REAL — nos modelos de raciocínio a
        saída inclui os tokens de pensamento, a parte cara. */
     await reserva.consumir(entregue.tokensEntrada + entregue.tokensSaida)
+    await registrarGastoDeIa(custoDeLlm(entregue.model, entregue.tokensEntrada, entregue.tokensSaida))
     log('info', {
       event: 'mt_translated',
       route: '/api/ai/mt',

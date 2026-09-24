@@ -600,6 +600,13 @@ export default function Planos() {
                     ? 'Os números acima são só para você acompanhar; o custo da IA de nuvem é seu, pela sua própria chave. Os limites valem nos planos em nuvem.'
                     : 'Zera na virada do mês. Transcrição, tradução e tutor dividem o limite de chamadas: cada fala transcrita e traduzida usa duas. Tradução e tutor também dividem o limite de tokens. O provedor cobra no mínimo 10 segundos por trecho de áudio enviado.'}
                 </p>
+                {/* O portão GLOBAL (chave de emergência ou orçamento do mês): sem esta linha, a nuvem
+                    fechada parecia defeito do plano do assinante. */}
+                {uso.iaDeNuvem && !uso.iaDeNuvem.disponivel && uso.iaDeNuvem.mensagem && (
+                  <p role="status" style={{ marginTop: 8 }}>
+                    <b>{uso.iaDeNuvem.mensagem}</b>
+                  </p>
+                )}
               </div>
             </div>
           </>

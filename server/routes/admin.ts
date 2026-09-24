@@ -15,6 +15,7 @@ import { asUserId } from '../lib/authContext'
 import { aplicarEvento, eventoSchema } from '../lib/billingEventos'
 import { lerUltimosErros } from '../lib/diarioDeErros'
 import { log } from '../lib/logger'
+import { estadoDoOrcamento } from '../lib/orcamentoDeIa'
 import { requireRole } from '../lib/rbac'
 import { modoDeReconciliacao, reconciliarArmazenamento } from '../lib/storageQuota'
 import { idParamSchema, parseOr400 } from '../validation'
@@ -22,6 +23,15 @@ import { idParamSchema, parseOr400 } from '../validation'
 export const adminRouter = Router()
 
 // ── Leitura (admin + support) ────────────────────────────────────────────────
+
+/**
+ * O ORÇAMENTO DE IA DO MÊS (Fase 2 do lançamento): gasto estimado, teto, percentual, quando os
+ * limiares de 80% e 100% foram cruzados e se o portão está aberto. É o painel do operador para a
+ * decisão "subir o teto, desligar a nuvem (AI_ENABLED=0) ou esperar o mês virar".
+ */
+adminRouter.get('/ia', requireRole('admin', 'support'), async (_req, res) => {
+  res.json(await estadoDoOrcamento())
+})
 adminRouter.get('/users', requireRole('admin', 'support'), async (_req, res) => {
   res.json(await usersRepo.list())
 })

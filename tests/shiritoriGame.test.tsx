@@ -4,16 +4,25 @@
  * `cardId` em TODO outcome (sem ele `Play.tsx` pula o FSRS) e `onExit` quando o baralho não
  * fecha corrente — antes ele caía num dicionário inglês embutido e jogava sozinho.
  */
-import { cleanup, fireEvent,render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import React from 'react'
-import { afterEach,describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { MinigameItem, RoundReport } from '../src/core/minigames/types'
 
 vi.mock('../src/lib/juice', () => ({
-  comemorar: vi.fn(), pontosDoElemento: vi.fn(), pontosFlutuantes: vi.fn(), tremor: vi.fn(),
-  tremorDeTela: vi.fn(), pulsoDeZoom: vi.fn(), flashDeTela: vi.fn(), vibrar: vi.fn(),
-  executarEfeito: vi.fn(), glitchDeTela: vi.fn(), multiplicador: () => 1,
+  contarAte: vi.fn(async () => {}),
+  comemorar: vi.fn(),
+  pontosDoElemento: vi.fn(),
+  pontosFlutuantes: vi.fn(),
+  tremor: vi.fn(),
+  tremorDeTela: vi.fn(),
+  pulsoDeZoom: vi.fn(),
+  flashDeTela: vi.fn(),
+  vibrar: vi.fn(),
+  executarEfeito: vi.fn(),
+  glitchDeTela: vi.fn(),
+  multiplicador: () => 1,
 }))
 vi.mock('../src/lib/effects', () => ({ emitBurst: vi.fn() }))
 vi.mock('../src/lib/soundFx', () => ({ play: vi.fn() }))
@@ -35,11 +44,23 @@ function clicar(texto: string): void {
 }
 
 describe('ShiritoriGame — a corrente é o baralho', () => {
-  afterEach(() => { cleanup(); vi.clearAllMocks() })
+  afterEach(() => {
+    cleanup()
+    vi.clearAllMocks()
+  })
 
   it('o relatório sai com gameId próprio e cardId em todo outcome', () => {
     let relatorio: RoundReport | null = null
-    render(<ShiritoriGame items={itensQueEncadeiam()} ageProfile="pro" onFinish={r => { relatorio = r }} onExit={() => {}} />)
+    render(
+      <ShiritoriGame
+        items={itensQueEncadeiam()}
+        ageProfile="pro"
+        onFinish={(r) => {
+          relatorio = r
+        }}
+        onExit={() => {}}
+      />,
+    )
 
     clicar('end')
     clicar('dog')
@@ -48,20 +69,30 @@ describe('ShiritoriGame — a corrente é o baralho', () => {
 
     expect(relatorio!.gameId).toBe('shiritori')
     expect(relatorio!.items).toHaveLength(2)
-    expect(relatorio!.items.map(o => o.cardId)).toEqual(['c3', 'c4'])
-    expect(relatorio!.items.every(o => o.correct)).toBe(true)
+    expect(relatorio!.items.map((o) => o.cardId)).toEqual(['c3', 'c4'])
+    expect(relatorio!.items.every((o) => o.correct)).toBe(true)
   })
 
   /* Errar não avança: a corrente só continua com a palavra que a continua de verdade. O elo
      riscado sobe `attempts`, que é o que rebaixa a nota de "bom" para "difícil". */
   it('a opção errada é riscada e o passo só fecha na certa, com attempts maior', () => {
     let relatorio: RoundReport | null = null
-    render(<ShiritoriGame items={itensQueEncadeiam()} ageProfile="pro" onFinish={r => { relatorio = r }} onExit={() => {}} />)
+    render(
+      <ShiritoriGame
+        items={itensQueEncadeiam()}
+        ageProfile="pro"
+        onFinish={(r) => {
+          relatorio = r
+        }}
+        onExit={() => {}}
+      />,
+    )
 
     /* Uma das opções deste passo é errada por construção — clica na primeira que não é 'end'. */
-    const errada = screen.getAllByRole('button')
-      .map(b => b.textContent ?? '')
-      .find(t => ['ape', 'elk', 'dog'].includes(t))!
+    const errada = screen
+      .getAllByRole('button')
+      .map((b) => b.textContent ?? '')
+      .find((t) => ['ape', 'elk', 'dog'].includes(t))!
     clicar(errada)
     expect((screen.getByRole('button', { name: errada }) as HTMLButtonElement).disabled).toBe(true)
 
@@ -81,7 +112,9 @@ describe('ShiritoriGame — a corrente é o baralho', () => {
       { cardId: 'c3', prompt: 'dedo', answer: 'dedo', lang: 'pt' },
       { cardId: 'c4', prompt: 'fogo', answer: 'fogo', lang: 'pt' },
     ]
-    const { container } = render(<ShiritoriGame items={semCorrente} ageProfile="pro" onFinish={relatorio} onExit={saiu} />)
+    const { container } = render(
+      <ShiritoriGame items={semCorrente} ageProfile="pro" onFinish={relatorio} onExit={saiu} />,
+    )
 
     expect(saiu).toHaveBeenCalledTimes(1)
     expect(relatorio).not.toHaveBeenCalled()

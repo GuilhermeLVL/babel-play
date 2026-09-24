@@ -1,11 +1,10 @@
 // @vitest-environment jsdom
-import { cleanup,fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import React from 'react'
-import { afterEach,beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 afterEach(cleanup)
 import AntessalaDaRodada from '../src/components/minigames/AntessalaDaRodada'
-import ScratchReward from '../src/components/minigames/ScratchReward'
 import type { FaseJogada } from '../src/core/minigames/fases'
 
 vi.mock('../src/data/api', () => ({
@@ -17,8 +16,28 @@ vi.mock('../src/lib/juice', () => ({ comemorar: vi.fn(), pontosDoElemento: vi.fn
 vi.mock('../src/lib/effects', async (orig) => ({ ...(await orig()), burstFromElement: vi.fn() }))
 
 const FASES: FaseJogada[] = [
-  { roundId: 'r2', quando: Date.now(), pontos: 200, combo: 5, acertos: 4, total: 4, precisao: 100, estrelas: 3, refs: ['a', 'b'] },
-  { roundId: 'r1', quando: Date.now() - 86_400_000, pontos: 90, combo: 2, acertos: 2, total: 4, precisao: 50, estrelas: 1, refs: ['c', 'd'] },
+  {
+    roundId: 'r2',
+    quando: Date.now(),
+    pontos: 200,
+    combo: 5,
+    acertos: 4,
+    total: 4,
+    precisao: 100,
+    estrelas: 3,
+    refs: ['a', 'b'],
+  },
+  {
+    roundId: 'r1',
+    quando: Date.now() - 86_400_000,
+    pontos: 90,
+    combo: 2,
+    acertos: 2,
+    total: 4,
+    precisao: 50,
+    estrelas: 1,
+    refs: ['c', 'd'],
+  },
 ]
 
 function montar(extra: Partial<React.ComponentProps<typeof AntessalaDaRodada>> = {}) {
@@ -50,7 +69,7 @@ describe('antessala redesenhada', () => {
     // recorde.rodadas = 4 → nível 2 (3 rodadas por nível)
     await waitFor(() => expect(screen.getByText(/Nível 2/)).toBeTruthy())
     expect(screen.getByText(/rodadas jogadas/)).toBeTruthy()
-    expect(screen.getByText('320')).toBeTruthy()
+    expect(screen.getByText(/melhor 320/)).toBeTruthy()
     expect(screen.getByText(/25%/)).toBeTruthy() // 5 de 20
   })
 
@@ -65,16 +84,28 @@ describe('antessala redesenhada', () => {
   })
 
   const filtro = {
-    faixas: [] as [], estrategia: 'equilibrado' as const, aoTrocarFaixa: () => {}, aoTrocarEstrategia: () => {},
-    disponivelPorFaixa: { facil: 5, medio: 5, dificil: 5 }, minimoDoJogo: 3, origemDaComposicao: 'servidor' as const,
+    faixas: [] as [],
+    estrategia: 'equilibrado' as const,
+    aoTrocarFaixa: () => {},
+    aoTrocarEstrategia: () => {},
+    disponivelPorFaixa: { facil: 5, medio: 5, dificil: 5 },
+    minimoDoJogo: 3,
+    origemDaComposicao: 'servidor' as const,
   }
 
   it('os chips de dificuldade ficam RECOLHIDOS', () => {
     montar({ filtroDificuldade: filtro })
-    const detalhes = screen.getByText(/foco:/).closest('details') as HTMLDetailsElement
-    expect(detalhes).toBeTruthy()
-    expect(detalhes.open).toBe(false) // fechado por padrão: configuração não cobre o progresso
+    const trocar = screen.getByRole('button', { name: /Trocar$/ })
+    // fechado por padrão: configuração não cobre o progresso
+    expect(trocar.getAttribute('aria-expanded')).toBe('false')
+    expect(screen.queryByRole('group', { name: /Dificuldade das palavras/ })).toBeNull()
+    fireEvent.click(trocar)
+    expect(screen.getByRole('group', { name: /Dificuldade das palavras/ })).toBeTruthy()
   })
+
+  /** O resumo "Nível: X · foco: Y" — o texto inteiro do span, que tem negritos no meio. */
+  const resumo = () =>
+    screen.getByText((_, el) => el?.tagName === 'SPAN' && /^Nível:/.test(el.textContent ?? '')).textContent ?? ''
 
   /**
    * O CONTROLE PRECISA DIZER O QUE ESTÁ VALENDO.
@@ -86,8 +117,8 @@ describe('antessala redesenhada', () => {
    */
   it('o resumo anuncia o nível vigente sem precisar abrir', () => {
     montar({ filtroDificuldade: filtro, auto: { faixa: 'dificil', motivo: 'Difícil mantido: 100% nas últimas 3.' } })
-    expect(screen.getByText(/Nível: difícil \(automático\)/i)).toBeTruthy()
-    expect(screen.getByText(/foco: equilibrado/i)).toBeTruthy()
+    expect(resumo()).toMatch(/Nível: difícil \(automático\)/i)
+    expect(resumo()).toMatch(/foco: equilibrado/i)
   })
 
   it('com escolha manual, o resumo mostra as faixas escolhidas em vez do automático', () => {
@@ -95,8 +126,8 @@ describe('antessala redesenhada', () => {
       filtroDificuldade: { ...filtro, faixas: ['facil'] },
       auto: { faixa: 'dificil', motivo: 'Difícil mantido.' },
     })
-    expect(screen.getByText(/Nível: fácil/i)).toBeTruthy()
-    expect(screen.queryByText(/\(automático\)/i)).toBeNull()
+    expect(resumo()).toMatch(/Nível: fácil/i)
+    expect(resumo()).not.toMatch(/\(automático\)/i)
   })
 })
 
@@ -109,14 +140,22 @@ describe('antessala redesenhada', () => {
  */
 describe('a tabela de fases', () => {
   const fase = (n: number, extra: Partial<FaseJogada> = {}): FaseJogada => ({
-    roundId: `r${n}`, quando: Date.now() - n * 3_600_000, pontos: n * 10, combo: 2,
-    acertos: 3, total: 4, precisao: 75, estrelas: 2, refs: [`w${n}a`, `w${n}b`], ...extra,
+    roundId: `r${n}`,
+    quando: Date.now() - n * 3_600_000,
+    pontos: n * 10,
+    combo: 2,
+    acertos: 3,
+    total: 4,
+    precisao: 75,
+    estrelas: 2,
+    refs: [`w${n}a`, `w${n}b`],
+    ...extra,
   })
 
   it('mostra fase, pontos, estrelas e quando — os quatro campos que se comparam', () => {
     montar({ fases: [fase(1)], onJogarFase: () => {} })
     const cabecalhos = screen.getAllByRole('columnheader').map((c) => c.textContent)
-    expect(cabecalhos).toEqual(['Fase', 'Pontos', 'Estrelas', 'Quando', 'O que caiu'])
+    expect(cabecalhos).toEqual(['Fase', 'Pontos', 'Estrelas', 'Quando', 'O que caiu', 'Repetir'])
     expect(screen.getByText('10')).toBeTruthy()
     expect(screen.getByLabelText('2 de 3 estrelas')).toBeTruthy()
   })
@@ -135,21 +174,21 @@ describe('a tabela de fases', () => {
     expect(screen.getByLabelText('Páginas das fases')).toBeTruthy()
     expect(screen.getByText('1/2')).toBeTruthy()
     // A primeira página numera de cima para baixo a partir do total.
-    expect(screen.getByText('Fase 8')).toBeTruthy()
-    expect(screen.queryByText('Fase 2')).toBeNull()
+    expect(screen.getByLabelText('Repetir a fase 8')).toBeTruthy()
+    expect(screen.queryByLabelText('Repetir a fase 2')).toBeNull()
 
     fireEvent.click(screen.getByLabelText('Próxima página'))
     expect(screen.getByText('2/2')).toBeTruthy()
-    expect(screen.getByText('Fase 2')).toBeTruthy()
-    expect(screen.getByText('Fase 1')).toBeTruthy()
-    expect(screen.queryByText('Fase 8')).toBeNull()
+    expect(screen.getByLabelText('Repetir a fase 2')).toBeTruthy()
+    expect(screen.getByLabelText('Repetir a fase 1')).toBeTruthy()
+    expect(screen.queryByLabelText('Repetir a fase 8')).toBeNull()
   })
 
   it('clicar numa linha rejoga AQUELA fase, com os refs dela', () => {
     const onJogarFase = vi.fn()
     const fases = [fase(1), fase(2)]
     montar({ fases, onJogarFase })
-    fireEvent.click(screen.getByText('Fase 1'))
+    fireEvent.click(screen.getByLabelText('Repetir a fase 1'))
     // `Fase 1` é a MAIS ANTIGA: numeração cresce para baixo, então é o último item da lista.
     expect(onJogarFase).toHaveBeenCalledWith(fases[1].refs)
   })
@@ -157,7 +196,7 @@ describe('a tabela de fases', () => {
   it('a rodada antiga que não guardou palavras não finge que dá para rejogar', () => {
     const onJogarFase = vi.fn()
     montar({ fases: [fase(1, { refs: [] })], onJogarFase })
-    const botao = screen.getByText('Fase 1').closest('button') as HTMLButtonElement
+    const botao = screen.getByLabelText('Repetir a fase 1') as HTMLButtonElement
     expect(botao.disabled).toBe(true)
     fireEvent.click(botao)
     expect(onJogarFase).not.toHaveBeenCalled()
@@ -177,54 +216,11 @@ describe('a tabela de fases', () => {
       onJogarFase: () => {},
       amostraDaFase: () => ({ textos: ['abrigo', 'cozinha'], total: 7 }),
     })
-    expect(screen.getByText('abrigo')).toBeTruthy()
-    expect(screen.getByText('cozinha')).toBeTruthy()
-    expect(screen.getByText('+5')).toBeTruthy()
+    expect(screen.getByText('abrigo, cozinha +5')).toBeTruthy()
   })
 
   it('sem amostra, cai no placar da fase — nunca inventa conteúdo', () => {
     montar({ fases: [fase(1)], onJogarFase: () => {} })
     expect(screen.getByText(/3 de 4 nesta fase/)).toBeTruthy()
-  })
-})
-
-describe('fim de rodada (raspadinha)', () => {
-  const report = {
-    gameId: 'memory' as const,
-    items: [
-      { itemRef: 'a', correct: true }, { itemRef: 'b', correct: true },
-      { itemRef: 'c', correct: true }, { itemRef: 'd', correct: false },
-    ],
-    score: 150,
-    durationMs: 42_000,
-  }
-
-  it('mostra as estrelas da rodada e as estatísticas com a mesma régua do mapa de fases', () => {
-    render(
-      <ScratchReward
-        report={report as never} ageProfile="pro" sequencia={null} recorde={null}
-        onContinuar={() => {}} onRepetir={null} onDone={() => {}}
-        onPularVez={null} custoPular={10} saldoSeeds={0}
-      />,
-    )
-    // 3/4 = 75% → 2 estrelas
-    expect(screen.getByLabelText('2 de 3 estrelas')).toBeTruthy()
-    expect(screen.getByText('150')).toBeTruthy()
-    expect(screen.getByText('75%')).toBeTruthy()
-    expect(screen.getByText('42s')).toBeTruthy()
-  })
-
-  it('com o recorde ao alcance, diz a distância depois de revelar', () => {
-    render(
-      <ScratchReward
-        report={report as never} ageProfile="pro"
-        sequencia={{ rodadas: 2, pontos: 300, precisao: 80, combo: 2 } as never}
-        recorde={320}
-        onContinuar={() => {}} onRepetir={null} onDone={() => {}}
-        onPularVez={null} custoPular={10} saldoSeeds={0}
-      />,
-    )
-    fireEvent.click(screen.getByText('revelar sem raspar'))
-    expect(screen.getByText(/faltam 20 pts para o seu recorde/)).toBeTruthy()
   })
 })

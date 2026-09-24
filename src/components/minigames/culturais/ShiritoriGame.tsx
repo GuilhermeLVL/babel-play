@@ -1,6 +1,6 @@
 import type { ItemOutcome, MinigameItem, RoundReport } from '@core';
 import { scoreRound } from '@core';
-import { ArrowRight, Lightbulb, Link2,Timer as TimerIcon, Volume2, X } from 'lucide-react';
+import { ArrowRight, Lightbulb, Link2, Volume2 } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { montarCorrente } from '../../../core/minigames/shiritori';
@@ -9,6 +9,8 @@ import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
 import { play } from '../../../lib/soundFx';
 import { speak } from '../../../lib/tts';
+import { useRodada } from '../casca/CascaDaRodada';
+import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from '../casca/HudDaRodada';
 
 /**
  * SHIRITORI — a corrente encadeia pela última letra, e a corrente é O SEU BARALHO.
@@ -29,6 +31,9 @@ interface ShiritoriGameProps {
 const SEGUNDOS: Record<AgeProfileType, number> = { kids: 20, pro: 15, senior: 25 };
 
 export default function ShiritoriGame({ items, ageProfile, onFinish, onExit }: ShiritoriGameProps) {
+  /** A casca diz quando a rodada anda (fora da contagem 3-2-1 e da pausa); o placar do HUD sai dos resultados. */
+  const { ativo } = useRodada();
+  const [placar, recontar] = usePlacarDaRodada('shiritori');
   const corrente = useMemo(() => montarCorrente(items), [items]);
 
   const [idx, setIdx] = useState(0);
@@ -64,6 +69,7 @@ export default function ShiritoriGame({ items, ageProfile, onFinish, onExit }: S
   const avancar = (outcome: ItemOutcome) => {
     const outcomes = outcomesRef.current;
     outcomes.push(outcome);
+    recontar(outcomes);
     if (!corrente || idx + 1 >= corrente.passos.length) {
       finalizar(outcomes);
       return;
@@ -92,10 +98,11 @@ export default function ShiritoriGame({ items, ageProfile, onFinish, onExit }: S
       });
       return;
     }
+    if (!ativo) return; // o relógio para na contagem e na pausa
     const t = setTimeout(() => setRestante((s) => s - 1), 1000);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [restante, idx, resultado, corrente]);
+  }, [restante, ativo, idx, resultado, corrente]);
 
   if (!corrente) return null;
 
@@ -109,7 +116,10 @@ export default function ShiritoriGame({ items, ageProfile, onFinish, onExit }: S
           <p className="font-display font-black text-5xl tabular-nums text-ink">{resultado.score}</p>
           <p className="text-[12px] text-ink-muted mt-1">pontos</p>
           <p className="text-[13px] text-ink-muted mt-4">
-            elos encadeados: <b className="text-ink">{acertos}/{resultado.items.length}</b>
+            elos encadeados:{' '}
+            <b className="text-ink">
+              {acertos}/{resultado.items.length}
+            </b>
           </p>
           <button onClick={() => onFinish(resultado)} className="btn-ink w-full justify-center mt-6 cursor-pointer">
             Continuar
@@ -123,47 +133,33 @@ export default function ShiritoriGame({ items, ageProfile, onFinish, onExit }: S
   const anterior = idx === 0 ? corrente.inicio : corrente.passos[idx - 1].item;
   const jaNaCorrente = [corrente.inicio, ...corrente.passos.slice(0, idx).map((p) => p.item)];
 
+  /* A CASCA COMUM desenha o cabeçalho, a pausa e a contagem; aqui ficam o placar comum e o tabuleiro,
+     que é deste jogo. */
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-canvas text-ink select-none overflow-hidden">
-      <header className="flex items-center justify-between px-6 py-4 border-b border-border-subtle bg-surface/85 backdrop-blur-md shrink-0">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onExit}
-            className="p-2 rounded-xl border border-border-subtle bg-surface-hover hover:bg-border-subtle transition-colors cursor-pointer"
-            title="Sair do Shiritori"
-            aria-label="Sair do jogo"
-          >
-            <X className="w-5 h-5 text-ink" />
-          </button>
-          <div>
-            <span className="font-display font-black text-lg tracking-wide uppercase text-accent">Corrente de palavras</span>
-            <p className="text-xs text-ink-muted">Cada palavra começa com a última letra da anterior.</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2.5">
-          <button
-            onClick={() => setLetraVisivel(true)}
+    <>
+      <HudDaRodada
+        pontos={placar.pontos}
+        sequencia={placar.sequencia}
+        acertos={placar.acertos}
+        rotulo={`Elo ${idx + 1} de ${corrente.passos.length}`}
+        tempo={restante}
+        progresso={restante / SEGUNDOS[ageProfile]}
+        pouco={restante <= 5}
+        ajudas={
+          <BotaoDeAjuda
+            icone={Lightbulb}
+            rotulo="Ver a letra"
             disabled={letraVisivel}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-bold text-ink transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-            title="Ver a letra exigida (não custa nota)"
-          >
-            <Lightbulb className="w-3.5 h-3.5 text-warn" />
-            <span>Ver a letra</span>
-          </button>
+            onClick={() => setLetraVisivel(true)}
+          />
+        }
+      />
 
-          <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border ${
-            restante <= 5 ? 'border-error bg-error-soft text-error-ink' : 'border-border-subtle bg-surface'
-          }`}>
-            <TimerIcon className="w-4 h-4" aria-hidden />
-            <span className="font-mono font-black text-base tabular-nums">{restante}s</span>
-          </span>
-        </div>
-      </header>
-
-      <main ref={palcoRef} className="flex-1 flex flex-col items-center justify-center gap-7 p-4 lg:p-8 max-w-2xl mx-auto w-full min-h-0 overflow-y-auto">
+      <div ref={palcoRef} className="flex flex-col items-center justify-center gap-7 max-w-2xl mx-auto w-full">
         <div data-tour="corrente" className="w-full rounded-2xl border border-border-subtle bg-surface p-4">
-          <p className="label-mono mb-3">A corrente até aqui ({jaNaCorrente.length} de {corrente.passos.length + 1})</p>
+          <p className="label-mono mb-3">
+            A corrente até aqui ({jaNaCorrente.length} de {corrente.passos.length + 1})
+          </p>
           <div className="flex items-center gap-2 overflow-x-auto pb-1">
             {jaNaCorrente.map((elo, i) => (
               <React.Fragment key={elo.answer + i}>
@@ -181,7 +177,10 @@ export default function ShiritoriGame({ items, ageProfile, onFinish, onExit }: S
 
         <div className="text-center">
           <p className="label-mono mb-2">Palavra na ponta</p>
-          <p dir={direcaoDoTexto(anterior.lang)} className="font-display font-black text-4xl sm:text-5xl text-ink tracking-wide">
+          <p
+            dir={direcaoDoTexto(anterior.lang)}
+            className="font-display font-black text-4xl sm:text-5xl text-ink tracking-wide"
+          >
             {anterior.answer.slice(0, -1)}
             <span className="text-accent underline decoration-4 underline-offset-4">{anterior.answer.slice(-1)}</span>
           </p>
@@ -198,8 +197,8 @@ export default function ShiritoriGame({ items, ageProfile, onFinish, onExit }: S
           </div>
           {letraVisivel && (
             <p className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-accent-soft text-accent-ink text-[13px] font-bold">
-              <Link2 className="w-4 h-4" aria-hidden />
-              A próxima começa com <b className="font-mono text-base">{passo.letra}</b>
+              <Link2 className="w-4 h-4" aria-hidden />A próxima começa com{' '}
+              <b className="font-mono text-base">{passo.letra}</b>
             </p>
           )}
         </div>
@@ -241,7 +240,7 @@ export default function ShiritoriGame({ items, ageProfile, onFinish, onExit }: S
             );
           })}
         </div>
-      </main>
-    </div>
+      </div>
+    </>
   );
 }

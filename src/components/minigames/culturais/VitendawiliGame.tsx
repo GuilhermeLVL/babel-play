@@ -1,12 +1,14 @@
 import type { ItemOutcome, MinigameItem, RoundReport } from '@core';
 import { distractorsFor, makeCloze, MINIGAMES, scoreRound } from '@core';
-import { Sparkles,Volume2, X } from 'lucide-react';
+import { Volume2 } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { comemorar } from '../../../lib/juice';
 import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
 import { speak } from '../../../lib/tts';
+import { useRodada } from '../casca/CascaDaRodada';
+import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from '../casca/HudDaRodada';
 
 /**
  * VITENDAWILI — o enigma é a SUA PRÓPRIA FRASE com a palavra apagada.
@@ -49,7 +51,9 @@ function narrarComPausa(texto: string, lang: string): void {
   }
   speak(antes, {
     lang,
-    onEnd: () => { if (depois) setTimeout(() => speak(depois, { lang }), PAUSA_NA_LACUNA); },
+    onEnd: () => {
+      if (depois) setTimeout(() => speak(depois, { lang }), PAUSA_NA_LACUNA);
+    },
   });
 }
 
@@ -63,6 +67,9 @@ function embaralhar<T>(xs: T[]): T[] {
 }
 
 export default function VitendawiliGame({ items, ageProfile, onFinish, onExit }: VitendawiliGameProps) {
+  /** A casca diz quando a rodada anda (fora da contagem 3-2-1 e da pausa); o placar do HUD sai dos resultados. */
+  const { ativo } = useRodada();
+  const [placar, recontar] = usePlacarDaRodada('vitendawili');
   const def = MINIGAMES.vitendawili;
 
   /** Só os itens que têm frase: o enigma nasce dela ou não nasce. */
@@ -92,7 +99,7 @@ export default function VitendawiliGame({ items, ageProfile, onFinish, onExit }:
 
   const alternativas = useMemo(() => {
     if (!atual) return [];
-    const outros = rodada.map(r => r.item);
+    const outros = rodada.map((r) => r.item);
     return embaralhar([...distractorsFor(atual.item, outros, 3), atual.item.answer]);
   }, [atual, rodada]);
 
@@ -112,21 +119,25 @@ export default function VitendawiliGame({ items, ageProfile, onFinish, onExit }:
     if (encerradoRef.current) return;
     encerradoRef.current = true;
     setEncerrado(true);
-    const perfeita = outcomes.length > 0 && outcomes.every(o => o.correct && o.attempts === 1);
+    const perfeita = outcomes.length > 0 && outcomes.every((o) => o.correct && o.attempts === 1);
     comemorar(perfeita ? 'rodadaPerfeita' : 'rodadaBoa', palcoRef.current);
-    setTimeout(() => onFinish({
-      gameId: 'vitendawili',
-      items: outcomes,
-      score: scoreRound('vitendawili', outcomes),
-      durationMs: Date.now() - inicioRodadaRef.current,
-    }), 900);
+    setTimeout(
+      () =>
+        onFinish({
+          gameId: 'vitendawili',
+          items: outcomes,
+          score: scoreRound('vitendawili', outcomes),
+          durationMs: Date.now() - inicioRodadaRef.current,
+        }),
+      900,
+    );
   };
 
   const escolher = (palavra: string, el: HTMLElement | null) => {
-    if (encerradoRef.current || !atual || eliminadas.includes(palavra)) return;
+    if (encerradoRef.current || !atual || eliminadas.includes(palavra) || !ativo) return;
 
     if (palavra !== atual.item.answer) {
-      setEliminadas(prev => [...prev, palavra]);
+      setEliminadas((prev) => [...prev, palavra]);
       comemorar('erro', el);
       return;
     }
@@ -138,11 +149,15 @@ export default function VitendawiliGame({ items, ageProfile, onFinish, onExit }:
       attempts: 1 + eliminadas.length,
       ms: Date.now() - inicioEnigmaRef.current,
     });
+    recontar(outcomesRef.current);
     comemorar('acerto', el);
     speak(atual.item.answer, { lang: atual.item.lang });
 
-    if (indice + 1 >= rodada.length) { finalizar(outcomesRef.current); return; }
-    setTimeout(() => setIndice(i => i + 1), 800);
+    if (indice + 1 >= rodada.length) {
+      finalizar(outcomesRef.current);
+      return;
+    }
+    setTimeout(() => setIndice((i) => i + 1), 800);
   };
 
   if (!suficiente || !atual) return null;
@@ -151,63 +166,49 @@ export default function VitendawiliGame({ items, ageProfile, onFinish, onExit }:
   const alvoGrande = ageProfile === 'kids' || ageProfile === 'senior';
   const [antes, ...resto] = atual.enigma.split(LACUNA);
 
+  /* A CASCA COMUM desenha o cabeçalho, a pausa e a contagem; aqui ficam o placar comum e o tabuleiro,
+     que é deste jogo. */
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-canvas text-ink select-none overflow-y-auto">
-      <header className="flex items-center justify-between px-6 py-4 border-b border-border-subtle bg-surface/85 backdrop-blur-md shrink-0">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onExit}
-            className="p-2 rounded-xl border border-border-subtle bg-surface-hover hover:bg-border-subtle transition-colors cursor-pointer"
-            aria-label="Sair do jogo"
-            title="Sair dos Enigmas"
-          >
-            <X className="w-5 h-5 text-ink" />
-          </button>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-display font-black text-lg tracking-wide uppercase text-accent">Vitendawili</span>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-accent-soft text-accent-ink font-semibold">🌍 Enigma</span>
-            </div>
-            <p className="text-xs text-ink-muted">O enigma é uma frase sua com a palavra apagada. Qual palavra a fecha?</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2.5 sm:gap-3">
-          <button
-            onClick={() => narrarComPausa(atual.enigma, atual.item.lang)}
+    <>
+      <HudDaRodada
+        pontos={placar.pontos}
+        sequencia={placar.sequencia}
+        acertos={placar.acertos}
+        rotulo={`Enigma ${indice + 1} de ${rodada.length}`}
+        progresso={indice / Math.max(1, rodada.length)}
+        ajudas={
+          <BotaoDeAjuda
+            icone={Volume2}
+            rotulo="Ouvir"
             disabled={encerrado}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-bold text-ink transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-            title="Ouvir a frase de novo (não custa nota)"
-          >
-            <Volume2 className="w-4 h-4 text-accent" />
-            <span>Ouvir</span>
-          </button>
+            onClick={() => narrarComPausa(atual.enigma, atual.item.lang)}
+          />
+        }
+      />
 
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface">
-            <Sparkles className="w-4 h-4 text-accent" />
-            <span className="font-mono font-bold text-base text-ink">{indice + 1}/{rodada.length}</span>
-          </div>
-        </div>
-      </header>
-
-      <main ref={palcoRef} className="flex-1 flex flex-col items-center justify-center p-4 sm:p-8 gap-7 w-full max-w-2xl mx-auto">
+      <div ref={palcoRef} className="flex flex-col items-center justify-center gap-7 w-full max-w-2xl mx-auto">
         <p
           data-tour="enigma"
           dir={dir}
           className="text-center font-display font-black text-2xl sm:text-3xl leading-snug text-ink"
         >
           {antes}
-          <span className="inline-block align-baseline mx-1.5 px-6 border-b-4 border-accent" aria-label="palavra apagada">&nbsp;</span>
+          <span
+            className="inline-block align-baseline mx-1.5 px-6 border-b-4 border-accent"
+            aria-label="palavra apagada"
+          >
+            &nbsp;
+          </span>
           {resto.join(' ')}
         </p>
 
         <div data-tour="alternativas" className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
-          {alternativas.map(palavra => {
+          {alternativas.map((palavra) => {
             const fora = eliminadas.includes(palavra);
             return (
               <button
                 key={palavra}
-                onClick={e => escolher(palavra, e.currentTarget)}
+                onClick={(e) => escolher(palavra, e.currentTarget)}
                 disabled={fora || encerrado}
                 dir={dir}
                 className={`rounded-2xl border-2 font-display font-black transition-colors ${
@@ -223,7 +224,7 @@ export default function VitendawiliGame({ items, ageProfile, onFinish, onExit }:
             );
           })}
         </div>
-      </main>
-    </div>
+      </div>
+    </>
   );
 }

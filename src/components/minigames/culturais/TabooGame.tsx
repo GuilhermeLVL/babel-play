@@ -1,6 +1,6 @@
 import type { ItemOutcome, MinigameItem, RoundReport } from '@core';
 import { distractorsFor, extractKeywords, scoreRound } from '@core';
-import { AlertTriangle, Lightbulb,Timer as TimerIcon, X } from 'lucide-react';
+import { AlertTriangle, Lightbulb } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { mascararResposta } from '../../../core/learning/pistaDeJogo';
@@ -8,6 +8,8 @@ import { comemorar } from '../../../lib/juice';
 import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
 import { play } from '../../../lib/soundFx';
+import { useRodada } from '../casca/CascaDaRodada';
+import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from '../casca/HudDaRodada';
 
 /**
  * TABU — a definição chega SEM os termos que entregariam a resposta.
@@ -45,9 +47,7 @@ function montarCartas(items: MinigameItem[]): CartaTabu[] {
   return items.flatMap((item) => {
     /* O texto mais longo entre frase e pista: o tabu vive de definição, e uma tradução de uma
        palavra não sustenta nenhum termo riscado. */
-    const cru = [item.sentence ?? '', item.prompt ?? '']
-      .map((t) => t.trim())
-      .sort((a, b) => b.length - a.length)[0];
+    const cru = [item.sentence ?? '', item.prompt ?? ''].map((t) => t.trim()).sort((a, b) => b.length - a.length)[0];
     if (!cru) return [];
     const texto = mascararResposta(cru, item.answer);
     const proibidas = extractKeywords(texto, { max: PROIBIDAS_POR_CARTA, lang: item.lang }).map((p) => p.toLowerCase());
@@ -64,6 +64,9 @@ function montarCartas(items: MinigameItem[]): CartaTabu[] {
 }
 
 export default function TabooGame({ items, ageProfile, onFinish, onExit }: TabooGameProps) {
+  /** A casca diz quando a rodada anda (fora da contagem 3-2-1 e da pausa); o placar do HUD sai dos resultados. */
+  const { ativo } = useRodada();
+  const [placar, recontar] = usePlacarDaRodada('taboo');
   const cartas = useMemo(() => montarCartas(items), [items]);
 
   const [idx, setIdx] = useState(0);
@@ -98,6 +101,7 @@ export default function TabooGame({ items, ageProfile, onFinish, onExit }: Taboo
   const avancar = (outcome: ItemOutcome) => {
     const outcomes = outcomesRef.current;
     outcomes.push(outcome);
+    recontar(outcomes);
     if (idx + 1 >= cartas.length) {
       finalizar(outcomes);
       return;
@@ -123,10 +127,11 @@ export default function TabooGame({ items, ageProfile, onFinish, onExit }: Taboo
       });
       return;
     }
+    if (!ativo) return; // o relógio para na contagem e na pausa
     const t = setTimeout(() => setRestante((s) => s - 1), 1000);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [restante, idx, resultado, cartas]);
+  }, [restante, ativo, idx, resultado, cartas]);
 
   if (!cartas.length) return null;
 
@@ -139,7 +144,10 @@ export default function TabooGame({ items, ageProfile, onFinish, onExit }: Taboo
           <p className="font-display font-black text-5xl tabular-nums text-ink">{resultado.score}</p>
           <p className="text-[12px] text-ink-muted mt-1">pontos</p>
           <p className="text-[13px] text-ink-muted mt-4">
-            acertos: <b className="text-ink">{acertos}/{resultado.items.length}</b>
+            acertos:{' '}
+            <b className="text-ink">
+              {acertos}/{resultado.items.length}
+            </b>
           </p>
           <button onClick={() => onFinish(resultado)} className="btn-ink w-full justify-center mt-6 cursor-pointer">
             Continuar
@@ -169,60 +177,45 @@ export default function TabooGame({ items, ageProfile, onFinish, onExit }: Taboo
     });
   };
 
+  /* A CASCA COMUM desenha o cabeçalho, a pausa e a contagem; aqui ficam o placar comum e o tabuleiro,
+     que é deste jogo. */
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-canvas text-ink select-none overflow-hidden">
-      <header className="flex items-center justify-between px-6 py-4 border-b border-border-subtle bg-surface/85 backdrop-blur-md shrink-0">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onExit}
-            className="p-2 rounded-xl border border-border-subtle bg-surface-hover hover:bg-border-subtle transition-colors cursor-pointer"
-            title="Sair do Tabu"
-            aria-label="Sair do jogo"
-          >
-            <X className="w-5 h-5 text-ink" />
-          </button>
-          <div>
-            <span className="font-display font-black text-lg tracking-wide uppercase text-accent">Palavra proibida</span>
-            <p className="text-xs text-ink-muted">A definição vem sem os termos mais óbvios.</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2.5">
-          <button
-            onClick={() => riscadas.length > 1 && setLiberadas((xs) => [...xs, riscadas[0]])}
+    <>
+      <HudDaRodada
+        pontos={placar.pontos}
+        sequencia={placar.sequencia}
+        acertos={placar.acertos}
+        rotulo={`Carta ${idx + 1} de ${cartas.length}`}
+        tempo={restante}
+        progresso={restante / SEGUNDOS[ageProfile]}
+        pouco={restante <= 5}
+        ajudas={
+          <BotaoDeAjuda
+            icone={Lightbulb}
+            rotulo="Liberar 1"
             disabled={riscadas.length <= 1}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-bold text-ink transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-            title="Liberar uma palavra proibida (limita a nota a difícil)"
-          >
-            <Lightbulb className="w-3.5 h-3.5 text-warn" />
-            <span>Liberar 1</span>
-          </button>
+            onClick={() => riscadas.length > 1 && setLiberadas((xs) => [...xs, riscadas[0]])}
+          />
+        }
+      />
 
-          <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border ${
-            restante <= 5 ? 'border-error bg-error-soft text-error-ink' : 'border-border-subtle bg-surface'
-          }`}>
-            <TimerIcon className="w-4 h-4" aria-hidden />
-            <span className="font-mono font-black text-base tabular-nums">{restante}s</span>
-          </span>
-        </div>
-      </header>
-
-      <main ref={palcoRef} className="flex-1 flex flex-col items-center justify-center gap-6 p-4 lg:p-8 max-w-2xl mx-auto w-full min-h-0 overflow-y-auto">
+      <div ref={palcoRef} className="flex flex-col items-center justify-center gap-6 max-w-2xl mx-auto w-full">
         <div data-tour="alvo" className="w-full rounded-2xl border-2 border-border-subtle bg-surface p-5 sm:p-6">
           <div className="flex items-center justify-between mb-3">
-            <p className="label-mono">Definição ({idx + 1} de {cartas.length})</p>
+            <p className="label-mono">
+              Definição ({idx + 1} de {cartas.length})
+            </p>
             <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-error-ink">
               <AlertTriangle className="w-3.5 h-3.5" aria-hidden />
               {riscadas.length} proibida{riscadas.length === 1 ? '' : 's'}
             </span>
           </div>
-          <p
-            dir={direcaoDoTexto(carta.item.lang)}
-            className="text-[17px] sm:text-[19px] leading-relaxed text-ink"
-          >
+          <p dir={direcaoDoTexto(carta.item.lang)} className="text-[17px] sm:text-[19px] leading-relaxed text-ink">
             {pedacos.map((p, i) =>
               riscadas.includes(p.toLowerCase()) ? (
-                <s key={i} className="text-ink-faint decoration-error decoration-2">{p}</s>
+                <s key={i} className="text-ink-faint decoration-error decoration-2">
+                  {p}
+                </s>
               ) : (
                 <React.Fragment key={i}>{p}</React.Fragment>
               ),
@@ -242,7 +235,7 @@ export default function TabooGame({ items, ageProfile, onFinish, onExit }: Taboo
             </button>
           ))}
         </div>
-      </main>
-    </div>
+      </div>
+    </>
   );
 }

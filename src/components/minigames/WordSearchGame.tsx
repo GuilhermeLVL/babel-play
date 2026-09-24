@@ -1,13 +1,15 @@
 import type { ItemOutcome, MinigameItem, RoundReport } from '@core';
-import { buildGrid, cellsBetween, letrasNaGrade,matchSelection, scoreRound, shortPrompt } from '@core';
-import { Check, Eraser, Eye, Flame, Highlighter, Lightbulb, Radar, Sparkles,X } from 'lucide-react';
+import { buildGrid, cellsBetween, letrasNaGrade, matchSelection, scoreRound, shortPrompt } from '@core';
+import { Check, Eraser, Eye, Highlighter, Lightbulb, Radar } from 'lucide-react';
 import React, { useMemo, useRef, useState } from 'react';
 
 import { emitBurst } from '../../lib/effects';
 import { playJuicedError, playJuicedHit, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
-import { comemorar, multiplicador,pontosDoElemento } from '../../lib/juice';
+import { comemorar, multiplicador, pontosDoElemento } from '../../lib/juice';
 import type { AgeProfileType } from '../../lib/profile';
 import { speak } from '../../lib/tts';
+import { useRodada } from './casca/CascaDaRodada';
+import HudDaRodada, { BotaoDeAjuda } from './casca/HudDaRodada';
 
 /**
  * CAÇA-PALAVRAS POR DEFINIÇÃO.
@@ -22,10 +24,12 @@ interface WordSearchGameProps {
 
 type Celula = { linha: number; coluna: number };
 
-export default function WordSearchGame({ items, ageProfile, onFinish, onExit }: WordSearchGameProps) {
+export default function WordSearchGame({ items, ageProfile, onFinish }: WordSearchGameProps) {
+  /** A casca diz quando a rodada anda (fora da contagem 3-2-1 e da pausa). */
+  const { ativo } = useRodada();
   const grade = useMemo(() => buildGrid(items, { seed: Math.floor(Math.random() * 100000) }), [items]);
   // Itens que não couberam na grade saem da rodada — a lista não pode pedir o impossível.
-  const jogaveis = useMemo(() => items.map((_, i) => i).filter(i => !grade.naoCouberam.includes(i)), [items, grade]);
+  const jogaveis = useMemo(() => items.map((_, i) => i).filter((i) => !grade.naoCouberam.includes(i)), [items, grade]);
 
   const [achados, setAchados] = useState<Set<number>>(new Set());
   const [revelados, setRevelados] = useState<Set<number>>(new Set());
@@ -56,7 +60,7 @@ export default function WordSearchGame({ items, ageProfile, onFinish, onExit }: 
     if (jaFinalizouRef.current) return;
     jaFinalizouRef.current = true;
     const agora = Date.now();
-    const outcomes: ItemOutcome[] = jogaveis.map(i => ({
+    const outcomes: ItemOutcome[] = jogaveis.map((i) => ({
       cardId: items[i].cardId,
       itemRef: items[i].answer,
       correct: achadosFinais.has(i),
@@ -66,12 +70,16 @@ export default function WordSearchGame({ items, ageProfile, onFinish, onExit }: 
       revealed: reveladosFinais.has(i),
     }));
     playJuicedVictory();
-    setTimeout(() => onFinish({
-      gameId: 'wordsearch',
-      items: outcomes,
-      score: scoreRound('wordsearch', outcomes),
-      durationMs: agora - inicioRodadaRef.current,
-    }), 900);
+    setTimeout(
+      () =>
+        onFinish({
+          gameId: 'wordsearch',
+          items: outcomes,
+          score: scoreRound('wordsearch', outcomes),
+          durationMs: agora - inicioRodadaRef.current,
+        }),
+      900,
+    );
   };
 
   const soltar = (fim: Celula, el: HTMLElement | null) => {
@@ -87,7 +95,7 @@ export default function WordSearchGame({ items, ageProfile, onFinish, onExit }: 
       const mult = multiplicador(nova);
       const ganho = 10 * (comDica.has(achado.itemIndex) ? 1 : mult);
       setSequencia(nova);
-      setPontos(pt => pt + ganho);
+      setPontos((pt) => pt + ganho);
       triggerHaptic('success');
       if (coords) emitBurst(coords.x, coords.y, 'confete');
       playJuicedHit(nova, coords, '+' + ganho + (mult > 1 ? ' ×' + mult : ''));
@@ -117,11 +125,11 @@ export default function WordSearchGame({ items, ageProfile, onFinish, onExit }: 
    */
   const acionarRadar = (i: number | null, el: HTMLElement | null) => {
     if (radaresRestantes <= 0) return;
-    const pendentes = jogaveis.filter(x => !achados.has(x) && !revelados.has(x));
+    const pendentes = jogaveis.filter((x) => !achados.has(x) && !revelados.has(x));
     const alvo = i ?? pendentes[Math.floor(Math.random() * pendentes.length)];
-    const colocada = grade.colocadas.find(x => x.itemIndex === alvo);
+    const colocada = grade.colocadas.find((x) => x.itemIndex === alvo);
     if (!colocada) return;
-    setRadaresRestantes(n => n - 1);
+    setRadaresRestantes((n) => n - 1);
     setPontas([colocada.celulas[0], colocada.celulas[colocada.celulas.length - 1]]);
     pontosDoElemento('achei as pontas', el, 'neutro');
     setTimeout(() => setPontas([]), 4000);
@@ -129,21 +137,31 @@ export default function WordSearchGame({ items, ageProfile, onFinish, onExit }: 
 
   /** DICA: revela a primeira letra e a direção do traço. Custa nota 2. */
   const pedirDica = (i: number, el: HTMLElement | null) => {
-    const colocada = grade.colocadas.find(x => x.itemIndex === i);
+    const colocada = grade.colocadas.find((x) => x.itemIndex === i);
     if (!colocada) return;
     const a = colocada.celulas[0];
     const b = colocada.celulas[colocada.celulas.length - 1];
     const dl = Math.sign(b.linha - a.linha);
     const dc = Math.sign(b.coluna - a.coluna);
-    const direcao = dl === 0 ? (dc > 0 ? 'da esquerda para a direita' : 'da direita para a esquerda')
-      : dc === 0 ? (dl > 0 ? 'de cima para baixo' : 'de baixo para cima')
-      : 'na diagonal';
-    setComDica(prev => new Set([...prev, i]));
+    const direcao =
+      dl === 0
+        ? dc > 0
+          ? 'da esquerda para a direita'
+          : 'da direita para a esquerda'
+        : dc === 0
+          ? dl > 0
+            ? 'de cima para baixo'
+            : 'de baixo para cima'
+          : 'na diagonal';
+    setComDica((prev) => new Set([...prev, i]));
     setSequencia(0); // a sequência é mérito; com ajuda ela recomeça
     setDicaAcesa(a);
     setDirecaoDica(direcao);
     pontosDoElemento(direcao, el, 'neutro');
-    setTimeout(() => { setDicaAcesa(null); setDirecaoDica(''); }, 4000);
+    setTimeout(() => {
+      setDicaAcesa(null);
+      setDirecaoDica('');
+    }, 4000);
   };
 
   /**
@@ -154,8 +172,8 @@ export default function WordSearchGame({ items, ageProfile, onFinish, onExit }: 
    * nota 2, como qualquer ajuda.
    */
   const espiar = (i: number, el: HTMLElement | null) => {
-    setEspiados(prev => new Set([...prev, i]));
-    setComDica(prev => new Set([...prev, i]));
+    setEspiados((prev) => new Set([...prev, i]));
+    setComDica((prev) => new Set([...prev, i]));
     setSequencia(0);
     pontosDoElemento('espiou', el, 'neutro');
   };
@@ -170,9 +188,13 @@ export default function WordSearchGame({ items, ageProfile, onFinish, onExit }: 
 
   /** Células sob o traço em curso — realce enquanto o dedo se move. */
   const traco = inicio && hover ? cellsBetween(inicio, hover) : null;
-  const naSelecao = (l: number, c: number) => traco?.some(x => x.linha === l && x.coluna === c) ?? false;
+  const naSelecao = (l: number, c: number) => traco?.some((x) => x.linha === l && x.coluna === c) ?? false;
   const emPalavraAchada = (l: number, c: number) =>
-    grade.colocadas.some(p => (achados.has(p.itemIndex) || revelados.has(p.itemIndex)) && p.celulas.some(x => x.linha === l && x.coluna === c));
+    grade.colocadas.some(
+      (p) =>
+        (achados.has(p.itemIndex) || revelados.has(p.itemIndex)) &&
+        p.celulas.some((x) => x.linha === l && x.coluna === c),
+    );
 
   /**
    * O DESTAQUE DE LETRAS — o "Ctrl+F" da grade.
@@ -191,70 +213,33 @@ export default function WordSearchGame({ items, ageProfile, onFinish, onExit }: 
    */
   /* A MESMA regua da grade: com `normalizarPalavra` quem digitasse "ç" acendia "C" e o Ç da
      grade ficava apagado. */
-  const letrasDestacadas = useMemo(
-    () => new Set(letrasNaGrade(destaque).split('')),
-    [destaque],
-  );
+  const letrasDestacadas = useMemo(() => new Set(letrasNaGrade(destaque).split('')), [destaque]);
   const destacada = (letra: string) => letrasDestacadas.size > 0 && letrasDestacadas.has(letra);
 
-  const mult = multiplicador(sequencia);
-
+  /* A CASCA COMUM desenha o cabeçalho, a pausa e a contagem; aqui ficam o placar comum e o palco
+     do Caça-palavras, que é dele. */
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-canvas text-ink select-none overflow-hidden animate-in fade-in duration-200">
+    <>
       {/* Topo unificado */}
-      <header className="flex items-center justify-between px-6 py-4 border-b border-border-subtle bg-surface/85 backdrop-blur-md shrink-0">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onExit}
-            className="p-2 rounded-xl border border-border-subtle bg-surface-hover hover:bg-border-subtle transition-colors cursor-pointer"
-            title="Sair do Caça-Palavras"
-            aria-label="Sair do jogo"
-          >
-            <X className="w-5 h-5 text-ink" />
-          </button>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-display font-black text-lg tracking-wide uppercase text-accent">Caça-Palavras</span>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-accent-soft text-accent-ink font-semibold">Varredura Visual 🔍</span>
-            </div>
-            <p className="text-xs text-ink-muted">Encontre os termos escondidos na grade horizontal, vertical ou diagonal!</p>
-          </div>
-        </div>
 
-        {/* Radar, Combo, Pontos e Status */}
-        <div className="flex items-center gap-2.5 sm:gap-3">
-          <button
-            onClick={(e) => acionarRadar(null, e.currentTarget)}
-            disabled={radaresRestantes <= 0}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-bold text-ink transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm cursor-pointer"
-            title="Faz as pontas de uma palavra pulsarem na grade"
+      <HudDaRodada
+        pontos={pontos}
+        sequencia={sequencia}
+        acertos={achados.size}
+        rotulo={`${resolvidos} de ${jogaveis.length} palavras`}
+        progresso={resolvidos / Math.max(1, jogaveis.length)}
+        ajudas={
+          <BotaoDeAjuda
+            icone={Radar}
+            rotulo="Radar"
+            resta={radaresRestantes}
             data-tour="radar"
-          >
-            <Radar className="w-3.5 h-3.5 text-accent" />
-            <span>Radar ({radaresRestantes})</span>
-          </button>
-
-          {mult > 1 && (
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 text-white font-black text-xs shadow-md animate-bounce">
-              <Flame className="w-4 h-4 fill-current" />
-              <span>×{mult}</span>
-            </div>
-          )}
-
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface">
-            <Sparkles className="w-4 h-4 text-accent" />
-            <span className="font-mono font-bold text-base">{pontos} pts</span>
-          </div>
-
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface">
-            <span className="font-mono font-bold text-base text-ink">
-              {resolvidos}/{jogaveis.length}
-            </span>
-          </div>
-        </div>
-      </header>
-
-      <main className="flex-1 flex flex-col items-center p-4 lg:p-6 overflow-y-auto custom-scrollbar">
+            disabled={!ativo}
+            onClick={(e) => acionarRadar(null, e.currentTarget)}
+            title="Faz as pontas de uma palavra pulsarem na grade"
+          />
+        }
+      />
 
       {direcaoDica && (
         <p className="text-center text-[12px] font-bold text-warn-ink mb-2 animate-in fade-in">
@@ -272,8 +257,10 @@ export default function WordSearchGame({ items, ageProfile, onFinish, onExit }: 
         <input
           id="destaque-letras"
           value={destaque}
-          onChange={e => setDestaque(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Escape') setDestaque(''); }}
+          onChange={(e) => setDestaque(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') setDestaque('');
+          }}
           maxLength={4}
           autoComplete="off"
           spellCheck={false}
@@ -301,20 +288,28 @@ export default function WordSearchGame({ items, ageProfile, onFinish, onExit }: 
           data-tour="grade"
           className="grid gap-0.5 select-none touch-none shrink-0"
           style={{ gridTemplateColumns: `repeat(${grade.tamanho}, minmax(0, 1fr))` }}
-          onPointerLeave={() => { setInicio(null); setHover(null); }}
+          onPointerLeave={() => {
+            setInicio(null);
+            setHover(null);
+          }}
         >
           {grade.letras.map((linha, l) =>
             linha.map((letra, c) => {
               const achada = emPalavraAchada(l, c);
               const selecionada = naSelecao(l, c);
               const acesa = dicaAcesa?.linha === l && dicaAcesa?.coluna === c;
-              const pulsando = pontas.some(x => x.linha === l && x.coluna === c);
+              const pulsando = pontas.some((x) => x.linha === l && x.coluna === c);
               const realcada = destacada(letra);
               return (
                 <button
                   key={`${l}-${c}`}
-                  onPointerDown={() => { setInicio({ linha: l, coluna: c }); setHover({ linha: l, coluna: c }); }}
-                  onPointerEnter={() => { if (inicio) setHover({ linha: l, coluna: c }); }}
+                  onPointerDown={() => {
+                    setInicio({ linha: l, coluna: c });
+                    setHover({ linha: l, coluna: c });
+                  }}
+                  onPointerEnter={() => {
+                    if (inicio) setHover({ linha: l, coluna: c });
+                  }}
                   onPointerUp={(e) => soltar({ linha: l, coluna: c }, e.currentTarget)}
                   /* Célula que ESCALA com a tela (2026-08-28): 32-36px fixos deixavam a grade
                      minúscula num monitor. Cresce com a altura, encolhe no celular, e nunca
@@ -333,9 +328,9 @@ export default function WordSearchGame({ items, ageProfile, onFinish, onExit }: 
                           ? 'bg-warn text-white ring-2 ring-warn'
                           : pulsando
                             ? 'bg-accent-soft text-accent-ink ring-2 ring-accent babel-pulso'
-                            /* O realce vem DEPOIS de achada/selecionada/dica na cadeia: ele é o
+                            : /* O realce vem DEPOIS de achada/selecionada/dica na cadeia: ele é o
                                estado mais fraco e nunca deve encobrir um estado do jogo. */
-                            : realcada
+                              realcada
                               ? 'bg-warn-soft text-warn-ink ring-1 ring-warn/50'
                               : 'bg-surface text-ink hover:bg-surface-hover'
                   }`}
@@ -344,7 +339,7 @@ export default function WordSearchGame({ items, ageProfile, onFinish, onExit }: 
                   {letra}
                 </button>
               );
-            })
+            }),
           )}
         </div>
 
@@ -354,24 +349,32 @@ export default function WordSearchGame({ items, ageProfile, onFinish, onExit }: 
             {ageProfile === 'senior' ? 'Procure a palavra de:' : 'Ache a palavra que significa:'}
           </p>
           <ul className="flex flex-col gap-1.5 overflow-y-auto custom-scrollbar max-h-[60vh] pe-1">
-            {jogaveis.map(i => {
+            {jogaveis.map((i) => {
               const achada = achados.has(i);
               const revelada = revelados.has(i);
               return (
                 <li
                   key={i}
                   className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-[13px] ${
-                    achada ? 'bg-good-soft border-good/40 text-good-ink' : revelada ? 'bg-canvas border-border-subtle text-ink-faint' : 'bg-surface border-border-subtle text-ink'
+                    achada
+                      ? 'bg-good-soft border-good/40 text-good-ink'
+                      : revelada
+                        ? 'bg-canvas border-border-subtle text-ink-faint'
+                        : 'bg-surface border-border-subtle text-ink'
                   }`}
                 >
                   {/* Pista encurtada: a frase-com-lacuna vem de fala real e chegava a 150 caracteres
                       nesta coluna estreita. `shortPrompt` recorta a janela em torno da lacuna. */}
-                  <span className="flex-1 min-w-0 leading-snug" title={items[i].prompt}>{shortPrompt(items[i].prompt, 52)}</span>
+                  <span className="flex-1 min-w-0 leading-snug" title={items[i].prompt}>
+                    {shortPrompt(items[i].prompt, 52)}
+                  </span>
                   {achada && <Check className="w-4 h-4 shrink-0" aria-label="encontrada" />}
                   {/* A palavra aparece quando achada, revelada — ou raspada, que a mostra sem
                       encerrar o item (quem não lembra a palavra não tem como procurá-la). */}
                   {(achada || revelada || espiados.has(i)) && (
-                    <span className={`font-bold shrink-0 ${espiados.has(i) && !achada && !revelada ? 'text-warn-ink' : ''}`}>
+                    <span
+                      className={`font-bold shrink-0 ${espiados.has(i) && !achada && !revelada ? 'text-warn-ink' : ''}`}
+                    >
                       {items[i].answer}
                     </span>
                   )}
@@ -421,7 +424,6 @@ export default function WordSearchGame({ items, ageProfile, onFinish, onExit }: 
           </ul>
         </aside>
       </div>
-      </main>
-    </div>
+    </>
   );
 }

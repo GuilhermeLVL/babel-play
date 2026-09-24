@@ -1,6 +1,6 @@
 import type { ItemOutcome, MinigameItem, RoundReport } from '@core';
 import { distractorsFor, MINIGAMES, scoreRound } from '@core';
-import { Award, Timer as TimerIcon,Volume2, X } from 'lucide-react';
+import { Volume2 } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { idiomaDaInterface } from '../../../lib/i18n';
@@ -8,7 +8,9 @@ import { comemorar, tremor } from '../../../lib/juice';
 import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
 import { play } from '../../../lib/soundFx';
-import { isTtsSupported,speak } from '../../../lib/tts';
+import { isTtsSupported, speak } from '../../../lib/tts';
+import { useRodada } from '../casca/CascaDaRodada';
+import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from '../casca/HudDaRodada';
 
 /**
  * KARUTA — o narrador declama a PISTA e as cartas na mesa trazem as palavras candidatas.
@@ -40,6 +42,9 @@ function embaralhar<T>(xs: T[]): T[] {
 }
 
 export default function KarutaGame({ items, ageProfile, onFinish, onExit }: KarutaGameProps) {
+  /** A casca diz quando a rodada anda (fora da contagem 3-2-1 e da pausa); o placar do HUD sai dos resultados. */
+  const { ativo } = useRodada();
+  const [placar, recontar] = usePlacarDaRodada('karuta');
   const suficiente = items.length >= MINIGAMES.karuta.minItems;
 
   const [indice, setIndice] = useState(0);
@@ -53,7 +58,6 @@ export default function KarutaGame({ items, ageProfile, onFinish, onExit }: Karu
    */
   const [relogio, setRelogio] = useState({ carta: 0, segundos: SEGUNDOS[ageProfile] });
   const tempo = relogio.carta === indice ? relogio.segundos : SEGUNDOS[ageProfile];
-  const [pontos, setPontos] = useState(0);
   const [acertada, setAcertada] = useState<string | null>(null);
   const [errada, setErrada] = useState<string | null>(null);
   const [acabou, setAcabou] = useState(false);
@@ -100,27 +104,30 @@ export default function KarutaGame({ items, ageProfile, onFinish, onExit }: Karu
       score: scoreRound('karuta', outcomes),
       durationMs: Date.now() - inicioRodadaRef.current,
     };
-    const perfeita = outcomes.length > 0 && outcomes.every(o => o.correct && !o.revealed);
+    const perfeita = outcomes.length > 0 && outcomes.every((o) => o.correct && !o.revealed);
     comemorar(perfeita ? 'rodadaPerfeita' : 'rodadaBoa', mesaRef.current);
     setTimeout(() => onFinish(report), 1100);
   }, [onFinish]);
 
-  const registrar = useCallback((correct: boolean, revealed?: boolean) => {
-    if (!item) return;
-    outcomesRef.current.push({
-      cardId: item.cardId,
-      itemRef: item.answer,
-      correct,
-      attempts: Math.max(1, tentativasRef.current),
-      ms: Date.now() - inicioItemRef.current,
-      ...(revealed ? { revealed: true } : {}),
-    });
-    setPontos(scoreRound('karuta', outcomesRef.current));
-  }, [item]);
+  const registrar = useCallback(
+    (correct: boolean, revealed?: boolean) => {
+      if (!item) return;
+      outcomesRef.current.push({
+        cardId: item.cardId,
+        itemRef: item.answer,
+        correct,
+        attempts: Math.max(1, tentativasRef.current),
+        ms: Date.now() - inicioItemRef.current,
+        ...(revealed ? { revealed: true } : {}),
+      });
+      recontar(outcomesRef.current);
+    },
+    [recontar, item],
+  );
 
   const avancar = useCallback(() => {
     if (indice + 1 >= items.length) finalizar();
-    else setIndice(i => i + 1);
+    else setIndice((i) => i + 1);
   }, [indice, items.length, finalizar]);
 
   // Troca de carta: zera o relógio e as tentativas, e o narrador declama de novo.
@@ -147,9 +154,10 @@ export default function KarutaGame({ items, ageProfile, onFinish, onExit }: Karu
       return;
     }
     if (tempo <= 3) play('tick');
-    const t = setTimeout(() => setRelogio(r => (r.carta === indice ? { ...r, segundos: r.segundos - 1 } : r)), 1000);
+    if (!ativo) return; // o relógio para na contagem e na pausa
+    const t = setTimeout(() => setRelogio((r) => (r.carta === indice ? { ...r, segundos: r.segundos - 1 } : r)), 1000);
     return () => clearTimeout(t);
-  }, [relogio, tempo, indice, acabou, item, registrar, avancar]);
+  }, [relogio, ativo, tempo, indice, acabou, item, registrar, avancar]);
 
   const golpear = (carta: string, el: HTMLElement | null) => {
     if (acabou || !item || respondidoRef.current) return;
@@ -174,80 +182,62 @@ export default function KarutaGame({ items, ageProfile, onFinish, onExit }: Karu
 
   if (!suficiente) return null;
 
+  /* A CASCA COMUM desenha o cabeçalho, a pausa e a contagem; aqui ficam o placar comum e o tabuleiro,
+     que é deste jogo. */
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-canvas text-ink select-none overflow-hidden">
-      <header className="flex items-center justify-between gap-3 px-6 py-4 border-b border-border-subtle bg-surface/85 backdrop-blur-md">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onExit}
-            className="p-2 rounded-xl border border-border-subtle bg-surface-hover hover:bg-border-subtle transition-colors cursor-pointer"
-            aria-label="Sair do Karuta"
-          >
-            <X className="w-5 h-5 text-ink" />
-          </button>
-          <div>
-            <span className="font-display font-black text-lg tracking-wide uppercase text-accent">Karuta</span>
-            <p className="text-xs text-ink-muted">Ouça o significado e toque na palavra que ele descreve.</p>
-          </div>
-        </div>
-
-        <div data-tour="placar" className="flex items-center gap-3">
-          <button
-            onClick={narrar}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-accent text-accent-contrast font-bold text-sm shadow-card hover:opacity-95 active:scale-95 transition-all cursor-pointer"
-          >
-            <Volume2 className="w-4 h-4" />
-            <span>Ouvir de novo</span>
-          </button>
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface">
-            <Award className="w-4 h-4 text-accent" />
-            <span className="font-mono font-bold tabular-nums">{pontos}</span>
-          </div>
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface">
-            <TimerIcon className={`w-4 h-4 ${tempo <= 3 ? 'text-error' : 'text-ink-muted'}`} />
-            <span className={`font-mono font-black tabular-nums ${tempo <= 3 ? 'text-error-ink' : 'text-ink'}`}>{tempo}s</span>
-          </div>
-        </div>
-      </header>
+    <>
+      <HudDaRodada
+        pontos={placar.pontos}
+        sequencia={placar.sequencia}
+        acertos={placar.acertos}
+        rotulo={`Carta ${indice + 1} de ${items.length}`}
+        tempo={tempo}
+        progresso={tempo / SEGUNDOS[ageProfile]}
+        pouco={tempo <= 3}
+        ajudas={<BotaoDeAjuda icone={Volume2} rotulo="Ouvir de novo" data-tour="placar" onClick={narrar} />}
+      />
 
       <div className="px-6 py-3 border-b border-border-subtle bg-surface/60 flex items-center justify-between gap-3">
         {/* Sem voz no aparelho o jogo seria insolúvel: aí, e só aí, a pista aparece escrita. */}
         {isTtsSupported() ? (
           <p className="text-sm text-ink-muted">O narrador já declamou a pista. Repita quando quiser.</p>
         ) : (
-          <p data-tour="pista" className="text-sm font-bold text-ink">{item?.prompt}</p>
+          <p data-tour="pista" className="text-sm font-bold text-ink">
+            {item?.prompt}
+          </p>
         )}
-        <span className="text-xs font-mono text-ink-muted">Carta {indice + 1} de {items.length}</span>
+        <span className="text-xs font-mono text-ink-muted">
+          Carta {indice + 1} de {items.length}
+        </span>
       </div>
 
-      <main ref={mesaRef} className="flex-1 p-6 sm:p-10 overflow-y-auto flex items-start justify-center">
-        <div
-          data-tour="cartas"
-          className="w-full max-w-4xl grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-5"
-        >
-          {mesa.map(carta => {
+      <div ref={mesaRef} className="flex items-start justify-center">
+        <div data-tour="cartas" className="w-full max-w-4xl grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-5">
+          {mesa.map((carta) => {
             const certa = carta === acertada;
             const furada = carta === errada;
             return (
               <button
                 key={carta}
-                onClick={e => golpear(carta, e.currentTarget)}
+                onClick={(e) => golpear(carta, e.currentTarget)}
                 disabled={acabou || certa}
                 dir={direcaoDoTexto(item?.lang)}
                 lang={item?.lang}
                 className={`aspect-[4/3] rounded-2xl border-2 px-4 py-3 flex items-center justify-center text-center font-display font-black text-xl sm:text-2xl shadow-card transition-all cursor-pointer
-                  ${certa
-                    ? 'border-good bg-good-soft text-good-ink'
-                    : furada
-                    ? 'border-error bg-error-soft text-error-ink'
-                    : 'border-border-subtle bg-surface text-ink hover:border-accent hover:text-accent hover:-translate-y-1'}`}
+                  ${
+                    certa
+                      ? 'border-good bg-good-soft text-good-ink'
+                      : furada
+                        ? 'border-error bg-error-soft text-error-ink'
+                        : 'border-border-subtle bg-surface text-ink hover:border-accent hover:text-accent hover:-translate-y-1'
+                  }`}
               >
                 {carta}
               </button>
             );
           })}
         </div>
-      </main>
-    </div>
+      </div>
+    </>
   );
 }

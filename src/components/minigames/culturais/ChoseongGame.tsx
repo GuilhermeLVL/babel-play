@@ -1,12 +1,14 @@
 import type { ItemOutcome, MinigameItem, RoundReport } from '@core';
 import { chaveDoTermo, MINIGAMES, scoreRound } from '@core';
-import { Award, Delete, Lightbulb, Timer as TimerIcon,X } from 'lucide-react';
+import { Delete, Lightbulb } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { comemorar, tremor } from '../../../lib/juice';
 import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
 import { play } from '../../../lib/soundFx';
+import { useRodada } from '../casca/CascaDaRodada';
+import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from '../casca/HudDaRodada';
 
 /**
  * CHOSEONG — as consoantes ficam à vista, as vogais somem, e a pessoa escreve a palavra a partir
@@ -33,12 +35,19 @@ interface Enigma {
 }
 
 export default function ChoseongGame({ items, ageProfile, onFinish, onExit }: ChoseongGameProps) {
+  /** A casca diz quando a rodada anda (fora da contagem 3-2-1 e da pausa); o placar do HUD sai dos resultados. */
+  const { ativo } = useRodada();
+  const [placar, recontar] = usePlacarDaRodada('choseong');
   /* Palavra sem nenhuma vogal não tem o que esconder: sai da rodada em vez de nascer resolvida. */
-  const enigmas = useMemo<Enigma[]>(() => items.flatMap(item => {
-    const alvo = chaveDoTermo(item.answer);
-    const ocultas = new Set(alvo.split('').flatMap((c, i) => (VOGAIS.includes(c) ? [i] : [])));
-    return alvo.length >= 2 && ocultas.size > 0 ? [{ item, alvo, ocultas }] : [];
-  }), [items]);
+  const enigmas = useMemo<Enigma[]>(
+    () =>
+      items.flatMap((item) => {
+        const alvo = chaveDoTermo(item.answer);
+        const ocultas = new Set(alvo.split('').flatMap((c, i) => (VOGAIS.includes(c) ? [i] : [])));
+        return alvo.length >= 2 && ocultas.size > 0 ? [{ item, alvo, ocultas }] : [];
+      }),
+    [items],
+  );
 
   const suficiente = enigmas.length >= MINIGAMES.choseong.minItems;
 
@@ -48,7 +57,6 @@ export default function ChoseongGame({ items, ageProfile, onFinish, onExit }: Ch
      render à troca e dá a seguinte por perdida na hora, com um outcome de ms zero. */
   const [relogio, setRelogio] = useState({ palavra: 0, segundos: SEGUNDOS[ageProfile] });
   const tempo = relogio.palavra === indice ? relogio.segundos : SEGUNDOS[ageProfile];
-  const [pontos, setPontos] = useState(0);
   const [dicasRestantes, setDicasRestantes] = useState(2);
   const [acabou, setAcabou] = useState(false);
 
@@ -78,28 +86,31 @@ export default function ChoseongGame({ items, ageProfile, onFinish, onExit }: Ch
       score: scoreRound('choseong', outcomes),
       durationMs: Date.now() - inicioRodadaRef.current,
     };
-    const perfeita = outcomes.length > 0 && outcomes.every(o => o.correct && !o.revealed);
+    const perfeita = outcomes.length > 0 && outcomes.every((o) => o.correct && !o.revealed);
     comemorar(perfeita ? 'rodadaPerfeita' : 'rodadaBoa', palcoRef.current);
     setTimeout(() => onFinish(report), 1100);
   }, [onFinish]);
 
-  const registrar = useCallback((correct: boolean, revealed?: boolean) => {
-    if (!enigma) return;
-    outcomesRef.current.push({
-      cardId: enigma.item.cardId,
-      itemRef: enigma.item.answer,
-      correct,
-      attempts: tentativasRef.current,
-      ms: Date.now() - inicioItemRef.current,
-      hinted: comDicaRef.current,
-      ...(revealed ? { revealed: true } : {}),
-    });
-    setPontos(scoreRound('choseong', outcomesRef.current));
-  }, [enigma]);
+  const registrar = useCallback(
+    (correct: boolean, revealed?: boolean) => {
+      if (!enigma) return;
+      outcomesRef.current.push({
+        cardId: enigma.item.cardId,
+        itemRef: enigma.item.answer,
+        correct,
+        attempts: tentativasRef.current,
+        ms: Date.now() - inicioItemRef.current,
+        hinted: comDicaRef.current,
+        ...(revealed ? { revealed: true } : {}),
+      });
+      recontar(outcomesRef.current);
+    },
+    [recontar, enigma],
+  );
 
   const avancar = useCallback(() => {
     if (indice + 1 >= enigmas.length) finalizar();
-    else setIndice(i => i + 1);
+    else setIndice((i) => i + 1);
   }, [indice, enigmas.length, finalizar]);
 
   // Troca de palavra: as consoantes entram já preenchidas, as vogais nascem vazias.
@@ -124,35 +135,45 @@ export default function ChoseongGame({ items, ageProfile, onFinish, onExit }: Ch
       return;
     }
     if (tempo <= 3) play('tick');
-    const t = setTimeout(() => setRelogio(r => (r.palavra === indice ? { ...r, segundos: r.segundos - 1 } : r)), 1000);
+    if (!ativo) return; // o relógio para na contagem e na pausa
+    const t = setTimeout(
+      () => setRelogio((r) => (r.palavra === indice ? { ...r, segundos: r.segundos - 1 } : r)),
+      1000,
+    );
     return () => clearTimeout(t);
-  }, [relogio, tempo, indice, acabou, enigma, registrar, avancar]);
+  }, [relogio, ativo, tempo, indice, acabou, enigma, registrar, avancar]);
 
-  const conferir = useCallback((montada: string[]) => {
-    if (!enigma) return;
-    if (montada.join('') === enigma.alvo) {
-      respondidoRef.current = true;
-      registrar(true);
-      comemorar('acerto', palcoRef.current);
-      setTimeout(avancar, 700);
-      return;
-    }
-    tentativasRef.current += 1;
-    comemorar('erro', palcoRef.current);
-    tremor(palcoRef.current);
-    setLetras(enigma.alvo.split('').map((c, i) => (enigma.ocultas.has(i) ? '' : c)));
-  }, [enigma, registrar, avancar]);
+  const conferir = useCallback(
+    (montada: string[]) => {
+      if (!enigma) return;
+      if (montada.join('') === enigma.alvo) {
+        respondidoRef.current = true;
+        registrar(true);
+        comemorar('acerto', palcoRef.current);
+        setTimeout(avancar, 700);
+        return;
+      }
+      tentativasRef.current += 1;
+      comemorar('erro', palcoRef.current);
+      tremor(palcoRef.current);
+      setLetras(enigma.alvo.split('').map((c, i) => (enigma.ocultas.has(i) ? '' : c)));
+    },
+    [enigma, registrar, avancar],
+  );
 
-  const escrever = useCallback((char: string) => {
-    if (acabou || !enigma || respondidoRef.current) return;
-    const vazio = letras.findIndex((l, i) => !l && enigma.ocultas.has(i));
-    if (vazio === -1) return;
-    const novas = [...letras];
-    novas[vazio] = char;
-    play('click');
-    setLetras(novas);
-    if (!novas.some((l, i) => !l && enigma.ocultas.has(i))) conferir(novas);
-  }, [acabou, enigma, letras, conferir]);
+  const escrever = useCallback(
+    (char: string) => {
+      if (acabou || !enigma || respondidoRef.current) return;
+      const vazio = letras.findIndex((l, i) => !l && enigma.ocultas.has(i));
+      if (vazio === -1) return;
+      const novas = [...letras];
+      novas[vazio] = char;
+      play('click');
+      setLetras(novas);
+      if (!novas.some((l, i) => !l && enigma.ocultas.has(i))) conferir(novas);
+    },
+    [acabou, enigma, letras, conferir],
+  );
 
   const apagar = useCallback(() => {
     if (acabou || !enigma || respondidoRef.current) return;
@@ -169,9 +190,16 @@ export default function ChoseongGame({ items, ageProfile, onFinish, onExit }: Ch
   // Teclado físico: quem sabe a palavra escreve direto, sem caçar botão.
   useEffect(() => {
     const aoTeclar = (e: KeyboardEvent) => {
-      if (e.key === 'Backspace') { e.preventDefault(); apagar(); return; }
+      if (e.key === 'Backspace') {
+        e.preventDefault();
+        apagar();
+        return;
+      }
       const letra = e.key.toUpperCase();
-      if (VOGAIS.includes(letra)) { e.preventDefault(); escrever(letra); }
+      if (VOGAIS.includes(letra)) {
+        e.preventDefault();
+        escrever(letra);
+      }
     };
     window.addEventListener('keydown', aoTeclar);
     return () => window.removeEventListener('keydown', aoTeclar);
@@ -181,7 +209,7 @@ export default function ChoseongGame({ items, ageProfile, onFinish, onExit }: Ch
     if (acabou || !enigma || respondidoRef.current || dicasRestantes <= 0) return;
     const vazio = letras.findIndex((l, i) => !l && enigma.ocultas.has(i));
     if (vazio === -1) return;
-    setDicasRestantes(d => d - 1);
+    setDicasRestantes((d) => d - 1);
     comDicaRef.current = true;
     play('timeBonus');
     const novas = [...letras];
@@ -192,44 +220,22 @@ export default function ChoseongGame({ items, ageProfile, onFinish, onExit }: Ch
 
   if (!suficiente) return null;
 
+  /* A CASCA COMUM desenha o cabeçalho, a pausa e a contagem; aqui ficam o placar comum e o tabuleiro,
+     que é deste jogo. */
   return (
-    <div ref={palcoRef} className="fixed inset-0 z-50 flex flex-col bg-canvas text-ink select-none overflow-hidden">
-      <header className="flex items-center justify-between gap-3 px-6 py-4 border-b border-border-subtle bg-surface/85 backdrop-blur-md">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onExit}
-            className="p-2 rounded-xl border border-border-subtle bg-surface-hover hover:bg-border-subtle transition-colors cursor-pointer"
-            aria-label="Sair do Choseong"
-          >
-            <X className="w-5 h-5 text-ink" />
-          </button>
-          <div>
-            <span className="font-display font-black text-lg tracking-wide uppercase text-accent">Choseong</span>
-            <p className="text-xs text-ink-muted">As consoantes já estão na mesa. Complete as vogais.</p>
-          </div>
-        </div>
+    <div ref={palcoRef}>
+      <HudDaRodada
+        pontos={placar.pontos}
+        sequencia={placar.sequencia}
+        acertos={placar.acertos}
+        rotulo={`Palavra ${indice + 1} de ${enigmas.length}`}
+        tempo={tempo}
+        progresso={tempo / SEGUNDOS[ageProfile]}
+        pouco={tempo <= 3}
+        ajudas={<BotaoDeAjuda icone={Lightbulb} rotulo="Abrir uma vogal" resta={dicasRestantes} onClick={usarDica} />}
+      />
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={usarDica}
-            disabled={dicasRestantes <= 0}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-bold text-ink transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-          >
-            <Lightbulb className="w-3.5 h-3.5 text-accent" />
-            <span>Abrir uma vogal ({dicasRestantes})</span>
-          </button>
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface">
-            <Award className="w-4 h-4 text-accent" />
-            <span className="font-mono font-bold tabular-nums">{pontos}</span>
-          </div>
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface">
-            <TimerIcon className={`w-4 h-4 ${tempo <= 3 ? 'text-error' : 'text-ink-muted'}`} />
-            <span className={`font-mono font-black tabular-nums ${tempo <= 3 ? 'text-error-ink' : 'text-ink'}`}>{tempo}s</span>
-          </div>
-        </div>
-      </header>
-
-      <main className="flex-1 p-6 flex flex-col items-center justify-center gap-6 w-full max-w-2xl mx-auto">
+      <div className="flex flex-col items-center justify-center gap-6 w-full max-w-2xl mx-auto">
         <p data-tour="pista" className="text-base sm:text-lg font-bold text-ink text-center">
           {enigma?.item.prompt}
         </p>
@@ -245,11 +251,13 @@ export default function ChoseongGame({ items, ageProfile, onFinish, onExit }: Ch
               <span
                 key={i}
                 className={`w-12 h-14 sm:w-14 sm:h-16 rounded-2xl flex items-center justify-center font-display font-black text-2xl sm:text-3xl border-2 shadow-card
-                  ${!oculta
-                    ? 'border-border-subtle bg-surface-hover text-ink-muted'
-                    : letra
-                    ? 'border-accent bg-accent-soft text-accent-ink'
-                    : 'border-dashed border-border-subtle bg-surface text-ink-faint'}`}
+                  ${
+                    !oculta
+                      ? 'border-border-subtle bg-surface-hover text-ink-muted'
+                      : letra
+                        ? 'border-accent bg-accent-soft text-accent-ink'
+                        : 'border-dashed border-border-subtle bg-surface text-ink-faint'
+                  }`}
               >
                 {letra}
               </span>
@@ -258,7 +266,7 @@ export default function ChoseongGame({ items, ageProfile, onFinish, onExit }: Ch
         </div>
 
         <div data-tour="teclado" className="flex flex-wrap justify-center gap-2">
-          {VOGAIS.map(v => (
+          {VOGAIS.map((v) => (
             <button
               key={v}
               onClick={() => escrever(v)}
@@ -276,8 +284,10 @@ export default function ChoseongGame({ items, ageProfile, onFinish, onExit }: Ch
           </button>
         </div>
 
-        <span className="text-xs font-mono text-ink-muted">Palavra {indice + 1} de {enigmas.length}</span>
-      </main>
+        <span className="text-xs font-mono text-ink-muted">
+          Palavra {indice + 1} de {enigmas.length}
+        </span>
+      </div>
     </div>
   );
 }

@@ -7,13 +7,13 @@
  * agora é a FRASE DO PRÓPRIO USUÁRIO com a palavra apagada, e a regra dura que vem junto é:
  * item sem frase não tem enigma, e por isso não entra na rodada — nada é inventado no lugar dele.
  */
-import { act,cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import React from 'react'
-import { afterEach,beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { MinigameItem, RoundReport } from '../src/core/minigames/types'
 
-vi.mock('../src/lib/juice', () => ({ comemorar: vi.fn() }))
+vi.mock('../src/lib/juice', () => ({ contarAte: vi.fn(async () => {}), tremor: vi.fn(), comemorar: vi.fn() }))
 vi.mock('../src/lib/tts', () => ({ speak: vi.fn() }))
 
 const { default: VitendawiliGame } = await import('../src/components/minigames/culturais/VitendawiliGame')
@@ -32,7 +32,9 @@ function itens(): MinigameItem[] {
 const COM_FRASE = ['house', 'garden', 'window', 'table']
 
 function avancar(ms: number): void {
-  act(() => { vi.advanceTimersByTime(ms) })
+  act(() => {
+    vi.advanceTimersByTime(ms)
+  })
 }
 
 function clicar(palavra: string): void {
@@ -49,38 +51,71 @@ function decifrarTudo(): void {
 }
 
 describe('VitendawiliGame — o enigma é a frase do usuário, não uma charada inventada', () => {
-  beforeEach(() => { vi.useFakeTimers({ shouldAdvanceTime: false }) })
-  afterEach(() => { cleanup(); vi.useRealTimers(); vi.clearAllMocks() })
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: false })
+  })
+  afterEach(() => {
+    cleanup()
+    vi.useRealTimers()
+    vi.clearAllMocks()
+  })
 
   it('o relatório sai com gameId "vitendawili" e um outcome por item COM frase', () => {
     let relatorio: RoundReport | null = null
-    render(<VitendawiliGame items={itens()} ageProfile="pro" onFinish={r => { relatorio = r }} onExit={() => {}} />)
+    render(
+      <VitendawiliGame
+        items={itens()}
+        ageProfile="pro"
+        onFinish={(r) => {
+          relatorio = r
+        }}
+        onExit={() => {}}
+      />,
+    )
 
     decifrarTudo()
 
     expect(relatorio).not.toBeNull()
     expect(relatorio!.gameId).toBe('vitendawili')
-    expect(relatorio!.items.map(o => o.itemRef)).toEqual(COM_FRASE)
+    expect(relatorio!.items.map((o) => o.itemRef)).toEqual(COM_FRASE)
   })
 
   it('item SEM sentence fica de fora — sem frase não existe enigma', () => {
     let relatorio: RoundReport | null = null
-    render(<VitendawiliGame items={itens()} ageProfile="pro" onFinish={r => { relatorio = r }} onExit={() => {}} />)
+    render(
+      <VitendawiliGame
+        items={itens()}
+        ageProfile="pro"
+        onFinish={(r) => {
+          relatorio = r
+        }}
+        onExit={() => {}}
+      />,
+    )
 
     decifrarTudo()
 
     expect(relatorio!.items).toHaveLength(4)
-    expect(relatorio!.items.map(o => o.cardId)).not.toContain('c5')
-    expect(relatorio!.items.map(o => o.itemRef)).not.toContain('river')
+    expect(relatorio!.items.map((o) => o.cardId)).not.toContain('c5')
+    expect(relatorio!.items.map((o) => o.itemRef)).not.toContain('river')
   })
 
   it('todo outcome carrega o cardId VINDO DO ITEM', () => {
     let relatorio: RoundReport | null = null
-    render(<VitendawiliGame items={itens()} ageProfile="pro" onFinish={r => { relatorio = r }} onExit={() => {}} />)
+    render(
+      <VitendawiliGame
+        items={itens()}
+        ageProfile="pro"
+        onFinish={(r) => {
+          relatorio = r
+        }}
+        onExit={() => {}}
+      />,
+    )
 
     decifrarTudo()
 
-    expect(relatorio!.items.map(o => o.cardId)).toEqual(['c1', 'c2', 'c3', 'c4'])
+    expect(relatorio!.items.map((o) => o.cardId)).toEqual(['c1', 'c2', 'c3', 'c4'])
   })
 
   it('a frase aparece com a palavra apagada, e não com a resposta à mostra', () => {
@@ -93,9 +128,18 @@ describe('VitendawiliGame — o enigma é a frase do usuário, não uma charada 
 
   it('errar elimina a alternativa e conta como tentativa do item', () => {
     let relatorio: RoundReport | null = null
-    render(<VitendawiliGame items={itens()} ageProfile="pro" onFinish={r => { relatorio = r }} onExit={() => {}} />)
+    render(
+      <VitendawiliGame
+        items={itens()}
+        ageProfile="pro"
+        onFinish={(r) => {
+          relatorio = r
+        }}
+        onExit={() => {}}
+      />,
+    )
 
-    const errada = COM_FRASE.find(p => p !== 'house')!
+    const errada = COM_FRASE.find((p) => p !== 'house')!
     clicar(errada)
     expect((screen.getByRole('button', { name: errada }) as HTMLButtonElement).disabled).toBe(true)
     decifrarTudo()
@@ -104,10 +148,12 @@ describe('VitendawiliGame — o enigma é a frase do usuário, não uma charada 
   })
 
   it('sem itens com frase suficientes o jogo sai pela porta em vez de inventar enigma', () => {
-    const poucos = itens().filter(i => i.cardId !== 'c4') // sobram 3 com frase; o mínimo é 4
+    const poucos = itens().filter((i) => i.cardId !== 'c4') // sobram 3 com frase; o mínimo é 4
     const onExit = vi.fn()
     const onFinish = vi.fn()
-    const { container } = render(<VitendawiliGame items={poucos} ageProfile="pro" onFinish={onFinish} onExit={onExit} />)
+    const { container } = render(
+      <VitendawiliGame items={poucos} ageProfile="pro" onFinish={onFinish} onExit={onExit} />,
+    )
 
     expect(onExit).toHaveBeenCalledTimes(1)
     expect(onFinish).not.toHaveBeenCalled()

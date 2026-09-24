@@ -15,7 +15,7 @@ import {
   scoreRound,
   TENTATIVAS_POR_MODO,
 } from '@core';
-import { Check, ChevronRight, Delete, Flame, Lightbulb, Sparkles, Volume2, WandSparkles, X } from 'lucide-react';
+import { Check, ChevronRight, Delete, Lightbulb, Volume2, WandSparkles } from 'lucide-react';
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { playJuicedError, playJuicedHit, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
@@ -24,6 +24,8 @@ import { toBcp47 } from '../../lib/languages';
 import type { AgeProfileType } from '../../lib/profile';
 import { speak } from '../../lib/tts';
 import { toast } from '../Toast';
+import { useRodada } from './casca/CascaDaRodada';
+import HudDaRodada, { BotaoDeAjuda } from './casca/HudDaRodada';
 
 /**
  * SOLETRAR — o jogo de escrever a palavra a partir do significado, em degraus.
@@ -56,7 +58,18 @@ interface TermoGameProps {
 
 const LINHAS_TECLADO = ['QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM'];
 
-export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: TermoGameProps) {
+export default function TermoGame({ rodadas, ageProfile, onFinish }: TermoGameProps) {
+  /** A casca diz quando a rodada anda: na contagem e na pausa o teclado não escreve. */
+  const { ativo } = useRodada();
+  /** Tabuleiros fechados na rodada inteira (a pausa mostra "N acertos"). */
+  const [acertos, setAcertos] = useState(0);
+  /**
+   * A ALTURA DO PALCO. Em tela cheia a raiz media a janela; dentro da casca comum ela é uma tela
+   * como as outras, então o orçamento é o que sobra da janela abaixo do topo da raiz (a mesma
+   * conta do `ajustarTermo` do protótipo: altura da rolagem − topo − margens). No celular sai
+   * também a barra de navegação de baixo.
+   */
+  const [alturaDaRaiz, setAlturaDaRaiz] = useState<number | undefined>(undefined);
   /** Os degraus desta partida: 1 tabuleiro, depois 2, depois 4 — até onde as palavras derem. */
   const grupos = useMemo(() => montarEscada(rodadas, planoDaEscada(rodadas.length)), [rodadas]);
 
@@ -73,6 +86,28 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
     moldura: 0,
     apertado: false,
   });
+
+  useLayoutEffect(() => {
+    const medirRaiz = () => {
+      const r = raizRef.current;
+      if (!r) return;
+      const topo = r.getBoundingClientRect().top;
+      const celular = window.innerWidth < 768;
+      const embaixo = celular ? 96 : 40;
+      /* No celular o topo (cabeçalho + placar com as ajudas) come metade da janela: com um piso
+         menor o teclado ficaria rolado para dentro do palco. Aí a PÁGINA rola, e o piso garante
+         tabuleiro e teclado inteiros. */
+      setAlturaDaRaiz(Math.max(celular ? 600 : 420, Math.round(window.innerHeight - topo - embaixo)));
+    };
+    medirRaiz();
+    // a entrada de câmera escala o palco por meio segundo: mede de novo quando ela assenta
+    const t = window.setTimeout(medirRaiz, 620);
+    window.addEventListener('resize', medirRaiz);
+    return () => {
+      window.clearTimeout(t);
+      window.removeEventListener('resize', medirRaiz);
+    };
+  }, []);
 
   useLayoutEffect(() => {
     const raiz = raizRef.current;
@@ -351,6 +386,7 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
       const mult = multiplicador(nova);
       const ganho = 10 * fechouAgora * (usouDica ? 1 : mult);
       setSequencia(nova);
+      setAcertos((n) => n + fechouAgora);
       setPontos((p) => p + ganho);
       triggerHaptic('success');
       playJuicedHit(nova, undefined, `+${ganho}${mult > 1 && !usouDica ? ` ×${mult}` : ''}`);
@@ -477,6 +513,7 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
   // exatamente esse bug que fez o envio automático falhar em silêncio antes.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (!ativo) return; // contagem, pausa ou "Como se joga" abertos: a tecla não é do tabuleiro
       /**
        * `preventDefault` no Enter/Espaço não é detalhe: um botão que ficou com FOCO depois do
        * clique (a lâmpada, uma tecla do teclado na tela) recebe um clique sintético do navegador
@@ -591,93 +628,49 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
   };
   const plano = grupos.map((g) => g.length);
 
-  const mult = multiplicador(sequencia);
+  /* Quantas palavras a escada tem, e quantas já passaram: é o progresso do placar comum. */
+  const totalDePalavras = grupos.reduce((s, g) => s + g.length, 0);
+  const jaPassadas = grupos.slice(0, grupoIdx).reduce((s, g) => s + g.length, 0) + resolvidos.filter(Boolean).length;
 
+  /* A CASCA COMUM desenha o cabeçalho, a pausa e a contagem; aqui ficam o placar comum e a escada,
+     os tabuleiros e o teclado do Termo, que são dele. */
   return (
-    <div
-      ref={raizRef}
-      className="fixed inset-0 z-50 flex flex-col bg-canvas text-ink select-none overflow-hidden animate-in fade-in duration-200"
-    >
-      {/* Topo unificado */}
-      <header className="flex items-center justify-between px-6 py-4 border-b border-border-subtle bg-surface/85 backdrop-blur-md shrink-0">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onExit}
-            className="p-2 rounded-xl border border-border-subtle bg-surface-hover hover:bg-border-subtle transition-colors cursor-pointer"
-            title="Sair do Termo"
-            aria-label="Sair do jogo"
-          >
-            <X className="w-5 h-5 text-ink" />
-          </button>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-display font-black text-lg tracking-wide uppercase text-accent">Termo Arena</span>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-accent-soft text-accent-ink font-semibold">
-                {nomeDoDegrau}
-              </span>
-              {/* Os tracinhos da escada que moravam aqui viraram a `.escada-termo` do protótipo,
-                  acima dos tabuleiros. */}
-            </div>
-            <p className="text-xs text-ink-muted">
-              Adivinhe a palavra secreta em 6 tentativas usando as cores das letras!
-            </p>
-          </div>
-        </div>
+    <div ref={raizRef} className="flex flex-col" style={{ height: alturaDaRaiz }}>
+      <HudDaRodada
+        pontos={pontos}
+        sequencia={sequencia}
+        acertos={acertos}
+        rotulo={`Degrau ${grupoIdx + 1} de ${grupos.length} · ${nomeDoDegrau} · ${tentativas} de ${maxTentativas} tentativas`}
+        progresso={jaPassadas / Math.max(1, totalDePalavras)}
+        ajudas={
+          <>
+            <BotaoDeAjuda
+              icone={Volume2}
+              rotulo="Ouvir"
+              disabled={fimDoGrupo}
+              onClick={ouvirPalavra}
+              title="Ouvir pronúncia nativa"
+            />
+            <BotaoDeAjuda
+              icone={Lightbulb}
+              rotulo="Uma letra"
+              disabled={fimDoGrupo}
+              onClick={(e) => pedirDica(e.currentTarget)}
+              title="Revelar uma letra da palavra"
+            />
+            <BotaoDeAjuda
+              icone={WandSparkles}
+              rotulo="Auto-preencher"
+              data-tour="varinha"
+              disabled={fimDoGrupo}
+              onClick={(e) => usarLetrasCertas(e.currentTarget)}
+              title="Preencher as letras que você já descobriu"
+            />
+          </>
+        }
+      />
 
-        {/* Ferramentas e Status */}
-        <div className="flex items-center gap-2.5 sm:gap-3">
-          <button
-            data-tour="varinha"
-            onClick={(e) => usarLetrasCertas(e.currentTarget)}
-            disabled={fimDoGrupo}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-bold text-ink transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm cursor-pointer"
-            title="Preencher as letras que você já descobriu"
-          >
-            <WandSparkles className="w-3.5 h-3.5 text-good" />
-            <span className="hidden sm:inline">Auto-preencher</span>
-          </button>
-
-          <button
-            onClick={ouvirPalavra}
-            disabled={fimDoGrupo}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-bold text-ink transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm cursor-pointer"
-            title="Ouvir pronúncia nativa"
-          >
-            <Volume2 className="w-3.5 h-3.5 text-accent" />
-            <span className="hidden sm:inline">Ouvir</span>
-          </button>
-
-          <button
-            onClick={(e) => pedirDica(e.currentTarget)}
-            disabled={fimDoGrupo}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-bold text-ink transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm cursor-pointer"
-            title="Revelar uma letra da palavra"
-          >
-            <Lightbulb className="w-3.5 h-3.5 text-warn" />
-            <span>Dica</span>
-          </button>
-
-          {mult > 1 && (
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 text-white font-black text-xs shadow-md animate-bounce">
-              <Flame className="w-4 h-4 fill-current" />
-              <span>×{mult}</span>
-            </div>
-          )}
-
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface">
-            <Sparkles className="w-4 h-4 text-accent" />
-            <span className="font-mono font-bold text-base">{pontos} pts</span>
-          </div>
-
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface">
-            <span className="font-mono font-bold text-base text-ink">
-              {Math.min(tentativas + 1, maxTentativas)}/{maxTentativas}
-            </span>
-          </div>
-        </div>
-      </header>
-
-      <main className="w-full flex-1 min-h-0 flex flex-col items-center gap-1 px-4 pt-4 pb-3 overflow-y-auto">
+      <div className="w-full flex-1 min-h-0 flex flex-col items-center gap-1">
         {/* A ESCADA — `.escada-termo` do protótipo: os degraus do plano, o feito em verde, o da vez
           em destaque, e o tamanho/tentativas do degrau à direita. */}
         <div className="escada-termo shrink-0" aria-label={`degrau ${grupoIdx + 1} de ${grupos.length}`}>
@@ -900,7 +893,7 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
             </div>
           </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }

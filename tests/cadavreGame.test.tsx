@@ -5,16 +5,25 @@
  * `MINIGAMES` — mas o relatório continua tendo de sair certo: `gameId` próprio (ele reportava
  * `'blitz' as any`), `cardId` em todo outcome, e `onExit` quando a leva não fecha quatro.
  */
-import { cleanup, fireEvent,render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import React from 'react'
-import { afterEach,describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { MinigameItem, RoundReport } from '../src/core/minigames/types'
 
 vi.mock('../src/lib/juice', () => ({
-  comemorar: vi.fn(), pontosDoElemento: vi.fn(), pontosFlutuantes: vi.fn(), tremor: vi.fn(),
-  tremorDeTela: vi.fn(), pulsoDeZoom: vi.fn(), flashDeTela: vi.fn(), vibrar: vi.fn(),
-  executarEfeito: vi.fn(), glitchDeTela: vi.fn(), multiplicador: () => 1,
+  contarAte: vi.fn(async () => {}),
+  comemorar: vi.fn(),
+  pontosDoElemento: vi.fn(),
+  pontosFlutuantes: vi.fn(),
+  tremor: vi.fn(),
+  tremorDeTela: vi.fn(),
+  pulsoDeZoom: vi.fn(),
+  flashDeTela: vi.fn(),
+  vibrar: vi.fn(),
+  executarEfeito: vi.fn(),
+  glitchDeTela: vi.fn(),
+  multiplicador: () => 1,
 }))
 vi.mock('../src/lib/effects', () => ({ emitBurst: vi.fn() }))
 vi.mock('../src/lib/soundFx', () => ({ play: vi.fn() }))
@@ -35,11 +44,23 @@ function escrever(frase: string): void {
 }
 
 describe('CadavreExquisGame — quatro palavras, uma frase', () => {
-  afterEach(() => { cleanup(); vi.clearAllMocks() })
+  afterEach(() => {
+    cleanup()
+    vi.clearAllMocks()
+  })
 
   it('o relatório sai com gameId próprio e cardId em todo outcome', () => {
     let relatorio: RoundReport | null = null
-    render(<CadavreExquisGame items={leva()} ageProfile="pro" onFinish={r => { relatorio = r }} onExit={() => {}} />)
+    render(
+      <CadavreExquisGame
+        items={leva()}
+        ageProfile="pro"
+        onFinish={(r) => {
+          relatorio = r
+        }}
+        onExit={() => {}}
+      />,
+    )
 
     escrever('The river carried a stone under the bridge into a cloud.')
     fireEvent.click(screen.getByRole('button', { name: /Conferir/ }))
@@ -48,21 +69,30 @@ describe('CadavreExquisGame — quatro palavras, uma frase', () => {
 
     expect(relatorio!.gameId).toBe('cadavre')
     expect(relatorio!.items).toHaveLength(4)
-    expect(relatorio!.items.map(o => o.cardId)).toEqual(['c1', 'c2', 'c3', 'c4'])
-    expect(relatorio!.items.every(o => o.correct)).toBe(true)
+    expect(relatorio!.items.map((o) => o.cardId)).toEqual(['c1', 'c2', 'c3', 'c4'])
+    expect(relatorio!.items.every((o) => o.correct)).toBe(true)
   })
 
   /* `correct` é MEDIDO na frase — a palavra que não entrou não vira acerto, e a flexão conta
      (é a mesma régua que impede uma pista de entregar a resposta). */
   it('a palavra ausente não vira acerto; a flexão da que entrou vira', () => {
     let relatorio: RoundReport | null = null
-    render(<CadavreExquisGame items={leva()} ageProfile="pro" onFinish={r => { relatorio = r }} onExit={() => {}} />)
+    render(
+      <CadavreExquisGame
+        items={leva()}
+        ageProfile="pro"
+        onFinish={(r) => {
+          relatorio = r
+        }}
+        onExit={() => {}}
+      />,
+    )
 
     escrever('Two rivers, one bridge, no clouds.')
     fireEvent.click(screen.getByRole('button', { name: /Conferir/ }))
     fireEvent.click(screen.getByRole('button', { name: 'Continuar' }))
 
-    const porPalavra = Object.fromEntries(relatorio!.items.map(o => [o.itemRef, o.correct]))
+    const porPalavra = Object.fromEntries(relatorio!.items.map((o) => [o.itemRef, o.correct]))
     expect(porPalavra).toEqual({ river: true, bridge: true, cloud: true, stone: false })
   })
 

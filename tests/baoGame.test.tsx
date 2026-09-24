@@ -6,13 +6,13 @@
  * escrito à mão dentro do componente — a prop `items` chegava assinada como `_itemsProp` e era
  * ignorada. Nenhum outcome tinha `cardId`, e sem `cardId` `Play.tsx` descarta o resultado.
  */
-import { act,cleanup, fireEvent, render } from '@testing-library/react'
+import { act, cleanup, fireEvent, render } from '@testing-library/react'
 import React from 'react'
-import { afterEach,beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { MinigameItem, RoundReport } from '../src/core/minigames/types'
 
-vi.mock('../src/lib/juice', () => ({ comemorar: vi.fn() }))
+vi.mock('../src/lib/juice', () => ({ contarAte: vi.fn(async () => {}), tremor: vi.fn(), comemorar: vi.fn() }))
 vi.mock('../src/lib/tts', () => ({ speak: vi.fn() }))
 
 const { default: BaoGame } = await import('../src/components/minigames/culturais/BaoGame')
@@ -27,7 +27,9 @@ function itens(): MinigameItem[] {
 }
 
 function avancar(ms: number): void {
-  act(() => { vi.advanceTimersByTime(ms) })
+  act(() => {
+    vi.advanceTimersByTime(ms)
+  })
 }
 
 function covas(): HTMLButtonElement[] {
@@ -46,7 +48,7 @@ function montar(palavra: string): void {
   while (montada !== palavra) {
     if (passos++ > 12) throw new Error('não foi possível remontar ' + palavra)
     const abertas = covas()
-    const i = abertas.findIndex(b => {
+    const i = abertas.findIndex((b) => {
       const texto = b.textContent ?? ''
       return !b.disabled && texto.length > 0 && palavra.startsWith(montada + texto)
     })
@@ -65,31 +67,55 @@ function semearTudo(items: MinigameItem[]): void {
 }
 
 describe('BaoGame — o tabuleiro monta a palavra dos items', () => {
-  beforeEach(() => { vi.useFakeTimers({ shouldAdvanceTime: false }) })
-  afterEach(() => { cleanup(); vi.useRealTimers(); vi.clearAllMocks() })
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: false })
+  })
+  afterEach(() => {
+    cleanup()
+    vi.useRealTimers()
+    vi.clearAllMocks()
+  })
 
   it('o relatório sai com gameId "bao" e um outcome por palavra', () => {
     const items = itens()
     let relatorio: RoundReport | null = null
-    render(<BaoGame items={items} ageProfile="pro" onFinish={r => { relatorio = r }} onExit={() => {}} />)
+    render(
+      <BaoGame
+        items={items}
+        ageProfile="pro"
+        onFinish={(r) => {
+          relatorio = r
+        }}
+        onExit={() => {}}
+      />,
+    )
 
     semearTudo(items)
 
     expect(relatorio).not.toBeNull()
     expect(relatorio!.gameId).toBe('bao')
     expect(relatorio!.items).toHaveLength(items.length)
-    expect(relatorio!.items.map(o => o.itemRef)).toEqual(items.map(i => i.answer))
-    expect(relatorio!.items.every(o => o.correct)).toBe(true)
+    expect(relatorio!.items.map((o) => o.itemRef)).toEqual(items.map((i) => i.answer))
+    expect(relatorio!.items.every((o) => o.correct)).toBe(true)
   })
 
   it('todo outcome carrega o cardId VINDO DO ITEM', () => {
     const items = itens()
     let relatorio: RoundReport | null = null
-    render(<BaoGame items={items} ageProfile="pro" onFinish={r => { relatorio = r }} onExit={() => {}} />)
+    render(
+      <BaoGame
+        items={items}
+        ageProfile="pro"
+        onFinish={(r) => {
+          relatorio = r
+        }}
+        onExit={() => {}}
+      />,
+    )
 
     semearTudo(items)
 
-    expect(relatorio!.items.map(o => o.cardId)).toEqual(items.map(i => i.cardId))
+    expect(relatorio!.items.map((o) => o.cardId)).toEqual(items.map((i) => i.cardId))
   })
 
   it('a pista do item fica na tela — sem ela a montagem seria só quebra-cabeça', () => {

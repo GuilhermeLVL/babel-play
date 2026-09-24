@@ -1,12 +1,14 @@
 import type { ItemOutcome, MinigameItem, RoundReport } from '@core';
 import { chaveDoTermo, MINIGAMES, scoreRound } from '@core';
-import { Award, Flame, Lightbulb, Timer as TimerIcon,X } from 'lucide-react';
+import { Lightbulb } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 import { comemorar, tremor } from '../../../lib/juice';
 import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
 import { play } from '../../../lib/soundFx';
+import { useRodada } from '../casca/CascaDaRodada';
+import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from '../casca/HudDaRodada';
 
 /**
  * TÊNIS — o rali cronometrado. A bola traz a PISTA, você devolve escrevendo a palavra, e cada
@@ -32,6 +34,9 @@ function segundosDaJogada(base: number, rali: number): number {
 }
 
 export default function TenseTennisGame({ items, ageProfile, onFinish, onExit }: TenseTennisGameProps) {
+  /** A casca diz quando a rodada anda (fora da contagem 3-2-1 e da pausa); o placar do HUD sai dos resultados. */
+  const { ativo } = useRodada();
+  const [placar, recontar] = usePlacarDaRodada('tenis');
   const suficiente = items.length >= MINIGAMES.tenis.minItems;
   const base = SAQUE[ageProfile];
 
@@ -42,7 +47,6 @@ export default function TenseTennisGame({ items, ageProfile, onFinish, onExit }:
   const [relogio, setRelogio] = useState({ bola: 0, segundos: base });
   const tempo = relogio.bola === indice ? relogio.segundos : segundosDaJogada(base, rali);
   const [escrito, setEscrito] = useState('');
-  const [pontos, setPontos] = useState(0);
   const [dicasRestantes, setDicasRestantes] = useState(2);
   const [fora, setFora] = useState<string | null>(null);
   const [acabou, setAcabou] = useState(false);
@@ -73,28 +77,31 @@ export default function TenseTennisGame({ items, ageProfile, onFinish, onExit }:
       score: scoreRound('tenis', outcomes),
       durationMs: Date.now() - inicioRodadaRef.current,
     };
-    const perfeita = outcomes.length > 0 && outcomes.every(o => o.correct && !o.revealed);
+    const perfeita = outcomes.length > 0 && outcomes.every((o) => o.correct && !o.revealed);
     comemorar(perfeita ? 'rodadaPerfeita' : 'rodadaBoa', quadraRef.current);
     setTimeout(() => onFinish(report), 1100);
   }, [onFinish]);
 
-  const registrar = useCallback((correct: boolean, revealed?: boolean) => {
-    if (!item) return;
-    outcomesRef.current.push({
-      cardId: item.cardId,
-      itemRef: item.answer,
-      correct,
-      attempts: 1,
-      ms: Date.now() - inicioJogadaRef.current,
-      hinted: comDicaRef.current,
-      ...(revealed ? { revealed: true } : {}),
-    });
-    setPontos(scoreRound('tenis', outcomesRef.current));
-  }, [item]);
+  const registrar = useCallback(
+    (correct: boolean, revealed?: boolean) => {
+      if (!item) return;
+      outcomesRef.current.push({
+        cardId: item.cardId,
+        itemRef: item.answer,
+        correct,
+        attempts: 1,
+        ms: Date.now() - inicioJogadaRef.current,
+        hinted: comDicaRef.current,
+        ...(revealed ? { revealed: true } : {}),
+      });
+      recontar(outcomesRef.current);
+    },
+    [recontar, item],
+  );
 
   const avancar = useCallback(() => {
     if (indice + 1 >= items.length) finalizar();
-    else setIndice(i => i + 1);
+    else setIndice((i) => i + 1);
   }, [indice, items.length, finalizar]);
 
   // Nova bola: o relógio já entra encurtado pelo rali em curso.
@@ -126,9 +133,10 @@ export default function TenseTennisGame({ items, ageProfile, onFinish, onExit }:
       return;
     }
     if (tempo <= 2) play('tick');
-    const t = setTimeout(() => setRelogio(r => (r.bola === indice ? { ...r, segundos: r.segundos - 1 } : r)), 1000);
+    if (!ativo) return; // o relógio para na contagem e na pausa
+    const t = setTimeout(() => setRelogio((r) => (r.bola === indice ? { ...r, segundos: r.segundos - 1 } : r)), 1000);
     return () => clearTimeout(t);
-  }, [relogio, tempo, indice, acabou, item, registrar, avancar]);
+  }, [relogio, ativo, tempo, indice, acabou, item, registrar, avancar]);
 
   const devolver = () => {
     if (acabou || !item || respondidoRef.current || !escrito.trim()) return;
@@ -137,7 +145,7 @@ export default function TenseTennisGame({ items, ageProfile, onFinish, onExit }:
     registrar(certo);
 
     if (certo) {
-      setRali(r => r + 1);
+      setRali((r) => r + 1);
       comemorar('acerto', quadraRef.current);
       setTimeout(avancar, 600);
       return;
@@ -151,7 +159,7 @@ export default function TenseTennisGame({ items, ageProfile, onFinish, onExit }:
 
   const usarDica = () => {
     if (acabou || !item || respondidoRef.current || dicasRestantes <= 0) return;
-    setDicasRestantes(d => d - 1);
+    setDicasRestantes((d) => d - 1);
     comDicaRef.current = true;
     play('timeBonus');
     setEscrito(item.answer.slice(0, 1));
@@ -160,56 +168,23 @@ export default function TenseTennisGame({ items, ageProfile, onFinish, onExit }:
 
   if (!suficiente) return null;
 
+  /* A CASCA COMUM desenha o cabeçalho, a pausa e a contagem; aqui ficam o placar comum e o tabuleiro,
+     que é deste jogo. */
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-canvas text-ink overflow-y-auto">
-      <header className="flex items-center justify-between gap-3 px-6 py-4 border-b border-border-subtle bg-surface/85 backdrop-blur-md">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onExit}
-            className="p-2 rounded-xl border border-border-subtle bg-surface-hover hover:bg-border-subtle transition-colors cursor-pointer"
-            aria-label="Sair do Tênis"
-          >
-            <X className="w-5 h-5 text-ink" />
-          </button>
-          <div>
-            <span className="font-display font-black text-lg tracking-wide uppercase text-accent">Tênis</span>
-            <p className="text-xs text-ink-muted">Devolva escrevendo a palavra antes de a bola cair.</p>
-          </div>
-        </div>
+    <>
+      <HudDaRodada
+        pontos={placar.pontos}
+        sequencia={rali}
+        acertos={placar.acertos}
+        rotulo={`Bola ${indice + 1} de ${items.length}${rali > 1 ? ` · ${rali} no rali` : ''}`}
+        tempo={tempo}
+        progresso={tempo / Math.max(1, segundosDaJogada(base, rali))}
+        pouco={tempo <= 2}
+        tourDoTempo="relogio"
+        ajudas={<BotaoDeAjuda icone={Lightbulb} rotulo="Primeira letra" resta={dicasRestantes} onClick={usarDica} />}
+      />
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={usarDica}
-            disabled={dicasRestantes <= 0}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-bold text-ink transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-          >
-            <Lightbulb className="w-3.5 h-3.5 text-accent" />
-            <span>Primeira letra ({dicasRestantes})</span>
-          </button>
-
-          {rali > 1 && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-accent text-accent-contrast font-black text-xs">
-              <Flame className="w-3.5 h-3.5 fill-current" />
-              <span>{rali} no rali</span>
-            </div>
-          )}
-
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface">
-            <Award className="w-4 h-4 text-accent" />
-            <span className="font-mono font-bold tabular-nums">{pontos}</span>
-          </div>
-
-          <div
-            data-tour="relogio"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface"
-          >
-            <TimerIcon className={`w-4 h-4 ${tempo <= 2 ? 'text-error' : 'text-ink-muted'}`} />
-            <span className={`font-mono font-black tabular-nums ${tempo <= 2 ? 'text-error-ink' : 'text-ink'}`}>{tempo}s</span>
-          </div>
-        </div>
-      </header>
-
-      <main ref={quadraRef} className="flex-1 p-6 flex flex-col items-center justify-center gap-6 w-full max-w-2xl mx-auto">
+      <div ref={quadraRef} className="flex flex-col items-center justify-center gap-6 w-full max-w-2xl mx-auto">
         <div
           data-tour="bola"
           className="w-full rounded-3xl border-2 border-border-subtle bg-surface shadow-card px-6 py-8 text-center"
@@ -222,8 +197,13 @@ export default function TenseTennisGame({ items, ageProfile, onFinish, onExit }:
           <input
             ref={entradaRef}
             value={escrito}
-            onChange={e => setEscrito(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); devolver(); } }}
+            onChange={(e) => setEscrito(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                devolver();
+              }
+            }}
             disabled={acabou || respondidoRef.current}
             dir={direcaoDoTexto(item?.lang)}
             lang={item?.lang}
@@ -251,8 +231,10 @@ export default function TenseTennisGame({ items, ageProfile, onFinish, onExit }:
           </p>
         )}
 
-        <span className="text-xs font-mono text-ink-muted">Bola {indice + 1} de {items.length}</span>
-      </main>
-    </div>
+        <span className="text-xs font-mono text-ink-muted">
+          Bola {indice + 1} de {items.length}
+        </span>
+      </div>
+    </>
   );
 }

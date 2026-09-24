@@ -1,28 +1,43 @@
-import { env } from '@huggingface/transformers'
+import { env } from '@huggingface/transformers';
+
+import { urlFixadaDoModelo } from '../revisoesDosModelos';
 
 /**
- * Configuração de ENTREGA DOS PESOS, compartilhada pelos workers (Whisper + opus-mt).
+ * Configuração de ENTREGA DOS PESOS, compartilhada pelos workers (Whisper + opus-mt + WeSpeaker).
  * Chamar uma vez no topo de cada worker.
  *
- * PADRÃO (sem VITE_SELF_HOST_MODELS): baixa os pesos do HF Hub e os guarda no Cache Storage
- * do navegador. Robusto em deploy same-origin (o cache é estável); a impressão de "re-download"
- * era só a barra reaparecendo em cache-hit — tratada na UI via modelCache.areModelsCached.
+ * `VITE_SELF_HOST_MODELS` decide DE ONDE vêm os pesos:
  *
- * SELF-HOST (VITE_SELF_HOST_MODELS=1 — distribuição em escala / imagem Docker): serve os pesos
- * de `/models` no MESMO domínio (rode antes: `node scripts/fetch-models.mjs`, que baixa para
- * `public/models`). Same-origin = asset estático, IMUNE à partição do Cache Storage (o bug do
- * iframe do AI Studio) e cacheável pelo HTTP cache do navegador/CDN. Mantemos o remoto como rede
- * de segurança: se um arquivo não estiver self-hosted, o transformers.js cai para o HF Hub.
+ *  - ausente: do Hugging Face Hub, guardados no Cache Storage do navegador;
+ *  - `1` (self-host / imagem Docker): de `/models` no MESMO domínio (rode antes
+ *    `node scripts/fetch-models.mjs`, que baixa para `public/models`). Same-origin = asset estático,
+ *    imune à partição do Cache Storage e cacheável pelo HTTP cache. O remoto fica de reserva;
+ *  - uma URL `https://…` (produção, Fase 5): do bucket R2 público com os pesos publicados por
+ *    `scripts/modelos/publicar-no-r2.ts` no layout `<modelo>/<sha>/<arquivo>`. Egress zero no R2 e
+ *    nenhuma dependência do Hub no caminho do usuário.
+ *
+ * EM TODOS OS CASOS a revisão é FIXADA (GAP-014): o `fetch` do transformers.js passa por
+ * `urlFixadaDoModelo`, que troca `resolve/main` pelo commit de `revisoesDosModelos.ts` — ou pelo
+ * caminho do bucket. `main` é um ponteiro que o dono do repositório no Hub move quando quer.
  */
 export function configureModelDelivery(): void {
-  const flag = (import.meta as any)?.env?.VITE_SELF_HOST_MODELS
-  const selfHost = flag === '1' || flag === 'true'
-  if (selfHost) {
-    env.allowLocalModels = true
-    env.localModelPath = '/models/'
-    env.allowRemoteModels = true // fallback p/ HF se algum peso não estiver self-hosted
+  const flag = String((import.meta as { env?: Record<string, unknown> })?.env?.VITE_SELF_HOST_MODELS ?? '').trim();
+  const mesmoDominio = flag === '1' || flag === 'true';
+  const bucket = /^https:\/\//.test(flag) ? flag : undefined;
+
+  if (mesmoDominio) {
+    env.allowLocalModels = true;
+    env.localModelPath = '/models/';
+    env.allowRemoteModels = true; // fallback p/ HF se algum peso não estiver self-hosted
   } else {
-    env.allowLocalModels = false
+    env.allowLocalModels = false;
   }
-  env.useBrowserCache = true
+  env.useBrowserCache = true;
+
+  const buscar = env.fetch ?? globalThis.fetch.bind(globalThis);
+  env.fetch = (entrada: string | URL, init?: RequestInit) =>
+    buscar(
+      typeof entrada === 'string' || entrada instanceof URL ? urlFixadaDoModelo(String(entrada), bucket) : entrada,
+      init,
+    );
 }

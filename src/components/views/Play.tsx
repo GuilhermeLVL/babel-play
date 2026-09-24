@@ -2816,6 +2816,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
 
   /* Os dois grupos do protótipo, já filtrados por aba, habilidade e busca. */
   const prontosFiltrados = jogosClassicosFiltrados.filter((j) => j.estado.ok);
+  const filtrado = buscaJogos.trim() !== '' || filtroHabilidade !== 'todas' || categoriaAtiva !== 'todos';
   const presosFiltrados = jogosClassicosFiltrados.filter((j) => !j.estado.ok);
 
   /* A CARTA DO JOGO — marcação do protótipo aprovado (`cardJogo`): arte em pixel na grade com o
@@ -3581,60 +3582,67 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
               </section>
             )}
 
-            {/* ── BUSCA, HABILIDADES E OPÇÕES (marcação do protótipo) ── */}
-            <div className="entre" style={{ marginTop: 18 }}>
-              <div className="linha" style={{ gap: 8, flexWrap: 'wrap', flex: 1 }}>
-                <label className="busca" style={{ maxWidth: 280 }}>
-                  <Search aria-hidden />
-                  <span className="sr">{t('Buscar jogo')}</span>
-                  <input
-                    className="campo"
-                    value={buscaJogos}
-                    onChange={(e) => setBuscaJogos(e.target.value)}
-                    placeholder={t('Buscar por nome ou mecânica')}
-                  />
-                </label>
-                <div className="chips" role="group" aria-label={t('Filtrar por habilidade')}>
-                  {[
-                    { id: 'todas' as const, label: t('Todas'), Icone: null },
-                    { id: 'vocab' as const, label: t('Vocabulário'), Icone: BookOpen },
-                    { id: 'escuta_fala' as const, label: t('Escuta & fala'), Icone: Headphones },
-                    { id: 'frase_gramatica' as const, label: t('Sintaxe & frases'), Icone: Puzzle },
-                  ].map(({ id, label, Icone }) => (
-                    <button
-                      key={id}
-                      type="button"
-                      className="pill"
-                      aria-pressed={filtroHabilidade === id}
-                      onClick={() => {
-                        setFiltroHabilidade(id);
-                        triggerHaptic('soft');
-                        playJuicedHit(1);
-                      }}
-                    >
-                      {Icone && <Icone aria-hidden />}
-                      {label}
-                    </button>
-                  ))}
+            {/* ── BUSCA, HABILIDADES E OPÇÕES (marcação do protótipo) ──
+                Dentro de uma sessão não há filtro: o protótipo mostra só os jogos desta gravação. */}
+            {!embutido && (
+              <div className="entre" style={{ marginTop: 18 }}>
+                <div className="linha" style={{ gap: 8, flexWrap: 'wrap', flex: 1 }}>
+                  <label className="busca" style={{ maxWidth: 280 }}>
+                    <Search aria-hidden />
+                    <span className="sr">{t('Buscar jogo')}</span>
+                    <input
+                      className="campo"
+                      value={buscaJogos}
+                      onChange={(e) => setBuscaJogos(e.target.value)}
+                      placeholder={t('Buscar por nome ou mecânica')}
+                    />
+                  </label>
+                  <div className="chips" role="group" aria-label={t('Filtrar por habilidade')}>
+                    {[
+                      { id: 'todas' as const, label: t('Todas'), Icone: null },
+                      { id: 'vocab' as const, label: t('Vocabulário'), Icone: BookOpen },
+                      { id: 'escuta_fala' as const, label: t('Escuta & fala'), Icone: Headphones },
+                      { id: 'frase_gramatica' as const, label: t('Sintaxe & frases'), Icone: Puzzle },
+                    ].map(({ id, label, Icone }) => (
+                      <button
+                        key={id}
+                        type="button"
+                        className="pill"
+                        aria-pressed={filtroHabilidade === id}
+                        onClick={() => {
+                          setFiltroHabilidade(id);
+                          triggerHaptic('soft');
+                          playJuicedHit(1);
+                        }}
+                      >
+                        {Icone && <Icone aria-hidden />}
+                        {label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
+                <label className="check">
+                  <input type="checkbox" checked={!pularSempre} onChange={(e) => mudarPularSempre(!e.target.checked)} />{' '}
+                  {ageProfile === 'kids' ? t('Ver antes de jogar') : t('Prévia antes de começar')}
+                </label>
               </div>
-              <label className="check">
-                <input type="checkbox" checked={!pularSempre} onChange={(e) => mudarPularSempre(!e.target.checked)} />{' '}
-                {ageProfile === 'kids' ? t('Ver antes de jogar') : t('Prévia antes de começar')}
-              </label>
-            </div>
+            )}
 
             {/* `#grade-de-jogos` envolve os dois grupos: é a âncora da grade para a trilha e os testes. */}
             <div id="grade-de-jogos">
               {/* ── PRONTOS PARA JOGAR ── */}
               <section className="secao" style={{ marginTop: 28 }}>
                 <TituloDeSecao
-                  icone={CirclePlay}
-                  titulo={t('Prontos para jogar')}
-                  desc={t('Estes rodam com as {n} palavras de {fonte}.', {
-                    n: numero(acervoDaFonte.length),
-                    fonte: nomeCurtoDaFonte,
-                  })}
+                  icone={embutido ? Gamepad2 : CirclePlay}
+                  titulo={embutido ? t('Jogos com esta sessão') : t('Prontos para jogar')}
+                  desc={
+                    embutido
+                      ? t('Só as palavras e falas desta gravação. A tela Jogar usa o baralho inteiro.')
+                      : t('Estes rodam com as {n} palavras de {fonte}.', {
+                          n: numero(acervoDaFonte.length),
+                          fonte: nomeCurtoDaFonte,
+                        })
+                  }
                   direita={
                     <div className="linha" style={{ gap: 16 }}>
                       {/* Reordenar e fixar cartas é do app (o protótipo não desenha): um link discreto. */}
@@ -3665,19 +3673,29 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                     <div className="cartao">
                       <div className="vazio">
                         <IconeEmBloco icone={Search} />
-                        <h3>{t('Nenhum jogo pronto com esse filtro')}</h3>
-                        <p>{t('Troque o filtro ou busque por outra mecânica.')}</p>
-                        <button
-                          type="button"
-                          className="btn btn-outline peq"
-                          onClick={() => {
-                            setBuscaJogos('');
-                            setFiltroHabilidade('todas');
-                            setCategoriaAtiva('todos');
-                          }}
-                        >
-                          {t('Limpar filtros e busca')}
-                        </button>
+                        <h3>
+                          {filtrado
+                            ? t('Nenhum jogo pronto com esse filtro')
+                            : t('Nenhum jogo abre só com este material ainda')}
+                        </h3>
+                        <p>
+                          {filtrado
+                            ? t('Troque o filtro ou busque por outra mecânica.')
+                            : t('Os jogos abaixo dizem o que falta para abrir.')}
+                        </p>
+                        {filtrado && (
+                          <button
+                            type="button"
+                            className="btn btn-outline peq"
+                            onClick={() => {
+                              setBuscaJogos('');
+                              setFiltroHabilidade('todas');
+                              setCategoriaAtiva('todos');
+                            }}
+                          >
+                            {t('Limpar filtros e busca')}
+                          </button>
+                        )}
                       </div>
                     </div>
                   )}
@@ -3689,8 +3707,12 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                 <section className="secao">
                   <TituloDeSecao
                     icone={PackageOpen}
-                    titulo={t('Precisam de outro material')}
-                    desc={t('Não estão quebrados: pedem algo que este recorte não tem. Cada um diz o que falta.')}
+                    titulo={embutido ? t('Pedem mais material') : t('Precisam de outro material')}
+                    desc={
+                      embutido
+                        ? t('Com mais palavras desta sessão, estes abrem. Cada um diz o que falta.')
+                        : t('Não estão quebrados: pedem algo que este recorte não tem. Cada um diz o que falta.')
+                    }
                   />
                   <div className="gauto">{presosFiltrados.map(cartaDoJogo)}</div>
                 </section>

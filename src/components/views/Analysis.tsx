@@ -29,6 +29,7 @@ import {
   Search,
   SlidersHorizontal,
   Sparkles,
+  Target,
   Volume2,
   X,
   Youtube,
@@ -1778,35 +1779,63 @@ export default function Analysis({
                  voltar duplicado. `recording` filtra os jogos pelo material desta sessão.
                  O esqueleto do `Suspense` imita a grade de cartas em vez de um "carregando…": é o
                  mesmo desenho que aparece um instante depois, então nada salta de lugar. */
-              <Suspense
-                fallback={
-                  <div className="max-w-6xl mx-auto animate-in fade-in duration-200" aria-label="Carregando os jogos">
-                    <div
-                      className="h-24 rounded-2xl bg-surface border border-border-subtle animate-pulse mb-6"
-                      aria-hidden
-                    />
-                    <div className="grid gap-3 sm:grid-cols-3">
-                      {[0, 1, 2].map((i) => (
-                        <div
-                          key={i}
-                          className="h-28 rounded-2xl bg-surface border border-border-subtle animate-pulse"
-                          aria-hidden
-                        />
-                      ))}
+              <>
+                {/* "Revisar as palavras desta sessão" (protótipo, `abaJogosSessao`): só quando esta
+                  gravação já pôs palavras no caderno. Abre a revisão desta sessão. */}
+                {palavrasDaSessao.length > 0 && (
+                  <section
+                    className="cartao faixa-rev"
+                    style={{
+                      borderTopWidth: 'var(--bw-card)',
+                      borderColor: 'color-mix(in srgb,var(--accent) 45%,var(--border-subtle))',
+                    }}
+                  >
+                    <span className="contador">{palavrasDaSessao.length}</span>
+                    <div style={{ flex: 1, minWidth: 200 }}>
+                      <h2 style={{ fontSize: 16, fontWeight: 800 }}>Revisar as palavras desta sessão</h2>
+                      <p className="mut" style={{ fontSize: 13 }}>
+                        {palavrasDaSessao
+                          .slice(0, 6)
+                          .map((c) => c.word)
+                          .join(', ')}
+                        {palavrasDaSessao.length > 6 ? '…' : ''} · rodada curta
+                      </p>
                     </div>
-                  </div>
-                }
-              >
-                <PlayLobby
-                  embutido
-                  onChangeView={onChangeView}
-                  ageProfile={ageProfile}
-                  progress={progress}
-                  metrics={metrics}
-                  recording={recording}
-                  seed={practiceSeed}
-                />
-              </Suspense>
+                    <button type="button" className="btn btn-solid" onClick={() => onSubTabChange('study')}>
+                      <Target aria-hidden /> Revisar agora
+                    </button>
+                  </section>
+                )}
+                <Suspense
+                  fallback={
+                    <div className="max-w-6xl mx-auto animate-in fade-in duration-200" aria-label="Carregando os jogos">
+                      <div
+                        className="h-24 rounded-2xl bg-surface border border-border-subtle animate-pulse mb-6"
+                        aria-hidden
+                      />
+                      <div className="grid gap-3 sm:grid-cols-3">
+                        {[0, 1, 2].map((i) => (
+                          <div
+                            key={i}
+                            className="h-28 rounded-2xl bg-surface border border-border-subtle animate-pulse"
+                            aria-hidden
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  }
+                >
+                  <PlayLobby
+                    embutido
+                    onChangeView={onChangeView}
+                    ageProfile={ageProfile}
+                    progress={progress}
+                    metrics={metrics}
+                    recording={recording}
+                    seed={practiceSeed}
+                  />
+                </Suspense>
+              </>
             )}
           </div>
         )}

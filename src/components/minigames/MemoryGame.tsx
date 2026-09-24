@@ -1,12 +1,12 @@
 import type { ItemOutcome, MinigameItem, RoundReport } from '@core';
 import { scoreRound } from '@core';
-import { Eye,X } from 'lucide-react';
-import { Flame,Sparkles } from 'lucide-react';
+import { Eye, X } from 'lucide-react';
+import { Flame, Sparkles } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { emitBurst } from '../../lib/effects';
 import { playJuicedError, playJuicedHit, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
-import { multiplicador,pontosDoElemento } from '../../lib/juice';
+import { multiplicador, pontosDoElemento } from '../../lib/juice';
 import { direcaoDoTexto } from '../../lib/languages';
 import type { AgeProfileType } from '../../lib/profile';
 import { play } from '../../lib/soundFx';
@@ -28,12 +28,7 @@ interface Carta {
   lang: string;
 }
 
-/** Cores das duplas — a mesma paleta categórica usada para as pessoas na captura. */
-const CORES = ['#7C3AED', '#0284C7', '#10B981', '#F59E0B', '#EF4444', '#E91E63', '#14B8A6', '#8B5CF6'];
-
 export default function MemoryGame({ items, ageProfile, onFinish, onExit }: MemoryGameProps) {
-  const folgado = ageProfile !== 'pro';
-
   /** Baralho embaralhado UMA vez (por rodada) — reembaralhar a cada render arruinaria o jogo. */
   const cartas = useMemo<Carta[]>(() => {
     const baralho: Carta[] = [];
@@ -96,7 +91,7 @@ export default function MemoryGame({ items, ageProfile, onFinish, onExit }: Memo
   const virar = (carta: Carta, el: HTMLElement | null) => {
     if (travado || espiando || viradas.includes(carta.id) || fechados.has(carta.itemIndex)) return;
     if (!inicioItemRef.current.has(carta.itemIndex)) inicioItemRef.current.set(carta.itemIndex, Date.now());
-    
+
     triggerHaptic('soft');
     play('select');
 
@@ -109,7 +104,7 @@ export default function MemoryGame({ items, ageProfile, onFinish, onExit }: Memo
     setViradas(novas);
     if (novas.length < 2) return;
 
-    const [a, b] = novas.map(id => cartas.find(c => c.id === id)!);
+    const [a, b] = novas.map((id) => cartas.find((c) => c.id === id)!);
     const par = a.itemIndex === b.itemIndex && a.lado !== b.lado;
     // Conta a tentativa nos DOIS itens envolvidos
     for (const idx of new Set([a.itemIndex, b.itemIndex])) {
@@ -124,11 +119,11 @@ export default function MemoryGame({ items, ageProfile, onFinish, onExit }: Memo
       const mult = multiplicador(nova);
       const ganho = 10 * mult;
       setSequencia(nova);
-      setPontos(p => p + ganho);
+      setPontos((p) => p + ganho);
       triggerHaptic('success');
       if (coords) emitBurst(coords.x, coords.y, 'confete');
       playJuicedHit(nova, coords, `+${ganho}${mult > 1 ? ` ×${mult}` : ''}`);
-      setFechados(prev => new Set([...prev, a.itemIndex]));
+      setFechados((prev) => new Set([...prev, a.itemIndex]));
       setViradas([]);
       return;
     }
@@ -136,7 +131,10 @@ export default function MemoryGame({ items, ageProfile, onFinish, onExit }: Memo
     setSequencia(0);
     playJuicedError(mesaRef.current, coords, 'Quase!');
     setTravado(true);
-    setTimeout(() => { setViradas([]); setTravado(false); }, 850);
+    setTimeout(() => {
+      setViradas([]);
+      setTravado(false);
+    }, 850);
   };
 
   /** ESPIAR: abre a mesa inteira por 1,2s. Cobra a nota de todos os itens (ver `gradeFor`). */
@@ -153,6 +151,31 @@ export default function MemoryGame({ items, ageProfile, onFinish, onExit }: Memo
   };
 
   const mult = multiplicador(sequencia);
+
+  /**
+   * QUATRO COLUNAS QUANDO A MESA É GRANDE. O `.tabuleiro` do protótipo tem três colunas porque a
+   * rodada dele tem 3 pares; a do app chega a 8 (16 cartas), e em três colunas isso dá seis
+   * fileiras que não cabem sem rolar — num jogo de memória, rolar esconde metade da mesa. Com
+   * mais de 6 cartas e espaço (≥ 600px) a mesa vira 4 colunas, na mesma proporção de carta
+   * (540px para 3 colunas → 720px para 4). No celular continuam as três do protótipo.
+   */
+  const [largura, setLargura] = useState(0);
+  useEffect(() => {
+    const pai = mesaRef.current?.parentElement;
+    if (!pai) return;
+    const medir = () => setLargura(pai.clientWidth);
+    medir();
+    const ro = new ResizeObserver(medir);
+    ro.observe(pai);
+    return () => ro.disconnect();
+  }, []);
+  const quatroColunas = cartas.length > 6 && largura >= 600;
+  const estiloDaMesa: React.CSSProperties = {
+    // `margin: auto` (e não o `0 auto` do protótipo): centra na vertical quando cabe e não corta o
+    // topo quando a mesa passa da altura — é o que `justify-center` faria num container que rola.
+    margin: 'auto',
+    ...(quatroColunas ? { gridTemplateColumns: 'repeat(4, 1fr)', maxWidth: 720 } : null),
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-canvas text-ink select-none overflow-hidden animate-in fade-in duration-200">
@@ -172,9 +195,13 @@ export default function MemoryGame({ items, ageProfile, onFinish, onExit }: Memo
               <span className="font-display font-black text-lg tracking-wide uppercase text-accent">
                 {ageProfile === 'kids' ? 'Ache os Pares' : 'Jogo da Memória'}
               </span>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-accent-soft text-accent-ink font-semibold">Pares & Sinapses 🧠</span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-accent-soft text-accent-ink font-semibold">
+                Pares & Sinapses 🧠
+              </span>
             </div>
-            <p className="text-xs text-ink-muted">Encontre todos os pares combinando termos e significados correspondentes!</p>
+            <p className="text-xs text-ink-muted">
+              Encontre todos os pares combinando termos e significados correspondentes!
+            </p>
           </div>
         </div>
 
@@ -204,7 +231,10 @@ export default function MemoryGame({ items, ageProfile, onFinish, onExit }: Memo
             <span className="font-mono font-bold text-base">{pontos} pts</span>
           </div>
 
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface" data-tour="placar">
+          <div
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface"
+            data-tour="placar"
+          >
             <span className="font-mono font-bold text-base text-ink">
               {fechados.size}/{total} pares
             </span>
@@ -212,63 +242,60 @@ export default function MemoryGame({ items, ageProfile, onFinish, onExit }: Memo
         </div>
       </header>
 
-      <main className="flex-1 flex flex-col items-center justify-center p-4 lg:p-8 overflow-y-auto custom-scrollbar">
-
-      {/* A mesa fica no MEIO da área livre */}
-      <div ref={mesaRef} data-tour="mesa" className={`grid gap-3 ${total <= 4 ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-3 sm:grid-cols-4'} max-w-3xl w-full mx-auto my-auto`}>
-        {cartas.map(carta => {
-          const aberta = espiando || viradas.includes(carta.id) || fechados.has(carta.itemIndex);
-          const fechada = fechados.has(carta.itemIndex);
-          const cor = CORES[carta.itemIndex % CORES.length];
-          return (
-            <button
-              key={carta.id}
-              onClick={(e) => virar(carta, e.currentTarget)}
-              disabled={fechada}
-              aria-label={aberta ? carta.texto : 'Carta virada para baixo'}
-              className={`carta3d ${aberta ? 'aberta' : ''} ${folgado ? 'min-h-[6.5rem]' : 'min-h-[5.5rem]'} rounded-2xl ${
-                fechada ? 'opacity-80 scale-95 ring-2 ring-emerald-500/40' : 'cursor-pointer active:scale-95'
-              } ${!aberta ? 'hover:-translate-y-1 hover:shadow-lg transition-all' : ''}`}
-            >
-              <span className="carta3d-giro block">
-                {/* O VERSO (face para baixo) com textura geométrica elegante do Babel Play */}
-                <span className="carta3d-frente bg-surface border-2 border-border-subtle hover:border-accent/40 rounded-2xl flex items-center justify-center shadow-sm relative overflow-hidden group" aria-hidden>
-                  <div className="absolute inset-0 bg-gradient-to-br from-accent-soft/20 to-transparent opacity-40 group-hover:opacity-100 transition-opacity" />
-                  <span className="w-8 h-8 rounded-xl border border-border-subtle bg-canvas/80 flex items-center justify-center font-display font-black text-xs text-ink-muted/50 group-hover:text-accent transition-colors">
-                    ✦
-                  </span>
-                </span>
-                <span
-                  className={`carta3d-verso bg-surface shadow-md rounded-2xl px-3 py-2 text-center overflow-hidden flex flex-col items-center justify-center transition-all ${
-                    fechada ? 'bg-emerald-500/5' : ''
-                  }`}
-                  style={{ borderColor: cor, borderWidth: 2, borderStyle: 'solid' }}
-                >
+      <main className="flex-1 flex flex-col items-center p-4 lg:p-8 overflow-y-auto custom-scrollbar">
+        {/* A MESA — a marcação do protótipo aprovado (`montarMemoria` em
+          docs/prototipos/consistencia-telas.html): `.tabuleiro` > `button.carta`, com o verso "?"
+          em `.verso` e os estados `virada` / `par` / `errou` / `espiando`. O CSS é o dele
+          (src/styles/prototipo.css): três colunas, cartas 4:3, entrada em cascata por `--i`. */}
+        <div ref={mesaRef} data-tour="mesa" className="tabuleiro w-full" style={estiloDaMesa} aria-label="Tabuleiro">
+          {cartas.map((carta, n) => {
+            const fechada = fechados.has(carta.itemIndex);
+            const virada = viradas.includes(carta.id);
+            // Espiar abre só as que estavam de costas; as já viradas ou fechadas seguem como estão.
+            const espiada = espiando && !virada && !fechada;
+            const aberta = virada || fechada || espiada;
+            // O par errado fica aberto por 850ms com a marca de erro antes de desvirar.
+            const errou = travado && virada;
+            const classes = [
+              'carta',
+              aberta && !fechada ? 'virada' : '',
+              fechada ? 'par' : '',
+              errou ? 'errou' : '',
+              espiada ? 'espiando' : '',
+            ]
+              .filter(Boolean)
+              .join(' ');
+            return (
+              <button
+                key={carta.id}
+                type="button"
+                onClick={(e) => virar(carta, e.currentTarget)}
+                aria-disabled={fechada || undefined}
+                aria-label={aberta ? carta.texto : 'Carta virada'}
+                className={classes}
+                style={{ '--i': n } as React.CSSProperties}
+                data-texto={carta.texto}
+              >
+                {aberta ? (
+                  /* A pista pode ter até 160 caracteres (baralho Anki curado): o clamp segura o texto
+                   dentro da carta 4:3 e o `title` guarda a string inteira. Acima de 45 caracteres
+                   a fonte desce um passo; abaixo vale a do protótipo (800 15px). */
                   <span
-                    className={`${carta.texto.length > 45 ? (folgado ? 'text-[11px]' : 'text-[10px]') : folgado ? 'text-[14px]' : 'text-[13px]'} font-bold leading-tight break-words ${folgado ? 'line-clamp-4' : 'line-clamp-3'}`}
-                    style={{ color: carta.lado === 'palavra' ? cor : undefined }}
+                    className={`${carta.texto.length > 45 ? 'text-[11px] line-clamp-4' : 'line-clamp-3'} break-words`}
                     dir={direcaoDoTexto(carta.lang)}
                     title={carta.texto}
                   >
                     {carta.texto}
                   </span>
-                  {fechada && (
-                    <span className="text-[10px] font-bold text-emerald-600 mt-1 flex items-center gap-1 animate-scaleIn">
-                      <Sparkles className="w-3 h-3" /> Par
-                    </span>
-                  )}
-                </span>
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
-      <p className="text-[11px] text-ink-faint text-center mt-5 mb-auto max-w-[52ch] mx-auto">
-        {ageProfile === 'senior'
-          ? 'Toque em duas cartas: uma com a palavra e outra com o significado dela.'
-          : 'Vire duas cartas e feche o par: a palavra e a tradução dela.'}
-      </p>
+                ) : (
+                  <span className="verso" aria-hidden="true">
+                    ?
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </main>
     </div>
   );

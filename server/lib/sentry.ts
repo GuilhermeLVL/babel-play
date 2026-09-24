@@ -50,7 +50,8 @@ export function sinkDoSentry(o: OpcoesDoSentry): SinkDeErro | null {
         eventId: randomUUID().replace(/-/g, ''),
         timestamp: agora.getTime() / 1000,
         platform: 'node',
-        level: 'error',
+        /* `warn` só chega aqui para os avisos que alertam (`AVISOS_QUE_ALERTAM` no logger). */
+        level: linha.level === 'warn' ? 'warning' : 'error',
         mensagem: `${evento}: ${erro}`.slice(0, 1000),
         ambiente: o.ambiente,
         release: o.release,

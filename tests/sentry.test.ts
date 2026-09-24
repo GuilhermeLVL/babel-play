@@ -100,6 +100,19 @@ describe('sink do servidor', () => {
     expect(enviados).toHaveLength(0)
   })
 
+  it('os avisos que alertam vão, como warning: 80% do orçamento de IA', () => {
+    log('warn', { event: 'ia_orcamento_alerta_80', error: 'gasto em 80%' })
+    expect(enviados).toHaveLength(1)
+    const evento = JSON.parse(enviados[0].split('\n')[2])
+    expect(evento.level).toBe('warning')
+    expect(evento.tags.event).toBe('ia_orcamento_alerta_80')
+  })
+
+  it('orçamento esgotado (error) vai como error', () => {
+    log('error', { event: 'ia_orcamento_esgotado', error: 'orçamento do mês esgotado' })
+    expect(JSON.parse(enviados[0].split('\n')[2]).level).toBe('error')
+  })
+
   it('DSN inválido não monta sink', () => {
     expect(sinkDoSentry({ dsn: 'lixo' })).toBeNull()
   })

@@ -98,7 +98,7 @@ import {
   onLangConfigChange,
   saveLangConfig,
 } from '../../lib/langConfig';
-import { baseLang, langLabel, mtCoverage } from '../../lib/languages';
+import { baseLang, langLabel, langLabelNaUI, mtCoverage } from '../../lib/languages';
 import { setNavGuard } from '../../lib/navGuard';
 import { OrdemDasTraducoes } from '../../lib/ordemDaTraducao';
 import { destinoDaTraducao, PerfilAdaptativoDeIdioma } from '../../lib/perfilDeIdioma';
@@ -1840,11 +1840,21 @@ export default function LiveCapture({
       id === rota.localModel
         ? {
             id,
-            titulo: `Transcrição (${id.split('/').pop()})`,
+            // "Transcrição (Whisper small)", como no protótipo: o nome do modelo, legível.
+            titulo: `Transcrição (${(id.split('/').pop() ?? id).replace(/^whisper-/i, 'Whisper ').replace(/[-_]/g, ' ')})`,
             mbEstimado: MODEL_DOWNLOAD_MB[id],
             medido: !!MODEL_DOWNLOAD_MEDIDO[id],
           }
-        : { id, titulo: `Tradutor (${id.split('/').pop()})` },
+        : {
+            id,
+            /* "Tradutor inglês → português (opus-mt)": o protótipo escreve ↔, mas cada opus-mt traduz
+               num sentido só (en-ROMANCE ou ROMANCE-en) — a seta diz o que o modelo faz. */
+            titulo: /en-ROMANCE/i.test(id)
+              ? `Tradutor ${langLabelNaUI('en')} → ${langLabelNaUI(baseLang(meu) === 'en' ? ouvir : meu)} (opus-mt)`
+              : /ROMANCE-en/i.test(id)
+                ? `Tradutor ${langLabelNaUI(baseLang(ouvir) === 'en' ? meu : ouvir)} → ${langLabelNaUI('en')} (opus-mt)`
+                : `Tradutor (${id.split('/').pop()})`,
+          },
     );
   }, [targetLang, sourceLang, micEnabled, micEngine, autoDetectLang, autoDetectMyLang, sttQuality]);
   /** O tamanho do modelo que a captura baixa (o selo "modelo local · N MB" do protótipo). */

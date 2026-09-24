@@ -1,7 +1,9 @@
-import { AlertTriangle, Download, Loader2, Trash2 } from 'lucide-react';
+import { AlertTriangle, Download, Loader2, ShieldCheck, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
 import { excluirConta, exportarConta, type ResultadoDaExclusao } from '../../../data/api';
+import { authRequired } from '../../../lib/supabase';
+import { TituloDeSecao } from '../../ui';
 
 /**
  * SEUS DADOS — portabilidade e exclusão (LGPD art. 18, incisos V e VI).
@@ -68,92 +70,96 @@ export default function AbaDados() {
   const podeExcluir = confirmacao.trim().toUpperCase() === PALAVRA && estado === 'parado';
 
   return (
-    <div className="flex flex-col gap-8">
-      {/* ── PORTABILIDADE ─────────────────────────────────────────────────────────────── */}
-      <section className="card-panel p-5">
-        <div className="flex items-center gap-2 mb-2 text-ink">
-          <Download className="w-5 h-5" aria-hidden />
-          <h2 className="font-display font-bold text-lg">Baixar os seus dados</h2>
-        </div>
-        <p className="text-[13px] text-ink-muted leading-relaxed max-w-[62ch] mb-4">
-          Um arquivo JSON com tudo o que guardamos sobre você: perfil, sessões, transcrições, vocabulário e histórico de
-          revisão. Os áudios entram como <strong>nomes de arquivo</strong> — o som em si continua sendo baixado sessão a
-          sessão. Chaves de API saem apenas como registro de que existem, <strong>nunca o valor</strong>.
-        </p>
-        <button
-          type="button"
-          onClick={baixar}
-          disabled={estado !== 'parado'}
-          className="btn-outline disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {estado === 'exportando' ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" aria-hidden /> Preparando…
-            </>
-          ) : (
-            <>
-              <Download className="w-4 h-4" aria-hidden /> Baixar meus dados
-            </>
+    <>
+      {/* ── ONDE FICAM E PORTABILIDADE ── marcação do protótipo (`.cartao` com linhas `.ajuste`). */}
+      <section>
+        <TituloDeSecao icone={ShieldCheck} titulo="Seus dados" />
+        <div className="cartao">
+          {/* Sem login, é isto que responde "e a minha conta?": não há senha nem sessão. */}
+          {!authRequired && (
+            <div className="ajuste">
+              <h3>Onde ficam</h3>
+              <p className="mut" style={{ margin: 0 }}>
+                Este app está rodando no seu computador, sem login. Não há senha nem sessão para gerenciar: seus dados
+                ficam neste dispositivo.
+              </p>
+            </div>
           )}
-        </button>
+          <div className="ajuste ajuste-l">
+            <div style={{ flex: 1, minWidth: 240 }}>
+              <h3>Baixar uma cópia</h3>
+              <p className="mut">
+                Tudo o que o app guarda sobre você, num arquivo JSON. Chaves de API saem só como registro de que
+                existem, nunca o valor.
+              </p>
+            </div>
+            <button type="button" onClick={baixar} disabled={estado !== 'parado'} className="btn btn-outline">
+              {estado === 'exportando' ? (
+                <>
+                  <Loader2 className="animate-spin" aria-hidden /> Preparando…
+                </>
+              ) : (
+                <>
+                  <Download aria-hidden /> Baixar
+                </>
+              )}
+            </button>
+          </div>
+        </div>
         {erroExport && (
-          <p role="alert" className="mt-3 text-[12.5px] text-error-ink">
+          <p role="alert" style={{ marginTop: 8, fontSize: 12.5, color: 'var(--error-ink)' }}>
             {erroExport}
           </p>
         )}
       </section>
 
-      {/* ── EXCLUSÃO ──────────────────────────────────────────────────────────────────── */}
-      <section className="card-panel p-5 border-error-soft">
-        <div className="flex items-center gap-2 mb-2 text-ink">
-          <Trash2 className="w-5 h-5 text-error" aria-hidden />
-          <h2 className="font-display font-bold text-lg">Excluir a conta</h2>
-        </div>
-        <p className="text-[13px] text-ink-muted leading-relaxed max-w-[62ch] mb-4">
-          Apaga o perfil, as sessões, as transcrições, o vocabulário, o progresso e os arquivos de áudio.{' '}
-          <strong className="text-ink">Não há como desfazer</strong> e não guardamos cópia. Se quiser ficar com o seu
-          histórico, baixe os dados acima antes.
-        </p>
-
-        {!resultado && (
-          <>
-            <label className="block text-[12.5px] text-ink-muted mb-2" htmlFor="confirmar-exclusao">
-              Para confirmar, digite <strong className="text-ink font-mono">{PALAVRA}</strong>:
-            </label>
-            <input
-              id="confirmar-exclusao"
-              type="text"
-              value={confirmacao}
-              onChange={(e) => setConfirmacao(e.target.value)}
-              autoComplete="off"
-              spellCheck={false}
-              className="w-full max-w-[24ch] mb-4 font-mono"
-              placeholder={PALAVRA}
-            />
-            <div>
-              <button
-                type="button"
-                onClick={excluir}
-                disabled={!podeExcluir}
-                className="btn-outline border-error text-error-ink hover:border-error disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                {estado === 'excluindo' ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" aria-hidden /> Excluindo…
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="w-4 h-4" aria-hidden /> Excluir a minha conta
-                  </>
-                )}
-              </button>
+      {/* ── EXCLUSÃO ── na `.zona-perigo` do protótipo; a confirmação continua sendo a palavra digitada. */}
+      <section className="secao zona-perigo">
+        <div style={{ flex: 1, minWidth: 240 }}>
+          <b>Excluir a conta</b>
+          <p className="mut">
+            Apaga o perfil, as sessões, as transcrições, o vocabulário, o progresso e os arquivos de áudio. Não há como
+            desfazer e não guardamos cópia. Se quiser ficar com o seu histórico, baixe os dados acima antes.
+          </p>
+          {!resultado && (
+            <div className="form-l" style={{ marginTop: 12, marginBottom: 0, maxWidth: '24ch' }}>
+              <label htmlFor="confirmar-exclusao" style={{ fontWeight: 500, fontSize: 12.5 }}>
+                Para confirmar, digite <b style={{ fontFamily: 'var(--font-mono)' }}>{PALAVRA}</b>:
+              </label>
+              <input
+                id="confirmar-exclusao"
+                type="text"
+                className="campo"
+                value={confirmacao}
+                onChange={(e) => setConfirmacao(e.target.value)}
+                autoComplete="off"
+                spellCheck={false}
+                style={{ fontFamily: 'var(--font-mono)' }}
+                placeholder={PALAVRA}
+              />
             </div>
-          </>
+          )}
+          {resultado && (
+            <div style={{ marginTop: 12 }}>
+              <RelatorioDaExclusao resultado={resultado} />
+            </div>
+          )}
+        </div>
+        {!resultado && (
+          <button type="button" onClick={excluir} disabled={!podeExcluir} className="btn btn-outline perigo">
+            {estado === 'excluindo' ? (
+              <>
+                <Loader2 className="animate-spin" aria-hidden /> Excluindo…
+              </>
+            ) : (
+              <>
+                <Trash2 aria-hidden /> Excluir a conta
+              </>
+            )}
+          </button>
         )}
-
-        {resultado && <RelatorioDaExclusao resultado={resultado} />}
       </section>
-    </div>
+    </>
   );
 }
 

@@ -6,9 +6,9 @@ import {
   RETENCAO_DE_DOMINIO,
   rotuloDeFluencia,
 } from '@core';
-import { Loader2, Trophy } from 'lucide-react';
+import { GraduationCap, Loader2, TrendingUp, Trophy } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { Area, AreaChart, ReferenceDot,ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Area, AreaChart, ReferenceDot, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 import { fetchDeck } from '../../../data/api';
 import { fetchHistoricoDeXp, type HistoricoDeXp } from '../../../data/me';
@@ -20,8 +20,7 @@ import type { AgeProfileType } from '../../../lib/profile';
 import type { DerivedProgress } from '../../../lib/progress';
 import type { VocabCard } from '../../../types';
 import { Confianca, rotuloDaBase } from '../../Honestidade';
-import FaixaDeProgresso from '../../progress/FaixaDeProgresso';
-import { Barra, Ladrilho } from '../../ui';
+import { Barra, TituloDeSecao } from '../../ui';
 
 /**
  * O PROGRESSO — nível, a curva no tempo, e a fluência estimada.
@@ -41,7 +40,7 @@ interface AbaProgressoProps {
   ageProfile: AgeProfileType;
 }
 
-export default function AbaProgresso({ progress, ageProfile }: AbaProgressoProps) {
+export default function AbaProgresso({ progress }: AbaProgressoProps) {
   const [historico, setHistorico] = useState<HistoricoDeXp | null>(null);
   const [baralho, setBaralho] = useState<VocabCard[] | null>(null);
   const [carregando, setCarregando] = useState(true);
@@ -121,21 +120,38 @@ export default function AbaProgresso({ progress, ageProfile }: AbaProgressoProps
   );
 
   return (
-    <div className="space-y-8">
-      <FaixaDeProgresso progress={progress} ageProfile={ageProfile} />
+    <>
+      {/* ── O QUE VOCÊ ACUMULOU ── os ladrilhos do protótipo (`.ladrilhos` > `.cartao.ladrilho`).
+          Sem métrica, "—": a régua nunca inventa um número. */}
+      <div className="ladrilhos">
+        {(
+          [
+            [palavraDeNivel(), progress.available ? numero(progress.level) : null, ''],
+            ['XP', progress.available && historico ? numero(historico.xpTotal) : null, 'acc'],
+            ['Seeds', progress.available ? numero(progress.seeds) : null, 'good'],
+            ['Ofensiva', progress.available ? numero(progress.streakDays) : null, 'warn'],
+          ] as const
+        ).map(([rotulo, valor, tom]) => (
+          <div key={rotulo} className="cartao ladrilho">
+            <span className="label-mono">{rotulo}</span>
+            <span className={`v ${tom}`}>{valor ?? '—'}</span>
+          </div>
+        ))}
+      </div>
 
       {/* ── A CURVA ──────────────────────────────────────────────────────────────────────────
           Reconstruída dos carimbos de tempo que já existem (sessões, revisões, itens de jogo),
           não há tabela de XP e não precisa haver. A ressalva embaixo é obrigatória: mudar os pesos
           reescreveria este gráfico, e fingir um livro-razão que não existe seria pior que a
           limitação. */}
-      <section>
-        <h2 className="font-display font-bold text-lg text-ink mb-1">Como você chegou até aqui</h2>
-        <p className="text-[12.5px] text-ink-muted mb-4 max-w-[64ch]">
-          O XP somado dia a dia, com as subidas de nível marcadas.
-        </p>
+      <section className="secao">
+        <TituloDeSecao
+          icone={TrendingUp}
+          titulo="Como você chegou até aqui"
+          desc="O XP somado dia a dia, com as subidas de nível marcadas."
+        />
 
-        <div className="card-panel bg-surface p-5">
+        <div className="cartao p5">
           {carregando ? (
             <div className="h-56 flex items-center justify-center gap-2 text-ink-muted text-[13px]">
               <Loader2 className="w-4 h-4 animate-spin" aria-hidden /> Reconstruindo a sua curva…
@@ -213,10 +229,10 @@ export default function AbaProgresso({ progress, ageProfile }: AbaProgressoProps
               </div>
 
               {(historico?.marcos.length ?? 0) > 0 && (
-                <ul className="flex flex-wrap gap-2 mt-4">
+                <ul className="chips" style={{ marginTop: 16, listStyle: 'none', padding: 0 }}>
                   {historico!.marcos.slice(-6).map((m) => (
-                    <li key={`${m.em}-${m.nivel}`} className="kpi-pill cursor-default">
-                      <Trophy className="w-3 h-3 text-good" aria-hidden />
+                    <li key={`${m.em}-${m.nivel}`} className="pill">
+                      <Trophy aria-hidden style={{ width: 13, height: 13, color: 'var(--good)' }} />
                       {palavraDeNivel().toLowerCase()} {m.nivel} ·{' '}
                       {data(new Date(m.em), { day: '2-digit', month: 'short', year: '2-digit' })}
                     </li>
@@ -236,13 +252,19 @@ export default function AbaProgresso({ progress, ageProfile }: AbaProgressoProps
       {/* ── FLUÊNCIA ─────────────────────────────────────────────────────────────────────────
           A única saída deste app que é um JUÍZO sobre a pessoa. Por isso a regra vem escrita ao
           lado do rótulo, e a base de cálculo aparece sem ser pedida. */}
-      <section>
-        <h2 className="font-display font-bold text-lg text-ink mb-1">Onde você está no idioma</h2>
-        <p className="text-[12.5px] text-ink-muted mb-4 max-w-[64ch]">
-          Medido pelo que você <b>sustenta</b>, a chance de lembrar agora, e não quantas palavras você tem guardadas.
-        </p>
+      <section className="secao">
+        <TituloDeSecao
+          icone={GraduationCap}
+          titulo="Onde você está no idioma"
+          desc={
+            <>
+              Medido pelo que você <b>sustenta</b>, a chance de lembrar agora, e não quantas palavras você tem
+              guardadas.
+            </>
+          }
+        />
 
-        <div className="card-panel bg-surface p-5">
+        <div className="cartao p5">
           {carregando || !fluencia ? (
             <div className="h-32 flex items-center justify-center gap-2 text-ink-muted text-[13px]">
               <Loader2 className="w-4 h-4 animate-spin" aria-hidden /> Medindo…
@@ -313,30 +335,6 @@ export default function AbaProgresso({ progress, ageProfile }: AbaProgressoProps
           )}
         </div>
       </section>
-
-      {/* ── O QUE VOCÊ ACUMULOU ─────────────────────────────────────────────────────────────── */}
-      <section>
-        <h2 className="font-display font-bold text-lg text-ink mb-4">O que você acumulou</h2>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <Ladrilho
-            valor={progress.available ? progress.level : null}
-            rotulo={`${palavraDeNivel().toLowerCase()} atual`}
-            tom="accent"
-          />
-          <Ladrilho valor={progress.available ? (historico?.xpTotal ?? null) : null} rotulo="XP no total" />
-          <Ladrilho
-            valor={progress.available ? progress.streakDays : null}
-            rotulo="dias seguidos"
-            tom={progress.streakDays > 0 ? 'warn' : 'ink'}
-          />
-          <Ladrilho
-            valor={progress.available ? progress.seeds : null}
-            rotulo="seeds"
-            tom="good"
-            nota={`${progress.seedsGanhas} ganhas no total`}
-          />
-        </div>
-      </section>
-    </div>
+    </>
   );
 }

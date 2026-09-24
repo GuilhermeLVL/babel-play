@@ -2432,9 +2432,24 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
             : null
         }
         onSair={() => setAntessala(null)}
+        onComoSeJoga={() => setExplicando(antessala.jogo)}
         pularSempre={pularSempre}
         onMudarPularSempre={mudarPularSempre}
       />,
+      /* "Como se joga" abre POR CIMA da antessala (é `fixed inset-0 z-[90]`), como o diálogo do
+         protótipo: fechar devolve à mesma prévia, e "Jogar" começa ESTA rodada, não uma nova. */
+      explicando === antessala.jogo && jogoUI ? (
+        <ComoSeJoga
+          jogo={antessala.jogo}
+          titulo={tituloDoJogo(jogoUI, ageProfile)}
+          ageProfile={ageProfile}
+          onJogar={() => {
+            setExplicando(null);
+            comecar(antessala);
+          }}
+          onFechar={() => setExplicando(null)}
+        />
+      ) : null,
     );
   }
 

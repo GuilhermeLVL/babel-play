@@ -1,6 +1,6 @@
 import { expect, type Page, test } from '@playwright/test'
 
-import { fecharSobreposicoes } from './_helpers'
+import { clicarRobusto, fecharSobreposicoes } from './_helpers'
 
 /**
  * AS TELAS DE PAGAMENTO DE PLANOS (protótipo aprovado: `T.planos`, `T.checkout`, `T.assinado`).
@@ -29,17 +29,19 @@ test('Planos no self-host: sem aba de assinatura, sem seletor anual, sem cobran�
 
 test('checkout: dois passos, e no self-host o passo de pagamento diz que não há o que pagar', async ({ page }) => {
   await abrir(page, '/plano')
-  await page.getByRole('button', { name: 'Assinar Pro' }).click()
+  /* `clicarRobusto`: a recompensa de uma conquista (fila assíncrona) pode abrir DEPOIS do
+     `fecharSobreposicoes` e cobrir o botão — medido: 1 em 15 no celular com o banco compartilhado. */
+  await clicarRobusto(page, page.getByRole('button', { name: 'Assinar Pro' }))
   await expect(page).toHaveURL(/\/plano\/assinar$/)
   await expect(page.getByRole('heading', { level: 1, name: 'Assinar o Pro' })).toBeVisible()
   await expect(page.getByRole('list', { name: 'Etapas' })).toContainText('Plano e período')
 
-  await page.getByRole('button', { name: 'Ir para o pagamento' }).click()
+  await clicarRobusto(page, page.getByRole('button', { name: 'Ir para o pagamento' }))
   await expect(page.getByRole('heading', { name: 'Nada a pagar no self-host' })).toBeVisible()
   await expect(page.getByRole('button', { name: /Assinar e pagar/ })).toHaveCount(0)
 
   // O "voltar" do cabeçalho (no desktop o "Planos" do menu faz o mesmo: volta à tela principal).
-  await page.locator('.cab .voltar').click()
+  await clicarRobusto(page, page.locator('.cab .voltar'))
   await expect(page).toHaveURL(/\/plano$/)
   await expect(page.getByRole('heading', { level: 1, name: 'Planos' })).toBeVisible()
 })

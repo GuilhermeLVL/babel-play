@@ -73,7 +73,7 @@ const ICONE_DA_REGRA: Record<string, LucideIcon> = {
   rodadaPerfeita: Star,
   conquista: Trophy,
 };
-const ICONE_DA_CONQUISTA: Record<string, LucideIcon> = {
+export const ICONE_DA_CONQUISTA: Record<string, LucideIcon> = {
   'primeira-captura': Mic,
   ouvinte: Headphones,
   'caderno-cheio': BookOpen,

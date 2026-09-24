@@ -1,27 +1,18 @@
-import { AlertTriangle, Download, Loader2, ShieldCheck, Trash2 } from 'lucide-react';
+import { AlertTriangle, Download, Loader2, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
 
-import { excluirConta, exportarConta, type ResultadoDaExclusao } from '../../../data/api';
+import { exportarConta, type ResultadoDaExclusao } from '../../../data/api';
 import { authRequired } from '../../../lib/supabase';
 import { TituloDeSecao } from '../../ui';
 
 /**
- * SEUS DADOS — portabilidade e exclusão (LGPD art. 18, incisos V e VI).
+ * SEUS DADOS — portabilidade (LGPD art. 18, V), na forma do protótipo aprovado: onde ficam e
+ * "Baixar uma cópia" (`GET /api/me/exportar`).
  *
- * Esta aba é a ponte que faltava. `GET /api/me/exportar` e `DELETE /api/me` existiam desde a
- * auditoria, completos, com rate-limit dedicado em `server.ts` — e NENHUMA tela os chamava. A
- * obrigação legal estava implementada e inalcançável pelo titular, que é o mesmo que não existir.
- *
- * A EXCLUSÃO PEDE A PALAVRA DIGITADA, não um "tem certeza?". Um segundo clique é reflexo; digitar
- * EXCLUIR é intenção. O botão é o único ponto do app que apaga tudo de uma vez e não tem desfazer.
- *
- * O RELATÓRIO DE FALHA É MOSTRADO, não engolido. O servidor foi escrito para dizer o que NÃO
- * aconteceu — arquivo de mídia que resistiu, vínculo de login que sobreviveu às linhas (o caso
- * sem `SUPABASE_SERVICE_ROLE_KEY`) — e essa honestidade só serve para alguma coisa se chegar à
- * tela. Uma exclusão parcial anunciada como sucesso é pior que um erro claro.
+ * A EXCLUSÃO (art. 18, VI) mudou para Ajustes → Conta, onde o protótipo a desenha: a zona de perigo
+ * abre o diálogo que pede a palavra digitada e chama `DELETE /api/me`. O relatório do que a exclusão
+ * fez (e do que não conseguiu fazer) continua aqui, em `RelatorioDaExclusao`, e é o diálogo que o usa.
  */
-
-type Estado = 'parado' | 'exportando' | 'excluindo';
 
 /**
  * Baixa a cópia dos dados (`GET /api/me/exportar`) como `meus-dados.json`. Devolve `false` se o
@@ -87,123 +78,49 @@ export async function prepararCopia(formato: 'json' | 'csv'): Promise<{ blob: Bl
   }
 }
 
-const PALAVRA = 'EXCLUIR';
-
 export default function AbaDados() {
-  const [estado, setEstado] = useState<Estado>('parado');
+  const [exportando, setExportando] = useState(false);
   const [erroExport, setErroExport] = useState('');
-  const [confirmacao, setConfirmacao] = useState('');
-  const [resultado, setResultado] = useState<ResultadoDaExclusao | null>(null);
 
   async function baixar() {
-    setEstado('exportando');
+    setExportando(true);
     setErroExport('');
     const ok = await baixarMeusDados();
-    setEstado('parado');
+    setExportando(false);
     if (!ok) setErroExport('Não consegui gerar o arquivo agora. Tente de novo em instantes.');
   }
 
-  async function excluir() {
-    setEstado('excluindo');
-    const r = await excluirConta();
-    setResultado(r);
-    setEstado('parado');
-    setConfirmacao('');
-  }
-
-  const podeExcluir = confirmacao.trim().toUpperCase() === PALAVRA && estado === 'parado';
-
   return (
-    <>
-      {/* ── ONDE FICAM E PORTABILIDADE ── marcação do protótipo (`.cartao` com linhas `.ajuste`). */}
-      <section>
-        <TituloDeSecao icone={ShieldCheck} titulo="Seus dados" />
-        <div className="cartao">
-          {/* Sem login, é isto que responde "e a minha conta?": não há senha nem sessão. */}
-          {!authRequired && (
-            <div className="ajuste">
-              <h3>Onde ficam</h3>
-              <p className="mut" style={{ margin: 0 }}>
-                Este app está rodando no seu computador, sem login. Não há senha nem sessão para gerenciar: seus dados
-                ficam neste dispositivo.
-              </p>
-            </div>
-          )}
-          <div className="ajuste ajuste-l">
-            <div style={{ flex: 1, minWidth: 240 }}>
-              <h3>Baixar uma cópia</h3>
-              <p className="mut">
-                Tudo o que o app guarda sobre você, num arquivo JSON. Chaves de API saem só como registro de que
-                existem, nunca o valor.
-              </p>
-            </div>
-            <button type="button" onClick={baixar} disabled={estado !== 'parado'} className="btn btn-outline">
-              {estado === 'exportando' ? (
-                <>
-                  <Loader2 className="animate-spin" aria-hidden /> Preparando…
-                </>
-              ) : (
-                <>
-                  <Download aria-hidden /> Baixar
-                </>
-              )}
-            </button>
+    <section>
+      <TituloDeSecao icone={ShieldCheck} titulo="Seus dados" />
+      <div className="cartao">
+        {/* Sem login, é isto que responde "e a minha conta?": não há senha nem sessão. */}
+        {!authRequired && (
+          <div className="ajuste">
+            <h3>Onde ficam</h3>
+            <p className="mut" style={{ margin: 0 }}>
+              Este app está rodando no seu computador, sem login. Não há senha nem sessão para gerenciar: seus dados
+              ficam neste dispositivo.
+            </p>
           </div>
-        </div>
-        {erroExport && (
-          <p role="alert" style={{ marginTop: 8, fontSize: 12.5, color: 'var(--error-ink)' }}>
-            {erroExport}
-          </p>
         )}
-      </section>
-
-      {/* ── EXCLUSÃO ── na `.zona-perigo` do protótipo; a confirmação continua sendo a palavra digitada. */}
-      <section className="secao zona-perigo">
-        <div style={{ flex: 1, minWidth: 240 }}>
-          <b>Excluir a conta</b>
-          <p className="mut">
-            Apaga o perfil, as sessões, as transcrições, o vocabulário, o progresso e os arquivos de áudio. Não há como
-            desfazer e não guardamos cópia. Se quiser ficar com o seu histórico, baixe os dados acima antes.
-          </p>
-          {!resultado && (
-            <div className="form-l" style={{ marginTop: 12, marginBottom: 0, maxWidth: '24ch' }}>
-              <label htmlFor="confirmar-exclusao" style={{ fontWeight: 500, fontSize: 12.5 }}>
-                Para confirmar, digite <b style={{ fontFamily: 'var(--font-mono)' }}>{PALAVRA}</b>:
-              </label>
-              <input
-                id="confirmar-exclusao"
-                type="text"
-                className="campo"
-                value={confirmacao}
-                onChange={(e) => setConfirmacao(e.target.value)}
-                autoComplete="off"
-                spellCheck={false}
-                style={{ fontFamily: 'var(--font-mono)' }}
-                placeholder={PALAVRA}
-              />
-            </div>
-          )}
-          {resultado && (
-            <div style={{ marginTop: 12 }}>
-              <RelatorioDaExclusao resultado={resultado} />
-            </div>
-          )}
-        </div>
-        {!resultado && (
-          <button type="button" onClick={excluir} disabled={!podeExcluir} className="btn btn-outline perigo">
-            {estado === 'excluindo' ? (
-              <>
-                <Loader2 className="animate-spin" aria-hidden /> Excluindo…
-              </>
-            ) : (
-              <>
-                <Trash2 aria-hidden /> Excluir a conta
-              </>
-            )}
+        <div className="ajuste ajuste-l">
+          <div>
+            <h3>Baixar uma cópia</h3>
+            <p className="mut">Tudo o que o app guarda sobre você.</p>
+          </div>
+          <button type="button" onClick={() => void baixar()} disabled={exportando} className="btn btn-outline">
+            {exportando ? <Loader2 className="gira" aria-hidden /> : <Download aria-hidden />}{' '}
+            {exportando ? 'Preparando…' : 'Baixar'}
           </button>
-        )}
-      </section>
-    </>
+        </div>
+      </div>
+      {erroExport && (
+        <p role="alert" style={{ marginTop: 8, fontSize: 12.5, color: 'var(--error-ink)' }}>
+          {erroExport}
+        </p>
+      )}
+    </section>
   );
 }
 

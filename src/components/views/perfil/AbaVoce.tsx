@@ -1,22 +1,29 @@
 import { INTERESSES, MAX_INTERESSES } from '@core';
-import { Check, CircleDot, Heart, Loader2 } from 'lucide-react';
+import { Camera, Check, CircleDot, GraduationCap, Heart, Loader2, Target } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-import { iniciaisDe, salvarPerfil, usePerfil } from '../../../lib/usePerfil';
+import { fetchDeck } from '../../../data/api';
+import { gravarFoto, reduzirFoto, useFotoDoPerfil } from '../../../lib/fotoDoPerfil';
+import { fetchLangConfig } from '../../../lib/langConfig';
+import { baseLang, langLabelNaUI } from '../../../lib/languages';
+import { type Cefr, NIVEIS_CEFR, NOME_DO_NIVEL, salvarPreferencias, usePreferencias } from '../../../lib/preferencias';
+import { salvarPerfil, usePerfil } from '../../../lib/usePerfil';
+import { LangFlag } from '../../LangFlag';
+import { toast } from '../../Toast';
 import { TituloDeSecao } from '../../ui';
 
 /**
- * QUEM É VOCÊ — nome, objetivo, bio e interesses, na marcação do protótipo aprovado
- * (`.perfil-cab`, `.form-l`, `.chips` de `.pill`, `.barra-salvar`).
+ * QUEM É VOCÊ — o override de `T.perfil` do protótipo aprovado (4061-4084): foto, nome, objetivo e
+ * bio; meta diária; nível em cada idioma; interesses; e a barra "Alterações não salvas".
  *
- * NADA SALVA SOZINHO. Os campos de texto têm botão explícito (na barra que aparece quando há
- * alteração): gravação automática por digitação mandaria um PATCH por tecla, e o servidor apara e
- * sanea — o valor voltaria diferente no meio da frase. Os interesses, sim, salvam ao clicar: são
- * um toggle, e a intenção é inequívoca.
+ * ONDE CADA COISA É GUARDADA:
+ *  - nome, objetivo, bio, interesses → o perfil no servidor (`PATCH /api/me`);
+ *  - meta diária e nível por idioma → preferências em `settings.ui` (`lib/preferencias`), que o
+ *    lembrete (Ajustes → Notificações) e o resumo semanal leem;
+ *  - foto → NESTE aparelho (`lib/fotoDoPerfil`): o servidor não tem rota de upload de imagem.
  *
- * O QUE DO PROTÓTIPO FICOU DE FORA: foto (upload exigiria armazenamento de imagem que o projeto não
- * tem — as iniciais SÃO o avatar), meta diária em minutos e o nível autoavaliado por idioma (o
- * perfil não guarda nenhum dos dois). Senha, 2FA e sair continuam em Ajustes → Conta.
+ * Tudo, menos os interesses, entra na barra de salvar: o protótipo marca "sujo" ao mexer em qualquer
+ * um deles e salva junto. Os interesses salvam ao clicar ("salvo assim que você marca").
  */
 
 type Estado = 'parado' | 'salvando' | 'salvo' | 'erro';
@@ -28,79 +35,193 @@ const GRUPOS = [
   ['estudo', 'Estudo'],
 ] as const;
 
+/** Os interesses que o protótipo mostra, na ordem dele. Os outros do catálogo só aparecem se já marcados. */
+const DO_PROTOTIPO = new Set([
+  'musica',
+  'jogos',
+  'filmes-series',
+  'livros',
+  'esportes',
+  'humor',
+  'tecnologia',
+  'negocios',
+  'reunioes',
+  'entrevistas',
+  'viagem',
+  'culinaria',
+  'familia',
+  'noticias',
+  'provas',
+  'gramatica',
+  'pronuncia',
+]);
+const ROTULO_DO_PROTOTIPO: Record<string, string> = { noticias: 'Notícias' };
+
+const METAS: Array<[number, string]> = [
+  [5, ' · leve'],
+  [10, ''],
+  [15, ' · recomendado'],
+  [20, ''],
+  [30, ' · intenso'],
+];
+
+const nomeDoIdioma = (code: string) => {
+  const n = langLabelNaUI(code);
+  return n.charAt(0).toUpperCase() + n.slice(1);
+};
+
 export default function AbaVoce() {
   const { perfil, carregando } = usePerfil();
+  const prefs = usePreferencias();
+  const fotoSalva = useFotoDoPerfil(perfil?.id);
 
   const [nome, setNome] = useState('');
   const [bio, setBio] = useState('');
   const [goal, setGoal] = useState('');
+  const [metaMin, setMetaMin] = useState(prefs.metaMin);
+  const [niveis, setNiveis] = useState<Record<string, Cefr>>(prefs.niveis);
+  const [foto, setFoto] = useState<string | null>(fotoSalva);
+  const [idiomas, setIdiomas] = useState<string[]>([]);
   const [estado, setEstado] = useState<Estado>('parado');
+  const [salvoEm, setSalvoEm] = useState<string | null>(null);
 
-  /* O formulário parte do servidor quando o perfil chega — mas só uma vez por carga. Sincronizar a
-     cada render sobrescreveria o que está sendo digitado. */
+  /* O formulário parte do servidor quando o perfil chega — uma vez por usuário, para não apagar o
+     que está sendo digitado quando o perfil muda de identidade a cada gravação. */
   useEffect(() => {
     if (!perfil) return;
     setNome(perfil.displayName ?? '');
     setBio(perfil.bio ?? '');
     setGoal(perfil.goal ?? '');
-    /* Depende SÓ do id, e não do objeto inteiro: `perfil` muda de identidade a cada gravação
-       (o servidor devolve uma linha nova), e reagir a isso apagaria o que está sendo digitado no
-       meio de uma edição. O que importa aqui é "trocou de usuário", não "o perfil mudou". */
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [perfil?.id]);
+  useEffect(() => setFoto(fotoSalva), [fotoSalva]);
+  useEffect(() => {
+    setMetaMin(prefs.metaMin);
+    setNiveis(prefs.niveis);
+  }, [prefs.metaMin, prefs.niveis]);
 
+  /* OS IDIOMAS DA PESSOA: o que ela estuda (Ajustes) e os que já estão no caderno. */
+  useEffect(() => {
+    let vivo = true;
+    void Promise.all([fetchLangConfig().catch(() => null), fetchDeck().catch(() => [])]).then(([cfg, deck]) => {
+      if (!vivo) return;
+      const mine = cfg ? baseLang(cfg.mine) : 'pt';
+      const lista = [
+        ...(cfg ? [baseLang(cfg.studying)] : []),
+        ...deck.map((c) => baseLang(c.srcLang ?? '')).filter(Boolean),
+      ].filter((l, i, a) => l && l !== mine && a.indexOf(l) === i);
+      setIdiomas(lista.length ? lista : ['en']);
+    });
+    return () => {
+      vivo = false;
+    };
+  }, []);
+
+  const nivelDe = (l: string): Cefr => niveis[l] ?? 'A1';
   const marcados = perfil?.interests ?? [];
   const sujo =
-    !!perfil && (nome !== (perfil.displayName ?? '') || bio !== (perfil.bio ?? '') || goal !== (perfil.goal ?? ''));
+    !!perfil &&
+    (nome !== (perfil.displayName ?? '') ||
+      bio !== (perfil.bio ?? '') ||
+      goal !== (perfil.goal ?? '') ||
+      metaMin !== prefs.metaMin ||
+      idiomas.some((l) => nivelDe(l) !== (prefs.niveis[l] ?? 'A1')) ||
+      foto !== fotoSalva);
 
   async function salvar() {
     setEstado('salvando');
-    const ok = await salvarPerfil({ displayName: nome, bio, goal });
+    const [okPerfil, okPrefs] = await Promise.all([
+      salvarPerfil({ displayName: nome, bio, goal }),
+      salvarPreferencias((p) => ({
+        ...p,
+        metaMin,
+        niveis: { ...p.niveis, ...Object.fromEntries(idiomas.map((l) => [l, nivelDe(l)])) },
+      })),
+    ]);
+    const okFoto = foto === fotoSalva || gravarFoto(perfil?.id, foto);
+    const ok = okPerfil && okPrefs && okFoto;
     setEstado(ok ? 'salvo' : 'erro');
-    if (ok) setTimeout(() => setEstado('parado'), 2000);
+    if (ok) {
+      setSalvoEm('agora');
+      toast.ok('Perfil salvo');
+    }
   }
 
-  /** Volta os campos ao que o SERVIDOR tem. */
+  /** Volta tudo ao que está guardado. */
   function descartar() {
     if (!perfil) return;
     setNome(perfil.displayName ?? '');
     setBio(perfil.bio ?? '');
     setGoal(perfil.goal ?? '');
+    setMetaMin(prefs.metaMin);
+    setNiveis(prefs.niveis);
+    setFoto(fotoSalva);
     setEstado('parado');
+  }
+
+  async function escolherFoto(arquivo: File | undefined) {
+    if (!arquivo) return;
+    try {
+      setFoto(await reduzirFoto(arquivo));
+      setEstado('parado');
+    } catch {
+      toast.warn('Não deu para usar esse arquivo. Escolha uma imagem (JPG, PNG ou WebP).');
+    }
   }
 
   async function alternarInteresse(slug: string) {
     const jaTem = marcados.includes(slug);
     if (!jaTem && marcados.length >= MAX_INTERESSES) return;
     const proximos = jaTem ? marcados.filter((s) => s !== slug) : [...marcados, slug];
-    // O servidor devolve a lista saneada; `salvarPerfil` a publica para todas as telas inscritas.
     await salvarPerfil({ interests: proximos });
   }
 
   if (carregando) {
     return (
       <div className="cartao p6 linha" style={{ gap: 8, justifyContent: 'center' }}>
-        <Loader2 className="animate-spin" aria-hidden style={{ width: 16, height: 16 }} />
+        <Loader2 className="gira" aria-hidden />
         <span className="mut">Carregando o seu perfil…</span>
       </div>
     );
   }
+
+  const inicial = ((nome || perfil?.displayName || '?').trim()[0] ?? '?').toUpperCase();
 
   return (
     <>
       {/* ── IDENTIDADE ── */}
       <section className="cartao p6 perfil-cab">
         <div className="foto-perfil">
-          {/* As iniciais SÃO o avatar: upload exigiria armazenamento de imagem, que o projeto não tem. */}
-          <span className="avatar" aria-hidden style={{ width: 96, height: 96, fontSize: 34 }}>
-            {iniciaisDe(nome || perfil?.displayName, perfil?.email) || '?'}
-          </span>
+          {foto ? (
+            <img src={foto} alt="Sua foto de perfil" />
+          ) : (
+            <span className="avatar" aria-hidden style={{ width: 96, height: 96, fontSize: 34 }}>
+              {inicial}
+            </span>
+          )}
+          <label className="btn btn-outline peq trocar-foto">
+            <Camera aria-hidden /> {foto ? 'Trocar' : 'Enviar foto'}
+            <input
+              type="file"
+              accept="image/*"
+              className="sr"
+              onChange={(e) => {
+                void escolherFoto(e.target.files?.[0]);
+                e.target.value = '';
+              }}
+            />
+          </label>
+          {foto && (
+            <button type="button" className="link" onClick={() => setFoto(null)}>
+              Remover
+            </button>
+          )}
         </div>
         <div style={{ flex: 1, minWidth: 240 }}>
           <div className="form-l">
-            <label htmlFor="perfil-nome">Como você quer ser chamado</label>
+            <label htmlFor="pf-nome">Como você quer ser chamado</label>
             <input
-              id="perfil-nome"
+              id="pf-nome"
               className="campo"
               value={nome}
               onChange={(e) => setNome(e.target.value)}
@@ -110,9 +231,9 @@ export default function AbaVoce() {
             />
           </div>
           <div className="form-l">
-            <label htmlFor="perfil-goal">O que você quer alcançar</label>
+            <label htmlFor="pf-meta">O que você quer alcançar</label>
             <input
-              id="perfil-goal"
+              id="pf-meta"
               className="campo"
               value={goal}
               onChange={(e) => setGoal(e.target.value)}
@@ -121,20 +242,71 @@ export default function AbaVoce() {
             />
           </div>
           <div className="form-l">
-            <label htmlFor="perfil-bio">
-              Sobre você{' '}
-              <small className="mut tn" style={{ fontWeight: 500 }}>
-                ({bio.length}/280)
-              </small>
+            <label htmlFor="pf-bio">
+              Sobre você <small className="mut">({bio.length}/280)</small>
             </label>
             <textarea
-              id="perfil-bio"
+              id="pf-bio"
               className="campo"
               value={bio}
               onChange={(e) => setBio(e.target.value)}
               maxLength={280}
             />
           </div>
+        </div>
+      </section>
+
+      {/* ── META DIÁRIA ── */}
+      <section className="secao">
+        <TituloDeSecao
+          icone={Target}
+          titulo="Meta diária"
+          desc="Quanto tempo por dia você quer estudar. Guia o lembrete e as estatísticas."
+        />
+        <div className="chips">
+          {METAS.map(([m, rot]) => (
+            <button key={m} type="button" className="pill" aria-pressed={metaMin === m} onClick={() => setMetaMin(m)}>
+              {m} min{rot}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* ── NÍVEL POR IDIOMA ── */}
+      <section className="secao">
+        <TituloDeSecao
+          icone={GraduationCap}
+          titulo="Seu nível em cada idioma"
+          desc="Autoavaliação. Calibra o conteúdo da trilha e dos jogos; o app também ajusta sozinho."
+        />
+        <div className="cartao">
+          {idiomas.map((l) => {
+            const r = nomeDoIdioma(l);
+            return (
+              <div key={l} className="ajuste ajuste-l">
+                <div>
+                  <h3 className="linha" style={{ gap: 6 }}>
+                    <LangFlag code={l} className="w-4 h-3" />
+                    {r}
+                  </h3>
+                  <p className="mut">{NOME_DO_NIVEL[nivelDe(l)]}</p>
+                </div>
+                <div className="seg" role="radiogroup" aria-label={`Nível em ${r}`}>
+                  {NIVEIS_CEFR.map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      role="radio"
+                      aria-checked={nivelDe(l) === n}
+                      onClick={() => setNiveis((x) => ({ ...x, [l]: n }))}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </section>
 
@@ -152,7 +324,9 @@ export default function AbaVoce() {
                 {rotulo}
               </div>
               <div className="chips">
-                {INTERESSES.filter((i) => i.grupo === grupo).map((i) => {
+                {INTERESSES.filter(
+                  (i) => i.grupo === grupo && (DO_PROTOTIPO.has(i.slug) || marcados.includes(i.slug)),
+                ).map((i) => {
                   const ativo = marcados.includes(i.slug);
                   const noTeto = !ativo && marcados.length >= MAX_INTERESSES;
                   return (
@@ -163,11 +337,9 @@ export default function AbaVoce() {
                       onClick={() => void alternarInteresse(i.slug)}
                       disabled={noTeto}
                       aria-pressed={ativo}
-                      /* Desabilitado COM MOTIVO: um chip que não responde ao clique, sem explicar,
-                         ensina que a tela está quebrada. */
                       title={noTeto ? `Você já escolheu ${MAX_INTERESSES}. Desmarque um para trocar.` : undefined}
                     >
-                      {i.rotulo}
+                      {ROTULO_DO_PROTOTIPO[i.slug] ?? i.rotulo}
                     </button>
                   );
                 })}
@@ -180,7 +352,7 @@ export default function AbaVoce() {
         </div>
       </section>
 
-      {/* ── SALVAR ── A barra aparece quando há alteração; o aviso é sobre o que o SERVIDOR fez. */}
+      {/* ── SALVAR ── aparece com alteração; depois diz "Salvo agora". */}
       <div className={`barra-salvar ${sujo || estado === 'erro' ? 'on' : ''}`} role="status" aria-live="polite">
         {sujo || estado === 'erro' ? (
           <>
@@ -200,14 +372,13 @@ export default function AbaVoce() {
                 onClick={() => void salvar()}
                 disabled={estado === 'salvando'}
               >
-                {estado === 'salvando' ? <Loader2 className="animate-spin" aria-hidden /> : <Check aria-hidden />}{' '}
-                Salvar
+                {estado === 'salvando' ? <Loader2 className="gira" aria-hidden /> : <Check aria-hidden />} Salvar
               </button>
             </div>
           </>
-        ) : estado === 'salvo' ? (
+        ) : salvoEm ? (
           <span className="ok-txt">
-            <Check aria-hidden /> Salvo
+            <Check aria-hidden /> Salvo {salvoEm}
           </span>
         ) : null}
       </div>

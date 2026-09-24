@@ -1,26 +1,51 @@
 import {
-AlertTriangle, ArrowLeft,   AudioLines, Check,   ChevronLeft, ChevronRight, Cloud, Eye, Gamepad2, GraduationCap,   HardDrive, KeyRound,
-Languages, Loader2, Mic, Repeat,
-ScanText, ShieldCheck, UserRound,
-Zap, } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+  ArrowRight,
+  AudioLines,
+  BookOpenText,
+  Briefcase,
+  Cpu,
+  Gamepad2,
+  KeyRound,
+  Languages,
+  Loader2,
+  type LucideIcon,
+  Mic,
+  Repeat,
+  Rocket,
+  Search,
+  ShieldCheck,
+  TriangleAlert,
+  UserRound,
+} from 'lucide-react';
+import React, { useEffect, useId, useMemo, useState } from 'react';
 
-import { createCredential, patchUiSettings,saveSettings, testProvider } from '../data/api';
-import { getActiveProfile,setProviderChoice } from '../gateway/activeProfile';
-import { getSttQuality, MODEL_DOWNLOAD_MB, MODEL_DOWNLOAD_MEDIDO,routeStt } from '../gateway/sttRouter';
+import { createCredential, patchUiSettings, saveSettings, testProvider } from '../data/api';
+import { getActiveProfile, setProviderChoice } from '../gateway/activeProfile';
+import { getSttQuality, MODEL_DOWNLOAD_MB, MODEL_DOWNLOAD_MEDIDO, routeStt } from '../gateway/sttRouter';
 import { t } from '../lib/i18n';
-import { DEFAULT_LANG_CONFIG, idiomasDaInterfaceOferecidos,saveLangConfig } from '../lib/langConfig';
+import { DEFAULT_LANG_CONFIG, idiomasDaInterfaceOferecidos, saveLangConfig } from '../lib/langConfig';
 import type { AgeProfileType } from '../lib/profile';
 import LangPicker from './LangPicker';
+import { DialogoBase, IconeEmBloco } from './ui';
 
 /**
- * Tela de PRIMEIRA EXECUÇÃO (sem contas/login). O usuário escolhe, com consentimento
- * explícito, entre:
- *  - LOCAL: baixar o modelo e rodar on-device (sem chave, offline). O download em si
- *    (com progresso) acontece na captura/preparação (fase de entrega do modelo).
- *  - NUVEM: fornecer a própria chave de API. A chave é cifrada no servidor (vault
- *    existente) e nunca volta ao navegador; guardamos só o `credentialId`.
+ * Tela de PRIMEIRA EXECUÇÃO (sem contas/login). Desenho: a apresentação em seis passos do
+ * protótipo aprovado (`onboarding()` da rodada 10) — um `<dialog class="medio">` com a cena animada
+ * no topo (`.onb-palco`), a barra de segmentos, o passo que desliza e o rodapé de sempre.
+ *
+ * O usuário escolhe, com consentimento explícito, entre:
+ *  - LOCAL: rodar on-device (sem chave, offline). O download acontece na primeira captura.
+ *  - NUVEM: fornecer a própria chave de API. A chave é cifrada no servidor (vault existente) e
+ *    nunca volta ao navegador; guardamos só o `credentialId`.
  * A escolha é persistida em `settings.ui` (+ espelho no localStorage).
+ *
+ * Diferenças do protótipo, de propósito:
+ *  - O idioma da INTERFACE continua sendo perguntado aqui (auditoria de 2026-09-07, A38): quem não
+ *    abrisse Ajustes ficava com o palpite para sempre. Os outros idiomas de estudo ficam em Ajustes.
+ *  - A privacidade diz as exceções do modo grátis (microfone pelo navegador, tradução web de
+ *    reserva): "nada sai daqui" sem elas seria falso.
+ *  - O último passo não tem "Pular": sem uma escolha de IA o app não tem como rodar.
+ *  - "Usar minha chave" abre o formulário da chave (provedor, URL, modelo, chave) no mesmo diálogo.
  */
 
 // Provedores OpenAI-compatíveis (o proxy do servidor fala /chat/completions).
@@ -43,61 +68,118 @@ async function persistChoice(mode: 'local' | 'cloud', profileId: string, credent
 // O download em si acontece na captura, já com o idioma real escolhido pelo usuário.
 const DEFAULT_LISTEN = 'en';
 
-type Step = 'welcome' | 'idioma' | 'profile' | 'how' | 'privacy' | 'choose' | 'cloud' | 'download';
+type Passo = 'welcome' | 'idioma' | 'perfil' | 'laco' | 'privacidade' | 'ia';
+const PASSOS: Passo[] = ['welcome', 'idioma', 'perfil', 'laco', 'privacidade', 'ia'];
 
-// Ordem dos passos que compõem a barra de progresso (a apresentação + a decisão).
-// `cloud`/`download` são sub-fluxos e não aparecem na barra.
-const PROGRESS_STEPS: Step[] = ['welcome', 'idioma', 'profile', 'how', 'privacy', 'choose'];
+type Cena = 'ondas' | 'orbita' | 'perfil' | 'laco' | 'escudo' | 'chip';
+const DO_PASSO: Record<Passo, { icone: LucideIcon; sob: string; titulo: string; desc: string; cena: Cena }> = {
+  welcome: {
+    icone: AudioLines,
+    sob: 'Bem-vindo',
+    titulo: 'Babel Play',
+    desc: 'Aprenda idiomas com o que você já assiste. O app ouve o som do computador, transcreve, traduz e transforma tudo em jogo e revisão.',
+    cena: 'ondas',
+  },
+  idioma: {
+    icone: Languages,
+    sob: 'Seu idioma',
+    titulo: 'Que idioma você quer aprender?',
+    desc: 'Dá para trocar e somar outros depois, em Ajustes.',
+    cena: 'orbita',
+  },
+  perfil: {
+    icone: UserRound,
+    sob: 'Seu jeito',
+    titulo: 'Como você prefere usar?',
+    desc: 'Muda o tom dos textos e o tamanho das coisas. Não trava nada.',
+    cena: 'perfil',
+  },
+  laco: { icone: Repeat, sob: 'Como funciona', titulo: 'Um laço em quatro passos', desc: '', cena: 'laco' },
+  privacidade: {
+    icone: ShieldCheck,
+    sob: 'Privacidade',
+    titulo: 'Por padrão, tudo no seu dispositivo',
+    desc: 'O áudio do sistema é transcrito e traduzido no seu computador, e o vocabulário fica aqui.',
+    cena: 'escudo',
+  },
+  ia: { icone: Cpu, sob: 'Como rodar a IA', titulo: 'Como você quer rodar a IA?', desc: '', cena: 'chip' },
+};
+
+/** Os seis idiomas de estudo mais pedidos, como no protótipo; os outros ficam em Ajustes. */
+const IDIOMAS: Array<[code: string, bandeira: string, nome: string]> = [
+  ['en-US', '🇺🇸', 'Inglês'],
+  ['es-ES', '🇪🇸', 'Espanhol'],
+  ['fr-FR', '🇫🇷', 'Francês'],
+  ['de-DE', '🇩🇪', 'Alemão'],
+  ['it-IT', '🇮🇹', 'Italiano'],
+  ['ja-JP', '🇯🇵', 'Japonês'],
+];
+const base = (code: string) => code.toLowerCase().split('-')[0];
 
 /**
  * PERFIL DE EXIBIÇÃO — perguntado aqui, e não escondido num popover.
  *
  * Sem este passo o padrão era `pro` para todo mundo: uma criança de 9 anos instalava a app e caía
- * no modo executivo, com CEFR, FSRS e doze exercícios de uma vez. Todo o sistema de perfis existia
- * e era invisível para quem chegava.
- *
- * Os rótulos descrevem a SITUAÇÃO, não a idade. "Sou idoso" é um rótulo que ninguém escolhe de
- * bom grado; "leitura tranquila, letras maiores" é uma preferência que qualquer um assume.
+ * no modo executivo. Os rótulos descrevem a SITUAÇÃO, não a idade.
  */
-const PROFILE_CHOICES: Array<{
-  id: AgeProfileType;
-  icon: React.ReactNode;
-  title: string;
-  desc: string;
-}> = [
-  {
-    id: 'kids',
-    icon: <Gamepad2 className="w-5 h-5" />,
-    title: 'Jogo e vídeos',
-    desc: 'Roblox, YouTube, Discord. Desafios, recompensas e linguagem de jogo.'
-  },
-  {
-    id: 'pro',
-    icon: <Zap className="w-5 h-5" />,
-    title: 'Trabalho e estudo',
-    desc: 'Tudo à mão, densidade alta e os termos técnicos sem rodeio.'
-  },
-  {
-    id: 'senior',
-    icon: <Eye className="w-5 h-5" />,
-    title: 'Leitura tranquila',
-    desc: 'Passo a passo, letras e botões maiores, sem sigla nenhuma.'
-  }
+const PERFIS: Array<[AgeProfileType, LucideIcon, string, string]> = [
+  ['kids', Gamepad2, 'Jogo e vídeos', 'Mais cor, textos curtos'],
+  ['pro', Briefcase, 'Trabalho e estudo', 'Direto ao ponto, atalhos'],
+  ['senior', BookOpenText, 'Leitura tranquila', 'Letra maior, menos pressa'],
 ];
 
+const LACO: Array<[LucideIcon, string, string]> = [
+  [Mic, 'Capturar ou importar', 'o som do computador, um vídeo, um PDF'],
+  [Languages, 'Transcrever e traduzir', 'no seu aparelho, frase a frase'],
+  [Search, 'Analisar', 'palavras novas, pronúncia, nível'],
+  [Gamepad2, 'Estudar', 'jogos e revisão espaçada'],
+];
+
+/** A cena animada do topo — `cenaOnb()` do protótipo. Só decoração. */
+function CenaDoPasso({ passo }: { passo: Passo }) {
+  const { cena, icone } = DO_PASSO[passo];
+  const ondas = (opacidade?: number) => (
+    <div className="ondas-onb" style={opacidade ? { opacity: opacidade } : undefined}>
+      {Array.from({ length: 22 }, (_, i) => (
+        <i key={i} style={{ '--i': i } as React.CSSProperties} />
+      ))}
+    </div>
+  );
+  const orbita = (nomes: string[], estilo?: React.CSSProperties) => (
+    <div className="orbita" style={estilo}>
+      {nomes.map((n) => (
+        <span key={n}>{n}</span>
+      ))}
+    </div>
+  );
+  return (
+    <div className="onb-palco" aria-hidden>
+      {cena === 'ondas' && ondas()}
+      {cena === 'escudo' && ondas(0.25)}
+      {cena === 'orbita' && orbita(IDIOMAS.slice(0, 4).map(([, b, n]) => `${b} ${n}`))}
+      {cena === 'laco' && orbita(['Capturar', 'Traduzir', 'Analisar', 'Estudar'])}
+      {cena === 'chip' && orbita(['no aparelho', 'sua chave'], { width: 150, height: 150 })}
+      <IconeEmBloco icone={icone} />
+    </div>
+  );
+}
+
 export default function Onboarding({ onComplete }: { onComplete: () => void }) {
-  const [step, setStep] = useState<Step>('welcome');
+  const [passo, setPasso] = useState<Passo>('welcome');
+  /** Sentido da última troca: o passo desliza para a esquerda ao avançar e volta ao recuar. */
+  const [volta, setVolta] = useState(false);
+  /** O formulário da chave, aberto por "Usar minha chave" no último passo. */
+  const [naChave, setNaChave] = useState(false);
+  const idTitulo = useId();
+
   /**
-   * OS DOIS IDIOMAS, PERGUNTADOS NA PORTA.
-   *
-   * A onboarding completa não perguntava idioma nenhum: quem não abrisse Ajustes ficava com o
-   * palpite de `DEFAULT_LANG_CONFIG` para sempre — interface em português e estudo em inglês,
-   * independentemente de quem fosse a pessoa (auditoria de 2026-09-07, achado A38). Agora ela
-   * pergunta os dois eixos na porta: o que se estuda e o idioma da tela.
+   * OS DOIS IDIOMAS, PERGUNTADOS NA PORTA: o que se estuda e o idioma da tela. Gravam NA HORA —
+   * a interface muda sob os pés de quem escolheu, que é a confirmação mais direta.
    */
   const [estudando, setEstudando] = useState(DEFAULT_LANG_CONFIG.studying);
   const [idiomaDaTela, setIdiomaDaTela] = useState(DEFAULT_LANG_CONFIG.daInterface);
   const [ageProfile, setAgeProfile] = useState<AgeProfileType>('pro');
+  const [ia, setIa] = useState<'local' | 'nuvem'>('local');
   const [kind, setKind] = useState<keyof typeof PROVIDERS>('openai');
   const [baseUrl, setBaseUrl] = useState(PROVIDERS.openai.baseUrl);
   const [model, setModel] = useState(PROVIDERS.openai.model);
@@ -106,43 +188,18 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
   const [message, setMessage] = useState('');
   const [busyLocal, setBusyLocal] = useState(false);
 
-  const pickKind = (k: keyof typeof PROVIDERS) => {
-    setKind(k);
-    setBaseUrl(PROVIDERS[k].baseUrl);
-    setModel(PROVIDERS[k].model);
+  const i = PASSOS.indexOf(passo);
+  const ultimo = i === PASSOS.length - 1;
+  // Navegar não persiste nada: percorrer o tour (inclusive ao "Rever apresentação") só troca de
+  // passo — a escolha local/nuvem já feita só é sobrescrita ao confirmar de novo.
+  const irPara = (p: Passo) => {
+    setVolta(PASSOS.indexOf(p) < i);
+    setPasso(p);
   };
+  const avancar = () => !ultimo && irPara(PASSOS[i + 1]);
+  const recuar = () => (naChave ? setNaChave(false) : i > 0 && irPara(PASSOS[i - 1]));
+  const pular = () => irPara('ia');
 
-  // Navegação da apresentação. Nenhuma destas funções persiste nada: percorrer o
-  // tour (inclusive ao "Rever apresentação") só troca de tela — a escolha
-  // local/nuvem já feita só é sobrescrita se o usuário clicar de novo em chooseLocal/saveCloud.
-  const inTour = step === 'welcome' || step === 'idioma' || step === 'profile' || step === 'how' || step === 'privacy';
-  const goNext = () => {
-    if (step === 'welcome') setStep('idioma');
-    else if (step === 'idioma') setStep('profile');
-    else if (step === 'profile') setStep('how');
-    else if (step === 'how') setStep('privacy');
-    else if (step === 'privacy') setStep('choose');
-  };
-  const goBack = () => {
-    if (step === 'idioma') setStep('welcome');
-    else if (step === 'profile') setStep('idioma');
-    else if (step === 'how') setStep('profile');
-    else if (step === 'privacy') setStep('how');
-    else if (step === 'choose') setStep('privacy');
-  };
-  const skipTour = () => setStep('choose');
-
-  /**
-   * Escolher o perfil aplica NA HORA (o `<html>`/`<main>` já reagem à classe `age-*`), para o
-   * usuário ver o efeito antes de confirmar, e persiste nos dois lugares: o espelho local que o
-   * App lê no arranque e o blob `settings.ui` no servidor — sem o servidor, a preferência se
-   * perderia ao trocar de máquina, que é justamente o caso de quem configura o app para outra pessoa.
-   */
-  /**
-   * Escolher o idioma GRAVA NA HORA, no mesmo espírito de `chooseProfile`: a interface muda sob os
-   * pés de quem escolheu, que é a confirmação mais direta de que a escolha valeu. `saveLangConfig`
-   * escreve um campo por eixo (`settings.targetLanguage` e `ui.uiLang`).
-   */
   const escolherEstudando = (code: string) => {
     setEstudando(code);
     void saveLangConfig({ studying: code });
@@ -151,68 +208,58 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
     setIdiomaDaTela(code);
     void saveLangConfig({ daInterface: code });
   };
-
-  const chooseProfile = (id: AgeProfileType) => {
+  /** O perfil aplica NA HORA e persiste no espelho local e no `settings.ui` do servidor. */
+  const escolherPerfil = (id: AgeProfileType) => {
     setAgeProfile(id);
     localStorage.setItem('babel.age_profile', id);
     void patchUiSettings({ ageProfile: id });
   };
 
-  // Atalhos de teclado durante a apresentação: setas para navegar, Esc para pular.
+  // Setas navegam a apresentação (fora de campos de texto e da lista de idiomas).
   useEffect(() => {
-    if (!inTour) return;
+    if (ultimo || naChave) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowRight') goNext();
-      else if (e.key === 'ArrowLeft') goBack();
-      else if (e.key === 'Escape') skipTour();
+      const alvo = e.target as HTMLElement | null;
+      if (alvo && /INPUT|TEXTAREA|SELECT/.test(alvo.tagName)) return;
+      if (e.key === 'ArrowRight') avancar();
+      else if (e.key === 'ArrowLeft') recuar();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-    /* `goNext`/`goBack` ficam fora das deps DE PROPÓSITO. Elas são recriadas a cada render, então
-       incluí-las faria este efeito remover e registrar o listener de `keydown` em cada render, e
-       `step`/`inTour`, que já estão aqui, são o único estado que as duas leem. O listener sempre
-       enxerga a versão da render atual porque o efeito é reexecutado quando esse estado muda. */
+    /* `avancar`/`recuar` ficam fora das deps DE PROPÓSITO: são recriadas a cada render, e o passo,
+       que já está aqui, é o único estado que as duas leem. */
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, inTour]);
+  }, [passo, ultimo, naChave]);
 
   /**
-   * O ONBOARDING NÃO BAIXA MAIS NADA — e isso é a correção de A-P0-3, não uma omissão.
-   *
-   * Antes, `runDownload` chamava `preloadModel()` sem definir rota, então caía no default
-   * `whisper-tiny` (33 MB). Mas a primeira captura chama `routeStt()` e, na configuração padrão
-   * (detecção automática + nuvem disponível), pede `whisper-base` (85 MB). O usuário baixava um
-   * modelo no onboarding e via a barra de novo na primeira captura, baixando OUTRO. Os 33 MB eram
-   * desperdício integral.
-   *
-   * Com o download acontecendo num único lugar — a captura, que sempre consulta o roteador — o
-   * modelo errado deixa de ser baixável por construção.
-   *
-   * MEDIÇÃO que decidiu adiar em vez de rotear aqui: 0,44 MB/s medidos contra o CDN do HF
-   * (mediana de 3 amostras de 8 MiB). O menor modelo já leva 75 s, e a configuração padrão
-   * (base + opus-mt) levaria ~7,5 min — muito acima do limiar de 60 s. Prender o onboarding nisso
-   * é pior que preparar na primeira captura, com o tamanho declarado antes de começar.
+   * O ONBOARDING NÃO BAIXA NADA — correção de A-P0-3. O download acontece num lugar só, a primeira
+   * captura, que sempre consulta o roteador; aqui só se ESTIMA o tamanho para dizer antes.
    */
-  const tamanhoEstimado = React.useMemo(() => {
+  const tamanho = useMemo(() => {
     const rota = routeStt({
       contentLang: DEFAULT_LISTEN,
       autoDetect: true,
       quality: getSttQuality(),
-      hasWebGpu: !!(navigator as any).gpu,
+      hasWebGpu: !!(navigator as Navigator & { gpu?: unknown }).gpu,
       cloudAvailable: false,
       profileId: getActiveProfile().id,
     });
     return { mb: MODEL_DOWNLOAD_MB[rota.localModel] ?? null, medido: !!MODEL_DOWNLOAD_MEDIDO[rota.localModel] };
   }, []);
-  const tamanhoMedido = tamanhoEstimado.medido;
-  const tamanhoEstimadoMb = tamanhoEstimado.mb;
 
-  const chooseLocal = async () => {
-    setBusyLocal(true);
-    await persistChoice('local', 'free-web');
-    setStep('download');
+  const pickKind = (k: keyof typeof PROVIDERS) => {
+    setKind(k);
+    setBaseUrl(PROVIDERS[k].baseUrl);
+    setModel(PROVIDERS[k].model);
   };
 
-  const saveCloud = async () => {
+  const escolherLocal = async () => {
+    setBusyLocal(true);
+    await persistChoice('local', 'free-web');
+    onComplete();
+  };
+
+  const salvarNuvem = async () => {
     setStatus('saving');
     setMessage('');
     if (!baseUrl || !secret) {
@@ -243,347 +290,282 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
     setTimeout(onComplete, 400);
   };
 
+  const comecar = () => (ia === 'local' ? void escolherLocal() : setNaChave(true));
+  const s = DO_PASSO[passo];
+  const download = tamanho.mb
+    ? `download único de ${tamanho.medido ? '' : 'cerca de '}${tamanho.mb} MB na primeira captura`
+    : 'download único na primeira captura';
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-canvas text-ink p-6 overflow-y-auto">
-      <div className="w-full max-w-2xl">
-        {/* Barra de progresso: pontos para as telas de apresentação + a decisão final. */}
-        {PROGRESS_STEPS.includes(step) && (
-          <div className="flex items-center justify-center gap-2 mb-8">
-            {PROGRESS_STEPS.map((s, i) => {
-              const active = s === step;
-              const done = PROGRESS_STEPS.indexOf(step) > i;
-              return (
-                <span
-                  key={s}
-                  className={`h-1.5 rounded-full transition-all ${active ? 'w-8 bg-accent' : done ? 'w-4 bg-accent/40' : 'w-4 bg-border-subtle'}`}
-                />
-              );
-            })}
-            <span className="ms-2 text-[11px] font-mono text-ink-faint tabular-nums">
-              {PROGRESS_STEPS.indexOf(step) + 1} de {PROGRESS_STEPS.length}
+    <>
+      {/* O app ainda não existe atrás da apresentação: o fundo é a tela vazia. */}
+      <div className="fixed inset-0 bg-canvas" aria-hidden />
+      <DialogoBase
+        classe="medio"
+        rotuloId={idTitulo}
+        aoFechar={() => undefined}
+        // Esc pula a apresentação (como antes); na escolha da IA ele não fecha: sem ela o app não roda.
+        aoCancelar={() => (naChave ? setNaChave(false) : !ultimo && pular())}
+      >
+        <div className="dlg-corpo" style={{ padding: '24px 24px 8px' }}>
+          <CenaDoPasso passo={passo} />
+          <div className="linha" style={{ gap: 6, marginBottom: 14 }} aria-label={`Etapa ${i + 1} de ${PASSOS.length}`}>
+            {PASSOS.map((p, k) => (
+              <span key={p} className="onb-seg">
+                <span style={{ transform: `scaleX(${k <= i ? 1 : 0})` }} />
+              </span>
+            ))}
+            <span className="mut" style={{ fontSize: 12, marginLeft: 6 }}>
+              {i + 1} de {PASSOS.length}
             </span>
           </div>
-        )}
 
-        {step === 'welcome' && (
-          <TourSlide
-            icon={<AudioLines className="w-6 h-6" />}
-            kicker="Bem-vindo"
-            title="Babel Play"
-            onBack={null}
-            onNext={goNext}
-            onSkip={skipTour}
-          >
-            <p className="text-ink text-[15px] leading-relaxed">
-              Aprenda idiomas com o conteúdo que você já assiste. O Babel Play captura
-              o <strong className="text-ink">som do seu computador</strong> (vídeos, chamadas, jogos, sem configurar nada,
-              quando rodando localmente) ou de <strong className="text-ink">uma aba do navegador</strong>, transcreve a fala,
-              traduz e transforma tudo em material de estudo.
-            </p>
-            <p className="text-[13px] text-ink-muted leading-relaxed mt-3">
-              Também dá para <strong className="text-ink">importar</strong>: link do YouTube, artigo da web, PDF/DOCX ou um áudio seu,
-              tudo vira uma sessão com vocabulário, exercícios e leitura narrada. E as legendas ao vivo podem flutuar
-              numa <strong className="text-ink">janelinha sempre-no-topo</strong> por cima do jogo ou da chamada.
-            </p>
-          </TourSlide>
-        )}
-
-        {step === 'idioma' && (
-          <TourSlide
-            icon={<Languages className="w-6 h-6" />}
-            kicker={t('Idiomas')}
-            title={t('Que idioma você quer aprender?')}
-            onBack={goBack}
-            onNext={goNext}
-            onSkip={skipTour}
-          >
-            <p className="text-[13.5px] text-ink-muted leading-relaxed mb-4">
-              {t('Dá para trocar quando quiser, em Ajustes. O idioma que você aprende decide as palavras que vão para o seu baralho; o da interface decide só os textos da tela.')}
-            </p>
-            <div className="space-y-4">
-              <div>
-                <div className="font-bold text-[13.5px] mb-1.5">{t('Estou aprendendo')}</div>
-                <LangPicker
-                  id="onboarding-studying-lang"
-                  ariaLabel={t('Estou aprendendo')}
-                  block
-                  accent
-                  value={estudando}
-                  onPick={({ code }) => { if (code) escolherEstudando(code); }}
+          {naChave ? (
+            <div key="chave" className="onb-passo">
+              <span className="sobrancelha">Usar minha chave</span>
+              <h2 id={idTitulo} style={{ fontSize: 26, fontWeight: 900, margin: '6px 0 8px' }}>
+                Conectar provedor de nuvem
+              </h2>
+              <p className="mut" style={{ fontSize: 14.5, marginBottom: 14 }}>
+                A chave é cifrada no servidor e nunca volta ao navegador.
+              </p>
+              <div className="form-l">
+                <label htmlFor="onboarding-provider-kind">Provedor</label>
+                <select
+                  className="campo"
+                  id="onboarding-provider-kind"
+                  name="onboarding-provider-kind"
+                  value={kind}
+                  onChange={(e) => pickKind(e.target.value as keyof typeof PROVIDERS)}
+                >
+                  {Object.entries(PROVIDERS).map(([k, v]) => (
+                    <option key={k} value={k}>
+                      {v.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-l">
+                <label htmlFor="onboarding-base-url">URL base</label>
+                <input
+                  className="campo"
+                  id="onboarding-base-url"
+                  name="onboarding-base-url"
+                  value={baseUrl}
+                  onChange={(e) => setBaseUrl(e.target.value)}
+                  placeholder="https://api.exemplo.com/v1"
                 />
               </div>
-              <div>
-                <div className="font-bold text-[13.5px] mb-1.5">{t('Idioma da interface')}</div>
-                <LangPicker
-                  id="onboarding-ui-lang"
-                  ariaLabel={t('Idioma da interface')}
-                  block
-                  somente={idiomasDaInterfaceOferecidos()}
-                  value={idiomaDaTela}
-                  onPick={({ code }) => { if (code) escolherIdiomaDaTela(code); }}
+              <div className="form-l">
+                <label htmlFor="onboarding-model">Modelo (opcional)</label>
+                <input
+                  className="campo"
+                  id="onboarding-model"
+                  name="onboarding-model"
+                  value={model}
+                  onChange={(e) => setModel(e.target.value)}
+                  placeholder="gpt-4o-mini"
                 />
               </div>
+              <div className="form-l">
+                <label htmlFor="onboarding-api-key">Chave de API</label>
+                <input
+                  className="campo"
+                  id="onboarding-api-key"
+                  name="onboarding-api-key"
+                  type="password"
+                  value={secret}
+                  onChange={(e) => setSecret(e.target.value)}
+                  placeholder="sk-…"
+                />
+              </div>
+              {status === 'error' && (
+                <div className="aviso-info warn" role="alert" style={{ marginBottom: 14 }}>
+                  <TriangleAlert aria-hidden />
+                  <span>{message}</span>
+                </div>
+              )}
             </div>
-          </TourSlide>
-        )}
+          ) : (
+            <div key={passo} className={`onb-passo ${volta ? 'volta' : ''}`}>
+              <span className="sobrancelha">{s.sob}</span>
+              <h2 id={idTitulo} style={{ fontSize: 26, fontWeight: 900, margin: '6px 0 8px' }}>
+                {s.titulo}
+              </h2>
+              {s.desc && (
+                <p className="mut" style={{ fontSize: 14.5 }}>
+                  {s.desc}
+                </p>
+              )}
 
-        {step === 'profile' && (
-          <TourSlide
-            icon={<UserRound className="w-6 h-6" />}
-            kicker="Para quem é"
-            title="Como você prefere usar?"
-            onBack={goBack}
-            onNext={goNext}
-            onSkip={skipTour}
-          >
-            <p className="text-[13.5px] text-ink-muted leading-relaxed mb-4">
-              Isso ajusta a linguagem e quanta coisa aparece de uma vez. <strong className="text-ink">Nenhum
-              recurso é removido</strong>, o que sai da primeira tela fica sempre a um clique. Dá para trocar
-              quando quiser, em Configurações.
-            </p>
-            <div className="space-y-2.5">
-              {PROFILE_CHOICES.map((opt) => {
-                const active = ageProfile === opt.id;
-                return (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => chooseProfile(opt.id)}
-                    aria-pressed={active}
-                    className={`w-full flex items-start gap-3.5 p-4 rounded-xl border-2 text-start cursor-pointer transition-colors ${
-                      active
-                        ? 'border-accent bg-accent-soft'
-                        : 'border-border-subtle bg-canvas hover:border-accent'
-                    }`}
-                  >
-                    <span
-                      className={`flex items-center justify-center w-10 h-10 shrink-0 rounded-xl ${
-                        active ? 'bg-accent text-accent-contrast' : 'bg-surface-hover text-ink-muted'
-                      }`}
-                      aria-hidden
+              {passo === 'idioma' && (
+                <>
+                  <div className="chips" role="radiogroup" aria-label={t('Estou aprendendo')} style={{ marginTop: 14 }}>
+                    {IDIOMAS.map(([code, bandeira, nome]) => (
+                      <button
+                        key={code}
+                        type="button"
+                        className="pill"
+                        role="radio"
+                        aria-checked={base(estudando) === base(code)}
+                        onClick={() => escolherEstudando(code)}
+                      >
+                        {bandeira} {nome}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="form-l" style={{ marginTop: 16, marginBottom: 6 }}>
+                    <label htmlFor="onboarding-ui-lang">{t('Idioma da interface')}</label>
+                    <LangPicker
+                      id="onboarding-ui-lang"
+                      ariaLabel={t('Idioma da interface')}
+                      block
+                      somente={idiomasDaInterfaceOferecidos()}
+                      value={idiomaDaTela}
+                      onPick={({ code }) => {
+                        if (code) escolherIdiomaDaTela(code);
+                      }}
+                    />
+                    <small className="mut" style={{ fontSize: 12 }}>
+                      {t(
+                        'Dá para trocar quando quiser, em Ajustes. O idioma que você aprende decide as palavras que vão para o seu baralho; o da interface decide só os textos da tela.',
+                      )}
+                    </small>
+                  </div>
+                </>
+              )}
+
+              {passo === 'perfil' && (
+                <div className="g-onb" role="radiogroup" aria-label="Como você prefere usar">
+                  {PERFIS.map(([id, Icone, titulo, desc]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      className="cartao opcao-onb"
+                      role="radio"
+                      aria-checked={ageProfile === id}
+                      onClick={() => escolherPerfil(id)}
                     >
-                      {opt.icon}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className={`block font-bold text-[14.5px] ${active ? 'text-accent-ink' : 'text-ink'}`}>
-                        {opt.title}
-                      </span>
-                      <span className="block text-[12.5px] text-ink-muted leading-snug mt-0.5">{opt.desc}</span>
-                    </span>
-                    {active && <Check className="w-5 h-5 text-accent-ink shrink-0 mt-0.5" aria-hidden />}
-                  </button>
-                );
-              })}
-            </div>
-          </TourSlide>
-        )}
+                      <IconeEmBloco icone={Icone} />
+                      <b>{titulo}</b>
+                      <small className="mut">{desc}</small>
+                    </button>
+                  ))}
+                </div>
+              )}
 
-        {step === 'how' && (
-          <TourSlide
-            icon={<Repeat className="w-6 h-6" />}
-            kicker="Como funciona"
-            title="Um laço em quatro passos"
-            onBack={goBack}
-            onNext={goNext}
-            onSkip={skipTour}
-          >
-            <div className="grid sm:grid-cols-2 gap-3 mt-1">
-              <LoopStep n={1} icon={<Mic className="w-4 h-4" />} title="Capturar ou importar"
-                desc="Som do computador, aba do navegador, microfone, ou importe YouTube, artigo, documento e áudio." />
-              <LoopStep n={2} icon={<Languages className="w-4 h-4" />} title="Transcrever & traduzir"
-                desc="A fala vira texto com tradução ao lado, em tempo real; legendas podem flutuar sobre qualquer app." />
-              <LoopStep n={3} icon={<ScanText className="w-4 h-4" />} title="Analisar"
-                desc="Vocabulário clicável, ritmo de fala, métricas reais e um tutor (iChat) que enxerga a sua tela." />
-              <LoopStep n={4} icon={<GraduationCap className="w-4 h-4" />} title="Estudar"
-                desc="Deck com repetição espaçada (FSRS), 8 exercícios e modo leitura narrado." />
-            </div>
-          </TourSlide>
-        )}
+              {passo === 'laco' && (
+                <ol className="laco-onb">
+                  {LACO.map(([Icone, titulo, desc], k) => (
+                    <li key={titulo} style={{ '--i': k } as React.CSSProperties}>
+                      <IconeEmBloco icone={Icone} />
+                      <div>
+                        <b>{titulo}</b>
+                        <small className="mut">{desc}</small>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              )}
 
-        {step === 'privacy' && (
-          <TourSlide
-            icon={<ShieldCheck className="w-6 h-6" />}
-            kicker="Privacidade"
-            title="Por padrão, tudo no seu dispositivo"
-            onBack={goBack}
-            onNext={goNext}
-            onSkip={skipTour}
-            nextLabel="Escolher como rodar"
-          >
-            <p className="text-ink text-[15px] leading-relaxed">
-              O áudio do <strong className="text-ink">sistema</strong> é transcrito (Whisper) e traduzido (opus-mt)
-              <strong className="text-ink"> localmente, no seu dispositivo</strong>, esse áudio não sai da sua máquina.
-            </p>
-            <p className="text-[13px] text-ink-muted leading-relaxed mt-3">
-              Sendo honestos com as exceções do modo grátis: o <strong className="text-ink">microfone</strong> usa por padrão o
-              reconhecimento do navegador (que envia a fala ao provedor do navegador, troque para “Whisper local” nos ajustes
-              se preferir 100% offline), e quando a tradução local não cobre o par de idiomas usamos um serviço web como reserva.
-            </p>
-            <p className="text-[13px] text-ink-muted leading-relaxed mt-3">
-              Se você preferir usar a nuvem para ganhar qualidade, fornece sua própria chave de API:
-              ela é <strong className="text-ink">cifrada no servidor</strong> e nunca volta ao navegador, guardamos só uma referência.
-            </p>
-          </TourSlide>
-        )}
-
-        {step === 'choose' && (
-          <>
-            <div className="text-center mb-6">
-              <button onClick={() => setStep('privacy')} className="inline-flex items-center gap-1 text-[12px] text-ink-muted hover:text-ink cursor-pointer mb-3">
-                <ArrowLeft className="w-3.5 h-3.5" /> Voltar
-              </button>
-              <h1 className="font-display font-black text-2xl tracking-tight">Como você quer rodar a IA?</h1>
-              <p className="text-ink-muted mt-2 text-sm">Você pode mudar depois em Configurações.</p>
-            </div>
-            <div className="grid md:grid-cols-2 gap-4">
-              <button
-                onClick={chooseLocal}
-                disabled={busyLocal}
-                className="text-start p-6 rounded-2xl border-2 border-border-subtle bg-surface hover:border-accent transition-all disabled:opacity-60 cursor-pointer"
-              >
-                <div className="flex items-center gap-2 mb-2 text-accent"><HardDrive className="w-5 h-5" /><span className="font-bold">Rodar local</span></div>
-                <p className="text-[13px] text-ink-muted leading-relaxed">
-                  Baixa o modelo e roda 100% no seu dispositivo. Sem chave, sem custo, funciona offline.
-                  O download (~alguns MB) acontece com barra de progresso ao preparar a captura.
+              {passo === 'privacidade' && (
+                <p className="mut" style={{ fontSize: 13, marginTop: 8 }}>
+                  As exceções do modo grátis: o microfone usa o reconhecimento do navegador (troque para o Whisper local
+                  em Ajustes para ficar 100% offline) e, quando o tradutor local não cobre o par de idiomas, a tradução
+                  usa um serviço web. A sua chave de nuvem, se usar uma, é cifrada no servidor.
                 </p>
-                <span className="inline-block mt-3 text-[11px] font-mono uppercase bg-good-soft text-good-ink border border-good/20 px-2 py-0.5 rounded">Grátis · Privado</span>
-              </button>
+              )}
 
-              <button
-                onClick={() => setStep('cloud')}
-                className="text-start p-6 rounded-2xl border-2 border-border-subtle bg-surface hover:border-accent transition-all cursor-pointer"
-              >
-                <div className="flex items-center gap-2 mb-2 text-accent"><Cloud className="w-5 h-5" /><span className="font-bold">Usar minha chave (nuvem)</span></div>
-                <p className="text-[13px] text-ink-muted leading-relaxed">
-                  Use sua própria chave de API (OpenAI, Groq, OpenRouter…). Melhor qualidade, sem baixar modelo.
-                  A chave é cifrada no servidor e nunca aparece no navegador.
-                </p>
-                <span className="inline-block mt-3 text-[11px] font-mono uppercase bg-accent-soft text-accent-ink border border-accent/20 px-2 py-0.5 rounded">BYO Key</span>
-              </button>
+              {passo === 'ia' && (
+                <div className="g-onb dois" role="radiogroup" aria-label="Como rodar a IA">
+                  {(
+                    [
+                      ['local', Cpu, 'Rodar local', 'Grátis · privado · funciona sem internet', download],
+                      [
+                        'nuvem',
+                        KeyRound,
+                        'Usar minha chave',
+                        'Mais preciso em nomes próprios',
+                        'o áudio vai para o provedor que você escolher',
+                      ],
+                    ] as const
+                  ).map(([v, Icone, titulo, desc, nota]) => (
+                    <button
+                      key={v}
+                      type="button"
+                      className="cartao opcao-onb"
+                      role="radio"
+                      aria-checked={ia === v}
+                      onClick={() => setIa(v)}
+                    >
+                      <IconeEmBloco icone={Icone} />
+                      <b>{titulo}</b>
+                      <small className="mut">{desc}</small>
+                      <small className="mut" style={{ fontSize: 11.5 }}>
+                        {nota}
+                      </small>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-          </>
-        )}
-
-        {step === 'cloud' && (
-          <div className="p-6 rounded-2xl border border-border-subtle bg-surface space-y-4">
-            <button onClick={() => setStep('choose')} className="flex items-center gap-1 text-[12px] text-ink-muted hover:text-ink cursor-pointer">
-              <ArrowLeft className="w-3.5 h-3.5" /> Voltar
-            </button>
-            <div className="flex items-center gap-2 text-ink font-bold"><KeyRound className="w-4 h-4 text-accent" /> Conectar provedor de nuvem</div>
-
-            <label className="block text-[12px] font-medium text-ink-muted">Provedor
-              <select id="onboarding-provider-kind" name="onboarding-provider-kind" value={kind} onChange={(e) => pickKind(e.target.value as keyof typeof PROVIDERS)} className="mt-1 w-full bg-canvas border border-border-subtle rounded-lg px-3 py-2 text-ink text-sm">
-                {Object.entries(PROVIDERS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-              </select>
-            </label>
-
-            <label className="block text-[12px] font-medium text-ink-muted">URL base
-              <input id="onboarding-base-url" name="onboarding-base-url" value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} placeholder="https://api.exemplo.com/v1" className="mt-1 w-full bg-canvas border border-border-subtle rounded-lg px-3 py-2 text-ink text-sm font-mono" />
-            </label>
-
-            <label className="block text-[12px] font-medium text-ink-muted">Modelo (opcional)
-              <input id="onboarding-model" name="onboarding-model" value={model} onChange={(e) => setModel(e.target.value)} placeholder="gpt-4o-mini" className="mt-1 w-full bg-canvas border border-border-subtle rounded-lg px-3 py-2 text-ink text-sm font-mono" />
-            </label>
-
-            <label className="block text-[12px] font-medium text-ink-muted">Chave de API
-              <input id="onboarding-api-key" name="onboarding-api-key" type="password" value={secret} onChange={(e) => setSecret(e.target.value)} placeholder="sk-…" className="mt-1 w-full bg-canvas border border-border-subtle rounded-lg px-3 py-2 text-ink text-sm font-mono" />
-            </label>
-
-            {status === 'error' && (
-              <div className="flex items-start gap-2 text-[12px] text-error bg-error-soft/10 border border-error/20 rounded-lg p-2.5">
-                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" /><span>{message}</span>
-              </div>
-            )}
-
-            <div className="flex items-center gap-3 pt-1">
-              <button
-                onClick={saveCloud}
-                disabled={status === 'saving'}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-accent hover:bg-accent-ink text-white font-bold text-sm disabled:opacity-60 cursor-pointer"
-              >
-                {status === 'saving' ? <Loader2 className="w-4 h-4 animate-spin" /> : status === 'ok' ? <Check className="w-4 h-4" /> : null}
-                Testar e salvar
-              </button>
-              <button onClick={chooseLocal} className="text-[12px] text-ink-muted hover:text-ink underline cursor-pointer">Prefiro rodar local</button>
-            </div>
-          </div>
-        )}
-
-        {step === 'download' && (
-          <div className="p-6 rounded-2xl border border-border-subtle bg-surface space-y-4">
-            <div className="flex items-center gap-2 text-ink font-bold"><HardDrive className="w-4 h-4 text-accent" /> Tudo pronto para rodar local</div>
-            <p className="text-[13px] text-ink-muted leading-relaxed">
-              O modelo de transcrição é preparado na sua <strong className="text-ink">primeira captura</strong>,
-              com barra de progresso em MB{tamanhoEstimadoMb ? <>, {tamanhoMedido ? '' : 'cerca de '}<strong className="text-ink">{tamanhoEstimadoMb} MB</strong></> : null}.
-              Depois disso ele fica no seu navegador e roda offline.
-            </p>
-            <p className="text-[11px] text-ink-muted">
-              Baixar só na captura evita preparar um modelo que a sua configuração não vai usar.
-            </p>
-            <div className="flex justify-end pt-1">
-              <button onClick={onComplete} className="btn-solid px-4 py-2 text-[13px] cursor-pointer">Começar</button>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-/** Um cartão da apresentação: ícone + kicker + título + conteúdo + navegação. */
-function TourSlide({
-  icon, kicker, title, children, onBack, onNext, onSkip, nextLabel = 'Avançar',
-}: {
-  icon: React.ReactNode;
-  kicker: string;
-  title: string;
-  children: React.ReactNode;
-  onBack: (() => void) | null;
-  onNext: () => void;
-  onSkip: () => void;
-  nextLabel?: string;
-}) {
-  return (
-    <div className="p-6 md:p-8 rounded-2xl border border-border-subtle bg-surface">
-      <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-accent-soft text-accent-ink mb-5">
-        {icon}
-      </div>
-      <div className="label-mono text-ink-faint mb-1">{kicker}</div>
-      <h1 className="font-display font-black text-2xl md:text-3xl tracking-tight mb-4">{title}</h1>
-      <div>{children}</div>
-
-      <div className="flex items-center justify-between gap-3 mt-7">
-        <button onClick={onSkip} className="text-[12px] text-ink-muted hover:text-ink underline cursor-pointer">
-          Pular apresentação
-        </button>
-        <div className="flex items-center gap-2">
-          {onBack && (
-            <button onClick={onBack} className="btn-outline flex items-center gap-1">
-              <ChevronLeft className="w-4 h-4" /> Voltar
-            </button>
           )}
-          <button onClick={onNext} className="btn-solid flex items-center gap-1">
-            {nextLabel} <ChevronRight className="w-4 h-4" />
-          </button>
         </div>
-      </div>
-    </div>
-  );
-}
 
-/** Passo numerado do laço "Como funciona". */
-function LoopStep({ n, icon, title, desc }: { n: number; icon: React.ReactNode; title: string; desc: string }) {
-  return (
-    <div className="flex gap-3 p-3.5 rounded-xl border border-border-subtle bg-canvas">
-      <div className="flex items-center justify-center w-8 h-8 shrink-0 rounded-lg bg-accent-soft text-accent-ink">
-        {icon}
-      </div>
-      <div className="min-w-0">
-        <div className="font-bold text-[13.5px] text-ink flex items-center gap-1.5">
-          <span className="text-ink-faint font-mono text-[11px]">{n}</span> {title}
+        <div className="dlg-pe">
+          {naChave ? (
+            <>
+              <button
+                type="button"
+                className="link"
+                style={{ marginRight: 'auto' }}
+                onClick={() => void escolherLocal()}
+                disabled={busyLocal}
+              >
+                Prefiro rodar local
+              </button>
+              <button type="button" className="btn btn-outline" onClick={recuar}>
+                Voltar
+              </button>
+              <button
+                type="button"
+                className="btn btn-solid"
+                onClick={() => void salvarNuvem()}
+                disabled={status === 'saving'}
+              >
+                {status === 'saving' && <Loader2 aria-hidden className="animate-spin" />} Testar e salvar
+              </button>
+            </>
+          ) : (
+            <>
+              {!ultimo && (
+                <button type="button" className="link" style={{ marginRight: 'auto' }} onClick={pular}>
+                  Pular apresentação
+                </button>
+              )}
+              {i > 0 && (
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  style={ultimo ? { marginLeft: 'auto' } : undefined}
+                  onClick={recuar}
+                >
+                  Voltar
+                </button>
+              )}
+              {ultimo ? (
+                <button type="button" className="btn btn-solid" onClick={comecar} disabled={busyLocal} data-autofocus>
+                  <Rocket aria-hidden /> Começar
+                </button>
+              ) : (
+                <button type="button" className="btn btn-solid" onClick={avancar} data-autofocus>
+                  Continuar <ArrowRight aria-hidden />
+                </button>
+              )}
+            </>
+          )}
         </div>
-        <p className="text-[12px] text-ink-muted leading-snug mt-0.5">{desc}</p>
-      </div>
-    </div>
+      </DialogoBase>
+    </>
   );
 }

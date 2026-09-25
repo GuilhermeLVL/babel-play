@@ -1,8 +1,12 @@
 /** Rotas de vocabulário/SRS (montadas em `/api/vocab`). */
+import { createHash, randomBytes } from 'node:crypto'
+
 import { Router } from 'express'
 
 import type { Grade } from '../../src/core/learning/scheduler'
+import { versoesRepo } from '../db/repositories/versoes'
 import { vocabRepo } from '../db/repositories/vocab'
+import { CachePorVersao } from '../lib/cachePorVersao'
 import { erroDeRota } from '../lib/erroDeRota'
 import { log } from '../lib/logger'
 import {
@@ -19,8 +23,62 @@ import {
 
 export const vocabRouter = Router()
 
+/**
+ * O BARALHO INTEIRO, com ETag pela VERSÃO dos dados (fix/rotas-caras, auditoria de prontidão
+ * Fase 2 §2.1).
+ *
+ * Era a rota mais cara do servidor: 133 ms de CPU por chamada com 3.000 cartões (2,3 MB), com o
+ * event loop preso pelo driver durante a leitura inteira — e o cliente a chama de 16 telas. O
+ * ETag que o Express já mandava era um hash do CORPO: para responder 304 ele precisava montar o
+ * baralho inteiro primeiro, então revalidar custava o mesmo que baixar.
+ *
+ * Agora o ETag sai de `versoes_de_dados.vocab` (um contador mantido por gatilho a cada escrita em
+ * `vocab_cards` e `vocab_occurrences`, migração 0032):
+ *   · If-None-Match igual → 304 com UMA consulta de chave primária, sem tocar no baralho;
+ *   · sem ETag, mas versão já servida → o MESMO corpo, guardado em memória (`baralhosServidos`);
+ *   · versão nova → lê, serializa e guarda.
+ *
+ * O ETag carrega também um resumo do usuário e a ÉPOCA do processo. O primeiro impede que um
+ * navegador compartilhado (duas contas no mesmo perfil) revalide o baralho de uma conta com o
+ * ETag da outra quando os contadores coincidem; a segunda impede que um banco restaurado de
+ * backup (contadores de volta ao passado) case com um ETag emitido antes da restauração.
+ */
+const EPOCA = randomBytes(4).toString('hex')
+/* Teto de ~64 MB, contando 2 bytes por caractere (o pior caso do V8, texto com acento): ~13
+   baralhos grandes (2,3 MB cada) ou centenas de pequenos. Quem não cabe continua sendo servido —
+   só não fica. Medido: com 24 MB, dez usuários pesados alternando já não cabiam e toda leitura
+   voltava ao banco. */
+const baralhosServidos = new CachePorVersao<string>(512, 64 * 1024 * 1024)
+
+function etagDoBaralho(userId: string, versao: number): string {
+  const quem = createHash('sha256').update(userId).digest('base64url').slice(0, 12)
+  return `W/"vocab-${EPOCA}-${quem}-${versao}"`
+}
+
+/** If-None-Match casa? Comparação FRACA (RFC 9110 §13.1.2): o `W/` não conta, `*` casa com tudo. */
+function casaComIfNoneMatch(cabecalho: string | undefined, etag: string): boolean {
+  if (!cabecalho) return false
+  const semW = (t: string) => t.trim().replace(/^W\//, '')
+  return cabecalho.split(',').some((t) => t.trim() === '*' || semW(t) === semW(etag))
+}
+
 vocabRouter.get('/', async (req, res) => {
-  res.json(await vocabRepo.list(req.userId))
+  // A versão ANTES do baralho — ver `CachePorVersao` para o porquê da ordem.
+  const { vocab: versao } = await versoesRepo.de(req.userId)
+  const etag = etagDoBaralho(req.userId, versao)
+  res.setHeader('ETag', etag)
+  if (casaComIfNoneMatch(req.headers['if-none-match'], etag)) {
+    res.status(304).end()
+    return
+  }
+  let corpo = baralhosServidos.obter(req.userId, String(versao))
+  if (corpo === undefined) {
+    /* `JSON.stringify` é o que `res.json` faria (sem replacer nem espaços configurados no app):
+       o corpo é byte a byte o de antes, e o `Content-Type` também (`application/json; charset=utf-8`). */
+    corpo = JSON.stringify(await vocabRepo.list(req.userId))
+    baralhosServidos.guardar(req.userId, String(versao), corpo, corpo.length * 2)
+  }
+  res.type('json').send(corpo)
 })
 
 /**

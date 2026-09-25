@@ -36,8 +36,25 @@ const DEFAULT_TIMEOUT_MS = 30_000
 /** yt-dlp (300s no servidor), anki até 200MB, uploads grandes — teto folgado para não cortar import. */
 export const IMPORT_TIMEOUT_MS = 600_000
 type ApiInit = RequestInit & { timeoutMs?: number }
+
+/**
+ * QUANTAS ESCRITAS JÁ SAÍRAM POR AQUI (fix/rotas-caras). Sobe no INÍCIO de toda chamada que não
+ * seja GET/HEAD.
+ *
+ * Serve a quem compartilha uma leitura em voo entre várias telas (`fetchDeck`, `fetchSettings`):
+ * uma leitura que começou ANTES de uma escrita pode não enxergá-la, então quem pede depois da
+ * escrita não pode pegar carona nela. Comparar a geração no começo das duas é o que separa "a
+ * mesma pergunta, ao mesmo tempo" de "a pergunta de novo, depois de mudar a resposta".
+ */
+let escritas = 0
+export function geracaoDeEscritas(): number {
+  return escritas
+}
+
 export async function apiFetch(input: string, init?: ApiInit): Promise<Response> {
   const { timeoutMs, ...rest } = init ?? {}
+  const metodo = (rest.method ?? 'GET').toUpperCase()
+  if (metodo !== 'GET' && metodo !== 'HEAD') escritas++
   // Sem conta, NADA sai para a rede: o servidor em memória responde (ver data/efemero). Este é o
   // único ponto de corte — toda a camada de dados passa por aqui.
   const identidade = await aguardarIdentidade()

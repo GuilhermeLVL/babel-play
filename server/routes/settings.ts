@@ -1,11 +1,11 @@
 /** Rotas de configurações da app (montadas em `/api/settings`). Linha única. */
 import { Router } from 'express'
 
-import { type SettingsPatch,settingsRepo } from '../db/repositories/settings'
+import { type SettingsPatch, settingsRepo } from '../db/repositories/settings'
 import { erroDeRota } from '../lib/erroDeRota'
-import { type RecusaDePosse,recusaDePosse } from '../lib/posseDeCosmeticos'
+import { type ContextoDePosse, contextoDePosse, type RecusaDePosse, recusaDePosse } from '../lib/posseDeCosmeticos'
 import { responderErro } from '../lib/respostaDeErro'
-import { parseOr400,settingsPatchSchema } from '../validation'
+import { parseOr400, settingsPatchSchema } from '../validation'
 
 /**
  * Os campos do blob `ui` que nomeiam um item do catálogo, e o tipo de cada um.
@@ -23,13 +23,20 @@ const CAMPOS_DE_ITEM: Array<[chave: string, tipo: string]> = [
   ['rastro', 'rastro'],
 ]
 
-async function conferirPosseDoPatchDeUi(userId: Parameters<typeof recusaDePosse>[0], ui: unknown): Promise<RecusaDePosse | null> {
+async function conferirPosseDoPatchDeUi(
+  userId: Parameters<typeof recusaDePosse>[0],
+  ui: unknown,
+): Promise<RecusaDePosse | null> {
   if (!ui || typeof ui !== 'object') return null
   const blob = ui as Record<string, unknown>
+  /* O contexto do usuário (nível, compras, conquistas, premium) é carregado UMA vez, e só se algum
+     campo nomear um item do catálogo. Antes cada campo o recarregava: seis campos, seis perfis. */
+  let contexto: Promise<ContextoDePosse> | undefined
+  const carregar = () => (contexto ??= contextoDePosse(userId))
   for (const [chave, tipo] of CAMPOS_DE_ITEM) {
     const alvo = blob[chave]
     if (typeof alvo !== 'string' || !alvo) continue
-    const recusa = await recusaDePosse(userId, tipo, alvo)
+    const recusa = await recusaDePosse(userId, tipo, alvo, carregar)
     if (recusa) return recusa
   }
   return null
@@ -67,6 +74,15 @@ settingsRouter.put('/', async (req, res) => {
     }
     res.json(await settingsRepo.update(req.userId, patch))
   } catch (err) {
-    res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'settings_route_error', route: req.path, requestId: req.requestId }) })
+    res
+      .status(400)
+      .json({
+        error: erroDeRota(err, {
+          status: 400,
+          event: 'settings_route_error',
+          route: req.path,
+          requestId: req.requestId,
+        }),
+      })
   }
 })

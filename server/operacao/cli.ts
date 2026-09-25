@@ -3,7 +3,9 @@
  * `npm run build`, e por isso roda dentro da imagem sem `tsx` nem devDependencies.
  *
  *   node dist-server/operacao.cjs snapshot
- *       VACUUM INTO + integrity_check + gzip + envio ao R2 (o mesmo do agendador diário), agora.
+ *       VACUUM INTO + integrity_check + gzip + envio ao R2, agora. É também o que o agendador
+ *       diário do servidor roda, como PROCESSO FILHO (`fazerSnapshotEmProcessoFilho`): o trabalho
+ *       síncrono do libsql fica fora do event loop de quem atende, e o resultado volta por IPC.
  *
  *   node dist-server/operacao.cjs restaurar-snapshot --dia=2026-09-24 --destino=/data/restauro.db
  *       Baixa o snapshot do dia, descomprime num arquivo NOVO e confere. Nunca toca o banco vivo:
@@ -17,7 +19,14 @@
  */
 import path from 'node:path'
 
-import { destinoDoBackup, fazerSnapshot, restaurarSnapshot, type Verificacao, verificarBanco } from './snapshot'
+import {
+  destinoDoBackup,
+  fazerSnapshot,
+  type MensagemDoSnapshot,
+  restaurarSnapshot,
+  type Verificacao,
+  verificarBanco,
+} from './snapshot'
 
 const arg = (n: string) => process.argv.find((a) => a.startsWith(`--${n}=`))?.slice(n.length + 3)
 
@@ -51,6 +60,7 @@ async function principal(): Promise<number> {
     const r = await fazerSnapshot({ urlDoBanco: url, dirTemporario: path.dirname(url.slice(5)), destino })
     console.log(`enviado: ${r.chave} (${(r.bytes / 1024).toFixed(0)} KB)`)
     imprimir(r.verificacao)
+    await avisarOPai({ tipo: 'snapshot_ok', chave: r.chave, bytes: r.bytes, integridade: r.verificacao.integridade })
     return 0
   }
 
@@ -73,10 +83,26 @@ function uso(): number {
   return 2
 }
 
+/**
+ * Quando o servidor roda esta CLI como PROCESSO FILHO (`fazerSnapshotEmProcessoFilho`, via `fork`),
+ * há um canal IPC e o resultado vai por ele. Rodada à mão (`node dist-server/operacao.cjs …`), não
+ * há canal e isto não faz nada. Espera o envio terminar: `process.exit` logo depois de um `send`
+ * pode descartar a mensagem ainda na fila.
+ */
+function avisarOPai(m: MensagemDoSnapshot): Promise<void> {
+  const enviar = process.send?.bind(process)
+  if (!enviar || !process.connected) return Promise.resolve()
+  return new Promise((ok) => {
+    enviar(m, undefined, {}, () => ok())
+  })
+}
+
 principal().then(
   (codigo) => process.exit(codigo),
-  (err) => {
-    console.error(`[operacao] FALHOU: ${(err as Error)?.message || err}`)
+  async (err) => {
+    const erro = String((err as Error)?.message || err)
+    console.error(`[operacao] FALHOU: ${erro}`)
+    if (process.argv[2] === 'snapshot') await avisarOPai({ tipo: 'snapshot_falhou', erro: erro.slice(0, 300) })
     process.exit(1)
   },
 )

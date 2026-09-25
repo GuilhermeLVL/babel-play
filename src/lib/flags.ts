@@ -25,14 +25,14 @@
  */
 import { useEffect, useSyncExternalStore } from 'react';
 
-import type { FlagAvaliada, FlagsAvaliadas } from '../core/flags';
+import type { FlagsAvaliadas } from '../core/flags';
 import type { ConfigDeOfertas } from '../core/ofertas';
 import { apiFetch } from '../data/funil';
+import { CHAVE_DO_CACHE, definirEstadoDasFlags, flag, flagLigada, flagsAtuais, normalizar } from './flagsCache';
 import { assinarIdioma, idiomaDaInterface } from './i18n';
 import { aoMudarIdentidade } from './identidade';
 import { VERSAO_DO_APP } from './versao';
 
-const CHAVE_DO_CACHE = 'babel.flags';
 const CHAVE_DA_INSTALACAO = 'babel.instalacao';
 const EVENTO = 'babel_flags_changed';
 /** Intervalo do refresh periódico. */
@@ -78,37 +78,9 @@ export function idDaInstalacao(): string {
 
 // ───────────────────────────── cache ─────────────────────────────
 
-/** Aceita só a forma do servidor; flag com forma estranha é descartada (e vira "desligada"). */
-function normalizar(v: unknown): FlagsAvaliadas | null {
-  if (!v || typeof v !== 'object') return null;
-  const flags = (v as { flags?: unknown }).flags;
-  if (!flags || typeof flags !== 'object' || Array.isArray(flags)) return null;
-  const out: FlagsAvaliadas = {};
-  for (const [chave, f] of Object.entries(flags as Record<string, unknown>)) {
-    if (!f || typeof f !== 'object') continue;
-    const { ligada, payload } = f as { ligada?: unknown; payload?: unknown };
-    if (typeof ligada !== 'boolean') continue;
-    out[chave] = payload === undefined ? { ligada } : { ligada, payload };
-  }
-  return out;
-}
-
-let estado: FlagsAvaliadas | null = null;
-
-function lerCacheDuravel(): FlagsAvaliadas {
-  try {
-    const bruto = localStorage.getItem(CHAVE_DO_CACHE);
-    return (bruto && normalizar({ flags: JSON.parse(bruto) })) || {};
-  } catch {
-    return {};
-  }
-}
-
-/** Síncrono: o último valor conhecido (memória → localStorage → vazio). */
-export function flagsAtuais(): FlagsAvaliadas {
-  estado ??= lerCacheDuravel();
-  return estado;
-}
+/* O estado e a leitura síncrona moram numa FOLHA (`./flagsCache`), para quem está abaixo do funil
+   (`lib/convidado`, que `data/funil` importa) ler flags sem ciclo de importação. */
+export { flagLigada, flagsAtuais };
 
 function avisar(): void {
   if (typeof window !== 'undefined') window.dispatchEvent(new Event(EVENTO));
@@ -136,7 +108,7 @@ export function carregarFlags(): Promise<FlagsAvaliadas> {
       if (!novas) return flagsAtuais();
       ultimaLeitura = Date.now();
       const mudou = JSON.stringify(novas) !== JSON.stringify(flagsAtuais());
-      estado = novas;
+      definirEstadoDasFlags(novas);
       try {
         localStorage.setItem(CHAVE_DO_CACHE, JSON.stringify(novas));
       } catch {
@@ -155,7 +127,7 @@ export function carregarFlags(): Promise<FlagsAvaliadas> {
 
 /** Esquece tudo (testes, ou uma troca de conta que não deve herdar o resultado da anterior). */
 export function limparFlags(): void {
-  estado = null;
+  definirEstadoDasFlags(null);
   ultimaLeitura = 0;
   try {
     localStorage.removeItem(CHAVE_DO_CACHE);
@@ -166,15 +138,6 @@ export function limparFlags(): void {
 }
 
 // ───────────────────────────── leitura ─────────────────────────────
-
-function flag(chave: string): FlagAvaliada | undefined {
-  return flagsAtuais()[chave];
-}
-
-/** A flag está ligada? Ausente = desligada. Síncrono. */
-export function flagLigada(chave: string): boolean {
-  return flag(chave)?.ligada === true;
-}
 
 /**
  * O payload de uma flag LIGADA, se passar em `valido`; senão, o `padrao` embutido. `padrao` deve

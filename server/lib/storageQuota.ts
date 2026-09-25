@@ -19,16 +19,15 @@ import path from 'node:path'
 
 import { and, eq, lte, sql } from 'drizzle-orm'
 
-import { PLAN_MATRIX } from '../../src/core/planos'
+import { definicaoDoPlano, type PlanoEfetivo } from '../../src/core/planos'
 import { db } from '../db/db'
 import { sessionsRepo } from '../db/repositories/sessions'
-import type { Plan } from '../db/repositories/subscriptions'
 import { usageCounters } from '../db/schema'
 import { armazenamentoDoAmbiente } from './armazenamento'
 import type { UserId } from './authContext'
 import { getPlanForUser } from './entitlements'
 import { log } from './logger'
-import { type EnvelopeDeErro,envelopeDeErro } from './respostaDeErro'
+import { type EnvelopeDeErro, envelopeDeErro } from './respostaDeErro'
 
 export const METRIC_STORAGE = 'storage_bytes'
 export const WINDOW_STORAGE = 'total'
@@ -41,8 +40,8 @@ function envMb(nome: string, padrao: number): number {
 }
 
 /** Teto em BYTES por plano — default da MATRIZ, override por env (`PRO_STORAGE_MB`, `ESSENCIAL_STORAGE_MB`…). */
-export function capDeArmazenamento(plan: Plan): number {
-  const padraoMb = PLAN_MATRIX[plan].quotas.armazenamentoMb
+export function capDeArmazenamento(plan: PlanoEfetivo): number {
+  const padraoMb = definicaoDoPlano(plan).quotas.armazenamentoMb
   if (padraoMb === null) return Infinity
   return Math.floor(envMb(`${plan.toUpperCase()}_STORAGE_MB`, padraoMb) * MB)
 }
@@ -62,18 +61,24 @@ export function diretorioDeAudio(): string {
 
 /** Tamanho de um arquivo, 0 se ele não existe. */
 export function tamanhoNoDisco(caminho: string): number {
-  try { return statSync(caminho).size } catch { return 0 }
+  try {
+    return statSync(caminho).size
+  } catch {
+    return 0
+  }
 }
 
 async function lerUso(userId: UserId): Promise<number | null> {
   const rows = await db
     .select({ count: usageCounters.count })
     .from(usageCounters)
-    .where(and(
-      eq(usageCounters.userId, userId),
-      eq(usageCounters.metric, METRIC_STORAGE),
-      eq(usageCounters.window, WINDOW_STORAGE),
-    ))
+    .where(
+      and(
+        eq(usageCounters.userId, userId),
+        eq(usageCounters.metric, METRIC_STORAGE),
+        eq(usageCounters.window, WINDOW_STORAGE),
+      ),
+    )
     .limit(1)
   return rows[0]?.count ?? null
 }
@@ -88,10 +93,18 @@ export async function somarBytesEmDisco(userId: UserId, audioDir = diretorioDeAu
   let total = 0
   for (const s of await sessionsRepo.list(userId)) {
     let nome: unknown
-    try { nome = s.meta ? (JSON.parse(s.meta) as Record<string, unknown>).audioFile : null } catch { continue }
+    try {
+      nome = s.meta ? (JSON.parse(s.meta) as Record<string, unknown>).audioFile : null
+    } catch {
+      continue
+    }
     if (typeof nome !== 'string' || !nome) continue
     // S-14: nome que escaparia do diretório lança no store e não entra na conta.
-    try { total += (await store.tamanho(nome)) ?? 0 } catch { continue }
+    try {
+      total += (await store.tamanho(nome)) ?? 0
+    } catch {
+      continue
+    }
   }
   return total
 }
@@ -108,7 +121,15 @@ async function semearSeAusente(userId: UserId): Promise<number> {
   const now = Date.now()
   await db
     .insert(usageCounters)
-    .values({ id: randomUUID(), userId, createdAt: now, updatedAt: now, metric: METRIC_STORAGE, window: WINDOW_STORAGE, count: disco })
+    .values({
+      id: randomUUID(),
+      userId,
+      createdAt: now,
+      updatedAt: now,
+      metric: METRIC_STORAGE,
+      window: WINDOW_STORAGE,
+      count: disco,
+    })
     .onConflictDoNothing()
   return disco
 }
@@ -118,7 +139,15 @@ async function reservaAtomica(userId: UserId, bytes: number, cap: number): Promi
   const now = Date.now()
   const r = await db
     .insert(usageCounters)
-    .values({ id: randomUUID(), userId, createdAt: now, updatedAt: now, metric: METRIC_STORAGE, window: WINDOW_STORAGE, count: bytes })
+    .values({
+      id: randomUUID(),
+      userId,
+      createdAt: now,
+      updatedAt: now,
+      metric: METRIC_STORAGE,
+      window: WINDOW_STORAGE,
+      count: bytes,
+    })
     .onConflictDoUpdate({
       target: [usageCounters.userId, usageCounters.metric, usageCounters.window],
       set: { count: sql`${usageCounters.count} + ${bytes}`, updatedAt: now },
@@ -159,11 +188,13 @@ export async function liberarArmazenamento(userId: UserId, bytes: number): Promi
     await db
       .update(usageCounters)
       .set({ count: sql`max(0, ${usageCounters.count} - ${b})`, updatedAt: Date.now() })
-      .where(and(
-        eq(usageCounters.userId, userId),
-        eq(usageCounters.metric, METRIC_STORAGE),
-        eq(usageCounters.window, WINDOW_STORAGE),
-      ))
+      .where(
+        and(
+          eq(usageCounters.userId, userId),
+          eq(usageCounters.metric, METRIC_STORAGE),
+          eq(usageCounters.window, WINDOW_STORAGE),
+        ),
+      )
   } catch (err) {
     log('warn', { event: 'storage_release_failed', error: String((err as Error)?.message || err).slice(0, 120) })
   }
@@ -182,7 +213,15 @@ export async function ajustarArmazenamento(userId: UserId, delta: number): Promi
     const now = Date.now()
     await db
       .insert(usageCounters)
-      .values({ id: randomUUID(), userId, createdAt: now, updatedAt: now, metric: METRIC_STORAGE, window: WINDOW_STORAGE, count: d })
+      .values({
+        id: randomUUID(),
+        userId,
+        createdAt: now,
+        updatedAt: now,
+        metric: METRIC_STORAGE,
+        window: WINDOW_STORAGE,
+        count: d,
+      })
       .onConflictDoUpdate({
         target: [usageCounters.userId, usageCounters.metric, usageCounters.window],
         set: { count: sql`${usageCounters.count} + ${d}`, updatedAt: now },
@@ -203,7 +242,15 @@ export async function reconciliarArmazenamento(userId: UserId, audioDir = direto
   const now = Date.now()
   await db
     .insert(usageCounters)
-    .values({ id: randomUUID(), userId, createdAt: now, updatedAt: now, metric: METRIC_STORAGE, window: WINDOW_STORAGE, count: disco })
+    .values({
+      id: randomUUID(),
+      userId,
+      createdAt: now,
+      updatedAt: now,
+      metric: METRIC_STORAGE,
+      window: WINDOW_STORAGE,
+      count: disco,
+    })
     .onConflictDoUpdate({
       target: [usageCounters.userId, usageCounters.metric, usageCounters.window],
       set: { count: disco, updatedAt: now },
@@ -253,19 +300,29 @@ export async function reivindicarJanela(userId: UserId, horas: number): Promise<
   const limite = agora - horas * 3_600_000
   const criado = await db
     .insert(usageCounters)
-    .values({ id: randomUUID(), userId, createdAt: agora, updatedAt: agora, metric: METRIC_STORAGE, window: WINDOW_STORAGE, count: 0 })
+    .values({
+      id: randomUUID(),
+      userId,
+      createdAt: agora,
+      updatedAt: agora,
+      metric: METRIC_STORAGE,
+      window: WINDOW_STORAGE,
+      count: 0,
+    })
     .onConflictDoNothing({ target: [usageCounters.userId, usageCounters.metric, usageCounters.window] })
   if (Number((criado as { rowsAffected?: number })?.rowsAffected ?? 0) > 0) return true
 
   const marcado = await db
     .update(usageCounters)
     .set({ updatedAt: agora })
-    .where(and(
-      eq(usageCounters.userId, userId),
-      eq(usageCounters.metric, METRIC_STORAGE),
-      eq(usageCounters.window, WINDOW_STORAGE),
-      lte(usageCounters.updatedAt, limite),
-    ))
+    .where(
+      and(
+        eq(usageCounters.userId, userId),
+        eq(usageCounters.metric, METRIC_STORAGE),
+        eq(usageCounters.window, WINDOW_STORAGE),
+        lte(usageCounters.updatedAt, limite),
+      ),
+    )
   return Number((marcado as { rowsAffected?: number })?.rowsAffected ?? 0) > 0
 }
 
@@ -286,11 +343,13 @@ export async function reconciliarSeVencido(userId: UserId, audioDir = diretorioD
     const rows = await db
       .select({ count: usageCounters.count, updatedAt: usageCounters.updatedAt })
       .from(usageCounters)
-      .where(and(
-        eq(usageCounters.userId, userId),
-        eq(usageCounters.metric, METRIC_STORAGE),
-        eq(usageCounters.window, WINDOW_STORAGE),
-      ))
+      .where(
+        and(
+          eq(usageCounters.userId, userId),
+          eq(usageCounters.metric, METRIC_STORAGE),
+          eq(usageCounters.window, WINDOW_STORAGE),
+        ),
+      )
       .limit(1)
     const linha = rows[0]
     if (horas === 0) return linha?.count ?? 0
@@ -318,7 +377,10 @@ export function estimarBytesDeAudio(durationMs?: number | null): number {
 /** Resposta HTTP da recusa, igual nas duas rotas que gravam arquivo. */
 export function corpoDeRecusa(r: ResultadoDeCota): { status: number; body: EnvelopeDeErro } {
   if (r.motivo === 'indisponivel') {
-    return { status: 503, body: envelopeDeErro('não foi possível verificar a cota de armazenamento agora', 'storage_quota_unavailable') }
+    return {
+      status: 503,
+      body: envelopeDeErro('não foi possível verificar a cota de armazenamento agora', 'storage_quota_unavailable'),
+    }
   }
   const mb = (b: number) => Math.round((b / MB) * 10) / 10
   /* `usedBytes`/`capBytes` em `detalhes`, e não soltos no topo: é o envelope único (achado A30).

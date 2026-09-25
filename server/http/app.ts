@@ -35,6 +35,7 @@ import { abertura, portaDoCadastro } from '../lib/abertura'
 import { authMiddleware, authRequired, verificarTokenPadrao } from '../lib/auth'
 import type { UserId } from '../lib/authContext'
 import { metricasHabilitadas, portaInternaDeMetricas, segredoDeOrigem } from '../lib/config'
+import { exigirContaParaEscrever } from '../lib/convidado'
 import { capturarAssincrono } from '../lib/erroGlobal'
 import { exigirAdultoDeclarado, exigirContaLiberada } from '../lib/idade'
 import { criarLimitadorDeFalhas } from '../lib/limitadorDeFalhas'
@@ -422,6 +423,11 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
   /* `SIGNUP_ENABLED=0` (Fase 3): conta que o banco ainda não conhece é recusada em qualquer rota
      (403 `cadastro_fechado`). Ligado, este middleware não faz nem consulta. */
   app.use('/api', portaDoCadastro)
+
+  /* Fase 7 — MODO CONVIDADO: o usuário anônimo do Supabase (`is_anonymous`) só escreve no servidor
+     pela nuvem (STT, tradução, tutor — com as travas de `server/lib/convidado.ts`) e pela exclusão
+     do titular. Todo o resto responde 403 `exige_conta`: o convidado guarda no aparelho. */
+  app.use('/api', exigirContaParaEscrever)
 
   // GAP-015: o corpo grande só é lido depois de o token ser aceito (ver `limitesDeCorpo.ts`).
   app.use([...ROTAS_DE_CORPO_GRANDE], jsonDepoisDoAuth())

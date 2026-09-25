@@ -26,6 +26,7 @@
 #   vars.VITE_SUPABASE_ANON_KEY   anon key (pública por desenho)
 #   vars.VITE_SELF_HOST_MODELS    https://<bucket público dos modelos> (opcional)
 #   vars.VITE_SENTRY_DSN          DSN do Sentry do navegador (opcional; é público por desenho)
+#   vars.VITE_TURNSTILE_SITE_KEY  chave pública do Cloudflare Turnstile (opcional; captcha do convidado, Fase 7)
 #   secrets.FLY_API_TOKEN         `fly tokens create deploy --app <app>` (só deploy, só este app)
 # Em production, ligue "Required reviewers": o job de produção pede aprovação antes de rodar.
 #

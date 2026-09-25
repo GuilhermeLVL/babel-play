@@ -232,6 +232,13 @@
       "when": 1790330000000,
       "tag": "0032_versoes_de_dados",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "6",
+      "when": 1790340000000,
+      "tag": "0033_convidados",
+      "breakpoints": true
     }
   ]
 }

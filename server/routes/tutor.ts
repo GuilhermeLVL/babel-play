@@ -27,7 +27,8 @@ import { cascataDeNuvem, llmLocal } from '../ai/provedores'
 import { abrirReservaDeLlm, type ReservaDeLlm } from '../ai/reservaDeNuvem'
 import { abrirRastro, nomeDoProvedor, type RastroDeIa, statusDaTentativa } from '../ai/telemetriaDeIa'
 import { authRequired } from '../lib/auth'
-import { getEntitlementsForUser } from '../lib/entitlements'
+import { abrirPortaGratuita, type PortaGratuita } from '../lib/convidado'
+import { getEntitlements } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
 import { ehMenor, INSTRUCAO_DE_SEGURANCA_PARA_MENORES } from '../lib/idade'
 import { log } from '../lib/logger'
@@ -84,6 +85,10 @@ async function conversar(req: Request, res: Response, rastro: RastroDeIa): Promi
   let reserva: ReservaDeLlm | null = null
   /* Admissão da cascata (ADR 0007): vaga em voo do usuário + balde do modelo. Fechada no `finally`. */
   let admissao: AdmissaoDaCascata | null = null
+  /* Fase 7: as travas de convidado/free (flag, limite por IP, pool do dia, tetos). A mensagem de
+     tutor do convidado é reservada na porta e devolvida no `finally` se nada foi entregue. */
+  let gratuita: PortaGratuita | null = null
+  let respondeuDaNuvem = false
   try {
     /* PÚBLICO MENOR (ECA Digital, Fase 4): menor — ou quem ainda não declarou a idade — recebe a
        instrução de segurança no fim do `system`. No self-host `ehMenor` é sempre falso. A TRADUÇÃO
@@ -97,7 +102,9 @@ async function conversar(req: Request, res: Response, rastro: RastroDeIa): Promi
       return
     }
     const selfHost = !authRequired()
-    const plano = await getEntitlementsForUser(req.userId)
+    gratuita = await abrirPortaGratuita(req, res, 'tutor')
+    if (!gratuita) return // já respondeu: 403 `exige_conta`, 429, 402 ou 503
+    const plano = getEntitlements(gratuita.plano)
 
     if (plano.managedCloudLlm) {
       const provedores = cascataDeNuvem({ modelosGrandes: plano.largerModels })
@@ -141,10 +148,10 @@ async function conversar(req: Request, res: Response, rastro: RastroDeIa): Promi
         )
         if (entregue) {
           await reserva.consumir(entregue.tokensEntrada + entregue.tokensSaida)
-          await registrarGastoDeIa(custoDeLlm(entregue.model, entregue.tokensEntrada, entregue.tokensSaida), {
-            userId: req.userId,
-            plano: plano.plan,
-          })
+          const custo = custoDeLlm(entregue.model, entregue.tokensEntrada, entregue.tokensSaida)
+          await registrarGastoDeIa(custo, { userId: req.userId, plano: plano.plan })
+          await gratuita.registrarCusto(custo)
+          respondeuDaNuvem = true
           res.json({ text: entregue.texto, engine: 'nuvem', local: false })
           return
         }
@@ -178,6 +185,7 @@ async function conversar(req: Request, res: Response, rastro: RastroDeIa): Promi
   } finally {
     encerrarAdmissao(admissao)
     await reserva?.estornar()
+    if (!respondeuDaNuvem) await gratuita?.estornar()
   }
 }
 

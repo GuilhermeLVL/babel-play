@@ -38,12 +38,15 @@ ARG VITE_AUTH_REQUIRED=1
 ARG VITE_PUBLIC_URL
 ARG VITE_SELF_HOST_MODELS
 ARG VITE_SENTRY_DSN
+# Fase 7 (opcional): a chave PÚBLICA do Cloudflare Turnstile — o captcha do convidado com nuvem.
+ARG VITE_TURNSTILE_SITE_KEY
 ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL \
     VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY \
     VITE_AUTH_REQUIRED=$VITE_AUTH_REQUIRED \
     VITE_PUBLIC_URL=$VITE_PUBLIC_URL \
     VITE_SELF_HOST_MODELS=$VITE_SELF_HOST_MODELS \
-    VITE_SENTRY_DSN=$VITE_SENTRY_DSN
+    VITE_SENTRY_DSN=$VITE_SENTRY_DSN \
+    VITE_TURNSTILE_SITE_KEY=$VITE_TURNSTILE_SITE_KEY
 # P0-7b: o commit entra na VERSÃO do app (`0.1.0+<sha7>`) já no build — o `vite.config.ts` a
 # embute no bundle e grava `dist/versao.json`, que o servidor lê em runtime. Sem este ARG aqui o
 # `--build-arg VERSAO` do deploy só chegava ao estágio de runtime e o bundle saía sem o sha.
@@ -147,10 +150,12 @@ COPY --chmod=0755 scripts/iniciar-container.sh /usr/local/bin/iniciar-container.
 ARG VITE_SUPABASE_URL
 ARG VITE_SELF_HOST_MODELS
 ARG VITE_SENTRY_DSN
+ARG VITE_TURNSTILE_SITE_KEY
 ARG VERSAO
 ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL \
     VITE_SELF_HOST_MODELS=$VITE_SELF_HOST_MODELS \
     VITE_SENTRY_DSN=$VITE_SENTRY_DSN \
+    VITE_TURNSTILE_SITE_KEY=$VITE_TURNSTILE_SITE_KEY \
     SENTRY_RELEASE=$VERSAO
 
 # Diretório do banco e dos áudios. Em produção AMBOS devem ser volume — ver

@@ -19,6 +19,7 @@ import {
   ankiImports,
   ankiNotes,
   billingEvents,
+  convidados,
   creditPurchases,
   creditSpends,
   exerciseResults,
@@ -93,6 +94,9 @@ const TABELAS_DO_TITULAR: ReadonlyArray<readonly [string, any]> = [
      específico registrado. Sai com a conta do menor, como todo dado dele. */
   ['vinculosDeResponsavel', vinculosDeResponsavel],
   ['idadesDeclaradas', idadesDeclaradas],
+  /* Fase 7: o registro do convidado com nuvem (id anônimo + IP pseudonimizado do dia). Sai com a
+     conta como o resto — a conversão mantém o id, então a linha passa a ser da conta convertida. */
+  ['convidados', convidados],
 ]
 
 /** Os nomes, para o teste de invariante e para quem precise listar sem tocar nas tabelas. */
@@ -275,7 +279,7 @@ export const contaRepo = {
 
     for (const [nome, tabela] of TABELAS_DO_TITULAR) {
       const chaves = chavesDoTitular(nome, userId)
-      const linhas = await db.select({ id: tabela.id }).from(tabela).where(inArray(tabela.userId, chaves))
+      const linhas = await db.select({ dono: tabela.userId }).from(tabela).where(inArray(tabela.userId, chaves))
       linhasPorTabela[nome] = linhas.length
       if (linhas.length) instrucoes.push(db.delete(tabela).where(inArray(tabela.userId, chaves)))
     }

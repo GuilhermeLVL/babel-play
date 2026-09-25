@@ -9,14 +9,15 @@
  *
  * Sem `Date.now()` proibido aqui — é módulo Node normal (não script de workflow).
  */
-import { ehPlanoDeAssinatura, PLAN_MATRIX } from '../../src/core/planos'
-import { type Plan, type Subscription, subscriptionsRepo } from '../db/repositories/subscriptions'
+import { definicaoDoPlano, ehPlanoDeAssinatura, type PlanoEfetivo } from '../../src/core/planos'
+import { type Subscription, subscriptionsRepo } from '../db/repositories/subscriptions'
 import { authRequired } from './auth'
 import type { UserId } from './authContext'
+import { ehConvidadoNoContexto } from './contextoDeConvidado'
 import { log } from './logger'
 
 export interface Entitlements {
-  plan: Plan
+  plan: PlanoEfetivo
   youtubeImport: boolean
   managedCloudStt: boolean
   managedCloudLlm: boolean
@@ -49,10 +50,14 @@ function subConcede(sub: Subscription): boolean {
 }
 
 /** O plano EFETIVO do usuário, resolvido no servidor. */
-export async function getPlanForUser(userId: UserId): Promise<Plan> {
+export async function getPlanForUser(userId: UserId): Promise<PlanoEfetivo> {
   // 0) Self-host/local (AUTH_REQUIRED desligada): a IA gerenciada usa a chave do PRÓPRIO usuário
   //    (o GROQ_API_KEY do .env dele) — não há custo nosso, nada a gatear. Sempre 'selfhost'.
   if (!authRequired()) return 'selfhost'
+
+  // 0b) Fase 7 — usuário ANÔNIMO do Supabase (JWT com `is_anonymous`): `convidado`, antes de olhar
+  //     assinatura (anônimo não assina: o billing responde `exige_conta`). Ver `contextoDeConvidado.ts`.
+  if (ehConvidadoNoContexto(userId)) return 'convidado'
 
   // 1) Assinatura é a ÚNICA fonte autoritativa do plano em modo público: concede o plano dela, ou
   //    'free' se não concede mais.
@@ -82,8 +87,8 @@ export async function getPlanForUser(userId: UserId): Promise<Plan> {
  * Essencial quebra essa simetria de propósito: tradução de nuvem SIM, STT de nuvem NÃO — é o que
  * o torna barato. Um booleano único não consegue expressar isso.
  */
-export function getEntitlements(plan: Plan): Entitlements {
-  const def = PLAN_MATRIX[plan]
+export function getEntitlements(plan: PlanoEfetivo): Entitlements {
+  const def = definicaoDoPlano(plan)
   return { plan, ...def.entitlements }
 }
 

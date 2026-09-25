@@ -9,6 +9,7 @@
  * Nota: a API de MFA (enroll/challenge/verify) segue o SDK atual do @supabase/supabase-js; revalidar
  * contra a doc do Supabase ao ligar de verdade (o MCP tem `search_docs`).
  */
+import { ehSessaoAnonima } from './convidado';
 import { supabase } from './supabase';
 
 export type AuthProvider = 'google' | 'facebook';
@@ -23,6 +24,8 @@ export interface AuthResult {
 
 const NOT_CONFIGURED = 'Login não configurado neste ambiente.';
 const INVALID_CREDS = 'E-mail ou senha incorretos.'; // genérica: não diz QUAL está errado
+const CONVIDADO_CONFIRMA_EMAIL =
+  'Enviamos um link para o seu e-mail. Depois de confirmar, defina a senha em Ajustes → Conta — o que você fez como convidado continua com você.';
 const RESET_SENT = 'Se existir uma conta com esse e-mail, enviamos um link de recuperação.';
 
 /** E-mail + senha. Erro → mensagem genérica (anti-enumeração). */
@@ -32,9 +35,36 @@ export async function signInEmail(email: string, password: string): Promise<Auth
   return error ? { ok: false, message: INVALID_CREDS } : { ok: true };
 }
 
-/** Criar conta. Sem sessão de volta → verificação por e-mail pendente. */
+/**
+ * O convidado (Fase 7) tem sessão ANÔNIMA do Supabase? Então criar conta é CONVERTER essa sessão —
+ * `updateUser`/`linkIdentity` mantêm o mesmo id, e a cota/contadores do servidor seguem com a pessoa.
+ * Um `signUp` comum criaria OUTRO usuário e deixaria o anônimo órfão (a limpeza de 30 dias o leva).
+ */
+async function sessaoAnonimaAtiva(): Promise<boolean> {
+  if (!supabase) return false;
+  try {
+    const { data } = await supabase.auth.getSession();
+    return ehSessaoAnonima(data.session);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Criar conta. Sem sessão de volta → verificação por e-mail pendente.
+ *
+ * CONVIDADO COM SESSÃO ANÔNIMA: vincula o e-mail ao MESMO usuário (`updateUser({ email })`). O
+ * Supabase só aceita senha DEPOIS de o e-mail ser confirmado — então a senha digitada não é enviada
+ * aqui; a tela avisa que ela é definida depois da confirmação (em Ajustes → Conta, ou pelo "esqueci a
+ * senha"). Guardar a senha no aparelho até lá seria pior do que pedir de novo.
+ */
 export async function signUpEmail(email: string, password: string): Promise<AuthResult> {
   if (!supabase) return { ok: false, message: NOT_CONFIGURED };
+  if (await sessaoAnonimaAtiva()) {
+    const { error } = await supabase.auth.updateUser({ email });
+    if (error) return { ok: false, message: error.message };
+    return { ok: true, needsEmailConfirm: true, message: CONVIDADO_CONFIRMA_EMAIL };
+  }
   const { data, error } = await supabase.auth.signUp({ email, password });
   if (error) return { ok: false, message: error.message };
   if (!data.session) return { ok: true, needsEmailConfirm: true };
@@ -44,6 +74,16 @@ export async function signUpEmail(email: string, password: string): Promise<Auth
 /** Login social (redireciona o browser). O `redirectTo` deve estar na allowlist do painel Supabase. */
 export async function signInWithProvider(provider: AuthProvider, redirectTo?: string): Promise<AuthResult> {
   if (!supabase) return { ok: false, message: NOT_CONFIGURED };
+  /* Convidado com sessão anônima: vincula o provedor ao MESMO usuário (exige "manual linking" no
+     painel do Supabase). Se o Google já for de outra conta, o Supabase recusa — aí é LOGIN naquela
+     conta, pelo caminho normal abaixo, e os dados do aparelho sobem pelo `ModalDeMigracao`. */
+  if (await sessaoAnonimaAtiva()) {
+    const { error } = await supabase.auth.linkIdentity({
+      provider,
+      ...(redirectTo ? { options: { redirectTo } } : {}),
+    });
+    if (!error) return { ok: true };
+  }
   const { error } = await supabase.auth.signInWithOAuth({
     provider,
     ...(redirectTo ? { options: { redirectTo } } : {}),

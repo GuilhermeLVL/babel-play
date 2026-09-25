@@ -92,13 +92,16 @@ const SUFIXOS_POR_PLANO: ReadonlyArray<{ sufixo: string; paraQue: string }> = [
   { sufixo: 'MONTHLY_LLM_TOKENS', paraQue: 'teto mensal de tokens (entrada + saída) do LLM de nuvem do plano' },
 ]
 
-export const VARIAVEIS_POR_PLANO: readonly VariavelDeclarada[] = Object.keys(PLAN_MATRIX).flatMap((plano) =>
-  SUFIXOS_POR_PLANO.map(({ sufixo, paraQue }) => ({
-    nome: `${plano.toUpperCase()}_${sufixo}`,
-    exigencia: 'opcional' as const,
-    criticidade: 'degrada-capacidade' as const,
-    paraQue: `${paraQue} — plano ${plano}`,
-  })),
+/* O `convidado` (Fase 7) não está na matriz de assinatura, mas as cotas dele passam pelas MESMAS
+   funções (`usageQuota.ts`/`storageQuota.ts`), que montam `CONVIDADO_*` em tempo de execução. */
+export const VARIAVEIS_POR_PLANO: readonly VariavelDeclarada[] = [...Object.keys(PLAN_MATRIX), 'convidado'].flatMap(
+  (plano) =>
+    SUFIXOS_POR_PLANO.map(({ sufixo, paraQue }) => ({
+      nome: `${plano.toUpperCase()}_${sufixo}`,
+      exigencia: 'opcional' as const,
+      criticidade: 'degrada-capacidade' as const,
+      paraQue: `${paraQue} — plano ${plano}`,
+    })),
 )
 
 export const VARIAVEIS: readonly VariavelDeclarada[] = [
@@ -235,6 +238,27 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
     paraQue: 'nº de processos do cluster; sem ela, processo único (ver F6-01)',
+  },
+  {
+    nome: 'CONVIDADOS_POR_IP_DIA',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'quantos convidados anônimos DISTINTOS podem estrear na nuvem pelo mesmo IP no mesmo dia; acima disso a nuvem responde 429 limite_de_convidados (Fase 7). Padrão 3',
+  },
+  {
+    nome: 'CONVIDADO_IP_TUTOR_DIA',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'teto diário de mensagens de tutor por IP pseudonimizado, somando todos os convidados daquele IP (Fase 7, server/lib/convidado.ts). Padrão 10',
+  },
+  {
+    nome: 'CONVIDADO_IP_USD_DIA',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'teto diário de gasto ESTIMADO de IA de nuvem, em US$, por IP pseudonimizado, somando todos os convidados daquele IP — limpar cookies ou criar outro anônimo não reseta (Fase 7). Padrão 0,04',
   },
   {
     nome: 'CONVITE_LINK_NA_TELA',
@@ -518,6 +542,20 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     paraQue:
       'segredo que o Cloudflare injeta no cabeçalho `x-origem-segredo` (Transform Rule). Definido, requisição sem ele é recusada com 403 — fecha o acesso direto a `<app>.fly.dev`, que pularia o WAF e forjaria o `X-Forwarded-For`. `/api/health` e `/api/ready` ficam de fora (as sondas do Fly não passam pelo Cloudflare)',
   },
+  {
+    nome: 'POOL_GRATUITO_FRACAO_RECEITA',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'fração da receita líquida do mês (÷ 30) que vira o pool diário de IA de nuvem de convidado + free (Fase 7). Padrão 0,05',
+  },
+  {
+    nome: 'POOL_GRATUITO_PISO_USD_DIA',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'piso do pool diário de IA de nuvem de convidado + free, em US$: pool = max(piso, fração da receita líquida ÷ 30). Esgotado, só o convidado/free cai no motor local (Fase 7). Padrão 0,50',
+  },
   { nome: 'PORT', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'porta de escuta' },
   {
     nome: 'REPLICAS',
@@ -688,6 +726,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
     paraQue: 'projeto Supabase do login no navegador; a CSP libera a origem dele em `connect-src`',
+  },
+  {
+    nome: 'VITE_TURNSTILE_SITE_KEY',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'chave PÚBLICA do Cloudflare Turnstile: o convidado passa pelo captcha antes de o Supabase criar o usuário anônimo (Fase 7). Com ela a CSP libera challenges.cloudflare.com; sem ela o captcha fica desligado',
   },
   {
     nome: 'YTDLP_PATH',
@@ -1156,4 +1201,39 @@ export function avisoDeConviteSemEmail(
     'conta de menor de 16 anos consegue liberar a nuvem. Configure o Resend (docs/LANCAMENTO.md §4) ' +
     'antes de abrir o app a menores.'
   )
+}
+
+/* ─────────────── Modo convidado (Fase 7): antiabuso e pool gratuito ─────────────── */
+
+function numeroDoEnv(bruto: string | undefined, padrao: number, evento: string): number {
+  const t = bruto?.trim()
+  if (!t) return padrao
+  const n = Number(t.replace(',', '.'))
+  if (Number.isFinite(n) && n >= 0) return n
+  log('warn', { event: evento, error: 'valor não numérico; usando o padrão' })
+  return padrao
+}
+
+/** Os limites antiabuso do convidado com nuvem (`server/lib/convidado.ts`). */
+export function limitesAntiabusoDoConvidado(env: NodeJS.ProcessEnv = process.env): {
+  convidadosPorIpDia: number
+  ipUsdDia: number
+  ipTutorDia: number
+} {
+  return {
+    convidadosPorIpDia: Math.floor(numeroDoEnv(env.CONVIDADOS_POR_IP_DIA, 3, 'config_convidados_por_ip_invalido')),
+    ipUsdDia: numeroDoEnv(env.CONVIDADO_IP_USD_DIA, 0.04, 'config_convidado_ip_usd_invalido'),
+    ipTutorDia: Math.floor(numeroDoEnv(env.CONVIDADO_IP_TUTOR_DIA, 10, 'config_convidado_ip_tutor_invalido')),
+  }
+}
+
+/** O pool diário de IA gratuita (convidado + free): `max(piso, fração × receita líquida do mês ÷ 30)`. */
+export function parametrosDoPoolGratuito(env: NodeJS.ProcessEnv = process.env): {
+  pisoUsdDia: number
+  fracaoDaReceita: number
+} {
+  return {
+    pisoUsdDia: numeroDoEnv(env.POOL_GRATUITO_PISO_USD_DIA, 0.5, 'config_pool_piso_invalido'),
+    fracaoDaReceita: Math.min(1, numeroDoEnv(env.POOL_GRATUITO_FRACAO_RECEITA, 0.05, 'config_pool_fracao_invalida')),
+  }
 }

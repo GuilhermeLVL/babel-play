@@ -18,6 +18,7 @@ import type { NextFunction, Request, Response } from 'express'
 import { createRemoteJWKSet, decodeJwt, jwtVerify } from 'jose'
 
 import { asUserId, LOCAL_OWNER, type UserId } from './authContext'
+import { comIdentidade, ehTokenAnonimo } from './contextoDeConvidado'
 import { log } from './logger'
 
 /** A auth é exigida? `=1` liga, `=0` desliga; sem valor, liga só em produção. */
@@ -206,6 +207,9 @@ export function makeAuthMiddleware(
     /* Fase 6 (2FA de verdade): o `aal` do token já VERIFICADO acima. Decodificar de novo é barato e
        evita mudar a assinatura do verificador, que os testes injetam. Ver `server/lib/aal.ts`. */
     req.aal = nivelDoToken(m[1])
+    /* Fase 7 — modo convidado: usuário ANÔNIMO do Supabase (`is_anonymous`). O plano dele é
+       `convidado` (ver `server/lib/contextoDeConvidado.ts` e `server/lib/convidado.ts`). */
+    req.convidado = ehTokenAnonimo(m[1])
     // Revogação (Fatia 4): conta suspensa é barrada mesmo com JWT válido. Fail-closed: erro ao checar → nega.
     try {
       if (await isSuspended(userId)) {
@@ -223,7 +227,7 @@ export function makeAuthMiddleware(
       res.status(503).json({ error: 'falha ao verificar status da conta' })
       return
     }
-    next()
+    comIdentidade(userId, req.convidado, next)
   }
 }
 

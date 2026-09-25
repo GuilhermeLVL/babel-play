@@ -318,20 +318,34 @@ async function startServer({ prepararDados = true } = {}) {
   registrarDesligamento({ servidor: server, antes: () => repassarSinalAosWorkers?.() })
 
   /* SNAPSHOT DIÁRIO NO R2 (Fase 5) — só no processo que prepara os dados (o primário, no cluster):
-     N processos fariam N cópias do mesmo banco na mesma hora. O porquê de ser dentro do processo, e
-     não num cron externo, está em `server/operacao/snapshot.ts`. */
+     N processos fariam N cópias do mesmo banco na mesma hora. AGENDADO aqui, EXECUTADO num processo
+     filho. O porquê de ser nesta máquina, e não num cron externo, e de ser num filho, está em
+     `server/operacao/snapshot.ts`. */
   const backup = prepararDados ? configDoBackupDiario() : null
   if (backup) {
-    const { agendarSnapshotDiario, destinoDoBackup, fazerSnapshot } = await import('./server/operacao/snapshot')
+    const { agendarSnapshotDiario, destinoDoBackup, fazerSnapshotEmProcessoFilho, resolverCliDeOperacao } =
+      await import('./server/operacao/snapshot')
     const destino = destinoDoBackup()
     const urlDoBanco = process.env.DATABASE_URL ?? 'file:./data/babel.db'
+    /* A CLI que o filho roda é resolvida AGORA, no boot: faltando o `operacao.cjs` na imagem, o
+       aviso sai no deploy, e não às 3h da manhã num log que ninguém lê. */
+    let cli: ReturnType<typeof resolverCliDeOperacao> | null = null
+    try {
+      cli = resolverCliDeOperacao()
+    } catch (err) {
+      console.error(`[backup] ${(err as Error).message} — snapshot diário DESLIGADO`)
+    }
     if (!destino || !urlDoBanco.startsWith('file:')) {
       console.error('[backup] BACKUP_DIARIO=1 mas faltam as S3_* ou o banco não é arquivo — snapshot diário DESLIGADO')
-    } else {
+    } else if (cli) {
+      const cliDoFilho = cli
       agendarSnapshotDiario({
         horaUtc: backup.horaUtc,
         heartbeatUrl: backup.heartbeatUrl,
-        executar: () => fazerSnapshot({ urlDoBanco, dirTemporario: path.dirname(urlDoBanco.slice(5)), destino }),
+        /* Num PROCESSO FILHO (a CLI de operação): o `VACUUM INTO` e o `integrity_check` do driver
+           síncrono prendiam o event loop por segundos — 3,7 s com 46 MB, 34 s com 479 MB — e o
+           health check do Fly desiste em 5 s. Ver `fazerSnapshotEmProcessoFilho`. */
+        executar: () => fazerSnapshotEmProcessoFilho({ urlDoBanco, cli: cliDoFilho }),
       })
       console.log(`[backup] snapshot diário às ${backup.horaUtc}h UTC para ${destino.cfg.bucket}/${destino.prefixo}`)
     }

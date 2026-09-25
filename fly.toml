@@ -70,8 +70,10 @@ kill_timeout = 30
     soft_limit = 200
     hard_limit = 250
 
-  # PRONTIDÃO, não vivacidade: /api/ready diz "consigo atender" (banco, migrações aplicadas, R2
-  # alcançável). O Fly tira do roteamento a máquina que responde 503. `grace_period` cobre o boot
+  # PRONTIDÃO, não vivacidade: /api/ready diz "consigo atender" (banco, migrações aplicadas, boot).
+  # O Fly tira do roteamento a máquina que responde 503. O R2 NÃO reprova (ADR 0009): fora do ar,
+  # o ready segue 200 com `armazenamento: 'indisponivel'` — com uma máquina só, reprovar derrubaria
+  # o site inteiro por causa do áudio. `grace_period` cobre o boot
   # com restauração do Litestream num volume novo.
   [[http_service.checks]]
     grace_period = "60s"

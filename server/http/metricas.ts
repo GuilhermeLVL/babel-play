@@ -115,6 +115,7 @@ interface Estado {
   capturaRtf: Histogram<'motor'>
   capturaDescartes: Counter<never>
   capturaFallback: Counter<'motor'>
+  dependenciaDegradada: Counter<'dependencia'>
 }
 
 let estado: Estado | undefined
@@ -192,6 +193,14 @@ function metricas(): Estado {
     }),
     /* A TELEMETRIA DE CAPTURA que o cliente manda (`POST /api/metricas/captura`). Label só `motor`,
        e o motor já chega saneado contra uma allowlist de formato — ver `server/routes/metricasCaptura.ts`. */
+    /* ADR 0009: o R2 fora do ar NÃO derruba mais o `/api/ready` — então a readiness deixou de
+       ser o alarme dele. Este contador é o alarme: cresce a cada sonda que achou a dependência
+       fora. Label fixa do código (`armazenamento`), nunca o endpoint. */
+    dependenciaDegradada: new Counter({
+      name: 'ready_dependencia_degradada_total',
+      help: 'Sondas do /api/ready que acharam uma dependência DEGRADÁVEL fora do ar (hoje só o armazenamento S3/R2). O ready segue 200; este contador é o alarme.',
+      labelNames: ['dependencia'] as const,
+    }),
     capturaSttFinal: new Histogram({
       name: 'captura_stt_final_ms',
       help: 'Do fim da fala ao texto final do STT, medido no navegador, por motor de STT.',
@@ -254,6 +263,12 @@ export function observarChamadaDeProvedor(o: {
 export function contarLimiteDoProvedor(provedor: string, modelo: string): void {
   if (!estado) return
   estado.provedorLimite.inc({ provedor, modelo })
+}
+
+/** Uma sonda do `/api/ready` achou uma dependência degradável fora do ar (ADR 0009). */
+export function contarDependenciaDegradada(dependencia: 'armazenamento'): void {
+  if (!estado) return
+  estado.dependenciaDegradada.inc({ dependencia })
 }
 
 /** Segmentos (ou transcrições inteiras) que o STT de nuvem descartou, por motivo. */

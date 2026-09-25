@@ -3,6 +3,7 @@ import type { Request, Response } from 'express'
 
 import { db } from '../db/db'
 import { migracoesAplicadas } from '../db/manutencao'
+import { contarDependenciaDegradada } from '../http/metricas'
 import { armazenamentoDoAmbiente, configDoS3 } from '../lib/armazenamento'
 import { bootStatus } from '../lib/bootStatus'
 import { log } from '../lib/logger'
@@ -87,8 +88,12 @@ export async function healthHandler(_req: Request, res: Response): Promise<void>
  *                    contínuo que `SELECT 1` não vê: código novo sobre banco velho.
  *   boot           — um passo de boot falho já degrada o `health`; aqui ele também impede o ready,
  *                    porque `backfill-tenancy` incompleto significa servir dados incompletos.
- *   armazenamento  — SÓ quando há S3/R2 configurado. Sem ele a mídia é disco local, e disco local
- *                    que sumiu já aparece como falha do processo.
+ *   armazenamento  — SÓ quando há S3/R2 configurado, e ele NÃO REPROVA (ADR 0009). Com uma máquina
+ *                    só, o R2 fora do ar tirava o serviço INTEIRO do roteamento do Fly — "o áudio
+ *                    não grava" virava "o site caiu". É dependência degradável, como a IA: o upload
+ *                    responde 503 sozinho e o resto do app segue. O ready continua 200, o corpo diz
+ *                    `status: 'degradado'` + `armazenamento: 'indisponivel'`, e o operador fica
+ *                    sabendo pelo log `warn` e pela métrica `ready_dependencia_degradada_total`.
  *
  * PROVEDORES DE IA FICAM DE FORA, e essa é a decisão que mais importa aqui. Groq, Gemini e
  * OpenRouter são terceiros: uma instabilidade lá tiraria TODAS as réplicas do balanceador ao mesmo
@@ -133,12 +138,15 @@ export async function readyHandler(_req: Request, res: Response): Promise<void> 
       await armazenamentoDoAmbiente('').sondar()
       armazenamento = 'ok'
     } catch (err) {
-      log('error', {
+      /* `warn` e não `error`: é degradação PREVISTA, com resposta própria na rota de upload — não
+         é queda. Um `error` aqui iria ao Sentry a cada sonda do Fly (a cada poucos segundos). */
+      log('warn', {
         event: 'ready_armazenamento_indisponivel',
         route: '/api/ready',
-        status: 503,
+        status: 200,
         error: String(err).slice(0, 300),
       })
+      contarDependenciaDegradada('armazenamento')
       armazenamento = 'indisponivel'
     }
   }
@@ -146,10 +154,11 @@ export async function readyHandler(_req: Request, res: Response): Promise<void> 
   /* `desconhecida` NÃO reprova — ver `migracoesAplicadas`: é a réplica legítima que serve sem a
      pasta de migrações no disco (achado P1-N1). Reprovar ali tiraria do balanceador uma instância
      que atende. */
-  const pronto = banco === 'up' && boot.ok && migracoes !== 'atrasadas' && armazenamento !== 'indisponivel'
+  const pronto = banco === 'up' && boot.ok && migracoes !== 'atrasadas'
+  const status = !pronto ? 'indisponivel' : armazenamento === 'indisponivel' ? 'degradado' : 'pronto'
 
   res.status(pronto ? 200 : 503).json({
-    status: pronto ? 'pronto' : 'indisponivel',
+    status,
     db: banco,
     migracoes,
     boot: boot.ok ? 'ok' : 'degraded',

@@ -101,6 +101,11 @@ export function assinarSigV4(opts: {
   contentType?: string
   cfg: ConfigS3
   agora: Date
+  /**
+   * O sha256 do corpo JÁ CALCULADO — para quem envia um ARQUIVO em streaming e não tem o corpo em
+   * memória (o snapshot diário). Presente, `corpo` é ignorado.
+   */
+  hashDoCorpo?: string
 }): Record<string, string> {
   const { metodo, url, corpo, contentType, cfg, agora } = opts
   const carimbo = agora
@@ -108,7 +113,7 @@ export function assinarSigV4(opts: {
     .replace(/[-:]/g, '')
     .replace(/\.\d{3}/, '')
   const dia = carimbo.slice(0, 8)
-  const hashDoCorpo = sha256(typeof corpo === 'string' ? corpo : corpo)
+  const hashDoCorpo = opts.hashDoCorpo ?? sha256(corpo)
 
   const cabecalhos: Record<string, string> = {
     host: url.host,
@@ -190,8 +195,8 @@ export function armazenamentoS3(cfg: ConfigS3, buscar: typeof fetch = fetch): Ar
     },
     /* HEAD numa chave que ninguém grava: `404` é a resposta ESPERADA e prova que o bucket
        respondeu com credencial válida. `403` (assinatura ou permissão) e falha de rede lançam —
-       são exatamente os dois casos em que a instância não consegue servir mídia e precisa sair do
-       balanceador. */
+       são exatamente os dois casos em que a instância não consegue servir mídia. O ready NÃO sai
+       do ar por isso (ADR 0009): ele marca `armazenamento: 'indisponivel'` e segue 200. */
     async sondar() {
       const r = await chamar('HEAD', '__sonda-de-prontidao__')
       if (!r.ok && r.status !== 404) throw new Error(`s3 HEAD ${r.status}`)
@@ -208,6 +213,51 @@ export function armazenamentoS3(cfg: ConfigS3, buscar: typeof fetch = fetch): Ar
       return Number.isFinite(n) ? n : null
     },
   }
+}
+
+/**
+ * PUT de um ARQUIVO no S3/R2 sem carregá-lo na memória — o snapshot diário (`server/operacao/snapshot.ts`)
+ * é o cliente. O `gravar()` do seam recebe `Buffer`, e para o banco inteiro comprimido isso era +1×
+ * o arquivo de RSS no pico.
+ *
+ * Duas leituras do arquivo, e é de propósito: a SigV4 assina o sha256 do corpo ANTES de o corpo
+ * sair, então a primeira passada só calcula o hash (em streaming) e a segunda envia. A alternativa
+ * `UNSIGNED-PAYLOAD` pouparia a leitura, mas tiraria do R2 a conferência de integridade do que
+ * chegou — num backup, é exatamente a conferência que se quer.
+ *
+ * `Content-Length` vai explícito: sem ele o `fetch` manda `Transfer-Encoding: chunked`, que o
+ * S3/R2 recusa num PUT simples.
+ */
+export async function enviarArquivoAoS3(
+  cfg: ConfigS3,
+  nome: string,
+  arquivo: string,
+  contentType: string,
+  buscar: typeof fetch = fetch,
+): Promise<number> {
+  if (nome.includes('..') || nome.startsWith('/')) throw new Error('nome de objeto inválido')
+  const url = new URL(`/${cfg.bucket}/${encodeURIComponent(nome)}`, cfg.endpoint)
+  const hash = createHash('sha256')
+  for await (const pedaco of createReadStream(arquivo)) hash.update(pedaco as Buffer)
+  const { size } = await stat(arquivo)
+  const headers = assinarSigV4({
+    metodo: 'PUT',
+    url,
+    corpo: '',
+    hashDoCorpo: hash.digest('hex'),
+    contentType,
+    cfg,
+    agora: new Date(),
+  })
+  const r = await buscar(url.toString(), {
+    method: 'PUT',
+    headers: { ...headers, 'content-length': String(size) },
+    body: Readable.toWeb(createReadStream(arquivo)) as unknown as BodyInit,
+    // Exigido pelo `fetch` do Node para corpo em stream.
+    duplex: 'half',
+  } as RequestInit & { duplex: 'half' })
+  if (!r.ok) throw new Error(`s3 PUT ${r.status}`)
+  return size
 }
 
 /* ─────────────────────────── escolha ─────────────────────────── */

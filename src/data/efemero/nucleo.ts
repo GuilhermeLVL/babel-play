@@ -37,9 +37,13 @@ export const uuid = (): string =>
  *  - `GET /api/flags` (Fase 6b): as feature flags são PÚBLICAS por desenho — é o anônimo e o
  *    convidado que mais dependem delas —, e o servidor em memória não tem como saber o que o
  *    operador ligou. O que sobe é só o id aleatório da instalação, o idioma da interface e a
- *    versão do app; nenhum dado da pessoa (`src/lib/flags.ts`).
+ *    versão do app; nenhum dado da pessoa (`src/lib/flags.ts`);
+ *  - `POST /api/metricas/ofertas` (Fase 8): o funil de conversão das ofertas é ANÔNIMO por
+ *    desenho (evento + gatilho + componente + plano, sem id nenhum) e é justamente o convidado que
+ *    mais importa medir — sem isto a conversão "convidado → conta" seria invisível. Respeita a
+ *    preferência "Métricas de uso anônimas" (`src/lib/ofertas/instrumentacao.ts`).
  */
-export const PASSAM_DIRETO: RegExp[] = [/^\/api\/audio\/loopback\//, /^\/api\/flags$/];
+export const PASSAM_DIRETO: RegExp[] = [/^\/api\/audio\/loopback\//, /^\/api\/flags$/, /^\/api\/metricas\/ofertas$/];
 
 /**
  * Só AÇÕES da pessoa avisam o App para oferecer a conta. Sondas automáticas (disponibilidade de

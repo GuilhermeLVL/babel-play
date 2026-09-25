@@ -39,6 +39,10 @@ export const PREFIXOS = {
   'server/routes/erros.ts': '/api/erros-do-cliente',
   'server/routes/rank.ts': '/api/rank',
   'server/routes/health.ts': '/api/health',
+  /* A telemetria anônima (captura e, desde a Fase 8, o funil das ofertas) ficava fora do censo:
+     `app.use('/api/metricas', router)` não é `app.post(...)`, então nenhum portão a via. */
+  'server/routes/metricasCaptura.ts': '/api/metricas',
+  'server/routes/metricasOfertas.ts': '/api/metricas',
   'server/audio/loopback.ts': '/api/audio',
 }
 

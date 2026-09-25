@@ -15,6 +15,7 @@ import {
   ShieldCheck,
   Star,
   Table2,
+  Target,
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -31,6 +32,7 @@ import {
 } from '../../lib/assinatura';
 import { getEntitlements, onPlanChange, PLAN_LABELS } from '../../lib/entitlements';
 import { numero, t } from '../../lib/i18n';
+import { consumirDestaqueEmPlanos } from '../../lib/ofertas/destaque';
 import {
   esquecerPlanosTelaDoBoot,
   EVENTO_SUBTELA_DE_PLANOS,
@@ -196,6 +198,29 @@ export default function Planos() {
   const [abaLocal, setAbaLocal] = useState<'planos' | 'consumo'>('planos');
   const [planoDoCheckout, setPlanoDoCheckout] = useState<PlanoPago>(planoGuardado);
   const [dialogo, setDialogo] = useState<DialogoDaAssinatura | null>(null);
+  /* A OFERTA (Fase 8) não tem comparação própria: abre ESTA tela com o plano sugerido destacado,
+     ou direto no consumo do mês (`lib/ofertas/destaque.ts`). O pedido é lido ao montar e quando o
+     menu leva a Planos com a tela já aberta (o mesmo evento da sub-tela). */
+  const [sugerido, setSugerido] = useState<'essencial' | 'pro' | null>(null);
+  useEffect(() => {
+    const ler = () => {
+      const p = consumirDestaqueEmPlanos();
+      if (!p) return;
+      if ('aba' in p) {
+        setAbaLocal('consumo');
+        return;
+      }
+      setAbaLocal('planos');
+      setSugerido(p.plano);
+    };
+    ler();
+    window.addEventListener(EVENTO_SUBTELA_DE_PLANOS, ler);
+    return () => window.removeEventListener(EVENTO_SUBTELA_DE_PLANOS, ler);
+  }, []);
+  useEffect(() => {
+    if (!sugerido) return;
+    document.querySelector(`[data-plano="${sugerido}"]`)?.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
+  }, [sugerido]);
 
   useEffect(() => onPlanChange(() => setEntitlements(getEntitlements())), []);
 
@@ -334,10 +359,21 @@ export default function Planos() {
     const Icone = p.icone;
     const c = cta(p);
     return (
-      <article key={p.id} className={`cartao plano2 ${p.destaque ? 'escuro destaque' : ''} ${atual ? 'atual' : ''}`}>
+      <article
+        key={p.id}
+        data-plano={p.id}
+        className={`cartao plano2 ${p.destaque ? 'escuro destaque' : ''} ${atual ? 'atual' : ''}`}
+        /* O plano que a oferta sugeriu: o contorno de acento, sem mudar o desenho do cartão. */
+        style={sugerido === p.id && !atual ? { outline: '2px solid var(--accent)', outlineOffset: 3 } : undefined}
+      >
         {p.destaque && (
           <span className="badge acc fita2">
             <Star aria-hidden /> Recomendado
+          </span>
+        )}
+        {sugerido === p.id && !atual && (
+          <span className="badge acc fita2 dir">
+            <Target aria-hidden /> {t('Sugerido para você')}
           </span>
         )}
         {atual && (

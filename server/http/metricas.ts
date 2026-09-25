@@ -123,6 +123,8 @@ interface Estado {
   capturaDescartes: Counter<never>
   capturaFallback: Counter<'motor'>
   dependenciaDegradada: Counter<'dependencia'>
+  ofertaEventos: Counter<'evento' | 'gatilho' | 'componente'>
+  ofertaEventosPorPlano: Counter<'evento' | 'plano_atual' | 'plano_sugerido' | 'variante'>
   /* Fase 5 de prontidão (25/09/2026): o que faltava para alertar e para decidir quando escalar. */
   dbDuracao: Histogram<'tipo'>
   dbEscritas: Counter<never>
@@ -260,6 +262,20 @@ function metricas(): Estado {
       name: 'captura_fallback_total',
       help: 'Quedas de um motor para o seguinte na cadeia do cliente, por motor que falhou.',
       labelNames: ['motor'] as const,
+    }),
+    /* O FUNIL DAS OFERTAS DE PLANOS (Fase 8, `POST /api/metricas/ofertas`). Anônimo: nenhuma label
+       identifica pessoa. `gatilho` só assume ids que existem (os embutidos e os do payload atual de
+       `oferta_planos`, até 50) — o resto vira `outro`; ver `server/routes/metricasOfertas.ts`.
+       Conversão = razão entre `evento`s do mesmo gatilho (docs/ofertas.md). */
+    ofertaEventos: new Counter({
+      name: 'oferta_eventos_total',
+      help: 'Eventos do funil de ofertas de planos (exibida, dispensada, nao_mostrar, clicada, checkout_iniciado, assinatura_concluida), por gatilho e componente. Anônimo.',
+      labelNames: ['evento', 'gatilho', 'componente'] as const,
+    }),
+    ofertaEventosPorPlano: new Counter({
+      name: 'oferta_eventos_por_plano_total',
+      help: 'Os mesmos eventos do funil de ofertas, por plano atual, plano sugerido e variante (A/B). Anônimo.',
+      labelNames: ['evento', 'plano_atual', 'plano_sugerido', 'variante'] as const,
     }),
     /* O BANCO, medido no cliente libsql (`server/db/observadorDeConsultas.ts`). `tipo` é
        `leitura`|`escrita`, decidido pela primeira palavra do SQL — nunca o SQL, que seria uma série
@@ -612,6 +628,29 @@ export function observarCaptura(r: RelatorioDeCaptura): void {
   for (const v of r.rtf) e.capturaRtf.observe({ motor: r.motorStt }, v)
   if (r.descartesAlucinacao > 0) e.capturaDescartes.inc(r.descartesAlucinacao)
   for (const [motor, n] of Object.entries(r.fallbacks)) if (n > 0) e.capturaFallback.inc({ motor }, n)
+}
+
+/** Os eventos de oferta JÁ VALIDADOS pela rota (alfabeto fechado em todas as labels). */
+export function contarEventosDeOferta(
+  eventos: ReadonlyArray<{
+    evento: string
+    gatilho: string
+    componente: string
+    plano_atual: string
+    plano_sugerido: string
+    variante: string
+  }>,
+): void {
+  if (!estado) return
+  for (const e of eventos) {
+    estado.ofertaEventos.inc({ evento: e.evento, gatilho: e.gatilho, componente: e.componente })
+    estado.ofertaEventosPorPlano.inc({
+      evento: e.evento,
+      plano_atual: e.plano_atual,
+      plano_sugerido: e.plano_sugerido,
+      variante: e.variante,
+    })
+  }
 }
 
 /**

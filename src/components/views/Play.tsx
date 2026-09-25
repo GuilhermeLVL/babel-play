@@ -164,6 +164,7 @@ import {
   registrarVistas,
   vistasRecentes as vistasGuardadas,
 } from '../../lib/memoriaLocal';
+import { dispararOferta } from '../../lib/ofertas/eventos';
 import {
   alternarFixado,
   aplicarOrdem,
@@ -621,6 +622,19 @@ export default function Play({
       document.body.removeAttribute('data-jogo-ativo');
     };
   }, [emRodada]);
+  /* FIM DA SESSÃO DE ESTUDO (Fase 8): a oferta de fim de sessão vem quando a pessoa SAI do Jogar
+     depois de ter fechado ao menos uma rodada — nunca no meio de uma rodada nem por cima do resumo
+     dela. O host ainda aplica flag, frequência e o teto da sessão. */
+  const rodadasFechadas = useRef(0);
+  useEffect(() => {
+    if (resultado) rodadasFechadas.current += 1;
+  }, [resultado]);
+  useEffect(
+    () => () => {
+      if (rodadasFechadas.current > 0) dispararOferta('fim_de_sessao', { origem: 'jogo' });
+    },
+    [],
+  );
   /* Z1 — FILTRO DE DIFICULDADE. Vale para os 4 jogos de modalidade `palavra`; os 5 de frase
      jogam sobre falas, que não têm dificuldade por palavra (ver `composicao.ts`). */
   const [faixas, setFaixas] = useState<FaixaDificuldade[]>([]);

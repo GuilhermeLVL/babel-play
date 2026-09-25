@@ -28,6 +28,7 @@ export function DialogoBase({
   aoFechar,
   aoCancelar,
   refDialogo,
+  fecharNoFundo = false,
   children,
 }: {
   classe?: string;
@@ -38,6 +39,8 @@ export function DialogoBase({
   aoFechar: () => void;
   aoCancelar?: () => void;
   refDialogo?: RefObject<HTMLDialogElement | null>;
+  /** Clique no fundo (fora da caixa) fecha, como o Esc. Desligado por padrão: o protótipo não o faz. */
+  fecharNoFundo?: boolean;
   children: ReactNode;
 }) {
   const proprio = useRef<HTMLDialogElement>(null);
@@ -80,6 +83,9 @@ export function DialogoBase({
       className={`${classe} m-auto`}
       aria-labelledby={rotuloId}
       aria-label={rotuloId ? undefined : rotulo}
+      /* O fundo de um `<dialog>` modal é o próprio elemento: o clique cai nele (e não num filho)
+         só quando acontece fora da caixa. */
+      onClick={fecharNoFundo ? (e) => e.target === e.currentTarget && e.currentTarget.close() : undefined}
     >
       {children}
     </dialog>

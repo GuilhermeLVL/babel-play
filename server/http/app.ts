@@ -62,6 +62,7 @@ import { imagesRouter } from '../routes/images'
 import { importRouter } from '../routes/import'
 import { meRouter } from '../routes/me'
 import { metricasCapturaRouter } from '../routes/metricasCaptura'
+import { metricasOfertasRouter } from '../routes/metricasOfertas'
 import { metricsRouter } from '../routes/metrics'
 import { rankRouter } from '../routes/rank'
 import { responsavelRouter } from '../routes/responsavel'
@@ -348,6 +349,9 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
     )
   }
   app.use('/api/metricas', capturarAssincrono(metricasCapturaRouter))
+  /* O FUNIL DAS OFERTAS (Fase 8): o mesmo desenho — anônimo, antes do auth, corpo de 8 KB e o mesmo
+     balde por IP de `/api/metricas`. Ver `server/routes/metricasOfertas.ts`. */
+  app.use('/api/metricas', capturarAssincrono(metricasOfertasRouter))
 
   /* AS PORTAS DE EMERGÊNCIA (Fase 3): a tela de login e a de planos perguntam aqui, antes de
      haver sessão, se o cadastro e a venda estão abertos. Pública pelo mesmo motivo do health. */

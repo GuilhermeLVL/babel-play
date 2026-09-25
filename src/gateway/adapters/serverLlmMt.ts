@@ -1,4 +1,5 @@
 import { apiFetch } from '../../data/api';
+import { sinalizarRecusaDaNuvem } from '../../lib/ofertas/eventos';
 import type { MtResult, TranslationProvider } from '../capabilities';
 import { PausaDaNuvem } from '../pausaDaNuvem';
 
@@ -58,6 +59,9 @@ export class ServerLlmMt implements TranslationProvider {
        API_ORIGIN): pausa pelo `Retry-After`. 5xx avulso: só conta — o terceiro seguido pausa. */
     if (res.status === 402 || res.status === 429 || res.status >= 500) {
       this.pausa.falha(res.status, res.headers?.get?.('retry-after'));
+      /* O 402 não é mais silencioso: cota acabada ou plano insuficiente viram um MOMENTO de oferta
+         (Fase 8). O host espera a captura acabar para mostrar — a tradução segue no motor local. */
+      void sinalizarRecusaDaNuvem(res, 'traducao');
       throw Object.assign(new Error(`tradução por LLM de nuvem indisponível (HTTP ${res.status})`), {
         status: res.status,
       });

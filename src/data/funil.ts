@@ -23,6 +23,7 @@
 import { authHeaders } from '../lib/authHeaders'
 import { aguardarIdentidade } from '../lib/identidade'
 import { aguardarProtecao, rotaLiberadaNaRestricao } from '../lib/protecaoDoMenor'
+import { cabecalhoDaSessaoDeCaptura } from '../lib/sessaoDeCaptura'
 import { authRequired,supabase } from '../lib/supabase'
 import { servidorEfemero } from './efemero/servidor'
 
@@ -52,7 +53,8 @@ export async function apiFetch(input: string, init?: ApiInit): Promise<Response>
   const send = async (): Promise<Response> => {
     // Marco 1: injeta o Authorization quando há sessão (no-op no uso local sem login).
     const auth = await authHeaders()
-    return fetch(input, { ...rest, headers: { ...auth, ...(rest.headers ?? {}) }, signal })
+    // A sessão de captura agrupa as chamadas de IA de uma aula no Langfuse (ver `lib/sessaoDeCaptura`).
+    return fetch(input, { ...rest, headers: { ...auth, ...cabecalhoDaSessaoDeCaptura(input), ...(rest.headers ?? {}) }, signal })
   }
   let res = await send()
   // Sessão expirada (modo público): 1 refresh + retry; persistindo, encerra a sessão (→ tela de login).

@@ -32,6 +32,7 @@ import { baseLang, toBcp47 } from '../languages';
 import { misturarAudios } from '../misturarAudios';
 import { OrdemDasTraducoes } from '../ordemDaTraducao';
 import { PerfilAdaptativoDeIdioma } from '../perfilDeIdioma';
+import { abrirSessaoDeCaptura, fecharSessaoDeCaptura } from '../sessaoDeCaptura';
 import { play } from '../soundFx';
 import { SpeakerClusterer } from '../speakerCluster';
 import { preloadSpeakerId } from '../speakerId';
@@ -206,6 +207,7 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
     ordemMtRef.current.limpar(); // os selos são por segmento; sessão nova começa do zero
     capMetrics.reset();
     iniciarTelemetriaDeCaptura(); // números de qualidade a cada 60 s (sem texto; ver o módulo)
+    abrirSessaoDeCaptura(); // agrupa as chamadas de IA desta captura no Langfuse
     contextoDoSttRef?.current.limpar();
     // Identificação de voz: sessão nova = memória de vozes nova (retomada mantém os clusters
     // — as "Pessoas" já nomeadas continuam valendo). O modelo (6,7MB, cacheado) carrega em
@@ -354,6 +356,7 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
     lastPartialTextRef.current.clear();
     clog('métricas da sessão:', capMetrics.summary());
     pararTelemetriaDeCaptura(); // o último lote, antes que um START novo zere o acumulador
+    fecharSessaoDeCaptura();
   };
 
   const abrirEncerrar = () => {

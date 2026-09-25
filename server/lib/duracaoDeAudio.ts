@@ -1,15 +1,22 @@
 /**
- * Duração de um WAV, e quanto dele o provedor de fato COBRA.
+ * Duração de um WAV, e as DUAS contas que se fazem sobre ela.
  *
  * POR QUE ISTO EXISTE. A quota media `managed_calls` — uma chamada. Mas a Groq cobra STT **por hora
  * de áudio**, então uma chamada de 1 segundo e uma de 25 MB consumiam exatamente a mesma unidade de
  * teto. Um teto em chamadas não protege de nada: quem deixa a captura aberta o dia inteiro gasta
  * dinheiro de verdade sem estourar contador nenhum.
  *
- * O MÍNIMO FATURADO É O DETALHE QUE MUDA A CONTA. A documentação da Groq diz: *"Minimum Billed
- * Length: 10 seconds. If you submit a request less than this, you will still be billed for 10
- * seconds."* Os enunciados do VAD desta aplicação têm ~6 s — ou seja, **cada um é cobrado como 10**.
- * Debitar a duração real subestimaria a conta em ~70% e o teto do plano não seguraria o que promete.
+ * O MÍNIMO FATURADO É O DETALHE QUE MUDA A CONTA — DO DONO. A documentação da Groq diz: *"Minimum
+ * Billed Length: 10 seconds. If you submit a request less than this, you will still be billed for
+ * 10 seconds."* Os enunciados do VAD desta aplicação têm ~6 s — ou seja, **cada um custa ao dono
+ * como 10**. Por isso `segundosFaturaveis` existe e alimenta o orçamento GLOBAL de IA
+ * (`orcamentoDeIa.ts`): ali, contar a duração real subestimaria a fatura em ~70%.
+ *
+ * E NÃO MUDA A CONTA DO ASSINANTE (24/09/2026). Até esta data o mesmo número também saía da cota do
+ * usuário (`stt_seconds`), e o efeito era uma promessa quebrada: o plano diz "15 h de transcrição",
+ * cada fala de 6 s custava 10 s, e o assinante recebia ~9 h de fala. O mínimo do provedor é custo
+ * nosso — a margem do plano o absorve (a conta está em `src/core/planos.ts`). A cota do usuário usa
+ * `segundosDeAudioDoUsuario`: a duração REAL, arredondada para cima, com piso de 1 s.
  *
  * Sem dependência: o cabeçalho WAV é lido na mão. O corpo já chega como Buffer em `sttProxy`.
  */
@@ -55,8 +62,9 @@ export function duracaoDoWav(buf: Buffer): number | null {
 }
 
 /**
- * Segundos a DEBITAR do teto por uma requisição — a duração real elevada ao mínimo faturado, e
- * arredondada para cima (o provedor não cobra frações de segundo a nosso favor).
+ * Segundos que o PROVEDOR fatura por uma requisição — a duração real elevada ao mínimo faturado, e
+ * arredondada para cima (o provedor não cobra frações de segundo a nosso favor). Só para o gasto
+ * INTERNO (orçamento global, métricas de custo); a cota do assinante é `segundosDeAudioDoUsuario`.
  *
  * Áudio ilegível cai no mínimo, e não em zero: se não sabemos medir, a suposição segura é a que
  * protege o dono da chave, não a que libera consumo não contabilizado.
@@ -65,4 +73,18 @@ export function segundosFaturaveis(buf: Buffer): number {
   const real = duracaoDoWav(buf)
   if (real === null || !Number.isFinite(real) || real <= 0) return MINIMO_FATURADO_S
   return Math.max(MINIMO_FATURADO_S, Math.ceil(real))
+}
+
+/**
+ * Segundos que saem da COTA DO ASSINANTE (`stt_seconds`) — a duração REAL, arredondada para cima,
+ * com piso de 1 s. É a unidade em que o plano promete horas de transcrição.
+ *
+ * Áudio ilegível cai no mínimo faturado, e não em 1: se não sabemos medir, também não sabemos se foi
+ * curto. Na prática não acontece — o cliente sempre manda WAV —, mas um corpo forjado não pode virar
+ * transcrição quase de graça.
+ */
+export function segundosDeAudioDoUsuario(buf: Buffer): number {
+  const real = duracaoDoWav(buf)
+  if (real === null || !Number.isFinite(real) || real <= 0) return MINIMO_FATURADO_S
+  return Math.max(1, Math.ceil(real))
 }

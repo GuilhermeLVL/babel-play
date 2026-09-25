@@ -40,6 +40,11 @@ export interface LogFields {
      sem nada do usuário — é o que o alerta de 80%/100% precisa carregar para virar alerta externo. */
   gastoUsd?: number
   tetoUsd?: number
+  /* Triagem do STT de nuvem (`server/ai/sttQualidade.ts`): QUANTOS segmentos o servidor descartou
+     e POR QUÊ. Só contagens — o texto da fala nunca entra no log (`total` leva quantos vieram). */
+  semFala?: number
+  repeticao?: number
+  alucinacao?: number
 }
 
 const ALLOWED = new Set([
@@ -60,6 +65,9 @@ const ALLOWED = new Set([
   'stack',
   'gastoUsd',
   'tetoUsd',
+  'semFala',
+  'repeticao',
+  'alucinacao',
 ])
 
 /**

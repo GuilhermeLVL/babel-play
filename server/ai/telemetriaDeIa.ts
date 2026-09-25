@@ -18,8 +18,6 @@
  * NADA DAQUI LANÇA para a rota. Rastro desligado é um objeto que não faz nada, e não um `null` que
  * cada chamador teria de conferir.
  */
-import { createHmac } from 'node:crypto'
-
 import type { Request } from 'express'
 
 import { contarLimiteDoProvedor } from '../http/metricas'
@@ -37,6 +35,7 @@ import {
   type ValorDeMetadado,
 } from '../lib/langfuse'
 import { log } from '../lib/logger'
+import { salDoPseudonimo } from '../lib/pseudonimoDeUsuario'
 
 /** A função de produto que a requisição serve — a dimensão "feature" do painel. */
 export type FuncaoTelemetrada = 'stt' | 'mt-fala' | 'mt-texto' | 'tutor' | 'corretor' | 'byok-chat'
@@ -50,22 +49,6 @@ export interface AnotacoesDoRastro {
   byok?: boolean
   /** Segmentos que o filtro de qualidade do STT descartou (sem fala + repetição + alucinação). */
   segmentosDescartados?: number
-}
-
-/**
- * O SAL DO PSEUDÔNIMO, derivado da `SECRET_KEY` — nunca ela própria, e diferente de toda outra
- * derivação: quem obtivesse este sal (ele não sai do processo, mas a defesa é em camadas) não
- * obtém a chave que decifra credenciais nem a do hash do ranking.
- */
-let sal: Buffer | undefined
-async function salDoPseudonimo(): Promise<Buffer> {
-  /* Import DINÂMICO: `server/crypto.ts` resolve a SECRET_KEY no carregamento, e este módulo é
-     importado pela cascata — carregá-lo não pode ser o que decide quando a chave é lida. */
-  if (!sal) {
-    const { CHAVE_DE_HASH } = await import('../crypto')
-    sal = createHmac('sha256', CHAVE_DE_HASH).update('babel-play-web:langfuse:usuario:v1').digest()
-  }
-  return sal
 }
 
 /** O id da sessão de captura que o cliente PODE mandar. Formato fechado; fora dele, ignorado. */

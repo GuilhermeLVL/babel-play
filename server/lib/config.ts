@@ -104,6 +104,13 @@ export const VARIAVEIS_POR_PLANO: readonly VariavelDeclarada[] = Object.keys(PLA
 export const VARIAVEIS: readonly VariavelDeclarada[] = [
   ...VARIAVEIS_POR_PLANO,
   {
+    nome: 'AI_BUDGET_USD_DAY',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'teto de gasto ESTIMADO com IA de nuvem no DIA (UTC), em US$ — a mesma lógica do mensal: a 80% sai ia_orcamento_diario_alerta_80, a 100% a nuvem fecha até 00:00 UTC. Existe para um laço de cliente ou uma chave vazada não queimarem o mês inteiro numa tarde. Ausente: sem teto diário (só o mensal). 0 desliga a nuvem',
+  },
+  {
     nome: 'AI_BUDGET_USD_MONTH',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
@@ -123,6 +130,20 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     criticidade: 'degrada-capacidade',
     paraQue:
       'JSON com o preço por modelo que o orçamento usa: {"modelo": {"entrada": US$/1M, "saida": US$/1M}} para LLM e {"modelo": {"hora": US$}} para STT. Sobrepõe a tabela oficial embutida',
+  },
+  {
+    nome: 'AI_USUARIO_ALERTA_FATOR',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'gasto anômalo por usuário: alerta (ia_gasto_anomalo_usuario, id pseudonimizado) quando o gasto de IA de um usuário NO DIA passa de N vezes a mediana dos usuários que gastaram hoje. Padrão 10. Só vale com pelo menos 5 usuários no dia — com menos, a mediana não diz nada',
+  },
+  {
+    nome: 'AI_USUARIO_ALERTA_USD_DIA',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'gasto anômalo por usuário: teto ABSOLUTO em US$ por usuário por dia acima do qual sai o alerta ia_gasto_anomalo_usuario (não bloqueia — quem bloqueia é a cota do plano). Padrão US$ 0,50 (um Essencial típico gasta ~US$ 0,03/dia)',
   },
   {
     nome: 'APP_URL',
@@ -450,6 +471,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
       '1 MONTA `GET /metrics` (Prometheus, na raiz — não confundir com `/api/metrics`, que é a rota de negócio). Ausente, a rota não existe e responde 404 como qualquer caminho desconhecido: um 403 confirmaria a existência do endpoint a quem sonda',
   },
   {
+    nome: 'METRICS_PORTA_INTERNA',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'porta de um listener SÓ de métricas (`GET /metrics`, sem token), para o raspador gerenciado do Fly (`[metrics]` do fly.toml), que não manda `Authorization`. Definida, o `/metrics` SAI da porta pública. Só use numa porta que não esteja publicada (fora de `[http_service]`/`[[services]]`)',
+  },
+  {
     nome: 'METRICS_TOKEN',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
@@ -762,10 +790,38 @@ export function tokenDeMetricas(env: NodeJS.ProcessEnv = process.env): string | 
  * fechada) exigir token é fricção sem ameaça. Retorna a mensagem de aborto de boot, ou `null` se ok.
  */
 export function erroDeMetricasEmProducao(env: NodeJS.ProcessEnv = process.env): string | null {
-  if (env.NODE_ENV === 'production' && metricasHabilitadas(env) && !tokenDeMetricas(env)) {
-    return 'METRICS_ENABLED=1 em produção exige METRICS_TOKEN: recusando expor /metrics sem autenticação.'
+  const porta = portaInternaDeMetricas(env)
+  if (env.METRICS_PORTA_INTERNA?.trim() && porta === undefined) {
+    return 'METRICS_PORTA_INTERNA não é uma porta válida (1–65535).'
+  }
+  if (porta !== undefined && String(porta) === (env.PORT?.trim() || '3000')) {
+    /* A mesma porta do app seria justamente a porta PÚBLICA — o scrape sem token ficaria na internet. */
+    return 'METRICS_PORTA_INTERNA não pode ser a mesma porta do app (PORT): o /metrics sem token ficaria público.'
+  }
+  /* Com a porta interna, o `/metrics` nem é montado na porta pública — o token deixa de ser a
+     única barreira e passa a ser desnecessário (o raspador do Fly não o manda). */
+  if (env.NODE_ENV === 'production' && metricasHabilitadas(env) && porta === undefined && !tokenDeMetricas(env)) {
+    return 'METRICS_ENABLED=1 em produção exige METRICS_TOKEN (ou METRICS_PORTA_INTERNA): recusando expor /metrics sem autenticação.'
   }
   return null
+}
+
+/**
+ * A porta do listener SÓ de métricas, ou `undefined` (Fase 5 de prontidão, 25/09/2026).
+ *
+ * POR QUE EXISTE. O Fly raspa o `[metrics]` do `fly.toml` a cada 15 s com o Prometheus gerenciado
+ * dele, e a documentação (fly.io/docs/monitoring/metrics, consultada em 25/09/2026) não oferece
+ * NENHUM campo de autenticação: só `port` e `path`. Com o `/metrics` na porta pública, isso
+ * obrigaria a escolher entre scrape aberto na internet (GAP-013) e nenhum scrape. A saída é a que a
+ * própria doc sugere: uma porta que o Fly raspa por dentro da VM e que NÃO está publicada — o proxy
+ * do Fly só encaminha as portas de `[http_service]`/`[[services]]`, então esta não tem rota de fora.
+ * O token continua valendo para quem raspa pela porta pública (self-host com agente próprio).
+ */
+export function portaInternaDeMetricas(env: NodeJS.ProcessEnv = process.env): number | undefined {
+  const bruto = env.METRICS_PORTA_INTERNA?.trim()
+  if (!bruto) return undefined
+  const n = Number(bruto)
+  return Number.isInteger(n) && n > 0 && n < 65536 ? n : undefined
 }
 
 /**
@@ -959,6 +1015,46 @@ export function orcamentoMensalDeIaUsd(
     log('warn', { event: 'config_orcamento_invalido', error: 'AI_BUDGET_USD_MONTH não é um número; usando o padrão' })
   }
   return modoPublico ? ORCAMENTO_PADRAO_USD : Infinity
+}
+
+/**
+ * O teto DIÁRIO (UTC) de gasto estimado com IA, em US$. Ausente = `Infinity` (só o mensal vale):
+ * ligar um teto novo por padrão mudaria o comportamento de quem já opera com o mensal. Em produção o
+ * `.env.production.example` traz um valor (≈ mensal ÷ 10), que é o que impede um laço de cliente ou
+ * uma chave vazada de queimar o mês numa tarde.
+ */
+export function orcamentoDiarioDeIaUsd(env: NodeJS.ProcessEnv = process.env): number {
+  const bruto = env.AI_BUDGET_USD_DAY?.trim()
+  if (!bruto) return Infinity
+  const n = Number(bruto.replace(',', '.'))
+  if (Number.isFinite(n) && n >= 0) return n
+  log('warn', { event: 'config_orcamento_invalido', error: 'AI_BUDGET_USD_DAY não é um número; sem teto diário' })
+  return Infinity
+}
+
+/** Os limiares do alerta de gasto anômalo por usuário (`server/lib/gastoAnomalo.ts`). */
+export interface LimiaresDeGastoPorUsuario {
+  /** US$ por usuário por dia acima dos quais sai o alerta, independentemente da mediana. */
+  tetoUsdDia: number
+  /** Múltiplo da mediana do dia acima do qual sai o alerta. */
+  fatorDaMediana: number
+  /** Abaixo deste número de usuários no dia, a regra da mediana não vale. */
+  minimoDeUsuarios: number
+}
+
+export const ALERTA_USUARIO_PADRAO_USD_DIA = 0.5
+export const ALERTA_USUARIO_PADRAO_FATOR = 10
+
+export function limiaresDeGastoPorUsuario(env: NodeJS.ProcessEnv = process.env): LimiaresDeGastoPorUsuario {
+  const numero = (bruto: string | undefined, padrao: number) => {
+    const n = Number(bruto?.trim().replace(',', '.'))
+    return bruto?.trim() && Number.isFinite(n) && n > 0 ? n : padrao
+  }
+  return {
+    tetoUsdDia: numero(env.AI_USUARIO_ALERTA_USD_DIA, ALERTA_USUARIO_PADRAO_USD_DIA),
+    fatorDaMediana: numero(env.AI_USUARIO_ALERTA_FATOR, ALERTA_USUARIO_PADRAO_FATOR),
+    minimoDeUsuarios: 5,
+  }
 }
 
 export interface PrecoDeModelo {

@@ -34,7 +34,7 @@ import { exigirAal2SeTiver2fa } from '../lib/aal'
 import { abertura, portaDoCadastro } from '../lib/abertura'
 import { authMiddleware, authRequired, verificarTokenPadrao } from '../lib/auth'
 import type { UserId } from '../lib/authContext'
-import { metricasHabilitadas, segredoDeOrigem } from '../lib/config'
+import { metricasHabilitadas, portaInternaDeMetricas, segredoDeOrigem } from '../lib/config'
 import { capturarAssincrono } from '../lib/erroGlobal'
 import { exigirAdultoDeclarado, exigirContaLiberada } from '../lib/idade'
 import { criarLimitadorDeFalhas } from '../lib/limitadorDeFalhas'
@@ -182,7 +182,9 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
        handler solto no app — o mesmo caso de `/api/health` logo abaixo. O handler trata a própria
        falha e devolve 500; telemetria que derruba o request que observa é pior que telemetria
        nenhuma. */
-    app.get('/metrics', handlerDeMetricas())
+    /* Com `METRICS_PORTA_INTERNA` o scrape mora num listener próprio (`server.ts`), e a porta
+       PÚBLICA não tem `/metrics` nenhum — 404 como qualquer caminho. Menos superfície que um token. */
+    if (portaInternaDeMetricas() === undefined) app.get('/metrics', handlerDeMetricas())
   }
 
   /* GAP-015: o teto de 5 MB valia ANTES do login. Agora o topo aceita só 100 KB, e as poucas rotas

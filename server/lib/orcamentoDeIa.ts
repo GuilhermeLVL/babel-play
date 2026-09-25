@@ -13,6 +13,12 @@
  *      a observabilidade entrar; a 100% sai `ia_orcamento_esgotado` (error) e a nuvem fecha até o
  *      mês virar.
  *
+ * TETO DIÁRIO (Fase 5 de prontidão, 25/09/2026): `AI_BUDGET_USD_DAY` repete a regra no dia UTC —
+ * `ia_orcamento_diario_alerta_80` (warn) e `ia_orcamento_diario_esgotado` (error, a nuvem fecha até
+ * 00:00 UTC). Existe porque o mensal sozinho deixa um laço de cliente queimar o mês numa tarde.
+ * Cada custo registrado também alimenta o custo POR PLANO (`ia_custo_usd_total{plano}`) e o vigia
+ * de gasto anômalo POR USUÁRIO (`gastoAnomalo.ts`).
+ *
  * FALHA FECHADA, como as cotas: sem conseguir ler o gasto, a nuvem fecha. O custo é o usuário usar
  * os modelos locais por alguns minutos; o contrário seria gasto sem teto justamente quando o banco
  * está com problema.
@@ -25,8 +31,18 @@
 import type { Response } from 'express'
 
 import { gastoDeIaRepo } from '../db/repositories/gastoDeIa'
-import { iaDeNuvemLigada, orcamentoMensalDeIaUsd, type PrecoDeModelo, precosDeModelosDoEnv } from './config'
+import { contarCustoPorPlano, contarGastoAnomalo, registrarLeitorDeGasto } from '../http/metricas'
+import {
+  iaDeNuvemLigada,
+  limiaresDeGastoPorUsuario,
+  orcamentoDiarioDeIaUsd,
+  orcamentoMensalDeIaUsd,
+  type PrecoDeModelo,
+  precosDeModelosDoEnv,
+} from './config'
+import { criarVigiaDeGasto } from './gastoAnomalo'
 import { log } from './logger'
+import { pseudonimoDoUsuario } from './pseudonimoDeUsuario'
 
 /**
  * Preços OFICIAIS (US$) usados quando o operador não sobrepõe — página de preços da Groq
@@ -73,13 +89,28 @@ export function custoDeStt(modelo: string, segundos: number): number {
 }
 
 const mesAtual = (): string => new Date().toISOString().slice(0, 7)
+/**
+ * O DIA (UTC) mora na MESMA tabela, com a chave `AAAA-MM-DD` ao lado das `AAAA-MM` do mês (Fase 5 de
+ * prontidão). A tabela é "gasto por período": a aritmética atômica, o marcador de 80% e o de 100%
+ * são idênticos — uma tabela nova duplicaria o repositório inteiro para mudar o formato da chave.
+ */
+const diaAtual = (): string => new Date().toISOString().slice(0, 10)
 
 /** O teto do mês em US$ (`Infinity` = sem teto, só no self-host sem a variável). */
 export function tetoDoMesUsd(): number {
   return orcamentoMensalDeIaUsd()
 }
 
-export type MotivoDoPortao = 'ia_desligada' | 'orcamento_esgotado' | 'orcamento_indisponivel'
+/** O teto do dia (UTC) em US$ (`Infinity` = sem teto diário; ver `AI_BUDGET_USD_DAY`). */
+export function tetoDoDiaUsd(): number {
+  return orcamentoDiarioDeIaUsd()
+}
+
+export type MotivoDoPortao =
+  | 'ia_desligada'
+  | 'orcamento_esgotado'
+  | 'orcamento_diario_esgotado'
+  | 'orcamento_indisponivel'
 
 export interface Portao {
   ok: boolean
@@ -92,6 +123,8 @@ const MENSAGENS: Record<MotivoDoPortao, string> = {
   ia_desligada: 'A IA de nuvem está desligada temporariamente; o app segue com os modelos locais.',
   orcamento_esgotado:
     'A IA de nuvem atingiu o limite de uso deste mês e volta no dia 1º; o app segue com os modelos locais.',
+  orcamento_diario_esgotado:
+    'A IA de nuvem atingiu o limite de uso de hoje e volta amanhã (00:00 UTC); o app segue com os modelos locais.',
   orcamento_indisponivel: 'Não consegui conferir o limite da IA de nuvem agora; o app segue com os modelos locais.',
 }
 
@@ -101,11 +134,19 @@ const fechado = (motivo: MotivoDoPortao): Portao => ({ ok: false, motivo, mensag
 export async function portaoDaNuvem(): Promise<Portao> {
   if (!iaDeNuvemLigada()) return fechado('ia_desligada')
   const teto = tetoDoMesUsd()
-  if (!Number.isFinite(teto)) return { ok: true }
+  const tetoDia = tetoDoDiaUsd()
+  if (!Number.isFinite(teto) && !Number.isFinite(tetoDia)) return { ok: true }
   try {
-    const gasto = await gastoDeIaRepo.ler(mesAtual())
-    const tetoMicro = Math.round(teto * 1_000_000)
-    if ((gasto?.microUsd ?? 0) >= tetoMicro) return fechado('orcamento_esgotado')
+    /* O mensal primeiro na MENSAGEM ("volta no dia 1º" é o que vale quando os dois estouraram), e as
+       duas leituras juntas: uma ida ao banco a mais só quando o teto diário está configurado. */
+    const [gasto, gastoDia] = await Promise.all([
+      Number.isFinite(teto) ? gastoDeIaRepo.ler(mesAtual()) : null,
+      Number.isFinite(tetoDia) ? gastoDeIaRepo.ler(diaAtual()) : null,
+    ])
+    if (Number.isFinite(teto) && (gasto?.microUsd ?? 0) >= Math.round(teto * 1_000_000))
+      return fechado('orcamento_esgotado')
+    if (Number.isFinite(tetoDia) && (gastoDia?.microUsd ?? 0) >= Math.round(tetoDia * 1_000_000))
+      return fechado('orcamento_diario_esgotado')
     return { ok: true }
   } catch (err) {
     log('error', { event: 'ia_orcamento_leitura_falhou', error: String((err as Error)?.message ?? err).slice(0, 120) })
@@ -118,41 +159,120 @@ export function responderPortaoFechado(res: Response, portao: Portao): void {
   res.status(503).json({ error: portao.mensagem, code: portao.motivo })
 }
 
+/** Os eventos de cada período — o mensal mantém os nomes que o Sentry e o runbook já conhecem. */
+const EVENTOS = {
+  mes: {
+    alerta: 'ia_orcamento_alerta_80',
+    esgotado: 'ia_orcamento_esgotado',
+    nome: 'do mês',
+    volta: 'até o mês virar',
+  },
+  dia: {
+    alerta: 'ia_orcamento_diario_alerta_80',
+    esgotado: 'ia_orcamento_diario_esgotado',
+    nome: 'do dia',
+    volta: 'até 00:00 UTC',
+  },
+} as const
+
 /**
- * Soma o custo de uma chamada ENTREGUE ao gasto do mês e dispara os limiares. Best-effort: uma falha
- * aqui só loga — a chamada já aconteceu e foi paga, e responder erro ao usuário não devolveria nada.
+ * Soma no período e dispara os limiares — a MESMA regra para o mês e para o dia: 80% avisa uma vez
+ * (warn), 100% fecha a nuvem (error, uma vez). O marcador devolve `true` só para quem marcou primeiro.
  */
-export async function registrarGastoDeIa(custoUsd: number): Promise<void> {
+async function somarNoPeriodo(tipo: 'mes' | 'dia', periodo: string, custoUsd: number, teto: number): Promise<void> {
+  const totalMicro = await gastoDeIaRepo.somar(periodo, custoUsd * 1_000_000)
+  if (!Number.isFinite(teto) || teto <= 0) return
+  const ev = EVENTOS[tipo]
+  const fracao = totalMicro / (teto * 1_000_000)
+  const campos = {
+    gastoUsd: Math.round(totalMicro) / 1_000_000,
+    tetoUsd: teto,
+    total: Math.round(fracao * 100),
+  }
+  if (fracao >= 0.8 && (await gastoDeIaRepo.marcarAlerta80(periodo))) {
+    log('warn', {
+      event: ev.alerta,
+      ...campos,
+      error: `gasto de IA ${ev.nome} em ${campos.total}% do orçamento (US$ ${campos.gastoUsd.toFixed(2)} de US$ ${teto})`,
+    })
+  }
+  if (fracao >= 1 && (await gastoDeIaRepo.marcarEsgotado(periodo))) {
+    log('error', {
+      event: ev.esgotado,
+      ...campos,
+      error: `orçamento de IA ${ev.nome} esgotado (US$ ${campos.gastoUsd.toFixed(2)} de US$ ${teto}); nuvem desligada ${ev.volta}`,
+    })
+  }
+}
+
+/** O vigia de gasto por usuário do processo (ver `gastoAnomalo.ts`). */
+const vigiaDeGasto = criarVigiaDeGasto({ limiares: () => limiaresDeGastoPorUsuario() })
+
+/** Quem pagou a chamada — para o custo por plano e o gasto anômalo por usuário. */
+export interface ContextoDoGasto {
+  userId?: string
+  /** O plano da assinatura (`free|essencial|pro|selfhost`). */
+  plano?: string
+}
+
+/**
+ * Soma o custo de uma chamada ENTREGUE ao gasto do mês E do dia, e dispara os limiares. Best-effort:
+ * uma falha aqui só loga — a chamada já aconteceu e foi paga, e responder erro ao usuário não
+ * devolveria nada.
+ */
+export async function registrarGastoDeIa(custoUsd: number, contexto: ContextoDoGasto = {}): Promise<void> {
   if (!Number.isFinite(custoUsd) || custoUsd <= 0) return
-  const mes = mesAtual()
+  contarCustoPorPlano(contexto.plano, custoUsd)
+  if (contexto.userId) await vigiarUsuario(contexto.userId, custoUsd)
   try {
-    const totalMicro = await gastoDeIaRepo.somar(mes, custoUsd * 1_000_000)
-    const teto = tetoDoMesUsd()
-    if (!Number.isFinite(teto) || teto <= 0) return
-    const fracao = totalMicro / (teto * 1_000_000)
-    const campos = {
-      gastoUsd: Math.round(totalMicro) / 1_000_000,
-      tetoUsd: teto,
-      total: Math.round(fracao * 100),
-    }
-    if (fracao >= 0.8 && (await gastoDeIaRepo.marcarAlerta80(mes))) {
-      log('warn', {
-        event: 'ia_orcamento_alerta_80',
-        ...campos,
-        error: `gasto de IA do mês em ${campos.total}% do orçamento (US$ ${campos.gastoUsd.toFixed(2)} de US$ ${teto})`,
-      })
-    }
-    if (fracao >= 1 && (await gastoDeIaRepo.marcarEsgotado(mes))) {
-      log('error', {
-        event: 'ia_orcamento_esgotado',
-        ...campos,
-        error: `orçamento de IA do mês esgotado (US$ ${campos.gastoUsd.toFixed(2)} de US$ ${teto}); nuvem desligada até o mês virar`,
-      })
-    }
+    await somarNoPeriodo('mes', mesAtual(), custoUsd, tetoDoMesUsd())
+    /* O dia é somado SEMPRE, com ou sem teto: é ele que alimenta `ia_gasto_usd{periodo="dia"}` e o
+       painel de custo diário — e ligar o teto depois não pode começar de um dia "vazio". */
+    await somarNoPeriodo('dia', diaAtual(), custoUsd, tetoDoDiaUsd())
   } catch (err) {
     log('error', { event: 'ia_gasto_registro_falhou', error: String((err as Error)?.message ?? err).slice(0, 120) })
   }
 }
+
+/**
+ * Gasto anômalo de UM usuário: `warn` `ia_gasto_anomalo_usuario` com o id PSEUDONIMIZADO (o mesmo
+ * `u_…` do Langfuse — ver `pseudonimoDeUsuario.ts`) e a métrica. O id real nunca vai para o log: o
+ * warn chega ao Sentry, que é um terceiro.
+ */
+async function vigiarUsuario(userId: string, custoUsd: number): Promise<void> {
+  const anomalo = vigiaDeGasto.registrar(userId, custoUsd)
+  if (!anomalo) return
+  contarGastoAnomalo(anomalo.motivo)
+  let usuario = 'indisponivel'
+  try {
+    usuario = await pseudonimoDoUsuario(userId)
+  } catch {
+    /* sem o sal (SECRET_KEY ilegível) o alerta sai assim mesmo, só sem dizer quem */
+  }
+  const gasto = anomalo.gastoUsd.toFixed(4)
+  log('warn', {
+    event: 'ia_gasto_anomalo_usuario',
+    usuario,
+    gastoUsd: Math.round(anomalo.gastoUsd * 1_000_000) / 1_000_000,
+    tetoUsd: anomalo.tetoUsd,
+    medianaUsd: anomalo.medianaUsd ?? undefined,
+    error:
+      anomalo.motivo === 'teto'
+        ? `usuário ${usuario} gastou US$ ${gasto} de IA hoje (limiar US$ ${anomalo.tetoUsd})`
+        : `usuário ${usuario} gastou US$ ${gasto} de IA hoje, acima de ${limiaresDeGastoPorUsuario().fatorDaMediana}× a mediana (US$ ${(anomalo.medianaUsd ?? 0).toFixed(4)})`,
+  })
+}
+
+/* As métricas `ia_gasto_usd` e `ia_orcamento_teto_usd` são lidas daqui, na hora do scrape. */
+registrarLeitorDeGasto(async () => {
+  const [mes, dia] = await Promise.all([gastoDeIaRepo.ler(mesAtual()), gastoDeIaRepo.ler(diaAtual())])
+  return {
+    mesUsd: (mes?.microUsd ?? 0) / 1_000_000,
+    diaUsd: (dia?.microUsd ?? 0) / 1_000_000,
+    tetoMesUsd: tetoDoMesUsd(),
+    tetoDiaUsd: tetoDoDiaUsd(),
+  }
+})
 
 export interface EstadoDoOrcamento {
   mes: string
@@ -164,16 +284,30 @@ export interface EstadoDoOrcamento {
   chamadas: number
   alerta80Em: number | null
   esgotadoEm: number | null
+  /** O dia corrente (UTC): mesmo formato, com o teto de `AI_BUDGET_USD_DAY`. */
+  dia: {
+    dia: string
+    gastoUsd: number
+    tetoUsd: number | null
+    percentual: number | null
+    chamadas: number
+    alerta80Em: number | null
+    esgotadoEm: number | null
+  }
   portao: Portao
 }
 
 /** O estado inteiro, para o operador (`GET /api/admin/ia`). */
 export async function estadoDoOrcamento(): Promise<EstadoDoOrcamento> {
   const mes = mesAtual()
+  const dia = diaAtual()
   const teto = tetoDoMesUsd()
-  const [gasto, portao] = await Promise.all([gastoDeIaRepo.ler(mes), portaoDaNuvem()])
+  const tetoDia = tetoDoDiaUsd()
+  const [gasto, gastoDia, portao] = await Promise.all([gastoDeIaRepo.ler(mes), gastoDeIaRepo.ler(dia), portaoDaNuvem()])
   const gastoUsd = (gasto?.microUsd ?? 0) / 1_000_000
+  const gastoDiaUsd = (gastoDia?.microUsd ?? 0) / 1_000_000
   const finito = Number.isFinite(teto)
+  const finitoDia = Number.isFinite(tetoDia)
   return {
     mes,
     ligada: iaDeNuvemLigada(),
@@ -183,6 +317,15 @@ export async function estadoDoOrcamento(): Promise<EstadoDoOrcamento> {
     chamadas: gasto?.chamadas ?? 0,
     alerta80Em: gasto?.alerta80Em ?? null,
     esgotadoEm: gasto?.esgotadoEm ?? null,
+    dia: {
+      dia,
+      gastoUsd: gastoDiaUsd,
+      tetoUsd: finitoDia ? tetoDia : null,
+      percentual: finitoDia && tetoDia > 0 ? Math.round((gastoDiaUsd / tetoDia) * 1000) / 10 : null,
+      chamadas: gastoDia?.chamadas ?? 0,
+      alerta80Em: gastoDia?.alerta80Em ?? null,
+      esgotadoEm: gastoDia?.esgotadoEm ?? null,
+    },
     portao,
   }
 }

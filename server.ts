@@ -28,6 +28,8 @@ import {
   diasDeRetencaoDeAudio,
   erroDeMetricasEmProducao,
   erroDeTrustProxyEmProducao,
+  metricasHabilitadas,
+  portaInternaDeMetricas,
   verificarConfiguracaoNoBoot,
 } from './server/lib/config'
 import { registrarDesligamento } from './server/lib/desligamento'
@@ -317,6 +319,22 @@ async function startServer({ prepararDados = true } = {}) {
    */
   registrarDesligamento({ servidor: server, antes: () => repassarSinalAosWorkers?.() })
 
+  /* MÉTRICAS NA PORTA INTERNA (Fase 5 de prontidão) — o alvo do `[metrics]` do fly.toml, sem token,
+     numa porta que o proxy do Fly não publica. Só no processo que prepara os dados (o primário, no
+     cluster): um listener por processo brigaria pela porta, e o scrape precisa de UM endereço. */
+  const portaDeMetricas = prepararDados && metricasHabilitadas() ? portaInternaDeMetricas() : undefined
+  if (portaDeMetricas !== undefined) {
+    const { iniciarServidorDeMetricas } = await import('./server/http/metricas')
+    try {
+      await iniciarServidorDeMetricas(portaDeMetricas)
+      console.log(`[metrics] /metrics na porta interna ${portaDeMetricas} (sem token; não publicada)`)
+    } catch (err) {
+      /* Métrica quebrada não derruba o serviço que ela observa: o app segue, e o alerta de
+         ausência de scrape (`absent(up)`) é quem avisa. */
+      console.error(`[metrics] porta interna ${portaDeMetricas} indisponível: ${String(err).slice(0, 160)}`)
+    }
+  }
+
   /* SNAPSHOT DIÁRIO NO R2 (Fase 5) — só no processo que prepara os dados (o primário, no cluster):
      N processos fariam N cópias do mesmo banco na mesma hora. AGENDADO aqui, EXECUTADO num processo
      filho. O porquê de ser nesta máquina, e não num cron externo, e de ser num filho, está em
@@ -325,6 +343,7 @@ async function startServer({ prepararDados = true } = {}) {
   if (backup) {
     const { agendarSnapshotDiario, destinoDoBackup, fazerSnapshotEmProcessoFilho, resolverCliDeOperacao } =
       await import('./server/operacao/snapshot')
+    const { observarBackup } = await import('./server/http/metricas')
     const destino = destinoDoBackup()
     const urlDoBanco = process.env.DATABASE_URL ?? 'file:./data/babel.db'
     /* A CLI que o filho roda é resolvida AGORA, no boot: faltando o `operacao.cjs` na imagem, o
@@ -346,6 +365,7 @@ async function startServer({ prepararDados = true } = {}) {
            síncrono prendiam o event loop por segundos — 3,7 s com 46 MB, 34 s com 479 MB — e o
            health check do Fly desiste em 5 s. Ver `fazerSnapshotEmProcessoFilho`. */
         executar: () => fazerSnapshotEmProcessoFilho({ urlDoBanco, cli: cliDoFilho }),
+        observar: observarBackup,
       })
       console.log(`[backup] snapshot diário às ${backup.horaUtc}h UTC para ${destino.cfg.bucket}/${destino.prefixo}`)
     }

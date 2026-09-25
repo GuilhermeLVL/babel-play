@@ -11,6 +11,7 @@ import type { Recording } from '../../types'
 import { fetchLangConfig } from '../langConfig'
 import { detectLanguage } from '../langDetect'
 import { toBcp47 } from '../languages'
+import { motorDeNuvemDaImportacao } from './nuvemDaImportacao'
 
 /**
  * Segmenta um texto em frases, CIENTE de idioma via `Intl.Segmenter` (não regex ingênua). Fallback
@@ -83,7 +84,9 @@ export async function buildDocumentSession(input: {
 
 /**
  * Reserva de Whisper: transcreve o áudio JÁ baixado de uma sessão importada (YouTube sem legenda /
- * áudio local) e substitui as falas por segmentos com timestamps reais. `engine:'whisper-local'`.
+ * áudio local) e substitui as falas por segmentos com timestamps reais. Na nuvem quando a régua da
+ * captura ao vivo manda (plano, consentimento, rota — ver `nuvemDaImportacao.ts`); o `engine` de
+ * cada fala diz qual motor a transcreveu.
  */
 export async function transcribeImportedAudio(
   sessionId: string,
@@ -93,9 +96,11 @@ export async function transcribeImportedAudio(
   const res = await apiFetch(`/api/sessions/${sessionId}/audio`)
   if (!res.ok) throw new Error('não consegui ler o áudio baixado para transcrever')
   const blob = await res.blob()
+  const nuvem = await motorDeNuvemDaImportacao(sourceLang)
   const segs = await offlineTranscribe(blob, {
     languageHint: sourceLang ? sourceLang.split('-')[0] : undefined,
     onProgress,
+    nuvem,
   })
   const utterances: NewUtterancePayload[] = segs.map((s, i) => ({
     idx: i,
@@ -104,7 +109,7 @@ export async function transcribeImportedAudio(
     sourceText: s.text,
     tStartMs: s.tStartMs,
     tEndMs: s.tEndMs,
-    engine: 'whisper-local',
+    engine: s.engine,
   }))
   await replaceSessionUtterances(sessionId, utterances)
   return utterances.length

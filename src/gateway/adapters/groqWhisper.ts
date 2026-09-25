@@ -74,7 +74,11 @@ export class GroqWhisperStt implements SttProvider {
 
     if (!res.ok) {
       const errorText = await res.text().catch(() => '')
-      throw new Error(`groq-whisper HTTP ${res.status}: ${errorText.slice(0, 160)}`)
+      /* O STATUS vai no erro, e não só na mensagem: quem chama decide por ele (402/429/501/503 =
+         a nuvem recusou de vez nesta sessão/importação; o resto é passageiro). */
+      throw Object.assign(new Error(`groq-whisper HTTP ${res.status}: ${errorText.slice(0, 160)}`), {
+        status: res.status,
+      })
     }
 
     /* `language` vem do DECODE, não de um palpite sobre o texto: o Whisper identifica o idioma a

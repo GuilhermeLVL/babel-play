@@ -14,6 +14,7 @@ import { usersRepo } from '../db/repositories/users'
 import { asUserId } from '../lib/authContext'
 import { aplicarEvento, eventoSchema } from '../lib/billingEventos'
 import { lerUltimosErros } from '../lib/diarioDeErros'
+import { definirFlag, ErroDeFlag, listarFlagsCruas } from '../lib/flags'
 import { log } from '../lib/logger'
 import { estadoDoOrcamento } from '../lib/orcamentoDeIa'
 import { requireRole } from '../lib/rbac'
@@ -195,4 +196,45 @@ adminRouter.post('/billing/reprocessar/:id', requireRole('admin'), async (req, r
   const r = await aplicarEvento(ev, req.requestId, undefined, true)
   await billingEventsRepo.registrarResultado(linha.id, r.estado, r.motivo)
   res.json({ ok: r.estado === 'aplicado', estado: r.estado, motivo: r.motivo })
+})
+
+// ── Feature flags (Fase 6b) ─────────────────────────────────────────────────
+
+/**
+ * As flags CRUAS — regras, listas de ids, percentual, payload e quem mexeu por último. É a única
+ * porta em que as regras aparecem: `GET /api/flags` (pública) só devolve o resultado avaliado.
+ */
+adminRouter.get('/flags', requireRole('admin', 'support'), async (_req, res) => {
+  res.json(await listarFlagsCruas())
+})
+
+const alteracaoDeFlagSchema = z
+  .object({
+    descricao: z.string().max(300).optional(),
+    habilitada: z.boolean().optional(),
+    regras: z.unknown().optional(),
+    payload: z.unknown().optional(),
+  })
+  .strict()
+
+/**
+ * Cria ou altera UMA flag (merge com a anterior: mande só o que muda). As regras e o payload são
+ * validados em `definirFlag` — payload de `oferta_planos` pelo schema de ofertas —, e a escrita
+ * deixa rastro: `atualizado_por` = este admin, e o evento `flag_alterada` no log.
+ */
+adminRouter.put('/flags/:chave', requireRole('admin'), async (req, res) => {
+  const corpo = alteracaoDeFlagSchema.safeParse(req.body ?? {})
+  if (!corpo.success) {
+    res.status(400).json({ error: 'corpo inválido: descricao, habilitada, regras e/ou payload' })
+    return
+  }
+  try {
+    res.json(await definirFlag(String(req.params.chave), corpo.data, req.userId))
+  } catch (err) {
+    if (err instanceof ErroDeFlag) {
+      res.status(400).json({ error: err.message, detalhes: err.detalhes })
+      return
+    }
+    throw err
+  }
 })

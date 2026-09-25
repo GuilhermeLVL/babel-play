@@ -45,6 +45,10 @@ export interface LogFields {
   semFala?: number
   repeticao?: number
   alucinacao?: number
+  /* Feature flags (Fase 6b, `server/lib/flags.ts`): QUAL flag mudou e para que estado. A chave é
+     um identificador de configuração do serviço, nunca dado de usuário. */
+  flag?: string
+  habilitada?: boolean
 }
 
 const ALLOWED = new Set([
@@ -68,6 +72,8 @@ const ALLOWED = new Set([
   'semFala',
   'repeticao',
   'alucinacao',
+  'flag',
+  'habilitada',
 ])
 
 /**

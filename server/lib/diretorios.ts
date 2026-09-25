@@ -47,13 +47,15 @@ export function armazenamentoCompartilhado(): boolean {
   // As quatro que `server/lib/armazenamento.ts:184` exige para ligar o seam de S3. Menos que isso
   // e o S3 nao esta ativo, entao dizer que o armazenamento e compartilhado seria falso.
   return !!(
-    process.env.S3_ENDPOINT && process.env.S3_BUCKET &&
-    process.env.S3_ACCESS_KEY_ID && process.env.S3_SECRET_ACCESS_KEY
+    process.env.S3_ENDPOINT &&
+    process.env.S3_BUCKET &&
+    process.env.S3_ACCESS_KEY_ID &&
+    process.env.S3_SECRET_ACCESS_KEY
   )
 }
 
 /**
- * A recusa de subir em multi-réplica sem armazenamento alcançável por todas.
+ * A recusa de subir em multi-réplica sem armazenamento e banco alcançáveis por todas.
  *
  * Devolve a mensagem quando a configuração é incoerente, `null` quando está de pé. Separado do
  * `process.exit` para poder ser testado sem derrubar o runner.
@@ -61,11 +63,23 @@ export function armazenamentoCompartilhado(): boolean {
 export function erroDeMultiReplica(): string | null {
   const replicas = replicasDeclaradas()
   if (replicas <= 1) return null
-  if (armazenamentoCompartilhado()) return null
-  return (
-    `REPLICAS=${replicas} sem armazenamento compartilhado. Com mais de uma instância, o áudio ` +
-    'gravado por uma réplica não existe no disco da outra: o pedido cai em 404 "arquivo ausente" ' +
-    'conforme o balanceador. Configure S3_ENDPOINT/S3_BUCKET/S3_ACCESS_KEY_ID/S3_SECRET_ACCESS_KEY, ou declare ' +
-    'ARMAZENAMENTO_COMPARTILHADO=1 se as réplicas montam o MESMO volume.'
-  )
+  if (!armazenamentoCompartilhado())
+    return (
+      `REPLICAS=${replicas} sem armazenamento compartilhado. Com mais de uma instância, o áudio ` +
+      'gravado por uma réplica não existe no disco da outra: o pedido cai em 404 "arquivo ausente" ' +
+      'conforme o balanceador. Configure S3_ENDPOINT/S3_BUCKET/S3_ACCESS_KEY_ID/S3_SECRET_ACCESS_KEY, ou declare ' +
+      'ARMAZENAMENTO_COMPARTILHADO=1 se as réplicas montam o MESMO volume.'
+    )
+  /* O BANCO TAMBÉM PRECISA SER UM SÓ (ADR 0006, auditoria de prontidão). Até aqui a trava só olhava o
+     áudio: `REPLICAS=2` com S3 passava no boot, e cada máquina subia com o SEU arquivo SQLite — dois
+     bancos divergentes, com rate limit, cotas e orçamento valendo por máquina. Banco em arquivo local
+     serve a uma máquina só; várias exigem banco remoto (`DATABASE_URL` libsql/Postgres). */
+  if ((process.env.DATABASE_URL ?? 'file:').startsWith('file:')) {
+    return (
+      `REPLICAS=${replicas} com banco em arquivo local (DATABASE_URL=file:…). Cada réplica teria o seu ` +
+      'SQLite: dados, cotas e rate limit divergiriam entre máquinas. Use um banco remoto ou uma réplica só ' +
+      '(docs/adr/0006-sqlite-numa-maquina-ate-o-gatilho-de-postgres.md).'
+    )
+  }
+  return null
 }

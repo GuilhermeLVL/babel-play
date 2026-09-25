@@ -211,6 +211,13 @@
       "when": 1790300000000,
       "tag": "0029_gasto_de_ia",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "6",
+      "when": 1790310000000,
+      "tag": "0030_indices_de_escala",
+      "breakpoints": true
     }
   ]
 }

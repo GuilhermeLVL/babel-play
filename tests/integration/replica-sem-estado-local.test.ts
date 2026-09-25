@@ -14,7 +14,7 @@
  *  3. **A coerência da topologia.** O servidor não tem como descobrir quantas réplicas existem;
  *     quem opera declara, e o boot recusa a combinação que serve dado que some.
  */
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync,writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -22,7 +22,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const guardaDoEnv = { ...process.env }
 
-beforeEach(() => { vi.resetModules() })
+beforeEach(() => {
+  vi.resetModules()
+})
 afterEach(() => {
   for (const k of Object.keys(process.env)) if (!(k in guardaDoEnv)) delete process.env[k]
   Object.assign(process.env, guardaDoEnv)
@@ -137,8 +139,9 @@ describe('topologia declarada', () => {
     expect(erro).toContain('404')
   })
 
-  it('duas instâncias com S3 completo, ou com volume declarado, sobem', async () => {
+  it('duas instâncias com S3 completo (ou volume declarado) E banco remoto sobem', async () => {
     process.env.REPLICAS = '2'
+    process.env.DATABASE_URL = 'libsql://banco-remoto.exemplo'
     process.env.S3_ENDPOINT = 'https://x'
     process.env.S3_BUCKET = 'b'
     process.env.S3_ACCESS_KEY_ID = 'k'
@@ -151,6 +154,21 @@ describe('topologia declarada', () => {
     delete process.env.S3_SECRET_ACCESS_KEY
     process.env.ARMAZENAMENTO_COMPARTILHADO = '1'
     expect((await diretorios()).erroDeMultiReplica()).toBeNull()
+  })
+
+  it('duas instâncias com S3 mas SQLite em arquivo local são recusadas (ADR 0006)', async () => {
+    process.env.REPLICAS = '2'
+    process.env.S3_ENDPOINT = 'https://x'
+    process.env.S3_BUCKET = 'b'
+    process.env.S3_ACCESS_KEY_ID = 'k'
+    process.env.S3_SECRET_ACCESS_KEY = 's'
+    process.env.DATABASE_URL = 'file:/data/babel.db'
+    const erro = (await diretorios()).erroDeMultiReplica()
+    expect(erro).toContain('REPLICAS=2')
+    expect(erro).toContain('arquivo local')
+
+    delete process.env.DATABASE_URL // o padrão também é arquivo local
+    expect((await diretorios()).erroDeMultiReplica()).toContain('arquivo local')
   })
 
   it('S3 pela metade não conta como compartilhado — o seam só liga com as quatro', async () => {

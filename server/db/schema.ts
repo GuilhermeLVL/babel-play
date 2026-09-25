@@ -66,6 +66,8 @@ export const sessions = sqliteTable(
      * o índice cobre o predicado inteiro em vez de mandar o SQLite buscar a linha para conferir.
      */
     index('idx_sessions_user').on(t.userId, t.deletedAt),
+    // Retenção de áudio varre por data de criação, de todos os usuários (migração 0030).
+    index('idx_sessions_created').on(t.createdAt),
   ],
 )
 
@@ -324,6 +326,8 @@ export const exerciseResults = sqliteTable(
     index('idx_exercise_results_kind_round').on(t.exerciseKind, t.roundId),
     /** F3: "como me saí com esta palavra" — a consulta que a tela C e o modelo da F4 fazem. */
     index('idx_exercise_results_card').on(t.userId, t.cardId, t.createdAt),
+    // Histórico do usuário por data, sem `card_id` (migração 0030, auditoria de prontidão).
+    index('idx_exercise_results_user_created').on(t.userId, t.createdAt),
   ],
 )
 
@@ -735,7 +739,11 @@ export const usageCounters = sqliteTable(
     window: text('window').notNull(), // 'YYYY-MM'
     count: integer('count').notNull().default(0),
   },
-  (t) => [unique('uq_usage_user_metric_window').on(t.userId, t.metric, t.window)],
+  (t) => [
+    unique('uq_usage_user_metric_window').on(t.userId, t.metric, t.window),
+    // A poda dos baldes filtra por métrica e janela, sem usuário (migração 0030).
+    index('idx_usage_counters_metric_window').on(t.metric, t.window),
+  ],
 )
 
 /**

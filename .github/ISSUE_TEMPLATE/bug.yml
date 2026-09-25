@@ -35,7 +35,7 @@ body:
     id: model
     attributes:
       label: STT / MT model in use
-      placeholder: whisper-tiny local · opus-mt en-ROMANCE · Chrome Translator API
+      placeholder: moonshine-base local · opus-mt en-ROMANCE · Chrome Translator API
   - type: dropdown
     id: account
     attributes:

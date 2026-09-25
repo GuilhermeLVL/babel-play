@@ -85,7 +85,9 @@ function provenanceLabel(engine?: string | null): string | null {
     case 'youtube-caption-auto':
       return 'Legenda YT (automática)';
     case 'whisper-local':
-      return 'Whisper local';
+      // O id do adapter é histórico: em inglês quem transcreve é o Moonshine, fora dele o Whisper.
+      // O selo diz o que é verdade nos dois casos.
+      return 'Transcrição local';
     case 'groq-whisper':
       return 'Whisper nuvem (large-v3)';
     case 'web-speech':

@@ -19,6 +19,9 @@ export const REVISOES_DOS_MODELOS: Readonly<Record<string, string>> = {
   'onnx-community/whisper-tiny': 'ff4177021cc41f7db950912b73ea4fdf7d01d8e7',
   'onnx-community/whisper-base': '1846881b6b3a3024392c1eea3ad983695bc23925',
   'onnx-community/whisper-small': '36050c46d777d46dc4b5f43f6d90574fc38f8732',
+  // Moonshine (STT local de inglês, MIT) — `main` conferido em 2026-09-24 (último commit: jan/2025).
+  'onnx-community/moonshine-base-ONNX': 'b1e9b6aae3c3c7298f10c3798393fdf38e8fbbad',
+  'onnx-community/moonshine-tiny-ONNX': 'a6da1241cd305dcd64eab1edbd615f2bb9aabb95',
   'Xenova/opus-mt-en-es': '4b002a4c7edd54a7ced58877258b87f7efd3f892',
   'Xenova/opus-mt-en-fr': '28726206f80896b90035bd99cccd5cc1e151f916',
   'Xenova/opus-mt-en-it': '075406e3c8c2c30634d4a1bd8f00c21d9e162011',

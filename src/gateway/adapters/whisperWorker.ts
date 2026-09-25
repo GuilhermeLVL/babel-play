@@ -1,6 +1,8 @@
 /**
  * Web Worker — pipeline ASR (Whisper local), espelho do whisper-server do desktop
- * mas executando off-thread no navegador.
+ * mas executando off-thread no navegador. Também carrega o MOONSHINE (o STT local de inglês,
+ * `moonshine.ts`): mesmo pipeline `automatic-speech-recognition`, mas outro dtype e outras opções
+ * de decode — o ramo está marcado com `ehMoonshine` abaixo.
  *
  * Backend PADRÃO = WASM (roda em QUALQUER navegador — Chrome, Edge, Firefox, Safari, celular —
  * e, para modelos pequenos como o whisper-tiny, é medido como MAIS RÁPIDO que WebGPU: o overhead
@@ -15,6 +17,14 @@ import { env, pipeline, TextStreamer } from '@huggingface/transformers';
 import { filtrarAlucinacao, tokensPorSegundo } from '../alucinacao';
 import { registrarModeloBaixado } from '../modelManifest';
 import { criarRastreadorDeProgresso, rotuloDeBytes } from './modelProgress';
+import {
+  DEVICE_MOONSHINE,
+  DTYPE_MOONSHINE,
+  ehMoonshine,
+  moonshineAceita,
+  opcoesDeDecodeMoonshine,
+  SESSAO_MOONSHINE,
+} from './moonshine';
 import { configureModelDelivery } from './transformersEnv';
 /* `initial_prompt` POR FONTE (contexto das falas anteriores do mic/sistema) foi avaliado e NÃO
    entrou: a versão instalada de @huggingface/transformers não expõe `prompt_ids` no pipeline de
@@ -115,18 +125,27 @@ function novoProgresso(rotulo: string) {
 async function ensurePipeline(model?: string, dtypeKey?: string, device?: string): Promise<void> {
   if (asr) return;
   asrModel = model || DEFAULT_MODEL;
-  const dev = resolveDevice(device);
-  const wantDtype = DTYPE_PRESETS[dtypeKey || 'hybrid'] ?? DTYPE_PRESETS.hybrid;
+  const moonshine = ehMoonshine(asrModel);
+  // Moonshine: WASM sempre (q8 validado só lá — ver `DEVICE_MOONSHINE`).
+  const dev = moonshine ? DEVICE_MOONSHINE : resolveDevice(device);
+  /* Moonshine: SEMPRE q8, ignorando o preset (inclusive o override `babel.whisperDtype`). O `hybrid`
+     é uma decisão sobre o encoder do WHISPER; o q8 é o que a bancada mediu para o moonshine. */
+  const chaveDtype = moonshine ? DTYPE_MOONSHINE : dtypeKey || 'hybrid';
+  const wantDtype = DTYPE_PRESETS[chaveDtype] ?? DTYPE_PRESETS.hybrid;
 
-  let dtypeEfetivo = dtypeKey || 'hybrid';
-  let progresso = novoProgresso('Whisper');
+  let dtypeEfetivo = chaveDtype;
+  let progresso = novoProgresso(moonshine ? 'Moonshine' : 'Whisper');
   try {
     asr = await pipeline('automatic-speech-recognition', asrModel, {
       device: dev,
       dtype: wantDtype,
+      // Moonshine: sem isto a sessão do decoder q8 não abre no ORT-web (ver `SESSAO_MOONSHINE`).
+      ...(moonshine ? { session_options: { ...SESSAO_MOONSHINE } } : {}),
       progress_callback: progresso,
     });
   } catch (err) {
+    // O moonshine já pediu q8: repetir a mesma carga só dobraria a espera antes do erro real.
+    if (moonshine) throw err;
     dtypeEfetivo = 'q8';
     // Fallback robusto: repo sem os arquivos do dtype híbrido → usa q8 (no mesmo device).
     // Rastreador NOVO: o dtype mudou, logo os arquivos e o total mudaram. Reaproveitar o anterior
@@ -154,14 +173,19 @@ async function ensurePipeline(model?: string, dtypeKey?: string, device?: string
   // Precisa gerar VÁRIOS tokens (não 1) p/ compilar o passo autoregressivo — senão a primeira
   // transcrição real ainda paga o stall. Rodar em silêncio agora esconde isso no "carregando".
   try {
-    await asr(new Float32Array(16000), {
-      language: 'en',
-      task: 'transcribe',
-      return_timestamps: false,
-      num_beams: 1,
-      do_sample: false,
-      max_new_tokens: 8,
-    });
+    await asr(
+      new Float32Array(16000),
+      moonshine
+        ? opcoesDeDecodeMoonshine(1)
+        : {
+            language: 'en',
+            task: 'transcribe',
+            return_timestamps: false,
+            num_beams: 1,
+            do_sample: false,
+            max_new_tokens: 8,
+          },
+    );
   } catch {
     // warmup é best-effort
   }
@@ -201,6 +225,22 @@ self.onmessage = async (e: MessageEvent) => {
       // POR IDIOMA: português/espanhol tokenizam pior que inglês no vocabulário do Whisper —
       // 15 tok/s truncava fala rápida em PT (medido no cenário conversa). Ver alucinacao.ts.
       const audioSec = pcm.length / 16000;
+
+      // MOONSHINE: só inglês, e decode sem as opções do Whisper (o pipeline repassa tudo ao
+      // `generate`). O streamer é do `generate` genérico, então as parciais token-a-token seguem
+      // funcionando. O filtro de alucinação continua, sempre na régua do inglês.
+      if (ehMoonshine(asrModel)) {
+        // Guarda de última linha: o roteador não escolhe moonshine fora do inglês e o adapter troca
+        // para o whisper-base antes de pedir; se ainda assim chegar outro idioma, ERRO — o gateway
+        // passa ao próximo motor — em vez de devolver inglês inventado a partir de outra língua.
+        if (!moonshineAceita(language)) throw new Error(`moonshine só transcreve inglês (pedido: ${language})`);
+        const out = await asr(pcm, { ...opcoesDeDecodeMoonshine(audioSec), streamer });
+        const bruto = (out.text ?? '').trim();
+        const filtrado = filtrarAlucinacao(bruto, audioSec, 'en');
+        self.postMessage({ type: 'result', id, text: filtrado, descartado: !!bruto && !filtrado });
+        return;
+      }
+
       const hardCap = maxNewTokens || (language && language !== 'en' ? 160 : 128);
       const dynMax = Math.max(8, Math.min(hardCap, Math.round(audioSec * tokensPorSegundo(language))));
 

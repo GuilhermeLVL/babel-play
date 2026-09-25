@@ -25,8 +25,16 @@ vi.mock('@ricky0123/vad-web', () => ({
   },
 }))
 
-const local = { preload: vi.fn(async () => {}), transcribePcm: vi.fn(async () => ({ text: 'local' })) }
-vi.mock('../src/gateway/adapters/whisperLocal', () => ({ WhisperLocalStt: vi.fn(function () { return local }) }))
+const local = {
+  preload: vi.fn(async () => {}),
+  transcribePcm: vi.fn(async () => ({ text: 'local' })),
+  setModel: vi.fn(),
+}
+vi.mock('../src/gateway/adapters/whisperLocal', () => ({
+  WhisperLocalStt: vi.fn(function () {
+    return local
+  }),
+}))
 
 import { offlineTranscribe } from '../src/gateway/offlineTranscribe'
 import { importacaoVaiANuvem } from '../src/lib/import/nuvemDaImportacao'
@@ -38,11 +46,19 @@ function erroHttp(status: number) {
 beforeEach(() => {
   local.preload.mockClear()
   local.transcribePcm.mockClear()
+  local.setModel.mockClear()
   ;(window as unknown as { AudioContext: unknown }).AudioContext = class {
     async decodeAudioData() {
-      return { sampleRate: 16000, numberOfChannels: 1, length: 16000 * 6, getChannelData: () => new Float32Array(16000 * 6) }
+      return {
+        sampleRate: 16000,
+        numberOfChannels: 1,
+        length: 16000 * 6,
+        getChannelData: () => new Float32Array(16000 * 6),
+      }
     }
-    close() { return Promise.resolve() }
+    close() {
+      return Promise.resolve()
+    }
   }
 })
 
@@ -90,6 +106,17 @@ describe('offlineTranscribe com motor de nuvem', () => {
     expect(segs.map((s) => s.engine)).toEqual(['groq-whisper', 'whisper-local', 'groq-whisper'])
   })
 
+  it('arquivo em inglês: o local é o moonshine-base, escolhido ANTES do preload (senão baixa o Whisper à toa)', async () => {
+    await offlineTranscribe(new Blob([new Uint8Array(4)]), { languageHint: 'en-US' })
+    expect(local.setModel).toHaveBeenCalledWith('onnx-community/moonshine-base-ONNX')
+    expect(local.setModel.mock.invocationCallOrder[0]).toBeLessThan(local.preload.mock.invocationCallOrder[0])
+  })
+
+  it('arquivo em português: o local segue o Whisper de sempre (moonshine é só inglês)', async () => {
+    await offlineTranscribe(new Blob([new Uint8Array(4)]), { languageHint: 'pt' })
+    expect(local.setModel).not.toHaveBeenCalled()
+  })
+
   it('sem nuvem, tudo local como antes', async () => {
     const segs = await offlineTranscribe(new Blob([new Uint8Array(4)]), { languageHint: 'pt' })
     expect(segs.every((s) => s.engine === 'whisper-local')).toBe(true)
@@ -112,12 +139,26 @@ describe('importacaoVaiANuvem — a mesma escolha da captura ao vivo', () => {
   it('plano sem nuvem gerenciada: só com a chave PRÓPRIA (BYOK é sempre livre)', () => {
     expect(importacaoVaiANuvem({ managedCloudStt: false, consentiu: true, rota: rotaNuvem, binding: groq })).toBe(false)
     expect(
-      importacaoVaiANuvem({ managedCloudStt: false, consentiu: true, rota: rotaNuvem, binding: { ...groq, credentialId: 'c1' } }),
+      importacaoVaiANuvem({
+        managedCloudStt: false,
+        consentiu: true,
+        rota: rotaNuvem,
+        binding: { ...groq, credentialId: 'c1' },
+      }),
     ).toBe(true)
   })
 
   it('rota local (inglês, "rápido", perfil Privado) ou perfil sem groq: local', () => {
-    expect(importacaoVaiANuvem({ managedCloudStt: true, consentiu: true, rota: { ...rotaNuvem, preferCloud: false }, binding: groq })).toBe(false)
-    expect(importacaoVaiANuvem({ managedCloudStt: true, consentiu: true, rota: rotaNuvem, binding: undefined })).toBe(false)
+    expect(
+      importacaoVaiANuvem({
+        managedCloudStt: true,
+        consentiu: true,
+        rota: { ...rotaNuvem, preferCloud: false },
+        binding: groq,
+      }),
+    ).toBe(false)
+    expect(importacaoVaiANuvem({ managedCloudStt: true, consentiu: true, rota: rotaNuvem, binding: undefined })).toBe(
+      false,
+    )
   })
 })

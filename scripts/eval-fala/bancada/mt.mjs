@@ -16,6 +16,7 @@
  * PROMPT DE PRODUÇÃO (`promptComunicativo.ts`) e temperatura 0: a bancada mede o que o servidor
  * manda, sem variação de amostragem entre execuções.
  */
+/* global AbortSignal */
 import path from 'node:path'
 import { readFileSync } from 'node:fs'
 import os from 'node:os'
@@ -25,8 +26,20 @@ import { chrf } from '../../../src/core/eval/chrf.ts'
 import { juntarFrases, separarEmFrases } from '../../../src/core/texto/frases.ts'
 import { systemComunicativo, userComunicativo } from '../../../src/lib/traducao/promptComunicativo.ts'
 import {
-  BANCADA_DIR, cache, chave, comAmostra, comRetentativa, CotaDoProvedor, respeitarRitmo, gastoTotal, gravarResultado, lerJsonl, opt, percentis,
-  registrarGasto, TetoDeGasto,
+  BANCADA_DIR,
+  cache,
+  chave,
+  comAmostra,
+  comRetentativa,
+  CotaDoProvedor,
+  respeitarRitmo,
+  gastoTotal,
+  gravarResultado,
+  lerJsonl,
+  opt,
+  percentis,
+  registrarGasto,
+  TetoDeGasto,
 } from './comum.mjs'
 
 /** US$ por 1M tokens (entrada, saída) na Groq — console.groq.com/docs/models, 24/09/2026. */
@@ -45,8 +58,14 @@ const PRECO_HF = {
   'openai/gpt-oss-20b:novita': [0.04, 0.15],
 }
 
-const SISTEMAS = opt('sistemas', 'groq:openai/gpt-oss-120b').split(',').map((s) => s.trim()).filter(Boolean)
-const CORPORA = opt('corpora', 'fleurs:en-pt').split(',').map((s) => s.trim()).filter(Boolean)
+const SISTEMAS = opt('sistemas', 'groq:openai/gpt-oss-120b')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean)
+const CORPORA = opt('corpora', 'fleurs:en-pt')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean)
 const LIMITE = Number(opt('limite', '0')) || 0
 const CONCORRENCIA = Number(opt('concorrencia', '4')) || 4
 
@@ -65,19 +84,44 @@ function carregarCorpus(specComAmostra) {
   if (partes[0] === 'fleurs') {
     casos = lerJsonl('mt/fleurs_en_pt.jsonl').map((p) => ({ id: p.id, origem: p[src], referencia: p[tgt] }))
   } else if (partes[0] === 'wmt') {
-    casos = lerJsonl('mt/wmt24pp_en_ptbr.jsonl').map((p) => ({ id: p.id, origem: p.en, referencia: p.pt, categoria: p.dominio }))
+    casos = lerJsonl('mt/wmt24pp_en_ptbr.jsonl').map((p) => ({
+      id: p.id,
+      origem: p.en,
+      referencia: p.pt,
+      categoria: p.dominio,
+    }))
   } else if (partes[0] === 'gold') {
-    casos = readFileSync('tests/eval/fixtures/gold-traducao-v1.jsonl', 'utf8').trim().split('\n').map((l) => JSON.parse(l))
-      .map((g) => ({ id: g.id, origem: g.origem, referencia: g.referencia, contexto: g.contexto ?? [], categoria: g.categoria }))
+    casos = readFileSync('tests/eval/fixtures/gold-traducao-v1.jsonl', 'utf8')
+      .trim()
+      .split('\n')
+      .map((l) => JSON.parse(l))
+      .map((g) => ({
+        id: g.id,
+        origem: g.origem,
+        referencia: g.referencia,
+        contexto: g.contexto ?? [],
+        categoria: g.categoria,
+      }))
   } else if (partes[0] === 'cascata') {
     const sisStt = partes.slice(1, -1).join(':')
-    const arq = path.join(BANCADA_DIR, 'cache', `${`stt_${sisStt}_fleurs_${src}`.replace(/[^a-zA-Z0-9._-]+/g, '_')}.json`)
+    const arq = path.join(
+      BANCADA_DIR,
+      'cache',
+      `${`stt_${sisStt}_fleurs_${src}`.replace(/[^a-zA-Z0-9._-]+/g, '_')}.json`,
+    )
     const hip = JSON.parse(readFileSync(arq, 'utf8'))
     const pares = new Map(lerJsonl('mt/fleurs_en_pt.jsonl').map((p) => [p.floresId, p]))
-    casos = Object.entries(hip).map(([id, r]) => {
-      const floresId = Number(id.split('_').at(-1))
-      return { id: `fleurs_${floresId}`, origem: r.texto, referencia: pares.get(floresId)?.[tgt], origemHumana: pares.get(floresId)?.[src] }
-    }).filter((c) => c.referencia && c.origem)
+    casos = Object.entries(hip)
+      .map(([id, r]) => {
+        const floresId = Number(id.split('_').at(-1))
+        return {
+          id: `fleurs_${floresId}`,
+          origem: r.texto,
+          referencia: pares.get(floresId)?.[tgt],
+          origemHumana: pares.get(floresId)?.[src],
+        }
+      })
+      .filter((c) => c.referencia && c.origem)
   } else throw new Error(`corpus desconhecido: ${spec}`)
   const n = amostra || LIMITE
   if (n && n < casos.length) {
@@ -92,7 +136,11 @@ function carregarCorpus(specComAmostra) {
 
 // ------------------------------------------------------------------ nuvem
 async function traduzirNuvem(sis, caso, src, tgt) {
-  const base = { groq: 'https://api.groq.com/openai/v1', openrouter: 'https://openrouter.ai/api/v1', hf: 'https://router.huggingface.co/v1' }[sis.provedor]
+  const base = {
+    groq: 'https://api.groq.com/openai/v1',
+    openrouter: 'https://openrouter.ai/api/v1',
+    hf: 'https://router.huggingface.co/v1',
+  }[sis.provedor]
   const k = sis.provedor === 'hf' ? tokenHf() : chave(sis.provedor === 'groq' ? 'GROQ_API_KEY' : 'OPENROUTER_API_KEY')
   const corpo = {
     model: sis.modelo,
@@ -104,20 +152,27 @@ async function traduzirNuvem(sis, caso, src, tgt) {
     ],
   }
   if (sis.provedor === 'hf' && sis.esforco) corpo.reasoning_effort = sis.esforco
-  if (sis.provedor === 'groq' && sis.esforco) { corpo.reasoning_effort = sis.esforco; corpo.include_reasoning = false }
+  if (sis.provedor === 'groq' && sis.esforco) {
+    corpo.reasoning_effort = sis.esforco
+    corpo.include_reasoning = false
+  }
   if (sis.provedor === 'openrouter') {
     corpo.provider = { zdr: true }
     corpo.usage = { include: true }
-    if (sis.esforco) corpo.reasoning = sis.esforco === 'off' ? { enabled: false } : { effort: sis.esforco, exclude: true }
+    if (sis.esforco)
+      corpo.reasoning = sis.esforco === 'off' ? { enabled: false } : { effort: sis.esforco, exclude: true }
   }
   await respeitarRitmo(`LLM_${sis.modelo.replace(/[^a-z0-9]/gi, '')}`, 16)
-  const t0 = performance.now()
-  const r = await comRetentativa(() => fetch(`${base}/chat/completions`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${k}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(corpo),
-    signal: AbortSignal.timeout(60_000),
-  }), sis.id)
+  const r = await comRetentativa(
+    () =>
+      fetch(`${base}/chat/completions`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${k}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(corpo),
+        signal: AbortSignal.timeout(60_000),
+      }),
+    sis.id,
+  )
   const j = await r.json()
   const ms = r.ms
   const u = j.usage ?? {}
@@ -127,8 +182,17 @@ async function traduzirNuvem(sis, caso, src, tgt) {
     usd = p ? ((u.prompt_tokens ?? 0) * p[0] + (u.completion_tokens ?? 0) * p[1]) / 1e6 : 0
   }
   registrarGasto(sis.id, usd)
-  const texto = String(j.choices?.[0]?.message?.content ?? '').replace(/^["“]|["”]$/g, '').trim()
-  return { texto, ms, tokensEntrada: u.prompt_tokens ?? null, tokensSaida: u.completion_tokens ?? null, usd, provedorReal: j.provider ?? null }
+  const texto = String(j.choices?.[0]?.message?.content ?? '')
+    .replace(/^["“]|["”]$/g, '')
+    .trim()
+  return {
+    texto,
+    ms,
+    tokensEntrada: u.prompt_tokens ?? null,
+    tokensSaida: u.completion_tokens ?? null,
+    usd,
+    provedorReal: j.provider ?? null,
+  }
 }
 
 function tokenHf() {
@@ -143,13 +207,19 @@ async function tradutorLocal(nome, src, tgt) {
   if (pipes.has(chaveP)) return pipes.get(chaveP)
   const { pipeline, env } = await import('@huggingface/transformers')
   env.allowLocalModels = false
-  try { process.env.HF_TOKEN ||= readFileSync(path.join(os.homedir(), '.cache/huggingface/token'), 'utf8').trim() } catch { /* sem token: só modelos públicos */ }
+  try {
+    process.env.HF_TOKEN ||= readFileSync(path.join(os.homedir(), '.cache/huggingface/token'), 'utf8').trim()
+  } catch {
+    /* sem token: só modelos públicos */
+  }
   let modelo, tokenId
   if (nome === 'tc-big') {
     if (!(src === 'en' && tgt === 'pt')) throw new Error('tc-big só cobre en→pt')
     modelo = 'GuilhermeLVL/opus-mt-tc-big-en-pt-onnx'
-  } else if (src === 'en' && tgt === 'pt') { modelo = 'Xenova/opus-mt-en-ROMANCE'; tokenId = 51 }
-  else if (src === 'pt' && tgt === 'en') modelo = 'Xenova/opus-mt-ROMANCE-en'
+  } else if (src === 'en' && tgt === 'pt') {
+    modelo = 'Xenova/opus-mt-en-ROMANCE'
+    tokenId = 51
+  } else if (src === 'pt' && tgt === 'en') modelo = 'Xenova/opus-mt-ROMANCE-en'
   else throw new Error(`opus-mt não cobre ${src}→${tgt}`)
   const pipe = await pipeline('translation', modelo, { dtype: 'q8', device: 'cpu' })
   // tc-big precisa do token de variante no texto: >>por<< (pt-BR é o padrão do par en-pt do Tatoeba).
@@ -192,22 +262,33 @@ async function rodar(sis, spec) {
     let r = c.get(k)
     if (!r) {
       try {
-        r = sis.provedor === 'local' ? await traduzirLocal(sis, caso, src, tgt) : await traduzirNuvem(sis, caso, src, tgt)
+        r =
+          sis.provedor === 'local' ? await traduzirLocal(sis, caso, src, tgt) : await traduzirNuvem(sis, caso, src, tgt)
       } catch (e) {
         if (e instanceof TetoDeGasto || e instanceof CotaDoProvedor) throw e
         r = { texto: '', ms: NaN, erro: String(e.message).slice(0, 200) }
       }
       if (!r.erro) c.set(k, r)
     }
-    saida[i] = { ...caso, hipotese: r.texto, ms: r.ms, usd: r.usd ?? 0, tokensEntrada: r.tokensEntrada, tokensSaida: r.tokensSaida, erro: r.erro }
+    saida[i] = {
+      ...caso,
+      hipotese: r.texto,
+      ms: r.ms,
+      usd: r.usd ?? 0,
+      tokensEntrada: r.tokensEntrada,
+      tokensSaida: r.tokensSaida,
+      erro: r.erro,
+    }
     process.stdout.write(`\r  ${sis.id} × ${spec}: ${++feitos}/${casos.length}   `)
   }
   // Local é CPU: um por vez. Nuvem: poucos em paralelo (a latência medida é por chamada).
   const conc = sis.provedor === 'local' ? 1 : CONCORRENCIA
   let proximo = 0
-  await Promise.all(Array.from({ length: conc }, async () => {
-    while (proximo < casos.length) await trabalho(proximo++)
-  }))
+  await Promise.all(
+    Array.from({ length: conc }, async () => {
+      while (proximo < casos.length) await trabalho(proximo++)
+    }),
+  )
   c.salvar()
   const notas = saida.map((x) => chrf(x.referencia, x.hipotese).chrf * 100)
   const q = bootstrap(saida.length, mediaEm(notas))
@@ -217,10 +298,30 @@ async function rodar(sis, spec) {
   const palavras = saida.reduce((s, x) => s + x.origem.split(/\s+/).length, 0)
   // Custo por HORA DE FALA: ~9.000 palavras por hora de conversa (ritmo médio de 150 palavras/min).
   const usdPorHora = palavras ? (usd / palavras) * 9000 : 0
-  console.log(`\r  ${sis.id} × ${spec}: chrF++ ${q.valor.toFixed(1)} [${q.ic95[0].toFixed(1)}–${q.ic95[1].toFixed(1)}]  p50 ${p50?.toFixed(0)} ms  p95 ${p95?.toFixed(0)} ms  US$ ${usdPorHora.toFixed(4)}/h de fala${falhas ? `  (${falhas} falhas)` : ''}`)
+  console.log(
+    `\r  ${sis.id} × ${spec}: chrF++ ${q.valor.toFixed(1)} [${q.ic95[0].toFixed(1)}–${q.ic95[1].toFixed(1)}]  p50 ${p50?.toFixed(0)} ms  p95 ${p95?.toFixed(0)} ms  US$ ${usdPorHora.toFixed(4)}/h de fala${falhas ? `  (${falhas} falhas)` : ''}`,
+  )
   return {
-    sistema: sis.id, corpus: spec, n: saida.length, falhas, chrf: q, latenciaMs: { p50, p95 }, usdTotal: usd, usdPorHoraDeFala: usdPorHora,
-    casos: saida.map((x, i) => ({ id: x.id, categoria: x.categoria, origem: x.origem, origemHumana: x.origemHumana, referencia: x.referencia, hipotese: x.hipotese, chrf: notas[i], ms: Math.round(x.ms), tokensSaida: x.tokensSaida, erro: x.erro })),
+    sistema: sis.id,
+    corpus: spec,
+    n: saida.length,
+    falhas,
+    chrf: q,
+    latenciaMs: { p50, p95 },
+    usdTotal: usd,
+    usdPorHoraDeFala: usdPorHora,
+    casos: saida.map((x, i) => ({
+      id: x.id,
+      categoria: x.categoria,
+      origem: x.origem,
+      origemHumana: x.origemHumana,
+      referencia: x.referencia,
+      hipotese: x.hipotese,
+      chrf: notas[i],
+      ms: Math.round(x.ms),
+      tokensSaida: x.tokensSaida,
+      erro: x.erro,
+    })),
   }
 }
 
@@ -240,12 +341,26 @@ async function main() {
       const n = Math.min(base.casos.length, outro.casos.length)
       const d = bootstrapPareado(n, mediaEm(outro.casos.map((x) => x.chrf)), mediaEm(base.casos.map((x) => x.chrf)))
       comparacoes.push({ corpus: spec, sistema: outro.sistema, contra: base.sistema, diferencaChrf: d })
-      console.log(`  Δ chrF++ ${spec}: ${outro.sistema} − ${base.sistema} = ${d.valor.toFixed(2)} [${d.ic95[0].toFixed(2)}, ${d.ic95[1].toFixed(2)}]${d.significativo ? ' *significativo*' : ' (empate)'}`)
+      console.log(
+        `  Δ chrF++ ${spec}: ${outro.sistema} − ${base.sistema} = ${d.valor.toFixed(2)} [${d.ic95[0].toFixed(2)}, ${d.ic95[1].toFixed(2)}]${d.significativo ? ' *significativo*' : ' (empate)'}`,
+      )
     }
   }
-  const nome = `mt_${CORPORA.join('-')}_${SISTEMAS.length}sis_${Date.now().toString(36)}`.replace(/[^a-zA-Z0-9._-]+/g, '_')
-  const saida = gravarResultado(nome, { sistemas: SISTEMAS, corpora: CORPORA, gastoTotalUsd: gastoTotal(), resultados, comparacoes })
+  const nome = `mt_${CORPORA.join('-')}_${SISTEMAS.length}sis_${Date.now().toString(36)}`.replace(
+    /[^a-zA-Z0-9._-]+/g,
+    '_',
+  )
+  const saida = gravarResultado(nome, {
+    sistemas: SISTEMAS,
+    corpora: CORPORA,
+    gastoTotalUsd: gastoTotal(),
+    resultados,
+    comparacoes,
+  })
   console.log(`\ngasto acumulado da bancada: US$ ${gastoTotal().toFixed(4)}\nbruto: ${saida}`)
 }
 
-main().catch((e) => { console.error('FALHOU:', e.message); process.exit(1) })
+main().catch((e) => {
+  console.error('FALHOU:', e.message)
+  process.exit(1)
+})

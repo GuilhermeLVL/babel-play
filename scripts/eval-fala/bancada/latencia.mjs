@@ -8,6 +8,7 @@
  *
  * Uso: node node_modules/tsx/dist/cli.mjs scripts/eval-fala/bancada/latencia.mjs [--n 25]
  */
+/* global FormData, Blob, AbortSignal, TextDecoder */
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 
@@ -26,7 +27,10 @@ async function sttUmaVez(wav) {
   fd.append('temperature', '0')
   const t0 = performance.now()
   const r = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
-    method: 'POST', headers: { Authorization: `Bearer ${chave('GROQ_API_KEY')}` }, body: fd, signal: AbortSignal.timeout(60_000),
+    method: 'POST',
+    headers: { Authorization: `Bearer ${chave('GROQ_API_KEY')}` },
+    body: fd,
+    signal: AbortSignal.timeout(60_000),
   })
   await r.text()
   return r.ok ? performance.now() - t0 : null
@@ -34,16 +38,30 @@ async function sttUmaVez(wav) {
 
 async function llmUmaVez(modelo, esforco, frase) {
   const corpo = {
-    model: modelo, temperature: 0, max_tokens: 400, stream: true,
-    messages: [{ role: 'system', content: systemComunicativo('pt', 'en') }, { role: 'user', content: userComunicativo(frase) }],
+    model: modelo,
+    temperature: 0,
+    max_tokens: 400,
+    stream: true,
+    messages: [
+      { role: 'system', content: systemComunicativo('pt', 'en') },
+      { role: 'user', content: userComunicativo(frase) },
+    ],
   }
-  if (esforco) { corpo.reasoning_effort = esforco; if (modelo.includes('gpt-oss')) corpo.include_reasoning = false }
+  if (esforco) {
+    corpo.reasoning_effort = esforco
+    if (modelo.includes('gpt-oss')) corpo.include_reasoning = false
+  }
   const t0 = performance.now()
   const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST', headers: { Authorization: `Bearer ${chave('GROQ_API_KEY')}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(corpo), signal: AbortSignal.timeout(60_000),
+    method: 'POST',
+    headers: { Authorization: `Bearer ${chave('GROQ_API_KEY')}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(corpo),
+    signal: AbortSignal.timeout(60_000),
   })
-  if (!r.ok) { await r.text(); return null }
+  if (!r.ok) {
+    await r.text()
+    return null
+  }
   let primeiro = null
   const leitor = r.body.getReader()
   const dec = new TextDecoder()
@@ -68,24 +86,44 @@ async function main() {
     await pausa(3200)
   }
   const [s50, s95] = percentis(stt)
-  console.log(`whisper-large-v3-turbo (${stt.length} falas, ~${(falas.reduce((a, f) => a + f.duracaoS, 0) / falas.length).toFixed(1)} s): p50 ${s50.toFixed(0)} ms  p95 ${s95.toFixed(0)} ms`)
+  console.log(
+    `whisper-large-v3-turbo (${stt.length} falas, ~${(falas.reduce((a, f) => a + f.duracaoS, 0) / falas.length).toFixed(1)} s): p50 ${s50.toFixed(0)} ms  p95 ${s95.toFixed(0)} ms`,
+  )
 
-  const frases = lerJsonl('mt/fleurs_en_pt.jsonl').slice(0, N).map((p) => p.en)
+  const frases = lerJsonl('mt/fleurs_en_pt.jsonl')
+    .slice(0, N)
+    .map((p) => p.en)
   const llms = {}
-  for (const [modelo, esforco] of [['openai/gpt-oss-120b', null], ['openai/gpt-oss-120b', 'low'], ['openai/gpt-oss-20b', 'low'], ['qwen/qwen3.8-27b', 'none']]) {
+  for (const [modelo, esforco] of [
+    ['openai/gpt-oss-120b', null],
+    ['openai/gpt-oss-120b', 'low'],
+    ['openai/gpt-oss-20b', 'low'],
+    ['qwen/qwen3.8-27b', 'none'],
+  ]) {
     const nome = `${modelo}${esforco ? `@${esforco}` : ''}`
-    const tot = [], pri = []
+    const tot = [],
+      pri = []
     for (const fr of frases) {
       const r = await llmUmaVez(modelo, esforco, fr)
-      if (r) { tot.push(r.total); if (r.primeiro !== null) pri.push(r.primeiro) }
+      if (r) {
+        tot.push(r.total)
+        if (r.primeiro !== null) pri.push(r.primeiro)
+      }
       await pausa(4000)
     }
     const [t50, t95] = percentis(tot)
     const [p50, p95] = percentis(pri)
     llms[nome] = { n: tot.length, totalMs: { p50: t50, p95: t95 }, primeiroTokenMs: { p50, p95 } }
-    console.log(`${nome.padEnd(28)} total p50 ${t50?.toFixed(0)} ms p95 ${t95?.toFixed(0)} ms · 1º token p50 ${p50?.toFixed(0)} ms p95 ${p95?.toFixed(0)} ms`)
+    console.log(
+      `${nome.padEnd(28)} total p50 ${t50?.toFixed(0)} ms p95 ${t95?.toFixed(0)} ms · 1º token p50 ${p50?.toFixed(0)} ms p95 ${p95?.toFixed(0)} ms`,
+    )
   }
-  console.log(`bruto: ${gravarResultado('latencia', { n: N, origem: 'Brasil (máquina do dono), sequencial, sem fila', stt: { n: stt.length, p50: s50, p95: s95 }, llms })}`)
+  console.log(
+    `bruto: ${gravarResultado('latencia', { n: N, origem: 'Brasil (máquina do dono), sequencial, sem fila', stt: { n: stt.length, p50: s50, p95: s95 }, llms })}`,
+  )
 }
 
-main().catch((e) => { console.error('FALHOU:', e.message); process.exit(1) })
+main().catch((e) => {
+  console.error('FALHOU:', e.message)
+  process.exit(1)
+})

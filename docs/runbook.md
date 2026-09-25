@@ -79,7 +79,7 @@ Os erros de aplicação (Sentry) não são alerta de página: são revisados tod
 
 Há duas fontes, as duas no R2:
 
-**A. Litestream (réplica contínua, perda de ~1 s).** Para perda da máquina ou do volume.
+**A. Litestream (réplica contínua, perda de ~10 s).** Para perda da máquina ou do volume.
 O caminho automático: criar um volume novo e subir a máquina — o entrypoint restaura sozinho quando
 `/data/babel.db` não existe. À mão, para CONFERIR sem tocar no banco vivo:
 

@@ -177,7 +177,7 @@ Dentro da imagem o script também existe: `node scripts/backup.mjs --sem-midia -
 1. **Litestream, contínuo.** Com `LITESTREAM_BUCKET`, `LITESTREAM_ENDPOINT`,
    `LITESTREAM_ACCESS_KEY_ID` e `LITESTREAM_SECRET_ACCESS_KEY`, o entrypoint sobe o Node como filho
    do `litestream replicate` (config em `litestream.yml`, versão e sha256 fixados no `Dockerfile`):
-   cada escrita chega ao R2 em ~1 s. Num volume vazio, o boot restaura sozinho
+   cada escrita chega ao R2 em ~10 s (`sync-interval`). Num volume vazio, o boot restaura sozinho
    (`-if-db-not-exists -if-replica-exists`). O CI prova isso a cada push (job `restauracao-litestream`).
 2. **Snapshot diário, independente.** `BACKUP_DIARIO=1` faz o processo primário rodar, às
    `BACKUP_HORA_UTC`, `VACUUM INTO` + `integrity_check` + gzip e enviar

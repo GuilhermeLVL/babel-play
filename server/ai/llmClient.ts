@@ -58,6 +58,12 @@ export interface RespostaDeChat {
   /** Separados porque o PREÇO é separado: saída custa 4× a entrada nos `gpt-oss`. */
   tokensEntrada?: number
   tokensSaida?: number
+  /**
+   * Tokens de entrada servidos do CACHE de prompt do provedor (`prompt_tokens_details.cached_tokens`
+   * no formato OpenAI, que a Groq e o OpenRouter repetem). Já estão DENTRO de `tokensEntrada`; o
+   * número separado é para a telemetria medir quanto o prefixo fixo dos prompts está economizando.
+   */
+  tokensEmCache?: number
   /** Presentes quando falhou: o código HTTP (0 = rede/timeout) e a causa legível. */
   status?: number
   causa?: string
@@ -170,6 +176,7 @@ export async function chamarChat(p: PedidoDeChat): Promise<RespostaDeChat> {
       choices?: Array<{ message?: { content?: string } }>
       usage?: {
         prompt_tokens?: number
+        prompt_tokens_details?: { cached_tokens?: number }
         completion_tokens?: number
         completion_tokens_details?: { reasoning_tokens?: number }
       }
@@ -193,7 +200,8 @@ export async function chamarChat(p: PedidoDeChat): Promise<RespostaDeChat> {
     }
     const tokensEntrada = data.usage?.prompt_tokens ?? 0
     const tokensSaida = data.usage?.completion_tokens ?? 0
-    return { ok: true, texto, tokens: tokensEntrada + tokensSaida, tokensEntrada, tokensSaida }
+    const tokensEmCache = data.usage?.prompt_tokens_details?.cached_tokens ?? 0
+    return { ok: true, texto, tokens: tokensEntrada + tokensSaida, tokensEntrada, tokensSaida, tokensEmCache }
   } catch (err) {
     const msg = String((err as Error)?.message ?? err)
     // `TimeoutError` do `AbortSignal.timeout` vira uma causa legível: "falhou" e "demorou demais"

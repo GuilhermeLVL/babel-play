@@ -19,6 +19,7 @@ import { FUNCOES_DE_IA, maxTokensDaTraducao } from './funcoesDeIa'
 import { type MensagemDeChat, tamanhoDoPrompt } from './llmClient'
 import { cascataDeNuvem } from './provedores'
 import { abrirReservaDeLlm, type ReservaDeLlm } from './reservaDeNuvem'
+import { abrirRastro, codigoDeIdioma, type RastroDeIa } from './telemetriaDeIa'
 
 /**
  * Tradução via LLM (Groq) no SERVIDOR — o elo que faltava na cadeia de MT.
@@ -84,13 +85,30 @@ function respostaDeTraducao(texto: string, modelo: string, doCache = false) {
   }
 }
 
+/**
+ * A rota, embrulhada no rastro de telemetria (`telemetriaDeIa.ts`): UM rastro por requisição,
+ * fechado no `finally` com o status que o cliente recebeu — qualquer que seja o `return` lá dentro.
+ * A função é `mt-fala` (microfone) ou `mt-texto` (legenda, importação): custam diferente e são
+ * produtos diferentes no preço.
+ */
 export async function mtTranslateProxy(req: Request, res: Response): Promise<void> {
+  const falada = (req.body as { falada?: unknown } | undefined)?.falada === true
+  const rastro = abrirRastro(req, falada ? 'mt-fala' : 'mt-texto')
+  try {
+    await traduzir(req, res, rastro)
+  } finally {
+    rastro.encerrar(res.statusCode)
+  }
+}
+
+async function traduzir(req: Request, res: Response, rastro: RastroDeIa): Promise<void> {
   const parsed = bodySchema.safeParse(req.body ?? {})
   if (!parsed.success) {
     res.status(400).json({ error: 'payload inválido: text/tgt obrigatórios' })
     return
   }
   const { text, src, tgt, falada, contexto } = parsed.data
+  rastro.anotar({ parDeIdiomas: `${codigoDeIdioma(src)}-${codigoDeIdioma(tgt)}` })
 
   // SaaS Fatia 1b — este proxy é 100% nuvem GERENCIADA (chave do dono). Exige o entitlement; a cadeia
   // de tradução LOCAL (Chrome Translator/opus-mt/MyMemory) roda no cliente e não passa por aqui, então
@@ -132,6 +150,7 @@ export async function mtTranslateProxy(req: Request, res: Response): Promise<voi
   })
   const guardada = cacheavel ? cacheDeTraducao.ler(chave) : null
   if (guardada) {
+    rastro.anotar({ cacheHit: true })
     log('info', { event: 'mt_cache_hit', route: '/api/ai/mt', status: 200, requestId: req.requestId })
     res.json(respostaDeTraducao(guardada.texto, guardada.modelo, true))
     return
@@ -175,7 +194,7 @@ export async function mtTranslateProxy(req: Request, res: Response): Promise<voi
     const { entregue, ultimaFalha } = await percorrerCascata(
       provedores,
       { messages, temperature: falada ? 0.2 : TRADUCAO.temperatura, maxTokens, timeoutMs: 12_000 },
-      { evento: 'mt', route: '/api/ai/mt', requestId: req.requestId, funcao: 'traducao' },
+      { evento: 'mt', route: '/api/ai/mt', requestId: req.requestId, funcao: 'traducao', rastro },
     )
 
     if (!entregue) {

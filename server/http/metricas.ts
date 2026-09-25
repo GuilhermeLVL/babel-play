@@ -107,6 +107,7 @@ interface Estado {
   chamadasDeIa: Counter<'route' | 'status' | 'resultado'>
   provedorLatencia: Histogram<'provedor' | 'funcao'>
   provedorCusto: Counter<'provedor' | 'funcao'>
+  provedorLimite: Counter<'provedor' | 'modelo'>
   sttDescartes: Counter<'motivo'>
   capturaSttFinal: Histogram<'motor'>
   capturaPrimeiroParcial: Histogram<'motor'>
@@ -175,6 +176,15 @@ function metricas(): Estado {
       help: 'Custo ESTIMADO (US$) das chamadas entregues com a chave do dono, pela tabela de preços de server/lib/orcamentoDeIa.ts. BYOK não entra: não é dinheiro do serviço.',
       labelNames: ['provedor', 'funcao'] as const,
     }),
+    /* O LIMITE DO PROVEDOR (429), por provedor e MODELO. É o número que diz "a camada gratuita da
+       Groq não aguenta o tráfego — suba o tier". O modelo entra porque os limites da Groq são POR
+       MODELO; a cardinalidade é a dos modelos configurados no env (BYOK vira o rótulo fixo `byok`,
+       nunca o nome que o usuário escolheu). */
+    provedorLimite: new Counter({
+      name: 'ia_provedor_limite_total',
+      help: 'Respostas 429 (limite de taxa) dos provedores de IA, por provedor e modelo. Subindo, é hora de subir o tier do provedor.',
+      labelNames: ['provedor', 'modelo'] as const,
+    }),
     sttDescartes: new Counter({
       name: 'stt_segmentos_descartados_total',
       help: 'Segmentos do Whisper de nuvem descartados no servidor, por motivo (sem_fala, repeticao) — e transcrições inteiras esvaziadas pelo filtro de alucinação (alucinacao).',
@@ -238,6 +248,12 @@ export function observarChamadaDeProvedor(o: {
   if (Number.isFinite(o.ms) && o.ms >= 0) estado.provedorLatencia.observe(labels, o.ms)
   if (o.custoUsd !== undefined && Number.isFinite(o.custoUsd) && o.custoUsd > 0)
     estado.provedorCusto.inc(labels, o.custoUsd)
+}
+
+/** Um 429 do provedor. Rótulos fixos do código ou do env — ver o bloco da métrica. */
+export function contarLimiteDoProvedor(provedor: string, modelo: string): void {
+  if (!estado) return
+  estado.provedorLimite.inc({ provedor, modelo })
 }
 
 /** Segmentos (ou transcrições inteiras) que o STT de nuvem descartou, por motivo. */

@@ -16,6 +16,7 @@ import { log } from '../lib/logger'
 import { responderErro } from '../lib/respostaDeErro'
 import { llmChatCompletionsSchema, parseOr400, providerTestSchema } from '../validation'
 import { assertPublicUrl, ehDestinoBloqueado } from './ssrf'
+import { abrirRastro, type RastroDeIa, registrarLimiteDoProvedor, statusDaTentativa } from './telemetriaDeIa'
 
 /** A-04: teto de tempo do proxy de LLM (era a ÚNICA rota de IA sem timeout). */
 const LLM_TIMEOUT_MS = 60_000
@@ -23,7 +24,23 @@ const LLM_TIMEOUT_MS = 60_000
 const MAX_OUTPUT_TOKENS = 4096
 
 /** POST /api/ai/llm/chat/completions (OpenAI-compatible; SSE pass-through). */
+/**
+ * O proxy BYOK, embrulhado no rastro de telemetria. A chave é do USUÁRIO, então não há custo do
+ * dono a medir — mas a latência e a taxa de erro do provedor que ele escolheu dizem se o caminho
+ * BYOK funciona. A resposta vem em STREAM e passa direto: a geração mede até os cabeçalhos
+ * chegarem, sem ler (nem guardar) o corpo.
+ */
 export async function llmChatProxy(req: Request, res: Response): Promise<void> {
+  const rastro = abrirRastro(req, 'byok-chat')
+  rastro.anotar({ byok: true })
+  try {
+    await encaminharChat(req, res, rastro)
+  } finally {
+    rastro.encerrar(res.statusCode)
+  }
+}
+
+async function encaminharChat(req: Request, res: Response, rastro: RastroDeIa): Promise<void> {
   try {
     const credentialId = req.header('x-credential-id')
     if (!credentialId) {
@@ -55,6 +72,7 @@ export async function llmChatProxy(req: Request, res: Response): Promise<void> {
     if (secret) headers['Authorization'] = 'Bearer ' + secret
 
     const endpoint = baseUrl.replace(/\/+$/, '') + '/chat/completions'
+    const inicio = Date.now()
     const upstream = await fetch(endpoint, {
       method: 'POST',
       headers,
@@ -66,6 +84,15 @@ export async function llmChatProxy(req: Request, res: Response): Promise<void> {
       redirect: 'manual',
     })
 
+    if (upstream.status === 429) registrarLimiteDoProvedor('byok', 'byok')
+    rastro.tentativa({
+      inicio,
+      fim: Date.now(),
+      provedor: 'byok',
+      modelo: typeof body.model === 'string' ? body.model.slice(0, 80) : 'desconhecido',
+      status: upstream.ok ? 'ok' : statusDaTentativa(upstream.status),
+      metadados: { statusHttp: upstream.status },
+    })
     res.status(upstream.status)
     res.setHeader('Content-Type', upstream.headers.get('content-type') ?? 'application/json')
     if (!upstream.body) {

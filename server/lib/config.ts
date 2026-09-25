@@ -293,6 +293,39 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     paraQue: 'só diagnóstico: identifica a instância que registrou uma falha de boot',
   },
   {
+    nome: 'LANGFUSE_ARQUIVO',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'caminho de um .jsonl que recebe a MESMA telemetria de IA (custo, latência, status por chamada) para análise local — funciona sem as chaves do Langfuse (server/lib/langfuse.ts)',
+  },
+  {
+    nome: 'LANGFUSE_BASE_URL',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'região do Langfuse; padrão https://cloud.langfuse.com (UE)',
+  },
+  {
+    nome: 'LANGFUSE_CONTEUDO',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      '1 inclui o texto de entrada/saída nas gerações — SÓ em desenvolvimento: com NODE_ENV=production é recusada (menores usam o app; LGPD art. 14)',
+  },
+  {
+    nome: 'LANGFUSE_PUBLIC_KEY',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'chave pública do projeto Langfuse. Com LANGFUSE_SECRET_KEY, liga a telemetria PSEUDONIMIZADA de custo/latência de IA (sem texto do usuário). Sem as duas, nada sai',
+  },
+  {
+    nome: 'LANGFUSE_SECRET_KEY',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'chave secreta do projeto Langfuse (par da LANGFUSE_PUBLIC_KEY)',
+  },
+  {
     nome: 'LLM_API_KEY',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',

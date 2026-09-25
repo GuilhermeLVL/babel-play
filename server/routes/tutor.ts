@@ -24,6 +24,7 @@ import { chamarChat, type MensagemDeChat, tamanhoDoPrompt } from '../ai/llmClien
 import { prepareLlmRequest } from '../ai/llmRequest'
 import { cascataDeNuvem, llmLocal } from '../ai/provedores'
 import { abrirReservaDeLlm, type ReservaDeLlm } from '../ai/reservaDeNuvem'
+import { abrirRastro, nomeDoProvedor, type RastroDeIa, statusDaTentativa } from '../ai/telemetriaDeIa'
 import { authRequired } from '../lib/auth'
 import { getEntitlementsForUser } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
@@ -39,8 +40,22 @@ const TIMEOUT_NUVEM_MS = 30_000
 /** O local roda na CPU de quem usa o app: a espera é o preço de não depender de nuvem. */
 const TIMEOUT_LOCAL_MS = 60_000
 
-async function tentarLocal(messages: MensagemDeChat[], maxTokens: number): Promise<string | null> {
-  const r = await chamarChat({ ...llmLocal(), messages, maxTokens, timeoutMs: TIMEOUT_LOCAL_MS })
+async function tentarLocal(messages: MensagemDeChat[], maxTokens: number, rastro: RastroDeIa): Promise<string | null> {
+  const local = llmLocal()
+  const inicio = Date.now()
+  const r = await chamarChat({ ...local, messages, maxTokens, timeoutMs: TIMEOUT_LOCAL_MS })
+  /* O Ollama do self-host também é geração: custo zero (a máquina é do dono), mas latência e taxa
+     de falha dele são o que decide se vale oferecer a nuvem a quem roda em casa. */
+  rastro.tentativa({
+    inicio,
+    fim: Date.now(),
+    provedor: nomeDoProvedor(local.base),
+    modelo: local.model,
+    status: r.ok ? 'ok' : statusDaTentativa(r.status, r.causa),
+    uso: r.ok ? { input: r.tokensEntrada ?? 0, output: r.tokensSaida ?? 0 } : undefined,
+    custoUsd: 0,
+    metadados: { rotulo: local.rotulo, statusHttp: r.status },
+  })
   if (!r.ok) {
     log('warn', { event: 'tutor_ollama_indisponivel', error: r.causa })
     return null
@@ -48,7 +63,22 @@ async function tentarLocal(messages: MensagemDeChat[], maxTokens: number): Promi
   return r.texto ?? null
 }
 
+/**
+ * A rota, embrulhada no rastro de telemetria (`server/ai/telemetriaDeIa.ts`). A função (`tutor` ou
+ * `corretor`) só é conhecida depois de validar o corpo; até lá o rastro nasce como `tutor`, que é o
+ * que o corpo inválido pedia de qualquer jeito.
+ */
 export async function tutorChat(req: Request, res: Response): Promise<void> {
+  const pedida = (req.body as { funcao?: unknown } | undefined)?.funcao
+  const rastro = abrirRastro(req, pedida === 'corretor' ? 'corretor' : 'tutor')
+  try {
+    await conversar(req, res, rastro)
+  } finally {
+    rastro.encerrar(res.statusCode)
+  }
+}
+
+async function conversar(req: Request, res: Response, rastro: RastroDeIa): Promise<void> {
   // Reserva de cota (chamada + tokens): estornada em todo caminho que não entrega resposta da nuvem.
   let reserva: ReservaDeLlm | null = null
   try {
@@ -57,6 +87,7 @@ export async function tutorChat(req: Request, res: Response): Promise<void> {
        (`mtProxy.ts`) não recebe: ela verte fielmente um texto que a pessoa já tem, e "recuse outros
        assuntos" faria o modelo censurar ou recusar a legenda em vez de traduzir. */
     const menor = await ehMenor(req.userId)
+    rastro.anotar({ menor })
     const prep = prepareLlmRequest(req.body, menor ? { instrucaoParaMenor: INSTRUCAO_DE_SEGURANCA_PARA_MENORES } : {})
     if (!prep.ok) {
       res.status(prep.status).json({ error: prep.error, code: prep.code })
@@ -88,7 +119,7 @@ export async function tutorChat(req: Request, res: Response): Promise<void> {
             maxTokens: prep.maxTokens,
             timeoutMs: TIMEOUT_NUVEM_MS,
           },
-          { evento: 'tutor', route: '/api/tutor/chat', requestId: req.requestId, funcao: prep.funcao },
+          { evento: 'tutor', route: '/api/tutor/chat', requestId: req.requestId, funcao: prep.funcao, rastro },
         )
         if (entregue) {
           await reserva.consumir(entregue.tokensEntrada + entregue.tokensSaida)
@@ -114,7 +145,7 @@ export async function tutorChat(req: Request, res: Response): Promise<void> {
     }
 
     // Self-host: o Ollama da máquina do dono é o piso.
-    const local = await tentarLocal(prep.messages, prep.maxTokens)
+    const local = await tentarLocal(prep.messages, prep.maxTokens, rastro)
     if (local) {
       res.json({ text: local, engine: 'ollama', local: true })
       return

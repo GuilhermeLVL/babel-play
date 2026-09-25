@@ -23,7 +23,7 @@
 <main>
   <p class="kicker">Babel Play</p>
   <h1>Política de Privacidade</h1>
-  <p class="muted"><strong>Versão para revisão jurídica</strong> — 24 de setembro de 2026.</p>
+  <p class="muted"><strong>Versão para revisão jurídica</strong> — 25 de setembro de 2026.</p>
 
   <p>O Babel Play foi desenhado para processar o máximo possível <strong>no seu próprio
   navegador</strong>. Ainda assim, algumas funções usam serviços de nuvem — de tradução, de
@@ -58,9 +58,14 @@
   serviços de terceiros. Você vê e controla quais engines estão ativas dentro do app
   (<strong>painel de engines de IA</strong> e <strong>Ajustes</strong>):</p>
   <ul>
-    <li><strong>Reconhecimento de fala do navegador (Web Speech)</strong>: em alguns navegadores
-      (por exemplo, Chrome), a transcrição por essa via envia o <strong>áudio do microfone ao
-      Google</strong>. É uma das engines disponíveis no perfil web padrão.</li>
+    <li><strong>Reconhecimento de fala do navegador (Web Speech)</strong>: quando você escolhe o
+      reconhecimento de voz do próprio navegador para o microfone, é o <strong>navegador</strong> que
+      envia o áudio ao fabricante dele — no <strong>Chrome</strong>, ao <strong>Google</strong>; no
+      <strong>Edge</strong>, à <strong>Microsoft</strong> —, sob os termos e a política de privacidade
+      desse fabricante, e não sob o nosso controle. Nós não recebemos esse áudio. Se preferir que a
+      voz não vá a eles, o app oferece alternativas: a transcrição <strong>local</strong>, que roda no
+      seu dispositivo, e a transcrição na <strong>nossa nuvem</strong> (planos pagos), descrita
+      abaixo.</li>
     <li><strong>Tradução rápida (MyMemory)</strong>: quando essa engine é usada, o <strong>texto a
       traduzir é enviado ao serviço MyMemory</strong> (terceiro).</li>
     <li><strong>IA de nuvem (transcrição/tradução gerenciadas e o tutor iChat)</strong>: nos planos
@@ -100,12 +105,24 @@
       versão <strong>anonimizada (hash)</strong> do IP, para evitar abuso do placar.</li>
     <li><strong>Relatórios de erro</strong> do app: a mensagem técnica do erro e a tela onde ocorreu
       — nunca o que você falou ou digitou.</li>
+    <li><strong>Medição técnica da IA de nuvem</strong>: para saber quanto custa e quanto demora cada
+      chamada de transcrição, tradução e tutor — e assim dimensionar e precificar os planos —, o
+      servidor registra, por chamada, o plano, a função usada, o provedor e o modelo, a quantidade
+      de tokens ou de segundos de áudio, o custo estimado, o tempo de resposta, se deu certo e se o
+      perfil é de menor de idade (sim/não). Você aparece ali só como um <strong>pseudônimo</strong>
+      (um código calculado com uma chave secreta que fica no nosso servidor), nunca pelo nome,
+      e-mail, IP ou identificador da conta. <strong>O que você falou, digitou, o texto traduzido, as
+      mensagens ao tutor e o áudio não entram nessa medição.</strong> Esses registros podem ser
+      enviados ao <strong>Langfuse</strong> (serviço de observabilidade de IA, hospedado na União
+      Europeia), que os trata em nosso nome.</li>
   </ul>
 
   <h2>O que NÃO fazemos</h2>
   <ul>
     <li><strong>Não há analytics nem telemetria de comportamento.</strong> Nenhum rastreador de uso,
-      nenhum pixel.</li>
+      nenhum pixel. A única medição é a técnica da IA de nuvem descrita acima — custo, tempo e
+      falhas de cada chamada, com pseudônimo e sem o conteúdo —, e ela não é usada para montar perfil
+      de ninguém.</li>
     <li><strong>Não vendemos</strong> seus dados nem os compartilhamos para publicidade. Os terceiros
       listados acima recebem apenas o necessário para executar a função que você acionou.</li>
   </ul>

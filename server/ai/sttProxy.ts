@@ -29,6 +29,14 @@ import { deveRetentar, esperaDaRetentativa } from './disjuntor'
 import { responderContadorIndisponivel } from './reservaDeNuvem'
 import { assertPublicUrl } from './ssrf'
 import { promptDoCabecalho, triarSegmentos } from './sttQualidade'
+import {
+  abrirRastro,
+  codigoDeIdioma,
+  nomeDoProvedor,
+  type RastroDeIa,
+  registrarLimiteDoProvedor,
+  statusDaTentativa,
+} from './telemetriaDeIa'
 
 /**
  * Quantas tentativas EXTRAS o STT faz. Duas, e o porquê do número está no bloco que as usa: cada
@@ -37,8 +45,22 @@ import { promptDoCabecalho, triarSegmentos } from './sttQualidade'
  */
 const RETENTATIVAS_DE_STT = 2
 
-/** POST /api/ai/stt/transcribe (OpenAI-compatible Whisper). */
+/**
+ * POST /api/ai/stt/transcribe (OpenAI-compatible Whisper) — embrulhado no rastro de telemetria
+ * (`telemetriaDeIa.ts`): um rastro por requisição, uma geração por tentativa ao provedor, com os
+ * segundos de áudio REAIS e os FATURADOS lado a lado. A diferença entre os dois é o mínimo de 10 s
+ * da Groq, e é ela que diz se vale juntar falas curtas antes de mandar.
+ */
 export async function sttTranscribeProxy(req: Request, res: Response): Promise<void> {
+  const rastro = abrirRastro(req, 'stt')
+  try {
+    await transcrever(req, res, rastro)
+  } finally {
+    rastro.encerrar(res.statusCode)
+  }
+}
+
+async function transcrever(req: Request, res: Response, rastro: RastroDeIa): Promise<void> {
   // Reserva pendente de quota gerenciada. Só o ramo da chave do DONO reserva; BYOK não.
   let reservaPendente = false
   /** Segundos reservados nesta requisição (0 = nenhum). Precisa ser estornado junto da chamada. */
@@ -60,6 +82,7 @@ export async function sttTranscribeProxy(req: Request, res: Response): Promise<v
     let defaultModel: string | null
 
     if (credentialId) {
+      rastro.anotar({ byok: true })
       ;({ baseUrl, secret, defaultModel } = await credentialsRepo.getSecret(req.userId, credentialId))
     } else {
       // SaaS Fatia 1b — STT de nuvem GERENCIADA (chave do DONO) exige o entitlement. BYOK (ramo `if`)
@@ -199,8 +222,44 @@ export async function sttTranscribeProxy(req: Request, res: Response): Promise<v
      * `deveRetentar` explica por que o TIMEOUT ficou de fora (a requisição pode ter sido processada
      * e cobrada do outro lado).
      */
+    /* O NOME DO PROVEDOR PARA A TELEMETRIA. No BYOK a URL é escolha do usuário: vai o rótulo fixo
+       `byok`, nunca o host. O modelo do BYOK também vira `byok` no CONTADOR de 429 (Prometheus não
+       aguenta uma série por nome que o usuário digitou); na geração do Langfuse ele vai como é. */
+    const byok = Boolean(credentialId)
+    const provedorTelemetria = byok ? 'byok' : nomeDoProvedor(baseUrl)
+    rastro.anotar({ parDeIdiomas: codigoDeIdioma(lang) })
+
+    /** Uma tentativa medida: a que falha vira geração aqui; a que dá certo, depois do texto. */
+    let inicioDaTentativa = Date.now()
+    const tentativaMedida = async () => {
+      inicioDaTentativa = Date.now()
+      try {
+        const r = await umaTentativa()
+        if (r.status === 429) registrarLimiteDoProvedor(provedorTelemetria, byok ? 'byok' : model)
+        if (!r.ok)
+          rastro.tentativa({
+            inicio: inicioDaTentativa,
+            fim: Date.now(),
+            provedor: provedorTelemetria,
+            modelo: model,
+            status: statusDaTentativa(r.status),
+            metadados: { statusHttp: r.status },
+          })
+        return r
+      } catch (err) {
+        rastro.tentativa({
+          inicio: inicioDaTentativa,
+          fim: Date.now(),
+          provedor: provedorTelemetria,
+          modelo: model,
+          status: statusDaTentativa(0, String((err as Error)?.name ?? '') + String((err as Error)?.message ?? err)),
+        })
+        throw err
+      }
+    }
+
     const inicioDoProvedor = Date.now()
-    let upstream = await umaTentativa()
+    let upstream = await tentativaMedida()
     for (let n = 1; n <= RETENTATIVAS_DE_STT && deveRetentar(upstream.status); n++) {
       const espera = esperaDaRetentativa(n)
       log('warn', {
@@ -211,7 +270,7 @@ export async function sttTranscribeProxy(req: Request, res: Response): Promise<v
         requestId: req.requestId,
       })
       await new Promise((r) => setTimeout(r, espera))
-      upstream = await umaTentativa()
+      upstream = await tentativaMedida()
     }
 
     if (!upstream.ok) {
@@ -258,8 +317,36 @@ export async function sttTranscribeProxy(req: Request, res: Response): Promise<v
     // `language` vazio = o provedor não informou (ou caímos no `json`): o cliente volta ao
     // detector de texto. Nunca inventamos um código aqui.
     const idioma = normalizarIdiomaDoWhisper(j.language)
-    const texto = limparTranscricao(j, audioBuffer, lang || idioma, req.requestId)
-    res.json({ text: texto, language: idioma })
+    const limpeza = limparTranscricao(j, audioBuffer, lang || idioma, req.requestId)
+    /* A GERAÇÃO QUE ENTREGOU. `filtrado-vazio` separa "o provedor não ouviu nada" de "o provedor
+       inventou e o filtro cortou" — a segunda é custo pago por alucinação, e é o número que diz se o
+       VAD do cliente está mandando silêncio demais. Os segundos REAIS são a duração do WAV; os
+       FATURADOS têm o mínimo por requisição do provedor. */
+    const segundosReais = duracaoDoWav(audioBuffer) ?? (typeof j.duration === 'number' ? j.duration : 0)
+    rastro.anotar({
+      parDeIdiomas: codigoDeIdioma(lang || idioma),
+      segmentosDescartados: limpeza.descartados,
+    })
+    rastro.tentativa({
+      inicio: inicioDaTentativa,
+      fim: Date.now(),
+      provedor: provedorTelemetria,
+      modelo: model,
+      status: limpeza.esvaziado ? 'filtrado-vazio' : 'ok',
+      uso: {
+        audio_seconds: Math.round(segundosReais * 100) / 100,
+        audio_seconds_billed: segundosFaturaveis(audioBuffer),
+      },
+      custoUsd,
+      metadados: {
+        statusHttp: upstream.status,
+        semFala: limpeza.semFala,
+        repeticao: limpeza.repeticao,
+        alucinacao: limpeza.alucinacao,
+      },
+      ...(rastro.conteudoPermitido ? { saida: limpeza.texto } : {}),
+    })
+    res.json({ text: limpeza.texto, language: idioma })
   } catch (err) {
     /* A cota falha FECHADA (Fase 2 do lançamento): contador fora do ar é 503 com motivo, e o
        roteador de STT do cliente cai no Whisper local. */
@@ -295,7 +382,7 @@ function limparTranscricao(
   audio: Buffer,
   idioma: string | undefined,
   requestId: string | undefined,
-): string {
+): LimpezaDaTranscricao {
   const bruto = typeof j.text === 'string' ? j.text : ''
   const triagem = triarSegmentos(j.segments)
   const triado = triagem ? triagem.texto : bruto
@@ -319,5 +406,23 @@ function limparTranscricao(
       requestId,
     })
   }
-  return filtrado
+  return {
+    texto: filtrado,
+    semFala,
+    repeticao,
+    alucinacao,
+    descartados: semFala + repeticao + alucinacao,
+    /* Havia texto do provedor e nada sobrou: o filtro cortou tudo. */
+    esvaziado: bruto.trim() !== '' && filtrado.trim() === '',
+  }
+}
+
+/** O texto limpo e as contagens do que saiu — as contagens vão para métrica, log e telemetria. */
+interface LimpezaDaTranscricao {
+  texto: string
+  semFala: number
+  repeticao: number
+  alucinacao: number
+  descartados: number
+  esvaziado: boolean
 }

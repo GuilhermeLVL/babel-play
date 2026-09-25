@@ -140,6 +140,16 @@ async function encerrarBancoPadrao(): Promise<void> {
   }
 }
 
+/** Esvazia a fila do Langfuse. Import dinâmico: sem telemetria configurada, nada é criado. */
+async function descarregarTelemetria(): Promise<void> {
+  try {
+    const { encerrarLangfuse } = await import('./langfuse')
+    await encerrarLangfuse()
+  } catch (err) {
+    console.error('[desligamento] descarregar a telemetria de IA falhou:', String(err).slice(0, 160))
+  }
+}
+
 /**
  * O desligamento inteiro. Nunca lança: quem chama usa o retorno como código de saída.
  *
@@ -157,6 +167,11 @@ export async function desligarComGraca(motivo: string, alvos: AlvosDeDesligament
   const drenou = alvos.servidor ? await drenar(alvos.servidor, teto) : true
   const decorrido = Date.now() - t0
 
+  /* A TELEMETRIA DE IA DEPOIS DO DRENO E ANTES DO BANCO. Depois do dreno porque as requisições que
+     terminaram durante ele fecham rastros (o plano é lido do banco — daí antes de fechá-lo); e o
+     envio tem timeout próprio de 5 s com uma retentativa (`server/lib/langfuse.ts`), então não
+     segura o desligamento além do que o `docker stop` concede. */
+  await descarregarTelemetria()
   await (alvos.encerrarBanco ?? encerrarBancoPadrao)()
 
   if (drenou) {

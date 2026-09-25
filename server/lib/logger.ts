@@ -95,10 +95,16 @@ const sinks: SinkDeErro[] = []
  * e, além deles, só estes avisos — que não são falha, são o aviso ANTES da falha:
  *   - `ia_orcamento_alerta_80`: 80% do orçamento mensal de IA gasto (server/lib/orcamentoDeIa.ts);
  *     a 100% sai `ia_orcamento_esgotado`, que já é `error`;
- *   - `backup_heartbeat_falhou`: o snapshot diário foi feito, mas o alarme externo não soube.
+ *   - `backup_heartbeat_falhou`: o snapshot diário foi feito, mas o alarme externo não soube;
+ *   - `ia_provedor_limite`: o provedor de IA respondeu 429 — a camada contratada não aguenta o
+ *     tráfego. Já sai no máximo uma vez por minuto por provedor (`server/ai/telemetriaDeIa.ts`).
  * O resto dos `warn` fica no stdout: mandar todos viraria ruído e gastaria a cota do Sentry.
  */
-export const AVISOS_QUE_ALERTAM: ReadonlySet<string> = new Set(['ia_orcamento_alerta_80', 'backup_heartbeat_falhou'])
+export const AVISOS_QUE_ALERTAM: ReadonlySet<string> = new Set([
+  'ia_orcamento_alerta_80',
+  'backup_heartbeat_falhou',
+  'ia_provedor_limite',
+])
 
 /** Registra um destino externo para eventos `error`. Devolve como desregistrar. */
 export function registrarSinkDeErro(sink: SinkDeErro): () => void {

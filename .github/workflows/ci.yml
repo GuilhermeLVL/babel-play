@@ -166,6 +166,25 @@ jobs:
           if [ -n "$BASE_PR" ]; then base="origin/$BASE_PR"; else base="$ANTES_DO_PUSH"; fi
           node scripts/migracoes/conferir.mjs --base="$base"
 
+  # CARGA LEVE (Fase 6 da prontidão). O servidor BUILDADO, banco vazio, modo self-host (sem JWT nem
+  # limitadores: mede a rota, não a borda), 10 conexões × 10 s em quatro rotas baratas. Reprova com
+  # p95 >= 500 ms ou qualquer erro/não-2xx. Limiar generoso de propósito — o runner é ruidoso; o
+  # alvo é a regressão de ordem de grandeza (query sem índice, trabalho síncrono no caminho quente).
+  # Os SLOs da Fase 4 ajustam os padrões de `scripts/perf/ci-carga.mjs`.
+  carga:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Carga leve (autocannon, p95 < 500 ms, zero erro)
+        run: node scripts/perf/ci-carga.mjs --duracao=10 --conexoes=10 --p95=500
+
   # E2E NO MODO PÚBLICO (Fase 5 do lançamento). A suíte acima roda sem login; esta sobe o app com
   # AUTH_REQUIRED=1 contra um Supabase Auth FALSO (tests/e2e-publico/_supabase-falso.mjs) — login pelo
   # supabase-js no navegador, token ES256 verificado pelo JWKS, 2FA elevando a sessão para aal2.
@@ -235,6 +254,55 @@ jobs:
         run: |
           docker stop -t 30 app
           test "$(docker inspect -f '{{.State.ExitCode}}' app)" = "0"
+      # VARREDURA DA IMAGEM (Fase 6 da prontidão). O `npm audit` do job de cima vê as dependências do
+      # package.json; a imagem tem mais: o Debian de base, o Node, o binário do Litestream. Trivy em
+      # cima da imagem que acabou de ser construída, reprovando só HIGH/CRITICAL COM correção
+      # disponível (`ignore-unfixed`): CVE sem fix não tem ação possível e só ensinaria a ignorar o
+      # passo. Severidade abaixo de HIGH não reprova — sai no relatório.
+      #
+      # FIXADA NO SHA DA 0.35.0, e não é zelo: em 19/03/2026 as tags 0.0.1–0.34.2 do trivy-action
+      # foram reescritas para um ladrão de segredos de CI (GHSA-69fq-xp46-6x23); a 0.35.0 é a única
+      # limpa. O binário do Trivy também vai fixado (v0.69.4 foi a versão maliciosa; v0.69.3 é a segura
+      # indicada no aviso). Atualize os dois só conferindo o aviso de segurança do projeto.
+      - name: Trivy — vulnerabilidades da imagem (reprova HIGH/CRITICAL com correção)
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
+        with:
+          image-ref: babel-play:ci
+          version: v0.69.3
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+          format: table
+      - name: Trivy — relatório completo (todas as severidades, não reprova)
+        if: always()
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
+        with:
+          image-ref: babel-play:ci
+          version: v0.69.3
+          scanners: vuln
+          exit-code: '0'
+          format: json
+          output: trivy-imagem.json
+      # SBOM (CycloneDX) da imagem, pelo Syft — o inventário de tudo que vai para produção, para
+      # responder "estamos expostos à CVE X?" sem reconstruir nada. Vai como artefato do CI.
+      - name: SBOM da imagem (Syft, CycloneDX)
+        if: always()
+        uses: anchore/sbom-action@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26 # v0.24.2
+        with:
+          image: babel-play:ci
+          format: cyclonedx-json
+          output-file: sbom-imagem.cdx.json
+          upload-artifact: false
+      - name: Artefato da varredura e do SBOM
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: imagem-trivy-sbom
+          path: |
+            trivy-imagem.json
+            sbom-imagem.cdx.json
+          if-no-files-found: ignore
 
   # RESTAURAÇÃO DO LITESTREAM, DE VERDADE (Fase 5). Um MinIO faz o papel do R2: o container grava,
   # replica e para; um SEGUNDO container, com volume VAZIO, restaura sozinho no boot (entrypoint) e o

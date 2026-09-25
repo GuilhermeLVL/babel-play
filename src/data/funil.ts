@@ -21,6 +21,7 @@
  * memória do modo sem conta) e `lerErro` (o envelope de erro do servidor, deste lado).
  */
 import { authHeaders } from '../lib/authHeaders'
+import { ehRotaDeNuvemDoConvidado, garantirSessaoDeConvidado, nuvemDoConvidadoLigada, ofertaPelaResposta } from '../lib/convidado'
 import { aguardarIdentidade } from '../lib/identidade'
 import { aguardarProtecao, rotaLiberadaNaRestricao } from '../lib/protecaoDoMenor'
 import { cabecalhoDaSessaoDeCaptura } from '../lib/sessaoDeCaptura'
@@ -41,7 +42,19 @@ export async function apiFetch(input: string, init?: ApiInit): Promise<Response>
   // Sem conta, NADA sai para a rede: o servidor em memória responde (ver data/efemero). Este é o
   // único ponto de corte — toda a camada de dados passa por aqui.
   const identidade = await aguardarIdentidade()
-  if (identidade === 'anonimo') return servidorEfemero(input, rest)
+  /* MODO CONVIDADO (Fase 7): sem conta, a IA de nuvem só sai para a rede com as flags
+     `modo_convidado` + `nuvem_convidado` ligadas — e aí com a sessão ANÔNIMA do Supabase, criada
+     aqui mesmo, no primeiro uso (`lib/convidado`). Todo o resto continua no servidor em memória. */
+  const nuvemDoConvidado =
+    identidade === 'anonimo' &&
+    ehRotaDeNuvemDoConvidado(input, rest.method) &&
+    nuvemDoConvidadoLigada() &&
+    (await garantirSessaoDeConvidado())
+  if (identidade === 'anonimo' && !nuvemDoConvidado) {
+    const local = await servidorEfemero(input, rest)
+    void ofertaPelaResposta(local, input)
+    return local
+  }
   /* CONTA DE MENOR SEM O RESPONSÁVEL (Fase 4 — ECA Digital art. 24): até o vínculo ser aceito, os
      dados ficam no aparelho, pelo MESMO servidor em memória do modo sem conta. A conta, o convite e
      a cobrança seguem para a rede. O servidor também recusa (403 `responsavel_pendente`) — aqui é a
@@ -66,6 +79,8 @@ export async function apiFetch(input: string, init?: ApiInit): Promise<Response>
   }
   // P0-7b: o servidor diz a versão em toda resposta `/api`; diferente da do bundle, avisa (uma vez).
   conferirVersaoDoServidor(res.headers?.get?.(CABECALHO_DA_VERSAO) ?? null)
+  // O convidado bateu num teto de nuvem (cota, limite por IP, exige conta): avisa a camada de ofertas.
+  if (nuvemDoConvidado) void ofertaPelaResposta(res, input)
   return res
 }
 

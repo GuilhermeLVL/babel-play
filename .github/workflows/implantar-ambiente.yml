@@ -56,6 +56,7 @@ jobs:
       VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
       VITE_SELF_HOST_MODELS: ${{ vars.VITE_SELF_HOST_MODELS }}
       VITE_SENTRY_DSN: ${{ vars.VITE_SENTRY_DSN }}
+      VITE_TURNSTILE_SITE_KEY: ${{ vars.VITE_TURNSTILE_SITE_KEY }}
       GH_TOKEN: ${{ github.token }}
       REPO: ${{ github.repository }}
     steps:
@@ -106,6 +107,7 @@ jobs:
             --build-arg VITE_PUBLIC_URL="$URL_PUBLICA" \
             --build-arg VITE_SELF_HOST_MODELS="$VITE_SELF_HOST_MODELS" \
             --build-arg VITE_SENTRY_DSN="$VITE_SENTRY_DSN" \
+            --build-arg VITE_TURNSTILE_SITE_KEY="$VITE_TURNSTILE_SITE_KEY" \
             --build-arg VERSAO="$SHA"
           echo "IMAGEM=registry.fly.io/${FLY_APP}:${SHA}" >> "$GITHUB_ENV"
 

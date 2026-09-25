@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 
 import { precisaDoSegundoFator } from '../auth';
 import { clearAuthCallbackUrl, isOnAuthCallback } from '../authCallback';
+import { ehSessaoAnonima } from '../convidado';
 import { limparEntitlements } from '../entitlements';
 import { armarIdentidade, definirIdentidade } from '../identidade';
 import { authRequired, carregarSupabase } from '../supabase';
@@ -21,6 +22,17 @@ export interface EstadoDaSessaoSupabase {
  * Sessão do Supabase e identidade — o mesmo bloco que morava no topo do `App`, palavra por
  * palavra. Mantido como hook único para que a ordem dos efeitos continue a mesma.
  */
+/**
+ * A SESSÃO ANÔNIMA NÃO É CONTA (Fase 7 — modo convidado). O convidado com nuvem tem uma sessão do
+ * Supabase (`signInAnonymously`, `user.is_anonymous`), mas para o app ele continua SEM conta: os
+ * dados ficam no aparelho e a identidade é `anonimo`. Quando ele converte (`updateUser`/
+ * `linkIdentity`, mesmo id), o `USER_UPDATED` traz o usuário não-anônimo e aí sim vira `conta` — e o
+ * `ModalDeMigracao` sobe o que estava no aparelho, como em qualquer login.
+ */
+function sessaoDeConta<S extends { user?: unknown }>(s: S | null | undefined): S | null {
+  return s && !ehSessaoAnonima(s) ? s : null;
+}
+
 export function useSessaoSupabase(): EstadoDaSessaoSupabase {
   // Marco 1: sessão Supabase — só relevante no modo público (authRequired). No local fica null.
   const [session, setSession] = useState<{ user?: unknown } | null | undefined>(authRequired ? undefined : null);
@@ -82,17 +94,19 @@ export function useSessaoSupabase(): EstadoDaSessaoSupabase {
           .getSession()
           .then(({ data }) => {
             if (!vivo) return;
-            setSession(data.session);
-            definirIdentidade(data.session ? 'conta' : 'anonimo');
+            const conta = sessaoDeConta(data.session);
+            setSession(conta);
+            definirIdentidade(conta ? 'conta' : 'anonimo');
             clearAuthCallbackUrl();
             setProcessingCallback(false);
           })
           .catch(semSessao);
         const { data: sub } = sb.auth.onAuthStateChange((event, s) => {
           if (event === 'PASSWORD_RECOVERY') setRecovery(true);
-          setSession(s);
-          if (s) definirIdentidade('conta');
-          else if (event === 'SIGNED_OUT') {
+          const conta = sessaoDeConta(s);
+          setSession(conta);
+          if (conta) definirIdentidade('conta');
+          else if (event === 'SIGNED_OUT' || ehSessaoAnonima(s)) {
             definirIdentidade('anonimo');
             limparEntitlements();
           }

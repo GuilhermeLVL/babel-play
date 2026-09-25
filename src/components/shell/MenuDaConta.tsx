@@ -1,8 +1,19 @@
-import { ChartColumn, CreditCard, LifeBuoy, LogIn, LogOut, Settings as SettingsIcon, UserRound } from 'lucide-react';
+import {
+  ChartColumn,
+  CreditCard,
+  HardDrive,
+  LifeBuoy,
+  LogIn,
+  LogOut,
+  Settings as SettingsIcon,
+  UserRound,
+} from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
+import { TETO_ANONIMO } from '../../core/tetoAnonimo';
 import * as auth from '../../lib/auth';
+import { useFlag } from '../../lib/flags';
 import { useFotoDoPerfil } from '../../lib/fotoDoPerfil';
 import { t } from '../../lib/i18n';
 import { aoMudarIdentidade, estaAnonimo } from '../../lib/identidade';
@@ -34,6 +45,10 @@ export default function MenuDaConta({ onIr }: MenuDaContaProps) {
   const [aberto, setAberto] = useState(false);
   const [anonimo, setAnonimo] = useState(estaAnonimo);
   useEffect(() => aoMudarIdentidade(() => setAnonimo(estaAnonimo())), []);
+  /* MODO CONVIDADO (Fase 7): com a flag ligada, quem usa sem conta é "convidado", e o menu diz isso
+     e o que fica de fora. Desligada, o menu é exatamente o de antes. */
+  const modoConvidado = useFlag('modo_convidado');
+  const convidado = anonimo && modoConvidado;
   const gatilho = useRef<HTMLButtonElement | null>(null);
   const painel = useRef<HTMLDivElement | null>(null);
 
@@ -67,11 +82,13 @@ export default function MenuDaConta({ onIr }: MenuDaContaProps) {
 
   const nome = perfil?.displayName?.trim() || null;
   const email = perfil?.email?.trim() || null;
-  const estado = anonimo
-    ? t('sem conta · dados só neste navegador')
-    : authRequired
-      ? t('sessão ativa')
-      : t('conta local');
+  const estado = convidado
+    ? t('Você está usando como convidado')
+    : anonimo
+      ? t('sem conta · dados só neste navegador')
+      : authRequired
+        ? t('sessão ativa')
+        : t('conta local');
 
   const ir = (view: string) => {
     setAberto(false);
@@ -91,12 +108,14 @@ export default function MenuDaConta({ onIr }: MenuDaContaProps) {
       <button
         ref={gatilho}
         type="button"
-        className="conta"
+        className={convidado ? 'conta convidado' : 'conta'}
         onClick={() => setAberto((a) => !a)}
         aria-haspopup="menu"
         aria-expanded={aberto}
-        aria-label={nome ? t('Conta de {nome}', { nome }) : t('Sua conta')}
-        title={nome ?? email ?? t('Sua conta')}
+        aria-label={
+          convidado ? t('Você está usando como convidado') : nome ? t('Conta de {nome}', { nome }) : t('Sua conta')
+        }
+        title={convidado ? t('Você está usando como convidado') : (nome ?? email ?? t('Sua conta'))}
         style={iniciais ? { font: '900 12px var(--font-display)' } : undefined}
       >
         {/* Sem nome nem e-mail, o ícone genérico — nunca uma letra inventada. */}
@@ -112,10 +131,21 @@ export default function MenuDaConta({ onIr }: MenuDaContaProps) {
         createPortal(
           <div ref={painel} className="menu-conta cartao on" role="menu" aria-label={t('Sua conta')}>
             <div className="cab-menu">
-              <b style={{ fontFamily: 'var(--font-display)' }}>{nome ?? t('Sua conta')}</b>
+              <b style={{ fontFamily: 'var(--font-display)' }}>
+                {nome ?? (convidado ? t('Convidado') : t('Sua conta'))}
+              </b>
               <p className="mut" style={{ fontSize: 12 }} title={email ?? undefined}>
                 {email ?? estado}
               </p>
+              {convidado && (
+                <p className="mut aviso-convidado" style={{ fontSize: 12 }}>
+                  <HardDrive aria-hidden />
+                  {t(
+                    'Fica só neste aparelho, até {sessoes} gravações e {palavras} palavras. Loja, ranking, importação e sincronização pedem conta.',
+                    { sessoes: TETO_ANONIMO.sessoes, palavras: TETO_ANONIMO.palavras },
+                  )}
+                </p>
+              )}
             </div>
             {anonimo ? item('login', LogIn, t('Entrar ou criar conta')) : item('profile', UserRound, t('Meu perfil'))}
             {item('estatisticas', ChartColumn, t('Estatísticas'))}

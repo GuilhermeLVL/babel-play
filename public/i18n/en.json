@@ -830,5 +830,8 @@
   "Você já enviou muitos convites hoje. Tente de novo amanhã.": "You've already sent too many invitations today. Please try again tomorrow.",
   "Nova versão disponível": "New version available",
   "Atualizar": "Update",
-  "Versão {versao}": "Version {versao}"
+  "Versão {versao}": "Version {versao}",
+  "Você está usando como convidado": "You are using the app as a guest",
+  "Convidado": "Guest",
+  "Fica só neste aparelho, até {sessoes} gravações e {palavras} palavras. Loja, ranking, importação e sincronização pedem conta.": "Stays on this device only, up to {sessoes} recordings and {palavras} words. Shop, ranking, import and sync need an account."
 }

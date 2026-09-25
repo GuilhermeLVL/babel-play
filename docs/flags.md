@@ -177,12 +177,12 @@ no padrão. Chave sem schema aceita qualquer JSON de até 32 KB.
 
 ## Flags semeadas (migração 0031)
 
-| Chave             | Estado inicial                     | Para quê                                                                                                   |
-| ----------------- | ---------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `modo_convidado`  | desligada                          | Fase 7: entrar como convidado.                                                                             |
-| `nuvem_convidado` | desligada, `planos: ["convidado"]` | Fase 7: IA de nuvem para convidado. O teto de custo continua no servidor (`tetoAnonimo`, orçamento de IA). |
-| `oferta_planos`   | desligada, com 4 gatilhos          | Fase 8: banners, modais e paywall.                                                                         |
-| `vender_planos`   | **ligada**                         | Mostrar a venda. Espelha o comportamento atual; `CHECKOUT_ENABLED=0` a força para desligada.               |
+| Chave             | Estado inicial                     | Para quê                                                                                                                                                                                                                            |
+| ----------------- | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `modo_convidado`  | desligada                          | Fase 7: o menu da conta diz "convidado" e os tetos disparam `babel:oferta`. Ver `openspec/audits/2026-09-25-prontidao/fase7-convidado.md`.                                                                                          |
+| `nuvem_convidado` | desligada, `planos: ["convidado"]` | Fase 7: IA de nuvem para convidado (usuário anônimo do Supabase, criado no primeiro uso). As cotas e o antiabuso ficam no servidor (`server/lib/convidado.ts`). Com ela desligada, a nuvem do convidado responde 403 `exige_conta`. |
+| `oferta_planos`   | desligada, com 4 gatilhos          | Fase 8: banners, modais e paywall.                                                                                                                                                                                                  |
+| `vender_planos`   | **ligada**                         | Mostrar a venda. Espelha o comportamento atual; `CHECKOUT_ENABLED=0` a força para desligada.                                                                                                                                        |
 
 ## Boas práticas
 

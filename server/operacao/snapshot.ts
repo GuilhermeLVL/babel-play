@@ -295,6 +295,8 @@ export function agendarSnapshotDiario(o: {
   executar: () => Promise<{ chave: string; bytes: number }>
   heartbeatUrl?: string
   buscar?: typeof fetch
+  /** Métricas do backup (`observarBackup` de server/http/metricas.ts) — injetado para a CLI não puxar o prom-client. */
+  observar?: (r: { ok: true; bytes: number } | { ok: false }) => void
 }): () => void {
   const buscar = o.buscar ?? fetch
   let relogio: NodeJS.Timeout | undefined
@@ -302,6 +304,7 @@ export function agendarSnapshotDiario(o: {
     try {
       const r = await o.executar()
       log('info', { event: 'backup_diario_ok', route: r.chave, total: r.bytes })
+      o.observar?.({ ok: true, bytes: r.bytes })
       if (o.heartbeatUrl) {
         try {
           await buscar(o.heartbeatUrl, { signal: AbortSignal.timeout(10_000) })
@@ -311,6 +314,7 @@ export function agendarSnapshotDiario(o: {
       }
     } catch (err) {
       log('error', { event: 'backup_diario_falhou', error: String((err as Error)?.message || err).slice(0, 300) })
+      o.observar?.({ ok: false })
     }
   }
   const armar = () => {

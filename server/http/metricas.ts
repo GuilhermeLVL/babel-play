@@ -58,10 +58,16 @@
  */
 import cluster from 'node:cluster'
 import { timingSafeEqual } from 'node:crypto'
+import { statSync } from 'node:fs'
+import { createServer, type Server } from 'node:http'
+import { type IntervalHistogram, monitorEventLoopDelay } from 'node:perf_hooks'
 
 import type { NextFunction, Request, RequestHandler, Response } from 'express'
 import { collectDefaultMetrics, Counter, Gauge, Histogram, register } from 'prom-client'
 
+import { cacheDeTraducao } from '../ai/cacheDeTraducao'
+import { contagemDosDisjuntores } from '../ai/disjuntor'
+import { registrarObservadorDeConsultas, type TipoDeConsulta } from '../db/observadorDeConsultas'
 import { tokenDeMetricas } from '../lib/config'
 import { log } from '../lib/logger'
 
@@ -119,6 +125,17 @@ interface Estado {
   dependenciaDegradada: Counter<'dependencia'>
   ofertaEventos: Counter<'evento' | 'gatilho' | 'componente'>
   ofertaEventosPorPlano: Counter<'evento' | 'plano_atual' | 'plano_sugerido' | 'variante'>
+  /* Fase 5 de prontidão (25/09/2026): o que faltava para alertar e para decidir quando escalar. */
+  dbDuracao: Histogram<'tipo'>
+  dbEscritas: Counter<never>
+  dbLeituras: Counter<never>
+  iaCustoPorPlano: Counter<'plano'>
+  gastoAnomalo: Counter<'motivo'>
+  cacheDeTraducao: Counter<'resultado'>
+  uploadsRecusados: Counter<'motivo'>
+  backupFalhas: Counter<never>
+  backupUltimoSucesso: Gauge<never>
+  backupBytes: Gauge<never>
 }
 
 let estado: Estado | undefined
@@ -260,7 +277,61 @@ function metricas(): Estado {
       help: 'Os mesmos eventos do funil de ofertas, por plano atual, plano sugerido e variante (A/B). Anônimo.',
       labelNames: ['evento', 'plano_atual', 'plano_sugerido', 'variante'] as const,
     }),
+    /* O BANCO, medido no cliente libsql (`server/db/observadorDeConsultas.ts`). `tipo` é
+       `leitura`|`escrita`, decidido pela primeira palavra do SQL — nunca o SQL, que seria uma série
+       por consulta. É o número do gatilho do ADR 0006 (escritas/s sustentadas). */
+    dbDuracao: new Histogram({
+      name: 'db_consulta_duracao_segundos',
+      help: 'Duração de cada execute/batch no cliente libsql, por tipo (leitura|escrita). Transações (emTransacao) ficam de fora.',
+      labelNames: ['tipo'] as const,
+      buckets: [0.0005, 0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5],
+    }),
+    dbEscritas: new Counter({
+      name: 'db_escritas_total',
+      help: 'Instruções de ESCRITA (INSERT/UPDATE/DELETE/REPLACE/DDL) enviadas ao SQLite. O gatilho do ADR 0006 é rate() disto > 50/s no pico.',
+    }),
+    dbLeituras: new Counter({
+      name: 'db_leituras_total',
+      help: 'Instruções de LEITURA (SELECT/WITH/PRAGMA) enviadas ao SQLite.',
+    }),
+    /* O CUSTO POR PLANO. O mesmo número que soma no orçamento (`registrarGastoDeIa`), agora com o
+       plano de quem gastou — é o que diz se o Essencial se paga. Rótulo da allowlist `PLANOS`. */
+    iaCustoPorPlano: new Counter({
+      name: 'ia_custo_usd_total',
+      help: 'Custo ESTIMADO (US$) das chamadas de IA pagas pelo serviço, por plano do usuário. Mesmo número que entra no orçamento global.',
+      labelNames: ['plano'] as const,
+    }),
+    gastoAnomalo: new Counter({
+      name: 'ia_gasto_anomalo_usuario_total',
+      help: 'Alertas de gasto anômalo de UM usuário no dia (teto absoluto ou N× a mediana). O usuário vai no log, pseudonimizado; aqui só o motivo.',
+      labelNames: ['motivo'] as const,
+    }),
+    cacheDeTraducao: new Counter({
+      name: 'ia_cache_traducao_total',
+      help: 'Consultas ao cache de tradução do servidor, por resultado (acerto|falta). Acerto é tradução que não foi paga de novo.',
+      labelNames: ['resultado'] as const,
+    }),
+    uploadsRecusados: new Counter({
+      name: 'uploads_grandes_recusados_total',
+      help: 'Uploads grandes recusados pelo semáforo (429 upload_ocupado), por motivo (usuario|processo). `processo` subindo = o teto da máquina é o gargalo.',
+      labelNames: ['motivo'] as const,
+    }),
+    backupFalhas: new Counter({
+      name: 'backup_falhas_total',
+      help: 'Snapshots diários do banco que falharam (server/operacao/snapshot.ts).',
+    }),
+    backupUltimoSucesso: new Gauge({
+      name: 'backup_ultimo_sucesso_timestamp_segundos',
+      help: 'Instante (epoch, s) do último snapshot diário bem-sucedido NESTE processo. Sem série = nenhum desde o boot.',
+    }),
+    backupBytes: new Gauge({
+      name: 'backup_ultimo_tamanho_bytes',
+      help: 'Tamanho (bytes, comprimido) do último snapshot diário bem-sucedido.',
+    }),
   }
+  histogramaDoEventLoop()
+  registrarObservadorDeConsultas(observarConsulta)
+  registrarMedidoresLidosNoScrape()
   /* O SALDO é lido NA HORA DO SCRAPE (`collect`), e não empurrado a cada chamada: o bucket se
      reabastece com o tempo, e um valor empurrado ficaria parado no último pedido — o painel
      mostraria "vazio" por uma hora depois que a fila já tinha voltado. Cardinalidade: os modelos
@@ -275,6 +346,214 @@ function metricas(): Estado {
     },
   })
   return estado
+}
+
+/**
+ * O ATRASO DO EVENT LOOP como HISTOGRAMA de verdade, alimentado pelo `monitorEventLoopDelay`.
+ *
+ * O `collectDefaultMetrics` já expõe `nodejs_eventloop_lag_p99_seconds`, mas como GAUGE do intervalo
+ * entre dois scrapes: não dá para tirar dele um p99 de 5 minutos, nem somar processos. A Fase 2
+ * mediu que o driver libsql prende o loop pela consulta inteira (115 ms de `list` = 117 ms de buraco)
+ * e que o snapshot chegou a 34 s — é o número que mais cedo denuncia "um usuário travou todos".
+ *
+ * COMO. O `IntervalHistogram` do Node (HDR, resolução de 20 ms) guarda a distribuição do intervalo;
+ * a cada scrape ele vira observações: para cada percentil `p` com valor `v`, entram as amostras entre
+ * o percentil anterior e `p`, todas com o valor `v`. É exato na resolução de percentis do HDR (fina) e
+ * custa, por scrape, no máximo o número de amostras do intervalo (~750 a cada 15 s). Depois zera.
+ */
+const RESOLUCAO_DO_LOOP_MS = 20
+const BALDES_DO_LOOP = [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30]
+let monitorDoLoop: IntervalHistogram | undefined
+
+function histogramaDoEventLoop(): void {
+  monitorDoLoop = monitorEventLoopDelay({ resolution: RESOLUCAO_DO_LOOP_MS })
+  monitorDoLoop.enable()
+  new Histogram({
+    name: 'event_loop_atraso_segundos',
+    help: 'Atraso do event loop (monitorEventLoopDelay, resolução 20 ms), em segundos. p99 alto = algo síncrono está travando todos os usuários.',
+    buckets: BALDES_DO_LOOP,
+    collect() {
+      const h = monitorDoLoop
+      if (!h || !(h.count > 0)) return
+      const pontos = [...h.percentiles.entries()].sort((a, b) => a[0] - b[0])
+      let observadas = 0
+      for (const [percentil, ns] of pontos) {
+        const alvo = Math.min(h.count, Math.round((percentil / 100) * h.count))
+        /* O HDR registra o INTERVALO entre dois disparos do timer, que inclui a própria resolução
+           (20 ms): um loop ocioso mediria 20 ms. Descontada, o ocioso mede ~0 e o limiar do alerta
+           (500 ms) é atraso de verdade. */
+        const atraso = Math.max(0, ns / 1e9 - RESOLUCAO_DO_LOOP_MS / 1000)
+        for (; observadas < alvo; observadas++) this.observe(atraso)
+      }
+      h.reset()
+    },
+  })
+}
+
+const PADRAO_DE_ESCRITA = /^\s*(insert|update|delete|replace|create|alter|drop)\b/i
+
+/** Classifica pela primeira palavra do SQL. `WITH … INSERT` é raro aqui e conta como leitura. */
+export function tipoDaInstrucao(sql: string): TipoDeConsulta {
+  return PADRAO_DE_ESCRITA.test(sql) ? 'escrita' : 'leitura'
+}
+
+function observarConsulta(o: { instrucoes: string[]; segundos: number }): void {
+  if (!estado) return
+  let escritas = 0
+  for (const sql of o.instrucoes) if (tipoDaInstrucao(sql) === 'escrita') escritas++
+  const leituras = o.instrucoes.length - escritas
+  if (escritas) estado.dbEscritas.inc(escritas)
+  if (leituras) estado.dbLeituras.inc(leituras)
+  estado.dbDuracao.observe({ tipo: escritas ? 'escrita' : 'leitura' }, o.segundos)
+}
+
+/* ─────────────── o que é LIDO na hora do scrape (estado de agora, não evento) ─────────────── */
+
+export interface GastoParaMetricas {
+  diaUsd: number
+  mesUsd: number
+  /** `Infinity` = sem teto; aí a série não é emitida (um `+Inf` quebraria a razão do alerta). */
+  tetoDiaUsd: number
+  tetoMesUsd: number
+}
+
+let leitorDeGasto: (() => Promise<GastoParaMetricas>) | undefined
+/** `server/lib/orcamentoDeIa.ts` se registra aqui — ele lê `gasto_de_ia`; este módulo não importa o banco. */
+export function registrarLeitorDeGasto(fn: () => Promise<GastoParaMetricas>): void {
+  leitorDeGasto = fn
+}
+
+let leitorDeUploads: (() => { emVoo: number; limite: number }) | undefined
+/** `server/lib/corposGrandes.ts` se registra aqui (ele importa este módulo; o contrário faria ciclo). */
+export function registrarLeitorDeUploads(fn: () => { emVoo: number; limite: number }): void {
+  leitorDeUploads = fn
+}
+
+/** O arquivo do SQLite (e o WAL), quando o banco é local. Remoto: sem série. */
+function tamanhoDoBanco(): number | undefined {
+  const url = process.env.DATABASE_URL ?? 'file:./data/babel.db'
+  if (!url.startsWith('file:')) return undefined
+  const arquivo = url.slice('file:'.length)
+  let total = 0
+  for (const sufixo of ['', '-wal']) {
+    try {
+      total += statSync(arquivo + sufixo).size
+    } catch {
+      /* sem WAL (ou sem banco ainda): conta o que existe */
+    }
+  }
+  return total
+}
+
+/** Uma leitura do gasto por scrape, compartilhada pelos dois gauges que dependem dela. */
+let gastoEmVoo: Promise<GastoParaMetricas | undefined> | undefined
+function lerGastoUmaVez(): Promise<GastoParaMetricas | undefined> {
+  if (!leitorDeGasto) return Promise.resolve(undefined)
+  gastoEmVoo ??= leitorDeGasto()
+    .catch(() => undefined) // banco fora: sem série; a regra `absent()` é quem avisa
+    .finally(() => setImmediate(() => (gastoEmVoo = undefined)))
+  return gastoEmVoo
+}
+
+function registrarMedidoresLidosNoScrape(): void {
+  new Gauge({
+    name: 'ia_gasto_usd',
+    help: 'Gasto ESTIMADO de IA de nuvem no período corrente (dia UTC | mês), em US$, lido de gasto_de_ia no scrape.',
+    labelNames: ['periodo'] as const,
+    async collect() {
+      this.reset()
+      const g = await lerGastoUmaVez()
+      if (!g) return
+      this.set({ periodo: 'dia' }, g.diaUsd)
+      this.set({ periodo: 'mes' }, g.mesUsd)
+    },
+  })
+  new Gauge({
+    name: 'ia_orcamento_teto_usd',
+    help: 'Teto do orçamento de IA por período (AI_BUDGET_USD_DAY | AI_BUDGET_USD_MONTH). Sem teto = sem série.',
+    labelNames: ['periodo'] as const,
+    async collect() {
+      this.reset()
+      const g = await lerGastoUmaVez()
+      if (!g) return
+      if (Number.isFinite(g.tetoDiaUsd)) this.set({ periodo: 'dia' }, g.tetoDiaUsd)
+      if (Number.isFinite(g.tetoMesUsd)) this.set({ periodo: 'mes' }, g.tetoMesUsd)
+    },
+  })
+  /* Contagem por ESTADO, e não uma série por disjuntor: a chave do disjuntor é endereço + modelo, e
+     no BYOK o endereço é escolha do usuário — seria uma série por usuário. */
+  new Gauge({
+    name: 'ia_disjuntores',
+    help: 'Disjuntores de provedor de IA por estado (fechado|aberto|meio-aberto). aberto > 0 = um provedor está sendo pulado.',
+    labelNames: ['estado'] as const,
+    collect() {
+      this.reset()
+      for (const [e, n] of Object.entries(contagemDosDisjuntores())) this.set({ estado: e }, n)
+    },
+  })
+  new Gauge({
+    name: 'uploads_grandes_em_voo',
+    help: 'Uploads grandes (áudio de sessão, .apkg) em andamento neste processo (server/lib/corposGrandes.ts).',
+    collect() {
+      const u = leitorDeUploads?.()
+      if (u) this.set(u.emVoo)
+    },
+  })
+  new Gauge({
+    name: 'uploads_grandes_limite',
+    help: 'Teto de uploads grandes simultâneos por processo (UPLOADS_GRANDES_POR_PROCESSO).',
+    collect() {
+      const u = leitorDeUploads?.()
+      if (u) this.set(u.limite)
+    },
+  })
+  new Gauge({
+    name: 'ia_cache_traducao_entradas',
+    help: 'Traduções guardadas no cache do servidor agora (teto 2.000, TTL 24 h).',
+    collect() {
+      this.set(cacheDeTraducao.tamanho())
+    },
+  })
+  new Gauge({
+    name: 'db_tamanho_bytes',
+    help: 'Tamanho do arquivo do SQLite + WAL, em bytes. O gatilho do ADR 0006 é 5 GB.',
+    collect() {
+      const t = tamanhoDoBanco()
+      if (t !== undefined) this.set(t)
+    },
+  })
+}
+
+/** Os planos que viram rótulo — a lista fechada da PLAN_MATRIX. Fora dela, `desconhecido`. */
+const PLANOS = new Set(['free', 'essencial', 'pro', 'selfhost'])
+
+/** Custo de uma chamada paga pelo serviço, pelo plano de quem pediu. */
+export function contarCustoPorPlano(plano: string | undefined, custoUsd: number): void {
+  if (!estado || !Number.isFinite(custoUsd) || custoUsd <= 0) return
+  estado.iaCustoPorPlano.inc({ plano: plano && PLANOS.has(plano) ? plano : 'desconhecido' }, custoUsd)
+}
+
+export function contarGastoAnomalo(motivo: 'teto' | 'mediana'): void {
+  if (!estado) return
+  estado.gastoAnomalo.inc({ motivo })
+}
+
+export function contarCacheDeTraducao(acerto: boolean): void {
+  if (!estado) return
+  estado.cacheDeTraducao.inc({ resultado: acerto ? 'acerto' : 'falta' })
+}
+
+export function contarUploadRecusado(motivo: 'usuario' | 'processo'): void {
+  if (!estado) return
+  estado.uploadsRecusados.inc({ motivo })
+}
+
+export function observarBackup(r: { ok: true; bytes: number } | { ok: false }): void {
+  if (!estado) return
+  if (r.ok) {
+    estado.backupUltimoSucesso.set(Math.floor(Date.now() / 1000))
+    estado.backupBytes.set(r.bytes)
+  } else estado.backupFalhas.inc()
 }
 
 /** Quem sabe ler o saldo da admissão (`server/ai/admissao.ts`) se registra aqui — sem import circular. */
@@ -467,21 +746,12 @@ export function handlerDeMetricas(): RequestHandler {
        penduraria o request no Express 4 em vez de virar resposta. E o 500 é do endpoint de
        métricas, não do serviço — coletor quebrado não pode derrubar o que ele observa. */
     try {
-      const corpo = await register.metrics()
-      const irmaos = cluster.isPrimary ? Object.keys(cluster.workers ?? {}).length : 1
-      const papel = cluster.isPrimary ? 'primario' : 'worker'
-      res.setHeader('x-metrics-processo', `${papel}:${process.pid}`)
+      const { corpo, processo } = await scrape()
+      res.setHeader('x-metrics-processo', processo)
       res.setHeader('content-type', register.contentType)
-      /* O aviso vai no CORPO, e não só no header: quem lê um scrape na mão (curl) não vê header, e
-         é exatamente essa pessoa que corre o risco de somar errado. Linha de comentário é válida no
-         formato de exposição e o Prometheus a ignora. */
-      const aviso =
-        irmaos > 0 || !cluster.isPrimary
-          ? `# ATENCAO: numeros deste processo (${papel}:${process.pid}), nao do cluster inteiro. Ver server/http/metricas.ts.\n`
-          : ''
       /* `res.end` e não `res.send`: `send` com valor dinâmico é o que a regra `resposta-crua`
          (audit/rules/ast-grep) marca, e aqui o corpo é texto puro já com content-type declarado. */
-      res.end(aviso + corpo)
+      res.end(corpo)
     } catch (err) {
       log('error', { event: 'metrics_falhou', route: '/metrics', status: 500, error: String(err).slice(0, 300) })
       res.status(500).json({ error: 'falha ao coletar métricas' })
@@ -489,8 +759,72 @@ export function handlerDeMetricas(): RequestHandler {
   }
 }
 
+/** O corpo do scrape e o processo que respondeu — o mesmo para a porta pública e a interna. */
+async function scrape(): Promise<{ corpo: string; processo: string }> {
+  const corpo = await register.metrics()
+  const irmaos = cluster.isPrimary ? Object.keys(cluster.workers ?? {}).length : 1
+  const papel = cluster.isPrimary ? 'primario' : 'worker'
+  /* O aviso vai no CORPO, e não só no header: quem lê um scrape na mão (curl) não vê header, e
+     é exatamente essa pessoa que corre o risco de somar errado. Linha de comentário é válida no
+     formato de exposição e o Prometheus a ignora. */
+  const aviso =
+    irmaos > 0 || !cluster.isPrimary
+      ? `# ATENCAO: numeros deste processo (${papel}:${process.pid}), nao do cluster inteiro. Ver server/http/metricas.ts.\n`
+      : ''
+  return { corpo: aviso + corpo, processo: `${papel}:${process.pid}` }
+}
+
+/**
+ * O LISTENER SÓ DE MÉTRICAS — `METRICS_PORTA_INTERNA` (Fase 5 de prontidão, 25/09/2026).
+ *
+ * É o alvo do `[metrics]` do `fly.toml`. O Prometheus gerenciado do Fly raspa essa porta por dentro
+ * da VM a cada 15 s e não sabe mandar `Authorization` (a doc só tem `port` e `path`), então aqui NÃO
+ * há token. O que protege é a porta não estar publicada: o proxy do Fly só encaminha as portas de
+ * `[http_service]`/`[[services]]` — conferido por `tests/integration/fly-metricas.test.ts`.
+ *
+ * `node:http` cru, e não Express: é UMA rota, sem corpo, sem auth — e fica fora de todo o pipeline
+ * do app (inclusive do `middlewareDeMetricas`, para o próprio scrape não virar série). Só no
+ * processo primário (ver `server.ts`): com cluster, é o que acaba com o "scrape alternando de
+ * processo" descrito no topo deste arquivo, ao preço de mostrar só o primário — declarado no corpo.
+ */
+export function iniciarServidorDeMetricas(porta: number, host = '0.0.0.0'): Promise<Server> {
+  metricas()
+  const servidor = createServer((req, res) => {
+    const caminho = (req.url ?? '').split('?')[0]
+    if (req.method !== 'GET' || caminho !== '/metrics') {
+      res.statusCode = 404
+      res.end()
+      return
+    }
+    scrape().then(
+      ({ corpo, processo }) => {
+        res.setHeader('x-metrics-processo', processo)
+        res.setHeader('content-type', register.contentType)
+        res.end(corpo)
+      },
+      (err: unknown) => {
+        log('error', { event: 'metrics_falhou', route: '/metrics', status: 500, error: String(err).slice(0, 300) })
+        res.statusCode = 500
+        res.end()
+      },
+    )
+  })
+  return new Promise((resolve, reject) => {
+    servidor.once('error', reject)
+    servidor.listen(porta, host, () => {
+      servidor.off('error', reject)
+      /* Não segura o processo vivo no desligamento: quem drena é o servidor do app. */
+      servidor.unref()
+      resolve(servidor)
+    })
+  })
+}
+
 /** Só para os testes: esquece as métricas registradas entre casos. */
 export function esquecerMetricas(): void {
   register.clear()
+  monitorDoLoop?.disable()
+  monitorDoLoop = undefined
+  registrarObservadorDeConsultas(undefined)
   estado = undefined
 }

@@ -7,6 +7,7 @@ import {
   userComunicativo,
   userTextoEscrito,
 } from '../../src/lib/traducao/promptComunicativo'
+import { contarCacheDeTraducao } from '../http/metricas'
 import { getEntitlementsForUser } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
 import { log } from '../lib/logger'
@@ -150,6 +151,7 @@ async function traduzir(req: Request, res: Response, rastro: RastroDeIa): Promis
     modelo: provedores[0].model,
   })
   const guardada = cacheavel ? cacheDeTraducao.ler(chave) : null
+  if (cacheavel) contarCacheDeTraducao(guardada !== null)
   if (guardada) {
     rastro.anotar({ cacheHit: true })
     log('info', { event: 'mt_cache_hit', route: '/api/ai/mt', status: 200, requestId: req.requestId })
@@ -202,6 +204,7 @@ async function traduzir(req: Request, res: Response, rastro: RastroDeIa): Promis
       cacheavel,
       chave,
       admissao: admitida.admissao,
+      planoDaAssinatura: planoDoUsuario.plan,
     })
   } finally {
     encerrarAdmissao(admitida.admissao)
@@ -222,6 +225,8 @@ async function traduzirAdmitido(
     cacheavel: boolean
     chave: string
     admissao: AdmissaoDaCascata
+    /** O plano da assinatura — rótulo do custo por plano (`ia_custo_usd_total{plano}`). */
+    planoDaAssinatura: string
   },
 ): Promise<void> {
   const { provedores, messages, maxTokens, falada, cacheavel, chave } = p
@@ -271,7 +276,10 @@ async function traduzirAdmitido(
     /* O `usage` do provedor acerta a reserva de tokens pelo número REAL — nos modelos de raciocínio a
        saída inclui os tokens de pensamento, a parte cara. */
     await reserva.consumir(entregue.tokensEntrada + entregue.tokensSaida)
-    await registrarGastoDeIa(custoDeLlm(entregue.model, entregue.tokensEntrada, entregue.tokensSaida))
+    await registrarGastoDeIa(custoDeLlm(entregue.model, entregue.tokensEntrada, entregue.tokensSaida), {
+      userId: req.userId,
+      plano: p.planoDaAssinatura,
+    })
     log('info', {
       event: 'mt_translated',
       route: '/api/ai/mt',

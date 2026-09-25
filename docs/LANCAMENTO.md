@@ -221,8 +221,10 @@ https://<domínio>/api/health` (liga o `uptime.yml`, o segundo par de olhos, que
    `VITE_SUPABASE_ANON_KEY`, `VITE_SELF_HOST_MODELS=https://modelos.<domínio>`, `VITE_SENTRY_DSN`
    (o do projeto do navegador). Repita com um app `babel-play-staging` no environment **staging**.
 4. `fly ips allocate-v6 --app babel-play` (o IPv4 compartilhado já vem).
-5. GitHub → _Actions_ → **Deploy (Fly.io)** → _Run workflow_ → `staging` primeiro, depois
-   `production`. O workflow constrói a imagem com a tag do commit, implanta e confere `/api/ready`.
+5. GitHub → _Actions_ → **Deploy (Fly.io)** → _Run workflow_ → destino `staging-e-producao` (ou
+   `staging` e depois `producao`: produção só aceita commit com o selo `deploy/staging`). Cada
+   ambiente constrói a imagem do commit, tira snapshot do volume, implanta, confere `/api/ready` e a
+   versão, e volta sozinho para a imagem anterior se a fumaça falhar (`docs/deploy-checklist.md`).
 6. `fly logs --app babel-play` deve mostrar `[iniciar] Litestream: replicação contínua ligada`,
    `[backup] snapshot diário às 6h UTC`, `[sentry] erros do servidor vão para o Sentry` — e nenhum
    `ABORTADO`.

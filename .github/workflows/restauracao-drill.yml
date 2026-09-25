@@ -1,0 +1,163 @@
+# EXERCÍCIO DE RESTAURAÇÃO — o backup de PRODUÇÃO volta? (Fase 6 da prontidão)
+#
+# O CI já restaura o Litestream de um MinIO a cada push (job `restauracao-litestream` do ci.yml) e a
+# suíte restaura o snapshot (`tests/integration/snapshot-e-restauracao.test.ts`). Nenhum dos dois
+# toca o R2 de verdade. Este workflow toca: baixa o snapshot diário MAIS RECENTE do bucket de
+# backups, restaura com o MESMO código da produção (`server/operacao/cli.ts restaurar-snapshot`),
+# roda `PRAGMA integrity_check` + contagens e, opcionalmente, faz o mesmo com o Litestream (réplica
+# contínua, ponto no tempo opcional). O resultado vai para o resumo da execução.
+#
+# Actions → "Exercício de restauração" → Run workflow. Rode uma vez por mês e anote a data no
+# `docs/runbook.md` §0.2 (a mesma cadência do exercício manual no Fly).
+#
+# DADOS PESSOAIS: o banco restaurado é o de produção e fica SÓ no disco efêmero do runner, é
+# apagado no último passo (`if: always()`) e NUNCA vira artefato. O resumo leva contagens, não linhas.
+# Se isso não for aceitável para a política de dados, use o caminho manual no Fly (runbook §0.2-C),
+# em que o dado não sai da infraestrutura de produção.
+#
+# SEGREDOS — Environment `restauracao` (Settings → Environments), criados pelo dono:
+#   secrets.R2_ENDPOINT                    https://<conta>.r2.cloudflarestorage.com
+#   secrets.R2_LEITURA_ACCESS_KEY_ID       token R2 SÓ DE LEITURA ("Object Read") nos dois buckets abaixo
+#   secrets.R2_LEITURA_SECRET_ACCESS_KEY
+#   vars.BACKUP_S3_BUCKET                  bucket dos snapshots diários (o `BACKUP_S3_BUCKET`/`S3_BUCKET` da produção)
+#   vars.LITESTREAM_BUCKET                 bucket da réplica do Litestream (o `LITESTREAM_BUCKET` da produção)
+# Token de leitura, e não o da produção: um exercício não precisa (e não deve poder) escrever no backup.
+name: Exercício de restauração
+
+on:
+  workflow_dispatch:
+    inputs:
+      dia:
+        description: 'Snapshot diário a restaurar (AAAA-MM-DD). Vazio = o mais recente.'
+        type: string
+        required: false
+      litestream:
+        description: 'Restaurar também a réplica contínua do Litestream'
+        type: boolean
+        default: true
+      instante:
+        description: 'Litestream: ponto no tempo (ex.: 2026-09-24T14:05:00Z). Vazio = o mais recente.'
+        type: string
+        required: false
+      idade_maxima_horas:
+        description: 'Reprova se o snapshot mais recente for mais velho que isto (backup parado)'
+        type: string
+        default: '26'
+
+permissions:
+  contents: read
+
+jobs:
+  restaurar:
+    runs-on: ubuntu-latest
+    environment: restauracao
+    timeout-minutes: 30
+    env:
+      S3_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+      S3_ACCESS_KEY_ID: ${{ secrets.R2_LEITURA_ACCESS_KEY_ID }}
+      S3_SECRET_ACCESS_KEY: ${{ secrets.R2_LEITURA_SECRET_ACCESS_KEY }}
+      S3_REGION: auto
+      BACKUP_S3_BUCKET: ${{ vars.BACKUP_S3_BUCKET }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.R2_LEITURA_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_LEITURA_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: auto
+      DIA_INFORMADO: ${{ inputs.dia }}
+      INSTANTE: ${{ inputs.instante }}
+      IDADE_MAXIMA_HORAS: ${{ inputs.idade_maxima_horas }}
+      LITESTREAM_BUCKET: ${{ vars.LITESTREAM_BUCKET }}
+      LITESTREAM_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+      LITESTREAM_ACCESS_KEY_ID: ${{ secrets.R2_LEITURA_ACCESS_KEY_ID }}
+      LITESTREAM_SECRET_ACCESS_KEY: ${{ secrets.R2_LEITURA_SECRET_ACCESS_KEY }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Conferir os segredos do ambiente
+        run: |
+          for v in S3_ENDPOINT S3_ACCESS_KEY_ID S3_SECRET_ACCESS_KEY BACKUP_S3_BUCKET; do
+            test -n "${!v}" || { echo "::error::$v vazio: crie os segredos/variáveis do Environment 'restauracao' (cabeçalho deste arquivo)"; exit 1; }
+          done
+
+      # O mais recente pelo NOME (`backups/diario/AAAA-MM-DD.db.gz`, server/operacao/snapshot.ts), e
+      # a idade pela data do objeto: snapshot velho é backup parado, que é falha mesmo que restaure.
+      - name: Escolher o snapshot
+        run: |
+          set -euo pipefail
+          lista=$(aws s3 ls "s3://$BACKUP_S3_BUCKET/backups/diario/" --endpoint-url "$S3_ENDPOINT" | awk '{print $1" "$2" "$4}' | grep -E '[0-9]{4}-[0-9]{2}-[0-9]{2}\.db\.gz$' | sort -k3)
+          test -n "$lista" || { echo "::error::nenhum snapshot em s3://$BACKUP_S3_BUCKET/backups/diario/"; exit 1; }
+          echo "$lista" | tail -5
+          if [ -n "$DIA_INFORMADO" ]; then
+            echo "$DIA_INFORMADO" | grep -Eq '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' || { echo "::error::dia deve ser AAAA-MM-DD"; exit 1; }
+            dia="$DIA_INFORMADO"
+          else
+            ultimo=$(echo "$lista" | tail -1)
+            dia=$(echo "$ultimo" | awk '{print $3}' | sed 's/\.db\.gz$//')
+            quando=$(echo "$ultimo" | awk '{print $1" "$2}')
+            horas=$(( ( $(date -u +%s) - $(date -u -d "$quando" +%s) ) / 3600 ))
+            echo "- snapshot mais recente: \`$dia\` (enviado há ${horas} h)" >> "$GITHUB_STEP_SUMMARY"
+            if [ "$horas" -gt "$IDADE_MAXIMA_HORAS" ]; then
+              echo "::error::o snapshot mais recente tem ${horas} h (> ${IDADE_MAXIMA_HORAS} h): o backup diário parou — runbook §0.1, alerta 2"
+              echo "IDADE_REPROVADA=1" >> "$GITHUB_ENV"
+            fi
+          fi
+          echo "DIA=$dia" >> "$GITHUB_ENV"
+
+      - name: Restaurar o snapshot diário (o código da produção) + integrity_check + contagens
+        run: |
+          set -euo pipefail
+          npx tsx server/operacao/cli.ts restaurar-snapshot --dia="$DIA" --destino="$RUNNER_TEMP/restauro-snapshot.db" | tee snapshot.txt
+          {
+            echo "### Snapshot diário \`$DIA\`"
+            echo '```'
+            cat snapshot.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # O binário OFICIAL, na versão e com o sha256 que o Dockerfile fixa — lidos do próprio Dockerfile,
+      # para o exercício nunca restaurar com um Litestream diferente do que grava em produção.
+      - name: Litestream (mesma versão da imagem)
+        if: inputs.litestream
+        run: |
+          set -euo pipefail
+          versao=$(sed -n 's/^ARG LITESTREAM_VERSAO=//p' Dockerfile)
+          soma=$(sed -n 's/^ARG LITESTREAM_SHA256_AMD64=//p' Dockerfile)
+          curl -fsSL -o litestream.tar.gz "https://github.com/benbjohnson/litestream/releases/download/v${versao}/litestream-${versao}-linux-x86_64.tar.gz"
+          echo "${soma}  litestream.tar.gz" | sha256sum -c -
+          tar -xzf litestream.tar.gz litestream
+          ./litestream version
+
+      - name: Restaurar a réplica contínua (Litestream) + integrity_check + contagens
+        if: inputs.litestream
+        run: |
+          set -euo pipefail
+          test -n "$LITESTREAM_BUCKET" || { echo "::error::vars.LITESTREAM_BUCKET vazio no Environment 'restauracao'"; exit 1; }
+          extra=()
+          if [ -n "$INSTANTE" ]; then extra=(-timestamp "$INSTANTE"); fi
+          # O `litestream.yml` do repositório é o da produção: o banco é identificado por /data/babel.db
+          # e `-o` manda o resultado para outro arquivo, sem precisar do caminho existir aqui.
+          ./litestream restore -config litestream.yml -o "$RUNNER_TEMP/restauro-litestream.db" "${extra[@]}" /data/babel.db
+          npx tsx server/operacao/cli.ts verificar --arquivo="$RUNNER_TEMP/restauro-litestream.db" | tee litestream.txt
+          {
+            echo "### Litestream (${INSTANTE:-mais recente})"
+            echo '```'
+            cat litestream.txt
+            echo '```'
+            echo "Contagens do Litestream devem ser >= às do snapshot, salvo exclusões feitas depois das $(echo "$DIA") 06h UTC."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Veredito
+        run: |
+          if [ "${IDADE_REPROVADA:-0}" = "1" ]; then
+            echo "::error::restaurou, mas o snapshot está velho: backup diário parado"
+            exit 1
+          fi
+          echo "- **exercício ok** em $(date -u +%F): anote no docs/runbook.md §0.2" >> "$GITHUB_STEP_SUMMARY"
+
+      # Dado de produção não fica no runner: some mesmo se algo acima falhar.
+      - name: Apagar os bancos restaurados
+        if: always()
+        run: rm -f "$RUNNER_TEMP"/restauro-*.db "$RUNNER_TEMP"/restauro-*.db-* litestream.tar.gz

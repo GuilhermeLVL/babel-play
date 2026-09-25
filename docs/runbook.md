@@ -108,19 +108,95 @@ node dist-server/operacao.cjs restaurar-snapshot --dia=2026-09-23 --destino=/dat
 4. conferir `/api/ready`, religar as chaves, e anotar no pós-mortem o intervalo de dados perdido.
 
 O CI restaura o Litestream a cada push (job `restauracao-litestream`) e a suíte restaura o snapshot
-(`tests/integration/snapshot-e-restauracao.test.ts`). **Uma vez por mês, faça o caminho A à mão** e
-registre a data aqui: _(ainda não feito em produção)_.
+(`tests/integration/snapshot-e-restauracao.test.ts`) — nenhum dos dois toca o R2 de produção. Para
+isso há dois exercícios, **um por mês**, alternados; registre cada um na tabela do fim desta seção.
+
+**C. Exercício de restauração no Fly (o dado não sai da produção).** Uma máquina TEMPORÁRIA, com um
+volume NOVO, no mesmo app — a máquina de produção e o volume `babel_dados` não são tocados:
+
+```bash
+# 1. volume novo e máquina temporária com a MESMA imagem, parada num `sleep` (sem subir o servidor
+#    e sem o entrypoint do Litestream, que restauraria sozinho e replicaria por cima)
+IMG=$(fly machines list --app babel-play --json | jq -r '.[0].config.image')
+fly volumes create restauro_drill --app babel-play --region gru --size 3 --yes
+fly machine run "$IMG" infinity --entrypoint sleep --app babel-play --region gru \
+  --volume restauro_drill:/restauro --name restauro-drill --vm-memory 1024   # sem --port: fora do tráfego
+# 2. dentro dela: restaurar as duas fontes no volume NOVO e conferir
+fly ssh console --app babel-play --machine <id da restauro-drill>
+node dist-server/operacao.cjs restaurar-snapshot --dia=$(date -u +%F) --destino=/restauro/snapshot.db
+litestream restore -config /etc/litestream.yml -o /restauro/litestream.db -integrity-check full /data/babel.db
+node dist-server/operacao.cjs verificar --arquivo=/restauro/snapshot.db
+node dist-server/operacao.cjs verificar --arquivo=/restauro/litestream.db
+exit
+# 3. as contagens do banco VIVO, para comparar (o `verificar` só lê; roda na máquina de produção)
+fly ssh console --app babel-play -C "node dist-server/operacao.cjs verificar --arquivo=/data/babel.db"
+# 4. desmontar TUDO (a máquina e o volume do exercício guardam uma cópia dos dados pessoais)
+fly machine destroy <id da restauro-drill> --force
+fly volumes destroy <id do volume restauro_drill> --yes
+```
+
+A máquina temporária herda os segredos do app (é assim que o `restaurar-snapshot` e o `litestream`
+leem as credenciais do R2). O que conferir: `integrity_check: ok` nas duas; contagens do Litestream
+iguais às do banco vivo (diferença só do que foi escrito nos segundos entre um comando e outro);
+contagens do snapshot menores ou iguais (ele é das 6h UTC). Snapshot do dia ausente = o backup diário
+parou (runbook §0.1, alerta 2).
+
+**D. Exercício pelo GitHub Actions** — _Actions → **Exercício de restauração** → Run workflow_
+(`.github/workflows/restauracao-drill.yml`). Baixa o snapshot mais recente e a réplica do Litestream
+do R2 para o runner, restaura com o mesmo código, roda `integrity_check` + contagens e publica no
+resumo; reprova se o snapshot mais recente tiver mais de 26 h. Usa um token R2 **só de leitura** no
+Environment `restauracao` (os nomes estão no cabeçalho do workflow). O banco fica só no disco efêmero
+do runner e é apagado no fim — mas sai da infraestrutura de produção; se isso não servir à política de
+dados, fique com o C.
+
+| data                            | exercício | quem | resultado |
+| ------------------------------- | --------- | ---- | --------- |
+| _(ainda não feito em produção)_ |           |      |           |
 
 ### 0.3 Rollback de deploy
 
-GitHub → Actions → **Deploy (Fly.io)** → Run workflow → `imagem = registry.fly.io/babel-play:<sha anterior>`
-(a lista sai de `fly releases --image --app babel-play`). É a MESMA imagem que já esteve no ar —
-nada é reconstruído. Pelo terminal: `fly deploy --app babel-play --image registry.fly.io/babel-play:<sha>`.
+Há três coisas que podem voltar, e só a primeira é rotineira.
 
-**O banco não volta junto.** As migrações rodam no boot e são só para a frente; uma versão velha
-sobre um banco migrado continua funcionando enquanto a migração nova só ACRESCENTOU coluna/tabela
-(é a regra da casa). Se uma migração destrutiva estiver no meio, o rollback é restaurar o banco
-(§0.2) também — por isso migração destrutiva vai sozinha num deploy próprio.
+**1. A imagem (minutos, sem perda de dado).** O `deploy.yml` já faz sozinho quando a fumaça pós-deploy
+falha (`/api/ready` ≠ 200 ou `/api/health.versao` ≠ sha implantado): reimplanta a imagem que estava no
+ar e deixa o job vermelho. À mão, para um defeito que a fumaça não pega:
+
+- GitHub → Actions → **Deploy (Fly.io)** → Run workflow → destino `producao`,
+  `imagem = registry.fly.io/babel-play:<sha anterior>` (a lista sai de
+  `fly releases --image --app babel-play`). É a MESMA imagem que já esteve no ar — nada é reconstruído.
+- Pelo terminal, se o GitHub estiver fora: `fly deploy --app babel-play --image registry.fly.io/babel-play:<sha> --strategy immediate`.
+
+**O banco não volta junto**, e é por isso que o CI cobra expand/contract (`docs/versionamento.md` §3):
+uma migration nova só ACRESCENTA, então a imagem anterior roda sobre o banco migrado. Uma migration
+de CONTRATO (`-- CONTRATO:`) vem sempre sozinha, num deploy próprio, depois de o código já ter parado
+de usar o que ela remove — voltar a imagem de antes dela continua funcionando. Se ainda assim for
+preciso desfazer a migration, o comentário `REVERSAO:` dela diz como.
+
+**2. O banco a um instante (Litestream, perda de segundos).** Para "o deploy das 14h05 estragou
+dado": restaure o momento anterior ao deploy, confira, e troque o banco vivo pelo procedimento de
+§0.2 ("Trocar o banco vivo"). A hora exata do deploy está no resumo da execução do `deploy.yml`.
+
+```bash
+fly ssh console --app babel-play
+litestream restore -config /etc/litestream.yml -o /data/restauro.db -timestamp 2026-09-24T14:04:00Z /data/babel.db
+node dist-server/operacao.cjs verificar --arquivo=/data/restauro.db
+```
+
+Tudo que foi escrito DEPOIS do instante se perde: anote o intervalo no pós-mortem.
+
+**3. O volume inteiro (snapshot pré-deploy).** Todo deploy tira `fly volumes snapshots create` do
+volume antes de trocar a imagem (passo "Snapshot do volume antes do deploy" no resumo). É o caminho
+quando o Litestream também está comprometido (réplica apagada, bucket inacessível):
+
+```bash
+fly volumes snapshots list <id do volume babel_dados>          # o do horário do deploy
+fly volumes create babel_dados --snapshot-id <id> --app babel-play --region gru --size 3 --yes
+# com CHECKOUT_ENABLED=0 SIGNUP_ENABLED=0: destruir a máquina atual e subir uma nova montando o volume
+# restaurado (fly deploy com a imagem anterior); conferir /api/ready; religar as chaves
+```
+
+O volume antigo continua existindo até ser destruído à mão — não destrua antes de o restaurado estar
+conferido. A ordem de preferência é 1 → 2 → 3: cada passo perde mais tempo e, no 3, mais dado.
 
 ### 0.4 Quando um fornecedor cai
 

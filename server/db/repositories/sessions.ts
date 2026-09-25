@@ -124,8 +124,9 @@ export const sessionsRepo = {
     // 9× mais rápido — `transaction()` do libsql abre conexão nova com synchronous=FULL, ou
     // seja fsync por commit. Medido em scripts/audit/v2-diag-batch.mjs. Atomicidade idêntica:
     // uma instrução que falha desfaz as anteriores.
-    if (inserirFalas) await db.batch([inserirSessao, inserirFalas])
-    else await inserirSessao
+    // As falas vêm em LOTES (teto de variáveis do SQLite — ver `stmtInsertMany`), todos no mesmo
+    // batch: um lote que falha desfaz a sessão e os lotes anteriores.
+    await db.batch([inserirSessao, ...inserirFalas])
 
     const created = await this.get(userId, id)
     if (!created) throw new Error('falha ao criar sessão')
@@ -208,12 +209,12 @@ export const sessionsRepo = {
     // insert apagava a transcrição inteira e não devolvia nada. É o caminho de "retomar
     // captura", então o que se perdia era trabalho do usuário. Agora ou troca tudo, ou nada.
     const apagar = utterancesRepo.stmtDeleteForSession(userId, id)
-    const inserir = utterancesRepo.stmtInsertMany(userId, id, utts)
+    const inserir = utterancesRepo.stmtInsertMany(userId, id, utts) // lotes; todos no mesmo batch
     const contar = db
       .update(sessions)
       .set({ wordCount, updatedAt: Date.now() })
       .where(and(eq(sessions.id, id), eq(sessions.userId, userId)))
-    await (inserir ? db.batch([apagar, inserir, contar]) : db.batch([apagar, contar]))
+    await db.batch([apagar, ...inserir, contar])
     return this.get(userId, id)
   },
 

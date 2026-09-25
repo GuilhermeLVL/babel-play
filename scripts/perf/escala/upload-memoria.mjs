@@ -69,6 +69,15 @@ const filho = spawn(
       LOG_LEVEL: 'error',
       SONDA_ARQUIVO: sonda,
       SONDA_MS: '50',
+      /* Semáforo de corpos grandes (ADR 0009): no self-host todo upload é do MESMO usuário, então com
+         o padrão (1 por usuário) uma onda de 4 mede 1 upload + 3 recusas 429. Para medir 4 corpos
+         EM VOO de verdade, rode com UPLOADS_GRANDES_POR_USUARIO=4 UPLOADS_GRANDES_POR_PROCESSO=4. */
+      ...(process.env.UPLOADS_GRANDES_POR_USUARIO
+        ? { UPLOADS_GRANDES_POR_USUARIO: process.env.UPLOADS_GRANDES_POR_USUARIO }
+        : {}),
+      ...(process.env.UPLOADS_GRANDES_POR_PROCESSO
+        ? { UPLOADS_GRANDES_POR_PROCESSO: process.env.UPLOADS_GRANDES_POR_PROCESSO }
+        : {}),
     },
     stdio: ['ignore', 'pipe', 'pipe'],
   },

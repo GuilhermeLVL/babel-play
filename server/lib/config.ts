@@ -568,6 +568,20 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
   /* As três `VITE_*` abaixo são de BUILD (o Vite as embute no bundle). O servidor as lê só para a
      CSP enxergar os mesmos hosts que o bundle chama; o `Dockerfile` as repete como `ENV` do runtime. */
   {
+    nome: 'UPLOADS_GRANDES_POR_PROCESSO',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'quantos corpos grandes (áudio da sessão, import Anki, documento) o processo recebe ao mesmo tempo (server/lib/corposGrandes.ts). O excedente recebe 429 `upload_ocupado` com Retry-After, antes de ler o corpo. Ausente ou inválido: 2 (dimensionado para a VM de 1 GB; ADR 0009)',
+  },
+  {
+    nome: 'UPLOADS_GRANDES_POR_USUARIO',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'quantos corpos grandes o MESMO usuário pode ter em voo ao mesmo tempo (server/lib/corposGrandes.ts). Ausente ou inválido: 1',
+  },
+  {
     nome: 'VITE_SELF_HOST_MODELS',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',

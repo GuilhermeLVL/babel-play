@@ -74,6 +74,11 @@ export interface SttFinal {
   confidence?: number;
   /** Adapter que de fato transcreveu (preenchido pelo wrapper do gateway) — procedência honesta. */
   engine?: string;
+  /**
+   * O motor OUVIU texto e o filtro de alucinação (`alucinacao.ts`) o esvaziou. Só para a telemetria
+   * contar descartes: `text` já vem vazio, e quem exibe não precisa olhar isto.
+   */
+  alucinacaoDescartada?: boolean;
 }
 
 /** Sessão de transcrição ao vivo (chame `stop()` para encerrar). */
@@ -129,7 +134,13 @@ export interface SttProvider extends AdapterMeta {
   transcribePcm?(
     pcm: Float32Array,
     sampleRate: number,
-    opts?: { languageHint?: string; signal?: AbortSignal; onUpdate?: (text: string) => void },
+    opts?: {
+      languageHint?: string;
+      signal?: AbortSignal;
+      onUpdate?: (text: string) => void;
+      /** Contexto (última final da mesma fonte, mesmo idioma). Só a nuvem usa; ver `promptDeStt.ts`. */
+      prompt?: string;
+    },
   ): Promise<SttFinal>;
   /**
    * `true` enquanto há transcrição em andamento (worker ocupado). Usado para o

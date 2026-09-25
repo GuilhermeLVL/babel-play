@@ -31,6 +31,7 @@ import type {
   SttSession,
   TranslationProvider,
 } from './capabilities';
+import { capMetrics } from './capture/captureMetrics';
 
 const LOCAL_RE = /^https?:\/\/(127\.0\.0\.1|localhost|\[::1\])/i;
 const isLocalUrl = (u?: string): boolean => !!u && LOCAL_RE.test(u);
@@ -163,9 +164,11 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
                   const r = await breakers.get(b.adapterId).run(() => a.translate(text, src, tgt, opts));
                   const veredicto = validarTraducao(r.text, tgt, src, null, text);
                   if (veredicto.ok && r.text) return r;
+                  capMetrics.fallback('mt:server-llm-mt'); // respondeu, mas a resposta não servia
                 }
               } catch {
-                /* cai para a cascata normal */
+                /* cai para a cascata normal — e a telemetria conta a queda */
+                capMetrics.fallback('mt:server-llm-mt');
               }
             }
           }
@@ -391,10 +394,24 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
         }
       },
 
+      /**
+       * O decode FINAL vai, neste momento, para a NUVEM? (rota "nuvem primeiro", consentimento
+       * dado e um binding `groq-whisper` no perfil.) A captura usa isto para escolher o teto de fala
+       * contínua: 12 s na nuvem (cobrança mínima de 10 s por pedido), 6 s no local. É lido a cada
+       * quadro do VAD, então retirar o consentimento no meio da sessão volta ao corte curto na hora.
+       */
+      finalNaNuvem(): boolean {
+        return (
+          sttPreferCloudRef.value &&
+          consentiu() &&
+          (core.getProfile().bindings.stt ?? []).some((b) => b.adapterId === 'groq-whisper')
+        );
+      },
+
       async transcribePcm(
         pcm: Float32Array,
         sampleRate: number,
-        opts?: { languageHint?: string; signal?: AbortSignal; onUpdate?: (text: string) => void },
+        opts?: { languageHint?: string; signal?: AbortSignal; onUpdate?: (text: string) => void; prompt?: string },
       ): Promise<SttFinal> {
         let lastErr: Error | null = null;
         let bindings = [...(core.getProfile().bindings.stt ?? [])];
@@ -421,6 +438,8 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
             return { ...r, engine: r.engine ?? b.adapterId };
           } catch (e) {
             lastErr = e instanceof Error ? e : new Error(String(e));
+            // Telemetria: este motor caiu e o próximo da cadeia (se houver) assume.
+            capMetrics.fallback(`stt:${b.adapterId}`);
           }
         }
         throw lastErr ?? new Error('nenhum STT de blob disponível neste perfil');

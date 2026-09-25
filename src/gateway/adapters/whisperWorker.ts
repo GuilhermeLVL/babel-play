@@ -220,10 +220,14 @@ self.onmessage = async (e: MessageEvent) => {
         streamer,
       });
 
+      const bruto = (out.text ?? '').trim();
+      const filtrado = filtrarAlucinacao(bruto, audioSec, language);
       self.postMessage({
         type: 'result',
         id,
-        text: filtrarAlucinacao((out.text ?? '').trim(), audioSec, language),
+        text: filtrado,
+        // Para a telemetria contar descartes: havia texto e o filtro o esvaziou.
+        descartado: !!bruto && !filtrado,
       });
     }
   } catch (err) {

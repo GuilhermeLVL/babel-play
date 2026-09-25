@@ -13,6 +13,7 @@ import { apiFetch } from '../../data/api';
 import { getActiveProfile, getProviderMode } from '../../gateway/activeProfile';
 import { capMetrics, type CapSource } from '../../gateway/capture/captureMetrics';
 import { areModelsCached, expectedModelIds } from '../../gateway/modelCache';
+import type { ContextoDoStt } from '../../gateway/promptDeStt';
 import { getSttQuality,routeStt } from '../../gateway/sttRouter';
 import { DominantLangTracker } from '../convoLang';
 import { detectLanguage } from '../langDetect';
@@ -89,6 +90,9 @@ export interface DepsDoPipelineDeFala {
   setFeedbackMsg: (msg: string) => void;
   setModelPrep: Dispatch<SetStateAction<ModelPrepState | null>>;
   setSttRouteLabel: Dispatch<SetStateAction<string>>;
+  /* --- contexto do STT de nuvem --- */
+  /** Última final de cada fonte (o `prompt` do Whisper de nuvem). Opcional: sem ele, sem prompt. */
+  contextoDoSttRef?: RefObject<ContextoDoStt>;
 }
 
 export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
@@ -104,7 +108,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     dominantLangRef, perfilIdiomaRef, perfilMicRef, avisoIdiomaMicRef, setIdiomaObservado,
     sysFalasRef, sysAbertasRef, micInicioRef, avisoVazamentoRef,
     translateSegment, retraduzirDegradados,
-    setFeedbackMsg, setModelPrep, setSttRouteLabel,
+    setFeedbackMsg, setModelPrep, setSttRouteLabel, contextoDoSttRef,
   } = deps;
 
   // Handlers de captura por FONTE (sistema/mic). Um único pipeline VAD→Whisper serve as duas
@@ -326,8 +330,12 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       const t0 = performance.now();
       const audioMs = Math.round((pcm.length / sr) * 1000);
       const queueDepth = gateway.stt.pendingCount();
+      /* CONTEXTO para a nuvem: a última final DESTA fonte, se foi no idioma que estamos pedindo
+         agora (sem dica = idioma desconhecido = sem prompt; ver `promptDeStt.ts`). */
+      const prompt = contextoDoSttRef?.current.promptPara(source, hint);
       gateway.stt.transcribePcm(pcm, sr, {
         languageHint: hint,
+        prompt,
         // STREAMING: mostra os tokens do decode final crescendo no balão em tempo real.
         onUpdate: (streamed) => {
           const partial = (streamed ?? '').trim();
@@ -336,8 +344,9 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
             (s.id === uttId && s.isPartial) ? { ...s, originalText: partial } : s));
         },
       })
-        .then(({ text, engine, language }) => {
+        .then(({ text, engine, language, alucinacaoDescartada }) => {
           const clean = (text ?? '').trim();
+          if (!clean && alucinacaoDescartada) capMetrics.alucinacao();
           const decodeMs = Math.round(performance.now() - t0);
           clog('Whisper final', source, '(seq', seq, ',', decodeMs, 'ms,', engine ?? '?', ') →', clean ? JSON.stringify(clean).slice(0, 80) : '(vazio)');
           seqToSegmentRef.current.delete(seq);
@@ -347,7 +356,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
                mostrado texto, ele era COMMITADO "para evitar flicker", e era assim que uma frase
                inventada sobre ruído ficava na tela para sempre. O final é a leitura melhor; se ele
                diz vazio, o parcial era alucinação e sai. */
-            capMetrics.final(seq, { decodeMs, queueDepth, text: '', audioMs });
+            capMetrics.final(seq, { decodeMs, queueDepth, text: '', audioMs, engine });
             clog('Whisper final vazio → parcial descartado (seq', seq, ')');
             setSpeechSegments(prev => prev.filter(s => s.id !== uttId));
             return;
@@ -372,7 +381,12 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
           }
           const micJanela: Intervalo = { inicioMs: micInicioRef.current.get(seq) ?? agora - audioMs, fimMs: agora };
           micInicioRef.current.delete(seq);
-          capMetrics.final(seq, { decodeMs, queueDepth, text: clean, audioMs });
+          capMetrics.final(seq, { decodeMs, queueDepth, text: clean, audioMs, engine });
+          /* Vira o contexto do próximo trecho desta fonte. A fala do MIC no cenário conversa espera
+             o veredicto de vazamento: se era a caixa de som entrando pelo microfone, não é a SUA
+             fala e não pode virar o contexto dela. */
+          const registrarContexto = () => contextoDoSttRef?.current.registrar(source, clean, (from || idiomaDoMotor) || hint);
+          if (isSys || captureScenarioRef.current !== 'conversation') registrarContexto();
           setSpeechSegments(prev => prev.map(s => s.id === uttId
             ? { ...s, originalText: clean, translatedText: '…', words: wordsFromText(clean, (from || idiomaDoMotor) || sourceLang), isPartial: false, tEndMs: nowRel(), lang: (from || idiomaDoMotor) || undefined, engine }
             : s));
@@ -451,7 +465,11 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
           if (from) {
             // Idioma FIXO: não há o que observar nem por que esperar.
             if (!isSys && captureScenarioRef.current === 'conversation') {
-              void avaliarFalaDoMic().then(ok => { if (ok) translateSegment(uttId, clean, from, to, { falada: true }); });
+              void avaliarFalaDoMic().then(ok => {
+                if (!ok) return;
+                registrarContexto();
+                translateSegment(uttId, clean, from, to, { falada: true });
+              });
               return;
             }
             translateSegment(uttId, clean, from, to, { falada: !isSys });

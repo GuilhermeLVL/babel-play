@@ -198,7 +198,7 @@ export class WhisperLocalStt implements SttProvider {
     });
 
     this.worker.onmessage = (msg: MessageEvent) => {
-      const { type, id, text, progress, label, message, loaded, total } = msg.data;
+      const { type, id, text, progress, label, message, loaded, total, descartado } = msg.data;
 
       switch (type) {
         case MENSAGEM_DO_MANIFESTO:
@@ -238,7 +238,7 @@ export class WhisperLocalStt implements SttProvider {
                contrato de `SttFinal.language` é "o que o motor identificou", e devolver a
                pergunta como resposta faria o chamador confundir palpite com medição. Quem
                detecta de verdade é o Whisper de nuvem (verbose_json → `language`). */
-            pending.resolve({ text });
+            pending.resolve(descartado ? { text, alucinacaoDescartada: true } : { text });
             this.pending.delete(id);
           }
           break;

@@ -4,8 +4,10 @@
  * injeta via `x-credential-id`.
  */
 import { apiFetch } from '../../data/api'
+import { filtrarAlucinacao } from '../alucinacao'
 import { encodeWav } from '../audio/wav'
 import type { SttFinal, SttProvider } from '../capabilities'
+import { cortarPrompt } from '../promptDeStt'
 
 export interface GroqWhisperConfig {
   model: string
@@ -39,7 +41,7 @@ export class GroqWhisperStt implements SttProvider {
   async transcribePcm(
     pcm: Float32Array,
     sampleRate: number,
-    opts?: { languageHint?: string; signal?: AbortSignal }
+    opts?: { languageHint?: string; signal?: AbortSignal; prompt?: string }
   ): Promise<SttFinal> {
     const wav = encodeWav(pcm, sampleRate)
 
@@ -53,6 +55,14 @@ export class GroqWhisperStt implements SttProvider {
     if (opts?.languageHint) {
       headers['x-language'] = opts.languageHint
     }
+    /* CONTEXTO: a última fala final da mesma fonte, no mesmo idioma (quem escolhe é o chamador; ver
+       `promptDeStt.ts`). Cabeçalho e não campo do corpo porque o corpo é o WAV cru. Codificado
+       porque cabeçalho HTTP não carrega acento nem quebra de linha; cortado aqui de novo porque o
+       teto de 224 é contrato com o servidor e não pode depender de todo chamador lembrar dele. */
+    const prompt = opts?.prompt ? cortarPrompt(opts.prompt) : ''
+    if (prompt) {
+      headers['x-stt-prompt'] = encodeURIComponent(prompt)
+    }
 
     // Pelo funil (`apiFetch`): injeta o Bearer no modo público — este `fetch` cru não injetava, e
     // a STT de nuvem respondia 401 com login — e, sem conta, responde 501 sem tocar a rede.
@@ -65,7 +75,11 @@ export class GroqWhisperStt implements SttProvider {
 
     if (!res.ok) {
       const errorText = await res.text().catch(() => '')
-      throw new Error(`groq-whisper HTTP ${res.status}: ${errorText.slice(0, 160)}`)
+      /* O STATUS vai no erro, e não só na mensagem: quem chama decide por ele (402/429/501/503 =
+         a nuvem recusou de vez nesta sessão/importação; o resto é passageiro). */
+      throw Object.assign(new Error(`groq-whisper HTTP ${res.status}: ${errorText.slice(0, 160)}`), {
+        status: res.status,
+      })
     }
 
     /* `language` vem do DECODE, não de um palpite sobre o texto: o Whisper identifica o idioma a
@@ -75,9 +89,15 @@ export class GroqWhisperStt implements SttProvider {
        A dica do usuário NÃO entra aqui. `language` significa "o que o motor identificou", e
        ecoar a dica de volta faria o chamador tomar a própria pergunta por resposta. */
     const json = (await res.json()) as { text?: string; language?: string }
+    /* O MESMO filtro de alucinação do worker local, aplicado aqui também. O servidor já filtra a
+       saída da nuvem com esta função; reaplicar é inócuo (o filtro é idempotente) e é o único jeito
+       de o cliente SABER que houve descarte e contá-lo na telemetria. */
+    const bruto = (json.text ?? '').trim()
+    const text = filtrarAlucinacao(bruto, pcm.length / sampleRate, opts?.languageHint || json.language)
     return {
-      text: (json.text ?? '').trim(),
+      text,
       language: json.language || undefined,
+      ...(bruto && !text ? { alucinacaoDescartada: true } : {}),
     }
   }
 }

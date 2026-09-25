@@ -59,6 +59,7 @@ const SO_COM_CONTA: Record<string, string> = {
     'telemetria anônima de qualidade da captura; sem servidor não há para onde mandar, e o cliente descarta em silêncio',
   '/api/audio':
     'captura do áudio do sistema por WASAPI: PASSA DIRETO (está em `PASSAM_DIRETO`) porque depende de um dispositivo da máquina, e só existe no self-host',
+  '/api/metricas': 'telemetria anônima de qualidade da captura; sem servidor não há para onde mandar, e o cliente descarta em silêncio',
 }
 
 /**

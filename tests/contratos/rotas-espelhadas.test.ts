@@ -55,6 +55,8 @@ const SO_COM_CONTA: Record<string, string> = {
     'o aceite do convite pelo responsável (Fase 4): vínculo e consentimento registrados no servidor, entre DUAS contas — sem conta não existe',
   '/api/abertura':
     'as chaves de emergência do SERVIDOR (cadastro e venda): lida por `fetch` cru antes de haver sessão; um espelho local responderia sempre "aberto"',
+  '/api/metricas':
+    'telemetria anônima de qualidade da captura; sem servidor não há para onde mandar, e o cliente descarta em silêncio',
   '/api/audio':
     'captura do áudio do sistema por WASAPI: PASSA DIRETO (está em `PASSAM_DIRETO`) porque depende de um dispositivo da máquina, e só existe no self-host',
 }

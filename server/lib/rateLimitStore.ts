@@ -47,6 +47,11 @@ export const METRIC_RATELIMIT_AUTH = 'ratelimit:auth'
  * é exatamente a avalanche que o teto existe para conter.
  */
 export const METRIC_RATELIMIT_ERROS = 'ratelimit:erros'
+/**
+ * O balde da telemetria anônima de captura (`POST /api/metricas/captura`). Próprio pelo mesmo A27:
+ * um cliente mandando lotes em laço não pode gastar a cota de escrita (nem a de erro) de ninguém.
+ */
+export const METRIC_RATELIMIT_TELEMETRIA = 'ratelimit:telemetria'
 
 /**
  * A chave do balde: o TENANT, não o IP. Cai no IP só onde não há usuário resolvido

@@ -27,8 +27,10 @@ describe('montagem do app x routers declarados na caracterizacao', () => {
     for (const m of fonte.matchAll(/app\.use\(['"`](\/api\/[a-z-]+)['"`],\s*capturarAssincrono\((\w+)\)\)/g)) {
       doServidor.push([m[1], m[2]])
     }
-    // Os públicos (webhook e rank) ficam antes do auth e o harness os monta à parte.
-    const privados = doServidor.filter(([c]) => c !== '/api/billing/webhook/asaas' && c !== '/api/rank')
+    // Os públicos (webhook, rank e a telemetria de captura) ficam antes do auth e o harness os
+    // monta à parte; a lista deles, com a razão de cada um, é a de `matriz-de-rotas.test.ts`.
+    const PUBLICOS = ['/api/billing/webhook/asaas', '/api/rank', '/api/metricas']
+    const privados = doServidor.filter(([c]) => !PUBLICOS.includes(c))
     const doHarness = ROUTERS_PRIVADOS.map(([caminho, , nome]) => [caminho, nome])
     expect(doHarness).toEqual(privados)
   })

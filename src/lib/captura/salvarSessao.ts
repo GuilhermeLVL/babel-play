@@ -22,6 +22,7 @@ import {
 import type { SttSession } from '../../gateway/capabilities';
 import { capMetrics } from '../../gateway/capture/captureMetrics';
 import type { AudioCapture } from '../../gateway/capture/systemAudio';
+import { iniciarTelemetriaDeCaptura, pararTelemetriaDeCaptura } from '../../gateway/capture/telemetriaDeCaptura';
 import type { ContextoDoStt } from '../../gateway/promptDeStt';
 import { Recording } from '../../types';
 import { DominantLangTracker } from '../convoLang';
@@ -204,6 +205,7 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
     lastPartialTextRef.current.clear();
     ordemMtRef.current.limpar(); // os selos são por segmento; sessão nova começa do zero
     capMetrics.reset();
+    iniciarTelemetriaDeCaptura(); // números de qualidade a cada 60 s (sem texto; ver o módulo)
     contextoDoSttRef?.current.limpar();
     // Identificação de voz: sessão nova = memória de vozes nova (retomada mantém os clusters
     // — as "Pessoas" já nomeadas continuam valendo). O modelo (6,7MB, cacheado) carrega em
@@ -351,6 +353,7 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
     seqToSegmentRef.current.clear();
     lastPartialTextRef.current.clear();
     clog('métricas da sessão:', capMetrics.summary());
+    pararTelemetriaDeCaptura(); // o último lote, antes que um START novo zere o acumulador
   };
 
   const abrirEncerrar = () => {

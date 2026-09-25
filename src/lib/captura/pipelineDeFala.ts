@@ -344,8 +344,9 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
             (s.id === uttId && s.isPartial) ? { ...s, originalText: partial } : s));
         },
       })
-        .then(({ text, engine, language }) => {
+        .then(({ text, engine, language, alucinacaoDescartada }) => {
           const clean = (text ?? '').trim();
+          if (!clean && alucinacaoDescartada) capMetrics.alucinacao();
           const decodeMs = Math.round(performance.now() - t0);
           clog('Whisper final', source, '(seq', seq, ',', decodeMs, 'ms,', engine ?? '?', ') →', clean ? JSON.stringify(clean).slice(0, 80) : '(vazio)');
           seqToSegmentRef.current.delete(seq);
@@ -355,7 +356,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
                mostrado texto, ele era COMMITADO "para evitar flicker", e era assim que uma frase
                inventada sobre ruído ficava na tela para sempre. O final é a leitura melhor; se ele
                diz vazio, o parcial era alucinação e sai. */
-            capMetrics.final(seq, { decodeMs, queueDepth, text: '', audioMs });
+            capMetrics.final(seq, { decodeMs, queueDepth, text: '', audioMs, engine });
             clog('Whisper final vazio → parcial descartado (seq', seq, ')');
             setSpeechSegments(prev => prev.filter(s => s.id !== uttId));
             return;
@@ -380,7 +381,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
           }
           const micJanela: Intervalo = { inicioMs: micInicioRef.current.get(seq) ?? agora - audioMs, fimMs: agora };
           micInicioRef.current.delete(seq);
-          capMetrics.final(seq, { decodeMs, queueDepth, text: clean, audioMs });
+          capMetrics.final(seq, { decodeMs, queueDepth, text: clean, audioMs, engine });
           /* Vira o contexto do próximo trecho desta fonte. A fala do MIC no cenário conversa espera
              o veredicto de vazamento: se era a caixa de som entrando pelo microfone, não é a SUA
              fala e não pode virar o contexto dela. */

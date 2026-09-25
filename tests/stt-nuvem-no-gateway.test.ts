@@ -42,6 +42,25 @@ describe('transcribePcm', () => {
   })
 })
 
+describe('telemetria do STT no gateway', () => {
+  it('motor que cai conta como fallback `stt:<adapter>`', async () => {
+    const { gw, api } = await montar([{ adapterId: 'groq-whisper' }], true)
+    const { capMetrics } = await import('../src/gateway/capture/captureMetrics')
+    capMetrics.reset()
+    api.mockResolvedValue(new Response('sem orçamento', { status: 503 }))
+    await expect(gw.stt.transcribePcm(new Float32Array(16000), 16000, { languageHint: 'pt' })).rejects.toThrow(/503/)
+    expect(capMetrics.drenarTelemetria().fallbacks).toEqual({ 'stt:groq-whisper': 1 })
+  })
+
+  it('crédito de legenda vindo da nuvem é filtrado e marcado como descarte por alucinação', async () => {
+    const { gw, api } = await montar([{ adapterId: 'groq-whisper' }], true)
+    api.mockResolvedValue(new Response(JSON.stringify({ text: 'Legendas pela comunidade Amara.org' }), { status: 200 }))
+    const r = await gw.stt.transcribePcm(new Float32Array(16000 * 4), 16000, { languageHint: 'pt' })
+    expect(r.text).toBe('')
+    expect(r.alucinacaoDescartada).toBe(true)
+  })
+})
+
 describe('finalNaNuvem', () => {
   it('rota nuvem-primeiro + groq no perfil + consentimento → sim', async () => {
     const { gw } = await montar([{ adapterId: 'groq-whisper' }, { adapterId: 'whisper-local' }], true)

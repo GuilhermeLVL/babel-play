@@ -4,6 +4,7 @@
  * injeta via `x-credential-id`.
  */
 import { apiFetch } from '../../data/api'
+import { filtrarAlucinacao } from '../alucinacao'
 import { encodeWav } from '../audio/wav'
 import type { SttFinal, SttProvider } from '../capabilities'
 import { cortarPrompt } from '../promptDeStt'
@@ -88,9 +89,15 @@ export class GroqWhisperStt implements SttProvider {
        A dica do usuário NÃO entra aqui. `language` significa "o que o motor identificou", e
        ecoar a dica de volta faria o chamador tomar a própria pergunta por resposta. */
     const json = (await res.json()) as { text?: string; language?: string }
+    /* O MESMO filtro de alucinação do worker local, aplicado aqui também. O servidor já filtra a
+       saída da nuvem com esta função; reaplicar é inócuo (o filtro é idempotente) e é o único jeito
+       de o cliente SABER que houve descarte e contá-lo na telemetria. */
+    const bruto = (json.text ?? '').trim()
+    const text = filtrarAlucinacao(bruto, pcm.length / sampleRate, opts?.languageHint || json.language)
     return {
-      text: (json.text ?? '').trim(),
+      text,
       language: json.language || undefined,
+      ...(bruto && !text ? { alucinacaoDescartada: true } : {}),
     }
   }
 }

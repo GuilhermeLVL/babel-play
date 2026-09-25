@@ -1,6 +1,7 @@
 import { MicVAD } from '@ricky0123/vad-web';
 
 import { apiFetch } from '../../data/api';
+import { TAXA_DE_BITS_DA_GRAVACAO } from './taxaDeBits';
 
 // Logger de diagnóstico da captura de sistema/VAD (observabilidade no console do navegador).
 const vlog = (...a: any[]) => console.log('%c[cap:vad]', 'color:#0369A1;font-weight:bold', ...a);
@@ -40,16 +41,9 @@ export interface AudioCapture {
   startedAtMs: number;
 }
 
-/**
- * TAXA DE BITS DO GRAVADOR DA SESSÃO (bits/s). Sem ela o MediaRecorder usa o padrão do navegador,
- * que no Chrome é ~128 kbps — dimensionado para MÚSICA, não para uma aula ou chamada. Opus de fala
- * a 24–32 kbps é transparente para re-transcrição (é o que a literatura de ASR sobre áudio
- * comprimido mede), e o arquivo cai para ~1/4: 14 MB por hora em vez de ~58.
- *
- * É UMA constante exportada, e não um número solto no `new MediaRecorder`, porque o valor ainda vai
- * ser confirmado por benchmark (WER da re-transcrição × taxa); afinar tem de ser uma linha só.
- */
-export const TAXA_DE_BITS_DA_GRAVACAO = 32_000;
+/* A taxa de bits do gravador mora num módulo-folha (a mistura sistema+mic usa a mesma); o porquê
+   do valor está lá. Reexportada daqui porque é deste módulo que quem grava a importa. */
+export { TAXA_DE_BITS_DA_GRAVACAO };
 
 /**
  * TETO DE FALA CONTÍNUA antes do corte forçado, por motor FINAL de STT.

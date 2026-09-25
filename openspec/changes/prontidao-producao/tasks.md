@@ -2,14 +2,14 @@
 
 - [x] Inventário, diagrama e tabela de fluxos (`openspec/audits/2026-09-25-prontidao/fase1-mapeamento.md`)
 - [x] Reconferir os P0 novos à mão
-- [ ] GATE: aprovação do dono
+- [x] GATE: aprovado em 25/09
 
 ## Fase 2 — Escala e isolamento
 
-- [ ] Tabela de capacidade 10/100/1.000/10.000 com hipótese de concorrência
-- [ ] ADR de banco (SQLite → ponto de virada)
-- [ ] Desenho da fila de IA (prioridade por plano, retry, idempotência)
-- [ ] Isolamento: simultaneidade por usuário, corpos em streaming, limites
+- [x] Tabela de capacidade 10/100/1.000/10.000 com hipótese de concorrência
+- [x] ADR de banco (SQLite → ponto de virada)
+- [x] Desenho da fila de IA (prioridade por plano, retry, idempotência)
+- [x] Isolamento: simultaneidade por usuário, corpos em streaming, limites
 - [ ] GATE
 
 ## Fase 3 — Custo

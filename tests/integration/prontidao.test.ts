@@ -22,10 +22,11 @@
  *     caiu" o que é "a tradução caiu".
  */
 import { mkdtempSync, rmSync } from 'node:fs'
+import { createServer, type Server } from 'node:http'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { type AppDeTeste, subirApp } from '../caracterizacao/_app'
 
@@ -71,6 +72,67 @@ describe('GET /api/ready', () => {
     // log, correlata pelo requestId.
     const texto = await (await s.get('/api/ready')).text()
     expect(texto).not.toMatch(/libsql|sqlite|https?:\/\/|[A-Za-z]:\\|\/tmp\//)
+  })
+})
+
+/**
+ * ADR 0009: com UMA máquina só, o R2 fora do ar tirava o serviço inteiro do roteamento (o Fly lê
+ * o `/api/ready`). O armazenamento externo é uma dependência DEGRADÁVEL, como a IA: o upload de
+ * áudio responde 503 sozinho, e o resto do app segue. O ready continua 200, mas diz no corpo o
+ * que está degradado — e o log (warn) e a métrica avisam quem opera.
+ */
+describe('GET /api/ready com o R2 configurado', () => {
+  const CHAVES_S3 = ['S3_ENDPOINT', 'S3_BUCKET', 'S3_ACCESS_KEY_ID', 'S3_SECRET_ACCESS_KEY'] as const
+  let r2: Server
+  let respostaDoR2 = 403
+
+  beforeAll(async () => {
+    r2 = createServer((_req, res) => {
+      res.statusCode = respostaDoR2
+      res.end()
+    })
+    await new Promise<void>((ok) => r2.listen(0, '127.0.0.1', () => ok()))
+    const endereco = r2.address()
+    process.env.S3_ENDPOINT = `http://127.0.0.1:${typeof endereco === 'object' && endereco ? endereco.port : 0}`
+    process.env.S3_BUCKET = 'midia'
+    process.env.S3_ACCESS_KEY_ID = 'chave'
+    process.env.S3_SECRET_ACCESS_KEY = 'segredo'
+  })
+
+  afterAll(async () => {
+    for (const k of CHAVES_S3) delete process.env[k]
+    await new Promise<void>((ok) => r2.close(() => ok()))
+  })
+
+  it('R2 respondendo: 200 e `armazenamento: ok`', async () => {
+    respostaDoR2 = 404 // HEAD numa chave que ninguém grava: o caso normal
+    const r = await s.get('/api/ready')
+    expect(r.status).toBe(200)
+    const corpo = (await r.json()) as Record<string, unknown>
+    expect(corpo.status).toBe('pronto')
+    expect(corpo.armazenamento).toBe('ok')
+  })
+
+  it('R2 recusando: continua 200, o corpo diz `degradado` e nomeia a dependência, e o log é warn', async () => {
+    respostaDoR2 = 403
+    const avisos = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const erros = vi.spyOn(console, 'error').mockImplementation(() => {})
+    try {
+      const r = await s.get('/api/ready')
+      expect(r.status).toBe(200)
+      const corpo = (await r.json()) as Record<string, unknown>
+      expect(corpo.status).toBe('degradado')
+      expect(corpo.armazenamento).toBe('indisponivel')
+      expect(corpo.db).toBe('up')
+      const eventoEm = (chamadas: unknown[][]) =>
+        chamadas.map((c) => String(c[0])).find((l) => l.includes('"ready_armazenamento_indisponivel"'))
+      // warn e não error: é degradação prevista, não queda — o Sentry não deve acordar ninguém por ela.
+      expect(eventoEm(avisos.mock.calls)).toBeTruthy()
+      expect(eventoEm(erros.mock.calls)).toBeUndefined()
+    } finally {
+      avisos.mockRestore()
+      erros.mockRestore()
+    }
   })
 })
 

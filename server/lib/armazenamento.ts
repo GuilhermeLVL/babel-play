@@ -190,8 +190,8 @@ export function armazenamentoS3(cfg: ConfigS3, buscar: typeof fetch = fetch): Ar
     },
     /* HEAD numa chave que ninguém grava: `404` é a resposta ESPERADA e prova que o bucket
        respondeu com credencial válida. `403` (assinatura ou permissão) e falha de rede lançam —
-       são exatamente os dois casos em que a instância não consegue servir mídia e precisa sair do
-       balanceador. */
+       são exatamente os dois casos em que a instância não consegue servir mídia. O ready NÃO sai
+       do ar por isso (ADR 0009): ele marca `armazenamento: 'indisponivel'` e segue 200. */
     async sondar() {
       const r = await chamar('HEAD', '__sonda-de-prontidao__')
       if (!r.ok && r.status !== 404) throw new Error(`s3 HEAD ${r.status}`)

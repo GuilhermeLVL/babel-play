@@ -124,16 +124,16 @@ sobre um banco migrado continua funcionando enquanto a migração nova só ACRES
 
 ### 0.4 Quando um fornecedor cai
 
-| cai                      | o que o usuário vê                                                                   | o que fazer                                                                                                                                |
-| ------------------------ | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Groq**                 | tradução/tutor ficam mais lentos por 30 s e passam para a reserva                    | nada — o disjuntor (§5) manda para a OpenRouter. Se a reserva também cair: `AI_ENABLED=0` e aviso na página de status                      |
-| **OpenRouter** (reserva) | nada, enquanto a Groq estiver de pé                                                  | conferir o crédito pré-pago (sem recarga automática, ele acaba)                                                                            |
-| **Asaas**                | checkout e cancelamento falham com mensagem; quem assina continua com acesso         | `CHECKOUT_ENABLED=0` se passar de 30 min; o Asaas reentrega os webhooks que não receberam 200 (idempotente)                                |
-| **Supabase**             | ninguém novo entra; quem está logado segue até o token vencer (1 h)                  | nada a fazer do nosso lado; página de status. O servidor valida o token pelo JWKS em cache                                                 |
-| **Fly.io** (região GRU)  | fora do ar                                                                           | status.flyio.net; se passar de 2 h, subir em outra região restaurando do Litestream (volume novo + `fly deploy`)                           |
-| **Cloudflare**           | fora do ar                                                                           | status do Cloudflare; em último caso, DNS direto para o Fly (tira o WAF: religue assim que voltar) e remova `ORIGEM_SEGREDO` enquanto isso |
-| **R2**                   | áudio novo não grava (`/api/ready` 503 → a máquina sai do roteamento); backup atrasa | página de status; o banco segue local no volume e o Litestream reenvia quando o R2 voltar                                                  |
-| **Resend** (e-mail)      | e-mail de confirmação, recuperação de senha e o convite ao responsável não chegam    | status do Resend; o Supabase reenvia pelo botão "reenviar"; se passar de horas, troque o SMTP do Supabase para outro provedor (SES)        |
+| cai                      | o que o usuário vê                                                                | o que fazer                                                                                                                                                                                                                                                 |
+| ------------------------ | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Groq**                 | tradução/tutor ficam mais lentos por 30 s e passam para a reserva                 | nada — o disjuntor (§5) manda para a OpenRouter. Se a reserva também cair: `AI_ENABLED=0` e aviso na página de status                                                                                                                                       |
+| **OpenRouter** (reserva) | nada, enquanto a Groq estiver de pé                                               | conferir o crédito pré-pago (sem recarga automática, ele acaba)                                                                                                                                                                                             |
+| **Asaas**                | checkout e cancelamento falham com mensagem; quem assina continua com acesso      | `CHECKOUT_ENABLED=0` se passar de 30 min; o Asaas reentrega os webhooks que não receberam 200 (idempotente)                                                                                                                                                 |
+| **Supabase**             | ninguém novo entra; quem está logado segue até o token vencer (1 h)               | nada a fazer do nosso lado; página de status. O servidor valida o token pelo JWKS em cache                                                                                                                                                                  |
+| **Fly.io** (região GRU)  | fora do ar                                                                        | status.flyio.net; se passar de 2 h, subir em outra região restaurando do Litestream (volume novo + `fly deploy`)                                                                                                                                            |
+| **Cloudflare**           | fora do ar                                                                        | status do Cloudflare; em último caso, DNS direto para o Fly (tira o WAF: religue assim que voltar) e remova `ORIGEM_SEGREDO` enquanto isso                                                                                                                  |
+| **R2**                   | áudio novo não grava (upload 503); o resto do app segue no ar; backup atrasa      | `/api/ready` segue 200 com `status: degradado` e `armazenamento: indisponivel` (ADR 0009); alerta pela métrica `ready_dependencia_degradada_total` / log warn `ready_armazenamento_indisponivel`; página de status; o Litestream reenvia quando o R2 voltar |
+| **Resend** (e-mail)      | e-mail de confirmação, recuperação de senha e o convite ao responsável não chegam | status do Resend; o Supabase reenvia pelo botão "reenviar"; se passar de horas, troque o SMTP do Supabase para outro provedor (SES)                                                                                                                         |
 
 ### 0.5 Custo fora do previsto — o orçamento de IA
 
@@ -160,13 +160,20 @@ estimativa erre, o provedor corta.
 
 ## 1. As duas perguntas de saúde, e por que são duas
 
-| rota              | responde                                                                                            | quem lê decide           |
-| ----------------- | --------------------------------------------------------------------------------------------------- | ------------------------ |
-| `GET /api/health` | o processo está vivo e o boot terminou                                                              | **reiniciar**            |
-| `GET /api/ready`  | ele consegue **atender** — migrações aplicadas, banco respondendo, armazenamento externo alcançável | **tirar do balanceador** |
+| rota              | responde                                                                         | quem lê decide           |
+| ----------------- | -------------------------------------------------------------------------------- | ------------------------ |
+| `GET /api/health` | o processo está vivo e o boot terminou                                           | **reiniciar**            |
+| `GET /api/ready`  | ele consegue **atender** — migrações aplicadas, banco respondendo, boot completo | **tirar do balanceador** |
 
 As duas são **públicas**: uma sonda de orquestrador não tem token. `ready` responde `200` quando
 pronto e `503` quando não.
+
+**O armazenamento externo (R2) não reprova o `ready`** (ADR 0009). Com uma máquina só, reprovar
+tirava o serviço inteiro do roteamento do Fly porque o áudio não gravava. Agora, com o R2 fora, o
+`ready` segue `200` com `status: "degradado"` e `armazenamento: "indisponivel"`, o upload de áudio
+responde `503` sozinho, e o aviso vem pelo log `warn` `ready_armazenamento_indisponivel` e pela
+métrica `ready_dependencia_degradada_total{dependencia="armazenamento"}` — é nela que se põe o
+alerta, não no monitor HTTP.
 
 O `HEALTHCHECK` do `Dockerfile` e do `docker-compose.yml` aponta para `/api/ready`, e o motivo é
 esse: o healthcheck do Docker não reinicia nada — ele marca `unhealthy`, e quem lê esse estado
@@ -382,7 +389,7 @@ req/s no banco já engordado. Comparar corridas sobre bancos de tamanhos diferen
 
 | sintoma                                                         | causa provável                                                                                                                | o que fazer                                                                           |
 | --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `/api/ready` em 503 e `/api/health` em 200                      | banco inalcançável, migração pendente, ou S3 recusando                                                                        | ler o corpo do `ready`, que nomeia o item                                             |
+| `/api/ready` em 503 e `/api/health` em 200                      | banco inalcançável, migração pendente ou boot incompleto (S3 recusando dá `200` + `degradado`, não 503)                       | ler o corpo do `ready`, que nomeia o item                                             |
 | `429` em massa de uma origem só                                 | balde de autenticação estourado (§7)                                                                                          | conferir `TRUST_PROXY`; a janela é de 15 min                                          |
 | gráficos de `/metrics` oscilando entre patamares                | scrape alternando de processo em cluster (§3)                                                                                 | ler `x-metrics-processo`                                                              |
 | tradução lenta e depois instantânea falhando                    | disjuntor abriu (§5)                                                                                                          | ver o log do provedor; a reserva assume                                               |

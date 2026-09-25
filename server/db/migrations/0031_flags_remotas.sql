@@ -22,7 +22,7 @@
 CREATE TABLE IF NOT EXISTS flags (
   chave TEXT PRIMARY KEY NOT NULL,
   descricao TEXT NOT NULL DEFAULT '',
-  habilitada INTEGER NOT NULL DEFAULT 0,
+  habilitada INTEGER NOT NULL DEFAULT false, -- `false` como o drizzle escreve (vira 0 no SQLite); teste schema × banco
   regras TEXT NOT NULL DEFAULT '{}',
   payload TEXT,
   atualizado_em INTEGER NOT NULL,

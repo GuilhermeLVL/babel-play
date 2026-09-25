@@ -9,6 +9,7 @@
     "GET /api/abertura",
     "GET /api/admin/billing/pendentes",
     "GET /api/admin/erros",
+    "GET /api/admin/flags",
     "GET /api/admin/ia",
     "GET /api/admin/resumo",
     "GET /api/admin/users",
@@ -26,6 +27,7 @@
     "GET /api/exercises/historico",
     "GET /api/exercises/recordes",
     "GET /api/exercises/results",
+    "GET /api/flags",
     "GET /api/health",
     "GET /api/images/search",
     "GET /api/me",
@@ -92,6 +94,7 @@
     "POST /api/vocab/bulk-add",
     "POST /api/vocab/para-jogo",
     "POST /api/vocab/relabel",
+    "PUT /api/admin/flags/:chave",
     "PUT /api/me/idade",
     "PUT /api/sessions/:id/utterances",
     "PUT /api/settings"

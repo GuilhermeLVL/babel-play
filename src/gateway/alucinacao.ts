@@ -13,7 +13,7 @@
  *     nem "[Música]" numa conversa. Saída inteira igual a isso sai sempre, qualquer duração.
  *  2. CORTESIAS CURTAS (`CORTESIAS`) — "Obrigado.", "Thank you.", "Tchau, tchau." são AS
  *     alucinações mais frequentes do Whisper... e também coisas que gente de verdade diz. Uma
- *     cortesia dita dura ~0,5–1,5 s; com o pré-pad de 0,3 s e os 0,45 s de redenção do VAD o trecho
+ *     cortesia dita dura ~0,5–1,5 s; com o pré-pad de 0,3 s e os 0,8 s de redenção do VAD o trecho
  *     fica abaixo de ~3 s. Quando o trecho tem MAIS de 3 s e o motor só "ouviu" um obrigado, o
  *     resto do áudio era música/ruído que o modelo completou com o clichê. Abaixo disso, a palavra
  *     é da pessoa e fica. (Antes, "Thank you." caía SEMPRE — e a pessoa que agradecia sumia.)

@@ -345,7 +345,14 @@ async function startCaptureFromStream(
       submitUserSpeechOnPause: true, // pause() entrega o áudio acumulado, usado no corte forçado
       positiveSpeechThreshold: 0.5,
       negativeSpeechThreshold: 0.35,
-      redemptionMs: 450, // fecha ~0,45s após o silêncio → limite de frase mais natural
+      /* 800 ms de silêncio antes de fechar a fala (era 450). MEDIDO na bancada de 2026-09 (FLEURS
+         pt, 100 falas, o mesmo Silero e FrameProcessor): com 450 ms uma frase lida de ~12,6 s saía
+         em 2,57 pedaços — cada respiração virava um enunciado; com 800 ms, 1,12. Duas coisas
+         melhoram juntas: o WER local cai de 20,5% para 18,0% (o modelo recebe a frase, não o
+         fragmento) e o STT de nuvem, que cobra no mínimo 10 s por requisição, passa de 2,06× para
+         1,08× o tempo real de fala — metade do custo. O preço é a legenda FINAL chegar ~0,35 s
+         depois; a parcial continua saindo durante a fala. 1200 ms não melhora mais nada. */
+      redemptionMs: 800,
       preSpeechPadMs: 300, // prepende 0,3s → não corta o INÍCIO das sentenças
       minSpeechMs: 400, // descarta ruídos < 0,4s (era 250: ruído curto virava frase inventada)
       onSpeechStart: () => {

@@ -5,6 +5,7 @@ import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, max, type SQL, sql
 import { MINIGAME_IDS } from '../../../src/core/minigames/revelavel'
 import type { UserId } from '../../lib/authContext'
 import { db } from '../db'
+import { emLotes, tamanhoDoLote } from '../lotes'
 import { exerciseResults, sessions, vocabCards } from '../schema'
 
 export type ExerciseResult = typeof exerciseResults.$inferSelect
@@ -449,16 +450,25 @@ export const exerciseResultsRepo = {
     cardIds: string[],
   ): Promise<Record<string, { acertos: number; tentativas: number; ultimoEm: number | null }>> {
     if (!cardIds.length) return {}
-    const rows = await db
-      .select({
-        cardId: exerciseResults.cardId,
-        acertos: sql<number>`sum(case when ${exerciseResults.correct} = 1 then 1 else 0 end)`,
-        tentativas: sql<number>`count(*)`,
-        ultimoEm: sql<number>`max(${exerciseResults.createdAt})`,
-      })
-      .from(exerciseResults)
-      .where(and(eq(exerciseResults.userId, userId), inArray(exerciseResults.cardId, cardIds)))
-      .groupBy(exerciseResults.cardId)
+    /* Em lotes de ids: `recalcularDificuldade` sem recorte passa TODOS os cartões vencidos do
+       usuário, e um baralho Anki projetado passa fácil do teto de 32.766 variáveis do SQLite.
+       Como o agrupamento é por cartão e cada cartão cai em um lote só, juntar os lotes é exato.
+       A variável fixa é o `user_id = ?`. */
+    const rows = []
+    for (const lote of emLotes([...new Set(cardIds)], tamanhoDoLote(1, 1))) {
+      rows.push(
+        ...(await db
+          .select({
+            cardId: exerciseResults.cardId,
+            acertos: sql<number>`sum(case when ${exerciseResults.correct} = 1 then 1 else 0 end)`,
+            tentativas: sql<number>`count(*)`,
+            ultimoEm: sql<number>`max(${exerciseResults.createdAt})`,
+          })
+          .from(exerciseResults)
+          .where(and(eq(exerciseResults.userId, userId), inArray(exerciseResults.cardId, lote)))
+          .groupBy(exerciseResults.cardId)),
+      )
+    }
 
     const out: Record<string, { acertos: number; tentativas: number; ultimoEm: number | null }> = {}
     for (const r of rows) {

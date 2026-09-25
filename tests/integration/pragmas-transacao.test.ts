@@ -14,7 +14,7 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let client: any
@@ -25,14 +25,15 @@ let pragmas: any
 
 beforeAll(async () => {
   h = await setupEphemeralDb()
-  ;({ client, db, aplicarPragmas: pragmas } = await h.load('../../server/db/db') as any)
+  ;({ client, db, aplicarPragmas: pragmas } = (await h.load('../../server/db/db')) as any)
   ;({ sessionsRepo: sessions } = await h.load('../../server/db/repositories/sessions'))
   ;({ utterancesRepo: utterances } = await h.load('../../server/db/repositories/utterances'))
 })
-afterAll(async () => { await h.cleanup() })
+afterAll(async () => {
+  await h.cleanup()
+})
 
-const pragma = async (nome: string) =>
-  Object.values((await client.execute(`PRAGMA ${nome}`)).rows[0] ?? {})[0]
+const pragma = async (nome: string) => Object.values((await client.execute(`PRAGMA ${nome}`)).rows[0] ?? {})[0]
 
 describe('P1-N4 — PRAGMAs sobrevivem a transações', () => {
   it('expõe uma função para reaplicar os PRAGMAs', () => {
@@ -44,7 +45,9 @@ describe('P1-N4 — PRAGMAs sobrevivem a transações', () => {
     expect(Number(await pragma('busy_timeout'))).toBeGreaterThanOrEqual(5000)
 
     const { sql } = await import('drizzle-orm')
-    await db.transaction(async (tx: any) => { await tx.run(sql`SELECT 1`) })
+    await db.transaction(async (tx: any) => {
+      await tx.run(sql`SELECT 1`)
+    })
 
     // Documenta o comportamento do libsql que motiva `emTransacao`. Se um dia isto passar a
     // preservar o pragma, o wrapper vira redundante — e este teste avisa.
@@ -52,15 +55,21 @@ describe('P1-N4 — PRAGMAs sobrevivem a transações', () => {
   })
 
   it('`emTransacao` preserva o busy_timeout depois da transação', async () => {
-    const { emTransacao } = await h.load('../../server/db/db') as any
+    const { emTransacao } = (await h.load('../../server/db/db')) as any
     const { sql } = await import('drizzle-orm')
     await pragmas()
 
-    await emTransacao(async (tx: any) => { await tx.run(sql`SELECT 1`) })
+    await emTransacao(async (tx: any) => {
+      await tx.run(sql`SELECT 1`)
+    })
     expect(Number(await pragma('busy_timeout'))).toBeGreaterThanOrEqual(5000)
 
     // E também quando a transação FALHA — o `finally` tem de reaplicar.
-    await expect(emTransacao(async () => { throw new Error('boom') })).rejects.toThrow('boom')
+    await expect(
+      emTransacao(async () => {
+        throw new Error('boom')
+      }),
+    ).rejects.toThrow('boom')
     expect(Number(await pragma('busy_timeout'))).toBeGreaterThanOrEqual(5000)
   })
 })
@@ -72,22 +81,30 @@ describe('P1-N3 — escrita em duas etapas é atômica', () => {
    * instrução com `stmtInsertMany` e a executa dentro do `db.batch`.
    */
   async function comInsertDeFalasQuebrado<T>(fn: () => Promise<T>) {
-    const { utterances: tabela } = await h.load('../../server/db/schema') as any
-    const spy = vi.spyOn(utterances, 'stmtInsertMany').mockImplementation(
-      () => db.insert(tabela).values({ id: 'quebrado', userId: 'x', sessionId: 'y' } as any),
-    )
-    try { return await fn() } finally { spy.mockRestore() }
+    const { utterances: tabela } = (await h.load('../../server/db/schema')) as any
+    const spy = vi
+      .spyOn(utterances, 'stmtInsertMany')
+      .mockImplementation(() => [db.insert(tabela).values({ id: 'quebrado', userId: 'x', sessionId: 'y' } as any)])
+    try {
+      return await fn()
+    } finally {
+      spy.mockRestore()
+    }
   }
 
   it('createWithUtterances: falha nas falas não deixa sessão órfã', async () => {
     const u = asUserId('tx-orfa')
-    const antes = (await client.execute({ sql: 'SELECT COUNT(*) n FROM sessions WHERE user_id = ?', args: [u] })).rows[0].n
+    const antes = (await client.execute({ sql: 'SELECT COUNT(*) n FROM sessions WHERE user_id = ?', args: [u] }))
+      .rows[0].n
 
     await comInsertDeFalasQuebrado(async () => {
-      await expect(sessions.createWithUtterances(u, { title: 'vai falhar', kind: 'audio' }, [{ idx: 0, sourceText: 'x' }])).rejects.toThrow()
+      await expect(
+        sessions.createWithUtterances(u, { title: 'vai falhar', kind: 'audio' }, [{ idx: 0, sourceText: 'x' }]),
+      ).rejects.toThrow()
     })
 
-    const depois = (await client.execute({ sql: 'SELECT COUNT(*) n FROM sessions WHERE user_id = ?', args: [u] })).rows[0].n
+    const depois = (await client.execute({ sql: 'SELECT COUNT(*) n FROM sessions WHERE user_id = ?', args: [u] }))
+      .rows[0].n
     expect(depois).toBe(antes) // a sessão foi desfeita junto com as falas
   })
 

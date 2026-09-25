@@ -10,6 +10,7 @@
  */
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
+import { esquecerAdmissao } from '../../server/ai/admissao'
 import { esquecerDisjuntores } from '../../server/ai/disjuntor'
 import { asUserId } from '../../server/lib/authContext'
 import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
@@ -67,6 +68,9 @@ afterEach(() => {
   for (const e of ENVS) delete process.env[e]
   process.env.AUTH_REQUIRED = '1'
   esquecerDisjuntores()
+  /* A admissão de IA (ADR 0007) é estado de processo como o disjuntor: um 429 encenado fecha o
+     balde do modelo, e os casos somados passariam do limite por minuto. Zerada entre casos. */
+  esquecerAdmissao()
 })
 
 function primarioGroq() {

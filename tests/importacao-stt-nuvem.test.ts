@@ -99,6 +99,33 @@ describe('offlineTranscribe com motor de nuvem', () => {
     expect(local.preload).toHaveBeenCalledTimes(1)
   })
 
+  it('429 nuvem_ocupada (ADR 0007): o local assume SÓ até o Retry-After, e a nuvem volta', async () => {
+    let agora = 1_000_000
+    const relogio = vi.spyOn(Date, 'now').mockImplementation(() => agora)
+    try {
+      let chamada = 0
+      const nuvem = {
+        transcribePcm: vi.fn(async () => {
+          if (++chamada === 1) {
+            throw Object.assign(erroHttp(429), { code: 'nuvem_ocupada', retryAfterMs: 2_000 })
+          }
+          return { text: 'nuvem' }
+        }),
+      }
+      // Cada trecho no local "leva" 1,5 s: o 1º e o 2º caem dentro da espera; o 3º, depois dela.
+      local.transcribePcm.mockImplementation(async () => {
+        agora += 1_500
+        return { text: 'local' }
+      })
+      const segs = await offlineTranscribe(new Blob([new Uint8Array(4)]), { languageHint: 'pt', nuvem })
+      expect(segs.map((s) => s.engine)).toEqual(['whisper-local', 'whisper-local', 'groq-whisper'])
+      expect(nuvem.transcribePcm).toHaveBeenCalledTimes(2)
+    } finally {
+      relogio.mockRestore()
+      local.transcribePcm.mockImplementation(async () => ({ text: 'local' }))
+    }
+  })
+
   it('falha passageira (rede, 500): só aquele trecho vai ao local; a nuvem segue', async () => {
     let chamada = 0
     const nuvem = {

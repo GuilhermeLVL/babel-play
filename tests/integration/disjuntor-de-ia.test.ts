@@ -17,6 +17,7 @@
  */
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { esquecerAdmissao } from '../../server/ai/admissao'
 import { esvaziarCacheDeTraducao } from '../../server/ai/cacheDeTraducao'
 import {
   deveRetentar,
@@ -91,6 +92,9 @@ afterEach(() => {
   /* O disjuntor é estado de PROCESSO, de propósito (ver o módulo). Num arquivo de teste isso vira
      acoplamento entre casos: cinco falhas de um caso abririam o disjuntor do seguinte. */
   esquecerDisjuntores()
+  /* A admissão de IA (ADR 0007) é estado de processo como o disjuntor: um 429 encenado fecha o
+     balde do modelo, e os casos somados passariam do limite por minuto. Zerada entre casos. */
+  esquecerAdmissao()
 })
 
 function configurarCascata() {

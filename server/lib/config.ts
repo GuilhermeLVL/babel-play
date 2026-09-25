@@ -300,6 +300,60 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     paraQue: 'só diagnóstico: identifica a instância que registrou uma falha de boot',
   },
   {
+    nome: 'IA_ADMISSAO_LLM_RPD',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'admissão de IA (ADR 0007): teto de pedidos POR DIA a cada modelo de LLM da conta do app (server/ai/admissao.ts). Padrão 1000, o da camada atual da Groq para gpt-oss-120b. 0 = sem teto',
+  },
+  {
+    nome: 'IA_ADMISSAO_LLM_RPM',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'admissão de IA: pedidos POR MINUTO a cada modelo de LLM (token bucket). Padrão 30 (Groq). 0 = sem teto',
+  },
+  {
+    nome: 'IA_ADMISSAO_LLM_TPD',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'admissão de IA: tokens POR DIA a cada modelo de LLM (estimativa na entrada, acerto pelo uso real). Padrão 200000 (Groq). 0 = sem teto',
+  },
+  {
+    nome: 'IA_ADMISSAO_RESERVA_PRO',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'admissão de IA: fração do saldo de cada modelo reservada SÓ ao Pro (0 a 0,9). Padrão 0,2 — o Essencial usa até 80%; convidado, até 50% (ou menos, se a reserva passar disso)',
+  },
+  {
+    nome: 'IA_ADMISSAO_STT_RPD',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'admissão de IA: pedidos de STT POR DIA a cada modelo. Padrão 2000 (Groq, whisper-large-v3-turbo). 0 = sem teto',
+  },
+  {
+    nome: 'IA_ADMISSAO_STT_RPM',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'admissão de IA: pedidos de STT POR MINUTO a cada modelo (token bucket). Padrão 20 (Groq). 0 = sem teto',
+  },
+  {
+    nome: 'IA_EM_VOO_LLM',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'chamadas de tradução/tutor de nuvem EM VOO por usuário ao mesmo tempo; a seguinte recebe 429 nuvem_ocupada. Padrão 2',
+  },
+  {
+    nome: 'IA_EM_VOO_STT',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'chamadas de STT de nuvem EM VOO por usuário ao mesmo tempo; a seguinte recebe 429 nuvem_ocupada. Padrão 1',
+  },
+  {
     nome: 'LANGFUSE_ARQUIVO',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
@@ -778,6 +832,65 @@ export function sttDeNuvemConfigurado(env: NodeJS.ProcessEnv = process.env): boo
   // `/api/ai/stt/available` responder "não configurado" com a chave presente — e a UI esconderia
   // uma capacidade que existe.
   return Boolean(env.LLM_API_KEY || env.GROQ_API_KEY || env.STT_API_KEY)
+}
+
+/* ─────────────── admissão de IA ao vivo (ADR 0007) ─────────────── */
+
+/** Limites de UM modelo na conta do app. `0` numa dimensão = sem teto nela. */
+export interface LimitesDeModelo {
+  /** pedidos por minuto — a capacidade do token bucket */
+  rpm: number
+  /** pedidos por dia (UTC) */
+  rpd: number
+  /** tokens por dia (UTC); o STT não conta tokens e fica em 0 */
+  tpd: number
+}
+
+export interface ConfigDeAdmissao {
+  stt: LimitesDeModelo
+  llm: LimitesDeModelo
+  /** fração do saldo que só o Pro alcança */
+  reservaPro: number
+  emVooStt: number
+  emVooLlm: number
+}
+
+/** Inteiro >= 0 da variável; ausente ou inválido cai no padrão (erro de digitação não abre a porta). */
+function inteiroNaoNegativo(bruto: string | undefined, padrao: number): number {
+  const t = bruto?.trim()
+  if (!t) return padrao
+  const n = Number(t)
+  return Number.isInteger(n) && n >= 0 ? n : padrao
+}
+
+/**
+ * Os limites da admissão. Os PADRÕES são os da camada atual da Groq, medidos na página oficial de
+ * limites em 25/09/2026 (console.groq.com/docs/rate-limits): whisper-large-v3-turbo 20 RPM e 2K
+ * RPD; gpt-oss-120b 30 RPM, 1K RPD e 200K TPD. O limite é da ORGANIZAÇÃO no provedor, e não de
+ * cada usuário do app — é por isso que o bucket é do processo inteiro.
+ */
+export function configDeAdmissao(env: NodeJS.ProcessEnv = process.env): ConfigDeAdmissao {
+  const reservaBruta = Number(env.IA_ADMISSAO_RESERVA_PRO?.trim().replace(',', '.'))
+  const reservaPro =
+    env.IA_ADMISSAO_RESERVA_PRO?.trim() && Number.isFinite(reservaBruta) && reservaBruta >= 0 && reservaBruta <= 0.9
+      ? reservaBruta
+      : 0.2
+  return {
+    stt: {
+      rpm: inteiroNaoNegativo(env.IA_ADMISSAO_STT_RPM, 20),
+      rpd: inteiroNaoNegativo(env.IA_ADMISSAO_STT_RPD, 2000),
+      tpd: 0,
+    },
+    llm: {
+      rpm: inteiroNaoNegativo(env.IA_ADMISSAO_LLM_RPM, 30),
+      rpd: inteiroNaoNegativo(env.IA_ADMISSAO_LLM_RPD, 1000),
+      tpd: inteiroNaoNegativo(env.IA_ADMISSAO_LLM_TPD, 200_000),
+    },
+    reservaPro,
+    /* Piso 1: `0` em voo recusaria toda chamada, e quem quer desligar a nuvem tem `AI_ENABLED=0`. */
+    emVooStt: Math.max(1, inteiroNaoNegativo(env.IA_EM_VOO_STT, 1)),
+    emVooLlm: Math.max(1, inteiroNaoNegativo(env.IA_EM_VOO_LLM, 2)),
+  }
 }
 
 /**

@@ -1,4 +1,4 @@
-import { beforeEach,describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { validarTraducao } from '../src/lib/validaTraducao'
 
@@ -7,13 +7,16 @@ vi.mock('../src/data/api', () => ({ apiFetch: vi.fn() }))
 describe('tradução: cadeia confiável', () => {
   beforeEach(() => vi.resetModules())
 
-  it('server-llm-mt se desliga para a sessão em 503 (Pages sem API_ORIGIN), não só em 501', async () => {
+  /* MUDOU COM O ADR 0007 (25/09/2026): o 503 desligava o adaptador pela SESSÃO; agora PAUSA pelo
+     `Retry-After` (ou 60 s) e religa sozinho. O que este caso protegia continua valendo — não bater
+     no servidor a cada frase durante a recusa —, sem o custo de perder a nuvem até recarregar. */
+  it('server-llm-mt PAUSA em 503 (Pages sem API_ORIGIN) — não bate no servidor a cada frase', async () => {
     const { apiFetch } = await import('../src/data/api')
     ;(apiFetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(new Response('{}', { status: 503 }))
     const { ServerLlmMt } = await import('../src/gateway/adapters/serverLlmMt')
-    const a = new ServerLlmMt() as unknown as { translate: (t: string, s: string, d: string) => Promise<unknown>; unavailable?: boolean }
+    const a = new ServerLlmMt()
     await expect(a.translate('hello', 'en', 'pt')).rejects.toThrow(/indisponível/)
-    expect(a.unavailable).toBe(true)
+    expect(a.supports('en', 'pt')).toBe(false)
   })
 
   it('rejeita "tradução" idêntica ao original quando o idioma-alvo é outro', () => {
@@ -33,8 +36,20 @@ describe('gateway: a cascata de MT chama o motor de verdade', () => {
     const { AiGateway } = await import('../src/core/gateway/gateway')
     const { BreakerRegistry } = await import('../src/core/robustness')
     const { BudgetLedger } = await import('../src/core/gateway/budget')
-    const profile = { id: 'p', name: 'p', builtin: true, economyMode: true, budget: { maxCloudRequests: 0, maxTokens: 0 }, bindings: { mt: [{ adapterId: 'x' }] } } as never
-    const core = new AiGateway(profile, new BreakerRegistry(), new BudgetLedger({ maxCloudRequests: 0, maxTokens: 0 }), () => true)
+    const profile = {
+      id: 'p',
+      name: 'p',
+      builtin: true,
+      economyMode: true,
+      budget: { maxCloudRequests: 0, maxTokens: 0 },
+      bindings: { mt: [{ adapterId: 'x' }] },
+    } as never
+    const core = new AiGateway(
+      profile,
+      new BreakerRegistry(),
+      new BudgetLedger({ maxCloudRequests: 0, maxTokens: 0 }),
+      () => true,
+    )
     await expect(core.run('mt', async () => 'traduzido')).resolves.toBe('traduzido')
   })
 })
@@ -42,13 +57,14 @@ describe('gateway: a cascata de MT chama o motor de verdade', () => {
 describe('tradução comunicativa da fala', () => {
   beforeEach(() => vi.resetModules())
 
-  it('server-llm-mt se desliga na sessão também em 402 (sem plano), não só em 501/5xx', async () => {
+  /* ADR 0007: 402 também PAUSA (antes desligava pela sessão) — o usuário sem plano continua sem ir
+     ao servidor a cada frase, e quem acabou de assinar volta a ter a nuvem sem recarregar a página. */
+  it('server-llm-mt PAUSA também em 402 (sem plano), não só em 501/5xx', async () => {
     const { apiFetch } = await import('../src/data/api')
     ;(apiFetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(new Response('{}', { status: 402 }))
     const { ServerLlmMt } = await import('../src/gateway/adapters/serverLlmMt')
-    const a = new ServerLlmMt() as unknown as { translate: (t: string, s: string, d: string) => Promise<unknown>; unavailable?: boolean; supports: (s: string, t: string) => boolean }
+    const a = new ServerLlmMt()
     await expect(a.translate('valeu', 'pt', 'en')).rejects.toThrow(/indisponível/)
-    expect(a.unavailable).toBe(true)
     expect(a.supports('pt', 'en')).toBe(false)
   })
 

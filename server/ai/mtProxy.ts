@@ -13,8 +13,9 @@ import { log } from '../lib/logger'
 import { custoDeLlm, portaoDaNuvem, registrarGastoDeIa, responderPortaoFechado } from '../lib/orcamentoDeIa'
 import { responderErro } from '../lib/respostaDeErro'
 import { estimarTokens } from '../lib/usageQuota'
+import { planoDeAdmissao, responderNuvemOcupada } from './admissao'
 import { cacheDeTraducao, chaveDeTraducao, MAX_CARACTERES_NO_CACHE } from './cacheDeTraducao'
-import { percorrerCascata } from './cascata'
+import { type AdmissaoDaCascata, admitirCascata, encerrarAdmissao, percorrerCascata } from './cascata'
 import { FUNCOES_DE_IA, maxTokensDaTraducao } from './funcoesDeIa'
 import { type MensagemDeChat, tamanhoDoPrompt } from './llmClient'
 import { cascataDeNuvem } from './provedores'
@@ -178,13 +179,55 @@ async function traduzir(req: Request, res: Response, rastro: RastroDeIa): Promis
      reserva mais o teto de um parágrafo. A folga para o raciocínio "low" está lá explicada. */
   const maxTokens = maxTokensDaTraducao(text.length)
 
+  const estimativa = estimarTokens(tamanhoDoPrompt(messages), maxTokens)
+
+  /* ADMISSÃO (ADR 0007) ANTES da cota do usuário: sem saldo no balde do modelo (ou com a 2ª
+     tradução dele já em voo), 429 `nuvem_ocupada` com `Retry-After` — e o cliente traduz no local. */
+  const admitida = admitirCascata(provedores, {
+    userId: req.userId,
+    plano: planoDeAdmissao(planoDoUsuario.plan),
+    tokens: estimativa,
+  })
+  if (admitida.ok === false) {
+    responderNuvemOcupada(res, admitida.recusa)
+    return
+  }
+  try {
+    await traduzirAdmitido(req, res, rastro, {
+      provedores,
+      messages,
+      maxTokens,
+      estimativa,
+      falada,
+      cacheavel,
+      chave,
+      admissao: admitida.admissao,
+    })
+  } finally {
+    encerrarAdmissao(admitida.admissao)
+  }
+}
+
+/** A parte que gasta: reserva de cota, cascata e acerto. Só roda com a admissão concedida. */
+async function traduzirAdmitido(
+  req: Request,
+  res: Response,
+  rastro: RastroDeIa,
+  p: {
+    provedores: ReturnType<typeof cascataDeNuvem>
+    messages: MensagemDeChat[]
+    maxTokens: number
+    estimativa: number
+    falada: boolean | undefined
+    cacheavel: boolean
+    chave: string
+    admissao: AdmissaoDaCascata
+  },
+): Promise<void> {
+  const { provedores, messages, maxTokens, falada, cacheavel, chave } = p
   // RESERVA chamada + tokens ANTES do provedor (P0-1: conferir antes e contabilizar depois deixava
   // N requisições simultâneas passarem pelo mesmo teto). `null` = já respondeu 402/503.
-  const reserva: ReservaDeLlm | null = await abrirReservaDeLlm(
-    req.userId,
-    estimarTokens(tamanhoDoPrompt(messages), maxTokens),
-    res,
-  )
+  const reserva: ReservaDeLlm | null = await abrirReservaDeLlm(req.userId, p.estimativa, res)
   if (!reserva) return
 
   const t0 = Date.now()
@@ -194,7 +237,14 @@ async function traduzir(req: Request, res: Response, rastro: RastroDeIa): Promis
     const { entregue, ultimaFalha } = await percorrerCascata(
       provedores,
       { messages, temperature: falada ? 0.2 : TRADUCAO.temperatura, maxTokens, timeoutMs: 12_000 },
-      { evento: 'mt', route: '/api/ai/mt', requestId: req.requestId, funcao: 'traducao', rastro },
+      {
+        evento: 'mt',
+        route: '/api/ai/mt',
+        requestId: req.requestId,
+        funcao: 'traducao',
+        rastro,
+        admissao: p.admissao,
+      },
     )
 
     if (!entregue) {

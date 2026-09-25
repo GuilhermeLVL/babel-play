@@ -19,7 +19,8 @@
  */
 import { type Request, type Response, Router } from 'express'
 
-import { percorrerCascata } from '../ai/cascata'
+import { planoDeAdmissao, responderNuvemOcupada } from '../ai/admissao'
+import { type AdmissaoDaCascata, admitirCascata, encerrarAdmissao, percorrerCascata } from '../ai/cascata'
 import { chamarChat, type MensagemDeChat, tamanhoDoPrompt } from '../ai/llmClient'
 import { prepareLlmRequest } from '../ai/llmRequest'
 import { cascataDeNuvem, llmLocal } from '../ai/provedores'
@@ -81,6 +82,8 @@ export async function tutorChat(req: Request, res: Response): Promise<void> {
 async function conversar(req: Request, res: Response, rastro: RastroDeIa): Promise<void> {
   // Reserva de cota (chamada + tokens): estornada em todo caminho que não entrega resposta da nuvem.
   let reserva: ReservaDeLlm | null = null
+  /* Admissão da cascata (ADR 0007): vaga em voo do usuário + balde do modelo. Fechada no `finally`. */
+  let admissao: AdmissaoDaCascata | null = null
   try {
     /* PÚBLICO MENOR (ECA Digital, Fase 4): menor — ou quem ainda não declarou a idade — recebe a
        instrução de segurança no fim do `system`. No self-host `ehMenor` é sempre falso. A TRADUÇÃO
@@ -104,12 +107,20 @@ async function conversar(req: Request, res: Response, rastro: RastroDeIa): Promi
         responderPortaoFechado(res, portao)
         return
       }
-      if (provedores.length > 0 && portao.ok) {
-        reserva = await abrirReservaDeLlm(
-          req.userId,
-          estimarTokens(tamanhoDoPrompt(prep.messages), prep.maxTokens),
-          res,
-        )
+      const estimativa = estimarTokens(tamanhoDoPrompt(prep.messages), prep.maxTokens)
+      /* ADMISSÃO antes da cota: sem saldo, o hospedado responde 429 `nuvem_ocupada` (o cliente
+         tenta de novo depois do `Retry-After`); o self-host cai no Ollama, como com o portão fechado. */
+      const admitida =
+        provedores.length > 0 && portao.ok
+          ? admitirCascata(provedores, { userId: req.userId, plano: planoDeAdmissao(plano.plan), tokens: estimativa })
+          : null
+      if (admitida && admitida.ok === false && !selfHost) {
+        responderNuvemOcupada(res, admitida.recusa)
+        return
+      }
+      if (admitida?.ok === true) admissao = admitida.admissao
+      if (admissao) {
+        reserva = await abrirReservaDeLlm(req.userId, estimativa, res)
         if (!reserva) return // já respondeu: 402 de cota ou 503 do contador
         const { entregue, ultimaFalha } = await percorrerCascata(
           provedores,
@@ -119,7 +130,14 @@ async function conversar(req: Request, res: Response, rastro: RastroDeIa): Promi
             maxTokens: prep.maxTokens,
             timeoutMs: TIMEOUT_NUVEM_MS,
           },
-          { evento: 'tutor', route: '/api/tutor/chat', requestId: req.requestId, funcao: prep.funcao, rastro },
+          {
+            evento: 'tutor',
+            route: '/api/tutor/chat',
+            requestId: req.requestId,
+            funcao: prep.funcao,
+            rastro,
+            admissao,
+          },
         )
         if (entregue) {
           await reserva.consumir(entregue.tokensEntrada + entregue.tokensSaida)
@@ -155,6 +173,7 @@ async function conversar(req: Request, res: Response, rastro: RastroDeIa): Promi
     log('error', { event: 'tutor_erro', error: erroDeRota(error, { event: 'tutor_erro' }), requestId: req.requestId })
     if (!res.headersSent) res.status(502).json({ error: 'tutor indisponível', code: 'provedor_indisponivel' })
   } finally {
+    encerrarAdmissao(admissao)
     await reserva?.estornar()
   }
 }

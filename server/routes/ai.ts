@@ -7,7 +7,7 @@ import { raw, Router } from 'express'
 
 import { mtTranslateProxy } from '../ai/mtProxy'
 import { llmChatProxy, providerTest } from '../ai/proxy'
-import { sttTranscribeProxy } from '../ai/sttProxy'
+import { portaDoStt, sttTranscribeProxy } from '../ai/sttProxy'
 import { credentialsRepo } from '../db/repositories/credentials'
 // F14-02: a leitura de env sai do handler e passa pelo inventario declarado em lib/config.
 import { sttDeNuvemConfigurado } from '../lib/config'
@@ -20,8 +20,15 @@ export const aiRouter = Router()
 
 aiRouter.post('/llm/chat/completions', llmChatProxy)
 aiRouter.post('/providers/test', providerTest)
-// STT de nuvem (áudio do sistema → Whisper). Corpo = bytes WAV crus (raw), não JSON.
-aiRouter.post('/stt', raw({ type: ['audio/wav', 'application/octet-stream'], limit: '25mb' }), sttTranscribeProxy)
+/* STT de nuvem (áudio do sistema → Whisper). Corpo = bytes WAV crus (raw), não JSON.
+   A PORTA vem ANTES do `raw()` (ADR 0007; fase 2 §2.3): plano (402), portão (503), configuração
+   (501) e admissão (429 `nuvem_ocupada`) respondem sem ler um byte do corpo de até 25 MB. */
+aiRouter.post(
+  '/stt',
+  portaDoStt,
+  raw({ type: ['audio/wav', 'application/octet-stream'], limit: '25mb' }),
+  sttTranscribeProxy,
+)
 // Tradução via LLM (Groq) — 501 sem chave; sustenta a cadeia de MT e o modo multi-idioma.
 aiRouter.post('/mt', mtTranslateProxy)
 /*
@@ -70,11 +77,9 @@ aiRouter.post('/credentials', async (req, res) => {
   try {
     res.json(await credentialsRepo.create(req.userId, payload))
   } catch (err) {
-    res
-      .status(400)
-      .json({
-        error: erroDeRota(err, { status: 400, event: 'ai_route_error', route: req.path, requestId: req.requestId }),
-      })
+    res.status(400).json({
+      error: erroDeRota(err, { status: 400, event: 'ai_route_error', route: req.path, requestId: req.requestId }),
+    })
   }
 })
 

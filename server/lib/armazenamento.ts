@@ -124,7 +124,8 @@ async function sha256DoArquivo(caminho: string): Promise<string> {
  * Assinatura SigV4. Exportada para o teste conseguir conferi-la sem bucket real.
  *
  * `hashDoCorpo`, quando dado, substitui o hash de `corpo`: é como o PUT em stream assina um corpo
- * que não está na memória (o hash foi calculado lendo o arquivo). A assinatura resultante é a MESMA
+ * que não está na memória (o hash foi calculado lendo o arquivo — upload de áudio e snapshot diário).
+ * Presente, `corpo` é ignorado. A assinatura resultante é a MESMA
  * que sairia do corpo inteiro — o teste confere isso.
  */
 export function assinarSigV4(opts: {
@@ -135,11 +136,6 @@ export function assinarSigV4(opts: {
   contentType?: string
   cfg: ConfigS3
   agora: Date
-  /**
-   * O sha256 do corpo JÁ CALCULADO — para quem envia um ARQUIVO em streaming e não tem o corpo em
-   * memória (o snapshot diário). Presente, `corpo` é ignorado.
-   */
-  hashDoCorpo?: string
 }): Record<string, string> {
   const { metodo, url, corpo = '', contentType, cfg, agora } = opts
   const carimbo = agora

@@ -80,6 +80,12 @@ beforeEach(() => {
   // IP público literal: `assertPublicUrl` resolve DNS de verdade, e api.groq.com não é assunto aqui.
   process.env.GROQ_BASE_URL = 'http://203.0.113.20/v1'
   process.env.STT_MODEL = ''
+  /* Sem RESERVA: com OPENROUTER_API_KEY no .env de quem roda, a cascata ganha uma 2ª perna com balde
+     próprio, e o caso de prioridade passaria pela reserva em vez de receber 429. */
+  delete process.env.OPENROUTER_API_KEY
+  delete process.env.LLM_RESERVA_BASE_URL
+  delete process.env.LLM_RESERVA_API_KEY
+  delete process.env.LLM_RESERVA_MODEL
   chamadasAoProvedor = 0
   resposta = () => respostaJson({ text: 'olá mundo', language: 'portuguese', duration: 2 })
   vi.stubGlobal('fetch', async (u: unknown) => {

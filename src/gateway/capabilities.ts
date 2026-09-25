@@ -129,7 +129,13 @@ export interface SttProvider extends AdapterMeta {
   transcribePcm?(
     pcm: Float32Array,
     sampleRate: number,
-    opts?: { languageHint?: string; signal?: AbortSignal; onUpdate?: (text: string) => void },
+    opts?: {
+      languageHint?: string;
+      signal?: AbortSignal;
+      onUpdate?: (text: string) => void;
+      /** Contexto (última final da mesma fonte, mesmo idioma). Só a nuvem usa; ver `promptDeStt.ts`. */
+      prompt?: string;
+    },
   ): Promise<SttFinal>;
   /**
    * `true` enquanto há transcrição em andamento (worker ocupado). Usado para o

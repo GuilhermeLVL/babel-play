@@ -50,6 +50,7 @@ import {
   type SystemAudioProbe,
 } from '../../gateway/capture/systemAudio';
 import { expectedModelIds } from '../../gateway/modelCache';
+import { ContextoDoStt } from '../../gateway/promptDeStt';
 import {
   getSttQuality,
   MODEL_DOWNLOAD_MB,
@@ -908,6 +909,8 @@ export default function LiveCapture({
   const seqToSegmentRef = useRef<Map<number, string>>(new Map());
   // Último texto parcial traduzido por seq — evita re-traduzir o mesmo parcial repetido.
   const lastPartialTextRef = useRef<Map<number, string>>(new Map());
+  // Última final de cada fonte: o `prompt` de contexto do Whisper de nuvem (ver `promptDeStt.ts`).
+  const contextoDoSttRef = useRef(new ContextoDoStt());
   // O modelo Whisper terminou de carregar? (false enquanto baixa). Enquanto false, os trechos
   // do sistema são DESCARTADOS — só a barra de progresso aparece; a transcrição ao vivo começa
   // quando o modelo fica pronto (evita balões vazios e uma fila gigante de áudio já velho).
@@ -994,6 +997,7 @@ export default function LiveCapture({
     setSpeechSegments,
     seqToSegmentRef,
     lastPartialTextRef,
+    contextoDoSttRef,
     pendingUtterancesRef,
     suppressedSeqsRef,
     modelReadyRef,
@@ -1319,6 +1323,7 @@ export default function LiveCapture({
     seqToSegmentRef,
     lastPartialTextRef,
     ordemMtRef,
+    contextoDoSttRef,
     clustererRef,
     dominantLangRef,
     perfilIdiomaRef,

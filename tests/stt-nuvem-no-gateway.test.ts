@@ -32,6 +32,16 @@ beforeEach(() => {
   vi.resetModules()
 })
 
+describe('transcribePcm', () => {
+  it('repassa o prompt de contexto ao adaptador de nuvem', async () => {
+    const { gw, api } = await montar([{ adapterId: 'groq-whisper' }], true)
+    api.mockResolvedValue(new Response(JSON.stringify({ text: 'segunda parte' }), { status: 200 }))
+    const r = await gw.stt.transcribePcm(new Float32Array(1600), 16000, { languageHint: 'pt', prompt: 'primeira parte' })
+    expect(r.engine).toBe('groq-whisper')
+    expect((api.mock.calls[0][1].headers as Record<string, string>)['x-stt-prompt']).toBe('primeira%20parte')
+  })
+})
+
 describe('finalNaNuvem', () => {
   it('rota nuvem-primeiro + groq no perfil + consentimento → sim', async () => {
     const { gw } = await montar([{ adapterId: 'groq-whisper' }, { adapterId: 'whisper-local' }], true)

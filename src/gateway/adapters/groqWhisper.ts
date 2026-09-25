@@ -6,6 +6,7 @@
 import { apiFetch } from '../../data/api'
 import { encodeWav } from '../audio/wav'
 import type { SttFinal, SttProvider } from '../capabilities'
+import { cortarPrompt } from '../promptDeStt'
 
 export interface GroqWhisperConfig {
   model: string
@@ -39,7 +40,7 @@ export class GroqWhisperStt implements SttProvider {
   async transcribePcm(
     pcm: Float32Array,
     sampleRate: number,
-    opts?: { languageHint?: string; signal?: AbortSignal }
+    opts?: { languageHint?: string; signal?: AbortSignal; prompt?: string }
   ): Promise<SttFinal> {
     const wav = encodeWav(pcm, sampleRate)
 
@@ -52,6 +53,14 @@ export class GroqWhisperStt implements SttProvider {
     }
     if (opts?.languageHint) {
       headers['x-language'] = opts.languageHint
+    }
+    /* CONTEXTO: a última fala final da mesma fonte, no mesmo idioma (quem escolhe é o chamador; ver
+       `promptDeStt.ts`). Cabeçalho e não campo do corpo porque o corpo é o WAV cru. Codificado
+       porque cabeçalho HTTP não carrega acento nem quebra de linha; cortado aqui de novo porque o
+       teto de 224 é contrato com o servidor e não pode depender de todo chamador lembrar dele. */
+    const prompt = opts?.prompt ? cortarPrompt(opts.prompt) : ''
+    if (prompt) {
+      headers['x-stt-prompt'] = encodeURIComponent(prompt)
     }
 
     // Pelo funil (`apiFetch`): injeta o Bearer no modo público — este `fetch` cru não injetava, e

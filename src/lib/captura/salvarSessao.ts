@@ -22,6 +22,7 @@ import {
 import type { SttSession } from '../../gateway/capabilities';
 import { capMetrics } from '../../gateway/capture/captureMetrics';
 import type { AudioCapture } from '../../gateway/capture/systemAudio';
+import type { ContextoDoStt } from '../../gateway/promptDeStt';
 import { Recording } from '../../types';
 import { DominantLangTracker } from '../convoLang';
 import { burstFromElement } from '../effects';
@@ -83,6 +84,8 @@ export interface DepsDeSalvarSessao {
   seqToSegmentRef: RefObject<Map<number, string>>;
   lastPartialTextRef: RefObject<Map<number, string>>;
   ordemMtRef: RefObject<OrdemDasTraducoes>;
+  /** Contexto do STT de nuvem (última final por fonte). Zerado no START: sessão nova, conversa nova. */
+  contextoDoSttRef?: RefObject<ContextoDoStt>;
   /* --- memória de vozes e de idioma (zerada só em sessão NOVA) --- */
   clustererRef: RefObject<SpeakerClusterer>;
   dominantLangRef: RefObject<DominantLangTracker>;
@@ -151,6 +154,7 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
     seqToSegmentRef,
     lastPartialTextRef,
     ordemMtRef,
+    contextoDoSttRef,
     clustererRef,
     dominantLangRef,
     perfilIdiomaRef,
@@ -200,6 +204,7 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
     lastPartialTextRef.current.clear();
     ordemMtRef.current.limpar(); // os selos são por segmento; sessão nova começa do zero
     capMetrics.reset();
+    contextoDoSttRef?.current.limpar();
     // Identificação de voz: sessão nova = memória de vozes nova (retomada mantém os clusters
     // — as "Pessoas" já nomeadas continuam valendo). O modelo (6,7MB, cacheado) carrega em
     // background; o painel Falantes mostra o estado honesto.

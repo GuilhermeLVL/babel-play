@@ -8,7 +8,7 @@
 
 Toda chamada de IA é síncrona dentro do request, sem fila (`server/ai/sttProxy.ts`, `mtProxy.ts`). A conta Groq
 é única para o app: 20 STT/min, 1.000 pedidos/dia e 200K tokens/dia por modelo na camada grátis
-(`docs/auditoria/eval/bancada-2026-09.md:130`). Capacidade medida: 2–4 pessoas falando ao mesmo tempo; o limite
+(`docs/auditoria/eval/bancada-2026-09.md:130`; na página de limites da Groq em 25/09 o STT tem 2.000 pedidos/dia, e é esse o padrão de `IA_ADMISSAO_STT_RPD`). Capacidade medida: 2–4 pessoas falando ao mesmo tempo; o limite
 por minuto quebra a partir de ~67 cadastrados (`fase2-escala.md` §3). Cada 429 vira 3 pedidos por causa da
 retentativa (`sttProxy.ts:263-274`), e o STT não tem disjuntor. A legenda ao vivo é tempo real: do fim da fala
 à legenda traduzida são ~1,9 s; uma resposta que chega 10 s depois não tem valor.

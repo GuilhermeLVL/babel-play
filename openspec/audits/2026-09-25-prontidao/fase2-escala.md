@@ -178,3 +178,42 @@ Limites que ficam: o leitor de `.apkg` ainda precisa do arquivo inteiro na memó
 fila durável da importação na nuvem (ADR 0007, parte de lote) e o item 6 (rotas caras `vocab`, `profile`,
 `gastar`) ficam para a próxima rodada; temporários `.parcial` de upload interrompido por queda do processo não são
 limpos no boot.
+
+## 6. Rotas caras baratas — `fix/rotas-caras` (25/09/2026)
+
+Medido com `carga-servidor.mjs --modo=publico` (bundle de produção, 200 usuários pesados de 3.000 cartões em
+rodízio, 10 s por nível), antes e depois, na mesma máquina e sem outra carga. CPU por request = CPU média do
+processo ÷ req/s.
+
+| Rota (cenário) | Antes: CPU/req · p95 10 / 50 con. | Depois: CPU/req · p95 10 / 50 con. | Ganho de CPU |
+|---|---|---|---|
+| `GET /api/vocab` revalidando (`vocab-revalida`, If-None-Match) | 168 / 133 ms · 1,9 s / 6,6 s | **1,4 ms** · 20 ms / 79 ms | ~100× |
+| `GET /api/vocab` repetido sem ETag (`vocab-quente`, 10 usuários) | 128 / 170 ms · 1,4 s / 8,2 s | **6,2 / 6,5 ms** · 61 / 229 ms | ~20× |
+| `GET /api/vocab` frio (primeira leitura depois de uma escrita) | 137 / 143 ms · 2,0 s / 7,2 s | 74 / 76 ms · 0,9 s / 4,2 s | ~1,9× |
+| `GET /api/metrics/profile` (`profile-quente`) | 94 / 141 ms · 1,0 s / 6,3 s | **2,1 / 1,9 ms** · 25 / 110 ms | ~50× |
+| `GET /api/metrics/profile` (200 em rodízio) | 128 / 126 ms · 1,4 s / 6,6 s | 4,7 / 1,6 ms · 228 / 102 ms | ~27× |
+| `POST /api/metrics/seeds/gastar` | 175 / 149 ms · 1,8 s / 7,7 s | **2,8 / 2,9 ms** · 35 / 164 ms | ~55× |
+| `PUT /api/settings` (6 itens do catálogo) | 460 / 495 ms · 6,1 s / 9,2 s | **3,3–9,6 / 3,9–4,4 ms** · 42–487 / 203–234 ms | ~50× |
+
+Consultas por request (teste `rotas-caras-equivalencia`): `GET /api/vocab` 304 = **1** (era 3 + o baralho
+inteiro); perfil repetido ≤ **4** (era 11); `gastar` ≤ 9 (era 25); `PUT /api/settings` ≤ 12 (era 88).
+
+**O que foi feito, por medição:**
+1. `versoes_de_dados` (migração 0031): dois contadores por usuário mantidos por GATILHO (`vocab`:
+   `vocab_cards`+`vocab_occurrences`; `atividade`: as cinco tabelas de `computeProfile`). Gatilho e não contador
+   na aplicação: escritas em SQL cru, manutenção de boot e outros processos também sobem o número.
+2. `GET /api/vocab`: ETag fraco = época do processo + hash do usuário + versão → 304 com uma consulta de chave
+   primária; corpo serializado em cache por versão (LRU, 64 MB).
+3. `computeProfile`: o resumo das cinco tabelas (sem a parte que depende do relógio) fica em cache por versão
+   de `atividade` (LRU, 512 usuários/48 MB); razão de moedas e presença são lidos sempre (4 consultas). As
+   quatro leituras de `seed_spends` viraram uma (`seedSpendsRepo.razao`).
+4. `gastar` devolve `seedsGastas` pelo `SUM` do razão, sem o segundo `computeProfile`; `PUT /api/settings`
+   carrega o contexto de posse uma vez por pedido.
+5. Caminho frio: `lerCompacto` — o SQLite serializa as linhas em uma célula JSON (reais com `printf('%!.17g')`,
+   exatos em ±[1e-12, 1e15], conferido em 2 M doubles; fora da faixa cai no driver). Leitura do baralho ~2×,
+   do perfil ~1,5×. O piso restante é gerar 2,3 MB de JSON.
+6. Cliente: `fetchDeck`/`fetchSettings` compartilham a leitura em voo (não pegam carona numa leitura iniciada
+   antes de uma escrita) e `fetchDeck` revalida com `If-None-Match`.
+
+**Não atinge 5× no caminho frio** do baralho e do perfil (primeira leitura depois de uma escrita): ~1,5–2×. O
+ganho de 5× ou mais vale para toda leitura repetida, que é o padrão do cliente (16 módulos chamam `fetchDeck`).

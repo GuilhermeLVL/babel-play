@@ -5,7 +5,8 @@
  *
  *   node scripts/perf/escala/carga-servidor.mjs --bundle=<server.cjs> --db=<CÓPIA semeada> \
  *        [--modo=selfhost|publico] [--porta=3140] [--conexoes=10,50,100,200] [--duracao=15] \
- *        [--rotas=abertura,settings,vocab,profile,sessions,review,gastar,vocab-revalida,settings-put]
+ *        [--rotas=abertura,settings,vocab,profile,sessions,review,gastar,vocab-revalida,vocab-quente,
+ *                 profile-quente,settings-put]
  *        [--mesmo-ip] [--saida=x.json]
  *
  * O bundle é o MESMO comando de build do package.json (`esbuild server.ts --bundle --platform=node
@@ -195,6 +196,7 @@ let seq = 0
 const json = { 'content-type': 'application/json' }
 const auth = (u) => (modo === 'publico' ? { authorization: `Bearer ${tokens.get(u)}` } : {})
 const pesado = (i) => (modo === 'publico' ? `u-p-${pad(i % 200)}` : 'local-owner')
+const quente = (i) => (modo === 'publico' ? `u-p-${pad(i % 10)}` : 'local-owner')
 const etags = new Map()
 async function prepararRevalidacao() {
   const usuarios = modo === 'publico' ? Array.from({ length: 200 }, (_, i) => `u-p-${pad(i)}`) : ['local-owner']
@@ -231,6 +233,12 @@ const CENARIOS = {
     const etag = etags.get(u)
     return { method: 'GET', path: '/api/vocab', headers: { ...auth(u), ...(etag ? { 'if-none-match': etag } : {}) } }
   },
+  /* LEITURA REPETIDA (fix/rotas-caras): o mesmo punhado de dez usuários, sem ETag — o caso de quem
+     navega entre telas sem escrever nada no meio. `vocab`/`profile` acima rodam 200 usuários em
+     rodízio, e com ~70 requisições por rodada cada uma é a PRIMEIRA daquele usuário: medem o
+     caminho frio (logo depois de uma escrita). Estes dois medem o caminho quente. */
+  'vocab-quente': (i) => ({ method: 'GET', path: '/api/vocab', headers: auth(quente(i)) }),
+  'profile-quente': (i) => ({ method: 'GET', path: '/api/metrics/profile', headers: auth(quente(i)) }),
   /* PUT /api/settings com SEIS campos de item do catálogo, todos grátis no nível 1: cada um passava
      pela conferência de posse (`recusaDePosse`), que recalculava a economia inteira por campo. */
   'settings-put': (i) => ({

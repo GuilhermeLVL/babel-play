@@ -6,19 +6,28 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
+import { wavPcm } from '../harness/wav'
 
 let h: EphemeralDb
 let sttTranscribeProxy: any
 let subs: any
 
 function mockReq(userId: any, headers: Record<string, string> = {}): any {
-  return { userId, body: Buffer.from('fake-wav-bytes'), header: (k: string) => headers[k.toLowerCase()] }
+  // WAV PCM de verdade: desde o P0-2 o caminho pago recusa (415) o que não sabe medir.
+  return { userId, body: wavPcm(1), header: (k: string) => headers[k.toLowerCase()] }
 }
 function mockRes(): any {
   const r: any = { statusCode: 200, body: undefined, headersSent: false }
-  r.status = (c: number) => { r.statusCode = c; return r }
-  r.json = (b: any) => { r.body = b; r.headersSent = true; return r }
+  r.status = (c: number) => {
+    r.statusCode = c
+    return r
+  }
+  r.json = (b: any) => {
+    r.body = b
+    r.headersSent = true
+    return r
+  }
   return r
 }
 
@@ -38,7 +47,8 @@ afterEach(() => vi.unstubAllGlobals())
 
 describe('SaaS Fatia 1b — enforcement STT gerenciado', () => {
   it('free + gerenciado (sem x-credential-id) → 402 (nem chega a chamar a nuvem)', async () => {
-    const req = mockReq(asUserId('free')), res = mockRes()
+    const req = mockReq(asUserId('free')),
+      res = mockRes()
     await sttTranscribeProxy(req, res)
     expect(res.statusCode).toBe(402)
     expect(res.body?.entitlement).toBe('managedCloudStt')
@@ -47,14 +57,16 @@ describe('SaaS Fatia 1b — enforcement STT gerenciado', () => {
   it('pro + gerenciado → passa o gate e transcreve (fetch stub)', async () => {
     process.env.GROQ_API_KEY = 'test-key'
     vi.stubGlobal('fetch', async () => ({ ok: true, json: async () => ({ text: 'olá mundo' }) }))
-    const req = mockReq(asUserId('pro')), res = mockRes()
+    const req = mockReq(asUserId('pro')),
+      res = mockRes()
     await sttTranscribeProxy(req, res)
     expect(res.statusCode).toBe(200)
     expect(res.body?.text).toBe('olá mundo')
   })
 
   it('free + BYOK (x-credential-id) NÃO é bloqueado pelo plano (não é 402)', async () => {
-    const req = mockReq(asUserId('free'), { 'x-credential-id': 'cred-inexistente' }), res = mockRes()
+    const req = mockReq(asUserId('free'), { 'x-credential-id': 'cred-inexistente' }),
+      res = mockRes()
     await sttTranscribeProxy(req, res)
     expect(res.statusCode).not.toBe(402) // cai no ramo BYOK (credencial inexistente → outro erro)
   })

@@ -10,6 +10,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import { esvaziarCacheDeTraducao } from '../../server/ai/cacheDeTraducao'
 import { asUserId } from '../../server/lib/authContext'
 import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
+import { wavPcm } from '../harness/wav'
 
 let h: EphemeralDb
 let mt: any
@@ -183,7 +184,8 @@ describe('sttProxy — reserva e estorno', () => {
     } as any)
 
     const res = fakeRes()
-    await stt({ userId: u, body: Buffer.from([1, 2, 3]), header: () => undefined } as any, res)
+    // WAV PCM de verdade: desde o P0-2 o caminho pago recusa (415) o que não sabe medir.
+    await stt({ userId: u, body: wavPcm(1), header: () => undefined } as any, res)
 
     expect(res.statusCode).toBe(502)
     expect(await usado(u)).toBe(0)

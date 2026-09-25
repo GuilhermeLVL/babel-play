@@ -10,7 +10,7 @@ import type { Request, Response } from 'express'
 import { filtrarAlucinacao } from '../../src/gateway/alucinacao'
 import { credentialsRepo } from '../db/repositories/credentials'
 import { contarDescartesDoStt, observarChamadaDeProvedor } from '../http/metricas'
-import { duracaoDoWav, segundosDeAudioDoUsuario, segundosFaturaveis } from '../lib/duracaoDeAudio'
+import { avaliarAudioFaturavel, duracaoDoWav, segundosFaturaveis } from '../lib/duracaoDeAudio'
 import { hasEntitlement } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
 import { normalizarIdiomaDoWhisper } from '../lib/idiomaDoWhisper'
@@ -80,6 +80,8 @@ async function transcrever(req: Request, res: Response, rastro: RastroDeIa): Pro
     let baseUrl: string | null
     let secret: string | null
     let defaultModel: string | null
+    /** Ramo da chave do DONO: o cliente não escolhe o modelo nem a duração cobrada (P0-2/P0-3). */
+    let pagoPeloApp = false
 
     if (credentialId) {
       rastro.anotar({ byok: true })
@@ -97,6 +99,19 @@ async function transcrever(req: Request, res: Response, rastro: RastroDeIa): Pro
         responderPortaoFechado(res, portao)
         return
       }
+      pagoPeloApp = true
+      /* P0-2 (auditoria de prontidão, 25/09/2026): o áudio é MEDIDO antes de qualquer reserva. Antes,
+         um corpo ilegível era cobrado como 10 s e seguia para o provedor, e a duração saía do
+         `byteRate` que o próprio cliente escreve no cabeçalho — 13 min declarados como 1 s. Agora a
+         taxa é derivada dos campos do `fmt `, o incoerente é 415 e o que passa do teto por requisição
+         é 413. Recusar (em vez de cobrar pelo pior caso) não quebra o cliente legítimo: ele SEMPRE
+         manda WAV PCM 16 bits mono (`src/gateway/audio/wav.ts`). Antes da reserva de propósito:
+         recusa não toca contador, então não há o que estornar. */
+      const avaliacao = avaliarAudioFaturavel(audioBuffer)
+      if (avaliacao.ok === false) {
+        responderErro(res, avaliacao.status, avaliacao.error, avaliacao.code)
+        return
+      }
       // Fair-use: RESERVA antes de chamar o provedor (P0-1 — conferir antes e contabilizar
       // depois deixava N requisições simultâneas passarem pelo mesmo teto). BYOK/local não
       // chegam aqui, então só o uso da chave do DONO consome quota.
@@ -112,7 +127,7 @@ async function transcrever(req: Request, res: Response, rastro: RastroDeIa): Pro
          `segundosFaturaveis` — o mínimo de 10 s que a Groq cobra por requisição —, e com falas de
          ~6 s o plano que promete 15 h entregava ~9 h de fala. O mínimo é custo do DONO: ele entra
          no orçamento global, logo abaixo, e não na cota de quem paga o plano. */
-      segundosReservados = segundosDeAudioDoUsuario(audioBuffer)
+      segundosReservados = avaliacao.segundosDoUsuario
       if (!(await reservarSegundosDeStt(req.userId, segundosReservados))) {
         segundosReservados = 0
         res.status(402).json({ error: 'limite mensal de áudio do plano atingido', code: 'quota_exceeded' })
@@ -151,7 +166,13 @@ async function transcrever(req: Request, res: Response, rastro: RastroDeIa): Pro
     )
     if (!cabecalhos) return
 
-    const model = cabecalhos['x-model'] || defaultModel || 'whisper-large-v3-turbo'
+    /* P0-3 (auditoria de prontidão): na chave do DONO, `x-model` é IGNORADO. O schema acima só
+       garante o FORMATO do nome — o cliente ainda escolhia qual modelo a conta do app pagava, e
+       nada impedia trocar o turbo pelo modelo cheio (2,8× o preço por hora de áudio). Quem decide é
+       o `STT_MODEL` do servidor. No BYOK a chave e a conta são do usuário: ele escolhe livremente. */
+    const model = pagoPeloApp
+      ? defaultModel || 'whisper-large-v3-turbo'
+      : cabecalhos['x-model'] || defaultModel || 'whisper-large-v3-turbo'
     const lang = cabecalhos['x-language']
     /* O CONTEXTO DA FALA ANTERIOR, como `prompt` do Whisper. Sem ele cada enunciado de ~6 s é
        decodificado do zero: nome próprio muda de grafia de uma fala para a outra, e em áudio curto

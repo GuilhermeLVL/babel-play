@@ -163,6 +163,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     paraQue: 'diretório do áudio de sessão; sem ela, `data/audio` local — o que prende o arquivo ao disco da réplica',
   },
   {
+    nome: 'AUDIO_RETENCAO_DIAS',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'dias que o áudio gravado de uma sessão fica guardado (disco ou S3/R2) antes da limpeza diária apagar o arquivo e devolver a cota; sem ela, 90. `0` guarda para sempre (server/lib/retencaoDeAudio.ts)',
+  },
+  {
     nome: 'AUTH_REQUIRED',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
@@ -705,6 +712,21 @@ export function configDoBackupDiario(
   const hora = Number(env.BACKUP_HORA_UTC)
   const heartbeatUrl = env.BACKUP_HEARTBEAT_URL?.trim() || undefined
   return { horaUtc: Number.isInteger(hora) && hora >= 0 && hora <= 23 ? hora : 6, heartbeatUrl }
+}
+
+/**
+ * Por quantos dias o áudio de sessão é guardado. Padrão 90; `0` = para sempre (a limpeza não liga).
+ *
+ * Valor inválido (negativo, fracionário, texto) cai no PADRÃO, e não em zero: um erro de digitação
+ * não pode transformar uma política de retenção declarada na privacidade em "guardar para sempre".
+ */
+export const RETENCAO_DE_AUDIO_PADRAO_DIAS = 90
+
+export function diasDeRetencaoDeAudio(env: NodeJS.ProcessEnv = process.env): number {
+  const bruto = env.AUDIO_RETENCAO_DIAS?.trim()
+  if (bruto === undefined || bruto === '') return RETENCAO_DE_AUDIO_PADRAO_DIAS
+  const n = Number(bruto)
+  return Number.isInteger(n) && n >= 0 ? n : RETENCAO_DE_AUDIO_PADRAO_DIAS
 }
 
 /**

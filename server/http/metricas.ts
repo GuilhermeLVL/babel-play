@@ -91,10 +91,29 @@ const BALDES = [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30, 60]
 /** Os prefixos que fazem uma rota ser CHAMADA DE IA. Ver `server/http/app.ts`. */
 const PREFIXOS_DE_IA = ['/api/ai', '/api/tutor', '/api/gemini']
 
+/**
+ * Baldes em MILISSEGUNDOS para as métricas de IA e de captura. Vão de 50 ms (um parcial do Whisper
+ * local numa GPU boa) a 120 s (o teto do corpo da telemetria, e além do pior caso do STT com três
+ * tentativas de 30 s).
+ */
+const BALDES_MS = [50, 100, 250, 500, 1000, 2000, 4000, 8000, 15000, 30000, 60000, 120000]
+
+/** Fator de tempo real (processamento ÷ duração do áudio). Abaixo de 1 a captura acompanha a fala. */
+const BALDES_RTF = [0.1, 0.25, 0.5, 0.75, 1, 1.5, 2, 3, 5, 10, 50]
+
 interface Estado {
   duracao: Histogram<'method' | 'route' | 'status'>
   errosHttp: Counter<'method' | 'route' | 'status'>
   chamadasDeIa: Counter<'route' | 'status' | 'resultado'>
+  provedorLatencia: Histogram<'provedor' | 'funcao'>
+  provedorCusto: Counter<'provedor' | 'funcao'>
+  sttDescartes: Counter<'motivo'>
+  capturaSttFinal: Histogram<'motor'>
+  capturaPrimeiroParcial: Histogram<'motor'>
+  capturaMt: Histogram<'motor'>
+  capturaRtf: Histogram<'motor'>
+  capturaDescartes: Counter<never>
+  capturaFallback: Counter<'motor'>
 }
 
 let estado: Estado | undefined
@@ -140,8 +159,114 @@ function metricas(): Estado {
       help: 'Chamadas às rotas de IA do servidor, por rota e status. Mede o proxy, NÃO o provedor: provedor e nível de fallback vivem em server/ai/** e não são instrumentados aqui.',
       labelNames: ['route', 'status', 'resultado'] as const,
     }),
+    /* O PROVEDOR, AGORA DE DENTRO (Fase de qualidade da captura, 24/09/2026). O contador acima mede
+       o proxy e diz, com razão, que não enxerga o provedor. Estas duas são alimentadas por
+       `server/ai/sttProxy.ts` e `server/ai/cascata.ts`, que sabem QUEM atendeu. As labels são
+       rótulos fixos do código (`llm-primario`, `llm-reserva`, `stt-gerenciado`, `byok`) — nunca a
+       URL do provedor, que no BYOK é escolha do usuário e seria uma série por usuário. */
+    provedorLatencia: new Histogram({
+      name: 'ia_provedor_latencia_ms',
+      help: 'Latência da chamada ao provedor de IA (com as retentativas), em ms, por provedor e função.',
+      labelNames: ['provedor', 'funcao'] as const,
+      buckets: BALDES_MS,
+    }),
+    provedorCusto: new Counter({
+      name: 'ia_provedor_custo_usd_total',
+      help: 'Custo ESTIMADO (US$) das chamadas entregues com a chave do dono, pela tabela de preços de server/lib/orcamentoDeIa.ts. BYOK não entra: não é dinheiro do serviço.',
+      labelNames: ['provedor', 'funcao'] as const,
+    }),
+    sttDescartes: new Counter({
+      name: 'stt_segmentos_descartados_total',
+      help: 'Segmentos do Whisper de nuvem descartados no servidor, por motivo (sem_fala, repeticao) — e transcrições inteiras esvaziadas pelo filtro de alucinação (alucinacao).',
+      labelNames: ['motivo'] as const,
+    }),
+    /* A TELEMETRIA DE CAPTURA que o cliente manda (`POST /api/metricas/captura`). Label só `motor`,
+       e o motor já chega saneado contra uma allowlist de formato — ver `server/routes/metricasCaptura.ts`. */
+    capturaSttFinal: new Histogram({
+      name: 'captura_stt_final_ms',
+      help: 'Do fim da fala ao texto final do STT, medido no navegador, por motor de STT.',
+      labelNames: ['motor'] as const,
+      buckets: BALDES_MS,
+    }),
+    capturaPrimeiroParcial: new Histogram({
+      name: 'captura_primeiro_parcial_ms',
+      help: 'Do início da fala ao primeiro texto parcial, medido no navegador, por motor de STT.',
+      labelNames: ['motor'] as const,
+      buckets: BALDES_MS,
+    }),
+    capturaMt: new Histogram({
+      name: 'captura_mt_ms',
+      help: 'Latência da tradução de uma fala, medida no navegador, por motor de tradução.',
+      labelNames: ['motor'] as const,
+      buckets: BALDES_MS,
+    }),
+    capturaRtf: new Histogram({
+      name: 'captura_rtf',
+      help: 'Fator de tempo real do STT (processamento ÷ duração do áudio), por motor de STT.',
+      labelNames: ['motor'] as const,
+      buckets: BALDES_RTF,
+    }),
+    capturaDescartes: new Counter({
+      name: 'captura_descartes_alucinacao_total',
+      help: 'Transcrições descartadas pelo filtro de alucinação NO NAVEGADOR.',
+    }),
+    capturaFallback: new Counter({
+      name: 'captura_fallback_total',
+      help: 'Quedas de um motor para o seguinte na cadeia do cliente, por motor que falhou.',
+      labelNames: ['motor'] as const,
+    }),
   }
   return estado
+}
+
+/* ─────────────── ganchos para quem mede de dentro (server/ai, server/routes) ─────────────── */
+
+/**
+ * Os ganchos abaixo NÃO criam as métricas: com `METRICS_ENABLED` desligado (o default) `estado`
+ * não existe e eles não fazem nada. Quem chama não precisa saber se a observabilidade está ligada.
+ */
+
+/** Uma chamada ao provedor de IA terminou: latência sempre; custo só quando é dinheiro do dono. */
+export function observarChamadaDeProvedor(o: {
+  provedor: string
+  funcao: string
+  ms: number
+  custoUsd?: number
+}): void {
+  if (!estado) return
+  const labels = { provedor: o.provedor, funcao: o.funcao }
+  if (Number.isFinite(o.ms) && o.ms >= 0) estado.provedorLatencia.observe(labels, o.ms)
+  if (o.custoUsd !== undefined && Number.isFinite(o.custoUsd) && o.custoUsd > 0)
+    estado.provedorCusto.inc(labels, o.custoUsd)
+}
+
+/** Segmentos (ou transcrições inteiras) que o STT de nuvem descartou, por motivo. */
+export function contarDescartesDoStt(motivo: 'sem_fala' | 'repeticao' | 'alucinacao', quantos: number): void {
+  if (!estado || !(quantos > 0)) return
+  estado.sttDescartes.inc({ motivo }, quantos)
+}
+
+/** O relatório de captura do navegador, JÁ VALIDADO e saneado pela rota. */
+export interface RelatorioDeCaptura {
+  sttFinalMs: number[]
+  primeiroParcialMs: number[]
+  mtMs: number[]
+  rtf: number[]
+  descartesAlucinacao: number
+  fallbacks: Record<string, number>
+  motorStt: string
+  motorMt: string
+}
+
+export function observarCaptura(r: RelatorioDeCaptura): void {
+  if (!estado) return
+  const e = estado
+  for (const v of r.sttFinalMs) e.capturaSttFinal.observe({ motor: r.motorStt }, v)
+  for (const v of r.primeiroParcialMs) e.capturaPrimeiroParcial.observe({ motor: r.motorStt }, v)
+  for (const v of r.mtMs) e.capturaMt.observe({ motor: r.motorMt }, v)
+  for (const v of r.rtf) e.capturaRtf.observe({ motor: r.motorStt }, v)
+  if (r.descartesAlucinacao > 0) e.capturaDescartes.inc(r.descartesAlucinacao)
+  for (const [motor, n] of Object.entries(r.fallbacks)) if (n > 0) e.capturaFallback.inc({ motor }, n)
 }
 
 /**

@@ -1,13 +1,20 @@
 /**
- * A duração faturável é a base do teto de gasto. Se ela errar, o plano cobra o valor errado — e
- * erra em silêncio, porque nada na tela mostra segundos.
+ * DUAS CONTAS SOBRE O MESMO ÁUDIO, e elas não podem se misturar.
  *
- * O caso que motiva tudo: o VAD desta aplicação entrega enunciados de ~6 s, e a Groq fatura no
- * mínimo 10 s por requisição. Debitar 6 subestimaria a conta em ~70%.
+ *   - `segundosFaturaveis` é o que o PROVEDOR cobra do dono: a Groq fatura no mínimo 10 s por
+ *     requisição, e o VAD entrega enunciados de ~6 s. É a base do orçamento GLOBAL de IA.
+ *   - `segundosDeAudioDoUsuario` é o que sai da COTA do assinante: a duração REAL, arredondada para
+ *     cima, com piso de 1 s. O plano promete "15 h de transcrição"; cobrar 10 s por uma fala de 6 s
+ *     entregava ~9 h de fala e chamava isso de 15.
  */
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
-import { duracaoDoWav, MINIMO_FATURADO_S,segundosFaturaveis } from '../server/lib/duracaoDeAudio'
+import {
+  duracaoDoWav,
+  MINIMO_FATURADO_S,
+  segundosDeAudioDoUsuario,
+  segundosFaturaveis,
+} from '../server/lib/duracaoDeAudio'
 
 /** Monta um WAV PCM 16 bits mono válido com a duração pedida. */
 function wav(segundos: number, taxa = 16_000, chunksExtras = false): Buffer {
@@ -71,5 +78,26 @@ describe('segundos faturáveis', () => {
     // Se não sabemos medir, a suposição segura é a que protege o dono da chave — zero seria
     // consumo não contabilizado, que é exatamente o furo que este módulo fecha.
     expect(segundosFaturaveis(Buffer.alloc(10))).toBe(MINIMO_FATURADO_S)
+  })
+})
+
+describe('segundos da cota do usuário (duração REAL, não a do provedor)', () => {
+  it('um enunciado de 6 s custa 6 s ao assinante — não 10', () => {
+    expect(segundosDeAudioDoUsuario(wav(6))).toBe(6)
+  })
+
+  it('arredonda para cima, com piso de 1 s', () => {
+    expect(segundosDeAudioDoUsuario(wav(2.2))).toBe(3)
+    expect(segundosDeAudioDoUsuario(wav(0.3))).toBe(1)
+    expect(segundosDeAudioDoUsuario(wav(30))).toBe(30)
+  })
+
+  it('áudio ilegível cai no mínimo do provedor (não sabemos medir; nunca zero)', () => {
+    expect(segundosDeAudioDoUsuario(Buffer.alloc(10))).toBe(MINIMO_FATURADO_S)
+  })
+
+  it('as duas contas só coincidem acima do mínimo faturado', () => {
+    expect(segundosDeAudioDoUsuario(wav(12.3))).toBe(segundosFaturaveis(wav(12.3)))
+    expect(segundosDeAudioDoUsuario(wav(4))).toBeLessThan(segundosFaturaveis(wav(4)))
   })
 })

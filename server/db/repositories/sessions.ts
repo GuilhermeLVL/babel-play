@@ -1,11 +1,11 @@
 import { randomUUID } from 'node:crypto'
 
-import { and, desc, eq, isNull } from 'drizzle-orm'
+import { and, asc, desc, eq, isNull, like, lt } from 'drizzle-orm'
 
 import type { UserId } from '../../lib/authContext'
 import { db } from '../db'
 import { sessions } from '../schema'
-import { type NewUtterance, type Utterance,utterancesRepo } from './utterances'
+import { type NewUtterance, type Utterance, utterancesRepo } from './utterances'
 
 export type Session = typeof sessions.$inferSelect
 
@@ -25,7 +25,9 @@ function parseMetaOuFalhe(metaStr: string | null, id: string): Record<string, un
     if (v && typeof v === 'object' && !Array.isArray(v)) return v as Record<string, unknown>
     throw new Error('meta não é um objeto')
   } catch (err) {
-    throw new Error(`meta da sessão ${id} está ilegível (${String((err as Error).message).slice(0, 60)}) — não sobrescrito`)
+    throw new Error(
+      `meta da sessão ${id} está ilegível (${String((err as Error).message).slice(0, 60)}) — não sobrescrito`,
+    )
   }
 }
 
@@ -98,8 +100,7 @@ export const sessionsRepo = {
     const now = Date.now()
     const id = randomUUID()
     const wordCount =
-      input.wordCount ??
-      utts.reduce((n, u) => n + (u.sourceText ? u.sourceText.trim().split(/\s+/).length : 0), 0)
+      input.wordCount ?? utts.reduce((n, u) => n + (u.sourceText ? u.sourceText.trim().split(/\s+/).length : 0), 0)
 
     const inserirSessao = db.insert(sessions).values({
       id,
@@ -149,7 +150,11 @@ export const sessionsRepo = {
    * parcial `uq_sessions_user_origem_local` arbitra duas abas migrando ao mesmo tempo, e o
    * catch re-lê a vencedora. Sem `origemLocalId` é a criação normal.
    */
-  async criarOuReusar(userId: UserId, input: NewSession, utts: NewUtterance[]): Promise<{ session: Session; jaExistia: boolean }> {
+  async criarOuReusar(
+    userId: UserId,
+    input: NewSession,
+    utts: NewUtterance[],
+  ): Promise<{ session: Session; jaExistia: boolean }> {
     if (input.origemLocalId) {
       const ja = await this.findByOrigemLocal(userId, input.origemLocalId)
       if (ja) return { session: ja, jaExistia: true }
@@ -167,7 +172,7 @@ export const sessionsRepo = {
 
   async getWithUtterances(
     userId: UserId,
-    id: string
+    id: string,
   ): Promise<{ session: Session; utterances: Utterance[] } | undefined> {
     const session = await this.get(userId, id)
     if (!session) return undefined
@@ -181,7 +186,10 @@ export const sessionsRepo = {
     for (const k of ['title', 'kind', 'sourceLang', 'targetLang', 'status', 'durationMs', 'wordCount'] as const) {
       if (patch[k] !== undefined) values[k] = patch[k]
     }
-    await db.update(sessions).set(values).where(and(eq(sessions.id, id), eq(sessions.userId, userId)))
+    await db
+      .update(sessions)
+      .set(values)
+      .where(and(eq(sessions.id, id), eq(sessions.userId, userId)))
     return this.get(userId, id)
   },
 
@@ -194,14 +202,16 @@ export const sessionsRepo = {
     if (!s) return undefined
     const wordCount = utts.reduce(
       (n, u) => n + (u.sourceText ? u.sourceText.trim().split(/\s+/).filter(Boolean).length : 0),
-      0
+      0,
     )
     // P1-N3: o DELETE das falas antigas e o INSERT das novas rodavam SOLTOS — falha no
     // insert apagava a transcrição inteira e não devolvia nada. É o caminho de "retomar
     // captura", então o que se perdia era trabalho do usuário. Agora ou troca tudo, ou nada.
     const apagar = utterancesRepo.stmtDeleteForSession(userId, id)
     const inserir = utterancesRepo.stmtInsertMany(userId, id, utts)
-    const contar = db.update(sessions).set({ wordCount, updatedAt: Date.now() })
+    const contar = db
+      .update(sessions)
+      .set({ wordCount, updatedAt: Date.now() })
       .where(and(eq(sessions.id, id), eq(sessions.userId, userId)))
     await (inserir ? db.batch([apagar, inserir, contar]) : db.batch([apagar, contar]))
     return this.get(userId, id)
@@ -222,11 +232,30 @@ export const sessionsRepo = {
     const alvo = await this.get(userId, id)
     if (!alvo) return false
     await db.batch([
-      db.update(sessions).set({ deletedAt: now, updatedAt: now })
+      db
+        .update(sessions)
+        .set({ deletedAt: now, updatedAt: now })
         .where(and(eq(sessions.id, id), eq(sessions.userId, userId))),
       utterancesRepo.stmtSoftDeleteForSession(userId, id, now),
     ])
     return true
+  },
+
+  /**
+   * CROSS-TENANT, e só para a limpeza de retenção (`server/lib/retencaoDeAudio.ts`): sessões vivas,
+   * criadas antes de `limite`, que ainda citam um arquivo de áudio no `meta`. Em lote, da mais antiga
+   * para a mais nova, para uma varredura grande não segurar o banco numa consulta só.
+   *
+   * O `LIKE` é o filtro BARATO; quem decide de verdade é o `JSON.parse` do chamador, que já trata
+   * `meta` ilegível. Não existe coluna de áudio — o nome vive no `meta` desde o upload (`setAudio`).
+   */
+  async comAudioCriadasAntesDe(limite: number, lote = 200): Promise<Array<Pick<Session, 'id' | 'userId' | 'meta'>>> {
+    return db
+      .select({ id: sessions.id, userId: sessions.userId, meta: sessions.meta })
+      .from(sessions)
+      .where(and(isNull(sessions.deletedAt), lt(sessions.createdAt, limite), like(sessions.meta, '%"audioFile"%')))
+      .orderBy(asc(sessions.createdAt))
+      .limit(lote)
   },
 
   /** Registra o arquivo de áudio gravado da sessão no `meta` (mescla com o que já existe). */

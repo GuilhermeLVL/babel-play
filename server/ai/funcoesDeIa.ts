@@ -47,6 +47,24 @@ export const FUNCOES_DE_IA: Readonly<Record<FuncaoDeIa, DefinicaoDeFuncao>> = {
   traducao: { tetoEntrada: 4_000, maxTokens: 1_200, temperatura: 0 },
 }
 
+/**
+ * O `max_tokens` de UMA tradução — proporcional ao texto, com piso, e nunca acima do teto da função.
+ *
+ * O teto fixo de 1.200 servia ao pior caso (um parágrafo de 4.000 caracteres) e era reservado da
+ * cota em TODA fala, inclusive nas de 60 caracteres. Com o raciocínio em "low"
+ * (`parametrosDoProvedor`, em `llmClient.ts`) a conta de uma fala é: a tradução em si — 1 token por
+ * caractere da fonte cobre até a escrita CJK, que é o pior caso de tokenização — mais uma folga
+ * fixa para o pensamento. O piso de 400 é essa folga com margem: medido no gpt-oss em esforço
+ * MÉDIO, ~96 tokens por fala só raciocinando (ver o bloco do tutor acima); em "low", menos.
+ */
+export const FOLGA_DE_RACIOCINIO = 300
+export const PISO_DA_TRADUCAO = 400
+
+export function maxTokensDaTraducao(caracteresDaFonte: number): number {
+  const n = Math.max(0, Math.ceil(Number.isFinite(caracteresDaFonte) ? caracteresDaFonte : 0))
+  return Math.min(FUNCOES_DE_IA.traducao.maxTokens, Math.max(PISO_DA_TRADUCAO, FOLGA_DE_RACIOCINIO + n))
+}
+
 /** As funções que o cliente pode pedir em `/api/tutor/chat`. A tradução tem rota própria. */
 export const FUNCOES_DE_CONVERSA: readonly FuncaoDeIa[] = ['tutor', 'corretor']
 

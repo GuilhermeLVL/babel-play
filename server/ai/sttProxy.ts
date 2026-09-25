@@ -7,8 +7,10 @@
  */
 import type { Request, Response } from 'express'
 
+import { filtrarAlucinacao } from '../../src/gateway/alucinacao'
 import { credentialsRepo } from '../db/repositories/credentials'
-import { segundosFaturaveis } from '../lib/duracaoDeAudio'
+import { contarDescartesDoStt, observarChamadaDeProvedor } from '../http/metricas'
+import { duracaoDoWav, segundosDeAudioDoUsuario, segundosFaturaveis } from '../lib/duracaoDeAudio'
 import { hasEntitlement } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
 import { normalizarIdiomaDoWhisper } from '../lib/idiomaDoWhisper'
@@ -26,6 +28,7 @@ import { parseOr400, sttHeadersSchema } from '../validation'
 import { deveRetentar, esperaDaRetentativa } from './disjuntor'
 import { responderContadorIndisponivel } from './reservaDeNuvem'
 import { assertPublicUrl } from './ssrf'
+import { promptDoCabecalho, triarSegmentos } from './sttQualidade'
 
 /**
  * Quantas tentativas EXTRAS o STT faz. Duas, e o porquê do número está no bloco que as usa: cada
@@ -79,11 +82,14 @@ export async function sttTranscribeProxy(req: Request, res: Response): Promise<v
         return
       }
       reservaPendente = true
-      /* TETO DE DINHEIRO, ao lado do de fair-use. O provedor cobra por DURAÇÃO de áudio, então
-         contar chamadas não limita gasto: uma chamada pode ser 1 segundo ou 25 MB. `segundosFaturaveis`
-         já eleva ao mínimo de 10 s que a Groq cobra por requisição — os enunciados do VAD têm ~6 s,
-         e debitar a duração real subestimaria a conta em ~70%. */
-      segundosReservados = segundosFaturaveis(audioBuffer)
+      /* TETO DE ÁUDIO, ao lado do de fair-use. O provedor cobra por DURAÇÃO, então contar chamadas
+         não limita gasto: uma chamada pode ser 1 segundo ou 25 MB.
+
+         A COTA DO ASSINANTE É A DURAÇÃO REAL (24/09/2026). Até aqui reservávamos
+         `segundosFaturaveis` — o mínimo de 10 s que a Groq cobra por requisição —, e com falas de
+         ~6 s o plano que promete 15 h entregava ~9 h de fala. O mínimo é custo do DONO: ele entra
+         no orçamento global, logo abaixo, e não na cota de quem paga o plano. */
+      segundosReservados = segundosDeAudioDoUsuario(audioBuffer)
       if (!(await reservarSegundosDeStt(req.userId, segundosReservados))) {
         segundosReservados = 0
         res.status(402).json({ error: 'limite mensal de áudio do plano atingido', code: 'quota_exceeded' })
@@ -124,6 +130,11 @@ export async function sttTranscribeProxy(req: Request, res: Response): Promise<v
 
     const model = cabecalhos['x-model'] || defaultModel || 'whisper-large-v3-turbo'
     const lang = cabecalhos['x-language']
+    /* O CONTEXTO DA FALA ANTERIOR, como `prompt` do Whisper. Sem ele cada enunciado de ~6 s é
+       decodificado do zero: nome próprio muda de grafia de uma fala para a outra, e em áudio curto
+       o idioma oscila. O cliente manda a última frase confirmada; `promptDoCabecalho` decodifica,
+       limpa e corta — e ignora em silêncio o que não decodifica. */
+    const prompt = promptDoCabecalho(req.header('x-stt-prompt'))
     const endpoint = baseUrl.replace(/\/+$/, '') + '/audio/transcriptions'
 
     /* PEDIMOS `verbose_json` PARA NÃO JOGAR FORA O IDIOMA.
@@ -138,6 +149,10 @@ export async function sttTranscribeProxy(req: Request, res: Response): Promise<v
       f.append('file', new Blob([audioBuffer], { type: 'audio/wav' }), 'audio.wav')
       f.append('model', model)
       if (lang) f.append('language', lang)
+      if (prompt) f.append('prompt', prompt)
+      /* TEMPERATURA ZERO: decode guloso, o mesmo áudio dá o mesmo texto. Sem o campo, o provedor
+         escolhe — e amostragem em transcrição só serve para variar a grafia da mesma fala. */
+      f.append('temperature', '0')
       f.append('response_format', formato)
       return f
     }
@@ -184,6 +199,7 @@ export async function sttTranscribeProxy(req: Request, res: Response): Promise<v
      * `deveRetentar` explica por que o TIMEOUT ficou de fora (a requisição pode ter sido processada
      * e cobrada do outro lado).
      */
+    const inicioDoProvedor = Date.now()
     let upstream = await umaTentativa()
     for (let n = 1; n <= RETENTATIVAS_DE_STT && deveRetentar(upstream.status); n++) {
       const espera = esperaDaRetentativa(n)
@@ -222,15 +238,28 @@ export async function sttTranscribeProxy(req: Request, res: Response): Promise<v
     }
 
     const j = await upstream.json()
+    const gerenciado = segundosReservados > 0
     // Consumada. Antes daqui havia um `recordManagedCall` incondicional, que contabilizava
     // TAMBÉM o caminho BYOK — uso da chave do próprio usuário descontava da quota gerenciada.
     reservaPendente = false
-    // Só o caminho da chave do DONO entra no orçamento global; BYOK é conta do próprio usuário.
-    if (segundosReservados > 0) await registrarGastoDeIa(custoDeStt(model, segundosReservados))
+    /* Só o caminho da chave do DONO entra no orçamento global; BYOK é conta do próprio usuário. E
+       aqui o número é o que o PROVEDOR fatura (`segundosFaturaveis`, com o mínimo de 10 s), não o
+       que saiu da cota do assinante: o orçamento existe para bater com a fatura. */
+    const custoUsd = gerenciado ? custoDeStt(model, segundosFaturaveis(audioBuffer)) : undefined
+    if (custoUsd !== undefined) await registrarGastoDeIa(custoUsd)
     segundosReservados = 0 // consumados junto com a chamada: nada a estornar
+    observarChamadaDeProvedor({
+      provedor: gerenciado ? 'stt-gerenciado' : 'byok',
+      funcao: 'stt',
+      ms: Date.now() - inicioDoProvedor,
+      custoUsd,
+    })
+
     // `language` vazio = o provedor não informou (ou caímos no `json`): o cliente volta ao
     // detector de texto. Nunca inventamos um código aqui.
-    res.json({ text: j.text ?? '', language: normalizarIdiomaDoWhisper(j.language) })
+    const idioma = normalizarIdiomaDoWhisper(j.language)
+    const texto = limparTranscricao(j, audioBuffer, lang || idioma, req.requestId)
+    res.json({ text: texto, language: idioma })
   } catch (err) {
     /* A cota falha FECHADA (Fase 2 do lançamento): contador fora do ar é 503 com motivo, e o
        roteador de STT do cliente cai no Whisper local. */
@@ -245,4 +274,50 @@ export async function sttTranscribeProxy(req: Request, res: Response): Promise<v
     if (reservaPendente) await refundManagedCall(req.userId)
     if (segundosReservados > 0) await estornarSegundosDeStt(req.userId, segundosReservados)
   }
+}
+
+/**
+ * O TEXTO QUE VOLTA AO CLIENTE — triado por segmento e passado pelo filtro de alucinação.
+ *
+ * Duas camadas, na ordem em que a informação existe:
+ *   1. `triarSegmentos` usa os sinais POR SEGMENTO do `verbose_json` (silêncio com baixa confiança,
+ *      laço de repetição) e remonta o texto com o que ficou. Resposta em `json` não tem segmentos e
+ *      pula esta camada;
+ *   2. `filtrarAlucinacao` — o MESMO filtro do Whisper local (`src/gateway/alucinacao.ts`, puro e
+ *      isomórfico) — corta o que sabidamente não é fala: créditos de legenda, "obrigado por
+ *      assistir", texto rápido demais para a duração do áudio.
+ *
+ * Texto esvaziado volta como `''` com 200: o cliente já trata final vazio (é o que o Whisper local
+ * produz no silêncio). O log conta QUANTOS e POR QUÊ, nunca o quê.
+ */
+function limparTranscricao(
+  j: { text?: unknown; segments?: unknown; duration?: unknown },
+  audio: Buffer,
+  idioma: string | undefined,
+  requestId: string | undefined,
+): string {
+  const bruto = typeof j.text === 'string' ? j.text : ''
+  const triagem = triarSegmentos(j.segments)
+  const triado = triagem ? triagem.texto : bruto
+  const duracao = duracaoDoWav(audio) ?? (typeof j.duration === 'number' ? j.duration : 0)
+  const filtrado = filtrarAlucinacao(triado, duracao, idioma || undefined)
+  const alucinacao = triado.trim() && !filtrado ? 1 : 0
+
+  const semFala = triagem?.semFala ?? 0
+  const repeticao = triagem?.repeticao ?? 0
+  if (semFala + repeticao + alucinacao > 0) {
+    contarDescartesDoStt('sem_fala', semFala)
+    contarDescartesDoStt('repeticao', repeticao)
+    contarDescartesDoStt('alucinacao', alucinacao)
+    log('info', {
+      event: 'stt_segmentos_descartados',
+      route: '/api/ai/stt',
+      total: triagem?.total ?? 0,
+      semFala,
+      repeticao,
+      alucinacao,
+      requestId,
+    })
+  }
+  return filtrado
 }

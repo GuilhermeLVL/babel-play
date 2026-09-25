@@ -25,6 +25,7 @@ import {
   avisoDeConviteSemEmail,
   configDoBackupDiario,
   configDoSentry,
+  diasDeRetencaoDeAudio,
   erroDeMetricasEmProducao,
   erroDeTrustProxyEmProducao,
   verificarConfiguracaoNoBoot,
@@ -334,6 +335,16 @@ async function startServer({ prepararDados = true } = {}) {
       })
       console.log(`[backup] snapshot diário às ${backup.horaUtc}h UTC para ${destino.cfg.bucket}/${destino.prefixo}`)
     }
+  }
+
+  /* RETENÇÃO DO ÁUDIO DE SESSÃO (`AUDIO_RETENCAO_DIAS`, padrão 90 dias; 0 = para sempre) — no mesmo
+     processo e pelo mesmo motivo do snapshot acima: uma varredura por deploy, não uma por worker.
+     O porquê da política e o que a limpeza apaga estão em `server/lib/retencaoDeAudio.ts`. */
+  const diasDeRetencao = prepararDados ? diasDeRetencaoDeAudio() : 0
+  if (diasDeRetencao > 0) {
+    const { agendarLimpezaDeAudio } = await import('./server/lib/retencaoDeAudio')
+    agendarLimpezaDeAudio({ dias: diasDeRetencao })
+    console.log(`[retenção] áudio de sessão apagado após ${diasDeRetencao} dias (limpeza diária)`)
   }
 
   server.on('error', (err: NodeJS.ErrnoException) => {

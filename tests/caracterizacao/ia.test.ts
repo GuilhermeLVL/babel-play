@@ -130,7 +130,10 @@ describe('POST /api/ai/mt — tradução gerenciada', () => {
     expect(chamadas[0].headers.authorization).toBe('Bearer chave-falsa-primaria')
     expect(chamadas[0].body?.model).toBe('modelo-do-env')
     expect(chamadas[0].body?.stream).toBe(false)
-    expect(chamadas[0].body?.max_tokens).toBe(1200)
+    /* MUDOU EM 24/09/2026, de propósito: era o teto fixo de 1.200 em toda tradução. Agora é
+       proporcional à fonte com piso de 400 (`maxTokensDaTraducao` em `server/ai/funcoesDeIa.ts`) —
+       "hello world" fica no piso — e o teto de 1.200 só vale para o parágrafo longo. */
+    expect(chamadas[0].body?.max_tokens).toBe(400)
   })
 
   it('provedor responde 500 e não há reserva → 502 com código, sem o corpo do provedor', async () => {

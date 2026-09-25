@@ -20,7 +20,11 @@ import { getPlanForUser } from './entitlements'
 import { log } from './logger'
 
 export const METRIC_MANAGED = 'managed_calls'
-/** Segundos de áudio FATURÁVEIS enviados ao STT de nuvem. A unidade em que o provedor cobra. */
+/**
+ * Segundos de áudio REAIS enviados ao STT de nuvem — a unidade em que o plano promete horas. NÃO é o
+ * que o provedor fatura (esse tem mínimo de 10 s por requisição e vai para o orçamento global); ver
+ * `server/lib/duracaoDeAudio.ts`.
+ */
 export const METRIC_STT_SEGUNDOS = 'stt_seconds'
 /** Tokens (entrada + saída) gastos no LLM gerenciado. Reservados ANTES, acertados DEPOIS. */
 export const METRIC_LLM_TOKENS = 'llm_tokens'
@@ -62,17 +66,17 @@ function tetoComEnv(padrao: number | null, envNome: string): number {
 const envDoPlano = (plan: Plan, sufixo: string): string => `${plan.toUpperCase()}_${sufixo}`
 
 /**
- * Teto mensal de CHAMADAS gerenciadas. selfhost ∞; pro do env; demais 0 (o free já é barrado antes,
- * pelo entitlement).
+ * Teto mensal de CHAMADAS gerenciadas. O default vem da matriz (`src/core/planos.ts`: 20.000 no
+ * Essencial, 26.000 no Pro, ∞ no selfhost, 0 no free — que já é barrado antes, pelo entitlement), e
+ * `<PLANO>_MONTHLY_MANAGED_CALLS` sobrepõe.
  *
  * O DEFAULT ERA 1.000, E ISSO ENTREGAVA ~50 MINUTOS DE CONVERSA POR MÊS. Três rotas dividem este
  * mesmo contador — STT (`sttProxy.ts`), tradução (`mtProxy.ts`) e tutor (`server.ts`) — e cada fala
  * ao microfone consome DUAS: uma para transcrever, outra para traduzir. Mil chamadas eram, na
  * prática, quinhentas falas: pouco demais para sustentar uma assinatura.
  *
- * 12.000 vem de orçamento explícito, não de gosto: ~6.000 falas ≈ 10 h de conversa, o perfil do
- * "usuário pesado" de `docs/auditoria/viabilidade-producao-v1.md`. Ao preço medido de US$ 0,107 por
- * mil falas traduzidas, esse teto custa ~US$ 0,64/mês.
+ * Os números atuais vêm da conta de custo por plano em `src/core/planos.ts` (Fase 2 do lançamento):
+ * as horas do plano divididas por falas de ~6 s, vezes duas chamadas por fala, com folga para o tutor.
  *
  * Este teto é de FAIR-USE, não de dinheiro: uma chamada pode ser de um segundo ou de vinte e cinco
  * megabytes. O teto de gasto real é o de segundos, em `capSegundosParaPlano`.
@@ -123,16 +127,21 @@ export async function refundManagedCall(userId: UserId): Promise<void> {
 }
 
 /**
- * Teto MENSAL DE SEGUNDOS de áudio no STT gerenciado. selfhost ∞; pro do env (default 36.000 s =
- * 10 horas); demais 0 (o free já é barrado antes, pelo entitlement).
+ * Teto MENSAL DE SEGUNDOS de áudio no STT gerenciado. O default vem da matriz (`src/core/planos.ts`:
+ * 54.000 s = 15 h no Essencial, 72.000 s = 20 h no Pro, ∞ no selfhost, 0 no free — barrado antes,
+ * pelo entitlement), e `<PLANO>_MONTHLY_STT_SECONDS` sobrepõe. Os segundos contados são os REAIS da
+ * fala (`segundosDeAudioDoUsuario`): 15 h no plano são 15 h de áudio transcrito.
  *
  * POR QUE ESTE TETO EXISTE, ao lado do de chamadas. O de chamadas é fair-use; este é o de DINHEIRO.
  * A Groq cobra STT por hora de áudio, então o gasto de um usuário depende de quanto tempo ele fala,
  * não de quantas vezes. Sem um teto nesta unidade, alguém com a captura aberta 24 h/dia custa duas
  * ordens de grandeza mais que o assinante típico — e o contador de chamadas nem pisca.
  *
- * 10 h/mês foi escolhido por medição, não por gosto: é o perfil do "usuário pesado" da conta em
- * docs/auditoria/eval-producao-v1.md, e a US$ 0,04/hora custa ~US$ 0,67/mês com o mínimo faturado.
+ * O CUSTO DO DONO é maior que o número da cota, e isso é deliberado: com falas de ~6 s o provedor
+ * fatura ~10/6 dos segundos contados aqui (mínimo de 10 s por requisição). No pior caso as 15 h do
+ * Essencial custam ~25 h faturadas (~US$ 1,00/mês a US$ 0,04/h) — dentro da margem do plano. O teto
+ * que protege a FATURA como um todo é o orçamento global (`orcamentoDeIa.ts`), que conta os
+ * segundos faturados.
  */
 export function capSegundosParaPlano(plan: Plan): number {
   return tetoComEnv(PLAN_MATRIX[plan].quotas.sttSegundosMes, envDoPlano(plan, 'MONTHLY_STT_SECONDS'))

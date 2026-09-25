@@ -88,7 +88,7 @@ export async function tutorChat(req: Request, res: Response): Promise<void> {
             maxTokens: prep.maxTokens,
             timeoutMs: TIMEOUT_NUVEM_MS,
           },
-          { evento: 'tutor', route: '/api/tutor/chat', requestId: req.requestId },
+          { evento: 'tutor', route: '/api/tutor/chat', requestId: req.requestId, funcao: prep.funcao },
         )
         if (entregue) {
           await reserva.consumir(entregue.tokensEntrada + entregue.tokensSaida)

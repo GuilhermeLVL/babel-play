@@ -42,9 +42,25 @@ export const ROTAS_DE_CORPO_GRANDE: readonly string[] = [
   '/api/gemini',
 ]
 
+/** Teto das rotas de `ROTAS_DE_CORPO_MINIMO`. */
+export const LIMITE_MINIMO = '8kb'
+
+/**
+ * O outro lado da mesma disciplina: rotas PÚBLICAS cujo corpo legítimo é minúsculo, e que por isso
+ * não precisam nem dos 100 KB do teto padrão.
+ *
+ * - `/api/metricas`: a telemetria anônima de captura (`server/routes/metricasCaptura.ts`). Quatro
+ *   listas de até 200 números e dois nomes de motor — ~6 KB no pior caso legítimo. Sem conta e sem
+ *   token, é a rota em que o custo de um corpo grande cai inteiro sobre o servidor.
+ */
+export const ROTAS_DE_CORPO_MINIMO: readonly string[] = ['/api/metricas']
+
+const casaPrefixo = (lista: readonly string[], caminho: string): boolean =>
+  lista.some((p) => caminho === p || caminho.startsWith(`${p}/`))
+
 /** O caminho pertence a uma rota de corpo grande? Casa o prefixo inteiro, nunca pedaço de nome. */
 export function aceitaCorpoGrande(caminho: string): boolean {
-  return ROTAS_DE_CORPO_GRANDE.some((p) => caminho === p || caminho.startsWith(`${p}/`))
+  return casaPrefixo(ROTAS_DE_CORPO_GRANDE, caminho)
 }
 
 /**
@@ -54,7 +70,11 @@ export function aceitaCorpoGrande(caminho: string): boolean {
  */
 export function jsonAntesDoAuth(): RequestHandler {
   const pequeno = express.json({ limit: LIMITE_PADRAO })
-  return (req, res, next) => (aceitaCorpoGrande(req.path) ? next() : pequeno(req, res, next))
+  const minimo = express.json({ limit: LIMITE_MINIMO })
+  return (req, res, next) => {
+    if (aceitaCorpoGrande(req.path)) return next()
+    return (casaPrefixo(ROTAS_DE_CORPO_MINIMO, req.path) ? minimo : pequeno)(req, res, next)
+  }
 }
 
 /** O parser das rotas de corpo grande, montado DEPOIS do `authMiddleware`. */

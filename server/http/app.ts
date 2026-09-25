@@ -42,6 +42,7 @@ import {
   METRIC_RATELIMIT_AUTH,
   METRIC_RATELIMIT_CARO,
   METRIC_RATELIMIT_ESCRITA,
+  METRIC_RATELIMIT_TELEMETRIA,
 } from '../lib/rateLimitStore'
 import { requestIdMiddleware } from '../lib/requestId'
 import { adminRouter } from '../routes/admin'
@@ -54,6 +55,7 @@ import { healthHandler, readyHandler } from '../routes/health'
 import { imagesRouter } from '../routes/images'
 import { importRouter } from '../routes/import'
 import { meRouter } from '../routes/me'
+import { metricasCapturaRouter } from '../routes/metricasCaptura'
 import { metricsRouter } from '../routes/metrics'
 import { rankRouter } from '../routes/rank'
 import { responsavelRouter } from '../routes/responsavel'
@@ -303,6 +305,27 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
     app.post('/api/rank/:jogo', opcoes.autenticacao ?? authMiddleware, exigirAdultoDeclarado)
   }
   app.use('/api/rank', capturarAssincrono(rankRouter))
+
+  /* TELEMETRIA ANÔNIMA DE CAPTURA — pública, ANTES do auth, como o ranking. Ela precisa funcionar
+     igual com e sem conta (quem estuda sem conta também usa a captura), e ficar antes do
+     `authMiddleware` é também o que garante que ela não conhece identidade: nem com token existe
+     `req.userId` aqui. O corpo tem teto de 8 KB (`ROTAS_DE_CORPO_MINIMO` em `limitesDeCorpo.ts`) e,
+     no modo público, um balde PRÓPRIO por IP: o cliente manda um lote por sessão de captura, e 30
+     por minuto só um laço alcança. Ver `server/routes/metricasCaptura.ts`. */
+  if (authRequired()) {
+    app.use(
+      '/api/metricas',
+      rateLimit({
+        windowMs: 60_000,
+        limit: 30,
+        standardHeaders: true,
+        legacyHeaders: false,
+        keyGenerator: chaveDoRequest,
+        store: createDbRateLimitStore(METRIC_RATELIMIT_TELEMETRIA),
+      }),
+    )
+  }
+  app.use('/api/metricas', capturarAssincrono(metricasCapturaRouter))
 
   /* AS PORTAS DE EMERGÊNCIA (Fase 3): a tela de login e a de planos perguntam aqui, antes de
      haver sessão, se o cadastro e a venda estão abertos. Pública pelo mesmo motivo do health. */

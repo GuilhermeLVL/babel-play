@@ -18,6 +18,7 @@ import { esvaziarCacheDeTraducao } from '../../server/ai/cacheDeTraducao'
 import { esquecerDisjuntores } from '../../server/ai/disjuntor'
 import { asUserId } from '../../server/lib/authContext'
 import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
+import { wavPcm } from '../harness/wav'
 
 let h: EphemeralDb
 let quota: any
@@ -107,7 +108,7 @@ describe('falha fechada', () => {
     const chamadas: string[] = []
     vi.stubGlobal('fetch', async (url: any) => (chamadas.push(String(url)), respostaOk('oi')))
     const res = mockRes()
-    await sttTranscribeProxy({ userId: u, body: Buffer.alloc(64_000), header: () => undefined, requestId: 'r' }, res)
+    await sttTranscribeProxy({ userId: u, body: wavPcm(2), header: () => undefined, requestId: 'r' }, res)
     expect(res.statusCode).toBe(503)
     expect(res.body?.code).toBe('contador_indisponivel')
     expect(chamadas).toEqual([])

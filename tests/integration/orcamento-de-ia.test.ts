@@ -17,6 +17,7 @@ import { esvaziarCacheDeTraducao } from '../../server/ai/cacheDeTraducao'
 import { esquecerDisjuntores } from '../../server/ai/disjuntor'
 import { asUserId } from '../../server/lib/authContext'
 import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
+import { wavPcm } from '../harness/wav'
 
 let h: EphemeralDb
 let orc: any
@@ -97,7 +98,7 @@ describe('AI_ENABLED=0 — a chave de emergência', () => {
     const tutor = mockRes()
     await tutorChat({ userId: u, body: { messages: [{ role: 'user', content: 'oi' }] }, requestId: 'r' }, tutor)
     const stt = mockRes()
-    await sttTranscribeProxy({ userId: u, body: Buffer.alloc(64_000), header: () => undefined, requestId: 'r' }, stt)
+    await sttTranscribeProxy({ userId: u, body: wavPcm(2), header: () => undefined, requestId: 'r' }, stt)
 
     for (const r of [mt, tutor, stt]) {
       expect(r.statusCode).toBe(503)

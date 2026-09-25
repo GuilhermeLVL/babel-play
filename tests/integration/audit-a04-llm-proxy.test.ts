@@ -33,7 +33,7 @@ beforeAll(async () => {
     label: 'a04',
     kind: 'openai',
     baseUrl: 'https://api.groq.com/openai/v1',
-    defaultModel: 'llama-3.1-8b-instant',
+    defaultModel: 'openai/gpt-oss-20b',
     secret: 'sk-fake',
   })
   credId = cred.id

@@ -29,9 +29,14 @@ import { iaDeNuvemLigada, orcamentoMensalDeIaUsd, type PrecoDeModelo, precosDeMo
 import { log } from './logger'
 
 /**
- * Preços OFICIAIS (US$) usados quando o operador não sobrepõe — Groq, consultado em 24/09/2026.
- * LLM: por 1 milhão de tokens de entrada/saída. STT: por hora de áudio (a Groq cobra no mínimo 10 s
- * por requisição; `segundosFaturaveis` já aplica o mínimo, e `custoDeStt` o reaplica por segurança).
+ * Preços OFICIAIS (US$) usados quando o operador não sobrepõe — página de preços da Groq
+ * (groq.com/pricing), consultada em 24/09/2026. LLM: por 1 milhão de tokens de entrada/saída. STT:
+ * por hora de áudio (a Groq cobra no mínimo 10 s por requisição; `segundosFaturaveis` já aplica o
+ * mínimo, e `custoDeStt` o reaplica por segurança).
+ *
+ * É A TABELA ÚNICA: o orçamento global e a métrica `ia_provedor_custo_usd_total`
+ * (`server/http/metricas.ts`) usam as mesmas `custoDeLlm`/`custoDeStt`, para o painel e o teto
+ * nunca discordarem sobre quanto uma chamada custou.
  */
 const PRECOS_OFICIAIS: Readonly<Record<string, PrecoDeModelo>> = {
   'openai/gpt-oss-120b': { entrada: 0.15, saida: 0.6 },

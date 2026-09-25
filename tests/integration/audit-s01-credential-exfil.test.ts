@@ -18,7 +18,7 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 const FAKE_SECRET = 'sk-CHAVE-FALSA-DE-TESTE-nunca-real-0000'
 const ATTACKER = 'http://1.2.3.4'
@@ -32,20 +32,25 @@ let captured: { url: string; authorization: string | null } | null
 beforeAll(async () => {
   h = await setupEphemeralDb()
   ;({ providerTest } = await h.load<{ providerTest: typeof providerTest }>('../../server/ai/proxy'))
-  const { credentialsRepo } = await h.load<{ credentialsRepo: {
-    create: (userId: unknown, p: Record<string, unknown>) => Promise<{ id: string }>
-  } }>('../../server/db/repositories/credentials')
+  const { credentialsRepo } = await h.load<{
+    credentialsRepo: {
+      create: (userId: unknown, p: Record<string, unknown>) => Promise<{ id: string }>
+    }
+  }>('../../server/db/repositories/credentials')
 
   const cred = await credentialsRepo.create(OWNER, {
-    label: 's01', kind: 'openai',
+    label: 's01',
+    kind: 'openai',
     baseUrl: 'https://api.groq.com/openai/v1', // baseUrl LEGÍTIMO salvo
-    defaultModel: 'llama-3.1-8b-instant',
+    defaultModel: 'openai/gpt-oss-20b',
     secret: FAKE_SECRET,
   })
   credId = cred.id
 })
 
-afterAll(async () => { await h.cleanup() })
+afterAll(async () => {
+  await h.cleanup()
+})
 
 // mock de fetch: captura o destino e o header, sem sair da máquina
 function mockFetch() {
@@ -53,23 +58,34 @@ function mockFetch() {
   return vi.spyOn(globalThis, 'fetch').mockImplementation(async (url: string | URL | Request, opts?: RequestInit) => {
     const headers = (opts?.headers ?? {}) as Record<string, string>
     captured = { url: String(url), authorization: headers.Authorization ?? headers.authorization ?? null }
-    return new Response(JSON.stringify({ choices: [{ message: { content: 'ok' } }] }),
-      { status: 200, headers: { 'content-type': 'application/json' } })
+    return new Response(JSON.stringify({ choices: [{ message: { content: 'ok' } }] }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    })
   })
 }
 
 function mkRes() {
   const r: Record<string, unknown> = { _json: null as unknown, statusCode: 200, headersSent: false }
-  r.status = () => r; r.json = (o: unknown) => { r._json = o; return r }
-  r.setHeader = () => r; r.end = () => r; r.write = () => true; r.header = () => undefined
+  r.status = () => r
+  r.json = (o: unknown) => {
+    r._json = o
+    return r
+  }
+  r.setHeader = () => r
+  r.end = () => r
+  r.write = () => true
+  r.header = () => undefined
   return r
 }
 
 describe('S-01 — exfiltração de credencial via providers/test', () => {
   it('a chave é write-only (não volta pela listagem) — defesa que EXISTE', async () => {
-    const { credentialsRepo } = await h.load<{ credentialsRepo: {
-      list: (userId: unknown) => Promise<Array<Record<string, unknown>>>
-    } }>('../../server/db/repositories/credentials')
+    const { credentialsRepo } = await h.load<{
+      credentialsRepo: {
+        list: (userId: unknown) => Promise<Array<Record<string, unknown>>>
+      }
+    }>('../../server/db/repositories/credentials')
     const list = await credentialsRepo.list(OWNER)
     expect(JSON.stringify(list)).not.toContain(FAKE_SECRET)
   })
@@ -77,7 +93,10 @@ describe('S-01 — exfiltração de credencial via providers/test', () => {
   it('CORRIGIDO (S-01): credentialId + baseUrl arbitrário → o host do corpo é IGNORADO', async () => {
     const spy = mockFetch()
     const res = mkRes()
-    await providerTest({ body: { credentialId: credId, baseUrl: ATTACKER }, header: () => undefined, userId: OWNER }, res)
+    await providerTest(
+      { body: { credentialId: credId, baseUrl: ATTACKER }, header: () => undefined, userId: OWNER },
+      res,
+    )
     spy.mockRestore()
 
     // Após o fix: usa o baseUrl DA CREDENCIAL (api.groq.com), nunca o host do corpo (1.2.3.4).
@@ -89,7 +108,10 @@ describe('S-01 — exfiltração de credencial via providers/test', () => {
   it('DESEJADO (S-01): o segredo NUNCA vai para o host escolhido pelo chamador', async () => {
     const spy = mockFetch()
     const res = mkRes()
-    await providerTest({ body: { credentialId: credId, baseUrl: ATTACKER }, header: () => undefined, userId: OWNER }, res)
+    await providerTest(
+      { body: { credentialId: credId, baseUrl: ATTACKER }, header: () => undefined, userId: OWNER },
+      res,
+    )
     spy.mockRestore()
 
     // Asserção INTACTA do teste original (só o wrapper .fails foi removido — ela agora passa por mérito).

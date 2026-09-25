@@ -6,7 +6,9 @@
  * `llmClient.ts` já documenta: uma correção num lugar e o defeito continuando no outro. O que
  * difere entre os dois chamadores — o prefixo do evento de log e a rota — entra por parâmetro.
  */
+import { observarChamadaDeProvedor } from '../http/metricas'
 import { log } from '../lib/logger'
+import { custoDeLlm } from '../lib/orcamentoDeIa'
 import { chaveDoProvedor, disjuntorPermite, registrarFalha, registrarSucesso } from './disjuntor'
 import { chamarChat, type PedidoDeChat } from './llmClient'
 import type { Provedor } from './provedores'
@@ -28,7 +30,8 @@ interface ResultadoDaCascata {
 export async function percorrerCascata(
   provedores: Provedor[],
   pedido: Omit<PedidoDeChat, 'base' | 'apiKey' | 'model'>,
-  contexto: { evento: string; route: string; requestId?: string },
+  /** `funcao` rotula a métrica do provedor (`traducao`, `tutor`, `corretor`) — valor fixo do código. */
+  contexto: { evento: string; route: string; requestId?: string; funcao?: string },
 ): Promise<ResultadoDaCascata> {
   let ultimaFalha = 'sem provedor'
   for (const prov of provedores) {
@@ -46,7 +49,16 @@ export async function percorrerCascata(
       })
       continue
     }
+    const inicio = Date.now()
     const r = await chamarChat({ ...pedido, base: prov.base, apiKey: prov.apiKey, model: prov.model })
+    /* A latência de CADA perna, inclusive a que falhou: um primário que demora 12 s para cair é
+       exatamente o que a p95 da tradução precisa mostrar. Custo só de quem entregou. */
+    observarChamadaDeProvedor({
+      provedor: prov.rotulo,
+      funcao: contexto.funcao ?? contexto.evento,
+      ms: Date.now() - inicio,
+      custoUsd: r.ok ? custoDeLlm(prov.model, r.tokensEntrada ?? 0, r.tokensSaida ?? 0) : undefined,
+    })
     if (r.ok) {
       registrarSucesso(chave)
       return {

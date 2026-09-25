@@ -63,6 +63,10 @@ export function criarCacheDeTraducao({ ttlMs = TTL_PADRAO_MS, max = MAX_ENTRADAS
     esvaziar(): void {
       mapa.clear()
     },
+    /** Entradas guardadas agora (inclui as já vencidas que ninguém leu) — para a métrica. */
+    tamanho(): number {
+      return mapa.size
+    },
   }
 }
 

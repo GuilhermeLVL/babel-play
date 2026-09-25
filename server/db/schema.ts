@@ -917,7 +917,8 @@ export const rank = sqliteTable(
 /**
  * GASTO DE IA DO MÊS — o orçamento global da nuvem (Fase 2 do lançamento; migração 0029).
  *
- * Uma linha por mês, sem `user_id`: é conta do serviço, não dado de titular. Microdólares inteiros
+ * Uma linha por PERÍODO — `AAAA-MM` (mês) e, desde a Fase 5 de prontidão, também `AAAA-MM-DD` (dia
+ * UTC, para o teto diário) na mesma coluna `mes`; sem `user_id`: é conta do serviço, não dado de titular. Microdólares inteiros
  * porque a soma de milhares de custos minúsculos em ponto flutuante acumula erro, e o gatilho de
  * 100% é uma comparação exata. Quem lê e escreve: `server/db/repositories/gastoDeIa.ts`.
  */

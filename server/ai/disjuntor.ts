@@ -131,6 +131,13 @@ export function registrarFalha(chave: string, status?: number): void {
   if (r.falhasSeguidas >= FALHAS_PARA_ABRIR) r.abertoAte = Date.now() + JANELA_ABERTA_MS
 }
 
+/** Quantos disjuntores há em cada estado agora — a métrica `ia_disjuntores` (sem a chave, que tem URL). */
+export function contagemDosDisjuntores(): Record<EstadoDoDisjuntor, number> {
+  const c: Record<EstadoDoDisjuntor, number> = { fechado: 0, aberto: 0, 'meio-aberto': 0 }
+  for (const chave of registros.keys()) c[estadoDoDisjuntor(chave)]++
+  return c
+}
+
 /** Apaga o estado. Só os testes usam — em produção o registro vive enquanto o processo viver. */
 export function esquecerDisjuntores(): void {
   registros.clear()

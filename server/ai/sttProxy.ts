@@ -84,6 +84,8 @@ function sttGerenciado(): { secret: string | null; baseUrl: string; model: strin
 interface PortaDoStt {
   byok: boolean
   plano?: PlanoDeAdmissao
+  /** O plano da assinatura (`free|essencial|pro|selfhost`) — rótulo da métrica de custo por plano. */
+  planoDaAssinatura?: string
   chamada?: ChamadaAdmitida
   secret?: string
   baseUrl?: string
@@ -138,6 +140,7 @@ async function abrirPortaDoStt(req: Request, res: Response): Promise<PortaDoStt 
   return {
     byok: false,
     plano: faixa,
+    planoDaAssinatura: plano.plan,
     chamada: admissao.chamada,
     secret: cfg.secret,
     baseUrl: cfg.baseUrl,
@@ -482,7 +485,8 @@ async function transcrever(req: Request, res: Response, rastro: RastroDeIa): Pro
        aqui o número é o que o PROVEDOR fatura (`segundosFaturaveis`, com o mínimo de 10 s), não o
        que saiu da cota do assinante: o orçamento existe para bater com a fatura. */
     const custoUsd = gerenciado ? custoDeStt(model, segundosFaturaveis(audioBuffer)) : undefined
-    if (custoUsd !== undefined) await registrarGastoDeIa(custoUsd)
+    if (custoUsd !== undefined)
+      await registrarGastoDeIa(custoUsd, { userId: req.userId, plano: porta?.planoDaAssinatura })
     segundosReservados = 0 // consumados junto com a chamada: nada a estornar
     observarChamadaDeProvedor({
       provedor: gerenciado ? 'stt-gerenciado' : 'byok',

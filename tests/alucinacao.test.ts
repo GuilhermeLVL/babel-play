@@ -100,3 +100,24 @@ describe('de-looping: n-grama repetido 3+ vezes seguidas vira uma ocorrência', 
     expect(filtrarAlucinacao('Não, não, não.', 2, 'pt')).toBe('Não, não, não.')
   })
 })
+
+describe('vocalização: a saída inteira é grito, riso ou letra solta (bancada 2026-09, ESC-50)', () => {
+  /* Medido: com o VAD na frente, 26–30% dos trechos SEM fala ainda saíam do Whisper local com texto,
+     e o grosso eram estas formas — "Aaaaah!", "Ahahahah!", "BAPAPAP!", um "e" solto. Nenhuma é
+     legenda útil, nem quando alguém de fato ri ou grita. */
+  it('descarta interjeição esticada, sílaba repetida e letra solta', () => {
+    for (const t of ['Aaaaaaaaahhhhhh', 'AAAAAAAA!', 'Ooooooo!', 'Ahahahahahahahah!', 'BAPAPAP!', 'Hmmmm...', 'Rrrr... Hummm...',
+      'e', 'E', 'O', 'Ah!', 'Ah! Ah!', 'Eee!', 'Uuuuuh!', 'Hahaha!', 'Hã?', 'Tchp!', 'Ohhh!', 'Eeeeeee Arrrggg!', 'Bip, bip, bip...'])
+      expect(filtrarAlucinacao(t, 5, 'pt'), t).toBe('')
+  })
+
+  it('fala com uma interjeição no meio fica inteira', () => {
+    for (const t of ['Ah, entendi agora.', 'Aaah, que legal!', 'Não. E aí, tudo bem?', 'Hahaha, que engraçado.', 'Oh my god!'])
+      expect(filtrarAlucinacao(t, 3, 'pt'), t).toBe(t)
+  })
+
+  it('palavras curtas de verdade não são vocalização', () => {
+    for (const t of ['Não.', 'Sim!', 'Oi!', 'Yes.', 'No.', 'Ok.', 'Tá.'])
+      expect(filtrarAlucinacao(t, 1.2, 'pt'), t).toBe(t)
+  })
+})

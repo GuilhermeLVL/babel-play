@@ -22,6 +22,12 @@
  *     foi calibrado em inglês; português falado rápido chega perto disso legitimamente, então fora
  *     do EN o teto é 8/s.
  *
+ *  4. VOCALIZAÇÃO — a saída INTEIRA é grito, riso, interjeição esticada ou letra solta ("Aaaah!",
+ *     "Ahahahah!", "BAPAPAP!", "Hmmmm…", "e"). Medido na bancada de 2026-09 (ESC-50, sons sem fala):
+ *     mesmo com o VAD na frente, 26–30% dos trechos sem fala saíam do Whisper local com texto, e o
+ *     grosso era isto. Não é legenda útil nem quando alguém de fato ri — e palavra de verdade
+ *     ("Não.", "Oi!", "Tá.") não tem letra triplicada nem sílaba em ciclo, então fica.
+ *
  * E UM REPARO, não um descarte: o DE-LOOPING. O decode greedy às vezes entra em ciclo no fim do
  * trecho ("a gente vai a gente vai a gente vai…"). Jogar a fala inteira fora perderia a parte boa
  * que veio antes; colapsar o ciclo numa ocorrência devolve a frase que a pessoa disse.
@@ -49,6 +55,22 @@ const TOKEN_SOLTO_EN = /^(you|so|hmm|uh|um|ah)\W*$/i
 /** Cortesia curta que é a saída INTEIRA do motor. Só é descartada com áudio longo (ver nível 2). */
 const CORTESIAS =
   /^(muito )?(obrigad[oa]|valeu|thank you( (very|so) much)?|thanks( a lot)?|(muchas )?gracias|merci( beaucoup)?|danke( sch[öo]n)?|tchau(,? tchau)?|bye(,? bye)?|adi[óo]s|e a[íi])[\s\p{P}]*$/iu
+/** Interjeições sem conteúdo — só contam quando a saída INTEIRA é feita delas (nível 4). */
+const INTERJEICOES = new Set(['ah', 'oh', 'eh', 'uh', 'hum', 'hm', 'hmm', 'hã', 'ahn', 'tchp', 'bip', 'argh', 'arg', 'ugh'])
+
+/**
+ * Um token é vocalização: letra solta, letra triplicada ou sílaba curta em ciclo — sempre. A
+ * interjeição SIMPLES ("Ah.", "Hum.") só conta com áudio longo: dita, é resposta legítima de ~1 s;
+ * sozinha num trecho de mais de 3 s, é o motor completando ruído (a mesma régua das cortesias).
+ */
+function ehVocalizacao(token: string, audioSec: number): boolean {
+  const w = token.toLowerCase().replace(/[^\p{L}]/gu, '')
+  if (w.length <= 1) return true
+  if (INTERJEICOES.has(w)) return audioSec > SEGUNDOS_DE_CORTESIA_SUSPEITA
+  if (/(\p{L})\1{2,}/u.test(w)) return true // "aaah", "hmmm", "rrrr"
+  return /(\p{L}{1,3})\1{2,}/u.test(w) // "hahaha", "ahahah", "bapapap"
+}
+
 /** Acima disto, uma cortesia sozinha não explica o áudio: é o clichê preenchendo silêncio/música. */
 const SEGUNDOS_DE_CORTESIA_SUSPEITA = 3
 
@@ -110,6 +132,7 @@ export function filtrarAlucinacao(texto: string, audioSec: number, lang?: string
   const l = baseLang(lang)
   if ((!l || l === 'en') && TOKEN_SOLTO_EN.test(t)) return ''
   const palavras = t.split(/\s+/)
+  if (palavras.every((p) => ehVocalizacao(p, audioSec))) return ''
   if (audioSec > 0 && palavras.length / audioSec > tetoDePalavrasPorSegundo(lang)) return ''  // rápido demais para fala
   return t
 }

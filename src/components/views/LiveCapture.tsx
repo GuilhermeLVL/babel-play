@@ -1058,6 +1058,7 @@ export default function LiveCapture({
     setModelPrep,
     setIsRecording,
     setMicAbrindo,
+    finalNaNuvem: () => gateway.stt.finalNaNuvem(),
   });
 
   // Harness OFFLINE de teste (dev): injeta um PCM conhecido pelo MESMO caminho do sistema

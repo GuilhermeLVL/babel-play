@@ -391,10 +391,24 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
         }
       },
 
+      /**
+       * O decode FINAL vai, neste momento, para a NUVEM? (rota "nuvem primeiro", consentimento
+       * dado e um binding `groq-whisper` no perfil.) A captura usa isto para escolher o teto de fala
+       * contínua: 12 s na nuvem (cobrança mínima de 10 s por pedido), 6 s no local. É lido a cada
+       * quadro do VAD, então retirar o consentimento no meio da sessão volta ao corte curto na hora.
+       */
+      finalNaNuvem(): boolean {
+        return (
+          sttPreferCloudRef.value &&
+          consentiu() &&
+          (core.getProfile().bindings.stt ?? []).some((b) => b.adapterId === 'groq-whisper')
+        );
+      },
+
       async transcribePcm(
         pcm: Float32Array,
         sampleRate: number,
-        opts?: { languageHint?: string; signal?: AbortSignal; onUpdate?: (text: string) => void },
+        opts?: { languageHint?: string; signal?: AbortSignal; onUpdate?: (text: string) => void; prompt?: string },
       ): Promise<SttFinal> {
         let lastErr: Error | null = null;
         let bindings = [...(core.getProfile().bindings.stt ?? [])];

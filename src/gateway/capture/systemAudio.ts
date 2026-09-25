@@ -40,6 +40,43 @@ export interface AudioCapture {
   startedAtMs: number;
 }
 
+/**
+ * TAXA DE BITS DO GRAVADOR DA SESSÃO (bits/s). Sem ela o MediaRecorder usa o padrão do navegador,
+ * que no Chrome é ~128 kbps — dimensionado para MÚSICA, não para uma aula ou chamada. Opus de fala
+ * a 24–32 kbps é transparente para re-transcrição (é o que a literatura de ASR sobre áudio
+ * comprimido mede), e o arquivo cai para ~1/4: 14 MB por hora em vez de ~58.
+ *
+ * É UMA constante exportada, e não um número solto no `new MediaRecorder`, porque o valor ainda vai
+ * ser confirmado por benchmark (WER da re-transcrição × taxa); afinar tem de ser uma linha só.
+ */
+export const TAXA_DE_BITS_DA_GRAVACAO = 32_000;
+
+/**
+ * TETO DE FALA CONTÍNUA antes do corte forçado, por motor FINAL de STT.
+ *
+ * LOCAL (6 s): o Whisper no navegador decodifica o trecho inteiro de uma vez; um bloco longo é um
+ * decode longo, e a legenda atrasa. Seis segundos mantêm o retorno responsivo.
+ *
+ * NUVEM (12 s): a Groq COBRA NO MÍNIMO 10 s POR REQUISIÇÃO. Fatiar em 6 s paga ~o dobro pelo mesmo
+ * áudio, e ainda parte frases ao meio — o que piora o WER (docs/PROXIMOS-PASSOS.md, D1), porque o
+ * modelo perde o contexto da outra metade. O parcial continua LOCAL e a cada ~1 s, então um final
+ * mais longo NÃO atrasa o texto que aparece na tela enquanto a pessoa fala.
+ */
+export const MAX_SPEECH_MS_LOCAL = 6000;
+export const MAX_SPEECH_MS_NUVEM = 12_000;
+
+/**
+ * Opções da captura que dependem do RESTO do app (hoje: da rota de STT).
+ *
+ * `maxSpeechMs` é uma FUNÇÃO, lida a cada quadro do VAD, e não um número: o roteador de STT só
+ * decide "nuvem primeiro" DEPOIS que a captura abriu (a sonda `/api/ai/stt/available` corre em
+ * paralelo ao pedido de compartilhamento). Um número congelaria a decisão errada no começo; a função
+ * pega a rota assim que ela existe — e acompanha se a nuvem cair no meio da sessão.
+ */
+export interface OpcoesDeCaptura {
+  maxSpeechMs?: () => number;
+}
+
 // Escolhe um container/codec de áudio suportado pelo MediaRecorder deste navegador.
 function pickRecorderMime(): string {
   const MR = (globalThis as any).MediaRecorder;
@@ -98,11 +135,22 @@ async function acquireDisplayStream(): Promise<MediaStream> {
        - selfBrowserSurface: 'exclude' — tira a própria janela do Babel do picker (eco garantido);
        - surfaceSwitching: 'include' — deixa trocar de aba no meio sem reabrir o picker;
        - suppressLocalAudioPlayback: false — o som CONTINUA tocando no alto-falante da pessoa.
+       - echoCancellation/noiseSuppression/autoGainControl: false — o que chega aqui é música,
+         vídeo, jogo, a voz de quem está do outro lado JÁ processada pelo app de chamada. O DSP de
+         conferência foi feito para MICROFONE: a supressão de ruído trata trilha sonora como ruído
+         e come consoantes, o AGC bombeia o volume entre frases. Sem pedir `false`, o navegador
+         pode aplicá-lo à faixa de display (o padrão das constraints de áudio é ligado). A rota de
+         loopback por dispositivo já desligava os três pelo mesmo motivo; esta não desligava.
        O que constraint NENHUMA resolve: JANELA não expõe áudio no Chrome/Windows (limitação de
        plataforma; o próprio picker avisa). Esse caso vira o erro tipado JANELA_SEM_AUDIO abaixo. */
     const stream = await navigator.mediaDevices.getDisplayMedia({
       video: true,
-      audio: { suppressLocalAudioPlayback: false } as MediaTrackConstraints,
+      audio: {
+        suppressLocalAudioPlayback: false,
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false,
+      } as MediaTrackConstraints,
       systemAudio: 'include',
       monitorTypeSurfaces: 'include',
       selfBrowserSurface: 'exclude',
@@ -152,6 +200,7 @@ async function startCaptureFromStream(
   audioStream: MediaStream,
   cb: SystemAudioCallbacks,
   label: 'system' | 'mic',
+  opcoes: OpcoesDeCaptura = {},
 ): Promise<AudioCapture> {
   // GRAVA o áudio da sessão com MediaRecorder — é o que o player do Analysis reproduz
   // depois ("dar play e ouvir") com waveform real. Best-effort: se falhar, seguimos sem áudio.
@@ -162,7 +211,10 @@ async function startCaptureFromStream(
   // que a UI usa para ancorar as legendas. Fallback: agora (sem recorder não há áudio p/ alinhar).
   let startedAtMs = Date.now();
   try {
-    recorder = new MediaRecorder(audioStream, recMime ? { mimeType: recMime } : undefined);
+    recorder = new MediaRecorder(audioStream, {
+      ...(recMime ? { mimeType: recMime } : {}),
+      audioBitsPerSecond: TAXA_DE_BITS_DA_GRAVACAO,
+    });
     recorder.ondataavailable = (e) => {
       if (e.data && e.data.size) recChunks.push(e.data);
     };
@@ -224,8 +276,12 @@ async function startCaptureFromStream(
 
   // Silero VAD sobre o áudio. Assets auto-hospedados em /public. O Silero só fecha um
   // segmento no SILÊNCIO; num áudio sem pausas isso vira um bloco gigante e lento —
-  // cortamos à força falas contínuas > MAX_SPEECH_MS para manter o retorno responsivo.
-  const MAX_SPEECH_MS = 6000;
+  // cortamos à força falas contínuas > maxSpeechMs() para manter o retorno responsivo. O teto
+  // depende do motor final (ver MAX_SPEECH_MS_LOCAL/NUVEM) e vem por opção, lido a cada quadro.
+  const maxSpeechMs = (): number => {
+    const v = opcoes.maxSpeechMs?.();
+    return typeof v === 'number' && v > 0 ? v : MAX_SPEECH_MS_LOCAL;
+  };
   let speechStartTs = 0;
   let forcingCut = false;
   /*
@@ -311,10 +367,11 @@ async function startCaptureFromStream(
           frameChunks.push(frame.slice());
           accumSamples += frame.length;
         }
-        if (!forcingCut && speechStartTs && performance.now() - speechStartTs >= MAX_SPEECH_MS) {
+        const teto = maxSpeechMs();
+        if (!forcingCut && speechStartTs && performance.now() - speechStartTs >= teto) {
           forcingCut = true;
           speechStartTs = performance.now();
-          vlog(label, 'VAD → corte forçado (fala contínua > ' + MAX_SPEECH_MS + 'ms)');
+          vlog(label, 'VAD → corte forçado (fala contínua > ' + teto + 'ms)');
           Promise.resolve(vad.pause())
             // Uma pausa pedida no meio do corte vence: o VAD não volta sozinho.
             .then(() => (paused ? undefined : vad.start()))
@@ -465,7 +522,10 @@ async function startCaptureFromStream(
  * áudio do sistema" (capta o mix inteiro do SO). Para conteúdo numa aba: escolhe a aba +
  * "áudio da aba". Modo "Janela" não tem áudio no Chrome.
  */
-export async function startSystemAudioCapture(cb: SystemAudioCallbacks): Promise<AudioCapture> {
+export async function startSystemAudioCapture(
+  cb: SystemAudioCallbacks,
+  opcoes?: OpcoesDeCaptura,
+): Promise<AudioCapture> {
   try {
     let stream: MediaStream;
     try {
@@ -527,7 +587,7 @@ export async function startSystemAudioCapture(cb: SystemAudioCallbacks): Promise
     // NÃO paramos a faixa de vídeo: em "Tela inteira", parar o vídeo ENCERRA o áudio do
     // sistema junto. Mantemos o stream vivo (fullStream) e usamos só o áudio no pipeline.
     const audioStream = new MediaStream(audioTracks);
-    const capture = await startCaptureFromStream(stream, audioStream, cb, 'system');
+    const capture = await startCaptureFromStream(stream, audioStream, cb, 'system', opcoes);
     // Ao parar, também limpamos a referência do singleton e marcamos a liberação (cooldown),
     // para que uma nova aquisição respeite o respiro do WASAPI.
     return {
@@ -555,7 +615,11 @@ export async function startSystemAudioCapture(cb: SystemAudioCallbacks): Promise
  * sistema — assim honra o dispositivo de entrada escolhido, funciona offline e é
  * consistente. `deviceId` vazio/ausente = microfone padrão do SO.
  */
-export async function startMicCapture(deviceId: string | undefined, cb: SystemAudioCallbacks): Promise<AudioCapture> {
+export async function startMicCapture(
+  deviceId: string | undefined,
+  cb: SystemAudioCallbacks,
+  opcoes?: OpcoesDeCaptura,
+): Promise<AudioCapture> {
   try {
     let stream: MediaStream;
     try {
@@ -579,7 +643,7 @@ export async function startMicCapture(deviceId: string | undefined, cb: SystemAu
       }
       throw err;
     }
-    return await startCaptureFromStream(stream, stream, cb, 'mic');
+    return await startCaptureFromStream(stream, stream, cb, 'mic', opcoes);
   } catch (err) {
     const error = err instanceof Error ? err : new Error(String(err));
     cb.onError?.(error);
@@ -599,6 +663,7 @@ export async function startMicCapture(deviceId: string | undefined, cb: SystemAu
 export async function startSystemLoopbackCapture(
   deviceId: string | undefined,
   cb: SystemAudioCallbacks,
+  opcoes?: OpcoesDeCaptura,
 ): Promise<AudioCapture> {
   try {
     let stream: MediaStream;
@@ -629,7 +694,7 @@ export async function startSystemLoopbackCapture(
       }
       throw err;
     }
-    return await startCaptureFromStream(stream, stream, cb, 'system');
+    return await startCaptureFromStream(stream, stream, cb, 'system', opcoes);
   } catch (err) {
     const error = err instanceof Error ? err : new Error(String(err));
     cb.onError?.(error);
@@ -660,7 +725,10 @@ export async function serverLoopbackSupported(): Promise<boolean> {
  * endpoint de stream e o reproduz num grafo WebAudio mudo cuja saída é um MediaStream —
  * o que permite reusar `startCaptureFromStream` (VAD, parciais, MediaRecorder) sem forks.
  */
-export async function startServerLoopbackCapture(cb: SystemAudioCallbacks): Promise<AudioCapture> {
+export async function startServerLoopbackCapture(
+  cb: SystemAudioCallbacks,
+  opcoes?: OpcoesDeCaptura,
+): Promise<AudioCapture> {
   try {
     const resp = await apiFetch('/api/audio/loopback/stream', { timeoutMs: 24 * 3_600_000 });
     if (!resp.ok || !resp.body) {
@@ -712,7 +780,7 @@ export async function startServerLoopbackCapture(cb: SystemAudioCallbacks): Prom
       }
     })();
 
-    const capture = await startCaptureFromStream(dest.stream, dest.stream, cb, 'system');
+    const capture = await startCaptureFromStream(dest.stream, dest.stream, cb, 'system', opcoes);
     return {
       startedAtMs: capture.startedAtMs,
       setMuted: (m) => capture.setMuted(m),

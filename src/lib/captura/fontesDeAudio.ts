@@ -12,6 +12,9 @@ import { WebSpeechStt } from '../../gateway/adapters/webSpeech';
 import type { SttSession } from '../../gateway/capabilities';
 import {
   type AudioCapture,
+  MAX_SPEECH_MS_LOCAL,
+  MAX_SPEECH_MS_NUVEM,
+  type OpcoesDeCaptura,
   startMicCapture,
   startServerLoopbackCapture,
   startSystemAudioCapture,
@@ -64,6 +67,9 @@ export interface DepsDasFontesDeAudio {
   setModelPrep: Dispatch<SetStateAction<ModelPrepState | null>>;
   setIsRecording: Dispatch<SetStateAction<boolean>>;
   setMicAbrindo: Dispatch<SetStateAction<boolean>>;
+  /* --- rota do STT --- */
+  /** O decode final vai para a nuvem AGORA? Decide o teto de fala contínua (ver `OpcoesDeCaptura`). */
+  finalNaNuvem?: () => boolean;
 }
 
 export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
@@ -101,7 +107,15 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
     setModelPrep,
     setIsRecording,
     setMicAbrindo,
+    finalNaNuvem,
   } = deps;
+
+  /* O teto do corte forçado acompanha o motor FINAL: 12 s na nuvem (cobrança mínima de 10 s por
+     pedido; frase inteira transcreve melhor), 6 s no Whisper local. Função, não número: a rota só é
+     conhecida depois que a captura abriu (ver `prepareModels`). */
+  const opcoesDeCaptura: OpcoesDeCaptura = {
+    maxSpeechMs: () => (finalNaNuvem?.() ? MAX_SPEECH_MS_NUVEM : MAX_SPEECH_MS_LOCAL),
+  };
 
   // Inicia a captura do áudio do sistema/aba: pede a fonte (gesto do usuário) e prepara o modelo.
   const handleStartSystemCapture = async () => {
@@ -132,7 +146,7 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
       };
       systemCaptureRef.current =
         source === 'server'
-          ? await startServerLoopbackCapture(cb)
+          ? await startServerLoopbackCapture(cb, opcoesDeCaptura)
           : source === 'loopback'
             ? await (async () => {
                 /* Sem dispositivo escolhido E sem nenhum candidato (Stereo Mix / VB-Cable) o getUserMedia
@@ -147,9 +161,9 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
                     );
                   }
                 }
-                return startSystemLoopbackCapture(loopbackDeviceIdRef.current || undefined, cb);
+                return startSystemLoopbackCapture(loopbackDeviceIdRef.current || undefined, cb, opcoesDeCaptura);
               })()
-            : await startSystemAudioCapture(cb);
+            : await startSystemAudioCapture(cb, opcoesDeCaptura);
       clog('captura do sistema ATIVA ✓');
       if (systemCaptureRef.current) anchorSessionClock(systemCaptureRef.current.startedAtMs, 'system');
       setFeedbackMsg(
@@ -209,7 +223,7 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
           setFeedbackMsg('Erro no microfone: ' + err.message);
           setTimeout(() => setFeedbackMsg(''), 6000);
         },
-      });
+      }, opcoesDeCaptura);
       clog('captura do microfone ATIVA ✓');
       micStartedAtRef.current = micCaptureRef.current?.startedAtMs ?? 0;
       anchorSessionClock(micStartedAtRef.current, 'mic'); // ancora só se o mic for a fonte do áudio salvo

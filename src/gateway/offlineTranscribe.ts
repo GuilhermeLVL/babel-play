@@ -13,6 +13,8 @@
  *     Recusa DEFINITIVA da nuvem (402 plano/cota, 429 limite, 501 sem conta ou não configurada,
  *     503 orçamento) desliga a nuvem pelo resto do arquivo e o local assume; falha passageira
  *     (rede, 500) manda só aquele trecho ao local. O arquivo é transcrito inteiro de qualquer jeito.
+ *     EXCEÇÃO: 429 `nuvem_ocupada` (admissão do servidor, ADR 0007) é a nuvem CHEIA, não fechada —
+ *     os trechos vão ao local só até o `Retry-After` (ou 60 s) e depois a nuvem volta.
  *     Na nuvem as falas seguidas vão em PACOTES de até 28 s (gruparParaNuvem): a Groq cobra no
  *     mínimo 10 s por pedido.
  *
@@ -45,6 +47,9 @@ export interface MotorDeNuvem {
 
 /** Respostas que dizem "não vai dar nesta importação": insistir só cobraria (ou recusaria) de novo. */
 const RECUSA_DEFINITIVA = new Set([402, 429, 501, 503]);
+
+/** Espera da nuvem cheia (`nuvem_ocupada`) quando o erro não diz o `Retry-After`. */
+const ESPERA_DA_NUVEM_CHEIA_MS = 60_000;
 
 export interface OfflineProgress {
   phase: 'decode' | 'model' | 'segment';
@@ -186,6 +191,8 @@ export async function offlineTranscribe(blob: Blob, opts: OfflineOptions = {}): 
     return local;
   };
   let nuvemAtiva = !!nuvem;
+  /** Nuvem cheia (429 `nuvem_ocupada`): até este instante os trechos vão ao local. */
+  let nuvemCheiaAte = 0;
   if (!nuvemAtiva) await garantirLocal();
 
   // Coleta os segmentos de fala primeiro (para saber o total e reportar progresso honesto).
@@ -224,13 +231,15 @@ export async function offlineTranscribe(blob: Blob, opts: OfflineOptions = {}): 
       label: `Transcrevendo trecho ${i + 1}/${pacotes.length}…`,
     });
     let r: SttFinal | null = null;
-    if (nuvem && nuvemAtiva) {
+    if (nuvem && nuvemAtiva && Date.now() >= nuvemCheiaAte) {
       try {
         const prompt = languageHint && anterior ? cortarPrompt(anterior) : undefined;
         r = await nuvem.transcribePcm(juntarAudioDoPacote(p), 16000, { languageHint, prompt });
       } catch (e) {
-        const status = (e as { status?: number })?.status;
-        if (typeof status === 'number' && RECUSA_DEFINITIVA.has(status)) nuvemAtiva = false;
+        const { status, code, retryAfterMs } = (e ?? {}) as { status?: number; code?: string; retryAfterMs?: number };
+        if (status === 429 && code === 'nuvem_ocupada') {
+          nuvemCheiaAte = Date.now() + (retryAfterMs && retryAfterMs > 0 ? retryAfterMs : ESPERA_DA_NUVEM_CHEIA_MS);
+        } else if (typeof status === 'number' && RECUSA_DEFINITIVA.has(status)) nuvemAtiva = false;
       }
     }
     if (r) {

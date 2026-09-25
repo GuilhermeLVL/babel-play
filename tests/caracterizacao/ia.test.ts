@@ -13,6 +13,7 @@
  */
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { esquecerAdmissao } from '../../server/ai/admissao'
 import { esvaziarCacheDeTraducao } from '../../server/ai/cacheDeTraducao'
 import { esquecerDisjuntores } from '../../server/ai/disjuntor'
 import { type AppDeTeste, resposta, subirApp } from './_app'
@@ -108,6 +109,9 @@ beforeEach(() => {
      429) somariam e o teste seguinte encontraria o provedor com o disjuntor aberto — a chamada
      não sairia, e o `chamadas` que cada caso confere mediria outra coisa. */
   esquecerDisjuntores()
+  /* A admissão de IA (ADR 0007) também é estado de processo: o 429 encenado num caso fecha o balde
+     do modelo até o `Retry-After`, e o caso seguinte receberia `nuvem_ocupada` sem chamar ninguém. */
+  esquecerAdmissao()
 })
 
 /* O cache de tradução (Fase 2 do lançamento) é do processo: sem esvaziar, a frase repetida de um
@@ -392,7 +396,7 @@ describe('POST /api/ai/stt — transcrição gerenciada com upstream falso', () 
     expect(chamadas[0].headers.authorization).toBe('Bearer chave-stt-falsa')
   })
 
-  it('upstream 4xx em verbose_json → repete em json; 5xx → retenta com espera e termina em 502', async () => {
+  it('upstream 4xx em verbose_json → repete em json; 5xx → retenta UMA vez e termina em 502', async () => {
     fixar('STT_API_KEY', 'chave-stt-falsa')
     fixar('STT_BASE_URL', 'http://203.0.113.20/v1') // IP público literal: `assertPublicUrl` resolve DNS de verdade
     let n = 0
@@ -424,6 +428,10 @@ describe('POST /api/ai/stt — transcrição gerenciada com upstream falso', () 
       '__snapshots__/post.api.ai.stt.502.json',
     )
     /*
+     * MUDOU DE NOVO COM O ADR 0007 (25/09/2026): eram 3 chamadas, agora são 2. Cada tentativa é um
+     * pedido contra o limite por minuto da conta do app; com o disjuntor agora também no STT, o
+     * 5xx repete UMA vez (500 ms) e depois o cliente cai no motor local. O histórico abaixo fica.
+     *
      * MUDOU NA FASE 5, e a mudança é deliberada: eram 1 chamada, agora são 3.
      *
      * A caracterização gravava "5xx não repete", e isso descrevia a regra do FORMATO — 5xx não é
@@ -436,14 +444,16 @@ describe('POST /api/ai/stt — transcrição gerenciada com upstream falso', () 
      * extras (500 ms e 1.500 ms). O corpo da resposta ao cliente NÃO mudou: mesmo 502, mesmo
      * `code`, mesmo snapshot — só o número de tentativas antes de desistir.
      */
-    expect(chamadas).toHaveLength(3)
+    expect(chamadas).toHaveLength(2)
     expect(chamadas.every((c) => String(c.url).endsWith('/audio/transcriptions'))).toBe(true)
   })
 
-  it('429 do provedor: NÃO reenvia em json (não é sobre formato) — espera e tenta de novo', async () => {
+  it('429 do provedor: NÃO reenvia (nem em json, nem com espera) — 429 nuvem_ocupada com Retry-After', async () => {
     // Antes da Fase 5 o 429 caía na regra dos 4xx e disparava um reenvio IMEDIATO do mesmo áudio
     // em outro formato: dois pedidos recusados em vez de um, no momento em que o provedor pede
-    // para diminuir o ritmo.
+    // para diminuir o ritmo. A Fase 5 trocou isso por espera e retentativa; o ADR 0007 (25/09/2026)
+    // tirou também a retentativa — cada 429 virava mais pedidos contra o mesmo limite — e o cliente
+    // passou a receber 429 `nuvem_ocupada` (era 502) para cair no motor local na hora.
     fixar('STT_API_KEY', 'chave-stt-falsa')
     fixar('STT_BASE_URL', 'http://203.0.113.20/v1')
     let n = 0
@@ -457,10 +467,11 @@ describe('POST /api/ai/stt — transcrição gerenciada com upstream falso', () 
           })
     }
     const r = await s.chamar('POST', '/api/ai/stt', { raw: wavDeSilencio(1), headers: { 'content-type': 'audio/wav' } })
-    expect(r.status).toBe(200)
-    expect((await r.json()).text).toBe('passou na segunda')
-    // Duas chamadas: a recusada e a retentativa. Não três — o reenvio em `json` não aconteceu.
-    expect(chamadas).toHaveLength(2)
+    expect(r.status).toBe(429)
+    expect((await r.json()).code).toBe('nuvem_ocupada')
+    expect(Number(r.headers.get('retry-after'))).toBeGreaterThanOrEqual(1)
+    // UMA chamada: a recusada. Nem reenvio em `json`, nem retentativa.
+    expect(chamadas).toHaveLength(1)
   })
 
   it('cabeçalho x-model fora do formato → 400 antes de qualquer chamada ao provedor', async () => {

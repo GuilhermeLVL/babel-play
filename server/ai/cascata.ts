@@ -6,9 +6,17 @@
  * `llmClient.ts` já documenta: uma correção num lugar e o defeito continuando no outro. O que
  * difere entre os dois chamadores — o prefixo do evento de log e a rota — entra por parâmetro.
  */
-import { observarChamadaDeProvedor } from '../http/metricas'
+import { contarAdmissaoRecusada, observarChamadaDeProvedor } from '../http/metricas'
 import { log } from '../lib/logger'
 import { custoDeLlm } from '../lib/orcamentoDeIa'
+import {
+  admitirNoBalde,
+  ocuparVaga,
+  type PlanoDeAdmissao,
+  type Recusa,
+  registrarLimiteNaAdmissao,
+  type TicketDeBalde,
+} from './admissao'
 import { chaveDoProvedor, disjuntorPermite, registrarFalha, registrarSucesso } from './disjuntor'
 import { chamarChat, parametrosDoProvedor, type PedidoDeChat } from './llmClient'
 import type { Provedor } from './provedores'
@@ -34,19 +42,116 @@ interface ResultadoDaCascata {
   ultimaFalha: string
 }
 
+/**
+ * A ADMISSÃO DE UMA CHAMADA DE LLM (ADR 0007): a vaga em voo do usuário e o pedido no balde da
+ * PRIMEIRA perna da cascata que tem saldo para o plano dele. Perna sem saldo é pulada como perna em
+ * disjuntor — a reserva, quando existe, atende. As pernas seguintes são admitidas no balde delas na
+ * hora de serem chamadas (`percorrerCascata`).
+ */
+export interface AdmissaoDaCascata {
+  plano: PlanoDeAdmissao
+  tokens: number
+  /** Índice da perna admitida já na entrada. */
+  indice: number
+  ticket: TicketDeBalde
+  liberar: () => void
+  /** A cascata chegou a rodar? Se não, o pedido volta ao balde em `encerrarAdmissao`. */
+  usada: boolean
+}
+
+export function admitirCascata(
+  provedores: Provedor[],
+  p: { userId: string; plano: PlanoDeAdmissao; tokens: number },
+): { ok: true; admissao: AdmissaoDaCascata } | { ok: false; recusa: Recusa } {
+  const liberar = ocuparVaga(p.userId, 'llm')
+  if (!liberar) {
+    contarAdmissaoRecusada('em_voo', p.plano)
+    return { ok: false, recusa: { motivo: 'em_voo', retryAfterS: 1 } }
+  }
+  let recusa: Recusa | null = null
+  for (let i = 0; i < provedores.length; i++) {
+    const prov = provedores[i]
+    const r = admitirNoBalde({
+      tipo: 'llm',
+      provedor: nomeDoProvedor(prov.base),
+      modelo: prov.model,
+      plano: p.plano,
+      tokens: p.tokens,
+      silenciosa: true,
+    })
+    if (r.ok === true) {
+      return {
+        ok: true,
+        admissao: { plano: p.plano, tokens: p.tokens, indice: i, ticket: r.ticket, liberar, usada: false },
+      }
+    }
+    // A espera que vale é a MENOR: a primeira perna que voltar atende.
+    if (!recusa || r.recusa.retryAfterS < recusa.retryAfterS) recusa = r.recusa
+  }
+  liberar()
+  const final = recusa ?? { motivo: 'minuto' as const, retryAfterS: 1 }
+  contarAdmissaoRecusada(final.motivo, p.plano)
+  return { ok: false, recusa: final }
+}
+
+/** Fecha a admissão: solta a vaga e, se a cascata nem rodou, devolve o pedido ao balde. Idempotente. */
+export function encerrarAdmissao(a: AdmissaoDaCascata | null | undefined): void {
+  if (!a) return
+  if (!a.usada) a.ticket.devolver()
+  a.usada = true
+  a.liberar()
+}
+
 export async function percorrerCascata(
   provedores: Provedor[],
   pedido: Omit<PedidoDeChat, 'base' | 'apiKey' | 'model'>,
   /** `funcao` rotula a métrica do provedor (`traducao`, `tutor`, `corretor`) — valor fixo do código. */
-  contexto: { evento: string; route: string; requestId?: string; funcao?: string; rastro?: RastroDeIa },
+  contexto: {
+    evento: string
+    route: string
+    requestId?: string
+    funcao?: string
+    rastro?: RastroDeIa
+    /** A admissão aberta por `admitirCascata`. Ausente = sem admissão (chamador que não gasta a conta do app). */
+    admissao?: AdmissaoDaCascata
+  },
 ): Promise<ResultadoDaCascata> {
   const rastro = contexto.rastro
+  const adm = contexto.admissao
+  if (adm) adm.usada = true
   let ultimaFalha = 'sem provedor'
-  for (const prov of provedores) {
+  for (let i = 0; i < provedores.length; i++) {
+    const prov = provedores[i]
+    /* A ADMISSÃO DA PERNA (ADR 0007). Antes da perna admitida na entrada: estava sem saldo, pula.
+       A admitida: já tem o pedido. Depois dela (a reserva, quando o primário falhou): pede ao
+       balde DELA agora — sem saldo, pula sem abrir socket. */
+    let ticket: TicketDeBalde | null = null
+    if (adm) {
+      if (i < adm.indice) {
+        ultimaFalha = `sem saldo na admissão para ${prov.rotulo} (${prov.model})`
+        continue
+      }
+      if (i === adm.indice) ticket = adm.ticket
+      else {
+        const r = admitirNoBalde({
+          tipo: 'llm',
+          provedor: nomeDoProvedor(prov.base),
+          modelo: prov.model,
+          plano: adm.plano,
+          tokens: adm.tokens,
+        })
+        if (r.ok === false) {
+          ultimaFalha = `sem saldo na admissão para ${prov.rotulo} (${prov.model})`
+          continue
+        }
+        ticket = r.ticket
+      }
+    }
     /* O DISJUNTOR ANTES DA CHAMADA (Fase 5): com o primário fora do ar, cada pedido pagava o
        timeout dele antes de chegar à reserva. Aberto, a perna é pulada sem abrir socket. */
     const chave = chaveDoProvedor(prov)
     if (!disjuntorPermite(chave)) {
+      ticket?.devolver() // o provedor não foi chamado: o pedido volta ao balde
       ultimaFalha = `disjuntor aberto para ${prov.rotulo} (${prov.model})`
       log('warn', {
         event: `${contexto.evento}_provedor_em_disjuntor`,
@@ -72,7 +177,13 @@ export async function percorrerCascata(
     const r = await chamarChat({ ...pedido, base: prov.base, apiKey: prov.apiKey, model: prov.model })
     const fim = Date.now()
     const provedor = nomeDoProvedor(prov.base)
-    if (r.status === 429) registrarLimiteDoProvedor(provedor, prov.model)
+    if (r.status === 429) {
+      registrarLimiteDoProvedor(provedor, prov.model)
+      /* O 429 do provedor fecha o balde até o `Retry-After` dele: a próxima fala nem tenta. */
+      registrarLimiteNaAdmissao('llm', provedor, prov.model, r.retryAfterS)
+    }
+    /* Os tokens do dia saem da estimativa para o REAL; perna que falhou não gerou tokens. */
+    ticket?.acertarTokens(r.ok ? (r.tokensEntrada ?? 0) + (r.tokensSaida ?? 0) : 0)
     /* UMA GERAÇÃO POR PERNA, inclusive a que falhou — é assim que o fallback aparece no painel. O
        custo sai da MESMA `custoDeLlm` do orçamento e da métrica: os três nunca discordam. O texto
        só entra quando o rastro permite (dev, `LANGFUSE_CONTEUDO=1`); em produção nem é montado. */

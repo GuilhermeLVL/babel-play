@@ -108,6 +108,7 @@ interface Estado {
   provedorLatencia: Histogram<'provedor' | 'funcao'>
   provedorCusto: Counter<'provedor' | 'funcao'>
   provedorLimite: Counter<'provedor' | 'modelo'>
+  admissaoRecusada: Counter<'motivo' | 'plano'>
   sttDescartes: Counter<'motivo'>
   capturaSttFinal: Histogram<'motor'>
   capturaPrimeiroParcial: Histogram<'motor'>
@@ -185,6 +186,15 @@ function metricas(): Estado {
       help: 'Respostas 429 (limite de taxa) dos provedores de IA, por provedor e modelo. Subindo, é hora de subir o tier do provedor.',
       labelNames: ['provedor', 'modelo'] as const,
     }),
+    /* A ADMISSÃO DE IA (ADR 0007): quantas chamadas o PRÓPRIO servidor recusou antes de gastar o
+       limite do provedor, por motivo (`minuto`, `dia`, `tokens_dia`, `provedor_limitou`, `em_voo`) e
+       plano (`pro`, `essencial`, `convidado`). Subindo `minuto` para o Pro é a hora de subir o tier
+       do provedor; subindo só para `essencial` é a reserva do Pro fazendo o seu trabalho. */
+    admissaoRecusada: new Counter({
+      name: 'ia_admissao_recusada_total',
+      help: 'Chamadas de IA ao vivo recusadas pela admissão do servidor (429 nuvem_ocupada), por motivo e plano.',
+      labelNames: ['motivo', 'plano'] as const,
+    }),
     sttDescartes: new Counter({
       name: 'stt_segmentos_descartados_total',
       help: 'Segmentos do Whisper de nuvem descartados no servidor, por motivo (sem_fala, repeticao) — e transcrições inteiras esvaziadas pelo filtro de alucinação (alucinacao).',
@@ -226,7 +236,32 @@ function metricas(): Estado {
       labelNames: ['motor'] as const,
     }),
   }
+  /* O SALDO é lido NA HORA DO SCRAPE (`collect`), e não empurrado a cada chamada: o bucket se
+     reabastece com o tempo, e um valor empurrado ficaria parado no último pedido — o painel
+     mostraria "vazio" por uma hora depois que a fila já tinha voltado. Cardinalidade: os modelos
+     configurados no env (um ou dois por função), nunca nome escolhido por usuário. */
+  new Gauge({
+    name: 'ia_admissao_saldo',
+    help: 'Saldo atual do token bucket da admissão de IA (pedidos disponíveis no minuto), por provedor e modelo.',
+    labelNames: ['provedor', 'modelo'] as const,
+    collect() {
+      this.reset()
+      for (const s of leitorDeSaldo?.() ?? []) this.set({ provedor: s.provedor, modelo: s.modelo }, s.saldo)
+    },
+  })
   return estado
+}
+
+/** Quem sabe ler o saldo da admissão (`server/ai/admissao.ts`) se registra aqui — sem import circular. */
+let leitorDeSaldo: (() => Array<{ provedor: string; modelo: string; saldo: number }>) | undefined
+export function registrarLeitorDeSaldo(fn: () => Array<{ provedor: string; modelo: string; saldo: number }>): void {
+  leitorDeSaldo = fn
+}
+
+/** Uma recusa da admissão de IA. `motivo` e `plano` são rótulos fixos do código. */
+export function contarAdmissaoRecusada(motivo: string, plano: string): void {
+  if (!estado) return
+  estado.admissaoRecusada.inc({ motivo, plano })
 }
 
 /* ─────────────── ganchos para quem mede de dentro (server/ai, server/routes) ─────────────── */

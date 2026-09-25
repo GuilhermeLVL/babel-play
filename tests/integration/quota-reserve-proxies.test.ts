@@ -7,6 +7,7 @@
  */
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { esquecerAdmissao } from '../../server/ai/admissao'
 import { esvaziarCacheDeTraducao } from '../../server/ai/cacheDeTraducao'
 import { asUserId } from '../../server/lib/authContext'
 import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
@@ -31,7 +32,9 @@ afterAll(async () => {
 afterEach(() => {
   delete process.env.AUTH_REQUIRED
   delete process.env.PRO_MONTHLY_MANAGED_CALLS
+  delete process.env.IA_EM_VOO_LLM
   vi.restoreAllMocks()
+  esquecerAdmissao()
 })
 
 function fakeRes() {
@@ -116,6 +119,10 @@ describe('mtProxy — reserva e estorno', () => {
   it('20 requisições SIMULTÂNEAS contra teto 5 → 5 aceitas e só 5 chamadas ao provedor', async () => {
     process.env.AUTH_REQUIRED = '1'
     process.env.PRO_MONTHLY_MANAGED_CALLS = '5'
+    /* ADR 0007: a admissão limita a 2 traduções EM VOO por usuário — o mesmo usuário com 20
+       simultâneas teria 18 recusadas com 429 antes de chegar à cota. Este caso mede a CORRIDA DA
+       COTA, então abre as vagas; o teto de vagas tem teste próprio (admissao-de-ia.test.ts). */
+    process.env.IA_EM_VOO_LLM = '20'
     const u = asUserId('mtp-corrida')
     await subs.upsert(u, { plan: 'pro', status: 'active' })
     process.env.GROQ_API_KEY = 'k'

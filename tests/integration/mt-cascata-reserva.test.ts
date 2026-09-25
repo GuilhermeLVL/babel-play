@@ -9,6 +9,7 @@
  */
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { esquecerAdmissao } from '../../server/ai/admissao'
 import { esvaziarCacheDeTraducao } from '../../server/ai/cacheDeTraducao'
 import { esquecerDisjuntores } from '../../server/ai/disjuntor'
 import { asUserId } from '../../server/lib/authContext'
@@ -74,6 +75,9 @@ afterEach(() => {
      chamada que ele conta deixaria de sair. O disjuntor tem arquivo próprio
      (`tests/integration/disjuntor-de-ia.test.ts`) — aqui ele não pode ser variável escondida. */
   esquecerDisjuntores()
+  /* A admissão de IA (ADR 0007) é estado de processo como o disjuntor: um 429 encenado fecha o
+     balde do modelo, e os casos somados passariam do limite por minuto. Zerada entre casos. */
+  esquecerAdmissao()
 })
 
 function configurarPrimario() {

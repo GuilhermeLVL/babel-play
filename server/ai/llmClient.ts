@@ -23,6 +23,8 @@
  * local; primário falha, tenta a reserva —, e cascata feita de `try/catch` esconde qual perna
  * quebrou. O resultado carrega a causa em texto, que é o que vai para o log e para a decisão.
  */
+import { segundosDoRetryAfter } from './admissao'
+
 export interface MensagemDeChat {
   role: 'system' | 'user' | 'assistant'
   content: string
@@ -67,6 +69,8 @@ export interface RespostaDeChat {
   /** Presentes quando falhou: o código HTTP (0 = rede/timeout) e a causa legível. */
   status?: number
   causa?: string
+  /** No 429: o `Retry-After` do provedor, em segundos — alimenta a admissão (`admissao.ts`). */
+  retryAfterS?: number
 }
 
 /**
@@ -165,10 +169,12 @@ export async function chamarChat(p: PedidoDeChat): Promise<RespostaDeChat> {
     })
 
     if (!r.ok) {
+      const retryAfterS = r.status === 429 ? segundosDoRetryAfter(r.headers?.get?.('retry-after')) : undefined
       return {
         ok: false,
         status: r.status,
         causa: `HTTP ${r.status}: ${(await r.text().catch(() => '')).slice(0, 160)}`,
+        ...(retryAfterS !== undefined ? { retryAfterS } : {}),
       }
     }
 

@@ -44,6 +44,11 @@ ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL \
     VITE_PUBLIC_URL=$VITE_PUBLIC_URL \
     VITE_SELF_HOST_MODELS=$VITE_SELF_HOST_MODELS \
     VITE_SENTRY_DSN=$VITE_SENTRY_DSN
+# P0-7b: o commit entra na VERSÃO do app (`0.1.0+<sha7>`) já no build — o `vite.config.ts` a
+# embute no bundle e grava `dist/versao.json`, que o servidor lê em runtime. Sem este ARG aqui o
+# `--build-arg VERSAO` do deploy só chegava ao estágio de runtime e o bundle saía sem o sha.
+ARG VERSAO
+ENV GIT_SHA=$VERSAO
 
 # Falha CEDO e com mensagem clara, em vez de produzir uma SPA sem login.
 RUN test -n "$VITE_SUPABASE_URL" && test -n "$VITE_SUPABASE_ANON_KEY" || \

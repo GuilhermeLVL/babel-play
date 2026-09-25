@@ -80,8 +80,9 @@ describe('GET /api/health continua sendo a outra pergunta', () => {
     expect(r.status).toBe(200)
     const corpo = (await r.json()) as Record<string, unknown>
     // As chaves congeladas no snapshot de caracterização. `migracoes` e `armazenamento` NÃO entram
-    // aqui: quem consome o health decide reiniciar, e isso não é motivo para reiniciar.
-    expect(Object.keys(corpo).sort()).toEqual(['at', 'boot', 'db', 'status'])
+    // aqui: quem consome o health decide reiniciar, e isso não é motivo para reiniciar. `versao`
+    // (P0-7b) entrou como campo informativo: diz qual build está no ar, e não decide nada.
+    expect(Object.keys(corpo).sort()).toEqual(['at', 'boot', 'db', 'status', 'versao'])
   })
 })
 

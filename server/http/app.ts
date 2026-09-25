@@ -45,6 +45,8 @@ import {
   METRIC_RATELIMIT_TELEMETRIA,
 } from '../lib/rateLimitStore'
 import { requestIdMiddleware } from '../lib/requestId'
+import { responderErro } from '../lib/respostaDeErro'
+import { CABECALHO_DA_VERSAO, versaoDoApp } from '../lib/versao'
 import { adminRouter } from '../routes/admin'
 import { aiRouter } from '../routes/ai'
 import { ankiRouter } from '../routes/anki'
@@ -129,6 +131,15 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
   // qualquer log emitido no ciclo do request pode ser amarrado a ele, inclusive falhas de
   // parsing do corpo. Volta ao cliente no header `x-request-id`.
   app.use(requestIdMiddleware)
+
+  /* VERSÃO EM TODA RESPOSTA DA API (P0-7b). Aqui, logo depois do `requestId` e antes de qualquer
+     guarda, para ir também no 401, no 429 e no 404 — o cliente compara com a versão do bundle e
+     avisa quando o servidor já é outro (`src/lib/versao.ts`). Só em `/api`: o `index.html` e os
+     chunks não precisam dela. Ver `server/lib/versao.ts`. */
+  app.use('/api', (_req, res, next) => {
+    res.setHeader(CABECALHO_DA_VERSAO, versaoDoApp())
+    next()
+  })
 
   /* ORIGEM PROTEGIDA (GAP-004): com `ORIGEM_SEGREDO`, só quem passou pelo Cloudflare entra — o acesso
      direto a `<app>.fly.dev` pularia o WAF e forjaria o `X-Forwarded-For` em que o `TRUST_PROXY`
@@ -492,6 +503,16 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
   // o service worker/cache do cliente antigo tiver expirado.
   app.use('/api/tutor', capturarAssincrono(tutorRouter))
   app.use('/api/gemini', capturarAssincrono(tutorRouter))
+
+  /* 404 DA API — o ÚLTIMO de `/api`, e antes do fallback da SPA (P0-7a). Em produção o `montarSpa`
+     termina num `app.get('*')` que devolve o `index.html` com 200 para qualquer caminho: sem este
+     handler, `/api/<inexistente>` respondia HTML com 200, e um cliente de versão antiga chamando
+     uma rota removida estourava no `res.json()`, longe da causa. Qualquer método, no envelope de
+     erro da casa. Fica DEPOIS do `authMiddleware` (montado acima em `/api`): no modo público, sem
+     token, a resposta continua 401 — dizer "esta rota não existe" a um estranho é mapa da API. */
+  app.use('/api', (_req, res) => {
+    responderErro(res, 404, 'rota inexistente', 'rota_inexistente')
+  })
 
   return app
 }

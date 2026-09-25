@@ -6,6 +6,7 @@ import { migracoesAplicadas } from '../db/manutencao'
 import { armazenamentoDoAmbiente, configDoS3 } from '../lib/armazenamento'
 import { bootStatus } from '../lib/bootStatus'
 import { log } from '../lib/logger'
+import { versaoDoApp } from '../lib/versao'
 
 /**
  * GET /api/health — status do servidor, conectividade do banco e integridade do BOOT.
@@ -18,6 +19,10 @@ import { log } from '../lib/logger'
  * O CONTRATO DESTA RESPOSTA NÃO MUDOU na Fase 5, e isso é deliberado: ela está congelada em
  * `tests/caracterizacao/__snapshots__/health.get.json` e é o que o `HEALTHCHECK` do `Dockerfile`
  * e o vigia `uptime.yml` já consomem. Quem ganhou campo novo foi o `/api/ready`, abaixo.
+ *
+ * A ÚNICA ADIÇÃO depois disso é `versao` (P0-7b, auditoria de prontidão): um campo novo, sem mudar
+ * nenhum dos existentes — o `HEALTHCHECK` e o `uptime.yml` leem o status HTTP e ignoram o resto.
+ * Serve para quem opera confirmar, pelo domínio público, qual build está no ar depois de um deploy.
  */
 export async function healthHandler(_req: Request, res: Response): Promise<void> {
   const boot = await bootStatus()
@@ -32,10 +37,10 @@ export async function healthHandler(_req: Request, res: Response): Promise<void>
     // Sondar uma tabela real custa o mesmo e detecta o caso.
     await db.run(sql`SELECT 1 FROM sessions LIMIT 1`)
     if (!boot.ok) {
-      res.status(503).json({ status: 'degraded', db: 'up', ...bootPayload, at: Date.now() })
+      res.status(503).json({ status: 'degraded', db: 'up', ...bootPayload, versao: versaoDoApp(), at: Date.now() })
       return
     }
-    res.json({ status: 'ok', db: 'up', ...bootPayload, at: Date.now() })
+    res.json({ status: 'ok', db: 'up', ...bootPayload, versao: versaoDoApp(), at: Date.now() })
   } catch (err) {
     // Detalhe do erro só no log do servidor — a resposta não vaza caminho/driver do banco.
     // `db: 'down'` cobre os dois casos (inacessível e schema quebrado); distinguir na
@@ -48,7 +53,7 @@ export async function healthHandler(_req: Request, res: Response): Promise<void>
       status: 503,
       error: String(err).slice(0, 300),
     })
-    res.status(503).json({ status: 'degraded', db: 'down', ...bootPayload })
+    res.status(503).json({ status: 'degraded', db: 'down', ...bootPayload, versao: versaoDoApp() })
   }
 }
 

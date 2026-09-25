@@ -901,7 +901,10 @@ export const rank = sqliteTable(
     jogo: text('jogo').notNull(),
     apelido: text('apelido').notNull(),
     pontos: integer('pontos').notNull(),
-    combo: integer('combo').notNull(),
+    /* `DEFAULT 0` está no banco desde a 0027 e faltava aqui: o teste de schema-contra-banco
+       (`tests/integration/schema-igual-ao-banco.test.ts`) pegou a divergência, que faria o
+       `drizzle-kit generate` propor recriar a tabela `rank` inteira. */
+    combo: integer('combo').notNull().default(0),
     /** SHA-256 de (ip + SECRET_KEY), truncado. Só existe para a trava de flood. */
     ipHash: text('ip_hash'),
   },

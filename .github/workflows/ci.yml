@@ -132,10 +132,39 @@ jobs:
       # ficou orfa sem nada acusar (achado A52 de 2026-09-07).
       - name: Rotas sem consumidor
         run: node scripts/testes/rotas-sem-consumidor.mjs
+      # E nenhuma rota /api some sem passar pela depreciação (Fase 6 da prontidão): a aba aberta
+      # com o bundle anterior, e o servidor anterior num rollback, dependem dela. Mesmo censo do
+      # passo de cima (`scripts/testes/_rotas-do-servidor.mjs`); política em docs/versionamento.md.
+      - name: Contrato da API (remoção só após depreciação)
+        run: npm run contrato:api
       - name: Regras arquiteturais (ast-grep)
         run: |
           ./node_modules/.bin/ast-grep test -c sgconfig.yml
           ./node_modules/.bin/ast-grep scan -c sgconfig.yml src server server.ts
+
+  # MIGRATIONS EXPAND/CONTRACT (Fase 6 da prontidão). As migrations rodam no boot, só para a frente,
+  # e o rollback troca a IMAGEM sem voltar o banco: migration nova só ACRESCENTA, salvo marcador
+  # `-- CONTRATO:` numa migration que venha sozinha (sem código de servidor/cliente no mesmo diff).
+  # Job próprio porque precisa do histórico (`fetch-depth: 0`) para o `git diff` contra a base, e
+  # não precisa de `npm ci` (o script só usa módulos do Node). Regras em docs/versionamento.md §3.
+  migracoes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+      # PR: compara com a branch de destino. Push: com o commit anterior do push (vazio/zeros numa
+      # branch nova — aí o script cobra só o marcador e avisa).
+      - name: Portão expand/contract
+        env:
+          BASE_PR: ${{ github.base_ref }}
+          ANTES_DO_PUSH: ${{ github.event.before }}
+        run: |
+          if [ -n "$BASE_PR" ]; then base="origin/$BASE_PR"; else base="$ANTES_DO_PUSH"; fi
+          node scripts/migracoes/conferir.mjs --base="$base"
 
   # E2E NO MODO PÚBLICO (Fase 5 do lançamento). A suíte acima roda sem login; esta sobe o app com
   # AUTH_REQUIRED=1 contra um Supabase Auth FALSO (tests/e2e-publico/_supabase-falso.mjs) — login pelo

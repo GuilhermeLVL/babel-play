@@ -169,7 +169,7 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
       setFeedbackMsg(
         micEnabled
           ? 'Captura DUPLA ativa: microfone (você) + sistema/aba (outros). A transcrição do sistema aparece e refina em tempo real.'
-          : 'Capturando áudio do sistema/aba. A transcrição aparece e refina em tempo real (Whisper local).',
+          : 'Capturando áudio do sistema/aba. A transcrição aparece e refina em tempo real.',
       );
       setTimeout(() => setFeedbackMsg(''), 5000);
     } catch (err) {
@@ -204,31 +204,35 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
     clog('mic: preparar modelos locais + getUserMedia…');
     void prepareModels();
     try {
-      micCaptureRef.current = await startMicCapture(inputDeviceIdRef.current || undefined, {
-        onUtterance: micHandlers.onUtterance,
-        onSpeechStart: (seq) => {
-          clog('VAD: início de fala (mic, seq', seq, ')');
-          micHandlers.onSpeechStart(seq);
+      micCaptureRef.current = await startMicCapture(
+        inputDeviceIdRef.current || undefined,
+        {
+          onUtterance: micHandlers.onUtterance,
+          onSpeechStart: (seq) => {
+            clog('VAD: início de fala (mic, seq', seq, ')');
+            micHandlers.onSpeechStart(seq);
+          },
+          onPartialAudio: micHandlers.onPartialAudio,
+          onMisfire: (seq) => micHandlers.onMisfire(seq),
+          onLevel: pushLevel,
+          onStatus: (msg) => {
+            clog('mic:', msg);
+            setFeedbackMsg(msg);
+            setTimeout(() => setFeedbackMsg(''), 4000);
+          },
+          onError: (err) => {
+            clog('mic ERRO assíncrono:', err.message);
+            setFeedbackMsg('Erro no microfone: ' + err.message);
+            setTimeout(() => setFeedbackMsg(''), 6000);
+          },
         },
-        onPartialAudio: micHandlers.onPartialAudio,
-        onMisfire: (seq) => micHandlers.onMisfire(seq),
-        onLevel: pushLevel,
-        onStatus: (msg) => {
-          clog('mic:', msg);
-          setFeedbackMsg(msg);
-          setTimeout(() => setFeedbackMsg(''), 4000);
-        },
-        onError: (err) => {
-          clog('mic ERRO assíncrono:', err.message);
-          setFeedbackMsg('Erro no microfone: ' + err.message);
-          setTimeout(() => setFeedbackMsg(''), 6000);
-        },
-      }, opcoesDeCaptura);
+        opcoesDeCaptura,
+      );
       clog('captura do microfone ATIVA ✓');
       micStartedAtRef.current = micCaptureRef.current?.startedAtMs ?? 0;
       anchorSessionClock(micStartedAtRef.current, 'mic'); // ancora só se o mic for a fonte do áudio salvo
       if (!systemEnabled) {
-        setFeedbackMsg('Microfone ativo (Whisper local). Fale, a transcrição aparece e refina em tempo real.');
+        setFeedbackMsg('Microfone ativo. Fale, a transcrição aparece e refina em tempo real.');
         setTimeout(() => setFeedbackMsg(''), 3500);
       }
     } catch (err) {

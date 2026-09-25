@@ -2074,8 +2074,8 @@ export default function LiveCapture({
                 rotulo="Quem transcreve a sua voz"
                 desc={
                   micEngine === 'browser'
-                    ? 'Usa o reconhecimento do navegador; precisa de internet.'
-                    : 'Roda no seu computador; funciona sem internet.'
+                    ? 'Reconhecimento do navegador: envia o áudio ao Google/Microsoft; precisa de internet.'
+                    : 'Roda no seu computador (Moonshine em inglês, Whisper nos outros idiomas); funciona sem internet.'
                 }
               >
                 <div className="seg" role="radiogroup" aria-label="Motor do microfone">
@@ -2094,7 +2094,7 @@ export default function LiveCapture({
                     aria-checked={micEngine === 'whisper'}
                     onClick={() => setMicEngine('whisper')}
                   >
-                    Whisper (offline)
+                    Local (offline)
                   </button>
                 </div>
               </CampoLinha>

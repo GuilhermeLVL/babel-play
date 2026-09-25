@@ -470,9 +470,10 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
 
               {passo === 'privacidade' && (
                 <p className="mut" style={{ fontSize: 13, marginTop: 8 }}>
-                  As exceções do modo grátis: o microfone usa o reconhecimento do navegador (troque para o Whisper local
-                  em Ajustes para ficar 100% offline) e, quando o tradutor local não cobre o par de idiomas, a tradução
-                  usa um serviço web. A sua chave de nuvem, se usar uma, é cifrada no servidor.
+                  As exceções do modo grátis: o microfone usa o reconhecimento do navegador, que envia o áudio ao
+                  Google/Microsoft (troque para a transcrição local em Ajustes para ficar 100% offline) e, quando o
+                  tradutor local não cobre o par de idiomas, a tradução usa um serviço web. A sua chave de nuvem, se
+                  usar uma, é cifrada no servidor.
                 </p>
               )}
 

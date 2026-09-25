@@ -238,12 +238,22 @@ jogo, atrás do auth).
 curl -s -H "Authorization: Bearer $METRICS_TOKEN" https://<host>/metrics | head -40
 ```
 
-**Em cluster, o `/metrics` responde os números DO PROCESSO que atendeu o scrape**, e diz qual foi
+**No Fly (desde a Fase 5 de prontidão, 25/09/2026)** o `/metrics` NÃO está na porta pública: o
+`fly.toml` liga `METRICS_ENABLED=1` + `METRICS_PORTA_INTERNA=9091`, e o bloco `[metrics]` manda o
+Prometheus gerenciado do Fly raspar essa porta a cada 15 s. O raspador do Fly não manda token (a
+doc só tem `port` e `path`), e a 9091 não é publicada — só se alcança por dentro da VM. Para olhar
+na mão: `fly ssh console --app babel-play -C "wget -qO- http://127.0.0.1:9091/metrics" | head -40`.
+Os dados ficam ~15 dias em `https://api.fly.io/prometheus/<org>/` e o painel é o
+[fly-metrics.net](https://fly-metrics.net) (Grafana gerenciado): importe `ops/dashboards/babel-play.json`.
+As regras de alerta estão em `ops/alertas/regras.yml`, e o que cada uma pede está no §13.
+
+**Em cluster, o `/metrics` da porta pública responde os números DO PROCESSO que atendeu o scrape**, e diz qual foi
 (header `x-metrics-processo` e métrica `processo_info`). Não há agregação, e isso é decisão
 registrada: o agregador do `prom-client` só enxerga os workers, e aqui o primário também atende —
 com `CLUSTER_WORKERS=4` a resposta "agregada" omitiria ~1/4 do tráfego em silêncio. Se os seus
-gráficos oscilarem entre patamares, é o scrape alternando de processo. O conserto é dar ao
-`/metrics` um listener próprio no primário.
+gráficos oscilarem entre patamares, é o scrape alternando de processo. A porta interna
+(`METRICS_PORTA_INTERNA`) é esse listener próprio: sobe só no primário, então o scrape é sempre do
+mesmo processo — e mostra só ele (o aviso no corpo diz isso).
 
 A label de rota é o **padrão** (`/api/sessions/:id`), nunca o caminho pedido, e o que não casou rota
 cai num balde `desconhecida`. É o que impede um scanner de porta de criar mil séries temporais.
@@ -403,8 +413,9 @@ req/s no banco já engordado. Comparar corridas sobre bancos de tamanhos diferen
 - **Tracing distribuído.** Não há OpenTelemetry. A correlação existente é o `request_id` no log e o
   histograma por rota no `/metrics`; ligar spans é decisão aberta, e o arranque já custa ~400 ms a
   mais desde a Fase 5.
-- **Alertas sobre métricas.** Os dois alertas de página são os do §0.1 (UptimeRobot); o `/metrics`
-  existe, mas ninguém o raspa em produção ainda.
+- **Roteamento das notificações.** As regras de alerta estão versionadas (§13), mas QUEM recebe
+  (e-mail, Telegram, PagerDuty) é configurado no Grafana/Alertmanager pelo dono — pendência do
+  relatório da Fase 5 de prontidão.
 - **Agregação de métricas em cluster** (§3).
 
 ---
@@ -418,3 +429,167 @@ req/s no banco já engordado. Comparar corridas sobre bancos de tamanhos diferen
 | corpo JSON de 100 KB antes do login, 5 MB só em rotas listadas depois dele | `server/http/limitesDeCorpo.ts`  | `413 corpo_grande_demais`                                                             |
 | 2FA (AAL2) nas rotas sensíveis para quem o ativou                          | `server/lib/aal.ts`              | `403 aal2_requerido`; `503 aal_indisponivel` se a Admin API do Supabase não responder |
 | CSP com `connect-src` fechado                                              | `server/http/csp.ts`             | recurso bloqueado no console do navegador — um host novo precisa entrar na lista      |
+
+---
+
+## 13. Alertas sobre métricas — um por regra de `ops/alertas/regras.yml`
+
+Entraram na Fase 5 de prontidão (25/09/2026). Cada regra do arquivo tem `runbook_url` apontando para
+uma âncora daqui (o teste `tests/integration/alertas-e-painel.test.ts` cobra que ela exista).
+Severidade: **página** = agir em minutos; **aviso** = no mesmo dia útil; **planejamento** = na semana
+(gatilhos de `docs/escala.md`).
+
+**Como silenciar, em geral.** No Grafana: _Alerting → Silences → New silence_, com o matcher
+`alertname=<nome>` e uma duração — **sempre** com comentário dizendo por quê e até quando. No
+Alertmanager: `amtool silence add alertname=<nome> --duration=2h --comment="…"`. Silêncio sem prazo é
+alerta apagado; se a regra está errada, corrija o `regras.yml` (com teste) em vez de silenciar.
+
+<a id="alerta-erros-5xx"></a>
+
+### 13.1 `BabelErros5xxAltos` — mais de 2 % de 5xx em 5 min (página)
+
+- **Significa:** o servidor está falhando em respostas que deveria dar (erro nosso, banco, provedor
+  sem tratamento). Só dispara com tráfego mínimo (> 3 req/min) para 1 erro em 2 pedidos não acordar ninguém.
+- **Primeira ação:** painel "Erros por rota" → qual rota; Sentry → a exceção; `fly logs` filtrando
+  `"level":"error"`. Se começou num deploy, **rollback** (§0.3) antes de investigar.
+- **Silenciar:** só durante um rollback em andamento (30 min).
+
+<a id="alerta-latencia-p95"></a>
+
+### 13.2 `BabelLatenciaP95Alta` — p95 fora da IA acima de 1 s por 10 min (aviso)
+
+- **Significa:** o processo está saturado (CPU do `shared-cpu` sem saldo, rotas caras — `vocab`,
+  `profile`, `gastar` — em rajada) ou o banco está lento. A IA fica de fora: o p95 dela é de segundos.
+- **Primeira ação:** painel "p95 por rota" (qual rota) e "CPU" (estrangulada?). Se é CPU, é o passo 1
+  de `docs/escala.md` (`fly scale vm performance-1x`). Se é uma rota, `BabelEventLoopTravado` costuma
+  disparar junto.
+- **Silenciar:** durante carga planejada (teste de carga), pela duração do teste.
+
+<a id="alerta-event-loop"></a>
+
+### 13.3 `BabelEventLoopTravado` — p99 do atraso do event loop acima de 500 ms (página)
+
+- **Significa:** algo **síncrono** está segurando o único processo — e ninguém é atendido enquanto
+  isso. A Fase 2 mediu o driver libsql prendendo o loop pela consulta inteira e o snapshot antigo
+  travando 20–34 s.
+- **Primeira ação:** coincide com o horário do backup (`BACKUP_HORA_UTC`)? Veja o `backup_diario_*` no
+  log. Senão, painel "p95 por rota" para achar a rota cara e o "Banco: p95 da consulta". Se o
+  `/api/ready` começar a falhar, o Fly tira a máquina do roteamento — `fly machine restart` alivia, não cura.
+- **Silenciar:** não. Se for falso positivo, ajuste o limiar no `regras.yml`.
+
+<a id="alerta-ready-degradado"></a>
+
+### 13.4 `BabelReadyDegradado` — `/api/ready` achou o armazenamento fora (aviso)
+
+- **Significa:** o R2/S3 não respondeu à sonda (ADR 0009). O site segue no ar; áudio novo não grava,
+  backup e Litestream atrasam.
+- **Primeira ação:** status da Cloudflare (R2); linha **R2** da tabela do §0.4.
+- **Silenciar:** pela duração do incidente declarado pela Cloudflare.
+
+<a id="alerta-metricas-ausentes"></a>
+
+### 13.5 `BabelMetricasAusentes` — nenhum scrape há 10 min (aviso)
+
+- **Significa:** sem métricas, nenhum outro alerta daqui dispara. A máquina está fora, o
+  `METRICS_ENABLED`/`METRICS_PORTA_INTERNA` saiu do `[env]` ou o `[metrics]` do `fly.toml` mudou.
+- **Primeira ação:** `fly status`; `fly ssh console -C "wget -qO- http://127.0.0.1:9091/metrics"`; no
+  boot, a linha `[metrics] /metrics na porta interna 9091`.
+- **Silenciar:** durante manutenção planejada com a máquina parada.
+
+<a id="alerta-provedor-429"></a>
+
+### 13.6 `BabelProvedorIaLimitando` — mais de 5 respostas 429 do provedor em 10 min (aviso)
+
+- **Significa:** o tier contratado do Groq (ou da reserva) não aguenta o tráfego. A admissão já fecha
+  o balde pelo `Retry-After` e o cliente cai no motor local — o usuário não vê erro, vê legenda mais lenta.
+- **Primeira ação:** painel "429 do provedor" (qual modelo); se é recorrente no pico, **suba o tier**
+  do provedor (é a pendência do dono no ADR 0008) e ajuste os limites da admissão (`IA_ADMISSAO_*`).
+- **Silenciar:** até o upgrade do tier ser feito, no máximo 24 h por vez.
+
+<a id="alerta-admissao"></a>
+
+### 13.7 `BabelAdmissaoRecusando` — mais de 10 recusas de admissão por minuto (aviso)
+
+- **Significa:** o próprio servidor está recusando chamadas de IA (429 `nuvem_ocupada`) antes de
+  gastar o limite do provedor (ADR 0007).
+- **Primeira ação:** painel "Admissão: recusas por minuto". `minuto`/`dia` com plano `pro` = o limite
+  do provedor é pequeno demais, suba o tier. Só `essencial`/`convidado` = a reserva do Pro trabalhando
+  (normal no pico). `em_voo` alto = um cliente mandando em paralelo.
+- **Silenciar:** se for só `convidado` num evento previsto, pela duração do evento.
+
+<a id="alerta-disjuntor"></a>
+
+### 13.8 `BabelDisjuntorAberto` — disjuntor de provedor aberto há 2 min (aviso)
+
+- **Significa:** um provedor falhou 5 vezes seguidas e está sendo pulado por janelas de 30 s (§5).
+- **Primeira ação:** status do Groq/OpenRouter; `fly logs` com `mt_indisponivel`/`stt_upstream_erro`.
+  Se a reserva também cair: `AI_ENABLED=0` e aviso na página de status (§0.4).
+- **Silenciar:** pela duração do incidente do provedor.
+
+<a id="alerta-gasto-diario"></a>
+
+### 13.9 `BabelGastoDiarioAlto` / `BabelGastoMensalAlto` / `BabelOrcamentoEsgotado` — orçamento de IA
+
+- **Significa:** gasto estimado do dia (`AI_BUDGET_USD_DAY`) ou do mês (`AI_BUDGET_USD_MONTH`) passou
+  de 80 % (aviso) ou chegou a 100 % (página: a nuvem está **fechada** e todos estão no modelo local).
+  Os mesmos limiares saem como eventos de log `ia_orcamento_diario_alerta_80`/`_esgotado` e
+  `ia_orcamento_alerta_80`/`_esgotado` (Sentry, §0.5).
+- **Primeira ação:** painel "Custo por plano (24 h)" e "Gasto anômalo por usuário" — é crescimento
+  legítimo ou abuso? `GET /api/admin/ia` mostra o dia e o mês. Legítimo: suba o teto
+  (`fly secrets set AI_BUDGET_USD_DAY=…`). Abuso: veja §13.10.
+- **Silenciar:** o de 80 % até a virada do período, depois de decidido; o de 100 % não se silencia —
+  ou sobe o teto, ou aceita a nuvem fechada até a virada.
+
+<a id="alerta-gasto-anomalo"></a>
+
+### 13.10 `BabelGastoAnomaloUsuario` — um usuário gastando fora do padrão hoje (aviso)
+
+- **Significa:** o gasto de IA de um usuário no dia passou de `AI_USUARIO_ALERTA_USD_DIA` (padrão
+  US$ 0,50) ou de `AI_USUARIO_ALERTA_FATOR`× a mediana do dia (padrão 10×, com ≥ 5 usuários).
+  Nada é bloqueado — quem bloqueia é a cota do plano.
+- **Primeira ação:** o warn `ia_gasto_anomalo_usuario` no Sentry/log traz o **pseudônimo** `u_…` (nunca
+  o id). É o mesmo `usuario` dos rastros no Langfuse: filtre lá para ver função, modelo e horário.
+  Laço de cliente (mesma frase repetida)? Conta compartilhada? O id real só se descobre dentro do
+  servidor (`pseudonimoDoUsuario` sobre a lista de ids) — faça isso só se for agir sobre a conta.
+- **Silenciar:** por usuário não dá (a métrica não tem o usuário); se for um cliente legítimo pesado,
+  suba `AI_USUARIO_ALERTA_USD_DIA`.
+
+<a id="alerta-uploads"></a>
+
+### 13.11 `BabelUploadsNoTeto` — semáforo de uploads grandes cheio por 10 min (aviso)
+
+- **Significa:** `UPLOADS_GRANDES_POR_PROCESSO` (padrão 2) uploads grandes em voo o tempo todo, e
+  gente recebendo 429 `upload_ocupado`. O teto existe porque 4 uploads de 120 MB derrubavam a VM de 1 GB.
+- **Primeira ação:** é um usuário só repetindo (motivo `usuario`) ou demanda real (`processo`)? Demanda
+  real: suba a memória (`fly scale memory 2048`) **e depois** o teto do semáforo — nunca o contrário.
+- **Silenciar:** durante uma importação em massa planejada.
+
+<a id="alerta-memoria"></a>
+
+### 13.12 `BabelMemoriaAlta` — RSS acima de 80 % de 1 GB por 10 min (aviso)
+
+- **Significa:** perto do OOM do Fly, que mata a única máquina (queda de ~20 s + boot).
+- **Primeira ação:** coincide com uploads (§13.11) ou com o snapshot? Se é crescimento contínuo, é
+  vazamento: `fly machine restart` e abrir defeito. Se é carga, passo 2 de `docs/escala.md`
+  (`fly scale memory 2048`).
+- **Silenciar:** não; ajuste o limiar se a VM mudar de tamanho.
+
+<a id="alerta-backup"></a>
+
+### 13.13 `BabelBackupFalhou` — o snapshot diário falhou (aviso)
+
+- **Significa:** a foto diária do banco (erro lógico) não foi feita. O Litestream (perda física)
+  segue à parte.
+- **Primeira ação:** `fly logs` com `backup_diario_falhou`; rodar à mão
+  `node dist-server/operacao.cjs snapshot` pelo `fly ssh console` e conferir no R2.
+- **Silenciar:** não; resolva no mesmo dia (são 30 dias de fotos, e um buraco não se recupera).
+
+<a id="alerta-escala"></a>
+
+### 13.14 `BabelEscala*` — gatilhos de escala a 70 % (planejamento)
+
+- **Significa:** CPU estrangulada pelo Fly há 30 min (`BabelEscalaCpuEstrangulada`), escritas no
+  SQLite acima de 35/s sustentadas (`BabelEscalaEscritasSQLite`) ou banco acima de 3,5 GB
+  (`BabelEscalaBancoGrande`). Não é incidente: é o aviso para decidir o próximo passo com calma.
+- **Primeira ação:** `docs/escala.md` — qual passo este sinal dispara, o custo e o comando.
+- **Silenciar:** por uma semana, com a decisão anotada no comentário do silêncio.

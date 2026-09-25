@@ -3,7 +3,7 @@
 # UMA máquina (shared-cpu, 1 GB) com UM volume em /data: o SQLite mora no volume e o Litestream o
 # replica para o R2 continuamente. SQLite não é banco de várias máquinas — `fly scale count 2`
 # daria dois bancos divergentes. Para crescer, suba o tamanho da máquina (vertical) antes de pensar
-# em réplica (ver docs/deploy.md, "Escalar").
+# em réplica (ver docs/escala.md: limiares, custos e comandos de cada passo).
 #
 # Criar (uma vez):
 #   fly apps create babel-play
@@ -44,6 +44,10 @@ kill_timeout = 30
   BACKUP_DIARIO = "1"
   BACKUP_HORA_UTC = "6"
   SENTRY_ENVIRONMENT = "production"
+  # Métricas Prometheus (Fase 5 de prontidão). O `/metrics` sai da porta pública e vai para a porta
+  # interna 9091, que o bloco `[metrics]` abaixo manda o Fly raspar. Não é segredo: é configuração.
+  METRICS_ENABLED = "1"
+  METRICS_PORTA_INTERNA = "9091"
 
 [[mounts]]
   source = "babel_dados"
@@ -86,6 +90,13 @@ kill_timeout = 30
   size = "shared-cpu-1x"
   memory = "1gb"
 
-# SEM `[metrics]`: o raspador gerenciado do Fly não manda `Authorization`, e em produção o `/metrics`
-# exige `METRICS_TOKEN` (o boot aborta sem, GAP-013). Para ter métricas, ligue METRICS_ENABLED=1 +
-# METRICS_TOKEN como secrets e raspe com um agente que envie o token (docs/LANCAMENTO.md).
+# MÉTRICAS — o Prometheus gerenciado do Fly raspa esta porta a cada 15 s e guarda ~15 dias
+# (fly.io/docs/monitoring/metrics, consultada em 25/09/2026). A doc NÃO tem campo de autenticação
+# (só `port` e `path`), então o `/metrics` desta porta é SEM token — e é seguro porque a 9091 NÃO está
+# em `[http_service]` nem em `[[services]]`: o proxy do Fly só encaminha as portas publicadas, e esta
+# fica alcançável só por dentro da VM. Na porta pública (3000) o `/metrics` nem é montado. NUNCA
+# publique a 9091 num `[[services]]` (tests/integration/fly-metricas.test.ts cobra isso).
+# Painel: fly-metrics.net (Grafana gerenciado). Regras de alerta e painel versionados em ops/.
+[metrics]
+  port = 9091
+  path = "/metrics"

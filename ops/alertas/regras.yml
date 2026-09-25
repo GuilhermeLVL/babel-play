@@ -1,0 +1,223 @@
+# REGRAS DE ALERTA DO BABEL PLAY — formato "Prometheus alerting rules" (Fase 5 de prontidão, 25/09/2026).
+#
+# Onde isto roda: o Fly NÃO tem alerta embutido sobre métricas (fly.io/docs/monitoring/metrics,
+# "Alerting"). Duas formas, as duas aceitam este arquivo:
+#   - Grafana (fly-metrics.net ou Grafana Cloud grátis) com o data source Prometheus do Fly
+#     (https://api.fly.io/prometheus/<org>/, header `Authorization: FlyV1 <token read-only>`):
+#     Alerting → Alert rules → Import → "Data source-managed" ou recriar cada regra com a mesma `expr`;
+#   - vmalert/Prometheus próprio federando do Fly + Alertmanager (`rule_files: [ops/alertas/regras.yml]`).
+# A consulta no Fly é MetricsQL (VictoriaMetrics), compatível com o PromQL usado aqui.
+#
+# Convenções:
+#   - `severity`: `pagina` (acordar alguém / agir em minutos), `aviso` (agir no mesmo dia útil),
+#     `planejamento` (gatilho de escala do ADR 0006 / docs/escala.md — agir na semana).
+#   - Toda regra tem `summary` e `description` em pt-BR e `runbook_url` para a seção do runbook com
+#     o que significa, a primeira ação e como silenciar.
+#   - Os nomes de métrica são conferidos contra server/http/metricas.ts por
+#     tests/integration/alertas-e-painel.test.ts — renomear uma métrica sem mexer aqui quebra o teste.
+#
+# Rotas de IA ficam FORA do alerta de latência geral: o proxy de IA tem timeout de 30 s e p95 de
+# segundos é o normal dele. A IA tem as regras próprias (429, admissão, disjuntor).
+
+groups:
+  - name: babel-play-http
+    rules:
+      - alert: BabelErros5xxAltos
+        expr: |
+          (
+            sum(rate(http_request_duration_seconds_count{status=~"5.."}[5m]))
+            /
+            clamp_min(sum(rate(http_request_duration_seconds_count[5m])), 0.001)
+          ) > 0.02
+          and sum(rate(http_request_duration_seconds_count[5m])) > 0.05
+        for: 2m
+        labels:
+          severity: pagina
+        annotations:
+          summary: 'Mais de 2% das respostas são 5xx nos últimos 5 minutos'
+          description: 'Taxa de 5xx em {{ $value | humanizePercentage }}. Veja quais rotas no painel "Erros por rota" e os eventos de erro no Sentry.'
+          runbook_url: 'https://github.com/GuilhermeLVL/babel-play/blob/main/docs/runbook.md#alerta-erros-5xx'
+
+      - alert: BabelLatenciaP95Alta
+        expr: |
+          histogram_quantile(0.95,
+            sum by (le) (rate(http_request_duration_seconds_bucket{route!~"/api/(ai|tutor|gemini).*|desconhecida"}[10m]))
+          ) > 1
+        for: 10m
+        labels:
+          severity: aviso
+        annotations:
+          summary: 'p95 das respostas (fora da IA) acima de 1 s por 10 minutos'
+          description: 'p95 em {{ $value | humanizeDuration }}. A Fase 2 mediu as rotas caras (vocab 133 ms, profile 77 ms de CPU) quebrando com 10–50 conexões.'
+          runbook_url: 'https://github.com/GuilhermeLVL/babel-play/blob/main/docs/runbook.md#alerta-latencia-p95'
+
+      - alert: BabelEventLoopTravado
+        expr: |
+          histogram_quantile(0.99, sum by (le) (rate(event_loop_atraso_segundos_bucket[5m]))) > 0.5
+        for: 5m
+        labels:
+          severity: pagina
+        annotations:
+          summary: 'Event loop com p99 de atraso acima de 500 ms'
+          description: 'p99 do atraso em {{ $value | humanizeDuration }}: algo síncrono (consulta cara, snapshot, JSON gigante) está travando TODOS os usuários ao mesmo tempo.'
+          runbook_url: 'https://github.com/GuilhermeLVL/babel-play/blob/main/docs/runbook.md#alerta-event-loop'
+
+      - alert: BabelReadyDegradado
+        expr: sum(increase(ready_dependencia_degradada_total[10m])) > 0
+        labels:
+          severity: aviso
+        annotations:
+          summary: '/api/ready respondendo degradado (armazenamento S3/R2 fora)'
+          description: 'O ready segue 200 (ADR 0009), mas o áudio novo não grava e o backup atrasa. {{ $value }} sondas degradadas em 10 min.'
+          runbook_url: 'https://github.com/GuilhermeLVL/babel-play/blob/main/docs/runbook.md#alerta-ready-degradado'
+
+      - alert: BabelMetricasAusentes
+        expr: absent(processo_info)
+        for: 10m
+        labels:
+          severity: aviso
+        annotations:
+          summary: 'Nenhum scrape do /metrics há 10 minutos'
+          description: 'Sem métricas, nenhum outro alerta dispara. A máquina caiu, o METRICS_ENABLED foi desligado ou o [metrics] do fly.toml mudou.'
+          runbook_url: 'https://github.com/GuilhermeLVL/babel-play/blob/main/docs/runbook.md#alerta-metricas-ausentes'
+
+  - name: babel-play-ia
+    rules:
+      - alert: BabelProvedorIaLimitando
+        expr: sum by (provedor, modelo) (increase(ia_provedor_limite_total[10m])) > 5
+        labels:
+          severity: aviso
+        annotations:
+          summary: 'Provedor de IA devolvendo 429 (limite de taxa) — {{ $labels.provedor }} / {{ $labels.modelo }}'
+          description: '{{ $value }} respostas 429 em 10 min. A camada contratada não aguenta o tráfego: o cliente cai no motor local. Suba o tier do provedor.'
+          runbook_url: 'https://github.com/GuilhermeLVL/babel-play/blob/main/docs/runbook.md#alerta-provedor-429'
+
+      - alert: BabelAdmissaoRecusando
+        expr: sum(rate(ia_admissao_recusada_total[5m])) * 60 > 10
+        for: 10m
+        labels:
+          severity: aviso
+        annotations:
+          summary: 'Admissão de IA recusando mais de 10 chamadas por minuto'
+          description: '{{ $value | printf "%.1f" }} recusas/min (429 nuvem_ocupada). Veja no painel se é `minuto` do Pro (subir o tier) ou só `essencial`/`convidado` (a reserva do Pro trabalhando).'
+          runbook_url: 'https://github.com/GuilhermeLVL/babel-play/blob/main/docs/runbook.md#alerta-admissao'
+
+      - alert: BabelDisjuntorAberto
+        expr: max(ia_disjuntores{estado="aberto"}) > 0
+        for: 2m
+        labels:
+          severity: aviso
+        annotations:
+          summary: 'Disjuntor de provedor de IA aberto há 2 minutos'
+          description: 'Um provedor falhou 5 vezes seguidas e está sendo pulado (tráfego na reserva ou no local). Confira o status do Groq/OpenRouter.'
+          runbook_url: 'https://github.com/GuilhermeLVL/babel-play/blob/main/docs/runbook.md#alerta-disjuntor'
+
+  - name: babel-play-custo
+    rules:
+      - alert: BabelGastoDiarioAlto
+        expr: |
+          max by (periodo) (ia_gasto_usd{periodo="dia"})
+          / max by (periodo) (ia_orcamento_teto_usd{periodo="dia"}) > 0.8
+        labels:
+          severity: aviso
+        annotations:
+          summary: 'Gasto de IA de hoje acima de 80% do teto diário'
+          description: 'Em {{ $value | humanizePercentage }} do AI_BUDGET_USD_DAY. A 100% a nuvem fecha até 00:00 UTC.'
+          runbook_url: 'https://github.com/GuilhermeLVL/babel-play/blob/main/docs/runbook.md#alerta-gasto-diario'
+
+      - alert: BabelGastoMensalAlto
+        expr: |
+          max by (periodo) (ia_gasto_usd{periodo="mes"})
+          / max by (periodo) (ia_orcamento_teto_usd{periodo="mes"}) > 0.8
+        labels:
+          severity: aviso
+        annotations:
+          summary: 'Gasto de IA do mês acima de 80% do orçamento'
+          description: 'Em {{ $value | humanizePercentage }} do AI_BUDGET_USD_MONTH. A 100% a nuvem fecha até o dia 1º.'
+          runbook_url: 'https://github.com/GuilhermeLVL/babel-play/blob/main/docs/runbook.md#alerta-gasto-diario'
+
+      - alert: BabelOrcamentoEsgotado
+        expr: |
+          max by (periodo) (ia_gasto_usd) / max by (periodo) (ia_orcamento_teto_usd) >= 1
+        labels:
+          severity: pagina
+        annotations:
+          summary: 'Orçamento de IA ({{ $labels.periodo }}) esgotado — a nuvem está FECHADA'
+          description: 'Todos os usuários estão nos modelos locais. Decida entre subir o teto ou esperar a virada.'
+          runbook_url: 'https://github.com/GuilhermeLVL/babel-play/blob/main/docs/runbook.md#alerta-gasto-diario'
+
+      - alert: BabelGastoAnomaloUsuario
+        expr: sum by (motivo) (increase(ia_gasto_anomalo_usuario_total[15m])) > 0
+        labels:
+          severity: aviso
+        annotations:
+          summary: 'Usuário com gasto de IA anômalo hoje (motivo: {{ $labels.motivo }})'
+          description: 'O pseudônimo (u_…) está no warn `ia_gasto_anomalo_usuario` do Sentry/log; é o mesmo do Langfuse.'
+          runbook_url: 'https://github.com/GuilhermeLVL/babel-play/blob/main/docs/runbook.md#alerta-gasto-anomalo'
+
+  - name: babel-play-recursos
+    rules:
+      - alert: BabelUploadsNoTeto
+        expr: |
+          max(uploads_grandes_em_voo) >= max(uploads_grandes_limite)
+          or sum(increase(uploads_grandes_recusados_total{motivo="processo"}[15m])) > 5
+        for: 10m
+        labels:
+          severity: aviso
+        annotations:
+          summary: 'Semáforo de uploads grandes no teto do processo'
+          description: 'Usuários recebendo 429 upload_ocupado porque a máquina já tem o máximo de uploads grandes em voo.'
+          runbook_url: 'https://github.com/GuilhermeLVL/babel-play/blob/main/docs/runbook.md#alerta-uploads'
+
+      - alert: BabelMemoriaAlta
+        expr: max(process_resident_memory_bytes) > 858993459
+        for: 10m
+        labels:
+          severity: aviso
+        annotations:
+          summary: 'RSS do Node acima de 80% de 1 GB por 10 minutos'
+          description: 'RSS em {{ $value | humanize1024 }}B. Acima de 1 GB o OOM do Fly mata a única máquina.'
+          runbook_url: 'https://github.com/GuilhermeLVL/babel-play/blob/main/docs/runbook.md#alerta-memoria'
+
+      - alert: BabelBackupFalhou
+        expr: sum(increase(backup_falhas_total[1d])) > 0
+        labels:
+          severity: aviso
+        annotations:
+          summary: 'O snapshot diário do banco falhou nas últimas 24 h'
+          description: 'O Litestream segue replicando, mas o snapshot é o que cobre erro LÓGICO. O heartbeat do UptimeRobot também vai reclamar.'
+          runbook_url: 'https://github.com/GuilhermeLVL/babel-play/blob/main/docs/runbook.md#alerta-backup'
+
+  # GATILHOS DE ESCALA — não são incidente: são o aviso a 70% dos limiares de docs/escala.md, para a
+  # decisão ser tomada na semana e não no dia em que quebra.
+  - name: babel-play-escala
+    rules:
+      - alert: BabelEscalaCpuEstrangulada
+        expr: sum(rate(fly_instance_cpu_throttle[10m])) > 0
+        for: 30m
+        labels:
+          severity: planejamento
+        annotations:
+          summary: 'CPU sendo estrangulada pelo Fly há 30 minutos (saldo de rajada do shared-cpu acabou)'
+          description: 'Passo 1 de docs/escala.md: shared-cpu-1x → performance-1x.'
+          runbook_url: 'https://github.com/GuilhermeLVL/babel-play/blob/main/docs/runbook.md#alerta-escala'
+
+      - alert: BabelEscalaEscritasSQLite
+        expr: sum(rate(db_escritas_total[10m])) > 35
+        for: 30m
+        labels:
+          severity: planejamento
+        annotations:
+          summary: 'Escritas no SQLite acima de 35/s sustentadas (70% do gatilho de 50/s do ADR 0006)'
+          description: 'Comece a migração para Postgres (passo 4 de docs/escala.md) antes de chegar a 50/s.'
+          runbook_url: 'https://github.com/GuilhermeLVL/babel-play/blob/main/docs/runbook.md#alerta-escala'
+
+      - alert: BabelEscalaBancoGrande
+        expr: max(db_tamanho_bytes) > 3500000000
+        for: 1h
+        labels:
+          severity: planejamento
+        annotations:
+          summary: 'Banco SQLite acima de 3,5 GB (70% do gatilho de 5 GB do ADR 0006)'
+          description: 'Volume com teto de 10 GB e snapshot diário proporcional ao banco: planeje o Postgres.'
+          runbook_url: 'https://github.com/GuilhermeLVL/babel-play/blob/main/docs/runbook.md#alerta-escala'

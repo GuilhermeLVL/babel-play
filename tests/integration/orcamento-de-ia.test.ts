@@ -193,3 +193,96 @@ describe('orçamento global do mês', () => {
     expect(Number.isFinite(orc.tetoDoMesUsd())).toBe(true)
   })
 })
+
+/* ─────────────── Fase 5 de prontidão (25/09/2026): o teto DIÁRIO e o gasto anômalo ─────────────── */
+
+const dia = () => new Date().toISOString().slice(0, 10)
+
+describe('orçamento DIÁRIO (AI_BUDGET_USD_DAY) — a mesma regra do mensal, no dia UTC', () => {
+  afterEach(async () => {
+    delete process.env.AI_BUDGET_USD_DAY
+    await repo.zerar(dia())
+  })
+
+  it('80% do dia alerta uma vez; 100% fecha a nuvem até amanhã, com o mensal ainda folgado', async () => {
+    process.env.AI_BUDGET_USD_MONTH = '100'
+    process.env.AI_BUDGET_USD_DAY = '1'
+    await repo.zerar(dia())
+    const avisos = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const erros = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    await orc.registrarGastoDeIa(0.79)
+    expect(eventosNoLog(avisos)).not.toContain('ia_orcamento_diario_alerta_80')
+    await orc.registrarGastoDeIa(0.02)
+    await orc.registrarGastoDeIa(0.01)
+    expect(eventosNoLog(avisos).filter((e) => e === 'ia_orcamento_diario_alerta_80')).toHaveLength(1)
+    // O mensal (US$ 100) não chegou nem perto: o alerta do MÊS não pode ter saído junto.
+    expect(eventosNoLog(avisos)).not.toContain('ia_orcamento_alerta_80')
+    expect((await orc.portaoDaNuvem()).ok).toBe(true)
+
+    await orc.registrarGastoDeIa(0.2)
+    expect(eventosNoLog(erros)).toContain('ia_orcamento_diario_esgotado')
+    const portao = await orc.portaoDaNuvem()
+    expect(portao.ok).toBe(false)
+    expect(portao.motivo).toBe('orcamento_diario_esgotado')
+    expect(portao.mensagem).toMatch(/volta amanhã/)
+  })
+
+  it('o gasto de ontem não conta hoje', async () => {
+    process.env.AI_BUDGET_USD_DAY = '1'
+    await repo.somar('2000-01-01', 50_000_000)
+    expect((await orc.portaoDaNuvem()).ok).toBe(true)
+  })
+
+  it('sem AI_BUDGET_USD_DAY não há teto diário, mas o dia é somado (é ele que alimenta o painel)', async () => {
+    process.env.AI_BUDGET_USD_MONTH = '100'
+    await repo.zerar(dia())
+    await orc.registrarGastoDeIa(5)
+    expect((await orc.portaoDaNuvem()).ok).toBe(true)
+    const estado = await orc.estadoDoOrcamento()
+    expect(estado.dia.gastoUsd).toBeCloseTo(5, 6)
+    expect(estado.dia.tetoUsd).toBeNull()
+  })
+
+  it('o estado do operador traz o dia com teto e percentual', async () => {
+    process.env.AI_BUDGET_USD_DAY = '2'
+    await repo.zerar(dia())
+    await orc.registrarGastoDeIa(0.5)
+    const estado = await orc.estadoDoOrcamento()
+    expect(estado.dia.dia).toBe(dia())
+    expect(estado.dia.tetoUsd).toBe(2)
+    expect(estado.dia.percentual).toBeCloseTo(25, 1)
+  })
+})
+
+describe('gasto anômalo por usuário — warn com o id PSEUDONIMIZADO', () => {
+  afterEach(() => {
+    delete process.env.AI_USUARIO_ALERTA_USD_DIA
+  })
+
+  it('passa do teto absoluto do dia → um warn `ia_gasto_anomalo_usuario` com `u_…`, nunca o id', async () => {
+    process.env.AI_USUARIO_ALERTA_USD_DIA = '0.3'
+    const avisos = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const id = 'usuario-real-3f9c-anomalo'
+    await orc.registrarGastoDeIa(0.2, { userId: id, plano: 'pro' })
+    await orc.registrarGastoDeIa(0.2, { userId: id, plano: 'pro' })
+    await orc.registrarGastoDeIa(0.2, { userId: id, plano: 'pro' })
+
+    const linhas = avisos.mock.calls
+      .map((c) => JSON.parse(String(c[0])))
+      .filter((l) => l.event === 'ia_gasto_anomalo_usuario')
+    expect(linhas, 'uma vez por usuário por dia, não a cada chamada').toHaveLength(1)
+    expect(linhas[0].usuario).toMatch(/^u_[0-9a-f]{24}$/)
+    expect(JSON.stringify(avisos.mock.calls)).not.toContain(id)
+
+    // O MESMO pseudônimo do Langfuse — é o que deixa o operador ir do alerta ao rastro.
+    const { pseudonimoDoUsuario } = await h.load<any>('../../server/lib/pseudonimoDeUsuario')
+    expect(linhas[0].usuario).toBe(await pseudonimoDoUsuario(id))
+  })
+
+  it('o aviso vai para o Sentry (é um dos AVISOS_QUE_ALERTAM), junto com o de 80% do dia', async () => {
+    const { AVISOS_QUE_ALERTAM } = await h.load<any>('../../server/lib/logger')
+    expect(AVISOS_QUE_ALERTAM.has('ia_gasto_anomalo_usuario')).toBe(true)
+    expect(AVISOS_QUE_ALERTAM.has('ia_orcamento_diario_alerta_80')).toBe(true)
+  })
+})

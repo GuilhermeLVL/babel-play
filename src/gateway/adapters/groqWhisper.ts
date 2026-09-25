@@ -4,6 +4,7 @@
  * injeta via `x-credential-id`.
  */
 import { apiFetch } from '../../data/api';
+import { sinalizarRecusaLida } from '../../lib/ofertas/eventos';
 import { filtrarAlucinacao } from '../alucinacao';
 import { encodeWav } from '../audio/wav';
 import type { SttFinal, SttProvider } from '../capabilities';
@@ -82,6 +83,8 @@ export class GroqWhisperStt implements SttProvider {
       const errorText = await res.text().catch(() => '');
       const retryAfter = res.headers?.get?.('retry-after');
       this.pausa.falha(res.status, retryAfter);
+      // 402 de cota/plano vira momento de oferta (Fase 8); o host espera a captura acabar.
+      sinalizarRecusaLida(res.status, errorText, 'transcricao');
       let code: string | undefined;
       try {
         code = (JSON.parse(errorText) as { code?: unknown }).code as string | undefined;

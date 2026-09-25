@@ -34,7 +34,7 @@ import { exigirAal2SeTiver2fa } from '../lib/aal'
 import { abertura, portaDoCadastro } from '../lib/abertura'
 import { authMiddleware, authRequired, verificarTokenPadrao } from '../lib/auth'
 import type { UserId } from '../lib/authContext'
-import { metricasHabilitadas, segredoDeOrigem } from '../lib/config'
+import { metricasHabilitadas, portaInternaDeMetricas, segredoDeOrigem } from '../lib/config'
 import { exigirContaParaEscrever } from '../lib/convidado'
 import { capturarAssincrono } from '../lib/erroGlobal'
 import { exigirAdultoDeclarado, exigirContaLiberada } from '../lib/idade'
@@ -63,6 +63,7 @@ import { imagesRouter } from '../routes/images'
 import { importRouter } from '../routes/import'
 import { meRouter } from '../routes/me'
 import { metricasCapturaRouter } from '../routes/metricasCaptura'
+import { metricasOfertasRouter } from '../routes/metricasOfertas'
 import { metricsRouter } from '../routes/metrics'
 import { rankRouter } from '../routes/rank'
 import { responsavelRouter } from '../routes/responsavel'
@@ -183,7 +184,9 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
        handler solto no app — o mesmo caso de `/api/health` logo abaixo. O handler trata a própria
        falha e devolve 500; telemetria que derruba o request que observa é pior que telemetria
        nenhuma. */
-    app.get('/metrics', handlerDeMetricas())
+    /* Com `METRICS_PORTA_INTERNA` o scrape mora num listener próprio (`server.ts`), e a porta
+       PÚBLICA não tem `/metrics` nenhum — 404 como qualquer caminho. Menos superfície que um token. */
+    if (portaInternaDeMetricas() === undefined) app.get('/metrics', handlerDeMetricas())
   }
 
   /* GAP-015: o teto de 5 MB valia ANTES do login. Agora o topo aceita só 100 KB, e as poucas rotas
@@ -347,6 +350,9 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
     )
   }
   app.use('/api/metricas', capturarAssincrono(metricasCapturaRouter))
+  /* O FUNIL DAS OFERTAS (Fase 8): o mesmo desenho — anônimo, antes do auth, corpo de 8 KB e o mesmo
+     balde por IP de `/api/metricas`. Ver `server/routes/metricasOfertas.ts`. */
+  app.use('/api/metricas', capturarAssincrono(metricasOfertasRouter))
 
   /* AS PORTAS DE EMERGÊNCIA (Fase 3): a tela de login e a de planos perguntam aqui, antes de
      haver sessão, se o cadastro e a venda estão abertos. Pública pelo mesmo motivo do health. */

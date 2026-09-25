@@ -14,6 +14,7 @@ import { PLANOS_DA_FLAG } from '../../src/core/flags'
 import {
   COMPONENTES_DE_OFERTA,
   type ConfigDeOfertas,
+  FORMATO_DA_VARIANTE,
   MOMENTOS_DE_OFERTA,
   type TextoRemoto,
 } from '../../src/core/ofertas'
@@ -43,6 +44,7 @@ const gatilhoSchema = z
       .min(0)
       .max(24 * 30),
     planos: z.array(z.enum(PLANOS_DA_FLAG)).min(1),
+    variante: z.string().regex(FORMATO_DA_VARIANTE, 'variante: minúsculas, dígitos, _ ou -, até 24').optional(),
   })
   .strict()
   .refine((g) => g.maxPorSemana >= g.maxPorDia, {

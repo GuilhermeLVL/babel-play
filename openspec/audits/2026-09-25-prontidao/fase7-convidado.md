@@ -26,7 +26,7 @@ acesso. A sonda de disponibilidade do STT conta como uso, porque ela só roda qu
 
 - `src/lib/convidado.ts`. Decide se a rota é de nuvem e se as duas flags estão ligadas. Cria a
   sessão anônima uma vez, com chamadas simultâneas dividindo a mesma criação, e com o Turnstile
-  quando há chave. Também lê a resposta para disparar `babel:oferta`.
+  quando há chave. Também lê a resposta para disparar `convidado_para_conta` pelo canal da Fase 8.
 - `src/data/funil.ts`. Com identidade `anonimo`, só as rotas de nuvem saem para a rede, e só com a
   sessão anônima. O resto continua no servidor em memória.
 - `src/lib/estado/useSessaoSupabase.ts`. A sessão anônima não é conta: a identidade continua
@@ -56,7 +56,7 @@ acesso. A sonda de disponibilidade do STT conta como uso, porque ela só roda qu
 - `server/lib/convidado.ts`. Contém `abrirPortaGratuita()`, chamada no STT, na tradução e no tutor
   antes do entitlement, e o middleware `exigirContaParaEscrever`.
 - `server/lib/limpezaDeConvidados.ts`. É o job diário de expiração (ver §4).
-- Migração `0032_convidados.sql`. Cria a tabela `convidados` (`user_id`, `ip_hash`, `criado_em`,
+- Migração `0033_convidados.sql` (a `0032` fica reservada para `versoes_de_dados`, de outra frente; ver §8). Cria a tabela `convidados` (`user_id`, `ip_hash`, `criado_em`,
   `visto_em`), que está em `TABELAS_DO_TITULAR`. Tem comentário `REVERSAO:`.
 
 ## 2. Limites
@@ -218,9 +218,17 @@ e de algumas leituras de contador. O limite de criação faz uma consulta indexa
 5. **Flags**, nesta ordem: ligar `modo_convidado` (só UI e ofertas). Depois do upgrade da Groq e da
    decisão sobre menores, ligar `nuvem_convidado`. A regra semeada (`{"planos":["convidado"]}`) já
    restringe a flag ao convidado.
-6. **Fase 8:** consumir `babel:oferta` com os momentos `convidado_para_conta` (teto local, 403
-   `exige_conta`, 429 `limite_de_convidados`) e `fim_de_cota` (402 `quota_exceeded` do convidado).
-   O `contexto` traz `motivo` e `rota`.
+6. **Integração da migração:** a `0033_convidados` foi numerada depois da `0032_versoes_de_dados`,
+   que está sendo feita em outra frente e ainda não chegou a esta branch. No merge, conferir o
+   `_journal.json` (entradas 32 e 33 em ordem de `when`) e regenerar o snapshot com
+   `npx tsx scripts/migracoes/snapshot-do-schema.ts`, porque o `0033_snapshot.json` desta branch
+   aponta para o `0031`.
+7. **Fase 8 (já integrada nesta branch):** o `HostDeOfertas` consome `babel:oferta`. O funil
+   dispara `convidado_para_conta` (teto local, 403 `exige_conta`, 429 `limite_de_convidados`) pelo
+   `dispararOferta` de `lib/ofertas/eventos.ts`, com `motivo` e `rota` no `contexto`. O 402
+   `quota_exceeded` do convidado vira `fim_de_cota` pelos próprios adaptadores de nuvem
+   (`sinalizarRecusa*`), e por isso o funil não o repete. Falta ao dono ligar `oferta_planos` com o
+   gatilho `criar_conta` (já semeado para `planos: ["convidado"]`).
 
 ## 9. Testes
 
@@ -242,7 +250,8 @@ e de algumas leituras de contador. O limite de criação faz uma consulta indexa
 - `tests/modo-convidado-cliente.test.ts` cobre:
   - `signInAnonymously` só com as duas flags e só em rota de nuvem, uma vez para chamadas
     simultâneas, sem `captchaToken` quando não há chave;
-  - `babel:oferta` em 402, 429, 403 e no teto local (507), e nenhum evento com o modo desligado;
+  - `babel:oferta` (`convidado_para_conta`) em 429, 403 e no teto local (507), sem duplicar o 402
+    que o adaptador já sinaliza, e nenhum evento com o modo desligado;
   - `updateUser` e `linkIdentity` na conversão.
 - `tests/sessao-anonima-nao-e-conta.test.ts` cobre: sessão anônima → `anonimo`, e `USER_UPDATED`
   não anônimo → `conta`.

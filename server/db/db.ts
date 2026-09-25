@@ -11,6 +11,7 @@ import { dirname } from 'node:path'
 import { createClient } from '@libsql/client'
 import { drizzle } from 'drizzle-orm/libsql'
 
+import { medirConsultas } from './observadorDeConsultas'
 import * as schema from './schema'
 
 const url = process.env.DATABASE_URL ?? 'file:./data/babel.db'
@@ -28,9 +29,18 @@ if (bancoLocal) {
   mkdirSync(dirname(url.replace(/^file:/, '')), { recursive: true })
 }
 
-export const client = createClient(
-  bancoLocal ? { url } : { url, authToken: process.env.DATABASE_AUTH_TOKEN },
-)
+export const client = createClient(bancoLocal ? { url } : { url, authToken: process.env.DATABASE_AUTH_TOKEN })
+
+/* MEDIÇÃO (Fase 5 de prontidão): escritas/s e duração por tipo, para o gatilho do ADR 0006. Embrulha
+   os dois métodos que o Drizzle usa fora de transação; sem observador registrado (métricas
+   desligadas), o custo é um `if`. Ver `observadorDeConsultas.ts`. */
+client.execute = medirConsultas(client.execute.bind(client) as typeof client.execute, (stmt) => [
+  stmt as string | { sql: string },
+]) as typeof client.execute
+client.batch = medirConsultas(
+  client.batch.bind(client) as typeof client.batch,
+  (stmts) => stmts as Array<string | { sql: string }>,
+) as typeof client.batch
 
 /**
  * PRAGMAs de concorrência (auditoria P0-2). O default do SQLite é `journal_mode=delete`
@@ -91,8 +101,8 @@ export const dbReady: Promise<void> = (async () => {
   } else if (journalMode !== 'wal') {
     console.error(
       `[db] ATENÇÃO: journal_mode ficou '${journalMode}', não 'wal'. A proteção contra ` +
-      'SQLITE_BUSY entre processos NÃO está ativa (WAL exige memória compartilhada e não ' +
-      'funciona sobre NFS/SMB). Rode um processo só, ou migre para Postgres.',
+        'SQLITE_BUSY entre processos NÃO está ativa (WAL exige memória compartilhada e não ' +
+        'funciona sobre NFS/SMB). Rode um processo só, ou migre para Postgres.',
     )
   }
 })()
@@ -125,7 +135,9 @@ export type ExecutorDb = DB | Parameters<Parameters<DB['transaction']>[0]>[0]
  * Use este wrapper só quando precisar de lógica condicional entre as instruções (ler algo e
  * decidir a próxima escrita) — aí o `batch` não serve e o custo é inevitável.
  */
-export async function emTransacao<T>(fn: (tx: Parameters<Parameters<DB['transaction']>[0]>[0]) => Promise<T>): Promise<T> {
+export async function emTransacao<T>(
+  fn: (tx: Parameters<Parameters<DB['transaction']>[0]>[0]) => Promise<T>,
+): Promise<T> {
   try {
     return await db.transaction(fn)
   } finally {

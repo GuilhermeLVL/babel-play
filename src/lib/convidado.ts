@@ -13,15 +13,13 @@
  * `linkIdentity` (`lib/auth.ts`), e o Supabase mantém o `sub` — cota e contadores do servidor seguem
  * com a pessoa. Os dados LOCAIS sobem pelo `ModalDeMigracao` de sempre.
  *
- * OFERTAS: este módulo não desenha nada de venda. Ao bater um teto (local ou de nuvem) ele só avisa
- * a Fase 8 pelo evento `babel:oferta` (`src/core/ofertas.ts` define os momentos).
+ * OFERTAS: este módulo não desenha nada de venda. Ao bater um teto que pede conta ele só avisa a
+ * Fase 8 pelo evento `babel:oferta` (`lib/ofertas/eventos.ts`; os momentos em `src/core/ofertas.ts`).
  */
-import type { MomentoDeOferta } from '../core/ofertas';
 import { flagLigada } from './flagsCache';
+import { dispararOferta } from './ofertas/eventos';
 import { carregarSupabase } from './supabase';
 import { obterTokenDoTurnstile } from './turnstile';
-
-export const EVENTO_DE_OFERTA = 'babel:oferta';
 
 /** A sessão do Supabase é de um usuário anônimo (convidado)? */
 export function ehSessaoAnonima(sessao: { user?: unknown } | null | undefined): boolean {
@@ -81,22 +79,19 @@ export function garantirSessaoDeConvidado(): Promise<boolean> {
   return emCriacao;
 }
 
-/** Avisa a camada de ofertas (Fase 8). Não mostra nada por conta própria. */
-export function dispararOferta(momento: MomentoDeOferta, contexto: Record<string, unknown> = {}): void {
-  if (typeof window === 'undefined') return;
-  window.dispatchEvent(new CustomEvent(EVENTO_DE_OFERTA, { detail: { momento, contexto } }));
-}
-
 /**
- * Lê a resposta de uma chamada do convidado e, se ela for um TETO, dispara a oferta certa:
- *  - 507 `TETO_ANONIMO` (servidor em memória: gravações/palavras no limite) → `convidado_para_conta`;
- *  - 402 `quota_exceeded` (cota de nuvem do convidado) → `fim_de_cota`;
- *  - 403 `exige_conta` / 429 `limite_de_convidados` → `convidado_para_conta`.
+ * Lê a resposta de uma chamada do convidado e, se ela for um TETO que pede CONTA, dispara
+ * `convidado_para_conta` (canal da Fase 8, `lib/ofertas/eventos.ts`):
+ *  - 507 `TETO_ANONIMO` (servidor em memória: gravações/palavras no limite);
+ *  - 403 `exige_conta` (nuvem do convidado desligada) e 429 `limite_de_convidados`.
+ * O 402 `quota_exceeded` (cota de nuvem do convidado) NÃO é tratado aqui: os adaptadores de nuvem
+ * (`serverLlmMt`, `groqWhisper`, `IChat`) já o transformam em `fim_de_cota` — disparar de novo
+ * contaria a mesma recusa duas vezes.
  * Só com o modo convidado ligado; desligado, o comportamento de antes não muda. Nunca lança.
  */
 export async function ofertaPelaResposta(res: Response, rota: string): Promise<void> {
   if (!modoConvidadoLigado()) return;
-  if (res.status !== 507 && res.status !== 402 && res.status !== 403 && res.status !== 429) return;
+  if (res.status !== 507 && res.status !== 403 && res.status !== 429) return;
   let corpo: { code?: unknown; codigo?: unknown; recurso?: unknown };
   try {
     corpo = await res.clone().json();
@@ -106,8 +101,6 @@ export async function ofertaPelaResposta(res: Response, rota: string): Promise<v
   const codigo = corpo.code ?? corpo.codigo;
   if (res.status === 507 && codigo === 'TETO_ANONIMO') {
     dispararOferta('convidado_para_conta', { motivo: 'teto_local', recurso: corpo.recurso, rota });
-  } else if (res.status === 402 && codigo === 'quota_exceeded') {
-    dispararOferta('fim_de_cota', { motivo: 'cota_de_nuvem_do_convidado', rota });
   } else if (
     (res.status === 403 && codigo === 'exige_conta') ||
     (res.status === 429 && codigo === 'limite_de_convidados')

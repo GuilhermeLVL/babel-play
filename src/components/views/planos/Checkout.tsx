@@ -30,6 +30,7 @@ import {
   temAssinatura,
 } from '../../../lib/assinatura';
 import { carregarEntitlements, type Plan } from '../../../lib/entitlements';
+import { registrarCheckoutIniciado } from '../../../lib/ofertas/instrumentacao';
 import { estadoDaProtecao } from '../../../lib/protecaoDoMenor';
 import { CabecalhoDeTela, IconeEmBloco, Tela } from '../../ui';
 import { irSub, PLANO_ICO, PLANO_NOME } from './dados';
@@ -207,6 +208,8 @@ export default function Checkout({
     }
     window.open(r.link, '_blank', 'noopener');
     setLink(r.link);
+    // Funil das ofertas (Fase 8): anônimo, atribuído à última oferta clicada ou `nenhum`.
+    registrarCheckoutIniciado(plano);
   };
 
   const campo = (k: Campo, rotulo: string, ph: string, extra: React.InputHTMLAttributes<HTMLInputElement> = {}) => (

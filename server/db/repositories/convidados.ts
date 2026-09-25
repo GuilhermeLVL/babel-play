@@ -1,5 +1,5 @@
 /**
- * CONVIDADOS COM NUVEM (tabela `convidados`, migração 0032) — só leitura e escrita de linha.
+ * CONVIDADOS COM NUVEM (tabela `convidados`, migração 0033) — só leitura e escrita de linha.
  * A política (limite por IP, cotas, expiração) mora em `server/lib/convidado.ts` e
  * `server/lib/limpezaDeConvidados.ts`.
  */

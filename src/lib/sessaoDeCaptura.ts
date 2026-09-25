@@ -30,6 +30,14 @@ export function fecharSessaoDeCaptura(): void {
   atual = null;
 }
 
+/**
+ * Há uma captura ao vivo em andamento (entre o START e o STOP)? As ofertas (Fase 8) esperam ela
+ * acabar: nada aparece por cima de uma aula sendo transcrita.
+ */
+export function capturaAtiva(): boolean {
+  return atual !== null;
+}
+
 /** O cabeçalho para uma chamada de IA durante a captura; `{}` fora dela ou em outras rotas. */
 export function cabecalhoDaSessaoDeCaptura(url: string): Record<string, string> {
   if (!atual) return {};

@@ -173,6 +173,9 @@ no padrão. Chave sem schema aceita qualquer JSON de até 32 KB.
   base, depois `pt`, depois o primeiro.
 - `maxPorDia` ≤ `maxPorSemana`; `intervaloMinHoras` entre exibições do mesmo gatilho. São tetos
   de educação contados no aparelho, não cota.
+- `variante` (opcional, `[a-z0-9_-]{1,24}`): rótulo de experimento A/B que vai para as métricas.
+- Quem lê o payload, as regras de frequência, os momentos e as métricas de conversão:
+  [`docs/ofertas.md`](ofertas.md).
 - Até 50 gatilhos, ids únicos.
 
 ## Flags semeadas (migração 0031)

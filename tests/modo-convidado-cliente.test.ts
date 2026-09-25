@@ -42,9 +42,10 @@ vi.mock('../src/lib/supabase', () => ({
 
 import { apiFetch } from '../src/data/funil'
 import * as auth from '../src/lib/auth'
-import { _esquecerCriacaoDeConvidado, EVENTO_DE_OFERTA } from '../src/lib/convidado'
+import { _esquecerCriacaoDeConvidado } from '../src/lib/convidado'
 import { definirEstadoDasFlags } from '../src/lib/flagsCache'
 import { definirIdentidade } from '../src/lib/identidade'
+import { EVENTO_OFERTA as EVENTO_DE_OFERTA } from '../src/lib/ofertas/eventos'
 
 const rede = vi.fn()
 const ofertas: Array<{ momento: string; contexto: Record<string, unknown> }> = []
@@ -127,12 +128,12 @@ describe('criação do convidado anônimo', () => {
 })
 
 describe('evento babel:oferta nos tetos', () => {
-  it('402 quota_exceeded da nuvem → fim_de_cota', async () => {
+  it('402 quota_exceeded: o funil NÃO duplica (quem dispara fim_de_cota é o adaptador de nuvem)', async () => {
     flags(true, true)
     rede.mockResolvedValue(resposta(402, { code: 'quota_exceeded' }))
     await apiFetch('/api/ai/mt', { method: 'POST', body: '{}' })
     await aguardar()
-    expect(ofertas.map((o) => o.momento)).toEqual(['fim_de_cota'])
+    expect(ofertas).toEqual([])
   })
 
   it('429 limite_de_convidados e 403 exige_conta → convidado_para_conta', async () => {

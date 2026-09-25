@@ -149,7 +149,7 @@ async function conversar(req: Request, res: Response, rastro: RastroDeIa): Promi
         if (entregue) {
           await reserva.consumir(entregue.tokensEntrada + entregue.tokensSaida)
           const custo = custoDeLlm(entregue.model, entregue.tokensEntrada, entregue.tokensSaida)
-          await registrarGastoDeIa(custo)
+          await registrarGastoDeIa(custo, { userId: req.userId, plano: plano.plan })
           await gratuita.registrarCusto(custo)
           respondeuDaNuvem = true
           res.json({ text: entregue.texto, engine: 'nuvem', local: false })

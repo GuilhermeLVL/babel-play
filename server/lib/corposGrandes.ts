@@ -15,6 +15,7 @@
  */
 import type { NextFunction, Request, Response } from 'express'
 
+import { contarUploadRecusado, registrarLeitorDeUploads } from '../http/metricas'
 import { descartarRestoDoCorpo } from './corpoEmArquivo'
 import { envelopeDeErro } from './respostaDeErro'
 
@@ -87,7 +88,11 @@ export function criarSemaforoDeCorpos(limites: LimitesDeCorpos): SemaforoDeCorpo
 }
 
 /** O semáforo do processo — um só para todas as rotas de corpo grande. */
-export const semaforoDeCorposGrandes = criarSemaforoDeCorpos(limitesDeCorposGrandes())
+const limitesDoProcesso = limitesDeCorposGrandes()
+export const semaforoDeCorposGrandes = criarSemaforoDeCorpos(limitesDoProcesso)
+
+/* Métricas `uploads_grandes_em_voo`/`_limite`, lidas no scrape (o alerta "no teto" compara as duas). */
+registrarLeitorDeUploads(() => ({ emVoo: semaforoDeCorposGrandes.emVoo(), limite: limitesDoProcesso.porProcesso }))
 
 /** Segundos sugeridos ao cliente antes de tentar de novo. Um upload grande leva dezenas de segundos. */
 export const ESPERA_SUGERIDA_S = 15
@@ -102,6 +107,7 @@ export function vagaDeCorpoGrande(semaforo: SemaforoDeCorpos = semaforoDeCorposG
     const vaga = semaforo.adquirir(String(req.userId))
     if (!vaga.ok) {
       const { motivo } = vaga as VagaRecusada
+      contarUploadRecusado(motivo)
       descartarRestoDoCorpo(req)
       res.setHeader('Retry-After', String(ESPERA_SUGERIDA_S))
       res

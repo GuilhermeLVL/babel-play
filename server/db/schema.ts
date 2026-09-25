@@ -920,7 +920,8 @@ export const rank = sqliteTable(
 /**
  * GASTO DE IA DO MÊS — o orçamento global da nuvem (Fase 2 do lançamento; migração 0029).
  *
- * Uma linha por mês, sem `user_id`: é conta do serviço, não dado de titular. Microdólares inteiros
+ * Uma linha por PERÍODO — `AAAA-MM` (mês) e, desde a Fase 5 de prontidão, também `AAAA-MM-DD` (dia
+ * UTC, para o teto diário) na mesma coluna `mes`; sem `user_id`: é conta do serviço, não dado de titular. Microdólares inteiros
  * porque a soma de milhares de custos minúsculos em ponto flutuante acumula erro, e o gatilho de
  * 100% é uma comparação exata. Quem lê e escreve: `server/db/repositories/gastoDeIa.ts`.
  */
@@ -953,7 +954,7 @@ export const flags = sqliteTable('flags', {
 })
 
 /**
- * CONVIDADOS COM NUVEM (Fase 7 — modo convidado; migração 0032). `openspec/audits/2026-09-25-prontidao/fase7-convidado.md`.
+ * CONVIDADOS COM NUVEM (Fase 7 — modo convidado; migração 0033). `openspec/audits/2026-09-25-prontidao/fase7-convidado.md`.
  *
  * Uma linha por usuário ANÔNIMO do Supabase (`is_anonymous`) que chegou a usar a IA de nuvem. O
  * convidado sem nuvem nunca aparece aqui: o app dele é 100% local.

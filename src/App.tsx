@@ -41,6 +41,7 @@ import GateDeConta from './components/conta/GateDeConta';
 import ModalDeMigracao from './components/conta/ModalDeMigracao';
 import PerguntaDeIdade from './components/conta/PerguntaDeIdade';
 import FloatingScoreLayer from './components/FloatingScoreLayer';
+import HostDeOfertas from './components/ofertas/HostDeOfertas';
 import ParticleCanvas from './components/ParticleCanvas';
 import RecompensaDesbloqueada, { tirarDaFila } from './components/RecompensaDesbloqueada';
 import MobileNav from './components/shell/MobileNav';
@@ -62,6 +63,7 @@ import { useRecompensas } from './lib/estado/useRecompensas';
 import { useSessaoSupabase } from './lib/estado/useSessaoSupabase';
 import { equiparItem } from './lib/galeria/equipar';
 import { useIdiomaDaInterfaceEscolhido } from './lib/langConfig';
+import { dispararOferta } from './lib/ofertas/eventos';
 import {
   aoMudarProtecao,
   armarProtecao,
@@ -243,6 +245,9 @@ export default function App() {
     notificarSessaoSalva(recording);
     // Salvar uma sessão é a conclusão mais concreta da app — é o momento que merece o acorde.
     play('success');
+    /* Fim de sessão de estudo (Fase 8): DEPOIS de salvar, nunca durante a captura. O host decide se
+       aparece alguma coisa (flag, frequência, 3 minutos de sessão, uma por sessão). */
+    dispararOferta('fim_de_sessao', { origem: 'captura' });
     if (shouldRedirect) {
       // Sem conta a análise não existe; o destino natural é jogar com o que acabou de ser gravado.
       if (anonimo) {
@@ -574,7 +579,12 @@ export default function App() {
             <RecompensaDesbloqueada
               fila={filaDeRecompensas}
               onEquipar={(item) => equiparItem(item, equiparCtx)}
-              onFechar={(r) => setFilaDeRecompensas((f) => tirarDaFila(f, r))}
+              onFechar={(r) => {
+                setFilaDeRecompensas((f) => tirarDaFila(f, r));
+                /* Conquista relevante (Fase 8): a oferta vem DEPOIS da celebração fechar, nunca sobre
+                   ela — e o host ainda espera se houver outra recompensa na fila (diálogo aberto). */
+                if (r.tipo === 'conquista') dispararOferta('conquista', { id: r.id });
+              }}
               onVerPersonalizar={() => navigateTo('loja', { aba: 'personalizar' })}
             />
             {activeView === 'settings' && (
@@ -700,6 +710,10 @@ export default function App() {
       {/* Host único dos avisos e das confirmações. Sem ele, `toast()` e `askConfirm()` não têm onde
           aparecer, e os erros voltam a ser invisíveis, que é o bug que eles existem para corrigir. */}
       <Toaster />
+
+      {/* Host único das ofertas de planos (Fase 8): banner, aviso de cota e modal, um por vez, nunca
+          sobre captura, rodada ou outra celebração. Ver `components/ofertas/HostDeOfertas`. */}
+      <HostDeOfertas aoEntrar={() => setPedindoLogin(true)} aoVerPlanos={() => navigateTo('planos')} />
     </div>
   );
 }

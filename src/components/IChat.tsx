@@ -59,6 +59,7 @@ import {
   type Sigilo,
 } from '../lib/ichat/pedido';
 import { construirContextoDaTela } from '../lib/ichatContext';
+import { sinalizarRecusaLida } from '../lib/ofertas/eventos';
 import { type AgeProfileType } from '../lib/profile';
 import { seedFromSelection } from '../lib/sentences';
 import { Recording, ViewType, VocabCard } from '../types';
@@ -599,6 +600,9 @@ export default function IChat({
       });
       const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
       const motivo = motivoDaResposta(res, data);
+      /* Cota acabou ou o tutor é de plano pago: a MENSAGEM acima explica na conversa; a oferta
+         (Fase 8) vem pelo host, com flag, frequência e sem cobrir o chat de modal durante o uso. */
+      sinalizarRecusaLida(res.status, data, 'tutor');
       responderNaConversa(
         id,
         motivo

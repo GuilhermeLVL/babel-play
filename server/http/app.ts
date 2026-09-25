@@ -36,6 +36,7 @@ import { authMiddleware, authRequired } from '../lib/auth'
 import { metricasHabilitadas, segredoDeOrigem } from '../lib/config'
 import { capturarAssincrono } from '../lib/erroGlobal'
 import { exigirAdultoDeclarado, exigirContaLiberada } from '../lib/idade'
+import { criarLimitadorDeFalhas } from '../lib/limitadorDeFalhas'
 import {
   chaveDoRequest,
   createDbRateLimitStore,
@@ -350,29 +351,34 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
    * nunca chega a limitador nenhum**. Quem tenta adivinhar token — ou reusa um vazado contra várias
    * contas — não encontrava teto em lugar nenhum do servidor.
    *
-   * Este vem ANTES do auth e conta SÓ o que falhou: `requestWasSuccessful` marca como sucesso
-   * tudo que não é 401, e `skipSuccessfulRequests` faz o contador ignorar os sucessos. Um usuário
-   * legítimo, com token válido, nunca soma um ponto aqui, por mais que navegue.
+   * Este vem ANTES do auth e conta SÓ o que falhou (401). Um usuário legítimo, com token válido,
+   * nunca soma um ponto aqui, por mais que navegue — e, desde a auditoria de prontidão de
+   * 2026-09-25 (fase 2 §2.5), também nunca ESCREVE nada nem é barrado por concorrência.
+   *
+   * POR QUE DEIXOU DE SER `rateLimit` com `skipSuccessfulRequests`: aquela opção soma toda
+   * requisição na entrada e estorna na saída. Medido: com mais de 30 requisições simultâneas do
+   * mesmo IP (escola/NAT), 88–100% recebiam 429 sem nenhuma falha de auth, o contador ficava preso
+   * em 30 e depois disso até uma conexão sozinha levava 429 por 15 minutos — além de dobrar as
+   * escritas no SQLite em todo request. O `criarLimitadorDeFalhas` só LÊ na entrada e só soma no
+   * `finish` de um 401. O desenho e o preço aceito estão em `server/lib/limitadorDeFalhas.ts`.
    *
    * A chave é o IP (`chaveDoRequest` cai nele quando não há usuário resolvido, que é exatamente o
    * caso de um 401) — e é por isso que ele depende de `TRUST_PROXY` estar certo atrás de proxy.
    *
-   * 30 por 15 minutos: um token expirado que o cliente reenvia em algumas telas antes de renovar
-   * cabe com folga; um laço de adivinhação, não. Só em modo público — no self-host o
+   * 30 falhas por 15 minutos: um token expirado que o cliente reenvia em algumas telas antes de
+   * renovar cabe com folga; um laço de adivinhação, não. Só em modo público — no self-host o
    * `authMiddleware` injeta o dono e 401 não existe.
    */
   if (authRequired()) {
     app.use(
       '/api',
-      rateLimit({
-        windowMs: 15 * 60_000,
-        limit: 30,
-        standardHeaders: true,
-        legacyHeaders: false,
-        keyGenerator: chaveDoRequest,
-        store: createDbRateLimitStore(METRIC_RATELIMIT_AUTH),
-        skipSuccessfulRequests: true,
-        requestWasSuccessful: (_req, res) => res.statusCode !== 401,
+      criarLimitadorDeFalhas({
+        metric: METRIC_RATELIMIT_AUTH,
+        janelaMs: 15 * 60_000,
+        teto: 30,
+        falhou: (_req, res) => res.statusCode === 401,
+        code: 'muitas_falhas_de_autenticacao',
+        mensagem: 'muitas tentativas de autenticação falharam; tente de novo mais tarde',
       }),
     )
   }

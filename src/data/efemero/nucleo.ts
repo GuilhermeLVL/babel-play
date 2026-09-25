@@ -30,11 +30,16 @@ export const uuid = (): string =>
   globalThis.crypto?.randomUUID?.() ?? `ef-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 
 /**
- * Rotas que vão ao servidor REAL mesmo sem conta: capacidades do servidor LOCAL (captura WASAPI
- * do áudio do sistema), sem banco, sem custo e sem dado de usuário. O próprio servidor decide se
- * existem (no modo público responde 403) — o cliente só pergunta. É a única exceção ao "nada sai".
+ * Rotas que vão ao servidor REAL mesmo sem conta — as exceções ao "nada sai", e só estas:
+ *
+ *  - capacidades do servidor LOCAL (captura WASAPI do áudio do sistema), sem banco, sem custo e sem
+ *    dado de usuário. O próprio servidor decide se existem (no modo público responde 403);
+ *  - `GET /api/flags` (Fase 6b): as feature flags são PÚBLICAS por desenho — é o anônimo e o
+ *    convidado que mais dependem delas —, e o servidor em memória não tem como saber o que o
+ *    operador ligou. O que sobe é só o id aleatório da instalação, o idioma da interface e a
+ *    versão do app; nenhum dado da pessoa (`src/lib/flags.ts`).
  */
-export const PASSAM_DIRETO: RegExp[] = [/^\/api\/audio\/loopback\//];
+export const PASSAM_DIRETO: RegExp[] = [/^\/api\/audio\/loopback\//, /^\/api\/flags$/];
 
 /**
  * Só AÇÕES da pessoa avisam o App para oferecer a conta. Sondas automáticas (disponibilidade de

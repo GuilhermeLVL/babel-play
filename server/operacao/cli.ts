@@ -11,6 +11,9 @@
  *       Baixa o snapshot do dia, descomprime num arquivo NOVO e confere. Nunca toca o banco vivo:
  *       trocar o banco é um passo separado e consciente (ver `docs/runbook.md`).
  *
+ *   node dist-server/operacao.cjs flags listar | ligar <chave> | desligar <chave> | definir <chave> '<json>'
+ *       As feature flags (Fase 6b) — ver `server/operacao/flags.ts` e `docs/flags.md`.
+ *
  *   node dist-server/operacao.cjs verificar --arquivo=/data/restauro.db
  *       `PRAGMA integrity_check` + contagens de qualquer arquivo — é o que se roda depois de um
  *       `litestream restore`, antes de apontar o app para o arquivo restaurado.
@@ -37,6 +40,11 @@ function imprimir(v: Verificacao) {
 
 async function principal(): Promise<number> {
   const comando = process.argv[2]
+  if (comando === 'flags') {
+    // Import dinâmico: só este comando precisa do banco da aplicação (e do `DATABASE_URL`).
+    const { comandoDeFlags } = await import('./flags')
+    return comandoDeFlags(process.argv.slice(3))
+  }
   if (comando === 'verificar') {
     const arquivo = arg('arquivo')
     if (!arquivo) return uso()
@@ -78,7 +86,7 @@ async function principal(): Promise<number> {
 
 function uso(): number {
   console.error(
-    'uso: operacao.cjs snapshot | restaurar-snapshot --dia=AAAA-MM-DD --destino=<arquivo novo> | verificar --arquivo=<banco>',
+    'uso: operacao.cjs snapshot | restaurar-snapshot --dia=AAAA-MM-DD --destino=<arquivo novo> | verificar --arquivo=<banco> | flags listar|ligar|desligar|definir',
   )
   return 2
 }

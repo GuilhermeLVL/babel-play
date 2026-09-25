@@ -1,0 +1,2655 @@
+{
+  "geradoEm": "2026-09-25T02:36:22.334Z",
+  "commit": "ff1a9bf",
+  "sistemas": [
+    "groq:whisper-large-v3-turbo",
+    "groq:whisper-large-v3-turbo+t0+seg",
+    "groq:whisper-large-v3-turbo+vad",
+    "groq:whisper-large-v3-turbo+t0+seg+vad"
+  ],
+  "conjuntos": ["sem_fala"],
+  "gastoTotalUsd": 0.393600972222226,
+  "resultados": [
+    {
+      "sistema": "groq:whisper-large-v3-turbo",
+      "conjunto": "sem_fala",
+      "n": 126,
+      "taxaDeAlucinacao": {
+        "valor": 0.6825396825396826,
+        "ic95": [0.6031746031746031, 0.753968253968254]
+      },
+      "exemplos": [
+        "Beleza",
+        "E aí",
+        "Fiu!",
+        "FALFINTA!",
+        "Obrigada.",
+        "Ah!",
+        "Aplausos",
+        "Tchau.",
+        "Música",
+        "Obrigado.",
+        "Tchau!",
+        "Abertura"
+      ],
+      "rtf": 0.38858122229199343,
+      "latenciaMs": {
+        "p50": 360.857600000003,
+        "p95": 11235.933500000001
+      },
+      "casos": [
+        {
+          "id": "esc50_000",
+          "categoria": "clock_alarm",
+          "hipotese": "Beleza"
+        },
+        {
+          "id": "esc50_001",
+          "categoria": "pig",
+          "hipotese": "."
+        },
+        {
+          "id": "esc50_002",
+          "categoria": "pouring_water",
+          "hipotese": "E aí"
+        },
+        {
+          "id": "esc50_003",
+          "categoria": "cow",
+          "hipotese": "Fiu!"
+        },
+        {
+          "id": "esc50_004",
+          "categoria": "dog",
+          "hipotese": "FALFINTA!"
+        },
+        {
+          "id": "esc50_005",
+          "categoria": "footsteps",
+          "hipotese": "E aí"
+        },
+        {
+          "id": "esc50_006",
+          "categoria": "keyboard_typing",
+          "hipotese": "."
+        },
+        {
+          "id": "esc50_007",
+          "categoria": "clapping",
+          "hipotese": "Obrigada."
+        },
+        {
+          "id": "esc50_008",
+          "categoria": "footsteps",
+          "hipotese": "E aí"
+        },
+        {
+          "id": "esc50_009",
+          "categoria": "chainsaw",
+          "hipotese": "E aí"
+        },
+        {
+          "id": "esc50_010",
+          "categoria": "rooster",
+          "hipotese": "Ah!"
+        },
+        {
+          "id": "esc50_011",
+          "categoria": "clock_alarm",
+          "hipotese": "."
+        },
+        {
+          "id": "esc50_012",
+          "categoria": "train",
+          "hipotese": "."
+        },
+        {
+          "id": "esc50_013",
+          "categoria": "chainsaw",
+          "hipotese": "Aplausos"
+        },
+        {
+          "id": "esc50_014",
+          "categoria": "can_opening",
+          "hipotese": "Tchau."
+        },
+        {
+          "id": "esc50_015",
+          "categoria": "crickets",
+          "hipotese": "."
+        },
+        {
+          "id": "esc50_016",
+          "categoria": "insects",
+          "hipotese": "."
+        },
+        {
+          "id": "esc50_017",
+          "categoria": "siren",
+          "hipotese": "Aplausos"
+        },
+        {
+          "id": "esc50_018",
+          "categoria": "cow",
+          "hipotese": "Música"
+        },
+        {
+          "id": "esc50_019",
+          "categoria": "keyboard_typing",
+          "hipotese": "."
+        },
+        {
+          "id": "esc50_020",
+          "categoria": "crow",
+          "hipotese": "E aí"
+        },
+        {
+          "id": "esc50_021",
+          "categoria": "washing_machine",
+          "hipotese": "."
+        },
+        {
+          "id": "esc50_022",
+          "categoria": "insects",
+          "hipotese": "."
+        },
+        {
+          "id": "esc50_023",
+          "categoria": "crackling_fire",
+          "hipotese": "."
+        },
+        {
+          "id": "esc50_024",
+          "categoria": "footsteps",
+          "hipotese": "Obrigado."
+        },
+        {
+          "id": "esc50_025",
+          "categoria": "hand_saw",
+          "hipotese": "."
+        },
+        {
+          "id": "esc50_026",
+          "categoria": "car_horn",
+          "hipotese": "Tchau!"
+        },
+        {
+          "id": "esc50_027",
+          "categoria": "pouring_water",
+          "hipotese": "Abertura"
+        },
+        {
+          "id": "esc50_028",
+          "categoria": "door_wood_creaks",
+          "hipotese": "Ah! Ah!"
+        },
+        {
+          "id": "esc50_029",
+          "categoria": "train",
+          "hipotese": "Música"
+        },
+        {
+          "id": "esc50_030",
+          "categoria": "cow",
+          "hipotese": "Aaaaaaaaaaam!"
+        },
+        {
+          "id": "esc50_031",
+          "categoria": "door_wood_creaks",
+          "hipotese": "Aplausos"
+        },
+        {
+          "id": "esc50_032",
+          "categoria": "sea_waves",
+          "hipotese": "."
+        },
+        {
+          "id": "esc50_033",
+          "categoria": "footsteps",
+          "hipotese": "."
+        },
+        {
+          "id": "esc50_034",
+          "categoria": "airplane",
+          "hipotese": "A CIDADE NO BRASIL"
+        },
+        {
+          "id": "esc50_035",
+          "categoria": "rain",
+          "hipotese": "Atenção"
+        },
+        {
+          "id": "esc50_036",
+          "categoria": "cat",
+          "hipotese": "Aaaaaah!"
+        },
+        {
+          "id": "esc50_037",
+          "categoria": "fireworks",
+          "hipotese": "Obrigado."
+        },
+        {
+          "id": "esc50_038",
+          "categoria": "crackling_fire",
+          "hipotese": "."
+        },
+        {
+          "id": "esc50_039",
+          "categoria": "rain",
+          "hipotese": "E aí"
+        },
+        {
+          "id": "esc50_040",
+          "categoria": "engine",
+          "hipotese": "."
+        },
+        {
+          "id": "esc50_041",
+          "categoria": "chirping_birds",
+          "hipotese": "Aplausos"
+        },
+        {
+          "id": "esc50_042",
+          "categoria": "clock_alarm",
+          "hipotese": "Tchau."
+        },
+        {
+          "id": "esc50_043",
+          "categoria": "washing_machine",
+          "hipotese": "."
+        },
+        {
+          "id": "esc50_044",
+          "categoria": "clock_alarm",
+          "hipotese": "."
+        },
+        {
+          "id": "esc50_045",
+          "categoria": "dog",
+          "hipotese": "Quack! Quack! Quack!"
+        },
+        {
+          "id": "esc50_046",
+          "categoria": "can_opening",
+          "hipotese": "Tchau."
+        },
+        {
+          "id": "esc50_047",
+          "categoria": "airplane",
+          "hipotese": "A CIDADE NO BRASIL"
+        },
+        {
+          "id": "esc50_048",
+          "categoria": "toilet_flush",
+          "hipotese": "."
+        },
+        {
+          "id": "esc50_049",
+          "categoria": "keyboard_typing",
+          "hipotese": "."
+        },
+        {
+          "id": "esc50_050",
+          "categoria": "insects",
+          "hipotese": "Música"
+        },
+        {
+          "id": "esc50_051",
+          "categoria": "brushing_teeth",
+          "hipotese": "E aí"
+        },
+        {
+          "id": "esc50_052",
+          "categoria": "crickets",
+          "hipotese": "."
+        },
+        {
+          "id": "esc50_053",
+          "categoria": "door_wood_creaks",
+          "hipotese": "Aplausos"
+        },
+        {
+          "id": "esc50_054",
+          "categoria": "pig",
+          "hipotese": "A gente vai comer um pouco mais de água."
+        },
+        {
+          "id": "esc50_055",
+          "categoria": "hen",
+          "hipotese": "E aí"
+        },
+        {
+          "id": "esc50_056",
+          "categoria": "chainsaw",
+          "hipotese": "Hummm"
+        },
+        {
+          "id": "esc50_057",
+          "categoria": "pouring_water",
+          "hipotese": "."
+        },
+        {
+          "id": "esc50_058",
+          "categoria": "keyboard_typing",
+          "hipotese": "."
+        },
+        {
+          "id": "esc50_059",
+          "categoria": "chainsaw",
+          "hipotese": "Música"
+        },
+        {
+          "id": "esc50_060",
+          "categoria": "wind",
+          "hipotese": "A gente vai lá."
+        },
+        {
+          "id": "esc50_061",
+          "categoria": "footsteps",
+          "hipotese": "Obrigado."
+        },
+        {
+          "id": "esc50_062",
+          "categoria": "clapping",
+          "hipotese": "."
+        },
+        {
+          "id": "esc50_063",
+          "categoria": "sheep",
+          "hipotese": "Mãe!"
+        },
+        {
+          "id": "esc50_064",
+          "categoria": "frog",
+          "hipotese": "Aplausos"
+        },
+        {
+          "id": "esc50_065",
+          "categoria": "vacuum_cleaner",
+          "hipotese": "Aplausos"
+        },
+        {
+          "id": "esc50_066",
+          "categoria": "brushing_teeth",
+          "hipotese": "."
+        },
+        {
+          "id": "esc50_067",
+          "categoria": "mouse_click",
+          "hipotese": "Obrigado."
+        },
+        {
+          "id": "esc50_068",
+          "categoria": "door_wood_knock",
+          "hipotese": "E aí"
+        },
+        {
+          "id": "esc50_069",
+          "categoria": "fireworks",
+          "hipotese": "."
+        },
+        {
+          "id": "esc50_070",
+          "categoria": "church_bells",
+          "hipotese": "Música"
+        },
+        {
+          "id": "esc50_071",
+          "categoria": "toilet_flush",
+          "hipotese": "A CIDADE NO BRASIL"
+        },
+        {
+          "id": "esc50_072",
+          "categoria": "airplane",
+          "hipotese": "."
+        },
+        {
+          "id": "esc50_073",
+          "categoria": "crickets",
+          "hipotese": "."
+        },
+        {
+          "id": "esc50_074",
+          "categoria": "washing_machine",
+          "hipotese": "Abertura"
+        },
+        {
+          "id": "esc50_075",
+          "categoria": "cow",
+          "hipotese": "Vr... Vr..."
+        },
+        {
+          "id": "esc50_076",
+          "categoria": "sheep",
+          "hipotese": "Baaa! Baaa! Baaa! Baaa!"
+        },
+        {
+          "id": "esc50_077",
+          "categoria": "hen",
+          "hipotese": "A"
+        },
+        {
+          "id": "esc50_078",
+          "categoria": "toilet_flush",
+          "hipotese": "Aplausos"
+        },
+        {
+          "id": "esc50_079",
+          "categoria": "door_wood_knock",
+          "hipotese": "."
+        },
+        {
+          "id": "esc50_080",
+          "categoria": "train",
+          "hipotese": "Atenção"
+        },
+        {
+          "id": "esc50_081",
+          "categoria": "crickets",
+          "hipotese": "."
+        },
+        {
+          "id": "esc50_082",
+          "categoria": "engine",
+          "hipotese": "A CIDADE NO BRASIL"
+        },
+        {
+          "id": "esc50_083",
+          "categoria": "car_horn",
+          "hipotese": "E aí"
+        },
+        {
+          "id": "esc50_084",
+          "categoria": "frog",
+          "hipotese": "Criar"
+        },
+        {
+          "id": "esc50_085",
+          "categoria": "frog",
+          "hipotese": "."
+        },
+        {
+          "id": "esc50_086",
+          "categoria": "engine",
+          "hipotese": "E aí"
+        },
+        {
+          "id": "esc50_087",
+          "categoria": "cat",
+          "hipotese": "Tchau!"
+        },
+        {
+          "id": "esc50_088",
+          "categoria": "can_opening",
+          "hipotese": "Tchau."
+        },
+        {
+          "id": "esc50_089",
+          "categoria": "fireworks",
+          "hipotese": "."
+        },
+        {
+          "id": "esc50_090",
+          "categoria": "siren",
+          "hipotese": "Aplausos"
+        },
+        {
+          "id": "esc50_091",
+          "categoria": "dog",
+          "hipotese": "Criar! Criar!"
+        },
+        {
+          "id": "esc50_092",
+          "categoria": "wind",
+          "hipotese": "."
+        },
+        {
+          "id": "esc50_093",
+          "categoria": "rain",
+          "hipotese": "."
+        },
+        {
+          "id": "esc50_094",
+          "categoria": "rain",
+          "hipotese": "."
+        },
+        {
+          "id": "esc50_095",
+          "categoria": "door_wood_knock",
+          "hipotese": "A CIDADE NO BRASIL"
+        },
+        {
+          "id": "esc50_096",
+          "categoria": "insects",
+          "hipotese": "Aplausos"
+        },
+        {
+          "id": "esc50_097",
+          "categoria": "sheep",
+          "hipotese": "Alegria!"
+        },
+        {
+          "id": "esc50_098",
+          "categoria": "airplane",
+          "hipotese": "A CIDADE NO BRASIL"
+        },
+        {
+          "id": "esc50_099",
+          "categoria": "rain",
+          "hipotese": "."
+        },
+        {
+          "id": "esc50_100",
+          "categoria": "siren",
+          "hipotese": "E aí"
+        },
+        {
+          "id": "esc50_101",
+          "categoria": "airplane",
+          "hipotese": "A CIDADE NO BRASIL"
+        },
+        {
+          "id": "esc50_102",
+          "categoria": "can_opening",
+          "hipotese": "Tchau."
+        },
+        {
+          "id": "esc50_103",
+          "categoria": "dog",
+          "hipotese": "OU! OU! OU! OU! OU! OU! OU! OU!"
+        },
+        {
+          "id": "esc50_104",
+          "categoria": "insects",
+          "hipotese": "Música"
+        },
+        {
+          "id": "esc50_105",
+          "categoria": "clock_tick",
+          "hipotese": "E aí"
+        },
+        {
+          "id": "esc50_106",
+          "categoria": "door_wood_creaks",
+          "hipotese": "Música"
+        },
+        {
+          "id": "esc50_107",
+          "categoria": "rooster",
+          "hipotese": "A-ha!"
+        },
+        {
+          "id": "esc50_108",
+          "categoria": "sheep",
+          "hipotese": "Alegria"
+        },
+        {
+          "id": "esc50_109",
+          "categoria": "pig",
+          "hipotese": "Aplausos"
+        },
+        {
+          "id": "esc50_110",
+          "categoria": "brushing_teeth",
+          "hipotese": "A gente vai fazer um pouco mais de água."
+        },
+        {
+          "id": "esc50_111",
+          "categoria": "clock_alarm",
+          "hipotese": "."
+        },
+        {
+          "id": "esc50_112",
+          "categoria": "siren",
+          "hipotese": "E aí"
+        },
+        {
+          "id": "esc50_113",
+          "categoria": "fireworks",
+          "hipotese": "."
+        },
+        {
+          "id": "esc50_114",
+          "categoria": "fireworks",
+          "hipotese": "Obrigado."
+        },
+        {
+          "id": "esc50_115",
+          "categoria": "church_bells",
+          "hipotese": "Amém."
+        },
+        {
+          "id": "esc50_116",
+          "categoria": "cat",
+          "hipotese": "NOOOOOOOWOWWWW"
+        },
+        {
+          "id": "esc50_117",
+          "categoria": "crickets",
+          "hipotese": "."
+        },
+        {
+          "id": "esc50_118",
+          "categoria": "hen",
+          "hipotese": "A-ha-ha-ha! A-ha-ha-ha! A-ha-ha-ha!"
+        },
+        {
+          "id": "esc50_119",
+          "categoria": "water_drops",
+          "hipotese": "Música"
+        },
+        {
+          "id": "sint_silencio_3s",
+          "categoria": "sintetico",
+          "hipotese": "E aí"
+        },
+        {
+          "id": "sint_silencio_10s",
+          "categoria": "sintetico",
+          "hipotese": "E aí"
+        },
+        {
+          "id": "sint_dither_6s",
+          "categoria": "sintetico",
+          "hipotese": "Obrigado."
+        },
+        {
+          "id": "sint_rosa_6s",
+          "categoria": "sintetico",
+          "hipotese": "..."
+        },
+        {
+          "id": "sint_rosa_forte_6s",
+          "categoria": "sintetico",
+          "hipotese": "."
+        },
+        {
+          "id": "sint_zumbido_60hz_6s",
+          "categoria": "sintetico",
+          "hipotese": "E aí"
+        }
+      ]
+    },
+    {
+      "sistema": "groq:whisper-large-v3-turbo+t0+seg",
+      "conjunto": "sem_fala",
+      "n": 126,
+      "taxaDeAlucinacao": {
+        "valor": 0.42063492063492064,
+        "ic95": [0.3333333333333333, 0.5]
+      },
+      "exemplos": [
+        "Beleza",
+        "Fiu!",
+        "FALFINTA!",
+        "Ah!",
+        "Aplausos",
+        "Música",
+        "Abertura",
+        "Ah! Ah!",
+        "Aaaaaaaaaaam!",
+        "A CIDADE NO BRASIL",
+        "Atenção",
+        "Ahhhh!"
+      ],
+      "rtf": 0.1033060863422297,
+      "latenciaMs": {
+        "p50": 352.34720000007655,
+        "p95": 604.9152999999933
+      },
+      "casos": [
+        {
+          "id": "esc50_000",
+          "categoria": "clock_alarm",
+          "hipotese": "Beleza"
+        },
+        {
+          "id": "esc50_001",
+          "categoria": "pig",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_002",
+          "categoria": "pouring_water",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_003",
+          "categoria": "cow",
+          "hipotese": "Fiu!"
+        },
+        {
+          "id": "esc50_004",
+          "categoria": "dog",
+          "hipotese": "FALFINTA!"
+        },
+        {
+          "id": "esc50_005",
+          "categoria": "footsteps",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_006",
+          "categoria": "keyboard_typing",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_007",
+          "categoria": "clapping",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_008",
+          "categoria": "footsteps",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_009",
+          "categoria": "chainsaw",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_010",
+          "categoria": "rooster",
+          "hipotese": "Ah!"
+        },
+        {
+          "id": "esc50_011",
+          "categoria": "clock_alarm",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_012",
+          "categoria": "train",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_013",
+          "categoria": "chainsaw",
+          "hipotese": "Aplausos"
+        },
+        {
+          "id": "esc50_014",
+          "categoria": "can_opening",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_015",
+          "categoria": "crickets",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_016",
+          "categoria": "insects",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_017",
+          "categoria": "siren",
+          "hipotese": "Aplausos"
+        },
+        {
+          "id": "esc50_018",
+          "categoria": "cow",
+          "hipotese": "Música"
+        },
+        {
+          "id": "esc50_019",
+          "categoria": "keyboard_typing",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_020",
+          "categoria": "crow",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_021",
+          "categoria": "washing_machine",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_022",
+          "categoria": "insects",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_023",
+          "categoria": "crackling_fire",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_024",
+          "categoria": "footsteps",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_025",
+          "categoria": "hand_saw",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_026",
+          "categoria": "car_horn",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_027",
+          "categoria": "pouring_water",
+          "hipotese": "Abertura"
+        },
+        {
+          "id": "esc50_028",
+          "categoria": "door_wood_creaks",
+          "hipotese": "Ah! Ah!"
+        },
+        {
+          "id": "esc50_029",
+          "categoria": "train",
+          "hipotese": "Música"
+        },
+        {
+          "id": "esc50_030",
+          "categoria": "cow",
+          "hipotese": "Aaaaaaaaaaam!"
+        },
+        {
+          "id": "esc50_031",
+          "categoria": "door_wood_creaks",
+          "hipotese": "Aplausos"
+        },
+        {
+          "id": "esc50_032",
+          "categoria": "sea_waves",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_033",
+          "categoria": "footsteps",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_034",
+          "categoria": "airplane",
+          "hipotese": "A CIDADE NO BRASIL"
+        },
+        {
+          "id": "esc50_035",
+          "categoria": "rain",
+          "hipotese": "Atenção"
+        },
+        {
+          "id": "esc50_036",
+          "categoria": "cat",
+          "hipotese": "Ahhhh!"
+        },
+        {
+          "id": "esc50_037",
+          "categoria": "fireworks",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_038",
+          "categoria": "crackling_fire",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_039",
+          "categoria": "rain",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_040",
+          "categoria": "engine",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_041",
+          "categoria": "chirping_birds",
+          "hipotese": "Aplausos"
+        },
+        {
+          "id": "esc50_042",
+          "categoria": "clock_alarm",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_043",
+          "categoria": "washing_machine",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_044",
+          "categoria": "clock_alarm",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_045",
+          "categoria": "dog",
+          "hipotese": "Quack! Quack! Quack!"
+        },
+        {
+          "id": "esc50_046",
+          "categoria": "can_opening",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_047",
+          "categoria": "airplane",
+          "hipotese": "A CIDADE NO BRASIL"
+        },
+        {
+          "id": "esc50_048",
+          "categoria": "toilet_flush",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_049",
+          "categoria": "keyboard_typing",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_050",
+          "categoria": "insects",
+          "hipotese": "Música"
+        },
+        {
+          "id": "esc50_051",
+          "categoria": "brushing_teeth",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_052",
+          "categoria": "crickets",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_053",
+          "categoria": "door_wood_creaks",
+          "hipotese": "Aplausos"
+        },
+        {
+          "id": "esc50_054",
+          "categoria": "pig",
+          "hipotese": "A gente vai comer um pouco mais de água."
+        },
+        {
+          "id": "esc50_055",
+          "categoria": "hen",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_056",
+          "categoria": "chainsaw",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_057",
+          "categoria": "pouring_water",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_058",
+          "categoria": "keyboard_typing",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_059",
+          "categoria": "chainsaw",
+          "hipotese": "Música"
+        },
+        {
+          "id": "esc50_060",
+          "categoria": "wind",
+          "hipotese": "A gente vai lá."
+        },
+        {
+          "id": "esc50_061",
+          "categoria": "footsteps",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_062",
+          "categoria": "clapping",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_063",
+          "categoria": "sheep",
+          "hipotese": "Criar!"
+        },
+        {
+          "id": "esc50_064",
+          "categoria": "frog",
+          "hipotese": "Aplausos"
+        },
+        {
+          "id": "esc50_065",
+          "categoria": "vacuum_cleaner",
+          "hipotese": "Aplausos"
+        },
+        {
+          "id": "esc50_066",
+          "categoria": "brushing_teeth",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_067",
+          "categoria": "mouse_click",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_068",
+          "categoria": "door_wood_knock",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_069",
+          "categoria": "fireworks",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_070",
+          "categoria": "church_bells",
+          "hipotese": "Música"
+        },
+        {
+          "id": "esc50_071",
+          "categoria": "toilet_flush",
+          "hipotese": "A CIDADE NO BRASIL"
+        },
+        {
+          "id": "esc50_072",
+          "categoria": "airplane",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_073",
+          "categoria": "crickets",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_074",
+          "categoria": "washing_machine",
+          "hipotese": "Abertura"
+        },
+        {
+          "id": "esc50_075",
+          "categoria": "cow",
+          "hipotese": "Vr... Vr..."
+        },
+        {
+          "id": "esc50_076",
+          "categoria": "sheep",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_077",
+          "categoria": "hen",
+          "hipotese": "A"
+        },
+        {
+          "id": "esc50_078",
+          "categoria": "toilet_flush",
+          "hipotese": "Aplausos"
+        },
+        {
+          "id": "esc50_079",
+          "categoria": "door_wood_knock",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_080",
+          "categoria": "train",
+          "hipotese": "Atenção"
+        },
+        {
+          "id": "esc50_081",
+          "categoria": "crickets",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_082",
+          "categoria": "engine",
+          "hipotese": "A CIDADE NO BRASIL"
+        },
+        {
+          "id": "esc50_083",
+          "categoria": "car_horn",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_084",
+          "categoria": "frog",
+          "hipotese": "Criar"
+        },
+        {
+          "id": "esc50_085",
+          "categoria": "frog",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_086",
+          "categoria": "engine",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_087",
+          "categoria": "cat",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_088",
+          "categoria": "can_opening",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_089",
+          "categoria": "fireworks",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_090",
+          "categoria": "siren",
+          "hipotese": "Aplausos"
+        },
+        {
+          "id": "esc50_091",
+          "categoria": "dog",
+          "hipotese": "Criar! Criar!"
+        },
+        {
+          "id": "esc50_092",
+          "categoria": "wind",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_093",
+          "categoria": "rain",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_094",
+          "categoria": "rain",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_095",
+          "categoria": "door_wood_knock",
+          "hipotese": "A CIDADE NO BRASIL"
+        },
+        {
+          "id": "esc50_096",
+          "categoria": "insects",
+          "hipotese": "Aplausos"
+        },
+        {
+          "id": "esc50_097",
+          "categoria": "sheep",
+          "hipotese": "Alegria!"
+        },
+        {
+          "id": "esc50_098",
+          "categoria": "airplane",
+          "hipotese": "A CIDADE NO BRASIL"
+        },
+        {
+          "id": "esc50_099",
+          "categoria": "rain",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_100",
+          "categoria": "siren",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_101",
+          "categoria": "airplane",
+          "hipotese": "A CIDADE NO BRASIL"
+        },
+        {
+          "id": "esc50_102",
+          "categoria": "can_opening",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_103",
+          "categoria": "dog",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_104",
+          "categoria": "insects",
+          "hipotese": "Música"
+        },
+        {
+          "id": "esc50_105",
+          "categoria": "clock_tick",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_106",
+          "categoria": "door_wood_creaks",
+          "hipotese": "Música"
+        },
+        {
+          "id": "esc50_107",
+          "categoria": "rooster",
+          "hipotese": "A-ha!"
+        },
+        {
+          "id": "esc50_108",
+          "categoria": "sheep",
+          "hipotese": "Alegria"
+        },
+        {
+          "id": "esc50_109",
+          "categoria": "pig",
+          "hipotese": "Aplausos"
+        },
+        {
+          "id": "esc50_110",
+          "categoria": "brushing_teeth",
+          "hipotese": "A gente vai fazer um pouco mais de água."
+        },
+        {
+          "id": "esc50_111",
+          "categoria": "clock_alarm",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_112",
+          "categoria": "siren",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_113",
+          "categoria": "fireworks",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_114",
+          "categoria": "fireworks",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_115",
+          "categoria": "church_bells",
+          "hipotese": "Amém."
+        },
+        {
+          "id": "esc50_116",
+          "categoria": "cat",
+          "hipotese": "Eu só espero que você tenha e abençoado."
+        },
+        {
+          "id": "esc50_117",
+          "categoria": "crickets",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_118",
+          "categoria": "hen",
+          "hipotese": "A-ha-ha-ha! A-ha-ha-ha! A-ha-ha-ha!"
+        },
+        {
+          "id": "esc50_119",
+          "categoria": "water_drops",
+          "hipotese": "Música"
+        },
+        {
+          "id": "sint_silencio_3s",
+          "categoria": "sintetico",
+          "hipotese": "E aí"
+        },
+        {
+          "id": "sint_silencio_10s",
+          "categoria": "sintetico",
+          "hipotese": ""
+        },
+        {
+          "id": "sint_dither_6s",
+          "categoria": "sintetico",
+          "hipotese": ""
+        },
+        {
+          "id": "sint_rosa_6s",
+          "categoria": "sintetico",
+          "hipotese": ""
+        },
+        {
+          "id": "sint_rosa_forte_6s",
+          "categoria": "sintetico",
+          "hipotese": ""
+        },
+        {
+          "id": "sint_zumbido_60hz_6s",
+          "categoria": "sintetico",
+          "hipotese": ""
+        }
+      ]
+    },
+    {
+      "sistema": "groq:whisper-large-v3-turbo+vad",
+      "conjunto": "sem_fala",
+      "n": 126,
+      "taxaDeAlucinacao": {
+        "valor": 0.29365079365079366,
+        "ic95": [0.21428571428571427, 0.373015873015873]
+      },
+      "exemplos": [
+        "Fãs!",
+        "FALFINTA!",
+        "Ah, ah, ah, ah",
+        "Obrigado.",
+        "E aí",
+        "Nerva. Tchau. Rrrrrrrr!",
+        "Ai! Ai! Ai!",
+        "Tchau!",
+        "Aaaaaaaaaaam!",
+        "Música",
+        "Vrm",
+        "E aí Rrrrr!"
+      ],
+      "rtf": 0.38802958021978073,
+      "latenciaMs": {
+        "p50": 0,
+        "p95": 9379.431100000045
+      },
+      "casos": [
+        {
+          "id": "esc50_000",
+          "categoria": "clock_alarm",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_001",
+          "categoria": "pig",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_002",
+          "categoria": "pouring_water",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_003",
+          "categoria": "cow",
+          "hipotese": "Fãs!"
+        },
+        {
+          "id": "esc50_004",
+          "categoria": "dog",
+          "hipotese": "FALFINTA!"
+        },
+        {
+          "id": "esc50_005",
+          "categoria": "footsteps",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_006",
+          "categoria": "keyboard_typing",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_007",
+          "categoria": "clapping",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_008",
+          "categoria": "footsteps",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_009",
+          "categoria": "chainsaw",
+          "hipotese": "Ah, ah, ah, ah"
+        },
+        {
+          "id": "esc50_010",
+          "categoria": "rooster",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_011",
+          "categoria": "clock_alarm",
+          "hipotese": "."
+        },
+        {
+          "id": "esc50_012",
+          "categoria": "train",
+          "hipotese": "Obrigado."
+        },
+        {
+          "id": "esc50_013",
+          "categoria": "chainsaw",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_014",
+          "categoria": "can_opening",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_015",
+          "categoria": "crickets",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_016",
+          "categoria": "insects",
+          "hipotese": "E aí"
+        },
+        {
+          "id": "esc50_017",
+          "categoria": "siren",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_018",
+          "categoria": "cow",
+          "hipotese": "Nerva. Tchau. Rrrrrrrr!"
+        },
+        {
+          "id": "esc50_019",
+          "categoria": "keyboard_typing",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_020",
+          "categoria": "crow",
+          "hipotese": "Ai! Ai! Ai!"
+        },
+        {
+          "id": "esc50_021",
+          "categoria": "washing_machine",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_022",
+          "categoria": "insects",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_023",
+          "categoria": "crackling_fire",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_024",
+          "categoria": "footsteps",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_025",
+          "categoria": "hand_saw",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_026",
+          "categoria": "car_horn",
+          "hipotese": "Tchau!"
+        },
+        {
+          "id": "esc50_027",
+          "categoria": "pouring_water",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_028",
+          "categoria": "door_wood_creaks",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_029",
+          "categoria": "train",
+          "hipotese": "E aí"
+        },
+        {
+          "id": "esc50_030",
+          "categoria": "cow",
+          "hipotese": "Aaaaaaaaaaam!"
+        },
+        {
+          "id": "esc50_031",
+          "categoria": "door_wood_creaks",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_032",
+          "categoria": "sea_waves",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_033",
+          "categoria": "footsteps",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_034",
+          "categoria": "airplane",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_035",
+          "categoria": "rain",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_036",
+          "categoria": "cat",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_037",
+          "categoria": "fireworks",
+          "hipotese": "E aí"
+        },
+        {
+          "id": "esc50_038",
+          "categoria": "crackling_fire",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_039",
+          "categoria": "rain",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_040",
+          "categoria": "engine",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_041",
+          "categoria": "chirping_birds",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_042",
+          "categoria": "clock_alarm",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_043",
+          "categoria": "washing_machine",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_044",
+          "categoria": "clock_alarm",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_045",
+          "categoria": "dog",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_046",
+          "categoria": "can_opening",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_047",
+          "categoria": "airplane",
+          "hipotese": "E aí"
+        },
+        {
+          "id": "esc50_048",
+          "categoria": "toilet_flush",
+          "hipotese": "E aí"
+        },
+        {
+          "id": "esc50_049",
+          "categoria": "keyboard_typing",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_050",
+          "categoria": "insects",
+          "hipotese": "Música"
+        },
+        {
+          "id": "esc50_051",
+          "categoria": "brushing_teeth",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_052",
+          "categoria": "crickets",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_053",
+          "categoria": "door_wood_creaks",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_054",
+          "categoria": "pig",
+          "hipotese": "E aí"
+        },
+        {
+          "id": "esc50_055",
+          "categoria": "hen",
+          "hipotese": "E aí"
+        },
+        {
+          "id": "esc50_056",
+          "categoria": "chainsaw",
+          "hipotese": "Vrm"
+        },
+        {
+          "id": "esc50_057",
+          "categoria": "pouring_water",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_058",
+          "categoria": "keyboard_typing",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_059",
+          "categoria": "chainsaw",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_060",
+          "categoria": "wind",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_061",
+          "categoria": "footsteps",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_062",
+          "categoria": "clapping",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_063",
+          "categoria": "sheep",
+          "hipotese": "E aí Rrrrr!"
+        },
+        {
+          "id": "esc50_064",
+          "categoria": "frog",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_065",
+          "categoria": "vacuum_cleaner",
+          "hipotese": "Estou em frente!"
+        },
+        {
+          "id": "esc50_066",
+          "categoria": "brushing_teeth",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_067",
+          "categoria": "mouse_click",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_068",
+          "categoria": "door_wood_knock",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_069",
+          "categoria": "fireworks",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_070",
+          "categoria": "church_bells",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_071",
+          "categoria": "toilet_flush",
+          "hipotese": "E aí"
+        },
+        {
+          "id": "esc50_072",
+          "categoria": "airplane",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_073",
+          "categoria": "crickets",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_074",
+          "categoria": "washing_machine",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_075",
+          "categoria": "cow",
+          "hipotese": "Vr... Vum..."
+        },
+        {
+          "id": "esc50_076",
+          "categoria": "sheep",
+          "hipotese": "Baaa!"
+        },
+        {
+          "id": "esc50_077",
+          "categoria": "hen",
+          "hipotese": "E aí Ha ha ha ha!"
+        },
+        {
+          "id": "esc50_078",
+          "categoria": "toilet_flush",
+          "hipotese": "E aí"
+        },
+        {
+          "id": "esc50_079",
+          "categoria": "door_wood_knock",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_080",
+          "categoria": "train",
+          "hipotese": "E aí"
+        },
+        {
+          "id": "esc50_081",
+          "categoria": "crickets",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_082",
+          "categoria": "engine",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_083",
+          "categoria": "car_horn",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_084",
+          "categoria": "frog",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_085",
+          "categoria": "frog",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_086",
+          "categoria": "engine",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_087",
+          "categoria": "cat",
+          "hipotese": "Mew!"
+        },
+        {
+          "id": "esc50_088",
+          "categoria": "can_opening",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_089",
+          "categoria": "fireworks",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_090",
+          "categoria": "siren",
+          "hipotese": "E aí E aí"
+        },
+        {
+          "id": "esc50_091",
+          "categoria": "dog",
+          "hipotese": "Ruff, ruff, ruff! O que? Quark quark!"
+        },
+        {
+          "id": "esc50_092",
+          "categoria": "wind",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_093",
+          "categoria": "rain",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_094",
+          "categoria": "rain",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_095",
+          "categoria": "door_wood_knock",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_096",
+          "categoria": "insects",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_097",
+          "categoria": "sheep",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_098",
+          "categoria": "airplane",
+          "hipotese": "E aí"
+        },
+        {
+          "id": "esc50_099",
+          "categoria": "rain",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_100",
+          "categoria": "siren",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_101",
+          "categoria": "airplane",
+          "hipotese": "E aí"
+        },
+        {
+          "id": "esc50_102",
+          "categoria": "can_opening",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_103",
+          "categoria": "dog",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_104",
+          "categoria": "insects",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_105",
+          "categoria": "clock_tick",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_106",
+          "categoria": "door_wood_creaks",
+          "hipotese": "Ah!"
+        },
+        {
+          "id": "esc50_107",
+          "categoria": "rooster",
+          "hipotese": "A-ha!"
+        },
+        {
+          "id": "esc50_108",
+          "categoria": "sheep",
+          "hipotese": "E aí"
+        },
+        {
+          "id": "esc50_109",
+          "categoria": "pig",
+          "hipotese": "E aí"
+        },
+        {
+          "id": "esc50_110",
+          "categoria": "brushing_teeth",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_111",
+          "categoria": "clock_alarm",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_112",
+          "categoria": "siren",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_113",
+          "categoria": "fireworks",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_114",
+          "categoria": "fireworks",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_115",
+          "categoria": "church_bells",
+          "hipotese": "Amém."
+        },
+        {
+          "id": "esc50_116",
+          "categoria": "cat",
+          "hipotese": "Aaaaaaaaaaaaaaaaaaah!"
+        },
+        {
+          "id": "esc50_117",
+          "categoria": "crickets",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_118",
+          "categoria": "hen",
+          "hipotese": "Ahahahahaha Ah! Ah!"
+        },
+        {
+          "id": "esc50_119",
+          "categoria": "water_drops",
+          "hipotese": ""
+        },
+        {
+          "id": "sint_silencio_3s",
+          "categoria": "sintetico",
+          "hipotese": ""
+        },
+        {
+          "id": "sint_silencio_10s",
+          "categoria": "sintetico",
+          "hipotese": ""
+        },
+        {
+          "id": "sint_dither_6s",
+          "categoria": "sintetico",
+          "hipotese": ""
+        },
+        {
+          "id": "sint_rosa_6s",
+          "categoria": "sintetico",
+          "hipotese": ""
+        },
+        {
+          "id": "sint_rosa_forte_6s",
+          "categoria": "sintetico",
+          "hipotese": ""
+        },
+        {
+          "id": "sint_zumbido_60hz_6s",
+          "categoria": "sintetico",
+          "hipotese": ""
+        }
+      ]
+    },
+    {
+      "sistema": "groq:whisper-large-v3-turbo+t0+seg+vad",
+      "conjunto": "sem_fala",
+      "n": 126,
+      "taxaDeAlucinacao": {
+        "valor": 0.25396825396825395,
+        "ic95": [0.1746031746031746, 0.3253968253968254]
+      },
+      "exemplos": [
+        "Fãs!",
+        "FALFINTA!",
+        "Ah,",
+        "Obrigado.",
+        "E aí",
+        "Nerva. Tchau. Rrrrrrrrrrrr!",
+        "Ai! Ai! Ai!",
+        "Tchau!",
+        "Aaaaaaaaaaam!",
+        "Música",
+        "Vrm",
+        "BLEH!"
+      ],
+      "rtf": 0.027585173626375144,
+      "latenciaMs": {
+        "p50": 0,
+        "p95": 681.4842000000644
+      },
+      "casos": [
+        {
+          "id": "esc50_000",
+          "categoria": "clock_alarm",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_001",
+          "categoria": "pig",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_002",
+          "categoria": "pouring_water",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_003",
+          "categoria": "cow",
+          "hipotese": "Fãs!"
+        },
+        {
+          "id": "esc50_004",
+          "categoria": "dog",
+          "hipotese": "FALFINTA!"
+        },
+        {
+          "id": "esc50_005",
+          "categoria": "footsteps",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_006",
+          "categoria": "keyboard_typing",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_007",
+          "categoria": "clapping",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_008",
+          "categoria": "footsteps",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_009",
+          "categoria": "chainsaw",
+          "hipotese": "Ah,"
+        },
+        {
+          "id": "esc50_010",
+          "categoria": "rooster",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_011",
+          "categoria": "clock_alarm",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_012",
+          "categoria": "train",
+          "hipotese": "Obrigado."
+        },
+        {
+          "id": "esc50_013",
+          "categoria": "chainsaw",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_014",
+          "categoria": "can_opening",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_015",
+          "categoria": "crickets",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_016",
+          "categoria": "insects",
+          "hipotese": "E aí"
+        },
+        {
+          "id": "esc50_017",
+          "categoria": "siren",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_018",
+          "categoria": "cow",
+          "hipotese": "Nerva. Tchau. Rrrrrrrrrrrr!"
+        },
+        {
+          "id": "esc50_019",
+          "categoria": "keyboard_typing",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_020",
+          "categoria": "crow",
+          "hipotese": "Ai! Ai! Ai!"
+        },
+        {
+          "id": "esc50_021",
+          "categoria": "washing_machine",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_022",
+          "categoria": "insects",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_023",
+          "categoria": "crackling_fire",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_024",
+          "categoria": "footsteps",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_025",
+          "categoria": "hand_saw",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_026",
+          "categoria": "car_horn",
+          "hipotese": "Tchau!"
+        },
+        {
+          "id": "esc50_027",
+          "categoria": "pouring_water",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_028",
+          "categoria": "door_wood_creaks",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_029",
+          "categoria": "train",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_030",
+          "categoria": "cow",
+          "hipotese": "Aaaaaaaaaaam!"
+        },
+        {
+          "id": "esc50_031",
+          "categoria": "door_wood_creaks",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_032",
+          "categoria": "sea_waves",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_033",
+          "categoria": "footsteps",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_034",
+          "categoria": "airplane",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_035",
+          "categoria": "rain",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_036",
+          "categoria": "cat",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_037",
+          "categoria": "fireworks",
+          "hipotese": "E aí"
+        },
+        {
+          "id": "esc50_038",
+          "categoria": "crackling_fire",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_039",
+          "categoria": "rain",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_040",
+          "categoria": "engine",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_041",
+          "categoria": "chirping_birds",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_042",
+          "categoria": "clock_alarm",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_043",
+          "categoria": "washing_machine",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_044",
+          "categoria": "clock_alarm",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_045",
+          "categoria": "dog",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_046",
+          "categoria": "can_opening",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_047",
+          "categoria": "airplane",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_048",
+          "categoria": "toilet_flush",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_049",
+          "categoria": "keyboard_typing",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_050",
+          "categoria": "insects",
+          "hipotese": "Música"
+        },
+        {
+          "id": "esc50_051",
+          "categoria": "brushing_teeth",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_052",
+          "categoria": "crickets",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_053",
+          "categoria": "door_wood_creaks",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_054",
+          "categoria": "pig",
+          "hipotese": "E aí"
+        },
+        {
+          "id": "esc50_055",
+          "categoria": "hen",
+          "hipotese": "E aí"
+        },
+        {
+          "id": "esc50_056",
+          "categoria": "chainsaw",
+          "hipotese": "Vrm"
+        },
+        {
+          "id": "esc50_057",
+          "categoria": "pouring_water",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_058",
+          "categoria": "keyboard_typing",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_059",
+          "categoria": "chainsaw",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_060",
+          "categoria": "wind",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_061",
+          "categoria": "footsteps",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_062",
+          "categoria": "clapping",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_063",
+          "categoria": "sheep",
+          "hipotese": "BLEH!"
+        },
+        {
+          "id": "esc50_064",
+          "categoria": "frog",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_065",
+          "categoria": "vacuum_cleaner",
+          "hipotese": "Estou em frente!"
+        },
+        {
+          "id": "esc50_066",
+          "categoria": "brushing_teeth",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_067",
+          "categoria": "mouse_click",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_068",
+          "categoria": "door_wood_knock",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_069",
+          "categoria": "fireworks",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_070",
+          "categoria": "church_bells",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_071",
+          "categoria": "toilet_flush",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_072",
+          "categoria": "airplane",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_073",
+          "categoria": "crickets",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_074",
+          "categoria": "washing_machine",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_075",
+          "categoria": "cow",
+          "hipotese": "Vr... Vrm..."
+        },
+        {
+          "id": "esc50_076",
+          "categoria": "sheep",
+          "hipotese": "Baaa!"
+        },
+        {
+          "id": "esc50_077",
+          "categoria": "hen",
+          "hipotese": "E aí Ha"
+        },
+        {
+          "id": "esc50_078",
+          "categoria": "toilet_flush",
+          "hipotese": "E aí"
+        },
+        {
+          "id": "esc50_079",
+          "categoria": "door_wood_knock",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_080",
+          "categoria": "train",
+          "hipotese": "E aí"
+        },
+        {
+          "id": "esc50_081",
+          "categoria": "crickets",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_082",
+          "categoria": "engine",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_083",
+          "categoria": "car_horn",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_084",
+          "categoria": "frog",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_085",
+          "categoria": "frog",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_086",
+          "categoria": "engine",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_087",
+          "categoria": "cat",
+          "hipotese": "Mew!"
+        },
+        {
+          "id": "esc50_088",
+          "categoria": "can_opening",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_089",
+          "categoria": "fireworks",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_090",
+          "categoria": "siren",
+          "hipotese": "E aí E aí"
+        },
+        {
+          "id": "esc50_091",
+          "categoria": "dog",
+          "hipotese": "Ruff, ruff, ruff! O que? Quark quark!"
+        },
+        {
+          "id": "esc50_092",
+          "categoria": "wind",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_093",
+          "categoria": "rain",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_094",
+          "categoria": "rain",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_095",
+          "categoria": "door_wood_knock",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_096",
+          "categoria": "insects",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_097",
+          "categoria": "sheep",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_098",
+          "categoria": "airplane",
+          "hipotese": "E aí"
+        },
+        {
+          "id": "esc50_099",
+          "categoria": "rain",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_100",
+          "categoria": "siren",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_101",
+          "categoria": "airplane",
+          "hipotese": "E aí"
+        },
+        {
+          "id": "esc50_102",
+          "categoria": "can_opening",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_103",
+          "categoria": "dog",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_104",
+          "categoria": "insects",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_105",
+          "categoria": "clock_tick",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_106",
+          "categoria": "door_wood_creaks",
+          "hipotese": "Ah!"
+        },
+        {
+          "id": "esc50_107",
+          "categoria": "rooster",
+          "hipotese": "A-ha!"
+        },
+        {
+          "id": "esc50_108",
+          "categoria": "sheep",
+          "hipotese": "E aí"
+        },
+        {
+          "id": "esc50_109",
+          "categoria": "pig",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_110",
+          "categoria": "brushing_teeth",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_111",
+          "categoria": "clock_alarm",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_112",
+          "categoria": "siren",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_113",
+          "categoria": "fireworks",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_114",
+          "categoria": "fireworks",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_115",
+          "categoria": "church_bells",
+          "hipotese": "Amém."
+        },
+        {
+          "id": "esc50_116",
+          "categoria": "cat",
+          "hipotese": "Aaaaaaaaaaaaaaah!"
+        },
+        {
+          "id": "esc50_117",
+          "categoria": "crickets",
+          "hipotese": ""
+        },
+        {
+          "id": "esc50_118",
+          "categoria": "hen",
+          "hipotese": "Ahahahahaha Ah! Ah!"
+        },
+        {
+          "id": "esc50_119",
+          "categoria": "water_drops",
+          "hipotese": ""
+        },
+        {
+          "id": "sint_silencio_3s",
+          "categoria": "sintetico",
+          "hipotese": ""
+        },
+        {
+          "id": "sint_silencio_10s",
+          "categoria": "sintetico",
+          "hipotese": ""
+        },
+        {
+          "id": "sint_dither_6s",
+          "categoria": "sintetico",
+          "hipotese": ""
+        },
+        {
+          "id": "sint_rosa_6s",
+          "categoria": "sintetico",
+          "hipotese": ""
+        },
+        {
+          "id": "sint_rosa_forte_6s",
+          "categoria": "sintetico",
+          "hipotese": ""
+        },
+        {
+          "id": "sint_zumbido_60hz_6s",
+          "categoria": "sintetico",
+          "hipotese": ""
+        }
+      ]
+    }
+  ],
+  "comparacoes": []
+}

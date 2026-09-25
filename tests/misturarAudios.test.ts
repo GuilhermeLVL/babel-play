@@ -76,7 +76,12 @@ describe('empacotador Ogg Opus', () => {
   })
 
   it('pacote maior que 255 bytes atravessa segmentos sem se partir', () => {
-    const ogg = montarOggOpus({ pacotes: [pacote(600, 1), pacote(255, 2), pacote(10, 3)], canais: 1, preSkip: 0, taxaDeEntrada: 16000 })
+    const ogg = montarOggOpus({
+      pacotes: [pacote(600, 1), pacote(255, 2), pacote(10, 3)],
+      canais: 1,
+      preSkip: 0,
+      taxaDeEntrada: 16000,
+    })
     const audio = lerPaginas(ogg).slice(2)
     expect(audio.flatMap((p) => p.pacotes).map((p) => p.length)).toEqual([600, 255, 10])
   })
@@ -90,21 +95,41 @@ describe('empacotador Ogg Opus', () => {
 // ───────────────────────── mistura (WebAudio + WebCodecs falsos) ─────────────────────────
 
 class BufferFalso {
-  constructor(public length: number, public sampleRate: number, public numberOfChannels = 1) {}
-  get duration() { return this.length / this.sampleRate }
-  getChannelData() { return new Float32Array(this.length).fill(0.25) }
+  constructor(
+    public length: number,
+    public sampleRate: number,
+    public numberOfChannels = 1,
+  ) {}
+  get duration() {
+    return this.length / this.sampleRate
+  }
+  getChannelData() {
+    return new Float32Array(this.length).fill(0.25)
+  }
 }
 
 /** Um `OfflineAudioContext` que decodifica cada blob num buffer de N segundos (o tamanho do blob). */
 function instalarWebAudio() {
   const inicios: number[] = []
   class OfflineFalso {
-    constructor(public numberOfChannels: number, public length: number, public sampleRate: number) {}
+    constructor(
+      public numberOfChannels: number,
+      public length: number,
+      public sampleRate: number,
+    ) {}
     destination = {}
-    async decodeAudioData(bytes: ArrayBuffer) { return new BufferFalso(bytes.byteLength * this.sampleRate, this.sampleRate) }
-    createBufferSource() { return { buffer: null, connect: vi.fn(), start: (t: number) => inicios.push(t) } }
-    createGain() { return { gain: { value: 1 }, connect: vi.fn() } }
-    async startRendering() { return new BufferFalso(this.length, this.sampleRate) }
+    async decodeAudioData(bytes: ArrayBuffer) {
+      return new BufferFalso(bytes.byteLength * this.sampleRate, this.sampleRate)
+    }
+    createBufferSource() {
+      return { buffer: null, connect: vi.fn(), start: (t: number) => inicios.push(t) }
+    }
+    createGain() {
+      return { gain: { value: 1 }, connect: vi.fn() }
+    }
+    async startRendering() {
+      return new BufferFalso(this.length, this.sampleRate)
+    }
   }
   vi.stubGlobal('OfflineAudioContext', OfflineFalso)
   return { inicios }
@@ -127,7 +152,9 @@ function instalarWebCodecs(suportado = true) {
     encodeQueueSize = 0
     private pendente = 0
     constructor(private init: { output: (c: unknown, m?: unknown) => void; error: (e: unknown) => void }) {}
-    configure(c: Record<string, unknown>) { configs.push(c) }
+    configure(c: Record<string, unknown>) {
+      configs.push(c)
+    }
     encode(d: AudioDataFalso) {
       quadros += d.numberOfFrames
       this.pendente += d.numberOfFrames
@@ -144,7 +171,12 @@ function instalarWebCodecs(suportado = true) {
         { decoderConfig: { description: undefined } },
       )
     }
-    async flush() { if (this.pendente > 0) { this.pendente = 0; this.emitir() } }
+    async flush() {
+      if (this.pendente > 0) {
+        this.pendente = 0
+        this.emitir()
+      }
+    }
     close() {}
   }
   vi.stubGlobal('AudioEncoder', EncoderFalso)
@@ -167,7 +199,7 @@ describe('misturarAudios', () => {
     const { misturarAudios } = await import('../src/lib/misturarAudios')
     const saida = await misturarAudios(blobDe(3), blobDe(2), 1500)
     expect(saida.type).toBe('audio/ogg; codecs=opus')
-    expect(wc.configs[0]).toMatchObject({ codec: 'opus', sampleRate: 16000, numberOfChannels: 1, bitrate: 32000 })
+    expect(wc.configs[0]).toMatchObject({ codec: 'opus', sampleRate: 16000, numberOfChannels: 1, bitrate: 24000 })
     expect(inicios).toEqual([0, 1.5]) // o mic entrou 1,5 s depois do sistema
     // Tudo o que foi renderizado (3,55 s a 16 kHz) passou pelo codificador.
     expect(wc.quadros()).toBe(Math.ceil(3.55 * 16000))

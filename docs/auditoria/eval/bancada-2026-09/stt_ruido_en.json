@@ -1,0 +1,1663 @@
+{
+  "geradoEm": "2026-09-25T02:35:41.034Z",
+  "commit": "ff1a9bf",
+  "sistemas": ["local:tiny", "local:moonshine-base@q8"],
+  "conjuntos": ["fleurs_en_snr5"],
+  "gastoTotalUsd": 0.3921565277777815,
+  "resultados": [
+    {
+      "sistema": "local:tiny",
+      "conjunto": "fleurs_en_snr5",
+      "n": 100,
+      "wer": {
+        "valor": 0.41456953642384103,
+        "ic95": [0.36329979714001154, 0.47385267325380176]
+      },
+      "cer": {
+        "valor": 0.2343835867374977,
+        "ic95": [0.20157536188574207, 0.26830148816823385]
+      },
+      "rtf": 0.05735983306946371,
+      "latenciaMs": {
+        "p50": 576.0485000000044,
+        "p95": 730.1668999999999
+      },
+      "custoUsdPorHora": 0,
+      "casos": [
+        {
+          "id": "fleurs_en_1968_snr5",
+          "referencia": "Some cruises feature Berlin, Germany in the brochures. As you can see from the map above Berlin is no where near the sea and a visit to the city is not included in the price of the cruise.",
+          "hipotese": "Some creases can determine Germany and the brochures. As you can see from the map above Berlin is nowhere in the sea where visit to city is not included in the price of the cruise",
+          "erros": 10,
+          "palavras": 38,
+          "ms": 730
+        },
+        {
+          "id": "fleurs_en_1819_snr5",
+          "referencia": "Ancient China had a unique way of showing different time periods; each stage of China or each family that was in power was a distinctive dynasty.",
+          "hipotese": "Each in China had a unique way of showing different time periods. Each stage of China or each family that was in power, was the distinctive dynasty",
+          "erros": 3,
+          "palavras": 26,
+          "ms": 643
+        },
+        {
+          "id": "fleurs_en_1856_snr5",
+          "referencia": "Finland is a great boating destination. The \"Land of a thousand lakes\" has thousands of islands too, in the lakes and in the coastal archipelagos.",
+          "hipotese": "Finland is a great board of destination. The land of 1,000 lakes has thousands of islands to the lakes and the coastal archipelagoes",
+          "erros": 8,
+          "palavras": 25,
+          "ms": 633
+        },
+        {
+          "id": "fleurs_en_1696_snr5",
+          "referencia": "The two compounds react with one another to form crystals that may block kidney function, researchers at the university said.",
+          "hipotese": "The two compounds react with one another to form crystals that may block kidney function researchers at the University of State.",
+          "erros": 2,
+          "palavras": 20,
+          "ms": 606
+        },
+        {
+          "id": "fleurs_en_1754_snr5",
+          "referencia": "There may be more maria on the near side because the crust is thinner. It was easier for lava to rise up to the surface.",
+          "hipotese": "There may be more Maria on the near side because the crust is thinner. It was easy for lava to rise up too, the surface",
+          "erros": 2,
+          "palavras": 25,
+          "ms": 594
+        },
+        {
+          "id": "fleurs_en_1813_snr5",
+          "referencia": "Barcelona's official languages are Catalan and Spanish. About a half prefer to speak Catalan, a vast majority understands it, and virtually everyone knows Spanish.",
+          "hipotese": "For us alone as official languages are caught along and Spanish about have preferred to speak caught along a vast majority understanding, and virtually everyone knows Spanish.",
+          "erros": 13,
+          "palavras": 25,
+          "ms": 585
+        },
+        {
+          "id": "fleurs_en_1728_snr5",
+          "referencia": "The cabbage juice changes color depending on how acidic or basic (alkaline) the chemical is.",
+          "hipotese": "The Tabistrize Change is colored depending on how aesthetic basic alkaline the chemical is.",
+          "erros": 6,
+          "palavras": 15,
+          "ms": 580
+        },
+        {
+          "id": "fleurs_en_1762_snr5",
+          "referencia": "The disease is carried by pigs, which then migrates to humans through mosquitos.",
+          "hipotese": "The disease is carried by case which makes my great students through the hospitals.",
+          "erros": 7,
+          "palavras": 13,
+          "ms": 528
+        },
+        {
+          "id": "fleurs_en_1948_snr5",
+          "referencia": "The Three Kingdoms was one of the bloodiest eras in Ancient China’s history thousands of people died fighting to sit in the highest seat in the grand palace at Xi’an.",
+          "hipotese": "The three kingdoms was one of the bloodiest areas in ancient China's history thousands.",
+          "erros": 18,
+          "palavras": 32,
+          "ms": 521
+        },
+        {
+          "id": "fleurs_en_1965_snr5",
+          "referencia": "They are almost all sandy beaches with safe swimming, and most have shade provided by pohutukawa trees.",
+          "hipotese": "They are almost all standing, which is what the safe swimming and most have a shade provided by hopefully two rocks or trees.",
+          "erros": 10,
+          "palavras": 17,
+          "ms": 577
+        },
+        {
+          "id": "fleurs_en_1668_snr5",
+          "referencia": "It may also be beneficial for one to buy a Wild Card, which provides entry to either selections of parks in South Africa or all of the South African National Parks.",
+          "hipotese": "It may also be beneficial for one to buy a wild card, which provides energy to either selections of parks in South Africa or all the south African national parks.",
+          "erros": 2,
+          "palavras": 31,
+          "ms": 617
+        },
+        {
+          "id": "fleurs_en_1735_snr5",
+          "referencia": "Researchers from Princeton University in the United States and Uppsala University in Sweden reported the new species evolved in just two generations, though this process had been believed to take much longer, due to breeding between an endemic Darwin finch, Geospiza fortes, and the immigrant cactus finch, Geospiza conirostris.",
+          "hipotese": "Researchers from Princeton University in the United States and UPSOL University in Sweden reported that news species evolved into just two generations, but this process has a belief to take much longer due to breeding between an endemic Darwin Finch. Just piece of fortress on the immigrant cactus bench, just piece of Cornedraus d'Axis",
+          "erros": 20,
+          "palavras": 49,
+          "ms": 863
+        },
+        {
+          "id": "fleurs_en_1789_snr5",
+          "referencia": "The other nominations include Best Picture, Director, Cinematography, Costume Design, Film-editing, Original Score, Production Design, Sound Editing, Sound Mixing and Original Screenplay.",
+          "hipotese": "The other nominations include Best Picture, Directors and Metography, helping to run Film Engineering Regional Score, Production Design, Sound Engineering, FamilySix, and Regional Screenplay.",
+          "erros": 12,
+          "palavras": 23,
+          "ms": 698
+        },
+        {
+          "id": "fleurs_en_1859_snr5",
+          "referencia": "towards the end of the Middle Ages western Europe began to develop their own style. one of the biggest developments of the time as a result of the crusades people began to use buttons to fasten clothing.",
+          "hipotese": "For the island of the more ages, Western Europe began to develop their own style. None other than the biggest developments at the time as a result of the Crusades, we've opened down some of these backgrounds, the fascinating clothing.",
+          "erros": 17,
+          "palavras": 37,
+          "ms": 727
+        },
+        {
+          "id": "fleurs_en_1981_snr5",
+          "referencia": "If you only go ashore using shipboard excursions you will not need a separate visa (as of 2009).",
+          "hipotese": "If you only go ashore using shipwores, scursions. You will not need a separate music as of 2009",
+          "erros": 3,
+          "palavras": 18,
+          "ms": 587
+        },
+        {
+          "id": "fleurs_en_1882_snr5",
+          "referencia": "Scientists hope to understand how planets form, especially how the Earth formed, since comets collided with the Earth long ago.",
+          "hipotese": "Science and hope to understand how planet's form is especially called the Earth forms since commons collided with earth long ago.",
+          "erros": 9,
+          "palavras": 20,
+          "ms": 589
+        },
+        {
+          "id": "fleurs_en_1930_snr5",
+          "referencia": "Six hostages, including the children and elderly, were released early, as were the Filipino photographers.",
+          "hipotese": "6 sausages and 3 children are in the Eastburg, have a wonderful time.",
+          "erros": 14,
+          "palavras": 15,
+          "ms": 630
+        },
+        {
+          "id": "fleurs_en_1755_snr5",
+          "referencia": "One bomb exploded outside the governor general's office.",
+          "hipotese": "One bomb exploded outside the government generals...",
+          "erros": 4,
+          "palavras": 9,
+          "ms": 432
+        },
+        {
+          "id": "fleurs_en_1827_snr5",
+          "referencia": "The crust is about 70 km thick on the near side and 100 km thick on the far side.",
+          "hipotese": "The crust is about 70 kilometers thick on the near side and 100 kilometers thick",
+          "erros": 6,
+          "palavras": 19,
+          "ms": 528
+        },
+        {
+          "id": "fleurs_en_1910_snr5",
+          "referencia": "Parisians have a reputation for being egocentric, rude and arrogant.",
+          "hipotese": "Parisians have a reputation for being ill-century, rude and arrogant.",
+          "erros": 2,
+          "palavras": 10,
+          "ms": 530
+        },
+        {
+          "id": "fleurs_en_1971_snr5",
+          "referencia": "High winds, hail, excessive precipitation, and wildfires are forms and effects of severe weather, as are thunderstorms, tornadoes, waterspouts, and cyclones.",
+          "hipotese": "High winds hail excesses precipitation and wildfires are flowing in the effects of severe weather as our thunderstorms, tornadoes, water spoused and cyclones.",
+          "erros": 7,
+          "palavras": 21,
+          "ms": 611
+        },
+        {
+          "id": "fleurs_en_1964_snr5",
+          "referencia": "The 25 Dunlap broadsides still known to exist are the oldest surviving copies of the document. The original handwritten copy has not survived.",
+          "hipotese": "Which 25 dumb that brodside still known to exist are the oldest surviving copies of the gathering. And there's no hidden copy has not survived",
+          "erros": 10,
+          "palavras": 23,
+          "ms": 613
+        },
+        {
+          "id": "fleurs_en_2003_snr5",
+          "referencia": "To get the best views of Hong Kong, leave the island and head for the Kowloon waterfront opposite.",
+          "hipotese": "To get the best use of long tongs, leave the island ahead for the cold waterfront after the waterfront.",
+          "erros": 9,
+          "palavras": 18,
+          "ms": 555
+        },
+        {
+          "id": "fleurs_en_1810_snr5",
+          "referencia": "California Governor Arnold Schwarzenegger signed into law a bill that bans the sale or rental of violent video games to minors.",
+          "hipotese": "California Warnode Sports Magazine signed into law bill that BMS is the same Oregon, violent video news to mine.",
+          "erros": 12,
+          "palavras": 21,
+          "ms": 591
+        },
+        {
+          "id": "fleurs_en_1984_snr5",
+          "referencia": "Mass car ownership also leads to a higher incidence of accidents on the roads, which leads to the invention of new techniques in healthcare for repairing damaged bodies.",
+          "hipotese": "Mass car ownership also leads to a higher incidence of accidents on the road, which leads to an invention of new techniques in healthcare for repairing damaged bodies.",
+          "erros": 2,
+          "palavras": 28,
+          "ms": 575
+        },
+        {
+          "id": "fleurs_en_1697_snr5",
+          "referencia": "He has been unable to take the drugs needed to overcome his pain as they are banned from the Games.",
+          "hipotese": "He has been unable to take the drugs needed to overcome his pain as they are banned from the games.",
+          "erros": 0,
+          "palavras": 20,
+          "ms": 550
+        },
+        {
+          "id": "fleurs_en_1705_snr5",
+          "referencia": "On 15 August 1940, the Allies invaded southern France, the invasion was called \"Operation Dragoon\".",
+          "hipotese": "And August 15, 1940 the Allies invaded several friends and the invasion was called Operation Gregoon.",
+          "erros": 7,
+          "palavras": 15,
+          "ms": 527
+        },
+        {
+          "id": "fleurs_en_1823_snr5",
+          "referencia": "Traffic Flow is the study of the movement of individual drivers and vehicles between two points and the interactions they make with one another.",
+          "hipotese": "traffic flows are studied for movement of individual drivers and the ability to point in interactions, and make a call on other.",
+          "erros": 17,
+          "palavras": 24,
+          "ms": 544
+        },
+        {
+          "id": "fleurs_en_1867_snr5",
+          "referencia": "Plants make oxygen which humans breathe, and they take in carbon-dioxide which humans exhale (that is, breathe out).",
+          "hipotese": "Plans make oxygen which humans breathe and they take in carbon dioxide, which humans excel. That is breath out!",
+          "erros": 3,
+          "palavras": 19,
+          "ms": 603
+        },
+        {
+          "id": "fleurs_en_1896_snr5",
+          "referencia": "USA Gymnastics and the USOC have the same goal — making the sport of gymnastics, and others, as safe as possible for athletes to follow their dreams in a safe, positive and empowered environment.",
+          "hipotese": "USA Gymnastics in the USOC have the same goal making the sport of gymnastics, things and others are safe as possible for athletes to follow their dreams.",
+          "erros": 10,
+          "palavras": 33,
+          "ms": 587
+        },
+        {
+          "id": "fleurs_en_1999_snr5",
+          "referencia": "Throughout 1960s, Brzezinski worked for John F. Kennedy as his advisor and then the Lyndon B. Johnson administration.",
+          "hipotese": "Throughout 1960's, presents key work for John F Kennedy S.'s advisor and then the London B Johnson Administration",
+          "erros": 8,
+          "palavras": 18,
+          "ms": 534
+        },
+        {
+          "id": "fleurs_en_1693_snr5",
+          "referencia": "But, after losing the captain's wicket India only made 36 runs loosing 7 wickets to end the innings.",
+          "hipotese": "But after losing the tapings, Richard India only made 36 runs losing seven with its 10 runs.",
+          "erros": 10,
+          "palavras": 19,
+          "ms": 554
+        },
+        {
+          "id": "fleurs_en_1903_snr5",
+          "referencia": "When all available resources are effectively used across the functional departments of an organization, creativity and ingenuity can transpire.",
+          "hipotese": "When all available resources are effectively used across the Samsung Prime is a normalization, they essentially get into no limits of their supply.",
+          "erros": 14,
+          "palavras": 19,
+          "ms": 532
+        },
+        {
+          "id": "fleurs_en_1763_snr5",
+          "referencia": "Just like the moon exerts a pull on the earth, causing tides, so does the Milky Way exert a force on the Sagittarius galaxy.",
+          "hipotese": "Just like the moon experts have pulled on the Earth's causing tight studies and the other way to exert the force of a Secretary of Galaxy.",
+          "erros": 14,
+          "palavras": 24,
+          "ms": 604
+        },
+        {
+          "id": "fleurs_en_1759_snr5",
+          "referencia": "Dr. Malar Balasubramanian, 29, was found in Blue Ash, Ohio, a suburb approximately 15 miles north of Cincinnati lying on the ground beside the road in a T-shirt and underwear in an apparently heavily medicated state.",
+          "hipotese": "Dr. Mella Balos-Suburammonian, 29 was found in Blue Ash Ohio a suburb across some of the 15 miles north of Cincinnati lying on the ground beside the road and a piece of underwear then apparent heavily medicated state",
+          "erros": 14,
+          "palavras": 37,
+          "ms": 754
+        },
+        {
+          "id": "fleurs_en_1905_snr5",
+          "referencia": "The capital of Moldova is Chişinău. The local language is Romanian, but Russian is widely used.",
+          "hipotese": "That capital of Moldova is she's now the local language is Romanian but Russian is wife and used.",
+          "erros": 6,
+          "palavras": 16,
+          "ms": 494
+        },
+        {
+          "id": "fleurs_en_1967_snr5",
+          "referencia": "Layton had asked for changes to the conservatives' environmental bill during the meeting with the PM, asking for a \"thorough and complete rewriting\" of the Conservative party's environmental bill.",
+          "hipotese": "Let you have as for changes to the Conservatives Environmental Bill during the New York weekend, ask him for a girl and completely writing of the Conservative's Party environmental bill.",
+          "erros": 14,
+          "palavras": 30,
+          "ms": 604
+        },
+        {
+          "id": "fleurs_en_1783_snr5",
+          "referencia": "Regional and seasonal severe weather phenomena include blizzards, snowstorms, ice storms, and dust storms.",
+          "hipotese": "Usually, this is also the way to become a man who plays his songs and I sing in best songs.",
+          "erros": 19,
+          "palavras": 14,
+          "ms": 528
+        },
+        {
+          "id": "fleurs_en_1816_snr5",
+          "referencia": "Duvall, who is married with two adult children, did not leave a big impression on Miller, to whom the story was related.",
+          "hipotese": "We've all was married with little children and not really being impressionant Miller to whom the story was related.",
+          "erros": 12,
+          "palavras": 22,
+          "ms": 593
+        },
+        {
+          "id": "fleurs_en_1994_snr5",
+          "referencia": "Needless to say, if you know a Romance language, it will be easier for you to learn Portuguese.",
+          "hipotese": "Needless to say, if you know a romance language they will be easier for you when I'm Portuguese.",
+          "erros": 4,
+          "palavras": 18,
+          "ms": 561
+        },
+        {
+          "id": "fleurs_en_1869_snr5",
+          "referencia": "Its long jaws were studded with more than 70 razor-sharp teeth, along with an extra set in the roof of its mouth, meaning that there was no escape for anything that crossed its path.",
+          "hipotese": "As long jaws were stile, more than 70, the ratio sharp teeth along with an extra set in a roof of its mouth. Being there was no escape for anything that crosses path",
+          "erros": 10,
+          "palavras": 35,
+          "ms": 678
+        },
+        {
+          "id": "fleurs_en_1739_snr5",
+          "referencia": "Resting on the top of one of the mountains north of Mecca, the cave is completely isolated from the rest of the world.",
+          "hipotese": "Wrestling on the top of one of the mountains north of Mecca, the calf and the cate is Colsea isolated from the rest of it in the world.",
+          "erros": 8,
+          "palavras": 23,
+          "ms": 620
+        },
+        {
+          "id": "fleurs_en_1784_snr5",
+          "referencia": "Greenland was settled sparsely. In the Norse sagas they say that Erik the Red was exiled from Iceland for murder, and when travelling further west, found Greenland and named it Greenland.",
+          "hipotese": "Greenland was settled sparesleep in the north sagas they say that earth threat was exile from Iceland, former and then traveling further west on greenland and named it green",
+          "erros": 12,
+          "palavras": 31,
+          "ms": 586
+        },
+        {
+          "id": "fleurs_en_1843_snr5",
+          "referencia": "Professor Pamela Ferguson of the University of Dundee notes \"journalists do seem to be walking a dangerous line if publishing photos etc of suspects.\"",
+          "hipotese": "Professor Pamela Ferguson of the University Of Dundee notes, journalists do seem to be walking dangerous lines if publishing photos etc. of sucks bags",
+          "erros": 4,
+          "palavras": 24,
+          "ms": 536
+        },
+        {
+          "id": "fleurs_en_1710_snr5",
+          "referencia": "Last week, METI announced that Apple had informed it of 34 additional overheating incidents, which the company called \"non-serious.\"",
+          "hipotese": "Last week, and Medi announced that Apple had informed it of 34 additional origining incidents which was the complete called non-serious.",
+          "erros": 5,
+          "palavras": 20,
+          "ms": 540
+        },
+        {
+          "id": "fleurs_en_1756_snr5",
+          "referencia": "Late on Sunday, the United States President Donald Trump, in a statement delivered via the press secretary, announced US troops would be leaving Syria.",
+          "hipotese": "late on Sunday, the United States President Donald Trump and a statement delivered via The Press Secretary announced US troops would be leaving Syria.",
+          "erros": 1,
+          "palavras": 24,
+          "ms": 522
+        },
+        {
+          "id": "fleurs_en_1934_snr5",
+          "referencia": "Usually you always here the sound of tourists and vendors. The story of the sound and light is just like a story book.",
+          "hipotese": "Usually you always hear the sound of chorus and henders. The story ever sounds a light, it's just like a story book",
+          "erros": 9,
+          "palavras": 23,
+          "ms": 551
+        },
+        {
+          "id": "fleurs_en_1942_snr5",
+          "referencia": "We make our houses from plants and make clothes from plants. Most foods that we eat are plants. Without plants, animals could not survive.",
+          "hipotese": "We make our houses for the plant and make place for the plants. Most foods that we eat are plants, but they're plants in a most unanswered life.",
+          "erros": 14,
+          "palavras": 24,
+          "ms": 579
+        },
+        {
+          "id": "fleurs_en_1738_snr5",
+          "referencia": "It also attacked anything that entered the water; even a giant dinosaur such as T. rex would be no match for it.",
+          "hipotese": "It also attacked anything that entered the water. Even a giant dinosaur such as T-rex would be no match for it",
+          "erros": 0,
+          "palavras": 22,
+          "ms": 535
+        },
+        {
+          "id": "fleurs_en_1814_snr5",
+          "referencia": "Hydrogen ions are protons that had their electrons stripped off them (since Hydrogen atoms consist of one proton and one electron).",
+          "hipotese": "Hi, my name is Arco Towns and I have the electronic strip doll set since I can't get an animal's consistent one, but I'm going to go down.",
+          "erros": 29,
+          "palavras": 21,
+          "ms": 638
+        },
+        {
+          "id": "fleurs_en_1955_snr5",
+          "referencia": "MS is a disease that affects the central nervous system, which is made up of the brain, the spinal cord and the optic nerve.",
+          "hipotese": "MS is the disease that affects the central nervous system, which has made up of the brain, the spinal cord and the optic nerve.",
+          "erros": 2,
+          "palavras": 24,
+          "ms": 524
+        },
+        {
+          "id": "fleurs_en_1847_snr5",
+          "referencia": "He was greeted by Singapore's Deputy Prime Minister Wong Kan Seng and discussed trade and terrorism issues with the Singapore Prime Minister Lee Hsien Loong.",
+          "hipotese": "He was greeted by Singapore's Deputy Prime Minister Wong Kahn sang and discussed trade and terrorism issues with the Singapore Prime Minister Lee Asine Long.",
+          "erros": 4,
+          "palavras": 26,
+          "ms": 545
+        },
+        {
+          "id": "fleurs_en_1716_snr5",
+          "referencia": "Entertainment news website TMZ understands the photographer stopped his vehicle on the other side of Sepulveda Boulevard and attempted to take pictures of the police stop before crossing the road and continuing, prompting the California Highway Patrol police officer conducting the traffic stop to order him back across, twice.",
+          "hipotese": "Entertainment News website TMZ understands the vagifer stops people on this set on their side of to look for a voicing arm and attempted to take pictures at least stops before crossing your road and continuing prompting their California highway patrol peace officers conducting the traffic stop to order him back across the place.",
+          "erros": 24,
+          "palavras": 49,
+          "ms": 752
+        },
+        {
+          "id": "fleurs_en_2009_snr5",
+          "referencia": "The most readily accessible plant resources would have been the proteins accessible in leaves and legumes, but these are hard for primates like us to digest unless they are cooked.",
+          "hipotese": "The most readily accessible plant resources will have been the protein successfully in these and they go on. But, these are hard for primacy slice us to digest unless they are cooked",
+          "erros": 9,
+          "palavras": 30,
+          "ms": 562
+        },
+        {
+          "id": "fleurs_en_1884_snr5",
+          "referencia": "In particular, it is claimed that one can detect whether a person is lying by interpreting micro-expressions correctly.",
+          "hipotese": "In particular, it is claims that one thing that's actually in the personal and personal is not only about interpreting micro expressions correctly.",
+          "erros": 13,
+          "palavras": 19,
+          "ms": 530
+        },
+        {
+          "id": "fleurs_en_1732_snr5",
+          "referencia": "The age where the events took place is commonly referred as the High Middle Ages the period of European history in the 11th, 12th, and 13th centuries (AD 1000–1300).",
+          "hipotese": "The age where the event took place is commonly referred as a high middle ages, period of European history in 11th and 12th and 13th centuries. 80 or 100 are 1,000 to 1300",
+          "erros": 10,
+          "palavras": 30,
+          "ms": 644
+        },
+        {
+          "id": "fleurs_en_1857_snr5",
+          "referencia": "He added that \"they should not, however, be asked to take on obligations that go beyond their development stage, responsibility and capabilities.\"",
+          "hipotese": "He added, they should not however be asked to pick on obligations that will be under development, sustainability and capability.",
+          "erros": 8,
+          "palavras": 22,
+          "ms": 496
+        },
+        {
+          "id": "fleurs_en_1776_snr5",
+          "referencia": "Through the night between 150 and 200 copies were made, now known as \"Dunlap broadsides\".",
+          "hipotese": "through the 9th between 150 and 200 copies for making now known as the nap broad types.",
+          "erros": 7,
+          "palavras": 15,
+          "ms": 479
+        },
+        {
+          "id": "fleurs_en_1929_snr5",
+          "referencia": "Del Potro had the early advantage in the second set, but this too required a tie break after reaching 6-6.",
+          "hipotese": "The approach has the early advantage in a second set, but this is two required by timebreak after 2016.",
+          "erros": 12,
+          "palavras": 21,
+          "ms": 489
+        },
+        {
+          "id": "fleurs_en_1892_snr5",
+          "referencia": "This is the place the British colonisers took as their own and so if you are looking for evidence of the territory's colonial past, this is a good place to start.",
+          "hipotese": "This is the place of risk colonizers took as their own, and so if you are looking for evidence of the territories for only your class this is a good class to start.",
+          "erros": 9,
+          "palavras": 32,
+          "ms": 618
+        },
+        {
+          "id": "fleurs_en_1692_snr5",
+          "referencia": "According to Japan's nuclear agency, radioactive caesium and iodine has been identified at the plant.",
+          "hipotese": "According to your plans, your viewer agency radioactive peace dam and iodine has been identified as a plan.",
+          "erros": 9,
+          "palavras": 16,
+          "ms": 518
+        },
+        {
+          "id": "fleurs_en_1879_snr5",
+          "referencia": "One can only wonder what the keyboard will become when something newer comes along.",
+          "hipotese": "One can only wonder what the keyboard will become when something new where it comes along.",
+          "erros": 3,
+          "palavras": 14,
+          "ms": 482
+        },
+        {
+          "id": "fleurs_en_1751_snr5",
+          "referencia": "The debate was sparked by controversy over spending on relief and reconstruction in the wake Hurricane Katrina; which some fiscal conservatives have humorously labeled \"Bush's New Orleans Deal.\"",
+          "hipotese": "The debate was sparked by controversy over spending our release in reconstruction and the wake of Hurricane Katrina, which some physical conservatives have numerously labeled Bush's New Orleans deal.",
+          "erros": 7,
+          "palavras": 29,
+          "ms": 565
+        },
+        {
+          "id": "fleurs_en_1707_snr5",
+          "referencia": "It is one of the main attractions of South Africa and it is considered the flagship of South African National Parks (SANParks).",
+          "hipotese": "It's one of the main attractions of South Africa. And it is considered a flagship of South African national parks, San Parts",
+          "erros": 4,
+          "palavras": 22,
+          "ms": 557
+        },
+        {
+          "id": "fleurs_en_1761_snr5",
+          "referencia": "The photographers later took the place of an aged lady as she needed the lavatory. Mendoza was gunned down.",
+          "hipotese": "The photographer's later took the place of an ace lady as she needed to laveter and Dosa was found down.",
+          "erros": 8,
+          "palavras": 19,
+          "ms": 557
+        },
+        {
+          "id": "fleurs_en_1923_snr5",
+          "referencia": "The strategy proved effective, cutting off vital military and civilian supplies, although this blockade violated generally accepted international law codified by several international agreements of the past two centuries.",
+          "hipotese": "The strategy provide proved effective cutting off vital military and civilian supplies, although this block a violated generally accepted international law. What if I buy several international agreements of the past two centuries?",
+          "erros": 7,
+          "palavras": 29,
+          "ms": 602
+        },
+        {
+          "id": "fleurs_en_1701_snr5",
+          "referencia": "Goats seem to have been first domesticated roughly 10,000 years ago in the Zagros Mountains of Iran.",
+          "hipotese": "This is the first and last decade. You can't even use it, but you're gonna run into that market in the past.",
+          "erros": 24,
+          "palavras": 17,
+          "ms": 567
+        },
+        {
+          "id": "fleurs_en_1907_snr5",
+          "referencia": "Soon after the outbreak of hostilities, Britain initiated a naval blockade of Germany.",
+          "hipotese": "So, nothing we are pretty close to today's training and she did the main football video to me.",
+          "erros": 19,
+          "palavras": 13,
+          "ms": 512
+        },
+        {
+          "id": "fleurs_en_1706_snr5",
+          "referencia": "More traditional churches often hold an Easter Vigil on Saturday night during the Easter weekend, with the congregations often breaking into celebration at the stroke of midnight to celebrate Christ's resurrection.",
+          "hipotese": "More traditional churches often hold their Eastern electoral and Southern electoral history then, but the contributions of the breaking into celebration at the stroke of midnight to celebrate crisis resurrection.",
+          "erros": 16,
+          "palavras": 32,
+          "ms": 618
+        },
+        {
+          "id": "fleurs_en_1901_snr5",
+          "referencia": "Although AI has a strong connotation of science fiction, AI forms a very important branch of computer science, dealing with behavior, learning and intelligent adaptation in a machine.",
+          "hipotese": "So, AI has found a kind of fish in its science fiction. AI is found to be very important for ancient human science. You don't know if you hate your learning and intelligent adaptation in the machine!",
+          "erros": 23,
+          "palavras": 28,
+          "ms": 647
+        },
+        {
+          "id": "fleurs_en_1794_snr5",
+          "referencia": "A civilization is a singular culture shared by a significant large group of people who live and work co-operatively, a society.",
+          "hipotese": "A civilization is a singular culture shared by a significant large group of people who live and work cooperatively, a society.",
+          "erros": 2,
+          "palavras": 22,
+          "ms": 502
+        },
+        {
+          "id": "fleurs_en_1972_snr5",
+          "referencia": "Many people don't think about them as dinosaurs because they have feathers and can fly.",
+          "hipotese": "Maybe people don't think about them as scientists because they have feathers and can fly.",
+          "erros": 2,
+          "palavras": 16,
+          "ms": 490
+        },
+        {
+          "id": "fleurs_en_1906_snr5",
+          "referencia": "\"This is not going to be goodbye. This is the closing of one chapter and the opening of a new one.\"",
+          "hipotese": "This is not going to be the vibe.",
+          "erros": 14,
+          "palavras": 21,
+          "ms": 433
+        },
+        {
+          "id": "fleurs_en_1914_snr5",
+          "referencia": "Twentieth century research has shown that there are two pools of genetic variation: hidden and expressed.",
+          "hipotese": "20th century research has shown that there are two pools on genetic variation hidden and expressed.",
+          "erros": 2,
+          "palavras": 16,
+          "ms": 467
+        },
+        {
+          "id": "fleurs_en_1915_snr5",
+          "referencia": "You can use boda-boda (motorcycle taxi) to get around Goma. The normal (local) price is ~500 Congolese Francs for the short ride.",
+          "hipotese": "You can use boat aboard a more special taxi to get around the limit. Normally, local price is 500, it can go these times for short ride",
+          "erros": 15,
+          "palavras": 23,
+          "ms": 580
+        },
+        {
+          "id": "fleurs_en_1904_snr5",
+          "referencia": "However, due to the slow communication channels, styles in the west could lag behind by 25 to 30 year.",
+          "hipotese": "However, due to the slow communication channels, the styles in West could lag behind by 20 art to 30 years.",
+          "erros": 5,
+          "palavras": 19,
+          "ms": 528
+        },
+        {
+          "id": "fleurs_en_1769_snr5",
+          "referencia": "Built by the Egyptians in the third century BCE, the Great Pyramid is one of many large pyramid structures built to honor dead Pharaoh.",
+          "hipotese": "Built by the Egyptian in the 3rd century BCE, The Great Pyramid is one of many large pyramid structures built to honor dead Pharaoh.",
+          "erros": 2,
+          "palavras": 24,
+          "ms": 544
+        },
+        {
+          "id": "fleurs_en_1805_snr5",
+          "referencia": "Scotturb Bus 403 travels regularly to Sintra, stopping at Cabo da Roca.",
+          "hipotese": "Scott turned bus 403 travels regularly to central stopping at Kabul, uh...",
+          "erros": 6,
+          "palavras": 12,
+          "ms": 471
+        },
+        {
+          "id": "fleurs_en_1873_snr5",
+          "referencia": "Be firm in turning down men, and don't be afraid to stand your ground (cultural differences or not, it doesn't make it ok!).",
+          "hipotese": "Be firm and turning down men. Maybe you'll free to stand your ground, cut through the fingers or not it doesn't make you so heavy",
+          "erros": 13,
+          "palavras": 25,
+          "ms": 614
+        },
+        {
+          "id": "fleurs_en_1724_snr5",
+          "referencia": "Its renown for being an epicenter of luxury began in about 400 A.D. and lasted up until about 1100 A.D.",
+          "hipotese": "This is where now for the epicenter of luxury. Again, in about 400 years, last and a half of the time until about 113 years old.",
+          "erros": 17,
+          "palavras": 20,
+          "ms": 576
+        },
+        {
+          "id": "fleurs_en_1986_snr5",
+          "referencia": "The presence of a true “invisible team” (Larson and LaFasto, 1989, p109) is also a unique component of a virtual team.",
+          "hipotese": "The presence of the true and invisible team, the most seen in the past 1989, to 1909 was also a unique component that were virtual team.",
+          "erros": 13,
+          "palavras": 21,
+          "ms": 549
+        },
+        {
+          "id": "fleurs_en_1956_snr5",
+          "referencia": "Using ships to transport goods is by far the most efficient way to move large amounts of people and goods across oceans.",
+          "hipotese": "Using ships to transport goods is by far the most efficient way to move large amounts of people and good to cross oceans.",
+          "erros": 3,
+          "palavras": 22,
+          "ms": 531
+        },
+        {
+          "id": "fleurs_en_1862_snr5",
+          "referencia": "NextGen is a system the FAA claims would allow aircraft to fly shorter routes and save millions of gallons of fuel each year and cut carbon emissions.",
+          "hipotese": "Next gen is a system the FAA claims would allow aircraft to fly shorter routes and save millions of gallons if fuel each year in cut carbon emissions.",
+          "erros": 4,
+          "palavras": 27,
+          "ms": 596
+        },
+        {
+          "id": "fleurs_en_1889_snr5",
+          "referencia": "It has brought us the train, the car, and many other transportation devices.",
+          "hipotese": "It has brought us to train the car and many other transportation devices.",
+          "erros": 1,
+          "palavras": 13,
+          "ms": 617
+        },
+        {
+          "id": "fleurs_en_1931_snr5",
+          "referencia": "The service is frequently used by shipping, including pleasure craft, as well as expeditions who have remote data and voice needs.",
+          "hipotese": "The service is frequently used by shipping, including pleasure craft as well as expeditions to ever promote data and voice needs.",
+          "erros": 3,
+          "palavras": 21,
+          "ms": 617
+        },
+        {
+          "id": "fleurs_en_1712_snr5",
+          "referencia": "Since 1966 the Sundarbans have been a wildlife sanctuary, and it is estimated that there are now 400 Royal Bengal tigers and about 30,000 spotted deer in the area.",
+          "hipotese": "This is the fastest, the sun dog and I've been alive like Suncurve. It needs us a minute there now 400 World Bengal Tigers and about 30,000 Spidey here in the family",
+          "erros": 22,
+          "palavras": 29,
+          "ms": 653
+        },
+        {
+          "id": "fleurs_en_1729_snr5",
+          "referencia": "For example, each year students from Bennet School in North Carolina design a website about their trip to the State Capital, each year the website gets remodeled, but old versions are kept online to serve as a scrapbook.",
+          "hipotese": "For example, each year students from Venice school or Thailand are in a website about the picturesque capital. Each year their websites get through models but both residents are kept online to serve as a scrapbook",
+          "erros": 16,
+          "palavras": 38,
+          "ms": 605
+        },
+        {
+          "id": "fleurs_en_2000_snr5",
+          "referencia": "If crossing the Northern Baltic in winter, check the cabin location, as going through ice causes quite horrible noise for those most affected.",
+          "hipotese": "If crossing the road and walking while taking water, check the cabin location as ground through ice causes quite horrible noises for those who must affect.",
+          "erros": 11,
+          "palavras": 23,
+          "ms": 559
+        },
+        {
+          "id": "fleurs_en_1838_snr5",
+          "referencia": "The Great Pyramid at Giza is the only one of the seven wonders that is still standing today.",
+          "hipotese": "The great pyramid egg easy is one of the seven wonders that it's still standing today.",
+          "erros": 6,
+          "palavras": 18,
+          "ms": 529
+        },
+        {
+          "id": "fleurs_en_1723_snr5",
+          "referencia": "The harbor was the site of an infamous naval standoff in 1889 when seven ships from Germany, the US, and Britain refused to leave the harbor.",
+          "hipotese": "The hardware was to site of an infamous naval standout, the 18th of May, and the 7 ships from Germany, US, and Britain, the 20th of April.",
+          "erros": 16,
+          "palavras": 26,
+          "ms": 693
+        },
+        {
+          "id": "fleurs_en_1858_snr5",
+          "referencia": "Danielle Lantagne, a UN expert on the disease, stated the outbreak was likely caused by the peacekeepers.",
+          "hipotese": "Then you'll then to gain a UN expert on the disease state of the outbreak was likely caused by the peacekeepers.",
+          "erros": 8,
+          "palavras": 17,
+          "ms": 573
+        },
+        {
+          "id": "fleurs_en_1676_snr5",
+          "referencia": "As with all South African National Parks, there are daily conservation and entry fees for the park.",
+          "hipotese": "As with all South African national parks, there are daily conservation and entry fees for the park.",
+          "erros": 0,
+          "palavras": 17,
+          "ms": 540
+        },
+        {
+          "id": "fleurs_en_1792_snr5",
+          "referencia": "This is called a chemical's pH. You can make an indicator using red cabbage juice.",
+          "hipotese": "This is called a chemical pH. You can make an indicator using red cabbage juice",
+          "erros": 1,
+          "palavras": 16,
+          "ms": 531
+        },
+        {
+          "id": "fleurs_en_1952_snr5",
+          "referencia": "Anyone who's going to drive at high latitudes or over mountain passes should consider the possibility of snow, ice, or freezing temperatures.",
+          "hipotese": "From one of the points you try to highlight a twos or an offer, Mountain Pass is just shaking, so that it's a popular audience. No ice or freezing temperatures!",
+          "erros": 25,
+          "palavras": 23,
+          "ms": 589
+        },
+        {
+          "id": "fleurs_en_1760_snr5",
+          "referencia": "Mosasaurus was the apex predator of its time, so it feared nothing, except other mosasaurs.",
+          "hipotese": "Mosses there was the apex predator at its time so it could be nothing except other Moses",
+          "erros": 6,
+          "palavras": 15,
+          "ms": 583
+        },
+        {
+          "id": "fleurs_en_1661_snr5",
+          "referencia": "He did not set a figure for the cuts, saying they will be made based on China's economic output.",
+          "hipotese": "He did not set a figure for the cutscene, and it will be made based on China's economic output.",
+          "erros": 3,
+          "palavras": 20,
+          "ms": 681
+        },
+        {
+          "id": "fleurs_en_1969_snr5",
+          "referencia": "It states that the most effective place for the main subject is at the intersection of lines dividing the image into thirds vertically and horizontally (see example).",
+          "hipotese": "It stays at the most effective place for the knee subject, is at the intersection of lines that bind you, you finish into four, it's perfectly and more than one, so you can see it soon.",
+          "erros": 20,
+          "palavras": 27,
+          "ms": 736
+        },
+        {
+          "id": "fleurs_en_1797_snr5",
+          "referencia": "Everyone participates in society and uses transportation systems. Almost everyone complains about transportation systems.",
+          "hipotese": "And everyone for Tissot-Pays is society and you can't predict your system. I must have been on complaints about the previous state of California.",
+          "erros": 22,
+          "palavras": 14,
+          "ms": 691
+        },
+        {
+          "id": "fleurs_en_1798_snr5",
+          "referencia": "In its early days, the show was featured solely at the long-running internet radio site TogiNet Radio, a site focused on talk radio.",
+          "hipotese": "In early days, show us feature solely at the wrong running internet radio site. Token yet radio. Site focus on talk radio",
+          "erros": 9,
+          "palavras": 24,
+          "ms": 592
+        },
+        {
+          "id": "fleurs_en_1876_snr5",
+          "referencia": "The Northern Marianas emergency management office said that there were no damages reported in the nation.",
+          "hipotese": "The Northern Marianna's Emergency Management Office said that there were no damages reported in the nation.",
+          "erros": 2,
+          "palavras": 16,
+          "ms": 541
+        }
+      ]
+    },
+    {
+      "sistema": "local:moonshine-base@q8",
+      "conjunto": "fleurs_en_snr5",
+      "n": 100,
+      "wer": {
+        "valor": 0.247682119205298,
+        "ic95": [0.2065677522659428, 0.29145315559572227]
+      },
+      "cer": {
+        "valor": 0.15543139769188496,
+        "ic95": [0.11939872574978154, 0.19522572275759822]
+      },
+      "rtf": 0.06258897941816784,
+      "latenciaMs": {
+        "p50": 596.2224999999744,
+        "p95": 1174.6549000000232
+      },
+      "custoUsdPorHora": 0,
+      "casos": [
+        {
+          "id": "fleurs_en_1968_snr5",
+          "referencia": "Some cruises feature Berlin, Germany in the brochures. As you can see from the map above Berlin is no where near the sea and a visit to the city is not included in the price of the cruise.",
+          "hipotese": "Some cruisers can german Germany and the brochures as you can see from the map above Berlin is nowhere near the sea and it is it to the city is not included in the price of the cruise",
+          "erros": 9,
+          "palavras": 38,
+          "ms": 809
+        },
+        {
+          "id": "fleurs_en_1819_snr5",
+          "referencia": "Ancient China had a unique way of showing different time periods; each stage of China or each family that was in power was a distinctive dynasty.",
+          "hipotese": "Agent China had a unique way of showing different time periods. Each stage of China or each family that was in power was a distinctive dynasty.",
+          "erros": 1,
+          "palavras": 26,
+          "ms": 608
+        },
+        {
+          "id": "fleurs_en_1856_snr5",
+          "referencia": "Finland is a great boating destination. The \"Land of a thousand lakes\" has thousands of islands too, in the lakes and in the coastal archipelagos.",
+          "hipotese": "Finland is a great voting destination. The land of a thousand lakes has thousands of islands too, and the lakes are in the coastal archipelagos.",
+          "erros": 3,
+          "palavras": 25,
+          "ms": 615
+        },
+        {
+          "id": "fleurs_en_1696_snr5",
+          "referencia": "The two compounds react with one another to form crystals that may block kidney function, researchers at the university said.",
+          "hipotese": "The two compounds reacted one another to form crystals that may block kidney researchers at the University's day.",
+          "erros": 5,
+          "palavras": 20,
+          "ms": 478
+        },
+        {
+          "id": "fleurs_en_1754_snr5",
+          "referencia": "There may be more maria on the near side because the crust is thinner. It was easier for lava to rise up to the surface.",
+          "hipotese": "There may be more maria on the near side because the crust is thinner, it was easy for lava to rise up to the surface.",
+          "erros": 1,
+          "palavras": 25,
+          "ms": 574
+        },
+        {
+          "id": "fleurs_en_1813_snr5",
+          "referencia": "Barcelona's official languages are Catalan and Spanish. About a half prefer to speak Catalan, a vast majority understands it, and virtually everyone knows Spanish.",
+          "hipotese": "Barcelona's official languages are Catalan and Spanish, about how half preferred speak Catalan, a vast majority understands it and virtually everyone knows Spanish.",
+          "erros": 3,
+          "palavras": 25,
+          "ms": 615
+        },
+        {
+          "id": "fleurs_en_1728_snr5",
+          "referencia": "The cabbage juice changes color depending on how acidic or basic (alkaline) the chemical is.",
+          "hipotese": "The cabbage juice changes color depending on how acidic basic alkaline the chemical is",
+          "erros": 1,
+          "palavras": 15,
+          "ms": 338
+        },
+        {
+          "id": "fleurs_en_1762_snr5",
+          "referencia": "The disease is carried by pigs, which then migrates to humans through mosquitos.",
+          "hipotese": "The disease is carried by crates, which are migrates to humans through mosquitoes.",
+          "erros": 3,
+          "palavras": 13,
+          "ms": 346
+        },
+        {
+          "id": "fleurs_en_1948_snr5",
+          "referencia": "The Three Kingdoms was one of the bloodiest eras in Ancient China’s history thousands of people died fighting to sit in the highest seat in the grand palace at Xi’an.",
+          "hipotese": "The three kingdoms was one of the bloodiest eras and ancient China's history thousands of people died fighting to sit in the high esteem in the grand palace at Zion.",
+          "erros": 5,
+          "palavras": 32,
+          "ms": 718
+        },
+        {
+          "id": "fleurs_en_1965_snr5",
+          "referencia": "They are almost all sandy beaches with safe swimming, and most have shade provided by pohutukawa trees.",
+          "hipotese": "There are almost all standing beaches with safe swimming and most have shade provided by Pokemon 2 wax trees.",
+          "erros": 5,
+          "palavras": 17,
+          "ms": 477
+        },
+        {
+          "id": "fleurs_en_1668_snr5",
+          "referencia": "It may also be beneficial for one to buy a Wild Card, which provides entry to either selections of parks in South Africa or all of the South African National Parks.",
+          "hipotese": "It may also be beneficial for one to buy a wild card, which provides entry to either selections of parks in South Africa or all of the South African National Parks.",
+          "erros": 0,
+          "palavras": 31,
+          "ms": 711
+        },
+        {
+          "id": "fleurs_en_1735_snr5",
+          "referencia": "Researchers from Princeton University in the United States and Uppsala University in Sweden reported the new species evolved in just two generations, though this process had been believed to take much longer, due to breeding between an endemic Darwin finch, Geospiza fortes, and the immigrant cactus finch, Geospiza conirostris.",
+          "hipotese": "Researchers from Princeton University in the United States and Absolutely University in Sweden reported the new species evolved in just two generations, though this process has been believed to take much longer due to the breeding between an endemic Darwin finch, just piece of foretaste, and the imicant cactus finch, just piece of porny roast ice.",
+          "erros": 14,
+          "palavras": 49,
+          "ms": 1890
+        },
+        {
+          "id": "fleurs_en_1789_snr5",
+          "referencia": "The other nominations include Best Picture, Director, Cinematography, Costume Design, Film-editing, Original Score, Production Design, Sound Editing, Sound Mixing and Original Screenplay.",
+          "hipotese": "The other nominations include Best Picture, Directorate Cinematography, Ultimate Love, Film Editing, Original Score, Progression Design, Sallet Edition, Sallet Mixing, and Original Screenplay.",
+          "erros": 7,
+          "palavras": 23,
+          "ms": 899
+        },
+        {
+          "id": "fleurs_en_1859_snr5",
+          "referencia": "towards the end of the Middle Ages western Europe began to develop their own style. one of the biggest developments of the time as a result of the crusades people began to use buttons to fasten clothing.",
+          "hipotese": "Through the end of the Middle Ages, Western Europe began to develop their own style. None of the biggest developments of the time as a result of the Crusades people began to use weapons for fasting further.",
+          "erros": 6,
+          "palavras": 37,
+          "ms": 1178
+        },
+        {
+          "id": "fleurs_en_1981_snr5",
+          "referencia": "If you only go ashore using shipboard excursions you will not need a separate visa (as of 2009).",
+          "hipotese": "If you only go ashore using shipwars skirts, you will not need a separate music as of two thousand nine.",
+          "erros": 6,
+          "palavras": 18,
+          "ms": 596
+        },
+        {
+          "id": "fleurs_en_1882_snr5",
+          "referencia": "Scientists hope to understand how planets form, especially how the Earth formed, since comets collided with the Earth long ago.",
+          "hipotese": "Science has hoped to understand how planet's form is especially how the Earth forms since comets collided with the Earth long ago.",
+          "erros": 7,
+          "palavras": 20,
+          "ms": 523
+        },
+        {
+          "id": "fleurs_en_1930_snr5",
+          "referencia": "Six hostages, including the children and elderly, were released early, as were the Filipino photographers.",
+          "hipotese": "",
+          "erros": 15,
+          "palavras": 15,
+          "ms": 115
+        },
+        {
+          "id": "fleurs_en_1755_snr5",
+          "referencia": "One bomb exploded outside the governor general's office.",
+          "hipotese": "One bomb exploded outside the governor general's office.",
+          "erros": 0,
+          "palavras": 9,
+          "ms": 271
+        },
+        {
+          "id": "fleurs_en_1827_snr5",
+          "referencia": "The crust is about 70 km thick on the near side and 100 km thick on the far side.",
+          "hipotese": "The crust is about 70 km thick on the near side and 100 km thick on the far side.",
+          "erros": 0,
+          "palavras": 19,
+          "ms": 504
+        },
+        {
+          "id": "fleurs_en_1910_snr5",
+          "referencia": "Parisians have a reputation for being egocentric, rude and arrogant.",
+          "hipotese": "Parisians have a reputation for being idol-centric, rude, and arrogant.",
+          "erros": 2,
+          "palavras": 10,
+          "ms": 416
+        },
+        {
+          "id": "fleurs_en_1971_snr5",
+          "referencia": "High winds, hail, excessive precipitation, and wildfires are forms and effects of severe weather, as are thunderstorms, tornadoes, waterspouts, and cyclones.",
+          "hipotese": "High winds hail excesses precipitation and wildfires are formed to in effect the severe weather as are thunderstorms, tornadoes, water spouts and cyclones.",
+          "erros": 8,
+          "palavras": 21,
+          "ms": 797
+        },
+        {
+          "id": "fleurs_en_1964_snr5",
+          "referencia": "The 25 Dunlap broadsides still known to exist are the oldest surviving copies of the document. The original handwritten copy has not survived.",
+          "hipotese": "The 25 dome that Broadside still known to exist are the oldest surviving copies of the document. In original handwritten copy has not survived.",
+          "erros": 4,
+          "palavras": 23,
+          "ms": 686
+        },
+        {
+          "id": "fleurs_en_2003_snr5",
+          "referencia": "To get the best views of Hong Kong, leave the island and head for the Kowloon waterfront opposite.",
+          "hipotese": "To get the best views of Hong Kong, leave the island and head for the Playground Waterfront outfit.",
+          "erros": 2,
+          "palavras": 18,
+          "ms": 430
+        },
+        {
+          "id": "fleurs_en_1810_snr5",
+          "referencia": "California Governor Arnold Schwarzenegger signed into law a bill that bans the sale or rental of violent video games to minors.",
+          "hipotese": "California government Arnold Schwarzenegger signed into law a bill that bans the sale or rental a violent video deals to minors.",
+          "erros": 3,
+          "palavras": 21,
+          "ms": 648
+        },
+        {
+          "id": "fleurs_en_1984_snr5",
+          "referencia": "Mass car ownership also leads to a higher incidence of accidents on the roads, which leads to the invention of new techniques in healthcare for repairing damaged bodies.",
+          "hipotese": "NASCAR ownership also leads to a higher incidence of accidents on the road, which leads to the invention of new techniques in healthcare for repairing damaged bodies.",
+          "erros": 3,
+          "palavras": 28,
+          "ms": 833
+        },
+        {
+          "id": "fleurs_en_1697_snr5",
+          "referencia": "He has been unable to take the drugs needed to overcome his pain as they are banned from the Games.",
+          "hipotese": "He has been unable to take the drugs needed to overcome his pain as they are banned from the games.",
+          "erros": 0,
+          "palavras": 20,
+          "ms": 497
+        },
+        {
+          "id": "fleurs_en_1705_snr5",
+          "referencia": "On 15 August 1940, the Allies invaded southern France, the invasion was called \"Operation Dragoon\".",
+          "hipotese": "On August 15, 1940, the Allies invaded Southern France, and the invasion is called Operation Dragoon.",
+          "erros": 4,
+          "palavras": 15,
+          "ms": 612
+        },
+        {
+          "id": "fleurs_en_1823_snr5",
+          "referencia": "Traffic Flow is the study of the movement of individual drivers and vehicles between two points and the interactions they make with one another.",
+          "hipotese": "Traffic flow is a study of the movement of individual drivers and vehicles between two points and the interactions we make with common weather.",
+          "erros": 4,
+          "palavras": 24,
+          "ms": 483
+        },
+        {
+          "id": "fleurs_en_1867_snr5",
+          "referencia": "Plants make oxygen which humans breathe, and they take in carbon-dioxide which humans exhale (that is, breathe out).",
+          "hipotese": "Plans make oxygen with human sprees and they take in carbon dioxide with humans exhale that is breathe out",
+          "erros": 5,
+          "palavras": 19,
+          "ms": 584
+        },
+        {
+          "id": "fleurs_en_1896_snr5",
+          "referencia": "USA Gymnastics and the USOC have the same goal — making the sport of gymnastics, and others, as safe as possible for athletes to follow their dreams in a safe, positive and empowered environment.",
+          "hipotese": "USA gymnastics and the USOC have the same goal, making the sport of gymnastics in others are safe as possible for athletes to follow their dreams in a safe, positive, and empowered environment.",
+          "erros": 2,
+          "palavras": 33,
+          "ms": 1130
+        },
+        {
+          "id": "fleurs_en_1999_snr5",
+          "referencia": "Throughout 1960s, Brzezinski worked for John F. Kennedy as his advisor and then the Lyndon B. Johnson administration.",
+          "hipotese": "Throughout 1960s, Brzezinski worked for John F. Kennedy as his advisor in the London Bee Johnson administration.",
+          "erros": 4,
+          "palavras": 18,
+          "ms": 639
+        },
+        {
+          "id": "fleurs_en_1693_snr5",
+          "referencia": "But, after losing the captain's wicket India only made 36 runs loosing 7 wickets to end the innings.",
+          "hipotese": "But after losing the captain's victory India only made 36 runs losing 7 wickets to anyone's",
+          "erros": 5,
+          "palavras": 19,
+          "ms": 550
+        },
+        {
+          "id": "fleurs_en_1903_snr5",
+          "referencia": "When all available resources are effectively used across the functional departments of an organization, creativity and ingenuity can transpire.",
+          "hipotese": "When all available resources are effectively used across the functional departments of the organization, today's symphony and in-tune newlings can transpire.",
+          "erros": 7,
+          "palavras": 19,
+          "ms": 599
+        },
+        {
+          "id": "fleurs_en_1763_snr5",
+          "referencia": "Just like the moon exerts a pull on the earth, causing tides, so does the Milky Way exert a force on the Sagittarius galaxy.",
+          "hipotese": "Just like the moon experts of who on the earth causing Thai Studies in the other way exert a force of the sensitary escalacy.",
+          "erros": 10,
+          "palavras": 24,
+          "ms": 578
+        },
+        {
+          "id": "fleurs_en_1759_snr5",
+          "referencia": "Dr. Malar Balasubramanian, 29, was found in Blue Ash, Ohio, a suburb approximately 15 miles north of Cincinnati lying on the ground beside the road in a T-shirt and underwear in an apparently heavily medicated state.",
+          "hipotese": "Dr. Mella Balasibrammanian, 29, was found in Blue Ash, Ohio, a suburb approximately 15 miles north of Cincinnati, lying on the ground beside the road in a t-shirt and underwear in an apparent, heavily medicated state.",
+          "erros": 3,
+          "palavras": 37,
+          "ms": 1317
+        },
+        {
+          "id": "fleurs_en_1905_snr5",
+          "referencia": "The capital of Moldova is Chişinău. The local language is Romanian, but Russian is widely used.",
+          "hipotese": "That capital of Moldova is Chasing Now. The local language is Romanian, but Russian is likely used.",
+          "erros": 4,
+          "palavras": 16,
+          "ms": 414
+        },
+        {
+          "id": "fleurs_en_1967_snr5",
+          "referencia": "Layton had asked for changes to the conservatives' environmental bill during the meeting with the PM, asking for a \"thorough and complete rewriting\" of the Conservative party's environmental bill.",
+          "hipotese": "The Lightning had asked the changes to the Conservatives' environmental bill during the meeting with the PM, asking for a thorough and complete rewriting of the Conservatives' Party Environmental Bill.",
+          "erros": 5,
+          "palavras": 30,
+          "ms": 701
+        },
+        {
+          "id": "fleurs_en_1783_snr5",
+          "referencia": "Regional and seasonal severe weather phenomena include blizzards, snowstorms, ice storms, and dust storms.",
+          "hipotese": "Usually I'll see you off the view while the phenomenon occludes wizards, stones, ice stones, and dust storms.",
+          "erros": 15,
+          "palavras": 14,
+          "ms": 571
+        },
+        {
+          "id": "fleurs_en_1816_snr5",
+          "referencia": "Duvall, who is married with two adult children, did not leave a big impression on Miller, to whom the story was related.",
+          "hipotese": "The bottle was made with twiddle children did not leave a big impression on Miller to whom the story was related.",
+          "erros": 6,
+          "palavras": 22,
+          "ms": 438
+        },
+        {
+          "id": "fleurs_en_1994_snr5",
+          "referencia": "Needless to say, if you know a Romance language, it will be easier for you to learn Portuguese.",
+          "hipotese": "Needless to say, if you know a romance language, it will be easier for you to learn Portuguese.",
+          "erros": 0,
+          "palavras": 18,
+          "ms": 458
+        },
+        {
+          "id": "fleurs_en_1869_snr5",
+          "referencia": "Its long jaws were studded with more than 70 razor-sharp teeth, along with an extra set in the roof of its mouth, meaning that there was no escape for anything that crossed its path.",
+          "hipotese": "As long jaws were studied with more than seventy raisin sharp teeth along with an extra set in the roof of its mouth being there there was no escape for anything that crossed this path",
+          "erros": 7,
+          "palavras": 35,
+          "ms": 799
+        },
+        {
+          "id": "fleurs_en_1739_snr5",
+          "referencia": "Resting on the top of one of the mountains north of Mecca, the cave is completely isolated from the rest of the world.",
+          "hipotese": "Resting on the top of one of the mountain's north of Mecca, the cave is cozy, isolated from the rest of the world.",
+          "erros": 3,
+          "palavras": 23,
+          "ms": 584
+        },
+        {
+          "id": "fleurs_en_1784_snr5",
+          "referencia": "Greenland was settled sparsely. In the Norse sagas they say that Erik the Red was exiled from Iceland for murder, and when travelling further west, found Greenland and named it Greenland.",
+          "hipotese": "Greenland was settled sparously in the north saga as they say that Eric the Red was exiled from Iceland for murder and went traveling further west from Greenland and named it Greenland.",
+          "erros": 8,
+          "palavras": 31,
+          "ms": 906
+        },
+        {
+          "id": "fleurs_en_1843_snr5",
+          "referencia": "Professor Pamela Ferguson of the University of Dundee notes \"journalists do seem to be walking a dangerous line if publishing photos etc of suspects.\"",
+          "hipotese": "Professor Pamela Ferguson of the University of Dundee notes: \"Journalists do seem to be walking a dangerous line if publishing photos, etc, of suspects.\"",
+          "erros": 0,
+          "palavras": 24,
+          "ms": 726
+        },
+        {
+          "id": "fleurs_en_1710_snr5",
+          "referencia": "Last week, METI announced that Apple had informed it of 34 additional overheating incidents, which the company called \"non-serious.\"",
+          "hipotese": "Last week, and Maddie announced that Apple had informed it of 34 additional original original images, which is a company called Non-Serious.",
+          "erros": 7,
+          "palavras": 20,
+          "ms": 567
+        },
+        {
+          "id": "fleurs_en_1756_snr5",
+          "referencia": "Late on Sunday, the United States President Donald Trump, in a statement delivered via the press secretary, announced US troops would be leaving Syria.",
+          "hipotese": "Late on Sunday, the United States President Donald Trump and a statement delivered via the press secretary announced U.S. troops will be leaving Syria.",
+          "erros": 2,
+          "palavras": 24,
+          "ms": 583
+        },
+        {
+          "id": "fleurs_en_1934_snr5",
+          "referencia": "Usually you always here the sound of tourists and vendors. The story of the sound and light is just like a story book.",
+          "hipotese": "Usually you always hear the sound of chorus and fingers. The story of the sound and light is just like a storybook.",
+          "erros": 5,
+          "palavras": 23,
+          "ms": 478
+        },
+        {
+          "id": "fleurs_en_1942_snr5",
+          "referencia": "We make our houses from plants and make clothes from plants. Most foods that we eat are plants. Without plants, animals could not survive.",
+          "hipotese": "We make our houses for the plant and make close plants most foods that we eat are plants without plants animals cannot survive them.",
+          "erros": 8,
+          "palavras": 24,
+          "ms": 527
+        },
+        {
+          "id": "fleurs_en_1738_snr5",
+          "referencia": "It also attacked anything that entered the water; even a giant dinosaur such as T. rex would be no match for it.",
+          "hipotese": "It also attacks anything that entered the water. Even a giant dinosaur such as T-Rex would be no match for it.",
+          "erros": 1,
+          "palavras": 22,
+          "ms": 753
+        },
+        {
+          "id": "fleurs_en_1814_snr5",
+          "referencia": "Hydrogen ions are protons that had their electrons stripped off them (since Hydrogen atoms consist of one proton and one electron).",
+          "hipotese": "Hydrogen imams are protons that had their electrons stripped off them since hydrogen atoms consist of one proton and one electron.",
+          "erros": 1,
+          "palavras": 21,
+          "ms": 663
+        },
+        {
+          "id": "fleurs_en_1955_snr5",
+          "referencia": "MS is a disease that affects the central nervous system, which is made up of the brain, the spinal cord and the optic nerve.",
+          "hipotese": "MS is the disease that affects the central nervous system, which is made up of the brain, the spinal cord, and the optic nerves.",
+          "erros": 2,
+          "palavras": 24,
+          "ms": 665
+        },
+        {
+          "id": "fleurs_en_1847_snr5",
+          "referencia": "He was greeted by Singapore's Deputy Prime Minister Wong Kan Seng and discussed trade and terrorism issues with the Singapore Prime Minister Lee Hsien Loong.",
+          "hipotese": "He was greeted by Singapore's deputy prime minister, Wang Kai-seung, and discussed trade and terrorism issues with the Singapore Prime Minister, Li Haseem Wang.",
+          "erros": 6,
+          "palavras": 26,
+          "ms": 759
+        },
+        {
+          "id": "fleurs_en_1716_snr5",
+          "referencia": "Entertainment news website TMZ understands the photographer stopped his vehicle on the other side of Sepulveda Boulevard and attempted to take pictures of the police stop before crossing the road and continuing, prompting the California Highway Patrol police officer conducting the traffic stop to order him back across, twice.",
+          "hipotese": "Entertainment News website TMZ understands the geographer stops in the vehicle on the other side of the boat to the bullingard and attempted to take pictures of the police stops before crossing the road and continuing prompting their California Highway Patrol police officer conducting the traffic stops to order him back across twice.",
+          "erros": 12,
+          "palavras": 49,
+          "ms": 1547
+        },
+        {
+          "id": "fleurs_en_2009_snr5",
+          "referencia": "The most readily accessible plant resources would have been the proteins accessible in leaves and legumes, but these are hard for primates like us to digest unless they are cooked.",
+          "hipotese": "The most readily accessible plant resources would have been the protein successful in leaves and legumes but these are hard for primates like us to digest unless they are cooked",
+          "erros": 2,
+          "palavras": 30,
+          "ms": 730
+        },
+        {
+          "id": "fleurs_en_1884_snr5",
+          "referencia": "In particular, it is claimed that one can detect whether a person is lying by interpreting micro-expressions correctly.",
+          "hipotese": "In particular, it has claimed that one can detect that a person is lying by interpreting micro-expressions correctly.",
+          "erros": 2,
+          "palavras": 19,
+          "ms": 506
+        },
+        {
+          "id": "fleurs_en_1732_snr5",
+          "referencia": "The age where the events took place is commonly referred as the High Middle Ages the period of European history in the 11th, 12th, and 13th centuries (AD 1000–1300).",
+          "hipotese": "The age where the event took place is commonly referred as the High Middle Ages, the period of European history in the 11th, 12th, and 13th centuries, 80, 100, or 1,000 to 1,300.",
+          "erros": 5,
+          "palavras": 30,
+          "ms": 1151
+        },
+        {
+          "id": "fleurs_en_1857_snr5",
+          "referencia": "He added that \"they should not, however, be asked to take on obligations that go beyond their development stage, responsibility and capabilities.\"",
+          "hipotese": "",
+          "erros": 22,
+          "palavras": 22,
+          "ms": 148
+        },
+        {
+          "id": "fleurs_en_1776_snr5",
+          "referencia": "Through the night between 150 and 200 copies were made, now known as \"Dunlap broadsides\".",
+          "hipotese": "The banana keeps being 150 and 200 copies remain now known as denmark broadsides.",
+          "erros": 7,
+          "palavras": 15,
+          "ms": 474
+        },
+        {
+          "id": "fleurs_en_1929_snr5",
+          "referencia": "Del Potro had the early advantage in the second set, but this too required a tie break after reaching 6-6.",
+          "hipotese": "Bill Fultural has the early event in the second set, but this is to require a time break after we do 66.",
+          "erros": 11,
+          "palavras": 21,
+          "ms": 538
+        },
+        {
+          "id": "fleurs_en_1892_snr5",
+          "referencia": "This is the place the British colonisers took as their own and so if you are looking for evidence of the territory's colonial past, this is a good place to start.",
+          "hipotese": "This is the place the Bruce colonizers took as their own and so if you are looking for evidence of the territory's glomium cause this is a good place to start",
+          "erros": 4,
+          "palavras": 32,
+          "ms": 781
+        },
+        {
+          "id": "fleurs_en_1692_snr5",
+          "referencia": "According to Japan's nuclear agency, radioactive caesium and iodine has been identified at the plant.",
+          "hipotese": "According to Japan's New York agency, radioactive calcium and iodine have been identified at the plant.",
+          "erros": 4,
+          "palavras": 16,
+          "ms": 602
+        },
+        {
+          "id": "fleurs_en_1879_snr5",
+          "referencia": "One can only wonder what the keyboard will become when something newer comes along.",
+          "hipotese": "When can only you wonder what the keyboard will become when something new here comes along",
+          "erros": 4,
+          "palavras": 14,
+          "ms": 350
+        },
+        {
+          "id": "fleurs_en_1751_snr5",
+          "referencia": "The debate was sparked by controversy over spending on relief and reconstruction in the wake Hurricane Katrina; which some fiscal conservatives have humorously labeled \"Bush's New Orleans Deal.\"",
+          "hipotese": "The debate was sparked by controversy over spending on relief and reconstruction in the wake of Hurricane Katrina, which some fiscal conservatives have numerously labeled Bush's New Orleans deal.",
+          "erros": 2,
+          "palavras": 29,
+          "ms": 1009
+        },
+        {
+          "id": "fleurs_en_1707_snr5",
+          "referencia": "It is one of the main attractions of South Africa and it is considered the flagship of South African National Parks (SANParks).",
+          "hipotese": "",
+          "erros": 22,
+          "palavras": 22,
+          "ms": 143
+        },
+        {
+          "id": "fleurs_en_1761_snr5",
+          "referencia": "The photographers later took the place of an aged lady as she needed the lavatory. Mendoza was gunned down.",
+          "hipotese": "The photographers later took the place of an elite lady as she knew the rabbit hole, and Dulce was strung down.",
+          "erros": 7,
+          "palavras": 19,
+          "ms": 596
+        },
+        {
+          "id": "fleurs_en_1923_snr5",
+          "referencia": "The strategy proved effective, cutting off vital military and civilian supplies, although this blockade violated generally accepted international law codified by several international agreements of the past two centuries.",
+          "hipotese": "The strategy proved effective cutting off vital military and civilian supplies, although this blockade violated generally accepted international law, but acquired by several international agreements of the past two centuries.",
+          "erros": 2,
+          "palavras": 29,
+          "ms": 790
+        },
+        {
+          "id": "fleurs_en_1701_snr5",
+          "referencia": "Goats seem to have been first domesticated roughly 10,000 years ago in the Zagros Mountains of Iran.",
+          "hipotese": "",
+          "erros": 17,
+          "palavras": 17,
+          "ms": 129
+        },
+        {
+          "id": "fleurs_en_1907_snr5",
+          "referencia": "Soon after the outbreak of hostilities, Britain initiated a naval blockade of Germany.",
+          "hipotese": "It's not really a break of hostilities, Britain and the Shaded and Naval Park Road of Chemy.",
+          "erros": 13,
+          "palavras": 13,
+          "ms": 447
+        },
+        {
+          "id": "fleurs_en_1706_snr5",
+          "referencia": "More traditional churches often hold an Easter Vigil on Saturday night during the Easter weekend, with the congregations often breaking into celebration at the stroke of midnight to celebrate Christ's resurrection.",
+          "hipotese": "More traditional churches often hold an Easter vigilance at a dinner at the University of Louisiana. But the congregations often break me into celebration. At the stroke of midnight, just celebrate Christ's resurrection.",
+          "erros": 12,
+          "palavras": 32,
+          "ms": 946
+        },
+        {
+          "id": "fleurs_en_1901_snr5",
+          "referencia": "Although AI has a strong connotation of science fiction, AI forms a very important branch of computer science, dealing with behavior, learning and intelligent adaptation in a machine.",
+          "hipotese": "Although AI has a strong conversation in science fiction, AI forms the varying form of grants of computer science, dealing with behavioral learning and intelligent adaptation and machinery.",
+          "erros": 11,
+          "palavras": 28,
+          "ms": 778
+        },
+        {
+          "id": "fleurs_en_1794_snr5",
+          "referencia": "A civilization is a singular culture shared by a significant large group of people who live and work co-operatively, a society.",
+          "hipotese": "A civilization is a singular culture shared by a significant large group of people who live and work cooperatively a society.",
+          "erros": 2,
+          "palavras": 22,
+          "ms": 591
+        },
+        {
+          "id": "fleurs_en_1972_snr5",
+          "referencia": "Many people don't think about them as dinosaurs because they have feathers and can fly.",
+          "hipotese": "Many people don't think it's not the best dinosaurs because they have feathers and can fly.",
+          "erros": 5,
+          "palavras": 16,
+          "ms": 493
+        },
+        {
+          "id": "fleurs_en_1906_snr5",
+          "referencia": "\"This is not going to be goodbye. This is the closing of one chapter and the opening of a new one.\"",
+          "hipotese": "This is not going to be goodbye. This is the closing of one chapter and the opening of the new one.",
+          "erros": 1,
+          "palavras": 21,
+          "ms": 449
+        },
+        {
+          "id": "fleurs_en_1914_snr5",
+          "referencia": "Twentieth century research has shown that there are two pools of genetic variation: hidden and expressed.",
+          "hipotese": "Twentieth Century research has shown that there are two pools of genetic variation hidden and expressed.",
+          "erros": 0,
+          "palavras": 16,
+          "ms": 417
+        },
+        {
+          "id": "fleurs_en_1915_snr5",
+          "referencia": "You can use boda-boda (motorcycle taxi) to get around Goma. The normal (local) price is ~500 Congolese Francs for the short ride.",
+          "hipotese": "You can use boda boda, more sacrifices to get around women. The normal local price is 500. It can go loose francs for your short rides.",
+          "erros": 10,
+          "palavras": 23,
+          "ms": 763
+        },
+        {
+          "id": "fleurs_en_1904_snr5",
+          "referencia": "However, due to the slow communication channels, styles in the west could lag behind by 25 to 30 year.",
+          "hipotese": "However, due to the slow communication channels, styles in the West could lag behind by 25 to 30 years.",
+          "erros": 1,
+          "palavras": 19,
+          "ms": 545
+        },
+        {
+          "id": "fleurs_en_1769_snr5",
+          "referencia": "Built by the Egyptians in the third century BCE, the Great Pyramid is one of many large pyramid structures built to honor dead Pharaoh.",
+          "hipotese": "Built by the Egyptians in the 3rd century BCE, the Great Pyramid is one of many large pyramid structures built to honor dead Pharaoh.",
+          "erros": 1,
+          "palavras": 24,
+          "ms": 693
+        },
+        {
+          "id": "fleurs_en_1805_snr5",
+          "referencia": "Scotturb Bus 403 travels regularly to Sintra, stopping at Cabo da Roca.",
+          "hipotese": "Scott Turd bus 403 travels regularly to sintra stopping at kabal-da-loka",
+          "erros": 4,
+          "palavras": 12,
+          "ms": 562
+        },
+        {
+          "id": "fleurs_en_1873_snr5",
+          "referencia": "Be firm in turning down men, and don't be afraid to stand your ground (cultural differences or not, it doesn't make it ok!).",
+          "hipotese": "",
+          "erros": 25,
+          "palavras": 25,
+          "ms": 170
+        },
+        {
+          "id": "fleurs_en_1724_snr5",
+          "referencia": "Its renown for being an epicenter of luxury began in about 400 A.D. and lasted up until about 1100 A.D.",
+          "hipotese": "This is renowned for being the epicenter of luxury began in about 480,000 public until about 1100 AD.",
+          "erros": 9,
+          "palavras": 20,
+          "ms": 836
+        },
+        {
+          "id": "fleurs_en_1986_snr5",
+          "referencia": "The presence of a true “invisible team” (Larson and LaFasto, 1989, p109) is also a unique component of a virtual team.",
+          "hipotese": "The presence of the true invisible team, Washington, Lafayetteville, 1989, Paige, 109, is also a unique component of the virtual team.",
+          "erros": 7,
+          "palavras": 21,
+          "ms": 865
+        },
+        {
+          "id": "fleurs_en_1956_snr5",
+          "referencia": "Using ships to transport goods is by far the most efficient way to move large amounts of people and goods across oceans.",
+          "hipotese": "Using ships to transport goods is by far the most efficient way to move large amounts of people and goods across oceans.",
+          "erros": 0,
+          "palavras": 22,
+          "ms": 623
+        },
+        {
+          "id": "fleurs_en_1862_snr5",
+          "referencia": "NextGen is a system the FAA claims would allow aircraft to fly shorter routes and save millions of gallons of fuel each year and cut carbon emissions.",
+          "hipotese": "Next gen is a system the FAA claims would allow aircraft to fly shorter routes and save millions of gallons of fuel each year and cut carbon emissions",
+          "erros": 2,
+          "palavras": 27,
+          "ms": 714
+        },
+        {
+          "id": "fleurs_en_1889_snr5",
+          "referencia": "It has brought us the train, the car, and many other transportation devices.",
+          "hipotese": "It has brought us a train, the car and many other transportation devices.",
+          "erros": 1,
+          "palavras": 13,
+          "ms": 434
+        },
+        {
+          "id": "fleurs_en_1931_snr5",
+          "referencia": "The service is frequently used by shipping, including pleasure craft, as well as expeditions who have remote data and voice needs.",
+          "hipotese": "The service is frequently used by shipping, including pleasure craft, as well as expeditions to have remote data and voice needs.",
+          "erros": 1,
+          "palavras": 21,
+          "ms": 629
+        },
+        {
+          "id": "fleurs_en_1712_snr5",
+          "referencia": "Since 1966 the Sundarbans have been a wildlife sanctuary, and it is estimated that there are now 400 Royal Bengal tigers and about 30,000 spotted deer in the area.",
+          "hipotese": "Season 1866, the song \"Darbed Land\" has been a wildlife century and is estimated there now 400 Royal Bengal Tigers and about 30,000 strided beer in the area.",
+          "erros": 12,
+          "palavras": 29,
+          "ms": 1175
+        },
+        {
+          "id": "fleurs_en_1729_snr5",
+          "referencia": "For example, each year students from Bennet School in North Carolina design a website about their trip to the State Capital, each year the website gets remodeled, but old versions are kept online to serve as a scrapbook.",
+          "hipotese": "For example, each year students from Bennett School in North Carolina designed a website about the 50th day capital. Each year the website gets remodeled, but both versions are kept online to serve as a scrapbook.",
+          "erros": 8,
+          "palavras": 38,
+          "ms": 979
+        },
+        {
+          "id": "fleurs_en_2000_snr5",
+          "referencia": "If crossing the Northern Baltic in winter, check the cabin location, as going through ice causes quite horrible noise for those most affected.",
+          "hipotese": "If crossing the northern Baltic in winter, check the counter location as going through ice causes by orbital noises, for those most affected.",
+          "erros": 4,
+          "palavras": 23,
+          "ms": 566
+        },
+        {
+          "id": "fleurs_en_1838_snr5",
+          "referencia": "The Great Pyramid at Giza is the only one of the seven wonders that is still standing today.",
+          "hipotese": "The Great Pyramid Agiza is one of the seven wonders that is still standing today.",
+          "erros": 4,
+          "palavras": 18,
+          "ms": 354
+        },
+        {
+          "id": "fleurs_en_1723_snr5",
+          "referencia": "The harbor was the site of an infamous naval standoff in 1889 when seven ships from Germany, the US, and Britain refused to leave the harbor.",
+          "hipotese": "The harbor was the site of an infamous naval stand-up, the 18-year-old milli, the seven shifts from Germany, the U.S. and Britain used to make a public.",
+          "erros": 13,
+          "palavras": 26,
+          "ms": 931
+        },
+        {
+          "id": "fleurs_en_1858_snr5",
+          "referencia": "Danielle Lantagne, a UN expert on the disease, stated the outbreak was likely caused by the peacekeepers.",
+          "hipotese": "Danielle Lentigene, a UN expert on the disease state of the outbreak, was likely caused by the peacekeepers.",
+          "erros": 3,
+          "palavras": 17,
+          "ms": 469
+        },
+        {
+          "id": "fleurs_en_1676_snr5",
+          "referencia": "As with all South African National Parks, there are daily conservation and entry fees for the park.",
+          "hipotese": "As with all South African national parks, there are daily conservation and entry fees for the park.",
+          "erros": 0,
+          "palavras": 17,
+          "ms": 412
+        },
+        {
+          "id": "fleurs_en_1792_snr5",
+          "referencia": "This is called a chemical's pH. You can make an indicator using red cabbage juice.",
+          "hipotese": "This is called a chemicals pH. You can make an indicator using red cabbage juice.",
+          "erros": 2,
+          "palavras": 16,
+          "ms": 357
+        },
+        {
+          "id": "fleurs_en_1952_snr5",
+          "referencia": "Anyone who's going to drive at high latitudes or over mountain passes should consider the possibility of snow, ice, or freezing temperatures.",
+          "hipotese": "When one is going to try that hot light at a tooth or ear for it, Mountain passes should consider the possibility of snow, ice, or freezing temperatures.",
+          "erros": 12,
+          "palavras": 23,
+          "ms": 625
+        },
+        {
+          "id": "fleurs_en_1760_snr5",
+          "referencia": "Mosasaurus was the apex predator of its time, so it feared nothing, except other mosasaurs.",
+          "hipotese": "Masa Sarai was the A-Tex predator of its time, so it feared nothing except other Moses's actions.",
+          "erros": 7,
+          "palavras": 15,
+          "ms": 532
+        },
+        {
+          "id": "fleurs_en_1661_snr5",
+          "referencia": "He did not set a figure for the cuts, saying they will be made based on China's economic output.",
+          "hipotese": "He did not set a figure for the clutch, saying they will be made based on China's economic output.",
+          "erros": 1,
+          "palavras": 20,
+          "ms": 448
+        },
+        {
+          "id": "fleurs_en_1969_snr5",
+          "referencia": "It states that the most effective place for the main subject is at the intersection of lines dividing the image into thirds vertically and horizontally (see example).",
+          "hipotese": "It states that the most effective place for the ME subject is at the intersection of lines, dividing the animation to further and further the design. See you soon!",
+          "erros": 10,
+          "palavras": 27,
+          "ms": 665
+        },
+        {
+          "id": "fleurs_en_1797_snr5",
+          "referencia": "Everyone participates in society and uses transportation systems. Almost everyone complains about transportation systems.",
+          "hipotese": "Anyone participates in society and uses transportation systems, I'm a stepping-on complainer about transportation systems.",
+          "erros": 7,
+          "palavras": 14,
+          "ms": 502
+        },
+        {
+          "id": "fleurs_en_1798_snr5",
+          "referencia": "In its early days, the show was featured solely at the long-running internet radio site TogiNet Radio, a site focused on talk radio.",
+          "hipotese": "At the end of this early days, show us feature solely at the long-running internet radio site, TokiNet Radio, site focus on talk radio.",
+          "erros": 11,
+          "palavras": 24,
+          "ms": 619
+        },
+        {
+          "id": "fleurs_en_1876_snr5",
+          "referencia": "The Northern Marianas emergency management office said that there were no damages reported in the nation.",
+          "hipotese": "The Northern Mariana's Emergency Management Office said that there were no damages reported in the nation.",
+          "erros": 2,
+          "palavras": 16,
+          "ms": 513
+        }
+      ]
+    }
+  ],
+  "comparacoes": [
+    {
+      "conjunto": "fleurs_en_snr5",
+      "sistema": "local:moonshine-base@q8",
+      "contra": "local:tiny",
+      "diferencaWer": {
+        "valor": -0.16688741721854303,
+        "ic95": [-0.22159594798390642, -0.11905796242039667],
+        "significativo": true
+      }
+    }
+  ]
+}

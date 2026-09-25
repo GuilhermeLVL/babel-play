@@ -14,8 +14,8 @@
  *
  * O WAV PCM de 16 kHz/16 bits custa ~115 MB POR HORA, e o upload do áudio da sessão aceita 120 MB.
  * Toda sessão com as duas fontes acima de ~62 minutos quebrava no salvar — a rota recusava, e a
- * sessão ficava sem áudio nenhum. Em Opus a 32 kbps (a mesma taxa do gravador ao vivo) a hora cabe
- * em ~15 MB: oito horas antes de encostar no teto.
+ * sessão ficava sem áudio nenhum. Em Opus a 24 kbps (a mesma taxa do gravador ao vivo) a hora cabe
+ * em ~11 MB: dez horas antes de encostar no teto.
  *
  * COMO, e por que assim. As alternativas pesadas:
  *  - tocar a mistura num `MediaStreamDestination` e gravar com MediaRecorder: funciona em qualquer
@@ -60,14 +60,16 @@ function paraWav(buffer: AudioBuffer): Blob {
   const canal = buffer.getChannelData(0);
   const cabecalho = 44;
   const dados = new DataView(new ArrayBuffer(cabecalho + canal.length * 2));
-  const escreve = (off: number, txt: string) => { for (let i = 0; i < txt.length; i++) dados.setUint8(off + i, txt.charCodeAt(i)); };
+  const escreve = (off: number, txt: string) => {
+    for (let i = 0; i < txt.length; i++) dados.setUint8(off + i, txt.charCodeAt(i));
+  };
   escreve(0, 'RIFF');
   dados.setUint32(4, 36 + canal.length * 2, true);
   escreve(8, 'WAVE');
   escreve(12, 'fmt ');
   dados.setUint32(16, 16, true);
-  dados.setUint16(20, 1, true);   // PCM
-  dados.setUint16(22, 1, true);   // mono
+  dados.setUint16(20, 1, true); // PCM
+  dados.setUint16(22, 1, true); // mono
   dados.setUint32(24, buffer.sampleRate, true);
   dados.setUint32(28, buffer.sampleRate * 2, true);
   dados.setUint16(32, 2, true);
@@ -81,12 +83,21 @@ function paraWav(buffer: AudioBuffer): Blob {
   return new Blob([dados.buffer], { type: 'audio/wav' });
 }
 
-interface ChunkOpus { byteLength: number; duration: number | null; copyTo(dst: Uint8Array): void }
-interface MetaOpus { decoderConfig?: { description?: ArrayBuffer | ArrayBufferView } }
+interface ChunkOpus {
+  byteLength: number;
+  duration: number | null;
+  copyTo(dst: Uint8Array): void;
+}
+interface MetaOpus {
+  decoderConfig?: { description?: ArrayBuffer | ArrayBufferView };
+}
 
 /** O WebCodecs existe E aceita Opus mono nesta taxa? Qualquer dúvida é "não" — o WAV assume. */
 async function opusDisponivel(config: Record<string, unknown>): Promise<boolean> {
-  const g = globalThis as unknown as { AudioEncoder?: { isConfigSupported(c: unknown): Promise<{ supported?: boolean }> }; AudioData?: unknown };
+  const g = globalThis as unknown as {
+    AudioEncoder?: { isConfigSupported(c: unknown): Promise<{ supported?: boolean }> };
+    AudioData?: unknown;
+  };
   if (!g.AudioEncoder || !g.AudioData) return false;
   try {
     return (await g.AudioEncoder.isConfigSupported(config)).supported === true;
@@ -99,7 +110,11 @@ async function opusDisponivel(config: Record<string, unknown>): Promise<boolean>
 async function codificarOpus(buffer: AudioBuffer, config: Record<string, unknown>): Promise<Blob> {
   const g = globalThis as unknown as {
     AudioEncoder: new (init: { output: (c: ChunkOpus, m?: MetaOpus) => void; error: (e: unknown) => void }) => {
-      configure(c: unknown): void; encode(d: unknown): void; flush(): Promise<void>; close(): void; encodeQueueSize: number;
+      configure(c: unknown): void;
+      encode(d: unknown): void;
+      flush(): Promise<void>;
+      close(): void;
+      encodeQueueSize: number;
     };
     AudioData: new (init: Record<string, unknown>) => { close(): void };
   };
@@ -114,7 +129,9 @@ async function codificarOpus(buffer: AudioBuffer, config: Record<string, unknown
       pacotes.push({ dados, amostras48k: Math.round(((chunk.duration ?? 20_000) * 48_000) / 1e6) });
       if (preSkip === null) preSkip = preSkipDoOpusHead(meta?.decoderConfig?.description);
     },
-    error: (e) => { erro = e; },
+    error: (e) => {
+      erro = e;
+    },
   });
   try {
     enc.configure(config);
@@ -148,7 +165,11 @@ async function codificarOpus(buffer: AudioBuffer, config: Record<string, unknown
     });
     return new Blob([ogg.buffer as ArrayBuffer], { type: 'audio/ogg; codecs=opus' });
   } finally {
-    try { enc.close(); } catch { /* já fechado pelo erro */ }
+    try {
+      enc.close();
+    } catch {
+      /* já fechado pelo erro */
+    }
   }
 }
 
@@ -174,7 +195,10 @@ export async function misturarAudios(a: Blob, b: Blob, offsetBMs: number): Promi
   }
 
   const off = new OfflineAudioContext(1, amostras, TAXA_SAIDA);
-  for (const [buf, inicio] of [[bufA, offA], [bufB, offB]] as Array<[AudioBuffer, number]>) {
+  for (const [buf, inicio] of [
+    [bufA, offA],
+    [bufB, offB],
+  ] as Array<[AudioBuffer, number]>) {
     const fonte = off.createBufferSource();
     fonte.buffer = buf;
     // Leve compressão de ganho para a soma não estourar quando os dois falam juntos.

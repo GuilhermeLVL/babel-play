@@ -26,20 +26,24 @@
  *   de saída. Câmbio de planejamento R$ 5,60/US$. Líquido = preço − Asaas (R$ 1,09) − Simples (~6%).
  *   Tradução medida: ~350 tokens de entrada + ~90 de saída por fala (US$ 0,107 por mil falas).
  *
+ *   MEDIDO NA BANCADA DE 2026-09 (docs/auditoria/eval/bancada-2026-09.md): com o VAD fechando a
+ *   fala após 800 ms, a Groq fatura 1,08× o tempo real (mínimo de 10 s por pedaço; com 450 ms eram
+ *   2,06×). A tradução com gpt-oss-120b em raciocínio "low" custou US$ 0,036 por hora de fala.
+ *
  *   ESSENCIAL R$ 19,90 → líquido ≈ R$ 17,62
- *     STT   54.000 s = 15 h × US$ 0,04                                  = US$ 0,60
+ *     STT   54.000 s = 15 h × 1,08 × US$ 0,04                           = US$ 0,65
  *     LLM   3.000.000 tokens: pior caso tudo saída 3M × 0,60            = US$ 1,80
  *           (típico, 80% entrada: 3M × (0,8 × 0,15 + 0,2 × 0,60) / 1M  = US$ 0,72)
- *     PIOR CASO US$ 2,40 ≈ R$ 13,44 < R$ 17,62. 3M tokens ≈ 6.800 falas traduzidas + tutor.
+ *     PIOR CASO US$ 2,45 ≈ R$ 13,72 < R$ 17,62. 3M tokens ≈ 6.800 falas traduzidas + tutor.
  *     Chamadas 20.000: 15 h ÷ 6 s ≈ 9.000 falas × 2 (transcrever + traduzir) = 18.000, com folga
  *     para o tutor. Quem limita dinheiro são segundos e tokens; chamadas é fair-use.
  *
  *   PRO R$ 39,90 → líquido ≈ R$ 36,42
- *     STT   72.000 s = 20 h × US$ 0,04                                  = US$ 0,80
+ *     STT   72.000 s = 20 h × 1,08 × US$ 0,04                           = US$ 0,86
  *     LLM   5.000.000 tokens: pior caso 5M × 0,60                       = US$ 3,00
- *     PIOR CASO US$ 3,80 ≈ R$ 21,28 < R$ 36,42. Chamadas 26.000 (20 h ÷ 6 s × 2 = 24.000 + folga).
+ *     PIOR CASO US$ 3,86 ≈ R$ 21,62 < R$ 36,42. Chamadas 26.000 (20 h ÷ 6 s × 2 = 24.000 + folga).
  *     O MODELO MAIOR (`LLM_MODEL_GRANDE`) muda a conta: para o pior caso não passar do líquido, ele
- *     pode custar até ~US$ 1,10 por 1M tokens de SAÍDA ((36,42 ÷ 5,60 − 0,80) ÷ 5M). Acima disso,
+ *     pode custar até ~US$ 1,10 por 1M tokens de SAÍDA ((36,42 ÷ 5,60 − 0,86) ÷ 5M). Acima disso,
  *     baixe `PRO_MONTHLY_LLM_TOKENS`. O orçamento global (`AI_BUDGET_USD_MONTH`) cobre o resto.
  */
 

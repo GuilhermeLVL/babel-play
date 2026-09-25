@@ -39,10 +39,19 @@ class FakeRecorder {
   constructor(_s: MediaStream, op?: MediaRecorderOptions) {
     FakeRecorder.opcoes = op
   }
-  start() { this.state = 'recording' }
-  pause() { this.state = 'paused' }
-  resume() { this.state = 'recording' }
-  stop() { this.state = 'inactive'; this.onstop?.() }
+  start() {
+    this.state = 'recording'
+  }
+  pause() {
+    this.state = 'paused'
+  }
+  resume() {
+    this.state = 'recording'
+  }
+  stop() {
+    this.state = 'inactive'
+    this.onstop?.()
+  }
 }
 
 function faixaFalsa() {
@@ -68,8 +77,12 @@ beforeEach(() => {
   // jsdom não tem MediaStream; a captura de tela embrulha só as faixas de áudio num stream novo.
   ;(globalThis as unknown as { MediaStream: unknown }).MediaStream = class {
     constructor(private faixas: unknown[] = []) {}
-    getAudioTracks() { return this.faixas }
-    getTracks() { return this.faixas }
+    getAudioTracks() {
+      return this.faixas
+    }
+    getTracks() {
+      return this.faixas
+    }
   }
 })
 afterEach(() => vi.restoreAllMocks())
@@ -105,7 +118,7 @@ describe('áudio do sistema pelo compartilhamento de tela', () => {
 describe('gravador da sessão', () => {
   it('grava com a taxa de bits explícita (Opus de fala a 32 kbps)', async () => {
     const captura = await micAberto()
-    expect(TAXA_DE_BITS_DA_GRAVACAO).toBe(32_000)
+    expect(TAXA_DE_BITS_DA_GRAVACAO).toBe(24_000)
     expect(FakeRecorder.opcoes?.audioBitsPerSecond).toBe(TAXA_DE_BITS_DA_GRAVACAO)
     await captura.stop()
   })

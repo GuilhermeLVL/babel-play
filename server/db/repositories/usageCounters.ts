@@ -14,7 +14,9 @@ export const usageCountersRepo = {
   /**
    * @deprecated P3-N1: NÃO use para decidir se algo cabe no teto — ler e depois gravar é o
    * read-modify-write que causou o P0-1 (20 chamadas aceitas contra teto de 5). Use .
-   * Mantido só para leitura de diagnóstico e testes.
+   * Mantido para leitura de diagnóstico e testes — e para o `criarLimitadorDeFalhas`
+   * (server/lib/limitadorDeFalhas.ts), onde ler sem escrever é o ponto: lá a escrita é posterior e
+   * condicional (só numa falha), e o desvio da não-atomicidade está documentado e aceito.
    */
   async get(userId: UserId, metric: string, window: string): Promise<number> {
     const rows = await db

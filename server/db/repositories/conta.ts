@@ -279,7 +279,7 @@ export const contaRepo = {
 
     for (const [nome, tabela] of TABELAS_DO_TITULAR) {
       const chaves = chavesDoTitular(nome, userId)
-      const linhas = await db.select({ id: tabela.id }).from(tabela).where(inArray(tabela.userId, chaves))
+      const linhas = await db.select({ dono: tabela.userId }).from(tabela).where(inArray(tabela.userId, chaves))
       linhasPorTabela[nome] = linhas.length
       if (linhas.length) instrucoes.push(db.delete(tabela).where(inArray(tabela.userId, chaves)))
     }

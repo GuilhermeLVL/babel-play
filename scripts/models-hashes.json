@@ -77,5 +77,15 @@
   "onnx-community/moonshine-tiny-ONNX/preprocessor_config.json": "fa43a7017ef85cd1d0fba0d9aae77c8adb16990ae6f11115631f41ec5d8aa679",
   "onnx-community/moonshine-tiny-ONNX/special_tokens_map.json": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356",
   "onnx-community/moonshine-tiny-ONNX/tokenizer.json": "7b913404bdd039af4756783218af4440bc07fb7d6d8258d677e34f95b3ec416f",
-  "onnx-community/moonshine-tiny-ONNX/tokenizer_config.json": "edaee394565d428ea98a663ae7209cdcfeefc5585c42d7a570ff7c986df2cd15"
+  "onnx-community/moonshine-tiny-ONNX/tokenizer_config.json": "edaee394565d428ea98a663ae7209cdcfeefc5585c42d7a570ff7c986df2cd15",
+  "onnx-community/whisper-tiny/onnx/encoder_model.onnx": "6642befb640f950d4a8cbbd17834d59e7e75f575b81ccf213e06b050623ab1dd",
+  "Xenova/opus-mt-en-ROMANCE/onnx/decoder_model_merged_quantized.onnx": "b5f6d442da7fa69f9d500df90373d2fdca4f799c43696b41888353b5c3c8eb13",
+  "Xenova/opus-mt-en-ROMANCE/onnx/encoder_model_quantized.onnx": "b4ddfd9338ba3d7c6b9c2d1410ed94fb7e06741226918cef6148031101bbd019",
+  "Xenova/opus-mt-ROMANCE-en/onnx/decoder_model_merged_quantized.onnx": "5c0d95a8072a463c747343cf25ac9b4a17e9a90e08131e7efab12691ca13c979",
+  "Xenova/opus-mt-ROMANCE-en/onnx/encoder_model_quantized.onnx": "13750ba31ee80c88f6bbb28aa03320674c50394efb95f791d5c4f5c8894232bf",
+  "onnx-community/wespeaker-voxceleb-resnet34-LM/.gitattributes": "11ad7efa24975ee4b0c3c3a38ed18737f0658a5f75a0a96787b576a78a023361",
+  "onnx-community/wespeaker-voxceleb-resnet34-LM/README.md": "8f0c7e5b67cd5f155f6570a713fd5f75ed8202614734e37df3566efa045460d2",
+  "onnx-community/wespeaker-voxceleb-resnet34-LM/config.json": "4a65a1544d2085d7819632f130583d83f6815f49ef6c8ba6c8eb460bd4085041",
+  "onnx-community/wespeaker-voxceleb-resnet34-LM/onnx/model_quantized.onnx": "f73f647730ae440ae411c2241290f42ff5b2106dd3176c897fe6fbb1950d5393",
+  "onnx-community/wespeaker-voxceleb-resnet34-LM/preprocessor_config.json": "a81bbded0530b1bf5c3d395d2c5c7c266686e348be5989171290ace960f24ec2"
 }

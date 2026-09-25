@@ -41,6 +41,8 @@ const PUBLICAS_POR_DESENHO: Record<string, string> = {
     'telemetria ANÔNIMA de qualidade da captura (latências, fator de tempo real, quedas de motor): funciona igual com e sem conta, e ficar antes do auth é o que garante que ela não conhece identidade. Corpo de 8 KB, balde próprio por IP no modo público, nada é gravado — só observado em histograma.',
   'GET /api/abertura':
     'as chaves de emergência CHECKOUT_ENABLED/SIGNUP_ENABLED, lidas pela tela de login ANTES de existir sessão (para esconder "Criar conta" com o cadastro fechado). Responde só dois booleanos, sem dado de ninguém.',
+  'GET /api/flags':
+    'feature flags (Fase 6b), lidas também por quem não tem conta (servidor em memória do modo anônimo, convidado da Fase 7). Token opcional só escolhe o plano; sai o resultado avaliado (ligada + payload), nunca regras, listas de ids ou percentual. Balde próprio por IP no modo público.',
 }
 
 /**

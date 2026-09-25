@@ -929,3 +929,22 @@ export const gastoDeIa = sqliteTable('gasto_de_ia', {
   esgotadoEm: integer('esgotado_em'),
   atualizadoEm: integer('atualizado_em').notNull(),
 })
+
+/**
+ * FEATURE FLAGS E CONFIGURAÇÃO REMOTA (Fase 6b; migração 0031) — `docs/flags.md`.
+ *
+ * Configuração do SERVIÇO, sem `user_id`: fica fora de `TABELAS_DO_TITULAR` como `rank` e
+ * `gasto_de_ia`. `regras` e `payload` são JSON em TEXT; a forma das regras é a de
+ * `src/core/flags.ts`. `atualizado_por` é o id do admin que escreveu (ou `cli`/`semente`). Quem lê
+ * e escreve: `server/db/repositories/flags.ts`; a política (cache, validação) mora em
+ * `server/lib/flags.ts`.
+ */
+export const flags = sqliteTable('flags', {
+  chave: text('chave').primaryKey(),
+  descricao: text('descricao').notNull().default(''),
+  habilitada: integer('habilitada', { mode: 'boolean' }).notNull().default(false),
+  regras: text('regras').notNull().default('{}'),
+  payload: text('payload'),
+  atualizadoEm: integer('atualizado_em').notNull(),
+  atualizadoPor: text('atualizado_por'),
+})

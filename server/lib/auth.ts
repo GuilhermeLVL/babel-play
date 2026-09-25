@@ -230,8 +230,10 @@ export function makeAuthMiddleware(
 // Verificador padrão de produção — construído preguiçosamente a partir do ambiente (a 1ª chamada
 // resolve o JWKS/HS256; JWKS fica cacheado no processo). server.ts monta ESTE middleware.
 let lazyVerify: ((token: string) => Promise<UserId>) | null = null
+/** O verificador de produção, solto do middleware — a rota pública de flags o usa para o token OPCIONAL. */
+export const verificarTokenPadrao = (token: string): Promise<UserId> => (lazyVerify ??= createVerifier())(token)
 export const authMiddleware = makeAuthMiddleware(
-  (token) => (lazyVerify ??= createVerifier())(token),
+  verificarTokenPadrao,
   // Import dinâmico p/ o auth.ts não puxar o DB no load (e só no modo público, por request).
   async (userId) => (await import('../db/repositories/users')).usersRepo.isSuspended(userId),
 )

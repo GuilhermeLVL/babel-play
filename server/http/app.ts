@@ -32,7 +32,8 @@ import helmet from 'helmet'
 import { audioRouter } from '../audio/loopback'
 import { exigirAal2SeTiver2fa } from '../lib/aal'
 import { abertura, portaDoCadastro } from '../lib/abertura'
-import { authMiddleware, authRequired } from '../lib/auth'
+import { authMiddleware, authRequired, verificarTokenPadrao } from '../lib/auth'
+import type { UserId } from '../lib/authContext'
 import { metricasHabilitadas, segredoDeOrigem } from '../lib/config'
 import { capturarAssincrono } from '../lib/erroGlobal'
 import { exigirAdultoDeclarado, exigirContaLiberada } from '../lib/idade'
@@ -43,6 +44,7 @@ import {
   METRIC_RATELIMIT_AUTH,
   METRIC_RATELIMIT_CARO,
   METRIC_RATELIMIT_ESCRITA,
+  METRIC_RATELIMIT_FLAGS,
   METRIC_RATELIMIT_TELEMETRIA,
 } from '../lib/rateLimitStore'
 import { requestIdMiddleware } from '../lib/requestId'
@@ -54,6 +56,7 @@ import { ankiRouter } from '../routes/anki'
 import { asaasWebhookRouter, billingRouter } from '../routes/billing'
 import { errosRouter } from '../routes/erros'
 import { exercisesRouter } from '../routes/exercises'
+import { criarRotaDeFlags } from '../routes/flags'
 import { healthHandler, readyHandler } from '../routes/health'
 import { imagesRouter } from '../routes/images'
 import { importRouter } from '../routes/import'
@@ -81,6 +84,11 @@ import { exigirOrigem } from './origemProtegida'
 export interface OpcoesDoApp {
   /** Substitui `app.use("/api", authMiddleware)`. Só o harness de testes usa. */
   autenticacao?: RequestHandler
+  /**
+   * O verificador de token da rota PÚBLICA de flags, onde o token é opcional (`server/routes/flags.ts`).
+   * Mesma razão da costura de cima: o harness assina com uma chave local. Em produção, o padrão.
+   */
+  verificarToken?: (token: string) => Promise<UserId>
 }
 
 /**
@@ -342,6 +350,26 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
   /* AS PORTAS DE EMERGÊNCIA (Fase 3): a tela de login e a de planos perguntam aqui, antes de
      haver sessão, se o cadastro e a venda estão abertos. Pública pelo mesmo motivo do health. */
   app.get('/api/abertura', abertura)
+
+  /* FEATURE FLAGS (Fase 6b): pública, como a abertura — o cliente sem conta (servidor em memória) e
+     o convidado da Fase 7 também precisam delas. Token OPCIONAL (define o plano quando vem), e só o
+     resultado avaliado sai; nunca as regras. No modo público, balde PRÓPRIO por IP: o cliente lê ao
+     abrir, ao focar a aba e a cada poucos minutos — 60 por minuto só um laço alcança. Ver
+     `server/routes/flags.ts` e `docs/flags.md`. */
+  if (authRequired()) {
+    app.use(
+      '/api/flags',
+      rateLimit({
+        windowMs: 60_000,
+        limit: 60,
+        standardHeaders: true,
+        legacyHeaders: false,
+        keyGenerator: chaveDoRequest,
+        store: createDbRateLimitStore(METRIC_RATELIMIT_FLAGS),
+      }),
+    )
+  }
+  app.get('/api/flags', criarRotaDeFlags(opcoes.verificarToken ?? verificarTokenPadrao))
 
   /**
    * FORÇA BRUTA CONTRA O TOKEN — o balde que faltava (Fase 4).

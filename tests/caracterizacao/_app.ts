@@ -135,13 +135,14 @@ export async function subirApp(opts: { modo: Modo } = { modo: 'self-host' }): Pr
    * do Supabase por HTTP, e aqui os tokens são assinados com um par gerado neste processo. O resto
    * — ordem, limitadores, stubs de modo público, todos os routers — vem do `criarApp()`.
    */
+  const verificar =
+    opts.modo === 'publico' ? createVerifier({ key: chavePublica, supabaseUrl: URL_SUPABASE_TESTE }) : undefined
   const app = criarApp(
     opts.modo === 'publico'
       ? {
-          autenticacao: makeAuthMiddleware(
-            createVerifier({ key: chavePublica, supabaseUrl: URL_SUPABASE_TESTE }),
-            (u: string) => usersRepo.isSuspended(u),
-          ),
+          autenticacao: makeAuthMiddleware(verificar, (u: string) => usersRepo.isSuspended(u)),
+          /* A rota pública de flags aceita token OPCIONAL e verifica por conta própria (Fase 6b). */
+          verificarToken: verificar,
         }
       : {},
   )

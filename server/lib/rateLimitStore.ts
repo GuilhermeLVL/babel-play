@@ -52,6 +52,11 @@ export const METRIC_RATELIMIT_ERROS = 'ratelimit:erros'
  * um cliente mandando lotes em laço não pode gastar a cota de escrita (nem a de erro) de ninguém.
  */
 export const METRIC_RATELIMIT_TELEMETRIA = 'ratelimit:telemetria'
+/**
+ * O balde da leitura pública de flags (`GET /api/flags`, Fase 6b). Próprio pelo mesmo A27, e por IP
+ * porque a rota fica antes do auth: o cliente lê ao abrir, ao focar a aba e a cada poucos minutos.
+ */
+export const METRIC_RATELIMIT_FLAGS = 'ratelimit:flags'
 
 /**
  * A chave do balde: o TENANT, não o IP. Cai no IP só onde não há usuário resolvido

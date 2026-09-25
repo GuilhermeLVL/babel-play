@@ -10,11 +10,15 @@
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const segmentos = [
+/* Falas a 40 s uma da outra: longe demais para irem no mesmo pacote de nuvem (teto de 28 s) — cada
+   uma vira um pedido, e estes testes olham a recusa/fallback por pedido. O agrupamento em si tem os
+   testes dele (importacao-agrupamento-nuvem.test.ts e o describe do fim deste arquivo). */
+const ESPACADAS = [
   { audio: new Float32Array(16000), start: 0, end: 1000 },
-  { audio: new Float32Array(16000), start: 2000, end: 3000 },
-  { audio: new Float32Array(16000), start: 4000, end: 5000 },
+  { audio: new Float32Array(16000), start: 40000, end: 41000 },
+  { audio: new Float32Array(16000), start: 80000, end: 81000 },
 ]
+const segmentos = [...ESPACADAS]
 vi.mock('@ricky0123/vad-web', () => ({
   NonRealTimeVAD: {
     new: vi.fn(async () => ({
@@ -44,6 +48,7 @@ function erroHttp(status: number) {
 }
 
 beforeEach(() => {
+  segmentos.splice(0, segmentos.length, ...ESPACADAS)
   local.preload.mockClear()
   local.transcribePcm.mockClear()
   local.setModel.mockClear()
@@ -121,6 +126,50 @@ describe('offlineTranscribe com motor de nuvem', () => {
     const segs = await offlineTranscribe(new Blob([new Uint8Array(4)]), { languageHint: 'pt' })
     expect(segs.every((s) => s.engine === 'whisper-local')).toBe(true)
     expect(local.preload).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('offlineTranscribe junta as falas próximas num pedido só (a Groq cobra 10 s por pedido)', () => {
+  const PROXIMAS = [
+    { audio: new Float32Array(16000 * 2), start: 0, end: 2000 },
+    { audio: new Float32Array(16000 * 3), start: 2500, end: 5500 },
+    { audio: new Float32Array(16000 * 5), start: 6000, end: 11000 },
+  ]
+
+  it('três falas curtas → um pedido; a fala sai do início da primeira ao fim da última', async () => {
+    segmentos.splice(0, segmentos.length, ...PROXIMAS)
+    const nuvem = { transcribePcm: vi.fn(async () => ({ text: 'as três frases' })) }
+    const segs = await offlineTranscribe(new Blob([new Uint8Array(4)]), { languageHint: 'pt', nuvem })
+    expect(nuvem.transcribePcm).toHaveBeenCalledTimes(1)
+    const audio = (nuvem.transcribePcm.mock.calls[0] as unknown[])[0] as Float32Array
+    expect(audio.length).toBeGreaterThanOrEqual(16000 * 10)
+    expect(segs).toEqual([{ tStartMs: 0, tEndMs: 11000, text: 'as três frases', engine: 'groq-whisper' }])
+  })
+
+  it('falha passageira no pacote: cada fala dele vai ao local, com o próprio horário', async () => {
+    segmentos.splice(0, segmentos.length, ...PROXIMAS)
+    const nuvem = {
+      transcribePcm: vi.fn(async () => {
+        throw erroHttp(500)
+      }),
+    }
+    const segs = await offlineTranscribe(new Blob([new Uint8Array(4)]), { languageHint: 'pt', nuvem })
+    expect(segs.map((s) => [s.tStartMs, s.tEndMs, s.engine])).toEqual([
+      [0, 2000, 'whisper-local'],
+      [2500, 5500, 'whisper-local'],
+      [6000, 11000, 'whisper-local'],
+    ])
+  })
+
+  it('sem nuvem, o local segue fala a fala (nada muda no caminho local)', async () => {
+    segmentos.splice(0, segmentos.length, ...PROXIMAS)
+    const segs = await offlineTranscribe(new Blob([new Uint8Array(4)]), { languageHint: 'pt' })
+    expect(local.transcribePcm).toHaveBeenCalledTimes(3)
+    expect(segs.map((s) => [s.tStartMs, s.tEndMs])).toEqual([
+      [0, 2000],
+      [2500, 5500],
+      [6000, 11000],
+    ])
   })
 })
 

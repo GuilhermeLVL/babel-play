@@ -13,6 +13,8 @@
  *     Recusa DEFINITIVA da nuvem (402 plano/cota, 429 limite, 501 sem conta ou não configurada,
  *     503 orçamento) desliga a nuvem pelo resto do arquivo e o local assume; falha passageira
  *     (rede, 500) manda só aquele trecho ao local. O arquivo é transcrito inteiro de qualquer jeito.
+ *     Na nuvem as falas seguidas vão em PACOTES de até 28 s (gruparParaNuvem): a Groq cobra no
+ *     mínimo 10 s por pedido.
  *
  * Honesto: timestamps vêm do VAD (reais); segmentos que o Whisper devolve vazios são descartados,
  * não preenchidos com invenção.
@@ -57,6 +59,71 @@ export interface OfflineOptions {
   maxDurationMs?: number;
   /** STT de nuvem a preferir. Ausente = tudo local, como sempre foi. */
   nuvem?: MotorDeNuvem | null;
+}
+
+/** Uma fala do VAD: o áudio (mono, 16 kHz) e o horário no arquivo, em ms. */
+export interface TrechoDeVad {
+  audio: Float32Array;
+  start: number;
+  end: number;
+}
+
+/** Falas seguidas que vão à nuvem num pedido só. `start`/`end` = da primeira à última. */
+export interface PacoteDeNuvem {
+  segmentos: TrechoDeVad[];
+  start: number;
+  end: number;
+}
+
+/**
+ * Teto de um pacote de nuvem, em ms — vale para o intervalo no arquivo E para o áudio enviado.
+ *
+ * POR QUE JUNTAR: a Groq cobra no mínimo 10 s por pedido, então uma fala de 2 s sai pelo preço de
+ * 10 s. A bancada de 2026-09 (docs/auditoria/eval/bancada-2026-09.md) mediu 2,06× o tempo real
+ * faturado com os pedaços do VAD fechando em 450 ms de silêncio. Na importação o arquivo inteiro
+ * já está na mão, então as falas seguidas vão juntas até 28 s — com folga abaixo dos 30 s da janela
+ * do Whisper. O caminho LOCAL não junta nada: lá não há cobrança por pedido.
+ */
+export const TETO_DO_PACOTE_MS = 28_000;
+/** Silêncio entre duas falas no áudio do pacote: sem ele o fim de uma cola no começo da outra. */
+const RESPIRO_ENTRE_FALAS = Math.round(0.2 * 16000);
+
+/**
+ * Junta falas CONSECUTIVAS em pacotes de até `tetoMs` — sempre na fronteira de uma fala (nunca a
+ * corta). Uma fala maior que o teto vai sozinha, como antes. Ordem preservada; nada se perde.
+ */
+export function agruparParaNuvem(segs: TrechoDeVad[], tetoMs = TETO_DO_PACOTE_MS): PacoteDeNuvem[] {
+  const tetoAmostras = (tetoMs / 1000) * 16000;
+  const pacotes: PacoteDeNuvem[] = [];
+  let atual: PacoteDeNuvem | null = null;
+  let amostras = 0;
+  for (const s of segs) {
+    const comEla = amostras + RESPIRO_ENTRE_FALAS + s.audio.length;
+    if (atual && s.end - atual.start <= tetoMs && comEla <= tetoAmostras) {
+      atual.segmentos.push(s);
+      atual.end = s.end;
+      amostras = comEla;
+      continue;
+    }
+    atual = { segmentos: [s], start: s.start, end: s.end };
+    amostras = s.audio.length;
+    pacotes.push(atual);
+  }
+  return pacotes;
+}
+
+/** O áudio do pacote: as falas em ordem, com um respiro de silêncio entre elas. */
+export function juntarAudioDoPacote(p: PacoteDeNuvem): Float32Array {
+  if (p.segmentos.length === 1) return p.segmentos[0].audio;
+  const total = p.segmentos.reduce((n, s) => n + s.audio.length, 0) + RESPIRO_ENTRE_FALAS * (p.segmentos.length - 1);
+  const out = new Float32Array(total);
+  let pos = 0;
+  p.segmentos.forEach((s, i) => {
+    if (i > 0) pos += RESPIRO_ENTRE_FALAS;
+    out.set(s.audio, pos);
+    pos += s.audio.length;
+  });
+  return out;
 }
 
 /** Mixa para mono (média dos canais) — o VAD e o Whisper trabalham em mono. */
@@ -122,7 +189,7 @@ export async function offlineTranscribe(blob: Blob, opts: OfflineOptions = {}): 
   if (!nuvemAtiva) await garantirLocal();
 
   // Coleta os segmentos de fala primeiro (para saber o total e reportar progresso honesto).
-  const segments: Array<{ audio: Float32Array; start: number; end: number }> = [];
+  const segments: TrechoDeVad[] = [];
   for await (const s of vad.run(mono, sampleRate)) {
     segments.push(s);
     if (maxDurationMs && s.end >= maxDurationMs) break;
@@ -132,35 +199,52 @@ export async function offlineTranscribe(blob: Blob, opts: OfflineOptions = {}): 
   // Contexto do trecho seguinte na nuvem: o texto do anterior (mesmo arquivo; e só com idioma fixo,
   // pelo mesmo motivo da captura ao vivo — prompt em outro idioma induz o Whisper a traduzir).
   let anterior = '';
-  for (let i = 0; i < segments.length; i++) {
-    const s = segments[i];
-    onProgress?.({
-      phase: 'segment',
-      progress: i / Math.max(1, segments.length),
-      label: `Transcrevendo fala ${i + 1}/${segments.length}…`,
-    });
-    let r: SttFinal | null = null;
-    let engine: OfflineSegment['engine'] = 'whisper-local';
-    if (nuvem && nuvemAtiva) {
-      try {
-        const prompt = languageHint && anterior ? cortarPrompt(anterior) : undefined;
-        r = await nuvem.transcribePcm(s.audio, 16000, { languageHint, prompt });
-        engine = 'groq-whisper';
-      } catch (e) {
-        const status = (e as { status?: number })?.status;
-        if (typeof status === 'number' && RECUSA_DEFINITIVA.has(status)) nuvemAtiva = false;
-      }
-    }
+  const transcreverNoLocal = async (s: TrechoDeVad) => {
     try {
-      if (!r) r = await (await garantirLocal()).transcribePcm(s.audio, 16000, { languageHint });
+      const r = await (await garantirLocal()).transcribePcm(s.audio, 16000, { languageHint });
       const text = (r.text || '').trim();
       if (text) {
-        out.push({ tStartMs: Math.round(s.start), tEndMs: Math.round(s.end), text, engine });
+        out.push({ tStartMs: Math.round(s.start), tEndMs: Math.round(s.end), text, engine: 'whisper-local' });
         anterior = text;
       }
     } catch {
       // segmento que falhou é pulado — não inventamos texto
     }
+  };
+
+  // Na NUVEM as falas vão em pacotes (ver `agruparParaNuvem`); no local, uma a uma, como sempre.
+  const pacotes: PacoteDeNuvem[] = nuvem
+    ? agruparParaNuvem(segments)
+    : segments.map((s) => ({ segmentos: [s], start: s.start, end: s.end }));
+  for (let i = 0; i < pacotes.length; i++) {
+    const p = pacotes[i];
+    onProgress?.({
+      phase: 'segment',
+      progress: i / Math.max(1, pacotes.length),
+      label: `Transcrevendo trecho ${i + 1}/${pacotes.length}…`,
+    });
+    let r: SttFinal | null = null;
+    if (nuvem && nuvemAtiva) {
+      try {
+        const prompt = languageHint && anterior ? cortarPrompt(anterior) : undefined;
+        r = await nuvem.transcribePcm(juntarAudioDoPacote(p), 16000, { languageHint, prompt });
+      } catch (e) {
+        const status = (e as { status?: number })?.status;
+        if (typeof status === 'number' && RECUSA_DEFINITIVA.has(status)) nuvemAtiva = false;
+      }
+    }
+    if (r) {
+      // O pacote vira UMA fala, do início da primeira ao fim da última: a nuvem devolve o texto do
+      // pacote inteiro, sem dizer onde cada fala termina — repartir seria inventar horário.
+      const text = (r.text || '').trim();
+      if (text) {
+        out.push({ tStartMs: Math.round(p.start), tEndMs: Math.round(p.end), text, engine: 'groq-whisper' });
+        anterior = text;
+      }
+      continue;
+    }
+    // Nuvem recusou ou falhou (ou não há nuvem): cada fala do pacote vai ao local, com o próprio horário.
+    for (const s of p.segmentos) await transcreverNoLocal(s);
   }
   onProgress?.({ phase: 'segment', progress: 1 });
   return out;

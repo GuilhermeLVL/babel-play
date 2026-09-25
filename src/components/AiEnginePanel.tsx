@@ -31,7 +31,7 @@ const CAPACIDADE: Record<Capability, { titulo: string; onde: string }> = {
 /** Provedores OpenAI-compatíveis — os mesmos da apresentação (`Onboarding`). */
 const PROVEDORES: Record<string, { rotulo: string; baseUrl: string; modelo: string }> = {
   openai: { rotulo: 'OpenAI', baseUrl: 'https://api.openai.com/v1', modelo: 'gpt-4o-mini' },
-  groq: { rotulo: 'Groq', baseUrl: 'https://api.groq.com/openai/v1', modelo: 'llama-3.3-70b-versatile' },
+  groq: { rotulo: 'Groq', baseUrl: 'https://api.groq.com/openai/v1', modelo: 'openai/gpt-oss-120b' },
   openrouter: { rotulo: 'OpenRouter', baseUrl: 'https://openrouter.ai/api/v1', modelo: '' },
   custom: { rotulo: 'Outro', baseUrl: '', modelo: '' },
 };

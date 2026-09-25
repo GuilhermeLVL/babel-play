@@ -119,7 +119,7 @@ async function traduzirNuvem(sis, caso, src, tgt) {
     signal: AbortSignal.timeout(60_000),
   }), sis.id)
   const j = await r.json()
-  const ms = performance.now() - t0
+  const ms = r.ms
   const u = j.usage ?? {}
   let usd = Number(u.cost)
   if (!Number.isFinite(usd)) {

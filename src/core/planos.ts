@@ -21,7 +21,8 @@
  * nenhum plano dê prejuízo no PIOR caso (assinante que usa o teto inteiro):
  *
  *   Preços (Groq, 24/09/2026): whisper-large-v3-turbo US$ 0,04/h, mínimo de 10 s por requisição
- *   (já contado em `segundosFaturaveis`); gpt-oss-120b US$ 0,15 por 1M tokens de entrada e US$ 0,60
+ *   (cobrado do DONO, não da cota: o assinante gasta segundos REAIS — `segundosDeAudioDoUsuario`; o
+ *   mínimo entra só no orçamento global); gpt-oss-120b US$ 0,15 por 1M tokens de entrada e US$ 0,60
  *   de saída. Câmbio de planejamento R$ 5,60/US$. Líquido = preço − Asaas (R$ 1,09) − Simples (~6%).
  *   Tradução medida: ~350 tokens de entrada + ~90 de saída por fala (US$ 0,107 por mil falas).
  *
@@ -59,7 +60,8 @@ export interface EntitlementsDoPlano {
 export interface QuotasDoPlano {
   /** Chamadas gerenciadas por mês (STT + tradução + tutor dividem este pool). `null` = sem teto. */
   chamadasMes: number | null;
-  /** Segundos de áudio FATURÁVEIS no STT de nuvem por mês. É o teto de gasto real. `null` = sem teto. */
+  /** Segundos REAIS de áudio no STT de nuvem por mês — a promessa ao assinante ("15 h"). O custo do
+   dono é maior (mínimo de 10 s por requisição do provedor); ver a conta no topo. `null` = sem teto. */
   sttSegundosMes: number | null;
   /** Tokens (entrada + saída) no LLM de nuvem por mês — tradução e tutor dividem. `null` = sem teto. */
   tokensMes: number | null;

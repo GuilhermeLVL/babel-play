@@ -51,7 +51,7 @@ import { DialogoBase, IconeEmBloco } from './ui';
 // Provedores OpenAI-compatíveis (o proxy do servidor fala /chat/completions).
 const PROVIDERS: Record<string, { label: string; baseUrl: string; model: string }> = {
   openai: { label: 'OpenAI', baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o-mini' },
-  groq: { label: 'Groq', baseUrl: 'https://api.groq.com/openai/v1', model: 'llama-3.3-70b-versatile' },
+  groq: { label: 'Groq', baseUrl: 'https://api.groq.com/openai/v1', model: 'openai/gpt-oss-120b' },
   openrouter: { label: 'OpenRouter', baseUrl: 'https://openrouter.ai/api/v1', model: '' },
   custom: { label: 'Personalizado (OpenAI-compatível)', baseUrl: '', model: '' },
 };

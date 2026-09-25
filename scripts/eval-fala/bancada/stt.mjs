@@ -117,7 +117,7 @@ async function transcreverNuvem(sis, pcm, idioma) {
     })
   }, sis.id)
   const json = await r.json()
-  const ms = performance.now() - t0
+  const ms = r.ms
   const dur = pcm.length / 16000
   registrarGasto(sis.id, (Math.max(10, dur) / 3600) * (PRECO_HORA[sis.modelo] ?? 0.111))
   let texto = sis.seg ? textoDosSegmentos(json) : (json.text ?? '').trim()

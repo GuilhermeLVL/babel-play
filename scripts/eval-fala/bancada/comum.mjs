@@ -130,17 +130,31 @@ export async function respeitarRitmo(rotulo, rpmPadrao) {
 /** A cota DIÁRIA do provedor acabou: parar é a única resposta honesta (esperar horas não é retentativa). */
 export class CotaDoProvedor extends Error {}
 
-/** Espera progressiva em 429/5xx, honrando `retry-after`. Sem isto a bancada mede a cota, não o modelo. */
+/**
+ * Espera progressiva em 429/5xx/timeout, honrando `retry-after`. Sem isto a bancada mede a cota, não
+ * o modelo. Devolve também `ms`: a latência da tentativa que DEU CERTO — a espera de ritmo e as
+ * retentativas não entram, senão a "latência" mediria a fila da bancada.
+ */
 export async function comRetentativa(fn, rotulo) {
   for (let t = 0; ; t++) {
-    const r = await fn()
-    if (r.ok) return r
+    const inicio = performance.now()
+    let r
+    try {
+      r = await fn()
+    } catch (e) {
+      if (t < 6 && /timeout|aborted|ECONNRESET|fetch failed/i.test(String(e?.message ?? e))) {
+        await new Promise((s) => setTimeout(s, 5000 * (t + 1)))
+        continue
+      }
+      throw e
+    }
+    if (r.ok) { r.ms = performance.now() - inicio; return r }
     if (r.status === 429 || r.status >= 500) {
       const corpo = await r.text()
       if (/per day|\(RPD\)|\(ASD\)|\(TPD\)/i.test(corpo)) throw new CotaDoProvedor(`${rotulo}: cota diária do provedor esgotada — ${corpo.slice(0, 160)}`)
       if (t < 12) {
         const sug = Number(r.headers.get('retry-after')) * 1000
-        const espera = Number.isFinite(sug) && sug > 0 ? Math.min(sug + 250, 90_000) : Math.min(2000 * 2 ** t, 60_000)
+        const espera = Math.max(r.status === 429 ? 5000 : 1000, Number.isFinite(sug) && sug > 0 ? Math.min(sug + 500, 90_000) : Math.min(2000 * 2 ** t, 60_000))
         await new Promise((s) => setTimeout(s, espera))
         continue
       }

@@ -225,6 +225,13 @@
       "when": 1790320000000,
       "tag": "0031_flags_remotas",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "6",
+      "when": 1790330000000,
+      "tag": "0032_convidados",
+      "breakpoints": true
     }
   ]
 }

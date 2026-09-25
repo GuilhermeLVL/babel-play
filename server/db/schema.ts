@@ -951,3 +951,28 @@ export const flags = sqliteTable('flags', {
   atualizadoEm: integer('atualizado_em').notNull(),
   atualizadoPor: text('atualizado_por'),
 })
+
+/**
+ * CONVIDADOS COM NUVEM (Fase 7 — modo convidado; migração 0032). `openspec/audits/2026-09-25-prontidao/fase7-convidado.md`.
+ *
+ * Uma linha por usuário ANÔNIMO do Supabase (`is_anonymous`) que chegou a usar a IA de nuvem. O
+ * convidado sem nuvem nunca aparece aqui: o app dele é 100% local.
+ *
+ * Serve a três coisas: (1) o LIMITE DE CRIAÇÃO por IP — conta quantos ids anônimos distintos
+ * estrearam na nuvem pelo mesmo IP no dia; (2) a EXPIRAÇÃO — `visto_em` diz quem está inativo há 30
+ * dias, e a limpeza diária apaga os contadores e o usuário anônimo; (3) rastreio da conversão.
+ *
+ * `ip_hash` é PSEUDÔNIMO: HMAC do IP com a chave do servidor e o DIA — não dá para voltar ao IP, e o
+ * mesmo IP em dias diferentes não se liga. `user_id` é o id do titular (anônimo): a linha entra em
+ * `TABELAS_DO_TITULAR` e sai com a exclusão da conta.
+ */
+export const convidados = sqliteTable(
+  'convidados',
+  {
+    userId: text('user_id').primaryKey(),
+    ipHash: text('ip_hash').notNull(),
+    criadoEm: integer('criado_em').notNull(),
+    vistoEm: integer('visto_em').notNull(),
+  },
+  (t) => [index('idx_convidados_ip_criado').on(t.ipHash, t.criadoEm), index('idx_convidados_visto').on(t.vistoEm)],
+)

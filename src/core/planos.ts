@@ -114,6 +114,51 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
   },
 };
 
+/**
+ * O CONVIDADO (Fase 7 — `openspec/audits/2026-09-25-prontidao/fase7-convidado.md`). NÃO é plano de
+ * assinatura — ninguém o compra e nenhuma linha de `subscriptions` o concede —, por isso fica FORA
+ * de `PLAN_MATRIX` (e de `PLANOS_DE_ASSINATURA`, do admin e do webhook). É o plano que o servidor
+ * dá a um usuário ANÔNIMO do Supabase (JWT com `is_anonymous: true`), e só enquanto ele for anônimo.
+ *
+ * Os números vêm da proposta de custo da Fase 3 (`fase3-custo.md` §4, `P.proposta.convidado` em
+ * `scripts/custo/modelo.mjs`): 10 min de nuvem por mês (STT e tradução no mesmo pool), 5 mensagens de
+ * tutor, teto de US$ 0,02 por convidado/mês.
+ *
+ *   STT   600 s × 1,08 (VAD) × US$ 0,04/h                               = US$ 0,0072
+ *   LLM   40.000 tokens — ~90 falas traduzidas (~440 tokens) + 5 do tutor
+ *         típico, 80% entrada: 40k × (0,8 × 0,15 + 0,2 × 0,60) / 1M      = US$ 0,0096
+ *   TÍPICO US$ 0,017 < US$ 0,02. O pior caso (tudo saída) passaria do teto, e é por isso que o
+ *   teto em DÓLAR (`tetoUsdMes`) é conferido à parte, no servidor: ele fecha a nuvem antes.
+ *
+ * A NUVEM DO CONVIDADO NASCE DESLIGADA: além destes números, o servidor exige a flag
+ * `nuvem_convidado` (desligada enquanto a Groq estiver na camada grátis, e porque o convidado não
+ * passa pela aferição de idade — LGPD art. 14). Os `entitlements` abaixo dizem o que o plano PODE;
+ * a flag diz se pode AGORA.
+ */
+export const PLANO_CONVIDADO: DefinicaoDePlano = {
+  rotulo: 'Convidado',
+  precoMensalBrl: null,
+  entitlements: { youtubeImport: false, managedCloudStt: true, managedCloudLlm: true, largerModels: false },
+  /* Armazenamento 0: o convidado guarda tudo no aparelho; o servidor recusa escrita (`exige_conta`).
+     Chamadas: 600 s ÷ 6 s × 2 (transcrever + traduzir) = 200, mais as 5 do tutor, com folga. */
+  quotas: { chamadasMes: 220, sttSegundosMes: 600, tokensMes: 40_000, armazenamentoMb: 0 },
+};
+
+/** O que só o convidado tem: teto de mensagens de tutor e teto de gasto por mês. */
+export const LIMITES_DO_CONVIDADO = {
+  tutorMensagensMes: 5,
+  /** Teto de gasto ESTIMADO por convidado no mês, em US$ (conferido antes, somado depois). */
+  tetoUsdMes: 0.02,
+} as const;
+
+/** O plano EFETIVO que o servidor resolve: um de assinatura, ou `convidado` (anônimo com JWT). */
+export type PlanoEfetivo = PlanoDeAssinatura | 'convidado';
+
+/** A definição de qualquer plano efetivo — a matriz para os de assinatura, `PLANO_CONVIDADO` para o convidado. */
+export function definicaoDoPlano(plano: PlanoEfetivo): DefinicaoDePlano {
+  return plano === 'convidado' ? PLANO_CONVIDADO : PLAN_MATRIX[plano];
+}
+
 /** A lista derivada — o que substitui as cinco cópias manuais. */
 export const PLANOS_DE_ASSINATURA = Object.keys(PLAN_MATRIX) as readonly PlanoDeAssinatura[];
 

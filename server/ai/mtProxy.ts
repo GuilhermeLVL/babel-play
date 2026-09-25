@@ -7,7 +7,8 @@ import {
   userComunicativo,
   userTextoEscrito,
 } from '../../src/lib/traducao/promptComunicativo'
-import { getEntitlementsForUser } from '../lib/entitlements'
+import { abrirPortaGratuita, type PortaGratuita } from '../lib/convidado'
+import { getEntitlements } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
 import { log } from '../lib/logger'
 import { custoDeLlm, portaoDaNuvem, registrarGastoDeIa, responderPortaoFechado } from '../lib/orcamentoDeIa'
@@ -117,8 +118,12 @@ async function traduzir(req: Request, res: Response, rastro: RastroDeIa): Promis
   // vira 502 (nunca passa direto), consistente com o STT e o tutor.
   /* UMA leitura de plano, dois usos: o que deixa entrar e o que escolhe o modelo. */
   let planoDoUsuario
+  /* Fase 7: convidado (flag, limite por IP, tetos) e pool gratuito do dia (`server/lib/convidado.ts`).
+     `null` = já respondeu (403 `exige_conta`, 429, 402, 503). */
+  const gratuita = await abrirPortaGratuita(req, res, 'mt')
+  if (!gratuita) return
   try {
-    planoDoUsuario = await getEntitlementsForUser(req.userId)
+    planoDoUsuario = getEntitlements(gratuita.plano)
     if (!planoDoUsuario.managedCloudLlm) {
       res.status(402).json({ error: 'tradução por IA gerenciada requer um plano pago', entitlement: 'managedCloudLlm' })
       return
@@ -202,6 +207,7 @@ async function traduzir(req: Request, res: Response, rastro: RastroDeIa): Promis
       cacheavel,
       chave,
       admissao: admitida.admissao,
+      gratuita,
     })
   } finally {
     encerrarAdmissao(admitida.admissao)
@@ -222,6 +228,7 @@ async function traduzirAdmitido(
     cacheavel: boolean
     chave: string
     admissao: AdmissaoDaCascata
+    gratuita: PortaGratuita
   },
 ): Promise<void> {
   const { provedores, messages, maxTokens, falada, cacheavel, chave } = p
@@ -271,7 +278,9 @@ async function traduzirAdmitido(
     /* O `usage` do provedor acerta a reserva de tokens pelo número REAL — nos modelos de raciocínio a
        saída inclui os tokens de pensamento, a parte cara. */
     await reserva.consumir(entregue.tokensEntrada + entregue.tokensSaida)
-    await registrarGastoDeIa(custoDeLlm(entregue.model, entregue.tokensEntrada, entregue.tokensSaida))
+    const custo = custoDeLlm(entregue.model, entregue.tokensEntrada, entregue.tokensSaida)
+    await registrarGastoDeIa(custo)
+    await p.gratuita.registrarCusto(custo)
     log('info', {
       event: 'mt_translated',
       route: '/api/ai/mt',

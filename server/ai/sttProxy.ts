@@ -10,8 +10,9 @@ import type { NextFunction, Request, Response } from 'express'
 import { filtrarAlucinacao } from '../../src/gateway/alucinacao'
 import { credentialsRepo } from '../db/repositories/credentials'
 import { contarDescartesDoStt, observarChamadaDeProvedor } from '../http/metricas'
+import { abrirPortaGratuita, type PortaGratuita } from '../lib/convidado'
 import { avaliarAudioFaturavel, duracaoDoWav, segundosFaturaveis } from '../lib/duracaoDeAudio'
-import { getEntitlementsForUser } from '../lib/entitlements'
+import { getEntitlements } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
 import { normalizarIdiomaDoWhisper } from '../lib/idiomaDoWhisper'
 import { log } from '../lib/logger'
@@ -91,6 +92,8 @@ interface PortaDoStt {
   provedor?: string
   /** O provedor chegou a ser chamado? Se não, o pedido volta ao balde. */
   chamouProvedor: boolean
+  /** Fase 7: as travas de convidado/free (pool do dia, tetos por id e por IP). */
+  gratuita?: PortaGratuita
 }
 
 const portas = new WeakMap<Request, PortaDoStt>()
@@ -112,7 +115,11 @@ async function abrirPortaDoStt(req: Request, res: Response): Promise<PortaDoStt 
   if (req.header('x-credential-id')) return { byok: true, chamouProvedor: false }
   // SaaS Fatia 1b — STT de nuvem GERENCIADA (chave do DONO) exige o entitlement. BYOK e o STT local
   // (no navegador) passam livres: só o caminho que gasta a chave do serviço é gateado.
-  const plano = await getEntitlementsForUser(req.userId)
+  /* Fase 7: convidado (flag, limite por IP, tetos) e pool gratuito do dia — antes do entitlement,
+     porque é a porta que diz ao convidado POR QUE não pode (`exige_conta`, `limite_de_convidados`). */
+  const gratuita = await abrirPortaGratuita(req, res, 'stt')
+  if (!gratuita) return null
+  const plano = getEntitlements(gratuita.plano)
   if (!plano.managedCloudStt) {
     res.status(402).json({ error: 'STT de nuvem gerenciada requer um plano pago', entitlement: 'managedCloudStt' })
     return null
@@ -144,6 +151,7 @@ async function abrirPortaDoStt(req: Request, res: Response): Promise<PortaDoStt 
     model: cfg.model,
     provedor,
     chamouProvedor: false,
+    gratuita,
   }
 }
 
@@ -482,7 +490,10 @@ async function transcrever(req: Request, res: Response, rastro: RastroDeIa): Pro
        aqui o número é o que o PROVEDOR fatura (`segundosFaturaveis`, com o mínimo de 10 s), não o
        que saiu da cota do assinante: o orçamento existe para bater com a fatura. */
     const custoUsd = gerenciado ? custoDeStt(model, segundosFaturaveis(audioBuffer)) : undefined
-    if (custoUsd !== undefined) await registrarGastoDeIa(custoUsd)
+    if (custoUsd !== undefined) {
+      await registrarGastoDeIa(custoUsd)
+      await porta?.gratuita?.registrarCusto(custoUsd)
+    }
     segundosReservados = 0 // consumados junto com a chamada: nada a estornar
     observarChamadaDeProvedor({
       provedor: gerenciado ? 'stt-gerenciado' : 'byok',

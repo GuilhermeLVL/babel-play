@@ -13,6 +13,7 @@ import { credentialsRepo } from '../db/repositories/credentials'
 import { sttDeNuvemConfigurado } from '../lib/config'
 import { hasEntitlement } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
+import { flagLigada } from '../lib/flags'
 import { portaoDaNuvem } from '../lib/orcamentoDeIa'
 import { createCredentialSchema, idParamSchema, parseOr400 } from '../validation'
 
@@ -56,7 +57,10 @@ aiRouter.get('/stt/available', async (req, res) => {
     }
     /* A nuvem GERENCIADA também precisa do portão global (chave de emergência e orçamento do mês):
        responder "disponível" com a nuvem fechada mandaria o roteador para um 503 no meio da captura. */
-    const portao = (await hasEntitlement(req.userId, 'managedCloudStt')) ? await portaoDaNuvem() : null
+    /* Fase 7: o convidado só tem nuvem com a flag `nuvem_convidado` ligada (`server/lib/convidado.ts`). */
+    const convidadoSemNuvem = req.convidado === true && !(await flagLigada(req, 'nuvem_convidado'))
+    const portao =
+      !convidadoSemNuvem && (await hasEntitlement(req.userId, 'managedCloudStt')) ? await portaoDaNuvem() : null
     const ok = !!portao?.ok
     res
       .status(ok ? 200 : 501)

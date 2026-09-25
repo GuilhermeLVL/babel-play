@@ -361,6 +361,15 @@ async function startServer({ prepararDados = true } = {}) {
     console.log(`[retenção] áudio de sessão apagado após ${diasDeRetencao} dias (limpeza diária)`)
   }
 
+  /* EXPIRAÇÃO DOS CONVIDADOS (Fase 7): convidado sem nuvem há 30 dias perde contadores e o usuário
+     anônimo no Supabase. Mesmo processo e mesmo motivo da retenção acima. Só no modo público — no
+     self-host não há convidado. Ver `server/lib/limpezaDeConvidados.ts`. */
+  if (prepararDados && authRequired()) {
+    const { agendarLimpezaDeConvidados } = await import('./server/lib/limpezaDeConvidados')
+    agendarLimpezaDeConvidados()
+    console.log('[convidados] inativos há 30 dias removidos (limpeza diária)')
+  }
+
   server.on('error', (err: NodeJS.ErrnoException) => {
     if (err.code === 'EADDRINUSE') {
       console.error(`\n⚠  A porta ${PORT} já está em uso — outro servidor está rodando.`)

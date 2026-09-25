@@ -4,6 +4,7 @@
     "at": "number",
     "boot": "string",
     "db": "string",
-    "status": "string"
+    "status": "string",
+    "versao": "string"
   }
 }

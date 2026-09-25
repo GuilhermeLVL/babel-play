@@ -19,6 +19,13 @@
 #   vars.VITE_SENTRY_DSN          DSN do Sentry do navegador (opcional; é público por desenho)
 #   secrets.FLY_API_TOKEN         `fly tokens create deploy --app <app>` (só deploy, só este app)
 #
+# PORTÃO DE CI (P0-5, auditoria de prontidão): antes de qualquer coisa, o workflow confere na API do
+# GitHub que o `ci.yml` terminou com `success` para o SHA EXATO que vai ao ar — o commit escolhido,
+# ou, no rollback, o commit da tag da imagem. Sem isso o botão implantava qualquer ref, inclusive
+# uma com teste vermelho ou uma cujo CI nem rodou. EMERGÊNCIA: `pular_gate_ci` desliga o portão,
+# mas só com `justificativa_pular_gate` preenchida; quem pulou, o SHA e o motivo vão para o resumo
+# da execução (e ficam no histórico do Actions).
+#
 # Toda entrada do formulário e toda variável chega aos `run:` por `env:`, nunca por `${{ }}` dentro
 # do script: o campo `imagem` é texto livre, e interpolado direto no shell viraria injeção de comando.
 name: Deploy (Fly.io)
@@ -35,9 +42,19 @@ on:
         description: 'Rollback: imagem já publicada (registry.fly.io/<app>:<sha>). Vazio = construir este commit.'
         type: string
         required: false
+      pular_gate_ci:
+        description: 'EMERGÊNCIA: implantar sem CI verde para este SHA (exige justificativa)'
+        type: boolean
+        default: false
+      justificativa_pular_gate:
+        description: 'Obrigatória se pular_gate_ci: por que implantar sem CI verde (fica no resumo)'
+        type: string
+        required: false
 
+# `actions: read` é o que o portão de CI precisa para listar as execuções do `ci.yml`.
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: deploy-${{ inputs.ambiente }}
@@ -53,12 +70,63 @@ jobs:
       FLY_APP: ${{ vars.FLY_APP }}
       AMBIENTE: ${{ inputs.ambiente }}
       IMAGEM_INFORMADA: ${{ inputs.imagem }}
+      PULAR_GATE_CI: ${{ inputs.pular_gate_ci }}
+      JUSTIFICATIVA_PULAR_GATE: ${{ inputs.justificativa_pular_gate }}
       URL_PUBLICA: ${{ vars.URL_PUBLICA }}
       VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
       VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
       VITE_SELF_HOST_MODELS: ${{ vars.VITE_SELF_HOST_MODELS }}
       VITE_SENTRY_DSN: ${{ vars.VITE_SENTRY_DSN }}
     steps:
+      # PRIMEIRO passo, antes de checkout e de qualquer build: um SHA sem CI verde não chega nem a
+      # virar imagem. O SHA vem do commit escolhido ou, no rollback, da tag da imagem informada.
+      - name: Portão de CI (ci.yml verde para o SHA que será implantado)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          if [ -n "$IMAGEM_INFORMADA" ]; then
+            tag="${IMAGEM_INFORMADA##*:}"
+            echo "$tag" | grep -Eq '^[0-9a-f]{7,40}$' \
+              || { echo "::error::a tag da imagem de rollback precisa ser um sha de commit"; exit 1; }
+            # A API filtra por `head_sha` COMPLETO e a tag pode ser curta: resolve o sha primeiro.
+            sha=$(gh api "repos/$REPO/commits/$tag" --jq .sha)
+          else
+            sha="$GITHUB_SHA"
+          fi
+          echo "SHA_IMPLANTADO=$sha" >> "$GITHUB_ENV"
+
+          if [ "$PULAR_GATE_CI" = "true" ]; then
+            justificativa="$(printf '%s' "$JUSTIFICATIVA_PULAR_GATE" | tr '\r\n' '  ' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
+            if [ "${#justificativa}" -lt 10 ]; then
+              echo "::error::pular_gate_ci exige justificativa_pular_gate (10+ caracteres), que fica registrada no resumo"
+              exit 1
+            fi
+            echo "::warning::PORTAO DE CI PULADO por $GITHUB_ACTOR para $sha"
+            {
+              echo "### Portão de CI PULADO (emergência)"
+              echo "- SHA: \`$sha\`"
+              echo "- quem: @$GITHUB_ACTOR"
+              echo "- justificativa: $justificativa"
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          # Pelo menos uma execução do ci.yml concluída com success para ESTE sha. O `select` repete
+          # o filtro do lado de cá: se a API ignorasse o parâmetro, o portão não passaria a aceitar
+          # o CI verde de outro commit.
+          sucessos=$(gh api "repos/$REPO/actions/workflows/ci.yml/runs?head_sha=$sha&status=completed&per_page=100" \
+            --jq "[.workflow_runs[] | select(.head_sha == \"$sha\" and .conclusion == \"success\")] | length")
+          if [ "$sucessos" -lt 1 ]; then
+            echo "::error::o ci.yml não tem execução com conclusão success para $sha. Espere/rode o CI, ou, em emergência, use pular_gate_ci com justificativa."
+            gh api "repos/$REPO/actions/workflows/ci.yml/runs?head_sha=$sha&per_page=5" \
+              --jq '.workflow_runs[] | "  execução \(.id): \(.status)/\(.conclusion // "-") (\(.event))"' || true
+            exit 1
+          fi
+          echo "ci.yml verde para $sha ($sucessos execução(ões) com success)"
+          echo "### Portão de CI: ci.yml verde para \`$sha\`" >> "$GITHUB_STEP_SUMMARY"
+
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: superfly/flyctl-actions/setup-flyctl@fc53c09e1bc3be6f54706524e3b82c4f462f77be # 1.5
 

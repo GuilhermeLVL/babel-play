@@ -25,6 +25,7 @@ import { aguardarIdentidade } from '../lib/identidade'
 import { aguardarProtecao, rotaLiberadaNaRestricao } from '../lib/protecaoDoMenor'
 import { cabecalhoDaSessaoDeCaptura } from '../lib/sessaoDeCaptura'
 import { authRequired,supabase } from '../lib/supabase'
+import { CABECALHO_DA_VERSAO, conferirVersaoDoServidor } from '../lib/versao'
 import { servidorEfemero } from './efemero/servidor'
 
 // ───────────────────────────── fetch com teto de tempo (A-05) ─────────────────────────────
@@ -63,6 +64,8 @@ export async function apiFetch(input: string, init?: ApiInit): Promise<Response>
     if (data?.session) res = await send()
     if (res.status === 401) await supabase.auth.signOut()
   }
+  // P0-7b: o servidor diz a versão em toda resposta `/api`; diferente da do bundle, avisa (uma vez).
+  conferirVersaoDoServidor(res.headers?.get?.(CABECALHO_DA_VERSAO) ?? null)
   return res
 }
 

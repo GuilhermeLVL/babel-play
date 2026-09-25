@@ -4,11 +4,14 @@ import './index.css';
 import './styles/prototipo.css';
 import './styles/prototipo-app.css';
 
+import { RefreshCw } from 'lucide-react';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import App from './App.tsx';
 import ErroDaTela from './components/ErroDaTela';
+import { toast } from './components/Toast';
+import { ligarAvisoDeNovaVersao } from './lib/avisoDeNovaVersao';
 import { capturarTokenDoConvite } from './lib/conviteNaUrl';
 import { instalarRelatorioDeErros } from './lib/relatorioDeErros';
 import { bootTheme } from './lib/theme';
@@ -23,6 +26,11 @@ bootTheme();
 // E4 — erro de runtime do navegador deixou de morrer no console: window.onerror e
 // unhandledrejection reportam ao diário do servidor (só erro; nenhum dado do usuário).
 instalarRelatorioDeErros();
+// P0-7b — o servidor já é de outra versão (deploy com a aba aberta): um aviso discreto, uma vez,
+// com "Atualizar". Quem detecta é o `apiFetch`; aqui só se liga o evento ao canal de avisos.
+ligarAvisoDeNovaVersao(({ mensagem, rotuloDaAcao, aoAtualizar }) =>
+  toast.info(mensagem, { icone: RefreshCw, duration: 0, action: { label: rotuloDaAcao, onClick: aoAtualizar } }),
+);
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

@@ -267,6 +267,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     paraQue: 'diário de erros em disco (F5-04)',
   },
   {
+    nome: 'GIT_SHA',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'commit da versão do app (`0.1.0+<sha7>`, server/lib/versao.ts); o Dockerfile a preenche no build pelo arg VERSAO; ausente, vale SENTRY_RELEASE ou só a versão do package.json',
+  },
+  {
     nome: 'GROQ_API_KEY',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',

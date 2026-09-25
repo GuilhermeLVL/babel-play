@@ -827,5 +827,8 @@
   "Não consegui registrar a autorização agora.": "I couldn't record the permission right now.",
   "No perfil protegido não há ranking público: os seus recordes ficam só com você.": "Protected profiles have no public leaderboard: your records stay with you.",
   "Não conseguimos enviar o convite agora. Tente de novo em alguns minutos.": "We couldn't send the invitation right now. Please try again in a few minutes.",
-  "Você já enviou muitos convites hoje. Tente de novo amanhã.": "You've already sent too many invitations today. Please try again tomorrow."
+  "Você já enviou muitos convites hoje. Tente de novo amanhã.": "You've already sent too many invitations today. Please try again tomorrow.",
+  "Nova versão disponível": "New version available",
+  "Atualizar": "Update",
+  "Versão {versao}": "Version {versao}"
 }

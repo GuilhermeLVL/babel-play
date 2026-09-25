@@ -354,6 +354,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
       'chamadas de STT de nuvem EM VOO por usuário ao mesmo tempo; a seguinte recebe 429 nuvem_ocupada. Padrão 1',
   },
   {
+    nome: 'LANGFUSE_AMOSTRAGEM',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'fração (0–1) das chamadas de IA BEM-SUCEDIDAS enviadas ao Langfuse; erros, fallbacks e 429 vão sempre. Padrão 0,1 em produção e 1 fora dela. O Langfuse cobra por unidade e sem amostragem custava mais que a IA (openspec/audits/2026-09-25-prontidao/fase3-custo.md)',
+  },
+  {
     nome: 'LANGFUSE_ARQUIVO',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',

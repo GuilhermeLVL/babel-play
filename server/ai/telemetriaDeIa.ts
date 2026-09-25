@@ -165,6 +165,25 @@ const RASTRO_NULO: RastroDeIa = {
   encerrar() {},
 }
 
+/**
+ * AMOSTRAGEM (Fase 3 da auditoria de prontidão). O Langfuse cobra por unidade, e cada chamada gera
+ * duas (rastro + geração): sem amostrar, a observabilidade custava MAIS que a própria IA no plano
+ * Essencial (R$ 6,29 contra R$ 2,79 por assinante/mês, `fase3-custo.md`). Amostra-se só o que deu
+ * certo e de primeira: erro, 429, fallback e retentativa vão SEMPRE — é o que se investiga. O custo
+ * e a latência agregados não dependem disto: vêm do Prometheus e da tabela `gasto_de_ia`.
+ */
+export function taxaDeAmostragem(env: NodeJS.ProcessEnv = process.env): number {
+  const bruto = env.LANGFUSE_AMOSTRAGEM
+  const n = bruto === undefined || bruto.trim() === '' ? NaN : Number(bruto)
+  if (Number.isFinite(n)) return Math.min(1, Math.max(0, n))
+  return env.NODE_ENV === 'production' ? 0.1 : 1
+}
+
+/** O rastro precisa ir, independentemente da amostra? */
+export function rastroObrigatorio(statusHttp: number, geracoes: Pick<DadosDaGeracao, 'status'>[]): boolean {
+  return statusHttp >= 400 || geracoes.length > 1 || geracoes.some((g) => g.status !== 'ok')
+}
+
 /** Reexportado para os testes das rotas esperarem o envio sem dormir. */
 export { aguardarRastrosPendentes }
 
@@ -206,6 +225,7 @@ export function abrirRastro(req: Request, funcao: FuncaoTelemetrada): RastroDeIa
     encerrar(statusHttp) {
       if (fechado) return
       fechado = true
+      if (!rastroObrigatorio(statusHttp, geracoes) && Math.random() >= taxaDeAmostragem()) return
       const fim = Date.now()
       const p = (async () => {
         try {

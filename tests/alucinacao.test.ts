@@ -1,10 +1,17 @@
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import { filtrarAlucinacao } from '../src/gateway/alucinacao'
 
 describe('filtro de alucinação do Whisper', () => {
   it('descarta os créditos e agradecimentos clássicos do silêncio', () => {
-    for (const t of ['Legendas pela comunidade Amara.org', 'Thank you for watching!', 'Obrigado por assistir.', 'Subtitles by the Amara.org community', '...', 'you'])
+    for (const t of [
+      'Legendas pela comunidade Amara.org',
+      'Thank you for watching!',
+      'Obrigado por assistir.',
+      'Subtitles by the Amara.org community',
+      '...',
+      'you',
+    ])
       expect(filtrarAlucinacao(t, 2)).toBe('')
   })
   it('descarta texto rápido demais para a duração e o token repetido', () => {
@@ -12,7 +19,9 @@ describe('filtro de alucinação do Whisper', () => {
     expect(filtrarAlucinacao('no no no no no', 3)).toBe('')
   })
   it('mantém fala legítima, inclusive curta', () => {
-    expect(filtrarAlucinacao('Thank you so much for your help today.', 3)).toBe('Thank you so much for your help today.')
+    expect(filtrarAlucinacao('Thank you so much for your help today.', 3)).toBe(
+      'Thank you so much for your help today.',
+    )
     expect(filtrarAlucinacao('Vamos começar a reunião.', 2)).toBe('Vamos começar a reunião.')
     expect(filtrarAlucinacao('Sí.', 1)).toBe('Sí.')
   })
@@ -106,18 +115,55 @@ describe('vocalização: a saída inteira é grito, riso ou letra solta (bancada
      e o grosso eram estas formas — "Aaaaah!", "Ahahahah!", "BAPAPAP!", um "e" solto. Nenhuma é
      legenda útil, nem quando alguém de fato ri ou grita. */
   it('descarta interjeição esticada, sílaba repetida e letra solta', () => {
-    for (const t of ['Aaaaaaaaahhhhhh', 'AAAAAAAA!', 'Ooooooo!', 'Ahahahahahahahah!', 'BAPAPAP!', 'Hmmmm...', 'Rrrr... Hummm...',
-      'e', 'E', 'O', 'Ah!', 'Ah! Ah!', 'Eee!', 'Uuuuuh!', 'Hahaha!', 'Hã?', 'Tchp!', 'Ohhh!', 'Eeeeeee Arrrggg!', 'Bip, bip, bip...'])
+    for (const t of [
+      'Aaaaaaaaahhhhhh',
+      'AAAAAAAA!',
+      'Ooooooo!',
+      'Ahahahahahahahah!',
+      'BAPAPAP!',
+      'Hmmmm...',
+      'Rrrr... Hummm...',
+      'e',
+      'E',
+      'O',
+      'Ah!',
+      'Ah! Ah!',
+      'Eee!',
+      'Uuuuuh!',
+      'Hahaha!',
+      'Hã?',
+      'Tchp!',
+      'Ohhh!',
+      'Eeeeeee Arrrggg!',
+      'Bip, bip, bip...',
+    ])
       expect(filtrarAlucinacao(t, 5, 'pt'), t).toBe('')
   })
 
   it('fala com uma interjeição no meio fica inteira', () => {
-    for (const t of ['Ah, entendi agora.', 'Aaah, que legal!', 'Não. E aí, tudo bem?', 'Hahaha, que engraçado.', 'Oh my god!'])
+    for (const t of [
+      'Ah, entendi agora.',
+      'Aaah, que legal!',
+      'Não. E aí, tudo bem?',
+      'Hahaha, que engraçado.',
+      'Oh my god!',
+    ])
       expect(filtrarAlucinacao(t, 3, 'pt'), t).toBe(t)
   })
 
   it('palavras curtas de verdade não são vocalização', () => {
     for (const t of ['Não.', 'Sim!', 'Oi!', 'Yes.', 'No.', 'Ok.', 'Tá.'])
       expect(filtrarAlucinacao(t, 1.2, 'pt'), t).toBe(t)
+  })
+})
+
+describe('onomatopeia sem vogal e marcador sem colchete (bancada 2026-09, nuvem + VAD)', () => {
+  it('descarta', () => {
+    for (const t of ['Vrm', 'Vr... Vrm...', 'Grr!', 'Música', 'Music.', 'Aplausos'])
+      expect(filtrarAlucinacao(t, 4, 'pt'), t).toBe('')
+  })
+  it('fala com essas palavras dentro fica', () => {
+    for (const t of ['Que música linda!', 'Aplausos para ele.', 'I love this music.', 'Hm.'])
+      expect(filtrarAlucinacao(t, 1, 'pt'), t).toBe(t)
   })
 })

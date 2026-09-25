@@ -35,7 +35,7 @@
  * A ASSINATURA `(texto, audioSec, lang)` é contrato: o servidor importa esta função para filtrar a
  * saída do STT de nuvem com as mesmas regras do worker local.
  */
-import { baseLang } from '@core/texto/idioma'
+import { baseLang } from '@core/texto/idioma';
 
 const FRASES_ALUCINADAS: RegExp[] = [
   /legendas? (pela|da) comunidade/i,
@@ -46,17 +46,34 @@ const FRASES_ALUCINADAS: RegExp[] = [
   /^(inscreva-se|se inscreva|subscribe|please subscribe|like and subscribe|suscr[ií]bete)/i,
   // Marcador de trilha: "[Música]", "(music)", "[Aplausos]" — descrição de legenda, não fala.
   /^[[(]\s*(m[úu]sica|music|musique|musik|aplausos|applause|risos|laughter|sil[êe]ncio|silence)\s*[\])]\W*$/i,
+  // O mesmo marcador SEM colchetes, quando é a saída inteira (medido: "Música" sobre som de insetos).
+  /^(m[úu]sica|music|aplausos|applause|risos|laughter)[\s\p{P}]*$/iu,
   /^[\s\p{P}\p{S}]*$/u, // só pontuação / reticências / notas musicais (♪)
-]
+];
 /* Token solto clássico do silêncio — SÓ quando a dica de idioma é inglês (ou desconhecida). Em
    português "Ah." e "Hum." são respostas legítimas curtas, e um "so" isolado não aparece. */
-const TOKEN_SOLTO_EN = /^(you|so|hmm|uh|um|ah)\W*$/i
+const TOKEN_SOLTO_EN = /^(you|so|hmm|uh|um|ah)\W*$/i;
 
 /** Cortesia curta que é a saída INTEIRA do motor. Só é descartada com áudio longo (ver nível 2). */
 const CORTESIAS =
-  /^(muito )?(obrigad[oa]|valeu|thank you( (very|so) much)?|thanks( a lot)?|(muchas )?gracias|merci( beaucoup)?|danke( sch[öo]n)?|tchau(,? tchau)?|bye(,? bye)?|adi[óo]s|e a[íi])[\s\p{P}]*$/iu
+  /^(muito )?(obrigad[oa]|valeu|thank you( (very|so) much)?|thanks( a lot)?|(muchas )?gracias|merci( beaucoup)?|danke( sch[öo]n)?|tchau(,? tchau)?|bye(,? bye)?|adi[óo]s|e a[íi])[\s\p{P}]*$/iu;
 /** Interjeições sem conteúdo — só contam quando a saída INTEIRA é feita delas (nível 4). */
-const INTERJEICOES = new Set(['ah', 'oh', 'eh', 'uh', 'hum', 'hm', 'hmm', 'hã', 'ahn', 'tchp', 'bip', 'argh', 'arg', 'ugh'])
+const INTERJEICOES = new Set([
+  'ah',
+  'oh',
+  'eh',
+  'uh',
+  'hum',
+  'hm',
+  'hmm',
+  'hã',
+  'ahn',
+  'tchp',
+  'bip',
+  'argh',
+  'arg',
+  'ugh',
+]);
 
 /**
  * Um token é vocalização: letra solta, letra triplicada ou sílaba curta em ciclo — sempre. A
@@ -64,15 +81,17 @@ const INTERJEICOES = new Set(['ah', 'oh', 'eh', 'uh', 'hum', 'hm', 'hmm', 'hã',
  * sozinha num trecho de mais de 3 s, é o motor completando ruído (a mesma régua das cortesias).
  */
 function ehVocalizacao(token: string, audioSec: number): boolean {
-  const w = token.toLowerCase().replace(/[^\p{L}]/gu, '')
-  if (w.length <= 1) return true
-  if (INTERJEICOES.has(w)) return audioSec > SEGUNDOS_DE_CORTESIA_SUSPEITA
-  if (/(\p{L})\1{2,}/u.test(w)) return true // "aaah", "hmmm", "rrrr"
-  return /(\p{L}{1,3})\1{2,}/u.test(w) // "hahaha", "ahahah", "bapapap"
+  const w = token.toLowerCase().replace(/[^\p{L}]/gu, '');
+  if (w.length <= 1) return true;
+  if (INTERJEICOES.has(w)) return audioSec > SEGUNDOS_DE_CORTESIA_SUSPEITA;
+  // Sem nenhuma vogal não é palavra de pt/en/es: "Vrm", "Grr", "Shh", "Tsk" — ruído virando texto.
+  if (!/[aeiouyàáâãéêíóôõúü]/.test(w)) return true;
+  if (/(\p{L})\1{2,}/u.test(w)) return true; // "aaah", "hmmm", "rrrr"
+  return /(\p{L}{1,3})\1{2,}/u.test(w); // "hahaha", "ahahah", "bapapap"
 }
 
 /** Acima disto, uma cortesia sozinha não explica o áudio: é o clichê preenchendo silêncio/música. */
-const SEGUNDOS_DE_CORTESIA_SUSPEITA = 3
+const SEGUNDOS_DE_CORTESIA_SUSPEITA = 3;
 
 /**
  * Colapsa n-gramas repetidos em sequência. Bigramas para cima: 3 ou mais repetições viram uma.
@@ -81,58 +100,58 @@ const SEGUNDOS_DE_CORTESIA_SUSPEITA = 3
  * caixa e pontuação; o que fica é a PRIMEIRA ocorrência, com a grafia original.
  */
 export function desenrolarLoops(texto: string): string {
-  let palavras = texto.split(/\s+/).filter(Boolean)
-  const chave = (w: string) => w.toLowerCase().replace(/[\p{P}\p{S}]/gu, '')
-  let mudou = true
+  let palavras = texto.split(/\s+/).filter(Boolean);
+  const chave = (w: string) => w.toLowerCase().replace(/[\p{P}\p{S}]/gu, '');
+  let mudou = true;
   while (mudou) {
-    mudou = false
-    const k = palavras.map(chave)
+    mudou = false;
+    const k = palavras.map(chave);
     const igual = (a: number, b: number, n: number) => {
-      for (let j = 0; j < n; j++) if (!k[a + j] || k[a + j] !== k[b + j]) return false
-      return true
-    }
+      for (let j = 0; j < n; j++) if (!k[a + j] || k[a + j] !== k[b + j]) return false;
+      return true;
+    };
     for (let n = 1; n <= Math.floor(palavras.length / 3) && !mudou; n++) {
-      const minimo = n === 1 ? 4 : 3
+      const minimo = n === 1 ? 4 : 3;
       for (let i = 0; i + n * minimo <= palavras.length; i++) {
-        let reps = 1
-        while (i + (reps + 1) * n <= palavras.length && igual(i, i + reps * n, n)) reps++
+        let reps = 1;
+        while (i + (reps + 1) * n <= palavras.length && igual(i, i + reps * n, n)) reps++;
         if (reps >= minimo) {
-          palavras = [...palavras.slice(0, i + n), ...palavras.slice(i + reps * n)]
-          mudou = true
-          break
+          palavras = [...palavras.slice(0, i + n), ...palavras.slice(i + reps * n)];
+          mudou = true;
+          break;
         }
       }
     }
   }
-  return palavras.join(' ')
+  return palavras.join(' ');
 }
 
 /** Palavras por segundo acima do qual não é fala humana, por idioma da dica. */
 export function tetoDePalavrasPorSegundo(lang?: string): number {
-  const l = baseLang(lang)
-  return !l || l === 'en' ? 6 : 8
+  const l = baseLang(lang);
+  return !l || l === 'en' ? 6 : 8;
 }
 
 /** Tokens/segundo para o teto dinâmico de geração: PT/ES/… tokenizam pior que EN no vocabulário do Whisper. */
 export function tokensPorSegundo(lang?: string): number {
-  const l = baseLang(lang)
-  return !l || l === 'en' ? 15 : 22
+  const l = baseLang(lang);
+  return !l || l === 'en' ? 15 : 22;
 }
 
 export function filtrarAlucinacao(texto: string, audioSec: number, lang?: string): string {
-  const original = texto.trim()
-  if (!original) return ''
-  if (FRASES_ALUCINADAS.some((r) => r.test(original))) return ''
-  const palavrasOriginais = original.split(/\s+/)
+  const original = texto.trim();
+  if (!original) return '';
+  if (FRASES_ALUCINADAS.some((r) => r.test(original))) return '';
+  const palavrasOriginais = original.split(/\s+/);
   // "no no no no": a saída INTEIRA é um token só em ciclo — não há fala a salvar.
-  if (palavrasOriginais.length >= 4 && new Set(palavrasOriginais.map((p) => p.toLowerCase())).size === 1) return ''
+  if (palavrasOriginais.length >= 4 && new Set(palavrasOriginais.map((p) => p.toLowerCase())).size === 1) return '';
   // Reparo antes das checagens de forma: o ciclo colapsado deixa de estourar o teto de velocidade.
-  const t = desenrolarLoops(original)
-  if (audioSec > SEGUNDOS_DE_CORTESIA_SUSPEITA && CORTESIAS.test(t)) return ''
-  const l = baseLang(lang)
-  if ((!l || l === 'en') && TOKEN_SOLTO_EN.test(t)) return ''
-  const palavras = t.split(/\s+/)
-  if (palavras.every((p) => ehVocalizacao(p, audioSec))) return ''
-  if (audioSec > 0 && palavras.length / audioSec > tetoDePalavrasPorSegundo(lang)) return ''  // rápido demais para fala
-  return t
+  const t = desenrolarLoops(original);
+  if (audioSec > SEGUNDOS_DE_CORTESIA_SUSPEITA && CORTESIAS.test(t)) return '';
+  const l = baseLang(lang);
+  if ((!l || l === 'en') && TOKEN_SOLTO_EN.test(t)) return '';
+  const palavras = t.split(/\s+/);
+  if (palavras.every((p) => ehVocalizacao(p, audioSec))) return '';
+  if (audioSec > 0 && palavras.length / audioSec > tetoDePalavrasPorSegundo(lang)) return ''; // rápido demais para fala
+  return t;
 }

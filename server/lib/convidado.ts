@@ -128,11 +128,6 @@ export async function poolDoDiaUsd(agora = relogio()): Promise<number> {
   return Math.max(pisoUsdDia, (fracaoDaReceita * (await receitaLiquidaDoMesUsd(agora))) / 30)
 }
 
-/** Só para testes: esquece a receita em cache. */
-export function _esquecerReceita(): void {
-  receitaEmCache = null
-}
-
 // ───────────────────────────── respostas ─────────────────────────────
 
 export const MENSAGEM_EXIGE_CONTA =

@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 /**
- * Baixa os pesos dos modelos locais (Whisper tiny + opus-mt) para `public/models/`, no layout
+ * Baixa os pesos dos modelos locais (Whisper tiny + Moonshine + opus-mt) para `public/models/`, no layout
  * que o transformers.js espera (`public/models/<org>/<repo>/<arquivo>`). Serve para SELF-HOST:
  * ligue com `VITE_SELF_HOST_MODELS=1` no build e o app carrega os pesos do MESMO domínio, sem
  * depender do Hub em runtime nem da partição do Cache Storage.
  *
  * Uso:  node scripts/fetch-models.mjs
  *       node scripts/fetch-models.mjs --onnx-dtype q4,fp32,int8   (filtra os .onnx por dtype)
+ *       node scripts/fetch-models.mjs --modelo onnx-community/moonshine-base-ONNX   (só este)
  *
  * Idempotente: pula arquivos que já existem. `public/models/` é gitignored (Docker assa na imagem).
  */
@@ -22,10 +23,17 @@ const HASHES_FILE = join(ROOT, 'scripts', 'models-hashes.json')
 // S-09: manifesto de integridade (TOFU). Carregado na entrada, atualizado com hashes novos ao fim.
 let manifest = {}
 let manifestDirty = false
-try { manifest = JSON.parse(await readFile(HASHES_FILE, 'utf8')) } catch { manifest = {} }
+try {
+  manifest = JSON.parse(await readFile(HASHES_FILE, 'utf8'))
+} catch {
+  manifest = {}
+}
 
 const MODELS = [
   'onnx-community/whisper-tiny',
+  // STT local de INGLÊS (src/gateway/adapters/moonshine.ts): base na rota padrão, tiny no "rápido".
+  'onnx-community/moonshine-base-ONNX',
+  'onnx-community/moonshine-tiny-ONNX',
   'Xenova/opus-mt-en-ROMANCE',
   'Xenova/opus-mt-ROMANCE-en',
   // Identificação de voz (src/lib/speakerIdWorker.ts:20). Estava FORA desta lista: em self-host
@@ -38,23 +46,47 @@ const MODELS = [
 // Só precisamos dos dtypes que os workers realmente usam (encoder fp32, decoder q4 no Whisper;
 // int8/fp16 no opus-mt). Baixar todos os .onnx desperdiça centenas de MB. Ajuste via flag.
 const dtypeArg = process.argv.indexOf('--onnx-dtype')
-const KEEP_DTYPES = dtypeArg > -1 && process.argv[dtypeArg + 1]
-  ? process.argv[dtypeArg + 1].split(',')
-  /* ATENÇÃO AO NOME DO ARQUIVO: no transformers.js o dtype `q8` é gravado em disco como
+const KEEP_DTYPES =
+  dtypeArg > -1 && process.argv[dtypeArg + 1]
+    ? process.argv[dtypeArg + 1].split(',')
+    : /* ATENÇÃO AO NOME DO ARQUIVO: no transformers.js o dtype `q8` é gravado em disco como
      `model_quantized.onnx`, NÃO `model_q8.onnx`. O WeSpeaker é carregado em q8
      (speakerIdWorker.ts:31) e o Whisper cai nele quando o `hybrid` falha; sem `quantized` nesta
      lista, o self-host baixaria a PASTA do modelo sem o peso que o runtime pede — a falha mais
      silenciosa possível, porque tudo parece ter sido baixado. Verificado no repositório: lá há
      `model_quantized.onnx` (6,7 MB) e não existe nenhum `model_q8`. */
-  : ['fp32', 'q4', 'quantized', 'int8', 'fp16']
+      ['fp32', 'q4', 'quantized', 'int8', 'fp16']
 
-function keepOnnx(path) {
+/* Modelos cujo worker pede UM dtype só: baixa exatamente os .onnx dele, não a régua geral acima.
+   O moonshine carrega sempre em q8 (`DTYPE_MOONSHINE`), ou seja `*_quantized.onnx`; a régua geral
+   traria também fp32/q4/int8/fp16 de três grafos de decoder — ~1 GB para usar 63 MB. */
+const ONNX_DO_MODELO = {
+  'onnx-community/moonshine-base-ONNX': [
+    'onnx/encoder_model_quantized.onnx',
+    'onnx/decoder_model_merged_quantized.onnx',
+  ],
+  'onnx-community/moonshine-tiny-ONNX': [
+    'onnx/encoder_model_quantized.onnx',
+    'onnx/decoder_model_merged_quantized.onnx',
+  ],
+}
+
+const modeloArg = process.argv.indexOf('--modelo')
+const SO_MODELO = modeloArg > -1 ? process.argv[modeloArg + 1] : null
+
+function keepOnnx(path, id) {
   if (!path.endsWith('.onnx') && !path.endsWith('.onnx_data')) return true // configs/tokenizers sempre
+  if (ONNX_DO_MODELO[id]) return ONNX_DO_MODELO[id].includes(path)
   return KEEP_DTYPES.some((d) => path.includes(`_${d}.`) || path.includes(`_${d}_`) || path.endsWith(`_${d}.onnx`))
 }
 
 async function exists(p) {
-  try { await stat(p); return true } catch { return false }
+  try {
+    await stat(p)
+    return true
+  } catch {
+    return false
+  }
 }
 
 async function listRepoFiles(id) {
@@ -76,9 +108,14 @@ async function download(id, path) {
   const key = `${id}/${path}`
   const { status, hex } = checkModelHash(key, buf, manifest)
   if (status === 'mismatch') {
-    throw new Error(`HASH NÃO BATE (${key}) — possível adulteração; esperado ${manifest[key].slice(0, 12)}…, veio ${hex.slice(0, 12)}…`)
+    throw new Error(
+      `HASH NÃO BATE (${key}) — possível adulteração; esperado ${manifest[key].slice(0, 12)}…, veio ${hex.slice(0, 12)}…`,
+    )
   }
-  if (status === 'new') { manifest[key] = hex; manifestDirty = true }
+  if (status === 'new') {
+    manifest[key] = hex
+    manifestDirty = true
+  }
   await mkdir(dirname(dest), { recursive: true })
   await writeFile(dest, buf)
   return { bytes: buf.length, pinned: status === 'ok' }
@@ -87,12 +124,16 @@ async function download(id, path) {
 async function main() {
   let total = 0
   for (const id of MODELS) {
+    if (SO_MODELO && id !== SO_MODELO) continue
     process.stdout.write(`\n📦 ${id}\n`)
-    const files = (await listRepoFiles(id)).filter(keepOnnx)
+    const files = (await listRepoFiles(id)).filter((p) => keepOnnx(p, id))
     for (const path of files) {
       try {
         const r = await download(id, path)
-        if (r.skipped) { process.stdout.write(`   · ${path} (já existe)\n`); continue }
+        if (r.skipped) {
+          process.stdout.write(`   · ${path} (já existe)\n`)
+          continue
+        }
         total += r.bytes
         process.stdout.write(`   ✓ ${path} (${(r.bytes / 1e6).toFixed(1)} MB)\n`)
       } catch (e) {
@@ -110,4 +151,7 @@ async function main() {
   process.stdout.write('   Ligue o self-host com VITE_SELF_HOST_MODELS=1 no build.\n')
 }
 
-main().catch((e) => { console.error(e); process.exit(1) })
+main().catch((e) => {
+  console.error(e)
+  process.exit(1)
+})

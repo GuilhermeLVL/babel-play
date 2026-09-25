@@ -14,18 +14,23 @@ import { getActiveProfile, getProviderMode } from '../../gateway/activeProfile';
 import { capMetrics, type CapSource } from '../../gateway/capture/captureMetrics';
 import { areModelsCached, expectedModelIds } from '../../gateway/modelCache';
 import type { ContextoDoStt } from '../../gateway/promptDeStt';
-import { getSttQuality,routeStt } from '../../gateway/sttRouter';
+import { getSttQuality, routeStt } from '../../gateway/sttRouter';
 import { DominantLangTracker } from '../convoLang';
 import { detectLanguage } from '../langDetect';
-import { baseLang,langLabel } from '../languages';
+import { baseLang, langLabel } from '../languages';
 import { PerfilAdaptativoDeIdioma } from '../perfilDeIdioma';
 import { SpeakerClusterer } from '../speakerCluster';
 import { embedUtterance } from '../speakerId';
 import { isTtsActive } from '../tts';
 import { classificarVazamento, type Intervalo } from '../vazamento';
 import {
-  type CaptureScenario,   clog, formatTime, type GatewayDaCaptura, type SpeakerProfile, type SpeechSegment,
-wordsFromText,
+  type CaptureScenario,
+  clog,
+  formatTime,
+  type GatewayDaCaptura,
+  type SpeakerProfile,
+  type SpeechSegment,
+  wordsFromText,
 } from './tiposDaFala';
 import type { OpcoesDeTraducao } from './traducaoDaFala';
 
@@ -98,17 +103,47 @@ export interface DepsDoPipelineDeFala {
 export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
   const {
     gateway,
-    sourceLang, sourceLangRef, targetLangRef, autoDetectLangRef, autoDetectMyLangRef,
-    idiomaObservadoRef, captureScenarioRef, perfModeRef, micEnabled, micEngine,
-    timerRef, nowRel,
-    setSpeechSegments, seqToSegmentRef, lastPartialTextRef, pendingUtterancesRef,
-    suppressedSeqsRef, modelReadyRef, prepareEmVooRef,
-    speakerProfilesRef, setSpeakerProfiles, speakerAutoIdRef, clustererRef,
-    lastVoiceIdRef, provisionalUttsRef, ensureVoiceProfile,
-    dominantLangRef, perfilIdiomaRef, perfilMicRef, avisoIdiomaMicRef, setIdiomaObservado,
-    sysFalasRef, sysAbertasRef, micInicioRef, avisoVazamentoRef,
-    translateSegment, retraduzirDegradados,
-    setFeedbackMsg, setModelPrep, setSttRouteLabel, contextoDoSttRef,
+    sourceLang,
+    sourceLangRef,
+    targetLangRef,
+    autoDetectLangRef,
+    autoDetectMyLangRef,
+    idiomaObservadoRef,
+    captureScenarioRef,
+    perfModeRef,
+    micEnabled,
+    micEngine,
+    timerRef,
+    nowRel,
+    setSpeechSegments,
+    seqToSegmentRef,
+    lastPartialTextRef,
+    pendingUtterancesRef,
+    suppressedSeqsRef,
+    modelReadyRef,
+    prepareEmVooRef,
+    speakerProfilesRef,
+    setSpeakerProfiles,
+    speakerAutoIdRef,
+    clustererRef,
+    lastVoiceIdRef,
+    provisionalUttsRef,
+    ensureVoiceProfile,
+    dominantLangRef,
+    perfilIdiomaRef,
+    perfilMicRef,
+    avisoIdiomaMicRef,
+    setIdiomaObservado,
+    sysFalasRef,
+    sysAbertasRef,
+    micInicioRef,
+    avisoVazamentoRef,
+    translateSegment,
+    retraduzirDegradados,
+    setFeedbackMsg,
+    setModelPrep,
+    setSttRouteLabel,
+    contextoDoSttRef,
   } = deps;
 
   // Handlers de captura por FONTE (sistema/mic). Um único pipeline VAD→Whisper serve as duas
@@ -124,9 +159,8 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     const idPrefix = isSys ? 'sys' : 'mic';
     const offset = isSys ? 0 : MIC_SEQ_OFFSET;
     // MIC = você → orador ativo (se houver) ou 'user'. SISTEMA = 'system' (eles).
-    const speakerIdFor = (): string => isSys
-      ? 'system'
-      : (speakerProfilesRef.current.find(p => p.isActive && p.id !== 'system')?.id ?? 'user');
+    const speakerIdFor = (): string =>
+      isSys ? 'system' : (speakerProfilesRef.current.find((p) => p.isActive && p.id !== 'system')?.id ?? 'user');
     const langs = () => {
       // MULTI-IDIOMA: hint vazio → Whisper detecta o idioma da fala; origem vazia → o
       // Tradutor IA do servidor detecta e traduz para o alvo. Sistema traduz para o idioma
@@ -156,8 +190,16 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
         return { hint: '', from: '', to: convoLang || targetLangRef.current.split('-')[0] };
       }
       return isSys
-        ? { hint: targetLangRef.current.split('-')[0], from: targetLangRef.current.split('-')[0], to: sourceLangRef.current.split('-')[0] }
-        : { hint: sourceLangRef.current.split('-')[0], from: sourceLangRef.current.split('-')[0], to: targetLangRef.current.split('-')[0] };
+        ? {
+            hint: targetLangRef.current.split('-')[0],
+            from: targetLangRef.current.split('-')[0],
+            to: sourceLangRef.current.split('-')[0],
+          }
+        : {
+            hint: sourceLangRef.current.split('-')[0],
+            from: sourceLangRef.current.split('-')[0],
+            to: targetLangRef.current.split('-')[0],
+          };
     };
 
     // Início de fala (seq monotônico): cria o balão. Sem "ouvindo…" — o texto real flui no 1º parcial.
@@ -175,11 +217,26 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       const uttId = `${idPrefix}-${seq}`;
       seqToSegmentRef.current.set(seq, uttId);
       capMetrics.start(seq, source);
-      if (isSys) sysAbertasRef.current.set(seq, Date.now()); else micInicioRef.current.set(seq, Date.now());
-      setSpeechSegments(prev => prev.some(s => s.id === uttId) ? prev : [...prev, {
-        id: uttId, speakerId: speakerIdFor(), source, timestamp: formatTime(timerRef.current),
-        originalText: '', translatedText: '…', words: [], isPartial: true, tStartMs: nowRel(),
-      }]);
+      if (isSys) sysAbertasRef.current.set(seq, Date.now());
+      else micInicioRef.current.set(seq, Date.now());
+      setSpeechSegments((prev) =>
+        prev.some((s) => s.id === uttId)
+          ? prev
+          : [
+              ...prev,
+              {
+                id: uttId,
+                speakerId: speakerIdFor(),
+                source,
+                timestamp: formatTime(timerRef.current),
+                originalText: '',
+                translatedText: '…',
+                words: [],
+                isPartial: true,
+                tStartMs: nowRel(),
+              },
+            ],
+      );
     };
 
     // Ruído curto (misfire): remove o balão provisório para não deixar bloco órfão.
@@ -190,7 +247,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       seqToSegmentRef.current.delete(seq);
       lastPartialTextRef.current.delete(seq);
       capMetrics.drop(seq);
-      if (id) setSpeechSegments(prev => prev.filter(s => s.id !== id));
+      if (id) setSpeechSegments((prev) => prev.filter((s) => s.id !== id));
     };
 
     // PARCIAL: transcreve o buffer-até-agora SÓ SE o Whisper estiver ocioso (idle-gating →
@@ -215,15 +272,20 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
          Vale para as DUAS fontes: o mic em modo automático também mandava parcial sem dica e o
          balão de "você" piscava inglês antes do final em português. */
       if (!from && !hint) return;
-      gateway.stt.transcribePartial(pcm, sr, { languageHint: hint })
-        .then(res => {
-          if (!res) { capMetrics.saturated(seq); return; } // worker ocupado → parcial descartado
-          if (!seqToSegmentRef.current.has(seq)) return;   // já finalizou → o final é autoritativo
+      gateway.stt
+        .transcribePartial(pcm, sr, { languageHint: hint })
+        .then((res) => {
+          if (!res) {
+            capMetrics.saturated(seq);
+            return;
+          } // worker ocupado → parcial descartado
+          if (!seqToSegmentRef.current.has(seq)) return; // já finalizou → o final é autoritativo
           const clean = (res.text ?? '').trim();
           if (!clean) return;
           capMetrics.partial(seq);
-          setSpeechSegments(prev => prev.map(s =>
-            (s.id === uttId && s.isPartial) ? { ...s, originalText: clean } : s));
+          setSpeechSegments((prev) =>
+            prev.map((s) => (s.id === uttId && s.isPartial ? { ...s, originalText: clean } : s)),
+          );
           if (lastPartialTextRef.current.get(seq) !== clean) {
             lastPartialTextRef.current.set(seq, clean);
             // `descartarSeOcupado`: já há tradução em voo para este balão → não pede outra. Cada
@@ -232,7 +294,9 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
             translateSegment(uttId, clean, from, to, { descartarSeOcupado: true, falada: !isSys });
           }
         })
-        .catch(() => { capMetrics.saturated(seq); });
+        .catch(() => {
+          capMetrics.saturated(seq);
+        });
     };
 
     // Fim da fala → decode FINAL (autoritativo) → commit do texto + tradução.
@@ -248,9 +312,18 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
         // Limite de ~24 trechos (~2 min de fala) para não crescer sem fim se a carga travar.
         if (pendingUtterancesRef.current.length < 24) {
           pendingUtterancesRef.current.push({ pcm: pcm.slice(), sr, rawSeq, source });
-          clog('modelo ainda carregando, trecho', rawSeq, source, 'GUARDADO p/ transcrever depois (', pendingUtterancesRef.current.length, 'na fila)');
+          clog(
+            'modelo ainda carregando, trecho',
+            rawSeq,
+            source,
+            'GUARDADO p/ transcrever depois (',
+            pendingUtterancesRef.current.length,
+            'na fila)',
+          );
           if (pendingUtterancesRef.current.length === 1) {
-            setFeedbackMsg('O modelo ainda está carregando, sua fala está sendo GUARDADA e será transcrita assim que ele ficar pronto.');
+            setFeedbackMsg(
+              'O modelo ainda está carregando, sua fala está sendo GUARDADA e será transcrita assim que ele ficar pronto.',
+            );
             setTimeout(() => setFeedbackMsg(''), 5000);
           }
         } else {
@@ -262,10 +335,24 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       const uttId = seqToSegmentRef.current.get(seq) ?? `${idPrefix}-${seq}`;
       capMetrics.speechEnd(seq);
       clog('enunciado', source, '(seq', seq, ') →', pcm.length, 'amostras @', sr, 'Hz, decode final');
-      setSpeechSegments(prev => prev.some(s => s.id === uttId) ? prev : [...prev, {
-        id: uttId, speakerId: speakerIdFor(), source, timestamp: formatTime(timerRef.current),
-        originalText: '', translatedText: '…', words: [], isPartial: true, tStartMs: nowRel(),
-      }]);
+      setSpeechSegments((prev) =>
+        prev.some((s) => s.id === uttId)
+          ? prev
+          : [
+              ...prev,
+              {
+                id: uttId,
+                speakerId: speakerIdFor(),
+                source,
+                timestamp: formatTime(timerRef.current),
+                originalText: '',
+                translatedText: '…',
+                words: [],
+                isPartial: true,
+                tStartMs: nowRel(),
+              },
+            ],
+      );
 
       // IDENTIFICAÇÃO DE VOZ (paralela ao decode; nunca atrasa a legenda): quem falou?
       // Só nas vozes do SISTEMA em Conversa — a sua voz já é "Você" por definição.
@@ -275,10 +362,14 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
             // Curto demais p/ identificar → herda a última voz (é quase sempre a mesma pessoa
             // terminando a frase). Sem voz anterior, fica no genérico "Outros".
             const inherit = lastVoiceIdRef.current;
-            if (inherit) setSpeechSegments(prev => prev.map(s => (s.id === uttId && s.speakerId === 'system') ? { ...s, speakerId: inherit } : s));
+            if (inherit)
+              setSpeechSegments((prev) =>
+                prev.map((s) => (s.id === uttId && s.speakerId === 'system' ? { ...s, speakerId: inherit } : s)),
+              );
             return;
           }
-          const { clusterId, isNew, provisional, promoted, uncertain, similarity, merged } = clustererRef.current.assign(emb);
+          const { clusterId, isNew, provisional, promoted, uncertain, similarity, merged } =
+            clustererRef.current.assign(emb);
 
           // VOZ PROVISÓRIA: ainda não é uma pessoa na tela. A fala fica com a voz anterior (ou no
           // genérico) e é GUARDADA sob este id; se uma segunda fala confirmar, ela é reetiquetada.
@@ -289,26 +380,36 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
             pendentes.push(uttId);
             provisionalUttsRef.current.set(clusterId, pendentes);
             const heranca = lastVoiceIdRef.current;
-            if (heranca) setSpeechSegments(prev => prev.map(s => (s.id === uttId && s.speakerId === 'system') ? { ...s, speakerId: heranca } : s));
+            if (heranca)
+              setSpeechSegments((prev) =>
+                prev.map((s) => (s.id === uttId && s.speakerId === 'system' ? { ...s, speakerId: heranca } : s)),
+              );
             return;
           }
 
           const vid = ensureVoiceProfile(clusterId);
           lastVoiceIdRef.current = vid;
           if (isNew) clog('voz NOVA identificada → Pessoa', clusterId, '(sim', similarity.toFixed(2), ')');
-          else if (uncertain) clog('voz em DÚVIDA (sim', similarity.toFixed(2), ') → atribuída a Pessoa', clusterId, 'sem alterar a referência');
+          else if (uncertain)
+            clog(
+              'voz em DÚVIDA (sim',
+              similarity.toFixed(2),
+              ') → atribuída a Pessoa',
+              clusterId,
+              'sem alterar a referência',
+            );
           if (promoted) clog('voz provisória CONFIRMADA → Pessoa', promoted);
 
           // Falas guardadas enquanto a voz era provisória agora passam a ser dela.
           const guardadas = promoted ? (provisionalUttsRef.current.get(promoted) ?? []) : [];
           if (promoted) provisionalUttsRef.current.delete(promoted);
 
-          setSpeechSegments(prev => {
-            let next = prev.map(s => (s.id === uttId || guardadas.includes(s.id)) ? { ...s, speakerId: vid } : s);
+          setSpeechSegments((prev) => {
+            let next = prev.map((s) => (s.id === uttId || guardadas.includes(s.id) ? { ...s, speakerId: vid } : s));
             // FUSÃO: pessoas que se revelaram a mesma voz. Reetiqueta o que já está na tela —
             // é assim que os fantasmas do começo da conversa desaparecem sozinhos.
             for (const { from, into } of merged) {
-              next = next.map(s => s.speakerId === `voice_${from}` ? { ...s, speakerId: `voice_${into}` } : s);
+              next = next.map((s) => (s.speakerId === `voice_${from}` ? { ...s, speakerId: `voice_${into}` } : s));
             }
             return next;
           });
@@ -318,8 +419,8 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
               clog('vozes fundidas: Pessoa', from, '→ Pessoa', into, '(eram a mesma pessoa)');
               if (lastVoiceIdRef.current === `voice_${from}`) lastVoiceIdRef.current = `voice_${into}`;
             }
-            const mortos = new Set(merged.map(m => `voice_${m.from}`));
-            setSpeakerProfiles(prev => prev.filter(p => !mortos.has(p.id)));
+            const mortos = new Set(merged.map((m) => `voice_${m.from}`));
+            setSpeakerProfiles((prev) => prev.filter((p) => !mortos.has(p.id)));
             setFeedbackMsg(`Vozes parecidas foram unidas, agora são ${clustererRef.current.count} pessoa(s).`);
             setTimeout(() => setFeedbackMsg(''), 4000);
           }
@@ -333,22 +434,35 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       /* CONTEXTO para a nuvem: a última final DESTA fonte, se foi no idioma que estamos pedindo
          agora (sem dica = idioma desconhecido = sem prompt; ver `promptDeStt.ts`). */
       const prompt = contextoDoSttRef?.current.promptPara(source, hint);
-      gateway.stt.transcribePcm(pcm, sr, {
-        languageHint: hint,
-        prompt,
-        // STREAMING: mostra os tokens do decode final crescendo no balão em tempo real.
-        onUpdate: (streamed) => {
-          const partial = (streamed ?? '').trim();
-          if (!partial || !seqToSegmentRef.current.has(seq)) return;
-          setSpeechSegments(prev => prev.map(s =>
-            (s.id === uttId && s.isPartial) ? { ...s, originalText: partial } : s));
-        },
-      })
+      gateway.stt
+        .transcribePcm(pcm, sr, {
+          languageHint: hint,
+          prompt,
+          // STREAMING: mostra os tokens do decode final crescendo no balão em tempo real.
+          onUpdate: (streamed) => {
+            const partial = (streamed ?? '').trim();
+            if (!partial || !seqToSegmentRef.current.has(seq)) return;
+            setSpeechSegments((prev) =>
+              prev.map((s) => (s.id === uttId && s.isPartial ? { ...s, originalText: partial } : s)),
+            );
+          },
+        })
         .then(({ text, engine, language, alucinacaoDescartada }) => {
           const clean = (text ?? '').trim();
           if (!clean && alucinacaoDescartada) capMetrics.alucinacao();
           const decodeMs = Math.round(performance.now() - t0);
-          clog('Whisper final', source, '(seq', seq, ',', decodeMs, 'ms,', engine ?? '?', ') →', clean ? JSON.stringify(clean).slice(0, 80) : '(vazio)');
+          clog(
+            'Whisper final',
+            source,
+            '(seq',
+            seq,
+            ',',
+            decodeMs,
+            'ms,',
+            engine ?? '?',
+            ') →',
+            clean ? JSON.stringify(clean).slice(0, 80) : '(vazio)',
+          );
           seqToSegmentRef.current.delete(seq);
           lastPartialTextRef.current.delete(seq);
           if (!clean) {
@@ -358,7 +472,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
                diz vazio, o parcial era alucinação e sai. */
             capMetrics.final(seq, { decodeMs, queueDepth, text: '', audioMs, engine });
             clog('Whisper final vazio → parcial descartado (seq', seq, ')');
-            setSpeechSegments(prev => prev.filter(s => s.id !== uttId));
+            setSpeechSegments((prev) => prev.filter((s) => s.id !== uttId));
             return;
           }
           /* O IDIOMA DEIXOU DE FICAR NA FRENTE DO TEXTO.
@@ -385,18 +499,36 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
           /* Vira o contexto do próximo trecho desta fonte. A fala do MIC no cenário conversa espera
              o veredicto de vazamento: se era a caixa de som entrando pelo microfone, não é a SUA
              fala e não pode virar o contexto dela. */
-          const registrarContexto = () => contextoDoSttRef?.current.registrar(source, clean, (from || idiomaDoMotor) || hint);
+          const registrarContexto = () =>
+            contextoDoSttRef?.current.registrar(source, clean, from || idiomaDoMotor || hint);
           if (isSys || captureScenarioRef.current !== 'conversation') registrarContexto();
-          setSpeechSegments(prev => prev.map(s => s.id === uttId
-            ? { ...s, originalText: clean, translatedText: '…', words: wordsFromText(clean, (from || idiomaDoMotor) || sourceLang), isPartial: false, tEndMs: nowRel(), lang: (from || idiomaDoMotor) || undefined, engine }
-            : s));
+          setSpeechSegments((prev) =>
+            prev.map((s) =>
+              s.id === uttId
+                ? {
+                    ...s,
+                    originalText: clean,
+                    translatedText: '…',
+                    words: wordsFromText(clean, from || idiomaDoMotor || sourceLang),
+                    isPartial: false,
+                    tEndMs: nowRel(),
+                    lang: from || idiomaDoMotor || undefined,
+                    engine,
+                  }
+                : s,
+            ),
+          );
 
           /** Alimenta o perfil da sessão e devolve o idioma desta fala ('' = não descobrimos). */
           const observarIdioma = async (): Promise<string> => {
             // Idioma medido pelo motor dispensa o detector de texto — é medição, não palpite.
             let detectado = idiomaDoMotor;
             if (!detectado) {
-              try { detectado = baseLang((await detectLanguage(clean))?.lang || ''); } catch { /* '' = desconhecido */ }
+              try {
+                detectado = baseLang((await detectLanguage(clean))?.lang || '');
+              } catch {
+                /* '' = desconhecido */
+              }
             }
             if (!isSys || !detectado) return detectado;
             // Alimenta o "idioma dominante da conversa" (destino da SUA fala no multi-idioma).
@@ -415,8 +547,13 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
                Antes ele só aparecia no caso "redirecionado", num vídeo em espanhol com usuário em
                português não há redirecionamento, então o perfil trabalhava em silêncio absoluto. */
             if (leitura.idioma !== antes) {
-              clog('perfil de idioma:', antes || '(ouvindo)', '→', leitura.idioma,
-                `(${Math.round(leitura.confianca * 100)}% de ${leitura.amostras} falas)`);
+              clog(
+                'perfil de idioma:',
+                antes || '(ouvindo)',
+                '→',
+                leitura.idioma,
+                `(${Math.round(leitura.confianca * 100)}% de ${leitura.amostras} falas)`,
+              );
             }
             if (leitura.estado === 'convergido' && leitura.idioma !== idiomaObservadoRef.current) {
               setIdiomaObservado(leitura.idioma);
@@ -427,9 +564,15 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
           /** SUA VOZ no cenário conversa: é vazamento da caixa de som? E você fala mesmo o idioma configurado? */
           const avaliarFalaDoMic = async (): Promise<boolean> => {
             let det = idiomaDoMotor;
-            if (!det) { try { det = baseLang((await detectLanguage(clean))?.lang || ''); } catch { /* '' */ } }
+            if (!det) {
+              try {
+                det = baseLang((await detectLanguage(clean))?.lang || '');
+              } catch {
+                /* '' */
+              }
+            }
             const idiomaDoSistema = idiomaObservadoRef.current || baseLang(targetLangRef.current);
-            const abertas = [...sysAbertasRef.current.values()].map(ini => ({ inicioMs: ini, fimMs: Date.now() }));
+            const abertas = [...sysAbertasRef.current.values()].map((ini) => ({ inicioMs: ini, fimMs: Date.now() }));
             const { veredicto, fracao } = classificarVazamento({
               idiomaDetectado: det || null,
               idiomaDoMic: from || baseLang(sourceLangRef.current),
@@ -438,12 +581,21 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
               falasDoSistema: [...sysFalasRef.current, ...abertas],
             });
             if (veredicto === 'vazamento') {
-              clog('vazamento: fala do mic soa como', det, 'com', Math.round(fracao * 100) + '% sobre o sistema → descartada (seq', seq, ')');
+              clog(
+                'vazamento: fala do mic soa como',
+                det,
+                'com',
+                Math.round(fracao * 100) + '% sobre o sistema → descartada (seq',
+                seq,
+                ')',
+              );
               capMetrics.drop(seq);
-              setSpeechSegments(prev => prev.filter(s => s.id !== uttId));
+              setSpeechSegments((prev) => prev.filter((s) => s.id !== uttId));
               if (!avisoVazamentoRef.current) {
                 avisoVazamentoRef.current = true;
-                setFeedbackMsg('O microfone está captando o áudio da chamada. Use fone de ouvido para a sua fala sair limpa.');
+                setFeedbackMsg(
+                  'O microfone está captando o áudio da chamada. Use fone de ouvido para a sua fala sair limpa.',
+                );
                 setTimeout(() => setFeedbackMsg(''), 9000);
               }
               return false;
@@ -455,7 +607,9 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
               if (leitura.estado === 'convergido' && leitura.idioma !== configurado && !avisoIdiomaMicRef.current) {
                 avisoIdiomaMicRef.current = true;
                 clog('perfil do mic convergiu em', leitura.idioma, 'mas "eu falo" está', configurado);
-                setFeedbackMsg(`Você parece falar ${langLabel(leitura.idioma)}, mas "Eu falo" está em ${langLabel(configurado)}. Ajuste no seletor de idiomas para a transcrição melhorar.`);
+                setFeedbackMsg(
+                  `Você parece falar ${langLabel(leitura.idioma)}, mas "Eu falo" está em ${langLabel(configurado)}. Ajuste no seletor de idiomas para a transcrição melhorar.`,
+                );
                 setTimeout(() => setFeedbackMsg(''), 9000);
               }
             }
@@ -465,7 +619,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
           if (from) {
             // Idioma FIXO: não há o que observar nem por que esperar.
             if (!isSys && captureScenarioRef.current === 'conversation') {
-              void avaliarFalaDoMic().then(ok => {
+              void avaliarFalaDoMic().then((ok) => {
                 if (!ok) return;
                 registrarContexto();
                 translateSegment(uttId, clean, from, to, { falada: true });
@@ -485,24 +639,33 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
             translateSegment(uttId, clean, origemConhecida, to, { falada: !isSys });
             void observarIdioma().then((d) => {
               if (d && d !== idiomaDoMotor) {
-                setSpeechSegments(prev => prev.map(s => s.id === uttId ? { ...s, lang: d } : s));
+                setSpeechSegments((prev) => prev.map((s) => (s.id === uttId ? { ...s, lang: d } : s)));
               }
             });
             return;
           }
           void observarIdioma().then((d) => {
-            if (d) setSpeechSegments(prev => prev.map(s => s.id === uttId ? { ...s, lang: d } : s));
+            if (d) setSpeechSegments((prev) => prev.map((s) => (s.id === uttId ? { ...s, lang: d } : s)));
             translateSegment(uttId, clean, d, to, { falada: !isSys });
           });
         })
-        .catch(err => {
+        .catch((err) => {
           clog('Whisper final', source, '(seq', seq, ') ERRO:', String(err));
           seqToSegmentRef.current.delete(seq);
           lastPartialTextRef.current.delete(seq);
           capMetrics.final(seq, { queueDepth });
-          setSpeechSegments(prev => prev.map(s => s.id === uttId
-            ? { ...s, originalText: s.originalText || '(falha na transcrição)', translatedText: s.originalText ? s.translatedText : `(${String(err).slice(0, 80)})`, isPartial: false }
-            : s));
+          setSpeechSegments((prev) =>
+            prev.map((s) =>
+              s.id === uttId
+                ? {
+                    ...s,
+                    originalText: s.originalText || '(falha na transcrição)',
+                    translatedText: s.originalText ? s.translatedText : `(${String(err).slice(0, 80)})`,
+                    isPartial: false,
+                  }
+                : s,
+            ),
+          );
         });
     };
 
@@ -525,11 +688,18 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
   // Prepara os modelos locais (Whisper + opus-mt) com barras honestas, detecção de cache e retry.
   // Nuvem: NÃO baixa modelo nenhum (a transcrição/tradução vai pela chave do usuário).
   const prepareModels = async () => {
-    if (getProviderMode() === 'cloud') { modelReadyRef.current = true; setModelPrep(null); return; }
+    if (getProviderMode() === 'cloud') {
+      modelReadyRef.current = true;
+      setModelPrep(null);
+      return;
+    }
     // A-P3-14: na captura dupla (mic + sistema) esta função era chamada DUAS vezes sem guard —
     // as duas resetavam `modelPrep` e sobrescreviam o `onProgress` do adapter, e a barra zerava
     // no meio. O guard é liberado no fim (sucesso ou erro) para o retry continuar possível.
-    if (prepareEmVooRef.current) { clog('preparação já em andamento, ignorando chamada duplicada'); return; }
+    if (prepareEmVooRef.current) {
+      clog('preparação já em andamento, ignorando chamada duplicada');
+      return;
+    }
     prepareEmVooRef.current = true;
     try {
       await prepareModelsInterno();
@@ -543,13 +713,15 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     const myLang = sourceLangRef.current.split('-')[0];
 
     // ROTEADOR DE MODELO STT: escolhe o motor pela QUALIDADE exigida pelo idioma do
-    // conteúdo (tiny erra feio fora do EN) — nuvem-primeiro quando disponível, senão o
+    // conteúdo (inglês → moonshine, que é SÓ inglês; fora dele, Whisper) — nuvem-primeiro quando disponível, senão o
     // melhor modelo local viável no dispositivo. O selo da UI reflete a rota.
     // Pelo funil: sem conta responde 501 → `cloudAvailable=false` → rota local, que é o correto.
-    const cloudAvailable = await apiFetch('/api/ai/stt/available').then(r => r.ok).catch(() => false);
+    const cloudAvailable = await apiFetch('/api/ai/stt/available')
+      .then((r) => r.ok)
+      .catch(() => false);
     const route = routeStt({
       contentLang: listenLang,
-      // O mesmo modelo decodifica o MIC: se você fala PT enquanto ouve EN, "tiny de inglês" não serve.
+      // O mesmo modelo decodifica o MIC: se você fala PT enquanto ouve EN, o moonshine (só inglês) não serve.
       micLang: micEnabled && micEngine === 'whisper' ? myLang : '',
       autoDetect: autoDetectLangRef.current || autoDetectMyLangRef.current,
       quality: getSttQuality(),
@@ -571,9 +743,12 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       flushPendingUtterances();
       setModelPrep({ whisper: 0, mt: null, fromCache: cached, error: null, done: false });
       gateway.mt.preload(listenLang, myLang, (p, _l, bytes) =>
-        setModelPrep((s) => (s ? { ...s, mt: p >= 1 ? 1 : p, mtBytes: bytes ?? s.mtBytes } : s)));
-      gateway.stt.preloadModel((p, _l, bytes) =>
-        setModelPrep((s) => (s ? { ...s, whisper: p >= 1 ? 1 : p, whisperBytes: bytes ?? s.whisperBytes } : s)))
+        setModelPrep((s) => (s ? { ...s, mt: p >= 1 ? 1 : p, mtBytes: bytes ?? s.mtBytes } : s)),
+      );
+      gateway.stt
+        .preloadModel((p, _l, bytes) =>
+          setModelPrep((s) => (s ? { ...s, whisper: p >= 1 ? 1 : p, whisperBytes: bytes ?? s.whisperBytes } : s)),
+        )
         .then(() => {
           clog('reserva local pronta ✓ (nuvem segue como principal)');
           setModelPrep((s) => (s ? { ...s, whisper: 1, done: true } : s));
@@ -607,7 +782,8 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       });
       // Whisper (obrigatório para transcrever o áudio do sistema/aba).
       await gateway.stt.preloadModel((p, _l, bytes) =>
-        setModelPrep((s) => (s ? { ...s, whisper: p >= 1 ? 1 : p, whisperBytes: bytes ?? s.whisperBytes } : s)));
+        setModelPrep((s) => (s ? { ...s, whisper: p >= 1 ? 1 : p, whisperBytes: bytes ?? s.whisperBytes } : s)),
+      );
       clog('modelos locais prontos ✓');
       modelReadyRef.current = true;
       flushPendingUtterances();
@@ -617,7 +793,9 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     } catch (e) {
       clog('preparação do modelo FALHOU:', String(e));
       const msg = String((e as Error)?.message ?? e);
-      setModelPrep((s) => (s ? { ...s, error: msg } : { whisper: null, mt: null, fromCache: cached, error: msg, done: false }));
+      setModelPrep((s) =>
+        s ? { ...s, error: msg } : { whisper: null, mt: null, fromCache: cached, error: msg, done: false },
+      );
     }
   };
 

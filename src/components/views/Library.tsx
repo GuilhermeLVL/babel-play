@@ -83,7 +83,7 @@ const FONTES: Array<{ key: FonteDeImportacao; Icone: typeof Youtube; label: stri
     key: 'youtube',
     Icone: Youtube,
     label: 'Link do YouTube',
-    sub: 'Legenda ou Whisper local',
+    sub: 'Legenda ou transcrição local',
     hint: 'Usa a legenda do vídeo quando existe (rápido, com tempos reais). Sem legenda, transcreve o áudio no navegador.',
   },
   {
@@ -105,7 +105,7 @@ const FONTES: Array<{ key: FonteDeImportacao; Icone: typeof Youtube; label: stri
     Icone: Upload,
     label: 'Áudio local',
     sub: 'MP3, WAV, M4A',
-    hint: 'Transcreve no seu navegador com o Whisper local, com tempos reais.',
+    hint: 'Transcreve no seu navegador com o modelo local, com tempos reais.',
   },
   {
     key: 'texto',

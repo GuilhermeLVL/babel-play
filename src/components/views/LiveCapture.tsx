@@ -55,6 +55,7 @@ import {
   getSttQuality,
   MODEL_DOWNLOAD_MB,
   MODEL_DOWNLOAD_MEDIDO,
+  nomeLegivelDoModelo,
   routeStt,
   setSttQualityMirror,
   type SttQuality,
@@ -1848,8 +1849,9 @@ export default function LiveCapture({
       id === rota.localModel
         ? {
             id,
-            // "Transcrição (Whisper small)", como no protótipo: o nome do modelo, legível.
-            titulo: `Transcrição (${(id.split('/').pop() ?? id).replace(/^whisper-/i, 'Whisper ').replace(/[-_]/g, ' ')})`,
+            // "Transcrição (Whisper small)", como no protótipo: o nome do modelo, legível — e
+            // "Transcrição (Moonshine base)" no inglês, sem o sufixo de formato do id do Hub.
+            titulo: `Transcrição (${nomeLegivelDoModelo(id)})`,
             mbEstimado: MODEL_DOWNLOAD_MB[id],
             medido: !!MODEL_DOWNLOAD_MEDIDO[id],
           }

@@ -1927,7 +1927,7 @@ body:has(.palco-jogo) .fab .rot,body:has(.palco-jogo) .fab .ctx{display:none}
     <li><b>Sessão · Leitura</b>: intercalado ou lado a lado, coluna ou largura total, <b>narração</b> que acompanha frase a frase, voz/idioma/tom, <b>anotações semânticas</b> (vocabulário, gramática, expressão, dúvida, áudio) com o painel Estudos & notas, e <b>desenho livre</b> (caneta, marca-texto, borracha, limpar).</li>
     <li><b>Sessão · Jogos</b>: revisão das palavras desta sessão e os jogos que rodam só com ela, no mesmo cartão da tela Jogar.</li>
     <li><b>Sessão · Visão geral & métricas</b>: Painel com os 9 indicadores e as palavras-chave; Inteligência lexical com topologia e microdados (ocorrências com "ouvir o trecho"); Fluência com silêncio, vícios e ritmo por falante.</li>
-    <li>Cabeçalho da Sessão com "Alternar de sessão", Exportar (áudio, vídeo bloqueado, flashcards Anki, métricas) e o selo de procedência (Whisper local).</li>
+    <li>Cabeçalho da Sessão com "Alternar de sessão", Exportar (áudio, vídeo bloqueado, flashcards Anki, métricas) e o selo de procedência (Transcrição local).</li>
   </ul>
   <h3>iChat contextual (rodada 5)</h3>
   <ul>
@@ -2355,10 +2355,10 @@ const MIDIAS = [
 ]
 const ICONE_MIDIA = { audio:'file-audio', youtube:'youtube', docs:'file-text' }
 const FONTES_IMPORT = [
-  { id:'youtube', ico:'youtube', t:'Link do YouTube', s:'Legenda ou Whisper local', dica:'Usa a legenda do vídeo quando existe (rápido, com tempos reais). Sem legenda, transcreve o áudio no navegador.', pro:true },
+  { id:'youtube', ico:'youtube', t:'Link do YouTube', s:'Legenda ou transcrição local', dica:'Usa a legenda do vídeo quando existe (rápido, com tempos reais). Sem legenda, transcreve o áudio no navegador.', pro:true },
   { id:'doc', ico:'file-text', t:'Documento de texto', s:'PDF, DOCX, TXT', dica:'Extrai o texto e monta uma sessão de estudo. A leitura usa voz sintética.' },
   { id:'web', ico:'link', t:'Link da web', s:'Artigos e blogs', dica:'Baixa a página e extrai só o artigo principal, sem menus nem anúncios.' },
-  { id:'local', ico:'upload', t:'Áudio local', s:'MP3, WAV, M4A', dica:'Transcreve no seu navegador com o Whisper local, com tempos reais.' },
+  { id:'local', ico:'upload', t:'Áudio local', s:'MP3, WAV, M4A', dica:'Transcreve no seu navegador com o modelo local, com tempos reais.' },
 ]
 Object.assign(E, { bib:{ visao:'midias', filtros:false, fixadas:false, comAudio:false, tamanho:'todas', importar:false, fonte:null, ordem:'recentes', busca:'', menu:null }, sessaoId:'reuniao' })
 
@@ -2504,7 +2504,7 @@ function abaTranscricao() {
       <div class="pilha">${PALAVRAS.map(w=>`<button class="linha-palavra" data-analista="${w.w}"><b>${w.w}</b><span class="mut">${w.t}</span><span class="badge neu">${w.nivel}</span></button>`).join('')}</div>
     </aside>`
   return `${player}<div class="sessao-grade"><section class="cartao transcrito t-${x.tema} f-${x.fonte} s-${x.tam}" aria-label="Transcrição da sessão">
-      <div class="entre transcrito-cab"><div class="tsec-t">${ic('messages-square')}<h2 style="font-size:16px;font-weight:700">Transcrição e tradução integradas</h2></div><span class="badge neu">${ic('cpu')} Whisper local</span></div>
+      <div class="entre transcrito-cab"><div class="tsec-t">${ic('messages-square')}<h2 style="font-size:16px;font-weight:700">Transcrição e tradução integradas</h2></div><span class="badge neu">${ic('cpu')} Transcrição local</span></div>
       ${linhas}</section>${lateral}</div>`
 }
 
@@ -5265,7 +5265,7 @@ function iniciarImportacao() {
   const f = FONTES_IMPORT.find(x=>x.id===E.bib.fonte) || FONTES_IMPORT[1]
   const item = { id:'f'+Date.now(), ico:f.ico, t: { doc:'relatorio-anual.pdf', web:'Artigo: The future of remote work', local:'entrevista.m4a', texto:'Texto colado', youtube:'Vídeo do YouTube' }[f.id] || f.t, p:0, etapa:'Enviando…', erro:false }
   E.bib.fila.push(item); E.bib.importar = false; render()
-  const passos = [[25,'Lendo o arquivo…'],[55, f.id==='local'?'Transcrevendo com o Whisper local…':'Extraindo o texto…'],[80,'Detectando o idioma: inglês'],[100,'Pronto']]
+  const passos = [[25,'Lendo o arquivo…'],[55, f.id==='local'?'Transcrevendo com o modelo local…':'Extraindo o texto…'],[80,'Detectando o idioma: inglês'],[100,'Pronto']]
   passos.forEach(([p, et], i) => setTimeout(() => { item.p = p; item.etapa = et
     if (p===100) { E.bib.fila = E.bib.fila.filter(x=>x!==item); MIDIAS.unshift({ id:item.id, tipo: f.id==='local'?'audio':'docs', t:item.t, dur: f.id==='local'?'3:12':'', quando:'Agora', palavras:f.id==='local'?412:1340, status: f.id==='local'?'Processado':'Extraído', tags:['Importado'], fixada:false, audio:f.id==='local' }); toast(`“${esc(item.t)}” pronto para estudar. <button class="link" style="color:inherit" data-abrir-sessao="${item.id}">Abrir</button>`) }
     if (E.tela==='biblioteca') render() }, 700 * (i+1)))

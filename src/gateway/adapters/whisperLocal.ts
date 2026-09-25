@@ -5,7 +5,9 @@
  */
 import type { SttFinal, SttProvider } from '../capabilities';
 import { gravarManifesto, MENSAGEM_DO_MANIFESTO } from '../modelManifest';
+import { WHISPER_MODELS } from '../sttRouter';
 import { criarWatchdogDeEstagnacao } from './modelProgress';
+import { ehMoonshine, moonshineAceita } from './moonshine';
 
 interface PendingRequest {
   resolve: (value: SttFinal) => void;
@@ -317,7 +319,9 @@ export class WhisperLocalStt implements SttProvider {
       this.worker!.postMessage({ type: 'load', model: this.model, dtype: this.dtype, device: this.device });
 
       // Watchdog: só quando o caminho efetivo é WebGPU (auto com navigator.gpu, ou forçado).
-      const wantsGpu = this.device === 'webgpu' || (this.device === 'auto' && !!(navigator as any).gpu);
+      // O moonshine carrega sempre em WASM (`DEVICE_MOONSHINE`): não há GPU a vigiar.
+      const wantsGpu =
+        !ehMoonshine(this.model) && (this.device === 'webgpu' || (this.device === 'auto' && !!(navigator as any).gpu));
       if (wantsGpu && !this.forcedDevice) {
         const armed = this.readyPromise;
         // Watchdog por ESTAGNAÇÃO (testado em tests/modelProgress.test.ts): o relógio reinicia a
@@ -377,6 +381,16 @@ export class WhisperLocalStt implements SttProvider {
     sampleRate: number,
     opts?: { languageHint?: string; signal?: AbortSignal; onUpdate?: (text: string) => void },
   ): Promise<SttFinal> {
+    // GUARDA DO MOONSHINE (só inglês): o roteador não o escolhe fora do inglês, mas quem vê a dica
+    // de CADA trecho é este adapter. Com o moonshine carregado (rota antiga, override manual em
+    // `babel.whisperModel`) e uma dica de outro idioma, troca para o whisper-base — multilíngue e
+    // leve o bastante para WASM — em vez de mandar português a um modelo que o devolveria como
+    // inglês inventado. `setModel` recria o worker; o preload abaixo carrega o novo modelo.
+    if (ehMoonshine(this.model) && !moonshineAceita(opts?.languageHint)) {
+      console.warn('[whisper] moonshine só transcreve inglês; dica', opts?.languageHint, '→ whisper-base');
+      this.setModel(WHISPER_MODELS.base);
+    }
+
     // Se o modelo já está pronto, NÃO await antes de postar — assim chamadas concorrentes
     // (finais em rajada) chegam ao worker na MESMA ordem em que foram chamadas (FIFO por seq),
     // sem embaralhar por microtask. Só aguarda o preload no cold start.

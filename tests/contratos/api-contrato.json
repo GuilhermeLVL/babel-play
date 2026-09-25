@@ -82,6 +82,8 @@
     "POST /api/import/web",
     "POST /api/import/youtube",
     "POST /api/me/responsavel/convite",
+    "POST /api/metricas/captura",
+    "POST /api/metricas/ofertas",
     "POST /api/metrics/presenca",
     "POST /api/metrics/seeds/creditar",
     "POST /api/metrics/seeds/gastar",

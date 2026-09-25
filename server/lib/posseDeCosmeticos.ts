@@ -23,7 +23,6 @@ import { CATALOGO_DA_LOJA } from '../../src/core/loja'
 import { creditsRepo } from '../db/repositories/credits'
 import { economiaRepo } from '../db/repositories/economia'
 import { economiaDoUsuario } from '../db/repositories/metrics'
-import { seedSpendsRepo } from '../db/repositories/seedSpends'
 import type { UserId } from './authContext'
 
 export interface RecusaDePosse {
@@ -36,25 +35,49 @@ export interface RecusaDePosse {
 }
 
 /**
+ * O QUE A CONFERÊNCIA PRECISA SABER DO USUÁRIO — nível, compras, conquistas e itens premium.
+ *
+ * Separado de `recusaDePosse` porque `PUT /api/settings` confere até sete campos no mesmo
+ * pedido, e cada chamada recarregava as quatro fontes, com `economiaDoUsuario` (o perfil
+ * inteiro) em cada uma: até 98 consultas num único PUT (fix/rotas-caras). Quem confere vários
+ * itens carrega o contexto UMA vez e o passa adiante.
+ */
+export interface ContextoDePosse {
+  nivel: number
+  comprados: string[]
+  conquistas: string[]
+  premium: string[]
+}
+
+export async function contextoDePosse(userId: UserId): Promise<ContextoDePosse> {
+  const [{ nivel, metricas }, conquistas, premium] = await Promise.all([
+    economiaDoUsuario(userId),
+    economiaRepo.conquistasCreditadas(userId),
+    creditsRepo.itensPremium(userId),
+  ])
+  /* As compras da Loja já vêm no perfil que calculou o nível (`itensComprados`, derivado do mesmo
+     razão por `seedSpendsRepo.razao`): reler `seed_spends` só para isso era uma consulta a mais. */
+  return { nivel, comprados: metricas.itensComprados ?? [], conquistas, premium }
+}
+
+/**
  * Confere se o usuário pode equipar `(tipo, alvo)`. Devolve `null` quando pode.
  *
  * Item fora do catálogo passa: é o mesmo comportamento do cliente, e trancar o que ninguém vende
- * nem premia seria inventar uma regra que não existe em lugar nenhum.
+ * nem premia seria inventar uma regra que não existe em lugar nenhum. Por isso o contexto só é
+ * carregado depois de achar o item — e, quando vem pronto em `ctx`, não é carregado de novo.
  */
 export async function recusaDePosse(
   userId: UserId,
   tipo: string,
   alvo: string,
+  ctx?: ContextoDePosse | (() => Promise<ContextoDePosse>),
 ): Promise<RecusaDePosse | null> {
   const item = CATALOGO_DA_LOJA.find((i) => i.tipo === tipo && i.alvo === alvo)
   if (!item) return null
 
-  const [{ nivel }, comprados, conquistas, premium] = await Promise.all([
-    economiaDoUsuario(userId),
-    seedSpendsRepo.itensComprados(userId),
-    economiaRepo.conquistasCreditadas(userId),
-    creditsRepo.itensPremium(userId),
-  ])
+  const { nivel, comprados, conquistas, premium } =
+    typeof ctx === 'function' ? await ctx() : (ctx ?? (await contextoDePosse(userId)))
 
   if (item.exclusivoDe) {
     return conquistas.includes(item.exclusivoDe)
@@ -70,8 +93,9 @@ export async function recusaDePosse(
   return {
     tipo,
     alvo,
-    motivo: item.precoSeeds !== undefined
-      ? `exige nível ${item.nivel} ou ${item.precoSeeds} seeds`
-      : `exige nível ${item.nivel}`,
+    motivo:
+      item.precoSeeds !== undefined
+        ? `exige nível ${item.nivel} ou ${item.precoSeeds} seeds`
+        : `exige nível ${item.nivel}`,
   }
 }

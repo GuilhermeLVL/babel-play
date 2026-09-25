@@ -218,6 +218,13 @@
       "when": 1790310000000,
       "tag": "0030_indices_de_escala",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "6",
+      "when": 1790320000000,
+      "tag": "0031_versoes_de_dados",
+      "breakpoints": true
     }
   ]
 }

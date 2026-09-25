@@ -162,3 +162,19 @@ trava de boot deixa passar `REPLICAS>1` com SQLite · revisão FSRS não atômic
 | 5 | Lotes para o limite de variáveis (sessões e Anki) | P |
 | 6 | `vocab`, `profile`, `gastar` baratos: paginação/ETag no `vocab`, agregados incrementais no perfil | G |
 | 7 | Trava de boot contra multi-réplica com SQLite; timeouts HTTP; índices | P |
+
+## 7. Correções aplicadas (aprovadas no gate 2, 25/09/2026)
+
+| Item | Resultado medido | Merge |
+|---|---|---|
+| 1. Limitador de IP | 200 requisições simultâneas autenticadas do mesmo IP: **0 respostas 429** (antes 21/200 no teste e 88–100% na carga) e nenhuma escrita no contador; 429 só depois de 30 respostas 401 | `ca55192` |
+| 2. Uploads grandes | 4 uploads de 120 MB em voo: RSS de pico **966 → 339 MB**; semáforo de 1 por usuário e 2 por processo (429 `upload_ocupado`); dono, tamanho e cota checados antes de ler o corpo; S3 com prazo | merge de `fix/uploads-streaming` |
+| 3. Snapshot e ready | maior bloqueio do event loop durante o backup: **3.846 ms → 7–15 ms** (46 MB) e **20,1 s → 28 ms** (191 MB); gzip em streaming num processo filho; R2 fora deixa `/api/ready` em 200 `degradado` | `2b1430f` |
+| 4. Admissão de IA | 25 STT simultâneos com balde de 20/min: 20 atendidos, 5 com 429 `nuvem_ocupada` e **0 retentativas**; Pro antes de Essencial; 1 STT em voo por usuário; disjuntor no STT; 402 sem ler o corpo; cliente pausa a nuvem pelo `Retry-After` e volta sozinho | `fdd57ae` |
+| 5. Teto de variáveis | sessão de 5.000 falas grava; Anki de 40.000 notas **2,5–5,9 s** (antes falhava; 30.000 notas levavam 48,5 s); relabel de 5.000 cartões ~15 s → ~1 s | `1d4a034` |
+| 7. Réplicas, índices | boot recusa `REPLICAS>1` com SQLite local; migração 0030 com 3 índices | `f8ac459` |
+
+Limites que ficam: o leitor de `.apkg` ainda precisa do arquivo inteiro na memória (limitado pelo semáforo); a
+fila durável da importação na nuvem (ADR 0007, parte de lote) e o item 6 (rotas caras `vocab`, `profile`,
+`gastar`) ficam para a próxima rodada; temporários `.parcial` de upload interrompido por queda do processo não são
+limpos no boot.

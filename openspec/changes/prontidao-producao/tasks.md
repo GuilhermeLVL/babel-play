@@ -10,7 +10,10 @@
 - [x] ADR de banco (SQLite → ponto de virada)
 - [x] Desenho da fila de IA (prioridade por plano, retry, idempotência)
 - [x] Isolamento: simultaneidade por usuário, corpos em streaming, limites
-- [ ] GATE
+- [x] Correções 1–5 e 7 aplicadas e medidas (fase2-escala.md §7)
+- [ ] Item 6: rotas caras (vocab, profile, gastar)
+- [ ] Fila durável da importação na nuvem
+- [x] GATE: aprovado em 25/09
 
 ## Fase 3 — Custo
 

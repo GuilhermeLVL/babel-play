@@ -1,4 +1,7 @@
-import { existsSync, mkdtempSync, rmSync } from 'node:fs'
+import { createHash } from 'node:crypto'
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { createServer, type IncomingHttpHeaders } from 'node:http'
+import type { AddressInfo } from 'node:net'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
@@ -318,5 +321,93 @@ describe('as duas implementações têm o mesmo contrato', () => {
       expect(await a.tamanho('y.webm'), a.tipo).toBeNull()
     }
     expect(existsSync(path.join(dir, 'y.webm'))).toBe(false)
+  })
+})
+
+/**
+ * GRAVAR A PARTIR DE ARQUIVO — o upload grande não passa mais inteiro pela memória (fase 2 de
+ * prontidão, §2.3; ADR 0009). Antes o PUT do S3 recebia o Buffer e calculava o sha256 do corpo
+ * inteiro para o SigV4: o corpo existia duas vezes. Agora o hash sai do arquivo em streaming e o
+ * PUT manda o arquivo em stream, com `Content-Length` (o R2 não aceita PUT `chunked` sem ele).
+ */
+describe('gravarDeArquivo (streaming)', () => {
+  const cfgLocal = (endpoint: string): ConfigS3 => ({
+    endpoint,
+    bucket: 'midia',
+    regiao: 'auto',
+    accessKeyId: 'k',
+    secretAccessKey: 's',
+  })
+
+  it('disco local: o arquivo temporário vira o objeto, e o round-trip continua igual', async () => {
+    const origem = path.join(dir, 'recebendo.tmp')
+    writeFileSync(origem, 'conteudo-do-upload')
+    const a = armazenamentoDeArquivos(path.join(dir, 'audio'))
+    await a.gravarDeArquivo('s1.webm', origem, 'audio/webm')
+    expect((await a.ler('s1.webm')).toString()).toBe('conteudo-do-upload')
+    expect(await a.tamanho('s1.webm')).toBe(18)
+    // S-14 vale aqui também: o nome continua preso ao diretório.
+    await expect(a.gravarDeArquivo('../fora.webm', origem, 'audio/webm')).rejects.toThrow(/fora do diretório/)
+  })
+
+  it('S3: PUT em stream com Content-Length, sem chunked, e o hash assinado é o do arquivo', async () => {
+    const conteudo = Buffer.alloc(3 * 1024 * 1024 + 7, 0x42) // > 1 pedaço de leitura
+    const origem = path.join(dir, 'grande.tmp')
+    writeFileSync(origem, conteudo)
+
+    const recebido: { headers?: IncomingHttpHeaders; corpo?: Buffer } = {}
+    const servidor = createServer((req, res) => {
+      const partes: Buffer[] = []
+      req.on('data', (c: Buffer) => partes.push(c))
+      req.on('end', () => {
+        recebido.headers = req.headers
+        recebido.corpo = Buffer.concat(partes)
+        res.writeHead(200).end()
+      })
+    })
+    await new Promise<void>((r) => servidor.listen(0, '127.0.0.1', () => r()))
+    try {
+      const porta = (servidor.address() as AddressInfo).port
+      const cfg = cfgLocal(`http://127.0.0.1:${porta}`)
+      await armazenamentoS3(cfg).gravarDeArquivo('g.webm', origem, 'audio/webm')
+
+      const h = recebido.headers!
+      expect(h['content-length']).toBe(String(conteudo.length))
+      expect(h['transfer-encoding']).toBeUndefined()
+      expect(recebido.corpo!.equals(conteudo)).toBe(true)
+      const esperado = createHash('sha256').update(conteudo).digest('hex')
+      expect(h['x-amz-content-sha256']).toBe(esperado)
+
+      // A assinatura confere com a de quem tivesse o corpo inteiro na mão: nada muda para o R2.
+      const carimbo = String(h['x-amz-date'])
+      const agora = new Date(
+        `${carimbo.slice(0, 4)}-${carimbo.slice(4, 6)}-${carimbo.slice(6, 8)}T${carimbo.slice(9, 11)}:${carimbo.slice(11, 13)}:${carimbo.slice(13, 15)}Z`,
+      )
+      const refeita = assinarSigV4({
+        metodo: 'PUT',
+        url: new URL(`/midia/g.webm`, cfg.endpoint),
+        corpo: conteudo,
+        contentType: 'audio/webm',
+        cfg,
+        agora,
+      })
+      expect(h.authorization).toBe(refeita.authorization)
+    } finally {
+      await new Promise<void>((r) => servidor.close(() => r()))
+    }
+  })
+
+  it('S3 que não responde é abortado no prazo, em vez de pendurar o upload para sempre', async () => {
+    const origem = path.join(dir, 'p.tmp')
+    writeFileSync(origem, 'x')
+    const mudo = ((_u: string, init: RequestInit) =>
+      new Promise<Response>((_ok, falha) => {
+        init.signal?.addEventListener('abort', () => falha(init.signal?.reason ?? new Error('abortado')))
+      })) as unknown as typeof fetch
+    const a = armazenamentoS3(cfgLocal('https://x'), mudo, { prazoMs: 50 })
+    const t0 = Date.now()
+    await expect(a.gravarDeArquivo('p.webm', origem, 'audio/webm')).rejects.toThrow()
+    await expect(a.tamanho('p.webm')).rejects.toThrow()
+    expect(Date.now() - t0).toBeLessThan(2000)
   })
 })

@@ -10,10 +10,10 @@
  *  - POST /anki/export { cartoes }     → devolve um .apkg pronto para o Anki
  */
 import { createHash } from 'node:crypto'
-import { readFile, rm } from 'node:fs/promises'
+import { rm } from 'node:fs/promises'
 import path from 'node:path'
 
-import { type ErrorRequestHandler, raw, type Request, type Response, Router } from 'express'
+import { type Request, type Response, Router } from 'express'
 
 import { vazaResposta } from '../../src/core/learning/pistaDeJogo'
 import { avaliarCartao } from '../../src/core/learning/quality'
@@ -25,8 +25,17 @@ import { montarApkg } from '../import/ankiExport'
 import { extractDocument } from '../import/document'
 import { extractArticle } from '../import/web'
 import { downloadAudio, fetchCaptions, hasYtDlp, resolveYouTube } from '../import/youtube'
+import {
+  CorpoGrandeDemais,
+  CorpoInterrompido,
+  descartarRestoDoCorpo,
+  lerCorpoViaArquivo,
+  tamanhoDeclarado,
+} from '../lib/corpoEmArquivo'
+import { vagaDeCorpoGrande } from '../lib/corposGrandes'
 import { hasEntitlement } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
+import { envelopeDeErro } from '../lib/respostaDeErro'
 import {
   ajustarArmazenamento,
   corpoDeRecusa,
@@ -42,8 +51,8 @@ import { armazenamentoDeMidia, AUDIO_DIR } from './sessions'
 export const importRouter = Router()
 
 /*
- * F4-03 — só ESTA rota grava arquivo. `/document` (30 MB) e `/anki` (200 MB) leem o corpo em
- * memória e devolvem o texto/as notas; nada delas chega ao disco, então não consomem cota.
+ * F4-03 — só ESTA rota grava arquivo. `/document` (30 MB) e `/anki` (200 MB) passam o corpo por um
+ * temporário e devolvem o texto/as notas; nada delas fica no armazenamento, então não consomem cota.
  */
 
 /**
@@ -228,200 +237,217 @@ importRouter.post('/anki/export', async (req, res) => {
 /**
  * O ESTOURO DE TAMANHO PRECISA DIZER O QUE HOUVE.
  *
- * `raw({ limit })` rejeita ANTES do handler, então o `try/catch` de lá nunca vê o erro: ele caía
- * no tratador global e virava um 500 "erro interno". Medido subindo um `.apkg` de 214 MB: meio
- * segundo, 500, e nenhuma pista — nem o tamanho, nem o limite, nem o que fazer.
+ * O `raw({ limit })` rejeitava ANTES do handler e o erro caía no tratador global como um 500 "erro
+ * interno". Medido subindo um `.apkg` de 214 MB: meio segundo, 500, e nenhuma pista — nem o tamanho,
+ * nem o limite, nem o que fazer.
  *
  * O cliente agora manda só a coleção (ver `soAColecao` em `BaralhoAnki`), então este caminho é
  * rede de segurança: vale para quem chama a rota direto e para um `.apkg` que não abra no
  * navegador. Mas rede de segurança que mente não segura ninguém.
+ *
+ * `bytes` é `null` quando o corpo veio `chunked` e passou do teto pela contagem: aí o tamanho real
+ * não é conhecido, só que ele é maior que o limite.
  */
-const erroDeTamanho: ErrorRequestHandler = (err, _req, res, next) => {
-  const e = err as { type?: string; status?: number; length?: number; limit?: number }
-  if (e?.type !== 'entity.too.large') return next(err)
-  const mb = (n?: number) => (n ? `${(n / 1_048_576).toFixed(0)} MB` : '?')
+function responderAnkiGrandeDemais(req: Request, res: Response, bytes: number | null): void {
+  descartarRestoDoCorpo(req)
+  const mb = (n: number) => `${(n / 1_048_576).toFixed(0)} MB`
   res.status(413).json({
     error:
-      `este arquivo tem ${mb(e.length)} e o limite é ${mb(e.limit)}. ` +
+      `este arquivo tem ${bytes === null ? `mais de ${mb(LIMITE_DO_ANKI)}` : mb(bytes)} e o limite é ${mb(LIMITE_DO_ANKI)}. ` +
       'Num .apkg quase todo o tamanho é áudio e imagem, que não são importados: ' +
       'exporte o baralho no Anki SEM mídia, ou tente pelo navegador (ele já manda só a lista de palavras).',
   })
 }
 
-importRouter.post(
-  '/anki',
-  raw({ type: () => true, limit: '200mb' }), // `req`/`res` anotados: com o `erroDeTamanho` no meio da cadeia o Express perde a sobrecarga
-  // que infere os tipos do handler final.
-  erroDeTamanho,
-  async (req: Request, res: Response) => {
-    const cab = parseOr400(uploadHeadersSchema, req.headers, res)
-    if (!cab) return
-    const buf = req.body as Buffer
-    if (!buf?.length) {
-      res.status(400).json({ error: 'arquivo vazio' })
-      return
-    }
-    const nome = decodeURIComponent(cab['x-filename'] || 'baralho')
+/**
+ * Teto do `.apkg`/texto enviado. LIMITE REMANESCENTE (fase 2 de prontidão, §4.1): o JSZip abre o
+ * zip a partir de um Buffer, então este corpo AINDA fica inteiro na memória durante a leitura —
+ * mais a coleção descompactada (até `TETO_DE_EXPANSAO`, 300 MB, em `server/import/anki.ts`). O que
+ * mudou: o corpo chega pelo disco (1× em vez dos 2× do `raw`), o semáforo de corpos grandes limita
+ * quantos existem ao mesmo tempo, e o `Content-Length` acima do teto é recusado sem ler nada.
+ */
+const LIMITE_DO_ANKI = 200 * 1024 * 1024
 
-    // Leitura: se o ARQUIVO não abre (zip corrompido, formato desconhecido), nada foi criado ainda
-    // no acervo — é só um 400, igual ao comportamento antigo.
-    let r: Awaited<ReturnType<typeof lerApkg>>
-    try {
-      const ehTexto = /\.(txt|csv|tsv)$/i.test(nome)
-      r = ehTexto ? lerTextoAnki(buf.toString('utf8')) : await lerApkg(buf)
-    } catch (err) {
-      res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'import_route_error' }) })
-      return
-    }
+importRouter.post('/anki', vagaDeCorpoGrande(), async (req: Request, res: Response) => {
+  const cab = parseOr400(uploadHeadersSchema, req.headers, res)
+  if (!cab) return
+  const declarado = tamanhoDeclarado(req)
+  if (declarado !== null && declarado > LIMITE_DO_ANKI) {
+    responderAnkiGrandeDemais(req, res, declarado)
+    return
+  }
+  let buf: Buffer
+  try {
+    buf = await lerCorpoViaArquivo(req, LIMITE_DO_ANKI)
+  } catch (err) {
+    if (err instanceof CorpoGrandeDemais) return responderAnkiGrandeDemais(req, res, null)
+    if (err instanceof CorpoInterrompido) return // o cliente foi embora; não há a quem responder
+    throw err
+  }
+  if (!buf.length) {
+    res.status(400).json({ error: 'arquivo vazio' })
+    return
+  }
+  const nome = decodeURIComponent(cab['x-filename'] || 'baralho')
 
-    // Nome do baralho: o primeiro baralho visto no arquivo, ou o nome do arquivo sem extensão.
-    const nomeDoDeck = r.baralhos?.[0] || nome.replace(/\.[^.]+$/, '') || 'baralho'
-    let importId: string | undefined
-    try {
-      /**
-       * O IDIOMA DO BARALHO VEM DO CLIENTE, e sem ele o baralho entra e não chega a jogo nenhum.
-       *
-       * Medido importando 3.600 notas reais: todos os cartões projetados nasciam com `src_lang` NULL,
-       * porque o baralho não guardava idioma e `ativarLote` só repassa o que o baralho tem. Cartão
-       * sem idioma é `idioma-incerto` na triagem e vai para a pilha `fora` assim que existe um idioma
-       * selecionado no lobby — ou seja, o acervo enchia e a tela continuava dizendo "3 palavras".
-       *
-       * O `.apkg` não declara idioma de forma confiável (o campo é livre e quase ninguém preenche),
-       * então quem sabe é a tela: ela já tem o idioma que a pessoa está praticando e o nativo dela.
-       * Ausente, fica NULL — e aí o cartão vale para "sem filtro", que é o comportamento antigo.
-       *
-       * S11 (auditoria) — MAS o cabeçalho `X-Src-Lang` vem do LOBBY, não do baralho: é o idioma que a
-       * PESSOA está praticando na tela, preenchido pelo cliente sem nunca olhar o conteúdo do
-       * arquivo. Importar um deck JAPONÊS com o lobby aberto em inglês carimbava `srcLang='en'` em
-       * milhares de cartões, silenciosamente — envenenando o filtro de idioma para sempre (um
-       * cartão japonês rotulado 'en' nunca mais aparece corretamente etiquetado). A checagem abaixo
-       * confere o cabeçalho contra a ESCRITA de verdade das frentes antes de carimbar.
-       */
-      const idioma = decidirIdiomaOrigem(
-        cab['x-src-lang'] ?? null,
-        r.notas.slice(0, 200).map((n) => n.frente),
-      )
+  // Leitura: se o ARQUIVO não abre (zip corrompido, formato desconhecido), nada foi criado ainda
+  // no acervo — é só um 400, igual ao comportamento antigo.
+  let r: Awaited<ReturnType<typeof lerApkg>>
+  try {
+    const ehTexto = /\.(txt|csv|tsv)$/i.test(nome)
+    r = ehTexto ? lerTextoAnki(buf.toString('utf8')) : await lerApkg(buf)
+  } catch (err) {
+    res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'import_route_error' }) })
+    return
+  }
 
-      /* Verso que repete a frente é definição monolíngue, não tradução — carimbar um idioma-alvo
+  // Nome do baralho: o primeiro baralho visto no arquivo, ou o nome do arquivo sem extensão.
+  const nomeDoDeck = r.baralhos?.[0] || nome.replace(/\.[^.]+$/, '') || 'baralho'
+  let importId: string | undefined
+  try {
+    /**
+     * O IDIOMA DO BARALHO VEM DO CLIENTE, e sem ele o baralho entra e não chega a jogo nenhum.
+     *
+     * Medido importando 3.600 notas reais: todos os cartões projetados nasciam com `src_lang` NULL,
+     * porque o baralho não guardava idioma e `ativarLote` só repassa o que o baralho tem. Cartão
+     * sem idioma é `idioma-incerto` na triagem e vai para a pilha `fora` assim que existe um idioma
+     * selecionado no lobby — ou seja, o acervo enchia e a tela continuava dizendo "3 palavras".
+     *
+     * O `.apkg` não declara idioma de forma confiável (o campo é livre e quase ninguém preenche),
+     * então quem sabe é a tela: ela já tem o idioma que a pessoa está praticando e o nativo dela.
+     * Ausente, fica NULL — e aí o cartão vale para "sem filtro", que é o comportamento antigo.
+     *
+     * S11 (auditoria) — MAS o cabeçalho `X-Src-Lang` vem do LOBBY, não do baralho: é o idioma que a
+     * PESSOA está praticando na tela, preenchido pelo cliente sem nunca olhar o conteúdo do
+     * arquivo. Importar um deck JAPONÊS com o lobby aberto em inglês carimbava `srcLang='en'` em
+     * milhares de cartões, silenciosamente — envenenando o filtro de idioma para sempre (um
+     * cartão japonês rotulado 'en' nunca mais aparece corretamente etiquetado). A checagem abaixo
+     * confere o cabeçalho contra a ESCRITA de verdade das frentes antes de carimbar.
+     */
+    const idioma = decidirIdiomaOrigem(
+      cab['x-src-lang'] ?? null,
+      r.notas.slice(0, 200).map((n) => n.frente),
+    )
+
+    /* Verso que repete a frente é definição monolíngue, não tradução — carimbar um idioma-alvo
        ali seria mentir sobre o conteúdo. Medido: 100% num baralho de dicionário de aprendiz. */
-      const monolingue = versoEhDefinicao(r.notas.slice(0, 200))
-      const deck = await ankiRepo.criarOuAcharDeck(req.userId, {
-        nome: nomeDoDeck,
-        nomeNoArquivo: r.baralhos?.[0] ?? null,
-        arquivoOrigem: nome,
-        idiomaOrigem: idioma.idiomaOrigem,
-        idiomaAlvo: monolingue ? idioma.idiomaOrigem : (cab['x-tgt-lang'] ?? null),
-      })
-      const imp = await ankiRepo.criarImport(req.userId, { deckId: deck.id, arquivo: nome, bytes: buf.length })
-      importId = imp.id
-      await ankiRepo.atualizarImport(imp.id, { estado: 'gravando' })
+    const monolingue = versoEhDefinicao(r.notas.slice(0, 200))
+    const deck = await ankiRepo.criarOuAcharDeck(req.userId, {
+      nome: nomeDoDeck,
+      nomeNoArquivo: r.baralhos?.[0] ?? null,
+      arquivoOrigem: nome,
+      idiomaOrigem: idioma.idiomaOrigem,
+      idiomaAlvo: monolingue ? idioma.idiomaOrigem : (cab['x-tgt-lang'] ?? null),
+    })
+    const imp = await ankiRepo.criarImport(req.userId, { deckId: deck.id, arquivo: nome, bytes: buf.length })
+    importId = imp.id
+    await ankiRepo.atualizarImport(imp.id, { estado: 'gravando' })
 
-      // Qualidade por nota (Decisão 6 do design: perfil 'curado', não 'captura') — a nota que não
-      // serve continua no acervo com o motivo anotado; quem filtra depois é a ativação.
-      const porMotivo: Record<string, number> = {}
-      const notasParaGravar = r.notas.map((n) => {
-        const veredito = avaliarCartao(
-          { word: n.frente, translation: n.verso, sentence: n.exemplo ?? '', srcLang: undefined } as never,
-          { origem: 'curado' },
-        )
-        const motivoDescarte = veredito.serve ? null : (veredito.motivo ?? 'descartada')
-        if (motivoDescarte) porMotivo[motivoDescarte] = (porMotivo[motivoDescarte] ?? 0) + 1
-        return {
-          guid: guidDaNota(n),
-          notetype: n.notetype ?? null,
-          estruturaHash: n.estruturaHash ?? null,
-          /* OS CAMPOS ORIGINAIS, por nome — é o que sustenta "trocar o mapeamento sem reimportar".
+    // Qualidade por nota (Decisão 6 do design: perfil 'curado', não 'captura') — a nota que não
+    // serve continua no acervo com o motivo anotado; quem filtra depois é a ativação.
+    const porMotivo: Record<string, number> = {}
+    const notasParaGravar = r.notas.map((n) => {
+      const veredito = avaliarCartao(
+        { word: n.frente, translation: n.verso, sentence: n.exemplo ?? '', srcLang: undefined } as never,
+        { origem: 'curado' },
+      )
+      const motivoDescarte = veredito.serve ? null : (veredito.motivo ?? 'descartada')
+      if (motivoDescarte) porMotivo[motivoDescarte] = (porMotivo[motivoDescarte] ?? 0) + 1
+      return {
+        guid: guidDaNota(n),
+        notetype: n.notetype ?? null,
+        estruturaHash: n.estruturaHash ?? null,
+        /* OS CAMPOS ORIGINAIS, por nome — é o que sustenta "trocar o mapeamento sem reimportar".
            Guardar aqui só mídia e lacunas, como esta linha fazia, jogava fora exatamente o que a
            reclassificação precisa ler: o valor bruto de cada campo do baralho. Sem eles, corrigir
            um campo mal mapeado exigiria o arquivo de novo — 214 MB, no baralho que medimos. */
-          camposBrutos: JSON.stringify({ campos: n.camposBrutos ?? {}, midia: n.midia, lacunas: n.lacunas }),
-          frente: n.frente,
-          verso: n.verso,
-          exemplo: n.exemplo ?? null,
-          tags: n.tags?.length ? n.tags.join(' ') : null,
-          motivoDescarte,
-        }
-      })
+        camposBrutos: JSON.stringify({ campos: n.camposBrutos ?? {}, midia: n.midia, lacunas: n.lacunas }),
+        frente: n.frente,
+        verso: n.verso,
+        exemplo: n.exemplo ?? null,
+        tags: n.tags?.length ? n.tags.join(' ') : null,
+        motivoDescarte,
+      }
+    })
 
-      const resultado = await ankiRepo.gravarNotas(req.userId, deck.id, imp.id, notasParaGravar)
-      await ankiRepo.marcarAusentes(
-        req.userId,
-        deck.id,
-        notasParaGravar.map((n) => n.guid),
-      )
+    const resultado = await ankiRepo.gravarNotas(req.userId, deck.id, imp.id, notasParaGravar)
+    await ankiRepo.marcarAusentes(
+      req.userId,
+      deck.id,
+      notasParaGravar.map((n) => n.guid),
+    )
 
-      const notasDescartadas = Object.values(porMotivo).reduce((a, b) => a + b, 0)
-      await ankiRepo.atualizarImport(imp.id, {
-        estado: 'concluido',
-        notasLidas: r.notas.length,
-        notasNovas: resultado.novas,
-        notasAtualizadas: resultado.atualizadas,
-        notasDescartadas,
-        porMotivo,
-      })
+    const notasDescartadas = Object.values(porMotivo).reduce((a, b) => a + b, 0)
+    await ankiRepo.atualizarImport(imp.id, {
+      estado: 'concluido',
+      notasLidas: r.notas.length,
+      notasNovas: resultado.novas,
+      notasAtualizadas: resultado.atualizadas,
+      notasDescartadas,
+      porMotivo,
+    })
 
-      /* Importar tem de ENTREGAR algo jogável. Antes toda nota nascia arquivada e a tela de jogar
+    /* Importar tem de ENTREGAR algo jogável. Antes toda nota nascia arquivada e a tela de jogar
        continuava igual: quem importou concluía que o app não fez nada (G0, defeito 2). Um lote
        entra na hora; o resto continua atrás de "Ativar mais", que é o controle de volume. */
-      /**
-       * FALHA NA ATIVACAO NAO VIRA "ZERO ATIVADAS" (auditoria de 2026-09-07, achado A29).
-       *
-       * O `.catch(() => ({ ativadas: 0 }))` transformava um erro de banco no MESMO resultado de um
-       * baralho que legitimamente nao tinha nada a ativar: a resposta era 200 com `ativadas: 0` e a
-       * pessoa concluia que o arquivo dela nao servia. Sao duas coisas diferentes, e agora a
-       * resposta diz qual foi — o import em si nao e desfeito, porque as notas ja entraram.
-       */
-      let ativadasNoImport: { ativadas: number } = { ativadas: 0 }
-      let erroDeAtivacao: string | null = null
-      try {
-        ativadasNoImport = await vocabRepo.ativarLote(req.userId, deck.id)
-      } catch (err) {
-        erroDeAtivacao = erroDeRota(err, { event: 'import_ativacao_error', route: req.path, requestId: req.requestId })
-      }
+    /**
+     * FALHA NA ATIVACAO NAO VIRA "ZERO ATIVADAS" (auditoria de 2026-09-07, achado A29).
+     *
+     * O `.catch(() => ({ ativadas: 0 }))` transformava um erro de banco no MESMO resultado de um
+     * baralho que legitimamente nao tinha nada a ativar: a resposta era 200 com `ativadas: 0` e a
+     * pessoa concluia que o arquivo dela nao servia. Sao duas coisas diferentes, e agora a
+     * resposta diz qual foi — o import em si nao e desfeito, porque as notas ja entraram.
+     */
+    let ativadasNoImport: { ativadas: number } = { ativadas: 0 }
+    let erroDeAtivacao: string | null = null
+    try {
+      ativadasNoImport = await vocabRepo.ativarLote(req.userId, deck.id)
+    } catch (err) {
+      erroDeAtivacao = erroDeRota(err, { event: 'import_ativacao_error', route: req.path, requestId: req.requestId })
+    }
 
-      const trunc = (s: string | null | undefined) => (s ?? '').slice(0, 80)
-      const amostra = r.notas.slice(0, 4).map((n) => ({
-        frente: trunc(n.frente),
-        verso: trunc(n.verso),
-        exemplo: trunc(n.exemplo),
-      }))
+    const trunc = (s: string | null | undefined) => (s ?? '').slice(0, 80)
+    const amostra = r.notas.slice(0, 4).map((n) => ({
+      frente: trunc(n.frente),
+      verso: trunc(n.verso),
+      exemplo: trunc(n.exemplo),
+    }))
 
-      res.json({
-        importId: imp.id,
-        deckId: deck.id,
-        resumo: {
-          ativadas: ativadasNoImport.ativadas ?? 0,
-          notas: r.notas.length,
-          novas: resultado.novas,
-          atualizadas: resultado.atualizadas,
-          iguais: resultado.iguais,
-          descartadas: notasDescartadas,
-          porMotivo,
-        },
-        campos: r.campos,
-        notetype: r.notas[0]?.notetype ?? null,
-        estruturaHash: r.notas[0]?.estruturaHash ?? null,
-        baralhos: r.baralhos,
-        formato: r.formato,
-        truncado: r.truncado,
-        totalNoArquivo: r.totalNoArquivo,
-        amostra,
-        // S11: presente só quando o cabeçalho e a escrita real do baralho se contradisseram — a
-        // tela mostra, e o cartão sem idioma cai em 'idioma-incerto' na triagem (honesto).
-        avisoIdioma: idioma.avisoIdioma,
-        /* Presente SO quando a ativacao falhou. O import entrou; o que nao aconteceu foi a primeira
+    res.json({
+      importId: imp.id,
+      deckId: deck.id,
+      resumo: {
+        ativadas: ativadasNoImport.ativadas ?? 0,
+        notas: r.notas.length,
+        novas: resultado.novas,
+        atualizadas: resultado.atualizadas,
+        iguais: resultado.iguais,
+        descartadas: notasDescartadas,
+        porMotivo,
+      },
+      campos: r.campos,
+      notetype: r.notas[0]?.notetype ?? null,
+      estruturaHash: r.notas[0]?.estruturaHash ?? null,
+      baralhos: r.baralhos,
+      formato: r.formato,
+      truncado: r.truncado,
+      totalNoArquivo: r.totalNoArquivo,
+      amostra,
+      // S11: presente só quando o cabeçalho e a escrita real do baralho se contradisseram — a
+      // tela mostra, e o cartão sem idioma cai em 'idioma-incerto' na triagem (honesto).
+      avisoIdioma: idioma.avisoIdioma,
+      /* Presente SO quando a ativacao falhou. O import entrou; o que nao aconteceu foi a primeira
          leva virar cartao jogavel — e "ativadas: 0" sozinho nao distingue isso de um baralho sem
          nada a ativar. */
-        ...(erroDeAtivacao ? { erroDeAtivacao, code: 'ativacao_falhou' } : {}),
-      })
-    } catch (err) {
-      // O que já entrou no acervo PERMANECE — só o ledger registra que esta fatia falhou.
-      const msg = erroDeRota(err, { event: 'import_route_error' })
-      if (importId) await ankiRepo.atualizarImport(importId, { estado: 'falhou', erro: msg }).catch(() => {})
-      res.status(400).json({ error: msg })
-    }
-  },
-)
+      ...(erroDeAtivacao ? { erroDeAtivacao, code: 'ativacao_falhou' } : {}),
+    })
+  } catch (err) {
+    // O que já entrou no acervo PERMANECE — só o ledger registra que esta fatia falhou.
+    const msg = erroDeRota(err, { event: 'import_route_error' })
+    if (importId) await ankiRepo.atualizarImport(importId, { estado: 'falhou', erro: msg }).catch(() => {})
+    res.status(400).json({ error: msg })
+  }
+})
 
 const isYouTube = (u: string) =>
   /^(https?:\/\/)?(www\.|m\.)?(youtube\.com\/(watch\?|shorts\/|live\/)|youtu\.be\/)/i.test(u)
@@ -532,7 +558,8 @@ importRouter.post('/youtube', async (req, res) => {
     const bytes = tamanhoNoDisco(local)
 
     if (armazenamentoDeMidia.tipo !== 'arquivos') {
-      await armazenamentoDeMidia.gravar(audio.file, await readFile(local), audio.contentType)
+      // Em stream: o áudio baixado não passa inteiro pela memória a caminho do bucket (ADR 0009).
+      await armazenamentoDeMidia.gravarDeArquivo(audio.file, local, audio.contentType)
       await rm(local, { force: true })
     }
 
@@ -571,13 +598,34 @@ importRouter.post('/web', async (req, res) => {
   }
 })
 
-// Documento: corpo binário cru + nome no header X-Filename (mesmo padrão do upload de áudio).
-importRouter.post('/document', raw({ type: () => true, limit: '30mb' }), async (req, res) => {
+/**
+ * Documento: corpo binário cru + nome no header X-Filename (mesmo padrão do upload de áudio).
+ *
+ * 30 MB passa do teto de 5 MB do ADR 0009 para `express.raw`: entra no semáforo de corpos grandes
+ * e chega pelo disco. O extrator (pdf/docx) exige Buffer, então o corpo ainda fica 1× na memória
+ * enquanto ele roda — o limite remanescente é esse, e o semáforo é que impede que ele se multiplique.
+ */
+const LIMITE_DO_DOCUMENTO = 30 * 1024 * 1024
+
+importRouter.post('/document', vagaDeCorpoGrande(), async (req, res) => {
   const cab = parseOr400(uploadHeadersSchema, req.headers, res)
   if (!cab) return
+  const declarado = tamanhoDeclarado(req)
+  const grandeDemais = () => {
+    descartarRestoDoCorpo(req)
+    res.status(413).json(envelopeDeErro('o documento passa do limite de 30 MB', 'corpo_grande_demais'))
+  }
+  if (declarado !== null && declarado > LIMITE_DO_DOCUMENTO) return grandeDemais()
   try {
-    const buf = req.body as Buffer
-    if (!buf || !buf.length) {
+    let buf: Buffer
+    try {
+      buf = await lerCorpoViaArquivo(req, LIMITE_DO_DOCUMENTO)
+    } catch (err) {
+      if (err instanceof CorpoGrandeDemais) return grandeDemais()
+      if (err instanceof CorpoInterrompido) return
+      throw err
+    }
+    if (!buf.length) {
       res.status(400).json({ error: 'Arquivo vazio.' })
       return
     }

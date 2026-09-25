@@ -1,15 +1,27 @@
 /** Rotas de sessões (montadas em `/api/sessions`). */
+import { randomUUID } from 'node:crypto'
+import { mkdir, rm } from 'node:fs/promises'
 import path from 'node:path'
 
-import { raw, Router } from 'express'
+import { type Request, type Response, Router } from 'express'
 
 import { sessionsRepo } from '../db/repositories/sessions'
 import { utterancesRepo } from '../db/repositories/utterances'
 import { armazenamentoDoAmbiente } from '../lib/armazenamento'
 import { aliviarListagem, aliviarMeta, lerCapaEmbutida } from '../lib/capaDeSessao'
+import {
+  CorpoGrandeDemais,
+  CorpoInterrompido,
+  descartarRestoDoCorpo,
+  fonteDoCorpo,
+  receberCorpoEmArquivo,
+  tamanhoDeclarado,
+} from '../lib/corpoEmArquivo'
+import { vagaDeCorpoGrande } from '../lib/corposGrandes'
 import { erroDeRota } from '../lib/erroDeRota'
 import { log } from '../lib/logger'
-import { corpoDeRecusa, liberarArmazenamento, reservarArmazenamento } from '../lib/storageQuota'
+import { envelopeDeErro } from '../lib/respostaDeErro'
+import { ajustarArmazenamento, corpoDeRecusa, liberarArmazenamento, reservarArmazenamento } from '../lib/storageQuota'
 import { detectarAudio, FORMATOS_DE_AUDIO_ACEITOS } from '../lib/tipoDeArquivo'
 import {
   createSessionSchema,
@@ -121,16 +133,14 @@ sessionsRouter.get('/:id/capa', async (req, res) => {
     res.setHeader('Cache-Control', 'private, max-age=86400')
     return res.send(capa.bytes)
   } catch (err) {
-    return res
-      .status(500)
-      .json({
-        error: erroDeRota(err, {
-          status: 500,
-          event: 'session_cover_error',
-          route: req.path,
-          requestId: req.requestId,
-        }),
-      })
+    return res.status(500).json({
+      error: erroDeRota(err, {
+        status: 500,
+        event: 'session_cover_error',
+        route: req.path,
+        requestId: req.requestId,
+      }),
+    })
   }
 })
 
@@ -150,16 +160,14 @@ sessionsRouter.post('/utterances/relabel', async (req, res) => {
   try {
     res.json({ changed: await utterancesRepo.relabel(req.userId, payload.items) })
   } catch (err) {
-    res
-      .status(400)
-      .json({
-        error: erroDeRota(err, {
-          status: 400,
-          event: 'sessions_route_error',
-          route: req.path,
-          requestId: req.requestId,
-        }),
-      })
+    res.status(400).json({
+      error: erroDeRota(err, {
+        status: 400,
+        event: 'sessions_route_error',
+        route: req.path,
+        requestId: req.requestId,
+      }),
+    })
   }
 })
 
@@ -187,116 +195,209 @@ sessionsRouter.post('/', async (req, res) => {
     const { session: created, jaExistia } = await sessionsRepo.criarOuReusar(req.userId, session, utterances)
     res.json(jaExistia ? { ...created, jaExistia: true } : created)
   } catch (err) {
-    res
-      .status(400)
-      .json({
-        error: erroDeRota(err, {
-          status: 400,
-          event: 'sessions_route_error',
-          route: req.path,
-          requestId: req.requestId,
-        }),
-      })
+    res.status(400).json({
+      error: erroDeRota(err, {
+        status: 400,
+        event: 'sessions_route_error',
+        route: req.path,
+        requestId: req.requestId,
+      }),
+    })
   }
 })
 
-// Upload do áudio gravado da sessão (corpo binário cru — o cliente manda o Blob do MediaRecorder).
-sessionsRouter.post(
-  '/:id/audio',
-  raw({ type: ['audio/*', 'application/octet-stream'], limit: '120mb' }),
-  async (req, res) => {
-    const p = parseOr400(idParamSchema, req.params, res)
-    if (!p) return
-    try {
-      const session = await sessionsRepo.get(req.userId, p.id)
-      if (!session) {
-        res.status(404).json({ error: 'sessão não encontrada' })
-        return
-      }
-      const buf = req.body as Buffer
-      if (!buf || !buf.length) {
-        res.status(400).json({ error: 'corpo de áudio vazio' })
-        return
-      }
+/**
+ * UPLOAD DO ÁUDIO GRAVADO DA SESSÃO — em streaming (fase 2 de prontidão, §2.3; ADR 0009).
+ *
+ * O cliente manda o Blob do MediaRecorder como corpo binário cru. Até 25/09 ele passava por
+ * `express.raw({ limit: '120mb' })`: o corpo inteiro na memória, e o PUT do S3 o copiava de novo
+ * para o sha256 do SigV4. Medido: 4 uploads simultâneos de 120 MB levaram o RSS de uma VM de 1 GB a
+ * 1.011 MB. Agora a ordem é a que torna cada recusa barata:
+ *
+ *   1. vaga no semáforo de corpos grandes (`vagaDeCorpoGrande`, antes do handler) — 429;
+ *   2. dono da sessão — 404; `Content-Length` acima do teto — 413; cota pelo `Content-Length` — 507;
+ *      tudo isso SEM ler um byte do corpo;
+ *   3. o corpo vai para um temporário em pedaços, contado (o `chunked` sem `Content-Length` é
+ *      segurado aqui, com 413 no byte que passa do teto);
+ *   4. o tipo sai dos magic bytes da cabeça guardada na recepção (F4-04);
+ *   5. o temporário vira o objeto: `rename` no disco local, PUT em stream no S3.
+ */
+export const LIMITE_DO_AUDIO = 120 * 1024 * 1024
 
-      /*
-       * F4-04: o tipo sai dos MAGIC BYTES, não do `Content-Type` (que o cliente escolhe). O que é
-       * gravado em `sessions.meta` — e devolvido no GET — é o tipo DETECTADO; um ZIP anunciado como
-       * `audio/webm` não chega ao disco nem volta como áudio.
-       */
-      const detectado = detectarAudio(buf)
-      if (!detectado) {
-        log('warn', { event: 'audio_upload_tipo_invalido', route: req.path, status: 400, requestId: req.requestId })
-        res.status(400).json({
-          error: `o conteúdo enviado não é um áudio reconhecido (${FORMATOS_DE_AUDIO_ACEITOS})`,
-          code: 'audio_content_invalid',
-        })
-        return
-      }
-      const contentType = detectado.mime
-      const file = `${p.id}.${detectado.ext}`
+/**
+ * Temporários da recepção DENTRO de `AUDIO_DIR`: no disco local, o arquivo recebido vira o objeto
+ * final por `rename` (mesmo volume, sem cópia). O ponto no nome separa a pasta dos áudios, e nada
+ * nela é referenciado por sessão — a reconciliação de cota soma só o que o `meta` aponta.
+ */
+const DIR_DE_RECEPCAO = path.join(AUDIO_DIR, '.recebendo')
 
-      /*
-       * F4-03: o teto de 120 MB é POR REQUISIÇÃO — 86 uploads no teto enchiam 10 GB, no mesmo
-       * volume do banco. A cota é decidida ANTES de o arquivo tocar o disco. Reupload conta só o
-       * DELTA: o arquivo é sobrescrito, não somado.
-       */
-      const anterior = String(readMeta(session.meta).audioFile || '')
-      const bytesAnteriores = anterior ? ((await armazenamentoDeMidia.tamanho(anterior)) ?? 0) : 0
-      const delta = buf.length - bytesAnteriores
-      const cota = await reservarArmazenamento(req.userId, delta)
-      if (!cota.ok) {
-        const r = corpoDeRecusa(cota)
-        log('warn', { event: 'storage_quota_denied', route: req.path, status: r.status, requestId: req.requestId })
-        res.status(r.status).json(r.body)
-        return
-      }
+/** O que o `express.raw` aceitava. Outro tipo continua sendo "corpo vazio", como antes. */
+function ehCorpoDeAudio(headers: Record<string, string | string[] | undefined>): boolean {
+  const tipo = String(headers['content-type'] ?? '')
+    .split(';')[0]
+    .trim()
+    .toLowerCase()
+  return tipo.startsWith('audio/') || tipo === 'application/octet-stream'
+}
 
-      try {
-        await armazenamentoDeMidia.gravar(file, buf, contentType)
-      } catch (err) {
-        await liberarArmazenamento(req.userId, delta) // reserva sem arquivo é cota perdida
-        throw err
-      }
-      /**
-       * O ARQUIVO ANTIGO QUE NAO SAIU E DITO, nao engolido (auditoria de 2026-09-07, achado A29).
-       *
-       * O `catch` vazio dizia "orfao; a reconciliacao corrige" — e a reconciliacao de fato
-       * corrige a COTA. O que ela nao faz e avisar: o upload respondia `{ok:true}` e o byte
-       * continuava no disco, ocupando espaco que a pessoa acha que liberou. O upload nao falha
-       * por causa disso (o audio novo esta gravado e e o que importa), mas a resposta conta.
-       */
-      let orfaoNaoRemovido: string | null = null
-      if (anterior && anterior !== file) {
-        try {
-          await armazenamentoDeMidia.remover(anterior)
-        } catch (err) {
-          orfaoNaoRemovido = String((err as Error)?.message ?? err).slice(0, 160)
-          log('warn', { event: 'audio_anterior_nao_removido', route: req.path, error: orfaoNaoRemovido })
-        }
-      }
-      await sessionsRepo.setAudio(req.userId, p.id, file, contentType)
-      res.json({
-        ok: true,
-        audioUrl: `/api/sessions/${p.id}/audio`,
-        ...(orfaoNaoRemovido
-          ? { aviso: 'o áudio anterior não pôde ser removido e ainda ocupa espaço', code: 'orfao_nao_removido' }
-          : {}),
-      })
-    } catch (err) {
-      res
-        .status(500)
-        .json({
-          error: erroDeRota(err, {
-            status: 500,
-            event: 'sessions_route_error',
-            route: req.path,
-            requestId: req.requestId,
-          }),
-        })
+/**
+ * 413 do áudio. O resto do corpo é descartado com prazo (`descartarRestoDoCorpo`): fechar na hora
+ * faria o cliente receber RST em vez da explicação.
+ */
+function responderAudioGrandeDemais(req: Request, res: Response): void {
+  descartarRestoDoCorpo(req)
+  res
+    .status(413)
+    .json(envelopeDeErro(`o áudio passa do limite de ${LIMITE_DO_AUDIO / 1_048_576} MB`, 'corpo_grande_demais'))
+}
+
+sessionsRouter.post('/:id/audio', vagaDeCorpoGrande(), async (req, res) => {
+  const p = parseOr400(idParamSchema, req.params, res)
+  if (!p) return
+
+  /* A RESERVA DE COTA É DESFEITA EM QUALQUER SAÍDA QUE NÃO GRAVOU. `reservado` é o delta já
+     contabilizado (negativo num reupload menor); `confirmado` vira true só depois do `setAudio`. */
+  let reservado = 0
+  let contabiliza = false
+  let confirmado = false
+  let temporario: string | null = null
+  try {
+    const session = await sessionsRepo.get(req.userId, p.id)
+    if (!session) {
+      descartarRestoDoCorpo(req)
+      res.status(404).json({ error: 'sessão não encontrada' })
+      return
     }
-  },
-)
+    if (!ehCorpoDeAudio(req.headers)) {
+      descartarRestoDoCorpo(req)
+      res.status(400).json({ error: 'corpo de áudio vazio' })
+      return
+    }
+    const declarado = tamanhoDeclarado(req)
+    if (declarado !== null && declarado > LIMITE_DO_AUDIO) {
+      responderAudioGrandeDemais(req, res)
+      return
+    }
+    if (declarado === 0) {
+      res.status(400).json({ error: 'corpo de áudio vazio' })
+      return
+    }
+
+    /*
+     * F4-03: o teto de 120 MB é POR REQUISIÇÃO — 86 uploads no teto enchiam 10 GB, no mesmo volume
+     * do banco. A cota é decidida ANTES de o arquivo tocar o disco e, com `Content-Length`, antes
+     * de o corpo sequer ser lido. Reupload conta só o DELTA: o arquivo é sobrescrito, não somado.
+     */
+    const anterior = String(readMeta(session.meta).audioFile || '')
+    const bytesAnteriores = anterior ? ((await armazenamentoDeMidia.tamanho(anterior)) ?? 0) : 0
+    const reservar = async (bytes: number): Promise<boolean> => {
+      const cota = await reservarArmazenamento(req.userId, bytes - bytesAnteriores)
+      if (cota.ok) {
+        // Sem teto (self-host) nada foi contabilizado, e o estorno do `finally` não pode inventar conta.
+        contabiliza = Number.isFinite(cota.capBytes)
+        reservado = contabiliza ? bytes - bytesAnteriores : 0
+        return true
+      }
+      const r = corpoDeRecusa(cota)
+      log('warn', { event: 'storage_quota_denied', route: req.path, status: r.status, requestId: req.requestId })
+      descartarRestoDoCorpo(req)
+      res.status(r.status).json(r.body)
+      return false
+    }
+    if (declarado !== null && !(await reservar(declarado))) return
+
+    await mkdir(DIR_DE_RECEPCAO, { recursive: true })
+    temporario = path.join(DIR_DE_RECEPCAO, `${p.id}.${randomUUID()}.parcial`)
+    let recebido: Awaited<ReturnType<typeof receberCorpoEmArquivo>>
+    try {
+      recebido = await receberCorpoEmArquivo(fonteDoCorpo(req), temporario, LIMITE_DO_AUDIO)
+    } catch (err) {
+      if (err instanceof CorpoGrandeDemais) {
+        log('warn', { event: 'audio_upload_grande_demais', route: req.path, status: 413, requestId: req.requestId })
+        responderAudioGrandeDemais(req, res)
+        return
+      }
+      if (err instanceof CorpoInterrompido) {
+        // Não há a quem responder: o cliente foi embora. O `finally` limpa reserva e temporário.
+        log('info', { event: 'audio_upload_interrompido', route: req.path, requestId: req.requestId })
+        return
+      }
+      throw err
+    }
+    if (!recebido.bytes) {
+      res.status(400).json({ error: 'corpo de áudio vazio' })
+      return
+    }
+
+    /*
+     * F4-04: o tipo sai dos MAGIC BYTES, não do `Content-Type` (que o cliente escolhe). O que é
+     * gravado em `sessions.meta` — e devolvido no GET — é o tipo DETECTADO; um ZIP anunciado como
+     * `audio/webm` não chega ao armazenamento nem volta como áudio.
+     */
+    const detectado = detectarAudio(recebido.cabeca)
+    if (!detectado) {
+      log('warn', { event: 'audio_upload_tipo_invalido', route: req.path, status: 400, requestId: req.requestId })
+      res.status(400).json({
+        error: `o conteúdo enviado não é um áudio reconhecido (${FORMATOS_DE_AUDIO_ACEITOS})`,
+        code: 'audio_content_invalid',
+      })
+      return
+    }
+    const contentType = detectado.mime
+    const file = `${p.id}.${detectado.ext}`
+
+    if (declarado === null) {
+      // `chunked`: o tamanho só existe agora. A recusa custa o disco temporário, nunca a memória.
+      if (!(await reservar(recebido.bytes))) return
+    } else if (contabiliza && recebido.bytes !== declarado) {
+      // O parser HTTP garante `Content-Length`; isto é defesa para quem chama o handler direto.
+      await ajustarArmazenamento(req.userId, recebido.bytes - declarado)
+      reservado += recebido.bytes - declarado
+    }
+
+    await armazenamentoDeMidia.gravarDeArquivo(file, temporario, contentType)
+    /**
+     * O ARQUIVO ANTIGO QUE NAO SAIU E DITO, nao engolido (auditoria de 2026-09-07, achado A29).
+     *
+     * O `catch` vazio dizia "orfao; a reconciliacao corrige" — e a reconciliacao de fato
+     * corrige a COTA. O que ela nao faz e avisar: o upload respondia `{ok:true}` e o byte
+     * continuava no disco, ocupando espaco que a pessoa acha que liberou. O upload nao falha
+     * por causa disso (o audio novo esta gravado e e o que importa), mas a resposta conta.
+     */
+    let orfaoNaoRemovido: string | null = null
+    if (anterior && anterior !== file) {
+      try {
+        await armazenamentoDeMidia.remover(anterior)
+      } catch (err) {
+        orfaoNaoRemovido = String((err as Error)?.message ?? err).slice(0, 160)
+        log('warn', { event: 'audio_anterior_nao_removido', route: req.path, error: orfaoNaoRemovido })
+      }
+    }
+    await sessionsRepo.setAudio(req.userId, p.id, file, contentType)
+    confirmado = true
+    res.json({
+      ok: true,
+      audioUrl: `/api/sessions/${p.id}/audio`,
+      ...(orfaoNaoRemovido
+        ? { aviso: 'o áudio anterior não pôde ser removido e ainda ocupa espaço', code: 'orfao_nao_removido' }
+        : {}),
+    })
+  } catch (err) {
+    res.status(500).json({
+      error: erroDeRota(err, {
+        status: 500,
+        event: 'sessions_route_error',
+        route: req.path,
+        requestId: req.requestId,
+      }),
+    })
+  } finally {
+    // Reserva sem arquivo é cota perdida; delta negativo (reupload menor) é devolvido ao contrário.
+    if (!confirmado && reservado !== 0) await ajustarArmazenamento(req.userId, -reservado)
+    // No disco local o temporário já virou o objeto (`rename`) e isto não acha nada; no S3 ele sai aqui.
+    if (temporario) await rm(temporario, { force: true }).catch(() => {})
+  }
+})
 
 /**
  * Serve o áudio gravado com suporte a Range (é o que faz o seek do `<audio>` funcionar — D1).
@@ -390,16 +491,14 @@ sessionsRouter.patch('/:id', async (req, res) => {
     // Mesma razão do GET: a capa embutida não volta inteira a cada edição (achado A62).
     res.json({ ...updated, meta: aliviarMeta(updated.meta, alvo.id) })
   } catch (err) {
-    res
-      .status(400)
-      .json({
-        error: erroDeRota(err, {
-          status: 400,
-          event: 'sessions_route_error',
-          route: req.path,
-          requestId: req.requestId,
-        }),
-      })
+    res.status(400).json({
+      error: erroDeRota(err, {
+        status: 400,
+        event: 'sessions_route_error',
+        route: req.path,
+        requestId: req.requestId,
+      }),
+    })
   }
 })
 
@@ -422,16 +521,14 @@ sessionsRouter.put('/:id/utterances', async (req, res) => {
     // Mesma razão do GET: a capa embutida não volta inteira a cada edição (achado A62).
     res.json({ ...updated, meta: aliviarMeta(updated.meta, alvo.id) })
   } catch (err) {
-    res
-      .status(400)
-      .json({
-        error: erroDeRota(err, {
-          status: 400,
-          event: 'sessions_route_error',
-          route: req.path,
-          requestId: req.requestId,
-        }),
-      })
+    res.status(400).json({
+      error: erroDeRota(err, {
+        status: 400,
+        event: 'sessions_route_error',
+        route: req.path,
+        requestId: req.requestId,
+      }),
+    })
   }
 })
 
@@ -461,16 +558,14 @@ sessionsRouter.patch('/utterances/:uid', async (req, res) => {
     }
     res.json(updated)
   } catch (err) {
-    res
-      .status(400)
-      .json({
-        error: erroDeRota(err, {
-          status: 400,
-          event: 'sessions_route_error',
-          route: req.path,
-          requestId: req.requestId,
-        }),
-      })
+    res.status(400).json({
+      error: erroDeRota(err, {
+        status: 400,
+        event: 'sessions_route_error',
+        route: req.path,
+        requestId: req.requestId,
+      }),
+    })
   }
 })
 
@@ -505,16 +600,14 @@ sessionsRouter.patch('/:id/meta', async (req, res) => {
     // Mesma razão do GET: a capa embutida não volta inteira a cada edição (achado A62).
     res.json({ ...updated, meta: aliviarMeta(updated.meta, alvo.id) })
   } catch (err) {
-    res
-      .status(400)
-      .json({
-        error: erroDeRota(err, {
-          status: 400,
-          event: 'sessions_route_error',
-          route: req.path,
-          requestId: req.requestId,
-        }),
-      })
+    res.status(400).json({
+      error: erroDeRota(err, {
+        status: 400,
+        event: 'sessions_route_error',
+        route: req.path,
+        requestId: req.requestId,
+      }),
+    })
   }
 })
 

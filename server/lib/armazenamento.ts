@@ -1,6 +1,6 @@
 import { createHash, createHmac } from 'node:crypto'
 import { createReadStream } from 'node:fs'
-import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
+import { copyFile, mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { Readable } from 'node:stream'
 
@@ -13,6 +13,15 @@ import { Readable } from 'node:stream'
 export interface Armazenamento {
   readonly tipo: 'arquivos' | 's3'
   gravar(nome: string, bytes: Buffer, contentType: string): Promise<void>
+  /**
+   * Grava a partir de um ARQUIVO LOCAL, sem carregá-lo na memória (fase 2 de prontidão, §2.3).
+   *
+   * É o caminho dos uploads grandes: o corpo já foi para o disco em pedaços (`corpoEmArquivo.ts`),
+   * e daqui ele segue em stream. No filesystem o arquivo é MOVIDO (mesmo volume: `rename`, sem
+   * cópia); no S3 ele é lido duas vezes em stream (hash do SigV4, depois o PUT). Em qualquer caso
+   * quem chamou continua dono de apagar `caminho` — `rm({ force: true })` cobre o arquivo movido.
+   */
+  gravarDeArquivo(nome: string, caminho: string, contentType: string): Promise<void>
   ler(nome: string): Promise<Buffer>
   remover(nome: string): Promise<void>
   tamanho(nome: string): Promise<number | null>
@@ -57,6 +66,17 @@ export function armazenamentoDeArquivos(dir: string): Armazenamento {
       await mkdir(dir, { recursive: true })
       await writeFile(resolverDentroDe(dir, nome), bytes)
     },
+    async gravarDeArquivo(nome, caminho) {
+      const alvo = resolverDentroDe(dir, nome)
+      await mkdir(dir, { recursive: true })
+      try {
+        await rename(caminho, alvo)
+      } catch (err) {
+        // Volumes diferentes (temporário fora do `AUDIO_DIR`): copia. Qualquer outro erro sobe.
+        if ((err as NodeJS.ErrnoException)?.code !== 'EXDEV') throw err
+        await copyFile(caminho, alvo)
+      }
+    },
     ler: (nome) => readFile(resolverDentroDe(dir, nome)),
     async lerFaixa(nome, inicio, fim) {
       return createReadStream(resolverDentroDe(dir, nome), { start: inicio, end: fim })
@@ -93,11 +113,25 @@ export interface ConfigS3 {
 const sha256 = (v: string | Buffer) => createHash('sha256').update(v).digest('hex')
 const hmac = (chave: Buffer | string, dado: string) => createHmac('sha256', chave).update(dado).digest()
 
-/** Assinatura SigV4. Exportada para o teste conseguir conferi-la sem bucket real. */
+/** sha256 de um arquivo, lido em pedaços — o corpo grande nunca fica inteiro na memória. */
+async function sha256DoArquivo(caminho: string): Promise<string> {
+  const h = createHash('sha256')
+  for await (const pedaco of createReadStream(caminho)) h.update(pedaco as Buffer)
+  return h.digest('hex')
+}
+
+/**
+ * Assinatura SigV4. Exportada para o teste conseguir conferi-la sem bucket real.
+ *
+ * `hashDoCorpo`, quando dado, substitui o hash de `corpo`: é como o PUT em stream assina um corpo
+ * que não está na memória (o hash foi calculado lendo o arquivo). A assinatura resultante é a MESMA
+ * que sairia do corpo inteiro — o teste confere isso.
+ */
 export function assinarSigV4(opts: {
   metodo: string
   url: URL
-  corpo: Buffer | string
+  corpo?: Buffer | string
+  hashDoCorpo?: string
   contentType?: string
   cfg: ConfigS3
   agora: Date
@@ -107,7 +141,7 @@ export function assinarSigV4(opts: {
    */
   hashDoCorpo?: string
 }): Record<string, string> {
-  const { metodo, url, corpo, contentType, cfg, agora } = opts
+  const { metodo, url, corpo = '', contentType, cfg, agora } = opts
   const carimbo = agora
     .toISOString()
     .replace(/[-:]/g, '')
@@ -147,7 +181,26 @@ export function assinarSigV4(opts: {
   }
 }
 
-export function armazenamentoS3(cfg: ConfigS3, buscar: typeof fetch = fetch): Armazenamento {
+/**
+ * PRAZO DAS CHAMADAS AO S3 (fase 2 de prontidão, §2.3). Antes não havia nenhum: um R2 lento ou
+ * mudo pendurava o upload — e, com o semáforo de corpos grandes, pendurava a VAGA junto, travando
+ * os envios do usuário até o processo reiniciar.
+ *
+ * O prazo cobre até os CABEÇALHOS da resposta, não a leitura do corpo: o `lerFaixa` devolve o
+ * corpo em stream para um `<audio>` que pode ler devagar por minutos, e cortá-lo no meio seria
+ * quebrar o seek que ele existe para sustentar. No PUT o corpo vai ANTES da resposta, então o
+ * envio inteiro está dentro do prazo — por isso ele cresce com o tamanho (piso de 1 MB/s).
+ */
+const PRAZO_BASE_MS = 30_000
+const MS_POR_MB_ENVIADO = 1_000
+const prazoDoPut = (base: number, bytes: number) => base + Math.ceil(bytes / (1024 * 1024)) * MS_POR_MB_ENVIADO
+
+export function armazenamentoS3(
+  cfg: ConfigS3,
+  buscar: typeof fetch = fetch,
+  opcoes: { prazoMs?: number } = {},
+): Armazenamento {
+  const prazoBase = opcoes.prazoMs ?? PRAZO_BASE_MS
   const urlDe = (nome: string) => {
     if (nome.includes('..') || nome.startsWith('/')) throw new Error('nome de objeto inválido')
     return new URL(`/${cfg.bucket}/${encodeURIComponent(nome)}`, cfg.endpoint)
@@ -156,24 +209,62 @@ export function armazenamentoS3(cfg: ConfigS3, buscar: typeof fetch = fetch): Ar
   const chamar = async (
     metodo: string,
     nome: string,
-    corpo: Buffer | string = '',
-    contentType?: string,
-    // Cabeçalhos NÃO assinados (SigV4 só exige os que estão em `SignedHeaders`) — hoje só `range`.
-    extras?: Record<string, string>,
+    o: {
+      corpo?: Buffer | string
+      /** Corpo em stream (PUT de arquivo): o hash e o tamanho vêm de quem leu o arquivo. */
+      fluxo?: { stream: NodeJS.ReadableStream; hashDoCorpo: string; tamanho: number }
+      contentType?: string
+      // Cabeçalhos NÃO assinados (SigV4 só exige os que estão em `SignedHeaders`) — hoje só `range`.
+      extras?: Record<string, string>
+      prazoMs?: number
+    } = {},
   ) => {
     const url = urlDe(nome)
-    const headers = assinarSigV4({ metodo, url, corpo, contentType, cfg, agora: new Date() })
-    return buscar(url.toString(), {
-      method: metodo,
-      headers: extras ? { ...headers, ...extras } : headers,
-      body: metodo === 'GET' || metodo === 'HEAD' || metodo === 'DELETE' ? undefined : corpo,
+    const corpo = o.corpo ?? ''
+    const headers = assinarSigV4({
+      metodo,
+      url,
+      corpo,
+      hashDoCorpo: o.fluxo?.hashDoCorpo,
+      contentType: o.contentType,
+      cfg,
+      agora: new Date(),
     })
+    const semCorpo = metodo === 'GET' || metodo === 'HEAD' || metodo === 'DELETE'
+    // `content-length` explícito: com corpo em stream o fetch mandaria `chunked`, que o R2 recusa.
+    const extras = o.fluxo ? { ...o.extras, 'content-length': String(o.fluxo.tamanho) } : o.extras
+    const controle = new AbortController()
+    const prazo = o.prazoMs ?? prazoBase
+    const relogio = setTimeout(() => controle.abort(new Error(`s3 ${metodo} sem resposta em ${prazo} ms`)), prazo)
+    try {
+      return await buscar(url.toString(), {
+        method: metodo,
+        headers: extras ? { ...headers, ...extras } : headers,
+        body: semCorpo ? undefined : ((o.fluxo?.stream ?? corpo) as BodyInit),
+        signal: controle.signal,
+        // Obrigatório no fetch do Node para corpo em stream.
+        ...(o.fluxo ? { duplex: 'half' } : {}),
+      } as RequestInit)
+    } finally {
+      clearTimeout(relogio)
+    }
   }
 
   return {
     tipo: 's3',
     async gravar(nome, bytes, contentType) {
-      const r = await chamar('PUT', nome, bytes, contentType)
+      const r = await chamar('PUT', nome, { corpo: bytes, contentType, prazoMs: prazoDoPut(prazoBase, bytes.length) })
+      if (!r.ok) throw new Error(`s3 PUT ${r.status}`)
+    },
+    async gravarDeArquivo(nome, caminho, contentType) {
+      urlDe(nome) // nome inválido falha ANTES de ler o arquivo para o hash
+      const { size } = await stat(caminho)
+      const hashDoCorpo = await sha256DoArquivo(caminho)
+      const r = await chamar('PUT', nome, {
+        fluxo: { stream: createReadStream(caminho), hashDoCorpo, tamanho: size },
+        contentType,
+        prazoMs: prazoDoPut(prazoBase, size),
+      })
       if (!r.ok) throw new Error(`s3 PUT ${r.status}`)
     },
     async ler(nome) {
@@ -187,7 +278,7 @@ export function armazenamentoS3(cfg: ConfigS3, buscar: typeof fetch = fetch): Ar
      * rota já prometeu.
      */
     async lerFaixa(nome, inicio, fim) {
-      const r = await chamar('GET', nome, '', undefined, { range: `bytes=${inicio}-${fim}` })
+      const r = await chamar('GET', nome, { extras: { range: `bytes=${inicio}-${fim}` } })
       if (!r.ok) throw new Error(`s3 GET faixa ${r.status}`)
       if (r.status === 206 && r.body) return Readable.fromWeb(r.body as Parameters<typeof Readable.fromWeb>[0])
       const buf = Buffer.from(await r.arrayBuffer())

@@ -1,0 +1,18 @@
+{
+  "ok": {
+    "status": 200,
+    "ui": "{\"theme\":\"linear\",\"fonte\":\"padrao\",\"menuPosition\":\"right\",\"pack\":\"classico\",\"cursor\":\"padrao\",\"rastro\":\"off\"}"
+  },
+  "recusa": {
+    "status": 403,
+    "corpo": {
+      "error": "você ainda não tem esse item: exige a conquista \"perfeccionista\"",
+      "code": "item_nao_possuido",
+      "detalhes": {
+        "tipo": "cursor",
+        "alvo": "coroa",
+        "motivo": "exige a conquista \"perfeccionista\""
+      }
+    }
+  }
+}

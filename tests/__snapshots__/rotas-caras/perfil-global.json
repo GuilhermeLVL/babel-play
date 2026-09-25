@@ -1,0 +1,320 @@
+{
+  "sessions": 4,
+  "wordsCaptured": 952,
+  "deckSize": 104,
+  "newCards": 39,
+  "dueToday": 54,
+  "reviews": 260,
+  "correctReviews": 130,
+  "drillItems": 132,
+  "drillCorrect": 95,
+  "accuracy": 0.5,
+  "accuracyConfidence": 0.9,
+  "streakDays": 40,
+  "seedsGastas": 185,
+  "itensComprados": [
+    "posicao-right",
+    "tema-linear"
+  ],
+  "cromasComprados": [
+    "croma:tema:azul"
+  ],
+  "aprimoramentos": {
+    "dica": 2
+  },
+  "seedsCreditadas": 60,
+  "xpCreditado": 75,
+  "presencas": 11,
+  "sequencias7": 1,
+  "capturaMinutos": 100,
+  "capturaMinutosPremiados": 40,
+  "idiomas": 2,
+  "rodadasPerfeitas": 7,
+  "streakPresenca": 3,
+  "maiorSequenciaPresenca": 7,
+  "avgStability": 23.465202882713967,
+  "avgRetention": 0.9136073567315679,
+  "avgRetentionConfidence": 0.7,
+  "vocabByWeek": [
+    {
+      "weekStart": 1788393600000,
+      "count": 30
+    },
+    {
+      "weekStart": 1788998400000,
+      "count": 48
+    },
+    {
+      "weekStart": 1789603200000,
+      "count": 26
+    }
+  ],
+  "revisoesRecentes": [
+    1789308231945,
+    1789308358713,
+    1789308650755,
+    1789309494326,
+    1789309618808,
+    1789309650602,
+    1789309817251,
+    1789310888345,
+    1789396210871,
+    1789396606458,
+    1789396989653,
+    1789397143481,
+    1789481044085,
+    1789482671084,
+    1789482750622,
+    1789482893568,
+    1789483294022,
+    1789483977107,
+    1789483982615,
+    1789484140943,
+    1789567757985,
+    1789568172794,
+    1789568906118,
+    1789568908386,
+    1789569048311,
+    1789569133355,
+    1789569301786,
+    1789569342407,
+    1789569380300,
+    1789569725709,
+    1789570233744,
+    1789570550597,
+    1789570627242,
+    1789654048785,
+    1789654100060,
+    1789654182102,
+    1789654248997,
+    1789654376475,
+    1789654657504,
+    1789654901416,
+    1789654965035,
+    1789654979172,
+    1789655247022,
+    1789655424791,
+    1789655906783,
+    1789655982499,
+    1789656100438,
+    1789656501388,
+    1789656568329,
+    1789656804296,
+    1789740099409,
+    1789740112931,
+    1789740775958,
+    1789740862037,
+    1789741187194,
+    1789741238571,
+    1789741566495,
+    1789741788658,
+    1789741988332,
+    1789742445517,
+    1789742959577,
+    1789743034945,
+    1789743157310,
+    1789743379344,
+    1789743426779,
+    1789826672893,
+    1789826787346,
+    1789826821497,
+    1789827320088,
+    1789827361801,
+    1789827379078,
+    1789827393737,
+    1789828047096,
+    1789828645490,
+    1789828916868,
+    1789829310359,
+    1789829455336,
+    1789829526394,
+    1789829672632,
+    1789913216361,
+    1789913484018,
+    1789913524191,
+    1789914175347,
+    1789914299803,
+    1789914472491,
+    1789914576365,
+    1789914699612,
+    1789914784629,
+    1789914932706,
+    1789915220825,
+    1789915300735,
+    1789915570526,
+    1789915608290,
+    1789915974409,
+    1789915983820,
+    1789916205887,
+    1789916208754,
+    1789916277767,
+    1789916289650
+  ],
+  "speakingMs": 98826,
+  "listeningMs": 143511,
+  "palavrasDificeis": [
+    {
+      "cardId": "card-localowner-027",
+      "word": "straße27",
+      "lapses": 3,
+      "revisoes": 6,
+      "fracaoDeErro": 1,
+      "pontuacao": 11.475620652758517
+    },
+    {
+      "cardId": "card-localowner-038",
+      "word": "naïve38",
+      "lapses": 3,
+      "revisoes": 6,
+      "fracaoDeErro": 0.83,
+      "pontuacao": 11.069108786263191
+    },
+    {
+      "cardId": "card-localowner-028",
+      "word": "naïve28",
+      "lapses": 3,
+      "revisoes": 7,
+      "fracaoDeErro": 0.86,
+      "pontuacao": 10.861760522787725
+    },
+    {
+      "cardId": "card-localowner-006",
+      "word": "Garden6",
+      "lapses": 3,
+      "revisoes": 7,
+      "fracaoDeErro": 0.57,
+      "pontuacao": 10.780074274184049
+    },
+    {
+      "cardId": "card-localowner-021",
+      "word": "Água21",
+      "lapses": 3,
+      "revisoes": 7,
+      "fracaoDeErro": 0.43,
+      "pontuacao": 10.766508178093604
+    },
+    {
+      "cardId": "card-localowner-001",
+      "word": "Água1",
+      "lapses": 3,
+      "revisoes": 6,
+      "fracaoDeErro": 0.67,
+      "pontuacao": 10.482276373620456
+    },
+    {
+      "cardId": "card-localowner-008",
+      "word": "naïve8",
+      "lapses": 3,
+      "revisoes": 6,
+      "fracaoDeErro": 0.5,
+      "pontuacao": 10.298463749303483
+    },
+    {
+      "cardId": "card-localowner-025",
+      "word": "bridge25",
+      "lapses": 3,
+      "revisoes": 7,
+      "fracaoDeErro": 0.43,
+      "pontuacao": 10.220009142190351
+    },
+    {
+      "cardId": "card-localowner-012",
+      "word": "água12",
+      "lapses": 3,
+      "revisoes": 6,
+      "fracaoDeErro": 0.33,
+      "pontuacao": 9.994464810184823
+    },
+    {
+      "cardId": "card-localowner-036",
+      "word": "Garden36",
+      "lapses": 2,
+      "revisoes": 6,
+      "fracaoDeErro": 0.33,
+      "pontuacao": 7.427355618930112
+    },
+    {
+      "cardId": "card-localowner-032",
+      "word": "água32",
+      "lapses": 2,
+      "revisoes": 7,
+      "fracaoDeErro": 0.43,
+      "pontuacao": 7.368586511171555
+    },
+    {
+      "cardId": "card-localowner-023",
+      "word": "ÉCOLE23",
+      "lapses": 2,
+      "revisoes": 7,
+      "fracaoDeErro": 0.29,
+      "pontuacao": 7.09048784875444
+    }
+  ],
+  "acertoPorExercicio": [
+    {
+      "kind": "blitz",
+      "total": 28,
+      "acerto": 61
+    },
+    {
+      "kind": "bingo",
+      "total": 28,
+      "acerto": 64
+    },
+    {
+      "kind": "termo",
+      "total": 28,
+      "acerto": 68
+    },
+    {
+      "kind": "memory",
+      "total": 27,
+      "acerto": 100
+    },
+    {
+      "kind": "karuta",
+      "total": 27,
+      "acerto": 100
+    }
+  ],
+  "wpm": 76,
+  "wpmConfidence": 0.7,
+  "uniqueWords": 102,
+  "levelDistribution": [
+    {
+      "level": "N/D",
+      "count": 15
+    },
+    {
+      "level": "A1",
+      "count": 16
+    },
+    {
+      "level": "A2",
+      "count": 15
+    },
+    {
+      "level": "B1",
+      "count": 14
+    },
+    {
+      "level": "B2",
+      "count": 14
+    },
+    {
+      "level": "C1",
+      "count": 15
+    },
+    {
+      "level": "C2",
+      "count": 15
+    }
+  ],
+  "levelConfidence": 0.44783617307125084,
+  "asOf": 1789916400000,
+  "escopo": "global",
+  "base": {
+    "considerados": 65,
+    "total": 104
+  }
+}

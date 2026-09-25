@@ -1,0 +1,179 @@
+{
+  "sessions": 1,
+  "wordsCaptured": 40,
+  "deckSize": 19,
+  "newCards": 6,
+  "dueToday": 4,
+  "reviews": 39,
+  "correctReviews": 22,
+  "drillItems": 44,
+  "drillCorrect": 31,
+  "accuracy": 0.5641025641025641,
+  "accuracyConfidence": 0.9,
+  "streakDays": 6,
+  "seedsGastas": 185,
+  "itensComprados": [
+    "posicao-right",
+    "tema-linear"
+  ],
+  "cromasComprados": [
+    "croma:tema:azul"
+  ],
+  "aprimoramentos": {
+    "dica": 2
+  },
+  "seedsCreditadas": 60,
+  "xpCreditado": 75,
+  "presencas": 11,
+  "sequencias7": 1,
+  "capturaMinutos": 10,
+  "capturaMinutosPremiados": 10,
+  "idiomas": 1,
+  "rodadasPerfeitas": 0,
+  "streakPresenca": 3,
+  "maiorSequenciaPresenca": 7,
+  "avgStability": 21.960713344239274,
+  "avgRetention": 0.9143289786505426,
+  "avgRetentionConfidence": 0.7,
+  "vocabByWeek": [
+    {
+      "weekStart": 1788393600000,
+      "count": 6
+    },
+    {
+      "weekStart": 1788998400000,
+      "count": 8
+    },
+    {
+      "weekStart": 1789603200000,
+      "count": 5
+    }
+  ],
+  "revisoesRecentes": [
+    1789308650755,
+    1789309494326,
+    1789484140943,
+    1789568908386,
+    1789654048785,
+    1789654901416,
+    1789655424791,
+    1789740862037,
+    1789741988332,
+    1789742445517,
+    1789826672893,
+    1789828047096,
+    1789828916868,
+    1789916277767
+  ],
+  "speakingMs": 58174,
+  "listeningMs": 15092,
+  "palavrasDificeis": [
+    {
+      "cardId": "card-localowner-001",
+      "word": "Água1",
+      "lapses": 3,
+      "revisoes": 6,
+      "fracaoDeErro": 0.67,
+      "pontuacao": 10.482276373620456
+    },
+    {
+      "cardId": "card-localowner-025",
+      "word": "bridge25",
+      "lapses": 3,
+      "revisoes": 7,
+      "fracaoDeErro": 0.43,
+      "pontuacao": 10.220009142190351
+    },
+    {
+      "cardId": "card-localowner-037",
+      "word": "straße37",
+      "lapses": 0,
+      "revisoes": 7,
+      "fracaoDeErro": 0.57,
+      "pontuacao": 1.1428571428571428
+    },
+    {
+      "cardId": "card-localowner-005",
+      "word": "bridge5",
+      "lapses": 0,
+      "revisoes": 6,
+      "fracaoDeErro": 0.5,
+      "pontuacao": 1
+    },
+    {
+      "cardId": "card-localowner-017",
+      "word": "straße17",
+      "lapses": 0,
+      "revisoes": 6,
+      "fracaoDeErro": 0.33,
+      "pontuacao": 0.6666666666666666
+    }
+  ],
+  "acertoPorExercicio": [
+    {
+      "kind": "blitz",
+      "total": 9,
+      "acerto": 56
+    },
+    {
+      "kind": "termo",
+      "total": 9,
+      "acerto": 56
+    },
+    {
+      "kind": "bingo",
+      "total": 9,
+      "acerto": 67
+    },
+    {
+      "kind": "memory",
+      "total": 9,
+      "acerto": 100
+    },
+    {
+      "kind": "karuta",
+      "total": 9,
+      "acerto": 100
+    }
+  ],
+  "wpm": 68,
+  "wpmConfidence": 0.4,
+  "uniqueWords": 19,
+  "levelDistribution": [
+    {
+      "level": "N/D",
+      "count": 3
+    },
+    {
+      "level": "A1",
+      "count": 2
+    },
+    {
+      "level": "A2",
+      "count": 3
+    },
+    {
+      "level": "B1",
+      "count": 2
+    },
+    {
+      "level": "B2",
+      "count": 3
+    },
+    {
+      "level": "C1",
+      "count": 3
+    },
+    {
+      "level": "C2",
+      "count": 3
+    }
+  ],
+  "levelConfidence": 0.43843610359257773,
+  "asOf": 1789916400000,
+  "escopo": "sessao",
+  "base": {
+    "considerados": 13,
+    "total": 19
+  }
+}

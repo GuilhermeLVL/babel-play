@@ -5,7 +5,8 @@
  *
  *   node scripts/perf/escala/carga-servidor.mjs --bundle=<server.cjs> --db=<CÓPIA semeada> \
  *        [--modo=selfhost|publico] [--porta=3140] [--conexoes=10,50,100,200] [--duracao=15] \
- *        [--rotas=abertura,settings,vocab,profile,sessions,review,gastar] [--mesmo-ip] [--saida=x.json]
+ *        [--rotas=abertura,settings,vocab,profile,sessions,review,gastar,vocab-revalida,settings-put]
+ *        [--mesmo-ip] [--saida=x.json]
  *
  * O bundle é o MESMO comando de build do package.json (`esbuild server.ts --bundle --platform=node
  * --format=cjs --packages=external`), gerado fora do repositório; roda com NODE_ENV=production, que
@@ -194,6 +195,17 @@ let seq = 0
 const json = { 'content-type': 'application/json' }
 const auth = (u) => (modo === 'publico' ? { authorization: `Bearer ${tokens.get(u)}` } : {})
 const pesado = (i) => (modo === 'publico' ? `u-p-${pad(i % 200)}` : 'local-owner')
+const etags = new Map()
+async function prepararRevalidacao() {
+  const usuarios = modo === 'publico' ? Array.from({ length: 200 }, (_, i) => `u-p-${pad(i)}`) : ['local-owner']
+  for (const u of usuarios) {
+    const r = await fetch(`${base}/api/vocab`, { headers: auth(u) })
+    await r.arrayBuffer()
+    const etag = r.headers.get('etag')
+    if (etag) etags.set(u, etag)
+  }
+  console.log(`# revalidação: ${etags.size} ETags colhidos`)
+}
 const CENARIOS = {
   abertura: () => ({ method: 'GET', path: '/api/abertura', headers: {} }),
   settings: (i) => ({ method: 'GET', path: '/api/settings', headers: auth(pesado(i)) }),
@@ -212,6 +224,23 @@ const CENARIOS = {
     }
     return { method: 'POST', path: `/api/vocab/c-local-owner-${i % 3000}/review`, headers: json, body: '{"grade":3}' }
   },
+  /* REVALIDAÇÃO (fix/rotas-caras): o navegador e o `fetchDeck` mandam o ETag que já têm. Os ETags são
+     colhidos por `prepararRevalidacao()` antes da rodada, um por usuário do pool. */
+  'vocab-revalida': (i) => {
+    const u = pesado(i)
+    const etag = etags.get(u)
+    return { method: 'GET', path: '/api/vocab', headers: { ...auth(u), ...(etag ? { 'if-none-match': etag } : {}) } }
+  },
+  /* PUT /api/settings com SEIS campos de item do catálogo, todos grátis no nível 1: cada um passava
+     pela conferência de posse (`recusaDePosse`), que recalculava a economia inteira por campo. */
+  'settings-put': (i) => ({
+    method: 'PUT',
+    path: '/api/settings',
+    headers: { ...json, ...auth(pesado(i)) },
+    body: JSON.stringify({
+      ui: { theme: 'babel', fonte: 'padrao', menuPosition: 'top', pack: 'classico', cursor: 'padrao', rastro: 'off' },
+    }),
+  }),
   gastar: (i) => ({
     method: 'POST',
     path: '/api/metrics/seeds/gastar',
@@ -327,6 +356,7 @@ console.log(
 )
 console.log('|---|---:|---:|---:|---:|---:|---:|---:|---|---:|---:|---:|---:|')
 for (const nome of rotas) {
+  if (nome === 'vocab-revalida') await prepararRevalidacao()
   await rodar(nome, LENTAS.has(nome) ? 1 : 10, 3) // aquecimento descartado
   await esvaziar()
   for (const c of LENTAS.has(nome) ? niveisLentos : niveis) {

@@ -177,7 +177,7 @@ export async function offlineTranscribe(blob: Blob, opts: OfflineOptions = {}): 
   });
 
   // 3) Whisper local — pré-carrega uma vez (reporta o download do modelo, se houver). Com nuvem, SÓ
-  //    se ela recusar: quem transcreve na nuvem não paga 300 MB de download à toa.
+  //    se ela recusar: quem transcreve na nuvem não paga ~200 MB de download à toa.
   let local: WhisperLocalStt | null = null;
   const garantirLocal = async (): Promise<WhisperLocalStt> => {
     if (!local) {

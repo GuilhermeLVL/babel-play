@@ -134,6 +134,13 @@ describe('tamanhos de download e nomes', () => {
     expect(MODEL_DOWNLOAD_MB[MOONSHINE_MODELS.base]).toBeLessThan(MODEL_DOWNLOAD_MB[WHISPER_MODELS.tiny])
   })
 
+  it('whisper small e base: o que o navegador de fato baixa (small 588,7 MB medido; não os 880 estimados)', () => {
+    expect(MODEL_DOWNLOAD_MB[WHISPER_MODELS.small]).toBe(589)
+    expect(MODEL_DOWNLOAD_MB[WHISPER_MODELS.base]).toBe(209)
+    expect(MODEL_DOWNLOAD_MEDIDO[WHISPER_MODELS.small]).toBe(true)
+    expect(MODEL_DOWNLOAD_MEDIDO[WHISPER_MODELS.base]).toBe(true)
+  })
+
   it('nome legível para o selo: "Whisper small", "Moonshine base"', () => {
     expect(nomeLegivelDoModelo(WHISPER_MODELS.small)).toBe('Whisper small')
     expect(nomeLegivelDoModelo(MOONSHINE_MODELS.base)).toBe('Moonshine base')

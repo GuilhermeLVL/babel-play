@@ -1,6 +1,7 @@
 import { extractKeywords } from '@core';
 
 import type { buildGateway } from '../../gateway';
+import type { EspeculacaoDoFinal } from '../../gateway/capture/systemAudio';
 import { type VocabWord } from '../../types';
 
 /** O AI Gateway como a captura o enxerga (mesma instância que a tela monta com `buildGateway`). */
@@ -89,5 +90,8 @@ export interface HandlersDaFonte {
   onSpeechStart: (rawSeq: number) => void;
   onMisfire: (rawSeq: number) => void;
   onPartialAudio: (pcm: Float32Array, sr: number, rawSeq: number) => void;
-  onUtterance: (pcm: Float32Array, sr: number, rawSeq: number) => void;
+  /** `especulacao`: o final especulativo desta fala (ver `espelhoDoVad.ts`), cujo resultado É o final. */
+  onUtterance: (pcm: Float32Array, sr: number, rawSeq: number, especulacao?: EspeculacaoDoFinal) => void;
+  /** ~450 ms de silêncio: começa o decode final já (ver `SystemAudioCallbacks.onFinalEspeculativo`). */
+  onFinalEspeculativo: (pcm: Float32Array, sr: number, rawSeq: number) => EspeculacaoDoFinal | null;
 }

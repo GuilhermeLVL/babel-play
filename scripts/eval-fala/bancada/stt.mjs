@@ -30,6 +30,7 @@ import path from 'node:path'
 import { bootstrap, bootstrapPareado, razaoEm } from '../../../src/core/eval/bootstrap.ts'
 import { cer, wer } from '../../../src/core/eval/wer.ts'
 import { filtrarAlucinacao } from '../../../src/gateway/alucinacao.ts'
+import { ehPrefixo, EspelhoDoVad } from '../../../src/gateway/capture/espelhoDoVad.ts'
 import {
   BANCADA_DIR,
   cache,
@@ -74,6 +75,9 @@ function interpretar(s) {
     seg: extras.includes('seg'),
     vad: extras.some((e) => e.startsWith('vad')),
     redencaoMs: Number((extras.find((e) => /^vad\d+$/.test(e)) ?? 'vad450').slice(3)),
+    // `+esp`: o final é a janela do FINAL ESPECULATIVO da produção (ver `espelhoDoVad.ts`): o trecho
+    // que o VAD fecha, sem os quadros de silêncio depois de ~450 ms. Mede se isso muda o WER.
+    esp: extras.includes('esp'),
   }
 }
 
@@ -86,7 +90,7 @@ function interpretar(s) {
  */
 const exigir = createRequire(import.meta.url)
 let vadPronto = null
-async function segmentosDeFala(pcm, redencaoMs = 450) {
+async function segmentosDeFala(pcm, redencaoMs = 450, especulativo = false) {
   if (!vadPronto) {
     const ort = exigir('onnxruntime-node')
     const { SileroLegacy } = exigir('@ricky0123/vad-web/dist/models/legacy.js')
@@ -111,8 +115,26 @@ async function segmentosDeFala(pcm, redencaoMs = 450) {
   )
   fp.resume()
   const segs = []
+  // O mesmo espelho e os mesmos números de `systemAudio.ts` (ESPECULATIVO_MS = 450).
+  const espelho = new EspelhoDoVad({
+    positiveSpeechThreshold: 0.5,
+    negativeSpeechThreshold: 0.35,
+    redemptionMs: redencaoMs,
+    preSpeechPadMs: 300,
+    especulativoMs: 450,
+  })
+  let janela = null
   const coletar = (ev) => {
-    if (ev.audio && ev.msg === 'SPEECH_END') segs.push(ev.audio)
+    if (especulativo && ev.msg === 'FRAME_PROCESSED') {
+      const e = espelho.quadro(ev.probs.isSpeech, ev.frame)
+      if (e === 'especular') janela = espelho.janela()
+      if (e === 'cancelar') janela = null
+    }
+    if (ev.audio && ev.msg === 'SPEECH_END') segs.push(janela && ehPrefixo(janela, ev.audio) ? janela : ev.audio)
+    if (ev.msg === 'SPEECH_END' || ev.msg === 'VAD_MISFIRE') {
+      espelho.reiniciar()
+      janela = null
+    }
   }
   for (let i = 0; i + 1536 <= pcm.length; i += 1536) await fp.process(pcm.subarray(i, i + 1536), coletar)
   fp.endSegment(coletar)
@@ -243,7 +265,7 @@ async function rodar(sis, spec) {
       if (sis.vad) {
         const partes = []
         let ms = 0
-        const segs = await segmentosDeFala(pcm, sis.redencaoMs)
+        const segs = await segmentosDeFala(pcm, sis.redencaoMs, sis.esp)
         for (const seg of segs) {
           const p = await um(seg)
           partes.push(p.texto)

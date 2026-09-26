@@ -439,6 +439,9 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
             const r = await a.transcribePcm(pcm, sampleRate, opts);
             return { ...r, engine: r.engine ?? b.adapterId };
           } catch (e) {
+            // Cancelado por quem pediu (final especulativo cuja fala continuou): não é falha, e o
+            // próximo motor da cadeia (a nuvem, que cobra) não deve refazer o trabalho.
+            if ((e as Error)?.name === 'AbortError') throw e;
             lastErr = e instanceof Error ? e : new Error(String(e));
             // Telemetria: este motor caiu e o próximo da cadeia (se houver) assume.
             capMetrics.fallback(`stt:${b.adapterId}`);

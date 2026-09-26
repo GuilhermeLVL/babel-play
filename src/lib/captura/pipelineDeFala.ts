@@ -12,8 +12,9 @@ import type { ModelPrepState } from '../../components/ModelPrepPanel';
 import { apiFetch } from '../../data/api';
 import { getActiveProfile, getProviderMode } from '../../gateway/activeProfile';
 import { temAdaptadorWebGpu } from '../../gateway/adaptadorWebGpu';
-import type { AvisoDeDegradacaoDoStt } from '../../gateway/capabilities';
+import type { AvisoDeDegradacaoDoStt, SttFinal } from '../../gateway/capabilities';
 import { capMetrics, type CapSource } from '../../gateway/capture/captureMetrics';
+import type { EspeculacaoDoFinal } from '../../gateway/capture/systemAudio';
 import { areModelsCached, expectedModelIds } from '../../gateway/modelCache';
 import type { ContextoDoStt } from '../../gateway/promptDeStt';
 import { getSttQuality, nomeLegivelDoModelo, routeStt } from '../../gateway/sttRouter';
@@ -43,6 +44,11 @@ import { marcadorDeTraducao, type OpcoesDeTraducao, origemDaFala } from './tradu
  * o final responde, como qualquer entrada dele.
  */
 export const FALA_FECHADA = '\u0000fala-fechada';
+
+/** O decode especulativo de uma fala: a captura só o cancela; o pipeline usa a promessa como final. */
+interface FinalEspeculativo extends EspeculacaoDoFinal {
+  promessa: Promise<SttFinal>;
+}
 
 /** Um enunciado guardado enquanto o modelo ainda carregava. */
 export interface EnunciadoPendente {
@@ -335,8 +341,29 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
         });
     };
 
+    /**
+     * FINAL ESPECULATIVO (~450 ms de silêncio, VAD ainda aberto): o decode do final começa já, sobre a
+     * janela que o VAD vai entregar. Só no STT LOCAL — na nuvem cada pedido custa (mínimo de 10 s), e
+     * uma respiração no meio da frase viraria uma cobrança. Sem streaming na tela: a pessoa pode ainda
+     * estar falando; o texto aparece quando o VAD confirmar o fim.
+     */
+    const onFinalEspeculativo = (pcm: Float32Array, sr: number, rawSeq: number): FinalEspeculativo | null => {
+      const seq = rawSeq + offset;
+      if (!modelReadyRef.current || suppressedSeqsRef.current.has(seq)) return null;
+      if (gateway.stt.finalNaNuvem()) return null;
+      const { hint } = langs();
+      const ctl = new AbortController();
+      const promessa = gateway.stt.transcribePcm(pcm, sr, { languageHint: hint, signal: ctl.signal });
+      promessa.catch(() => {
+        /* cancelado (a fala continuou) ou falhou: quem usar a promessa trata */
+      });
+      return { promessa, cancelar: () => ctl.abort() };
+    };
+
     // Fim da fala → decode FINAL (autoritativo) → commit do texto + tradução.
-    const onUtterance = (pcm: Float32Array, sr: number, rawSeq: number) => {
+    const onUtterance = (pcm: Float32Array, sr: number, rawSeq: number, especulacao?: EspeculacaoDoFinal) => {
+      // O decode especulativo feito sobre ESTE pcm (conferido pela captura) é o final.
+      const especulativo = (especulacao as FinalEspeculativo | undefined)?.promessa;
       // anti-eco: o enunciado inteiro era o NOSSO TTS voltando — descarta e limpa.
       if (suppressedSeqsRef.current.has(rawSeq + offset)) {
         suppressedSeqsRef.current.delete(rawSeq + offset);
@@ -472,8 +499,10 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       /* CONTEXTO para a nuvem: a última final DESTA fonte, se foi no idioma que estamos pedindo
          agora (sem dica = idioma desconhecido = sem prompt; ver `promptDeStt.ts`). */
       const prompt = contextoDoSttRef?.current.promptPara(source, hint);
-      gateway.stt
-        .transcribePcm(pcm, sr, {
+      if (especulativo) clog('final', source, '(seq', seq, ') aproveita o decode especulativo');
+      (
+        especulativo ??
+        gateway.stt.transcribePcm(pcm, sr, {
           languageHint: hint,
           prompt,
           // STREAMING: mostra os tokens do decode final crescendo no balão em tempo real.
@@ -485,6 +514,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
             );
           },
         })
+      )
         .then(({ text, engine, language, confiancaDoIdioma, alucinacaoDescartada }) => {
           const clean = (text ?? '').trim();
           if (!clean && alucinacaoDescartada) capMetrics.alucinacao();
@@ -711,7 +741,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
         });
     };
 
-    return { onSpeechStart, onMisfire, onPartialAudio, onUtterance };
+    return { onSpeechStart, onMisfire, onPartialAudio, onUtterance, onFinalEspeculativo };
   };
 
   const sysHandlers = makeCaptureHandlers('system');

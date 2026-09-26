@@ -1,6 +1,7 @@
 import { MicVAD } from '@ricky0123/vad-web';
 
 import { apiFetch } from '../../data/api';
+import { ehPrefixo, EspelhoDoVad } from './espelhoDoVad';
 import { TAXA_DE_BITS_DA_GRAVACAO } from './taxaDeBits';
 
 // Logger de diagnóstico da captura de sistema/VAD (observabilidade no console do navegador).
@@ -157,9 +158,24 @@ async function acquireDisplayStream(): Promise<MediaStream> {
   }
 }
 
+/** O que o dono do decode especulativo devolve: a captura só sabe cancelá-lo (a fala continuou). */
+export interface EspeculacaoDoFinal {
+  cancelar(): void;
+}
+
 export interface SystemAudioCallbacks {
-  /** Fim da fala (VAD) → enunciado PCM completo (autoritativo, com pré-pad). */
-  onUtterance: (pcm: Float32Array, sampleRate: number, seq: number) => void;
+  /**
+   * Fim da fala (VAD) → enunciado PCM completo (autoritativo, com pré-pad). `especulacao` vem quando
+   * o decode especulativo desta fala foi feito sobre EXATAMENTE este `pcm` (ver `espelhoDoVad.ts`):
+   * o resultado dele É o final, não há o que decodificar de novo.
+   */
+  onUtterance: (pcm: Float32Array, sampleRate: number, seq: number, especulacao?: EspeculacaoDoFinal) => void;
+  /**
+   * ~450 ms de silêncio dentro da fala: começa o decode final JÁ, sobre a janela que o VAD vai
+   * entregar se fechar (o segmento continua aberto; a redenção segue em 800 ms). Devolve o handle do
+   * decode, ou `null` para não especular (nuvem, modelo carregando). Se a fala voltar, `cancelar()`.
+   */
+  onFinalEspeculativo?: (pcm: Float32Array, sampleRate: number, seq: number) => EspeculacaoDoFinal | null;
   /** Início da fala → `seq` monotônico do enunciado (para mapear parciais/final na UI). */
   onSpeechStart?: (seq: number) => void;
   /**
@@ -173,6 +189,19 @@ export interface SystemAudioCallbacks {
   /** Nível de áudio em tempo real (0..1, ~20 fps) — alimenta o waveform e o diagnóstico de sinal. */
   onLevel?: (level: number) => void;
 }
+
+/* Limiares e tempos do Silero — constantes porque o espelho do final especulativo (`espelhoDoVad.ts`)
+   precisa dos MESMOS números que a biblioteca usa. O porquê de cada um está na configuração do VAD. */
+const LIMIAR_DE_FALA = 0.5;
+const LIMIAR_DE_SILENCIO = 0.35;
+export const REDENCAO_MS = 800;
+const PRE_FALA_MS = 300;
+/**
+ * Silêncio a partir do qual o decode FINAL começa, especulativo, dentro dos 800 ms da redenção. A
+ * segmentação não muda (continua fechando em 800 ms); só o decode começa antes. Com quadros de 96 ms
+ * isto são 4 quadros (384 ms): o final ganha ~0,38 s em toda fala que termina.
+ */
+export const ESPECULATIVO_MS = 450;
 
 // Cadência dos parciais: reprocessa o buffer-até-agora a cada ~1.1s enquanto a fala continua.
 const PARTIAL_INTERVAL_MS = 1100;
@@ -297,6 +326,23 @@ async function startCaptureFromStream(
   let accumSamples = 0;
   let lastPartialSamples = 0;
 
+  /* FINAL ESPECULATIVO (ver `espelhoDoVad.ts`): o espelho reproduz o buffer do VAD quadro a quadro e
+     avisa quando o silêncio passa de `ESPECULATIVO_MS`; a janela daquele instante é decodificada já.
+     No fim da fala, se o áudio do VAD começa EXATAMENTE por ela, o final é a janela especulativa (e o
+     decode dela, já em andamento ou pronto); senão, o de sempre. */
+  const espelho = new EspelhoDoVad({
+    positiveSpeechThreshold: LIMIAR_DE_FALA,
+    negativeSpeechThreshold: LIMIAR_DE_SILENCIO,
+    redemptionMs: REDENCAO_MS,
+    preSpeechPadMs: PRE_FALA_MS,
+    especulativoMs: ESPECULATIVO_MS,
+  });
+  let especulacao: { seq: number; janela: Float32Array; handle: EspeculacaoDoFinal } | null = null;
+  const cancelarEspeculacao = (): void => {
+    especulacao?.handle.cancelar();
+    especulacao = null;
+  };
+
   const resetUtterance = (): void => {
     frameChunks = [];
     accumSamples = 0;
@@ -343,8 +389,8 @@ async function startCaptureFromStream(
       pauseStream: async () => {},
       resumeStream: async (s) => s,
       submitUserSpeechOnPause: true, // pause() entrega o áudio acumulado, usado no corte forçado
-      positiveSpeechThreshold: 0.5,
-      negativeSpeechThreshold: 0.35,
+      positiveSpeechThreshold: LIMIAR_DE_FALA,
+      negativeSpeechThreshold: LIMIAR_DE_SILENCIO,
       /* 800 ms de silêncio antes de fechar a fala (era 450). MEDIDO na bancada de 2026-09 (FLEURS
          pt, 100 falas, o mesmo Silero e FrameProcessor): com 450 ms uma frase lida de ~12,6 s saía
          em 2,57 pedaços — cada respiração virava um enunciado; com 800 ms, 1,12. Duas coisas
@@ -352,8 +398,8 @@ async function startCaptureFromStream(
          fragmento) e o STT de nuvem, que cobra no mínimo 10 s por requisição, passa de 2,06× para
          1,08× o tempo real de fala — metade do custo. O preço é a legenda FINAL chegar ~0,35 s
          depois; a parcial continua saindo durante a fala. 1200 ms não melhora mais nada. */
-      redemptionMs: 800,
-      preSpeechPadMs: 300, // prepende 0,3s → não corta o INÍCIO das sentenças
+      redemptionMs: REDENCAO_MS,
+      preSpeechPadMs: PRE_FALA_MS, // prepende 0,3s → não corta o INÍCIO das sentenças
       minSpeechMs: 400, // descarta ruídos < 0,4s (era 250: ruído curto virava frase inventada)
       onSpeechStart: () => {
         speechStartTs = performance.now();
@@ -363,10 +409,23 @@ async function startCaptureFromStream(
         vlog(label, 'VAD → início de fala (seq', currentSeq, ')');
         cb.onSpeechStart?.(currentSeq);
       },
-      onFrameProcessed: (_probs, frame) => {
+      onFrameProcessed: (probs, frame) => {
         if (speaking && frame && frame.length) {
           frameChunks.push(frame.slice());
           accumSamples += frame.length;
+        }
+        if (frame && frame.length) {
+          const evento = espelho.quadro(probs.isSpeech, frame);
+          if (evento === 'cancelar') {
+            // A fala voltou antes da redenção: o decode especulativo não vale mais.
+            cancelarEspeculacao();
+          } else if (evento === 'especular' && speaking && !muted && !paused && cb.onFinalEspeculativo) {
+            cancelarEspeculacao();
+            const janela = espelho.janela();
+            // Cópia para o worker (o buffer é transferido); a nossa fica para conferir no fim.
+            const handle = cb.onFinalEspeculativo(janela.slice(), 16000, currentSeq);
+            if (handle) especulacao = { seq: currentSeq, janela, handle };
+          }
         }
         const teto = maxSpeechMs();
         if (!forcingCut && speechStartTs && performance.now() - speechStartTs >= teto) {
@@ -383,6 +442,8 @@ async function startCaptureFromStream(
         }
       },
       onVADMisfire: () => {
+        espelho.reiniciar();
+        cancelarEspeculacao();
         speaking = false;
         vlog(label, 'VAD → misfire (ruído curto, ignorado), seq', currentSeq);
         cb.onMisfire?.(currentSeq);
@@ -392,7 +453,22 @@ async function startCaptureFromStream(
         speaking = false;
         speechStartTs = 0;
         vlog(label, 'VAD → fim de fala (seq', currentSeq, '):', audio.length, 'amostras');
-        cb.onUtterance(audio, 16000, currentSeq);
+        espelho.reiniciar();
+        const esp = especulacao;
+        especulacao = null;
+        if (esp && esp.seq === currentSeq && ehPrefixo(esp.janela, audio)) {
+          // O decode especulativo foi feito sobre o começo EXATO deste áudio: ele é o final.
+          vlog(
+            label,
+            'final especulativo aproveitado (',
+            audio.length - esp.janela.length,
+            'amostras de silêncio a menos)',
+          );
+          cb.onUtterance(esp.janela, 16000, currentSeq, esp.handle);
+        } else {
+          esp?.handle.cancelar();
+          cb.onUtterance(audio, 16000, currentSeq);
+        }
         resetUtterance();
       },
     });
@@ -412,6 +488,8 @@ async function startCaptureFromStream(
   // Tick de PARCIAIS: enquanto se fala, transcreve o buffer-até-agora (rolling partial).
   const partialTimer: any = setInterval(() => {
     if (!speaking || !cb.onPartialAudio) return;
+    // O final especulativo desta fala já está no worker: um parcial agora só o atrasaria.
+    if (especulacao?.seq === currentSeq) return;
     if (accumSamples - lastPartialSamples < PARTIAL_MIN_NEW_SAMPLES) return;
     lastPartialSamples = accumSamples;
     const soFar = concatFrames();
@@ -442,6 +520,8 @@ async function startCaptureFromStream(
         speaking = false;
         speechStartTs = 0;
         resetUtterance();
+        espelho.reiniciar();
+        cancelarEspeculacao();
         cb.onMisfire?.(currentSeq);
         cb.onLevel?.(0);
       }

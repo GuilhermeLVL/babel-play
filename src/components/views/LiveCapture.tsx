@@ -1897,7 +1897,9 @@ export default function LiveCapture({
       profileId: getActiveProfile().id,
       dispositivo: dispositivoDaRota(perfilDoAparelho),
     });
-    return expectedModelIds(ouvir, meu, rota.localModel).map((id) =>
+    // Só microfone: o tradutor é o da SUA fala (o mesmo sentido que `prepareModels` carrega).
+    const [mtDe, mtPara] = captureScenario === 'mic' ? [meu, ouvir] : [ouvir, meu];
+    return expectedModelIds(mtDe, mtPara, rota.localModel).map((id) =>
       id === rota.localModel
         ? {
             id,
@@ -1931,6 +1933,7 @@ export default function LiveCapture({
     sttQuality,
     temGpu,
     perfilDoAparelho,
+    captureScenario,
   ]);
   /* AVISO ANTES DE BAIXAR (perfil do aparelho): com economia de dados, rede abaixo de 4g, ou mais de
      100 MB no celular/Quest, a captura pergunta ANTES do primeiro byte, com o tamanho real do que

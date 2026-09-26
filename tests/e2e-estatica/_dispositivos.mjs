@@ -85,7 +85,11 @@ export function scriptDoAparelho(sinais) {
   return `(() => {
     const s = ${JSON.stringify(sinais)};
     const def = (obj, nome, valor) => { try { Object.defineProperty(obj, nome, { get: () => valor, configurable: true }); } catch {} };
-    if (s.semTela && globalThis.MediaDevices) { try { delete MediaDevices.prototype.getDisplayMedia; } catch {} }
+    if (s.semTela && globalThis.MediaDevices) {
+      try { delete MediaDevices.prototype.getDisplayMedia; } catch {}
+      // Também na instância e SEM escrita: um script de sonda que rode depois não o recoloca.
+      try { Object.defineProperty(navigator.mediaDevices, 'getDisplayMedia', { value: undefined, writable: false, configurable: false }); } catch {}
+    }
     if (s.semGpu) def(Navigator.prototype, 'gpu', undefined);
     if (s.xr) def(Navigator.prototype, 'xr', { isSessionSupported: async () => true });
     else def(Navigator.prototype, 'xr', undefined);

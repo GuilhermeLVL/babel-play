@@ -26,6 +26,7 @@ import { iniciarTelemetriaDeCaptura, pararTelemetriaDeCaptura } from '../../gate
 import type { ContextoDoStt } from '../../gateway/promptDeStt';
 import { Recording } from '../../types';
 import { DominantLangTracker } from '../convoLang';
+import { perfilDoDispositivo } from '../dispositivo/perfil';
 import { burstFromElement } from '../effects';
 import { dataHora } from '../i18n';
 import { baseLang, toBcp47 } from '../languages';
@@ -237,12 +238,16 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
     }
     // Aquece o MT local (opus-mt) para as DUAS direções (mic: fonte→alvo; sistema: alvo→fonte),
     // em background — assim já está pronto quando as traduções começarem (sem aquecer no meio).
+    // APARELHO COM POUCA MEMÓRIA (Quest/celular): nada de aquecer DOIS tradutores (2 × ~113 MB) junto
+    // com o Whisper — medido no Quest emulado, os três downloads disputavam a rede e a memória. Lá a
+    // preparação carrega o STT e depois UM tradutor; o outro sentido carrega na primeira tradução.
     const s = sourceLang.split('-')[0],
       t = targetLang.split('-')[0];
-    gateway.mt.warmup([
-      [s, t],
-      [t, s],
-    ]);
+    if (!perfilDoDispositivo().poucaMemoria)
+      gateway.mt.warmup([
+        [s, t],
+        [t, s],
+      ]);
     if (!resuming) setTimer(0);
     if (micEnabled) void startMic();
     if (systemEnabled) void handleStartSystemCapture();

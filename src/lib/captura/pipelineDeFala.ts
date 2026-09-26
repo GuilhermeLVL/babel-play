@@ -826,7 +826,12 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       // O APARELHO (Quest/celular: base q8 em WASM; small só no desktop com GPU).
       dispositivo: dispositivoDaRota(perfil),
     });
-    return { listenLang, myLang, route, perfil };
+    /* O SENTIDO DO TRADUTOR QUE A PREPARAÇÃO CARREGA. Mídia/conversa: o que você ouve → o seu idioma.
+       SÓ MICROFONE (o cenário dos aparelhos sem áudio do sistema — Quest, celular): a SUA fala →
+       "Traduzir para". Medido no Quest emulado (2026-09-26): carregava o en→pt (sem uso), e o pt→en
+       só chegava 45 s depois, na primeira tradução — ~113 MB a mais na rede e na memória. */
+    const [mtDe, mtPara] = captureScenarioRef.current === 'mic' ? [myLang, listenLang] : [listenLang, myLang];
+    return { listenLang, myLang, route, perfil, mtDe, mtPara };
   };
 
   /**
@@ -874,7 +879,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
   };
 
   const prepareModelsInterno = async () => {
-    const { listenLang, myLang, route, perfil } = await rotaDaCaptura();
+    const { route, perfil, mtDe, mtPara } = await rotaDaCaptura();
     gateway.stt.setRoute({
       preferCloud: route.preferCloud,
       localModel: route.localModel,
@@ -896,7 +901,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     /** POUCA MEMÓRIA (Quest/celular): STT e tradutor carregam UM DE CADA VEZ, nunca juntos. */
     const umDeCadaVez = perfil.poucaMemoria;
 
-    const cached = await areModelsCached(expectedModelIds(listenLang, myLang, route.localModel));
+    const cached = await areModelsCached(expectedModelIds(mtDe, mtPara, route.localModel));
 
     // NUVEM-PRIMEIRO: o motor principal é o Groq — a captura NÃO espera o download do
     // modelo local (que é só a RESERVA). Libera o pipeline já e baixa a reserva em
@@ -906,7 +911,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       flushPendingUtterances();
       setModelPrep({ whisper: 0, mt: null, fromCache: cached, error: null, done: false });
       const tradutorDaReserva = () =>
-        gateway.mt.preload(listenLang, myLang, (p, _l, bytes) =>
+        gateway.mt.preload(mtDe, mtPara, (p, _l, bytes) =>
           setModelPrep((s) => (s ? { ...s, mt: p >= 1 ? 1 : p, mtBytes: bytes ?? s.mtBytes } : s)),
         );
       if (!umDeCadaVez) tradutorDaReserva();
@@ -941,7 +946,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     try {
       // Tradutor local (best-effort; direção "ouço → meu idioma"). Emite barra própria.
       const iniciarTradutor = () =>
-        gateway.mt.preload(listenLang, myLang, (p, _l, bytes) => {
+        gateway.mt.preload(mtDe, mtPara, (p, _l, bytes) => {
           setModelPrep((s) => (s ? { ...s, mt: p >= 1 ? 1 : p, mtBytes: bytes ?? s.mtBytes } : s));
           if (p >= 1) {
             /* O tradutor local (113 MB) fica pronto DEPOIS do Whisper. Tudo que foi falado nesse

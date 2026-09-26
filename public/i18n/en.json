@@ -799,7 +799,7 @@
   "Efeitos sonoros dos jogos e das conquistas.": "Sound effects for games and achievements.",
   "Ligados": "On",
   "Modo desempenho": "Performance mode",
-  "Menos efeitos visuais, para computadores mais simples.": "Fewer visual effects, for simpler computers.",
+  "Menos efeitos visuais. Liga sozinho no Meta Quest, em celulares mais simples e com \"reduzir movimento\" do sistema; a sua escolha aqui vale mais.": "Fewer visual effects. Turns on by itself on Meta Quest, on simpler phones and with the system's \"reduce motion\"; your choice here takes precedence.",
   "Ligado": "On",
   "Traduzir um vídeo ou chamada": "Translate a video or call",
   "Dê play em qualquer app e clique em Iniciar captura. O som do computador entra sozinho.": "Press play in any app and click Start capture. The computer sound comes in on its own.",
@@ -846,5 +846,14 @@
   "Sugerido: {plano} · R$ {preco}/mês": "Suggested: {plano} · R$ {preco}/month",
   "Sugerido: {plano}": "Suggested: {plano}",
   "Sugerido para você": "Suggested for you",
-  "A placa de vídeo não pôde ser usada na transcrição. Seguindo no modo compatível ({modelo}): a legenda continua, um pouco mais lenta.": "The graphics card could not be used for transcription. Continuing in compatibility mode ({modelo}): captions keep coming, a little slower."
+  "A placa de vídeo não pôde ser usada na transcrição. Seguindo no modo compatível ({modelo}): a legenda continua, um pouco mais lenta.": "The graphics card could not be used for transcription. Continuing in compatibility mode ({modelo}): captions keep coming, a little slower.",
+  "O navegador do Meta Quest não capta o som do sistema: a legenda vem do microfone do headset. Deixe o vídeo tocar no alto-falante do próprio headset (o microfone capta) ou use a captura para conversar.": "The Meta Quest browser can't capture system audio: captions come from the headset microphone. Let the video play on the headset's own speaker (the microphone picks it up) or use capture for conversations.",
+  "O navegador deste aparelho não capta o som do sistema: a legenda vem do microfone. Deixe o vídeo tocar no alto-falante, perto do microfone, ou use a captura para conversar.": "This device's browser can't capture system audio: captions come from the microphone. Let the video play on the speaker, near the microphone, or use capture for conversations.",
+  "Este navegador não oferece captura do som do sistema (a função getDisplayMedia não existe no Android, no iPhone nem no Meta Quest). A captura usa só o microfone.": "This browser doesn't offer system audio capture (getDisplayMedia doesn't exist on Android, iPhone or Meta Quest). Capture uses the microphone only.",
+  "Baixar os modelos desta captura?": "Download the models for this capture?",
+  "Uma vez só: depois eles ficam guardados neste aparelho.": "Just once: after that they stay stored on this device.",
+  "A transcrição e a tradução no aparelho precisam de cerca de {mb} MB.": "On-device transcription and translation need about {mb} MB.",
+  "A economia de dados está ligada neste navegador.": "Data saver is on in this browser.",
+  "A conexão parece lenta ({rede}): o download pode demorar.": "The connection looks slow ({rede}): the download may take a while.",
+  "Baixar e iniciar": "Download and start"
 }

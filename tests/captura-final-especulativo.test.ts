@@ -135,3 +135,27 @@ describe('captura com final especulativo', () => {
     await cap.stop()
   })
 })
+
+describe('parciais mais cedo', () => {
+  it('o 1º parcial sai no 1º tique com 0,6 s de fala; os seguintes respeitam 1,1 s entre si', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'setTimeout', 'clearTimeout', 'performance'] })
+    try {
+      const parciais: number[] = []
+      const cap = await startMicCapture(undefined, {
+        onUtterance: vi.fn(),
+        onPartialAudio: (pcm: Float32Array) => parciais.push(pcm.length),
+      } as never)
+      await alimentar([...silencio(3), ...fala(8)]) // 7 quadros depois do início: 0,67 s
+      await vi.advanceTimersByTimeAsync(200)
+      expect(parciais).toHaveLength(1) // antes: só no tique de 1,1 s
+      await alimentar(fala(8))
+      await vi.advanceTimersByTimeAsync(400)
+      expect(parciais).toHaveLength(1) // 0,6 s de áudio novo, mas só 0,6 s desde o último
+      await vi.advanceTimersByTimeAsync(800) // 1,2 s desde o 1º
+      expect(parciais).toHaveLength(2)
+      await cap.stop()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+})

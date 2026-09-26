@@ -205,6 +205,8 @@ export const ESPECULATIVO_MS = 450;
 
 // Cadência dos parciais: reprocessa o buffer-até-agora a cada ~1.1s enquanto a fala continua.
 const PARTIAL_INTERVAL_MS = 1100;
+// Com que frequência o relógio dos parciais olha o buffer (o 1º parcial não espera o intervalo).
+const PARTIAL_TICK_MS = 200;
 // Só emite um parcial quando acumulou pelo menos este tanto de áudio NOVO (evita decodes minúsculos).
 const PARTIAL_MIN_NEW_SAMPLES = 16000 * 0.6; // ~0,6s @ 16 kHz
 
@@ -486,16 +488,24 @@ async function startCaptureFromStream(
   vlog(label, 'VAD iniciado ✓');
 
   // Tick de PARCIAIS: enquanto se fala, transcreve o buffer-até-agora (rolling partial).
+  /* O PRIMEIRO PARCIAL SAI ASSIM QUE HÁ 0,6 s DE FALA, e não no próximo tique de 1,1 s. Medido na
+     auditoria de latência (2026-09-26): o 1º texto aparecia 2,6 s depois do início da fala — o tique
+     de 1,1 s, mais os 0,6 s de áudio novo, mais o decode. O relógio agora olha a cada 200 ms; o
+     espaçamento ENTRE parciais continua 1,1 s (o custo por fala não muda). */
+  let ultimoParcialTs = 0;
   const partialTimer: any = setInterval(() => {
     if (!speaking || !cb.onPartialAudio) return;
     // O final especulativo desta fala já está no worker: um parcial agora só o atrasaria.
     if (especulacao?.seq === currentSeq) return;
     if (accumSamples - lastPartialSamples < PARTIAL_MIN_NEW_SAMPLES) return;
+    const primeiro = lastPartialSamples === 0;
+    if (!primeiro && performance.now() - ultimoParcialTs < PARTIAL_INTERVAL_MS) return;
     lastPartialSamples = accumSamples;
+    ultimoParcialTs = performance.now();
     const soFar = concatFrames();
     vlog(label, 'VAD → parcial (seq', currentSeq, '):', soFar.length, 'amostras');
     cb.onPartialAudio(soFar, 16000, currentSeq);
-  }, PARTIAL_INTERVAL_MS);
+  }, PARTIAL_TICK_MS);
 
   // Detecta quando a faixa de áudio encerra (usuário parou o compartilhamento / desplugou o mic).
   const audioTracks = audioStream.getAudioTracks();

@@ -11,33 +11,33 @@
 - [x] Desenho da fila de IA (prioridade por plano, retry, idempotência)
 - [x] Isolamento: simultaneidade por usuário, corpos em streaming, limites
 - [x] Correções 1–5 e 7 aplicadas e medidas (fase2-escala.md §7)
-- [ ] Item 6: rotas caras (vocab, profile, gastar)
+- [x] Item 6: rotas caras (vocab, profile, gastar)
 - [ ] Fila durável da importação na nuvem
 - [x] GATE: aprovado em 25/09
 
 ## Fase 3 — Custo
 
 - [ ] Modelo de custo por plano e patamar, com premissas
-- [ ] GATE
+- [x] Feita e integrada (dono autorizou seguir sem gates em 25/09); ver RELATORIO-FINAL.md
 
 ## Fase 4 — Performance e carga
 
 - [ ] Suíte k6 com auth e IA simulada; rodar 10/100/1.000
 - [ ] Lighthouse + budget; SLOs
-- [ ] GATE
+- [x] Feita e integrada (dono autorizou seguir sem gates em 25/09); ver RELATORIO-FINAL.md
 
 ## Fase 5 — Observabilidade e autoscaling
 
-- [ ] GATE
+- [x] Feita e integrada (dono autorizou seguir sem gates em 25/09); ver RELATORIO-FINAL.md
 
 ## Fase 6 — Versionamento e distribuição
 
-- [ ] GATE
+- [x] Feita e integrada (dono autorizou seguir sem gates em 25/09); ver RELATORIO-FINAL.md
 
 ## Fase 7 — Modo convidado
 
-- [ ] GATE
+- [x] Feita e integrada (dono autorizou seguir sem gates em 25/09); ver RELATORIO-FINAL.md
 
 ## Fase 8 — Comunicação de planos
 
-- [ ] GATE
+- [x] Feita e integrada (dono autorizou seguir sem gates em 25/09); ver RELATORIO-FINAL.md

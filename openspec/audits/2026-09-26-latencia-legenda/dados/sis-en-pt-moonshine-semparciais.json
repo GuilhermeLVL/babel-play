@@ -1,0 +1,431 @@
+{
+ "grupo": "sis-en-pt-moonshine-semparciais",
+ "pular": 1,
+ "resumo": {
+  "n": 11,
+  "perdidas": 0,
+  "vad": {
+   "p50": 530,
+   "p95": 781,
+   "n": 11
+  },
+  "sttEspera": {
+   "p50": 0,
+   "p95": 0,
+   "n": 11
+  },
+  "stt": {
+   "p50": 478,
+   "p95": 631,
+   "n": 11
+  },
+  "primeiroToken": {
+   "p50": 167,
+   "p95": 208,
+   "n": 11
+  },
+  "renderOrig": {
+   "p50": 4,
+   "p95": 8,
+   "n": 11
+  },
+  "mtEspera": {
+   "p50": 0,
+   "p95": 2,
+   "n": 11
+  },
+  "mt": {
+   "p50": 530,
+   "p95": 752,
+   "n": 11
+  },
+  "renderTrad": {
+   "p50": 1,
+   "p95": 2,
+   "n": 11
+  },
+  "fimAoOriginal": {
+   "p50": 1010,
+   "p95": 1342,
+   "n": 11
+  },
+  "fimATraducao": {
+   "p50": 1516,
+   "p95": 2071,
+   "n": 11
+  },
+  "inicioAoPrimeiroTexto": null,
+  "primeiraTraducaoParcialAntesDoFim": {
+   "p50": 2420,
+   "p95": 2420,
+   "n": 1
+  },
+  "rtf": {
+   "p50": 0.09,
+   "p95": 0.115,
+   "n": 11
+  },
+  "comTraducaoParcialAntesDoFim": 1,
+  "motoresMt": [
+   "opus-mt"
+  ]
+ },
+ "rodadas": [
+  {
+   "rotulo": "sis-en-pt-moonshine-semparciais.r2",
+   "config": {
+    "desempenho": "on",
+    "modo": "sistema",
+    "eu": "pt-BR",
+    "eles": "en-US",
+    "qualidade": "auto",
+    "device": "auto",
+    "canal": "chromium",
+    "headless": false,
+    "semWebGpu": false,
+    "perfil": "reaproveitado"
+   },
+   "ui": {
+    "chipTexto": "English (US)Português (BR) ",
+    "resumo": "Cada fala vira legenda bilíngue em Português (BR).",
+    "seloModelo": "Modelo no dispositivo, 67 MB: ver detalhes"
+   },
+   "gpuInfo": "amd rdna-2",
+   "coi": true,
+   "modeloStt": "onnx-community/moonshine-base-ONNX",
+   "dispositivos": [
+    "wasm"
+   ],
+   "rota": "roteador STT: local · inglês (moonshine) | modelo local: onnx-community/moonshine-base-ONNX | nuvem primeiro: false",
+   "carga": {
+    "sttProntoMs": 3609,
+    "mtProntos": [
+     {
+      "modelo": "Xenova/opus-mt-en-ROMANCE",
+      "ms": 2340
+     },
+     {
+      "modelo": "Xenova/opus-mt-ROMANCE-en",
+      "ms": 2903
+     }
+    ],
+    "pedidosAoHub": 3
+   },
+   "primeiraLegendaMs": {
+    "fala": 0,
+    "fimAoOriginal": 494,
+    "fimATraducao": 1476
+   },
+   "mainThread": {
+    "loafs": 8,
+    "loafMs": 1215,
+    "maiores": [
+     {
+      "t": 4042,
+      "ms": 431,
+      "bloq": 380,
+      "scripts": [
+       "Worker.onmessage@ort-wasm-simd-threaded.mjs:427ms"
+      ]
+     },
+     {
+      "t": 42263,
+      "ms": 304,
+      "bloq": 0,
+      "scripts": []
+     },
+     {
+      "t": 36,
+      "ms": 179,
+      "bloq": 0,
+      "scripts": []
+     },
+     {
+      "t": 88206,
+      "ms": 83,
+      "bloq": 0,
+      "scripts": [
+       "At@vendor-react-dq0ylnNG.js:6ms"
+      ]
+     },
+     {
+      "t": 4690,
+      "ms": 60,
+      "bloq": 10,
+      "scripts": [
+       "MessagePort.onmessage@SeletorDeCapa-Bokb8UTH.js:59ms"
+      ]
+     }
+    ]
+   },
+   "erros": [],
+   "falas": [
+    {
+     "k": 0,
+     "durVozS": 5.58,
+     "trechos": 1,
+     "texto": "In some areas, boiling water for a minute is enough and other several minutes are needed.",
+     "parciais": 0,
+     "vad": -288,
+     "audioMs": 4896,
+     "stt": 772,
+     "primeiroToken": 225,
+     "sttEspera": 0,
+     "rtf": 0.158,
+     "renderOrig": 9,
+     "fimAoOriginal": 494,
+     "fimAoOriginalQuadro": 496,
+     "mtEspera": 16,
+     "mtMotor": "opus-mt",
+     "mt": 969,
+     "traducao": "Em algumas áreas, a água fervente por um minuto é suficiente e outros minutos são necessários.",
+     "renderTrad": 6,
+     "fimATraducao": 1476
+    },
+    {
+     "k": 1,
+     "durVozS": 5.58,
+     "trechos": 1,
+     "texto": "On some routes, the larger companies have their own planes, but for other routes and smaller firms, there was a problem.",
+     "parciais": 0,
+     "vad": 621,
+     "audioMs": 6432,
+     "stt": 666,
+     "primeiroToken": 200,
+     "sttEspera": 0,
+     "rtf": 0.104,
+     "renderOrig": 5,
+     "fimAoOriginal": 1293,
+     "fimAoOriginalQuadro": 1297,
+     "mtEspera": 1,
+     "mtMotor": "opus-mt",
+     "mt": 761,
+     "traducao": "Em algumas rotas, as grandes empresas têm seus próprios aviões, mas para outras rotas e empresas menores, houve um problema.",
+     "renderTrad": 2,
+     "fimATraducao": 2050
+    },
+    {
+     "k": 2,
+     "durVozS": 5.44,
+     "trechos": 2,
+     "texto": "Maria and Thicker under the Highlands.",
+     "parciais": 0,
+     "vad": 771,
+     "audioMs": 3456,
+     "stt": 237,
+     "primeiroToken": 114,
+     "sttEspera": 0,
+     "rtf": 0.068,
+     "renderOrig": 3,
+     "fimAoOriginal": 1010,
+     "fimAoOriginalQuadro": 1011,
+     "mtEspera": 0,
+     "mtMotor": "opus-mt",
+     "mt": 279,
+     "traducao": "Maria e Thicker sob as Terras Altas.",
+     "renderTrad": 1,
+     "fimATraducao": 1288,
+     "primeiraTraducaoParcialAntesDoFim": 2420
+    },
+    {
+     "k": 3,
+     "durVozS": 5.36,
+     "trechos": 1,
+     "texto": "The cabbage juice changes color depending on how acidic, basic, alkaline the chemical is.",
+     "parciais": 0,
+     "vad": 321,
+     "audioMs": 5952,
+     "stt": 587,
+     "primeiroToken": 184,
+     "sttEspera": 0,
+     "rtf": 0.099,
+     "renderOrig": 4,
+     "fimAoOriginal": 913,
+     "fimAoOriginalQuadro": 914,
+     "mtEspera": 0,
+     "mtMotor": "opus-mt",
+     "mt": 743,
+     "traducao": "O suco de repolho muda de cor dependendo da forma ácida, básica, alcalina que o produto químico é.",
+     "renderTrad": 1,
+     "fimATraducao": 1652
+    },
+    {
+     "k": 4,
+     "durVozS": 3.9,
+     "trechos": 1,
+     "texto": "Lions are the most social cats living in large groups called prides.",
+     "parciais": 0,
+     "vad": 741,
+     "audioMs": 4896,
+     "stt": 403,
+     "primeiroToken": 166,
+     "sttEspera": 0,
+     "rtf": 0.082,
+     "renderOrig": 3,
+     "fimAoOriginal": 1146,
+     "fimAoOriginalQuadro": 1147,
+     "mtEspera": 0,
+     "mtMotor": "opus-mt",
+     "mt": 530,
+     "traducao": "Os leões são os gatos mais sociais que vivem em grandes grupos chamados orgulhos.",
+     "renderTrad": 1,
+     "fimATraducao": 1674
+    },
+    {
+     "k": 5,
+     "durVozS": 5.68,
+     "trechos": 1,
+     "texto": "Large areas further north are quite sparsely populated and some is nearly uninhabited wilderness.",
+     "parciais": 0,
+     "vad": 281,
+     "audioMs": 6240,
+     "stt": 563,
+     "primeiroToken": 216,
+     "sttEspera": 0,
+     "rtf": 0.09,
+     "renderOrig": 4,
+     "fimAoOriginal": 848,
+     "fimAoOriginalQuadro": 849,
+     "mtEspera": 0,
+     "mtMotor": "opus-mt",
+     "mt": 513,
+     "traducao": "Grandes áreas mais ao norte são bastante pouco povoadas e algumas são quase desabitadas.",
+     "renderTrad": 1,
+     "fimATraducao": 1358
+    },
+    {
+     "k": 6,
+     "durVozS": 5.16,
+     "trechos": 1,
+     "texto": "The smaller the Raspberry number, the less active the star would respect to magnetic reversals.",
+     "parciais": 0,
+     "vad": 530,
+     "audioMs": 5952,
+     "stt": 512,
+     "primeiroToken": 181,
+     "sttEspera": 0,
+     "rtf": 0.086,
+     "renderOrig": 3,
+     "fimAoOriginal": 1045,
+     "fimAoOriginalQuadro": 1046,
+     "mtEspera": 0,
+     "mtMotor": "opus-mt",
+     "mt": 669,
+     "traducao": "Quanto menor o número Raspberry, menos ativa a estrela respeitaria reversões magnéticas.",
+     "renderTrad": 2,
+     "fimATraducao": 1714
+    },
+    {
+     "k": 7,
+     "durVozS": 3.4,
+     "trechos": 1,
+     "texto": "Fellow wrestlers also paid tribute to Luna.",
+     "parciais": 0,
+     "vad": -49,
+     "audioMs": 3072,
+     "stt": 386,
+     "primeiroToken": 119,
+     "sttEspera": 0,
+     "rtf": 0.126,
+     "renderOrig": 3,
+     "fimAoOriginal": 340,
+     "fimAoOriginalQuadro": 341,
+     "mtEspera": 1,
+     "mtMotor": "opus-mt",
+     "mt": 362,
+     "traducao": "Os lutadores também pagaram homenagem a Luna.",
+     "renderTrad": 1,
+     "fimATraducao": 701
+    },
+    {
+     "k": 8,
+     "durVozS": 4.18,
+     "trechos": 1,
+     "texto": "Fire rescue crews eventually douse the fire by eleven thirty-five p.m.",
+     "parciais": 0,
+     "vad": 571,
+     "audioMs": 4992,
+     "stt": 475,
+     "primeiroToken": 167,
+     "sttEspera": 0,
+     "rtf": 0.095,
+     "renderOrig": 3,
+     "fimAoOriginal": 1049,
+     "fimAoOriginalQuadro": 1050,
+     "mtEspera": 0,
+     "mtMotor": "opus-mt",
+     "mt": 469,
+     "traducao": "Os bombeiros acabam por afogar até às 23h35.",
+     "renderTrad": 1,
+     "fimATraducao": 1516
+    },
+    {
+     "k": 9,
+     "durVozS": 4.22,
+     "trechos": 1,
+     "texto": "The find also crafts insight into the evolution of feathers and birds.",
+     "parciais": 0,
+     "vad": 431,
+     "audioMs": 4512,
+     "stt": 402,
+     "primeiroToken": 155,
+     "sttEspera": 0,
+     "rtf": 0.089,
+     "renderOrig": 9,
+     "fimAoOriginal": 842,
+     "fimAoOriginalQuadro": 844,
+     "mtEspera": 2,
+     "mtMotor": "opus-mt",
+     "mt": 446,
+     "traducao": "A descoberta também faz artes para a evolução das penas e aves.",
+     "renderTrad": 1,
+     "fimATraducao": 1282
+    },
+    {
+     "k": 10,
+     "durVozS": 4.9,
+     "trechos": 1,
+     "texto": "The disease is carried by pigs, which then migrates to humans through mosquitoes.",
+     "parciais": 0,
+     "vad": 351,
+     "audioMs": 5472,
+     "stt": 478,
+     "primeiroToken": 162,
+     "sttEspera": 0,
+     "rtf": 0.087,
+     "renderOrig": 4,
+     "fimAoOriginal": 833,
+     "fimAoOriginalQuadro": 838,
+     "mtEspera": 0,
+     "mtMotor": "opus-mt",
+     "mt": 571,
+     "traducao": "A doença é transportada por porcos, que migram para os humanos através de mosquitos.",
+     "renderTrad": 1,
+     "fimATraducao": 1401
+    },
+    {
+     "k": 11,
+     "durVozS": 5.14,
+     "trechos": 1,
+     "texto": "Some atoms have unstable nuclei, which means that they tend to break apart with little or no nudging.",
+     "parciais": 0,
+     "vad": 790,
+     "audioMs": 6144,
+     "stt": 595,
+     "primeiroToken": 181,
+     "sttEspera": 0,
+     "rtf": 0.097,
+     "renderOrig": 6,
+     "fimAoOriginal": 1391,
+     "fimAoOriginalQuadro": 1393,
+     "mtEspera": 0,
+     "mtMotor": "opus-mt",
+     "mt": 705,
+     "traducao": "Alguns átomos têm núcleos instáveis, o que significa que eles tendem a romper com pouco ou nenhum nulismo.",
+     "renderTrad": 1,
+     "fimATraducao": 2091
+    }
+   ]
+  }
+ ]
+}

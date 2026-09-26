@@ -1,0 +1,181 @@
+{
+ "grupo": "mic-pt-en-padrao-headless",
+ "pular": 1,
+ "resumo": {
+  "n": 11,
+  "perdidas": 11,
+  "vad": null,
+  "sttEspera": null,
+  "stt": null,
+  "primeiroToken": null,
+  "renderOrig": null,
+  "mtEspera": null,
+  "mt": null,
+  "renderTrad": null,
+  "fimAoOriginal": null,
+  "fimATraducao": null,
+  "inicioAoPrimeiroTexto": null,
+  "primeiraTraducaoParcialAntesDoFim": null,
+  "rtf": null,
+  "comTraducaoParcialAntesDoFim": 0,
+  "motoresMt": []
+ },
+ "rodadas": [
+  {
+   "rotulo": "mic-pt-en-padrao-headless.r1",
+   "config": {
+    "modo": "mic",
+    "eu": "pt-BR",
+    "eles": "en-US",
+    "qualidade": "auto",
+    "device": "auto",
+    "canal": "chromium",
+    "headless": true,
+    "semWebGpu": false,
+    "perfil": "reaproveitado"
+   },
+   "ui": {
+    "chipTexto": "Português (BR)English (US) ",
+    "resumo": "Você lê os outros em Português (BR) · sua fala aparece em English (US).",
+    "seloModelo": "Modelo no dispositivo, 880 MB: ver detalhes"
+   },
+   "gpuInfo": "sem adaptador",
+   "coi": true,
+   "modeloStt": "onnx-community/whisper-small",
+   "dispositivos": [],
+   "rota": "roteador STT: local · modelo preciso (small) | modelo local: onnx-community/whisper-small | nuvem primeiro: false",
+   "carga": {
+    "sttProntoMs": null,
+    "mtProntos": [
+     {
+      "modelo": "Xenova/opus-mt-en-ROMANCE",
+      "ms": 3635
+     },
+     {
+      "modelo": "Xenova/opus-mt-ROMANCE-en",
+      "ms": 3752
+     }
+    ],
+    "pedidosAoHub": 6
+   },
+   "primeiraLegendaMs": null,
+   "mainThread": {
+    "loafs": 14,
+    "loafMs": 1647,
+    "maiores": [
+     {
+      "t": 4899,
+      "ms": 563,
+      "bloq": 511,
+      "scripts": [
+       "Worker.onmessage@ort-wasm-simd-threaded.mjs:557ms"
+      ]
+     },
+     {
+      "t": 54,
+      "ms": 187,
+      "bloq": 0,
+      "scripts": [
+       "http://127.0.0.1:4176/assets/index-Cs78Md0l.js@index-Cs78Md0l.js:14ms"
+      ]
+     },
+     {
+      "t": 121808,
+      "ms": 154,
+      "bloq": 0,
+      "scripts": []
+     },
+     {
+      "t": 125259,
+      "ms": 131,
+      "bloq": 0,
+      "scripts": []
+     },
+     {
+      "t": 5653,
+      "ms": 93,
+      "bloq": 38,
+      "scripts": [
+       "MessagePort.onmessage@SeletorDeCapa-Bokb8UTH.js:85ms"
+      ]
+     }
+    ]
+   },
+   "erros": [],
+   "falas": [
+    {
+     "k": 0,
+     "durVozS": 5.38,
+     "trechos": 0,
+     "perdida": true
+    },
+    {
+     "k": 1,
+     "durVozS": 4.06,
+     "trechos": 0,
+     "perdida": true
+    },
+    {
+     "k": 2,
+     "durVozS": 5.08,
+     "trechos": 0,
+     "perdida": true
+    },
+    {
+     "k": 3,
+     "durVozS": 5.3,
+     "trechos": 0,
+     "perdida": true
+    },
+    {
+     "k": 4,
+     "durVozS": 4.88,
+     "trechos": 0,
+     "perdida": true
+    },
+    {
+     "k": 5,
+     "durVozS": 5.28,
+     "trechos": 0,
+     "perdida": true
+    },
+    {
+     "k": 6,
+     "durVozS": 4.54,
+     "trechos": 0,
+     "perdida": true
+    },
+    {
+     "k": 7,
+     "durVozS": 4.52,
+     "trechos": 0,
+     "perdida": true
+    },
+    {
+     "k": 8,
+     "durVozS": 5.78,
+     "trechos": 0,
+     "perdida": true
+    },
+    {
+     "k": 9,
+     "durVozS": 4.32,
+     "trechos": 0,
+     "perdida": true
+    },
+    {
+     "k": 10,
+     "durVozS": 5.14,
+     "trechos": 0,
+     "perdida": true
+    },
+    {
+     "k": 11,
+     "durVozS": 5.28,
+     "trechos": 0,
+     "perdida": true
+    }
+   ]
+  }
+ ]
+}

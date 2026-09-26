@@ -1,0 +1,400 @@
+{
+ "grupo": "mic-pt-en-small-wasm",
+ "pular": 1,
+ "resumo": {
+  "n": 11,
+  "perdidas": 0,
+  "vad": {
+   "p50": 771,
+   "p95": 811,
+   "n": 11
+  },
+  "sttEspera": {
+   "p50": 8987,
+   "p95": 14521,
+   "n": 9
+  },
+  "stt": {
+   "p50": 17240,
+   "p95": 23211,
+   "n": 9
+  },
+  "primeiroToken": {
+   "p50": 14415,
+   "p95": 20257,
+   "n": 9
+  },
+  "renderOrig": {
+   "p50": 34,
+   "p95": 38,
+   "n": 9
+  },
+  "mtEspera": {
+   "p50": 32,
+   "p95": 35,
+   "n": 9
+  },
+  "mt": {
+   "p50": 365,
+   "p95": 709,
+   "n": 9
+  },
+  "renderTrad": {
+   "p50": 1,
+   "p95": 2,
+   "n": 9
+  },
+  "fimAoOriginal": {
+   "p50": 18041,
+   "p95": 23972,
+   "n": 9
+  },
+  "fimATraducao": {
+   "p50": 18597,
+   "p95": 24453,
+   "n": 9
+  },
+  "inicioAoPrimeiroTexto": null,
+  "primeiraTraducaoParcialAntesDoFim": null,
+  "rtf": {
+   "p50": 3.233,
+   "p95": 4.842,
+   "n": 9
+  },
+  "comTraducaoParcialAntesDoFim": 0,
+  "motoresMt": [
+   "opus-mt"
+  ]
+ },
+ "rodadas": [
+  {
+   "rotulo": "mic-pt-en-small-wasm.r1",
+   "config": {
+    "modo": "mic",
+    "eu": "pt-BR",
+    "eles": "en-US",
+    "qualidade": "auto",
+    "device": "wasm",
+    "canal": "chromium",
+    "headless": false,
+    "semWebGpu": false,
+    "perfil": "reaproveitado"
+   },
+   "ui": {
+    "chipTexto": "Português (BR)English (US) ",
+    "resumo": "Você lê os outros em Português (BR) · sua fala aparece em English (US).",
+    "seloModelo": "Modelo no dispositivo, 880 MB: ver detalhes"
+   },
+   "gpuInfo": "amd rdna-2",
+   "coi": true,
+   "modeloStt": "onnx-community/whisper-small",
+   "dispositivos": [
+    "wasm"
+   ],
+   "rota": "roteador STT: local · modelo preciso (small) | modelo local: onnx-community/whisper-small | nuvem primeiro: false",
+   "carga": {
+    "sttProntoMs": 14732,
+    "mtProntos": [
+     {
+      "modelo": "Xenova/opus-mt-en-ROMANCE",
+      "ms": 2737
+     },
+     {
+      "modelo": "Xenova/opus-mt-ROMANCE-en",
+      "ms": 2871
+     }
+    ],
+    "pedidosAoHub": 5
+   },
+   "primeiraLegendaMs": {
+    "fala": 0,
+    "fimAoOriginal": 11309,
+    "fimATraducao": 11857
+   },
+   "mainThread": {
+    "loafs": 11,
+    "loafMs": 1699,
+    "maiores": [
+     {
+      "t": 11693,
+      "ms": 420,
+      "bloq": 0,
+      "scripts": [
+       "At@vendor-react-dq0ylnNG.js:6ms",
+       "At@vendor-react-dq0ylnNG.js:6ms"
+      ]
+     },
+     {
+      "t": 4303,
+      "ms": 390,
+      "bloq": 340,
+      "scripts": [
+       "Worker.onmessage@ort-wasm-simd-threaded.mjs:389ms"
+      ]
+     },
+     {
+      "t": 36,
+      "ms": 183,
+      "bloq": 0,
+      "scripts": [
+       "http://127.0.0.1:4176/assets/index-Cs78Md0l.js@index-Cs78Md0l.js:14ms"
+      ]
+     },
+     {
+      "t": 4851,
+      "ms": 138,
+      "bloq": 87,
+      "scripts": [
+       "MessagePort.onmessage@SeletorDeCapa-Bokb8UTH.js:133ms"
+      ]
+     },
+     {
+      "t": 19479,
+      "ms": 113,
+      "bloq": 0,
+      "scripts": []
+     }
+    ]
+   },
+   "erros": [],
+   "falas": [
+    {
+     "k": 0,
+     "durVozS": 5.38,
+     "trechos": 1,
+     "texto": "Nos arquipélagos e lagos, você não precisa necessariamente de um hiate.",
+     "inicioAoPrimeiroTexto": 8704,
+     "parciais": 1,
+     "vad": 712,
+     "audioMs": 5376,
+     "stt": 10590,
+     "primeiroToken": 7815,
+     "sttEspera": 2611,
+     "rtf": 1.97,
+     "renderOrig": 7,
+     "fimAoOriginal": 11309,
+     "fimAoOriginalQuadro": 11337,
+     "mtEspera": 32,
+     "mtMotor": "opus-mt",
+     "mt": 519,
+     "traducao": "In the archipelagos and lakes, you don't necessarily need a hiatus.",
+     "renderTrad": 3,
+     "fimATraducao": 11857,
+     "primeiraTraducaoParcialAntesDoFim": -3656
+    },
+    {
+     "k": 1,
+     "durVozS": 4.06,
+     "trechos": 1,
+     "texto": "Outros lutadores também prestaram menagem à luna.",
+     "parciais": 0,
+     "vad": 780,
+     "audioMs": 3936,
+     "stt": 12524,
+     "primeiroToken": 10589,
+     "sttEspera": 5212,
+     "rtf": 3.182,
+     "renderOrig": 37,
+     "fimAoOriginal": 13342,
+     "fimAoOriginalQuadro": 13343,
+     "mtEspera": 35,
+     "mtMotor": "opus-mt",
+     "mt": 365,
+     "traducao": "Other fighters also gave the moon a hand.",
+     "renderTrad": 1,
+     "fimATraducao": 13706
+    },
+    {
+     "k": 2,
+     "durVozS": 5.08,
+     "trechos": 1,
+     "texto": "As equipes do rescate conseguiram apagar o fogo às 23 e 35.",
+     "parciais": 0,
+     "vad": 770,
+     "audioMs": 5376,
+     "stt": 13615,
+     "primeiroToken": 11122,
+     "sttEspera": 5803,
+     "rtf": 2.533,
+     "renderOrig": 35,
+     "fimAoOriginal": 14421,
+     "fimAoOriginalQuadro": 14422,
+     "mtEspera": 32,
+     "mtMotor": "opus-mt",
+     "mt": 358,
+     "traducao": "Rescue teams managed to put out the fire at 23 and 35.",
+     "renderTrad": 2,
+     "fimATraducao": 14777
+    },
+    {
+     "k": 3,
+     "durVozS": 5.3,
+     "trechos": 1,
+     "texto": "A descoberta também concede pistas sobre a evolução das penas nas aves.",
+     "parciais": 0,
+     "vad": 761,
+     "audioMs": 5856,
+     "stt": 14873,
+     "primeiroToken": 11732,
+     "sttEspera": 6225,
+     "rtf": 2.54,
+     "renderOrig": 38,
+     "fimAoOriginal": 15672,
+     "fimAoOriginalQuadro": 15676,
+     "mtEspera": 33,
+     "mtMotor": "opus-mt",
+     "mt": 584,
+     "traducao": "The discovery also gives clues about the evolution of feathers in birds.",
+     "renderTrad": 1,
+     "fimATraducao": 16252
+    },
+    {
+     "k": 4,
+     "durVozS": 4.88,
+     "trechos": 1,
+     "texto": "uma bomba explodiu do lado de fora da escritora do governo geral.",
+     "parciais": 0,
+     "vad": 821,
+     "audioMs": 4800,
+     "stt": 15517,
+     "primeiroToken": 12945,
+     "sttEspera": 7483,
+     "rtf": 3.233,
+     "renderOrig": 37,
+     "fimAoOriginal": 16376,
+     "fimAoOriginalQuadro": 16377,
+     "mtEspera": 35,
+     "mtMotor": "opus-mt",
+     "mt": 287,
+     "traducao": "a bomb exploded outside the general government writer.",
+     "renderTrad": 1,
+     "fimATraducao": 16661
+    },
+    {
+     "k": 5,
+     "durVozS": 5.28,
+     "trechos": 1,
+     "texto": "Não danificar o lugar manchando ou rachando as construções com pichações.",
+     "parciais": 0,
+     "vad": 771,
+     "audioMs": 6336,
+     "stt": 17240,
+     "primeiroToken": 14415,
+     "sttEspera": 8987,
+     "rtf": 2.721,
+     "renderOrig": 30,
+     "fimAoOriginal": 18041,
+     "fimAoOriginalQuadro": 18043,
+     "mtEspera": 27,
+     "mtMotor": "opus-mt",
+     "mt": 557,
+     "traducao": "Do not damage the place by staining or cracking the buildings with punctures.",
+     "renderTrad": 1,
+     "fimATraducao": 18597
+    },
+    {
+     "k": 6,
+     "durVozS": 4.54,
+     "trechos": 1,
+     "texto": "A zona change, hein? No entanto funciona como um país nesse aspecto.",
+     "parciais": 0,
+     "vad": 631,
+     "audioMs": 4800,
+     "stt": 19228,
+     "primeiroToken": 16633,
+     "sttEspera": 11191,
+     "rtf": 4.006,
+     "renderOrig": 34,
+     "fimAoOriginal": 19893,
+     "fimAoOriginalQuadro": 19894,
+     "mtEspera": 32,
+     "mtMotor": "opus-mt",
+     "mt": 687,
+     "traducao": "The area changes, huh? However, it works like a country in this respect.",
+     "renderTrad": 1,
+     "fimATraducao": 20579
+    },
+    {
+     "k": 7,
+     "durVozS": 4.52,
+     "trechos": 1,
+     "texto": "pense na rota disso que como uma rota de caminhada.",
+     "parciais": 0,
+     "vad": 780,
+     "audioMs": 4224,
+     "stt": 20550,
+     "primeiroToken": 18147,
+     "sttEspera": 12508,
+     "rtf": 4.865,
+     "renderOrig": 34,
+     "fimAoOriginal": 21364,
+     "fimAoOriginalQuadro": 21366,
+     "mtEspera": 31,
+     "mtMotor": "opus-mt",
+     "mt": 336,
+     "traducao": "Think of the route of that as a walking route.",
+     "renderTrad": 2,
+     "fimATraducao": 21700
+    },
+    {
+     "k": 8,
+     "durVozS": 5.78,
+     "trechos": 1,
+     "texto": "Shankar Fizikela perdeu controle do carro e acabou a corrida logo aposta largada.",
+     "parciais": 0,
+     "vad": 800,
+     "audioMs": 5952,
+     "stt": 21343,
+     "primeiroToken": 17927,
+     "sttEspera": 12300,
+     "rtf": 3.586,
+     "renderOrig": 33,
+     "fimAoOriginal": 22177,
+     "fimAoOriginalQuadro": 22178,
+     "mtEspera": 30,
+     "mtMotor": "opus-mt",
+     "mt": 724,
+     "traducao": "Shankar Fiz cinella lost control of the car and finished the race soon bet dropped.",
+     "renderTrad": 2,
+     "fimATraducao": 22900
+    },
+    {
+     "k": 9,
+     "durVozS": 4.32,
+     "trechos": 1,
+     "texto": "As cenas são exibidas, e diferentes pirâmides ficam iluminadas.",
+     "parciais": 0,
+     "vad": 710,
+     "audioMs": 5088,
+     "stt": 24456,
+     "primeiroToken": 21663,
+     "sttEspera": 15863,
+     "rtf": 4.807,
+     "renderOrig": 3,
+     "fimAoOriginal": 25169,
+     "fimAoOriginalQuadro": 25942,
+     "mtEspera": 1,
+     "mtMotor": "opus-mt",
+     "mt": 320,
+     "traducao": "The scenes are displayed, and different pyramids are illuminated.",
+     "renderTrad": 2,
+     "fimATraducao": 25488
+    },
+    {
+     "k": 10,
+     "durVozS": 5.14,
+     "trechos": 1,
+     "parciais": 0,
+     "vad": 781
+    },
+    {
+     "k": 11,
+     "durVozS": 5.28,
+     "trechos": 1,
+     "parciais": 0,
+     "vad": 691
+    }
+   ]
+  }
+ ]
+}

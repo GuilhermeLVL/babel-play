@@ -27,6 +27,7 @@ import {
   SEM_OFERTA,
 } from '../../core/ofertas';
 import { apiFetch } from '../../data/funil';
+import { edicaoEstatica } from '../edicaoEstatica';
 import { lerPreferencias } from '../preferencias';
 import { estadoDaProtecao } from '../protecaoDoMenor';
 import { planoDaOferta } from './plano';
@@ -49,6 +50,8 @@ let relogio: ReturnType<typeof setTimeout> | null = null;
 let ouvindoSaida = false;
 
 function podeEnviar(): boolean {
+  // Edição estática: não há servidor para receber — e o beacon iria direto ao Pages.
+  if (edicaoEstatica()) return false;
   try {
     if (lerPreferencias().consentimentos.metricas === false) return false;
     return estadoDaProtecao()?.restrita !== true;

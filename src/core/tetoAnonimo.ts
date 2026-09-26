@@ -24,30 +24,42 @@ export const TETO_ANONIMO = {
   sessoes: 5,
   /** Palavras fichadas no caderno. */
   palavras: 80,
-} as const
+} as const;
 
 /** A partir de quanto do teto o app começa a avisar (80% — sobra espaço para decidir). */
-export const PERTO_DO_TETO = 0.8
+export const PERTO_DO_TETO = 0.8;
 
-export type RecursoLimitado = keyof typeof TETO_ANONIMO
+export type RecursoLimitado = keyof typeof TETO_ANONIMO;
 
 export interface EstadoDoTeto {
-  usado: number
-  teto: number
+  usado: number;
+  teto: number;
   /** Já dá para guardar mais um? */
-  cabe: boolean
+  cabe: boolean;
   /** Passou do ponto de aviso — a tela deve oferecer a conta. */
-  perto: boolean
+  perto: boolean;
 }
 
 export function estadoDoTeto(recurso: RecursoLimitado, usado: number): EstadoDoTeto {
-  const teto = TETO_ANONIMO[recurso]
-  return { usado, teto, cabe: usado < teto, perto: usado >= Math.floor(teto * PERTO_DO_TETO) }
+  const teto = TETO_ANONIMO[recurso];
+  return { usado, teto, cabe: usado < teto, perto: usado >= Math.floor(teto * PERTO_DO_TETO) };
 }
 
-/** O texto que a recusa mostra — um só lugar, para tela e servidor efêmero dizerem o mesmo. */
-export function motivoDoTeto(recurso: RecursoLimitado): string {
+/**
+ * O texto que a recusa mostra — um só lugar, para tela e servidor efêmero dizerem o mesmo.
+ *
+ * Na EDIÇÃO ESTÁTICA (o site publicado sem servidor) o teto é o mesmo, mas não há conta a criar:
+ * mandar a pessoa para um cadastro que não existe seria um link morto. O texto diz o que é — uma
+ * demonstração — e onde o teto deixa de existir. O núcleo não lê ambiente; quem sabe da edição
+ * (`lib/edicaoEstatica`) passa a opção.
+ */
+export function motivoDoTeto(recurso: RecursoLimitado, opcoes: { edicaoEstatica?: boolean } = {}): string {
+  if (opcoes.edicaoEstatica) {
+    return recurso === 'sessoes'
+      ? `Esta é a edição de demonstração: ela guarda até ${TETO_ANONIMO.sessoes} gravações neste navegador. A versão completa do Babel Play não tem esse limite.`
+      : `Esta é a edição de demonstração: o caderno vai até ${TETO_ANONIMO.palavras} palavras neste navegador. A versão completa do Babel Play não tem esse limite.`;
+  }
   return recurso === 'sessoes'
     ? `Sem conta dá para guardar ${TETO_ANONIMO.sessoes} gravações neste navegador. Crie uma conta e elas ficam guardadas — e as que já estão aqui sobem junto.`
-    : `Sem conta o caderno vai até ${TETO_ANONIMO.palavras} palavras. Crie uma conta e ele deixa de ter teto — o que você já fichou sobe junto.`
+    : `Sem conta o caderno vai até ${TETO_ANONIMO.palavras} palavras. Crie uma conta e ele deixa de ter teto — o que você já fichou sobe junto.`;
 }

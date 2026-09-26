@@ -8,6 +8,9 @@
 import { Lock, X } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 
+import { edicaoEstatica } from '../../lib/edicaoEstatica';
+import { t } from '../../lib/i18n';
+
 interface GateDeContaProps {
   aberto: boolean;
   /** O que motivou o gate, em linguagem de gente ("Importar do YouTube precisa de conta"). */
@@ -22,12 +25,17 @@ export default function GateDeConta({ aberto, motivo, onFechar, onEntrar }: Gate
   useEffect(() => {
     if (!aberto) return;
     primeiro.current?.focus();
-    const escape = (e: KeyboardEvent) => { if (e.key === 'Escape') onFechar(); };
+    const escape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onFechar();
+    };
     document.addEventListener('keydown', escape);
     return () => document.removeEventListener('keydown', escape);
   }, [aberto, onFechar]);
 
   if (!aberto) return null;
+  /* Edição estática: o mesmo modal, com a verdade dela — não há conta; o recurso está na versão
+     completa. Uma saída só, fechar. */
+  const semServidor = edicaoEstatica();
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-ink/40 p-4" onClick={onFechar}>
@@ -43,17 +51,40 @@ export default function GateDeConta({ aberto, motivo, onFechar, onEntrar }: Gate
             <Lock className="w-5 h-5" aria-hidden />
           </span>
           <div className="min-w-0 flex-1">
-            <h2 id="gate-conta-titulo" className="font-display font-bold text-lg text-ink">Isto precisa de conta</h2>
+            <h2 id="gate-conta-titulo" className="font-display font-bold text-lg text-ink">
+              {semServidor ? t('Disponível na versão completa') : 'Isto precisa de conta'}
+            </h2>
             <p className="mt-1 text-sm text-ink-muted">{motivo}</p>
-            <p className="mt-2 text-xs text-ink-faint">Transcrever, traduzir e jogar com a sessão atual continuam livres. O que você já fez neste navegador sobe para a conta quando você entrar.</p>
+            <p className="mt-2 text-xs text-ink-faint">
+              {semServidor
+                ? t('Transcrever, traduzir e jogar continuam livres nesta edição, tudo no seu navegador.')
+                : 'Transcrever, traduzir e jogar com a sessão atual continuam livres. O que você já fez neste navegador sobe para a conta quando você entrar.'}
+            </p>
           </div>
-          <button type="button" onClick={onFechar} aria-label="Fechar" className="text-ink-muted hover:text-ink cursor-pointer">
+          <button
+            type="button"
+            onClick={onFechar}
+            aria-label="Fechar"
+            className="text-ink-muted hover:text-ink cursor-pointer"
+          >
             <X className="w-4 h-4" aria-hidden />
           </button>
         </div>
         <div className="mt-5 grid gap-2">
-          <button ref={primeiro} type="button" onClick={onEntrar} className="btn-ink w-full justify-center">Entrar ou criar conta</button>
-          <button type="button" onClick={onFechar} className="btn-outline w-full justify-center">Continuar sem conta</button>
+          {semServidor ? (
+            <button ref={primeiro} type="button" onClick={onFechar} className="btn-ink w-full justify-center">
+              {t('Entendi')}
+            </button>
+          ) : (
+            <>
+              <button ref={primeiro} type="button" onClick={onEntrar} className="btn-ink w-full justify-center">
+                Entrar ou criar conta
+              </button>
+              <button type="button" onClick={onFechar} className="btn-outline w-full justify-center">
+                Continuar sem conta
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>

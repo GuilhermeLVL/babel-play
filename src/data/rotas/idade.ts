@@ -9,6 +9,7 @@
  * O erro volta com o `code` do servidor, porque a tela decide o texto por ele (`convite_expirado`,
  * `consentimento_obrigatorio`, `menor_nao_compra`…).
  */
+import { edicaoEstatica } from '../../lib/edicaoEstatica'
 import { definirProtecao, type EstadoDeProtecao, type FaixaEtaria } from '../../lib/protecaoDoMenor'
 import { apiFetch, lerErro } from '../funil'
 
@@ -133,6 +134,8 @@ export async function aceitarConvite(dados: {
  * recusa se estiverem fechadas; a tela só deixaria de avisar antes).
  */
 export async function lerAbertura(): Promise<{ cadastro: boolean; checkout: boolean }> {
+  // Edição estática: não há cadastro nem cobrança — e nenhum servidor para perguntar.
+  if (edicaoEstatica()) return { cadastro: false, checkout: false }
   try {
     // ast-grep-ignore: fetch-fora-do-funil — rota pública lida antes de existir sessão (ver acima).
     const r = await fetch('/api/abertura', { headers: { accept: 'application/json' } })

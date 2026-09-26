@@ -22,6 +22,7 @@ import React, { useEffect, useId, useMemo, useState } from 'react';
 import { createCredential, patchUiSettings, saveSettings, testProvider } from '../data/api';
 import { getActiveProfile, setProviderChoice } from '../gateway/activeProfile';
 import { getSttQuality, MODEL_DOWNLOAD_MB, MODEL_DOWNLOAD_MEDIDO, routeStt } from '../gateway/sttRouter';
+import { edicaoEstatica } from '../lib/edicaoEstatica';
 import { t } from '../lib/i18n';
 import { DEFAULT_LANG_CONFIG, idiomasDaInterfaceOferecidos, saveLangConfig } from '../lib/langConfig';
 import type { AgeProfileType } from '../lib/profile';
@@ -490,23 +491,26 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
                         'o áudio vai para o provedor que você escolher',
                       ],
                     ] as const
-                  ).map(([v, Icone, titulo, desc, nota]) => (
-                    <button
-                      key={v}
-                      type="button"
-                      className="cartao opcao-onb"
-                      role="radio"
-                      aria-checked={ia === v}
-                      onClick={() => setIa(v)}
-                    >
-                      <IconeEmBloco icone={Icone} />
-                      <b>{titulo}</b>
-                      <small className="mut">{desc}</small>
-                      <small className="mut" style={{ fontSize: 11.5 }}>
-                        {nota}
-                      </small>
-                    </button>
-                  ))}
+                  )
+                    /* Edição estática: a chave ficaria cifrada no SERVIDOR, que ela não tem — só local. */
+                    .filter(([v]) => v === 'local' || !edicaoEstatica())
+                    .map(([v, Icone, titulo, desc, nota]) => (
+                      <button
+                        key={v}
+                        type="button"
+                        className="cartao opcao-onb"
+                        role="radio"
+                        aria-checked={ia === v}
+                        onClick={() => setIa(v)}
+                      >
+                        <IconeEmBloco icone={Icone} />
+                        <b>{titulo}</b>
+                        <small className="mut">{desc}</small>
+                        <small className="mut" style={{ fontSize: 11.5 }}>
+                          {nota}
+                        </small>
+                      </button>
+                    ))}
                 </div>
               )}
             </div>

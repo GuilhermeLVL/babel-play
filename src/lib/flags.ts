@@ -21,13 +21,15 @@
  *
  * NO MODO SEM CONTA o `apiFetch` desvia tudo para o servidor em memória, MENOS `/api/flags`
  * (`PASSAM_DIRETO` em `src/data/efemero/nucleo.ts`): as flags são públicas e o servidor em memória
- * não sabe o que o operador ligou.
+ * não sabe o que o operador ligou. Na EDIÇÃO ESTÁTICA (`lib/edicaoEstatica`) nem isso: não há
+ * servidor, e vale o cache/padrão embutido, sem pergunta e sem refresh.
  */
 import { useEffect, useSyncExternalStore } from 'react';
 
 import type { FlagsAvaliadas } from '../core/flags';
 import type { ConfigDeOfertas } from '../core/ofertas';
 import { apiFetch } from '../data/funil';
+import { edicaoEstatica } from './edicaoEstatica';
 import { CHAVE_DO_CACHE, definirEstadoDasFlags, flag, flagLigada, flagsAtuais, normalizar } from './flagsCache';
 import { assinarIdioma, idiomaDaInterface } from './i18n';
 import { aoMudarIdentidade } from './identidade';
@@ -94,6 +96,8 @@ let emVoo: Promise<FlagsAvaliadas> | null = null;
  * Chamadas simultâneas compartilham a mesma requisição.
  */
 export function carregarFlags(): Promise<FlagsAvaliadas> {
+  // Edição estática: não há servidor que avalie regra nenhuma — vale o cache/padrão embutido.
+  if (edicaoEstatica()) return Promise.resolve(flagsAtuais());
   if (emVoo) return emVoo;
   emVoo = (async () => {
     try {
@@ -171,7 +175,7 @@ let iniciada = false;
  * chamam sozinhos. Devolve como desligar (só testes precisam).
  */
 export function iniciarAtualizacaoDeFlags(): () => void {
-  if (iniciada || typeof window === 'undefined') return () => {};
+  if (iniciada || typeof window === 'undefined' || edicaoEstatica()) return () => {};
   iniciada = true;
   void carregarFlags();
   const aoFocar = () => {

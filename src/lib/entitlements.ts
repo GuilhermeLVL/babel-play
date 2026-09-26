@@ -15,8 +15,9 @@
  *
  * Regra de honestidade (inalterada): gate NUNCA esconde a feature — mostra com selo e explica.
  */
-import { PLAN_MATRIX, type PlanoDeAssinatura,PLANOS_DE_ASSINATURA } from '../core/planos';
+import { PLAN_MATRIX, type PlanoDeAssinatura, PLANOS_DE_ASSINATURA } from '../core/planos';
 import { apiFetch } from '../data/api';
+import { edicaoEstatica } from './edicaoEstatica';
 import { authRequired } from './supabase';
 
 /** Plano de assinatura (da MATRIZ) + `anonimo`, que é identidade do cliente sem conta — o
@@ -41,10 +42,34 @@ const CACHE_KEY = 'babel.entitlements';
 const CHANGED = 'babel_plan_changed';
 
 const FECHADO: Entitlements = Object.freeze({
-  plan: 'free', youtubeImport: false, managedCloudStt: false, managedCloudLlm: false, largerModels: false, armazenamento: null,
+  plan: 'free',
+  youtubeImport: false,
+  managedCloudStt: false,
+  managedCloudLlm: false,
+  largerModels: false,
+  armazenamento: null,
 });
 const SELFHOST: Entitlements = Object.freeze({
-  plan: 'selfhost', youtubeImport: true, managedCloudStt: true, managedCloudLlm: true, largerModels: true, armazenamento: null,
+  plan: 'selfhost',
+  youtubeImport: true,
+  managedCloudStt: true,
+  managedCloudLlm: true,
+  largerModels: true,
+  armazenamento: null,
+});
+
+/**
+ * EDIÇÃO ESTÁTICA (site sem servidor): o que o servidor em memória responde para quem não tem conta
+ * (`data/efemero/rotas/conta.ts`), fixo desde o primeiro paint. Sem isto ela herdaria o SELFHOST
+ * (build sem login = dono do servidor, tudo liberado) e prometeria nuvem e YouTube que não existem.
+ */
+const EDICAO_ESTATICA: Entitlements = Object.freeze({
+  plan: 'anonimo',
+  youtubeImport: false,
+  managedCloudStt: false,
+  managedCloudLlm: false,
+  largerModels: false,
+  armazenamento: { usados: 0, teto: 0 },
 });
 
 const PLANOS: readonly string[] = [...PLANOS_DE_ASSINATURA, 'anonimo'];
@@ -66,7 +91,8 @@ function normalizar(v: unknown): Entitlements | null {
   let armazenamento: Entitlements['armazenamento'] = null;
   if (o.armazenamento && typeof o.armazenamento === 'object') {
     const a = o.armazenamento as Record<string, unknown>;
-    if (typeof a.usados === 'number') armazenamento = { usados: a.usados, teto: typeof a.teto === 'number' ? a.teto : null };
+    if (typeof a.usados === 'number')
+      armazenamento = { usados: a.usados, teto: typeof a.teto === 'number' ? a.teto : null };
   }
   return {
     plan,
@@ -84,11 +110,14 @@ function lerCacheDurável(): Entitlements | null {
   try {
     const bruto = localStorage.getItem(CACHE_KEY);
     return bruto ? normalizar(JSON.parse(bruto)) : null;
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 
 /** Síncrono: o último valor conhecido do servidor, ou o default do modo. */
 export function getEntitlements(): Entitlements {
+  if (edicaoEstatica()) return EDICAO_ESTATICA;
   if (!authRequired) return SELFHOST;
   cache ??= lerCacheDurável();
   return cache ?? FECHADO;
@@ -105,7 +134,11 @@ export async function carregarEntitlements(): Promise<Entitlements> {
     const e = normalizar(await res.json());
     if (!e) return getEntitlements();
     cache = e;
-    try { localStorage.setItem(CACHE_KEY, JSON.stringify(e)); } catch { /* espelho é best-effort */ }
+    try {
+      localStorage.setItem(CACHE_KEY, JSON.stringify(e));
+    } catch {
+      /* espelho é best-effort */
+    }
     if (typeof window !== 'undefined') window.dispatchEvent(new Event(CHANGED));
     return e;
   } catch {
@@ -116,7 +149,11 @@ export async function carregarEntitlements(): Promise<Entitlements> {
 /** Esquece o cache (logout / troca de identidade) e avisa as telas. */
 export function limparEntitlements(): void {
   cache = null;
-  try { localStorage.removeItem(CACHE_KEY); } catch { /* idem */ }
+  try {
+    localStorage.removeItem(CACHE_KEY);
+  } catch {
+    /* idem */
+  }
   if (typeof window !== 'undefined') window.dispatchEvent(new Event(CHANGED));
 }
 
@@ -128,7 +165,8 @@ export function onPlanChange(cb: () => void): () => void {
 /** Rótulos p/ UI — os de assinatura vêm da matriz; `anonimo` é o único local. */
 export const PLAN_LABELS: Record<Plan, string> = {
   anonimo: 'Sem conta',
-  ...(Object.fromEntries(
-    PLANOS_DE_ASSINATURA.map((p) => [p, PLAN_MATRIX[p].rotulo])
-  ) as Record<PlanoDeAssinatura, string>),
+  ...(Object.fromEntries(PLANOS_DE_ASSINATURA.map((p) => [p, PLAN_MATRIX[p].rotulo])) as Record<
+    PlanoDeAssinatura,
+    string
+  >),
 };

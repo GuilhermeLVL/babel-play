@@ -12,6 +12,7 @@
  * GET `/api/sessions/utterances/all`.
  */
 import { estadoDoTeto, motivoDoTeto } from '../../../core/tetoAnonimo';
+import { edicaoEstatica } from '../../../lib/edicaoEstatica';
 import {
   contarPalavras,   type Json,
 json, lerBytes, lerJson, lerMeta, num, opcional, str, uuid,
@@ -44,7 +45,7 @@ export async function criarSessao(_m: RegExpMatchArray, _u: URL, init: RequestIn
   const jaGuardadas = await db.count('sessoes');
   const teto = estadoDoTeto('sessoes', jaGuardadas);
   if (!teto.cabe) {
-    return json({ error: motivoDoTeto('sessoes'), codigo: 'TETO_ANONIMO', recurso: 'sessoes', ...teto }, 507);
+    return json({ error: motivoDoTeto('sessoes', { edicaoEstatica: edicaoEstatica() }), codigo: 'TETO_ANONIMO', recurso: 'sessoes', ...teto }, 507);
   }
 
   /**

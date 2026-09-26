@@ -22,6 +22,7 @@
  */
 import { authHeaders } from '../lib/authHeaders'
 import { ehRotaDeNuvemDoConvidado, garantirSessaoDeConvidado, nuvemDoConvidadoLigada, ofertaPelaResposta } from '../lib/convidado'
+import { edicaoEstatica } from '../lib/edicaoEstatica'
 import { aguardarIdentidade } from '../lib/identidade'
 import { aguardarProtecao, rotaLiberadaNaRestricao } from '../lib/protecaoDoMenor'
 import { cabecalhoDaSessaoDeCaptura } from '../lib/sessaoDeCaptura'
@@ -56,6 +57,9 @@ export async function apiFetch(input: string, init?: ApiInit): Promise<Response>
   const { timeoutMs, ...rest } = init ?? {}
   const metodo = (rest.method ?? 'GET').toUpperCase()
   if (metodo !== 'GET' && metodo !== 'HEAD') escritas++
+  /* EDIÇÃO ESTÁTICA (Cloudflare Pages, sem servidor): não há para onde ir. Tudo é o servidor em
+     memória — sem esperar identidade, sem convidado de nuvem, sem oferta (`lib/edicaoEstatica`). */
+  if (edicaoEstatica()) return servidorEfemero(input, rest)
   // Sem conta, NADA sai para a rede: o servidor em memória responde (ver data/efemero). Este é o
   // único ponto de corte — toda a camada de dados passa por aqui.
   const identidade = await aguardarIdentidade()

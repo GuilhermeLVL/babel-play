@@ -13,6 +13,7 @@ import { createPortal } from 'react-dom';
 
 import { TETO_ANONIMO } from '../../core/tetoAnonimo';
 import * as auth from '../../lib/auth';
+import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { useFlag } from '../../lib/flags';
 import { useFotoDoPerfil } from '../../lib/fotoDoPerfil';
 import { t } from '../../lib/i18n';
@@ -82,13 +83,17 @@ export default function MenuDaConta({ onIr }: MenuDaContaProps) {
 
   const nome = perfil?.displayName?.trim() || null;
   const email = perfil?.email?.trim() || null;
-  const estado = convidado
-    ? t('Você está usando como convidado')
-    : anonimo
-      ? t('sem conta · dados só neste navegador')
-      : authRequired
-        ? t('sessão ativa')
-        : t('conta local');
+  /* Edição estática: não há conta, login nem plano. O menu diz o que ela é e leva só ao que existe. */
+  const semServidor = edicaoEstatica();
+  const estado = semServidor
+    ? t('edição de demonstração · dados só neste navegador')
+    : convidado
+      ? t('Você está usando como convidado')
+      : anonimo
+        ? t('sem conta · dados só neste navegador')
+        : authRequired
+          ? t('sessão ativa')
+          : t('conta local');
 
   const ir = (view: string) => {
     setAberto(false);
@@ -147,10 +152,14 @@ export default function MenuDaConta({ onIr }: MenuDaContaProps) {
                 </p>
               )}
             </div>
-            {anonimo ? item('login', LogIn, t('Entrar ou criar conta')) : item('profile', UserRound, t('Meu perfil'))}
+            {semServidor
+              ? null
+              : anonimo
+                ? item('login', LogIn, t('Entrar ou criar conta'))
+                : item('profile', UserRound, t('Meu perfil'))}
             {item('estatisticas', ChartColumn, t('Estatísticas'))}
             {item('settings', SettingsIcon, t('Ajustes'))}
-            {item('planos', CreditCard, t('Planos'))}
+            {!semServidor && item('planos', CreditCard, t('Planos'))}
             {item('ajuda', LifeBuoy, t('Ajuda e suporte'))}
             {authRequired && !anonimo && (
               <>

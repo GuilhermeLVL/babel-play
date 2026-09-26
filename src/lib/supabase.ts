@@ -19,15 +19,21 @@
  * do `App`. A tela "Carregando…" que o App já pintava enquanto o `getSession()` ia e voltava é a
  * mesma; ela só passou a cobrir também o download do pacote, que é a parte rápida da espera.
  */
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { SupabaseClient } from '@supabase/supabase-js';
+
+import { edicaoEstatica } from './edicaoEstatica';
 
 // O tsconfig raiz não carrega os tipos do Vite (vite/client); `import.meta.env` existe em runtime.
-const env: Record<string, string | undefined> = (import.meta as unknown as { env?: Record<string, string | undefined> }).env ?? {}
-const url = env.VITE_SUPABASE_URL
-const anonKey = env.VITE_SUPABASE_ANON_KEY
+const env: Record<string, string | undefined> =
+  (import.meta as unknown as { env?: Record<string, string | undefined> }).env ?? {};
+const url = env.VITE_SUPABASE_URL;
+const anonKey = env.VITE_SUPABASE_ANON_KEY;
 
-/** Há projeto Supabase compilado neste build? É exatamente o que antes se lia como `!!supabase`. */
-const configurado = !!url && !!anonKey
+/**
+ * Há projeto Supabase compilado neste build? É exatamente o que antes se lia como `!!supabase`.
+ * A edição estática nunca tem: mesmo que as variáveis vazem para o build, não há login nela.
+ */
+const configurado = !!url && !!anonKey && !edicaoEstatica();
 
 /**
  * Cliente Supabase, ou null quando não configurado (uso local sem login).
@@ -40,38 +46,38 @@ const configurado = !!url && !!anonKey
  * `authHeaders() → getAccessToken()`, que espera a carga ANTES de a requisição sair — então o
  * tratamento de 401 em `data/api.ts` nunca chega a ver este valor pela metade.
  */
-export let supabase: SupabaseClient | null = null
+export let supabase: SupabaseClient | null = null;
 
-let carga: Promise<SupabaseClient | null> | null = null
+let carga: Promise<SupabaseClient | null> | null = null;
 
 /**
  * Garante o cliente, baixando o pacote na primeira chamada. Devolve `null` quando não há projeto
  * configurado — o mesmo contrato defensivo de antes, agora sem custo nenhum de download.
  */
 export function carregarSupabase(): Promise<SupabaseClient | null> {
-  if (!configurado) return Promise.resolve(null)
+  if (!configurado) return Promise.resolve(null);
   carga ??= import('@supabase/supabase-js').then(({ createClient }) => {
     supabase = createClient(url, anonKey, {
       // Intenção explícita (todos já são default do supabase-js) — trava o comportamento de sessão.
       // `flowType` fica no default até habilitarmos o login social (evita mexer no fluxo de recuperação).
       auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
-    })
-    return supabase
-  })
-  return carga
+    });
+    return supabase;
+  });
+  return carga;
 }
 
 // Dispara já: onde há projeto configurado o pacote É necessário, e adiar o download até o primeiro
 // `await` só atrasaria o login. O que muda é que ele deixou de BLOQUEAR o arranque de todo mundo.
-if (configurado) void carregarSupabase()
+if (configurado) void carregarSupabase();
 
 /** Auth exigida no cliente? Espelha o AUTH_REQUIRED do servidor. Só é `true` se houver projeto. */
-export const authRequired: boolean = env.VITE_AUTH_REQUIRED === '1' && configurado
+export const authRequired: boolean = env.VITE_AUTH_REQUIRED === '1' && configurado;
 
 /** Token de acesso da sessão atual, ou null (sem login / não configurado). */
 export async function getAccessToken(): Promise<string | null> {
-  const sb = await carregarSupabase()
-  if (!sb) return null
-  const { data } = await sb.auth.getSession()
-  return data.session?.access_token ?? null
+  const sb = await carregarSupabase();
+  if (!sb) return null;
+  const { data } = await sb.auth.getSession();
+  return data.session?.access_token ?? null;
 }

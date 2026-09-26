@@ -35,6 +35,7 @@ import {
 import { useState } from 'react';
 
 import { CRIADOR, preenchido } from '../../lib/criador';
+import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { t } from '../../lib/i18n';
 import { VERSAO_DO_APP } from '../../lib/versao';
 import { CabecalhoDeTela, IconeEmBloco, Tela, TituloDeSecao } from '../ui';
@@ -81,12 +82,17 @@ export default function Sobre({ onVerPlanos }: { onVerPlanos?: (view: string) =>
       desc: 'Se algo te atrapalhou ou você sentiu falta de alguma coisa, eu quero saber. Eu leio tudo.',
       href: CRIADOR.comentarios,
     },
-    {
-      icone: CreditCard,
-      titulo: 'Assine um plano',
-      desc: 'Se o app te ajuda, é isso que paga o servidor e me deixa continuar.',
-      aoClicar: onVerPlanos ? () => onVerPlanos('planos') : undefined,
-    },
+    /* Edição estática: não há plano a assinar — o cartão levaria a uma tela sem saída. */
+    ...(edicaoEstatica()
+      ? []
+      : [
+          {
+            icone: CreditCard,
+            titulo: 'Assine um plano',
+            desc: 'Se o app te ajuda, é isso que paga o servidor e me deixa continuar.',
+            aoClicar: onVerPlanos ? () => onVerPlanos('planos') : undefined,
+          },
+        ]),
   ];
 
   return (

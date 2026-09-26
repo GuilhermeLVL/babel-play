@@ -4,6 +4,7 @@
  * injeta via `x-credential-id`.
  */
 import { apiFetch } from '../../data/api';
+import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { sinalizarRecusaLida } from '../../lib/ofertas/eventos';
 import { filtrarAlucinacao } from '../alucinacao';
 import { encodeWav } from '../audio/wav';
@@ -37,6 +38,8 @@ export class GroqWhisperStt implements SttProvider {
   }
 
   isAvailable(): boolean {
+    // Edição estática: não há servidor com a chave — a cadeia vai direto ao Whisper local.
+    if (edicaoEstatica()) return false;
     return typeof fetch !== 'undefined' && !this.pausa.pausada;
   }
 

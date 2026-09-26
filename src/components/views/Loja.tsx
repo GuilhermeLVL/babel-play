@@ -39,6 +39,7 @@ import {
 } from '../../lib/aprimoramentos';
 import { useCarteira } from '../../lib/carteira';
 import { readCursor } from '../../lib/cursores';
+import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { emitBurst } from '../../lib/effects';
 import { comprarPecaComSeeds } from '../../lib/galeria/comprarPeca';
 import { type ContextoDeEquipar, equiparItem, equipavel } from '../../lib/galeria/equipar';
@@ -581,7 +582,8 @@ export default function Loja({
                 saldo={saldo}
                 carteira={carteira}
                 temporada={{ numero: 1, nome: 'Fundação' }}
-                aoComprarCreditos={() => irParaSecao('loja')}
+                /* Edição estática: não há cobrança — sem o atalho de compra. */
+                aoComprarCreditos={edicaoEstatica() ? undefined : () => irParaSecao('loja')}
               />
               <div style={{ marginTop: 16 }}>
                 <PasseDeTemporada
@@ -744,9 +746,11 @@ export default function Loja({
 
               {/* ── O QUE SE PAGA COM DINHEIRO. Fica DEPOIS de tudo que se ganha estudando. A
                    aparência dele é do Passe/Créditos, fora desta rodada. */}
-              <div style={{ marginTop: 24 }}>
-                <ComprarCreditos />
-              </div>
+              {!edicaoEstatica() && (
+                <div style={{ marginTop: 24 }}>
+                  <ComprarCreditos />
+                </div>
+              )}
 
               {/* O rodapé lê das REGRAS: o que a Loja diz sobre ganhar Seeds é o que o sistema credita. */}
               <p className="mut" style={{ fontSize: 12.5, marginTop: 18 }}>

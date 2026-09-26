@@ -19,6 +19,8 @@
  * e o selo da UI sempre diz qual motor está de fato em uso.
  */
 
+import { edicaoEstatica } from '../lib/edicaoEstatica';
+
 export type SttQuality = 'auto' | 'fast' | 'accurate' | 'cloud';
 
 export interface SttRouteInput {
@@ -130,7 +132,8 @@ export function routeStt(input: SttRouteInput): SttRoute {
   const { autoDetect, quality, hasWebGpu, cloudAvailable, profileId } = input;
   const lang = (input.contentLang || '').toLowerCase().split('-')[0];
   const micLang = (input.micLang || '').toLowerCase().split('-')[0];
-  const cloudAllowed = cloudAvailable && profileId !== 'local-private';
+  // Edição estática (Pages, sem servidor): a nuvem não existe, diga o que disser a sondagem.
+  const cloudAllowed = cloudAvailable && profileId !== 'local-private' && !edicaoEstatica();
   // "Inglês" só quando TODAS as fontes ativas são inglês: o modelo é um só para sistema e mic.
   const isEnglish = !autoDetect && lang === 'en' && (!micLang || micLang === 'en');
   /** Melhor modelo LOCAL viável para conteúdo não-EN neste dispositivo. */

@@ -8,6 +8,7 @@ import { CREDENTIAL_KEY, setProviderChoice } from '../gateway/activeProfile';
 import { DEFAULT_PROFILE_ID, getBuiltinProfile } from '../gateway/profiles';
 import { getSttQuality, MODEL_DOWNLOAD_MB, routeStt } from '../gateway/sttRouter';
 import { consentiuNuvem } from '../lib/consentimentoDeNuvem';
+import { edicaoEstatica } from '../lib/edicaoEstatica';
 import { t } from '../lib/i18n';
 import { toast } from './Toast';
 import { Dialogo, fecharDialogoDe, IconeEmBloco, TituloDeSecao } from './ui';
@@ -204,26 +205,29 @@ export default function AiEnginePanel({
               </p>
             </span>
           </button>
-          <button
-            type="button"
-            className={`cartao opcao ${nuvem ? 'sel' : ''}`}
-            aria-pressed={nuvem}
-            disabled={bloqueadaNuvem}
-            title={bloqueadaNuvem ? 'Disponível no plano Pro' : undefined}
-            onClick={() => void escolherNuvem()}
-          >
-            <span className="radio" aria-hidden="true" />
-            <IconeEmBloco icone={KeyRound} />
-            <span style={{ flex: 1 }}>
-              <h3>
-                Usar a sua chave (nuvem){' '}
-                <span className="badge rare" style={{ marginLeft: 6 }}>
-                  {bloqueadaNuvem ? 'Pro' : 'BYO key'}
-                </span>
-              </h3>
-              <p>OpenAI, Groq, OpenRouter… Melhor qualidade, sem baixar modelo. A chave fica cifrada no servidor.</p>
-            </span>
-          </button>
+          {/* Edição estática: a chave ficaria cifrada no SERVIDOR, que ela não tem — sem a opção. */}
+          {!edicaoEstatica() && (
+            <button
+              type="button"
+              className={`cartao opcao ${nuvem ? 'sel' : ''}`}
+              aria-pressed={nuvem}
+              disabled={bloqueadaNuvem}
+              title={bloqueadaNuvem ? 'Disponível no plano Pro' : undefined}
+              onClick={() => void escolherNuvem()}
+            >
+              <span className="radio" aria-hidden="true" />
+              <IconeEmBloco icone={KeyRound} />
+              <span style={{ flex: 1 }}>
+                <h3>
+                  Usar a sua chave (nuvem){' '}
+                  <span className="badge rare" style={{ marginLeft: 6 }}>
+                    {bloqueadaNuvem ? 'Pro' : 'BYO key'}
+                  </span>
+                </h3>
+                <p>OpenAI, Groq, OpenRouter… Melhor qualidade, sem baixar modelo. A chave fica cifrada no servidor.</p>
+              </span>
+            </button>
+          )}
         </div>
         {!nuvem && (
           <label className="check" style={{ marginTop: 12, fontSize: 13 }}>

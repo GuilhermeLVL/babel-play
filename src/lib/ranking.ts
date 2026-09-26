@@ -19,6 +19,7 @@
  * (`perfilProtegido()`); ler o placar continua público.
  */
 import { authHeaders } from './authHeaders';
+import { edicaoEstatica } from './edicaoEstatica';
 
 export interface LinhaDoRanking {
   apelido: string;
@@ -73,6 +74,8 @@ function marcarEnviado(jogo: string, pontos: number): void {
 }
 
 export async function lerRanking(jogo: string, limite = 20): Promise<LinhaDoRanking[] | null> {
+  // Edição estática: o placar de comunidade mora no servidor, que ela não tem.
+  if (edicaoEstatica()) return null;
   try {
     /* EXCEÇÃO DELIBERADA, suprimida na linha abaixo porque a regra não lê prosa. O funil `apiFetch`
        desvia para o servidor EM MEMÓRIA quando a identidade é anônima (`data/api.ts:25`), e esse
@@ -97,6 +100,7 @@ export async function enviarParaRanking(
   pontos: number,
   combo: number,
 ): Promise<'ok' | 'indisponivel' | 'recusado'> {
+  if (edicaoEstatica()) return 'indisponivel';
   const apelido = lerApelido();
   if (!apelidoValido(apelido)) return 'recusado';
   try {

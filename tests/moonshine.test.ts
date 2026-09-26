@@ -46,11 +46,15 @@ describe('opcoesDeDecodeMoonshine', () => {
 })
 
 describe('moonshineAceita', () => {
-  it('inglês ou sem dica (a rota já garantiu inglês)', () => {
+  it('só com dica EXPLÍCITA de inglês', () => {
     expect(moonshineAceita('en')).toBe(true)
     expect(moonshineAceita('en-US')).toBe(true)
-    expect(moonshineAceita(undefined)).toBe(true)
-    expect(moonshineAceita('')).toBe(true)
+  })
+  it('sem dica ("Detectar") o idioma é DESCONHECIDO: não vai a um modelo só-inglês', () => {
+    // Era aceito ("a rota já garantiu inglês"); com o moonshine carregado de uma sessão em inglês e
+    // a origem trocada para Detectar, português sairia como inglês inventado.
+    expect(moonshineAceita(undefined)).toBe(false)
+    expect(moonshineAceita('')).toBe(false)
   })
   it('qualquer outro idioma, não', () => {
     expect(moonshineAceita('pt')).toBe(false)

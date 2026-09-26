@@ -1645,13 +1645,14 @@ export default function LiveCapture({
           idiomaObservado ? (
             <>
               Detectei <b>{langLabel(idiomaObservado)}</b> no conteúdo (
-              {Math.round(perfilIdiomaRef.current.ler().confianca * 100)}% das falas), legenda em{' '}
-              <b>
-                {langLabel(
-                  destinoDaTraducao(idiomaObservado, baseLang(sourceLang), baseLang(targetLang)).destino || sourceLang,
-                )}
-              </b>
-              .
+              {Math.round(perfilIdiomaRef.current.ler().confianca * 100)}% das falas)
+              {destinoDaTraducao(idiomaObservado, baseLang(sourceLang)).destino ? (
+                <>
+                  , legenda em <b>{langLabel(sourceLang)}</b>.
+                </>
+              ) : (
+                <>, o mesmo idioma da legenda: só o original, sem tradução.</>
+              )}
             </>
           ) : (
             <>

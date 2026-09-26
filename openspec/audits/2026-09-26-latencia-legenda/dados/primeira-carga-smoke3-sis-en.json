@@ -1,0 +1,280 @@
+{
+ "grupo": "primeira-carga-smoke3-sis-en",
+ "pular": 0,
+ "resumo": {
+  "n": 3,
+  "perdidas": 0,
+  "vad": {
+   "p50": 821,
+   "p95": 884,
+   "n": 3
+  },
+  "sttEspera": {
+   "p50": 0,
+   "p95": 643,
+   "n": 3
+  },
+  "stt": {
+   "p50": 467,
+   "p95": 1823,
+   "n": 3
+  },
+  "primeiroToken": {
+   "p50": 197,
+   "p95": 980,
+   "n": 3
+  },
+  "renderOrig": {
+   "p50": 3,
+   "p95": 4,
+   "n": 3
+  },
+  "mtEspera": {
+   "p50": 0,
+   "p95": 1,
+   "n": 3
+  },
+  "mt": {
+   "p50": 490,
+   "p95": 821,
+   "n": 3
+  },
+  "renderTrad": {
+   "p50": 1,
+   "p95": 1,
+   "n": 3
+  },
+  "fimAoOriginal": {
+   "p50": 1291,
+   "p95": 2567,
+   "n": 3
+  },
+  "fimATraducao": {
+   "p50": 1779,
+   "p95": 3386,
+   "n": 3
+  },
+  "inicioAoPrimeiroTexto": {
+   "p50": 2167,
+   "p95": 2805,
+   "n": 3
+  },
+  "primeiraTraducaoParcialAntesDoFim": {
+   "p50": 2068,
+   "p95": 4003,
+   "n": 3
+  },
+  "rtf": {
+   "p50": 0.085,
+   "p95": 0.289,
+   "n": 3
+  },
+  "comTraducaoParcialAntesDoFim": 2,
+  "motoresMt": [
+   "opus-mt"
+  ]
+ },
+ "rodadas": [
+  {
+   "rotulo": "smoke3-sis-en",
+   "config": {
+    "modo": "sistema",
+    "eu": "pt-BR",
+    "eles": "en-US",
+    "qualidade": "auto",
+    "device": "auto",
+    "canal": "chromium",
+    "headless": false,
+    "semWebGpu": false,
+    "perfil": "reaproveitado"
+   },
+   "ui": {
+    "chipTexto": "English (US)Português (BR) ",
+    "resumo": "Cada fala vira legenda bilíngue em Português (BR).",
+    "seloModelo": "Modelo no dispositivo, 67 MB: ver detalhes"
+   },
+   "gpuInfo": "amd rdna-2",
+   "coi": true,
+   "modeloStt": "onnx-community/moonshine-base-ONNX",
+   "dispositivos": [],
+   "rota": "roteador STT: local · inglês (moonshine) | modelo local: onnx-community/moonshine-base-ONNX | nuvem primeiro: false",
+   "carga": {
+    "sttProntoMs": 12344,
+    "mtProntos": [
+     {
+      "modelo": "Xenova/opus-mt-en-ROMANCE",
+      "ms": 12459
+     },
+     {
+      "modelo": "Xenova/opus-mt-ROMANCE-en",
+      "ms": 12459
+     }
+    ],
+    "pedidosAoHub": 96
+   },
+   "primeiraLegendaMs": {
+    "fala": 0,
+    "fimAoOriginal": 1181,
+    "fimATraducao": 1632
+   },
+   "mainThread": {
+    "loafs": 13,
+    "loafMs": 1914,
+    "maiores": [
+     {
+      "t": 3984,
+      "ms": 379,
+      "bloq": 323,
+      "scripts": [
+       "Worker.onmessage@ort-wasm-simd-threaded.mjs:373ms"
+      ]
+     },
+     {
+      "t": 41,
+      "ms": 307,
+      "bloq": 0,
+      "scripts": [
+       "http://127.0.0.1:4176/assets/index-Cs78Md0l.js@index-Cs78Md0l.js:27ms"
+      ]
+     },
+     {
+      "t": 33403,
+      "ms": 230,
+      "bloq": 0,
+      "scripts": []
+     },
+     {
+      "t": 1671,
+      "ms": 155,
+      "bloq": 0,
+      "scripts": []
+     },
+     {
+      "t": 728,
+      "ms": 140,
+      "bloq": 72,
+      "scripts": [
+       "Response.json.then@index-Cs78Md0l.js:119ms"
+      ]
+     }
+    ]
+   },
+   "erros": [
+    "warning: An error occurred while opening the browser cache: UnknownError: Failed to execute 'open' on 'CacheStorage': Unexpected internal error.",
+    "warning: An error occurred while opening the browser cache: UnknownError: Failed to execute 'open' on 'CacheStorage': Unexpected internal error.",
+    "warning: An error occurred while opening the browser cache: UnknownError: Failed to execute 'open' on 'CacheStorage': Unexpected internal error.",
+    "warning: An error occurred while opening the browser cache: UnknownError: Failed to execute 'open' on 'CacheStorage': Unexpected internal error.",
+    "warning: An error occurred while opening the browser cache: UnknownError: Failed to execute 'open' on 'CacheStorage': Unexpected internal error.",
+    "warning: An error occurred while opening the browser cache: UnknownError: Failed to execute 'open' on 'CacheStorage': Unexpected internal error.",
+    "warning: An error occurred while opening the browser cache: UnknownError: Failed to execute 'open' on 'CacheStorage': Unexpected internal error.",
+    "warning: An error occurred while opening the browser cache: UnknownError: Failed to execute 'open' on 'CacheStorage': Unexpected internal error.",
+    "warning: An error occurred while opening the browser cache: UnknownError: Failed to execute 'open' on 'CacheStorage': Unexpected internal error.",
+    "warning: An error occurred while opening the browser cache: UnknownError: Failed to execute 'open' on 'CacheStorage': Unexpected internal error.",
+    "warning: An error occurred while opening the browser cache: UnknownError: Failed to execute 'open' on 'CacheStorage': Unexpected internal error.",
+    "warning: An error occurred while opening the browser cache: UnknownError: Failed to execute 'open' on 'CacheStorage': Unexpected internal error.",
+    "warning: An error occurred while opening the browser cache: UnknownError: Failed to execute 'open' on 'CacheStorage': Unexpected internal error.",
+    "warning: An error occurred while opening the browser cache: UnknownError: Failed to execute 'open' on 'CacheStorage': Unexpected internal error.",
+    "warning: An error occurred while opening the browser cache: UnknownError: Failed to execute 'open' on 'CacheStorage': Unexpected internal error.",
+    "warning: An error occurred while opening the browser cache: UnknownError: Failed to execute 'open' on 'CacheStorage': Unexpected internal error.",
+    "warning: An error occurred while opening the browser cache: UnknownError: Failed to execute 'open' on 'CacheStorage': Unexpected internal error.",
+    "warning: An error occurred while opening the browser cache: UnknownError: Failed to execute 'open' on 'CacheStorage': Unexpected internal error.",
+    "warning: An error occurred while opening the browser cache: UnknownError: Failed to execute 'open' on 'CacheStorage': Unexpected internal error.",
+    "warning: An error occurred while opening the browser cache: UnknownError: Failed to execute 'open' on 'CacheStorage': Unexpected internal error.",
+    "warning: An error occurred while opening the browser cache: UnknownError: Failed to execute 'open' on 'CacheStorage': Unexpected internal error.",
+    "warning: An error occurred while opening the browser cache: UnknownError: Failed to execute 'open' on 'CacheStorage': Unexpected internal error.",
+    "warning: An error occurred while opening the browser cache: UnknownError: Failed to execute 'open' on 'CacheStorage': Unexpected internal error.",
+    "warning: An error occurred while opening the browser cache: UnknownError: Failed to execute 'open' on 'CacheStorage': Unexpected internal error.",
+    "warning: An error occurred while opening the browser cache: UnknownError: Failed to execute 'open' on 'CacheStorage': Unexpected internal error.",
+    "warning: An error occurred while opening the browser cache: UnknownError: Failed to execute 'open' on 'CacheStorage': Unexpected internal error.",
+    "warning: An error occurred while opening the browser cache: UnknownError: Failed to execute 'open' on 'CacheStorage': Unexpected internal error.",
+    "warning: An error occurred while opening the browser cache: UnknownError: Failed to execute 'open' on 'CacheStorage': Unexpected internal error.",
+    "warning: An error occurred while opening the browser cache: UnknownError: Failed to execute 'open' on 'CacheStorage': Unexpected internal error.",
+    "warning: An error occurred while opening the browser cache: UnknownError: Failed to execute 'open' on 'CacheStorage': Unexpected internal error.",
+    "warning: An error occurred while opening the browser cache: UnknownError: Failed to execute 'open' on 'CacheStorage': Unexpected internal error.",
+    "warning: An error occurred while opening the browser cache: UnknownError: Failed to execute 'open' on 'CacheStorage': Unexpected internal error.",
+    "warning: An error occurred while opening the browser cache: UnknownError: Failed to execute 'open' on 'CacheStorage': Unexpected internal error.",
+    "warning: An error occurred while opening the browser cache: UnknownError: Failed to execute 'open' on 'CacheStorage': Unexpected internal error.",
+    "warning: An error occurred while opening the browser cache: UnknownError: Failed to execute 'open' on 'CacheStorage': Unexpected internal error.",
+    "warning: An error occurred while opening the browser cache: UnknownError: Failed to execute 'open' on 'CacheStorage': Unexpected internal error.",
+    "warning: An error occurred while opening the browser cache: UnknownError: Failed to execute 'open' on 'CacheStorage': Unexpected internal error.",
+    "warning: An error occurred while opening the browser cache: UnknownError: Failed to execute 'open' on 'CacheStorage': Unexpected internal error.",
+    "warning: An error occurred while opening the browser cache: UnknownError: Failed to execute 'open' on 'CacheStorage': Unexpected internal error.",
+    "warning: An error occurred while opening the browser cache: UnknownError: Failed to execute 'open' on 'CacheStorage': Unexpected internal error."
+   ],
+   "falas": [
+    {
+     "k": 0,
+     "durVozS": 2.1,
+     "trechos": 1,
+     "texto": "Documents according to the leak were referred to the border.",
+     "inicioAoPrimeiroTexto": 2167,
+     "parciais": 1,
+     "vad": 891,
+     "audioMs": 3360,
+     "stt": 285,
+     "primeiroToken": 118,
+     "sttEspera": 0,
+     "rtf": 0.085,
+     "renderOrig": 4,
+     "fimAoOriginal": 1181,
+     "fimAoOriginalQuadro": 1184,
+     "mtEspera": 1,
+     "mtMotor": "opus-mt",
+     "mt": 453,
+     "traducao": "Documentos de acordo com o vazamento foram encaminhados para a fronteira.",
+     "renderTrad": 1,
+     "fimATraducao": 1632,
+     "primeiraTraducaoParcialAntesDoFim": -801
+    },
+    {
+     "k": 1,
+     "durVozS": 5.2,
+     "trechos": 1,
+     "texto": "Wildcard, which provides entry to either selections of parks in South Africa or all.",
+     "inicioAoPrimeiroTexto": 819,
+     "parciais": 5,
+     "vad": 821,
+     "audioMs": 6336,
+     "stt": 467,
+     "primeiroToken": 197,
+     "sttEspera": 0,
+     "rtf": 0.074,
+     "renderOrig": 3,
+     "fimAoOriginal": 1291,
+     "fimAoOriginalQuadro": 1292,
+     "mtEspera": 0,
+     "mtMotor": "opus-mt",
+     "mt": 490,
+     "traducao": "Wildcard, que fornece entrada para seleções de parques na África do Sul ou tudo.",
+     "renderTrad": 1,
+     "fimATraducao": 1779,
+     "primeiraTraducaoParcialAntesDoFim": 4218
+    },
+    {
+     "k": 2,
+     "durVozS": 5.3,
+     "trechos": 1,
+     "texto": "On some routes, the larger companies have their own planes, but for other routes and smaller firms, there was a problem.",
+     "inicioAoPrimeiroTexto": 2876,
+     "parciais": 4,
+     "vad": 732,
+     "audioMs": 6336,
+     "stt": 1974,
+     "primeiroToken": 1067,
+     "sttEspera": 715,
+     "rtf": 0.312,
+     "renderOrig": 3,
+     "fimAoOriginal": 2709,
+     "fimAoOriginalQuadro": 2711,
+     "mtEspera": 0,
+     "mtMotor": "opus-mt",
+     "mt": 858,
+     "traducao": "Em algumas rotas, as grandes empresas têm seus próprios aviões, mas para outras rotas e empresas menores, houve um problema.",
+     "renderTrad": 1,
+     "fimATraducao": 3565,
+     "primeiraTraducaoParcialAntesDoFim": 2068
+    }
+   ]
+  }
+ ]
+}

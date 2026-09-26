@@ -1,0 +1,325 @@
+{
+ "grupo": "mic-detectar-pt",
+ "pular": 1,
+ "resumo": {
+  "n": 11,
+  "perdidas": 0,
+  "vad": {
+   "p50": 750,
+   "p95": 836,
+   "n": 11
+  },
+  "sttEspera": {
+   "p50": 0,
+   "p95": 0,
+   "n": 11
+  },
+  "stt": {
+   "p50": 979,
+   "p95": 1065,
+   "n": 11
+  },
+  "primeiroToken": {
+   "p50": 370,
+   "p95": 393,
+   "n": 11
+  },
+  "renderOrig": {
+   "p50": 2,
+   "p95": 3,
+   "n": 11
+  },
+  "mtEspera": null,
+  "mt": null,
+  "renderTrad": null,
+  "fimAoOriginal": {
+   "p50": 1681,
+   "p95": 1858,
+   "n": 11
+  },
+  "fimATraducao": null,
+  "inicioAoPrimeiroTexto": null,
+  "primeiraTraducaoParcialAntesDoFim": null,
+  "rtf": {
+   "p50": 0.166,
+   "p95": 0.199,
+   "n": 11
+  },
+  "comTraducaoParcialAntesDoFim": 0,
+  "motoresMt": []
+ },
+ "rodadas": [
+  {
+   "rotulo": "mic-detectar-pt.r1",
+   "config": {
+    "modo": "mic",
+    "eu": "auto",
+    "eles": "en-US",
+    "qualidade": "auto",
+    "device": "auto",
+    "canal": "chromium",
+    "headless": false,
+    "semWebGpu": false,
+    "perfil": "reaproveitado"
+   },
+   "ui": {
+    "chipTexto": "DetectarEnglish (US) ",
+    "resumo": "Você lê os outros em English (US) · sua fala aparece no idioma da conversa (detectado ao vivo).",
+    "seloModelo": "Modelo no dispositivo, 880 MB: ver detalhes"
+   },
+   "gpuInfo": "amd rdna-2",
+   "coi": true,
+   "modeloStt": "onnx-community/whisper-small",
+   "dispositivos": [
+    "webgpu"
+   ],
+   "rota": "roteador STT: local · modelo preciso (small) | modelo local: onnx-community/whisper-small | nuvem primeiro: false",
+   "carga": {
+    "sttProntoMs": 6307,
+    "mtProntos": [],
+    "pedidosAoHub": 1
+   },
+   "primeiraLegendaMs": {
+    "fala": 0,
+    "fimAoOriginal": 1999
+   },
+   "mainThread": {
+    "loafs": 15,
+    "loafMs": 1440,
+    "maiores": [
+     {
+      "t": 4278,
+      "ms": 341,
+      "bloq": 290,
+      "scripts": [
+       "Worker.onmessage@ort-wasm-simd-threaded.mjs:338ms"
+      ]
+     },
+     {
+      "t": 5437,
+      "ms": 213,
+      "bloq": 0,
+      "scripts": []
+     },
+     {
+      "t": 30,
+      "ms": 199,
+      "bloq": 0,
+      "scripts": [
+       "http://127.0.0.1:4176/assets/index-Cs78Md0l.js@index-Cs78Md0l.js:15ms"
+      ]
+     },
+     {
+      "t": 7562,
+      "ms": 77,
+      "bloq": 0,
+      "scripts": []
+     },
+     {
+      "t": 2455,
+      "ms": 65,
+      "bloq": 12,
+      "scripts": [
+       "Qs@vendor-react-dq0ylnNG.js:59ms"
+      ]
+     }
+    ]
+   },
+   "erros": [],
+   "falas": [
+    {
+     "k": 0,
+     "durVozS": 5.38,
+     "trechos": 1,
+     "texto": "In the archipelago and lakes you don't necessarily need a yacht.",
+     "parciais": 0,
+     "vad": 852,
+     "audioMs": 5664,
+     "stt": 1141,
+     "primeiroToken": 455,
+     "sttEspera": 0,
+     "rtf": 0.201,
+     "renderOrig": 5,
+     "fimAoOriginal": 1999,
+     "fimAoOriginalQuadro": 2002
+    },
+    {
+     "k": 1,
+     "durVozS": 4.06,
+     "trechos": 1,
+     "texto": "Other fighters also faced the fight on Monday.",
+     "parciais": 0,
+     "vad": 821,
+     "audioMs": 3936,
+     "stt": 693,
+     "primeiroToken": 370,
+     "sttEspera": 0,
+     "rtf": 0.176,
+     "renderOrig": 2,
+     "fimAoOriginal": 1517,
+     "fimAoOriginalQuadro": 1518
+    },
+    {
+     "k": 2,
+     "durVozS": 5.08,
+     "trechos": 1,
+     "texto": "The rescue teams managed to turn off the fire at 23 and 35.",
+     "parciais": 0,
+     "vad": 811,
+     "audioMs": 5472,
+     "stt": 867,
+     "primeiroToken": 375,
+     "sttEspera": 0,
+     "rtf": 0.159,
+     "renderOrig": 2,
+     "fimAoOriginal": 1681,
+     "fimAoOriginalQuadro": 1682
+    },
+    {
+     "k": 3,
+     "durVozS": 5.3,
+     "trechos": 1,
+     "texto": "The discovery also concedes tracks about the evolution of the penises on birds.",
+     "parciais": 0,
+     "vad": 711,
+     "audioMs": 5760,
+     "stt": 982,
+     "primeiroToken": 399,
+     "sttEspera": 0,
+     "rtf": 0.17,
+     "renderOrig": 2,
+     "fimAoOriginal": 1695,
+     "fimAoOriginalQuadro": 1697
+    },
+    {
+     "k": 4,
+     "durVozS": 4.88,
+     "trechos": 1,
+     "texto": "A bomb exploded on the outside side of the government office.",
+     "parciais": 0,
+     "vad": 771,
+     "audioMs": 4800,
+     "stt": 769,
+     "primeiroToken": 350,
+     "sttEspera": 0,
+     "rtf": 0.16,
+     "renderOrig": 1,
+     "fimAoOriginal": 1542,
+     "fimAoOriginalQuadro": 1543
+    },
+    {
+     "k": 5,
+     "durVozS": 5.28,
+     "trechos": 1,
+     "texto": "Don't give up on the place by staining or dragging the buildings with pique.",
+     "parciais": 0,
+     "vad": 721,
+     "audioMs": 6336,
+     "stt": 979,
+     "primeiroToken": 365,
+     "sttEspera": 0,
+     "rtf": 0.155,
+     "renderOrig": 2,
+     "fimAoOriginal": 1702,
+     "fimAoOriginalQuadro": 1703
+    },
+    {
+     "k": 6,
+     "durVozS": 4.54,
+     "trechos": 1,
+     "texto": "The areas change, huh? In the meantime it works as a country in this aspect.",
+     "parciais": 0,
+     "vad": 581,
+     "audioMs": 4704,
+     "stt": 983,
+     "primeiroToken": 371,
+     "sttEspera": 0,
+     "rtf": 0.209,
+     "renderOrig": 2,
+     "fimAoOriginal": 1566,
+     "fimAoOriginalQuadro": 1567
+    },
+    {
+     "k": 7,
+     "durVozS": 4.52,
+     "trechos": 1,
+     "texto": "Think about the route of this ski as a walking route.",
+     "parciais": 0,
+     "vad": 821,
+     "audioMs": 4224,
+     "stt": 797,
+     "primeiroToken": 386,
+     "sttEspera": 0,
+     "rtf": 0.189,
+     "renderOrig": 3,
+     "fimAoOriginal": 1621,
+     "fimAoOriginalQuadro": 1622
+    },
+    {
+     "k": 8,
+     "durVozS": 5.78,
+     "trechos": 1,
+     "texto": "Shankar Fizikela lost control of the car and ended his race in a long post-start.",
+     "parciais": 0,
+     "vad": 851,
+     "audioMs": 6048,
+     "stt": 1106,
+     "primeiroToken": 331,
+     "sttEspera": 0,
+     "rtf": 0.183,
+     "renderOrig": 3,
+     "fimAoOriginal": 1960,
+     "fimAoOriginalQuadro": 1961
+    },
+    {
+     "k": 9,
+     "durVozS": 4.32,
+     "trechos": 1,
+     "texto": "The scenes are displayed, and the different pyramids are illuminated.",
+     "parciais": 0,
+     "vad": 750,
+     "audioMs": 5088,
+     "stt": 786,
+     "primeiroToken": 357,
+     "sttEspera": 0,
+     "rtf": 0.154,
+     "renderOrig": 3,
+     "fimAoOriginal": 1539,
+     "fimAoOriginalQuadro": 1540
+    },
+    {
+     "k": 10,
+     "durVozS": 5.14,
+     "trechos": 1,
+     "texto": "A total of 20% of the water that goes from the rivers to the oceans comes from Amazon.",
+     "parciais": 0,
+     "vad": 731,
+     "audioMs": 6144,
+     "stt": 1023,
+     "primeiroToken": 351,
+     "sttEspera": 0,
+     "rtf": 0.166,
+     "renderOrig": 2,
+     "fimAoOriginal": 1756,
+     "fimAoOriginalQuadro": 1757
+    },
+    {
+     "k": 11,
+     "durVozS": 5.28,
+     "trechos": 1,
+     "texto": "We can only imagine that the keyboard will turn into something new when it comes out.",
+     "parciais": 0,
+     "vad": 741,
+     "audioMs": 6144,
+     "stt": 979,
+     "primeiroToken": 375,
+     "sttEspera": 0,
+     "rtf": 0.159,
+     "renderOrig": 2,
+     "fimAoOriginal": 1722,
+     "fimAoOriginalQuadro": 1723
+    }
+   ]
+  }
+ ]
+}

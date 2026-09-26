@@ -1,0 +1,123 @@
+{
+  "idioma": "pt",
+  "sr": 16000,
+  "silencioInicialS": 30,
+  "bipeS": 30,
+  "duracaoS": 117.71,
+  "pausasS": [
+    1.2,
+    1.6,
+    2,
+    2.4
+  ],
+  "falas": [
+    {
+      "k": 0,
+      "id": "fleurs_pt_1731",
+      "referencia": "Nos arquipélagos e lagos, você não precisa necessariamente de um iate.",
+      "iniS": 32.15,
+      "fimS": 37.53,
+      "durVozS": 5.38,
+      "ganhoDb": 2.4
+    },
+    {
+      "k": 1,
+      "id": "fleurs_pt_1747",
+      "referencia": "Outros lutadores também prestaram homenagem a Luna.",
+      "iniS": 38.78,
+      "fimS": 42.84,
+      "durVozS": 4.06,
+      "ganhoDb": 4.3
+    },
+    {
+      "k": 2,
+      "id": "fleurs_pt_1748",
+      "referencia": "As equipes de resgate conseguiram apagar o fogo às 23:35.",
+      "iniS": 44.49,
+      "fimS": 49.57,
+      "durVozS": 5.08,
+      "ganhoDb": 4.6
+    },
+    {
+      "k": 3,
+      "id": "fleurs_pt_1750",
+      "referencia": "A descoberta também concede pistas sobre a evolução das penas nas aves.",
+      "iniS": 51.67,
+      "fimS": 56.97,
+      "durVozS": 5.3,
+      "ganhoDb": 9
+    },
+    {
+      "k": 4,
+      "id": "fleurs_pt_1755",
+      "referencia": "Uma bomba explodiu do lado de fora do escritório do governador geral.",
+      "iniS": 59.42,
+      "fimS": 64.3,
+      "durVozS": 4.88,
+      "ganhoDb": 1.9
+    },
+    {
+      "k": 5,
+      "id": "fleurs_pt_1791",
+      "referencia": "Não danificar o lugar manchando ou rachando as construções com pichações.",
+      "iniS": 65.6,
+      "fimS": 70.88,
+      "durVozS": 5.28,
+      "ganhoDb": 8.9
+    },
+    {
+      "k": 6,
+      "id": "fleurs_pt_1817",
+      "referencia": "A zona Schengen, no entanto, funciona como um país nesse aspecto.",
+      "iniS": 72.53,
+      "fimS": 77.07,
+      "durVozS": 4.54,
+      "ganhoDb": 4.8
+    },
+    {
+      "k": 7,
+      "id": "fleurs_pt_1839",
+      "referencia": "Pense na rota de esqui como uma rota de caminhada.",
+      "iniS": 79.12,
+      "fimS": 83.64,
+      "durVozS": 4.52,
+      "ganhoDb": 5.3
+    },
+    {
+      "k": 8,
+      "id": "fleurs_pt_1853",
+      "referencia": "Giancarlo Fisichella perdeu o controle do carro e acabou a corrida logo após a largada.",
+      "iniS": 86.09,
+      "fimS": 91.87,
+      "durVozS": 5.78,
+      "ganhoDb": 4.3
+    },
+    {
+      "k": 9,
+      "id": "fleurs_pt_1870",
+      "referencia": "As cenas são exibidas nas pirâmides e diferentes pirâmides ficam iluminadas.",
+      "iniS": 93.12,
+      "fimS": 97.44,
+      "durVozS": 4.32,
+      "ganhoDb": 0.6
+    },
+    {
+      "k": 10,
+      "id": "fleurs_pt_1875",
+      "referencia": "Um total de 20% da água que vão dos rios do planeta para os oceanos vem da Amazônia.",
+      "iniS": 99.14,
+      "fimS": 104.28,
+      "durVozS": 5.14,
+      "ganhoDb": 9.2
+    },
+    {
+      "k": 11,
+      "id": "fleurs_pt_1879",
+      "referencia": "Só podemos imaginar o que o teclado irá se tornar quando algo mais novo surgir.",
+      "iniS": 106.38,
+      "fimS": 111.66,
+      "durVozS": 5.28,
+      "ganhoDb": 7.1
+    }
+  ]
+}

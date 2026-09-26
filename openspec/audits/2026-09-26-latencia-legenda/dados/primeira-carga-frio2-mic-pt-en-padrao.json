@@ -1,0 +1,443 @@
+{
+ "grupo": "primeira-carga-frio2-mic-pt-en-padrao",
+ "pular": 0,
+ "resumo": {
+  "n": 12,
+  "perdidas": 1,
+  "vad": {
+   "p50": 750,
+   "p95": 835,
+   "n": 11
+  },
+  "sttEspera": {
+   "p50": 1103,
+   "p95": 2240,
+   "n": 11
+  },
+  "stt": {
+   "p50": 1631,
+   "p95": 2348,
+   "n": 11
+  },
+  "primeiroToken": {
+   "p50": 481,
+   "p95": 667,
+   "n": 11
+  },
+  "renderOrig": {
+   "p50": 5,
+   "p95": 20,
+   "n": 11
+  },
+  "mtEspera": {
+   "p50": 1,
+   "p95": 17,
+   "n": 10
+  },
+  "mt": {
+   "p50": 529,
+   "p95": 1350,
+   "n": 10
+  },
+  "renderTrad": {
+   "p50": 1,
+   "p95": 2,
+   "n": 10
+  },
+  "fimAoOriginal": {
+   "p50": 2453,
+   "p95": 3129,
+   "n": 11
+  },
+  "fimATraducao": {
+   "p50": 2947,
+   "p95": 4314,
+   "n": 11
+  },
+  "inicioAoPrimeiroTexto": {
+   "p50": 2747,
+   "p95": 3871,
+   "n": 11
+  },
+  "primeiraTraducaoParcialAntesDoFim": {
+   "p50": 1878,
+   "p95": 2742,
+   "n": 11
+  },
+  "rtf": {
+   "p50": 0.338,
+   "p95": 0.438,
+   "n": 11
+  },
+  "comTraducaoParcialAntesDoFim": 11,
+  "motoresMt": [
+   "opus-mt",
+   "outro"
+  ]
+ },
+ "rodadas": [
+  {
+   "rotulo": "frio2-mic-pt-en-padrao",
+   "config": {
+    "modo": "mic",
+    "eu": "pt-BR",
+    "eles": "en-US",
+    "qualidade": "auto",
+    "device": "auto",
+    "canal": "chromium",
+    "headless": false,
+    "semWebGpu": false,
+    "perfil": "reaproveitado"
+   },
+   "ui": {
+    "chipTexto": "Português (BR)English (US) ",
+    "resumo": "Você lê os outros em Português (BR) · sua fala aparece em English (US).",
+    "seloModelo": "Modelo no dispositivo, 880 MB: ver detalhes"
+   },
+   "gpuInfo": "amd rdna-2",
+   "coi": true,
+   "modeloStt": "onnx-community/whisper-small",
+   "dispositivos": [
+    "webgpu"
+   ],
+   "rota": "roteador STT: local · modelo preciso (small) | modelo local: onnx-community/whisper-small | nuvem primeiro: false",
+   "carga": {
+    "sttProntoMs": 37041,
+    "mtProntos": [
+     {
+      "modelo": "Xenova/opus-mt-en-ROMANCE",
+      "ms": 5648
+     },
+     {
+      "modelo": "Xenova/opus-mt-ROMANCE-en",
+      "ms": 7926
+     }
+    ],
+    "pedidosAoHub": 7
+   },
+   "primeiraLegendaMs": {
+    "fala": 1,
+    "fimAoOriginal": 2390,
+    "fimATraducao": 2772
+   },
+   "mainThread": {
+    "loafs": 30,
+    "loafMs": 6687,
+    "maiores": [
+     {
+      "t": 12180,
+      "ms": 2301,
+      "bloq": 806,
+      "scripts": [
+       "MessagePort.onmessage@SeletorDeCapa-Bokb8UTH.js:11ms",
+       "TimerHandler:setInterval@LiveCapture-7G9I-uTk.js:42ms",
+       "TimerHandler:setInterval@LiveCapture-7G9I-uTk.js:855ms"
+      ]
+     },
+     {
+      "t": 8887,
+      "ms": 889,
+      "bloq": 807,
+      "scripts": []
+     },
+     {
+      "t": 9819,
+      "ms": 689,
+      "bloq": 0,
+      "scripts": [
+       "At@vendor-react-dq0ylnNG.js:13ms",
+       "At@vendor-react-dq0ylnNG.js:6ms",
+       "At@vendor-react-dq0ylnNG.js:8ms"
+      ]
+     },
+     {
+      "t": 4666,
+      "ms": 412,
+      "bloq": 362,
+      "scripts": [
+       "Worker.onmessage@ort-wasm-simd-threaded.mjs:399ms"
+      ]
+     },
+     {
+      "t": 19297,
+      "ms": 234,
+      "bloq": 0,
+      "scripts": [
+       "At@vendor-react-dq0ylnNG.js:6ms"
+      ]
+     }
+    ]
+   },
+   "erros": [],
+   "falas": [
+    {
+     "k": 0,
+     "durVozS": 5.38,
+     "trechos": 0,
+     "perdida": true
+    },
+    {
+     "k": 1,
+     "durVozS": 4.06,
+     "trechos": 1,
+     "texto": "Outros lutadores também bestaram menagem à luna.",
+     "inicioAoPrimeiroTexto": 3166,
+     "parciais": 3,
+     "vad": 750,
+     "audioMs": 3840,
+     "stt": 1631,
+     "primeiroToken": 527,
+     "sttEspera": 1506,
+     "rtf": 0.425,
+     "renderOrig": 8,
+     "fimAoOriginal": 2390,
+     "fimAoOriginalQuadro": 2392,
+     "mtEspera": 2,
+     "mtMotor": "opus-mt",
+     "mt": 388,
+     "traducao": "Other fighters also fought the moon.",
+     "renderTrad": 1,
+     "fimATraducao": 2772,
+     "primeiraTraducaoParcialAntesDoFim": 664
+    },
+    {
+     "k": 2,
+     "durVozS": 5.08,
+     "trechos": 1,
+     "texto": "As equipes do rescate conseguiram apagar o fogo às 23 e 35.",
+     "inicioAoPrimeiroTexto": 2747,
+     "parciais": 4,
+     "vad": 830,
+     "audioMs": 5472,
+     "stt": 1847,
+     "primeiroToken": 481,
+     "sttEspera": 1638,
+     "rtf": 0.338,
+     "renderOrig": 8,
+     "fimAoOriginal": 2686,
+     "fimAoOriginalQuadro": 2688,
+     "mtEspera": 3,
+     "mtMotor": "opus-mt",
+     "mt": 578,
+     "traducao": "Rescue teams managed to put out the fire at 23 and 35.",
+     "renderTrad": 1,
+     "fimATraducao": 3260,
+     "primeiraTraducaoParcialAntesDoFim": 2207
+    },
+    {
+     "k": 3,
+     "durVozS": 5.3,
+     "trechos": 1,
+     "texto": "A descoberta também concede pistas sobre a evolução das penas nas aves.",
+     "inicioAoPrimeiroTexto": 2238,
+     "parciais": 4,
+     "vad": 730,
+     "audioMs": 5760,
+     "stt": 1504,
+     "primeiroToken": 488,
+     "sttEspera": 404,
+     "rtf": 0.261,
+     "renderOrig": 3,
+     "fimAoOriginal": 2237,
+     "fimAoOriginalQuadro": 2239,
+     "mtEspera": 1,
+     "mtMotor": "opus-mt",
+     "mt": 479,
+     "traducao": "The discovery also gives clues about the evolution of feathers in birds.",
+     "renderTrad": 1,
+     "fimATraducao": 2715,
+     "primeiraTraducaoParcialAntesDoFim": 2857
+    },
+    {
+     "k": 4,
+     "durVozS": 4.88,
+     "trechos": 1,
+     "texto": "Uma bomba explodiu do lado de fora, da escritória e do governo geral.",
+     "inicioAoPrimeiroTexto": 3400,
+     "parciais": 3,
+     "vad": 790,
+     "audioMs": 4800,
+     "stt": 1796,
+     "primeiroToken": 467,
+     "sttEspera": 1053,
+     "rtf": 0.374,
+     "renderOrig": 3,
+     "fimAoOriginal": 2590,
+     "fimAoOriginalQuadro": 2591,
+     "mtEspera": 1,
+     "mtMotor": "opus-mt",
+     "mt": 358,
+     "traducao": "A bomb exploded outside the desk and the general government.",
+     "renderTrad": 1,
+     "fimATraducao": 2947,
+     "primeiraTraducaoParcialAntesDoFim": 1261
+    },
+    {
+     "k": 5,
+     "durVozS": 5.28,
+     "trechos": 1,
+     "texto": "Não danificar o lugar manchando ou rachando as construções com pichações.",
+     "inicioAoPrimeiroTexto": 2710,
+     "parciais": 4,
+     "vad": 741,
+     "audioMs": 6336,
+     "stt": 1709,
+     "primeiroToken": 490,
+     "sttEspera": 1103,
+     "rtf": 0.27,
+     "renderOrig": 3,
+     "fimAoOriginal": 2453,
+     "fimAoOriginalQuadro": 2454,
+     "fimATraducao": 2453,
+     "mtMotor": "outro",
+     "traducao": "Do not damage the place by staining or cracking the buildings with punctures.",
+     "primeiraTraducaoParcialAntesDoFim": 2301
+    },
+    {
+     "k": 6,
+     "durVozS": 4.54,
+     "trechos": 1,
+     "texto": "A zona change, hein? No entanto funciona como um país nesse aspecto.",
+     "inicioAoPrimeiroTexto": 2196,
+     "parciais": 4,
+     "vad": 600,
+     "audioMs": 4800,
+     "stt": 1879,
+     "primeiroToken": 600,
+     "sttEspera": 1767,
+     "rtf": 0.391,
+     "renderOrig": 3,
+     "fimAoOriginal": 2483,
+     "fimAoOriginalQuadro": 2485,
+     "mtEspera": 1,
+     "mtMotor": "opus-mt",
+     "mt": 909,
+     "traducao": "The area changes, huh? However, it works like a country in this respect.",
+     "renderTrad": 1,
+     "fimATraducao": 3391,
+     "primeiraTraducaoParcialAntesDoFim": 2206
+    },
+    {
+     "k": 7,
+     "durVozS": 4.52,
+     "trechos": 1,
+     "texto": "pense na rota disso que como uma rota de caminhada.",
+     "inicioAoPrimeiroTexto": 3424,
+     "parciais": 3,
+     "vad": 840,
+     "audioMs": 4224,
+     "stt": 1610,
+     "primeiroToken": 459,
+     "sttEspera": 1466,
+     "rtf": 0.381,
+     "renderOrig": 4,
+     "fimAoOriginal": 2455,
+     "fimAoOriginalQuadro": 2458,
+     "mtEspera": 1,
+     "mtMotor": "opus-mt",
+     "mt": 622,
+     "traducao": "Think of the route of that as a walking route.",
+     "renderTrad": 1,
+     "fimATraducao": 3075,
+     "primeiraTraducaoParcialAntesDoFim": 869
+    },
+    {
+     "k": 8,
+     "durVozS": 5.78,
+     "trechos": 1,
+     "texto": "Shen Kar-Fizkela perdeu o controle do carro e acabou a corrida, logo aposta largada.",
+     "inicioAoPrimeiroTexto": 4317,
+     "parciais": 2,
+     "vad": 773,
+     "audioMs": 5952,
+     "stt": 1600,
+     "primeiroToken": 453,
+     "sttEspera": 0,
+     "rtf": 0.269,
+     "renderOrig": 31,
+     "fimAoOriginal": 2405,
+     "fimAoOriginalQuadro": 2407,
+     "mtEspera": 28,
+     "mtMotor": "opus-mt",
+     "mt": 963,
+     "traducao": "Shen Kar-Fizkela lost control of the car and finished the race, soon bet dropped.",
+     "renderTrad": 1,
+     "fimATraducao": 3366,
+     "primeiraTraducaoParcialAntesDoFim": 1070
+    },
+    {
+     "k": 9,
+     "durVozS": 4.32,
+     "trechos": 1,
+     "texto": "As cenas são exibidas, e diferentes pirâmides ficam iluminadas.",
+     "inicioAoPrimeiroTexto": 2725,
+     "parciais": 2,
+     "vad": 670,
+     "audioMs": 4992,
+     "stt": 1220,
+     "primeiroToken": 392,
+     "sttEspera": 0,
+     "rtf": 0.244,
+     "renderOrig": 6,
+     "fimAoOriginal": 1897,
+     "fimAoOriginalQuadro": 1899,
+     "mtEspera": 1,
+     "mtMotor": "opus-mt",
+     "mt": 461,
+     "traducao": "The scenes are displayed, and different pyramids are illuminated.",
+     "renderTrad": 1,
+     "fimATraducao": 2354,
+     "primeiraTraducaoParcialAntesDoFim": 1348
+    },
+    {
+     "k": 10,
+     "durVozS": 5.14,
+     "trechos": 1,
+     "texto": "Um total de 20% da água que vão dos rios do planeta para os oceanos vem da Amazônia.",
+     "inicioAoPrimeiroTexto": 2224,
+     "parciais": 4,
+     "vad": 750,
+     "audioMs": 6240,
+     "stt": 2816,
+     "primeiroToken": 733,
+     "sttEspera": 2713,
+     "rtf": 0.451,
+     "renderOrig": 5,
+     "fimAoOriginal": 3571,
+     "fimAoOriginalQuadro": 3573,
+     "mtEspera": 1,
+     "mtMotor": "opus-mt",
+     "mt": 1667,
+     "traducao": "A total of 20% of the water that goes from the rivers of the planet to the oceans comes from the Amazon.",
+     "renderTrad": 2,
+     "fimATraducao": 5237,
+     "primeiraTraducaoParcialAntesDoFim": 2627
+    },
+    {
+     "k": 11,
+     "durVozS": 5.28,
+     "trechos": 1,
+     "texto": "Só podemos imaginar o que o teclado irá se tornar quando algo mais novo surgir.",
+     "inicioAoPrimeiroTexto": 2938,
+     "parciais": 4,
+     "vad": 759,
+     "audioMs": 6240,
+     "stt": 1600,
+     "primeiroToken": 462,
+     "sttEspera": 1096,
+     "rtf": 0.256,
+     "renderOrig": 6,
+     "fimAoOriginal": 2365,
+     "fimAoOriginalQuadro": 2367,
+     "mtEspera": 1,
+     "mtMotor": "opus-mt",
+     "mt": 411,
+     "traducao": "We can only imagine what the keyboard will become when something newer comes up.",
+     "renderTrad": 1,
+     "fimATraducao": 2772,
+     "primeiraTraducaoParcialAntesDoFim": 1878
+    }
+   ]
+  }
+ ]
+}

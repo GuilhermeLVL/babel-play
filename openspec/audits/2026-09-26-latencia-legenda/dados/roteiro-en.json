@@ -1,0 +1,123 @@
+{
+  "idioma": "en",
+  "sr": 16000,
+  "silencioInicialS": 30,
+  "bipeS": 30,
+  "duracaoS": 117.02,
+  "pausasS": [
+    1.2,
+    1.6,
+    2,
+    2.4
+  ],
+  "falas": [
+    {
+      "k": 0,
+      "id": "fleurs_en_1674",
+      "referencia": "In some areas boiling water for a minute is enough, in others several minutes are needed.",
+      "iniS": 32.17,
+      "fimS": 37.75,
+      "durVozS": 5.58,
+      "ganhoDb": 41
+    },
+    {
+      "k": 1,
+      "id": "fleurs_en_1691",
+      "referencia": "On some routes, the larger companies have their own planes, but for other routes and smaller firms there was a problem.",
+      "iniS": 39.04,
+      "fimS": 44.62,
+      "durVozS": 5.58,
+      "ganhoDb": 25.5
+    },
+    {
+      "k": 2,
+      "id": "fleurs_en_1700",
+      "referencia": "It is thinner under the maria and thicker under the highlands.",
+      "iniS": 46.32,
+      "fimS": 51.76,
+      "durVozS": 5.44,
+      "ganhoDb": 7.8
+    },
+    {
+      "k": 3,
+      "id": "fleurs_en_1728",
+      "referencia": "The cabbage juice changes color depending on how acidic or basic (alkaline) the chemical is.",
+      "iniS": 53.86,
+      "fimS": 59.22,
+      "durVozS": 5.36,
+      "ganhoDb": 42.9
+    },
+    {
+      "k": 4,
+      "id": "fleurs_en_1737",
+      "referencia": "Lions are the most social cats, living in large groups called prides.",
+      "iniS": 61.72,
+      "fimS": 65.62,
+      "durVozS": 3.9,
+      "ganhoDb": 25.2
+    },
+    {
+      "k": 5,
+      "id": "fleurs_en_1741",
+      "referencia": "Large areas further north are quite sparsely populated and some is nearly uninhabited wilderness.",
+      "iniS": 66.92,
+      "fimS": 72.6,
+      "durVozS": 5.68,
+      "ganhoDb": 39.7
+    },
+    {
+      "k": 6,
+      "id": "fleurs_en_1744",
+      "referencia": "The smaller the Rossby number, the less active the star with respect to magnetic reversals.",
+      "iniS": 74.3,
+      "fimS": 79.46,
+      "durVozS": 5.16,
+      "ganhoDb": 45
+    },
+    {
+      "k": 7,
+      "id": "fleurs_en_1747",
+      "referencia": "Fellow wrestlers also paid tribute to Luna.",
+      "iniS": 81.53,
+      "fimS": 84.93,
+      "durVozS": 3.4,
+      "ganhoDb": 39.8
+    },
+    {
+      "k": 8,
+      "id": "fleurs_en_1748",
+      "referencia": "Fire rescue crews eventually doused the fire by 11:35 pm.",
+      "iniS": 87.43,
+      "fimS": 91.61,
+      "durVozS": 4.18,
+      "ganhoDb": 8.8
+    },
+    {
+      "k": 9,
+      "id": "fleurs_en_1750",
+      "referencia": "The find also grants insight into the evolution of feathers in birds.",
+      "iniS": 92.91,
+      "fimS": 97.13,
+      "durVozS": 4.22,
+      "ganhoDb": 44.3
+    },
+    {
+      "k": 10,
+      "id": "fleurs_en_1762",
+      "referencia": "The disease is carried by pigs, which then migrates to humans through mosquitos.",
+      "iniS": 98.83,
+      "fimS": 103.73,
+      "durVozS": 4.9,
+      "ganhoDb": 41.2
+    },
+    {
+      "k": 11,
+      "id": "fleurs_en_1766",
+      "referencia": "Some atoms have unstable nuclei which means that they tend to break apart with little or no nudging.",
+      "iniS": 105.83,
+      "fimS": 110.97,
+      "durVozS": 5.14,
+      "ganhoDb": 43.7
+    }
+  ]
+}

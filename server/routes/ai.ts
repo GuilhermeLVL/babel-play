@@ -7,12 +7,13 @@ import { raw, Router } from 'express'
 
 import { mtTranslateProxy } from '../ai/mtProxy'
 import { llmChatProxy, providerTest } from '../ai/proxy'
-import { sttTranscribeProxy } from '../ai/sttProxy'
+import { portaDoStt, sttTranscribeProxy } from '../ai/sttProxy'
 import { credentialsRepo } from '../db/repositories/credentials'
 // F14-02: a leitura de env sai do handler e passa pelo inventario declarado em lib/config.
 import { sttDeNuvemConfigurado } from '../lib/config'
 import { hasEntitlement } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
+import { flagLigada } from '../lib/flags'
 import { portaoDaNuvem } from '../lib/orcamentoDeIa'
 import { createCredentialSchema, idParamSchema, parseOr400 } from '../validation'
 
@@ -20,8 +21,15 @@ export const aiRouter = Router()
 
 aiRouter.post('/llm/chat/completions', llmChatProxy)
 aiRouter.post('/providers/test', providerTest)
-// STT de nuvem (áudio do sistema → Whisper). Corpo = bytes WAV crus (raw), não JSON.
-aiRouter.post('/stt', raw({ type: ['audio/wav', 'application/octet-stream'], limit: '25mb' }), sttTranscribeProxy)
+/* STT de nuvem (áudio do sistema → Whisper). Corpo = bytes WAV crus (raw), não JSON.
+   A PORTA vem ANTES do `raw()` (ADR 0007; fase 2 §2.3): plano (402), portão (503), configuração
+   (501) e admissão (429 `nuvem_ocupada`) respondem sem ler um byte do corpo de até 25 MB. */
+aiRouter.post(
+  '/stt',
+  portaDoStt,
+  raw({ type: ['audio/wav', 'application/octet-stream'], limit: '25mb' }),
+  sttTranscribeProxy,
+)
 // Tradução via LLM (Groq) — 501 sem chave; sustenta a cadeia de MT e o modo multi-idioma.
 aiRouter.post('/mt', mtTranslateProxy)
 /*
@@ -49,7 +57,10 @@ aiRouter.get('/stt/available', async (req, res) => {
     }
     /* A nuvem GERENCIADA também precisa do portão global (chave de emergência e orçamento do mês):
        responder "disponível" com a nuvem fechada mandaria o roteador para um 503 no meio da captura. */
-    const portao = (await hasEntitlement(req.userId, 'managedCloudStt')) ? await portaoDaNuvem() : null
+    /* Fase 7: o convidado só tem nuvem com a flag `nuvem_convidado` ligada (`server/lib/convidado.ts`). */
+    const convidadoSemNuvem = req.convidado === true && !(await flagLigada(req, 'nuvem_convidado'))
+    const portao =
+      !convidadoSemNuvem && (await hasEntitlement(req.userId, 'managedCloudStt')) ? await portaoDaNuvem() : null
     const ok = !!portao?.ok
     res
       .status(ok ? 200 : 501)
@@ -70,11 +81,9 @@ aiRouter.post('/credentials', async (req, res) => {
   try {
     res.json(await credentialsRepo.create(req.userId, payload))
   } catch (err) {
-    res
-      .status(400)
-      .json({
-        error: erroDeRota(err, { status: 400, event: 'ai_route_error', route: req.path, requestId: req.requestId }),
-      })
+    res.status(400).json({
+      error: erroDeRota(err, { status: 400, event: 'ai_route_error', route: req.path, requestId: req.requestId }),
+    })
   }
 })
 

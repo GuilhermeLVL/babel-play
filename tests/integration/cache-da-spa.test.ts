@@ -6,13 +6,14 @@
  */
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import type { Server } from 'node:http'
+import { get } from 'node:http'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
 import express from 'express'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { cacheDoArquivo, montarSpa } from '../../server/http/estaticos'
+import { cacheDoArquivo, codificacoesAceitas, montarSpa } from '../../server/http/estaticos'
 
 let servidor: Server
 let base: string
@@ -27,6 +28,13 @@ beforeAll(async () => {
   writeFileSync(path.join(dist, 'ort-wasm-simd-threaded.wasm'), 'wasm')
   writeFileSync(path.join(dist, 'trilha', 'en.json'), '{}')
   writeFileSync(path.join(dist, 'termos.html'), '<p>termos</p>')
+  // Fase 4: irmãos pré-comprimidos do build (conteúdo marcado para saber qual foi servido).
+  writeFileSync(path.join(dist, 'assets', 'app-Zz99.js'), 'console.log("original")')
+  writeFileSync(path.join(dist, 'assets', 'app-Zz99.js.br'), 'BR')
+  writeFileSync(path.join(dist, 'assets', 'app-Zz99.js.gz'), 'GZ')
+  writeFileSync(path.join(dist, 'assets', 'so-gz-1.css'), 'a{}')
+  writeFileSync(path.join(dist, 'assets', 'so-gz-1.css.gz'), 'GZCSS')
+  writeFileSync(path.join(dist, 'fora.txt.br'), 'NAO')
   const app = express()
   montarSpa(app, dist)
   servidor = await new Promise((r) => {
@@ -68,5 +76,51 @@ describe('cache da SPA', () => {
 
   it('cacheDoArquivo aceita separador do Windows', () => {
     expect(cacheDoArquivo('assets\\x-1.js')).toBe('public, max-age=31536000, immutable')
+  })
+})
+
+describe('irmão pré-comprimido (Fase 4)', () => {
+  /* `fetch` do Node descomprime sozinho; `http.get` cru mostra os bytes e os cabeçalhos como vieram. */
+  const cru = (caminho: string, ae?: string) =>
+    new Promise<{ status: number; h: Record<string, string | string[] | undefined>; corpo: string }>((ok, erro) => {
+      const u = new URL(base + caminho)
+      get({ host: u.hostname, port: u.port, path: u.pathname, headers: ae ? { 'accept-encoding': ae } : {} }, (r) => {
+        const partes: Buffer[] = []
+        r.on('data', (c: Buffer) => partes.push(c))
+        r.on('end', () => ok({ status: r.statusCode ?? 0, h: r.headers, corpo: Buffer.concat(partes).toString() }))
+      }).on('error', erro)
+    })
+
+  it('br quando o navegador aceita: Content-Encoding, Vary, tipo e cache do ORIGINAL', async () => {
+    const r = await cru('/assets/app-Zz99.js', 'gzip, deflate, br')
+    expect(r.corpo).toBe('BR')
+    expect(r.h['content-encoding']).toBe('br')
+    expect(String(r.h.vary)).toMatch(/Accept-Encoding/i)
+    expect(r.h['content-type']).toMatch(/javascript/)
+    expect(r.h['cache-control']).toBe('public, max-age=31536000, immutable')
+  })
+
+  it('gzip quando só gzip é aceito; sem Accept-Encoding, o original', async () => {
+    expect((await cru('/assets/app-Zz99.js', 'gzip')).corpo).toBe('GZ')
+    const semNada = await cru('/assets/app-Zz99.js', 'identity')
+    expect(semNada.corpo).toBe('console.log("original")')
+    expect(semNada.h['content-encoding']).toBeUndefined()
+  })
+
+  it('sem o irmão pedido, cai no que existe (ou no original)', async () => {
+    const r = await cru('/assets/so-gz-1.css', 'br, gzip')
+    expect(r.corpo).toBe('GZCSS')
+    expect(r.h['content-type']).toMatch(/css/)
+  })
+
+  it('não serve irmão sem original nem escapa de dist', async () => {
+    expect((await cru('/fora.txt', 'br')).corpo).not.toBe('NAO')
+    expect((await cru('/assets/..%2F..%2Fetc%2Fpasswd', 'br')).h['content-encoding']).toBeUndefined()
+  })
+
+  it('Accept-Encoding: q=0 recusa, * aceita, sem cabeçalho nada', () => {
+    expect([...codificacoesAceitas('gzip, br;q=0')]).toEqual(['gzip'])
+    expect([...codificacoesAceitas('*')].sort()).toEqual(['br', 'gzip'])
+    expect(codificacoesAceitas(undefined).size).toBe(0)
   })
 })

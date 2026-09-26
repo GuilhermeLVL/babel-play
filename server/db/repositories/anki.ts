@@ -12,9 +12,17 @@ import { randomUUID } from 'node:crypto'
 
 import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
 
-import { cursorDeNotas, type FiltroDeNotaAnki,lerCursorDeNotas } from '../../../src/core/learning/contract'
+import { cursorDeNotas, type FiltroDeNotaAnki, lerCursorDeNotas } from '../../../src/core/learning/contract'
 import type { UserId } from '../../lib/authContext'
 import { db } from '../db'
+import {
+  emLotes,
+  type InstrucaoDeBatch,
+  INSTRUCOES_POR_BATCH,
+  tamanhoDoLote,
+  tamanhoDoLoteDeInsert,
+  tuplaDeBatch,
+} from '../lotes'
 import { ankiDecks, ankiImports, ankiNotes } from '../schema'
 
 export type AnkiDeck = typeof ankiDecks.$inferSelect
@@ -119,15 +127,19 @@ export const ankiRepo = {
     if (patch.estado !== undefined) set.estado = patch.estado
     if (patch.notasLidas !== undefined) set.notasLidas = sql`${ankiImports.notasLidas} + ${patch.notasLidas}`
     if (patch.notasNovas !== undefined) set.notasNovas = sql`${ankiImports.notasNovas} + ${patch.notasNovas}`
-    if (patch.notasAtualizadas !== undefined) set.notasAtualizadas = sql`${ankiImports.notasAtualizadas} + ${patch.notasAtualizadas}`
-    if (patch.notasDescartadas !== undefined) set.notasDescartadas = sql`${ankiImports.notasDescartadas} + ${patch.notasDescartadas}`
+    if (patch.notasAtualizadas !== undefined)
+      set.notasAtualizadas = sql`${ankiImports.notasAtualizadas} + ${patch.notasAtualizadas}`
+    if (patch.notasDescartadas !== undefined)
+      set.notasDescartadas = sql`${ankiImports.notasDescartadas} + ${patch.notasDescartadas}`
     if (patch.porMotivo !== undefined) set.porMotivo = JSON.stringify(patch.porMotivo)
     if (patch.erro !== undefined) set.erro = patch.erro
     await db.update(ankiImports).set(set).where(eq(ankiImports.id, id))
   },
 
   async lerImport(userId: UserId, id: string): Promise<AnkiImport | undefined> {
-    const rows = await db.select().from(ankiImports)
+    const rows = await db
+      .select()
+      .from(ankiImports)
       .where(and(eq(ankiImports.id, id), eq(ankiImports.userId, userId)))
       .limit(1)
     return rows[0]
@@ -143,13 +155,17 @@ export const ankiRepo = {
    * risco que justificou o unique parcial em `vocab_cards` não se aplica.
    */
   async criarOuAcharDeck(userId: UserId, dados: NovoDeck): Promise<AnkiDeck> {
-    const existente = await db.select().from(ankiDecks)
-      .where(and(
-        eq(ankiDecks.userId, userId),
-        eq(ankiDecks.arquivoOrigem, dados.arquivoOrigem),
-        eq(ankiDecks.nome, dados.nome),
-        isNull(ankiDecks.deletedAt),
-      ))
+    const existente = await db
+      .select()
+      .from(ankiDecks)
+      .where(
+        and(
+          eq(ankiDecks.userId, userId),
+          eq(ankiDecks.arquivoOrigem, dados.arquivoOrigem),
+          eq(ankiDecks.nome, dados.nome),
+          isNull(ankiDecks.deletedAt),
+        ),
+      )
       .limit(1)
     if (existente[0]) {
       /**
@@ -167,8 +183,7 @@ export const ankiRepo = {
        */
       if (existente[0].estado !== 'ativo') {
         const agora = Date.now()
-        await db.update(ankiDecks).set({ estado: 'ativo', updatedAt: agora })
-          .where(eq(ankiDecks.id, existente[0].id))
+        await db.update(ankiDecks).set({ estado: 'ativo', updatedAt: agora }).where(eq(ankiDecks.id, existente[0].id))
         return { ...existente[0], estado: 'ativo', updatedAt: agora }
       }
       return existente[0]
@@ -194,7 +209,9 @@ export const ankiRepo = {
 
   /** Contagens por baralho, numa consulta agregada — não N+1 por deck. */
   async listarBaralhos(userId: UserId): Promise<Array<AnkiDeck & ContagensBaralho>> {
-    const decks = await db.select().from(ankiDecks)
+    const decks = await db
+      .select()
+      .from(ankiDecks)
       .where(and(eq(ankiDecks.userId, userId), isNull(ankiDecks.deletedAt)))
       .orderBy(desc(ankiDecks.createdAt))
     if (!decks.length) return []
@@ -205,17 +222,24 @@ export const ankiRepo = {
        ausente = a nota existia num import anterior e sumiu do arquivo novo — não é defeito de
        qualidade, é história do baralho. Uma tela que somasse as duas mandaria a pessoa procurar
        conserto onde não há nada quebrado. */
-    const linhas = await db.select({
-      deckId: ankiNotes.deckId,
-      estado: ankiNotes.estado,
-      temMotivo: sql<number>`case when ${ankiNotes.motivoDescarte} is null then 0 else 1 end`,
-      n: sql<number>`count(*)`,
-    }).from(ankiNotes)
-      .where(and(
-        eq(ankiNotes.userId, userId),
-        isNull(ankiNotes.deletedAt),
-        inArray(ankiNotes.deckId, decks.map((d) => d.id)),
-      ))
+    const linhas = await db
+      .select({
+        deckId: ankiNotes.deckId,
+        estado: ankiNotes.estado,
+        temMotivo: sql<number>`case when ${ankiNotes.motivoDescarte} is null then 0 else 1 end`,
+        n: sql<number>`count(*)`,
+      })
+      .from(ankiNotes)
+      .where(
+        and(
+          eq(ankiNotes.userId, userId),
+          isNull(ankiNotes.deletedAt),
+          inArray(
+            ankiNotes.deckId,
+            decks.map((d) => d.id),
+          ),
+        ),
+      )
       .groupBy(ankiNotes.deckId, ankiNotes.estado, sql`case when ${ankiNotes.motivoDescarte} is null then 0 else 1 end`)
 
     const porDeck = new Map<string, ContagensBaralho>()
@@ -244,22 +268,27 @@ export const ankiRepo = {
    */
   async desativarBaralho(userId: UserId, deckId: string): Promise<void> {
     const now = Date.now()
-    await db.update(ankiDecks)
+    await db
+      .update(ankiDecks)
       .set({ estado: 'desativado', updatedAt: now })
       .where(and(eq(ankiDecks.id, deckId), eq(ankiDecks.userId, userId)))
 
-    await db.update(ankiNotes)
+    await db
+      .update(ankiNotes)
       .set({ estado: 'arquivada', updatedAt: now })
       .where(and(eq(ankiNotes.deckId, deckId), eq(ankiNotes.userId, userId), isNull(ankiNotes.deletedAt)))
 
-    await db.update(ankiNotes)
+    await db
+      .update(ankiNotes)
       .set({ motivoDaBaixa: 'desativacao', updatedAt: now })
-      .where(and(
-        eq(ankiNotes.deckId, deckId),
-        eq(ankiNotes.userId, userId),
-        isNull(ankiNotes.deletedAt),
-        sql`${ankiNotes.projectedCardId} IS NOT NULL`,
-      ))
+      .where(
+        and(
+          eq(ankiNotes.deckId, deckId),
+          eq(ankiNotes.userId, userId),
+          isNull(ankiNotes.deletedAt),
+          sql`${ankiNotes.projectedCardId} IS NOT NULL`,
+        ),
+      )
   },
 
   /**
@@ -290,20 +319,45 @@ export const ankiRepo = {
    * `camposBrutos` — se nada mudou, a linha é tocada só para sair de `ausente_no_arquivo` quando
    * aplicável (o `updatedAt` avança de qualquer forma, mas não conta como "atualizada" para o
    * ledger, que quer refletir mudança de CONTEÚDO).
+   *
+   * LOTES (P1 da auditoria de prontidão): o `inArray(guid)` com a lista inteira passava do teto de
+   * 32.766 variáveis do SQLite a partir de ~32 mil notas, e o import aceita 50.000. E cada nota era
+   * uma ida ao banco — 30 mil notas levavam 48 s. Agora a leitura vai em lotes de guids, as notas
+   * novas entram em INSERT multi-VALUES e as alteradas em UPDATEs agrupados em `db.batch`.
+   *
+   * A escrita NÃO é uma transação única de propósito: um batch de 50 mil instruções seguraria o
+   * lock de escrita por segundos, e os outros processos esperam só 5 s (`busy_timeout`). O que
+   * torna uma interrupção no meio inofensiva é a idempotência por `(deckId, guid)`: reimportar
+   * completa o que faltou, sem duplicar.
    */
-  async gravarNotas(userId: UserId, deckId: string, importId: string, notas: NotaParaGravar[]): Promise<ResultadoGravarNotas> {
+  async gravarNotas(
+    userId: UserId,
+    deckId: string,
+    importId: string,
+    notas: NotaParaGravar[],
+  ): Promise<ResultadoGravarNotas> {
     if (!notas.length) return { novas: 0, atualizadas: 0, iguais: 0, ids: [] }
     const now = Date.now()
     const guids = notas.map((n) => n.guid)
 
-    const existentes = await db.select().from(ankiNotes)
-      .where(and(eq(ankiNotes.deckId, deckId), inArray(ankiNotes.guid, guids)))
+    // `deck_id = ?` é a variável fixa de cada lote.
+    const existentes: AnkiNote[] = []
+    for (const lote of emLotes(guids, tamanhoDoLote(1, 1))) {
+      existentes.push(
+        ...(await db
+          .select()
+          .from(ankiNotes)
+          .where(and(eq(ankiNotes.deckId, deckId), inArray(ankiNotes.guid, lote)))),
+      )
+    }
     const porGuid = new Map(existentes.map((n) => [n.guid, n]))
 
     let novas = 0
     let atualizadas = 0
     let iguais = 0
     const ids: string[] = []
+    const linhasNovas: (typeof ankiNotes.$inferInsert)[] = []
+    const alteracoes: InstrucaoDeBatch[] = []
 
     for (const n of notas) {
       const camposBrutos = serializarCampos(n.camposBrutos)
@@ -311,7 +365,7 @@ export const ankiRepo = {
 
       if (!existente) {
         const id = randomUUID()
-        await db.insert(ankiNotes).values({
+        linhasNovas.push({
           id,
           createdAt: now,
           updatedAt: now,
@@ -345,9 +399,7 @@ export const ankiRepo = {
         existente.camposBrutos !== camposBrutos
 
       const reapareceu = existente.estado === 'ausente_no_arquivo'
-      const novoEstado = reapareceu
-        ? (existente.projectedCardId ? 'ativa' : 'arquivada')
-        : existente.estado
+      const novoEstado = reapareceu ? (existente.projectedCardId ? 'ativa' : 'arquivada') : existente.estado
 
       if (!mudou && !reapareceu) {
         iguais++
@@ -355,24 +407,35 @@ export const ankiRepo = {
         continue
       }
 
-      await db.update(ankiNotes).set({
-        updatedAt: now,
-        notetype: n.notetype ?? existente.notetype,
-        estruturaHash: n.estruturaHash ?? existente.estruturaHash,
-        camposBrutos,
-        frente: n.frente ?? null,
-        verso: n.verso ?? null,
-        exemplo: n.exemplo ?? null,
-        tags: n.tags ?? null,
-        estado: novoEstado,
-        motivoDescarte: n.motivoDescarte ?? null,
-        importId,
-      }).where(eq(ankiNotes.id, existente.id))
+      alteracoes.push(
+        db
+          .update(ankiNotes)
+          .set({
+            updatedAt: now,
+            notetype: n.notetype ?? existente.notetype,
+            estruturaHash: n.estruturaHash ?? existente.estruturaHash,
+            camposBrutos,
+            frente: n.frente ?? null,
+            verso: n.verso ?? null,
+            exemplo: n.exemplo ?? null,
+            tags: n.tags ?? null,
+            estado: novoEstado,
+            motivoDescarte: n.motivoDescarte ?? null,
+            importId,
+          })
+          .where(eq(ankiNotes.id, existente.id)),
+      )
 
       if (mudou) atualizadas++
       else iguais++
       ids.push(existente.id)
     }
+
+    const instrucoes: InstrucaoDeBatch[] = [
+      ...emLotes(linhasNovas, tamanhoDoLoteDeInsert(ankiNotes)).map((linhas) => db.insert(ankiNotes).values(linhas)),
+      ...alteracoes,
+    ]
+    for (const bloco of emLotes(instrucoes, INSTRUCOES_POR_BATCH)) await db.batch(tuplaDeBatch(bloco))
 
     return { novas, atualizadas, iguais, ids }
   },
@@ -392,15 +455,30 @@ export const ankiRepo = {
       isNull(ankiNotes.deletedAt),
       sql`${ankiNotes.estado} != 'ausente_no_arquivo'`,
     ]
-    // Lista vazia é um caso real (arquivo reenviado sem nenhuma nota reconhecida) — SQLite não
-    // aceita `NOT IN ()`, então tratamos separado em vez de gerar SQL inválido.
-    if (guidsPresentes.length) cond.push(sql`${ankiNotes.guid} NOT IN ${guidsPresentes}`)
-
-    const alvo = await db.select({ id: ankiNotes.id }).from(ankiNotes).where(and(...cond))
+    /* MARCAR-E-VARRER em vez de `NOT IN (lista)`: a lista é o arquivo inteiro (até 50.000 guids)
+       e passava do teto de 32.766 variáveis do SQLite. As candidatas são as notas DESTE baralho
+       — conjunto que o banco já delimita pelo índice `(deck_id, estado)` — e a diferença contra
+       o arquivo é feita aqui, num Set. Mesma semântica, inclusive para lista vazia (todas as
+       candidatas somem), que o `NOT IN ()` nem aceitava. */
+    const presentes = new Set(guidsPresentes)
+    const candidatas = await db
+      .select({ id: ankiNotes.id, guid: ankiNotes.guid })
+      .from(ankiNotes)
+      .where(and(...cond))
+    const alvo = candidatas.filter((c) => !presentes.has(c.guid))
     if (!alvo.length) return 0
-    await db.update(ankiNotes)
-      .set({ estado: 'ausente_no_arquivo', updatedAt: now })
-      .where(inArray(ankiNotes.id, alvo.map((a) => a.id)))
+    // Um batch só (atômico): ou o baralho inteiro reflete o arquivo novo, ou nada muda. As duas
+    // variáveis fixas são as do SET (`estado`, `updated_at`).
+    await db.batch(
+      tuplaDeBatch(
+        emLotes(
+          alvo.map((a) => a.id),
+          tamanhoDoLote(1, 2),
+        ).map((lote) =>
+          db.update(ankiNotes).set({ estado: 'ausente_no_arquivo', updatedAt: now }).where(inArray(ankiNotes.id, lote)),
+        ),
+      ),
+    )
     return alvo.length
   },
 
@@ -408,15 +486,19 @@ export const ankiRepo = {
    * Paginação por cursor composto `(createdAt, id)` — mesmo padrão de `vocab.listarPagina`: com
    * OFFSET, uma nota nova gravada durante a rolagem faz um item repetir na página seguinte.
    */
-  async listarNotas(userId: UserId, deckId: string, opts: {
-    limite?: number
-    /* O MESMO valor que a pagina anterior devolveu, opaco. Era `{ valor, id }` e o cliente
+  async listarNotas(
+    userId: UserId,
+    deckId: string,
+    opts: {
+      limite?: number
+      /* O MESMO valor que a pagina anterior devolveu, opaco. Era `{ valor, id }` e o cliente
        tipava string: quem paginava devolvia `[object Object]` e a segunda pagina repetia a
        primeira para sempre (achado A21). Devolver o que se recebeu tem de bastar. */
-    cursor?: string | null
-    estado?: FiltroDeNotaAnki
-    busca?: string
-  } = {}): Promise<{ itens: AnkiNote[]; proximoCursor: string | null; total: number }> {
+      cursor?: string | null
+      estado?: FiltroDeNotaAnki
+      busca?: string
+    } = {},
+  ): Promise<{ itens: AnkiNote[]; proximoCursor: string | null; total: number }> {
     const limite = Math.min(Math.max(opts.limite ?? 200, 1), 500)
     const cond = [eq(ankiNotes.deckId, deckId), eq(ankiNotes.userId, userId), isNull(ankiNotes.deletedAt)]
 
@@ -427,17 +509,27 @@ export const ankiRepo = {
     else if (opts.estado) cond.push(eq(ankiNotes.estado, opts.estado))
     if (opts.busca?.trim()) {
       const q = `%${opts.busca.trim().toLowerCase()}%`
-      cond.push(sql`(lower(COALESCE(${ankiNotes.frente},'')) LIKE ${q} OR lower(COALESCE(${ankiNotes.verso},'')) LIKE ${q})`)
+      cond.push(
+        sql`(lower(COALESCE(${ankiNotes.frente},'')) LIKE ${q} OR lower(COALESCE(${ankiNotes.verso},'')) LIKE ${q})`,
+      )
     }
     const cursor = lerCursorDeNotas(opts.cursor)
     if (cursor) {
       const { valor, id } = cursor
-      cond.push(sql`(${ankiNotes.createdAt} < ${valor} OR (${ankiNotes.createdAt} = ${valor} AND ${ankiNotes.id} > ${id}))`)
+      cond.push(
+        sql`(${ankiNotes.createdAt} < ${valor} OR (${ankiNotes.createdAt} = ${valor} AND ${ankiNotes.id} > ${id}))`,
+      )
     }
 
     const where = and(...cond)
-    const [{ n }] = await db.select({ n: sql<number>`count(*)` }).from(ankiNotes).where(where)
-    const itens = await db.select().from(ankiNotes).where(where)
+    const [{ n }] = await db
+      .select({ n: sql<number>`count(*)` })
+      .from(ankiNotes)
+      .where(where)
+    const itens = await db
+      .select()
+      .from(ankiNotes)
+      .where(where)
       .orderBy(desc(ankiNotes.createdAt), ankiNotes.id)
       .limit(limite + 1)
 

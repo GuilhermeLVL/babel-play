@@ -9,6 +9,7 @@
  */
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { esquecerAdmissao } from '../../server/ai/admissao'
 import { esvaziarCacheDeTraducao } from '../../server/ai/cacheDeTraducao'
 import { esquecerDisjuntores } from '../../server/ai/disjuntor'
 import { asUserId } from '../../server/lib/authContext'
@@ -74,6 +75,9 @@ afterEach(() => {
      chamada que ele conta deixaria de sair. O disjuntor tem arquivo próprio
      (`tests/integration/disjuntor-de-ia.test.ts`) — aqui ele não pode ser variável escondida. */
   esquecerDisjuntores()
+  /* A admissão de IA (ADR 0007) é estado de processo como o disjuntor: um 429 encenado fecha o
+     balde do modelo, e os casos somados passariam do limite por minuto. Zerada entre casos. */
+  esquecerAdmissao()
 })
 
 function configurarPrimario() {
@@ -151,6 +155,41 @@ describe('cascata de MT com reserva', () => {
   it('sem reserva configurada, falha do primário responde 502 — o comportamento antigo', async () => {
     configurarPrimario()
     vi.stubGlobal('fetch', async () => ({ ok: false, status: 500, text: async () => 'fora do ar' }))
+    const res = mockRes()
+    await mtTranslateProxy(mockReq(asUserId('cascata')), res)
+    expect(res.statusCode).toBe(502)
+  })
+
+  /* FASE 4 (suíte de carga): com o provedor em 429 e sem reserva, o cliente recebia 502
+     `provedor_indisponivel` — um ERRO, contado como 5xx no SLO e nos alertas —, enquanto o STT no
+     mesmo caso já respondia 429 `nuvem_ocupada` com `Retry-After`. Limite de taxa não é defeito:
+     é a mesma degradação desenhada no ADR 0007, e o cliente pausa a nuvem pelo tempo pedido. */
+  it('todas as pernas em 429 → 429 nuvem_ocupada com Retry-After (não 502)', async () => {
+    configurarPrimario()
+    vi.stubGlobal('fetch', async () => ({
+      ok: false,
+      status: 429,
+      headers: { get: (h: string) => (h.toLowerCase() === 'retry-after' ? '7' : null) },
+      text: async () => 'rate limited',
+    }))
+    const res = mockRes()
+    const cabecalhos: Record<string, string> = {}
+    res.setHeader = (k: string, v: string) => (cabecalhos[k.toLowerCase()] = v)
+    await mtTranslateProxy(mockReq(asUserId('cascata')), res)
+    expect(res.statusCode).toBe(429)
+    expect(res.body?.code).toBe('nuvem_ocupada')
+    expect(res.body?.detalhes).toEqual({ motivo: 'provedor_limitou', retryAfter: 7 })
+    expect(cabecalhos['retry-after']).toBe('7')
+  })
+
+  it('429 no primário e 500 na reserva continua 502: não foi só limite de taxa', async () => {
+    configurarPrimario()
+    configurarReserva()
+    vi.stubGlobal('fetch', async (url: any) =>
+      String(url).includes('primario')
+        ? { ok: false, status: 429, text: async () => 'limite' }
+        : { ok: false, status: 500, text: async () => 'caiu' },
+    )
     const res = mockRes()
     await mtTranslateProxy(mockReq(asUserId('cascata')), res)
     expect(res.statusCode).toBe(502)

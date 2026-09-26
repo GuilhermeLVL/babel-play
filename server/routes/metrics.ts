@@ -48,16 +48,14 @@ metricsRouter.get('/profile', async (req, res) => {
     const sessao = q.sessao?.trim() ? q.sessao.trim() : null
     res.json(await computeProfile(req.userId, { sessionId: sessao }))
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        error: erroDeRota(err, {
-          status: 500,
-          event: 'metrics_route_error',
-          route: req.path,
-          requestId: req.requestId,
-        }),
-      })
+    res.status(500).json({
+      error: erroDeRota(err, {
+        status: 500,
+        event: 'metrics_route_error',
+        route: req.path,
+        requestId: req.requestId,
+      }),
+    })
   }
 })
 
@@ -74,11 +72,9 @@ metricsRouter.get('/xp', async (req, res) => {
   try {
     res.json(await computeXpHistory(req.userId, { balde: q.balde ?? 'dia', desde: q.desde || undefined }))
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        error: erroDeRota(err, { status: 500, event: 'metrics_xp_error', route: req.path, requestId: req.requestId }),
-      })
+    res.status(500).json({
+      error: erroDeRota(err, { status: 500, event: 'metrics_xp_error', route: req.path, requestId: req.requestId }),
+    })
   }
 })
 
@@ -167,19 +163,20 @@ metricsRouter.post('/seeds/gastar', async (req, res) => {
       })
       return
     }
-    const perfil = await computeProfile(req.userId)
-    res.json({ jaExistia, gasto: linha.amount, seedsGastas: perfil.seedsGastas })
+    /* O TOTAL DO RAZÃO, e não o perfil inteiro. Era `(await computeProfile(req.userId)).seedsGastas`
+       — uma segunda varredura das cinco tabelas para devolver um número que é `SUM(amount)` de
+       `seed_spends`, exatamente o que `computeProfile` põe nesse campo (fix/rotas-caras). */
+    const seedsGastas = await seedSpendsRepo.totalGasto(req.userId)
+    res.json({ jaExistia, gasto: linha.amount, seedsGastas })
   } catch (err) {
-    res
-      .status(400)
-      .json({
-        error: erroDeRota(err, {
-          status: 400,
-          event: 'metrics_route_error',
-          route: req.path,
-          requestId: req.requestId,
-        }),
-      })
+    res.status(400).json({
+      error: erroDeRota(err, {
+        status: 400,
+        event: 'metrics_route_error',
+        route: req.path,
+        requestId: req.requestId,
+      }),
+    })
   }
 })
 
@@ -210,16 +207,14 @@ metricsRouter.post('/presenca', async (req, res) => {
     const { atual } = sequencias(await economiaRepo.diasDePresenca(req.userId), dia)
     res.json({ jaExistia, dia, streakPresenca: atual })
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        error: erroDeRota(err, {
-          status: 500,
-          event: 'metrics_route_error',
-          route: req.path,
-          requestId: req.requestId,
-        }),
-      })
+    res.status(500).json({
+      error: erroDeRota(err, {
+        status: 500,
+        event: 'metrics_route_error',
+        route: req.path,
+        requestId: req.requestId,
+      }),
+    })
   }
 })
 
@@ -373,15 +368,13 @@ metricsRouter.post('/seeds/creditar', async (req, res) => {
     const totais = await economiaRepo.totaisCreditados(req.userId)
     res.json({ jaExistia, ...totais })
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        error: erroDeRota(err, {
-          status: 500,
-          event: 'metrics_route_error',
-          route: req.path,
-          requestId: req.requestId,
-        }),
-      })
+    res.status(500).json({
+      error: erroDeRota(err, {
+        status: 500,
+        event: 'metrics_route_error',
+        route: req.path,
+        requestId: req.requestId,
+      }),
+    })
   }
 })

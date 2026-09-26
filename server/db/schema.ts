@@ -66,6 +66,8 @@ export const sessions = sqliteTable(
      * o índice cobre o predicado inteiro em vez de mandar o SQLite buscar a linha para conferir.
      */
     index('idx_sessions_user').on(t.userId, t.deletedAt),
+    // Retenção de áudio varre por data de criação, de todos os usuários (migração 0030).
+    index('idx_sessions_created').on(t.createdAt),
   ],
 )
 
@@ -324,6 +326,8 @@ export const exerciseResults = sqliteTable(
     index('idx_exercise_results_kind_round').on(t.exerciseKind, t.roundId),
     /** F3: "como me saí com esta palavra" — a consulta que a tela C e o modelo da F4 fazem. */
     index('idx_exercise_results_card').on(t.userId, t.cardId, t.createdAt),
+    // Histórico do usuário por data, sem `card_id` (migração 0030, auditoria de prontidão).
+    index('idx_exercise_results_user_created').on(t.userId, t.createdAt),
   ],
 )
 
@@ -735,7 +739,11 @@ export const usageCounters = sqliteTable(
     window: text('window').notNull(), // 'YYYY-MM'
     count: integer('count').notNull().default(0),
   },
-  (t) => [unique('uq_usage_user_metric_window').on(t.userId, t.metric, t.window)],
+  (t) => [
+    unique('uq_usage_user_metric_window').on(t.userId, t.metric, t.window),
+    // A poda dos baldes filtra por métrica e janela, sem usuário (migração 0030).
+    index('idx_usage_counters_metric_window').on(t.metric, t.window),
+  ],
 )
 
 /**
@@ -893,7 +901,10 @@ export const rank = sqliteTable(
     jogo: text('jogo').notNull(),
     apelido: text('apelido').notNull(),
     pontos: integer('pontos').notNull(),
-    combo: integer('combo').notNull(),
+    /* `DEFAULT 0` está no banco desde a 0027 e faltava aqui: o teste de schema-contra-banco
+       (`tests/integration/schema-igual-ao-banco.test.ts`) pegou a divergência, que faria o
+       `drizzle-kit generate` propor recriar a tabela `rank` inteira. */
+    combo: integer('combo').notNull().default(0),
     /** SHA-256 de (ip + SECRET_KEY), truncado. Só existe para a trava de flood. */
     ipHash: text('ip_hash'),
   },
@@ -909,7 +920,8 @@ export const rank = sqliteTable(
 /**
  * GASTO DE IA DO MÊS — o orçamento global da nuvem (Fase 2 do lançamento; migração 0029).
  *
- * Uma linha por mês, sem `user_id`: é conta do serviço, não dado de titular. Microdólares inteiros
+ * Uma linha por PERÍODO — `AAAA-MM` (mês) e, desde a Fase 5 de prontidão, também `AAAA-MM-DD` (dia
+ * UTC, para o teto diário) na mesma coluna `mes`; sem `user_id`: é conta do serviço, não dado de titular. Microdólares inteiros
  * porque a soma de milhares de custos minúsculos em ponto flutuante acumula erro, e o gatilho de
  * 100% é uma comparação exata. Quem lê e escreve: `server/db/repositories/gastoDeIa.ts`.
  */
@@ -921,3 +933,47 @@ export const gastoDeIa = sqliteTable('gasto_de_ia', {
   esgotadoEm: integer('esgotado_em'),
   atualizadoEm: integer('atualizado_em').notNull(),
 })
+
+/**
+ * FEATURE FLAGS E CONFIGURAÇÃO REMOTA (Fase 6b; migração 0031) — `docs/flags.md`.
+ *
+ * Configuração do SERVIÇO, sem `user_id`: fica fora de `TABELAS_DO_TITULAR` como `rank` e
+ * `gasto_de_ia`. `regras` e `payload` são JSON em TEXT; a forma das regras é a de
+ * `src/core/flags.ts`. `atualizado_por` é o id do admin que escreveu (ou `cli`/`semente`). Quem lê
+ * e escreve: `server/db/repositories/flags.ts`; a política (cache, validação) mora em
+ * `server/lib/flags.ts`.
+ */
+export const flags = sqliteTable('flags', {
+  chave: text('chave').primaryKey(),
+  descricao: text('descricao').notNull().default(''),
+  habilitada: integer('habilitada', { mode: 'boolean' }).notNull().default(false),
+  regras: text('regras').notNull().default('{}'),
+  payload: text('payload'),
+  atualizadoEm: integer('atualizado_em').notNull(),
+  atualizadoPor: text('atualizado_por'),
+})
+
+/**
+ * CONVIDADOS COM NUVEM (Fase 7 — modo convidado; migração 0033). `openspec/audits/2026-09-25-prontidao/fase7-convidado.md`.
+ *
+ * Uma linha por usuário ANÔNIMO do Supabase (`is_anonymous`) que chegou a usar a IA de nuvem. O
+ * convidado sem nuvem nunca aparece aqui: o app dele é 100% local.
+ *
+ * Serve a três coisas: (1) o LIMITE DE CRIAÇÃO por IP — conta quantos ids anônimos distintos
+ * estrearam na nuvem pelo mesmo IP no dia; (2) a EXPIRAÇÃO — `visto_em` diz quem está inativo há 30
+ * dias, e a limpeza diária apaga os contadores e o usuário anônimo; (3) rastreio da conversão.
+ *
+ * `ip_hash` é PSEUDÔNIMO: HMAC do IP com a chave do servidor e o DIA — não dá para voltar ao IP, e o
+ * mesmo IP em dias diferentes não se liga. `user_id` é o id do titular (anônimo): a linha entra em
+ * `TABELAS_DO_TITULAR` e sai com a exclusão da conta.
+ */
+export const convidados = sqliteTable(
+  'convidados',
+  {
+    userId: text('user_id').primaryKey(),
+    ipHash: text('ip_hash').notNull(),
+    criadoEm: integer('criado_em').notNull(),
+    vistoEm: integer('visto_em').notNull(),
+  },
+  (t) => [index('idx_convidados_ip_criado').on(t.ipHash, t.criadoEm), index('idx_convidados_visto').on(t.vistoEm)],
+)

@@ -424,7 +424,8 @@ meRouter.get('/uso', async (req, res) => {
 meRouter.get('/entitlements', async (req, res) => {
   try {
     // Provisiona a conta no 1º acesso (idempotente) — assim o usuário aparece na gestão admin.
-    await usersRepo.ensure(req.userId)
+    // O convidado (Fase 7) NÃO vira conta: anônimo não entra na gestão admin nem ganha linha em `users`.
+    if (!req.convidado) await usersRepo.ensure(req.userId)
     const [entitlements, plano] = await Promise.all([getEntitlementsForUser(req.userId), getPlanForUser(req.userId)])
     const teto = capDeArmazenamento(plano)
     /*

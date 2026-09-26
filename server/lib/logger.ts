@@ -45,6 +45,14 @@ export interface LogFields {
   semFala?: number
   repeticao?: number
   alucinacao?: number
+  /* Feature flags (Fase 6b, `server/lib/flags.ts`): QUAL flag mudou e para que estado. A chave é
+     um identificador de configuração do serviço, nunca dado de usuário. */
+  flag?: string
+  habilitada?: boolean
+  /* Gasto anômalo por usuário (`server/lib/orcamentoDeIa.ts`): SÓ o pseudônimo `u_…` (HMAC com sal
+     do servidor, o mesmo do Langfuse) — nunca o id do Supabase — e a mediana do dia para comparação. */
+  usuario?: string
+  medianaUsd?: number
 }
 
 const ALLOWED = new Set([
@@ -68,6 +76,10 @@ const ALLOWED = new Set([
   'semFala',
   'repeticao',
   'alucinacao',
+  'flag',
+  'habilitada',
+  'usuario',
+  'medianaUsd',
 ])
 
 /**
@@ -102,6 +114,8 @@ const sinks: SinkDeErro[] = []
  */
 export const AVISOS_QUE_ALERTAM: ReadonlySet<string> = new Set([
   'ia_orcamento_alerta_80',
+  'ia_orcamento_diario_alerta_80',
+  'ia_gasto_anomalo_usuario',
   'backup_heartbeat_falhou',
   'ia_provedor_limite',
 ])

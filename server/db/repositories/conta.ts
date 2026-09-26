@@ -8,7 +8,7 @@
  * `profiles` entra apenas pelas linhas do usuário — as builtin têm `user_id` NULL e são globais
  * (mesma exceção documentada em `tenancy.ts`); um filtro por `user_id` já as preserva.
  */
-import { eq, getTableColumns, inArray, is } from 'drizzle-orm'
+import { eq, getTableColumns, inArray, is, sql } from 'drizzle-orm'
 import { SQLiteTable } from 'drizzle-orm/sqlite-core'
 
 import type { UserId } from '../../lib/authContext'
@@ -19,6 +19,7 @@ import {
   ankiImports,
   ankiNotes,
   billingEvents,
+  convidados,
   creditPurchases,
   creditSpends,
   exerciseResults,
@@ -93,6 +94,9 @@ const TABELAS_DO_TITULAR: ReadonlyArray<readonly [string, any]> = [
      específico registrado. Sai com a conta do menor, como todo dado dele. */
   ['vinculosDeResponsavel', vinculosDeResponsavel],
   ['idadesDeclaradas', idadesDeclaradas],
+  /* Fase 7: o registro do convidado com nuvem (id anônimo + IP pseudonimizado do dia). Sai com a
+     conta como o resto — a conversão mantém o id, então a linha passa a ser da conta convertida. */
+  ['convidados', convidados],
 ]
 
 /** Os nomes, para o teste de invariante e para quem precise listar sem tocar nas tabelas. */
@@ -275,7 +279,7 @@ export const contaRepo = {
 
     for (const [nome, tabela] of TABELAS_DO_TITULAR) {
       const chaves = chavesDoTitular(nome, userId)
-      const linhas = await db.select({ id: tabela.id }).from(tabela).where(inArray(tabela.userId, chaves))
+      const linhas = await db.select({ dono: tabela.userId }).from(tabela).where(inArray(tabela.userId, chaves))
       linhasPorTabela[nome] = linhas.length
       if (linhas.length) instrucoes.push(db.delete(tabela).where(inArray(tabela.userId, chaves)))
     }
@@ -285,6 +289,11 @@ export const contaRepo = {
       : []
     linhasPorTabela.secrets = segredos.length
     if (segredos.length) instrucoes.push(db.delete(secrets).where(inArray(secrets.ref, refs)))
+
+    /* AS VERSÕES DOS DADOS (migração 0032) — contabilidade interna, fora do schema e do relatório,
+       mas com o id do titular. Vem DEPOIS das tabelas acima porque os gatilhos delas recriam a
+       linha a cada DELETE; apagada aqui, no mesmo batch, não sobra nada com o id da pessoa. */
+    instrucoes.push(db.run(sql`DELETE FROM versoes_de_dados WHERE user_id = ${userId}`))
 
     const conta = await db.select({ id: users.id }).from(users).where(eq(users.id, userId))
     linhasPorTabela.users = conta.length

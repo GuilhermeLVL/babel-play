@@ -7,7 +7,9 @@ import fs from 'fs'
 import os from 'os'
 import { defineConfig, loadEnv, type Plugin } from 'vite'
 
+import { precomprimir } from './scripts/vite/precomprimir'
 import { aplicarUrlPublica } from './scripts/vite/urlPublica'
+import { montarVersao } from './server/lib/versao'
 
 /**
  * Serve os assets do onnxruntime-web (usado pelo @ricky0123/vad-web) + modelo Silero + worklet
@@ -61,16 +63,43 @@ function urlPublica(url: string | undefined): Plugin {
   }
 }
 
+/**
+ * A VERSÃO DO APP no bundle (P0-7b). `define` troca `__APP_VERSION__` pela string no build — o
+ * cliente compara com o cabeçalho `x-babel-versao` do servidor e mostra na tela Sobre. E grava
+ * `dist/versao.json`: é ele que o servidor de produção lê, para os dois lados dizerem a MESMA
+ * versão mesmo quando o ambiente do runtime é outro (ver `server/lib/versao.ts`).
+ */
+function versaoNoBuild(versao: string): Plugin {
+  return {
+    name: 'versao-do-app',
+    generateBundle() {
+      this.emitFile({ type: 'asset', fileName: 'versao.json', source: JSON.stringify({ versao }) })
+    },
+  }
+}
+
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), 'VITE_')
+  const pacote = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8')) as { version: string }
+  const versao = montarVersao(pacote.version, process.env)
   return {
+    define: { __APP_VERSION__: JSON.stringify(versao) },
     // Cache de pré-bundle (optimizeDeps/esbuild) FORA do OneDrive: sobre a pasta sincronizada
     // o filtro do OneDrive estrangula/trava o churn de arquivos do otimizador no boot do dev.
     // Em disco local (tmp) o optimize completa em segundos. (Cross-platform via os.tmpdir().)
     // `VITE_CACHE_DIR` separa o cache quando várias worktrees sobem servidor ao mesmo tempo —
     // com uma pasta só, um servidor invalida o pré-bundle do outro.
     cacheDir: process.env.VITE_CACHE_DIR || path.join(os.tmpdir(), 'babel-play-web-vite'),
-    plugins: [react(), tailwindcss(), serveVadOnnxAssets(), urlPublica(env.VITE_PUBLIC_URL)],
+    /* `precomprimir` por último: grava `.br`/`.gz` de cada arquivo do `dist` e tira dele o que é só de
+       desenvolvimento (protótipo de design, lucide.min.js) — ver scripts/vite/precomprimir.ts. */
+    plugins: [
+      react(),
+      tailwindcss(),
+      serveVadOnnxAssets(),
+      urlPublica(env.VITE_PUBLIC_URL),
+      versaoNoBuild(versao),
+      precomprimir(),
+    ],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),

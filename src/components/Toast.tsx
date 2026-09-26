@@ -18,6 +18,7 @@
  * `askConfirm()` devolve `Promise<boolean>` — é o substituto honesto do `confirm()` nativo, que os
  * toasts não podem substituir (um toast não espera resposta; uma exclusão precisa esperar).
  */
+import type { LucideIcon } from 'lucide-react';
 import { X } from 'lucide-react';
 import { useCallback, useEffect, useId, useState } from 'react';
 
@@ -38,6 +39,8 @@ export interface ToastItem {
   /** Detalhe técnico (o `err.message` real). Nunca inventado — se não houver, não aparece. */
   detail?: string;
   action?: ToastAction;
+  /** Ícone à esquerda da mensagem (lucide). Opcional — a maioria dos avisos é só texto. */
+  icone?: LucideIcon;
   /** ms até sumir. `0` = fica até o usuário fechar (é o padrão para erro). */
   duration: number;
 }
@@ -61,6 +64,7 @@ function dismissToast(id: number) {
 interface ToastOptions {
   detail?: unknown;
   action?: ToastAction;
+  icone?: LucideIcon;
   duration?: number;
 }
 
@@ -80,6 +84,7 @@ function push(kind: ToastKind, message: string, opts: ToastOptions = {}): number
     message,
     detail: detailOf(opts.detail),
     action: opts.action,
+    icone: opts.icone,
     // Erro fica até o usuário dispensar: se some sozinho, volta a ser invisível — que é o bug que
     // este módulo existe para corrigir.
     duration: opts.duration ?? (kind === 'error' ? 0 : 2600),
@@ -157,6 +162,7 @@ function AvisoAtual({ item }: { item: ToastItem | undefined }) {
     <div className={`toast ${item ? 'on' : ''}`} role={item?.kind === 'error' ? 'alert' : 'status'} aria-live="polite">
       {item && (
         <>
+          {item.icone && <item.icone size={14} aria-hidden style={{ flex: 'none' }} />}
           <span>
             {item.message}
             {item.detail && (

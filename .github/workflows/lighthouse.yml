@@ -1,0 +1,48 @@
+# LIGHTHOUSE E CORE WEB VITALS (Fase 4 da prontidão) — MANUAL, porque é pesado (4 rotas × 2 presets
+# × N execuções, ~10 min) e o número de um runner compartilhado é ruidoso demais para ser portão.
+# O portão barato do frontend é o orçamento do bundle, no job `carga` do ci.yml.
+#
+# Sobe o servidor de PRODUÇÃO (dist-server/server.cjs, NODE_ENV=production) e mede /, /capturar,
+# /jogar e /planos: Lighthouse 13 (mobile e desktop, mediana por scripts/perf/resumir-lighthouse.mjs)
+# e LCP/CLS/INP aproximado no Playwright. Os JSON vão como artefato.
+name: lighthouse
+
+on:
+  workflow_dispatch:
+    inputs:
+      execucoes:
+        description: 'Execuções por rota e preset (mediana)'
+        required: false
+        default: '3'
+
+permissions:
+  contents: read
+
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Navegador do Playwright
+        run: npx playwright install --with-deps chromium
+      - name: Lighthouse + Core Web Vitals
+        env:
+          EXECUCOES: ${{ github.event.inputs.execucoes }}
+        run: node scripts/perf/frontend.mjs --execucoes="${EXECUCOES:-3}" --saida=lighthouse-resultado
+      - name: Mediana por rota e preset
+        if: always()
+        run: node scripts/perf/resumir-lighthouse.mjs lighthouse-resultado --md >> "$GITHUB_STEP_SUMMARY"
+      - name: Artefato
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: lighthouse
+          path: lighthouse-resultado/
+          if-no-files-found: ignore

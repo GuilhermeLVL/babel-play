@@ -28,8 +28,6 @@ const SEM_CARACTERIZACAO = {
     'dispositivo da máquina (WASAPI); só existe no self-host e o 403 do modo público está em auth-e-conta',
   'POST /api/billing/comprar':
     'Asaas em sandbox é dependência do dono; `tests/integration/billing-webhook.test.ts` cobre o webhook e a idempotência',
-  'POST /api/tutor/chat':
-    'cascata com provedor falso em `tests/integration/tutor-cascata.test.ts` (Groq → OpenRouter, system do cliente descartado, Ollama só no self-host) e preparo do pedido em `funcoes-de-ia.test.ts`',
   'GET /api/admin/ia':
     'leitura do orçamento de IA do mês; o estado que ela devolve (`estadoDoOrcamento`) está coberto em `tests/integration/orcamento-de-ia.test.ts`, e o `requireRole` é o mesmo das outras rotas admin de leitura',
   'GET /api/billing/creditos': 'idem',

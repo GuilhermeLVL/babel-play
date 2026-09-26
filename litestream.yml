@@ -12,7 +12,7 @@
 #
 # O caminho do banco é o da imagem (DATABASE_URL=file:/data/babel.db). Mudou lá, muda aqui.
 #
-# O que isto garante: perda máxima de ~1 s de escrita se a máquina ou o volume sumirem, e o
+# O que isto garante: perda máxima de ~10 s de escrita se a máquina ou o volume sumirem, e o
 # `litestream restore` recria o banco num volume novo (o entrypoint faz isso sozinho no boot).
 # O que NÃO garante: voltar no tempo depois de um erro lógico (um DELETE sem WHERE chega à réplica
 # em um segundo). Para isso existe o snapshot diário independente (server/operacao/snapshot.ts).
@@ -25,6 +25,10 @@ dbs:
       endpoint: ${LITESTREAM_ENDPOINT}
       region: auto
       force-path-style: true
+      # 10 s em vez do padrão de 1 s (Fase 3 da auditoria de prontidão, fase3-custo.md): cada envio é
+      # um PUT de classe A no R2, e com 1 s eram ~2,6 milhões de PUT/mês (~US$ 5/mês só nisso com 100
+      # cadastrados). A perda máxima numa queda sobe para ~10 s de escrita — aceito para este app.
+      sync-interval: 10s
 
 # Snapshot completo por dia, guardado por 7 dias: dá restauração a qualquer ponto da última
 # semana. Mais que isso é trabalho do snapshot diário da aplicação (30 dias, regra de ciclo de vida

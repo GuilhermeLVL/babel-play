@@ -79,7 +79,7 @@ Os erros de aplicação (Sentry) não são alerta de página: são revisados tod
 
 Há duas fontes, as duas no R2:
 
-**A. Litestream (réplica contínua, perda de ~1 s).** Para perda da máquina ou do volume.
+**A. Litestream (réplica contínua, perda de ~10 s).** Para perda da máquina ou do volume.
 O caminho automático: criar um volume novo e subir a máquina — o entrypoint restaura sozinho quando
 `/data/babel.db` não existe. À mão, para CONFERIR sem tocar no banco vivo:
 
@@ -108,32 +108,108 @@ node dist-server/operacao.cjs restaurar-snapshot --dia=2026-09-23 --destino=/dat
 4. conferir `/api/ready`, religar as chaves, e anotar no pós-mortem o intervalo de dados perdido.
 
 O CI restaura o Litestream a cada push (job `restauracao-litestream`) e a suíte restaura o snapshot
-(`tests/integration/snapshot-e-restauracao.test.ts`). **Uma vez por mês, faça o caminho A à mão** e
-registre a data aqui: _(ainda não feito em produção)_.
+(`tests/integration/snapshot-e-restauracao.test.ts`) — nenhum dos dois toca o R2 de produção. Para
+isso há dois exercícios, **um por mês**, alternados; registre cada um na tabela do fim desta seção.
+
+**C. Exercício de restauração no Fly (o dado não sai da produção).** Uma máquina TEMPORÁRIA, com um
+volume NOVO, no mesmo app — a máquina de produção e o volume `babel_dados` não são tocados:
+
+```bash
+# 1. volume novo e máquina temporária com a MESMA imagem, parada num `sleep` (sem subir o servidor
+#    e sem o entrypoint do Litestream, que restauraria sozinho e replicaria por cima)
+IMG=$(fly machines list --app babel-play --json | jq -r '.[0].config.image')
+fly volumes create restauro_drill --app babel-play --region gru --size 3 --yes
+fly machine run "$IMG" infinity --entrypoint sleep --app babel-play --region gru \
+  --volume restauro_drill:/restauro --name restauro-drill --vm-memory 1024   # sem --port: fora do tráfego
+# 2. dentro dela: restaurar as duas fontes no volume NOVO e conferir
+fly ssh console --app babel-play --machine <id da restauro-drill>
+node dist-server/operacao.cjs restaurar-snapshot --dia=$(date -u +%F) --destino=/restauro/snapshot.db
+litestream restore -config /etc/litestream.yml -o /restauro/litestream.db -integrity-check full /data/babel.db
+node dist-server/operacao.cjs verificar --arquivo=/restauro/snapshot.db
+node dist-server/operacao.cjs verificar --arquivo=/restauro/litestream.db
+exit
+# 3. as contagens do banco VIVO, para comparar (o `verificar` só lê; roda na máquina de produção)
+fly ssh console --app babel-play -C "node dist-server/operacao.cjs verificar --arquivo=/data/babel.db"
+# 4. desmontar TUDO (a máquina e o volume do exercício guardam uma cópia dos dados pessoais)
+fly machine destroy <id da restauro-drill> --force
+fly volumes destroy <id do volume restauro_drill> --yes
+```
+
+A máquina temporária herda os segredos do app (é assim que o `restaurar-snapshot` e o `litestream`
+leem as credenciais do R2). O que conferir: `integrity_check: ok` nas duas; contagens do Litestream
+iguais às do banco vivo (diferença só do que foi escrito nos segundos entre um comando e outro);
+contagens do snapshot menores ou iguais (ele é das 6h UTC). Snapshot do dia ausente = o backup diário
+parou (runbook §0.1, alerta 2).
+
+**D. Exercício pelo GitHub Actions** — _Actions → **Exercício de restauração** → Run workflow_
+(`.github/workflows/restauracao-drill.yml`). Baixa o snapshot mais recente e a réplica do Litestream
+do R2 para o runner, restaura com o mesmo código, roda `integrity_check` + contagens e publica no
+resumo; reprova se o snapshot mais recente tiver mais de 26 h. Usa um token R2 **só de leitura** no
+Environment `restauracao` (os nomes estão no cabeçalho do workflow). O banco fica só no disco efêmero
+do runner e é apagado no fim — mas sai da infraestrutura de produção; se isso não servir à política de
+dados, fique com o C.
+
+| data                            | exercício | quem | resultado |
+| ------------------------------- | --------- | ---- | --------- |
+| _(ainda não feito em produção)_ |           |      |           |
 
 ### 0.3 Rollback de deploy
 
-GitHub → Actions → **Deploy (Fly.io)** → Run workflow → `imagem = registry.fly.io/babel-play:<sha anterior>`
-(a lista sai de `fly releases --image --app babel-play`). É a MESMA imagem que já esteve no ar —
-nada é reconstruído. Pelo terminal: `fly deploy --app babel-play --image registry.fly.io/babel-play:<sha>`.
+Há três coisas que podem voltar, e só a primeira é rotineira.
 
-**O banco não volta junto.** As migrações rodam no boot e são só para a frente; uma versão velha
-sobre um banco migrado continua funcionando enquanto a migração nova só ACRESCENTOU coluna/tabela
-(é a regra da casa). Se uma migração destrutiva estiver no meio, o rollback é restaurar o banco
-(§0.2) também — por isso migração destrutiva vai sozinha num deploy próprio.
+**1. A imagem (minutos, sem perda de dado).** O `deploy.yml` já faz sozinho quando a fumaça pós-deploy
+falha (`/api/ready` ≠ 200 ou `/api/health.versao` ≠ sha implantado): reimplanta a imagem que estava no
+ar e deixa o job vermelho. À mão, para um defeito que a fumaça não pega:
+
+- GitHub → Actions → **Deploy (Fly.io)** → Run workflow → destino `producao`,
+  `imagem = registry.fly.io/babel-play:<sha anterior>` (a lista sai de
+  `fly releases --image --app babel-play`). É a MESMA imagem que já esteve no ar — nada é reconstruído.
+- Pelo terminal, se o GitHub estiver fora: `fly deploy --app babel-play --image registry.fly.io/babel-play:<sha> --strategy immediate`.
+
+**O banco não volta junto**, e é por isso que o CI cobra expand/contract (`docs/versionamento.md` §3):
+uma migration nova só ACRESCENTA, então a imagem anterior roda sobre o banco migrado. Uma migration
+de CONTRATO (`-- CONTRATO:`) vem sempre sozinha, num deploy próprio, depois de o código já ter parado
+de usar o que ela remove — voltar a imagem de antes dela continua funcionando. Se ainda assim for
+preciso desfazer a migration, o comentário `REVERSAO:` dela diz como.
+
+**2. O banco a um instante (Litestream, perda de segundos).** Para "o deploy das 14h05 estragou
+dado": restaure o momento anterior ao deploy, confira, e troque o banco vivo pelo procedimento de
+§0.2 ("Trocar o banco vivo"). A hora exata do deploy está no resumo da execução do `deploy.yml`.
+
+```bash
+fly ssh console --app babel-play
+litestream restore -config /etc/litestream.yml -o /data/restauro.db -timestamp 2026-09-24T14:04:00Z /data/babel.db
+node dist-server/operacao.cjs verificar --arquivo=/data/restauro.db
+```
+
+Tudo que foi escrito DEPOIS do instante se perde: anote o intervalo no pós-mortem.
+
+**3. O volume inteiro (snapshot pré-deploy).** Todo deploy tira `fly volumes snapshots create` do
+volume antes de trocar a imagem (passo "Snapshot do volume antes do deploy" no resumo). É o caminho
+quando o Litestream também está comprometido (réplica apagada, bucket inacessível):
+
+```bash
+fly volumes snapshots list <id do volume babel_dados>          # o do horário do deploy
+fly volumes create babel_dados --snapshot-id <id> --app babel-play --region gru --size 3 --yes
+# com CHECKOUT_ENABLED=0 SIGNUP_ENABLED=0: destruir a máquina atual e subir uma nova montando o volume
+# restaurado (fly deploy com a imagem anterior); conferir /api/ready; religar as chaves
+```
+
+O volume antigo continua existindo até ser destruído à mão — não destrua antes de o restaurado estar
+conferido. A ordem de preferência é 1 → 2 → 3: cada passo perde mais tempo e, no 3, mais dado.
 
 ### 0.4 Quando um fornecedor cai
 
-| cai                      | o que o usuário vê                                                                   | o que fazer                                                                                                                                |
-| ------------------------ | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Groq**                 | tradução/tutor ficam mais lentos por 30 s e passam para a reserva                    | nada — o disjuntor (§5) manda para a OpenRouter. Se a reserva também cair: `AI_ENABLED=0` e aviso na página de status                      |
-| **OpenRouter** (reserva) | nada, enquanto a Groq estiver de pé                                                  | conferir o crédito pré-pago (sem recarga automática, ele acaba)                                                                            |
-| **Asaas**                | checkout e cancelamento falham com mensagem; quem assina continua com acesso         | `CHECKOUT_ENABLED=0` se passar de 30 min; o Asaas reentrega os webhooks que não receberam 200 (idempotente)                                |
-| **Supabase**             | ninguém novo entra; quem está logado segue até o token vencer (1 h)                  | nada a fazer do nosso lado; página de status. O servidor valida o token pelo JWKS em cache                                                 |
-| **Fly.io** (região GRU)  | fora do ar                                                                           | status.flyio.net; se passar de 2 h, subir em outra região restaurando do Litestream (volume novo + `fly deploy`)                           |
-| **Cloudflare**           | fora do ar                                                                           | status do Cloudflare; em último caso, DNS direto para o Fly (tira o WAF: religue assim que voltar) e remova `ORIGEM_SEGREDO` enquanto isso |
-| **R2**                   | áudio novo não grava (`/api/ready` 503 → a máquina sai do roteamento); backup atrasa | página de status; o banco segue local no volume e o Litestream reenvia quando o R2 voltar                                                  |
-| **Resend** (e-mail)      | e-mail de confirmação, recuperação de senha e o convite ao responsável não chegam    | status do Resend; o Supabase reenvia pelo botão "reenviar"; se passar de horas, troque o SMTP do Supabase para outro provedor (SES)        |
+| cai                      | o que o usuário vê                                                                | o que fazer                                                                                                                                                                                                                                                 |
+| ------------------------ | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Groq**                 | tradução/tutor ficam mais lentos por 30 s e passam para a reserva                 | nada — o disjuntor (§5) manda para a OpenRouter. Se a reserva também cair: `AI_ENABLED=0` e aviso na página de status                                                                                                                                       |
+| **OpenRouter** (reserva) | nada, enquanto a Groq estiver de pé                                               | conferir o crédito pré-pago (sem recarga automática, ele acaba)                                                                                                                                                                                             |
+| **Asaas**                | checkout e cancelamento falham com mensagem; quem assina continua com acesso      | `CHECKOUT_ENABLED=0` se passar de 30 min; o Asaas reentrega os webhooks que não receberam 200 (idempotente)                                                                                                                                                 |
+| **Supabase**             | ninguém novo entra; quem está logado segue até o token vencer (1 h)               | nada a fazer do nosso lado; página de status. O servidor valida o token pelo JWKS em cache                                                                                                                                                                  |
+| **Fly.io** (região GRU)  | fora do ar                                                                        | status.flyio.net; se passar de 2 h, subir em outra região restaurando do Litestream (volume novo + `fly deploy`)                                                                                                                                            |
+| **Cloudflare**           | fora do ar                                                                        | status do Cloudflare; em último caso, DNS direto para o Fly (tira o WAF: religue assim que voltar) e remova `ORIGEM_SEGREDO` enquanto isso                                                                                                                  |
+| **R2**                   | áudio novo não grava (upload 503); o resto do app segue no ar; backup atrasa      | `/api/ready` segue 200 com `status: degradado` e `armazenamento: indisponivel` (ADR 0009); alerta pela métrica `ready_dependencia_degradada_total` / log warn `ready_armazenamento_indisponivel`; página de status; o Litestream reenvia quando o R2 voltar |
+| **Resend** (e-mail)      | e-mail de confirmação, recuperação de senha e o convite ao responsável não chegam | status do Resend; o Supabase reenvia pelo botão "reenviar"; se passar de horas, troque o SMTP do Supabase para outro provedor (SES)                                                                                                                         |
 
 ### 0.5 Custo fora do previsto — o orçamento de IA
 
@@ -160,13 +236,20 @@ estimativa erre, o provedor corta.
 
 ## 1. As duas perguntas de saúde, e por que são duas
 
-| rota              | responde                                                                                            | quem lê decide           |
-| ----------------- | --------------------------------------------------------------------------------------------------- | ------------------------ |
-| `GET /api/health` | o processo está vivo e o boot terminou                                                              | **reiniciar**            |
-| `GET /api/ready`  | ele consegue **atender** — migrações aplicadas, banco respondendo, armazenamento externo alcançável | **tirar do balanceador** |
+| rota              | responde                                                                         | quem lê decide           |
+| ----------------- | -------------------------------------------------------------------------------- | ------------------------ |
+| `GET /api/health` | o processo está vivo e o boot terminou                                           | **reiniciar**            |
+| `GET /api/ready`  | ele consegue **atender** — migrações aplicadas, banco respondendo, boot completo | **tirar do balanceador** |
 
 As duas são **públicas**: uma sonda de orquestrador não tem token. `ready` responde `200` quando
 pronto e `503` quando não.
+
+**O armazenamento externo (R2) não reprova o `ready`** (ADR 0009). Com uma máquina só, reprovar
+tirava o serviço inteiro do roteamento do Fly porque o áudio não gravava. Agora, com o R2 fora, o
+`ready` segue `200` com `status: "degradado"` e `armazenamento: "indisponivel"`, o upload de áudio
+responde `503` sozinho, e o aviso vem pelo log `warn` `ready_armazenamento_indisponivel` e pela
+métrica `ready_dependencia_degradada_total{dependencia="armazenamento"}` — é nela que se põe o
+alerta, não no monitor HTTP.
 
 O `HEALTHCHECK` do `Dockerfile` e do `docker-compose.yml` aponta para `/api/ready`, e o motivo é
 esse: o healthcheck do Docker não reinicia nada — ele marca `unhealthy`, e quem lê esse estado
@@ -231,12 +314,22 @@ jogo, atrás do auth).
 curl -s -H "Authorization: Bearer $METRICS_TOKEN" https://<host>/metrics | head -40
 ```
 
-**Em cluster, o `/metrics` responde os números DO PROCESSO que atendeu o scrape**, e diz qual foi
+**No Fly (desde a Fase 5 de prontidão, 25/09/2026)** o `/metrics` NÃO está na porta pública: o
+`fly.toml` liga `METRICS_ENABLED=1` + `METRICS_PORTA_INTERNA=9091`, e o bloco `[metrics]` manda o
+Prometheus gerenciado do Fly raspar essa porta a cada 15 s. O raspador do Fly não manda token (a
+doc só tem `port` e `path`), e a 9091 não é publicada — só se alcança por dentro da VM. Para olhar
+na mão: `fly ssh console --app babel-play -C "wget -qO- http://127.0.0.1:9091/metrics" | head -40`.
+Os dados ficam ~15 dias em `https://api.fly.io/prometheus/<org>/` e o painel é o
+[fly-metrics.net](https://fly-metrics.net) (Grafana gerenciado): importe `ops/dashboards/babel-play.json`.
+As regras de alerta estão em `ops/alertas/regras.yml`, e o que cada uma pede está no §13.
+
+**Em cluster, o `/metrics` da porta pública responde os números DO PROCESSO que atendeu o scrape**, e diz qual foi
 (header `x-metrics-processo` e métrica `processo_info`). Não há agregação, e isso é decisão
 registrada: o agregador do `prom-client` só enxerga os workers, e aqui o primário também atende —
 com `CLUSTER_WORKERS=4` a resposta "agregada" omitiria ~1/4 do tráfego em silêncio. Se os seus
-gráficos oscilarem entre patamares, é o scrape alternando de processo. O conserto é dar ao
-`/metrics` um listener próprio no primário.
+gráficos oscilarem entre patamares, é o scrape alternando de processo. A porta interna
+(`METRICS_PORTA_INTERNA`) é esse listener próprio: sobe só no primário, então o scrape é sempre do
+mesmo processo — e mostra só ele (o aviso no corpo diz isso).
 
 A label de rota é o **padrão** (`/api/sessions/:id`), nunca o caminho pedido, e o que não casou rota
 cai num balde `desconhecida`. É o que impede um scanner de porta de criar mil séries temporais.
@@ -382,7 +475,7 @@ req/s no banco já engordado. Comparar corridas sobre bancos de tamanhos diferen
 
 | sintoma                                                         | causa provável                                                                                                                | o que fazer                                                                           |
 | --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `/api/ready` em 503 e `/api/health` em 200                      | banco inalcançável, migração pendente, ou S3 recusando                                                                        | ler o corpo do `ready`, que nomeia o item                                             |
+| `/api/ready` em 503 e `/api/health` em 200                      | banco inalcançável, migração pendente ou boot incompleto (S3 recusando dá `200` + `degradado`, não 503)                       | ler o corpo do `ready`, que nomeia o item                                             |
 | `429` em massa de uma origem só                                 | balde de autenticação estourado (§7)                                                                                          | conferir `TRUST_PROXY`; a janela é de 15 min                                          |
 | gráficos de `/metrics` oscilando entre patamares                | scrape alternando de processo em cluster (§3)                                                                                 | ler `x-metrics-processo`                                                              |
 | tradução lenta e depois instantânea falhando                    | disjuntor abriu (§5)                                                                                                          | ver o log do provedor; a reserva assume                                               |
@@ -396,8 +489,9 @@ req/s no banco já engordado. Comparar corridas sobre bancos de tamanhos diferen
 - **Tracing distribuído.** Não há OpenTelemetry. A correlação existente é o `request_id` no log e o
   histograma por rota no `/metrics`; ligar spans é decisão aberta, e o arranque já custa ~400 ms a
   mais desde a Fase 5.
-- **Alertas sobre métricas.** Os dois alertas de página são os do §0.1 (UptimeRobot); o `/metrics`
-  existe, mas ninguém o raspa em produção ainda.
+- **Roteamento das notificações.** As regras de alerta estão versionadas (§13), mas QUEM recebe
+  (e-mail, Telegram, PagerDuty) é configurado no Grafana/Alertmanager pelo dono — pendência do
+  relatório da Fase 5 de prontidão.
 - **Agregação de métricas em cluster** (§3).
 
 ---
@@ -411,3 +505,167 @@ req/s no banco já engordado. Comparar corridas sobre bancos de tamanhos diferen
 | corpo JSON de 100 KB antes do login, 5 MB só em rotas listadas depois dele | `server/http/limitesDeCorpo.ts`  | `413 corpo_grande_demais`                                                             |
 | 2FA (AAL2) nas rotas sensíveis para quem o ativou                          | `server/lib/aal.ts`              | `403 aal2_requerido`; `503 aal_indisponivel` se a Admin API do Supabase não responder |
 | CSP com `connect-src` fechado                                              | `server/http/csp.ts`             | recurso bloqueado no console do navegador — um host novo precisa entrar na lista      |
+
+---
+
+## 13. Alertas sobre métricas — um por regra de `ops/alertas/regras.yml`
+
+Entraram na Fase 5 de prontidão (25/09/2026). Cada regra do arquivo tem `runbook_url` apontando para
+uma âncora daqui (o teste `tests/integration/alertas-e-painel.test.ts` cobra que ela exista).
+Severidade: **página** = agir em minutos; **aviso** = no mesmo dia útil; **planejamento** = na semana
+(gatilhos de `docs/escala.md`).
+
+**Como silenciar, em geral.** No Grafana: _Alerting → Silences → New silence_, com o matcher
+`alertname=<nome>` e uma duração — **sempre** com comentário dizendo por quê e até quando. No
+Alertmanager: `amtool silence add alertname=<nome> --duration=2h --comment="…"`. Silêncio sem prazo é
+alerta apagado; se a regra está errada, corrija o `regras.yml` (com teste) em vez de silenciar.
+
+<a id="alerta-erros-5xx"></a>
+
+### 13.1 `BabelErros5xxAltos` — mais de 2 % de 5xx em 5 min (página)
+
+- **Significa:** o servidor está falhando em respostas que deveria dar (erro nosso, banco, provedor
+  sem tratamento). Só dispara com tráfego mínimo (> 3 req/min) para 1 erro em 2 pedidos não acordar ninguém.
+- **Primeira ação:** painel "Erros por rota" → qual rota; Sentry → a exceção; `fly logs` filtrando
+  `"level":"error"`. Se começou num deploy, **rollback** (§0.3) antes de investigar.
+- **Silenciar:** só durante um rollback em andamento (30 min).
+
+<a id="alerta-latencia-p95"></a>
+
+### 13.2 `BabelLatenciaP95Alta` — p95 fora da IA acima de 1 s por 10 min (aviso)
+
+- **Significa:** o processo está saturado (CPU do `shared-cpu` sem saldo, rotas caras — `vocab`,
+  `profile`, `gastar` — em rajada) ou o banco está lento. A IA fica de fora: o p95 dela é de segundos.
+- **Primeira ação:** painel "p95 por rota" (qual rota) e "CPU" (estrangulada?). Se é CPU, é o passo 1
+  de `docs/escala.md` (`fly scale vm performance-1x`). Se é uma rota, `BabelEventLoopTravado` costuma
+  disparar junto.
+- **Silenciar:** durante carga planejada (teste de carga), pela duração do teste.
+
+<a id="alerta-event-loop"></a>
+
+### 13.3 `BabelEventLoopTravado` — p99 do atraso do event loop acima de 500 ms (página)
+
+- **Significa:** algo **síncrono** está segurando o único processo — e ninguém é atendido enquanto
+  isso. A Fase 2 mediu o driver libsql prendendo o loop pela consulta inteira e o snapshot antigo
+  travando 20–34 s.
+- **Primeira ação:** coincide com o horário do backup (`BACKUP_HORA_UTC`)? Veja o `backup_diario_*` no
+  log. Senão, painel "p95 por rota" para achar a rota cara e o "Banco: p95 da consulta". Se o
+  `/api/ready` começar a falhar, o Fly tira a máquina do roteamento — `fly machine restart` alivia, não cura.
+- **Silenciar:** não. Se for falso positivo, ajuste o limiar no `regras.yml`.
+
+<a id="alerta-ready-degradado"></a>
+
+### 13.4 `BabelReadyDegradado` — `/api/ready` achou o armazenamento fora (aviso)
+
+- **Significa:** o R2/S3 não respondeu à sonda (ADR 0009). O site segue no ar; áudio novo não grava,
+  backup e Litestream atrasam.
+- **Primeira ação:** status da Cloudflare (R2); linha **R2** da tabela do §0.4.
+- **Silenciar:** pela duração do incidente declarado pela Cloudflare.
+
+<a id="alerta-metricas-ausentes"></a>
+
+### 13.5 `BabelMetricasAusentes` — nenhum scrape há 10 min (aviso)
+
+- **Significa:** sem métricas, nenhum outro alerta daqui dispara. A máquina está fora, o
+  `METRICS_ENABLED`/`METRICS_PORTA_INTERNA` saiu do `[env]` ou o `[metrics]` do `fly.toml` mudou.
+- **Primeira ação:** `fly status`; `fly ssh console -C "wget -qO- http://127.0.0.1:9091/metrics"`; no
+  boot, a linha `[metrics] /metrics na porta interna 9091`.
+- **Silenciar:** durante manutenção planejada com a máquina parada.
+
+<a id="alerta-provedor-429"></a>
+
+### 13.6 `BabelProvedorIaLimitando` — mais de 5 respostas 429 do provedor em 10 min (aviso)
+
+- **Significa:** o tier contratado do Groq (ou da reserva) não aguenta o tráfego. A admissão já fecha
+  o balde pelo `Retry-After` e o cliente cai no motor local — o usuário não vê erro, vê legenda mais lenta.
+- **Primeira ação:** painel "429 do provedor" (qual modelo); se é recorrente no pico, **suba o tier**
+  do provedor (é a pendência do dono no ADR 0008) e ajuste os limites da admissão (`IA_ADMISSAO_*`).
+- **Silenciar:** até o upgrade do tier ser feito, no máximo 24 h por vez.
+
+<a id="alerta-admissao"></a>
+
+### 13.7 `BabelAdmissaoRecusando` — mais de 10 recusas de admissão por minuto (aviso)
+
+- **Significa:** o próprio servidor está recusando chamadas de IA (429 `nuvem_ocupada`) antes de
+  gastar o limite do provedor (ADR 0007).
+- **Primeira ação:** painel "Admissão: recusas por minuto". `minuto`/`dia` com plano `pro` = o limite
+  do provedor é pequeno demais, suba o tier. Só `essencial`/`convidado` = a reserva do Pro trabalhando
+  (normal no pico). `em_voo` alto = um cliente mandando em paralelo.
+- **Silenciar:** se for só `convidado` num evento previsto, pela duração do evento.
+
+<a id="alerta-disjuntor"></a>
+
+### 13.8 `BabelDisjuntorAberto` — disjuntor de provedor aberto há 2 min (aviso)
+
+- **Significa:** um provedor falhou 5 vezes seguidas e está sendo pulado por janelas de 30 s (§5).
+- **Primeira ação:** status do Groq/OpenRouter; `fly logs` com `mt_indisponivel`/`stt_upstream_erro`.
+  Se a reserva também cair: `AI_ENABLED=0` e aviso na página de status (§0.4).
+- **Silenciar:** pela duração do incidente do provedor.
+
+<a id="alerta-gasto-diario"></a>
+
+### 13.9 `BabelGastoDiarioAlto` / `BabelGastoMensalAlto` / `BabelOrcamentoEsgotado` — orçamento de IA
+
+- **Significa:** gasto estimado do dia (`AI_BUDGET_USD_DAY`) ou do mês (`AI_BUDGET_USD_MONTH`) passou
+  de 80 % (aviso) ou chegou a 100 % (página: a nuvem está **fechada** e todos estão no modelo local).
+  Os mesmos limiares saem como eventos de log `ia_orcamento_diario_alerta_80`/`_esgotado` e
+  `ia_orcamento_alerta_80`/`_esgotado` (Sentry, §0.5).
+- **Primeira ação:** painel "Custo por plano (24 h)" e "Gasto anômalo por usuário" — é crescimento
+  legítimo ou abuso? `GET /api/admin/ia` mostra o dia e o mês. Legítimo: suba o teto
+  (`fly secrets set AI_BUDGET_USD_DAY=…`). Abuso: veja §13.10.
+- **Silenciar:** o de 80 % até a virada do período, depois de decidido; o de 100 % não se silencia —
+  ou sobe o teto, ou aceita a nuvem fechada até a virada.
+
+<a id="alerta-gasto-anomalo"></a>
+
+### 13.10 `BabelGastoAnomaloUsuario` — um usuário gastando fora do padrão hoje (aviso)
+
+- **Significa:** o gasto de IA de um usuário no dia passou de `AI_USUARIO_ALERTA_USD_DIA` (padrão
+  US$ 0,50) ou de `AI_USUARIO_ALERTA_FATOR`× a mediana do dia (padrão 10×, com ≥ 5 usuários).
+  Nada é bloqueado — quem bloqueia é a cota do plano.
+- **Primeira ação:** o warn `ia_gasto_anomalo_usuario` no Sentry/log traz o **pseudônimo** `u_…` (nunca
+  o id). É o mesmo `usuario` dos rastros no Langfuse: filtre lá para ver função, modelo e horário.
+  Laço de cliente (mesma frase repetida)? Conta compartilhada? O id real só se descobre dentro do
+  servidor (`pseudonimoDoUsuario` sobre a lista de ids) — faça isso só se for agir sobre a conta.
+- **Silenciar:** por usuário não dá (a métrica não tem o usuário); se for um cliente legítimo pesado,
+  suba `AI_USUARIO_ALERTA_USD_DIA`.
+
+<a id="alerta-uploads"></a>
+
+### 13.11 `BabelUploadsNoTeto` — semáforo de uploads grandes cheio por 10 min (aviso)
+
+- **Significa:** `UPLOADS_GRANDES_POR_PROCESSO` (padrão 2) uploads grandes em voo o tempo todo, e
+  gente recebendo 429 `upload_ocupado`. O teto existe porque 4 uploads de 120 MB derrubavam a VM de 1 GB.
+- **Primeira ação:** é um usuário só repetindo (motivo `usuario`) ou demanda real (`processo`)? Demanda
+  real: suba a memória (`fly scale memory 2048`) **e depois** o teto do semáforo — nunca o contrário.
+- **Silenciar:** durante uma importação em massa planejada.
+
+<a id="alerta-memoria"></a>
+
+### 13.12 `BabelMemoriaAlta` — RSS acima de 80 % de 1 GB por 10 min (aviso)
+
+- **Significa:** perto do OOM do Fly, que mata a única máquina (queda de ~20 s + boot).
+- **Primeira ação:** coincide com uploads (§13.11) ou com o snapshot? Se é crescimento contínuo, é
+  vazamento: `fly machine restart` e abrir defeito. Se é carga, passo 2 de `docs/escala.md`
+  (`fly scale memory 2048`).
+- **Silenciar:** não; ajuste o limiar se a VM mudar de tamanho.
+
+<a id="alerta-backup"></a>
+
+### 13.13 `BabelBackupFalhou` — o snapshot diário falhou (aviso)
+
+- **Significa:** a foto diária do banco (erro lógico) não foi feita. O Litestream (perda física)
+  segue à parte.
+- **Primeira ação:** `fly logs` com `backup_diario_falhou`; rodar à mão
+  `node dist-server/operacao.cjs snapshot` pelo `fly ssh console` e conferir no R2.
+- **Silenciar:** não; resolva no mesmo dia (são 30 dias de fotos, e um buraco não se recupera).
+
+<a id="alerta-escala"></a>
+
+### 13.14 `BabelEscala*` — gatilhos de escala a 70 % (planejamento)
+
+- **Significa:** CPU estrangulada pelo Fly há 30 min (`BabelEscalaCpuEstrangulada`), escritas no
+  SQLite acima de 35/s sustentadas (`BabelEscalaEscritasSQLite`) ou banco acima de 3,5 GB
+  (`BabelEscalaBancoGrande`). Não é incidente: é o aviso para decidir o próximo passo com calma.
+- **Primeira ação:** `docs/escala.md` — qual passo este sinal dispara, o custo e o comando.
+- **Silenciar:** por uma semana, com a decisão anotada no comentário do silêncio.

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 
-import { and, eq, isNull } from 'drizzle-orm'
+import { and, count, eq, isNull } from 'drizzle-orm'
 
 import type { UserId } from '../../lib/authContext'
 import { db } from '../db'
@@ -40,6 +40,19 @@ async function getActiveSub(userId: UserId): Promise<Subscription | null> {
  */
 export const subscriptionsRepo = {
   getActive: getActiveSub,
+
+  /**
+   * Quantas assinaturas `active` há por plano — a base da receita do mês que dimensiona o pool
+   * diário de IA gratuita (Fase 7, `server/lib/convidado.ts`). Agregado do serviço, sem titular.
+   */
+  async contarAtivasPorPlano(): Promise<Array<{ plan: string; n: number }>> {
+    const rows = await db
+      .select({ plan: subscriptions.plan, n: count() })
+      .from(subscriptions)
+      .where(and(eq(subscriptions.status, 'active'), isNull(subscriptions.deletedAt)))
+      .groupBy(subscriptions.plan)
+    return rows.map((r) => ({ plan: r.plan, n: Number(r.n) }))
+  },
 
   /**
    * Cria ou atualiza a assinatura do usuário. Idempotente por usuário: se já existe, atualiza os

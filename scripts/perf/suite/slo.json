@@ -1,0 +1,43 @@
+{
+  "versao": 1,
+  "documento": "docs/slo.md",
+  "medidoEm": "2026-09-25, Fase 4 da auditoria de prontidão (openspec/audits/2026-09-25-prontidao/fase4-carga.md)",
+  "erroMaxPct": 0.5,
+  "quebra": {
+    "erroPct": 1,
+    "regra": "um nível QUEBRA quando o p95 de alguma classe passa do SLO dela ou o erro passa de erroPct"
+  },
+  "classes": {
+    "leitura": {
+      "p95Ms": 300,
+      "p99Ms": 1000,
+      "etapas": "GET settings, sessions, vocab (If-None-Match), metrics/profile, vocab/para-jogo"
+    },
+    "gravacao": {
+      "p95Ms": 800,
+      "p99Ms": 2000,
+      "etapas": "POST vocab/:id/review, exercises/rodada, metrics/seeds/gastar, sessions"
+    },
+    "upload": {
+      "p95Ms": 2000,
+      "etapas": "POST sessions/:id/audio (~200 KB)"
+    },
+    "ia": {
+      "p95SobreProvedorMs": 100,
+      "etapas": "POST ai/stt e ai/mt: latência medida MENOS o tempo que o provedor segurou; recusa da admissão (429 nuvem_ocupada) conta inteira"
+    }
+  },
+  "ci": {
+    "conexoes": 10,
+    "duracaoS": 10,
+    "rotas": ["health", "abertura", "settings", "sessions"],
+    "classe": "leitura",
+    "comentario": "o job `carga` usa o p95 da classe `leitura` como teto e erro zero; o runner do GitHub é compartilhado, então só pega regressão de ordem de grandeza"
+  },
+  "frontend": {
+    "jsInicialGzipMaxKB": 215,
+    "cssInicialGzipMaxKB": 55,
+    "proibidosNoDist": ["prototipo-*.html", "lucide.min.js"],
+    "comentario": "teto = o medido na Fase 4 + 10% (gzip nível 6, o do servidor): JS 195,2 KB → 215, CSS 49,5 KB → 55; scripts/perf/orcamento-bundle.mjs cobra no job `carga`"
+  }
+}

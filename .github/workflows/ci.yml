@@ -132,10 +132,76 @@ jobs:
       # ficou orfa sem nada acusar (achado A52 de 2026-09-07).
       - name: Rotas sem consumidor
         run: node scripts/testes/rotas-sem-consumidor.mjs
+      # E nenhuma rota /api some sem passar pela depreciação (Fase 6 da prontidão): a aba aberta
+      # com o bundle anterior, e o servidor anterior num rollback, dependem dela. Mesmo censo do
+      # passo de cima (`scripts/testes/_rotas-do-servidor.mjs`); política em docs/versionamento.md.
+      - name: Contrato da API (remoção só após depreciação)
+        run: npm run contrato:api
       - name: Regras arquiteturais (ast-grep)
         run: |
           ./node_modules/.bin/ast-grep test -c sgconfig.yml
           ./node_modules/.bin/ast-grep scan -c sgconfig.yml src server server.ts
+
+  # MIGRATIONS EXPAND/CONTRACT (Fase 6 da prontidão). As migrations rodam no boot, só para a frente,
+  # e o rollback troca a IMAGEM sem voltar o banco: migration nova só ACRESCENTA, salvo marcador
+  # `-- CONTRATO:` numa migration que venha sozinha (sem código de servidor/cliente no mesmo diff).
+  # Job próprio porque precisa do histórico (`fetch-depth: 0`) para o `git diff` contra a base, e
+  # não precisa de `npm ci` (o script só usa módulos do Node). Regras em docs/versionamento.md §3.
+  migracoes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+      # PR: compara com a branch de destino. Push: com o commit anterior do push (vazio/zeros numa
+      # branch nova — aí o script cobra só o marcador e avisa).
+      - name: Portão expand/contract
+        env:
+          BASE_PR: ${{ github.base_ref }}
+          ANTES_DO_PUSH: ${{ github.event.before }}
+        run: |
+          if [ -n "$BASE_PR" ]; then base="origin/$BASE_PR"; else base="$ANTES_DO_PUSH"; fi
+          node scripts/migracoes/conferir.mjs --base="$base"
+
+  # CARGA LEVE E ORÇAMENTO DO BUNDLE (Fases 6 e 4 da prontidão). Todos os limiares vêm de UM
+  # arquivo, `scripts/perf/suite/slo.json` (a fonte de `docs/slo.md`): mudar um teto é mudar o JSON
+  # e o documento, no mesmo commit, com a justificativa.
+  #   1. orçamento do bundle: JS e CSS iniciais em gzip abaixo do teto (o medido + 10%) e nenhum
+  #      arquivo só de desenvolvimento (protótipo de design, lucide.min.js) no `dist`;
+  #   2. autocannon nas rotas baratas (servidor BUILDADO, banco vazio, self-host: mede a rota, não a
+  #      borda), p95 abaixo do SLO de leitura e zero erro/não-2xx;
+  #   3. a suíte de carga com 10 usuários virtuais por 30 s — o fluxo INTEIRO do usuário (navegação,
+  #      revisão FSRS, rodada, loja, sessão, STT/MT contra um provedor FALSO local, upload), com
+  #      AUTH_REQUIRED=1 e JWT ES256 de verdade. Reprova fora do SLO de cada classe ou com erro.
+  # O runner é compartilhado e ruidoso: o alvo é a regressão de ordem de grandeza, não capacidade.
+  # A capacidade (100/1.000 VUs, ponto de quebra) mede-se local: `node scripts/perf/suite/rodar.mjs`.
+  carga:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Orçamento do bundle (slo.json → frontend)
+        run: node scripts/perf/orcamento-bundle.mjs
+      - name: Carga leve (autocannon; p95 e rotas do slo.json, zero erro)
+        run: node scripts/perf/ci-carga.mjs
+      - name: Suíte de carga, 10 usuários virtuais (SLO por classe do slo.json)
+        run: node scripts/perf/suite/rodar.mjs --vus=10 --duracao=30 --rampa=5 --pensar=6 --pesados=2 --medios=50 --saida=suite-carga.json
+      - name: Artefato da suíte de carga
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: suite-carga
+          path: suite-carga.json
+          if-no-files-found: ignore
 
   # E2E NO MODO PÚBLICO (Fase 5 do lançamento). A suíte acima roda sem login; esta sobe o app com
   # AUTH_REQUIRED=1 contra um Supabase Auth FALSO (tests/e2e-publico/_supabase-falso.mjs) — login pelo
@@ -206,6 +272,55 @@ jobs:
         run: |
           docker stop -t 30 app
           test "$(docker inspect -f '{{.State.ExitCode}}' app)" = "0"
+      # VARREDURA DA IMAGEM (Fase 6 da prontidão). O `npm audit` do job de cima vê as dependências do
+      # package.json; a imagem tem mais: o Debian de base, o Node, o binário do Litestream. Trivy em
+      # cima da imagem que acabou de ser construída, reprovando só HIGH/CRITICAL COM correção
+      # disponível (`ignore-unfixed`): CVE sem fix não tem ação possível e só ensinaria a ignorar o
+      # passo. Severidade abaixo de HIGH não reprova — sai no relatório.
+      #
+      # FIXADA NO SHA DA 0.35.0, e não é zelo: em 19/03/2026 as tags 0.0.1–0.34.2 do trivy-action
+      # foram reescritas para um ladrão de segredos de CI (GHSA-69fq-xp46-6x23); a 0.35.0 é a única
+      # limpa. O binário do Trivy também vai fixado (v0.69.4 foi a versão maliciosa; v0.69.3 é a segura
+      # indicada no aviso). Atualize os dois só conferindo o aviso de segurança do projeto.
+      - name: Trivy — vulnerabilidades da imagem (reprova HIGH/CRITICAL com correção)
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
+        with:
+          image-ref: babel-play:ci
+          version: v0.69.3
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+          format: table
+      - name: Trivy — relatório completo (todas as severidades, não reprova)
+        if: always()
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
+        with:
+          image-ref: babel-play:ci
+          version: v0.69.3
+          scanners: vuln
+          exit-code: '0'
+          format: json
+          output: trivy-imagem.json
+      # SBOM (CycloneDX) da imagem, pelo Syft — o inventário de tudo que vai para produção, para
+      # responder "estamos expostos à CVE X?" sem reconstruir nada. Vai como artefato do CI.
+      - name: SBOM da imagem (Syft, CycloneDX)
+        if: always()
+        uses: anchore/sbom-action@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26 # v0.24.2
+        with:
+          image: babel-play:ci
+          format: cyclonedx-json
+          output-file: sbom-imagem.cdx.json
+          upload-artifact: false
+      - name: Artefato da varredura e do SBOM
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: imagem-trivy-sbom
+          path: |
+            trivy-imagem.json
+            sbom-imagem.cdx.json
+          if-no-files-found: ignore
 
   # RESTAURAÇÃO DO LITESTREAM, DE VERDADE (Fase 5). Um MinIO faz o papel do R2: o container grava,
   # replica e para; um SEGUNDO container, com volume VAZIO, restaura sozinho no boot (entrypoint) e o

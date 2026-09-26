@@ -153,8 +153,8 @@ describe('força bruta contra o token', () => {
   }, 60_000)
 
   /**
-   * O OUTRO LADO, que é o que torna o limitador utilizável: `skipSuccessfulRequests` faz o contador
-   * ignorar tudo que não é 401. Sem isso, um teto de 30 seria um teto de 30 REQUISIÇÕES por quarto
+   * O OUTRO LADO, que é o que torna o limitador utilizável: o contador só soma no `finish` de um
+   * 401 (`server/lib/limitadorDeFalhas.ts`) e ignora todo o resto. Sem isso, um teto de 30 seria um teto de 30 REQUISIÇÕES por quarto
    * de hora, e derrubaria qualquer pessoa usando o produto.
    */
   it('quem navega autenticado não gasta o balde', async () => {

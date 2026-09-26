@@ -1,116 +1,186 @@
-# DEPLOY NO FLY.IO — manual, por imagem com TAG IMUTÁVEL, com rollback pelo mesmo botão.
+# DEPLOY NO FLY.IO — manual, STAGING ANTES DE PRODUÇÃO, com snapshot, fumaça e rollback automático.
 #
-# Actions → "Deploy (Fly.io)" → Run workflow:
-#   - ambiente: staging ou production (cada um é um Environment do GitHub com as próprias variáveis
-#     e secrets — em production, ligue "Required reviewers" para o deploy pedir aprovação);
-#   - imagem: VAZIO = constrói o commit escolhido e publica como `registry.fly.io/<app>:<sha>`;
-#             PREENCHIDO = ROLLBACK: reimplanta uma imagem que já existe, sem construir nada.
+# Actions → "Deploy (Fly.io)" → Run workflow (no branch/commit que vai ao ar):
+#   - destino:
+#       staging             implanta o commit em staging; fumaça verde grava o selo `deploy/staging`;
+#       staging-e-producao  staging e, se a fumaça passar lá, produção em seguida, no mesmo run;
+#       producao            só produção — e SÓ de um commit que já tem o selo `deploy/staging`
+#                           (ou com `pular_staging` + justificativa, que vai para o resumo);
+#   - imagem: VAZIO = constrói o commit. PREENCHIDO = ROLLBACK MANUAL para uma imagem que já existe
+#             (`registry.fly.io/<app>:<sha>`), sem construir nada — só com destino staging OU producao.
 #
-# ROLLBACK EM 1 MINUTO: `fly releases --image --app <app>` lista as imagens de cada release; rode
-# este workflow com `imagem: registry.fly.io/<app>:<sha-anterior>`. Nada é reconstruído — é a MESMA
-# imagem que já esteve no ar. (Migração de banco não volta junto: ver docs/runbook.md, "Rollback".)
+# O QUE CADA DEPLOY FAZ (implantar-ambiente.yml): registra a imagem no ar → constrói (tag = sha) →
+# snapshot do volume → `fly deploy --strategy immediate` → fumaça (`/api/ready` 200 e
+# `/api/health.versao` terminando no sha) → se a fumaça falhar, ROLLBACK AUTOMÁTICO para a imagem
+# anterior e o job fica vermelho. Uma máquina + volume (ADR 0006) não admite blue-green: o custo
+# aceito é downtime de segundos por deploy (docs/deploy-checklist.md).
 #
-# Variáveis do Environment (Settings → Environments → <ambiente>):
-#   vars.FLY_APP                  nome do app no Fly (babel-play / babel-play-staging)
-#   vars.URL_PUBLICA              https://… do ambiente (fumaça pós-deploy e canonical)
+# POR QUE O SELO É POR COMMIT, E NÃO POR IMAGEM: o bundle do cliente embute VITE_* no build (URL do
+# Supabase, URL pública), então staging e produção têm imagens diferentes do MESMO sha. O que se
+# promove é o commit; a fumaça de cada ambiente confere que é ele que responde.
+#
+# Variáveis de cada Environment (Settings → Environments → staging | production):
+#   vars.FLY_APP                  nome do app no Fly (babel-play-staging / babel-play)
+#   vars.URL_PUBLICA              https://… do ambiente — OBRIGATÓRIA (fumaça e rollback dependem dela)
 #   vars.VITE_SUPABASE_URL        URL do projeto Supabase (pública)
 #   vars.VITE_SUPABASE_ANON_KEY   anon key (pública por desenho)
 #   vars.VITE_SELF_HOST_MODELS    https://<bucket público dos modelos> (opcional)
 #   vars.VITE_SENTRY_DSN          DSN do Sentry do navegador (opcional; é público por desenho)
+#   vars.VITE_TURNSTILE_SITE_KEY  chave pública do Cloudflare Turnstile (opcional; captcha do convidado, Fase 7)
 #   secrets.FLY_API_TOKEN         `fly tokens create deploy --app <app>` (só deploy, só este app)
+# Em production, ligue "Required reviewers": o job de produção pede aprovação antes de rodar.
 #
-# Toda entrada do formulário e toda variável chega aos `run:` por `env:`, nunca por `${{ }}` dentro
-# do script: o campo `imagem` é texto livre, e interpolado direto no shell viraria injeção de comando.
+# PORTÃO DE CI (P0-5): antes de tudo, confere na API do GitHub que o `ci.yml` terminou com `success`
+# para o SHA EXATO que vai ao ar. EMERGÊNCIA: `pular_gate_ci` + `justificativa` (10+ caracteres).
+#
+# Toda entrada do formulário chega aos `run:` por `env:`, nunca por `${{ }}` dentro do script: o
+# campo `imagem` é texto livre, e interpolado direto no shell viraria injeção de comando.
 name: Deploy (Fly.io)
 
 on:
   workflow_dispatch:
     inputs:
-      ambiente:
+      destino:
         description: 'Para onde'
         type: choice
-        options: [staging, production]
+        options: [staging, staging-e-producao, producao]
         default: staging
       imagem:
-        description: 'Rollback: imagem já publicada (registry.fly.io/<app>:<sha>). Vazio = construir este commit.'
+        description: 'Rollback manual: imagem já publicada (registry.fly.io/<app>:<sha>). Vazio = construir este commit.'
+        type: string
+        required: false
+      pular_gate_ci:
+        description: 'EMERGÊNCIA: implantar sem CI verde para este SHA (exige justificativa)'
+        type: boolean
+        default: false
+      pular_staging:
+        description: 'EMERGÊNCIA: produção sem o selo deploy/staging neste SHA (exige justificativa)'
+        type: boolean
+        default: false
+      justificativa:
+        description: 'Obrigatória se pular algum portão: o porquê (fica no resumo da execução)'
         type: string
         required: false
 
+# `actions: read` para o portão de CI; `statuses: write` para ler e gravar o selo deploy/<ambiente>.
 permissions:
   contents: read
-
-concurrency:
-  group: deploy-${{ inputs.ambiente }}
-  cancel-in-progress: false
+  actions: read
+  statuses: write
 
 jobs:
-  deploy:
+  portao:
     runs-on: ubuntu-latest
-    environment: ${{ inputs.ambiente }}
-    timeout-minutes: 30
+    timeout-minutes: 5
+    outputs:
+      sha: ${{ steps.sha.outputs.sha }}
     env:
-      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-      FLY_APP: ${{ vars.FLY_APP }}
-      AMBIENTE: ${{ inputs.ambiente }}
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      DESTINO: ${{ inputs.destino }}
       IMAGEM_INFORMADA: ${{ inputs.imagem }}
-      URL_PUBLICA: ${{ vars.URL_PUBLICA }}
-      VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
-      VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
-      VITE_SELF_HOST_MODELS: ${{ vars.VITE_SELF_HOST_MODELS }}
-      VITE_SENTRY_DSN: ${{ vars.VITE_SENTRY_DSN }}
+      PULAR_GATE_CI: ${{ inputs.pular_gate_ci }}
+      PULAR_STAGING: ${{ inputs.pular_staging }}
+      JUSTIFICATIVA: ${{ inputs.justificativa }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - uses: superfly/flyctl-actions/setup-flyctl@fc53c09e1bc3be6f54706524e3b82c4f462f77be # 1.5
-
-      - name: Conferir configuração do ambiente
+      - name: Resolver o SHA que vai ao ar
+        id: sha
         run: |
-          test -n "$FLY_API_TOKEN" || { echo "::error::secret FLY_API_TOKEN ausente no environment $AMBIENTE"; exit 1; }
-          test -n "$FLY_APP" || { echo "::error::variável FLY_APP ausente no environment $AMBIENTE"; exit 1; }
+          set -euo pipefail
           if [ -n "$IMAGEM_INFORMADA" ]; then
-            # Só aceita imagem do registro do PRÓPRIO app, com tag de commit — nada de imagem de fora.
-            echo "$IMAGEM_INFORMADA" | grep -Eq "^registry\.fly\.io/${FLY_APP}:[0-9a-f]{7,40}$" \
-              || { echo "::error::imagem de rollback deve ser registry.fly.io/${FLY_APP}:<sha>"; exit 1; }
+            if [ "$DESTINO" = "staging-e-producao" ]; then
+              echo "::error::rollback por imagem é um ambiente por vez (a imagem é de UM app): use destino staging ou producao"
+              exit 1
+            fi
+            tag="${IMAGEM_INFORMADA##*:}"
+            echo "$tag" | grep -Eq '^[0-9a-f]{7,40}$' \
+              || { echo "::error::a tag da imagem de rollback precisa ser um sha de commit"; exit 1; }
+            # A API filtra por `head_sha` COMPLETO e a tag pode ser curta: resolve o sha primeiro.
+            sha=$(gh api "repos/$REPO/commits/$tag" --jq .sha)
+          else
+            sha="$GITHUB_SHA"
           fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "SHA_IMPLANTADO=$sha" >> "$GITHUB_ENV"
+          justificativa="$(printf '%s' "$JUSTIFICATIVA" | tr '\r\n' '  ' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
+          echo "JUST=$justificativa" >> "$GITHUB_ENV"
+          echo "### Deploy \`$DESTINO\` de \`$sha\` por @$GITHUB_ACTOR" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Construir e publicar a imagem (tag = commit)
-        if: inputs.imagem == ''
+      - name: Portão de CI (ci.yml verde para o SHA)
         run: |
-          flyctl deploy --app "$FLY_APP" --remote-only --build-only --push \
-            --image-label "$GITHUB_SHA" \
-            --build-arg VITE_SUPABASE_URL="$VITE_SUPABASE_URL" \
-            --build-arg VITE_SUPABASE_ANON_KEY="$VITE_SUPABASE_ANON_KEY" \
-            --build-arg VITE_PUBLIC_URL="$URL_PUBLICA" \
-            --build-arg VITE_SELF_HOST_MODELS="$VITE_SELF_HOST_MODELS" \
-            --build-arg VITE_SENTRY_DSN="$VITE_SENTRY_DSN" \
-            --build-arg VERSAO="$GITHUB_SHA"
-          echo "IMAGEM=registry.fly.io/${FLY_APP}:${GITHUB_SHA}" >> "$GITHUB_ENV"
+          set -euo pipefail
+          sha="$SHA_IMPLANTADO"
+          if [ "$PULAR_GATE_CI" = "true" ]; then
+            if [ "${#JUST}" -lt 10 ]; then
+              echo "::error::pular_gate_ci exige justificativa (10+ caracteres), que fica registrada no resumo"
+              exit 1
+            fi
+            echo "::warning::PORTAO DE CI PULADO por $GITHUB_ACTOR para $sha"
+            printf '%s\n' "- **portão de CI PULADO** — justificativa: $JUST" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          # O `select` repete o filtro do lado de cá: se a API ignorasse o parâmetro, o portão não
+          # passaria a aceitar o CI verde de outro commit.
+          sucessos=$(gh api "repos/$REPO/actions/workflows/ci.yml/runs?head_sha=$sha&status=completed&per_page=100" \
+            --jq "[.workflow_runs[] | select(.head_sha == \"$sha\" and .conclusion == \"success\")] | length")
+          if [ "$sucessos" -lt 1 ]; then
+            echo "::error::o ci.yml não tem execução com conclusão success para $sha. Espere/rode o CI, ou, em emergência, use pular_gate_ci com justificativa."
+            gh api "repos/$REPO/actions/workflows/ci.yml/runs?head_sha=$sha&per_page=5" \
+              --jq '.workflow_runs[] | "  execução \(.id): \(.status)/\(.conclusion // "-") (\(.event))"' || true
+            exit 1
+          fi
+          echo "- portão de CI: ci.yml verde ($sucessos execução(ões))" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Rollback — usar a imagem informada
-        if: inputs.imagem != ''
-        run: echo "IMAGEM=$IMAGEM_INFORMADA" >> "$GITHUB_ENV"
-
-      - name: Implantar
+      # PRODUÇÃO DIRETA só de um sha que passou em staging (selo `deploy/staging` = success, gravado
+      # pela fumaça verde). No rollback manual para produção, vale também o selo `deploy/production`
+      # (a imagem já esteve em produção). `staging-e-producao` não passa aqui: o job de produção
+      # depende do de staging no mesmo run.
+      - name: Portão de staging (produção só de SHA com fumaça verde em staging)
+        if: inputs.destino == 'producao'
         run: |
-          echo "implantando $IMAGEM em $FLY_APP"
-          flyctl deploy --app "$FLY_APP" --image "$IMAGEM" --strategy immediate --wait-timeout 300
-
-      - name: Fumaça pós-deploy (/api/ready pelo domínio público)
-        if: vars.URL_PUBLICA != ''
-        run: |
-          for i in $(seq 1 30); do
-            codigo=$(curl -s -o /dev/null -w '%{http_code}' "$URL_PUBLICA/api/ready" || true)
-            [ "$codigo" = "200" ] && { echo "pronto"; exit 0; }
-            sleep 5
-          done
-          echo "::error::/api/ready não respondeu 200 — considere o rollback (rode este workflow com a imagem anterior)"
+          set -euo pipefail
+          sha="$SHA_IMPLANTADO"
+          if [ "$PULAR_STAGING" = "true" ]; then
+            if [ "${#JUST}" -lt 10 ]; then
+              echo "::error::pular_staging exige justificativa (10+ caracteres), que fica registrada no resumo"
+              exit 1
+            fi
+            echo "::warning::PORTAO DE STAGING PULADO por $GITHUB_ACTOR para $sha"
+            printf '%s\n' "- **portão de staging PULADO** — justificativa: $JUST" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          # A lista vem do mais recente para o mais antigo: o primeiro de cada contexto é o estado atual.
+          estado() { gh api "repos/$REPO/commits/$sha/statuses?per_page=100" --jq "[.[] | select(.context == \"$1\")][0].state // \"ausente\""; }
+          staging=$(estado deploy/staging)
+          producao=$(estado deploy/production)
+          if [ "$staging" = "success" ] || { [ -n "$IMAGEM_INFORMADA" ] && [ "$producao" = "success" ]; }; then
+            echo "- portão de staging: deploy/staging=$staging, deploy/production=$producao" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          echo "::error::$sha não tem o selo deploy/staging=success (está: $staging). Rode o deploy em staging primeiro (ou staging-e-producao); em emergência, pular_staging com justificativa."
           exit 1
 
-      - name: Resumo
-        if: always()
-        run: |
-          {
-            echo "### Deploy $AMBIENTE"
-            echo "- app: \`$FLY_APP\`"
-            echo "- imagem: \`${IMAGEM:-(não chegou a ser definida)}\`"
-            echo "- rollback: rode este workflow com \`imagem\` = a imagem da release anterior (\`fly releases --image --app $FLY_APP\`)"
-          } >> "$GITHUB_STEP_SUMMARY"
+  staging:
+    needs: portao
+    if: inputs.destino == 'staging' || inputs.destino == 'staging-e-producao'
+    uses: ./.github/workflows/implantar-ambiente.yml
+    with:
+      ambiente: staging
+      sha: ${{ needs.portao.outputs.sha }}
+      imagem: ${{ inputs.imagem }}
+    secrets: inherit
+
+  producao:
+    needs: [portao, staging]
+    # `always()` porque `staging` é PULADO quando o destino é só produção — e um job pulado nas
+    # dependências pularia este também. A condição explícita refaz o que o `needs` fazia sozinho.
+    if: >-
+      always() && needs.portao.result == 'success' &&
+      (inputs.destino == 'producao' ||
+       (inputs.destino == 'staging-e-producao' && needs.staging.result == 'success'))
+    uses: ./.github/workflows/implantar-ambiente.yml
+    with:
+      ambiente: production
+      sha: ${{ needs.portao.outputs.sha }}
+      imagem: ${{ inputs.imagem }}
+    secrets: inherit

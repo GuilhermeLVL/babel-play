@@ -12,8 +12,7 @@
  * O ESTORNO continua best-effort (só loga): ele devolve cota ao usuário, e falhar nele erra a favor
  * do dono, não contra.
  */
-import { PLAN_MATRIX } from '../../src/core/planos'
-import type { Plan } from '../db/repositories/subscriptions'
+import { definicaoDoPlano, type PlanoEfetivo } from '../../src/core/planos'
 import { usageCountersRepo } from '../db/repositories/usageCounters'
 import type { UserId } from './authContext'
 import { getPlanForUser } from './entitlements'
@@ -63,7 +62,7 @@ function tetoComEnv(padrao: number | null, envNome: string): number {
 }
 
 /** Env de quota por plano: `PRO_MONTHLY_MANAGED_CALLS`, `ESSENCIAL_MONTHLY_MANAGED_CALLS`… */
-const envDoPlano = (plan: Plan, sufixo: string): string => `${plan.toUpperCase()}_${sufixo}`
+const envDoPlano = (plan: PlanoEfetivo, sufixo: string): string => `${plan.toUpperCase()}_${sufixo}`
 
 /**
  * Teto mensal de CHAMADAS gerenciadas. O default vem da matriz (`src/core/planos.ts`: 20.000 no
@@ -81,8 +80,8 @@ const envDoPlano = (plan: Plan, sufixo: string): string => `${plan.toUpperCase()
  * Este teto é de FAIR-USE, não de dinheiro: uma chamada pode ser de um segundo ou de vinte e cinco
  * megabytes. O teto de gasto real é o de segundos, em `capSegundosParaPlano`.
  */
-export function capForPlan(plan: Plan): number {
-  return tetoComEnv(PLAN_MATRIX[plan].quotas.chamadasMes, envDoPlano(plan, 'MONTHLY_MANAGED_CALLS'))
+export function capForPlan(plan: PlanoEfetivo): number {
+  return tetoComEnv(definicaoDoPlano(plan).quotas.chamadasMes, envDoPlano(plan, 'MONTHLY_MANAGED_CALLS'))
 }
 
 /**
@@ -143,8 +142,8 @@ export async function refundManagedCall(userId: UserId): Promise<void> {
  * que protege a FATURA como um todo é o orçamento global (`orcamentoDeIa.ts`), que conta os
  * segundos faturados.
  */
-export function capSegundosParaPlano(plan: Plan): number {
-  return tetoComEnv(PLAN_MATRIX[plan].quotas.sttSegundosMes, envDoPlano(plan, 'MONTHLY_STT_SECONDS'))
+export function capSegundosParaPlano(plan: PlanoEfetivo): number {
+  return tetoComEnv(definicaoDoPlano(plan).quotas.sttSegundosMes, envDoPlano(plan, 'MONTHLY_STT_SECONDS'))
 }
 
 /**
@@ -179,8 +178,8 @@ export async function estornarSegundosDeStt(userId: UserId, segundos: number): P
  *
  * Os números e a conta de custo por plano estão em `src/core/planos.ts`.
  */
-export function capTokensParaPlano(plan: Plan): number {
-  return tetoComEnv(PLAN_MATRIX[plan].quotas.tokensMes, envDoPlano(plan, 'MONTHLY_LLM_TOKENS'))
+export function capTokensParaPlano(plan: PlanoEfetivo): number {
+  return tetoComEnv(definicaoDoPlano(plan).quotas.tokensMes, envDoPlano(plan, 'MONTHLY_LLM_TOKENS'))
 }
 
 /**

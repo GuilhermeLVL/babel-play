@@ -94,7 +94,8 @@ export default function Login({ onContinuarSemConta }: LoginProps = {}) {
       } else if (modo === 'signup') {
         const r = await auth.signUpEmail(email, senha);
         if (!r.ok) setErro(r.message ?? 'Falha ao criar conta.');
-        else if (r.needsEmailConfirm) setAviso('Conta criada! Confirme pelo link enviado ao seu e-mail para entrar.');
+        else if (r.needsEmailConfirm)
+          setAviso(r.message ?? 'Conta criada! Confirme pelo link enviado ao seu e-mail para entrar.');
       } else {
         const r = await auth.sendPasswordReset(email, redirectTo);
         setAviso(r.message ?? 'Se existir uma conta, enviamos um link.');

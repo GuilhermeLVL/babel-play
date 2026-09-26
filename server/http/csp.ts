@@ -25,6 +25,10 @@
  *   VITE_SELF_HOST_MODELS (quando é URL)        o bucket R2 dos pesos dos modelos
  *   VITE_SENTRY_DSN                             o envio de erro do navegador
  *
+ *   VITE_TURNSTILE_SITE_KEY (quando existe)     o captcha do Cloudflare Turnstile no convidado com
+ *                                               nuvem (Fase 7): script, frame e conexão em
+ *                                               `challenges.cloudflare.com`. Sem a chave, nada entra.
+ *
  * As `VITE_*` são embutidas no bundle em BUILD; o `Dockerfile` as repete como `ENV` do runtime para
  * a CSP enxergar os mesmos valores que o bundle usa.
  *
@@ -52,7 +56,12 @@ export interface DiretivasDeCsp {
   frameAncestors: string[]
   baseUri: string[]
   formAction: string[]
+  /** Só existe com o Turnstile ligado; sem ela, frames seguem o `default-src 'self'`. */
+  frameSrc?: string[]
 }
+
+/** O host do Cloudflare Turnstile (script oficial, iframe do desafio e a verificação). */
+export const HOST_DO_TURNSTILE = 'https://challenges.cloudflare.com'
 
 const CONEXOES_FIXAS = [
   'https://huggingface.co',
@@ -90,11 +99,14 @@ export function diretivasDeCsp(env: NodeJS.ProcessEnv = process.env): DiretivasD
     origemDe(env.VITE_SENTRY_DSN),
   ].filter((o): o is string => o !== null)
 
-  const conexoes = [...new Set(["'self'", 'blob:', 'data:', ...CONEXOES_FIXAS, ...doDeploy])]
+  /* Fase 7: o captcha do convidado só entra na CSP quando a chave pública existe no deploy. */
+  const turnstile = env.VITE_TURNSTILE_SITE_KEY?.trim() ? [HOST_DO_TURNSTILE] : []
+
+  const conexoes = [...new Set(["'self'", 'blob:', 'data:', ...CONEXOES_FIXAS, ...doDeploy, ...turnstile])]
 
   return {
     defaultSrc: ["'self'"],
-    scriptSrc: ["'self'", "'wasm-unsafe-eval'", 'blob:'],
+    scriptSrc: ["'self'", "'wasm-unsafe-eval'", 'blob:', ...turnstile],
     workerSrc: ["'self'", 'blob:'],
     connectSrc: conexoes,
     imgSrc: ["'self'", 'https:', 'data:', 'blob:'],
@@ -105,5 +117,6 @@ export function diretivasDeCsp(env: NodeJS.ProcessEnv = process.env): DiretivasD
     frameAncestors: ["'self'"],
     baseUri: ["'self'"],
     formAction: ["'self'"],
+    ...(turnstile.length ? { frameSrc: ["'self'", ...turnstile] } : {}),
   }
 }

@@ -8,6 +8,18 @@ import { seedSpends } from '../schema'
 
 export type SeedSpend = typeof seedSpends.$inferSelect
 
+/**
+ * `texto LIKE 'prefixo%'` do SQLite, em JS: o `LIKE` padrão ignora a caixa, mas SÓ das letras
+ * ASCII ('LOJA:x' casa com 'loja:%'; 'É' não vira 'é'). `prefixo` já vem em minúsculas e sem
+ * curingas (`%`, `_`).
+ */
+function comecaComoLike(texto: string, prefixo: string): boolean {
+  return (
+    texto.length >= prefixo.length &&
+    texto.slice(0, prefixo.length).replace(/[A-Z]/g, (c) => c.toLowerCase()) === prefixo
+  )
+}
+
 export interface NewSeedSpend {
   /** Gerado pelo CLIENTE antes de enviar. É a chave da idempotência. */
   spendId: string
@@ -75,13 +87,14 @@ export const seedSpendsRepo = {
      * pelo SQLite no momento da escrita, dentro da mesma instrução.
      */
     const teto = opts.tetoDeGasto
-    const r = teto === undefined
-      ? await db.run(sql`
+    const r =
+      teto === undefined
+        ? await db.run(sql`
         INSERT INTO ${seedSpends} (id, created_at, updated_at, user_id, spend_id, amount, reason, ref)
         VALUES (${row.id}, ${row.createdAt}, ${row.updatedAt}, ${row.userId}, ${row.spendId}, ${row.amount}, ${row.reason}, ${row.ref})
         ON CONFLICT (user_id, spend_id) WHERE deleted_at IS NULL DO NOTHING
       `)
-      : await db.run(sql`
+        : await db.run(sql`
         INSERT INTO ${seedSpends} (id, created_at, updated_at, user_id, spend_id, amount, reason, ref)
         SELECT ${row.id}, ${row.createdAt}, ${row.updatedAt}, ${row.userId}, ${row.spendId}, ${row.amount}, ${row.reason}, ${row.ref}
         WHERE (
@@ -137,7 +150,9 @@ export const seedSpendsRepo = {
     const linhas = await db
       .select({ reason: seedSpends.reason })
       .from(seedSpends)
-      .where(and(eq(seedSpends.userId, userId), isNull(seedSpends.deletedAt), like(seedSpends.reason, 'aprimoramento:%')))
+      .where(
+        and(eq(seedSpends.userId, userId), isNull(seedSpends.deletedAt), like(seedSpends.reason, 'aprimoramento:%')),
+      )
     const porAlvo: Record<string, number> = {}
     for (const l of linhas) {
       const [, alvo, n] = l.reason.split(':')
@@ -187,6 +202,49 @@ export const seedSpendsRepo = {
       .from(seedSpends)
       .where(and(eq(seedSpends.userId, userId), isNull(seedSpends.deletedAt), like(seedSpends.reason, 'croma:%')))
     return [...new Set(rows.map((r) => r.reason).filter(Boolean))]
+  },
+
+  /**
+   * O RAZÃO INTEIRO NUMA CONSULTA: `totalGasto`, `itensComprados`, `cromasComprados` e
+   * `aprimoramentosComprados` de uma vez (fix/rotas-caras).
+   *
+   * `computeProfile` fazia as quatro em sequência a cada chamada — e ela roda em toda conferência
+   * de posse e em todo gasto. As quatro leem as MESMAS linhas (`user_id = ? AND deleted_at IS
+   * NULL`) e só diferem no filtro de `reason`; aqui o filtro é feito em JS, com a semântica do
+   * `LIKE 'prefixo%'` do SQLite (caixa ignorada só nas letras ASCII). A ordem de leitura é a mesma
+   * (o mesmo índice parcial `uq_seed_spends_user_spend`), então a ordem dos itens também é.
+   */
+  async razao(userId: UserId): Promise<{
+    seedsGastas: number
+    itensComprados: string[]
+    cromasComprados: string[]
+    aprimoramentos: Record<string, number>
+  }> {
+    const linhas = await db
+      .select({ amount: seedSpends.amount, reason: seedSpends.reason })
+      .from(seedSpends)
+      .where(and(eq(seedSpends.userId, userId), isNull(seedSpends.deletedAt)))
+    let seedsGastas = 0
+    const itens: string[] = []
+    const cromas: string[] = []
+    const aprimoramentos: Record<string, number> = {}
+    for (const l of linhas) {
+      seedsGastas += Number(l.amount)
+      if (comecaComoLike(l.reason, 'loja:')) itens.push(l.reason.slice('loja:'.length))
+      if (comecaComoLike(l.reason, 'croma:')) cromas.push(l.reason)
+      if (comecaComoLike(l.reason, 'aprimoramento:')) {
+        const [, alvo, n] = l.reason.split(':')
+        const nivel = Number(n)
+        if (!alvo || !Number.isInteger(nivel)) continue
+        aprimoramentos[alvo] = Math.max(aprimoramentos[alvo] ?? 0, nivel)
+      }
+    }
+    return {
+      seedsGastas,
+      itensComprados: [...new Set(itens.filter(Boolean))],
+      cromasComprados: [...new Set(cromas.filter(Boolean))],
+      aprimoramentos,
+    }
   },
 
   async listar(userId: UserId, limite = 50): Promise<SeedSpend[]> {

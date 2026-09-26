@@ -32,30 +32,38 @@ import helmet from 'helmet'
 import { audioRouter } from '../audio/loopback'
 import { exigirAal2SeTiver2fa } from '../lib/aal'
 import { abertura, portaDoCadastro } from '../lib/abertura'
-import { authMiddleware, authRequired } from '../lib/auth'
-import { metricasHabilitadas, segredoDeOrigem } from '../lib/config'
+import { authMiddleware, authRequired, verificarTokenPadrao } from '../lib/auth'
+import type { UserId } from '../lib/authContext'
+import { metricasHabilitadas, portaInternaDeMetricas, segredoDeOrigem } from '../lib/config'
+import { exigirContaParaEscrever } from '../lib/convidado'
 import { capturarAssincrono } from '../lib/erroGlobal'
 import { exigirAdultoDeclarado, exigirContaLiberada } from '../lib/idade'
+import { criarLimitadorDeFalhas } from '../lib/limitadorDeFalhas'
 import {
   chaveDoRequest,
   createDbRateLimitStore,
   METRIC_RATELIMIT_AUTH,
   METRIC_RATELIMIT_CARO,
   METRIC_RATELIMIT_ESCRITA,
+  METRIC_RATELIMIT_FLAGS,
   METRIC_RATELIMIT_TELEMETRIA,
 } from '../lib/rateLimitStore'
 import { requestIdMiddleware } from '../lib/requestId'
+import { responderErro } from '../lib/respostaDeErro'
+import { CABECALHO_DA_VERSAO, versaoDoApp } from '../lib/versao'
 import { adminRouter } from '../routes/admin'
 import { aiRouter } from '../routes/ai'
 import { ankiRouter } from '../routes/anki'
 import { asaasWebhookRouter, billingRouter } from '../routes/billing'
 import { errosRouter } from '../routes/erros'
 import { exercisesRouter } from '../routes/exercises'
+import { criarRotaDeFlags } from '../routes/flags'
 import { healthHandler, readyHandler } from '../routes/health'
 import { imagesRouter } from '../routes/images'
 import { importRouter } from '../routes/import'
 import { meRouter } from '../routes/me'
 import { metricasCapturaRouter } from '../routes/metricasCaptura'
+import { metricasOfertasRouter } from '../routes/metricasOfertas'
 import { metricsRouter } from '../routes/metrics'
 import { rankRouter } from '../routes/rank'
 import { responsavelRouter } from '../routes/responsavel'
@@ -78,6 +86,11 @@ import { exigirOrigem } from './origemProtegida'
 export interface OpcoesDoApp {
   /** Substitui `app.use("/api", authMiddleware)`. Só o harness de testes usa. */
   autenticacao?: RequestHandler
+  /**
+   * O verificador de token da rota PÚBLICA de flags, onde o token é opcional (`server/routes/flags.ts`).
+   * Mesma razão da costura de cima: o harness assina com uma chave local. Em produção, o padrão.
+   */
+  verificarToken?: (token: string) => Promise<UserId>
 }
 
 /**
@@ -130,6 +143,15 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
   // parsing do corpo. Volta ao cliente no header `x-request-id`.
   app.use(requestIdMiddleware)
 
+  /* VERSÃO EM TODA RESPOSTA DA API (P0-7b). Aqui, logo depois do `requestId` e antes de qualquer
+     guarda, para ir também no 401, no 429 e no 404 — o cliente compara com a versão do bundle e
+     avisa quando o servidor já é outro (`src/lib/versao.ts`). Só em `/api`: o `index.html` e os
+     chunks não precisam dela. Ver `server/lib/versao.ts`. */
+  app.use('/api', (_req, res, next) => {
+    res.setHeader(CABECALHO_DA_VERSAO, versaoDoApp())
+    next()
+  })
+
   /* ORIGEM PROTEGIDA (GAP-004): com `ORIGEM_SEGREDO`, só quem passou pelo Cloudflare entra — o acesso
      direto a `<app>.fly.dev` pularia o WAF e forjaria o `X-Forwarded-For` em que o `TRUST_PROXY`
      confia. Ver `server/http/origemProtegida.ts`. */
@@ -162,7 +184,9 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
        handler solto no app — o mesmo caso de `/api/health` logo abaixo. O handler trata a própria
        falha e devolve 500; telemetria que derruba o request que observa é pior que telemetria
        nenhuma. */
-    app.get('/metrics', handlerDeMetricas())
+    /* Com `METRICS_PORTA_INTERNA` o scrape mora num listener próprio (`server.ts`), e a porta
+       PÚBLICA não tem `/metrics` nenhum — 404 como qualquer caminho. Menos superfície que um token. */
+    if (portaInternaDeMetricas() === undefined) app.get('/metrics', handlerDeMetricas())
   }
 
   /* GAP-015: o teto de 5 MB valia ANTES do login. Agora o topo aceita só 100 KB, e as poucas rotas
@@ -326,10 +350,33 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
     )
   }
   app.use('/api/metricas', capturarAssincrono(metricasCapturaRouter))
+  /* O FUNIL DAS OFERTAS (Fase 8): o mesmo desenho — anônimo, antes do auth, corpo de 8 KB e o mesmo
+     balde por IP de `/api/metricas`. Ver `server/routes/metricasOfertas.ts`. */
+  app.use('/api/metricas', capturarAssincrono(metricasOfertasRouter))
 
   /* AS PORTAS DE EMERGÊNCIA (Fase 3): a tela de login e a de planos perguntam aqui, antes de
      haver sessão, se o cadastro e a venda estão abertos. Pública pelo mesmo motivo do health. */
   app.get('/api/abertura', abertura)
+
+  /* FEATURE FLAGS (Fase 6b): pública, como a abertura — o cliente sem conta (servidor em memória) e
+     o convidado da Fase 7 também precisam delas. Token OPCIONAL (define o plano quando vem), e só o
+     resultado avaliado sai; nunca as regras. No modo público, balde PRÓPRIO por IP: o cliente lê ao
+     abrir, ao focar a aba e a cada poucos minutos — 60 por minuto só um laço alcança. Ver
+     `server/routes/flags.ts` e `docs/flags.md`. */
+  if (authRequired()) {
+    app.use(
+      '/api/flags',
+      rateLimit({
+        windowMs: 60_000,
+        limit: 60,
+        standardHeaders: true,
+        legacyHeaders: false,
+        keyGenerator: chaveDoRequest,
+        store: createDbRateLimitStore(METRIC_RATELIMIT_FLAGS),
+      }),
+    )
+  }
+  app.get('/api/flags', criarRotaDeFlags(opcoes.verificarToken ?? verificarTokenPadrao))
 
   /**
    * FORÇA BRUTA CONTRA O TOKEN — o balde que faltava (Fase 4).
@@ -339,29 +386,34 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
    * nunca chega a limitador nenhum**. Quem tenta adivinhar token — ou reusa um vazado contra várias
    * contas — não encontrava teto em lugar nenhum do servidor.
    *
-   * Este vem ANTES do auth e conta SÓ o que falhou: `requestWasSuccessful` marca como sucesso
-   * tudo que não é 401, e `skipSuccessfulRequests` faz o contador ignorar os sucessos. Um usuário
-   * legítimo, com token válido, nunca soma um ponto aqui, por mais que navegue.
+   * Este vem ANTES do auth e conta SÓ o que falhou (401). Um usuário legítimo, com token válido,
+   * nunca soma um ponto aqui, por mais que navegue — e, desde a auditoria de prontidão de
+   * 2026-09-25 (fase 2 §2.5), também nunca ESCREVE nada nem é barrado por concorrência.
+   *
+   * POR QUE DEIXOU DE SER `rateLimit` com `skipSuccessfulRequests`: aquela opção soma toda
+   * requisição na entrada e estorna na saída. Medido: com mais de 30 requisições simultâneas do
+   * mesmo IP (escola/NAT), 88–100% recebiam 429 sem nenhuma falha de auth, o contador ficava preso
+   * em 30 e depois disso até uma conexão sozinha levava 429 por 15 minutos — além de dobrar as
+   * escritas no SQLite em todo request. O `criarLimitadorDeFalhas` só LÊ na entrada e só soma no
+   * `finish` de um 401. O desenho e o preço aceito estão em `server/lib/limitadorDeFalhas.ts`.
    *
    * A chave é o IP (`chaveDoRequest` cai nele quando não há usuário resolvido, que é exatamente o
    * caso de um 401) — e é por isso que ele depende de `TRUST_PROXY` estar certo atrás de proxy.
    *
-   * 30 por 15 minutos: um token expirado que o cliente reenvia em algumas telas antes de renovar
-   * cabe com folga; um laço de adivinhação, não. Só em modo público — no self-host o
+   * 30 falhas por 15 minutos: um token expirado que o cliente reenvia em algumas telas antes de
+   * renovar cabe com folga; um laço de adivinhação, não. Só em modo público — no self-host o
    * `authMiddleware` injeta o dono e 401 não existe.
    */
   if (authRequired()) {
     app.use(
       '/api',
-      rateLimit({
-        windowMs: 15 * 60_000,
-        limit: 30,
-        standardHeaders: true,
-        legacyHeaders: false,
-        keyGenerator: chaveDoRequest,
-        store: createDbRateLimitStore(METRIC_RATELIMIT_AUTH),
-        skipSuccessfulRequests: true,
-        requestWasSuccessful: (_req, res) => res.statusCode !== 401,
+      criarLimitadorDeFalhas({
+        metric: METRIC_RATELIMIT_AUTH,
+        janelaMs: 15 * 60_000,
+        teto: 30,
+        falhou: (_req, res) => res.statusCode === 401,
+        code: 'muitas_falhas_de_autenticacao',
+        mensagem: 'muitas tentativas de autenticação falharam; tente de novo mais tarde',
       }),
     )
   }
@@ -371,6 +423,11 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
   /* `SIGNUP_ENABLED=0` (Fase 3): conta que o banco ainda não conhece é recusada em qualquer rota
      (403 `cadastro_fechado`). Ligado, este middleware não faz nem consulta. */
   app.use('/api', portaDoCadastro)
+
+  /* Fase 7 — MODO CONVIDADO: o usuário anônimo do Supabase (`is_anonymous`) só escreve no servidor
+     pela nuvem (STT, tradução, tutor — com as travas de `server/lib/convidado.ts`) e pela exclusão
+     do titular. Todo o resto responde 403 `exige_conta`: o convidado guarda no aparelho. */
+  app.use('/api', exigirContaParaEscrever)
 
   // GAP-015: o corpo grande só é lido depois de o token ser aceito (ver `limitesDeCorpo.ts`).
   app.use([...ROTAS_DE_CORPO_GRANDE], jsonDepoisDoAuth())
@@ -492,6 +549,16 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
   // o service worker/cache do cliente antigo tiver expirado.
   app.use('/api/tutor', capturarAssincrono(tutorRouter))
   app.use('/api/gemini', capturarAssincrono(tutorRouter))
+
+  /* 404 DA API — o ÚLTIMO de `/api`, e antes do fallback da SPA (P0-7a). Em produção o `montarSpa`
+     termina num `app.get('*')` que devolve o `index.html` com 200 para qualquer caminho: sem este
+     handler, `/api/<inexistente>` respondia HTML com 200, e um cliente de versão antiga chamando
+     uma rota removida estourava no `res.json()`, longe da causa. Qualquer método, no envelope de
+     erro da casa. Fica DEPOIS do `authMiddleware` (montado acima em `/api`): no modo público, sem
+     token, a resposta continua 401 — dizer "esta rota não existe" a um estranho é mapa da API. */
+  app.use('/api', (_req, res) => {
+    responderErro(res, 404, 'rota inexistente', 'rota_inexistente')
+  })
 
   return app
 }

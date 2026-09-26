@@ -3,9 +3,11 @@ import type { Request, Response } from 'express'
 
 import { db } from '../db/db'
 import { migracoesAplicadas } from '../db/manutencao'
+import { contarDependenciaDegradada } from '../http/metricas'
 import { armazenamentoDoAmbiente, configDoS3 } from '../lib/armazenamento'
 import { bootStatus } from '../lib/bootStatus'
 import { log } from '../lib/logger'
+import { versaoDoApp } from '../lib/versao'
 
 /**
  * GET /api/health — status do servidor, conectividade do banco e integridade do BOOT.
@@ -18,6 +20,10 @@ import { log } from '../lib/logger'
  * O CONTRATO DESTA RESPOSTA NÃO MUDOU na Fase 5, e isso é deliberado: ela está congelada em
  * `tests/caracterizacao/__snapshots__/health.get.json` e é o que o `HEALTHCHECK` do `Dockerfile`
  * e o vigia `uptime.yml` já consomem. Quem ganhou campo novo foi o `/api/ready`, abaixo.
+ *
+ * A ÚNICA ADIÇÃO depois disso é `versao` (P0-7b, auditoria de prontidão): um campo novo, sem mudar
+ * nenhum dos existentes — o `HEALTHCHECK` e o `uptime.yml` leem o status HTTP e ignoram o resto.
+ * Serve para quem opera confirmar, pelo domínio público, qual build está no ar depois de um deploy.
  */
 export async function healthHandler(_req: Request, res: Response): Promise<void> {
   const boot = await bootStatus()
@@ -32,10 +38,10 @@ export async function healthHandler(_req: Request, res: Response): Promise<void>
     // Sondar uma tabela real custa o mesmo e detecta o caso.
     await db.run(sql`SELECT 1 FROM sessions LIMIT 1`)
     if (!boot.ok) {
-      res.status(503).json({ status: 'degraded', db: 'up', ...bootPayload, at: Date.now() })
+      res.status(503).json({ status: 'degraded', db: 'up', ...bootPayload, versao: versaoDoApp(), at: Date.now() })
       return
     }
-    res.json({ status: 'ok', db: 'up', ...bootPayload, at: Date.now() })
+    res.json({ status: 'ok', db: 'up', ...bootPayload, versao: versaoDoApp(), at: Date.now() })
   } catch (err) {
     // Detalhe do erro só no log do servidor — a resposta não vaza caminho/driver do banco.
     // `db: 'down'` cobre os dois casos (inacessível e schema quebrado); distinguir na
@@ -48,7 +54,7 @@ export async function healthHandler(_req: Request, res: Response): Promise<void>
       status: 503,
       error: String(err).slice(0, 300),
     })
-    res.status(503).json({ status: 'degraded', db: 'down', ...bootPayload })
+    res.status(503).json({ status: 'degraded', db: 'down', ...bootPayload, versao: versaoDoApp() })
   }
 }
 
@@ -82,8 +88,12 @@ export async function healthHandler(_req: Request, res: Response): Promise<void>
  *                    contínuo que `SELECT 1` não vê: código novo sobre banco velho.
  *   boot           — um passo de boot falho já degrada o `health`; aqui ele também impede o ready,
  *                    porque `backfill-tenancy` incompleto significa servir dados incompletos.
- *   armazenamento  — SÓ quando há S3/R2 configurado. Sem ele a mídia é disco local, e disco local
- *                    que sumiu já aparece como falha do processo.
+ *   armazenamento  — SÓ quando há S3/R2 configurado, e ele NÃO REPROVA (ADR 0009). Com uma máquina
+ *                    só, o R2 fora do ar tirava o serviço INTEIRO do roteamento do Fly — "o áudio
+ *                    não grava" virava "o site caiu". É dependência degradável, como a IA: o upload
+ *                    responde 503 sozinho e o resto do app segue. O ready continua 200, o corpo diz
+ *                    `status: 'degradado'` + `armazenamento: 'indisponivel'`, e o operador fica
+ *                    sabendo pelo log `warn` e pela métrica `ready_dependencia_degradada_total`.
  *
  * PROVEDORES DE IA FICAM DE FORA, e essa é a decisão que mais importa aqui. Groq, Gemini e
  * OpenRouter são terceiros: uma instabilidade lá tiraria TODAS as réplicas do balanceador ao mesmo
@@ -128,12 +138,15 @@ export async function readyHandler(_req: Request, res: Response): Promise<void> 
       await armazenamentoDoAmbiente('').sondar()
       armazenamento = 'ok'
     } catch (err) {
-      log('error', {
+      /* `warn` e não `error`: é degradação PREVISTA, com resposta própria na rota de upload — não
+         é queda. Um `error` aqui iria ao Sentry a cada sonda do Fly (a cada poucos segundos). */
+      log('warn', {
         event: 'ready_armazenamento_indisponivel',
         route: '/api/ready',
-        status: 503,
+        status: 200,
         error: String(err).slice(0, 300),
       })
+      contarDependenciaDegradada('armazenamento')
       armazenamento = 'indisponivel'
     }
   }
@@ -141,10 +154,11 @@ export async function readyHandler(_req: Request, res: Response): Promise<void> 
   /* `desconhecida` NÃO reprova — ver `migracoesAplicadas`: é a réplica legítima que serve sem a
      pasta de migrações no disco (achado P1-N1). Reprovar ali tiraria do balanceador uma instância
      que atende. */
-  const pronto = banco === 'up' && boot.ok && migracoes !== 'atrasadas' && armazenamento !== 'indisponivel'
+  const pronto = banco === 'up' && boot.ok && migracoes !== 'atrasadas'
+  const status = !pronto ? 'indisponivel' : armazenamento === 'indisponivel' ? 'degradado' : 'pronto'
 
   res.status(pronto ? 200 : 503).json({
-    status: pronto ? 'pronto' : 'indisponivel',
+    status,
     db: banco,
     migracoes,
     boot: boot.ok ? 'ok' : 'degraded',

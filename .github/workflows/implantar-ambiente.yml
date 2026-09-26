@@ -1,0 +1,216 @@
+# IMPLANTAR NUM AMBIENTE — o passo a passo de UM deploy, chamado pelo `deploy.yml` (workflow_call).
+#
+# Não se roda sozinho: o `deploy.yml` decide a ordem (staging → produção), confere o CI e o selo
+# de staging, e chama este arquivo uma vez por ambiente. Tudo o que é por ambiente (app, URL,
+# variáveis do build, token) vem do Environment do GitHub, porque o job declara `environment:`.
+#
+# ESTRATÉGIA: `--strategy immediate`, e não blue-green. Com UMA máquina e um volume (ADR 0006), não
+# existe segunda máquina para receber tráfego enquanto a primeira troca: o volume só monta numa
+# máquina, e duas máquinas com SQLite seriam dois bancos divergentes. O custo aceito é uma janela
+# de indisponibilidade de SEGUNDOS por deploy (a máquina para, sobe com a imagem nova e roda as
+# migrations; medido ~20 s no ADR 0006). O que compensa a falta de blue-green:
+#   1. SNAPSHOT DO VOLUME antes de trocar a imagem (`fly volumes snapshots create`): se a migration
+#      nova estragar dado, o estado de antes existe, independente do Litestream (que replica o erro);
+#   2. FUMAÇA depois: `/api/ready` 200 E `/api/health.versao` terminando no sha que foi implantado
+#      (prova que a imagem nova é a que responde — e não a antiga que ficou de pé);
+#   3. ROLLBACK AUTOMÁTICO para a imagem que estava no ar se a fumaça falhar. A imagem volta; o banco
+#      NÃO (as migrations são só para a frente) — é o portão expand/contract do CI
+#      (`scripts/migracoes/conferir.mjs`) que garante que a imagem anterior roda sobre o banco novo.
+#
+# Toda entrada chega aos `run:` por `env:`, nunca interpolada no script (injeção de comando).
+name: Implantar em um ambiente (chamado pelo deploy.yml)
+
+on:
+  workflow_call:
+    inputs:
+      ambiente:
+        description: 'staging ou production (nome do Environment do GitHub)'
+        type: string
+        required: true
+      sha:
+        description: 'commit completo que vai ao ar (já conferido pelo portão de CI)'
+        type: string
+        required: true
+      imagem:
+        description: 'rollback manual: imagem já publicada deste app; vazio = construir o sha'
+        type: string
+        required: false
+        default: ''
+
+jobs:
+  implantar:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.ambiente }}
+    timeout-minutes: 40
+    concurrency:
+      group: deploy-${{ inputs.ambiente }}
+      cancel-in-progress: false
+    env:
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      FLY_APP: ${{ vars.FLY_APP }}
+      AMBIENTE: ${{ inputs.ambiente }}
+      SHA: ${{ inputs.sha }}
+      IMAGEM_INFORMADA: ${{ inputs.imagem }}
+      URL_PUBLICA: ${{ vars.URL_PUBLICA }}
+      VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+      VITE_SELF_HOST_MODELS: ${{ vars.VITE_SELF_HOST_MODELS }}
+      VITE_SENTRY_DSN: ${{ vars.VITE_SENTRY_DSN }}
+      VITE_TURNSTILE_SITE_KEY: ${{ vars.VITE_TURNSTILE_SITE_KEY }}
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ inputs.sha }}
+      - uses: superfly/flyctl-actions/setup-flyctl@fc53c09e1bc3be6f54706524e3b82c4f462f77be # 1.5
+
+      - name: Conferir configuração do ambiente
+        run: |
+          set -euo pipefail
+          test -n "$FLY_API_TOKEN" || { echo "::error::secret FLY_API_TOKEN ausente no environment $AMBIENTE"; exit 1; }
+          test -n "$FLY_APP" || { echo "::error::variável FLY_APP ausente no environment $AMBIENTE"; exit 1; }
+          # Sem URL pública não há fumaça, e sem fumaça não há rollback automático: recusa.
+          test -n "$URL_PUBLICA" || { echo "::error::variável URL_PUBLICA ausente no environment $AMBIENTE (a fumaça pós-deploy depende dela)"; exit 1; }
+          echo "$SHA" | grep -Eq '^[0-9a-f]{40}$' || { echo "::error::sha inválido: $SHA"; exit 1; }
+          if [ -n "$IMAGEM_INFORMADA" ]; then
+            # Só imagem do registro do PRÓPRIO app, com tag de commit — nada de imagem de fora.
+            echo "$IMAGEM_INFORMADA" | grep -Eq "^registry\.fly\.io/${FLY_APP}:[0-9a-f]{7,40}$" \
+              || { echo "::error::imagem de rollback deve ser registry.fly.io/${FLY_APP}:<sha>"; exit 1; }
+          fi
+
+      # A imagem que está no ar AGORA é o alvo do rollback automático. Sem máquina (primeiro deploy),
+      # não há para onde voltar, e o passo de rollback se recusa em vez de fingir.
+      - name: Registrar a imagem no ar antes do deploy
+        run: |
+          set -euo pipefail
+          anterior=$(flyctl machines list --app "$FLY_APP" --json | jq -r '[.[] | select(.config.image != null)][0].config.image // empty')
+          echo "IMAGEM_ANTERIOR=$anterior" >> "$GITHUB_ENV"
+          versao_antes=$(curl -fsS --max-time 10 "$URL_PUBLICA/api/health" | jq -r '.versao // empty' || true)
+          echo "imagem no ar: ${anterior:-(nenhuma — primeiro deploy)} · versão: ${versao_antes:-?}"
+          {
+            echo "### Deploy $AMBIENTE — antes"
+            echo "- imagem no ar: \`${anterior:-nenhuma}\` (versão \`${versao_antes:-?}\`)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Construir e publicar a imagem (tag = commit)
+        if: inputs.imagem == ''
+        run: |
+          set -euo pipefail
+          # Uma imagem POR AMBIENTE, do MESMO sha: o bundle do cliente embute VITE_* no build
+          # (URL do Supabase, URL pública), então a imagem de staging não serve à produção. O que
+          # se promove de staging para produção é o COMMIT, e a fumaça confere que é ele no ar.
+          flyctl deploy --app "$FLY_APP" --remote-only --build-only --push \
+            --image-label "$SHA" \
+            --build-arg VITE_SUPABASE_URL="$VITE_SUPABASE_URL" \
+            --build-arg VITE_SUPABASE_ANON_KEY="$VITE_SUPABASE_ANON_KEY" \
+            --build-arg VITE_PUBLIC_URL="$URL_PUBLICA" \
+            --build-arg VITE_SELF_HOST_MODELS="$VITE_SELF_HOST_MODELS" \
+            --build-arg VITE_SENTRY_DSN="$VITE_SENTRY_DSN" \
+            --build-arg VITE_TURNSTILE_SITE_KEY="$VITE_TURNSTILE_SITE_KEY" \
+            --build-arg VERSAO="$SHA"
+          echo "IMAGEM=registry.fly.io/${FLY_APP}:${SHA}" >> "$GITHUB_ENV"
+
+      - name: Rollback manual — usar a imagem informada
+        if: inputs.imagem != ''
+        run: echo "IMAGEM=$IMAGEM_INFORMADA" >> "$GITHUB_ENV"
+
+      # SNAPSHOT DO VOLUME antes de trocar a imagem: é o "antes" da migration que vai rodar no boot.
+      # Independente do Litestream (que replica em 1 s o que a migration estragar) e do snapshot
+      # diário (que pode ter 23 h). Restaurar é criar volume novo a partir dele (docs/runbook.md §0.3).
+      # Falhou o snapshot com volume existente = deploy recusado: sem o "antes", não se troca o banco.
+      - name: Snapshot do volume antes do deploy
+        run: |
+          set -euo pipefail
+          volume=$(flyctl volumes list --app "$FLY_APP" --json | jq -r '[.[] | select(.name == "babel_dados")][0].id // empty')
+          if [ -z "$volume" ]; then
+            echo "::warning::sem volume babel_dados em $FLY_APP (primeiro deploy?) — nada a fotografar"
+            exit 0
+          fi
+          flyctl volumes snapshots create "$volume" --app "$FLY_APP" | tee snapshot.txt
+          echo "VOLUME=$volume" >> "$GITHUB_ENV"
+          echo "- snapshot pré-deploy do volume \`$volume\` pedido em $(date -u +%FT%TZ) (\`fly volumes snapshots list $volume\`)" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Implantar (strategy immediate — downtime de segundos, ADR 0006)
+        run: |
+          set -euo pipefail
+          echo "implantando $IMAGEM em $FLY_APP"
+          flyctl deploy --app "$FLY_APP" --image "$IMAGEM" --strategy immediate --wait-timeout 300
+
+      # FUMAÇA: pronto E com a versão certa. `/api/ready` sozinho passaria com a imagem ANTIGA de pé
+      # (deploy que não trocou nada); a versão termina em `+<sha7>` (server/lib/versao.ts).
+      - name: Fumaça pós-deploy (/api/ready + versão == sha)
+        id: fumaca
+        run: |
+          set -euo pipefail
+          esperado="${IMAGEM##*:}"
+          esperado="${esperado:0:7}"
+          for i in $(seq 1 36); do
+            codigo=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "$URL_PUBLICA/api/ready" || true)
+            versao=$(curl -fsS --max-time 10 "$URL_PUBLICA/api/health" | jq -r '.versao // empty' 2>/dev/null || true)
+            if [ "$codigo" = "200" ] && [[ "$versao" == *"+$esperado" ]]; then
+              echo "pronto: /api/ready 200, versão $versao"
+              echo "- fumaça: \`/api/ready\` 200 e versão \`$versao\`" >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            echo "tentativa $i: ready=$codigo versao=${versao:-?} (esperado +$esperado)"
+            sleep 5
+          done
+          echo "::error::fumaça falhou em 3 min: /api/ready=$codigo, versão=${versao:-?}, esperado +$esperado"
+          exit 1
+
+      - name: ROLLBACK AUTOMÁTICO para a imagem anterior
+        if: failure() && steps.fumaca.outcome == 'failure'
+        run: |
+          set -euo pipefail
+          if [ -z "${IMAGEM_ANTERIOR:-}" ]; then
+            echo "::error::fumaça falhou e não há imagem anterior (primeiro deploy): nada para onde voltar"
+            exit 1
+          fi
+          echo "::warning::fumaça falhou — voltando para $IMAGEM_ANTERIOR"
+          flyctl deploy --app "$FLY_APP" --image "$IMAGEM_ANTERIOR" --strategy immediate --wait-timeout 300
+          anterior_sha="${IMAGEM_ANTERIOR##*:}"
+          for i in $(seq 1 36); do
+            codigo=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "$URL_PUBLICA/api/ready" || true)
+            if [ "$codigo" = "200" ]; then
+              versao=$(curl -fsS --max-time 10 "$URL_PUBLICA/api/health" | jq -r '.versao // empty' || true)
+              {
+                echo "### ROLLBACK AUTOMÁTICO executado"
+                echo "- a imagem \`$IMAGEM\` falhou na fumaça; de volta a \`$IMAGEM_ANTERIOR\` (versão \`${versao:-?}\`)"
+                echo "- **o banco NÃO voltou**: as migrations do sha novo continuam aplicadas. Se alguma for de CONTRATO, siga docs/runbook.md §0.3 (snapshot do volume \`${VOLUME:-?}\`)."
+              } >> "$GITHUB_STEP_SUMMARY"
+              echo "rollback no ar (${anterior_sha}); o job segue VERMELHO de propósito"
+              exit 1
+            fi
+            sleep 5
+          done
+          echo "::error::ROLLBACK TAMBÉM FALHOU: /api/ready não voltou. Incidente — docs/runbook.md §0."
+          exit 1
+
+      # O SELO: este sha passou em $AMBIENTE com fumaça verde. O `deploy.yml` só manda para produção
+      # um sha com `deploy/staging` = success (ou com a justificativa de emergência).
+      - name: Selo do ambiente no commit (deploy/${{ inputs.ambiente }})
+        if: success()
+        run: |
+          gh api "repos/$REPO/statuses/$SHA" \
+            -f state=success -f context="deploy/$AMBIENTE" \
+            -f description="fumaça verde em $FLY_APP ($(date -u +%FT%TZ))" \
+            -f target_url="$GITHUB_SERVER_URL/$REPO/actions/runs/$GITHUB_RUN_ID" > /dev/null
+          echo "- selo \`deploy/$AMBIENTE\` gravado no commit \`$SHA\`" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Selo de falha
+        if: failure()
+        run: |
+          gh api "repos/$REPO/statuses/$SHA" \
+            -f state=failure -f context="deploy/$AMBIENTE" \
+            -f description="deploy/fumaça falhou em $FLY_APP" \
+            -f target_url="$GITHUB_SERVER_URL/$REPO/actions/runs/$GITHUB_RUN_ID" > /dev/null || true
+
+      - name: Resumo
+        if: always()
+        run: |
+          {
+            echo "### Deploy $AMBIENTE — depois"
+            echo "- app: \`$FLY_APP\` · imagem: \`${IMAGEM:-(não definida)}\` · sha: \`$SHA\`"
+            echo "- rollback manual: Deploy (Fly.io) com \`imagem\` = \`${IMAGEM_ANTERIOR:-<imagem anterior>}\` (docs/runbook.md §0.3)"
+          } >> "$GITHUB_STEP_SUMMARY"

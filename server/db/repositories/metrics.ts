@@ -4,7 +4,7 @@
  * `deterministic`; retenção é `probabilistic` (estimativa FSRS) e carrega
  * `confidence` que cai com amostra pequena. A UI não deve exibir falsa precisão.
  */
-import { and, eq, isNull } from 'drizzle-orm'
+import { and, eq, isNull, sql } from 'drizzle-orm'
 
 import type { AppMetrics } from '../../../src/core/learning/contract'
 import { diaLocal, marcosDeSequencia, minutosPremiados, sequencias } from '../../../src/core/learning/economia'
@@ -13,10 +13,13 @@ import { retrievability } from '../../../src/core/learning/scheduler'
 import { economiaDeMetricas } from '../../../src/core/learning/xp'
 import { MINIGAMES } from '../../../src/core/minigames/types'
 import type { UserId } from '../../lib/authContext'
+import { CachePorVersao } from '../../lib/cachePorVersao'
 import { db } from '../db'
-import { exerciseResults, reviewLogs, sessions, utterances, vocabCards } from '../schema'
+import { lerCompacto } from '../leituraCompacta'
+import { exerciseResults, reviewLogs, sessions } from '../schema'
 import { economiaRepo } from './economia'
 import { seedSpendsRepo } from './seedSpends'
+import { versoesRepo } from './versoes'
 
 // M-06: `AppMetrics` agora vem do contrato único em src/core/learning/contract.ts (era duplicado
 // aqui e no cliente, e já divergia). Re-exportado para não quebrar quem importava daqui.
@@ -32,99 +35,137 @@ export interface OpcoesDePerfil {
 }
 
 /**
- * MÉTRICAS DO PERFIL — agora com escopo.
+ * AS LINHAS QUE `computeProfile` VARRE — as cinco tabelas da atividade, só com as colunas lidas.
  *
- * Antes esta função só sabia responder "como está a conta inteira?", e a aba de métricas da
- * Sessão, sem endpoint para chamar, preenchia o vazio misturando estatística do texto com
- * `vocabByWeek` da conta — dado global dentro de um painel que anunciava uma gravação. Não era
- * possível unificar os dois componentes sem antes existir a pergunta "e só desta sessão?".
- *
- * O escopo filtra as CINCO agregações. Filtrar só algumas produziria o pior resultado possível:
- * números parcialmente escopados, que parecem coerentes e não são.
- *
- * `reviewLogs` e `exerciseResults` não têm coluna de sessão — são escopados pelos CARTÕES da
- * sessão, que é a relação real entre eles.
+ * É a parte cara do perfil (fix/rotas-caras, medido em 3.000 cartões: ~55 dos ~70 ms eram o driver
+ * materializando estas linhas). Por isso ela é separada do cálculo e só roda quando a versão de
+ * `atividade` (`versoes_de_dados`) mudou desde a última vez.
  */
-export async function computeProfile(userId: UserId, opts: OpcoesDePerfil = {}): Promise<AppMetrics> {
-  const now = Date.now()
-  const sessionId = opts.sessionId ?? null
-  const escopo: AppMetrics['escopo'] = sessionId ? 'sessao' : 'global'
-
+async function lerAtividade(userId: UserId) {
   // Marco 1: todo scan é escopado por userId. reviewLogs, que não tinha filtro nenhum, passa a
   // filtrar por user_id (o review() carimba o dono no log).
+  /* LEITURA COMPACTA (fix/rotas-caras): as mesmas cinco consultas — mesmo WHERE, mesmas colunas,
+     mesma ordem —, serializadas pelo SQLite numa célula só em vez de um objeto do driver por
+     linha (ver `server/db/leituraCompacta.ts`; ~2,5x menos CPU na leitura). */
   const [sessTodas, cardsTodos, logs, uttsTodas, drills] = await Promise.all([
-    db
-      .select({
-        id: sessions.id,
-        createdAt: sessions.createdAt,
-        wordCount: sessions.wordCount,
-        durationMs: sessions.durationMs,
-        /* Uma coluna a mais na varredura que já acontecia — é o que a conquista "Poliglota"
-         precisava, e ela nunca disparava na conta logada por falta deste dado. */
-        sourceLang: sessions.sourceLang,
-      })
-      .from(sessions)
-      .where(and(eq(sessions.userId, userId), isNull(sessions.deletedAt))),
+    /* `source_lang`: uma coluna a mais na varredura que já acontecia — é o que a conquista
+       "Poliglota" precisava, e ela nunca disparava na conta logada por falta deste dado. */
+    lerCompacto<{
+      id: string
+      createdAt: number
+      wordCount: number | null
+      durationMs: number | null
+      sourceLang: string | null
+    }>(
+      [
+        ['id', 'id', 'texto'],
+        ['createdAt', 'created_at'],
+        ['wordCount', 'word_count'],
+        ['durationMs', 'duration_ms'],
+        ['sourceLang', 'source_lang', 'texto'],
+      ],
+      { tabela: 'sessions', onde: sql`user_id = ${userId} AND deleted_at IS NULL` },
+    ),
     /* `vocab_cards` tem 34 colunas e o perfil lê treze. As que ficam de fora incluem `sentence`,
        `cloze_prompt` e `cloze_answer` — frases inteiras, por cartão, em todo o acervo. */
-    db
-      .select({
-        id: vocabCards.id,
-        word: vocabCards.word,
-        sessionId: vocabCards.sessionId,
-        createdAt: vocabCards.createdAt,
-        addedAt: vocabCards.addedAt,
-        inDeck: vocabCards.inDeck,
-        dueAt: vocabCards.dueAt,
-        stability: vocabCards.stability,
-        difficulty: vocabCards.difficulty,
-        lapses: vocabCards.lapses,
-        lastReview: vocabCards.lastReview,
-        cefrLevel: vocabCards.cefrLevel,
-        cefrConfidence: vocabCards.cefrConfidence,
-      })
-      .from(vocabCards)
-      .where(and(eq(vocabCards.userId, userId), isNull(vocabCards.deletedAt))),
-    /* SÓ AS COLUNAS QUE ESTA FUNÇÃO LÊ (auditoria de 2026-09-07, seção 5).
-       Era `select()`, ou seja, `SELECT *`. Em `utterances` isso traz `source_text` e
-       `translated_text` — o transcrito INTEIRO de todas as sessões da pessoa — para contar
-       palavras e somar duração de fala. Num acervo de tamanho real são megabytes lidos do disco,
-       serializados pelo driver e descartados depois de um `split(/\s+/)`. As cinco colunas abaixo
-       são exatamente as que o laço usa. */
-    db
-      .select({
-        cardId: reviewLogs.cardId,
-        createdAt: reviewLogs.createdAt,
-        reviewedAt: reviewLogs.reviewedAt,
-        grade: reviewLogs.grade,
-      })
-      .from(reviewLogs)
-      .where(eq(reviewLogs.userId, userId)),
-    db
-      .select({
-        sessionId: utterances.sessionId,
-        source: utterances.source,
-        sourceText: utterances.sourceText,
-        tStartMs: utterances.tStartMs,
-        tEndMs: utterances.tEndMs,
-      })
-      .from(utterances)
-      .where(and(eq(utterances.userId, userId), isNull(utterances.deletedAt))),
+    lerCompacto<{
+      id: string
+      word: string
+      sessionId: string | null
+      createdAt: number
+      addedAt: number | null
+      inDeck: number | null
+      dueAt: number | null
+      stability: number | null
+      difficulty: number | null
+      lapses: number | null
+      lastReview: number | null
+      cefrLevel: string | null
+      cefrConfidence: number | null
+    }>(
+      [
+        ['id', 'id', 'texto'],
+        ['word', 'word', 'texto'],
+        ['sessionId', 'session_id', 'texto'],
+        ['createdAt', 'created_at'],
+        ['addedAt', 'added_at'],
+        ['inDeck', 'in_deck'],
+        ['dueAt', 'due_at'],
+        ['stability', 'stability'],
+        ['difficulty', 'difficulty'],
+        ['lapses', 'lapses'],
+        ['lastReview', 'last_review'],
+        ['cefrLevel', 'cefr_level', 'texto'],
+        ['cefrConfidence', 'cefr_confidence'],
+      ],
+      { tabela: 'vocab_cards', onde: sql`user_id = ${userId} AND deleted_at IS NULL` },
+    ),
+    /* SÓ AS COLUNAS QUE ESTA FUNÇÃO LÊ (auditoria de 2026-09-07, seção 5). Era `SELECT *`, e em
+       `utterances` isso trazia o transcrito INTEIRO (`source_text` e `translated_text`) para contar
+       palavras e somar duração de fala. */
+    lerCompacto<{ cardId: string; createdAt: number; reviewedAt: number | null; grade: number | null }>(
+      [
+        ['cardId', 'card_id', 'texto'],
+        ['createdAt', 'created_at'],
+        ['reviewedAt', 'reviewed_at'],
+        ['grade', 'grade'],
+      ],
+      { tabela: 'review_logs', onde: sql`user_id = ${userId}` },
+    ),
+    lerCompacto<{
+      sessionId: string
+      source: string | null
+      sourceText: string | null
+      tStartMs: number | null
+      tEndMs: number | null
+    }>(
+      [
+        ['sessionId', 'session_id', 'texto'],
+        ['source', 'source', 'texto'],
+        ['sourceText', 'source_text', 'texto'],
+        ['tStartMs', 't_start_ms'],
+        ['tEndMs', 't_end_ms'],
+      ],
+      { tabela: 'utterances', onde: sql`user_id = ${userId} AND deleted_at IS NULL` },
+    ),
     // `exercise_results` existia e NINGUÉM lia — por isso o XP dos exercícios nunca chegava
     // ao perfil. É a tabela que fecha a ponte, sem precisar de nenhuma nova.
-    db
-      .select({
-        createdAt: exerciseResults.createdAt,
-        correct: exerciseResults.correct,
-        kind: exerciseResults.kind,
-        exerciseKind: exerciseResults.exerciseKind,
-        origem: exerciseResults.origem,
-        roundId: exerciseResults.roundId,
-      })
-      .from(exerciseResults)
-      .where(and(eq(exerciseResults.userId, userId), isNull(exerciseResults.deletedAt))),
+    lerCompacto<{
+      createdAt: number
+      correct: number | null
+      kind: string | null
+      exerciseKind: string | null
+      origem: string | null
+      roundId: string | null
+    }>(
+      [
+        ['createdAt', 'created_at'],
+        ['correct', 'correct'],
+        ['kind', 'kind', 'texto'],
+        ['exerciseKind', 'exercise_kind', 'texto'],
+        ['origem', 'origem', 'texto'],
+        ['roundId', 'round_id', 'texto'],
+      ],
+      { tabela: 'exercise_results', onde: sql`user_id = ${userId} AND deleted_at IS NULL` },
+    ),
   ])
+  return { sessTodas, cardsTodos, logs, uttsTodas, drills }
+}
 
+type LinhasDaAtividade = Awaited<ReturnType<typeof lerAtividade>>
+
+/**
+ * O PERFIL SEM O RELÓGIO: tudo o que sai das cinco tabelas e NÃO depende de `now`, já calculado,
+ * mais o mínimo que a parte dependente do relógio precisa (vencimentos, estabilidades, carimbos
+ * de revisão). É isto que o cache guarda — dezenas de KB por usuário em vez das linhas.
+ *
+ * O cálculo é o de antes, na mesma ordem: as somas de ponto flutuante (`avgStability`,
+ * `levelConfidence`, `avgRetention`) percorrem os cartões na ordem em que o banco os devolve,
+ * então o resultado é o mesmo número, bit a bit. `tests/integration/rotas-caras-equivalencia`
+ * compara o JSON inteiro com o gravado antes desta divisão.
+ */
+function resumirAtividade(linhas: LinhasDaAtividade, sessionId: string | null) {
+  const { sessTodas, cardsTodos, logs, uttsTodas, drills } = linhas
   const sess = sessionId ? sessTodas.filter((s) => s.id === sessionId) : sessTodas
   const cards = sessionId ? cardsTodos.filter((c) => c.sessionId === sessionId) : cardsTodos
   const utts = sessionId ? uttsTodas.filter((u) => u.sessionId === sessionId) : uttsTodas
@@ -182,8 +223,8 @@ export async function computeProfile(userId: UserId, opts: OpcoesDePerfil = {}):
      estivesse atrasado desde epoch, inflando `dueToday`. Esse número vai para um banner global da
      tela de jogos ("N pedindo revisão") que já mente por ESCOPO (conta fora do deck selecionado,
      achado de outra auditoria) — mas ao menos a SEMÂNTICA para de mentir aqui: só conta quem tem
-     data marcada E essa data já passou. */
-  const dueToday = inDeck.filter((c) => c.dueAt != null && c.dueAt <= now).length
+     data marcada E essa data já passou. `dueToday` depende do relógio: aqui ficam só as datas. */
+  const vencimentos = inDeck.filter((c) => c.dueAt != null).map((c) => c.dueAt as number)
 
   /**
    * Itens de exercício/minigame que NÃO viraram revisão de SRS. O discriminador `kind` evita a
@@ -248,53 +289,21 @@ export async function computeProfile(userId: UserId, opts: OpcoesDePerfil = {}):
   const stabilities = inDeck.map((c) => c.stability).filter((s): s is number => s != null)
   const avgStability = stabilities.length ? stabilities.reduce((a, b) => a + b, 0) / stabilities.length : 0
 
-  const retentions = inDeck
-    .filter((c) => c.stability != null)
-    .map((c) => {
-      const t = c.lastReview ? Math.max(0, (now - c.lastReview) / DAY) : 0
-      return retrievability(t, c.stability as number)
-    })
-  const avgRetention = retentions.length ? retentions.reduce((a, b) => a + b, 0) / retentions.length : 0
-
-  // Streak: dias consecutivos (a partir de hoje) com ao menos uma revisão.
-  const reviewDays = new Set(logsNoEscopo.map((l) => new Date(l.reviewedAt ?? l.createdAt).toDateString()))
-  let streakDays = 0
-  const cursor = new Date()
-  for (let i = 0; i < 3650; i++) {
-    if (reviewDays.has(cursor.toDateString())) streakDays++
-    else break
-    cursor.setDate(cursor.getDate() - 1)
+  /* A RETENÇÃO depende do relógio (dias desde a última revisão). Guardam-se os dois insumos por
+     cartão, na ordem do deck — a média é somada nessa mesma ordem em `montarPerfil`. `lastReview`
+     falsy (null ou 0) vira 0, e 0 é tratado como "sem revisão" lá, como `c.lastReview ? … : 0`. */
+  const comEstabilidade = inDeck.filter((c) => c.stability != null)
+  const retencao = {
+    estabilidade: Float64Array.from(comEstabilidade, (c) => c.stability as number),
+    ultimaRevisao: Float64Array.from(comEstabilidade, (c) => c.lastReview || 0),
   }
 
-  /* O outro lado da moeda. Vem de uma tabela de eventos, e não de contagem derivada: gasto que
-     se recalcula não é gasto — voltaria ao valor cheio no próximo carregamento. */
-  const seedsGastas = await seedSpendsRepo.totalGasto(userId)
-  const cromasComprados = await seedSpendsRepo.cromasComprados(userId)
-  const aprimoramentos = await seedSpendsRepo.aprimoramentosComprados(userId)
-  /* B4 fechada (economia-de-creditos 1.2): a posse da Loja viaja no perfil, derivada do log de
-     compras — o cliente hidrata o espelho local a partir daqui em vez de confiar só nele. */
-  const itensComprados = await seedSpendsRepo.itensComprados(userId)
-
-  /* ECONOMIA v2 (A7): os créditos avulsos e a presença agora existem no servidor real. O cliente
-     (`deriveProgress`) já lia estes campos com `?? 0` — a paridade é com o servidor efêmero. */
-  const { seedsCreditadas, xpCreditado } = await economiaRepo.totaisCreditados(userId)
-  const diasDePresenca = await economiaRepo.diasDePresenca(userId)
-  const seqPresenca = sequencias(diasDePresenca, diaLocal(now))
-
-  /**
-   * OS TRÊS CONTADORES QUE FALTAVAM — e por que eles passaram a importar.
-   *
-   * `docs/economia-v2.md` registrou como follow-up "os mesmos agregados em
-   * server/db/repositories/metrics.ts", e ficou. Enquanto o saldo era calculado só no navegador
-   * (`src/lib/progress.ts`), a ausência custava pouco: o cliente tratava como `?? 0` e a conta
-   * fechava com um ganho subestimado. A partir do momento em que o SERVIDOR passa a recusar um
-   * gasto por saldo insuficiente, subestimar o ganho vira recusar compra legítima — a ausência
-   * deixa de ser imprecisão e passa a ser defeito.
-   *
-   * O cálculo é o do servidor efêmero (`src/data/efemero/servidor.ts`), que é a implementação de
-   * referência em uso: os mesmos ajudantes puros do core, sobre as mesmas linhas.
-   */
-  const sequencias7 = marcosDeSequencia(diasDePresenca, 7)
+  // Streak: dias consecutivos (a partir de hoje) com ao menos uma revisão. O conjunto de dias não
+  // depende do relógio; a contagem a partir de hoje, sim (fica em `montarPerfil`).
+  const reviewDays = new Set(logsNoEscopo.map((l) => new Date(l.reviewedAt ?? l.createdAt).toDateString()))
+  /* `revisoesRecentes` é um recorte POR TEMPO dos mesmos carimbos: guardá-los já ordenados e
+     filtrar depois dá o mesmo array que filtrar e ordenar (a ordem de números iguais é a mesma). */
+  const temposDeRevisao = logsNoEscopo.map((l) => l.reviewedAt ?? l.createdAt).sort((a, b) => a - b)
 
   // Minutos de captura por DIA LOCAL — o teto diário vive no core (`minutosPremiados`), e é ele
   // que impede uma gravação de oito horas de virar Seeds de oito horas.
@@ -353,13 +362,141 @@ export async function computeProfile(userId: UserId, opts: OpcoesDePerfil = {}):
     wordsCaptured,
     deckSize: inDeck.length,
     newCards,
-    dueToday,
     reviews,
     correctReviews,
     drillItems,
     drillCorrect,
     accuracy,
-    accuracyConfidence: reviews >= 4 ? 0.9 : reviews > 0 ? 0.4 : 0,
+    capturaMinutos,
+    capturaMinutosPremiados,
+    idiomas,
+    rodadasPerfeitas,
+    avgStability,
+    vocabByWeek,
+    speakingMs,
+    listeningMs,
+    palavrasDificeis,
+    acertoPorExercicio,
+    wpm,
+    uniqueWords,
+    levelDistribution,
+    levelConfidence,
+    // Os insumos da parte que depende do relógio.
+    vencimentos: Float64Array.from(vencimentos),
+    retencao,
+    reviewDays,
+    temposDeRevisao: Float64Array.from(temposDeRevisao),
+  }
+}
+
+type ResumoDaAtividade = ReturnType<typeof resumirAtividade>
+
+/** Bytes aproximados de um resumo — o "peso" que o cache usa para respeitar o teto de memória. */
+function pesoDoResumo(r: ResumoDaAtividade): number {
+  return (
+    4096 +
+    8 * (r.vencimentos.length + 2 * r.retencao.estabilidade.length + r.temposDeRevisao.length) +
+    32 * r.reviewDays.size +
+    256 * (r.palavrasDificeis.length + r.vocabByWeek.length)
+  )
+}
+
+/**
+ * O CACHE DO RESUMO DA CONTA INTEIRA, por usuário e versão de `atividade`.
+ *
+ * Só o escopo GLOBAL entra: é o que roda "a cada mudança da lista de gravações e a cada gasto de
+ * seeds", na conferência de posse de `PUT /api/settings` e em `gastar`. O escopo de sessão é a aba
+ * de métricas de uma gravação — raro, e continua lendo as linhas na hora.
+ *
+ * Tetos: 512 usuários e ~48 MB. Um usuário pesado (3.000 cartões, 1.000 revisões) pesa ~60 KB.
+ */
+const resumosDaConta = new CachePorVersao<ResumoDaAtividade>(512, 48 * 1024 * 1024)
+
+/**
+ * O RAZÃO DE MOEDAS E A PRESENÇA — pequeno, e por isso lido SEMPRE, fora do cache.
+ *
+ * `seed_spends`, `seed_credits` e `presencas` não disparam a versão de `atividade`: um gasto de
+ * Seeds não muda nenhuma das cinco tabelas grandes, e é justamente o caso de `gastar`, que lê a
+ * economia logo depois de escrever no razão. Deixar estas três leituras fora do cache é o que faz
+ * o gasto nunca ver saldo velho sem precisar invalidar o resumo.
+ */
+async function lerRazao(userId: UserId) {
+  /* O outro lado da moeda. Vem de uma tabela de eventos, e não de contagem derivada: gasto que
+     se recalcula não é gasto — voltaria ao valor cheio no próximo carregamento.
+     B4 fechada (economia-de-creditos 1.2): a posse da Loja viaja no perfil, derivada do log de
+     compras — o cliente hidrata o espelho local a partir daqui em vez de confiar só nele. */
+  const gastos = await seedSpendsRepo.razao(userId)
+  /* ECONOMIA v2 (A7): os créditos avulsos e a presença agora existem no servidor real. O cliente
+     (`deriveProgress`) já lia estes campos com `?? 0` — a paridade é com o servidor efêmero. */
+  const creditos = await economiaRepo.totaisCreditados(userId)
+  const diasDePresenca = await economiaRepo.diasDePresenca(userId)
+  return { gastos, creditos, diasDePresenca }
+}
+
+/** As linhas de hoje, o razão e o relógio viram o `AppMetrics` — a forma e a ordem de sempre. */
+function montarPerfil(
+  r: ResumoDaAtividade,
+  razao: Awaited<ReturnType<typeof lerRazao>>,
+  now: number,
+  escopo: AppMetrics['escopo'],
+): AppMetrics {
+  let dueToday = 0
+  for (const t of r.vencimentos) if (t <= now) dueToday++
+
+  const { estabilidade, ultimaRevisao } = r.retencao
+  let somaRetencao = 0
+  for (let i = 0; i < estabilidade.length; i++) {
+    const ultima = ultimaRevisao[i]
+    const t = ultima ? Math.max(0, (now - ultima) / DAY) : 0
+    somaRetencao += retrievability(t, estabilidade[i])
+  }
+  const considerados = estabilidade.length
+  const avgRetention = considerados ? somaRetencao / considerados : 0
+
+  let streakDays = 0
+  const cursor = new Date()
+  for (let i = 0; i < 3650; i++) {
+    if (r.reviewDays.has(cursor.toDateString())) streakDays++
+    else break
+    cursor.setDate(cursor.getDate() - 1)
+  }
+
+  const { seedsGastas, itensComprados, cromasComprados, aprimoramentos } = razao.gastos
+  const { seedsCreditadas, xpCreditado } = razao.creditos
+  const diasDePresenca = razao.diasDePresenca
+  const seqPresenca = sequencias(diasDePresenca, diaLocal(now))
+
+  /**
+   * OS TRÊS CONTADORES QUE FALTAVAM — e por que eles passaram a importar.
+   *
+   * `docs/economia-v2.md` registrou como follow-up "os mesmos agregados em
+   * server/db/repositories/metrics.ts", e ficou. Enquanto o saldo era calculado só no navegador
+   * (`src/lib/progress.ts`), a ausência custava pouco: o cliente tratava como `?? 0` e a conta
+   * fechava com um ganho subestimado. A partir do momento em que o SERVIDOR passa a recusar um
+   * gasto por saldo insuficiente, subestimar o ganho vira recusar compra legítima — a ausência
+   * deixa de ser imprecisão e passa a ser defeito.
+   *
+   * O cálculo é o do servidor efêmero (`src/data/efemero/servidor.ts`), que é a implementação de
+   * referência em uso: os mesmos ajudantes puros do core, sobre as mesmas linhas.
+   */
+  const sequencias7 = marcosDeSequencia(diasDePresenca, 7)
+
+  const limiteRecente = now - 8 * DAY
+  const revisoesRecentes: number[] = []
+  for (const t of r.temposDeRevisao) if (t >= limiteRecente) revisoesRecentes.push(t)
+
+  return {
+    sessions: r.sessions,
+    wordsCaptured: r.wordsCaptured,
+    deckSize: r.deckSize,
+    newCards: r.newCards,
+    dueToday,
+    reviews: r.reviews,
+    correctReviews: r.correctReviews,
+    drillItems: r.drillItems,
+    drillCorrect: r.drillCorrect,
+    accuracy: r.accuracy,
+    accuracyConfidence: r.reviews >= 4 ? 0.9 : r.reviews > 0 ? 0.4 : 0,
     // A ofensiva exibida é a MAIOR entre revisar e aparecer — mesma regra do efêmero.
     streakDays: Math.max(streakDays, seqPresenca.atual),
     seedsGastas,
@@ -370,29 +507,28 @@ export async function computeProfile(userId: UserId, opts: OpcoesDePerfil = {}):
     xpCreditado,
     presencas: diasDePresenca.length,
     sequencias7,
-    capturaMinutos: Math.round(capturaMinutos),
-    capturaMinutosPremiados,
-    idiomas,
-    rodadasPerfeitas,
+    capturaMinutos: Math.round(r.capturaMinutos),
+    capturaMinutosPremiados: r.capturaMinutosPremiados,
+    idiomas: r.idiomas,
+    rodadasPerfeitas: r.rodadasPerfeitas,
     streakPresenca: seqPresenca.atual,
     maiorSequenciaPresenca: seqPresenca.maior,
-    avgStability,
+    avgStability: r.avgStability,
     avgRetention,
-    avgRetentionConfidence: retentions.length >= 4 ? 0.7 : retentions.length > 0 ? 0.3 : 0,
-    vocabByWeek,
-    revisoesRecentes: logsNoEscopo
-      .map((l) => l.reviewedAt ?? l.createdAt)
-      .filter((t) => t >= now - 8 * DAY)
-      .sort((a, b) => a - b),
-    speakingMs,
-    listeningMs,
-    palavrasDificeis,
-    acertoPorExercicio,
-    wpm,
-    wpmConfidence: speakingMs >= 60_000 ? 0.7 : speakingMs > 0 ? 0.4 : 0,
-    uniqueWords,
-    levelDistribution,
-    levelConfidence,
+    avgRetentionConfidence: considerados >= 4 ? 0.7 : considerados > 0 ? 0.3 : 0,
+    /* Cópias rasas: o resumo é do cache e é compartilhado entre requisições; quem receber o
+       perfil e mexer num array não pode alterar a resposta da próxima. */
+    vocabByWeek: r.vocabByWeek.map((x) => ({ ...x })),
+    revisoesRecentes,
+    speakingMs: r.speakingMs,
+    listeningMs: r.listeningMs,
+    palavrasDificeis: r.palavrasDificeis.map((x) => ({ ...x })),
+    acertoPorExercicio: r.acertoPorExercicio.map((x) => ({ ...x })),
+    wpm: r.wpm,
+    wpmConfidence: r.speakingMs >= 60_000 ? 0.7 : r.speakingMs > 0 ? 0.4 : 0,
+    uniqueWords: r.uniqueWords,
+    levelDistribution: r.levelDistribution.map((x) => ({ ...x })),
+    levelConfidence: r.levelConfidence,
     asOf: now,
 
     escopo,
@@ -402,8 +538,48 @@ export async function computeProfile(userId: UserId, opts: OpcoesDePerfil = {}):
      * de deixar a ressalva como nota de rodapé em cinza — que era como o painel "Requer Atenção"
      * anunciava quatro palavras calculadas sobre 8% do acervo.
      */
-    base: { considerados: retentions.length, total: inDeck.length },
+    base: { considerados, total: r.deckSize },
   }
+}
+
+/**
+ * MÉTRICAS DO PERFIL — agora com escopo.
+ *
+ * Antes esta função só sabia responder "como está a conta inteira?", e a aba de métricas da
+ * Sessão, sem endpoint para chamar, preenchia o vazio misturando estatística do texto com
+ * `vocabByWeek` da conta — dado global dentro de um painel que anunciava uma gravação. Não era
+ * possível unificar os dois componentes sem antes existir a pergunta "e só desta sessão?".
+ *
+ * O escopo filtra as CINCO agregações. Filtrar só algumas produziria o pior resultado possível:
+ * números parcialmente escopados, que parecem coerentes e não são.
+ *
+ * `reviewLogs` e `exerciseResults` não têm coluna de sessão — são escopados pelos CARTÕES da
+ * sessão, que é a relação real entre eles.
+ *
+ * CUSTO (fix/rotas-caras): a leitura das cinco tabelas é a parte cara (medido: ~70 ms de CPU com
+ * 3.000 cartões, event loop preso o tempo todo pelo driver). No escopo da conta, o resumo delas
+ * fica em cache enquanto a versão de `atividade` não muda (`versoes_de_dados`, mantida por
+ * gatilho); a requisição seguinte lê a versão, o razão de moedas e a presença — quatro consultas
+ * pequenas — e refaz só a parte que depende do relógio.
+ */
+export async function computeProfile(userId: UserId, opts: OpcoesDePerfil = {}): Promise<AppMetrics> {
+  const now = Date.now()
+  const sessionId = opts.sessionId ?? null
+  const escopo: AppMetrics['escopo'] = sessionId ? 'sessao' : 'global'
+
+  let resumo: ResumoDaAtividade | undefined
+  if (sessionId) {
+    resumo = resumirAtividade(await lerAtividade(userId), sessionId)
+  } else {
+    // A versão ANTES das linhas — ver `CachePorVersao` para o porquê da ordem.
+    const versao = String((await versoesRepo.de(userId)).atividade)
+    resumo = resumosDaConta.obter(userId, versao)
+    if (!resumo) {
+      resumo = resumirAtividade(await lerAtividade(userId), null)
+      resumosDaConta.guardar(userId, versao, resumo, pesoDoResumo(resumo))
+    }
+  }
+  return montarPerfil(resumo, await lerRazao(userId), now, escopo)
 }
 
 /**

@@ -35,6 +35,8 @@ import {
 import { useState } from 'react';
 
 import { CRIADOR, preenchido } from '../../lib/criador';
+import { t } from '../../lib/i18n';
+import { VERSAO_DO_APP } from '../../lib/versao';
 import { CabecalhoDeTela, IconeEmBloco, Tela, TituloDeSecao } from '../ui';
 import DialogoLegal, { type Documento } from './sobre/DialogoLegal';
 
@@ -234,6 +236,12 @@ export default function Sobre({ onVerPlanos }: { onVerPlanos?: (view: string) =>
           <button type="button" className="link" onClick={() => setLegal('termos')}>
             Termos de uso
           </button>
+          {/* P0-7b: a versão que está rodando — é o que se cita num relato de problema. */}
+          {VERSAO_DO_APP && (
+            <span className="mut" style={{ fontSize: 12.5, marginLeft: 'auto', fontFamily: 'var(--font-mono)' }}>
+              {t('Versão {versao}', { versao: VERSAO_DO_APP })}
+            </span>
+          )}
         </div>
       </section>
 

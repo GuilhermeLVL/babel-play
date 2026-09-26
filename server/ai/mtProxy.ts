@@ -7,14 +7,17 @@ import {
   userComunicativo,
   userTextoEscrito,
 } from '../../src/lib/traducao/promptComunicativo'
-import { getEntitlementsForUser } from '../lib/entitlements'
+import { contarCacheDeTraducao } from '../http/metricas'
+import { abrirPortaGratuita, type PortaGratuita } from '../lib/convidado'
+import { getEntitlements } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
 import { log } from '../lib/logger'
 import { custoDeLlm, portaoDaNuvem, registrarGastoDeIa, responderPortaoFechado } from '../lib/orcamentoDeIa'
 import { responderErro } from '../lib/respostaDeErro'
 import { estimarTokens } from '../lib/usageQuota'
+import { planoDeAdmissao, responderNuvemOcupada } from './admissao'
 import { cacheDeTraducao, chaveDeTraducao, MAX_CARACTERES_NO_CACHE } from './cacheDeTraducao'
-import { percorrerCascata } from './cascata'
+import { type AdmissaoDaCascata, admitirCascata, encerrarAdmissao, percorrerCascata } from './cascata'
 import { FUNCOES_DE_IA, maxTokensDaTraducao } from './funcoesDeIa'
 import { type MensagemDeChat, tamanhoDoPrompt } from './llmClient'
 import { cascataDeNuvem } from './provedores'
@@ -116,8 +119,12 @@ async function traduzir(req: Request, res: Response, rastro: RastroDeIa): Promis
   // vira 502 (nunca passa direto), consistente com o STT e o tutor.
   /* UMA leitura de plano, dois usos: o que deixa entrar e o que escolhe o modelo. */
   let planoDoUsuario
+  /* Fase 7: convidado (flag, limite por IP, tetos) e pool gratuito do dia (`server/lib/convidado.ts`).
+     `null` = já respondeu (403 `exige_conta`, 429, 402, 503). */
+  const gratuita = await abrirPortaGratuita(req, res, 'mt')
+  if (!gratuita) return
   try {
-    planoDoUsuario = await getEntitlementsForUser(req.userId)
+    planoDoUsuario = getEntitlements(gratuita.plano)
     if (!planoDoUsuario.managedCloudLlm) {
       res.status(402).json({ error: 'tradução por IA gerenciada requer um plano pago', entitlement: 'managedCloudLlm' })
       return
@@ -149,6 +156,7 @@ async function traduzir(req: Request, res: Response, rastro: RastroDeIa): Promis
     modelo: provedores[0].model,
   })
   const guardada = cacheavel ? cacheDeTraducao.ler(chave) : null
+  if (cacheavel) contarCacheDeTraducao(guardada !== null)
   if (guardada) {
     rastro.anotar({ cacheHit: true })
     log('info', { event: 'mt_cache_hit', route: '/api/ai/mt', status: 200, requestId: req.requestId })
@@ -178,25 +186,95 @@ async function traduzir(req: Request, res: Response, rastro: RastroDeIa): Promis
      reserva mais o teto de um parágrafo. A folga para o raciocínio "low" está lá explicada. */
   const maxTokens = maxTokensDaTraducao(text.length)
 
+  const estimativa = estimarTokens(tamanhoDoPrompt(messages), maxTokens)
+
+  /* ADMISSÃO (ADR 0007) ANTES da cota do usuário: sem saldo no balde do modelo (ou com a 2ª
+     tradução dele já em voo), 429 `nuvem_ocupada` com `Retry-After` — e o cliente traduz no local. */
+  const admitida = admitirCascata(provedores, {
+    userId: req.userId,
+    plano: planoDeAdmissao(planoDoUsuario.plan),
+    tokens: estimativa,
+  })
+  if (admitida.ok === false) {
+    responderNuvemOcupada(res, admitida.recusa)
+    return
+  }
+  try {
+    await traduzirAdmitido(req, res, rastro, {
+      provedores,
+      messages,
+      maxTokens,
+      estimativa,
+      falada,
+      cacheavel,
+      chave,
+      admissao: admitida.admissao,
+      gratuita,
+      planoDaAssinatura: planoDoUsuario.plan,
+    })
+  } finally {
+    encerrarAdmissao(admitida.admissao)
+  }
+}
+
+/** A parte que gasta: reserva de cota, cascata e acerto. Só roda com a admissão concedida. */
+async function traduzirAdmitido(
+  req: Request,
+  res: Response,
+  rastro: RastroDeIa,
+  p: {
+    provedores: ReturnType<typeof cascataDeNuvem>
+    messages: MensagemDeChat[]
+    maxTokens: number
+    estimativa: number
+    falada: boolean | undefined
+    cacheavel: boolean
+    chave: string
+    admissao: AdmissaoDaCascata
+    gratuita: PortaGratuita
+    /** O plano da assinatura — rótulo do custo por plano (`ia_custo_usd_total{plano}`). */
+    planoDaAssinatura: string
+  },
+): Promise<void> {
+  const { provedores, messages, maxTokens, falada, cacheavel, chave } = p
   // RESERVA chamada + tokens ANTES do provedor (P0-1: conferir antes e contabilizar depois deixava
   // N requisições simultâneas passarem pelo mesmo teto). `null` = já respondeu 402/503.
-  const reserva: ReservaDeLlm | null = await abrirReservaDeLlm(
-    req.userId,
-    estimarTokens(tamanhoDoPrompt(messages), maxTokens),
-    res,
-  )
+  const reserva: ReservaDeLlm | null = await abrirReservaDeLlm(req.userId, p.estimativa, res)
   if (!reserva) return
 
   const t0 = Date.now()
   try {
     /* 12 s: alguém está esperando legenda na tela. Fala pede um pouco de liberdade para escolher a
        expressão natural; texto fica determinístico. */
-    const { entregue, ultimaFalha } = await percorrerCascata(
+    const { entregue, ultimaFalha, limitadoPeloProvedor } = await percorrerCascata(
       provedores,
       { messages, temperature: falada ? 0.2 : TRADUCAO.temperatura, maxTokens, timeoutMs: 12_000 },
-      { evento: 'mt', route: '/api/ai/mt', requestId: req.requestId, funcao: 'traducao', rastro },
+      {
+        evento: 'mt',
+        route: '/api/ai/mt',
+        requestId: req.requestId,
+        funcao: 'traducao',
+        rastro,
+        admissao: p.admissao,
+      },
     )
 
+    /* LIMITE DE TAXA NÃO É DEFEITO (Fase 4 da prontidão, suíte de carga): com TODAS as pernas em 429,
+       a resposta é a mesma do STT — 429 `nuvem_ocupada` com o `Retry-After` que a admissão fixou —,
+       e o cliente traduz no local e volta à nuvem sozinho. Antes saía 502 `provedor_indisponivel`,
+       contado como erro de servidor no SLO e nos alertas. */
+    if (!entregue && limitadoPeloProvedor) {
+      log('warn', {
+        event: 'mt_provedor_limitou',
+        route: '/api/ai/mt',
+        status: 429,
+        error: ultimaFalha.slice(0, 300),
+        latencyMs: Date.now() - t0,
+        requestId: req.requestId,
+      })
+      responderNuvemOcupada(res, { motivo: 'provedor_limitou', retryAfterS: limitadoPeloProvedor.retryAfterS })
+      return
+    }
     if (!entregue) {
       /* O CORPO DO TERCEIRO NÃO É PARA O CLIENTE (achado da Fase 4). `ultimaFalha` carrega texto
          escrito pelo provedor; vai inteira para o log, e o cliente recebe código estável +
@@ -221,7 +299,9 @@ async function traduzir(req: Request, res: Response, rastro: RastroDeIa): Promis
     /* O `usage` do provedor acerta a reserva de tokens pelo número REAL — nos modelos de raciocínio a
        saída inclui os tokens de pensamento, a parte cara. */
     await reserva.consumir(entregue.tokensEntrada + entregue.tokensSaida)
-    await registrarGastoDeIa(custoDeLlm(entregue.model, entregue.tokensEntrada, entregue.tokensSaida))
+    const custo = custoDeLlm(entregue.model, entregue.tokensEntrada, entregue.tokensSaida)
+    await registrarGastoDeIa(custo, { userId: req.userId, plano: p.planoDaAssinatura })
+    await p.gratuita.registrarCusto(custo)
     log('info', {
       event: 'mt_translated',
       route: '/api/ai/mt',

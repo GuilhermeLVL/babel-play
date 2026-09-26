@@ -5,13 +5,14 @@
  * Whisper de nuvem (OpenAI-compatible `/audio/transcriptions`). A chave NUNCA
  * chega ao cliente.
  */
-import type { Request, Response } from 'express'
+import type { NextFunction, Request, Response } from 'express'
 
 import { filtrarAlucinacao } from '../../src/gateway/alucinacao'
 import { credentialsRepo } from '../db/repositories/credentials'
 import { contarDescartesDoStt, observarChamadaDeProvedor } from '../http/metricas'
-import { duracaoDoWav, segundosDeAudioDoUsuario, segundosFaturaveis } from '../lib/duracaoDeAudio'
-import { hasEntitlement } from '../lib/entitlements'
+import { abrirPortaGratuita, type PortaGratuita } from '../lib/convidado'
+import { avaliarAudioFaturavel, duracaoDoWav, segundosFaturaveis } from '../lib/duracaoDeAudio'
+import { getEntitlements } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
 import { normalizarIdiomaDoWhisper } from '../lib/idiomaDoWhisper'
 import { log } from '../lib/logger'
@@ -25,7 +26,24 @@ import {
   reserveManagedCall,
 } from '../lib/usageQuota'
 import { parseOr400, sttHeadersSchema } from '../validation'
-import { deveRetentar, esperaDaRetentativa } from './disjuntor'
+import {
+  admitirChamada,
+  admitirNoBalde,
+  type ChamadaAdmitida,
+  type PlanoDeAdmissao,
+  planoDeAdmissao,
+  registrarLimiteNaAdmissao,
+  responderNuvemOcupada,
+  segundosDoRetryAfter,
+} from './admissao'
+import {
+  chaveDoProvedor,
+  disjuntorPermite,
+  esperaDaRetentativa,
+  JANELA_ABERTA_MS,
+  registrarFalha,
+  registrarSucesso,
+} from './disjuntor'
 import { responderContadorIndisponivel } from './reservaDeNuvem'
 import { assertPublicUrl } from './ssrf'
 import { promptDoCabecalho, triarSegmentos } from './sttQualidade'
@@ -39,11 +57,130 @@ import {
 } from './telemetriaDeIa'
 
 /**
- * Quantas tentativas EXTRAS o STT faz. Duas, e o porquê do número está no bloco que as usa: cada
- * tentativa carrega 30 s de timeout próprio, então o teto de espera é o que limita, não a
- * insistência.
+ * Quantas tentativas EXTRAS o STT faz — UMA, e só em 5xx (ADR 0007).
+ *
+ * Eram duas, e valiam também para o 429: cada limite de taxa do provedor virava TRÊS pedidos, no
+ * exato momento em que ele pedia para diminuir o ritmo, e o `Retry-After` era ignorado. Agora o 429
+ * não repete — ele fecha o balde da admissão até o `Retry-After` e volta ao cliente como 429
+ * `nuvem_ocupada`, e o cliente usa o motor local na hora. O 5xx ainda repete uma vez (o provedor
+ * disse que não fez; não há efeito para duplicar), e só se o balde tiver saldo para o repique.
  */
-const RETENTATIVAS_DE_STT = 2
+const RETENTATIVAS_DE_STT = 1
+
+/* ─────────────── a PORTA do STT: tudo que é barato, ANTES de ler o corpo ─────────────── */
+
+/**
+ * O STT gerenciado — a chave do DONO — como o servidor está configurado. Lido na porta para o 501
+ * sair ANTES de o corpo de 25 MB ser lido (antes ele saía depois até da reserva de cota).
+ */
+function sttGerenciado(): { secret: string | null; baseUrl: string; model: string } {
+  return {
+    secret: process.env.GROQ_API_KEY ?? process.env.STT_API_KEY ?? null,
+    baseUrl: process.env.GROQ_BASE_URL || process.env.STT_BASE_URL || 'https://api.groq.com/openai/v1',
+    model: process.env.STT_MODEL || 'whisper-large-v3-turbo',
+  }
+}
+
+/** O que a porta decidiu, do middleware até o handler. */
+interface PortaDoStt {
+  byok: boolean
+  plano?: PlanoDeAdmissao
+  /** O plano da assinatura (`free|essencial|pro|selfhost`) — rótulo da métrica de custo por plano. */
+  planoDaAssinatura?: string
+  chamada?: ChamadaAdmitida
+  secret?: string
+  baseUrl?: string
+  model?: string
+  provedor?: string
+  /** O provedor chegou a ser chamado? Se não, o pedido volta ao balde. */
+  chamouProvedor: boolean
+  /** Fase 7: as travas de convidado/free (pool do dia, tetos por id e por IP). */
+  gratuita?: PortaGratuita
+}
+
+const portas = new WeakMap<Request, PortaDoStt>()
+
+/** Solta a vaga em voo e, se ninguém chamou o provedor, devolve o pedido ao balde. Idempotente. */
+function fecharPorta(p: PortaDoStt): void {
+  p.chamada?.liberar()
+  if (!p.chamouProvedor) p.chamada?.ticket.devolver()
+}
+
+/**
+ * As checagens BARATAS do STT gerenciado, em ordem de custo: plano (402), portão global (503),
+ * configuração (501) e admissão (429 `nuvem_ocupada`: vaga em voo do usuário + balde do modelo).
+ * Devolve `null` quando JÁ RESPONDEU. BYOK passa direto: a chave e o limite são do usuário.
+ *
+ * A cota do usuário NÃO é reservada aqui: ela depende da DURAÇÃO do áudio, que só o corpo diz.
+ */
+async function abrirPortaDoStt(req: Request, res: Response): Promise<PortaDoStt | null> {
+  if (req.header('x-credential-id')) return { byok: true, chamouProvedor: false }
+  // SaaS Fatia 1b — STT de nuvem GERENCIADA (chave do DONO) exige o entitlement. BYOK e o STT local
+  // (no navegador) passam livres: só o caminho que gasta a chave do serviço é gateado.
+  /* Fase 7: convidado (flag, limite por IP, tetos) e pool gratuito do dia — antes do entitlement,
+     porque é a porta que diz ao convidado POR QUE não pode (`exige_conta`, `limite_de_convidados`). */
+  const gratuita = await abrirPortaGratuita(req, res, 'stt')
+  if (!gratuita) return null
+  const plano = getEntitlements(gratuita.plano)
+  if (!plano.managedCloudStt) {
+    res.status(402).json({ error: 'STT de nuvem gerenciada requer um plano pago', entitlement: 'managedCloudStt' })
+    return null
+  }
+  // Chave de emergência e orçamento global do mês (orcamentoDeIa.ts), antes de qualquer cota.
+  const portao = await portaoDaNuvem()
+  if (!portao.ok) {
+    responderPortaoFechado(res, portao)
+    return null
+  }
+  const cfg = sttGerenciado()
+  if (!cfg.secret) {
+    res.status(501).json({ error: 'STT de nuvem não configurado: defina GROQ_API_KEY no servidor (.env)' })
+    return null
+  }
+  const faixa = planoDeAdmissao(plano.plan)
+  const provedor = nomeDoProvedor(cfg.baseUrl)
+  const admissao = admitirChamada({ userId: req.userId, tipo: 'stt', provedor, modelo: cfg.model, plano: faixa })
+  if (admissao.ok === false) {
+    responderNuvemOcupada(res, admissao.recusa)
+    return null
+  }
+  return {
+    byok: false,
+    plano: faixa,
+    planoDaAssinatura: plano.plan,
+    chamada: admissao.chamada,
+    secret: cfg.secret,
+    baseUrl: cfg.baseUrl,
+    model: cfg.model,
+    provedor,
+    chamouProvedor: false,
+    gratuita,
+  }
+}
+
+/**
+ * MIDDLEWARE montado ANTES do `express.raw()` em `server/routes/ai.ts` (fase 2, §2.3): o corpo de
+ * até 25 MB só é lido por quem passou pelo plano, pelo portão, pela configuração e pela admissão.
+ * Antes o `raw()` lia tudo e SÓ DEPOIS vinham o 402 e o 501 — memória gasta para recusar.
+ *
+ * A vaga em voo é solta no `close` da resposta além do `finally` do handler: se o `raw()` recusar o
+ * corpo (413) o handler nem roda, e a vaga ficaria presa para sempre.
+ */
+export async function portaDoStt(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const porta = await abrirPortaDoStt(req, res)
+    if (!porta) return
+    portas.set(req, porta)
+    res.on('close', () => fecharPorta(porta))
+    next()
+  } catch (err) {
+    if (err instanceof ContadorIndisponivel) {
+      if (!res.headersSent) responderContadorIndisponivel(res)
+      return
+    }
+    if (!res.headersSent) res.status(502).json({ error: erroDeRota(err, { status: 502, event: 'stt_route_error' }) })
+  }
+}
 
 /**
  * POST /api/ai/stt/transcribe (OpenAI-compatible Whisper) — embrulhado no rastro de telemetria
@@ -65,7 +202,14 @@ async function transcrever(req: Request, res: Response, rastro: RastroDeIa): Pro
   let reservaPendente = false
   /** Segundos reservados nesta requisição (0 = nenhum). Precisa ser estornado junto da chamada. */
   let segundosReservados = 0
+  /* A porta normalmente já rodou no middleware (antes do `raw()`); chamada direta ao handler — os
+     testes, e qualquer montagem sem o middleware — passa por ela aqui. */
+  let porta: PortaDoStt | undefined = portas.get(req)
   try {
+    if (!porta) {
+      porta = (await abrirPortaDoStt(req, res)) ?? undefined
+      if (!porta) return
+    }
     const audioBuffer = req.body as Buffer | undefined
     if (!audioBuffer || !audioBuffer.length) {
       res.status(400).json({ error: 'corpo de áudio vazio' })
@@ -80,21 +224,25 @@ async function transcrever(req: Request, res: Response, rastro: RastroDeIa): Pro
     let baseUrl: string | null
     let secret: string | null
     let defaultModel: string | null
+    /** Ramo da chave do DONO: o cliente não escolhe o modelo nem a duração cobrada (P0-2/P0-3). */
+    let pagoPeloApp = false
 
     if (credentialId) {
       rastro.anotar({ byok: true })
       ;({ baseUrl, secret, defaultModel } = await credentialsRepo.getSecret(req.userId, credentialId))
     } else {
-      // SaaS Fatia 1b — STT de nuvem GERENCIADA (chave do DONO) exige o entitlement. BYOK (ramo `if`)
-      // e o STT local (no navegador) passam livres: só o caminho que gasta a chave do serviço é gateado.
-      if (!(await hasEntitlement(req.userId, 'managedCloudStt'))) {
-        res.status(402).json({ error: 'STT de nuvem gerenciada requer um plano pago', entitlement: 'managedCloudStt' })
-        return
-      }
-      // Chave de emergência e orçamento global do mês (orcamentoDeIa.ts), antes de qualquer cota.
-      const portao = await portaoDaNuvem()
-      if (!portao.ok) {
-        responderPortaoFechado(res, portao)
+      // Plano, portão, configuração e admissão já passaram na porta (`abrirPortaDoStt`).
+      pagoPeloApp = true
+      /* P0-2 (auditoria de prontidão, 25/09/2026): o áudio é MEDIDO antes de qualquer reserva. Antes,
+         um corpo ilegível era cobrado como 10 s e seguia para o provedor, e a duração saía do
+         `byteRate` que o próprio cliente escreve no cabeçalho — 13 min declarados como 1 s. Agora a
+         taxa é derivada dos campos do `fmt `, o incoerente é 415 e o que passa do teto por requisição
+         é 413. Recusar (em vez de cobrar pelo pior caso) não quebra o cliente legítimo: ele SEMPRE
+         manda WAV PCM 16 bits mono (`src/gateway/audio/wav.ts`). Antes da reserva de propósito:
+         recusa não toca contador, então não há o que estornar. */
+      const avaliacao = avaliarAudioFaturavel(audioBuffer)
+      if (avaliacao.ok === false) {
+        responderErro(res, avaliacao.status, avaliacao.error, avaliacao.code)
         return
       }
       // Fair-use: RESERVA antes de chamar o provedor (P0-1 — conferir antes e contabilizar
@@ -112,19 +260,15 @@ async function transcrever(req: Request, res: Response, rastro: RastroDeIa): Pro
          `segundosFaturaveis` — o mínimo de 10 s que a Groq cobra por requisição —, e com falas de
          ~6 s o plano que promete 15 h entregava ~9 h de fala. O mínimo é custo do DONO: ele entra
          no orçamento global, logo abaixo, e não na cota de quem paga o plano. */
-      segundosReservados = segundosDeAudioDoUsuario(audioBuffer)
+      segundosReservados = avaliacao.segundosDoUsuario
       if (!(await reservarSegundosDeStt(req.userId, segundosReservados))) {
         segundosReservados = 0
         res.status(402).json({ error: 'limite mensal de áudio do plano atingido', code: 'quota_exceeded' })
         return
       }
-      secret = process.env.GROQ_API_KEY ?? process.env.STT_API_KEY ?? null
-      baseUrl = process.env.GROQ_BASE_URL ?? process.env.STT_BASE_URL ?? 'https://api.groq.com/openai/v1'
-      defaultModel = process.env.STT_MODEL ?? 'whisper-large-v3-turbo'
-      if (!secret) {
-        res.status(501).json({ error: 'STT de nuvem não configurado: defina GROQ_API_KEY no servidor (.env)' })
-        return
-      }
+      secret = porta.secret ?? null
+      baseUrl = porta.baseUrl ?? null
+      defaultModel = porta.model ?? null
     }
 
     if (!baseUrl) {
@@ -151,7 +295,13 @@ async function transcrever(req: Request, res: Response, rastro: RastroDeIa): Pro
     )
     if (!cabecalhos) return
 
-    const model = cabecalhos['x-model'] || defaultModel || 'whisper-large-v3-turbo'
+    /* P0-3 (auditoria de prontidão): na chave do DONO, `x-model` é IGNORADO. O schema acima só
+       garante o FORMATO do nome — o cliente ainda escolhia qual modelo a conta do app pagava, e
+       nada impedia trocar o turbo pelo modelo cheio (2,8× o preço por hora de áudio). Quem decide é
+       o `STT_MODEL` do servidor. No BYOK a chave e a conta são do usuário: ele escolhe livremente. */
+    const model = pagoPeloApp
+      ? defaultModel || 'whisper-large-v3-turbo'
+      : cabecalhos['x-model'] || defaultModel || 'whisper-large-v3-turbo'
     const lang = cabecalhos['x-language']
     /* O CONTEXTO DA FALA ANTERIOR, como `prompt` do Whisper. Sem ele cada enunciado de ~6 s é
        decodificado do zero: nome próprio muda de grafia de uma fala para a outra, e em áudio curto
@@ -207,21 +357,6 @@ async function transcrever(req: Request, res: Response, rastro: RastroDeIa): Pro
       return r
     }
 
-    /**
-     * RETENTATIVA COM ESPERA CRESCENTE — e só aqui, não na tradução (Fase 5).
-     *
-     * A diferença entre os dois proxies é que a tradução TEM cascata (`cascataDeNuvem`): um 429
-     * do primário já cai na reserva, e insistir antes disso só somaria espera ao caminho em que
-     * alguém aguarda legenda na tela. O STT não tem para onde cair — sem reserva configurada, um
-     * 429 momentâneo do provedor simplesmente perdia a fala do usuário, e o áudio de um enunciado
-     * não volta.
-     *
-     * DUAS tentativas extras, com 500 ms e 1.500 ms de espera. O teto é o custo: cada tentativa tem
-     * 30 s de timeout próprio, e três delas no pior caso somam 92 s — muito além do que qualquer
-     * cliente espera, mas o pior caso aqui exige 429/5xx nas três, que é indisponibilidade real.
-     * `deveRetentar` explica por que o TIMEOUT ficou de fora (a requisição pode ter sido processada
-     * e cobrada do outro lado).
-     */
     /* O NOME DO PROVEDOR PARA A TELEMETRIA. No BYOK a URL é escolha do usuário: vai o rótulo fixo
        `byok`, nunca o host. O modelo do BYOK também vira `byok` no CONTADOR de 429 (Prometheus não
        aguenta uma série por nome que o usuário digitou); na geração do Langfuse ele vai como é. */
@@ -258,9 +393,49 @@ async function transcrever(req: Request, res: Response, rastro: RastroDeIa): Pro
       }
     }
 
+    /* O DISJUNTOR, AGORA TAMBÉM NO STT (ADR 0007). Com o provedor fora do ar, cada fala pagava 30 s
+       de timeout antes de o cliente cair no local. Aberto, a resposta é imediata: 503 com
+       `Retry-After`, e o cliente religa a nuvem sozinho depois. Só na chave do DONO: no BYOK o
+       endereço é do usuário, e o estado de um endereço dele não é assunto do processo. */
+    const chaveDoDisjuntor = pagoPeloApp ? chaveDoProvedor({ base: baseUrl, model }) : null
+    if (chaveDoDisjuntor && !disjuntorPermite(chaveDoDisjuntor)) {
+      res.setHeader?.('Retry-After', String(Math.ceil(JANELA_ABERTA_MS / 1000)))
+      responderErro(
+        res,
+        503,
+        'transcrição de nuvem indisponível agora; o app segue com o motor local',
+        'provedor_em_disjuntor',
+      )
+      return
+    }
+
+    /** Uma tentativa que também alimenta o disjuntor: 5xx e rede contam; 4xx (inclusive 429) não. */
+    const tentativaComDisjuntor = async () => {
+      if (porta) porta.chamouProvedor = true
+      try {
+        const r = await tentativaMedida()
+        if (chaveDoDisjuntor) {
+          if (r.ok) registrarSucesso(chaveDoDisjuntor)
+          else if (r.status >= 500) registrarFalha(chaveDoDisjuntor, r.status)
+        }
+        return r
+      } catch (err) {
+        if (chaveDoDisjuntor) registrarFalha(chaveDoDisjuntor, 0)
+        throw err
+      }
+    }
+
     const inicioDoProvedor = Date.now()
-    let upstream = await tentativaMedida()
-    for (let n = 1; n <= RETENTATIVAS_DE_STT && deveRetentar(upstream.status); n++) {
+    let upstream = await tentativaComDisjuntor()
+    /* 5xx repete UMA vez, com espera curta, e só se o balde tiver saldo para o repique — a
+       retentativa também é um pedido contra o limite da conta. `deveRetentar` explica por que o
+       TIMEOUT fica de fora (a requisição pode ter sido processada e cobrada do outro lado). */
+    for (let n = 1; n <= RETENTATIVAS_DE_STT && upstream.status >= 500 && upstream.status < 600; n++) {
+      if (pagoPeloApp && porta?.provedor && porta.plano) {
+        const repique = admitirNoBalde({ tipo: 'stt', provedor: porta.provedor, modelo: model, plano: porta.plano })
+        if (repique.ok === false) break
+      }
+      if (chaveDoDisjuntor && !disjuntorPermite(chaveDoDisjuntor)) break
       const espera = esperaDaRetentativa(n)
       log('warn', {
         event: 'stt_retentativa',
@@ -270,7 +445,20 @@ async function transcrever(req: Request, res: Response, rastro: RastroDeIa): Pro
         requestId: req.requestId,
       })
       await new Promise((r) => setTimeout(r, espera))
-      upstream = await tentativaMedida()
+      upstream = await tentativaComDisjuntor()
+    }
+
+    /* 429 DO PROVEDOR: não repete, fecha o balde até o `Retry-After` dele e chega ao cliente como
+       429 `nuvem_ocupada` — antes virava 502, e o cliente tratava limite de taxa como defeito. */
+    if (upstream.status === 429) {
+      const doProvedor = segundosDoRetryAfter(upstream.headers?.get?.('retry-after'))
+      const retryAfterS =
+        pagoPeloApp && porta?.provedor
+          ? registrarLimiteNaAdmissao('stt', porta.provedor, model, doProvedor)
+          : (doProvedor ?? 1)
+      await upstream.text().catch(() => '')
+      responderNuvemOcupada(res, { motivo: 'provedor_limitou', retryAfterS })
+      return
     }
 
     if (!upstream.ok) {
@@ -305,7 +493,10 @@ async function transcrever(req: Request, res: Response, rastro: RastroDeIa): Pro
        aqui o número é o que o PROVEDOR fatura (`segundosFaturaveis`, com o mínimo de 10 s), não o
        que saiu da cota do assinante: o orçamento existe para bater com a fatura. */
     const custoUsd = gerenciado ? custoDeStt(model, segundosFaturaveis(audioBuffer)) : undefined
-    if (custoUsd !== undefined) await registrarGastoDeIa(custoUsd)
+    if (custoUsd !== undefined) {
+      await registrarGastoDeIa(custoUsd, { userId: req.userId, plano: porta?.planoDaAssinatura })
+      await porta?.gratuita?.registrarCusto(custoUsd)
+    }
     segundosReservados = 0 // consumados junto com a chamada: nada a estornar
     observarChamadaDeProvedor({
       provedor: gerenciado ? 'stt-gerenciado' : 'byok',
@@ -356,6 +547,7 @@ async function transcrever(req: Request, res: Response, rastro: RastroDeIa): Pro
     }
     if (!res.headersSent) res.status(502).json({ error: erroDeRota(err, { status: 502, event: 'stt_route_error' }) })
   } finally {
+    if (porta) fecharPorta(porta)
     // As duas reservas caem juntas: cobrar segundos por uma transcrição que não aconteceu é o
     // mesmo defeito que cobrar a chamada.
     if (reservaPendente) await refundManagedCall(req.userId)

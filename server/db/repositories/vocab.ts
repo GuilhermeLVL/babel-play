@@ -16,6 +16,8 @@ import { chaveDedup as chaveDedupDoNucleo } from '../../../src/core/texto/palavr
 import type { UserId } from '../../lib/authContext'
 import { garantirNiveis } from '../../lib/niveisDaTrilha'
 import { db } from '../db'
+import { type ColunaCompacta, lerCompacto } from '../leituraCompacta'
+import { tuplaDeBatch } from '../lotes'
 import { ankiDecks, ankiNotes, reviewLogs, sessions, vocabCards, vocabOccurrences } from '../schema'
 import { exerciseResultsRepo } from './exerciseResults'
 
@@ -232,6 +234,11 @@ export type CartaoParaCliente = {
   [K in keyof typeof COLUNAS_DO_CARTAO]: VocabCard[K & keyof VocabCard]
 }
 
+/** `COLUNAS_DO_CARTAO` para a leitura compacta: a mesma lista, na mesma ordem, pelo nome no banco. */
+const COLUNAS_COMPACTAS_DO_CARTAO: ColunaCompacta[] = Object.entries(COLUNAS_DO_CARTAO).map(([chave, coluna]) =>
+  coluna.columnType === 'SQLiteText' ? ([chave, coluna.name, 'texto'] as const) : ([chave, coluna.name] as const),
+)
+
 export const vocabRepo = {
   /**
    * O baralho, com a marca de PROCEDÊNCIA que faltava.
@@ -256,38 +263,37 @@ export const vocabRepo = {
        cada cartão antes da rodada. Sem a marca, ele aplicava o teto de 42 caracteres da captura a
        definições de dicionário — medido no baralho real: 299 cartões importados e jogáveis, e o
        lobby anunciando 8. A procedência já estava no banco; só não chegava a quem decide. */
+    /* LEITURA COMPACTA (fix/rotas-caras): as mesmas três consultas, com o mesmo WHERE e a mesma
+       ordem, mas serializadas pelo SQLite numa célula só — o driver montando um objeto por linha era
+       o grosso dos 133 ms de CPU desta rota. Ver `server/db/leituraCompacta.ts`. */
     const [cartoes, daTrilha, daAnki] = await Promise.all([
-      db
-        .select(COLUNAS_DO_CARTAO)
-        .from(vocabCards)
-        .where(and(eq(vocabCards.userId, userId), isNull(vocabCards.deletedAt)))
-        .orderBy(desc(vocabCards.addedAt)),
-      db
-        .selectDistinct({ cardId: vocabOccurrences.cardId })
-        .from(vocabOccurrences)
-        .where(
-          and(
-            eq(vocabOccurrences.userId, userId),
-            isNull(vocabOccurrences.deletedAt),
-            eq(vocabOccurrences.originKind, 'trilha'),
-          ),
-        ),
+      lerCompacto<CartaoParaCliente>(COLUNAS_COMPACTAS_DO_CARTAO, {
+        tabela: 'vocab_cards',
+        onde: sql`user_id = ${userId} AND deleted_at IS NULL`,
+        ordem: 'added_at DESC',
+      }),
+      lerCompacto<{ cardId: string }>([['cardId', 'card_id', 'texto']], {
+        tabela: 'vocab_occurrences',
+        onde: sql`user_id = ${userId} AND deleted_at IS NULL AND origin_kind = ${'trilha'}`,
+        distinta: true,
+      }),
       /* Tarefa 3 (seletor-facetado): `origin_ref` viaja junto — é o id do baralho Anki de origem.
-         `selectDistinct` porque a MESMA nota pode gerar mais de uma ocorrência 'anki' para o
+         `DISTINCT` porque a MESMA nota pode gerar mais de uma ocorrência 'anki' para o
          mesmo cartão (reimport, `ativarLote`), e um cartão pode ter vindo de dois baralhos
          diferentes (mesma palavra projetada de dois decks). Continua UMA consulta agregada — não
          N+1: o custo desta chamada não cresce com o número de cartões, só com o de linhas
          distintas (cardId, deckId), que `idx_occ_origem` já cobre. */
-      db
-        .selectDistinct({ cardId: vocabOccurrences.cardId, deckId: vocabOccurrences.originRef })
-        .from(vocabOccurrences)
-        .where(
-          and(
-            eq(vocabOccurrences.userId, userId),
-            isNull(vocabOccurrences.deletedAt),
-            eq(vocabOccurrences.originKind, 'anki'),
-          ),
-        ),
+      lerCompacto<{ cardId: string; deckId: string | null }>(
+        [
+          ['cardId', 'card_id', 'texto'],
+          ['deckId', 'origin_ref', 'texto'],
+        ],
+        {
+          tabela: 'vocab_occurrences',
+          onde: sql`user_id = ${userId} AND deleted_at IS NULL AND origin_kind = ${'anki'}`,
+          distinta: true,
+        },
+      ),
     ])
     const daTrilhaIds = new Set(daTrilha.map((r) => r.cardId))
     const daAnkiIds = new Set(daAnki.map((r) => r.cardId))
@@ -482,27 +488,34 @@ export const vocabRepo = {
        `occurrences + 1` acontece no banco, não em read-modify-write no JS — é o que torna duas
        gravações simultâneas somarem em vez de uma sobrescrever a outra. */
     const repetidas: string[] = []
-    for (const row of rows) {
-      await db
-        .insert(vocabCards)
-        .values(row)
-        .onConflictDoUpdate({
-          target: [vocabCards.userId, vocabCards.normKey],
-          /* O índice é PARCIAL (`where deleted_at is null`), e o SQLite exige que o alvo do
+    /* Um `db.batch` com todos os upserts (até 500, o teto do schema) em vez de um `await` por
+       cartão: uma ida ao banco e atômico — ou o lote inteiro entra, ou nada. A ordem é a do
+       lote, então a contagem de repetidas dentro dele continua somando em sequência. */
+    await db.batch(
+      tuplaDeBatch(
+        rows.map((row) =>
+          db
+            .insert(vocabCards)
+            .values(row)
+            .onConflictDoUpdate({
+              target: [vocabCards.userId, vocabCards.normKey],
+              /* O índice é PARCIAL (`where deleted_at is null`), e o SQLite exige que o alvo do
            ON CONFLICT repita o mesmo predicado — sem isto ele não reconhece o índice e responde
            SQLITE_ERROR. Não é detalhe de estilo: é o que faz o upsert existir. */
-          targetWhere: sql`${vocabCards.deletedAt} IS NULL`,
-          set: {
-            occurrences: sql`${vocabCards.occurrences} + 1`,
-            lastSeenAt: now,
-            updatedAt: now,
-            // Preenche buracos sem sobrescrever o que já é bom: tradução e frase só entram se faltarem.
-            back: sql`COALESCE(NULLIF(${vocabCards.back}, ''), ${row.back ?? null})`,
-            sentence: sql`COALESCE(NULLIF(${vocabCards.sentence}, ''), ${row.sentence ?? null})`,
-          },
-          setWhere: sql`${vocabCards.deletedAt} IS NULL`,
-        })
-    }
+              targetWhere: sql`${vocabCards.deletedAt} IS NULL`,
+              set: {
+                occurrences: sql`${vocabCards.occurrences} + 1`,
+                lastSeenAt: now,
+                updatedAt: now,
+                // Preenche buracos sem sobrescrever o que já é bom: tradução e frase só entram se faltarem.
+                back: sql`COALESCE(NULLIF(${vocabCards.back}, ''), ${row.back ?? null})`,
+                sentence: sql`COALESCE(NULLIF(${vocabCards.sentence}, ''), ${row.sentence ?? null})`,
+              },
+              setWhere: sql`${vocabCards.deletedAt} IS NULL`,
+            }),
+        ),
+      ),
+    )
 
     // Releitura pela CHAVE, não pelo id gerado: num conflito, o id que vale é o do cartão que já existia.
     const chaves = rows.map((r) => r.normKey!)
@@ -1135,18 +1148,20 @@ export const vocabRepo = {
    * O `AND user_id` impede reetiquetar cartão de outro usuário.
    */
   async relabel(userId: UserId, items: Array<{ id: string; srcLang: string; tgtLang: string }>): Promise<number> {
-    if (!items.length) return 0
     const now = Date.now()
-    let changed = 0
-    for (const it of items) {
-      if (!it?.id || !it.srcLang || !it.tgtLang) continue
-      const res = await db
-        .update(vocabCards)
-        .set({ srcLang: it.srcLang, tgtLang: it.tgtLang, updatedAt: now })
-        .where(and(eq(vocabCards.id, it.id), eq(vocabCards.userId, userId)))
-      changed += Number((res as { rowsAffected?: number }).rowsAffected ?? 0)
-    }
-    return changed
+    // Era um UPDATE por item num laço — até 5.000 idas ao banco por requisição (15 s medidos no
+    // teto). Agora é UM `db.batch`: uma ida só e atômico. Cada UPDATE é pela chave primária.
+    const instrucoes = items
+      .filter((it) => it?.id && it.srcLang && it.tgtLang)
+      .map((it) =>
+        db
+          .update(vocabCards)
+          .set({ srcLang: it.srcLang, tgtLang: it.tgtLang, updatedAt: now })
+          .where(and(eq(vocabCards.id, it.id), eq(vocabCards.userId, userId))),
+      )
+    if (!instrucoes.length) return 0
+    const resultados = await db.batch(tuplaDeBatch(instrucoes))
+    return resultados.reduce((n, r) => n + Number((r as { rowsAffected?: number }).rowsAffected ?? 0), 0)
   },
 
   /**

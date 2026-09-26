@@ -34,6 +34,8 @@ declare global {
       requestId?: string
       /** Nível de garantia da sessão (claim `aal` do JWT do Supabase). Ausente = `aal1`. Ver `server/lib/aal.ts`. */
       aal?: 'aal1' | 'aal2'
+      /** Usuário ANÔNIMO do Supabase (claim `is_anonymous`) — Fase 7, ver `server/lib/convidado.ts`. */
+      convidado?: boolean
     }
   }
 }

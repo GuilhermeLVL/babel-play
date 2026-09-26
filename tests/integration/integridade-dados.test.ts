@@ -12,7 +12,7 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let sessions: any
@@ -25,7 +25,9 @@ beforeAll(async () => {
   ;({ utterancesRepo: utterances } = await h.load('../../server/db/repositories/utterances'))
   ;({ client } = await h.load('../../server/db/db'))
 })
-afterAll(async () => { await h.cleanup() })
+afterAll(async () => {
+  await h.cleanup()
+})
 
 const contar = async (sql: string, args: any[]) =>
   Number(Object.values((await client.execute({ sql, args })).rows[0])[0])
@@ -48,11 +50,11 @@ describe('createWithUtterances — P1-7 (atomicidade)', () => {
     // O caminho deixou de ser compensação manual (que chamava `insertMany`) e virou
     // `db.batch` com a instrução montada por `stmtInsertMany` — P1-N3 da re-auditoria.
     // Espionar `insertMany` não intercepta mais nada; a falha tem de vir da instrução.
-    const { db } = await h.load('../../server/db/db') as any
-    const { utterances: tabela } = await h.load('../../server/db/schema') as any
-    const boom = vi.spyOn(utterances, 'stmtInsertMany').mockImplementation(
-      () => db.insert(tabela).values({ id: 'quebrado', userId: 'x', sessionId: 'y' } as any),
-    )
+    const { db } = (await h.load('../../server/db/db')) as any
+    const { utterances: tabela } = (await h.load('../../server/db/schema')) as any
+    const boom = vi
+      .spyOn(utterances, 'stmtInsertMany')
+      .mockImplementation(() => [db.insert(tabela).values({ id: 'quebrado', userId: 'x', sessionId: 'y' } as any)])
     try {
       await expect(
         sessions.createWithUtterances(u, { title: 'vai falhar', kind: 'audio' }, [{ idx: 0, sourceText: 'x' }]),

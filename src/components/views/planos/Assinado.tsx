@@ -12,6 +12,7 @@ import {
   type StatusDeBilling,
 } from '../../../lib/assinatura';
 import { carregarEntitlements } from '../../../lib/entitlements';
+import { registrarAssinaturaConcluida } from '../../../lib/ofertas/instrumentacao';
 import { navegarPara } from '../../../lib/rotas';
 import { IconeEmBloco, Tela } from '../../ui';
 import { irSub, PLANO_NOME, planoPorId } from './dados';
@@ -36,6 +37,9 @@ export default function Assinado() {
       setStatus(s);
       if (s?.assinatura?.status === 'active') {
         void carregarEntitlements();
+        /* Fim do funil das ofertas (Fase 8). Conta uma vez por checkout iniciado neste aparelho:
+           recarregar esta tela não soma de novo. */
+        registrarAssinaturaConcluida();
         const f = await carregarFaturas();
         if (vivo) setFaturas(f);
         return true;

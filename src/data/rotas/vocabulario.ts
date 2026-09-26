@@ -11,6 +11,7 @@
 import { play } from '../../lib/soundFx'
 import type { VocabCard } from '../../types'
 import { apiFetch } from '../funil'
+import { compartilharEmVoo } from '../leituraEmVoo'
 
 interface VocabRow {
   id: string
@@ -108,10 +109,41 @@ export function rowToVocabCard(row: VocabRow): VocabCard {
   }
 }
 
+/**
+ * O ÚLTIMO BARALHO RECEBIDO E O ETag DELE (fix/rotas-caras).
+ *
+ * O servidor passou a responder 304 sem montar o baralho quando o ETag (a versão dos dados do
+ * usuário) não mudou. Mandar o `If-None-Match` explicitamente — em vez de confiar no cache HTTP do
+ * navegador, que pode nem guardar a resposta — faz toda revalidação custar uma consulta de chave
+ * primária no servidor e zero bytes de baralho na rede. O ETag inclui um resumo do usuário, então
+ * o baralho de uma conta nunca é revalidado com o ETag de outra.
+ */
+let ultimoBaralho: { etag: string; linhas: VocabRow[] } | null = null
+
+async function lerLinhasDoBaralho(): Promise<VocabRow[] | null> {
+  const memo = ultimoBaralho
+  const res = await apiFetch('/api/vocab', memo ? { headers: { 'If-None-Match': memo.etag } } : undefined)
+  if (res.status === 304 && memo) return memo.linhas
+  if (!res.ok) return null
+  const linhas = (await res.json()) as VocabRow[]
+  const etag = res.headers?.get?.('etag')
+  ultimoBaralho = etag ? { etag, linhas } : null
+  return linhas
+}
+
+/* Várias telas pedem o baralho ao montar; quem pede junto recebe a mesma leitura. */
+const lerBaralhoCompartilhado = compartilharEmVoo(lerLinhasDoBaralho)
+
 export async function fetchDeck(): Promise<VocabCard[]> {
-  const res = await apiFetch('/api/vocab')
-  if (!res.ok) return []
-  return ((await res.json()) as VocabRow[]).map(rowToVocabCard)
+  const linhas = await lerBaralhoCompartilhado()
+  if (!linhas) return []
+  /* Cartões NOVOS a cada chamada, como antes: as linhas são compartilhadas (entre quem pediu junto
+     e com o memo do ETag), então nenhuma tela pode receber um objeto que outra também segura —
+     nem o array de baralhos, o único campo aninhado. */
+  return linhas.map((r) => {
+    const c = rowToVocabCard(r)
+    return c.baralhosAnki ? { ...c, baralhosAnki: [...c.baralhosAnki] } : c
+  })
 }
 
 /**

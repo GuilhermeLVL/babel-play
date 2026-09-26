@@ -6,6 +6,7 @@
  * Rotas: GET `/api/settings`, PUT `/api/settings`.
  */
 import { apiFetch } from '../funil'
+import { compartilharEmVoo } from '../leituraEmVoo'
 
 export interface AppSettings {
   id: string
@@ -20,7 +21,7 @@ export interface SettingsPayload {
   ui?: unknown
 }
 
-export async function fetchSettings(): Promise<AppSettings | null> {
+async function lerSettings(): Promise<AppSettings | null> {
   try {
     const res = await apiFetch('/api/settings')
     if (!res.ok) return null
@@ -28,6 +29,16 @@ export async function fetchSettings(): Promise<AppSettings | null> {
   } catch {
     return null
   }
+}
+
+/* Onze módulos leem as configurações ao montar; quem pede junto recebe a mesma leitura
+   (fix/rotas-caras). Uma leitura que começou antes de um `saveSettings` não é reaproveitada. */
+const lerSettingsCompartilhado = compartilharEmVoo(lerSettings)
+
+export async function fetchSettings(): Promise<AppSettings | null> {
+  const s = await lerSettingsCompartilhado()
+  // Um objeto por chamada, como antes: quem pediu junto não compartilha a mesma referência.
+  return s ? { ...s } : null
 }
 
 export async function saveSettings(payload: SettingsPayload): Promise<AppSettings | null> {

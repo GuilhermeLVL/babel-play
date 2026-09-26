@@ -92,17 +92,27 @@ const SUFIXOS_POR_PLANO: ReadonlyArray<{ sufixo: string; paraQue: string }> = [
   { sufixo: 'MONTHLY_LLM_TOKENS', paraQue: 'teto mensal de tokens (entrada + saída) do LLM de nuvem do plano' },
 ]
 
-export const VARIAVEIS_POR_PLANO: readonly VariavelDeclarada[] = Object.keys(PLAN_MATRIX).flatMap((plano) =>
-  SUFIXOS_POR_PLANO.map(({ sufixo, paraQue }) => ({
-    nome: `${plano.toUpperCase()}_${sufixo}`,
-    exigencia: 'opcional' as const,
-    criticidade: 'degrada-capacidade' as const,
-    paraQue: `${paraQue} — plano ${plano}`,
-  })),
+/* O `convidado` (Fase 7) não está na matriz de assinatura, mas as cotas dele passam pelas MESMAS
+   funções (`usageQuota.ts`/`storageQuota.ts`), que montam `CONVIDADO_*` em tempo de execução. */
+export const VARIAVEIS_POR_PLANO: readonly VariavelDeclarada[] = [...Object.keys(PLAN_MATRIX), 'convidado'].flatMap(
+  (plano) =>
+    SUFIXOS_POR_PLANO.map(({ sufixo, paraQue }) => ({
+      nome: `${plano.toUpperCase()}_${sufixo}`,
+      exigencia: 'opcional' as const,
+      criticidade: 'degrada-capacidade' as const,
+      paraQue: `${paraQue} — plano ${plano}`,
+    })),
 )
 
 export const VARIAVEIS: readonly VariavelDeclarada[] = [
   ...VARIAVEIS_POR_PLANO,
+  {
+    nome: 'AI_BUDGET_USD_DAY',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'teto de gasto ESTIMADO com IA de nuvem no DIA (UTC), em US$ — a mesma lógica do mensal: a 80% sai ia_orcamento_diario_alerta_80, a 100% a nuvem fecha até 00:00 UTC. Existe para um laço de cliente ou uma chave vazada não queimarem o mês inteiro numa tarde. Ausente: sem teto diário (só o mensal). 0 desliga a nuvem',
+  },
   {
     nome: 'AI_BUDGET_USD_MONTH',
     exigencia: 'opcional',
@@ -123,6 +133,20 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     criticidade: 'degrada-capacidade',
     paraQue:
       'JSON com o preço por modelo que o orçamento usa: {"modelo": {"entrada": US$/1M, "saida": US$/1M}} para LLM e {"modelo": {"hora": US$}} para STT. Sobrepõe a tabela oficial embutida',
+  },
+  {
+    nome: 'AI_USUARIO_ALERTA_FATOR',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'gasto anômalo por usuário: alerta (ia_gasto_anomalo_usuario, id pseudonimizado) quando o gasto de IA de um usuário NO DIA passa de N vezes a mediana dos usuários que gastaram hoje. Padrão 10. Só vale com pelo menos 5 usuários no dia — com menos, a mediana não diz nada',
+  },
+  {
+    nome: 'AI_USUARIO_ALERTA_USD_DIA',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'gasto anômalo por usuário: teto ABSOLUTO em US$ por usuário por dia acima do qual sai o alerta ia_gasto_anomalo_usuario (não bloqueia — quem bloqueia é a cota do plano). Padrão US$ 0,50 (um Essencial típico gasta ~US$ 0,03/dia)',
   },
   {
     nome: 'APP_URL',
@@ -216,6 +240,27 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     paraQue: 'nº de processos do cluster; sem ela, processo único (ver F6-01)',
   },
   {
+    nome: 'CONVIDADOS_POR_IP_DIA',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'quantos convidados anônimos DISTINTOS podem estrear na nuvem pelo mesmo IP no mesmo dia; acima disso a nuvem responde 429 limite_de_convidados (Fase 7). Padrão 3',
+  },
+  {
+    nome: 'CONVIDADO_IP_TUTOR_DIA',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'teto diário de mensagens de tutor por IP pseudonimizado, somando todos os convidados daquele IP (Fase 7, server/lib/convidado.ts). Padrão 10',
+  },
+  {
+    nome: 'CONVIDADO_IP_USD_DIA',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'teto diário de gasto ESTIMADO de IA de nuvem, em US$, por IP pseudonimizado, somando todos os convidados daquele IP — limpar cookies ou criar outro anônimo não reseta (Fase 7). Padrão 0,04',
+  },
+  {
     nome: 'CONVITE_LINK_NA_TELA',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
@@ -267,6 +312,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     paraQue: 'diário de erros em disco (F5-04)',
   },
   {
+    nome: 'GIT_SHA',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'commit da versão do app (`0.1.0+<sha7>`, server/lib/versao.ts); o Dockerfile a preenche no build pelo arg VERSAO; ausente, vale SENTRY_RELEASE ou só a versão do package.json',
+  },
+  {
     nome: 'GROQ_API_KEY',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
@@ -291,6 +343,67 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
     paraQue: 'só diagnóstico: identifica a instância que registrou uma falha de boot',
+  },
+  {
+    nome: 'IA_ADMISSAO_LLM_RPD',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'admissão de IA (ADR 0007): teto de pedidos POR DIA a cada modelo de LLM da conta do app (server/ai/admissao.ts). Padrão 1000, o da camada atual da Groq para gpt-oss-120b. 0 = sem teto',
+  },
+  {
+    nome: 'IA_ADMISSAO_LLM_RPM',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'admissão de IA: pedidos POR MINUTO a cada modelo de LLM (token bucket). Padrão 30 (Groq). 0 = sem teto',
+  },
+  {
+    nome: 'IA_ADMISSAO_LLM_TPD',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'admissão de IA: tokens POR DIA a cada modelo de LLM (estimativa na entrada, acerto pelo uso real). Padrão 200000 (Groq). 0 = sem teto',
+  },
+  {
+    nome: 'IA_ADMISSAO_RESERVA_PRO',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'admissão de IA: fração do saldo de cada modelo reservada SÓ ao Pro (0 a 0,9). Padrão 0,2 — o Essencial usa até 80%; convidado, até 50% (ou menos, se a reserva passar disso)',
+  },
+  {
+    nome: 'IA_ADMISSAO_STT_RPD',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'admissão de IA: pedidos de STT POR DIA a cada modelo. Padrão 2000 (Groq, whisper-large-v3-turbo). 0 = sem teto',
+  },
+  {
+    nome: 'IA_ADMISSAO_STT_RPM',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'admissão de IA: pedidos de STT POR MINUTO a cada modelo (token bucket). Padrão 20 (Groq). 0 = sem teto',
+  },
+  {
+    nome: 'IA_EM_VOO_LLM',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'chamadas de tradução/tutor de nuvem EM VOO por usuário ao mesmo tempo; a seguinte recebe 429 nuvem_ocupada. Padrão 2',
+  },
+  {
+    nome: 'IA_EM_VOO_STT',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'chamadas de STT de nuvem EM VOO por usuário ao mesmo tempo; a seguinte recebe 429 nuvem_ocupada. Padrão 1',
+  },
+  {
+    nome: 'LANGFUSE_AMOSTRAGEM',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'fração (0–1) das chamadas de IA BEM-SUCEDIDAS enviadas ao Langfuse; erros, fallbacks e 429 vão sempre. Padrão 0,1 em produção e 1 fora dela. O Langfuse cobra por unidade e sem amostragem custava mais que a IA (openspec/audits/2026-09-25-prontidao/fase3-custo.md)',
   },
   {
     nome: 'LANGFUSE_ARQUIVO',
@@ -382,6 +495,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
       '1 MONTA `GET /metrics` (Prometheus, na raiz — não confundir com `/api/metrics`, que é a rota de negócio). Ausente, a rota não existe e responde 404 como qualquer caminho desconhecido: um 403 confirmaria a existência do endpoint a quem sonda',
   },
   {
+    nome: 'METRICS_PORTA_INTERNA',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'porta de um listener SÓ de métricas (`GET /metrics`, sem token), para o raspador gerenciado do Fly (`[metrics]` do fly.toml), que não manda `Authorization`. Definida, o `/metrics` SAI da porta pública. Só use numa porta que não esteja publicada (fora de `[http_service]`/`[[services]]`)',
+  },
+  {
     nome: 'METRICS_TOKEN',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
@@ -421,6 +541,20 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     criticidade: 'degrada-capacidade',
     paraQue:
       'segredo que o Cloudflare injeta no cabeçalho `x-origem-segredo` (Transform Rule). Definido, requisição sem ele é recusada com 403 — fecha o acesso direto a `<app>.fly.dev`, que pularia o WAF e forjaria o `X-Forwarded-For`. `/api/health` e `/api/ready` ficam de fora (as sondas do Fly não passam pelo Cloudflare)',
+  },
+  {
+    nome: 'POOL_GRATUITO_FRACAO_RECEITA',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'fração da receita líquida do mês (÷ 30) que vira o pool diário de IA de nuvem de convidado + free (Fase 7). Padrão 0,05',
+  },
+  {
+    nome: 'POOL_GRATUITO_PISO_USD_DIA',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'piso do pool diário de IA de nuvem de convidado + free, em US$: pool = max(piso, fração da receita líquida ÷ 30). Esgotado, só o convidado/free cai no motor local (Fase 7). Padrão 0,50',
   },
   { nome: 'PORT', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'porta de escuta' },
   {
@@ -561,6 +695,20 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
   /* As três `VITE_*` abaixo são de BUILD (o Vite as embute no bundle). O servidor as lê só para a
      CSP enxergar os mesmos hosts que o bundle chama; o `Dockerfile` as repete como `ENV` do runtime. */
   {
+    nome: 'UPLOADS_GRANDES_POR_PROCESSO',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'quantos corpos grandes (áudio da sessão, import Anki, documento) o processo recebe ao mesmo tempo (server/lib/corposGrandes.ts). O excedente recebe 429 `upload_ocupado` com Retry-After, antes de ler o corpo. Ausente ou inválido: 2 (dimensionado para a VM de 1 GB; ADR 0009)',
+  },
+  {
+    nome: 'UPLOADS_GRANDES_POR_USUARIO',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'quantos corpos grandes o MESMO usuário pode ter em voo ao mesmo tempo (server/lib/corposGrandes.ts). Ausente ou inválido: 1',
+  },
+  {
     nome: 'VITE_SELF_HOST_MODELS',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
@@ -578,6 +726,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
     paraQue: 'projeto Supabase do login no navegador; a CSP libera a origem dele em `connect-src`',
+  },
+  {
+    nome: 'VITE_TURNSTILE_SITE_KEY',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'chave PÚBLICA do Cloudflare Turnstile: o convidado passa pelo captcha antes de o Supabase criar o usuário anônimo (Fase 7). Com ela a CSP libera challenges.cloudflare.com; sem ela o captcha fica desligado',
   },
   {
     nome: 'YTDLP_PATH',
@@ -680,10 +835,38 @@ export function tokenDeMetricas(env: NodeJS.ProcessEnv = process.env): string | 
  * fechada) exigir token é fricção sem ameaça. Retorna a mensagem de aborto de boot, ou `null` se ok.
  */
 export function erroDeMetricasEmProducao(env: NodeJS.ProcessEnv = process.env): string | null {
-  if (env.NODE_ENV === 'production' && metricasHabilitadas(env) && !tokenDeMetricas(env)) {
-    return 'METRICS_ENABLED=1 em produção exige METRICS_TOKEN: recusando expor /metrics sem autenticação.'
+  const porta = portaInternaDeMetricas(env)
+  if (env.METRICS_PORTA_INTERNA?.trim() && porta === undefined) {
+    return 'METRICS_PORTA_INTERNA não é uma porta válida (1–65535).'
+  }
+  if (porta !== undefined && String(porta) === (env.PORT?.trim() || '3000')) {
+    /* A mesma porta do app seria justamente a porta PÚBLICA — o scrape sem token ficaria na internet. */
+    return 'METRICS_PORTA_INTERNA não pode ser a mesma porta do app (PORT): o /metrics sem token ficaria público.'
+  }
+  /* Com a porta interna, o `/metrics` nem é montado na porta pública — o token deixa de ser a
+     única barreira e passa a ser desnecessário (o raspador do Fly não o manda). */
+  if (env.NODE_ENV === 'production' && metricasHabilitadas(env) && porta === undefined && !tokenDeMetricas(env)) {
+    return 'METRICS_ENABLED=1 em produção exige METRICS_TOKEN (ou METRICS_PORTA_INTERNA): recusando expor /metrics sem autenticação.'
   }
   return null
+}
+
+/**
+ * A porta do listener SÓ de métricas, ou `undefined` (Fase 5 de prontidão, 25/09/2026).
+ *
+ * POR QUE EXISTE. O Fly raspa o `[metrics]` do `fly.toml` a cada 15 s com o Prometheus gerenciado
+ * dele, e a documentação (fly.io/docs/monitoring/metrics, consultada em 25/09/2026) não oferece
+ * NENHUM campo de autenticação: só `port` e `path`. Com o `/metrics` na porta pública, isso
+ * obrigaria a escolher entre scrape aberto na internet (GAP-013) e nenhum scrape. A saída é a que a
+ * própria doc sugere: uma porta que o Fly raspa por dentro da VM e que NÃO está publicada — o proxy
+ * do Fly só encaminha as portas de `[http_service]`/`[[services]]`, então esta não tem rota de fora.
+ * O token continua valendo para quem raspa pela porta pública (self-host com agente próprio).
+ */
+export function portaInternaDeMetricas(env: NodeJS.ProcessEnv = process.env): number | undefined {
+  const bruto = env.METRICS_PORTA_INTERNA?.trim()
+  if (!bruto) return undefined
+  const n = Number(bruto)
+  return Number.isInteger(n) && n > 0 && n < 65536 ? n : undefined
 }
 
 /**
@@ -773,6 +956,65 @@ export function sttDeNuvemConfigurado(env: NodeJS.ProcessEnv = process.env): boo
   return Boolean(env.LLM_API_KEY || env.GROQ_API_KEY || env.STT_API_KEY)
 }
 
+/* ─────────────── admissão de IA ao vivo (ADR 0007) ─────────────── */
+
+/** Limites de UM modelo na conta do app. `0` numa dimensão = sem teto nela. */
+export interface LimitesDeModelo {
+  /** pedidos por minuto — a capacidade do token bucket */
+  rpm: number
+  /** pedidos por dia (UTC) */
+  rpd: number
+  /** tokens por dia (UTC); o STT não conta tokens e fica em 0 */
+  tpd: number
+}
+
+export interface ConfigDeAdmissao {
+  stt: LimitesDeModelo
+  llm: LimitesDeModelo
+  /** fração do saldo que só o Pro alcança */
+  reservaPro: number
+  emVooStt: number
+  emVooLlm: number
+}
+
+/** Inteiro >= 0 da variável; ausente ou inválido cai no padrão (erro de digitação não abre a porta). */
+function inteiroNaoNegativo(bruto: string | undefined, padrao: number): number {
+  const t = bruto?.trim()
+  if (!t) return padrao
+  const n = Number(t)
+  return Number.isInteger(n) && n >= 0 ? n : padrao
+}
+
+/**
+ * Os limites da admissão. Os PADRÕES são os da camada atual da Groq, medidos na página oficial de
+ * limites em 25/09/2026 (console.groq.com/docs/rate-limits): whisper-large-v3-turbo 20 RPM e 2K
+ * RPD; gpt-oss-120b 30 RPM, 1K RPD e 200K TPD. O limite é da ORGANIZAÇÃO no provedor, e não de
+ * cada usuário do app — é por isso que o bucket é do processo inteiro.
+ */
+export function configDeAdmissao(env: NodeJS.ProcessEnv = process.env): ConfigDeAdmissao {
+  const reservaBruta = Number(env.IA_ADMISSAO_RESERVA_PRO?.trim().replace(',', '.'))
+  const reservaPro =
+    env.IA_ADMISSAO_RESERVA_PRO?.trim() && Number.isFinite(reservaBruta) && reservaBruta >= 0 && reservaBruta <= 0.9
+      ? reservaBruta
+      : 0.2
+  return {
+    stt: {
+      rpm: inteiroNaoNegativo(env.IA_ADMISSAO_STT_RPM, 20),
+      rpd: inteiroNaoNegativo(env.IA_ADMISSAO_STT_RPD, 2000),
+      tpd: 0,
+    },
+    llm: {
+      rpm: inteiroNaoNegativo(env.IA_ADMISSAO_LLM_RPM, 30),
+      rpd: inteiroNaoNegativo(env.IA_ADMISSAO_LLM_RPD, 1000),
+      tpd: inteiroNaoNegativo(env.IA_ADMISSAO_LLM_TPD, 200_000),
+    },
+    reservaPro,
+    /* Piso 1: `0` em voo recusaria toda chamada, e quem quer desligar a nuvem tem `AI_ENABLED=0`. */
+    emVooStt: Math.max(1, inteiroNaoNegativo(env.IA_EM_VOO_STT, 1)),
+    emVooLlm: Math.max(1, inteiroNaoNegativo(env.IA_EM_VOO_LLM, 2)),
+  }
+}
+
 /**
  * Credenciais da Admin API do Supabase, ou `null` quando não configuradas.
  *
@@ -818,6 +1060,46 @@ export function orcamentoMensalDeIaUsd(
     log('warn', { event: 'config_orcamento_invalido', error: 'AI_BUDGET_USD_MONTH não é um número; usando o padrão' })
   }
   return modoPublico ? ORCAMENTO_PADRAO_USD : Infinity
+}
+
+/**
+ * O teto DIÁRIO (UTC) de gasto estimado com IA, em US$. Ausente = `Infinity` (só o mensal vale):
+ * ligar um teto novo por padrão mudaria o comportamento de quem já opera com o mensal. Em produção o
+ * `.env.production.example` traz um valor (≈ mensal ÷ 10), que é o que impede um laço de cliente ou
+ * uma chave vazada de queimar o mês numa tarde.
+ */
+export function orcamentoDiarioDeIaUsd(env: NodeJS.ProcessEnv = process.env): number {
+  const bruto = env.AI_BUDGET_USD_DAY?.trim()
+  if (!bruto) return Infinity
+  const n = Number(bruto.replace(',', '.'))
+  if (Number.isFinite(n) && n >= 0) return n
+  log('warn', { event: 'config_orcamento_invalido', error: 'AI_BUDGET_USD_DAY não é um número; sem teto diário' })
+  return Infinity
+}
+
+/** Os limiares do alerta de gasto anômalo por usuário (`server/lib/gastoAnomalo.ts`). */
+export interface LimiaresDeGastoPorUsuario {
+  /** US$ por usuário por dia acima dos quais sai o alerta, independentemente da mediana. */
+  tetoUsdDia: number
+  /** Múltiplo da mediana do dia acima do qual sai o alerta. */
+  fatorDaMediana: number
+  /** Abaixo deste número de usuários no dia, a regra da mediana não vale. */
+  minimoDeUsuarios: number
+}
+
+export const ALERTA_USUARIO_PADRAO_USD_DIA = 0.5
+export const ALERTA_USUARIO_PADRAO_FATOR = 10
+
+export function limiaresDeGastoPorUsuario(env: NodeJS.ProcessEnv = process.env): LimiaresDeGastoPorUsuario {
+  const numero = (bruto: string | undefined, padrao: number) => {
+    const n = Number(bruto?.trim().replace(',', '.'))
+    return bruto?.trim() && Number.isFinite(n) && n > 0 ? n : padrao
+  }
+  return {
+    tetoUsdDia: numero(env.AI_USUARIO_ALERTA_USD_DIA, ALERTA_USUARIO_PADRAO_USD_DIA),
+    fatorDaMediana: numero(env.AI_USUARIO_ALERTA_FATOR, ALERTA_USUARIO_PADRAO_FATOR),
+    minimoDeUsuarios: 5,
+  }
 }
 
 export interface PrecoDeModelo {
@@ -919,4 +1201,39 @@ export function avisoDeConviteSemEmail(
     'conta de menor de 16 anos consegue liberar a nuvem. Configure o Resend (docs/LANCAMENTO.md §4) ' +
     'antes de abrir o app a menores.'
   )
+}
+
+/* ─────────────── Modo convidado (Fase 7): antiabuso e pool gratuito ─────────────── */
+
+function numeroDoEnv(bruto: string | undefined, padrao: number, evento: string): number {
+  const t = bruto?.trim()
+  if (!t) return padrao
+  const n = Number(t.replace(',', '.'))
+  if (Number.isFinite(n) && n >= 0) return n
+  log('warn', { event: evento, error: 'valor não numérico; usando o padrão' })
+  return padrao
+}
+
+/** Os limites antiabuso do convidado com nuvem (`server/lib/convidado.ts`). */
+export function limitesAntiabusoDoConvidado(env: NodeJS.ProcessEnv = process.env): {
+  convidadosPorIpDia: number
+  ipUsdDia: number
+  ipTutorDia: number
+} {
+  return {
+    convidadosPorIpDia: Math.floor(numeroDoEnv(env.CONVIDADOS_POR_IP_DIA, 3, 'config_convidados_por_ip_invalido')),
+    ipUsdDia: numeroDoEnv(env.CONVIDADO_IP_USD_DIA, 0.04, 'config_convidado_ip_usd_invalido'),
+    ipTutorDia: Math.floor(numeroDoEnv(env.CONVIDADO_IP_TUTOR_DIA, 10, 'config_convidado_ip_tutor_invalido')),
+  }
+}
+
+/** O pool diário de IA gratuita (convidado + free): `max(piso, fração × receita líquida do mês ÷ 30)`. */
+export function parametrosDoPoolGratuito(env: NodeJS.ProcessEnv = process.env): {
+  pisoUsdDia: number
+  fracaoDaReceita: number
+} {
+  return {
+    pisoUsdDia: numeroDoEnv(env.POOL_GRATUITO_PISO_USD_DIA, 0.5, 'config_pool_piso_invalido'),
+    fracaoDaReceita: Math.min(1, numeroDoEnv(env.POOL_GRATUITO_FRACAO_RECEITA, 0.05, 'config_pool_fracao_invalida')),
+  }
 }

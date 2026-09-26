@@ -11,11 +11,14 @@ import type { Dispatch, RefObject, SetStateAction } from 'react';
 import type { ModelPrepState } from '../../components/ModelPrepPanel';
 import { apiFetch } from '../../data/api';
 import { getActiveProfile, getProviderMode } from '../../gateway/activeProfile';
+import { temAdaptadorWebGpu } from '../../gateway/adaptadorWebGpu';
+import type { AvisoDeDegradacaoDoStt } from '../../gateway/capabilities';
 import { capMetrics, type CapSource } from '../../gateway/capture/captureMetrics';
 import { areModelsCached, expectedModelIds } from '../../gateway/modelCache';
 import type { ContextoDoStt } from '../../gateway/promptDeStt';
-import { getSttQuality, routeStt } from '../../gateway/sttRouter';
+import { getSttQuality, nomeLegivelDoModelo, routeStt } from '../../gateway/sttRouter';
 import { DominantLangTracker } from '../convoLang';
+import { t } from '../i18n';
 import { detectLanguage } from '../langDetect';
 import { baseLang, langLabel } from '../languages';
 import { PerfilAdaptativoDeIdioma, pesoDaDeteccao } from '../perfilDeIdioma';
@@ -33,6 +36,13 @@ import {
   wordsFromText,
 } from './tiposDaFala';
 import { marcadorDeTraducao, type OpcoesDeTraducao, origemDaFala } from './traducaoDaFala';
+
+/**
+ * Marca, no mapa do último texto parcial, que a fala FECHOU e o final já foi pedido. Não é texto que
+ * o Whisper produza (começa com NUL), então não colide com um parcial de verdade. Sai do mapa quando
+ * o final responde, como qualquer entrada dele.
+ */
+export const FALA_FECHADA = '\u0000fala-fechada';
 
 /** Um enunciado guardado enquanto o modelo ainda carregava. */
 export interface EnunciadoPendente {
@@ -264,7 +274,11 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       if (suppressedSeqsRef.current.has(seq)) return; // anti-eco: enunciado é o nosso TTS
       const uttId = seqToSegmentRef.current.get(seq);
       if (!uttId) return; // enunciado já finalizado/descartado
-      const { hint, from, to } = langs();
+      // A fala já fechou e o final está a caminho: um parcial agora só atrasaria o final.
+      if (lastPartialTextRef.current.get(seq) === FALA_FECHADA) return;
+      const idiomas = langs();
+      const { to } = idiomas;
+      let { hint, from } = idiomas;
       /* ENQUANTO NÃO SABEMOS O IDIOMA, O PARCIAL ATRAPALHA MAIS DO QUE AJUDA.
          Parcial roda SEMPRE no Whisper local, e o Whisper local sem dica de idioma às vezes
          traduz para inglês em vez de transcrever. Resultado visível: num vídeo em espanhol, o
@@ -276,8 +290,20 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
          `hint` deixa de ser vazio e os parciais voltam pelo resto da sessão.
 
          Vale para as DUAS fontes: o mic em modo automático também mandava parcial sem dica e o
-         balão de "você" piscava inglês antes do final em português. */
-      if (!from && !hint) return;
+         balão de "você" piscava inglês antes do final em português.
+
+         MAS NÃO PRECISA ESPERAR O PERFIL CONVERGIR (auditoria de latência 2026-09-26: ~9 falas,
+         ~96 s sem nenhum parcial no "Detectar"). Desde que o worker mede o idioma pelo áudio, cada
+         FINAL volta com o idioma da fala inteira (20/20 em pt e en na bancada). É a dica provisória
+         dos parciais da fala SEGUINTE da mesma fonte; só a primeira fala de cada fonte fica sem
+         parcial. Se a pessoa trocar de idioma, o parcial erra por uma fala e o final, que mede de
+         novo, corrige. */
+      if (!from && !hint) {
+        const provisorio = contextoDoSttRef?.current.idiomaDe(source) ?? '';
+        if (!provisorio) return;
+        hint = provisorio;
+        from = provisorio;
+      }
       gateway.stt
         .transcribePartial(pcm, sr, { languageHint: hint })
         .then((res) => {
@@ -286,6 +312,10 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
             return;
           } // worker ocupado → parcial descartado
           if (!seqToSegmentRef.current.has(seq)) return; // já finalizou → o final é autoritativo
+          /* A fala fechou enquanto este parcial decodificava: o final (que já está no worker, na
+             frente) é quem escreve e quem traduz. Traduzir este texto agora só disputaria o tradutor
+             com a tradução do final. */
+          if (lastPartialTextRef.current.get(seq) === FALA_FECHADA) return;
           const clean = (res.text ?? '').trim();
           if (!clean) return;
           capMetrics.partial(seq);
@@ -340,6 +370,8 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       const seq = rawSeq + offset;
       const uttId = seqToSegmentRef.current.get(seq) ?? `${idPrefix}-${seq}`;
       capMetrics.speechEnd(seq);
+      // Daqui até o resultado do final, nenhum parcial desta fala decodifica nem traduz.
+      lastPartialTextRef.current.set(seq, FALA_FECHADA);
       clog('enunciado', source, '(seq', seq, ') →', pcm.length, 'amostras @', sr, 'Hz, decode final');
       setSpeechSegments((prev) =>
         prev.some((s) => s.id === uttId)
@@ -636,6 +668,9 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
             translateSegment(uttId, clean, from, to, { falada: !isSys });
             return;
           }
+          /* SUA fala no "Detectar" também vira contexto: é o idioma MEDIDO desta fala que os parciais da
+             sua próxima fala usam como dica provisória (ver `onPartialAudio`). */
+          if (!isSys && captureScenarioRef.current === 'conversation') registrarContexto();
           /* A detecção só volta a SEGURAR a tradução no caso frio em que ela é a única fonte de
              origem, nem o motor informou, nem o perfil convergiu. Sem origem, três dos quatro
              tradutores se recusam a atuar (`supports()` exige o par), e sobra só o LLM do
@@ -715,6 +750,24 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     }
   };
 
+  /**
+   * O STT local trocou de motor sozinho (a GPU não serviu): a legenda segue, e a pessoa fica sabendo
+   * por quê — e o selo passa a dizer o modelo que está de fato rodando.
+   */
+  const avisarDegradacao = (aviso: AvisoDeDegradacaoDoStt) => {
+    clog('STT local degradou:', aviso.motivo, aviso.modeloAntes, '→', aviso.modelo, 'em', aviso.device, aviso.detalhe);
+    setSttRouteLabel(`local · modo compatível (${aviso.modelo.split('-').pop()})`);
+    setFeedbackMsg(
+      t(
+        'A placa de vídeo não pôde ser usada na transcrição. Seguindo no modo compatível ({modelo}): a legenda continua, um pouco mais lenta.',
+        {
+          modelo: nomeLegivelDoModelo(aviso.modelo),
+        },
+      ),
+    );
+    setTimeout(() => setFeedbackMsg(''), 9000);
+  };
+
   const prepareModelsInterno = async () => {
     const listenLang = targetLangRef.current.split('-')[0]; // você OUVE o idioma-alvo
     const myLang = sourceLangRef.current.split('-')[0];
@@ -732,7 +785,9 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       micLang: micEnabled && micEngine === 'whisper' ? myLang : '',
       autoDetect: autoDetectLangRef.current || autoDetectMyLangRef.current,
       quality: getSttQuality(),
-      hasWebGpu: !!(navigator as any).gpu,
+      /* O ADAPTADOR, não a API: `navigator.gpu` existe no headless sem GPU nenhuma, e o small no
+         WebGPU sem adaptador era captura sem legenda (auditoria de latência 2026-09-26). */
+      hasWebGpu: await temAdaptadorWebGpu(),
       cloudAvailable,
       profileId: getActiveProfile().id,
     });
@@ -753,8 +808,10 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
         setModelPrep((s) => (s ? { ...s, mt: p >= 1 ? 1 : p, mtBytes: bytes ?? s.mtBytes } : s)),
       );
       gateway.stt
-        .preloadModel((p, _l, bytes) =>
-          setModelPrep((s) => (s ? { ...s, whisper: p >= 1 ? 1 : p, whisperBytes: bytes ?? s.whisperBytes } : s)),
+        .preloadModel(
+          (p, _l, bytes) =>
+            setModelPrep((s) => (s ? { ...s, whisper: p >= 1 ? 1 : p, whisperBytes: bytes ?? s.whisperBytes } : s)),
+          { aoDegradar: avisarDegradacao },
         )
         .then(() => {
           clog('reserva local pronta ✓ (nuvem segue como principal)');
@@ -788,8 +845,10 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
         }
       });
       // Whisper (obrigatório para transcrever o áudio do sistema/aba).
-      await gateway.stt.preloadModel((p, _l, bytes) =>
-        setModelPrep((s) => (s ? { ...s, whisper: p >= 1 ? 1 : p, whisperBytes: bytes ?? s.whisperBytes } : s)),
+      await gateway.stt.preloadModel(
+        (p, _l, bytes) =>
+          setModelPrep((s) => (s ? { ...s, whisper: p >= 1 ? 1 : p, whisperBytes: bytes ?? s.whisperBytes } : s)),
+        { aoDegradar: avisarDegradacao },
       );
       clog('modelos locais prontos ✓');
       modelReadyRef.current = true;

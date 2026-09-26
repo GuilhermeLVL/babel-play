@@ -1,4 +1,5 @@
 import { apiFetch } from '../../data/api';
+import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { sinalizarRecusaDaNuvem } from '../../lib/ofertas/eventos';
 import type { MtResult, TranslationProvider } from '../capabilities';
 import { PausaDaNuvem } from '../pausaDaNuvem';
@@ -27,6 +28,8 @@ export class ServerLlmMt implements TranslationProvider {
 
   supports(src: string | null, tgt: string): boolean {
     void src; // origem é opcional (o LLM detecta)
+    // Edição estática: não há servidor com LLM — a cadeia cai no motor local sem tentar.
+    if (edicaoEstatica()) return false;
     // Em pausa, "não suporto": a cadeia cai no motor local NA HORA, sem ida ao servidor.
     return !this.unavailable && !this.pausa.pausada && !!tgt && tgt !== src;
   }

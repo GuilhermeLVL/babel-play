@@ -2,6 +2,7 @@ import { BookOpen, Cpu, Github, Keyboard, LifeBuoy, Mail, MessageCircle, Mic, Se
 import React, { useEffect, useMemo, useState } from 'react';
 
 import { CRIADOR, preenchido } from '../../lib/criador';
+import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import GuidePanel from '../GuidePanel';
 import { CabecalhoDeTela, Dialogo, IconeEmBloco, Tela, TituloDeSecao } from '../ui';
 
@@ -53,7 +54,10 @@ export default function Ajuda() {
   const [busca, setBusca] = useState('');
   const [status, setStatus] = useState<Status>('verificando');
 
+  // Edição estática: não há servidor para verificar, e o cartão de status some (ver o JSX).
+  const semServidor = edicaoEstatica();
   useEffect(() => {
+    if (semServidor) return;
     let vivo = true;
     fetch('/api/health')
       .then((r) => r.json())
@@ -62,7 +66,7 @@ export default function Ajuda() {
     return () => {
       vivo = false;
     };
-  }, []);
+  }, [semServidor]);
 
   const termo = busca.trim().toLowerCase();
   const artigos = useMemo(
@@ -164,26 +168,28 @@ export default function Ajuda() {
         </div>
       </section>
 
-      <section className="secao">
-        <div className="cartao p5 entre" role="status" aria-live="polite">
-          <span className="linha" style={{ gap: 10 }}>
-            <span
-              className="ponto"
-              style={{
-                background:
-                  status === 'ok' ? 'var(--good)' : status === 'problema' ? 'var(--error)' : 'var(--ink-faint)',
-              }}
-            />
-            <b>
-              {status === 'ok'
-                ? 'Todos os sistemas funcionando'
-                : status === 'problema'
-                  ? 'O servidor não está respondendo direito agora'
-                  : 'Verificando o servidor…'}
-            </b>
-          </span>
-        </div>
-      </section>
+      {!semServidor && (
+        <section className="secao">
+          <div className="cartao p5 entre" role="status" aria-live="polite">
+            <span className="linha" style={{ gap: 10 }}>
+              <span
+                className="ponto"
+                style={{
+                  background:
+                    status === 'ok' ? 'var(--good)' : status === 'problema' ? 'var(--error)' : 'var(--ink-faint)',
+                }}
+              />
+              <b>
+                {status === 'ok'
+                  ? 'Todos os sistemas funcionando'
+                  : status === 'problema'
+                    ? 'O servidor não está respondendo direito agora'
+                    : 'Verificando o servidor…'}
+              </b>
+            </span>
+          </div>
+        </section>
+      )}
 
       {guiaAberto && <GuidePanel onClose={() => setGuiaAberto(false)} sub="Seis coisas que dá para fazer no app." />}
       {atalhosAbertos && (

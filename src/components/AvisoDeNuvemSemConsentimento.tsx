@@ -1,6 +1,7 @@
 import { Cloud } from 'lucide-react';
 
 import { useConsentimentoDeNuvem } from '../lib/consentimentoDeNuvem';
+import { edicaoEstatica } from '../lib/edicaoEstatica';
 import { getEntitlements } from '../lib/entitlements';
 import { t } from '../lib/i18n';
 import { toast } from './Toast';
@@ -16,7 +17,8 @@ import { toast } from './Toast';
 export default function AvisoDeNuvemSemConsentimento() {
   const { consentiu, autorizar } = useConsentimentoDeNuvem();
   const e = getEntitlements();
-  if (consentiu || !(e.managedCloudLlm || e.managedCloudStt)) return null;
+  // Edição estática: não há nuvem nenhuma a autorizar (os direitos já dizem isso; esta é a trava extra).
+  if (edicaoEstatica() || consentiu || !(e.managedCloudLlm || e.managedCloudStt)) return null;
   return (
     <div className="aviso-info" role="status" style={{ marginBottom: 12 }}>
       <Cloud aria-hidden />

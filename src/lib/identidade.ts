@@ -6,6 +6,9 @@
  *   'anonimo'    build com login, SEM sessão: a pessoa está usando sem conta.
  *   'conta'      sessão Supabase válida.
  *
+ * A EDIÇÃO ESTÁTICA (`lib/edicaoEstatica`) nasce `anonimo` e fica `anonimo`: não há login nela, e
+ * esperar um `definirIdentidade` que nunca vem deixaria o funil pendurado.
+ *
  * Quem alimenta é o `App` (efeito de sessão). Quem consome é `apiFetch` — que no estado `anonimo`
  * NÃO vai à rede e responde pelo servidor em memória (`data/efemero`) — e o gateway de IA, que
  * recusa a nuvem gerenciada sem conta.
@@ -14,6 +17,7 @@
  * testes que importam `data/api` sem renderizar o App — ela devolve o estado atual na hora; senão
  * qualquer chamada ficaria pendurada para sempre esperando um `definirIdentidade` que nunca vem.
  */
+import { edicaoEstatica } from './edicaoEstatica';
 import { authRequired } from './supabase';
 
 export type EstadoDeIdentidade = 'carregando' | 'anonimo' | 'conta' | 'selfhost';
@@ -21,7 +25,12 @@ export type IdentidadeResolvida = Exclude<EstadoDeIdentidade, 'carregando'>;
 
 const EVENTO = 'babel_identidade_changed';
 
-let estado: EstadoDeIdentidade = authRequired ? 'carregando' : 'selfhost';
+function estadoInicial(): EstadoDeIdentidade {
+  if (edicaoEstatica()) return 'anonimo';
+  return authRequired ? 'carregando' : 'selfhost';
+}
+
+let estado: EstadoDeIdentidade = estadoInicial();
 let armada = false;
 let resolver: ((e: IdentidadeResolvida) => void) | null = null;
 let pronta: Promise<IdentidadeResolvida> | null = null;
@@ -37,13 +46,20 @@ export function estaAnonimo(): boolean {
 /** O App chama ao montar: a partir daqui `aguardarIdentidade` espera de verdade pela definição. */
 export function armarIdentidade(): void {
   armada = true;
-  if (estado === 'carregando' && !pronta) pronta = new Promise((r) => { resolver = r; });
+  if (estado === 'carregando' && !pronta)
+    pronta = new Promise((r) => {
+      resolver = r;
+    });
 }
 
 export function definirIdentidade(nova: IdentidadeResolvida): void {
+  if (edicaoEstatica() && nova !== 'anonimo') return;
   const antes = estado;
   estado = nova;
-  if (resolver) { resolver(nova); resolver = null; }
+  if (resolver) {
+    resolver(nova);
+    resolver = null;
+  }
   pronta = Promise.resolve(nova);
   if (antes !== nova && typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent(EVENTO, { detail: { antes, depois: nova } }));
@@ -54,7 +70,10 @@ export function definirIdentidade(nova: IdentidadeResolvida): void {
 export function aguardarIdentidade(): Promise<EstadoDeIdentidade> {
   if (estado !== 'carregando') return Promise.resolve(estado);
   if (!armada) return Promise.resolve(estado);
-  if (!pronta) pronta = new Promise((r) => { resolver = r; });
+  if (!pronta)
+    pronta = new Promise((r) => {
+      resolver = r;
+    });
   return pronta;
 }
 
@@ -69,7 +88,7 @@ export function aoMudarIdentidade(cb: (depois: IdentidadeResolvida, antes: Estad
 
 /** Só para testes: volta ao estado de módulo recém-carregado. */
 export function _reiniciarIdentidade(): void {
-  estado = authRequired ? 'carregando' : 'selfhost';
+  estado = estadoInicial();
   armada = false;
   resolver = null;
   pronta = null;

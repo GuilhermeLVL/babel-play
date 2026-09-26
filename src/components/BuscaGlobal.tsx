@@ -2,6 +2,7 @@ import { BookOpen, FileAudio, FileText, Mic, Moon, Plus, Sun, Target, UserRound,
 import { useEffect, useMemo, useState } from 'react';
 
 import { fetchDeck } from '../data/api';
+import { edicaoEstatica } from '../lib/edicaoEstatica';
 import type { Recording, VocabCard } from '../types';
 import CommandPalette, { type Command } from './CommandPalette';
 import { type AgeProfileType, NAV_ITEMS, navLabel } from './shell/navItems';
@@ -136,14 +137,19 @@ export default function BuscaGlobal({
     const acoes: Command[] = [
       revisar,
       capturar,
-      {
-        id: 'acao:importar',
-        grupo: 'Ações',
-        label: 'Importar mídia ou documento',
-        hint: 'YouTube, PDF, web, áudio',
-        icon: <Plus />,
-        run: () => aoNavegar('library'),
-      },
+      /* Edição estática: importar é trabalho do servidor, que ela não tem. */
+      ...(edicaoEstatica()
+        ? []
+        : [
+            {
+              id: 'acao:importar',
+              grupo: 'Ações',
+              label: 'Importar mídia ou documento',
+              hint: 'YouTube, PDF, web, áudio',
+              icon: <Plus />,
+              run: () => aoNavegar('library'),
+            },
+          ]),
       {
         id: 'acao:tema',
         grupo: 'Ações',

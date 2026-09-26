@@ -50,6 +50,7 @@ import StudioHeader from './components/StudioHeader';
 import Toaster from './components/Toast';
 import { carregarProtecao, fetchSessions } from './data/api';
 import { lerTokenDoConvite } from './lib/conviteNaUrl';
+import { edicaoEstatica } from './lib/edicaoEstatica';
 import { carregarEntitlements } from './lib/entitlements';
 import { useAparencia, useHidratacaoDeAjustes } from './lib/estado/useAparencia';
 import { useGateDeConta } from './lib/estado/useGateDeConta';
@@ -476,7 +477,9 @@ export default function App() {
           <Suspense
             fallback={<div className="flex-1 flex items-center justify-center text-ink-muted text-sm">Carregando…</div>}
           >
-            {anonimo && exigeConta(activeView) && (
+            {/* Na edição estática, Estatísticas roda inteira no servidor em memória e a tela abaixo
+                já monta sem conta — o cartão por cima dela só contradiria o que aparece. */}
+            {anonimo && exigeConta(activeView) && !(edicaoEstatica() && activeView === 'estatisticas') && (
               <CartaoDeConvite
                 view={activeView}
                 onEntrar={() => setPedindoLogin(true)}
@@ -547,7 +550,18 @@ export default function App() {
             {activeView === 'profile' && !anonimo && <Perfil progress={progress} ageProfile={ageProfile} />}
             {/* Plano e consumo. Diferente do Perfil, aparece TAMBÉM sem conta: é justamente
               quem não tem conta que precisa saber o que um plano daria. */}
-            {activeView === 'planos' && <Planos />}
+            {/* Edição estática (sem servidor): não há plano a assinar. Quem chega por URL (/plano)
+                vê o mesmo cartão honesto das telas que só existem na versão completa. */}
+            {activeView === 'planos' &&
+              (edicaoEstatica() ? (
+                <CartaoDeConvite
+                  view="planos"
+                  onEntrar={() => setActiveView('hub')}
+                  onVoltar={() => setActiveView('hub')}
+                />
+              ) : (
+                <Planos />
+              ))}
             {activeView === 'estatisticas' && (
               <Estatisticas metrics={metrics} onChangeView={(v) => navigateTo(v as ViewType)} />
             )}
@@ -649,24 +663,28 @@ export default function App() {
 
         {/* Overlays globais (chat + estúdio de layout) — lazy: não pesam no primeiro paint. */}
         <Suspense fallback={null}>
-          {/* Global iChat assistant with layout capabilities */}
-          <IChat
-            activeView={mappedActiveViewForChat}
-            selectedRecording={selectedRecording}
-            liveTranscription={liveTranscription}
-            onChangeView={navigateTo}
-            isOpen={isChatOpen}
-            setIsOpen={setIsChatOpen}
-            isDocked={isChatDocked}
-            setIsDocked={(docked) => {
-              setIsChatDocked(docked);
-              localStorage.setItem('ichat_docked', docked ? 'true' : 'false');
-            }}
-            practiceSeed={practiceSeed?.text}
-            recordings={recordings}
-            metrics={metrics}
-            ageProfile={ageProfile}
-          />
+          {/* Global iChat assistant with layout capabilities. O tutor é IA de NUVEM (`/api/tutor`):
+              na edição estática, sem servidor, ele não monta — melhor ausente que um botão que só
+              responde "não deu". */}
+          {!edicaoEstatica() && (
+            <IChat
+              activeView={mappedActiveViewForChat}
+              selectedRecording={selectedRecording}
+              liveTranscription={liveTranscription}
+              onChangeView={navigateTo}
+              isOpen={isChatOpen}
+              setIsOpen={setIsChatOpen}
+              isDocked={isChatDocked}
+              setIsDocked={(docked) => {
+                setIsChatDocked(docked);
+                localStorage.setItem('ichat_docked', docked ? 'true' : 'false');
+              }}
+              practiceSeed={practiceSeed?.text}
+              recordings={recordings}
+              metrics={metrics}
+              ageProfile={ageProfile}
+            />
+          )}
 
           {isStudioOpen && (
             <LayoutStudio
@@ -713,7 +731,10 @@ export default function App() {
 
       {/* Host único das ofertas de planos (Fase 8): banner, aviso de cota e modal, um por vez, nunca
           sobre captura, rodada ou outra celebração. Ver `components/ofertas/HostDeOfertas`. */}
-      <HostDeOfertas aoEntrar={() => setPedindoLogin(true)} aoVerPlanos={() => navigateTo('planos')} />
+      {/* Edição estática: não há plano nem conta a oferecer — o host nem monta. */}
+      {!edicaoEstatica() && (
+        <HostDeOfertas aoEntrar={() => setPedindoLogin(true)} aoVerPlanos={() => navigateTo('planos')} />
+      )}
     </div>
   );
 }

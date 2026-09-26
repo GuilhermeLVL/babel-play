@@ -2,6 +2,7 @@ import { type Dispatch, type SetStateAction, useEffect, useRef, useState } from 
 
 import type { Recording, ViewType } from '../../types';
 import { isOnAuthCallback } from '../authCallback';
+import { edicaoEstatica } from '../edicaoEstatica';
 import { askNavGuard } from '../navGuard';
 import { type EstadoDeRota, irParaSubTelaDePlanos, lerUrlAtual, publicarUrl, type ViewDeRota } from '../rotas';
 import type { PracticeSeed } from '../sentences';
@@ -71,6 +72,8 @@ export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
     // Sem conta: a porta de entrada é um destino ("Entrar" no menu), e o que exige conta abre o
     // convite em vez de navegar — a tela atual fica como está.
     if (view === 'login') {
+      // Edição estática: não há login. Nenhum botão leva aqui; se algo levar, não faz nada.
+      if (edicaoEstatica()) return;
       setPedindoLogin(true);
       return;
     }

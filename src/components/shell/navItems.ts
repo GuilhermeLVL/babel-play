@@ -12,6 +12,7 @@ import {
   Shirt,
 } from 'lucide-react';
 
+import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { t } from '../../lib/i18n';
 import type { ViewType } from '../../types';
 
@@ -151,4 +152,8 @@ export function navLabel(item: NavItemDef, profile: AgeProfileType, compact = fa
  * por tela (`exigeConta`) já resolve, por tela e em tempo de execução, a pergunta que ela
  * respondia em bloco e em tempo de build.
  */
-export const NAV_ITEMS: NavItemDef[] = TODOS_OS_ITENS;
+export const NAV_ITEMS: NavItemDef[] = edicaoEstatica()
+  ? /* EDIÇÃO ESTÁTICA (site sem servidor): não há plano a assinar nem checkout — um item "Planos"
+       ali seria um destino sem saída. Some do menu; o resto é o mesmo. */
+    TODOS_OS_ITENS.filter((i) => i.id !== 'planos')
+  : TODOS_OS_ITENS;

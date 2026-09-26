@@ -25,6 +25,7 @@ import { chaveDedup } from '@core/texto/palavra';
 
 import { type Grade, makeFsrs5, metaDeRetencao, type SchedulingState } from '../../../core/learning/scheduler';
 import { estadoDoTeto, motivoDoTeto } from '../../../core/tetoAnonimo';
+import { edicaoEstatica } from '../../../lib/edicaoEstatica';
 import { type Json,json, lerJson, num, str, uuid } from '../nucleo';
 import { abrirStore, type CartaoLocal } from '../store';
 export { chaveDedup };
@@ -73,7 +74,7 @@ export async function adicionarCartoes(_m: RegExpMatchArray, _u: URL, init: Requ
   const jaFichadas = await db.count('cartoes');
   const tetoP = estadoDoTeto('palavras', jaFichadas);
   if (!tetoP.cabe) {
-    return json({ error: motivoDoTeto('palavras'), codigo: 'TETO_ANONIMO', recurso: 'palavras', ...tetoP }, 507);
+    return json({ error: motivoDoTeto('palavras', { edicaoEstatica: edicaoEstatica() }), codigo: 'TETO_ANONIMO', recurso: 'palavras', ...tetoP }, 507);
   }
 
   const agora = Date.now();

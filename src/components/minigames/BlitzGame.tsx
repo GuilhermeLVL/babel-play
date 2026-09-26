@@ -13,6 +13,7 @@ import {
   rotuloDaSequencia,
   SEQUENCIA_FEVER,
 } from '../../core/minigames/blitzRegras';
+import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { emitBurst } from '../../lib/effects';
 import { eventosCondicionais } from '../../lib/eventosDeJogo';
 import { playJuicedError, playJuicedHit, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
@@ -410,7 +411,8 @@ export default function BlitzGame({ items, ageProfile, onFinish }: BlitzGameProp
           </div>
           {/* Ranking global: opt-in, com apelido — só pontos e combo saem daqui. No perfil protegido
               (menor, ou idade desconhecida — ECA Digital) o envio nem é oferecido. */}
-          {pontosRef.current > 0 && !perfilProtegido() && (
+          {/* Edição estática: sem servidor, sem placar de comunidade — o envio não é oferecido. */}
+          {pontosRef.current > 0 && !perfilProtegido() && !edicaoEstatica() && (
             <div className="mt-6 pt-5 border-t border-border-subtle text-start">
               <p className="text-[11px] font-bold uppercase tracking-wider text-ink-faint mb-2">Ranking global</p>
               {envio === 'ok' ? (

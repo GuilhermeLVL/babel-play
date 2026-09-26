@@ -29,7 +29,8 @@
  * Este arquivo REEXPORTA o núcleo: quem já importava `EVENTO_EXIGE_CONTA`, `json` ou `chaveDedup`
  * de `efemero/servidor` (telas e testes) continua valendo, sem nenhum símbolo mudando de nome.
  */
-import { json, naoDisponivelSemConta, PASSAM_DIRETO } from './nucleo';
+import { edicaoEstatica } from '../../lib/edicaoEstatica';
+import { json, naoDisponivelSemConta, PASSAM_DIRETO, semServidorNaEdicaoEstatica } from './nucleo';
 import * as conta from './rotas/conta';
 import * as economia from './rotas/economia';
 import * as exercicios from './rotas/exercicios';
@@ -91,7 +92,13 @@ const ROTAS: Array<{ metodo: string; padrao: RegExp; handler: Handler }> = [
 export async function servidorEfemero(input: string, init: RequestInit = {}): Promise<Response> {
   const url = new URL(input, 'http://efemero.local');
   const metodo = (init.method ?? 'GET').toUpperCase();
-  if (PASSAM_DIRETO.some((r) => r.test(url.pathname))) return fetch(input, init);
+  if (PASSAM_DIRETO.some((r) => r.test(url.pathname))) {
+    /* Na edição estática não há servidor para onde passar: o Pages devolveria o `index.html`. As
+       flags ficam no cache/padrão embutido (resposta não-ok = "mantém o que sabe") e as métricas
+       são descartadas em silêncio — nada disso vira erro no console. */
+    if (edicaoEstatica()) return semServidorNaEdicaoEstatica(metodo);
+    return fetch(input, init);
+  }
   for (const rota of ROTAS) {
     if (rota.metodo !== metodo) continue;
     const m = url.pathname.match(rota.padrao);

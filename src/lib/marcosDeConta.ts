@@ -1,4 +1,6 @@
-import { estadoDoTeto,TETO_ANONIMO } from '@core'
+import { estadoDoTeto, TETO_ANONIMO } from '@core';
+
+import { edicaoEstatica } from './edicaoEstatica';
 
 /**
  * OS AVISOS POR MARCO DE USO — a peça que não existia (mudança porta-de-entrada).
@@ -16,36 +18,44 @@ import { estadoDoTeto,TETO_ANONIMO } from '@core'
  * a mesma conversa de novo. O que a pessoa dispensou, ficou dispensado.
  */
 
-export type MarcoDeConta = 'segunda-sessao' | 'caderno-quase-cheio' | 'acervo-quase-cheio'
+export type MarcoDeConta = 'segunda-sessao' | 'caderno-quase-cheio' | 'acervo-quase-cheio';
 
-const CHAVE = 'babel.marcos_vistos'
+const CHAVE = 'babel.marcos_vistos';
 
 function vistos(): Set<string> {
-  try { return new Set(JSON.parse(localStorage.getItem(CHAVE) || '[]') as string[]) } catch { return new Set() }
+  try {
+    return new Set(JSON.parse(localStorage.getItem(CHAVE) || '[]') as string[]);
+  } catch {
+    return new Set();
+  }
 }
 
 export function marcarVisto(m: MarcoDeConta): void {
   try {
-    const s = vistos(); s.add(m)
-    localStorage.setItem(CHAVE, JSON.stringify([...s]))
-  } catch { /* sem storage: o aviso volta, e é melhor do que sumir */ }
+    const s = vistos();
+    s.add(m);
+    localStorage.setItem(CHAVE, JSON.stringify([...s]));
+  } catch {
+    /* sem storage: o aviso volta, e é melhor do que sumir */
+  }
 }
 
 export function jaViu(m: MarcoDeConta): boolean {
-  return vistos().has(m)
+  return vistos().has(m);
 }
 
 export interface AvisoDeConta {
-  marco: MarcoDeConta
-  titulo: string
-  texto: string
+  marco: MarcoDeConta;
+  titulo: string;
+  texto: string;
 }
 
-const TEXTO: Record<MarcoDeConta, AvisoDeConta> = {
+const TEXTO_COM_CONTA: Record<MarcoDeConta, AvisoDeConta> = {
   'segunda-sessao': {
     marco: 'segunda-sessao',
     titulo: 'Suas gravações estão só neste navegador',
-    texto: 'Limpar o navegador ou trocar de aparelho leva tudo junto. Criar uma conta guarda o que você já fez — e o que está aqui sobe junto.',
+    texto:
+      'Limpar o navegador ou trocar de aparelho leva tudo junto. Criar uma conta guarda o que você já fez — e o que está aqui sobe junto.',
   },
   'caderno-quase-cheio': {
     marco: 'caderno-quase-cheio',
@@ -57,7 +67,31 @@ const TEXTO: Record<MarcoDeConta, AvisoDeConta> = {
     titulo: `Você está chegando no limite de ${TETO_ANONIMO.sessoes} gravações`,
     texto: 'Sem conta, a próxima não cabe. Com conta não há teto, e estas aqui sobem junto.',
   },
-}
+};
+
+/**
+ * OS MESMOS MARCOS NA EDIÇÃO ESTÁTICA (o site sem servidor): o aviso continua valendo — o teto e o
+ * "só neste navegador" são os mesmos —, mas não há conta a criar. Dizer "crie uma conta" ali seria
+ * mandar a pessoa para uma porta que não existe; o texto diz o que é, uma demonstração.
+ */
+const TEXTO_DA_EDICAO_ESTATICA: Record<MarcoDeConta, AvisoDeConta> = {
+  'segunda-sessao': {
+    marco: 'segunda-sessao',
+    titulo: 'Suas gravações estão só neste navegador',
+    texto: 'Esta é a edição de demonstração: limpar o navegador ou trocar de aparelho leva tudo junto.',
+  },
+  'caderno-quase-cheio': {
+    marco: 'caderno-quase-cheio',
+    titulo: `Seu caderno está chegando no limite de ${TETO_ANONIMO.palavras} palavras`,
+    texto: 'Esta é a edição de demonstração, e o caderno para aí. A versão completa do Babel Play não tem esse limite.',
+  },
+  'acervo-quase-cheio': {
+    marco: 'acervo-quase-cheio',
+    titulo: `Você está chegando no limite de ${TETO_ANONIMO.sessoes} gravações`,
+    texto:
+      'Esta é a edição de demonstração, e a próxima gravação não cabe. A versão completa do Babel Play não tem esse limite.',
+  },
+};
 
 /**
  * O QUE AVISAR AGORA — função pura, testável, sem tela.
@@ -66,16 +100,17 @@ const TEXTO: Record<MarcoDeConta, AvisoDeConta> = {
  * concreto (o teto que está perto vale mais do que o lembrete genérico de guardar).
  */
 export function avisoPendente(estado: { sessoes: number; palavras: number; semConta: boolean }): AvisoDeConta | null {
-  if (!estado.semConta) return null
+  if (!estado.semConta) return null;
+  const TEXTO = edicaoEstatica() ? TEXTO_DA_EDICAO_ESTATICA : TEXTO_COM_CONTA;
 
-  const acervo = estadoDoTeto('sessoes', estado.sessoes)
-  if (acervo.perto && !jaViu('acervo-quase-cheio')) return TEXTO['acervo-quase-cheio']
+  const acervo = estadoDoTeto('sessoes', estado.sessoes);
+  if (acervo.perto && !jaViu('acervo-quase-cheio')) return TEXTO['acervo-quase-cheio'];
 
-  const caderno = estadoDoTeto('palavras', estado.palavras)
-  if (caderno.perto && !jaViu('caderno-quase-cheio')) return TEXTO['caderno-quase-cheio']
+  const caderno = estadoDoTeto('palavras', estado.palavras);
+  if (caderno.perto && !jaViu('caderno-quase-cheio')) return TEXTO['caderno-quase-cheio'];
 
   // O mais genérico por último: só fala quando não há nada mais concreto para dizer.
-  if (estado.sessoes >= 2 && !jaViu('segunda-sessao')) return TEXTO['segunda-sessao']
+  if (estado.sessoes >= 2 && !jaViu('segunda-sessao')) return TEXTO['segunda-sessao'];
 
-  return null
+  return null;
 }

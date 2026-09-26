@@ -2,6 +2,7 @@ import type { AppMetrics } from '@core';
 import { CloudOff, X } from 'lucide-react';
 import { useState } from 'react';
 
+import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { t } from '../../lib/i18n';
 import { estaAnonimo } from '../../lib/identidade';
 import { avisoPendente, marcarVisto } from '../../lib/marcosDeConta';
@@ -21,10 +22,7 @@ import { avisoPendente, marcarVisto } from '../../lib/marcosDeConta';
  * Some sozinho com conta, e some para sempre quando dispensado: quem já respondeu não precisa ser
  * perguntado de novo.
  */
-export default function AvisoDeConta({ metrics, onEntrar }: {
-  metrics: AppMetrics | null;
-  onEntrar: () => void;
-}) {
+export default function AvisoDeConta({ metrics, onEntrar }: { metrics: AppMetrics | null; onEntrar: () => void }) {
   const [dispensado, setDispensado] = useState(false);
 
   const aviso = avisoPendente({
@@ -34,20 +32,43 @@ export default function AvisoDeConta({ metrics, onEntrar }: {
   });
   if (!aviso || dispensado) return null;
 
-  const dispensar = () => { marcarVisto(aviso.marco); setDispensado(true); };
+  const dispensar = () => {
+    marcarVisto(aviso.marco);
+    setDispensado(true);
+  };
 
   return (
-    <section className="rounded-2xl border-2 border-accent/40 bg-accent-soft p-4 flex items-start gap-3" data-testid="aviso-de-conta">
+    <section
+      className="rounded-2xl border-2 border-accent/40 bg-accent-soft p-4 flex items-start gap-3"
+      data-testid="aviso-de-conta"
+    >
       <CloudOff className="w-5 h-5 text-accent shrink-0 mt-0.5" aria-hidden />
       <div className="flex-1 min-w-0">
         <p className="font-display font-black text-[14.5px] text-ink">{t(aviso.titulo)}</p>
         <p className="text-[12.5px] text-ink-muted mt-1 leading-relaxed max-w-[72ch]">{t(aviso.texto)}</p>
         <div className="flex flex-wrap gap-2 mt-3">
-          <button onClick={onEntrar} className="btn-solid !py-2 !text-[12.5px]">{t('Criar conta ou entrar')}</button>
-          <button onClick={dispensar} className="btn-outline !py-2 !text-[12.5px]">{t('Agora não')}</button>
+          {/* Edição estática: não há conta a criar — o aviso informa, e a saída é só dispensar. */}
+          {edicaoEstatica() ? (
+            <button onClick={dispensar} className="btn-outline !py-2 !text-[12.5px]">
+              {t('Entendi')}
+            </button>
+          ) : (
+            <>
+              <button onClick={onEntrar} className="btn-solid !py-2 !text-[12.5px]">
+                {t('Criar conta ou entrar')}
+              </button>
+              <button onClick={dispensar} className="btn-outline !py-2 !text-[12.5px]">
+                {t('Agora não')}
+              </button>
+            </>
+          )}
         </div>
       </div>
-      <button onClick={dispensar} aria-label="Dispensar aviso" className="shrink-0 text-ink-faint hover:text-ink cursor-pointer">
+      <button
+        onClick={dispensar}
+        aria-label="Dispensar aviso"
+        className="shrink-0 text-ink-faint hover:text-ink cursor-pointer"
+      >
         <X className="w-4 h-4" aria-hidden />
       </button>
     </section>

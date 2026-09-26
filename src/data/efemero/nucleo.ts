@@ -45,6 +45,19 @@ export const uuid = (): string =>
  */
 export const PASSAM_DIRETO: RegExp[] = [/^\/api\/audio\/loopback\//, /^\/api\/flags$/, /^\/api\/metricas\/ofertas$/];
 
+export const CODIGO_EDICAO_ESTATICA = 'EDICAO_ESTATICA';
+
+/**
+ * O que as rotas de `PASSAM_DIRETO` respondem na EDIÇÃO ESTÁTICA, onde não há servidor real.
+ * Escrita (métrica anônima): 204, descartada em silêncio. Leitura (flags, loopback): 404 com o
+ * envelope de erro — quem lê trata o não-ok como "mantém o que sabe" (flags no cache/padrão) ou
+ * "não existe aqui" (captura do áudio do sistema). Nunca avisa o App: não é ação da pessoa.
+ */
+export function semServidorNaEdicaoEstatica(metodo: string): Response {
+  if (metodo !== 'GET' && metodo !== 'HEAD') return new Response(null, { status: 204 });
+  return json({ error: 'sem servidor nesta edição', code: CODIGO_EDICAO_ESTATICA }, 404);
+}
+
 /**
  * Só AÇÕES da pessoa avisam o App para oferecer a conta. Sondas automáticas (disponibilidade de
  * STT, suporte a loopback, busca de capa, tradução ao vivo) recebem o 501 em silêncio — senão o

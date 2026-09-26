@@ -16,6 +16,7 @@ import {
 import React, { useEffect, useState } from 'react';
 
 import { type AppMetrics, fetchExerciseResults } from '../../data/api';
+import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { numero, t, tp } from '../../lib/i18n';
 import { type DerivedProgress, type Mission } from '../../lib/progress';
 import { Recording } from '../../types';
@@ -191,7 +192,8 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
           sem conta, com motivo concreto, e some para sempre quando dispensado. */}
       <AvisoDeConta metrics={metrics} onEntrar={() => onChangeView('login')} />
 
-      <CardDePlanos onVerPlanos={() => onChangeView('planos')} />
+      {/* Edição estática: não há plano a vender. */}
+      {!edicaoEstatica() && <CardDePlanos onVerPlanos={() => onChangeView('planos')} />}
 
       {/* Sessões recentes — marcação do protótipo: título de seção, abas em pílula por tipo e as
           sessões como `.sessao-mini`. */}
@@ -266,16 +268,20 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
                   aoClicar: () => onChangeView('capture'),
                 }}
                 acaoSecundaria={
-                  recordings.length === 0
-                    ? {
-                        rotulo: (
-                          <>
-                            <Upload className="w-4 h-4" /> {t('Importar mídia')}
-                          </>
-                        ),
-                        aoClicar: () => onChangeView('library'),
-                      }
-                    : { rotulo: t('Ver todas as categorias'), aoClicar: () => setFilterCategory('all') }
+                  /* Edição estática: a importação é feita pelo SERVIDOR (YouTube, web, documentos) e
+                     a Biblioteca só existe na versão completa — sem o atalho. */
+                  recordings.length === 0 && edicaoEstatica()
+                    ? undefined
+                    : recordings.length === 0
+                      ? {
+                          rotulo: (
+                            <>
+                              <Upload className="w-4 h-4" /> {t('Importar mídia')}
+                            </>
+                          ),
+                          aoClicar: () => onChangeView('library'),
+                        }
+                      : { rotulo: t('Ver todas as categorias'), aoClicar: () => setFilterCategory('all') }
                 }
               />
             ) : (

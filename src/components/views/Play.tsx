@@ -143,6 +143,7 @@ import {
 import { listarBaralhosAnki } from '../../data/apiAnki';
 import { carregarTrilha, indiceDaTrilha, precarregarNiveis, trilhaEmCache } from '../../data/trilha/carregar';
 import { useAudioDaSessao } from '../../lib/audioDaSessao';
+import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { filtroDaQuery, gravarFiltro, lerFiltroGuardado, queryDoFiltro } from '../../lib/filtroDaPratica';
 import { temFonteGuardada } from '../../lib/fonteDaPratica';
 import { playJuicedHit, triggerHaptic } from '../../lib/gameFeel';
@@ -2508,28 +2509,34 @@ export default function Play({
         /* O cartão "Trazer ou gerenciar" do protótipo: sair para o Anki fecha a gaveta
            antes (`fecharGaveta()`), senão ela reabriria ao voltar. */
         <>
-          <button
-            type="button"
-            className="btn btn-outline peq"
-            onClick={() => {
-              setSeletorAberto(false);
-              setVendoMapa(false);
-              setImportando(true);
-            }}
-          >
-            <Upload aria-hidden /> {ageProfile === 'kids' ? t('Palavras de fora') : t('Trazer do Anki')}
-          </button>
-          <button
-            type="button"
-            className="btn btn-outline peq"
-            onClick={() => {
-              setSeletorAberto(false);
-              setVendoMapa(false);
-              setVendoBaralhos(true);
-            }}
-          >
-            <Layers aria-hidden /> {t('Gerenciar baralhos')}
-          </button>
+          {/* Edição estática: o Anki é lido e guardado no SERVIDOR (`/api/import/anki`, baralhos) —
+              sem ele, os dois botões levariam a uma tela que só falha. */}
+          {!edicaoEstatica() && (
+            <>
+              <button
+                type="button"
+                className="btn btn-outline peq"
+                onClick={() => {
+                  setSeletorAberto(false);
+                  setVendoMapa(false);
+                  setImportando(true);
+                }}
+              >
+                <Upload aria-hidden /> {ageProfile === 'kids' ? t('Palavras de fora') : t('Trazer do Anki')}
+              </button>
+              <button
+                type="button"
+                className="btn btn-outline peq"
+                onClick={() => {
+                  setSeletorAberto(false);
+                  setVendoMapa(false);
+                  setVendoBaralhos(true);
+                }}
+              >
+                <Layers aria-hidden /> {t('Gerenciar baralhos')}
+              </button>
+            </>
+          )}
           <button
             type="button"
             className="btn btn-outline peq"

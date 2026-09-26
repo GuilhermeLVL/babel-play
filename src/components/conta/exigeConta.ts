@@ -5,6 +5,7 @@
  * sessão atual, ajustes). O que persiste na conta — biblioteca, sessão/análise, vocabulário,
  * perfil — mostra um convite em vez da tela, e NUNCA some do menu: "mostra, explica, não esconde".
  */
+import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import type { ViewType } from '../../types';
 
 export const EXIGE_CONTA: ReadonlySet<ViewType> = new Set<ViewType>([
@@ -87,6 +88,13 @@ export function porta(e: EstadoDaPorta): 'login' | 'app' {
 
 /** O motivo do gate em linguagem de gente, a partir da view pedida ou da rota recusada. */
 export function motivoDoGate(origem: string): string {
+  /* Edição estática: um motivo honesto — não há servidor. Os textos abaixo prometem uma conta que
+     ali não existe. */
+  if (edicaoEstatica()) {
+    if (origem.includes('/api/ai/') || origem.includes('/api/tutor/'))
+      return 'A inteligência artificial de nuvem depende do servidor, que esta edição de demonstração não tem. A transcrição e a tradução locais continuam livres.';
+    return 'Isto depende do servidor, que esta edição de demonstração não tem. Na versão completa do Babel Play funciona.';
+  }
   const c = CONVITE[origem];
   if (c) return c.titulo + '.';
   if (origem.includes('/api/import/youtube'))

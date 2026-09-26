@@ -20,6 +20,7 @@ import {
 import { useCallback, useEffect, useState } from 'react';
 
 import * as auth from '../../../lib/auth';
+import { edicaoEstatica } from '../../../lib/edicaoEstatica';
 import { t } from '../../../lib/i18n';
 import { authRequired, carregarSupabase } from '../../../lib/supabase';
 import { toast } from '../../Toast';
@@ -223,7 +224,16 @@ export default function AbaConta({
             </>
           ) : (
             <>
-              <Linha titulo={t('E-mail')} desc="Este app roda no seu computador, sem conta: não há e-mail cadastrado.">
+              <Linha
+                titulo={t('E-mail')}
+                desc={
+                  edicaoEstatica()
+                    ? t(
+                        'Esta é a edição de demonstração: roda no seu navegador, sem conta, e não há e-mail cadastrado.',
+                      )
+                    : 'Este app roda no seu computador, sem conta: não há e-mail cadastrado.'
+                }
+              >
                 {semLogin}
               </Linha>
               <Linha titulo={t('Senha')} desc="Sem login, não há senha para trocar.">
@@ -299,17 +309,20 @@ export default function AbaConta({
         </div>
       </section>
 
-      <section className="secao zona-perigo">
-        <div>
-          <b>{t('Excluir a conta')}</b>
-          <p className="mut">
-            Apaga sessões, palavras e progresso na hora. Não tem volta: baixe uma cópia antes se quiser guardar.
-          </p>
-        </div>
-        <button type="button" className="btn btn-outline perigo" onClick={() => setDialogo('excluir')}>
-          <Trash2 aria-hidden /> {t('Excluir a conta')}
-        </button>
-      </section>
+      {/* Edição estática: não há conta a excluir (a ação iria ao servidor, que ela não tem). */}
+      {!edicaoEstatica() && (
+        <section className="secao zona-perigo">
+          <div>
+            <b>{t('Excluir a conta')}</b>
+            <p className="mut">
+              Apaga sessões, palavras e progresso na hora. Não tem volta: baixe uma cópia antes se quiser guardar.
+            </p>
+          </div>
+          <button type="button" className="btn btn-outline perigo" onClick={() => setDialogo('excluir')}>
+            <Trash2 aria-hidden /> {t('Excluir a conta')}
+          </button>
+        </section>
+      )}
 
       {dialogo && (
         <DialogosDaConta

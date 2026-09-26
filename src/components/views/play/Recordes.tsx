@@ -12,6 +12,7 @@ import { Globe2, Medal, Shield, Trophy } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { fetchRecordes, type RecordeDoJogo } from '../../../data/api';
+import { edicaoEstatica } from '../../../lib/edicaoEstatica';
 import { eventosVistos, todosOsEventos } from '../../../lib/eventosDeJogo';
 import { t } from '../../../lib/i18n';
 import type { AgeProfileType } from '../../../lib/profile';
@@ -44,6 +45,8 @@ export default function Recordes({ ageProfile, onFechar }: { ageProfile: AgeProf
 
   /* Perfil protegido (Fase 4 — ECA Digital): sem ranking público, nem para ver. */
   const protegido = perfilProtegido();
+  /* Edição estática: o placar de comunidade mora no servidor, que ela não tem — só os seus. */
+  const semRanking = protegido || edicaoEstatica();
   const vistos = eventosVistos().length;
   const totalEventos = todosOsEventos().length;
   const apelido = lerApelido();
@@ -63,7 +66,7 @@ export default function Recordes({ ageProfile, onFechar }: { ageProfile: AgeProf
             <Shield aria-hidden style={{ width: 13, height: 13, verticalAlign: -2 }} />{' '}
             {t('No perfil protegido não há ranking público: os seus recordes ficam só com você.')}
           </p>
-        ) : (
+        ) : semRanking ? null : (
           <div className="seg" role="radiogroup" aria-label={t('Qual recorde')}>
             {(
               [
@@ -78,7 +81,7 @@ export default function Recordes({ ageProfile, onFechar }: { ageProfile: AgeProf
           </div>
         )}
 
-        {aba === 'meus' || protegido ? (
+        {aba === 'meus' || semRanking ? (
           <>
             <div className="ladrilhos" style={{ gridTemplateColumns: 'repeat(3,1fr)' }}>
               <div className="cartao ladrilho">

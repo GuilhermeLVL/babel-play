@@ -992,7 +992,7 @@ export default function LiveCapture({
   /* O PIPELINE DE FALA (VAD → STT → diarização → emissão) e a preparação dos modelos moram em
      `lib/captura/pipelineDeFala.ts`. A fábrica roda a cada render, como as closures que
      substituiu: os handlers precisam do `micEnabled`/`micEngine` do render corrente. */
-  const { sysHandlers, micHandlers, prepareModels } = criarPipelineDeFala({
+  const { sysHandlers, micHandlers, prepareModels, preaquecerModelos } = criarPipelineDeFala({
     gateway,
     sourceLang,
     sourceLangRef,
@@ -1036,6 +1036,17 @@ export default function LiveCapture({
     setModelPrep,
     setSttRouteLabel,
   });
+
+  /* PRÉ-AQUECE o STT/MT locais que JÁ estão em cache quando a tela abre e quando o par ou a qualidade
+     mudam (nunca baixa nada: ver `preaquecerModelos`). Com um respiro, para não disputar a
+     renderização da tela; a gravação em curso não é tocada. */
+  const preaquecerRef = useRef(preaquecerModelos);
+  preaquecerRef.current = preaquecerModelos;
+  useEffect(() => {
+    if (isRecordingRef.current) return;
+    const relogio = setTimeout(() => void preaquecerRef.current(), 400);
+    return () => clearTimeout(relogio);
+  }, [sourceLang, targetLang, autoDetectLang, autoDetectMyLang, micEnabled, micEngine, sttQuality]);
 
   /* AS FONTES DE ÁUDIO (sistema/aba, microfone, medidor e o interruptor do mic) moram em
      `lib/captura/fontesDeAudio.ts`. Fábrica por render, como as closures que substituiu: elas

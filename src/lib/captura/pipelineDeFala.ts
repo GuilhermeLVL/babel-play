@@ -768,7 +768,8 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     setTimeout(() => setFeedbackMsg(''), 9000);
   };
 
-  const prepareModelsInterno = async () => {
+  /** A rota de STT desta captura (a mesma conta para preparar e para pré-aquecer). */
+  const rotaDaCaptura = async () => {
     const listenLang = targetLangRef.current.split('-')[0]; // você OUVE o idioma-alvo
     const myLang = sourceLangRef.current.split('-')[0];
 
@@ -791,6 +792,47 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       cloudAvailable,
       profileId: getActiveProfile().id,
     });
+    return { listenLang, myLang, route };
+  };
+
+  /**
+   * PRÉ-AQUECER AO ABRIR A TELA (auditoria de latência 2026-09-26, item 6). "STT pronto" levava de
+   * 3,4 s (Moonshine) a 5,7–13,1 s (small no WebGPU) depois do clique em "Iniciar captura", mesmo com
+   * o modelo em cache — e as falas desse intervalo esperavam. Aqui a carga começa quando a tela abre
+   * (ou os idiomas mudam), e o `ensurePipeline` do worker já faz o decode curto de aquecimento.
+   *
+   * Só o que JÁ ESTÁ NO NAVEGADOR: baixar é decisão da pessoa, tomada no "Iniciar". Rota de nuvem
+   * também não aquece nada (o modelo local ali é só reserva). Nunca lança.
+   */
+  const preaquecerModelos = async (): Promise<void> => {
+    try {
+      if (getProviderMode() === 'cloud' || prepareEmVooRef.current || modelReadyRef.current) return;
+      const { listenLang, myLang, route } = await rotaDaCaptura();
+      if (route.preferCloud) return;
+      if (await areModelsCached([route.localModel])) {
+        gateway.stt.setRoute({ preferCloud: false, localModel: route.localModel });
+        setSttRouteLabel(route.label);
+        clog('pré-aquecendo o STT local (em cache):', route.localModel);
+        void gateway.stt
+          .preloadModel(undefined, { aoDegradar: avisarDegradacao })
+          .then(() => clog('STT local pré-aquecido ✓'))
+          .catch((e) => clog('pré-aquecimento do STT falhou (a captura tenta de novo):', String(e)));
+      }
+      // Os dois sentidos do tradutor (o que você ouve e o que você fala), cada um só se já baixado.
+      for (const [de, para] of [
+        [listenLang, myLang],
+        [myLang, listenLang],
+      ] as const) {
+        const mt = expectedModelIds(de, para, route.localModel).slice(1);
+        if (mt.length && (await areModelsCached(mt))) gateway.mt.warmup([[de, para]]);
+      }
+    } catch (e) {
+      clog('pré-aquecimento ignorado:', String(e));
+    }
+  };
+
+  const prepareModelsInterno = async () => {
+    const { listenLang, myLang, route } = await rotaDaCaptura();
     gateway.stt.setRoute({ preferCloud: route.preferCloud, localModel: route.localModel });
     setSttRouteLabel(route.label);
     clog('roteador STT:', route.label, '| modelo local:', route.localModel, '| nuvem primeiro:', route.preferCloud);
@@ -865,5 +907,5 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     }
   };
 
-  return { sysHandlers, micHandlers, prepareModels };
+  return { sysHandlers, micHandlers, prepareModels, preaquecerModelos };
 }

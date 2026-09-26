@@ -36,6 +36,14 @@ describe('Legendas flutuantes (C6)', () => {
     expect(screen.getByText('Terceira linha.')).toBeTruthy()
   })
 
+  it('mesmo idioma (tradução vazia): UMA linha só, sem linha de tradução nem marcador', () => {
+    const { container } = montar({
+      falas: [{ id: '9', quem: 'Outros', original: 'Alguns cruzeiros mostram Berlim.', traducao: '', lado: 'eles' }],
+    })
+    expect(screen.getByText('Alguns cruzeiros mostram Berlim.')).toBeTruthy()
+    expect(container.querySelectorAll('.leg-t')).toHaveLength(0)
+  })
+
   it('sem fala ainda: "Esperando a primeira fala"', () => {
     montar({ falas: [] })
     expect(screen.getByText('Esperando a primeira fala')).toBeTruthy()

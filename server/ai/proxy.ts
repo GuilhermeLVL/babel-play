@@ -15,7 +15,7 @@ import { erroDeRota } from '../lib/erroDeRota'
 import { log } from '../lib/logger'
 import { responderErro } from '../lib/respostaDeErro'
 import { llmChatCompletionsSchema, parseOr400, providerTestSchema } from '../validation'
-import { assertPublicUrl, ehDestinoBloqueado } from './ssrf'
+import { assertPublicUrl, despachanteSeguro, ehDestinoBloqueado, type InitSeguro } from './ssrf'
 import { abrirRastro, type RastroDeIa, registrarLimiteDoProvedor, statusDaTentativa } from './telemetriaDeIa'
 
 /** A-04: teto de tempo do proxy de LLM (era a ÚNICA rota de IA sem timeout). */
@@ -82,7 +82,9 @@ async function encaminharChat(req: Request, res: Response, rastro: RastroDeIa): 
       // hostil poderia responder 302 para um endereço interno depois do guard passar. Sem seguir, o
       // servidor nunca busca o alvo do redirect (um endpoint OpenAI-compatible não redireciona).
       redirect: 'manual',
-    })
+      // Auditoria de segurança 2026-09-26: o IP é conferido na CONEXÃO (DNS rebinding), ver ssrf.ts.
+      dispatcher: despachanteSeguro,
+    } as InitSeguro)
 
     if (upstream.status === 429) registrarLimiteDoProvedor('byok', 'byok')
     rastro.tentativa({
@@ -147,7 +149,8 @@ export async function providerTest(req: Request, res: Response): Promise<void> {
       body: JSON.stringify({ model, max_tokens: 8, messages: [{ role: 'user', content: 'ping' }] }),
       signal: AbortSignal.timeout(10_000),
       redirect: 'manual', // GAP-002: não seguir redirect para destino não validado
-    })
+      dispatcher: despachanteSeguro, // DNS rebinding: o IP é conferido na conexão (ssrf.ts)
+    } as InitSeguro)
     if (!r.ok) {
       const b = await r.text().catch(() => '')
       res.json({ ok: false, message: `HTTP ${r.status}: ${b.slice(0, 160)}` })

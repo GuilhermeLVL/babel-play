@@ -8,7 +8,7 @@
 import { Readability } from '@mozilla/readability'
 import { JSDOM } from 'jsdom'
 
-import { assertPublicUrl } from '../ai/ssrf'
+import { assertPublicUrl, despachanteSeguro, type InitSeguro } from '../ai/ssrf'
 
 // Teto do HTML aceito (anti-DoS do jsdom/Readability com páginas-bomba).
 const MAX_HTML_BYTES = 4 * 1024 * 1024
@@ -34,7 +34,9 @@ async function fetchPublicHtml(rawUrl: string): Promise<{ res: globalThis.Respon
       // P1-10: sem timeout, um alvo slow-loris segurava o request para sempre — e o laço
       // faz até MAX_REDIRECTS saltos, então o tempo total era ilimitado. Por HOP.
       signal: AbortSignal.timeout(15_000),
-    })
+      // Auditoria de segurança 2026-09-26: o IP é conferido na CONEXÃO (DNS rebinding), ver ssrf.ts.
+      dispatcher: despachanteSeguro,
+    } as InitSeguro)
     if (res.status >= 300 && res.status < 400) {
       const loc = res.headers.get('location')
       if (!loc) throw new Error(`redirect sem destino (HTTP ${res.status})`)

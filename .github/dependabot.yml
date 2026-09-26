@@ -5,12 +5,19 @@
 # Dependabot que as atualiza (o comentário ao lado do SHA diz a versão). docker: as imagens-base do
 # Dockerfile (node:22-slim, debian:bookworm-slim) — o Litestream é fixado por versão+sha256 no
 # próprio Dockerfile e atualizado à mão, com `docs/runbook.md` ao lado.
+#
+# COOLDOWN (auditoria de segurança 2026-09-26, Semgrep `dependabot-missing-cooldown`): uma versão
+# precisa ter 7 dias de publicada antes de virar PR. É a janela em que um pacote sequestrado costuma
+# ser denunciado e retirado (A03:2025, cadeia de suprimentos). Atualização DE SEGURANÇA não espera:
+# o cooldown do Dependabot só vale para as atualizações de versão.
 version: 2
 updates:
   - package-ecosystem: npm
     directory: /
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 5
     groups:
       dev:
@@ -22,7 +29,11 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
   - package-ecosystem: docker
     directory: /
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7

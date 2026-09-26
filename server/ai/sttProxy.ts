@@ -45,7 +45,7 @@ import {
   registrarSucesso,
 } from './disjuntor'
 import { responderContadorIndisponivel } from './reservaDeNuvem'
-import { assertPublicUrl } from './ssrf'
+import { assertPublicUrl, despachanteSeguro, type InitSeguro } from './ssrf'
 import { promptDoCabecalho, triarSegmentos } from './sttQualidade'
 import {
   abrirRastro,
@@ -337,7 +337,13 @@ async function transcrever(req: Request, res: Response, rastro: RastroDeIa): Pro
         headers: { Authorization: 'Bearer ' + secret },
         body: montarForm(formato),
         signal: AbortSignal.timeout(30_000),
-      })
+        /* Auditoria de segurança 2026-09-26: este fetch SEGUIA redirect — o GAP-002 tirou isso só
+           do proxy de chat. Um provedor cadastrado pelo usuário respondendo 302 para um IP literal
+           interno levava o áudio (e o Bearer) até lá. E o IP é conferido na CONEXÃO (DNS
+           rebinding), ver ssrf.ts. */
+        redirect: 'manual',
+        dispatcher: despachanteSeguro,
+      } as InitSeguro)
 
     /**
      * UMA tentativa completa contra o provedor.

@@ -282,20 +282,21 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
    * SÓ EM MODO PÚBLICO. No self-host o dono é o único usuário e limitá-lo seria atrapalhar sem
    * proteger ninguém — a mesma lógica que já governa `authRequired()` no resto do arquivo.
    */
-  const writeLimiter = marcarVerbos(
-    rateLimit({
-      windowMs: 60_000,
-      limit: 120,
-      standardHeaders: true,
-      legacyHeaders: false,
-      keyGenerator: chaveDoRequest,
-      store: createDbRateLimitStore(METRIC_RATELIMIT_ESCRITA),
-      // GET e HEAD não alocam corpo; limitá-los penalizaria a navegação sem fechar o vetor. A
-      // leitura tem teto próprio, em memória: `limitadorDeLeitura` (auditoria de 2026-09-26).
-      skip: (req) => req.method === 'GET' || req.method === 'HEAD',
-    }),
-    'escrita',
-  )
+  const writeLimiter = rateLimit({
+    windowMs: 60_000,
+    limit: 120,
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: chaveDoRequest,
+    store: createDbRateLimitStore(METRIC_RATELIMIT_ESCRITA),
+    // GET e HEAD não alocam corpo; limitá-los penalizaria a navegação sem fechar o vetor. A
+    // leitura tem teto próprio, em memória: `limitadorDeLeitura` (auditoria de 2026-09-26).
+    skip: (req) => req.method === 'GET' || req.method === 'HEAD',
+  })
+  /* A marca de verbos é o que a matriz rota × guarda lê para não contar este limitador em GET
+     (`server/lib/limitesDeLeitura.ts`). Separada da declaração porque
+     `tests/integration/rate-limit-escrita.test.ts` lê a forma `const writeLimiter = rateLimit({`. */
+  marcarVerbos(writeLimiter, 'escrita')
 
   // Cross-origin isolation (opt-in via CROSS_ORIGIN_ISOLATION=1). Habilita SharedArrayBuffer →
   // WASM multithread do Whisper/opus-mt (decode local mais rápido) e um contexto de cache estável.

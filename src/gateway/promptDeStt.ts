@@ -16,40 +16,49 @@
  * caracteres (o FIM do texto, que é o que encosta no trecho novo). O Whisper corta o prompt em 224
  * TOKENS; caracteres é o limite conservador e barato de medir aqui.
  */
-import { baseLang } from '@core/texto/idioma'
+import { baseLang } from '@core/texto/idioma';
 
-export const MAX_PROMPT_STT = 224
+export const MAX_PROMPT_STT = 224;
 
 /** Fica com o FIM do texto, até o teto, sem começar no meio de uma palavra. */
 export function cortarPrompt(texto: string): string {
-  const t = texto.trim()
-  if (t.length <= MAX_PROMPT_STT) return t
-  const fim = t.slice(-MAX_PROMPT_STT)
-  const espaco = fim.indexOf(' ')
+  const t = texto.trim();
+  if (t.length <= MAX_PROMPT_STT) return t;
+  const fim = t.slice(-MAX_PROMPT_STT);
+  const espaco = fim.indexOf(' ');
   // Uma "palavra" de 224 caracteres (URL, texto sem espaço) não tem onde cortar: vai o fim cru.
-  return (espaco >= 0 ? fim.slice(espaco + 1) : fim).trim()
+  return (espaco >= 0 ? fim.slice(espaco + 1) : fim).trim();
 }
 
-type Fonte = 'system' | 'mic'
+type Fonte = 'system' | 'mic';
 
 /** A última final de cada fonte, com o idioma em que ela foi transcrita. Uma instância por tela. */
 export class ContextoDoStt {
-  private ultimo = new Map<Fonte, { texto: string; idioma: string }>()
+  private ultimo = new Map<Fonte, { texto: string; idioma: string }>();
 
   registrar(fonte: Fonte, texto: string, idioma: string | undefined): void {
-    const t = texto.trim()
-    if (!t) return
-    this.ultimo.set(fonte, { texto: t, idioma: baseLang(idioma || '') })
+    const t = texto.trim();
+    if (!t) return;
+    this.ultimo.set(fonte, { texto: t, idioma: baseLang(idioma || '') });
   }
 
   promptPara(fonte: Fonte, idioma: string | undefined): string | undefined {
-    const u = this.ultimo.get(fonte)
-    const l = baseLang(idioma || '')
-    if (!u || !l || u.idioma !== l) return undefined
-    return cortarPrompt(u.texto) || undefined
+    const u = this.ultimo.get(fonte);
+    const l = baseLang(idioma || '');
+    if (!u || !l || u.idioma !== l) return undefined;
+    return cortarPrompt(u.texto) || undefined;
+  }
+
+  /**
+   * O idioma em que a última final DESTA fonte foi transcrita ('' = nenhuma ainda). No "Detectar",
+   * é o idioma que o Whisper MEDIU pelo áudio da fala inteira — a dica provisória dos parciais da
+   * fala seguinte, enquanto o perfil da sessão ainda não convergiu.
+   */
+  idiomaDe(fonte: Fonte): string {
+    return this.ultimo.get(fonte)?.idioma ?? '';
   }
 
   limpar(): void {
-    this.ultimo.clear()
+    this.ultimo.clear();
   }
 }

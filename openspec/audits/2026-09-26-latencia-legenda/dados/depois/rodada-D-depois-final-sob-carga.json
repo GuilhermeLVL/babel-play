@@ -1,0 +1,692 @@
+{
+ "mic-detectar-pt": {
+  "resumo": {
+   "n": 11,
+   "perdidas": 0,
+   "vad": {
+    "p50": 1269,
+    "p95": 1347,
+    "n": 11
+   },
+   "sttEspera": {
+    "p50": 0,
+    "p95": 0,
+    "n": 11
+   },
+   "stt": {
+    "p50": 2351,
+    "p95": 2619,
+    "n": 11
+   },
+   "primeiroToken": {
+    "p50": 1159,
+    "p95": 1406,
+    "n": 11
+   },
+   "renderOrig": {
+    "p50": 5,
+    "p95": 11,
+    "n": 11
+   },
+   "mtEspera": {
+    "p50": 1,
+    "p95": 4,
+    "n": 11
+   },
+   "mt": {
+    "p50": 888,
+    "p95": 1261,
+    "n": 11
+   },
+   "renderTrad": {
+    "p50": 4,
+    "p95": 41,
+    "n": 11
+   },
+   "fimAoOriginal": {
+    "p50": 3268,
+    "p95": 3520,
+    "n": 11
+   },
+   "fimATraducao": {
+    "p50": 4231,
+    "p95": 4805,
+    "n": 11
+   },
+   "inicioAoPrimeiroTexto": {
+    "p50": 3082,
+    "p95": 4001,
+    "n": 10
+   },
+   "primeiraTraducaoParcialAntesDoFim": {
+    "p50": 1649,
+    "p95": 2403,
+    "n": 11
+   },
+   "rtf": {
+    "p50": 0.46,
+    "p95": 0.56,
+    "n": 11
+   },
+   "comTraducaoParcialAntesDoFim": 11,
+   "motoresMt": [
+    "opus-mt"
+   ]
+  },
+  "modelo": "onnx-community/moonshine-base-ONNX",
+  "dispositivos": [
+   "webgpu"
+  ],
+  "carga": [
+   {
+    "sttProntoMs": 9299,
+    "mtProntos": [
+     {
+      "modelo": "Xenova/opus-mt-en-ROMANCE",
+      "ms": -1441
+     },
+     {
+      "modelo": "Xenova/opus-mt-ROMANCE-en",
+      "ms": -1440
+     }
+    ],
+    "pedidosAoHub": 3
+   }
+  ],
+  "lagMax": 198,
+  "lagN": 256
+ },
+ "mic-pt-en-base-wasm": {
+  "resumo": {
+   "n": 22,
+   "perdidas": 0,
+   "vad": {
+    "p50": 783,
+    "p95": 960,
+    "n": 22
+   },
+   "sttEspera": {
+    "p50": 1742,
+    "p95": 3576,
+    "n": 22
+   },
+   "stt": {
+    "p50": 6272,
+    "p95": 8724,
+    "n": 22
+   },
+   "primeiroToken": {
+    "p50": 4222,
+    "p95": 6783,
+    "n": 22
+   },
+   "renderOrig": {
+    "p50": 5,
+    "p95": 35,
+    "n": 22
+   },
+   "mtEspera": {
+    "p50": 1,
+    "p95": 33,
+    "n": 22
+   },
+   "mt": {
+    "p50": 913,
+    "p95": 1678,
+    "n": 22
+   },
+   "renderTrad": {
+    "p50": 4,
+    "p95": 105,
+    "n": 22
+   },
+   "fimAoOriginal": {
+    "p50": 6662,
+    "p95": 9156,
+    "n": 22
+   },
+   "fimATraducao": {
+    "p50": 7833,
+    "p95": 10481,
+    "n": 22
+   },
+   "inicioAoPrimeiroTexto": {
+    "p50": 5969,
+    "p95": 5998,
+    "n": 2
+   },
+   "primeiraTraducaoParcialAntesDoFim": {
+    "p50": -7735,
+    "p95": -1389,
+    "n": 22
+   },
+   "rtf": {
+    "p50": 1.193,
+    "p95": 2.298,
+    "n": 22
+   },
+   "comTraducaoParcialAntesDoFim": 0,
+   "motoresMt": [
+    "opus-mt"
+   ]
+  },
+  "modelo": "onnx-community/moonshine-base-ONNX",
+  "dispositivos": [
+   "wasm"
+  ],
+  "carga": [
+   {
+    "sttProntoMs": 9748,
+    "mtProntos": [
+     {
+      "modelo": "Xenova/opus-mt-en-ROMANCE",
+      "ms": -537
+     },
+     {
+      "modelo": "Xenova/opus-mt-ROMANCE-en",
+      "ms": -536
+     }
+    ],
+    "pedidosAoHub": 5
+   },
+   {
+    "sttProntoMs": 5872,
+    "mtProntos": [
+     {
+      "modelo": "Xenova/opus-mt-en-ROMANCE",
+      "ms": -1145
+     },
+     {
+      "modelo": "Xenova/opus-mt-ROMANCE-en",
+      "ms": -1145
+     }
+    ],
+    "pedidosAoHub": 5
+   }
+  ],
+  "lagMax": 2329,
+  "lagN": 577
+ },
+ "mic-pt-en-padrao": {
+  "resumo": {
+   "n": 33,
+   "perdidas": 0,
+   "vad": {
+    "p50": 770,
+    "p95": 827,
+    "n": 33
+   },
+   "sttEspera": {
+    "p50": 0,
+    "p95": 1608,
+    "n": 33
+   },
+   "stt": {
+    "p50": 1278,
+    "p95": 4228,
+    "n": 33
+   },
+   "primeiroToken": {
+    "p50": 488,
+    "p95": 3081,
+    "n": 33
+   },
+   "renderOrig": {
+    "p50": 2,
+    "p95": 34,
+    "n": 33
+   },
+   "mtEspera": {
+    "p50": 1,
+    "p95": 32,
+    "n": 33
+   },
+   "mt": {
+    "p50": 458,
+    "p95": 848,
+    "n": 33
+   },
+   "renderTrad": {
+    "p50": 1,
+    "p95": 2,
+    "n": 33
+   },
+   "fimAoOriginal": {
+    "p50": 1721,
+    "p95": 4668,
+    "n": 33
+   },
+   "fimATraducao": {
+    "p50": 2153,
+    "p95": 5248,
+    "n": 33
+   },
+   "inicioAoPrimeiroTexto": {
+    "p50": 2375,
+    "p95": 5274,
+    "n": 28
+   },
+   "primeiraTraducaoParcialAntesDoFim": {
+    "p50": 1894,
+    "p95": 3833,
+    "n": 33
+   },
+   "rtf": {
+    "p50": 0.258,
+    "p95": 0.994,
+    "n": 33
+   },
+   "comTraducaoParcialAntesDoFim": 25,
+   "motoresMt": [
+    "opus-mt"
+   ]
+  },
+  "modelo": "onnx-community/moonshine-base-ONNX",
+  "dispositivos": [
+   "webgpu"
+  ],
+  "carga": [
+   {
+    "sttProntoMs": 4323,
+    "mtProntos": [
+     {
+      "modelo": "Xenova/opus-mt-en-ROMANCE",
+      "ms": -1231
+     },
+     {
+      "modelo": "Xenova/opus-mt-ROMANCE-en",
+      "ms": -1231
+     }
+    ],
+    "pedidosAoHub": 3
+   },
+   {
+    "sttProntoMs": 23537,
+    "mtProntos": [
+     {
+      "modelo": "Xenova/opus-mt-en-ROMANCE",
+      "ms": 1812
+     },
+     {
+      "modelo": "Xenova/opus-mt-ROMANCE-en",
+      "ms": 1812
+     }
+    ],
+    "pedidosAoHub": 5
+   },
+   {
+    "sttProntoMs": 6763,
+    "mtProntos": [
+     {
+      "modelo": "Xenova/opus-mt-en-ROMANCE",
+      "ms": -574
+     },
+     {
+      "modelo": "Xenova/opus-mt-ROMANCE-en",
+      "ms": -573
+     }
+    ],
+    "pedidosAoHub": 3
+   }
+  ],
+  "lagMax": 134,
+  "lagN": 228
+ },
+ "mic-pt-en-padrao-headless": {
+  "resumo": {
+   "n": 11,
+   "perdidas": 0,
+   "vad": {
+    "p50": 787,
+    "p95": 847,
+    "n": 11
+   },
+   "sttEspera": {
+    "p50": 2607,
+    "p95": 4954,
+    "n": 11
+   },
+   "stt": {
+    "p50": 8445,
+    "p95": 10353,
+    "n": 11
+   },
+   "primeiroToken": {
+    "p50": 6034,
+    "p95": 8195,
+    "n": 11
+   },
+   "renderOrig": {
+    "p50": 7,
+    "p95": 58,
+    "n": 11
+   },
+   "mtEspera": {
+    "p50": 2,
+    "p95": 54,
+    "n": 11
+   },
+   "mt": {
+    "p50": 1020,
+    "p95": 1458,
+    "n": 11
+   },
+   "renderTrad": {
+    "p50": 5,
+    "p95": 54,
+    "n": 11
+   },
+   "fimAoOriginal": {
+    "p50": 8799,
+    "p95": 10747,
+    "n": 11
+   },
+   "fimATraducao": {
+    "p50": 10169,
+    "p95": 11953,
+    "n": 11
+   },
+   "inicioAoPrimeiroTexto": null,
+   "primeiraTraducaoParcialAntesDoFim": {
+    "p50": -10130,
+    "p95": -6691,
+    "n": 11
+   },
+   "rtf": {
+    "p50": 1.545,
+    "p95": 2.207,
+    "n": 11
+   },
+   "comTraducaoParcialAntesDoFim": 0,
+   "motoresMt": [
+    "opus-mt"
+   ]
+  },
+  "modelo": "onnx-community/whisper-base",
+  "dispositivos": [
+   "wasm"
+  ],
+  "carga": [
+   {
+    "sttProntoMs": 5291,
+    "mtProntos": [
+     {
+      "modelo": "Xenova/opus-mt-en-ROMANCE",
+      "ms": 769
+     },
+     {
+      "modelo": "Xenova/opus-mt-ROMANCE-en",
+      "ms": 770
+     }
+    ],
+    "pedidosAoHub": 5
+   }
+  ],
+  "lagMax": 783,
+  "lagN": 212
+ },
+ "sis-detectar-en-padrao": {
+  "resumo": {
+   "n": 22,
+   "perdidas": 0,
+   "vad": {
+    "p50": 557,
+    "p95": 769,
+    "n": 22
+   },
+   "sttEspera": {
+    "p50": 0,
+    "p95": 0,
+    "n": 22
+   },
+   "stt": {
+    "p50": 1773,
+    "p95": 6105,
+    "n": 22
+   },
+   "primeiroToken": {
+    "p50": 814,
+    "p95": 5298,
+    "n": 22
+   },
+   "renderOrig": {
+    "p50": 3,
+    "p95": 11,
+    "n": 22
+   },
+   "mtEspera": {
+    "p50": 1,
+    "p95": 1,
+    "n": 22
+   },
+   "mt": {
+    "p50": 1004,
+    "p95": 1529,
+    "n": 22
+   },
+   "renderTrad": {
+    "p50": 2,
+    "p95": 16,
+    "n": 22
+   },
+   "fimAoOriginal": {
+    "p50": 1904,
+    "p95": 5890,
+    "n": 22
+   },
+   "fimATraducao": {
+    "p50": 3090,
+    "p95": 8509,
+    "n": 22
+   },
+   "inicioAoPrimeiroTexto": {
+    "p50": 1890,
+    "p95": 3315,
+    "n": 19
+   },
+   "primeiraTraducaoParcialAntesDoFim": {
+    "p50": 2295,
+    "p95": 3576,
+    "n": 21
+   },
+   "rtf": {
+    "p50": 0.401,
+    "p95": 1.399,
+    "n": 22
+   },
+   "comTraducaoParcialAntesDoFim": 18,
+   "motoresMt": [
+    "opus-mt"
+   ]
+  },
+  "modelo": "onnx-community/whisper-small",
+  "dispositivos": [
+   "webgpu"
+  ],
+  "carga": [
+   {
+    "sttProntoMs": 2608,
+    "mtProntos": [
+     {
+      "modelo": "Xenova/opus-mt-ROMANCE-en",
+      "ms": -426
+     },
+     {
+      "modelo": "Xenova/opus-mt-en-ROMANCE",
+      "ms": -425
+     }
+    ],
+    "pedidosAoHub": 3
+   },
+   {
+    "sttProntoMs": 14677,
+    "mtProntos": [
+     {
+      "modelo": "Xenova/opus-mt-en-ROMANCE",
+      "ms": 1100
+     },
+     {
+      "modelo": "Xenova/opus-mt-ROMANCE-en",
+      "ms": 1100
+     }
+    ],
+    "pedidosAoHub": 3
+   }
+  ],
+  "lagMax": 1735,
+  "lagN": 336
+ },
+ "sis-en-pt-moonshine": {
+  "resumo": {
+   "n": 55,
+   "perdidas": 0,
+   "vad": {
+    "p50": 493,
+    "p95": 886,
+    "n": 55
+   },
+   "sttEspera": {
+    "p50": 0,
+    "p95": 1146,
+    "n": 55
+   },
+   "stt": {
+    "p50": 1095,
+    "p95": 2540,
+    "n": 55
+   },
+   "primeiroToken": {
+    "p50": 501,
+    "p95": 1821,
+    "n": 55
+   },
+   "renderOrig": {
+    "p50": 5,
+    "p95": 63,
+    "n": 55
+   },
+   "mtEspera": {
+    "p50": 1,
+    "p95": 57,
+    "n": 55
+   },
+   "mt": {
+    "p50": 797,
+    "p95": 1652,
+    "n": 55
+   },
+   "renderTrad": {
+    "p50": 2,
+    "p95": 12,
+    "n": 55
+   },
+   "fimAoOriginal": {
+    "p50": 1163,
+    "p95": 2560,
+    "n": 55
+   },
+   "fimATraducao": {
+    "p50": 1995,
+    "p95": 4339,
+    "n": 55
+   },
+   "inicioAoPrimeiroTexto": {
+    "p50": 1660,
+    "p95": 3335,
+    "n": 53
+   },
+   "primeiraTraducaoParcialAntesDoFim": {
+    "p50": 2453,
+    "p95": 4257,
+    "n": 55
+   },
+   "rtf": {
+    "p50": 0.223,
+    "p95": 0.552,
+    "n": 55
+   },
+   "comTraducaoParcialAntesDoFim": 52,
+   "motoresMt": [
+    "opus-mt"
+   ]
+  },
+  "modelo": "onnx-community/moonshine-base-ONNX",
+  "dispositivos": [
+   "wasm"
+  ],
+  "carga": [
+   {
+    "sttProntoMs": -769,
+    "mtProntos": [
+     {
+      "modelo": "Xenova/opus-mt-en-ROMANCE",
+      "ms": -1239
+     },
+     {
+      "modelo": "Xenova/opus-mt-ROMANCE-en",
+      "ms": -1239
+     }
+    ],
+    "pedidosAoHub": 3
+   },
+   {
+    "sttProntoMs": 18162,
+    "mtProntos": [
+     {
+      "modelo": "Xenova/opus-mt-ROMANCE-en",
+      "ms": 18472
+     },
+     {
+      "modelo": "Xenova/opus-mt-en-ROMANCE",
+      "ms": 18473
+     }
+    ],
+    "pedidosAoHub": 3
+   },
+   {
+    "sttProntoMs": 1027,
+    "mtProntos": [
+     {
+      "modelo": "Xenova/opus-mt-en-ROMANCE",
+      "ms": -721
+     },
+     {
+      "modelo": "Xenova/opus-mt-ROMANCE-en",
+      "ms": -120
+     }
+    ],
+    "pedidosAoHub": 3
+   },
+   {
+    "sttProntoMs": 1509,
+    "mtProntos": [
+     {
+      "modelo": "Xenova/opus-mt-en-ROMANCE",
+      "ms": 130
+     },
+     {
+      "modelo": "Xenova/opus-mt-ROMANCE-en",
+      "ms": 130
+     }
+    ],
+    "pedidosAoHub": 3
+   },
+   {
+    "sttProntoMs": -382,
+    "mtProntos": [
+     {
+      "modelo": "Xenova/opus-mt-en-ROMANCE",
+      "ms": -926
+     },
+     {
+      "modelo": "Xenova/opus-mt-ROMANCE-en",
+      "ms": -926
+     }
+    ],
+    "pedidosAoHub": 3
+   }
+  ],
+  "lagMax": 3919,
+  "lagN": 876
+ }
+}

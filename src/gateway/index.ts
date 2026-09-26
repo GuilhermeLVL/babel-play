@@ -21,6 +21,7 @@ import { ServerLlmMt } from './adapters/serverLlmMt';
 import { WebSpeechStt } from './adapters/webSpeech';
 import { WhisperLocalStt } from './adapters/whisperLocal';
 import type {
+  AvisoDeDegradacaoDoStt,
   LlmOptions,
   LlmProvider,
   MtOptions,
@@ -355,11 +356,12 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
       /** Pré-carrega o modelo do 1º STT de blob disponível (ex.: Whisper WebGPU), com progresso. */
       preloadModel(
         onProgress?: (p: number, label?: string, bytes?: { loaded: number; total: number }) => void,
+        opts?: { aoDegradar?: (aviso: AvisoDeDegradacaoDoStt) => void },
       ): Promise<void> {
         for (const b of core.getProfile().bindings.stt ?? []) {
           try {
             const a = resolveStt(b);
-            if (a.supportsBlob && a.isAvailable() && a.preload) return a.preload(onProgress);
+            if (a.supportsBlob && a.isAvailable() && a.preload) return a.preload(onProgress, opts);
           } catch {
             /* próximo binding */
           }
@@ -437,6 +439,9 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
             const r = await a.transcribePcm(pcm, sampleRate, opts);
             return { ...r, engine: r.engine ?? b.adapterId };
           } catch (e) {
+            // Cancelado por quem pediu (final especulativo cuja fala continuou): não é falha, e o
+            // próximo motor da cadeia (a nuvem, que cobra) não deve refazer o trabalho.
+            if ((e as Error)?.name === 'AbortError') throw e;
             lastErr = e instanceof Error ? e : new Error(String(e));
             // Telemetria: este motor caiu e o próximo da cadeia (se houver) assume.
             capMetrics.fallback(`stt:${b.adapterId}`);

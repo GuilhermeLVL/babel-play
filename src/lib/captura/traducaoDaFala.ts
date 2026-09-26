@@ -5,6 +5,7 @@
  * chamadas a cada render, exatamente como as closures que substituem, e tudo que dependia do
  * estado da tela (refs, setters, gateway) entra por PARÂMETRO explícito — nada de contexto novo.
  */
+import { ehCancelamento } from '@core';
 import type { Dispatch, RefObject, SetStateAction } from 'react';
 
 import { capMetrics } from '../../gateway/capture/captureMetrics';
@@ -275,7 +276,13 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
        lançamento); a fala do microfone já ia. Sem o plano, a cascata local de sempre. */
     const nuvemPrimeiro = getEntitlements().managedCloudLlm;
     gateway.mt
-      .translate(textoParaMt, origem || null, tgt, { falada: opts?.falada === true, contexto, nuvemPrimeiro })
+      .translate(textoParaMt, origem || null, tgt, {
+        falada: opts?.falada === true,
+        contexto,
+        nuvemPrimeiro,
+        // Parcial é descartável: o tradutor local o põe atrás do final e o interrompe quando o final chega.
+        parcial: opts?.descartarSeOcupado === true,
+      })
       .then(({ text: translated, engine, approximate }) => {
         if (settled) return; // timeout já degradou → ignora resposta tardia
         settled = true;
@@ -301,7 +308,20 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
         if (settled) return;
         settled = true;
         clearTimeout(timeout);
+        // Parcial atropelado pelo final da mesma fala: não é erro, e o balão já espera a tradução do final.
+        if (ehCancelamento(err)) {
+          ordemMtRef.current.encerrar(segId, selo);
+          return;
+        }
         console.warn('Live translation error:', err);
+        /* Sem rota para o par (ex.: um idioma detectado errado, sem tradutor): a fala NÃO fica sem
+           legenda — `degrade` mostra o original — e o motivo vai para o log da captura. */
+        clog(
+          'tradução falhou:',
+          segId,
+          `${origem || '?'}→${tgt}`,
+          String((err as Error)?.message ?? err).slice(0, 120),
+        );
         if (ordemMtRef.current.encerrar(segId, selo)) degrade();
       });
   };

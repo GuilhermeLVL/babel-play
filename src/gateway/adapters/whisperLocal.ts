@@ -1,9 +1,10 @@
 /**
  * Adapter Whisper local (on-device no navegador) — espelho do whisper-server do desktop,
- * mas web-nativo via Web Worker. Backend PADRÃO = WASM (roda em qualquer navegador, sem WebGPU);
- * WebGPU é opcional via localStorage `babel.whisperDevice = 'webgpu'`.
+ * mas web-nativo via Web Worker. Backend PADRÃO = `auto`: WebGPU quando há um ADAPTADOR de verdade
+ * (`adaptadorWebGpu.ts`), WASM no resto; `babel.whisperDevice` força um dos dois.
  */
-import type { SttFinal, SttProvider } from '../capabilities';
+import { temAdaptadorWebGpu } from '../adaptadorWebGpu';
+import type { AvisoDeDegradacaoDoStt, SttFinal, SttProvider } from '../capabilities';
 import { gravarManifesto, MENSAGEM_DO_MANIFESTO } from '../modelManifest';
 import { WHISPER_MODELS } from '../sttRouter';
 import { criarWatchdogDeEstagnacao } from './modelProgress';
@@ -14,6 +15,27 @@ interface PendingRequest {
   reject: (error: Error) => void;
   /** Callback opcional de texto incremental (streaming token-a-token) durante o decode. */
   onUpdate?: (text: string) => void;
+  /**
+   * O worker respondeu `cancelado` (descartado na fila ou parado no meio). Parcial: resolve vazio.
+   * Final: rejeita com AbortError (só acontece quando quem pediu cancelou pelo `signal`).
+   */
+  aoCancelar: () => void;
+}
+
+/** Erro de "cancelado por quem pediu" — o mesmo nome que o `fetch` usa, para o chamador reconhecer. */
+function erroDeAborto(): Error {
+  const e = new Error('transcrição cancelada');
+  e.name = 'AbortError';
+  return e;
+}
+
+/**
+ * O MODELO QUE CABE SEM GPU. O small em WASM não é tempo real (auditoria de latência 2026-09-26:
+ * legenda 18,6 s p50 depois da fala, com fila crescente); o base é o multilíngue que a bancada
+ * aponta para CPU (WER pt 18,0% contra 11,0% do small, mas a 4,8 s em vez de 18,6 s).
+ */
+function modeloParaWasm(modelo: string): string {
+  return modelo === WHISPER_MODELS.small ? WHISPER_MODELS.base : modelo;
 }
 
 export class WhisperLocalStt implements SttProvider {
@@ -32,18 +54,22 @@ export class WhisperLocalStt implements SttProvider {
   private pending = new Map<string, PendingRequest>();
   private onProgress: ((progress: number, label?: string, bytes?: { loaded: number; total: number }) => void) | null =
     null;
+  /** Quem quer saber quando o motor degradou sozinho (GPU → WASM, small → base). */
+  private aoDegradar: ((aviso: AvisoDeDegradacaoDoStt) => void) | null = null;
   /** true depois que o modelo terminou de carregar (worker respondeu 'ready'). */
   private asrReady = false;
+  /** Device com que a carga ATUAL foi pedida ao worker ('webgpu' | 'wasm'). */
+  private deviceDaCarga: 'webgpu' | 'wasm' | null = null;
 
-  /**
-   * Modelo Whisper. Override via localStorage `babel.whisperModel` — permite trocar
-   * base↔tiny sem recompilar (tiny ≈ 3–4× mais rápido, menos preciso). Default: tiny.
-   */
   /** Modelo pedido pelo ROTEADOR (sttRouter) — vence o override manual e o default. */
   private routedModel: string | null = null;
   /** Modelo com que o worker ATUAL foi carregado (para saber quando recriar). */
   private loadedModel: string | null = null;
 
+  /**
+   * Modelo Whisper. Override via localStorage `babel.whisperModel` — permite trocar
+   * base↔tiny sem recompilar (tiny ≈ 3–4× mais rápido, menos preciso). Default: tiny.
+   */
   private get model(): string {
     if (this.routedModel) return this.routedModel;
     try {
@@ -53,6 +79,11 @@ export class WhisperLocalStt implements SttProvider {
     }
   }
 
+  /** O modelo que está (ou vai estar) carregado — para o selo da tela dizer a verdade depois de uma degradação. */
+  get modeloAtual(): string {
+    return this.model;
+  }
+
   /**
    * Troca o modelo local (chamado pelo roteador antes de cada sessão). Se o worker já
    * carregou OUTRO modelo, derruba e recria — mesma mecânica do fallback de device.
@@ -60,19 +91,13 @@ export class WhisperLocalStt implements SttProvider {
    */
   setModel(modelId: string): void {
     if (!modelId) return;
-    this.routedModel = modelId;
-    if (this.worker && this.loadedModel && this.loadedModel !== modelId) {
-      console.log('[whisper] roteador trocou o modelo:', this.loadedModel, '→', modelId, 'recriando worker');
-      try {
-        this.worker.terminate();
-      } catch {
-        /* já morto */
-      }
-      this.worker = null;
-      this.asrReady = false;
-      this.loadedModel = null;
-      for (const p of this.pending.values()) p.reject(new Error('modelo de transcrição trocado, recarregando'));
-      this.pending.clear();
+    // Já degradamos para WASM nesta página: o roteador ainda pode pedir o small (ele não sabe da
+    // queda), mas o small em WASM não é tempo real — fica o modelo que cabe.
+    const alvo = this.forcedDevice === 'wasm' ? modeloParaWasm(modelId) : modelId;
+    this.routedModel = alvo;
+    if (this.worker && this.loadedModel && this.loadedModel !== alvo) {
+      console.log('[whisper] roteador trocou o modelo:', this.loadedModel, '→', alvo, 'recriando worker');
+      this.derrubarWorker(new Error('modelo de transcrição trocado, recarregando'));
       this.readyPromise = null;
       this.readyResolve = null;
       this.readyReject = null;
@@ -95,10 +120,9 @@ export class WhisperLocalStt implements SttProvider {
 
   /**
    * Backend de inferência (override via localStorage `babel.whisperDevice`): `auto|wasm|webgpu`.
-   * PADRÃO `auto`: usa WebGPU quando o navegador tem (MUITO mais rápido — decode ~0,48s vs ~5,2s
-   * no WASM single-thread) e cai para WASM onde não há WebGPU (Firefox/Safari/celular), mantendo a
-   * transcrição local UNIVERSAL. Force `wasm`/`webgpu` para testar/comparar. (O WASM só empata/ganha
-   * do WebGPU quando roda MULTI-THREAD, o que exige COOP/COEP — ver mudança local-whisper-realtime A2.)
+   * PADRÃO `auto`: WebGPU quando há adaptador (MUITO mais rápido — decode ~0,48s vs ~5,2s no WASM
+   * single-thread) e WASM onde não há (Firefox/Safari/celular, headless, GPU bloqueada), mantendo a
+   * transcrição local UNIVERSAL. Force `wasm`/`webgpu` para testar/comparar.
    */
   private get device(): string {
     if (this.forcedDevice) return this.forcedDevice;
@@ -132,13 +156,8 @@ export class WhisperLocalStt implements SttProvider {
   /** Watchdog da carga em andamento (recebe sinal de vida a cada progresso). */
   private watchdogAtual: { sinalDeVida: () => void; cancelar: () => void } | null = null;
 
-  /**
-   * Derruba o worker atual e recria FORÇANDO WASM. Usado pelo watchdog de load (GPU que
-   * nunca fica pronta) e pelo tratador de erro de runtime (device lost / OOM do WebGPU).
-   * Pendências em voo são rejeitadas; a próxima chamada re-inicializa em WASM.
-   */
-  private fallbackToWasm(): void {
-    this.onProgress?.(0, 'GPU indisponível, trocando para o modo compatível (WASM)…');
+  /** Encerra o worker atual e rejeita o que estava pendente nele. */
+  private derrubarWorker(motivo: Error): void {
     try {
       this.worker?.terminate();
     } catch {
@@ -146,12 +165,49 @@ export class WhisperLocalStt implements SttProvider {
     }
     this.worker = null;
     this.asrReady = false;
-    this.forcedDevice = 'wasm';
-    for (const p of this.pending.values()) p.reject(new Error('WebGPU falhou, recarregando em WASM'));
+    this.loadedModel = null;
+    this.deviceDaCarga = null;
+    this.watchdogAtual?.cancelar();
+    this.watchdogAtual = null;
+    for (const p of this.pending.values()) p.reject(motivo);
     this.pending.clear();
-    this.readyPromise = null;
-    this.readyResolve = null;
-    this.readyReject = null;
+  }
+
+  /**
+   * A GPU NÃO SERVIU: recria o worker em WASM, com o modelo que cabe em CPU, e AVISA.
+   *
+   * Três portas levam aqui: o watchdog (GPU que nunca fica pronta), um erro na CARGA ("no available
+   * backend found", sessão WebGPU que não abre) e um erro de GPU em RUNTIME (device lost, falta de
+   * memória). Antes, a falha na carga rejeitava a preparação e a captura ficava sem legenda com as
+   * falas guardadas para sempre; e a queda em runtime recriava o SMALL em WASM (18,6 s por legenda).
+   *
+   * A carga recomeça SOZINHA: quem já esperava a preparação continua esperando a mesma promessa, que
+   * resolve quando o WASM responder `ready`.
+   */
+  private recarregarEmWasm(motivo: AvisoDeDegradacaoDoStt['motivo'], detalhe: string): void {
+    const modeloAntes = this.model;
+    const armada = this.readyPromise;
+    const carregando = !!armada && !this.asrReady;
+    console.warn('[whisper]', motivo, '→ recriando o worker em WASM:', detalhe.slice(0, 160));
+    this.derrubarWorker(new Error('GPU indisponível, recarregando em WASM'));
+    this.forcedDevice = 'wasm';
+    this.routedModel = modeloParaWasm(modeloAntes);
+    this.onProgress?.(0, 'GPU indisponível, trocando para o modo compatível (WASM)…');
+    this.aoDegradar?.({ motivo, modeloAntes, modelo: this.model, device: 'wasm', detalhe });
+    if (carregando && armada) {
+      // Mesma promessa de preparação: quem espera por ela não percebe a troca, só o aviso.
+      this.ensureWorker();
+      void this.iniciarCarga(armada);
+    } else {
+      // Já estava pronto (queda em runtime): a próxima preparação carrega o WASM. Começa já, para o
+      // próximo trecho não pagar a carga inteira.
+      this.readyPromise = null;
+      this.readyResolve = null;
+      this.readyReject = null;
+      void this.preload().catch(() => {
+        /* o erro aparece para quem pedir a próxima transcrição */
+      });
+    }
   }
 
   /** O worker está ocupado (há decode em andamento)? Base do idle-gating dos partials. */
@@ -177,7 +233,9 @@ export class WhisperLocalStt implements SttProvider {
   /**
    * Transcreve um PARTIAL só se o worker estiver ocioso; resolve `null` quando ocupado.
    * O parcial é best-effort: descartá-lo (em vez de enfileirar) é o que impede o backlog
-   * crescente que fazia o texto ficar 3–6s atrás do áudio.
+   * crescente que fazia o texto ficar 3–6s atrás do áudio. Vai ao worker com prioridade `parcial`:
+   * se o final da fala chegar enquanto ele decodifica, o worker o PARA e o final vai na frente
+   * (resolve `null` também nesse caso).
    */
   async transcribeIfIdle(
     pcm: Float32Array,
@@ -186,7 +244,8 @@ export class WhisperLocalStt implements SttProvider {
   ): Promise<SttFinal | null> {
     // Se o modelo ainda nem carregou, ou há decode em andamento, pula este parcial.
     if (!this.asrReady || this.pending.size > 0) return null;
-    return this.transcribePcm(pcm, sampleRate, opts);
+    if (ehMoonshine(this.model) && !moonshineAceita(opts?.languageHint)) return null; // o final troca o modelo
+    return this.postarDecode(pcm, { languageHint: opts?.languageHint, prioridade: 'parcial' });
   }
 
   /**
@@ -219,6 +278,8 @@ export class WhisperLocalStt implements SttProvider {
 
         case 'ready': {
           this.asrReady = true;
+          this.watchdogAtual?.cancelar();
+          this.watchdogAtual = null;
           if (this.readyResolve) {
             this.readyResolve();
           }
@@ -233,6 +294,15 @@ export class WhisperLocalStt implements SttProvider {
           break;
         }
 
+        case 'cancelado': {
+          const pending = this.pending.get(id);
+          if (pending) {
+            this.pending.delete(id);
+            pending.aoCancelar();
+          }
+          break;
+        }
+
         case 'result': {
           const pending = this.pending.get(id);
           if (pending) {
@@ -240,22 +310,35 @@ export class WhisperLocalStt implements SttProvider {
                `SttFinal.language` é "o que o motor identificou". Com dica, o worker obedece e não
                devolve idioma — ecoar a dica faria o chamador confundir palpite com medição. */
             const medido = typeof language === 'string' && language ? { language, confiancaDoIdioma } : {};
-            pending.resolve(descartado ? { text, alucinacaoDescartada: true, ...medido } : { text, ...medido });
             this.pending.delete(id);
+            pending.resolve(descartado ? { text, alucinacaoDescartada: true, ...medido } : { text, ...medido });
           }
           break;
         }
 
         case 'error': {
           const err = new Error(message || 'Whisper worker error');
+          const deGpu = /webgpu|device|d3d12|dawn|buffer|backend/i.test(String(message || ''));
 
           if (id) {
             const pending = this.pending.get(id);
             if (pending) {
-              pending.reject(err);
               this.pending.delete(id);
+              pending.reject(err);
             }
-          } else if (this.readyReject) {
+            // FALHA DE RUNTIME DO WEBGPU (device lost / out-of-memory sob pressão de GPU —
+            // jogo/WSL2 disputando VRAM): o pipeline fica inutilizável. Recria em WASM.
+            if (this.deviceDaCarga === 'webgpu' && deGpu) this.recarregarEmWasm('falha-gpu', String(message));
+            break;
+          }
+
+          /* ERRO NA CARGA. No WebGPU, a saída é o WASM (e o modelo que cabe nele), sem deixar a
+             preparação cair: "no available backend found" no headless era captura sem legenda. */
+          if (this.deviceDaCarga === 'webgpu') {
+            this.recarregarEmWasm('sem-gpu', String(message));
+            break;
+          }
+          if (this.readyReject) {
             this.readyReject(err);
             // A promise REJEITADA precisa ser descartada aqui. Sem isto, o `if (!this.readyPromise)`
             // do preload() devolvia a MESMA promise já rejeitada e o botão "Tentar de novo" não
@@ -265,18 +348,6 @@ export class WhisperLocalStt implements SttProvider {
             this.readyResolve = null;
             this.readyReject = null;
             this.asrReady = false;
-          }
-
-          // FALHA DE RUNTIME DO WEBGPU (device lost / out-of-memory sob pressão de GPU —
-          // jogo/WSL2 disputando VRAM): o pipeline fica inutilizável. Derruba o worker e
-          // recria FORÇANDO WASM — a partir do próximo enunciado, tudo volta a funcionar
-          // localmente (mais lento, porém vivo). Mesmo mecanismo do watchdog de load.
-          if (!this.forcedDevice && /webgpu|device|d3d12|dawn|buffer/i.test(String(message || ''))) {
-            console.warn(
-              '[whisper] erro de WebGPU em runtime, recriando o worker em WASM:',
-              String(message).slice(0, 120),
-            );
-            this.fallbackToWasm();
           }
           break;
         }
@@ -299,86 +370,132 @@ export class WhisperLocalStt implements SttProvider {
   }
 
   /**
+   * Pede a carga ao worker: resolve o device (`auto` → pergunta pelo adaptador WebGPU real), troca
+   * o small pelo base quando não há GPU, e arma o watchdog se a carga for no WebGPU.
+   */
+  private async iniciarCarga(armada: Promise<void>): Promise<void> {
+    const pedido = this.device;
+    const device: 'webgpu' | 'wasm' =
+      pedido === 'webgpu' || pedido === 'wasm' ? pedido : (await temAdaptadorWebGpu()) ? 'webgpu' : 'wasm';
+    if (this.readyPromise !== armada || !this.worker) return; // recriado enquanto perguntava
+    /* SEM GPU, SEM SMALL. O roteador já escolhe o base quando não há adaptador; isto cobre quem pediu
+       o small por outro caminho (qualidade "preciso"). Só no `auto`: quem força `wasm` à mão está
+       medindo, e recebe o que pediu. */
+    if (
+      device === 'wasm' &&
+      pedido === 'auto' &&
+      !ehMoonshine(this.model) &&
+      modeloParaWasm(this.model) !== this.model
+    ) {
+      const antes = this.model;
+      this.routedModel = modeloParaWasm(antes);
+      this.aoDegradar?.({ motivo: 'sem-gpu', modeloAntes: antes, modelo: this.model, device: 'wasm', detalhe: '' });
+    }
+    this.loadedModel = this.model;
+    this.deviceDaCarga = ehMoonshine(this.model) ? 'wasm' : device;
+    this.worker.postMessage({ type: 'load', model: this.model, dtype: this.dtype, device });
+
+    // Watchdog: só quando o caminho efetivo é WebGPU. O moonshine carrega sempre em WASM.
+    if (this.deviceDaCarga !== 'webgpu') return;
+    // Watchdog por ESTAGNAÇÃO (testado em tests/modelProgress.test.ts): o relógio reinicia a
+    // cada byte que chega, então download lento não é confundido com GPU travada.
+    const cao = criarWatchdogDeEstagnacao({
+      semProgressoMs: WhisperLocalStt.WEBGPU_SEM_PROGRESSO_MS,
+      tickMs: WhisperLocalStt.WATCHDOG_TICK_MS,
+      aoTravar: (paradoHa) => {
+        if (this.asrReady || this.readyPromise !== armada) return; // resolveu ou já foi recriado
+        this.recarregarEmWasm('gpu-travada', `sem progresso há ${Math.round(paradoHa / 1000)} s`);
+      },
+    });
+    this.watchdogAtual = cao;
+    armada.then(
+      () => cao.cancelar(),
+      () => cao.cancelar(),
+    );
+  }
+
+  /**
    * Pré-carrega o modelo Whisper, reportando progresso.
-   * Resolve quando o modelo estiver pronto para transcrever.
+   * Resolve quando o modelo estiver pronto para transcrever. `aoDegradar` é avisado se a carga
+   * trocar de motor sozinha (GPU que não serve → WASM com o base).
    */
   async preload(
     onProgress?: (progress: number, label?: string, bytes?: { loaded: number; total: number }) => void,
+    opts?: { aoDegradar?: (aviso: AvisoDeDegradacaoDoStt) => void },
   ): Promise<void> {
-    this.onProgress = onProgress || null;
+    if (onProgress) this.onProgress = onProgress;
+    if (opts?.aoDegradar) this.aoDegradar = opts.aoDegradar;
 
     this.ensureWorker();
 
     if (!this.readyPromise) {
-      this.readyPromise = new Promise<void>((resolve, reject) => {
+      const armada = new Promise<void>((resolve, reject) => {
         this.readyResolve = resolve;
         this.readyReject = reject;
       });
-
-      this.loadedModel = this.model;
-      this.worker!.postMessage({ type: 'load', model: this.model, dtype: this.dtype, device: this.device });
-
-      // Watchdog: só quando o caminho efetivo é WebGPU (auto com navigator.gpu, ou forçado).
-      // O moonshine carrega sempre em WASM (`DEVICE_MOONSHINE`): não há GPU a vigiar.
-      const wantsGpu =
-        !ehMoonshine(this.model) && (this.device === 'webgpu' || (this.device === 'auto' && !!(navigator as any).gpu));
-      if (wantsGpu && !this.forcedDevice) {
-        const armed = this.readyPromise;
-        // Watchdog por ESTAGNAÇÃO (testado em tests/modelProgress.test.ts): o relógio reinicia a
-        // cada byte que chega, então download lento não é confundido com GPU travada.
-        const cao = criarWatchdogDeEstagnacao({
-          semProgressoMs: WhisperLocalStt.WEBGPU_SEM_PROGRESSO_MS,
-          tickMs: WhisperLocalStt.WATCHDOG_TICK_MS,
-          aoTravar: (paradoHa) => {
-            if (this.asrReady || this.readyPromise !== armed) return; // resolveu ou já foi recriado
-            console.warn(
-              '[whisper] sem progresso há',
-              Math.round(paradoHa / 1000),
-              's, GPU ocupada/instável. Recriando com WASM…',
-            );
-            this.onProgress?.(0, 'GPU ocupada, trocando para o modo compatível (WASM)…');
-            try {
-              this.worker?.terminate();
-            } catch {
-              /* já morto */
-            }
-            // Zera o estado e força WASM; o retry abaixo reaproveita a MESMA readyPromise externa.
-            this.worker = null;
-            this.asrReady = false;
-            this.forcedDevice = 'wasm';
-            for (const p of this.pending.values()) p.reject(new Error('WebGPU travado, recarregando em WASM'));
-            this.pending.clear();
-            const resolveOuter = this.readyResolve;
-            const rejectOuter = this.readyReject;
-            this.readyPromise = null;
-            this.readyResolve = null;
-            this.readyReject = null;
-            this.preload(this.onProgress || undefined).then(
-              () => resolveOuter?.(),
-              (e) => rejectOuter?.(e),
-            );
-            // Reancora a promise externa para os awaits antigos continuarem válidos.
-            this.readyPromise = armed;
-          },
-        });
-        this.watchdogAtual = cao;
-        armed.then(
-          () => cao.cancelar(),
-          () => cao.cancelar(),
-        );
-      }
+      this.readyPromise = armada;
+      void this.iniciarCarga(armada);
     }
 
     return this.readyPromise;
   }
 
+  /** Posta um decode ao worker e devolve a promessa do resultado (null = parcial descartado). */
+  private postarDecode(
+    pcm: Float32Array,
+    opts: {
+      languageHint?: string;
+      prioridade: 'final' | 'parcial';
+      signal?: AbortSignal;
+      onUpdate?: (text: string) => void;
+    },
+  ): Promise<SttFinal | null> {
+    const id = Math.random().toString(36).slice(2);
+    const worker = this.worker!;
+    return new Promise<SttFinal | null>((resolve, reject) => {
+      if (opts.signal?.aborted) {
+        reject(erroDeAborto());
+        return;
+      }
+      this.pending.set(id, {
+        resolve,
+        reject,
+        onUpdate: opts.onUpdate,
+        aoCancelar: () => (opts.prioridade === 'parcial' ? resolve(null) : reject(erroDeAborto())),
+      });
+      opts.signal?.addEventListener(
+        'abort',
+        () => {
+          // Quem pediu desistiu (ex.: final especulativo cuja fala continuou): o worker descarta ou
+          // para no meio, e responde `cancelado`.
+          if (this.pending.has(id)) worker.postMessage({ type: 'cancelar', id });
+        },
+        { once: true },
+      );
+
+      // Transfere o buffer do PCM (zero-copy) para o worker
+      worker.postMessage(
+        {
+          type: 'transcribe',
+          id,
+          pcm,
+          language: opts.languageHint,
+          device: this.deviceDaCarga ?? this.device,
+          prioridade: opts.prioridade,
+        },
+        [pcm.buffer],
+      );
+    });
+  }
+
   /**
    * Transcreve um enunciado PCM (Float32 mono, tipicamente 16 kHz).
-   * O PCM é transferido para o worker com zero-copy via ArrayBuffer.
+   * O PCM é transferido para o worker com zero-copy via ArrayBuffer. Vai com prioridade `final`:
+   * passa na frente de qualquer parcial e para o parcial em voo.
    */
   async transcribePcm(
     pcm: Float32Array,
-    sampleRate: number,
+    _sampleRate: number,
     opts?: { languageHint?: string; signal?: AbortSignal; onUpdate?: (text: string) => void },
   ): Promise<SttFinal> {
     // GUARDA DO MOONSHINE (só inglês): o roteador não o escolhe fora do inglês, mas quem vê a dica
@@ -396,26 +513,13 @@ export class WhisperLocalStt implements SttProvider {
     // sem embaralhar por microtask. Só aguarda o preload no cold start.
     if (!this.asrReady) await this.preload();
 
-    const id = Math.random().toString(36).slice(2);
-
-    return new Promise<SttFinal>((resolve, reject) => {
-      this.pending.set(id, {
-        resolve,
-        reject,
-        onUpdate: opts?.onUpdate,
-      });
-
-      // Transfere o buffer do PCM (zero-copy) para o worker
-      this.worker!.postMessage(
-        {
-          type: 'transcribe',
-          id,
-          pcm,
-          language: opts?.languageHint,
-          device: this.device,
-        },
-        [pcm.buffer],
-      );
+    const r = await this.postarDecode(pcm, {
+      languageHint: opts?.languageHint,
+      prioridade: 'final',
+      signal: opts?.signal,
+      onUpdate: opts?.onUpdate,
     });
+    if (!r) throw erroDeAborto();
+    return r;
   }
 }

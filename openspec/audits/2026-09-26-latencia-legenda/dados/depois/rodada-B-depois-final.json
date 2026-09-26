@@ -1,0 +1,196 @@
+{
+ "mic-pt-en-padrao": {
+  "resumo": {
+   "n": 11,
+   "perdidas": 0,
+   "vad": {
+    "p50": 804,
+    "p95": 841,
+    "n": 11
+   },
+   "sttEspera": {
+    "p50": 0,
+    "p95": 0,
+    "n": 11
+   },
+   "stt": {
+    "p50": 807,
+    "p95": 1258,
+    "n": 11
+   },
+   "primeiroToken": {
+    "p50": 312,
+    "p95": 473,
+    "n": 11
+   },
+   "renderOrig": {
+    "p50": 1,
+    "p95": 12,
+    "n": 11
+   },
+   "mtEspera": {
+    "p50": 1,
+    "p95": 11,
+    "n": 11
+   },
+   "mt": {
+    "p50": 347,
+    "p95": 629,
+    "n": 11
+   },
+   "renderTrad": {
+    "p50": 1,
+    "p95": 2,
+    "n": 11
+   },
+   "fimAoOriginal": {
+    "p50": 1211,
+    "p95": 1680,
+    "n": 11
+   },
+   "fimATraducao": {
+    "p50": 1513,
+    "p95": 2308,
+    "n": 11
+   },
+   "inicioAoPrimeiroTexto": {
+    "p50": 2012,
+    "p95": 2591,
+    "n": 11
+   },
+   "primeiraTraducaoParcialAntesDoFim": {
+    "p50": 2994,
+    "p95": 3836,
+    "n": 11
+   },
+   "rtf": {
+    "p50": 0.175,
+    "p95": 0.225,
+    "n": 11
+   },
+   "comTraducaoParcialAntesDoFim": 11,
+   "motoresMt": [
+    "opus-mt"
+   ]
+  },
+  "modelo": "onnx-community/moonshine-base-ONNX",
+  "dispositivos": [
+   "webgpu"
+  ],
+  "carga": [
+   {
+    "sttProntoMs": 4323,
+    "mtProntos": [
+     {
+      "modelo": "Xenova/opus-mt-en-ROMANCE",
+      "ms": -1231
+     },
+     {
+      "modelo": "Xenova/opus-mt-ROMANCE-en",
+      "ms": -1231
+     }
+    ],
+    "pedidosAoHub": 3
+   }
+  ],
+  "lagMax": 77,
+  "lagN": 31
+ },
+ "sis-en-pt-moonshine": {
+  "resumo": {
+   "n": 11,
+   "perdidas": 0,
+   "vad": {
+    "p50": 481,
+    "p95": 730,
+    "n": 11
+   },
+   "sttEspera": {
+    "p50": 0,
+    "p95": 382,
+    "n": 11
+   },
+   "stt": {
+    "p50": 443,
+    "p95": 1128,
+    "n": 11
+   },
+   "primeiroToken": {
+    "p50": 174,
+    "p95": 612,
+    "n": 11
+   },
+   "renderOrig": {
+    "p50": 6,
+    "p95": 146,
+    "n": 11
+   },
+   "mtEspera": {
+    "p50": 1,
+    "p95": 145,
+    "n": 11
+   },
+   "mt": {
+    "p50": 541,
+    "p95": 640,
+    "n": 11
+   },
+   "renderTrad": {
+    "p50": 1,
+    "p95": 1,
+    "n": 11
+   },
+   "fimAoOriginal": {
+    "p50": 775,
+    "p95": 1242,
+    "n": 11
+   },
+   "fimATraducao": {
+    "p50": 1372,
+    "p95": 1838,
+    "n": 11
+   },
+   "inicioAoPrimeiroTexto": {
+    "p50": 2151,
+    "p95": 2607,
+    "n": 11
+   },
+   "primeiraTraducaoParcialAntesDoFim": {
+    "p50": 2778,
+    "p95": 4223,
+    "n": 11
+   },
+   "rtf": {
+    "p50": 0.098,
+    "p95": 0.186,
+    "n": 11
+   },
+   "comTraducaoParcialAntesDoFim": 11,
+   "motoresMt": [
+    "opus-mt"
+   ]
+  },
+  "modelo": "onnx-community/moonshine-base-ONNX",
+  "dispositivos": [
+   "wasm"
+  ],
+  "carga": [
+   {
+    "sttProntoMs": -769,
+    "mtProntos": [
+     {
+      "modelo": "Xenova/opus-mt-en-ROMANCE",
+      "ms": -1239
+     },
+     {
+      "modelo": "Xenova/opus-mt-ROMANCE-en",
+      "ms": -1239
+     }
+    ],
+    "pedidosAoHub": 3
+   }
+  ],
+  "lagMax": 46,
+  "lagN": 23
+ }
+}

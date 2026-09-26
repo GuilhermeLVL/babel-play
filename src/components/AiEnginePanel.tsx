@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react';
 import { createCredential, fetchSettings, patchUiSettings, testProvider } from '../data/api';
 import { buildGateway } from '../gateway';
 import { CREDENTIAL_KEY, setProviderChoice } from '../gateway/activeProfile';
+import { webGpuProvavel } from '../gateway/adaptadorWebGpu';
 import { DEFAULT_PROFILE_ID, getBuiltinProfile } from '../gateway/profiles';
 import { getSttQuality, MODEL_DOWNLOAD_MB, routeStt } from '../gateway/sttRouter';
 import { consentiuNuvem } from '../lib/consentimentoDeNuvem';
@@ -52,7 +53,7 @@ function mbDoModelo(): number | null {
       contentLang: 'en',
       autoDetect: true,
       quality: getSttQuality(),
-      hasWebGpu: !!(navigator as Navigator & { gpu?: unknown }).gpu,
+      hasWebGpu: webGpuProvavel(),
       cloudAvailable: false,
       profileId: DEFAULT_PROFILE_ID,
     });

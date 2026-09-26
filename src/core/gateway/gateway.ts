@@ -10,7 +10,7 @@
  * `attempt(binding)` — assim o núcleo não referencia tipos de DOM (MediaStream,
  * AbortSignal) nem SDKs.
  */
-import { BreakerRegistry, withRetry, withTimeout } from '../robustness';
+import { BreakerRegistry, ehCancelamento, withRetry, withTimeout } from '../robustness';
 import type { BudgetLedger } from './budget';
 import type { Capability, CapabilityBinding, Profile } from './profile';
 
@@ -109,6 +109,8 @@ export class AiGateway {
         );
         return result;
       } catch (e) {
+        // Cancelada por quem pediu: a cascata para aqui (o próximo binding faria o mesmo trabalho à toa).
+        if (ehCancelamento(e)) throw e;
         reason = e;
       }
     }

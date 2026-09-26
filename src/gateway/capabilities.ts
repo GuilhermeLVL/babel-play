@@ -27,6 +27,11 @@ export interface MtOptions {
   nuvemPrimeiro?: boolean;
   /** Últimas falas da conversa, para pronome/tempo/referente. */
   contexto?: ReadonlyArray<string>;
+  /**
+   * Tradução de um PARCIAL da legenda ao vivo: descartável. O tradutor local a põe atrás das
+   * traduções de final e a interrompe (`ChamadaCancelada`) quando um final chega.
+   */
+  parcial?: boolean;
 }
 
 export interface MtResult {
@@ -122,6 +127,19 @@ export interface StreamingSttOptions {
   onError?(error: Error): void;
 }
 
+/**
+ * O motor de STT local trocou SOZINHO por um mais modesto (a GPU não serviu). A tela avisa: a
+ * legenda continua, mais lenta ou menos precisa, e a pessoa precisa saber por quê.
+ */
+export interface AvisoDeDegradacaoDoStt {
+  /** 'sem-gpu': não há adaptador / a sessão WebGPU não abriu; 'gpu-travada': watchdog; 'falha-gpu': caiu em uso. */
+  motivo: 'sem-gpu' | 'gpu-travada' | 'falha-gpu';
+  modeloAntes: string;
+  modelo: string;
+  device: 'wasm';
+  detalhe: string;
+}
+
 export interface SttProvider extends AdapterMeta {
   /** Feature-detection (WebGPU, Web Speech, alcance de localhost…). */
   isAvailable(): boolean;
@@ -170,5 +188,6 @@ export interface SttProvider extends AdapterMeta {
    */
   preload?(
     onProgress?: (progress: number, label?: string, bytes?: { loaded: number; total: number }) => void,
+    opts?: { aoDegradar?: (aviso: AvisoDeDegradacaoDoStt) => void },
   ): Promise<void>;
 }

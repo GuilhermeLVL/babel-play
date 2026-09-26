@@ -131,6 +131,7 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
           sysHandlers.onSpeechStart(seq);
         },
         onPartialAudio: sysHandlers.onPartialAudio,
+        onFinalEspeculativo: sysHandlers.onFinalEspeculativo,
         onMisfire: (seq: number) => sysHandlers.onMisfire(seq),
         onLevel: pushLevel,
         onStatus: (msg: string) => {
@@ -213,6 +214,7 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
             micHandlers.onSpeechStart(seq);
           },
           onPartialAudio: micHandlers.onPartialAudio,
+          onFinalEspeculativo: micHandlers.onFinalEspeculativo,
           onMisfire: (seq) => micHandlers.onMisfire(seq),
           onLevel: pushLevel,
           onStatus: (msg) => {

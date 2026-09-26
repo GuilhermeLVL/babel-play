@@ -1,4 +1,6 @@
-import type { MtResult, TranslationProvider } from '../capabilities';
+import { ChamadaCancelada } from '@core';
+
+import type { MtOptions, MtResult, TranslationProvider } from '../capabilities';
 import { gravarManifesto, MENSAGEM_DO_MANIFESTO } from '../modelManifest';
 
 /**
@@ -77,6 +79,8 @@ export class OpusMtLocal implements TranslationProvider {
       if (!p) return;
       this.pending.delete(id);
       if (type === 'result') p.resolve(text);
+      // Parcial velho que o final atropelou: não é falha do tradutor (não abre o disjuntor, não cai na cascata).
+      else if (type === 'cancelado') p.reject(new ChamadaCancelada('tradução de parcial substituída pela do final'));
       else p.reject(new Error(message || 'opus-mt worker error'));
     };
     this.worker.onerror = (ev: ErrorEvent) => {
@@ -109,7 +113,7 @@ export class OpusMtLocal implements TranslationProvider {
     this.worker!.postMessage({ type: 'preload', src, tgt });
   }
 
-  async translate(text: string, src: string | null, tgt: string): Promise<MtResult> {
+  async translate(text: string, src: string | null, tgt: string, opts?: MtOptions): Promise<MtResult> {
     if (!src) throw new Error('opus-mt exige idioma de origem');
     const model = this.modelFor(src, tgt);
     if (!model) throw new Error(`opus-mt não cobre ${src}->${tgt}`);
@@ -127,9 +131,18 @@ export class OpusMtLocal implements TranslationProvider {
     }
 
     const id = Math.random().toString(36).slice(2);
+    /* PRIORIDADE: a tradução de um parcial vai atrás das de final e é interrompida quando um final
+       chega (o worker responde `cancelado`) — ver `mtWorker.ts`. */
     const translated = await new Promise<string>((resolve, reject) => {
       this.pending.set(id, { resolve, reject });
-      this.worker!.postMessage({ type: 'translate', id, text, src, tgt });
+      this.worker!.postMessage({
+        type: 'translate',
+        id,
+        text,
+        src,
+        tgt,
+        prioridade: opts?.parcial ? 'parcial' : 'final',
+      });
     });
     if (!translated) throw new Error('opus-mt devolveu vazio');
     return { text: translated, detectedSourceLang: src, engine: 'opus-mt-local' };

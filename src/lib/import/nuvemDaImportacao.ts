@@ -12,46 +12,51 @@
  *    PRÓPRIA (BYOK, binding com `credentialId`) é sempre livre, como no resto do app;
  *  - BINDING: o perfil ativo precisa ter o `groq-whisper`.
  */
-import type { CapabilityBinding } from '@core'
+import type { CapabilityBinding } from '@core';
 
-import { apiFetch } from '../../data/api'
-import { getActiveProfile } from '../../gateway/activeProfile'
-import { GroqWhisperStt } from '../../gateway/adapters/groqWhisper'
-import type { MotorDeNuvem } from '../../gateway/offlineTranscribe'
-import { getSttQuality, routeStt, type SttRoute } from '../../gateway/sttRouter'
-import { consentiuNuvem } from '../consentimentoDeNuvem'
-import { getEntitlements } from '../entitlements'
+import { apiFetch } from '../../data/api';
+import { getActiveProfile } from '../../gateway/activeProfile';
+import { temAdaptadorWebGpu } from '../../gateway/adaptadorWebGpu';
+import { GroqWhisperStt } from '../../gateway/adapters/groqWhisper';
+import type { MotorDeNuvem } from '../../gateway/offlineTranscribe';
+import { getSttQuality, routeStt, type SttRoute } from '../../gateway/sttRouter';
+import { consentiuNuvem } from '../consentimentoDeNuvem';
+import { getEntitlements } from '../entitlements';
 
 export function importacaoVaiANuvem(i: {
-  managedCloudStt: boolean
-  consentiu: boolean
-  rota: SttRoute
-  binding: Pick<CapabilityBinding, 'adapterId' | 'credentialId'> | undefined
+  managedCloudStt: boolean;
+  consentiu: boolean;
+  rota: SttRoute;
+  binding: Pick<CapabilityBinding, 'adapterId' | 'credentialId'> | undefined;
 }): boolean {
-  if (!i.consentiu || !i.rota.preferCloud || !i.binding) return false
-  return i.managedCloudStt || !!i.binding.credentialId
+  if (!i.consentiu || !i.rota.preferCloud || !i.binding) return false;
+  return i.managedCloudStt || !!i.binding.credentialId;
 }
 
 /** O motor de nuvem para transcrever esta importação, ou `null` (local). Nunca lança. */
 export async function motorDeNuvemDaImportacao(idioma: string | undefined): Promise<MotorDeNuvem | null> {
   try {
-    const perfil = getActiveProfile()
-    const binding = (perfil.bindings.stt ?? []).find((b) => b.adapterId === 'groq-whisper')
-    const consentiu = consentiuNuvem()
+    const perfil = getActiveProfile();
+    const binding = (perfil.bindings.stt ?? []).find((b) => b.adapterId === 'groq-whisper');
+    const consentiu = consentiuNuvem();
     // Sem binding ou sem consentimento, nem pergunta ao servidor.
-    if (!binding || !consentiu) return null
-    const cloudAvailable = await apiFetch('/api/ai/stt/available').then((r) => r.ok).catch(() => false)
+    if (!binding || !consentiu) return null;
+    const cloudAvailable = await apiFetch('/api/ai/stt/available')
+      .then((r) => r.ok)
+      .catch(() => false);
     const rota = routeStt({
       contentLang: (idioma || '').split('-')[0],
       autoDetect: !idioma,
       quality: getSttQuality(),
-      hasWebGpu: typeof navigator !== 'undefined' && !!(navigator as { gpu?: unknown }).gpu,
+      hasWebGpu: await temAdaptadorWebGpu(),
       cloudAvailable,
       profileId: perfil.id,
-    })
-    const vai = importacaoVaiANuvem({ managedCloudStt: getEntitlements().managedCloudStt, consentiu, rota, binding })
-    return vai ? new GroqWhisperStt({ model: binding.model ?? 'whisper-large-v3-turbo', credentialId: binding.credentialId }) : null
+    });
+    const vai = importacaoVaiANuvem({ managedCloudStt: getEntitlements().managedCloudStt, consentiu, rota, binding });
+    return vai
+      ? new GroqWhisperStt({ model: binding.model ?? 'whisper-large-v3-turbo', credentialId: binding.credentialId })
+      : null;
   } catch {
-    return null
+    return null;
   }
 }

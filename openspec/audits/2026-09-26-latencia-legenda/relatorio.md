@@ -232,3 +232,93 @@ Dados (`openspec/audits/2026-09-26-latencia-legenda/dados/`):
 - os roteiros do áudio.
 
 Os JSON brutos das rodadas (eventos da sonda, 0,5–2 MB cada) ficaram fora do git.
+
+## Depois (26/09/2026, branch `perf/latencia-legenda`)
+
+**O que entrou**, em commits separados (`ed7a3f5` … `f4c3eba`):
+
+| # | Mudança | Onde |
+|---|---|---|
+| 1 | Roteamento pelo **adaptador WebGPU real** (`requestAdapter()` com prazo de 2,5 s e cache). Sem adaptador: Whisper **base em WASM**. Falha da GPU na carga ("no available backend found"), watchdog ou queda em uso: recarrega **sozinho** em WASM com o base, avisa na tela (i18n) e troca o selo; nunca recria o small em WASM. | `gateway/adaptadorWebGpu.ts`, `adapters/whisperLocal.ts`, `pipelineDeFala.ts` |
+| 2 | **O final nunca espera o parcial.** Worker de STT com fila serial (`adapters/filaDoWorker.ts`): uma tarefa por vez, o final passa na frente, descarta os parciais que esperam e **para o parcial em voo** (processador de logits que força o EOS no passo seguinte; o `generate` do transformers.js 4.2 não aceita abort). Fala fechada não pede parcial nem traduz parcial. Texto do final inalterado (teste). | `adapters/whisperWorker.ts`, `pipelineDeFala.ts` |
+| 3 | **MT**: a mesma fila no worker do opus-mt; a tradução do final passa na frente, a do parcial velho é parada ou descartada. O cancelamento (`ChamadaCancelada`) não conta no disjuntor, não é re-tentado e encerra a cascata (o texto velho não vai a um motor de rede). | `adapters/mtWorker.ts`, `opusMtLocal.ts`, `core/robustness.ts`, `core/gateway/gateway.ts` |
+| 4 | **Final especulativo** com 450 ms de silêncio, segmentação mantida em 800 ms. Um espelho do `FrameProcessor` do vad-web (`capture/espelhoDoVad.ts`) entrega a janela que o VAD vai fechar e o decode começa já. Se a fala volta, ele é abortado (sem cair na nuvem). Se o VAD fecha, a captura confere **amostra a amostra** que o áudio do VAD começa por essa janela e usa o decode como final. Só no STT local. Os testes rodam o `FrameProcessor` real. | `capture/systemAudio.ts`, `pipelineDeFala.ts` |
+| 5 | **Parciais no "Detectar"** com o idioma **medido** no final anterior da mesma fonte (antes: nenhum parcial até o perfil convergir). `NoRouteError` na MT: o balão mostra o original (já era assim) e o motivo vai ao log. | `pipelineDeFala.ts`, `promptDeStt.ts`, `traducaoDaFala.ts` |
+| 6 | **Pré-aquecimento** ao abrir Capturar: carrega (com o decode curto de aquecimento) o STT e o opus-mt que **já estão em cache**. Nada é baixado; a rota de nuvem não aquece. | `pipelineDeFala.ts` (`preaquecerModelos`), `LiveCapture.tsx` |
+| 7 | **Chrome Translator**: `availability()` com prazo de 250 ms, uma consulta por par; rejeição vira "indisponível" na sessão; a resposta atrasada é guardada. | `adapters/chromeTranslator.ts` |
+| 8 | **1º parcial** sai assim que há 0,6 s de fala (relógio de 200 ms), sem esperar o tique de 1,1 s; o espaço entre parciais continua 1,1 s. | `capture/systemAudio.ts` |
+| — | Selo do download: small **589 MB** e base **209 MB** (soma dos arquivos `hybrid` no Hub; a do small bate com os 588,7 MB medidos). Eram 880/300, estimados. | `sttRouter.ts` |
+
+**Qualidade.** Bancada de STT local (`stt.mjs`, FLEURS pt, n = 300, CPU): `local:base+vad800` teve WER **19,0%** [17,5–20,6]; `local:base+vad800+esp` (a janela do final especulativo), **19,0%** [17,5–20,6]. Δ pareado −0,01 pt [−0,22; 0,18]: **empate**. O `redemptionMs` continua 800 e o small continua o padrão com WebGPU. Resultado bruto: `docs/auditoria/eval/bancada-2026-09/stt_local-base-vad800_local-base-vad800-esp_fleurs_pt.json`.
+
+### Como foi medido
+
+- Os mesmos `medir.mjs`, `analisar.mjs` e `tabela.mjs`, o mesmo áudio (roteiros idênticos aos de `dados/roteiro-*.json`), o mesmo perfil com cache (`%TEMP%\latp\cr`) e as mesmas linhas da `MATRIZ` de `rodar-matriz.mjs`.
+- Para tirar a deriva da máquina da comparação, a build **antes** (`d28ab6d`, `main`) e a **depois** rodaram **intercaladas** no mesmo endereço (`scripts/perf/latencia-legenda/intercalar.mjs`: uma rodada de cada lado por vez). `--pular 1`.
+- `analisar.mjs` ganhou um critério para achar o decode final especulativo, que é postado antes de o VAD fechar. Nesse caso a coluna "STT final" conta desde esse post; **o que compara é FIM → original / tradução**.
+
+**As condições desta vez pesam na leitura:**
+
+- A máquina estava **compartilhada com outras sessões** (esbuild e vários Chrome de outros agentes; CPU total de 50–85% sem nada meu rodando; RAM ~85% comprometida). Por isso os "antes" medidos agora saíram piores que os da auditoria (2 273 e 3 517 ms contra 2 524 ms p50 no mesmo caso). Só a comparação **dentro de cada rodada intercalada** é justa.
+- O `dwm.exe` chegou a ocupar ~15–18 GB de memória de GPU. Várias sessões do **small no WebGPU** caíram por falta de memória de vídeo (`CreateCommittedResource`, aba fechada), **nas duas builds**. No "depois", uma queda em uso fez o adapter recarregar sozinho em WASM com o base e seguir legendando (o item 1 funcionando). No "antes", a sessão ficou sem legenda. Rodadas com a aba caída ficaram fora das tabelas.
+
+As rodadas (resumos em `dados/depois/`):
+
+- **A**, com menos carga: antes × depois **parcial** (itens 1, 2, 3, 5, 6, 7 e o selo; build `6aae643`). Arquivos `rodada-A-*.json`.
+- **B**: um par intercalado, depois parcial × depois **final** (tudo; build `16f5285`). Arquivos `rodada-B-*.json`.
+- **C**, com a máquina carregada: antes × depois final, intercalado. Arquivos `rodada-C-*.json`.
+- `rodada-D-*`: depois final sob carga, sem par; fica só como registro.
+
+### Antes × depois, FIM → tradução (ms, p50 / p95)
+
+| Configuração | Auditoria (antes) | A: antes → depois parcial | B: depois parcial → final | C (carga): antes → depois final |
+|---|---|---|---|---|
+| **mic pt→en, small WebGPU (padrão)** | 2 524 / 3 204 | 2 273 / 2 718 → **1 958 / 2 490** (n 22→33) | 2 172 / 2 704 → **1 513 / 2 308** (n 11) | 3 517 / 5 762 → **2 698 / 3 780** (n 22) |
+| sistema en→pt, Moonshine | 1 776 / 2 789 | 1 433 / 2 517 → 1 508 / 1 951 (n 33) | 1 379 / 1 959 → 1 372 / 1 838 (n 11) | 3 464 / 4 065 → 2 901 / 4 243 (n 11) |
+| sistema "Detectar" (en) → pt | 1 971 / 3 786 | 2 257 / 3 256 → **1 811 / 2 599** | — | 3 785 / 5 358 → **1 972 / 2 764** |
+| mic "Detectar" (pt) | — (sem MT)⁵ | 2 176 / 2 468 → 2 168 / 2 571 | — | 3 191 / 4 839 → 3 263 / 4 275 |
+| mic pt→en, base WASM | 4 810 / 5 512 | 3 786 / 5 514 → 3 692 / 4 273 | — | 6 907 / 9 380 → 6 528 / 10 335 |
+| **mic pt→en, headless** (sem adaptador) | **nenhuma legenda** | nenhuma legenda → **4 263 / 5 186** (base WASM, sozinho) | — | — |
+| sistema en→pt, headless | 2 233 / 8 438 | nenhuma legenda⁷ → **3 636 / 5 014** | — | — |
+
+### Por etapa, mic pt→en small WebGPU
+
+| Etapa | Antes (A) | Depois parcial (A) | Depois final (B) |
+|---|---|---|---|
+| Início da fala → 1º texto | 2 716 / 3 427 | 2 490 / 3 285 | **2 012 / 2 591** |
+| Fim da voz → VAD fecha | 771 / 840 | 761 / 821 | 804 / 841 (inalterado: 800 ms) |
+| Espera pelo parcial da mesma fala | **595 / 1 138** | **0 / 0** | 0 / 0 |
+| STT final (do post ao resultado) | 1 122 / 1 368 | 832 / 1 200 | 807 / 1 258⁸ |
+| MT (opus-mt) | 386 / 657 | 349 / 595 | 347 / 629 |
+| **FIM → original** | 1 918 / 2 138 | 1 622 / 1 955 | **1 211 / 1 680** |
+| **FIM → tradução** | 2 273 / 2 718 | 1 958 / 2 490 | **1 513 / 2 308** |
+| STT pronto (clique → `ready`) | 5 963–6 932 | **2 946–3 903** (pré-aquecido) | 4 323 |
+
+Notas:
+
+- ⁵ Na auditoria, o "Detectar" do mic devolvia inglês como original. A correção de idioma (outro agente, já em `main`) resolveu isso antes desta rodada. O que muda aqui é o **1º texto**: de nenhum parcial para 2 339 / 3 065 (A) e 2 900 / 3 634 (C).
+- ⁷ Nesta rodada, o "antes" headless do modo sistema também caiu no small sem adaptador (o roteador escolhe Whisper porque o microfone do perfil é Whisper/pt) e não mostrou legenda.
+- ⁸ Conta desde o post especulativo, ~350 ms antes de o VAD fechar.
+
+### Leitura
+
+- **Meta (≤ ~1,9 s p50 / ≤ ~2,3 s p95 no padrão).** Atingida na única rodada limpa com tudo ligado (B: **1 513 / 2 308**, n = 11). Na máquina carregada (C), o ganho relativo se manteve (−0,8 s no p50, −2,0 s no p95), mas os valores absolutos não servem como medida da meta. A rodada A, só com os itens 1–3 e 5–7, deu 1 958 / 2 490.
+- **De onde veio o ganho:**
+  - a espera pelo parcial zerou (595 → 0 ms p50; na auditoria eram 915);
+  - o final especulativo antecipou o decode em ~0,35–0,4 s (FIM→original 1 622 → 1 211);
+  - a MT do final deixou de disputar o worker (p95 657 → 595).
+- **Headless / sem adaptador.** Passou de **nenhuma legenda** para 4,3 s p50 (base WASM), e o selo agora diz 209 MB. A e2e `tests/e2e-estatica/stt-sem-adaptador.e2e.ts` fica vermelha na build antiga ("880 MB") e verde na nova.
+- **Moonshine.** Sem diferença mensurável no p50 (a espera pelo parcial já era rara ali); p95 melhor na rodada A (2 517 → 1 951).
+- **"Detectar".** No sistema, 2 257 → 1 811 p50 (sem espera pelo parcial). No mic, os parciais aparecem a partir da 2ª fala.
+- **Pré-aquecimento.** Com cache, o "STT pronto" do small caiu de 6–7 s para 3–4 s. O que resta é a sessão WebGPU e o aquecimento que ainda estavam em curso quando o clique veio, 2–3 s depois de abrir a tela. No Moonshine, o `ready` já chega antes do clique (por isso os valores negativos na coluna).
+
+### O que não entrou, ou entrou com ressalva
+
+- **Parar o parcial em voo no WASM** só vale entre tokens. O encoder do Whisper no WASM, que é a parte cara, não pode ser interrompido; por isso, no base WASM, ainda sobra espera pelo parcial (775 / 1 433 ms na rodada A).
+  - Sob carga pesada (C), com o final especulativo, **nenhum parcial chegou a aparecer no base WASM**: o final parou todos.
+  - O final ficou mais rápido (FIM→original 6 281 → 5 587), mas nesse caso a pessoa não vê texto durante a fala.
+  - Na rodada A, sem o especulativo, o 1º texto no base WASM saiu em 3,7 s.
+  - Não foi tratado. A saída seria o item 9 da auditoria: o parcial num modelo menor, em outro worker.
+- **Parciais incrementais** (janela deslizante, ou só o trecho novo): não entraram. Entrou apenas a antecipação do 1º parcial (item 8); o re-decode do buffer inteiro continua.
+- **Chrome Translator com os pacotes instalados:** continua sem medição, porque o perfil de teste não baixa os pacotes. O prazo e a memória foram provados em teste unitário.
+- **Inglês detectado como polonês** (`NoRouteError`): não se repetiu nesta rodada (o perfil convergiu em "en"). O caminho de falha está coberto: o balão mostra o original e o log registra `tradução falhou`.

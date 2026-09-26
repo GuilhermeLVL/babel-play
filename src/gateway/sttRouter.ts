@@ -30,7 +30,10 @@ export interface SttRouteInput {
   autoDetect: boolean;
   /** Preferência do usuário (settings.ui.sttQuality). */
   quality: SttQuality;
-  /** navigator.gpu presente (WebGPU) — sem ele, small local é lento demais. */
+  /**
+   * Há um ADAPTADOR WebGPU (`temAdaptadorWebGpu`, não `!!navigator.gpu`) — sem ele, small local é
+   * lento demais (18,6 s por legenda no WASM, auditoria de latência 2026-09-26).
+   */
   hasWebGpu: boolean;
   /** O servidor tem STT de nuvem configurado (GET /api/ai/stt/available → 200). */
   cloudAvailable: boolean;
@@ -80,8 +83,12 @@ export const MOONSHINE_MODELS = {
  * estava aqui. Como este número agora aparece no onboarding, subestimá-lo é mentir para o usuário
  * exatamente onde a F1 se propôs a ser honesta.
  *
- * `tiny` está medido. `base` e `small` seguem ESTIMADOS pela proporção de parâmetros até que o
- * canário rode para eles (`CANARIO_MODELO=onnx-community/whisper-base npx tsx …/canario-real.mts`).
+ * `tiny` está medido. `base` e `small` eram ESTIMADOS pela proporção de parâmetros (300 e 880 MB), e
+ * o do small errava para cima em 50%: a auditoria de latência (2026-09-26) mediu **588,7 MB** baixados
+ * na primeira carga do small. Agora os dois são a soma dos bytes do Hub no dtype `hybrid` — os mesmos
+ * arquivos que o navegador pede, e que batem com o download medido:
+ *   small: encoder_model.onnx 352,83 MB + decoder_model_merged_q4.onnx 233,15 MB + tokenizer/configs 2,78 MB = 588,8 MB
+ *   base:  encoder_model.onnx  82,47 MB + decoder_model_merged_q4.onnx 123,60 MB + tokenizer/configs 2,77 MB = 208,8 MB
  *
  * Moonshine: dtype `q8` (não o `hybrid` — ver `adapters/moonshine.ts`), então o tamanho é o dos
  * arquivos `_quantized` e NÃO se compara pela proporção do Whisper. Somado da listagem de bytes do
@@ -92,8 +99,8 @@ export const MOONSHINE_MODELS = {
  */
 export const MODEL_DOWNLOAD_MB: Record<string, number> = {
   [WHISPER_MODELS.tiny]: 117, // medido
-  [WHISPER_MODELS.base]: 300, // estimado (~2,6× tiny, mesma proporção dos valores antigos)
-  [WHISPER_MODELS.small]: 880, // estimado
+  [WHISPER_MODELS.base]: 209, // medido (bytes do Hub, hybrid)
+  [WHISPER_MODELS.small]: 589, // medido (bytes do Hub, hybrid; download real 588,7 MB)
   [MOONSHINE_MODELS.base]: 67, // medido (bytes do Hub, q8)
   [MOONSHINE_MODELS.tiny]: 32, // medido (bytes do Hub, q8)
 };
@@ -101,8 +108,8 @@ export const MODEL_DOWNLOAD_MB: Record<string, number> = {
 /** O valor de `MODEL_DOWNLOAD_MB` para este modelo foi medido ou estimado? */
 export const MODEL_DOWNLOAD_MEDIDO: Record<string, boolean> = {
   [WHISPER_MODELS.tiny]: true,
-  [WHISPER_MODELS.base]: false,
-  [WHISPER_MODELS.small]: false,
+  [WHISPER_MODELS.base]: true,
+  [WHISPER_MODELS.small]: true,
   [MOONSHINE_MODELS.base]: true,
   [MOONSHINE_MODELS.tiny]: true,
 };

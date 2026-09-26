@@ -25,13 +25,14 @@ import {
   Volume2,
   Youtube,
 } from 'lucide-react';
-import React, { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import React, { Suspense, useEffect, useRef, useState } from 'react';
 
 import type { AppMetrics, UtteranceRow } from '../../data/api';
 import { fetchDeck, fetchSessionTranscript, fetchSettings } from '../../data/api';
 import { applyOutputDevice } from '../../lib/audioDevices';
 import { useLangConfig } from '../../lib/langConfig';
 import { baseLang, langLabel } from '../../lib/languages';
+import { lazyComRecarga } from '../../lib/lazyComRecarga';
 import { usePopoverDePalavra } from '../../lib/popoverDePalavra';
 import { copyDoPerfil } from '../../lib/profile';
 import type { PracticeSeed, Sentence } from '../../lib/sentences';
@@ -55,8 +56,13 @@ import Study from './Study';
  * é aberta de fato.
  *
  * O aliás é obrigatório: `Play` já é o nome do ícone da lucide-react importado acima.
+ *
+ * `lazyComRecarga` e não o `lazy` cru (Fase 4 da prontidão): é o MESMO chunk do `Play` que o `App`
+ * carrega com recarga, e depois de um deploy o hash dele muda. Com o `lazy` cru, a aba "Jogos" de
+ * uma sessão aberta antes do deploy rejeitava o `import()` (404) dentro do Suspense — a tela preta
+ * que `lazyComRecarga` existe para evitar.
  */
-const PlayLobby = lazy(() => import('./Play'));
+const PlayLobby = lazyComRecarga(() => import('./Play'));
 import { buildGateway } from '../../gateway';
 import { getActiveProfile } from '../../gateway/activeProfile';
 import { criarEdicaoDeFala } from '../../lib/analise/edicaoDeFala';

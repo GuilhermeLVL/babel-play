@@ -105,7 +105,7 @@ import {
   Upload,
   Zap,
 } from 'lucide-react';
-import React, { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import React, { Suspense, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { escalaDe } from '../../core/learning/cefrWordlist';
@@ -158,6 +158,7 @@ import {
 } from '../../lib/jogos/estadoDaPratica';
 import { langConfigFrom, saveLangConfig } from '../../lib/langConfig';
 import { baseLang, langLabelNaUI } from '../../lib/languages';
+import { lazyComRecarga } from '../../lib/lazyComRecarga';
 import {
   lerPrecisoes,
   registrarPrecisao,
@@ -203,8 +204,15 @@ import TourGuiado from '../minigames/TourGuiado';
 import { type DetalheDoDrop, EVENTO_DROP_GANHO } from '../RecompensaDesbloqueada';
 import { toast } from '../Toast';
 import { Abas, CabecalhoDeTela, IconeEmBloco, TituloDeSecao } from '../ui';
-import BaralhoAnki from './BaralhoAnki';
 import CuradoriaBaralho from './CuradoriaBaralho';
+
+/**
+ * A tela de baralhos Anki SOB DEMANDA (Fase 4 da prontidão). Ela só aparece quando a pessoa abre
+ * "Trazer baralho"/"Meus baralhos", e o import estático a baixava junto com o `/jogar` inteiro:
+ * ~38 KB gzip que o Lighthouse mobile listava como JS não usado na carga da tela de jogos.
+ * `lazyComRecarga`, como as outras telas, para sobreviver a um deploy.
+ */
+const BaralhoAnki = lazyComRecarga(() => import('./BaralhoAnki'));
 import MapaDoConteudo from './MapaDoConteudo';
 import PainelTrilha from './PainelTrilha';
 import { IconePixel } from './play/IconesPixel';
@@ -3135,30 +3143,32 @@ export default function Play({
       }
     };
     return telaCheia(
-      <BaralhoAnki
-        deck={deck ?? []}
-        idioma={fonte.lang}
-        idiomaNativo={idiomaNativo}
-        ageProfile={ageProfile}
-        abaInicial={vendoBaralhos ? 'baralhos' : 'trazer'}
-        onVoltar={sair}
-        onImportou={relerDeck}
-        onMudouBaralhos={relerDeck}
-        /* Depois de ativar: recorta pelo baralho recém-trazido e ABRE o jogo (ver `jogoPendente`). */
-        onJogarCom={(id, nome) => {
-          setBaralhoAnki({ id, nome });
-          setJogoPendente({ jogo: 'memory', baralho: id });
-          sair();
-        }}
-        /* O IDIOMA VEM JUNTO. Recortar por um baralho de japonês sem sair do inglês deixava a
+      <Suspense fallback={null}>
+        <BaralhoAnki
+          deck={deck ?? []}
+          idioma={fonte.lang}
+          idiomaNativo={idiomaNativo}
+          ageProfile={ageProfile}
+          abaInicial={vendoBaralhos ? 'baralhos' : 'trazer'}
+          onVoltar={sair}
+          onImportou={relerDeck}
+          onMudouBaralhos={relerDeck}
+          /* Depois de ativar: recorta pelo baralho recém-trazido e ABRE o jogo (ver `jogoPendente`). */
+          onJogarCom={(id, nome) => {
+            setBaralhoAnki({ id, nome });
+            setJogoPendente({ jogo: 'memory', baralho: id });
+            sair();
+          }}
+          /* O IDIOMA VEM JUNTO. Recortar por um baralho de japonês sem sair do inglês deixava a
            gaveta — que lista baralhos do idioma vigente — sem o chip do baralho recortado. */
-        onJogarSoCom={(id, nome, lang) => {
-          setBaralhoAnki({ id, nome });
-          if (lang && baseLang(lang) !== baseLang(fonte.lang)) trocarIdioma(lang);
-          sair();
-          toast.ok(t('Jogando só com este baralho'));
-        }}
-      />,
+          onJogarSoCom={(id, nome, lang) => {
+            setBaralhoAnki({ id, nome });
+            if (lang && baseLang(lang) !== baseLang(fonte.lang)) trocarIdioma(lang);
+            sair();
+            toast.ok(t('Jogando só com este baralho'));
+          }}
+        />
+      </Suspense>,
     );
   }
   if (vendoMapa) {

@@ -140,6 +140,41 @@ export function gravarManifesto(m: ManifestoDeModelo): void {
   } catch {
     // localStorage cheio ou indisponível — degrada para "não está em cache", que é o lado seguro.
   }
+  void pedirArmazenamentoPersistente();
+}
+
+/**
+ * PEDE AO NAVEGADOR PARA NÃO DESPEJAR OS MODELOS (Fase 4 da prontidão).
+ *
+ * O Cache Storage é "best-effort" por padrão: sob pressão de disco o navegador apaga a origem
+ * inteira sem avisar, e a próxima captura baixa de novo centenas de MB (o Whisper sozinho passa de
+ * 100 MB) — no celular, no plano de dados de quem usa. `persist()` troca para "persistent": só o
+ * usuário apaga. No Chrome a decisão é por heurística (sem pergunta); no Firefox aparece um pedido
+ * de permissão, e por isso a chamada fica AQUI — logo depois de um download completo que a própria
+ * pessoa iniciou —, e não no boot do app.
+ *
+ * `persist()` só existe na JANELA (a spec o expõe só em `Window`); no Worker `gravarManifesto` já
+ * saiu antes, pelo `postMessage`. Best-effort: sem API, recusa ou erro, devolve `null`/`false` e
+ * nada muda. Pergunta uma vez por carga de página.
+ */
+let pedidoDePersistencia: Promise<boolean | null> | null = null;
+export function pedirArmazenamentoPersistente(): Promise<boolean | null> {
+  pedidoDePersistencia ??= (async () => {
+    try {
+      const armazenamento = (globalThis as { navigator?: { storage?: StorageManager } }).navigator?.storage;
+      if (!armazenamento || typeof armazenamento.persist !== 'function') return null;
+      if (typeof armazenamento.persisted === 'function' && (await armazenamento.persisted())) return true;
+      return await armazenamento.persist();
+    } catch {
+      return null;
+    }
+  })();
+  return pedidoDePersistencia;
+}
+
+/** Só para teste: esquece o pedido feito nesta carga de página. */
+export function _esquecerPedidoDePersistencia(): void {
+  pedidoDePersistencia = null;
 }
 
 export function lerManifesto(modelId: string, dtype: string, device: string): ManifestoDeModelo | null {

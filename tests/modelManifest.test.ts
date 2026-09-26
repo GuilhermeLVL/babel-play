@@ -12,11 +12,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
+  _esquecerPedidoDePersistencia,
   chaveDoManifesto,
   gravarManifesto,
   lerManifesto,
   type ManifestoDeModelo,
   modeloEstaCompleto,
+  pedirArmazenamentoPersistente,
 } from '../src/gateway/modelManifest'
 
 /** Cache Storage falso, fiel ao que usamos: keys() + match() + put(). */
@@ -28,7 +30,10 @@ function criarCacheFalso(entradas: Record<string, number>) {
       const url = typeof req === 'string' ? req : req.url
       if (!mapa.has(url)) return undefined
       const bytes = mapa.get(url)!
-      return { headers: { get: (h: string) => (h.toLowerCase() === 'content-length' ? String(bytes) : null) }, blob: async () => ({ size: bytes }) }
+      return {
+        headers: { get: (h: string) => (h.toLowerCase() === 'content-length' ? String(bytes) : null) },
+        blob: async () => ({ size: bytes }),
+      }
     },
     put: async (req: string | { url: string }, res: { _bytes: number }) => {
       mapa.set(typeof req === 'string' ? req : req.url, res._bytes)
@@ -54,8 +59,14 @@ const MANIFESTO: ManifestoDeModelo = {
   device: 'wasm',
   arquivos: [
     { url: 'https://huggingface.co/onnx-community/whisper-base/resolve/main/config.json', bytes: 1508 },
-    { url: 'https://huggingface.co/onnx-community/whisper-base/resolve/main/onnx/encoder_model.onnx', bytes: 32_904_992 },
-    { url: 'https://huggingface.co/onnx-community/whisper-base/resolve/main/onnx/decoder_model_merged_q4.onnx', bytes: 51_000_000 },
+    {
+      url: 'https://huggingface.co/onnx-community/whisper-base/resolve/main/onnx/encoder_model.onnx',
+      bytes: 32_904_992,
+    },
+    {
+      url: 'https://huggingface.co/onnx-community/whisper-base/resolve/main/onnx/decoder_model_merged_q4.onnx',
+      bytes: 51_000_000,
+    },
   ],
   bytesTotais: 83_906_500,
   gravadoEm: 1_786_200_000_000,
@@ -146,9 +157,9 @@ describe('bytesEsperados — gravação parcial no cache não pode virar "comple
     // e a checagem seguinte dizia "completo" porque todos os arquivos do manifesto existiam.
     const parcial: ManifestoDeModelo = {
       ...MANIFESTO,
-      arquivos: MANIFESTO.arquivos.slice(0, 1),   // só o config.json foi gravado
+      arquivos: MANIFESTO.arquivos.slice(0, 1), // só o config.json foi gravado
       bytesTotais: 1508,
-      bytesEsperados: MANIFESTO.bytesTotais,      // mas o download entregou 83,9 MB
+      bytesEsperados: MANIFESTO.bytesTotais, // mas o download entregou 83,9 MB
     }
     const { cache } = criarCacheFalso({ [MANIFESTO.arquivos[0].url]: 1508 })
     gravarManifesto(parcial)
@@ -160,7 +171,7 @@ describe('bytesEsperados — gravação parcial no cache não pode virar "comple
 
   it('manifesto sem bytesEsperados (legado) continua válido', async () => {
     const { cache } = criarCacheFalso(Object.fromEntries(MANIFESTO.arquivos.map((a) => [a.url, a.bytes])))
-    gravarManifesto(MANIFESTO)   // sem bytesEsperados
+    gravarManifesto(MANIFESTO) // sem bytesEsperados
     expect((await modeloEstaCompleto(cache as never, MANIFESTO.modelId, 'hybrid', 'wasm')).completo).toBe(true)
   })
 
@@ -168,5 +179,42 @@ describe('bytesEsperados — gravação parcial no cache não pode virar "comple
     const { cache } = criarCacheFalso(Object.fromEntries(MANIFESTO.arquivos.map((a) => [a.url, a.bytes])))
     gravarManifesto({ ...MANIFESTO, bytesEsperados: MANIFESTO.bytesTotais })
     expect((await modeloEstaCompleto(cache as never, MANIFESTO.modelId, 'hybrid', 'wasm')).completo).toBe(true)
+  })
+})
+
+describe('pedirArmazenamentoPersistente — os modelos não são despejados em silêncio (Fase 4)', () => {
+  beforeEach(() => {
+    _esquecerPedidoDePersistencia()
+    vi.unstubAllGlobals()
+  })
+
+  it('pede persist() uma vez quando ainda não é persistente', async () => {
+    const persist = vi.fn(async () => true)
+    vi.stubGlobal('navigator', { storage: { persisted: async () => false, persist } })
+    expect(await pedirArmazenamentoPersistente()).toBe(true)
+    expect(await pedirArmazenamentoPersistente()).toBe(true)
+    expect(persist).toHaveBeenCalledTimes(1)
+  })
+
+  it('não pede de novo quem já é persistente', async () => {
+    const persist = vi.fn(async () => true)
+    vi.stubGlobal('navigator', { storage: { persisted: async () => true, persist } })
+    expect(await pedirArmazenamentoPersistente()).toBe(true)
+    expect(persist).not.toHaveBeenCalled()
+  })
+
+  it('sem a API (Worker, navegador antigo) ou com erro, não quebra nada', async () => {
+    vi.stubGlobal('navigator', { storage: { estimate: async () => ({}) } })
+    expect(await pedirArmazenamentoPersistente()).toBeNull()
+    _esquecerPedidoDePersistencia()
+    vi.stubGlobal('navigator', {
+      storage: {
+        persisted: async () => false,
+        persist: async () => {
+          throw new Error('negado')
+        },
+      },
+    })
+    expect(await pedirArmazenamentoPersistente()).toBeNull()
   })
 })

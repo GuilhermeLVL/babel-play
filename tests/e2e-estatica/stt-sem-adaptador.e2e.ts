@@ -30,6 +30,9 @@ test('headless com navigator.gpu e sem adaptador: o selo da captura é o Whisper
   const pular = page.getByRole('button', { name: 'Pular apresentação' })
   if (await pular.isVisible().catch(() => false)) await pular.click()
   const selo = page.getByRole('button', { name: /Modelo no dispositivo/ })
-  await expect(selo).toHaveAttribute('aria-label', /209 MB/, { timeout: 10_000 })
+  /* Perfil do aparelho (`lib/dispositivo/perfil.ts`): no projeto de toque (ponteiro grosso) a captura
+     é de CELULAR, e o base vai em q8 (80 MB; mesma qualidade do híbrido na bancada pt). */
+  const toque = await page.evaluate(() => matchMedia('(pointer: coarse)').matches && navigator.maxTouchPoints > 0)
+  await expect(selo).toHaveAttribute('aria-label', toque ? /80 MB/ : /209 MB/, { timeout: 10_000 })
   await expect(selo).not.toHaveAttribute('aria-label', /589 MB|880 MB/)
 })

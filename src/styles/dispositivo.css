@@ -57,6 +57,11 @@ html[data-dispositivo='quest'] .orientacao-da-captura {
 html[data-dispositivo^='celular'] .orientacao-da-captura {
   font-size: 14px !important;
 }
+/* O aviso "a legenda vem do microfone" é a instrução principal nesses aparelhos: cor do texto do
+   cartão (não a esmaecida), para o contraste de texto de corpo (4,5:1, QUEST_GUIDELINES). */
+:is(html[data-dispositivo='quest'], html[data-dispositivo^='celular']) .estudio .aviso-info.orientacao-da-captura {
+  color: inherit;
+}
 
 /* MODO LEVE: o desfoque por trás da legenda custa pintura a cada quadro (o Quest é limitado por
    fill-rate, diretriz da Meta). Um fundo quase opaco lê igual. */

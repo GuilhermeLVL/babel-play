@@ -1952,7 +1952,9 @@ export default function LiveCapture({
   };
 
   /** O tamanho do modelo que a captura baixa (o selo "modelo local · N MB" do protótipo). */
-  const mbDoModelo = modelosDaCaptura.reduce((soma, m) => soma + (m.mbEstimado ?? 0), 0);
+  /* Só o STT (o primeiro da lista, ver `expectedModelIds`): o selo fala do modelo de transcrição. O
+     tradutor aparece com o tamanho dele no diálogo "Modelo no dispositivo" e entra no aviso de download. */
+  const mbDoModelo = modelosDaCaptura[0]?.mbEstimado ?? 0;
 
   return (
     <div className="flex-1 flex flex-col h-full bg-canvas text-ink overflow-hidden relative font-body">

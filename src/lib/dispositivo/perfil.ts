@@ -275,6 +275,12 @@ export function marcarDispositivoNoDocumento(raiz?: { dataset: DOMStringMap }): 
   if (el) {
     el.dataset.dispositivo = p.tipo;
     el.dataset.modoLeve = String(reduzirEfeitos(p.sinais));
+    /* A leitura síncrona conta a API WebGPU como GPU; quando o `requestAdapter()` responder (a mesma
+       pergunta em cache, sem custo extra), o TIPO é corrigido (ex.: celular sem adaptador → fraco).
+       O modo leve não muda aqui: depois do primeiro render quem manda nele é o interruptor de Ajustes. */
+    void temAdaptadorWebGpu().then(() => {
+      el.dataset.dispositivo = perfilDoDispositivo().tipo;
+    });
   }
   return p;
 }

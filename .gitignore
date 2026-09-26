@@ -14,6 +14,14 @@ dist-ssr/
 *.local
 *.local.*
 .claude/settings.local.json
+# Chaves e certificados (auditoria de segurança 2026-09-26): nenhum existe hoje, e é para continuar.
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+id_rsa*
+id_ed25519*
 # Configuração de MCP contém identificadores de projeto pessoais (project_ref do Supabase).
 .mcp.json
 
@@ -32,6 +40,11 @@ dist-ssr/
 *.db-wal
 *.db-shm
 *.sqlite
+*.sqlite3
+# Dumps de banco (auditoria de segurança 2026-09-26): um dump é o banco inteiro em texto.
+*.sql.gz
+*.dump
+dump-*.sql
 backups/
 
 # ── Artefatos de medição/auditoria: vivem no repositório PRIVADO de auditoria ─

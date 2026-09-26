@@ -6,7 +6,13 @@ useDefault = true
 description = "Falsos positivos conhecidos, um por linha, com motivo"
 # scripts/models-hashes.json: manifesto TOFU de integridade dos pesos de modelo — só SHA-256 hex,
 # público por natureza (é o que garante que o download não foi trocado).
-paths = ['''scripts/models-hashes\.json''']
+#
+# integridade-modelos.json: o mesmo tipo de manifesto (SHA-256 de cada arquivo de peso), gravado como
+# evidência da auditoria de 2026-08-18 (commit bb3ed83) em `audit/baseline/seguranca/` e
+# `audit/evidence/fase-13/`. A regra `generic-api-key` casa pelo NOME da chave ("tokenizer.json",
+# "special_tokens_map.json"): os 20 achados da varredura do histórico de 2026-09-26 eram todos hashes
+# desses arquivos. Os dois caminhos já não existem na árvore; a entrada serve à varredura do histórico.
+paths = ['''scripts/models-hashes\.json''', '''integridade-modelos\.json''']
 
 # A CONSTANTE DE TESTE DO JWT, e nao um segredo. `segredo-e2e-hs256-marco1` e o valor com que
 # `tests/integration/mt1-isolation-e2e.test.ts` assina um HS256 local para provar isolamento entre

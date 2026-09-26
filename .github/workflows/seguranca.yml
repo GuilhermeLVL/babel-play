@@ -23,6 +23,22 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  # SEGUNDA OPINIÃO SOBRE SEGREDOS, e a única que responde "está VALENDO?" (auditoria de segurança
+  # 2026-09-26). O gitleaks acima acha o que PARECE segredo; o TruffleHog com `--results=verified`
+  # testa cada candidato contra a API do provedor e só acusa credencial que ainda autentica — então
+  # não tem falso positivo para triar, e um achado aqui é rotação imediata, não investigação.
+  # Varre o intervalo do push/PR (a action escolhe base e head pelo evento). SHA conferido com
+  # `git ls-remote https://github.com/trufflesecurity/trufflehog refs/tags/v3.97.9`.
+  trufflehog:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - uses: trufflesecurity/trufflehog@4dd8831c5f12599465d4d45c3c447b4018a34c85 # v3.97.9
+        with:
+          extra_args: --results=verified
+
   codeql:
     runs-on: ubuntu-latest
     steps:
@@ -55,3 +71,13 @@ jobs:
         # barra — a severidade é do pacote de regras, e barrar em WARNING transformaria o gate numa
         # fila de exceções logo na primeira semana.
         run: semgrep --config=p/typescript --config=p/nodejs --config=p/expressjs --config=p/react --error --quiet server server.ts src
+      # OS PACOTES DA AUDITORIA DE 2026-09-26 (`docs/pesquisa/2026-09-auditoria-seguranca-performance-dispositivos.md`
+      # §1.5): OWASP Top 10, security-audit e secrets, além de javascript/nodejs/react. Rodados à mão
+      # sobre `server server.ts src` deram ZERO achado ERROR (dois WARNING triados como falso
+      # positivo em `openspec/audits/2026-09-26-seguranca/relatorio.md`), então `--error` entra sem
+      # transformar o passo numa fila de exceções. `scripts/` e `.github/` ficam fora: são ferramentas
+      # de bancada e CI, e os três ERROR que apareceram lá estão triados no mesmo relatório.
+      - name: Semgrep (OWASP Top 10, security-audit, secrets)
+        run: >-
+          semgrep --config=p/javascript --config=p/nodejs --config=p/react --config=p/secrets
+          --config=p/owasp-top-ten --config=p/security-audit --error --quiet server server.ts src

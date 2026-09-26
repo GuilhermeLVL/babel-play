@@ -200,7 +200,8 @@ export class WhisperLocalStt implements SttProvider {
     });
 
     this.worker.onmessage = (msg: MessageEvent) => {
-      const { type, id, text, progress, label, message, loaded, total, descartado } = msg.data;
+      const { type, id, text, progress, label, message, loaded, total, descartado, language, confiancaDoIdioma } =
+        msg.data;
 
       switch (type) {
         case MENSAGEM_DO_MANIFESTO:
@@ -235,12 +236,11 @@ export class WhisperLocalStt implements SttProvider {
         case 'result': {
           const pending = this.pending.get(id);
           if (pending) {
-            /* SEM `language`: este adaptador NÃO detecta idioma — ele recebe uma dica e obedece.
-               Antes devolvíamos `pending.language`, que é a própria dica ecoada de volta; o
-               contrato de `SttFinal.language` é "o que o motor identificou", e devolver a
-               pergunta como resposta faria o chamador confundir palpite com medição. Quem
-               detecta de verdade é o Whisper de nuvem (verbose_json → `language`). */
-            pending.resolve(descartado ? { text, alucinacaoDescartada: true } : { text });
+            /* `language` SÓ quando o worker MEDIU (trecho sem dica, "Detectar"): o contrato de
+               `SttFinal.language` é "o que o motor identificou". Com dica, o worker obedece e não
+               devolve idioma — ecoar a dica faria o chamador confundir palpite com medição. */
+            const medido = typeof language === 'string' && language ? { language, confiancaDoIdioma } : {};
+            pending.resolve(descartado ? { text, alucinacaoDescartada: true, ...medido } : { text, ...medido });
             this.pending.delete(id);
           }
           break;

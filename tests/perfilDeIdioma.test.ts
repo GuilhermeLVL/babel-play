@@ -14,9 +14,9 @@
  *
  * Daí a histerese: converge com maioria simples, mas exige maioria MAIOR para ser derrubado.
  */
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
-import { destinoDaTraducao,PerfilAdaptativoDeIdioma } from '../src/lib/perfilDeIdioma'
+import { destinoDaTraducao, PerfilAdaptativoDeIdioma, pesoDaDeteccao } from '../src/lib/perfilDeIdioma'
 
 const ouvir = (p: PerfilAdaptativoDeIdioma, ...langs: string[]) => langs.forEach((l) => p.observar(l))
 
@@ -91,7 +91,7 @@ describe('histerese — o caso que veio do log real', () => {
     // A mesma proporção que bastou para convergir NÃO basta para derrubar.
     const troca = new PerfilAdaptativoDeIdioma()
     ouvir(troca, 'pt', 'pt', 'pt')
-    ouvir(troca, 'en', 'en', 'en', 'en')  // 4 de 7 = 57%, acima do inicial, abaixo do de troca
+    ouvir(troca, 'en', 'en', 'en', 'en') // 4 de 7 = 57%, acima do inicial, abaixo do de troca
     expect(troca.observado()).toBe('pt')
   })
 
@@ -114,30 +114,32 @@ describe('histerese — o caso que veio do log real', () => {
 
 describe('destino da tradução', () => {
   it('sem observação ainda, mantém o padrão: o que eles falam vem para o SEU idioma', () => {
-    expect(destinoDaTraducao('', 'pt', 'en')).toEqual({ destino: 'pt', motivo: 'padrao' })
+    expect(destinoDaTraducao('', 'pt')).toEqual({ destino: 'pt', motivo: 'padrao' })
   })
 
   it('conteúdo em idioma estrangeiro vai para o seu', () => {
-    expect(destinoDaTraducao('en', 'pt', 'en')).toEqual({ destino: 'pt', motivo: 'padrao' })
+    expect(destinoDaTraducao('en', 'pt')).toEqual({ destino: 'pt', motivo: 'padrao' })
   })
 
-  it('conteúdo JÁ no seu idioma é redirecionado para o que você estuda', () => {
-    // O caso do log: vídeo em português, usuário nativo em português, estudando inglês.
-    expect(destinoDaTraducao('pt', 'pt', 'en')).toEqual({ destino: 'en', motivo: 'redirecionado' })
+  it('conteúdo JÁ no idioma da legenda: sem tradução (uma linha só), nada de redirecionar', () => {
+    // Relato do dono: vídeo em português, "Detectar" → Português. Antes ia para o idioma estudado
+    // (oculto na tela de mídia) e aparecia uma segunda linha em inglês que ninguém pediu.
+    expect(destinoDaTraducao('pt', 'pt')).toEqual({ destino: '', motivo: 'sem-destino' })
   })
 
   it('quando os dois lados do par são a mesma língua, não há para onde traduzir', () => {
     // Honesto: melhor não exibir tradução do que repetir a frase fingindo que traduziu.
-    expect(destinoDaTraducao('pt', 'pt', 'pt')).toEqual({ destino: '', motivo: 'sem-destino' })
+    expect(destinoDaTraducao('pt', 'pt')).toEqual({ destino: '', motivo: 'sem-destino' })
   })
 
-  it('tolera variantes regionais nos dois lados', () => {
-    expect(destinoDaTraducao('pt-BR', 'pt-PT', 'en-US').destino).toBe('en')
+  it('tolera variantes regionais nos dois lados (compara o idioma BASE)', () => {
+    expect(destinoDaTraducao('pt-BR', 'pt-PT')).toEqual({ destino: '', motivo: 'sem-destino' })
+    expect(destinoDaTraducao('en-US', 'pt-BR')).toEqual({ destino: 'pt', motivo: 'padrao' })
   })
 
   it('a decisão é ESTÁVEL: mesma entrada, mesma saída — é o que tira as 40 deduções do log', () => {
-    const a = destinoDaTraducao('pt', 'pt', 'en')
-    const b = destinoDaTraducao('pt', 'pt', 'en')
+    const a = destinoDaTraducao('pt', 'pt')
+    const b = destinoDaTraducao('pt', 'pt')
     expect(a).toEqual(b)
   })
 })
@@ -159,7 +161,28 @@ describe('evidência fraca — o motor que traduz em vez de transcrever', () => 
 
   it('evidência fraca alternada ainda conta — não é descarte, é desconto', () => {
     const p = new PerfilAdaptativoDeIdioma()
-    p.observar('en', 0.5); p.observar('es'); p.observar('en', 0.5); p.observar('es')
+    p.observar('en', 0.5)
+    p.observar('es')
+    p.observar('en', 0.5)
+    p.observar('es')
     expect(p.ler().amostras).toBe(4)
+  })
+})
+
+describe('peso da detecção do motor (histerese do "Detectar" local)', () => {
+  // Medido (whisper-base, FLEURS pt/en, 20 falas cada): detecção pelo áudio acerta 20/20 com a fala
+  // inteira, 18/20 com 3 s e só 12/20 com 1,5 s — e erra com confiança alta às vezes (ko 0,89 em 3 s).
+  // Trecho curto ou pouco confiante entra como evidência FRACA: não decide o perfil sozinho.
+  it('nuvem (sem confiança informada) e local confiante em trecho longo: evidência plena', () => {
+    expect(pesoDaDeteccao({ idiomaDoMotor: 'pt', audioMs: 1200 })).toBe(1)
+    expect(pesoDaDeteccao({ idiomaDoMotor: 'pt', confiancaDoIdioma: 0.9, audioMs: 4000 })).toBe(1)
+  })
+  it('local pouco confiante OU trecho curto: evidência fraca', () => {
+    expect(pesoDaDeteccao({ idiomaDoMotor: 'ko', confiancaDoIdioma: 0.4, audioMs: 4000 })).toBe(0.5)
+    expect(pesoDaDeteccao({ idiomaDoMotor: 'pt', confiancaDoIdioma: 0.95, audioMs: 1500 })).toBe(0.5)
+  })
+  it('sem idioma do motor: texto do whisper-local sem dica segue suspeito', () => {
+    expect(pesoDaDeteccao({ engine: 'whisper-local', hint: '', audioMs: 4000 })).toBe(0.5)
+    expect(pesoDaDeteccao({ engine: 'whisper-local', hint: 'pt', audioMs: 4000 })).toBe(1)
   })
 })

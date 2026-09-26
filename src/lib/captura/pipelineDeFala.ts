@@ -18,7 +18,7 @@ import { getSttQuality, routeStt } from '../../gateway/sttRouter';
 import { DominantLangTracker } from '../convoLang';
 import { detectLanguage } from '../langDetect';
 import { baseLang, langLabel } from '../languages';
-import { PerfilAdaptativoDeIdioma } from '../perfilDeIdioma';
+import { PerfilAdaptativoDeIdioma, pesoDaDeteccao } from '../perfilDeIdioma';
 import { SpeakerClusterer } from '../speakerCluster';
 import { embedUtterance } from '../speakerId';
 import { isTtsActive } from '../tts';
@@ -32,7 +32,7 @@ import {
   type SpeechSegment,
   wordsFromText,
 } from './tiposDaFala';
-import type { OpcoesDeTraducao } from './traducaoDaFala';
+import { marcadorDeTraducao, type OpcoesDeTraducao, origemDaFala } from './traducaoDaFala';
 
 /** Um enunciado guardado enquanto o modelo ainda carregava. */
 export interface EnunciadoPendente {
@@ -202,6 +202,12 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
           };
     };
 
+    /** "…" (tradução a caminho) ou '' quando a origem já conhecida é o próprio idioma da legenda. */
+    const marcadorPrevisto = (origemDoMotor = ''): string => {
+      const { from, to } = langs();
+      return marcadorDeTraducao(origemDaFala(from || origemDoMotor, idiomaObservadoRef.current, !isSys), to);
+    };
+
     // Início de fala (seq monotônico): cria o balão. Sem "ouvindo…" — o texto real flui no 1º parcial.
     const onSpeechStart = (rawSeq: number) => {
       const seq = rawSeq + offset;
@@ -230,7 +236,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
                 source,
                 timestamp: formatTime(timerRef.current),
                 originalText: '',
-                translatedText: '…',
+                translatedText: marcadorPrevisto(),
                 words: [],
                 isPartial: true,
                 tStartMs: nowRel(),
@@ -346,7 +352,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
                 source,
                 timestamp: formatTime(timerRef.current),
                 originalText: '',
-                translatedText: '…',
+                translatedText: marcadorPrevisto(),
                 words: [],
                 isPartial: true,
                 tStartMs: nowRel(),
@@ -447,7 +453,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
             );
           },
         })
-        .then(({ text, engine, language, alucinacaoDescartada }) => {
+        .then(({ text, engine, language, confiancaDoIdioma, alucinacaoDescartada }) => {
           const clean = (text ?? '').trim();
           if (!clean && alucinacaoDescartada) capMetrics.alucinacao();
           const decodeMs = Math.round(performance.now() - t0);
@@ -508,7 +514,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
                 ? {
                     ...s,
                     originalText: clean,
-                    translatedText: '…',
+                    translatedText: marcadorPrevisto(idiomaDoMotor),
                     words: wordsFromText(clean, from || idiomaDoMotor || sourceLang),
                     isPartial: false,
                     tEndMs: nowRel(),
@@ -536,12 +542,13 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
             // E o PERFIL ADAPTATIVO, que é quem transforma detecções soltas em conclusão: ele
             // resiste ao tropeço isolado (histerese) e é lido pela interface e pela tradução.
             const antes = perfilIdiomaRef.current.observado();
-            /* Transcrição do motor LOCAL sem dica de idioma vale MENOS: é justamente a
-               combinação em que o `whisper-base` traduz para inglês em vez de transcrever, e o
-               texto resultante envenenaria o perfil com "en". Não descartamos (pode ser inglês de
-               verdade), mas não deixamos decidir sozinha. Idioma vindo do motor nunca é suspeito. */
-            const suspeita = !idiomaDoMotor && engine === 'whisper-local' && !hint;
-            perfilIdiomaRef.current.observar(detectado, suspeita ? 0.5 : 1);
+            /* QUANTO ESTA DETECÇÃO PESA (`pesoDaDeteccao`): o Whisper local agora mede o idioma
+               pelo áudio no "Detectar", mas em trecho curto ou com pouca confiança ele erra; aí a
+               fala entra como evidência fraca e não decide o perfil sozinha. Texto do whisper-local
+               sem dica e sem idioma medido segue suspeito, como antes. Quando o perfil converge, a
+               dica fica travada no idioma observado (histerese) e a detecção por trecho some. */
+            const peso = pesoDaDeteccao({ idiomaDoMotor, confiancaDoIdioma, audioMs, engine, hint });
+            perfilIdiomaRef.current.observar(detectado, peso);
             const leitura = perfilIdiomaRef.current.ler();
             /* O ESTADO DO PERFIL VAI PARA O LOG SEMPRE, não só quando muda o destino da tradução.
                Antes ele só aparecia no caso "redirecionado", num vídeo em espanhol com usuário em

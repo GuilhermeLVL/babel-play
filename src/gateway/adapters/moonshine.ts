@@ -51,13 +51,14 @@ export function ehMoonshine(modelId?: string | null): boolean {
 }
 
 /**
- * O moonshine pode decodificar um trecho com esta dica de idioma? Só inglês. Dica AUSENTE conta
- * como aceita: a rota que o escolheu já exigiu conteúdo e microfone em inglês, e o adapter não
- * recebe dica em todo caminho.
+ * O moonshine pode decodificar um trecho com esta dica de idioma? Só com dica EXPLÍCITA de inglês.
+ * Dica ausente é "Detectar": idioma desconhecido, que não pode ir a um modelo só-inglês (com o
+ * moonshine carregado de uma sessão em inglês e a origem trocada para Detectar, português sairia
+ * como inglês inventado). Todo caminho que escolhe o moonshine manda 'en' (captura em inglês fixo,
+ * importação de arquivo em inglês).
  */
 export function moonshineAceita(languageHint?: string): boolean {
-  const l = (languageHint || '').toLowerCase().split('-')[0];
-  return !l || l === 'en';
+  return (languageHint || '').toLowerCase().split('-')[0] === 'en';
 }
 
 /**

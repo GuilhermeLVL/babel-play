@@ -11,7 +11,7 @@ import { capMetrics } from '../../gateway/capture/captureMetrics';
 import { getEntitlements } from '../entitlements';
 import { baseLang, langLabel } from '../languages';
 import { OrdemDasTraducoes } from '../ordemDaTraducao';
-import { destinoDaTraducao, PerfilAdaptativoDeIdioma } from '../perfilDeIdioma';
+import type { PerfilAdaptativoDeIdioma } from '../perfilDeIdioma';
 // Fala do MIC em português → português claro antes de traduzir (vícios, contrações, gíria).
 import { chaveNormalizada, prepararFala } from '../traducao/prepararFala';
 import { clog, type GatewayDaCaptura, type SpeechSegment } from './tiposDaFala';
@@ -47,6 +47,28 @@ export function criarRelogioDaSessao({ sessionStartMsRef, shouldAnchorClockRef, 
   return { nowRel, anchorSessionClock };
 }
 
+/** Os dois códigos têm o mesmo idioma BASE (`pt` == `pt-BR`)? Vazio nunca é "o mesmo". */
+export function mesmaLingua(a?: string, b?: string): boolean {
+  const x = baseLang(a || '');
+  return !!x && x === baseLang(b || '');
+}
+
+/**
+ * A origem de UMA fala para decidir se há tradução: no SISTEMA vale o idioma observado na sessão
+ * (quando o perfil já convergiu), senão o desta fala; na SUA fala (`falada`), sempre o dela.
+ */
+export function origemDaFala(src: string, idiomaObservado: string, falada: boolean): string {
+  return falada ? baseLang(src || '') : idiomaObservado || baseLang(src || '');
+}
+
+/**
+ * O que o balão mostra na linha de tradução ENQUANTO ela não chega: "…" quando vai haver tradução,
+ * vazio quando origem e destino já são o mesmo idioma (uma linha só, sem marcador pendurado).
+ */
+export function marcadorDeTraducao(origem: string, destino: string): string {
+  return mesmaLingua(origem, destino) ? '' : '…';
+}
+
 /** Opções de uma tradução de balão (as mesmas de antes). */
 export interface OpcoesDeTraducao {
   descartarSeOcupado?: boolean;
@@ -63,7 +85,7 @@ export interface DepsDaTraducaoDaFala {
   perfilIdiomaRef: RefObject<PerfilAdaptativoDeIdioma>;
   speechSegmentsRef: RefObject<SpeechSegment[]>;
   translationCacheRef: RefObject<Map<string, string>>;
-  /** Avisos ÚNICOS por sessão (degradação da MT, redirecionamento do destino, queda da nuvem). */
+  /** Avisos ÚNICOS por sessão (degradação da MT, áudio já no idioma da legenda, queda da nuvem). */
   mtFailNotifiedRef: RefObject<boolean>;
   altTargetNotifiedRef: RefObject<boolean>;
   degradacaoAvisadaRef: RefObject<boolean>;
@@ -130,52 +152,33 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
     const selo = ordemMtRef.current.abrir(segId);
 
     const src = srcCode ?? sourceLangRef.current.split('-')[0];
-    let tgt = tgtCode ?? targetLangRef.current.split('-')[0];
+    const tgt = tgtCode ?? targetLangRef.current.split('-')[0];
 
-    /**
-     * NUNCA TRADUZIR PARA O PRÓPRIO IDIOMA (bug relatado). O áudio do sistema é sempre vertido
-     * para "o seu idioma" — mas quem assiste um vídeo EM português tendo o português como idioma
-     * nativo recebia origem = destino, e a "tradução" saía idêntica ao original: a tela parecia
-     * quebrada, e o caso é justamente o de quem consome conteúdo na própria língua para praticar
-     * a outra ("assisto em PT e quero ver em inglês").
-     *
-     * Regra: se origem e destino coincidem, o destino passa a ser o OUTRO idioma do par. Se os
-     * dois lados do par forem o mesmo idioma, não há para onde traduzir — o balão fica só com o
-     * original (honesto), em vez de repetir a frase como se fosse tradução.
-     */
-    const mine = baseLang(sourceLangRef.current);
-    const studying = baseLang(targetLangRef.current);
+    /* MESMO IDIOMA = UMA LINHA SÓ, SEM CHAMAR A MT (relato do dono: vídeo em português, "Detectar"
+       → Português). Compara o idioma BASE (`pt` == `pt-BR`). Antes, o conteúdo já no seu idioma
+       era redirecionado para o idioma estudado — que na tela de mídia com "Detectar" nem aparece —
+       e surgia uma segunda linha que ninguém pediu, pagando uma chamada de MT por fala.
 
-    /* A DECISÃO VEM DO PERFIL, não de uma dedução refeita a cada fala.
-       O idioma OBSERVADO na sessão (já convergido, resistente a detecção isolada errada) tem
-       precedência sobre o desta fala: numa conversa em português, um "Thank you." solto não
-       deve mudar o destino da tradução do trecho inteiro. Sem observação ainda, cai no idioma
-       desta fala, que é o melhor palpite disponível no começo. */
-    const observado = idiomaObservadoRef.current || baseLang(src);
-    const decisao = destinoDaTraducao(observado, mine, studying);
-
-    if (decisao.motivo === 'sem-destino') {
-      // Os dois lados do par são a mesma língua: não há para onde traduzir. Limpa o "…" para o
-      // balão não ficar preso esperando para sempre — e não repete a frase fingindo tradução.
+       A origem do SISTEMA é o idioma OBSERVADO na sessão (o perfil convergido resiste a detecção
+       isolada errada: um "Thank you." solto numa conversa em português não vira tradução); a SUA
+       fala (`falada`) tem a própria origem — o perfil observado é o do outro lado. */
+    const origemEfetiva = origemDaFala(src, idiomaObservadoRef.current, opts?.falada === true);
+    if (mesmaLingua(origemEfetiva, tgt)) {
+      // Limpa o "…" para o balão não ficar esperando uma tradução que não virá.
       if (ordemMtRef.current.encerrar(segId, selo)) {
         setSpeechSegments((prev) => prev.map((seg) => (seg.id === segId ? { ...seg, translatedText: '' } : seg)));
       }
-      return;
-    }
-    if (decisao.motivo === 'redirecionado' && decisao.destino !== baseLang(tgt)) {
-      tgt = decisao.destino;
-      /* AVISO ÚNICO, e agora ele é honesto sobre a NATUREZA da decisão: antes dizia "o áudio já
-         está em X" a partir de UMA fala, e repetia a dedução 40 vezes no log. Agora só fala
-         quando o perfil convergiu, e diz que foi detecção da sessão inteira. */
-      if (!altTargetNotifiedRef.current && perfilIdiomaRef.current.observado()) {
+      /* AVISO ÚNICO, só quando é conclusão da sessão (perfil convergido), não palpite de uma fala. */
+      if (!opts?.falada && !altTargetNotifiedRef.current && perfilIdiomaRef.current.observado()) {
         altTargetNotifiedRef.current = true;
         const conf = Math.round(perfilIdiomaRef.current.ler().confianca * 100);
-        clog('perfil de idioma convergiu:', observado, `(${conf}% das falas)`, '→ traduzindo para', decisao.destino);
+        clog('perfil de idioma convergiu:', origemEfetiva, `(${conf}% das falas)`, '= idioma da legenda, sem tradução');
         setFeedbackMsg(
-          `Detectei que o áudio está em ${langLabel(observado)} (${conf}% das falas), traduzindo para ${langLabel(decisao.destino)}.`,
+          `Detectei que o áudio já está em ${langLabel(origemEfetiva)} (${conf}% das falas), o mesmo idioma da legenda: sem tradução.`,
         );
         setTimeout(() => setFeedbackMsg(''), 7000);
       }
+      return;
     }
 
     /* ORIGEM VAZIA DESQUALIFICA TRÊS DOS QUATRO TRADUTORES.

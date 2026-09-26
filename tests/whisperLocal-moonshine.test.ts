@@ -58,3 +58,35 @@ describe('WhisperLocalStt com moonshine', () => {
     expect(decode?.language).toBe('pt')
   })
 })
+
+describe('WhisperLocalStt com "Detectar" (sem dica)', () => {
+  it('moonshine carregado e SEM dica: troca para o whisper-base (idioma desconhecido não vai ao só-inglês)', async () => {
+    const stt = new WhisperLocalStt()
+    stt.setModel(MOONSHINE_MODELS.base)
+    await stt.preload()
+    await stt.transcribePcm(new Float32Array(1600), 16000, { languageHint: '' })
+    expect(enviadas.filter((m) => m.type === 'load').map((m) => m.model)).toEqual([
+      MOONSHINE_MODELS.base,
+      WHISPER_MODELS.base,
+    ])
+  })
+
+  it('o idioma que o worker MEDIU volta ao chamador, com a confiança', async () => {
+    class WorkerQueDetecta extends WorkerFalso {
+      postMessage(msg: Msg) {
+        enviadas.push(msg)
+        queueMicrotask(() => {
+          if (msg.type === 'load') this.onmessage?.({ data: { type: 'ready' } } as MessageEvent)
+          if (msg.type === 'transcribe')
+            this.onmessage?.({
+              data: { type: 'result', id: msg.id, text: 'olá', language: 'pt', confiancaDoIdioma: 0.93 },
+            } as MessageEvent)
+        })
+      }
+    }
+    vi.stubGlobal('Worker', WorkerQueDetecta)
+    const stt = new WhisperLocalStt()
+    const r = await stt.transcribePcm(new Float32Array(1600), 16000, { languageHint: '' })
+    expect(r).toMatchObject({ text: 'olá', language: 'pt', confiancaDoIdioma: 0.93 })
+  })
+})

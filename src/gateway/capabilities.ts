@@ -71,6 +71,11 @@ export interface LlmProvider extends AdapterMeta {
 export interface SttFinal {
   text: string;
   language?: string;
+  /**
+   * Probabilidade do `language` detectado pelo áudio (0..1), quando o motor a conhece (Whisper local
+   * no "Detectar"). Ausente = o motor não informa (nuvem) — não é "confiança baixa".
+   */
+  confiancaDoIdioma?: number;
   confidence?: number;
   /** Adapter que de fato transcreveu (preenchido pelo wrapper do gateway) — procedência honesta. */
   engine?: string;

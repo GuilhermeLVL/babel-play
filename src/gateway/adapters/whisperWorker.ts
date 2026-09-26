@@ -12,10 +12,11 @@
  * Recebe mensagens { type: 'load' | 'transcribe', ... } e responde com progresso +
  * resultados via postMessage.
  */
-import { env, pipeline, TextStreamer } from '@huggingface/transformers';
+import { env, pipeline, Tensor, TextStreamer } from '@huggingface/transformers';
 
 import { filtrarAlucinacao, tokensPorSegundo } from '../alucinacao';
 import { registrarModeloBaixado } from '../modelManifest';
+import { detectarIdiomaDoAudio } from './idiomaDoWhisper';
 import { criarRastreadorDeProgresso, rotuloDeBytes } from './modelProgress';
 import {
   DEVICE_MOONSHINE,
@@ -241,15 +242,33 @@ self.onmessage = async (e: MessageEvent) => {
         return;
       }
 
-      const hardCap = maxNewTokens || (language && language !== 'en' ? 160 : 128);
-      const dynMax = Math.max(8, Math.min(hardCap, Math.round(audioSec * tokensPorSegundo(language))));
+      /* "DETECTAR" (sem dica): o idioma é medido AQUI, pelo áudio, antes do decode. Sem isto o
+         transformers.js força `<|en|>` e o Whisper TRADUZ a fala para inglês em vez de transcrever
+         (ver `idiomaDoWhisper.ts`). O idioma medido volta no resultado — é medição, não a dica
+         ecoada — e é com ele que o perfil da sessão converge e passa a mandar a dica. */
+      let idioma: string | undefined = language || undefined;
+      let confiancaDoIdioma: number | undefined;
+      if (!idioma) {
+        const det = await detectarIdiomaDoAudio(asr, pcm, Tensor as never);
+        if (det) {
+          idioma = det.idioma;
+          confiancaDoIdioma = det.confianca;
+        } else if (asr.model?.generation_config?.is_multilingual !== false) {
+          // Multilíngue sem idioma = inglês forçado pela lib. Melhor errar alto que legendar em inglês.
+          throw new Error('whisper: não foi possível detectar o idioma do trecho');
+        }
+      }
+
+      const hardCap = maxNewTokens || (idioma && idioma !== 'en' ? 160 : 128);
+      const dynMax = Math.max(8, Math.min(hardCap, Math.round(audioSec * tokensPorSegundo(idioma))));
 
       // Decode enxuto p/ baixa latência: greedy (sem beam), cache ligado (implícito no grafo
-      // merged), idioma FIXO (pula auto-detecção e evita "traduzir" sozinho), sem timestamps.
+      // merged), idioma SEMPRE explícito (a dica ou o detectado acima), sem timestamps.
       // no_repeat_ngram_size + repetition_penalty MATAM os loops de repetição (palavras repetidas),
       // a assinatura clássica de alucinação do Whisper em decode greedy sem essas travas.
       const out = await asr(pcm, {
-        language: language || undefined,
+        language: idioma,
+        // SEMPRE transcrever: `translate` devolveria inglês no lugar da fala original.
         task: 'transcribe',
         return_timestamps: false,
         num_beams: 1,
@@ -261,13 +280,15 @@ self.onmessage = async (e: MessageEvent) => {
       });
 
       const bruto = (out.text ?? '').trim();
-      const filtrado = filtrarAlucinacao(bruto, audioSec, language);
+      const filtrado = filtrarAlucinacao(bruto, audioSec, idioma);
       self.postMessage({
         type: 'result',
         id,
         text: filtrado,
         // Para a telemetria contar descartes: havia texto e o filtro o esvaziou.
         descartado: !!bruto && !filtrado,
+        // Só quando MEDIDO (sem dica): devolver a dica seria confundir pergunta com resposta.
+        ...(confiancaDoIdioma !== undefined ? { language: idioma, confiancaDoIdioma } : {}),
       });
     }
   } catch (err) {

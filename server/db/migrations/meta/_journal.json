@@ -246,6 +246,13 @@
       "when": 1790350000000,
       "tag": "0034_indices_das_chaves_estrangeiras",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "6",
+      "when": 1790360000000,
+      "tag": "0035_indice_da_migracao_leitner",
+      "breakpoints": true
     }
   ]
 }

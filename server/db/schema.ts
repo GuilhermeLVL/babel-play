@@ -173,6 +173,13 @@ export const vocabCards = sqliteTable(
     index('idx_vocab_user_cefr').on(t.userId, t.cefrLevel),
     index('idx_vocab_user_due').on(t.userId, t.dueAt),
     index('idx_vocab_session').on(t.userId, t.sessionId),
+    /* Os candidatos da migração Leitner→FSRS do boot (migração 0035). Parcial e quase sempre VAZIO:
+       carta nova nasce com `box = 1` e a primeira revisão grava `stability` — só o legado Leitner
+       entra aqui. Sem ele o boot varria o acervo inteiro para achar zero (504 ms em 453 mil cartões).
+       O texto do WHERE é o mesmo de `migrarLeitnerParaFsrs` (server/db/manutencao.ts), literal. */
+    index('idx_vocab_leitner_pendente')
+      .on(t.id)
+      .where(sql`${t.deletedAt} is null and ${t.stability} is null and ${t.box} > 1`),
     // Lado filho da FK para `sessions` (migração 0034): `idx_vocab_session` começa por `user_id` (skip-scan).
     index('idx_vocab_session_id')
       .on(t.sessionId)

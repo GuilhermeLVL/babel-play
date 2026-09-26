@@ -21,6 +21,7 @@ import React, { useEffect, useId, useMemo, useState } from 'react';
 
 import { createCredential, patchUiSettings, saveSettings, testProvider } from '../data/api';
 import { getActiveProfile, setProviderChoice } from '../gateway/activeProfile';
+import { webGpuProvavel } from '../gateway/adaptadorWebGpu';
 import { getSttQuality, MODEL_DOWNLOAD_MB, MODEL_DOWNLOAD_MEDIDO, routeStt } from '../gateway/sttRouter';
 import { edicaoEstatica } from '../lib/edicaoEstatica';
 import { t } from '../lib/i18n';
@@ -241,7 +242,7 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
       contentLang: DEFAULT_LISTEN,
       autoDetect: true,
       quality: getSttQuality(),
-      hasWebGpu: !!(navigator as Navigator & { gpu?: unknown }).gpu,
+      hasWebGpu: webGpuProvavel(),
       cloudAvailable: false,
       profileId: getActiveProfile().id,
     });

@@ -14,8 +14,10 @@
  */
 import { env, pipeline, Tensor, TextStreamer } from '@huggingface/transformers';
 
+import { temAdaptadorWebGpu } from '../adaptadorWebGpu';
 import { filtrarAlucinacao, tokensPorSegundo } from '../alucinacao';
 import { registrarModeloBaixado } from '../modelManifest';
+import { FilaSerial, processadorDeCancelamento, type SinalDeCancelamento } from './filaDoWorker';
 import { detectarIdiomaDoAudio } from './idiomaDoWhisper';
 import { criarRastreadorDeProgresso, rotuloDeBytes } from './modelProgress';
 import {
@@ -52,16 +54,16 @@ try {
 
 /**
  * Normaliza o device pedido pelo adapter.
- * `auto` (PADRÃO) = WebGPU se o navegador tiver (decode MEDIDO ~0,48s vs ~5,2s no WASM
- * single-thread nesta classe de hardware) senão WASM (universal — Firefox/Safari/celular).
- * Sem COOP/COEP o WASM roda em 1 thread e é lento; então onde há WebGPU, ele ganha. O WASM
- * continua sendo o fallback que garante transcrição local em QUALQUER navegador.
+ * `auto` (PADRÃO) = WebGPU se houver um ADAPTADOR de verdade (decode MEDIDO ~0,48s vs ~5,2s no WASM
+ * single-thread nesta classe de hardware), senão WASM (universal — Firefox/Safari/celular). Antes
+ * bastava `navigator.gpu` existir: no headless ele existe sem adaptador, e o pipeline falhava com
+ * "no available backend found" (auditoria de latência 2026-09-26). O adapter já manda o device
+ * resolvido; este ramo é a rede de segurança para quem pede `auto` direto.
  */
-function resolveDevice(device?: string): 'wasm' | 'webgpu' {
+async function resolveDevice(device?: string): Promise<'wasm' | 'webgpu'> {
   if (device === 'webgpu') return 'webgpu';
   if (device === 'wasm') return 'wasm';
-  const hasWebGpu = !!(self as any).navigator?.gpu;
-  return hasWebGpu ? 'webgpu' : 'wasm';
+  return (await temAdaptadorWebGpu()) ? 'webgpu' : 'wasm';
 }
 
 let asr: any = null;
@@ -128,7 +130,7 @@ async function ensurePipeline(model?: string, dtypeKey?: string, device?: string
   asrModel = model || DEFAULT_MODEL;
   const moonshine = ehMoonshine(asrModel);
   // Moonshine: WASM sempre (q8 validado só lá — ver `DEVICE_MOONSHINE`).
-  const dev = moonshine ? DEVICE_MOONSHINE : resolveDevice(device);
+  const dev = moonshine ? DEVICE_MOONSHINE : await resolveDevice(device);
   /* Moonshine: SEMPRE q8, ignorando o preset (inclusive o override `babel.whisperDtype`). O `hybrid`
      é uma decisão sobre o encoder do WHISPER; o q8 é o que a bancada mediu para o moonshine. */
   const chaveDtype = moonshine ? DTYPE_MOONSHINE : dtypeKey || 'hybrid';
@@ -192,111 +194,156 @@ async function ensurePipeline(model?: string, dtypeKey?: string, device?: string
   }
 }
 
-/**
- * Processa mensagens do adapter.
- */
-self.onmessage = async (e: MessageEvent) => {
-  const { type, id, pcm, language, model, dtype, device, maxNewTokens } = e.data;
+/** A fila serial deste worker: uma tarefa por vez, o final na frente (ver `filaDoWorker.ts`). */
+const fila = new FilaSerial();
+let cargas = 0;
 
-  try {
-    if (type === 'load') {
-      await ensurePipeline(model, dtype, device);
-      self.postMessage({ type: 'ready' });
-    } else if (type === 'transcribe') {
-      await ensurePipeline(model, dtype, device);
+/** O pedido não foi executado (descartado na fila ou parado no meio): o adapter resolve o parcial como vazio. */
+const responderCancelado = (id: string) => self.postMessage({ type: 'cancelado', id });
 
-      // STREAMING token-a-token: em vez de só entregar o texto ao FIM do decode, emitimos
-      // mensagens `update` incrementais conforme os tokens saem — a UI vê o texto crescendo
-      // durante a fala (sensação de tempo real). Acumulamos aqui e postamos o texto-até-agora.
-      // (Padrão do exemplo oficial realtime-whisper-webgpu.)
-      let acc = '';
-      const streamer = new TextStreamer(asr.tokenizer, {
-        skip_prompt: true,
-        skip_special_tokens: true,
-        callback_function: (t: string) => {
-          acc += t;
-          self.postMessage({ type: 'update', id, text: acc.trim() });
-        },
-      });
+/** Um decode (parcial ou final) — o corpo que antes rodava direto no `onmessage`. */
+async function transcrever(dados: any, sinal: SinalDeCancelamento): Promise<void> {
+  const { id, pcm, language, model, dtype, device, maxNewTokens } = dados;
+  await ensurePipeline(model, dtype, device);
+  if (sinal.cancelado) return responderCancelado(id);
 
-      // TETO DINÂMICO de tokens (anti-alucinação): o Whisper, em silêncio/pausa ou em buffer
-      // curto, "continua inventando" até bater o max_new_tokens. Limitar à DURAÇÃO real do áudio
-      // (~15 tokens/s é folgado p/ fala — a real mede ~3/s) corta a geração desenfreada sem
-      // cortar fala legítima. Ex.: parcial de 1s → 15 tokens; trecho de 6s → 90 (< teto de 128).
-      // POR IDIOMA: português/espanhol tokenizam pior que inglês no vocabulário do Whisper —
-      // 15 tok/s truncava fala rápida em PT (medido no cenário conversa). Ver alucinacao.ts.
-      const audioSec = pcm.length / 16000;
+  // STREAMING token-a-token: em vez de só entregar o texto ao FIM do decode, emitimos
+  // mensagens `update` incrementais conforme os tokens saem — a UI vê o texto crescendo
+  // durante a fala (sensação de tempo real). Acumulamos aqui e postamos o texto-até-agora.
+  // (Padrão do exemplo oficial realtime-whisper-webgpu.)
+  let acc = '';
+  const streamer = new TextStreamer(asr.tokenizer, {
+    skip_prompt: true,
+    skip_special_tokens: true,
+    callback_function: (t: string) => {
+      acc += t;
+      // Decode sendo interrompido: o que sai daqui em diante não é a fala, não vai para a tela.
+      if (!sinal.cancelado) self.postMessage({ type: 'update', id, text: acc.trim() });
+    },
+  });
+  /* PARAR NO MEIO: o final chegou e este parcial ficou velho. Um processador NOVO por chamada (o
+     `generate` do Whisper acrescenta os dele na mesma lista). */
+  const proc = processadorDeCancelamento(sinal, asr.model?.generation_config?.eos_token_id);
+  const interrupcao = proc ? { logits_processor: [proc] } : {};
 
-      // MOONSHINE: só inglês, e decode sem as opções do Whisper (o pipeline repassa tudo ao
-      // `generate`). O streamer é do `generate` genérico, então as parciais token-a-token seguem
-      // funcionando. O filtro de alucinação continua, sempre na régua do inglês.
-      if (ehMoonshine(asrModel)) {
-        // Guarda de última linha: o roteador não escolhe moonshine fora do inglês e o adapter troca
-        // para o whisper-base antes de pedir; se ainda assim chegar outro idioma, ERRO — o gateway
-        // passa ao próximo motor — em vez de devolver inglês inventado a partir de outra língua.
-        if (!moonshineAceita(language)) throw new Error(`moonshine só transcreve inglês (pedido: ${language})`);
-        const out = await asr(pcm, { ...opcoesDeDecodeMoonshine(audioSec), streamer });
-        const bruto = (out.text ?? '').trim();
-        const filtrado = filtrarAlucinacao(bruto, audioSec, 'en');
-        self.postMessage({ type: 'result', id, text: filtrado, descartado: !!bruto && !filtrado });
-        return;
-      }
+  // TETO DINÂMICO de tokens (anti-alucinação): o Whisper, em silêncio/pausa ou em buffer
+  // curto, "continua inventando" até bater o max_new_tokens. Limitar à DURAÇÃO real do áudio
+  // (~15 tokens/s é folgado p/ fala — a real mede ~3/s) corta a geração desenfreada sem
+  // cortar fala legítima. Ex.: parcial de 1s → 15 tokens; trecho de 6s → 90 (< teto de 128).
+  // POR IDIOMA: português/espanhol tokenizam pior que inglês no vocabulário do Whisper —
+  // 15 tok/s truncava fala rápida em PT (medido no cenário conversa). Ver alucinacao.ts.
+  const audioSec = pcm.length / 16000;
 
-      /* "DETECTAR" (sem dica): o idioma é medido AQUI, pelo áudio, antes do decode. Sem isto o
-         transformers.js força `<|en|>` e o Whisper TRADUZ a fala para inglês em vez de transcrever
-         (ver `idiomaDoWhisper.ts`). O idioma medido volta no resultado — é medição, não a dica
-         ecoada — e é com ele que o perfil da sessão converge e passa a mandar a dica. */
-      let idioma: string | undefined = language || undefined;
-      let confiancaDoIdioma: number | undefined;
-      if (!idioma) {
-        const det = await detectarIdiomaDoAudio(asr, pcm, Tensor as never);
-        if (det) {
-          idioma = det.idioma;
-          confiancaDoIdioma = det.confianca;
-        } else if (asr.model?.generation_config?.is_multilingual !== false) {
-          // Multilíngue sem idioma = inglês forçado pela lib. Melhor errar alto que legendar em inglês.
-          throw new Error('whisper: não foi possível detectar o idioma do trecho');
-        }
-      }
+  // MOONSHINE: só inglês, e decode sem as opções do Whisper (o pipeline repassa tudo ao
+  // `generate`). O streamer é do `generate` genérico, então as parciais token-a-token seguem
+  // funcionando. O filtro de alucinação continua, sempre na régua do inglês.
+  if (ehMoonshine(asrModel)) {
+    // Guarda de última linha: o roteador não escolhe moonshine fora do inglês e o adapter troca
+    // para o whisper-base antes de pedir; se ainda assim chegar outro idioma, ERRO — o gateway
+    // passa ao próximo motor — em vez de devolver inglês inventado a partir de outra língua.
+    if (!moonshineAceita(language)) throw new Error(`moonshine só transcreve inglês (pedido: ${language})`);
+    const out = await asr(pcm, { ...opcoesDeDecodeMoonshine(audioSec), streamer, ...interrupcao });
+    if (sinal.cancelado) return responderCancelado(id);
+    const bruto = (out.text ?? '').trim();
+    const filtrado = filtrarAlucinacao(bruto, audioSec, 'en');
+    self.postMessage({ type: 'result', id, text: filtrado, descartado: !!bruto && !filtrado });
+    return;
+  }
 
-      const hardCap = maxNewTokens || (idioma && idioma !== 'en' ? 160 : 128);
-      const dynMax = Math.max(8, Math.min(hardCap, Math.round(audioSec * tokensPorSegundo(idioma))));
-
-      // Decode enxuto p/ baixa latência: greedy (sem beam), cache ligado (implícito no grafo
-      // merged), idioma SEMPRE explícito (a dica ou o detectado acima), sem timestamps.
-      // no_repeat_ngram_size + repetition_penalty MATAM os loops de repetição (palavras repetidas),
-      // a assinatura clássica de alucinação do Whisper em decode greedy sem essas travas.
-      const out = await asr(pcm, {
-        language: idioma,
-        // SEMPRE transcrever: `translate` devolveria inglês no lugar da fala original.
-        task: 'transcribe',
-        return_timestamps: false,
-        num_beams: 1,
-        do_sample: false,
-        max_new_tokens: dynMax,
-        no_repeat_ngram_size: 3,
-        repetition_penalty: 1.15,
-        streamer,
-      });
-
-      const bruto = (out.text ?? '').trim();
-      const filtrado = filtrarAlucinacao(bruto, audioSec, idioma);
-      self.postMessage({
-        type: 'result',
-        id,
-        text: filtrado,
-        // Para a telemetria contar descartes: havia texto e o filtro o esvaziou.
-        descartado: !!bruto && !filtrado,
-        // Só quando MEDIDO (sem dica): devolver a dica seria confundir pergunta com resposta.
-        ...(confiancaDoIdioma !== undefined ? { language: idioma, confiancaDoIdioma } : {}),
-      });
+  /* "DETECTAR" (sem dica): o idioma é medido AQUI, pelo áudio, antes do decode. Sem isto o
+     transformers.js força `<|en|>` e o Whisper TRADUZ a fala para inglês em vez de transcrever
+     (ver `idiomaDoWhisper.ts`). O idioma medido volta no resultado — é medição, não a dica
+     ecoada — e é com ele que o perfil da sessão converge e passa a mandar a dica. */
+  let idioma: string | undefined = language || undefined;
+  let confiancaDoIdioma: number | undefined;
+  if (!idioma) {
+    const det = await detectarIdiomaDoAudio(asr, pcm, Tensor as never);
+    if (det) {
+      idioma = det.idioma;
+      confiancaDoIdioma = det.confianca;
+    } else if (asr.model?.generation_config?.is_multilingual !== false) {
+      // Multilíngue sem idioma = inglês forçado pela lib. Melhor errar alto que legendar em inglês.
+      throw new Error('whisper: não foi possível detectar o idioma do trecho');
     }
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    self.postMessage({
-      type: 'error',
-      id: id ?? null,
-      message,
+    if (sinal.cancelado) return responderCancelado(id);
+  }
+
+  const hardCap = maxNewTokens || (idioma && idioma !== 'en' ? 160 : 128);
+  const dynMax = Math.max(8, Math.min(hardCap, Math.round(audioSec * tokensPorSegundo(idioma))));
+
+  // Decode enxuto p/ baixa latência: greedy (sem beam), cache ligado (implícito no grafo
+  // merged), idioma SEMPRE explícito (a dica ou o detectado acima), sem timestamps.
+  // no_repeat_ngram_size + repetition_penalty MATAM os loops de repetição (palavras repetidas),
+  // a assinatura clássica de alucinação do Whisper em decode greedy sem essas travas.
+  const out = await asr(pcm, {
+    language: idioma,
+    // SEMPRE transcrever: `translate` devolveria inglês no lugar da fala original.
+    task: 'transcribe',
+    return_timestamps: false,
+    num_beams: 1,
+    do_sample: false,
+    max_new_tokens: dynMax,
+    no_repeat_ngram_size: 3,
+    repetition_penalty: 1.15,
+    streamer,
+    ...interrupcao,
+  });
+  if (sinal.cancelado) return responderCancelado(id);
+
+  const bruto = (out.text ?? '').trim();
+  const filtrado = filtrarAlucinacao(bruto, audioSec, idioma);
+  self.postMessage({
+    type: 'result',
+    id,
+    text: filtrado,
+    // Para a telemetria contar descartes: havia texto e o filtro o esvaziou.
+    descartado: !!bruto && !filtrado,
+    // Só quando MEDIDO (sem dica): devolver a dica seria confundir pergunta com resposta.
+    ...(confiancaDoIdioma !== undefined ? { language: idioma, confiancaDoIdioma } : {}),
+  });
+}
+
+/**
+ * Processa mensagens do adapter. NÃO executa nada aqui: põe na fila serial (o `cancelar` é a
+ * exceção — age sobre a fila, na hora). Devolve a promessa da tarefa, para quem quiser esperar.
+ */
+self.onmessage = (e: MessageEvent): Promise<void> => {
+  const dados = e.data;
+  const { type, id } = dados;
+  const responderErro = (err: unknown, idDoPedido: string | null) =>
+    self.postMessage({ type: 'error', id: idDoPedido, message: err instanceof Error ? err.message : String(err) });
+
+  if (type === 'cancelar') {
+    fila.cancelar(id);
+    return Promise.resolve();
+  }
+  if (type === 'load') {
+    return fila.enfileirar({
+      id: `carga-${++cargas}`,
+      prioridade: 'final',
+      executar: async () => {
+        try {
+          await ensurePipeline(dados.model, dados.dtype, dados.device);
+          self.postMessage({ type: 'ready' });
+        } catch (err) {
+          responderErro(err, null);
+        }
+      },
     });
   }
+  if (type === 'transcribe') {
+    return fila.enfileirar({
+      id,
+      prioridade: dados.prioridade === 'parcial' ? 'parcial' : 'final',
+      executar: async (sinal) => {
+        try {
+          await transcrever(dados, sinal);
+        } catch (err) {
+          responderErro(err, id ?? null);
+        }
+      },
+      aoDescartar: () => responderCancelado(id),
+    });
+  }
+  return Promise.resolve();
 };

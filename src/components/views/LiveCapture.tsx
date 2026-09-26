@@ -39,6 +39,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { fetchSessionTranscript, fetchSettings, patchUiSettings } from '../../data/api';
 import { buildGateway } from '../../gateway';
 import { getActiveProfile, getProviderMode } from '../../gateway/activeProfile';
+import { temAdaptadorWebGpu, webGpuProvavel } from '../../gateway/adaptadorWebGpu';
 import type { SttSession } from '../../gateway/capabilities';
 import { capMetrics } from '../../gateway/capture/captureMetrics';
 import {
@@ -284,6 +285,16 @@ export default function LiveCapture({
      a rota aparece no diálogo "Modelo no dispositivo". */
   const [sttRouteLabel, setSttRouteLabel] = useState('');
   const [sttQuality, setSttQuality] = useState<SttQuality>(() => getSttQuality());
+  /* Há um ADAPTADOR WebGPU? (não só `navigator.gpu`). Começa com o palpite síncrono e vira a medida
+     assim que o navegador responde — o selo e o tamanho do download mudam junto. */
+  const [temGpu, setTemGpu] = useState<boolean>(() => webGpuProvavel());
+  useEffect(() => {
+    let vivo = true;
+    void temAdaptadorWebGpu().then((v) => vivo && setTemGpu(v));
+    return () => {
+      vivo = false;
+    };
+  }, []);
 
   // --- SPEAKER DIARIZATION STATE ---
   // Só os dois falantes REAIS por origem de áudio (você = mic, sistema = aba/loopback). Nada de
@@ -1842,7 +1853,7 @@ export default function LiveCapture({
       micLang: micEnabled && micEngine === 'whisper' ? meu : '',
       autoDetect: autoDetectLang || autoDetectMyLang,
       quality: sttQuality,
-      hasWebGpu: !!(navigator as Navigator & { gpu?: unknown }).gpu,
+      hasWebGpu: temGpu,
       cloudAvailable: false,
       profileId: getActiveProfile().id,
     });
@@ -1867,7 +1878,7 @@ export default function LiveCapture({
                 : `Tradutor (${id.split('/').pop()})`,
           },
     );
-  }, [targetLang, sourceLang, micEnabled, micEngine, autoDetectLang, autoDetectMyLang, sttQuality]);
+  }, [targetLang, sourceLang, micEnabled, micEngine, autoDetectLang, autoDetectMyLang, sttQuality, temGpu]);
   /** O tamanho do modelo que a captura baixa (o selo "modelo local · N MB" do protótipo). */
   const mbDoModelo = modelosDaCaptura.reduce((soma, m) => soma + (m.mbEstimado ?? 0), 0);
 

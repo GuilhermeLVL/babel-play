@@ -40,6 +40,12 @@ interface ResultadoDaCascata {
   entregue: EntregaDaCascata | null
   /** Causa da última perna que falhou — vai para o LOG, nunca para o cliente. */
   ultimaFalha: string
+  /**
+   * TODAS as pernas chamadas responderam 429 (Fase 4): é limite de taxa, não defeito. Leva a espera
+   * que a admissão fixou (a menor entre as pernas), para o chamador responder 429 `nuvem_ocupada`
+   * com `Retry-After` em vez de 502. Ausente quando alguma perna falhou por outro motivo.
+   */
+  limitadoPeloProvedor?: { retryAfterS: number }
 }
 
 /**
@@ -120,6 +126,10 @@ export async function percorrerCascata(
   const adm = contexto.admissao
   if (adm) adm.usada = true
   let ultimaFalha = 'sem provedor'
+  /* Pernas CHAMADAS e quantas delas foram 429; `esperaDoLimite` é a menor espera fixada. */
+  let chamadas = 0
+  let limitadas = 0
+  let esperaDoLimite = Infinity
   for (let i = 0; i < provedores.length; i++) {
     const prov = provedores[i]
     /* A ADMISSÃO DA PERNA (ADR 0007). Antes da perna admitida na entrada: estava sem saldo, pula.
@@ -177,10 +187,13 @@ export async function percorrerCascata(
     const r = await chamarChat({ ...pedido, base: prov.base, apiKey: prov.apiKey, model: prov.model })
     const fim = Date.now()
     const provedor = nomeDoProvedor(prov.base)
+    chamadas += 1
     if (r.status === 429) {
       registrarLimiteDoProvedor(provedor, prov.model)
       /* O 429 do provedor fecha o balde até o `Retry-After` dele: a próxima fala nem tenta. */
-      registrarLimiteNaAdmissao('llm', provedor, prov.model, r.retryAfterS)
+      const espera = registrarLimiteNaAdmissao('llm', provedor, prov.model, r.retryAfterS)
+      limitadas += 1
+      esperaDoLimite = Math.min(esperaDoLimite, espera)
     }
     /* Os tokens do dia saem da estimativa para o REAL; perna que falhou não gerou tokens. */
     ticket?.acertarTokens(r.ok ? (r.tokensEntrada ?? 0) + (r.tokensSaida ?? 0) : 0)
@@ -240,5 +253,9 @@ export async function percorrerCascata(
       requestId: contexto.requestId,
     })
   }
-  return { entregue: null, ultimaFalha }
+  return {
+    entregue: null,
+    ultimaFalha,
+    ...(chamadas > 0 && limitadas === chamadas ? { limitadoPeloProvedor: { retryAfterS: esperaDoLimite } } : {}),
+  }
 }

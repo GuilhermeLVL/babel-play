@@ -122,9 +122,15 @@ export function analisarRodada(d, pular = 0) {
     linha.vad = Math.round(ult.tSpeechEnd - E)
     linha.audioMs = ult.audioMs
     // decode final
-    const P = sttOut.find(
-      (o) => o.t >= ult.tSpeechEnd - 5 && o.t <= ult.tSpeechEnd + 3000 && o.n >= (ult.audioMs / 1000) * 16000 * 0.9,
-    )
+    const tamanhoDoFinal = (o) => o.n >= (ult.audioMs / 1000) * 16000 * 0.9
+    const P =
+      sttOut.find((o) => o.t >= ult.tSpeechEnd - 5 && o.t <= ult.tSpeechEnd + 3000 && tamanhoDoFinal(o)) ??
+      // FINAL ESPECULATIVO (depois de 2026-09-26): o decode do final é postado com ~450 ms de silêncio,
+      // ANTES de o VAD fechar, e o fim da fala reaproveita o resultado. É o último post com resultado
+      // (os cancelados não têm) no segundo antes do fechamento. `stt` passa a contar desde esse post.
+      sttOut
+        .filter((o) => o.t >= ult.tSpeechEnd - 1000 && o.t < ult.tSpeechEnd && tamanhoDoFinal(o) && sttIn.has(o.id))
+        .at(-1)
     if (P) {
       const R = sttIn.get(P.id)
       if (R) {

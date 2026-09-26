@@ -4,7 +4,7 @@
  * CARGA LEVE NO CI — um piso de latência que não deixa regressão grosseira passar calada (Fase 6).
  *
  *   npm run build && node scripts/perf/ci-carga.mjs [--bundle=dist-server/server.cjs] \
- *        [--duracao=10] [--conexoes=10] [--p95=500] [--porta=3150] [--rotas=health,abertura,settings,sessions]
+ *        [--duracao=<slo.json>] [--conexoes=<slo.json>] [--p95=<slo.json>] [--porta=3150] [--rotas=<slo.json>]
  *
  * Sobe o SERVIDOR BUILDADO (o mesmo `dist-server/server.cjs` que vai na imagem) com NODE_ENV=production
  * e um banco VAZIO num diretório temporário (as migrations rodam no boot, como no Fly), no modo
@@ -14,10 +14,13 @@
  *   - p95 < `--p95` ms, calculado de CADA resposta (o autocannon só resume p90/p97,5/p99);
  *   - zero erro: nenhum erro de socket, nenhum timeout, nenhuma resposta fora de 2xx.
  *
- * Os limiares são INICIAIS e generosos de propósito (o runner do GitHub é compartilhado e ruidoso):
- * o objetivo é pegar a regressão de ordem de grandeza — uma query sem índice, um `await` num laço —
- * não medir capacidade. A medida de capacidade é `scripts/perf/escala/carga-servidor.mjs` (Fase 2) e
- * os SLOs vêm da Fase 4; quando eles mudarem, mude os padrões daqui.
+ * OS PADRÕES VÊM DE `scripts/perf/suite/slo.json` (Fase 4): conexões, duração e rotas da seção `ci`,
+ * e o teto de p95 é o SLO da classe `ci.classe` (a de leitura) — o MESMO número de `docs/slo.md` e da
+ * suíte de carga (`scripts/perf/suite/rodar.mjs`). Mudar o limiar é mudar o JSON e o documento; os
+ * argumentos de linha de comando continuam valendo para reproduzir um caso local.
+ * O objetivo aqui é pegar a regressão de ordem de grandeza — uma query sem índice, um `await` num
+ * laço —, não medir capacidade: o runner do GitHub é compartilhado e o banco é vazio. A medida de
+ * capacidade é a suíte de carga (Fase 4) e `scripts/perf/escala/carga-servidor.mjs` (Fase 2).
  *
  * Sai 0 quando todas as rotas passam; 1 com a lista do que reprovou; 2 em uso errado. Com
  * `GITHUB_STEP_SUMMARY` no ambiente, escreve a tabela no resumo da execução.
@@ -30,6 +33,8 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import autocannon from 'autocannon'
+
+import { carregarSlo, tetoP95 } from './suite/slo.mjs'
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
 const arg = (n, d) => process.argv.find((x) => x.startsWith(`--${n}=`))?.slice(n.length + 3) ?? d
@@ -47,6 +52,16 @@ export const ROTAS = {
 export function percentil(ordenada, p) {
   if (!ordenada.length) return null
   return ordenada[Math.min(ordenada.length - 1, Math.ceil((p / 100) * ordenada.length) - 1)]
+}
+
+/** Os padrões do CI a partir do `slo.json` (ou de outro objeto, no teste). Pura, para o teste. */
+export function padroesDoSlo(slo = carregarSlo()) {
+  return {
+    duracao: slo.ci.duracaoS,
+    conexoes: slo.ci.conexoes,
+    p95Max: tetoP95(slo, slo.ci.classe),
+    rotas: slo.ci.rotas,
+  }
 }
 
 /** O veredito de uma rota. Pura, para o teste. */
@@ -72,14 +87,15 @@ export function avaliar({ rota, latencias, erros, timeouts, fora2xx }, { p95Max 
 
 async function principal() {
   const bundle = path.resolve(RAIZ, arg('bundle', 'dist-server/server.cjs'))
-  const duracao = Number(arg('duracao', 10))
-  const conexoes = Number(arg('conexoes', 10))
-  const p95Max = Number(arg('p95', 500))
+  const padrao = padroesDoSlo()
+  const duracao = Number(arg('duracao', padrao.duracao))
+  const conexoes = Number(arg('conexoes', padrao.conexoes))
+  const p95Max = Number(arg('p95', padrao.p95Max))
   const porta = Number(arg('porta', 3150))
-  const nomes = arg('rotas', 'health,abertura,settings,sessions').split(',')
+  const nomes = arg('rotas', padrao.rotas.join(',')).split(',')
   if (!existsSync(bundle) || nomes.some((n) => !ROTAS[n]) || !(duracao > 0) || !(conexoes > 0)) {
     console.error(
-      `uso: node scripts/perf/ci-carga.mjs [--bundle=dist-server/server.cjs] [--duracao=10] [--conexoes=10] [--p95=500] [--rotas=${Object.keys(ROTAS).join(',')}]`,
+      `uso: node scripts/perf/ci-carga.mjs [--bundle=dist-server/server.cjs] [--duracao=${padrao.duracao}] [--conexoes=${padrao.conexoes}] [--p95=${padrao.p95Max}] [--rotas=${Object.keys(ROTAS).join(',')}]`,
     )
     if (!existsSync(bundle)) console.error(`bundle não encontrado: ${bundle} (rode npm run build)`)
     return 2
@@ -178,7 +194,7 @@ async function principal() {
     console.error(`\nCARGA REPROVADA em ${reprovadas.length} rota(s):`)
     for (const r of reprovadas) console.error(`  ${r.rota}: ${r.falhas.join('; ')}`)
     console.error(
-      'Rode local para reproduzir: npm run build && node scripts/perf/ci-carga.mjs. Se o limiar mudou de propósito, mude o padrão no script com a justificativa.',
+      'Rode local para reproduzir: npm run build && node scripts/perf/ci-carga.mjs. Se o limiar mudou de propósito, mude scripts/perf/suite/slo.json e docs/slo.md juntos, com a justificativa.',
     )
     return 1
   }

@@ -17,6 +17,21 @@ e os alertas de planejamento (`BabelEscala*`, a 70 % de cada gatilho) em `ops/al
 - RSS: 290–300 MB em repouso, 470–590 MB sob carga; 2 uploads grandes simultâneos ≈ +340 MB.
 - Banco: ~3,9 MB por usuário pesado; o volume está limitado a 10 GB (`fly.toml`).
 
+## O que a Fase 4 mediu depois das correções (suíte de carga, `openspec/audits/2026-09-25-prontidao/fase4-carga.md`)
+
+Usuários virtuais com ritmo de gente e a mistura realista (`scripts/perf/suite/rodar.mjs`; SLOs em `docs/slo.md`):
+
+- **0,038 % de um núcleo por usuário simultâneo** (+ 0,8 % de repouso); **0,122 req/s** e **0,037 escritas/s** por
+  usuário simultâneo; RSS 316 MB com 100, 426 MB com 1.000, 669 MB com 2.000.
+- Numa máquina local, dentro do SLO até **1.000 simultâneos** (p95 21 ms, 0 erro, CPU 39 %); **quebra com 2.000**
+  (p95 334 ms, CPU 72 %: o joelho de um event loop).
+- **No `shared-cpu-1x`: ~94 simultâneos dentro do SLO, ~143 no limite da cota** (≈ 1.000 cadastrados com 10 %
+  simultâneos) — a demanda estimada da Fase 2 (0,000274 × cadastrados) caiu para \*\*~0,000038 núcleo × cadastrados
+  - repouso\*\*, ~7× menos, depois das rotas caras e da admissão de IA.
+- Num `performance-1x`: ~1.800 simultâneos no SLO (≈ 15.000–18.000 cadastrados de CPU); ali o **escritor único do
+  SQLite** (~37 escritas/s por 1.000 simultâneos) e o volume viram o limite antes da CPU.
+- **10.000 simultâneos**: ~1.220 req/s, ~3,9 núcleos ocupados (≥ 6 processos no joelho), ~370 escritas/s — passo 4.
+
 Por isso a ordem é **vertical primeiro** (CPU dedicada, depois memória) e só então **horizontal com
 Postgres** — escalar horizontalmente com SQLite não é um passo, é um defeito.
 

@@ -246,7 +246,7 @@ async function traduzirAdmitido(
   try {
     /* 12 s: alguém está esperando legenda na tela. Fala pede um pouco de liberdade para escolher a
        expressão natural; texto fica determinístico. */
-    const { entregue, ultimaFalha } = await percorrerCascata(
+    const { entregue, ultimaFalha, limitadoPeloProvedor } = await percorrerCascata(
       provedores,
       { messages, temperature: falada ? 0.2 : TRADUCAO.temperatura, maxTokens, timeoutMs: 12_000 },
       {
@@ -259,6 +259,22 @@ async function traduzirAdmitido(
       },
     )
 
+    /* LIMITE DE TAXA NÃO É DEFEITO (Fase 4 da prontidão, suíte de carga): com TODAS as pernas em 429,
+       a resposta é a mesma do STT — 429 `nuvem_ocupada` com o `Retry-After` que a admissão fixou —,
+       e o cliente traduz no local e volta à nuvem sozinho. Antes saía 502 `provedor_indisponivel`,
+       contado como erro de servidor no SLO e nos alertas. */
+    if (!entregue && limitadoPeloProvedor) {
+      log('warn', {
+        event: 'mt_provedor_limitou',
+        route: '/api/ai/mt',
+        status: 429,
+        error: ultimaFalha.slice(0, 300),
+        latencyMs: Date.now() - t0,
+        requestId: req.requestId,
+      })
+      responderNuvemOcupada(res, { motivo: 'provedor_limitou', retryAfterS: limitadoPeloProvedor.retryAfterS })
+      return
+    }
     if (!entregue) {
       /* O CORPO DO TERCEIRO NÃO É PARA O CLIENTE (achado da Fase 4). `ultimaFalha` carrega texto
          escrito pelo provedor; vai inteira para o log, e o cliente recebe código estável +

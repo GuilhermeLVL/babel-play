@@ -3,7 +3,7 @@
  * SEMEIA UM BANCO SINTÉTICO para a medição de escala (auditoria de prontidão, Fase 2).
  *
  *   DATABASE_URL=file:<tmp>/escala.db npx tsx server/db/migrate.ts     # schema real, migrations reais
- *   node scripts/perf/escala/semear.mjs --db=<tmp>/escala.db [--pesados=200] [--leves=2000]
+ *   node scripts/perf/escala/semear.mjs --db=<tmp>/escala.db [--pesados=200] [--leves=2000] [--medios=0]
  *
  * Tamanhos calibrados pelo banco real (data/babel.db, lido só com readonly em 25/09/2026):
  * 2.901 cartões do dono; comprimento médio word 6,6 · back 44 · sentence 64 · cloze_prompt 68 ·
@@ -13,6 +13,7 @@
  *   local-owner   "mega": 3.000 cartões, 200 sessões × 100 falas, 5.000 revisões, 5.000 exercícios
  *                 (o único usuário do modo self-host; é o caso d. da medição).
  *   u-p-NNNN      "pesado típico": 3.000 cartões, 20 sessões × 100 falas, 1.000 revisões, 1.000 exercícios.
+ *   u-m-NNNN      "médio" (só com --medios=N): 150 cartões, 2 sessões × 40 falas, 100 revisões, 100 exercícios.
  *   u-l-NNNN      "leve": 20 cartões, 1 sessão × 20 falas — pool de tokens para as rotas de escrita
  *                 (o writeLimiter é 120/min POR USUÁRIO; um pool evita medir só 429).
  * Todo usuário ganha `idades_declaradas` adulta (sem ela `exigirContaLiberada` recusa no modo público).
@@ -32,6 +33,10 @@ if (!arquivo) {
 }
 const PESADOS = Number(arg('pesados', 200))
 const LEVES = Number(arg('leves', 2000))
+/* `u-m-NNNN` "médio" (Fase 4, suíte de carga): 150 cartões, 2 sessões × 40 falas, 100 revisões e 100
+   exercícios — o usuário que a mistura realista usa na maior parte dos VUs. Padrão 0: a medição da
+   Fase 2 não muda. */
+const MEDIOS = Number(arg('medios', 0))
 const MEGA_SESSOES = Number(arg('mega-sessoes', 200))
 
 const db = new Database(arquivo)
@@ -188,12 +193,14 @@ function semearUsuario(uid, p) {
 const MEGA = { sessoes: MEGA_SESSOES, falas: 100, cartoes: 3000, revisoes: 5000, exercicios: 5000 }
 const PESADO = { sessoes: 20, falas: 100, cartoes: 3000, revisoes: 1000, exercicios: 1000 }
 const LEVE = { sessoes: 1, falas: 20, cartoes: 20, revisoes: 0, exercicios: 0 }
+const MEDIO = { sessoes: 2, falas: 40, cartoes: 150, revisoes: 100, exercicios: 100 }
 
 const t = performance.now()
 const lote = db.transaction((fn) => fn())
 lote(() => semearUsuario('local-owner', MEGA))
 for (let i = 0; i < PESADOS; i++) lote(() => semearUsuario(`u-p-${String(i).padStart(4, '0')}`, PESADO))
 for (let i = 0; i < LEVES; i++) lote(() => semearUsuario(`u-l-${String(i).padStart(4, '0')}`, LEVE))
+for (let i = 0; i < MEDIOS; i++) lote(() => semearUsuario(`u-m-${String(i).padStart(4, '0')}`, MEDIO))
 db.exec('PRAGMA wal_checkpoint(TRUNCATE); ANALYZE;')
 const cont = (tb) => db.prepare(`select count(*) n from ${tb}`).get().n
 console.log(

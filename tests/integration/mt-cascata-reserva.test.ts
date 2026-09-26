@@ -160,6 +160,41 @@ describe('cascata de MT com reserva', () => {
     expect(res.statusCode).toBe(502)
   })
 
+  /* FASE 4 (suíte de carga): com o provedor em 429 e sem reserva, o cliente recebia 502
+     `provedor_indisponivel` — um ERRO, contado como 5xx no SLO e nos alertas —, enquanto o STT no
+     mesmo caso já respondia 429 `nuvem_ocupada` com `Retry-After`. Limite de taxa não é defeito:
+     é a mesma degradação desenhada no ADR 0007, e o cliente pausa a nuvem pelo tempo pedido. */
+  it('todas as pernas em 429 → 429 nuvem_ocupada com Retry-After (não 502)', async () => {
+    configurarPrimario()
+    vi.stubGlobal('fetch', async () => ({
+      ok: false,
+      status: 429,
+      headers: { get: (h: string) => (h.toLowerCase() === 'retry-after' ? '7' : null) },
+      text: async () => 'rate limited',
+    }))
+    const res = mockRes()
+    const cabecalhos: Record<string, string> = {}
+    res.setHeader = (k: string, v: string) => (cabecalhos[k.toLowerCase()] = v)
+    await mtTranslateProxy(mockReq(asUserId('cascata')), res)
+    expect(res.statusCode).toBe(429)
+    expect(res.body?.code).toBe('nuvem_ocupada')
+    expect(res.body?.detalhes).toEqual({ motivo: 'provedor_limitou', retryAfter: 7 })
+    expect(cabecalhos['retry-after']).toBe('7')
+  })
+
+  it('429 no primário e 500 na reserva continua 502: não foi só limite de taxa', async () => {
+    configurarPrimario()
+    configurarReserva()
+    vi.stubGlobal('fetch', async (url: any) =>
+      String(url).includes('primario')
+        ? { ok: false, status: 429, text: async () => 'limite' }
+        : { ok: false, status: 500, text: async () => 'caiu' },
+    )
+    const res = mockRes()
+    await mtTranslateProxy(mockReq(asUserId('cascata')), res)
+    expect(res.statusCode).toBe(502)
+  })
+
   it('QUOTA: uma tradução entregue pela reserva debita UMA chamada, e falha total estorna', async () => {
     configurarPrimario()
     configurarReserva()

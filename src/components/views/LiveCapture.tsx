@@ -10,6 +10,7 @@ import {
   CircleCheck,
   CircleHelp,
   Cpu,
+  Download,
   Eye,
   Gamepad2,
   Headphones,
@@ -51,15 +52,16 @@ import {
   type SystemAudioProbe,
 } from '../../gateway/capture/systemAudio';
 import { expectedModelIds } from '../../gateway/modelCache';
+import { modeloDisponivel } from '../../gateway/modelManifest';
 import { ContextoDoStt } from '../../gateway/promptDeStt';
 import {
   getSttQuality,
-  MODEL_DOWNLOAD_MB,
   MODEL_DOWNLOAD_MEDIDO,
   nomeLegivelDoModelo,
   routeStt,
   setSttQualityMirror,
   type SttQuality,
+  tamanhoDoDownloadMb,
 } from '../../gateway/sttRouter';
 import {
   type AudioDevice,
@@ -93,6 +95,9 @@ import { criarRelogioDaSessao, criarTraducaoDaFala } from '../../lib/captura/tra
 import { cenarioDasFontes } from '../../lib/cenarioDeCaptura';
 import { consentiuNuvem } from '../../lib/consentimentoDeNuvem';
 import { DominantLangTracker } from '../../lib/convoLang';
+import { mbQueFaltaBaixar, precisaConfirmarDownload } from '../../lib/dispositivo/avisoDeDownload';
+import { classificarDispositivo, dispositivoDaRota, lerSinaisDoDispositivo } from '../../lib/dispositivo/perfil';
+import { t } from '../../lib/i18n';
 // Configuração de idioma: fonte ÚNICA (`mine` = o que VOCÊ fala no mic; `studying` = o que você
 // ESTUDA, o áudio estrangeiro). Antes os defaults nasciam aqui, em `useState`.
 import {
@@ -295,6 +300,11 @@ export default function LiveCapture({
       vivo = false;
     };
   }, []);
+  /* O PERFIL DO APARELHO (`lib/dispositivo/perfil.ts`): Quest/celular não têm áudio do sistema,
+     baixam modelos menores (q8) e liberam a memória ao sair da tela. */
+  const perfilDoAparelho = useMemo(() => classificarDispositivo(lerSinaisDoDispositivo(temGpu)), [temGpu]);
+  const perfilDoAparelhoRef = useRef(perfilDoAparelho);
+  perfilDoAparelhoRef.current = perfilDoAparelho;
 
   // --- SPEAKER DIARIZATION STATE ---
   // Só os dois falantes REAIS por origem de áudio (você = mic, sistema = aba/loopback). Nada de
@@ -467,7 +477,10 @@ export default function LiveCapture({
   // lado. Vir só com o mic marcado obrigava o usuário a descobrir e ligar o sistema toda vez (atrito
   // desnecessário). Quem quiser só uma das fontes desmarca a outra com um clique no hero card.
   // Padrão casa com o cenário inicial 'media' (assistir mídia): só o sistema ligado.
-  const [micEnabled, setMicEnabled] = useState(false);
+  /* SEM getDisplayMedia (Quest, Android, iOS) o microfone é a ÚNICA fonte possível: ele já nasce
+     ligado, senão o "Iniciar" nasceria desabilitado sem motivo aparente. Clicar em Iniciar continua
+     sendo o gesto deliberado que abre o microfone. */
+  const [micEnabled, setMicEnabled] = useState(() => !lerSinaisDoDispositivo(false).capturaDeTela);
   /** Ligou o mic no meio da sessão e o navegador ainda está perguntando pela permissão. */
   const [micAbrindo, setMicAbrindo] = useState(false);
 
@@ -502,7 +515,7 @@ export default function LiveCapture({
    * Anotado como `boolean` de propósito: sem isso o TypeScript estreita para o literal `true` e
    * passa a tratar esses ramos de erro como inalcançáveis.
    */
-  const systemEnabled: boolean = true;
+  const systemEnabled: boolean = perfilDoAparelho.capturaDoSistema;
   // COMO capturar o áudio do sistema: 'display' = compartilhar aba/tela (getDisplayMedia; zero
   // setup, mas o áudio de TELA sofre a limitação NotReadableError no Windows) ou 'loopback' =
   // dispositivo de entrada de loopback (Stereo Mix / VB-Cable via getUserMedia; à prova de falhas,
@@ -539,9 +552,11 @@ export default function LiveCapture({
   // 'media' = assistir vídeo/aula/podcast (só sistema) · 'conversation' = chamada/reunião
   // (mic+sistema) · 'mic' = praticar a própria voz (só mic). Trocar de cenário só ajusta as
   // FONTES; os idiomas escolhidos permanecem. (O tipo vive em `lib/captura/tiposDaFala.ts`.)
-  const [captureScenario, setCaptureScenario] = useState<CaptureScenario>('media');
+  const [captureScenario, setCaptureScenario] = useState<CaptureScenario>(() =>
+    cenarioDasFontes(micEnabled, systemEnabled),
+  );
   // Espelho p/ os handlers assíncronos (a identificação de voz só roda no cenário Conversa).
-  const captureScenarioRef = useRef<CaptureScenario>('media');
+  const captureScenarioRef = useRef<CaptureScenario>(captureScenario);
   useEffect(() => {
     captureScenarioRef.current = captureScenario;
   }, [captureScenario]);
@@ -635,6 +650,19 @@ export default function LiveCapture({
   useEffect(() => {
     (window as any).__babelGateway = gateway;
   }, [gateway]);
+
+  /* SAIR DA CAPTURA EM APARELHO COM POUCA MEMÓRIA (Quest/celular): encerra os workers do Whisper e do
+     tradutor. O heap do WASM só volta ao sistema com o `terminate()`; sem isso o modelo (80–300 MB de
+     pesos, mais o heap da inferência) fica preso na aba enquanto a pessoa joga ou lê — e no iOS a aba
+     morre perto de 0,5–1,5 GB. A próxima captura recarrega do cache (sem baixar de novo). */
+  useEffect(
+    () => () => {
+      if (!perfilDoAparelhoRef.current.poucaMemoria) return;
+      gateway.stt.liberarModelo();
+      gateway.mt.liberarModelos();
+    },
+    [gateway],
+  );
 
   useEffect(() => {
     if (onTranscriptChange) {
@@ -1867,6 +1895,7 @@ export default function LiveCapture({
       hasWebGpu: temGpu,
       cloudAvailable: false,
       profileId: getActiveProfile().id,
+      dispositivo: dispositivoDaRota(perfilDoAparelho),
     });
     return expectedModelIds(ouvir, meu, rota.localModel).map((id) =>
       id === rota.localModel
@@ -1874,12 +1903,15 @@ export default function LiveCapture({
             id,
             // "Transcrição (Whisper small)", como no protótipo: o nome do modelo, legível — e
             // "Transcrição (Moonshine base)" no inglês, sem o sufixo de formato do id do Hub.
-            titulo: `Transcrição (${nomeLegivelDoModelo(id)})`,
-            mbEstimado: MODEL_DOWNLOAD_MB[id],
+            titulo: `Transcrição (${nomeLegivelDoModelo(id)}${rota.dtype === 'q8' && !/moonshine/i.test(id) ? ' q8' : ''})`,
+            // O tamanho do DTYPE que a rota pede (q8 no celular/Quest: 80 MB em vez de 209 no base).
+            mbEstimado: tamanhoDoDownloadMb(id, rota.dtype) ?? undefined,
             medido: !!MODEL_DOWNLOAD_MEDIDO[id],
           }
         : {
             id,
+            // O tradutor também baixa (~113 MB por par em q8): o aviso de download conta os dois.
+            mbEstimado: tamanhoDoDownloadMb(id) ?? undefined,
             /* "Tradutor inglês → português (opus-mt)": o protótipo escreve ↔, mas cada opus-mt traduz
                num sentido só (en-ROMANCE ou ROMANCE-en) — a seta diz o que o modelo faz. */
             titulo: /en-ROMANCE/i.test(id)
@@ -1889,7 +1921,36 @@ export default function LiveCapture({
                 : `Tradutor (${id.split('/').pop()})`,
           },
     );
-  }, [targetLang, sourceLang, micEnabled, micEngine, autoDetectLang, autoDetectMyLang, sttQuality, temGpu]);
+  }, [
+    targetLang,
+    sourceLang,
+    micEnabled,
+    micEngine,
+    autoDetectLang,
+    autoDetectMyLang,
+    sttQuality,
+    temGpu,
+    perfilDoAparelho,
+  ]);
+  /* AVISO ANTES DE BAIXAR (perfil do aparelho): com economia de dados, rede abaixo de 4g, ou mais de
+     100 MB no celular/Quest, a captura pergunta ANTES do primeiro byte, com o tamanho real do que
+     falta (só o que não está no navegador). Confirmado uma vez, não pergunta de novo nesta tela. */
+  const [confirmarDownload, setConfirmarDownload] = useState<{ mb: number } | null>(null);
+  const downloadConfirmadoRef = useRef(false);
+  const iniciarComAvisoDeDownload = async () => {
+    const limite = perfilDoAparelho.confirmarDownloadAcimaDeMb;
+    if (limite !== null && !downloadConfirmadoRef.current && getProviderMode() !== 'cloud') {
+      const completos = new Set<string>();
+      for (const m of modelosDaCaptura) if ((await modeloDisponivel(m.id)).completo) completos.add(m.id);
+      const falta = mbQueFaltaBaixar(modelosDaCaptura, completos);
+      if (precisaConfirmarDownload(limite, falta, false)) {
+        setConfirmarDownload({ mb: falta });
+        return;
+      }
+    }
+    handleStartOrResume();
+  };
+
   /** O tamanho do modelo que a captura baixa (o selo "modelo local · N MB" do protótipo). */
   const mbDoModelo = modelosDaCaptura.reduce((soma, m) => soma + (m.mbEstimado ?? 0), 0);
 
@@ -1959,132 +2020,155 @@ export default function LiveCapture({
                 <MonitorSpeaker aria-hidden /> Áudio do sistema
               </h3>
               <p className="mut aj">Como o som do computador chega até o app.</p>
-              {/* A ROTA é a decisão mais técnica desta tela. Em Kids/Sênior ela abre recolhida: o
-                  padrão já é a melhor rota disponível. Continua a um clique. */}
-              {coreOnly(ageProfile) && !showAdvancedRoutes ? (
-                <button type="button" className="link" onClick={() => setShowAdvancedRoutes(true)}>
-                  Trocar a forma de captar o som
-                </button>
+              {!systemEnabled ? (
+                /* Sem getDisplayMedia não há rota nenhuma para escolher: nem aba/tela, nem loopback
+                   (Stereo Mix/VB-Cable são do Windows), nem o servidor local. Explica em vez de oferecer
+                   três opções que falhariam. */
+                <p className="aviso-info">
+                  <TriangleAlert aria-hidden />
+                  <span>
+                    {t(
+                      'Este navegador não oferece captura do som do sistema (a função getDisplayMedia não existe no Android, no iPhone nem no Meta Quest). A captura usa só o microfone.',
+                    )}
+                  </span>
+                </p>
               ) : (
-                <Segmentos<'server' | 'display' | 'loopback'>
-                  rotulo="Como capturar o áudio do sistema"
-                  atual={systemSource}
-                  aoTrocar={setSystemSource}
-                  opcoes={
-                    [
-                      ...(serverCaptureAvailable ? [['server', 'Computador ★']] : []),
-                      ['display', 'Compartilhar aba ou tela'],
-                      ['loopback', 'Dispositivo de loopback'],
-                    ] as Array<['server' | 'display' | 'loopback', string]>
-                  }
-                />
-              )}
-              {systemSource === 'loopback' ? (
-                <div className="pilha entra" style={{ marginTop: 10 }}>
-                  <select
-                    className="campo"
-                    aria-label="Dispositivo de loopback"
-                    value={loopbackDeviceId}
-                    onChange={(e) => setLoopbackDeviceId(e.target.value)}
-                  >
-                    <option value="">
-                      {loopbackDetected ? 'Selecione o dispositivo de loopback…' : 'Dispositivo padrão do sistema'}
-                    </option>
-                    {loopbackDevices.map((d, i) => (
-                      <option key={d.deviceId} value={d.deviceId}>
-                        {d.label || `Entrada ${i + 1}`}
-                      </option>
-                    ))}
-                  </select>
-                  {!loopbackDetected && (
-                    <p className="aviso-info warn">
-                      <TriangleAlert aria-hidden />
-                      <span>Nenhum dispositivo de loopback detectado: siga um dos dois caminhos abaixo.</span>
+                <>
+                  {/* A ROTA é a decisão mais técnica desta tela. Em Kids/Sênior ela abre recolhida: o
+                  padrão já é a melhor rota disponível. Continua a um clique. */}
+                  {coreOnly(ageProfile) && !showAdvancedRoutes ? (
+                    <button type="button" className="link" onClick={() => setShowAdvancedRoutes(true)}>
+                      Trocar a forma de captar o som
+                    </button>
+                  ) : (
+                    <Segmentos<'server' | 'display' | 'loopback'>
+                      rotulo="Como capturar o áudio do sistema"
+                      atual={systemSource}
+                      aoTrocar={setSystemSource}
+                      opcoes={
+                        [
+                          ...(serverCaptureAvailable ? [['server', 'Computador ★']] : []),
+                          ['display', 'Compartilhar aba ou tela'],
+                          ['loopback', 'Dispositivo de loopback'],
+                        ] as Array<['server' | 'display' | 'loopback', string]>
+                      }
+                    />
+                  )}
+                  {systemSource === 'loopback' ? (
+                    <div className="pilha entra" style={{ marginTop: 10 }}>
+                      <select
+                        className="campo"
+                        aria-label="Dispositivo de loopback"
+                        value={loopbackDeviceId}
+                        onChange={(e) => setLoopbackDeviceId(e.target.value)}
+                      >
+                        <option value="">
+                          {loopbackDetected ? 'Selecione o dispositivo de loopback…' : 'Dispositivo padrão do sistema'}
+                        </option>
+                        {loopbackDevices.map((d, i) => (
+                          <option key={d.deviceId} value={d.deviceId}>
+                            {d.label || `Entrada ${i + 1}`}
+                          </option>
+                        ))}
+                      </select>
+                      {!loopbackDetected && (
+                        <p className="aviso-info warn">
+                          <TriangleAlert aria-hidden />
+                          <span>Nenhum dispositivo de loopback detectado: siga um dos dois caminhos abaixo.</span>
+                        </p>
+                      )}
+                      {/* O passo a passo abre sozinho quando não há dispositivo ou o teste falha. */}
+                      <details
+                        className="det"
+                        open={showSetupGuide}
+                        onToggle={(e) => setShowSetupGuide((e.currentTarget as HTMLDetailsElement).open)}
+                      >
+                        <summary>Como configurar (2 caminhos)</summary>
+                        <ol className="mut" style={{ fontSize: 13, marginTop: 8, paddingLeft: 18 }}>
+                          <li>
+                            <b>Mixagem estéreo:</b> Painel de som → Gravação → clique direito → Mostrar dispositivos
+                            desativados → ative &quot;Mixagem estéreo&quot; e escolha-a acima.
+                          </li>
+                          <li>
+                            <b>VB-Cable:</b> instale o{' '}
+                            <a href="https://vb-audio.com/Cable/" target="_blank" rel="noreferrer" className="link">
+                              VB-Cable
+                            </a>
+                            , defina &quot;CABLE Input&quot; como saída do Windows (ative &quot;Escutar este
+                            dispositivo&quot; para continuar ouvindo) e escolha &quot;CABLE Output&quot; aqui.
+                          </li>
+                        </ol>
+                        {!loopbackDetected && (
+                          <p className="mut aj">
+                            Se já ativou, conceda a permissão do microfone e recarregue a página.
+                          </p>
+                        )}
+                      </details>
+                    </div>
+                  ) : systemSource === 'display' ? (
+                    <p className="aviso-info entra" style={{ marginTop: 10 }}>
+                      <Info aria-hidden />
+                      <span>
+                        Ao iniciar, o navegador pergunta qual aba ou tela compartilhar.{' '}
+                        <b style={{ color: 'var(--ink)' }}>Marque &quot;Compartilhar áudio&quot;</b>, ou a legenda fica
+                        muda. Tela inteira no Windows às vezes falha; aí use o dispositivo de loopback. Janela não tem
+                        áudio no Chrome.
+                      </span>
+                    </p>
+                  ) : (
+                    <p className="mut aj" style={{ marginTop: 8 }}>
+                      <CircleCheck
+                        aria-hidden
+                        style={{
+                          width: 14,
+                          height: 14,
+                          display: 'inline',
+                          verticalAlign: -2,
+                          color: 'var(--good-ink)',
+                        }}
+                      />{' '}
+                      O servidor local pega o som de tudo o que toca no computador, sem pedir permissão a cada vez. Ele
+                      escuta a saída padrão do Windows.
                     </p>
                   )}
-                  {/* O passo a passo abre sozinho quando não há dispositivo ou o teste falha. */}
-                  <details
-                    className="det"
-                    open={showSetupGuide}
-                    onToggle={(e) => setShowSetupGuide((e.currentTarget as HTMLDetailsElement).open)}
-                  >
-                    <summary>Como configurar (2 caminhos)</summary>
-                    <ol className="mut" style={{ fontSize: 13, marginTop: 8, paddingLeft: 18 }}>
-                      <li>
-                        <b>Mixagem estéreo:</b> Painel de som → Gravação → clique direito → Mostrar dispositivos
-                        desativados → ative &quot;Mixagem estéreo&quot; e escolha-a acima.
-                      </li>
-                      <li>
-                        <b>VB-Cable:</b> instale o{' '}
-                        <a href="https://vb-audio.com/Cable/" target="_blank" rel="noreferrer" className="link">
-                          VB-Cable
-                        </a>
-                        , defina &quot;CABLE Input&quot; como saída do Windows (ative &quot;Escutar este
-                        dispositivo&quot; para continuar ouvindo) e escolha &quot;CABLE Output&quot; aqui.
-                      </li>
-                    </ol>
-                    {!loopbackDetected && (
-                      <p className="mut aj">Se já ativou, conceda a permissão do microfone e recarregue a página.</p>
+                  {/* TESTE de diagnóstico: prova, no PC real, se o áudio chega mesmo. */}
+                  <div className="linha" style={{ gap: 10, marginTop: 10, flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      className="btn btn-outline peq"
+                      onClick={handleProbeSystem}
+                      disabled={probing}
+                    >
+                      {probing ? <Loader2 aria-hidden className="animate-spin" /> : <Activity aria-hidden />}
+                      {probing ? 'Ouvindo… deixe algo tocando' : 'Testar a captura'}
+                    </button>
+                    {probe?.verdict === 'ok' && (
+                      <span className="badge ok" role="status">
+                        <Check aria-hidden /> OK · pico {probe.peakLevel} · {probe.audioTrackCount}{' '}
+                        {probe.audioTrackCount === 1 ? 'faixa' : 'faixas'}
+                      </span>
                     )}
-                  </details>
-                </div>
-              ) : systemSource === 'display' ? (
-                <p className="aviso-info entra" style={{ marginTop: 10 }}>
-                  <Info aria-hidden />
-                  <span>
-                    Ao iniciar, o navegador pergunta qual aba ou tela compartilhar.{' '}
-                    <b style={{ color: 'var(--ink)' }}>Marque &quot;Compartilhar áudio&quot;</b>, ou a legenda fica
-                    muda. Tela inteira no Windows às vezes falha; aí use o dispositivo de loopback. Janela não tem áudio
-                    no Chrome.
-                  </span>
-                </p>
-              ) : (
-                <p className="mut aj" style={{ marginTop: 8 }}>
-                  <CircleCheck
-                    aria-hidden
-                    style={{
-                      width: 14,
-                      height: 14,
-                      display: 'inline',
-                      verticalAlign: -2,
-                      color: 'var(--good-ink)',
-                    }}
-                  />{' '}
-                  O servidor local pega o som de tudo o que toca no computador, sem pedir permissão a cada vez. Ele
-                  escuta a saída padrão do Windows.
-                </p>
-              )}
-              {/* TESTE de diagnóstico: prova, no PC real, se o áudio chega mesmo. */}
-              <div className="linha" style={{ gap: 10, marginTop: 10, flexWrap: 'wrap' }}>
-                <button type="button" className="btn btn-outline peq" onClick={handleProbeSystem} disabled={probing}>
-                  {probing ? <Loader2 aria-hidden className="animate-spin" /> : <Activity aria-hidden />}
-                  {probing ? 'Ouvindo… deixe algo tocando' : 'Testar a captura'}
-                </button>
-                {probe?.verdict === 'ok' && (
-                  <span className="badge ok" role="status">
-                    <Check aria-hidden /> OK · pico {probe.peakLevel} · {probe.audioTrackCount}{' '}
-                    {probe.audioTrackCount === 1 ? 'faixa' : 'faixas'}
-                  </span>
-                )}
-                {probe?.verdict === 'silent' && (
-                  <span className="badge warn" role="status">
-                    <VolumeX aria-hidden /> Silenciosa: dê play em algo e teste de novo
-                  </span>
-                )}
-                {probe?.verdict === 'no-audio-track' && (
-                  <span className="badge warn" role="status">
-                    <VolumeX aria-hidden /> Nenhuma faixa de áudio chegou
-                  </span>
-                )}
-              </div>
-              {probe && probe.verdict !== 'ok' && (
-                <p className="mut aj" style={{ marginTop: 6 }}>
-                  {systemSource === 'loopback'
-                    ? 'Confirme que o dispositivo escolhido é a Mixagem estéreo ou o CABLE Output, e que a saída do Windows aponta para ele.'
-                    : probe.verdict === 'silent'
-                      ? 'A faixa veio, mas sem som. Deixe um vídeo ou música tocando durante o teste.'
-                      : 'Escolha uma aba e marque o áudio da aba, ou a tela inteira com "Compartilhar o áudio do sistema".'}
-                </p>
+                    {probe?.verdict === 'silent' && (
+                      <span className="badge warn" role="status">
+                        <VolumeX aria-hidden /> Silenciosa: dê play em algo e teste de novo
+                      </span>
+                    )}
+                    {probe?.verdict === 'no-audio-track' && (
+                      <span className="badge warn" role="status">
+                        <VolumeX aria-hidden /> Nenhuma faixa de áudio chegou
+                      </span>
+                    )}
+                  </div>
+                  {probe && probe.verdict !== 'ok' && (
+                    <p className="mut aj" style={{ marginTop: 6 }}>
+                      {systemSource === 'loopback'
+                        ? 'Confirme que o dispositivo escolhido é a Mixagem estéreo ou o CABLE Output, e que a saída do Windows aponta para ele.'
+                        : probe.verdict === 'silent'
+                          ? 'A faixa veio, mas sem som. Deixe um vídeo ou música tocando durante o teste.'
+                          : 'Escolha uma aba e marque o áudio da aba, ou a tela inteira com "Compartilhar o áudio do sistema".'}
+                    </p>
+                  )}
+                </>
               )}
             </section>
 
@@ -2388,7 +2472,7 @@ export default function LiveCapture({
                         <button
                           type="button"
                           className="btn btn-solid"
-                          onClick={handleStartOrResume}
+                          onClick={() => void iniciarComAvisoDeDownload()}
                           disabled={!micEnabled && !systemEnabled}
                         >
                           <Mic aria-hidden />
@@ -2445,10 +2529,27 @@ export default function LiveCapture({
                       Antes só aparecia antes de iniciar — justamente quando o estado era mais fácil
                       de adivinhar. Agora que a fonte muda no meio da sessão, é durante a gravação
                       que a pessoa precisa ler, em palavras, se a própria voz está entrando. */}
-                    <p className="mut" style={{ fontSize: 12.5, marginTop: 6 }}>
-                      O som do computador entra sozinho. Dê play no vídeo, aula ou chamada e clique em Iniciar. A
-                      legenda bilíngue aparece aqui e nas Legendas flutuantes.
-                    </p>
+                    {systemEnabled ? (
+                      <p className="mut orientacao-da-captura" style={{ fontSize: 12.5, marginTop: 6 }}>
+                        O som do computador entra sozinho. Dê play no vídeo, aula ou chamada e clique em Iniciar. A
+                        legenda bilíngue aparece aqui e nas Legendas flutuantes.
+                      </p>
+                    ) : (
+                      /* SEM getDisplayMedia (Quest, Android, iOS): nenhum botão de "áudio do sistema"
+                         que não funcionaria — o microfone é a fonte, e a tela diz como usá-lo. */
+                      <p className="aviso-info orientacao-da-captura" data-testid="aviso-sem-audio-do-sistema">
+                        <Mic aria-hidden />
+                        <span>
+                          {perfilDoAparelho.tipo === 'quest'
+                            ? t(
+                                'O navegador do Meta Quest não capta o som do sistema: a legenda vem do microfone do headset. Deixe o vídeo tocar no alto-falante do próprio headset (o microfone capta) ou use a captura para conversar.',
+                              )
+                            : t(
+                                'O navegador deste aparelho não capta o som do sistema: a legenda vem do microfone. Deixe o vídeo tocar no alto-falante, perto do microfone, ou use a captura para conversar.',
+                              )}
+                        </span>
+                      </p>
+                    )}
 
                     {/* Linha 5 — preparo dos modelos locais (progresso transitório; não é configuração).
                       Gravando, o progresso aparece na conversa (abaixo), onde a pessoa olha: mostrar
@@ -2868,7 +2969,7 @@ export default function LiveCapture({
                 <Square aria-hidden /> Parar
               </button>
             ) : (
-              <button type="button" className="btn btn-solid" onClick={handleStartOrResume}>
+              <button type="button" className="btn btn-solid" onClick={() => void iniciarComAvisoDeDownload()}>
                 <Mic aria-hidden /> {resumeId ? 'Continuar gravando' : 'Iniciar transcrição'}
               </button>
             )}
@@ -2876,6 +2977,54 @@ export default function LiveCapture({
             {botaoDasLegendas()}
           </div>
         </div>
+      )}
+
+      {/* --- AVISO DE DOWNLOAD (perfil do aparelho): o tamanho real, antes do primeiro byte --- */}
+      {confirmarDownload && (
+        <Dialogo
+          icone={Download}
+          titulo={t('Baixar os modelos desta captura?')}
+          sub={t('Uma vez só: depois eles ficam guardados neste aparelho.')}
+          aoFechar={() => setConfirmarDownload(null)}
+        >
+          <div className="dlg-corpo pilha" data-testid="aviso-de-download">
+            <p>
+              {t('A transcrição e a tradução no aparelho precisam de cerca de {mb} MB.', { mb: confirmarDownload.mb })}
+            </p>
+            {perfilDoAparelho.sinais.economiaDeDados && (
+              <p className="aviso-info warn">
+                <TriangleAlert aria-hidden />
+                <span>{t('A economia de dados está ligada neste navegador.')}</span>
+              </p>
+            )}
+            {perfilDoAparelho.sinais.tipoDeRede && perfilDoAparelho.sinais.tipoDeRede !== '4g' && (
+              <p className="aviso-info warn">
+                <TriangleAlert aria-hidden />
+                <span>
+                  {t('A conexão parece lenta ({rede}): o download pode demorar.', {
+                    rede: perfilDoAparelho.sinais.tipoDeRede,
+                  })}
+                </span>
+              </p>
+            )}
+          </div>
+          <div className="dlg-pe">
+            <button type="button" className="btn btn-outline" onClick={(e) => fecharDialogoDe(e.currentTarget)}>
+              {t('Agora não')}
+            </button>
+            <button
+              type="button"
+              className="btn btn-solid"
+              onClick={(e) => {
+                downloadConfirmadoRef.current = true;
+                fecharDialogoDe(e.currentTarget);
+                handleStartOrResume();
+              }}
+            >
+              <Download aria-hidden /> {t('Baixar e iniciar')}
+            </button>
+          </div>
+        </Dialogo>
       )}
 
       {/* --- SAIR NO MEIO DA CAPTURA: confirma antes de perder o que já foi transcrito --- */}

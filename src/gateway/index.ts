@@ -240,6 +240,18 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
         return linhas;
       },
 
+      /** Libera os tradutores locais (encerra os workers do opus-mt). Ver `stt.liberarModelo`. */
+      liberarModelos: (): void => {
+        for (const b of core.getProfile().bindings.mt ?? []) {
+          try {
+            const a = resolveMt(b) as { liberar?: () => void };
+            if (typeof a.liberar === 'function') a.liberar();
+          } catch {
+            /* próximo binding */
+          }
+        }
+      },
+
       /** Aquece os adapters de MT locais (ex.: opus-mt) para as direções esperadas, em background. */
       warmup: (pairs: Array<[string, string]>): void => {
         for (const b of core.getProfile().bindings.mt ?? []) {
@@ -382,16 +394,33 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
        * do local — a qualidade multilíngue do large-v3-turbo é muito superior ao tiny.
        * O local continua na cadeia como reserva. Perfil Privado/Local nunca liga isto.
        */
-      setRoute(route: { preferCloud: boolean; localModel?: string }): void {
+      setRoute(route: { preferCloud: boolean; localModel?: string; dtype?: string; device?: 'wasm' }): void {
         sttPreferCloudRef.value = route.preferCloud;
         if (route.localModel) {
+          const opcoes = route.dtype || route.device ? { dtype: route.dtype, device: route.device } : undefined;
           for (const b of core.getProfile().bindings.stt ?? []) {
             try {
               const a = resolveStt(b);
-              if (a.supportsBlob && typeof (a as any).setModel === 'function') (a as any).setModel(route.localModel);
+              if (a.supportsBlob && typeof (a as any).setModel === 'function')
+                (a as any).setModel(route.localModel, opcoes);
             } catch {
               /* próximo binding */
             }
+          }
+        }
+      },
+
+      /**
+       * Libera o modelo local de STT (encerra o worker; a próxima transcrição recarrega do cache).
+       * A captura chama ao sair, em aparelho com pouca memória (`perfilDoDispositivo().poucaMemoria`).
+       */
+      liberarModelo(): void {
+        for (const b of core.getProfile().bindings.stt ?? []) {
+          try {
+            const a = resolveStt(b) as { liberar?: () => void };
+            if (typeof a.liberar === 'function') a.liberar();
+          } catch {
+            /* próximo binding */
           }
         }
       },

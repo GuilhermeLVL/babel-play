@@ -53,6 +53,21 @@ try {
 }
 
 /**
+ * THREADS PEDIDAS PELO PERFIL DO DISPOSITIVO (`lib/dispositivo/perfil.ts`): 1 sem isolamento, 2 no
+ * celular fraco, até 4 no resto. Só tem efeito antes da PRIMEIRA sessão do ORT neste worker — e é o
+ * caso, porque o `load` vem antes de qualquer pipeline, e trocar de modelo recria o worker.
+ */
+function definirThreads(threads: unknown): void {
+  if (typeof threads !== 'number' || !Number.isFinite(threads) || threads < 1) return;
+  try {
+    const wasm = env.backends.onnx.wasm;
+    if (wasm) wasm.numThreads = Math.min(4, Math.floor(threads));
+  } catch {
+    // sem o campo: fica o padrão do topo do arquivo
+  }
+}
+
+/**
  * Normaliza o device pedido pelo adapter.
  * `auto` (PADRÃO) = WebGPU se houver um ADAPTADOR de verdade (decode MEDIDO ~0,48s vs ~5,2s no WASM
  * single-thread nesta classe de hardware), senão WASM (universal — Firefox/Safari/celular). Antes
@@ -318,6 +333,7 @@ self.onmessage = (e: MessageEvent): Promise<void> => {
     return Promise.resolve();
   }
   if (type === 'load') {
+    definirThreads(dados.threads);
     return fila.enfileirar({
       id: `carga-${++cargas}`,
       prioridade: 'final',

@@ -19,6 +19,7 @@
  * e o selo da UI sempre diz qual motor está de fato em uso.
  */
 
+import type { TipoDeDispositivo } from '../lib/dispositivo/perfil';
 import { edicaoEstatica } from '../lib/edicaoEstatica';
 
 export type SttQuality = 'auto' | 'fast' | 'accurate' | 'cloud';
@@ -45,7 +46,24 @@ export interface SttRouteInput {
    * quem transcreve o seu português, e erra feio. Vazio/undefined = mic desligado.
    */
   micLang?: string;
+  /**
+   * O perfil do aparelho (`lib/dispositivo/perfil.ts`). Ausente = comportamento de desktop de antes
+   * (quem ainda não mede o aparelho continua igual).
+   */
+  dispositivo?: DispositivoDaRota;
 }
+
+/** O pedaço do perfil do dispositivo que a rota usa. */
+export interface DispositivoDaRota {
+  tipo: TipoDeDispositivo;
+  /** O Whisper small pode entrar (só desktop com GPU). */
+  permiteSmall: boolean;
+  /** `navigator.connection.saveData`: o menor modelo que serve. */
+  economiaDeDados: boolean;
+}
+
+/** Preset de quantização pedido ao worker (ver `DTYPE_PRESETS` em `whisperWorker.ts`). */
+export type DtypeDaRota = 'hybrid' | 'q8';
 
 export interface SttRoute {
   /** Modelo local a carregar (sempre definido — é a reserva mesmo no modo nuvem). */
@@ -54,6 +72,10 @@ export interface SttRoute {
   preferCloud: boolean;
   /** Rótulo honesto para o selo da UI. */
   label: string;
+  /** Quantização: `hybrid` (encoder fp32 + decoder q4, o padrão) ou `q8` (móvel/Quest, economia de dados). Ausente = `hybrid`. */
+  dtype?: DtypeDaRota;
+  /** Backend forçado. `wasm` com q8: os pesos int8 não têm kernel nativo no WebGPU do ORT-web. */
+  device?: 'wasm';
 }
 
 export const WHISPER_MODELS = {
@@ -105,6 +127,40 @@ export const MODEL_DOWNLOAD_MB: Record<string, number> = {
   [MOONSHINE_MODELS.tiny]: 32, // medido (bytes do Hub, q8)
 };
 
+/**
+ * Tamanho em q8 — `encoder_model_quantized.onnx` + `decoder_model_merged_quantized.onnx` + tokenizer e
+ * configs (~2,8 MB), somados da API de árvore do Hub em 2026-09-26:
+ *   tiny  10,12 + 30,72 + 2,77 = 43,6 MB
+ *   base  23,20 + 53,69 + 2,77 = 79,7 MB
+ *   small 92,3 + 156,8 + 2,78 = 251,9 MB
+ * Qualidade na bancada FLEURS pt (100 falas): base q8 18,9% contra 18,2% do híbrido (empate); tiny q8
+ * 41,6% contra 29,2% (piora significativa) — por isso nenhuma rota escolhe o tiny em q8.
+ */
+export const MODEL_DOWNLOAD_MB_Q8: Record<string, number> = {
+  [WHISPER_MODELS.tiny]: 44,
+  [WHISPER_MODELS.base]: 80,
+  [WHISPER_MODELS.small]: 252,
+  [MOONSHINE_MODELS.base]: 67,
+  [MOONSHINE_MODELS.tiny]: 32,
+};
+
+/**
+ * Tradutor opus-mt em q8 (o primeiro dtype que o `mtWorker` tenta), por par: 52,90 + 60,21 MB no
+ * `opus-mt-ROMANCE-en`/`en-es`/`es-en` (bytes do Hub, 2026-09-26); en-fr 107,5 e de-en 106,0. Usamos o
+ * maior, para o aviso nunca prometer menos do que baixa.
+ */
+export const MT_DOWNLOAD_MB = 113;
+
+/**
+ * Quantos MB este modelo baixa NESTE dtype. `null` quando não sabemos — a tela não inventa número.
+ * Os tradutores opus-mt (`Xenova/opus-mt-*`) valem `MT_DOWNLOAD_MB`.
+ */
+export function tamanhoDoDownloadMb(modelId: string, dtype: DtypeDaRota = 'hybrid'): number | null {
+  if (/opus-mt/i.test(modelId)) return MT_DOWNLOAD_MB;
+  const tabela = dtype === 'q8' ? MODEL_DOWNLOAD_MB_Q8 : MODEL_DOWNLOAD_MB;
+  return tabela[modelId] ?? null;
+}
+
 /** O valor de `MODEL_DOWNLOAD_MB` para este modelo foi medido ou estimado? */
 export const MODEL_DOWNLOAD_MEDIDO: Record<string, boolean> = {
   [WHISPER_MODELS.tiny]: true,
@@ -136,61 +192,93 @@ export function modeloLocalDaImportacao(idioma?: string): string | null {
 }
 
 export function routeStt(input: SttRouteInput): SttRoute {
-  const { autoDetect, quality, hasWebGpu, cloudAvailable, profileId } = input;
+  const { autoDetect, quality, hasWebGpu, cloudAvailable, profileId, dispositivo } = input;
   const lang = (input.contentLang || '').toLowerCase().split('-')[0];
   const micLang = (input.micLang || '').toLowerCase().split('-')[0];
   // Edição estática (Pages, sem servidor): a nuvem não existe, diga o que disser a sondagem.
   const cloudAllowed = cloudAvailable && profileId !== 'local-private' && !edicaoEstatica();
   // "Inglês" só quando TODAS as fontes ativas são inglês: o modelo é um só para sistema e mic.
   const isEnglish = !autoDetect && lang === 'en' && (!micLang || micLang === 'en');
+
+  /* O APARELHO. Fora do desktop (Quest e celular) o Whisper vai em q8 no WASM: na bancada FLEURS pt
+     o base q8 empata com o híbrido (18,9% contra 18,2%) e baixa 80 MB em vez de 209 — e a memória da
+     aba ali é o limite (iOS ~0,5–1,5 GB; Quest 4,4/5,75 GiB para o navegador inteiro). O small nunca
+     entra fora do desktop com GPU. Economia de dados: o menor modelo que serve ao idioma. */
+  const movel = !!dispositivo && !dispositivo.tipo.startsWith('desktop');
+  const economia = !!dispositivo?.economiaDeDados;
+  const podeSmall = dispositivo ? dispositivo.permiteSmall && hasWebGpu : hasWebGpu;
+  const q8 = movel || economia;
+  const whisperLocal = (modelo: string): Pick<SttRoute, 'localModel' | 'dtype' | 'device'> =>
+    q8 ? { localModel: modelo, dtype: 'q8', device: 'wasm' } : { localModel: modelo, dtype: 'hybrid' };
   /** Melhor modelo LOCAL viável para conteúdo não-EN neste dispositivo. */
-  const bestLocal = hasWebGpu ? WHISPER_MODELS.small : WHISPER_MODELS.base;
+  const bestLocal = podeSmall ? WHISPER_MODELS.small : WHISPER_MODELS.base;
+  const nomeCurto = (m: string) => m.split('-').pop();
+  const sufixo = q8 ? ' q8' : '';
+  /** Moonshine do "auto" em inglês: o tiny no celular fraco ou com economia de dados. */
+  const moonshineAuto =
+    dispositivo?.tipo === 'celular-fraco' || economia ? MOONSHINE_MODELS.tiny : MOONSHINE_MODELS.base;
+  const moonshine = (modelo: string, label: string): SttRoute => ({
+    localModel: modelo,
+    preferCloud: false,
+    label,
+    dtype: 'q8',
+  });
+
   switch (quality) {
     case 'fast':
       // "Rápido" = o MENOR modelo que serve ao idioma. Em inglês, o moonshine-tiny (~32 MB, 15,5% de
-      // WER) é menor E melhor que o whisper-tiny; fora do inglês, só o Whisper serve.
-      if (isEnglish) {
-        return {
-          localModel: MOONSHINE_MODELS.tiny,
-          preferCloud: false,
-          label: 'local · modelo rápido (moonshine tiny, inglês)',
-        };
-      }
-      return { localModel: WHISPER_MODELS.tiny, preferCloud: false, label: 'local · modelo rápido (tiny)' };
+      // WER) é menor E melhor que o whisper-tiny; fora do inglês, só o Whisper serve — e sempre no
+      // híbrido: o tiny em q8 errou 41,6% contra 29,2% na bancada pt.
+      if (isEnglish) return moonshine(MOONSHINE_MODELS.tiny, 'local · modelo rápido (moonshine tiny, inglês)');
+      return {
+        localModel: WHISPER_MODELS.tiny,
+        dtype: 'hybrid',
+        preferCloud: false,
+        label: 'local · modelo rápido (tiny)',
+      };
     case 'accurate':
       return {
-        localModel: bestLocal,
+        ...whisperLocal(bestLocal),
         preferCloud: false,
-        label: `local · modelo preciso (${bestLocal.split('-').pop()})`,
+        label: `local · modelo preciso (${nomeCurto(bestLocal)}${sufixo})`,
       };
     case 'cloud':
       if (cloudAllowed) {
         // Reserva local moderada (base): não força um download de 250MB em quem escolheu nuvem.
+        if (isEnglish)
+          return {
+            localModel: MOONSHINE_MODELS.base,
+            dtype: 'q8',
+            preferCloud: true,
+            label: 'nuvem (large-v3-turbo) · reserva local',
+          };
         return {
-          localModel: isEnglish ? MOONSHINE_MODELS.base : WHISPER_MODELS.base,
+          ...whisperLocal(WHISPER_MODELS.base),
           preferCloud: true,
           label: 'nuvem (large-v3-turbo) · reserva local',
         };
       }
       // Nuvem pedida mas indisponível/proibida → degrada honesto para o melhor local.
       return {
-        localModel: bestLocal,
+        ...whisperLocal(bestLocal),
         preferCloud: false,
-        label: `local (nuvem indisponível) · ${bestLocal.split('-').pop()}`,
+        label: `local (nuvem indisponível) · ${nomeCurto(bestLocal)}${sufixo}`,
       };
     case 'auto':
     default: {
-      if (isEnglish) {
-        return { localModel: MOONSHINE_MODELS.base, preferCloud: false, label: 'local · inglês (moonshine)' };
-      }
+      if (isEnglish) return moonshine(moonshineAuto, 'local · inglês (moonshine)');
       if (cloudAllowed) {
         // Reserva base: se a nuvem cair no meio da sessão, a qualidade local não desaba p/ tiny.
-        return { localModel: WHISPER_MODELS.base, preferCloud: true, label: 'nuvem (large-v3-turbo) · reserva local' };
+        return {
+          ...whisperLocal(WHISPER_MODELS.base),
+          preferCloud: true,
+          label: 'nuvem (large-v3-turbo) · reserva local',
+        };
       }
       return {
-        localModel: bestLocal,
+        ...whisperLocal(bestLocal),
         preferCloud: false,
-        label: `local · modelo preciso (${bestLocal.split('-').pop()})`,
+        label: `local · modelo preciso (${nomeCurto(bestLocal)}${sufixo})`,
       };
     }
   }

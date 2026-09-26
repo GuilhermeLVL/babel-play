@@ -31,6 +31,7 @@
  */
 import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { json, naoDisponivelSemConta, PASSAM_DIRETO, semServidorNaEdicaoEstatica } from './nucleo';
+import { garantirReparoDeIdiomas } from './reparoDeIdioma';
 import * as conta from './rotas/conta';
 import * as economia from './rotas/economia';
 import * as exercicios from './rotas/exercicios';
@@ -99,6 +100,9 @@ export async function servidorEfemero(input: string, init: RequestInit = {}): Pr
     if (edicaoEstatica()) return semServidorNaEdicaoEstatica(metodo);
     return fetch(input, init);
   }
+  /* Dados antigos com o idioma errado (ver `reparoDeIdioma.ts`) são consertados antes da PRIMEIRA
+     leitura de sessões ou cartões desta página — uma vez só; depois é uma promessa já resolvida. */
+  if (metodo === 'GET' && /^\/api\/(sessions|vocab)/.test(url.pathname)) await garantirReparoDeIdiomas();
   for (const rota of ROTAS) {
     if (rota.metodo !== metodo) continue;
     const m = url.pathname.match(rota.padrao);

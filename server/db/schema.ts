@@ -173,6 +173,10 @@ export const vocabCards = sqliteTable(
     index('idx_vocab_user_cefr').on(t.userId, t.cefrLevel),
     index('idx_vocab_user_due').on(t.userId, t.dueAt),
     index('idx_vocab_session').on(t.userId, t.sessionId),
+    // Lado filho da FK para `sessions` (migração 0034): `idx_vocab_session` começa por `user_id` (skip-scan).
+    index('idx_vocab_session_id')
+      .on(t.sessionId)
+      .where(sql`${t.sessionId} is not null`),
     index('idx_vocab_user_dificuldade').on(t.userId, t.difficultyScore),
     /**
      * O eixo idioma do filtro facetado (tarefa 1). Antes o predicado era uma EXPRESSÃO
@@ -217,6 +221,15 @@ export const vocabOccurrences = sqliteTable(
   (t) => [
     index('idx_occ_user_card').on(t.userId, t.cardId),
     index('idx_occ_user_time').on(t.userId, t.occurredAt),
+    /* LADO FILHO DA FK para `utterances` (migração 0034, auditoria de performance 26/09): sem ele,
+       cada fala APAGADA varria a tabela inteira de ocorrências — 15,5 s para as 100 falas de uma
+       sessão no banco semeado. Parcial: só ocorrências de fala têm `utterance_id`. */
+    index('idx_occ_utterance')
+      .on(t.utteranceId)
+      .where(sql`${t.utteranceId} is not null`),
+    /* Lado filho da FK para `vocab_cards` (migração 0034). `idx_occ_user_card` começa por `user_id` e
+       só servia por skip-scan: ~51 ms por cartão apagado no banco semeado. */
+    index('idx_occ_card').on(t.cardId),
     index('idx_occ_origem').on(t.userId, t.originKind, t.originRef),
     /* A SONDA DO FILTRO FACETADO (migração 0020): os EXISTS de `selecionarParaJogo` correlacionam
      por (user_id, card_id) e ainda filtram origin_kind/origin_ref. Sem as quatro colunas em UM
@@ -328,6 +341,14 @@ export const exerciseResults = sqliteTable(
     index('idx_exercise_results_card').on(t.userId, t.cardId, t.createdAt),
     // Histórico do usuário por data, sem `card_id` (migração 0030, auditoria de prontidão).
     index('idx_exercise_results_user_created').on(t.userId, t.createdAt),
+    // Lado filho da FK para `sessions` (migração 0034): apagar uma sessão varria a tabela inteira.
+    index('idx_exercise_results_session')
+      .on(t.sessionId)
+      .where(sql`${t.sessionId} is not null`),
+    // Lado filho da FK para `vocab_cards` (migração 0034); `idx_exercise_results_card` começa por `user_id`.
+    index('idx_exercise_results_card_id')
+      .on(t.cardId)
+      .where(sql`${t.cardId} is not null`),
   ],
 )
 
@@ -499,15 +520,24 @@ export const presencas = sqliteTable(
  * O invariante que impede a próxima: `tests/integration/schema-usado.test.ts`.
  */
 
-export const providerCredentials = sqliteTable('provider_credentials', {
-  id: text('id').primaryKey(),
-  ...meta,
-  label: text('label'),
-  kind: text('kind'), // 'anthropic' | 'openai' | 'gemini' | 'groq' | 'openrouter' | 'hf' | 'custom'
-  baseUrl: text('base_url'),
-  defaultModel: text('default_model'),
-  secretRef: text('secret_ref').references(() => secrets.ref), // segredo write-only no server
-})
+export const providerCredentials = sqliteTable(
+  'provider_credentials',
+  {
+    id: text('id').primaryKey(),
+    ...meta,
+    label: text('label'),
+    kind: text('kind'), // 'anthropic' | 'openai' | 'gemini' | 'groq' | 'openrouter' | 'hf' | 'custom'
+    baseUrl: text('base_url'),
+    defaultModel: text('default_model'),
+    secretRef: text('secret_ref').references(() => secrets.ref), // segredo write-only no server
+  },
+  // Lado filho da FK para `secrets` (migração 0034).
+  (t) => [
+    index('idx_provider_credentials_secret')
+      .on(t.secretRef)
+      .where(sql`${t.secretRef} is not null`),
+  ],
+)
 
 /**
  * F3-04: ganhou `user_id` e `deleted_at`. Sem eles a tabela ficava FORA de toda operação por
@@ -825,6 +855,10 @@ export const ankiNotes = sqliteTable(
     index('idx_anki_notes_user_deck').on(t.userId, t.deckId),
     uniqueIndex('uq_anki_notes_deck_guid').on(t.deckId, t.guid),
     index('idx_anki_notes_deck_estado').on(t.deckId, t.estado),
+    // Lado filho da FK para `vocab_cards` (migração 0034): apagar um cartão varria o acervo Anki inteiro.
+    index('idx_anki_notes_projected_card')
+      .on(t.projectedCardId)
+      .where(sql`${t.projectedCardId} is not null`),
   ],
 )
 
@@ -854,7 +888,11 @@ export const ankiImports = sqliteTable(
     porMotivo: text('por_motivo'),
     erro: text('erro'),
   },
-  (t) => [index('idx_anki_imports_user_deck').on(t.userId, t.deckId)],
+  (t) => [
+    index('idx_anki_imports_user_deck').on(t.userId, t.deckId),
+    // Lado filho da FK para `anki_decks` (migração 0034).
+    index('idx_anki_imports_deck').on(t.deckId),
+  ],
 )
 
 /*

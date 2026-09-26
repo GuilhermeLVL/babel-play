@@ -56,6 +56,21 @@ const PUBLICAS_POR_DESENHO: Record<string, string> = {
  */
 const ESCRITA_SEM_LIMITADOR: Record<string, string> = {}
 
+/**
+ * ROTA PÚBLICA SEM LIMITADOR — as exceções, com razão (auditoria de segurança 2026-09-26).
+ *
+ * Toda rota alcançável sem token é alcançável por qualquer um, em laço. A regra é ter balde; as
+ * exceções abaixo são as que um balde por IP pioraria.
+ */
+const PUBLICA_SEM_LIMITADOR: Record<string, string> = {
+  'GET /api/health':
+    'liveness do HEALTHCHECK do Dockerfile e do uptime.yml. Um 429 aqui faria o orquestrador REINICIAR um processo vivo — e, atrás de proxy sem TRUST_PROXY, um estranho esgotaria o balde de todos. O custo é um `SELECT 1 FROM sessions LIMIT 1`.',
+  'GET /api/ready':
+    'readiness do Fly. Mesmo motivo do health (um 429 tiraria a máquina do balanceador); a proteção é o veredicto guardado por 5 s em `server/routes/health.ts`, que limita as sondas (banco, migrações, HEAD no R2) a uma por janela, venha quantas chamadas vierem.',
+  'GET /api/abertura':
+    'devolve dois booleanos lidos do ambiente — nem consulta faz. A tela de login cai em "aberto" se a resposta falhar, então um balde só acrescentaria um jeito de degradar o login.',
+}
+
 describe('matriz rota x guarda (lida do Express em tempo de execucao)', () => {
   let s: AppDeTeste
   let m: Matriz
@@ -111,6 +126,34 @@ describe('matriz rota x guarda (lida do Express em tempo de execucao)', () => {
       descobertas,
       'escrita autenticada sem teto: monte no writeLimiter em `server/http/app.ts` ou registre a exceção com a razão',
     ).toEqual([])
+  })
+
+  /* Auditoria de segurança 2026-09-26: o `writeLimiter` pula GET, e nenhuma LEITURA autenticada
+     tinha teto — inclusive a exportação da conta e a busca de imagens (chamada de saída). */
+  it('toda rota privada de LEITURA passa por um limitador que conta leitura', () => {
+    const descobertas = m.rotas.filter((r) => r.privada && !r.escrita && r.limitadores.length === 0).map((r) => r.chave)
+    expect(descobertas, 'leitura autenticada sem teto: ver `limitadorDeLeitura` em `server/http/app.ts`').toEqual([])
+  })
+
+  it('toda rota PUBLICA passa por um limitador, ou tem a excecao escrita', () => {
+    const descobertas = m.rotas
+      .filter((r) => !r.privada && r.limitadores.length === 0)
+      .map((r) => r.chave)
+      .filter((c) => !(c in PUBLICA_SEM_LIMITADOR))
+    expect(descobertas, 'rota pública sem balde: monte um limitador por IP ou registre a exceção').toEqual([])
+    for (const chave of Object.keys(PUBLICA_SEM_LIMITADOR)) {
+      const r = m.rotas.find((x) => x.chave === chave)
+      expect(r, `exceção para rota que não existe mais: ${chave}`).toBeTruthy()
+      expect(r!.limitadores, `${chave} ganhou limitador: apague a exceção`).toEqual([])
+    }
+  })
+
+  it('a exportacao da conta e a busca de imagens tem balde proprio, alem do geral', () => {
+    for (const chave of ['GET /api/me/exportar', 'GET /api/images/search']) {
+      const r = m.rotas.find((x) => x.chave === chave)
+      expect(r, `${chave} sumiu da montagem`).toBeTruthy()
+      expect(r!.limitadores.length, `${chave} sem o balde próprio`).toBeGreaterThanOrEqual(2)
+    }
   })
 
   it('as excecoes registradas ainda existem e ainda estao sem limitador', () => {

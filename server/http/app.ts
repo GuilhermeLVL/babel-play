@@ -40,6 +40,13 @@ import { capturarAssincrono } from '../lib/erroGlobal'
 import { exigirAdultoDeclarado, exigirContaLiberada } from '../lib/idade'
 import { criarLimitadorDeFalhas } from '../lib/limitadorDeFalhas'
 import {
+  limitadorDeBuscaDeImagem,
+  limitadorDeExportacao,
+  limitadorDeLeitura,
+  limitadorDoPlacar,
+  marcarVerbos,
+} from '../lib/limitesDeLeitura'
+import {
   chaveDoRequest,
   createDbRateLimitStore,
   METRIC_RATELIMIT_AUTH,
@@ -137,6 +144,14 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
    */
   const trustProxy = process.env.TRUST_PROXY?.trim()
   if (trustProxy) app.set('trust proxy', interpretarTrustProxy(trustProxy))
+
+  /* PARSER DE QUERY SIMPLES (auditoria de segurança 2026-09-26). O padrão do Express 4 é o
+     "extended", que passa TODA query string pelo `qs` — antes do auth, em toda requisição — e o
+     `qs` instalado tem dois avisos abertos de negação de serviço (GHSA-x5fp-wj9c-mxmx e
+     GHSA-4mjr-xmp4-gh2g, `npm audit`). Nenhuma rota usa a sintaxe aninhada (`a[b]=`, `a[]=`):
+     o `querystring` do Node atende tudo e ainda devolve valores repetidos como lista.
+     `tests/seguranca/limites-de-leitura.test.ts` trava a escolha. */
+  app.set('query parser', 'simple')
 
   // Rastreabilidade (auditoria Fase 5): ID de correlação por request, ANTES de tudo — assim
   // qualquer log emitido no ciclo do request pode ser amarrado a ele, inclusive falhas de
@@ -267,16 +282,20 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
    * SÓ EM MODO PÚBLICO. No self-host o dono é o único usuário e limitá-lo seria atrapalhar sem
    * proteger ninguém — a mesma lógica que já governa `authRequired()` no resto do arquivo.
    */
-  const writeLimiter = rateLimit({
-    windowMs: 60_000,
-    limit: 120,
-    standardHeaders: true,
-    legacyHeaders: false,
-    keyGenerator: chaveDoRequest,
-    store: createDbRateLimitStore(METRIC_RATELIMIT_ESCRITA),
-    // GET e HEAD não alocam corpo; limitá-los penalizaria a navegação sem fechar o vetor.
-    skip: (req) => req.method === 'GET' || req.method === 'HEAD',
-  })
+  const writeLimiter = marcarVerbos(
+    rateLimit({
+      windowMs: 60_000,
+      limit: 120,
+      standardHeaders: true,
+      legacyHeaders: false,
+      keyGenerator: chaveDoRequest,
+      store: createDbRateLimitStore(METRIC_RATELIMIT_ESCRITA),
+      // GET e HEAD não alocam corpo; limitá-los penalizaria a navegação sem fechar o vetor. A
+      // leitura tem teto próprio, em memória: `limitadorDeLeitura` (auditoria de 2026-09-26).
+      skip: (req) => req.method === 'GET' || req.method === 'HEAD',
+    }),
+    'escrita',
+  )
 
   // Cross-origin isolation (opt-in via CROSS_ORIGIN_ISOLATION=1). Habilita SharedArrayBuffer →
   // WASM multithread do Whisper/opus-mt (decode local mais rápido) e um contexto de cache estável.
@@ -322,6 +341,9 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
      webhook: estando antes do auth, ele ficaria sem teto nenhum, e o POST escreve no banco. A trava
      de um envio por minuto por origem, dentro da rota, é sobre o placar; esta é sobre o servidor. */
   if (authRequired()) app.use('/api/rank', writeLimiter)
+  /* E a LEITURA do placar (auditoria de segurança 2026-09-26): pública, vai ao banco e não tinha
+     balde nenhum — o `writeLimiter` pula GET. Por IP, em memória; ver `server/lib/limitesDeLeitura.ts`. */
+  if (authRequired()) app.use('/api/rank', limitadorDoPlacar())
   /* PERFIL PROTEGIDO (Fase 4 — ECA Digital): no modo público, PUBLICAR no placar exige conta de
      adulto declarado. Ler continua público. Menor — ou quem ainda não disse a idade, inclusive sem
      conta — não aparece num ranking público; o recorde dele continua salvo no aparelho. */
@@ -498,6 +520,15 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
       ],
       writeLimiter,
     )
+
+    /* TETOS DE LEITURA (auditoria de segurança 2026-09-26). O `writeLimiter` pula GET por desenho,
+       e nenhuma leitura autenticada tinha teto — inclusive as que montam a conta inteira em memória
+       ou fazem chamada de saída. Os dois baldes específicos vêm ANTES do geral para o 429 deles
+       sair com o código próprio. O porquê de memória × banco em cada um está em
+       `server/lib/limitesDeLeitura.ts`. */
+    app.use('/api/me/exportar', limitadorDeExportacao())
+    app.use('/api/images/search', limitadorDeBuscaDeImagem())
+    app.use('/api', limitadorDeLeitura())
   }
 
   // AI Gateway proxy (Fase 1) — chokepoint de segredos + guard anti-SSRF.

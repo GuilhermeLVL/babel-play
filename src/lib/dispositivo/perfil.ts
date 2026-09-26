@@ -263,3 +263,18 @@ export function dispositivoDaRota(p: PerfilDoDispositivo): {
 } {
   return { tipo: p.tipo, permiteSmall: p.permiteSmall, economiaDeDados: p.sinais.economiaDeDados };
 }
+
+/**
+ * Marca `<html data-dispositivo="quest|celular-…|desktop-…" data-modo-leve="true|false">` antes do
+ * primeiro render. O CSS de `styles/dispositivo.css` (alvos de 48/56 px, texto maior no Quest) e o
+ * agente de telas leem daqui. Leitura síncrona: o Quest e o celular se reconhecem sem a GPU.
+ */
+export function marcarDispositivoNoDocumento(raiz?: { dataset: DOMStringMap }): PerfilDoDispositivo {
+  const p = perfilDoDispositivo();
+  const el = raiz ?? (typeof document !== 'undefined' ? document.documentElement : undefined);
+  if (el) {
+    el.dataset.dispositivo = p.tipo;
+    el.dataset.modoLeve = String(reduzirEfeitos(p.sinais));
+  }
+  return p;
+}

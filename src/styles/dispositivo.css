@@ -1,0 +1,66 @@
+/*
+ * AJUSTES POR DISPOSITIVO — só tamanho e legibilidade, dentro do sistema visual atual.
+ *
+ * `main.tsx` marca `<html data-dispositivo="…" data-modo-leve="…">` a partir de
+ * `lib/dispositivo/perfil.ts` (detecção por capacidade, não por UA). Desktop não muda nada aqui.
+ *
+ * Números (fontes na pesquisa `docs/pesquisa/2026-09-auditoria-seguranca-performance-dispositivos.md` §3.7):
+ *   · alvo interativo ≥ 48 dp ≈ 48 px CSS (meta-quest/2d-web-v0-template, QUEST_GUIDELINES.md);
+ *   · no Quest Browser, pensando em ponteiro de laser/olhar, ≥ 56 × 56 px (Eyes Best Practices, Meta);
+ *   · texto de corpo 14 dp, o template usa 17 px na raiz.
+ * Escopo: a captura (Espaço de gravação, Foco cheio, diálogos dela) e as Legendas flutuantes.
+ * O resto das telas é do agente de telas.
+ */
+
+:is(html[data-dispositivo='quest'], html[data-dispositivo^='celular']) {
+  --alvo-min: 48px;
+}
+html[data-dispositivo='quest'] {
+  --alvo-min: 56px;
+}
+
+/* Botões da captura e do Foco cheio: `.btn` tem 40 px e `.btn.peq` 34 px no protótipo. */
+:is(html[data-dispositivo='quest'], html[data-dispositivo^='celular'])
+  :is(.estudio, .foco-pe, .foco-topo, .dlg-pe)
+  .btn {
+  min-height: var(--alvo-min);
+}
+:is(html[data-dispositivo='quest'], html[data-dispositivo^='celular']) .estudio-acoes {
+  gap: 12px;
+}
+
+/* Barra das Legendas flutuantes: botões de 32 px viram alvos de verdade. */
+:is(html[data-dispositivo='quest'], html[data-dispositivo^='celular']) .leg-barra button {
+  width: var(--alvo-min);
+  height: var(--alvo-min);
+}
+:is(html[data-dispositivo='quest'], html[data-dispositivo^='celular']) .leg-barra button svg {
+  width: 20px;
+  height: 20px;
+}
+:is(html[data-dispositivo='quest'], html[data-dispositivo^='celular']) .leg-barra select {
+  height: var(--alvo-min);
+  font-size: 15px;
+}
+
+/* Texto de corpo legível no painel 2D do Quest (1280×670 padrão, visto a ~1 m). */
+html[data-dispositivo='quest'] .leg-flut {
+  font-size: calc(18px * var(--leg-tam, 1));
+}
+html[data-dispositivo='quest'] .leg-barra {
+  font-size: 15px;
+}
+html[data-dispositivo='quest'] .orientacao-da-captura {
+  font-size: 16px !important;
+  line-height: 1.45;
+}
+html[data-dispositivo^='celular'] .orientacao-da-captura {
+  font-size: 14px !important;
+}
+
+/* MODO LEVE: o desfoque por trás da legenda custa pintura a cada quadro (o Quest é limitado por
+   fill-rate, diretriz da Meta). Um fundo quase opaco lê igual. */
+html[data-modo-leve='true'] .leg-flut {
+  backdrop-filter: none;
+  background: rgba(16, 14, 12, 0.97);
+}

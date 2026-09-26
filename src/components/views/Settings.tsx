@@ -370,7 +370,12 @@ export default function Settings({
                 <input type="checkbox" checked={soundEnabled} onChange={toggleSound} /> {t('Ligados')}
               </label>
             </Linha>
-            <Linha titulo={t('Modo desempenho')} desc={t('Menos efeitos visuais, para computadores mais simples.')}>
+            <Linha
+              titulo={t('Modo desempenho')}
+              desc={t(
+                'Menos efeitos visuais. Liga sozinho no Meta Quest, em celulares mais simples e com "reduzir movimento" do sistema; a sua escolha aqui vale mais.',
+              )}
+            >
               <label className="check">
                 <input type="checkbox" checked={performanceMode} onChange={togglePerformanceMode} /> {t('Ligado')}
               </label>

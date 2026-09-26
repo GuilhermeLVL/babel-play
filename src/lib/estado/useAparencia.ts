@@ -6,6 +6,7 @@ import { fetchSettings, patchUiSettings } from '../../data/api';
 import { CREDENTIAL_KEY, MODE_KEY, PROFILE_KEY } from '../../gateway/activeProfile';
 import type { FonteType, ThemeType } from '../appearance';
 import { ativarLiberacaoTotal, liberadoTudo } from '../desbloqueios';
+import { definirReduzirEfeitos, reduzirEfeitos } from '../dispositivo/perfil';
 import { estaAnonimo } from '../identidade';
 import { isAgeProfile, readAgeProfile, readStoredEnum, readStoredValue } from '../profile';
 import { instalarRastroDoMouse } from '../rastroDoMouse';
@@ -88,9 +89,12 @@ export function useAparencia(): EstadoDaAparencia {
     if (guardado === 'false') return false;
     return !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   });
-  const [performanceMode, setPerformanceModeState] = useState<boolean>(() => {
-    return readStoredValue('babel.performance_mode') === 'true';
-  });
+  /**
+   * MODO DESEMPENHO = o "modo leve" de `lib/dispositivo/perfil.ts` (`reduzirEfeitos()`), a mesma
+   * chave `babel.performance_mode`. A escolha manual vence; sem escolha, liga sozinho no Meta Quest,
+   * no celular fraco, no desktop de 2 núcleos e com `prefers-reduced-motion`.
+   */
+  const [performanceMode, setPerformanceModeState] = useState<boolean>(() => reduzirEfeitos());
 
   const FONT_SCALE_ORDER: FontScale[] = ['sm', 'md', 'lg', 'xl'];
   const [fontScale, setFontScaleState] = useState<FontScale>(
@@ -187,7 +191,8 @@ export function useAparencia(): EstadoDaAparencia {
   const togglePerformanceMode = () => {
     setPerformanceModeState((prev) => {
       const next = !prev;
-      localStorage.setItem('babel.performance_mode', String(next));
+      // Grava a escolha manual E avisa quem ouve `reduzirEfeitos()` (telas e jogos).
+      definirReduzirEfeitos(next);
       return next;
     });
   };
@@ -200,6 +205,8 @@ export function useAparencia(): EstadoDaAparencia {
    */
   useEffect(() => {
     document.body.classList.toggle('performance-mode', performanceMode);
+    // O mesmo sinal na raiz, para o CSS por dispositivo (`styles/dispositivo.css`).
+    document.documentElement.dataset.modoLeve = String(performanceMode);
   }, [performanceMode]);
 
   /**

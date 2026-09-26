@@ -11,6 +11,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   classificarDispositivo,
   lerSinaisDoDispositivo,
+  marcarDispositivoNoDocumento,
   REDUZIR_EFEITOS_KEY,
   reduzirEfeitos,
   type SinaisDoDispositivo,
@@ -277,5 +278,18 @@ describe('reduzirEfeitos — o sinal único do modo leve', () => {
     expect(reduzirEfeitos(desktop)).toBe(false)
     expect(reduzirEfeitos({ ...desktop, userAgent: UA_QUEST, capturaDeTela: false, temXr: true })).toBe(true)
     expect(reduzirEfeitos({ ...desktop, movimentoReduzido: true })).toBe(true)
+  })
+})
+
+describe('marcarDispositivoNoDocumento', () => {
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('marca o tipo e o modo leve na raiz (Quest pelo UA, sem escolha manual)', () => {
+    vi.stubGlobal('navigator', { userAgent: UA_QUEST, maxTouchPoints: 0, xr: {} })
+    vi.stubGlobal('localStorage', { getItem: () => null, setItem: () => undefined, removeItem: () => undefined })
+    const raiz = { dataset: {} as DOMStringMap }
+    const p = marcarDispositivoNoDocumento(raiz)
+    expect(p.tipo).toBe('quest')
+    expect(raiz.dataset).toMatchObject({ dispositivo: 'quest', modoLeve: 'true' })
   })
 })

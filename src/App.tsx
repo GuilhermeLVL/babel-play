@@ -459,16 +459,22 @@ export default function App() {
           {/* O AMBIENTE fica fora do perfil sênior de propósito: movimento contínuo de fundo é
               exatamente o que atrapalha quem já tem dificuldade de leitura. As RAJADAS continuam
               para os três, são curtas e confirmam uma ação que a pessoa acabou de fazer. */}
-          <ParticleCanvas
-            enabled={animationsEnabled}
-            performanceMode={performanceMode}
-            theme={theme}
-            darkMode={darkMode}
-            /* Ambiente para TODOS os perfis (dono, 2026-08-27): na leve o padrão é sênior e
-               ninguém via partícula nenhuma — quebrava a imersão. Os interruptores de animação
-               e o Modo Desempenho continuam mandando. */
-            ambient
-          />
+          {/* MODO LEVE (`reduzirEfeitos()`, que é o `performanceMode`, ligado sozinho no Quest e no
+              celular fraco): o componente nem monta. Ele já devolvia `null` inativo; não montar deixa
+              explícito aqui que partícula não existe no modo leve (o Quest é limitado por fill-rate,
+              diretriz da Meta). O agente de telas cuida do resto dos efeitos. */}
+          {!performanceMode && (
+            <ParticleCanvas
+              enabled={animationsEnabled}
+              performanceMode={performanceMode}
+              theme={theme}
+              darkMode={darkMode}
+              /* Ambiente para TODOS os perfis (dono, 2026-08-27): na leve o padrão é sênior e
+                 ninguém via partícula nenhuma — quebrava a imersão. Os interruptores de animação
+                 e o Modo Desempenho continuam mandando. */
+              ambient
+            />
+          )}
           {/* Os números que sobem ("+10", "×3") — camada própria, no topo da árvore, para não
               serem cortados pelo `overflow` de nenhum container de jogo. */}
           <FloatingScoreLayer />

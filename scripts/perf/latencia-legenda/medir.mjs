@@ -56,7 +56,8 @@ const ESPERA_EXTRA = Number(opt('espera-extra', 12))
 const TETO_PRIMEIRA_CARGA_S = Number(opt('teto', 600))
 
 const sondaSrc = readFileSync(path.join(AQUI, 'sonda.js'), 'utf8')
-const sondaFn = sondaSrc.slice(sondaSrc.indexOf('(cfg) =>'))
+// O prettier fecha a expressão com `;`: tira, para caber em `(${sondaFn})(cfg)`.
+const sondaFn = sondaSrc.slice(sondaSrc.indexOf('(cfg) =>')).trim().replace(/;\s*$/, '')
 const cfg = { modo: MODO, semWebGpu: flag('sem-webgpu') }
 
 const log = (...a) => console.log(`[${ROTULO}]`, ...a)

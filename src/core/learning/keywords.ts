@@ -19,6 +19,8 @@
  * e os artigos daquele idioma viravam sugestão de cartão. Separadas por idioma, quem chama sabe
  * quando não há lista (`temStopwords`) e a tela pode dizer isso (auditoria de 2026-09-07, A39).
  */
+import { escreveSemEspaco, palavrasDoTexto } from '../texto/segmentacao'
+
 const STOPWORDS_POR_IDIOMA: Record<string, ReadonlySet<string>> = {
   en: new Set<string>([
   'the', 'a', 'an', 'and', 'or', 'but', 'if', 'then', 'else', 'when', 'while',
@@ -83,14 +85,17 @@ interface Candidate {
  */
 export function extractKeywords(text: string, opts: KeywordOptions = {}): string[] {
   const max = opts.max ?? 6
-  const minLength = opts.minLength ?? 4
+  /* Japonês/chinês/tailandês: palavra de 2 caracteres é palavra inteira (日本, 勉強); o piso de 4
+     letras, pensado para alfabeto, zerava a extração nesses idiomas. */
+  const minLength = opts.minLength ?? (escreveSemEspaco(opts.lang ?? '') ? 2 : 4)
   /* Sem lista para o idioma, a extração continua (a alternativa seria devolver vazio e sumir com
      um recurso inteiro) mas sem filtro gramatical — e `temStopwords` deixa a tela declarar isso. */
   const stopwords = STOPWORDS_POR_IDIOMA[baseDoIdioma(opts.lang ?? '')] ?? new Set<string>()
   const raw = (text ?? '').normalize('NFC')
 
-  // Tokeniza por sequências de letras (inclui acentuadas e apóstrofo interno).
-  const tokens = raw.match(/[\p{L}][\p{L}'-]*/gu) ?? []
+  /* Tokeniza com o segmentador DO IDIOMA (`Intl.Segmenter` + clítico e elisão). Era uma regex
+     única: não separava japonês e devolvia `d'água`/`fazê-lo` como palavra (ver segmentacao.ts). */
+  const tokens = palavrasDoTexto(raw, opts.lang ?? '')
   const byKey = new Map<string, Candidate>()
 
   for (const tok of tokens) {

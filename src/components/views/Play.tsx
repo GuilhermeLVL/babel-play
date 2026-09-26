@@ -66,6 +66,7 @@ import {
   type Triagem,
   xpFromRound,
 } from '@core';
+import { idiomaDominanteDosCartoes } from '@core/texto/idioma';
 import {
   BarChart2,
   BookOpen,
@@ -1411,6 +1412,22 @@ export default function Play({
       );
     }
   }, [recording?.id, setFonte]);
+
+  /**
+   * A SESSÃO JOGA NO IDIOMA DELA (auditoria 2026-09-26, idioma da sessão).
+   *
+   * Dentro de uma gravação, o idioma da rodada era o que a pessoa ESTUDA (`cfg.studying`), e a
+   * triagem jogava para "outro idioma" tudo que não fosse ele: a sessão em português, com os cartões
+   * agora etiquetados em português, abriria sem jogo nenhum. O idioma vem dos CARTÕES que saíram da
+   * sessão (o que ela entregou) e, sem eles, do idioma gravado na sessão.
+   */
+  useEffect(() => {
+    if (!recording?.id || deck === null) return;
+    const daSessao =
+      idiomaDominanteDosCartoes(deck.filter((c) => c.sourceSessionId === recording.id)) ||
+      baseLang(recording.idioma ?? '');
+    if (daSessao) setFonte((f) => (baseLang(f.lang) === daSessao ? f : { ...f, lang: daSessao }));
+  }, [recording?.id, recording?.idioma, deck, setFonte]);
 
   /** A `origem` como ela é gravada em `exercise_results` — precisa casar com o que o fim de
    *  rodada escreve, senão o histórico da fonte errada apareceria na antessala. */

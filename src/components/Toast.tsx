@@ -19,10 +19,13 @@
  * toasts não podem substituir (um toast não espera resposta; uma exclusão precisa esperar).
  */
 import type { LucideIcon } from 'lucide-react';
-import { X } from 'lucide-react';
+import { VolumeX, X } from 'lucide-react';
 import { useCallback, useEffect, useId, useState } from 'react';
 
+import { t } from '../lib/i18n';
+import { langLabelNaUI } from '../lib/languages';
 import { play } from '../lib/soundFx';
+import { aoFaltarVoz } from '../lib/tts';
 import { DialogoBase } from './ui/Dialogo';
 
 export type ToastKind = 'error' | 'warn' | 'ok' | 'info';
@@ -107,6 +110,18 @@ export const toast = {
   ok: (message: string, opts?: ToastOptions) => push('ok', message, opts),
   info: (message: string, opts?: ToastOptions) => push('info', message, opts),
 };
+
+/* O TTS não fala com voz de outro idioma (ver `falar` em lib/tts.ts): quando falta a voz, este é o
+   aviso — discreto (info, some sozinho) e uma vez por idioma. */
+aoFaltarVoz((lang) => {
+  push(
+    'info',
+    t('Sem voz de {idioma} neste aparelho, a leitura foi pulada. Instale uma voz nas configurações de fala do sistema.', {
+      idioma: langLabelNaUI(lang),
+    }),
+    { icone: VolumeX, duration: 5000 },
+  );
+});
 
 /* ─────────────────────────────── Confirmação ─────────────────────────────── */
 

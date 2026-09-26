@@ -13,3 +13,31 @@
 export function baseLang(code: string | undefined | null): string {
   return (code ?? '').toLowerCase().split('-')[0]
 }
+
+/**
+ * O IDIOMA DE UM CARTÃO — a pergunta que Jogar, Estudo e a Biblioteca fazem antes de falar ou de
+ * filtrar. Uma função só, para ninguém reinventar o fallback (auditoria 2026-09-26, idioma da sessão).
+ *
+ * É o idioma da FALA de onde a palavra saiu (`srcLang`), gravado na captura. Sem ele, `''`, e quem
+ * chama decide o que fazer — nunca um `'en'` silencioso: foi esse default que fazia a palavra
+ * portuguesa ser lida com voz inglesa.
+ */
+export function idiomaDoCartao(card: { srcLang?: string | null } | null | undefined): string {
+  return baseLang(card?.srcLang)
+}
+
+/**
+ * O idioma DOMINANTE de um conjunto de cartões (ex.: os de uma gravação), pesado por quantidade.
+ * `''` quando nenhum cartão tem idioma. Empate: o que aparece primeiro.
+ */
+export function idiomaDominanteDosCartoes(cards: ReadonlyArray<{ srcLang?: string | null }>): string {
+  const conta = new Map<string, number>()
+  for (const c of cards) {
+    const l = idiomaDoCartao(c)
+    if (l) conta.set(l, (conta.get(l) ?? 0) + 1)
+  }
+  let melhor = ''
+  let n = 0
+  for (const [l, q] of conta) if (q > n) { melhor = l; n = q }
+  return melhor
+}

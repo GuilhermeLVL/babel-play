@@ -1391,6 +1391,9 @@ export default function LiveCapture({
           isPartial: false,
           tStartMs: u.tStartMs ?? undefined,
           tEndMs: u.tEndMs ?? undefined,
+          // O idioma gravado da fala volta com ela: sem isto, salvar a retomada reetiquetava tudo
+          // com o idioma do seletor (a mesma causa da sessão em português virar prática em inglês).
+          lang: u.sourceLang ?? undefined,
         }));
         setSpeechSegments(segs);
         // Semeia o relógio a partir da duração salva; o START continua a linha do tempo.
@@ -1398,8 +1401,9 @@ export default function LiveCapture({
         setTimer(Math.round(durMs / 1000));
         sessionStartMsRef.current = Date.now() - durMs;
         if (session.title) setCustomSessionTitle(session.title);
-        if (session.sourceLang) setSourceLang(session.sourceLang);
-        if (session.targetLang) setTargetLang(session.targetLang);
+        /* O par da SESSÃO não é mais restaurado no seletor: desde 2026-09-26 `sessions.source_lang` é o
+           idioma do CONTEÚDO (o dominante das falas), não o "eu falo" de quem gravou. Copiá-lo para o
+           seletor trocaria o par da pessoa ao retomar um vídeo em inglês. Cada fala já traz o seu idioma. */
         setFeedbackMsg(`Retomando sessão: ${session.title ?? 'sem título'}`);
         setTimeout(() => setFeedbackMsg(''), 4000);
       } catch {

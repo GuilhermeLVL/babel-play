@@ -845,5 +845,6 @@
   "Ver consumo do mês": "See this month's usage",
   "Sugerido: {plano} · R$ {preco}/mês": "Suggested: {plano} · R$ {preco}/month",
   "Sugerido: {plano}": "Suggested: {plano}",
-  "Sugerido para você": "Suggested for you"
+  "Sugerido para você": "Suggested for you",
+  "A placa de vídeo não pôde ser usada na transcrição. Seguindo no modo compatível ({modelo}): a legenda continua, um pouco mais lenta.": "The graphics card could not be used for transcription. Continuing in compatibility mode ({modelo}): captions keep coming, a little slower."
 }

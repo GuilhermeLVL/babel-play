@@ -1,0 +1,497 @@
+{
+ "mic-detectar-pt": {
+  "resumo": {
+   "n": 11,
+   "perdidas": 0,
+   "vad": {
+    "p50": 773,
+    "p95": 809,
+    "n": 11
+   },
+   "sttEspera": {
+    "p50": 0,
+    "p95": 0,
+    "n": 11
+   },
+   "stt": {
+    "p50": 2177,
+    "p95": 2748,
+    "n": 11
+   },
+   "primeiroToken": {
+    "p50": 1149,
+    "p95": 1454,
+    "n": 11
+   },
+   "renderOrig": {
+    "p50": 6,
+    "p95": 18,
+    "n": 11
+   },
+   "mtEspera": {
+    "p50": 1,
+    "p95": 3,
+    "n": 11
+   },
+   "mt": {
+    "p50": 795,
+    "p95": 1260,
+    "n": 11
+   },
+   "renderTrad": {
+    "p50": 3,
+    "p95": 13,
+    "n": 11
+   },
+   "fimAoOriginal": {
+    "p50": 2585,
+    "p95": 3166,
+    "n": 11
+   },
+   "fimATraducao": {
+    "p50": 3263,
+    "p95": 4275,
+    "n": 11
+   },
+   "inicioAoPrimeiroTexto": {
+    "p50": 2900,
+    "p95": 3634,
+    "n": 11
+   },
+   "primeiraTraducaoParcialAntesDoFim": {
+    "p50": 1751,
+    "p95": 2959,
+    "n": 11
+   },
+   "rtf": {
+    "p50": 0.456,
+    "p95": 0.55,
+    "n": 11
+   },
+   "comTraducaoParcialAntesDoFim": 11,
+   "motoresMt": [
+    "opus-mt"
+   ]
+  },
+  "modelo": "onnx-community/whisper-small",
+  "dispositivos": [
+   "webgpu"
+  ],
+  "carga": [
+   {
+    "sttProntoMs": 6489,
+    "mtProntos": [
+     {
+      "modelo": "Xenova/opus-mt-en-ROMANCE",
+      "ms": -277
+     },
+     {
+      "modelo": "Xenova/opus-mt-ROMANCE-en",
+      "ms": -75
+     }
+    ],
+    "pedidosAoHub": 3
+   }
+  ],
+  "lagMax": 312,
+  "lagN": 204
+ },
+ "mic-pt-en-base-wasm": {
+  "resumo": {
+   "n": 11,
+   "perdidas": 0,
+   "vad": {
+    "p50": 780,
+    "p95": 881,
+    "n": 11
+   },
+   "sttEspera": {
+    "p50": 1646,
+    "p95": 4073,
+    "n": 11
+   },
+   "stt": {
+    "p50": 5186,
+    "p95": 8604,
+    "n": 11
+   },
+   "primeiroToken": {
+    "p50": 4308,
+    "p95": 7049,
+    "n": 11
+   },
+   "renderOrig": {
+    "p50": 9,
+    "p95": 62,
+    "n": 11
+   },
+   "mtEspera": {
+    "p50": 2,
+    "p95": 52,
+    "n": 11
+   },
+   "mt": {
+    "p50": 881,
+    "p95": 1474,
+    "n": 11
+   },
+   "renderTrad": {
+    "p50": 4,
+    "p95": 13,
+    "n": 11
+   },
+   "fimAoOriginal": {
+    "p50": 5587,
+    "p95": 9024,
+    "n": 11
+   },
+   "fimATraducao": {
+    "p50": 6528,
+    "p95": 10335,
+    "n": 11
+   },
+   "inicioAoPrimeiroTexto": null,
+   "primeiraTraducaoParcialAntesDoFim": {
+    "p50": -6525,
+    "p95": -5499,
+    "n": 11
+   },
+   "rtf": {
+    "p50": 1.32,
+    "p95": 1.775,
+    "n": 11
+   },
+   "comTraducaoParcialAntesDoFim": 0,
+   "motoresMt": [
+    "opus-mt"
+   ]
+  },
+  "modelo": "onnx-community/moonshine-base-ONNX",
+  "dispositivos": [
+   "wasm"
+  ],
+  "carga": [
+   {
+    "sttProntoMs": 7699,
+    "mtProntos": [
+     {
+      "modelo": "Xenova/opus-mt-ROMANCE-en",
+      "ms": -9
+     },
+     {
+      "modelo": "Xenova/opus-mt-en-ROMANCE",
+      "ms": -8
+     }
+    ],
+    "pedidosAoHub": 5
+   }
+  ],
+  "lagMax": 1015,
+  "lagN": 328
+ },
+ "mic-pt-en-padrao": {
+  "resumo": {
+   "n": 22,
+   "perdidas": 0,
+   "vad": {
+    "p50": 775,
+    "p95": 839,
+    "n": 22
+   },
+   "sttEspera": {
+    "p50": 0,
+    "p95": 0,
+    "n": 22
+   },
+   "stt": {
+    "p50": 1603,
+    "p95": 2455,
+    "n": 22
+   },
+   "primeiroToken": {
+    "p50": 532,
+    "p95": 738,
+    "n": 22
+   },
+   "renderOrig": {
+    "p50": 4,
+    "p95": 31,
+    "n": 22
+   },
+   "mtEspera": {
+    "p50": 1,
+    "p95": 18,
+    "n": 22
+   },
+   "mt": {
+    "p50": 765,
+    "p95": 1262,
+    "n": 22
+   },
+   "renderTrad": {
+    "p50": 3,
+    "p95": 6,
+    "n": 22
+   },
+   "fimAoOriginal": {
+    "p50": 1989,
+    "p95": 2815,
+    "n": 22
+   },
+   "fimATraducao": {
+    "p50": 2698,
+    "p95": 3780,
+    "n": 22
+   },
+   "inicioAoPrimeiroTexto": {
+    "p50": 2319,
+    "p95": 4120,
+    "n": 22
+   },
+   "primeiraTraducaoParcialAntesDoFim": {
+    "p50": 1905,
+    "p95": 3616,
+    "n": 22
+   },
+   "rtf": {
+    "p50": 0.313,
+    "p95": 0.415,
+    "n": 22
+   },
+   "comTraducaoParcialAntesDoFim": 21,
+   "motoresMt": [
+    "opus-mt"
+   ]
+  },
+  "modelo": "onnx-community/moonshine-base-ONNX",
+  "dispositivos": [
+   "webgpu"
+  ],
+  "carga": [
+   {
+    "sttProntoMs": 8097,
+    "mtProntos": [
+     {
+      "modelo": "Xenova/opus-mt-ROMANCE-en",
+      "ms": -1994
+     },
+     {
+      "modelo": "Xenova/opus-mt-en-ROMANCE",
+      "ms": -999
+     }
+    ],
+    "pedidosAoHub": 3
+   },
+   {
+    "sttProntoMs": 8854,
+    "mtProntos": [
+     {
+      "modelo": "Xenova/opus-mt-en-ROMANCE",
+      "ms": -95
+     },
+     {
+      "modelo": "Xenova/opus-mt-ROMANCE-en",
+      "ms": 109
+     }
+    ],
+    "pedidosAoHub": 3
+   }
+  ],
+  "lagMax": 458,
+  "lagN": 379
+ },
+ "sis-detectar-en-padrao": {
+  "resumo": {
+   "n": 11,
+   "perdidas": 0,
+   "vad": {
+    "p50": 470,
+    "p95": 721,
+    "n": 11
+   },
+   "sttEspera": {
+    "p50": 0,
+    "p95": 0,
+    "n": 11
+   },
+   "stt": {
+    "p50": 1130,
+    "p95": 1771,
+    "n": 11
+   },
+   "primeiroToken": {
+    "p50": 474,
+    "p95": 1026,
+    "n": 11
+   },
+   "renderOrig": {
+    "p50": 3,
+    "p95": 6,
+    "n": 11
+   },
+   "mtEspera": {
+    "p50": 0,
+    "p95": 1,
+    "n": 11
+   },
+   "mt": {
+    "p50": 640,
+    "p95": 983,
+    "n": 11
+   },
+   "renderTrad": {
+    "p50": 1,
+    "p95": 3,
+    "n": 11
+   },
+   "fimAoOriginal": {
+    "p50": 1363,
+    "p95": 1833,
+    "n": 11
+   },
+   "fimATraducao": {
+    "p50": 1972,
+    "p95": 2764,
+    "n": 11
+   },
+   "inicioAoPrimeiroTexto": {
+    "p50": 1388,
+    "p95": 1888,
+    "n": 11
+   },
+   "primeiraTraducaoParcialAntesDoFim": {
+    "p50": 3580,
+    "p95": 4123,
+    "n": 11
+   },
+   "rtf": {
+    "p50": 0.254,
+    "p95": 0.309,
+    "n": 11
+   },
+   "comTraducaoParcialAntesDoFim": 11,
+   "motoresMt": [
+    "opus-mt"
+   ]
+  },
+  "modelo": "onnx-community/whisper-small",
+  "dispositivos": [
+   "webgpu"
+  ],
+  "carga": [
+   {
+    "sttProntoMs": 6707,
+    "mtProntos": [
+     {
+      "modelo": "Xenova/opus-mt-en-ROMANCE",
+      "ms": 2286
+     },
+     {
+      "modelo": "Xenova/opus-mt-ROMANCE-en",
+      "ms": 2492
+     }
+    ],
+    "pedidosAoHub": 3
+   }
+  ],
+  "lagMax": 154,
+  "lagN": 43
+ },
+ "sis-en-pt-moonshine": {
+  "resumo": {
+   "n": 11,
+   "perdidas": 0,
+   "vad": {
+    "p50": 595,
+    "p95": 963,
+    "n": 11
+   },
+   "sttEspera": {
+    "p50": 45,
+    "p95": 1051,
+    "n": 11
+   },
+   "stt": {
+    "p50": 1189,
+    "p95": 2260,
+    "n": 11
+   },
+   "primeiroToken": {
+    "p50": 831,
+    "p95": 1510,
+    "n": 11
+   },
+   "renderOrig": {
+    "p50": 6,
+    "p95": 52,
+    "n": 11
+   },
+   "mtEspera": {
+    "p50": 1,
+    "p95": 43,
+    "n": 11
+   },
+   "mt": {
+    "p50": 1274,
+    "p95": 1563,
+    "n": 11
+   },
+   "renderTrad": {
+    "p50": 3,
+    "p95": 18,
+    "n": 11
+   },
+   "fimAoOriginal": {
+    "p50": 1541,
+    "p95": 2670,
+    "n": 11
+   },
+   "fimATraducao": {
+    "p50": 2901,
+    "p95": 4243,
+    "n": 11
+   },
+   "inicioAoPrimeiroTexto": {
+    "p50": 1741,
+    "p95": 2801,
+    "n": 11
+   },
+   "primeiraTraducaoParcialAntesDoFim": {
+    "p50": 2863,
+    "p95": 4200,
+    "n": 11
+   },
+   "rtf": {
+    "p50": 0.285,
+    "p95": 0.399,
+    "n": 11
+   },
+   "comTraducaoParcialAntesDoFim": 10,
+   "motoresMt": [
+    "opus-mt"
+   ]
+  },
+  "modelo": "onnx-community/moonshine-base-ONNX",
+  "dispositivos": [
+   "wasm"
+  ],
+  "carga": [
+   {
+    "sttProntoMs": 2089,
+    "mtProntos": [
+     {
+      "modelo": "Xenova/opus-mt-en-ROMANCE",
+      "ms": 305
+     },
+     {
+      "modelo": "Xenova/opus-mt-ROMANCE-en",
+      "ms": 305
+     }
+    ],
+    "pedidosAoHub": 3
+   }
+  ],
+  "lagMax": 1220,
+  "lagN": 206
+ }
+}

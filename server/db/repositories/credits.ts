@@ -1,9 +1,9 @@
 import { randomUUID } from 'node:crypto'
 
-import { and, desc, eq, isNull, like, sql, sum } from 'drizzle-orm'
+import { and, asc, desc, eq, isNull, like, sql, sum } from 'drizzle-orm'
 
 import type { SkuDeCredito } from '../../../src/core/creditos'
-import { possePremiumComEquivalentes } from '../../../src/core/reembolso'
+import { type CompraPremium, resolverPremium } from '../../../src/core/reembolso'
 import type { UserId } from '../../lib/authContext'
 import { db } from '../db'
 import { creditPurchases, creditSpends } from '../schema'
@@ -194,12 +194,24 @@ export const creditsRepo = {
    * do que se paga nasce e morre no servidor, e o cliente só espelha.
    */
   async itensPremium(userId: UserId): Promise<string[]> {
-    const linhas = await db.select({ reason: creditSpends.reason }).from(creditSpends)
-      .where(and(eq(creditSpends.userId, userId), isNull(creditSpends.deletedAt), like(creditSpends.reason, 'premium:%')))
-    /* RECOMPENSAS v2: o item pago que saiu do catálogo vira o equivalente (`equivalenteDe`) —
-       nenhum Crédito se perde com o corte de cursores e packs de emoji. */
-    return possePremiumComEquivalentes(linhas.map((l) => l.reason.slice('premium:'.length)).filter(Boolean))
+    return resolverPremium(await this.comprasPremium(userId)).posse
   },
+
+  /**
+   * As compras premium na ordem em que aconteceram — a entrada de `resolverPremium` (core), que
+   * decide a posse E os Créditos a devolver com a mesma régua (recompensas v2, revisão P0).
+   */
+  async comprasPremium(userId: UserId): Promise<CompraPremium[]> {
+    const linhas = await db
+      .select({ id: creditSpends.id, reason: creditSpends.reason, amount: creditSpends.amount })
+      .from(creditSpends)
+      .where(and(eq(creditSpends.userId, userId), isNull(creditSpends.deletedAt), like(creditSpends.reason, 'premium:%')))
+      .orderBy(asc(creditSpends.createdAt), asc(creditSpends.id))
+    return linhas
+      .map((l) => ({ id: l.id, itemId: l.reason.slice('premium:'.length), creditos: Number(l.amount ?? 0) }))
+      .filter((c) => !!c.itemId)
+  },
+
 
   async comprasDoUsuario(userId: UserId, limite = 20) {
     return db.select().from(creditPurchases)

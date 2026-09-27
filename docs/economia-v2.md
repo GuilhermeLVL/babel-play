@@ -53,7 +53,13 @@ Saíram 97 itens: 27 cursores, 33 packs de emoji, 2 aprimoramentos, a partícula
 (que viraram opção livre em "Acessibilidade e layout"). `POST /api/metrics/seeds/reembolso` devolve,
 uma vez, cada gasto `loja:`/`croma:` de item removido e todo `aprimoramento:*` como
 `reembolso:<reason>` — idempotente pelo índice único de `seed_credits`. Pago com Créditos
-(`dourada-3/5/7`) vira o equivalente (tema Aurora, até a onda 4). O cliente chama uma vez por sessão
+(`dourada-3/5/7`) vira um equivalente DA VITRINE de Créditos (3 → Corações de Ouro, 5 → Pixel
+Dourado, 7 → Aurora Dourada) — nunca um exclusivo de conquista: até a revisão de 27/09 o mapa
+apontava para o tema Aurora, da conquista "Constante", e Créditos compravam constância.
+`resolverPremium` (`reembolso.ts`) decide a posse na ordem das compras: equivalente já possuído
+passa ao próximo item livre da vitrine e, sem nenhum livre, os Créditos pagos voltam como concessão
+`reembolso-creditos:<id do gasto>` na mesma rota. Posse de conquista e de maestria é conferida
+ANTES da posse premium (`posseDeCosmeticos.ts`), e a premium só abre item `vendavelEmCreditos`. O cliente chama uma vez por sessão
 com a flag `recompensas_v2` ligada e mostra o aviso uma vez só.
 
 ## Calibragem (`npx tsx scripts/economia/simular-ritmo.ts`)

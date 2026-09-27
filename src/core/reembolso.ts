@@ -12,14 +12,16 @@
  *    removido e cada `aprimoramento:*`, o servidor credita `reembolso:<reason do gasto>` com o
  *    mesmo valor. A idempotência é a do razão: o índice único (usuário, `credito_id`) de
  *    `seed_credits` faz dois pedidos simultâneos gravarem uma linha só.
- *  · PAGO COM CRÉDITOS NÃO SE PERDE. O item premium removido vira o equivalente do catálogo novo
- *    (`equivalenteDe`) na posse derivada — até a onda 4 trazer os itens novos, o tema Aurora.
+ *  · PAGO COM CRÉDITOS NÃO SE PERDE. O item premium removido vira um equivalente da vitrine de
+ *    Créditos (`resolverPremium`) na posse derivada; sem equivalente livre, os Créditos voltam.
  *  · EQUIPADO CAI NO PADRÃO, sem erro: o que lê a escolha salva (`readRastro`, `readParticulas`)
  *    ignora valor que não existe mais (rastro/partícula de emoji); cursor e pack não são mais lidos.
  *    Os rastros `gen:`/`croma:` que saíram da Loja seguem válidos: são combinações da galeria.
  *
  * Regra deste arquivo: TS puro (roda no Node e no navegador), como `economiaAutoridade`.
  */
+import { vendavelEmCreditos } from './economiaAutoridade';
+import { VITRINE_DE_CREDITOS } from './loja';
 
 /** O que saiu, com o tipo e o `alvo` que o módulo de aparência gravava — para reconhecer o que
  *  estava equipado. Tabela fixa: o catálogo não tem mais estes itens para ser consultado. */
@@ -168,26 +170,76 @@ export function reembolsosDevidos(
 }
 
 /**
- * O EQUIVALENTE de um item premium (pago com Créditos) que saiu. Mapa fixo; os itens da onda 4
- * substituem o tema Aurora quando existirem. Item que não saiu devolve ele mesmo.
+ * O EQUIVALENTE de um item premium (pago com Créditos) que saiu — SEMPRE um item da vitrine de
+ * Créditos (`VITRINE_DE_CREDITOS`), nunca de conquista, maestria ou temporada.
+ *
+ * O DEFEITO QUE ISTO FECHA (revisão de 27/09, P0): as douradas 3, 5 e 7 viravam o tema Aurora,
+ * que é exclusivo da conquista "Constante" (30 dias seguidos). Créditos são a moeda comprada com
+ * dinheiro: com esse mapa, pagar entregava o prêmio que só a constância dá — exatamente o que
+ * `vendavelEmCreditos` proíbe na porta da venda. Agora o mapa aponta para a vitrine e
+ * `resolverPremium` confere a régua de venda item a item.
  */
 const EQUIVALENTES: Readonly<Record<string, string>> = {
-  'dourada-3': 'tema-aurora',
-  'dourada-5': 'tema-aurora',
-  'dourada-7': 'tema-aurora',
-  /* Onda 6 (curadoria da vitrine de Créditos, `loja.ts`): as três douradas que saíram viram um
-     rastro dourado da vitrine (pagas a 150, a vitrine agora custa 100). Partícula de estrelas e confete dourados
-     repetiam o `alvo` da Loja de Seeds; as estrelas do rastro eram emoji. */
+  /* Recompensas v2 (corte de cursores e packs): cursor da coroa, pack de tesouros e cursor do
+     tridente — pagos a 150, viram um rastro dourado da vitrine (100). */
+  'dourada-3': 'dourada-8',
+  'dourada-5': 'dourada-6',
+  'dourada-7': 'dourada-10',
+  /* Onda 6 (curadoria da vitrine de Créditos, `loja.ts`): Faíscas Douradas, Estrelas de Ouro e
+     Confete Dourado repetiam o `alvo` da Loja de Seeds ou desenhavam emoji. */
   'dourada-1': 'dourada-2',
   'dourada-4': 'dourada-10',
   'dourada-9': 'dourada-6',
 };
 
+/** Os ids premium que saíram do catálogo e têm equivalente. */
+export const PREMIUM_REMOVIDOS: readonly string[] = Object.keys(EQUIVALENTES);
+
 export function equivalenteDe(id: string): string {
   return EQUIVALENTES[id] ?? id;
 }
 
-/** A posse premium com os removidos trocados pelo equivalente, sem repetição. */
+/** Uma compra premium como o razão (`credit_spends`) a guarda: a linha, o item e quanto custou. */
+export interface CompraPremium {
+  /** Id estável da linha do gasto — vira o id da concessão do reembolso (idempotência). */
+  id: string;
+  itemId: string;
+  creditos: number;
+}
+
+/** Prefixo da concessão que devolve Créditos (`credit_purchases.provider_payment_id`). */
+export const PREFIXO_DO_REEMBOLSO_DE_CREDITOS = 'reembolso-creditos:';
+
+/**
+ * A POSSE PREMIUM E OS CRÉDITOS A DEVOLVER, puros e determinísticos (na ordem das compras).
+ *
+ *  · Compra de item que está à venda (`vendavelEmCreditos`) é posse.
+ *  · Compra de item que SAIU vira o equivalente da vitrine; se a pessoa já tem esse equivalente
+ *    (comprou os dois, ou duas removidas apontam para o mesmo), vale o próximo item da vitrine que
+ *    ela ainda não tem. Sem nenhum livre, os Créditos pagos voltam (`reembolsos`) — nenhum Crédito
+ *    se perde e nenhum vira duplicata.
+ *  · Qualquer outra coisa (item que não se vende, id desconhecido) NÃO vira posse: é a garantia de
+ *    que Créditos nunca rendem item de conquista, maestria ou temporada.
+ */
+export function resolverPremium(compras: readonly CompraPremium[]): {
+  posse: string[];
+  reembolsos: { concessaoId: string; creditos: number }[];
+} {
+  const vitrine = VITRINE_DE_CREDITOS.filter(vendavelEmCreditos).map((i) => i.id);
+  const naVitrine = new Set(vitrine);
+  const posse = new Set<string>();
+  for (const c of compras) if (naVitrine.has(c.itemId)) posse.add(c.itemId);
+  const reembolsos: { concessaoId: string; creditos: number }[] = [];
+  for (const c of compras) {
+    if (!(c.itemId in EQUIVALENTES)) continue;
+    const livre = [equivalenteDe(c.itemId), ...vitrine].find((id) => naVitrine.has(id) && !posse.has(id));
+    if (livre) posse.add(livre);
+    else if (c.creditos > 0) reembolsos.push({ concessaoId: `${PREFIXO_DO_REEMBOLSO_DE_CREDITOS}${c.id}`, creditos: Math.round(c.creditos) });
+  }
+  return { posse: [...posse], reembolsos };
+}
+
+/** A posse premium com os removidos trocados pelo equivalente, sem repetição (só os ids). */
 export function possePremiumComEquivalentes(ids: readonly string[]): string[] {
-  return [...new Set(ids.map(equivalenteDe))];
+  return resolverPremium(ids.map((itemId, i) => ({ id: String(i), itemId, creditos: 0 }))).posse;
 }

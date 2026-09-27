@@ -11,14 +11,17 @@ import 'fake-indexeddb/auto'
 
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { autorizarGasto, ehRecusa, itensSorteaveisNoDrop } from '../src/core/economiaAutoridade'
+import { autorizarGasto, ehRecusa, itensSorteaveisNoDrop, vendavelEmCreditos } from '../src/core/economiaAutoridade'
 import { recompensasV2Ativas } from '../src/core/flags'
-import { CATALOGO_DA_LOJA } from '../src/core/loja'
+import { CATALOGO_DA_LOJA, VITRINE_DE_CREDITOS } from '../src/core/loja'
 import {
   equivalenteDe,
   ITENS_REMOVIDOS,
   possePremiumComEquivalentes,
+  PREFIXO_DO_REEMBOLSO_DE_CREDITOS,
+  PREMIUM_REMOVIDOS,
   reembolsosDevidos,
+  resolverPremium,
 } from '../src/core/reembolso'
 import { servidorEfemero } from '../src/data/efemero/servidor'
 import { abrirStore, fecharStore, limparTudo } from '../src/data/efemero/store'
@@ -72,11 +75,40 @@ describe('reembolsosDevidos — o núcleo puro', () => {
     expect(ehRecusa(autorizarGasto('aprimoramento:particulas:1'))).toBe(true)
   })
 
-  it('pago com Créditos vira o equivalente — nenhum Crédito se perde', () => {
-    expect(equivalenteDe('dourada-3')).toBe('tema-aurora')
-    expect(equivalenteDe('dourada-5')).toBe('tema-aurora')
+  it('pago com Créditos vira um item da VITRINE — nunca de conquista, maestria ou temporada', () => {
+    const vitrine = new Set(VITRINE_DE_CREDITOS.map((i) => i.id))
+    for (const id of PREMIUM_REMOVIDOS) expect(vitrine.has(equivalenteDe(id)), id).toBe(true)
     expect(equivalenteDe('dourada-2')).toBe('dourada-2')
-    expect(possePremiumComEquivalentes(['dourada-3', 'dourada-7', 'dourada-2'])).toEqual(['tema-aurora', 'dourada-2'])
+    expect(possePremiumComEquivalentes(['dourada-3', 'dourada-2'])).toEqual(['dourada-2', 'dourada-8'])
+  })
+
+  it('Créditos NUNCA rendem item de conquista, maestria ou temporada (revisão P0)', () => {
+    const naoVendaveis = CATALOGO_DA_LOJA.filter((i) => !vendavelEmCreditos(i)).map((i) => i.id)
+    const compras = [...PREMIUM_REMOVIDOS, ...naoVendaveis].map((itemId, n) => ({ id: `g${n}`, itemId, creditos: 150 }))
+    const { posse } = resolverPremium(compras)
+    for (const id of posse) {
+      const item = CATALOGO_DA_LOJA.find((i) => i.id === id)!
+      expect(vendavelEmCreditos(item), id).toBe(true)
+      expect(item.exclusivoDe ?? item.origemMaestria ?? item.origemTemporada, id).toBeUndefined()
+    }
+    expect(posse).not.toContain('tema-aurora')
+  })
+
+  it('removidas que disputam o mesmo equivalente: o próximo livre da vitrine; sem livre, os Créditos voltam', () => {
+    const compras = PREMIUM_REMOVIDOS.map((itemId, n) => ({ id: `g${n}`, itemId, creditos: 150 }))
+    const r = resolverPremium(compras)
+    expect(new Set(r.posse).size).toBe(r.posse.length)
+    expect(r.posse.length).toBe(Math.min(PREMIUM_REMOVIDOS.length, VITRINE_DE_CREDITOS.length))
+    expect(r.reembolsos).toHaveLength(PREMIUM_REMOVIDOS.length - r.posse.length)
+    for (const x of r.reembolsos) {
+      expect(x.creditos).toBe(150)
+      expect(x.concessaoId.startsWith(PREFIXO_DO_REEMBOLSO_DE_CREDITOS)).toBe(true)
+    }
+    // Quem já tem a vitrine inteira recebe os Créditos de volta pela removida.
+    const todas = VITRINE_DE_CREDITOS.map((i, n) => ({ id: `v${n}`, itemId: i.id, creditos: 100 }))
+    expect(resolverPremium([...todas, { id: 'x', itemId: 'dourada-3', creditos: 150 }]).reembolsos).toEqual([
+      { concessaoId: `${PREFIXO_DO_REEMBOLSO_DE_CREDITOS}x`, creditos: 150 },
+    ])
   })
 })
 

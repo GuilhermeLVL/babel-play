@@ -189,6 +189,8 @@ export async function reembolsarSeeds(): Promise<Response> {
   return json({
     creditado,
     reembolsado: todos.filter((c) => c.creditoId.startsWith('reembolso:')).reduce((n, c) => n + c.amount, 0),
+    /* Sem conta não há Créditos (moeda paga nasce e morre no servidor): nada a devolver. */
+    creditosDevolvidos: 0,
     seedsCreditadas: todos.reduce((n, c) => n + c.amount, 0),
     xpCreditado: todos.reduce((n, c) => n + c.xp, 0),
   });

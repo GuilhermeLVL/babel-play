@@ -93,6 +93,42 @@ describe('POST /api/metrics/seeds/reembolso', () => {
     await db.insert(creditSpends).values({
       id: 'cs-1', createdAt: agora, updatedAt: agora, userId: u, spendId: 'premium-dourada-3', amount: 150, reason: 'premium:dourada-3',
     })
-    expect(await creditsRepo.itensPremium(asUserId(u))).toEqual(['tema-aurora'])
+    expect(await creditsRepo.itensPremium(asUserId(u))).toEqual(['dourada-8'])
+  })
+
+  it('P0: Créditos nunca abrem exclusivo de conquista — nem por um gasto `premium:` gravado à mão', async () => {
+    const u = 'u-premium-aurora'
+    const { db } = (await h.load('../../server/db/db')) as any
+    const { creditSpends } = (await h.load('../../server/db/schema')) as any
+    const { recusaDePosse } = (await h.load('../../server/lib/posseDeCosmeticos')) as any
+    const agora = Date.now()
+    await db.insert(creditSpends).values({
+      id: 'cs-aurora', createdAt: agora, updatedAt: agora, userId: u, spendId: 'premium-aurora', amount: 100, reason: 'premium:tema-aurora',
+    })
+    expect(await creditsRepo.itensPremium(asUserId(u))).toEqual([])
+    // Mesmo com a posse premium dizendo "tema-aurora", a conquista é conferida antes.
+    const recusa = await recusaDePosse(asUserId(u), 'tema', 'aurora', {
+      nivel: 99, comprados: [], conquistas: [], premium: ['tema-aurora'],
+    })
+    expect(recusa?.motivo).toMatch(/conquista/)
+  })
+
+  it('removida sem equivalente livre: os Créditos voltam, uma vez', async () => {
+    const u = 'u-premium-cheio'
+    const { db } = (await h.load('../../server/db/db')) as any
+    const { creditSpends } = (await h.load('../../server/db/schema')) as any
+    const agora = Date.now()
+    const vitrine = ['dourada-2', 'dourada-6', 'dourada-8', 'dourada-10']
+    await db.insert(creditSpends).values([
+      ...vitrine.map((id, n) => ({ id: `cs-v${n}`, createdAt: agora, updatedAt: agora, userId: u, spendId: `premium-${id}`, amount: 100, reason: `premium:${id}` })),
+      { id: 'cs-d3', createdAt: agora + 1, updatedAt: agora + 1, userId: u, spendId: 'premium-dourada-3', amount: 150, reason: 'premium:dourada-3' },
+    ])
+    const antes = await creditsRepo.totalComprado(asUserId(u))
+    const a = await reembolsar(u)
+    expect(a.body.creditosDevolvidos).toBe(150)
+    expect(await creditsRepo.totalComprado(asUserId(u))).toBe(antes + 150)
+    const b = await reembolsar(u)
+    expect(b.body.creditosDevolvidos).toBe(0)
+    expect(await creditsRepo.totalComprado(asUserId(u))).toBe(antes + 150)
   })
 })

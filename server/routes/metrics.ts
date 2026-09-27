@@ -24,7 +24,7 @@ import {
 import { diaLocal, diaNoFuso, fusoOuPadrao, sequencias } from '../../src/core/learning/economia'
 import { maestriaPorJogo, nivelDeMaestria } from '../../src/core/maestria'
 import { estadoDasMissoes, metaConcluida, missoesComProgresso } from '../../src/core/missoes'
-import { reembolsosDevidos } from '../../src/core/reembolso'
+import { reembolsosDevidos, resolverPremium } from '../../src/core/reembolso'
 import {
   ehAssinanteDaTemporada,
   nivelDaTemporada,
@@ -32,6 +32,7 @@ import {
   temporadaAtual,
   xpDeTemporada,
 } from '../../src/core/temporada'
+import { creditsRepo } from '../db/repositories/credits'
 import { economiaRepo } from '../db/repositories/economia'
 import { exerciseResultsRepo } from '../db/repositories/exerciseResults'
 import { computeProfile, computeXpHistory, dadosDasMissoes, linhasDoHistoricoDeXp } from '../db/repositories/metrics'
@@ -408,9 +409,16 @@ metricsRouter.post('/seeds/reembolso', async (req, res) => {
       })
       if (!jaExistia) creditado += d.seeds
     }
+    /* O PAGO EM CRÉDITOS por item que saiu e não tem equivalente livre na vitrine volta em
+       Créditos (`resolverPremium`), como concessão idempotente pela linha do gasto. */
+    let creditosDevolvidos = 0
+    for (const r of resolverPremium(await creditsRepo.comprasPremium(req.userId)).reembolsos) {
+      const { jaExistia } = await creditsRepo.registrarConcessao(req.userId, { concessaoId: r.concessaoId, creditos: r.creditos })
+      if (!jaExistia) creditosDevolvidos += r.creditos
+    }
     const reembolsado = (await economiaRepo.reembolsos(req.userId)).reduce((n, r) => n + r.amount, 0)
     const totais = await economiaRepo.totaisCreditados(req.userId)
-    res.json({ creditado, reembolsado, ...totais })
+    res.json({ creditado, reembolsado, creditosDevolvidos, ...totais })
   } catch (err) {
     res.status(500).json({
       error: erroDeRota(err, { status: 500, event: 'metrics_route_error', route: req.path, requestId: req.requestId }),

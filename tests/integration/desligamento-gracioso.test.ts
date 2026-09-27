@@ -19,6 +19,7 @@
  */
 import { type ChildProcess, spawn } from 'node:child_process'
 import { copyFileSync, existsSync, mkdtempSync, rmSync } from 'node:fs'
+import { request } from 'node:http'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
@@ -169,22 +170,42 @@ describe('SIGTERM no meio de uma escrita', () => {
   it('a escrita termina, o processo sai com 0 e o banco fica íntegro', async () => {
     const s = await subirServidor()
 
-    // A requisição sai e NÃO é esperada: o sinal precisa chegar com ela em curso.
-    const escrita = fetch(`http://127.0.0.1:${s.porta}/api/sessions`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(sessaoComFalas(1_500)),
-    })
-    /* Tempo só para o corpo subir e o handler começar. 40 ms, e não 150: medido, o `POST` inteiro
-       das 1.500 falas responde em 130–160 ms, então esperar 150 deixaria o sinal chegar em cima
-       do fim da escrita e o teste passaria por coincidência. */
-    await new Promise((r) => setTimeout(r, 40))
+    /* A requisição sai em DUAS metades. O sinal vai entre elas: o servidor já leu o cabeçalho e
+       parte do corpo (a requisição está em curso, não é conexão ociosa) e a outra metade só sobe
+       DEPOIS do SIGTERM — o dreno precisa esperá-la. Antes o sinal ia 40 ms depois de um `fetch`,
+       e na CI (Linux) o servidor às vezes nem tinha lido o cabeçalho: a conexão ainda contava como
+       ociosa, o `close()` a derrubava (comportamento certo) e o teste falhava por corrida. */
+    const corpoJson = Buffer.from(JSON.stringify(sessaoComFalas(1_500)))
+    const metade = Math.floor(corpoJson.length / 2)
+    let recebida: (r: { status: number; texto: string }) => void = () => {}
+    const escrita = new Promise<{ status: number; texto: string }>((ok) => (recebida = ok))
+    const req = request(
+      {
+        host: '127.0.0.1',
+        port: s.porta,
+        path: '/api/sessions',
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'content-length': corpoJson.length },
+      },
+      (res) => {
+        let texto = ''
+        res.setEncoding('utf8')
+        res.on('data', (c: string) => (texto += c))
+        res.on('end', () => recebida({ status: res.statusCode ?? 0, texto }))
+      },
+    )
+    await new Promise<void>((ok) => req.write(corpoJson.subarray(0, metade), () => ok()))
+    // Folga para o servidor ler o cabeçalho e começar a consumir o corpo.
+    await new Promise((r) => setTimeout(r, 300))
 
     const tSinal = Date.now()
     mandarSigterm(s)
+    await new Promise((r) => setTimeout(r, 100))
+    req.end(corpoJson.subarray(metade))
 
-    const resposta = await escrita
+    const bruta = await escrita
     const tResposta = Date.now()
+    const resposta = { status: bruta.status, json: async () => JSON.parse(bruta.texto) as unknown }
     const corpo = (await resposta.json()) as { id?: string }
 
     expect(resposta.status, `a requisição em curso não pode morrer sem resposta; corpo: ${JSON.stringify(corpo)}`).toBe(

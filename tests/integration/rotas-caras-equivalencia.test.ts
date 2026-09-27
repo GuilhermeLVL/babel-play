@@ -23,7 +23,11 @@ import { type AppDeTeste, subirApp } from '../caracterizacao/_app'
 import { AGORA, type Semeado, semearRico } from './_semeaduraRica'
 
 const DONO = 'local-owner'
-const json = (v: unknown) => `${JSON.stringify(v, null, 2)}\n`
+/* Números não inteiros com 12 algarismos significativos: médias como `avgRetention` somam em
+   ordem que muda o último bit entre plataformas (0,9143289786505426 no Windows, …429 no Linux da
+   CI). A equivalência que importa é a do valor, não a da representação binária. */
+const json = (v: unknown) =>
+  `${JSON.stringify(v, (_k, x: unknown) => (typeof x === 'number' && !Number.isInteger(x) ? Number(x.toPrecision(12)) : x), 2)}\n`
 
 describe('rotas caras: equivalência, invalidação e custo', () => {
   let s: AppDeTeste
@@ -107,7 +111,9 @@ describe('rotas caras: equivalência, invalidação e custo', () => {
       })
       /* Era `cursor: 'coroa'` (Perfeccionista); cursores saíram nas recompensas v2 e o exclusivo que
          continua é o rastro do Duelista. */
-      const recusa = await s.put('/api/settings', { ui: { theme: 'linear', fonte: 'padrao', rastro: 'croma:pixel:verde' } })
+      const recusa = await s.put('/api/settings', {
+        ui: { theme: 'linear', fonte: 'padrao', rastro: 'croma:pixel:verde' },
+      })
       const corpoOk = (await ok.json()) as Record<string, unknown>
       await expect(
         json({

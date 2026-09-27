@@ -12,9 +12,8 @@ import {
   rotuloDaSequencia,
   SEQUENCIA_FEVER,
 } from '../../core/minigames/blitzRegras';
-import { emitBurst } from '../../lib/effects';
+import { celebrar } from '../../lib/comemoracao';
 import { eventosCondicionais } from '../../lib/eventosDeJogo';
-import { playJuicedError, playJuicedHit, triggerHaptic } from '../../lib/gameFeel';
 import {
   executarEfeito,
   multiplicador,
@@ -64,20 +63,6 @@ interface BlitzGameProps {
 const DURACAO: Record<AgeProfileType, number> = { kids: 60, pro: 60, senior: 90 };
 /** Segundos finais em que o relógio marca cada segundo com um toque. */
 const CONTAGEM_FINAL_S = 10;
-
-/** Rajadas nas BORDAS da tela (marcos e fever): a festa cerca o jogo em vez de cobri-lo. */
-function explodirBordas(quantas: number, kind: 'levelUp' | 'combo' | 'confete'): void {
-  if (typeof window === 'undefined') return;
-  const w = window.innerWidth,
-    h = window.innerHeight;
-  for (let i = 0; i < quantas; i++) {
-    const lado = i % 4;
-    const t = Math.random();
-    const x = lado === 0 ? w * t : lado === 1 ? w * 0.96 : lado === 2 ? w * t : w * 0.04;
-    const y = lado === 0 ? h * 0.06 : lado === 1 ? h * t : lado === 2 ? h * 0.94 : h * t;
-    setTimeout(() => emitBurst(x, y, kind), i * 60);
-  }
-}
 
 export default function BlitzGame({ items, ageProfile, onFinish }: BlitzGameProps) {
   const duracao = DURACAO[ageProfile];
@@ -179,9 +164,6 @@ export default function BlitzGame({ items, ageProfile, onFinish }: BlitzGameProp
       hinted: cortadas.length > 0,
     });
 
-    const rect = el?.getBoundingClientRect();
-    const coords = rect ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : undefined;
-
     if (certo) {
       const nova = sequencia + 1;
       const mult = multiplicador(nova);
@@ -191,9 +173,8 @@ export default function BlitzGame({ items, ageProfile, onFinish }: BlitzGameProp
       setAcertos((n) => n + 1);
       setPontos((p) => p + ganho.total);
 
-      // 1. O acerto sensorial completo: áudio escalonado por semitom, haptics e número flutuante
-      const texto = '+' + ganho.total + (mult > 1 && !comDica ? ' ×' + mult : '') + (ganho.fever ? ' FEVER' : '');
-      playJuicedHit(nova, coords, texto);
+      // 1. O acerto pelo motor de comemoração: tom que sobe com a sequência, vibração e o "+N".
+      celebrar({ tipo: 'acerto', combo: nova, el, pontos: ganho.total });
       falar(item.answer, item.lang);
 
       // 2. Velocidade: um segundo número, defasado, para não colidir com o primeiro.
@@ -216,20 +197,17 @@ export default function BlitzGame({ items, ageProfile, onFinish }: BlitzGameProp
       }
       // 4. Eventos CONDICIONAIS nos limiares (combo 5/10/15).
       for (const ev of eventosCondicionais({ combo: nova, fever: emFever(nova) })) executarEfeito(ev);
-      // 5. Marcos e fever: onda de choque + festa nas bordas, reservada ao que é raro.
+      /* 5. Marcos e fever: onda de choque e cartaz, reservados ao que é raro. As partículas e a
+         vibração do degrau de multiplicador saem do HUD (`celebrar({ tipo: 'combo' })`). */
       if (nova === SEQUENCIA_FEVER && !comDica) {
         play('fever');
-        explodirBordas(8, 'levelUp');
         pulsoDeZoom();
-        triggerHaptic('combo');
         tremor(palcoRef.current, 6);
         setOndas((o) => [...o, nova]);
         setMarco({ id: nova, texto: 'FEVER ×2' });
       } else if (ehMarco(nova) && !comDica) {
         play('levelUp');
-        explodirBordas(nova >= 20 ? 12 : 6, nova >= 10 ? 'levelUp' : 'combo');
         tremorDeTela(4);
-        triggerHaptic('combo');
         tremor(palcoRef.current, 4);
         setOndas((o) => [...o, nova]);
         setMarco({ id: nova, texto: nova + ' seguidas!' });
@@ -238,7 +216,8 @@ export default function BlitzGame({ items, ageProfile, onFinish }: BlitzGameProp
       setSequencia(0);
       setErroPulso((n) => n + 1);
       setRestante((s) => Math.max(0, s - PENALIDADE_ERRO_S));
-      playJuicedError(palcoRef.current, coords, '−' + PENALIDADE_ERRO_S + 's');
+      celebrar({ tipo: 'erro', el: el ?? palcoRef.current });
+      pontosDoElemento('−' + PENALIDADE_ERRO_S + 's', el, 'ruim');
     }
     setTimeout(
       () => {

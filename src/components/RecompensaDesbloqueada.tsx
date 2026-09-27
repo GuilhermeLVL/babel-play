@@ -18,9 +18,11 @@
 import { Check, Gift, Sparkles, Sprout } from 'lucide-react';
 import { type CSSProperties, useEffect, useId, useRef, useState } from 'react';
 
+import { celebrar } from '../lib/comemoracao';
 import { TEXTOS } from '../lib/galeria/textos';
-import { comemorar } from '../lib/juice';
+import { pontosDoElemento } from '../lib/juice';
 import { type ItemDaLoja, type Raridade } from '../lib/loja';
+import { play } from '../lib/soundFx';
 import { iconeDaConquista } from './iconesDaConquista';
 import MiniaturaDoItem from './MiniaturaDoItem';
 import { DialogoBase } from './ui';
@@ -177,8 +179,12 @@ function Resgate({ atual, onEquipar, onFechar, onVerPersonalizar }: Omit<Props, 
   const idTitulo = useId();
   const fechado = useRef(false);
 
+  /* A festa de quem abre o modal, pelo motor: nível, conquista ou baú (a raridade do baú escala). */
   useEffect(() => {
-    comemorar('subiuNivel', null, { tremer: true });
+    if (atual.tipo === 'nivel') celebrar({ tipo: 'nivel' });
+    else if (atual.tipo === 'conquista') celebrar({ tipo: 'conquista' });
+    else celebrar({ tipo: 'bau', raridade: atual.item.raridade === 'comum' ? 'comum' : 'raro' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- uma festa por recompensa aberta (o `key` remonta)
   }, []);
 
   const itens: ItemDaLoja[] = atual.tipo === 'nivel' ? atual.itens : atual.item ? [atual.item] : [];
@@ -193,7 +199,8 @@ function Resgate({ atual, onEquipar, onFechar, onVerPersonalizar }: Omit<Props, 
   const equipar = (i: ItemDaLoja, el: HTMLElement | null) => {
     if (!onEquipar(i)) return;
     setEquipados((s) => new Set(s).add(i.id));
-    comemorar('acerto', el, { texto: TEXTOS.emUso });
+    play('select');
+    pontosDoElemento(TEXTOS.emUso, el, 'bom');
   };
 
   const titulo =

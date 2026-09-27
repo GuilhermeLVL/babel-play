@@ -13,11 +13,11 @@ import type { MenuPositionType } from '../../components/shell/navItems';
 import { toast } from '../../components/Toast';
 import type { AppMetrics, RecordeDoJogo } from '../../data/api';
 import type { FonteType, ThemeType } from '../appearance';
+import { celebrar } from '../comemoracao';
 import { montarContextoDeConquistas, verificarConquistas } from '../conquistas';
 import { desbloqueado } from '../desbloqueios';
 import type { ContextoDeEquipar } from '../galeria/equipar';
 import { itemDaConquista, recompensasDoNivelCompleto } from '../galeria/progressao';
-import { comemorar } from '../juice';
 import { CATALOGO_DA_LOJA } from '../loja';
 import type { DerivedProgress } from '../progress';
 
@@ -166,12 +166,12 @@ export function useRecompensas(deps: DependenciasDasRecompensas): EstadoDasRecom
         if (!vistas.has(chaveDaRecompensa(r))) entradas.push(r);
       }
       if (entradas.length) setFilaDeRecompensas((f) => enfileirarSemRepetir(f, entradas));
-      else comemorar('subiuNivel', null, { tremer: true });
+      else celebrar({ tipo: 'nivel' });
     }
   }, [progress.available, progress.level]);
 
   /* A SUBIDA DE NÍVEL É FESTEJADA UMA VEZ SÓ — no modal de resgate (`RecompensaDesbloqueada`
-     chama `comemorar('subiuNivel')` ao abrir). Havia aqui um segundo efeito, com `useRef` do nível
+     chama `celebrar({ tipo: 'nivel' })` ao abrir). Havia aqui um segundo efeito, com `useRef` do nível
      anterior, que tocava `levelUp` e soltava uma rajada no mesmo instante em que o efeito acima
      enfileirava o modal: duas festas para o mesmo nível. */
 

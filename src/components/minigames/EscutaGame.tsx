@@ -3,9 +3,9 @@ import { scoreRound } from '@core';
 import { Play, RotateCcw, Turtle } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
+import { celebrar } from '../../lib/comemoracao';
 import { criarFalante } from '../../lib/falante';
-import { playJuicedError, playJuicedHit, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
-import { multiplicador } from '../../lib/juice';
+import { multiplicador, pontosDoElemento } from '../../lib/juice';
 import type { AgeProfileType } from '../../lib/profile';
 import { botaoDaAlternativa, useAtalhosDasAlternativas } from './casca/atalhos';
 import { useRodada } from './casca/CascaDaRodada';
@@ -47,7 +47,6 @@ export default function EscutaGame({ rodadas, audioUrl, ageProfile: _ageProfile,
   const falante = useMemo(() => criarFalante(audioRef, audioUrl), [audioUrl]);
   const ouvir = (velocidade = 1) => {
     if (!rodada || !falante.disponivel) return;
-    triggerHaptic('soft');
     falante.ouvir(
       {
         texto: rodada.correta.text,
@@ -96,9 +95,6 @@ export default function EscutaGame({ rodadas, audioUrl, ageProfile: _ageProfile,
     setEscolhido(id ?? '');
     audioRef.current?.pause();
 
-    const rect = el?.getBoundingClientRect();
-    const coords = rect ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : undefined;
-
     resultadosRef.current.push({
       ...(rodada.correta.id ? { itemRef: rodada.correta.id } : {}),
       correct: certo,
@@ -113,10 +109,11 @@ export default function EscutaGame({ rodadas, audioUrl, ageProfile: _ageProfile,
       setSequencia(nova);
       setAcertos((n) => n + 1);
       setPontos((p) => p + ganho);
-      playJuicedHit(nova, coords, `+${ganho}${mult > 1 ? ` ×${mult}` : ''}`);
+      celebrar({ tipo: 'acerto', combo: nova, el, pontos: ganho });
     } else {
       setSequencia(0);
-      playJuicedError(palcoRef.current, coords, 'Ouça novamente');
+      celebrar({ tipo: 'erro', el: el ?? palcoRef.current });
+      pontosDoElemento('Ouça novamente', el, 'ruim');
     }
 
     // Pausa para LER a resposta certa antes de trocar
@@ -126,8 +123,6 @@ export default function EscutaGame({ rodadas, audioUrl, ageProfile: _ageProfile,
           if (encerradoRef.current) return;
           encerradoRef.current = true;
           const todos = resultadosRef.current;
-          const impecavel = todos.every((o) => o.correct);
-          if (impecavel) playJuicedVictory();
           setTimeout(
             () =>
               onFinish({

@@ -4,11 +4,10 @@ import { ArrowRight, Lightbulb, Link2, Volume2 } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { montarCorrente } from '../../../core/minigames/shiritori';
+import { celebrar } from '../../../lib/comemoracao';
 import { t } from '../../../lib/i18n';
-import { comemorar } from '../../../lib/juice';
 import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
-import { play } from '../../../lib/soundFx';
 import { falar } from '../../../lib/tts';
 import { botaoDaAlternativa, useAtalhosDasAlternativas } from '../casca/atalhos';
 import AvisoDaJogada from '../casca/AvisoDaJogada';
@@ -61,8 +60,6 @@ export default function ShiritoriGame({ items, ageProfile, onFinish, onExit }: S
   const finalizar = (outcomes: ItemOutcome[]) => {
     if (acabouRef.current) return;
     acabouRef.current = true;
-    const perfeita = outcomes.length > 0 && outcomes.every((o) => o.correct && o.attempts <= 1 && !o.revealed);
-    if (perfeita) comemorar('rodadaPerfeita', palcoRef.current);
     /* Direto para o fim de rodada COMUM (`ResultadoDaRodada`), como os outros jogos. A tela própria
        "Fim da corrente" repetia pontos e acertos que a tela seguinte já mostra, e pedia um clique a
        mais (QA dos jogos, 2026-09-26). */
@@ -79,10 +76,10 @@ export default function ShiritoriGame({ items, ageProfile, onFinish, onExit }: S
   const avancar = (outcome: ItemOutcome) => {
     const outcomes = outcomesRef.current;
     outcomes.push(outcome);
-    recontar(outcomes);
+    const placarNovo = recontar(outcomes);
     if (!corrente || idx + 1 >= corrente.passos.length) {
       finalizar(outcomes);
-      return;
+      return placarNovo;
     }
     setIdx(idx + 1);
     setErradas([]);
@@ -91,6 +88,7 @@ export default function ShiritoriGame({ items, ageProfile, onFinish, onExit }: S
     setRevelado(null);
     setRestante(SEGUNDOS[ageProfile]);
     inicioPassoRef.current = Date.now();
+    return placarNovo;
   };
 
   // O relógio do elo. Zerou: a corrente foi revelada, e revelação é nota 1.
@@ -99,7 +97,7 @@ export default function ShiritoriGame({ items, ageProfile, onFinish, onExit }: S
     if (restante <= 0) {
       /* O elo certo aparece (e é dito) antes do próximo: antes a corrente pulava sem mostrar. */
       const passo = corrente.passos[idx];
-      play('error');
+      celebrar({ tipo: 'erro', el: palcoRef.current });
       setRevelado(passo.item.answer);
       falar(passo.item.answer, passo.item.lang);
       const outcome: ItemOutcome = {
@@ -211,17 +209,18 @@ export default function ShiritoriGame({ items, ageProfile, onFinish, onExit }: S
                 onClick={(e) => {
                   if (riscada || acabouRef.current || revelado || !ativo) return;
                   if (op === passo.item.answer) {
-                    comemorar('acerto', e.currentTarget);
+                    const el = e.currentTarget;
                     falar(passo.item.answer, passo.item.lang);
-                    avancar({
+                    const p = avancar({
                       cardId: passo.item.cardId,
                       itemRef: passo.item.answer,
                       correct: true,
                       attempts: tentativas,
                       ms: Date.now() - inicioPassoRef.current,
                     });
+                    celebrar({ tipo: 'acerto', combo: p.sequencia, el, pontos: p.ganho });
                   } else {
-                    comemorar('erro', e.currentTarget);
+                    celebrar({ tipo: 'erro', el: e.currentTarget });
                     setErradas((xs) => [...xs, op]);
                     setTentativas((t) => t + 1);
                   }

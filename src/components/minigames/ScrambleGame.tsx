@@ -4,7 +4,7 @@ import { Check, Eraser, Lightbulb, Volume2 } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 
 import { juntarPalavras } from '../../core/minigames/palavrasDaFrase';
-import { playJuicedError, playJuicedHit, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
+import { celebrar } from '../../lib/comemoracao';
 import { t } from '../../lib/i18n';
 import { multiplicador, pontosDoElemento } from '../../lib/juice';
 import type { AgeProfileType } from '../../lib/profile';
@@ -57,8 +57,6 @@ export default function ScrambleGame({ rodadas, ageProfile, onFinish }: Scramble
     if (jaFinalizouRef.current) return;
     jaFinalizouRef.current = true;
     const todos = resultadosRef.current;
-    const impecavel = todos.length > 0 && todos.every((o) => o.correct && o.attempts <= 1 && !o.hinted);
-    if (impecavel) playJuicedVictory();
     setTimeout(
       () =>
         onFinish({
@@ -74,9 +72,6 @@ export default function ScrambleGame({ rodadas, ageProfile, onFinish }: Scramble
   const conferir = (el: HTMLElement | null) => {
     if (!rodada || !completa || conferido === 'certo') return;
     const palavras = montada.map((i) => rodada.embaralhada[i]);
-    const rect = el?.getBoundingClientRect();
-    const coords = rect ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : undefined;
-
     if (checkOrder(palavras, rodada.correta)) {
       const nova = sequencia + 1;
       setAcertos((n) => n + 1);
@@ -84,7 +79,7 @@ export default function ScrambleGame({ rodadas, ageProfile, onFinish }: Scramble
       const ganho = 10 * (usouDica ? 1 : mult);
       setSequencia(nova);
       setPontos((p) => p + ganho);
-      playJuicedHit(nova, coords, '+' + ganho + (mult > 1 && !usouDica ? ' ×' + mult : ''));
+      celebrar({ tipo: 'acerto', combo: nova, el, pontos: ganho });
       setConferido('certo');
 
       // Fala a frase inteira montada com sucesso
@@ -105,7 +100,8 @@ export default function ScrambleGame({ rodadas, ageProfile, onFinish }: Scramble
     }
     // Errou: feedback sensorial com tremor
     setSequencia(0);
-    playJuicedError(palcoRef.current, coords, 'Ordem incorreta');
+    celebrar({ tipo: 'erro', el: el ?? palcoRef.current });
+    pontosDoElemento('Ordem incorreta', el, 'ruim');
     setConferido('errado');
     tentativasRef.current++;
     setTimeout(() => setConferido(null), 1400);
@@ -228,7 +224,6 @@ export default function ScrambleGame({ rodadas, ageProfile, onFinish }: Scramble
             <button
               key={`${idx}-${pos}`}
               onClick={() => {
-                triggerHaptic('soft');
                 play('click');
                 setMontada((m) => m.filter((_, k) => k !== pos));
               }}
@@ -256,7 +251,6 @@ export default function ScrambleGame({ rodadas, ageProfile, onFinish }: Scramble
             <button
               key={i}
               onClick={() => {
-                triggerHaptic('soft');
                 play('add');
                 falar(rodada.embaralhada[i], rodada.lang);
                 setMontada((m) => [...m, i]);
@@ -272,7 +266,6 @@ export default function ScrambleGame({ rodadas, ageProfile, onFinish }: Scramble
         <div className="flex items-center justify-center gap-3">
           <button
             onClick={() => {
-              triggerHaptic('soft');
               play('click');
               setMontada([]);
             }}

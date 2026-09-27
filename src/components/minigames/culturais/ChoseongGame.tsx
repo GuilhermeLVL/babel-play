@@ -3,8 +3,8 @@ import { chaveDoTermo, MINIGAMES, scoreRound } from '@core';
 import { Delete, Lightbulb } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { celebrar } from '../../../lib/comemoracao';
 import { t } from '../../../lib/i18n';
-import { comemorar, tremor } from '../../../lib/juice';
 import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
 import { play } from '../../../lib/soundFx';
@@ -91,14 +91,12 @@ export default function ChoseongGame({ items, ageProfile, onFinish, onExit }: Ch
       score: scoreRound('choseong', outcomes),
       durationMs: Date.now() - inicioRodadaRef.current,
     };
-    const perfeita = outcomes.length > 0 && outcomes.every((o) => o.correct && !o.revealed);
-    comemorar(perfeita ? 'rodadaPerfeita' : 'rodadaBoa', palcoRef.current);
     setTimeout(() => onFinish(report), 1100);
   }, [onFinish]);
 
   const registrar = useCallback(
     (correct: boolean, revealed?: boolean) => {
-      if (!enigma) return;
+      if (!enigma) return null;
       outcomesRef.current.push({
         cardId: enigma.item.cardId,
         itemRef: enigma.item.answer,
@@ -108,7 +106,7 @@ export default function ChoseongGame({ items, ageProfile, onFinish, onExit }: Ch
         hinted: comDicaRef.current,
         ...(revealed ? { revealed: true } : {}),
       });
-      recontar(outcomesRef.current);
+      return recontar(outcomesRef.current);
     },
     [recontar, enigma],
   );
@@ -138,7 +136,7 @@ export default function ChoseongGame({ items, ageProfile, onFinish, onExit }: Ch
          vogais se preenchem, a palavra é dita e o aviso fica à vista antes da troca. */
       respondidoRef.current = true;
       registrar(false, true);
-      comemorar('erro', palcoRef.current);
+      celebrar({ tipo: 'erro', el: palcoRef.current });
       setLetras(enigma.alvo.split(''));
       setRevelada(true);
       falar(enigma.item.answer, enigma.item.lang);
@@ -159,15 +157,14 @@ export default function ChoseongGame({ items, ageProfile, onFinish, onExit }: Ch
       if (!enigma) return;
       if (montada.join('') === enigma.alvo) {
         respondidoRef.current = true;
-        registrar(true);
-        comemorar('acerto', palcoRef.current);
+        const p = registrar(true);
+        celebrar({ tipo: 'acerto', combo: p?.sequencia ?? 0, el: palcoRef.current, pontos: p?.ganho });
         falar(enigma.item.answer, enigma.item.lang);
         setTimeout(avancar, 700);
         return;
       }
       tentativasRef.current += 1;
-      comemorar('erro', palcoRef.current);
-      tremor(palcoRef.current);
+      celebrar({ tipo: 'erro', el: palcoRef.current });
       setLetras(enigma.alvo.split('').map((c, i) => (enigma.ocultas.has(i) ? '' : c)));
     },
     [enigma, registrar, avancar],

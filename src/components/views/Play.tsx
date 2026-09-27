@@ -148,7 +148,6 @@ import { useAudioDaSessao } from '../../lib/audioDaSessao';
 import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { filtroDaQuery, gravarFiltro, lerFiltroGuardado, queryDoFiltro } from '../../lib/filtroDaPratica';
 import { temFonteGuardada } from '../../lib/fonteDaPratica';
-import { playJuicedHit, triggerHaptic } from '../../lib/gameFeel';
 import { numero, t, tp } from '../../lib/i18n';
 import {
   buscarComposicaoPeloFunil,
@@ -183,6 +182,7 @@ import { type AgeProfileType, coreOnly } from '../../lib/profile';
 import type { DerivedProgress } from '../../lib/progress';
 import { consumirQueryDoBoot, lerUrlAtual, publicarQueryDoJogar } from '../../lib/rotas';
 import { type PracticeSeed, type Sentence, toSentences } from '../../lib/sentences';
+import { play } from '../../lib/soundFx';
 import { T } from '../../lib/T';
 import { aoMudarVozes, hasVoiceFor, isTtsSupported, vozesCarregadas } from '../../lib/tts';
 import type { Recording, VocabCard } from '../../types';
@@ -2275,8 +2275,7 @@ export default function Play({
   }, [jogoPendente, importando, vendoBaralhos, composicao, filtro, listaDeJogos]);
 
   const partidaRapida = useCallback(() => {
-    triggerHaptic('combo');
-    playJuicedHit(2);
+    play('select');
 
     /* SORTEIO SO ENTRE JOGOS QUE REGISTRAM. Os nove culturais entravam aqui, entao metade das
        partidas rapidas caia numa rodada que nao gravava nada — e a pessoa que apertou "Partida
@@ -3360,8 +3359,7 @@ export default function Play({
     const fixado = ordem.fixados.includes(j.id);
     const titulo = tituloDoJogo(j, ageProfile);
     const jogar = () => {
-      triggerHaptic('soft');
-      playJuicedHit(1);
+      play('select');
       pedirParaJogar(j);
     };
     const porta = liberado ? null : comoDesbloquear(j.estado, contextoDoDesbloqueio);
@@ -3559,8 +3557,7 @@ export default function Play({
                   ativo={categoriaAtiva}
                   aoTrocar={(id) => {
                     setCategoriaAtiva(id as typeof categoriaAtiva);
-                    triggerHaptic('soft');
-                    playJuicedHit(1);
+                    play('select');
                   }}
                   itens={[
                     { id: 'todos', rotulo: t('Todos'), icone: <Sparkles aria-hidden />, contagem: listaDeJogos.length },
@@ -3792,8 +3789,7 @@ export default function Play({
                         aria-pressed={filtroHabilidade === id}
                         onClick={() => {
                           setFiltroHabilidade(id);
-                          triggerHaptic('soft');
-                          playJuicedHit(1);
+                          play('select');
                         }}
                       >
                         {Icone && <Icone aria-hidden />}

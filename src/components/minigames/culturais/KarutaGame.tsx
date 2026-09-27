@@ -3,8 +3,8 @@ import { distractorsFor, MINIGAMES, scoreRound } from '@core';
 import { Eye, Volume2 } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { celebrar } from '../../../lib/comemoracao';
 import { idiomaDaInterface, t } from '../../../lib/i18n';
-import { comemorar, tremor } from '../../../lib/juice';
 import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
 import { play } from '../../../lib/soundFx';
@@ -120,14 +120,12 @@ export default function KarutaGame({ items, ageProfile, onFinish, onExit }: Karu
       score: scoreRound('karuta', outcomes),
       durationMs: Date.now() - inicioRodadaRef.current,
     };
-    const perfeita = outcomes.length > 0 && outcomes.every((o) => o.correct && !o.revealed);
-    comemorar(perfeita ? 'rodadaPerfeita' : 'rodadaBoa', mesaRef.current);
     setTimeout(() => onFinish(report), 1100);
   }, [onFinish]);
 
   const registrar = useCallback(
     (correct: boolean, revealed?: boolean) => {
-      if (!item) return;
+      if (!item) return null;
       outcomesRef.current.push({
         cardId: item.cardId,
         itemRef: item.answer,
@@ -137,7 +135,7 @@ export default function KarutaGame({ items, ageProfile, onFinish, onExit }: Karu
         ...(pistaLidaRef.current ? { hinted: true } : {}),
         ...(revealed ? { revealed: true } : {}),
       });
-      recontar(outcomesRef.current);
+      return recontar(outcomesRef.current);
     },
     [recontar, item],
   );
@@ -170,7 +168,7 @@ export default function KarutaGame({ items, ageProfile, onFinish, onExit }: Karu
       // A carta certa acende e é dita antes da próxima: quem não achou sai sabendo qual era.
       respondidoRef.current = true;
       registrar(false, true);
-      comemorar('erro', mesaRef.current);
+      celebrar({ tipo: 'erro', el: mesaRef.current });
       setRevelada(item.answer);
       falar(item.answer, item.lang);
       setTimeout(avancar, 1800);
@@ -190,15 +188,14 @@ export default function KarutaGame({ items, ageProfile, onFinish, onExit }: Karu
       // "Otetsuki": a carta errada volta para a mesa e a rodada continua — só a nota cai.
       setErrada(carta);
       setTimeout(() => setErrada(null), 420);
-      comemorar('erro', el);
-      tremor(mesaRef.current);
+      celebrar({ tipo: 'erro', el: el ?? mesaRef.current });
       return;
     }
 
     respondidoRef.current = true;
     setAcertada(carta);
-    registrar(true);
-    comemorar('acerto', el);
+    const p = registrar(true);
+    celebrar({ tipo: 'acerto', combo: p?.sequencia ?? 0, el, pontos: p?.ganho });
     falar(item.answer, item.lang);
     setTimeout(avancar, 700);
   };

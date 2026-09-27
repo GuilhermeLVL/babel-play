@@ -160,15 +160,27 @@ describe('KaraokeGame — rodada sem avaliação não vira erro', () => {
     expect(tons).toHaveLength(0)
   })
 
-  it('a rodada com resultado continua comemorando normalmente', () => {
+  it('a rodada com resultado vai ao fim comum sem festa dentro do jogo', () => {
     const f = falas()
-    render(<KaraokeGame falas={f} audioUrl="" ageProfile="pro" onFinish={() => {}} onExit={() => {}} />)
+    let relatorio: RoundReport | null = null
+    render(
+      <KaraokeGame
+        falas={f}
+        audioUrl=""
+        ageProfile="pro"
+        onFinish={(r) => {
+          relatorio = r
+        }}
+        onExit={() => {}}
+      />,
+    )
     avancarFala()
     avancarFala()
     avancar(1000)
-    /* Duas falas puladas = dois itens, nenhum correto → 'erro' é a resposta CERTA aqui: houve
-       avaliação e ela foi negativa. O defeito era comemorar erro sem avaliação nenhuma. */
-    expect(comemorarMock.mock.calls.map((c) => c[0])).toContain('erro')
+    /* Duas falas puladas = dois itens avaliados. O fim da rodada é comemorado UMA vez, no fim comum
+       (`ResultadoDaRodada`, pelas estrelas — motor único, recompensas v2); o jogo só entrega. */
+    expect(relatorio!.items).toHaveLength(2)
+    expect(comemorarMock).not.toHaveBeenCalled()
   })
 
 })

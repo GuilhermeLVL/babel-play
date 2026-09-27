@@ -27,6 +27,7 @@ export default function FloatingScoreLayer() {
       {pontos.map(p => (
         <span
           key={p.id}
+          data-flutuante={p.tom}
           className={`absolute font-display font-black text-lg select-none babel-float ${
             p.tom === 'bom' ? 'text-good-ink' : p.tom === 'ruim' ? 'text-error-ink' : 'text-ink'
           }`}

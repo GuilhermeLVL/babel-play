@@ -54,7 +54,7 @@ export const SOM: Record<Comemoracao, Parameters<typeof play>[0]> = {
 };
 
 /** O usuário desligou movimento? (o tremor mexe em transform e escapa dos filtros globais) */
-function movimentoReduzido(): boolean {
+export function movimentoReduzido(): boolean {
   if (typeof window === 'undefined') return true;
   const body = document.body;
   if (body.classList.contains('performance-mode') || body.classList.contains('animations-off')) return true;
@@ -83,13 +83,7 @@ export function comemorar(
   play(SOM[tipo]);
   /* EVENTO RARO por acerto, em QUALQUER jogo: o sorteio mora aqui porque `comemorar` é o único
      vocabulário compartilhado pelos nove — nenhum jogo precisa saber que os patos existem. */
-  if (tipo === 'acerto' || tipo === 'sequencia') {
-    const raro = sortearEventoRaro(Math.random, sorteDeEventos());
-    if (raro) {
-      executarEfeito(raro);
-      pontosFlutuantes(raro.nome + '!', window.innerWidth / 2, window.innerHeight * 0.22, 'bom');
-    }
-  }
+  if (tipo === 'acerto' || tipo === 'sequencia') eventoRaroDoAcerto();
   /*
    * O EVENTO 'perfeita' PASSA A EXISTIR (08/09).
    *
@@ -104,11 +98,26 @@ export function comemorar(
    * ela vira também o evento, no mesmo lugar em que o evento raro é sorteado — porque `comemorar`
    * é o único vocabulário que todos os jogos falam.
    */
-  if (tipo === 'rodadaPerfeita') {
-    for (const ev of eventosCondicionais({ combo: 0, fever: false, perfeita: true })) executarEfeito(ev);
-  }
+  if (tipo === 'rodadaPerfeita') eventosDaRodadaPerfeita();
   if (opts.texto) pontosFlutuantes(opts.texto, x, y, tipo === 'erro' ? 'ruim' : 'bom');
   if (opts.tremer) tremor(alvo ?? null, tipo === 'rodadaPerfeita' ? 6 : 3);
+}
+
+/**
+ * O EVENTO RARO de um acerto (patos, vôlei…): sorteado a cada acerto, em qualquer jogo. Mora aqui
+ * — e não no motor de comemoração — porque a sorte vem de `aprimoramentos` e o que é visto conta
+ * para a conquista Colecionador (`marcarEventoVisto`).
+ */
+export function eventoRaroDoAcerto(): void {
+  const raro = sortearEventoRaro(Math.random, sorteDeEventos());
+  if (!raro) return;
+  executarEfeito(raro);
+  pontosFlutuantes(raro.nome + '!', window.innerWidth / 2, window.innerHeight * 0.22, 'bom');
+}
+
+/** O evento 'perfeita' (um dos onze do Colecionador) — ver o comentário em `comemorar`. */
+export function eventosDaRodadaPerfeita(): void {
+  for (const ev of eventosCondicionais({ combo: 0, fever: false, perfeita: true })) executarEfeito(ev);
 }
 
 /* ─────────────────────────── PONTOS FLUTUANTES ───────────────────────────

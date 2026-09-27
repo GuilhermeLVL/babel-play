@@ -4,9 +4,9 @@ import { Mic, Play, SkipForward, Square, Turtle } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { palavrasDaFrase } from '../../core/minigames/palavrasDaFrase';
+import { celebrar } from '../../lib/comemoracao';
 import { criarFalante } from '../../lib/falante';
-import { playJuicedError, playJuicedHit, triggerConfetti, triggerHaptic } from '../../lib/gameFeel';
-import { comemorar } from '../../lib/juice';
+import { pontosDoElemento } from '../../lib/juice';
 import { speechErrorMessage } from '../../lib/mediaErrors';
 import type { AgeProfileType } from '../../lib/profile';
 import { toast } from '../Toast';
@@ -78,7 +78,6 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish }: K
   const ouvir = (velocidade = 1) => {
     if (!fala || !falante.disponivel) return;
     pararRelogiosDoOuvir();
-    triggerHaptic('soft');
     setFase('ouvindo');
     setPalavraAtiva(-1);
     falante.ouvir({ texto: fala.texto, lang: fala.lang, startMs: fala.startMs, endMs: fala.endMs }, velocidade);
@@ -109,7 +108,6 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish }: K
       setSemReconhecimento(true);
       return;
     }
-    triggerHaptic('soft');
     // Gravar interrompe a escuta: o relógio do "Ouvir" não pode derrubar a gravação ao vencer.
     pararRelogiosDoOuvir();
     falante.parar();
@@ -130,13 +128,13 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish }: K
       setNota({ accuracy: s.accuracy, transcript: dito, diff: conferirDitado(fala.texto, dito, fala.lang) });
       setFase('avaliado');
 
+      /* A nota da pronúncia é o número que sobe; o fim da rodada comemora no fim comum. */
       if (s.accuracy >= 60) {
-        triggerHaptic('success');
-        if (s.accuracy >= 80) triggerConfetti();
-        playJuicedHit(s.accuracy >= 90 ? 4 : 2, undefined, `${s.accuracy}%`);
+        celebrar({ tipo: 'acerto', combo: placar.sequencia + 1 });
+        pontosDoElemento(`${s.accuracy}%`, null, 'bom');
       } else {
-        triggerHaptic('error');
-        playJuicedError(null, undefined, `${s.accuracy}%`);
+        celebrar({ tipo: 'erro' });
+        pontosDoElemento(`${s.accuracy}%`, null, 'ruim');
       }
 
       registrarFala({
@@ -195,7 +193,7 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish }: K
     recontar();
   };
 
-  const proxima = (el?: HTMLElement | null) => {
+  const proxima = () => {
     /*
      * PULOU SEM FALAR? ISSO É UM RESULTADO, e antes não era nenhum.
      *
@@ -230,18 +228,8 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish }: K
       if (jaFinalizouRef.current) return;
       jaFinalizouRef.current = true;
       const todos = resultadosRef.current;
-      const impecavel = todos.length > 0 && todos.every((o) => o.correct);
-      /* Rodada de ZERO itens não comemora erro. Antes, `todos.some(...)` era falso numa lista vazia
-         e caía em `'erro'`, o jogo dizia que a pessoa errou uma rodada em que nada foi avaliado, e
-         a raspadinha mostrava "0 de 0 · 0%". É o mesmo princípio que este arquivo já aplica quando
-         não há reconhecimento de voz: sem avaliação, não se dá nota. */
-      if (todos.length > 0) {
-        comemorar(impecavel ? 'rodadaPerfeita' : todos.some((o) => o.correct) ? 'rodadaBoa' : 'erro', el ?? null, {
-          tremer: impecavel,
-        });
-      }
-      /* Zero itens: NENHUMA comemoração. Não existe efeito "neutro" em `Comemoracao`, e inventar um
-         seria dar retorno a uma rodada que não teve avaliação. Silêncio é a resposta honesta. */
+      /* Nenhuma comemoração aqui: o fim da rodada é festejado UMA vez, no fim comum
+         (`ResultadoDaRodada`), pelas estrelas. Rodada de zero itens continua sem festa nem "erro". */
       setTimeout(
         () =>
           onFinish({
@@ -411,7 +399,7 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish }: K
         )}
 
         <button
-          onClick={(e) => proxima(e.currentTarget)}
+          onClick={() => proxima()}
           className="py-2.5 px-5 rounded-xl bg-surface border border-border-subtle text-ink font-bold text-[13px] hover:border-accent cursor-pointer flex items-center gap-1.5"
         >
           {indice + 1 >= falas.length ? 'Terminar' : 'Próxima'} <SkipForward className="w-3.5 h-3.5" />

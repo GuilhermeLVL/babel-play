@@ -1,5 +1,5 @@
 import type { MinigameId, ResumoDaSequencia, RoundReport } from '@core';
-import { estrelasDaRodada, multiplicador, pontuarRodada, summarize } from '@core';
+import { estrelasDaRodada, ganhoDaRodada, multiplicador, pontuarRodada, summarize } from '@core';
 import {
   ArrowLeft,
   ChevronDown,
@@ -13,7 +13,6 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
-import { seedsDaRodada } from '../../core/minigames/recompensaDaRodada';
 import { burstFromElement } from '../../lib/effects';
 import { proximaRecompensa } from '../../lib/galeria/progressao';
 import { comemorar, contarAte, flashDeTela, pontosDoElemento, tremor } from '../../lib/juice';
@@ -37,8 +36,8 @@ import { unidadeDaRodada } from './casca/regras';
  *
  * TUDO AQUI É DADO REAL. Os pontos são o `score` que o jogo mandou; a precisão, o XP e as estrelas
  * saem da mesma régua do mapa de fases (`summarize`, `estrelasDaRodada`); a melhor sequência é a
- * de `pontuarRodada`; as Seeds são as que o servidor vai creditar por esta rodada
- * (`seedsDaRodada`); o nível e a barra vêm do perfil. O que a raspadinha do app tinha e o
+ * de `pontuarRodada`; o XP e as Seeds são os que o servidor vai creditar por esta rodada
+ * (`ganhoDaRodada`); o nível e a barra vêm do perfil. O que a raspadinha do app tinha e o
  * protótipo não mostra continua: a corrente de rodadas, o combo que atravessa, "trocar mantendo o
  * combo" (o gasto de Seeds), o aviso de material esgotado e a próxima recompensa.
  */
@@ -112,7 +111,9 @@ export default function ResultadoDaRodada({
   const estrelas = estrelasDaRodada(resumo.precisao);
   const segundos = Math.max(0, Math.round((report.durationMs ?? 0) / 1000));
   const melhorSequencia = pontuarRodada(report.gameId, report.items).melhorSequencia;
-  const seeds = seedsDaRodada(report);
+  /* XP (`resumo.xp`) e Seeds saem de `ganhoDaRodada`: a mesma conta que o perfil dos dois servidores
+     faz com as linhas gravadas (`tests/contratos/ganho-da-rodada`). */
+  const seeds = ganhoDaRodada(report).seeds;
   const unidade =
     report.gameId === 'memory' ? 'pares' : report.gameId === 'blitz' ? 'certas' : unidadeDaRodada(report.gameId);
   /* Recorde batido = a corrente inteira passou do melhor anterior (`>`: empatar não é festa). */

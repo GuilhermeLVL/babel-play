@@ -12,7 +12,7 @@ import type { AppMetrics } from '../../../core/learning/contract';
 import { diaLocal, marcosDeSequencia, minutosPremiados, sequencias } from '../../../core/learning/economia';
 import { historicoDeXp } from '../../../core/learning/historicoDeXp';
 import { Fsrs5Strategy } from '../../../core/learning/scheduler';
-import { MINIGAMES } from '../../../core/minigames/types';
+import { ehRodadaPerfeita } from '../../../core/minigames/grade';
 import { contarPalavras, DIA, json } from '../nucleo';
 import { abrirStore } from '../store';
 import { estadoDe } from './vocabulario';
@@ -63,9 +63,14 @@ export async function perfilEfemero(sessionId: string | null): Promise<AppMetric
   const revs = revisoes.filter((r) => idsDoDeck.has(r.cardId));
   const corretas = revs.filter((r) => r.grade >= 3).length;
   const drills = sessionId ? exercicios.filter((e) => e.sessionId === sessionId) : exercicios;
-  const drillCorrect = drills.filter((e) => e.correct === 1).length;
+  const certosEmExercicio = drills.filter((e) => e.correct === 1).length;
   const totalAvaliado = revs.length + drills.length;
-  const accuracy = totalAvaliado ? (corretas + drillCorrect) / totalAvaliado : 0;
+  const accuracy = totalAvaliado ? (corretas + certosEmExercicio) / totalAvaliado : 0;
+  /* ITENS DE JOGO = só as linhas `kind: 'drill'`, como no Express (e como o `historicoDeXp` daqui
+     já fazia). A linha `srs` é telemetria de um item que JÁ virou revisão: contá-la também dava
+     XP duas vezes ao mesmo acerto no modo sem conta — e a raspadinha dizia outro número. */
+  const itensDeJogo = drills.filter((e) => e.kind === 'drill');
+  const drillCorrect = itensDeJogo.filter((e) => e.correct === 1).length;
 
   const dias = new Set(revs.map((r) => Math.floor(r.reviewedAt / DIA)));
   let streakDays = 0;
@@ -97,12 +102,8 @@ export async function perfilEfemero(sessionId: string | null): Promise<AppMetric
     porRodada.set(e.roundId, r);
   }
   let rodadasPerfeitas = 0;
-  for (const r of porRodada.values()) {
-    /* Com `r.kind === ''` o `&&` devolve a própria string vazia, e o `>=` a coage para 0. O
-       `Number()` reproduz EXATAMENTE essa coerção e tira o `string` do tipo de `minimo`. */
-    const minimo = Number((r.kind && (MINIGAMES as Record<string, { minItems?: number } | undefined>)[r.kind]?.minItems) ?? 3);
-    if (r.total >= minimo && r.certos === r.total) rodadasPerfeitas += 1;
-  }
+  /* A régua é a do core (`ehRodadaPerfeita`), a mesma do Express e da raspadinha. */
+  for (const r of porRodada.values()) if (ehRodadaPerfeita(r.kind, r.total, r.certos)) rodadasPerfeitas += 1;
   const seedsCreditadas = creditos.reduce((n, c) => n + c.amount, 0);
   const xpCreditado = creditos.reduce((n, c) => n + c.xp, 0);
   // A ofensiva que a tela mostra é a MAIOR entre revisar e aparecer: aparecer todo dia também conta.
@@ -129,7 +130,7 @@ export async function perfilEfemero(sessionId: string | null): Promise<AppMetric
     dueToday: noDeck.filter((c) => (c.dueAt ?? 0) <= agora).length,
     reviews: revs.length,
     correctReviews: corretas,
-    drillItems: drills.length,
+    drillItems: itensDeJogo.length,
     drillCorrect,
     accuracy,
     accuracyConfidence: Math.min(1, totalAvaliado / 20),

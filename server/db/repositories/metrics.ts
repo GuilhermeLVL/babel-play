@@ -11,7 +11,7 @@ import { diaLocal, marcosDeSequencia, minutosPremiados, sequencias } from '../..
 import { type BaldeDeXp, type HistoricoDeXp, historicoDeXp } from '../../../src/core/learning/historicoDeXp'
 import { retrievability } from '../../../src/core/learning/scheduler'
 import { economiaDeMetricas } from '../../../src/core/learning/xp'
-import { MINIGAMES } from '../../../src/core/minigames/types'
+import { ehRodadaPerfeita } from '../../../src/core/minigames/grade'
 import type { UserId } from '../../lib/authContext'
 import { CachePorVersao } from '../../lib/cachePorVersao'
 import { db } from '../db'
@@ -338,14 +338,8 @@ function resumirAtividade(linhas: LinhasDaAtividade, sessionId: string | null) {
     porRodada.set(e.roundId, r)
   }
   let rodadasPerfeitas = 0
-  for (const r of porRodada.values()) {
-    /* Com `r.kind === ''` o `&&` devolve a própria string vazia, e o `>=` a coage para 0. O
-       `Number()` reproduz EXATAMENTE essa coerção e tira o `string` do tipo de `minimo`. */
-    const minimo = Number(
-      (r.kind && (MINIGAMES as Record<string, { minItems?: number } | undefined>)[r.kind]?.minItems) ?? 3,
-    )
-    if (r.total >= minimo && r.certos === r.total) rodadasPerfeitas += 1
-  }
+  /* A régua é a do core (`ehRodadaPerfeita`), a mesma que a raspadinha usa para prometer o bônus. */
+  for (const r of porRodada.values()) if (ehRodadaPerfeita(r.kind, r.total, r.certos)) rodadasPerfeitas += 1
 
   const byWeek = new Map<number, number>()
   for (const c of inDeck) {

@@ -5,9 +5,9 @@ import React, { useMemo, useRef, useState } from 'react';
 
 import { emitBurst } from '../../lib/effects';
 import { playJuicedError, playJuicedHit, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
+import { t } from '../../lib/i18n';
 import { comemorar, multiplicador, pontosDoElemento } from '../../lib/juice';
 import type { AgeProfileType } from '../../lib/profile';
-import { t } from '../../lib/i18n';
 import { falar } from '../../lib/tts';
 import { useRodada } from './casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda } from './casca/HudDaRodada';

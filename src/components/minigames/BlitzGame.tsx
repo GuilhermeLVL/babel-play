@@ -34,8 +34,8 @@ import { perfilProtegido } from '../../lib/protecaoDoMenor';
 import { apelidoValido, enviarParaRanking, lerApelido, salvarApelido } from '../../lib/ranking';
 import { play } from '../../lib/soundFx';
 import { falar } from '../../lib/tts';
-import { useRodada } from './casca/CascaDaRodada';
 import { botaoDaAlternativa, useAtalhosDasAlternativas } from './casca/atalhos';
+import { useRodada } from './casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda } from './casca/HudDaRodada';
 
 /**

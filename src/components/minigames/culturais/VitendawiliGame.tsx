@@ -7,8 +7,8 @@ import { comemorar } from '../../../lib/juice';
 import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
 import { falar } from '../../../lib/tts';
-import { useRodada } from '../casca/CascaDaRodada';
 import { botaoDaAlternativa, useAtalhosDasAlternativas } from '../casca/atalhos';
+import { useRodada } from '../casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from '../casca/HudDaRodada';
 
 /**

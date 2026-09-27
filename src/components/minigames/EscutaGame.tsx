@@ -8,8 +8,8 @@ import { criarFalante } from '../../lib/falante';
 import { playJuicedError, playJuicedHit, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
 import { multiplicador } from '../../lib/juice';
 import type { AgeProfileType } from '../../lib/profile';
-import { useRodada } from './casca/CascaDaRodada';
 import { botaoDaAlternativa, useAtalhosDasAlternativas } from './casca/atalhos';
+import { useRodada } from './casca/CascaDaRodada';
 import HudDaRodada from './casca/HudDaRodada';
 
 /**

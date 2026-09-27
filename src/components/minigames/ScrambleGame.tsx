@@ -3,13 +3,13 @@ import { acertosPosicionais, checkOrder, scoreRound } from '@core';
 import { Check, Eraser, Lightbulb, Volume2 } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 
+import { juntarPalavras } from '../../core/minigames/palavrasDaFrase';
 import { emitBurst } from '../../lib/effects';
 import { playJuicedError, playJuicedHit, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
+import { t } from '../../lib/i18n';
 import { multiplicador, pontosDoElemento } from '../../lib/juice';
 import type { AgeProfileType } from '../../lib/profile';
 import { play } from '../../lib/soundFx';
-import { juntarPalavras } from '../../core/minigames/palavrasDaFrase';
-import { t } from '../../lib/i18n';
 import { falar } from '../../lib/tts';
 import { useRodada } from './casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda } from './casca/HudDaRodada';

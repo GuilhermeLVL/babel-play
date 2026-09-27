@@ -269,7 +269,6 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish }: K
         /* nada */
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
 

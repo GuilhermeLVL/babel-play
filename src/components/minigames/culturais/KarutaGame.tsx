@@ -9,9 +9,9 @@ import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
 import { play } from '../../../lib/soundFx';
 import { falar, hasVoiceFor, isTtsSupported, vozesCarregadas } from '../../../lib/tts';
+import { botaoDaAlternativa, useAtalhosDasAlternativas } from '../casca/atalhos';
 import AvisoDaJogada from '../casca/AvisoDaJogada';
 import { useRodada } from '../casca/CascaDaRodada';
-import { botaoDaAlternativa, useAtalhosDasAlternativas } from '../casca/atalhos';
 import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from '../casca/HudDaRodada';
 
 /**

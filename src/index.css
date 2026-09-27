@@ -1582,23 +1582,9 @@ body.animations-off .hover\:-translate-y-1:hover {
   animation: blitz-onda 0.7s ease-out forwards;
 }
 
-/* Estrelas do resultado: caem uma a uma. */
-@keyframes blitz-estrela {
-  0%   { transform: scale(2.4) rotate(-18deg); opacity: 0; }
-  60%  { transform: scale(0.9) rotate(4deg); opacity: 1; }
-  100% { transform: scale(1) rotate(0); opacity: 1; }
-}
-.blitz-estrela { animation: blitz-estrela 0.45s var(--ease-mola) both; }
-
-@keyframes blitz-recorde {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.08); }
-}
-.blitz-recorde { animation: blitz-recorde 0.8s ease-in-out infinite; }
-
 .animations-off .blitz-squash, .animations-off .blitz-balanca, .animations-off .blitz-selo,
-.animations-off .blitz-onda, .animations-off .blitz-estrela, .animations-off .blitz-recorde,
-.performance-mode .blitz-onda, .performance-mode .blitz-recorde { animation: none; }
+.animations-off .blitz-onda,
+.performance-mode .blitz-onda { animation: none; }
 
 /* ─────────────── MARCA — "Babel Play" ───────────────
    A identidade do app: Baloo 2 (redonda, gordinha, amigável — a mesma família visual do

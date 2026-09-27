@@ -1,37 +1,31 @@
 import type { ItemOutcome, MinigameItem, RoundReport } from '@core';
 import { distractorsFor, scoreRound } from '@core';
-import { Medal, Scissors, Star, Zap } from 'lucide-react';
+import { Scissors, Zap } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   bonusDeTempo,
   ehMarco,
   emFever,
-  estrelasDaRodada,
   PENALIDADE_ERRO_S,
   pontosDoAcerto,
   rotuloDaSequencia,
   SEQUENCIA_FEVER,
 } from '../../core/minigames/blitzRegras';
-import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { emitBurst } from '../../lib/effects';
 import { eventosCondicionais } from '../../lib/eventosDeJogo';
-import { playJuicedError, playJuicedHit, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
+import { playJuicedError, playJuicedHit, triggerHaptic } from '../../lib/gameFeel';
 import {
   executarEfeito,
-  flashDeTela,
   multiplicador,
   pontosDoElemento,
   pontosFlutuantes,
   pulsoDeZoom,
   tremor,
   tremorDeTela,
-  vibrar,
 } from '../../lib/juice';
 import { direcaoDoTexto } from '../../lib/languages';
 import type { AgeProfileType } from '../../lib/profile';
-import { perfilProtegido } from '../../lib/protecaoDoMenor';
-import { apelidoValido, enviarParaRanking, lerApelido, salvarApelido } from '../../lib/ranking';
 import { play } from '../../lib/soundFx';
 import { falar } from '../../lib/tts';
 import { botaoDaAlternativa, useAtalhosDasAlternativas } from './casca/atalhos';
@@ -51,8 +45,8 @@ import HudDaRodada, { BotaoDeAjuda } from './casca/HudDaRodada';
  *     quando um acerto rápido devolve segundos.
  *   - O combo é um SELO gigante acima da pergunta (×3 · EM CHAMAS), não um numerozinho no canto.
  *   - Marcos soltam uma ONDA DE CHOQUE + partículas nas bordas; FEVER pulsa dourado e dobra tudo.
- *   - A rodada termina numa TELA DE RESULTADO: estrelas (regra pura em blitzRegras), pontos
- *     rolando, melhor combo e RECORDE pessoal (localStorage `babel.blitz.recorde`) com fanfarra.
+ *   - A rodada termina no FIM COMUM (`ResultadoDaRodada`), como todos os jogos: uma régua de
+ *     estrelas só (`fases`), e o envio ao ranking mora lá. Até 27/09 havia uma tela própria antes.
  *
  * Regras de pontuação/tempo continuam TODAS em `core/minigames/blitzRegras` (puras, testadas).
  * As guardas de sempre valem: `.animations-off`/`.performance-mode` desligam os efeitos; nenhum
@@ -70,7 +64,6 @@ interface BlitzGameProps {
 const DURACAO: Record<AgeProfileType, number> = { kids: 60, pro: 60, senior: 90 };
 /** Segundos finais em que o relógio marca cada segundo com um toque. */
 const CONTAGEM_FINAL_S = 10;
-const CHAVE_RECORDE = 'babel.blitz.recorde';
 
 /** Rajadas nas BORDAS da tela (marcos e fever): a festa cerca o jogo em vez de cobri-lo. */
 function explodirBordas(quantas: number, kind: 'levelUp' | 'combo' | 'confete'): void {
@@ -83,38 +76,6 @@ function explodirBordas(quantas: number, kind: 'levelUp' | 'combo' | 'confete'):
     const x = lado === 0 ? w * t : lado === 1 ? w * 0.96 : lado === 2 ? w * t : w * 0.04;
     const y = lado === 0 ? h * 0.06 : lado === 1 ? h * t : lado === 2 ? h * 0.94 : h * t;
     setTimeout(() => emitBurst(x, y, kind), i * 60);
-  }
-}
-
-/** Placar que "rola" até o valor real em vez de saltar — o número subindo é metade do prazer. */
-function usePlacarRolando(alvo: number, dur = 420): number {
-  const [mostrado, setMostrado] = useState(alvo);
-  useEffect(() => {
-    if (mostrado === alvo) return;
-    let vivo = true;
-    const inicio = performance.now();
-    const de = mostrado;
-    const passo = (agora: number) => {
-      if (!vivo) return;
-      const t = Math.min(1, (agora - inicio) / dur);
-      const suave = 1 - Math.pow(1 - t, 3);
-      setMostrado(Math.round(de + (alvo - de) * suave));
-      if (t < 1) requestAnimationFrame(passo);
-    };
-    requestAnimationFrame(passo);
-    return () => {
-      vivo = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [alvo]);
-  return mostrado;
-}
-
-function lerRecorde(): number {
-  try {
-    return Number(localStorage.getItem(CHAVE_RECORDE)) || 0;
-  } catch {
-    return 0;
   }
 }
 
@@ -135,15 +96,6 @@ export default function BlitzGame({ items, ageProfile, onFinish }: BlitzGameProp
   const [erroPulso, setErroPulso] = useState(0);
   const [ondas, setOndas] = useState<number[]>([]);
   const [marco, setMarco] = useState<{ id: number; texto: string } | null>(null);
-  /** Tela de resultado (fim da rodada). O onFinish só dispara no "Continuar". */
-  const [apelido, setApelido] = useState(lerApelido());
-  const [envio, setEnvio] = useState<'parado' | 'enviando' | 'ok' | 'indisponivel' | 'recusado'>('parado');
-  const [resultado, setResultado] = useState<{
-    report: RoundReport;
-    estrelas: 0 | 1 | 2 | 3;
-    recorde: boolean;
-    melhorSeq: number;
-  } | null>(null);
   /**
    * A RODADA ACABOU — tela congelada. `jaFinalizouRef` é a guarda síncrona (o clique não espera
    * o render); o estado `acabou` é o que desabilita os botões na tela. Sem os dois, um toque
@@ -156,13 +108,10 @@ export default function BlitzGame({ items, ageProfile, onFinish }: BlitzGameProp
   const inicioItemRef = useRef(Date.now());
   const inicioRodadaRef = useRef(Date.now());
   const jaFinalizouRef = useRef(false);
-  const melhorSeqRef = useRef(0);
-  const pontosRef = useRef(0);
   /** Índices já respondidos (guarda síncrona contra o toque duplo dentro de um item). */
   const respondidosRef = useRef<Set<number>>(new Set());
 
   const item = items[indice];
-  const placar = usePlacarRolando(pontos);
   const fever = emFever(sequencia);
 
   /** Alternativas embaralhadas UMA vez por item (senão trocam de lugar a cada render). */
@@ -177,49 +126,24 @@ export default function BlitzGame({ items, ageProfile, onFinish }: BlitzGameProp
     return todas;
   }, [item, items]);
 
+  /**
+   * O FIM É O COMUM. O Duelo tinha a própria tela de resultado (estrelas por outra régua, recorde
+   * local, fanfarra) ANTES da tela comum (`ResultadoDaRodada`, estrelas de `fases`): duas telas de
+   * fim e duas notas para a mesma rodada. Agora o relatório sai aqui e o fim é o de todos os
+   * jogos — que também festeja, conta o recorde e oferece o ranking (só aos jogos com ranking).
+   */
   const finalizar = () => {
     if (jaFinalizouRef.current) return;
     jaFinalizouRef.current = true;
     setAcabou(true);
     // Itens não alcançados no tempo NÃO viram nota: quem não foi perguntado não errou.
     const outcomes = resultadosRef.current;
-    const estrelas = estrelasDaRodada(outcomes);
-    const report: RoundReport = {
+    onFinish({
       gameId: 'blitz',
       items: outcomes,
       score: scoreRound('blitz', outcomes),
       durationMs: Date.now() - inicioRodadaRef.current,
-    };
-    // Recorde pessoal por PONTOS da encenação (não pela nota do agendador): é o número que a
-    // pessoa viu subir a rodada inteira.
-    const anterior = lerRecorde();
-    const recorde = pontosRef.current > anterior && pontosRef.current > 0;
-    if (recorde) {
-      try {
-        localStorage.setItem(CHAVE_RECORDE, String(pontosRef.current));
-      } catch {
-        /* sem storage */
-      }
-    }
-    setResultado({ report, estrelas, recorde, melhorSeq: melhorSeqRef.current });
-    // Fanfarra: um arpejo por estrela, subindo; recorde ganha a festa grande.
-    for (let i = 0; i < estrelas; i++) setTimeout(() => play('fanfarra', { transpose: i * 4 }), 200 + i * 380);
-    if (recorde) {
-      playJuicedVictory();
-      setTimeout(
-        () => {
-          flashDeTela();
-          pulsoDeZoom();
-          vibrar([40, 60, 40]);
-          for (const ev of eventosCondicionais({ combo: 0, fever: false, recorde: true })) executarEfeito(ev);
-          play('levelUp');
-          explodirBordas(10, 'confete');
-        },
-        200 + estrelas * 380,
-      );
-    } else if (estrelas >= 2) {
-      playJuicedVictory();
-    }
+    });
   };
 
   // O relógio. Zerou, acabou — mesmo com itens restantes. Nos últimos segundos, um toque por segundo.
@@ -233,6 +157,8 @@ export default function BlitzGame({ items, ageProfile, onFinish }: BlitzGameProp
     if (restante <= CONTAGEM_FINAL_S) play('tick');
     const t = setTimeout(() => setRestante((s) => s - 1), 1000);
     return () => clearTimeout(t);
+    // `finalizar` é guardado por `jaFinalizouRef`: o relógio só precisa reagir ao tempo e à pausa.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restante, ativo]);
 
   const responder = (alternativa: string, el: HTMLElement | null) => {
@@ -263,11 +189,7 @@ export default function BlitzGame({ items, ageProfile, onFinish }: BlitzGameProp
       const ganho = pontosDoAcerto(ms, mult, nova, comDica);
       setSequencia(nova);
       setAcertos((n) => n + 1);
-      melhorSeqRef.current = Math.max(melhorSeqRef.current, nova);
-      setPontos((p) => {
-        pontosRef.current = p + ganho.total;
-        return p + ganho.total;
-      });
+      setPontos((p) => p + ganho.total);
 
       // 1. O acerto sensorial completo: áudio escalonado por semitom, haptics e número flutuante
       const texto = '+' + ganho.total + (mult > 1 && !comDica ? ' ×' + mult : '') + (ganho.fever ? ' FEVER' : '');
@@ -354,7 +276,7 @@ export default function BlitzGame({ items, ageProfile, onFinish }: BlitzGameProp
       if (!alt || cortadas.includes(alt)) return;
       responder(alt, botaoDaAlternativa(palcoRef.current, 'alternativas', i));
     },
-    !!item && !resultado && ativo && !escolhido && !acabou,
+    !!item && ativo && !escolhido && !acabou,
   );
 
   // Cartaz do marco e ondas somem sozinhos (as animações duram ≤ 1 s).
@@ -375,109 +297,6 @@ export default function BlitzGame({ items, ageProfile, onFinish }: BlitzGameProp
   const rotulo = rotuloDaSequencia(sequencia);
   const multVisivel = multiplicador(sequencia) * (fever ? 2 : 1);
 
-  /* ══════════════ TELA DE RESULTADO ══════════════ */
-  if (resultado) {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center p-6 animate-in fade-in zoom-in-95 duration-300">
-        <div className="card-panel bg-surface p-8 w-full max-w-md text-center relative overflow-hidden">
-          <p className="label-mono mb-3">Fim da rodada</p>
-          <div
-            className="flex items-center justify-center gap-2 mb-4"
-            aria-label={`${resultado.estrelas} de 3 estrelas`}
-          >
-            {[0, 1, 2].map((i) => (
-              <Star
-                key={i}
-                className={`w-12 h-12 blitz-estrela ${i < resultado.estrelas ? 'text-warn fill-warn' : 'text-border-subtle'}`}
-                style={{ animationDelay: `${0.2 + i * 0.38}s` }}
-                aria-hidden
-              />
-            ))}
-          </div>
-          <p
-            className={`font-display font-black text-5xl tabular-nums ${resultado.recorde ? 'text-warn-ink blitz-recorde' : 'text-ink'}`}
-          >
-            {placar}
-          </p>
-          <p className="text-[12px] text-ink-muted mt-1">pontos</p>
-          {resultado.recorde ? (
-            <p className="flex items-center justify-center gap-1.5 mt-3 font-black text-[15px] text-warn-ink">
-              <Medal className="w-5 h-5" aria-hidden /> NOVO RECORDE!
-            </p>
-          ) : (
-            lerRecorde() > 0 && <p className="text-[12px] text-ink-faint mt-3">recorde pessoal: {lerRecorde()}</p>
-          )}
-          <div className="flex items-center justify-center gap-5 mt-4 text-[13px] text-ink-muted">
-            <span className="flex items-center gap-1">
-              <Zap className="w-4 h-4 text-warn" aria-hidden /> melhor combo:{' '}
-              <b className="text-ink">{resultado.melhorSeq}</b>
-            </span>
-            <span>
-              acertos:{' '}
-              <b className="text-ink">
-                {resultado.report.items.filter((o) => o.correct).length}/{resultado.report.items.length}
-              </b>
-            </span>
-          </div>
-          {/* Ranking global: opt-in, com apelido — só pontos e combo saem daqui. No perfil protegido
-              (menor, ou idade desconhecida — ECA Digital) o envio nem é oferecido. */}
-          {/* Edição estática: sem servidor, sem placar de comunidade — o envio não é oferecido. */}
-          {pontosRef.current > 0 && !perfilProtegido() && !edicaoEstatica() && (
-            <div className="mt-6 pt-5 border-t border-border-subtle text-start">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-ink-faint mb-2">Ranking global</p>
-              {envio === 'ok' ? (
-                <p className="text-[13px] font-bold text-good-ink">
-                  Pontuação enviada! Veja a tabela em "Recordes e ranking".
-                </p>
-              ) : envio === 'indisponivel' ? (
-                <p className="text-[12.5px] text-ink-muted">
-                  Não deu para enviar agora. A pontuação fica guardada aqui; tente de novo depois.
-                </p>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <input
-                    value={apelido}
-                    onChange={(e) => setApelido(e.target.value)}
-                    placeholder="Seu apelido (3–20 letras)"
-                    maxLength={20}
-                    className="flex-1 min-w-0 px-3 py-2 rounded-xl bg-canvas border border-border-subtle text-[13px] text-ink outline-none focus:border-accent"
-                    aria-label="Apelido para o ranking"
-                  />
-                  <button
-                    onClick={async () => {
-                      if (!apelidoValido(apelido)) {
-                        setEnvio('recusado');
-                        return;
-                      }
-                      salvarApelido(apelido);
-                      setEnvio('enviando');
-                      setEnvio(await enviarParaRanking('blitz', pontosRef.current, melhorSeqRef.current));
-                    }}
-                    disabled={envio === 'enviando'}
-                    className="shrink-0 px-4 py-2 rounded-xl bg-warn text-white text-[13px] font-bold shadow-btn cursor-pointer disabled:opacity-60"
-                  >
-                    {envio === 'enviando' ? 'Enviando…' : 'Enviar'}
-                  </button>
-                </div>
-              )}
-              {envio === 'recusado' && (
-                <p className="text-[11.5px] text-error-ink mt-1.5">
-                  Apelido inválido ou envio recusado — use 3 a 20 letras/números.
-                </p>
-              )}
-            </div>
-          )}
-          <button
-            onClick={() => onFinish(resultado.report)}
-            className="btn-ink w-full justify-center mt-5 cursor-pointer"
-          >
-            Continuar
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     /* S7: este container é `flex-1` dentro de uma coluna flex mais externa (o shell do jogo).
        Um item flex sem `min-h-0` não encolhe abaixo do tamanho do seu CONTEÚDO — é a mesma lição
@@ -493,6 +312,7 @@ export default function BlitzGame({ items, ageProfile, onFinish }: BlitzGameProp
         sequencia={sequencia}
         acertos={acertos}
         mult={multVisivel}
+        comFever
         rotulo={`Item ${indice + 1} de ${items.length}`}
         tempo={restante}
         progresso={restante / duracao}

@@ -18,10 +18,12 @@ import { proximaRecompensa } from '../../lib/galeria/progressao';
 import { comemorar, contarAte, flashDeTela, pontosDoElemento, tremor } from '../../lib/juice';
 import type { AgeProfileType } from '../../lib/profile';
 import type { DerivedProgress } from '../../lib/progress';
+import { temRanking } from '../../lib/ranking';
 import { play } from '../../lib/soundFx';
 import { Tela, TituloDeSecao } from '../ui';
 import { IconePixel } from '../views/play/IconesPixel';
 import { unidadeDaRodada } from './casca/regras';
+import EnvioAoRanking from './EnvioAoRanking';
 
 /**
  * FIM DA RODADA — estrelas, raspadinha e o que escapou, num cartão só (`T.resultado` do protótipo
@@ -463,6 +465,16 @@ export default function ResultadoDaRodada({
           </div>
         )}
       </section>
+
+      {/* O ranking do Duelo mora no fim COMUM (a tela de fim própria dele saiu): só nos jogos com
+          ranking, com o número que esta tela mostra. */}
+      {temRanking(report.gameId) && (
+        <EnvioAoRanking
+          jogo={report.gameId}
+          pontos={pontosDaCorrente}
+          combo={Math.max(melhorSequencia, sequencia?.melhorSequencia ?? 0)}
+        />
+      )}
 
       {resumoAberto && (
         <section className="cartao p5 secao entra">

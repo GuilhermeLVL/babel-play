@@ -48,8 +48,16 @@ export function ehMarco(sequencia: number): boolean {
  * Pontos de um acerto. `mult` é o multiplicador da sequência (core/minigames/grade); com dica o
  * multiplicador não vale (o combo é mérito) e o bônus de velocidade também não.
  */
-export function pontosDoAcerto(ms: number, mult: number, sequencia: number, comDica: boolean): {
-  total: number; base: number; velocidade: number; fever: boolean;
+export function pontosDoAcerto(
+  ms: number,
+  mult: number,
+  sequencia: number,
+  comDica: boolean,
+): {
+  total: number;
+  base: number;
+  velocidade: number;
+  fever: boolean;
 } {
   const base = 10 * (comDica ? 1 : mult);
   const velocidade = comDica ? 0 : bonusDeVelocidade(ms);
@@ -67,16 +75,6 @@ export function rotuloDaSequencia(sequencia: number): string {
   return '';
 }
 
-/**
- * Estrelas da rodada (0–3), para a tela de resultado:
- *   3 = todos os respondidos certos, sem dica; 2 = ≥ 70% de acerto; 1 = acertou algo; 0 = nada.
- * Conta só o que foi RESPONDIDO — quem não foi perguntado não derruba estrela.
- */
-export function estrelasDaRodada(outcomes: ReadonlyArray<{ correct: boolean; hinted?: boolean }>): 0 | 1 | 2 | 3 {
-  if (outcomes.length === 0) return 0
-  const certos = outcomes.filter((o) => o.correct).length
-  if (certos === 0) return 0
-  if (certos === outcomes.length && outcomes.every((o) => !o.hinted)) return 3
-  if (certos / outcomes.length >= 0.7) return 2
-  return 1
-}
+/* `estrelasDaRodada` SAIU daqui (27/09): era a régua da tela de fim própria do Duelo, que dava
+   3 estrelas com 100% sem dica e 2 com 70%, enquanto a tela comum (`fases.estrelasDaRodada`) dava
+   2 com 75%. A tela própria saiu; a régua é uma só. */

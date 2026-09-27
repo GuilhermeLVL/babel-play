@@ -17,9 +17,13 @@ import { useRodada } from './CascaDaRodada';
  * tela já somava, a sequência que ela já contava e o quanto da rodada já andou.
  */
 
-/** O nome da sequência, na régua do protótipo (`rotuloSeq`). */
-function rotuloDaSequencia(seq: number): string {
-  return seq >= SEQUENCIA_FEVER
+/**
+ * O nome da sequência, na régua do protótipo (`rotuloSeq`). "FEVER" só para o jogo que TEM a
+ * mecânica (o Duelo, onde a partir da sequência 10 o multiplicador dobra): nos outros o nome dizia
+ * um modo que não existe, e a sequência longa continua "em chamas".
+ */
+function rotuloDaSequencia(seq: number, comFever: boolean): string {
+  return comFever && seq >= SEQUENCIA_FEVER
     ? 'FEVER'
     : seq >= 6
       ? 'em chamas'
@@ -48,6 +52,8 @@ interface HudDaRodadaProps {
   ajudas?: ReactNode;
   /** Multiplicador mostrado, quando o jogo tem um próprio (o FEVER do Duelo dobra). */
   mult?: number;
+  /** O jogo tem a mecânica FEVER (só o Duelo). Sem isto o HUD não fala em FEVER. */
+  comFever?: boolean;
   /** `data-tour` do tempo, quando o tour do jogo aponta para o relógio. */
   tourDoTempo?: string;
   /** `data-tour` do placar inteiro, quando o tour do jogo aponta para ele. */
@@ -64,6 +70,7 @@ export default function HudDaRodada({
   pouco,
   ajudas,
   mult: multDoJogo,
+  comFever = false,
   tourDoTempo,
   tour,
 }: HudDaRodadaProps) {
@@ -124,7 +131,7 @@ export default function HudDaRodada({
       >
         <small>×</small>
         {mult}
-        <em>{sequencia ? `${sequencia} ${rotuloDaSequencia(sequencia)}` : ''}</em>
+        <em>{sequencia ? `${sequencia} ${rotuloDaSequencia(sequencia, comFever)}` : ''}</em>
       </span>
     </div>
   );

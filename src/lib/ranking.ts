@@ -18,6 +18,8 @@
  * (403 `perfil_protegido`). As telas nem oferecem o envio a quem está no perfil protegido
  * (`perfilProtegido()`); ler o placar continua público.
  */
+import type { MinigameId } from '@core';
+
 import { authHeaders } from './authHeaders';
 import { edicaoEstatica } from './edicaoEstatica';
 
@@ -26,6 +28,18 @@ export interface LinhaDoRanking {
   pontos: number;
   combo: number;
   quando: number;
+}
+
+/**
+ * OS JOGOS COM RANKING — os que de fato ENVIAM pontuação. Hoje, só o Duelo relâmpago: é o único
+ * cronometrado, onde pontos comparam pessoas. A tela de Recordes mostra aba só destes, e o fim de
+ * rodada comum oferece o envio só a eles; uma aba de jogo que nunca envia seria um placar vazio
+ * para sempre.
+ */
+export const JOGOS_COM_RANKING: readonly MinigameId[] = ['blitz'];
+
+export function temRanking(jogo: string): boolean {
+  return (JOGOS_COM_RANKING as readonly string[]).includes(jogo);
 }
 
 const CHAVE_APELIDO = 'babel.apelido';

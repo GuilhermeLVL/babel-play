@@ -7,7 +7,11 @@
  *        [--modo=selfhost|publico] [--porta=3140] [--conexoes=10,50,100,200] [--duracao=15] \
  *        [--rotas=abertura,settings,vocab,profile,sessions,review,gastar,vocab-revalida,vocab-quente,
  *                 profile-quente,settings-put]
- *        [--mesmo-ip] [--saida=x.json]
+ *        [--mesmo-ip] [--saida=x.json] [--coletor-dir=<pasta>]
+ *
+ * `--coletor-dir` (auditoria de performance do backend, 26/09/2026): pré-carrega
+ * `scripts/perf/consultas/coletor.cjs` no servidor — consultas por rota, para `consultas/analisar.mjs`.
+ * Com `MIGRATIONS_DIR` no ambiente, o servidor usa aquelas migrations (comparar com um bundle anterior).
  *
  * O bundle é o MESMO comando de build do package.json (`esbuild server.ts --bundle --platform=node
  * --format=cjs --packages=external`), gerado fora do repositório; roda com NODE_ENV=production, que
@@ -60,6 +64,7 @@ const duracao = Number(arg('duracao', 15))
 const rotas = arg('rotas', 'abertura,settings,vocab,profile,sessions,review,gastar').split(',')
 const mesmoIp = flag('mesmo-ip')
 const saida = arg('saida', '')
+const coletorDir = arg('coletor-dir', '') && path.resolve(arg('coletor-dir', ''))
 const RAIZ = path.resolve(import.meta.dirname, '..', '..', '..')
 const tmp = path.dirname(path.resolve(banco))
 const sonda = path.join(tmp, `sonda-${modo}-${porta}.jsonl`)
@@ -142,6 +147,8 @@ const env = {
   TRUST_PROXY: '1',
   LOG_LEVEL: 'error',
   SONDA_ARQUIVO: sonda,
+  ...(coletorDir ? { COLETOR_DIR: coletorDir } : {}),
+  ...(process.env.MIGRATIONS_DIR ? { MIGRATIONS_DIR: process.env.MIGRATIONS_DIR } : {}),
   ...(modo === 'publico'
     ? { AUTH_REQUIRED: '1', SUPABASE_URL: `http://127.0.0.1:${porta + 1}` }
     : { AUTH_REQUIRED: '0', SELF_HOST: '1' }),
@@ -149,7 +156,12 @@ const env = {
 const logServidor = path.join(tmp, `servidor-${modo}-${porta}.log`)
 const filho = spawn(
   process.execPath,
-  ['-r', path.join(RAIZ, 'scripts/perf/escala/sonda-processo.cjs'), path.resolve(bundle)],
+  [
+    '-r',
+    path.join(RAIZ, 'scripts/perf/escala/sonda-processo.cjs'),
+    ...(coletorDir ? ['-r', path.join(RAIZ, 'scripts/perf/consultas/coletor.cjs')] : []),
+    path.resolve(bundle),
+  ],
   {
     cwd: RAIZ,
     env,
@@ -396,4 +408,5 @@ if (saida)
       2,
     ),
   )
+if (coletorDir) await new Promise((r) => setTimeout(r, 2500)) // o coletor grava a cada 2 s
 process.exit(0)

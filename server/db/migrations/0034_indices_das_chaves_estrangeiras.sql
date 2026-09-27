@@ -7,7 +7,7 @@
 -- (453.000 ocorrências, 255.000 resultados de exercício):
 --   · DELETE das 100 falas de uma sessão (PUT /api/sessions/:id/utterances, "retomar captura"):
 --     15.467 ms com o event loop preso — `vocab_occurrences.utterance_id` sem índice;
---   · apagar sessões na exclusão de conta / limpeza de convidados: varredura de `exercise_results` por
+--   · apagar sessões na exclusão de conta (DELETE /api/me): varredura de `exercise_results` por
 --     sessão — `exercise_results.session_id` sem índice;
 --   · apagar cartões na exclusão de conta: varredura de `anki_notes` por cartão (`projected_card_id`);
 --   · apagar segredos: varredura de `provider_credentials` (`secret_ref`) — tabela pequena, entra pela regra.

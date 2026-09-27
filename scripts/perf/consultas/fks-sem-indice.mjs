@@ -22,7 +22,9 @@ if (!banco) {
 }
 const db = new Database(banco, { readonly: true })
 const tabelas = db
-  .prepare(`select name from sqlite_master where type='table' and name not like 'sqlite_%' and name not like '\\_\\_%' escape '\\'`)
+  .prepare(
+    `select name from sqlite_master where type='table' and name not like 'sqlite_%' and name not like '\\_\\_%' escape '\\'`,
+  )
   .all()
   .map((r) => r.name)
 let semIndice = 0
@@ -45,7 +47,8 @@ for (const t of tabelas) {
     const contem = indices.filter((x) => x.colunas.includes(fk.from))
     let veredito
     if (lider) veredito = `ok (${lider.nome})`
-    else if (contem.length) veredito = `só skip-scan (${contem.map((x) => `${x.nome}: ${x.colunas.join(',')}`).join('; ')})`
+    else if (contem.length)
+      veredito = `só skip-scan (${contem.map((x) => `${x.nome}: ${x.colunas.join(',')}`).join('; ')})`
     else {
       veredito = '**SEM ÍNDICE**'
       semIndice++

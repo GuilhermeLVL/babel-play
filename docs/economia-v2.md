@@ -100,10 +100,50 @@ clássica, cartão padrão).
 | Pele de cartão (comum) | Caderno 360 · Selo 440 |
 | Pele de cartão (raro) | Vitral 1.050 · Constelação 1.150* |
 
-\* candidato à temporada (onda 5 decide; por ora fica com preço).
+\* candidato à temporada: na onda 5 virou exclusivo da Temporada 1 (sem preço; volta à Loja um ano
+depois do fim com este preço — ver "Temporada com datas").
 
 Os comuns e raros entram no baú, que passa a entregar peça em vez de Seeds de repetido. A conta
 com as duas ondas juntas (149,9 Seeds/dia) e os preços que ela moveu estão em "Calibragem", acima.
+
+## Temporada com datas (onda 5, `src/core/temporada.ts`)
+
+Substitui o Passe "lente do nível" de 100 casas (spec 8.3). O Passe, o SKU `passe-t1` e a fileira de
+Créditos saíram; `POST /api/billing/creditar-passe` ficou depreciada, sem efeito
+(`tests/contratos/api-depreciacoes.json`).
+
+- **Temporada 1 "Observatório":** 01/10/2026 a 25/11/2026 (8 semanas, dia de Brasília). 30 níveis de
+  150 XP. XP de temporada = XP da conta (`xpDeEventos`) dos eventos com carimbo dentro da janela.
+- **Trilha grátis** (níveis pares): título Luneta (8), Legenda Letreiro (12), Moldura Órbita (18),
+  Cartão Constelação (22), tema Observatório (30); Seeds nos outros dez: 60, 70, 80, 90, 100, 110, 120,
+  130, 140, 150 = **1.050 Seeds** (`tests/temporada.test.ts` trava entre 900 e 1.200).
+- **Trilha de assinante** (todo nível): 15 títulos de estrela e 15 molduras de constelação
+  (`catalogoTemporada.ts`), raridade subindo (1–10 comum, 11–20 raro, 21–29 épico, 30 lendário).
+  **Nunca Seeds**: Seeds pela assinatura seriam Seeds compráveis. Assinante = plano `essencial`/`pro`
+  concedido pelo servidor; na edição estática só existe a trilha grátis.
+- **Crédito** `temporada:<id>:<nível>:<gratis|assinante>`, conferido nas duas pontas (XP da janela ≥
+  nível × 150; assinatura no Express, 403 no espelho). Não há rota nem motivo de gasto que compre nível.
+- **Volta à Loja:** os itens da temporada (os três candidatos da onda 4 e os 32 de perfil) não têm
+  preço nem caem no baú; 365 dias depois do fim voltam com Seeds (`precoSeedsDepois`: Observatório
+  3.000, Letreiro 1.190, Constelação 1.150; os de perfil 400/1.100/2.800/5.200 por raridade).
+
+### Ritmo (conta à mão com `PESOS_XP`, sem captura)
+
+| Perfil | XP de temporada/dia | Nível 30 em | Nível em 56 dias |
+| --- | --- | --- | --- |
+| Leve (10 revisões + 1 rodada) | ≈ 72 | — | ≈ 26 |
+| Típico (25 revisões + 3 rodadas) | ≈ 199 | ≈ 23 dias | 30 |
+| Intenso (60 revisões + 8 rodadas) | ≈ 512 | ≈ 9 dias | 30 |
+
+Efeito na calibragem: a trilha grátis soma 1.050 Seeds na temporada (≈ 19/dia em 8 semanas, ≈ 12% da
+renda típica de 149,9/dia) e entrega dois raros e um épico que saíram da Loja com Seeds — a meta de
+preço da Loja não muda, porque esses três deixaram de ser vendidos.
+
+**Para o dono decidir:** a captura rende `sessao` 25 XP + **2 XP por palavra transcrita**
+(`palavraCapturada`), e uma gravação de 10 minutos passa de 1.000 palavras. Com captura, a trilha
+inteira pode sair em poucas gravações. É a mesma fórmula do XP da conta (a spec manda usar os mesmos
+resultados); se a temporada precisar de ritmo próprio, o ajuste é tirar `palavrasCapturadas` de
+`xpDeTemporada` ou pesar menos.
 
 ## Histórico — economia v2 de 2026-08-28 (substituída pelas recompensas v2)
 

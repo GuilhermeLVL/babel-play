@@ -45,6 +45,7 @@ import type { SttSession } from '../../gateway/capabilities';
 import { capMetrics } from '../../gateway/capture/captureMetrics';
 import {
   type AudioCapture,
+  audioDaTelaFalhouNesteAparelho,
   probeLoopback,
   probeServerLoopback,
   probeSystemAudio,
@@ -182,10 +183,16 @@ export default function LiveCapture({
             : await probeSystemAudio(),
       );
     } catch (e) {
-      setFeedbackMsg('Teste cancelado/bloqueado: ' + (e as Error).message);
-      setTimeout(() => setFeedbackMsg(''), 5000);
+      // O Windows recusou o áudio da janela/tela: o mesmo guia da captura, com as saídas que funcionam.
+      if ((e as Error & { code?: string }).code === 'AUDIO_DA_TELA_INDISPONIVEL')
+        setGuiaDeAudio('AUDIO_DA_TELA_INDISPONIVEL');
+      else {
+        setFeedbackMsg('Teste cancelado/bloqueado: ' + (e as Error).message);
+        setTimeout(() => setFeedbackMsg(''), 5000);
+      }
     } finally {
       setProbing(false);
+      setAudioDaTelaFalhou(audioDaTelaFalhouNesteAparelho());
     }
   };
 
@@ -251,8 +258,15 @@ export default function LiveCapture({
   }, []);
 
   const [isFocusMode, setIsFocusMode] = useState(false);
-  /** Guia pós-erro do compartilhamento ('JANELA_SEM_AUDIO' | 'SEM_AUDIO_COMPARTILHADO'). */
+  /** Guia pós-erro do compartilhamento ('JANELA_SEM_AUDIO' | 'SEM_AUDIO_COMPARTILHADO' |
+   *  'AUDIO_DA_TELA_INDISPONIVEL'). */
   const [guiaDeAudio, setGuiaDeAudio] = useState<string | null>(null);
+  /** O Windows já recusou o áudio da janela/tela NESTE navegador (lembrado pela captura): a dica da
+   *  rota "Compartilhar" passa a recomendar a aba ou o loopback antes do próximo clique. */
+  const [audioDaTelaFalhou, setAudioDaTelaFalhou] = useState(audioDaTelaFalhouNesteAparelho);
+  useEffect(() => {
+    if (guiaDeAudio) setAudioDaTelaFalhou(audioDaTelaFalhouNesteAparelho());
+  }, [guiaDeAudio]);
   /** O diálogo "Modelo no dispositivo" (C9), aberto pelo selo do cabeçalho. */
   const [modeloAberto, setModeloAberto] = useState(false);
 
@@ -2118,10 +2132,19 @@ export default function LiveCapture({
                     <p className="aviso-info entra" style={{ marginTop: 10 }}>
                       <Info aria-hidden />
                       <span>
-                        Ao iniciar, o navegador pergunta qual aba ou tela compartilhar.{' '}
+                        Ao iniciar, o navegador pergunta qual aba, janela ou tela compartilhar.{' '}
                         <b style={{ color: 'var(--ink)' }}>Marque &quot;Compartilhar áudio&quot;</b>, ou a legenda fica
-                        muda. Tela inteira no Windows às vezes falha; aí use o dispositivo de loopback. Janela não tem
-                        áudio no Chrome.
+                        muda. Janela e tela levam o som do computador, menos o do próprio Chrome: vídeo numa aba,
+                        compartilhe a aba.
+                        {audioDaTelaFalhou && (
+                          <>
+                            {' '}
+                            <b style={{ color: 'var(--ink)' }}>
+                              Neste computador o Windows já recusou o áudio da janela/tela: prefira a aba ou o
+                              dispositivo de loopback.
+                            </b>
+                          </>
+                        )}
                       </span>
                     </p>
                   ) : (
@@ -2834,24 +2857,42 @@ export default function LiveCapture({
         >
           <div className="card-panel bg-surface w-full max-w-md p-6">
             <h2 className="font-display font-extrabold text-lg text-ink mb-2">
-              {guiaDeAudio === 'JANELA_SEM_AUDIO' ? 'Janela não tem áudio no navegador' : 'Faltou marcar o áudio'}
+              {guiaDeAudio === 'AUDIO_DA_TELA_INDISPONIVEL'
+                ? 'O Windows não liberou o áudio'
+                : guiaDeAudio === 'JANELA_SEM_AUDIO'
+                  ? 'A janela veio sem áudio'
+                  : 'Faltou marcar o áudio'}
             </h2>
             <div className="text-[13.5px] text-ink-muted leading-relaxed space-y-2">
-              {guiaDeAudio === 'JANELA_SEM_AUDIO' ? (
+              {guiaDeAudio === 'AUDIO_DA_TELA_INDISPONIVEL' ? (
                 <>
                   <p>
-                    O Chrome não entrega o áudio de uma JANELA (limitação da plataforma, não do Babel). Para jogos e
-                    apps fora do navegador:
+                    O Windows recusou o áudio desta janela/tela (acontece com a saída de som em 5.1/7.1). Dois caminhos
+                    funcionam:
                   </p>
+                  <ol className="list-decimal ms-5 space-y-1">
+                    <li>
+                      <b className="text-ink">Aba do Chrome</b>: escolha a aba e deixe &quot;Compartilhar áudio da
+                      guia&quot; ligado;
+                    </li>
+                    <li>
+                      <b className="text-ink">Dispositivo de loopback</b> (Stereo Mix / VB-Cable): pega Discord, jogos e
+                      o computador inteiro.
+                    </li>
+                  </ol>
+                </>
+              ) : guiaDeAudio === 'JANELA_SEM_AUDIO' ? (
+                <>
+                  <p>A janela foi compartilhada sem o áudio. Para jogos e apps fora do navegador:</p>
                   <ol className="list-decimal ms-5 space-y-1">
                     <li>
                       Clique em <b className="text-ink">Escolher de novo</b>;
                     </li>
                     <li>
-                      Na janela de seleção, escolha a aba <b className="text-ink">Tela inteira</b>;
+                      Escolha a janela (ou a <b className="text-ink">Tela inteira</b>);
                     </li>
                     <li>
-                      Marque <b className="text-ink">"Também compartilhar o áudio do sistema"</b> (canto inferior).
+                      Ative <b className="text-ink">&quot;Compartilhar áudio do sistema&quot;</b> (canto inferior).
                     </li>
                   </ol>
                 </>
@@ -2876,6 +2917,26 @@ export default function LiveCapture({
               >
                 Cancelar
               </button>
+              {guiaDeAudio === 'AUDIO_DA_TELA_INDISPONIVEL' && (serverCaptureAvailable || loopbackDetected) && (
+                <button
+                  onClick={() => {
+                    // Troca a rota (persistida em settings.ui) e já abre por ela: a ref é lida ao abrir.
+                    const rota = serverCaptureAvailable ? 'server' : 'loopback';
+                    setGuiaDeAudio(null);
+                    setSystemSource(rota);
+                    systemSourceRef.current = rota;
+                    // Sem dispositivo escolhido a rota abriria o microfone padrão: pega o 1º loopback detectado.
+                    if (rota === 'loopback' && !loopbackDeviceIdRef.current && loopbackDevices[0]) {
+                      setLoopbackDeviceId(loopbackDevices[0].deviceId);
+                      loopbackDeviceIdRef.current = loopbackDevices[0].deviceId;
+                    }
+                    void handleStartSystemCapture();
+                  }}
+                  className="px-4 py-2 rounded-xl border border-border-subtle text-[13px] font-bold text-ink hover:border-accent cursor-pointer"
+                >
+                  Usar o loopback
+                </button>
+              )}
               <button
                 onClick={() => {
                   setGuiaDeAudio(null);
@@ -2883,7 +2944,7 @@ export default function LiveCapture({
                 }}
                 className="px-5 py-2 rounded-xl bg-accent hover:bg-accent-ink text-white text-[13px] font-bold shadow-btn cursor-pointer"
               >
-                Escolher de novo
+                {guiaDeAudio === 'AUDIO_DA_TELA_INDISPONIVEL' ? 'Escolher a aba' : 'Escolher de novo'}
               </button>
             </div>
           </div>

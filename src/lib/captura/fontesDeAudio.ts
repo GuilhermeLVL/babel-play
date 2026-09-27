@@ -176,9 +176,10 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
     } catch (err) {
       clog('getDisplayMedia FALHOU:', (err as Error).message);
       const code = (err as Error & { code?: string }).code;
-      if (code === 'JANELA_SEM_AUDIO' || code === 'SEM_AUDIO_COMPARTILHADO') {
-        // Sem áudio na superfície escolhida: em vez de um toast que some, um guia com o botão
-        // de tentar de novo (o picker só reabre com um novo gesto do usuário).
+      if (code === 'JANELA_SEM_AUDIO' || code === 'SEM_AUDIO_COMPARTILHADO' || code === 'AUDIO_DA_TELA_INDISPONIVEL') {
+        // Sem áudio na superfície escolhida, ou o Windows recusou o áudio da janela/tela: em vez de
+        // um toast que some, um guia com o caminho de volta (o picker só reabre com um novo gesto;
+        // no caso do Windows, o guia oferece trocar para a aba ou para o loopback).
         setIsFocusMode(false);
         setGuiaDeAudio(code);
       } else {

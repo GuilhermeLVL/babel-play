@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Diagnóstico de áudio</title>
+<!--
+  DIAGNÓSTICO DO ÁUDIO DO SISTEMA (2026-09-27). Página solta, sem o app e sem rede: roda a mesma
+  matriz de constraints de getDisplayMedia que provou a causa da falha de Janela/Tela inteira
+  (openspec/audits/2026-09-27-audio-do-sistema/relatorio.md) no computador de quem abre, e monta um
+  relatório para copiar. Nada é enviado a lugar nenhum.
+-->
+<style>
+  :root { --bg:#faf8f4; --card:#fff; --ink:#1d1b18; --mut:#6b665e; --line:#e6e1d8; --ok:#1f7a4a; --bad:#b3261e; --acc:#3b5bdb; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#16140f; --card:#211e18; --ink:#f2efe8; --mut:#a8a296; --line:#353026; --ok:#5fcf8f; --bad:#ff8a80; --acc:#8ea2ff; } }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 860px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  p { margin: 6px 0; }
+  .mut { color: var(--mut); font-size: 13.5px; }
+  .card { background: var(--card); border:1px solid var(--line); border-radius: 12px; padding: 14px 16px; margin-top: 14px; }
+  ol { margin: 6px 0 0; padding-left: 20px; }
+  button { font: inherit; font-weight: 700; border-radius: 10px; padding: 9px 16px; border: 1px solid var(--line); background: var(--card); color: var(--ink); cursor: pointer; }
+  button.pri { background: var(--acc); border-color: var(--acc); color: #fff; }
+  button:disabled { opacity: .5; cursor: default; }
+  .linha { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top: 12px; }
+  table { width:100%; border-collapse: collapse; font-size: 13.5px; }
+  th, td { text-align:left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .ok { color: var(--ok); font-weight: 700; }
+  .bad { color: var(--bad); font-weight: 700; }
+  code, textarea { font: 12.5px/1.45 ui-monospace, Consolas, monospace; }
+  textarea { width:100%; min-height: 160px; background: var(--bg); color: var(--ink); border:1px solid var(--line); border-radius: 8px; padding: 8px; }
+  .tabela { overflow-x: auto; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Diagnóstico do áudio do sistema</h1>
+  <p class="mut">Testa, neste computador, por que o áudio de Janela/Tela inteira abre ou não no navegador. Nada sai daqui: o relatório só existe nesta página até você copiar.</p>
+
+  <div class="card">
+    <b>Como usar</b>
+    <ol>
+      <li>Deixe algo tocando fora do Chrome (Spotify, Discord, um jogo).</li>
+      <li>Clique em <b>Testar</b>. Em cada seletor que abrir, escolha a mesma <b>Janela</b> ou a <b>Tela inteira</b> e ligue <b>"Compartilhar áudio do sistema"</b>.</li>
+      <li>Se o seletor não abrir sozinho para o próximo caso, clique em <b>Testar</b> de novo.</li>
+      <li>No fim, clique em <b>Copiar relatório</b> e mande para o suporte.</li>
+    </ol>
+    <div class="linha">
+      <button id="testar" class="pri" type="button">Testar</button>
+      <button id="copiar" type="button" disabled>Copiar relatório</button>
+      <span id="estado" class="mut" role="status"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <b>Este computador</b>
+    <div id="ambiente" class="mut">…</div>
+  </div>
+
+  <div class="card tabela">
+    <table>
+      <thead><tr><th>Caso</th><th>Resultado</th><th>Fonte de áudio</th><th>Pico</th></tr></thead>
+      <tbody id="linhas"></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <b>Conclusão</b>
+    <p id="conclusao" class="mut">Rode os testes.</p>
+  </div>
+
+  <div class="card">
+    <b>Relatório</b>
+    <textarea id="relatorio" readonly aria-label="Relatório em JSON"></textarea>
+  </div>
+</main>
+<script>
+(function () {
+  'use strict';
+  var BASE = { systemAudio: 'include', monitorTypeSurfaces: 'include', selfBrowserSurface: 'exclude', surfaceSwitching: 'include' };
+  function comBase(audio) { var c = { video: true, audio: audio }; for (var k in BASE) c[k] = BASE[k]; return c; }
+  // Ordem: o que o app pede HOJE primeiro; depois o isolamento da causa.
+  var CASOS = [
+    { id: 'app-atual', nome: 'Pedido do app (loopback por processo, sem DSP)',
+      c: comBase({ suppressLocalAudioPlayback: false, restrictOwnAudio: true, echoCancellation: false, noiseSuppression: false, autoGainControl: false }) },
+    { id: 'minimo', nome: 'Mínimo: audio:true (loopback do dispositivo)', c: { video: true, audio: true } },
+    { id: 'so-restrict', nome: 'Mínimo + restrictOwnAudio', c: { video: true, audio: { restrictOwnAudio: true } } },
+    { id: 'app-antes-24-09', nome: 'Pedido do app antes de 24/09', c: comBase({ suppressLocalAudioPlayback: false }) },
+    { id: 'dsp-off-sem-restrict', nome: 'Sem DSP, sem restrictOwnAudio (24/09 a 27/09)',
+      c: comBase({ suppressLocalAudioPlayback: false, echoCancellation: false, noiseSuppression: false, autoGainControl: false }) }
+  ];
+  var resultados = [];
+  var ambiente = {};
+  var proximo = 0;
+  var $ = function (id) { return document.getElementById(id); };
+
+  function texto(el, t) { el.textContent = t; }
+
+  async function lerAmbiente() {
+    ambiente.userAgent = navigator.userAgent;
+    try {
+      if (navigator.userAgentData && navigator.userAgentData.getHighEntropyValues) {
+        var hv = await navigator.userAgentData.getHighEntropyValues(['fullVersionList', 'platform', 'platformVersion']);
+        ambiente.navegador = (hv.fullVersionList || []).map(function (b) { return b.brand + ' ' + b.version; }).join(', ');
+        ambiente.plataforma = hv.platform + ' ' + hv.platformVersion;
+      }
+    } catch (e) { /* sem dicas de UA */ }
+    try {
+      var ctx = new AudioContext();
+      ambiente.canaisDaSaida = ctx.destination.maxChannelCount;
+      ambiente.taxaDaSaida = ctx.sampleRate;
+      await ctx.close();
+    } catch (e) { ambiente.canaisDaSaida = '?'; }
+    try {
+      var sup = navigator.mediaDevices.getSupportedConstraints();
+      ambiente.suportaRestrictOwnAudio = !!sup.restrictOwnAudio;
+      ambiente.suportaSuppressLocalAudioPlayback = !!sup.suppressLocalAudioPlayback;
+    } catch (e) { /* sem mediaDevices */ }
+    ambiente.getDisplayMedia = !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
+    var canais = ambiente.canaisDaSaida;
+    var dica = canais > 2 ? ' (saída em ' + (canais === 6 ? '5.1' : canais === 8 ? '7.1' : canais + ' canais') + ': é o cenário que faz o Windows recusar o loopback do dispositivo)' : '';
+    texto($('ambiente'),
+      (ambiente.navegador || ambiente.userAgent) + ' · ' + (ambiente.plataforma || '') +
+      ' · saída de som com ' + canais + ' canais a ' + ambiente.taxaDaSaida + ' Hz' + dica +
+      ' · restrictOwnAudio ' + (ambiente.suportaRestrictOwnAudio ? 'suportado' : 'NÃO suportado'));
+    atualizarRelatorio();
+  }
+
+  async function picoDe(faixa) {
+    var ctx = new AudioContext();
+    try {
+      var an = ctx.createAnalyser();
+      ctx.createMediaStreamSource(new MediaStream([faixa])).connect(an);
+      var buf = new Float32Array(an.fftSize);
+      var pico = 0;
+      var t0 = performance.now();
+      while (performance.now() - t0 < 1500) {
+        await new Promise(function (r) { setTimeout(r, 50); });
+        an.getFloatTimeDomainData(buf);
+        for (var i = 0; i < buf.length; i++) { var v = Math.abs(buf[i]); if (v > pico) pico = v; }
+      }
+      return +pico.toFixed(4);
+    } finally { try { await ctx.close(); } catch (e) { /* já fechado */ } }
+  }
+
+  async function rodarCaso(caso) {
+    var r = { caso: caso.id, nome: caso.nome, quando: new Date().toISOString() };
+    var s = null;
+    try {
+      s = await navigator.mediaDevices.getDisplayMedia(caso.c);
+      var v = s.getVideoTracks()[0];
+      var a = s.getAudioTracks()[0];
+      r.ok = true;
+      r.superficie = v && v.getSettings().displaySurface;
+      if (a) {
+        var st = a.getSettings();
+        r.fonte = a.label + ' / ' + (st.deviceId || '?');
+        r.canais = st.channelCount;
+        r.taxa = st.sampleRate;
+        r.pico = await picoDe(a);
+      } else {
+        r.fonte = 'sem faixa de áudio (o áudio não foi ligado no seletor)';
+      }
+    } catch (e) {
+      r.ok = false;
+      r.erro = e.name + ': ' + e.message;
+    } finally {
+      if (s) s.getTracks().forEach(function (t) { t.stop(); });
+    }
+    return r;
+  }
+
+  function desenhar() {
+    var tb = $('linhas');
+    tb.textContent = '';
+    resultados.forEach(function (r) {
+      var tr = document.createElement('tr');
+      var c1 = document.createElement('td'); texto(c1, r.nome);
+      var c2 = document.createElement('td');
+      var sp = document.createElement('span');
+      sp.className = r.ok ? 'ok' : 'bad';
+      texto(sp, r.ok ? 'abriu (' + (r.superficie || '?') + ')' : r.erro);
+      c2.appendChild(sp);
+      var c3 = document.createElement('td'); texto(c3, r.fonte || '—');
+      var c4 = document.createElement('td'); texto(c4, r.pico != null ? String(r.pico) : '—');
+      tr.append(c1, c2, c3, c4);
+      tb.appendChild(tr);
+    });
+    concluir();
+    atualizarRelatorio();
+  }
+
+  function concluir() {
+    var por = {};
+    resultados.forEach(function (r) { por[r.caso] = r; });
+    var el = $('conclusao');
+    var app = por['app-atual'], min = por['minimo'];
+    if (!app) { texto(el, 'Rode os testes.'); return; }
+    if (app.ok && app.pico != null && min && !min.ok && /audio source/i.test(min.erro || '')) {
+      texto(el, 'Mesma causa do relatório: o loopback do dispositivo de saída falha, o loopback por processo abre. Com a correção, o app captura a Janela/Tela neste computador (sem o som que toca dentro do Chrome; para isso, compartilhe a aba).' +
+        (app.pico < 0.0015 ? ' O sinal veio mudo neste teste: deixe algo tocando FORA do Chrome para ver o pico.' : ''));
+    } else if (app.ok && app.pico == null) {
+      texto(el, 'O seletor abriu sem áudio: ligue "Compartilhar áudio do sistema" e teste de novo.');
+    } else if (app.ok) {
+      texto(el, 'O pedido do app abre o áudio da Janela/Tela neste computador' + (app.pico < 0.0015 ? ', mas o sinal veio mudo: deixe algo tocando fora do Chrome.' : '.'));
+    } else {
+      texto(el, 'O pedido do app também falhou (' + app.erro + '). Use a aba do Chrome ou o dispositivo de loopback, e mande este relatório.');
+    }
+  }
+
+  function atualizarRelatorio() {
+    $('relatorio').value = JSON.stringify({ pagina: 'diagnostico-audio v1', ambiente: ambiente, resultados: resultados }, null, 2);
+    $('copiar').disabled = resultados.length === 0;
+  }
+
+  $('testar').addEventListener('click', async function () {
+    var bt = $('testar');
+    bt.disabled = true;
+    if (proximo >= CASOS.length) { proximo = 0; resultados = []; }
+    try {
+      // Um clique pode valer para mais de um seletor enquanto a ativação do gesto durar; quando o
+      // navegador recusar (InvalidStateError), paramos e pedimos outro clique.
+      while (proximo < CASOS.length) {
+        var caso = CASOS[proximo];
+        texto($('estado'), 'Caso ' + (proximo + 1) + ' de ' + CASOS.length + ': escolha a Janela/Tela e ligue o áudio do sistema.');
+        var r = await rodarCaso(caso);
+        if (!r.ok && /InvalidStateError|NotAllowedError: .*(activation|gesture)/i.test(r.erro || '')) break;
+        if (!r.ok && /^NotAllowedError/.test(r.erro || '')) { resultados.push(r); proximo++; desenhar(); break; }
+        resultados.push(r);
+        proximo++;
+        desenhar();
+      }
+      texto($('estado'), proximo >= CASOS.length ? 'Pronto. Copie o relatório.' : 'Clique em Testar para o caso ' + (proximo + 1) + '.');
+    } finally {
+      bt.disabled = false;
+      texto(bt, proximo >= CASOS.length ? 'Testar de novo' : 'Testar');
+    }
+  });
+
+  $('copiar').addEventListener('click', async function () {
+    var t = $('relatorio').value;
+    try { await navigator.clipboard.writeText(t); texto($('estado'), 'Relatório copiado.'); }
+    catch (e) { $('relatorio').select(); texto($('estado'), 'Selecionei o relatório: use Ctrl+C.'); }
+  });
+
+  lerAmbiente();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,53 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>repro-audio</title></head>
+<body>
+<button id="go">go</button>
+<pre id="out"></pre>
+<script>
+const CASOS = {
+  minimo:        { video: true, audio: true },
+  sup_false:     { video: true, audio: { suppressLocalAudioPlayback: false } },
+  dsp_off:       { video: true, audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } },
+  app_rico:      { video: true, audio: { suppressLocalAudioPlayback: false, echoCancellation: false, noiseSuppression: false, autoGainControl: false }, systemAudio: 'include', monitorTypeSurfaces: 'include', selfBrowserSurface: 'exclude', surfaceSwitching: 'include' },
+  app_compat:    { video: true, audio: { suppressLocalAudioPlayback: false }, systemAudio: 'include', monitorTypeSurfaces: 'include', selfBrowserSurface: 'exclude', surfaceSwitching: 'include' },
+  app_antigo:    { video: true, audio: { suppressLocalAudioPlayback: false }, systemAudio: 'include', monitorTypeSurfaces: 'include', selfBrowserSurface: 'exclude', surfaceSwitching: 'include' },
+  sysaudio:      { video: true, audio: true, systemAudio: 'include' },
+  win_system:    { video: true, audio: true, windowAudio: 'system' },
+  win_window:    { video: true, audio: true, windowAudio: 'window' },
+  monitor:       { video: { displaySurface: 'monitor' }, audio: true, systemAudio: 'include' },
+  window:        { video: { displaySurface: 'window' }, audio: true, systemAudio: 'include' },
+  mono_48k:      { video: true, audio: { channelCount: 2, sampleRate: 48000 } },
+  restrict_own:  { video: true, audio: { restrictOwnAudio: true } },
+  rich_restrict: { video: true, audio: { suppressLocalAudioPlayback: false, echoCancellation: false, noiseSuppression: false, autoGainControl: false, restrictOwnAudio: true }, systemAudio: 'include', monitorTypeSurfaces: 'include', selfBrowserSurface: 'exclude', surfaceSwitching: 'include' },
+  compat_restrict: { video: true, audio: { suppressLocalAudioPlayback: false, restrictOwnAudio: true }, systemAudio: 'include', monitorTypeSurfaces: 'include', selfBrowserSurface: 'exclude', surfaceSwitching: 'include' },
+  rich_restrict_ideal: { video: true, audio: { suppressLocalAudioPlayback: false, echoCancellation: false, noiseSuppression: false, autoGainControl: false, restrictOwnAudio: { ideal: true } }, systemAudio: 'include', monitorTypeSurfaces: 'include', selfBrowserSurface: 'exclude', surfaceSwitching: 'include' },
+};
+window.CASOS = CASOS;
+window.rodar = async function (nome, extra) {
+  const c = CASOS[nome];
+  const r = { caso: nome, constraints: c, t: new Date().toISOString() };
+  let s;
+  try {
+    if (extra && extra.preAudioCtx) { window.__ctx = new AudioContext(); const o = window.__ctx.createOscillator(); const g = window.__ctx.createGain(); g.gain.value = 0; o.connect(g).connect(window.__ctx.destination); o.start(); r.preAudioCtx = window.__ctx.state; }
+    if (extra && extra.preMic) { window.__mic = await navigator.mediaDevices.getUserMedia({ audio: true }); r.preMic = window.__mic.getAudioTracks()[0]?.label; }
+    s = await navigator.mediaDevices.getDisplayMedia(c);
+    const v = s.getVideoTracks()[0], a = s.getAudioTracks()[0];
+    r.ok = true;
+    r.surface = v?.getSettings().displaySurface;
+    r.videoLabel = v?.label;
+    r.audioTracks = s.getAudioTracks().length;
+    if (a) { r.audioLabel = a.label; r.audioSettings = a.getSettings(); r.audioState = a.readyState; r.audioMuted = a.muted;
+      try { const ctx = new AudioContext(); const an = ctx.createAnalyser(); ctx.createMediaStreamSource(new MediaStream([a])).connect(an); const buf = new Float32Array(an.fftSize); let pk = 0; const t0 = performance.now(); while (performance.now() - t0 < 1200) { await new Promise(r => setTimeout(r, 50)); an.getFloatTimeDomainData(buf); for (const x of buf) pk = Math.max(pk, Math.abs(x)); } r.peak = +pk.toFixed(4); r.ctxRate = ctx.sampleRate; await ctx.close(); } catch (e) { r.peakErr = String(e); }
+    }
+  } catch (e) {
+    r.ok = false; r.erro = e.name; r.msg = e.message;
+  } finally {
+    s?.getTracks().forEach(t => t.stop());
+    window.__mic?.getTracks().forEach(t => t.stop()); window.__mic = null;
+    try { await window.__ctx?.close(); } catch {} window.__ctx = null;
+  }
+  document.getElementById('out').textContent += JSON.stringify(r) + '\n';
+  return r;
+};
+</script>
+</body></html>

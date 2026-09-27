@@ -1,0 +1,23 @@
+AIDM::Open({session_id=91D551B6A051CDA6F1F12940C9A16772}, {device=[type: DISPLAY_AUDIO_CAPTURE, id: loopbackWithoutChrome, name: System Audio, parameters: [format: FAKE, channel_layout: 3, channels: 2, sample_rate: 44100, frames_per_buffer: 441, effects: NONE, mic_positions: , latency_tag: LatencyUnknown]]})
+AIDM::Opened({session_id=91D551B6A051CDA6F1F12940C9A16772})
+SF::CreateInputStream(device_id=loopbackWithoutChrome, params=[format: PCM_LOW_LATENCY, channel_layout: 3, channels: 2, sample_rate: 48000, frames_per_buffer: 480, effects: NONE, mic_positions: , latency_tag: LatencyUnknown])
+WAIS[id=3D5F8BAC2A77F28E7983FB665698893E]: WASAPIAudioInputStream({device_name=loopbackWithoutChrome}, {params=[format: PCM_LOW_LATENCY, channel_layout: 3, channels: 2, sample_rate: 48000, frames_per_buffer: 480, effects: NONE, mic_positions: , latency_tag: LatencyUnknown]}) [id=DF2D9ECB2DB6D2D6E9E51395EF2EF5B7]
+WAIS[id=3D5F8BAC2A77F28E7983FB665698893E]: WASAPIAudioInputStream => (audio loopback device is of type: PROCESS) [id=DF2D9ECB2DB6D2D6E9E51395EF2EF5B7]
+WAIS[id=3D5F8BAC2A77F28E7983FB665698893E]: WASAPIAudioInputStream => (AEC is requested=[false]) [id=DF2D9ECB2DB6D2D6E9E51395EF2EF5B7]
+WAIS[id=3D5F8BAC2A77F28E7983FB665698893E]: Open([opened=false]) [id=DF2D9ECB2DB6D2D6E9E51395EF2EF5B7]
+WAIS[id=3D5F8BAC2A77F28E7983FB665698893E]: UpdateFormats => (audio engine format=[wFormatTag: WAVE_FORMAT_EXTENSIBLE (0xFFFE), nChannels: 2, nSamplesPerSec: 48000, nAvgBytesPerSec: 384000, nBlockAlign: 8, wBitsPerSample: 32, cbSize: 22 [+] wValidBitsPerSample: 32, dwChannelMask: FRONT_LEFT | FRONT_RIGHT (2/2), SubFormat: KSDATAFORMAT_SUBTYPE_IEEE_FLOAT]) [id=DF2D9ECB2DB6D2D6E9E51395EF2EF5B7]
+WAIS[id=3D5F8BAC2A77F28E7983FB665698893E]: UpdateFormats => (audio sink format=[wFormatTag: WAVE_FORMAT_IEEE_FLOAT (0x3), nChannels: 2, nSamplesPerSec: 48000, nAvgBytesPerSec: 384000, nBlockAlign: 8, wBitsPerSample: 32, cbSize: 0]) [id=DF2D9ECB2DB6D2D6E9E51395EF2EF5B7]
+WAIS[id=3D5F8BAC2A77F28E7983FB665698893E]: UpdateFormats => (packet size=[3840 bytes/480 audio frames/10.000 milliseconds]) [id=DF2D9ECB2DB6D2D6E9E51395EF2EF5B7]
+WAIS[id=3D5F8BAC2A77F28E7983FB665698893E]: DesiredFormatIsSupported() [id=DF2D9ECB2DB6D2D6E9E51395EF2EF5B7]
+WAIS[id=3D5F8BAC2A77F28E7983FB665698893E]: InitializeAudioEngine() [id=DF2D9ECB2DB6D2D6E9E51395EF2EF5B7]
+WAIS[id=3D5F8BAC2A77F28E7983FB665698893E]: Start([opened=truestarted=false]) [id=DF2D9ECB2DB6D2D6E9E51395EF2EF5B7]
+WAIS[id=3D5F8BAC2A77F28E7983FB665698893E]: SetOutputDeviceForAec({output_device_id=}) [id=DF2D9ECB2DB6D2D6E9E51395EF2EF5B7]
+WAIS[id=3D5F8BAC2A77F28E7983FB665698893E]: SetVolume({volume=0.08} [opened=true]) [id=DF2D9ECB2DB6D2D6E9E51395EF2EF5B7]
+{"caso":"restrict_own","t":"2026-09-27T14:09:21.165Z","ok":true,"surface":"monitor","videoLabel":"screen:0:0","audioTracks":1,"audioLabel":"System Audio","audioSettings":{"autoGainControl":true,"channelCount":1,"deviceId":"loopbackWithoutChrome","echoCancellation":true,"latency":0.01,"noiseSuppression":true,"restrictOwnAudio":true,"sampleRate":48000,"sampleSize":16,"voiceIsolation":false},"audioState":"live","audioMuted":false,"peak":0.2457,"ctxRate":48000,"modo":"uia","fonte":"Entire Screen","coep":false,"extra":""}
+WAIS[id=3D5F8BAC2A77F28E7983FB665698893E]: Stop([started=true]) [id=DF2D9ECB2DB6D2D6E9E51395EF2EF5B7]
+WAIS[id=3D5F8BAC2A77F28E7983FB665698893E]: Stop => (timestamp(n)-timestamp(n-1)=[min: 10.000 msec, max: 10.000 msec]) [id=DF2D9ECB2DB6D2D6E9E51395EF2EF5B7]
+WAIS[id=3D5F8BAC2A77F28E7983FB665698893E]: Close() [id=DF2D9ECB2DB6D2D6E9E51395EF2EF5B7]
+WAIS[id=3D5F8BAC2A77F28E7983FB665698893E]: Stop([started=false]) [id=DF2D9ECB2DB6D2D6E9E51395EF2EF5B7]
+WAIS[id=3D5F8BAC2A77F28E7983FB665698893E]: ReportAndResetGlitchStats => (num_glitches_detected=[0], cumulative_audio_lost=[0 ms], largest_glitch=[0 ms]) [id=DF2D9ECB2DB6D2D6E9E51395EF2EF5B7]
+WAIS[id=3D5F8BAC2A77F28E7983FB665698893E]: ReportAndResetGlitchStats => (discontinuity warnings=[0]) [id=DF2D9ECB2DB6D2D6E9E51395EF2EF5B7]
+WAIS[id=3D5F8BAC2A77F28E7983FB665698893E]: ReportAndResetGlitchStats => (timstamp errors=[0]) [id=DF2D9ECB2DB6D2D6E9E51395EF2EF5B7]

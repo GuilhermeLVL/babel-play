@@ -159,7 +159,7 @@ Feito o `git merge main` pedido. Nos jogos:
 | `npm run i18n:orfas` (+ `pseudo --check`, `cobertura --check`) | 0 órfãs; catálogos em dia |
 | `npm run build` | ok |
 | `npm run build:estatica` | ok (408 arquivos) |
-| e2e estática (`playwright.estatica.config.ts`, desktop 1280 + celular 375) | 43 passam, 1 pulado (pré-existente); inclui `jogos.e2e.ts` = 18 casos × 2 |
+| e2e estática (`playwright.estatica.config.ts`, desktop 1280 + celular 375) | 43 passam, 1 pulado (pré-existente); inclui `jogos.e2e.ts` = 18 casos × 2. Na rodada após o último commit de código, o caso do Tabu falhou uma vez por desenho do próprio teste (dependia da ordem sorteada das opções); corrigido em `2038b6a3` e repetido 12× (Tabu) e 2× por tamanho (Memória, Vitendawili, Bao, Tabu), tudo verde; os outros 42 passaram |
 | e2e build normal (`sessao-de-jogo`, `fsrs-revisao`, `seeds`; desktop + 375) | 9 de 10; `seeds` (375) intermitente por ordem, isolado 4/4 |
 
 Testes novos: `respostaTolerante`, `itensDaRodadaJustos`, `wordsearchGame`, `jogosRevelamResposta`,
@@ -171,6 +171,8 @@ da correção correspondente.
 ## Commits (`feat/jogos-premium`)
 
 ```
+2038b6a3 test(e2e): jogos sem depender de sorte
+3e5c0cca docs(auditoria): relatório do QA dos jogos (2026-09-26) com antes × depois
 b600c077 refactor(jogos): o idioma dos itens sai de idiomaDoCartao
 17998775 test(e2e): os 18 jogos de ponta a ponta na edição estática
 747bdb8b fix(jogos): Termo não embaralha a palavra digitada quando a linha já tem letras conhecidas

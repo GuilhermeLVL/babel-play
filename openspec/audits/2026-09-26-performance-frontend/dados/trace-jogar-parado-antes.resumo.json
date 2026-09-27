@@ -1,0 +1,40 @@
+{
+ "segundos": 4,
+ "ocupadoMsPorS": 1229,
+ "longas": 2,
+ "longasMs": 1280,
+ "top": [
+  {
+   "nome": "Commit",
+   "msPorS": 664
+  },
+  {
+   "nome": "FireAnimationFrame",
+   "msPorS": 403.7
+  },
+  {
+   "nome": "PrePaint",
+   "msPorS": 38.6
+  },
+  {
+   "nome": "BlinkScheduler_PerformMicrotaskCheckpoint",
+   "msPorS": 3.3
+  },
+  {
+   "nome": "Layerize",
+   "msPorS": 1.5
+  },
+  {
+   "nome": "TimerFire",
+   "msPorS": 0.8
+  },
+  {
+   "nome": "SimpleWatcher::OnHandleReady",
+   "msPorS": 0.1
+  },
+  {
+   "nome": "Receive mojo message",
+   "msPorS": 0
+  }
+ ]
+}

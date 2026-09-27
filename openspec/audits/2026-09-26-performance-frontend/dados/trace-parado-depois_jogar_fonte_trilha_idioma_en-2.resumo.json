@@ -1,0 +1,16 @@
+{
+ "segundos": 4,
+ "ocupadoMsPorS": 255,
+ "longas": 2,
+ "longasMs": 1005,
+ "top": [
+  {
+   "nome": "TimerFire",
+   "msPorS": 251.2
+  },
+  {
+   "nome": "BlinkScheduler_PerformMicrotaskCheckpoint",
+   "msPorS": 0.4
+  }
+ ]
+}

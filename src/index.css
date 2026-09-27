@@ -1,4 +1,6 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Archivo:wght@500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600;700&family=Geist:wght@400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600&family=Baloo+2:wght@700;800&family=Silkscreen:wght@400;700&family=VT323&family=Merriweather:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;600&family=Orbitron:wght@600;800&family=Rajdhani:wght@600;700&family=Nunito:wght@600;700&family=Caveat:wght@600;700&display=swap');
+/* As fontes do Google vêm do <link> do index.html, não mais de um @import aqui: o @import só era
+   descoberto depois que este CSS chegava, e a folha do Google descia em série (auditoria de
+   performance do frontend, 26/09/2026; tests/fontes-no-html.test.ts). */
 @import "tailwindcss";
 
 @theme {

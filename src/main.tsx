@@ -5,6 +5,8 @@ import './styles/prototipo.css';
 import './styles/prototipo-app.css';
 /* Alvos de 48/56 px e texto maior no Quest/celular (só onde `<html data-dispositivo>` pede). */
 import './styles/dispositivo.css';
+/* Por último: só QUANDO o navegador trabalha (content-visibility etc.), nunca o desenho. */
+import './styles/desempenho.css';
 
 import { RefreshCw } from 'lucide-react';
 import { StrictMode } from 'react';

@@ -35,7 +35,10 @@ export function arquivosIniciais(html) {
   for (const m of html.matchAll(/<script[^>]*type="module"[^>]*src="([^"]+)"/g)) js.add(m[1])
   for (const m of html.matchAll(/<link[^>]*rel="modulepreload"[^>]*href="([^"]+)"/g)) js.add(m[1])
   for (const m of html.matchAll(/<link[^>]*rel="stylesheet"[^>]*href="([^"]+)"/g)) css.add(m[1])
-  return { js: [...js], css: [...css] }
+  // Só o que o build gera: folha de outra origem (as fontes do Google, pedidas no index.html desde
+  // 26/09/2026) não é bundle nem existe no `dist`.
+  const doBuild = (u) => !/^(?:[a-z]+:)?\/\//i.test(u)
+  return { js: [...js].filter(doBuild), css: [...css].filter(doBuild) }
 }
 
 /** `*` como curinga, casando o NOME do arquivo. Pura, para o teste. */

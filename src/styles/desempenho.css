@@ -1,0 +1,18 @@
+/* DESEMPENHO DE RENDERIZAÇÃO — regras que mudam QUANDO o navegador trabalha, nunca o desenho.
+   Auditoria de performance do frontend (26/09/2026): openspec/audits/2026-09-26-performance-frontend.
+   Carregado depois de prototipo.css e prototipo-app.css (src/main.tsx). Se uma regra daqui mudar a
+   aparência de uma tela, ela está errada. */
+
+/* AS PEÇAS DE PERSONALIZAR/LOJA (`.cartao.peca`, uma por item do catálogo: ~130).
+   Trocar para "Meu visual" montava todas de uma vez, e o navegador fazia o layout e a pintura das
+   130 — inclusive das que estão três telas abaixo. Medido num celular médio (CPU 4×): uma tarefa de
+   1,5 s, 1,36 s dela em Layout; INP da troca de aba 2.136 ms. Com `content-visibility: auto`, o que
+   está fora da tela só é diagramado quando chega perto dela: INP 296–416 ms na mesma medição.
+   O cartão na tela é desenhado exatamente como antes (a contenção de pintura corta só o que os
+   FILHOS desenham fora da caixa; a sombra do próprio cartão fica). `contain-intrinsic-size` guarda a
+   altura real depois da primeira vez (`auto`); 230px é a de um cartão típico no celular, para a
+   barra de rolagem não pular antes disso. */
+.cartao.peca {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 230px;
+}

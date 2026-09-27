@@ -5,7 +5,7 @@
 import { CloudUpload, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-import { type InventarioLocal, inventarioLocal, migrarParaConta, type ProgressoDaMigracao, type RelatorioDeMigracao } from '../../data/migracao';
+import type { InventarioLocal, ProgressoDaMigracao, RelatorioDeMigracao } from '../../data/migracao';
 import { t, tp } from '../../lib/i18n';
 import { T } from '../../lib/T';
 
@@ -18,6 +18,10 @@ interface ModalDeMigracaoProps {
 
 type Fase = 'inventario' | 'migrando' | 'resultado';
 
+/* A migração (e o `idb` do modo sem conta que ela lê) só desce quando o modal ABRE — ele fica
+   montado no App o tempo todo, fechado, e antes arrastava esse código para o chunk de entrada. */
+const migracao = () => import('../../data/migracao');
+
 export default function ModalDeMigracao({ aberto, onFechar, onMigrou }: ModalDeMigracaoProps) {
   const [fase, setFase] = useState<Fase>('inventario');
   const [inventario, setInventario] = useState<InventarioLocal | null>(null);
@@ -28,7 +32,7 @@ export default function ModalDeMigracao({ aberto, onFechar, onMigrou }: ModalDeM
   useEffect(() => {
     if (!aberto) return;
     setFase('inventario'); setRelatorio(null); setErro(null); setProgresso(null);
-    inventarioLocal().then(setInventario).catch(() => setInventario(null));
+    migracao().then((m) => m.inventarioLocal()).then(setInventario).catch(() => setInventario(null));
   }, [aberto]);
 
   if (!aberto) return null;
@@ -36,7 +40,7 @@ export default function ModalDeMigracao({ aberto, onFechar, onMigrou }: ModalDeM
   const migrar = async () => {
     setFase('migrando'); setErro(null);
     try {
-      const r = await migrarParaConta(setProgresso);
+      const r = await (await migracao()).migrarParaConta(setProgresso);
       setRelatorio(r);
       if (r.sessoes + r.jaExistiam + r.cartoes > 0) onMigrou();
     } catch (e) {

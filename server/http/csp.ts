@@ -37,8 +37,8 @@
  * pode estar em qualquer acervo (Flickr, Wikimedia, museus). Fechar `img-src` apagaria capas já
  * gravadas. Imagem é conteúdo passivo; o canal de exfiltração que importa é `connect-src`.
  *
- * As fontes do Google entram em `style-src`/`font-src`: `src/index.css` importa a folha de
- * `fonts.googleapis.com`, e a CSP anterior (`style-src 'self' 'unsafe-inline'`) a bloqueava em
+ * As fontes do Google entram em `style-src`/`font-src`: o `index.html` pede a folha de
+ * `fonts.googleapis.com` (era um `@import` em `src/index.css` até 26/09/2026), e a CSP anterior (`style-src 'self' 'unsafe-inline'`) a bloqueava em
  * produção — o app caía na fonte do sistema sem ninguém notar, porque em dev a CSP só relata.
  */
 

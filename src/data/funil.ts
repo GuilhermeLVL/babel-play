@@ -28,7 +28,54 @@ import { aguardarProtecao, rotaLiberadaNaRestricao } from '../lib/protecaoDoMeno
 import { cabecalhoDaSessaoDeCaptura } from '../lib/sessaoDeCaptura'
 import { authRequired,supabase } from '../lib/supabase'
 import { CABECALHO_DA_VERSAO, conferirVersaoDoServidor } from '../lib/versao'
-import { servidorEfemero } from './efemero/servidor'
+
+/**
+ * O SERVIDOR EM MEMÓRIA SOB DEMANDA (auditoria de performance do frontend, 26/09/2026).
+ *
+ * Ele só responde a quem está SEM conta, na edição estática ou numa conta de menor à espera do
+ * responsável — e morava no chunk de entrada de TODO mundo: os handlers de `efemero/rotas/*`, o
+ * `idb` e o que eles puxam do núcleo (FSRS, economia, métricas). Medido com
+ * `scripts/perf/telas/composicao-bundle.mjs`. Agora o chunk chega pelo `import()` na primeira
+ * chamada que precisa dele; `apiFetch` já era assíncrono, então quem chama não percebe. A promessa
+ * é guardada: o módulo é pedido uma vez só.
+ */
+type ServidorEfemero = typeof import('./efemero/servidor')['servidorEfemero']
+let servidorEmVoo: Promise<ServidorEfemero> | null = null
+function carregarServidorEfemero(): Promise<ServidorEfemero> {
+  servidorEmVoo ??= import('./efemero/servidor').then((m) => m.servidorEfemero)
+  // Falha de rede ao baixar o chunk não pode envenenar as próximas chamadas.
+  servidorEmVoo.catch(() => {
+    servidorEmVoo = null
+  })
+  return servidorEmVoo
+}
+async function servidorEfemero(input: string, init: RequestInit): Promise<Response> {
+  return (await carregarServidorEfemero())(input, init)
+}
+
+/**
+ * SEM CASCATA PARA QUEM VAI USÁ-LO. Esperar a primeira chamada para pedir o chunk custava uma ida à
+ * rede depois de o React montar (medido: +300 ms de LCP na Início da edição estática, CPU 4×). Quem
+ * PROVAVELMENTE vai precisar dele começa a baixar já na carga deste módulo: a edição estática
+ * (sempre; lá ele também vem como `modulepreload`, `scripts/vite/preCarregarEfemero.ts`) e o modo
+ * público sem sessão do Supabase guardada (`sb-*-auth-token`), que é o visitante sem conta. Self-host
+ * e quem tem sessão não baixam nada. Pura, para o teste.
+ */
+export function deveAdiantarServidorEfemero(p: { estatica: boolean; authRequired: boolean; chaves: string[] }): boolean {
+  if (p.estatica) return true
+  if (!p.authRequired) return false
+  return !p.chaves.some((k) => k.startsWith('sb-') && k.endsWith('-auth-token'))
+}
+if (typeof window !== 'undefined') {
+  let chaves: string[] = []
+  try {
+    chaves = Object.keys(window.localStorage)
+  } catch {
+    /* sem storage: sem sessão guardada */
+  }
+  if (deveAdiantarServidorEfemero({ estatica: edicaoEstatica(), authRequired, chaves }))
+    void carregarServidorEfemero().catch(() => {})
+}
 
 // ───────────────────────────── fetch com teto de tempo (A-05) ─────────────────────────────
 // Toda a camada de dados usava `fetch` SEM timeout: uma resposta que nunca chega deixava a UI presa

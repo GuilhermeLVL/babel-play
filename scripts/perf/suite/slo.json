@@ -35,9 +35,9 @@
     "comentario": "o job `carga` usa o p95 da classe `leitura` como teto e erro zero; o runner do GitHub é compartilhado, então só pega regressão de ordem de grandeza"
   },
   "frontend": {
-    "jsInicialGzipMaxKB": 215,
+    "jsInicialGzipMaxKB": 180,
     "cssInicialGzipMaxKB": 55,
     "proibidosNoDist": ["prototipo-*.html", "lucide.min.js"],
-    "comentario": "teto = o medido na Fase 4 + 10% (gzip nível 6, o do servidor): JS 195,2 KB → 215, CSS 49,5 KB → 55; scripts/perf/orcamento-bundle.mjs cobra no job `carga`"
+    "comentario": "teto = o medido + 10% (gzip nível 6, o do servidor). JS: 195,2 KB na Fase 4 → 215; 163,3 KB depois da auditoria de performance do frontend de 26/09/2026 (servidor em memória sob demanda, núcleo sem efeito colateral) → 180. CSS 49,5 KB → 55. scripts/perf/orcamento-bundle.mjs cobra no job `carga`"
   }
 }

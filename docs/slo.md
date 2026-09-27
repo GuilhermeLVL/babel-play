@@ -32,7 +32,7 @@ entram como **% de degradação**, acompanhada à parte.
 | Arquivos só de desenvolvimento no `dist`                       | **nenhum** (`prototipo-*.html`, `lucide.min.js`)      | idem                                                        |
 | LCP (p75 de campo)                                             | < 2,5 s (mobile) — meta "bom" do Core Web Vitals      | `scripts/perf/frontend.mjs` (manual: workflow `lighthouse`) |
 | CLS                                                            | < 0,1                                                 | idem                                                        |
-| INP                                                            | < 200 ms                                              | idem (aproximado por PerformanceObserver)                   |
+| INP                                                            | < 200 ms                                              | `scripts/perf/telas/medir-telas.mjs` (Event Timing por interação, celular médio, CPU 4×/6×) |
 
 ## O que os SLOs NÃO dizem
 

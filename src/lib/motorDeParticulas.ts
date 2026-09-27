@@ -204,7 +204,8 @@ export function criarLacoDeParticulas({ canvas, ctx, pedirQuadro, cancelarQuadro
       skin === 'pixel' ? 'pixel'
       : skin === 'confete' ? 'confete'
       : skin === 'coracoes' ? 'coracao'
-      : skin === 'estrelas' || skin === 'emoji' ? 'emoji'
+      : skin === 'estrelas' ? 'raio' // o lampejo do motor: era ⭐✨ por emoji, que ignora a cor
+      : skin === 'emoji' ? 'emoji'
       : skin === 'cometa' ? 'cometa'
       : null;
     // 'travessia': objetos que cruzam a tela voando; o lado de entrada e sorteado por rajada.
@@ -246,8 +247,8 @@ export function criarLacoDeParticulas({ canvas, ctx, pedirQuadro, cancelarQuadro
           : spec.forma === 'emoji'
             // Forma emoji sem lista própria (skin/rastro): sorteia do PACK equipado na loja.
             ? packDaLoja[Math.floor(Math.random() * packDaLoja.length)]
-            : (!spec.forma && (skin === 'estrelas' || skin === 'emoji')
-              ? (skin === 'emoji' ? packDaLoja[Math.floor(Math.random() * packDaLoja.length)] : (Math.random() < 0.5 ? '⭐' : '✨'))
+            : (!spec.forma && skin === 'emoji'
+              ? packDaLoja[Math.floor(Math.random() * packDaLoja.length)]
               : undefined),
         giro: rand(0, Math.PI * 2),
         giroVel: rand(-0.18, 0.18),

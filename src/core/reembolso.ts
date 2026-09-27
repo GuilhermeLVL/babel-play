@@ -104,7 +104,9 @@ export const ITENS_REMOVIDOS_DO_CATALOGO: ReadonlyMap<string, { tipo: string; al
   ['gal-cat-transporte', { tipo: 'galeria', alvo: 'cat:transporte' }],
   ['gal-cursor-emoji', { tipo: 'galeria', alvo: 'cursor-emoji' }],
   ['gal-editor-pack', { tipo: 'galeria', alvo: 'editor-pack' }],
-  // rastro (12)
+  // rastro (14) — ras-bolhas e ras-matrix saíram na revisão de 27/09 (um rastro por forma)
+  ['ras-bolhas', { tipo: 'rastro', alvo: 'croma:arcoiris:celeste' }],
+  ['ras-matrix', { tipo: 'rastro', alvo: 'croma:pixel:verde' }],
   ['ras-ametista', { tipo: 'rastro', alvo: 'gen:estrelas:amethyst-night' }],
   ['ras-arcade', { tipo: 'rastro', alvo: 'gen:pixel:arcade' }],
   ['ras-chamas', { tipo: 'rastro', alvo: 'gen:faisca:halloween' }],

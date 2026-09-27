@@ -18,7 +18,7 @@ export const PARTICULAS_OPTIONS: ParticulasOption[] = [
   { id: 'pixel', name: 'Pixel', desc: 'Quadrados duros, estilo 8-bits.' },
   { id: 'confete', name: 'Confete', desc: 'Papel picado girando.' },
   { id: 'coracoes', name: 'Coracoes', desc: 'Coracoes subindo a cada acerto.' },
-  { id: 'estrelas', name: 'Estrelas', desc: 'Estrelinhas brilhantes.' },
+  { id: 'estrelas', name: 'Lampejo', desc: 'Lampejos de luz em ziguezague.' },
   { id: 'cometa', name: 'Cometa', desc: 'Exclusiva de conquista: bolas de luz com cauda.' },
 ];
 

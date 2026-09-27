@@ -289,7 +289,9 @@ export const BURST_SPECS: Record<BurstKind, BurstSpec> = {
   // ── RASTRO DO MOUSE (lib/rastroDoMouse): emitido a cada ~45ms — POUCAS particulas e vida curta,
   //    senão o teto de vivas engole as comemorações de verdade. ──
   rastroFaisca:   { count: 4, speed: 1.6, size: [2, 3.2], life: 650, colorToken: '--accent', gravidade: 0.02 },
-  rastroEstrelas: { count: 2, speed: 1.1, size: [3.5, 5], life: 750, colorToken: '--warn', forma: 'emoji', emojis: ['⭐', '✨'] },
+  /* Era ⭐✨ por `fillText`: emoji ignora a paleta (o `gen:estrelas:<paleta>` saía sempre amarelo) e
+     a cor do tema. Agora é o lampejo em ziguezague do motor, que pinta com a cor pedida. */
+  rastroEstrelas: { count: 2, speed: 1.1, size: [2.4, 3.4], life: 750, colorToken: '--warn', forma: 'raio' },
   rastroCoracoes: { count: 2, speed: 1.1, size: [3, 4.5], life: 750, colorToken: '--accent', forma: 'coracao', paleta: ['#F04E23', '#FF7BAC', '#E63946'] },
   rastroPixel:    { count: 4, speed: 1.6, size: [2, 3], life: 650, colorToken: '--accent', forma: 'pixel', paleta: ['#F04E23', '#F59E0B', '#3E8E4E'] },
   rastroEmoji:    { count: 2, speed: 1.1, size: [3.5, 5], life: 800, colorToken: '--warn', forma: 'emoji' },

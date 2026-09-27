@@ -109,10 +109,10 @@ describe('rotas caras: equivalência, invalidação e custo', () => {
           rastro: 'off',
         },
       })
-      /* Era `cursor: 'coroa'` (Perfeccionista); cursores saíram nas recompensas v2 e o exclusivo que
-         continua é o rastro do Duelista. */
+      /* Era `cursor: 'coroa'` (Perfeccionista); cursores saíram nas recompensas v2, e o rastro do
+         Duelista saiu na revisão de 27/09 (um rastro por forma): o exclusivo é o do Colecionador. */
       const recusa = await s.put('/api/settings', {
-        ui: { theme: 'linear', fonte: 'padrao', rastro: 'croma:pixel:verde' },
+        ui: { theme: 'linear', fonte: 'padrao', rastro: 'arcoiris' },
       })
       const corpoOk = (await ok.json()) as Record<string, unknown>
       await expect(

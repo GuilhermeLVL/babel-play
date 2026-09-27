@@ -46,9 +46,9 @@ describe('PUT /api/settings — posse de cosmeticos (modo self-host)', () => {
   let COMPRAVEL: ItemDaLoja
   const PREMIUM = CATALOGO_DA_LOJA.find((i) => i.id === 'tema-premium')!
   const LIVRE = CATALOGO_DA_LOJA.find((i) => i.id === 'tema-babel')!
-  /* Era `cur-coroa`, que saiu com os cursores (recompensas v2); o rastro do Duelista é o exclusivo
-     que continua. */
-  const EXCLUSIVO = CATALOGO_DA_LOJA.find((i) => i.id === 'ras-matrix')!
+  /* Era `cur-coroa`, que saiu com os cursores (recompensas v2), e depois o rastro do Duelista, que
+     saiu na revisão de 27/09 (um rastro por forma); o do Colecionador continua. */
+  const EXCLUSIVO = CATALOGO_DA_LOJA.find((i) => i.id === 'ras-arcoiris')!
 
   beforeAll(async () => {
     s = await subirApp({ modo: 'self-host' })

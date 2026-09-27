@@ -483,6 +483,9 @@ export function rodadaRendeBau(linhas: ReadonlyArray<{ correct?: number | null }
  */
 function ehSorteavelNoDrop(item: ItemDaLoja): boolean {
   if (item.exclusivoDe) return false;
+  /* 5. RASTRO FORA (revisão de 27/09): o rastro só existe com ponteiro fino — num aparelho de toque
+     ele é invisível, e um baú que entrega o invisível não entregou nada. */
+  if (item.tipo === 'rastro') return false;
   if (item.precoCreditos !== undefined) return false;
   if (item.raridade !== 'comum' && item.raridade !== 'raro') return false;
   return item.precoSeeds !== undefined;

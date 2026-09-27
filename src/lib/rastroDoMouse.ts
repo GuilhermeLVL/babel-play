@@ -37,7 +37,7 @@ export interface EstiloDeRastro { id: string; nome: string; kind: BurstKind }
 export const RASTROS: EstiloDeRastro[] = [
   { id: 'off', nome: 'Desligado', kind: 'xp' },
   { id: 'faisca', nome: 'Faíscas', kind: 'rastroFaisca' },
-  { id: 'estrelas', nome: 'Estrelas', kind: 'rastroEstrelas' },
+  { id: 'estrelas', nome: 'Lampejo', kind: 'rastroEstrelas' },
   { id: 'coracoes', nome: 'Corações', kind: 'rastroCoracoes' },
   { id: 'pixel', nome: 'Pixel', kind: 'rastroPixel' },
   /* Exclusivo de conquista ("Colecionador"): não está à venda. */
@@ -47,7 +47,7 @@ export const RASTROS: EstiloDeRastro[] = [
 /** Formas que aceitam paleta no rastro personalizado. */
 export const FORMAS_DE_RASTRO: Array<{ id: string; nome: string; kind: BurstKind }> = [
   { id: 'faisca', nome: 'Faíscas', kind: 'rastroFaisca' },
-  { id: 'estrelas', nome: 'Estrelas', kind: 'rastroEstrelas' },
+  { id: 'estrelas', nome: 'Lampejo', kind: 'rastroEstrelas' },
   { id: 'coracoes', nome: 'Corações', kind: 'rastroCoracoes' },
   { id: 'pixel', nome: 'Pixel', kind: 'rastroPixel' },
   { id: 'arcoiris', nome: 'Bolinhas', kind: 'rastroArcoiris' },

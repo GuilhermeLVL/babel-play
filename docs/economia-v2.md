@@ -49,8 +49,13 @@ conta dias de prática. `POST /api/metrics/presenca` continua gravando, só como
 ## Corte do catálogo e reembolso (`src/core/reembolso.ts`)
 
 Saíram 97 itens: 27 cursores, 33 packs de emoji, 2 aprimoramentos, a partícula "Chuva de Emojis",
-10 capacidades de emoji da galeria, 12 rastros (fica um por forma à venda) e as 12 fontes/posições
-(que viraram opção livre em "Acessibilidade e layout"). `POST /api/metrics/seeds/reembolso` devolve,
+10 capacidades de emoji da galeria, 14 rastros e as 12 fontes/posições (que viraram opção livre
+em "Acessibilidade e layout"). Rastros: fica EXATAMENTE um por forma (Faíscas, Lampejo — que era
+"Estrelas" por emoji ⭐✨ e virou o lampejo do motor, pintado na cor pedida —, Corações, Pixel e o
+Arco-íris do Colecionador) mais os quatro dourados da vitrine de Créditos; a Esteira de Bolhas e o
+Fluxo Matrix 84 (que era a peça da conquista Duelista, que segue pagando Seeds e XP) saíram na
+revisão de 27/09. Rastro só aparece com ponteiro fino, então NENHUM rastro cai no baú
+(`ehSorteavelNoDrop`): num aparelho de toque o prêmio seria invisível. `POST /api/metrics/seeds/reembolso` devolve,
 uma vez, cada gasto `loja:`/`croma:` de item removido e todo `aprimoramento:*` como
 `reembolso:<reason>` — idempotente pelo índice único de `seed_credits`. Pago com Créditos
 (`dourada-3/5/7`) vira um equivalente DA VITRINE de Créditos (3 → Corações de Ouro, 5 → Pixel

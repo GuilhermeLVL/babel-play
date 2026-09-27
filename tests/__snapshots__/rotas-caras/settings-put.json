@@ -6,12 +6,12 @@
   "recusa": {
     "status": 403,
     "corpo": {
-      "error": "você ainda não tem esse item: exige a conquista \"duelista\"",
+      "error": "você ainda não tem esse item: exige a conquista \"colecionador\"",
       "code": "item_nao_possuido",
       "detalhes": {
         "tipo": "rastro",
-        "alvo": "croma:pixel:verde",
-        "motivo": "exige a conquista \"duelista\""
+        "alvo": "arcoiris",
+        "motivo": "exige a conquista \"colecionador\""
       }
     }
   }

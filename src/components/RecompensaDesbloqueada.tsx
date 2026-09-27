@@ -19,7 +19,7 @@ import { type MinigameId, type NivelAlcancavel, PESOS_SEEDS, rotuloDaMaestria } 
 import { Award, Check, Crown, Gem, Gift, Medal, Sparkles, Sprout, Trophy } from 'lucide-react';
 import { type CSSProperties, useEffect, useId, useRef, useState } from 'react';
 
-import { celebrar } from '../lib/comemoracao';
+import { celebrar, tocarPreviaDoEfeito } from '../lib/comemoracao';
 import { TEXTOS } from '../lib/galeria/textos';
 import { t } from '../lib/i18n';
 import { pontosDoElemento } from '../lib/juice';
@@ -95,6 +95,9 @@ export interface DetalheDoDrop {
   limite?: number;
 }
 const CHAVE_VISTAS = 'babel.recompensas_vistas';
+
+/** As peças que se mostram inteiras no modal, como aparecem de verdade. */
+const COM_PREVIA_LARGA: ReadonlySet<string> = new Set(['legenda', 'cartao', 'efeito-acerto', 'efeito-combo', 'finalizacao']);
 
 export function chaveDaRecompensa(r: Recompensa): string {
   if (r.tipo === 'nivel') return `nivel:${r.nivel}`;
@@ -180,9 +183,25 @@ interface Props {
   onVerPersonalizar: () => void;
 }
 
+/**
+ * O LOTE DE NOVIDADES (recompensas v2, spec 10.2): quando várias chegam juntas (fim de rodada com
+ * baú, maestria e conquista), o modal continua abrindo uma por vez, mas diz "3 novidades · 1 de 3".
+ * O lote é o que estava na fila quando a primeira abriu, mais o que entrar antes de ela esvaziar.
+ */
+export function posicaoNoLote(lote: readonly string[], fila: readonly Recompensa[]): { lote: string[]; posicao: number; total: number } {
+  const chaves = fila.map(chaveDaRecompensa);
+  const atual = chaves[0];
+  if (!atual) return { lote: [], posicao: 0, total: 0 };
+  const novo = lote.includes(atual) ? [...lote, ...chaves.filter((c) => !lote.includes(c))] : chaves;
+  return { lote: novo, posicao: novo.indexOf(atual) + 1, total: novo.length };
+}
+
 export default function RecompensaDesbloqueada({ fila, onEquipar, onFechar, onVerPersonalizar }: Props) {
   const atual = fila[0] ?? null;
   const [pronta, setPronta] = useState(() => !jogoAtivo());
+  const lote = useRef<string[]>([]);
+  const grupo = posicaoNoLote(lote.current, fila);
+  lote.current = grupo.lote;
 
   // Espera a rodada fechar; enquanto isso o modal não existe na tela.
   useEffect(() => {
@@ -206,11 +225,34 @@ export default function RecompensaDesbloqueada({ fila, onEquipar, onFechar, onVe
       onEquipar={onEquipar}
       onFechar={onFechar}
       onVerPersonalizar={onVerPersonalizar}
+      grupo={grupo}
     />
   );
 }
 
-function Resgate({ atual, onEquipar, onFechar, onVerPersonalizar }: Omit<Props, 'fila'> & { atual: Recompensa }) {
+/** A prévia REAL de uma peça: a legenda estilizada, o cartão, o efeito tocando (uma vez, ao abrir). */
+function PreviaDaPeca({ item }: { item: ItemDaLoja }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const efeito = item.tipo === 'efeito-acerto' || item.tipo === 'efeito-combo' || item.tipo === 'finalizacao';
+  useEffect(() => {
+    if (!efeito) return;
+    const id = window.setTimeout(() => tocarPreviaDoEfeito(item.tipo as 'efeito-acerto', item.alvo, ref.current), 450);
+    return () => window.clearTimeout(id);
+  }, [efeito, item]);
+  return (
+    <span ref={ref} data-previa-da-peca={item.tipo} style={{ display: 'grid', placeItems: 'center', width: '100%', minHeight: 44 }}>
+      <MiniaturaDoItem item={item} tam="grande" />
+    </span>
+  );
+}
+
+function Resgate({
+  atual,
+  onEquipar,
+  onFechar,
+  onVerPersonalizar,
+  grupo,
+}: Omit<Props, 'fila'> & { atual: Recompensa; grupo: { posicao: number; total: number } }) {
   const [equipados, setEquipados] = useState<Set<string>>(new Set());
   const idTitulo = useId();
   const fechado = useRef(false);
@@ -277,6 +319,11 @@ function Resgate({ atual, onEquipar, onFechar, onVerPersonalizar }: Omit<Props, 
             <Sparkles style={icone} />
           )}
         </div>
+        {grupo.total > 1 && (
+          <span className="badge acc" data-novidades={grupo.total} style={{ marginBottom: 6 }}>
+            {t('{n} novidades', { n: grupo.total })} · {t('{i} de {n}', { i: grupo.posicao, n: grupo.total })}
+          </span>
+        )}
         <span className="label-mono" style={{ color: 'var(--accent-ink)' }}>
           {cabecalho.rotulo}
         </span>
@@ -309,9 +356,16 @@ function Resgate({ atual, onEquipar, onFechar, onVerPersonalizar }: Omit<Props, 
                     borderColor: BORDA_DA_RARIDADE[i.raridade],
                   }}
                 >
-                  <span style={{ flex: 'none' }}>
-                    <MiniaturaDoItem item={i} />
-                  </span>
+                  {/* A PRÉVIA REAL (spec 10.3): legenda, cartão e efeito ocupam a largura; o resto, a miniatura. */}
+                  {COM_PREVIA_LARGA.has(i.tipo) ? (
+                    <span style={{ flex: '1 1 100%' }}>
+                      <PreviaDaPeca item={i} />
+                    </span>
+                  ) : (
+                    <span style={{ flex: 'none' }}>
+                      <MiniaturaDoItem item={i} />
+                    </span>
+                  )}
                   <span style={{ flex: '1 1 160px', minWidth: 0 }}>
                     <b style={{ display: 'block', fontSize: 13.5 }}>{i.nome}</b>
                     <small className="mut" style={{ display: 'block', fontSize: 12 }}>

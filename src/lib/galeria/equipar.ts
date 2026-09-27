@@ -11,12 +11,12 @@
  */
 import type { MenuPositionType } from '../../components/shell/navItems'
 import type { FonteType,ThemeType } from '../appearance'
-import { equiparEfeito } from '../comemoracao/efeitos'
-import { equiparEstiloDeLegenda } from '../estilosDeLegenda'
+import { efeitosGuardados, equiparEfeito } from '../comemoracao/efeitos'
+import { equiparEstiloDeLegenda, lerEstiloDeLegenda } from '../estilosDeLegenda'
 import { estadoDoItem, type ItemDaLoja } from '../loja'
-import { type ParticulasType, setParticulas } from '../particulas'
-import { equiparPeleDeCartao } from '../pelesDeCartao'
-import { setRastro } from '../rastroDoMouse'
+import { type ParticulasType, readParticulas, setParticulas } from '../particulas'
+import { equiparPeleDeCartao, lerPeleDeCartao } from '../pelesDeCartao'
+import { readRastro, setRastro } from '../rastroDoMouse'
 
 export interface ContextoDeEquipar {
   setTheme: (t: ThemeType) => void
@@ -73,6 +73,31 @@ export function equiparItem(item: ItemDaLoja, ctx: ContextoDeEquipar): boolean {
     // Legenda e cartão (onda 4).
     case 'legenda': equiparEstiloDeLegenda(item.alvo); return true
     case 'cartao': equiparPeleDeCartao(item.alvo); return true
+    default: return false
+  }
+}
+
+/**
+ * A PEÇA ESTÁ EM USO AGORA? Uma resposta só para o inventário, a Loja e a Coleção (recompensas v2,
+ * Task 5.4): tema, fonte e menu vêm do estado do App; o resto, do que cada módulo guardou.
+ */
+export function estaEquipado(
+  item: ItemDaLoja,
+  atual: { theme: ThemeType; fonte: FonteType; menuPosition: MenuPositionType },
+): boolean {
+  switch (item.tipo) {
+    case 'tema': return atual.theme === item.alvo
+    case 'fonte': return atual.fonte === item.alvo
+    case 'posicao': return atual.menuPosition === item.alvo
+    case 'particulas': return readParticulas() === item.alvo
+    case 'rastro': return readRastro() === item.alvo
+    case 'legenda': return lerEstiloDeLegenda() === item.alvo
+    case 'cartao': return lerPeleDeCartao() === item.alvo
+    case 'efeito-acerto': return efeitosGuardados().acerto === item.alvo
+    case 'efeito-combo': return efeitosGuardados().combo === item.alvo
+    case 'finalizacao': return efeitosGuardados().finalizacao === item.alvo
+    case 'moldura': return perfilEquipado().moldura === item.id
+    case 'titulo': return perfilEquipado().titulo === item.id
     default: return false
   }
 }

@@ -18,6 +18,7 @@ import { t } from '../../../lib/i18n';
 import type { AgeProfileType } from '../../../lib/profile';
 import { perfilProtegido } from '../../../lib/protecaoDoMenor';
 import { JOGOS_COM_RANKING, lerApelido, lerRanking, type LinhaDoRanking } from '../../../lib/ranking';
+import MolduraETitulo from '../../perfil/MolduraETitulo';
 import Dialogo from '../../ui/Dialogo';
 import IconeEmBloco from '../../ui/IconeEmBloco';
 import { IconePixel } from './IconesPixel';
@@ -201,6 +202,13 @@ export default function Recordes({ ageProfile, onFechar }: { ageProfile: AgeProf
                       <span className="nome">
                         {l.apelido}
                         {voce && <small> {t('(você)')}</small>}
+                        {/* O título vestido, só na linha de quem joga: o ranking é de adulto. */}
+                        {voce && (
+                          <>
+                            {' '}
+                            <MolduraETitulo compacto />
+                          </>
+                        )}
                       </span>
                       <span className="mut tn" style={{ fontSize: 12 }}>
                         combo ×{l.combo}

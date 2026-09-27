@@ -3,6 +3,7 @@ import { useState } from 'react';
 
 import type { AgeProfileType } from '../../lib/profile';
 import type { DerivedProgress } from '../../lib/progress';
+import MolduraETitulo from '../perfil/MolduraETitulo';
 import { Abas, CabecalhoDeTela, PainelDeAba, Tela } from '../ui';
 import AbaDados from './perfil/AbaDados';
 import AbaProgresso from './perfil/AbaProgresso';
@@ -35,6 +36,8 @@ export default function Perfil({ progress, ageProfile }: PerfilProps) {
         sobrancelha="Sua conta"
         icone={UserRound}
         titulo="Seu perfil"
+        /* Recompensas v2: a moldura e o título que a pessoa vestiu (maestria, conquista, temporada). */
+        acoes={<MolduraETitulo nivel={progress.available ? progress.level : 1} tamanho={44} />}
         /* O protótipo troca o subtítulo por aba: "Você" fala do formulário; as outras duas, do resto. */
         sub={
           aba === 'voce'

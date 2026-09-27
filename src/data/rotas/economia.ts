@@ -164,13 +164,27 @@ export async function registrarPresenca(dia: number): Promise<{ jaExistia: boole
 
 export async function gastarCreditos(payload: { spendId: string; amount: number; reason: string; ref?: string }):
   Promise<{ jaExistia: boolean; gasto: number; saldo: number } | null> {
-  const r = await apiFetch('/api/billing/gastar', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-  if (!r.ok) return null;
-  return (await r.json()) as { jaExistia: boolean; gasto: number; saldo: number };
+  return (await gastarCreditosEx(payload)).resultado;
+}
+
+/**
+ * O mesmo gasto de Créditos, com o MOTIVO da recusa (recompensas v2, onda 6): o perfil protegido
+ * recebe 403 `menor_nao_compra` (ou `idade_nao_informada`), e a tela precisa dizer isso em vez de
+ * "tente de novo". Gêmeo de `gastarSeedsEx`.
+ */
+export async function gastarCreditosEx(payload: { spendId: string; amount: number; reason: string; ref?: string }):
+  Promise<{ resultado: { jaExistia: boolean; gasto: number; saldo: number } | null; erro?: ErroDaApi }> {
+  try {
+    const r = await apiFetch('/api/billing/gastar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!r.ok) return { resultado: null, erro: await lerErro(r) };
+    return { resultado: (await r.json()) as { jaExistia: boolean; gasto: number; saldo: number } };
+  } catch (e) {
+    return { resultado: null, erro: { status: 0, error: String((e as Error)?.message ?? e), code: 'rede' } };
+  }
 }
 
 /**

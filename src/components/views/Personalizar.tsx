@@ -1,9 +1,10 @@
 import { Accessibility, Eye, Gamepad2, Palette, PanelLeft, Sparkles, Type, Undo2, Zap } from 'lucide-react';
-import { useState } from 'react';
+import { type ReactNode, useState } from 'react';
 
 import { applyCustomColors, FONTE_OPTIONS, type FonteType, THEME_OPTIONS, type ThemeType } from '../../lib/appearance';
-import { lerEstiloDeLegenda } from '../../lib/estilosDeLegenda';
+import { celebrarEscolha } from '../../lib/comemoracao';
 import { acessoAoEstilo, faltaParaOPerfil } from '../../lib/galeria/acesso';
+import { estaEquipado } from '../../lib/galeria/equipar';
 import { gravarPaletaAtiva, lerPaletaAtiva, type Paleta, paletaPorId } from '../../lib/galeria/paletas';
 import {
   apagarPerfil,
@@ -16,9 +17,8 @@ import {
 import { restaurarVisualPadrao } from '../../lib/galeria/restaurar';
 import { palavraDeNivel } from '../../lib/galeria/textos';
 import { t } from '../../lib/i18n';
-import { comemorar, explodirAleatorio } from '../../lib/juice';
+import type { ItemDaLoja } from '../../lib/loja';
 import { PARTICULAS_OPTIONS, readParticulas, setParticulas } from '../../lib/particulas';
-import { lerPeleDeCartao } from '../../lib/pelesDeCartao';
 import { readRastro, setRastro } from '../../lib/rastroDoMouse';
 import type { AgeProfileType, MenuPositionType } from '../shell/navItems';
 import { toast } from '../Toast';
@@ -54,6 +54,11 @@ interface PersonalizarProps {
   menuPosition: MenuPositionType;
   setMenuPosition: (p: MenuPositionType) => void;
   onOpenStudio: () => void;
+  /** Recompensas v2: a prévia ao vivo (Coleção) e o que vai acima do inventário (o painel dela). */
+  aoPrever?: (item: ItemDaLoja, el: HTMLElement) => void;
+  itemEmPrevia?: string | null;
+  tiposComPrevia?: ReadonlySet<string>;
+  topo?: ReactNode;
 }
 
 const POSICAO_DO_MENU: Record<MenuPositionType, string> = {
@@ -78,12 +83,15 @@ export default function Personalizar({
   menuPosition,
   setMenuPosition,
   onOpenStudio,
+  aoPrever,
+  itemEmPrevia,
+  tiposComPrevia,
+  topo,
 }: PersonalizarProps) {
   const [, force] = useState(0);
   const rerender = () => force((n) => n + 1);
   const saldoAgora = saldo;
 
-  const rastroAtual = readRastro();
   const paletaAtiva = lerPaletaAtiva();
   const estiloDaPaleta = (id: string) => paletaPorId(id)?.estilo;
   const ctxAcesso = { nivel, saldo: saldoAgora, estiloDaPaleta };
@@ -116,8 +124,7 @@ export default function Personalizar({
     setFonte(p.fonte);
     setParticulas(p.particulas);
     setRastro(p.rastro);
-    comemorar('subiuNivel', el ?? null, { texto: p.nome });
-    explodirAleatorio(2, 'confete');
+    celebrarEscolha(el ?? null, p.nome);
     toast.ok(`Perfil "${p.nome}" aplicado.`);
     rerender();
   };
@@ -165,27 +172,12 @@ export default function Personalizar({
 
   return (
     <>
+      {topo}
       <Inventario
         nivel={nivel}
         saldo={saldoAgora}
         ctx={{ setTheme, setFonte, setMenuPosition, onOpenStudio, nivel, saldo: saldoAgora }}
-        equipadoAtual={(i) =>
-          i.tipo === 'tema'
-            ? theme === i.alvo
-            : i.tipo === 'fonte'
-              ? fonte === i.alvo
-              : i.tipo === 'particulas'
-                ? readParticulas() === i.alvo
-                : i.tipo === 'posicao'
-                  ? menuPosition === i.alvo
-                  : i.tipo === 'rastro'
-                    ? rastroAtual === i.alvo
-                    : i.tipo === 'legenda'
-                      ? lerEstiloDeLegenda() === i.alvo
-                      : i.tipo === 'cartao'
-                        ? lerPeleDeCartao() === i.alvo
-                        : false
-        }
+        equipadoAtual={(i) => estaEquipado(i, { theme, fonte, menuPosition })}
         /* Os do protótipo, na ordem dele (Tema, Partículas, Fonte, Menu). Cursor e Emojis saíram nas
            recompensas v2. O rastro equipado aparece no próprio cartão, com "Equipado". */
         loadout={[
@@ -217,6 +209,9 @@ export default function Personalizar({
           rerender();
         }}
         aoSalvarPerfil={salvarAtual}
+        aoPrever={aoPrever}
+        itemEmPrevia={itemEmPrevia}
+        tiposComPrevia={tiposComPrevia}
         /* DIREITO, não recompensa: desfazer o visual nunca depende de nível nem de Seeds. */
         acaoDosPerfis={
           <button type="button" className="link" onClick={voltarAoOriginal}>

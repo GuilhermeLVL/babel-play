@@ -33,7 +33,8 @@ import type { AgeProfileType } from '../../lib/profile';
 import { perfilProtegido } from '../../lib/protecaoDoMenor';
 import { apelidoValido, enviarParaRanking, lerApelido, salvarApelido } from '../../lib/ranking';
 import { play } from '../../lib/soundFx';
-import { speak } from '../../lib/tts';
+import { falar } from '../../lib/tts';
+import { botaoDaAlternativa, useAtalhosDasAlternativas } from './casca/atalhos';
 import { useRodada } from './casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda } from './casca/HudDaRodada';
 
@@ -271,9 +272,7 @@ export default function BlitzGame({ items, ageProfile, onFinish }: BlitzGameProp
       // 1. O acerto sensorial completo: áudio escalonado por semitom, haptics e número flutuante
       const texto = '+' + ganho.total + (mult > 1 && !comDica ? ' ×' + mult : '') + (ganho.fever ? ' FEVER' : '');
       playJuicedHit(nova, coords, texto);
-      if (item.answer && item.lang) {
-        speak(item.answer, { lang: item.lang });
-      }
+      falar(item.answer, item.lang);
 
       // 2. Velocidade: um segundo número, defasado, para não colidir com o primeiro.
       if (ganho.velocidade > 0 && el) {
@@ -346,6 +345,17 @@ export default function BlitzGame({ items, ageProfile, onFinish }: BlitzGameProp
     setSequencia(0); // a sequência é mérito; com ajuda ela recomeça
     pontosDoElemento('sobraram 2', el, 'neutro');
   };
+
+  // Teclas 1–4: a alternativa pela posição na tela (as cortadas pela dica não respondem).
+  useAtalhosDasAlternativas(
+    alternativas.length,
+    (i) => {
+      const alt = alternativas[i];
+      if (!alt || cortadas.includes(alt)) return;
+      responder(alt, botaoDaAlternativa(palcoRef.current, 'alternativas', i));
+    },
+    !!item && !resultado && ativo && !escolhido && !acabou,
+  );
 
   // Cartaz do marco e ondas somem sozinhos (as animações duram ≤ 1 s).
   useEffect(() => {
@@ -558,7 +568,7 @@ export default function BlitzGame({ items, ageProfile, onFinish }: BlitzGameProp
         </div>
 
         <div data-tour="alternativas" className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
-          {alternativas.map((alt) => {
+          {alternativas.map((alt, posicao) => {
             const escolhida = escolhido === alt;
             const certa = alt === item.answer;
             /* `acabou` entra junto com `escolhido`: no fim do tempo a pergunta não foi respondida
@@ -570,6 +580,7 @@ export default function BlitzGame({ items, ageProfile, onFinish }: BlitzGameProp
                 key={alt}
                 onClick={(e) => responder(alt, e.currentTarget)}
                 disabled={revelando || cortada}
+                aria-keyshortcuts={String(posicao + 1)}
                 dir={direcaoDoTexto(item.lang)}
                 className={`blitz-btn py-4 px-4 font-bold text-[16px] ${
                   cortada

@@ -18,9 +18,8 @@
  * reconhecimento de voz ("nota de pronúncia inventada é pior que nota nenhuma").
  */
 import { toast } from '../components/Toast';
-import { toBcp47 } from './languages';
 import { mediaErrorMessage } from './mediaErrors';
-import { cancelSpeech, isTtsSupported,speak } from './tts';
+import { cancelSpeech, falar, isTtsSupported } from './tts';
 
 /** O que se pede para ouvir. `startMs`/`endMs` só existem quando o item veio de uma gravação. */
 interface ItemAudivel {
@@ -84,7 +83,8 @@ export function criarFalante(
         && item.endMs > item.startMs;
 
       const porVoz = () => {
-        if (temVoz) speak(item.texto, { lang: toBcp47(item.lang) || item.lang, rate: velocidade });
+        // `falar`: voz DO IDIOMA do item, ou aviso — nunca a voz padrão (inglesa) lendo outra língua.
+        if (temVoz) falar(item.texto, item.lang, { rate: velocidade });
       };
 
       if (recortavel && audioEl.current && !audioEl.current.error) {

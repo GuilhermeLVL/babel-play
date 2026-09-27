@@ -13,9 +13,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { MinigameItem, RoundReport } from '../src/core/minigames/types'
 
 vi.mock('../src/lib/juice', () => ({ contarAte: vi.fn(async () => {}), tremor: vi.fn(), comemorar: vi.fn() }))
-vi.mock('../src/lib/tts', () => ({ speak: vi.fn() }))
+vi.mock('../src/lib/tts', () => ({ speak: vi.fn(), falar: vi.fn(() => true) }))
 
 const { default: KofferGame } = await import('../src/components/minigames/culturais/KofferGame')
+const { ContextoDaRodada } = await import('../src/components/minigames/casca/CascaDaRodada')
 
 function itens(): MinigameItem[] {
   return [
@@ -145,5 +146,52 @@ describe('KofferGame — a mala cumulativa reporta o que agenda revisão', () =>
     expect(primeiro.cardId).toBe('c1')
     expect(primeiro.attempts).toBe(2)
     expect(primeiro.correct).toBe(true)
+  })
+
+  /*
+   * QA dos jogos (2026-09-26): a mala abria com a primeira palavra DURANTE a contagem 3-2-1 — o
+   * palco está inerte e coberto pelo "3, 2, 1" — e fechava antes de a rodada começar. O primeiro
+   * pedido da rodada era uma palavra que ninguém viu. E o placar ficava em zero: o jogo nunca
+   * recontava os pontos.
+   */
+  // Os itens de uma rodada não mudam entre renders (no app vêm do estado da tela).
+  const ITENS = itens()
+  function comRodada(ativo: boolean, onFinish: (r: RoundReport) => void = () => {}) {
+    const estado = { ativo, pausado: !ativo, placar: { current: { pontos: 0, acertos: 0 } } }
+    return (
+      <ContextoDaRodada.Provider value={estado}>
+        <KofferGame items={ITENS} ageProfile="pro" onFinish={onFinish} onExit={() => {}} />
+      </ContextoDaRodada.Provider>
+    )
+  }
+
+  it('a mala só começa a fechar depois da contagem', () => {
+    const { rerender } = render(comRodada(false))
+    avancar(5000) // a contagem (e qualquer pausa) pode durar o que for
+    expect(document.body.textContent).toContain('Mala aberta')
+    rerender(comRodada(true))
+    avancar(1500)
+    expect(document.body.textContent).toContain('Mala aberta')
+    avancar(600)
+    expect(document.body.textContent).toContain('Mala fechada')
+  })
+
+  it('a pausa congela o tempo de mala aberta', () => {
+    const { rerender } = render(comRodada(true))
+    avancar(1500)
+    rerender(comRodada(false))
+    avancar(4000)
+    expect(document.body.textContent).toContain('Mala aberta')
+    rerender(comRodada(true))
+    avancar(600)
+    expect(document.body.textContent).toContain('Mala fechada')
+  })
+
+  it('o placar soma a cada palavra posta no lugar', () => {
+    render(comRodada(true))
+    esperarAMalaFechar()
+    tocar('house')
+    const hud = document.querySelector('[aria-label="Placar da rodada"]')!
+    expect(hud.textContent).not.toMatch(/Pontos\s*0(?!\d)/)
   })
 })

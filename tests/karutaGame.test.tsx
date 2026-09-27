@@ -166,6 +166,8 @@ describe('KarutaGame — o relógio da carta não vaza para a seguinte', () => {
       />,
     )
     for (let i = 0; i < 9; i++) avancar(1000)
+    // A carta certa fica à vista (e dita) antes da troca — QA dos jogos, 2026-09-26.
+    avancar(1800)
     expect(document.querySelector('[data-tour="pista"]')?.textContent).toBe('cachorro')
     fireEvent.click(screen.getByRole('button', { name: 'dog' }))
     avancar(700)

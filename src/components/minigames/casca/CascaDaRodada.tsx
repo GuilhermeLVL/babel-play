@@ -47,6 +47,12 @@ interface EstadoDaRodada {
 const RODADA_SOLTA: EstadoDaRodada = { ativo: true, pausado: false, placar: { current: { pontos: 0, acertos: 0 } } };
 const Contexto = createContext<EstadoDaRodada>(RODADA_SOLTA);
 
+/**
+ * O provedor do estado da rodada, exposto para quem monta um jogo FORA da casca e precisa dizer se
+ * a rodada anda — os testes de componente simulam a contagem 3-2-1 e a pausa por aqui.
+ */
+export const ContextoDaRodada = Contexto;
+
 /** Fora de uma casca (teste de componente, uso isolado) o jogo está sempre ativo. */
 export function useRodada(): EstadoDaRodada {
   return useContext(Contexto);

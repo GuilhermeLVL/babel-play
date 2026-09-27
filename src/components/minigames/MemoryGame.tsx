@@ -9,7 +9,7 @@ import { multiplicador, pontosDoElemento } from '../../lib/juice';
 import { direcaoDoTexto } from '../../lib/languages';
 import type { AgeProfileType } from '../../lib/profile';
 import { play } from '../../lib/soundFx';
-import { speak } from '../../lib/tts';
+import { falar } from '../../lib/tts';
 import { useRodada } from './casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda } from './casca/HudDaRodada';
 
@@ -99,9 +99,7 @@ export default function MemoryGame({ items, ageProfile: _ageProfile, onFinish }:
     play('select');
 
     // Fala a palavra no idioma original para imersão auditiva instantânea
-    if (carta.lado === 'palavra' && carta.lang) {
-      speak(carta.texto, { lang: carta.lang });
-    }
+    if (carta.lado === 'palavra') falar(carta.texto, carta.lang);
 
     const novas = [...viradas, carta.id];
     setViradas(novas);

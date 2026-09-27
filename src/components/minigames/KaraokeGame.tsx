@@ -3,6 +3,7 @@ import { conferirDitado, pontuarRodada, scorePronunciation, scoreRound } from '@
 import { Mic, Play, SkipForward, Square, Turtle } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
+import { palavrasDaFrase } from '../../core/minigames/palavrasDaFrase';
 import { criarFalante } from '../../lib/falante';
 import { playJuicedError, playJuicedHit, triggerConfetti, triggerHaptic } from '../../lib/gameFeel';
 import { comemorar } from '../../lib/juice';
@@ -42,7 +43,23 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish }: K
   /** O placar que o HUD mostra: a MESMA conta do fim da rodada (`pontuarRodada`), refeita a cada fala. */
   const [placar, setPlacar] = useState({ pontos: 0, sequencia: 0, acertos: 0 });
   const [indice, setIndice] = useState(0);
-  const [fase, setFase] = useState<Fase>('parado');
+  const [fase, setFaseEstado] = useState<Fase>('parado');
+  /**
+   * A fase também num `ref` (QA dos jogos, 2026-09-26): os callbacks do reconhecimento nascem no
+   * clique e liam a fase DAQUELE render — `rec.onend` via 'parado' e nunca liberava o "Parar".
+   */
+  const faseRef = useRef<Fase>('parado');
+  const setFase = (f: Fase) => {
+    faseRef.current = f;
+    setFaseEstado(f);
+  };
+  /** Os relógios do "Ouvir" — cancelados quando a gravação começa, senão a derrubam ao vencer. */
+  const relogiosDoOuvirRef = useRef<{ passo?: ReturnType<typeof setInterval>; fim?: ReturnType<typeof setTimeout> }>({});
+  const pararRelogiosDoOuvir = () => {
+    clearInterval(relogiosDoOuvirRef.current.passo);
+    clearTimeout(relogiosDoOuvirRef.current.fim);
+    relogiosDoOuvirRef.current = {};
+  };
   const [palavraAtiva, setPalavraAtiva] = useState(-1);
   const [nota, setNota] = useState<{ accuracy: number; transcript: string; diff: ResultadoDitado } | null>(null);
   const [semReconhecimento, setSemReconhecimento] = useState(false);
@@ -55,11 +72,12 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish }: K
   const jaFinalizouRef = useRef(false);
 
   const fala = falas[indice];
-  const palavras = fala ? fala.texto.split(/\s+/).filter(Boolean) : [];
+  const palavras = fala ? palavrasDaFrase(fala.texto, fala.lang) : [];
 
   const falante = useMemo(() => criarFalante(audioRef, audioUrl), [audioUrl]);
   const ouvir = (velocidade = 1) => {
     if (!fala || !falante.disponivel) return;
+    pararRelogiosDoOuvir();
     triggerHaptic('soft');
     setFase('ouvindo');
     setPalavraAtiva(-1);
@@ -75,12 +93,13 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish }: K
       if (i >= palavras.length) clearInterval(timer);
     }, passo);
 
-    setTimeout(() => {
+    const fim = setTimeout(() => {
       falante.parar();
       clearInterval(timer);
       setPalavraAtiva(-1);
-      setFase('parado');
+      if (faseRef.current === 'ouvindo') setFase('parado');
     }, duracao);
+    relogiosDoOuvirRef.current = { passo: timer, fim };
   };
 
   const gravar = () => {
@@ -91,6 +110,10 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish }: K
       return;
     }
     triggerHaptic('soft');
+    // Gravar interrompe a escuta: o relógio do "Ouvir" não pode derrubar a gravação ao vencer.
+    pararRelogiosDoOuvir();
+    falante.parar();
+    setPalavraAtiva(-1);
     const rec = new SR();
     rec.lang = fala.lang || 'en-US';
     rec.interimResults = false;
@@ -104,7 +127,7 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish }: K
       const dito = e.results?.[0]?.[0]?.transcript ?? '';
       const duracao = Date.now() - inicioFalaRef.current;
       const s = scorePronunciation(fala.texto, dito, { durationMs: duracao });
-      setNota({ accuracy: s.accuracy, transcript: dito, diff: conferirDitado(fala.texto, dito) });
+      setNota({ accuracy: s.accuracy, transcript: dito, diff: conferirDitado(fala.texto, dito, fala.lang) });
       setFase('avaliado');
 
       if (s.accuracy >= 60) {
@@ -130,7 +153,7 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish }: K
       setFase('parado');
     };
     rec.onend = () => {
-      if (fase === 'gravando') setFase('parado');
+      if (faseRef.current === 'gravando') setFase('parado');
     };
     try {
       rec.start();
@@ -193,6 +216,16 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish }: K
       recontar();
     }
 
+    /* Avançar no meio de uma gravação ou escuta encerra as duas: o resultado que chegasse depois
+       cairia sobre a fala seguinte. */
+    pararRelogiosDoOuvir();
+    try {
+      recRef.current?.abort?.();
+    } catch {
+      /* já parou */
+    }
+    recRef.current = null;
+
     if (indice + 1 >= falas.length) {
       if (jaFinalizouRef.current) return;
       jaFinalizouRef.current = true;
@@ -229,6 +262,7 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish }: K
 
   useEffect(
     () => () => {
+      pararRelogiosDoOuvir();
       try {
         recRef.current?.abort?.();
       } catch {

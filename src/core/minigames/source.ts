@@ -150,6 +150,30 @@ export function idiomasDisponiveis(cards: VocabCard[]): Array<{ lang: string; to
 }
 
 /**
+ * EM QUE IDIOMA A SALA DE ESCOLHA ABRE (QA dos jogos, 2026-09-26).
+ *
+ * Abria sempre no idioma vigente. Com um caderno só em português e o idioma vigente "en" (o padrão
+ * de quem nunca escolheu), a sala mostrava "português 23" desmarcado e, logo abaixo, "Minhas
+ * gravações 0" e "Esta escolha não tem palavras prontas ainda": a pessoa tinha 23 palavras e a tela
+ * dizia que não tinha nenhuma.
+ *
+ * A regra: nas GRAVAÇÕES, se o idioma vigente não tem nenhuma palavra jogável e outro tem, a sala
+ * abre no que tem mais (`idiomas` já vem ordenado por `idiomasDisponiveis`). Na TRILHA não — lá o
+ * idioma é o da lista curada, que não depende do caderno. E é só a abertura: escolher à mão vence.
+ */
+export function idiomaInicialDaSala(
+  atual: { lang: string; origem: string },
+  idiomas: ReadonlyArray<{ lang: string; jogaveis: number; total?: number }>,
+): string {
+  if (atual.origem === 'trilha') return atual.lang;
+  const base = baseLangDe(atual.lang);
+  const doAtual = idiomas.find((i) => baseLangDe(i.lang) === base);
+  if (doAtual && doAtual.jogaveis > 0) return atual.lang;
+  const melhor = idiomas.find((i) => i.jogaveis > 0);
+  return melhor ? melhor.lang : atual.lang;
+}
+
+/**
  * ADAPTADOR ENTRE O VOCABULÁRIO DA TELA E O DO CORE.
  *
  * A pessoa escolhe entre duas coisas — "minhas gravações" ou "a trilha" —, e as gravações têm uma

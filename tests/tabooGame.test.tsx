@@ -8,9 +8,9 @@
  * outcome, proibidas DERIVADAS do texto (nunca de lista fixa) e `onExit` quando o material não
  * sustenta nenhuma.
  */
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import React from 'react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { MinigameItem, RoundReport } from '../src/core/minigames/types'
 
@@ -45,9 +45,26 @@ function definicoes(): MinigameItem[] {
 
 const definicaoNaTela = () => document.querySelector('[data-tour="alvo"]') as HTMLElement
 
+const avancar = (ms: number) =>
+  act(() => {
+    vi.advanceTimersByTime(ms)
+  })
+/* Cada resposta fica um instante na tela com a certa marcada (700 ms no acerto) e a rodada termina
+   direto no fim de rodada comum, 900 ms depois — sem a tela própria com "Continuar". */
+function responderTudo(items: MinigameItem[]): void {
+  for (const it of items) {
+    fireEvent.click(screen.getByRole('button', { name: it.answer }))
+    avancar(700)
+  }
+}
+
 describe('TabooGame — as proibidas saem do material', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: false })
+  })
   afterEach(() => {
     cleanup()
+    vi.useRealTimers()
     vi.clearAllMocks()
   })
 
@@ -65,9 +82,9 @@ describe('TabooGame — as proibidas saem do material', () => {
       />,
     )
 
-    for (const it of items) fireEvent.click(screen.getByRole('button', { name: it.answer }))
+    responderTudo(items)
     expect(relatorio).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: 'Continuar' }))
+    avancar(900)
 
     expect(relatorio!.gameId).toBe('taboo')
     expect(relatorio!.items).toHaveLength(4)
@@ -106,8 +123,8 @@ describe('TabooGame — as proibidas saem do material', () => {
     fireEvent.click(screen.getByRole('button', { name: /Liberar 1/ }))
     expect(definicaoNaTela().querySelectorAll('s').length).toBe(antes - 1)
 
-    for (const it of items) fireEvent.click(screen.getByRole('button', { name: it.answer }))
-    fireEvent.click(screen.getByRole('button', { name: 'Continuar' }))
+    responderTudo(items)
+    avancar(900)
 
     expect(relatorio!.items[0].hinted).toBe(true)
     expect(relatorio!.items[1].hinted).toBe(false)

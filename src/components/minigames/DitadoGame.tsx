@@ -3,6 +3,7 @@ import { conferirDitado, scoreRound } from '@core';
 import { CornerDownLeft, Lightbulb, Play, SkipForward, Turtle } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
+import { juntarPalavras, palavrasDaFrase } from '../../core/minigames/palavrasDaFrase';
 import { criarFalante } from '../../lib/falante';
 import { playJuicedError, playJuicedHit, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
 import { comemorar, multiplicador, pontosDoElemento } from '../../lib/juice';
@@ -175,7 +176,7 @@ export default function DitadoGame({ rodadas, audioUrl, ageProfile, onFinish }: 
 
   const conferir = () => {
     if (!rodada || conferido || !ativo) return;
-    const r = conferirDitado(rodada.fala.text, texto);
+    const r = conferirDitado(rodada.fala.text, texto, rodada.fala.lang);
     setConferido(r);
     avancar(r, false);
   };
@@ -183,13 +184,15 @@ export default function DitadoGame({ rodadas, audioUrl, ageProfile, onFinish }: 
   /** DICA: revela a próxima palavra ainda não escrita. Custa a nota (`hinted`). */
   const pedirDica = (el: HTMLElement | null) => {
     if (!rodada || conferido) return;
-    const alvo = rodada.fala.text.split(/\s+/).filter(Boolean);
-    const jaEscritas = texto.split(/\s+/).filter(Boolean).length;
+    const lang = rodada.fala.lang ?? '';
+    const alvo = palavrasDaFrase(rodada.fala.text, lang);
+    const escritas = palavrasDaFrase(texto, lang);
+    const jaEscritas = escritas.length;
     if (jaEscritas >= alvo.length) return;
     setDicas((d) => d + 1);
     setSequencia(0);
     triggerHaptic('soft');
-    setTexto((t) => (t.trim() ? `${t.trim()} ` : '') + alvo[jaEscritas]);
+    setTexto(juntarPalavras([...escritas, alvo[jaEscritas]], lang));
     pontosDoElemento(`palavra ${jaEscritas + 1}`, el, 'neutro');
     entradaRef.current?.focus();
   };
@@ -297,7 +300,7 @@ export default function DitadoGame({ rodadas, audioUrl, ageProfile, onFinish }: 
         {!conferido && (
           <button
             onClick={() => {
-              const r = conferirDitado(rodada.fala.text, texto);
+              const r = conferirDitado(rodada.fala.text, texto, rodada.fala.lang);
               setConferido(r);
               avancar(r, true);
             }}

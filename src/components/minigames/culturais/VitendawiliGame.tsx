@@ -6,7 +6,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { comemorar } from '../../../lib/juice';
 import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
-import { speak } from '../../../lib/tts';
+import { falar } from '../../../lib/tts';
+import { botaoDaAlternativa, useAtalhosDasAlternativas } from '../casca/atalhos';
 import { useRodada } from '../casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from '../casca/HudDaRodada';
 
@@ -46,13 +47,12 @@ function narrarComPausa(texto: string, lang: string): void {
   const antes = (partes[0] ?? '').trim();
   const depois = partes.slice(1).join(' ').trim();
   if (!antes) {
-    if (depois) speak(depois, { lang });
+    if (depois) falar(depois, lang);
     return;
   }
-  speak(antes, {
-    lang,
+  falar(antes, lang, {
     onEnd: () => {
-      if (depois) setTimeout(() => speak(depois, { lang }), PAUSA_NA_LACUNA);
+      if (depois) setTimeout(() => falar(depois, lang), PAUSA_NA_LACUNA);
     },
   });
 }
@@ -151,7 +151,7 @@ export default function VitendawiliGame({ items, ageProfile, onFinish, onExit }:
     });
     recontar(outcomesRef.current);
     comemorar('acerto', el);
-    speak(atual.item.answer, { lang: atual.item.lang });
+    falar(atual.item.answer, atual.item.lang);
 
     if (indice + 1 >= rodada.length) {
       finalizar(outcomesRef.current);
@@ -159,6 +159,15 @@ export default function VitendawiliGame({ items, ageProfile, onFinish, onExit }:
     }
     setTimeout(() => setIndice((i) => i + 1), 800);
   };
+
+  useAtalhosDasAlternativas(
+    alternativas.length,
+    (i) => {
+      const palavra = alternativas[i];
+      if (palavra) escolher(palavra, botaoDaAlternativa(palcoRef.current, 'alternativas', i));
+    },
+    suficiente && !!atual && ativo && !encerrado,
+  );
 
   if (!suficiente || !atual) return null;
 
@@ -203,13 +212,14 @@ export default function VitendawiliGame({ items, ageProfile, onFinish, onExit }:
         </p>
 
         <div data-tour="alternativas" className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
-          {alternativas.map((palavra) => {
+          {alternativas.map((palavra, posicao) => {
             const fora = eliminadas.includes(palavra);
             return (
               <button
                 key={palavra}
                 onClick={(e) => escolher(palavra, e.currentTarget)}
                 disabled={fora || encerrado}
+                aria-keyshortcuts={String(posicao + 1)}
                 dir={dir}
                 className={`rounded-2xl border-2 font-display font-black transition-colors ${
                   alvoGrande ? 'py-6 text-2xl' : 'py-5 text-xl'

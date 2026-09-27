@@ -1,3 +1,5 @@
+import { palavrasDaFrase } from './palavrasDaFrase';
+
 /**
  * FRASE EMBARALHADA — reordenar as palavras de uma frase REAL da sessão.
  *
@@ -27,9 +29,12 @@ export interface RodadaFrase {
 export const MIN_PALAVRAS = 4;
 export const MAX_PALAVRAS = 10;
 
-/** Divide em palavras preservando a pontuação colada (ela é pista de ordem, e faz parte). */
-export function tokenize(frase: string): string[] {
-  return frase.trim().split(/\s+/).filter(Boolean);
+/**
+ * Divide em palavras preservando a pontuação colada (ela é pista de ordem, e faz parte). O corte é
+ * o do idioma da fala: em japonês ou chinês o espaço não separa nada (ver `palavrasDaFrase`).
+ */
+export function tokenize(frase: string, idioma = ''): string[] {
+  return palavrasDaFrase(frase, idioma);
 }
 
 /**
@@ -76,8 +81,8 @@ export function acertosPosicionais(montada: string[], correta: string[]): number
 }
 
 /** Uma frase serve para o jogo? (tamanho e tradução disponíveis) */
-export function fraseJogavel(texto: string, traducao?: string): boolean {
-  const n = tokenize(texto).length;
+export function fraseJogavel(texto: string, traducao?: string, idioma = ''): boolean {
+  const n = tokenize(texto, idioma).length;
   return n >= MIN_PALAVRAS && n <= MAX_PALAVRAS && !!(traducao ?? '').trim();
 }
 
@@ -89,10 +94,10 @@ export function buildScrambleRounds(
   const rand = opts.rand ?? Math.random;
   const quantidade = opts.quantidade ?? 5;
   return sentences
-    .filter(s => fraseJogavel(s.text, s.translation))
+    .filter(s => fraseJogavel(s.text, s.translation, s.lang))
     .slice(0, quantidade)
     .map(s => {
-      const correta = tokenize(s.text);
+      const correta = tokenize(s.text, s.lang);
       return {
         sentenceId: s.id,
         correta,

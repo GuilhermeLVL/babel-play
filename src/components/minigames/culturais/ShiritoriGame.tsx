@@ -4,11 +4,14 @@ import { ArrowRight, Lightbulb, Link2, Volume2 } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { montarCorrente } from '../../../core/minigames/shiritori';
+import { t } from '../../../lib/i18n';
 import { comemorar } from '../../../lib/juice';
 import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
 import { play } from '../../../lib/soundFx';
-import { speak } from '../../../lib/tts';
+import { falar } from '../../../lib/tts';
+import { botaoDaAlternativa, useAtalhosDasAlternativas } from '../casca/atalhos';
+import AvisoDaJogada from '../casca/AvisoDaJogada';
 import { useRodada } from '../casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from '../casca/HudDaRodada';
 
@@ -42,6 +45,8 @@ export default function ShiritoriGame({ items, ageProfile, onFinish, onExit }: S
   const [letraVisivel, setLetraVisivel] = useState(false);
   const [restante, setRestante] = useState(SEGUNDOS[ageProfile]);
   const [resultado, setResultado] = useState<RoundReport | null>(null);
+  /** O tempo deste elo acabou: o elo certo aparece antes do próximo (QA dos jogos, 2026-09-26). */
+  const [revelado, setRevelado] = useState<string | null>(null);
 
   const outcomesRef = useRef<ItemOutcome[]>([]);
   const inicioRodadaRef = useRef(Date.now());
@@ -58,12 +63,17 @@ export default function ShiritoriGame({ items, ageProfile, onFinish, onExit }: S
     acabouRef.current = true;
     const perfeita = outcomes.length > 0 && outcomes.every((o) => o.correct && o.attempts <= 1 && !o.revealed);
     if (perfeita) comemorar('rodadaPerfeita', palcoRef.current);
-    setResultado({
+    /* Direto para o fim de rodada COMUM (`ResultadoDaRodada`), como os outros jogos. A tela própria
+       "Fim da corrente" repetia pontos e acertos que a tela seguinte já mostra, e pedia um clique a
+       mais (QA dos jogos, 2026-09-26). */
+    const relatorio: RoundReport = {
       gameId: 'shiritori',
       items: outcomes,
       score: scoreRound('shiritori', outcomes),
       durationMs: Date.now() - inicioRodadaRef.current,
-    });
+    };
+    setResultado(relatorio);
+    setTimeout(() => onFinish(relatorio), 900);
   };
 
   const avancar = (outcome: ItemOutcome) => {
@@ -78,56 +88,44 @@ export default function ShiritoriGame({ items, ageProfile, onFinish, onExit }: S
     setErradas([]);
     setTentativas(1);
     setLetraVisivel(false);
+    setRevelado(null);
     setRestante(SEGUNDOS[ageProfile]);
     inicioPassoRef.current = Date.now();
   };
 
   // O relógio do elo. Zerou: a corrente foi revelada, e revelação é nota 1.
   useEffect(() => {
-    if (!corrente || acabouRef.current || resultado) return;
+    if (!corrente || acabouRef.current || resultado || revelado) return;
     if (restante <= 0) {
+      /* O elo certo aparece (e é dito) antes do próximo: antes a corrente pulava sem mostrar. */
       const passo = corrente.passos[idx];
       play('error');
-      avancar({
+      setRevelado(passo.item.answer);
+      falar(passo.item.answer, passo.item.lang);
+      const outcome: ItemOutcome = {
         cardId: passo.item.cardId,
         itemRef: passo.item.answer,
         correct: false,
         attempts: tentativas,
         ms: Date.now() - inicioPassoRef.current,
         revealed: true,
-      });
+      };
+      setTimeout(() => avancar(outcome), 1800);
       return;
     }
     if (!ativo) return; // o relógio para na contagem e na pausa
-    const t = setTimeout(() => setRestante((s) => s - 1), 1000);
-    return () => clearTimeout(t);
+    const tique = setTimeout(() => setRestante((s) => s - 1), 1000);
+    return () => clearTimeout(tique);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [restante, ativo, idx, resultado, corrente]);
+  }, [restante, ativo, idx, resultado, corrente, revelado]);
+
+  useAtalhosDasAlternativas(
+    corrente?.passos[idx]?.opcoes.length ?? 0,
+    (i) => botaoDaAlternativa(palcoRef.current, 'opcoes', i)?.click(),
+    !!corrente && ativo && !revelado && !resultado,
+  );
 
   if (!corrente) return null;
-
-  /* ── TELA DE RESULTADO: o relatório só sai no "Continuar". ─────────────────────────────── */
-  if (resultado) {
-    const acertos = resultado.items.filter((o) => o.correct).length;
-    return (
-      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-canvas text-ink p-6">
-        <div className="card-panel bg-surface p-8 w-full max-w-md text-center">
-          <p className="label-mono mb-3">Fim da corrente</p>
-          <p className="font-display font-black text-5xl tabular-nums text-ink">{resultado.score}</p>
-          <p className="text-[12px] text-ink-muted mt-1">pontos</p>
-          <p className="text-[13px] text-ink-muted mt-4">
-            elos encadeados:{' '}
-            <b className="text-ink">
-              {acertos}/{resultado.items.length}
-            </b>
-          </p>
-          <button onClick={() => onFinish(resultado)} className="btn-ink w-full justify-center mt-6 cursor-pointer">
-            Continuar
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   const passo = corrente.passos[idx];
   const anterior = idx === 0 ? corrente.inicio : corrente.passos[idx - 1].item;
@@ -187,7 +185,7 @@ export default function ShiritoriGame({ items, ageProfile, onFinish, onExit }: S
           <div className="flex items-center justify-center gap-2 mt-2">
             <span className="text-[13px] text-ink-muted">{anterior.prompt}</span>
             <button
-              onClick={() => speak(anterior.answer, { lang: anterior.lang })}
+              onClick={() => falar(anterior.answer, anterior.lang)}
               className="p-1.5 rounded-full hover:bg-surface-hover text-accent cursor-pointer"
               title="Ouvir a palavra"
               aria-label="Ouvir a palavra"
@@ -204,16 +202,17 @@ export default function ShiritoriGame({ items, ageProfile, onFinish, onExit }: S
         </div>
 
         <div data-tour="opcoes" className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
-          {passo.opcoes.map((op) => {
+          {passo.opcoes.map((op, posicao) => {
             const riscada = erradas.includes(op);
+            const certaRevelada = revelado === op;
             return (
               <button
                 key={op}
                 onClick={(e) => {
-                  if (riscada || acabouRef.current) return;
+                  if (riscada || acabouRef.current || revelado || !ativo) return;
                   if (op === passo.item.answer) {
                     comemorar('acerto', e.currentTarget);
-                    speak(passo.item.answer, { lang: passo.item.lang });
+                    falar(passo.item.answer, passo.item.lang);
                     avancar({
                       cardId: passo.item.cardId,
                       itemRef: passo.item.answer,
@@ -227,12 +226,15 @@ export default function ShiritoriGame({ items, ageProfile, onFinish, onExit }: S
                     setTentativas((t) => t + 1);
                   }
                 }}
-                disabled={riscada}
+                disabled={riscada || !!revelado}
+                aria-keyshortcuts={String(posicao + 1)}
                 dir={direcaoDoTexto(passo.item.lang)}
                 className={`py-4 px-4 rounded-2xl border-2 font-bold text-[16px] transition-colors ${
-                  riscada
-                    ? 'bg-canvas border-border-subtle text-ink-faint line-through opacity-40'
-                    : 'bg-surface border-border-subtle text-ink hover:border-accent cursor-pointer'
+                  certaRevelada
+                    ? 'bg-good-soft border-good text-good-ink'
+                    : riscada
+                      ? 'bg-canvas border-border-subtle text-ink-faint line-through opacity-40'
+                      : 'bg-surface border-border-subtle text-ink hover:border-accent cursor-pointer'
                 }`}
               >
                 {op}
@@ -240,6 +242,9 @@ export default function ShiritoriGame({ items, ageProfile, onFinish, onExit }: S
             );
           })}
         </div>
+        {revelado && (
+          <AvisoDaJogada tom="erro" rotulo={t('O tempo acabou. O elo era:')} resposta={revelado} lang={passo.item.lang} />
+        )}
       </div>
     </>
   );

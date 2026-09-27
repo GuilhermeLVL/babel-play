@@ -185,6 +185,8 @@ describe('ChoseongGame — o relógio da palavra não vaza para a seguinte', () 
       />,
     )
     for (let i = 0; i < 16; i++) avancar(1000)
+    // A palavra fica à vista (e dita) antes da troca — QA dos jogos, 2026-09-26.
+    avancar(1800)
     expect(document.querySelector('[data-tour="pista"]')?.textContent).toBe('cachorro')
     for (const it of items.slice(1)) completar(it.answer)
     avancar(1100)

@@ -1,12 +1,16 @@
 import type { ItemOutcome, MinigameItem, RoundReport } from '@core';
-import { chaveDoTermo, MINIGAMES, scoreRound } from '@core';
+import { MINIGAMES, scoreRound } from '@core';
 import { Lightbulb } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
+import { conferirResposta } from '../../../core/minigames/resposta';
+import { t } from '../../../lib/i18n';
 import { comemorar, tremor } from '../../../lib/juice';
 import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
 import { play } from '../../../lib/soundFx';
+import { falar } from '../../../lib/tts';
+import AvisoDaJogada from '../casca/AvisoDaJogada';
 import { useRodada } from '../casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from '../casca/HudDaRodada';
 
@@ -48,7 +52,8 @@ export default function TenseTennisGame({ items, ageProfile, onFinish, onExit }:
   const tempo = relogio.bola === indice ? relogio.segundos : segundosDaJogada(base, rali);
   const [escrito, setEscrito] = useState('');
   const [dicasRestantes, setDicasRestantes] = useState(2);
-  const [fora, setFora] = useState<string | null>(null);
+  /** O que a tela diz da devolução: "Fora! Era…", "Certo! Com acento…", "Também vale…". */
+  const [aviso, setAviso] = useState<{ tom: 'erro' | 'certo'; rotulo: string; resposta: string } | null>(null);
   const [acabou, setAcabou] = useState(false);
 
   const outcomesRef = useRef<ItemOutcome[]>([]);
@@ -111,7 +116,7 @@ export default function TenseTennisGame({ items, ageProfile, onFinish, onExit }:
     comDicaRef.current = false;
     respondidoRef.current = false;
     setEscrito('');
-    setFora(null);
+    setAviso(null);
     setRelogio({ bola: indice, segundos: segundosDaJogada(base, rali) });
     entradaRef.current?.focus();
     // `rali` fora das dependências de propósito: quem abre a jogada é a TROCA de bola, e relê o
@@ -126,7 +131,8 @@ export default function TenseTennisGame({ items, ageProfile, onFinish, onExit }:
       respondidoRef.current = true;
       registrar(false, true);
       setRali(0);
-      setFora('A bola caiu na quadra. Era: ' + item.answer);
+      setAviso({ tom: 'erro', rotulo: t('A bola caiu na quadra. Era:'), resposta: item.answer });
+      falar(item.answer, item.lang);
       comemorar('erro', quadraRef.current);
       tremor(quadraRef.current);
       setTimeout(avancar, 1200);
@@ -134,24 +140,35 @@ export default function TenseTennisGame({ items, ageProfile, onFinish, onExit }:
     }
     if (tempo <= 2) play('tick');
     if (!ativo) return; // o relógio para na contagem e na pausa
-    const t = setTimeout(() => setRelogio((r) => (r.bola === indice ? { ...r, segundos: r.segundos - 1 } : r)), 1000);
-    return () => clearTimeout(t);
+    const tique = setTimeout(() => setRelogio((r) => (r.bola === indice ? { ...r, segundos: r.segundos - 1 } : r)), 1000);
+    return () => clearTimeout(tique);
   }, [relogio, ativo, tempo, indice, acabou, item, registrar, avancar]);
 
   const devolver = () => {
     if (acabou || !item || respondidoRef.current || !escrito.trim()) return;
     respondidoRef.current = true;
-    const certo = chaveDoTermo(escrito) === chaveDoTermo(item.answer);
+    /* A régua única de resposta escrita (`core/minigames/resposta`). Antes era `chaveDoTermo` dos
+       dois lados, que apaga o acento: "avó" passava por "avô" — e "bedroom" era recusado para
+       "quarto" mesmo sendo, no acervo, outra palavra com essa pista. */
+    const conferencia = conferirResposta(escrito, item.answer, item.alternativas ?? []);
+    const certo = conferencia.aceita;
     registrar(certo);
 
     if (certo) {
       setRali((r) => r + 1);
       comemorar('acerto', quadraRef.current);
-      setTimeout(avancar, 600);
+      falar(item.answer, item.lang);
+      if (conferencia.veredito === 'sem-acento') {
+        setAviso({ tom: 'certo', rotulo: t('Certo! Com acento:'), resposta: conferencia.forma });
+      } else if (conferencia.veredito === 'alternativa') {
+        setAviso({ tom: 'certo', rotulo: t('Também vale! A palavra desta pista era:'), resposta: item.answer });
+      }
+      setTimeout(avancar, conferencia.veredito === 'exata' ? 600 : 1300);
       return;
     }
     setRali(0);
-    setFora('Fora! Era: ' + item.answer);
+    setAviso({ tom: 'erro', rotulo: t('Fora! Era:'), resposta: item.answer });
+    falar(item.answer, item.lang);
     comemorar('erro', quadraRef.current);
     tremor(quadraRef.current);
     setTimeout(avancar, 1200);
@@ -222,18 +239,7 @@ export default function TenseTennisGame({ items, ageProfile, onFinish, onExit }:
           </button>
         </div>
 
-        {fora && (
-          <p
-            dir={direcaoDoTexto(item?.lang)}
-            className="w-full text-center px-4 py-3 rounded-2xl border border-error bg-error-soft text-error-ink font-bold text-sm"
-          >
-            {fora}
-          </p>
-        )}
-
-        <span className="text-xs font-mono text-ink-muted">
-          Bola {indice + 1} de {items.length}
-        </span>
+        {aviso && <AvisoDaJogada tom={aviso.tom} rotulo={aviso.rotulo} resposta={aviso.resposta} lang={item?.lang} />}
       </div>
     </>
   );

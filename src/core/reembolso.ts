@@ -175,6 +175,12 @@ const EQUIVALENTES: Readonly<Record<string, string>> = {
   'dourada-3': 'tema-aurora',
   'dourada-5': 'tema-aurora',
   'dourada-7': 'tema-aurora',
+  /* Onda 6 (curadoria da vitrine de Créditos, `loja.ts`): as três douradas que saíram viram um
+     rastro dourado da vitrine (pagas a 150, a vitrine agora custa 100). Partícula de estrelas e confete dourados
+     repetiam o `alvo` da Loja de Seeds; as estrelas do rastro eram emoji. */
+  'dourada-1': 'dourada-2',
+  'dourada-4': 'dourada-10',
+  'dourada-9': 'dourada-6',
 };
 
 export function equivalenteDe(id: string): string {

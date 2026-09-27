@@ -313,31 +313,26 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
      estrela amarela do Rastro Estrelas. As miniaturas reais (01/09) mostraram os dois idênticos
      lado a lado, que foi como o defeito apareceu. Faísca é círculo pintado: a paleta vale. */
 
-  /* ── AS DEZ VARIANTES DOURADAS (mudança credito-com-destino) ───────────────────────────────
+  /* ── A VITRINE DE CRÉDITOS (recompensas v2, onda 6 — era "as dez variantes douradas") ──────
    *
-   * `galeria/passe.ts` prometia "Variante Dourada N" em cada marco de dezena da trilha paga — e a
-   * promessa era só uma string `nome`: os itens não existiam no catálogo, então o marco coroava o
-   * nada. Aqui elas passam a existir.
+   * As douradas nasceram na mudança credito-com-destino para o Passe de 100 casas, que saiu na
+   * onda 5. Sobrou UMA porta: a compra avulsa com Créditos, com prévia e preço à vista. A régua de
+   * quem pode estar aqui é `vendavelEmCreditos` (`economiaAutoridade.ts`): uma moeda só, épico ou
+   * lendário, sem nível, sem maestria, sem conquista, sem temporada e fora do baú.
    *
-   * NENHUMA ARTE NOVA, pela mesma técnica dos 25 itens das décadas 6-10: são peças que o app já
-   * sabe desenhar, na paleta dourada (`sunset-gold`, `ouro-*`). O que as torna especiais é a VIA,
-   * não o pixel.
+   * A CURADORIA DA ONDA 6 tirou três: a Faíscas Douradas (`dourada-1`) e o Confete Dourado
+   * (`dourada-9`) tinham o MESMO `alvo` da Chuva de Estrelas e do Confete da Loja de Seeds — o
+   * dinheiro comprava o que as Seeds (e o baú) já entregam —, e as Estrelas de Ouro (`dourada-4`)
+   * desenhavam a estrela por emoji, ignorando a paleta. Quem as pagou fica com o equivalente
+   * (`EQUIVALENTES` em `reembolso.ts`). Ficaram os quatro rastros dourados, que só existem aqui.
    *
-   * UMA PORTA SÓ desde a temporada com datas (recompensas v2, onda 5): a compra avulsa com
-   * Créditos. O Passe de 100 casas que também as entregava saiu — a trilha paga agora é a do
-   * assinante (`temporada.ts`) e nunca entrega Créditos. A loja com Créditos é a onda 6; o preço
-   * de 150 fica como está até lá.
+   * SEM `nivel`: com `nivel: 1` o item tinha porta de nível (`temPortaDeNivel`) e só não saía de
+   * graça porque cada leitor conferia `precoCreditos` antes.
+   *
+   * 100 CRÉDITOS (eram 150): todo pacote (100/300/700) compra itens inteiros, sem sobra — com 150,
+   * o pacote de 100 sozinho não comprava nada e todo pacote deixava troco que empurra a próxima
+   * compra. Equivalente em reais em `docs/economia-v2.md` ("Loja com Créditos").
    */
-  {
-    id: 'dourada-1',
-    tipo: 'particulas',
-    alvo: 'estrelas',
-    nome: 'Faíscas Douradas',
-    desc: 'A explosão de acerto em ouro velho. ✨',
-    raridade: 'lendario',
-    nivel: 1,
-    precoCreditos: 150,
-  },
   {
     id: 'dourada-2',
     tipo: 'rastro',
@@ -345,18 +340,7 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     nome: 'Rastro Dourado',
     desc: 'Ouro escorrendo do cursor.',
     raridade: 'lendario',
-    nivel: 1,
-    precoCreditos: 150,
-  },
-  {
-    id: 'dourada-4',
-    tipo: 'rastro',
-    alvo: 'gen:estrelas:ouro-neon',
-    nome: 'Estrelas de Ouro',
-    desc: 'Estrelas douradas sobre o escuro.',
-    raridade: 'lendario',
-    nivel: 1,
-    precoCreditos: 150,
+    precoCreditos: 100,
   },
   {
     id: 'dourada-6',
@@ -365,8 +349,7 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     nome: 'Pixel Dourado',
     desc: 'Quadradinhos de ouro, estilo arcade.',
     raridade: 'lendario',
-    nivel: 1,
-    precoCreditos: 150,
+    precoCreditos: 100,
   },
   {
     id: 'dourada-8',
@@ -375,28 +358,16 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     nome: 'Corações de Ouro',
     desc: 'Corações dourados, discretos.',
     raridade: 'lendario',
-    nivel: 1,
-    precoCreditos: 150,
-  },
-  {
-    id: 'dourada-9',
-    tipo: 'particulas',
-    alvo: 'confete',
-    nome: 'Confete Dourado',
-    desc: 'Papel picado de ouro em cada acerto.',
-    raridade: 'lendario',
-    nivel: 1,
-    precoCreditos: 150,
+    precoCreditos: 100,
   },
   {
     id: 'dourada-10',
     tipo: 'rastro',
     alvo: 'gen:arcoiris:sunset-gold',
     nome: 'Aurora Dourada',
-    desc: 'O último marco da temporada — bolinhas de ouro.',
+    desc: 'Bolinhas de ouro atrás do cursor.',
     raridade: 'lendario',
-    nivel: 1,
-    precoCreditos: 150,
+    precoCreditos: 100,
   },
 
   /* ── O QUE VEIO DO CATÁLOGO MESTRE (mudança gamificacao-sob-autoridade) ────────────────────
@@ -456,6 +427,13 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
   ...CATALOGO_DAS_CONQUISTAS, // onda 5: molduras e títulos do ouro das conquistas (`catalogoConquistas.ts`)
   ...CATALOGO_DA_TEMPORADA, // onda 5: molduras e títulos da Temporada 1 (`catalogoTemporada.ts`)
 ];
+
+/**
+ * A VITRINE DE CRÉDITOS (onda 6): os itens avulsos que se compram com a moeda paga, na ordem do
+ * catálogo. É derivada, não uma segunda lista — o que tem `precoCreditos` é o que está à venda, e
+ * `POST /api/billing/gastar` confere pela mesma régua (`autorizarGastoDeCredito`).
+ */
+export const VITRINE_DE_CREDITOS: readonly ItemDaLoja[] = CATALOGO_DA_LOJA.filter((i) => i.precoCreditos !== undefined);
 
 /**
  * O NÍVEL DA CONTA ABRE ESTE ITEM? Duas formas de dizer "não" convivem (recompensas v2): a onda 3

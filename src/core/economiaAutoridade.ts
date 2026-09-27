@@ -1,6 +1,6 @@
 import { type Conquista, CONQUISTAS, type ContextoDeConquistas } from './learning/conquistas';
 import { PESOS_SEEDS, PESOS_XP } from './learning/xp';
-import { CATALOGO_DA_LOJA, type ItemDaLoja, type Raridade } from './loja';
+import { CATALOGO_DA_LOJA, type ItemDaLoja, type Raridade, temPortaDeNivel } from './loja';
 import {
   creditoDeMaestria,
   LIMIARES_DE_MAESTRIA,
@@ -131,8 +131,24 @@ export function autorizarGastoDeCredito(reason: string): GastoDeCredito | Recusa
   const itemId = reason.slice('premium:'.length);
   const item = itemPorId(itemId);
   if (!item) return { erro: `item inexistente: ${itemId}` };
-  if (item.precoCreditos === undefined) return { erro: `${itemId} não é vendido em Créditos` };
+  if (item.precoCreditos === undefined || !vendavelEmCreditos(item)) return { erro: `${itemId} não é vendido em Créditos` };
   return { tipo: 'premium', itemId, preco: item.precoCreditos };
+}
+
+/**
+ * O ITEM PODE ESTAR NA VITRINE DE CRÉDITOS? (recompensas v2, onda 6 — spec 6 e 3.)
+ *
+ * O catálogo já é travado por teste (`tests/loja-creditos-v2.test.ts`); esta régua repete a trava
+ * NO CAMINHO DO DINHEIRO, para um item mal cadastrado amanhã não virar venda: preço inteiro
+ * positivo, uma moeda só (sem `precoSeeds`), sem porta de nível, épico ou lendário (comum e raro
+ * são do baú e da Loja de Seeds) e nunca de maestria, conquista ou temporada — que não se vendem.
+ */
+export function vendavelEmCreditos(item: ItemDaLoja): boolean {
+  const preco = item.precoCreditos;
+  if (preco === undefined || !Number.isInteger(preco) || preco <= 0) return false;
+  if (item.precoSeeds !== undefined || temPortaDeNivel(item)) return false;
+  if (item.raridade !== 'epico' && item.raridade !== 'lendario') return false;
+  return !item.exclusivoDe && !item.origemMaestria && !item.origemTemporada;
 }
 
 /* ── Autorização de um CRÉDITO ──────────────────────────────────────────────────────────────── */

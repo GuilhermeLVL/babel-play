@@ -351,7 +351,7 @@ export default function TermoGame({ rodadas, ageProfile, onFinish }: TermoGamePr
         gratis.sinonimo ? { ...reveladas, [i]: { ...(reveladas[i] ?? {}), 0: grupo[i].resposta[0] } } : reveladas,
       );
       cursorEscolhidoRef.current = false;
-      escrever(proxima, proximaVaga(proxima, 0));
+      escrever(proxima, proximaCasa(proxima, 0));
       return;
     }
 
@@ -379,7 +379,7 @@ export default function TermoGame({ rodadas, ageProfile, onFinish }: TermoGamePr
     setTentativas(tentativasUsadas);
     const proxima = linhaInicial(tamanho, novosPalpites, novosResolvidos, reveladas);
     cursorEscolhidoRef.current = false;
-    escrever(proxima, proximaVaga(proxima, 0));
+    escrever(proxima, 0);
 
     if (fechouAgora > 0) {
       const nova = sequencia + fechouAgora;
@@ -428,6 +428,21 @@ export default function TermoGame({ rodadas, ageProfile, onFinish }: TermoGamePr
     return Math.max(0, Math.min(de, a.length - 1));
   };
 
+  /**
+   * A próxima casa onde a digitação PARA: uma vaga, ou uma letra já conhecida ainda não "passada".
+   *
+   * QA dos jogos (2026-09-26): com o cursor saltando direto para as vagas, quem digitava a palavra
+   * INTEIRA via as letras escorregarem — com o E já verde na 2ª casa, "LEITE" virava "LEEIT". Parando
+   * também nas conhecidas, `digitar` decide: a mesma letra confirma e passa; outra pula a casa.
+   */
+  const proximaCasa = (a: string[], de: number) => {
+    const conhecidas = linhaInicial(tamanho);
+    for (let i = Math.max(0, de); i < a.length; i++) {
+      if (!a[i] || (conhecidas[i] && a[i] === conhecidas[i])) return i;
+    }
+    return proximaVaga(a, de);
+  };
+
   const escrever = (a: string[], pos: number) => {
     atualRef.current = a;
     cursorRef.current = pos;
@@ -439,12 +454,27 @@ export default function TermoGame({ rodadas, ageProfile, onFinish }: TermoGamePr
     if (fimDoGrupo) return;
     triggerHaptic('soft');
     const n = [...atualRef.current];
-    const pos = Math.min(cursorRef.current, n.length - 1);
+    let pos = Math.min(cursorRef.current, n.length - 1);
     if (pos < 0) return;
+    /* LETRA JÁ CONHECIDA NO CAMINHO (verde de um palpite ou revelada por dica): a MESMA letra só
+       confirma e passa — quem digita a palavra inteira não perde o alinhamento; OUTRA letra pula a
+       casa conhecida — quem digita só o que falta continua podendo. Com o cursor posto à mão numa
+       casa, digitar é corrigir, e escreve ali. */
+    if (!cursorEscolhidoRef.current) {
+      const conhecidas = linhaInicial(tamanho);
+      while (pos < n.length && conhecidas[pos] && n[pos] === conhecidas[pos]) {
+        if (letra === conhecidas[pos]) {
+          escrever(n, pos + 1 < n.length ? proximaCasa(n, pos + 1) : pos);
+          return;
+        }
+        pos++;
+      }
+      if (pos >= n.length) return;
+    }
     if (n.every((l) => l !== '') && !cursorEscolhidoRef.current) return;
     n[pos] = letra;
     setPop(pos);
-    escrever(n, proximaVaga(n, pos + 1));
+    escrever(n, proximaCasa(n, pos + 1));
   };
 
   const apagar = () => {
@@ -476,7 +506,7 @@ export default function TermoGame({ rodadas, ageProfile, onFinish }: TermoGamePr
     const base = linhaInicial(tamanho);
     if (!base.some(Boolean)) return;
     const n = atualRef.current.map((l, i) => base[i] || l);
-    escrever(n, proximaVaga(n, 0));
+    escrever(n, proximaCasa(n, 0));
     pontosDoElemento('letras certas', el, 'neutro');
   };
 

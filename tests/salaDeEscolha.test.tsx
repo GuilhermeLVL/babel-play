@@ -38,13 +38,25 @@ const GRAVACOES = [
 const trilhaDe = (lang: string) =>
   lang === 'en' ? { niveis: ['A1', 'A2', 'B1'] as never[], total: 2784 } : { niveis: [], total: 0 }
 
-function montar(escolha: Partial<EscolhaDaPratica> = {}, ageProfile: AgeProfileType = 'pro') {
+/* Um caderno com palavras JOGÁVEIS em português: desde o QA dos jogos (2026-09-26) a sala abre no
+   idioma que tem material quando o vigente não tem nenhum — os testes que olham a trilha de um
+   idioma sem lista curada precisam de um português que tenha palavras. */
+const IDIOMAS_COM_PORTUGUES = [
+  { lang: 'en', total: 1151, jogaveis: 621 },
+  { lang: 'pt', total: 993, jogaveis: 40 },
+]
+
+function montar(
+  escolha: Partial<EscolhaDaPratica> = {},
+  ageProfile: AgeProfileType = 'pro',
+  idiomas: typeof IDIOMAS = IDIOMAS,
+) {
   const aoConfirmar = vi.fn()
   const aoFechar = vi.fn()
   render(
     <SalaDeEscolha
       escolhaAtual={{ origem: 'gravacoes', escopo: 'todas', lang: 'en', ...escolha }}
-      idiomas={IDIOMAS}
+      idiomas={idiomas}
       dificeis={0}
       gravacoes={GRAVACOES}
       trilhaDe={trilhaDe}
@@ -116,7 +128,7 @@ describe('a trilha aparece sempre — com o motivo quando não dá', () => {
   })
 
   it('em português, desabilitada — mas VISÍVEL e dizendo por quê', () => {
-    montar({ lang: 'pt' })
+    montar({ lang: 'pt' }, 'pro', IDIOMAS_COM_PORTUGUES)
     const trilha = screen.getByRole('radio', { name: /trilha/i })
     expect((trilha as HTMLButtonElement).disabled).toBe(true)
     expect(trilha.getAttribute('title')).toMatch(/ainda não existe trilha em português/i)
@@ -126,7 +138,7 @@ describe('a trilha aparece sempre — com o motivo quando não dá', () => {
     /* O defeito que isto trava: a sala consultava o idioma APLICADO. Escolher inglês deixava a
        Trilha bloqueada com a frase "ainda não existe trilha em português" — recusando exatamente
        o que a pessoa acabou de pedir. */
-    montar({ lang: 'pt' })
+    montar({ lang: 'pt' }, 'pro', IDIOMAS_COM_PORTUGUES)
     expect((screen.getByRole('radio', { name: /trilha/i }) as HTMLButtonElement).disabled).toBe(true)
 
     fireEvent.click(screen.getByRole('radio', { name: /inglês/i }))
@@ -243,5 +255,14 @@ describe('a tabela de cobertura por idioma', () => {
     fireEvent.click(resumo)
     expect(screen.getByText('Trilha por nível')).toBeTruthy()
     expect(screen.getAllByText('Só o seu conteúdo').length).toBeGreaterThan(0)
+  })
+})
+
+describe('a sala abre no idioma que tem palavras (QA dos jogos, 2026-09-26)', () => {
+  it('idioma vigente sem nenhuma jogável: abre no que tem, e a contagem da fonte bate', () => {
+    montar({ lang: 'pt' })
+    const en = screen.getByRole('radio', { name: /inglês/i })
+    expect(en.getAttribute('aria-checked') ?? en.getAttribute('aria-pressed')).toBe('true')
+    expect(screen.queryByText(/não tem palavras prontas/i)).toBeNull()
   })
 })

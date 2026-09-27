@@ -3,6 +3,7 @@ import { Check as IconeCheck, FileAudio,Flame, Globe, GraduationCap, Layers, Mic
 import { useEffect, useRef, useState } from 'react';
 
 import { type EscalaDaTrilha,nomeDaEscala, rotuloDaEtapa } from '../../core/learning/trilha';
+import { idiomaInicialDaSala } from '../../core/minigames/source';
 import { empilharCamada } from '../../lib/camadasDeEscape';
 import { numero, t, tp } from '../../lib/i18n';
 import { langLabelNaUI } from '../../lib/languages';
@@ -79,7 +80,13 @@ interface SalaProps {
 export default function SalaDeEscolha({
   escolhaAtual, idiomas, gravacoes, trilhaDe, prefetchTrilha, dificeis, ageProfile, aoConfirmar, aoFechar,
 }: SalaProps) {
-  const [lang, setLang] = useState(escolhaAtual.lang);
+  const [lang, setLangEstado] = useState(() => idiomaInicialDaSala(escolhaAtual, idiomas));
+  /** A pessoa já escolheu o idioma nesta sala? Então a regra de abertura não mexe mais nele. */
+  const idiomaEscolhidoRef = useRef(false);
+  const setLang = (l: string) => {
+    idiomaEscolhidoRef.current = true;
+    setLangEstado(l);
+  };
   const [origem, setOrigem] = useState<OrigemDaPratica>(escolhaAtual.origem);
   const [escopo, setEscopo] = useState<EscopoDeGravacoes>(escolhaAtual.escopo);
   const [sessionId, setSessionId] = useState(escolhaAtual.sessionId);
@@ -108,8 +115,17 @@ export default function SalaDeEscolha({
    * escolher.
    */
   useEffect(() => {
-    if (!lang && escolhaAtual.lang) setLang(escolhaAtual.lang);
-  }, [escolhaAtual.lang, lang]);
+    if (!lang && escolhaAtual.lang) setLangEstado(idiomaInicialDaSala(escolhaAtual, idiomas));
+  }, [escolhaAtual, lang, idiomas]);
+
+  /* Os chips de idioma chegam DEPOIS da primeira pintura (o baralho carrega em paralelo): enquanto a
+     pessoa não mexeu no idioma, a abertura é refeita com os dados que chegaram. */
+  useEffect(() => {
+    if (idiomaEscolhidoRef.current || !idiomas.length) return;
+    const inicial = idiomaInicialDaSala({ lang: escolhaAtual.lang || lang, origem }, idiomas);
+    if (inicial && inicial !== lang) setLangEstado(inicial);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idiomas]);
 
   /* Trocar de idioma pode tirar a trilha do mapa (só existe lista para inglês). Voltar para as
      gravações é melhor que deixar selecionada uma fonte que acabou de deixar de existir. */

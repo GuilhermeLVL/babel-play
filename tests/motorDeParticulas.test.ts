@@ -56,7 +56,6 @@ const rajada = (extra: Partial<PedidoDeRajada> = {}): PedidoDeRajada => ({
   countMul: 1,
   sizeMul: 1,
   cor: '#0f0',
-  pack: ['⭐'],
   skin: null,
   modoPixel: false,
   ...extra,

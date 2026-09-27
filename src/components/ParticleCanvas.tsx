@@ -5,8 +5,6 @@ import { BURST_SPECS, type BurstKind, type BurstSpec,onBurst, resolveParticleSty
 import { corDoCromaEquipado } from '../lib/galeria/cromas';
 import { criarLacoDeParticulas, type MensagemDoLaco, type PedidoDeRajada } from '../lib/motorDeParticulas';
 
-const PACK_DE_RESERVA = ['⭐', '✨'];
-
 interface ParticleCanvasProps {
   /** Interruptor do usuário (Animações e efeitos). */
   enabled: boolean;
@@ -114,7 +112,7 @@ function fecharCanal(canvas: HTMLCanvasElement) {
  * Continua respeitando o que a fase 1 acertou: cor lida do token do tema, escala por DPR,
  * `prefers-reduced-motion` e o desligamento pelo Modo Desempenho.
  *
- * Este componente é a PONTA DA PÁGINA: lê o que só a página sabe (tokens de cor, skin, pack,
+ * Este componente é a PONTA DA PÁGINA: lê o que só a página sabe (tokens de cor, skin,
  * croma, tamanho do canvas) e manda ao laço, que simula e desenha (`lib/motorDeParticulas.ts`).
  */
 export default function ParticleCanvas({ enabled, performanceMode, theme, darkMode, ambient }: ParticleCanvasProps) {
@@ -198,7 +196,6 @@ export default function ParticleCanvas({ enabled, performanceMode, theme, darkMo
         countMul,
         sizeMul,
         cor: croma ?? readColor(spec.colorToken),
-        pack: PACK_DE_RESERVA,
         skin,
         modoPixel: document.documentElement.getAttribute('data-fonte') === 'pixel',
       };

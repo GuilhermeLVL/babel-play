@@ -1,0 +1,22 @@
+{
+  "status": 200,
+  "forma": {
+    "congelamentos": "number",
+    "dia": "string",
+    "metaConcluida": "boolean",
+    "metaCreditada": "boolean",
+    "missoes": [
+      {
+        "alvo": "number",
+        "atual": "number",
+        "id": "string",
+        "tipo": "string"
+      }
+    ],
+    "ofensiva": "number",
+    "recompensa": {
+      "seeds": "number",
+      "xp": "number"
+    }
+  }
+}

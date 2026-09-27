@@ -4,6 +4,7 @@ import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, max, type SQL, sql
 
 import type { LinhaDeMaestria } from '../../../src/core/maestria'
 import { MINIGAME_IDS } from '../../../src/core/minigames/revelavel'
+import { inicioDaRodada } from '../../../src/core/missoes'
 import type { UserId } from '../../lib/authContext'
 import { db } from '../db'
 import { emLotes, tamanhoDoLote } from '../lotes'
@@ -149,6 +150,8 @@ export interface NovaRodada {
   score?: number | null
   /** Combo máximo da rodada. Vira `exercise_results.combo` em todas as linhas dela. */
   melhorSequencia?: number | null
+  /** Quanto a rodada durou (ms). `created_at` vira o INÍCIO dela (`inicioDaRodada`, teto de 2 h). */
+  duracaoMs?: number | null
   itens: Array<{
     cardId?: string | null
     itemRef?: string | null
@@ -379,6 +382,9 @@ export const exerciseResultsRepo = {
    */
   async addRodada(userId: UserId, rodada: NovaRodada): Promise<{ gravados: number; roundId: string }> {
     const now = Date.now()
+    /* O DIA DA RODADA É O DIA EM QUE ELA COMEÇOU (recompensas v2, onda 5): quem começa às 23:59 e
+       grava às 00:01 fez a rodada da véspera — nas missões, na meta e na ofensiva. */
+    const inicio = inicioDaRodada(now, rodada.duracaoMs)
     if (!rodada.itens?.length) return { gravados: 0, roundId: rodada.roundId }
 
     // Dono da sessão conferido UMA vez para a rodada, não por item.
@@ -409,7 +415,7 @@ export const exerciseResultsRepo = {
       if ((i as { forcarErro?: boolean }).forcarErro) throw new Error('item inválido na rodada')
       return {
         id: randomUUID(),
-        createdAt: now,
+        createdAt: inicio,
         updatedAt: now,
         userId,
         sessionId,

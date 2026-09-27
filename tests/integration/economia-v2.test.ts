@@ -17,7 +17,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
-import { diaLocal, diaNoFuso, META_DIARIA_ACERTOS } from '../../src/core/learning/economia'
+import { diaLocal, diaNoFuso } from '../../src/core/learning/economia'
 import { cumprirColecionadorNoExpress } from '../harness/colecionador'
 import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
@@ -161,34 +161,8 @@ describe('computeProfile reflete a economia', () => {
 
 describe('meta do dia no Express — `meta:<AAAA-MM-DD>` (recompensas v2)', () => {
   const fuso = 'America/Sao_Paulo'
-  const rodada = async (u: string, roundId: string, certos: number) => {
-    const { exerciseResultsRepo } = (await h.load('../../server/db/repositories/exerciseResults')) as {
-      exerciseResultsRepo: { addRodada: (u: unknown, r: unknown) => Promise<unknown> }
-    }
-    await exerciseResultsRepo.addRodada(asUserId(u), {
-      roundId, exerciseKind: 'blitz', origem: 'baralho', score: certos, melhorSequencia: 1,
-      itens: Array.from({ length: certos }, (_, i) => ({ itemRef: `m${i}`, correct: 1, kind: 'drill' })),
-    })
-  }
-
-  it('recusa sem os acertos do dia e credita 15 Seeds uma vez quando a meta fecha', async () => {
-    const u = 'u-meta'
-    const dia = diaNoFuso(Date.now(), fuso)
-    await rodada(u, 'meta-a', META_DIARIA_ACERTOS - 1)
-    const antes = mockRes()
-    await handler('/seeds/creditar')(req({ creditoId: `meta:${dia}`, fuso }, u), antes)
-    expect(antes.statusCode).toBe(400)
-    expect(antes.body.code).toBe('meta_nao_cumprida')
-
-    await rodada(u, 'meta-b', 1)
-    const r1 = mockRes()
-    await handler('/seeds/creditar')(req({ creditoId: `meta:${dia}`, fuso }, u), r1)
-    expect(r1.statusCode).toBe(200)
-    expect(r1.body).toMatchObject({ jaExistia: false, seedsCreditadas: 15 })
-    const r2 = mockRes()
-    await handler('/seeds/creditar')(req({ creditoId: `meta:${dia}`, fuso }, u), r2)
-    expect(r2.body).toMatchObject({ jaExistia: true, seedsCreditadas: 15 })
-  })
+  /* A CONDIÇÃO da meta (as três missões do dia, onda 5) está em
+     `tests/integration/economia-missoes.test.ts`; aqui fica a janela do dia. */
 
   it('dia fora da janela do fuso é recusado', async () => {
     const r = mockRes()

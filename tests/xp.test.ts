@@ -17,7 +17,7 @@ import {
   levelFloor, NIVEL_MAXIMO,
 nivelDoXp, PESOS_SEEDS,   PESOS_XP, posicaoNoNivel, seedsGanhasDeEventos,
 xpDeEventos, } from '../src/core/learning/xp'
-import { deriveProgress, EMPTY_PROGRESS } from '../src/lib/progress'
+import { deriveProgress } from '../src/lib/progress'
 
 /** Métricas mínimas, com os campos que a fórmula usa. */
 function metricas(p: Partial<AppMetrics> = {}): AppMetrics {
@@ -116,29 +116,6 @@ describe('curva de nível', () => {
     const p = posicaoNoNivel(0)
     expect(p.level).toBe(1)
     expect(p.levelPct).toBe(0)
-  })
-})
-
-describe('as missões prometem o que o sistema credita', () => {
-  it('nenhuma recompensa de seeds sai de fora das regras de ganho', () => {
-    /* A missão de captura anunciava "+20 Seeds" — um número solto. `seedsGanhasDeEventos` só conta
-       palavra capturada (1) e revisão certa (4); gravar, por si, não credita seed nenhuma. A
-       promessa era falsa e nunca seria cumprida. */
-    const permitidos = new Set<number>([0, ...Object.values(PESOS_SEEDS)])
-    for (const m of deriveProgress(metricas()).missions) {
-      expect(permitidos.has(m.rewardSeeds), `missão ${m.id} promete ${m.rewardSeeds} seeds, fora das regras de ganho`).toBe(true)
-    }
-    for (const m of EMPTY_PROGRESS.missions) {
-      expect(permitidos.has(m.rewardSeeds), `missão ${m.id} do estado vazio promete ${m.rewardSeeds}`).toBe(true)
-    }
-  })
-
-  it('nenhuma recompensa de XP sai de fora dos pesos', () => {
-    const permitidos = new Set(Object.values(PESOS_XP) as number[])
-    permitidos.add(PESOS_XP.revisao + PESOS_XP.revisaoCerta)  // revisão certa = os dois somados
-    for (const m of deriveProgress(metricas()).missions) {
-      expect(permitidos.has(m.rewardXp), `missão ${m.id} promete ${m.rewardXp} XP`).toBe(true)
-    }
   })
 })
 

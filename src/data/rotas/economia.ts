@@ -7,10 +7,10 @@
  * dinheiro nasce e morre no servidor, e o motivo está em `tests/contratos/rotas-espelhadas`.
  *
  * Rotas: POST `/api/metrics/seeds/gastar`, POST `/api/metrics/seeds/creditar`,
- * POST `/api/metrics/presenca`, GET `/api/metrics/maestria`, POST `/api/billing/gastar`,
+ * POST `/api/metrics/presenca`, GET `/api/metrics/maestria`, GET `/api/metrics/missoes`, POST `/api/billing/gastar`,
  * POST `/api/billing/creditar-passe`.
  */
-import { fusoDoAmbiente, type MaestriaDoJogo } from '@core'
+import { type EstadoDasMissoes, fusoDoAmbiente, type MaestriaDoJogo } from '@core'
 
 import { apiFetch, type ErroDaApi,lerErro } from '../funil'
 
@@ -92,6 +92,21 @@ export async function lerMaestria(): Promise<{ jogos: MaestriaNoServidor[]; cred
     const res = await apiFetch('/api/metrics/maestria')
     if (!res.ok) return null
     return (await res.json()) as { jogos: MaestriaNoServidor[]; creditados: string[] }
+  } catch {
+    return null
+  }
+}
+
+/**
+ * AS MISSÕES DO DIA (recompensas v2, onda 5): as três do dia LOCAL, com o progresso contado no
+ * servidor, a meta e a ofensiva com congelamento. `null` em falha — a tela esconde o cartão em vez
+ * de inventar progresso.
+ */
+export async function lerMissoes(): Promise<EstadoDasMissoes | null> {
+  try {
+    const res = await apiFetch(`/api/metrics/missoes?fuso=${encodeURIComponent(fusoDoAmbiente())}`)
+    if (!res.ok) return null
+    return (await res.json()) as EstadoDasMissoes
   } catch {
     return null
   }

@@ -54,10 +54,14 @@ export function estudouHoje(revisoesRecentes: readonly number[] | undefined, ago
 /**
  * O aviso sai só com ofensiva ativa, nada estudado hoje, entre 18h e 22h locais, e no máximo UMA
  * vez por dia — o teto mora aqui (e não só na chave da central de notificações, que guarda 40
- * itens e poderia esquecer o aviso de hoje).
+ * itens e poderia esquecer o aviso de hoje). Nunca para o perfil protegido (`protegido`): sem
+ * pressão por sequência para menor ou idade desconhecida.
  */
-export function podeAvisarOfensiva(estado: { streakDays: number; estudouHoje: boolean }, agora = new Date()): boolean {
-  if (estado.streakDays <= 0 || estado.estudouHoje) return false;
+export function podeAvisarOfensiva(
+  estado: { streakDays: number; estudouHoje: boolean; protegido?: boolean },
+  agora = new Date(),
+): boolean {
+  if (estado.protegido || estado.streakDays <= 0 || estado.estudouHoje) return false;
   const h = agora.getHours();
   if (h < HORA_DO_RISCO || h >= HORA_DO_SILENCIO || h < HORA_DO_FIM_DO_SILENCIO) return false;
   return lerDia(CHAVE_AVISO) !== diaLocal(agora.getTime());

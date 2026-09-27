@@ -13,6 +13,7 @@ import { diaLocal, marcosDeSequencia, palavrasPremiadas, sequencias } from '../.
 import { historicoDeXp } from '../../../core/learning/historicoDeXp';
 import { Fsrs5Strategy } from '../../../core/learning/scheduler';
 import { ehRodadaPerfeita } from '../../../core/minigames/grade';
+import { numeroDoDia, ofensivaComCongelamento } from '../../../core/missoes';
 import { contarPalavras, DIA, json } from '../nucleo';
 import { abrirStore } from '../store';
 import { estadoDe } from './vocabulario';
@@ -39,6 +40,52 @@ export async function historicoDeXpLocal(_m: RegExpMatchArray, url: URL): Promis
        agendador JA esta em `revisoes`, e conta-lo de novo inflaria a curva. */
     itensDeJogo: exercicios.filter((e) => e.kind === 'drill').map((e) => ({ em: e.createdAt, certo: e.correct === 1 })),
   }, { balde, desde }));
+}
+
+/** A ofensiva com congelamento: dias de prática + dias com `meta:<dia>` creditada (core). */
+export function ofensivaEfemera(diasDePratica: Iterable<number>, creditos: ReadonlyArray<{ creditoId: string }>, agora: number) {
+  return ofensivaComCongelamento({
+    diasDePratica,
+    diasDeMeta: creditos
+      .filter((c) => c.creditoId.startsWith('meta:'))
+      .map((c) => numeroDoDia(c.creditoId.slice('meta:'.length)))
+      .filter((d): d is number => d !== null),
+    hoje: diaLocal(agora),
+  });
+}
+
+/**
+ * O QUE AS MISSÕES DO DIA LEEM, sem conta — o mesmo formato de `dadosDasMissoes` do Express:
+ * carimbos de revisão e de palavra salva dos últimos 3 dias, metas creditadas e a ofensiva com
+ * congelamento (dias de prática contados como em `perfilEfemero`).
+ */
+export async function dadosDasMissoesEfemeros(): Promise<{
+  revisoes: number[];
+  palavrasSalvas: number[];
+  metasCreditadas: string[];
+  ofensiva: { atual: number; congelamentos: 0 | 1 | 2 };
+}> {
+  const db = await abrirStore();
+  const agora = Date.now();
+  const [cartoes, revisoes, exercicios, creditos] = await Promise.all([
+    db.getAll('cartoes'), db.getAll('revisoes'), db.getAll('exercicios'), db.getAll('creditos'),
+  ]);
+  const idsDoDeck = new Set(cartoes.map((c) => c.id));
+  const revs = revisoes.filter((r) => idsDoDeck.has(r.cardId)).map((r) => r.reviewedAt);
+  const palavras = cartoes.filter((c) => c.inDeck !== 0 && c.sessionId).map((c) => c.createdAt);
+  const diasDePratica = new Set<number>([
+    ...palavras.map(diaLocal),
+    ...revs.map(diaLocal),
+    ...exercicios.filter((e) => e.roundId).map((e) => diaLocal(e.createdAt)),
+  ]);
+  const desde = agora - 3 * DIA;
+  const { atual, congelamentos } = ofensivaEfemera(diasDePratica, creditos, agora);
+  return {
+    revisoes: revs.filter((t) => t >= desde).sort((a, b) => a - b),
+    palavrasSalvas: palavras.filter((t) => t >= desde).sort((a, b) => a - b),
+    metasCreditadas: creditos.map((c) => c.creditoId).filter((id) => id.startsWith('meta:')).map((id) => id.slice(5)).sort(),
+    ofensiva: { atual, congelamentos },
+  };
 }
 
 /**
@@ -115,8 +162,9 @@ export async function perfilEfemero(sessionId: string | null): Promise<AppMetric
   for (const r of porRodada.values()) if (ehRodadaPerfeita(r.kind, r.total, r.certos)) rodadasPerfeitas += 1;
   const seedsCreditadas = creditos.reduce((n, c) => n + c.amount, 0);
   const xpCreditado = creditos.reduce((n, c) => n + c.xp, 0);
-  // A ofensiva que a tela mostra conta DIAS DE PRÁTICA (revisão, rodada ou palavra salva).
-  streakDays = Math.max(streakDays, seq.atual);
+  // A ofensiva que a tela mostra conta DIAS DE PRÁTICA (revisão, rodada ou palavra salva), com o
+  // congelamento das metas cumpridas (recompensas v2, onda 5) — a mesma conta do Express.
+  streakDays = Math.max(streakDays, seq.atual, ofensivaEfemera(diasDePratica, creditos, agora).atual);
 
   const revisados = noDeck.filter((c) => c.stability != null);
   const avgStability = revisados.length ? revisados.reduce((n, c) => n + (c.stability ?? 0), 0) / revisados.length : 0;

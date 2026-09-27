@@ -103,33 +103,59 @@ describe('métricas novas', () => {
   })
 })
 
-describe('meta do dia — `meta:<AAAA-MM-DD>`', () => {
+describe('meta do dia — `meta:<AAAA-MM-DD>` = as três missões do dia (recompensas v2, onda 5)', () => {
   beforeAll(() => limparTudo())
   const fuso = 'America/Sao_Paulo'
   const hoje = () => diaNoFuso(Date.now(), fuso)
-  const rodadaCom = (roundId: string, certos: number) =>
+  const rodadaCom = (roundId: string, certos: number, exerciseKind = 'blitz') =>
     post('/api/exercises/rodada', {
       roundId,
-      exerciseKind: 'blitz',
+      exerciseKind,
       origem: 'baralho',
       score: certos,
       melhorSequencia: 1,
       itens: Array.from({ length: certos }, (_, i) => ({ itemRef: 'm' + i, correct: 1, attempts: 1, ms: 500, hinted: 0, kind: 'drill' })),
     })
+  const missoes = async () =>
+    (await (await servidorEfemero(`/api/metrics/missoes?fuso=${encodeURIComponent(fuso)}`)).json()) as {
+      dia: string
+      missoes: Array<{ tipo: string; alvo: number; atual: number }>
+      metaConcluida: boolean
+      metaCreditada: boolean
+    }
 
-  it('sem os acertos do dia, recusa com o motivo', async () => {
-    await rodadaCom('meta-1', META_DIARIA_ACERTOS - 1)
+  it('os 20 acertos da regra provisória não bastam mais: recusa com as missões', async () => {
+    await rodadaCom('meta-1', META_DIARIA_ACERTOS)
     const r = await post('/api/metrics/seeds/creditar', { creditoId: `meta:${hoje()}`, fuso })
     expect(r.status).toBe(400)
-    expect((await r.json()).code).toBe('meta_nao_cumprida')
+    const corpo = await r.json()
+    expect(corpo.code).toBe('meta_nao_cumprida')
+    expect(corpo.detalhes.missoes).toHaveLength(3)
   })
 
-  it('com a meta cumprida credita 15 Seeds uma vez só', async () => {
-    await rodadaCom('meta-2', 1)
+  it('GET /api/metrics/missoes conta o que está gravado; com as três fechadas credita 15 Seeds uma vez só', async () => {
+    const antes = await missoes()
+    expect(antes.dia).toBe(hoje())
+    expect(antes.missoes).toHaveLength(3)
+    expect(antes.metaConcluida).toBe(false)
+
+    // Cumpre o teto de cada tipo: 5 palavras salvas, 20 revisões, 2 rodadas boas em jogos novos.
+    const sessao = (await (await post('/api/sessions', { title: 'meta', sourceLang: 'en' })).json()) as { id: string }
+    const cards = Array.from({ length: 5 }, (_, i) => ({ word: `meta${i}`, translation: `meta${i}`, srcLang: 'en', tgtLang: 'pt', sessionId: sessao.id }))
+    await post('/api/vocab/bulk-add', { cards })
+    const [cartao] = (await (await servidorEfemero('/api/vocab')).json()) as Array<{ id: string }>
+    for (let i = 0; i < 20; i++) await post(`/api/vocab/${cartao.id}/review`, { grade: 3 })
+    await rodadaCom('meta-2', 10, 'termo')
+    await rodadaCom('meta-3', 10, 'memory')
+
+    const depois = await missoes()
+    expect(depois.metaConcluida).toBe(true)
+    expect(depois.metaCreditada).toBe(false)
     const a = await (await post('/api/metrics/seeds/creditar', { creditoId: `meta:${hoje()}`, fuso })).json()
     const b = await (await post('/api/metrics/seeds/creditar', { creditoId: `meta:${hoje()}`, fuso })).json()
     expect(a).toMatchObject({ jaExistia: false, seedsCreditadas: 15 })
     expect(b).toMatchObject({ jaExistia: true, seedsCreditadas: 15 })
+    expect((await missoes()).metaCreditada).toBe(true)
   })
 
   it('dia fora da janela (anteontem ou amanhã) é recusado', async () => {

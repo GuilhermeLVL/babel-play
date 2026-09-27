@@ -7,82 +7,34 @@
  * erra fácil, porque nem sempre é um para um: acertar uma revisão vale `revisao + revisaoCerta` de
  * XP e só `revisaoCerta` de Seeds.
  *
- * Três lugares pareiam hoje: `REGRAS` (a tabela "como eu ganho", no núcleo), as missões de
- * `deriveProgress` (os cartões do Hub) e a tela de Conquistas. Nada os comparava. Este teste
+ * Três lugares pareiam hoje: `REGRAS` (a tabela "como eu ganho", no núcleo), a meta das missões do
+ * dia (`RECOMPENSA_DA_META`, o cartão "Missões do dia" do Hub — recompensas v2, onda 5) e a tela de
+ * Conquistas. Nada os comparava. Este teste
  * compara, e a decisão de não unificá-los está em `docs/adr/0002-pareamento-de-recompensa-cobrado-por-teste.md`.
  */
 import { describe, expect,it } from 'vitest'
 
+import { valorDoCredito } from '../src/core/economiaAutoridade'
 import { REGRAS } from '../src/core/learning/economia'
 import { PESOS_SEEDS,PESOS_XP } from '../src/core/learning/xp'
-import type { AppMetrics } from '../src/data/api'
-import { deriveProgress } from '../src/lib/progress'
-
-/** Métricas mínimas para `deriveProgress` devolver as três missões com as recompensas preenchidas. */
-const METRICAS = {
-  sessions: 0,
-  dueToday: 3,
-  newCards: 5,
-  deckSize: 10,
-  reviews: 0,
-  correctReviews: 0,
-  drillItems: 0,
-  drillCorrect: 0,
-  seedsGastas: 0,
-  words: 0,
-  minutes: 0,
-} as unknown as AppMetrics
-
-/**
- * Missão do Hub → regra de `REGRAS` que ela anuncia. `null` significa "não corresponde a uma regra
- * só", e cada caso desses precisa do motivo escrito aqui — é a exceção que o ADR previu.
- */
-const MISSAO_PARA_REGRA: Record<string, string | null> = {
-  /*
-   * caracterizacao: comportamento atual, e ele MISTURA duas regras. A missão "capturar" promete o
-   * XP de `sessao` (salvar a gravação) com os Seeds de `palavraSalva` (1 por palavra nova salva da
-   * captura, com teto diário — recompensas v2; antes eram minutos gravados). Os dois valores
-   * existem e são creditados de verdade — mas como recompensas de EVENTOS DIFERENTES, e o cartão
-   * os apresenta como se fossem de um só.
-   *
-   * Não é corrigido aqui porque a correção é decisão de produto (o cartão promete o que? gravar,
-   * salvar, ou os dois em linhas separadas?). Fica registrado e medido.
-   */
-  capture: null,
-  practice: 'revisaoCerta',
-  vocabulary: 'cartao',
-}
+import { RECOMPENSA_DA_META } from '../src/core/missoes'
 
 describe('o par (XP, Seeds) não diverge entre as telas', () => {
   const regraPorId = new Map(REGRAS.map((r) => [r.id, r]))
-  const missoes = deriveProgress(METRICAS).missions
 
-  it('toda missão do Hub está mapeada — uma missão nova sem par declarado falha aqui', () => {
-    for (const m of missoes) {
-      expect(
-        Object.prototype.hasOwnProperty.call(MISSAO_PARA_REGRA, m.id),
-        `missão "${m.id}" não tem regra declarada em MISSAO_PARA_REGRA (nem null com o motivo)`,
-      ).toBe(true)
-    }
+  /* As "missões" antigas do Hub (capturar / praticar / vocabulário) saíram nas recompensas v2
+     (onda 5): eram as três frentes do app, e a de captura misturava duas regras. O que o Hub
+     promete agora é a META do dia — e ela anuncia o mesmo par que a tabela de ganhos e que o
+     crédito `meta:<dia>` lança. */
+  it('a meta das missões do dia anuncia o mesmo par que a regra "metaDiaria" e que o crédito', () => {
+    const regra = regraPorId.get('metaDiaria')
+    expect(regra, 'regra metaDiaria sumiu de REGRAS').toBeTruthy()
+    expect(RECOMPENSA_DA_META.xp, 'XP divergente entre o Hub e a tabela de ganhos').toBe(regra!.xp)
+    expect(RECOMPENSA_DA_META.seeds, 'Seeds divergentes entre o Hub e a tabela de ganhos').toBe(regra!.seeds)
+    expect(valorDoCredito('meta:2026-10-05')).toMatchObject({ seeds: RECOMPENSA_DA_META.seeds, xp: RECOMPENSA_DA_META.xp })
   })
 
-  for (const [idMissao, idRegra] of Object.entries(MISSAO_PARA_REGRA)) {
-    if (!idRegra) continue
-    it(`missão "${idMissao}" anuncia o mesmo par que a regra "${idRegra}"`, () => {
-      const missao = missoes.find((m) => m.id === idMissao)
-      const regra = regraPorId.get(idRegra)
-      expect(missao, `missão ${idMissao} sumiu de deriveProgress`).toBeTruthy()
-      expect(regra, `regra ${idRegra} sumiu de REGRAS`).toBeTruthy()
-      expect(missao!.rewardXp, `XP divergente entre o Hub e a tabela de ganhos`).toBe(regra!.xp)
-      expect(missao!.rewardSeeds, `Seeds divergentes entre o Hub e a tabela de ganhos`).toBe(regra!.seeds)
-    })
-  }
-
-  it('a missão "capture" continua misturando duas regras — se isto mudar, o ADR 0002 muda junto', () => {
-    const missao = missoes.find((m) => m.id === 'capture')!
-    expect(missao.rewardXp, 'XP da missão de captura').toBe(PESOS_XP.sessao)
-    expect(missao.rewardSeeds, 'Seeds da missão de captura').toBe(PESOS_SEEDS.palavraSalva)
-    // E o que a tabela de ganhos diz sobre cada um dos dois eventos, separadamente:
+  it('gravar não rende por tempo, e salvar a sessão não rende Seeds', () => {
     expect(regraPorId.get('sessao')!.seeds, 'salvar a sessão não rende Seeds').toBe(0)
     expect(regraPorId.get('palavraSalva')!.xp, 'palavra salva não rende XP extra').toBe(0)
     expect(regraPorId.has('captura'), 'gravar não rende mais por tempo').toBe(false)

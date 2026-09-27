@@ -75,6 +75,8 @@ export async function salvarRodada(payload: {
   score?: number
   /** Combo maximo da rodada (vira recorde de combo). */
   melhorSequencia?: number
+  /** Duração da rodada (ms): o servidor grava o INÍCIO dela, e a rodada conta no dia em que começou. */
+  duracaoMs?: number
   itens: Array<{ cardId?: string; itemRef?: string; correct?: number; attempts?: number; ms?: number; hinted?: number; kind?: string }>
 }): Promise<GravacaoDeExercicio> {
   try {

@@ -1,9 +1,10 @@
-import { rotuloDaMaestria } from '@core';
+import { type EstadoDasMissoes, rotuloDaMaestria } from '@core';
 import { useEffect, useRef } from 'react';
 
 import { chaveDaRecompensa, type Recompensa } from '../../components/RecompensaDesbloqueada';
 import type { AppMetrics } from '../../data/api';
 import { t, tp } from '../i18n';
+import { podeAvisarMissao, registrarAvisoDeMissao } from '../metaDoDia';
 import { jaNotificado, notificar } from '../notificacoes';
 import { podeAvisarOfensiva, registrarAvisoDeOfensiva } from '../ofensiva';
 import type { DerivedProgress } from '../progress';
@@ -72,17 +73,21 @@ export function notificacaoDaRecompensa(r: Recompensa) {
  *   · palavras vencidas hoje (`metrics.dueToday`), uma por dia, atualizada se o número mudar;
  *   · conquista, nível e baú, no momento em que entram na fila de recompensas;
  *   · ofensiva em risco: ofensiva ativa, nada estudado hoje, entre 18h e 22h (uma por dia —
- *     `lib/ofensiva`; nunca entre 22h e 8h).
+ *     `lib/ofensiva`; nunca entre 22h e 8h; nunca para o perfil protegido);
+ *   · missão quase completa: falta uma das três missões do dia (uma por dia, nunca entre 22h e
+ *     8h, nunca para o perfil protegido — `lib/metaDoDia`).
  * A sessão salva é registrada no próprio `handleSaveRecording` (ver `notificarSessaoSalva`).
  */
 export function useNotificacoes({
   metrics,
   progress,
   filaDeRecompensas,
+  missoes = null,
 }: {
   metrics: AppMetrics | null;
   progress: DerivedProgress;
   filaDeRecompensas: Recompensa[];
+  missoes?: EstadoDasMissoes | null;
 }): void {
   const vencidas = metrics?.dueToday ?? 0;
   useEffect(() => {
@@ -113,9 +118,8 @@ export function useNotificacoes({
     const verificar = () => {
       /* PERFIL PROTEGIDO (Fase 4 — ECA Digital): sem pressão por sequência para menor (ou idade
          desconhecida). Conferido a cada verificação porque a idade pode chegar depois da montagem. */
-      if (perfilProtegido()) return;
       const agora = new Date();
-      if (!podeAvisarOfensiva({ streakDays, estudouHoje: practicedToday }, agora)) return;
+      if (!podeAvisarOfensiva({ streakDays, estudouHoje: practicedToday, protegido: perfilProtegido() }, agora)) return;
       const chave = `ofensiva:${hojeLocal(agora)}`;
       registrarAvisoDeOfensiva(agora);
       if (jaNotificado(chave)) return;
@@ -133,6 +137,24 @@ export function useNotificacoes({
     const id = window.setInterval(verificar, 10 * 60_000);
     return () => window.clearInterval(id);
   }, [available, streakDays, practicedToday]);
+
+  /* MISSÃO QUASE COMPLETA: conferido quando o estado das missões muda (o servidor recontou). */
+  useEffect(() => {
+    if (!missoes) return;
+    const agora = new Date();
+    if (!podeAvisarMissao({ missoes: missoes.missoes, protegido: perfilProtegido() }, agora)) return;
+    const chave = `missao:${missoes.dia}`;
+    registrarAvisoDeMissao(agora);
+    if (jaNotificado(chave)) return;
+    notificar({
+      chave,
+      tipo: 'revisao',
+      icone: 'target',
+      titulo: t('Falta uma missão para a meta do dia'),
+      detalhe: t('Feche a última e ganhe +{seeds} Seeds.', { seeds: missoes.recompensa.seeds }),
+      ir: 'hub',
+    });
+  }, [missoes]);
 }
 
 /** A sessão que acabou de ser salva (captura encerrada ou importação processada). */

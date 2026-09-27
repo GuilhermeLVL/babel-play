@@ -6,6 +6,7 @@
  * Rotas: POST `/api/exercises/rodada`, GET `/api/exercises/results`,
  * GET `/api/exercises/historico`, GET `/api/exercises/recordes`.
  */
+import { inicioDaRodada } from '../../../core/missoes';
 import { type Json,json, lerJson, num, str, uuid } from '../nucleo';
 import { abrirStore, type ExercicioLocal } from '../store';
 
@@ -24,9 +25,10 @@ export async function gravarRodada(_m: RegExpMatchArray, _u: URL, init: RequestI
   const p = lerJson(init);
   const itens = Array.isArray(p.itens) ? (p.itens as Json[]) : [];
   const db = await abrirStore();
-  const agora = Date.now();
+  /* O dia da rodada é o dia em que ela COMEÇOU — a mesma régua do Express (`inicioDaRodada`). */
+  const inicio = inicioDaRodada(Date.now(), num(p.duracaoMs));
   const tx = db.transaction('exercicios', 'readwrite');
-  for (const it of itens) await tx.store.put(exercicioDe(p, it, agora));
+  for (const it of itens) await tx.store.put(exercicioDe(p, it, inicio));
   await tx.done;
   return json({ ok: true, gravados: itens.length });
 }

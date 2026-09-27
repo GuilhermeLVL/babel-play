@@ -50,6 +50,28 @@ export const economiaRepo = {
     return { seedsCreditadas: Number(r[0]?.seeds ?? 0), xpCreditado: Number(r[0]?.xp ?? 0) }
   },
 
+  /**
+   * Os totais creditados E os dias com meta do dia creditada, numa consulta só — o que
+   * `computeProfile` lê a cada chamada (o orçamento de consultas do perfil é contado em
+   * `tests/integration/rotas-caras-equivalencia`). Os dias alimentam o congelamento da ofensiva.
+   */
+  async totaisEMetas(userId: UserId): Promise<{ seedsCreditadas: number; xpCreditado: number; diasDeMeta: string[] }> {
+    const r = await db
+      .select({
+        seeds: sum(seedCredits.amount),
+        xp: sum(seedCredits.xp),
+        metas: sql<string | null>`group_concat(case when ${seedCredits.creditoId} like 'meta:%' then substr(${seedCredits.creditoId}, 6) end)`,
+      })
+      .from(seedCredits)
+      .where(and(eq(seedCredits.userId, userId), isNull(seedCredits.deletedAt)))
+    const metas = r[0]?.metas
+    return {
+      seedsCreditadas: Number(r[0]?.seeds ?? 0),
+      xpCreditado: Number(r[0]?.xp ?? 0),
+      diasDeMeta: metas ? metas.split(',').sort() : [],
+    }
+  },
+
   /** Marca o dia como presente — UMA linha por (usuário, dia local). */
   /**
    * AS CONQUISTAS QUE O SERVIDOR RECONHECE — derivadas de `seed_credits`, nao do navegador.
@@ -122,6 +144,15 @@ export const economiaRepo = {
       .from(seedCredits)
       .where(and(eq(seedCredits.userId, userId), isNull(seedCredits.deletedAt), like(seedCredits.creditoId, 'maestria:%')))
     return rows.map((r) => r.creditoId).sort()
+  },
+
+  /** Os dias com a meta do dia creditada (recompensas v2): `meta:<AAAA-MM-DD>` -> `AAAA-MM-DD`. */
+  async metasCreditadas(userId: UserId): Promise<string[]> {
+    const rows = await db
+      .select({ creditoId: seedCredits.creditoId })
+      .from(seedCredits)
+      .where(and(eq(seedCredits.userId, userId), isNull(seedCredits.deletedAt), like(seedCredits.creditoId, 'meta:%')))
+    return rows.map((r) => r.creditoId.slice('meta:'.length)).sort()
   },
 
   async registrarPresenca(userId: UserId, dia: number): Promise<{ jaExistia: boolean }> {

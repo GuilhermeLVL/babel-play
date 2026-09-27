@@ -170,7 +170,7 @@ export default function App() {
       .catch(() => setRecordings([]));
   }, [restrita]);
 
-  const { metrics, recordes, progress, setVersaoDasMetricas } = useMetricas(recordings.length);
+  const { metrics, recordes, progress, missoes, setVersaoDasMetricas } = useMetricas(recordings.length);
 
   const { ctxConquistas, filaDeRecompensas, setFilaDeRecompensas, lojaAba, setLojaAba, abrirEstudio, equiparCtx } =
     useRecompensas({
@@ -185,7 +185,7 @@ export default function App() {
     });
 
   // O sino: os fatos que o app já produz viram notificação (ver lib/estado/useNotificacoes).
-  useNotificacoes({ metrics, progress, filaDeRecompensas });
+  useNotificacoes({ metrics, progress, filaDeRecompensas, missoes });
 
   useHidratacaoDeAjustes({ setThemeState, setDarkMode, setFonteState, setAgeProfileState, setOnboarded });
 
@@ -499,6 +499,7 @@ export default function App() {
                 ageProfile={ageProfile}
                 progress={progress}
                 metrics={metrics}
+                missoes={missoes}
               />
             )}
             {activeView === 'capture' && (

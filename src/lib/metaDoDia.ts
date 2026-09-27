@@ -1,36 +1,55 @@
 /**
- * A META DO DIA — o pedido do crédito `meta:<AAAA-MM-DD>` (recompensas v2).
+ * A META DO DIA E O AVISO DE MISSÃO — o lado do cliente das missões diárias (recompensas v2, onda 5).
  *
- * O cliente só PEDE quando a conta dele já diz que a meta foi cumprida: os acertos de hoje (no
- * fuso de quem joga) saem de `acertosRecentes`, os mesmos carimbos que o servidor usa para
- * conferir. Quem decide o valor e a condição é o servidor (`valorDoCredito` + a conferência na
- * rota); o localStorage é só um atalho para não pedir de novo o que já foi creditado hoje.
+ * A meta do dia é "as três missões fechadas" (`src/core/missoes.ts`). Quem conta o progresso é o
+ * servidor (`GET /api/metrics/missoes`); o cliente só PEDE o crédito `meta:<dia>` quando o estado
+ * que o servidor devolveu diz que a meta fechou e ainda não foi creditada. Quem decide o valor e
+ * confere a condição de novo é a rota de crédito.
+ *
+ * O AVISO "missão quase completa": falta uma missão só. No máximo uma vez por dia, nunca entre 22h e
+ * 8h (a mesma janela de silêncio do aviso de ofensiva) e nunca para o perfil protegido.
  */
-import { acertosNoDia, diaNoFuso, fusoDoAmbiente, metaDoDiaCumprida, PESOS_SEEDS } from '@core';
+import { diaLocal, type EstadoDasMissoes, missaoQuaseCompleta } from '@core';
 
-import type { AppMetrics } from '../data/api';
 import { creditarSeeds } from '../data/api';
+import { HORA_DO_FIM_DO_SILENCIO, HORA_DO_SILENCIO } from './ofensiva';
 
-const CHAVE = 'babel.meta_dia';
-
-/** Os acertos de hoje, no fuso do navegador. */
-export function acertosDeHoje(m: Pick<AppMetrics, 'acertosRecentes'> | null, agora = Date.now()): number {
-  if (!m?.acertosRecentes?.length) return 0;
-  const fuso = fusoDoAmbiente();
-  return acertosNoDia(m.acertosRecentes, diaNoFuso(agora, fuso), fuso);
-}
+const CHAVE_AVISO = 'babel.missao_avisada';
 
 /**
- * Pede o crédito da meta de hoje se ela foi cumprida e ainda não foi pedida. Devolve as Seeds
- * quando o servidor creditou AGORA (não num reenvio), ou `null`.
+ * Pede o crédito da meta do dia se o servidor diz que ela fechou e ainda não foi creditada.
+ * Devolve a recompensa quando o servidor creditou AGORA (não num reenvio), ou `null`.
  */
-export async function reivindicarMetaDoDia(m: AppMetrics | null, agora = Date.now()): Promise<{ seeds: number } | null> {
-  if (!m) return null;
-  const dia = diaNoFuso(agora, fusoDoAmbiente());
-  try { if (localStorage.getItem(CHAVE) === dia) return null; } catch { /* sem storage */ }
-  if (!metaDoDiaCumprida(acertosDeHoje(m, agora))) return null;
-  const r = await creditarSeeds({ creditoId: `meta:${dia}` });
-  if (!r) return null;
-  try { localStorage.setItem(CHAVE, dia); } catch { /* sem storage */ }
-  return r.jaExistia ? null : { seeds: PESOS_SEEDS.metaDiaria };
+export async function reivindicarMetaDoDia(estado: EstadoDasMissoes | null): Promise<{ seeds: number; xp: number } | null> {
+  if (!estado?.metaConcluida || estado.metaCreditada) return null;
+  const r = await creditarSeeds({ creditoId: `meta:${estado.dia}` });
+  if (!r || r.jaExistia) return null;
+  return { ...estado.recompensa };
+}
+
+function avisadoHoje(agora: Date): boolean {
+  try {
+    return localStorage.getItem(CHAVE_AVISO) === String(diaLocal(agora.getTime()));
+  } catch {
+    return false;
+  }
+}
+
+/** Pode sair o aviso "missão quase completa" agora? */
+export function podeAvisarMissao(
+  estado: { missoes: EstadoDasMissoes['missoes'] | null | undefined; protegido: boolean },
+  agora = new Date(),
+): boolean {
+  if (estado.protegido || !estado.missoes || !missaoQuaseCompleta(estado.missoes)) return false;
+  const h = agora.getHours();
+  if (h >= HORA_DO_SILENCIO || h < HORA_DO_FIM_DO_SILENCIO) return false;
+  return !avisadoHoje(agora);
+}
+
+export function registrarAvisoDeMissao(agora = new Date()): void {
+  try {
+    localStorage.setItem(CHAVE_AVISO, String(diaLocal(agora.getTime())));
+  } catch {
+    /* sem storage: o pior caso é um aviso a mais no dia */
+  }
 }

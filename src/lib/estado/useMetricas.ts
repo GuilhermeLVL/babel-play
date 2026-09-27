@@ -1,7 +1,8 @@
+import type { EstadoDasMissoes } from '@core';
 import { type Dispatch, type SetStateAction,useEffect, useMemo, useState } from 'react';
 
 import { toast } from '../../components/Toast';
-import { type AppMetrics, fetchMetrics, fetchRecordes, type RecordeDoJogo } from '../../data/api';
+import { type AppMetrics, fetchMetrics, fetchRecordes, lerMissoes, type RecordeDoJogo } from '../../data/api';
 import { hidratarCromas } from '../galeria/cromas';
 import { t } from '../i18n';
 import { estadoDeIdentidade } from '../identidade';
@@ -15,6 +16,8 @@ export interface EstadoDasMetricas {
   metrics: AppMetrics | null;
   recordes: RecordeDoJogo[];
   progress: DerivedProgress;
+  /** As missões do dia, do servidor. `null` até chegarem (ou se a rota falhar). */
+  missoes: EstadoDasMissoes | null;
   setVersaoDasMetricas: Dispatch<SetStateAction<number>>;
 }
 
@@ -75,17 +78,23 @@ export function useMetricas(quantidadeDeSessoes: number): EstadoDasMetricas {
     });
   }, []);
 
-  /* A META DO DIA: quando as métricas novas mostram os acertos de hoje alcançando a meta, pede o
-     crédito uma vez. O toast só aparece quando o servidor creditou de verdade. */
+  /* AS MISSÕES DO DIA (recompensas v2, onda 5): relidas do servidor a cada métrica nova (uma
+     rodada, uma revisão, uma palavra salva). Quando as três fecham e a meta ainda não foi
+     creditada, pede o crédito uma vez; o toast só aparece quando o servidor creditou de verdade. */
+  const [missoes, setMissoes] = useState<EstadoDasMissoes | null>(null);
   useEffect(() => {
+    if (!metrics) return;
     let alive = true;
-    void reivindicarMetaDoDia(metrics).then((r) => {
+    void lerMissoes().then(async (estado) => {
+      if (!alive) return;
+      setMissoes(estado);
+      const r = await reivindicarMetaDoDia(estado);
       if (!alive || !r) return;
-      toast.ok(t('+{n} Seeds · meta do dia cumprida', { n: r.seeds }));
+      toast.ok(t('Meta do dia concluída: +{n} Seeds', { n: r.seeds }));
       setVersaoDasMetricas((v) => v + 1);
     });
     return () => { alive = false; };
   }, [metrics]);
 
-  return { metrics, recordes, progress, setVersaoDasMetricas };
+  return { metrics, recordes, progress, missoes, setVersaoDasMetricas };
 }

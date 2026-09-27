@@ -1122,6 +1122,7 @@ export default function Play({
 
     const gravacao = await salvarRodada({
       melhorSequencia: pontos.melhorSequencia,
+      duracaoMs: Number.isFinite(report.durationMs) ? Math.min(86_400_000, Math.max(0, Math.round(report.durationMs))) : undefined,
       roundId,
       exerciseKind: report.gameId,
       origem,

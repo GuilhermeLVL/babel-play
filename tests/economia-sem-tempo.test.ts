@@ -15,8 +15,6 @@ import {
   diaNoFuso,
   FUSO_PADRAO,
   fusoOuPadrao,
-  META_DIARIA_ACERTOS,
-  metaDoDiaCumprida,
   palavrasPremiadas,
   REGRAS,
   TETO_PALAVRAS_SALVAS_POR_DIA,
@@ -76,9 +74,9 @@ describe('meta do dia — `meta:<AAAA-MM-DD>`', () => {
     expect('erro' in valorDoCredito('meta:ontem-mesmo')).toBe(true)
   })
 
-  it('a meta exige acertos NO DIA do fuso do usuário', () => {
-    expect(metaDoDiaCumprida(META_DIARIA_ACERTOS - 1)).toBe(false)
-    expect(metaDoDiaCumprida(META_DIARIA_ACERTOS)).toBe(true)
+  /* A CONDIÇÃO da meta (as três missões do dia, onda 5) é de `tests/missoes.test.ts`; aqui fica
+     o dia, que é o do fuso do usuário. */
+  it('o dia da meta é o do fuso do usuário', () => {
     // 23:59 e 00:01 em São Paulo são dias diferentes, mesmo estando no mesmo dia UTC.
     const antes = Date.UTC(2026, 8, 28, 2, 59) // 27/09 23:59 em -03
     const depois = Date.UTC(2026, 8, 28, 3, 1) // 28/09 00:01 em -03

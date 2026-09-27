@@ -15,13 +15,27 @@ Só resultado paga. Saíram a **presença** (abrir o app) e os **minutos de capt
 | Acertar uma revisão | 2 | 5 | — |
 | Acertar um item de jogo | 1 | 3 | — |
 | Rodada sem erro (3 estrelas) | 5 | 15 | mínimo de itens do jogo |
-| Meta do dia (20 acertos no dia) | 15 | 20 | crédito `meta:<AAAA-MM-DD>`, hoje/ontem no fuso do usuário, conferido no servidor |
+| Meta do dia (as 3 missões do dia) | 15 | 20 | crédito `meta:<AAAA-MM-DD>`, hoje/ontem no fuso do usuário, missões conferidas no servidor (onda 5) |
 | Nível de maestria | 20 × nível | — | `maestria:<jogo>:<n>`, pontos somados das rodadas gravadas (uma vez por `roundId`), conferido no servidor |
 | 7 dias seguidos de prática | 25 | 50 | dia de prática = revisão, rodada ou palavra salva |
 | Conquista | varia | varia | conferida no servidor |
 
 A ofensiva (`streakDays`, `streakPresenca`/`maiorSequenciaPresenca` — nomes antigos, conteúdo novo)
 conta dias de prática. `POST /api/metrics/presenca` continua gravando, só como estatística.
+
+## Missões do dia e congelamento (onda 5, `src/core/missoes.ts`)
+
+- **Três missões por dia**, sorteadas com o dia como semente (servidor e navegador chegam às mesmas
+  sem guardar nada): revisar 10/15/20 palavras, salvar 3/5 palavras da captura, fechar 1/2 rodadas
+  de 2+ estrelas, jogar um jogo nunca jogado (só quando existe). Nenhuma mede tempo.
+- **Meta do dia = as três fechadas.** `GET /api/metrics/missoes?fuso=` devolve o progresso contado
+  das linhas gravadas; `meta:<dia>` é conferido de novo na rota de crédito (Express e espelho).
+- **O dia de uma rodada é o dia em que ela começou**: o cliente manda `duracaoMs` e o servidor grava
+  `created_at` = agora − duração (teto de 2 h, `inicioDaRodada`).
+- **Congelamento da ofensiva**: a meta creditada rende 1 por semana (seg–dom), guarda até 2; um dia
+  sem prática no meio da ofensiva gasta 1 sozinho. Derivado no servidor (`ofensivaComCongelamento`),
+  nunca comprado. O perfil protegido não vê congelamento nem aviso de ofensiva.
+- **Avisos**: "missão quase completa" (falta uma) 1×/dia, nunca 22h–8h, nunca para perfil protegido.
 
 ## Baú (`decidirBau`, `src/core/economiaAutoridade.ts`)
 

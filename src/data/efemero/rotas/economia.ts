@@ -6,7 +6,7 @@
  * e é ele que precisa bater com o Express. O cliente faz exatamente o mesmo corte.
  *
  * Rotas: POST `/api/metrics/seeds/gastar`, POST `/api/metrics/seeds/creditar`,
- * POST `/api/metrics/presenca`, GET `/api/metrics/maestria`.
+ * POST `/api/metrics/presenca`, GET `/api/metrics/maestria`, GET `/api/metrics/missoes`.
  *
  * `/api/billing/*` (créditos comprados com dinheiro, passe) NÃO tem espelho — justificado em
  * `tests/contratos/rotas-espelhadas`: moeda paga nasce e morre no servidor.
@@ -17,15 +17,14 @@ itensSorteaveisNoDrop, progressoNoServidor, proximoRaroGarantidoEm, raridadeDoBa
 situacaoDoBau, valorDoCredito, valorDoDrop, valorDoRepetido,
 } from '../../../core/economiaAutoridade';
 import type { ContextoDeConquistas } from '../../../core/learning/conquistas';
-import {
-  acertosNoDia, diaLocal, diaNoFuso, fusoOuPadrao, META_DIARIA_ACERTOS, metaDoDiaCumprida, sequencias,
-} from '../../../core/learning/economia';
+import { diaLocal, diaNoFuso, fusoOuPadrao, sequencias } from '../../../core/learning/economia';
 import { economiaDeMetricas } from '../../../core/learning/xp';
 import { type LinhaDeMaestria, maestriaPorJogo, nivelDeMaestria } from '../../../core/maestria';
+import { estadoDasMissoes, metaConcluida, missoesComProgresso } from '../../../core/missoes';
 import { reembolsosDevidos } from '../../../core/reembolso';
 import { json, lerJson, num, str } from '../nucleo';
 import { abrirStore } from '../store';
-import { perfilEfemero } from './metricas';
+import { dadosDasMissoesEfemeros, perfilEfemero } from './metricas';
 
 /**
  * GASTA SEEDS — com o preço do catálogo, como no Express.
@@ -215,6 +214,20 @@ export async function lerMaestria(): Promise<Response> {
   return json({ jogos, creditados });
 }
 
+/**
+ * GET `/api/metrics/missoes` — as três missões do dia no fuso pedido, com o progresso das linhas
+ * gravadas, a meta e a ofensiva com congelamento. Espelho do Express: `estadoDasMissoes`, do core.
+ */
+export async function lerMissoes(_m: RegExpMatchArray, url: URL): Promise<Response> {
+  const fuso = fusoOuPadrao(url.searchParams.get('fuso'));
+  const [dados, rodadas] = await Promise.all([dadosDasMissoesEfemeros(), linhasDeMaestria()]);
+  return json(estadoDasMissoes({
+    agora: Date.now(), fuso,
+    fontes: { revisoes: dados.revisoes, palavrasSalvas: dados.palavrasSalvas, rodadas },
+    metasCreditadas: dados.metasCreditadas, ofensiva: dados.ofensiva,
+  }));
+}
+
 export async function creditarSeeds(_m: RegExpMatchArray, _u: URL, init: RequestInit): Promise<Response> {
   const p = lerJson(init);
   const creditoId = str(p.creditoId);
@@ -251,17 +264,18 @@ export async function creditarSeeds(_m: RegExpMatchArray, _u: URL, init: Request
         return json({ error: 'nível de maestria ainda não alcançado', code: 'maestria_nao_alcancada', codigo: 'maestria_nao_alcancada', detalhes: { pontos, exigido: pontosExigidos } }, 400);
       }
     }
-    /* A META DO DIA (recompensas v2), com a régua do Express: hoje ou ontem no fuso de quem
-       joga, e os acertos gravados daquele dia alcançando a meta. */
+    /* A META DO DIA (recompensas v2, onda 5), com a régua do Express: hoje ou ontem no fuso de
+       quem joga, e as três missões daquele dia fechadas nas linhas gravadas. */
     if (credito.metaDoDia) {
       const fuso = fusoOuPadrao(str(p.fuso));
       const agora = Date.now();
       if (![diaNoFuso(agora, fuso), diaNoFuso(agora - 86_400_000, fuso)].includes(credito.metaDoDia)) {
         return json({ error: 'dia da meta fora da janela', code: 'dia_fora_da_janela', codigo: 'dia_fora_da_janela', detalhes: { dia: credito.metaDoDia } }, 400);
       }
-      const acertos = acertosNoDia((await perfilEfemero(null)).acertosRecentes ?? [], credito.metaDoDia, fuso);
-      if (!metaDoDiaCumprida(acertos)) {
-        return json({ error: 'meta do dia ainda não cumprida', code: 'meta_nao_cumprida', codigo: 'meta_nao_cumprida', detalhes: { acertos, meta: META_DIARIA_ACERTOS } }, 400);
+      const [dados, rodadas] = await Promise.all([dadosDasMissoesEfemeros(), linhasDeMaestria()]);
+      const missoes = missoesComProgresso(credito.metaDoDia, fuso, { revisoes: dados.revisoes, palavrasSalvas: dados.palavrasSalvas, rodadas });
+      if (!metaConcluida(missoes)) {
+        return json({ error: 'meta do dia ainda não cumprida', code: 'meta_nao_cumprida', codigo: 'meta_nao_cumprida', detalhes: { missoes } }, 400);
       }
     }
     /* O COLECIONADOR É CONFERIDO AQUI TAMBÉM, com a régua do Express (`progressoNoServidor`): os

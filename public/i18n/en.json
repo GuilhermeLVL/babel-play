@@ -521,9 +521,7 @@
   "Regar palavras": "Water words",
   "Abrir vocabulário": "Open vocabulary",
   "Ver minhas palavras": "See my words",
-  "por palavra salva": "per saved word",
   "por revisão": "per review",
-  "por palavra fichada": "per word filed",
   "Não foi possível salvar o idioma. Verifique a conexão com o servidor e tente de novo.": "The language could not be saved. Check the connection to the server and try again.",
   "Não foi possível salvar o perfil de IA. Verifique a conexão com o servidor e tente de novo.": "The AI profile could not be saved. Check the connection to the server and try again.",
   "Ajustes do jogador": "Player settings",
@@ -877,7 +875,6 @@
   "Também vale! A palavra desta pista era:": "That works too! The word for this clue was:",
   "Fora! Era:": "Out! It was:",
   "Limpar a linha": "Clear the line",
-  "+{n} Seeds · meta do dia cumprida": "+{n} Seeds · daily goal done",
   "Peça repetida": "Duplicate piece",
   "Você já tem este item: +{n} Seeds": "You already have this item: +{n} Seeds",
   "Chances: {comum}% comum · {raro}% raro": "Odds: {comum}% common · {raro}% rare",
@@ -888,5 +885,30 @@
   "Acessibilidade e layout": "Accessibility and layout",
   "A letra e a posição do menu são suas desde o começo: não custam Seeds nem pedem nível.": "The font and the menu position are yours from the start: they cost no Seeds and need no level.",
   "Letra": "Font",
-  "Posição do menu": "Menu position"
+  "Posição do menu": "Menu position",
+  "Missões do dia": "Daily missions",
+  "Meta do dia concluída": "Daily goal complete",
+  "+{seeds} Seeds e +{xp} XP. Por hoje é isso: amanhã chegam missões novas.": "+{seeds} Seeds and +{xp} XP. That's it for today: new missions arrive tomorrow.",
+  "Feche as três para ganhar +{seeds} Seeds e +{xp} XP.": "Finish all three to earn +{seeds} Seeds and +{xp} XP.",
+  "{atual} de {alvo}": "{atual} of {alvo}",
+  "Revise {n} palavras": {
+    "one": "Review {n} word",
+    "other": "Review {n} words"
+  },
+  "Salve {n} palavras de uma captura": {
+    "one": "Save {n} word from a capture",
+    "other": "Save {n} words from a capture"
+  },
+  "Feche {n} rodadas com 2 estrelas ou mais": {
+    "one": "Finish {n} round with 2 stars or more",
+    "other": "Finish {n} rounds with 2 stars or more"
+  },
+  "Jogue um jogo que você nunca jogou": "Play a game you have never played",
+  "{n} congelamentos guardados: um dia sem prática não quebra a ofensiva.": {
+    "one": "{n} streak freeze saved: a day without practice won't break your streak.",
+    "other": "{n} streak freezes saved: a day without practice won't break your streak."
+  },
+  "Meta do dia concluída: +{n} Seeds": "Daily goal complete: +{n} Seeds",
+  "Falta uma missão para a meta do dia": "One mission left for today's goal",
+  "Feche a última e ganhe +{seeds} Seeds.": "Finish the last one and earn +{seeds} Seeds."
 }

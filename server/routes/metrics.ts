@@ -21,20 +21,13 @@ import {
   valorDoRepetido,
 } from '../../src/core/economiaAutoridade'
 import type { ContextoDeConquistas } from '../../src/core/learning/conquistas'
-import {
-  acertosNoDia,
-  diaLocal,
-  diaNoFuso,
-  fusoOuPadrao,
-  META_DIARIA_ACERTOS,
-  metaDoDiaCumprida,
-  sequencias,
-} from '../../src/core/learning/economia'
+import { diaLocal, diaNoFuso, fusoOuPadrao, sequencias } from '../../src/core/learning/economia'
 import { maestriaPorJogo, nivelDeMaestria } from '../../src/core/maestria'
+import { estadoDasMissoes, metaConcluida, missoesComProgresso } from '../../src/core/missoes'
 import { reembolsosDevidos } from '../../src/core/reembolso'
 import { economiaRepo } from '../db/repositories/economia'
 import { exerciseResultsRepo } from '../db/repositories/exerciseResults'
-import { computeProfile, computeXpHistory } from '../db/repositories/metrics'
+import { computeProfile, computeXpHistory, dadosDasMissoes } from '../db/repositories/metrics'
 import { economiaDoUsuario } from '../db/repositories/metrics'
 import { seedSpendsRepo } from '../db/repositories/seedSpends'
 import { erroDeRota } from '../lib/erroDeRota'
@@ -439,6 +432,37 @@ metricsRouter.get('/maestria', async (req, res) => {
   }
 })
 
+/**
+ * AS MISSÕES DO DIA (recompensas v2, onda 5) — `GET /api/metrics/missoes?fuso=<IANA>`.
+ *
+ * As três missões do dia LOCAL de quem joga, com o progresso contado das linhas gravadas
+ * (revisões, palavras salvas da captura, rodadas — cada rodada no dia em que começou), se a meta
+ * fechou e se `meta:<dia>` já foi creditada, e a ofensiva com os congelamentos guardados. Só
+ * leitura: o crédito continua pela rota de crédito, que confere tudo de novo.
+ */
+metricsRouter.get('/missoes', async (req, res) => {
+  try {
+    const fuso = fusoOuPadrao(typeof req.query.fuso === 'string' ? req.query.fuso : undefined)
+    const [dados, rodadas] = await Promise.all([
+      dadosDasMissoes(req.userId),
+      exerciseResultsRepo.linhasDeMaestria(req.userId),
+    ])
+    res.json(
+      estadoDasMissoes({
+        agora: Date.now(),
+        fuso,
+        fontes: { revisoes: dados.revisoes, palavrasSalvas: dados.palavrasSalvas, rodadas },
+        metasCreditadas: dados.metasCreditadas,
+        ofensiva: dados.ofensiva,
+      }),
+    )
+  } catch (err) {
+    res.status(500).json({
+      error: erroDeRota(err, { status: 500, event: 'metrics_route_error', route: req.path, requestId: req.requestId }),
+    })
+  }
+})
+
 metricsRouter.post('/seeds/creditar', async (req, res) => {
   const payload = parseOr400(seedCreditSchema, req.body, res)
   if (!payload) return
@@ -483,10 +507,10 @@ metricsRouter.post('/seeds/creditar', async (req, res) => {
     if (precisaDeEconomia) {
       const { metricas, nivel } = await economiaDoUsuario(req.userId)
 
-      /* A META DO DIA (recompensas v2): o dia é de hoje ou de ontem NO FUSO DO USUÁRIO, e os
-         acertos daquele dia — revisões certas e itens de jogo certos, gravados no banco —
-         alcançam a meta. Sem isto `meta:<dia>` seria 15 Seeds por dia por abrir o app. O reenvio
-         de uma meta já creditada cai no `ON CONFLICT` e não chega a pedir nada novo. */
+      /* A META DO DIA (recompensas v2, onda 5): o dia é de hoje ou de ontem NO FUSO DO USUÁRIO,
+         e as TRÊS MISSÕES daquele dia fecharam — contadas das linhas gravadas (revisões, palavras
+         salvas, rodadas no dia em que começaram). Sem isto `meta:<dia>` seria 15 Seeds por dia
+         por abrir o app. O reenvio de uma meta já creditada cai no `ON CONFLICT`. */
       if (credito.metaDoDia) {
         const fuso = fusoOuPadrao(payload.fuso)
         const agora = Date.now()
@@ -495,12 +519,17 @@ metricsRouter.post('/seeds/creditar', async (req, res) => {
           responderErro(res, 400, 'dia da meta fora da janela', 'dia_fora_da_janela', { dia: credito.metaDoDia })
           return
         }
-        const acertos = acertosNoDia(metricas.acertosRecentes ?? [], credito.metaDoDia, fuso)
-        if (!metaDoDiaCumprida(acertos)) {
-          responderErro(res, 400, 'meta do dia ainda não cumprida', 'meta_nao_cumprida', {
-            acertos,
-            meta: META_DIARIA_ACERTOS,
-          })
+        const [dados, rodadas] = await Promise.all([
+          dadosDasMissoes(req.userId),
+          exerciseResultsRepo.linhasDeMaestria(req.userId),
+        ])
+        const missoes = missoesComProgresso(credito.metaDoDia, fuso, {
+          revisoes: dados.revisoes,
+          palavrasSalvas: dados.palavrasSalvas,
+          rodadas,
+        })
+        if (!metaConcluida(missoes)) {
+          responderErro(res, 400, 'meta do dia ainda não cumprida', 'meta_nao_cumprida', { missoes })
           return
         }
       }

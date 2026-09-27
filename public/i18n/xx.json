@@ -2,6 +2,7 @@
   "· {n} no total": "[· {n} ñö tötál ······]",
   "(estimativa, poucas sessões)": "[(éštímátívá, pöüçáš šéššõéš) ···········]",
   "(sem tradução)": "[(šém trádüçãö) ······]",
+  "{atual} de {alvo}": "[{atual} dé {alvo} ·······]",
   "{escala} <b>{etapa}</b> — a trilha combinada tem <b>{total}</b> palavras no total.": "[{escala} <b>{etapa}</b> — á trílhá çömbíñádá tém <b>{total}</b> pálávráš ñö tötál. ·································]",
   "{escala} da trilha": "[{escala} dá trílhá ·······]",
   "{falta} para abrir": "[{falta} párá ábrír ·······]",
@@ -14,6 +15,10 @@
   "{n} cartões no deck": "[{n} çártõéš ñö déçk ········]",
   "{n} cartões vencidos": "[{n} çártõéš véñçídöš ········]",
   "{n} com tradução": "[{n} çöm trádüçãö ······]",
+  "{n} congelamentos guardados: um dia sem prática não quebra a ofensiva.": {
+    "one": "[{n} çöñgéláméñtöš güárdádöš: üm díá šém prátíçá ñãö qüébrá á öféñšívá. ····························]",
+    "other": "[{n} çöñgéláméñtöš güárdádöš: üm díá šém prátíçá ñãö qüébrá á öféñšívá. ····························]"
+  },
   "{n} em outro idioma": "[{n} ém öütrö ídíömá ········]",
   "{n} esquecimentos": {
     "one": "[{n} éšqüéçíméñtöš ·······]",
@@ -53,7 +58,7 @@
   "{nome} ({i} de {n})": "[{nome} ({i} dé {n}) ········]",
   "{pct}% em {n} itens": "[{pct}% ém {n} ítéñš ········]",
   "{prontas} prontas para jogo de par, de {total} no idioma": "[{prontas} pröñtáš párá jögö dé pár, dé {total} ñö ídíömá ······················]",
-  "+{n} Seeds · meta do dia cumprida": "[+{n} Šéédš · métá dö díá çümprídá ·············]",
+  "+{seeds} Seeds e +{xp} XP. Por hoje é isso: amanhã chegam missões novas.": "[+{seeds} Šéédš é +{xp} XP. Pör höjé é íššö: ámáñhã çhégám míššõéš ñöváš. ·····························]",
   "== Acerto por tipo de exercício (pior primeiro) ==": "[== Áçértö pör típö dé éxérçíçíö (píör príméírö) == ····················]",
   "== Palavras que mais custam ==": "[== Pálávráš qüé máíš çüštám == ············]",
   "== Tempo com o idioma ==": "[== Témpö çöm ö ídíömá == ··········]",
@@ -332,6 +337,7 @@
   },
   "Fale junto com o áudio e veja sua nota": "[Fálé jüñtö çöm ö áüdíö é véjá šüá ñötá ···············]",
   "Fale no microfone, acerte os desafios e ganhe pontos de pronúncia.": "[Fálé ñö míçröföñé, áçérté öš déšáfíöš é gáñhé pöñtöš dé pröñúñçíá. ··························]",
+  "Falta uma missão para a meta do dia": "[Fáltá ümá míššãö párá á métá dö díá ··············]",
   "faltam {n} {unidade}": {
     "one": "[fáltám {n} {unidade} ········]",
     "other": "[fáltám {n} {unidade} ········]"
@@ -340,6 +346,12 @@
   "Fechar": "[Féçhár ··]",
   "Fechar o iChat": "[Féçhár ö íÇhát ······]",
   "Fechar sem mudar nada": "[Féçhár šém müdár ñádá ········]",
+  "Feche {n} rodadas com 2 estrelas ou mais": {
+    "one": "[Féçhé {n} rödádáš çöm 2 éštréláš öü máíš ················]",
+    "other": "[Féçhé {n} rödádáš çöm 2 éštréláš öü máíš ················]"
+  },
+  "Feche a última e ganhe +{seeds} Seeds.": "[Féçhé á últímá é gáñhé +{seeds} Šéédš. ···············]",
+  "Feche as três para ganhar +{seeds} Seeds e +{xp} XP.": "[Féçhé áš trêš párá gáñhár +{seeds} Šéédš é +{xp} XP. ·····················]",
   "Feito": "[Féítö ··]",
   "Ferramentas do iChat": "[Férráméñtáš dö íÇhát ········]",
   "Ferramentas para": "[Férráméñtáš párá ······]",
@@ -405,6 +417,7 @@
   "Jogo da memória": "[Ĵögö dá mémóríá ······]",
   "Jogos": "[Ĵögöš ··]",
   "Jogos curtos com as palavras que você já salvou. Cada acerto conta para a sua memória.": "[Ĵögöš çürtöš çöm áš pálávráš qüé vöçê já šálvöü. Çádá áçértö çöñtá párá á šüá mémóríá. ··································]",
+  "Jogue um jogo que você nunca jogou": "[Ĵögüé üm jögö qüé vöçê ñüñçá jögöü ··············]",
   "julgar respostas parecidas": "[jülgár réšpöštáš páréçídáš ··········]",
   "Karaokê da fala": "[Káráökê dá fálá ······]",
   "Largura do iChat": "[Lárgürá dö íÇhát ······]",
@@ -440,6 +453,8 @@
   "Medido: {n} ppm": "[Médídö: {n} ppm ······]",
   "Memória: palavra e tradução": "[Mémóríá: pálávrá é trádüçãö ···········]",
   "Menos efeitos visuais. Liga sozinho no Meta Quest, em celulares mais simples e com \"reduzir movimento\" do sistema; a sua escolha aqui vale mais.": "[Méñöš éféítöš víšüáíš. Lígá šöžíñhö ñö Métá Qüéšt, ém çélüláréš máíš šímpléš é çöm \"rédüžír mövíméñtö\" dö šíštémá; á šüá éšçölhá áqüí válé máíš. ··························································]",
+  "Meta do dia concluída": "[Métá dö díá çöñçlüídá ········]",
+  "Meta do dia concluída: +{n} Seeds": "[Métá dö díá çöñçlüídá: +{n} Šéédš ·············]",
   "Métricas de uso": "[Métríçáš dé üšö ······]",
   "Métricas de uso anônimas": "[Métríçáš dé üšö áñôñímáš ··········]",
   "Métricas Rápidas": "[Métríçáš Rápídáš ······]",
@@ -456,6 +471,7 @@
   "Minhas palavras": "[Míñháš pálávráš ······]",
   "Minhas Palavras": "[Míñháš Pálávráš ······]",
   "Minutos, palavras novas, ofensiva e o que revisar na semana.": "[Míñütöš, pálávráš ñöváš, öféñšívá é ö qüé révíšár ñá šémáñá. ························]",
+  "Missões do dia": "[Míššõéš dö díá ······]",
   "Modo desempenho": "[Mödö déšémpéñhö ······]",
   "Montar a frase": "[Möñtár á frášé ······]",
   "Montar uma revisão": "[Möñtár ümá révíšãö ·······]",
@@ -623,8 +639,6 @@
   "Planos": "[Pláñöš ··]",
   "Planos e preços": "[Pláñöš é préçöš ······]",
   "Política de privacidade": "[Pölítíçá dé príváçídádé ·········]",
-  "por palavra fichada": "[pör pálávrá fíçhádá ········]",
-  "por palavra salva": "[pör pálávrá šálvá ·······]",
   "por revisão": "[pör révíšãö ····]",
   "Posição do menu": "[Pöšíçãö dö méñü ······]",
   "Pouco espaço nesta janela: o iChat fica flutuante. Recolha o menu (Ctrl+B) ou aumente a janela.": "[Pöüçö éšpáçö ñéštá jáñélá: ö íÇhát fíçá flütüáñté. Réçölhá ö méñü (Çtrl+B) öü áüméñté á jáñélá. ······································]",
@@ -709,6 +723,10 @@
   "Revisão espaçada (SRS)": "[Révíšãö éšpáçádá (ŠRŠ) ·········]",
   "Revisão pendente": "[Révíšãö péñdéñté ······]",
   "Revisar agora": "[Révíšár ágörá ·····]",
+  "Revise {n} palavras": {
+    "one": "[Révíšé {n} pálávráš ········]",
+    "other": "[Révíšé {n} pálávráš ········]"
+  },
   "revise mais um pouco — ainda não há material para uma rodada": "[révíšé máíš üm pöüçö — áíñdá ñãö há mátéríál párá ümá rödádá ························]",
   "Revise mais um pouco — ainda não há material para uma rodada.": "[Révíšé máíš üm pöüçö — áíñdá ñãö há mátéríál párá ümá rödádá. ························]",
   "revise mais um pouco — o ranking de difíceis ainda não tem material para uma rodada": "[révíšé máíš üm pöüçö — ö ráñkíñg dé dífíçéíš áíñdá ñãö tém mátéríál párá ümá rödádá ·································]",
@@ -723,6 +741,10 @@
   "Sair": "[Šáír ··]",
   "Sair da conta": "[Šáír dá çöñtá ·····]",
   "Sair dos outros": "[Šáír döš öütröš ······]",
+  "Salve {n} palavras de uma captura": {
+    "one": "[Šálvé {n} pálávráš dé ümá çáptürá ·············]",
+    "other": "[Šálvé {n} pálávráš dé ümá çáptürá ·············]"
+  },
   "São as palavras que você está prestes a esquecer.": "[Šãö áš pálávráš qüé vöçê éštá préštéš á éšqüéçér. ····················]",
   "Se quiser, pratique a pronúncia nas {n} frases desta aula.": "[Šé qüíšér, prátíqüé á pröñúñçíá ñáš {n} frášéš déštá áülá. ·······················]",
   "Seções dos ajustes": "[Šéçõéš döš ájüštéš ·······]",

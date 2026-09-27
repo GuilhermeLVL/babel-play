@@ -12,6 +12,7 @@ import { type BaldeDeXp, type HistoricoDeXp, historicoDeXp } from '../../../src/
 import { retrievability } from '../../../src/core/learning/scheduler'
 import { economiaDeMetricas } from '../../../src/core/learning/xp'
 import { ehRodadaPerfeita } from '../../../src/core/minigames/grade'
+import { numeroDoDia, ofensivaComCongelamento } from '../../../src/core/missoes'
 import type { UserId } from '../../lib/authContext'
 import { CachePorVersao } from '../../lib/cachePorVersao'
 import { db } from '../db'
@@ -318,11 +319,16 @@ function resumirAtividade(linhas: LinhasDaAtividade, sessionId: string | null) {
      sessão. O teto diário vive no core (`palavrasPremiadas`) — é ele que impede uma importação de
      300 palavras de virar 300 Seeds. */
   const palavrasPorDia = new Map<number, number>()
+  /* Os carimbos das mesmas palavras: a missão "salvar N palavras" conta no dia do FUSO do usuário. */
+  const temposDePalavraSalva: number[] = []
   for (const c of inDeck) {
     if (!c.sessionId) continue
-    const d = diaLocal(c.addedAt ?? c.createdAt)
+    const t = c.addedAt ?? c.createdAt
+    const d = diaLocal(t)
     palavrasPorDia.set(d, (palavrasPorDia.get(d) ?? 0) + 1)
+    temposDePalavraSalva.push(t)
   }
+  temposDePalavraSalva.sort((a, b) => a - b)
   const palavrasSalvasPremiadas = palavrasPremiadas(palavrasPorDia.values())
 
   /* DIAS DE PRÁTICA (recompensas v2): revisão, rodada de jogo ou palavra salva. É a unidade da
@@ -398,6 +404,7 @@ function resumirAtividade(linhas: LinhasDaAtividade, sessionId: string | null) {
     reviewDays,
     temposDeRevisao: Float64Array.from(temposDeRevisao),
     temposDeAcerto: Float64Array.from(temposDeAcerto),
+    temposDePalavraSalva: Float64Array.from(temposDePalavraSalva),
   }
 }
 
@@ -407,7 +414,12 @@ type ResumoDaAtividade = ReturnType<typeof resumirAtividade>
 function pesoDoResumo(r: ResumoDaAtividade): number {
   return (
     4096 +
-    8 * (r.vencimentos.length + 2 * r.retencao.estabilidade.length + r.temposDeRevisao.length + r.temposDeAcerto.length) +
+    8 *
+      (r.vencimentos.length +
+        2 * r.retencao.estabilidade.length +
+        r.temposDeRevisao.length +
+        r.temposDeAcerto.length +
+        r.temposDePalavraSalva.length) +
     8 * r.diasDePratica.length +
     32 * r.reviewDays.size +
     256 * (r.palavrasDificeis.length + r.vocabByWeek.length)
@@ -441,9 +453,24 @@ async function lerRazao(userId: UserId) {
   const gastos = await seedSpendsRepo.razao(userId)
   /* ECONOMIA v2 (A7): os créditos avulsos e a presença agora existem no servidor real. O cliente
      (`deriveProgress`) já lia estes campos com `?? 0` — a paridade é com o servidor efêmero. */
-  const creditos = await economiaRepo.totaisCreditados(userId)
+  /* Os dias com meta creditada (recompensas v2, onda 5) rendem o congelamento da ofensiva; vêm
+     na mesma consulta dos totais, para o perfil não pagar uma leitura a mais. */
+  const { diasDeMeta, ...creditos } = await economiaRepo.totaisEMetas(userId)
   const diasDePresenca = await economiaRepo.diasDePresenca(userId)
-  return { gastos, creditos, diasDePresenca }
+  return { gastos, creditos, diasDePresenca, diasDeMeta }
+}
+
+/**
+ * A OFENSIVA COM CONGELAMENTO: dias de prática e dias de meta creditada, no core
+ * (`ofensivaComCongelamento`). Derivada no servidor, nunca guardada: um dia perdido gasta o
+ * congelamento sozinho, e nada aqui se compra.
+ */
+function ofensivaDoResumo(r: ResumoDaAtividade, diasDeMeta: readonly string[], now: number) {
+  return ofensivaComCongelamento({
+    diasDePratica: r.diasDePratica,
+    diasDeMeta: diasDeMeta.map(numeroDoDia).filter((d): d is number => d !== null),
+    hoje: diaLocal(now),
+  })
 }
 
 /** As linhas de hoje, o razão e o relógio viram o `AppMetrics` — a forma e a ordem de sempre. */
@@ -480,6 +507,8 @@ function montarPerfil(
   /* A OFENSIVA CONTA PRÁTICA (recompensas v2): os dias de presença continuam gravados, só como
      estatística — abrir o app não estende sequência nem paga marco. */
   const seqPratica = sequencias(r.diasDePratica, diaLocal(now))
+  /* O congelamento só estende: sem meta creditada o número é o de antes. */
+  const comCongelamento = ofensivaDoResumo(r, razao.diasDeMeta, now)
 
   /**
    * OS TRÊS CONTADORES QUE FALTAVAM — e por que eles passaram a importar.
@@ -516,7 +545,7 @@ function montarPerfil(
     accuracy: r.accuracy,
     accuracyConfidence: r.reviews >= 4 ? 0.9 : r.reviews > 0 ? 0.4 : 0,
     // A ofensiva exibida conta DIAS DE PRÁTICA — mesma regra do efêmero.
-    streakDays: Math.max(streakDays, seqPratica.atual),
+    streakDays: Math.max(streakDays, seqPratica.atual, comCongelamento.atual),
     seedsGastas,
     itensComprados,
     cromasComprados,
@@ -584,20 +613,45 @@ export async function computeProfile(userId: UserId, opts: OpcoesDePerfil = {}):
   const now = Date.now()
   const sessionId = opts.sessionId ?? null
   const escopo: AppMetrics['escopo'] = sessionId ? 'sessao' : 'global'
-
-  let resumo: ResumoDaAtividade | undefined
-  if (sessionId) {
-    resumo = resumirAtividade(await lerAtividade(userId), sessionId)
-  } else {
-    // A versão ANTES das linhas — ver `CachePorVersao` para o porquê da ordem.
-    const versao = String((await versoesRepo.de(userId)).atividade)
-    resumo = resumosDaConta.obter(userId, versao)
-    if (!resumo) {
-      resumo = resumirAtividade(await lerAtividade(userId), null)
-      resumosDaConta.guardar(userId, versao, resumo, pesoDoResumo(resumo))
-    }
-  }
+  const resumo = sessionId ? resumirAtividade(await lerAtividade(userId), sessionId) : await resumoDaConta(userId)
   return montarPerfil(resumo, await lerRazao(userId), now, escopo)
+}
+
+/** O resumo da conta inteira, do cache quando a versão de `atividade` não mudou. */
+async function resumoDaConta(userId: UserId): Promise<ResumoDaAtividade> {
+  // A versão ANTES das linhas — ver `CachePorVersao` para o porquê da ordem.
+  const versao = String((await versoesRepo.de(userId)).atividade)
+  let resumo = resumosDaConta.obter(userId, versao)
+  if (!resumo) {
+    resumo = resumirAtividade(await lerAtividade(userId), null)
+    resumosDaConta.guardar(userId, versao, resumo, pesoDoResumo(resumo))
+  }
+  return resumo
+}
+
+/**
+ * O QUE AS MISSÕES DO DIA LEEM (recompensas v2, onda 5) — `GET /api/metrics/missoes` e a
+ * conferência do crédito `meta:<dia>`. Carimbos de revisão e de palavra salva dos últimos 3 dias
+ * (a janela da meta é hoje ou ontem, em qualquer fuso), as metas já creditadas e a ofensiva com
+ * congelamento. As rodadas vêm de `exerciseResultsRepo.linhasDeMaestria`.
+ */
+export async function dadosDasMissoes(userId: UserId): Promise<{
+  revisoes: number[]
+  palavrasSalvas: number[]
+  metasCreditadas: string[]
+  ofensiva: { atual: number; congelamentos: 0 | 1 | 2 }
+}> {
+  const now = Date.now()
+  const [resumo, metasCreditadas] = await Promise.all([resumoDaConta(userId), economiaRepo.metasCreditadas(userId)])
+  const desde = now - 3 * DAY
+  const recentes = (xs: Float64Array) => Array.from(xs).filter((t) => t >= desde)
+  const { atual, congelamentos } = ofensivaDoResumo(resumo, metasCreditadas, now)
+  return {
+    revisoes: recentes(resumo.temposDeRevisao),
+    palavrasSalvas: recentes(resumo.temposDePalavraSalva),
+    metasCreditadas,
+    ofensiva: { atual, congelamentos },
+  }
 }
 
 /**

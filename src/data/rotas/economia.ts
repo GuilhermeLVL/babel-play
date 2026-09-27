@@ -1,16 +1,16 @@
 /**
- * O CLIENTE DAS ROTAS DE ECONOMIA — Seeds, presença, créditos e passe.
+ * O CLIENTE DAS ROTAS DE ECONOMIA — Seeds, presença, créditos, maestria e temporada.
  *
  * Espelho de `src/data/efemero/rotas/economia.ts`. As três primeiras têm caminho HTTP de métrica,
  * mas o domínio é a economia — o mesmo corte é feito do outro lado. As rotas de cobrança
- * (`/api/billing/gastar`, `/api/billing/creditar-passe`) NÃO têm espelho: moeda comprada com
+ * (`/api/billing/gastar`) NÃO têm espelho: moeda comprada com
  * dinheiro nasce e morre no servidor, e o motivo está em `tests/contratos/rotas-espelhadas`.
  *
  * Rotas: POST `/api/metrics/seeds/gastar`, POST `/api/metrics/seeds/creditar`,
- * POST `/api/metrics/presenca`, GET `/api/metrics/maestria`, GET `/api/metrics/missoes`, POST `/api/billing/gastar`,
- * POST `/api/billing/creditar-passe`.
+ * POST `/api/metrics/presenca`, GET `/api/metrics/maestria`, GET `/api/metrics/missoes`,
+ * GET `/api/metrics/temporada`, POST `/api/billing/gastar`.
  */
-import { type EstadoDasMissoes, fusoDoAmbiente, type MaestriaDoJogo } from '@core'
+import { type EstadoDasMissoes, fusoDoAmbiente, type MaestriaDoJogo, type Temporada } from '@core'
 
 import { apiFetch, type ErroDaApi,lerErro } from '../funil'
 
@@ -112,6 +112,31 @@ export async function lerMissoes(): Promise<EstadoDasMissoes | null> {
   }
 }
 
+/** A temporada como o servidor a vê: datas, XP da janela, nível, assinatura e casas já creditadas. */
+export interface TemporadaNoServidor {
+  temporada: Temporada | null
+  proxima: Temporada | null
+  xp: number
+  nivel: number
+  assinante: boolean
+  creditados: string[]
+}
+
+/**
+ * A TEMPORADA (recompensas v2, onda 5). O XP é o da conta ganho dentro da janela, somado no
+ * servidor; `creditados` são os `temporada:<id>:<nível>:<trilha>` já lançados. `null` em falha — a
+ * tela mostra as trilhas sem inventar progresso.
+ */
+export async function lerTemporada(): Promise<TemporadaNoServidor | null> {
+  try {
+    const res = await apiFetch('/api/metrics/temporada')
+    if (!res.ok) return null
+    return (await res.json()) as TemporadaNoServidor
+  } catch {
+    return null
+  }
+}
+
 /* ── ECONOMIA v2 (2026-08-28) ── */
 
 /** Registra a presença do dia. Idempotente por dia; `null` em falha (a tela não credita nada). */
@@ -136,16 +161,6 @@ export async function registrarPresenca(dia: number): Promise<{ jaExistia: boole
  * servidor recusa quando o `amount` não bate com o catálogo, em vez de cobrar em silêncio um
  * valor que a tela não mostrou.
  */
-/**
- * OS CRÉDITOS DA TRILHA PAGA. O servidor decide QUAIS casas foram alcançadas (do nível que ele
- * mesmo calcula) e credita cada uma uma vez. Sem o passe devolve `creditado: 0` — não é erro,
- * é a resposta honesta de quem não comprou.
- */
-export async function creditarPasse(): Promise<{ creditado: number; temPasse: boolean; saldo?: number } | null> {
-  const r = await apiFetch('/api/billing/creditar-passe', { method: 'POST' });
-  if (!r.ok) return null;
-  return (await r.json()) as { creditado: number; temPasse: boolean; saldo?: number };
-}
 
 export async function gastarCreditos(payload: { spendId: string; amount: number; reason: string; ref?: string }):
   Promise<{ jaExistia: boolean; gasto: number; saldo: number } | null> {

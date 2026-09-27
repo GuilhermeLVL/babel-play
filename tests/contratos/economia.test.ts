@@ -132,18 +132,26 @@ describe('crédito: o corpo não decide o valor, nas duas pontas', () => {
     expect(efemero.body.code).toBe('credito_desconhecido')
   })
 
-  it('o cofre do passe exige o nível nas duas', async () => {
-    /* Década 10 — 172 Seeds, o cofre mais caro da trilha. O crédito de `colecionador` acima já
-       levou os dois lados ao nível 2, e é justamente por isso que a década escolhida é a mais
-       alta: o que se prende aqui é o GATE, não o nível de partida. Antes, o Express respondia
-       "crédito desconhecido" e o efêmero creditava o que viesse no corpo. */
-    const cofre = { creditoId: 'passe:t1:cofre-d10-1' }
-    const express = await noExpress('/seeds/creditar', cofre)
-    const efemero = await noEfemero('/seeds/creditar', cofre)
+  it('a casa da temporada exige o XP da janela nas duas', async () => {
+    /* Nível 30 da trilha grátis — o tema Observatório. Nenhum dos dois lados tem 4.500 XP dentro da
+       janela, e é o GATE que se prende aqui. (Era o cofre do passe até a onda 5.) */
+    const casa = { creditoId: 'temporada:t1:30:gratis' }
+    const express = await noExpress('/seeds/creditar', casa)
+    const efemero = await noEfemero('/seeds/creditar', casa)
     expect(express.status).toBe(400)
     expect(efemero.status).toBe(400)
-    expect(express.body.code).toBe('nivel_insuficiente')
-    expect(efemero.body.code).toBe('nivel_insuficiente')
+    expect(express.body.code).toBe('temporada_nao_alcancada')
+    expect(efemero.body.code).toBe('temporada_nao_alcancada')
+  })
+
+  it('a trilha de assinante é 403 nas duas sem assinatura (e a edição sem conta nunca tem)', async () => {
+    const casa = { creditoId: 'temporada:t1:1:assinante' }
+    const express = await noExpress('/seeds/creditar', casa)
+    const efemero = await noEfemero('/seeds/creditar', casa)
+    expect(express.status).toBe(403)
+    expect(efemero.status).toBe(403)
+    expect(express.body.code).toBe('exige_assinatura')
+    expect(efemero.body.code).toBe('exige_assinatura')
   })
 })
 

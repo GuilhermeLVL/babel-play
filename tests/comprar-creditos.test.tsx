@@ -10,7 +10,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 
-import { CATALOGO_DE_CREDITOS, PRECO_DO_PASSE_CENTAVOS } from '../src/core/creditos'
+import { CATALOGO_DE_CREDITOS } from '../src/core/creditos'
 import { precoEmReais } from '../src/lib/i18n'
 
 afterEach(() => {
@@ -27,7 +27,7 @@ async function montar(opts: { configurado?: boolean; auth?: boolean; link?: stri
     apiFetch: vi.fn(async (url: string) => {
       if (url.includes('/status')) return { ok: true, json: async () => ({ configurado }) }
       if (url.includes('/creditos'))
-        return { ok: true, json: async () => ({ saldo: 120, temPasse: false, compras: [] }) }
+        return { ok: true, json: async () => ({ saldo: 120, compras: [] }) }
       if (url.includes('/comprar')) return { ok: true, json: async () => ({ linkDePagamento: link }) }
       return { ok: false, status: 404, json: async () => ({}) }
     }),
@@ -47,7 +47,9 @@ it('mostra o preço do catálogo, não um número escrito à mão', async () => 
   for (const p of CATALOGO_DE_CREDITOS) {
     expect(tela.textContent, p.sku).toContain(precoEmReais(p.precoCentavos))
   }
-  expect(precoEmReais(PRECO_DO_PASSE_CENTAVOS)).toMatch(/14,90/)
+  // O Passe de Temporada saiu da venda (recompensas v2, onda 5): a trilha paga é a do assinante.
+  expect(CATALOGO_DE_CREDITOS.map((p) => p.sku)).not.toContain('passe-t1')
+  expect(tela.textContent).not.toMatch(/Passe/)
 })
 
 it('diz o saldo que o servidor derivou', async () => {
@@ -99,7 +101,7 @@ it('sem billing configurado, explica — nada de prometer compra que não existe
 
 it('pagar exige nome e CPF completos', async () => {
   await montar()
-  fireEvent.click(screen.getByText('Passe da Temporada 1'))
+  fireEvent.click(screen.getByText('100 Créditos'))
   const botao = await screen.findByRole('button', { name: /Pagar/ })
   expect((botao as HTMLButtonElement).disabled).toBe(true)
 
@@ -111,7 +113,7 @@ it('pagar exige nome e CPF completos', async () => {
 it('depois de abrir o pagamento, NÃO finge sucesso — diz que nada muda até confirmar', async () => {
   vi.stubGlobal('open', vi.fn())
   await montar()
-  fireEvent.click(screen.getByText('Passe da Temporada 1'))
+  fireEvent.click(screen.getByText('100 Créditos'))
   fireEvent.change(screen.getByLabelText('Seu nome completo'), { target: { value: 'Fulano de Tal' } })
   fireEvent.change(screen.getByLabelText('CPF, só números'), { target: { value: '12345678901' } })
   fireEvent.click(screen.getByRole('button', { name: /Pagar/ }))

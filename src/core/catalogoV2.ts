@@ -11,8 +11,9 @@ import type { ItemDaLoja } from './tiposDaLoja';
  * (`soPorSeeds`) tira esses itens da vitrine de nível, da próxima recompensa e do Passe. Só os
  * padrões (legenda clássica, cartão padrão) são livres.
  *
- * Preços dentro das faixas calibradas: comum 350–450, raro 1.000–1.300, épico 2.600–3.000. Os
- * marcados "candidato à temporada" ficam aqui com preço até a onda 5 decidir a trilha.
+ * Preços dentro das faixas calibradas: comum 350–450, raro 1.000–1.300, épico 2.600–3.000. Os três
+ * candidatos à temporada (Observatório, Letreiro, Constelação) viraram exclusivos da Temporada 1 na
+ * onda 5: sem preço (o `NIVEL_SO_SEEDS` fica: nível nenhum os abre), com `origemTemporada` (`temporada.ts` diz em que casa caem).
  */
 
 /** Nível que nenhuma conta alcança: o item só se abre com Seeds (ou, na onda 5, pela temporada). */
@@ -75,7 +76,8 @@ export const TEMAS_V2: ItemDaLoja[] = [
     precoSeeds: 2800,
     previa: ['#0A0D19', '#14192C', '#FFD23F', '#F5F7FF'],
   },
-  // Candidato à temporada (onda 5): fica com preço até a trilha ser desenhada.
+  // Exclusivo da Temporada 1 (onda 5): o marco da trilha grátis. Volta à Loja por 3.000 Seeds
+  // 365 dias depois do fim da temporada (`precoSeedsDoItem`).
   {
     id: 'tema-observatorio',
     tipo: 'tema',
@@ -84,7 +86,7 @@ export const TEMAS_V2: ItemDaLoja[] = [
     desc: 'Céu de estrelas que passa devagar, azul profundo e títulos finos. Acertos em cometa.',
     raridade: 'epico',
     nivel: NIVEL_SO_SEEDS,
-    precoSeeds: 3000,
+    origemTemporada: { temporada: 't1', precoSeedsDepois: 3000 },
     previa: ['#070A16', '#0F1426', '#A3ACFF', '#E4E9F7'],
   },
 ];
@@ -142,14 +144,17 @@ export const LEGENDAS_V2: ItemDaLoja[] = [
   legenda('vidro', 'Legenda Vidro', 'Caixa de vidro com borda fina; a fala surge de leve.', 'raro', 1000),
   legenda('maquina', 'Legenda Máquina', 'A fala aparece como se fosse datilografada.', 'raro', 1100),
   legenda('karaoke', 'Legenda Karaokê', 'Vidro, sombra e a fala escrita da esquerda para a direita.', 'raro', 1180),
-  // Candidato à temporada (onda 5).
-  legenda(
-    'letreiro',
-    'Legenda Letreiro',
-    'Fita luminosa, contorno forte e entrada suave: legenda de letreiro.',
-    'raro',
-    1190,
-  ),
+  // Exclusivo da Temporada 1 (onda 5): trilha grátis. Volta à Loja por 1.190 Seeds depois de um ano.
+  {
+    id: 'leg-letreiro',
+    tipo: 'legenda',
+    alvo: 'letreiro',
+    nome: 'Legenda Letreiro',
+    desc: 'Fita luminosa, contorno forte e entrada suave: legenda de letreiro.',
+    raridade: 'raro',
+    nivel: NIVEL_SO_SEEDS,
+    origemTemporada: { temporada: 't1', precoSeedsDepois: 1190 },
+  },
 ];
 
 /* ── PELES DE CARTÃO (a moldura muda com a palavra: nova → aprendida → dominada; desenho em
@@ -190,14 +195,17 @@ export const CARTOES_V2: ItemDaLoja[] = [
   ),
   cartao('selo', 'Cartão Selo', 'Picote de selo que vira moldura dupla quando a palavra é sua.', 'comum', 440),
   cartao('vitral', 'Cartão Vitral', 'Borda em gradiente que esquenta de nova para dominada.', 'raro', 1050),
-  // Candidato à temporada (onda 5).
-  cartao(
-    'constelacao',
-    'Cartão Constelação',
-    'Estrelas que acendem com a palavra; a dominada brilha devagar.',
-    'raro',
-    1150,
-  ),
+  // Exclusivo da Temporada 1 (onda 5): trilha grátis. Volta à Loja por 1.150 Seeds depois de um ano.
+  {
+    id: 'cartao-constelacao',
+    tipo: 'cartao',
+    alvo: 'constelacao',
+    nome: 'Cartão Constelação',
+    desc: 'Estrelas que acendem com a palavra; a dominada brilha devagar.',
+    raridade: 'raro',
+    nivel: NIVEL_SO_SEEDS,
+    origemTemporada: { temporada: 't1', precoSeedsDepois: 1150 },
+  },
 ];
 
 /** Tudo o que a onda 4 acrescenta ao catálogo, na ordem da vitrine. */

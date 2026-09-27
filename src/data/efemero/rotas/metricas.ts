@@ -10,7 +10,7 @@
  */
 import type { AppMetrics } from '../../../core/learning/contract';
 import { diaLocal, marcosDeSequencia, palavrasPremiadas, sequencias } from '../../../core/learning/economia';
-import { historicoDeXp } from '../../../core/learning/historicoDeXp';
+import { historicoDeXp, type LinhasDoHistorico } from '../../../core/learning/historicoDeXp';
 import { Fsrs5Strategy } from '../../../core/learning/scheduler';
 import { ehRodadaPerfeita } from '../../../core/minigames/grade';
 import { numeroDoDia, ofensivaComCongelamento } from '../../../core/missoes';
@@ -27,19 +27,24 @@ import { estadoDe } from './vocabulario';
  * a formula foi para o core e as duas pontas passaram a chama-la.
  */
 export async function historicoDeXpLocal(_m: RegExpMatchArray, url: URL): Promise<Response> {
+  const balde = url.searchParams.get('balde') === 'semana' ? 'semana' : 'dia';
+  const desde = Number(url.searchParams.get('desde') ?? 0) || undefined;
+  return json(historicoDeXp(await linhasDoHistoricoLocal(), { balde, desde }));
+}
+
+/** As linhas com carimbo que a curva de XP soma — e que a temporada soma dentro da janela dela. */
+export async function linhasDoHistoricoLocal(): Promise<LinhasDoHistorico> {
   const db = await abrirStore();
   const [sessoes, revisoes, exercicios] = await Promise.all([
     db.getAll('sessoes'), db.getAll('revisoes'), db.getAll('exercicios'),
   ]);
-  const balde = url.searchParams.get('balde') === 'semana' ? 'semana' : 'dia';
-  const desde = Number(url.searchParams.get('desde') ?? 0) || undefined;
-  return json(historicoDeXp({
+  return {
     sessoes: sessoes.map((s) => ({ em: s.createdAt, palavras: s.wordCount ?? 0 })),
     revisoes: revisoes.map((r) => ({ em: r.reviewedAt ?? 0, certa: (r.grade ?? 0) >= 3 })),
     /* `kind === 'drill'` e o mesmo discriminador das duas pontas: um item que gravou nota no
        agendador JA esta em `revisoes`, e conta-lo de novo inflaria a curva. */
     itensDeJogo: exercicios.filter((e) => e.kind === 'drill').map((e) => ({ em: e.createdAt, certo: e.correct === 1 })),
-  }, { balde, desde }));
+  };
 }
 
 /** A ofensiva com congelamento: dias de prática + dias com `meta:<dia>` creditada (core). */

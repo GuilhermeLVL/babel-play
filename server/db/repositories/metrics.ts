@@ -8,7 +8,7 @@ import { and, eq, isNull, sql } from 'drizzle-orm'
 
 import type { AppMetrics } from '../../../src/core/learning/contract'
 import { diaLocal, marcosDeSequencia, palavrasPremiadas, sequencias } from '../../../src/core/learning/economia'
-import { type BaldeDeXp, type HistoricoDeXp, historicoDeXp } from '../../../src/core/learning/historicoDeXp'
+import { type BaldeDeXp, type HistoricoDeXp, historicoDeXp, type LinhasDoHistorico } from '../../../src/core/learning/historicoDeXp'
 import { retrievability } from '../../../src/core/learning/scheduler'
 import { economiaDeMetricas } from '../../../src/core/learning/xp'
 import { ehRodadaPerfeita } from '../../../src/core/minigames/grade'
@@ -702,6 +702,14 @@ export async function computeXpHistory(
   userId: UserId,
   opts: { balde?: BaldeDeXp; desde?: number } = {},
 ): Promise<HistoricoDeXp> {
+  return historicoDeXp(await linhasDoHistoricoDeXp(userId), opts)
+}
+
+/**
+ * As linhas com carimbo que a curva de XP soma — também o que a TEMPORADA soma, só que dentro da
+ * janela dela (`xpDeTemporada`, do core). Uma leitura, dois leitores.
+ */
+export async function linhasDoHistoricoDeXp(userId: UserId): Promise<LinhasDoHistorico> {
   const [sess, logs, drills] = await Promise.all([
     db
       .select({ createdAt: sessions.createdAt, wordCount: sessions.wordCount })
@@ -717,18 +725,15 @@ export async function computeXpHistory(
       .where(and(eq(exerciseResults.userId, userId), isNull(exerciseResults.deletedAt))),
   ])
 
-  return historicoDeXp(
-    {
-      sessoes: sess.map((s) => ({ em: s.createdAt, palavras: s.wordCount ?? 0 })),
-      revisoes: logs.map((l) => ({ em: l.reviewedAt ?? l.createdAt, certa: (l.grade ?? 0) >= 3 })),
-      /* `kind === 'drill'` é o mesmo discriminador de `computeProfile`, e pelo mesmo motivo: um item
-       que gravou nota no agendador JÁ está em `revisoes`; contá-lo de novo inflaria a curva. */
-      itensDeJogo: drills
-        .filter((d) => d.kind === 'drill')
-        .map((d) => ({ em: d.createdAt, certo: (d.correct ?? 0) > 0 })),
-    },
-    opts,
-  )
+  return {
+    sessoes: sess.map((s) => ({ em: s.createdAt, palavras: s.wordCount ?? 0 })),
+    revisoes: logs.map((l) => ({ em: l.reviewedAt ?? l.createdAt, certa: (l.grade ?? 0) >= 3 })),
+    /* `kind === 'drill'` é o mesmo discriminador de `computeProfile`, e pelo mesmo motivo: um item
+     que gravou nota no agendador JÁ está em `revisoes`; contá-lo de novo inflaria a curva. */
+    itensDeJogo: drills
+      .filter((d) => d.kind === 'drill')
+      .map((d) => ({ em: d.createdAt, certo: (d.correct ?? 0) > 0 })),
+  }
 }
 
 /**

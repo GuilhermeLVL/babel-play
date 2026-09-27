@@ -40,8 +40,10 @@ import { comemorar, explodirAleatorio } from '../../lib/juice';
 import { CATALOGO_DA_LOJA, COR_DA_RARIDADE, estadoDoItem, type ItemDaLoja, soPorSeeds } from '../../lib/loja';
 import { readParticulas } from '../../lib/particulas';
 import type { DerivedProgress } from '../../lib/progress';
+import { perfilProtegido } from '../../lib/protecaoDoMenor';
 import { readRastro } from '../../lib/rastroDoMouse';
 import { normalizarAbaDaLoja } from '../../lib/rotas';
+import { useTemporada } from '../../lib/temporada';
 import CartaoDeConvite from '../conta/CartaoDeConvite';
 import MiniaturaDoItem from '../MiniaturaDoItem';
 import type { AgeProfileType, MenuPositionType } from '../shell/navItems';
@@ -152,6 +154,8 @@ export default function Loja({
 
   // A carteira de Créditos é a única moeda que o cliente não deriva sozinho: o servidor arbitra.
   const carteira = useCarteira();
+  const temporada = useTemporada((seeds) => toast.ok(`Temporada: +${seeds} Seeds dos níveis que você alcançou.`));
+  const temporadaDoCabecalho = temporada?.temporada ?? temporada?.proxima ?? null;
 
   // Recém-comprados nesta visita continuam na prateleira como 'Liberado · Equipar agora'.
   const [recemComprados] = useState(() => new Set<string>());
@@ -490,13 +494,13 @@ export default function Loja({
               <Conquistas progress={progress} ctx={ctxConquistas} />
             </div>
 
-            {/* O PASSE fica como está: o destino dele está em aberto com o dono, e a aparência da
-                trilha é dele (`passe/PasseDeTemporada`). Aqui só o título no molde da tela. */}
+            {/* A TEMPORADA (recompensas v2, onda 5): as duas trilhas com datas. O id da seção continua
+                `secao-passe` porque é o endereço que `/loja/passe` e os atalhos já usam. */}
             <section id="secao-passe" className="secao" style={{ scrollMarginTop: 16 }}>
               <TituloDeSecao
                 icone={MapIcon}
-                titulo="Passe da temporada"
-                desc="A trilha do que cada nível entrega. Subir de nível é de graça: estudar é o único requisito."
+                titulo="Temporada"
+                desc="Duas trilhas de 30 níveis, com datas. O nível da temporada sobe com o XP de estudo ganho nela; não se compra."
               />
               {/* O cabeçalho de temporada (temporada, barra de XP e as duas carteiras) era o topo da
                   aba inteira; o protótipo abre a tela com o cabeçalho único e o saldo de Seeds.
@@ -505,24 +509,16 @@ export default function Loja({
                 progress={progress}
                 saldo={saldo}
                 carteira={carteira}
-                temporada={{ numero: 1, nome: 'Fundação' }}
+                temporada={temporadaDoCabecalho}
                 /* Edição estática: não há cobrança — sem o atalho de compra. */
                 aoComprarCreditos={edicaoEstatica() ? undefined : () => irParaSecao('loja')}
               />
               <div style={{ marginTop: 16 }}>
                 <PasseDeTemporada
-                  progress={progress}
+                  temporada={temporada}
                   ctxEquipar={ctxEquipar}
                   equipadoAtual={equipadoAtual}
-                  temPasse={carteira.temPasse}
-                  aoComprarPasse={
-                    carteira.disponivel
-                      ? () => {
-                          setFiltro('tudo');
-                          irParaSecao('loja');
-                        }
-                      : undefined
-                  }
+                  protegido={perfilProtegido()}
                 />
               </div>
             </section>

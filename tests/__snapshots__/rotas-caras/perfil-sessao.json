@@ -8,7 +8,7 @@
   "correctReviews": 22,
   "drillItems": 44,
   "drillCorrect": 31,
-  "accuracy": 0.5641025641025641,
+  "accuracy": 0.564102564103,
   "accuracyConfidence": 0.9,
   "streakDays": 23,
   "seedsGastas": 185,
@@ -40,8 +40,8 @@
   "rodadasPerfeitas": 0,
   "streakPresenca": 23,
   "maiorSequenciaPresenca": 23,
-  "avgStability": 21.960713344239274,
-  "avgRetention": 0.9143289786505426,
+  "avgStability": 21.9607133442,
+  "avgRetention": 0.914328978651,
   "avgRetentionConfidence": 0.7,
   "vocabByWeek": [
     {
@@ -82,7 +82,7 @@
       "lapses": 3,
       "revisoes": 6,
       "fracaoDeErro": 0.67,
-      "pontuacao": 10.482276373620456
+      "pontuacao": 10.4822763736
     },
     {
       "cardId": "card-localowner-025",
@@ -90,7 +90,7 @@
       "lapses": 3,
       "revisoes": 7,
       "fracaoDeErro": 0.43,
-      "pontuacao": 10.220009142190351
+      "pontuacao": 10.2200091422
     },
     {
       "cardId": "card-localowner-037",
@@ -98,7 +98,7 @@
       "lapses": 0,
       "revisoes": 7,
       "fracaoDeErro": 0.57,
-      "pontuacao": 1.1428571428571428
+      "pontuacao": 1.14285714286
     },
     {
       "cardId": "card-localowner-005",
@@ -114,7 +114,7 @@
       "lapses": 0,
       "revisoes": 6,
       "fracaoDeErro": 0.33,
-      "pontuacao": 0.6666666666666666
+      "pontuacao": 0.666666666667
     }
   ],
   "acertoPorExercicio": [
@@ -177,7 +177,7 @@
       "count": 3
     }
   ],
-  "levelConfidence": 0.43843610359257773,
+  "levelConfidence": 0.438436103593,
   "asOf": 1789916400000,
   "escopo": "sessao",
   "base": {

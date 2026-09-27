@@ -38,6 +38,7 @@
     "GET /api/metrics/maestria",
     "GET /api/metrics/missoes",
     "GET /api/metrics/profile",
+    "GET /api/metrics/temporada",
     "GET /api/metrics/xp",
     "GET /api/rank/:jogo",
     "GET /api/ready",

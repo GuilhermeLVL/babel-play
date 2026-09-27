@@ -31,6 +31,11 @@ describe('economia v2 — só resultado paga', () => {
     expect(Object.keys(PESOS_XP)).not.toContain('presenca')
   })
 
+  it('palavra TRANSCRITA não rende XP: é volume de mídia, não esforço (325 palavras importadas = 0 XP)', () => {
+    expect(Object.keys(PESOS_XP)).not.toContain('palavraCapturada')
+    expect(xpDeEventos({ sessoes: 0, palavrasCapturadas: 325, revisoes: 0, revisoesCertas: 0 })).toBe(0)
+  })
+
   it('as fontes novas existem com os valores da especificação', () => {
     expect(PESOS_SEEDS.palavraSalva).toBe(1)
     expect(TETO_PALAVRAS_SALVAS_POR_DIA).toBe(30)

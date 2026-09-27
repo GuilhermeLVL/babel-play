@@ -57,7 +57,6 @@ describe('central de notificações', () => {
       tipo: 'conquista',
       id: 'x',
       nome: 'Primeira captura',
-      emoji: '🎙️',
       seeds: 25,
       xp: 30,
     })

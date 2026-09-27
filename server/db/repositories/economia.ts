@@ -155,6 +155,15 @@ export const economiaRepo = {
     return rows.map((r) => r.creditoId.slice('meta:'.length)).sort()
   },
 
+  /** Os créditos de temporada já lançados (onda 5): `temporada:<id>:<nível>:<trilha>`. */
+  async temporadasCreditadas(userId: UserId): Promise<string[]> {
+    const rows = await db
+      .select({ creditoId: seedCredits.creditoId })
+      .from(seedCredits)
+      .where(and(eq(seedCredits.userId, userId), isNull(seedCredits.deletedAt), like(seedCredits.creditoId, 'temporada:%')))
+    return rows.map((r) => r.creditoId).sort()
+  },
+
   async registrarPresenca(userId: UserId, dia: number): Promise<{ jaExistia: boolean }> {
     const now = Date.now()
     const r = await db.run(sql`

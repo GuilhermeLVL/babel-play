@@ -44,10 +44,10 @@ describe('catálogo de conquistas', () => {
     expect(revisor.pct).toBe(0)
   })
 
-  it('condições: ouvinte por minutos, perfeccionista por rodadas, duelista por combo, poliglota por idiomas', () => {
+  it('condições: ouvinte por sessões, perfeccionista por rodadas, duelista por combo, poliglota por idiomas', () => {
     const feitas = (c: ContextoDeConquistas) => avaliarConquistas(c, new Set()).map((x) => x.id)
-    expect(feitas(ctx({ capturaMinutos: 60 }))).toContain('ouvinte')
-    expect(feitas(ctx({ capturaMinutos: 59 }))).not.toContain('ouvinte')
+    expect(feitas(ctx({ sessions: 5 }))).toContain('ouvinte')
+    expect(feitas(ctx({ sessions: 4, capturaMinutos: 600 }))).not.toContain('ouvinte')
     expect(feitas(ctx({ rodadasPerfeitas: 10 }))).toEqual(expect.arrayContaining(['sem-erro', 'perfeccionista']))
     expect(feitas(ctx({}, { melhorComboPorJogo: { blitz: 15 } }))).toContain('duelista')
     expect(feitas(ctx({}, { idiomas: 2 }))).toContain('poliglota')

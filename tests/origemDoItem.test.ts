@@ -9,7 +9,7 @@
 import { beforeEach,describe, expect, it } from 'vitest'
 
 import { emojiDoItem,estadoDaColecao } from '../src/lib/galeria/progressao'
-import { CATALOGO_DA_LOJA, COR_DA_RARIDADE, marcarPosse, ORIGEM, type OrigemDoItem,origemDoItem } from '../src/lib/loja'
+import { CATALOGO_DA_LOJA, COR_DA_RARIDADE, marcarPosse, ORIGEM, type OrigemDoItem,origemDoItem,temPortaDeNivel } from '../src/lib/loja'
 
 beforeEach(() => localStorage.removeItem('babel.loja_possuidos'))
 
@@ -56,7 +56,7 @@ describe('estadoDaColecao separa as três origens gratuitas', () => {
 
   it('comprar move o item de "ganhei por nível" para "comprei"', () => {
     // Item de nível alto: no nível 1 ele não é seu; comprado, passa a ser — e por compra.
-    const alvo = CATALOGO_DA_LOJA.find((i) => !i.exclusivoDe && i.nivel >= 9 && i.precoSeeds)!
+    const alvo = CATALOGO_DA_LOJA.find((i) => !i.exclusivoDe && temPortaDeNivel(i) && i.nivel >= 9 && i.precoSeeds)!
     expect(estadoDaColecao(1, 0).possuidos.map((i) => i.id)).not.toContain(alvo.id)
     marcarPosse(alvo.id)
     const c = estadoDaColecao(1, 0)

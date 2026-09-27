@@ -13,7 +13,7 @@
  */
 import { afterAll,beforeAll, describe, expect, it } from 'vitest'
 
-import { CATALOGO_DA_LOJA } from '../../src/core/loja'
+import { abrePorNivel, CATALOGO_DA_LOJA } from '../../src/core/loja'
 import { type AppDeTeste,semear, subirApp } from './_app'
 
 let s: AppDeTeste
@@ -42,7 +42,7 @@ describe('compras simultâneas na mesma conta', () => {
        divergente). Somados passam do saldo de uma conta recém-semeada — é essa a corrida. */
     /* Os itens baratos de antes (categorias de emoji e cursores) saíram nas recompensas v2; a
        lista agora sai do catálogo, os mais baratos primeiro, até passar do saldo. */
-    const itens = CATALOGO_DA_LOJA.filter((i) => i.precoSeeds !== undefined && !i.exclusivoDe && i.nivel > 1)
+    const itens = CATALOGO_DA_LOJA.filter((i) => i.precoSeeds !== undefined && !i.exclusivoDe && !abrePorNivel(i, 1))
       .sort((a, b) => a.precoSeeds! - b.precoSeeds!)
       .slice(0, 6)
       .map((i) => ({ id: i.id, preco: i.precoSeeds! }))

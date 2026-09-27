@@ -88,6 +88,11 @@ const donoDoPeso = (path) => path.replace(/_data(_\d+)?$/, '')
  * Quais arquivos do repo `id` baixar. Configs/tokenizers vêm sempre; dos pesos, só os do dtype do
  * modelo (`MODELOS`) e os `.onnx_data` que os acompanham. `dtypesManuais` (a flag `--onnx-dtype`)
  * troca a régua por "estes dtypes em qualquer módulo".
+ *
+ * @param {string} id
+ * @param {string[]} arquivosDoRepo
+ * @param {string[] | null} [dtypesManuais]
+ * @returns {string[]}
  */
 export function selecionarArquivos(id, arquivosDoRepo, dtypesManuais = null) {
   let querido

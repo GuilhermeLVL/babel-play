@@ -7,7 +7,7 @@
  */
 import { afterAll,beforeAll, describe, expect, it } from 'vitest'
 
-import { CATALOGO_DA_LOJA, type ItemDaLoja } from '../../src/core/loja'
+import { abrePorNivel, CATALOGO_DA_LOJA, type ItemDaLoja } from '../../src/core/loja'
 import { type AppDeTeste,resposta, semear, subirApp } from './_app'
 
 const DONO = 'local-owner'
@@ -58,7 +58,7 @@ describe('PUT /api/settings — posse de cosmeticos (modo self-host)', () => {
     const { asUserId } = await s.load('../../server/lib/authContext')
     const { economiaDoUsuario } = await s.load('../../server/db/repositories/metrics')
     ;({ nivel, saldo } = await economiaDoUsuario(asUserId(DONO)))
-    COMPRAVEL = CATALOGO_DA_LOJA.find((i) => i.tipo === 'tema' && !i.exclusivoDe && i.precoSeeds !== undefined && i.nivel > nivel && i.precoSeeds <= saldo)!
+    COMPRAVEL = CATALOGO_DA_LOJA.find((i) => i.tipo === 'tema' && !i.exclusivoDe && i.precoSeeds !== undefined && !abrePorNivel(i, nivel) && i.precoSeeds <= saldo)!
   })
   afterAll(async () => { await s.encerrar() })
 
@@ -127,7 +127,7 @@ describe('PUT /api/settings — posse de cosmeticos (modo self-host)', () => {
   })
 
   it('a posse vale por chave: o tema comprado nao libera outro tipo de item do mesmo nivel', async () => {
-    const outro = CATALOGO_DA_LOJA.find((i) => i.tipo === 'particulas' && !i.exclusivoDe && i.nivel > nivel && i.precoSeeds !== undefined)!
+    const outro = CATALOGO_DA_LOJA.find((i) => i.tipo === 'particulas' && !i.exclusivoDe && !abrePorNivel(i, nivel) && i.precoSeeds !== undefined)!
     const r = await s.put('/api/settings', { ui: { theme: COMPRAVEL.alvo, particulas: outro.alvo } })
     expect(r.status).toBe(403)
     expect((await r.json()).detalhes).toMatchObject({ tipo: 'particulas', alvo: outro.alvo })

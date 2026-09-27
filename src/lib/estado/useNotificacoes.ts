@@ -57,7 +57,10 @@ export function notificacaoDaRecompensa(r: Recompensa) {
     tipo: 'conquista' as const,
     icone: 'gift' as const,
     tom: 'warn' as const,
-    titulo: t('Baú da rodada: {nome}', { nome: r.item.nome }),
+    /* Baú v2: repetido (ou coleção completa) chega SEM peça — só as Seeds da faixa sorteada. */
+    titulo: r.item
+      ? t('Baú da rodada: {nome}', { nome: r.item.nome })
+      : t('Baú da rodada: repetido virou Seeds'),
     detalhe: r.seeds ? t('+{seeds} Seeds.', { seeds: r.seeds }) : t('Já está em Personalizar.'),
     ir: 'loja',
     dado: { aba: 'personalizar' },

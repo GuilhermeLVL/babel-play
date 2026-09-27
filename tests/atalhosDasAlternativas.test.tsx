@@ -75,7 +75,7 @@ describe('atalhos 1–9 nas alternativas', () => {
       fireEvent.keyDown(window, { key: '2' })
     }
     avancar(700)
-    fireEvent.click(screen.getByRole('button', { name: 'Continuar' }))
+    // O fim é o comum (sem tela própria do Duelo): o relatório sai quando a última revelação acaba.
     expect(relatorio!.items).toHaveLength(4)
   })
 

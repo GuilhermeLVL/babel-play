@@ -2,7 +2,9 @@ import {
   CONQUISTAS,
   type ContextoDeConquistas,
   levelFloor,
+  type NivelDaConquista,
   PESOS_SEEDS,
+  PILARES_DE_CONQUISTA,
   progressoDasConquistas,
   type ProgressoDeConquista,
   type RaridadeDaConquista,
@@ -29,8 +31,8 @@ import {
 import { useMemo } from 'react';
 
 import { conquistasDesbloqueadas, dataDaConquista } from '../../lib/conquistasPosse';
-import { data } from '../../lib/i18n';
-import { CATALOGO_DA_LOJA, COR_DA_RARIDADE } from '../../lib/loja';
+import { data, t } from '../../lib/i18n';
+import { CATALOGO_DA_LOJA } from '../../lib/loja';
 import type { DerivedProgress } from '../../lib/progress';
 import { iconeDaConquista } from '../iconesDaConquista';
 import { IconeEmBloco, TituloDeSecao, type TomDoIcone } from '../ui';
@@ -44,15 +46,21 @@ import { IconeEmBloco, TituloDeSecao, type TomDoIcone } from '../ui';
  *
  * A MARCAÇÃO É A DO PROTÓTIPO (`T.personalizar`, aba Desafios): três seções com `TituloDeSecao`,
  * as regras em `.g3`, a curva de nível num `.cartao.p5` com `.barra` e `.chips`, e as conquistas
- * em `.cartao.conq.<raridade>` agrupadas por raridade. O protótipo desenha três regras e dez
- * conquistas de exemplo; aqui vão TODAS as do core, com o progresso real.
+ * em `.cartao.conq.<raridade>`. O protótipo desenha três regras e dez conquistas de exemplo; aqui
+ * vão TODAS as do core, com o progresso real, agrupadas pelos QUATRO PILARES (recompensas v2, spec
+ * 9) com a contagem "feitas/total" de cada um. A secreta mostra só a dica até ser feita.
  */
 interface ConquistasProps {
   progress: DerivedProgress;
   ctx: ContextoDeConquistas | null;
 }
 
-const ORDEM: RaridadeDaConquista[] = ['lendario', 'epico', 'raro', 'comum'];
+/* O degrau da série, na cor do badge: bronze neutro, prata raro, ouro de destaque. */
+const BADGE_DO_NIVEL: Record<NivelDaConquista, { rotulo: string; classe: string }> = {
+  bronze: { rotulo: 'Bronze', classe: 'neu' },
+  prata: { rotulo: 'Prata', classe: 'rare' },
+  ouro: { rotulo: 'Ouro', classe: 'warn' },
+};
 
 /* O ícone de cada regra. O das conquistas mora em `../iconesDaConquista` (é o mesmo no modal de
    resgate e no perfil). Id novo sem ícone cai no genérico. */
@@ -97,10 +105,12 @@ export default function Conquistas({ progress, ctx }: ConquistasProps) {
   }, [ctx]);
   // A posse local manda: uma conquista creditada continua "feita" mesmo se a métrica cair
   // (ex.: sequência de presença perdida depois do marco).
-  const porRaridade = ORDEM.map((r) => ({ r, itens: lista.filter((p) => p.conquista.raridade === r) })).filter(
-    (g) => g.itens.length > 0,
-  );
-  const totalFeitas = lista.filter((p) => p.conquistada || feitas.has(p.conquista.id)).length;
+  const ehFeita = (p: ProgressoDeConquista) => p.conquistada || feitas.has(p.conquista.id);
+  const porPilar = PILARES_DE_CONQUISTA.map((pilar) => {
+    const itens = lista.filter((p) => p.conquista.pilar === pilar.id);
+    return { pilar, itens, feitas: itens.filter(ehFeita).length };
+  }).filter((g) => g.itens.length > 0);
+  const totalFeitas = lista.filter(ehFeita).length;
   const proximosNiveis = Array.from({ length: 5 }, (_, i) => progress.level + 1 + i);
 
   return (
@@ -176,61 +186,81 @@ export default function Conquistas({ progress, ctx }: ConquistasProps) {
             </span>
           }
         />
-        {porRaridade.map(({ r, itens }, k) => (
-          <div key={r}>
-            <div className="label-mono" style={{ margin: k === 0 ? '4px 0 10px' : '20px 0 10px' }}>
-              {COR_DA_RARIDADE[r].rotulo}
+        {porPilar.map(({ pilar, itens, feitas: feitasNoPilar }, k) => (
+          <div key={pilar.id}>
+            <div className="entre" style={{ margin: k === 0 ? '4px 0 10px' : '20px 0 10px' }}>
+              <span className="label-mono">{t(pilar.nome)}</span>
+              <span className="mut tn" style={{ fontSize: 12.5 }}>
+                <b style={{ color: 'var(--ink)' }}>{feitasNoPilar}</b>/{itens.length}
+              </span>
             </div>
             <div className="gauto">
-              {itens.map(({ conquista, atual, meta, pct, conquistada }) => {
-                const feita = conquistada || feitas.has(conquista.id);
+              {itens.map((p) => {
+                const { conquista, atual, meta, pct } = p;
+                const feita = ehFeita(p);
                 const quando = dataDaConquista(conquista.id);
-                /* O exclusivo que a conquista entrega: a Loja não vende, então é aqui que ele
-                   aparece antes de ser seu. */
+                /* A SECRETA (até três) mostra só a dica vaga até ser feita: nome, meta e prêmio
+                   ficam para a hora em que ela aparece. */
+                const oculta = !!conquista.secreta && !feita;
+                /* O exclusivo que a conquista entrega (no ouro, moldura ou título): a Loja não
+                   vende, então é aqui que ele aparece antes de ser seu. */
                 const exclusivo = conquista.recompensa.cosmetico
                   ? CATALOGO_DA_LOJA.find((i) => i.id === conquista.recompensa.cosmetico)
                   : null;
                 const valor = feita ? meta : atual;
                 const porcento = feita ? 100 : pct;
+                const degrau = conquista.nivel ? BADGE_DO_NIVEL[conquista.nivel] : null;
                 return (
                   <article key={conquista.id} className={`cartao conq ${conquista.raridade}`}>
                     <div className="linha">
-                      <IconeEmBloco icone={iconeDaConquista(conquista.id)} tom={TOM[conquista.raridade]} />
+                      <IconeEmBloco
+                        icone={oculta ? Lock : iconeDaConquista(conquista.id)}
+                        tom={oculta ? 'accent' : TOM[conquista.raridade]}
+                      />
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <h3>{conquista.nome}</h3>
-                        <p>{conquista.desc}</p>
+                        <h3>{oculta ? t('Conquista secreta') : conquista.nome}</h3>
+                        <p>{oculta ? conquista.dica : conquista.desc}</p>
                       </div>
                       {feita ? (
                         <span className="badge ok">
                           <Check aria-hidden /> Feita
                         </span>
+                      ) : degrau ? (
+                        <span className={`badge ${degrau.classe}`}>{t(degrau.rotulo)}</span>
                       ) : (
                         <Lock aria-hidden style={{ width: 15, height: 15, color: 'var(--ink-muted)' }} />
                       )}
                     </div>
-                    {/* Progresso: sempre em número, nunca só a barra. */}
-                    <div className="entre" style={{ font: '600 11.5px var(--font-mono)', color: 'var(--ink-muted)' }}>
-                      <span>
-                        {valor} / {meta}
-                      </span>
-                      <span>{porcento}%</span>
-                    </div>
-                    <div className={`barra ${feita ? 'good' : ''}`}>
-                      <span style={{ width: `${porcento}%` }} />
-                    </div>
-                    <div className="meta">
-                      <Sprout aria-hidden style={{ color: 'var(--good)' }} />
-                      <b style={{ color: 'var(--ink)' }}>+{conquista.recompensa.seeds}</b>
-                      {conquista.recompensa.xp > 0 && <> · +{conquista.recompensa.xp} XP</>}
-                      {exclusivo && (
-                        <>
-                          {' '}
-                          · <Star aria-hidden style={{ color: 'var(--warn)' }} />
-                          <b style={{ color: 'var(--warn-ink)' }}>{exclusivo.nome}</b>
-                        </>
-                      )}
-                      {feita && quando && <> · {dataCurta(quando)}</>}
-                    </div>
+                    {!oculta && (
+                      <>
+                        {/* Progresso: sempre em número, nunca só a barra. */}
+                        <div
+                          className="entre"
+                          style={{ font: '600 11.5px var(--font-mono)', color: 'var(--ink-muted)' }}
+                        >
+                          <span>
+                            {valor} / {meta}
+                          </span>
+                          <span>{porcento}%</span>
+                        </div>
+                        <div className={`barra ${feita ? 'good' : ''}`}>
+                          <span style={{ width: `${porcento}%` }} />
+                        </div>
+                        <div className="meta">
+                          <Sprout aria-hidden style={{ color: 'var(--good)' }} />
+                          <b style={{ color: 'var(--ink)' }}>+{conquista.recompensa.seeds}</b>
+                          {conquista.recompensa.xp > 0 && <> · +{conquista.recompensa.xp} XP</>}
+                          {exclusivo && (
+                            <>
+                              {' '}
+                              · <Star aria-hidden style={{ color: 'var(--warn)' }} />
+                              <b style={{ color: 'var(--warn-ink)' }}>{exclusivo.nome}</b>
+                            </>
+                          )}
+                          {feita && quando && <> · {dataCurta(quando)}</>}
+                        </div>
+                      </>
+                    )}
                   </article>
                 );
               })}

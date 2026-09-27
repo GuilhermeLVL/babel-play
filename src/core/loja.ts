@@ -20,6 +20,7 @@
 import { CATALOGO_V2, NIVEL_SO_SEEDS } from './catalogoV2';
 
 export { NIVEL_SO_SEEDS };
+import { CATALOGO_DAS_CONQUISTAS } from './catalogoConquistas';
 import { CATALOGO_DA_MAESTRIA } from './catalogoMaestria';
 
 export type { ItemDaLoja, Raridade, TipoDaLoja, TipoDesbloqueavel } from './tiposDaLoja';
@@ -184,7 +185,7 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     tipo: 'particulas',
     alvo: 'cometa',
     nome: 'Partículas Cometa',
-    desc: 'Bolas de luz com cauda. Só para quem somou 60 min de escuta.',
+    desc: 'Bolas de luz com cauda. Só para quem gravou ou importou 5 sessões.',
     raridade: 'lendario',
     nivel: 1,
     exclusivoDe: 'ouvinte',
@@ -461,6 +462,7 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     exclusivoDe: 'duelista',
   },
   ...CATALOGO_DA_MAESTRIA, // onda 3: efeitos de jogo, molduras e títulos (`catalogoMaestria.ts`)
+  ...CATALOGO_DAS_CONQUISTAS, // onda 5: molduras e títulos do ouro das conquistas (`catalogoConquistas.ts`)
 ];
 
 /**

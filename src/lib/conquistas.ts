@@ -12,6 +12,7 @@ import {
   type Conquista,
   CONQUISTAS,
   type ContextoDeConquistas,
+  JOGOS_DA_MAESTRIA,
   progressoDasConquistas,
 } from '@core';
 
@@ -19,6 +20,7 @@ import { creditarSeeds, type RecordeDoJogo } from '../data/api';
 import { conquistasDesbloqueadas, marcarConquista, registrarDataDaConquista } from './conquistasPosse';
 import { eventosVistos, todosOsEventos } from './eventosDeJogo';
 import { possuidos } from './loja';
+import { maestriasCreditadas, nivelCreditado } from './maestriaPosse';
 
 /** Junta o que vem do servidor (métricas, recordes) com o que vive no navegador (coleção, posse). */
 export function montarContextoDeConquistas(p: {
@@ -28,6 +30,14 @@ export function montarContextoDeConquistas(p: {
 }): ContextoDeConquistas {
   const melhorComboPorJogo: Record<string, number> = {};
   for (const r of p.recordes) melhorComboPorJogo[r.exerciseKind] = r.melhorCombo ?? 0;
+  /* A maestria do navegador é a que o SERVIDOR já creditou (`maestriaPosse`): a conquista nunca
+     anda à frente do que a rota de crédito vai conferir. */
+  const creditadas = maestriasCreditadas();
+  const maestria: NonNullable<ContextoDeConquistas['maestria']> = {};
+  for (const jogo of JOGOS_DA_MAESTRIA) {
+    const n = nivelCreditado(jogo, creditadas);
+    if (n > 0) maestria[jogo] = n;
+  }
   return {
     metricas: p.metricas,
     nivel: p.nivel,
@@ -36,6 +46,7 @@ export function montarContextoDeConquistas(p: {
     totalDeEventos: todosOsEventos().length,
     idiomas: p.metricas.idiomas ?? 0,
     compras: possuidos().size,
+    maestria,
   };
 }
 

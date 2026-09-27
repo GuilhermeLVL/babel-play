@@ -18,7 +18,7 @@ Só resultado paga. Saíram a **presença** (abrir o app) e os **minutos de capt
 | Meta do dia (20 acertos no dia) | 15 | 20 | crédito `meta:<AAAA-MM-DD>`, hoje/ontem no fuso do usuário, conferido no servidor |
 | Nível de maestria | 20 × nível | — | `maestria:<jogo>:<n>`, pontos somados das rodadas gravadas (uma vez por `roundId`), conferido no servidor |
 | 7 dias seguidos de prática | 25 | 50 | dia de prática = revisão, rodada ou palavra salva |
-| Conquista | varia | varia | conferida no servidor |
+| Conquista | 10–200 | 0–300 | uma vez cada (40, 3.305 Seeds no total), conferida no servidor e no espelho |
 
 A ofensiva (`streakDays`, `streakPresenca`/`maiorSequenciaPresenca` — nomes antigos, conteúdo novo)
 conta dias de prática. `POST /api/metrics/presenca` continua gravando, só como estatística.
@@ -148,10 +148,19 @@ Pular rodada mantendo combo: 40.
 
 ### Conquistas (`src/core/learning/conquistas.ts`)
 
-14 conquistas com progresso `atual/meta` e recompensa fixa. Quatro dão cosméticos que a Loja **não
-vende** (`exclusivoDe` no catálogo): tema Aurora (Constante, 30 dias), partículas Cometa (Ouvinte,
-60 min), cursor Coroa (Perfeccionista, 10 rodadas 3★), rastro Arco-íris (Colecionador, todos os
-eventos raros). O cliente (`lib/conquistas.ts`) só marca a conquista DEPOIS de o crédito entrar no
+**Recompensas v2, onda 5:** 40 conquistas em 4 pilares (Vocabulário 9, Escuta 10, Jogos 11,
+Constância 10), bronze/prata/ouro nas séries, 3 secretas com dica vaga. Todas conferidas no Express
+e no espelho sem conta com o mesmo contexto (`contextoConferivelDeConquistas`,
+`tests/contratos/conquistas-paridade.test.ts`); nenhuma lê tempo (o Ouvinte trocou 60 minutos por
+5 sessões). Os 14 ids antigos ficam com a mesma recompensa. O ouro entrega moldura ou título fora
+de venda (`src/core/catalogoConquistas.ts`); os exclusivos antigos (tema Aurora, partículas Cometa,
+rastros Arco-íris e Matrix) continuam.
+
+**Seeds de UMA VEZ, não por dia:** as 40 somam **3.305 Seeds** (as 14 antigas somavam 860) —
+≈ 22 dias do perfil típico (149,9/dia), espalhados por meses: o ouro pede 1.000 palavras, 2.000
+revisões, 100 sessões, 50 rodadas perfeitas, 100 dias seguidos ou nível 25. Não entram na
+calibragem diária (`simular-ritmo.ts`); `tests/conquistas-v2.test.ts` trava o total abaixo de 25
+dias típicos. O cliente (`lib/conquistas.ts`) só marca a conquista DEPOIS de o crédito entrar no
 servidor; sem rede, tenta de novo na próxima avaliação.
 
 Onde ver: aba **Conquistas & como ganhar** dentro da Loja (edição leve) e aba **Conquistas** no

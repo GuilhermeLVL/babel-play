@@ -28,7 +28,7 @@ const ctx = (over: Partial<ContextoDeConquistas['metricas']> = {}, combo = 0): C
 })
 
 describe('Colecionador no servidor', () => {
-  it('as catorze conquistas são conferidas', () => {
+  it('todas as conquistas são conferidas', () => {
     expect(CONQUISTAS.map((c) => c.id).filter((id) => !CONQUISTAS_CONFERIVEIS.has(id))).toEqual([])
   })
 

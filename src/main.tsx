@@ -3,6 +3,8 @@ import './index.css';
    index.css para que, onde os dois falam da mesma classe, valha o desenho aprovado. */
 import './styles/prototipo.css';
 import './styles/prototipo-app.css';
+/* Por último: só QUANDO o navegador trabalha (content-visibility etc.), nunca o desenho. */
+import './styles/desempenho.css';
 
 import { RefreshCw } from 'lucide-react';
 import { StrictMode } from 'react';

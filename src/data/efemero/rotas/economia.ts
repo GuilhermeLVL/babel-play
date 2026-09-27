@@ -13,8 +13,9 @@
  */
 import {
 autorizarGasto, ehRecusa, ESTRELAS_PARA_O_BAU,
-itensSorteaveisNoDrop, rodadaRendeBau, roundIdDoDrop, sortearItemDoDrop, valorDoCredito, valorDoDrop,
+itensSorteaveisNoDrop, progressoNoServidor, rodadaRendeBau, roundIdDoDrop, sortearItemDoDrop, valorDoCredito, valorDoDrop,
 } from '../../../core/economiaAutoridade';
+import type { ContextoDeConquistas } from '../../../core/learning/conquistas';
 import { diaLocal, sequencias } from '../../../core/learning/economia';
 import { economiaDeMetricas } from '../../../core/learning/xp';
 import { json, lerJson, num, str } from '../nucleo';
@@ -166,6 +167,26 @@ export async function creditarSeeds(_m: RegExpMatchArray, _u: URL, init: Request
       const { nivel } = economiaDeMetricas(await perfilEfemero(null));
       if (nivel < credito.nivelMinimo) {
         return json({ error: 'nível insuficiente para este crédito', code: 'nivel_insuficiente', codigo: 'nivel_insuficiente', detalhes: { nivel, exigido: credito.nivelMinimo } }, 400);
+      }
+    }
+    /* O COLECIONADOR É CONFERIDO AQUI TAMBÉM, com a régua do Express (`progressoNoServidor`): os
+       pré-requisitos dos eventos, gravados no banco. Até 27/09 os dois lados creditavam 100 Seeds
+       e 120 XP a qualquer pedido — e o acervo do modo sem conta migra para a conta. As outras
+       conquistas o efêmero ainda não confere (só o Express), e isto não muda aqui. */
+    if (credito.conquista?.id === 'colecionador') {
+      const metricas = await perfilEfemero(null);
+      const melhorComboPorJogo: Record<string, number> = {};
+      for (const e of await db.getAll('exercicios')) {
+        if (!e.exerciseKind) continue;
+        melhorComboPorJogo[e.exerciseKind] = Math.max(melhorComboPorJogo[e.exerciseKind] ?? 0, e.melhorSequencia ?? 0);
+      }
+      const ctx: ContextoDeConquistas = {
+        metricas, nivel: economiaDeMetricas(metricas).nivel, melhorComboPorJogo,
+        eventosVistos: 0, totalDeEventos: 0, idiomas: metricas.idiomas ?? 0, compras: metricas.itensComprados?.length ?? 0,
+      };
+      const { atual, meta } = progressoNoServidor(credito.conquista, ctx);
+      if (atual < meta) {
+        return json({ error: 'conquista ainda não cumprida', code: 'conquista_nao_cumprida', codigo: 'conquista_nao_cumprida', detalhes: { atual, meta } }, 400);
       }
     }
     await db.put('creditos', { creditoId, amount: credito.seeds, xp: credito.xp, reason: credito.reason, createdAt: Date.now() });

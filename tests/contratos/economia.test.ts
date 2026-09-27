@@ -70,12 +70,43 @@ afterAll(async () => {
   await h?.cleanup?.()
 })
 
+/**
+ * A rodada que cumpre os pré-requisitos do Colecionador (`progressoConferivelDoColecionador`):
+ * Duelo com combo 15, perfeita, 15 acertos. Gravada nas DUAS pontas. Rende 15 Seeds dos acertos
+ * e 5 da rodada perfeita — por isso o saldo dos testes de gasto é 120, e não 100.
+ */
+async function rodadaDoColecionador(): Promise<void> {
+  const itens = Array.from({ length: 15 }, (_, i) => ({ itemRef: `c${i}`, correct: 1, kind: 'drill' }))
+  const rodada = {
+    roundId: 'blitz-colecionador-1',
+    exerciseKind: 'blitz',
+    origem: 'baralho',
+    score: 300,
+    melhorSequencia: 15,
+    itens,
+  }
+  const { exerciseResultsRepo } = (await h.load('../../server/db/repositories/exerciseResults')) as any
+  await exerciseResultsRepo.addRodada(U, rodada)
+  await servidorEfemero('/api/exercises/rodada', { method: 'POST', body: JSON.stringify(rodada) })
+}
+
 describe('crédito: o corpo não decide o valor, nas duas pontas', () => {
-  /* `colecionador` é a única conquista cuja condição o servidor não confere (eventos raros vistos
-     só existem no navegador), então ela exercita o VALOR sem exigir estado montado dos dois lados. */
+  /* `colecionador` era a única conquista que o servidor não conferia; desde 27/09 as duas pontas
+     exigem os pré-requisitos dela. Primeiro sem eles (400), depois com a rodada que os cumpre. */
   const PEDIDO = { creditoId: 'conquista-colecionador', amount: 9_999, xp: 9_999, reason: 'seja o que for' }
 
+  it('o Colecionador sem os pré-requisitos é recusado nas duas, com o mesmo código', async () => {
+    const express = await noExpress('/seeds/creditar', PEDIDO)
+    const efemero = await noEfemero('/seeds/creditar', PEDIDO)
+    expect(express.status).toBe(400)
+    expect(efemero.status).toBe(400)
+    expect(express.body.code).toBe('conquista_nao_cumprida')
+    expect(efemero.body.code).toBe('conquista_nao_cumprida')
+    expect(efemero.body.detalhes).toEqual(express.body.detalhes)
+  })
+
   it('as duas creditam 100 Seeds e 120 XP, e nenhuma lê os 9.999 do corpo', async () => {
+    await rodadaDoColecionador()
     const express = await noExpress('/seeds/creditar', PEDIDO)
     const efemero = await noEfemero('/seeds/creditar', PEDIDO)
     expect(express.status).toBe(200)
@@ -137,18 +168,18 @@ describe('gasto: o preço é o do catálogo, nas duas pontas', () => {
     expect(efemero.body.detalhes).toMatchObject({ preco: 40 })
   })
 
-  it('o saldo acaba no mesmo ponto nas duas: o terceiro "pular rodada" é 402', async () => {
-    /* Os dois lados têm as MESMAS 100 Seeds (o crédito de `colecionador` do bloco acima), e
-       "pular rodada" custa 40. Dois passam, o terceiro não — nos dois servidores, no mesmo gasto.
-       Este é o teste que o modo sem conta nunca teve: ele gravava qualquer gasto, sem saldo. */
-    for (const n of [1, 2]) {
+  it('o saldo acaba no mesmo ponto nas duas: o quarto "pular rodada" é 402', async () => {
+    /* Os dois lados têm as MESMAS 120 Seeds (100 do `colecionador` e 20 da rodada que o cumpre,
+       no bloco acima), e "pular rodada" custa 40. Três passam, o quarto não — nos dois servidores,
+       no mesmo gasto. Este é o teste que o modo sem conta nunca teve: ele gravava qualquer gasto. */
+    for (const n of [1, 2, 3]) {
       const pedido = { spendId: `pula-000${n}`, amount: 40, reason: 'pular-rodada' }
       expect((await noExpress('/seeds/gastar', pedido)).status, `express ${n}`).toBe(200)
       expect((await noEfemero('/seeds/gastar', pedido)).status, `efêmero ${n}`).toBe(200)
     }
-    const terceiro = { spendId: 'pula-0003', amount: 40, reason: 'pular-rodada' }
-    const express = await noExpress('/seeds/gastar', terceiro)
-    const efemero = await noEfemero('/seeds/gastar', terceiro)
+    const quarto = { spendId: 'pula-0004', amount: 40, reason: 'pular-rodada' }
+    const express = await noExpress('/seeds/gastar', quarto)
+    const efemero = await noEfemero('/seeds/gastar', quarto)
     expect(express.status).toBe(402)
     expect(efemero.status).toBe(402)
     expect(express.body.detalhes.saldo).toBe(efemero.body.detalhes.saldo)

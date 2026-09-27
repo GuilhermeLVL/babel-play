@@ -1,4 +1,4 @@
-import { type Conquista, CONQUISTAS } from './learning/conquistas';
+import { type Conquista, CONQUISTAS, type ContextoDeConquistas } from './learning/conquistas';
 import { CATALOGO_DA_LOJA, type ItemDaLoja, type Raridade } from './loja';
 import { estrelasDaRodada } from './minigames/fases';
 import { type SlotDoPasse, slotsDoPasse } from './passe';
@@ -225,18 +225,16 @@ export function valorDoCredito(creditoId: string): CreditoAutorizado | RecusaDeG
 }
 
 /**
- * AS CONQUISTAS QUE O SERVIDOR SABE CONFERIR.
+ * AS CONQUISTAS QUE O SERVIDOR SABE CONFERIR — hoje, as catorze.
  *
- * Treze das catorze dependem só de `metricas`, do nível, dos recordes ou do número de compras —
- * tudo que o servidor mede. `poliglota` e `duelista` entraram nesta lista em 07/09, quando
- * `computeProfile` passou a emitir `idiomas` e `exercise_results` passou a guardar o combo da
- * rodada; até então elas não podiam ser conferidas porque o dado não existia no banco, e não
- * porque a condição fosse subjetiva.
+ * Treze dependem só de `metricas`, do nível, dos recordes ou do número de compras — tudo que o
+ * servidor mede. `poliglota` e `duelista` entraram nesta lista em 07/09, quando `computeProfile`
+ * passou a emitir `idiomas` e `exercise_results` passou a guardar o combo da rodada.
  *
- * A que sobra é `colecionador`, que conta eventos raros vistos — estado que só o navegador tem.
- * Para ela o servidor credita o valor CORRETO da regra sem conferir a condição. A exposição é de
- * 100 Seeds e 120 XP, uma vez (idempotente por `creditoId`); antes desta família de mudanças o
- * mesmo endpoint cunhava 1,2 milhão de Seeds por minuto.
+ * `colecionador` entrou em 27/09. Ela conta eventos raros VISTOS, estado que só o navegador tem, e
+ * até então o servidor creditava 100 Seeds e 120 XP sem conferir nada. O servidor continua sem ver
+ * os eventos — mas vê o que é preciso ter feito para vê-los (`progressoConferivelDoColecionador`),
+ * e é isso que ele passa a exigir. O progresso usado na conferência sai de `progressoNoServidor`.
  */
 export const CONQUISTAS_CONFERIVEIS: ReadonlySet<string> = new Set([
   'primeira-captura',
@@ -252,7 +250,50 @@ export const CONQUISTAS_CONFERIVEIS: ReadonlySet<string> = new Set([
   'nivel-10',
   'poliglota',
   'duelista',
+  'colecionador',
 ]);
+
+/**
+ * Quantos eventos RAROS existem (`EVENTOS_RAROS` em `lib/eventosDeJogo`, que o core não importa).
+ * `tests/colecionador.test.ts` confere que os dois números batem.
+ */
+export const EVENTOS_RAROS_DO_JOGO = 6;
+
+/** O combo em que o último evento condicional do Duelo acontece (`sobrecarga`, combo 15). */
+export const COMBO_DO_ULTIMO_EVENTO = 15;
+
+/**
+ * O COLECIONADOR, NA RÉGUA DO SERVIDOR. A condição real ("viu os onze eventos") o servidor não
+ * enxerga; o que ele enxerga são os PRÉ-REQUISITOS de cada evento, todos gravados no banco:
+ *
+ *  1. `aquecendo`, `tempestade` e `sobrecarga` só nascem no Duelo, nos combos 5, 10 e 15 →
+ *     melhor combo do Duelo ≥ 15;
+ *  2. `perfeita` nasce de uma rodada perfeita → ao menos uma `rodadasPerfeitas`;
+ *  3. os seis raros são sorteados um por ACERTO, no máximo → ao menos seis acertos (itens de
+ *     jogo certos + revisões certas).
+ *
+ * É condição NECESSÁRIA, não suficiente: não prova que os eventos foram vistos (`fogos`, do
+ * recorde batido, nem entra), mas fecha o crédito a quem nunca jogou o bastante para vê-los —
+ * que era o que qualquer pedido direto à rota conseguia.
+ */
+export function progressoConferivelDoColecionador(ctx: ContextoDeConquistas): { atual: number; meta: number } {
+  const m = ctx.metricas;
+  const acertos = (m.drillCorrect ?? 0) + (m.correctReviews ?? 0);
+  const requisitos = [
+    (ctx.melhorComboPorJogo['blitz'] ?? 0) >= COMBO_DO_ULTIMO_EVENTO,
+    (m.rodadasPerfeitas ?? 0) >= 1,
+    acertos >= EVENTOS_RAROS_DO_JOGO,
+  ];
+  return { atual: requisitos.filter(Boolean).length, meta: requisitos.length };
+}
+
+/**
+ * O progresso que o SERVIDOR confere antes de creditar uma conquista: o da própria regra, exceto
+ * onde a regra lê estado que só o navegador tem (hoje, só o Colecionador).
+ */
+export function progressoNoServidor(conquista: Conquista, ctx: ContextoDeConquistas): { atual: number; meta: number } {
+  return conquista.id === 'colecionador' ? progressoConferivelDoColecionador(ctx) : conquista.progresso(ctx);
+}
 
 /* ── DROP: o cosmético que cai no fim da rodada ─────────────────────────────────────────────── */
 

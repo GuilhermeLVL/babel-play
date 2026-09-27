@@ -14,11 +14,12 @@
  * O contrato preso aqui: motivo tem de autorizar, preço tem de ser o do catálogo, saldo tem de
  * pagar — e a idempotência continua valendo mesmo depois de o saldo acabar.
  */
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
 import { CATALOGO_DA_LOJA } from '../../src/core/loja'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { cumprirColecionadorNoExpress } from '../harness/colecionador'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let metricsRouter: any
@@ -29,14 +30,22 @@ function handler(caminho: string): (req: any, res: any) => Promise<void> {
 }
 function mockRes(): any {
   const r: any = { statusCode: 200, body: undefined }
-  r.status = (c: number) => { r.statusCode = c; return r }
-  r.json = (b: any) => { r.body = b; return r }
+  r.status = (c: number) => {
+    r.statusCode = c
+    return r
+  }
+  r.json = (b: any) => {
+    r.body = b
+    return r
+  }
   return r
 }
 const req = (body: unknown, u: string) => ({ userId: asUserId(u), body, requestId: 'req-aut', path: '/x' })
 
-/** Dá saldo ao usuário pelo caminho legítimo: `colecionador` vale 100 Seeds pela regra. */
+/** Dá saldo ao usuário pelo caminho legítimo: `colecionador` vale 100 Seeds pela regra (e a
+    rodada que cumpre os pré-requisitos dele, conferidos desde 27/09, rende mais 20). */
 async function darSaldo(u: string): Promise<void> {
+  await cumprirColecionadorNoExpress(h, u)
   await handler('/seeds/creditar')(req({ creditoId: 'conquista-colecionador' }, u), mockRes())
 }
 
@@ -59,7 +68,9 @@ beforeAll(async () => {
   h = await setupEphemeralDb()
   ;({ metricsRouter } = (await h.load('../../server/routes/metrics')) as any)
 })
-afterAll(async () => { await h.cleanup() })
+afterAll(async () => {
+  await h.cleanup()
+})
 
 describe('o motivo precisa autorizar', () => {
   it('item inexistente é recusado', async () => {
@@ -96,7 +107,10 @@ describe('o preço é o do catálogo', () => {
 
 describe('o saldo precisa pagar', () => {
   it('sem saldo nenhum, a compra é recusada com 402 e o quanto falta', async () => {
-    const r = await gastar({ spendId: 'sp-sem-saldo1', amount: BARATO.precoSeeds!, reason: `loja:${BARATO.id}` }, 'u-a5')
+    const r = await gastar(
+      { spendId: 'sp-sem-saldo1', amount: BARATO.precoSeeds!, reason: `loja:${BARATO.id}` },
+      'u-a5',
+    )
     expect(r.statusCode).toBe(402)
     expect(r.body.code).toBe('saldo_insuficiente')
     expect(r.body.detalhes?.falta).toBe(BARATO.precoSeeds)
@@ -104,18 +118,24 @@ describe('o saldo precisa pagar', () => {
 
   it('com saldo, a compra passa — e o reenvio continua idempotente mesmo com o saldo zerado', async () => {
     const u = 'u-a6'
-    await darSaldo(u) // 100 Seeds
+    await darSaldo(u) // 120 Seeds
     const compravel = [...CATALOGO_DA_LOJA]
       .filter((i) => i.precoSeeds !== undefined && !i.exclusivoDe && i.precoSeeds <= 100)
       .sort((a, b) => b.precoSeeds! - a.precoSeeds!)[0]
 
-    const r1 = await gastar({ spendId: 'sp-ok-000001', amount: compravel.precoSeeds!, reason: `loja:${compravel.id}` }, u)
+    const r1 = await gastar(
+      { spendId: 'sp-ok-000001', amount: compravel.precoSeeds!, reason: `loja:${compravel.id}` },
+      u,
+    )
     expect(r1.statusCode).toBe(200)
     expect(r1.body).toMatchObject({ jaExistia: false, gasto: compravel.precoSeeds })
 
     /* O REENVIO. Sem a guarda de "já foi cobrado", esta chamada viraria 402: o saldo já foi
        consumido pela primeira. Idempotência que só funciona com saldo sobrando não é idempotência. */
-    const r2 = await gastar({ spendId: 'sp-ok-000001', amount: compravel.precoSeeds!, reason: `loja:${compravel.id}` }, u)
+    const r2 = await gastar(
+      { spendId: 'sp-ok-000001', amount: compravel.precoSeeds!, reason: `loja:${compravel.id}` },
+      u,
+    )
     expect(r2.statusCode).toBe(200)
     expect(r2.body.jaExistia).toBe(true)
   })

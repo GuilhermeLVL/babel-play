@@ -7,6 +7,7 @@ import {
   ehRecusa,
   ESTRELAS_PARA_O_BAU,
   itensSorteaveisNoDrop,
+  progressoNoServidor,
   rodadaRendeBau,
   roundIdDoDrop,
   sortearItemDoDrop,
@@ -365,7 +366,9 @@ metricsRouter.post('/seeds/creditar', async (req, res) => {
           idiomas: metricas.idiomas ?? 0,
           compras: metricas.itensComprados?.length ?? 0,
         }
-        const { atual, meta } = credito.conquista.progresso(ctx)
+        /* `progressoNoServidor`: a regra da conquista, exceto o Colecionador, cujos eventos vistos
+           o servidor não enxerga — para ele valem os pré-requisitos gravados no banco. */
+        const { atual, meta } = progressoNoServidor(credito.conquista, ctx)
         if (atual < meta) {
           responderErro(res, 400, 'conquista ainda não cumprida', 'conquista_nao_cumprida', { atual, meta })
           return

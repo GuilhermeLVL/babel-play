@@ -110,6 +110,21 @@ export default defineConfig(({ mode }) => {
     worker: { format: 'es' as const },
     build: {
       rollupOptions: {
+        /**
+         * O NÚCLEO (`src/core`) NÃO TEM EFEITO COLATERAL DE IMPORTAÇÃO — é TS puro (ver
+         * `src/core/index.ts`): só declarações, e o único comando de topo (`cefrWordlist.ts`,
+         * `indices.set`) enche um mapa do próprio módulo. Dizer isso ao Rollup é o que faz o barril
+         * `@core` parar de arrastar o núcleo inteiro para quem importa UMA função dele: sem a
+         * marca, qualquer `const X = f(...)` de topo (tabelas montadas no carregamento) conta como
+         * efeito e o módulo entra mesmo com nenhum export usado. Medido na auditoria de performance
+         * do frontend (26/09/2026, `scripts/perf/telas/composicao-bundle.mjs`).
+         *
+         * Um módulo do núcleo que um dia PRECISAR de efeito ao ser importado (registrar algo num
+         * mapa global, por exemplo) tem de sair desta regra — senão some do bundle em silêncio.
+         */
+        treeshake: {
+          moduleSideEffects: (id: string) => !/[\\/]src[\\/]core[\\/]/.test(id),
+        },
         output: {
           /**
            * VENDORS PESADOS EM CHUNKS PRÓPRIOS.

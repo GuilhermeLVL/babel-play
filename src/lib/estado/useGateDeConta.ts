@@ -1,9 +1,13 @@
 import { useEffect, useState } from 'react';
 
 import { anonimoAceito, motivoDoGate } from '../../components/conta/exigeConta';
-import { EVENTO_EXIGE_CONTA } from '../../data/efemero/servidor';
-import { temDadosLocais } from '../../data/efemero/store';
+/* `nucleo` e não `servidor`: o evento é uma constante da folha; importar o roteador puxaria o
+   servidor em memória inteiro para o chunk de entrada (ver `data/funil.ts`). */
+import { EVENTO_EXIGE_CONTA } from '../../data/efemero/nucleo';
 import { aoMudarIdentidade,estaAnonimo } from '../identidade';
+
+/** O `idb` e o store do modo sem conta só descem quando alguém entra — e só para esta pergunta. */
+const temDadosLocais = () => import('../../data/efemero/store').then((m) => m.temDadosLocais());
 
 export interface EstadoDoGateDeConta {
   anonimo: boolean;

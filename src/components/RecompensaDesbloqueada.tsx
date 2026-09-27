@@ -15,7 +15,8 @@
  * agora". O protótipo mostra uma frase sob o nome da conquista; o app não tem essa frase por
  * conquista, então no lugar dela vai o que foi liberado.
  */
-import { Check, Gift, Sparkles, Sprout } from 'lucide-react';
+import { type MinigameId, type NivelAlcancavel, PESOS_SEEDS, rotuloDaMaestria } from '@core';
+import { Award, Check, Crown, Gem, Gift, Medal, Sparkles, Sprout, Trophy } from 'lucide-react';
 import { type CSSProperties, useEffect, useId, useRef, useState } from 'react';
 
 import { celebrar } from '../lib/comemoracao';
@@ -44,14 +45,21 @@ export type Recompensa =
       raridade?: 'comum' | 'raro';
       chances?: { comum: number; raro: number };
       proximoRaroGarantidoEm?: number;
-    };
+    }
+  /* A MAESTRIA DE UM JOGO subiu de nível (recompensas v2, onda 3). As Seeds são as da regra
+     (`nivelDeMaestria × nível`), creditadas pelo servidor depois de conferir os pontos. */
+  | { tipo: 'maestria'; jogo: MinigameId; nivel: NivelAlcancavel; seeds: number; itens: ItemDaLoja[] };
 
 /** Rotulo e frase de cada tipo, para o JSX parar de ramificar em quatro lugares. */
 const CABECALHO: Record<Recompensa['tipo'], { rotulo: string; frase: string }> = {
   nivel: { rotulo: 'Subiu de nível', frase: 'Você liberou:' },
   conquista: { rotulo: 'Conquista feita', frase: 'Item exclusivo liberado:' },
   drop: { rotulo: 'Baú da rodada', frase: 'O baú abriu:' },
+  maestria: { rotulo: 'Maestria', frase: 'Você liberou:' },
 };
+
+/** O ícone de cada nível de maestria — o mesmo da barra (`BarraDeMaestria`). */
+const ICONE_DO_NIVEL = { 1: Medal, 2: Award, 3: Trophy, 4: Gem, 5: Crown } as const;
 
 /** A borda do cartão do item diz a raridade — os mesmos tokens da Loja. */
 const BORDA_DA_RARIDADE: Record<Raridade, string> = {
@@ -64,6 +72,16 @@ const BORDA_DA_RARIDADE: Record<Raridade, string> = {
 export const EVENTO_RODADA_FECHOU = 'babel:rodada-fechou';
 /** O bau da rodada saiu. `detail` traz o que o SERVIDOR sorteou; o App resolve o id no catalogo. */
 export const EVENTO_DROP_GANHO = 'babel:drop-ganho';
+/** A barra de maestria cruzou um limiar. `detail`: `{ jogo, nivel }`. */
+export const EVENTO_MAESTRIA_SUBIU = 'babel:maestria-subiu';
+export interface DetalheDaMaestria {
+  jogo: MinigameId;
+  nivel: NivelAlcancavel;
+}
+/** A recompensa de um nível de maestria, com as Seeds da regra. */
+export function recompensaDaMaestria(jogo: MinigameId, nivel: NivelAlcancavel, itens: ItemDaLoja[]): Recompensa {
+  return { tipo: 'maestria', jogo, nivel, seeds: PESOS_SEEDS.nivelDeMaestria * nivel, itens };
+}
 export interface DetalheDoDrop {
   roundId: string;
   /** `null` = sem peça: o baú virou Seeds (`repetido`) ou o teto do dia foi alcançado (`semBau`). */
@@ -81,6 +99,7 @@ const CHAVE_VISTAS = 'babel.recompensas_vistas';
 export function chaveDaRecompensa(r: Recompensa): string {
   if (r.tipo === 'nivel') return `nivel:${r.nivel}`;
   if (r.tipo === 'drop') return `drop:${r.roundId}`;
+  if (r.tipo === 'maestria') return `maestria:${r.jogo}:${r.nivel}`;
   return `conquista:${r.id}`;
 }
 export function recompensasVistas(): Set<string> {
@@ -198,6 +217,8 @@ function Resgate({ atual, onEquipar, onFechar, onVerPersonalizar }: Omit<Props, 
 
   /* A festa de quem abre o modal, pelo motor: nível, conquista ou baú (a raridade do baú escala). */
   useEffect(() => {
+    /* A maestria já foi comemorada pela barra, no instante em que cruzou o limiar: festa uma vez só. */
+    if (atual.tipo === 'maestria') return;
     if (atual.tipo === 'nivel') celebrar({ tipo: 'nivel' });
     else if (atual.tipo === 'conquista') celebrar({ tipo: 'conquista' });
     else {
@@ -208,7 +229,8 @@ function Resgate({ atual, onEquipar, onFechar, onVerPersonalizar }: Omit<Props, 
     // eslint-disable-next-line react-hooks/exhaustive-deps -- uma festa por recompensa aberta (o `key` remonta)
   }, []);
 
-  const itens: ItemDaLoja[] = atual.tipo === 'nivel' ? atual.itens : atual.item ? [atual.item] : [];
+  const itens: ItemDaLoja[] =
+    atual.tipo === 'nivel' || atual.tipo === 'maestria' ? atual.itens : atual.item ? [atual.item] : [];
   const cabecalho = CABECALHO[atual.tipo];
   // Esc (o `close` nativo) e os dois botões passam por aqui; a recompensa sai da fila uma vez só.
   const fechar = () => {
@@ -229,7 +251,9 @@ function Resgate({ atual, onEquipar, onFechar, onVerPersonalizar }: Omit<Props, 
       ? `Nível ${atual.nivel}!`
       : atual.tipo === 'drop'
         ? (atual.item?.nome ?? t('Peça repetida'))
-        : atual.nome;
+        : atual.tipo === 'maestria'
+          ? rotuloDaMaestria(atual.jogo, atual.nivel)
+          : atual.nome;
   const icone = { width: 44, height: 44, display: 'inline-block', color: 'var(--accent-ink)' };
   const IconeDaConquista = iconeDaConquista(atual.tipo === 'conquista' ? atual.id : '');
 
@@ -244,6 +268,11 @@ function Resgate({ atual, onEquipar, onFechar, onVerPersonalizar }: Omit<Props, 
             <IconeDaConquista style={icone} />
           ) : atual.tipo === 'drop' ? (
             <Gift style={icone} />
+          ) : atual.tipo === 'maestria' ? (
+            (() => {
+              const IconeDoNivel = ICONE_DO_NIVEL[atual.nivel];
+              return <IconeDoNivel style={icone} />;
+            })()
           ) : (
             <Sparkles style={icone} />
           )}
@@ -257,7 +286,9 @@ function Resgate({ atual, onEquipar, onFechar, onVerPersonalizar }: Omit<Props, 
             ? t('Você já tem este item: +{n} Seeds', { n: atual.seeds })
             : itens.length > 0
               ? cabecalho.frase
-              : 'Nada novo para equipar neste nível: o próximo desbloqueio vem aí.'}
+              : atual.tipo === 'maestria'
+                ? t('Novo nível de maestria neste jogo.')
+                : 'Nada novo para equipar neste nível: o próximo desbloqueio vem aí.'}
         </p>
 
         {itens.length > 0 && (

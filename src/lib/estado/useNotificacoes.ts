@@ -1,3 +1,4 @@
+import { rotuloDaMaestria } from '@core';
 import { useEffect, useRef } from 'react';
 
 import { chaveDaRecompensa, type Recompensa } from '../../components/RecompensaDesbloqueada';
@@ -37,6 +38,17 @@ export function notificacaoDaRecompensa(r: Recompensa) {
       detalhe: r.itens.length
         ? tp(r.itens.length, '{n} item liberado em Personalizar.', '{n} itens liberados em Personalizar.')
         : t('Veja o que mudou em Personalizar.'),
+      ir: 'loja',
+      dado: { aba: 'personalizar' },
+    };
+  if (r.tipo === 'maestria')
+    return {
+      chave,
+      tipo: 'conquista' as const,
+      icone: 'trending-up' as const,
+      tom: 'warn' as const,
+      titulo: t('Maestria: {nivel}', { nivel: rotuloDaMaestria(r.jogo, r.nivel) }),
+      detalhe: t('+{seeds} Seeds.', { seeds: r.seeds }),
       ir: 'loja',
       dado: { aba: 'personalizar' },
     };

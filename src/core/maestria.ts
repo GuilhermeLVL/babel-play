@@ -25,6 +25,7 @@ export const NOMES_DE_MAESTRIA = ['Bronze', 'Prata', 'Ouro', 'Platina', 'Mestre'
 
 export type NivelDeMaestria = 0 | 1 | 2 | 3 | 4 | 5;
 export type NivelAlcancavel = Exclude<NivelDeMaestria, 0>;
+export const NIVEIS_DE_MAESTRIA_ALCANCAVEIS: readonly NivelAlcancavel[] = [1, 2, 3, 4, 5];
 
 /** O nome curto de cada jogo, para "Maestria: Memória Ouro" e "Mestre de Memória". */
 export const NOME_DO_JOGO_NA_MAESTRIA: Record<MinigameId, string> = {
@@ -106,7 +107,9 @@ export interface LinhaDeMaestria {
  * Fica de fora: linha sem `roundId` (anterior à rodada ter nome), exercício que não é jogo
  * (`read-aloud`, revisão) e linha sem resposta (`correct` nulo — não se sabe se acertou).
  */
-export function rodadasDeMaestria(linhas: ReadonlyArray<LinhaDeMaestria>): { jogo: MinigameId; roundId: string; pontos: number }[] {
+export function rodadasDeMaestria(
+  linhas: ReadonlyArray<LinhaDeMaestria>,
+): { jogo: MinigameId; roundId: string; pontos: number }[] {
   const porRodada = new Map<string, { jogo: MinigameId; em: number; linhas: LinhaDeMaestria[] }>();
   for (const l of linhas) {
     if (!l.roundId || !ehJogo(l.exerciseKind)) continue;
@@ -150,7 +153,10 @@ export function idDoCreditoDeMaestria(jogo: MinigameId, nivel: NivelAlcancavel):
 }
 
 /** Os créditos a pedir: um por nível alcançado em cada jogo, menos os já lançados. */
-export function creditosDeMaestriaDevidos(maestrias: ReadonlyArray<MaestriaDoJogo>, jaCreditados: ReadonlySet<string>): string[] {
+export function creditosDeMaestriaDevidos(
+  maestrias: ReadonlyArray<MaestriaDoJogo>,
+  jaCreditados: ReadonlySet<string>,
+): string[] {
   const devidos: string[] = [];
   for (const m of maestrias) {
     for (let n = 1; n <= m.nivel; n++) {

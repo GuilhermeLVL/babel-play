@@ -1,0 +1,3 @@
+formato de mixagem do dispositivo + LOOPBACK (ch=6): IsFormatSupported=0x00000000 Initialize=0x00000000
+2ch float 48k (o que o Chrome pede) + LOOPBACK (ch=2): IsFormatSupported=0x00000000 Initialize=0x88890008
+2ch float 48k + LOOPBACK + AUTOCONVERTPCM|SRC_DEFAULT_QUALITY (ch=2): IsFormatSupported=0x00000000 Initialize=0x00000000

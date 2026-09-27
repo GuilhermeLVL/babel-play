@@ -1,0 +1,22 @@
+AIDM::Open({session_id=7022FE16F485CE8DB60B46758B620742}, {device=[type: DISPLAY_AUDIO_CAPTURE, id: loopback, name: System Audio, parameters: [format: FAKE, channel_layout: 3, channels: 2, sample_rate: 44100, frames_per_buffer: 441, effects: NONE, mic_positions: , latency_tag: LatencyUnknown]]})
+AIDM::Opened({session_id=7022FE16F485CE8DB60B46758B620742})
+SF::CreateInputStream(device_id=loopback, params=[format: PCM_LOW_LATENCY, channel_layout: 3, channels: 2, sample_rate: 48000, frames_per_buffer: 480, effects: NONE, mic_positions: , latency_tag: LatencyUnknown])
+WAIS[id=9690AFA1329D5DF754A6E1308619B200]: WASAPIAudioInputStream({device_name=loopback}, {params=[format: PCM_LOW_LATENCY, channel_layout: 3, channels: 2, sample_rate: 48000, frames_per_buffer: 480, effects: NONE, mic_positions: , latency_tag: LatencyUnknown]}) [id=E3685DA6764835EA6E55DA3B095832E9]
+WAIS[id=9690AFA1329D5DF754A6E1308619B200]: WASAPIAudioInputStream => (audio loopback device is of type: ENDPOINT) [id=E3685DA6764835EA6E55DA3B095832E9]
+WAIS[id=9690AFA1329D5DF754A6E1308619B200]: WASAPIAudioInputStream => (AEC is requested=[false]) [id=E3685DA6764835EA6E55DA3B095832E9]
+WAIS[id=9690AFA1329D5DF754A6E1308619B200]: Open([opened=false]) [id=E3685DA6764835EA6E55DA3B095832E9]
+WAIS[id=9690AFA1329D5DF754A6E1308619B200]: SetCaptureDevice() [id=E3685DA6764835EA6E55DA3B095832E9]
+WAIS[id=9690AFA1329D5DF754A6E1308619B200]: UpdateFormats => (audio engine format=[wFormatTag: WAVE_FORMAT_EXTENSIBLE (0xFFFE), nChannels: 2, nSamplesPerSec: 48000, nAvgBytesPerSec: 384000, nBlockAlign: 8, wBitsPerSample: 32, cbSize: 22 [+] wValidBitsPerSample: 32, dwChannelMask: FRONT_LEFT | FRONT_RIGHT (2/2), SubFormat: KSDATAFORMAT_SUBTYPE_IEEE_FLOAT]) [id=E3685DA6764835EA6E55DA3B095832E9]
+WAIS[id=9690AFA1329D5DF754A6E1308619B200]: UpdateFormats => (audio sink format=[wFormatTag: WAVE_FORMAT_IEEE_FLOAT (0x3), nChannels: 2, nSamplesPerSec: 48000, nAvgBytesPerSec: 384000, nBlockAlign: 8, wBitsPerSample: 32, cbSize: 0]) [id=E3685DA6764835EA6E55DA3B095832E9]
+WAIS[id=9690AFA1329D5DF754A6E1308619B200]: UpdateFormats => (packet size=[3840 bytes/480 audio frames/10.000 milliseconds]) [id=E3685DA6764835EA6E55DA3B095832E9]
+WAIS[id=9690AFA1329D5DF754A6E1308619B200]: RawProcessingSupported => (System.Devices.AudioDevice.RawProcessingSupported=true [id=E3685DA6764835EA6E55DA3B095832E9]
+WAIS[id=9690AFA1329D5DF754A6E1308619B200]: DesiredFormatIsSupported() [id=E3685DA6764835EA6E55DA3B095832E9]
+WAIS[id=9690AFA1329D5DF754A6E1308619B200]: InitializeAudioEngine() [id=E3685DA6764835EA6E55DA3B095832E9]
+WAIS[id=9690AFA1329D5DF754A6E1308619B200]: InitializeAudioEngine => (ERROR: IAudioClient::Initialize=[HRESULT: 0x88890008, WCode: 0, message: "Unknown error 0x88890008"]) [id=E3685DA6764835EA6E55DA3B095832E9]
+WAIS[id=9690AFA1329D5DF754A6E1308619B200]: WAIS::Open => (ERROR: result=AUDIO_CLIENT_INIT_FAILED, hresult=0x88890008, input_format=[wFormatTag: WAVE_FORMAT_EXTENSIBLE (0xFFFE), nChannels: 2, nSamplesPerSec: 48000, nAvgBytesPerSec: 384000, nBlockAlign: 8, wBitsPerSample: 32, cbSize: 22 [+] wValidBitsPerSample: 32, dwChannelMask: FRONT_LEFT | FRONT_RIGHT (2/2), SubFormat: KSDATAFORMAT_SUBTYPE_IEEE_FLOAT], output_format=[wFormatTag: WAVE_FORMAT_IEEE_FLOAT (0x3), nChannels: 2, nSamplesPerSec: 48000, nAvgBytesPerSec: 384000, nBlockAlign: 8, wBitsPerSample: 32, cbSize: 0]) [id=E3685DA6764835EA6E55DA3B095832E9]
+WAIS[id=9690AFA1329D5DF754A6E1308619B200]: Close() [id=E3685DA6764835EA6E55DA3B095832E9]
+WAIS[id=9690AFA1329D5DF754A6E1308619B200]: Stop([started=false]) [id=E3685DA6764835EA6E55DA3B095832E9]
+WAIS[id=9690AFA1329D5DF754A6E1308619B200]: ReportAndResetGlitchStats => (num_glitches_detected=[0], cumulative_audio_lost=[0 ms], largest_glitch=[0 ms]) [id=E3685DA6764835EA6E55DA3B095832E9]
+WAIS[id=9690AFA1329D5DF754A6E1308619B200]: ReportAndResetGlitchStats => (discontinuity warnings=[0]) [id=E3685DA6764835EA6E55DA3B095832E9]
+WAIS[id=9690AFA1329D5DF754A6E1308619B200]: ReportAndResetGlitchStats => (timstamp errors=[0]) [id=E3685DA6764835EA6E55DA3B095832E9]
+{"caso":"minimo","t":"2026-09-27T14:08:04.760Z","ok":false,"erro":"NotReadableError","msg":"Could not start audio source","modo":"uia","fonte":"Entire Screen","coep":false,"extra":""}

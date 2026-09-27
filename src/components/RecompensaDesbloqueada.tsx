@@ -253,7 +253,7 @@ function Resgate({ atual, onEquipar, onFechar, onVerPersonalizar }: Omit<Props, 
           <ul className="pilha" style={{ listStyle: 'none', padding: 0, margin: '14px 0 0', textAlign: 'left' }}>
             {itens.map((i) => {
               const equipado = equipados.has(i.id);
-              const peca = i.tipo !== 'galeria' && i.tipo !== 'aprimoramento';
+              const peca = i.tipo !== 'galeria';
               return (
                 <li
                   key={i.id}

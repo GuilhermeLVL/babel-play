@@ -108,6 +108,9 @@ export function estadoDoItem(item: ItemDaLoja, nivel: number, saldoSeeds: number
   estado: EstadoDoItem; motivo?: string;
 } {
   if (liberadoTudo()) return { estado: 'equipavel' };
+  /* O equivalente pago (recompensas v2): a posse premium vinda do servidor já troca o item pago
+     que saiu do catálogo pelo equivalente, e ela abre o item por qualquer porta. */
+  if (premiumPossuidos().has(item.id)) return { estado: 'equipavel' };
   // Exclusivo: nem nível nem Seeds abrem — só a conquista. O motivo diz QUAL.
   if (item.exclusivoDe) {
     if (conquistasDesbloqueadas().has(item.exclusivoDe)) return { estado: 'equipavel' };

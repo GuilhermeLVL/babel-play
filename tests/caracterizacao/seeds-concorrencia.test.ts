@@ -13,6 +13,7 @@
  */
 import { afterAll,beforeAll, describe, expect, it } from 'vitest'
 
+import { CATALOGO_DA_LOJA } from '../../src/core/loja'
 import { type AppDeTeste,semear, subirApp } from './_app'
 
 let s: AppDeTeste
@@ -39,14 +40,12 @@ describe('compras simultâneas na mesma conta', () => {
     const gastasAntes = await gastas()
     /* Itens reais da prateleira de Seeds, com o preço do catálogo (o servidor recusa preço
        divergente). Somados passam do saldo de uma conta recém-semeada — é essa a corrida. */
-    const itens = [
-      { id: 'gal-cat-esportes', preco: 40 },
-      { id: 'gal-cat-patos', preco: 40 },
-      { id: 'cur-pata', preco: 45 },
-      { id: 'part-pixel', preco: 45 },
-      { id: 'cur-cafe', preco: 50 },
-      { id: 'cur-mira', preco: 50 },
-    ]
+    /* Os itens baratos de antes (categorias de emoji e cursores) saíram nas recompensas v2; a
+       lista agora sai do catálogo, os mais baratos primeiro, até passar do saldo. */
+    const itens = CATALOGO_DA_LOJA.filter((i) => i.precoSeeds !== undefined && !i.exclusivoDe && i.nivel > 1)
+      .sort((a, b) => a.precoSeeds! - b.precoSeeds!)
+      .slice(0, 6)
+      .map((i) => ({ id: i.id, preco: i.precoSeeds! }))
     expect(itens.reduce((n, i) => n + i.preco, 0), 'a soma tem de passar do saldo, senão não há corrida').toBeGreaterThan(antes)
 
     const respostas = await Promise.all(itens.map((i) => s.post('/api/metrics/seeds/gastar', {
@@ -68,8 +67,12 @@ describe('compras simultâneas na mesma conta', () => {
   it('o mesmo spendId em paralelo cobra uma vez só', async () => {
     /* O caso anterior esvaziou a conta de proposito. Ganhar Seeds aqui e o mesmo caminho do jogo:
        `POST /api/exercises/rodada` com todos os itens certos (5 por rodada perfeita, 1 por item). */
+    // O sétimo mais barato: os seis primeiros são os do caso anterior (podem já ter sido comprados).
+    const barato = CATALOGO_DA_LOJA.filter((i) => i.precoSeeds !== undefined && !i.exclusivoDe && i.nivel > 1)
+      .sort((a, b) => a.precoSeeds! - b.precoSeeds!)[6]
+    const item = { id: barato.id, preco: barato.precoSeeds! }
     const cartoes = await (await s.get('/api/vocab')).json() as Array<{ id: string; word: string }>
-    for (let n = 0; (await saldo()) < 50 && n < 12; n++) {
+    for (let n = 0; (await saldo()) < item.preco && n < 60; n++) {
       await s.post('/api/exercises/rodada', {
         roundId: `conc-ganho-${n}-${Date.now()}`, exerciseKind: 'memory', origem: 'baralho', sessionId: 'conc', score: 100,
         itens: cartoes.map((c) => ({ cardId: c.id, itemRef: c.word, correct: 1, attempts: 1, ms: 800, hinted: 0, kind: 'drill' })),
@@ -77,7 +80,6 @@ describe('compras simultâneas na mesma conta', () => {
     }
     const antes = await saldo()
     const gastasAntes = await gastas()
-    const item = { id: 'cur-tinteiro', preco: 50 }
     expect(antes, 'saldo insuficiente para este caso').toBeGreaterThanOrEqual(item.preco)
     const corpo = { spendId: 'conc-idempotente-1', amount: item.preco, reason: `loja:${item.id}` }
     const rs = await Promise.all([1, 2, 3].map(() => s.post('/api/metrics/seeds/gastar', corpo)))

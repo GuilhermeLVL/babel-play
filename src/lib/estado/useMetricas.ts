@@ -2,7 +2,6 @@ import { type Dispatch, type SetStateAction,useEffect, useMemo, useState } from 
 
 import { toast } from '../../components/Toast';
 import { type AppMetrics, fetchMetrics, fetchRecordes, type RecordeDoJogo } from '../../data/api';
-import { hidratarAprimoramentos } from '../aprimoramentos';
 import { hidratarCromas } from '../galeria/cromas';
 import { t } from '../i18n';
 import { estadoDeIdentidade } from '../identidade';
@@ -10,6 +9,7 @@ import { hidratarPosse } from '../loja';
 import { reivindicarMetaDoDia } from '../metaDoDia';
 import { registrarPresencaHoje } from '../presenca';
 import { type DerivedProgress,deriveProgress } from '../progress';
+import { reembolsarUmaVez } from '../recompensasV2';
 
 export interface EstadoDasMetricas {
   metrics: AppMetrics | null;
@@ -52,7 +52,6 @@ export function useMetricas(quantidadeDeSessoes: number): EstadoDasMetricas {
         const comConta = estadoDeIdentidade() === 'conta';
         hidratarPosse(m?.itensComprados, comConta);
         hidratarCromas(m?.cromasComprados, comConta);
-        hidratarAprimoramentos(m?.aprimoramentos, comConta);
       })
       .catch(() => { if (alive) setMetrics(null); });
     return () => { alive = false; };
@@ -64,6 +63,16 @@ export function useMetricas(quantidadeDeSessoes: number): EstadoDasMetricas {
      não paga nada e não estende a ofensiva, então não há toast nem recarga das métricas. */
   useEffect(() => {
     void registrarPresencaHoje();
+  }, []);
+
+  /* O REEMBOLSO DO CORTE DO CATÁLOGO (recompensas v2): uma vez por sessão, com a flag ligada. O
+     aviso aparece uma vez só na vida da instalação, e só quando houve Seeds devolvidas. */
+  useEffect(() => {
+    void reembolsarUmaVez().then((n) => {
+      if (!n) return;
+      toast.info(t('Trocamos os cursores e emojis por recompensas novas. Suas Seeds voltaram: +{n}', { n }));
+      setVersaoDasMetricas((v) => v + 1);
+    });
   }, []);
 
   /* A META DO DIA: quando as métricas novas mostram os acertos de hoje alcançando a meta, pede o

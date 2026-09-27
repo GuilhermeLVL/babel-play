@@ -35,7 +35,9 @@ describe('PUT /api/settings — posse de cosmeticos (modo self-host)', () => {
   let COMPRAVEL: ItemDaLoja
   const PREMIUM = CATALOGO_DA_LOJA.find((i) => i.id === 'tema-premium')!
   const LIVRE = CATALOGO_DA_LOJA.find((i) => i.id === 'tema-babel')!
-  const EXCLUSIVO = CATALOGO_DA_LOJA.find((i) => i.id === 'cur-coroa')!
+  /* Era `cur-coroa`, que saiu com os cursores (recompensas v2); o rastro do Duelista é o exclusivo
+     que continua. */
+  const EXCLUSIVO = CATALOGO_DA_LOJA.find((i) => i.id === 'ras-matrix')!
 
   beforeAll(async () => {
     s = await subirApp({ modo: 'self-host' })
@@ -71,10 +73,10 @@ describe('PUT /api/settings — posse de cosmeticos (modo self-host)', () => {
   })
 
   it('cosmetico exclusivo de conquista sem a conquista: 403 citando a conquista', async () => {
-    const r = await s.put('/api/settings', { ui: { cursor: EXCLUSIVO.alvo } })
+    const r = await s.put('/api/settings', { ui: { rastro: EXCLUSIVO.alvo } })
     expect(r.status).toBe(403)
     const corpo = await r.json()
-    expect(corpo.detalhes).toMatchObject({ tipo: 'cursor', alvo: EXCLUSIVO.alvo })
+    expect(corpo.detalhes).toMatchObject({ tipo: 'rastro', alvo: EXCLUSIVO.alvo })
     expect(corpo.detalhes.motivo).toContain(EXCLUSIVO.exclusivoDe)
   })
 

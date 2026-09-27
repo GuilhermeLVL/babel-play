@@ -79,6 +79,7 @@ const ROTAS: Array<{ metodo: string; padrao: RegExp; handler: Handler }> = [
   { metodo: 'GET', padrao: /^\/api\/metrics\/xp$/, handler: metricas.historicoDeXpLocal },
   { metodo: 'POST', padrao: /^\/api\/metrics\/seeds\/gastar$/, handler: economia.gastarSeeds },
   { metodo: 'POST', padrao: /^\/api\/metrics\/seeds\/creditar$/, handler: economia.creditarSeeds },
+  { metodo: 'POST', padrao: /^\/api\/metrics\/seeds\/reembolso$/, handler: economia.reembolsarSeeds },
   { metodo: 'POST', padrao: /^\/api\/metrics\/presenca$/, handler: economia.registrarPresenca },
   { metodo: 'POST', padrao: /^\/api\/exercises\/rodada$/, handler: exercicios.gravarRodada },
   { metodo: 'GET', padrao: /^\/api\/exercises\/results$/, handler: exercicios.listarResultados },

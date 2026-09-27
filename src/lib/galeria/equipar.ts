@@ -5,14 +5,14 @@
  * resgate chamam esta função — antes cada tela chamava os setters por conta própria, e a
  * centralização de ontem tinha acabado de tirar o terceiro caminho. Este é o único.
  *
- * Retorna `false` quando o item não é equipável (galeria/aprimoramento são CAPACIDADES, não
- * peças; o Estúdio abre em vez de equipar) ou quando está trancado.
+ * Retorna `false` quando o item não é equipável (galeria é CAPACIDADE, não peça; o Estúdio abre
+ * em vez de equipar), quando está trancado ou quando é de um tipo que saiu do catálogo
+ * (recompensas v2: cursor, pack, aprimoramento) — nunca lança.
  */
 import type { MenuPositionType } from '../../components/shell/navItems'
 import type { FonteType,ThemeType } from '../appearance'
-import { setCursor } from '../cursores'
 import { estadoDoItem, type ItemDaLoja } from '../loja'
-import { type ParticulasType,setPack, setParticulas } from '../particulas'
+import { type ParticulasType, setParticulas } from '../particulas'
 import { setRastro } from '../rastroDoMouse'
 
 export interface ContextoDeEquipar {
@@ -27,7 +27,7 @@ export interface ContextoDeEquipar {
 
 /** O item é uma PEÇA que se equipa (e não uma capacidade ou upgrade)? */
 export function equipavel(item: ItemDaLoja): boolean {
-  return item.tipo !== 'galeria' && item.tipo !== 'aprimoramento'
+  return item.tipo !== 'galeria'
 }
 
 export function equiparItem(item: ItemDaLoja, ctx: ContextoDeEquipar): boolean {
@@ -39,8 +39,6 @@ export function equiparItem(item: ItemDaLoja, ctx: ContextoDeEquipar): boolean {
     case 'posicao': ctx.setMenuPosition(item.alvo as MenuPositionType); return true
     case 'estudio': ctx.onOpenStudio(); return true
     case 'particulas': setParticulas(item.alvo as ParticulasType); return true
-    case 'pack': setPack(item.alvo); return true
-    case 'cursor': setCursor(item.alvo); return true
     case 'rastro': setRastro(item.alvo); return true
     default: return false
   }

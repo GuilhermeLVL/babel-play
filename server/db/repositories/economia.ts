@@ -106,6 +106,15 @@ export const economiaRepo = {
     return rows.map((r) => ({ creditoId: r.creditoId, reason: r.reason ?? '', amount: r.amount ?? 0, em: r.em }))
   },
 
+  /** Os créditos de reembolso já lançados (recompensas v2): `credito_id` que começa com `reembolso:`. */
+  async reembolsos(userId: UserId): Promise<{ creditoId: string; amount: number }[]> {
+    const rows = await db
+      .select({ creditoId: seedCredits.creditoId, amount: seedCredits.amount })
+      .from(seedCredits)
+      .where(and(eq(seedCredits.userId, userId), isNull(seedCredits.deletedAt), like(seedCredits.creditoId, 'reembolso:%')))
+    return rows.map((r) => ({ creditoId: r.creditoId, amount: Number(r.amount ?? 0) }))
+  },
+
   async registrarPresenca(userId: UserId, dia: number): Promise<{ jaExistia: boolean }> {
     const now = Date.now()
     const r = await db.run(sql`

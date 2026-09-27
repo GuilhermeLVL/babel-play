@@ -87,6 +87,7 @@
     "POST /api/metrics/presenca",
     "POST /api/metrics/seeds/creditar",
     "POST /api/metrics/seeds/gastar",
+    "POST /api/metrics/seeds/reembolso",
     "POST /api/rank/:jogo",
     "POST /api/sessions",
     "POST /api/sessions/:id/audio",

@@ -1,11 +1,8 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import {
-acessoACategoria, acessoAFormaDeRastro, acessoAoCursorDeEmoji, acessoAoEditorDePack,   acessoAoEstilo, faltaParaOPerfil,
-ITEM_CURSOR_DE_EMOJI,
-ITEM_DA_CATEGORIA, ITEM_DA_FORMA_DE_RASTRO,   ITEM_DO_ESTILO, ITEM_EDITOR_DE_PACK, } from '../src/lib/galeria/acesso'
-import { CATEGORIAS_DE_EMOJI } from '../src/lib/galeria/emojis'
+import { ITENS_REMOVIDOS } from '../src/core/reembolso'
+import { acessoAFormaDeRastro, acessoAoEstilo, faltaParaOPerfil, ITEM_DA_FORMA_DE_RASTRO, ITEM_DO_ESTILO } from '../src/lib/galeria/acesso'
 import { paletaPorId } from '../src/lib/galeria/paletas'
 import { PRESETS } from '../src/lib/galeria/perfis'
 import { CATALOGO_DA_LOJA, marcarPosse } from '../src/lib/loja'
@@ -15,7 +12,7 @@ beforeEach(() => { for (const k of ['babel.loja_possuidos', 'babel.liberado', 'b
 describe('mapa de acesso da galeria — a mesma régua da Loja', () => {
   it('todo gate aponta para um item real do catálogo', () => {
     const ids = new Set(CATALOGO_DA_LOJA.map((i) => i.id))
-    for (const id of [...Object.values(ITEM_DO_ESTILO), ...Object.values(ITEM_DA_CATEGORIA), ...Object.values(ITEM_DA_FORMA_DE_RASTRO), ITEM_EDITOR_DE_PACK, ITEM_CURSOR_DE_EMOJI]) {
+    for (const id of [...Object.values(ITEM_DO_ESTILO), ...Object.values(ITEM_DA_FORMA_DE_RASTRO)]) {
       if (id) expect(ids.has(id), id).toBe(true)
     }
   })
@@ -39,42 +36,41 @@ describe('mapa de acesso da galeria — a mesma régua da Loja', () => {
     expect(acessoAoEstilo('neon', 1, 0).liberado).toBe(true)
   })
 
-  it('categorias de emoji: 5 livres no nível 1; corações abre com o pack da Loja; conquista não vende', () => {
-    for (const livre of ['animais', 'comidas', 'natureza', 'rostos', 'simbolos']) expect(acessoACategoria(livre, 1, 0).liberado, livre).toBe(true)
-    expect(acessoACategoria('patos', 1, 0).liberado).toBe(false)
-    expect(acessoACategoria('patos', 2, 0).liberado).toBe(true)
-    expect(acessoACategoria('coracoes', 1, 0).item?.id).toBe('part-coracoes')
+  it('a forma arco-íris do rastro é de conquista e não se vende', () => {
     expect(acessoAFormaDeRastro('arcoiris', 99, 9999)).toMatchObject({ liberado: false, motivo: 'Conquista: Colecionador' })
     localStorage.setItem('babel.conquistas', JSON.stringify(['colecionador']))
     expect(acessoAFormaDeRastro('arcoiris', 1, 0).liberado).toBe(true)
   })
 
-  it('editor de pack e cursor de emoji têm nível E preço', () => {
-    expect(acessoAoEditorDePack(1, 0).motivo).toBe('Nível 2 ou 50 Seeds')
-    expect(acessoAoCursorDeEmoji(2, 0).motivo).toBe('Nível 3 ou 100 Seeds')
-    expect(acessoAoCursorDeEmoji(3, 0).liberado).toBe(true)
-  })
-
   it('presets: ao menos 3 livres no nível 1, e os trancados dizem o que falta', () => {
-    const ctx = { nivel: 1, saldo: 0, estiloDaPaleta: (id: string) => paletaPorId(id)?.estilo, categorias: CATEGORIAS_DE_EMOJI }
+    const ctx = { nivel: 1, saldo: 0, estiloDaPaleta: (id: string) => paletaPorId(id)?.estilo }
     const livres = PRESETS.filter((p) => faltaParaOPerfil(p, ctx).length === 0)
     expect(livres.length).toBeGreaterThanOrEqual(3)
     const pato = PRESETS.find((p) => p.id === 'pato')!
     const falta = faltaParaOPerfil(pato, ctx)
     expect(falta.length).toBeGreaterThan(0)
     expect(falta.join(' ')).toMatch(/Nível \d/)
-    // no nível 10 com tudo liberado por nível, o pato abre (rastro de emojis exige ras-emoji nv8)
+    // no nível 10, com tudo liberado por nível, o pato abre
     expect(faltaParaOPerfil(pato, { ...ctx, nivel: 10 })).toEqual([])
+  })
+
+  it('nenhum preset usa o que saiu (recompensas v2): sem emoji na partícula nem no rastro', () => {
+    for (const p of PRESETS) {
+      expect(p.particulas, p.id).not.toBe('emoji')
+      expect(p.rastro.startsWith('emojis:'), p.id).toBe(false)
+      expect(p).not.toHaveProperty('cursor')
+      expect(p).not.toHaveProperty('pack')
+    }
   })
 })
 
-/* ── Brechas fechadas (spec galeria-gating-fechado, 31/08) ── */
-describe('brecha B3 — emoji fora do catálogo não é liberado por ausência', () => {
-  it('o gate do "qualquer emoji" existe e NÃO é livre no nível 1', () => {
-    const a = acessoAoCursorDeEmoji(1, 0);
-    // Se um dia o item gal-cursor-emoji sumir do catálogo, acessoAoItem(undefined) devolveria
-    // liberado e a brecha reabriria em silêncio — este teste é o alarme.
-    expect(a.liberado).toBe(false);
-    expect(a.motivo).toBeTruthy();
-  });
-});
+/* ── Brechas fechadas (spec galeria-gating-fechado, 31/08; recompensas v2, 27/09) ── */
+describe('o que saiu do catálogo não volta por ausência', () => {
+  it('nenhum item removido existe no catálogo, e nenhum gate da galeria aponta para um', () => {
+    const ids = new Set(CATALOGO_DA_LOJA.map((i) => i.id))
+    for (const id of ITENS_REMOVIDOS) expect(ids.has(id), id).toBe(false)
+    for (const id of [...Object.values(ITEM_DO_ESTILO), ...Object.values(ITEM_DA_FORMA_DE_RASTRO)]) {
+      expect(ITENS_REMOVIDOS.has(id ?? ''), id).toBe(false)
+    }
+  })
+})

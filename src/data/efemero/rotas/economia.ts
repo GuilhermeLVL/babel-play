@@ -21,6 +21,7 @@ import {
   acertosNoDia, diaLocal, diaNoFuso, fusoOuPadrao, META_DIARIA_ACERTOS, metaDoDiaCumprida, sequencias,
 } from '../../../core/learning/economia';
 import { economiaDeMetricas } from '../../../core/learning/xp';
+import { reembolsosDevidos } from '../../../core/reembolso';
 import { json, lerJson, num, str } from '../nucleo';
 import { abrirStore } from '../store';
 import { perfilEfemero } from './metricas';
@@ -164,6 +165,31 @@ async function creditarDrop(creditoId: string, roundId: string, fusoPedido: stri
     seeds: credito.seeds, raridade: decisao.raridade, chances: CHANCES_DO_BAU,
     proximoRaroGarantidoEm: proximoRaroGarantidoEm(decisao.raridade === 'raro' ? 0 : semRaroSeguidos + 1),
     ...totais(await db.getAll('creditos')),
+  });
+}
+
+/**
+ * O REEMBOLSO DO CORTE DO CATÁLOGO, sem conta — a mesma régua do Express (`reembolsosDevidos`
+ * sobre o razão de gastos). A idempotência aqui é a chave do IndexedDB: `creditos` é indexado por
+ * `creditoId`, então duas abas gravando o mesmo reembolso sobrescrevem a mesma linha.
+ */
+export async function reembolsarSeeds(): Promise<Response> {
+  const db = await abrirStore();
+  const gastos = await db.getAll('gastos');
+  const antes = await db.getAll('creditos');
+  const ja = new Set(antes.filter((c) => c.creditoId.startsWith('reembolso:')).map((c) => c.creditoId));
+  let creditado = 0;
+  for (const d of reembolsosDevidos(gastos, ja)) {
+    if (await db.get('creditos', d.creditoId)) continue;
+    await db.put('creditos', { creditoId: d.creditoId, amount: d.seeds, xp: 0, reason: d.creditoId, createdAt: Date.now() });
+    creditado += d.seeds;
+  }
+  const todos = await db.getAll('creditos');
+  return json({
+    creditado,
+    reembolsado: todos.filter((c) => c.creditoId.startsWith('reembolso:')).reduce((n, c) => n + c.amount, 0),
+    seedsCreditadas: todos.reduce((n, c) => n + c.amount, 0),
+    xpCreditado: todos.reduce((n, c) => n + c.xp, 0),
   });
 }
 

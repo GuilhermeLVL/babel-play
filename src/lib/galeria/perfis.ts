@@ -1,8 +1,9 @@
 /**
  * PERFIS DE PERSONALIZAÇÃO — o "tudo de pato", o "tudo de coração", e o SEU.
  *
- * Um perfil é a combinação completa: paleta (ou tema), fonte, partículas, pack de emojis, cursor,
- * rastro. Os PRESETS são montados por nós, tematizados de ponta a ponta; os PERSONALIZADOS a
+ * Um perfil é a combinação completa: paleta (ou tema), fonte, partículas e rastro. Pack de emojis
+ * e cursor saíram nas recompensas v2 (27/09); perfil salvo antes com esses campos continua
+ * aplicável — os campos a mais são ignorados. Os PRESETS são montados por nós, tematizados de ponta a ponta; os PERSONALIZADOS a
  * pessoa monta no editor e salva com nome (localStorage `babel.perfis`). Aplicar um perfil é só
  * chamar os mesmos setters que a Loja e os Ajustes já usam — o perfil não é um segundo dono da
  * aparência.
@@ -20,35 +21,32 @@ export interface Perfil {
   paleta?: string;
   fonte: FonteType;
   particulas: ParticulasType;
-  /** Pack nativo (`classico`, `animais`...) ou lista de emojis (vira o pack personalizado). */
-  pack: string | string[];
-  cursor: string;
   rastro: string;
   /** Presets são nossos; os salvos pela pessoa têm `proprio: true`. */
   proprio?: boolean;
 }
 
 export const PRESETS: Perfil[] = [
-  { id: 'pato', nome: 'Tudo de pato', emoji: '🦆', desc: 'Amarelo de borracha, patos por todo lado, cursor de pato.', paleta: 'pato-de-borracha', fonte: 'padrao', particulas: 'emoji', pack: ['🦆', '🐤', '🐥', '🐣', '🪿'], cursor: 'pato', rastro: 'emojis:🦆,🐤' },
-  { id: 'coracao', nome: 'Tudo de coração', emoji: '💖', desc: 'Rosa de mel, corações subindo em cada acerto, rastro de corações.', paleta: 'coracao-de-mel', fonte: 'padrao', particulas: 'coracoes', pack: ['❤️', '💖', '💗', '💞', '💕', '🧡'], cursor: 'emoji:💘', rastro: 'gen:coracoes:coracao-de-mel' },
-  { id: 'arcade', nome: 'Arcade', emoji: '👾', desc: 'Néon magenta, fonte pixel, partículas quadradas, invader no ponteiro.', paleta: 'arcade', fonte: 'pixel', particulas: 'pixel', pack: ['👾', '🕹️', '🎮', '⭐', '💥'], cursor: 'invader', rastro: 'gen:pixel:arcade' },
-  { id: 'espaco', nome: 'Espaço sideral', emoji: '🚀', desc: 'Meia-noite índigo, chuva de planetas, foguete no ponteiro.', paleta: 'espaco-sideral', fonte: 'padrao', particulas: 'emoji', pack: 'espaco', cursor: 'foguete', rastro: 'gen:estrelas:espaco-sideral' },
-  { id: 'pizzaria', nome: 'Pizzaria', emoji: '🍕', desc: 'Papel quente e vermelho, chuva de comida, pizza no ponteiro.', paleta: 'pizza', fonte: 'padrao', particulas: 'emoji', pack: 'comidas', cursor: 'pizza', rastro: 'emojis:🍕,🍔,🌮' },
-  { id: 'floresta', nome: 'Floresta', emoji: '🌿', desc: 'Verde escuro, natureza em cada acerto, faíscas verdes.', paleta: 'floresta', fonte: 'padrao', particulas: 'emoji', pack: 'natureza', cursor: 'emoji:🍀', rastro: 'gen:faisca:floresta' },
-  { id: 'oceano', nome: 'Oceano', emoji: '🌊', desc: 'Azul profundo, bichos do mar, bolinhas na cor do mar.', paleta: 'oceano-profundo', fonte: 'padrao', particulas: 'emoji', pack: ['🐬', '🐳', '🐙', '🐠', '🐟', '🦈', '🌊'], cursor: 'emoji:🐬', rastro: 'gen:arcoiris:oceano-profundo' },
-  { id: 'lofi', nome: 'Lo-fi', emoji: '🎧', desc: 'Roxo sereno, notas musicais, rastro discreto.', paleta: 'lo-fi', fonte: 'padrao', particulas: 'emoji', pack: 'musica', cursor: 'emoji:🎧', rastro: 'gen:faisca:lo-fi' },
-  { id: 'halloween', nome: 'Halloween', emoji: '🎃', desc: 'Laranja no escuro, abóboras e fantasmas.', paleta: 'halloween', fonte: 'pixel', particulas: 'emoji', pack: 'arrepio', cursor: 'emoji:🎃', rastro: 'emojis:👻,🎃' },
-  { id: 'natal', nome: 'Natal', emoji: '🎄', desc: 'Papel verde e vermelho, neve e presentes.', paleta: 'natal', fonte: 'padrao', particulas: 'emoji', pack: ['🎄', '🎁', '❄️', '⛄', '🔔', '⭐'], cursor: 'emoji:🎁', rastro: 'emojis:❄️,✨' },
+  { id: 'pato', nome: 'Tudo de pato', emoji: '🦆', desc: 'Amarelo de borracha, patos por todo lado.', paleta: 'pato-de-borracha', fonte: 'padrao', particulas: 'estrelas', rastro: 'gen:faisca:pato-de-borracha' },
+  { id: 'coracao', nome: 'Tudo de coração', emoji: '💖', desc: 'Rosa de mel, corações subindo em cada acerto, rastro de corações.', paleta: 'coracao-de-mel', fonte: 'padrao', particulas: 'coracoes', rastro: 'gen:coracoes:coracao-de-mel' },
+  { id: 'arcade', nome: 'Arcade', emoji: '👾', desc: 'Néon magenta, fonte pixel, partículas quadradas.', paleta: 'arcade', fonte: 'pixel', particulas: 'pixel', rastro: 'gen:pixel:arcade' },
+  { id: 'espaco', nome: 'Espaço sideral', emoji: '🚀', desc: 'Meia-noite índigo, chuva de planetas.', paleta: 'espaco-sideral', fonte: 'padrao', particulas: 'estrelas', rastro: 'gen:estrelas:espaco-sideral' },
+  { id: 'pizzaria', nome: 'Pizzaria', emoji: '🍕', desc: 'Papel quente e vermelho, chuva de comida.', paleta: 'pizza', fonte: 'padrao', particulas: 'estrelas', rastro: 'gen:pixel:pizza' },
+  { id: 'floresta', nome: 'Floresta', emoji: '🌿', desc: 'Verde escuro, natureza em cada acerto, faíscas verdes.', paleta: 'floresta', fonte: 'padrao', particulas: 'estrelas', rastro: 'gen:faisca:floresta' },
+  { id: 'oceano', nome: 'Oceano', emoji: '🌊', desc: 'Azul profundo, bichos do mar, bolinhas na cor do mar.', paleta: 'oceano-profundo', fonte: 'padrao', particulas: 'estrelas', rastro: 'gen:arcoiris:oceano-profundo' },
+  { id: 'lofi', nome: 'Lo-fi', emoji: '🎧', desc: 'Roxo sereno, notas musicais, rastro discreto.', paleta: 'lo-fi', fonte: 'padrao', particulas: 'estrelas', rastro: 'gen:faisca:lo-fi' },
+  { id: 'halloween', nome: 'Halloween', emoji: '🎃', desc: 'Laranja no escuro, abóboras e fantasmas.', paleta: 'halloween', fonte: 'pixel', particulas: 'estrelas', rastro: 'gen:faisca:halloween' },
+  { id: 'natal', nome: 'Natal', emoji: '🎄', desc: 'Papel verde e vermelho, neve e presentes.', paleta: 'natal', fonte: 'padrao', particulas: 'estrelas', rastro: 'gen:estrelas:natal' },
   /* Os três abaixo são LIVRES no nível 1 (só paleta clara/papel + o que já vem de fábrica): são a
      porta de entrada dos perfis — quem chega já troca o visual inteiro com um toque. */
-  { id: 'praia', nome: 'Praia', emoji: '🏖️', desc: 'Areia e turquesa. Leve, para começar.', paleta: 'praia', fonte: 'padrao', particulas: 'tema', pack: 'classico', cursor: 'padrao', rastro: 'off' },
-  { id: 'cafe', nome: 'Café', emoji: '☕', desc: 'Tons de café e papel, discreto para estudar horas.', paleta: 'cafe', fonte: 'padrao', particulas: 'tema', pack: 'classico', cursor: 'padrao', rastro: 'off' },
-  { id: 'minimal', nome: 'Minimal', emoji: '⬜', desc: 'Atelier claro, sem rastro. Só o estudo.', paleta: 'babel-atelier', fonte: 'padrao', particulas: 'tema', pack: 'classico', cursor: 'padrao', rastro: 'off' },
-  { id: 'menta', nome: 'Menta fresca', emoji: '🌿', desc: 'Verde-menta claro, partículas do tema.', paleta: 'menta-fresca', fonte: 'padrao', particulas: 'tema', pack: 'classico', cursor: 'padrao', rastro: 'off' },
-  { id: 'grafite', nome: 'Grafite', emoji: '⬛', desc: 'Escuro e neutro, sem partículas, sem rastro.', paleta: 'grafite', fonte: 'padrao', particulas: 'tema', pack: 'classico', cursor: 'padrao', rastro: 'off' },
-  { id: 'festa', nome: 'Festa', emoji: '🎉', desc: 'Confete em tudo, balões e bolo.', paleta: 'lilas-pastel', fonte: 'padrao', particulas: 'confete', pack: 'festa', cursor: 'emoji:🎈', rastro: 'gen:pixel:lilas-pastel' },
-  { id: 'esportes', nome: 'Esportes', emoji: '🏆', desc: 'Verde de campo, bolas e troféus.', paleta: 'verde-claro', fonte: 'padrao', particulas: 'emoji', pack: 'esportes', cursor: 'emoji:⚽', rastro: 'emojis:⚽,🏀,🏆' },
-  { id: 'tesouro', nome: 'Tesouro', emoji: '💎', desc: 'Ouro no escuro, gemas e coroas.', paleta: 'ouro-meia-noite', fonte: 'padrao', particulas: 'emoji', pack: 'tesouros', cursor: 'emoji:💎', rastro: 'gen:estrelas:ouro-meia-noite' },
+  { id: 'praia', nome: 'Praia', emoji: '🏖️', desc: 'Areia e turquesa. Leve, para começar.', paleta: 'praia', fonte: 'padrao', particulas: 'tema', rastro: 'off' },
+  { id: 'cafe', nome: 'Café', emoji: '☕', desc: 'Tons de café e papel, discreto para estudar horas.', paleta: 'cafe', fonte: 'padrao', particulas: 'tema', rastro: 'off' },
+  { id: 'minimal', nome: 'Minimal', emoji: '⬜', desc: 'Atelier claro, sem rastro. Só o estudo.', paleta: 'babel-atelier', fonte: 'padrao', particulas: 'tema', rastro: 'off' },
+  { id: 'menta', nome: 'Menta fresca', emoji: '🌿', desc: 'Verde-menta claro, partículas do tema.', paleta: 'menta-fresca', fonte: 'padrao', particulas: 'tema', rastro: 'off' },
+  { id: 'grafite', nome: 'Grafite', emoji: '⬛', desc: 'Escuro e neutro, sem partículas, sem rastro.', paleta: 'grafite', fonte: 'padrao', particulas: 'tema', rastro: 'off' },
+  { id: 'festa', nome: 'Festa', emoji: '🎉', desc: 'Confete em tudo, balões e bolo.', paleta: 'lilas-pastel', fonte: 'padrao', particulas: 'confete', rastro: 'gen:pixel:lilas-pastel' },
+  { id: 'esportes', nome: 'Esportes', emoji: '🏆', desc: 'Verde de campo, bolas e troféus.', paleta: 'verde-claro', fonte: 'padrao', particulas: 'estrelas', rastro: 'gen:pixel:verde-claro' },
+  { id: 'tesouro', nome: 'Tesouro', emoji: '💎', desc: 'Ouro no escuro, gemas e coroas.', paleta: 'ouro-meia-noite', fonte: 'padrao', particulas: 'estrelas', rastro: 'gen:estrelas:ouro-meia-noite' },
 ];
 
 const CHAVE = 'babel.perfis';

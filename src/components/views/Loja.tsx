@@ -25,21 +25,10 @@ import { type ContextoDeConquistas, REGRAS } from '@core';
 import { Check, Coins, Crown, Lock, Map as MapIcon, Shirt, ShoppingBag, Sparkles, Sprout, Trophy } from 'lucide-react';
 import { Fragment, useEffect, useMemo, useState } from 'react';
 
-import { gastarCreditos, gastarSeeds } from '../../data/api';
+import { gastarCreditos } from '../../data/api';
 import type { FonteType, ThemeType } from '../../lib/appearance';
-/* A intensidade das partículas saiu daqui: ela é ajuste da peça, e mora no editor da peça
-   (`personalizar/EditorDoItem`). Ter os dois lugares fazia a mesma escolha aparecer numa loja
-   e num inventário, com dois desenhos. */
-import {
-  custoDoProximoNivel,
-  NIVEL_MAXIMO,
-  nivelDoAprimoramento,
-  progressoDoAprimoramento,
-  registrarAprimoramento,
-} from '../../lib/aprimoramentos';
 import { useCarteira } from '../../lib/carteira';
 import { contarConquistas } from '../../lib/conquistas';
-import { readCursor } from '../../lib/cursores';
 import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { emitBurst } from '../../lib/effects';
 import { comprarPecaComSeeds } from '../../lib/galeria/comprarPeca';
@@ -49,7 +38,7 @@ import { TEXTOS } from '../../lib/galeria/textos';
 import { estaAnonimo } from '../../lib/identidade';
 import { comemorar, explodirAleatorio } from '../../lib/juice';
 import { CATALOGO_DA_LOJA, COR_DA_RARIDADE, estadoDoItem, type ItemDaLoja } from '../../lib/loja';
-import { readPack, readParticulas } from '../../lib/particulas';
+import { readParticulas } from '../../lib/particulas';
 import type { DerivedProgress } from '../../lib/progress';
 import { readRastro } from '../../lib/rastroDoMouse';
 import { normalizarAbaDaLoja } from '../../lib/rotas';
@@ -92,10 +81,7 @@ const FILTROS = [
   { id: 'tudo', nome: 'Tudo' },
   { id: 'tema', nome: 'Temas' },
   { id: 'particulas', nome: 'Partículas' },
-  { id: 'pack', nome: 'Emojis' },
-  { id: 'cursor', nome: 'Cursor' },
   { id: 'rastro', nome: 'Rastro' },
-  { id: 'posicao', nome: 'Layout' },
   { id: 'estudio', nome: 'Estúdio' },
   { id: 'galeria', nome: 'Galeria' },
 ] as const;
@@ -171,12 +157,11 @@ export default function Loja({
   const [recemComprados] = useState(() => new Set<string>());
   const colecao = useMemo(() => estadoDaColecao(nivel, saldo), [nivel, saldo, comprando]); // eslint-disable-line react-hooks/exhaustive-deps -- `comprando` força reler a posse depois da compra
   /* LOJA = só o que ainda NÃO é seu e NÃO é exclusivo. Possuído vai para "Meu visual";
-     exclusivo, para "Conquistas". Os aprimoramentos ficam aqui (são compra em degraus). */
+     exclusivo, para "Conquistas". (Os aprimoramentos saíram nas recompensas v2.) */
   const itens = useMemo(
     () =>
       CATALOGO_DA_LOJA.filter((i) => {
         if (i.exclusivoDe) return false;
-        if (i.tipo === 'aprimoramento') return filtro === 'tudo' || filtro === 'particulas';
         const seu = estadoDoItem(i, nivel, saldo).estado === 'equipavel';
         // Um item recém-comprado nesta visita continua na prateleira como "Liberado" (com Equipar agora).
         if (seu && !recemComprados.has(i.id)) return false;
@@ -188,11 +173,7 @@ export default function Loja({
      paga. A segunda vem ordenada pelo que falta: o mais perto primeiro, porque é ele que responde
      "o que eu consigo a seguir". */
   const custoDe = (i: ItemDaLoja): number | null =>
-    i.tipo === 'aprimoramento'
-      ? custoDoProximoNivel(i.alvo)
-      : estadoDoItem(i, nivel, saldo).estado === 'compravel'
-        ? (i.precoSeeds ?? null)
-        : null;
+    estadoDoItem(i, nivel, saldo).estado === 'compravel' ? (i.precoSeeds ?? null) : null;
   /* A PRATELEIRA PAGA sai das duas de Seeds: misturar as moedas na mesma grade faria o preço
      em Créditos parecer preço em Seeds. */
   const premium = itens.filter((i) => i.precoCreditos !== undefined);
@@ -227,8 +208,6 @@ export default function Loja({
     if (item.tipo === 'fonte') return fonte === item.alvo;
     if (item.tipo === 'particulas') return readParticulas() === item.alvo;
     if (item.tipo === 'posicao') return menuPosition === item.alvo;
-    if (item.tipo === 'pack') return readPack() === item.alvo;
-    if (item.tipo === 'cursor') return readCursor() === item.alvo;
     if (item.tipo === 'rastro') return readRastro() === item.alvo;
     return false;
   };
@@ -256,34 +235,6 @@ export default function Loja({
     if (equiparItem(item, ctxEquipar)) {
       comemorar('acerto', el, { texto: TEXTOS.emUso });
       force((n) => n + 1);
-    }
-  };
-
-  /** Compra o PRÓXIMO nível de um aprimoramento (spendId por nível: idempotente por degrau). */
-  const aprimorar = async (item: ItemDaLoja, el: HTMLElement | null) => {
-    const custo = custoDoProximoNivel(item.alvo);
-    if (custo === null) return;
-    const proximo = nivelDoAprimoramento(item.alvo) + 1;
-    setComprando(item.id);
-    try {
-      const r = await gastarSeeds({
-        spendId: `apr-${item.alvo}-n${proximo}`,
-        amount: custo,
-        reason: `aprimoramento:${item.alvo}:${proximo}`,
-      });
-      if (r && (r as { ok?: boolean }).ok === false) {
-        toast.warn('Não deu para aprimorar agora. Tente de novo.');
-        return;
-      }
-      registrarAprimoramento(item.alvo);
-      comemorar('subiuNivel', el, { texto: `Nv. ${proximo}!` });
-      explodirAleatorio(2, 'fogos');
-      toast.ok(`${item.nome} subiu para o nível ${proximo}!`);
-      force((n) => n + 1);
-    } catch {
-      toast.warn('Não deu para aprimorar agora. Tente de novo.');
-    } finally {
-      setComprando(null);
     }
   };
 
@@ -357,8 +308,6 @@ export default function Loja({
     const equipado = estado === 'equipavel' && equipadoAtual(item);
     const preco = item.precoSeeds;
     const falta = preco !== undefined ? preco - saldo : 0;
-    const apr = item.tipo === 'aprimoramento';
-    const custoApr = apr ? custoDoProximoNivel(item.alvo) : null;
 
     return (
       <article
@@ -378,42 +327,7 @@ export default function Loja({
         <h3>{item.nome}</h3>
         <p>{item.desc}</p>
 
-        {apr ? (
-          (() => {
-            const nv = nivelDoAprimoramento(item.alvo);
-            const pct = progressoDoAprimoramento(item.alvo);
-            return (
-              <>
-                <div className="entre" style={LINHA_DE_PRECO}>
-                  <span>
-                    Nv. {nv} / {NIVEL_MAXIMO}
-                  </span>
-                  <span>{pct}%</span>
-                </div>
-                <div className="barra">
-                  <span style={{ width: `${pct}%` }} />
-                </div>
-                {custoApr === null ? (
-                  <span className="badge warn">★ Dominado</span>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={(e) => void aprimorar(item, e.currentTarget)}
-                    disabled={comprando === item.id || saldo < custoApr}
-                    className="btn btn-outline bloco"
-                  >
-                    <Sprout aria-hidden style={{ color: 'var(--good)' }} />
-                    {comprando === item.id
-                      ? 'Aprimorando…'
-                      : saldo < custoApr
-                        ? `Faltam ${custoApr - saldo}`
-                        : `Aprimorar · ${custoApr}`}
-                  </button>
-                )}
-              </>
-            );
-          })()
-        ) : estado === 'equipavel' ? (
+        {estado === 'equipavel' ? (
           <button
             type="button"
             onClick={(e) => equiparAgora(item, e.currentTarget)}

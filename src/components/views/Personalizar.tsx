@@ -1,22 +1,8 @@
-import {
-  Accessibility,
-  Eye,
-  Gamepad2,
-  MousePointer2,
-  Palette,
-  PanelLeft,
-  Smile,
-  Sparkles,
-  Type,
-  Undo2,
-  Zap,
-} from 'lucide-react';
+import { Accessibility, Eye, Gamepad2, Palette, PanelLeft, Sparkles, Type, Undo2, Zap } from 'lucide-react';
 import { useState } from 'react';
 
 import { applyCustomColors, FONTE_OPTIONS, type FonteType, THEME_OPTIONS, type ThemeType } from '../../lib/appearance';
-import { CURSORES, emojiDoCursor, readCursor, setCursor } from '../../lib/cursores';
 import { acessoAoEstilo, faltaParaOPerfil } from '../../lib/galeria/acesso';
-import { CATEGORIAS_DE_EMOJI } from '../../lib/galeria/emojis';
 import { gravarPaletaAtiva, lerPaletaAtiva, type Paleta, paletaPorId } from '../../lib/galeria/paletas';
 import {
   apagarPerfil,
@@ -28,18 +14,9 @@ import {
 } from '../../lib/galeria/perfis';
 import { restaurarVisualPadrao } from '../../lib/galeria/restaurar';
 import { palavraDeNivel } from '../../lib/galeria/textos';
+import { t } from '../../lib/i18n';
 import { comemorar, explodirAleatorio } from '../../lib/juice';
-import {
-  lerPackCustom,
-  PACK_CUSTOM,
-  PACKS_DE_EMOJI,
-  PARTICULAS_OPTIONS,
-  readPack,
-  readParticulas,
-  setPack,
-  setPackCustom,
-  setParticulas,
-} from '../../lib/particulas';
+import { PARTICULAS_OPTIONS, readParticulas, setParticulas } from '../../lib/particulas';
 import { readRastro, setRastro } from '../../lib/rastroDoMouse';
 import type { AgeProfileType, MenuPositionType } from '../shell/navItems';
 import { toast } from '../Toast';
@@ -104,12 +81,10 @@ export default function Personalizar({
   const rerender = () => force((n) => n + 1);
   const saldoAgora = saldo;
 
-  const packCustom = lerPackCustom();
   const rastroAtual = readRastro();
-  const cursorAtual = readCursor();
   const paletaAtiva = lerPaletaAtiva();
   const estiloDaPaleta = (id: string) => paletaPorId(id)?.estilo;
-  const ctxAcesso = { nivel, saldo: saldoAgora, estiloDaPaleta, categorias: CATEGORIAS_DE_EMOJI };
+  const ctxAcesso = { nivel, saldo: saldoAgora, estiloDaPaleta };
 
   /* A régua na FUNÇÃO, não só no botão (spec galeria-gating-fechado): qualquer caminho que
      aplique uma paleta — inclusive um perfil salvo — esbarra aqui. */
@@ -138,9 +113,6 @@ export default function Personalizar({
     } else if (p.tema) setTheme(p.tema);
     setFonte(p.fonte);
     setParticulas(p.particulas);
-    if (Array.isArray(p.pack)) setPackCustom(p.pack);
-    else setPack(p.pack);
-    setCursor(p.cursor);
     setRastro(p.rastro);
     comemorar('subiuNivel', el ?? null, { texto: p.nome });
     explodirAleatorio(2, 'confete');
@@ -150,16 +122,13 @@ export default function Personalizar({
 
   const salvarAtual = (nome: string) => {
     const nomeFinal = nome.trim() || `Meu perfil ${perfisSalvos().length + 1}`;
-    const pack = readPack();
     salvarPerfil({
       nome: nomeFinal,
-      emoji: emojiDoCursor(readCursor()) ?? '✨',
+      emoji: '✨',
       desc: 'Montado por você.',
       ...(theme === 'custom' && paletaAtiva ? { paleta: paletaAtiva } : { tema: theme }),
       fonte,
       particulas: readParticulas(),
-      pack: pack === PACK_CUSTOM ? lerPackCustom() : pack,
-      cursor: readCursor(),
       rastro: readRastro(),
     });
     toast.ok(`Perfil "${nomeFinal}" salvo.`);
@@ -189,10 +158,6 @@ export default function Personalizar({
     theme === 'custom' && paletaAtiva
       ? (paletaPorId(paletaAtiva)?.nome ?? 'Paleta')
       : (THEME_OPTIONS.find((t) => t.id === theme)?.name ?? theme);
-  const packNome =
-    readPack() === PACK_CUSTOM
-      ? `Meu pack (${packCustom.length})`
-      : (PACKS_DE_EMOJI.find((p) => p.id === readPack())?.nome ?? 'Clássico');
   /* Meus perfis primeiro: o que a pessoa montou vale mais do que o que veio de fábrica. */
   const perfis = [...perfisSalvos(), ...PRESETS];
 
@@ -211,16 +176,12 @@ export default function Personalizar({
                 ? readParticulas() === i.alvo
                 : i.tipo === 'posicao'
                   ? menuPosition === i.alvo
-                  : i.tipo === 'pack'
-                    ? readPack() === i.alvo
-                    : i.tipo === 'cursor'
-                      ? cursorAtual === i.alvo
-                      : i.tipo === 'rastro'
-                        ? rastroAtual === i.alvo
-                        : false
+                  : i.tipo === 'rastro'
+                    ? rastroAtual === i.alvo
+                    : false
         }
-        /* Os seis do protótipo, na ordem dele (Tema, Partículas, Fonte, Menu, Cursor, Emojis). O
-           rastro equipado aparece no próprio cartão, com "Equipado". */
+        /* Os do protótipo, na ordem dele (Tema, Partículas, Fonte, Menu). Cursor e Emojis saíram nas
+           recompensas v2. O rastro equipado aparece no próprio cartão, com "Equipado". */
         loadout={[
           { chave: 'tema', rotulo: 'Tema', valor: temaNome, icone: Palette },
           {
@@ -236,13 +197,6 @@ export default function Personalizar({
             icone: Type,
           },
           { chave: 'menu', rotulo: 'Menu', valor: POSICAO_DO_MENU[menuPosition] ?? menuPosition, icone: PanelLeft },
-          {
-            chave: 'cursor',
-            rotulo: 'Cursor',
-            valor: CURSORES.find((c) => c.id === cursorAtual)?.nome ?? 'Emoji',
-            icone: MousePointer2,
-          },
-          { chave: 'pack', rotulo: 'Emojis', valor: packNome, icone: Smile },
         ]}
         onIrParaLoja={onIrParaLoja}
         onIrParaPasse={onIrParaPasse}
@@ -264,6 +218,56 @@ export default function Personalizar({
           </button>
         }
       />
+
+      {/* ── ACESSIBILIDADE E LAYOUT (recompensas v2, 27/09): letra e posição do menu saíram do
+             catálogo. São legibilidade e layout — livres desde o nível 1, sem preço e sem cadeado. ── */}
+      <section className="secao" data-bloco="acessibilidade-e-layout">
+        <TituloDeSecao
+          icone={Type}
+          titulo={t('Acessibilidade e layout')}
+          desc={t('A letra e a posição do menu são suas desde o começo: não custam Seeds nem pedem nível.')}
+        />
+        <p className="label-mono" style={{ margin: '0 0 8px' }}>
+          {t('Letra')}
+        </p>
+        <div className="g3">
+          {FONTE_OPTIONS.map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              className={`cartao opcao ${fonte === f.id ? 'sel' : ''}`}
+              aria-pressed={fonte === f.id}
+              onClick={() => setFonte(f.id)}
+            >
+              <span className="radio" aria-hidden="true" />
+              <span style={{ flex: 1 }}>
+                <h3>{f.name}</h3>
+                <p>{f.desc}</p>
+              </span>
+            </button>
+          ))}
+        </div>
+        <p className="label-mono" style={{ margin: '16px 0 8px' }}>
+          {t('Posição do menu')}
+        </p>
+        <div className="g3">
+          {(Object.keys(POSICAO_DO_MENU) as MenuPositionType[]).map((pos) => (
+            <button
+              key={pos}
+              type="button"
+              className={`cartao opcao ${menuPosition === pos ? 'sel' : ''}`}
+              aria-pressed={menuPosition === pos}
+              onClick={() => setMenuPosition(pos)}
+            >
+              <span className="radio" aria-hidden="true" />
+              <IconeEmBloco icone={PanelLeft} />
+              <span style={{ flex: 1 }}>
+                <h3>{POSICAO_DO_MENU[pos]}</h3>
+              </span>
+            </button>
+          ))}
+        </div>
+      </section>
 
       {/* ── PERFIL DE EXIBIÇÃO: DIREITO declarado onde mora (ux-v2 §4.4). ── */}
       <section className="secao">

@@ -10,9 +10,7 @@
  * aqui — o mesmo contrato de `equiparItem`, que também não é dono do estado do tema.
  */
 import type { FonteType,ThemeType } from '../appearance'
-import { setCursor } from '../cursores'
 import { setParticulas } from '../particulas'
-import { setPack } from '../particulas'
 import { setRastro } from '../rastroDoMouse'
 import { DEFAULT_FONTE,DEFAULT_THEME } from '../theme'
 import { gravarPaletaAtiva } from './paletas'
@@ -21,15 +19,11 @@ export const VISUAL_PADRAO = {
   tema: DEFAULT_THEME as ThemeType,
   fonte: DEFAULT_FONTE as FonteType,
   particulas: 'tema' as const,
-  pack: 'classico',
-  cursor: 'padrao',
   rastro: 'off',
 } as const
 
 export function restaurarVisualPadrao(): { tema: ThemeType; fonte: FonteType } {
   setParticulas(VISUAL_PADRAO.particulas)
-  setPack(VISUAL_PADRAO.pack)
-  setCursor(VISUAL_PADRAO.cursor)
   setRastro(VISUAL_PADRAO.rastro)
   // A paleta ativa é um apontador para o tema `custom`; sem ela, o tema padrão volta limpo.
   gravarPaletaAtiva(null)

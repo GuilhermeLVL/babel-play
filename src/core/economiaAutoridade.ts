@@ -36,22 +36,14 @@ export const PRECO_DO_CROMA: Record<Raridade, number> = {
   lendario: 60,
 };
 
-/** Aprimoramento: três degraus, cada um mais caro que o anterior. */
-export const CUSTOS_DE_NIVEL = [50, 110, 220] as const;
-export const NIVEL_MAXIMO_DE_APRIMORAMENTO = 3;
-
 /** Pular a rodada mantendo o combo (economia v2: ≈ metade de um dia ativo). */
 export const CUSTO_PULAR_RODADA = 40;
-
-/** Os alvos de aprimoramento que existem. Fora desta lista, o servidor não cobra. */
-export const ALVOS_DE_APRIMORAMENTO = ['particulas', 'sorte'] as const;
 
 /* ── Autorização de um GASTO ────────────────────────────────────────────────────────────────── */
 
 export type GastoAutorizado =
   | { tipo: 'loja'; itemId: string; preco: number }
   | { tipo: 'croma'; itemId: string; matiz: string; preco: number }
-  | { tipo: 'aprimoramento'; alvo: string; nivel: number; preco: number }
   | { tipo: 'pular-rodada'; preco: number };
 
 /** Por que um motivo foi recusado — texto curto, para o 400 dizer o que houve. */
@@ -92,16 +84,10 @@ export function autorizarGasto(reason: string): GastoAutorizado | RecusaDeGasto 
     return { tipo: 'croma', itemId, matiz, preco: PRECO_DO_CROMA[item.raridade] };
   }
 
-  // `aprimoramento:<alvo>:<n>` é o razão que a Loja grava; o spendId usa `apr-<alvo>-n<N>`.
-  if (reason.startsWith('aprimoramento:')) {
-    const [, alvo, n] = reason.split(':');
-    const nivel = Number(n);
-    if (!ALVOS_DE_APRIMORAMENTO.includes(alvo as never)) return { erro: `aprimoramento inexistente: ${alvo}` };
-    if (!Number.isInteger(nivel) || nivel < 1 || nivel > NIVEL_MAXIMO_DE_APRIMORAMENTO) {
-      return { erro: `nível de aprimoramento fora da escada: ${n}` };
-    }
-    return { tipo: 'aprimoramento', alvo, nivel, preco: CUSTOS_DE_NIVEL[nivel - 1] };
-  }
+  /* APRIMORAMENTOS SAÍRAM (recompensas v2, 27/09): `aprimoramento:*` não se vende mais. Quem
+     comprou recebe o reembolso (`core/reembolso.ts`); a recusa é explícita para o motivo ficar
+     legível no 400, em vez de cair no "motivo desconhecido" genérico. */
+  if (reason.startsWith('aprimoramento:')) return { erro: 'aprimoramentos saíram do catálogo' };
 
   return { erro: `motivo desconhecido: ${reason.slice(0, 24)}` };
 }

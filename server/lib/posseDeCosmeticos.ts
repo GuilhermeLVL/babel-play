@@ -79,6 +79,9 @@ export async function recusaDePosse(
   const { nivel, comprados, conquistas, premium } =
     typeof ctx === 'function' ? await ctx() : (ctx ?? (await contextoDePosse(userId)))
 
+  /* O EQUIVALENTE PAGO (recompensas v2): quem pagou com Créditos por um item que saiu do catálogo
+     recebe o equivalente na posse premium — mesmo que ele seja, por outra porta, de conquista. */
+  if (premium.includes(item.id)) return null
   if (item.exclusivoDe) {
     return conquistas.includes(item.exclusivoDe)
       ? null

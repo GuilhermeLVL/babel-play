@@ -102,7 +102,7 @@ describe('o bau da rodada na fila de recompensas', () => {
 
 describe('baú v2 na tela: chances, garantia e repetido', () => {
   it('mostra as chances e quantos baús faltam para o raro garantido', () => {
-    montar([{ ...drop('r-ch'), chances: { comum: 75, raro: 25 }, proximoRaroGarantidoEm: 3 }])
+    montar([{ tipo: 'drop', roundId: 'r-ch', seeds: 5, item, chances: { comum: 75, raro: 25 }, proximoRaroGarantidoEm: 3 }])
     const linha = document.querySelector('[data-chances-do-bau]')!
     expect(linha.textContent).toContain('Chances: 75% comum · 25% raro')
     expect(linha.textContent).toContain('raro garantido em 3 baús')

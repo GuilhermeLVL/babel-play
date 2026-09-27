@@ -474,7 +474,7 @@ function montarPerfil(
     cursor.setDate(cursor.getDate() - 1)
   }
 
-  const { seedsGastas, itensComprados, cromasComprados, aprimoramentos } = razao.gastos
+  const { seedsGastas, itensComprados, cromasComprados } = razao.gastos
   const { seedsCreditadas, xpCreditado } = razao.creditos
   const diasDePresenca = razao.diasDePresenca
   /* A OFENSIVA CONTA PRÁTICA (recompensas v2): os dias de presença continuam gravados, só como
@@ -520,7 +520,6 @@ function montarPerfil(
     seedsGastas,
     itensComprados,
     cromasComprados,
-    aprimoramentos,
     seedsCreditadas,
     xpCreditado,
     presencas: diasDePresenca.length,

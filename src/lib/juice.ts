@@ -1,4 +1,3 @@
-import { sorteDeEventos } from './aprimoramentos';
 import { type BurstKind, emitBurst } from './effects';
 import { type EfeitoComposto, eventosCondicionais, marcarEventoVisto, sortearEventoRaro } from './eventosDeJogo';
 import { play } from './soundFx';
@@ -84,7 +83,7 @@ export function comemorar(
   /* EVENTO RARO por acerto, em QUALQUER jogo: o sorteio mora aqui porque `comemorar` é o único
      vocabulário compartilhado pelos nove — nenhum jogo precisa saber que os patos existem. */
   if (tipo === 'acerto' || tipo === 'sequencia') {
-    const raro = sortearEventoRaro(Math.random, sorteDeEventos());
+    const raro = sortearEventoRaro(Math.random); // sorte fixa: o aprimoramento saiu (recompensas v2)
     if (raro) {
       executarEfeito(raro);
       pontosFlutuantes(raro.nome + '!', window.innerWidth / 2, window.innerHeight * 0.22, 'bom');

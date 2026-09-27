@@ -30,6 +30,7 @@ import {
   metaDoDiaCumprida,
   sequencias,
 } from '../../src/core/learning/economia'
+import { reembolsosDevidos } from '../../src/core/reembolso'
 import { economiaRepo } from '../db/repositories/economia'
 import { exerciseResultsRepo } from '../db/repositories/exerciseResults'
 import { computeProfile, computeXpHistory } from '../db/repositories/metrics'
@@ -381,6 +382,39 @@ async function creditarDrop(
     ...totais,
   })
 }
+
+/**
+ * O REEMBOLSO DO CORTE DO CATÁLOGO (recompensas v2) — `POST /api/metrics/seeds/reembolso`.
+ *
+ * O corpo não diz nada: o que é devido sai do RAZÃO de gastos desta conta (`reembolsosDevidos`,
+ * no core) menos o que já foi creditado. Cada reembolso é um crédito `reembolso:<reason do gasto>`
+ * e a unicidade (usuário, `credito_id`) de `seed_credits` é o que torna dois pedidos simultâneos
+ * (duas abas abrindo juntas) um crédito só: o segundo INSERT cai no `ON CONFLICT` e não soma em
+ * `creditado`. Repetir o pedido depois devolve `creditado: 0`.
+ */
+metricsRouter.post('/seeds/reembolso', async (req, res) => {
+  try {
+    const [gastos, ja] = await Promise.all([seedSpendsRepo.gastos(req.userId), economiaRepo.reembolsos(req.userId)])
+    const devidos = reembolsosDevidos(gastos, new Set(ja.map((r) => r.creditoId)))
+    let creditado = 0
+    for (const d of devidos) {
+      const { jaExistia } = await economiaRepo.creditar(req.userId, {
+        creditoId: d.creditoId,
+        amount: d.seeds,
+        xp: 0,
+        reason: d.creditoId,
+      })
+      if (!jaExistia) creditado += d.seeds
+    }
+    const reembolsado = (await economiaRepo.reembolsos(req.userId)).reduce((n, r) => n + r.amount, 0)
+    const totais = await economiaRepo.totaisCreditados(req.userId)
+    res.json({ creditado, reembolsado, ...totais })
+  } catch (err) {
+    res.status(500).json({
+      error: erroDeRota(err, { status: 500, event: 'metrics_route_error', route: req.path, requestId: req.requestId }),
+    })
+  }
+})
 
 metricsRouter.post('/seeds/creditar', async (req, res) => {
   const payload = parseOr400(seedCreditSchema, req.body, res)

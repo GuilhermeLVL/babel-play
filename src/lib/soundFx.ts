@@ -56,6 +56,11 @@ export function setSoundMuted(muted: boolean) {
   soundMuted = muted;
 }
 
+/** O som está desligado? O motor de comemoração (`lib/comemoracao`) monta o plano sem som. */
+export function somMudo(): boolean {
+  return soundMuted;
+}
+
 
 /** Chamado de onde o tema é aplicado (lib/theme.ts). Sem isto o kit fica no padrão. */
 /** Voz do modo ARCADE: onda quadrada curta e aguda, o timbre 8-bits, independente do tema. */

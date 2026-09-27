@@ -23,6 +23,7 @@ import type { DerivedProgress } from '../../lib/progress';
 import { temRanking } from '../../lib/ranking';
 import { play } from '../../lib/soundFx';
 import BarraDeMaestria from '../maestria/BarraDeMaestria';
+import ResumoDaPratica from '../progress/ResumoDaPratica';
 import { Tela, TituloDeSecao } from '../ui';
 import { IconePixel } from '../views/play/IconesPixel';
 import { unidadeDaRodada } from './casca/regras';
@@ -352,7 +353,7 @@ export default function ResultadoDaRodada({
             }
           }}
         >
-          <div className="premio">
+          <div className="premio" data-seeds-da-rodada={seeds} data-xp-da-rodada={resumo.xp}>
             <b>+{resumo.xp} XP</b>
             {seeds > 0 && (
               <span className="badge ok">
@@ -416,6 +417,9 @@ export default function ResultadoDaRodada({
               {multiplicador(melhorSequencia)}
               {sequencia && sequencia.combo >= 3 && ` · combo ×${sequencia.combo} continua na próxima`}
             </p>
+            {/* Recompensas v2 (spec 10.2): as missões do dia e a ofensiva, o mesmo bloco do fim da
+                revisão. Lidas depois de revelar: a rodada já foi gravada. */}
+            <ResumoDaPratica />
             {!semMaterial && (
               <button type="button" className="btn btn-solid bloco" onClick={onContinuar}>
                 <Sparkles aria-hidden /> {ageProfile === 'kids' ? 'Bora de novo!' : 'Mais uma'} · palavras novas

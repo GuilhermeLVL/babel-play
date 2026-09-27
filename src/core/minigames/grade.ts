@@ -203,6 +203,33 @@ export function ehRodadaPerfeita(exerciseKind: string | null | undefined, total:
   return total >= minimo && certos === total;
 }
 
+/**
+ * O QUE UMA REVISÃO RENDE, pela nota (1–4). É a régua de `correctReviews` dos dois servidores:
+ * toda revisão dá `revisao` de XP; nota >= 3 soma `revisaoCerta` nas duas moedas.
+ */
+export function ganhoDaNota(nota: number): { xp: number; seeds: number } {
+  const certa = nota >= 3;
+  return {
+    xp: PESOS_XP.revisao + (certa ? PESOS_XP.revisaoCerta : 0),
+    seeds: certa ? PESOS_SEEDS.revisaoCerta : 0,
+  };
+}
+
+/**
+ * O GANHO DE UMA RODADA DE REVISÃO (recompensas v2, spec 10.2): o "+N XP · +N Seeds" do fim do
+ * Estudar, com a MESMA conta que o perfil refaz a partir das revisões gravadas. Só entram as notas
+ * que o servidor aceitou — a tela passa só essas.
+ */
+export function ganhoDaRevisao(notas: readonly number[]): { xp: number; seeds: number } {
+  return notas.reduce(
+    (soma, n) => {
+      const g = ganhoDaNota(n);
+      return { xp: soma.xp + g.xp, seeds: soma.seeds + g.seeds };
+    },
+    { xp: 0, seeds: 0 },
+  );
+}
+
 /** O que UMA rodada move na economia — o "+N XP · +N Seeds" da raspadinha. */
 export interface GanhoDaRodada {
   xp: number;
@@ -233,11 +260,9 @@ export function ganhoDaRodada(report: RoundReport): GanhoDaRodada {
   for (const o of report.items) {
     const revisao = !!o.cardId && !!def?.writesSrs;
     if (revisao) {
-      xp += PESOS_XP.revisao;
-      if (gradeFor(report.gameId, o) >= 3) {
-        xp += PESOS_XP.revisaoCerta;
-        seeds += PESOS_SEEDS.revisaoCerta;
-      }
+      const g = ganhoDaNota(gradeFor(report.gameId, o));
+      xp += g.xp;
+      seeds += g.seeds;
     } else {
       xp += PESOS_XP.itemDeJogo;
       if (o.correct) {

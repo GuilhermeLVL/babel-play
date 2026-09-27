@@ -1,8 +1,10 @@
 import { describe, expect,it } from 'vitest';
 
 import { gradeFor } from '../src/core/minigames/grade';
+import { planoDeComemoracao } from '../src/lib/comemoracao';
+import { EFEITOS_PADRAO } from '../src/lib/comemoracao/pacotes';
 import { BURST_SPECS } from '../src/lib/effects';
-import { multiplicador, SOM } from '../src/lib/juice';
+import { multiplicador } from '../src/lib/juice';
 import { EVENTS } from '../src/lib/soundFx';
 
 /**
@@ -44,8 +46,10 @@ describe('o combo tem som próprio', () => {
   it('deixou de emprestar o som de "escolher item numa lista"', () => {
     // Era `select` — uma nota só, idêntica à de clicar num item de lista. Um combo que soa como
     // navegação não avisa nada.
-    expect(SOM.sequencia).toBe('combo');
-    expect(SOM.sequencia).not.toBe('select');
+    // O `comemorar` antigo saiu (recompensas v2): o som do combo mora no motor único.
+    const plano = planoDeComemoracao({ tipo: 'combo', multiplicador: 2 }, { leve: false, semSom: false, efeitos: EFEITOS_PADRAO });
+    expect(plano.sons[0].evento).toBe('combo');
+    expect(plano.sons[0].evento).not.toBe('select');
   });
 
   it('o gesto do combo SOBE — na gramática do kit, subir é ganho', () => {

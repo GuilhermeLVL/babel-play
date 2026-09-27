@@ -12,8 +12,8 @@ import { prepararDialogoNoJsdom } from './_dialogoNoJsdom'
 
 prepararDialogoNoJsdom()
 
-vi.mock('../src/lib/juice', () => ({ comemorar: vi.fn(), explodirAleatorio: vi.fn(), pontosDoElemento: vi.fn() }))
-vi.mock('../src/lib/comemoracao', () => ({ celebrar: vi.fn() }))
+vi.mock('../src/lib/juice', () => ({ explodirAleatorio: vi.fn(), pontosDoElemento: vi.fn(), movimentoReduzido: () => true }))
+vi.mock('../src/lib/comemoracao', () => ({ celebrar: vi.fn(), tocarPreviaDoEfeito: vi.fn() }))
 
 const nivel2: Recompensa = {
   tipo: 'nivel',
@@ -108,5 +108,66 @@ describe('RecompensaDesbloqueada — o modal de resgate', () => {
       <RecompensaDesbloqueada fila={[nivel2]} onEquipar={() => true} onFechar={vi.fn()} onVerPersonalizar={vi.fn()} />,
     )
     expect(vi.mocked(celebrar).mock.calls.filter((c) => c[0].tipo === 'nivel')).toHaveLength(1)
+  })
+})
+
+/* RECOMPENSAS v2 (Task 5.4, spec 10.2 e 10.3): a fila agrupa o que chega junto e mostra a peça como
+   ela aparece de verdade. */
+describe('RecompensaDesbloqueada — lote de novidades e prévia real', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    document.body.removeAttribute('data-jogo-ativo')
+  })
+  afterEach(() => cleanup())
+
+  const conquista = (id: string): Recompensa => ({ tipo: 'conquista', id, nome: id, seeds: 10, xp: 5 })
+  const tres = [nivel2, conquista('constante'), conquista('primeira-rodada')]
+
+  it('três juntas: "3 novidades", uma por vez, com a posição', () => {
+    const { rerender } = render(
+      <RecompensaDesbloqueada fila={tres} onEquipar={() => true} onFechar={vi.fn()} onVerPersonalizar={vi.fn()} />,
+    )
+    expect(screen.getAllByRole('dialog')).toHaveLength(1)
+    expect(screen.getByText(/3 novidades · 1 de 3/)).toBeTruthy()
+    rerender(
+      <RecompensaDesbloqueada fila={tres.slice(1)} onEquipar={() => true} onFechar={vi.fn()} onVerPersonalizar={vi.fn()} />,
+    )
+    expect(screen.getByText(/3 novidades · 2 de 3/)).toBeTruthy()
+  })
+
+  it('uma só não fala em lote', () => {
+    render(<RecompensaDesbloqueada fila={[nivel2]} onEquipar={() => true} onFechar={vi.fn()} onVerPersonalizar={vi.fn()} />)
+    expect(screen.queryByText(/novidades/)).toBeNull()
+  })
+
+  it('nunca abre durante a rodada, nem com o lote cheio', () => {
+    document.body.setAttribute('data-jogo-ativo', '1')
+    render(<RecompensaDesbloqueada fila={tres} onEquipar={() => true} onFechar={vi.fn()} onVerPersonalizar={vi.fn()} />)
+    expect(screen.queryByRole('dialog')).toBeNull()
+    act(() => {
+      document.body.removeAttribute('data-jogo-ativo')
+      window.dispatchEvent(new Event('babel:rodada-fechou'))
+    })
+    expect(screen.getByText(/3 novidades · 1 de 3/)).toBeTruthy()
+  })
+
+  it('a legenda chega estilizada, e o efeito toca ao abrir', async () => {
+    vi.useFakeTimers()
+    const { tocarPreviaDoEfeito } = await import('../src/lib/comemoracao')
+    const legenda = CATALOGO_DA_LOJA.find((i) => i.tipo === 'legenda' && i.precoSeeds)!
+    const efeito = CATALOGO_DA_LOJA.find((i) => i.tipo === 'efeito-acerto')!
+    const r: Recompensa = { tipo: 'drop', roundId: 'r1', seeds: 0, item: legenda }
+    const r2: Recompensa = { tipo: 'drop', roundId: 'r2', seeds: 0, item: efeito }
+    const { unmount } = render(
+      <RecompensaDesbloqueada fila={[r]} onEquipar={() => true} onFechar={vi.fn()} onVerPersonalizar={vi.fn()} />,
+    )
+    expect(document.querySelector('[data-previa-da-peca="legenda"] .previa-leg-estilo')).toBeTruthy()
+    unmount()
+    render(<RecompensaDesbloqueada fila={[r2]} onEquipar={() => true} onFechar={vi.fn()} onVerPersonalizar={vi.fn()} />)
+    act(() => {
+      vi.advanceTimersByTime(600)
+    })
+    expect(vi.mocked(tocarPreviaDoEfeito)).toHaveBeenCalledWith('efeito-acerto', efeito.alvo, expect.anything())
+    vi.useRealTimers()
   })
 })

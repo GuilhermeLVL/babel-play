@@ -3,6 +3,8 @@ import {
   ArrowRight,
   Captions,
   Check,
+  Eye,
+  Frame,
   Gamepad2,
   Lock,
   Moon,
@@ -21,6 +23,7 @@ import {
 } from 'lucide-react';
 import { Fragment, type ReactNode, useMemo, useState } from 'react';
 
+import { celebrarEscolha } from '../../../lib/comemoracao';
 import { comprarPecaComSeeds } from '../../../lib/galeria/comprarPeca';
 import { cromaEquipado } from '../../../lib/galeria/cromas';
 import { type ContextoDeEquipar, equiparItem, equipavel } from '../../../lib/galeria/equipar';
@@ -28,7 +31,7 @@ import { paletaPorId } from '../../../lib/galeria/paletas';
 import { PAR_DO_TEMA } from '../../../lib/galeria/parDoTema';
 import type { Perfil } from '../../../lib/galeria/perfis';
 import { estadoDaColecao } from '../../../lib/galeria/progressao';
-import { comemorar } from '../../../lib/juice';
+import { t } from '../../../lib/i18n';
 import {
   CATALOGO_DA_LOJA,
   COR_DA_RARIDADE,
@@ -72,6 +75,10 @@ const SECOES: Array<{ id: string; titulo: string; icone: LucideIcon; tipos: stri
   /* Recompensas v2, onda 4: a legenda ao vivo como peça, com a prévia do estilo no cartão. */
   { id: 'legendas', titulo: 'Legendas', icone: Captions, tipos: ['legenda'] },
   { id: 'cartoes', titulo: 'Cartões', icone: WalletCards, tipos: ['cartao'] },
+  /* Recompensas v2 (Task 5.4): os efeitos de jogo e a moldura/título de perfil ganham seção — antes
+     só se equipavam pelo modal de recompensa, no instante em que chegavam. */
+  { id: 'jogos', titulo: 'Efeitos de jogo', icone: Gamepad2, tipos: ['efeito-acerto', 'efeito-combo', 'finalizacao'] },
+  { id: 'perfil', titulo: 'Moldura e título', icone: Frame, tipos: ['moldura', 'titulo'] },
   { id: 'capacidades', titulo: 'Capacidades', icone: Sparkles, tipos: ['galeria', 'estudio'] },
 ];
 
@@ -143,6 +150,9 @@ export default function Inventario({
   aoApagarPerfil,
   aoSalvarPerfil,
   acaoDosPerfis,
+  aoPrever,
+  itemEmPrevia,
+  tiposComPrevia,
 }: {
   nivel: number;
   saldo: number;
@@ -168,6 +178,14 @@ export default function Inventario({
   aoSalvarPerfil: (nome: string) => void;
   /** O que vai à direita do título de Perfis (o "voltar ao visual original"). */
   acaoDosPerfis?: ReactNode;
+  /**
+   * PRÉVIA AO VIVO (recompensas v2): "Ver prévia" nas peças que têm onde aparecer (legenda, cartão,
+   * tema, efeito). Ausente = sem o botão (a tela clássica).
+   */
+  aoPrever?: (item: ItemDaLoja, el: HTMLElement) => void;
+  itemEmPrevia?: string | null;
+  /** Os tipos que têm prévia. */
+  tiposComPrevia?: ReadonlySet<string>;
 }) {
   /* O ACERVO INTEIRO, e não só o meu. `false` é o padrão porque a pergunta mais frequente na
      tela de Personalizar continua sendo "o que eu tenho". */
@@ -218,7 +236,7 @@ export default function Inventario({
       return;
     }
     if (equiparItem(i, ctx)) {
-      comemorar('acerto', el ?? null, { texto: i.nome });
+      celebrarEscolha(el ?? null, i.nome);
       toast.ok('Equipado');
       rerender();
     } else {
@@ -243,7 +261,7 @@ export default function Inventario({
         );
         return;
       }
-      comemorar('subiuNivel', el ?? null, { texto: 'Seu!' });
+      celebrarEscolha(el ?? null, 'Seu!');
       toast.ok(`${i.nome} é seu!`);
       rerender();
     } finally {
@@ -361,6 +379,17 @@ export default function Inventario({
             {DESTINO[rota.destino]} {rota.rotuloDoBotao}
           </button>
         ) : null}
+
+        {aoPrever && tiposComPrevia?.has(i.tipo) && (
+          <button
+            type="button"
+            className="link editar"
+            aria-pressed={itemEmPrevia === i.id}
+            onClick={(e) => aoPrever(i, e.currentTarget)}
+          >
+            <Eye aria-hidden /> {t('Ver prévia')}
+          </button>
+        )}
 
         {/* O EDITOR DA PEÇA (paletas, pack próprio, croma) só aparece onde há o que editar. */}
         {liberado && temPersonalizacao(i) && (

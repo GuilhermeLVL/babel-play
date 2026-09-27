@@ -1,3 +1,5 @@
+import type { TipoDeEfeito } from '@core';
+
 import { reduzirEfeitos } from '../dispositivo/perfil';
 import {
   type BurstKind,
@@ -18,6 +20,7 @@ import {
   vibrar,
 } from '../juice';
 import { play, somMudo, type SoundEvent } from '../soundFx';
+import { RECEITAS } from './efeitos';
 import type { EventoDeComemoracao } from './intensidade';
 import {
   ACERTOS,
@@ -301,5 +304,46 @@ export function celebrar(ev: EventoDeComemoracao): void {
     executar(ev, plano);
   } catch {
     /* sem áudio, sem DOM, sem canvas: o jogo segue */
+  }
+}
+
+/**
+ * A ESCOLHA DE UMA PEÇA (equipar, comprar, aplicar um perfil) — Task 5.4 das recompensas v2. Era o
+ * `comemorar('acerto'|'subiuNivel')` de `lib/juice`; agora passa pelo motor, como tudo: o retorno
+ * de um acerto (discreto, e só som e número no modo leve) com o nome subindo de onde a pessoa
+ * clicou. Nunca lança.
+ */
+export function celebrarEscolha(el: Element | null, texto?: string): void {
+  celebrar({ tipo: 'acerto', combo: 0, el });
+  if (!texto || typeof window === 'undefined') return;
+  try {
+    pontosDoElemento(texto, el, 'bom');
+  } catch {
+    /* sem DOM */
+  }
+}
+
+/**
+ * A PRÉVIA DE UM EFEITO DE JOGO (Coleção, Loja e o modal de recompensa): a rajada da RECEITA, na
+ * peça, sem equipar nada. Modo leve e movimento reduzido: só o som curto — a prévia fala a mesma
+ * língua do jogo. Nunca lança.
+ */
+export function tocarPreviaDoEfeito(tipo: TipoDeEfeito, id: string, el: Element | null): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const r = RECEITAS[tipo]?.[id];
+    if (!r) return;
+    if (!somMudo()) play(r.som ?? (tipo === 'efeito-combo' ? 'combo' : tipo === 'finalizacao' ? 'fanfarra' : 'success'));
+    if (reduzirEfeitos() || movimentoReduzido()) return;
+    const s: Partial<BurstSpec> = {};
+    if (r.forma) s.forma = r.forma;
+    if (r.origem && tipo !== 'finalizacao') s.origem = r.origem;
+    if (r.cor) s.colorToken = r.cor;
+    if (r.contagem !== undefined) s.count = r.contagem;
+    if (r.gravidade !== undefined) s.gravidade = r.gravidade;
+    const { x, y } = centro(el);
+    emitBurst(x, y, r.kind, s);
+  } catch {
+    /* sem canvas: a prévia fica muda */
   }
 }

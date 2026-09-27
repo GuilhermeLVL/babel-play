@@ -21,63 +21,38 @@
  * Comprar aqui e equipar ali passam pelo mesmo `equiparItem` (lib/galeria/equipar) — o único
  * caminho que equipa no app. Os textos dos estados vêm de `lib/galeria/textos`.
  */
-import { type ContextoDeConquistas, REGRAS } from '@core';
+import { REGRAS } from '@core';
 import { Check, Coins, Crown, Lock, Map as MapIcon, Shirt, ShoppingBag, Sparkles, Sprout, Trophy } from 'lucide-react';
 import { Fragment, useEffect, useMemo, useState } from 'react';
 
 import { gastarCreditos } from '../../data/api';
-import type { FonteType, ThemeType } from '../../lib/appearance';
 import { useCarteira } from '../../lib/carteira';
+import { celebrarEscolha } from '../../lib/comemoracao';
 import { contarConquistas } from '../../lib/conquistas';
 import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { emitBurst } from '../../lib/effects';
 import { comprarPecaComSeeds } from '../../lib/galeria/comprarPeca';
-import { type ContextoDeEquipar, equiparItem, equipavel } from '../../lib/galeria/equipar';
+import { type ContextoDeEquipar, equiparItem, equipavel, estaEquipado } from '../../lib/galeria/equipar';
 import { estadoDaColecao, proximaRecompensa } from '../../lib/galeria/progressao';
 import { TEXTOS } from '../../lib/galeria/textos';
 import { estaAnonimo } from '../../lib/identidade';
-import { comemorar, explodirAleatorio } from '../../lib/juice';
 import { CATALOGO_DA_LOJA, COR_DA_RARIDADE, estadoDoItem, type ItemDaLoja, soPorSeeds } from '../../lib/loja';
-import { readParticulas } from '../../lib/particulas';
-import type { DerivedProgress } from '../../lib/progress';
 import { perfilProtegido } from '../../lib/protecaoDoMenor';
-import { readRastro } from '../../lib/rastroDoMouse';
+import { recompensasV2Ligadas } from '../../lib/recompensasV2';
 import { normalizarAbaDaLoja } from '../../lib/rotas';
 import { useTemporada } from '../../lib/temporada';
 import CartaoDeConvite from '../conta/CartaoDeConvite';
 import MiniaturaDoItem from '../MiniaturaDoItem';
-import type { AgeProfileType, MenuPositionType } from '../shell/navItems';
 import { toast } from '../Toast';
 import { Abas, CabecalhoDeTela, PainelDeAba, Tela, TituloDeSecao } from '../ui';
 import Conquistas from './Conquistas';
 import CabecalhoDeTemporada from './loja/CabecalhoDeTemporada';
 import ComprarCreditos from './loja/ComprarCreditos';
+import type { LojaProps } from './loja/propsDaLoja';
 import PasseDeTemporada from './passe/PasseDeTemporada';
 import Personalizar from './Personalizar';
+import PersonalizarV2 from './personalizar/PersonalizarV2';
 
-interface LojaProps {
-  progress: DerivedProgress;
-  theme: ThemeType;
-  setTheme: (t: ThemeType) => void;
-  fonte: FonteType;
-  setFonte: (f: FonteType) => void;
-  menuPosition: MenuPositionType;
-  setMenuPosition: (p: MenuPositionType) => void;
-  onOpenStudio: () => void;
-  /** Contexto das conquistas (montado no App), para a aba "Desafios" desta tela. */
-  ctxConquistas: ContextoDeConquistas | null;
-  /** Perfil de exibição — editado na aba Meu visual (único dono desde 2026-08-28). */
-  ageProfile: AgeProfileType;
-  setAgeProfile: (p: AgeProfileType) => void;
-  /** v3: aba de destino ao abrir ("progressao" do fim de rodada). */
-  abaInicial?: string | null;
-  /** Espelha a aba na URL (ux-v2 §1.6): o App publica `/loja/<área>` a cada troca. */
-  aoTrocarDeAba?: (aba: string) => void;
-  /** v3: o contexto único de equipar (App). Opcional só para os testes de tela. */
-  equiparCtx?: ContextoDeEquipar;
-  /** Leva à porta de entrada. Ausente = self-host, onde não há conta. */
-  onEntrar?: () => void;
-}
 
 const FILTROS = [
   { id: 'tudo', nome: 'Tudo' },
@@ -95,7 +70,15 @@ const LINHA_DE_PRECO = { font: '600 11.5px var(--font-mono)', color: 'var(--ink-
    ROTAS, e mante-las aqui fazia a Loja abrir na aba certa enquanto a URL mostrava
    `/loja/undefined` (achado A16). `normalizarAbaDaLoja` responde pelas duas. */
 
-export default function Loja({
+/**
+ * A TELA: com a flag `recompensas_v2`, as cinco abas (Coleção, Maestria, Temporada, Conquistas,
+ * Loja); sem ela, a tela clássica de duas áreas continua exatamente como era.
+ */
+export default function Loja(props: LojaProps) {
+  return recompensasV2Ligadas() ? <PersonalizarV2 {...props} /> : <LojaClassica {...props} />;
+}
+
+function LojaClassica({
   progress,
   theme,
   setTheme,
@@ -207,14 +190,7 @@ export default function Loja({
   const naPrateleira = (lista: ItemDaLoja[]) => lista.filter((i) => i.id !== emDestaque?.id);
   const proxima = proximaRecompensa(nivel);
 
-  const equipadoAtual = (item: ItemDaLoja): boolean => {
-    if (item.tipo === 'tema') return theme === item.alvo;
-    if (item.tipo === 'fonte') return fonte === item.alvo;
-    if (item.tipo === 'particulas') return readParticulas() === item.alvo;
-    if (item.tipo === 'posicao') return menuPosition === item.alvo;
-    if (item.tipo === 'rastro') return readRastro() === item.alvo;
-    return false;
-  };
+  const equipadoAtual = (item: ItemDaLoja): boolean => estaEquipado(item, { theme, fonte, menuPosition });
 
   /**
    * IR A UMA SEÇÃO DE "DESAFIOS". Os atalhos de dentro do app ("Ver na Loja", "Ver no Passe", a
@@ -237,7 +213,7 @@ export default function Loja({
       return;
     }
     if (equiparItem(item, ctxEquipar)) {
-      comemorar('acerto', el, { texto: TEXTOS.emUso });
+      celebrarEscolha(el, TEXTOS.emUso);
       force((n) => n + 1);
     }
   };
@@ -265,8 +241,7 @@ export default function Loja({
         toast.warn('Não deu para completar a compra agora. Tente de novo.');
         return;
       }
-      comemorar('subiuNivel', el, { texto: 'Seu!' });
-      explodirAleatorio(3, 'fogos');
+      celebrarEscolha(el, 'Seu!');
       toast.ok(`${item.nome} é seu!`);
       carteira.recarregar();
       force((n) => n + 1);
@@ -294,8 +269,7 @@ export default function Loja({
         return;
       }
       recemComprados.add(item.id);
-      comemorar('subiuNivel', el, { texto: 'Seu!' });
-      explodirAleatorio(3, 'confete');
+      celebrarEscolha(el, 'Seu!');
       toast.ok(`${item.nome} é seu!`);
       force((n) => n + 1);
     } finally {

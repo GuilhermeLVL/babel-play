@@ -35,6 +35,11 @@ export type ViewDeRota =
   | 'ajuda'
   | 'naoencontrado';
 
+/** As duas áreas clássicas de Personalizar (sem a flag `recompensas_v2`). */
+export type AbaClassica = 'personalizar' | 'conquistas';
+/** Toda aba de Personalizar que tem endereço: as clássicas e as cinco das recompensas v2. */
+export type AbaDaLoja = AbaClassica | 'colecao' | 'maestria' | 'temporada' | 'loja';
+
 export interface EstadoDeRota {
   view: ViewDeRota;
   /** Só para `analysis`: qual gravação. */
@@ -48,7 +53,7 @@ export interface EstadoDeRota {
    * de Desafios (decisão do dono). Os nomes antigos seguem resolvendo — em `APELIDO_DE_ABA` —
    * porque links gravados e o histórico do navegador não se atualizam sozinhos.
    */
-  lojaTab?: 'personalizar' | 'conquistas';
+  lojaTab?: AbaDaLoja;
   /**
    * Só para `play`: o filtro facetado serializado como query string (sem o `?`).
    * OPACO de propósito: quem sabe ler/escrever o formato é `lib/filtroDaPratica` — aqui a rota só
@@ -124,9 +129,14 @@ const ABA_DE_SEGMENTO = Object.fromEntries(Object.entries(ABA).map(([k, v]) => [
  * aba padrão). O segmento fala a língua do RÓTULO ("meu-visual", "desafios"), não a do id
  * interno — a URL é interface.
  */
-const ABA_DA_LOJA: Record<NonNullable<EstadoDeRota['lojaTab']>, string> = {
+const ABA_DA_LOJA: Record<AbaDaLoja, string> = {
   personalizar: 'meu-visual',
   conquistas: 'desafios',
+  // As abas das recompensas v2 (Task 5.4): o id já é a palavra do rótulo.
+  colecao: 'colecao',
+  maestria: 'maestria',
+  temporada: 'temporada',
+  loja: 'loja',
 };
 const ABA_DA_LOJA_DE_SEGMENTO = Object.fromEntries(Object.entries(ABA_DA_LOJA).map(([k, v]) => [v, k])) as Record<
   string,
@@ -143,8 +153,13 @@ const ABA_DA_LOJA_DE_SEGMENTO = Object.fromEntries(Object.entries(ABA_DA_LOJA).m
  *
  * O apelido é do VOCABULÁRIO DE ROTAS, então mora com as rotas. `Loja.tsx` passa a perguntar aqui.
  */
-const APELIDO_DE_ABA: Record<string, NonNullable<EstadoDeRota['lojaTab']>> = {
+const APELIDO_DE_ABA: Record<string, AbaClassica> = {
   cofre: 'personalizar',
+  /* Sem a flag, as abas das recompensas v2 (um link gravado com ela ligada) abrem a área clássica
+     que tem o mesmo conteúdo. */
+  colecao: 'personalizar',
+  maestria: 'conquistas',
+  temporada: 'conquistas',
   /* As quatro portas viraram duas em 2026-09-12: Loja e Passe são seções de Desafios. Todo nome
      que apontava para uma delas cai em `conquistas`, que é onde o conteúdo está — um link antigo
      abre a página certa, e não a aba padrão. */
@@ -156,11 +171,39 @@ const APELIDO_DE_ABA: Record<string, NonNullable<EstadoDeRota['lojaTab']>> = {
   desafios: 'conquistas',
 };
 
-/** A aba canônica para um nome qualquer (id atual, apelido antigo ou lixo). `null` = desconhecida. */
-export function normalizarAbaDaLoja(bruta: string | null | undefined): NonNullable<EstadoDeRota['lojaTab']> | null {
+/** A aba canônica CLÁSSICA (sem a flag) para um nome qualquer. `null` = desconhecida. */
+export function normalizarAbaDaLoja(bruta: string | null | undefined): AbaClassica | null {
   if (!bruta) return null;
-  if (bruta in ABA_DA_LOJA) return bruta as NonNullable<EstadoDeRota['lojaTab']>;
+  if (bruta === 'personalizar' || bruta === 'conquistas') return bruta;
   return APELIDO_DE_ABA[bruta] ?? null;
+}
+
+/** As cinco abas de Personalizar com as recompensas v2 (spec 10.3). */
+export const ABAS_DA_LOJA_V2 = ['colecao', 'maestria', 'temporada', 'conquistas', 'loja'] as const;
+export type AbaDaLojaV2 = (typeof ABAS_DA_LOJA_V2)[number];
+
+/**
+ * OS NOMES DE SEMPRE, NA TELA NOVA. Com a flag, cada nome antigo abre a aba onde aquele conteúdo
+ * mora agora: o Meu visual virou Coleção, o Passe virou Temporada, "Ver progressão" (fim de
+ * rodada) abre a Maestria, e a prateleira e os Créditos abrem a Loja.
+ */
+const APELIDO_DE_ABA_V2: Record<string, AbaDaLojaV2> = {
+  personalizar: 'colecao',
+  'meu-visual': 'colecao',
+  cofre: 'colecao',
+  passe: 'temporada',
+  progressao: 'maestria',
+  desafios: 'conquistas',
+  recompensas: 'conquistas',
+  itens: 'loja',
+  creditos: 'loja',
+};
+
+/** A aba canônica das recompensas v2 para um nome qualquer. `null` = desconhecida. */
+export function normalizarAbaDaLojaV2(bruta: string | null | undefined): AbaDaLojaV2 | null {
+  if (!bruta) return null;
+  if ((ABAS_DA_LOJA_V2 as readonly string[]).includes(bruta)) return bruta as AbaDaLojaV2;
+  return APELIDO_DE_ABA_V2[bruta] ?? null;
 }
 
 export function estadoParaUrl(e: EstadoDeRota): string {
@@ -176,7 +219,7 @@ export function estadoParaUrl(e: EstadoDeRota): string {
   if (e.view === 'loja' && e.lojaTab) {
     /* Aba desconhecida vira `/loja`, e nunca `/loja/undefined`: uma URL quebrada na barra de
        endereço é pior que uma URL menos específica — ela não recarrega e não se compartilha. */
-    const canonica = normalizarAbaDaLoja(e.lojaTab);
+    const canonica = e.lojaTab in ABA_DA_LOJA ? e.lojaTab : normalizarAbaDaLoja(e.lojaTab);
     return canonica ? `/loja/${ABA_DA_LOJA[canonica]}` : '/loja';
   }
   if (e.view === 'play' && e.jogarQuery) return `/jogar?${e.jogarQuery}`;

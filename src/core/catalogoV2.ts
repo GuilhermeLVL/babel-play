@@ -1,4 +1,4 @@
-import type { ItemDaLoja } from './loja';
+import type { ItemDaLoja } from './tiposDaLoja';
 
 /**
  * O CATÁLOGO NOVO DAS RECOMPENSAS V2 (onda 4): temas completos, estilos de legenda e peles de
@@ -97,7 +97,16 @@ const legenda = (
   desc: string,
   raridade: 'comum' | 'raro',
   precoSeeds: number,
-): ItemDaLoja => ({ id: `leg-${alvo}`, tipo: 'legenda', alvo, nome, desc, raridade, nivel: NIVEL_SO_SEEDS, precoSeeds });
+): ItemDaLoja => ({
+  id: `leg-${alvo}`,
+  tipo: 'legenda',
+  alvo,
+  nome,
+  desc,
+  raridade,
+  nivel: NIVEL_SO_SEEDS,
+  precoSeeds,
+});
 
 export const LEGENDAS_V2: ItemDaLoja[] = [
   {
@@ -109,14 +118,38 @@ export const LEGENDAS_V2: ItemDaLoja[] = [
     raridade: 'comum',
     nivel: 1,
   },
-  legenda('cinema', 'Legenda Cinema', 'Faixa por trás da fala e entrada suave; a palavra aprendida muda de cor.', 'comum', 350),
-  legenda('fita', 'Legenda Fita', 'Marca-texto sob a fala; a palavra aprendida ganha o seu próprio destaque.', 'comum', 380),
-  legenda('contorno', 'Legenda Contorno', 'Contorno forte em volta das letras, para ler sobre qualquer vídeo.', 'comum', 420),
+  legenda(
+    'cinema',
+    'Legenda Cinema',
+    'Faixa por trás da fala e entrada suave; a palavra aprendida muda de cor.',
+    'comum',
+    350,
+  ),
+  legenda(
+    'fita',
+    'Legenda Fita',
+    'Marca-texto sob a fala; a palavra aprendida ganha o seu próprio destaque.',
+    'comum',
+    380,
+  ),
+  legenda(
+    'contorno',
+    'Legenda Contorno',
+    'Contorno forte em volta das letras, para ler sobre qualquer vídeo.',
+    'comum',
+    420,
+  ),
   legenda('vidro', 'Legenda Vidro', 'Caixa de vidro com borda fina; a fala surge de leve.', 'raro', 1000),
   legenda('maquina', 'Legenda Máquina', 'A fala aparece como se fosse datilografada.', 'raro', 1100),
   legenda('karaoke', 'Legenda Karaokê', 'Vidro, sombra e a fala escrita da esquerda para a direita.', 'raro', 1180),
   // Candidato à temporada (onda 5).
-  legenda('letreiro', 'Legenda Letreiro', 'Fita luminosa, contorno forte e entrada suave: legenda de letreiro.', 'raro', 1190),
+  legenda(
+    'letreiro',
+    'Legenda Letreiro',
+    'Fita luminosa, contorno forte e entrada suave: legenda de letreiro.',
+    'raro',
+    1190,
+  ),
 ];
 
 /* ── PELES DE CARTÃO (a moldura muda com a palavra: nova → aprendida → dominada; desenho em
@@ -127,7 +160,16 @@ const cartao = (
   desc: string,
   raridade: 'comum' | 'raro',
   precoSeeds: number,
-): ItemDaLoja => ({ id: `cartao-${alvo}`, tipo: 'cartao', alvo, nome, desc, raridade, nivel: NIVEL_SO_SEEDS, precoSeeds });
+): ItemDaLoja => ({
+  id: `cartao-${alvo}`,
+  tipo: 'cartao',
+  alvo,
+  nome,
+  desc,
+  raridade,
+  nivel: NIVEL_SO_SEEDS,
+  precoSeeds,
+});
 
 export const CARTOES_V2: ItemDaLoja[] = [
   {
@@ -139,11 +181,23 @@ export const CARTOES_V2: ItemDaLoja[] = [
     raridade: 'comum',
     nivel: 1,
   },
-  cartao('caderno', 'Cartão Caderno', 'Folha pautada: a margem acende ao aprender e a orelha dobra ao dominar.', 'comum', 360),
+  cartao(
+    'caderno',
+    'Cartão Caderno',
+    'Folha pautada: a margem acende ao aprender e a orelha dobra ao dominar.',
+    'comum',
+    360,
+  ),
   cartao('selo', 'Cartão Selo', 'Picote de selo que vira moldura dupla quando a palavra é sua.', 'comum', 440),
   cartao('vitral', 'Cartão Vitral', 'Borda em gradiente que esquenta de nova para dominada.', 'raro', 1050),
   // Candidato à temporada (onda 5).
-  cartao('constelacao', 'Cartão Constelação', 'Estrelas que acendem com a palavra; a dominada brilha devagar.', 'raro', 1150),
+  cartao(
+    'constelacao',
+    'Cartão Constelação',
+    'Estrelas que acendem com a palavra; a dominada brilha devagar.',
+    'raro',
+    1150,
+  ),
 ];
 
 /** Tudo o que a onda 4 acrescenta ao catálogo, na ordem da vitrine. */

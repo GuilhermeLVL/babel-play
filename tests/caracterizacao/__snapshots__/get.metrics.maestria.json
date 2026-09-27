@@ -1,0 +1,15 @@
+{
+  "status": 200,
+  "forma": {
+    "creditados": [],
+    "jogos": [
+      {
+        "jogo": "string",
+        "nivel": "number",
+        "pctNoNivel": "number",
+        "pontos": "number",
+        "proximo": "number"
+      }
+    ]
+  }
+}

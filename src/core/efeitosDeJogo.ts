@@ -1,5 +1,5 @@
-import type { Raridade } from './loja';
 import type { MinigameId } from './minigames/types';
+import type { Raridade } from './tiposDaLoja';
 
 /**
  * OS EFEITOS DE JOGO (recompensas v2, onda 3 — spec 5.2 item 2).

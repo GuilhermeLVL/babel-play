@@ -27,6 +27,9 @@ import { rotasDoServidor } from './_rotas-do-servidor.mjs'
  * A52 da auditoria de 2026-09-07. Ficam nomeadas, e a próxima rota órfã derruba o CI.
  */
 const CHAMADOR_EXTERNO = {
+  'GET /api/admin/flags':
+    'porta de operação do dono (curl, `docs/flags.md` §Admin), irmã da CLI `operacao flags` (`server/operacao/flags.ts`); não há tela de admin de flags de propósito',
+  'PUT /api/admin/flags/:chave': 'idem',
   'DELETE /api/ai/credentials/:id':
     'LACUNA DE PRODUTO: `src/data/api.ts` tem `listCredentials` e `createCredential`, e nenhuma função de apagar — quem cola uma chave de IA não consegue removê-la pela interface. O servidor está pronto e coberto (`tests/caracterizacao/ia.test.ts`: 200 e 404). Falta o botão',
   'GET /api/vocab/distribuicao-dificuldade':

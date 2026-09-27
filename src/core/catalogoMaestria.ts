@@ -5,8 +5,8 @@ import {
   type EfeitoDeJogo,
   FINALIZACOES_DE_MAESTRIA,
 } from './efeitosDeJogo';
-import type { ItemDaLoja } from './loja';
 import { JOGOS_DA_MAESTRIA, NOME_DO_JOGO_NA_MAESTRIA } from './maestria';
+import type { ItemDaLoja } from './tiposDaLoja';
 
 /**
  * OS ITENS DA ONDA 3 NO CATÁLOGO (recompensas v2): efeitos de jogo, molduras e títulos.

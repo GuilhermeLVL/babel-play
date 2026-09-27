@@ -1,7 +1,7 @@
 import { efeitoPorId, efeitoValeNoJogo, type MinigameId, type TipoDeEfeito } from '@core';
 
 import { nivelCreditado } from '../maestriaPosse';
-import type { PacoteDeEfeito } from './pacotes';
+import type { PacoteDeEfeito } from './tipos';
 
 /**
  * AS RECEITAS DOS EFEITOS DE JOGO (recompensas v2, onda 3) — o DESENHO de cada efeito do catálogo

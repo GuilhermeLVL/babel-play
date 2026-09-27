@@ -1,7 +1,5 @@
 import type { MinigameId } from '@core';
 
-import type { BurstKind, FormaParticula, OrigemRajada, ParticlePreset } from '../effects';
-import type { SoundEvent } from '../soundFx';
 import {
   efeitoQueVale,
   efeitosGuardados,
@@ -20,19 +18,8 @@ import {
  * genéricos, 18 acertos e 18 finalizações de maestria. A posse vem dos créditos, não daqui.
  */
 
-export interface PacoteDeEfeito {
-  kind: BurstKind;
-  forma?: FormaParticula;
-  /** De onde a rajada nasce (padrão: o da spec do `kind`). */
-  origem?: OrigemRajada;
-  /** Cor por TOKEN do tema — nunca hex. */
-  cor?: ParticlePreset['colorToken'];
-  /** Partículas por rajada (padrão: o da spec do `kind`). */
-  contagem?: number;
-  gravidade?: number;
-  /** O som do efeito, no lugar do som padrão do evento. */
-  som?: SoundEvent;
-}
+export type { PacoteDeEfeito } from './tipos';
+import type { PacoteDeEfeito } from './tipos';
 
 /** Os efeitos equipados agora: um id por tipo de efeito de jogo. */
 export interface EfeitosEquipados {

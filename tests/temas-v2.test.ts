@@ -101,6 +101,8 @@ describe('CSS do tema completo', () => {
     expect(cssPrototipo).toMatch(/\.hud-progresso span\{[^}]*var\(--hud-barra/)
     expect(cssPrototipo).toMatch(/\.combo\{[^}]*var\(--hud-combo/)
     expect(cssPrototipo).toMatch(/\.combo\.quente\{[^}]*var\(--hud-combo-quente/)
+    // A chama da sequência quente é o ícone lucide `Flame` no HUD, não um emoji em `content`.
+    expect(cssPrototipo).not.toMatch(/content:\s*"\p{Extended_Pictographic}/u)
   })
 
   for (const id of TEMAS_NOVOS) {

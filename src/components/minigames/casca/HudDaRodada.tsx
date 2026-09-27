@@ -1,6 +1,6 @@
 import type { ItemOutcome, MinigameId } from '@core';
 import { pontuarRodada } from '@core';
-import type { LucideIcon } from 'lucide-react';
+import { Flame, type LucideIcon } from 'lucide-react';
 import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 
 import { SEQUENCIA_FEVER } from '../../../core/minigames/blitzRegras';
@@ -134,6 +134,8 @@ export default function HudDaRodada({
         className={`combo ${mult > 1 ? 'quente' : ''}`}
         aria-label={`Multiplicador ${mult}, ${sequencia} seguidas`}
       >
+        {/* A chama da sequência quente: ícone lucide, e não emoji (sem emoji na interface). */}
+        {mult > 1 && <Flame className="combo-chama" aria-hidden />}
         <small>×</small>
         {mult}
         <em>{sequencia ? `${sequencia} ${rotuloDaSequencia(sequencia, comFever)}` : ''}</em>

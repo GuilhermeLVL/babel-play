@@ -1339,7 +1339,7 @@ dialog.gaveta{margin:auto 0 0;width:100%;max-width:100%;height:auto;max-height:8
 .combo{position:relative;display:inline-flex;align-items:baseline;gap:2px;padding:4px 12px;border-radius:var(--hud-raio,12px);background:var(--hud-combo,var(--surface-hover));font:900 22px/1.1 var(--font-display);color:var(--ink-muted);transition:background-color .2s,color .2s}
 .combo small{font-size:12px}
 .combo.quente{background:var(--hud-combo-quente,linear-gradient(135deg,var(--warn),var(--accent)));color:var(--hud-combo-tinta,#fff);box-shadow:0 0 0 3px color-mix(in srgb,var(--warn) 30%,transparent),0 8px 20px -6px color-mix(in srgb,var(--accent) 60%,transparent)}
-.combo.quente::after{content:"🔥";position:absolute;right:-10px;top:-12px;font-size:16px;animation:chama .6s ease-in-out infinite alternate}
+.combo .combo-chama{position:absolute;right:-9px;top:-11px;width:17px;height:17px;color:var(--warn);fill:color-mix(in srgb,var(--warn) 45%,transparent);filter:drop-shadow(0 1px 1px rgba(0,0,0,.25));animation:chama .6s ease-in-out infinite alternate;pointer-events:none}
 @keyframes chama{to{transform:translateY(-3px) rotate(8deg) scale(1.1)}}
 .vidas{display:flex;gap:4px}
 .vidas svg{width:20px;height:20px;color:var(--error);fill:var(--error)}
@@ -1473,7 +1473,7 @@ dialog.gaveta{margin:auto 0 0;width:100%;max-width:100%;height:auto;max-height:8
 .jogo.clicavel:hover .arte svg{transform:scale(1.12) rotate(-4deg)}
 .jogo.clicavel:active{transform:scale(.98)}
 @media (prefers-reduced-motion:reduce){
-.fx-contagem span,.carta,.tabuleiro .carta,.letra,.opcoes-blitz button,.grade-caca span,.fim .estrelas-fim span.on,.fim-numeros div,.carimbo,.ante-heroi .arte-flutua,.ante-heroi .brilho,.btn-jogar-grande::after,.nuvem-palavras span,.auth-form,.onb-palco *,.onb-passo,.combo.quente::after,.selo-combo,.palco-jogo.tenso{animation:none!important;transition:none!important}
+.fx-contagem span,.carta,.tabuleiro .carta,.letra,.opcoes-blitz button,.grade-caca span,.fim .estrelas-fim span.on,.fim-numeros div,.carimbo,.ante-heroi .arte-flutua,.ante-heroi .brilho,.btn-jogar-grande::after,.nuvem-palavras span,.auth-form,.onb-palco *,.onb-passo,.combo .combo-chama,.selo-combo,.palco-jogo.tenso{animation:none!important;transition:none!important}
 .nuvem-palavras{display:none}
 }
 .letra.cheia{animation:none}

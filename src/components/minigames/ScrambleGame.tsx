@@ -1,6 +1,6 @@
 import type { ItemOutcome, RodadaFrase, RoundReport } from '@core';
 import { acertosPosicionais, checkOrder, scoreRound } from '@core';
-import { Check, Lightbulb, RotateCcw, Volume2 } from 'lucide-react';
+import { Check, Eraser, Lightbulb, Volume2 } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 
 import { emitBurst } from '../../lib/effects';
@@ -8,7 +8,9 @@ import { playJuicedError, playJuicedHit, playJuicedVictory, triggerHaptic } from
 import { multiplicador, pontosDoElemento } from '../../lib/juice';
 import type { AgeProfileType } from '../../lib/profile';
 import { play } from '../../lib/soundFx';
-import { speak } from '../../lib/tts';
+import { juntarPalavras } from '../../core/minigames/palavrasDaFrase';
+import { t } from '../../lib/i18n';
+import { falar } from '../../lib/tts';
 import { useRodada } from './casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda } from './casca/HudDaRodada';
 
@@ -89,9 +91,7 @@ export default function ScrambleGame({ rodadas, ageProfile, onFinish }: Scramble
       setConferido('certo');
 
       // Fala a frase inteira montada com sucesso
-      if (rodada.lang) {
-        speak(rodada.correta.join(' '), { lang: rodada.lang });
-      }
+      falar(juntarPalavras(rodada.correta, rodada.lang), rodada.lang);
 
       resultadosRef.current.push({
         ...(rodada.sentenceId ? { itemRef: rodada.sentenceId } : {}),
@@ -184,7 +184,7 @@ export default function ScrambleGame({ rodadas, ageProfile, onFinish }: Scramble
               <BotaoDeAjuda
                 icone={Volume2}
                 rotulo="Ouvir"
-                onClick={() => speak(rodada.correta.join(' '), { lang: rodada.lang })}
+                onClick={() => falar(juntarPalavras(rodada.correta, rodada.lang), rodada.lang)}
                 title="Ouvir a frase completa"
               />
             )}
@@ -262,9 +262,7 @@ export default function ScrambleGame({ rodadas, ageProfile, onFinish }: Scramble
               onClick={() => {
                 triggerHaptic('soft');
                 play('add');
-                if (rodada.lang) {
-                  speak(rodada.embaralhada[i], { lang: rodada.lang });
-                }
+                falar(rodada.embaralhada[i], rodada.lang);
                 setMontada((m) => [...m, i]);
               }}
               disabled={conferido === 'certo'}
@@ -285,7 +283,9 @@ export default function ScrambleGame({ rodadas, ageProfile, onFinish }: Scramble
             disabled={!montada.length || conferido === 'certo'}
             className="py-2.5 px-4 rounded-xl bg-canvas border border-border-subtle text-ink-muted hover:text-ink font-bold text-[13px] disabled:opacity-40 cursor-pointer flex items-center gap-1.5 transition-colors"
           >
-            <RotateCcw className="w-3.5 h-3.5" /> Recomeçar
+            {/* "Limpar", e não "Recomeçar": o topo da rodada já tem um Recomeçar que refaz a RODADA
+                inteira — dois botões com o mesmo nome e efeitos diferentes (QA, 2026-09-26). */}
+            <Eraser className="w-3.5 h-3.5" aria-hidden /> {t('Limpar a linha')}
           </button>
           <button
             data-tour="conferir"

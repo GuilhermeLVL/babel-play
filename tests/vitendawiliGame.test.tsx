@@ -14,7 +14,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { MinigameItem, RoundReport } from '../src/core/minigames/types'
 
 vi.mock('../src/lib/juice', () => ({ contarAte: vi.fn(async () => {}), tremor: vi.fn(), comemorar: vi.fn() }))
-vi.mock('../src/lib/tts', () => ({ speak: vi.fn() }))
+vi.mock('../src/lib/tts', () => ({ speak: vi.fn(), falar: vi.fn(() => true) }))
 
 const { default: VitendawiliGame } = await import('../src/components/minigames/culturais/VitendawiliGame')
 

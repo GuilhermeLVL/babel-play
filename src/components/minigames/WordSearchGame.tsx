@@ -8,7 +8,7 @@ import { playJuicedError, playJuicedHit, playJuicedVictory, triggerHaptic } from
 import { comemorar, multiplicador, pontosDoElemento } from '../../lib/juice';
 import type { AgeProfileType } from '../../lib/profile';
 import { t } from '../../lib/i18n';
-import { speak } from '../../lib/tts';
+import { falar } from '../../lib/tts';
 import { useRodada } from './casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda } from './casca/HudDaRodada';
 
@@ -170,9 +170,7 @@ export default function WordSearchGame({ items, ageProfile, onFinish }: WordSear
 
       // Pronuncia a palavra achada no idioma original
       const it = items[achado.itemIndex];
-      if (it?.answer && it?.lang) {
-        speak(it.answer, { lang: it.lang });
-      }
+      if (it) falar(it.answer, it.lang);
 
       const novos = new Set([...achados, achado.itemIndex]);
       setAchados(novos);

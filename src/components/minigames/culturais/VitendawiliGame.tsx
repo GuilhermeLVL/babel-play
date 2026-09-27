@@ -6,7 +6,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { comemorar } from '../../../lib/juice';
 import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
-import { speak } from '../../../lib/tts';
+import { falar } from '../../../lib/tts';
 import { useRodada } from '../casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from '../casca/HudDaRodada';
 
@@ -46,13 +46,12 @@ function narrarComPausa(texto: string, lang: string): void {
   const antes = (partes[0] ?? '').trim();
   const depois = partes.slice(1).join(' ').trim();
   if (!antes) {
-    if (depois) speak(depois, { lang });
+    if (depois) falar(depois, lang);
     return;
   }
-  speak(antes, {
-    lang,
+  falar(antes, lang, {
     onEnd: () => {
-      if (depois) setTimeout(() => speak(depois, { lang }), PAUSA_NA_LACUNA);
+      if (depois) setTimeout(() => falar(depois, lang), PAUSA_NA_LACUNA);
     },
   });
 }
@@ -151,7 +150,7 @@ export default function VitendawiliGame({ items, ageProfile, onFinish, onExit }:
     });
     recontar(outcomesRef.current);
     comemorar('acerto', el);
-    speak(atual.item.answer, { lang: atual.item.lang });
+    falar(atual.item.answer, atual.item.lang);
 
     if (indice + 1 >= rodada.length) {
       finalizar(outcomesRef.current);

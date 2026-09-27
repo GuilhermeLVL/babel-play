@@ -7,7 +7,7 @@ import { vazaResposta } from '../../../core/learning/pistaDeJogo';
 import { comemorar } from '../../../lib/juice';
 import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
-import { speak } from '../../../lib/tts';
+import { falar } from '../../../lib/tts';
 import { useRodada } from '../casca/CascaDaRodada';
 import HudDaRodada, { usePlacarDaRodada } from '../casca/HudDaRodada';
 
@@ -36,7 +36,7 @@ const PALAVRAS = MINIGAMES.cadavre.maxItems;
 export default function CadavreExquisGame({ items, ageProfile, onFinish, onExit }: CadavreExquisGameProps) {
   /** A casca diz quando a rodada anda (fora da contagem 3-2-1 e da pausa); o placar do HUD sai dos resultados. */
   const { ativo } = useRodada();
-  const [placar] = usePlacarDaRodada('cadavre');
+  const [placar, recontar] = usePlacarDaRodada('cadavre');
   const suficiente = items.length >= PALAVRAS;
   const [leva, setLeva] = useState<MinigameItem[]>(() => items.slice(0, PALAVRAS));
   /** Próximo item de reserva para a troca. Só existe quando a leva chegou com sobra. */
@@ -67,6 +67,8 @@ export default function CadavreExquisGame({ items, ageProfile, onFinish, onExit 
       ms,
     }));
     if (outcomes.every((o) => o.correct)) comemorar('rodadaPerfeita', palcoRef.current);
+    // O placar do HUD mostra o que a conferência valeu (antes ficava em zero a rodada inteira).
+    recontar(outcomes);
     setResultado({
       gameId: 'cadavre',
       items: outcomes,
@@ -93,7 +95,7 @@ export default function CadavreExquisGame({ items, ageProfile, onFinish, onExit 
         sequencia={placar.sequencia}
         acertos={placar.acertos}
         rotulo={`Uma frase com ${leva.length} palavras`}
-        progresso={0}
+        progresso={resultado ? 1 : 0}
       />
 
       <div ref={palcoRef} className="flex flex-col items-center justify-center gap-6 max-w-2xl mx-auto w-full">
@@ -119,7 +121,7 @@ export default function CadavreExquisGame({ items, ageProfile, onFinish, onExit 
                     <Check className="w-4 h-4 text-good-ink shrink-0" aria-label="usada na frase" />
                   )}
                   <button
-                    onClick={() => speak(it.answer, { lang: it.lang })}
+                    onClick={() => falar(it.answer, it.lang)}
                     className="ml-auto p-1 rounded-full hover:bg-surface-hover text-accent cursor-pointer shrink-0"
                     title="Ouvir a palavra"
                     aria-label={`Ouvir ${it.answer}`}
@@ -175,7 +177,7 @@ export default function CadavreExquisGame({ items, ageProfile, onFinish, onExit 
             </p>
             <div className="flex items-center justify-center gap-2 mt-3">
               <button
-                onClick={() => speak(frase, { lang: leva[0].lang })}
+                onClick={() => falar(frase, leva[0].lang)}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface-hover text-[12px] font-bold text-ink cursor-pointer"
               >
                 <Volume2 className="w-4 h-4 text-accent" aria-hidden />

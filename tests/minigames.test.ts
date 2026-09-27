@@ -78,11 +78,12 @@ describe('buildItems', () => {
     /* Traduções DISTINTAS de propósito. A fábrica dá 'casa' a todos, e desde que `buildItems`
        passou a recusar pista repetida na mesma rodada, três cartões traduzidos igual produziriam
        uma rodada de UM item — o teste mediria a regra de pista única em vez da ordem de urgência,
-       que é o que ele existe para medir. */
+       que é o que ele existe para medir. O mesmo vale para a PALAVRA: desde o QA dos jogos
+       (2026-09-26) a mesma palavra também entra uma vez só por rodada. */
     const deck = [
-      card({ id: 'futuro', translation: 'futura', fsrsDueAt: iso(+DIA) }),
-      card({ id: 'atrasado', translation: 'atrasada', fsrsDueAt: iso(-10 * DIA) }),
-      card({ id: 'recente', translation: 'recente', fsrsDueAt: iso(-DIA) }),
+      card({ id: 'futuro', word: 'future', translation: 'futura', fsrsDueAt: iso(+DIA) }),
+      card({ id: 'atrasado', word: 'late', translation: 'atrasada', fsrsDueAt: iso(-10 * DIA) }),
+      card({ id: 'recente', word: 'recent', translation: 'recente', fsrsDueAt: iso(-DIA) }),
     ];
     expect(buildItems('blitz', deck, { shuffle: semSorte, now: AGORA }).map(i => i.cardId))
       .toEqual(['atrasado', 'recente', 'futuro']);

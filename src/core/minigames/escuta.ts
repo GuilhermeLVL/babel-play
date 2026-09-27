@@ -1,5 +1,6 @@
 import { avaliarFrase, chaveComparavel } from '../learning/quality';
 import { dobrarTexto } from '../texto/palavra';
+import { palavrasDaFrase } from './palavrasDaFrase';
 import { chaveSemAcento } from './resposta';
 import { normalizarPalavra } from './wordsearch';
 
@@ -100,11 +101,11 @@ export function buildRodadasEscuta(
   if (uteis.length < nAlt) return [];
 
   return shuffle(uteis).slice(0, quantidade).map(correta => {
-    const tamanho = correta.text.split(/\s+/).length;
+    const tamanhoDe = (f: FalaComAudio) => palavrasDaFrase(f.text, f.lang).length;
+    const tamanho = tamanhoDe(correta);
     const outras = uteis
       .filter(f => f.id !== correta.id && chaveDeTexto(f.text) !== chaveDeTexto(correta.text))
-      .sort((a, b) =>
-        Math.abs(a.text.split(/\s+/).length - tamanho) - Math.abs(b.text.split(/\s+/).length - tamanho));
+      .sort((a, b) => Math.abs(tamanhoDe(a) - tamanho) - Math.abs(tamanhoDe(b) - tamanho));
     return { correta, opcoes: shuffle([correta, ...outras.slice(0, nAlt - 1)]) };
   }).filter(r => r.opcoes.length >= 2);
 }
@@ -127,12 +128,12 @@ export function buildRodadasDitado(
 ): RodadaDitado[] {
   const shuffle = opts.shuffle ?? embaralhar;
   const uteis = falasAudiveis(frases).filter(f => {
-    const n = f.text.split(/\s+/).filter(Boolean).length;
+    const n = palavrasDaFrase(f.text, f.lang).length;
     return n >= 4 && n <= 12;
   });
   return shuffle(uteis).slice(0, opts.quantidade ?? 5).map(fala => ({
     fala,
-    palavras: fala.text.split(/\s+/).filter(Boolean).length,
+    palavras: palavrasDaFrase(fala.text, fala.lang).length,
   }));
 }
 
@@ -155,9 +156,10 @@ export interface ResultadoDitado {
   precisao: number;
 }
 
-export function conferirDitado(esperado: string, escrito: string): ResultadoDitado {
-  const alvo = (esperado ?? '').split(/\s+/).filter(Boolean);
-  const dito = (escrito ?? '').split(/\s+/).filter(Boolean);
+export function conferirDitado(esperado: string, escrito: string, idioma = ''): ResultadoDitado {
+  /* O corte é o do idioma da fala: em japonês a frase inteira não é UMA palavra (`palavrasDaFrase`). */
+  const alvo = palavrasDaFrase(esperado, idioma);
+  const dito = palavrasDaFrase(escrito, idioma);
   /* `normalizarPalavra` só mantém A–Z, então NÚMERO E SÍMBOLO viram string vazia — e duas vazias
      são iguais. Sem a saída abaixo, "2" casava com "5" e qualquer pontuação casava com qualquer
      outra: o jogo dava acerto onde a pessoa errou. Quando a normalização não sobra nada, compara
@@ -315,7 +317,7 @@ export function buildRodadasConectores(
   const candidatas = (frases ?? [])
     .filter(f => avaliarFrase(f.text).serve)
     .map(fala => {
-      const tokens = fala.text.split(/\s+/).filter(Boolean);
+      const tokens = palavrasDaFrase(fala.text, fala.lang || opts.lang);
       const alvos = tokens
         .map((t, i) => (lista.has(chaveComparavel(t)) ? i : -1))
         .filter(i => i >= 0);

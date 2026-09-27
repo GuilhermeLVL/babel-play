@@ -1,5 +1,6 @@
 import type { VocabCard } from '../../types';
 import { chaveComparavel } from '../learning/quality';
+import { palavrasDoTexto } from '../texto/segmentacao';
 
 /**
  * BINGO DA ESCUTA — a cartela que acende sozinha enquanto você assiste.
@@ -63,9 +64,16 @@ export function buildCartela(cards: VocabCard[], opts: { casas?: number; shuffle
  * "partes" e a cartela fecharia por engano. Devolve uma cartela nova (as casas já marcadas ficam
  * com o instante original — a primeira vez é a que vale).
  */
-export function marcarFala(cartela: CasaBingo[], texto: string, agora: number = Date.now()): { cartela: CasaBingo[]; novas: CasaBingo[] } {
+export function marcarFala(
+  cartela: CasaBingo[],
+  texto: string,
+  agora: number = Date.now(),
+  idioma = '',
+): { cartela: CasaBingo[]; novas: CasaBingo[] } {
+  /* As palavras pelo idioma da fala (`palavrasDoTexto`): o VERBETE, que é o que a cartela guarda —
+     "fazê-lo" acende "fazer", e em japonês a fala deixa de ser uma palavra só. */
   const ditas = new Set(
-    texto.split(/\s+/).map(chaveComparavel).filter(p => p.length >= minimoDaEscrita(p))
+    palavrasDoTexto(texto, idioma).map(chaveComparavel).filter(p => p.length >= minimoDaEscrita(p))
   );
   const novas: CasaBingo[] = [];
   const atualizada = cartela.map(casa => {

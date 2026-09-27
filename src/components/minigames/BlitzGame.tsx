@@ -33,7 +33,7 @@ import type { AgeProfileType } from '../../lib/profile';
 import { perfilProtegido } from '../../lib/protecaoDoMenor';
 import { apelidoValido, enviarParaRanking, lerApelido, salvarApelido } from '../../lib/ranking';
 import { play } from '../../lib/soundFx';
-import { speak } from '../../lib/tts';
+import { falar } from '../../lib/tts';
 import { useRodada } from './casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda } from './casca/HudDaRodada';
 
@@ -271,9 +271,7 @@ export default function BlitzGame({ items, ageProfile, onFinish }: BlitzGameProp
       // 1. O acerto sensorial completo: áudio escalonado por semitom, haptics e número flutuante
       const texto = '+' + ganho.total + (mult > 1 && !comDica ? ' ×' + mult : '') + (ganho.fever ? ' FEVER' : '');
       playJuicedHit(nova, coords, texto);
-      if (item.answer && item.lang) {
-        speak(item.answer, { lang: item.lang });
-      }
+      falar(item.answer, item.lang);
 
       // 2. Velocidade: um segundo número, defasado, para não colidir com o primeiro.
       if (ganho.velocidade > 0 && el) {

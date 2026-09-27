@@ -3,6 +3,7 @@ import { conferirDitado, pontuarRodada, scorePronunciation, scoreRound } from '@
 import { Mic, Play, SkipForward, Square, Turtle } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
+import { palavrasDaFrase } from '../../core/minigames/palavrasDaFrase';
 import { criarFalante } from '../../lib/falante';
 import { playJuicedError, playJuicedHit, triggerConfetti, triggerHaptic } from '../../lib/gameFeel';
 import { comemorar } from '../../lib/juice';
@@ -71,7 +72,7 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish }: K
   const jaFinalizouRef = useRef(false);
 
   const fala = falas[indice];
-  const palavras = fala ? fala.texto.split(/\s+/).filter(Boolean) : [];
+  const palavras = fala ? palavrasDaFrase(fala.texto, fala.lang) : [];
 
   const falante = useMemo(() => criarFalante(audioRef, audioUrl), [audioUrl]);
   const ouvir = (velocidade = 1) => {
@@ -126,7 +127,7 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish }: K
       const dito = e.results?.[0]?.[0]?.transcript ?? '';
       const duracao = Date.now() - inicioFalaRef.current;
       const s = scorePronunciation(fala.texto, dito, { durationMs: duracao });
-      setNota({ accuracy: s.accuracy, transcript: dito, diff: conferirDitado(fala.texto, dito) });
+      setNota({ accuracy: s.accuracy, transcript: dito, diff: conferirDitado(fala.texto, dito, fala.lang) });
       setFase('avaliado');
 
       if (s.accuracy >= 60) {

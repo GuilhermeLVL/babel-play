@@ -20,9 +20,8 @@ import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 're
 
 import { playJuicedError, playJuicedHit, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
 import { multiplicador, pontosDoElemento } from '../../lib/juice';
-import { toBcp47 } from '../../lib/languages';
 import type { AgeProfileType } from '../../lib/profile';
-import { speak } from '../../lib/tts';
+import { falar } from '../../lib/tts';
 import { toast } from '../Toast';
 import { useRodada } from './casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda } from './casca/HudDaRodada';
@@ -369,7 +368,8 @@ export default function TermoGame({ rodadas, ageProfile, onFinish }: TermoGamePr
         const rod = grupo[i];
         if (rod) {
           const w = rod.palavra || rod.resposta;
-          if (w) speak(w, { lang: toBcp47(rod.lang || 'en') });
+          // O idioma da palavra, sem `|| 'en'`: sem idioma não se fala (antes lia com voz inglesa).
+          if (w) falar(w, rod.lang);
         }
       }
     });
@@ -505,7 +505,7 @@ export default function TermoGame({ rodadas, ageProfile, onFinish }: TermoGamePr
     const alvo = resolvidos.findIndex((r) => !r);
     if (alvo < 0) return;
     // Ouvir NÃO é dica: não revela letra nenhuma, e ligar grafia ao som é o objetivo do jogo.
-    speak(grupo[alvo].palavra || grupo[alvo].resposta, { lang: toBcp47(grupo[alvo].lang || 'en') });
+    falar(grupo[alvo].palavra || grupo[alvo].resposta, grupo[alvo].lang);
   };
 
   // Sem lista de dependências de propósito: o ouvinte é reinstalado a cada render para que

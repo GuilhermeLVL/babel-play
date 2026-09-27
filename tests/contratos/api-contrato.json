@@ -35,6 +35,7 @@
     "GET /api/me/exportar",
     "GET /api/me/idade",
     "GET /api/me/uso",
+    "GET /api/metrics/maestria",
     "GET /api/metrics/profile",
     "GET /api/metrics/xp",
     "GET /api/rank/:jogo",

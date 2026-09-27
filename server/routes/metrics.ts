@@ -30,6 +30,7 @@ import {
   metaDoDiaCumprida,
   sequencias,
 } from '../../src/core/learning/economia'
+import { maestriaPorJogo, nivelDeMaestria } from '../../src/core/maestria'
 import { reembolsosDevidos } from '../../src/core/reembolso'
 import { economiaRepo } from '../db/repositories/economia'
 import { exerciseResultsRepo } from '../db/repositories/exerciseResults'
@@ -416,6 +417,28 @@ metricsRouter.post('/seeds/reembolso', async (req, res) => {
   }
 })
 
+/**
+ * A MAESTRIA POR JOGO (recompensas v2, onda 3) — `GET /api/metrics/maestria`.
+ *
+ * Os 18 jogos com pontos, nível e quanto falta, somados das linhas gravadas (`maestriaPorJogo`,
+ * uma vez por `roundId`), e os créditos `maestria:` já lançados — para o cliente pedir os que
+ * faltam pela rota de crédito, que confere os pontos de novo antes de gravar. Só leitura.
+ */
+metricsRouter.get('/maestria', async (req, res) => {
+  try {
+    const [linhas, creditados] = await Promise.all([
+      exerciseResultsRepo.linhasDeMaestria(req.userId),
+      economiaRepo.maestriasCreditadas(req.userId),
+    ])
+    const jogos = maestriaPorJogo(linhas).map((m) => ({ ...m, ...nivelDeMaestria(m.pontos) }))
+    res.json({ jogos, creditados })
+  } catch (err) {
+    res.status(500).json({
+      error: erroDeRota(err, { status: 500, event: 'metrics_route_error', route: req.path, requestId: req.requestId }),
+    })
+  }
+})
+
 metricsRouter.post('/seeds/creditar', async (req, res) => {
   const payload = parseOr400(seedCreditSchema, req.body, res)
   if (!payload) return
@@ -432,6 +455,23 @@ metricsRouter.post('/seeds/creditar', async (req, res) => {
     if (ehRecusa(credito)) {
       responderErro(res, 400, credito.erro, 'credito_desconhecido')
       return
+    }
+
+    /* A MAESTRIA (recompensas v2, onda 3): `maestria:<jogo>:<nível>` só credita se os pontos do
+       jogo, somados das linhas GRAVADAS desta conta (uma vez por `roundId`), alcançam o limiar do
+       nível. Sem isto seriam 20 × 5 Seeds por jogo a qualquer pedido. O reenvio de um nível já
+       creditado continua passando (os pontos não diminuem) e cai no `ON CONFLICT`. */
+    if (credito.maestria) {
+      const { jogo, pontosExigidos } = credito.maestria
+      const pontos =
+        maestriaPorJogo(await exerciseResultsRepo.linhasDeMaestria(req.userId)).find((m) => m.jogo === jogo)?.pontos ?? 0
+      if (pontos < pontosExigidos) {
+        responderErro(res, 400, 'nível de maestria ainda não alcançado', 'maestria_nao_alcancada', {
+          pontos,
+          exigido: pontosExigidos,
+        })
+        return
+      }
     }
 
     /* Uma leitura de economia serve às conferências abaixo, e nenhuma roda quando o crédito não

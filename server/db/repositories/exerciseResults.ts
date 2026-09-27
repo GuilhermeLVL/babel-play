@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 
 import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, max, type SQL, sql } from 'drizzle-orm'
 
+import type { LinhaDeMaestria } from '../../../src/core/maestria'
 import { MINIGAME_IDS } from '../../../src/core/minigames/revelavel'
 import type { UserId } from '../../lib/authContext'
 import { db } from '../db'
@@ -430,6 +431,30 @@ export const exerciseResultsRepo = {
     // Um INSERT multi-VALUES: ou entra a rodada toda, ou não entra nada.
     await db.insert(exerciseResults).values(linhas)
     return { gravados: linhas.length, roundId: rodada.roundId }
+  },
+
+  /**
+   * AS LINHAS QUE A MAESTRIA SOMA (recompensas v2, onda 3): só jogos, só rodadas com nome. A soma
+   * (e a deduplicação por `roundId`) é de `maestriaPorJogo`, no core — a mesma do espelho sem conta.
+   */
+  async linhasDeMaestria(userId: UserId): Promise<LinhaDeMaestria[]> {
+    return db
+      .select({
+        exerciseKind: exerciseResults.exerciseKind,
+        roundId: exerciseResults.roundId,
+        correct: exerciseResults.correct,
+        combo: exerciseResults.combo,
+        createdAt: exerciseResults.createdAt,
+      })
+      .from(exerciseResults)
+      .where(
+        and(
+          eq(exerciseResults.userId, userId),
+          isNull(exerciseResults.deletedAt),
+          isNotNull(exerciseResults.roundId),
+          inArray(exerciseResults.exerciseKind, MINIGAME_IDS as unknown as string[]),
+        ),
+      )
   },
 
   async listarPorRodada(userId: UserId, roundId: string): Promise<ExerciseResult[]> {

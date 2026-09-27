@@ -1,7 +1,9 @@
 import { type Conquista, CONQUISTAS, type ContextoDeConquistas } from './learning/conquistas';
 import { PESOS_SEEDS, PESOS_XP } from './learning/xp';
 import { CATALOGO_DA_LOJA, type ItemDaLoja, type Raridade } from './loja';
+import { creditoDeMaestria, LIMIARES_DE_MAESTRIA, type NivelAlcancavel } from './maestria';
 import { estrelasDaRodada } from './minigames/fases';
+import type { MinigameId } from './minigames/types';
 import { type SlotDoPasse, slotsDoPasse } from './passe';
 
 /**
@@ -154,6 +156,11 @@ export interface CreditoAutorizado {
    * sido cumprida. Quem credita confere a janela (hoje ou ontem) e os acertos daquele dia.
    */
   metaDoDia?: string;
+  /**
+   * Presente só na família `maestria:<jogo>:<nível>` (recompensas v2, onda 3): quem credita soma
+   * os pontos do jogo nas linhas gravadas e confere que alcançam `pontosExigidos`.
+   */
+  maestria?: { jogo: MinigameId; nivel: NivelAlcancavel; pontosExigidos: number };
 }
 
 /** `meta:<AAAA-MM-DD>` -> o dia, ou null. Data de calendário válida, sem hora. */
@@ -226,6 +233,22 @@ export function valorDoCredito(creditoId: string): CreditoAutorizado | RecusaDeG
       reason: `meta:${dia}`,
       nivelMinimo: 0,
       metaDoDia: dia,
+    };
+  }
+
+  /* A MAESTRIA (recompensas v2, onda 3): `maestria:<jogo>:<nível>` vale `nivelDeMaestria × nível`
+     Seeds. O valor é da regra; a CONDIÇÃO (os pontos do jogo alcançarem o limiar) depende das
+     linhas gravadas, então fica com quem credita — como a meta do dia. Nunca à venda. */
+  if (creditoId.startsWith('maestria:')) {
+    const m = creditoDeMaestria(creditoId);
+    if (!m) return { erro: `maestria malformada: ${creditoId.slice(0, 40)}` };
+    return {
+      creditoId,
+      seeds: PESOS_SEEDS.nivelDeMaestria * m.nivel,
+      xp: 0,
+      reason: creditoId,
+      nivelMinimo: 0,
+      maestria: { ...m, pontosExigidos: LIMIARES_DE_MAESTRIA[m.nivel - 1] },
     };
   }
 

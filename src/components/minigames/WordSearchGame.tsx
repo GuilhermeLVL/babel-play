@@ -7,6 +7,7 @@ import { emitBurst } from '../../lib/effects';
 import { playJuicedError, playJuicedHit, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
 import { comemorar, multiplicador, pontosDoElemento } from '../../lib/juice';
 import type { AgeProfileType } from '../../lib/profile';
+import { t } from '../../lib/i18n';
 import { speak } from '../../lib/tts';
 import { useRodada } from './casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda } from './casca/HudDaRodada';
@@ -50,6 +51,18 @@ export default function WordSearchGame({ items, ageProfile, onFinish }: WordSear
   const gradeRef = useRef<HTMLDivElement | null>(null);
   const [inicio, setInicio] = useState<Celula | null>(null);
   const [hover, setHover] = useState<Celula | null>(null);
+  /**
+   * O TRAÇO TEM DOIS JEITOS DE ACONTECER (QA dos jogos, 2026-09-26): arrastar (mouse, ou dedo) e
+   * marcar as pontas — tocar/Enter na primeira letra e depois na última. Antes só o arrasto existia,
+   * e no toque ele nem funcionava: o navegador captura o ponteiro na célula onde o dedo pousou, então
+   * `pointerenter`/`pointerup` nunca chegavam às outras. `arrastando` diferencia "o dedo ainda está
+   * na tela" de "a primeira ponta está marcada, esperando a segunda".
+   */
+  const arrastandoRef = useRef(false);
+  /** A primeira ponta está marcada (por toque ou teclado) e a tela pede a última. */
+  const [aguardandoFim, setAguardandoFim] = useState(false);
+  /** A célula que recebe o Tab (as outras andam pelas setas): 169 paradas de Tab seria um labirinto. */
+  const [focoNaGrade, setFocoNaGrade] = useState<Celula>({ linha: 0, coluna: 0 });
   const tentativasRef = useRef<Map<number, number>>(new Map());
   const inicioRodadaRef = useRef(Date.now());
   const jaFinalizouRef = useRef(false);
@@ -82,8 +95,63 @@ export default function WordSearchGame({ items, ageProfile, onFinish }: WordSear
     );
   };
 
+  /** Começa um traço nesta célula, ou — se a primeira ponta já está marcada — termina nela. */
+  const marcarPonta = (celula: Celula, el: HTMLElement | null) => {
+    if (!ativo) return;
+    if (!inicio) {
+      setInicio(celula);
+      setHover(celula);
+      setAguardandoFim(true);
+      return;
+    }
+    // A mesma letra de novo desfaz a marcação: é o "não era aqui", e não conta como erro.
+    if (inicio.linha === celula.linha && inicio.coluna === celula.coluna) {
+      setInicio(null);
+      setHover(null);
+      setAguardandoFim(false);
+      return;
+    }
+    soltar(celula, el);
+  };
+
+  /** As setas movem o foco pela grade; Enter/Espaço marcam a ponta; Esc desfaz a marcação. */
+  const aoTeclarNaCelula = (e: React.KeyboardEvent<HTMLButtonElement>, celula: Celula) => {
+    const passos: Record<string, [number, number]> = {
+      ArrowRight: [0, 1],
+      ArrowLeft: [0, -1],
+      ArrowDown: [1, 0],
+      ArrowUp: [-1, 0],
+    };
+    const passo = passos[e.key];
+    if (passo) {
+      e.preventDefault();
+      const linha = Math.max(0, Math.min(grade.tamanho - 1, celula.linha + passo[0]));
+      const coluna = Math.max(0, Math.min(grade.tamanho - 1, celula.coluna + passo[1]));
+      setFocoNaGrade({ linha, coluna });
+      if (inicio) setHover({ linha, coluna });
+      gradeRef.current?.querySelector<HTMLButtonElement>(`[data-celula="${linha}-${coluna}"]`)?.focus();
+      return;
+    }
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      marcarPonta(celula, e.currentTarget);
+      return;
+    }
+    // Com uma ponta marcada, Esc desfaz a marcação em vez de pausar a rodada.
+    if (e.key === 'Escape' && inicio) {
+      e.preventDefault();
+      e.stopPropagation();
+      e.nativeEvent.stopImmediatePropagation();
+      setInicio(null);
+      setHover(null);
+      setAguardandoFim(false);
+    }
+  };
+
   const soltar = (fim: Celula, el: HTMLElement | null) => {
     if (!inicio) return;
+    arrastandoRef.current = false;
+    setAguardandoFim(false);
     const achado = matchSelection(grade, inicio, fim);
     setInicio(null);
     setHover(null);
@@ -279,6 +347,14 @@ export default function WordSearchGame({ items, ageProfile, onFinish }: WordSear
         </span>
       </div>
 
+      {/* COMO MARCAR, dito uma vez e sempre à vista: o arrasto não é o único gesto, e no celular
+          tocar nas duas pontas é o mais preciso. Com a primeira ponta marcada, a frase muda. */}
+      <p id="como-marcar" className="text-center text-[12px] text-ink-muted mb-2" aria-live="polite">
+        {aguardandoFim
+          ? t('Agora toque na última letra da palavra (ou na mesma, para desfazer).')
+          : t('Arraste da primeira à última letra, ou toque na primeira e depois na última.')}
+      </p>
+
       {/* As duas colunas como um PAR centralizado. Com `mx-auto` na grade, cada uma se centrava no
           próprio espaço e sobrava um vão enorme no meio da tela, grade num canto, pistas no outro. */}
       <div className="flex flex-col lg:flex-row gap-5 lg:gap-8 items-start justify-center my-auto w-fit mx-auto">
@@ -288,7 +364,13 @@ export default function WordSearchGame({ items, ageProfile, onFinish }: WordSear
           data-tour="grade"
           className="grid gap-0.5 select-none touch-none shrink-0"
           style={{ gridTemplateColumns: `repeat(${grade.tamanho}, minmax(0, 1fr))` }}
+          role="group"
+          aria-label={t('Grade de letras')}
+          aria-describedby="como-marcar"
           onPointerLeave={() => {
+            // Sair da grade no meio de um ARRASTO cancela; uma ponta marcada por toque continua.
+            if (!arrastandoRef.current) return;
+            arrastandoRef.current = false;
             setInicio(null);
             setHover(null);
           }}
@@ -300,17 +382,43 @@ export default function WordSearchGame({ items, ageProfile, onFinish }: WordSear
               const acesa = dicaAcesa?.linha === l && dicaAcesa?.coluna === c;
               const pulsando = pontas.some((x) => x.linha === l && x.coluna === c);
               const realcada = destacada(letra);
+              const celula = { linha: l, coluna: c };
               return (
                 <button
                   key={`${l}-${c}`}
-                  onPointerDown={() => {
-                    setInicio({ linha: l, coluna: c });
-                    setHover({ linha: l, coluna: c });
+                  type="button"
+                  data-celula={`${l}-${c}`}
+                  tabIndex={focoNaGrade.linha === l && focoNaGrade.coluna === c ? 0 : -1}
+                  aria-pressed={inicio?.linha === l && inicio?.coluna === c ? true : undefined}
+                  onFocus={() => setFocoNaGrade(celula)}
+                  onKeyDown={(e) => aoTeclarNaCelula(e, celula)}
+                  onPointerDown={(e) => {
+                    /* Solta a captura implícita do toque: sem isto os eventos do dedo ficam presos
+                       na célula de partida e as outras nunca sabem que ele passou por elas. */
+                    const alvo = e.currentTarget;
+                    if (alvo.hasPointerCapture?.(e.pointerId)) alvo.releasePointerCapture(e.pointerId);
+                    if (inicio && !arrastandoRef.current) {
+                      marcarPonta(celula, alvo); // segunda ponta de um traço por toque
+                      return;
+                    }
+                    if (!ativo) return;
+                    arrastandoRef.current = true;
+                    setInicio(celula);
+                    setHover(celula);
                   }}
                   onPointerEnter={() => {
-                    if (inicio) setHover({ linha: l, coluna: c });
+                    if (inicio) setHover(celula);
                   }}
-                  onPointerUp={(e) => soltar({ linha: l, coluna: c }, e.currentTarget)}
+                  onPointerUp={(e) => {
+                    if (!arrastandoRef.current) return;
+                    // Soltou onde começou: foi um TOQUE — a primeira ponta fica marcada, à espera da outra.
+                    if (inicio?.linha === l && inicio?.coluna === c) {
+                      arrastandoRef.current = false;
+                      setAguardandoFim(true);
+                      return;
+                    }
+                    soltar(celula, e.currentTarget);
+                  }}
                   /* Célula que ESCALA com a tela (2026-08-28): 32-36px fixos deixavam a grade
                      minúscula num monitor. Cresce com a altura, encolhe no celular, e nunca
                      estoura a largura disponível para a grade inteira. */

@@ -12,8 +12,8 @@
  * `tests/contratos/rotas-espelhadas`: moeda paga nasce e morre no servidor.
  */
 import {
-autorizarGasto, ehRecusa,
-itensSorteaveisNoDrop,   roundIdDoDrop, sortearItemDoDrop,   valorDoCredito, valorDoDrop,
+autorizarGasto, ehRecusa, ESTRELAS_PARA_O_BAU,
+itensSorteaveisNoDrop, rodadaRendeBau, roundIdDoDrop, sortearItemDoDrop, valorDoCredito, valorDoDrop,
 } from '../../../core/economiaAutoridade';
 import { diaLocal, sequencias } from '../../../core/learning/economia';
 import { economiaDeMetricas } from '../../../core/learning/xp';
@@ -99,8 +99,8 @@ export async function registrarPresenca(_m: RegExpMatchArray, _u: URL, init: Req
  */
 async function creditarDrop(creditoId: string, roundId: string): Promise<Response> {
   const db = await abrirStore();
-  const exercicios = await db.getAll('exercicios');
-  if (!exercicios.some((e) => e.roundId === roundId)) {
+  const daRodada = (await db.getAll('exercicios')).filter((e) => e.roundId === roundId);
+  if (!daRodada.length) {
     return json({ error: 'rodada inexistente para este drop', code: 'rodada_inexistente', codigo: 'rodada_inexistente', detalhes: { roundId } }, 400);
   }
 
@@ -113,6 +113,12 @@ async function creditarDrop(creditoId: string, roundId: string): Promise<Respons
   const jaAberto = creditos.find((c) => c.creditoId === creditoId);
   if (jaAberto) {
     return json({ jaExistia: true, item: jaAberto.reason.slice('drop:'.length), ...totais(creditos) });
+  }
+
+  /* O baú exige duas estrelas, sobre as linhas gravadas — a mesma régua e o mesmo lugar do Express. */
+  const desempenho = rodadaRendeBau(daRodada);
+  if (!desempenho.rende) {
+    return json({ error: 'rodada sem baú: exige duas estrelas', code: 'rodada_sem_bau', codigo: 'rodada_sem_bau', detalhes: { estrelas: desempenho.estrelas, exigido: ESTRELAS_PARA_O_BAU } }, 400);
   }
 
   const jaPossui = new Set<string>();

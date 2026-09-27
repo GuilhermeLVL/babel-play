@@ -1,6 +1,7 @@
-import { type Conquista,CONQUISTAS } from './learning/conquistas'
-import { CATALOGO_DA_LOJA, type ItemDaLoja, type Raridade } from './loja'
-import { type SlotDoPasse,slotsDoPasse } from './passe'
+import { type Conquista, CONQUISTAS } from './learning/conquistas';
+import { CATALOGO_DA_LOJA, type ItemDaLoja, type Raridade } from './loja';
+import { estrelasDaRodada } from './minigames/fases';
+import { type SlotDoPasse, slotsDoPasse } from './passe';
 
 /**
  * A TABELA DE PREÇOS QUE O SERVIDOR CONSULTA.
@@ -28,18 +29,21 @@ import { type SlotDoPasse,slotsDoPasse } from './passe'
 
 /** Croma: barato de propósito — é onde a Seed sobrando vai parar, não uma segunda barreira. */
 export const PRECO_DO_CROMA: Record<Raridade, number> = {
-  comum: 15, raro: 25, epico: 40, lendario: 60,
-}
+  comum: 15,
+  raro: 25,
+  epico: 40,
+  lendario: 60,
+};
 
 /** Aprimoramento: três degraus, cada um mais caro que o anterior. */
-export const CUSTOS_DE_NIVEL = [50, 110, 220] as const
-export const NIVEL_MAXIMO_DE_APRIMORAMENTO = 3
+export const CUSTOS_DE_NIVEL = [50, 110, 220] as const;
+export const NIVEL_MAXIMO_DE_APRIMORAMENTO = 3;
 
 /** Pular a rodada mantendo o combo (economia v2: ≈ metade de um dia ativo). */
-export const CUSTO_PULAR_RODADA = 40
+export const CUSTO_PULAR_RODADA = 40;
 
 /** Os alvos de aprimoramento que existem. Fora desta lista, o servidor não cobra. */
-export const ALVOS_DE_APRIMORAMENTO = ['particulas', 'sorte'] as const
+export const ALVOS_DE_APRIMORAMENTO = ['particulas', 'sorte'] as const;
 
 /* ── Autorização de um GASTO ────────────────────────────────────────────────────────────────── */
 
@@ -47,17 +51,17 @@ export type GastoAutorizado =
   | { tipo: 'loja'; itemId: string; preco: number }
   | { tipo: 'croma'; itemId: string; matiz: string; preco: number }
   | { tipo: 'aprimoramento'; alvo: string; nivel: number; preco: number }
-  | { tipo: 'pular-rodada'; preco: number }
+  | { tipo: 'pular-rodada'; preco: number };
 
 /** Por que um motivo foi recusado — texto curto, para o 400 dizer o que houve. */
-export type RecusaDeGasto = { erro: string }
+export type RecusaDeGasto = { erro: string };
 
 /** Vale para qualquer autorização — de Seeds ou de Créditos. */
 export function ehRecusa<T extends object>(r: T | RecusaDeGasto): r is RecusaDeGasto {
-  return 'erro' in r
+  return 'erro' in r;
 }
 
-const itemPorId = (id: string): ItemDaLoja | undefined => CATALOGO_DA_LOJA.find((i) => i.id === id)
+const itemPorId = (id: string): ItemDaLoja | undefined => CATALOGO_DA_LOJA.find((i) => i.id === id);
 
 /**
  * Traduz o `reason` de um gasto no que ele autoriza — ou recusa.
@@ -66,45 +70,44 @@ const itemPorId = (id: string): ItemDaLoja | undefined => CATALOGO_DA_LOJA.find(
  * tempo o campo de diagnóstico e o título de propriedade: qualquer string virava posse.
  */
 export function autorizarGasto(reason: string): GastoAutorizado | RecusaDeGasto {
-  if (reason === 'pular-rodada') return { tipo: 'pular-rodada', preco: CUSTO_PULAR_RODADA }
+  if (reason === 'pular-rodada') return { tipo: 'pular-rodada', preco: CUSTO_PULAR_RODADA };
 
   if (reason.startsWith('loja:')) {
-    const itemId = reason.slice(5)
-    const item = itemPorId(itemId)
-    if (!item) return { erro: `item inexistente: ${itemId}` }
+    const itemId = reason.slice(5);
+    const item = itemPorId(itemId);
+    if (!item) return { erro: `item inexistente: ${itemId}` };
     /* O que só sai de conquista NUNCA entra pela porta da compra. Sem esta linha, um `reason`
        forjado entregava o tema Aurora — que a Loja não vende em lugar nenhum. */
-    if (item.exclusivoDe) return { erro: `${itemId} é exclusivo de conquista e não está à venda` }
-    if (item.precoSeeds === undefined) return { erro: `${itemId} não tem preço: só destrava por nível` }
-    return { tipo: 'loja', itemId, preco: item.precoSeeds }
+    if (item.exclusivoDe) return { erro: `${itemId} é exclusivo de conquista e não está à venda` };
+    if (item.precoSeeds === undefined) return { erro: `${itemId} não tem preço: só destrava por nível` };
+    return { tipo: 'loja', itemId, preco: item.precoSeeds };
   }
 
   if (reason.startsWith('croma:')) {
-    const [, itemId, matiz] = reason.split(':')
-    if (!itemId || !matiz) return { erro: 'croma malformado' }
-    const item = itemPorId(itemId)
-    if (!item) return { erro: `item inexistente: ${itemId}` }
-    return { tipo: 'croma', itemId, matiz, preco: PRECO_DO_CROMA[item.raridade] }
+    const [, itemId, matiz] = reason.split(':');
+    if (!itemId || !matiz) return { erro: 'croma malformado' };
+    const item = itemPorId(itemId);
+    if (!item) return { erro: `item inexistente: ${itemId}` };
+    return { tipo: 'croma', itemId, matiz, preco: PRECO_DO_CROMA[item.raridade] };
   }
 
   // `aprimoramento:<alvo>:<n>` é o razão que a Loja grava; o spendId usa `apr-<alvo>-n<N>`.
   if (reason.startsWith('aprimoramento:')) {
-    const [, alvo, n] = reason.split(':')
-    const nivel = Number(n)
-    if (!ALVOS_DE_APRIMORAMENTO.includes(alvo as never)) return { erro: `aprimoramento inexistente: ${alvo}` }
+    const [, alvo, n] = reason.split(':');
+    const nivel = Number(n);
+    if (!ALVOS_DE_APRIMORAMENTO.includes(alvo as never)) return { erro: `aprimoramento inexistente: ${alvo}` };
     if (!Number.isInteger(nivel) || nivel < 1 || nivel > NIVEL_MAXIMO_DE_APRIMORAMENTO) {
-      return { erro: `nível de aprimoramento fora da escada: ${n}` }
+      return { erro: `nível de aprimoramento fora da escada: ${n}` };
     }
-    return { tipo: 'aprimoramento', alvo, nivel, preco: CUSTOS_DE_NIVEL[nivel - 1] }
+    return { tipo: 'aprimoramento', alvo, nivel, preco: CUSTOS_DE_NIVEL[nivel - 1] };
   }
 
-  return { erro: `motivo desconhecido: ${reason.slice(0, 24)}` }
+  return { erro: `motivo desconhecido: ${reason.slice(0, 24)}` };
 }
 
 /* ── Autorização de um gasto de CRÉDITOS (a moeda comprada) ────────────────────────────────── */
 
-export type GastoDeCredito =
-  | { tipo: 'premium'; itemId: string; preco: number }
+export type GastoDeCredito = { tipo: 'premium'; itemId: string; preco: number };
 
 /**
  * O gasto de Créditos tem a MESMA régua do de Seeds, e por um motivo direto: é a moeda que custou
@@ -114,21 +117,21 @@ export type GastoDeCredito =
  * paga. Quando houver um segundo, ele entra aqui e não em cada rota.
  */
 export function autorizarGastoDeCredito(reason: string): GastoDeCredito | RecusaDeGasto {
-  if (!reason.startsWith('premium:')) return { erro: `motivo desconhecido: ${reason.slice(0, 24)}` }
-  const itemId = reason.slice('premium:'.length)
-  const item = itemPorId(itemId)
-  if (!item) return { erro: `item inexistente: ${itemId}` }
-  if (item.precoCreditos === undefined) return { erro: `${itemId} não é vendido em Créditos` }
-  return { tipo: 'premium', itemId, preco: item.precoCreditos }
+  if (!reason.startsWith('premium:')) return { erro: `motivo desconhecido: ${reason.slice(0, 24)}` };
+  const itemId = reason.slice('premium:'.length);
+  const item = itemPorId(itemId);
+  if (!item) return { erro: `item inexistente: ${itemId}` };
+  if (item.precoCreditos === undefined) return { erro: `${itemId} não é vendido em Créditos` };
+  return { tipo: 'premium', itemId, preco: item.precoCreditos };
 }
 
 /* ── Autorização de um CRÉDITO ──────────────────────────────────────────────────────────────── */
 
 /** O `creditoId` que o cliente usa para conquista é `conquista-<id>` (`src/lib/conquistas.ts`). */
 export function conquistaDoCreditoId(creditoId: string): Conquista | null {
-  if (!creditoId.startsWith('conquista-')) return null
-  const id = creditoId.slice('conquista-'.length)
-  return CONQUISTAS.find((c) => c.id === id) ?? null
+  if (!creditoId.startsWith('conquista-')) return null;
+  const id = creditoId.slice('conquista-'.length);
+  return CONQUISTAS.find((c) => c.id === id) ?? null;
 }
 
 /**
@@ -150,27 +153,27 @@ export function conquistaDoCreditoId(creditoId: string): Conquista | null {
 
 /** O que um crédito autorizado entrega, e o que ele exige para valer. */
 export interface CreditoAutorizado {
-  creditoId: string
-  seeds: number
-  xp: number
+  creditoId: string;
+  seeds: number;
+  xp: number;
   /** O que vai para `seed_credits.reason` — a coluna de onde a posse é derivada. */
-  reason: string
+  reason: string;
   /** Nível do app exigido. 0 = sem exigência (a conquista traz a sua própria condição). */
-  nivelMinimo: number
+  nivelMinimo: number;
   /** Presente só na família de conquista: quem confere a condição precisa dela. */
-  conquista?: Conquista
+  conquista?: Conquista;
 }
 
 /* Índice dos cofres por `creditoId`, montado uma vez. `slotsDoPasse()` percorre o catálogo
    inteiro e é determinística — chamá-la a cada crédito seria trabalho repetido para o mesmo
    resultado. */
-let cofresPorId: Map<string, Extract<SlotDoPasse, { tipo: 'seeds' }>> | null = null
+let cofresPorId: Map<string, Extract<SlotDoPasse, { tipo: 'seeds' }>> | null = null;
 function cofreDoPasse(creditoId: string) {
   if (!cofresPorId) {
-    cofresPorId = new Map()
-    for (const s of slotsDoPasse()) if (s.tipo === 'seeds') cofresPorId.set(s.creditoId, s)
+    cofresPorId = new Map();
+    for (const s of slotsDoPasse()) if (s.tipo === 'seeds') cofresPorId.set(s.creditoId, s);
   }
-  return cofresPorId.get(creditoId)
+  return cofresPorId.get(creditoId);
 }
 
 /**
@@ -184,7 +187,7 @@ function cofreDoPasse(creditoId: string) {
  * ninguém precise adivinhar QUAL nível exigir.
  */
 export function valorDoCredito(creditoId: string): CreditoAutorizado | RecusaDeGasto {
-  const conquista = conquistaDoCreditoId(creditoId)
+  const conquista = conquistaDoCreditoId(creditoId);
   if (conquista) {
     return {
       creditoId,
@@ -193,14 +196,20 @@ export function valorDoCredito(creditoId: string): CreditoAutorizado | RecusaDeG
       reason: `conquista:${conquista.id}`,
       nivelMinimo: 0,
       conquista,
-    }
+    };
   }
 
-  const cofre = cofreDoPasse(creditoId)
+  const cofre = cofreDoPasse(creditoId);
   if (cofre) {
     /* A década N do passe é o nível N do app (`slotDestravado`). Sem esta linha, o crédito do
        cofre da década 10 sairia no nível 1 — e ele vale 172 Seeds. */
-    return { creditoId, seeds: cofre.quantidade, xp: 0, reason: `passe:${creditoId.split(':')[1]}`, nivelMinimo: cofre.decada }
+    return {
+      creditoId,
+      seeds: cofre.quantidade,
+      xp: 0,
+      reason: `passe:${creditoId.split(':')[1]}`,
+      nivelMinimo: cofre.decada,
+    };
   }
 
   /* A FAMÍLIA DE DROP NÃO SE RESOLVE AQUI, e a recusa é explícita para não ser confundida com um
@@ -209,10 +218,10 @@ export function valorDoCredito(creditoId: string): CreditoAutorizado | RecusaDeG
      o `creditoId`, que é exatamente o furo que o desenho do drop existe para fechar. Quem credita
      um drop é `valorDoDrop(creditoId, itemId)`, chamada pela rota DEPOIS de o servidor sortear. */
   if (roundIdDoDrop(creditoId)) {
-    return { erro: 'crédito de drop não se resolve pelo id: o item é sorteado pelo servidor' }
+    return { erro: 'crédito de drop não se resolve pelo id: o item é sorteado pelo servidor' };
   }
 
-  return { erro: `crédito desconhecido: ${creditoId.slice(0, 40)}` }
+  return { erro: `crédito desconhecido: ${creditoId.slice(0, 40)}` };
 }
 
 /**
@@ -230,9 +239,20 @@ export function valorDoCredito(creditoId: string): CreditoAutorizado | RecusaDeG
  * mesmo endpoint cunhava 1,2 milhão de Seeds por minuto.
  */
 export const CONQUISTAS_CONFERIVEIS: ReadonlySet<string> = new Set([
-  'primeira-captura', 'ouvinte', 'caderno-cheio', 'revisor', 'sem-erro', 'perfeccionista',
-  'maratonista', 'constante', 'cliente', 'nivel-5', 'nivel-10', 'poliglota', 'duelista',
-])
+  'primeira-captura',
+  'ouvinte',
+  'caderno-cheio',
+  'revisor',
+  'sem-erro',
+  'perfeccionista',
+  'maratonista',
+  'constante',
+  'cliente',
+  'nivel-5',
+  'nivel-10',
+  'poliglota',
+  'duelista',
+]);
 
 /* ── DROP: o cosmético que cai no fim da rodada ─────────────────────────────────────────────── */
 
@@ -277,7 +297,7 @@ export const CONQUISTAS_CONFERIVEIS: ReadonlySet<string> = new Set([
  * semana de uso diário. Cinco é o valor que faz o baú parecer um bônus sem reescrever essa
  * calibragem. Zero também fecharia a conta, mas deixaria a linha do ledger sem nada além do razão.
  */
-export const SEEDS_DO_DROP = 5
+export const SEEDS_DO_DROP = 5;
 
 /**
  * O PESO DE CADA RARIDADE NO SORTEIO.
@@ -287,7 +307,7 @@ export const SEEDS_DO_DROP = 5
  * graça no fim de uma rodada apagaria o motivo de poupar, que é a única mecânica de longo prazo
  * que esta economia tem. O drop existe para dar um empurrão, não para substituir a Loja.
  */
-export const PESOS_DO_DROP: Readonly<Record<'comum' | 'raro', number>> = { comum: 75, raro: 25 }
+export const PESOS_DO_DROP: Readonly<Record<'comum' | 'raro', number>> = { comum: 75, raro: 25 };
 
 /**
  * `drop:<roundId>` -> roundId, ou null se o crédito não for desta família.
@@ -298,10 +318,32 @@ export const PESOS_DO_DROP: Readonly<Record<'comum' | 'raro', number>> = { comum
  * antes de ela existir.
  */
 export function roundIdDoDrop(creditoId: string): string | null {
-  if (!creditoId.startsWith('drop:')) return null
-  const roundId = creditoId.slice('drop:'.length)
-  if (!roundId || roundId.includes(':')) return null
-  return roundId
+  if (!creditoId.startsWith('drop:')) return null;
+  const roundId = creditoId.slice('drop:'.length);
+  if (!roundId || roundId.includes(':')) return null;
+  return roundId;
+}
+
+/**
+ * O BAÚ EXIGE DESEMPENHO — duas estrelas na régua do fim de rodada (`estrelasDaRodada` de
+ * `minigames/fases`, a mesma que a tela mostra): precisão ≥ 75%.
+ *
+ * Até 27/09 o servidor sorteava um item a cada rodada gravada, mesmo com 0% de acerto — o baú
+ * premiava abrir o jogo, não jogar. A conta é feita sobre as LINHAS GRAVADAS da rodada
+ * (`exercise_results`), não sobre o que o cliente diz: só entra quem teve resposta (`correct` não
+ * nulo), e uma rodada sem nenhuma resposta não rende baú.
+ */
+export const ESTRELAS_PARA_O_BAU = 2;
+
+export function rodadaRendeBau(linhas: ReadonlyArray<{ correct?: number | null }>): {
+  rende: boolean;
+  estrelas: 0 | 1 | 2 | 3;
+} {
+  const respondidas = linhas.filter((l) => l.correct != null);
+  if (!respondidas.length) return { rende: false, estrelas: 0 };
+  const certas = respondidas.filter((l) => (l.correct ?? 0) > 0).length;
+  const estrelas = estrelasDaRodada(Math.round((certas / respondidas.length) * 100));
+  return { rende: estrelas >= ESTRELAS_PARA_O_BAU, estrelas };
 }
 
 /**
@@ -321,10 +363,10 @@ export function roundIdDoDrop(creditoId: string): string | null {
  *     das Seeds: só é prêmio o que custaria alguma coisa.
  */
 function ehSorteavelNoDrop(item: ItemDaLoja): boolean {
-  if (item.exclusivoDe) return false
-  if (item.precoCreditos !== undefined) return false
-  if (item.raridade !== 'comum' && item.raridade !== 'raro') return false
-  return item.precoSeeds !== undefined
+  if (item.exclusivoDe) return false;
+  if (item.precoCreditos !== undefined) return false;
+  if (item.raridade !== 'comum' && item.raridade !== 'raro') return false;
+  return item.precoSeeds !== undefined;
 }
 
 /**
@@ -339,7 +381,7 @@ function ehSorteavelNoDrop(item: ItemDaLoja): boolean {
  * mesmo float.
  */
 export function itensSorteaveisNoDrop(jaPossui: ReadonlySet<string>): ItemDaLoja[] {
-  return CATALOGO_DA_LOJA.filter((i) => ehSorteavelNoDrop(i) && !jaPossui.has(i.id))
+  return CATALOGO_DA_LOJA.filter((i) => ehSorteavelNoDrop(i) && !jaPossui.has(i.id));
 }
 
 /**
@@ -357,24 +399,22 @@ export function itensSorteaveisNoDrop(jaPossui: ReadonlySet<string>): ItemDaLoja
  * que é o comportamento óbvio para quem já colecionou metade.
  */
 export function sortearItemDoDrop(sorteio: number, elegiveis: ItemDaLoja[]): ItemDaLoja | null {
-  const comuns = elegiveis.filter((i) => i.raridade === 'comum')
-  const raros = elegiveis.filter((i) => i.raridade === 'raro')
-  if (!comuns.length && !raros.length) return null
+  const comuns = elegiveis.filter((i) => i.raridade === 'comum');
+  const raros = elegiveis.filter((i) => i.raridade === 'raro');
+  if (!comuns.length && !raros.length) return null;
 
   /* Float defeituoso (NaN, negativo, >= 1) vira 0 em vez de derrubar a rota: um baú é bônus, e um
      bônus não pode ser capaz de transformar o fim de rodada em erro. */
-  const f = Number.isFinite(sorteio) ? Math.min(0.999999999, Math.max(0, sorteio)) : 0
+  const f = Number.isFinite(sorteio) ? Math.min(0.999999999, Math.max(0, sorteio)) : 0;
 
-  const pesoComum = comuns.length ? PESOS_DO_DROP.comum : 0
-  const pesoRaro = raros.length ? PESOS_DO_DROP.raro : 0
-  const corte = pesoComum / (pesoComum + pesoRaro)
+  const pesoComum = comuns.length ? PESOS_DO_DROP.comum : 0;
+  const pesoRaro = raros.length ? PESOS_DO_DROP.raro : 0;
+  const corte = pesoComum / (pesoComum + pesoRaro);
 
-  const balde = f < corte ? comuns : raros
-  const dentro = f < corte
-    ? (corte > 0 ? f / corte : 0)
-    : (corte < 1 ? (f - corte) / (1 - corte) : 0)
+  const balde = f < corte ? comuns : raros;
+  const dentro = f < corte ? (corte > 0 ? f / corte : 0) : corte < 1 ? (f - corte) / (1 - corte) : 0;
 
-  return balde[Math.min(balde.length - 1, Math.floor(dentro * balde.length))]
+  return balde[Math.min(balde.length - 1, Math.floor(dentro * balde.length))];
 }
 
 /**
@@ -391,9 +431,9 @@ export function sortearItemDoDrop(sorteio: number, elegiveis: ItemDaLoja[]): Ite
  * se tem é `itensSorteaveisNoDrop`, com o conjunto lido do banco.
  */
 export function valorDoDrop(creditoId: string, itemId: string): CreditoAutorizado | RecusaDeGasto {
-  if (!roundIdDoDrop(creditoId)) return { erro: `crédito de drop malformado: ${creditoId.slice(0, 40)}` }
-  const item = itemPorId(itemId)
-  if (!item) return { erro: `item inexistente: ${itemId}` }
-  if (!ehSorteavelNoDrop(item)) return { erro: `${itemId} não sai em drop` }
-  return { creditoId, seeds: SEEDS_DO_DROP, xp: 0, reason: `drop:${itemId}`, nivelMinimo: 0 }
+  if (!roundIdDoDrop(creditoId)) return { erro: `crédito de drop malformado: ${creditoId.slice(0, 40)}` };
+  const item = itemPorId(itemId);
+  if (!item) return { erro: `item inexistente: ${itemId}` };
+  if (!ehSorteavelNoDrop(item)) return { erro: `${itemId} não sai em drop` };
+  return { creditoId, seeds: SEEDS_DO_DROP, xp: 0, reason: `drop:${itemId}`, nivelMinimo: 0 };
 }

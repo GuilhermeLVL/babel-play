@@ -1,5 +1,5 @@
 import type { ContextoDeConquistas } from '@core';
-import { type Dispatch, type SetStateAction, useEffect, useMemo, useState } from 'react';
+import { type Dispatch, type SetStateAction, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   chaveDaRecompensa,
@@ -82,11 +82,21 @@ export function useRecompensas(deps: DependenciasDasRecompensas): EstadoDasRecom
   /** v3: fila do modal de resgate (nível/conquista/bau) e o contexto único de equipar. */
   const [filaDeRecompensas, setFilaDeRecompensas] = useState<Recompensa[]>([]);
 
+  const avisouColecaoCompleta = useRef(false);
   /* O BAU DA RODADA entra na mesma fila do nivel e da conquista: o `Play` anuncia o que o servidor
      sorteou e aqui o id vira item do catalogo. Sem isto o drop creditava e ninguem via. */
   useEffect(() => {
     const ouvir = (e: Event) => {
       const d = (e as CustomEvent<DetalheDoDrop>).detail;
+      /* COLEÇÃO COMPLETA: o baú não tinha peça nova para sortear. Antes a resposta sumia em
+         silêncio e a pessoa não sabia por que o baú parou de aparecer. Uma vez por sessão basta. */
+      if (d && d.itemId === null) {
+        if (!avisouColecaoCompleta.current) {
+          avisouColecaoCompleta.current = true;
+          toast.info('Baú da rodada: coleção completa. Você já tem todas as peças que ele sorteia.');
+        }
+        return;
+      }
       const item = CATALOGO_DA_LOJA.find((i) => i.id === d?.itemId);
       if (!item) return;
       const r: Recompensa = { tipo: 'drop', roundId: d.roundId, seeds: d.seeds, item };

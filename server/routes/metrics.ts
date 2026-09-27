@@ -5,7 +5,9 @@ import {
   autorizarGasto,
   CONQUISTAS_CONFERIVEIS,
   ehRecusa,
+  ESTRELAS_PARA_O_BAU,
   itensSorteaveisNoDrop,
+  rodadaRendeBau,
   roundIdDoDrop,
   sortearItemDoDrop,
   valorDoCredito,
@@ -240,7 +242,8 @@ metricsRouter.post('/presenca', async (req, res) => {
  * escolher o `creditoId` seria escolher o prêmio, e o cliente escolheria o lendário. É a mesma
  * lição do `amount` de 01/09, aplicada ao objeto em vez de ao preço.
  *
- * QUATRO GUARDAS, nesta ordem:
+ * QUATRO GUARDAS, nesta ordem (e, entre a 2 e a 3, a de DESEMPENHO — duas estrelas nas linhas
+ * gravadas, `rodadaRendeBau`, desde 27/09):
  *
  *  1. A RODADA TEM DE EXISTIR E SER DESTA CONTA. É a âncora do baú. Sem ela, um `roundId`
  *     inventado — e `creditoId` é uma string livre de 8 a 80 caracteres no Zod — viraria um item
@@ -272,6 +275,17 @@ async function creditarDrop(req: Request, res: Response, creditoId: string, roun
   if (jaAberto) {
     const totais = await economiaRepo.totaisCreditados(req.userId)
     res.json({ jaExistia: true, item: jaAberto.itemId, ...totais })
+    return
+  }
+
+  /* O BAÚ EXIGE DESEMPENHO (duas estrelas), conferido nas linhas GRAVADAS — não no que o cliente
+     diz. Depois da idempotência: o baú já aberto continua devolvendo o mesmo item. */
+  const desempenho = rodadaRendeBau(linhas)
+  if (!desempenho.rende) {
+    responderErro(res, 400, 'rodada sem baú: exige duas estrelas', 'rodada_sem_bau', {
+      estrelas: desempenho.estrelas,
+      exigido: ESTRELAS_PARA_O_BAU,
+    })
     return
   }
 

@@ -53,7 +53,8 @@ export const EVENTO_RODADA_FECHOU = 'babel:rodada-fechou';
 export const EVENTO_DROP_GANHO = 'babel:drop-ganho';
 export interface DetalheDoDrop {
   roundId: string;
-  itemId: string;
+  /** `null` = coleção completa: o servidor não tinha o que sortear (e não creditou nada). */
+  itemId: string | null;
   seeds: number;
 }
 const CHAVE_VISTAS = 'babel.recompensas_vistas';

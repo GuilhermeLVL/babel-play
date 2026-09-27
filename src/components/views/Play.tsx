@@ -57,6 +57,7 @@ import {
   type RodadaDitado,
   type RodadaEscuta,
   type RodadaFrase,
+  rodadaRendeBau,
   type RodadaTermo,
   rotuloDaFonte,
   rotuloDeDuracao,
@@ -1104,14 +1105,18 @@ export default function Play({
     /* O BAU DA RODADA. Pedido so depois de a rodada existir no servidor: e a pre-condicao que a
        rota confere (`rodada_inexistente`). Quem sorteia e o servidor; aqui so se anuncia. Falha
        fica em silencio de proposito — perder o bau nao pode custar a rodada. */
-    if (gravacao.ok) {
+    /* O BAÚ EXIGE DUAS ESTRELAS (`rodadaRendeBau`, a mesma régua que o servidor confere nas linhas
+       gravadas): rodada abaixo disso nem pede — o servidor recusaria com `rodada_sem_bau`. */
+    if (gravacao.ok && rodadaRendeBau(itens).rende) {
       void creditarSeeds({ creditoId: `drop:${roundId}` }).then((r) => {
-        if (!r || r.jaExistia || !r.item) return;
+        if (!r || r.jaExistia) return;
+        /* `item: null` = coleção completa: nada a sortear. Antes isto sumia em silêncio; agora
+           vai com `itemId: null`, e o App avisa (uma vez por sessão) em vez de calar. */
         /* `seedsCreditadas` e o TOTAL acumulado da conta, nao o que ESTE credito valeu — a tela
            anunciava "+2049 Seeds" pelo bau. Quanto o bau paga e regra, e a regra mora no core. */
         window.dispatchEvent(
           new CustomEvent<DetalheDoDrop>(EVENTO_DROP_GANHO, {
-            detail: { roundId, itemId: r.item, seeds: SEEDS_DO_DROP },
+            detail: { roundId, itemId: r.item ?? null, seeds: r.item ? SEEDS_DO_DROP : 0 },
           }),
         );
       });

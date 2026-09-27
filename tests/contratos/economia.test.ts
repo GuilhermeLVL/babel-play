@@ -17,13 +17,13 @@
  */
 import 'fake-indexeddb/auto'
 
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
-import { itensSorteaveisNoDrop,SEEDS_DO_DROP } from '../../src/core/economiaAutoridade'
+import { itensSorteaveisNoDrop, SEEDS_DO_DROP } from '../../src/core/economiaAutoridade'
 import { servidorEfemero } from '../../src/data/efemero/servidor'
 import { fecharStore, limparTudo } from '../../src/data/efemero/store'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let metricsRouter: any
@@ -32,8 +32,14 @@ const U = asUserId('contrato-eco')
 
 function fakeRes() {
   const r: any = { statusCode: 200, body: undefined }
-  r.status = (c: number) => { r.statusCode = c; return r }
-  r.json = (b: any) => { r.body = b; return r }
+  r.status = (c: number) => {
+    r.statusCode = c
+    return r
+  }
+  r.json = (b: any) => {
+    r.body = b
+    return r
+  }
   return r
 }
 
@@ -175,8 +181,10 @@ describe('drop: o baú vale o mesmo nas duas pontas', () => {
     await exerciseResultsRepo.addRodada(U, rodada)
     await servidorEfemero('/api/exercises/rodada', { method: 'POST', body: JSON.stringify(rodada) })
 
-    const antesExpress = (await noExpress('/seeds/creditar', { creditoId: 'conquista-colecionador' })).body.seedsCreditadas
-    const antesEfemero = (await noEfemero('/seeds/creditar', { creditoId: 'conquista-colecionador' })).body.seedsCreditadas
+    const antesExpress = (await noExpress('/seeds/creditar', { creditoId: 'conquista-colecionador' })).body
+      .seedsCreditadas
+    const antesEfemero = (await noEfemero('/seeds/creditar', { creditoId: 'conquista-colecionador' })).body
+      .seedsCreditadas
 
     const pedido = { creditoId: `drop:${roundId}` }
     const express = await noExpress('/seeds/creditar', pedido)
@@ -190,6 +198,26 @@ describe('drop: o baú vale o mesmo nas duas pontas', () => {
     expect(permitidos.has(efemero.body.item), `efêmero entregou ${efemero.body.item}`).toBe(true)
     expect(express.body.seedsCreditadas - antesExpress).toBe(SEEDS_DO_DROP)
     expect(efemero.body.seedsCreditadas - antesEfemero).toBe(SEEDS_DO_DROP)
+  })
+
+  it('rodada abaixo de duas estrelas não abre baú, nas duas, com o mesmo código', async () => {
+    /* 1 de 4 certos = 25%: zero estrelas. Antes, as duas pontas sorteavam um item mesmo assim. */
+    const roundId = 'termo-contrato-fraca'
+    const itens = [1, 0, 0, 0].map((correct, i) => ({ itemRef: `f${i}`, correct, kind: 'drill' }))
+    const rodada = { roundId, exerciseKind: 'termo', origem: 'baralho', score: 10, melhorSequencia: 1, itens }
+    const { exerciseResultsRepo } = (await h.load('../../server/db/repositories/exerciseResults')) as any
+    await exerciseResultsRepo.addRodada(U, rodada)
+    await servidorEfemero('/api/exercises/rodada', { method: 'POST', body: JSON.stringify(rodada) })
+
+    const pedido = { creditoId: `drop:${roundId}` }
+    const express = await noExpress('/seeds/creditar', pedido)
+    const efemero = await noEfemero('/seeds/creditar', pedido)
+    expect(express.status).toBe(400)
+    expect(efemero.status).toBe(400)
+    expect(express.body.code).toBe('rodada_sem_bau')
+    expect(efemero.body.code).toBe('rodada_sem_bau')
+    expect(express.body.detalhes).toMatchObject({ estrelas: 0, exigido: 2 })
+    expect(efemero.body.detalhes).toMatchObject({ estrelas: 0, exigido: 2 })
   })
 
   it('o reenvio devolve o MESMO item nas duas, sem creditar de novo', async () => {

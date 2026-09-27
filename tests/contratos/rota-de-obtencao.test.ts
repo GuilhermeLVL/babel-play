@@ -77,7 +77,8 @@ describe('toda rota é acionável', () => {
     '%s tem canal, frase e destino',
     (_id, item) => {
       const r = rotaDeObtencao(item, SEM_SEEDS);
-      expect(['conquistas', 'loja', 'passe']).toContain(r.destino);
+      // 'jogar' (recompensas v2, onda 3): o item de maestria se ganha jogando.
+      expect(['conquistas', 'loja', 'passe', 'jogar']).toContain(r.destino);
       expect(r.titulo.length).toBeGreaterThan(3);
       expect(r.texto.length).toBeGreaterThan(20);
       expect(r.rotuloDoBotao.length).toBeGreaterThan(3);
@@ -89,7 +90,8 @@ describe('toda rota é acionável', () => {
   it('o destino corresponde ao canal', () => {
     for (const item of CATALOGO_DA_LOJA) {
       const r = rotaDeObtencao(item, SEM_SEEDS);
-      if (r.origem === 'conquista') expect(r.destino).toBe('conquistas');
+      // Maestria é da família da conquista (só fazendo), mas o lugar de fazer é o jogo.
+      if (r.origem === 'conquista') expect(r.destino).toBe(item.origemMaestria ? 'jogar' : 'conquistas');
       if (r.origem === 'seeds') expect(r.destino).toBe('loja');
       if (r.origem === 'nivel') expect(r.destino).toBe('passe');
     }

@@ -17,6 +17,9 @@
  *   · SEEDS: a moeda ganha estudando compra o ATALHO.
  */
 
+import { CATALOGO_DA_MAESTRIA } from './catalogoMaestria';
+import type { MinigameId } from './minigames/types';
+
 export type Raridade = 'comum' | 'raro' | 'epico' | 'lendario';
 
 /* Vinha de `lib/desbloqueios`. Mora aqui porque o catálogo é quem o usa para tipar `tipo`, e o
@@ -28,7 +31,8 @@ export type TipoDesbloqueavel = 'tema' | 'fonte' | 'posicao' | 'estudio';
  *  galeria. `pack`, `cursor` e `aprimoramento` saíram nas recompensas v2 (27/09); `fonte` e
  *  `posicao` continuam como tipo (a régua de `desbloqueios` os consulta), sem item no catálogo:
  *  fora do catálogo = livre. */
-export type TipoDaLoja = TipoDesbloqueavel | 'particulas' | 'rastro' | 'galeria';
+export type TipoDaLoja = TipoDesbloqueavel | 'particulas' | 'rastro' | 'galeria'
+  | 'efeito-acerto' | 'efeito-combo' | 'finalizacao' | 'moldura' | 'titulo'; // onda 3 (maestria)
 
 export interface ItemDaLoja {
   id: string;
@@ -38,8 +42,12 @@ export interface ItemDaLoja {
   nome: string;
   desc: string;
   raridade: Raridade;
-  /** Nível que destrava de graça (1 = livre desde o início). */
-  nivel: number;
+  /**
+   * Nível que destrava de graça (1 = livre desde o início). AUSENTE = o nível não abre (recompensas
+   * v2): itens novos só de Seeds e os de maestria. A simulação da onda 2 mostrou que o nível da
+   * conta abre tudo antes das Seeds (`docs/economia-v2.md`).
+   */
+  nivel?: number;
   /** Preço do ATALHO em Seeds; ausente = só por nível. */
   precoSeeds?: number;
   /** Cores de prévia (swatches) quando fizer sentido. */
@@ -63,12 +71,20 @@ export interface ItemDaLoja {
    * Créditos avulsos — só a trilha, e só para quem comprou o passe.
    */
   exclusivoDoPasse?: number;
+  /** O jogo a que o item pertence (efeitos de maestria, molduras e títulos). */
+  jogo?: MinigameId;
+  /**
+   * EXCLUSIVO DE MAESTRIA (recompensas v2, onda 3): o nível de maestria do jogo que libera o item.
+   * Sem nível da conta, sem Seeds, sem Créditos, fora do baú — nunca à venda. A posse vem do
+   * crédito `maestria:<jogo>:<nível>` conferido no servidor.
+   */
+  origemMaestria?: { jogo: MinigameId; nivel: 2 | 3 | 4 | 5 };
 }
 
 /* PREÇOS (recompensas v2, 27/09) — calibrados por SIMULAÇÃO (`scripts/economia/simular-ritmo.ts`,
    tabela em `docs/economia-v2.md`). O perfil típico (25 revisões + 3 rodadas + 10 palavras salvas
-   + meta do dia) rende ≈ 165 Seeds/dia só de resultado; a meta do dono é um comum a cada 2–3 dias,
-   um raro por semana e um épico a cada 2–3 semanas: comum 350-450 · raro 1000-1300 · épico
+   + meta do dia) rende ≈ 158 Seeds/dia só de resultado; a meta do dono é um comum a cada 2–3 dias,
+   um raro por semana e um épico a cada 2–3 semanas: comum 350-450 · raro 1000-1260 · épico
    2600-3000 · lendário 5200 (≈ 1 mês). A escala antiga (40-600) foi multiplicada por faixa,
    mantendo a ordem dentro de cada raridade. Os EXCLUSIVOS de conquista não têm preço nem nível. */
 export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
@@ -124,7 +140,9 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     desc: 'Carvão sóbrio, tipográfico.',
     raridade: 'raro',
     nivel: 7,
-    precoSeeds: 1300,
+    /* 1300 → 1260 na onda 3: com os efeitos genéricos no baú, o repetido (15/40 Seeds) sai menos e
+       o perfil típico cai de 165 para 158,5 Seeds/dia; 1300 passaria de 8 dias. */
+    precoSeeds: 1260,
     previa: ['#F7F6F3', '#FFFFFF', '#37352F', '#37352F'],
   },
   {
@@ -502,4 +520,5 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     nivel: 1,
     exclusivoDe: 'duelista',
   },
+  ...CATALOGO_DA_MAESTRIA, // onda 3: efeitos de jogo, molduras e títulos (`catalogoMaestria.ts`)
 ];

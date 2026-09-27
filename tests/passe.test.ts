@@ -16,14 +16,15 @@ describe('slotsDoPasse', () => {
   const slots = slotsDoPasse()
 
   it('todo item não-exclusivo entra exatamente uma vez, na própria década', () => {
-    const naoExclusivos = CATALOGO_DA_LOJA.filter((i) => !i.exclusivoDe)
+    // Sem `nivel` (recompensas v2: só Seeds ou maestria) o item não tem casa na trilha.
+    const naoExclusivos = CATALOGO_DA_LOJA.filter((i) => !i.exclusivoDe && i.nivel !== undefined)
     const noPasse = slots.filter((s) => s.tipo === 'item')
     expect(noPasse.length).toBe(naoExclusivos.length)
     const vistos = new Map<string, number>()
     for (const s of noPasse) {
       if (s.tipo !== 'item') continue
       vistos.set(s.item.id, (vistos.get(s.item.id) ?? 0) + 1)
-      expect(s.decada, `${s.item.id} fora da década do nível ${s.item.nivel}`).toBe(Math.min(10, s.item.nivel))
+      expect(s.decada, `${s.item.id} fora da década do nível ${s.item.nivel}`).toBe(Math.min(10, s.item.nivel!))
     }
     for (const [id, n] of vistos) expect(n, `${id} duplicado no passe`).toBe(1)
   })

@@ -23,6 +23,7 @@ export { coberturaDaWordlist, escalaDe, type NivelCefr, nivelCefr, type Proceden
 /* Vocabulario compartilhado das notas de Anki (estado, filtro, cursor de paginacao): cliente,
    schema Zod e repositorio passam a ler a MESMA definicao — os tres discordavam (achado A21). */
 export * from './economiaAutoridade'
+export * from './efeitosDeJogo'
 export * from './gateway/budget'
 export * from './gateway/gateway'
 export * from './gateway/llm-types'

@@ -9,57 +9,16 @@
  *
  * Tudo atrás da flag `recompensas_v2`.
  */
-import {
-  creditoDeMaestria,
-  creditosDeMaestriaDevidos,
-  type ItemDaLoja,
-  type MinigameId,
-  type NivelAlcancavel,
-  type NivelDeMaestria,
-} from '@core';
+import { creditosDeMaestriaDevidos, type ItemDaLoja, type MinigameId, type NivelAlcancavel } from '@core';
 
 import { creditarSeeds, lerMaestria, type MaestriaNoServidor } from '../data/api';
+import { CATALOGO_DA_LOJA } from './loja';
+import { hidratarMaestria } from './maestriaPosse';
 import { recompensasV2Ligadas } from './recompensasV2';
 
-const CHAVE = 'babel.maestria_creditada';
-
-/** Os `maestria:<jogo>:<nível>` que o servidor já creditou (espelho local). */
-export function maestriasCreditadas(): Set<string> {
-  try {
-    return new Set(JSON.parse(localStorage.getItem(CHAVE) || '[]') as string[]);
-  } catch {
-    return new Set();
-  }
-}
-
-/** Substitui o espelho pela lista do servidor — ele é a fonte. */
-export function hidratarMaestria(creditados: readonly string[]): void {
-  try {
-    localStorage.setItem(CHAVE, JSON.stringify([...new Set(creditados)].sort()));
-  } catch {
-    /* sem storage: os itens de maestria ficam trancados até a próxima leitura */
-  }
-}
-
-/** O maior nível creditado de um jogo (0 = nenhum). */
-export function nivelCreditado(
-  jogo: MinigameId,
-  creditados: ReadonlySet<string> = maestriasCreditadas(),
-): NivelDeMaestria {
-  let maior: NivelDeMaestria = 0;
-  for (const id of creditados) {
-    const m = creditoDeMaestria(id);
-    if (m && m.jogo === jogo && m.nivel > maior) maior = m.nivel;
-  }
-  return maior;
-}
-
-/**
- * Os itens que um nível de maestria entrega (efeito, moldura, finalização, título). Até a Task
- * 3.3 o catálogo não tem itens de maestria, e a lista vem vazia.
- */
-export function itensDaMaestria(_jogo: MinigameId, _nivel: NivelAlcancavel): ItemDaLoja[] {
-  return [];
+/** Os itens que um nível de maestria entrega (efeito de acerto, moldura, finalização, título). */
+export function itensDaMaestria(jogo: MinigameId, nivel: NivelAlcancavel): ItemDaLoja[] {
+  return CATALOGO_DA_LOJA.filter((i) => i.origemMaestria?.jogo === jogo && i.origemMaestria.nivel === nivel);
 }
 
 /** Pontos por jogo, para a antessala e o fim da rodada. */

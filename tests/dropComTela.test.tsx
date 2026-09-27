@@ -99,3 +99,19 @@ describe('o bau da rodada na fila de recompensas', () => {
     }
   })
 })
+
+describe('baú v2 na tela: chances, garantia e repetido', () => {
+  it('mostra as chances e quantos baús faltam para o raro garantido', () => {
+    montar([{ ...drop('r-ch'), chances: { comum: 75, raro: 25 }, proximoRaroGarantidoEm: 3 }])
+    const linha = document.querySelector('[data-chances-do-bau]')!
+    expect(linha.textContent).toContain('Chances: 75% comum · 25% raro')
+    expect(linha.textContent).toContain('raro garantido em 3 baús')
+  })
+
+  it('repetido: sem peça, diz que você já tem o item e quanto pagou em Seeds', () => {
+    montar([{ tipo: 'drop', roundId: 'r-rep', seeds: 40, repetido: true, raridade: 'raro', chances: { comum: 75, raro: 25 }, proximoRaroGarantidoEm: 5 }])
+    expect(screen.getByText('Você já tem este item: +40 Seeds')).toBeTruthy()
+    expect(screen.getAllByText('+40 Seeds', { exact: false }).length).toBe(2)
+    expect(screen.queryByText(/Equipar/i)).toBeNull()
+  })
+})

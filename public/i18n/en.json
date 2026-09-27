@@ -877,5 +877,11 @@
   "Também vale! A palavra desta pista era:": "That works too! The word for this clue was:",
   "Fora! Era:": "Out! It was:",
   "Limpar a linha": "Clear the line",
-  "+{n} Seeds · meta do dia cumprida": "+{n} Seeds · daily goal done"
+  "+{n} Seeds · meta do dia cumprida": "+{n} Seeds · daily goal done",
+  "Peça repetida": "Duplicate piece",
+  "Você já tem este item: +{n} Seeds": "You already have this item: +{n} Seeds",
+  "Chances: {comum}% comum · {raro}% raro": "Odds: {comum}% common · {raro}% rare",
+  "o próximo baú é raro garantido": "the next chest is a guaranteed rare",
+  "raro garantido em {n} baús": "guaranteed rare in {n} chests",
+  "Baús de hoje: {n} de {n}. Amanhã tem mais.": "Today's chests: {n} of {n}. More tomorrow."
 }

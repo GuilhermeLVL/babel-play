@@ -19,6 +19,7 @@ import { Check, Gift, Sparkles, Sprout } from 'lucide-react';
 import { type CSSProperties, useEffect, useId, useRef, useState } from 'react';
 
 import { TEXTOS } from '../lib/galeria/textos';
+import { t } from '../lib/i18n';
 import { comemorar } from '../lib/juice';
 import { type ItemDaLoja, type Raridade } from '../lib/loja';
 import { iconeDaConquista } from './iconesDaConquista';
@@ -30,8 +31,18 @@ export type Recompensa =
   | { tipo: 'conquista'; id: string; nome: string; emoji: string; seeds: number; xp: number; item?: ItemDaLoja }
   /* O bau de fim de rodada. A chave e o `roundId` porque o drop e idempotente POR rodada no
      servidor: repetir o mesmo id devolve o mesmo item, entao repetir a tela seria mostrar duas
-     vezes o mesmo premio. */
-  | { tipo: 'drop'; roundId: string; seeds: number; item: ItemDaLoja };
+     vezes o mesmo premio. BAÚ v2: sem `item` (e com `repetido`) a faixa sorteada nao tinha peca
+     nova e o bau pagou Seeds; `chances` e `proximoRaroGarantidoEm` vao para a tela como vieram. */
+  | {
+      tipo: 'drop';
+      roundId: string;
+      seeds: number;
+      item?: ItemDaLoja;
+      repetido?: boolean;
+      raridade?: 'comum' | 'raro';
+      chances?: { comum: number; raro: number };
+      proximoRaroGarantidoEm?: number;
+    };
 
 /** Rotulo e frase de cada tipo, para o JSX parar de ramificar em quatro lugares. */
 const CABECALHO: Record<Recompensa['tipo'], { rotulo: string; frase: string }> = {
@@ -53,9 +64,15 @@ export const EVENTO_RODADA_FECHOU = 'babel:rodada-fechou';
 export const EVENTO_DROP_GANHO = 'babel:drop-ganho';
 export interface DetalheDoDrop {
   roundId: string;
-  /** `null` = coleção completa: o servidor não tinha o que sortear (e não creditou nada). */
+  /** `null` = sem peça: o baú virou Seeds (`repetido`) ou o teto do dia foi alcançado (`semBau`). */
   itemId: string | null;
   seeds: number;
+  repetido?: boolean;
+  raridade?: 'comum' | 'raro';
+  chances?: { comum: number; raro: number };
+  proximoRaroGarantidoEm?: number;
+  semBau?: 'teto';
+  limite?: number;
 }
 const CHAVE_VISTAS = 'babel.recompensas_vistas';
 
@@ -197,7 +214,11 @@ function Resgate({ atual, onEquipar, onFechar, onVerPersonalizar }: Omit<Props, 
   };
 
   const titulo =
-    atual.tipo === 'nivel' ? `Nível ${atual.nivel}!` : atual.tipo === 'drop' ? atual.item.nome : atual.nome;
+    atual.tipo === 'nivel'
+      ? `Nível ${atual.nivel}!`
+      : atual.tipo === 'drop'
+        ? (atual.item?.nome ?? t('Peça repetida'))
+        : atual.nome;
   const icone = { width: 44, height: 44, display: 'inline-block', color: 'var(--accent-ink)' };
   const IconeDaConquista = iconeDaConquista(atual.tipo === 'conquista' ? atual.id : '');
 
@@ -221,7 +242,11 @@ function Resgate({ atual, onEquipar, onFechar, onVerPersonalizar }: Omit<Props, 
         </span>
         <h2 id={idTitulo}>{titulo}</h2>
         <p className="mut">
-          {itens.length > 0 ? cabecalho.frase : 'Nada novo para equipar neste nível: o próximo desbloqueio vem aí.'}
+          {atual.tipo === 'drop' && !atual.item
+            ? t('Você já tem este item: +{n} Seeds', { n: atual.seeds })
+            : itens.length > 0
+              ? cabecalho.frase
+              : 'Nada novo para equipar neste nível: o próximo desbloqueio vem aí.'}
         </p>
 
         {itens.length > 0 && (
@@ -283,6 +308,18 @@ function Resgate({ atual, onEquipar, onFechar, onVerPersonalizar }: Omit<Props, 
           )}
           {atual.tipo === 'conquista' && atual.xp > 0 && <span className="badge acc">+{atual.xp} XP</span>}
         </div>
+        {/* BAÚ v2: as chances ficam à vista no próprio baú, com a garantia do raro. */}
+        {atual.tipo === 'drop' && atual.chances && (
+          <p className="mut" data-chances-do-bau style={{ fontSize: 12.5, margin: '-10px 0 16px' }}>
+            {t('Chances: {comum}% comum · {raro}% raro', atual.chances)}
+            {atual.proximoRaroGarantidoEm != null &&
+              ` · ${
+                atual.proximoRaroGarantidoEm <= 1
+                  ? t('o próximo baú é raro garantido')
+                  : t('raro garantido em {n} baús', { n: atual.proximoRaroGarantidoEm })
+              }`}
+          </p>
+        )}
 
         <button type="button" className="btn btn-solid bloco" data-autofocus onClick={fechar}>
           {TEXTOS.resgatarEContinuar}

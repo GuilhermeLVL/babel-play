@@ -118,9 +118,25 @@ export async function gastarCreditos(payload: { spendId: string; amount: number;
  *
  * `null` em falha — quem chamou NÃO marca a conquista, senão seria "conquistada sem as Seeds".
  */
+/** O que o baú da rodada devolve além dos totais (recompensas v2). Só na família `drop:`. */
+export interface RespostaDoBau {
+  item?: string | null
+  /** Faixa sorteada sem peça nova: virou Seeds (`seeds`). */
+  repetido?: boolean
+  /** Quanto ESTE baú pagou — não o saldo da conta. */
+  seeds?: number
+  raridade?: 'comum' | 'raro'
+  chances?: { comum: number; raro: number }
+  proximoRaroGarantidoEm?: number
+  /** Teto do dia alcançado: nada foi creditado. */
+  semBau?: 'teto'
+  bausHoje?: number
+  limite?: number
+}
+
 export async function creditarSeeds(input: {
   creditoId: string
-}): Promise<{ jaExistia: boolean; seedsCreditadas: number; xpCreditado: number; item?: string | null } | null> {
+}): Promise<({ jaExistia: boolean; seedsCreditadas: number; xpCreditado: number } & RespostaDoBau) | null> {
   try {
     /* O FUSO VAI JUNTO (recompensas v2): a meta do dia e o teto do baú contam o dia LOCAL de quem
        joga, e o servidor não tem outro jeito de saber qual é. Ausente, vale São Paulo. */

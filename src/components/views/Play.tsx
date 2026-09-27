@@ -1116,7 +1116,19 @@ export default function Play({
            anunciava "+2049 Seeds" pelo bau. Quanto o bau paga e regra, e a regra mora no core. */
         window.dispatchEvent(
           new CustomEvent<DetalheDoDrop>(EVENTO_DROP_GANHO, {
-            detail: { roundId, itemId: r.item ?? null, seeds: r.item ? SEEDS_DO_DROP : 0 },
+            /* BAÚ v2: o servidor diz quanto ESTE baú pagou (peça: SEEDS_DO_DROP; repetido: 15/40),
+               as chances e quantos faltam para o raro garantido; o teto do dia vem em `semBau`. */
+            detail: {
+              roundId,
+              itemId: r.item ?? null,
+              seeds: r.seeds ?? (r.item ? SEEDS_DO_DROP : 0),
+              repetido: r.repetido,
+              raridade: r.raridade,
+              chances: r.chances,
+              proximoRaroGarantidoEm: r.proximoRaroGarantidoEm,
+              semBau: r.semBau,
+              limite: r.limite,
+            },
           }),
         );
       });

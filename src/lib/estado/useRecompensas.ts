@@ -17,6 +17,7 @@ import { montarContextoDeConquistas, verificarConquistas } from '../conquistas';
 import { desbloqueado } from '../desbloqueios';
 import type { ContextoDeEquipar } from '../galeria/equipar';
 import { itemDaConquista, recompensasDoNivelCompleto } from '../galeria/progressao';
+import { t } from '../i18n';
 import { comemorar } from '../juice';
 import { CATALOGO_DA_LOJA } from '../loja';
 import type { DerivedProgress } from '../progress';
@@ -83,13 +84,39 @@ export function useRecompensas(deps: DependenciasDasRecompensas): EstadoDasRecom
   const [filaDeRecompensas, setFilaDeRecompensas] = useState<Recompensa[]>([]);
 
   const avisouColecaoCompleta = useRef(false);
+  const avisouTetoDoBau = useRef(false);
   /* O BAU DA RODADA entra na mesma fila do nivel e da conquista: o `Play` anuncia o que o servidor
      sorteou e aqui o id vira item do catalogo. Sem isto o drop creditava e ninguem via. */
   useEffect(() => {
     const ouvir = (e: Event) => {
       const d = (e as CustomEvent<DetalheDoDrop>).detail;
-      /* COLEÇÃO COMPLETA: o baú não tinha peça nova para sortear. Antes a resposta sumia em
-         silêncio e a pessoa não sabia por que o baú parou de aparecer. Uma vez por sessão basta. */
+      /* TETO DO DIA (baú v2): três baús por dia local. Avisa uma vez por sessão, sem nada creditado. */
+      if (d?.semBau === 'teto') {
+        if (!avisouTetoDoBau.current) {
+          avisouTetoDoBau.current = true;
+          toast.info(t('Baús de hoje: {n} de {n}. Amanhã tem mais.', { n: d.limite ?? 3 }));
+        }
+        return;
+      }
+      /* REPETIDO (baú v2): a faixa sorteada não tinha peça nova e o baú pagou Seeds. Vai para a
+         mesma fila, sem item, com a mensagem "Você já tem este item: +N Seeds". */
+      if (d && d.itemId === null && d.repetido) {
+        const r: Recompensa = {
+          tipo: 'drop',
+          roundId: d.roundId,
+          seeds: d.seeds,
+          repetido: true,
+          raridade: d.raridade,
+          chances: d.chances,
+          proximoRaroGarantidoEm: d.proximoRaroGarantidoEm,
+        };
+        if (recompensasVistas().has(chaveDaRecompensa(r))) return;
+        setFilaDeRecompensas((f) => enfileirarSemRepetir(f, [r]));
+        setVersaoDasMetricas((v) => v + 1);
+        return;
+      }
+      /* COLEÇÃO COMPLETA (servidor antigo): o baú não tinha peça nova para sortear. Antes a resposta
+         sumia em silêncio e a pessoa não sabia por que o baú parou de aparecer. Uma vez por sessão basta. */
       if (d && d.itemId === null) {
         if (!avisouColecaoCompleta.current) {
           avisouColecaoCompleta.current = true;
@@ -99,7 +126,15 @@ export function useRecompensas(deps: DependenciasDasRecompensas): EstadoDasRecom
       }
       const item = CATALOGO_DA_LOJA.find((i) => i.id === d?.itemId);
       if (!item) return;
-      const r: Recompensa = { tipo: 'drop', roundId: d.roundId, seeds: d.seeds, item };
+      const r: Recompensa = {
+        tipo: 'drop',
+        roundId: d.roundId,
+        seeds: d.seeds,
+        item,
+        raridade: d.raridade,
+        chances: d.chances,
+        proximoRaroGarantidoEm: d.proximoRaroGarantidoEm,
+      };
       if (recompensasVistas().has(chaveDaRecompensa(r))) return;
       setFilaDeRecompensas((f) => enfileirarSemRepetir(f, [r]));
       setVersaoDasMetricas((v) => v + 1);

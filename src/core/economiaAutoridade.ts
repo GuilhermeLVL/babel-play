@@ -449,44 +449,118 @@ function ehSorteavelNoDrop(item: ItemDaLoja): boolean {
  * `itensComprados` já deriva a posse. Item repetido não é prêmio: sem esta subtração, quem já
  * comprou tudo o que é comum abriria baús de duplicata sem nunca saber por quê.
  *
- * A ordem é a do catálogo, que é estável — é o que torna `sortearItemDoDrop` reprodutível dado o
+ * A ordem é a do catálogo, que é estável — é o que torna `decidirBau` reprodutível dado o
  * mesmo float.
  */
 export function itensSorteaveisNoDrop(jaPossui: ReadonlySet<string>): ItemDaLoja[] {
   return CATALOGO_DA_LOJA.filter((i) => ehSorteavelNoDrop(i) && !jaPossui.has(i.id));
 }
 
-/**
- * O SORTEIO, puro e determinístico: mesmo float, mesma lista, mesmo item.
+/* ── BAÚ v2 (recompensas v2, 27/09) ─────────────────────────────────────────────────────────
  *
- * O float entra por parâmetro em vez de sair de um `Math.random()` aqui dentro por um motivo de
- * teste: uma função que sorteia sozinha só pode ser verificada por amostragem, e o que se quer
- * provar é a REGRA (o corte em 75%, qual item sai de cada faixa), não uma média.
+ * O que mudou em relação ao baú de antes, e por quê:
  *
- * DUAS ETAPAS, e não uma roleta item a item. A roleta simples (peso do item = peso da raridade)
- * faria a chance de um raro depender de QUANTOS raros ainda faltam: com 20 comuns e 10 raros o
- * raro sairia em ~14% das vezes, e essa porcentagem mudaria sozinha à medida que a coleção enche —
- * a pessoa veria a taxa variar sem nenhuma regra ter mudado. Aqui o corte é sempre 75/25: primeiro
- * a faixa, depois um item uniforme dentro dela. Faixa vazia devolve toda a probabilidade à outra,
- * que é o comportamento óbvio para quem já colecionou metade.
+ * · TETO DIÁRIO de três baús, no dia LOCAL de quem joga. O baú é bônus de desempenho, não renda:
+ *   sem teto, a rodada mais curta que dá duas estrelas vira fábrica de sorteio.
+ * · GARANTIA (pity): o 5º baú seguido sem raro é raro. A chance anunciada (75/25) continua a
+ *   mesma; a garantia só corta a cauda de azar — ninguém fica vinte baús sem ver um raro.
+ * · REPETIDO VIRA SEEDS. Antes, sem peça nova na faixa sorteada, a probabilidade ia para a outra
+ *   faixa e, com a coleção completa, o baú devolvia nada. Agora a faixa sorteada é a faixa que
+ *   vale: sem peça nova nela, o baú paga Seeds pela raridade (comum 15, raro 40), com a mensagem
+ *   dita. A taxa anunciada deixa de mudar sozinha à medida que a coleção enche.
+ * · AS CHANCES VÃO NA RESPOSTA, junto de quantos baús faltam para o raro garantido.
+ *
+ * Nada disto é comprável: o baú só sai de rodada gravada com duas estrelas, nunca por Créditos,
+ * e as Seeds nunca se compram (ECA Digital art. 20; `tests/eca-art20-*`).
  */
-export function sortearItemDoDrop(sorteio: number, elegiveis: ItemDaLoja[]): ItemDaLoja | null {
-  const comuns = elegiveis.filter((i) => i.raridade === 'comum');
-  const raros = elegiveis.filter((i) => i.raridade === 'raro');
-  if (!comuns.length && !raros.length) return null;
+export const BAUS_POR_DIA = 3;
+export const PITY_DO_BAU = 5; // o 5º baú seguido sem raro é raro
+export const SEEDS_DO_REPETIDO = { comum: 15, raro: 40 } as const;
+/** As chances anunciadas, em porcentagem — as mesmas do peso do sorteio. */
+export const CHANCES_DO_BAU: Readonly<Record<'comum' | 'raro', number>> = PESOS_DO_DROP;
 
-  /* Float defeituoso (NaN, negativo, >= 1) vira 0 em vez de derrubar a rota: um baú é bônus, e um
-     bônus não pode ser capaz de transformar o fim de rodada em erro. */
-  const f = Number.isFinite(sorteio) ? Math.min(0.999999999, Math.max(0, sorteio)) : 0;
+export type RaridadeDoBau = 'comum' | 'raro';
+export type DecisaoDoBau =
+  | { tipo: 'sem-bau'; motivo: 'estrelas' | 'teto' }
+  | { tipo: 'item'; item: ItemDaLoja; raridade: RaridadeDoBau }
+  | { tipo: 'seeds'; seeds: number; raridade: RaridadeDoBau };
 
-  const pesoComum = comuns.length ? PESOS_DO_DROP.comum : 0;
-  const pesoRaro = raros.length ? PESOS_DO_DROP.raro : 0;
-  const corte = pesoComum / (pesoComum + pesoRaro);
+/**
+ * A DECISÃO DO BAÚ, pura e determinística: mesmas entradas, mesma saída.
+ *
+ * O float entra por parâmetro pelo mesmo motivo de sempre: o que se quer provar é a REGRA (o
+ * corte em 75%, a garantia, o repetido), não uma média. DUAS ETAPAS: primeiro a faixa (ou a
+ * garantia), depois um item uniforme dentro dela, com a fração que sobrou do mesmo float.
+ */
+export function decidirBau(entrada: {
+  estrelas: 0 | 1 | 2 | 3;
+  bausHoje: number;
+  semRaroSeguidos: number;
+  sorteio: number;
+  elegiveis: ItemDaLoja[];
+}): DecisaoDoBau {
+  if (entrada.estrelas < ESTRELAS_PARA_O_BAU) return { tipo: 'sem-bau', motivo: 'estrelas' };
+  if (entrada.bausHoje >= BAUS_POR_DIA) return { tipo: 'sem-bau', motivo: 'teto' };
 
-  const balde = f < corte ? comuns : raros;
-  const dentro = f < corte ? (corte > 0 ? f / corte : 0) : corte < 1 ? (f - corte) / (1 - corte) : 0;
+  /* Float defeituoso (NaN, negativo, >= 1) vira 0 em vez de derrubar a rota: um baú é bônus. */
+  const f = Number.isFinite(entrada.sorteio) ? Math.min(0.999999999, Math.max(0, entrada.sorteio)) : 0;
+  const corte = CHANCES_DO_BAU.comum / (CHANCES_DO_BAU.comum + CHANCES_DO_BAU.raro);
+  const garantido = entrada.semRaroSeguidos >= PITY_DO_BAU - 1;
+  const raridade: RaridadeDoBau = garantido || f >= corte ? 'raro' : 'comum';
+  const dentro = garantido ? f : raridade === 'comum' ? f / corte : (f - corte) / (1 - corte);
 
-  return balde[Math.min(balde.length - 1, Math.floor(dentro * balde.length))];
+  const faixa = entrada.elegiveis.filter((i) => i.raridade === raridade && ehSorteavelNoDrop(i));
+  if (!faixa.length) return { tipo: 'seeds', seeds: SEEDS_DO_REPETIDO[raridade], raridade };
+  return { tipo: 'item', item: faixa[Math.min(faixa.length - 1, Math.floor(dentro * faixa.length))], raridade };
+}
+
+/** Um baú já aberto, como o razão o guarda: quando (carimbo) e o `reason` gravado. */
+export interface BauAberto {
+  em: number;
+  reason: string;
+}
+
+/**
+ * A raridade de um baú já aberto, lida do `reason`: `drop:<itemId>` (a peça — raridade do
+ * catálogo) ou `bau:repetido:<raridade>` (virou Seeds). Peça que saiu do catálogo conta como comum.
+ */
+export function raridadeDoBau(reason: string): RaridadeDoBau {
+  if (reason.startsWith('bau:repetido:')) return reason.endsWith(':raro') ? 'raro' : 'comum';
+  const item = itemPorId(reason.slice('drop:'.length));
+  return item?.raridade === 'raro' ? 'raro' : 'comum';
+}
+
+/**
+ * O ESTADO DO BAÚ de uma conta: quantos saíram HOJE (no fuso de quem joga) e quantos seguidos, do
+ * mais recente para trás, não foram raros. `diaDe` recebe o carimbo e devolve a chave do dia no
+ * fuso certo — quem chama passa `diaNoFuso(t, fuso)`; o core não sabe o fuso.
+ */
+export function situacaoDoBau(
+  baus: readonly BauAberto[],
+  hoje: string,
+  diaDe: (t: number) => string,
+): { bausHoje: number; semRaroSeguidos: number } {
+  const bausHoje = baus.filter((b) => diaDe(b.em) === hoje).length;
+  let semRaroSeguidos = 0;
+  for (const b of [...baus].sort((a, z) => z.em - a.em)) {
+    if (raridadeDoBau(b.reason) === 'raro') break;
+    semRaroSeguidos += 1;
+  }
+  return { bausHoje, semRaroSeguidos };
+}
+
+/** Quantos baús faltam para o raro garantido, contando o próximo (1 = o próximo é raro). */
+export function proximoRaroGarantidoEm(semRaroSeguidos: number): number {
+  return Math.max(1, PITY_DO_BAU - semRaroSeguidos);
+}
+
+/**
+ * O CRÉDITO DE UM BAÚ REPETIDO: Seeds pela raridade sorteada, e o `reason` NÃO é `drop:` — ele
+ * não atesta posse de peça nenhuma (a posse é derivada de `drop:<itemId>`).
+ */
+export function valorDoRepetido(creditoId: string, raridade: RaridadeDoBau): CreditoAutorizado | RecusaDeGasto {
+  if (!roundIdDoDrop(creditoId)) return { erro: `crédito de drop malformado: ${creditoId.slice(0, 40)}` };
+  return { creditoId, seeds: SEEDS_DO_REPETIDO[raridade], xp: 0, reason: `bau:repetido:${raridade}`, nivelMinimo: 0 };
 }
 
 /**

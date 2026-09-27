@@ -3,16 +3,22 @@ import { type Request, type Response, Router } from 'express'
 
 import {
   autorizarGasto,
+  BAUS_POR_DIA,
+  CHANCES_DO_BAU,
   CONQUISTAS_CONFERIVEIS,
+  decidirBau,
   ehRecusa,
   ESTRELAS_PARA_O_BAU,
   itensSorteaveisNoDrop,
   progressoNoServidor,
+  proximoRaroGarantidoEm,
+  raridadeDoBau,
   rodadaRendeBau,
   roundIdDoDrop,
-  sortearItemDoDrop,
+  situacaoDoBau,
   valorDoCredito,
   valorDoDrop,
+  valorDoRepetido,
 } from '../../src/core/economiaAutoridade'
 import type { ContextoDeConquistas } from '../../src/core/learning/conquistas'
 import {
@@ -262,9 +268,10 @@ metricsRouter.post('/presenca', async (req, res) => {
  *     MESMO item, lido do razão da linha gravada, sem sortear de novo. Sem esta leitura, o retry
  *     do cliente (ou a remontagem da tela) mostraria um item diferente do que foi creditado —
  *     o banco continuaria certo e a tela mentiria.
- *  3. O SORTEIO É DO SERVIDOR, sobre o que a pessoa ainda NÃO tem (compras da Loja + baús
- *     anteriores). Coleção completa devolve `item: null` e não grava nada: um baú de duplicata é
- *     pior do que baú nenhum, e gravar um crédito vazio consumiria a rodada à toa.
+ *  3. O SORTEIO É DO SERVIDOR (`decidirBau`, recompensas v2): teto de três baús por dia local,
+ *     garantia de raro no 5º seguido, e a faixa sorteada sem peça nova vira Seeds (comum 15,
+ *     raro 40) com o `reason` `bau:repetido:<raridade>` — que não atesta posse de nada. A resposta
+ *     traz as chances (75/25) e quantos baús faltam para o raro garantido.
  *  4. `valorDoDrop` confere o item de novo antes de gravar, porque `reason` é a coluna de onde a
  *     posse é derivada.
  *
@@ -272,44 +279,86 @@ metricsRouter.post('/presenca', async (req, res) => {
  * reroll, então adivinhar o próximo item não compra nada — não há decisão que a pessoa possa
  * tomar com essa informação.
  */
-async function creditarDrop(req: Request, res: Response, creditoId: string, roundId: string): Promise<void> {
+async function creditarDrop(
+  req: Request,
+  res: Response,
+  creditoId: string,
+  roundId: string,
+  fusoPedido: string | undefined,
+): Promise<void> {
   const linhas = await exerciseResultsRepo.listarPorRodada(req.userId, roundId)
   if (!linhas.length) {
     responderErro(res, 400, 'rodada inexistente para este drop', 'rodada_inexistente', { roundId })
     return
   }
 
-  const drops = await economiaRepo.dropsSorteados(req.userId)
-  const jaAberto = drops.find((d) => d.creditoId === creditoId)
+  /* BAÚ v2 (recompensas v2): o dia do teto é o dia LOCAL de quem joga. */
+  const fuso = fusoOuPadrao(fusoPedido)
+  const diaDe = (t: number) => diaNoFuso(t, fuso)
+  const baus = await economiaRepo.bausAbertos(req.userId)
+
+  const jaAberto = baus.find((b) => b.creditoId === creditoId)
   if (jaAberto) {
+    /* IDEMPOTÊNCIA POR RODADA: o baú já aberto devolve o MESMO resultado, lido do razão. */
+    const { semRaroSeguidos } = situacaoDoBau(baus, diaDe(Date.now()), diaDe)
     const totais = await economiaRepo.totaisCreditados(req.userId)
-    res.json({ jaExistia: true, item: jaAberto.itemId, ...totais })
+    const repetido = jaAberto.reason.startsWith('bau:repetido:')
+    res.json({
+      jaExistia: true,
+      item: repetido ? null : jaAberto.reason.slice('drop:'.length),
+      repetido,
+      seeds: jaAberto.amount,
+      raridade: raridadeDoBau(jaAberto.reason),
+      chances: CHANCES_DO_BAU,
+      proximoRaroGarantidoEm: proximoRaroGarantidoEm(semRaroSeguidos),
+      ...totais,
+    })
     return
   }
 
-  /* O BAÚ EXIGE DESEMPENHO (duas estrelas), conferido nas linhas GRAVADAS — não no que o cliente
-     diz. Depois da idempotência: o baú já aberto continua devolvendo o mesmo item. */
   const desempenho = rodadaRendeBau(linhas)
-  if (!desempenho.rende) {
+  const { bausHoje, semRaroSeguidos } = situacaoDoBau(baus, diaDe(Date.now()), diaDe)
+  const jaPossui = new Set([
+    ...(await seedSpendsRepo.itensComprados(req.userId)),
+    ...baus.filter((b) => b.reason.startsWith('drop:')).map((b) => b.reason.slice('drop:'.length)),
+  ])
+  const decisao = decidirBau({
+    estrelas: desempenho.estrelas,
+    bausHoje,
+    semRaroSeguidos,
+    sorteio: Math.random(),
+    elegiveis: itensSorteaveisNoDrop(jaPossui),
+  })
+
+  if (decisao.tipo === 'sem-bau' && decisao.motivo === 'estrelas') {
     responderErro(res, 400, 'rodada sem baú: exige duas estrelas', 'rodada_sem_bau', {
       estrelas: desempenho.estrelas,
       exigido: ESTRELAS_PARA_O_BAU,
     })
     return
   }
-
-  const jaPossui = new Set([...(await seedSpendsRepo.itensComprados(req.userId)), ...drops.map((d) => d.itemId)])
-  const sorteado = sortearItemDoDrop(Math.random(), itensSorteaveisNoDrop(jaPossui))
-  if (!sorteado) {
+  if (decisao.tipo === 'sem-bau') {
+    /* TETO DO DIA: não é erro de quem pediu, é a regra — 200 sem crédito, dizendo quantos já
+       saíram. Nada é gravado, então a mesma rodada amanhã também não vira baú (o baú é da rodada). */
     const totais = await economiaRepo.totaisCreditados(req.userId)
-    res.json({ jaExistia: false, item: null, ...totais })
+    res.json({
+      jaExistia: false,
+      item: null,
+      semBau: 'teto',
+      bausHoje,
+      limite: BAUS_POR_DIA,
+      chances: CHANCES_DO_BAU,
+      proximoRaroGarantidoEm: proximoRaroGarantidoEm(semRaroSeguidos),
+      ...totais,
+    })
     return
   }
 
-  const credito = valorDoDrop(creditoId, sorteado.id)
+  const credito =
+    decisao.tipo === 'item' ? valorDoDrop(creditoId, decisao.item.id) : valorDoRepetido(creditoId, decisao.raridade)
   if (ehRecusa(credito)) {
-    /* Inalcançável enquanto `itensSorteaveisNoDrop` e `valorDoDrop` concordarem — e é exatamente
-       por isso que a guarda fica: o dia em que elas divergirem, o certo é 400, não gravar posse. */
+    /* Inalcançável enquanto `decidirBau` e `valorDoDrop` concordarem — e é por isso que a guarda
+       fica: no dia em que divergirem, o certo é 400, não gravar posse. */
     responderErro(res, 400, credito.erro, 'drop_invalido')
     return
   }
@@ -321,7 +370,16 @@ async function creditarDrop(req: Request, res: Response, creditoId: string, roun
     reason: credito.reason,
   })
   const totais = await economiaRepo.totaisCreditados(req.userId)
-  res.json({ jaExistia, item: sorteado.id, ...totais })
+  res.json({
+    jaExistia,
+    item: decisao.tipo === 'item' ? decisao.item.id : null,
+    repetido: decisao.tipo === 'seeds',
+    seeds: credito.seeds,
+    raridade: decisao.raridade,
+    chances: CHANCES_DO_BAU,
+    proximoRaroGarantidoEm: proximoRaroGarantidoEm(decisao.raridade === 'raro' ? 0 : semRaroSeguidos + 1),
+    ...totais,
+  })
 }
 
 metricsRouter.post('/seeds/creditar', async (req, res) => {
@@ -332,7 +390,7 @@ metricsRouter.post('/seeds/creditar', async (req, res) => {
        propósito (ver o comentário lá). Qualquer outro `creditoId` segue o fluxo de sempre. */
     const roundId = roundIdDoDrop(payload.creditoId)
     if (roundId) {
-      await creditarDrop(req, res, payload.creditoId, roundId)
+      await creditarDrop(req, res, payload.creditoId, roundId, payload.fuso)
       return
     }
 

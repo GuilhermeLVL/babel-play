@@ -1,14 +1,13 @@
 import type { ItemOutcome, MinigameItem, RoundReport } from '@core';
-import { distractorsFor, extractKeywords, scoreRound } from '@core';
+import { distractorsFor, extractKeywords, pontuarRodada, scoreRound } from '@core';
 import { AlertTriangle, Lightbulb } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { mascararResposta } from '../../../core/learning/pistaDeJogo';
+import { celebrar } from '../../../lib/comemoracao';
 import { t } from '../../../lib/i18n';
-import { comemorar } from '../../../lib/juice';
 import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
-import { play } from '../../../lib/soundFx';
 import { useAtalhosDasAlternativas } from '../casca/atalhos';
 import AvisoDaJogada from '../casca/AvisoDaJogada';
 import { useRodada } from '../casca/CascaDaRodada';
@@ -98,9 +97,6 @@ export default function TabooGame({ items, ageProfile, onFinish, onExit }: Taboo
   const finalizar = (outcomes: ItemOutcome[]) => {
     if (acabouRef.current) return;
     acabouRef.current = true;
-    if (outcomes.length > 0 && outcomes.every((o) => o.correct && !o.hinted && !o.revealed)) {
-      comemorar('rodadaPerfeita', palcoRef.current);
-    }
     /* Direto para o fim de rodada COMUM, como os outros jogos: a tela própria repetia os pontos e os
        acertos que `ResultadoDaRodada` mostra logo em seguida. */
     const relatorio: RoundReport = {
@@ -132,7 +128,7 @@ export default function TabooGame({ items, ageProfile, onFinish, onExit }: Taboo
     if (!cartas.length || acabouRef.current || resultado || revelando) return;
     if (restante <= 0) {
       const carta = cartas[idx];
-      play('error');
+      celebrar({ tipo: 'erro', el: palcoRef.current });
       setRevelando({ escolhida: null, certo: false });
       const outcome: ItemOutcome = {
         cardId: carta.item.cardId,
@@ -171,7 +167,6 @@ export default function TabooGame({ items, ageProfile, onFinish, onExit }: Taboo
   const responder = (op: string) => {
     if (acabouRef.current || revelando || !ativo) return;
     const certo = op === carta.item.answer;
-    comemorar(certo ? 'acerto' : 'erro', palcoRef.current);
     setRevelando({ escolhida: op, certo });
     const outcome: ItemOutcome = {
       cardId: carta.item.cardId,
@@ -181,6 +176,14 @@ export default function TabooGame({ items, ageProfile, onFinish, onExit }: Taboo
       ms: Date.now() - inicioCartaRef.current,
       hinted: liberadas.length > 0,
     };
+    if (certo) {
+      /* O acerto comemora NA HORA, com o que a carta vale — a mesma conta que o placar vai fazer
+         quando a carta sair da mesa (o resultado só entra depois da pausa de leitura). */
+      const p = pontuarRodada('taboo', [...outcomesRef.current, outcome]);
+      celebrar({ tipo: 'acerto', combo: p.sequenciaFinal, el: palcoRef.current, pontos: p.total - placar.pontos });
+    } else {
+      celebrar({ tipo: 'erro', el: palcoRef.current });
+    }
     setTimeout(() => avancar(outcome), certo ? 700 : 1800);
   };
   porTeclaRef.current = (i) => {

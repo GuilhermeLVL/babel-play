@@ -4,7 +4,7 @@ import { Check, PenLine, Shuffle, Volume2 } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { vazaResposta } from '../../../core/learning/pistaDeJogo';
-import { comemorar } from '../../../lib/juice';
+import { celebrar } from '../../../lib/comemoracao';
 import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
 import { falar } from '../../../lib/tts';
@@ -66,9 +66,13 @@ export default function CadavreExquisGame({ items, ageProfile, onFinish, onExit 
       attempts: 1,
       ms,
     }));
-    if (outcomes.every((o) => o.correct)) comemorar('rodadaPerfeita', palcoRef.current);
     // O placar do HUD mostra o que a conferência valeu (antes ficava em zero a rodada inteira).
-    recontar(outcomes);
+    const p = recontar(outcomes);
+    /* Uma conferência só: ela é o acerto (alguma palavra entrou na frase, com o que a frase valeu)
+       ou o erro (nenhuma entrou). A festa da rodada inteira é do fim comum, pelas estrelas. */
+    if (outcomes.some((o) => o.correct))
+      celebrar({ tipo: 'acerto', combo: p.sequencia, el: palcoRef.current, pontos: p.pontos });
+    else celebrar({ tipo: 'erro', el: palcoRef.current });
     setResultado({
       gameId: 'cadavre',
       items: outcomes,

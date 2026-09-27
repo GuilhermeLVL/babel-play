@@ -4,8 +4,8 @@ import { Lightbulb } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 import { conferirResposta } from '../../../core/minigames/resposta';
+import { celebrar } from '../../../lib/comemoracao';
 import { t } from '../../../lib/i18n';
-import { comemorar, tremor } from '../../../lib/juice';
 import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
 import { play } from '../../../lib/soundFx';
@@ -82,14 +82,12 @@ export default function TenseTennisGame({ items, ageProfile, onFinish, onExit }:
       score: scoreRound('tenis', outcomes),
       durationMs: Date.now() - inicioRodadaRef.current,
     };
-    const perfeita = outcomes.length > 0 && outcomes.every((o) => o.correct && !o.revealed);
-    comemorar(perfeita ? 'rodadaPerfeita' : 'rodadaBoa', quadraRef.current);
     setTimeout(() => onFinish(report), 1100);
   }, [onFinish]);
 
   const registrar = useCallback(
     (correct: boolean, revealed?: boolean) => {
-      if (!item) return;
+      if (!item) return null;
       outcomesRef.current.push({
         cardId: item.cardId,
         itemRef: item.answer,
@@ -99,7 +97,7 @@ export default function TenseTennisGame({ items, ageProfile, onFinish, onExit }:
         hinted: comDicaRef.current,
         ...(revealed ? { revealed: true } : {}),
       });
-      recontar(outcomesRef.current);
+      return recontar(outcomesRef.current);
     },
     [recontar, item],
   );
@@ -133,8 +131,7 @@ export default function TenseTennisGame({ items, ageProfile, onFinish, onExit }:
       setRali(0);
       setAviso({ tom: 'erro', rotulo: t('A bola caiu na quadra. Era:'), resposta: item.answer });
       falar(item.answer, item.lang);
-      comemorar('erro', quadraRef.current);
-      tremor(quadraRef.current);
+      celebrar({ tipo: 'erro', el: quadraRef.current });
       setTimeout(avancar, 1200);
       return;
     }
@@ -152,11 +149,11 @@ export default function TenseTennisGame({ items, ageProfile, onFinish, onExit }:
        "quarto" mesmo sendo, no acervo, outra palavra com essa pista. */
     const conferencia = conferirResposta(escrito, item.answer, item.alternativas ?? []);
     const certo = conferencia.aceita;
-    registrar(certo);
+    const p = registrar(certo);
 
     if (certo) {
       setRali((r) => r + 1);
-      comemorar('acerto', quadraRef.current);
+      celebrar({ tipo: 'acerto', combo: p?.sequencia ?? 0, el: quadraRef.current, pontos: p?.ganho });
       falar(item.answer, item.lang);
       if (conferencia.veredito === 'sem-acento') {
         setAviso({ tom: 'certo', rotulo: t('Certo! Com acento:'), resposta: conferencia.forma });
@@ -169,8 +166,7 @@ export default function TenseTennisGame({ items, ageProfile, onFinish, onExit }:
     setRali(0);
     setAviso({ tom: 'erro', rotulo: t('Fora! Era:'), resposta: item.answer });
     falar(item.answer, item.lang);
-    comemorar('erro', quadraRef.current);
-    tremor(quadraRef.current);
+    celebrar({ tipo: 'erro', el: quadraRef.current });
     setTimeout(avancar, 1200);
   };
 

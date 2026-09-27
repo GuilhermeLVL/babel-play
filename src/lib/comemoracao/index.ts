@@ -54,7 +54,7 @@ function planoCheio(ev: EventoDeComemoracao, efeitos: EfeitosEquipados): PlanoDe
         sons: [{ evento: 'success', transpose: Math.min(Math.max(0, ev.combo), TETO_DO_TOM) }],
         rajadas: [{ kind: p.kind, ...(p.forma ? { forma: p.forma } : {}), quantidade: 1 }],
         vibracao: ev.combo >= 3 ? [20, 30, 25] : [15],
-        flutuante: typeof ev.pontos === 'number' ? `+${ev.pontos}` : null,
+        flutuante: typeof ev.pontos === 'number' && ev.pontos > 0 ? `+${ev.pontos}` : null,
         tremor: 0,
       };
     }

@@ -13,10 +13,11 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
+import { celebrar } from '../../lib/comemoracao';
 import { burstFromElement } from '../../lib/effects';
 import { eventosCondicionais } from '../../lib/eventosDeJogo';
 import { proximaRecompensa } from '../../lib/galeria/progressao';
-import { comemorar, contarAte, executarEfeito, flashDeTela, pontosDoElemento, tremor } from '../../lib/juice';
+import { contarAte, executarEfeito, flashDeTela, pontosDoElemento, tremor } from '../../lib/juice';
 import type { AgeProfileType } from '../../lib/profile';
 import type { DerivedProgress } from '../../lib/progress';
 import { temRanking } from '../../lib/ranking';
@@ -156,7 +157,7 @@ export default function ResultadoDaRodada({
       timers.push(
         window.setTimeout(() => {
           flashDeTela();
-          burstFromElement(carimboRef.current, 'record');
+          celebrar({ tipo: 'recorde', el: carimboRef.current });
           /* O EVENTO "fogos" (recorde) — um dos onze do Colecionador. Saía só da tela de fim
              própria do Duelo; com um fim só para todos, é aqui que ele acontece. */
           for (const ev of eventosCondicionais({ combo: 0, fever: false, recorde: true })) executarEfeito(ev);
@@ -169,12 +170,10 @@ export default function ResultadoDaRodada({
   const revelar = () => {
     if (revelado) return;
     setRevelado(true);
-    /* O clímax, escalado pelo resultado: 100% dentro de uma corrente ganha a festa maior, um
-       resultado bom ganha confete, um fraco ganha o mínimo. Festa igual ensinaria que tanto faz. */
-    const perfeita = resumo.precisao === 100;
-    const emCorrente = (sequencia?.rodadas ?? 0) >= 3;
-    const tipo = perfeita && emCorrente ? 'rodadaPerfeita' : perfeita || resumo.precisao >= 60 ? 'rodadaBoa' : 'acerto';
-    comemorar(tipo, raspaRef.current, { tremer: perfeita });
+    /* O clímax, escalado pelas ESTRELAS da rodada (a mesma régua do mapa de fases): uma estrela
+       não solta confete, três soltam a finalização equipada. É o único lugar em que o fim da
+       rodada é comemorado — os jogos não festejam o próprio fim. Festa igual ensinaria que tanto faz. */
+    celebrar({ tipo: 'rodada', estrelas, jogo: report.gameId, el: raspaRef.current });
     pontosDoElemento(`+${resumo.xp} XP`, raspaRef.current, 'bom');
   };
 

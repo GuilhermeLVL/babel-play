@@ -12,7 +12,8 @@ import { prepararDialogoNoJsdom } from './_dialogoNoJsdom'
 
 prepararDialogoNoJsdom()
 
-vi.mock('../src/lib/juice', () => ({ comemorar: vi.fn(), explodirAleatorio: vi.fn() }))
+vi.mock('../src/lib/juice', () => ({ comemorar: vi.fn(), explodirAleatorio: vi.fn(), pontosDoElemento: vi.fn() }))
+vi.mock('../src/lib/comemoracao', () => ({ celebrar: vi.fn() }))
 
 const nivel2: Recompensa = {
   tipo: 'nivel',
@@ -102,11 +103,11 @@ describe('RecompensaDesbloqueada — o modal de resgate', () => {
   })
 
   it('o modal é a ÚNICA festa da recompensa: comemora uma vez ao abrir', async () => {
-    const { comemorar } = await import('../src/lib/juice')
-    vi.mocked(comemorar).mockClear()
+    const { celebrar } = await import('../src/lib/comemoracao')
+    vi.mocked(celebrar).mockClear()
     render(
       <RecompensaDesbloqueada fila={[nivel2]} onEquipar={() => true} onFechar={vi.fn()} onVerPersonalizar={vi.fn()} />,
     )
-    expect(vi.mocked(comemorar).mock.calls.filter((c) => c[0] === 'subiuNivel')).toHaveLength(1)
+    expect(vi.mocked(celebrar).mock.calls.filter((c) => c[0].tipo === 'nivel')).toHaveLength(1)
   })
 })

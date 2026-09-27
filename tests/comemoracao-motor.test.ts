@@ -71,6 +71,8 @@ describe('acerto', () => {
   it('com pontos, o número que sobe é "+N"; sem pontos, nenhum', () => {
     expect(planoDeComemoracao({ tipo: 'acerto', combo: 1, pontos: 15 }, CTX).flutuante).toBe('+15')
     expect(planoDeComemoracao({ tipo: 'acerto', combo: 1 }, CTX).flutuante).toBeNull()
+    // Acerto que não mudou o placar (peça do meio da palavra) não inventa "+0".
+    expect(planoDeComemoracao({ tipo: 'acerto', combo: 1, pontos: 0 }, CTX).flutuante).toBeNull()
   })
 
   it('uma rajada só, e uma vibração só', () => {

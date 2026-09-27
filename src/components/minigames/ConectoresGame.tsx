@@ -3,8 +3,8 @@ import { notaConectores, scoreRound } from '@core';
 import { Check, Link2 } from 'lucide-react';
 import React, { useRef, useState } from 'react';
 
-import { playJuicedError, playJuicedHit, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
-import { multiplicador } from '../../lib/juice';
+import { celebrar } from '../../lib/comemoracao';
+import { multiplicador, pontosDoElemento } from '../../lib/juice';
 import type { AgeProfileType } from '../../lib/profile';
 import { useRodada } from './casca/CascaDaRodada';
 import HudDaRodada from './casca/HudDaRodada';
@@ -41,7 +41,6 @@ export default function ConectoresGame({ rodadas, ageProfile, onFinish }: Conect
 
   const alternar = (i: number) => {
     if (conferido) return;
-    triggerHaptic('soft');
     setMarcados((prev) => {
       const n = new Set(prev);
       if (n.has(i)) n.delete(i);
@@ -70,10 +69,11 @@ export default function ConectoresGame({ rodadas, ageProfile, onFinish }: Conect
       const ganho = 10 * mult;
       setSequencia(nova);
       setPontos((p) => p + ganho);
-      playJuicedHit(nova, undefined, `+${ganho}${mult > 1 ? ` ×${mult}` : ''}`);
+      celebrar({ tipo: 'acerto', combo: nova, el: palcoRef.current, pontos: ganho });
     } else {
       setSequencia(0);
-      playJuicedError(palcoRef.current, undefined, 'Revise os conectores');
+      celebrar({ tipo: 'erro', el: palcoRef.current });
+      pontosDoElemento('Revise os conectores', palcoRef.current, 'ruim');
     }
 
     setTimeout(
@@ -82,8 +82,6 @@ export default function ConectoresGame({ rodadas, ageProfile, onFinish }: Conect
           if (encerradoRef.current) return;
           encerradoRef.current = true;
           const todos = resultadosRef.current;
-          const impecavel = todos.every((o) => o.correct);
-          if (impecavel) playJuicedVictory();
           setTimeout(
             () =>
               onFinish({

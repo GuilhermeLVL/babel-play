@@ -5,6 +5,7 @@ import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react'
 
 import { SEQUENCIA_FEVER } from '../../../core/minigames/blitzRegras';
 import { multiplicador } from '../../../core/minigames/grade';
+import { celebrar } from '../../../lib/comemoracao';
 import { contarAte, tremor } from '../../../lib/juice';
 import { useRodada } from './CascaDaRodada';
 
@@ -88,10 +89,14 @@ export default function HudDaRodada({
     anterior.current = pontos;
     if (de !== pontos) void contarAte(ptsRef.current, pontos, { de, dur: 350 });
   }, [pontos]);
-  // O multiplicador dá um tranco quando muda de degrau.
+  /* O multiplicador SUBIU de degrau: é o evento `combo` do motor de comemoração, disparado aqui —
+     o único lugar que vê o multiplicador de todos os jogos — em vez de cada jogo repetir a conta.
+     Caiu (errou, usou ajuda): só o tranco, sem festa. */
   useEffect(() => {
-    if (multAnterior.current !== mult) tremor(comboRef.current, 3);
+    const antes = multAnterior.current;
     multAnterior.current = mult;
+    if (mult > antes && mult > 1) celebrar({ tipo: 'combo', multiplicador: mult, el: comboRef.current });
+    else if (mult !== antes) tremor(comboRef.current, 3);
   }, [mult]);
 
   const pct = Math.round(Math.max(0, Math.min(1, progresso)) * 100);
@@ -147,11 +152,15 @@ export function usePlacarDaRodada(jogo: MinigameId) {
   const recontar = useCallback(
     (resultados: readonly ItemOutcome[]) => {
       const p = pontuarRodada(jogo, [...resultados]);
-      setPlacar({
+      const novo = {
         pontos: p.total,
         sequencia: p.sequenciaFinal,
         acertos: resultados.filter((o) => o.correct && !o.revealed).length,
-      });
+      };
+      setPlacar(novo);
+      /* O que o ÚLTIMO item valeu (o "+N" que sobe no acerto): a mesma conta, sem ele. */
+      const ganho = p.total - pontuarRodada(jogo, resultados.slice(0, -1)).total;
+      return { ...novo, ganho };
     },
     [jogo],
   );

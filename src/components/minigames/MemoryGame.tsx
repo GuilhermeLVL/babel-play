@@ -3,7 +3,7 @@ import { scoreRound } from '@core';
 import { Eye } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
-import { playJuicedError, playJuicedHit, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
+import { celebrar } from '../../lib/comemoracao';
 import { multiplicador, pontosDoElemento } from '../../lib/juice';
 import { direcaoDoTexto } from '../../lib/languages';
 import type { AgeProfileType } from '../../lib/profile';
@@ -85,8 +85,7 @@ export default function MemoryGame({ items, ageProfile: _ageProfile, onFinish }:
       score: scoreRound('memory', outcomes),
       durationMs: agora - inicioRef.current,
     };
-    // Vitória sensorial completa
-    playJuicedVictory();
+    // A festa do fim é do `ResultadoDaRodada` (pelas estrelas), não do jogo.
     setTimeout(() => onFinish(report), 1100);
   }, [fechados, total, items, onFinish]);
 
@@ -94,7 +93,6 @@ export default function MemoryGame({ items, ageProfile: _ageProfile, onFinish }:
     if (!ativo || travado || espiando || viradas.includes(carta.id) || fechados.has(carta.itemIndex)) return;
     if (!inicioItemRef.current.has(carta.itemIndex)) inicioItemRef.current.set(carta.itemIndex, Date.now());
 
-    triggerHaptic('soft');
     play('select');
 
     // Fala a palavra no idioma original para imersão auditiva instantânea
@@ -111,23 +109,21 @@ export default function MemoryGame({ items, ageProfile: _ageProfile, onFinish }:
       tentativasRef.current.set(idx, (tentativasRef.current.get(idx) ?? 0) + 1);
     }
 
-    const rect = el?.getBoundingClientRect();
-    const coords = rect ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : undefined;
-
     if (par) {
       const nova = sequencia + 1;
       const mult = multiplicador(nova);
       const ganho = 10 * mult;
       setSequencia(nova);
       setPontos((p) => p + ganho);
-      playJuicedHit(nova, coords, `+${ganho}${mult > 1 ? ` ×${mult}` : ''}`);
+      celebrar({ tipo: 'acerto', combo: nova, el, pontos: ganho });
       setFechados((prev) => new Set([...prev, a.itemIndex]));
       setViradas([]);
       return;
     }
     // Erro: feedback sensorial com tremor e buzzer
     setSequencia(0);
-    playJuicedError(mesaRef.current, coords, 'Quase!');
+    celebrar({ tipo: 'erro', el: el ?? mesaRef.current });
+    pontosDoElemento('Quase!', el, 'ruim');
     setTravado(true);
     setTimeout(() => {
       setViradas([]);
@@ -143,7 +139,6 @@ export default function MemoryGame({ items, ageProfile: _ageProfile, onFinish }:
     setSequencia(0); // a sequência é mérito; com ajuda ela recomeça
     setEspiando(true);
     play('select');
-    triggerHaptic('soft');
     pontosDoElemento(`${ESPIADAS - espiadasRef.current} espiadas`, el, 'neutro');
     setTimeout(() => setEspiando(false), 1200);
   };

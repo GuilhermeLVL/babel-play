@@ -15,7 +15,8 @@ import { CATALOGO_DA_LOJA, estadoDoItem, type ItemDaLoja,possuidos } from '../lo
 export function itensPorNivel(catalogo: ReadonlyArray<ItemDaLoja> = CATALOGO_DA_LOJA): Map<number, ItemDaLoja[]> {
   const m = new Map<number, ItemDaLoja[]>()
   for (const i of catalogo) {
-    if (i.exclusivoDe) continue
+    // Sem `nivel` (recompensas v2: só Seeds ou maestria) o nível não abre o item.
+    if (i.exclusivoDe || i.nivel === undefined) continue
     const lista = m.get(i.nivel) ?? []
     lista.push(i)
     m.set(i.nivel, lista)
@@ -32,9 +33,9 @@ export interface ProximaRecompensa {
 
 /** O menor nível acima do atual que libera algo. `null` quando não há mais nada por nível. */
 export function proximaRecompensa(nivelAtual: number, catalogo: ReadonlyArray<ItemDaLoja> = CATALOGO_DA_LOJA): ProximaRecompensa | null {
-  const proximos = catalogo.filter((i) => !i.exclusivoDe && i.nivel > nivelAtual)
+  const proximos = catalogo.filter((i) => !i.exclusivoDe && i.nivel !== undefined && i.nivel > nivelAtual)
   if (!proximos.length) return null
-  const nivel = Math.min(...proximos.map((i) => i.nivel))
+  const nivel = Math.min(...proximos.map((i) => i.nivel ?? Infinity))
   const itens = proximos.filter((i) => i.nivel === nivel)
   // O destaque é o mais raro daquele nível — é o que se mostra numa linha só.
   const peso = { lendario: 4, epico: 3, raro: 2, comum: 1 } as const

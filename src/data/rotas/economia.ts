@@ -7,9 +7,10 @@
  * dinheiro nasce e morre no servidor, e o motivo está em `tests/contratos/rotas-espelhadas`.
  *
  * Rotas: POST `/api/metrics/seeds/gastar`, POST `/api/metrics/seeds/creditar`,
- * POST `/api/metrics/presenca`, POST `/api/billing/gastar`, POST `/api/billing/creditar-passe`.
+ * POST `/api/metrics/presenca`, GET `/api/metrics/maestria`, POST `/api/billing/gastar`,
+ * POST `/api/billing/creditar-passe`.
  */
-import { fusoDoAmbiente } from '@core'
+import { fusoDoAmbiente, type MaestriaDoJogo } from '@core'
 
 import { apiFetch, type ErroDaApi,lerErro } from '../funil'
 
@@ -70,6 +71,27 @@ export async function reembolsarSeeds(): Promise<{ creditado: number; reembolsad
     const res = await apiFetch('/api/metrics/seeds/reembolso', { method: 'POST' })
     if (!res.ok) return null
     return (await res.json()) as { creditado: number; reembolsado: number }
+  } catch {
+    return null
+  }
+}
+
+/** Um jogo na resposta da maestria: pontos e nível somados no servidor, e quanto falta. */
+export interface MaestriaNoServidor extends MaestriaDoJogo {
+  proximo: number | null
+  pctNoNivel: number
+}
+
+/**
+ * A MAESTRIA DOS 18 JOGOS (recompensas v2, onda 3). Os pontos são do servidor (linhas gravadas,
+ * uma vez por `roundId`); `creditados` são os `maestria:<jogo>:<nível>` já lançados. `null` em
+ * falha — a tela esconde a barra em vez de inventar número.
+ */
+export async function lerMaestria(): Promise<{ jogos: MaestriaNoServidor[]; creditados: string[] } | null> {
+  try {
+    const res = await apiFetch('/api/metrics/maestria')
+    if (!res.ok) return null
+    return (await res.json()) as { jogos: MaestriaNoServidor[]; creditados: string[] }
   } catch {
     return null
   }

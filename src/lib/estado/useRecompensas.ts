@@ -3,10 +3,13 @@ import { type Dispatch, type SetStateAction, useEffect, useMemo, useRef, useStat
 
 import {
   chaveDaRecompensa,
+  type DetalheDaMaestria,
   type DetalheDoDrop,
   enfileirarSemRepetir,
   EVENTO_DROP_GANHO,
+  EVENTO_MAESTRIA_SUBIU,
   type Recompensa,
+  recompensaDaMaestria,
   recompensasVistas,
 } from '../../components/RecompensaDesbloqueada';
 import type { MenuPositionType } from '../../components/shell/navItems';
@@ -20,6 +23,7 @@ import type { ContextoDeEquipar } from '../galeria/equipar';
 import { itemDaConquista, recompensasDoNivelCompleto } from '../galeria/progressao';
 import { t } from '../i18n';
 import { CATALOGO_DA_LOJA } from '../loja';
+import { itensDaMaestria } from '../maestria';
 import type { DerivedProgress } from '../progress';
 
 export interface DependenciasDasRecompensas {
@@ -142,6 +146,19 @@ export function useRecompensas(deps: DependenciasDasRecompensas): EstadoDasRecom
     window.addEventListener(EVENTO_DROP_GANHO, ouvir);
     return () => window.removeEventListener(EVENTO_DROP_GANHO, ouvir);
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  /* A MAESTRIA SUBIU (recompensas v2, onda 3): a barra do fim da rodada cruzou um limiar e já
+     comemorou; aqui o nível vira uma entrada do modal, com o que ele libera. Uma vez por nível. */
+  useEffect(() => {
+    const ouvir = (e: Event) => {
+      const d = (e as CustomEvent<DetalheDaMaestria>).detail;
+      if (!d?.jogo || !d.nivel) return;
+      const r = recompensaDaMaestria(d.jogo, d.nivel, itensDaMaestria(d.jogo, d.nivel));
+      if (recompensasVistas().has(chaveDaRecompensa(r))) return;
+      setFilaDeRecompensas((f) => enfileirarSemRepetir(f, [r]));
+    };
+    window.addEventListener(EVENTO_MAESTRIA_SUBIU, ouvir);
+    return () => window.removeEventListener(EVENTO_MAESTRIA_SUBIU, ouvir);
   }, []);
   const [lojaAba, setLojaAba] = useState<string | null>(null);
   /**

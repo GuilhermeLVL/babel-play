@@ -92,13 +92,19 @@ export async function recusaDePosse(
       ? null
       : { tipo, alvo, motivo: `item premium: ${item.precoCreditos} créditos ou o Passe` }
   }
-  if (nivel >= item.nivel || comprados.includes(item.id)) return null
+  /* Maestria (recompensas v2): o servidor confere a posse pelo crédito, e os efeitos de jogo não
+     passam por `settings` — quem chegar aqui com um deles é recusado. */
+  if (item.origemMaestria) return { tipo, alvo, motivo: 'exige maestria do jogo' }
+  /* Sem `nivel` (recompensas v2) só a compra abre. */
+  if ((item.nivel !== undefined && nivel >= item.nivel) || comprados.includes(item.id)) return null
   return {
     tipo,
     alvo,
     motivo:
-      item.precoSeeds !== undefined
-        ? `exige nível ${item.nivel} ou ${item.precoSeeds} seeds`
-        : `exige nível ${item.nivel}`,
+      item.nivel === undefined
+        ? `exige ${item.precoSeeds ?? 0} seeds`
+        : item.precoSeeds !== undefined
+          ? `exige nível ${item.nivel} ou ${item.precoSeeds} seeds`
+          : `exige nível ${item.nivel}`,
   }
 }

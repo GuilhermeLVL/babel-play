@@ -45,6 +45,7 @@ import {
   niveisEmJogo,
   type OrigemDaPratica,
   pistasDaTriagem,
+  pontosDeMaestria,
   pontuarRodada,
   previaSegura,
   progressoDasEtapas,
@@ -161,6 +162,7 @@ import {
 import { langConfigFrom, saveLangConfig } from '../../lib/langConfig';
 import { baseLang, langLabelNaUI } from '../../lib/languages';
 import { lazyComRecarga } from '../../lib/lazyComRecarga';
+import { pontosPorJogo, sincronizarMaestria } from '../../lib/maestria';
 import {
   lerPrecisoes,
   registrarPrecisao,
@@ -715,6 +717,22 @@ export default function Play({
   const [recordes, setRecordes] = useState<Map<string, number>>(new Map());
   const recordeDoJogo = (jogo: MinigameId) => recordes.get(jogo) ?? null;
   /**
+   * MAESTRIA POR JOGO (recompensas v2, onda 3): os pontos do SERVIDOR por jogo (`null` sem a flag
+   * ou sem resposta — a barra some) e, da rodada que acabou de fechar, os pontos de antes e o que
+   * ela somou. `sincronizarMaestria` também pede os créditos `maestria:` que faltam.
+   */
+  const [maestria, setMaestria] = useState<ReadonlyMap<MinigameId, number> | null>(null);
+  const [maestriaDaRodada, setMaestriaDaRodada] = useState<{ pontosAntes: number; ganho: number } | null>(null);
+  useEffect(() => {
+    let vivo = true;
+    void sincronizarMaestria().then((jogos) => {
+      if (vivo && jogos) setMaestria(pontosPorJogo(jogos));
+    });
+    return () => {
+      vivo = false;
+    };
+  }, []);
+  /**
    * Seeds gastas NESTA visita, ainda não refletidas em `progress` (que vem do App e só muda
    * quando as métricas são recarregadas). O servidor continua sendo a autoridade — isto só evita
    * que o saldo na tela minta entre o clique e a próxima leitura.
@@ -1045,6 +1063,21 @@ export default function Play({
     const pontos = pontuarRodada(report.gameId, report.items, { sequenciaInicial: herdado });
     const corrente = acumular(sequencia, report, pontos, origem, xpFromRound(report));
     setSequencia(corrente);
+    /* O GANHO DE MAESTRIA desta rodada, com a MESMA conta que o servidor refaz sobre as linhas que
+       vão ser gravadas logo abaixo: acertos (`correct: 1`), itens e o combo gravado como
+       `melhorSequencia`. Antes do primeiro `await`, para chegar junto com o resultado na tela. */
+    setMaestriaDaRodada(
+      maestria
+        ? {
+            pontosAntes: maestria.get(report.gameId) ?? 0,
+            ganho: pontosDeMaestria({
+              acertos: report.items.filter((o) => o.correct).length,
+              total: report.items.length,
+              comboMaximo: pontos.melhorSequencia,
+            }),
+          }
+        : null,
+    );
     /* O RESUMO NÃO É LIGADO AQUI — e era esse o defeito.
        `resultado` e `verResumo` viravam verdadeiros no MESMO render, e a cascata testa
        `resultado && verResumo` ANTES de `resultado`: o resumo assumia a posição da raspadinha, e
@@ -1101,6 +1134,12 @@ export default function Play({
        conquista. O App recarrega as métricas ao ouvir isto — antes só recarregava quando a lista
        de sessões mudava, e o saldo ficava uma rodada atrás. */
     if (gravacao.ok) window.dispatchEvent(new CustomEvent('babel:metricas-mudaram'));
+    /* MAESTRIA: com a rodada gravada, relê os pontos do servidor e pede o crédito dos níveis novos. */
+    if (gravacao.ok) {
+      void sincronizarMaestria().then((jogos) => {
+        if (jogos) setMaestria(pontosPorJogo(jogos));
+      });
+    }
 
     /* O BAU DA RODADA. Pedido so depois de a rodada existir no servidor: e a pre-condicao que a
        rota confere (`rodada_inexistente`). Quem sorteia e o servidor; aqui so se anuncia. Falha
@@ -2834,6 +2873,7 @@ export default function Play({
         gameId={antessala.jogo}
         titulo={jogoUI ? tituloDoJogo(jogoUI, ageProfile) : ''}
         nivelGeral={progress.available ? progress.level : undefined}
+        maestria={maestria ? { pontos: maestria.get(antessala.jogo) ?? 0 } : null}
         /* Z1 — CHIPS DE DIFICULDADE. Só aparecem onde significam algo: os 5 jogos de frase jogam
            sobre falas, que não têm dificuldade por palavra. Chip inerte ensina que a tela mente. */
         filtroDificuldade={
@@ -3145,6 +3185,7 @@ export default function Play({
         custoPular={CUSTO_PULAR}
         saldoSeeds={saldoSeeds}
         onVerProgressao={() => onChangeView('loja', { aba: 'progressao' })}
+        maestria={maestriaDaRodada}
       />,
     );
   }

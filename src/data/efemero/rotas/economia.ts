@@ -6,7 +6,7 @@
  * e é ele que precisa bater com o Express. O cliente faz exatamente o mesmo corte.
  *
  * Rotas: POST `/api/metrics/seeds/gastar`, POST `/api/metrics/seeds/creditar`,
- * POST `/api/metrics/presenca`.
+ * POST `/api/metrics/presenca`, GET `/api/metrics/maestria`.
  *
  * `/api/billing/*` (créditos comprados com dinheiro, passe) NÃO tem espelho — justificado em
  * `tests/contratos/rotas-espelhadas`: moeda paga nasce e morre no servidor.
@@ -21,6 +21,7 @@ import {
   acertosNoDia, diaLocal, diaNoFuso, fusoOuPadrao, META_DIARIA_ACERTOS, metaDoDiaCumprida, sequencias,
 } from '../../../core/learning/economia';
 import { economiaDeMetricas } from '../../../core/learning/xp';
+import { type LinhaDeMaestria, maestriaPorJogo, nivelDeMaestria } from '../../../core/maestria';
 import { reembolsosDevidos } from '../../../core/reembolso';
 import { json, lerJson, num, str } from '../nucleo';
 import { abrirStore } from '../store';
@@ -193,6 +194,27 @@ export async function reembolsarSeeds(): Promise<Response> {
   });
 }
 
+/* ── MAESTRIA (recompensas v2, onda 3) ── */
+
+/** As linhas de jogo do store, na forma que a soma da maestria lê — a mesma do Express. */
+async function linhasDeMaestria(): Promise<LinhaDeMaestria[]> {
+  const db = await abrirStore();
+  return (await db.getAll('exercicios')).map((e) => ({
+    exerciseKind: e.exerciseKind, roundId: e.roundId, correct: e.correct, combo: e.melhorSequencia, createdAt: e.createdAt,
+  }));
+}
+
+/**
+ * GET `/api/metrics/maestria` — os 18 jogos com pontos e nível, e os créditos `maestria:` já
+ * lançados. Espelho do Express: a soma é `maestriaPorJogo`, do core, sobre as linhas gravadas.
+ */
+export async function lerMaestria(): Promise<Response> {
+  const jogos = maestriaPorJogo(await linhasDeMaestria()).map((m) => ({ ...m, ...nivelDeMaestria(m.pontos) }));
+  const db = await abrirStore();
+  const creditados = (await db.getAll('creditos')).map((c) => c.creditoId).filter((id) => id.startsWith('maestria:')).sort();
+  return json({ jogos, creditados });
+}
+
 export async function creditarSeeds(_m: RegExpMatchArray, _u: URL, init: RequestInit): Promise<Response> {
   const p = lerJson(init);
   const creditoId = str(p.creditoId);
@@ -218,6 +240,15 @@ export async function creditarSeeds(_m: RegExpMatchArray, _u: URL, init: Request
       const { nivel } = economiaDeMetricas(await perfilEfemero(null));
       if (nivel < credito.nivelMinimo) {
         return json({ error: 'nível insuficiente para este crédito', code: 'nivel_insuficiente', codigo: 'nivel_insuficiente', detalhes: { nivel, exigido: credito.nivelMinimo } }, 400);
+      }
+    }
+    /* A MAESTRIA (recompensas v2, onda 3), com a régua do Express: os pontos do jogo, somados das
+       linhas gravadas (uma vez por `roundId`), alcançam o limiar do nível pedido. */
+    if (credito.maestria) {
+      const { jogo, pontosExigidos } = credito.maestria;
+      const pontos = maestriaPorJogo(await linhasDeMaestria()).find((m) => m.jogo === jogo)?.pontos ?? 0;
+      if (pontos < pontosExigidos) {
+        return json({ error: 'nível de maestria ainda não alcançado', code: 'maestria_nao_alcancada', codigo: 'maestria_nao_alcancada', detalhes: { pontos, exigido: pontosExigidos } }, 400);
       }
     }
     /* A META DO DIA (recompensas v2), com a régua do Express: hoje ou ontem no fuso de quem

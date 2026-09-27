@@ -2,6 +2,7 @@ import type { LucideIcon } from 'lucide-react';
 import {
   ArrowRight,
   Check,
+  Gamepad2,
   Lock,
   Moon,
   Palette,
@@ -74,6 +75,8 @@ const DESTINO: Record<DestinoDeObtencao, ReactNode> = {
   conquistas: <Trophy aria-hidden />,
   loja: <ShoppingBag aria-hidden />,
   passe: <Sparkles aria-hidden />,
+  // Maestria (recompensas v2): a rota é jogar; o cartão explica e não oferece botão.
+  jogar: <Gamepad2 aria-hidden />,
 };
 
 /** As quatro cores de um perfil, quando ele aponta para uma paleta. */
@@ -179,7 +182,7 @@ export default function Inventario({
 
   /** A origem de um item que JÁ é seu: como ele chegou até aqui. */
   const origemDe = (i: ItemDaLoja): OrigemDoItem =>
-    i.exclusivoDe ? 'conquista' : comprados.has(i.id) ? 'seeds' : 'nivel';
+    i.exclusivoDe || i.origemMaestria ? 'conquista' : comprados.has(i.id) ? 'seeds' : 'nivel';
 
   const meus = colecao.possuidos;
   const meusIds = useMemo(() => new Set(meus.map((m) => m.id)), [meus]);
@@ -257,7 +260,7 @@ export default function Inventario({
         : null
       : (rota?.titulo ?? est.motivo);
     const irPara =
-      !rota || podeComprar
+      !rota || podeComprar || rota.destino === 'jogar'
         ? undefined
         : rota.destino === 'conquistas'
           ? onIrParaConquistas

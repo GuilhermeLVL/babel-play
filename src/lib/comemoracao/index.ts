@@ -1,5 +1,12 @@
 import { reduzirEfeitos } from '../dispositivo/perfil';
-import { type BurstKind, emitBurst, type FormaParticula } from '../effects';
+import {
+  type BurstKind,
+  type BurstSpec,
+  emitBurst,
+  type FormaParticula,
+  type OrigemRajada,
+  type ParticlePreset,
+} from '../effects';
 import {
   eventoRaroDoAcerto,
   eventosDaRodadaPerfeita,
@@ -11,7 +18,15 @@ import {
 } from '../juice';
 import { play, somMudo, type SoundEvent } from '../soundFx';
 import type { EventoDeComemoracao } from './intensidade';
-import { ACERTOS, COMBOS, type EfeitosEquipados, efeitosEquipados, FINALIZACOES, pacote } from './pacotes';
+import {
+  ACERTOS,
+  COMBOS,
+  type EfeitosEquipados,
+  efeitosEquipados,
+  FINALIZACOES,
+  pacote,
+  type PacoteDeEfeito,
+} from './pacotes';
 
 /**
  * O MOTOR ÚNICO DE COMEMORAÇÃO (recompensas v2, onda 1).
@@ -31,13 +46,26 @@ import { ACERTOS, COMBOS, type EfeitosEquipados, efeitosEquipados, FINALIZACOES,
  * fica o som curto e o número, que são o retorno discreto e barato.
  */
 
+export { definirJogoEmCurso, equiparEfeito } from './efeitos';
 export type { EventoDeComemoracao, Intensidade } from './intensidade';
 export { intensidadeDe } from './intensidade';
-export { ACERTOS, COMBOS, EFEITOS_PADRAO, type EfeitosEquipados, FINALIZACOES } from './pacotes';
+export { ACERTOS, COMBOS, EFEITOS_PADRAO, type EfeitosEquipados, efeitosEquipados, FINALIZACOES } from './pacotes';
+
+/** Uma rajada do plano. Além de `kind`/`forma`, a receita equipada pode trazer origem, cor (token),
+ *  contagem e gravidade — o que `emitBurst` já sabe sobrescrever na spec do `kind`. */
+export interface RajadaDoPlano {
+  kind: BurstKind;
+  forma?: FormaParticula;
+  origem?: OrigemRajada;
+  cor?: ParticlePreset['colorToken'];
+  contagem?: number;
+  gravidade?: number;
+  quantidade: number;
+}
 
 export interface PlanoDeComemoracao {
   sons: { evento: SoundEvent; transpose?: number }[];
-  rajadas: { kind: BurstKind; forma?: FormaParticula; quantidade: number }[];
+  rajadas: RajadaDoPlano[];
   vibracao: number[] | null;
   flutuante: string | null;
   tremor: 0 | 1 | 2 | 3;
@@ -46,13 +74,24 @@ export interface PlanoDeComemoracao {
 /** O tom do acerto sobe um semitom por acerto seguido, até uma oitava. */
 const TETO_DO_TOM = 12;
 
+/** A rajada de uma receita, só com os campos que ela define (o resto fica com a spec do `kind`). */
+function rajadaDe(p: PacoteDeEfeito, quantidade: number): RajadaDoPlano {
+  const r: RajadaDoPlano = { kind: p.kind, quantidade };
+  if (p.forma) r.forma = p.forma;
+  if (p.origem) r.origem = p.origem;
+  if (p.cor) r.cor = p.cor;
+  if (p.contagem !== undefined) r.contagem = p.contagem;
+  if (p.gravidade !== undefined) r.gravidade = p.gravidade;
+  return r;
+}
+
 function planoCheio(ev: EventoDeComemoracao, efeitos: EfeitosEquipados): PlanoDeComemoracao {
   switch (ev.tipo) {
     case 'acerto': {
       const p = pacote(ACERTOS, efeitos.acerto);
       return {
-        sons: [{ evento: 'success', transpose: Math.min(Math.max(0, ev.combo), TETO_DO_TOM) }],
-        rajadas: [{ kind: p.kind, ...(p.forma ? { forma: p.forma } : {}), quantidade: 1 }],
+        sons: [{ evento: p.som ?? 'success', transpose: Math.min(Math.max(0, ev.combo), TETO_DO_TOM) }],
+        rajadas: [rajadaDe(p, 1)],
         vibracao: ev.combo >= 3 ? [20, 30, 25] : [15],
         flutuante: typeof ev.pontos === 'number' && ev.pontos > 0 ? `+${ev.pontos}` : null,
         tremor: 0,
@@ -69,8 +108,8 @@ function planoCheio(ev: EventoDeComemoracao, efeitos: EfeitosEquipados): PlanoDe
     case 'combo': {
       const p = pacote(COMBOS, efeitos.combo);
       return {
-        sons: [{ evento: 'combo', transpose: Math.min(Math.max(0, ev.multiplicador - 1) * 2, TETO_DO_TOM) }],
-        rajadas: [{ kind: p.kind, ...(p.forma ? { forma: p.forma } : {}), quantidade: 1 }],
+        sons: [{ evento: p.som ?? 'combo', transpose: Math.min(Math.max(0, ev.multiplicador - 1) * 2, TETO_DO_TOM) }],
+        rajadas: [rajadaDe(p, 1)],
         vibracao: [20, 30, 25, 30, 40],
         flutuante: `×${ev.multiplicador}`,
         tremor: 1,
@@ -104,8 +143,8 @@ function planoCheio(ev: EventoDeComemoracao, efeitos: EfeitosEquipados): PlanoDe
         };
       const fin = pacote(FINALIZACOES, efeitos.finalizacao);
       return {
-        sons: [{ evento: 'fanfarra', transpose: 4 }],
-        rajadas: [{ kind: fin.kind, ...(fin.forma ? { forma: fin.forma } : {}), quantidade: 1 }],
+        sons: [{ evento: fin.som ?? 'fanfarra', transpose: 4 }],
+        rajadas: [rajadaDe(fin, 1)],
         vibracao: [20, 30, 25, 30, 40],
         flutuante: null,
         tremor: 3,
@@ -206,7 +245,13 @@ function executar(ev: EventoDeComemoracao, plano: PlanoDeComemoracao): void {
   const el = alvoDe(ev);
   for (const s of plano.sons) play(s.evento, s.transpose !== undefined ? { transpose: s.transpose } : {});
   for (const r of plano.rajadas) {
-    const extra = r.forma ? { forma: r.forma } : undefined;
+    const s: Partial<BurstSpec> = {};
+    if (r.forma) s.forma = r.forma;
+    if (r.origem) s.origem = r.origem;
+    if (r.cor) s.colorToken = r.cor;
+    if (r.contagem !== undefined) s.count = r.contagem;
+    if (r.gravidade !== undefined) s.gravidade = r.gravidade;
+    const extra = Object.keys(s).length ? s : undefined;
     if (r.quantidade <= 1) {
       const { x, y } = centro(el);
       emitBurst(x, y, r.kind, extra);
@@ -240,7 +285,8 @@ export function celebrar(ev: EventoDeComemoracao): void {
     const plano = planoDeComemoracao(ev, {
       leve: reduzirEfeitos() || movimentoReduzido(),
       semSom: somMudo(),
-      efeitos: efeitosEquipados(),
+      // O fim de rodada diz o jogo; o acerto e o combo usam o jogo em curso (a casca avisa).
+      efeitos: efeitosEquipados(ev.tipo === 'rodada' ? ev.jogo : undefined),
     });
     registrar(ev, plano);
     executar(ev, plano);

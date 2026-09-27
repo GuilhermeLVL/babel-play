@@ -5,9 +5,9 @@
  *   npx tsx scripts/economia/simular-ritmo.ts --json     # a mesma coisa, em JSON
  *
  * TRÊS PERFIS, 30 DIAS CADA, com os pesos REAIS do core (`PESOS_SEEDS`, o teto de palavras, a meta
- * do dia, o baú de `decidirBau` com teto, garantia e repetido) e a maestria no desenho do plano
- * (onda 3: pontos = acertos × multiplicador de precisão + bônus de combo; limiares 30/100/220/400/
- * 600; 20 Seeds × nível). Nada por tempo: só revisões, rodadas e palavras salvas.
+ * do dia, o baú de `decidirBau` com teto, garantia e repetido) e a maestria da onda 3
+ * (`src/core/maestria.ts`: acertos × multiplicador de precisão + bônus de combo; limiares 30/100/
+ * 220/400/600; 20 Seeds × nível). Nada por tempo: só revisões, rodadas e palavras salvas.
  *
  *   leve     10 revisões + 1 rodada por dia
  *   típico   25 revisões + 3 rodadas + 10 palavras salvas + meta do dia
@@ -28,17 +28,11 @@ import {
 import { META_DIARIA_ACERTOS, TETO_PALAVRAS_SALVAS_POR_DIA } from '../../src/core/learning/economia';
 import { PESOS_SEEDS } from '../../src/core/learning/xp';
 import { CATALOGO_DA_LOJA, type Raridade } from '../../src/core/loja';
+import { nivelDeMaestria, pontosDeMaestria } from '../../src/core/maestria';
 import { estrelasDaRodada } from '../../src/core/minigames/fases';
 
-/* ── Maestria no desenho do plano (onda 3). Fica aqui até `src/core/maestria.ts` existir. ── */
-const LIMIARES_DE_MAESTRIA = [30, 100, 220, 400, 600];
-function pontosDeMaestria(acertos: number, total: number, comboMaximo: number): number {
-  if (total === 0) return 0;
-  const p = acertos / total;
-  const mult = p >= 1 ? 2 : p >= 0.9 ? 1.5 : p >= 0.75 ? 1 : 0.5;
-  return Math.round(acertos * mult) + Math.min(5, Math.floor(comboMaximo / 3));
-}
-const nivelDe = (pontos: number) => LIMIARES_DE_MAESTRIA.filter((l) => pontos >= l).length;
+/* ── Maestria: a régua real da onda 3 (`src/core/maestria.ts`). ── */
+const nivelDe = (pontos: number) => nivelDeMaestria(pontos).nivel;
 
 /* ── Sorteio reprodutível (mulberry32). ── */
 function semente(s: number) {
@@ -123,7 +117,7 @@ export function simular(p: Perfil, dias = 30, seed = 42): ResultadoDoPerfil {
       if (certos === p.itensPorRodada) soma('rodadaPerfeita', PESOS_SEEDS.rodadaPerfeita);
       // Maestria do jogo desta rodada.
       const antes = nivelDe(maestria[jogo]);
-      maestria[jogo] += pontosDeMaestria(certos, p.itensPorRodada, comboMax);
+      maestria[jogo] += pontosDeMaestria({ acertos: certos, total: p.itensPorRodada, comboMaximo: comboMax });
       for (let n = antes + 1; n <= nivelDe(maestria[jogo]); n++) soma('maestria', PESOS_SEEDS.nivelDeMaestria * n);
       jogo = (jogo + 1) % p.jogos;
       // Baú.
@@ -187,13 +181,19 @@ function main() {
   const tipico = resultados.find((r) => r.perfil === 'tipico')!;
   const faixas = faixasDoCatalogo();
   if (process.argv.includes('--json')) {
-    console.log(JSON.stringify({ resultados, faixas, bausPorDia: BAUS_POR_DIA, estrelasParaOBau: ESTRELAS_PARA_O_BAU }, null, 2));
+    console.log(
+      JSON.stringify({ resultados, faixas, bausPorDia: BAUS_POR_DIA, estrelasParaOBau: ESTRELAS_PARA_O_BAU }, null, 2),
+    );
     return;
   }
   console.log('Perfil    Seeds/dia  Seeds em 30d  baús  peças   fontes');
   for (const r of resultados) {
-    const fontes = Object.entries(r.porFonte).map(([k, v]) => `${k} ${v}`).join(' · ');
-    console.log(`${r.perfil.padEnd(9)} ${String(r.seedsPorDia).padStart(9)}  ${String(r.seedsTotal).padStart(12)}  ${String(r.baus).padStart(4)}  ${String(r.pecasDoBau).padStart(5)}   ${fontes}`);
+    const fontes = Object.entries(r.porFonte)
+      .map(([k, v]) => `${k} ${v}`)
+      .join(' · ');
+    console.log(
+      `${r.perfil.padEnd(9)} ${String(r.seedsPorDia).padStart(9)}  ${String(r.seedsTotal).padStart(12)}  ${String(r.baus).padStart(4)}  ${String(r.pecasDoBau).padStart(5)}   ${fontes}`,
+    );
   }
   console.log('\nFaixas de preço do catálogo (Seeds) e dias do perfil típico para comprar:');
   for (const rar of ['comum', 'raro', 'epico', 'lendario'] as Raridade[]) {
@@ -203,7 +203,9 @@ function main() {
     const dMin = (f.min / tipico.seedsPorDia).toFixed(1);
     const dMax = (f.max / tipico.seedsPorDia).toFixed(1);
     const alvo = `${Math.round(a * tipico.seedsPorDia)}–${Math.round(b * tipico.seedsPorDia)}`;
-    console.log(`  ${rar.padEnd(9)} ${f.min}–${f.max} (${f.n} itens) → ${dMin}–${dMax} dias · alvo ${a}–${b} dias = ${alvo} Seeds`);
+    console.log(
+      `  ${rar.padEnd(9)} ${f.min}–${f.max} (${f.n} itens) → ${dMin}–${dMax} dias · alvo ${a}–${b} dias = ${alvo} Seeds`,
+    );
   }
 }
 

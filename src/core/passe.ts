@@ -76,7 +76,8 @@ const COFRES_POR_DECADA = [0, 0, 1, 0, 2, 2, 2, 2, 2, 2, 2];
 export function slotsDoPasse(): SlotDoPasse[] {
   const porDecada = new Map<number, ItemDaLoja[]>();
   for (const i of CATALOGO_DA_LOJA) {
-    if (i.exclusivoDe) continue;
+    // Sem `nivel` (recompensas v2: só Seeds ou maestria) o item não tem casa na trilha.
+    if (i.exclusivoDe || i.nivel === undefined) continue;
     const d = Math.min(10, Math.max(1, i.nivel));
     porDecada.set(d, [...(porDecada.get(d) ?? []), i]);
   }

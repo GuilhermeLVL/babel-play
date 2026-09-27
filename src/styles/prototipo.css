@@ -1730,8 +1730,18 @@ body:has(.palco-jogo) .fab{display:none}
 .toast::after{content:"";position:absolute;left:12px;right:12px;bottom:5px;height:2px;border-radius:2px;background:color-mix(in srgb,var(--ink-contrast) 40%,transparent);transform-origin:left;transform:scaleX(0)}
 .toast.on::after{animation:tempo 2.6s linear forwards}
 @keyframes tempo{from{transform:scaleX(1)}to{transform:scaleX(0)}}
-.faixa-rev .contador{animation:respira 2.4s ease-in-out infinite}
-@keyframes respira{50%{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 22%,transparent),0 0 0 8px color-mix(in srgb,var(--accent-soft) 35%,transparent)}}
+/* "Respira" SEM repintar (auditoria de performance do frontend, 26/09/2026): animar box-shadow custava
+   ~300 ms/s de estilo+pintura com a tela parada. O mesmo desenho sai de dois halos em camadas próprias
+   que só trocam a OPACIDADE (composição na GPU): o de 4 px apaga enquanto o de 8 px acende. O anel
+   interno de 1 px fica fixo no próprio contador. */
+.faixa-rev .contador{position:relative;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 22%,transparent)}
+.faixa-rev .contador::before,.faixa-rev .contador::after{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;will-change:opacity}
+.faixa-rev .contador::before{box-shadow:0 0 0 4px color-mix(in srgb,var(--accent-soft) 55%,transparent);animation:respira-some 2.4s ease-in-out infinite}
+.faixa-rev .contador::after{box-shadow:0 0 0 8px color-mix(in srgb,var(--accent-soft) 35%,transparent);opacity:0;animation:respira-acende 2.4s ease-in-out infinite}
+@keyframes respira-some{50%{opacity:0}}
+@keyframes respira-acende{50%{opacity:1}}
+@media (prefers-reduced-motion:reduce){.faixa-rev .contador::before,.faixa-rev .contador::after{animation:none}}
+html[data-modo-leve='true'] .faixa-rev .contador::before,html[data-modo-leve='true'] .faixa-rev .contador::after{animation:none}
 .particulas i{translate:var(--px,0) var(--py,0);transition:translate .9s var(--ease)}
 @media (prefers-reduced-motion: reduce){
 *,*::before,*::after{animation-delay:0s!important;animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important;scroll-behavior:auto!important}

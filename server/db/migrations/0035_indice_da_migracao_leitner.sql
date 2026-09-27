@@ -1,0 +1,15 @@
+-- OS CANDIDATOS DA MIGRAÇÃO LEITNER→FSRS DO BOOT (auditoria de performance do backend, 26/09/2026 —
+-- `openspec/audits/2026-09-26-performance-backend/relatorio.md`).
+--
+-- `migrarLeitnerParaFsrs` (server/db/manutencao.ts) roda a CADA boot, antes do `listen`, e procurava os
+-- cartões `deleted_at IS NULL AND stability IS NULL AND box > 1` sem índice que servisse: varredura do
+-- acervo inteiro. Medido no banco semeado da suíte (453.000 cartões, todos já migrados — o estado
+-- normal): 504 ms dos 559 ms de banco do boot, para devolver zero linhas.
+--
+-- Índice PARCIAL com exatamente esse predicado: fica quase sempre vazio (carta nova nasce com box = 1 e
+-- a primeira revisão grava `stability`), então não custa escrita; e a consulta, que repete o predicado
+-- literalmente, passa a ler só o que está nele.
+--
+-- Só `CREATE INDEX IF NOT EXISTS`: aditiva (expand), compatível com o código anterior, segura no boot.
+-- REVERSAO: DROP INDEX IF EXISTS idx_vocab_leitner_pendente;
+CREATE INDEX IF NOT EXISTS `idx_vocab_leitner_pendente` ON `vocab_cards` (`id`) WHERE "vocab_cards"."deleted_at" is null and "vocab_cards"."stability" is null and "vocab_cards"."box" > 1;

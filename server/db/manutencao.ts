@@ -12,11 +12,12 @@
 import { mkdirSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 
-import { and, eq, gt, isNull } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { migrate } from 'drizzle-orm/libsql/migrator'
 
 import { migrateLeitnerToFsrs } from '../../src/core/learning/scheduler'
 import { client, db } from './db'
+import { emLotes, type InstrucaoDeBatch, tuplaDeBatch } from './lotes'
 import { toState } from './repositories/vocab'
 import { vocabCards } from './schema'
 
@@ -132,32 +133,53 @@ export async function schemaPresente(): Promise<boolean> {
  */
 const TETO_DA_MIGRACAO_LEITNER = 5_000
 
+/** Instruções por `db.batch` (uma transação cada) ao gravar os migrados. */
+const LOTE_DA_MIGRACAO_LEITNER = 1_000
+
 export async function migrarLeitnerParaFsrs(): Promise<number> {
   const now = Date.now()
   const candidatos = await db
-    .select()
+    /* Só as colunas que `toState` lê: era `SELECT *`, com as frases inteiras de cada cartão. */
+    .select({
+      id: vocabCards.id,
+      box: vocabCards.box,
+      dueAt: vocabCards.dueAt,
+      stability: vocabCards.stability,
+      difficulty: vocabCards.difficulty,
+      reps: vocabCards.reps,
+      lapses: vocabCards.lapses,
+      lastReview: vocabCards.lastReview,
+    })
     .from(vocabCards)
     /* `box > 1` na CONSULTA, e não só no laço: as cartas novas são a maioria de um acervo em
-       crescimento e eram lidas inteiras a cada boot para serem descartadas linha a linha. */
-    .where(and(isNull(vocabCards.deletedAt), isNull(vocabCards.stability), gt(vocabCards.box, 1)))
+       crescimento e eram lidas inteiras a cada boot para serem descartadas linha a linha.
+       PREDICADO LITERAL, e não `gt(box, 1)` (que vira `box > ?`): é o texto do índice parcial
+       `idx_vocab_leitner_pendente` (migração 0035), e o SQLite só usa um índice parcial quando
+       consegue PROVAR o WHERE dele a partir do da consulta — com um parâmetro, não consegue, e o
+       boot voltava a varrer o acervo inteiro (504 ms em 453.000 cartões para achar zero). */
+    .where(sql`${vocabCards.deletedAt} is null and ${vocabCards.stability} is null and ${vocabCards.box} > 1`)
     .limit(TETO_DA_MIGRACAO_LEITNER)
-  let migrados = 0
+  const atualizacoes: InstrucaoDeBatch[] = []
   for (const card of candidatos) {
     const antes = toState(card)
     const depois = migrateLeitnerToFsrs(antes, now)
     if (depois.stability === antes.stability) continue // box<=1: nada a migrar
-    await db
-      .update(vocabCards)
-      .set({
-        stability: depois.stability ?? null,
-        difficulty: depois.difficulty ?? null,
-        reps: depois.reps ?? null,
-        lapses: depois.lapses ?? null,
-        lastReview: depois.lastReview ?? null,
-        updatedAt: now,
-      })
-      .where(eq(vocabCards.id, card.id))
-    migrados++
+    atualizacoes.push(
+      db
+        .update(vocabCards)
+        .set({
+          stability: depois.stability ?? null,
+          difficulty: depois.difficulty ?? null,
+          reps: depois.reps ?? null,
+          lapses: depois.lapses ?? null,
+          lastReview: depois.lastReview ?? null,
+          updatedAt: now,
+        })
+        .where(eq(vocabCards.id, card.id)),
+    )
   }
-  return migrados
+  /* EM LOTE, e não um `await` por cartão: eram até 5.000 idas ao banco em série no boot, cada uma
+     um commit próprio. Um `db.batch` é uma transação na mesma conexão (ver `emTransacao` em db.ts). */
+  for (const lote of emLotes(atualizacoes, LOTE_DA_MIGRACAO_LEITNER)) await db.batch(tuplaDeBatch(lote))
+  return atualizacoes.length
 }

@@ -7,6 +7,13 @@
  *   node scripts/perf/suite/rodar.mjs [--vus=10,100,1000] [--duracao=60] [--rampa=15] [--pensar=12]
  *        [--pesados=50] [--medios=2000] [--mesmo-ip] [--porta=3160] [--bundle=dist-server/server.cjs]
  *        [--tmp=<pasta>] [--saida=resultado.json] [--sem-veredito]
+ *        [--coletor-dir=<pasta>] [--cpu-prof-dir=<pasta>]
+ *
+ * INSTRUMENTAÇÃO OPCIONAL (auditoria de performance do backend, 26/09/2026), uma subpasta por nível:
+ *   --coletor-dir   pré-carrega `consultas/coletor.cjs` no servidor: toda consulta, por rota
+ *                   (agregar com `consultas/analisar.mjs`). Custa CPU: não misture com a rodada do veredito.
+ *   --cpu-prof-dir  pré-carrega `consultas/perfil-cpu.cjs` e grava o `.cpuprofile` SÓ da janela medida
+ *                   (resumir com `consultas/resumir-perfil.mjs`).
  *
  * O QUE SOBE (e derruba no fim, pelo PID de cada filho que ELA iniciou):
  *   - um banco preparado (`preparar.mjs`: migrations reais + semeadura da Fase 2 + assinaturas e
@@ -74,6 +81,8 @@ const bundle = path.resolve(RAIZ, arg('bundle', 'dist-server/server.cjs'))
 const tmp = path.resolve(arg('tmp', '') || mkdtempSync(path.join(os.tmpdir(), 'suite-carga-')))
 const saida = arg('saida', '')
 const slo = carregarSlo(arg('slo', undefined) || undefined)
+const coletorDir = arg('coletor-dir', '') && path.resolve(arg('coletor-dir', ''))
+const cpuProfDir = arg('cpu-prof-dir', '') && path.resolve(arg('cpu-prof-dir', ''))
 
 if (!existsSync(bundle)) {
   console.error(`bundle não encontrado: ${bundle} (rode npm run build)`)
@@ -136,7 +145,7 @@ const provedor = await subirProvedorFalso({
 
 // ── servidor ─────────────────────────────────────────────────────────────────────────────────
 let filhoAtual = null
-async function subirServidor(banco, sonda) {
+async function subirServidor(banco, sonda, rotulo = '') {
   const audioDir = path.join(tmp, `audio-${path.basename(banco, '.db')}`)
   mkdirSync(audioDir, { recursive: true })
   const env = {
@@ -159,6 +168,10 @@ async function subirServidor(banco, sonda) {
     SUPABASE_URL: `http://127.0.0.1:${portaJwks}`,
     GROQ_API_KEY: 'gsk_falso_da_suite_de_carga',
     GROQ_BASE_URL: `http://provedor-falso.test:${portaFalso}/openai/v1`,
+    ...(coletorDir ? { COLETOR_DIR: path.join(coletorDir, rotulo) } : {}),
+    // Comparar com um bundle ANTERIOR exige as migrations DELE (senão o boot aplica as novas na cópia).
+    ...(process.env.MIGRATIONS_DIR ? { MIGRATIONS_DIR: process.env.MIGRATIONS_DIR } : {}),
+    ...(cpuProfDir ? { CPU_PROF_DIR: path.join(cpuProfDir, rotulo) } : {}),
   }
   const filho = spawn(
     process.execPath,
@@ -167,6 +180,8 @@ async function subirServidor(banco, sonda) {
       path.join(RAIZ, 'scripts/perf/escala/sonda-processo.cjs'),
       '-r',
       path.join(RAIZ, 'scripts/perf/suite/dns-falso.cjs'),
+      ...(coletorDir ? ['-r', path.join(RAIZ, 'scripts/perf/consultas/coletor.cjs')] : []),
+      ...(cpuProfDir ? ['-r', path.join(RAIZ, 'scripts/perf/consultas/perfil-cpu.cjs')] : []),
       bundle,
     ],
     { cwd: RAIZ, env, stdio: ['ignore', 'pipe', 'pipe'] },
@@ -219,15 +234,13 @@ function lerSonda(arquivo, de, ate) {
   }
 }
 const cpuDaMaquina = () =>
-  os
-    .cpus()
-    .reduce(
-      (a, c) => ({
-        ocupado: a.ocupado + c.times.user + c.times.sys + c.times.irq,
-        total: a.total + c.times.user + c.times.sys + c.times.irq + c.times.idle + c.times.nice,
-      }),
-      { ocupado: 0, total: 0 },
-    )
+  os.cpus().reduce(
+    (a, c) => ({
+      ocupado: a.ocupado + c.times.user + c.times.sys + c.times.irq,
+      total: a.total + c.times.user + c.times.sys + c.times.irq + c.times.idle + c.times.nice,
+    }),
+    { ocupado: 0, total: 0 },
+  )
 
 async function rodarNivel(vus) {
   const banco = path.join(tmp, `nivel-${vus}${mesmoIp ? '-mesmo-ip' : ''}.db`)
@@ -235,7 +248,9 @@ async function rodarNivel(vus) {
   copyFileSync(bancoBase, banco)
   const sonda = path.join(tmp, `sonda-${vus}${mesmoIp ? '-mesmo-ip' : ''}.jsonl`)
   if (existsSync(sonda)) rmSync(sonda)
-  const filho = await subirServidor(banco, sonda)
+  const rotulo = `nivel-${vus}${mesmoIp ? '-mesmo-ip' : ''}`
+  const filho = await subirServidor(banco, sonda, rotulo)
+  const profDir = cpuProfDir && path.join(cpuProfDir, rotulo)
 
   const amostras = []
   let ativo = true
@@ -263,16 +278,20 @@ async function rodarNivel(vus) {
   await dormir(rampaS * 1000)
   lagGerador.enable()
   inicioJanela = Date.now()
+  if (profDir) writeFileSync(path.join(profDir, 'iniciar'), '')
   const cpuM0 = cpuDaMaquina()
   const cpuG0 = process.cpuUsage()
   await dormir(duracaoS * 1000)
   const fimJanela = Date.now()
+  if (profDir) writeFileSync(path.join(profDir, 'parar'), '')
   const cpuM1 = cpuDaMaquina()
   const cpuG = process.cpuUsage(cpuG0)
   ativo = false
   lagGerador.disable()
   await Promise.race([Promise.all(correndo), dormir(45_000)])
   const sondado = lerSonda(sonda, inicioJanela, fimJanela)
+  for (let i = 0; profDir && i < 300 && !existsSync(path.join(profDir, 'pronto')); i++) await dormir(100)
+  await dormir(coletorDir ? 2500 : 0) // o coletor grava a cada 2 s
   await derrubar(filho)
 
   const nucleos = os.cpus().length

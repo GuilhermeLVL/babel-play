@@ -13,7 +13,7 @@ import { definicaoDoPlano, ehPlanoDeAssinatura, type PlanoEfetivo } from '../../
 import { type Subscription, subscriptionsRepo } from '../db/repositories/subscriptions'
 import { authRequired } from './auth'
 import type { UserId } from './authContext'
-import { ehConvidadoNoContexto } from './contextoDeConvidado'
+import { ehConvidadoNoContexto, memoDoRequest } from './contextoDeConvidado'
 import { log } from './logger'
 
 export interface Entitlements {
@@ -60,8 +60,9 @@ export async function getPlanForUser(userId: UserId): Promise<PlanoEfetivo> {
   if (ehConvidadoNoContexto(userId)) return 'convidado'
 
   // 1) Assinatura é a ÚNICA fonte autoritativa do plano em modo público: concede o plano dela, ou
-  //    'free' se não concede mais.
-  const sub = await subscriptionsRepo.getActive(userId)
+  //    'free' se não concede mais. Lida UMA vez por request (`memoDoRequest`): várias camadas do
+  //    mesmo request perguntam o plano, e a mesma linha era lida 3x por STT/MT.
+  const sub = await memoDoRequest(userId, 'assinatura', () => subscriptionsRepo.getActive(userId))
   if (sub) {
     if (subConcede(sub) && isPlan(sub.plan)) return sub.plan
     /* Plano fora da matriz degrada para `free` — o seguro — mas agora DEIXA RASTRO. Antes a

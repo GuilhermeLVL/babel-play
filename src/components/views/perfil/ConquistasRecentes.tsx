@@ -4,8 +4,8 @@ import { ArrowRight, Award, Target } from 'lucide-react';
 import { conquistasDesbloqueadas, dataDaConquista } from '../../../lib/conquistasPosse';
 import { data } from '../../../lib/i18n';
 import { irPara } from '../../../lib/irPara';
+import { iconeDaConquista } from '../../iconesDaConquista';
 import { IconeEmBloco, TituloDeSecao } from '../../ui';
-import { ICONE_DA_CONQUISTA } from '../Conquistas';
 
 /**
  * CONQUISTAS RECENTES — a seção de Perfil → Progresso do protótipo aprovado: as últimas
@@ -44,7 +44,7 @@ export default function ConquistasRecentes() {
           <div className="p5 pilha">
             {recentes.map(({ c, em }) => (
               <div key={c.id} className="linha">
-                <IconeEmBloco icone={ICONE_DA_CONQUISTA[c.id] ?? Award} tom="good" />
+                <IconeEmBloco icone={iconeDaConquista(c.id)} tom="good" />
                 <div>
                   <b>{c.nome}</b>
                   <p className="mut" style={{ fontSize: 12.5 }}>

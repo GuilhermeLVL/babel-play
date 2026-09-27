@@ -21,6 +21,7 @@ import { type CSSProperties, useEffect, useId, useRef, useState } from 'react';
 import { TEXTOS } from '../lib/galeria/textos';
 import { comemorar } from '../lib/juice';
 import { type ItemDaLoja, type Raridade } from '../lib/loja';
+import { iconeDaConquista } from './iconesDaConquista';
 import MiniaturaDoItem from './MiniaturaDoItem';
 import { DialogoBase } from './ui';
 
@@ -197,6 +198,7 @@ function Resgate({ atual, onEquipar, onFechar, onVerPersonalizar }: Omit<Props, 
   const titulo =
     atual.tipo === 'nivel' ? `Nível ${atual.nivel}!` : atual.tipo === 'drop' ? atual.item.nome : atual.nome;
   const icone = { width: 44, height: 44, display: 'inline-block', color: 'var(--accent-ink)' };
+  const IconeDaConquista = iconeDaConquista(atual.tipo === 'conquista' ? atual.id : '');
 
   return (
     <DialogoBase rotuloId={idTitulo} aoFechar={fechar}>
@@ -204,7 +206,9 @@ function Resgate({ atual, onEquipar, onFechar, onVerPersonalizar }: Omit<Props, 
         <Confete />
         <div className="emoji" aria-hidden>
           {atual.tipo === 'conquista' ? (
-            atual.emoji
+            /* O ícone lucide da grade de Desafios, não o `emoji` do core: a mesma conquista com a
+               mesma cara nas duas telas, e nada de emoji na interface. */
+            <IconeDaConquista style={icone} />
           ) : atual.tipo === 'drop' ? (
             <Gift style={icone} />
           ) : (

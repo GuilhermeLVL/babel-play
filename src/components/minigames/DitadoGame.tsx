@@ -134,11 +134,9 @@ export default function DitadoGame({ rodadas, audioUrl, ageProfile, onFinish }: 
       setSequencia(nova);
       setAcertos((n) => n + 1);
       setPontos((p) => p + ganho);
-      triggerHaptic('success');
       playJuicedHit(nova, undefined, `+${ganho}${mult > 1 && !dicas ? ` ×${mult}` : ''}`);
     } else {
       setSequencia(0);
-      triggerHaptic('error');
       playJuicedError(palcoRef.current, undefined, 'Abaixo de 80%');
     }
 

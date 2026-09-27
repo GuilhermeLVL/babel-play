@@ -14,24 +14,17 @@ import {
   BookOpen,
   Brain,
   CalendarCheck,
-  CalendarDays,
   Check,
   Coins,
-  Crown,
   Flame,
-  Globe,
-  Headphones,
   Lock,
   Mic,
-  Rainbow,
   Save,
-  ShoppingBag,
   Sprout,
   Star,
   Target,
   TrendingUp,
   Trophy,
-  Zap,
 } from 'lucide-react';
 import { useMemo } from 'react';
 
@@ -39,6 +32,7 @@ import { conquistasDesbloqueadas, dataDaConquista } from '../../lib/conquistasPo
 import { data } from '../../lib/i18n';
 import { CATALOGO_DA_LOJA, COR_DA_RARIDADE } from '../../lib/loja';
 import type { DerivedProgress } from '../../lib/progress';
+import { iconeDaConquista } from '../iconesDaConquista';
 import { IconeEmBloco, TituloDeSecao, type TomDoIcone } from '../ui';
 
 /**
@@ -60,8 +54,8 @@ interface ConquistasProps {
 
 const ORDEM: RaridadeDaConquista[] = ['lendario', 'epico', 'raro', 'comum'];
 
-/* O ícone de cada regra e de cada conquista. O core guarda emoji (é o que o modal de recompensa
-   mostra); o protótipo desenha ícone em bloco. Id novo sem ícone cai no genérico. */
+/* O ícone de cada regra. O das conquistas mora em `../iconesDaConquista` (é o mesmo no modal de
+   resgate e no perfil). Id novo sem ícone cai no genérico. */
 const ICONE_DA_REGRA: Record<string, LucideIcon> = {
   presenca: CalendarCheck,
   sequencia7: Flame,
@@ -72,22 +66,6 @@ const ICONE_DA_REGRA: Record<string, LucideIcon> = {
   jogoCerto: Target,
   rodadaPerfeita: Star,
   conquista: Trophy,
-};
-export const ICONE_DA_CONQUISTA: Record<string, LucideIcon> = {
-  'primeira-captura': Mic,
-  ouvinte: Headphones,
-  'caderno-cheio': BookOpen,
-  revisor: Brain,
-  'sem-erro': Star,
-  perfeccionista: Crown,
-  maratonista: CalendarDays,
-  constante: Flame,
-  colecionador: Rainbow,
-  poliglota: Globe,
-  duelista: Zap,
-  cliente: ShoppingBag,
-  'nivel-5': Target,
-  'nivel-10': Trophy,
 };
 const TOM: Record<RaridadeDaConquista, TomDoIcone> = { lendario: 'warn', epico: 'rare', raro: 'rare', comum: 'accent' };
 
@@ -216,7 +194,7 @@ export default function Conquistas({ progress, ctx }: ConquistasProps) {
                 return (
                   <article key={conquista.id} className={`cartao conq ${conquista.raridade}`}>
                     <div className="linha">
-                      <IconeEmBloco icone={ICONE_DA_CONQUISTA[conquista.id] ?? Award} tom={TOM[conquista.raridade]} />
+                      <IconeEmBloco icone={iconeDaConquista(conquista.id)} tom={TOM[conquista.raridade]} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <h3>{conquista.nome}</h3>
                         <p>{conquista.desc}</p>

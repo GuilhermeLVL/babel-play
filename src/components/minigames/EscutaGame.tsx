@@ -3,7 +3,6 @@ import { scoreRound } from '@core';
 import { Play, RotateCcw, Turtle } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
-import { emitBurst } from '../../lib/effects';
 import { criarFalante } from '../../lib/falante';
 import { playJuicedError, playJuicedHit, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
 import { multiplicador } from '../../lib/juice';
@@ -114,12 +113,9 @@ export default function EscutaGame({ rodadas, audioUrl, ageProfile: _ageProfile,
       setSequencia(nova);
       setAcertos((n) => n + 1);
       setPontos((p) => p + ganho);
-      triggerHaptic('success');
-      if (coords) emitBurst(coords.x, coords.y, 'confete');
       playJuicedHit(nova, coords, `+${ganho}${mult > 1 ? ` ×${mult}` : ''}`);
     } else {
       setSequencia(0);
-      triggerHaptic('error');
       playJuicedError(palcoRef.current, coords, 'Ouça novamente');
     }
 

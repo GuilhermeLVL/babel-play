@@ -3,8 +3,7 @@ import { buildGrid, cellsBetween, letrasNaGrade, matchSelection, scoreRound, sho
 import { Check, Eraser, Eye, Highlighter, Lightbulb, Radar } from 'lucide-react';
 import React, { useMemo, useRef, useState } from 'react';
 
-import { emitBurst } from '../../lib/effects';
-import { playJuicedError, playJuicedHit, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
+import { playJuicedError, playJuicedHit, playJuicedVictory } from '../../lib/gameFeel';
 import { t } from '../../lib/i18n';
 import { comemorar, multiplicador, pontosDoElemento } from '../../lib/juice';
 import type { AgeProfileType } from '../../lib/profile';
@@ -164,8 +163,6 @@ export default function WordSearchGame({ items, ageProfile, onFinish }: WordSear
       const ganho = 10 * (comDica.has(achado.itemIndex) ? 1 : mult);
       setSequencia(nova);
       setPontos((pt) => pt + ganho);
-      triggerHaptic('success');
-      if (coords) emitBurst(coords.x, coords.y, 'confete');
       playJuicedHit(nova, coords, '+' + ganho + (mult > 1 ? ' ×' + mult : ''));
 
       // Pronuncia a palavra achada no idioma original
@@ -180,7 +177,6 @@ export default function WordSearchGame({ items, ageProfile, onFinish }: WordSear
     // Traço errado
     if (!achado) {
       setSequencia(0);
-      triggerHaptic('error');
       playJuicedError(gradeRef.current, coords, 'Tente de novo');
     }
   };

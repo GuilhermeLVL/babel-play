@@ -4,7 +4,6 @@ import { Check, Eraser, Lightbulb, Volume2 } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 
 import { juntarPalavras } from '../../core/minigames/palavrasDaFrase';
-import { emitBurst } from '../../lib/effects';
 import { playJuicedError, playJuicedHit, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
 import { t } from '../../lib/i18n';
 import { multiplicador, pontosDoElemento } from '../../lib/juice';
@@ -85,8 +84,6 @@ export default function ScrambleGame({ rodadas, ageProfile, onFinish }: Scramble
       const ganho = 10 * (usouDica ? 1 : mult);
       setSequencia(nova);
       setPontos((p) => p + ganho);
-      triggerHaptic('success');
-      if (coords) emitBurst(coords.x, coords.y, 'confete');
       playJuicedHit(nova, coords, '+' + ganho + (mult > 1 && !usouDica ? ' ×' + mult : ''));
       setConferido('certo');
 
@@ -108,7 +105,6 @@ export default function ScrambleGame({ rodadas, ageProfile, onFinish }: Scramble
     }
     // Errou: feedback sensorial com tremor
     setSequencia(0);
-    triggerHaptic('error');
     playJuicedError(palcoRef.current, coords, 'Ordem incorreta');
     setConferido('errado');
     tentativasRef.current++;

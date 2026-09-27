@@ -3,7 +3,6 @@ import { scoreRound } from '@core';
 import { Eye } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
-import { emitBurst } from '../../lib/effects';
 import { playJuicedError, playJuicedHit, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
 import { multiplicador, pontosDoElemento } from '../../lib/juice';
 import { direcaoDoTexto } from '../../lib/languages';
@@ -121,8 +120,6 @@ export default function MemoryGame({ items, ageProfile: _ageProfile, onFinish }:
       const ganho = 10 * mult;
       setSequencia(nova);
       setPontos((p) => p + ganho);
-      triggerHaptic('success');
-      if (coords) emitBurst(coords.x, coords.y, 'confete');
       playJuicedHit(nova, coords, `+${ganho}${mult > 1 ? ` ×${mult}` : ''}`);
       setFechados((prev) => new Set([...prev, a.itemIndex]));
       setViradas([]);

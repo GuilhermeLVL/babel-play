@@ -92,4 +92,21 @@ describe('RecompensaDesbloqueada — o modal de resgate', () => {
     expect(screen.getByText('+100 Seeds')).toBeTruthy()
     expect(screen.getByText('Tema Aurora')).toBeTruthy()
   })
+
+  it('conquista mostra o ícone lucide da grade de Desafios, e não o emoji do core', () => {
+    const r: Recompensa = { tipo: 'conquista', id: 'constante', nome: 'Constante', emoji: '🔥', seeds: 100, xp: 50 }
+    render(<RecompensaDesbloqueada fila={[r]} onEquipar={() => true} onFechar={vi.fn()} onVerPersonalizar={vi.fn()} />)
+    const dialogo = screen.getByRole('dialog')
+    expect(dialogo.textContent).not.toContain('🔥')
+    expect(dialogo.querySelector('.emoji svg.lucide-flame')).toBeTruthy()
+  })
+
+  it('o modal é a ÚNICA festa da recompensa: comemora uma vez ao abrir', async () => {
+    const { comemorar } = await import('../src/lib/juice')
+    vi.mocked(comemorar).mockClear()
+    render(
+      <RecompensaDesbloqueada fila={[nivel2]} onEquipar={() => true} onFechar={vi.fn()} onVerPersonalizar={vi.fn()} />,
+    )
+    expect(vi.mocked(comemorar).mock.calls.filter((c) => c[0] === 'subiuNivel')).toHaveLength(1)
+  })
 })

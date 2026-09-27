@@ -3,7 +3,6 @@ import { notaConectores, scoreRound } from '@core';
 import { Check, Link2 } from 'lucide-react';
 import React, { useRef, useState } from 'react';
 
-import { emitBurst } from '../../lib/effects';
 import { playJuicedError, playJuicedHit, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
 import { multiplicador } from '../../lib/juice';
 import type { AgeProfileType } from '../../lib/profile';
@@ -71,14 +70,9 @@ export default function ConectoresGame({ rodadas, ageProfile, onFinish }: Conect
       const ganho = 10 * mult;
       setSequencia(nova);
       setPontos((p) => p + ganho);
-      triggerHaptic('success');
-      if (typeof window !== 'undefined') {
-        emitBurst(window.innerWidth / 2, window.innerHeight * 0.4, 'confete');
-      }
       playJuicedHit(nova, undefined, `+${ganho}${mult > 1 ? ` ×${mult}` : ''}`);
     } else {
       setSequencia(0);
-      triggerHaptic('error');
       playJuicedError(palcoRef.current, undefined, 'Revise os conectores');
     }
 

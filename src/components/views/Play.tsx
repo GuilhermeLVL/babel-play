@@ -3373,10 +3373,12 @@ export default function Play({
         return rec > 0 ? `${conta} · ${t('recorde {n}', { n: rec })}` : conta;
       }
       const motivo = 'motivo' in j.estado ? j.estado.motivo : undefined;
+      /* Só o Caça-conectores cai aqui: a Frase embaralhada JOGA com as frases da trilha, então
+         "a trilha tem palavras soltas" era falso. O que falta é conector (4,5% das frases). */
       if (motivo === 'trilha-sem-frase')
         return ageProfile === 'kids'
-          ? t('a trilha tem palavras, não frases')
-          : t('a trilha tem palavras soltas, este jogo precisa de frase; escolha uma gravação');
+          ? t('as frases da trilha quase não têm conector')
+          : t('as frases da trilha quase nunca têm conector; escolha uma gravação');
       if (motivo === 'sem-voz')
         return t('este navegador não tem voz em {idioma}', { idioma: langLabelNaUI(fonte.lang) });
       if (motivo === 'escrita-sem-separacao')

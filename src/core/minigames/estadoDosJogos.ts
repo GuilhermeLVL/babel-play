@@ -77,7 +77,7 @@ export type MotivoBloqueio =
 export const ROTULO_DO_MOTIVO: Record<MotivoBloqueio, { titulo: string; conserto: string }> = {
   'trilha-sem-frase': {
     titulo: 'precisa de frase',
-    conserto: 'a trilha tem palavras soltas; escolha uma gravação para liberar este jogo',
+    conserto: 'as frases da trilha quase nunca têm conector; escolha uma gravação para liberar este jogo',
   },
   'sem-voz': {
     titulo: 'sem voz sintetizada',

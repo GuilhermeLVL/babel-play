@@ -12,8 +12,8 @@ describe('loja', () => {
     localStorage.removeItem('babel.liberado')
     const vercel = CATALOGO_DA_LOJA.find((i) => i.id === 'tema-vercel')!
     expect(estadoDoItem(vercel, 4, 0).estado).toBe('equipavel')
-    expect(estadoDoItem(vercel, 1, 999).estado).toBe('compravel')
-    expect(estadoDoItem(vercel, 1, 0)).toEqual({ estado: 'bloqueado', motivo: 'Nível 4 ou 110 Seeds' })
+    expect(estadoDoItem(vercel, 1, 9999).estado).toBe('compravel')
+    expect(estadoDoItem(vercel, 1, 0)).toEqual({ estado: 'bloqueado', motivo: `Nível 4 ou ${vercel.precoSeeds} Seeds` })
     marcarPosse(vercel.id)
     expect(estadoDoItem(vercel, 1, 0).estado).toBe('equipavel')
     localStorage.removeItem('babel.loja_possuidos')
@@ -30,8 +30,9 @@ describe('loja', () => {
     // e a vitrine "no próximo nível" nunca promete um exclusivo
     for (const n of [1, 5, 9]) expect(vitrineDoProximoNivel(n).some((i) => i.exclusivoDe)).toBe(false)
   })
-  it('preços seguem as faixas da economia v2 (comum < raro < épico < lendário)', () => {
-    const faixa: Record<string, [number, number]> = { comum: [40, 60], raro: [100, 140], epico: [200, 260], lendario: [380, 600] }
+  /* Faixas calibradas pela simulação das recompensas v2 (`docs/economia-v2.md`). */
+  it('preços seguem as faixas calibradas (comum < raro < épico < lendário)', () => {
+    const faixa: Record<string, [number, number]> = { comum: [350, 450], raro: [1000, 1300], epico: [2600, 3000], lendario: [5200, 5200] }
     for (const i of CATALOGO_DA_LOJA) {
       if (i.precoSeeds === undefined) continue
       const [min, max] = faixa[i.raridade]

@@ -67,10 +67,9 @@ describe('compras simultâneas na mesma conta', () => {
   it('o mesmo spendId em paralelo cobra uma vez só', async () => {
     /* O caso anterior esvaziou a conta de proposito. Ganhar Seeds aqui e o mesmo caminho do jogo:
        `POST /api/exercises/rodada` com todos os itens certos (5 por rodada perfeita, 1 por item). */
-    // O sétimo mais barato: os seis primeiros são os do caso anterior (podem já ter sido comprados).
-    const barato = CATALOGO_DA_LOJA.filter((i) => i.precoSeeds !== undefined && !i.exclusivoDe && i.nivel > 1)
-      .sort((a, b) => a.precoSeeds! - b.precoSeeds!)[6]
-    const item = { id: barato.id, preco: barato.precoSeeds! }
+    /* "Pular rodada" (40): o motivo mais barato do formato fechado. Os itens da Loja passaram a
+       custar 350+ com os preços calibrados das recompensas v2, e o que se prova aqui é o spendId. */
+    const item = { preco: 40 }
     const cartoes = await (await s.get('/api/vocab')).json() as Array<{ id: string; word: string }>
     for (let n = 0; (await saldo()) < item.preco && n < 60; n++) {
       await s.post('/api/exercises/rodada', {
@@ -81,7 +80,7 @@ describe('compras simultâneas na mesma conta', () => {
     const antes = await saldo()
     const gastasAntes = await gastas()
     expect(antes, 'saldo insuficiente para este caso').toBeGreaterThanOrEqual(item.preco)
-    const corpo = { spendId: 'conc-idempotente-1', amount: item.preco, reason: `loja:${item.id}` }
+    const corpo = { spendId: 'conc-idempotente-1', amount: item.preco, reason: 'pular-rodada' }
     const rs = await Promise.all([1, 2, 3].map(() => s.post('/api/metrics/seeds/gastar', corpo)))
     expect(rs.map((r) => r.status).every((c) => c === 200)).toBe(true)
     expect(await gastas(), 'três requisições com o mesmo spendId debitaram mais de uma vez').toBe(gastasAntes + item.preco)

@@ -119,8 +119,11 @@ describe('o saldo precisa pagar', () => {
   it('com saldo, a compra passa — e o reenvio continua idempotente mesmo com o saldo zerado', async () => {
     const u = 'u-a6'
     await darSaldo(u) // 120 Seeds
+    /* + 1000 sem XP: os preços calibrados das recompensas v2 começam em 350. */
+    const { economiaRepo } = (await h.load('../../server/db/repositories/economia')) as any
+    await economiaRepo.creditar(asUserId(u), { creditoId: 'fixture-seeds-a6', amount: 1000, xp: 0, reason: 'fixture' })
     const compravel = [...CATALOGO_DA_LOJA]
-      .filter((i) => i.precoSeeds !== undefined && !i.exclusivoDe && i.precoSeeds <= 100)
+      .filter((i) => i.precoSeeds !== undefined && !i.exclusivoDe && i.precoSeeds <= 1100)
       .sort((a, b) => b.precoSeeds! - a.precoSeeds!)[0]
 
     const r1 = await gastar(

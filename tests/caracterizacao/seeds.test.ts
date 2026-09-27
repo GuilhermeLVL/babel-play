@@ -48,7 +48,9 @@ describe('seeds por HTTP (modo self-host)', () => {
   beforeAll(async () => {
     s = await subirApp({ modo: 'self-host' })
     await semear(s, DONO)
-    await ganhar(s, DONO, 4) // 100 Seeds por rodadas perfeitas
+    /* 500 Seeds por rodadas perfeitas: pagam o tema Linear (450, preço calibrado das recompensas
+       v2), não o Customizado (5200). */
+    await ganhar(s, DONO, 20)
   })
   afterAll(async () => {
     await s.encerrar()

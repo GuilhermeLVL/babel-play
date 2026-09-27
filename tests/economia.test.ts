@@ -29,11 +29,12 @@ describe('economia v2 — a tabela é a regra', () => {
     expect(dia).toBe(10 + 40 + 30 + 5 + 15)
   })
 
-  it('o item lendário mais caro sai em no máximo 8 dias ativos', () => {
+  /* Recompensas v2: a meta deixou de ser "lendário em ≈ 1 semana" e passou a ser a da simulação
+     (`tests/economia-calibragem.test.ts`): comum em 2–3 dias, lendário em ≈ 1 mês. */
+  it('o item lendário mais caro não sai em menos de 3 semanas de dia ativo sem baú', () => {
     const dia = seedsGanhasDeEventos({ palavrasSalvasPremiadas: 10, revisoesCertas: 20, itensDeJogoCertos: 30, rodadasPerfeitas: 1, seedsCreditadas: PESOS_SEEDS.metaDiaria })
     const maisCaro = Math.max(...CATALOGO_DA_LOJA.map((i) => i.precoSeeds ?? 0))
-    expect(Math.ceil(maisCaro / dia)).toBeLessThanOrEqual(8)
-    expect(Math.ceil(maisCaro / dia)).toBeGreaterThanOrEqual(5) // e não sai de graça
+    expect(Math.ceil(maisCaro / dia)).toBeGreaterThanOrEqual(21)
   })
 
   it('XP: rodada perfeita e marco de prática entram; crédito avulso soma direto', () => {

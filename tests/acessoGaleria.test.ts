@@ -20,7 +20,7 @@ describe('mapa de acesso da galeria — a mesma régua da Loja', () => {
   it('progressão gradativa: claro/papel livres; pastel nv2; escuro nv3; néon nv5; meia-noite nv7', () => {
     expect(acessoAoEstilo('claro', 1, 0).liberado).toBe(true)
     expect(acessoAoEstilo('papel', 1, 0).liberado).toBe(true)
-    expect(acessoAoEstilo('pastel', 1, 0)).toMatchObject({ liberado: false, motivo: 'Nível 2 ou 50 Seeds' })
+    expect(acessoAoEstilo('pastel', 1, 0)).toMatchObject({ liberado: false, motivo: 'Nível 2 ou 380 Seeds' })
     expect(acessoAoEstilo('pastel', 2, 0).liberado).toBe(true)
     expect(acessoAoEstilo('escuro', 3, 0).liberado).toBe(true)
     expect(acessoAoEstilo('neon', 4, 0).liberado).toBe(false)
@@ -29,7 +29,7 @@ describe('mapa de acesso da galeria — a mesma régua da Loja', () => {
   })
 
   it('Seeds compram o atalho e a posse libera de vez', () => {
-    const a = acessoAoEstilo('neon', 1, 999)
+    const a = acessoAoEstilo('neon', 1, 9999)
     expect(a).toMatchObject({ liberado: false, compravel: true })
     expect(a.item?.id).toBe('gal-estilo-neon')
     marcarPosse('gal-estilo-neon')

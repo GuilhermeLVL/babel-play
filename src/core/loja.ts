@@ -65,9 +65,12 @@ export interface ItemDaLoja {
   exclusivoDoPasse?: number;
 }
 
-/* PREÇOS (economia v2, 2026-08-28). Calibrados para o ritmo que o dono pediu — lendário em ≈ 1
-   semana de uso diário (~86 Seeds/dia): comum 40-60 · raro 100-140 · épico 200-260 · lendário
-   380-600. Os EXCLUSIVOS de conquista não têm preço nem nível: só a conquista abre. */
+/* PREÇOS (recompensas v2, 27/09) — calibrados por SIMULAÇÃO (`scripts/economia/simular-ritmo.ts`,
+   tabela em `docs/economia-v2.md`). O perfil típico (25 revisões + 3 rodadas + 10 palavras salvas
+   + meta do dia) rende ≈ 165 Seeds/dia só de resultado; a meta do dono é um comum a cada 2–3 dias,
+   um raro por semana e um épico a cada 2–3 semanas: comum 350-450 · raro 1000-1300 · épico
+   2600-3000 · lendário 5200 (≈ 1 mês). A escala antiga (40-600) foi multiplicada por faixa,
+   mantendo a ordem dentro de cada raridade. Os EXCLUSIVOS de conquista não têm preço nem nível. */
 export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
   // ── TEMAS (equipam via persistTheme) ──
   {
@@ -88,7 +91,7 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     desc: 'Índigo elegante e geométrico. No escuro vira meia-noite.',
     raridade: 'comum',
     nivel: 2,
-    precoSeeds: 60,
+    precoSeeds: 450,
     previa: ['#F7F8FB', '#FFFFFF', '#5E6AD2', '#1F2023'],
   },
   {
@@ -99,7 +102,7 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     desc: 'Monocromático, cantos retos, frio.',
     raridade: 'raro',
     nivel: 4,
-    precoSeeds: 110,
+    precoSeeds: 1080,
     previa: ['#FAFAFA', '#FFFFFF', '#171717', '#171717'],
   },
   {
@@ -110,7 +113,7 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     desc: 'Everforest orgânico, arredondado.',
     raridade: 'raro',
     nivel: 6,
-    precoSeeds: 130,
+    precoSeeds: 1220,
     previa: ['#F2EFDF', '#FDF6E3', '#8DA101', '#5C6A72'],
   },
   {
@@ -121,7 +124,7 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     desc: 'Carvão sóbrio, tipográfico.',
     raridade: 'raro',
     nivel: 7,
-    precoSeeds: 140,
+    precoSeeds: 1300,
     previa: ['#F7F6F3', '#FFFFFF', '#37352F', '#37352F'],
   },
   {
@@ -132,7 +135,7 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     desc: 'Sofisticado, sereno, raro.',
     raridade: 'epico',
     nivel: 8,
-    precoSeeds: 240,
+    precoSeeds: 3000,
     previa: ['#101418', '#161C22', '#C7A76C', '#E8E3D9'],
   },
   {
@@ -143,7 +146,7 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     desc: 'Suas cores, suas regras.',
     raridade: 'lendario',
     nivel: 10,
-    precoSeeds: 600,
+    precoSeeds: 5200,
   },
   {
     id: 'tema-aurora',
@@ -165,7 +168,7 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     desc: 'O editor completo: paleta, painéis, tudo na sua mão.',
     raridade: 'lendario',
     nivel: 10,
-    precoSeeds: 600,
+    precoSeeds: 5200,
   },
   /* ── FONTES E POSIÇÃO DO MENU SAÍRAM DO CATÁLOGO (recompensas v2, 27/09) ──
    *
@@ -182,7 +185,7 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     desc: 'Quadradinhos 8-bits em cada acerto.',
     raridade: 'comum',
     nivel: 2,
-    precoSeeds: 45,
+    precoSeeds: 350,
   },
   {
     id: 'part-confete',
@@ -192,7 +195,7 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     desc: 'Papel picado girando.',
     raridade: 'comum',
     nivel: 3,
-    precoSeeds: 55,
+    precoSeeds: 420,
   },
   {
     id: 'part-coracoes',
@@ -202,7 +205,7 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     desc: 'Corações subindo a cada acerto.',
     raridade: 'raro',
     nivel: 5,
-    precoSeeds: 120,
+    precoSeeds: 1150,
   },
   {
     id: 'part-estrelas',
@@ -212,7 +215,7 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     desc: 'Estrelinhas brilhantes ⭐✨.',
     raridade: 'epico',
     nivel: 7,
-    precoSeeds: 240,
+    precoSeeds: 3000,
   },
   {
     id: 'part-cometa',
@@ -245,7 +248,7 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     desc: 'Faíscas seguindo o cursor; clique solta uma mini-explosão.',
     raridade: 'raro',
     nivel: 3,
-    precoSeeds: 100,
+    precoSeeds: 1000,
   },
   {
     id: 'ras-estrelas',
@@ -255,7 +258,7 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     desc: '⭐ atrás do mouse.',
     raridade: 'raro',
     nivel: 4,
-    precoSeeds: 110,
+    precoSeeds: 1080,
   },
   {
     id: 'ras-coracoes',
@@ -265,7 +268,7 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     desc: 'Corações por onde você passa.',
     raridade: 'epico',
     nivel: 5,
-    precoSeeds: 220,
+    precoSeeds: 2600,
   },
   {
     id: 'ras-pixel',
@@ -275,7 +278,7 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     desc: 'Quadradinhos 8-bits no caminho.',
     raridade: 'epico',
     nivel: 6,
-    precoSeeds: 230,
+    precoSeeds: 2800,
   },
   {
     id: 'ras-arcoiris',
@@ -296,7 +299,7 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     desc: '30 paletas suaves, uma por matiz.',
     raridade: 'comum',
     nivel: 2,
-    precoSeeds: 50,
+    precoSeeds: 380,
   },
   {
     id: 'gal-estilo-escuro',
@@ -306,7 +309,7 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     desc: '30 paletas escuras, uma por matiz.',
     raridade: 'comum',
     nivel: 3,
-    precoSeeds: 60,
+    precoSeeds: 450,
   },
   {
     id: 'gal-estilo-neon',
@@ -316,7 +319,7 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     desc: '30 paletas de acento néon sobre preto.',
     raridade: 'raro',
     nivel: 5,
-    precoSeeds: 120,
+    precoSeeds: 1150,
   },
   {
     id: 'gal-estilo-meia-noite',
@@ -326,7 +329,7 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     desc: '30 paletas profundas, para estudar à noite.',
     raridade: 'epico',
     nivel: 7,
-    precoSeeds: 220,
+    precoSeeds: 2600,
   },
 
   /* ── TEMPORADA 1: O QUE ENCHE O PASSE (mudança economia-legivel-e-moedas) ──────────────
@@ -487,7 +490,7 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     desc: 'Bolinhas celestes flutuando atrás do cursor.',
     raridade: 'raro',
     nivel: 3,
-    precoSeeds: 100,
+    precoSeeds: 1000,
   },
   {
     id: 'ras-matrix',

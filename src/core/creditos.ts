@@ -8,13 +8,15 @@
  * PREÇOS EM CENTAVOS, sempre. Dinheiro em ponto flutuante é como se perde um centavo por
  * transação — e o Asaas recebe reais, então a conversão acontece numa linha só, aqui.
  *
- * O QUE ESTES CRÉDITOS SÃO E NÃO SÃO (decisão do dono, 31/08): compram ENFEITE — variantes,
- * kits, o Passe de Temporada. Não compram progresso: nível, XP, Seeds e conquista continuam
+ * O QUE ESTES CRÉDITOS SÃO E NÃO SÃO (decisão do dono, 31/08): compram ENFEITE — variantes e
+ * kits. Não compram progresso: nível, XP, Seeds e conquista continuam
  * saindo só de estudo. É a linha que a página Sobre agora declara, e é o que separa este
  * catálogo do de Seeds.
  */
 
-export type SkuDeCredito = 'c100' | 'c300' | 'c700' | 'passe-t1'
+/* O SKU `passe-t1` SAIU com a temporada com datas (recompensas v2, onda 5): a trilha paga agora é
+   a do ASSINANTE (`temporada.ts`), e o Passe de 100 casas que ele abria não existe mais. */
+export type SkuDeCredito = 'c100' | 'c300' | 'c700'
 
 export interface PacoteDeCredito {
   sku: SkuDeCredito
@@ -27,19 +29,7 @@ export interface PacoteDeCredito {
   descricao: string
 }
 
-/** O passe é um SKU como os outros: mesma cobrança avulsa, mesmo webhook, mesma idempotência. */
-export const PRECO_DO_PASSE_CENTAVOS = 1490
-
 export const CATALOGO_DE_CREDITOS: PacoteDeCredito[] = [
-  {
-    sku: 'passe-t1',
-    nome: 'Passe da Temporada 1',
-    // O passe devolve 1.134 créditos ao longo da trilha premium (`totalPremiumEmCreditos`) —
-    // mais do que custa, que é o modelo que o dono pediu: quem termina compra o próximo.
-    creditos: 0,
-    precoCentavos: PRECO_DO_PASSE_CENTAVOS,
-    descricao: 'Abre a segunda trilha das 100 casas e devolve 1.134 Créditos ao longo dela.',
-  },
   { sku: 'c100', nome: '100 Créditos', creditos: 100, precoCentavos: 990, descricao: 'Para começar.' },
   { sku: 'c300', nome: '300 Créditos', creditos: 300, precoCentavos: 2490, bonusPct: 8, descricao: 'O mais escolhido.' },
   { sku: 'c700', nome: '700 Créditos', creditos: 700, precoCentavos: 4990, bonusPct: 21, descricao: 'Para a temporada inteira.' },

@@ -1,0 +1,18 @@
+{
+  "status": 200,
+  "forma": {
+    "assinante": "boolean",
+    "creditados": [],
+    "nivel": "number",
+    "proxima": "null",
+    "temporada": {
+      "fim": "string",
+      "id": "string",
+      "inicio": "string",
+      "niveis": "number",
+      "nome": "string",
+      "numero": "number"
+    },
+    "xp": "number"
+  }
+}

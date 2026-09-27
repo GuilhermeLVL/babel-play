@@ -1,4 +1,4 @@
-import { Check, Coins, ExternalLink, Ticket } from 'lucide-react';
+import { Check, Coins, ExternalLink } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { CATALOGO_DE_CREDITOS, type PacoteDeCredito } from '../../../core/creditos';
@@ -7,7 +7,7 @@ import { precoEmReais } from '../../../lib/i18n';
 import { authRequired } from '../../../lib/supabase';
 
 /**
- * COMPRAR CRÉDITOS E O PASSE — a única tela do app onde entra dinheiro por escolha do usuário.
+ * COMPRAR CRÉDITOS — a única tela do app onde entra dinheiro por escolha do usuário.
  *
  * O DESENHO É O MESMO DO CHECKOUT DE PLANOS (`planos/Checkout.tsx`), e isso é deliberado: o formulário só INICIA a
  * cobrança e abre o link do Asaas. Quem concede o crédito é o webhook, quando o pagamento
@@ -24,7 +24,6 @@ import { authRequired } from '../../../lib/supabase';
 
 interface EstadoDosCreditos {
   saldo: number;
-  temPasse: boolean;
   compras: Array<{ sku: string; status: string; creditos: number; em: number }>;
 }
 
@@ -110,8 +109,7 @@ export default function ComprarCreditos() {
     }
   };
 
-  const passe = CATALOGO_DE_CREDITOS.find((p) => p.sku === 'passe-t1')!;
-  const pacotes = CATALOGO_DE_CREDITOS.filter((p) => p.sku !== 'passe-t1');
+  const pacotes = CATALOGO_DE_CREDITOS;
 
   if (linkAberto) {
     return (
@@ -142,35 +140,15 @@ export default function ComprarCreditos() {
         {estado && (
           <p className="text-[12.5px] text-ink-muted">
             Você tem <b className="text-premium-ink tabular-nums">{estado.saldo}</b> créditos
-            {estado.temPasse && ' · Passe da Temporada 1 ativo'}
           </p>
         )}
       </div>
 
       <p className="text-[12.5px] text-ink-muted max-w-[68ch]">
-        Créditos compram <b className="text-ink">enfeite</b>: o Passe de Temporada, variantes e kits.{' '}
+        Créditos compram <b className="text-ink">enfeite</b>: variantes e kits.{' '}
         <b className="text-ink">Não compram progresso</b> — nível, XP, Seeds e conquista só saem estudando, e isso não
         vai mudar.
       </p>
-
-      {/* O PASSE primeiro: é o produto principal, e o único que devolve mais do que custa. */}
-      <button
-        onClick={() => setEscolhido(passe)}
-        aria-pressed={escolhido?.sku === passe.sku}
-        className={`w-full text-start card-panel p-4 border-2 cursor-pointer transition-colors ${
-          escolhido?.sku === passe.sku ? 'border-premium bg-premium-soft' : 'border-border-subtle hover:border-premium'
-        }`}
-      >
-        <span className="flex items-center justify-between gap-3 flex-wrap">
-          <span className="flex items-center gap-2 font-bold text-[14px] text-ink">
-            <Ticket className="w-4 h-4 text-premium" aria-hidden /> {passe.nome}
-          </span>
-          <span className="font-mono font-bold text-[17px] text-ink tabular-nums">
-            {precoEmReais(passe.precoCentavos)}
-          </span>
-        </span>
-        <span className="block text-[12px] text-ink-muted mt-1.5 leading-snug">{passe.descricao}</span>
-      </button>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
         {pacotes.map((p) => (

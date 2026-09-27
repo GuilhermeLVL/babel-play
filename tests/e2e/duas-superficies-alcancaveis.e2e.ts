@@ -23,7 +23,7 @@ import { clicarRobusto, fecharSobreposicoes } from './_helpers'
  */
 const SECOES = [
   { id: '#secao-desafios', marca: /Como ganhar Seeds e XP/i },
-  { id: '#secao-passe', marca: /Passe da temporada/i },
+  { id: '#secao-passe', marca: /Duas trilhas de 30 níveis/i },
   { id: '#secao-loja', marca: /Seeds/ },
 ]
 

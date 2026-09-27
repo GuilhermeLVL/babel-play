@@ -187,7 +187,13 @@ export default function Inventario({
 
   /** A origem de um item que JÁ é seu: como ele chegou até aqui. */
   const origemDe = (i: ItemDaLoja): OrigemDoItem =>
-    i.exclusivoDe || i.origemMaestria ? 'conquista' : comprados.has(i.id) ? 'seeds' : 'nivel';
+    i.exclusivoDe || i.origemMaestria
+      ? 'conquista'
+      : i.origemTemporada
+        ? 'temporada'
+        : comprados.has(i.id)
+          ? 'seeds'
+          : 'nivel';
 
   const meus = colecao.possuidos;
   const meusIds = useMemo(() => new Set(meus.map((m) => m.id)), [meus]);

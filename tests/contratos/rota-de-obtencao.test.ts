@@ -93,7 +93,9 @@ describe('toda rota é acionável', () => {
       // Maestria é da família da conquista (só fazendo), mas o lugar de fazer é o jogo.
       if (r.origem === 'conquista') expect(r.destino).toBe(item.origemMaestria ? 'jogar' : 'conquistas');
       if (r.origem === 'seeds') expect(r.destino).toBe('loja');
-      if (r.origem === 'nivel') expect(r.destino).toBe('passe');
+      // O nível chega estudando (o Passe de 100 casas saiu na onda 5); a temporada tem a sua seção.
+      if (r.origem === 'nivel') expect(r.destino).toBe('jogar');
+      if (r.origem === 'temporada') expect(r.destino).toBe('passe');
     }
   });
 
@@ -107,14 +109,13 @@ describe('toda rota é acionável', () => {
     expect(rotaDeObtencao(comPreco!, preco).texto).toContain(`já tem as ${preco} Seeds`);
   });
 
-  /* O item do Passe premium tem DUAS portas — a casa da trilha e a prateleira avulsa — e dizer
-     só a paga faria a trilha comprada parecer não entregar nada. */
-  it('o exclusivo do Passe cita a casa da trilha e manda para o Passe', () => {
-    const doPasse = CATALOGO_DA_LOJA.filter((i) => i.exclusivoDoPasse !== undefined);
-    expect(doPasse.length).toBeGreaterThan(0);
-    for (const item of doPasse) {
+  /* O item de temporada diz de que temporada é e que volta à Loja depois de um ano (spec 8.3). */
+  it('o item de temporada cita a temporada e manda para a Temporada', () => {
+    const daTemporada = CATALOGO_DA_LOJA.filter((i) => i.origemTemporada);
+    expect(daTemporada.length).toBeGreaterThan(0);
+    for (const item of daTemporada) {
       const r = rotaDeObtencao(item, SEM_SEEDS);
-      expect(r.texto).toContain(`casa ${item.exclusivoDoPasse}`);
+      expect(r.texto).toContain('Temporada 1');
       expect(r.destino).toBe('passe');
     }
   });

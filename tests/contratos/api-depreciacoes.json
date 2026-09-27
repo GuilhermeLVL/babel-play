@@ -1,4 +1,11 @@
 {
   "//": "Rotas /api a caminho da remoção. Uma rota só pode sumir do servidor a partir de DUAS versões minor depois de `depreciadaEm` (docs/versionamento.md). Campos: rota ('MÉTODO /caminho', como em api-contrato.json), depreciadaEm (versão semver em que o cliente deixou de chamar), motivo, substituta (opcional). Entradas ficam como histórico mesmo depois da remoção.",
-  "depreciacoes": []
+  "depreciacoes": [
+    {
+      "rota": "POST /api/billing/creditar-passe",
+      "depreciadaEm": "0.1.0",
+      "motivo": "o Passe de 100 casas saiu (recompensas v2, onda 5); a trilha paga é a de assinante da temporada, que não entrega Créditos. A rota responde { creditado: 0 } até poder sumir",
+      "substituta": "GET /api/metrics/temporada"
+    }
+  ]
 }

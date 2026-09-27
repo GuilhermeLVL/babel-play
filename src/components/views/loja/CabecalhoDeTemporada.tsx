@@ -3,6 +3,7 @@ import { Coins, Infinity as Infinito, Plus, Sparkles, Sprout } from 'lucide-reac
 import type { Carteira } from '../../../lib/carteira';
 import { proximaRecompensa } from '../../../lib/galeria/progressao';
 import { palavraDeNivel } from '../../../lib/galeria/textos';
+import { t } from '../../../lib/i18n';
 import type { DerivedProgress } from '../../../lib/progress';
 
 /**
@@ -14,9 +15,10 @@ import type { DerivedProgress } from '../../../lib/progress';
  * jogo põe a carteira no canto e a barra em destaque, porque é a barra que responde "falta
  * quanto?".
  *
- * SEM CONTAGEM REGRESSIVA. Passes de jogo pressionam com um relógio; aqui não existe data de fim
- * no modelo (`TEMPORADA_ATUAL` é um rótulo) e inventar um prazo seria um controle falso — pior,
- * seria mentir para apressar. A linha diz o contrário: o que você ganhou não expira.
+ * SEM CONTAGEM REGRESSIVA AQUI. A temporada tem datas desde a onda 5 das recompensas v2
+ * (`core/temporada.ts`), e quem as mostra é a faixa da própria trilha (`PasseDeTemporada`) — com a
+ * contagem de dias só para adulto. O cabeçalho repete a promessa que continua valendo: o que você
+ * ganha não expira.
  *
  * O "+" da carteira só aparece quando existe algo para comprar (`carteira.disponivel`): em
  * self-host e no modo sem conta, a moeda comprada não existe e o botão não deve prometer loja.
@@ -55,7 +57,8 @@ export default function CabecalhoDeTemporada({
   /** Seeds — derivadas do progresso, como sempre foram. */
   saldo: number;
   carteira: Carteira;
-  temporada: { nome: string; numero: number };
+  /** A temporada em curso ou a próxima; `null` sem nenhuma anunciada. */
+  temporada: { nome: string; numero: number } | null;
   aoComprarCreditos?: () => void;
 }) {
   const nivel = progress.available ? progress.level : 1;
@@ -70,10 +73,10 @@ export default function CabecalhoDeTemporada({
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3 flex-wrap">
           <b className="font-display font-black text-[15px] text-ink">
-            Temporada {temporada.numero} · {temporada.nome}
+            {temporada ? t('Temporada {n} · {nome}', { n: temporada.numero, nome: temporada.nome }) : t('Temporada')}
           </b>
           <span className="inline-flex items-center gap-1.5 rounded-full border border-border-subtle bg-surface px-2.5 py-0.5 text-[11px] text-ink-muted">
-            <Infinito className="w-3 h-3 text-accent" aria-hidden /> sem prazo — o que você ganha não expira
+            <Infinito className="w-3 h-3 text-accent" aria-hidden /> {t('o que você ganha não expira')}
           </span>
         </div>
 
@@ -92,7 +95,7 @@ export default function CabecalhoDeTemporada({
           {carteira.disponivel && (
             <div
               className="flex items-center gap-2 rounded-xl border border-premium bg-premium-soft px-3 py-1.5"
-              title="Créditos — a moeda comprada: o Passe Premium e a prateleira paga."
+              title="Créditos — a moeda comprada: a prateleira paga."
             >
               <Coins className="w-4 h-4 text-premium shrink-0" aria-hidden />
               <span className="flex flex-col leading-none">

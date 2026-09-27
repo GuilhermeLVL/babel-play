@@ -32,11 +32,13 @@ import {
 } from '../../src/core/learning/economia'
 import { maestriaPorJogo, nivelDeMaestria } from '../../src/core/maestria'
 import { reembolsosDevidos } from '../../src/core/reembolso'
+import { ehAssinanteDaTemporada, nivelDaTemporada, proximaTemporada, temporadaAtual, xpDeTemporada } from '../../src/core/temporada'
 import { economiaRepo } from '../db/repositories/economia'
 import { exerciseResultsRepo } from '../db/repositories/exerciseResults'
-import { computeProfile, computeXpHistory } from '../db/repositories/metrics'
+import { computeProfile, computeXpHistory, linhasDoHistoricoDeXp } from '../db/repositories/metrics'
 import { economiaDoUsuario } from '../db/repositories/metrics'
 import { seedSpendsRepo } from '../db/repositories/seedSpends'
+import { getPlanForUser } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
 import { responderErro } from '../lib/respostaDeErro'
 import {
@@ -439,6 +441,39 @@ metricsRouter.get('/maestria', async (req, res) => {
   }
 })
 
+/**
+ * A TEMPORADA (recompensas v2, onda 5) — `GET /api/metrics/temporada`.
+ *
+ * A temporada em curso (ou `null` fora das datas) e a próxima, o XP da conta ganho DENTRO da janela
+ * com o nível que ele dá, se a conta é assinante (plano pago concedido AQUI, nunca pelo cliente) e
+ * os créditos `temporada:` já lançados — para o cliente pedir os que faltam pela rota de crédito,
+ * que confere tudo de novo. Só leitura; não existe rota que compre nível.
+ */
+metricsRouter.get('/temporada', async (req, res) => {
+  try {
+    const agora = new Date()
+    const temporada = temporadaAtual(agora)
+    const [linhas, plano, creditados] = await Promise.all([
+      temporada ? linhasDoHistoricoDeXp(req.userId) : null,
+      getPlanForUser(req.userId),
+      economiaRepo.temporadasCreditadas(req.userId),
+    ])
+    const xp = temporada && linhas ? xpDeTemporada(linhas, temporada) : 0
+    res.json({
+      temporada,
+      proxima: proximaTemporada(agora),
+      xp,
+      nivel: nivelDaTemporada(xp),
+      assinante: ehAssinanteDaTemporada(plano),
+      creditados,
+    })
+  } catch (err) {
+    res.status(500).json({
+      error: erroDeRota(err, { status: 500, event: 'metrics_route_error', route: req.path, requestId: req.requestId }),
+    })
+  }
+})
+
 metricsRouter.post('/seeds/creditar', async (req, res) => {
   const payload = parseOr400(seedCreditSchema, req.body, res)
   if (!payload) return
@@ -469,6 +504,26 @@ metricsRouter.post('/seeds/creditar', async (req, res) => {
         responderErro(res, 400, 'nível de maestria ainda não alcançado', 'maestria_nao_alcancada', {
           pontos,
           exigido: pontosExigidos,
+        })
+        return
+      }
+    }
+
+    /* A TEMPORADA (onda 5): `temporada:<id>:<nível>:<trilha>` só credita se o XP da conta ganho
+       DENTRO da janela alcança nível × 150 — e, na trilha de assinante, se o plano concedido pelo
+       servidor é pago. Sem isto a trilha inteira sairia a qualquer pedido, e a de assinante sem
+       assinatura. O reenvio de uma casa já creditada continua passando e cai no `ON CONFLICT`. */
+    if (credito.temporada) {
+      const { temporada, trilha, xpExigido } = credito.temporada
+      if (trilha === 'assinante' && !ehAssinanteDaTemporada(await getPlanForUser(req.userId))) {
+        responderErro(res, 403, 'a trilha de assinante exige assinatura ativa', 'exige_assinatura')
+        return
+      }
+      const xp = xpDeTemporada(await linhasDoHistoricoDeXp(req.userId), temporada)
+      if (xp < xpExigido) {
+        responderErro(res, 400, 'nível de temporada ainda não alcançado', 'temporada_nao_alcancada', {
+          xp,
+          exigido: xpExigido,
         })
         return
       }
@@ -505,9 +560,8 @@ metricsRouter.post('/seeds/creditar', async (req, res) => {
         }
       }
 
-      /* O NÍVEL É DO SERVIDOR. A tela do passe já esconde a década trancada, mas esconder é
-         desenho, não regra: sem esta linha o cofre de 172 Seeds da década 10 sairia no nível 1
-         para quem pedisse a rota direto. */
+      /* O NÍVEL É DO SERVIDOR. A tela pode esconder o que está trancado, mas esconder é desenho,
+         não regra: o nível exigido pelo crédito é conferido aqui. */
       if (nivel < credito.nivelMinimo) {
         responderErro(res, 400, 'nível insuficiente para este crédito', 'nivel_insuficiente', {
           nivel,

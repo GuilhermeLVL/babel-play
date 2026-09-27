@@ -62,10 +62,13 @@ export interface ItemDaLoja {
    */
   precoCreditos?: number;
   /**
-   * EXCLUSIVO DO PASSE PREMIUM: a casa da trilha paga que o entrega. Nem nível, nem Seeds, nem
-   * Créditos avulsos — só a trilha, e só para quem comprou o passe.
+   * EXCLUSIVO DE TEMPORADA (recompensas v2, onda 5): a temporada cuja trilha entrega o item — o
+   * nível e a trilha moram na tabela de `temporada.ts`, não aqui. Sem nível da conta, sem Seeds,
+   * sem Créditos e fora do baú; `precoSeedsDepois` é o preço com que ele volta à Loja 365 dias
+   * depois do fim da temporada (`precoSeedsDoItem`). A posse vem do crédito
+   * `temporada:<id>:<nível>:<trilha>` conferido no servidor.
    */
-  exclusivoDoPasse?: number;
+  origemTemporada?: { temporada: string; precoSeedsDepois: number };
   /** O jogo a que o item pertence (efeitos de maestria, molduras e títulos). */
   jogo?: MinigameId;
   /**

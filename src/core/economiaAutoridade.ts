@@ -4,7 +4,7 @@ import { CATALOGO_DA_LOJA, type ItemDaLoja, type Raridade } from './loja';
 import { creditoDeMaestria, LIMIARES_DE_MAESTRIA, type NivelAlcancavel } from './maestria';
 import { estrelasDaRodada } from './minigames/fases';
 import type { MinigameId } from './minigames/types';
-import { type SlotDoPasse, slotsDoPasse } from './passe';
+import { lerCreditoDaTemporada, precoSeedsDoItem, recompensaDaTrilha, type Temporada, type Trilha, XP_POR_NIVEL_DA_TEMPORADA } from './temporada';
 
 /**
  * A TABELA DE PREÇOS QUE O SERVIDOR CONSULTA.
@@ -64,7 +64,7 @@ const itemPorId = (id: string): ItemDaLoja | undefined => CATALOGO_DA_LOJA.find(
  * O formato é FECHADO de propósito. Enquanto `reason` era `z.string().max(40)`, ele era ao mesmo
  * tempo o campo de diagnóstico e o título de propriedade: qualquer string virava posse.
  */
-export function autorizarGasto(reason: string): GastoAutorizado | RecusaDeGasto {
+export function autorizarGasto(reason: string, agora: number = Date.now()): GastoAutorizado | RecusaDeGasto {
   if (reason === 'pular-rodada') return { tipo: 'pular-rodada', preco: CUSTO_PULAR_RODADA };
 
   if (reason.startsWith('loja:')) {
@@ -74,8 +74,12 @@ export function autorizarGasto(reason: string): GastoAutorizado | RecusaDeGasto 
     /* O que só sai de conquista NUNCA entra pela porta da compra. Sem esta linha, um `reason`
        forjado entregava o tema Aurora — que a Loja não vende em lugar nenhum. */
     if (item.exclusivoDe) return { erro: `${itemId} é exclusivo de conquista e não está à venda` };
-    if (item.precoSeeds === undefined) return { erro: `${itemId} não tem preço: só destrava por nível` };
-    return { tipo: 'loja', itemId, preco: item.precoSeeds };
+    /* Item de temporada só tem preço 365 dias depois do fim da temporada (`precoSeedsDoItem`). */
+    const preco = precoSeedsDoItem(item, agora);
+    if (preco === undefined) {
+      return { erro: item.origemTemporada ? `${itemId} é da temporada: volta à Loja um ano depois do fim` : `${itemId} não tem preço: só destrava por nível` };
+    }
+    return { tipo: 'loja', itemId, preco };
   }
 
   if (reason.startsWith('croma:')) {
@@ -126,18 +130,13 @@ export function conquistaDoCreditoId(creditoId: string): Conquista | null {
 /**
  * O QUE UM `creditoId` VALE — a metade que faltava da autoridade.
  *
- * O GASTO já era decidido aqui desde 01/09 (`autorizarGasto`); o CRÉDITO só conhecia uma família,
- * a de conquista. As outras — os cofres do passe — chegavam ao servidor e levavam 400 "crédito
- * desconhecido" (`server/routes/metrics.ts`), com dois efeitos medidos na auditoria de 07/09:
- * a tela do passe repetia o pedido a cada montagem e nunca marcava o baú, e as 36 linhas
- * `passe:t1:*` que existiam no banco tinham entrado ANTES do endurecimento, com o valor que o
- * cliente mandou (10 a 172 Seeds, 2.472 no total).
+ * O GASTO já era decidido aqui desde 01/09 (`autorizarGasto`); o CRÉDITO também passou a ser: cada
+ * família (conquista, meta do dia, maestria, temporada) tem o valor lido da regra — nunca do corpo
+ * do pedido. A temporada lê a trilha de `recompensaDaTrilha`, a mesma função que desenha a tela:
+ * uma casa vale o que a tela mostra porque é literalmente o mesmo número.
  *
- * `seedsDoCofreDoPasse` foi escrita para isto e nunca teve chamador. Ela também pedia a curva
- * (`quantiaPorDecada`) por parâmetro, o que reabria a mesma porta pelo lado de dentro: quem
- * chamasse com outra curva creditava outro valor. Aqui a curva não se passa — ela se LÊ, de
- * `slotsDoPasse()`, que é a mesma função que desenha o trilho na tela. Um cofre vale o que a tela
- * mostra porque é literalmente o mesmo número.
+ * O PASSE DE 100 CASAS SAIU (onda 5): `passe:t1:*` deixou de ser família. As linhas que já estão no
+ * banco continuam somando Seeds (o razão não se reescreve); só não se credita nenhuma nova.
  */
 
 /** O que um crédito autorizado entrega, e o que ele exige para valer. */
@@ -161,6 +160,12 @@ export interface CreditoAutorizado {
    * os pontos do jogo nas linhas gravadas e confere que alcançam `pontosExigidos`.
    */
   maestria?: { jogo: MinigameId; nivel: NivelAlcancavel; pontosExigidos: number };
+  /**
+   * Presente só na família `temporada:<id>:<nível>:<trilha>` (onda 5): quem credita soma o XP da
+   * conta DENTRO da janela da temporada e confere `xpExigido`; na trilha de assinante, confere
+   * também a assinatura ativa no servidor.
+   */
+  temporada?: { temporada: Temporada; nivel: number; trilha: Trilha; xpExigido: number };
 }
 
 /** `meta:<AAAA-MM-DD>` -> o dia, ou null. Data de calendário válida, sem hora. */
@@ -171,18 +176,6 @@ export function diaDaMeta(creditoId: string): string | null {
   const data = new Date(Date.UTC(a, mes - 1, d));
   if (data.getUTCFullYear() !== a || data.getUTCMonth() !== mes - 1 || data.getUTCDate() !== d) return null;
   return `${m[1]}-${m[2]}-${m[3]}`;
-}
-
-/* Índice dos cofres por `creditoId`, montado uma vez. `slotsDoPasse()` percorre o catálogo
-   inteiro e é determinística — chamá-la a cada crédito seria trabalho repetido para o mesmo
-   resultado. */
-let cofresPorId: Map<string, Extract<SlotDoPasse, { tipo: 'seeds' }>> | null = null;
-function cofreDoPasse(creditoId: string) {
-  if (!cofresPorId) {
-    cofresPorId = new Map();
-    for (const s of slotsDoPasse()) if (s.tipo === 'seeds') cofresPorId.set(s.creditoId, s);
-  }
-  return cofresPorId.get(creditoId);
 }
 
 /**
@@ -208,21 +201,26 @@ export function valorDoCredito(creditoId: string): CreditoAutorizado | RecusaDeG
     };
   }
 
-  const cofre = cofreDoPasse(creditoId);
-  if (cofre) {
-    /* A década N do passe é o nível N do app (`slotDestravado`). Sem esta linha, o crédito do
-       cofre da década 10 sairia no nível 1 — e ele vale 172 Seeds. */
+  /* A TEMPORADA (recompensas v2, onda 5): `temporada:<id>:<nível>:<trilha>`. O valor é o da casa
+     (Seeds na casa de Seeds, zero na casa de item — a posse é o próprio crédito); a CONDIÇÃO (o XP
+     da janela e, na trilha de assinante, a assinatura) depende do banco, então fica com quem
+     credita. Casa sem recompensa (ímpar da grátis) é recusa: não há o que creditar. */
+  if (creditoId.startsWith('temporada:')) {
+    const c = lerCreditoDaTemporada(creditoId);
+    const r = c && recompensaDaTrilha(c.nivel, c.trilha, c.temporada.id);
+    if (!c || !r) return { erro: `temporada malformada: ${creditoId.slice(0, 40)}` };
     return {
       creditoId,
-      seeds: cofre.quantidade,
+      seeds: 'seeds' in r ? r.seeds : 0,
       xp: 0,
-      reason: `passe:${creditoId.split(':')[1]}`,
-      nivelMinimo: cofre.decada,
+      reason: creditoId,
+      nivelMinimo: 0,
+      temporada: { ...c, xpExigido: c.nivel * XP_POR_NIVEL_DA_TEMPORADA },
     };
   }
 
   /* A META DO DIA (recompensas v2). O valor é fixo e sai dos pesos; a CONDIÇÃO (acertos no dia)
-     depende do banco e do fuso, então fica com quem credita — como o nível do cofre do passe. */
+     depende do banco e do fuso, então fica com quem credita. */
   if (creditoId.startsWith('meta:')) {
     const dia = diaDaMeta(creditoId);
     if (!dia) return { erro: `meta malformada: ${creditoId.slice(0, 40)}` };

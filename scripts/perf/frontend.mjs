@@ -5,7 +5,7 @@
  *
  *   npm run build
  *   node scripts/perf/frontend.mjs [--rotas=/,/capturar,/jogar,/planos] [--execucoes=3]
- *        [--sem-lighthouse] [--sem-cwv] [--porta=3180] [--saida=<pasta>]
+ *        [--sem-lighthouse] [--sem-cwv] [--porta=3180] [--saida=<pasta>] [--raiz=<pasta com dist/>]
  *
  * Sobe o SERVIDOR DE PRODUÇÃO (`dist-server/server.cjs`, NODE_ENV=production, que serve o `dist`
  * com `server/http/estaticos.ts` e o `compression`) em modo self-host, com um banco preparado pela
@@ -39,6 +39,8 @@ const flag = (n) => process.argv.includes(`--${n}`)
 const rotas = arg('rotas', '/,/capturar,/jogar,/planos').split(',')
 const execucoes = Number(arg('execucoes', 3))
 const porta = Number(arg('porta', 3180))
+// `--raiz`: pasta com `dist/` e `dist-server/` a servir (padrão: o repositório) — p.ex. uma cópia do build de antes.
+const SERVIDA = path.resolve(arg('raiz', RAIZ))
 const saida = path.resolve(arg('saida', path.join(os.tmpdir(), `frontend-${Date.now()}`)))
 const base = `http://127.0.0.1:${porta}`
 mkdirSync(saida, { recursive: true })
@@ -46,8 +48,8 @@ mkdirSync(saida, { recursive: true })
 const banco = path.join(saida, 'frontend.db')
 if (!existsSync(banco)) console.log(`# banco: ${JSON.stringify(await preparar({ db: banco, pesados: 0, medios: 0 }))}`)
 
-const filho = spawn(process.execPath, [path.join(RAIZ, 'dist-server/server.cjs')], {
-  cwd: RAIZ,
+const filho = spawn(process.execPath, [path.join(SERVIDA, 'dist-server/server.cjs')], {
+  cwd: SERVIDA,
   env: {
     PATH: process.env.PATH,
     SystemRoot: process.env.SystemRoot,
@@ -57,6 +59,7 @@ const filho = spawn(process.execPath, [path.join(RAIZ, 'dist-server/server.cjs')
     PORT: String(porta),
     HOST: '127.0.0.1',
     DATABASE_URL: `file:${banco.replace(/\\/g, '/')}`,
+    MIGRATIONS_DIR: path.join(RAIZ, 'server/db/migrations'),
     AUDIO_DIR: path.join(saida, 'audio'),
     BACKUP_DIARIO: '0',
     SECRET_KEY: randomBytes(32).toString('hex'),

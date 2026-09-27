@@ -73,7 +73,6 @@ export function useRecompensas(deps: DependenciasDasRecompensas): EstadoDasRecom
             tipo: 'conquista',
             id: c.id,
             nome: c.nome,
-            emoji: c.emoji,
             seeds: c.recompensa.seeds,
             xp: c.recompensa.xp,
             item: itemDaConquista(c.id),

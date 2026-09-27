@@ -83,7 +83,6 @@ describe('RecompensaDesbloqueada — o modal de resgate', () => {
       tipo: 'conquista',
       id: 'constante',
       nome: 'Constante',
-      emoji: '🔥',
       seeds: 100,
       xp: 50,
       item: CATALOGO_DA_LOJA.find((i) => i.id === 'tema-aurora'),
@@ -95,7 +94,7 @@ describe('RecompensaDesbloqueada — o modal de resgate', () => {
   })
 
   it('conquista mostra o ícone lucide da grade de Desafios, e não o emoji do core', () => {
-    const r: Recompensa = { tipo: 'conquista', id: 'constante', nome: 'Constante', emoji: '🔥', seeds: 100, xp: 50 }
+    const r: Recompensa = { tipo: 'conquista', id: 'constante', nome: 'Constante', seeds: 100, xp: 50 }
     render(<RecompensaDesbloqueada fila={[r]} onEquipar={() => true} onFechar={vi.fn()} onVerPersonalizar={vi.fn()} />)
     const dialogo = screen.getByRole('dialog')
     expect(dialogo.textContent).not.toContain('🔥')

@@ -1,7 +1,13 @@
 import { type Conquista, CONQUISTAS, type ContextoDeConquistas } from './learning/conquistas';
 import { PESOS_SEEDS, PESOS_XP } from './learning/xp';
 import { CATALOGO_DA_LOJA, type ItemDaLoja, type Raridade } from './loja';
-import { creditoDeMaestria, LIMIARES_DE_MAESTRIA, type NivelAlcancavel } from './maestria';
+import {
+  creditoDeMaestria,
+  LIMIARES_DE_MAESTRIA,
+  type LinhaDeMaestria,
+  maestriaPorJogo,
+  type NivelAlcancavel,
+} from './maestria';
 import { estrelasDaRodada } from './minigames/fases';
 import type { MinigameId } from './minigames/types';
 import { type SlotDoPasse, slotsDoPasse } from './passe';
@@ -265,33 +271,40 @@ export function valorDoCredito(creditoId: string): CreditoAutorizado | RecusaDeG
 }
 
 /**
- * AS CONQUISTAS QUE O SERVIDOR SABE CONFERIR — hoje, as catorze.
+ * AS CONQUISTAS QUE O SERVIDOR SABE CONFERIR — desde as recompensas v2 (onda 5), TODAS.
  *
- * Treze dependem só de `metricas`, do nível, dos recordes ou do número de compras — tudo que o
- * servidor mede. `poliglota` e `duelista` entraram nesta lista em 07/09, quando `computeProfile`
- * passou a emitir `idiomas` e `exercise_results` passou a guardar o combo da rodada.
- *
- * `colecionador` entrou em 27/09. Ela conta eventos raros VISTOS, estado que só o navegador tem, e
- * até então o servidor creditava 100 Seeds e 120 XP sem conferir nada. O servidor continua sem ver
- * os eventos — mas vê o que é preciso ter feito para vê-los (`progressoConferivelDoColecionador`),
- * e é isso que ele passa a exigir. O progresso usado na conferência sai de `progressoNoServidor`.
+ * Cada condição do catálogo lê só o que o servidor mede: métricas, nível, recordes, compras e a
+ * maestria somada das linhas gravadas (`contextoConferivelDeConquistas`). O Colecionador conta
+ * eventos raros VISTOS, estado que só o navegador tem; para ele vale a régua dos pré-requisitos
+ * (`progressoConferivelDoColecionador`), aplicada em `progressoNoServidor`. O Express e o espelho
+ * sem conta conferem a mesma lista com o mesmo contexto.
  */
-export const CONQUISTAS_CONFERIVEIS: ReadonlySet<string> = new Set([
-  'primeira-captura',
-  'ouvinte',
-  'caderno-cheio',
-  'revisor',
-  'sem-erro',
-  'perfeccionista',
-  'maratonista',
-  'constante',
-  'cliente',
-  'nivel-5',
-  'nivel-10',
-  'poliglota',
-  'duelista',
-  'colecionador',
-]);
+export const CONQUISTAS_CONFERIVEIS: ReadonlySet<string> = new Set(CONQUISTAS.map((c) => c.id));
+
+/**
+ * O CONTEXTO DE CONQUISTAS QUE O SERVIDOR MONTA — o mesmo no Express e no espelho, para as duas
+ * pontas decidirem igual. Eventos vistos entram como zero (a régua do Colecionador não os lê) e a
+ * maestria sai de `maestriaPorJogo` sobre as linhas gravadas, nunca do que o cliente diz.
+ */
+export function contextoConferivelDeConquistas(p: {
+  metricas: ContextoDeConquistas['metricas'];
+  nivel: number;
+  melhorComboPorJogo: Record<string, number>;
+  linhasDeMaestria: ReadonlyArray<LinhaDeMaestria>;
+}): ContextoDeConquistas {
+  const maestria: NonNullable<ContextoDeConquistas['maestria']> = {};
+  for (const j of maestriaPorJogo(p.linhasDeMaestria)) if (j.nivel > 0) maestria[j.jogo] = j.nivel;
+  return {
+    metricas: p.metricas,
+    nivel: p.nivel,
+    melhorComboPorJogo: p.melhorComboPorJogo,
+    eventosVistos: 0,
+    totalDeEventos: 0,
+    idiomas: p.metricas.idiomas ?? 0,
+    compras: p.metricas.itensComprados?.length ?? 0,
+    maestria,
+  };
+}
 
 /**
  * Quantos eventos RAROS existem (`EVENTOS_RAROS` em `lib/eventosDeJogo`, que o core não importa).

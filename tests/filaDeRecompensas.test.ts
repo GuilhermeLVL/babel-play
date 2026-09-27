@@ -7,7 +7,7 @@ import { enfileirarSemRepetir, type Recompensa, tirarDaFila } from '../src/compo
  * antes de o usuário fechar a primeira a mesma conquista já tinha entrado de novo: "Primeira
  * captura" aparecia, fechava, e voltava — o dono viu isso ao abrir o app (23/09/2026).
  */
-const conquista = (id: string): Recompensa => ({ tipo: 'conquista', id, nome: id, emoji: '⭐', seeds: 10, xp: 5 })
+const conquista = (id: string): Recompensa => ({ tipo: 'conquista', id, nome: id, seeds: 10, xp: 5 })
 
 describe('fila de recompensas', () => {
   it('não enfileira de novo o que já está na fila', () => {

@@ -31,7 +31,7 @@ import { DialogoBase } from './ui';
 
 export type Recompensa =
   | { tipo: 'nivel'; nivel: number; itens: ItemDaLoja[] }
-  | { tipo: 'conquista'; id: string; nome: string; emoji: string; seeds: number; xp: number; item?: ItemDaLoja }
+  | { tipo: 'conquista'; id: string; nome: string; seeds: number; xp: number; item?: ItemDaLoja }
   /* O bau de fim de rodada. A chave e o `roundId` porque o drop e idempotente POR rodada no
      servidor: repetir o mesmo id devolve o mesmo item, entao repetir a tela seria mostrar duas
      vezes o mesmo premio. BAÚ v2: sem `item` (e com `repetido`) a faixa sorteada nao tinha peca
@@ -263,8 +263,8 @@ function Resgate({ atual, onEquipar, onFechar, onVerPersonalizar }: Omit<Props, 
         <Confete />
         <div className="emoji" aria-hidden>
           {atual.tipo === 'conquista' ? (
-            /* O ícone lucide da grade de Desafios, não o `emoji` do core: a mesma conquista com a
-               mesma cara nas duas telas, e nada de emoji na interface. */
+            /* O ícone lucide da grade de Desafios (`conquista.icone`): a mesma conquista com a mesma
+               cara nas duas telas, e nada de emoji na interface. */
             <IconeDaConquista style={icone} />
           ) : atual.tipo === 'drop' ? (
             <Gift style={icone} />

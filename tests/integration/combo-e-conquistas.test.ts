@@ -1,7 +1,7 @@
 /**
  * AS TRÊS CONQUISTAS QUE NUNCA DISPARAVAM NA CONTA LOGADA (auditoria de 07/09, achado A18).
  *
- * `ouvinte` lê `capturaMinutos`, `poliglota` lê `idiomas` e `duelista` lê `melhorComboPorJogo`.
+ * `ouvinte` lia `capturaMinutos` (desde a onda 5 das recompensas v2, conta sessões), `poliglota` lê `idiomas` e `duelista` lê `melhorComboPorJogo`.
  * Nenhum dos três existia do lado do servidor:
  *
  *  - `computeProfile` emitia só `capturaMinutosPremiados` (o total com teto diário), então
@@ -170,11 +170,19 @@ describe('as conquistas que dependiam desses números', () => {
     expect(ok.body).toMatchObject({ seedsCreditadas: 40, xpCreditado: 60 })
   })
 
-  it('ouvinte: 60 minutos gravados bastam (o total, sem teto diário)', async () => {
+  it('ouvinte: 5 sessões gravadas, e não minutos (recompensas v2: nada por tempo)', async () => {
     const u = 'u-ouvinte2'
+    /* Uma sessão de 70 minutos não basta desde a onda 5: o Ouvinte conta sessões. */
     await sessionsRepo.create(asUserId(u), { title: 'longa', durationMs: 70 * 60_000, sourceLang: 'en' })
+    const cedo = mockRes()
+    await handler('/seeds/creditar')(req({ creditoId: 'conquista-ouvinte' }, u), cedo)
+    expect(cedo.statusCode).toBe(400)
+
+    for (let i = 0; i < 4; i++) {
+      await sessionsRepo.create(asUserId(u), { title: `curta ${i}`, durationMs: 60_000, sourceLang: 'en' })
+    }
     const { metricas } = await economiaDoUsuario(asUserId(u))
-    expect(metricas.capturaMinutos).toBe(70)
+    expect(metricas.sessions).toBe(5)
 
     const ok = mockRes()
     await handler('/seeds/creditar')(req({ creditoId: 'conquista-ouvinte' }, u), ok)

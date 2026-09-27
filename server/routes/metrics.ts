@@ -6,6 +6,7 @@ import {
   BAUS_POR_DIA,
   CHANCES_DO_BAU,
   CONQUISTAS_CONFERIVEIS,
+  contextoConferivelDeConquistas,
   decidirBau,
   ehRecusa,
   ESTRELAS_PARA_O_BAU,
@@ -20,7 +21,6 @@ import {
   valorDoDrop,
   valorDoRepetido,
 } from '../../src/core/economiaAutoridade'
-import type { ContextoDeConquistas } from '../../src/core/learning/conquistas'
 import {
   acertosNoDia,
   diaLocal,
@@ -247,9 +247,9 @@ metricsRouter.post('/presenca', async (req, res) => {
  * de Seeds e 1,2 milhão de XP por minuto.
  *
  * AGORA: o `creditoId` tem de resolver para uma conquista do catálogo, e o que se credita é a
- * recompensa DELA. E, para as onze conquistas cuja condição o servidor sabe conferir
- * (`CONQUISTAS_CONFERIVEIS`), a condição é conferida contra os contadores do servidor antes de
- * creditar — conquista não cumprida é 400.
+ * recompensa DELA. E a condição dela (`CONQUISTAS_CONFERIVEIS` — todas, desde a onda 5 das
+ * recompensas v2) é conferida contra os contadores do servidor antes de creditar — conquista não
+ * cumprida é 400.
  */
 /**
  * O DROP DE FIM DE RODADA — o único crédito em que o servidor também decide O QUÊ, não só quanto.
@@ -517,19 +517,14 @@ metricsRouter.post('/seeds/creditar', async (req, res) => {
       }
 
       if (credito.conquista && CONQUISTAS_CONFERIVEIS.has(credito.conquista.id)) {
-        /* As duas chaves que o servidor não sabe preencher (eventos raros e compras da Loja) só
-           importam para as conquistas de fora da lista — por isso entram como zero aqui sem
-           falsear nenhuma decisão. `idiomas` e `melhorComboPorJogo` SAÍRAM dessa lista: o perfil
-           passou a emitir `idiomas` e os recordes passaram a devolver o combo. */
-        const ctx: ContextoDeConquistas = {
+        /* O contexto é o do core (`contextoConferivelDeConquistas`), o mesmo que o espelho sem
+           conta monta: métricas, nível, combos e a maestria somada das linhas gravadas. */
+        const ctx = contextoConferivelDeConquistas({
           metricas,
           nivel,
           melhorComboPorJogo: await exerciseResultsRepo.melhorComboPorJogo(req.userId),
-          eventosVistos: 0,
-          totalDeEventos: 0,
-          idiomas: metricas.idiomas ?? 0,
-          compras: metricas.itensComprados?.length ?? 0,
-        }
+          linhasDeMaestria: await exerciseResultsRepo.linhasDeMaestria(req.userId),
+        })
         /* `progressoNoServidor`: a regra da conquista, exceto o Colecionador, cujos eventos vistos
            o servidor não enxerga — para ele valem os pré-requisitos gravados no banco. */
         const { atual, meta } = progressoNoServidor(credito.conquista, ctx)

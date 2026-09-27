@@ -12,11 +12,10 @@
  * `tests/contratos/rotas-espelhadas`: moeda paga nasce e morre no servidor.
  */
 import {
-autorizarGasto, BAUS_POR_DIA, CHANCES_DO_BAU, decidirBau, ehRecusa, ESTRELAS_PARA_O_BAU,
+autorizarGasto, BAUS_POR_DIA, CHANCES_DO_BAU, contextoConferivelDeConquistas, decidirBau, ehRecusa, ESTRELAS_PARA_O_BAU,
 itensSorteaveisNoDrop, progressoNoServidor, proximoRaroGarantidoEm, raridadeDoBau, rodadaRendeBau, roundIdDoDrop,
 situacaoDoBau, valorDoCredito, valorDoDrop, valorDoRepetido,
 } from '../../../core/economiaAutoridade';
-import type { ContextoDeConquistas } from '../../../core/learning/conquistas';
 import {
   acertosNoDia, diaLocal, diaNoFuso, fusoOuPadrao, META_DIARIA_ACERTOS, metaDoDiaCumprida, sequencias,
 } from '../../../core/learning/economia';
@@ -264,21 +263,21 @@ export async function creditarSeeds(_m: RegExpMatchArray, _u: URL, init: Request
         return json({ error: 'meta do dia ainda não cumprida', code: 'meta_nao_cumprida', codigo: 'meta_nao_cumprida', detalhes: { acertos, meta: META_DIARIA_ACERTOS } }, 400);
       }
     }
-    /* O COLECIONADOR É CONFERIDO AQUI TAMBÉM, com a régua do Express (`progressoNoServidor`): os
-       pré-requisitos dos eventos, gravados no banco. Até 27/09 os dois lados creditavam 100 Seeds
-       e 120 XP a qualquer pedido — e o acervo do modo sem conta migra para a conta. As outras
-       conquistas o efêmero ainda não confere (só o Express), e isto não muda aqui. */
-    if (credito.conquista?.id === 'colecionador') {
+    /* TODAS AS CONQUISTAS SÃO CONFERIDAS AQUI TAMBÉM (recompensas v2, onda 5), com a régua e o
+       contexto do Express (`contextoConferivelDeConquistas` + `progressoNoServidor`): métricas,
+       nível, combos e a maestria das linhas gravadas; o Colecionador pelos pré-requisitos dos
+       eventos. Até aqui o efêmero só conferia o Colecionador — e o acervo do modo sem conta migra
+       para a conta. `tests/contratos/conquistas-paridade.test.ts` compara as duas pontas. */
+    if (credito.conquista) {
       const metricas = await perfilEfemero(null);
       const melhorComboPorJogo: Record<string, number> = {};
       for (const e of await db.getAll('exercicios')) {
         if (!e.exerciseKind) continue;
         melhorComboPorJogo[e.exerciseKind] = Math.max(melhorComboPorJogo[e.exerciseKind] ?? 0, e.melhorSequencia ?? 0);
       }
-      const ctx: ContextoDeConquistas = {
-        metricas, nivel: economiaDeMetricas(metricas).nivel, melhorComboPorJogo,
-        eventosVistos: 0, totalDeEventos: 0, idiomas: metricas.idiomas ?? 0, compras: metricas.itensComprados?.length ?? 0,
-      };
+      const ctx = contextoConferivelDeConquistas({
+        metricas, nivel: economiaDeMetricas(metricas).nivel, melhorComboPorJogo, linhasDeMaestria: await linhasDeMaestria(),
+      });
       const { atual, meta } = progressoNoServidor(credito.conquista, ctx);
       if (atual < meta) {
         return json({ error: 'conquista ainda não cumprida', code: 'conquista_nao_cumprida', codigo: 'conquista_nao_cumprida', detalhes: { atual, meta } }, 400);

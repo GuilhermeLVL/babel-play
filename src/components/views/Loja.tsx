@@ -38,6 +38,7 @@ import {
   registrarAprimoramento,
 } from '../../lib/aprimoramentos';
 import { useCarteira } from '../../lib/carteira';
+import { contarConquistas } from '../../lib/conquistas';
 import { readCursor } from '../../lib/cursores';
 import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { emitBurst } from '../../lib/effects';
@@ -156,8 +157,12 @@ export default function Loja({
    * (Desafios, Passe, Loja), que só é confiável com o servidor arbitrando, e a acessibilidade
    * (equipar o que já é seu, o perfil de exibição), que é direito declarado e não se tranca atrás
    * de cadastro. Gatear a view inteira trancaria "Leitura ampliada" junto.
+   *
+   * NA EDIÇÃO ESTÁTICA o gate não vale: lá a identidade é SEMPRE anônima e quem arbitra é o
+   * servidor em memória (`data/efemero/rotas/economia.ts`), que credita as conquistas de verdade.
+   * Trancar a aba lá era mostrar "Disponível na versão completa" para algo que já funciona.
    */
-  const semConta = estaAnonimo();
+  const semConta = estaAnonimo() && !edicaoEstatica();
 
   // A carteira de Créditos é a única moeda que o cliente não deriva sozinho: o servidor arbitra.
   const carteira = useCarteira();
@@ -492,7 +497,11 @@ export default function Loja({
     );
   };
 
-  const nDesafios = colecao.compraveis.length + colecao.porNivel.length + colecao.porConquista.length;
+  /* A contagem da aba é de DESAFIOS — as conquistas que ainda faltam —, no mesmo espírito da de
+     "Meu visual" (o que está na sua mão): um número que muda quando você faz algo. Antes contava
+     os itens do catálogo e dizia "Desafios (69)" para quem tinha 14 conquistas no total. */
+  const conquistasContadas = contarConquistas(ctxConquistas);
+  const nDesafios = conquistasContadas.total - conquistasContadas.feitas;
 
   return (
     <Tela largura="larga">
@@ -524,8 +533,6 @@ export default function Loja({
                 icone: <Shirt aria-hidden />,
                 contagem: colecao.possuidos.length,
               },
-              /* A contagem é de TUDO que ainda dá para desbloquear, e não só do que vem por
-                 conquista: a aba deixou de ser só sobre conquistas. */
               { id: 'conquistas', rotulo: 'Desafios', icone: <Trophy aria-hidden />, contagem: nDesafios },
             ]}
           />

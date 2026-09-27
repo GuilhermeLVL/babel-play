@@ -6,7 +6,14 @@
  * que a Loja e os desbloqueios consultam; se o crédito falhar (rede), a conquista NÃO é marcada
  * e será tentada de novo na próxima avaliação — nunca "conquistada sem as Seeds".
  */
-import { type AppMetrics, avaliarConquistas, type Conquista, type ContextoDeConquistas } from '@core';
+import {
+  type AppMetrics,
+  avaliarConquistas,
+  type Conquista,
+  CONQUISTAS,
+  type ContextoDeConquistas,
+  progressoDasConquistas,
+} from '@core';
 
 import { creditarSeeds, type RecordeDoJogo } from '../data/api';
 import { conquistasDesbloqueadas, marcarConquista, registrarDataDaConquista } from './conquistasPosse';
@@ -49,4 +56,24 @@ export async function verificarConquistas(ctx: ContextoDeConquistas): Promise<Co
     window.dispatchEvent(new CustomEvent(EVENTO_CONQUISTA, { detail: { ids: feitas.map((c) => c.id) } }));
   }
   return feitas;
+}
+
+/**
+ * QUANTAS CONQUISTAS JÁ FORAM FEITAS, de quantas — a conta da tela Desafios e da contagem da aba.
+ *
+ * A posse local manda junto com o progresso: uma conquista creditada continua "feita" mesmo se a
+ * métrica cair depois (ex.: sequência de presença perdida). Um id na posse que não existe mais no
+ * catálogo não conta — senão "feitas" poderia passar do total.
+ */
+export function contarConquistas(ctx: ContextoDeConquistas | null): { feitas: number; total: number } {
+  const posse = conquistasDesbloqueadas();
+  const atingidas = ctx
+    ? new Set(
+        progressoDasConquistas(ctx)
+          .filter((p) => p.conquistada)
+          .map((p) => p.conquista.id),
+      )
+    : new Set<string>();
+  const feitas = CONQUISTAS.filter((c) => posse.has(c.id) || atingidas.has(c.id)).length;
+  return { feitas, total: CONQUISTAS.length };
 }

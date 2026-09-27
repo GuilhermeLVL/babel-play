@@ -1,21 +1,21 @@
 /**
- * O SALDO NÃO PODE ESTOURAR — e o cofre do passe não pode sair antes do nível.
+ * O SALDO NÃO PODE ESTOURAR — e a casa da temporada não pode sair antes do nível.
  *
  * Dois furos da auditoria de 07/09, fechados juntos porque são a mesma pergunta ("quem decide?"):
  *
  * 1. GASTO CONCORRENTE. `POST /seeds/gastar` conferia o saldo com um SELECT e inseria depois. O
  *    próprio código admitia a corrida em comentário: duas compras DIFERENTES em voo passavam as
  *    duas pela conferência e o saldo estourava. Agora o teto entra no INSERT.
- * 2. CRÉDITO DE PASSE. Os cofres respondiam 400 "crédito desconhecido"; agora creditam o valor do
- *    slot, e só a partir do nível da década.
+ * 2. CRÉDITO DE TEMPORADA (era o cofre do passe até a onda 5 das recompensas v2). A casa credita
+ *    o valor da trilha, e só com o XP da janela; a trilha de assinante exige assinatura.
  *
  * O teste do item 1 é sobre o MECANISMO, não sobre um espião: dez gastos simultâneos contra um
  * saldo que paga poucos, e a conta do que entrou no ledger.
  */
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll,afterEach,beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
-import { slotsDoPasse } from '../../src/core/passe'
+import { recompensaDaTrilha } from '../../src/core/temporada'
 import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
@@ -117,31 +117,59 @@ describe('gasto concorrente', () => {
   })
 })
 
-describe('crédito de cofre do passe', () => {
-  const cofre = slotsDoPasse().find((s): s is Extract<typeof s, { tipo: 'seeds' }> => s.tipo === 'seeds' && s.decada === 2)!
+describe('crédito de casa da temporada', () => {
+  const seeds = (recompensaDaTrilha(2, 'gratis') as { seeds: number }).seeds
+  /* Só o relógio é falso: a rodada gravada ganha carimbo DENTRO da Temporada 1. */
+  const durante = () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-10-15T12:00:00-03:00'))
+  }
+  afterEach(() => { vi.useRealTimers() })
 
-  it('sem o nível da década, recusa dizendo o nível e o exigido', async () => {
+  it('sem o XP da janela, recusa dizendo o XP e o exigido', async () => {
+    durante()
     const res = mockRes()
-    await handler('/seeds/creditar')(req({ creditoId: cofre.creditoId }, 'u-passe-cedo'), res)
+    await handler('/seeds/creditar')(req({ creditoId: 'temporada:t1:2:gratis' }, 'u-temporada-cedo'), res)
     expect(res.statusCode).toBe(400)
-    expect(res.body).toMatchObject({ code: 'nivel_insuficiente' })
-    expect(res.body.detalhes).toMatchObject({ exigido: cofre.decada })
+    expect(res.body).toMatchObject({ code: 'temporada_nao_alcancada' })
+    expect(res.body.detalhes).toMatchObject({ xp: 0, exigido: 300 })
   })
 
-  it('com o nível, credita o valor do slot — uma vez, e ignorando o corpo', async () => {
-    const u = 'u-passe'
-    await ganhar(u, 12) // XP suficiente para passar do nível 2
-    const antes = await economiaDoUsuario(asUserId(u))
-    expect(antes.nivel).toBeGreaterThanOrEqual(cofre.decada)
+  it('com o XP da janela, credita o valor da casa — uma vez, e ignorando o corpo', async () => {
+    durante()
+    const u = 'u-temporada'
+    await ganhar(u, 5) // 5 × 60 XP = 300 dentro da janela: nível 2 da temporada
 
     const r1 = mockRes()
-    await handler('/seeds/creditar')(req({ creditoId: cofre.creditoId, amount: 9_999, xp: 9_999 }, u), r1)
+    await handler('/seeds/creditar')(req({ creditoId: 'temporada:t1:2:gratis', amount: 9_999, xp: 9_999 }, u), r1)
     expect(r1.statusCode).toBe(200)
-    expect(r1.body).toMatchObject({ jaExistia: false, seedsCreditadas: cofre.quantidade, xpCreditado: 0 })
+    expect(r1.body).toMatchObject({ jaExistia: false, seedsCreditadas: seeds, xpCreditado: 0 })
 
     const r2 = mockRes()
-    await handler('/seeds/creditar')(req({ creditoId: cofre.creditoId }, u), r2)
-    expect(r2.body).toMatchObject({ jaExistia: true, seedsCreditadas: cofre.quantidade })
+    await handler('/seeds/creditar')(req({ creditoId: 'temporada:t1:2:gratis' }, u), r2)
+    expect(r2.body).toMatchObject({ jaExistia: true, seedsCreditadas: seeds })
+  })
+
+  it('XP ganho fora da janela não conta', async () => {
+    const u = 'u-temporada-antes'
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-09-30T23:00:00-03:00')) // a uma hora do início: fora da janela
+    await ganhar(u, 10)
+    durante()
+    const res = mockRes()
+    await handler('/seeds/creditar')(req({ creditoId: 'temporada:t1:2:gratis' }, u), res)
+    expect(res.statusCode).toBe(400)
+    expect(res.body).toMatchObject({ code: 'temporada_nao_alcancada' })
+  })
+
+  it('a trilha de assinante exige assinatura ativa no servidor', async () => {
+    durante()
+    const u = 'u-temporada-sem-assinatura'
+    await ganhar(u, 5)
+    const res = mockRes()
+    await handler('/seeds/creditar')(req({ creditoId: 'temporada:t1:1:assinante' }, u), res)
+    expect(res.statusCode).toBe(403)
+    expect(res.body).toMatchObject({ code: 'exige_assinatura' })
   })
 
   it('id de crédito inventado é 400 com código, não 500', async () => {

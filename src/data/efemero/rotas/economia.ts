@@ -6,9 +6,9 @@
  * e é ele que precisa bater com o Express. O cliente faz exatamente o mesmo corte.
  *
  * Rotas: POST `/api/metrics/seeds/gastar`, POST `/api/metrics/seeds/creditar`,
- * POST `/api/metrics/presenca`, GET `/api/metrics/maestria`.
+ * POST `/api/metrics/presenca`, GET `/api/metrics/maestria`, GET `/api/metrics/temporada`.
  *
- * `/api/billing/*` (créditos comprados com dinheiro, passe) NÃO tem espelho — justificado em
+ * `/api/billing/*` (créditos comprados com dinheiro) NÃO tem espelho — justificado em
  * `tests/contratos/rotas-espelhadas`: moeda paga nasce e morre no servidor.
  */
 import {
@@ -22,9 +22,10 @@ import {
 import { economiaDeMetricas } from '../../../core/learning/xp';
 import { type LinhaDeMaestria, maestriaPorJogo, nivelDeMaestria } from '../../../core/maestria';
 import { reembolsosDevidos } from '../../../core/reembolso';
+import { nivelDaTemporada, proximaTemporada, temporadaAtual, xpDeTemporada } from '../../../core/temporada';
 import { json, lerJson, num, str } from '../nucleo';
 import { abrirStore } from '../store';
-import { perfilEfemero } from './metricas';
+import { linhasDoHistoricoLocal, perfilEfemero } from './metricas';
 
 /**
  * GASTA SEEDS — com o preço do catálogo, como no Express.
@@ -214,6 +215,20 @@ export async function lerMaestria(): Promise<Response> {
   return json({ jogos, creditados });
 }
 
+/**
+ * GET `/api/metrics/temporada` — espelho do Express: a temporada em curso, o XP da janela (o mesmo
+ * `xpDeTemporada`, sobre as linhas do IndexedDB) e as casas já creditadas. `assinante` é sempre
+ * `false`: a edição estática não tem cobrança, então só existe a trilha grátis.
+ */
+export async function lerTemporada(): Promise<Response> {
+  const agora = new Date();
+  const temporada = temporadaAtual(agora);
+  const xp = temporada ? xpDeTemporada(await linhasDoHistoricoLocal(), temporada) : 0;
+  const db = await abrirStore();
+  const creditados = (await db.getAll('creditos')).map((c) => c.creditoId).filter((id) => id.startsWith('temporada:')).sort();
+  return json({ temporada, proxima: proximaTemporada(agora), xp, nivel: nivelDaTemporada(xp), assinante: false, creditados });
+}
+
 export async function creditarSeeds(_m: RegExpMatchArray, _u: URL, init: RequestInit): Promise<Response> {
   const p = lerJson(init);
   const creditoId = str(p.creditoId);
@@ -232,9 +247,9 @@ export async function creditarSeeds(_m: RegExpMatchArray, _u: URL, init: Request
   const jaExistia = !!existente;
   if (!jaExistia) {
     /* O NÍVEL É CONFERIDO AQUI TAMBÉM, e do mesmo jeito: `economiaDeMetricas` sobre o perfil que
-       este servidor calcula. Sem isto o cofre da década 10 sairia no nível 1 para quem joga sem
-       conta — e depois migraria para a conta com as Seeds já lançadas. A conferência só roda no
-       crédito NOVO: o reenvio de um crédito já lançado não pode ser recusado por nível. */
+       este servidor calcula — o acervo do modo sem conta migra para a conta com as Seeds já
+       lançadas. A conferência só roda no crédito NOVO: o reenvio de um crédito já lançado não pode
+       ser recusado por nível. */
     if (credito.nivelMinimo > 0) {
       const { nivel } = economiaDeMetricas(await perfilEfemero(null));
       if (nivel < credito.nivelMinimo) {
@@ -248,6 +263,18 @@ export async function creditarSeeds(_m: RegExpMatchArray, _u: URL, init: Request
       const pontos = maestriaPorJogo(await linhasDeMaestria()).find((m) => m.jogo === jogo)?.pontos ?? 0;
       if (pontos < pontosExigidos) {
         return json({ error: 'nível de maestria ainda não alcançado', code: 'maestria_nao_alcancada', codigo: 'maestria_nao_alcancada', detalhes: { pontos, exigido: pontosExigidos } }, 400);
+      }
+    }
+    /* A TEMPORADA (onda 5), com a régua do Express: o XP da janela alcança o nível. A trilha de
+       assinante é sempre recusada aqui — sem cobrança, não há assinatura. */
+    if (credito.temporada) {
+      const { temporada, trilha, xpExigido } = credito.temporada;
+      if (trilha === 'assinante') {
+        return json({ error: 'a trilha de assinante exige assinatura ativa', code: 'exige_assinatura', codigo: 'exige_assinatura' }, 403);
+      }
+      const xp = xpDeTemporada(await linhasDoHistoricoLocal(), temporada);
+      if (xp < xpExigido) {
+        return json({ error: 'nível de temporada ainda não alcançado', code: 'temporada_nao_alcancada', codigo: 'temporada_nao_alcancada', detalhes: { xp, exigido: xpExigido } }, 400);
       }
     }
     /* A META DO DIA (recompensas v2), com a régua do Express: hoje ou ontem no fuso de quem

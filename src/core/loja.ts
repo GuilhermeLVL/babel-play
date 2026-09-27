@@ -22,6 +22,7 @@ import { CATALOGO_V2, NIVEL_SO_SEEDS } from './catalogoV2';
 export { NIVEL_SO_SEEDS };
 import { CATALOGO_DAS_CONQUISTAS } from './catalogoConquistas';
 import { CATALOGO_DA_MAESTRIA } from './catalogoMaestria';
+import { CATALOGO_DA_TEMPORADA } from './catalogoTemporada';
 
 export type { ItemDaLoja, Raridade, TipoDaLoja, TipoDesbloqueavel } from './tiposDaLoja';
 import type { ItemDaLoja } from './tiposDaLoja';
@@ -322,13 +323,10 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
    * sabe desenhar, na paleta dourada (`sunset-gold`, `ouro-*`). O que as torna especiais é a VIA,
    * não o pixel.
    *
-   * DUAS PORTAS, e é isso que dá destino ao Crédito: vêm de graça no Passe da temporada (`
-   * exclusivoDoPasse` = a casa que as entrega) OU se compram avulsas com Créditos.
-   *
-   * O PREÇO DE 150 É UM PADRÃO DERIVADO, não uma decisão de produto: o Passe custa R$ 14,90 e
-   * devolve 1.134 Créditos, então as dez variantes a 150 somam 1.500 — quem compra o passe leva
-   * as dez de graça e ainda sobra crédito; quem compra avulso paga mais caro pelo conjunto. É a
-   * relação que faz o passe valer a pena sem tornar o avulso inútil. O dono ajusta o número.
+   * UMA PORTA SÓ desde a temporada com datas (recompensas v2, onda 5): a compra avulsa com
+   * Créditos. O Passe de 100 casas que também as entregava saiu — a trilha paga agora é a do
+   * assinante (`temporada.ts`) e nunca entrega Créditos. A loja com Créditos é a onda 6; o preço
+   * de 150 fica como está até lá.
    */
   {
     id: 'dourada-1',
@@ -339,7 +337,6 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     raridade: 'lendario',
     nivel: 1,
     precoCreditos: 150,
-    exclusivoDoPasse: 10,
   },
   {
     id: 'dourada-2',
@@ -350,7 +347,6 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     raridade: 'lendario',
     nivel: 1,
     precoCreditos: 150,
-    exclusivoDoPasse: 20,
   },
   {
     id: 'dourada-4',
@@ -361,7 +357,6 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     raridade: 'lendario',
     nivel: 1,
     precoCreditos: 150,
-    exclusivoDoPasse: 40,
   },
   {
     id: 'dourada-6',
@@ -372,7 +367,6 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     raridade: 'lendario',
     nivel: 1,
     precoCreditos: 150,
-    exclusivoDoPasse: 60,
   },
   {
     id: 'dourada-8',
@@ -383,7 +377,6 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     raridade: 'lendario',
     nivel: 1,
     precoCreditos: 150,
-    exclusivoDoPasse: 80,
   },
   {
     id: 'dourada-9',
@@ -394,7 +387,6 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     raridade: 'lendario',
     nivel: 1,
     precoCreditos: 150,
-    exclusivoDoPasse: 90,
   },
   {
     id: 'dourada-10',
@@ -405,7 +397,6 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     raridade: 'lendario',
     nivel: 1,
     precoCreditos: 150,
-    exclusivoDoPasse: 100,
   },
 
   /* ── O QUE VEIO DO CATÁLOGO MESTRE (mudança gamificacao-sob-autoridade) ────────────────────
@@ -463,6 +454,7 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
   },
   ...CATALOGO_DA_MAESTRIA, // onda 3: efeitos de jogo, molduras e títulos (`catalogoMaestria.ts`)
   ...CATALOGO_DAS_CONQUISTAS, // onda 5: molduras e títulos do ouro das conquistas (`catalogoConquistas.ts`)
+  ...CATALOGO_DA_TEMPORADA, // onda 5: molduras e títulos da Temporada 1 (`catalogoTemporada.ts`)
 ];
 
 /**

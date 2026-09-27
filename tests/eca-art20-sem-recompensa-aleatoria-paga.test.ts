@@ -6,8 +6,8 @@
  * recompensa aleatória: o BAÚ DE FIM DE RODADA (`sortearItemDoDrop`, sorteado no servidor em
  * `server/routes/metrics.ts`). Ele é obtido JOGANDO uma rodada, que é grátis, e não sorteia item
  * vendido em Créditos (a moeda comprada com dinheiro). Tudo o que custa dinheiro é DETERMINÍSTICO:
- * a assinatura, os pacotes de Créditos (quantidade fixa), o Passe (cada casa premium é fixa por
- * nível) e os itens premium (compra de UM item escolhido, pelo preço do catálogo).
+ * a assinatura (e a trilha de assinante da temporada, com item fixo por nível), os pacotes de
+ * Créditos (quantidade fixa) e os itens premium (compra de UM item escolhido, pelo preço do catálogo).
  *
  * Este arquivo trava essa fronteira. Se alguém um dia puser um item pago no baú, vender um baú, ou
  * trouxer sorteio para o caminho do dinheiro, o CI cai aqui com o motivo.
@@ -23,7 +23,7 @@ import { describe, expect, it } from 'vitest'
 import { CATALOGO_DE_CREDITOS } from '../src/core/creditos'
 import { autorizarGastoDeCredito, itensSorteaveisNoDrop } from '../src/core/economiaAutoridade'
 import { CATALOGO_DA_LOJA } from '../src/core/loja'
-import { premiumDoNivel } from '../src/core/passe'
+import { recompensaDaTrilha } from '../src/core/temporada'
 
 describe('ECA Digital art. 20 — recompensa aleatória não se compra', () => {
   it('o baú de fim de rodada nunca sorteia item vendido em Créditos (moeda comprada)', () => {
@@ -51,8 +51,13 @@ describe('ECA Digital art. 20 — recompensa aleatória não se compra', () => {
     }
   })
 
-  it('a trilha premium do Passe é a mesma a cada leitura (casa fixa por nível)', () => {
-    for (let lv = 1; lv <= 100; lv++) expect(premiumDoNivel(lv)).toEqual(premiumDoNivel(lv))
+  it('a trilha de assinante da temporada é a mesma a cada leitura (item fixo por nível, nunca Seeds)', () => {
+    for (let lv = 1; lv <= 30; lv++) {
+      const r = recompensaDaTrilha(lv, 'assinante')
+      expect(r).toEqual(recompensaDaTrilha(lv, 'assinante'))
+      // Seeds pela assinatura seriam Seeds compráveis — a trilha paga só entrega item.
+      expect(r && 'seeds' in r, `nível ${lv}`).toBe(false)
+    }
   })
 
   it('o caminho do dinheiro não tem sorteio no código', () => {
@@ -61,7 +66,8 @@ describe('ECA Digital art. 20 — recompensa aleatória não se compra', () => {
       'server/lib/billingEventos.ts',
       'server/db/repositories/credits.ts',
       'src/core/creditos.ts',
-      'src/core/passe.ts',
+      'src/core/temporada.ts',
+      'src/core/catalogoTemporada.ts',
     ]
     for (const f of arquivos) {
       const fonte = readFileSync(f, 'utf8')

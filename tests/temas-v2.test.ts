@@ -13,7 +13,7 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { slotsDoPasse } from '../src/core/passe'
+import { precoSeedsDoItem } from '../src/core/temporada'
 import { THEME_OPTIONS } from '../src/lib/appearance'
 import { EFEITOS_PADRAO, planoDeComemoracao } from '../src/lib/comemoracao'
 import { FORMA_DO_TEMA, PARTICLE_PRESETS } from '../src/lib/effects'
@@ -56,7 +56,16 @@ describe('os seis temas novos existem em todas as pontas', () => {
 })
 
 describe('economia: o nível abre antes das Seeds, então os temas novos são só Seeds', () => {
-  const novos = CATALOGO_DA_LOJA.filter((i) => i.tipo === 'tema' && (TEMAS_NOVOS as readonly string[]).includes(i.alvo))
+  /* O Observatório virou exclusivo da Temporada 1 na onda 5: sem preço até um ano depois do fim da
+     temporada (`tests/temporada.test.ts`). Os outros cinco continuam só de Seeds. */
+  const todos = CATALOGO_DA_LOJA.filter((i) => i.tipo === 'tema' && (TEMAS_NOVOS as readonly string[]).includes(i.alvo))
+  const novos = todos.filter((i) => !i.origemTemporada)
+
+  it('o Observatório é da temporada e volta com preço de épico dentro da faixa', () => {
+    const obs = todos.find((i) => i.alvo === 'observatorio')!
+    expect(obs.origemTemporada?.temporada).toBe('t1')
+    expect(precoSeedsDoItem(obs, Date.parse('2028-01-01'))).toBe(3000)
+  })
 
   it('todo tema novo tem preço de raro ou épico dentro da faixa calibrada', () => {
     const faixa = { raro: [1000, 1300], epico: [2600, 3000] } as const
@@ -78,12 +87,11 @@ describe('economia: o nível abre antes das Seeds, então os temas novos são s�
     }
   })
 
-  it('a vitrine do próximo nível, a próxima recompensa e o Passe não prometem item só de Seeds', () => {
+  it('a vitrine do próximo nível e a próxima recompensa não prometem item só de Seeds', () => {
     for (const n of [1, 5, 9, 10, 50]) {
       expect(vitrineDoProximoNivel(n).some(soPorSeeds)).toBe(false)
       expect(proximaRecompensa(n)?.itens.some(soPorSeeds) ?? false).toBe(false)
     }
-    expect(slotsDoPasse().some((s) => s.tipo === 'item' && soPorSeeds(s.item))).toBe(false)
   })
 })
 

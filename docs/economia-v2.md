@@ -8,17 +8,17 @@ Não é parecer jurídico; as restrições legais estão na seção 3 da spec.
 Só resultado paga. Saíram a **presença** (abrir o app) e os **minutos de captura** — Decreto
 12.880/2026, art. 9º. `tests/economia-sem-tempo.test.ts` varre `REGRAS`, `PESOS_SEEDS` e `PESOS_XP`.
 
-| Ação | Seeds | XP | Limite / conferência |
-| --- | --- | --- | --- |
-| Palavra nova salva da captura | 1 | 0 | até 30 por dia local (derivado: cartão do caderno com `sessionId`) |
-| Fichar uma palavra no caderno | 1 | 2 | — |
-| Acertar uma revisão | 2 | 5 | — |
-| Acertar um item de jogo | 1 | 3 | — |
-| Rodada sem erro (3 estrelas) | 5 | 15 | mínimo de itens do jogo |
-| Meta do dia (20 acertos no dia) | 15 | 20 | crédito `meta:<AAAA-MM-DD>`, hoje/ontem no fuso do usuário, conferido no servidor |
-| Nível de maestria | 20 × nível | — | `maestria:<jogo>:<n>`, pontos somados das rodadas gravadas (uma vez por `roundId`), conferido no servidor |
-| 7 dias seguidos de prática | 25 | 50 | dia de prática = revisão, rodada ou palavra salva |
-| Conquista | 10–200 | 0–300 | uma vez cada (40, 3.305 Seeds no total), conferida no servidor e no espelho |
+| Ação                            | Seeds      | XP    | Limite / conferência                                                                                      |
+| ------------------------------- | ---------- | ----- | --------------------------------------------------------------------------------------------------------- |
+| Palavra nova salva da captura   | 1          | 0     | até 30 por dia local (derivado: cartão do caderno com `sessionId`)                                        |
+| Fichar uma palavra no caderno   | 1          | 2     | —                                                                                                         |
+| Acertar uma revisão             | 2          | 5     | —                                                                                                         |
+| Acertar um item de jogo         | 1          | 3     | —                                                                                                         |
+| Rodada sem erro (3 estrelas)    | 5          | 15    | mínimo de itens do jogo                                                                                   |
+| Meta do dia (20 acertos no dia) | 15         | 20    | crédito `meta:<AAAA-MM-DD>`, hoje/ontem no fuso do usuário, conferido no servidor                         |
+| Nível de maestria               | 20 × nível | —     | `maestria:<jogo>:<n>`, pontos somados das rodadas gravadas (uma vez por `roundId`), conferido no servidor |
+| 7 dias seguidos de prática      | 25         | 50    | dia de prática = revisão, rodada ou palavra salva                                                         |
+| Conquista                       | 10–200     | 0–300 | uma vez cada (40, 3.305 Seeds no total), conferida no servidor e no espelho                               |
 
 A ofensiva (`streakDays`, `streakPresenca`/`maiorSequenciaPresenca` — nomes antigos, conteúdo novo)
 conta dias de prática. `POST /api/metrics/presenca` continua gravando, só como estatística.
@@ -52,21 +52,21 @@ legenda e peles de cartão da onda 4 entraram no baú, o repetido sai menos e o 
 os 1.260 da onda 3 nem os 1.220 da onda 4 cabem mais nos 8 dias —, Jardim e Karaokê 1.180, Letreiro
 e Combo Chuva de Confete 1.190).
 
-| Perfil | Por dia | Seeds/dia | Seeds em 30 dias | Baús | Peças |
-| --- | --- | --- | --- | --- | --- |
-| Leve | 10 revisões + 1 rodada | 35,2 | 1.056 | 18 | 18 |
-| Típico | 25 revisões + 3 rodadas + 10 palavras + meta | 149,9 | 4.496 | 69 | 34 |
-| Intenso | 60 revisões + 8 rodadas + 30 palavras + meta | 351,1 | 10.534 | 90 | 37 |
+| Perfil  | Por dia                                      | Seeds/dia | Seeds em 30 dias | Baús | Peças |
+| ------- | -------------------------------------------- | --------- | ---------------- | ---- | ----- |
+| Leve    | 10 revisões + 1 rodada                       | 35,2      | 1.056            | 18   | 18    |
+| Típico  | 25 revisões + 3 rodadas + 10 palavras + meta | 149,9     | 4.496            | 69   | 34    |
+| Intenso | 60 revisões + 8 rodadas + 30 palavras + meta | 351,1     | 10.534           | 90   | 37    |
 
 Meta do dono, no perfil típico e só com Seeds: um comum a cada 2–3 dias, um raro por semana, um épico
 a cada 2–3 semanas. Preços antigos × fator por raridade, preservando a ordem dentro da faixa:
 
-| Raridade | Antes | Agora | Dias do perfil típico |
-| --- | --- | --- | --- |
-| Comum | 45–60 | **350–440** | 2,3–2,9 |
-| Raro | 100–140 | **1.000–1.190** | 6,7–7,9 |
-| Épico | 220–240 | **2.600–3.000** | 17,3–20,0 |
-| Lendário | 600 | **5.200** | 34,7 |
+| Raridade | Antes   | Agora           | Dias do perfil típico |
+| -------- | ------- | --------------- | --------------------- |
+| Comum    | 45–60   | **350–440**     | 2,3–2,9               |
+| Raro     | 100–140 | **1.000–1.190** | 6,7–7,9               |
+| Épico    | 220–240 | **2.600–3.000** | 17,3–20,0             |
+| Lendário | 600     | **5.200**       | 34,7                  |
 
 `tests/economia-calibragem.test.ts` reprova se peso ou preço mudar sem refazer a conta.
 
@@ -91,19 +91,59 @@ Entraram 19 itens pagos, **todos só com Seeds** (`nivel: NIVEL_SO_SEEDS`, `soPo
 os prometem) — a resposta ao "nível abre antes das Seeds" acima. Livres só os padrões (legenda
 clássica, cartão padrão).
 
-| Tipo | Itens e preço (Seeds) |
-| --- | --- |
-| Tema completo (raro) | Papel e tinta 1.000 · Rádio 1.100 · Jardim 1.180 |
-| Tema completo (épico) | Neon noturno 2.600 · Fliperama 2.800 · Observatório 3.000* |
-| Estilo de legenda (comum) | Cinema 350 · Fita 380 · Contorno 420 |
-| Estilo de legenda (raro) | Vidro 1.000 · Máquina 1.100 · Karaokê 1.180 · Letreiro 1.190* |
-| Pele de cartão (comum) | Caderno 360 · Selo 440 |
-| Pele de cartão (raro) | Vitral 1.050 · Constelação 1.150* |
+| Tipo                      | Itens e preço (Seeds)                                          |
+| ------------------------- | -------------------------------------------------------------- |
+| Tema completo (raro)      | Papel e tinta 1.000 · Rádio 1.100 · Jardim 1.180               |
+| Tema completo (épico)     | Neon noturno 2.600 · Fliperama 2.800 · Observatório 3.000\*    |
+| Estilo de legenda (comum) | Cinema 350 · Fita 380 · Contorno 420                           |
+| Estilo de legenda (raro)  | Vidro 1.000 · Máquina 1.100 · Karaokê 1.180 · Letreiro 1.190\* |
+| Pele de cartão (comum)    | Caderno 360 · Selo 440                                         |
+| Pele de cartão (raro)     | Vitral 1.050 · Constelação 1.150\*                             |
 
-\* candidato à temporada (onda 5 decide; por ora fica com preço).
+\* candidato à temporada: na onda 5 virou exclusivo da Temporada 1 (sem preço; volta à Loja um ano
+depois do fim com este preço — ver "Temporada com datas").
 
 Os comuns e raros entram no baú, que passa a entregar peça em vez de Seeds de repetido. A conta
 com as duas ondas juntas (149,9 Seeds/dia) e os preços que ela moveu estão em "Calibragem", acima.
+
+## Temporada com datas (onda 5, `src/core/temporada.ts`)
+
+Substitui o Passe "lente do nível" de 100 casas (spec 8.3). O Passe, o SKU `passe-t1` e a fileira de
+Créditos saíram; `POST /api/billing/creditar-passe` ficou depreciada, sem efeito
+(`tests/contratos/api-depreciacoes.json`).
+
+- **Temporada 1 "Observatório":** 01/10/2026 a 25/11/2026 (8 semanas, dia de Brasília). 30 níveis de
+  150 XP. XP de temporada = XP da conta (`xpDeEventos`) dos eventos com carimbo dentro da janela.
+- **Trilha grátis** (níveis pares): título Luneta (8), Legenda Letreiro (12), Moldura Órbita (18),
+  Cartão Constelação (22), tema Observatório (30); Seeds nos outros dez: 60, 70, 80, 90, 100, 110, 120,
+  130, 140, 150 = **1.050 Seeds** (`tests/temporada.test.ts` trava entre 900 e 1.200).
+- **Trilha de assinante** (todo nível): 15 títulos de estrela e 15 molduras de constelação
+  (`catalogoTemporada.ts`), raridade subindo (1–10 comum, 11–20 raro, 21–29 épico, 30 lendário).
+  **Nunca Seeds**: Seeds pela assinatura seriam Seeds compráveis. Assinante = plano `essencial`/`pro`
+  concedido pelo servidor; na edição estática só existe a trilha grátis.
+- **Crédito** `temporada:<id>:<nível>:<gratis|assinante>`, conferido nas duas pontas (XP da janela ≥
+  nível × 150; assinatura no Express, 403 no espelho). Não há rota nem motivo de gasto que compre nível.
+- **Volta à Loja:** os itens da temporada (os três candidatos da onda 4 e os 32 de perfil) não têm
+  preço nem caem no baú; 365 dias depois do fim voltam com Seeds (`precoSeedsDepois`: Observatório
+  3.000, Letreiro 1.190, Constelação 1.150; os de perfil 400/1.100/2.800/5.200 por raridade).
+
+### Ritmo (conta à mão com `PESOS_XP`, sem captura)
+
+| Perfil                            | XP de temporada/dia | Nível 30 em | Nível em 56 dias |
+| --------------------------------- | ------------------- | ----------- | ---------------- |
+| Leve (10 revisões + 1 rodada)     | ≈ 72                | —           | ≈ 26             |
+| Típico (25 revisões + 3 rodadas)  | ≈ 199               | ≈ 23 dias   | 30               |
+| Intenso (60 revisões + 8 rodadas) | ≈ 512               | ≈ 9 dias    | 30               |
+
+Efeito na calibragem: a trilha grátis soma 1.050 Seeds na temporada (≈ 19/dia em 8 semanas, ≈ 12% da
+renda típica de 149,9/dia) e entrega dois raros e um épico que saíram da Loja com Seeds — a meta de
+preço da Loja não muda, porque esses três deixaram de ser vendidos.
+
+**Para o dono decidir:** a captura rende `sessao` 25 XP + **2 XP por palavra transcrita**
+(`palavraCapturada`), e uma gravação de 10 minutos passa de 1.000 palavras. Com captura, a trilha
+inteira pode sair em poucas gravações. É a mesma fórmula do XP da conta (a spec manda usar os mesmos
+resultados); se a temporada precisar de ritmo próprio, o ajuste é tirar `palavrasCapturadas` de
+`xpDeTemporada` ou pesar menos.
 
 ## Histórico — economia v2 de 2026-08-28 (substituída pelas recompensas v2)
 
@@ -116,17 +156,17 @@ comprava metade do catálogo sem jogar.
 
 ### A regra agora (uma fonte só: `src/core/learning/economia.ts` → `REGRAS`)
 
-| Ação | XP | Seeds | Limite |
-| --- | --- | --- | --- |
-| Abrir o app no dia | 10 | 5 | 1×/dia |
-| 7 dias seguidos de presença (a cada 7) | 50 | 25 | por marco, nunca cobrado de volta |
-| Cada 5 min de sessão gravada | 10 | 1 | 30 min/dia (6 Seeds) |
-| Salvar a sessão | 25 | 0 | |
-| Fichar uma palavra no caderno | 2 | 1 | |
-| Revisão certa | 3+2 | 2 | |
-| Item de jogo certo | 1+2 | 1 | |
-| Rodada 100% (≥ mínimo do jogo) | 15 | 5 | |
-| Conquista | varia | varia | 1× |
+| Ação                                   | XP    | Seeds | Limite                            |
+| -------------------------------------- | ----- | ----- | --------------------------------- |
+| Abrir o app no dia                     | 10    | 5     | 1×/dia                            |
+| 7 dias seguidos de presença (a cada 7) | 50    | 25    | por marco, nunca cobrado de volta |
+| Cada 5 min de sessão gravada           | 10    | 1     | 30 min/dia (6 Seeds)              |
+| Salvar a sessão                        | 25    | 0     |                                   |
+| Fichar uma palavra no caderno          | 2     | 1     |                                   |
+| Revisão certa                          | 3+2   | 2     |                                   |
+| Item de jogo certo                     | 1+2   | 1     |                                   |
+| Rodada 100% (≥ mínimo do jogo)         | 15    | 5     |                                   |
+| Conquista                              | varia | varia | 1×                                |
 
 Palavra capturada continua dando 2 XP e **zero Seeds**. Dia ativo típico ≈ 86 Seeds; o lendário mais
 caro (600) sai em ≈ 7 dias (teste `economia.test.ts` trava entre 5 e 8).
@@ -141,8 +181,8 @@ Pular rodada mantendo combo: 40.
 - Rotas: `POST /api/metrics/presenca` (idempotente por dia local) e `POST /api/metrics/seeds/creditar`
   (idempotente por `creditoId`), mesmo padrão de `gastar`.
 - `AppMetrics` ganhou campos **opcionais**: `presencas, streakPresenca, maiorSequenciaPresenca,
-  sequencias7, capturaMinutos, capturaMinutosPremiados, rodadasPerfeitas, seedsCreditadas, xpCreditado,
-  idiomas`. A edição completa (Postgres) ainda não os calcula: `deriveProgress` trata ausência como
+sequencias7, capturaMinutos, capturaMinutosPremiados, rodadasPerfeitas, seedsCreditadas, xpCreditado,
+idiomas`. A edição completa (Postgres) ainda não os calcula: `deriveProgress` trata ausência como
   zero. **Follow-up da edição completa:** tabelas `presencas`/`creditos` + os mesmos agregados em
   `server/db/repositories/metrics.ts`.
 

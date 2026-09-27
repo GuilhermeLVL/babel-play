@@ -65,7 +65,7 @@ test.describe('Rota de aquisição no Inventário', () => {
 
     /* O BOTÃO TEM DE CHEGAR. Um CTA que não navega é pior do que nenhum: ele gasta a intenção da
        pessoa e devolve a mesma tela. */
-    const ir = page.getByRole('button', { name: /^(Ver em Conquistas|Ver na Loja|Ver no Passe)$/ }).first()
+    const ir = page.getByRole('button', { name: /^(Ver em Conquistas|Ver na Loja|Ver na Temporada)$/ }).first()
     await expect(ir).toBeVisible()
     await clicarRobusto(page, ir)
     /* Loja e Passe viraram seções de Desafios em 12/09, então os três destinos publicam a mesma

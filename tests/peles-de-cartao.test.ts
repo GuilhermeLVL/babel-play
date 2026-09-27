@@ -78,11 +78,15 @@ describe('as peles', () => {
         expect(i.precoSeeds).toBeUndefined()
         continue
       }
-      expect(soPorSeeds(i), i.id).toBe(true)
+      /* Onda 5: o candidato à temporada virou exclusivo da Temporada 1 — sem preço agora, com o preço
+         de volta (`precoSeedsDepois`) um ano depois do fim. A faixa vale para os dois. */
+      if (i.origemTemporada) expect(i.precoSeeds, i.id).toBeUndefined()
+      else expect(soPorSeeds(i), i.id).toBe(true)
+      const preco = i.precoSeeds ?? i.origemTemporada!.precoSeedsDepois
       expect(['comum', 'raro']).toContain(i.raridade)
       const [min, max] = i.raridade === 'comum' ? [350, 450] : [1000, 1300]
-      expect(i.precoSeeds!).toBeGreaterThanOrEqual(min)
-      expect(i.precoSeeds!).toBeLessThanOrEqual(max)
+      expect(preco).toBeGreaterThanOrEqual(min)
+      expect(preco).toBeLessThanOrEqual(max)
     }
   })
 

@@ -19,11 +19,9 @@ import { z } from 'zod'
 
 import { centavosParaReais, pacotePorSku } from '../../src/core/creditos'
 import { autorizarGastoDeCredito, ehRecusa } from '../../src/core/economiaAutoridade'
-import { passeNivel, premiumDoNivel, TEMPORADA_ATUAL } from '../../src/core/passe'
 import { ehPlanoDeAssinatura, PLAN_MATRIX } from '../../src/core/planos'
 import { billingEventsRepo } from '../db/repositories/billingEvents'
 import { creditsRepo } from '../db/repositories/credits'
-import { economiaDoUsuario } from '../db/repositories/metrics'
 import { subscriptionsRepo } from '../db/repositories/subscriptions'
 import { vinculosRepo } from '../db/repositories/vinculos'
 import { MENSAGEM_CHECKOUT_DESLIGADO } from '../lib/abertura'
@@ -187,7 +185,6 @@ billingRouter.get('/creditos', async (req, res) => {
     ])
     res.json({
       saldo,
-      temPasse: compras.some((c) => c.sku === 'passe-t1' && c.status === 'pago'),
       /* A posse do que se pagou vem do SERVIDOR, sempre: nada comprado com dinheiro vive em
          localStorage (spec economia-de-creditos). O cliente só espelha. */
       itensPremium,
@@ -255,46 +252,15 @@ billingRouter.post('/gastar', async (req, res) => {
 })
 
 /**
- * OS CRÉDITOS DA TRILHA PAGA — a promessa que a tela fazia e nenhum código cumpria.
+ * DEPRECIADA (recompensas v2, onda 5): os Créditos da trilha paga do Passe de 100 casas.
  *
- * `ComprarCreditos` e o CTA do Passe anunciam "1.134 Créditos ao longo da trilha"
- * (`core/creditos.ts`, `PasseDeTemporada.tsx`), e a fileira premium era `role="img"` sem handler:
- * ninguém creditava nada. Quem pagasse R$ 14,90 recebia uma fileira trancada que continuava
- * trancada.
- *
- * O DESENHO É O DAS SEEDS DO PASSE, que já funciona: o servidor decide QUAIS casas foram
- * alcançadas (do nível que ele mesmo calcula, não do que o cliente diz), e credita cada uma UMA
- * vez, idempotente por `passe:<temporada>:premium-<n>`. Reabrir a tela nunca credita duas vezes.
- *
- * SEM O PASSE, NADA. A fileira continua sendo vitrine honesta — mostra o que viria, sem entregar.
+ * O Passe saiu — a trilha paga agora é a de ASSINANTE da temporada (`core/temporada.ts`), que
+ * entrega item e nunca Créditos. A rota fica, sem efeito, porque uma aba aberta com o bundle
+ * anterior (ou um rollback) ainda a chama, e a política da API é depreciar antes de remover
+ * (`tests/contratos/api-depreciacoes.json`). A resposta é a honesta de quem não tem o que receber.
  */
-billingRouter.post('/creditar-passe', async (req, res) => {
-  try {
-    const compras = await creditsRepo.comprasDoUsuario(req.userId, 50)
-    const temPasse = compras.some((c) => c.sku === 'passe-t1' && c.status === 'pago')
-    if (!temPasse) {
-      res.json({ creditado: 0, temPasse: false })
-      return
-    }
-    const { nivel } = await economiaDoUsuario(req.userId)
-    // A casa alcançada vem do NÍVEL do servidor. `pct: 0` é o piso: só casa inteira conta.
-    const ate = passeNivel(nivel, 0)
-    let creditado = 0
-    for (let casa = 1; casa <= ate; casa++) {
-      const slot = premiumDoNivel(casa)
-      if (slot.tipo !== 'creditos') continue
-      const r = await creditsRepo.registrarConcessao(req.userId, {
-        concessaoId: `passe:${TEMPORADA_ATUAL}:premium-${casa}`,
-        creditos: slot.quantidade,
-      })
-      if (!r.jaExistia) creditado += slot.quantidade
-    }
-    res.json({ creditado, temPasse: true, saldo: await creditsRepo.saldo(req.userId) })
-  } catch (err) {
-    res.status(500).json({
-      error: erroDeRota(err, { status: 500, event: 'billing_error', route: req.path, requestId: req.requestId }),
-    })
-  }
+billingRouter.post('/creditar-passe', (_req, res) => {
+  res.json({ creditado: 0, temPasse: false })
 })
 
 billingRouter.post('/assinar', async (req, res) => {

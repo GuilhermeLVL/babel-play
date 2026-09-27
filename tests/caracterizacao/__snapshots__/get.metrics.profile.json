@@ -10,6 +10,9 @@
         "total": "number"
       }
     ],
+    "acertosRecentes": [
+      "number"
+    ],
     "aprimoramentos": {},
     "asOf": "number",
     "avgRetention": "number",
@@ -20,7 +23,6 @@
       "total": "number"
     },
     "capturaMinutos": "number",
-    "capturaMinutosPremiados": "number",
     "correctReviews": "number",
     "cromasComprados": [],
     "deckSize": "number",
@@ -41,6 +43,7 @@
     "maiorSequenciaPresenca": "number",
     "newCards": "number",
     "palavrasDificeis": [],
+    "palavrasSalvasPremiadas": "number",
     "presencas": "number",
     "reviews": "number",
     "revisoesRecentes": [

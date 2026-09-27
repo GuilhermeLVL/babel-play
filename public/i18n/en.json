@@ -521,7 +521,7 @@
   "Regar palavras": "Water words",
   "Abrir vocabulário": "Open vocabulary",
   "Ver minhas palavras": "See my words",
-  "a cada 5 min gravados": "every 5 min recorded",
+  "por palavra salva": "per saved word",
   "por revisão": "per review",
   "por palavra fichada": "per word filed",
   "Não foi possível salvar o idioma. Verifique a conexão com o servidor e tente de novo.": "The language could not be saved. Check the connection to the server and try again.",
@@ -876,5 +876,6 @@
   "Certo! Com acento:": "Correct! With the accent:",
   "Também vale! A palavra desta pista era:": "That works too! The word for this clue was:",
   "Fora! Era:": "Out! It was:",
-  "Limpar a linha": "Clear the line"
+  "Limpar a linha": "Clear the line",
+  "+{n} Seeds · meta do dia cumprida": "+{n} Seeds · daily goal done"
 }

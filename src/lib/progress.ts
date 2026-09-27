@@ -82,8 +82,8 @@ export const EMPTY_PROGRESS: DerivedProgress = {
       pending: 0,
       done: false,
       rewardXp: PESOS_XP.sessao,
-      rewardSeeds: PESOS_SEEDS.capturaPor5Min,
-      rewardUnit: 'a cada 5 min gravados',
+      rewardSeeds: PESOS_SEEDS.palavraSalva,
+      rewardUnit: 'por palavra salva',
     },
     {
       id: 'practice',
@@ -132,8 +132,8 @@ export function deriveProgress(metrics: AppMetrics | null | undefined): DerivedP
       rewardXp: PESOS_XP.sessao,
       /* Economia v2: gravar passou a render Seeds pelo TEMPO (1 a cada 5 min, teto diário) — é o
          que o sistema de fato credita, então é o que a missão promete. */
-      rewardSeeds: PESOS_SEEDS.capturaPor5Min,
-      rewardUnit: 'a cada 5 min gravados',
+      rewardSeeds: PESOS_SEEDS.palavraSalva,
+      rewardUnit: 'por palavra salva',
     },
     {
       id: 'practice',

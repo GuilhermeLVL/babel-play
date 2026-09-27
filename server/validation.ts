@@ -221,6 +221,9 @@ export const seedSpendSchema = z
 export const seedCreditSchema = z
   .object({
     creditoId: z.string().min(8).max(80),
+    /** Fuso IANA do usuário (recompensas v2): o dia da meta e o teto do baú são do dia LOCAL dele.
+        Inválido ou ausente vira `America/Sao_Paulo` (`fusoOuPadrao`) — nunca 400. */
+    fuso: z.string().max(64).optional(),
   })
   .strip()
 

@@ -4,8 +4,10 @@ import { toast } from '../../components/Toast';
 import { type AppMetrics, fetchMetrics, fetchRecordes, type RecordeDoJogo } from '../../data/api';
 import { hidratarAprimoramentos } from '../aprimoramentos';
 import { hidratarCromas } from '../galeria/cromas';
+import { t } from '../i18n';
 import { estadoDeIdentidade } from '../identidade';
 import { hidratarPosse } from '../loja';
+import { reivindicarMetaDoDia } from '../metaDoDia';
 import { registrarPresencaHoje } from '../presenca';
 import { type DerivedProgress,deriveProgress } from '../progress';
 
@@ -58,14 +60,23 @@ export function useMetricas(quantidadeDeSessoes: number): EstadoDasMetricas {
 
   const progress = useMemo(() => deriveProgress(metrics), [metrics]);
 
-  /* PRESENÇA DO DIA — uma vez por dia, no boot. O toast só aparece quando creditou de verdade. */
+  /* PRESENÇA DO DIA — uma vez por dia, no boot, SÓ COMO ESTATÍSTICA (recompensas v2): abrir o app
+     não paga nada e não estende a ofensiva, então não há toast nem recarga das métricas. */
   useEffect(() => {
-    void registrarPresencaHoje().then((r) => {
-      if (!r?.creditou) return;
-      toast.ok(r.streak > 1 ? `+${r.seeds} Seeds pela presença · ${r.streak} dias seguidos!` : `+${r.seeds} Seeds pela presença de hoje.`);
+    void registrarPresencaHoje();
+  }, []);
+
+  /* A META DO DIA: quando as métricas novas mostram os acertos de hoje alcançando a meta, pede o
+     crédito uma vez. O toast só aparece quando o servidor creditou de verdade. */
+  useEffect(() => {
+    let alive = true;
+    void reivindicarMetaDoDia(metrics).then((r) => {
+      if (!alive || !r) return;
+      toast.ok(t('+{n} Seeds · meta do dia cumprida', { n: r.seeds }));
       setVersaoDasMetricas((v) => v + 1);
     });
-  }, []);
+    return () => { alive = false; };
+  }, [metrics]);
 
   return { metrics, recordes, progress, setVersaoDasMetricas };
 }

@@ -1,27 +1,23 @@
 /**
- * PRESENÇA DIÁRIA — abrir o app conta, uma vez por dia.
+ * PRESENÇA DIÁRIA — só estatística desde as recompensas v2 (27/09).
  *
- * O servidor é quem guarda (idempotente por dia); o localStorage aqui é só um ATALHO para não
- * bater na API a cada render. Se o atalho estiver errado (outro navegador, limpeza), a API
- * responde `jaExistia` e nada é creditado duas vezes.
+ * Abrir o app deixou de render Seeds, XP ou ofensiva: o Decreto 12.880/2026, art. 9º, trata prêmio
+ * por tempo de uso e por abrir o app como incentivo compulsivo. O registro continua (o servidor
+ * guarda o dia, idempotente) porque "dias em que abriu" é um dado honesto de estatística — ele
+ * só não paga nada. O localStorage aqui é um ATALHO para não bater na API a cada render.
  */
-import { diaLocal, PESOS_SEEDS } from '@core';
+import { diaLocal } from '@core';
 
 import { registrarPresenca } from '../data/api';
 
 const CHAVE = 'babel.presenca_dia';
 
-export interface ResultadoDaPresenca {
-  creditou: boolean;
-  seeds: number;
-  streak: number;
-}
-
-export async function registrarPresencaHoje(agora = Date.now()): Promise<ResultadoDaPresenca | null> {
+/** Registra o dia uma vez. Devolve `true` quando gravou um dia novo; nunca credita nada. */
+export async function registrarPresencaHoje(agora = Date.now()): Promise<boolean> {
   const hoje = diaLocal(agora);
-  try { if (Number(localStorage.getItem(CHAVE)) === hoje) return null; } catch { /* sem storage */ }
+  try { if (Number(localStorage.getItem(CHAVE)) === hoje) return false; } catch { /* sem storage */ }
   const r = await registrarPresenca(hoje);
-  if (!r) return null;
+  if (!r) return false;
   try { localStorage.setItem(CHAVE, String(hoje)); } catch { /* sem storage */ }
-  return { creditou: !r.jaExistia, seeds: PESOS_SEEDS.presenca, streak: r.streakPresenca };
+  return !r.jaExistia;
 }

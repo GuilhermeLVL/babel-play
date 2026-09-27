@@ -1,14 +1,14 @@
 // @vitest-environment jsdom
 /**
- * Economia v2 no servidor efêmero: presença idempotente por dia, crédito idempotente por id, e as
- * métricas novas (minutos premiados com teto, rodadas perfeitas, marcos de sequência) — pelas
- * MESMAS rotas que a tela usa.
+ * Economia v2 no servidor efêmero: presença idempotente por dia (só estatística desde as
+ * recompensas v2), crédito idempotente por id, meta do dia conferida, e as métricas novas (palavras
+ * salvas com teto, rodadas perfeitas, marcos de prática) — pelas MESMAS rotas que a tela usa.
  */
 import 'fake-indexeddb/auto'
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { diaLocal } from '../src/core/learning/economia'
+import { diaLocal, diaNoFuso, META_DIARIA_ACERTOS } from '../src/core/learning/economia'
 import { servidorEfemero } from '../src/data/efemero/servidor'
 import { fecharStore, limparTudo } from '../src/data/efemero/store'
 import { rodadaDoColecionador } from './harness/colecionador'
@@ -19,7 +19,7 @@ const post = (rota: string, corpo: unknown) => servidorEfemero(rota, { method: '
 const metricas = async () => (await (await servidorEfemero('/api/metrics/profile')).json()) as Record<string, number>
 
 describe('presença e créditos', () => {
-  it('presença do dia é idempotente e devolve a sequência', async () => {
+  it('presença do dia é idempotente, mas não estende a ofensiva (recompensas v2)', async () => {
     const hoje = diaLocal(Date.now())
     const a = await (await post('/api/metrics/presenca', { dia: hoje - 1 })).json()
     const b = await (await post('/api/metrics/presenca', { dia: hoje })).json()
@@ -29,8 +29,10 @@ describe('presença e créditos', () => {
     expect(c).toMatchObject({ jaExistia: true, streakPresenca: 2 })
     const m = await metricas()
     expect(m.presencas).toBe(2)
-    expect(m.streakPresenca).toBe(2)
-    expect(m.maiorSequenciaPresenca).toBe(2)
+    // Abrir o app não é prática: a ofensiva conta revisão, rodada ou palavra salva.
+    expect(m.streakPresenca).toBe(0)
+    expect(m.maiorSequenciaPresenca).toBe(0)
+    expect(m.streakDays).toBe(0)
   })
 
   /* `conquista-x` NÃO EXISTE, e por isso este teste passava dizendo pouco: ele provava que o
@@ -63,14 +65,24 @@ describe('métricas novas', () => {
   // Parte limpa: a rodada do Colecionador (acima) é uma rodada perfeita e contaria aqui.
   beforeAll(() => limparTudo())
 
-  it('minutos de captura: total sem teto, premiados com teto de 30/dia', async () => {
-    // duas sessões hoje: 25 + 25 min = 50 min no dia → 30 premiados
+  it('minutos de captura: só o total, sem prêmio por tempo', async () => {
     await post('/api/sessions', { title: 'a', durationMs: 25 * 60_000, sourceLang: 'en' })
     await post('/api/sessions', { title: 'b', durationMs: 25 * 60_000, sourceLang: 'es' })
     const m = await metricas()
     expect(m.capturaMinutos).toBe(50)
-    expect(m.capturaMinutosPremiados).toBe(30)
+    expect(m).not.toHaveProperty('capturaMinutosPremiados')
     expect(m.idiomas).toBe(2)
+  })
+
+  it('palavra salva da captura rende com teto diário e conta como dia de prática', async () => {
+    const sessao = (await (await post('/api/sessions', { title: 'c', sourceLang: 'en' })).json()) as { id: string }
+    const cards = Array.from({ length: 35 }, (_, i) => ({
+      word: `palavra${i}`, translation: `tradução${i}`, srcLang: 'en', tgtLang: 'pt', sessionId: sessao.id,
+    }))
+    await post('/api/vocab/bulk-add', { cards })
+    const m = await metricas()
+    expect(m.palavrasSalvasPremiadas).toBe(30)
+    expect(m.streakDays).toBe(1)
   })
 
   it('rodada perfeita exige todos certos E o mínimo de itens do jogo', async () => {
@@ -88,5 +100,42 @@ describe('métricas novas', () => {
     await rodada('p3', [1]) // curta demais para contar
     const m = await metricas()
     expect(m.rodadasPerfeitas).toBe(1)
+  })
+})
+
+describe('meta do dia — `meta:<AAAA-MM-DD>`', () => {
+  beforeAll(() => limparTudo())
+  const fuso = 'America/Sao_Paulo'
+  const hoje = () => diaNoFuso(Date.now(), fuso)
+  const rodadaCom = (roundId: string, certos: number) =>
+    post('/api/exercises/rodada', {
+      roundId,
+      exerciseKind: 'blitz',
+      origem: 'baralho',
+      score: certos,
+      melhorSequencia: 1,
+      itens: Array.from({ length: certos }, (_, i) => ({ itemRef: 'm' + i, correct: 1, attempts: 1, ms: 500, hinted: 0, kind: 'drill' })),
+    })
+
+  it('sem os acertos do dia, recusa com o motivo', async () => {
+    await rodadaCom('meta-1', META_DIARIA_ACERTOS - 1)
+    const r = await post('/api/metrics/seeds/creditar', { creditoId: `meta:${hoje()}`, fuso })
+    expect(r.status).toBe(400)
+    expect((await r.json()).code).toBe('meta_nao_cumprida')
+  })
+
+  it('com a meta cumprida credita 15 Seeds uma vez só', async () => {
+    await rodadaCom('meta-2', 1)
+    const a = await (await post('/api/metrics/seeds/creditar', { creditoId: `meta:${hoje()}`, fuso })).json()
+    const b = await (await post('/api/metrics/seeds/creditar', { creditoId: `meta:${hoje()}`, fuso })).json()
+    expect(a).toMatchObject({ jaExistia: false, seedsCreditadas: 15 })
+    expect(b).toMatchObject({ jaExistia: true, seedsCreditadas: 15 })
+  })
+
+  it('dia fora da janela (anteontem ou amanhã) é recusado', async () => {
+    const anteontem = diaNoFuso(Date.now() - 2 * 86_400_000, fuso)
+    const r = await post('/api/metrics/seeds/creditar', { creditoId: `meta:${anteontem}`, fuso })
+    expect(r.status).toBe(400)
+    expect((await r.json()).code).toBe('dia_fora_da_janela')
   })
 })

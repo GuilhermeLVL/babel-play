@@ -16,7 +16,9 @@ autorizarGasto, ehRecusa, ESTRELAS_PARA_O_BAU,
 itensSorteaveisNoDrop, progressoNoServidor, rodadaRendeBau, roundIdDoDrop, sortearItemDoDrop, valorDoCredito, valorDoDrop,
 } from '../../../core/economiaAutoridade';
 import type { ContextoDeConquistas } from '../../../core/learning/conquistas';
-import { diaLocal, sequencias } from '../../../core/learning/economia';
+import {
+  acertosNoDia, diaLocal, diaNoFuso, fusoOuPadrao, META_DIARIA_ACERTOS, metaDoDiaCumprida, sequencias,
+} from '../../../core/learning/economia';
 import { economiaDeMetricas } from '../../../core/learning/xp';
 import { json, lerJson, num, str } from '../nucleo';
 import { abrirStore } from '../store';
@@ -167,6 +169,19 @@ export async function creditarSeeds(_m: RegExpMatchArray, _u: URL, init: Request
       const { nivel } = economiaDeMetricas(await perfilEfemero(null));
       if (nivel < credito.nivelMinimo) {
         return json({ error: 'nível insuficiente para este crédito', code: 'nivel_insuficiente', codigo: 'nivel_insuficiente', detalhes: { nivel, exigido: credito.nivelMinimo } }, 400);
+      }
+    }
+    /* A META DO DIA (recompensas v2), com a régua do Express: hoje ou ontem no fuso de quem
+       joga, e os acertos gravados daquele dia alcançando a meta. */
+    if (credito.metaDoDia) {
+      const fuso = fusoOuPadrao(str(p.fuso));
+      const agora = Date.now();
+      if (![diaNoFuso(agora, fuso), diaNoFuso(agora - 86_400_000, fuso)].includes(credito.metaDoDia)) {
+        return json({ error: 'dia da meta fora da janela', code: 'dia_fora_da_janela', codigo: 'dia_fora_da_janela', detalhes: { dia: credito.metaDoDia } }, 400);
+      }
+      const acertos = acertosNoDia((await perfilEfemero(null)).acertosRecentes ?? [], credito.metaDoDia, fuso);
+      if (!metaDoDiaCumprida(acertos)) {
+        return json({ error: 'meta do dia ainda não cumprida', code: 'meta_nao_cumprida', codigo: 'meta_nao_cumprida', detalhes: { acertos, meta: META_DIARIA_ACERTOS } }, 400);
       }
     }
     /* O COLECIONADOR É CONFERIDO AQUI TAMBÉM, com a régua do Express (`progressoNoServidor`): os

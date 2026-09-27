@@ -57,9 +57,10 @@ const ORDEM: RaridadeDaConquista[] = ['lendario', 'epico', 'raro', 'comum'];
 /* O ícone de cada regra. O das conquistas mora em `../iconesDaConquista` (é o mesmo no modal de
    resgate e no perfil). Id novo sem ícone cai no genérico. */
 const ICONE_DA_REGRA: Record<string, LucideIcon> = {
-  presenca: CalendarCheck,
   sequencia7: Flame,
-  captura: Mic,
+  palavraSalva: Mic,
+  metaDiaria: CalendarCheck,
+  nivelDeMaestria: Award,
   sessao: Save,
   cartao: BookOpen,
   revisaoCerta: Brain,
@@ -168,7 +169,7 @@ export default function Conquistas({ progress, ctx }: ConquistasProps) {
         <TituloDeSecao
           icone={Award}
           titulo="Conquistas"
-          desc={`Conquista não se compra: só fazendo. Presença vale ${PESOS_SEEDS.presenca} Seeds por dia.`}
+          desc={`Conquista não se compra: só fazendo. A meta do dia vale ${PESOS_SEEDS.metaDiaria} Seeds.`}
           direita={
             <span className="mut" style={{ fontSize: 12.5 }}>
               <b style={{ color: 'var(--ink)' }}>{totalFeitas}</b> de {lista.length} feitas

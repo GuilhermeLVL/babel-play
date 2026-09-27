@@ -111,16 +111,16 @@ describe('o combo chega ao banco', () => {
 })
 
 describe('os campos de perfil que faltavam', () => {
-  it('capturaMinutos é o total sem teto; capturaMinutosPremiados tem o teto do dia', async () => {
+  it('capturaMinutos é o total sem teto; minuto gravado não é mais premiado (recompensas v2)', async () => {
     const u = 'u-ouvinte'
-    /* Duas sessões de 40 minutos no MESMO dia: 80 minutos gravados, 30 premiados (teto diário).
-       A conquista "Ouvinte" pede 60 minutos GRAVADOS — com o premiado ela nunca fecharia. */
+    /* Duas sessões de 40 minutos no MESMO dia: 80 minutos gravados. A conquista "Ouvinte" pede 60
+       minutos GRAVADOS. Desde 27/09 não existe mais o "premiado": tempo não paga Seeds. */
     for (const lang of ['en', 'en']) {
       await sessionsRepo.create(asUserId(u), { title: 'aula', durationMs: 40 * 60_000, sourceLang: lang })
     }
     const m = await computeProfile(asUserId(u))
     expect(m.capturaMinutos).toBe(80)
-    expect(m.capturaMinutosPremiados).toBe(30)
+    expect(m).not.toHaveProperty('capturaMinutosPremiados')
   })
 
   it('idiomas conta os idiomas distintos das sessões', async () => {
@@ -170,12 +170,11 @@ describe('as conquistas que dependiam desses números', () => {
     expect(ok.body).toMatchObject({ seedsCreditadas: 40, xpCreditado: 60 })
   })
 
-  it('ouvinte: 60 minutos gravados bastam, mesmo com o teto diário comendo o premiado', async () => {
+  it('ouvinte: 60 minutos gravados bastam (o total, sem teto diário)', async () => {
     const u = 'u-ouvinte2'
     await sessionsRepo.create(asUserId(u), { title: 'longa', durationMs: 70 * 60_000, sourceLang: 'en' })
     const { metricas } = await economiaDoUsuario(asUserId(u))
     expect(metricas.capturaMinutos).toBe(70)
-    expect(metricas.capturaMinutosPremiados).toBe(30)
 
     const ok = mockRes()
     await handler('/seeds/creditar')(req({ creditoId: 'conquista-ouvinte' }, u), ok)

@@ -59,18 +59,28 @@ export interface AppMetrics {
   /* ── ECONOMIA v2 (2026-08-28). OPCIONAIS de propósito: o servidor efêmero (IndexedDB) já os
      calcula; a edição completa (Postgres) passa a calculá-los numa entrega própria, e até lá
      `deriveProgress` trata ausência como zero — nunca como erro. ── */
-  /** Dias distintos com presença registrada. */
+  /** Dias distintos com presença registrada. Só estatística desde as recompensas v2: não paga nada. */
   presencas?: number;
-  /** Sequência ATUAL de dias de presença (termina hoje). */
+  /**
+   * Sequência ATUAL de dias de PRÁTICA (termina hoje). O nome ficou de quando a ofensiva contava
+   * presença; desde as recompensas v2 (27/09) ela conta dias com revisão, rodada de jogo ou
+   * palavra salva da captura — abrir o app não conta (Decreto 12.880/2026, art. 9º).
+   */
   streakPresenca?: number;
-  /** Maior sequência de presença já feita. */
+  /** Maior sequência de dias de PRÁTICA já feita (mesma ressalva do nome acima). */
   maiorSequenciaPresenca?: number;
-  /** Marcos de 7 dias seguidos já alcançados (histórico, nunca diminui). */
+  /** Marcos de 7 dias seguidos de prática já alcançados (histórico, nunca diminui). */
   sequencias7?: number;
-  /** Minutos totais de sessão gravada. */
+  /** Minutos totais de sessão gravada (estatística e conquista "Ouvinte"; não paga Seeds). */
   capturaMinutos?: number;
-  /** Minutos de captura PREMIADOS (teto diário aplicado). */
-  capturaMinutosPremiados?: number;
+  /** Palavras salvas da captura PREMIADAS (teto diário aplicado). */
+  palavrasSalvasPremiadas?: number;
+  /**
+   * Carimbos (ms) dos ACERTOS dos últimos 3 dias — revisões certas e itens de jogo certos. O
+   * cliente conta os do dia LOCAL dele para saber se a meta do dia foi cumprida antes de pedir o
+   * crédito `meta:<dia>`; o servidor confere com os mesmos carimbos.
+   */
+  acertosRecentes?: number[];
   /** Rodadas de jogo 100% certas (com o mínimo de itens do jogo). */
   rodadasPerfeitas?: number;
   /** Créditos avulsos (conquistas) já somados. */

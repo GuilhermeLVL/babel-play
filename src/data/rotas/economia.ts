@@ -9,6 +9,8 @@
  * Rotas: POST `/api/metrics/seeds/gastar`, POST `/api/metrics/seeds/creditar`,
  * POST `/api/metrics/presenca`, POST `/api/billing/gastar`, POST `/api/billing/creditar-passe`.
  */
+import { fusoDoAmbiente } from '@core'
+
 import { apiFetch, type ErroDaApi,lerErro } from '../funil'
 
 /**
@@ -120,10 +122,12 @@ export async function creditarSeeds(input: {
   creditoId: string
 }): Promise<{ jaExistia: boolean; seedsCreditadas: number; xpCreditado: number; item?: string | null } | null> {
   try {
+    /* O FUSO VAI JUNTO (recompensas v2): a meta do dia e o teto do baú contam o dia LOCAL de quem
+       joga, e o servidor não tem outro jeito de saber qual é. Ausente, vale São Paulo. */
     const res = await apiFetch('/api/metrics/seeds/creditar', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(input),
+      body: JSON.stringify({ ...input, fuso: fusoDoAmbiente() }),
     })
     if (!res.ok) return null
     return await res.json()

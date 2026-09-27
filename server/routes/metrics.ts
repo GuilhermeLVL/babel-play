@@ -15,7 +15,15 @@ import {
   valorDoDrop,
 } from '../../src/core/economiaAutoridade'
 import type { ContextoDeConquistas } from '../../src/core/learning/conquistas'
-import { diaLocal, sequencias } from '../../src/core/learning/economia'
+import {
+  acertosNoDia,
+  diaLocal,
+  diaNoFuso,
+  fusoOuPadrao,
+  META_DIARIA_ACERTOS,
+  metaDoDiaCumprida,
+  sequencias,
+} from '../../src/core/learning/economia'
 import { economiaRepo } from '../db/repositories/economia'
 import { exerciseResultsRepo } from '../db/repositories/exerciseResults'
 import { computeProfile, computeXpHistory } from '../db/repositories/metrics'
@@ -334,12 +342,36 @@ metricsRouter.post('/seeds/creditar', async (req, res) => {
       return
     }
 
-    /* Uma leitura de economia serve às DUAS conferências abaixo, e nenhuma das duas roda quando o
-       crédito não exige nada — `computeProfile` varre cinco tabelas e não vale pagá-lo à toa. */
+    /* Uma leitura de economia serve às conferências abaixo, e nenhuma roda quando o crédito não
+       exige nada — `computeProfile` varre cinco tabelas e não vale pagá-lo à toa. */
     const precisaDeEconomia =
-      credito.nivelMinimo > 0 || (credito.conquista != null && CONQUISTAS_CONFERIVEIS.has(credito.conquista.id))
+      credito.nivelMinimo > 0 ||
+      credito.metaDoDia != null ||
+      (credito.conquista != null && CONQUISTAS_CONFERIVEIS.has(credito.conquista.id))
     if (precisaDeEconomia) {
       const { metricas, nivel } = await economiaDoUsuario(req.userId)
+
+      /* A META DO DIA (recompensas v2): o dia é de hoje ou de ontem NO FUSO DO USUÁRIO, e os
+         acertos daquele dia — revisões certas e itens de jogo certos, gravados no banco —
+         alcançam a meta. Sem isto `meta:<dia>` seria 15 Seeds por dia por abrir o app. O reenvio
+         de uma meta já creditada cai no `ON CONFLICT` e não chega a pedir nada novo. */
+      if (credito.metaDoDia) {
+        const fuso = fusoOuPadrao(payload.fuso)
+        const agora = Date.now()
+        const janela = [diaNoFuso(agora, fuso), diaNoFuso(agora - 86_400_000, fuso)]
+        if (!janela.includes(credito.metaDoDia)) {
+          responderErro(res, 400, 'dia da meta fora da janela', 'dia_fora_da_janela', { dia: credito.metaDoDia })
+          return
+        }
+        const acertos = acertosNoDia(metricas.acertosRecentes ?? [], credito.metaDoDia, fuso)
+        if (!metaDoDiaCumprida(acertos)) {
+          responderErro(res, 400, 'meta do dia ainda não cumprida', 'meta_nao_cumprida', {
+            acertos,
+            meta: META_DIARIA_ACERTOS,
+          })
+          return
+        }
+      }
 
       /* O NÍVEL É DO SERVIDOR. A tela do passe já esconde a década trancada, mas esconder é
          desenho, não regra: sem esta linha o cofre de 172 Seeds da década 10 sairia no nível 1

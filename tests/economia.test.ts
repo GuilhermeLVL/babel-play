@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
-diaLocal, marcosDeSequencia, minutosPremiados,   REGRAS, sequencias, TETO_CAPTURA_MIN_POR_DIA,
+diaLocal, marcosDeSequencia, palavrasPremiadas, REGRAS, sequencias, TETO_PALAVRAS_SALVAS_POR_DIA,
 } from '../src/core/learning/economia'
 import { PESOS_SEEDS, PESOS_XP, seedsGanhasDeEventos, xpDeEventos } from '../src/core/learning/xp'
 import { CATALOGO_DA_LOJA } from '../src/lib/loja'
@@ -9,46 +9,45 @@ import { CATALOGO_DA_LOJA } from '../src/lib/loja'
 describe('economia v2 — a tabela é a regra', () => {
   it('toda regra com Seeds tem o mesmo número que o cálculo usa', () => {
     const porId = Object.fromEntries(REGRAS.map((r) => [r.id, r]))
-    expect(porId.presenca.seeds).toBe(PESOS_SEEDS.presenca)
     expect(porId.revisaoCerta.seeds).toBe(PESOS_SEEDS.revisaoCerta)
     expect(porId.jogoCerto.seeds).toBe(PESOS_SEEDS.jogoCerto)
     expect(porId.rodadaPerfeita.seeds).toBe(PESOS_SEEDS.rodadaPerfeita)
     expect(porId.cartao.seeds).toBe(PESOS_SEEDS.cartao)
-    expect(porId.captura.seeds).toBe(PESOS_SEEDS.capturaPor5Min)
+    expect(porId.palavraSalva.seeds).toBe(PESOS_SEEDS.palavraSalva)
+    expect(porId.metaDiaria.seeds).toBe(PESOS_SEEDS.metaDiaria)
+    expect(porId.metaDiaria.xp).toBe(PESOS_XP.metaDiaria)
     expect(porId.sequencia7.seeds).toBe(PESOS_SEEDS.sequencia7)
     expect(porId.revisaoCerta.xp).toBe(PESOS_XP.revisao + PESOS_XP.revisaoCerta)
   })
 
-  it('um dia ativo típico rende ~80-95 Seeds', () => {
-    // presença + 30 min gravados + 20 revisões certas + 30 acertos de jogo + 1 rodada perfeita
+  it('um dia ativo rende Seeds só de resultado (recompensas v2)', () => {
+    // 10 palavras salvas + 20 revisões certas + 30 acertos de jogo + 1 rodada perfeita + meta do dia
     const dia = seedsGanhasDeEventos({
-      presencas: 1, capturaMinutosPremiados: 30, revisoesCertas: 20, itensDeJogoCertos: 30,
-      rodadasPerfeitas: 1, cartoesCriados: 0, sequencias7: 0, seedsCreditadas: 0,
+      palavrasSalvasPremiadas: 10, revisoesCertas: 20, itensDeJogoCertos: 30,
+      rodadasPerfeitas: 1, cartoesCriados: 0, sequencias7: 0, seedsCreditadas: PESOS_SEEDS.metaDiaria,
     })
-    expect(dia).toBeGreaterThanOrEqual(80)
-    expect(dia).toBeLessThanOrEqual(95)
+    expect(dia).toBe(10 + 40 + 30 + 5 + 15)
   })
 
   it('o item lendário mais caro sai em no máximo 8 dias ativos', () => {
-    const dia = seedsGanhasDeEventos({ presencas: 1, capturaMinutosPremiados: 30, revisoesCertas: 20, itensDeJogoCertos: 30, rodadasPerfeitas: 1 })
+    const dia = seedsGanhasDeEventos({ palavrasSalvasPremiadas: 10, revisoesCertas: 20, itensDeJogoCertos: 30, rodadasPerfeitas: 1, seedsCreditadas: PESOS_SEEDS.metaDiaria })
     const maisCaro = Math.max(...CATALOGO_DA_LOJA.map((i) => i.precoSeeds ?? 0))
     expect(Math.ceil(maisCaro / dia)).toBeLessThanOrEqual(8)
     expect(Math.ceil(maisCaro / dia)).toBeGreaterThanOrEqual(5) // e não sai de graça
   })
 
-  it('XP: presença, captura e rodada perfeita entram; crédito avulso soma direto', () => {
+  it('XP: rodada perfeita e marco de prática entram; crédito avulso soma direto', () => {
     const base = { sessoes: 0, palavrasCapturadas: 0, revisoes: 0, revisoesCertas: 0 }
-    expect(xpDeEventos({ ...base, presencas: 2 })).toBe(2 * PESOS_XP.presenca)
-    expect(xpDeEventos({ ...base, capturaMinutosPremiados: 12 })).toBe(2 * PESOS_XP.capturaPor5Min) // 12 min = 2 blocos de 5
+    expect(xpDeEventos({ ...base, sequencias7: 2 })).toBe(2 * PESOS_XP.sequencia7)
     expect(xpDeEventos({ ...base, rodadasPerfeitas: 1, xpCreditado: 7 })).toBe(PESOS_XP.rodadaPerfeita + 7)
   })
 })
 
 describe('tetos e sequências', () => {
-  it('captura: teto diário — 2 h num dia premiam só 30 min; dois dias de 20 premiam 40', () => {
-    expect(minutosPremiados([120])).toBe(TETO_CAPTURA_MIN_POR_DIA())
-    expect(minutosPremiados([20, 20])).toBe(40)
-    expect(minutosPremiados([])).toBe(0)
+  it('palavra salva: teto diário — 120 num dia premiam só 30; dois dias de 20 premiam 40', () => {
+    expect(palavrasPremiadas([120])).toBe(TETO_PALAVRAS_SALVAS_POR_DIA)
+    expect(palavrasPremiadas([20, 20])).toBe(40)
+    expect(palavrasPremiadas([])).toBe(0)
   })
 
   it('marcos de 7 dias: contados do histórico, nunca cobrados de volta', () => {

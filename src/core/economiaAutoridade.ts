@@ -1,4 +1,5 @@
 import { type Conquista, CONQUISTAS, type ContextoDeConquistas } from './learning/conquistas';
+import { PESOS_SEEDS, PESOS_XP } from './learning/xp';
 import { CATALOGO_DA_LOJA, type ItemDaLoja, type Raridade } from './loja';
 import { estrelasDaRodada } from './minigames/fases';
 import { type SlotDoPasse, slotsDoPasse } from './passe';
@@ -162,6 +163,21 @@ export interface CreditoAutorizado {
   nivelMinimo: number;
   /** Presente só na família de conquista: quem confere a condição precisa dela. */
   conquista?: Conquista;
+  /**
+   * Presente só na família `meta:<AAAA-MM-DD>`: o dia (no fuso do usuário) cuja meta tem de ter
+   * sido cumprida. Quem credita confere a janela (hoje ou ontem) e os acertos daquele dia.
+   */
+  metaDoDia?: string;
+}
+
+/** `meta:<AAAA-MM-DD>` -> o dia, ou null. Data de calendário válida, sem hora. */
+export function diaDaMeta(creditoId: string): string | null {
+  const m = /^meta:(\d{4})-(\d{2})-(\d{2})$/.exec(creditoId);
+  if (!m) return null;
+  const [a, mes, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  const data = new Date(Date.UTC(a, mes - 1, d));
+  if (data.getUTCFullYear() !== a || data.getUTCMonth() !== mes - 1 || data.getUTCDate() !== d) return null;
+  return `${m[1]}-${m[2]}-${m[3]}`;
 }
 
 /* Índice dos cofres por `creditoId`, montado uma vez. `slotsDoPasse()` percorre o catálogo
@@ -209,6 +225,21 @@ export function valorDoCredito(creditoId: string): CreditoAutorizado | RecusaDeG
       xp: 0,
       reason: `passe:${creditoId.split(':')[1]}`,
       nivelMinimo: cofre.decada,
+    };
+  }
+
+  /* A META DO DIA (recompensas v2). O valor é fixo e sai dos pesos; a CONDIÇÃO (acertos no dia)
+     depende do banco e do fuso, então fica com quem credita — como o nível do cofre do passe. */
+  if (creditoId.startsWith('meta:')) {
+    const dia = diaDaMeta(creditoId);
+    if (!dia) return { erro: `meta malformada: ${creditoId.slice(0, 40)}` };
+    return {
+      creditoId,
+      seeds: PESOS_SEEDS.metaDiaria,
+      xp: PESOS_XP.metaDiaria,
+      reason: `meta:${dia}`,
+      nivelMinimo: 0,
+      metaDoDia: dia,
     };
   }
 

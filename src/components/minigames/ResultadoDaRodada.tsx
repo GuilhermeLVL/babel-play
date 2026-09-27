@@ -14,8 +14,9 @@ import {
 import { useEffect, useRef, useState } from 'react';
 
 import { burstFromElement } from '../../lib/effects';
+import { eventosCondicionais } from '../../lib/eventosDeJogo';
 import { proximaRecompensa } from '../../lib/galeria/progressao';
-import { comemorar, contarAte, flashDeTela, pontosDoElemento, tremor } from '../../lib/juice';
+import { comemorar, contarAte, executarEfeito, flashDeTela, pontosDoElemento, tremor } from '../../lib/juice';
 import type { AgeProfileType } from '../../lib/profile';
 import type { DerivedProgress } from '../../lib/progress';
 import { temRanking } from '../../lib/ranking';
@@ -156,6 +157,9 @@ export default function ResultadoDaRodada({
         window.setTimeout(() => {
           flashDeTela();
           burstFromElement(carimboRef.current, 'record');
+          /* O EVENTO "fogos" (recorde) — um dos onze do Colecionador. Saía só da tela de fim
+             própria do Duelo; com um fim só para todos, é aqui que ele acontece. */
+          for (const ev of eventosCondicionais({ combo: 0, fever: false, recorde: true })) executarEfeito(ev);
         }, 1700),
       );
     return () => timers.forEach((t) => window.clearTimeout(t));

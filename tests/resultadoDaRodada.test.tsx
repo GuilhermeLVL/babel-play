@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -79,6 +79,22 @@ describe('ResultadoDaRodada', () => {
     expect(screen.getByLabelText(/Recompensa revelada: mais 10 XP e 3 seeds/)).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: /Voltar aos jogos/ }))
     expect(onDone).toHaveBeenCalled()
+  })
+
+  it('recorde batido solta o evento "fogos" (o do Colecionador), no fim comum de qualquer jogo', () => {
+    /* Até 27/09 os fogos só saíam da tela de fim própria do Duelo. Ela saiu (um fim só), e o
+       evento tinha de ir junto — senão o Colecionador, que exige ver todos, ficaria inalcançável. */
+    vi.useFakeTimers()
+    try {
+      localStorage.removeItem('babel.eventos_vistos')
+      montar({ recorde: 100 })
+      act(() => {
+        vi.advanceTimersByTime(2000)
+      })
+      expect(JSON.parse(localStorage.getItem('babel.eventos_vistos') || '[]')).toContain('fogos')
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('com o recorde ao alcance, diz a distância', () => {

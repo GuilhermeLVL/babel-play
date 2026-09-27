@@ -1,14 +1,15 @@
 import type { ItemOutcome, MinigameItem, RoundReport } from '@core';
 import { distractorsFor, MINIGAMES, scoreRound } from '@core';
-import { Volume2 } from 'lucide-react';
+import { Eye, Volume2 } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { idiomaDaInterface } from '../../../lib/i18n';
+import { idiomaDaInterface, t } from '../../../lib/i18n';
 import { comemorar, tremor } from '../../../lib/juice';
 import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
 import { play } from '../../../lib/soundFx';
-import { isTtsSupported, speak } from '../../../lib/tts';
+import { falar, hasVoiceFor, isTtsSupported, vozesCarregadas } from '../../../lib/tts';
+import AvisoDaJogada from '../casca/AvisoDaJogada';
 import { useRodada } from '../casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from '../casca/HudDaRodada';
 
@@ -61,6 +62,11 @@ export default function KarutaGame({ items, ageProfile, onFinish, onExit }: Karu
   const [acertada, setAcertada] = useState<string | null>(null);
   const [errada, setErrada] = useState<string | null>(null);
   const [acabou, setAcabou] = useState(false);
+  /** O tempo desta carta acabou: a certa fica marcada e dita antes da próxima. */
+  const [revelada, setRevelada] = useState<string | null>(null);
+  /** A pessoa pediu para LER a pista (vale como dica). */
+  const [pistaAberta, setPistaAberta] = useState(false);
+  const pistaLidaRef = useRef(false);
 
   const outcomesRef = useRef<ItemOutcome[]>([]);
   const inicioRodadaRef = useRef(Date.now());
@@ -84,9 +90,18 @@ export default function KarutaGame({ items, ageProfile, onFinish, onExit }: Karu
     return embaralhar([item.answer, ...distractorsFor(item, items, quantos)]);
   }, [item, items]);
 
+  /**
+   * SEM VOZ PARA A PISTA, A PISTA É ESCRITA (QA dos jogos, 2026-09-26). A regra antiga só olhava
+   * se o navegador TEM síntese de voz, e quase todos têm. Com a lista de vozes carregada e nenhuma
+   * no idioma da pista, a fala é omitida (`falar` avisa em vez de ler com voz estrangeira) e a
+   * rodada ficava insolúvel: nada falado, nada escrito.
+   */
+  const semVozParaAPista = !isTtsSupported() || (vozesCarregadas() && !hasVoiceFor(idiomaDaFala));
+  const pistaVisivel = semVozParaAPista || pistaAberta;
+
   const narrar = useCallback(() => {
     if (!item) return;
-    speak(item.prompt, { lang: idiomaDaFala });
+    falar(item.prompt, idiomaDaFala);
   }, [item, idiomaDaFala]);
 
   useEffect(() => {
@@ -118,6 +133,7 @@ export default function KarutaGame({ items, ageProfile, onFinish, onExit }: Karu
         correct,
         attempts: Math.max(1, tentativasRef.current),
         ms: Date.now() - inicioItemRef.current,
+        ...(pistaLidaRef.current ? { hinted: true } : {}),
         ...(revealed ? { revealed: true } : {}),
       });
       recontar(outcomesRef.current);
@@ -136,8 +152,11 @@ export default function KarutaGame({ items, ageProfile, onFinish, onExit }: Karu
     inicioItemRef.current = Date.now();
     tentativasRef.current = 0;
     respondidoRef.current = false;
+    pistaLidaRef.current = false;
     setAcertada(null);
     setErrada(null);
+    setRevelada(null);
+    setPistaAberta(false);
     setRelogio({ carta: indice, segundos: SEGUNDOS[ageProfile] });
     narrar();
   }, [indice, item, ageProfile, narrar]);
@@ -147,16 +166,19 @@ export default function KarutaGame({ items, ageProfile, onFinish, onExit }: Karu
     if (acabou || !item || respondidoRef.current) return;
     if (relogio.carta !== indice) return;
     if (tempo <= 0) {
+      // A carta certa acende e é dita antes da próxima: quem não achou sai sabendo qual era.
       respondidoRef.current = true;
       registrar(false, true);
       comemorar('erro', mesaRef.current);
-      avancar();
+      setRevelada(item.answer);
+      falar(item.answer, item.lang);
+      setTimeout(avancar, 1800);
       return;
     }
     if (tempo <= 3) play('tick');
     if (!ativo) return; // o relógio para na contagem e na pausa
-    const t = setTimeout(() => setRelogio((r) => (r.carta === indice ? { ...r, segundos: r.segundos - 1 } : r)), 1000);
-    return () => clearTimeout(t);
+    const tique = setTimeout(() => setRelogio((r) => (r.carta === indice ? { ...r, segundos: r.segundos - 1 } : r)), 1000);
+    return () => clearTimeout(tique);
   }, [relogio, ativo, tempo, indice, acabou, item, registrar, avancar]);
 
   const golpear = (carta: string, el: HTMLElement | null) => {
@@ -176,7 +198,7 @@ export default function KarutaGame({ items, ageProfile, onFinish, onExit }: Karu
     setAcertada(carta);
     registrar(true);
     comemorar('acerto', el);
-    speak(item.answer, { lang: item.lang });
+    falar(item.answer, item.lang);
     setTimeout(avancar, 700);
   };
 
@@ -194,33 +216,47 @@ export default function KarutaGame({ items, ageProfile, onFinish, onExit }: Karu
         tempo={tempo}
         progresso={tempo / SEGUNDOS[ageProfile]}
         pouco={tempo <= 3}
-        ajudas={<BotaoDeAjuda icone={Volume2} rotulo="Ouvir de novo" data-tour="placar" onClick={narrar} />}
+        ajudas={
+          <>
+            <BotaoDeAjuda icone={Volume2} rotulo={t('Ouvir de novo')} data-tour="placar" onClick={narrar} />
+            {!semVozParaAPista && (
+              <BotaoDeAjuda
+                icone={Eye}
+                rotulo={t('Ler a pista')}
+                disabled={pistaAberta || !!revelada}
+                title={t('Mostra a pista escrita (conta como dica)')}
+                onClick={() => {
+                  pistaLidaRef.current = true;
+                  setPistaAberta(true);
+                }}
+              />
+            )}
+          </>
+        }
       />
 
       <div className="px-6 py-3 border-b border-border-subtle bg-surface/60 flex items-center justify-between gap-3">
-        {/* Sem voz no aparelho o jogo seria insolúvel: aí, e só aí, a pista aparece escrita. */}
-        {isTtsSupported() ? (
-          <p className="text-sm text-ink-muted">O narrador já declamou a pista. Repita quando quiser.</p>
-        ) : (
+        {/* Sem voz para a pista o jogo seria insolúvel: aí a pista aparece escrita. Com voz, ler é
+            uma dica que a pessoa pede. */}
+        {pistaVisivel ? (
           <p data-tour="pista" className="text-sm font-bold text-ink">
             {item?.prompt}
           </p>
+        ) : (
+          <p className="text-sm text-ink-muted">{t('O narrador já declamou a pista. Repita quando quiser.')}</p>
         )}
-        <span className="text-xs font-mono text-ink-muted">
-          Carta {indice + 1} de {items.length}
-        </span>
       </div>
 
       <div ref={mesaRef} className="flex items-start justify-center">
         <div data-tour="cartas" className="w-full max-w-4xl grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-5">
           {mesa.map((carta) => {
-            const certa = carta === acertada;
+            const certa = carta === acertada || carta === revelada;
             const furada = carta === errada;
             return (
               <button
                 key={carta}
                 onClick={(e) => golpear(carta, e.currentTarget)}
-                disabled={acabou || certa}
+                disabled={acabou || certa || !!revelada}
                 dir={direcaoDoTexto(item?.lang)}
                 lang={item?.lang}
                 className={`aspect-[4/3] rounded-2xl border-2 px-4 py-3 flex items-center justify-center text-center font-display font-black text-xl sm:text-2xl shadow-card transition-all cursor-pointer
@@ -238,6 +274,11 @@ export default function KarutaGame({ items, ageProfile, onFinish, onExit }: Karu
           })}
         </div>
       </div>
+      {revelada && (
+        <div className="max-w-4xl mx-auto w-full mt-4">
+          <AvisoDaJogada tom="erro" rotulo={t('O tempo acabou. Era:')} resposta={revelada} lang={item?.lang} />
+        </div>
+      )}
     </>
   );
 }

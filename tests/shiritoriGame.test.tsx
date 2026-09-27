@@ -4,9 +4,9 @@
  * `cardId` em TODO outcome (sem ele `Play.tsx` pula o FSRS) e `onExit` quando o baralho não
  * fecha corrente — antes ele caía num dicionário inglês embutido e jogava sozinho.
  */
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import React from 'react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { MinigameItem, RoundReport } from '../src/core/minigames/types'
 
@@ -43,9 +43,20 @@ function clicar(texto: string): void {
   fireEvent.click(screen.getByRole('button', { name: texto }))
 }
 
+/* A corrente termina direto no fim de rodada comum (sem a tela própria "Fim da corrente", que
+   repetia o que `ResultadoDaRodada` mostra) — o relatório sai 900 ms depois do último elo. */
+const fecharRodada = () =>
+  act(() => {
+    vi.advanceTimersByTime(900)
+  })
+
 describe('ShiritoriGame — a corrente é o baralho', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: false })
+  })
   afterEach(() => {
     cleanup()
+    vi.useRealTimers()
     vi.clearAllMocks()
   })
 
@@ -65,7 +76,7 @@ describe('ShiritoriGame — a corrente é o baralho', () => {
     clicar('end')
     clicar('dog')
     expect(relatorio).toBeNull()
-    clicar('Continuar')
+    fecharRodada()
 
     expect(relatorio!.gameId).toBe('shiritori')
     expect(relatorio!.items).toHaveLength(2)
@@ -98,7 +109,7 @@ describe('ShiritoriGame — a corrente é o baralho', () => {
 
     clicar('end')
     clicar('dog')
-    clicar('Continuar')
+    fecharRodada()
     expect(relatorio!.items[0].attempts).toBe(2)
     expect(relatorio!.items[0].correct).toBe(true)
   })

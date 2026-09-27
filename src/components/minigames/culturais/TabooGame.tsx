@@ -4,11 +4,13 @@ import { AlertTriangle, Lightbulb } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { mascararResposta } from '../../../core/learning/pistaDeJogo';
+import { t } from '../../../lib/i18n';
 import { comemorar } from '../../../lib/juice';
 import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
 import { play } from '../../../lib/soundFx';
 import { useRodada } from '../casca/CascaDaRodada';
+import AvisoDaJogada from '../casca/AvisoDaJogada';
 import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from '../casca/HudDaRodada';
 
 /**
@@ -41,13 +43,16 @@ interface CartaTabu {
   /** Os termos riscados, em minúsculas. */
   proibidas: string[];
   opcoes: string[];
+  /** O texto veio da FRASE do item (e não de uma definição): a tela chama pelo nome certo. */
+  daFrase: boolean;
 }
 
 function montarCartas(items: MinigameItem[]): CartaTabu[] {
   return items.flatMap((item) => {
     /* O texto mais longo entre frase e pista: o tabu vive de definição, e uma tradução de uma
        palavra não sustenta nenhum termo riscado. */
-    const cru = [item.sentence ?? '', item.prompt ?? ''].map((t) => t.trim()).sort((a, b) => b.length - a.length)[0];
+    const frase = (item.sentence ?? '').trim();
+    const cru = [frase, item.prompt ?? ''].map((x) => x.trim()).sort((a, b) => b.length - a.length)[0];
     if (!cru) return [];
     const texto = mascararResposta(cru, item.answer);
     const proibidas = extractKeywords(texto, { max: PROIBIDAS_POR_CARTA, lang: item.lang }).map((p) => p.toLowerCase());
@@ -59,7 +64,7 @@ function montarCartas(items: MinigameItem[]): CartaTabu[] {
       const j = Math.floor(Math.random() * (i + 1));
       [opcoes[i], opcoes[j]] = [opcoes[j], opcoes[i]];
     }
-    return [{ item, texto, proibidas, opcoes }];
+    return [{ item, texto, proibidas, opcoes, daFrase: !!frase && cru === frase }];
   });
 }
 
@@ -73,6 +78,11 @@ export default function TabooGame({ items, ageProfile, onFinish, onExit }: Taboo
   const [liberadas, setLiberadas] = useState<string[]>([]);
   const [restante, setRestante] = useState(SEGUNDOS[ageProfile]);
   const [resultado, setResultado] = useState<RoundReport | null>(null);
+  /**
+   * A carta respondida (ou vencida pelo tempo) fica na tela um instante com a certa marcada — antes
+   * ela trocava na hora e quem errou nunca via qual era (QA dos jogos, 2026-09-26).
+   */
+  const [revelando, setRevelando] = useState<{ escolhida: string | null; certo: boolean } | null>(null);
 
   const outcomesRef = useRef<ItemOutcome[]>([]);
   const inicioRodadaRef = useRef(Date.now());
@@ -90,12 +100,16 @@ export default function TabooGame({ items, ageProfile, onFinish, onExit }: Taboo
     if (outcomes.length > 0 && outcomes.every((o) => o.correct && !o.hinted && !o.revealed)) {
       comemorar('rodadaPerfeita', palcoRef.current);
     }
-    setResultado({
+    /* Direto para o fim de rodada COMUM, como os outros jogos: a tela própria repetia os pontos e os
+       acertos que `ResultadoDaRodada` mostra logo em seguida. */
+    const relatorio: RoundReport = {
       gameId: 'taboo',
       items: outcomes,
       score: scoreRound('taboo', outcomes),
       durationMs: Date.now() - inicioRodadaRef.current,
-    });
+    };
+    setResultado(relatorio);
+    setTimeout(() => onFinish(relatorio), 900);
   };
 
   const avancar = (outcome: ItemOutcome) => {
@@ -108,54 +122,35 @@ export default function TabooGame({ items, ageProfile, onFinish, onExit }: Taboo
     }
     setIdx(idx + 1);
     setLiberadas([]);
+    setRevelando(null);
     setRestante(SEGUNDOS[ageProfile]);
     inicioCartaRef.current = Date.now();
   };
 
   useEffect(() => {
-    if (!cartas.length || acabouRef.current || resultado) return;
+    if (!cartas.length || acabouRef.current || resultado || revelando) return;
     if (restante <= 0) {
       const carta = cartas[idx];
       play('error');
-      avancar({
+      setRevelando({ escolhida: null, certo: false });
+      const outcome: ItemOutcome = {
         cardId: carta.item.cardId,
         itemRef: carta.item.answer,
         correct: false,
         attempts: 1,
         ms: Date.now() - inicioCartaRef.current,
         revealed: true,
-      });
+      };
+      setTimeout(() => avancar(outcome), 1800);
       return;
     }
     if (!ativo) return; // o relógio para na contagem e na pausa
-    const t = setTimeout(() => setRestante((s) => s - 1), 1000);
-    return () => clearTimeout(t);
+    const tique = setTimeout(() => setRestante((s) => s - 1), 1000);
+    return () => clearTimeout(tique);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [restante, ativo, idx, resultado, cartas]);
+  }, [restante, ativo, idx, resultado, cartas, revelando]);
 
   if (!cartas.length) return null;
-
-  if (resultado) {
-    const acertos = resultado.items.filter((o) => o.correct).length;
-    return (
-      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-canvas text-ink p-6">
-        <div className="card-panel bg-surface p-8 w-full max-w-md text-center">
-          <p className="label-mono mb-3">Fim da rodada</p>
-          <p className="font-display font-black text-5xl tabular-nums text-ink">{resultado.score}</p>
-          <p className="text-[12px] text-ink-muted mt-1">pontos</p>
-          <p className="text-[13px] text-ink-muted mt-4">
-            acertos:{' '}
-            <b className="text-ink">
-              {acertos}/{resultado.items.length}
-            </b>
-          </p>
-          <button onClick={() => onFinish(resultado)} className="btn-ink w-full justify-center mt-6 cursor-pointer">
-            Continuar
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   const carta = cartas[idx];
   const riscadas = carta.proibidas.filter((p) => !liberadas.includes(p));
@@ -164,17 +159,19 @@ export default function TabooGame({ items, ageProfile, onFinish, onExit }: Taboo
   const pedacos = carta.texto.split(/([\p{L}\p{N}'’-]+)/gu);
 
   const responder = (op: string) => {
-    if (acabouRef.current) return;
+    if (acabouRef.current || revelando || !ativo) return;
     const certo = op === carta.item.answer;
     comemorar(certo ? 'acerto' : 'erro', palcoRef.current);
-    avancar({
+    setRevelando({ escolhida: op, certo });
+    const outcome: ItemOutcome = {
       cardId: carta.item.cardId,
       itemRef: carta.item.answer,
       correct: certo,
       attempts: 1,
       ms: Date.now() - inicioCartaRef.current,
       hinted: liberadas.length > 0,
-    });
+    };
+    setTimeout(() => avancar(outcome), certo ? 700 : 1800);
   };
 
   /* A CASCA COMUM desenha o cabeçalho, a pausa e a contagem; aqui ficam o placar comum e o tabuleiro,
@@ -193,7 +190,7 @@ export default function TabooGame({ items, ageProfile, onFinish, onExit }: Taboo
           <BotaoDeAjuda
             icone={Lightbulb}
             rotulo="Liberar 1"
-            disabled={riscadas.length <= 1}
+            disabled={riscadas.length <= 1 || !!revelando}
             onClick={() => riscadas.length > 1 && setLiberadas((xs) => [...xs, riscadas[0]])}
           />
         }
@@ -203,7 +200,7 @@ export default function TabooGame({ items, ageProfile, onFinish, onExit }: Taboo
         <div data-tour="alvo" className="w-full rounded-2xl border-2 border-border-subtle bg-surface p-5 sm:p-6">
           <div className="flex items-center justify-between mb-3">
             <p className="label-mono">
-              Definição ({idx + 1} de {cartas.length})
+              {carta.daFrase ? t('Frase') : t('Definição')} ({idx + 1} de {cartas.length})
             </p>
             <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-error-ink">
               <AlertTriangle className="w-3.5 h-3.5" aria-hidden />
@@ -224,17 +221,38 @@ export default function TabooGame({ items, ageProfile, onFinish, onExit }: Taboo
         </div>
 
         <div data-tour="alternativas" className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
-          {carta.opcoes.map((op) => (
-            <button
-              key={op}
-              onClick={() => responder(op)}
-              dir={direcaoDoTexto(carta.item.lang)}
-              className="py-4 px-4 rounded-2xl border-2 border-border-subtle bg-surface text-ink font-bold text-[16px] hover:border-accent transition-colors cursor-pointer"
-            >
-              {op}
-            </button>
-          ))}
+          {carta.opcoes.map((op) => {
+            const ehACerta = op === carta.item.answer;
+            const foiEscolhida = revelando?.escolhida === op;
+            return (
+              <button
+                key={op}
+                onClick={() => responder(op)}
+                disabled={!!revelando}
+                dir={direcaoDoTexto(carta.item.lang)}
+                className={`py-4 px-4 rounded-2xl border-2 font-bold text-[16px] transition-colors ${
+                  revelando && ehACerta
+                    ? 'border-good bg-good-soft text-good-ink'
+                    : revelando && foiEscolhida
+                      ? 'border-error bg-error-soft text-error-ink'
+                      : revelando
+                        ? 'border-border-subtle bg-surface text-ink-faint'
+                        : 'border-border-subtle bg-surface text-ink hover:border-accent cursor-pointer'
+                }`}
+              >
+                {op}
+              </button>
+            );
+          })}
         </div>
+        {revelando && !revelando.certo && (
+          <AvisoDaJogada
+            tom="erro"
+            rotulo={revelando.escolhida ? t('Não era essa. Era:') : t('O tempo acabou. Era:')}
+            resposta={carta.item.answer}
+            lang={carta.item.lang}
+          />
+        )}
       </div>
     </>
   );

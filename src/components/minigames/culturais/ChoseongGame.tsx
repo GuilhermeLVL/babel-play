@@ -3,10 +3,13 @@ import { chaveDoTermo, MINIGAMES, scoreRound } from '@core';
 import { Delete, Lightbulb } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { t } from '../../../lib/i18n';
 import { comemorar, tremor } from '../../../lib/juice';
 import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
 import { play } from '../../../lib/soundFx';
+import { falar } from '../../../lib/tts';
+import AvisoDaJogada from '../casca/AvisoDaJogada';
 import { useRodada } from '../casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from '../casca/HudDaRodada';
 
@@ -59,6 +62,8 @@ export default function ChoseongGame({ items, ageProfile, onFinish, onExit }: Ch
   const tempo = relogio.palavra === indice ? relogio.segundos : SEGUNDOS[ageProfile];
   const [dicasRestantes, setDicasRestantes] = useState(2);
   const [acabou, setAcabou] = useState(false);
+  /** O tempo acabou nesta palavra: ela fica à vista antes da próxima (QA dos jogos, 2026-09-26). */
+  const [revelada, setRevelada] = useState(false);
 
   const outcomesRef = useRef<ItemOutcome[]>([]);
   const inicioRodadaRef = useRef(Date.now());
@@ -120,6 +125,7 @@ export default function ChoseongGame({ items, ageProfile, onFinish, onExit }: Ch
     tentativasRef.current = 1;
     comDicaRef.current = false;
     respondidoRef.current = false;
+    setRevelada(false);
     setLetras(enigma.alvo.split('').map((c, i) => (enigma.ocultas.has(i) ? '' : c)));
     setRelogio({ palavra: indice, segundos: SEGUNDOS[ageProfile] });
   }, [indice, enigma, ageProfile]);
@@ -128,19 +134,24 @@ export default function ChoseongGame({ items, ageProfile, onFinish, onExit }: Ch
     if (acabou || !enigma || respondidoRef.current) return;
     if (relogio.palavra !== indice) return;
     if (tempo <= 0) {
+      /* Antes passava direto para a próxima: quem não lembrou saía sem ver a palavra. Agora as
+         vogais se preenchem, a palavra é dita e o aviso fica à vista antes da troca. */
       respondidoRef.current = true;
       registrar(false, true);
       comemorar('erro', palcoRef.current);
-      avancar();
+      setLetras(enigma.alvo.split(''));
+      setRevelada(true);
+      falar(enigma.item.answer, enigma.item.lang);
+      setTimeout(avancar, 1800);
       return;
     }
     if (tempo <= 3) play('tick');
     if (!ativo) return; // o relógio para na contagem e na pausa
-    const t = setTimeout(
+    const tique = setTimeout(
       () => setRelogio((r) => (r.palavra === indice ? { ...r, segundos: r.segundos - 1 } : r)),
       1000,
     );
-    return () => clearTimeout(t);
+    return () => clearTimeout(tique);
   }, [relogio, ativo, tempo, indice, acabou, enigma, registrar, avancar]);
 
   const conferir = useCallback(
@@ -150,6 +161,7 @@ export default function ChoseongGame({ items, ageProfile, onFinish, onExit }: Ch
         respondidoRef.current = true;
         registrar(true);
         comemorar('acerto', palcoRef.current);
+        falar(enigma.item.answer, enigma.item.lang);
         setTimeout(avancar, 700);
         return;
       }
@@ -190,6 +202,8 @@ export default function ChoseongGame({ items, ageProfile, onFinish, onExit }: Ch
   // Teclado físico: quem sabe a palavra escreve direto, sem caçar botão.
   useEffect(() => {
     const aoTeclar = (e: KeyboardEvent) => {
+      // Na contagem e na pausa a tecla não é do tabuleiro (os outros jogos já respeitavam isto).
+      if (!ativo || e.ctrlKey || e.metaKey || e.altKey) return;
       if (e.key === 'Backspace') {
         e.preventDefault();
         apagar();
@@ -203,7 +217,7 @@ export default function ChoseongGame({ items, ageProfile, onFinish, onExit }: Ch
     };
     window.addEventListener('keydown', aoTeclar);
     return () => window.removeEventListener('keydown', aoTeclar);
-  }, [escrever, apagar]);
+  }, [escrever, apagar, ativo]);
 
   const usarDica = () => {
     if (acabou || !enigma || respondidoRef.current || dicasRestantes <= 0) return;
@@ -284,9 +298,14 @@ export default function ChoseongGame({ items, ageProfile, onFinish, onExit }: Ch
           </button>
         </div>
 
-        <span className="text-xs font-mono text-ink-muted">
-          Palavra {indice + 1} de {enigmas.length}
-        </span>
+        {revelada && enigma && (
+          <AvisoDaJogada
+            tom="erro"
+            rotulo={t('O tempo acabou. Era:')}
+            resposta={enigma.item.answer}
+            lang={enigma.item.lang}
+          />
+        )}
       </div>
     </div>
   );

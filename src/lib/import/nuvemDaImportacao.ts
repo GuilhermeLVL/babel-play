@@ -21,6 +21,7 @@ import { GroqWhisperStt } from '../../gateway/adapters/groqWhisper';
 import type { MotorDeNuvem } from '../../gateway/offlineTranscribe';
 import { getSttQuality, routeStt, type SttRoute } from '../../gateway/sttRouter';
 import { consentiuNuvem } from '../consentimentoDeNuvem';
+import { dispositivoDaRota, medirPerfilDoDispositivo } from '../dispositivo/perfil';
 import { getEntitlements } from '../entitlements';
 
 export function importacaoVaiANuvem(i: {
@@ -51,6 +52,7 @@ export async function motorDeNuvemDaImportacao(idioma: string | undefined): Prom
       hasWebGpu: await temAdaptadorWebGpu(),
       cloudAvailable,
       profileId: perfil.id,
+      dispositivo: dispositivoDaRota(await medirPerfilDoDispositivo()),
     });
     const vai = importacaoVaiANuvem({ managedCloudStt: getEntitlements().managedCloudStt, consentiu, rota, binding });
     return vai

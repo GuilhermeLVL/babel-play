@@ -19,6 +19,7 @@ import { areModelsCached, expectedModelIds } from '../../gateway/modelCache';
 import type { ContextoDoStt } from '../../gateway/promptDeStt';
 import { getSttQuality, nomeLegivelDoModelo, routeStt } from '../../gateway/sttRouter';
 import { DominantLangTracker } from '../convoLang';
+import { dispositivoDaRota, medirPerfilDoDispositivo } from '../dispositivo/perfil';
 import { t } from '../i18n';
 import { detectLanguage } from '../langDetect';
 import { baseLang, langLabel } from '../languages';
@@ -807,6 +808,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     // conteúdo (inglês → moonshine, que é SÓ inglês; fora dele, Whisper) — nuvem-primeiro quando disponível, senão o
     // melhor modelo local viável no dispositivo. O selo da UI reflete a rota.
     // Pelo funil: sem conta responde 501 → `cloudAvailable=false` → rota local, que é o correto.
+    const perfil = await medirPerfilDoDispositivo();
     const cloudAvailable = await apiFetch('/api/ai/stt/available')
       .then((r) => r.ok)
       .catch(() => false);
@@ -821,8 +823,15 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       hasWebGpu: await temAdaptadorWebGpu(),
       cloudAvailable,
       profileId: getActiveProfile().id,
+      // O APARELHO (Quest/celular: base q8 em WASM; small só no desktop com GPU).
+      dispositivo: dispositivoDaRota(perfil),
     });
-    return { listenLang, myLang, route };
+    /* O SENTIDO DO TRADUTOR QUE A PREPARAÇÃO CARREGA. Mídia/conversa: o que você ouve → o seu idioma.
+       SÓ MICROFONE (o cenário dos aparelhos sem áudio do sistema — Quest, celular): a SUA fala →
+       "Traduzir para". Medido no Quest emulado (2026-09-26): carregava o en→pt (sem uso), e o pt→en
+       só chegava 45 s depois, na primeira tradução — ~113 MB a mais na rede e na memória. */
+    const [mtDe, mtPara] = captureScenarioRef.current === 'mic' ? [myLang, listenLang] : [listenLang, myLang];
+    return { listenLang, myLang, route, perfil, mtDe, mtPara };
   };
 
   /**
@@ -837,17 +846,25 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
   const preaquecerModelos = async (): Promise<void> => {
     try {
       if (getProviderMode() === 'cloud' || prepareEmVooRef.current || modelReadyRef.current) return;
-      const { listenLang, myLang, route } = await rotaDaCaptura();
+      const { listenLang, myLang, route, perfil } = await rotaDaCaptura();
       if (route.preferCloud) return;
+      let sttAquecendo: Promise<unknown> = Promise.resolve();
       if (await areModelsCached([route.localModel])) {
-        gateway.stt.setRoute({ preferCloud: false, localModel: route.localModel });
+        gateway.stt.setRoute({
+          preferCloud: false,
+          localModel: route.localModel,
+          dtype: route.dtype,
+          device: route.device,
+        });
         setSttRouteLabel(route.label);
-        clog('pré-aquecendo o STT local (em cache):', route.localModel);
-        void gateway.stt
+        clog('pré-aquecendo o STT local (em cache):', route.localModel, route.dtype);
+        sttAquecendo = gateway.stt
           .preloadModel(undefined, { aoDegradar: avisarDegradacao })
           .then(() => clog('STT local pré-aquecido ✓'))
           .catch((e) => clog('pré-aquecimento do STT falhou (a captura tenta de novo):', String(e)));
       }
+      // POUCA MEMÓRIA (Quest/celular): um modelo grande de cada vez — o tradutor espera o STT.
+      if (perfil.poucaMemoria) await sttAquecendo;
       // Os dois sentidos do tradutor (o que você ouve e o que você fala), cada um só se já baixado.
       for (const [de, para] of [
         [listenLang, myLang],
@@ -862,12 +879,29 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
   };
 
   const prepareModelsInterno = async () => {
-    const { listenLang, myLang, route } = await rotaDaCaptura();
-    gateway.stt.setRoute({ preferCloud: route.preferCloud, localModel: route.localModel });
+    const { route, perfil, mtDe, mtPara } = await rotaDaCaptura();
+    gateway.stt.setRoute({
+      preferCloud: route.preferCloud,
+      localModel: route.localModel,
+      dtype: route.dtype,
+      device: route.device,
+    });
     setSttRouteLabel(route.label);
-    clog('roteador STT:', route.label, '| modelo local:', route.localModel, '| nuvem primeiro:', route.preferCloud);
+    clog(
+      'roteador STT:',
+      route.label,
+      '| modelo local:',
+      route.localModel,
+      route.dtype,
+      '| nuvem primeiro:',
+      route.preferCloud,
+      '| aparelho:',
+      perfil.tipo,
+    );
+    /** POUCA MEMÓRIA (Quest/celular): STT e tradutor carregam UM DE CADA VEZ, nunca juntos. */
+    const umDeCadaVez = perfil.poucaMemoria;
 
-    const cached = await areModelsCached(expectedModelIds(listenLang, myLang, route.localModel));
+    const cached = await areModelsCached(expectedModelIds(mtDe, mtPara, route.localModel));
 
     // NUVEM-PRIMEIRO: o motor principal é o Groq — a captura NÃO espera o download do
     // modelo local (que é só a RESERVA). Libera o pipeline já e baixa a reserva em
@@ -876,15 +910,20 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       modelReadyRef.current = true;
       flushPendingUtterances();
       setModelPrep({ whisper: 0, mt: null, fromCache: cached, error: null, done: false });
-      gateway.mt.preload(listenLang, myLang, (p, _l, bytes) =>
-        setModelPrep((s) => (s ? { ...s, mt: p >= 1 ? 1 : p, mtBytes: bytes ?? s.mtBytes } : s)),
-      );
+      const tradutorDaReserva = () =>
+        gateway.mt.preload(mtDe, mtPara, (p, _l, bytes) =>
+          setModelPrep((s) => (s ? { ...s, mt: p >= 1 ? 1 : p, mtBytes: bytes ?? s.mtBytes } : s)),
+        );
+      if (!umDeCadaVez) tradutorDaReserva();
       gateway.stt
         .preloadModel(
           (p, _l, bytes) =>
             setModelPrep((s) => (s ? { ...s, whisper: p >= 1 ? 1 : p, whisperBytes: bytes ?? s.whisperBytes } : s)),
           { aoDegradar: avisarDegradacao },
         )
+        .finally(() => {
+          if (umDeCadaVez) tradutorDaReserva();
+        })
         .then(() => {
           clog('reserva local pronta ✓ (nuvem segue como principal)');
           setModelPrep((s) => (s ? { ...s, whisper: 1, done: true } : s));
@@ -906,22 +945,26 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     setModelPrep({ whisper: 0, mt: null, fromCache: cached, error: null, done: false });
     try {
       // Tradutor local (best-effort; direção "ouço → meu idioma"). Emite barra própria.
-      gateway.mt.preload(listenLang, myLang, (p, _l, bytes) => {
-        setModelPrep((s) => (s ? { ...s, mt: p >= 1 ? 1 : p, mtBytes: bytes ?? s.mtBytes } : s));
-        if (p >= 1) {
-          /* O tradutor local (113 MB) fica pronto DEPOIS do Whisper. Tudo que foi falado nesse
-             intervalo já tinha degradado para "(texto original)" e ficava assim para sempre,
-             medido no teste do dono (2026-08-26): legenda certa, tradução nenhuma. Retraduz. */
-          retraduzirDegradados();
-          setTimeout(() => setModelPrep((s) => (s?.done ? null : s)), 1800);
-        }
-      });
+      const iniciarTradutor = () =>
+        gateway.mt.preload(mtDe, mtPara, (p, _l, bytes) => {
+          setModelPrep((s) => (s ? { ...s, mt: p >= 1 ? 1 : p, mtBytes: bytes ?? s.mtBytes } : s));
+          if (p >= 1) {
+            /* O tradutor local (113 MB) fica pronto DEPOIS do Whisper. Tudo que foi falado nesse
+               intervalo já tinha degradado para "(texto original)" e ficava assim para sempre,
+               medido no teste do dono (2026-08-26): legenda certa, tradução nenhuma. Retraduz. */
+            retraduzirDegradados();
+            setTimeout(() => setModelPrep((s) => (s?.done ? null : s)), 1800);
+          }
+        });
+      // Aparelho com pouca memória: o tradutor só começa DEPOIS do Whisper pronto (pico menor).
+      if (!umDeCadaVez) iniciarTradutor();
       // Whisper (obrigatório para transcrever o áudio do sistema/aba).
       await gateway.stt.preloadModel(
         (p, _l, bytes) =>
           setModelPrep((s) => (s ? { ...s, whisper: p >= 1 ? 1 : p, whisperBytes: bytes ?? s.whisperBytes } : s)),
         { aoDegradar: avisarDegradacao },
       );
+      if (umDeCadaVez) iniciarTradutor();
       clog('modelos locais prontos ✓');
       modelReadyRef.current = true;
       flushPendingUtterances();

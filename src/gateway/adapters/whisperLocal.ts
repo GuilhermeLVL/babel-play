@@ -3,6 +3,7 @@
  * mas web-nativo via Web Worker. Backend PADRÃO = `auto`: WebGPU quando há um ADAPTADOR de verdade
  * (`adaptadorWebGpu.ts`), WASM no resto; `babel.whisperDevice` força um dos dois.
  */
+import { perfilDoDispositivo } from '../../lib/dispositivo/perfil';
 import { temAdaptadorWebGpu } from '../adaptadorWebGpu';
 import type { AvisoDeDegradacaoDoStt, SttFinal, SttProvider } from '../capabilities';
 import { gravarManifesto, MENSAGEM_DO_MANIFESTO } from '../modelManifest';
@@ -65,6 +66,11 @@ export class WhisperLocalStt implements SttProvider {
   private routedModel: string | null = null;
   /** Modelo com que o worker ATUAL foi carregado (para saber quando recriar). */
   private loadedModel: string | null = null;
+  /** Quantização pedida pelo ROTEADOR (`q8` no celular/Quest) e com qual o worker ATUAL carregou. */
+  private routedDtype: string | null = null;
+  private loadedDtype: string | null = null;
+  /** Backend pedido pelo ROTEADOR (`wasm` junto com o q8). */
+  private routedDevice: 'wasm' | null = null;
 
   /**
    * Modelo Whisper. Override via localStorage `babel.whisperModel` — permite trocar
@@ -89,19 +95,43 @@ export class WhisperLocalStt implements SttProvider {
    * carregou OUTRO modelo, derruba e recria — mesma mecânica do fallback de device.
    * Chamar com o modelo já carregado é no-op (não paga teardown à toa).
    */
-  setModel(modelId: string): void {
+  setModel(modelId: string, opcoes?: { dtype?: string; device?: 'wasm' }): void {
     if (!modelId) return;
     // Já degradamos para WASM nesta página: o roteador ainda pode pedir o small (ele não sabe da
     // queda), mas o small em WASM não é tempo real — fica o modelo que cabe.
     const alvo = this.forcedDevice === 'wasm' ? modeloParaWasm(modelId) : modelId;
     this.routedModel = alvo;
-    if (this.worker && this.loadedModel && this.loadedModel !== alvo) {
-      console.log('[whisper] roteador trocou o modelo:', this.loadedModel, '→', alvo, 'recriando worker');
-      this.derrubarWorker(new Error('modelo de transcrição trocado, recarregando'));
-      this.readyPromise = null;
-      this.readyResolve = null;
-      this.readyReject = null;
+    // Sem `opcoes`, quem chama (a guarda do moonshine, rotas antigas) mantém o dtype já roteado.
+    if (opcoes) {
+      this.routedDtype = opcoes.dtype ?? null;
+      this.routedDevice = opcoes.device ?? null;
     }
+    const trocouModelo = !!this.loadedModel && this.loadedModel !== alvo;
+    const trocouDtype = !!this.loadedDtype && this.loadedDtype !== this.dtype;
+    if (this.worker && (trocouModelo || trocouDtype)) {
+      console.log(
+        '[whisper] roteador trocou o modelo:',
+        this.loadedModel,
+        '→',
+        alvo,
+        `(${this.dtype}) recriando worker`,
+      );
+      this.liberar(new Error('modelo de transcrição trocado, recarregando'));
+    }
+  }
+
+  /**
+   * LIBERA a memória do modelo: encerra o worker (o heap do WASM só volta ao sistema com o
+   * `terminate()` — relato de campo com ONNX Runtime Web no iOS, zenn.dev/kaz_sakai) e esquece a
+   * preparação. A próxima transcrição ou `preload` recria tudo do cache. Chamado ao sair da captura
+   * em aparelho com pouca memória (`perfilDoDispositivo().poucaMemoria`).
+   */
+  liberar(motivo = new Error('modelo de transcrição liberado')): void {
+    this.derrubarWorker(motivo);
+    this.readyReject?.(motivo);
+    this.readyPromise = null;
+    this.readyResolve = null;
+    this.readyReject = null;
   }
 
   /**
@@ -112,9 +142,9 @@ export class WhisperLocalStt implements SttProvider {
    */
   private get dtype(): string {
     try {
-      return localStorage.getItem('babel.whisperDtype') || 'hybrid';
+      return localStorage.getItem('babel.whisperDtype') || this.routedDtype || 'hybrid';
     } catch {
-      return 'hybrid';
+      return this.routedDtype || 'hybrid';
     }
   }
 
@@ -127,9 +157,9 @@ export class WhisperLocalStt implements SttProvider {
   private get device(): string {
     if (this.forcedDevice) return this.forcedDevice;
     try {
-      return localStorage.getItem('babel.whisperDevice') || 'auto';
+      return localStorage.getItem('babel.whisperDevice') || this.routedDevice || 'auto';
     } catch {
-      return 'auto';
+      return this.routedDevice || 'auto';
     }
   }
 
@@ -166,6 +196,7 @@ export class WhisperLocalStt implements SttProvider {
     this.worker = null;
     this.asrReady = false;
     this.loadedModel = null;
+    this.loadedDtype = null;
     this.deviceDaCarga = null;
     this.watchdogAtual?.cancelar();
     this.watchdogAtual = null;
@@ -392,8 +423,11 @@ export class WhisperLocalStt implements SttProvider {
       this.aoDegradar?.({ motivo: 'sem-gpu', modeloAntes: antes, modelo: this.model, device: 'wasm', detalhe: '' });
     }
     this.loadedModel = this.model;
+    this.loadedDtype = this.dtype;
     this.deviceDaCarga = ehMoonshine(this.model) ? 'wasm' : device;
-    this.worker.postMessage({ type: 'load', model: this.model, dtype: this.dtype, device });
+    // Threads do WASM pelo PERFIL: 1 sem isolamento (sem SharedArrayBuffer), 2 no celular fraco.
+    const threads = perfilDoDispositivo().threadsWasm;
+    this.worker.postMessage({ type: 'load', model: this.model, dtype: this.dtype, device, threads });
 
     // Watchdog: só quando o caminho efetivo é WebGPU. O moonshine carrega sempre em WASM.
     if (this.deviceDaCarga !== 'webgpu') return;

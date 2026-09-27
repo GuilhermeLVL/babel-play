@@ -48,6 +48,25 @@ export class OpusMtLocal implements TranslationProvider {
     return model !== null && !this.failed.has(model);
   }
 
+  /**
+   * Encerra o worker e esquece os modelos carregados: o heap do WASM só volta ao sistema com o
+   * `terminate()`. A próxima tradução recria o worker e recarrega do cache. `failed` fica: um modelo
+   * que não abre neste navegador continua não abrindo.
+   */
+  liberar(): void {
+    try {
+      this.worker?.terminate();
+    } catch {
+      /* já morto */
+    }
+    this.worker = null;
+    this.ready.clear();
+    this.loading.clear();
+    const err = new Error('tradutor local liberado');
+    for (const p of this.pending.values()) p.reject(err);
+    this.pending.clear();
+  }
+
   private ensureWorker(): void {
     if (this.worker) return;
     this.worker = new Worker(new URL('./mtWorker.ts', import.meta.url), { type: 'module' });

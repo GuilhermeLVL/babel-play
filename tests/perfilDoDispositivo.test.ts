@@ -151,7 +151,7 @@ describe('threads do WASM', () => {
     expect(classificarDispositivo({ ...desktop, isolado: false }).threadsWasm).toBe(1)
   })
 
-  it('isolado: até 4 no desktop, 2 no celular fraco', () => {
+  it('isolado: até 4 em qualquer perfil (o teto 2 no celular fraco não se sustentou na medição)', () => {
     expect(classificarDispositivo(desktop).threadsWasm).toBe(4)
     const fraco = classificarDispositivo({
       ...desktop,
@@ -161,7 +161,7 @@ describe('threads do WASM', () => {
       toques: 5,
       memoriaGb: 2,
     })
-    expect(fraco.threadsWasm).toBe(2)
+    expect(fraco.threadsWasm).toBe(4)
   })
 
   it('nunca passa do número de núcleos', () => {
@@ -291,5 +291,33 @@ describe('marcarDispositivoNoDocumento', () => {
     const p = marcarDispositivoNoDocumento(raiz)
     expect(p.tipo).toBe('quest')
     expect(raiz.dataset).toMatchObject({ dispositivo: 'quest', modoLeve: 'true' })
+  })
+})
+
+describe('reduzirEfeitosMedido — o automático com a resposta real do adaptador', () => {
+  afterEach(() => vi.unstubAllGlobals())
+  const semEscolha = () =>
+    vi.stubGlobal('localStorage', { getItem: () => null, setItem: () => undefined, removeItem: () => undefined })
+
+  it('celular com a API WebGPU mas SEM adaptador: liga o modo leve', async () => {
+    const { esquecerAdaptadorWebGpu } = await import('../src/gateway/adaptadorWebGpu')
+    const { reduzirEfeitosMedido } = await import('../src/lib/dispositivo/perfil')
+    esquecerAdaptadorWebGpu()
+    semEscolha()
+    vi.stubGlobal('navigator', {
+      userAgent: UA_PIXEL,
+      maxTouchPoints: 5,
+      deviceMemory: 8,
+      gpu: { requestAdapter: async () => null },
+      mediaDevices: {},
+    })
+    vi.stubGlobal('matchMedia', (q: string) => ({ matches: q.includes('coarse') }))
+    expect(await reduzirEfeitosMedido()).toBe(true)
+  })
+
+  it('com escolha manual: null (não mexe)', async () => {
+    const { reduzirEfeitosMedido } = await import('../src/lib/dispositivo/perfil')
+    vi.stubGlobal('localStorage', { getItem: () => 'false', setItem: () => undefined, removeItem: () => undefined })
+    expect(await reduzirEfeitosMedido()).toBeNull()
   })
 })

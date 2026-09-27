@@ -65,7 +65,7 @@ export interface PerfilDoDispositivo {
    * web-llm#386; arXiv 2605.20706) e o Quest divide 4,4/5,75 GiB com o navegador inteiro.
    */
   poucaMemoria: boolean;
-  /** Threads do WASM do ONNX Runtime: 1 sem isolamento; teto 2 no celular fraco; 4 no resto. */
+  /** Threads do WASM do ONNX Runtime: 1 sem isolamento; até 4 com isolamento. */
   threadsWasm: number;
   /** O Whisper small (589 MB, só tempo real com GPU) pode ser escolhido. Só desktop com GPU. */
   permiteSmall: boolean;
@@ -172,8 +172,11 @@ export function classificarDispositivo(s: SinaisDoDispositivo): PerfilDoDisposit
   const poucaMemoria =
     tipo === 'quest' || tipo.startsWith('celular') || (s.memoriaGb != null && s.memoriaGb <= 2) || abaPequena;
 
-  const teto = tipo === 'celular-fraco' ? 2 : 4;
-  const threadsWasm = s.isolado ? Math.max(1, Math.min(s.nucleos ?? 4, teto)) : 1;
+  /* Teto 4 em todo perfil — o mesmo padrão que o worker já usava (`min(núcleos, 4)`). Um teto de 2 no
+     celular fraco foi testado e não se sustentou: no Pixel 7 emulado o Whisper base q8 deu RTF 1,04
+     com 2 threads e 1,28 com 4 (máquina compartilhada, diferença dentro do ruído) — sem evidência
+     para mudar o padrão (auditoria de dispositivos, 2026-09-26). */
+  const threadsWasm = s.isolado ? Math.max(1, Math.min(s.nucleos ?? 4, 4)) : 1;
 
   const redeLenta = s.tipoDeRede != null && s.tipoDeRede !== '4g';
   if (s.economiaDeDados) motivos.push('economia de dados ligada');
@@ -212,6 +215,21 @@ function lerEscolhaManual(): boolean | null {
   } catch {
     return null;
   }
+}
+
+/** A pessoa já escolheu o modo leve à mão (Ajustes → Modo desempenho)? */
+export function temEscolhaManualDeEfeitos(): boolean {
+  return lerEscolhaManual() !== null;
+}
+
+/**
+ * O modo leve AUTOMÁTICO depois da resposta real do `requestAdapter()`: a leitura síncrona conta a API
+ * WebGPU como GPU, e um celular sem adaptador só se revela fraco aqui (medido no Pixel 7 emulado: o
+ * tipo virava `celular-fraco` e o modo leve ficava desligado). `null` quando há escolha manual.
+ */
+export async function reduzirEfeitosMedido(): Promise<boolean | null> {
+  const p = await medirPerfilDoDispositivo();
+  return temEscolhaManualDeEfeitos() ? null : reduzirEfeitos(p.sinais);
 }
 
 /** O modo leve ligaria SOZINHO neste aparelho (sem a escolha manual)? */

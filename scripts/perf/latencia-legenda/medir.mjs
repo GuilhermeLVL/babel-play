@@ -7,7 +7,7 @@
  *        [--modo mic|sistema] [--eu pt-BR|en-US|auto] [--eles en-US|pt-BR|auto]
  *        [--qualidade auto|fast|accurate] [--device auto|wasm|webgpu] [--sem-webgpu]
  *        [--canal chromium|chrome] [--headless] [--perfil DIR] [--url http://127.0.0.1:4176]
- *        [--saida DIR] [--espera-extra 10] [--dispositivo quest|pixel7|iphone14]
+ *        [--saida DIR] [--espera-extra 10] [--dispositivo quest|pixel7|iphone14] [--dtype q8|hybrid]
  *
  * Pré-requisitos: `npm run build:estatica` e o servidor estático de pé
  * (`node tests/e2e-estatica/_servidor-estatico.mjs 4176` — COOP/COEP como o Pages), e o áudio
@@ -124,15 +124,17 @@ if (APARELHO) {
   await aplicarCpu(page, APARELHO.cpu)
 }
 await page.addInitScript(
-  ({ q, d }) => {
+  ({ q, d, dt }) => {
     try {
       localStorage.setItem('babel_tour_blitz', '1')
       localStorage.setItem('babel.sttQuality', q)
       if (d === 'auto') localStorage.removeItem('babel.whisperDevice')
       else localStorage.setItem('babel.whisperDevice', d)
+      if (dt) localStorage.setItem('babel.whisperDtype', dt)
+      else localStorage.removeItem('babel.whisperDtype')
     } catch {}
   },
-  { q: QUALIDADE, d: DEVICE },
+  { q: QUALIDADE, d: DEVICE, dt: opt('dtype', '') },
 )
 
 const tAbrir = Date.now()
@@ -289,7 +291,7 @@ for (;;) {
   try {
     dados = await coletar()
     picoHeapMb = Math.max(picoHeapMb, dados.heapMb ?? 0)
-    if (APARELHO && retratos++ % 3 === 0) picoRendererMb = Math.max(picoRendererMb, memoriaDoRenderer(PERFIL) ?? 0)
+    if (retratos++ % 3 === 0) picoRendererMb = Math.max(picoRendererMb, memoriaDoRenderer(PERFIL) ?? 0)
   } catch (e) {
     queda = queda ?? String(e).slice(0, 200)
     break
@@ -354,7 +356,7 @@ const memoriaFinal = queda
         }
       })
       .catch((e) => ({ erro: String(e).slice(0, 200) }))
-const rendererNoFimMb = queda || !APARELHO ? null : memoriaDoRenderer(PERFIL)
+const rendererNoFimMb = queda ? null : memoriaDoRenderer(PERFIL)
 picoRendererMb = Math.max(picoRendererMb, rendererNoFimMb ?? 0)
 log(
   'memória: pico do heap da janela',

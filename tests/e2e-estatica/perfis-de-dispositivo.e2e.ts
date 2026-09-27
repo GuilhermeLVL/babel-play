@@ -43,18 +43,19 @@ for (const [nome, d] of Object.entries(DISPOSITIVOS)) {
     const pular = page.getByRole('button', { name: 'Pular apresentação' })
     if (await pular.isVisible().catch(() => false)) await pular.click()
 
-    // 1. Perfil detectado por capacidade.
+    // 1. Perfil detectado por capacidade (o tipo e o modo leve se corrigem quando o requestAdapter() responde).
+    await expect.poll(() => page.evaluate(() => document.documentElement.dataset.dispositivo)).toMatch(d.esperado.tipo)
     const tipo = await page.evaluate(() => document.documentElement.dataset.dispositivo)
-    expect(tipo).toMatch(d.esperado.tipo)
-    expect(await page.evaluate(() => document.documentElement.dataset.modoLeve)).toBe(
-      tipo === 'quest' || tipo === 'celular-fraco' ? 'true' : 'false',
-    )
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.dataset.modoLeve))
+      .toBe(tipo === 'quest' || tipo === 'celular-fraco' ? 'true' : 'false')
 
     // 2. Modelo escolhido: nada de small nem do base híbrido de 209 MB fora do desktop.
     const selo = page.getByRole('button', { name: /Modelo no dispositivo/ })
     await expect(selo).toBeVisible()
     const rotuloDoSelo = (await selo.getAttribute('aria-label')) ?? ''
     expect(rotuloDoSelo).not.toMatch(/209 MB|589 MB/)
+    // 80 = base q8; 67/32 = moonshine
     expect(rotuloDoSelo).toMatch(/\b(80|67|32) MB/)
 
     // 3. Sem áudio do sistema: o aviso explica o microfone; o Iniciar está habilitado.

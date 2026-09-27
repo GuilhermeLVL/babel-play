@@ -6,7 +6,7 @@ import { fetchSettings, patchUiSettings } from '../../data/api';
 import { CREDENTIAL_KEY, MODE_KEY, PROFILE_KEY } from '../../gateway/activeProfile';
 import type { FonteType, ThemeType } from '../appearance';
 import { ativarLiberacaoTotal, liberadoTudo } from '../desbloqueios';
-import { definirReduzirEfeitos, reduzirEfeitos } from '../dispositivo/perfil';
+import { definirReduzirEfeitos, reduzirEfeitos, reduzirEfeitosMedido } from '../dispositivo/perfil';
 import { estaAnonimo } from '../identidade';
 import { isAgeProfile, readAgeProfile, readStoredEnum, readStoredValue } from '../profile';
 import { instalarRastroDoMouse } from '../rastroDoMouse';
@@ -95,6 +95,17 @@ export function useAparencia(): EstadoDaAparencia {
    * no celular fraco, no desktop de 2 núcleos e com `prefers-reduced-motion`.
    */
   const [performanceMode, setPerformanceModeState] = useState<boolean>(() => reduzirEfeitos());
+  /* Sem escolha manual, o automático é refeito com a resposta REAL do adaptador WebGPU (um celular
+     que só tem a API se revela fraco aqui). A escolha manual nunca é tocada. */
+  useEffect(() => {
+    let vivo = true;
+    void reduzirEfeitosMedido().then((v) => {
+      if (vivo && v !== null) setPerformanceModeState(v);
+    });
+    return () => {
+      vivo = false;
+    };
+  }, []);
 
   const FONT_SCALE_ORDER: FontScale[] = ['sm', 'md', 'lg', 'xl'];
   const [fontScale, setFontScaleState] = useState<FontScale>(

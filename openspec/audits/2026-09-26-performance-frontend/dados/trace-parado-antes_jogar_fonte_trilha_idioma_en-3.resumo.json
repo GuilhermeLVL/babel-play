@@ -1,0 +1,32 @@
+{
+ "segundos": 4,
+ "ocupadoMsPorS": 788,
+ "longas": 2,
+ "longasMs": 1038,
+ "top": [
+  {
+   "nome": "Commit",
+   "msPorS": 402.6
+  },
+  {
+   "nome": "FireAnimationFrame",
+   "msPorS": 310.8
+  },
+  {
+   "nome": "PrePaint",
+   "msPorS": 19.3
+  },
+  {
+   "nome": "Layerize",
+   "msPorS": 1.7
+  },
+  {
+   "nome": "BlinkScheduler_PerformMicrotaskCheckpoint",
+   "msPorS": 1.6
+  },
+  {
+   "nome": "TimerFire",
+   "msPorS": 0.4
+  }
+ ]
+}

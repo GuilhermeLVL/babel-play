@@ -1,0 +1,64 @@
+{
+ "segundos": 7.4,
+ "ocupadoMsPorS": 1339,
+ "longas": 12,
+ "longasMs": 4523,
+ "top": [
+  {
+   "nome": "Commit",
+   "msPorS": 428.3
+  },
+  {
+   "nome": "LatencyInfo.Flow",
+   "msPorS": 414.3
+  },
+  {
+   "nome": "FireAnimationFrame",
+   "msPorS": 168.9
+  },
+  {
+   "nome": "PrePaint",
+   "msPorS": 47.1
+  },
+  {
+   "nome": "Layerize",
+   "msPorS": 37.3
+  },
+  {
+   "nome": "UpdateLayoutTree",
+   "msPorS": 34.6
+  },
+  {
+   "nome": "Receive mojo message",
+   "msPorS": 32.6
+  },
+  {
+   "nome": "Paint",
+   "msPorS": 27.3
+  },
+  {
+   "nome": "EventDispatch",
+   "msPorS": 13.7
+  },
+  {
+   "nome": "Layout",
+   "msPorS": 10
+  },
+  {
+   "nome": "HitTest",
+   "msPorS": 3.6
+  },
+  {
+   "nome": "BlinkScheduler_PerformMicrotaskCheckpoint",
+   "msPorS": 1.7
+  },
+  {
+   "nome": "SimpleWatcher::OnHandleReady",
+   "msPorS": 1.4
+  },
+  {
+   "nome": "TimerFire",
+   "msPorS": 1.1
+  }
+ ]
+}

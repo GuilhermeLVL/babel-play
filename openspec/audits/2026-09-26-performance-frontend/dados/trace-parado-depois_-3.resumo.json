@@ -1,0 +1,44 @@
+{
+ "segundos": 4,
+ "ocupadoMsPorS": 601,
+ "longas": 2,
+ "longasMs": 753,
+ "top": [
+  {
+   "nome": "EventDispatch",
+   "msPorS": 188.6
+  },
+  {
+   "nome": "UpdateLayoutTree",
+   "msPorS": 109.5
+  },
+  {
+   "nome": "Paint",
+   "msPorS": 85.2
+  },
+  {
+   "nome": "PrePaint",
+   "msPorS": 53.3
+  },
+  {
+   "nome": "Layerize",
+   "msPorS": 42.6
+  },
+  {
+   "nome": "Commit",
+   "msPorS": 32.1
+  },
+  {
+   "nome": "BlinkScheduler_PerformMicrotaskCheckpoint",
+   "msPorS": 1.6
+  },
+  {
+   "nome": "TimerFire",
+   "msPorS": 0.4
+  },
+  {
+   "nome": "Receive mojo message",
+   "msPorS": 0
+  }
+ ]
+}

@@ -58,7 +58,7 @@ a cada 2–3 semanas. Preços antigos × fator por raridade, preservando a ordem
 | Raridade | Antes | Agora | Dias do perfil típico |
 | --- | --- | --- | --- |
 | Comum | 45–60 | **350–450** | 2,1–2,7 |
-| Raro | 100–140 | **1.000–1.300** | 6,1–7,9 |
+| Raro | 100–140 | **1.000–1.300** (1.220 após a onda 4) | 6,1–7,9 |
 | Épico | 220–240 | **2.600–3.000** | 15,7–18,2 |
 | Lendário | 600 | **5.200** | 31,5 |
 
@@ -74,6 +74,29 @@ a cada 2–3 semanas. Preços antigos × fator por raridade, preservando a ordem
   acaba e ele passa a pagar 15/40 por repetido. Com o catálogo da onda 4 isso cai.
 - **Croma (15–60) e "pular rodada" (40) não foram recalibrados**: continuam sendo o destino barato
   das Seeds que sobram.
+
+### Onda 4 — o catálogo novo e a recalibragem (27/09)
+
+Entraram 19 itens pagos, **todos só com Seeds** (`nivel: NIVEL_SO_SEEDS`, `soPorSeeds()` em
+`src/core/loja.ts`: o nível nunca os abre, e a vitrine de nível, a próxima recompensa e o Passe não
+os prometem) — a resposta ao "nível abre antes das Seeds" acima. Livres só os padrões (legenda
+clássica, cartão padrão).
+
+| Tipo | Itens e preço (Seeds) |
+| --- | --- |
+| Tema completo (raro) | Papel e tinta 1.000 · Rádio 1.100 · Jardim 1.200 |
+| Tema completo (épico) | Neon noturno 2.600 · Fliperama 2.800 · Observatório 3.000* |
+| Estilo de legenda (comum) | Cinema 350 · Fita 380 · Contorno 420 |
+| Estilo de legenda (raro) | Vidro 1.000 · Máquina 1.100 · Karaokê 1.200 · Letreiro 1.200* |
+| Pele de cartão (comum) | Caderno 360 · Selo 440 |
+| Pele de cartão (raro) | Vitral 1.050 · Constelação 1.150* |
+
+\* candidato à temporada (onda 5 decide; por ora fica com preço).
+
+Os comuns e raros entram no baú, que passa a entregar peça em vez de Seeds de repetido: a renda do
+perfil típico cai de 165,2 para **153 Seeds/dia** (baú 1.050 → 790 em 30 dias; peças 13 → 27). O
+raro mais caro precisava caber em 8 dias (≤ 1.224): **Notion Charcoal 1.300 → 1.220**. Com isso,
+no perfil típico: comum 2,3–2,9 dias · raro 6,5–8,0 · épico 17,0–19,6 · lendário 34,0.
 
 ## Histórico — economia v2 de 2026-08-28 (substituída pelas recompensas v2)
 

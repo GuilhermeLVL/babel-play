@@ -14,6 +14,7 @@ import type { FonteType,ThemeType } from '../appearance'
 import { equiparEstiloDeLegenda } from '../estilosDeLegenda'
 import { estadoDoItem, type ItemDaLoja } from '../loja'
 import { type ParticulasType, setParticulas } from '../particulas'
+import { equiparPeleDeCartao } from '../pelesDeCartao'
 import { setRastro } from '../rastroDoMouse'
 
 export interface ContextoDeEquipar {
@@ -42,6 +43,7 @@ export function equiparItem(item: ItemDaLoja, ctx: ContextoDeEquipar): boolean {
     case 'particulas': setParticulas(item.alvo as ParticulasType); return true
     case 'rastro': setRastro(item.alvo); return true
     case 'legenda': equiparEstiloDeLegenda(item.alvo); return true
+    case 'cartao': equiparPeleDeCartao(item.alvo); return true
     default: return false
   }
 }

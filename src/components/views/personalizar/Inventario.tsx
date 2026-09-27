@@ -14,6 +14,7 @@ import {
   Sun,
   Trash2,
   Trophy,
+  WalletCards,
   Wand2,
   WandSparkles,
 } from 'lucide-react';
@@ -69,6 +70,7 @@ const SECOES: Array<{ id: string; titulo: string; icone: LucideIcon; tipos: stri
   { id: 'efeitos', titulo: 'Efeitos', icone: WandSparkles, tipos: ['particulas', 'rastro'] },
   /* Recompensas v2, onda 4: a legenda ao vivo como peça, com a prévia do estilo no cartão. */
   { id: 'legendas', titulo: 'Legendas', icone: Captions, tipos: ['legenda'] },
+  { id: 'cartoes', titulo: 'Cartões', icone: WalletCards, tipos: ['cartao'] },
   { id: 'capacidades', titulo: 'Capacidades', icone: Sparkles, tipos: ['galeria', 'estudio'] },
 ];
 

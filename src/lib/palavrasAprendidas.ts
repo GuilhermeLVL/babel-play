@@ -3,16 +3,17 @@ import { useEffect, useState } from 'react';
 import { fetchDeck } from '../data/api';
 import type { VocabCard } from '../types';
 import { chaveDaPalavra } from './estilosDeLegenda';
+import { estadoDoCartao } from './pelesDeCartao';
 
 /**
  * AS PALAVRAS QUE A PESSOA JÁ APRENDEU — o que o estilo de legenda destaca (onda 4).
  *
- * "Aprendida" é a fase REAL do FSRS que o cartão já carrega (`fsrsState`, derivado em
- * `data/rotas/vocabulario.ts`): tudo o que saiu de `New` no caderno. Nada é recalculado aqui.
+ * A MESMA régua da pele de cartão (`estadoDoCartao`, que lê a fase do FSRS que o cartão já
+ * carrega): tudo o que deixou de ser "nova" no caderno — aprendida ou dominada.
  */
 export function palavrasAprendidas(cartas: readonly VocabCard[]): Set<string> {
   const s = new Set<string>();
-  for (const c of cartas) if (c.inDeck && c.fsrsState !== 'New' && c.word) s.add(chaveDaPalavra(c.word));
+  for (const c of cartas) if (c.inDeck && c.word && estadoDoCartao(c) !== 'nova') s.add(chaveDaPalavra(c.word));
   return s;
 }
 

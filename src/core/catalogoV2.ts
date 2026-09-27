@@ -119,5 +119,32 @@ export const LEGENDAS_V2: ItemDaLoja[] = [
   legenda('letreiro', 'Legenda Letreiro', 'Fita luminosa, contorno forte e entrada suave: legenda de letreiro.', 'raro', 1200),
 ];
 
+/* ── PELES DE CARTÃO (a moldura muda com a palavra: nova → aprendida → dominada; desenho em
+   `src/lib/pelesDeCartao.ts` e `src/styles/cartoes.css`). A padrão é livre; o resto, só Seeds. ── */
+const cartao = (
+  alvo: string,
+  nome: string,
+  desc: string,
+  raridade: 'comum' | 'raro',
+  precoSeeds: number,
+): ItemDaLoja => ({ id: `cartao-${alvo}`, tipo: 'cartao', alvo, nome, desc, raridade, nivel: NIVEL_SO_SEEDS, precoSeeds });
+
+export const CARTOES_V2: ItemDaLoja[] = [
+  {
+    id: 'cartao-padrao',
+    tipo: 'cartao',
+    alvo: 'padrao',
+    nome: 'Cartão padrão',
+    desc: 'O cartão de sempre: a borda fica verde quando você aprende e dourada quando domina.',
+    raridade: 'comum',
+    nivel: 1,
+  },
+  cartao('caderno', 'Cartão Caderno', 'Folha pautada: a margem acende ao aprender e a orelha dobra ao dominar.', 'comum', 360),
+  cartao('selo', 'Cartão Selo', 'Picote de selo que vira moldura dupla quando a palavra é sua.', 'comum', 440),
+  cartao('vitral', 'Cartão Vitral', 'Borda em gradiente que esquenta de nova para dominada.', 'raro', 1050),
+  // Candidato à temporada (onda 5).
+  cartao('constelacao', 'Cartão Constelação', 'Estrelas que acendem com a palavra; a dominada brilha devagar.', 'raro', 1150),
+];
+
 /** Tudo o que a onda 4 acrescenta ao catálogo, na ordem da vitrine. */
-export const CATALOGO_V2: ItemDaLoja[] = [...TEMAS_V2, ...LEGENDAS_V2];
+export const CATALOGO_V2: ItemDaLoja[] = [...TEMAS_V2, ...LEGENDAS_V2, ...CARTOES_V2];

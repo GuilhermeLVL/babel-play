@@ -4,6 +4,7 @@ import { todasAsPaletas } from '../lib/galeria/paletas';
 import type { ItemDaLoja } from '../lib/loja';
 import { estiloDeRastro } from '../lib/rastroDoMouse';
 import PreviaDaLegenda from './PreviaDaLegenda';
+import PreviaDoCartao from './PreviaDoCartao';
 
 /**
  * A MINIATURA REAL DE UMA PEÇA (pedido do dono, 01/09: "adicione as miniaturas reais dos itens
@@ -215,6 +216,8 @@ export default function MiniaturaDoItem({ item, tam = 'grade' }: { item: ItemDaL
 
   /* ── LEGENDA (onda 4): a fala de exemplo vestindo o estilo, não um símbolo ── */
   if (item.tipo === 'legenda') return <PreviaDaLegenda estilo={item.alvo} compacta={tam === 'grade'} />;
+  /* ── CARTÃO (onda 4): os três estados da pele lado a lado ── */
+  if (item.tipo === 'cartao') return <PreviaDoCartao pele={item.alvo} compacta={tam === 'grade'} />;
 
   if (item.tipo === 'estudio') return solo('🪄');
 

@@ -18,6 +18,7 @@ import { palavraDeNivel } from '../../lib/galeria/textos';
 import { t } from '../../lib/i18n';
 import { comemorar, explodirAleatorio } from '../../lib/juice';
 import { PARTICULAS_OPTIONS, readParticulas, setParticulas } from '../../lib/particulas';
+import { lerPeleDeCartao } from '../../lib/pelesDeCartao';
 import { readRastro, setRastro } from '../../lib/rastroDoMouse';
 import type { AgeProfileType, MenuPositionType } from '../shell/navItems';
 import { toast } from '../Toast';
@@ -181,7 +182,9 @@ export default function Personalizar({
                     ? rastroAtual === i.alvo
                     : i.tipo === 'legenda'
                       ? lerEstiloDeLegenda() === i.alvo
-                      : false
+                      : i.tipo === 'cartao'
+                        ? lerPeleDeCartao() === i.alvo
+                        : false
         }
         /* Os do protótipo, na ordem dele (Tema, Partículas, Fonte, Menu). Cursor e Emojis saíram nas
            recompensas v2. O rastro equipado aparece no próprio cartão, com "Equipado". */

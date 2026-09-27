@@ -1,3 +1,5 @@
+import '../../styles/cartoes.css';
+
 import { countDue, type Grade, isDueNow, makeFsrs5, PESOS_XP } from '@core';
 import {
   Brain,
@@ -29,6 +31,7 @@ import {
 } from '../../data/api';
 import { ActiveProductionExercise, similarityPercentage, stabilityThreshold } from '../../lib/exercicios';
 import { ganho } from '../../lib/juice';
+import { classesDaPalavra } from '../../lib/pelesDeCartao';
 import { type AgeProfileType, copyDoPerfil, showsPowerUserAffordances } from '../../lib/profile';
 import type { PracticeSeed, Sentence } from '../../lib/sentences';
 import { speak as ttsSpeak } from '../../lib/tts';
@@ -899,7 +902,9 @@ export default function Study({
         }
       />
 
-      <section className="cartao flash">
+      {/* A PELE DE CARTÃO equipada (onda 4): a moldura diz se a palavra é nova, aprendida ou
+          dominada — pela fase do FSRS que o cartão já carrega. */}
+      <section className={`cartao flash ${classesDaPalavra(currentCard)}`}>
         <span className="badge neu">{seloDoCartao(currentCard)}</span>
 
         {format === 'active-production' ? (

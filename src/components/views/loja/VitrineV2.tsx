@@ -1,13 +1,10 @@
-import { REGRAS } from '@core';
+import { REGRAS, VITRINE_DE_CREDITOS } from '@core';
 import { Check, Coins, Eye, Lock, MonitorSmartphone, Sprout } from 'lucide-react';
 import { Fragment, useId, useMemo, useState } from 'react';
 
 import type { Carteira } from '../../../lib/carteira';
 import { celebrarEscolha } from '../../../lib/comemoracao';
-import {
-  comprarPecaComCreditos,
-  mensagemDaRecusaDeCreditos,
-} from '../../../lib/galeria/comprarComCreditos';
+import { comprarPecaComCreditos, mensagemDaRecusaDeCreditos } from '../../../lib/galeria/comprarComCreditos';
 import { comprarPecaComSeeds } from '../../../lib/galeria/comprarPeca';
 import { type ContextoDeEquipar, equiparItem, equipavel } from '../../../lib/galeria/equipar';
 import { TEXTOS } from '../../../lib/galeria/textos';
@@ -103,7 +100,7 @@ export default function VitrineV2({
     [nivel, saldo, filtro, versao], // eslint-disable-line react-hooks/exhaustive-deps -- `versao` relê a posse depois da compra
   );
   const deCreditos = useMemo(
-    () => CATALOGO_DA_LOJA.filter((i) => i.precoCreditos !== undefined).filter(doFiltro),
+    () => VITRINE_DE_CREDITOS.filter(doFiltro),
     [filtro], // eslint-disable-line react-hooks/exhaustive-deps
   );
 
@@ -299,7 +296,9 @@ export default function VitrineV2({
               </b>
             </div>
             <p className="mut" style={{ fontSize: 12.5, marginTop: 6, lineHeight: 1.55 }}>
-              {t('Compram-se com dinheiro e compram só enfeite, com prévia e preço à vista. Nível, XP, Seeds, maestria e conquista só saem estudando.')}
+              {t(
+                'Compram-se com dinheiro e compram só enfeite, com prévia e preço à vista. Nível, XP, Seeds, maestria e conquista só saem estudando.',
+              )}
             </p>
           </div>
         )}
@@ -307,14 +306,25 @@ export default function VitrineV2({
 
       <div className="chips" role="group" aria-label={t('Filtrar a Loja')} style={{ marginTop: 20 }}>
         {FILTROS.map((f) => (
-          <button key={f.id} type="button" className="pill" aria-pressed={filtro === f.id} onClick={() => setFiltro(f.id)}>
+          <button
+            key={f.id}
+            type="button"
+            className="pill"
+            aria-pressed={filtro === f.id}
+            onClick={() => setFiltro(f.id)}
+          >
             {t(f.nome)}
           </button>
         ))}
       </div>
 
       <div style={{ marginTop: 22 }}>
-        <TituloDeSecao nivel="h3" icone={Sprout} titulo={t('Com Seeds')} desc={t('A mais barata primeiro. Nada aqui expira.')} />
+        <TituloDeSecao
+          nivel="h3"
+          icone={Sprout}
+          titulo={t('Com Seeds')}
+          desc={t('A mais barata primeiro. Nada aqui expira.')}
+        />
       </div>
       {deSeeds.length ? (
         <div className="gauto">

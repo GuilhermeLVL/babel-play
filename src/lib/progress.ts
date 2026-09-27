@@ -1,6 +1,7 @@
-import { economiaDeMetricas, PESOS_SEEDS,PESOS_XP, posicaoNoNivel } from '@core';
+import { economiaDeMetricas, PESOS_SEEDS, PESOS_XP, posicaoNoNivel } from '@core';
 
 import type { AppMetrics } from '../data/api';
+import { estudouHoje } from './ofensiva';
 
 /**
  * PROGRESSO DERIVADO — a camada de gamificação, e nada além disso.
@@ -57,7 +58,8 @@ export interface DerivedProgress {
   /** Só o que foi ganho. A tela usa para explicar um saldo que encolheu por compra. */
   seedsGanhas: number;
   streakDays: number;
-  /** `true` quando houve ao menos uma revisão hoje (é o que streakDays > 0 significa). */
+  /** `true` quando houve revisão ou rodada DATADA de hoje (`lib/ofensiva`). Não é `streakDays > 0`:
+      a ofensiva conta presença, e com isso o aviso "ofensiva em risco" nunca podia sair. */
   practicedToday: boolean;
   missions: Mission[];
 }
@@ -74,10 +76,34 @@ export const EMPTY_PROGRESS: DerivedProgress = {
   streakDays: 0,
   practicedToday: false,
   missions: [
-    { id: 'capture', view: 'capture', pending: 0, done: false, rewardXp: PESOS_XP.sessao, rewardSeeds: PESOS_SEEDS.capturaPor5Min, rewardUnit: 'a cada 5 min gravados' },
-    { id: 'practice', view: 'study', pending: 0, done: false, rewardXp: PESOS_XP.revisao, rewardSeeds: PESOS_SEEDS.revisaoCerta, rewardUnit: 'por revisão' },
-    { id: 'vocabulary', view: 'metrics', pending: 0, done: false, rewardXp: PESOS_XP.cartao, rewardSeeds: PESOS_SEEDS.cartao, rewardUnit: 'por palavra fichada' }
-  ]
+    {
+      id: 'capture',
+      view: 'capture',
+      pending: 0,
+      done: false,
+      rewardXp: PESOS_XP.sessao,
+      rewardSeeds: PESOS_SEEDS.capturaPor5Min,
+      rewardUnit: 'a cada 5 min gravados',
+    },
+    {
+      id: 'practice',
+      view: 'study',
+      pending: 0,
+      done: false,
+      rewardXp: PESOS_XP.revisao,
+      rewardSeeds: PESOS_SEEDS.revisaoCerta,
+      rewardUnit: 'por revisão',
+    },
+    {
+      id: 'vocabulary',
+      view: 'metrics',
+      pending: 0,
+      done: false,
+      rewardXp: PESOS_XP.cartao,
+      rewardSeeds: PESOS_SEEDS.cartao,
+      rewardUnit: 'por palavra fichada',
+    },
+  ],
 };
 
 export function deriveProgress(metrics: AppMetrics | null | undefined): DerivedProgress {
@@ -107,7 +133,7 @@ export function deriveProgress(metrics: AppMetrics | null | undefined): DerivedP
       /* Economia v2: gravar passou a render Seeds pelo TEMPO (1 a cada 5 min, teto diário) — é o
          que o sistema de fato credita, então é o que a missão promete. */
       rewardSeeds: PESOS_SEEDS.capturaPor5Min,
-      rewardUnit: 'a cada 5 min gravados'
+      rewardUnit: 'a cada 5 min gravados',
     },
     {
       id: 'practice',
@@ -116,7 +142,7 @@ export function deriveProgress(metrics: AppMetrics | null | undefined): DerivedP
       done: metrics.dueToday === 0,
       rewardXp: PESOS_XP.revisao + PESOS_XP.revisaoCerta,
       rewardSeeds: PESOS_SEEDS.revisaoCerta,
-      rewardUnit: 'por revisão'
+      rewardUnit: 'por revisão',
     },
     {
       id: 'vocabulary',
@@ -125,8 +151,8 @@ export function deriveProgress(metrics: AppMetrics | null | undefined): DerivedP
       done: metrics.newCards === 0,
       rewardXp: PESOS_XP.cartao,
       rewardSeeds: PESOS_SEEDS.cartao,
-      rewardUnit: 'por palavra fichada'
-    }
+      rewardUnit: 'por palavra fichada',
+    },
   ];
 
   return {
@@ -139,8 +165,8 @@ export function deriveProgress(metrics: AppMetrics | null | undefined): DerivedP
     seeds: Math.round(seeds),
     seedsGanhas: Math.round(seedsGanhas),
     streakDays: metrics.streakDays,
-    practicedToday: metrics.streakDays > 0,
-    missions
+    practicedToday: estudouHoje(metrics.revisoesRecentes),
+    missions,
   };
 }
 

@@ -6,6 +6,7 @@
  * Rotas: POST `/api/exercises/rodada`, GET `/api/exercises/results`,
  * GET `/api/exercises/historico`, GET `/api/exercises/recordes`.
  */
+import { marcarEstudoHoje } from '../../lib/ofensiva'
 import { apiFetch } from '../funil'
 
 export interface ExerciseResultPayload {
@@ -86,6 +87,8 @@ export async function salvarRodada(payload: {
       const motivo = await res.text().catch(() => '')
       return { ok: false, status: res.status, motivo: motivo.slice(0, 300) || res.statusText }
     }
+    // Rodada gravada = estudo de hoje: é o que tira a ofensiva do "em risco" (`lib/ofensiva`).
+    marcarEstudoHoje()
     return { ok: true }
   } catch (e) {
     return { ok: false, motivo: String((e as Error)?.message ?? e).slice(0, 200) }

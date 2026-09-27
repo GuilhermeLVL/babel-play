@@ -87,8 +87,18 @@ export default function FaixaDeProgresso({
           </div>
           <p className="mut" style={{ fontSize: 12.5, marginTop: 8 }}>
             {progress.practicedToday
-              ? tp(progress.streakDays, 'Você revisou hoje, ofensiva de {n} dia.', 'Você revisou hoje, ofensiva de {n} dias.')
-              : t('Uma revisão hoje começa a sua ofensiva.')}{' '}
+              ? tp(
+                  progress.streakDays,
+                  'Você revisou hoje, ofensiva de {n} dia.',
+                  'Você revisou hoje, ofensiva de {n} dias.',
+                )
+              : progress.streakDays > 0
+                ? tp(
+                    progress.streakDays,
+                    'Uma revisão ou rodada hoje mantém a ofensiva de {n} dia.',
+                    'Uma revisão ou rodada hoje mantém a ofensiva de {n} dias.',
+                  )
+                : t('Uma revisão hoje começa a sua ofensiva.')}{' '}
             {t('Faltam {n} XP', { n: faltam })}
             {proxima && (
               <>
@@ -102,7 +112,11 @@ export default function FaixaDeProgresso({
           <div className="numeros">
             <div>
               <span className="v">
-                <Flame style={{ color: 'var(--warn)' }} className={progress.streakDays ? 'chama-acesa' : ''} aria-hidden />
+                <Flame
+                  style={{ color: 'var(--warn)' }}
+                  className={progress.streakDays ? 'chama-acesa' : ''}
+                  aria-hidden
+                />
                 {progress.streakDays}
               </span>
               <span className="label-mono">{t('Ofensiva')}</span>

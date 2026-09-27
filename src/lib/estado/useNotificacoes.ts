@@ -4,6 +4,7 @@ import { chaveDaRecompensa, type Recompensa } from '../../components/RecompensaD
 import type { AppMetrics } from '../../data/api';
 import { t, tp } from '../i18n';
 import { jaNotificado, notificar } from '../notificacoes';
+import { podeAvisarOfensiva, registrarAvisoDeOfensiva } from '../ofensiva';
 import type { DerivedProgress } from '../progress';
 import { perfilProtegido } from '../protecaoDoMenor';
 
@@ -11,9 +12,6 @@ import { perfilProtegido } from '../protecaoDoMenor';
 function hojeLocal(agora = new Date()): string {
   return `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}-${String(agora.getDate()).padStart(2, '0')}`;
 }
-
-/** A hora a partir da qual uma ofensiva sem estudo no dia é dita "em risco". */
-const HORA_DO_RISCO = 18;
 
 /** O texto de cada recompensa entregue — o mesmo fato que o modal de resgate mostra. */
 export function notificacaoDaRecompensa(r: Recompensa) {
@@ -58,7 +56,8 @@ export function notificacaoDaRecompensa(r: Recompensa) {
  * OS FATOS QUE VIRAM NOTIFICAÇÃO — só o que o app já produz:
  *   · palavras vencidas hoje (`metrics.dueToday`), uma por dia, atualizada se o número mudar;
  *   · conquista, nível e baú, no momento em que entram na fila de recompensas;
- *   · ofensiva em risco: ofensiva ativa, nada estudado hoje e já passou das 18h (uma por dia).
+ *   · ofensiva em risco: ofensiva ativa, nada estudado hoje, entre 18h e 22h (uma por dia —
+ *     `lib/ofensiva`; nunca entre 22h e 8h).
  * A sessão salva é registrada no próprio `handleSaveRecording` (ver `notificarSessaoSalva`).
  */
 export function useNotificacoes({
@@ -101,8 +100,9 @@ export function useNotificacoes({
          desconhecida). Conferido a cada verificação porque a idade pode chegar depois da montagem. */
       if (perfilProtegido()) return;
       const agora = new Date();
-      if (agora.getHours() < HORA_DO_RISCO) return;
+      if (!podeAvisarOfensiva({ streakDays, estudouHoje: practicedToday }, agora)) return;
       const chave = `ofensiva:${hojeLocal(agora)}`;
+      registrarAvisoDeOfensiva(agora);
       if (jaNotificado(chave)) return;
       notificar({
         chave,

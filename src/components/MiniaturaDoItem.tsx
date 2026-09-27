@@ -1,9 +1,10 @@
-import { Crown, Frame } from 'lucide-react';
+import { Crown, Frame, MousePointer2 } from 'lucide-react';
 
 import { THEME_OPTIONS } from '../lib/appearance';
 import { RECEITAS } from '../lib/comemoracao/efeitos';
 import { corDoCromaEquipado } from '../lib/galeria/cromas';
 import { todasAsPaletas } from '../lib/galeria/paletas';
+import { iconeDoItem } from '../lib/galeria/progressao';
 import type { ItemDaLoja } from '../lib/loja';
 import { estiloDeRastro } from '../lib/rastroDoMouse';
 import PreviaDaLegenda from './PreviaDaLegenda';
@@ -13,11 +14,13 @@ import PreviaDoCartao from './PreviaDoCartao';
  * A MINIATURA REAL DE UMA PEÇA (pedido do dono, 01/09: "adicione as miniaturas reais dos itens
  * para facilitar na navegação, esses ícones repetidos geram confusão").
  *
- * O DEFEITO QUE ISTO CORRIGE. `emojiDoItem` dá um ícone por TIPO — foi a correção certa para o
+ * O DEFEITO QUE ISTO CORRIGE. Um ícone por TIPO (`iconeDoItem`) foi a correção certa para o
  * problema anterior (o ícone vinha por regex da descrição, então dependia do texto que alguém
  * escreveu). Mas na grade do inventário, onde as peças aparecem AGRUPADAS POR TIPO, um ícone por
- * tipo é a pior escolha possível: cinco partículas viram cinco ✨ idênticos e seis rastros viram
- * seis 💫. A grade deixa de ser visual e passa a se ler só pelo texto embaixo.
+ * tipo é a pior escolha possível: cinco partículas viram cinco brilhos idênticos. A grade deixa de
+ * ser visual e passa a se ler só pelo texto embaixo.
+ *
+ * SEM EMOJI (recompensas v2): toda forma aqui é vetor ou ícone lucide, na cor que o motor usa.
  *
  * A REGRA AQUI É OUTRA: **a miniatura mostra o que a peça DESENHA**, lendo as mesmas fontes que
  * o app lê na hora de desenhar de verdade —
@@ -40,43 +43,32 @@ import PreviaDoCartao from './PreviaDoCartao';
 type Tam = 'grade' | 'grande';
 
 const MEDIDAS = {
-  grade: { ponto: 9, emoji: 'text-[15px]', unico: 'text-[26px]', gap: 'gap-[3px]', caixa: 'h-8' },
-  grande: { ponto: 16, emoji: 'text-[26px]', unico: 'text-[46px]', gap: 'gap-1.5', caixa: 'h-14' },
+  grade: { ponto: 9, icone: 26, gap: 'gap-[3px]' },
+  grande: { ponto: 16, icone: 46, gap: 'gap-1.5' },
 } as const;
 
 /**
  * Uma fileira de formas que diminui — é o que faz "rastro" parecer rastro e não enfeite.
  *
- * CORAÇÃO É VETOR, NÃO EMOJI, porque é isso que o canvas desenha (`forma: 'coracao'` em
- * effects.ts). A diferença importa: emoji ignora cor, então um ❤️ na miniatura faria o Rastro
- * Lo-fi (corações roxos) parecer idêntico ao Rastro Corações (vermelhos) — que é exatamente a
- * confusão que estas miniaturas vieram resolver.
+ * CORAÇÃO E ESTRELA SÃO VETOR, NÃO EMOJI: emoji ignora cor, então um coração de emoji na
+ * miniatura faria o Rastro Lo-fi (corações roxos) parecer idêntico ao Rastro Corações (vermelhos) —
+ * que é exatamente a confusão que estas miniaturas vieram resolver.
  */
 function Fileira({
   tam,
   forma,
   cores,
-  emojis,
 }: {
   tam: Tam;
-  forma: 'circulo' | 'quadrado' | 'confete' | 'coracao';
+  forma: 'circulo' | 'quadrado' | 'confete' | 'coracao' | 'estrela';
   cores: string[];
-  emojis?: string[];
 }) {
   const m = MEDIDAS[tam];
   const escalas = [1, 0.72, 0.48];
   return (
     <span className={`flex items-center ${m.gap}`} aria-hidden>
       {escalas.map((e, i) =>
-        emojis ? (
-          <span
-            key={i}
-            className={m.emoji}
-            style={{ fontSize: `${(tam === 'grade' ? 15 : 26) * e}px`, opacity: 0.45 + e * 0.55 }}
-          >
-            {emojis[i % emojis.length]}
-          </span>
-        ) : forma === 'coracao' ? (
+        forma === 'coracao' || forma === 'estrela' ? (
           <svg
             key={i}
             width={m.ponto * e * 1.25}
@@ -85,10 +77,7 @@ function Fileira({
             style={{ opacity: 0.45 + e * 0.55 }}
             aria-hidden
           >
-            <path
-              d="M12 21s-8-5.1-8-10.2A4.8 4.8 0 0 1 12 7a4.8 4.8 0 0 1 8 3.8C20 15.9 12 21 12 21z"
-              fill={cores[i % cores.length]}
-            />
+            <path d={forma === 'coracao' ? CORACAO : ESTRELA} fill={cores[i % cores.length]} />
           </svg>
         ) : (
           <span
@@ -108,6 +97,11 @@ function Fileira({
   );
 }
 
+const CORACAO = 'M12 21s-8-5.1-8-10.2A4.8 4.8 0 0 1 12 7a4.8 4.8 0 0 1 8 3.8C20 15.9 12 21 12 21z';
+const ESTRELA = 'M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6-4.9-4.6 6.6-.8z';
+/* As estrelas: as cores quentes do aviso, como o brilho que o motor desenha. */
+const CORES_DA_ESTRELA = ['var(--warn)', 'color-mix(in srgb, var(--warn) 60%, #fff)', 'var(--warn)'];
+
 /** O `kind` do rastro decide a forma; é o mesmo `kind` que o canvas recebe. */
 const FORMA_DO_KIND: Record<string, 'circulo' | 'quadrado' | 'confete' | 'estrela' | 'coracao'> = {
   rastroFaisca: 'circulo',
@@ -119,10 +113,8 @@ const FORMA_DO_KIND: Record<string, 'circulo' | 'quadrado' | 'confete' | 'estrel
 
 export default function MiniaturaDoItem({ item, tam = 'grade' }: { item: ItemDaLoja; tam?: Tam }) {
   const m = MEDIDAS[tam];
-  const solo = (conteudo: string) => (
-    <span className={m.unico} aria-hidden>
-      {conteudo}
-    </span>
+  const soloIcone = (Icone: typeof Frame, cor = 'var(--accent-ink)') => (
+    <Icone aria-hidden style={{ width: m.icone, height: m.icone, color: cor }} />
   );
 
   /* ── TEMA: as quatro cores dele ──────────────────────────────────────────── */
@@ -169,7 +161,7 @@ export default function MiniaturaDoItem({ item, tam = 'grade' }: { item: ItemDaL
     // A skin 'coracoes' desenha `forma: 'coracao'` na paleta rosa/vermelha do preset.
     if (item.alvo === 'coracoes')
       return <Fileira tam={tam} forma="coracao" cores={croma ? [croma] : ['#F04E23', '#FF7BAC', '#E63946']} />;
-    if (item.alvo === 'estrelas') return <Fileira tam={tam} forma="circulo" cores={[]} emojis={['⭐', '✨', '🌟']} />;
+    if (item.alvo === 'estrelas') return <Fileira tam={tam} forma="estrela" cores={croma ? [croma] : CORES_DA_ESTRELA} />;
     if (item.alvo === 'confete')
       return <Fileira tam={tam} forma="confete" cores={[acento, 'var(--warn)', 'var(--good)']} />;
     if (item.alvo === 'pixel') return <Fileira tam={tam} forma="quadrado" cores={[acento, acento, acento]} />;
@@ -184,7 +176,7 @@ export default function MiniaturaDoItem({ item, tam = 'grade' }: { item: ItemDaL
     if (!estilo) {
       return (
         <span className="flex items-center gap-1 opacity-60" aria-hidden>
-          <span className={m.emoji}>🖱️</span>
+          <MousePointer2 style={{ width: m.ponto * 1.7, height: m.ponto * 1.7, color: 'var(--ink-muted)' }} />
           <span className="rounded-full bg-ink-faint" style={{ width: m.ponto * 1.6, height: 2 }} />
         </span>
       );
@@ -193,9 +185,7 @@ export default function MiniaturaDoItem({ item, tam = 'grade' }: { item: ItemDaL
     const paleta = estilo.sobrescrever?.paleta as string[] | undefined;
     const cores = croma ? [croma] : paleta?.length ? paleta : ['var(--accent)'];
     const forma = FORMA_DO_KIND[estilo.kind] ?? 'circulo';
-    // Estrela É emoji no canvas (`forma: 'emoji'`, ⭐/✨) — e emoji ignora cor. A miniatura
-    // mostra isso em vez de inventar uma estrela pintada que o rastro não desenharia.
-    if (forma === 'estrela') return <Fileira tam={tam} forma="circulo" cores={[]} emojis={['⭐', '✨', '⭐']} />;
+    if (forma === 'estrela') return <Fileira tam={tam} forma="estrela" cores={croma ? [croma] : paleta?.length ? paleta : CORES_DA_ESTRELA} />;
     if (forma === 'coracao') return <Fileira tam={tam} forma="coracao" cores={cores} />;
     // Arco-íris é o único que muda de cor entre as partículas — a miniatura mostra isso.
     if (estilo.kind === 'rastroArcoiris') {
@@ -245,8 +235,7 @@ export default function MiniaturaDoItem({ item, tam = 'grade' }: { item: ItemDaL
   /* ── MOLDURA E TÍTULO DE PERFIL (onda 3): o ícone lucide, sem emoji ────────── */
   if (item.tipo === 'moldura' || item.tipo === 'titulo') {
     const Icone = item.tipo === 'moldura' ? Frame : Crown;
-    const lado = tam === 'grade' ? 26 : 46;
-    return <Icone aria-hidden style={{ width: lado, height: lado, color: 'var(--warn-ink)' }} />;
+    return soloIcone(Icone, 'var(--warn-ink)');
   }
 
   /* ── CAPACIDADES: cada uma mostra o que ela abre ─────────────────────────── */
@@ -276,9 +265,8 @@ export default function MiniaturaDoItem({ item, tam = 'grade' }: { item: ItemDaL
   /* ── CARTÃO (onda 4): os três estados da pele lado a lado ── */
   if (item.tipo === 'cartao') return <PreviaDoCartao pele={item.alvo} compacta={tam === 'grade'} />;
 
-  if (item.tipo === 'estudio') return solo('🪄');
-
-  /* Fallback: o ícone do tipo. Chega aqui só o que não tem forma própria — e, quando um tipo
-     novo chegar, é este ramo que denuncia que falta a miniatura dele. */
-  return solo('🎁');
+  /* Fallback: o ícone lucide do tipo (`iconeDoItem`). Chega aqui só o que não tem forma própria
+     (o Estúdio, por exemplo) — e, quando um tipo novo chegar, é este ramo que denuncia que falta a
+     miniatura dele. */
+  return soloIcone(iconeDoItem(item));
 }

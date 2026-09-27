@@ -62,15 +62,20 @@ describe('perfis', () => {
     expect(PRESETS.length).toBeGreaterThanOrEqual(12)
   })
   it('salvar, listar e apagar perfis próprios', () => {
-    const p = salvarPerfil({ nome: 'Meu pato roxo', emoji: '🦆', desc: '', paleta: 'roxo-escuro', fonte: 'padrao', particulas: 'estrelas', rastro: 'off' })
+    const p = salvarPerfil({ nome: 'Meu pato roxo', icone: 'passaro', desc: '', paleta: 'roxo-escuro', fonte: 'padrao', particulas: 'estrelas', rastro: 'off' })
     expect(perfisSalvos().map((x) => x.id)).toContain(p.id)
     expect(perfisSalvos()[0].proprio).toBe(true)
     apagarPerfil(p.id)
     expect(perfisSalvos()).toEqual([])
   })
+  it('perfil salvo antes do ícone lucide (com `emoji`, sem `icone`) ganha o brilho', () => {
+    localStorage.setItem('babel.perfis', JSON.stringify([{ id: 'meu-v1', nome: 'Antigo', emoji: 'x', desc: '', tema: 'babel', fonte: 'padrao', particulas: 'tema', rastro: 'off' }]))
+    expect(perfisSalvos()[0].icone).toBe('brilho')
+    localStorage.removeItem('babel.perfis')
+  })
   it('renomear muda só o nome, no lugar, e rejeita vazio', () => {
-    const a = salvarPerfil({ nome: 'A', emoji: '🅰️', desc: '', tema: 'babel', fonte: 'padrao', particulas: 'tema', rastro: 'off' })
-    const b = salvarPerfil({ nome: 'B', emoji: '🅱️', desc: '', tema: 'babel', fonte: 'padrao', particulas: 'tema', rastro: 'off' })
+    const a = salvarPerfil({ nome: 'A', icone: 'sol', desc: '', tema: 'babel', fonte: 'padrao', particulas: 'tema', rastro: 'off' })
+    const b = salvarPerfil({ nome: 'B', icone: 'lua', desc: '', tema: 'babel', fonte: 'padrao', particulas: 'tema', rastro: 'off' })
     expect(renomearPerfil(a.id, '  ')).toBeNull()
     expect(renomearPerfil('nao-existe', 'X')).toBeNull()
     const novo = renomearPerfil(a.id, 'A renomeado')

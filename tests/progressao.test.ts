@@ -2,7 +2,7 @@
 import { beforeEach,describe, expect, it } from 'vitest'
 
 import { recompensasDoNivel } from '../src/lib/desbloqueios'
-import { emojiDoItem,estadoDaColecao, itemDaConquista, itensPorNivel, proximaRecompensa, recompensasDoNivelCompleto } from '../src/lib/galeria/progressao'
+import { estadoDaColecao, iconeDoItem, itemDaConquista, itensPorNivel, proximaRecompensa, recompensasDoNivelCompleto } from '../src/lib/galeria/progressao'
 import { abrePorNivel, CATALOGO_DA_LOJA } from '../src/lib/loja'
 
 describe('progressão — o mapa das quatro áreas', () => {
@@ -49,7 +49,10 @@ describe('progressão — o mapa das quatro áreas', () => {
     expect(itemDaConquista('inexistente')).toBeUndefined()
   })
 
-  it('emojiDoItem sempre devolve algo visível', () => {
-    for (const i of CATALOGO_DA_LOJA) expect(emojiDoItem(i).length).toBeGreaterThan(0)
+  it('iconeDoItem sempre devolve um ícone lucide (componente, nunca texto/emoji)', () => {
+    for (const i of CATALOGO_DA_LOJA) {
+      const icone = iconeDoItem(i) as unknown
+      expect(typeof icone === 'function' || (typeof icone === 'object' && icone !== null), i.id).toBe(true)
+    }
   })
 })

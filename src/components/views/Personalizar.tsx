@@ -133,7 +133,7 @@ export default function Personalizar({
     const nomeFinal = nome.trim() || `Meu perfil ${perfisSalvos().length + 1}`;
     salvarPerfil({
       nome: nomeFinal,
-      emoji: '✨',
+      icone: 'brilho',
       desc: 'Montado por você.',
       ...(theme === 'custom' && paletaAtiva ? { paleta: paletaAtiva } : { tema: theme }),
       fonte,

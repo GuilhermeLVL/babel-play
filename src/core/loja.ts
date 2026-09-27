@@ -32,7 +32,7 @@ export type TipoDesbloqueavel = 'tema' | 'fonte' | 'posicao' | 'estudio';
  *  galeria. `pack`, `cursor` e `aprimoramento` saíram nas recompensas v2 (27/09); `fonte` e
  *  `posicao` continuam como tipo (a régua de `desbloqueios` os consulta), sem item no catálogo:
  *  fora do catálogo = livre. */
-export type TipoDaLoja = TipoDesbloqueavel | 'particulas' | 'rastro' | 'galeria';
+export type TipoDaLoja = TipoDesbloqueavel | 'particulas' | 'rastro' | 'galeria' | 'legenda';
 
 export interface ItemDaLoja {
   id: string;
@@ -128,7 +128,7 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     desc: 'Carvão sóbrio, tipográfico.',
     raridade: 'raro',
     nivel: 7,
-    precoSeeds: 1280, // 1300 → 1280 na onda 4: com mais peças no baú, a renda típica caiu (docs/economia-v2.md)
+    precoSeeds: 1220, // 1300 → 1220 na onda 4: com mais peças no baú, a renda típica caiu (docs/economia-v2.md)
     previa: ['#F7F6F3', '#FFFFFF', '#37352F', '#37352F'],
   },
   {

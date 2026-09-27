@@ -1,0 +1,96 @@
+/*
+ * ESTILOS DE LEGENDA (recompensas v2, onda 4) — `src/lib/estilosDeLegenda.ts`.
+ *
+ * O contêiner da legenda (`.leg-flut`, a transcrição da captura, a prévia) recebe
+ * `leg-caixa-* leg-contorno-* leg-entrada-* leg-destaque-*`. O texto da fala é `.leg-o`/`.orig`;
+ * a fala inteira, `.leg-fala`/`.fala`; a palavra aprendida, `[data-aprendida]`.
+ *
+ * REGRAS DESTE ARQUIVO:
+ *  - nunca declara letra nem tamanho: tamanho e fonte são acessibilidade e ficam com os ajustes;
+ *  - a caixa e o contorno derivam de `currentColor` (a cor que a pessoa escolheu), então não
+ *    brigam com ela; com alto contraste o resolvedor já tira caixa, contorno e cor do destaque;
+ *  - a entrada é animação de CSS no elemento que acabou de chegar: a legenda entra no DOM no
+ *    mesmo instante de sempre, e o movimento reduzido / modo leve a desligam.
+ */
+.leg-estilo {
+  --leg-contorno-cor: color-mix(in srgb, var(--canvas) 88%, transparent);
+}
+.leg-flut.leg-estilo,
+.previa-leg.leg-estilo {
+  --leg-contorno-cor: rgba(0, 0, 0, 0.85);
+}
+
+/* ── caixa ── */
+.leg-caixa-solida :is(.leg-o, .orig),
+.leg-caixa-vidro :is(.leg-o, .orig),
+.leg-caixa-fita :is(.leg-o, .orig) {
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  padding: 0.04em 0.32em;
+}
+.leg-caixa-solida :is(.leg-o, .orig) {
+  background: color-mix(in srgb, currentColor 14%, transparent);
+  border-radius: 6px;
+}
+.leg-caixa-vidro :is(.leg-o, .orig) {
+  background: color-mix(in srgb, currentColor 7%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 24%, transparent);
+  border-radius: 10px;
+}
+.leg-caixa-fita :is(.leg-o, .orig) {
+  background: linear-gradient(transparent 58%, color-mix(in srgb, var(--accent) 26%, transparent) 58%);
+}
+
+/* ── contorno ── */
+.leg-contorno-1 :is(.leg-o, .orig) {
+  text-shadow: 0 1px 2px var(--leg-contorno-cor);
+}
+.leg-contorno-2 :is(.leg-o, .orig) {
+  text-shadow:
+    -1px -1px 0 var(--leg-contorno-cor),
+    1px -1px 0 var(--leg-contorno-cor),
+    -1px 1px 0 var(--leg-contorno-cor),
+    1px 1px 0 var(--leg-contorno-cor),
+    0 2px 4px var(--leg-contorno-cor);
+}
+
+/* ── entrada (só o que acabou de chegar; curta, para não parecer atraso) ── */
+.leg-entrada-surgir :is(.leg-fala, .fala) {
+  animation: leg-surgir 0.18s var(--ease, ease-out) both;
+}
+.leg-entrada-digitar :is(.leg-o, .orig) {
+  animation: leg-digitar 0.28s steps(14, end) both;
+}
+@keyframes leg-surgir {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes leg-digitar {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+
+/* ── a palavra que você já aprendeu ── */
+.leg-destaque-sublinhado [data-aprendida] {
+  text-decoration: underline 2px color-mix(in srgb, var(--good) 80%, currentColor);
+  text-underline-offset: 3px;
+}
+.leg-destaque-marca-texto [data-aprendida] {
+  background: color-mix(in srgb, var(--good) 30%, transparent);
+  border-radius: 3px;
+}
+.leg-destaque-cor [data-aprendida] {
+  color: color-mix(in srgb, var(--good) 55%, currentColor);
+  text-decoration: underline 1px dotted;
+  text-underline-offset: 3px;
+}
+
+/* Modo leve e movimento reduzido: a fala aparece parada. */
+html[data-modo-leve='true'] .leg-estilo :is(.leg-fala, .fala, .leg-o, .orig) {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .leg-estilo :is(.leg-fala, .fala, .leg-o, .orig) {
+    animation: none;
+  }
+}

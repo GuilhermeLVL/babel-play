@@ -2,6 +2,7 @@ import { Accessibility, Eye, Gamepad2, Palette, PanelLeft, Sparkles, Type, Undo2
 import { useState } from 'react';
 
 import { applyCustomColors, FONTE_OPTIONS, type FonteType, THEME_OPTIONS, type ThemeType } from '../../lib/appearance';
+import { lerEstiloDeLegenda } from '../../lib/estilosDeLegenda';
 import { acessoAoEstilo, faltaParaOPerfil } from '../../lib/galeria/acesso';
 import { gravarPaletaAtiva, lerPaletaAtiva, type Paleta, paletaPorId } from '../../lib/galeria/paletas';
 import {
@@ -178,7 +179,9 @@ export default function Personalizar({
                   ? menuPosition === i.alvo
                   : i.tipo === 'rastro'
                     ? rastroAtual === i.alvo
-                    : false
+                    : i.tipo === 'legenda'
+                      ? lerEstiloDeLegenda() === i.alvo
+                      : false
         }
         /* Os do protótipo, na ordem dele (Tema, Partículas, Fonte, Menu). Cursor e Emojis saíram nas
            recompensas v2. O rastro equipado aparece no próprio cartão, com "Equipado". */

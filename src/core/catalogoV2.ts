@@ -89,5 +89,35 @@ export const TEMAS_V2: ItemDaLoja[] = [
   },
 ];
 
+/* ── ESTILOS DE LEGENDA (equipam em `transcriptSettings.estilo`; desenho em `src/lib/estilosDeLegenda.ts`
+   e `src/styles/legendas.css`). A clássica é o padrão livre; o resto, só Seeds. ── */
+const legenda = (
+  alvo: string,
+  nome: string,
+  desc: string,
+  raridade: 'comum' | 'raro',
+  precoSeeds: number,
+): ItemDaLoja => ({ id: `leg-${alvo}`, tipo: 'legenda', alvo, nome, desc, raridade, nivel: NIVEL_SO_SEEDS, precoSeeds });
+
+export const LEGENDAS_V2: ItemDaLoja[] = [
+  {
+    id: 'leg-classica',
+    tipo: 'legenda',
+    alvo: 'classica',
+    nome: 'Legenda clássica',
+    desc: 'O texto limpo, sem caixa. A palavra que você já aprendeu ganha um sublinhado verde.',
+    raridade: 'comum',
+    nivel: 1,
+  },
+  legenda('cinema', 'Legenda Cinema', 'Faixa por trás da fala e entrada suave; a palavra aprendida muda de cor.', 'comum', 350),
+  legenda('fita', 'Legenda Fita', 'Marca-texto sob a fala; a palavra aprendida ganha o seu próprio destaque.', 'comum', 380),
+  legenda('contorno', 'Legenda Contorno', 'Contorno forte em volta das letras, para ler sobre qualquer vídeo.', 'comum', 420),
+  legenda('vidro', 'Legenda Vidro', 'Caixa de vidro com borda fina; a fala surge de leve.', 'raro', 1000),
+  legenda('maquina', 'Legenda Máquina', 'A fala aparece como se fosse datilografada.', 'raro', 1100),
+  legenda('karaoke', 'Legenda Karaokê', 'Vidro, sombra e a fala escrita da esquerda para a direita.', 'raro', 1200),
+  // Candidato à temporada (onda 5).
+  legenda('letreiro', 'Legenda Letreiro', 'Fita luminosa, contorno forte e entrada suave: legenda de letreiro.', 'raro', 1200),
+];
+
 /** Tudo o que a onda 4 acrescenta ao catálogo, na ordem da vitrine. */
-export const CATALOGO_V2: ItemDaLoja[] = [...TEMAS_V2];
+export const CATALOGO_V2: ItemDaLoja[] = [...TEMAS_V2, ...LEGENDAS_V2];

@@ -111,6 +111,7 @@ import {
 import { baseLang, langLabel, langLabelNaUI, mtCoverage } from '../../lib/languages';
 import { setNavGuard } from '../../lib/navGuard';
 import { OrdemDasTraducoes } from '../../lib/ordemDaTraducao';
+import { usePalavrasAprendidas } from '../../lib/palavrasAprendidas';
 import { destinoDaTraducao, PerfilAdaptativoDeIdioma } from '../../lib/perfilDeIdioma';
 import { coreOnly } from '../../lib/profile';
 import { play } from '../../lib/soundFx';
@@ -216,7 +217,9 @@ export default function LiveCapture({
     const saved = localStorage.getItem('transcriptSettings');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        // Os padrões por baixo: ajuste salvo antes de um campo existir (o `estilo`, na onda 4) não
+        // chega vazio à tela.
+        return { ...DEFAULT_TRANSCRIPT_SETTINGS, ...JSON.parse(saved) };
       } catch {
         /* leitura opcional: sem ajustes salvos, segue o padrão */
       }
@@ -243,7 +246,7 @@ export default function LiveCapture({
       const saved = localStorage.getItem('transcriptSettings');
       if (saved) {
         try {
-          setTsSettings(JSON.parse(saved));
+          setTsSettings({ ...DEFAULT_TRANSCRIPT_SETTINGS, ...JSON.parse(saved) });
         } catch {
           /* idem: ausência de ajuste não é erro */
         }
@@ -1606,6 +1609,8 @@ export default function LiveCapture({
 
   /** Palavras já fichadas nesta visita (o botão do Analista fica "adicionado"). */
   const [addedWords, setAddedWords] = useState<string[]>([]);
+  /* As palavras do caderno que já saíram de "nova" no FSRS: o estilo de legenda as destaca. */
+  const aprendidas = usePalavrasAprendidas();
 
   /* O VOCABULÁRIO DA CAPTURA (examinar, fichar no deck, mandar praticar) mora em
      `lib/captura/palavraDaFala.ts`. Fábrica por render, como as closures que substituiu. */
@@ -2738,6 +2743,7 @@ export default function LiveCapture({
                           escuro={transcricaoEscura}
                           selectedWord={selectedExamWord?.word ?? null}
                           addedWords={addedWords}
+                          aprendidas={aprendidas}
                           onExamineWord={(w, lang, frase) => void examineWord(w, lang, frase)}
                           onSpeakWord={speakWord}
                         />
@@ -3016,6 +3022,7 @@ export default function LiveCapture({
                   escuro={transcricaoEscura}
                   selectedWord={selectedExamWord?.word ?? null}
                   addedWords={addedWords}
+                  aprendidas={aprendidas}
                   onExamineWord={(w, lang, frase) => {
                     void examineWord(w, lang, frase);
                     setFeedbackMsg(`Examinando: "${w.word}"`);
@@ -3173,11 +3180,21 @@ export default function LiveCapture({
           width={440}
           height={300}
         >
-          <LegendasFlutuantes falas={legendasAoVivo} emJanela aoFechar={() => setShowOverlay(false)} />
+          <LegendasFlutuantes
+            falas={legendasAoVivo}
+            emJanela
+            aprendidas={aprendidas}
+            aoFechar={() => setShowOverlay(false)}
+          />
         </DocumentPiP>
       ) : (
         showOverlay && (
-          <LegendasFlutuantes falas={legendasAoVivo} emJanela={false} aoFechar={() => setShowOverlay(false)} />
+          <LegendasFlutuantes
+            falas={legendasAoVivo}
+            emJanela={false}
+            aprendidas={aprendidas}
+            aoFechar={() => setShowOverlay(false)}
+          />
         )
       )}
     </div>

@@ -546,50 +546,25 @@
    `.bg-canvas` (camada utilities), que ganharia de qualquer regra em `base`. */
 @layer tema-fundo {
   /* O fundo dos temas completos aparece atrás do app: a raiz e o <main> deixam de pintar a cor. */
-  html[data-theme="radio"] :is([data-raiz-do-app], [data-raiz-do-app] main.bg-canvas),
-  html[data-theme="papel"] :is([data-raiz-do-app], [data-raiz-do-app] main.bg-canvas),
-  html[data-theme="neon"] :is([data-raiz-do-app], [data-raiz-do-app] main.bg-canvas),
-  html[data-theme="fliperama"] :is([data-raiz-do-app], [data-raiz-do-app] main.bg-canvas),
-  html[data-theme="jardim"] :is([data-raiz-do-app], [data-raiz-do-app] main.bg-canvas),
-  html[data-theme="observatorio"] :is([data-raiz-do-app], [data-raiz-do-app] main.bg-canvas) {
+  html:is([data-theme="radio"], [data-theme="papel"], [data-theme="neon"], [data-theme="fliperama"], [data-theme="jardim"], [data-theme="observatorio"]) :is([data-raiz-do-app], [data-raiz-do-app] main.bg-canvas) {
     background-color: transparent;
   }
-  html[data-theme="radio"] body::before,
-  html[data-theme="papel"] body::before,
-  html[data-theme="neon"] body::before,
-  html[data-theme="fliperama"] body::before,
-  html[data-theme="jardim"] body::before,
-  html[data-theme="observatorio"] body::before,
-  html[data-theme="radio"] body::after,
-  html[data-theme="papel"] body::after,
-  html[data-theme="neon"] body::after,
-  html[data-theme="fliperama"] body::after,
-  html[data-theme="jardim"] body::after,
-  html[data-theme="observatorio"] body::after {
+  html:is([data-theme="radio"], [data-theme="papel"], [data-theme="neon"], [data-theme="fliperama"], [data-theme="jardim"], [data-theme="observatorio"]) body::before,
+  html:is([data-theme="radio"], [data-theme="papel"], [data-theme="neon"], [data-theme="fliperama"], [data-theme="jardim"], [data-theme="observatorio"]) body::after {
     content: '';
     position: fixed;
     pointer-events: none;
     z-index: -1;
   }
   /* Fundo animado: maior que a tela, só desliza e gira um pouco (transform = compositor). */
-  html[data-theme="radio"] body::before,
-  html[data-theme="papel"] body::before,
-  html[data-theme="neon"] body::before,
-  html[data-theme="fliperama"] body::before,
-  html[data-theme="jardim"] body::before,
-  html[data-theme="observatorio"] body::before {
+  html:is([data-theme="radio"], [data-theme="papel"], [data-theme="neon"], [data-theme="fliperama"], [data-theme="jardim"], [data-theme="observatorio"]) body::before {
     inset: -12%;
     background-image: var(--fundo-animado);
     animation: fundo-do-tema 48s ease-in-out infinite alternate;
     will-change: transform;
   }
   /* Textura: parada, presa à tela. */
-  html[data-theme="radio"] body::after,
-  html[data-theme="papel"] body::after,
-  html[data-theme="neon"] body::after,
-  html[data-theme="fliperama"] body::after,
-  html[data-theme="jardim"] body::after,
-  html[data-theme="observatorio"] body::after {
+  html:is([data-theme="radio"], [data-theme="papel"], [data-theme="neon"], [data-theme="fliperama"], [data-theme="jardim"], [data-theme="observatorio"]) body::after {
     inset: 0;
     background-image: var(--textura);
     background-size: var(--textura-tam, auto);

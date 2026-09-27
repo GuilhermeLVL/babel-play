@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
 import {
   ArrowRight,
+  Captions,
   Check,
   Lock,
   Moon,
@@ -66,6 +67,8 @@ const SECOES: Array<{ id: string; titulo: string; icone: LucideIcon; tipos: stri
   /* Recompensas v2 (27/09): "Cursor e emojis" saiu com os cursores e packs; fonte e posição do
      menu viraram opções livres no bloco "Acessibilidade e layout" do Personalizar. */
   { id: 'efeitos', titulo: 'Efeitos', icone: WandSparkles, tipos: ['particulas', 'rastro'] },
+  /* Recompensas v2, onda 4: a legenda ao vivo como peça, com a prévia do estilo no cartão. */
+  { id: 'legendas', titulo: 'Legendas', icone: Captions, tipos: ['legenda'] },
   { id: 'capacidades', titulo: 'Capacidades', icone: Sparkles, tipos: ['galeria', 'estudio'] },
 ];
 

@@ -4,6 +4,12 @@ export interface TranscriptSettings {
   fontFamily: 'sans' | 'serif' | 'mono';
   displayOrder: 'original-first' | 'translated-first';
   hideOriginal: boolean;
+  /**
+   * O ESTILO DE LEGENDA equipado (recompensas v2, onda 4): caixa, contorno, entrada e destaque da
+   * palavra aprendida (`lib/estilosDeLegenda`). É cosmético: tamanho, cor e fonte acima são
+   * acessibilidade e ganham dele. Pode faltar em ajustes salvos antes da onda 4 = `'classica'`.
+   */
+  estilo: string;
 }
 
 export const DEFAULT_TRANSCRIPT_SETTINGS: TranscriptSettings = {
@@ -12,6 +18,7 @@ export const DEFAULT_TRANSCRIPT_SETTINGS: TranscriptSettings = {
   fontFamily: 'sans',
   displayOrder: 'original-first',
   hideOriginal: false,
+  estilo: 'classica',
 };
 
 export function getTranscriptStyleClasses(settings: TranscriptSettings) {

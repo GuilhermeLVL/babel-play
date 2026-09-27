@@ -3,6 +3,7 @@ import { corDoCromaEquipado } from '../lib/galeria/cromas';
 import { todasAsPaletas } from '../lib/galeria/paletas';
 import type { ItemDaLoja } from '../lib/loja';
 import { estiloDeRastro } from '../lib/rastroDoMouse';
+import PreviaDaLegenda from './PreviaDaLegenda';
 
 /**
  * A MINIATURA REAL DE UMA PEÇA (pedido do dono, 01/09: "adicione as miniaturas reais dos itens
@@ -211,6 +212,9 @@ export default function MiniaturaDoItem({ item, tam = 'grade' }: { item: ItemDaL
       }
     }
   }
+
+  /* ── LEGENDA (onda 4): a fala de exemplo vestindo o estilo, não um símbolo ── */
+  if (item.tipo === 'legenda') return <PreviaDaLegenda estilo={item.alvo} compacta={tam === 'grade'} />;
 
   if (item.tipo === 'estudio') return solo('🪄');
 

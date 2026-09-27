@@ -11,6 +11,7 @@
  */
 import type { MenuPositionType } from '../../components/shell/navItems'
 import type { FonteType,ThemeType } from '../appearance'
+import { equiparEstiloDeLegenda } from '../estilosDeLegenda'
 import { estadoDoItem, type ItemDaLoja } from '../loja'
 import { type ParticulasType, setParticulas } from '../particulas'
 import { setRastro } from '../rastroDoMouse'
@@ -40,6 +41,7 @@ export function equiparItem(item: ItemDaLoja, ctx: ContextoDeEquipar): boolean {
     case 'estudio': ctx.onOpenStudio(); return true
     case 'particulas': setParticulas(item.alvo as ParticulasType); return true
     case 'rastro': setRastro(item.alvo); return true
+    case 'legenda': equiparEstiloDeLegenda(item.alvo); return true
     default: return false
   }
 }

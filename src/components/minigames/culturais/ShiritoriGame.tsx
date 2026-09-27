@@ -10,6 +10,7 @@ import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
 import { play } from '../../../lib/soundFx';
 import { falar } from '../../../lib/tts';
+import { botaoDaAlternativa, useAtalhosDasAlternativas } from '../casca/atalhos';
 import AvisoDaJogada from '../casca/AvisoDaJogada';
 import { useRodada } from '../casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from '../casca/HudDaRodada';
@@ -118,6 +119,12 @@ export default function ShiritoriGame({ items, ageProfile, onFinish, onExit }: S
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restante, ativo, idx, resultado, corrente, revelado]);
 
+  useAtalhosDasAlternativas(
+    corrente?.passos[idx]?.opcoes.length ?? 0,
+    (i) => botaoDaAlternativa(palcoRef.current, 'opcoes', i)?.click(),
+    !!corrente && ativo && !revelado && !resultado,
+  );
+
   if (!corrente) return null;
 
   const passo = corrente.passos[idx];
@@ -195,7 +202,7 @@ export default function ShiritoriGame({ items, ageProfile, onFinish, onExit }: S
         </div>
 
         <div data-tour="opcoes" className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
-          {passo.opcoes.map((op) => {
+          {passo.opcoes.map((op, posicao) => {
             const riscada = erradas.includes(op);
             const certaRevelada = revelado === op;
             return (
@@ -220,6 +227,7 @@ export default function ShiritoriGame({ items, ageProfile, onFinish, onExit }: S
                   }
                 }}
                 disabled={riscada || !!revelado}
+                aria-keyshortcuts={String(posicao + 1)}
                 dir={direcaoDoTexto(passo.item.lang)}
                 className={`py-4 px-4 rounded-2xl border-2 font-bold text-[16px] transition-colors ${
                   certaRevelada

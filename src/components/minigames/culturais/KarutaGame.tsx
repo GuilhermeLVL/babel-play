@@ -11,6 +11,7 @@ import { play } from '../../../lib/soundFx';
 import { falar, hasVoiceFor, isTtsSupported, vozesCarregadas } from '../../../lib/tts';
 import AvisoDaJogada from '../casca/AvisoDaJogada';
 import { useRodada } from '../casca/CascaDaRodada';
+import { botaoDaAlternativa, useAtalhosDasAlternativas } from '../casca/atalhos';
 import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from '../casca/HudDaRodada';
 
 /**
@@ -182,7 +183,7 @@ export default function KarutaGame({ items, ageProfile, onFinish, onExit }: Karu
   }, [relogio, ativo, tempo, indice, acabou, item, registrar, avancar]);
 
   const golpear = (carta: string, el: HTMLElement | null) => {
-    if (acabou || !item || respondidoRef.current) return;
+    if (acabou || !item || respondidoRef.current || !ativo) return;
     tentativasRef.current += 1;
 
     if (carta !== item.answer) {
@@ -201,6 +202,15 @@ export default function KarutaGame({ items, ageProfile, onFinish, onExit }: Karu
     falar(item.answer, item.lang);
     setTimeout(avancar, 700);
   };
+
+  useAtalhosDasAlternativas(
+    mesa.length,
+    (i) => {
+      const carta = mesa[i];
+      if (carta) golpear(carta, botaoDaAlternativa(mesaRef.current, 'cartas', i));
+    },
+    suficiente && ativo && !acabou && !revelada,
+  );
 
   if (!suficiente) return null;
 
@@ -249,7 +259,7 @@ export default function KarutaGame({ items, ageProfile, onFinish, onExit }: Karu
 
       <div ref={mesaRef} className="flex items-start justify-center">
         <div data-tour="cartas" className="w-full max-w-4xl grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-5">
-          {mesa.map((carta) => {
+          {mesa.map((carta, posicao) => {
             const certa = carta === acertada || carta === revelada;
             const furada = carta === errada;
             return (
@@ -257,6 +267,7 @@ export default function KarutaGame({ items, ageProfile, onFinish, onExit }: Karu
                 key={carta}
                 onClick={(e) => golpear(carta, e.currentTarget)}
                 disabled={acabou || certa || !!revelada}
+                aria-keyshortcuts={String(posicao + 1)}
                 dir={direcaoDoTexto(item?.lang)}
                 lang={item?.lang}
                 className={`aspect-[4/3] rounded-2xl border-2 px-4 py-3 flex items-center justify-center text-center font-display font-black text-xl sm:text-2xl shadow-card transition-all cursor-pointer

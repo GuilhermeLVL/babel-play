@@ -8,6 +8,7 @@ import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
 import { falar } from '../../../lib/tts';
 import { useRodada } from '../casca/CascaDaRodada';
+import { botaoDaAlternativa, useAtalhosDasAlternativas } from '../casca/atalhos';
 import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from '../casca/HudDaRodada';
 
 /**
@@ -159,6 +160,15 @@ export default function VitendawiliGame({ items, ageProfile, onFinish, onExit }:
     setTimeout(() => setIndice((i) => i + 1), 800);
   };
 
+  useAtalhosDasAlternativas(
+    alternativas.length,
+    (i) => {
+      const palavra = alternativas[i];
+      if (palavra) escolher(palavra, botaoDaAlternativa(palcoRef.current, 'alternativas', i));
+    },
+    suficiente && !!atual && ativo && !encerrado,
+  );
+
   if (!suficiente || !atual) return null;
 
   const dir = direcaoDoTexto(atual.item.lang);
@@ -202,13 +212,14 @@ export default function VitendawiliGame({ items, ageProfile, onFinish, onExit }:
         </p>
 
         <div data-tour="alternativas" className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
-          {alternativas.map((palavra) => {
+          {alternativas.map((palavra, posicao) => {
             const fora = eliminadas.includes(palavra);
             return (
               <button
                 key={palavra}
                 onClick={(e) => escolher(palavra, e.currentTarget)}
                 disabled={fora || encerrado}
+                aria-keyshortcuts={String(posicao + 1)}
                 dir={dir}
                 className={`rounded-2xl border-2 font-display font-black transition-colors ${
                   alvoGrande ? 'py-6 text-2xl' : 'py-5 text-xl'

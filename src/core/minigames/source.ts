@@ -163,7 +163,7 @@ export function idiomasDisponiveis(cards: VocabCard[]): Array<{ lang: string; to
  */
 export function idiomaInicialDaSala(
   atual: { lang: string; origem: string },
-  idiomas: ReadonlyArray<{ lang: string; jogaveis: number }>,
+  idiomas: ReadonlyArray<{ lang: string; jogaveis: number; total?: number }>,
 ): string {
   if (atual.origem === 'trilha') return atual.lang;
   const base = baseLangDe(atual.lang);

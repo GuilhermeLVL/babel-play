@@ -10,6 +10,7 @@ import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
 import { play } from '../../../lib/soundFx';
 import { useRodada } from '../casca/CascaDaRodada';
+import { useAtalhosDasAlternativas } from '../casca/atalhos';
 import AvisoDaJogada from '../casca/AvisoDaJogada';
 import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from '../casca/HudDaRodada';
 
@@ -150,6 +151,15 @@ export default function TabooGame({ items, ageProfile, onFinish, onExit }: Taboo
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restante, ativo, idx, resultado, cartas, revelando]);
 
+  /* A tecla escolhe pela posição; a função de verdade (`responder`) é definida abaixo, depois do
+     retorno antecipado, por isso passa por um ref. */
+  const porTeclaRef = useRef<(i: number) => void>(() => {});
+  useAtalhosDasAlternativas(
+    cartas[idx]?.opcoes.length ?? 0,
+    (i) => porTeclaRef.current(i),
+    !!cartas.length && ativo && !revelando && !resultado,
+  );
+
   if (!cartas.length) return null;
 
   const carta = cartas[idx];
@@ -172,6 +182,10 @@ export default function TabooGame({ items, ageProfile, onFinish, onExit }: Taboo
       hinted: liberadas.length > 0,
     };
     setTimeout(() => avancar(outcome), certo ? 700 : 1800);
+  };
+  porTeclaRef.current = (i) => {
+    const op = carta.opcoes[i];
+    if (op) responder(op);
   };
 
   /* A CASCA COMUM desenha o cabeçalho, a pausa e a contagem; aqui ficam o placar comum e o tabuleiro,
@@ -221,7 +235,7 @@ export default function TabooGame({ items, ageProfile, onFinish, onExit }: Taboo
         </div>
 
         <div data-tour="alternativas" className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
-          {carta.opcoes.map((op) => {
+          {carta.opcoes.map((op, posicao) => {
             const ehACerta = op === carta.item.answer;
             const foiEscolhida = revelando?.escolhida === op;
             return (
@@ -229,6 +243,7 @@ export default function TabooGame({ items, ageProfile, onFinish, onExit }: Taboo
                 key={op}
                 onClick={() => responder(op)}
                 disabled={!!revelando}
+                aria-keyshortcuts={String(posicao + 1)}
                 dir={direcaoDoTexto(carta.item.lang)}
                 className={`py-4 px-4 rounded-2xl border-2 font-bold text-[16px] transition-colors ${
                   revelando && ehACerta

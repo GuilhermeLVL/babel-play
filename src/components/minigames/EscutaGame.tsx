@@ -9,6 +9,7 @@ import { playJuicedError, playJuicedHit, playJuicedVictory, triggerHaptic } from
 import { multiplicador } from '../../lib/juice';
 import type { AgeProfileType } from '../../lib/profile';
 import { useRodada } from './casca/CascaDaRodada';
+import { botaoDaAlternativa, useAtalhosDasAlternativas } from './casca/atalhos';
 import HudDaRodada from './casca/HudDaRodada';
 
 /**
@@ -151,6 +152,15 @@ export default function EscutaGame({ rodadas, audioUrl, ageProfile: _ageProfile,
     );
   };
 
+  useAtalhosDasAlternativas(
+    rodada?.opcoes.length ?? 0,
+    (i) => {
+      const op = rodada?.opcoes[i];
+      if (op) responder(op.id, botaoDaAlternativa(palcoRef.current, 'alternativas', i));
+    },
+    !!rodada && ativo && escolhido === null,
+  );
+
   if (!rodada) return null;
 
   /* A CASCA COMUM desenha o cabeçalho, a pausa e a contagem; aqui ficam o placar comum e o palco
@@ -191,7 +201,7 @@ export default function EscutaGame({ rodadas, audioUrl, ageProfile: _ageProfile,
 
         {/* AS ALTERNATIVAS */}
         <div data-tour="alternativas" className="w-full flex flex-col gap-2">
-          {rodada.opcoes.map((op) => {
+          {rodada.opcoes.map((op, posicao) => {
             const certa = op.id === rodada.correta.id;
             const escolhida = escolhido === op.id;
             const revelando = escolhido !== null;
@@ -200,6 +210,7 @@ export default function EscutaGame({ rodadas, audioUrl, ageProfile: _ageProfile,
                 key={op.id}
                 onClick={(e) => responder(op.id, e.currentTarget)}
                 disabled={revelando}
+                aria-keyshortcuts={String(posicao + 1)}
                 className={`py-3.5 px-4 rounded-xl border text-start font-medium text-[14px] leading-snug transition-all ${
                   revelando
                     ? certa

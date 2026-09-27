@@ -90,7 +90,7 @@ export async function recusaDePosse(
   if (item.precoCreditos !== undefined) {
     return premium.includes(item.id)
       ? null
-      : { tipo, alvo, motivo: `item premium: ${item.precoCreditos} créditos ou o Passe` }
+      : { tipo, alvo, motivo: `item da vitrine de Créditos: ${item.precoCreditos} Créditos` }
   }
   /* Maestria (recompensas v2): o servidor confere a posse pelo crédito, e os efeitos de jogo não
      passam por `settings` — quem chegar aqui com um deles é recusado. */

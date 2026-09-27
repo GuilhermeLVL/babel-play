@@ -159,6 +159,53 @@ inteira pode sair em poucas gravações. É a mesma fórmula do XP da conta (a s
 resultados); se a temporada precisar de ritmo próprio, o ajuste é tirar `palavrasCapturadas` de
 `xpDeTemporada` ou pesar menos.
 
+## Loja com Créditos (onda 6, Task 6.1 — parte do servidor)
+
+Créditos são a moeda comprada com dinheiro (`src/core/creditos.ts`). A vitrine é **curta e
+fechada**: o que tem `precoCreditos` no catálogo (`VITRINE_DE_CREDITOS`, `src/core/loja.ts`), sob a
+régua `vendavelEmCreditos` (`src/core/economiaAutoridade.ts`): uma moeda só (sem `precoSeeds`), sem
+porta de nível, épico ou lendário, nunca de maestria, conquista ou temporada, fora do baú e sem
+repetir o `tipo` + `alvo` de um item de Seeds.
+
+| Item                  | Tipo   | Créditos | c100 (R$ 9,90) | c300 (R$ 24,90) | c700 (R$ 49,90) |
+| --------------------- | ------ | -------- | -------------- | --------------- | --------------- |
+| Rastro Dourado        | rastro | 100      | R$ 9,90        | R$ 8,30         | R$ 7,13         |
+| Pixel Dourado         | rastro | 100      | R$ 9,90        | R$ 8,30         | R$ 7,13         |
+| Corações de Ouro      | rastro | 100      | R$ 9,90        | R$ 8,30         | R$ 7,13         |
+| Aurora Dourada        | rastro | 100      | R$ 9,90        | R$ 8,30         | R$ 7,13         |
+
+- **100 Créditos (eram 150):** todo pacote compra itens inteiros, sem troco que empurre a próxima
+  compra; com 150 o pacote de 100 sozinho não comprava nada. `tests/loja-creditos-v2.test.ts` trava.
+- **Curadoria:** saíram `dourada-1` (partícula Chuva de Estrelas dourada) e `dourada-9` (Confete
+  Dourado) — mesmo `alvo` da Loja de Seeds, e o confete é sorteável no baú — e `dourada-4` (estrelas
+  por emoji, que ignoram a paleta). Quem pagou fica com o equivalente (`EQUIVALENTES`,
+  `reembolso.ts`): 1 → Rastro Dourado, 4 → Aurora Dourada, 9 → Pixel Dourado.
+- **Por que só rastros:** são as únicas peças que já existem, desenham sem código novo e não se
+  ganham por outra porta. Os épicos de tema da onda 4 (Neon noturno, Fliperama) ficaram nas Seeds:
+  são a meta "um épico a cada 2–3 semanas" do perfil típico.
+
+**`POST /api/billing/gastar`** (Express; sem espelho — a edição estática responde 501 "exige conta"
+e `carteira.disponivel` é `false`):
+
+1. **Perfil protegido → 403** (`menor_nao_compra`, ou `idade_nao_informada` sem data declarada),
+   antes do motivo e da idempotência, mesmo com saldo que o responsável comprou para ele pela conta
+   dele. Self-host (sem idade) passa. É a mesma régua de `/assinar` e `/comprar`.
+2. Só `premium:<id>` de item da vitrine; maestria, conquista, temporada, item de Seeds, baú e Seeds
+   → 400. O débito é o preço do **servidor**; `amount` diferente → 400 com o preço certo.
+3. Idempotente por `spendId`; saldo conferido dentro do INSERT (compras simultâneas não passam).
+4. Nada de sorteio no caminho do dinheiro, nenhum caminho de Créditos chega a `decidirBau`, e
+   nenhuma rota converte Créditos em Seeds (`tests/eca-art20-sem-recompensa-aleatoria-paga.test.ts`).
+
+**Pendente:**
+
+- **Responsável comprando um ITEM pelo menor.** `/comprar` aceita `paraUsuario` (o pacote cai na
+  conta do menor), mas o menor não pode gastar (403) e `/gastar` não tem `paraUsuario`. Hoje o
+  responsável só consegue comprar o pacote; comprar o item escolhido para o menor não existe.
+- **Vitrine só de rastros = só desktop** (rastro exige ponteiro fino). Itens de vitrine de tema,
+  legenda ou cartão precisam de arte nova (onda de interface).
+- **Validar com advogado antes de ligar a loja com Créditos** (spec, seção 14): leitura de
+  "pagamento" no ECA Digital art. 20 e compra sob controle do responsável (Decreto 12.880, art. 18).
+
 ## Histórico — economia v2 de 2026-08-28 (substituída pelas recompensas v2)
 
 ### O problema medido

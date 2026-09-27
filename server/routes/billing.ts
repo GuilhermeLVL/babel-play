@@ -76,6 +76,35 @@ const assinarSchema = z
   .strip()
 
 /**
+ * PERFIL PROTEGIDO NÃO COMPRA — a régua do servidor, igual à `perfilProtegido()` do cliente
+ * (`src/lib/protecaoDoMenor.ts`): menor de 18, ou quem ainda não declarou a data (a configuração
+ * mais protetiva é a padrão, ECA Digital; compra sob controle do responsável, art. 18). Vale para
+ * pagar em dinheiro (`/assinar`, `/comprar`) e para gastar Créditos (`/gastar`). Self-host não tem
+ * idade: passa. Devolve `true` depois de já ter respondido o 403.
+ */
+async function recusouPerfilProtegido(
+  req: import('express').Request,
+  res: import('express').Response,
+): Promise<boolean> {
+  if (!authRequired()) return false
+  const quem = await ehAdultoDeclarado(req.userId)
+  if (!quem.informado) {
+    responderErro(res, 403, 'informe a sua data de nascimento antes de pagar', 'idade_nao_informada')
+    return true
+  }
+  if (!quem.adulto) {
+    responderErro(
+      res,
+      403,
+      'contas de menores de 18 anos não fazem compras: peça ao seu responsável para assinar por você',
+      'menor_nao_compra',
+    )
+    return true
+  }
+  return false
+}
+
+/**
  * QUEM PAGA E PARA QUEM (Fases 3 e 4 do lançamento) — a porta comum de `/assinar` e `/comprar`.
  *
  * 1. `CHECKOUT_ENABLED=0` fecha a venda com mensagem clara (503 `checkout_desligado`).
@@ -97,20 +126,7 @@ async function autorizarPagamento(
     return null
   }
   if (!authRequired()) return req.userId
-  const pagador = await ehAdultoDeclarado(req.userId)
-  if (!pagador.informado) {
-    responderErro(res, 403, 'informe a sua data de nascimento antes de pagar', 'idade_nao_informada')
-    return null
-  }
-  if (!pagador.adulto) {
-    responderErro(
-      res,
-      403,
-      'contas de menores de 18 anos não fazem compras: peça ao seu responsável para assinar por você',
-      'menor_nao_compra',
-    )
-    return null
-  }
+  if (await recusouPerfilProtegido(req, res)) return null
   if (!paraUsuario || paraUsuario === req.userId) return req.userId
   const menor = asUserId(paraUsuario)
   if (!(await vinculosRepo.ehResponsavelDe(req.userId, menor))) {
@@ -211,6 +227,10 @@ billingRouter.post('/gastar', async (req, res) => {
   const payload = parseOr400(gastarCreditoSchema, req.body, res)
   if (!payload) return
   try {
+    /* LOJA COM CRÉDITOS (recompensas v2, onda 6): perfil protegido não gasta — nem o saldo que o
+       responsável comprou para ele, nem reenviando um `spendId` antigo. O 403 vem ANTES do motivo
+       e da idempotência: a tela dele nem mostra a vitrine, então qualquer pedido daqui é recusa. */
+    if (await recusouPerfilProtegido(req, res)) return
     const autorizacao = autorizarGastoDeCredito(payload.reason)
     if (ehRecusa(autorizacao)) {
       res.status(400).json({ error: autorizacao.erro })

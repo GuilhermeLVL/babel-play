@@ -150,7 +150,8 @@ test('edição estática: uma rodada inteira sem microfone, gravada no navegador
 
   await expect(page.getByText(/Item 1 de \d+/).first()).toBeVisible({ timeout: 15_000 })
   // Responde qualquer alternativa até a rodada acabar (por item ou pelo relógio de 60 s).
-  const fim = page.getByText('Fim da rodada').first()
+  // Onda 0 (recompensas v2): o Duelo termina no fim comum de todos os jogos.
+  const fim = page.getByText(/Rodada concluída/).first()
   const controles =
     /^(Pausar|Recomeçar|Cortar duas.*|Jogar|Início|Capturar|Biblioteca|Vocabulário|Estatísticas|Personalizar|Sobre|Ajustes|)$/
   for (let i = 0; i < 120 && !(await fim.isVisible().catch(() => false)); i++) {
@@ -167,8 +168,6 @@ test('edição estática: uma rodada inteira sem microfone, gravada no navegador
   await expect(fim).toBeVisible({ timeout: 70_000 })
   // Sem servidor não há ranking de comunidade: o envio nem é oferecido.
   await expect(page.getByText('Ranking global')).toHaveCount(0)
-  await page.getByRole('button', { name: 'Continuar' }).click()
-  await expect(page.getByText(/Fim da rodada|Rodada concluída/).first()).toBeVisible({ timeout: 15_000 })
 
   // A rodada ficou no IndexedDB do navegador (o "servidor" desta edição).
   const gravadas = await page.evaluate(

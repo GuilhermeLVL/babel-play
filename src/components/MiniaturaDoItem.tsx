@@ -1,4 +1,7 @@
+import { Crown, Frame } from 'lucide-react';
+
 import { THEME_OPTIONS } from '../lib/appearance';
+import { RECEITAS } from '../lib/comemoracao/efeitos';
 import { corDoCromaEquipado } from '../lib/galeria/cromas';
 import { todasAsPaletas } from '../lib/galeria/paletas';
 import type { ItemDaLoja } from '../lib/loja';
@@ -49,7 +52,12 @@ const MEDIDAS = {
  * Lo-fi (corações roxos) parecer idêntico ao Rastro Corações (vermelhos) — que é exatamente a
  * confusão que estas miniaturas vieram resolver.
  */
-function Fileira({ tam, forma, cores, emojis }: {
+function Fileira({
+  tam,
+  forma,
+  cores,
+  emojis,
+}: {
   tam: Tam;
   forma: 'circulo' | 'quadrado' | 'confete' | 'coracao';
   cores: string[];
@@ -61,14 +69,26 @@ function Fileira({ tam, forma, cores, emojis }: {
     <span className={`flex items-center ${m.gap}`} aria-hidden>
       {escalas.map((e, i) =>
         emojis ? (
-          <span key={i} className={m.emoji} style={{ fontSize: `${(tam === 'grade' ? 15 : 26) * e}px`, opacity: 0.45 + e * 0.55 }}>
+          <span
+            key={i}
+            className={m.emoji}
+            style={{ fontSize: `${(tam === 'grade' ? 15 : 26) * e}px`, opacity: 0.45 + e * 0.55 }}
+          >
             {emojis[i % emojis.length]}
           </span>
         ) : forma === 'coracao' ? (
-          <svg key={i} width={m.ponto * e * 1.25} height={m.ponto * e * 1.25} viewBox="0 0 24 24"
-            style={{ opacity: 0.45 + e * 0.55 }} aria-hidden>
-            <path d="M12 21s-8-5.1-8-10.2A4.8 4.8 0 0 1 12 7a4.8 4.8 0 0 1 8 3.8C20 15.9 12 21 12 21z"
-              fill={cores[i % cores.length]} />
+          <svg
+            key={i}
+            width={m.ponto * e * 1.25}
+            height={m.ponto * e * 1.25}
+            viewBox="0 0 24 24"
+            style={{ opacity: 0.45 + e * 0.55 }}
+            aria-hidden
+          >
+            <path
+              d="M12 21s-8-5.1-8-10.2A4.8 4.8 0 0 1 12 7a4.8 4.8 0 0 1 8 3.8C20 15.9 12 21 12 21z"
+              fill={cores[i % cores.length]}
+            />
           </svg>
         ) : (
           <span
@@ -99,20 +119,29 @@ const FORMA_DO_KIND: Record<string, 'circulo' | 'quadrado' | 'confete' | 'estrel
 
 export default function MiniaturaDoItem({ item, tam = 'grade' }: { item: ItemDaLoja; tam?: Tam }) {
   const m = MEDIDAS[tam];
-  const solo = (conteudo: string) => <span className={m.unico} aria-hidden>{conteudo}</span>;
+  const solo = (conteudo: string) => (
+    <span className={m.unico} aria-hidden>
+      {conteudo}
+    </span>
+  );
 
   /* ── TEMA: as quatro cores dele ──────────────────────────────────────────── */
   if (item.tipo === 'tema') {
-    const cores = item.previa ?? (() => {
-      const t = THEME_OPTIONS.find((o) => o.id === item.alvo);
-      return t ? [t.swatches.canvas, t.swatches.surface, t.swatches.accent, t.swatches.ink] : null;
-    })();
+    const cores =
+      item.previa ??
+      (() => {
+        const t = THEME_OPTIONS.find((o) => o.id === item.alvo);
+        return t ? [t.swatches.canvas, t.swatches.surface, t.swatches.accent, t.swatches.ink] : null;
+      })();
     if (cores) {
       return (
         <span className={`flex ${m.gap}`} aria-hidden>
           {cores.map((c, i) => (
-            <span key={i} className="rounded-full border border-border-subtle"
-              style={{ width: m.ponto * 1.4, height: m.ponto * 1.4, background: c }} />
+            <span
+              key={i}
+              className="rounded-full border border-border-subtle"
+              style={{ width: m.ponto * 1.4, height: m.ponto * 1.4, background: c }}
+            />
           ))}
         </span>
       );
@@ -138,9 +167,11 @@ export default function MiniaturaDoItem({ item, tam = 'grade' }: { item: ItemDaL
     const croma = corDoCromaEquipado(item.id);
     const acento = croma ?? 'var(--accent)';
     // A skin 'coracoes' desenha `forma: 'coracao'` na paleta rosa/vermelha do preset.
-    if (item.alvo === 'coracoes') return <Fileira tam={tam} forma="coracao" cores={croma ? [croma] : ['#F04E23', '#FF7BAC', '#E63946']} />;
+    if (item.alvo === 'coracoes')
+      return <Fileira tam={tam} forma="coracao" cores={croma ? [croma] : ['#F04E23', '#FF7BAC', '#E63946']} />;
     if (item.alvo === 'estrelas') return <Fileira tam={tam} forma="circulo" cores={[]} emojis={['⭐', '✨', '🌟']} />;
-    if (item.alvo === 'confete') return <Fileira tam={tam} forma="confete" cores={[acento, 'var(--warn)', 'var(--good)']} />;
+    if (item.alvo === 'confete')
+      return <Fileira tam={tam} forma="confete" cores={[acento, 'var(--warn)', 'var(--good)']} />;
     if (item.alvo === 'pixel') return <Fileira tam={tam} forma="quadrado" cores={[acento, acento, acento]} />;
     // 'tema' e 'cometa' (e qualquer skin nova) caem no redondo, que é o burst padrão.
     return <Fileira tam={tam} forma="circulo" cores={[acento, acento, acento]} />;
@@ -181,18 +212,41 @@ export default function MiniaturaDoItem({ item, tam = 'grade' }: { item: ItemDaL
     const h = tam === 'grade' ? 22 : 38;
     const esp = tam === 'grade' ? 6 : 10;
     return (
-      <span className="relative border border-border-subtle rounded-[3px] bg-canvas block" style={{ width: w, height: h }} aria-hidden>
+      <span
+        className="relative border border-border-subtle rounded-[3px] bg-canvas block"
+        style={{ width: w, height: h }}
+        aria-hidden
+      >
         <span
           className={`absolute ${barra}`}
           style={
-            lado === 'top' ? { top: 1, left: 1, right: 1, height: esp }
-            : lado === 'bottom' ? { bottom: 1, left: 1, right: 1, height: esp }
-            : lado === 'right' ? { top: 1, bottom: 1, right: 1, width: esp }
-            : { top: 1, bottom: 1, left: 1, width: esp }
+            lado === 'top'
+              ? { top: 1, left: 1, right: 1, height: esp }
+              : lado === 'bottom'
+                ? { bottom: 1, left: 1, right: 1, height: esp }
+                : lado === 'right'
+                  ? { top: 1, bottom: 1, right: 1, width: esp }
+                  : { top: 1, bottom: 1, left: 1, width: esp }
           }
         />
       </span>
     );
+  }
+
+  /* ── EFEITOS DE JOGO (onda 3): a forma e a cor da RECEITA, as mesmas que o motor desenha ── */
+  if (item.tipo === 'efeito-acerto' || item.tipo === 'efeito-combo' || item.tipo === 'finalizacao') {
+    const r = RECEITAS[item.tipo][item.alvo];
+    const forma =
+      r?.forma === 'pixel' ? 'quadrado' : r?.forma === 'confete' || r?.forma === 'coracao' ? r.forma : 'circulo';
+    const cor = `var(${r?.cor ?? '--accent'})`;
+    return <Fileira tam={tam} forma={forma} cores={[cor, cor, cor]} />;
+  }
+
+  /* ── MOLDURA E TÍTULO DE PERFIL (onda 3): o ícone lucide, sem emoji ────────── */
+  if (item.tipo === 'moldura' || item.tipo === 'titulo') {
+    const Icone = item.tipo === 'moldura' ? Frame : Crown;
+    const lado = tam === 'grade' ? 26 : 46;
+    return <Icone aria-hidden style={{ width: lado, height: lado, color: 'var(--warn-ink)' }} />;
   }
 
   /* ── CAPACIDADES: cada uma mostra o que ela abre ─────────────────────────── */
@@ -205,8 +259,11 @@ export default function MiniaturaDoItem({ item, tam = 'grade' }: { item: ItemDaL
         return (
           <span className={`flex ${m.gap}`} aria-hidden>
             {[p.canvas, p.surface, p.accent, p.ink].map((c, i) => (
-              <span key={i} className="rounded-full border border-border-subtle"
-                style={{ width: m.ponto * 1.4, height: m.ponto * 1.4, background: c }} />
+              <span
+                key={i}
+                className="rounded-full border border-border-subtle"
+                style={{ width: m.ponto * 1.4, height: m.ponto * 1.4, background: c }}
+              />
             ))}
           </span>
         );

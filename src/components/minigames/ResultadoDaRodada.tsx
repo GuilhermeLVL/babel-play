@@ -22,6 +22,7 @@ import type { AgeProfileType } from '../../lib/profile';
 import type { DerivedProgress } from '../../lib/progress';
 import { temRanking } from '../../lib/ranking';
 import { play } from '../../lib/soundFx';
+import BarraDeMaestria from '../maestria/BarraDeMaestria';
 import { Tela, TituloDeSecao } from '../ui';
 import { IconePixel } from '../views/play/IconesPixel';
 import { unidadeDaRodada } from './casca/regras';
@@ -88,6 +89,11 @@ interface ResultadoDaRodadaProps {
   saldoSeeds: number;
   /** Abre Personalizar › Progressão. */
   onVerProgressao?: () => void;
+  /**
+   * MAESTRIA (recompensas v2, onda 3): os pontos do jogo antes desta rodada (do servidor) e o que
+   * ela soma (`pontosDeMaestria` sobre o que foi gravado). `null`/ausente = sem barra.
+   */
+  maestria?: { pontosAntes: number; ganho: number } | null;
 }
 
 /** Fração raspada a partir da qual o resto é revelado sozinho (a do protótipo). */
@@ -110,6 +116,7 @@ export default function ResultadoDaRodada({
   custoPular,
   saldoSeeds,
   onVerProgressao,
+  maestria,
 }: ResultadoDaRodadaProps) {
   const resumo = summarize(report);
   const estrelas = estrelasDaRodada(resumo.precisao);
@@ -319,6 +326,12 @@ export default function ResultadoDaRodada({
               {pontosDaCorrente < recorde && ` · faltam ${recorde - pontosDaCorrente} pts`}
             </p>
           )
+        )}
+
+        {maestria && (
+          <div style={{ margin: '14px 0 4px', textAlign: 'left' }}>
+            <BarraDeMaestria jogo={report.gameId} pontos={maestria.pontosAntes} ganho={maestria.ganho} />
+          </div>
         )}
 
         <div

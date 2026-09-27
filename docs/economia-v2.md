@@ -16,7 +16,7 @@ Só resultado paga. Saíram a **presença** (abrir o app) e os **minutos de capt
 | Acertar um item de jogo | 1 | 3 | — |
 | Rodada sem erro (3 estrelas) | 5 | 15 | mínimo de itens do jogo |
 | Meta do dia (20 acertos no dia) | 15 | 20 | crédito `meta:<AAAA-MM-DD>`, hoje/ontem no fuso do usuário, conferido no servidor |
-| Nível de maestria | 20 × nível | — | onda 3 (`maestria:<jogo>:<n>`) |
+| Nível de maestria | 20 × nível | — | `maestria:<jogo>:<n>`, pontos somados das rodadas gravadas (uma vez por `roundId`), conferido no servidor |
 | 7 dias seguidos de prática | 25 | 50 | dia de prática = revisão, rodada ou palavra salva |
 | Conquista | varia | varia | conferida no servidor |
 
@@ -44,23 +44,29 @@ com a flag `recompensas_v2` ligada e mostra o aviso uma vez só.
 
 ## Calibragem (`npx tsx scripts/economia/simular-ritmo.ts`)
 
-30 dias, semente fixa, pesos reais do core, baú de `decidirBau` e maestria no desenho da onda 3.
+30 dias, semente fixa, pesos reais do core, baú de `decidirBau` e a maestria de `src/core/maestria.ts`.
+Refeita com as ondas 3 e 4 juntas (27/09): os efeitos genéricos da onda 3 e os temas, estilos de
+legenda e peles de cartão da onda 4 entraram no baú, o repetido sai menos e o perfil típico caiu de
+165,2 para **149,9 Seeds/dia**. Para as faixas continuarem na meta, os tetos baixaram: comum 450 →
+440 (Linear Indigo, Paletas Escuras) e raro → 1.190 (Mochi 1.180, **Notion 1.300 → 1.190** — nem
+os 1.260 da onda 3 nem os 1.220 da onda 4 cabem mais nos 8 dias —, Jardim e Karaokê 1.180, Letreiro
+e Combo Chuva de Confete 1.190).
 
 | Perfil | Por dia | Seeds/dia | Seeds em 30 dias | Baús | Peças |
 | --- | --- | --- | --- | --- | --- |
-| Leve | 10 revisões + 1 rodada | 37,5 | 1.126 | 18 | 11 |
-| Típico | 25 revisões + 3 rodadas + 10 palavras + meta | 165,2 | 4.956 | 69 | 13 |
-| Intenso | 60 revisões + 8 rodadas + 30 palavras + meta | 370 | 11.099 | 90 | 13 |
+| Leve | 10 revisões + 1 rodada | 35,2 | 1.056 | 18 | 18 |
+| Típico | 25 revisões + 3 rodadas + 10 palavras + meta | 149,9 | 4.496 | 69 | 34 |
+| Intenso | 60 revisões + 8 rodadas + 30 palavras + meta | 351,1 | 10.534 | 90 | 37 |
 
 Meta do dono, no perfil típico e só com Seeds: um comum a cada 2–3 dias, um raro por semana, um épico
 a cada 2–3 semanas. Preços antigos × fator por raridade, preservando a ordem dentro da faixa:
 
 | Raridade | Antes | Agora | Dias do perfil típico |
 | --- | --- | --- | --- |
-| Comum | 45–60 | **350–450** | 2,1–2,7 |
-| Raro | 100–140 | **1.000–1.300** (1.220 após a onda 4) | 6,1–7,9 |
-| Épico | 220–240 | **2.600–3.000** | 15,7–18,2 |
-| Lendário | 600 | **5.200** | 31,5 |
+| Comum | 45–60 | **350–440** | 2,3–2,9 |
+| Raro | 100–140 | **1.000–1.190** | 6,7–7,9 |
+| Épico | 220–240 | **2.600–3.000** | 17,3–20,0 |
+| Lendário | 600 | **5.200** | 34,7 |
 
 `tests/economia-calibragem.test.ts` reprova se peso ou preço mudar sem refazer a conta.
 
@@ -69,9 +75,12 @@ a cada 2–3 semanas. Preços antigos × fator por raridade, preservando a ordem
 - **O nível abre antes das Seeds.** O XP cresce ~1,5–3× mais rápido que as Seeds; com os preços
   calibrados, todo item de hoje (todos têm `nivel`) destrava por nível antes de a pessoa juntar o
   atalho. O preço só vale para itens SEM nível — a onda 4 deve criar os itens novos só com Seeds (ou
-  subir o `nivel` dos atuais).
-- **O baú pesa ~23% da renda típica** depois que a coleção sorteável (hoje só 13 peças comuns/raras)
-  acaba e ele passa a pagar 15/40 por repetido. Com o catálogo da onda 4 isso cai.
+  subir o `nivel` dos atuais). Onda 3: `ItemDaLoja.nivel` ficou opcional; os 10 efeitos genéricos
+  são só de Seeds e os 72 itens de maestria não têm nível, preço nem Créditos (`catalogoMaestria.ts`).
+- **O baú pesa ~15% da renda típica** (695 de 4.496 em 30 dias): com as ondas 3 e 4 a coleção
+  sorteável passou de 13 para 34+ peças comuns/raras, e o baú entrega peça antes de pagar 15/40 por
+  repetido. Com margem pequena no lendário (34,7 de 35 dias): mais peças sorteáveis na onda 5 pedem
+  a conta de novo.
 - **Croma (15–60) e "pular rodada" (40) não foram recalibrados**: continuam sendo o destino barato
   das Seeds que sobram.
 
@@ -84,19 +93,17 @@ clássica, cartão padrão).
 
 | Tipo | Itens e preço (Seeds) |
 | --- | --- |
-| Tema completo (raro) | Papel e tinta 1.000 · Rádio 1.100 · Jardim 1.200 |
+| Tema completo (raro) | Papel e tinta 1.000 · Rádio 1.100 · Jardim 1.180 |
 | Tema completo (épico) | Neon noturno 2.600 · Fliperama 2.800 · Observatório 3.000* |
 | Estilo de legenda (comum) | Cinema 350 · Fita 380 · Contorno 420 |
-| Estilo de legenda (raro) | Vidro 1.000 · Máquina 1.100 · Karaokê 1.200 · Letreiro 1.200* |
+| Estilo de legenda (raro) | Vidro 1.000 · Máquina 1.100 · Karaokê 1.180 · Letreiro 1.190* |
 | Pele de cartão (comum) | Caderno 360 · Selo 440 |
 | Pele de cartão (raro) | Vitral 1.050 · Constelação 1.150* |
 
 \* candidato à temporada (onda 5 decide; por ora fica com preço).
 
-Os comuns e raros entram no baú, que passa a entregar peça em vez de Seeds de repetido: a renda do
-perfil típico cai de 165,2 para **153 Seeds/dia** (baú 1.050 → 790 em 30 dias; peças 13 → 27). O
-raro mais caro precisava caber em 8 dias (≤ 1.224): **Notion Charcoal 1.300 → 1.220**. Com isso,
-no perfil típico: comum 2,3–2,9 dias · raro 6,5–8,0 · épico 17,0–19,6 · lendário 34,0.
+Os comuns e raros entram no baú, que passa a entregar peça em vez de Seeds de repetido. A conta
+com as duas ondas juntas (149,9 Seeds/dia) e os preços que ela moveu estão em "Calibragem", acima.
 
 ## Histórico — economia v2 de 2026-08-28 (substituída pelas recompensas v2)
 

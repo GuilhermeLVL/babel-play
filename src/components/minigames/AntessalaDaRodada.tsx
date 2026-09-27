@@ -27,6 +27,7 @@ import { fetchRecordes, type RecordeDoJogo } from '../../data/api';
 import { eventosVistos, todosOsEventos } from '../../lib/eventosDeJogo';
 import { proximaRecompensa } from '../../lib/galeria/progressao';
 import type { AgeProfileType } from '../../lib/profile';
+import BarraDeMaestria from '../maestria/BarraDeMaestria';
 import { CabecalhoDeTela, Tela, TituloDeSecao } from '../ui';
 import { IconePixel } from '../views/play/IconesPixel';
 import { Segmentos } from '../views/vocab/Dialogo';
@@ -108,6 +109,8 @@ interface AntessalaProps {
   estados?: ReadonlyMap<string, EstadoDoItem>;
   /** Nível GERAL do app, para dizer a próxima recompensa. */
   nivelGeral?: number;
+  /** MAESTRIA deste jogo (recompensas v2): os pontos do servidor. `null`/ausente = sem barra. */
+  maestria?: { pontos: number } | null;
   /** Itens do acervo marcados como difíceis para você e a rodada de resgate. */
   leeches?: string[];
   onResgate?: (() => void) | null;
@@ -192,6 +195,7 @@ export default function AntessalaDaRodada({
   estados,
   leeches,
   nivelGeral,
+  maestria,
   onResgate,
   auto,
   diagnosticoTermo,
@@ -365,6 +369,12 @@ export default function AntessalaDaRodada({
             <p className="mut">{regraDaRodada(gameId)}</p>
           </div>
         </section>
+
+        {maestria && gameId && (
+          <section className="cartao p5">
+            <BarraDeMaestria jogo={gameId as MinigameId} pontos={maestria.pontos} />
+          </section>
+        )}
 
         {/* NÍVEL · FOCO — recolhido, mas anunciando o que está valendo. Só nos jogos de palavra. */}
         {filtroDificuldade && (

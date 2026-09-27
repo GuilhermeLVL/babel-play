@@ -115,6 +115,15 @@ export const economiaRepo = {
     return rows.map((r) => ({ creditoId: r.creditoId, amount: Number(r.amount ?? 0) }))
   },
 
+  /** Os créditos de maestria já lançados (recompensas v2, onda 3): `maestria:<jogo>:<nível>`. */
+  async maestriasCreditadas(userId: UserId): Promise<string[]> {
+    const rows = await db
+      .select({ creditoId: seedCredits.creditoId })
+      .from(seedCredits)
+      .where(and(eq(seedCredits.userId, userId), isNull(seedCredits.deletedAt), like(seedCredits.creditoId, 'maestria:%')))
+    return rows.map((r) => r.creditoId).sort()
+  },
+
   async registrarPresenca(userId: UserId, dia: number): Promise<{ jaExistia: boolean }> {
     const now = Date.now()
     const r = await db.run(sql`

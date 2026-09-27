@@ -50,7 +50,7 @@ export const TEMAS_V2: ItemDaLoja[] = [
     desc: 'Verde de folha e lavanda, cantos macios, sementes no fundo. Acertos em forma de coração.',
     raridade: 'raro',
     nivel: NIVEL_SO_SEEDS,
-    precoSeeds: 1200,
+    precoSeeds: 1180,
     previa: ['#E8F0E1', '#F9FCF4', '#2E7D4F', '#1C291D'],
   },
   {
@@ -114,9 +114,9 @@ export const LEGENDAS_V2: ItemDaLoja[] = [
   legenda('contorno', 'Legenda Contorno', 'Contorno forte em volta das letras, para ler sobre qualquer vídeo.', 'comum', 420),
   legenda('vidro', 'Legenda Vidro', 'Caixa de vidro com borda fina; a fala surge de leve.', 'raro', 1000),
   legenda('maquina', 'Legenda Máquina', 'A fala aparece como se fosse datilografada.', 'raro', 1100),
-  legenda('karaoke', 'Legenda Karaokê', 'Vidro, sombra e a fala escrita da esquerda para a direita.', 'raro', 1200),
+  legenda('karaoke', 'Legenda Karaokê', 'Vidro, sombra e a fala escrita da esquerda para a direita.', 'raro', 1180),
   // Candidato à temporada (onda 5).
-  legenda('letreiro', 'Legenda Letreiro', 'Fita luminosa, contorno forte e entrada suave: legenda de letreiro.', 'raro', 1200),
+  legenda('letreiro', 'Legenda Letreiro', 'Fita luminosa, contorno forte e entrada suave: legenda de letreiro.', 'raro', 1190),
 ];
 
 /* ── PELES DE CARTÃO (a moldura muda com a palavra: nova → aprendida → dominada; desenho em

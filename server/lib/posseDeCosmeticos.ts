@@ -19,7 +19,7 @@
  * item a item. A paleta livre é uma capacidade (o "Estúdio"), e é a capacidade que tem dono — se
  * o Estúdio está liberado, as cores são da pessoa.
  */
-import { CATALOGO_DA_LOJA, NIVEL_SO_SEEDS } from '../../src/core/loja'
+import { abrePorNivel, CATALOGO_DA_LOJA, temPortaDeNivel } from '../../src/core/loja'
 import { creditsRepo } from '../db/repositories/credits'
 import { economiaRepo } from '../db/repositories/economia'
 import { economiaDoUsuario } from '../db/repositories/metrics'
@@ -92,15 +92,19 @@ export async function recusaDePosse(
       ? null
       : { tipo, alvo, motivo: `item premium: ${item.precoCreditos} créditos ou o Passe` }
   }
-  if ((item.nivel < NIVEL_SO_SEEDS && nivel >= item.nivel) || comprados.includes(item.id)) return null
+  /* Maestria (recompensas v2): o servidor confere a posse pelo crédito, e os efeitos de jogo não
+     passam por `settings` — quem chegar aqui com um deles é recusado. */
+  if (item.origemMaestria) return { tipo, alvo, motivo: 'exige maestria do jogo' }
+  /* Sem porta de nível (recompensas v2: `nivel` ausente ou `NIVEL_SO_SEEDS`) só a compra abre. */
+  if (abrePorNivel(item, nivel) || comprados.includes(item.id)) return null
   return {
     tipo,
     alvo,
     motivo:
-      item.precoSeeds !== undefined
-        ? item.nivel >= NIVEL_SO_SEEDS
-          ? `exige ${item.precoSeeds} seeds`
-          : `exige nível ${item.nivel} ou ${item.precoSeeds} seeds`
-        : `exige nível ${item.nivel}`,
+      !temPortaDeNivel(item)
+        ? `exige ${item.precoSeeds ?? 0} seeds`
+        : item.precoSeeds !== undefined
+          ? `exige nível ${item.nivel} ou ${item.precoSeeds} seeds`
+          : `exige nível ${item.nivel}`,
   }
 }

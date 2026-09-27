@@ -1,4 +1,4 @@
-import { CATALOGO_DA_LOJA, type ItemDaLoja, soPorSeeds } from './loja';
+import { CATALOGO_DA_LOJA, type ItemDaLoja, temPortaDeNivel } from './loja';
 
 /**
  * O PASSE DE TEMPORADA — 100 níveis por cima da MESMA economia (spec personalizar-v4).
@@ -76,9 +76,9 @@ const COFRES_POR_DECADA = [0, 0, 1, 0, 2, 2, 2, 2, 2, 2, 2];
 export function slotsDoPasse(): SlotDoPasse[] {
   const porDecada = new Map<number, ItemDaLoja[]>();
   for (const i of CATALOGO_DA_LOJA) {
-    // Só Seeds (onda 4) também fica fora: a casa da década N abre com o nível N, e esse item não
-    // abre por nível nenhum.
-    if (i.exclusivoDe || soPorSeeds(i)) continue;
+    // Sem porta de nível (recompensas v2: `nivel` ausente na maestria, `NIVEL_SO_SEEDS` nos itens só
+    // de Seeds) o item não tem casa na trilha: a casa da década N abre com o nível N.
+    if (i.exclusivoDe || !temPortaDeNivel(i)) continue;
     const d = Math.min(10, Math.max(1, i.nivel));
     porDecada.set(d, [...(porDecada.get(d) ?? []), i]);
   }

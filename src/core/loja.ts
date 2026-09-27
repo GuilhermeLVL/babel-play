@@ -20,6 +20,8 @@
 import { CATALOGO_V2, NIVEL_SO_SEEDS } from './catalogoV2';
 
 export { NIVEL_SO_SEEDS };
+import { CATALOGO_DA_MAESTRIA } from './catalogoMaestria';
+import type { MinigameId } from './minigames/types';
 
 export type Raridade = 'comum' | 'raro' | 'epico' | 'lendario';
 
@@ -32,7 +34,9 @@ export type TipoDesbloqueavel = 'tema' | 'fonte' | 'posicao' | 'estudio';
  *  galeria. `pack`, `cursor` e `aprimoramento` saíram nas recompensas v2 (27/09); `fonte` e
  *  `posicao` continuam como tipo (a régua de `desbloqueios` os consulta), sem item no catálogo:
  *  fora do catálogo = livre. */
-export type TipoDaLoja = TipoDesbloqueavel | 'particulas' | 'rastro' | 'galeria' | 'legenda' | 'cartao';
+export type TipoDaLoja = TipoDesbloqueavel | 'particulas' | 'rastro' | 'galeria'
+  | 'efeito-acerto' | 'efeito-combo' | 'finalizacao' | 'moldura' | 'titulo' // onda 3 (maestria)
+  | 'legenda' | 'cartao'; // onda 4 (legenda e cartão)
 
 export interface ItemDaLoja {
   id: string;
@@ -42,8 +46,12 @@ export interface ItemDaLoja {
   nome: string;
   desc: string;
   raridade: Raridade;
-  /** Nível que destrava de graça (1 = livre desde o início). */
-  nivel: number;
+  /**
+   * Nível que destrava de graça (1 = livre desde o início). AUSENTE = o nível não abre (recompensas
+   * v2): itens novos só de Seeds e os de maestria. A simulação da onda 2 mostrou que o nível da
+   * conta abre tudo antes das Seeds (`docs/economia-v2.md`).
+   */
+  nivel?: number;
   /** Preço do ATALHO em Seeds; ausente = só por nível. */
   precoSeeds?: number;
   /** Cores de prévia (swatches) quando fizer sentido. */
@@ -67,12 +75,20 @@ export interface ItemDaLoja {
    * Créditos avulsos — só a trilha, e só para quem comprou o passe.
    */
   exclusivoDoPasse?: number;
+  /** O jogo a que o item pertence (efeitos de maestria, molduras e títulos). */
+  jogo?: MinigameId;
+  /**
+   * EXCLUSIVO DE MAESTRIA (recompensas v2, onda 3): o nível de maestria do jogo que libera o item.
+   * Sem nível da conta, sem Seeds, sem Créditos, fora do baú — nunca à venda. A posse vem do
+   * crédito `maestria:<jogo>:<nível>` conferido no servidor.
+   */
+  origemMaestria?: { jogo: MinigameId; nivel: 2 | 3 | 4 | 5 };
 }
 
 /* PREÇOS (recompensas v2, 27/09) — calibrados por SIMULAÇÃO (`scripts/economia/simular-ritmo.ts`,
    tabela em `docs/economia-v2.md`). O perfil típico (25 revisões + 3 rodadas + 10 palavras salvas
-   + meta do dia) rende ≈ 165 Seeds/dia só de resultado; a meta do dono é um comum a cada 2–3 dias,
-   um raro por semana e um épico a cada 2–3 semanas: comum 350-450 · raro 1000-1300 · épico
+   + meta do dia) rende ≈ 158 Seeds/dia só de resultado; a meta do dono é um comum a cada 2–3 dias,
+   um raro por semana e um épico a cada 2–3 semanas: comum 350-450 · raro 1000-1260 · épico
    2600-3000 · lendário 5200 (≈ 1 mês). A escala antiga (40-600) foi multiplicada por faixa,
    mantendo a ordem dentro de cada raridade. Os EXCLUSIVOS de conquista não têm preço nem nível. */
 export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
@@ -95,7 +111,7 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     desc: 'Índigo elegante e geométrico. No escuro vira meia-noite.',
     raridade: 'comum',
     nivel: 2,
-    precoSeeds: 450,
+    precoSeeds: 440,
     previa: ['#F7F8FB', '#FFFFFF', '#5E6AD2', '#1F2023'],
   },
   {
@@ -117,7 +133,7 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     desc: 'Everforest orgânico, arredondado.',
     raridade: 'raro',
     nivel: 6,
-    precoSeeds: 1220,
+    precoSeeds: 1180,
     previa: ['#F2EFDF', '#FDF6E3', '#8DA101', '#5C6A72'],
   },
   {
@@ -128,7 +144,7 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     desc: 'Carvão sóbrio, tipográfico.',
     raridade: 'raro',
     nivel: 7,
-    precoSeeds: 1220, // 1300 → 1220 na onda 4: com mais peças no baú a renda típica caiu (docs/economia-v2.md)
+    precoSeeds: 1190, // 1300 → 1190 com as ondas 3 e 4 juntas: o baú entrega mais peça e a renda típica cai para 149,9/dia (docs/economia-v2.md)
     previa: ['#F7F6F3', '#FFFFFF', '#37352F', '#37352F'],
   },
   {
@@ -315,7 +331,7 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     desc: '30 paletas escuras, uma por matiz.',
     raridade: 'comum',
     nivel: 3,
-    precoSeeds: 450,
+    precoSeeds: 440,
   },
   {
     id: 'gal-estilo-neon',
@@ -508,13 +524,27 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     nivel: 1,
     exclusivoDe: 'duelista',
   },
+  ...CATALOGO_DA_MAESTRIA, // onda 3: efeitos de jogo, molduras e títulos (`catalogoMaestria.ts`)
 ];
 
 /**
- * O item só se abre com Seeds (recompensas v2, onda 4)? São os que declaram `NIVEL_SO_SEEDS`: o
- * nível nunca os abre, então a vitrine de nível, a próxima recompensa e o Passe não os prometem, e
- * o cadeado fala só em Seeds.
+ * O NÍVEL DA CONTA ABRE ESTE ITEM? Duas formas de dizer "não" convivem (recompensas v2): a onda 3
+ * deixa `nivel` ausente (maestria, e o que não chega por nível), a onda 4 marca `NIVEL_SO_SEEDS`
+ * (um nível que ninguém alcança). As duas passam por aqui — nenhuma tela compara `nivel` à mão.
+ */
+export function temPortaDeNivel(item: Pick<ItemDaLoja, 'nivel'>): item is Pick<ItemDaLoja, 'nivel'> & { nivel: number } {
+  return item.nivel !== undefined && item.nivel < NIVEL_SO_SEEDS;
+}
+
+/** O nível `nivel` já abre o item? */
+export function abrePorNivel(item: Pick<ItemDaLoja, 'nivel'>, nivel: number): boolean {
+  return temPortaDeNivel(item) && nivel >= item.nivel!;
+}
+
+/**
+ * O item só se abre com Seeds? Tem preço e nenhuma porta de nível: a vitrine de nível, a próxima
+ * recompensa e o Passe não o prometem, e o cadeado fala só em Seeds.
  */
 export function soPorSeeds(item: Pick<ItemDaLoja, 'nivel' | 'precoSeeds'>): boolean {
-  return item.nivel >= NIVEL_SO_SEEDS && item.precoSeeds !== undefined;
+  return item.precoSeeds !== undefined && !temPortaDeNivel(item);
 }

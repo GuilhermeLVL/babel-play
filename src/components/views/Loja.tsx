@@ -192,7 +192,7 @@ export default function Loja({
       if (ca !== null && cb !== null) return ca - cb;
       if (ca !== null) return -1;
       if (cb !== null) return 1;
-      return a.nivel - b.nivel;
+      return (a.nivel ?? 99) - (b.nivel ?? 99);
     });
   /* A PEÇA DA VITRINE, por regra e não por sorteio: o mais caro que o saldo paga hoje; sem
      nada ao alcance, o que falta menos. */

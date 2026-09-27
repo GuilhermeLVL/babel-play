@@ -104,28 +104,37 @@ function releaseActiveDisplayStream(): void {
   }
 }
 
-/* MODO COMPATÍVEL (regressão de 2026-09-26). Pedir o DSP DESLIGADO (39f69d7) faz o Chrome escolher o
-   pipeline de áudio SEM processamento, que abre a fonte com os parâmetros NATIVOS do dispositivo; o
-   pedido com o DSP padrão usa o pipeline processado (formato fixo). Na ABA isso é indiferente (o
-   áudio vem do próprio navegador); na TELA INTEIRA do Windows a fonte é o loopback do WASAPI, e ali
-   a abertura sem processamento falha com NotReadableError "Could not start audio source". Não há como
-   saber a superfície antes do seletor, então a 1ª tentativa continua rica (a ABA mantém o áudio sem
-   DSP) e, só nesses erros, repetimos UMA vez com as constraints que funcionavam antes de 39f69d7.
-   Não dá para reaproveitar o seletor: o stream nem chegou a existir. */
-const ERROS_QUE_PEDEM_MODO_COMPATIVEL = new Set(['NotReadableError', 'OverconstrainedError']);
-/** Uma repetição que não pôde rodar (sem gesto do usuário) deixa o PRÓXIMO clique já compatível. */
-let proximaAquisicaoCompativel = false;
+/* LOOPBACK POR PROCESSO (causa provada em 2026-09-27; relatório em
+   openspec/audits/2026-09-27-audio-do-sistema/relatorio.md).
 
-function constraintsDeDisplay(compativel: boolean): MediaStreamConstraints {
-  const audio: Record<string, unknown> = { suppressLocalAudioPlayback: false };
-  if (!compativel) {
-    audio.echoCancellation = false;
-    audio.noiseSuppression = false;
-    audio.autoGainControl = false;
-  }
+   Sem `restrictOwnAudio`, o Chrome abre o áudio de JANELA/TELA pelo loopback do WASAPI do
+   dispositivo de saída padrão (deviceId "loopback") e pede ESTÉREO, 48 kHz. Numa saída configurada
+   como 5.1/7.1 (comum em placas Realtek e headsets "7.1") o Windows recusa esse formato no loopback:
+   `IAudioClient::Initialize` → 0x88890008 (AUDCLNT_E_UNSUPPORTED_FORMAT) e o getDisplayMedia rejeita
+   com NotReadableError "Could not start audio source". Reproduzido no Chrome 153 com `audio: true`
+   numa página vazia, então NENHUMA constraint de DSP muda o resultado (a antiga repetição "modo
+   compatível" só reabria o seletor para falhar igual, e saiu).
+
+   Com `restrictOwnAudio: true` o Chrome usa o loopback POR PROCESSO do Windows
+   (deviceId "loopbackWithoutChrome", excluindo a árvore de processos do próprio Chrome), que
+   entrega estéreo em qualquer layout de saída: janela e tela voltaram a abrir com sinal. O preço:
+   o som que toca DENTRO do Chrome (outra aba, o próprio Babel lendo em voz alta) não entra. Para
+   o Babel isso é bônus (não transcreve a própria voz sintetizada); para um vídeo numa aba, o caminho
+   certo sempre foi compartilhar a ABA, e a captura de aba ignora `restrictOwnAudio` ("Tab audio").
+
+   `suppressLocalAudioPlayback: false` mantém o som no alto-falante; `echoCancellation`,
+   `noiseSuppression` e `autoGainControl` desligados porque o que chega é música, jogo, a voz já
+   processada pelo app de chamada: o DSP de conferência come consoantes e bombeia o volume. */
+function constraintsDeDisplay(): MediaStreamConstraints {
   return {
     video: true,
-    audio: audio as MediaTrackConstraints,
+    audio: {
+      suppressLocalAudioPlayback: false,
+      restrictOwnAudio: true,
+      echoCancellation: false,
+      noiseSuppression: false,
+      autoGainControl: false,
+    } as MediaTrackConstraints,
     systemAudio: 'include',
     monitorTypeSurfaces: 'include',
     selfBrowserSurface: 'exclude',
@@ -133,14 +142,73 @@ function constraintsDeDisplay(compativel: boolean): MediaStreamConstraints {
   } as MediaStreamConstraints;
 }
 
+/* MEMÓRIA DO APARELHO. Quando o Windows recusa o áudio da janela/tela, o app lembra (neste
+   navegador) para orientar ANTES do próximo clique: "aqui, prefira a aba ou o loopback". Esquece
+   assim que uma janela/tela volta a entregar áudio. Armazenamento indisponível = sem memória. */
+const CHAVE_FALHA_DO_AUDIO_DA_TELA = 'babel.captura.audioDaTelaFalhou';
+
+function lembrarFalhaDoAudioDaTela(falhou: boolean): void {
+  try {
+    if (falhou) localStorage.setItem(CHAVE_FALHA_DO_AUDIO_DA_TELA, String(Date.now()));
+    else localStorage.removeItem(CHAVE_FALHA_DO_AUDIO_DA_TELA);
+  } catch {
+    /* modo privado / armazenamento bloqueado: segue sem memória */
+  }
+}
+
+/** true se o áudio de janela/tela já foi recusado pelo Windows neste navegador. */
+export function audioDaTelaFalhouNesteAparelho(): boolean {
+  try {
+    return localStorage.getItem(CHAVE_FALHA_DO_AUDIO_DA_TELA) != null;
+  } catch {
+    return false;
+  }
+}
+
+/** Texto curto do erro tipado AUDIO_DA_TELA_INDISPONIVEL (a UI mostra o guia com os botões). */
+export const MSG_AUDIO_DA_TELA_INDISPONIVEL =
+  'O Windows não liberou o áudio desta janela/tela. Use a aba do Chrome (com "compartilhar áudio da guia") ou o dispositivo de loopback.';
+
+/**
+ * Traduz a rejeição do getDisplayMedia num erro com `code` para a UI. Sem stream não há
+ * `displaySurface`: quem diz se foi o ÁUDIO ou a IMAGEM que não abriu é a mensagem do Chrome
+ * ("Could not start audio source" × "Could not start video source").
+ */
+function erroDaAquisicao(err: unknown): Error {
+  const nome = (err as Error)?.name;
+  const texto = String((err as Error)?.message ?? '');
+  if (nome === 'NotAllowedError') {
+    return new Error('Compartilhamento cancelado ou bloqueado. Clique novamente e escolha uma ABA/TELA com áudio.');
+  }
+  if (nome === 'NotReadableError' || nome === 'AbortError' || nome === 'OverconstrainedError') {
+    if (/video/i.test(texto)) {
+      const e = new Error(
+        'O Windows não liberou a imagem desta janela/tela. Escolha outra janela, a tela inteira ou uma aba do Chrome.',
+      ) as Error & { code?: string };
+      e.code = 'TELA_INDISPONIVEL';
+      return e;
+    }
+    lembrarFalhaDoAudioDaTela(true);
+    const e = new Error(MSG_AUDIO_DA_TELA_INDISPONIVEL) as Error & { code?: string };
+    e.code = 'AUDIO_DA_TELA_INDISPONIVEL';
+    return e;
+  }
+  return err instanceof Error ? err : new Error(String(err));
+}
+
+/** A janela/tela entregou áudio: a falha lembrada deixou de valer. A ABA não prova nada. */
+function registrarSuperficieComAudio(surface: string | undefined, faixasDeAudio: number): void {
+  if (faixasDeAudio > 0 && (surface === 'monitor' || surface === 'window')) lembrarFalhaDoAudioDaTela(false);
+}
+
 /**
  * Adquire um MediaStream de display (`getDisplayMedia`) de forma segura: espera qualquer
  * aquisição anterior terminar, libera o stream anterior, respeita o cooldown de liberação e só
- * então chama getDisplayMedia. Registra o resultado como `activeDisplayStream` para o próximo
- * chamador poder liberá-lo. É este ponto único que elimina a colisão probe→start.
- * `aoRepetir` avisa a UI de que o seletor vai abrir de novo (modo compatível, ver acima).
+ * então chama getDisplayMedia — UMA vez por clique. Registra o resultado como `activeDisplayStream`
+ * para o próximo chamador poder liberá-lo. É este ponto único que elimina a colisão probe→start.
+ * A rejeição sobe CRUA (DOMException); quem traduz para a UI é `erroDaAquisicao`.
  */
-export async function acquireDisplayStream(aoRepetir?: () => void): Promise<MediaStream> {
+export async function acquireDisplayStream(): Promise<MediaStream> {
   const prior = displayAcquireLock;
   let release!: () => void;
   displayAcquireLock = new Promise<void>((r) => {
@@ -153,51 +221,13 @@ export async function acquireDisplayStream(aoRepetir?: () => void): Promise<Medi
     if (lastDisplayReleaseTs && since < DISPLAY_RELEASE_COOLDOWN_MS) {
       await sleep(DISPLAY_RELEASE_COOLDOWN_MS - since);
     }
-    /* CONSTRAINTS COMPLETAS (2026-08-27). Além do { video, audio } mínimo:
-       - systemAudio: 'include' — pede ao Chrome para OFERECER "áudio do sistema" também na aba
-         Tela inteira (sem isto alguns canais/versões só mostram o checkbox na aba Guia);
-       - monitorTypeSurfaces: 'include' — garante a aba "Tela inteira" no picker;
-       - selfBrowserSurface: 'exclude' — tira a própria janela do Babel do picker (eco garantido);
-       - surfaceSwitching: 'include' — deixa trocar de aba no meio sem reabrir o picker;
-       - suppressLocalAudioPlayback: false — o som CONTINUA tocando no alto-falante da pessoa.
-       - echoCancellation/noiseSuppression/autoGainControl: false — o que chega aqui é música,
-         vídeo, jogo, a voz de quem está do outro lado JÁ processada pelo app de chamada. O DSP de
-         conferência foi feito para MICROFONE: a supressão de ruído trata trilha sonora como ruído
-         e come consoantes, o AGC bombeia o volume entre frases. Sem pedir `false`, o navegador
-         pode aplicá-lo à faixa de display (o padrão das constraints de áudio é ligado). A rota de
-         loopback por dispositivo já desligava os três pelo mesmo motivo; esta não desligava.
-       O que constraint NENHUMA resolve: JANELA não expõe áudio no Chrome/Windows (limitação de
-       plataforma; o próprio picker avisa). Esse caso vira o erro tipado JANELA_SEM_AUDIO abaixo.
-       Exceção: na TELA INTEIRA do Windows o DSP desligado pode falhar — ver MODO COMPATÍVEL. */
-    const compativel = proximaAquisicaoCompativel;
-    proximaAquisicaoCompativel = false;
-    let stream: MediaStream;
-    try {
-      stream = await navigator.mediaDevices.getDisplayMedia(constraintsDeDisplay(compativel));
-    } catch (err) {
-      const nome = (err as Error)?.name;
-      if (compativel || !ERROS_QUE_PEDEM_MODO_COMPATIVEL.has(nome)) throw err;
-      vlog(
-        'getDisplayMedia sem DSP falhou (' + nome + ') → repetindo no MODO COMPATÍVEL (DSP padrão do navegador); escolha a TELA de novo',
-      );
-      aoRepetir?.();
-      try {
-        stream = await navigator.mediaDevices.getDisplayMedia(constraintsDeDisplay(true));
-      } catch (err2) {
-        vlog('modo compatível também falhou:', (err2 as Error)?.name, '-', (err2 as Error)?.message);
-        // Sem gesto do usuário o navegador recusa o 2º seletor: o próximo clique já vai compatível.
-        if ((err2 as Error)?.name === 'InvalidStateError') {
-          proximaAquisicaoCompativel = true;
-          const e = new Error(
-            'O áudio da tela precisou do modo compatível e o navegador pediu um novo clique. Clique em Iniciar de novo e escolha a TELA com "compartilhar áudio do sistema".',
-          ) as Error & { code?: string };
-          e.code = 'REPETIR_COM_NOVO_CLIQUE';
-          throw e;
-        }
-        throw err2;
-      }
-      vlog('modo compatível OK: áudio da tela com o DSP padrão do navegador');
-    }
+    /* CONSTRAINTS (ver `constraintsDeDisplay`):
+       - systemAudio: 'include' — o Chrome OFERECE "áudio do sistema" na Tela inteira e na Janela;
+       - monitorTypeSurfaces: 'include' — garante a aba "Tela inteira" no seletor;
+       - selfBrowserSurface: 'exclude' — tira a própria janela do Babel do seletor (eco garantido);
+       - surfaceSwitching: 'include' — deixa trocar de aba no meio sem reabrir o seletor;
+       - audio.restrictOwnAudio — o loopback por processo, que abre em saídas 5.1/7.1. */
+    const stream = await navigator.mediaDevices.getDisplayMedia(constraintsDeDisplay());
     activeDisplayStream = stream;
     return stream;
   } finally {
@@ -657,8 +687,9 @@ async function startCaptureFromStream(
 /**
  * Captura o áudio do SISTEMA/aba via getDisplayMedia (video:true é OBRIGATÓRIO pela API).
  * Para Discord/jogos/apps externos: o usuário escolhe "Tela inteira" e marca "compartilhar
- * áudio do sistema" (capta o mix inteiro do SO). Para conteúdo numa aba: escolhe a aba +
- * "áudio da aba". Modo "Janela" não tem áudio no Chrome.
+ * áudio do sistema" (capta o mix do SO, menos o som do próprio Chrome: ver `constraintsDeDisplay`).
+ * Para conteúdo numa aba: escolhe a aba + "áudio da aba". A Janela, no Chrome recente, oferece o
+ * mesmo "áudio do sistema".
  */
 export async function startSystemAudioCapture(
   cb: SystemAudioCallbacks,
@@ -667,36 +698,14 @@ export async function startSystemAudioCapture(
   try {
     let stream: MediaStream;
     try {
-      vlog(
-        'solicitando getDisplayMedia({ video:true, audio:true })… (escolha ABA ou TELA e marque compartilhar áudio)',
-      );
+      vlog('solicitando getDisplayMedia… (escolha ABA, JANELA ou TELA e marque compartilhar áudio)');
       // Aquisição serializada (ver acquireDisplayStream): um único stream de display por vez, com
       // cooldown de liberação — impede a colisão probe→start que causava NotReadableError na aba.
-      stream = await acquireDisplayStream(() =>
-        cb.onStatus?.(
-          'O áudio da tela não abriu sem processamento; abrindo o seletor de novo no modo compatível. Escolha a TELA e marque "compartilhar áudio do sistema".',
-        ),
-      );
+      stream = await acquireDisplayStream();
     } catch (err) {
       vlog('getDisplayMedia rejeitado:', (err as Error)?.name, '-', (err as Error)?.message);
-      if (err instanceof DOMException && err.name === 'NotAllowedError') {
-        throw new Error('Compartilhamento cancelado ou bloqueado. Clique novamente e escolha uma ABA/TELA com áudio.');
-      }
-      // NotReadableError = você MARCOU "compartilhar áudio do sistema", mas o Windows/navegador
-      // não conseguiu ABRIR o loopback de áudio. É falha de SO/driver, não do app. Causas comuns:
-      // modo exclusivo no dispositivo de reprodução, outro app segurando o áudio, ou driver.
-      if (err instanceof DOMException && (err.name === 'NotReadableError' || err.name === 'AbortError')) {
-        releaseActiveDisplayStream();
-        throw new Error(
-          'O Windows não conseguiu INICIAR a captura do áudio da TELA (NotReadableError), limitação conhecida ' +
-            'do Chrome no Windows para o áudio de tela inteira (o áudio de ABA costuma funcionar). ' +
-            'Caminhos que funcionam: ' +
-            '(1) ROTA CONFIÁVEL p/ Discord/jogos/sistema inteiro: troque a fonte para "Dispositivo de loopback (Stereo Mix / VB-Cable)", veja o guia; ' +
-            '(2) para conteúdo numa ABA (YouTube, chamada): compartilhe a ABA e marque "compartilhar áudio da aba"; ' +
-            '(3) se insistir na tela inteira, desative o "modo exclusivo" do dispositivo de reprodução (Som → Propriedades → Avançado) e feche apps que usem o áudio.',
-        );
-      }
-      throw err;
+      releaseActiveDisplayStream();
+      throw erroDaAquisicao(err);
     }
 
     // Verifica áudio + QUAL superfície foi compartilhada (para orientar o usuário com precisão).
@@ -704,12 +713,13 @@ export async function startSystemAudioCapture(
     const surface = (videoTrack?.getSettings?.() as any)?.displaySurface as string | undefined;
     const audioTracks = stream.getAudioTracks();
     vlog('superfície:', surface ?? '?', '| vídeo:', stream.getVideoTracks().length, '| áudio:', audioTracks.length);
+    registrarSuperficieComAudio(surface, audioTracks.length);
     if (audioTracks.length === 0) {
       stream.getTracks().forEach((t) => t.stop());
       let msg: string;
       if (surface === 'window') {
         msg =
-          'O modo JANELA não captura áudio no Chrome (limitação da plataforma, a própria janela de seleção avisa "To share audio, share a tab or screen instead"). Para jogos/apps, use a TELA INTEIRA e marque "Também compartilhar o áudio do sistema".';
+          'A JANELA veio sem áudio. Escolha de novo e ative "Compartilhar áudio do sistema" (Chrome recente oferece na Janela) ou use a TELA INTEIRA ou uma aba.';
       } else if (surface === 'monitor') {
         msg =
           'Você compartilhou a Tela, mas NÃO marcou "Também compartilhar o áudio do sistema". Clique de novo e ATIVE essa opção (o botão fica no canto inferior esquerdo da janela de seleção).';
@@ -1067,20 +1077,14 @@ export async function probeSystemAudio(): Promise<SystemAudioProbe> {
   } catch (err) {
     vlog('PROBE getDisplayMedia rejeitado:', (err as Error)?.name, '-', (err as Error)?.message);
     releaseActiveDisplayStream();
-    if (err instanceof DOMException && (err.name === 'NotReadableError' || err.name === 'AbortError')) {
-      // Mesmo diagnóstico do fluxo real: o SO não conseguiu abrir o loopback do áudio da tela.
-      throw new Error(
-        'O Windows não conseguiu INICIAR o áudio da TELA (NotReadableError), limitação do Chrome no Windows. ' +
-          'Use a fonte "Dispositivo de loopback (Stereo Mix / VB-Cable)" para Discord/jogos/sistema inteiro, ' +
-          'ou compartilhe uma ABA com "áudio da aba" (esse caminho funciona).',
-      );
-    }
-    throw err;
+    // Mesmo diagnóstico do fluxo real (erro tipado + memória do aparelho).
+    throw erroDaAquisicao(err);
   }
   const vTrack = stream.getVideoTracks()[0];
   const surface = ((vTrack?.getSettings?.() as any)?.displaySurface as string) ?? '?';
   const aTracks = stream.getAudioTracks();
   vlog('PROBE → superfície:', surface, '| áudio:', aTracks.length, '| label:', aTracks[0]?.label || '-');
+  registrarSuperficieComAudio(surface, aTracks.length);
   if (aTracks.length === 0) {
     releaseActiveDisplayStream();
     return { surface, audioTrackCount: 0, audioLabel: '', peakLevel: 0, verdict: 'no-audio-track' };

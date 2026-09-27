@@ -6,8 +6,10 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { comemorar } from '../../../lib/juice';
 import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
-import { speak } from '../../../lib/tts';
+import { t } from '../../../lib/i18n';
+import { falar } from '../../../lib/tts';
 import { useRodada } from '../casca/CascaDaRodada';
+import AvisoDaJogada from '../casca/AvisoDaJogada';
 import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from '../casca/HudDaRodada';
 
 /**
@@ -54,7 +56,7 @@ function embaralhar<T>(xs: T[]): T[] {
 export default function KofferGame({ items, ageProfile, onFinish, onExit }: KofferGameProps) {
   /** A casca diz quando a rodada anda (fora da contagem 3-2-1 e da pausa); o placar do HUD sai dos resultados. */
   const { ativo } = useRodada();
-  const [placar] = usePlacarDaRodada('koffer');
+  const [placar, recontar] = usePlacarDaRodada('koffer');
   const def = MINIGAMES.koffer;
 
   /* Duas palavras iguais na mala tornariam a ordem impossível de conferir por toque. */
@@ -87,6 +89,12 @@ export default function KofferGame({ items, ageProfile, onFinish, onExit }: Koff
   const inicioPosicaoRef = useRef(Date.now());
   const espiouNoNivelRef = useRef(false);
   const encerradoRef = useRef(false);
+  /** Quanto falta de mala aberta NESTE nível — o relógio só anda com a rodada ativa. */
+  const abertaRestanteRef = useRef(TEMPO_ABERTA[ageProfile]);
+  /** O nível cuja palavra nova já foi falada (a fala espera a contagem acabar). */
+  const faladoNoNivelRef = useRef(0);
+  /** Acabaram as vidas: a palavra que era a certa naquela posição, para a pessoa sair sabendo. */
+  const [perdida, setPerdida] = useState<MinigameItem | null>(null);
   const malaRef = useRef<HTMLDivElement | null>(null);
 
   const naMala = rodada.slice(0, nivel);
@@ -96,11 +104,8 @@ export default function KofferGame({ items, ageProfile, onFinish, onExit }: Koff
     if (!suficiente) onExit();
   }, [suficiente, onExit]);
 
-  const finalizar = () => {
-    if (encerradoRef.current) return;
-    encerradoRef.current = true;
-    setEncerrado(true);
-
+  /** Os resultados até agora, por palavra — o relatório final e o placar ao vivo são a mesma conta. */
+  const resultadosAteAqui = (): ItemOutcome[] => {
     const outcomes: ItemOutcome[] = [];
     rodada.forEach((item, i) => {
       const reg = registrosRef.current.get(i);
@@ -114,6 +119,15 @@ export default function KofferGame({ items, ageProfile, onFinish, onExit }: Koff
         ...(reg.espiou ? { hinted: true } : {}),
       });
     });
+    return outcomes;
+  };
+
+  const finalizar = (espera = 900) => {
+    if (encerradoRef.current) return;
+    encerradoRef.current = true;
+    setEncerrado(true);
+
+    const outcomes = resultadosAteAqui();
 
     const perfeita = outcomes.length > 0 && outcomes.every((o) => o.correct && o.attempts === 1);
     comemorar(perfeita ? 'rodadaPerfeita' : 'rodadaBoa', malaRef.current);
@@ -126,11 +140,11 @@ export default function KofferGame({ items, ageProfile, onFinish, onExit }: Koff
           score: scoreRound('koffer', outcomes),
           durationMs: Date.now() - inicioRodadaRef.current,
         }),
-      900,
+      espera,
     );
   };
 
-  // A mala abre com a palavra nova, é falada, e depois fecha para a reconstrução.
+  // A mala abre com a palavra nova…
   useEffect(() => {
     if (!suficiente || encerradoRef.current) return;
     setFase('entrando');
@@ -138,14 +152,34 @@ export default function KofferGame({ items, ageProfile, onFinish, onExit }: Koff
     setErrou(false);
     setPalheta(embaralhar(rodada));
     espiouNoNivelRef.current = false;
-    const nova = rodada[nivel - 1];
-    if (nova) speak(nova.answer, { lang: nova.lang });
-    const t = setTimeout(() => {
+    abertaRestanteRef.current = TEMPO_ABERTA[ageProfile];
+  }, [nivel, suficiente, rodada, ageProfile]);
+
+  /**
+   * …e o tempo de mala aberta só corre com a RODADA ATIVA (QA dos jogos, 2026-09-26). O primeiro
+   * nível abria durante a contagem 3-2-1, com o palco inerte, e fechava antes de a rodada começar: a
+   * primeira pergunta era sobre uma palavra que ninguém viu. A pausa também não segurava a mala. Aqui
+   * o relógio para quando a casca para, e retoma de onde estava; a palavra nova é falada quando a
+   * mala abre DE VERDADE para quem joga.
+   */
+  useEffect(() => {
+    if (fase !== 'entrando' || !ativo || !suficiente || encerradoRef.current) return;
+    if (faladoNoNivelRef.current !== nivel) {
+      faladoNoNivelRef.current = nivel;
+      const nova = rodada[nivel - 1];
+      if (nova) falar(nova.answer, nova.lang);
+    }
+    // Em passos de 100 ms: parar e retomar não perde nem ganha tempo de mala aberta.
+    const PASSO = 100;
+    const relogio = setInterval(() => {
+      abertaRestanteRef.current -= PASSO;
+      if (abertaRestanteRef.current > 0) return;
+      clearInterval(relogio);
       setFase('lembrando');
       inicioPosicaoRef.current = Date.now();
-    }, TEMPO_ABERTA[ageProfile]);
-    return () => clearTimeout(t);
-  }, [nivel, suficiente, rodada, ageProfile]);
+    }, PASSO);
+    return () => clearInterval(relogio);
+  }, [fase, ativo, nivel, suficiente, rodada]);
 
   const registro = (i: number): Registro => {
     const atual = registrosRef.current.get(i);
@@ -172,9 +206,14 @@ export default function KofferGame({ items, ageProfile, onFinish, onExit }: Koff
       reg.erros += 1;
       setErrou(true);
       comemorar('erro', el);
+      recontar(resultadosAteAqui());
       const restantes = vidas - 1;
       setVidas(restantes);
-      if (restantes <= 0) finalizar();
+      if (restantes <= 0) {
+        // Sem vidas: a rodada acaba, mas não sem dizer qual era a palavra daquela posição.
+        setPerdida(esperado);
+        finalizar(2200);
+      }
       return;
     }
 
@@ -182,7 +221,8 @@ export default function KofferGame({ items, ageProfile, onFinish, onExit }: Koff
     reg.ms = Date.now() - inicioPosicaoRef.current;
     setErrou(false);
     comemorar('acerto', el);
-    speak(esperado.answer, { lang: esperado.lang });
+    recontar(resultadosAteAqui());
+    falar(esperado.answer, esperado.lang);
 
     const proxima = posicao + 1;
     if (proxima < naMala.length) {
@@ -280,10 +320,14 @@ export default function KofferGame({ items, ageProfile, onFinish, onExit }: Koff
                   </li>
                 ))}
               </ol>
-              {errou && (
-                <p className="text-sm font-bold text-error-ink px-3 py-1.5 rounded-xl bg-error-soft">
-                  Não foi esta. A ordem conta — e a tentativa custou uma vida.
-                </p>
+              {perdida ? (
+                <AvisoDaJogada tom="erro" rotulo={t('Acabaram as vidas. Nesta posição estava:')} resposta={perdida.answer} lang={perdida.lang} />
+              ) : (
+                errou && (
+                  <p className="text-sm font-bold text-error-ink px-3 py-1.5 rounded-xl bg-error-soft">
+                    {t('Não foi esta. A ordem conta, e a tentativa custou uma vida.')}
+                  </p>
+                )
               )}
             </div>
           )}

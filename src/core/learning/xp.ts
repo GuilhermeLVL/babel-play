@@ -21,7 +21,6 @@ import type { AppMetrics } from './contract';
 /** Peso de cada esforço real em XP. Explícito de propósito: a regra tem de ser auditável. */
 export const PESOS_XP = {
   sessao: 25,
-  palavraCapturada: 2,
   revisao: 3,
   /** Bônus, somado a `revisao` — uma revisão certa vale 3 + 2. */
   revisaoCerta: 2,
@@ -78,6 +77,8 @@ export const PESOS_SEEDS = {
 /** Os fatos que produzem XP. Todos contáveis, todos com carimbo de tempo no banco. */
 export interface EventosDeXp {
   sessoes: number;
+  /** Palavras TRANSCRITAS: só estatística. Não rendem XP desde 27/09 (recompensas v2): é volume de
+   *  mídia, não esforço — importar um vídeo de 325 palavras rendia 650 XP sem ação nenhuma. */
   palavrasCapturadas: number;
   revisoes: number;
   revisoesCertas: number;
@@ -99,7 +100,6 @@ export interface EventosDeXp {
 export function xpDeEventos(e: EventosDeXp): number {
   return (
     e.sessoes * PESOS_XP.sessao +
-    e.palavrasCapturadas * PESOS_XP.palavraCapturada +
     e.revisoes * PESOS_XP.revisao +
     e.revisoesCertas * PESOS_XP.revisaoCerta +
     (e.itensDeJogo ?? 0) * PESOS_XP.itemDeJogo +
@@ -113,7 +113,16 @@ export function xpDeEventos(e: EventosDeXp): number {
 
 /** Seeds GANHAS (só cresce). O saldo subtrai os gastos, que vivem numa tabela de eventos. */
 export function seedsGanhasDeEventos(
-  e: Pick<EventosDeXp, 'revisoesCertas' | 'itensDeJogoCertos' | 'sequencias7' | 'palavrasSalvasPremiadas' | 'cartoesCriados' | 'rodadasPerfeitas' | 'seedsCreditadas'>,
+  e: Pick<
+    EventosDeXp,
+    | 'revisoesCertas'
+    | 'itensDeJogoCertos'
+    | 'sequencias7'
+    | 'palavrasSalvasPremiadas'
+    | 'cartoesCriados'
+    | 'rodadasPerfeitas'
+    | 'seedsCreditadas'
+  >,
 ): number {
   return (
     (e.cartoesCriados ?? 0) * PESOS_SEEDS.cartao +

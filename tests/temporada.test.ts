@@ -84,15 +84,22 @@ describe('XP e nível de temporada', () => {
     const depois = brasilia('2026-11-26T08:00:00').getTime()
     const xp = xpDeTemporada(
       {
-        sessoes: [{ em: dentro, palavras: 10 }, { em: antes, palavras: 50 }],
-        revisoes: [{ em: dentro, certa: true }, { em: depois, certa: true }],
-        itensDeJogo: [{ em: dentro, certo: false }, { em: antes, certo: true }],
+        sessoes: [
+          { em: dentro, palavras: 10 },
+          { em: antes, palavras: 50 },
+        ],
+        revisoes: [
+          { em: dentro, certa: true },
+          { em: depois, certa: true },
+        ],
+        itensDeJogo: [
+          { em: dentro, certo: false },
+          { em: antes, certo: true },
+        ],
       },
       T1,
     )
-    expect(xp).toBe(
-      PESOS_XP.sessao + 10 * PESOS_XP.palavraCapturada + PESOS_XP.revisao + PESOS_XP.revisaoCerta + PESOS_XP.itemDeJogo,
-    )
+    expect(xp).toBe(PESOS_XP.sessao + PESOS_XP.revisao + PESOS_XP.revisaoCerta + PESOS_XP.itemDeJogo)
   })
 })
 
@@ -127,7 +134,10 @@ describe('as duas trilhas', () => {
       for (let n = 1; n <= 30; n++) {
         const r = recompensaDaTrilha(n, trilha)
         if (ehItem(r)) {
-          expect(CATALOGO_DA_LOJA.some((i) => i.id === r.id), r.id).toBe(true)
+          expect(
+            CATALOGO_DA_LOJA.some((i) => i.id === r.id),
+            r.id,
+          ).toBe(true)
           vistos.set(r.id, (vistos.get(r.id) ?? 0) + 1)
         }
       }
@@ -160,7 +170,13 @@ describe('o crédito da temporada', () => {
     const id = creditoDaTemporada('t1', 12, 'assinante')
     expect(id).toBe('temporada:t1:12:assinante')
     expect(lerCreditoDaTemporada(id)).toEqual({ temporada: T1, nivel: 12, trilha: 'assinante' })
-    for (const ruim of ['temporada:t9:2:gratis', 'temporada:t1:0:gratis', 'temporada:t1:31:assinante', 'temporada:t1:2:vip', 'temporada:t1:02:gratis']) {
+    for (const ruim of [
+      'temporada:t9:2:gratis',
+      'temporada:t1:0:gratis',
+      'temporada:t1:31:assinante',
+      'temporada:t1:2:vip',
+      'temporada:t1:02:gratis',
+    ]) {
       expect(lerCreditoDaTemporada(ruim), ruim).toBeNull()
     }
   })

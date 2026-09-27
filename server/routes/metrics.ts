@@ -24,7 +24,6 @@ import {
 import { diaLocal, diaNoFuso, fusoOuPadrao, sequencias } from '../../src/core/learning/economia'
 import { maestriaPorJogo, nivelDeMaestria } from '../../src/core/maestria'
 import { estadoDasMissoes, metaConcluida, missoesComProgresso } from '../../src/core/missoes'
-import { reembolsosDevidos, resolverPremium } from '../../src/core/reembolso'
 import {
   ehAssinanteDaTemporada,
   nivelDaTemporada,
@@ -32,7 +31,6 @@ import {
   temporadaAtual,
   xpDeTemporada,
 } from '../../src/core/temporada'
-import { creditsRepo } from '../db/repositories/credits'
 import { economiaRepo } from '../db/repositories/economia'
 import { exerciseResultsRepo } from '../db/repositories/exerciseResults'
 import { computeProfile, computeXpHistory, dadosDasMissoes, linhasDoHistoricoDeXp } from '../db/repositories/metrics'
@@ -40,6 +38,7 @@ import { economiaDoUsuario } from '../db/repositories/metrics'
 import { seedSpendsRepo } from '../db/repositories/seedSpends'
 import { getPlanForUser } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
+import { reembolsarCorteDoCatalogo } from '../lib/reembolsoDoCorte'
 import { responderErro } from '../lib/respostaDeErro'
 import {
   metricsProfileQuerySchema,
@@ -393,30 +392,13 @@ async function creditarDrop(
  * no core) menos o que já foi creditado. Cada reembolso é um crédito `reembolso:<reason do gasto>`
  * e a unicidade (usuário, `credito_id`) de `seed_credits` é o que torna dois pedidos simultâneos
  * (duas abas abrindo juntas) um crédito só: o segundo INSERT cai no `ON CONFLICT` e não soma em
- * `creditado`. Repetir o pedido depois devolve `creditado: 0`.
+ * `creditado`. Repetir o pedido depois devolve `creditado: 0`. Os Créditos pagos por item premium
+ * sem equivalente livre também voltam (`creditosDevolvidos`) — em `lib/reembolsoDoCorte.ts`, porque
+ * esta rota sorteia o baú e não pode tocar no razão de Créditos (`tests/eca-art20-*`).
  */
 metricsRouter.post('/seeds/reembolso', async (req, res) => {
   try {
-    const [gastos, ja] = await Promise.all([seedSpendsRepo.gastos(req.userId), economiaRepo.reembolsos(req.userId)])
-    const devidos = reembolsosDevidos(gastos, new Set(ja.map((r) => r.creditoId)))
-    let creditado = 0
-    for (const d of devidos) {
-      const { jaExistia } = await economiaRepo.creditar(req.userId, {
-        creditoId: d.creditoId,
-        amount: d.seeds,
-        xp: 0,
-        reason: d.creditoId,
-      })
-      if (!jaExistia) creditado += d.seeds
-    }
-    /* O PAGO EM CRÉDITOS por item que saiu e não tem equivalente livre na vitrine volta em
-       Créditos (`resolverPremium`), como concessão idempotente pela linha do gasto. */
-    let creditosDevolvidos = 0
-    for (const r of resolverPremium(await creditsRepo.comprasPremium(req.userId)).reembolsos) {
-      const { jaExistia } = await creditsRepo.registrarConcessao(req.userId, { concessaoId: r.concessaoId, creditos: r.creditos })
-      if (!jaExistia) creditosDevolvidos += r.creditos
-    }
-    const reembolsado = (await economiaRepo.reembolsos(req.userId)).reduce((n, r) => n + r.amount, 0)
+    const { creditado, reembolsado, creditosDevolvidos } = await reembolsarCorteDoCatalogo(req.userId)
     const totais = await economiaRepo.totaisCreditados(req.userId)
     res.json({ creditado, reembolsado, creditosDevolvidos, ...totais })
   } catch (err) {

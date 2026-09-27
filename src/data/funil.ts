@@ -53,6 +53,30 @@ async function servidorEfemero(input: string, init: RequestInit): Promise<Respon
   return (await carregarServidorEfemero())(input, init)
 }
 
+/**
+ * SEM CASCATA PARA QUEM VAI USÁ-LO. Esperar a primeira chamada para pedir o chunk custava uma ida à
+ * rede depois de o React montar (medido: +300 ms de LCP na Início da edição estática, CPU 4×). Quem
+ * PROVAVELMENTE vai precisar dele começa a baixar já na carga deste módulo: a edição estática
+ * (sempre; lá ele também vem como `modulepreload`, `scripts/vite/preCarregarEfemero.ts`) e o modo
+ * público sem sessão do Supabase guardada (`sb-*-auth-token`), que é o visitante sem conta. Self-host
+ * e quem tem sessão não baixam nada. Pura, para o teste.
+ */
+export function deveAdiantarServidorEfemero(p: { estatica: boolean; authRequired: boolean; chaves: string[] }): boolean {
+  if (p.estatica) return true
+  if (!p.authRequired) return false
+  return !p.chaves.some((k) => k.startsWith('sb-') && k.endsWith('-auth-token'))
+}
+if (typeof window !== 'undefined') {
+  let chaves: string[] = []
+  try {
+    chaves = Object.keys(window.localStorage)
+  } catch {
+    /* sem storage: sem sessão guardada */
+  }
+  if (deveAdiantarServidorEfemero({ estatica: edicaoEstatica(), authRequired, chaves }))
+    void carregarServidorEfemero().catch(() => {})
+}
+
 // ───────────────────────────── fetch com teto de tempo (A-05) ─────────────────────────────
 // Toda a camada de dados usava `fetch` SEM timeout: uma resposta que nunca chega deixava a UI presa
 // em "carregando…" para sempre, sem caminho de recuperação a não ser recarregar. `apiFetch` injeta um

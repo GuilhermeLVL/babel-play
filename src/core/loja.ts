@@ -17,6 +17,10 @@
  *   · SEEDS: a moeda ganha estudando compra o ATALHO.
  */
 
+import { CATALOGO_V2, NIVEL_SO_SEEDS } from './catalogoV2';
+
+export { NIVEL_SO_SEEDS };
+
 export type Raridade = 'comum' | 'raro' | 'epico' | 'lendario';
 
 /* Vinha de `lib/desbloqueios`. Mora aqui porque o catálogo é quem o usa para tipar `tipo`, e o
@@ -124,7 +128,7 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     desc: 'Carvão sóbrio, tipográfico.',
     raridade: 'raro',
     nivel: 7,
-    precoSeeds: 1300,
+    precoSeeds: 1280, // 1300 → 1280 na onda 4: com mais peças no baú, a renda típica caiu (docs/economia-v2.md)
     previa: ['#F7F6F3', '#FFFFFF', '#37352F', '#37352F'],
   },
   {
@@ -159,6 +163,8 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     exclusivoDe: 'constante',
     previa: ['#070B14', '#0E1626', '#4ADE80', '#A78BFA'],
   },
+  // ── RECOMPENSAS V2, ONDA 4: temas completos, estilos de legenda, peles de cartão (catalogoV2.ts) ──
+  ...CATALOGO_V2,
   // ── ESTÚDIO ──
   {
     id: 'estudio',
@@ -503,3 +509,12 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     exclusivoDe: 'duelista',
   },
 ];
+
+/**
+ * O item só se abre com Seeds (recompensas v2, onda 4)? São os que declaram `NIVEL_SO_SEEDS`: o
+ * nível nunca os abre, então a vitrine de nível, a próxima recompensa e o Passe não os prometem, e
+ * o cadeado fala só em Seeds.
+ */
+export function soPorSeeds(item: Pick<ItemDaLoja, 'nivel' | 'precoSeeds'>): boolean {
+  return item.nivel >= NIVEL_SO_SEEDS && item.precoSeeds !== undefined;
+}

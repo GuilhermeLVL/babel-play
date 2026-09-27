@@ -77,6 +77,12 @@ const VALID_THEMES: readonly ThemeType[] = [
   'premium',
   'aurora',
   'custom',
+  'radio',
+  'papel',
+  'neon',
+  'fliperama',
+  'jardim',
+  'observatorio',
 ];
 
 /**

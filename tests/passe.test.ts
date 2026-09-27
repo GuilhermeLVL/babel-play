@@ -10,13 +10,15 @@ import { describe, expect, it } from 'vitest'
 
 import { passeNivel, premiumDoNivel, slotDestravado, slotsDoPasse, totalPremiumEmCreditos } from '../src/core/passe'
 import { ITENS_REMOVIDOS } from '../src/core/reembolso'
-import { CATALOGO_DA_LOJA } from '../src/lib/loja'
+import { CATALOGO_DA_LOJA, soPorSeeds } from '../src/lib/loja'
 
 describe('slotsDoPasse', () => {
   const slots = slotsDoPasse()
 
   it('todo item não-exclusivo entra exatamente uma vez, na própria década', () => {
-    const naoExclusivos = CATALOGO_DA_LOJA.filter((i) => !i.exclusivoDe)
+    // Só Seeds (recompensas v2, onda 4) não entra: o passe é a lente do NÍVEL, e esses itens não
+    // abrem por nível.
+    const naoExclusivos = CATALOGO_DA_LOJA.filter((i) => !i.exclusivoDe && !soPorSeeds(i))
     const noPasse = slots.filter((s) => s.tipo === 'item')
     expect(noPasse.length).toBe(naoExclusivos.length)
     const vistos = new Map<string, number>()

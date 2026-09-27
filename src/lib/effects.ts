@@ -151,8 +151,45 @@ export const PARTICLE_PRESETS: Record<ThemeType, ParticlePreset> = {
     alpha: [0.1, 0.32],
     glow: true,
     colorToken: '--accent'
-  }
+  },
+  /* ── Temas completos (recompensas v2, onda 4) ── */
+  // Rádio: faísca de válvula — poucas, quentes, subindo devagar.
+  radio: { ambientCount: 10, size: [1, 2.2], driftX: 0.03, driftY: -0.16, wobble: 0.4, wobbleSpeed: 0.02, alpha: [0.12, 0.36], glow: true, colorToken: '--accent' },
+  // Papel e tinta: quase nada — pó de papel que afunda.
+  papel: { ambientCount: 8, size: [0.8, 1.6], driftX: 0.02, driftY: 0.05, wobble: 0.2, wobbleSpeed: 0.008, alpha: [0.08, 0.2], glow: false, colorToken: '--ink-muted' },
+  // Neon noturno: pontos de luz da cidade em deriva lateral.
+  neon: { ambientCount: 18, size: [1, 2.4], driftX: 0.16, driftY: -0.03, wobble: 0.3, wobbleSpeed: 0.02, alpha: [0.14, 0.46], glow: true, colorToken: '--accent' },
+  // Fliperama: pixels retos, sem oscilar.
+  fliperama: { ambientCount: 12, size: [1.2, 2], driftX: 0.1, driftY: 0.08, wobble: 0, wobbleSpeed: 0, alpha: [0.12, 0.34], glow: false, colorToken: '--accent' },
+  // Jardim: pólen grande e mole, oscilando.
+  jardim: { ambientCount: 14, size: [1.4, 3], driftX: 0.05, driftY: -0.06, wobble: 1.2, wobbleSpeed: 0.012, alpha: [0.12, 0.34], glow: false, colorToken: '--good' },
+  // Observatório: estrelas lentas, com brilho.
+  observatorio: { ambientCount: 20, size: [0.8, 2], driftX: 0.04, driftY: 0.02, wobble: 0.2, wobbleSpeed: 0.006, alpha: [0.14, 0.5], glow: true, colorToken: '--accent' },
 };
+
+/**
+ * A FORMA DE PARTÍCULA QUE O TEMA TRAZ (recompensas v2, onda 4). Vale para as rajadas do motor de
+ * comemoração que não têm forma própria (acerto e combo) e só enquanto a skin de partículas estiver
+ * em "Do tema" — a skin escolhida pela pessoa ganha do tema. Os 8 temas de antes não trazem forma:
+ * continuam com o círculo de sempre.
+ */
+export const FORMA_DO_TEMA: Partial<Record<ThemeType, FormaParticula>> = {
+  radio: 'circulo',
+  papel: 'confete',
+  neon: 'raio',
+  fliperama: 'pixel',
+  jardim: 'coracao',
+  observatorio: 'cometa',
+};
+
+/** A forma do tema em vigor no documento, ou `undefined` (sem tema com forma, ou skin escolhida). */
+export function formaDoTemaEquipado(): FormaParticula | undefined {
+  if (typeof document === 'undefined') return undefined;
+  const raiz = document.documentElement;
+  const skin = raiz.getAttribute('data-particulas');
+  if (skin && skin !== 'tema') return undefined;
+  return FORMA_DO_TEMA[raiz.getAttribute('data-theme') as ThemeType];
+}
 
 /* ══════════════════ ADAPTAÇÃO A CLARO / ESCURO ══════════════════
    O PROBLEMA MEDIDO: os presets acima foram calibrados olhando o tema padrão no escuro. Em fundo

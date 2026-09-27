@@ -13,7 +13,7 @@
 import type { TipoDesbloqueavel } from '@core';
 
 import { liberadoTudo } from './liberacaoDev';
-import { CATALOGO_DA_LOJA, estadoPorAlvo } from './loja';
+import { CATALOGO_DA_LOJA, estadoPorAlvo, soPorSeeds } from './loja';
 
 // O tipo mudou para `core/loja.ts` (o catálogo é quem o consome); a REGRA de nível continua aqui.
 export type { TipoDesbloqueavel };
@@ -72,7 +72,7 @@ export interface Recompensa { tipo: TipoDesbloqueavel; id: string }
 export function recompensasDoNivel(n: number): Recompensa[] {
   const TIPOS_DE_APARENCIA: TipoDesbloqueavel[] = ['tema', 'fonte', 'posicao', 'estudio'];
   return CATALOGO_DA_LOJA
-    .filter((i) => i.nivel === n && !i.exclusivoDe && TIPOS_DE_APARENCIA.includes(i.tipo as TipoDesbloqueavel))
+    .filter((i) => i.nivel === n && !i.exclusivoDe && !soPorSeeds(i) && TIPOS_DE_APARENCIA.includes(i.tipo as TipoDesbloqueavel))
     .map((i) => ({ tipo: i.tipo as TipoDesbloqueavel, id: i.alvo }));
 }
 

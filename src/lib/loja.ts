@@ -12,7 +12,7 @@
  * que já mandam na aparência (persistTheme/setParticulas) — a loja não inventa um segundo dono.
  */
 import type { TipoDesbloqueavel } from '@core';
-import { CATALOGO_DA_LOJA, CONQUISTAS, type ItemDaLoja, type Raridade } from '@core';
+import { CATALOGO_DA_LOJA, CONQUISTAS, type ItemDaLoja, type Raridade, soPorSeeds } from '@core';
 
 import { conquistasDesbloqueadas } from './conquistasPosse';
 import { liberadoTudo } from './liberacaoDev';
@@ -20,7 +20,7 @@ import { liberadoTudo } from './liberacaoDev';
 /* O catálogo e os tipos mudaram para `src/core/loja.ts` para que o SERVIDOR possa lê-los (ver o
    cabeçalho de lá). Reexportados daqui porque 30+ telas importam `from '../lib/loja'` e trocar o
    caminho em todas seria ruído sem ganho — o dono do dado é o core, o endereço continua o mesmo. */
-export { CATALOGO_DA_LOJA };
+export { CATALOGO_DA_LOJA, soPorSeeds };
 export type { ItemDaLoja, Raridade, TipoDaLoja } from '@core';
 
 
@@ -124,8 +124,10 @@ export function estadoDoItem(item: ItemDaLoja, nivel: number, saldoSeeds: number
     if (premiumPossuidos().has(item.id)) return { estado: 'equipavel' };
     return { estado: 'bloqueado', motivo: `${item.precoCreditos} Créditos ou o Passe` };
   }
-  if (nivel >= item.nivel || possuidos().has(item.id)) return { estado: 'equipavel' };
+  if ((!soPorSeeds(item) && nivel >= item.nivel) || possuidos().has(item.id)) return { estado: 'equipavel' };
   if (item.precoSeeds !== undefined && saldoSeeds >= item.precoSeeds) return { estado: 'compravel' };
+  // Só Seeds (onda 4): o nível nunca abre, então o cadeado não fala em nível.
+  if (soPorSeeds(item)) return { estado: 'bloqueado', motivo: `${item.precoSeeds} Seeds` };
   if (item.precoSeeds !== undefined) return { estado: 'bloqueado', motivo: `Nível ${item.nivel} ou ${item.precoSeeds} Seeds` };
   return { estado: 'bloqueado', motivo: `Nível ${item.nivel}` };
 }
@@ -159,7 +161,7 @@ export function estadoPorAlvo(
 
 /** Itens que o nível N (próximo) vai liberar — a vitrine de "continue jogando". */
 export function vitrineDoProximoNivel(nivelAtual: number): ItemDaLoja[] {
-  const proximos = CATALOGO_DA_LOJA.filter((i) => !i.exclusivoDe && i.nivel > nivelAtual);
+  const proximos = CATALOGO_DA_LOJA.filter((i) => !i.exclusivoDe && !soPorSeeds(i) && i.nivel > nivelAtual);
   const menorNivel = Math.min(...proximos.map((i) => i.nivel));
   return Number.isFinite(menorNivel) ? proximos.filter((i) => i.nivel === menorNivel) : [];
 }
@@ -280,6 +282,14 @@ export function rotaDeObtencao(item: ItemDaLoja, saldoSeeds = 0): RotaDeObtencao
     const bolso = falta <= 0
       ? `Você já tem as ${item.precoSeeds} Seeds.`
       : `Faltam ${falta} Seeds para o atalho.`;
+    if (soPorSeeds(item))
+      return {
+        origem: 'seeds',
+        titulo: 'Loja com Seeds',
+        texto: `Não chega por nível: sai por ${item.precoSeeds} Seeds, a moeda que se ganha estudando. ${bolso}`,
+        destino: 'loja',
+        rotuloDoBotao: 'Ver na Loja',
+      };
     return {
       origem: 'seeds',
       titulo: 'Nível ou atalho',

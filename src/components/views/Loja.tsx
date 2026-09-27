@@ -37,7 +37,7 @@ import { estadoDaColecao, proximaRecompensa } from '../../lib/galeria/progressao
 import { TEXTOS } from '../../lib/galeria/textos';
 import { estaAnonimo } from '../../lib/identidade';
 import { comemorar, explodirAleatorio } from '../../lib/juice';
-import { CATALOGO_DA_LOJA, COR_DA_RARIDADE, estadoDoItem, type ItemDaLoja } from '../../lib/loja';
+import { CATALOGO_DA_LOJA, COR_DA_RARIDADE, estadoDoItem, type ItemDaLoja, soPorSeeds } from '../../lib/loja';
 import { readParticulas } from '../../lib/particulas';
 import type { DerivedProgress } from '../../lib/progress';
 import { readRastro } from '../../lib/rastroDoMouse';
@@ -387,9 +387,12 @@ export default function Loja({
               ) : (
                 <span>só por nível</span>
               )}
-              <span className="linha" style={{ gap: 4 }}>
-                <Lock aria-hidden style={{ width: 12, height: 12 }} /> nv. {item.nivel}
-              </span>
+              {/* Só Seeds (onda 4): não há nível a mostrar. */}
+              {!soPorSeeds(item) && (
+                <span className="linha" style={{ gap: 4 }}>
+                  <Lock aria-hidden style={{ width: 12, height: 12 }} /> nv. {item.nivel}
+                </span>
+              )}
             </div>
             {estado === 'compravel' ? (
               <button
@@ -402,7 +405,7 @@ export default function Loja({
               </button>
             ) : (
               <button type="button" className="btn btn-outline bloco" disabled>
-                {preco !== undefined && falta > 0 ? `Faltam ${falta} Seeds` : `Chega no nível ${item.nivel}`}
+                {preco !== undefined && (falta > 0 || soPorSeeds(item)) ? `Faltam ${falta} Seeds` : `Chega no nível ${item.nivel}`}
               </button>
             )}
           </>

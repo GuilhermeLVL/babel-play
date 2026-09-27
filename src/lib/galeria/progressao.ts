@@ -9,13 +9,13 @@
  */
 import { CONQUISTAS } from '@core'
 
-import { CATALOGO_DA_LOJA, estadoDoItem, type ItemDaLoja,possuidos } from '../loja'
+import { CATALOGO_DA_LOJA, estadoDoItem, type ItemDaLoja, possuidos, soPorSeeds } from '../loja'
 
 /** Itens que abrem por nível (sem exclusivo), agrupados: nível → itens. Ordenado por nível. */
 export function itensPorNivel(catalogo: ReadonlyArray<ItemDaLoja> = CATALOGO_DA_LOJA): Map<number, ItemDaLoja[]> {
   const m = new Map<number, ItemDaLoja[]>()
   for (const i of catalogo) {
-    if (i.exclusivoDe) continue
+    if (i.exclusivoDe || soPorSeeds(i)) continue
     const lista = m.get(i.nivel) ?? []
     lista.push(i)
     m.set(i.nivel, lista)
@@ -32,7 +32,7 @@ export interface ProximaRecompensa {
 
 /** O menor nível acima do atual que libera algo. `null` quando não há mais nada por nível. */
 export function proximaRecompensa(nivelAtual: number, catalogo: ReadonlyArray<ItemDaLoja> = CATALOGO_DA_LOJA): ProximaRecompensa | null {
-  const proximos = catalogo.filter((i) => !i.exclusivoDe && i.nivel > nivelAtual)
+  const proximos = catalogo.filter((i) => !i.exclusivoDe && !soPorSeeds(i) && i.nivel > nivelAtual)
   if (!proximos.length) return null
   const nivel = Math.min(...proximos.map((i) => i.nivel))
   const itens = proximos.filter((i) => i.nivel === nivel)
@@ -89,7 +89,7 @@ export function estadoDaColecao(nivel: number, saldo: number, catalogo: Readonly
 
 /** TUDO que o nível `n` abre (Loja + galeria), para o modal de resgate. */
 export function recompensasDoNivelCompleto(n: number, catalogo: ReadonlyArray<ItemDaLoja> = CATALOGO_DA_LOJA): ItemDaLoja[] {
-  return catalogo.filter((i) => !i.exclusivoDe && i.nivel === n)
+  return catalogo.filter((i) => !i.exclusivoDe && !soPorSeeds(i) && i.nivel === n)
 }
 
 /** O item exclusivo que uma conquista libera, se houver. */

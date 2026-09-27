@@ -19,7 +19,7 @@
  * item a item. A paleta livre é uma capacidade (o "Estúdio"), e é a capacidade que tem dono — se
  * o Estúdio está liberado, as cores são da pessoa.
  */
-import { CATALOGO_DA_LOJA } from '../../src/core/loja'
+import { CATALOGO_DA_LOJA, NIVEL_SO_SEEDS } from '../../src/core/loja'
 import { creditsRepo } from '../db/repositories/credits'
 import { economiaRepo } from '../db/repositories/economia'
 import { economiaDoUsuario } from '../db/repositories/metrics'
@@ -92,13 +92,15 @@ export async function recusaDePosse(
       ? null
       : { tipo, alvo, motivo: `item premium: ${item.precoCreditos} créditos ou o Passe` }
   }
-  if (nivel >= item.nivel || comprados.includes(item.id)) return null
+  if ((item.nivel < NIVEL_SO_SEEDS && nivel >= item.nivel) || comprados.includes(item.id)) return null
   return {
     tipo,
     alvo,
     motivo:
       item.precoSeeds !== undefined
-        ? `exige nível ${item.nivel} ou ${item.precoSeeds} seeds`
+        ? item.nivel >= NIVEL_SO_SEEDS
+          ? `exige ${item.precoSeeds} seeds`
+          : `exige nível ${item.nivel} ou ${item.precoSeeds} seeds`
         : `exige nível ${item.nivel}`,
   }
 }

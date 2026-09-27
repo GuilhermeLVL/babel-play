@@ -86,6 +86,18 @@
     --border-strong: color-mix(in srgb, var(--border-subtle) 82%, var(--ink));
     --epic-ink: color-mix(in srgb, var(--epic) 55%, var(--ink));
     --anel: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);
+    /* TEMA COMPLETO (recompensas v2, onda 4) — os valores NEUTROS que os 8 temas de antes usam.
+       Os 6 temas novos (`src/styles/temas-v2.css`) trocam cada um. `--textura` e `--fundo-animado`
+       são camadas de `background-image`; `none` = nada desenhado. Os `--hud-*` vestem o placar dos
+       jogos (`.hud`, `.combo` em prototipo.css) e aqui repetem o desenho aprovado. */
+    --textura: none;
+    --fundo-animado: none;
+    --hud-trilho: var(--surface-sunken);
+    --hud-barra: linear-gradient(90deg, var(--good), color-mix(in srgb, var(--good) 60%, #fff));
+    --hud-combo: var(--surface-hover);
+    --hud-combo-quente: linear-gradient(135deg, var(--warn), var(--accent));
+    --hud-combo-tinta: #fff;
+    --hud-raio: 12px;
     /* ESQUEMA DE COR NATIVO — sem isto, o navegador desenha TODO widget dele próprio
        (popup do <select>, scrollbars, input[type=color|range], bolhas de validação) com a
        paleta CLARA do sistema operacional, mesmo com o app inteiro em tema escuro: era a

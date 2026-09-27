@@ -1,5 +1,5 @@
 import { reduzirEfeitos } from '../dispositivo/perfil';
-import { type BurstKind, emitBurst, type FormaParticula } from '../effects';
+import { type BurstKind, emitBurst, formaDoTemaEquipado,type FormaParticula } from '../effects';
 import {
   eventoRaroDoAcerto,
   eventosDaRodadaPerfeita,
@@ -154,12 +154,19 @@ function planoCheio(ev: EventoDeComemoracao, efeitos: EfeitosEquipados): PlanoDe
   }
 }
 
-/** O que o motor fará (puro, testável): sons, partículas, vibração, texto flutuante. */
+/** O que o motor fará (puro, testável): sons, partículas, vibração, texto flutuante.
+ *  `formaDoTema` (onda 4): a forma que o tema equipado traz, para as rajadas de acerto e combo que
+ *  não declaram forma. O SOM do tema não passa por aqui: `play` já toca no timbre do tema. */
 export function planoDeComemoracao(
   ev: EventoDeComemoracao,
-  ctx: { leve: boolean; semSom: boolean; efeitos: EfeitosEquipados },
+  ctx: { leve: boolean; semSom: boolean; efeitos: EfeitosEquipados; formaDoTema?: FormaParticula },
 ): PlanoDeComemoracao {
-  const plano = planoCheio(ev, ctx.efeitos);
+  const cheio = planoCheio(ev, ctx.efeitos);
+  const forma = ctx.formaDoTema;
+  const plano =
+    forma && (ev.tipo === 'acerto' || ev.tipo === 'combo')
+      ? { ...cheio, rajadas: cheio.rajadas.map((r) => (r.forma ? r : { ...r, forma })) }
+      : cheio;
   return {
     ...plano,
     sons: ctx.semSom ? [] : plano.sons,
@@ -241,6 +248,7 @@ export function celebrar(ev: EventoDeComemoracao): void {
       leve: reduzirEfeitos() || movimentoReduzido(),
       semSom: somMudo(),
       efeitos: efeitosEquipados(),
+      formaDoTema: formaDoTemaEquipado(),
     });
     registrar(ev, plano);
     executar(ev, plano);

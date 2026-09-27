@@ -197,6 +197,16 @@ test('Memória: fecha todos os pares', async ({ page }) => {
     await cartas.nth(j).click();
     await page.waitForTimeout(200);
   }
+  /* Par que o dicionário não reconheceu (pista mascarada, por exemplo): tenta combinações entre as
+     cartas que sobraram — o erro só desvira as duas, e a rodada sempre fecha. */
+  for (let volta = 0; volta < 40 && !(await terminou(page)); volta++) {
+    const fechadas = await cartas.evaluateAll((bs) => bs.map((b) => b.classList.contains('par')));
+    const abertas = fechadas.flatMap((fechada, k) => (fechada ? [] : [k]));
+    if (abertas.length < 2) break;
+    await cartas.nth(abertas[0]).click();
+    await cartas.nth(abertas[1 + (volta % (abertas.length - 1))]).click();
+    await page.waitForTimeout(1000);
+  }
   await chegarAoResultado(page);
 });
 
@@ -458,6 +468,10 @@ test('Bao: semeia os pedaços até o fim', async ({ page }) => {
     const covas = page.locator('[data-tour="tabuleiro"] .grid button');
     const pedacos = await textos(covas);
     let resto = palavrasDe(pista).find((x) => pedacos.every((p) => !p || x.includes(p.toLowerCase()))) ?? '';
+    if (!resto) {
+      // Palavra não identificada: semeia a primeira cova livre — o erro esgota a palavra e a rodada segue.
+      await covas.filter({ hasNot: page.locator('svg') }).first().click({ timeout: 1500 }).catch(() => {});
+    }
     for (let k = 0; k < 8 && resto; k++) {
       const atual = (await textos(covas)).map((t) => t.toLowerCase());
       const i = atual.findIndex((t) => t && resto.startsWith(t));
@@ -479,7 +493,12 @@ test('Vitendawili: completa as lacunas pela tecla', async ({ page }) => {
     const frase = norm(await enigma.innerText());
     const alts = await textos(page.locator('[data-tour="alternativas"] button'));
     const reg = REGISTROS.find((r) => r[2] && alts.some((a) => a.toLowerCase() === r[0].toLowerCase()) && norm(r[2]).replace(norm(r[0]), '').replace(/\s+/g, ' ').trim() === frase);
-    const i = Math.max(0, reg ? alts.findIndex((a) => a.toLowerCase() === reg[0].toLowerCase()) : 0);
+    let i = reg ? alts.findIndex((a) => a.toLowerCase() === reg[0].toLowerCase()) : -1;
+    // Sem identificar, a primeira ainda de pé: errar elimina a opção, e a certa sobra.
+    if (i < 0) {
+      const habilitadas = await page.locator('[data-tour="alternativas"] button').evaluateAll((bs) => bs.map((b) => !(b as HTMLButtonElement).disabled));
+      i = Math.max(0, habilitadas.indexOf(true));
+    }
     await page.keyboard.press(String(i + 1));
     await page.waitForTimeout(900);
   }
@@ -517,12 +536,25 @@ test('Tabu: errar mostra a certa antes da próxima carta', async ({ page }) => {
   await abrirJogo(page, /^Jogar: Tabu/);
   const alts = page.locator('[data-tour="alternativas"] button');
   await expect(alts.first()).toBeEnabled();
-  // Qual é a certa não importa aqui: escolhe duas diferentes, e pelo menos uma é errada.
-  await page.keyboard.press('1');
+  /* A certa é a opção que, posta na lacuna, reconstrói a frase da Trilha; o teste escolhe OUTRA —
+     errar de propósito sem depender da ordem sorteada das alternativas. */
   const aviso = page.locator('[data-aviso-da-jogada="erro"]');
-  if (!(await aviso.isVisible().catch(() => false))) {
-    await page.waitForTimeout(900);
-    await page.keyboard.press('1');
+  for (let tentativa = 0; tentativa < 4 && !(await aviso.isVisible().catch(() => false)); tentativa++) {
+    const texto = norm((await page.locator('[data-tour="alvo"] p[dir]').innerText()).replace(/—+/g, ' '));
+    const opcoes = await textos(alts);
+    const certa = opcoes.findIndex((op) =>
+      REGISTROS.some(
+        (r) =>
+          r[0].toLowerCase() === op.toLowerCase() &&
+          r[2] &&
+          norm(r[2]).replace(norm(op), ' ').replace(/\s+/g, ' ').trim() === texto,
+      ),
+    );
+    // Sem identificar a frase (raro), cada carta tenta uma posição diferente.
+    const errada = certa < 0 ? tentativa % opcoes.length : certa === 0 ? 1 : 0;
+    await page.keyboard.press(String(errada + 1));
+    await page.waitForTimeout(300);
+    if (!(await aviso.isVisible().catch(() => false))) await page.waitForTimeout(900);
   }
   await expect(aviso).toBeVisible();
   await expect(aviso.locator('b')).not.toBeEmpty();

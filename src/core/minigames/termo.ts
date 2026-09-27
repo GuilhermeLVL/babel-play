@@ -3,6 +3,7 @@ import { isDueNow } from '../learning/due';
 import { type HistoricoDoItem,ordenarPorMemoria } from '../learning/memoriaDeItens';
 import { pistaDeJogo } from '../learning/pistaDeJogo';
 import { chaveComparavel,pistaUtil } from '../learning/quality';
+import { idiomaDoCartao } from '../texto/idioma';
 import { comBaseLatina } from '../texto/palavra';
 import type { FaixaDificuldade } from './composicao';
 
@@ -542,7 +543,7 @@ export function buildTermoRounds(
          — a resposta impressa acima do teclado. `pistaDeJogo` mascara alvo e flexões; a frase de
          contexto passa pela mesma régua, pelo mesmo motivo. */
       pista: opts.dificil ? '' : pistaDeJogo(palavra, c.translation).texto,
-      lang: c.srcLang || '',
+      lang: idiomaDoCartao(c),
       ...(alternativas.length ? { alternativas } : {}),
       // Pista ambígua nasce com a frase de contexto (quando existe): é o desempate honesto.
       ...(alternativas.length && (c.sentence ?? '').trim()

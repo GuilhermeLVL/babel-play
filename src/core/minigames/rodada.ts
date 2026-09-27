@@ -25,7 +25,7 @@ import type { VocabCard } from '../../types';
 import { isDueNow } from '../learning/due';
 import { diaLocal } from '../learning/economia';
 import { estadoDoItem, type HistoricoDoItem,ordenarPorMemoria, rngDe } from '../learning/memoriaDeItens';
-import { baseLang } from '../texto/idioma';
+import { baseLang, idiomaDoCartao } from '../texto/idioma';
 import { chaveDaPalavra } from '../texto/palavra';
 import { aceitaFiltroDeDificuldade, type CortesDeFaixa, type EstrategiaDaUI,faixaDe as faixaDaComposicao, type FaixaDificuldade } from './composicao';
 import {
@@ -305,7 +305,7 @@ export function montarRodada(entrada: EntradaDaRodada): RodadaMontada | null {
       cefrConfianca: c?.cefrConfidence,
       origem: origemDaPalavra(palavra, c?.id),
       origemRotulo: tituloDaSessao,
-      idioma: c?.srcLang || fonte.lang,
+      idioma: idiomaDoCartao(c) || fonte.lang,
     };
   };
 
@@ -407,7 +407,7 @@ export function montarRodada(entrada: EntradaDaRodada): RodadaMontada | null {
       id: c.id || c.word,
       text: c.word,
       translation: c.translation,
-      lang: c.srcLang || fonte.lang,
+      lang: idiomaDoCartao(c) || fonte.lang,
       startMs: 0,
       endMs: 0,
     }));

@@ -4,7 +4,7 @@ import { byUrgency, isDueNow } from '../learning/due';
 import { type HistoricoDoItem,ordenarPorMemoria } from '../learning/memoriaDeItens';
 import { pistaDeJogo } from '../learning/pistaDeJogo';
 import { avaliarCartao, chaveComparavel } from '../learning/quality';
-import { baseLang } from '../texto/idioma';
+import { baseLang, idiomaDoCartao } from '../texto/idioma';
 import { itensDaCorrente } from './shiritori';
 import { digitavelNoTermo } from './termo';
 import type { MinigameId,MinigameItem } from './types';
@@ -247,7 +247,8 @@ export function buildItems(gameId: MinigameId, cards: VocabCard[], opts: BuildIt
       prompt: pista.prompt,
       answer: card.word.trim(),
       sentence: card.sentence,
-      lang: card.srcLang || '',
+      // O idioma do CARTÃO pela função única (`idiomaDoCartao`): vazio quando não há, nunca um chute.
+      lang: idiomaDoCartao(card),
       clozed: pista.clozed,
       ...(alternativas.length ? { alternativas } : {}),
     });

@@ -39,6 +39,12 @@ export interface MinigameItem {
   lang: string;
   /** A pista é uma frase com lacuna (e não a tradução)? Muda como a interface a apresenta. */
   clozed?: boolean;
+  /**
+   * OUTRAS PALAVRAS DO ACERVO COM A MESMA PISTA ("quarto" → room, bedroom). A pista não desempata
+   * entre elas, então quem DIGITA a resposta é aceito com qualquer uma (ver `conferirResposta`).
+   * Ausente = nenhuma. Não entra como distrator: só alimenta a conferência.
+   */
+  alternativas?: string[];
 }
 
 /** O que aconteceu com um item durante a rodada. */

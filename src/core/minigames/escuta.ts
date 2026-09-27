@@ -1,5 +1,6 @@
 import { avaliarFrase, chaveComparavel } from '../learning/quality';
 import { dobrarTexto } from '../texto/palavra';
+import { chaveSemAcento } from './resposta';
 import { normalizarPalavra } from './wordsearch';
 
 /**
@@ -161,7 +162,11 @@ export function conferirDitado(esperado: string, escrito: string): ResultadoDita
      são iguais. Sem a saída abaixo, "2" casava com "5" e qualquer pontuação casava com qualquer
      outra: o jogo dava acerto onde a pessoa errou. Quando a normalização não sobra nada, compara
      o texto cru. */
-  const chave = (s: string) => normalizarPalavra(s) || s.trim().toLowerCase();
+  /* `normalizarPalavra` também só conhece A–Z: em russo ou grego ela devolve vazio e a saída acima
+     comparava o texto CRU — "Привет," com vírgula não casava com "привет" (QA dos jogos,
+     2026-09-26). `chaveSemAcento` é a régua de `resposta.ts`: tira caixa, pontuação e acento
+     latino em qualquer alfabeto, e guarda as marcas que fazem parte da letra (o dakuten). */
+  const chave = (s: string) => normalizarPalavra(s) || chaveSemAcento(s) || s.trim().toLowerCase();
 
   /* Alinhamento simples por posição, com uma janela de tolerância: se a pessoa pulou ou repetiu
      uma palavra, comparar rigidamente por índice marcaria TODO o resto como errado, e um erro

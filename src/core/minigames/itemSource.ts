@@ -207,6 +207,20 @@ export function buildItems(gameId: MinigameId, cards: VocabCard[], opts: BuildIt
    * menos itens é jogável; uma rodada com pista ambígua, não.
    */
   const pistasUsadas = new Set<string>();
+  /* A MESMA PALAVRA DUAS VEZES NA RODADA é o espelho do defeito acima: dois cartões de "bank" (uma
+     tradução cada) punham duas cartas "bank" idênticas na Memória, e só uma casava com cada verso.
+     A chave é a mesma régua de acento/caixa das pistas. */
+  const respostasUsadas = new Set<string>();
+  /* As palavras do acervo por PISTA — para o item saber quais outras respostas a mesma tradução
+     aceita ("quarto" → room, bedroom). Medido no léxico embutido: 28% das palavras dividem pista. */
+  const porPista = new Map<string, string[]>();
+  for (const c of noBaralho) {
+    const k = chaveComparavel(c.translation ?? '');
+    if (!k) continue;
+    const lista = porPista.get(k);
+    if (lista) lista.push(c.word.trim());
+    else porPista.set(k, [c.word.trim()]);
+  }
   for (const card of ordenados) {
     if (itens.length >= limite) break;
     // Memória: o par É palavra↔tradução, então frase-com-lacuna não serve de carta.
@@ -222,7 +236,12 @@ export function buildItems(gameId: MinigameId, cards: VocabCard[], opts: BuildIt
     if (gameId === 'vitendawili' && !pista.clozed && !(card.sentence ?? '').trim()) continue;
     const chaveDaPista = chaveComparavel(pista.prompt);
     if (chaveDaPista && pistasUsadas.has(chaveDaPista)) continue;
+    const chaveDaResposta = chaveComparavel(card.word);
+    if (chaveDaResposta && respostasUsadas.has(chaveDaResposta)) continue;
     pistasUsadas.add(chaveDaPista);
+    respostasUsadas.add(chaveDaResposta);
+    const mesmasPista = pista.clozed ? [] : (porPista.get(chaveComparavel(card.translation ?? '')) ?? []);
+    const alternativas = [...new Set(mesmasPista.filter((w) => chaveComparavel(w) !== chaveDaResposta))];
     itens.push({
       cardId: card.id,
       prompt: pista.prompt,
@@ -230,6 +249,7 @@ export function buildItems(gameId: MinigameId, cards: VocabCard[], opts: BuildIt
       sentence: card.sentence,
       lang: card.srcLang || '',
       clozed: pista.clozed,
+      ...(alternativas.length ? { alternativas } : {}),
     });
   }
   /* CORRENTE E RESTRICAO DE CONJUNTO, nao de item: nao adianta filtrar um a um. O gate contava
@@ -281,8 +301,15 @@ export function distractorsFor(item: MinigameItem, itens: MinigameItem[], quanti
      alternativas de outra lingua: a rodada curta e honesta, a rodada com pista nao. */
   const doAlvo = baseLang(item.lang);
   const mesmoIdioma = (i: MinigameItem) => !doAlvo || !i.lang || baseLang(i.lang) === doAlvo;
-  const candidatos = itens
-    .filter(i => i.answer.toLowerCase() !== alvo && mesmoIdioma(i))
-    .map(i => i.answer);
-  return shuffle([...new Set(candidatos)]).slice(0, quantidade);
+  /* Uma alternativa por PALAVRA, não por grafia: "Bank" (importado) e "bank" (capturado) eram duas
+     cartas iguais na mesa, e uma delas "errada" (QA dos jogos, 2026-09-26). */
+  const vistas = new Set([alvo]);
+  const candidatos: string[] = [];
+  for (const i of itens) {
+    const k = i.answer.toLowerCase();
+    if (vistas.has(k) || !mesmoIdioma(i)) continue;
+    vistas.add(k);
+    candidatos.push(i.answer);
+  }
+  return shuffle(candidatos).slice(0, quantidade);
 }

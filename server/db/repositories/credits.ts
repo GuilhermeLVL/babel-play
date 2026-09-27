@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { and, desc, eq, isNull, like, sql, sum } from 'drizzle-orm'
 
 import type { SkuDeCredito } from '../../../src/core/creditos'
+import { possePremiumComEquivalentes } from '../../../src/core/reembolso'
 import type { UserId } from '../../lib/authContext'
 import { db } from '../db'
 import { creditPurchases, creditSpends } from '../schema'
@@ -195,7 +196,9 @@ export const creditsRepo = {
   async itensPremium(userId: UserId): Promise<string[]> {
     const linhas = await db.select({ reason: creditSpends.reason }).from(creditSpends)
       .where(and(eq(creditSpends.userId, userId), isNull(creditSpends.deletedAt), like(creditSpends.reason, 'premium:%')))
-    return [...new Set(linhas.map((l) => l.reason.slice('premium:'.length)).filter(Boolean))]
+    /* RECOMPENSAS v2: o item pago que saiu do catálogo vira o equivalente (`equivalenteDe`) —
+       nenhum Crédito se perde com o corte de cursores e packs de emoji. */
+    return possePremiumComEquivalentes(linhas.map((l) => l.reason.slice('premium:'.length)).filter(Boolean))
   },
 
   async comprasDoUsuario(userId: UserId, limite = 20) {

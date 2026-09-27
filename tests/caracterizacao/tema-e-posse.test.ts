@@ -16,6 +16,17 @@ const DONO = 'local-owner'
 // STRING JSON gravada na coluna, e nao como objeto; quem le precisa fazer o parse do lado de ca
 const uiDe = (corpo: { ui: unknown }): Record<string, unknown> => JSON.parse(String(corpo.ui))
 
+/**
+ * SEEDS SEM XP (recompensas v2): com os preços calibrados (comum 350-450), rodadas sozinhas sobem o
+ * nível antes de pagar um atalho — o XP cresce ~3× mais rápido que as Seeds. O caso "comprar acima
+ * do nível" precisa de Seeds que não dão XP; na vida real elas vêm do baú repetido e da meta.
+ */
+async function seedsSemXp(s: AppDeTeste, userId: string, amount: number) {
+  const { asUserId } = await s.load('../../server/lib/authContext')
+  const { economiaRepo } = await s.load('../../server/db/repositories/economia')
+  await economiaRepo.creditar(asUserId(userId), { creditoId: `fixture-seeds-${userId}`, amount, xp: 0, reason: 'fixture' })
+}
+
 async function ganhar(s: AppDeTeste, userId: string, rodadas: number) {
   const { asUserId } = await s.load('../../server/lib/authContext')
   const { exerciseResultsRepo } = await s.load('../../server/db/repositories/exerciseResults')
@@ -35,12 +46,15 @@ describe('PUT /api/settings — posse de cosmeticos (modo self-host)', () => {
   let COMPRAVEL: ItemDaLoja
   const PREMIUM = CATALOGO_DA_LOJA.find((i) => i.id === 'tema-premium')!
   const LIVRE = CATALOGO_DA_LOJA.find((i) => i.id === 'tema-babel')!
-  const EXCLUSIVO = CATALOGO_DA_LOJA.find((i) => i.id === 'cur-coroa')!
+  /* Era `cur-coroa`, que saiu com os cursores (recompensas v2); o rastro do Duelista é o exclusivo
+     que continua. */
+  const EXCLUSIVO = CATALOGO_DA_LOJA.find((i) => i.id === 'ras-matrix')!
 
   beforeAll(async () => {
     s = await subirApp({ modo: 'self-host' })
     await semear(s, DONO)
     await ganhar(s, DONO, 5) // 125 Seeds
+    await seedsSemXp(s, DONO, 1500) // 1625: paga um tema raro acima do nível, não o Premium (3000)
     const { asUserId } = await s.load('../../server/lib/authContext')
     const { economiaDoUsuario } = await s.load('../../server/db/repositories/metrics')
     ;({ nivel, saldo } = await economiaDoUsuario(asUserId(DONO)))
@@ -71,10 +85,10 @@ describe('PUT /api/settings — posse de cosmeticos (modo self-host)', () => {
   })
 
   it('cosmetico exclusivo de conquista sem a conquista: 403 citando a conquista', async () => {
-    const r = await s.put('/api/settings', { ui: { cursor: EXCLUSIVO.alvo } })
+    const r = await s.put('/api/settings', { ui: { rastro: EXCLUSIVO.alvo } })
     expect(r.status).toBe(403)
     const corpo = await r.json()
-    expect(corpo.detalhes).toMatchObject({ tipo: 'cursor', alvo: EXCLUSIVO.alvo })
+    expect(corpo.detalhes).toMatchObject({ tipo: 'rastro', alvo: EXCLUSIVO.alvo })
     expect(corpo.detalhes.motivo).toContain(EXCLUSIVO.exclusivoDe)
   })
 

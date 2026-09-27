@@ -14,6 +14,7 @@ import { afterAll,beforeAll, describe, expect, it } from 'vitest'
 import { asUserId } from '../../server/lib/authContext'
 import { CATALOGO_DA_LOJA } from '../../src/core/loja'
 import { totalPremiumEmCreditos } from '../../src/core/passe'
+import { equivalenteDe } from '../../src/core/reembolso'
 import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
@@ -137,9 +138,15 @@ describe('a trilha paga entrega o que promete', () => {
 })
 
 describe('as variantes douradas passam a existir', () => {
-  it('cada marco de dezena tem o item que o passe promete pelo nome', () => {
+  /* RECOMPENSAS v2: as variantes 3, 5 e 7 eram cursor e pack de emoji e saíram; quem as tem vira
+     dono do equivalente (`equivalenteDe`, tema Aurora até a onda 4). As outras continuam. */
+  it('cada marco de dezena tem o item que o passe promete pelo nome (ou o equivalente)', () => {
     for (let d = 1; d <= 10; d++) {
       const casa = d * 10
+      if ([30, 50, 70].includes(casa)) {
+        expect(equivalenteDe(`dourada-${d}`)).toBe('tema-aurora')
+        continue
+      }
       const item = CATALOGO_DA_LOJA.find((i) => i.exclusivoDoPasse === casa)
       expect(item, `nenhuma variante para a casa ${casa}`).toBeTruthy()
       expect(item!.precoCreditos, `variante da casa ${casa} sem preço avulso`).toBeGreaterThan(0)

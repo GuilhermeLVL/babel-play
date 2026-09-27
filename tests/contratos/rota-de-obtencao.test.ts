@@ -127,31 +127,13 @@ describe('toda rota é acionável', () => {
  * Ele nasceu de uma divergência real: a descrição de "Impacto" prometia "Archivo no peso máximo",
  * o CSS declarava a mesma pilha do padrão, e escolher a opção não mudava um pixel.
  */
-describe('as oito fontes do catálogo batem com as do seletor', () => {
-  const doCatalogo = CATALOGO_DA_LOJA.filter((i) => i.tipo === 'fonte');
-
-  it('há um item por família oferecida, e nenhum a mais', () => {
-    expect(doCatalogo.map((i) => i.alvo).sort()).toEqual(FONTE_OPTIONS.map((f) => f.id).sort());
-  });
-
-  it('nome e descrição são os mesmos nos dois lugares', () => {
-    for (const item of doCatalogo) {
-      const opcao = FONTE_OPTIONS.find((f) => f.id === item.alvo)!;
-      expect(item.nome, `nome de ${item.id}`).toBe(opcao.name);
-      expect(item.desc, `descrição de ${item.id}`).toBe(opcao.desc);
-    }
-  });
-
-  /* Tipografia é legibilidade, e legibilidade é DIREITO — a mesma classificação que
-     `coerencia-e-recompensa` já aplica a tamanho de texto e contraste. Nenhuma família pode ficar
-     atrás de nível, Seeds, Créditos ou conquista. */
-  it('nenhuma fonte é recompensa: todas são nível 1 e de graça', () => {
-    for (const item of doCatalogo) {
-      expect(item.nivel, `${item.id} deveria ser nível 1`).toBe(1);
-      expect(item.precoSeeds, `${item.id} não pode ter preço`).toBeUndefined();
-      expect(item.precoCreditos, `${item.id} não pode ter preço`).toBeUndefined();
-      expect(item.exclusivoDe, `${item.id} não pode ser exclusivo`).toBeUndefined();
-    }
+/* AS FONTES SAÍRAM DO CATÁLOGO (recompensas v2, 27/09): tipografia é legibilidade e legibilidade é
+   DIREITO. Elas viraram opção livre em "Acessibilidade e layout"; o que se prova aqui é que nenhuma
+   volta a ser item da Loja — e fora do catálogo, `estadoPorAlvo` a trata como livre. */
+describe('as fontes não são recompensa', () => {
+  it('nenhum item do catálogo é fonte', () => {
+    expect(CATALOGO_DA_LOJA.filter((i) => (i.tipo as string) === 'fonte')).toEqual([]);
+    expect(FONTE_OPTIONS.length).toBe(8);
   });
 });
 
@@ -179,8 +161,10 @@ describe('a raridade do exclusivo acompanha a da conquista', () => {
   const FAIXA = { comum: 0, raro: 1, epico: 2, lendario: 3 } as const;
   const comCosmetico = CONQUISTAS.filter((c) => c.recompensa.cosmetico);
 
+  /* Eram sete; `cur-coroa`, `pack-astrologia` e `cur-katana` saíram com os cursores e packs
+     (recompensas v2). A peça nova delas vem na onda 5 (moldura/título). */
   it('há exclusivos para medir', () => {
-    expect(comCosmetico.length).toBeGreaterThan(4);
+    expect(comCosmetico.length).toBeGreaterThanOrEqual(4);
   });
 
   it.each(comCosmetico.map((c) => [c.id, c] as const))(

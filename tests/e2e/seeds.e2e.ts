@@ -39,8 +39,8 @@ test.describe('Seeds na Loja', () => {
     const lerSaldo = async () =>
       Number(((await cartaoSeeds.locator('b').first().textContent()) ?? '').replace(/\D/g, ''))
 
-    /* O PERFIL E LIDO DEPOIS DE A TELA ABRIR, e com espera: abrir o app credita a presenca do dia
-       e avalia conquistas (o dialogo de recompensa que `fecharSobreposicoes` fecha), e cada
+    /* O PERFIL E LIDO DEPOIS DE A TELA ABRIR, e com espera: abrir o app avalia conquistas e a meta
+       do dia (o dialogo de recompensa que `fecharSobreposicoes` fecha), e cada
        credito muda o saldo. Ler antes comparava dois instantes diferentes da mesma conta. */
     let esperado = -1
     await expect

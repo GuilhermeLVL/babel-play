@@ -139,29 +139,15 @@ export const seedSpendsRepo = {
   },
 
   /**
-   * OS APRIMORAMENTOS COMPRADOS, derivados do log — como a posse da Loja já era.
-   *
-   * O nível de cada aprimoramento vivia só em `localStorage` (`babel.aprimoramentos`): o gasto
-   * era gravado com `reason = 'aprimoramento:<alvo>:<n>'` e NADA lia de volta. Um usuário que
-   * editasse a chave ficava com Nv.3 em tudo, invisível ao servidor, e trocar de navegador
-   * perdia o que foi pago de verdade. Contar os degraus pagos resolve os dois.
+   * TODOS OS GASTOS VIVOS, só `reason` e `amount` — a entrada de `reembolsosDevidos`
+   * (recompensas v2): o reembolso é decidido sobre o razão, nunca sobre o que o cliente diz.
    */
-  async aprimoramentosComprados(userId: UserId): Promise<Record<string, number>> {
-    const linhas = await db
-      .select({ reason: seedSpends.reason })
+  async gastos(userId: UserId): Promise<{ reason: string; amount: number }[]> {
+    const rows = await db
+      .select({ reason: seedSpends.reason, amount: seedSpends.amount })
       .from(seedSpends)
-      .where(
-        and(eq(seedSpends.userId, userId), isNull(seedSpends.deletedAt), like(seedSpends.reason, 'aprimoramento:%')),
-      )
-    const porAlvo: Record<string, number> = {}
-    for (const l of linhas) {
-      const [, alvo, n] = l.reason.split(':')
-      const nivel = Number(n)
-      if (!alvo || !Number.isInteger(nivel)) continue
-      // O NÍVEL é o maior degrau pago, não a contagem: um degrau reenviado é o mesmo degrau.
-      porAlvo[alvo] = Math.max(porAlvo[alvo] ?? 0, nivel)
-    }
-    return porAlvo
+      .where(and(eq(seedSpends.userId, userId), isNull(seedSpends.deletedAt)))
+    return rows.map((r) => ({ reason: r.reason, amount: Number(r.amount) }))
   },
 
   /** O total gasto. É o que `deriveProgress` subtrai do ganho para chegar ao saldo. */
@@ -205,8 +191,8 @@ export const seedSpendsRepo = {
   },
 
   /**
-   * O RAZÃO INTEIRO NUMA CONSULTA: `totalGasto`, `itensComprados`, `cromasComprados` e
-   * `aprimoramentosComprados` de uma vez (fix/rotas-caras).
+   * O RAZÃO INTEIRO NUMA CONSULTA: `totalGasto`, `itensComprados` e `cromasComprados` de uma vez
+   * (fix/rotas-caras). Os aprimoramentos saíram nas recompensas v2 (27/09).
    *
    * `computeProfile` fazia as quatro em sequência a cada chamada — e ela roda em toda conferência
    * de posse e em todo gasto. As quatro leem as MESMAS linhas (`user_id = ? AND deleted_at IS
@@ -218,7 +204,6 @@ export const seedSpendsRepo = {
     seedsGastas: number
     itensComprados: string[]
     cromasComprados: string[]
-    aprimoramentos: Record<string, number>
   }> {
     const linhas = await db
       .select({ amount: seedSpends.amount, reason: seedSpends.reason })
@@ -227,23 +212,15 @@ export const seedSpendsRepo = {
     let seedsGastas = 0
     const itens: string[] = []
     const cromas: string[] = []
-    const aprimoramentos: Record<string, number> = {}
     for (const l of linhas) {
       seedsGastas += Number(l.amount)
       if (comecaComoLike(l.reason, 'loja:')) itens.push(l.reason.slice('loja:'.length))
       if (comecaComoLike(l.reason, 'croma:')) cromas.push(l.reason)
-      if (comecaComoLike(l.reason, 'aprimoramento:')) {
-        const [, alvo, n] = l.reason.split(':')
-        const nivel = Number(n)
-        if (!alvo || !Number.isInteger(nivel)) continue
-        aprimoramentos[alvo] = Math.max(aprimoramentos[alvo] ?? 0, nivel)
-      }
     }
     return {
       seedsGastas,
       itensComprados: [...new Set(itens.filter(Boolean))],
       cromasComprados: [...new Set(cromas.filter(Boolean))],
-      aprimoramentos,
     }
   },
 

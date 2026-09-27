@@ -40,10 +40,10 @@ const METRICAS = {
 const MISSAO_PARA_REGRA: Record<string, string | null> = {
   /*
    * caracterizacao: comportamento atual, e ele MISTURA duas regras. A missão "capturar" promete o
-   * XP de `sessao` (salvar a gravação) com os Seeds de `captura` (1 a cada 5 minutos gravados).
-   * Os dois valores existem e são creditados de verdade — mas como recompensas de EVENTOS
-   * DIFERENTES, e o cartão os apresenta como se fossem de um só. Quem grava 2 minutos e salva
-   * recebe o XP prometido e nenhum Seed.
+   * XP de `sessao` (salvar a gravação) com os Seeds de `palavraSalva` (1 por palavra nova salva da
+   * captura, com teto diário — recompensas v2; antes eram minutos gravados). Os dois valores
+   * existem e são creditados de verdade — mas como recompensas de EVENTOS DIFERENTES, e o cartão
+   * os apresenta como se fossem de um só.
    *
    * Não é corrigido aqui porque a correção é decisão de produto (o cartão promete o que? gravar,
    * salvar, ou os dois em linhas separadas?). Fica registrado e medido.
@@ -81,10 +81,11 @@ describe('o par (XP, Seeds) não diverge entre as telas', () => {
   it('a missão "capture" continua misturando duas regras — se isto mudar, o ADR 0002 muda junto', () => {
     const missao = missoes.find((m) => m.id === 'capture')!
     expect(missao.rewardXp, 'XP da missão de captura').toBe(PESOS_XP.sessao)
-    expect(missao.rewardSeeds, 'Seeds da missão de captura').toBe(PESOS_SEEDS.capturaPor5Min)
+    expect(missao.rewardSeeds, 'Seeds da missão de captura').toBe(PESOS_SEEDS.palavraSalva)
     // E o que a tabela de ganhos diz sobre cada um dos dois eventos, separadamente:
     expect(regraPorId.get('sessao')!.seeds, 'salvar a sessão não rende Seeds').toBe(0)
-    expect(regraPorId.get('captura')!.xp, 'gravar rende XP por 5 min').toBe(PESOS_XP.capturaPor5Min)
+    expect(regraPorId.get('palavraSalva')!.xp, 'palavra salva não rende XP extra').toBe(0)
+    expect(regraPorId.has('captura'), 'gravar não rende mais por tempo').toBe(false)
   })
 
   it('nenhuma regra inventa valor fora de PESOS_XP/PESOS_SEEDS', () => {

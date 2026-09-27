@@ -1,4 +1,3 @@
-import { sorteDeEventos } from './aprimoramentos';
 import { type BurstKind, emitBurst } from './effects';
 import { type EfeitoComposto, eventosCondicionais, marcarEventoVisto, sortearEventoRaro } from './eventosDeJogo';
 import { play } from './soundFx';
@@ -105,11 +104,11 @@ export function comemorar(
 
 /**
  * O EVENTO RARO de um acerto (patos, vôlei…): sorteado a cada acerto, em qualquer jogo. Mora aqui
- * — e não no motor de comemoração — porque a sorte vem de `aprimoramentos` e o que é visto conta
+ * — e não no motor de comemoração — porque o que é visto conta
  * para a conquista Colecionador (`marcarEventoVisto`).
  */
 export function eventoRaroDoAcerto(): void {
-  const raro = sortearEventoRaro(Math.random, sorteDeEventos());
+  const raro = sortearEventoRaro(Math.random); // sorte fixa: o aprimoramento saiu (recompensas v2);
   if (!raro) return;
   executarEfeito(raro);
   pontosFlutuantes(raro.nome + '!', window.innerWidth / 2, window.innerHeight * 0.22, 'bom');

@@ -9,7 +9,7 @@
  * Rotas: GET `/api/metrics/profile`, GET `/api/metrics/xp`.
  */
 import type { AppMetrics } from '../../../core/learning/contract';
-import { diaLocal, marcosDeSequencia, minutosPremiados, sequencias } from '../../../core/learning/economia';
+import { diaLocal, marcosDeSequencia, palavrasPremiadas, sequencias } from '../../../core/learning/economia';
 import { historicoDeXp } from '../../../core/learning/historicoDeXp';
 import { Fsrs5Strategy } from '../../../core/learning/scheduler';
 import { ehRodadaPerfeita } from '../../../core/minigames/grade';
@@ -76,21 +76,30 @@ export async function perfilEfemero(sessionId: string | null): Promise<AppMetric
   let streakDays = 0;
   for (let d = Math.floor(agora / DIA); dias.has(d); d -= 1) streakDays += 1;
 
-  /* ── ECONOMIA v2: presença, tempo de captura premiado, rodadas perfeitas, créditos. ── */
-  const diasDePresenca = presencas.map((x) => x.dia);
-  const seq = sequencias(diasDePresenca, diaLocal(agora));
-  const sequencias7 = marcosDeSequencia(diasDePresenca, 7);
-  // Minutos de captura por dia local; o teto diário vive no core (`minutosPremiados`).
-  const minutosPorDia = new Map<number, number>();
+  /* ── ECONOMIA v2 + RECOMPENSAS v2 (27/09): a mesma conta do Express. Presença é só estatística;
+     a ofensiva e os marcos contam DIAS DE PRÁTICA; minuto gravado não paga nada. ── */
   let capturaMinutos = 0;
   for (const s of sessoes) {
     const min = (s.durationMs ?? 0) / 60_000;
-    if (min <= 0) continue;
-    capturaMinutos += min;
-    const d = diaLocal(s.createdAt);
-    minutosPorDia.set(d, (minutosPorDia.get(d) ?? 0) + min);
+    if (min > 0) capturaMinutos += min;
   }
-  const capturaMinutosPremiados = Math.floor(minutosPremiados(minutosPorDia.values()));
+  // Palavras salvas da captura por dia local; o teto diário vive no core (`palavrasPremiadas`).
+  const palavrasPorDia = new Map<number, number>();
+  for (const c of noDeck) {
+    if (!c.sessionId) continue;
+    const d = diaLocal(c.createdAt);
+    palavrasPorDia.set(d, (palavrasPorDia.get(d) ?? 0) + 1);
+  }
+  const palavrasSalvasPremiadas = palavrasPremiadas(palavrasPorDia.values());
+  const diasDePratica = new Set<number>(palavrasPorDia.keys());
+  for (const r of revs) diasDePratica.add(diaLocal(r.reviewedAt));
+  for (const e of drills) if (e.roundId) diasDePratica.add(diaLocal(e.createdAt));
+  const seq = sequencias(diasDePratica, diaLocal(agora));
+  const sequencias7 = marcosDeSequencia(diasDePratica, 7);
+  const acertosRecentes = [
+    ...revs.filter((r) => r.grade >= 3).map((r) => r.reviewedAt),
+    ...itensDeJogo.filter((e) => e.correct === 1).map((e) => e.createdAt),
+  ].filter((t) => t >= agora - 3 * DIA).sort((a, b) => a - b);
   // Rodada perfeita = todos os itens certos E tamanho ≥ mínimo do jogo (senão uma rodada de 1
   // item viraria fábrica de "perfeitas").
   const porRodada = new Map<string, { kind: string | null; total: number; certos: number }>();
@@ -106,7 +115,7 @@ export async function perfilEfemero(sessionId: string | null): Promise<AppMetric
   for (const r of porRodada.values()) if (ehRodadaPerfeita(r.kind, r.total, r.certos)) rodadasPerfeitas += 1;
   const seedsCreditadas = creditos.reduce((n, c) => n + c.amount, 0);
   const xpCreditado = creditos.reduce((n, c) => n + c.xp, 0);
-  // A ofensiva que a tela mostra é a MAIOR entre revisar e aparecer: aparecer todo dia também conta.
+  // A ofensiva que a tela mostra conta DIAS DE PRÁTICA (revisão, rodada ou palavra salva).
   streakDays = Math.max(streakDays, seq.atual);
 
   const revisados = noDeck.filter((c) => c.stability != null);
@@ -143,7 +152,8 @@ export async function perfilEfemero(sessionId: string | null): Promise<AppMetric
     maiorSequenciaPresenca: seq.maior,
     sequencias7,
     capturaMinutos: Math.round(capturaMinutos),
-    capturaMinutosPremiados,
+    palavrasSalvasPremiadas,
+    acertosRecentes,
     rodadasPerfeitas,
     seedsCreditadas,
     xpCreditado,

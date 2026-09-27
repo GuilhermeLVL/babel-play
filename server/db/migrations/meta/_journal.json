@@ -253,6 +253,13 @@
       "when": 1790360000000,
       "tag": "0035_indice_da_migracao_leitner",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "6",
+      "when": 1790370000000,
+      "tag": "0036_flag_recompensas_v2",
+      "breakpoints": true
     }
   ]
 }

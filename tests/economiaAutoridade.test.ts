@@ -16,7 +16,7 @@ import { describe, expect,it } from 'vitest'
 
 import {
   autorizarGasto, CATALOGO_DA_LOJA, conquistaDoCreditoId, CONQUISTAS,
-  CUSTO_PULAR_RODADA, CUSTOS_DE_NIVEL,
+  CUSTO_PULAR_RODADA,
 ehRecusa, PRECO_DO_CROMA, } from '../src/core'
 
 describe('autorizarGasto — o preço vem do catálogo, não do cliente', () => {
@@ -55,15 +55,17 @@ describe('autorizarGasto — o preço vem do catálogo, não do cliente', () => 
     expect(ehRecusa(autorizarGasto('croma:nao-existe:ambar'))).toBe(true)
   })
 
-  it('aprimoramento cobra o degrau certo da escada', () => {
-    expect(autorizarGasto('aprimoramento:particulas:1')).toMatchObject({ preco: CUSTOS_DE_NIVEL[0] })
-    expect(autorizarGasto('aprimoramento:particulas:3')).toMatchObject({ preco: CUSTOS_DE_NIVEL[2] })
+  /* Recompensas v2 (27/09): os aprimoramentos saíram; quem comprou recebe o reembolso. */
+  it('aprimoramento não se vende mais — qualquer degrau é recusado', () => {
+    for (const r of ['aprimoramento:particulas:1', 'aprimoramento:sorte:3', 'aprimoramento:particulas:4']) {
+      expect(ehRecusa(autorizarGasto(r)), r).toBe(true)
+    }
   })
 
-  it('degrau fora da escada e alvo inventado são recusados', () => {
-    expect(ehRecusa(autorizarGasto('aprimoramento:particulas:4'))).toBe(true)
-    expect(ehRecusa(autorizarGasto('aprimoramento:particulas:0'))).toBe(true)
-    expect(ehRecusa(autorizarGasto('aprimoramento:dinheiro-infinito:1'))).toBe(true)
+  it('item removido do catálogo não se compra mais, nem o croma dele', () => {
+    expect(ehRecusa(autorizarGasto('loja:cur-pato'))).toBe(true)
+    expect(ehRecusa(autorizarGasto('loja:pack-animais'))).toBe(true)
+    expect(ehRecusa(autorizarGasto('croma:ras-emoji:ambar'))).toBe(true)
   })
 
   it('pular rodada tem preço fixo', () => {

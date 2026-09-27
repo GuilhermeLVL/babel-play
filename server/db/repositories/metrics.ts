@@ -7,7 +7,7 @@
 import { and, eq, isNull, sql } from 'drizzle-orm'
 
 import type { AppMetrics } from '../../../src/core/learning/contract'
-import { diaLocal, marcosDeSequencia, minutosPremiados, sequencias } from '../../../src/core/learning/economia'
+import { diaLocal, marcosDeSequencia, palavrasPremiadas, sequencias } from '../../../src/core/learning/economia'
 import { type BaldeDeXp, type HistoricoDeXp, historicoDeXp } from '../../../src/core/learning/historicoDeXp'
 import { retrievability } from '../../../src/core/learning/scheduler'
 import { economiaDeMetricas } from '../../../src/core/learning/xp'
@@ -305,22 +305,38 @@ function resumirAtividade(linhas: LinhasDaAtividade, sessionId: string | null) {
      filtrar depois dá o mesmo array que filtrar e ordenar (a ordem de números iguais é a mesma). */
   const temposDeRevisao = logsNoEscopo.map((l) => l.reviewedAt ?? l.createdAt).sort((a, b) => a - b)
 
-  // Minutos de captura por DIA LOCAL — o teto diário vive no core (`minutosPremiados`), e é ele
-  // que impede uma gravação de oito horas de virar Seeds de oito horas.
-  const minutosPorDia = new Map<number, number>()
-  /* DOIS números, e não um: o PREMIADO paga Seeds (com teto diário) e o TOTAL é o que a conquista
-     "Ouvinte" conta ("some 60 minutos de sessão gravada"). O servidor emitia só o premiado, então
-     `m.capturaMinutos` chegava indefinido a `progresso()` e a conquista ficava presa em zero para
-     sempre — quem gravasse 60 minutos num dia só via o teto diário engolir a diferença. */
+  /* Minutos TOTAIS de captura — a conquista "Ouvinte" ("some 60 minutos de sessão gravada") e a
+     estatística. Desde as recompensas v2 (27/09) minuto gravado NÃO paga Seeds nem XP: premiar
+     tempo é o que o Decreto 12.880/2026, art. 9º, chama de incentivo compulsivo. */
   let capturaMinutos = 0
   for (const x of sess) {
     const min = (x.durationMs ?? 0) / 60_000
-    if (min <= 0) continue
-    capturaMinutos += min
-    const d = diaLocal(x.createdAt)
-    minutosPorDia.set(d, (minutosPorDia.get(d) ?? 0) + min)
+    if (min > 0) capturaMinutos += min
   }
-  const capturaMinutosPremiados = Math.floor(minutosPremiados(minutosPorDia.values()))
+
+  /* PALAVRAS SALVAS DA CAPTURA por DIA LOCAL (recompensas v2): cartão do caderno que nasceu de uma
+     sessão. O teto diário vive no core (`palavrasPremiadas`) — é ele que impede uma importação de
+     300 palavras de virar 300 Seeds. */
+  const palavrasPorDia = new Map<number, number>()
+  for (const c of inDeck) {
+    if (!c.sessionId) continue
+    const d = diaLocal(c.addedAt ?? c.createdAt)
+    palavrasPorDia.set(d, (palavrasPorDia.get(d) ?? 0) + 1)
+  }
+  const palavrasSalvasPremiadas = palavrasPremiadas(palavrasPorDia.values())
+
+  /* DIAS DE PRÁTICA (recompensas v2): revisão, rodada de jogo ou palavra salva. É a unidade da
+     ofensiva e dos marcos de 7 dias — abrir o app, sozinho, não entra mais. */
+  const diasDePratica = new Set<number>(palavrasPorDia.keys())
+  for (const l of logsNoEscopo) diasDePratica.add(diaLocal(l.reviewedAt ?? l.createdAt))
+  for (const e of drillsNoEscopo) if (e.roundId) diasDePratica.add(diaLocal(e.createdAt))
+
+  /* Carimbos dos ACERTOS (revisão certa ou item de jogo certo), ordenados: a meta do dia é
+     conferida sobre eles, no fuso do usuário, na parte que depende do relógio. */
+  const temposDeAcerto: number[] = []
+  for (const l of logsNoEscopo) if ((l.grade ?? 0) >= 3) temposDeAcerto.push(l.reviewedAt ?? l.createdAt)
+  for (const d of drillsNoEscopo) if (d.kind === 'drill' && (d.correct ?? 0) > 0) temposDeAcerto.push(d.createdAt)
+  temposDeAcerto.sort((a, b) => a - b)
 
   /* Idiomas distintos das sessões — a conquista "Poliglota". Mesma conta do modo sem conta
      (`src/data/efemero/servidor.ts`): `sourceLang` não nulo, contado uma vez. `sess` já está
@@ -362,7 +378,8 @@ function resumirAtividade(linhas: LinhasDaAtividade, sessionId: string | null) {
     drillCorrect,
     accuracy,
     capturaMinutos,
-    capturaMinutosPremiados,
+    palavrasSalvasPremiadas,
+    diasDePratica: [...diasDePratica].sort((a, b) => a - b),
     idiomas,
     rodadasPerfeitas,
     avgStability,
@@ -380,6 +397,7 @@ function resumirAtividade(linhas: LinhasDaAtividade, sessionId: string | null) {
     retencao,
     reviewDays,
     temposDeRevisao: Float64Array.from(temposDeRevisao),
+    temposDeAcerto: Float64Array.from(temposDeAcerto),
   }
 }
 
@@ -389,7 +407,8 @@ type ResumoDaAtividade = ReturnType<typeof resumirAtividade>
 function pesoDoResumo(r: ResumoDaAtividade): number {
   return (
     4096 +
-    8 * (r.vencimentos.length + 2 * r.retencao.estabilidade.length + r.temposDeRevisao.length) +
+    8 * (r.vencimentos.length + 2 * r.retencao.estabilidade.length + r.temposDeRevisao.length + r.temposDeAcerto.length) +
+    8 * r.diasDePratica.length +
     32 * r.reviewDays.size +
     256 * (r.palavrasDificeis.length + r.vocabByWeek.length)
   )
@@ -455,10 +474,12 @@ function montarPerfil(
     cursor.setDate(cursor.getDate() - 1)
   }
 
-  const { seedsGastas, itensComprados, cromasComprados, aprimoramentos } = razao.gastos
+  const { seedsGastas, itensComprados, cromasComprados } = razao.gastos
   const { seedsCreditadas, xpCreditado } = razao.creditos
   const diasDePresenca = razao.diasDePresenca
-  const seqPresenca = sequencias(diasDePresenca, diaLocal(now))
+  /* A OFENSIVA CONTA PRÁTICA (recompensas v2): os dias de presença continuam gravados, só como
+     estatística — abrir o app não estende sequência nem paga marco. */
+  const seqPratica = sequencias(r.diasDePratica, diaLocal(now))
 
   /**
    * OS TRÊS CONTADORES QUE FALTAVAM — e por que eles passaram a importar.
@@ -473,11 +494,14 @@ function montarPerfil(
    * O cálculo é o do servidor efêmero (`src/data/efemero/servidor.ts`), que é a implementação de
    * referência em uso: os mesmos ajudantes puros do core, sobre as mesmas linhas.
    */
-  const sequencias7 = marcosDeSequencia(diasDePresenca, 7)
+  const sequencias7 = marcosDeSequencia(r.diasDePratica, 7)
 
   const limiteRecente = now - 8 * DAY
   const revisoesRecentes: number[] = []
   for (const t of r.temposDeRevisao) if (t >= limiteRecente) revisoesRecentes.push(t)
+  const limiteDeAcerto = now - 3 * DAY
+  const acertosRecentes: number[] = []
+  for (const t of r.temposDeAcerto) if (t >= limiteDeAcerto) acertosRecentes.push(t)
 
   return {
     sessions: r.sessions,
@@ -491,22 +515,22 @@ function montarPerfil(
     drillCorrect: r.drillCorrect,
     accuracy: r.accuracy,
     accuracyConfidence: r.reviews >= 4 ? 0.9 : r.reviews > 0 ? 0.4 : 0,
-    // A ofensiva exibida é a MAIOR entre revisar e aparecer — mesma regra do efêmero.
-    streakDays: Math.max(streakDays, seqPresenca.atual),
+    // A ofensiva exibida conta DIAS DE PRÁTICA — mesma regra do efêmero.
+    streakDays: Math.max(streakDays, seqPratica.atual),
     seedsGastas,
     itensComprados,
     cromasComprados,
-    aprimoramentos,
     seedsCreditadas,
     xpCreditado,
     presencas: diasDePresenca.length,
     sequencias7,
     capturaMinutos: Math.round(r.capturaMinutos),
-    capturaMinutosPremiados: r.capturaMinutosPremiados,
+    palavrasSalvasPremiadas: r.palavrasSalvasPremiadas,
+    acertosRecentes,
     idiomas: r.idiomas,
     rodadasPerfeitas: r.rodadasPerfeitas,
-    streakPresenca: seqPresenca.atual,
-    maiorSequenciaPresenca: seqPresenca.maior,
+    streakPresenca: seqPratica.atual,
+    maiorSequenciaPresenca: seqPratica.maior,
     avgStability: r.avgStability,
     avgRetention,
     avgRetentionConfidence: considerados >= 4 ? 0.7 : considerados > 0 ? 0.3 : 0,

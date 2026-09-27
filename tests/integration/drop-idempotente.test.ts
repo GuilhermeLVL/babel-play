@@ -16,7 +16,7 @@
  * Os dois se provam contra o banco, não em unidade: é o banco que guarda o razão de onde a posse
  * é derivada.
  */
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll,beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
 import { itensSorteaveisNoDrop,SEEDS_DO_DROP } from '../../src/core/economiaAutoridade'
@@ -84,22 +84,47 @@ describe('o drop é idempotente pela rodada', () => {
     expect(drops).toEqual([{ creditoId: 'drop:termo-1-aaa', itemId: primeiro.body.item }])
   })
 
+  /* Doze baús, três por dia: o teto diário do baú v2 (recompensas v2) obriga a virar o dia. Só a
+     data é falsa — os timers continuam reais, o banco precisa deles. */
   it('o item sorteado é sempre um dos sorteáveis — nunca conquista, Créditos, épico ou lendário', async () => {
     const u = 'u-drop-catalogo'
     const permitidos = new Set(itensSorteaveisNoDrop(new Set()).map((i) => i.id))
-    for (let n = 0; n < 12; n++) {
-      await jogarRodada(u, `termo-c-${n}`)
-      const r = await creditar(u, `drop:termo-c-${n}`)
-      expect(r.status).toBe(200)
-      expect(permitidos.has(r.body.item), `rodada ${n} entregou ${r.body.item}`).toBe(true)
+    vi.useFakeTimers({ toFake: ['Date'] })
+    const inicio = Date.UTC(2026, 9, 1, 15)
+    try {
+      for (let n = 0; n < 12; n++) {
+        vi.setSystemTime(inicio + Math.floor(n / 3) * 86_400_000 + n * 60_000)
+        await jogarRodada(u, `termo-c-${n}`)
+        const r = await creditar(u, `drop:termo-c-${n}`)
+        expect(r.status).toBe(200)
+        expect(r.body.semBau, `rodada ${n} bateu no teto`).toBeUndefined()
+        /* Faixa sem peça nova vira Seeds (`repetido`), nunca um item de fora da régua. */
+        if (r.body.repetido) expect(r.body.item).toBeNull()
+        else expect(permitidos.has(r.body.item), `rodada ${n} entregou ${r.body.item}`).toBe(true)
+      }
+    } finally {
+      vi.useRealTimers()
     }
   })
 
   it('doze rodadas seguidas nunca repetem um item — duplicata não é prêmio', async () => {
     const drops = await economiaRepo.dropsSorteados(asUserId('u-drop-catalogo'))
     const ids = drops.map((d: any) => d.itemId)
-    expect(ids.length).toBe(12)
-    expect(new Set(ids).size).toBe(12)
+    expect(ids.length).toBeGreaterThan(0)
+    expect(new Set(ids).size).toBe(ids.length)
+  })
+
+  it('o quarto baú do mesmo dia não sai e não grava nada', async () => {
+    const u = 'u-drop-teto'
+    for (let n = 0; n < 3; n++) {
+      await jogarRodada(u, `termo-t-${n}`)
+      expect((await creditar(u, `drop:termo-t-${n}`)).body.semBau).toBeUndefined()
+    }
+    await jogarRodada(u, 'termo-t-3')
+    const quarto = await creditar(u, 'drop:termo-t-3')
+    expect(quarto.status).toBe(200)
+    expect(quarto.body).toMatchObject({ semBau: 'teto', item: null, bausHoje: 3, limite: 3 })
+    expect((await economiaRepo.bausAbertos(asUserId(u))).length).toBe(3)
   })
 })
 

@@ -4,9 +4,7 @@ import {
   Check,
   Lock,
   Moon,
-  MousePointer2,
   Palette,
-  PanelLeft,
   Pencil,
   Save,
   ShoppingBag,
@@ -65,10 +63,10 @@ import EditorDoItem, { temPersonalizacao } from './EditorDoItem';
 /* As seções, na ordem da tela. As duas primeiras são as do protótipo. */
 const SECOES: Array<{ id: string; titulo: string; icone: LucideIcon; tipos: string[] }> = [
   { id: 'temas', titulo: 'Temas', icone: Palette, tipos: ['tema'] },
-  { id: 'efeitos', titulo: 'Efeitos e letras', icone: WandSparkles, tipos: ['particulas', 'rastro', 'fonte'] },
-  { id: 'cursor', titulo: 'Cursor e emojis', icone: MousePointer2, tipos: ['cursor', 'pack'] },
-  { id: 'menu', titulo: 'Menu', icone: PanelLeft, tipos: ['posicao'] },
-  { id: 'capacidades', titulo: 'Capacidades', icone: Sparkles, tipos: ['galeria', 'estudio', 'aprimoramento'] },
+  /* Recompensas v2 (27/09): "Cursor e emojis" saiu com os cursores e packs; fonte e posição do
+     menu viraram opções livres no bloco "Acessibilidade e layout" do Personalizar. */
+  { id: 'efeitos', titulo: 'Efeitos', icone: WandSparkles, tipos: ['particulas', 'rastro'] },
+  { id: 'capacidades', titulo: 'Capacidades', icone: Sparkles, tipos: ['galeria', 'estudio'] },
 ];
 
 /** O ícone da tela para onde a rota manda — o mesmo desenho que a tela de destino usa no menu. */

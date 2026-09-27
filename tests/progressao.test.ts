@@ -24,10 +24,10 @@ describe('progressão — o mapa das quatro áreas', () => {
     expect(proximaRecompensa(99)).toBeNull()
   })
 
-  it('estadoDaColecao classifica cada item em UMA área, sem aprimoramentos', () => {
+  it('estadoDaColecao classifica cada item em UMA área', () => {
     const e = estadoDaColecao(3, 100)
     const total = e.possuidos.length + e.compraveis.length + e.porNivel.length + e.porConquista.length
-    expect(total).toBe(CATALOGO_DA_LOJA.filter((i) => i.tipo !== 'aprimoramento').length)
+    expect(total).toBe(CATALOGO_DA_LOJA.length)
     expect(e.porConquista.every((i) => !!i.exclusivoDe)).toBe(true)
     expect(e.possuidos.every((i) => i.exclusivoDe ? false : i.nivel <= 3)).toBe(true)
     expect(e.compraveis.every((i) => i.nivel > 3 && (i.precoSeeds ?? Infinity) <= 100)).toBe(true)

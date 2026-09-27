@@ -12,12 +12,16 @@
  * `tests/contratos/rotas-espelhadas`: moeda paga nasce e morre no servidor.
  */
 import {
-autorizarGasto, ehRecusa, ESTRELAS_PARA_O_BAU,
-itensSorteaveisNoDrop, progressoNoServidor, rodadaRendeBau, roundIdDoDrop, sortearItemDoDrop, valorDoCredito, valorDoDrop,
+autorizarGasto, BAUS_POR_DIA, CHANCES_DO_BAU, decidirBau, ehRecusa, ESTRELAS_PARA_O_BAU,
+itensSorteaveisNoDrop, progressoNoServidor, proximoRaroGarantidoEm, raridadeDoBau, rodadaRendeBau, roundIdDoDrop,
+situacaoDoBau, valorDoCredito, valorDoDrop, valorDoRepetido,
 } from '../../../core/economiaAutoridade';
 import type { ContextoDeConquistas } from '../../../core/learning/conquistas';
-import { diaLocal, sequencias } from '../../../core/learning/economia';
+import {
+  acertosNoDia, diaLocal, diaNoFuso, fusoOuPadrao, META_DIARIA_ACERTOS, metaDoDiaCumprida, sequencias,
+} from '../../../core/learning/economia';
 import { economiaDeMetricas } from '../../../core/learning/xp';
+import { reembolsosDevidos } from '../../../core/reembolso';
 import { json, lerJson, num, str } from '../nucleo';
 import { abrirStore } from '../store';
 import { perfilEfemero } from './metricas';
@@ -98,7 +102,7 @@ export async function registrarPresenca(_m: RegExpMatchArray, _u: URL, init: Req
  * A diferença de mecânica, e só ela: aqui não há `user_id` (o banco inteiro é de uma pessoa só) e
  * a posse da Loja sai de `gastos` com razão `loja:` em vez de `seed_spends`.
  */
-async function creditarDrop(creditoId: string, roundId: string): Promise<Response> {
+async function creditarDrop(creditoId: string, roundId: string, fusoPedido: string | null): Promise<Response> {
   const db = await abrirStore();
   const daRodada = (await db.getAll('exercicios')).filter((e) => e.roundId === roundId);
   if (!daRodada.length) {
@@ -111,17 +115,24 @@ async function creditarDrop(creditoId: string, roundId: string): Promise<Respons
     xpCreditado: linhas.reduce((n, c) => n + c.xp, 0),
   });
 
-  const jaAberto = creditos.find((c) => c.creditoId === creditoId);
+  /* BAÚ v2 (recompensas v2), com a régua e a ordem do Express: dia LOCAL no fuso de quem joga. */
+  const fuso = fusoOuPadrao(fusoPedido);
+  const diaDe = (t: number) => diaNoFuso(t, fuso);
+  const baus = creditos.filter((c) => c.creditoId.startsWith('drop:')).map((c) => ({ ...c, em: c.createdAt }));
+
+  const jaAberto = baus.find((c) => c.creditoId === creditoId);
   if (jaAberto) {
-    return json({ jaExistia: true, item: jaAberto.reason.slice('drop:'.length), ...totais(creditos) });
+    const { semRaroSeguidos } = situacaoDoBau(baus, diaDe(Date.now()), diaDe);
+    const repetido = jaAberto.reason.startsWith('bau:repetido:');
+    return json({
+      jaExistia: true, item: repetido ? null : jaAberto.reason.slice('drop:'.length), repetido, seeds: jaAberto.amount,
+      raridade: raridadeDoBau(jaAberto.reason), chances: CHANCES_DO_BAU,
+      proximoRaroGarantidoEm: proximoRaroGarantidoEm(semRaroSeguidos), ...totais(creditos),
+    });
   }
 
-  /* O baú exige duas estrelas, sobre as linhas gravadas — a mesma régua e o mesmo lugar do Express. */
   const desempenho = rodadaRendeBau(daRodada);
-  if (!desempenho.rende) {
-    return json({ error: 'rodada sem baú: exige duas estrelas', code: 'rodada_sem_bau', codigo: 'rodada_sem_bau', detalhes: { estrelas: desempenho.estrelas, exigido: ESTRELAS_PARA_O_BAU } }, 400);
-  }
-
+  const { bausHoje, semRaroSeguidos } = situacaoDoBau(baus, diaDe(Date.now()), diaDe);
   const jaPossui = new Set<string>();
   for (const g of await db.getAll('gastos')) {
     if (g.reason.startsWith('loja:')) jaPossui.add(g.reason.slice('loja:'.length));
@@ -129,17 +140,57 @@ async function creditarDrop(creditoId: string, roundId: string): Promise<Respons
   for (const c of creditos) {
     if (c.reason.startsWith('drop:')) jaPossui.add(c.reason.slice('drop:'.length));
   }
+  const decisao = decidirBau({
+    estrelas: desempenho.estrelas, bausHoje, semRaroSeguidos, sorteio: Math.random(), elegiveis: itensSorteaveisNoDrop(jaPossui),
+  });
 
-  const sorteado = sortearItemDoDrop(Math.random(), itensSorteaveisNoDrop(jaPossui));
-  if (!sorteado) return json({ jaExistia: false, item: null, ...totais(creditos) });
+  if (decisao.tipo === 'sem-bau' && decisao.motivo === 'estrelas') {
+    return json({ error: 'rodada sem baú: exige duas estrelas', code: 'rodada_sem_bau', codigo: 'rodada_sem_bau', detalhes: { estrelas: desempenho.estrelas, exigido: ESTRELAS_PARA_O_BAU } }, 400);
+  }
+  if (decisao.tipo === 'sem-bau') {
+    return json({
+      jaExistia: false, item: null, semBau: 'teto', bausHoje, limite: BAUS_POR_DIA, chances: CHANCES_DO_BAU,
+      proximoRaroGarantidoEm: proximoRaroGarantidoEm(semRaroSeguidos), ...totais(creditos),
+    });
+  }
 
-  const credito = valorDoDrop(creditoId, sorteado.id);
+  const credito = decisao.tipo === 'item' ? valorDoDrop(creditoId, decisao.item.id) : valorDoRepetido(creditoId, decisao.raridade);
   if (ehRecusa(credito)) return json({ error: credito.erro, code: 'drop_invalido', codigo: 'drop_invalido' }, 400);
 
   await db.put('creditos', {
     creditoId: credito.creditoId, amount: credito.seeds, xp: credito.xp, reason: credito.reason, createdAt: Date.now(),
   });
-  return json({ jaExistia: false, item: sorteado.id, ...totais(await db.getAll('creditos')) });
+  return json({
+    jaExistia: false, item: decisao.tipo === 'item' ? decisao.item.id : null, repetido: decisao.tipo === 'seeds',
+    seeds: credito.seeds, raridade: decisao.raridade, chances: CHANCES_DO_BAU,
+    proximoRaroGarantidoEm: proximoRaroGarantidoEm(decisao.raridade === 'raro' ? 0 : semRaroSeguidos + 1),
+    ...totais(await db.getAll('creditos')),
+  });
+}
+
+/**
+ * O REEMBOLSO DO CORTE DO CATÁLOGO, sem conta — a mesma régua do Express (`reembolsosDevidos`
+ * sobre o razão de gastos). A idempotência aqui é a chave do IndexedDB: `creditos` é indexado por
+ * `creditoId`, então duas abas gravando o mesmo reembolso sobrescrevem a mesma linha.
+ */
+export async function reembolsarSeeds(): Promise<Response> {
+  const db = await abrirStore();
+  const gastos = await db.getAll('gastos');
+  const antes = await db.getAll('creditos');
+  const ja = new Set(antes.filter((c) => c.creditoId.startsWith('reembolso:')).map((c) => c.creditoId));
+  let creditado = 0;
+  for (const d of reembolsosDevidos(gastos, ja)) {
+    if (await db.get('creditos', d.creditoId)) continue;
+    await db.put('creditos', { creditoId: d.creditoId, amount: d.seeds, xp: 0, reason: d.creditoId, createdAt: Date.now() });
+    creditado += d.seeds;
+  }
+  const todos = await db.getAll('creditos');
+  return json({
+    creditado,
+    reembolsado: todos.filter((c) => c.creditoId.startsWith('reembolso:')).reduce((n, c) => n + c.amount, 0),
+    seedsCreditadas: todos.reduce((n, c) => n + c.amount, 0),
+    xpCreditado: todos.reduce((n, c) => n + c.xp, 0),
+  });
 }
 
 export async function creditarSeeds(_m: RegExpMatchArray, _u: URL, init: RequestInit): Promise<Response> {
@@ -150,7 +201,7 @@ export async function creditarSeeds(_m: RegExpMatchArray, _u: URL, init: Request
   /* A família de drop desvia antes de `valorDoCredito`, exatamente como no Express: o valor de um
      baú depende do item sorteado, que não está no id. */
   const roundIdDeDrop = roundIdDoDrop(creditoId);
-  if (roundIdDeDrop) return creditarDrop(creditoId, roundIdDeDrop);
+  if (roundIdDeDrop) return creditarDrop(creditoId, roundIdDeDrop, str(p.fuso));
 
   const credito = valorDoCredito(creditoId);
   if (ehRecusa(credito)) return json({ error: credito.erro, code: 'credito_desconhecido' }, 400);
@@ -167,6 +218,19 @@ export async function creditarSeeds(_m: RegExpMatchArray, _u: URL, init: Request
       const { nivel } = economiaDeMetricas(await perfilEfemero(null));
       if (nivel < credito.nivelMinimo) {
         return json({ error: 'nível insuficiente para este crédito', code: 'nivel_insuficiente', codigo: 'nivel_insuficiente', detalhes: { nivel, exigido: credito.nivelMinimo } }, 400);
+      }
+    }
+    /* A META DO DIA (recompensas v2), com a régua do Express: hoje ou ontem no fuso de quem
+       joga, e os acertos gravados daquele dia alcançando a meta. */
+    if (credito.metaDoDia) {
+      const fuso = fusoOuPadrao(str(p.fuso));
+      const agora = Date.now();
+      if (![diaNoFuso(agora, fuso), diaNoFuso(agora - 86_400_000, fuso)].includes(credito.metaDoDia)) {
+        return json({ error: 'dia da meta fora da janela', code: 'dia_fora_da_janela', codigo: 'dia_fora_da_janela', detalhes: { dia: credito.metaDoDia } }, 400);
+      }
+      const acertos = acertosNoDia((await perfilEfemero(null)).acertosRecentes ?? [], credito.metaDoDia, fuso);
+      if (!metaDoDiaCumprida(acertos)) {
+        return json({ error: 'meta do dia ainda não cumprida', code: 'meta_nao_cumprida', codigo: 'meta_nao_cumprida', detalhes: { acertos, meta: META_DIARIA_ACERTOS } }, 400);
       }
     }
     /* O COLECIONADOR É CONFERIDO AQUI TAMBÉM, com a régua do Express (`progressoNoServidor`): os

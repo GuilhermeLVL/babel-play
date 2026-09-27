@@ -72,8 +72,9 @@ describe('ícone do item', () => {
     expect(icones.size, 'tema deveria ter um ícone só').toBe(1)
   })
 
-  it('pack e cursor continuam lendo a descrição — ali o emoji É o produto', () => {
-    const pack = CATALOGO_DA_LOJA.find((i) => i.id === 'pack-oceano')!
-    expect(emojiDoItem(pack)).toBe('🐬')
+  /* Pack e cursor, que liam o emoji da descrição, saíram nas recompensas v2; o rastro ainda lê. */
+  it('rastro lê a descrição quando ela traz o emoji; sem emoji, cai no ícone do tipo', () => {
+    const rastro = CATALOGO_DA_LOJA.find((i) => i.id === 'ras-faisca')!
+    expect(emojiDoItem(rastro)).toBe('💫')
   })
 })

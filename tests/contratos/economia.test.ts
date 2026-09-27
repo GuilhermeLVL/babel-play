@@ -229,6 +229,14 @@ describe('drop: o baú vale o mesmo nas duas pontas', () => {
     expect(permitidos.has(efemero.body.item), `efêmero entregou ${efemero.body.item}`).toBe(true)
     expect(express.body.seedsCreditadas - antesExpress).toBe(SEEDS_DO_DROP)
     expect(efemero.body.seedsCreditadas - antesEfemero).toBe(SEEDS_DO_DROP)
+    /* BAÚ v2: a mesma forma de resposta — chances, garantia, raridade e o valor DESTE baú. */
+    for (const lado of [express.body, efemero.body]) {
+      expect(lado.chances).toEqual({ comum: 75, raro: 25 })
+      expect(lado.proximoRaroGarantidoEm).toBeGreaterThanOrEqual(1)
+      expect(lado.seeds).toBe(SEEDS_DO_DROP)
+      expect(lado.repetido).toBe(false)
+    }
+    expect(Object.keys(express.body).sort()).toEqual(Object.keys(efemero.body).sort())
   })
 
   it('rodada abaixo de duas estrelas não abre baú, nas duas, com o mesmo código', async () => {

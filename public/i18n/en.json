@@ -521,7 +521,7 @@
   "Regar palavras": "Water words",
   "Abrir vocabulário": "Open vocabulary",
   "Ver minhas palavras": "See my words",
-  "a cada 5 min gravados": "every 5 min recorded",
+  "por palavra salva": "per saved word",
   "por revisão": "per review",
   "por palavra fichada": "per word filed",
   "Não foi possível salvar o idioma. Verifique a conexão com o servidor e tente de novo.": "The language could not be saved. Check the connection to the server and try again.",
@@ -876,5 +876,17 @@
   "Certo! Com acento:": "Correct! With the accent:",
   "Também vale! A palavra desta pista era:": "That works too! The word for this clue was:",
   "Fora! Era:": "Out! It was:",
-  "Limpar a linha": "Clear the line"
+  "Limpar a linha": "Clear the line",
+  "+{n} Seeds · meta do dia cumprida": "+{n} Seeds · daily goal done",
+  "Peça repetida": "Duplicate piece",
+  "Você já tem este item: +{n} Seeds": "You already have this item: +{n} Seeds",
+  "Chances: {comum}% comum · {raro}% raro": "Odds: {comum}% common · {raro}% rare",
+  "o próximo baú é raro garantido": "the next chest is a guaranteed rare",
+  "raro garantido em {n} baús": "guaranteed rare in {n} chests",
+  "Baús de hoje: {n} de {n}. Amanhã tem mais.": "Today's chests: {n} of {n}. More tomorrow.",
+  "Trocamos os cursores e emojis por recompensas novas. Suas Seeds voltaram: +{n}": "We swapped the cursors and emojis for new rewards. Your Seeds are back: +{n}",
+  "Acessibilidade e layout": "Accessibility and layout",
+  "A letra e a posição do menu são suas desde o começo: não custam Seeds nem pedem nível.": "The font and the menu position are yours from the start: they cost no Seeds and need no level.",
+  "Letra": "Font",
+  "Posição do menu": "Menu position"
 }

@@ -1,11 +1,11 @@
 import React, { useEffect, useRef } from 'react';
 
 import type { ThemeType } from '../lib/appearance';
-import { ajusteDeBurst } from '../lib/aprimoramentos';
 import { BURST_SPECS, type BurstKind, type BurstSpec,onBurst, resolveParticleStyle } from '../lib/effects';
 import { corDoCromaEquipado } from '../lib/galeria/cromas';
 import { criarLacoDeParticulas, type MensagemDoLaco, type PedidoDeRajada } from '../lib/motorDeParticulas';
-import { emojisDoPack } from '../lib/particulas';
+
+const PACK_DE_RESERVA = ['⭐', '✨'];
 
 interface ParticleCanvasProps {
   /** Interruptor do usuário (Animações e efeitos). */
@@ -179,7 +179,11 @@ export default function ParticleCanvas({ enabled, performanceMode, theme, darkMo
       getComputedStyle(document.documentElement).getPropertyValue(token).trim() || '#888888';
     return onBurst((e: { x: number; y: number; kind: BurstKind; sobrescrever?: Partial<BurstSpec> }) => {
       const spec: BurstSpec = e.sobrescrever ? { ...BURST_SPECS[e.kind], ...e.sobrescrever } : BURST_SPECS[e.kind];
-      const { countMul, sizeMul } = ajusteDeBurst();
+      /* Os APRIMORAMENTOS (tamanho e quantidade) e os PACKS DE EMOJI saíram nas recompensas v2
+         (27/09): a rajada sai do tamanho da spec, e a forma "emoji" dos eventos raros usa o par
+         de reserva de sempre. */
+      const countMul = 1;
+      const sizeMul = 1;
       // As coordenadas da rajada chegam em VIEWPORT; o canvas pode não começar no topo da janela.
       const rect = canvasRef.current?.getBoundingClientRect();
       /* CROMA (mudança inventario-e-cromas): quando a pessoa desbloqueou e equipou uma cor para
@@ -194,8 +198,7 @@ export default function ParticleCanvas({ enabled, performanceMode, theme, darkMo
         countMul,
         sizeMul,
         cor: croma ?? readColor(spec.colorToken),
-        // LIDO UMA VEZ POR RAJADA, não por partícula: `emojisDoPack()` faz localStorage + JSON.parse.
-        pack: emojisDoPack(),
+        pack: PACK_DE_RESERVA,
         skin,
         modoPixel: document.documentElement.getAttribute('data-fonte') === 'pixel',
       };

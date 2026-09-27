@@ -31,17 +31,17 @@ export const PESOS_XP = {
    */
   itemDeJogo: 1,
   itemDeJogoCerto: 2,
-  /* ECONOMIA v2 (2026-08-28) — o que passou a contar. Ver `economia.ts` para a tabela dita. */
-  /** Abrir o app no dia. */
-  presenca: 10,
-  /** Cada marco de 7 dias seguidos de presença. */
+  /* ECONOMIA v2 (2026-08-28) — o que passou a contar. Ver `economia.ts` para a tabela dita.
+     RECOMPENSAS v2 (27/09): `presenca` e `capturaPor5Min` SAÍRAM — abrir o app e deixar gravando
+     não são resultado (Decreto 12.880/2026, art. 9º). */
+  /** Cada marco de 7 dias seguidos de PRÁTICA (revisão, rodada ou palavra salva). */
   sequencia7: 50,
-  /** Cada 5 minutos de sessão gravada, com teto diário. */
-  capturaPor5Min: 10,
   /** Palavra FICHADA no caderno (um cartão criado por ação da pessoa). */
   cartao: 2,
   /** Rodada de jogo fechada sem erro. */
   rodadaPerfeita: 15,
+  /** Meta do dia cumprida (crédito `meta:<AAAA-MM-DD>`, conferido no servidor). */
+  metaDiaria: 20,
 } as const;
 
 /**
@@ -57,7 +57,8 @@ export const PESOS_XP = {
  * ECONOMIA v2 (2026-08-28). `palavraCapturada` SAIU das Seeds: era a soma de palavras dos
  * transcritos, e uma importação de 325 palavras rendia 325 Seeds sem nenhuma ação (a Loja
  * inteira custava menos que duas capturas). Toda fonte de Seeds agora é um ESFORÇO da pessoa:
- * fichar, acertar, jogar sem errar, aparecer todo dia, gravar de verdade (com teto diário).
+ * fichar, acertar, jogar sem errar. Desde as recompensas v2 (27/09), aparecer e gravar por tempo
+ * saíram; a palavra salva da captura e a meta do dia entraram.
  * O ganho continua só crescendo: marcos de sequência são contados do histórico, não do estado.
  */
 export const PESOS_SEEDS = {
@@ -65,9 +66,13 @@ export const PESOS_SEEDS = {
   revisaoCerta: 2,
   jogoCerto: 1,
   rodadaPerfeita: 5,
-  presenca: 5,
-  capturaPor5Min: 1,
   sequencia7: 25,
+  /** Palavra nova salva da captura — com teto diário (`TETO_PALAVRAS_SALVAS_POR_DIA`). */
+  palavraSalva: 1,
+  /** Meta do dia cumprida — uma vez por dia (`meta:<AAAA-MM-DD>`). */
+  metaDiaria: 15,
+  /** Nível de maestria de um jogo: vale `nivelDeMaestria × nível` (onda 3, `maestria:<jogo>:<n>`). */
+  nivelDeMaestria: 20,
 } as const;
 
 /** Os fatos que produzem XP. Todos contáveis, todos com carimbo de tempo no banco. */
@@ -78,12 +83,10 @@ export interface EventosDeXp {
   revisoesCertas: number;
   itensDeJogo?: number;
   itensDeJogoCertos?: number;
-  /** Dias com presença registrada. */
-  presencas?: number;
-  /** Marcos de 7 dias seguidos já alcançados (histórico, nunca diminui). */
+  /** Marcos de 7 dias seguidos de prática já alcançados (histórico, nunca diminui). */
   sequencias7?: number;
-  /** Minutos de captura PREMIADOS (já com o teto diário aplicado). */
-  capturaMinutosPremiados?: number;
+  /** Palavras salvas da captura PREMIADAS (já com o teto diário aplicado). */
+  palavrasSalvasPremiadas?: number;
   /** Cartões criados no caderno. */
   cartoesCriados?: number;
   /** Rodadas de jogo 100% certas. */
@@ -101,9 +104,7 @@ export function xpDeEventos(e: EventosDeXp): number {
     e.revisoesCertas * PESOS_XP.revisaoCerta +
     (e.itensDeJogo ?? 0) * PESOS_XP.itemDeJogo +
     (e.itensDeJogoCertos ?? 0) * PESOS_XP.itemDeJogoCerto +
-    (e.presencas ?? 0) * PESOS_XP.presenca +
     (e.sequencias7 ?? 0) * PESOS_XP.sequencia7 +
-    Math.floor((e.capturaMinutosPremiados ?? 0) / 5) * PESOS_XP.capturaPor5Min +
     (e.cartoesCriados ?? 0) * PESOS_XP.cartao +
     (e.rodadasPerfeitas ?? 0) * PESOS_XP.rodadaPerfeita +
     (e.xpCreditado ?? 0)
@@ -112,15 +113,14 @@ export function xpDeEventos(e: EventosDeXp): number {
 
 /** Seeds GANHAS (só cresce). O saldo subtrai os gastos, que vivem numa tabela de eventos. */
 export function seedsGanhasDeEventos(
-  e: Pick<EventosDeXp, 'revisoesCertas' | 'itensDeJogoCertos' | 'presencas' | 'sequencias7' | 'capturaMinutosPremiados' | 'cartoesCriados' | 'rodadasPerfeitas' | 'seedsCreditadas'>,
+  e: Pick<EventosDeXp, 'revisoesCertas' | 'itensDeJogoCertos' | 'sequencias7' | 'palavrasSalvasPremiadas' | 'cartoesCriados' | 'rodadasPerfeitas' | 'seedsCreditadas'>,
 ): number {
   return (
     (e.cartoesCriados ?? 0) * PESOS_SEEDS.cartao +
     e.revisoesCertas * PESOS_SEEDS.revisaoCerta +
     (e.itensDeJogoCertos ?? 0) * PESOS_SEEDS.jogoCerto +
     (e.rodadasPerfeitas ?? 0) * PESOS_SEEDS.rodadaPerfeita +
-    (e.presencas ?? 0) * PESOS_SEEDS.presenca +
-    Math.floor((e.capturaMinutosPremiados ?? 0) / 5) * PESOS_SEEDS.capturaPor5Min +
+    (e.palavrasSalvasPremiadas ?? 0) * PESOS_SEEDS.palavraSalva +
     (e.sequencias7 ?? 0) * PESOS_SEEDS.sequencia7 +
     (e.seedsCreditadas ?? 0)
   );
@@ -188,9 +188,8 @@ export function eventosDeMetricas(m: AppMetrics): EventosDeXp {
     revisoesCertas: m.correctReviews,
     itensDeJogo: m.drillItems ?? 0,
     itensDeJogoCertos: m.drillCorrect ?? 0,
-    presencas: m.presencas ?? 0,
     sequencias7: m.sequencias7 ?? 0,
-    capturaMinutosPremiados: m.capturaMinutosPremiados ?? 0,
+    palavrasSalvasPremiadas: m.palavrasSalvasPremiadas ?? 0,
     cartoesCriados: m.deckSize ?? 0,
     rodadasPerfeitas: m.rodadasPerfeitas ?? 0,
     xpCreditado: m.xpCreditado ?? 0,

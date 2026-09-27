@@ -163,9 +163,8 @@ export interface PerfilDeMetricas {
   drillItems: number;
   drillCorrect: number;
   seedsGastas: number;
-  presencas?: number;
   sequencias7?: number;
-  capturaMinutosPremiados?: number;
+  palavrasSalvasPremiadas?: number;
   rodadasPerfeitas?: number;
   seedsCreditadas?: number;
   itensComprados?: string[];
@@ -180,8 +179,9 @@ export async function perfil(): Promise<PerfilDeMetricas> {
 /**
  * O SALDO COMO A TELA O CALCULA. `deriveProgress` faz ganhas − gastas, e "ganhas" e a soma de
  * `seedsGanhasDeEventos` (`src/core/learning/xp.ts`): 1 por cartao, 2 por revisao certa, 1 por
- * item de jogo certo, 5 por rodada perfeita, 5 por presenca, 1 a cada 5 min de captura premiada,
- * 25 por sequencia de 7, mais os creditos avulsos. Reescrito aqui em vez de importado do core
+ * item de jogo certo, 5 por rodada perfeita, 1 por palavra salva da captura (teto diario ja aplicado),
+ * 25 por sequencia de 7, mais os creditos avulsos. Presenca e minutos de captura sairam nas
+ * recompensas v2 (27/09). Reescrito aqui em vez de importado do core
  * para que a suite nao dependa de o core transpilar dentro do Playwright — e para que uma
  * mudanca de peso apareca como falha de teste, que e o que uma mudanca de economia merece.
  */
@@ -191,8 +191,7 @@ export function saldoEsperado(p: PerfilDeMetricas): number {
     (p.correctReviews ?? 0) * 2 +
     (p.drillCorrect ?? 0) * 1 +
     (p.rodadasPerfeitas ?? 0) * 5 +
-    (p.presencas ?? 0) * 5 +
-    Math.floor((p.capturaMinutosPremiados ?? 0) / 5) * 1 +
+    (p.palavrasSalvasPremiadas ?? 0) * 1 +
     (p.sequencias7 ?? 0) * 25 +
     (p.seedsCreditadas ?? 0);
   return Math.max(0, ganhas - (p.seedsGastas ?? 0));

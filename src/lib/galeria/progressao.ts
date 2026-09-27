@@ -63,7 +63,7 @@ export interface EstadoDaColecao {
   porConquista: ItemDaLoja[]
 }
 
-/** Classifica cada item do catálogo numa das quatro áreas. Aprimoramentos ficam fora (têm régua própria). */
+/** Classifica cada item do catálogo numa das quatro áreas. */
 export function estadoDaColecao(nivel: number, saldo: number, catalogo: ReadonlyArray<ItemDaLoja> = CATALOGO_DA_LOJA): EstadoDaColecao {
   const r: EstadoDaColecao = {
     possuidos: [], ganhosPorNivel: [], compradosComSeeds: [], conquistados: [],
@@ -71,7 +71,6 @@ export function estadoDaColecao(nivel: number, saldo: number, catalogo: Readonly
   }
   const comprados = possuidos()
   for (const i of catalogo) {
-    if (i.tipo === 'aprimoramento') continue
     const { estado } = estadoDoItem(i, nivel, saldo)
     if (estado === 'equipavel') {
       r.possuidos.push(i)
@@ -90,7 +89,7 @@ export function estadoDaColecao(nivel: number, saldo: number, catalogo: Readonly
 
 /** TUDO que o nível `n` abre (Loja + galeria), para o modal de resgate. */
 export function recompensasDoNivelCompleto(n: number, catalogo: ReadonlyArray<ItemDaLoja> = CATALOGO_DA_LOJA): ItemDaLoja[] {
-  return catalogo.filter((i) => !i.exclusivoDe && i.nivel === n && i.tipo !== 'aprimoramento')
+  return catalogo.filter((i) => !i.exclusivoDe && i.nivel === n)
 }
 
 /** O item exclusivo que uma conquista libera, se houver. */
@@ -109,7 +108,7 @@ export function emojiDoItem(item: ItemDaLoja): string {
      enquanto um tema e um pack podiam ter o mesmo. Não era um sistema, era um acidente por item.
      Agora o tipo dá o ícone estável, e só os tipos que se distinguem PELO conteúdo (packs e
      cursores, onde o emoji É o produto) continuam lendo a descrição. */
-  const ehDoConteudo = item.tipo === 'pack' || item.tipo === 'cursor' || item.tipo === 'rastro'
+  const ehDoConteudo = item.tipo === 'rastro'
   const m = ehDoConteudo ? item.desc.match(/\p{Extended_Pictographic}/u) : null
   if (m) return m[0]
   switch (item.tipo) {
@@ -118,8 +117,6 @@ export function emojiDoItem(item: ItemDaLoja): string {
     case 'posicao': return '🧭'
     case 'estudio': return '🪄'
     case 'particulas': return '✨'
-    case 'pack': return '😀'
-    case 'cursor': return '🖱️'
     case 'rastro': return '💫'
     case 'galeria': return '🖼️'
     default: return '🎁'

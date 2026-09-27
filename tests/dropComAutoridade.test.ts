@@ -14,8 +14,8 @@
 import { describe, expect,it } from 'vitest'
 
 import {
-ehRecusa,
-itensSorteaveisNoDrop, PESOS_DO_DROP, roundIdDoDrop,   SEEDS_DO_DROP, sortearItemDoDrop,
+decidirBau, ehRecusa,
+itensSorteaveisNoDrop, PESOS_DO_DROP, roundIdDoDrop,   SEEDS_DO_DROP,
 valorDoCredito,   valorDoDrop, } from '../src/core/economiaAutoridade'
 import { CATALOGO_DA_LOJA } from '../src/core/loja'
 
@@ -86,45 +86,40 @@ describe('quem pode cair num baú', () => {
   })
 })
 
-describe('o sorteio', () => {
+/* O SORTEIO passou para `decidirBau` (recompensas v2, `tests/bau-v2.test.ts` cobre teto, garantia
+   e repetido). Aqui ficam as propriedades que o sorteio antigo já garantia e que continuam valendo. */
+describe('o sorteio (decidirBau)', () => {
+  const sortear = (f: number, elegiveis = TODOS) =>
+    decidirBau({ estrelas: 3, bausHoje: 0, semRaroSeguidos: 0, sorteio: f, elegiveis })
+  const itemDe = (f: number, elegiveis = TODOS) => {
+    const d = sortear(f, elegiveis)
+    return d.tipo === 'item' ? d.item : null
+  }
+
   it('é determinístico: o mesmo float devolve o mesmo item', () => {
-    for (const f of [0, 0.1, 0.42, 0.74, 0.75, 0.9, 0.999]) {
-      expect(sortearItemDoDrop(f, TODOS)?.id).toBe(sortearItemDoDrop(f, TODOS)?.id)
-    }
+    for (const f of [0, 0.1, 0.42, 0.74, 0.75, 0.9, 0.999]) expect(itemDe(f)?.id).toBe(itemDe(f)?.id)
   })
 
   it('respeita os pesos: 75% comum, 25% raro, independente de quantos itens há em cada faixa', () => {
     const N = 10_000
     let comuns = 0
-    for (let n = 0; n < N; n++) {
-      if (sortearItemDoDrop(n / N, TODOS)?.raridade === 'comum') comuns += 1
-    }
-    /* Varredura uniforme do float, não amostragem aleatória: a proporção tem de bater com o peso
-       na casa decimal, e não "por aí". É o que prova que o corte é 75/25 e NÃO a razão entre as
-       quantidades de itens de cada faixa: o catálogo tem hoje MAIS raros sorteáveis do que comuns,
-       então uma roleta item a item daria ~68/32 — e esse número mudaria sozinho a cada item novo e
-       a cada compra da pessoa, que é justamente o que não pode acontecer com uma taxa anunciada. */
+    for (let n = 0; n < N; n++) if (itemDe(n / N)?.raridade === 'comum') comuns += 1
     expect(comuns / N).toBeCloseTo(PESOS_DO_DROP.comum / 100, 3)
   })
 
-  it('faixa vazia devolve a probabilidade à outra em vez de sortear nada', () => {
+  it('faixa sorteada sem peça nova vira Seeds — a chance não migra para a outra faixa', () => {
     const soRaros = TODOS.filter((i) => i.raridade === 'raro')
-    for (const f of [0, 0.3, 0.74, 0.8, 0.99]) {
-      expect(sortearItemDoDrop(f, soRaros)?.raridade).toBe('raro')
-    }
-    const soComuns = TODOS.filter((i) => i.raridade === 'comum')
-    for (const f of [0, 0.3, 0.8, 0.99]) {
-      expect(sortearItemDoDrop(f, soComuns)?.raridade).toBe('comum')
-    }
+    expect(sortear(0.3, soRaros).tipo).toBe('seeds')
+    expect(itemDe(0.9, soRaros)?.raridade).toBe('raro')
   })
 
-  it('lista vazia devolve null — quem já tem tudo não recebe duplicata', () => {
-    expect(sortearItemDoDrop(0.5, [])).toBeNull()
-    expect(sortearItemDoDrop(0.5, itensSorteaveisNoDrop(new Set(TODOS.map((i) => i.id))))).toBeNull()
+  it('lista vazia vira Seeds — quem já tem tudo não recebe duplicata', () => {
+    expect(sortear(0.5, []).tipo).toBe('seeds')
+    expect(sortear(0.5, itensSorteaveisNoDrop(new Set(TODOS.map((i) => i.id)))).tipo).toBe('seeds')
   })
 
   it('float defeituoso não derruba o baú — bônus não pode virar erro', () => {
-    for (const f of [Number.NaN, -1, 1, 42]) expect(sortearItemDoDrop(f, TODOS)).not.toBeNull()
+    for (const f of [Number.NaN, -1, 1, 42]) expect(sortear(f).tipo).not.toBe('sem-bau')
   })
 })
 

@@ -20,7 +20,6 @@ import {
   readCustomColors,
   type ThemeType,
 } from './appearance';
-import { applyCursor, readCursor } from './cursores';
 import { applyParticulas, readParticulas } from './particulas';
 import { setSoundFonte, setSoundTheme } from './soundFx';
 
@@ -148,7 +147,7 @@ export function bootTheme(): void {
   applyDarkMode(readDarkMode());
   applyFonte(readFonte());
   applyParticulas(readParticulas());
-  applyCursor(readCursor());
+  /* Os cursores de emoji saíram nas recompensas v2 (27/09): o ponteiro é o do sistema. */
 }
 
 interface PersistOptions {

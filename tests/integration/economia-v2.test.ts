@@ -17,7 +17,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
-import { diaLocal } from '../../src/core/learning/economia'
+import { diaLocal, diaNoFuso, META_DIARIA_ACERTOS } from '../../src/core/learning/economia'
 import { cumprirColecionadorNoExpress } from '../harness/colecionador'
 import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
@@ -140,7 +140,7 @@ describe('POST /api/metrics/presenca', () => {
 })
 
 describe('computeProfile reflete a economia', () => {
-  it('devolve seedsCreditadas, xpCreditado e presença — e a ofensiva usa a MAIOR', async () => {
+  it('devolve seedsCreditadas, xpCreditado e presença — e a ofensiva conta só prática', async () => {
     const u = 'u-perfil-eco'
     const hoje = diaLocal(Date.now())
     await cumprirColecionadorNoExpress(h, u)
@@ -152,8 +152,48 @@ describe('computeProfile reflete a economia', () => {
     expect(p.seedsCreditadas).toBe(100)
     expect(p.xpCreditado).toBe(120)
     expect(p.presencas).toBe(2)
-    expect(p.streakPresenca).toBe(2)
-    // Sem revisão nenhuma, streakDays viria 0 — aparecer também conta (regra do efêmero).
-    expect(p.streakDays).toBe(2)
+    /* Recompensas v2: aparecer NÃO conta. A rodada do Colecionador (hoje) é o único dia de
+       prática — a ofensiva é 1, e os dois dias de presença não a estendem. */
+    expect(p.streakPresenca).toBe(1)
+    expect(p.streakDays).toBe(1)
+  })
+})
+
+describe('meta do dia no Express — `meta:<AAAA-MM-DD>` (recompensas v2)', () => {
+  const fuso = 'America/Sao_Paulo'
+  const rodada = async (u: string, roundId: string, certos: number) => {
+    const { exerciseResultsRepo } = (await h.load('../../server/db/repositories/exerciseResults')) as {
+      exerciseResultsRepo: { addRodada: (u: unknown, r: unknown) => Promise<unknown> }
+    }
+    await exerciseResultsRepo.addRodada(asUserId(u), {
+      roundId, exerciseKind: 'blitz', origem: 'baralho', score: certos, melhorSequencia: 1,
+      itens: Array.from({ length: certos }, (_, i) => ({ itemRef: `m${i}`, correct: 1, kind: 'drill' })),
+    })
+  }
+
+  it('recusa sem os acertos do dia e credita 15 Seeds uma vez quando a meta fecha', async () => {
+    const u = 'u-meta'
+    const dia = diaNoFuso(Date.now(), fuso)
+    await rodada(u, 'meta-a', META_DIARIA_ACERTOS - 1)
+    const antes = mockRes()
+    await handler('/seeds/creditar')(req({ creditoId: `meta:${dia}`, fuso }, u), antes)
+    expect(antes.statusCode).toBe(400)
+    expect(antes.body.code).toBe('meta_nao_cumprida')
+
+    await rodada(u, 'meta-b', 1)
+    const r1 = mockRes()
+    await handler('/seeds/creditar')(req({ creditoId: `meta:${dia}`, fuso }, u), r1)
+    expect(r1.statusCode).toBe(200)
+    expect(r1.body).toMatchObject({ jaExistia: false, seedsCreditadas: 15 })
+    const r2 = mockRes()
+    await handler('/seeds/creditar')(req({ creditoId: `meta:${dia}`, fuso }, u), r2)
+    expect(r2.body).toMatchObject({ jaExistia: true, seedsCreditadas: 15 })
+  })
+
+  it('dia fora da janela do fuso é recusado', async () => {
+    const r = mockRes()
+    await handler('/seeds/creditar')(req({ creditoId: `meta:${diaNoFuso(Date.now() - 3 * 86_400_000, fuso)}`, fuso }, 'u-meta2'), r)
+    expect(r.statusCode).toBe(400)
+    expect(r.body.code).toBe('dia_fora_da_janela')
   })
 })

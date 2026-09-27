@@ -1,10 +1,7 @@
 import { THEME_OPTIONS } from '../lib/appearance';
-import { emojiDoCursor } from '../lib/cursores';
 import { corDoCromaEquipado } from '../lib/galeria/cromas';
-import { CATEGORIAS_DE_EMOJI } from '../lib/galeria/emojis';
 import { todasAsPaletas } from '../lib/galeria/paletas';
 import type { ItemDaLoja } from '../lib/loja';
-import { lerPackCustom, PACK_CUSTOM,PACKS_DE_EMOJI, readPack } from '../lib/particulas';
 import { estiloDeRastro } from '../lib/rastroDoMouse';
 
 /**
@@ -23,8 +20,6 @@ import { estiloDeRastro } from '../lib/rastroDoMouse';
  *   · rastro    → `estiloDeRastro(alvo)`, o MESMO resolvedor que o canvas usa; dele saem a forma
  *                 (kind) e as cores (`sobrescrever.paleta`), inclusive nos rastros gerados
  *   · partícula → a forma do `alvo`, e o croma equipado quando há um
- *   · pack      → os emojis do próprio pack
- *   · cursor    → o emoji que vira ponteiro
  *   · tema      → as quatro cores dele
  *   · fonte     → "Aa" na família que a fonte instala
  *   · layout    → um diagrama da moldura com a barra no lado certo
@@ -91,33 +86,12 @@ function Fileira({ tam, forma, cores, emojis }: {
   );
 }
 
-/** Uma grade 2×2 de emojis — o formato que mostra um PACK sem virar sopa de letrinhas. */
-function Quadro({ tam, emojis }: { tam: Tam; emojis: string[] }) {
-  const m = MEDIDAS[tam];
-  return (
-    <span className="grid grid-cols-2 gap-0.5 leading-none" aria-hidden>
-      {emojis.slice(0, 4).map((e, i) => <span key={i} className={m.emoji}>{e}</span>)}
-    </span>
-  );
-}
-
-/** As cores que estão de fato no pack equipado — usado por "Chuva de Emojis" e rastro de emoji. */
-function emojisDoPackEquipado(): string[] {
-  const id = readPack();
-  if (id === PACK_CUSTOM) {
-    const meu = lerPackCustom();
-    if (meu.length) return meu;
-  }
-  return PACKS_DE_EMOJI.find((p) => p.id === id)?.emojis ?? PACKS_DE_EMOJI[0].emojis;
-}
-
 /** O `kind` do rastro decide a forma; é o mesmo `kind` que o canvas recebe. */
-const FORMA_DO_KIND: Record<string, 'circulo' | 'quadrado' | 'confete' | 'emoji' | 'estrela' | 'coracao'> = {
+const FORMA_DO_KIND: Record<string, 'circulo' | 'quadrado' | 'confete' | 'estrela' | 'coracao'> = {
   rastroFaisca: 'circulo',
   rastroPixel: 'quadrado',
   rastroEstrelas: 'estrela',
   rastroCoracoes: 'coracao',
-  rastroEmoji: 'emoji',
   rastroArcoiris: 'circulo',
 };
 
@@ -164,7 +138,6 @@ export default function MiniaturaDoItem({ item, tam = 'grade' }: { item: ItemDaL
     // A skin 'coracoes' desenha `forma: 'coracao'` na paleta rosa/vermelha do preset.
     if (item.alvo === 'coracoes') return <Fileira tam={tam} forma="coracao" cores={croma ? [croma] : ['#F04E23', '#FF7BAC', '#E63946']} />;
     if (item.alvo === 'estrelas') return <Fileira tam={tam} forma="circulo" cores={[]} emojis={['⭐', '✨', '🌟']} />;
-    if (item.alvo === 'emoji') return <Fileira tam={tam} forma="circulo" cores={[]} emojis={emojisDoPackEquipado()} />;
     if (item.alvo === 'confete') return <Fileira tam={tam} forma="confete" cores={[acento, 'var(--warn)', 'var(--good)']} />;
     if (item.alvo === 'pixel') return <Fileira tam={tam} forma="quadrado" cores={[acento, acento, acento]} />;
     // 'tema' e 'cometa' (e qualquer skin nova) caem no redondo, que é o burst padrão.
@@ -191,24 +164,11 @@ export default function MiniaturaDoItem({ item, tam = 'grade' }: { item: ItemDaL
     // mostra isso em vez de inventar uma estrela pintada que o rastro não desenharia.
     if (forma === 'estrela') return <Fileira tam={tam} forma="circulo" cores={[]} emojis={['⭐', '✨', '⭐']} />;
     if (forma === 'coracao') return <Fileira tam={tam} forma="coracao" cores={cores} />;
-    if (forma === 'emoji') return <Fileira tam={tam} forma="circulo" cores={[]} emojis={emojisDoPackEquipado()} />;
     // Arco-íris é o único que muda de cor entre as partículas — a miniatura mostra isso.
     if (estilo.kind === 'rastroArcoiris') {
       return <Fileira tam={tam} forma="circulo" cores={['hsl(0 80% 62%)', 'hsl(120 70% 55%)', 'hsl(250 80% 68%)']} />;
     }
     return <Fileira tam={tam} forma={forma} cores={cores} />;
-  }
-
-  /* ── PACK: os emojis do próprio pack, em 2×2 ─────────────────────────────── */
-  if (item.tipo === 'pack') {
-    const pack = PACKS_DE_EMOJI.find((p) => p.id === item.alvo);
-    if (pack) return <Quadro tam={tam} emojis={pack.emojis} />;
-  }
-
-  /* ── CURSOR: o emoji que vira ponteiro ───────────────────────────────────── */
-  if (item.tipo === 'cursor') {
-    const e = emojiDoCursor(item.alvo);
-    if (e) return solo(e);
   }
 
   /* ── LAYOUT: onde a barra fica, desenhado ────────────────────────────────── */
@@ -250,16 +210,9 @@ export default function MiniaturaDoItem({ item, tam = 'grade' }: { item: ItemDaL
         );
       }
     }
-    if (item.alvo.startsWith('cat:')) {
-      const cat = CATEGORIAS_DE_EMOJI.find((c) => c.id === item.alvo.slice(4));
-      if (cat) return <Quadro tam={tam} emojis={cat.emojis} />;
-    }
-    if (item.alvo === 'editor-pack') return solo('✏️');
-    if (item.alvo === 'cursor-emoji') return solo('🖱️');
   }
 
   if (item.tipo === 'estudio') return solo('🪄');
-  if (item.tipo === 'aprimoramento') return solo(item.alvo === 'sorte' ? '🎲' : '💥');
 
   /* Fallback: o ícone do tipo. Chega aqui só o que não tem forma própria — e, quando um tipo
      novo chegar, é este ramo que denuncia que falta a miniatura dele. */

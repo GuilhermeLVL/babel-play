@@ -9,6 +9,8 @@
  * Rotas: POST `/api/metrics/seeds/gastar`, POST `/api/metrics/seeds/creditar`,
  * POST `/api/metrics/presenca`, POST `/api/billing/gastar`, POST `/api/billing/creditar-passe`.
  */
+import { fusoDoAmbiente } from '@core'
+
 import { apiFetch, type ErroDaApi,lerErro } from '../funil'
 
 /**
@@ -55,6 +57,21 @@ export async function gastarSeedsEx(input: {
     return { resultado: await res.json() }
   } catch (e) {
     return { resultado: null, erro: { status: 0, error: String((e as Error)?.message ?? e), code: 'rede' } }
+  }
+}
+
+/**
+ * O REEMBOLSO DO CORTE DO CATÁLOGO (recompensas v2). O corpo é vazio: o servidor decide o que é
+ * devido a partir do próprio razão. `creditado` é o que entrou AGORA (0 no reenvio); `reembolsado`
+ * é o total já devolvido. `null` em falha — quem chama tenta de novo noutra sessão.
+ */
+export async function reembolsarSeeds(): Promise<{ creditado: number; reembolsado: number } | null> {
+  try {
+    const res = await apiFetch('/api/metrics/seeds/reembolso', { method: 'POST' })
+    if (!res.ok) return null
+    return (await res.json()) as { creditado: number; reembolsado: number }
+  } catch {
+    return null
   }
 }
 
@@ -116,14 +133,32 @@ export async function gastarCreditos(payload: { spendId: string; amount: number;
  *
  * `null` em falha — quem chamou NÃO marca a conquista, senão seria "conquistada sem as Seeds".
  */
+/** O que o baú da rodada devolve além dos totais (recompensas v2). Só na família `drop:`. */
+export interface RespostaDoBau {
+  item?: string | null
+  /** Faixa sorteada sem peça nova: virou Seeds (`seeds`). */
+  repetido?: boolean
+  /** Quanto ESTE baú pagou — não o saldo da conta. */
+  seeds?: number
+  raridade?: 'comum' | 'raro'
+  chances?: { comum: number; raro: number }
+  proximoRaroGarantidoEm?: number
+  /** Teto do dia alcançado: nada foi creditado. */
+  semBau?: 'teto'
+  bausHoje?: number
+  limite?: number
+}
+
 export async function creditarSeeds(input: {
   creditoId: string
-}): Promise<{ jaExistia: boolean; seedsCreditadas: number; xpCreditado: number; item?: string | null } | null> {
+}): Promise<({ jaExistia: boolean; seedsCreditadas: number; xpCreditado: number } & RespostaDoBau) | null> {
   try {
+    /* O FUSO VAI JUNTO (recompensas v2): a meta do dia e o teto do baú contam o dia LOCAL de quem
+       joga, e o servidor não tem outro jeito de saber qual é. Ausente, vale São Paulo. */
     const res = await apiFetch('/api/metrics/seeds/creditar', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(input),
+      body: JSON.stringify({ ...input, fuso: fusoDoAmbiente() }),
     })
     if (!res.ok) return null
     return await res.json()

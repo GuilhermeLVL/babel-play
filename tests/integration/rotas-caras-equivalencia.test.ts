@@ -105,7 +105,9 @@ describe('rotas caras: equivalência, invalidação e custo', () => {
           rastro: 'off',
         },
       })
-      const recusa = await s.put('/api/settings', { ui: { theme: 'linear', fonte: 'padrao', cursor: 'coroa' } })
+      /* Era `cursor: 'coroa'` (Perfeccionista); cursores saíram nas recompensas v2 e o exclusivo que
+         continua é o rastro do Duelista. */
+      const recusa = await s.put('/api/settings', { ui: { theme: 'linear', fonte: 'padrao', rastro: 'croma:pixel:verde' } })
       const corpoOk = (await ok.json()) as Record<string, unknown>
       await expect(
         json({

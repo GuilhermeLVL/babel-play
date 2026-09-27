@@ -200,7 +200,11 @@ function Resgate({ atual, onEquipar, onFechar, onVerPersonalizar }: Omit<Props, 
   useEffect(() => {
     if (atual.tipo === 'nivel') celebrar({ tipo: 'nivel' });
     else if (atual.tipo === 'conquista') celebrar({ tipo: 'conquista' });
-    else celebrar({ tipo: 'bau', raridade: atual.item.raridade === 'comum' ? 'comum' : 'raro' });
+    else {
+      // Baú v2: o repetido chega sem `item` e só com a faixa sorteada.
+      const raridade = atual.item?.raridade ?? atual.raridade ?? 'comum';
+      celebrar({ tipo: 'bau', raridade: raridade === 'comum' ? 'comum' : 'raro' });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- uma festa por recompensa aberta (o `key` remonta)
   }, []);
 

@@ -107,7 +107,47 @@ export async function healthHandler(_req: Request, res: Response): Promise<void>
  * health) e um detalhe de infra aqui é reconhecimento gratuito. A causa vai para o log, correlata
  * pelo `requestId` que o `AsyncLocalStorage` da Fase 5 injeta sozinho.
  */
+/**
+ * O VEREDICTO É REAPROVEITADO POR ALGUNS SEGUNDOS (auditoria de segurança 2026-09-26).
+ *
+ * A rota é PÚBLICA e cada chamada fazia uma consulta ao banco, a conferência das migrações e — com
+ * R2 configurado — um HEAD no armazenamento, que é operação COBRADA pelo provedor. Sem teto, um
+ * laço de qualquer estranho virava custo de terceiro e carga no SQLite. Guardar o veredicto por
+ * `VALIDADE_DO_VEREDICTO_MS` limita as sondas a uma por janela, venha quantas chamadas vierem, e o
+ * `emVoo` junta as chamadas simultâneas numa sonda só.
+ *
+ * 5 s não muda nada para quem decide: o Fly sonda a cada 15 s (`fly.toml`), então toda sonda
+ * dele continua vendo um veredicto novo. Não é rate limit por IP de propósito: atrás de proxy sem
+ * `TRUST_PROXY` todo mundo divide um balde, e um 429 aqui TIRARIA a máquina do balanceador.
+ */
+export const VALIDADE_DO_VEREDICTO_MS = 5_000
+
+interface Veredicto {
+  codigo: number
+  corpo: Record<string, unknown>
+  ate: number
+}
+
+let guardado: Veredicto | null = null
+let emVoo: Promise<Veredicto> | null = null
+
+/** Para os testes que mudam o estado de uma dependência entre duas chamadas. */
+export function esquecerVereditoDeProntidao(): void {
+  guardado = null
+  emVoo = null
+}
+
 export async function readyHandler(_req: Request, res: Response): Promise<void> {
+  if (!guardado || guardado.ate <= Date.now()) {
+    emVoo ??= avaliarProntidao().finally(() => {
+      emVoo = null
+    })
+    guardado = await emVoo
+  }
+  res.status(guardado.codigo).json(guardado.corpo)
+}
+
+async function avaliarProntidao(): Promise<Veredicto> {
   const boot = await bootStatus()
 
   let banco: 'up' | 'down' = 'down'
@@ -157,15 +197,20 @@ export async function readyHandler(_req: Request, res: Response): Promise<void> 
   const pronto = banco === 'up' && boot.ok && migracoes !== 'atrasadas'
   const status = !pronto ? 'indisponivel' : armazenamento === 'indisponivel' ? 'degradado' : 'pronto'
 
-  res.status(pronto ? 200 : 503).json({
-    status,
-    db: banco,
-    migracoes,
-    boot: boot.ok ? 'ok' : 'degraded',
-    /* O NOME do passo, como no health: é o suficiente para o operador saber onde olhar, e não
+  const agora = Date.now()
+  return {
+    codigo: pronto ? 200 : 503,
+    ate: agora + VALIDADE_DO_VEREDICTO_MS,
+    corpo: {
+      status,
+      db: banco,
+      migracoes,
+      boot: boot.ok ? 'ok' : 'degraded',
+      /* O NOME do passo, como no health: é o suficiente para o operador saber onde olhar, e não
        carrega mensagem de erro nenhuma. */
-    ...(boot.ok ? {} : { bootErros: boot.erros.map((e) => e.passo) }),
-    armazenamento,
-    at: Date.now(),
-  })
+      ...(boot.ok ? {} : { bootErros: boot.erros.map((e) => e.passo) }),
+      armazenamento,
+      at: agora,
+    },
+  }
 }

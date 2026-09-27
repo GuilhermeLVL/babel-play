@@ -22,7 +22,8 @@ import React, { useEffect, useId, useMemo, useState } from 'react';
 import { createCredential, patchUiSettings, saveSettings, testProvider } from '../data/api';
 import { getActiveProfile, setProviderChoice } from '../gateway/activeProfile';
 import { webGpuProvavel } from '../gateway/adaptadorWebGpu';
-import { getSttQuality, MODEL_DOWNLOAD_MB, MODEL_DOWNLOAD_MEDIDO, routeStt } from '../gateway/sttRouter';
+import { getSttQuality, MODEL_DOWNLOAD_MEDIDO, routeStt, tamanhoDoDownloadMb } from '../gateway/sttRouter';
+import { dispositivoDaRota, perfilDoDispositivo } from '../lib/dispositivo/perfil';
 import { edicaoEstatica } from '../lib/edicaoEstatica';
 import { t } from '../lib/i18n';
 import { DEFAULT_LANG_CONFIG, idiomasDaInterfaceOferecidos, saveLangConfig } from '../lib/langConfig';
@@ -245,8 +246,12 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
       hasWebGpu: webGpuProvavel(),
       cloudAvailable: false,
       profileId: getActiveProfile().id,
+      dispositivo: dispositivoDaRota(perfilDoDispositivo()),
     });
-    return { mb: MODEL_DOWNLOAD_MB[rota.localModel] ?? null, medido: !!MODEL_DOWNLOAD_MEDIDO[rota.localModel] };
+    return {
+      mb: tamanhoDoDownloadMb(rota.localModel, rota.dtype),
+      medido: !!MODEL_DOWNLOAD_MEDIDO[rota.localModel],
+    };
   }, []);
 
   const pickKind = (k: keyof typeof PROVIDERS) => {

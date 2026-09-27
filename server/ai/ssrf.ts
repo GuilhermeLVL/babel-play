@@ -7,8 +7,11 @@
  * Nota: a IA local do usuário (Ollama/LM Studio) é chamada pelo CLIENTE, não por
  * este proxy — logo bloquear localhost aqui não a afeta; são caminhos distintos.
  */
+import { lookup as lookupComCallback, type LookupAddress } from 'node:dns'
 import { lookup } from 'node:dns/promises'
 import { isIP } from 'node:net'
+
+import { Agent } from 'undici'
 
 const BLOCKED_HOSTNAMES = new Set(['metadata.google.internal'])
 
@@ -115,10 +118,74 @@ export class DestinoBloqueado extends Error {
   }
 }
 
-/** `true` quando o erro veio do guard, e não da rede/do provedor. */
+/**
+ * `true` quando o erro veio do guard, e não da rede/do provedor.
+ *
+ * Olha também a `cause`: quando a recusa acontece no `lookup` do socket (`despachanteSeguro`), o
+ * `fetch` a embrulha num `TypeError('fetch failed')` e o `DestinoBloqueado` vem um nível abaixo.
+ */
 export function ehDestinoBloqueado(err: unknown): err is DestinoBloqueado {
-  return err instanceof DestinoBloqueado
+  if (err instanceof DestinoBloqueado) return true
+  const causa = (err as { cause?: unknown } | null)?.cause
+  return causa instanceof DestinoBloqueado
 }
+
+type CallbackDeLookup = (
+  err: NodeJS.ErrnoException | null,
+  endereco: string | LookupAddress[],
+  familia?: number,
+) => void
+
+/**
+ * O `lookup` do SOCKET, que recusa IP interno NA HORA DE CONECTAR (auditoria de segurança
+ * 2026-09-26, DNS rebinding).
+ *
+ * `assertPublicUrl` resolve o nome e confere — e o `fetch` resolvia o nome DE NOVO para conectar.
+ * Entre as duas respostas, um domínio com TTL 0 troca o IP público pelo 127.0.0.1, pela rede
+ * privada do Fly (`fdaa::/16`, coberta por `fc00::/7`) ou pela porta interna de métricas: a guarda
+ * aprova um endereço e a conexão vai para outro. Aqui a conferência e a conexão usam a MESMA
+ * resolução, então não há janela entre elas.
+ *
+ * TODOS os endereços precisam ser públicos, e não só o escolhido: com `autoSelectFamily` o Node
+ * tenta a lista inteira, e um nome que devolve um IP público e um privado é, ele mesmo, suspeito.
+ */
+export function lookupSoPublico(
+  hostname: string,
+  opcoes: { all?: boolean; family?: number | string },
+  callback: CallbackDeLookup,
+): void {
+  lookupComCallback(
+    hostname,
+    { ...opcoes, all: true } as never,
+    (err: NodeJS.ErrnoException | null, lista: unknown) => {
+      if (err) return callback(err, '')
+      const enderecos = lista as LookupAddress[]
+      if (enderecos.length === 0) return callback(new DestinoBloqueado('host sem endereço'), '')
+      if (enderecos.some((e) => isPrivateIp(e.address))) {
+        return callback(new DestinoBloqueado('host resolve para IP interno (SSRF)'), '')
+      }
+      if (opcoes.all) return callback(null, enderecos)
+      return callback(null, enderecos[0].address, enderecos[0].family)
+    },
+  )
+}
+
+/**
+ * O `dispatcher` de todo `fetch` para URL ESCOLHIDA PELO USUÁRIO (BYOK, teste de provedor, STT com
+ * credencial própria, importação de página). Use SEMPRE junto com `assertPublicUrl`: a guarda de
+ * nome continua recusando cedo, com mensagem clara, o caso comum (IP literal privado, esquema
+ * errado, host bloqueado); o despachante fecha a janela que ela não alcança.
+ *
+ * Um IP LITERAL não passa pelo `lookup` — e é por isso que a guarda de nome continua obrigatória:
+ * é ela que recusa `http://127.0.0.1/` antes de qualquer conexão.
+ */
+export const despachanteSeguro = new Agent({ connect: { lookup: lookupSoPublico as never } })
+
+/**
+ * O `RequestInit` do `fetch` global com o `dispatcher` — o tipo do DOM não o declara, e o `undici`
+ * do Node aceita. Usar como `fetch(url, { ..., dispatcher: despachanteSeguro } as InitSeguro)`.
+ */
+export type InitSeguro = RequestInit & { dispatcher: typeof despachanteSeguro }
 
 /** Lança se a URL não for pública/segura para o proxy chamar. */
 export async function assertPublicUrl(raw: string): Promise<void> {

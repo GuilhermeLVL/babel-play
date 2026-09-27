@@ -71,6 +71,19 @@ function terminaFrase(texto: string, i: number): boolean {
   return /^[\p{Lu}\p{N}"“'(¿¡]/u.test(proximo)
 }
 
+/**
+ * O trecho termina num ponto que NÃO fecha frase — abreviação ("Dr.") ou inicial ("J.")?
+ *
+ * Usado por `segmentacao.ts` para desfazer o corte que o `Intl.Segmenter` faz depois de "Dr.":
+ * a mesma lista de abreviações, uma fonte só.
+ */
+export function terminaEmAbreviacao(trecho: string): boolean {
+  const t = (trecho ?? '').trimEnd()
+  if (!t.endsWith('.')) return false
+  const palavra = (t.slice(0, -1).match(/([\p{L}\p{N}.]+)$/u)?.[1] ?? '').toLowerCase()
+  return ABREVIACOES.has(palavra) || /^\p{L}$/u.test(palavra)
+}
+
 export interface OpcoesDeSeparacao {
   /**
    * Frases com menos caracteres que isto são coladas na anterior.

@@ -57,6 +57,11 @@ export const METRIC_RATELIMIT_TELEMETRIA = 'ratelimit:telemetria'
  * porque a rota fica antes do auth: o cliente lê ao abrir, ao focar a aba e a cada poucos minutos.
  */
 export const METRIC_RATELIMIT_FLAGS = 'ratelimit:flags'
+/* Auditoria de segurança 2026-09-26 (`server/lib/limitesDeLeitura.ts`): a exportação da conta lê
+   as 17 tabelas do titular em memória, e a busca de imagens faz uma chamada de SAÍDA por pedido.
+   Baldes próprios, no banco, pelo mesmo motivo do A27. */
+export const METRIC_RATELIMIT_EXPORTAR = 'ratelimit:exportar'
+export const METRIC_RATELIMIT_IMAGENS = 'ratelimit:imagens'
 
 /**
  * A chave do balde: o TENANT, não o IP. Cai no IP só onde não há usuário resolvido

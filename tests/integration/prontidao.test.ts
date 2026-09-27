@@ -26,7 +26,7 @@ import { createServer, type Server } from 'node:http'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { type AppDeTeste, subirApp } from '../caracterizacao/_app'
 
@@ -38,6 +38,14 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await s.encerrar()
+})
+
+/* O ready guarda o veredicto por alguns segundos (auditoria de segurança 2026-09-26, ver
+   `server/routes/health.ts`). Estes casos MUDAM o estado de uma dependência entre uma chamada e a
+   outra — cada um precisa de um veredicto novo. */
+beforeEach(async () => {
+  const { esquecerVereditoDeProntidao } = await s.load('../../server/routes/health')
+  esquecerVereditoDeProntidao()
 })
 
 describe('GET /api/ready', () => {

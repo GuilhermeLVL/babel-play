@@ -1149,14 +1149,42 @@ export const vocabRepo = {
    */
   async relabel(userId: UserId, items: Array<{ id: string; srcLang: string; tgtLang: string }>): Promise<number> {
     const now = Date.now()
+    const validos = items.filter((it) => it?.id && it.srcLang && it.tgtLang)
+    if (!validos.length) return 0
+    /* A CHAVE DE DEDUP ACOMPANHA O IDIOMA (auditoria 2026-09-26, idioma da sessão). `norm_key` é
+       `idioma|palavra`: trocar só `src_lang` deixava o cartão `pt` com a chave `en|…`, e a próxima
+       captura da mesma palavra em português criava um SEGUNDO cartão em vez de somar ocorrência.
+       Se a chave nova já pertence a outro cartão vivo, este não é reetiquetado: juntar os dois
+       seria escolher qual histórico de revisão vale, e reetiquetar não apaga nada. */
+    const linhas = await db
+      .select({ id: vocabCards.id, word: vocabCards.word })
+      .from(vocabCards)
+      .where(and(eq(vocabCards.userId, userId), inArray(vocabCards.id, validos.map((it) => it.id))))
+    const palavraDe = new Map(linhas.map((l) => [l.id, l.word]))
+    const chaveNova = new Map(validos.filter((it) => palavraDe.has(it.id)).map((it) => [it.id, chaveDedup(palavraDe.get(it.id)!, it.srcLang)]))
+    const ocupadas = chaveNova.size
+      ? await db
+          .select({ id: vocabCards.id, normKey: vocabCards.normKey })
+          .from(vocabCards)
+          .where(and(eq(vocabCards.userId, userId), isNull(vocabCards.deletedAt), inArray(vocabCards.normKey, [...chaveNova.values()])))
+      : []
+    const donoDaChave = new Map<string | null, string>(ocupadas.map((o) => [o.normKey, o.id]))
     // Era um UPDATE por item num laço — até 5.000 idas ao banco por requisição (15 s medidos no
     // teto). Agora é UM `db.batch`: uma ida só e atômico. Cada UPDATE é pela chave primária.
-    const instrucoes = items
-      .filter((it) => it?.id && it.srcLang && it.tgtLang)
+    const instrucoes = validos
+      .filter((it) => {
+        const k = chaveNova.get(it.id)
+        if (!k) return false
+        const dono = donoDaChave.get(k)
+        if (dono && dono !== it.id) return false
+        // Dois itens do MESMO lote indo para a mesma chave: o primeiro fica com ela.
+        donoDaChave.set(k, it.id)
+        return true
+      })
       .map((it) =>
         db
           .update(vocabCards)
-          .set({ srcLang: it.srcLang, tgtLang: it.tgtLang, updatedAt: now })
+          .set({ srcLang: it.srcLang, tgtLang: it.tgtLang, normKey: chaveNova.get(it.id)!, updatedAt: now })
           .where(and(eq(vocabCards.id, it.id), eq(vocabCards.userId, userId))),
       )
     if (!instrucoes.length) return 0

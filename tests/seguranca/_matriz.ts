@@ -34,6 +34,12 @@ export interface Limitador {
   ordem: number
   /** Prefixos que ele cobre (um `app.use([...], limitador)` vira vários). */
   prefixos: string[]
+  /**
+   * Quais verbos ele conta — a marca `verbosDoLimitador` de `server/lib/limitesDeLeitura.ts`.
+   * `todos` quando ausente. Sem isto, um limitador só de leitura montado em `/api` "cobriria"
+   * toda escrita na leitura da pilha, e o portão de escrita sem teto passaria por vacuidade.
+   */
+  verbos: 'todos' | 'leitura' | 'escrita'
 }
 
 export interface RotaDaMatriz {
@@ -45,7 +51,7 @@ export interface RotaDaMatriz {
   privada: boolean
   /** Verbo que altera estado. */
   escrita: boolean
-  /** Rótulos dos limitadores que a alcançam. */
+  /** Rótulos dos limitadores que a alcançam E contam o verbo dela. */
   limitadores: string[]
   /** Nomes dos parâmetros de caminho (`['id']`), na ordem. */
   parametros: string[]
@@ -125,7 +131,13 @@ export function lerMatriz(app: unknown): Matriz {
   pilha.forEach((camada, ordem) => {
     if (ehAuth(camada)) ordemDoAuth = ordem
     if (ehLimitador(camada.handle)) {
-      limitadores.push({ rotulo: `L${limitadores.length + 1}`, ordem, prefixos: caminhosDaCamada(camada) })
+      const marca = (camada.handle as { verbosDoLimitador?: 'leitura' | 'escrita' }).verbosDoLimitador
+      limitadores.push({
+        rotulo: `L${limitadores.length + 1}`,
+        ordem,
+        prefixos: caminhosDaCamada(camada),
+        verbos: marca ?? 'todos',
+      })
       return
     }
     if (camada.route) {
@@ -168,9 +180,11 @@ export function lerMatriz(app: unknown): Matriz {
       chave: `${r.metodo} ${r.caminho}`,
       privada: ordemDoAuth >= 0 && r.ordem > ordemDoAuth,
       escrita: VERBOS_DE_ESCRITA.has(r.metodo),
-      /* Um limitador montado DEPOIS da rota não a alcança — a ordem é o comportamento. */
+      /* Um limitador montado DEPOIS da rota não a alcança — a ordem é o comportamento. E um que
+         pula o verbo dela (`skip` de leitura ou de escrita) também não. */
       limitadores: limitadores
         .filter((l) => l.ordem < r.ordem && l.prefixos.some((p) => alcanca(p, r.caminho)))
+        .filter((l) => l.verbos === 'todos' || (l.verbos === 'escrita') === VERBOS_DE_ESCRITA.has(r.metodo))
         .map((l) => l.rotulo),
       parametros: parametrosDe(r.caminho),
     }))
@@ -196,7 +210,8 @@ export function matrizEmMarkdown(m: Matriz): string {
   linhas.push('')
   linhas.push('| Rótulo | Prefixos cobertos |')
   linhas.push('| --- | --- |')
-  for (const l of m.limitadores) linhas.push(`| ${l.rotulo} | ${l.prefixos.map((p) => `\`${p}\``).join(', ')} |`)
+  for (const l of m.limitadores)
+    linhas.push(`| ${l.rotulo} (${l.verbos}) | ${l.prefixos.map((p) => `\`${p}\``).join(', ')} |`)
   return linhas.join('\n')
 }
 

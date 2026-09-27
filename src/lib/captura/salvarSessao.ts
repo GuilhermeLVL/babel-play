@@ -26,9 +26,10 @@ import { iniciarTelemetriaDeCaptura, pararTelemetriaDeCaptura } from '../../gate
 import type { ContextoDoStt } from '../../gateway/promptDeStt';
 import { Recording } from '../../types';
 import { DominantLangTracker } from '../convoLang';
+import { perfilDoDispositivo } from '../dispositivo/perfil';
 import { burstFromElement } from '../effects';
 import { dataHora } from '../i18n';
-import { baseLang, toBcp47 } from '../languages';
+import { baseLang } from '../languages';
 import { misturarAudios } from '../misturarAudios';
 import { OrdemDasTraducoes } from '../ordemDaTraducao';
 import { PerfilAdaptativoDeIdioma } from '../perfilDeIdioma';
@@ -45,6 +46,7 @@ import {
   type SpeakerProfile,
   type SpeechSegment,
 } from './tiposDaFala';
+import { idiomaDaFala, palavrasDasFalas, parDaSessao } from './vocabularioDaSessao';
 
 /** Estado honesto da identificação de voz, exibido no painel Falantes. */
 export type EstadoDaIdentificacaoDeVoz = 'off' | 'loading' | 'ready' | 'unavailable';
@@ -237,12 +239,16 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
     }
     // Aquece o MT local (opus-mt) para as DUAS direções (mic: fonte→alvo; sistema: alvo→fonte),
     // em background — assim já está pronto quando as traduções começarem (sem aquecer no meio).
+    // APARELHO COM POUCA MEMÓRIA (Quest/celular): nada de aquecer DOIS tradutores (2 × ~113 MB) junto
+    // com o Whisper — medido no Quest emulado, os três downloads disputavam a rede e a memória. Lá a
+    // preparação carrega o STT e depois UM tradutor; o outro sentido carrega na primeira tradução.
     const s = sourceLang.split('-')[0],
       t = targetLang.split('-')[0];
-    gateway.mt.warmup([
-      [s, t],
-      [t, s],
-    ]);
+    if (!perfilDoDispositivo().poucaMemoria)
+      gateway.mt.warmup([
+        [s, t],
+        [t, s],
+      ]);
     if (!resuming) setTimer(0);
     if (micEnabled) void startMic();
     if (systemEnabled) void handleStartSystemCapture();
@@ -436,7 +442,7 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
           source: isSys ? 'system' : 'mic',
           speakerName: nameOf(s.speakerId),
           // Idioma REAL detectado (multi-idioma) vence; senão, o da config.
-          sourceLang: s.lang ? toBcp47(s.lang) || s.lang : isSys ? targetLang : sourceLang,
+          sourceLang: idiomaDaFala(s, { sourceLang, targetLang }),
           engine: s.engine ?? (isSys ? 'whisper-local' : micEngine === 'browser' ? 'web-speech' : 'whisper-local'),
           sourceText: s.originalText,
           targetLang: isSys ? sourceLang : targetLang, // idioma de `translatedText`
@@ -477,11 +483,14 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
           if (url) recording.audioUrl = url;
         }
       } else {
+        /* O par da SESSÃO é o do CONTEÚDO (o idioma dominante das falas), não o do seletor: é o que
+           a Biblioteca mostra e filtra, e o que Jogar usa para a sessão (ver vocabularioDaSessao). */
+        const parGravado = parDaSessao(utterances, { sourceLang, targetLang });
         recording = await createSession({
           title,
           kind: 'live',
-          sourceLang,
-          targetLang,
+          sourceLang: parGravado.sourceLang,
+          targetLang: parGravado.targetLang,
           status: 'done',
           durationMs: timer * 1000,
           utterances,
@@ -516,28 +525,10 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
       setCustomSessionImage('');
       setFeedbackMsg(`“${title}” salva na Biblioteca`);
 
-      // Monta a lista de palavras únicas. O idioma da PALAVRA é o da fala de onde ela veio.
-      const seen = new Set<string>();
-      type Pendente = { word: string; back: string; sentence: string; srcLang: string; tgtLang: string };
-      const pendentes: Pendente[] = [];
-      for (const s of segs) {
-        const isSys = s.source === 'system';
-        const wordLang = isSys ? targetLang : sourceLang; // idioma da palavra capturada
-        const backLang = isSys ? sourceLang : targetLang; // idioma do verso (tradução)
-        for (const w of s.words as any[]) {
-          const word = String(w?.word ?? '');
-          const key = word.toLowerCase();
-          if (!key || seen.has(key)) continue;
-          seen.add(key);
-          pendentes.push({
-            word,
-            back: String(w?.translation ?? ''),
-            sentence: s.originalText,
-            srcLang: wordLang,
-            tgtLang: backLang,
-          });
-        }
-      }
+      /* As palavras únicas, cada uma com o idioma DA FALA de onde veio (o detectado; o do seletor só
+         quando nada foi medido) e re-extraídas nesse idioma. Ver `vocabularioDaSessao.ts`: era aqui
+         que a fala em português virava cartão em inglês. */
+      const pendentes = palavrasDasFalas(segs, { sourceLang, targetLang });
 
       /* Os versos que faltam vão em LOTE, com desistência rápida e concorrência limitada
          (`lib/versosDoVocabulario`). O laço serial anterior fazia uma chamada de rede por

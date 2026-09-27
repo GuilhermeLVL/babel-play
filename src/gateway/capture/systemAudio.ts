@@ -104,13 +104,43 @@ function releaseActiveDisplayStream(): void {
   }
 }
 
+/* MODO COMPATÍVEL (regressão de 2026-09-26). Pedir o DSP DESLIGADO (39f69d7) faz o Chrome escolher o
+   pipeline de áudio SEM processamento, que abre a fonte com os parâmetros NATIVOS do dispositivo; o
+   pedido com o DSP padrão usa o pipeline processado (formato fixo). Na ABA isso é indiferente (o
+   áudio vem do próprio navegador); na TELA INTEIRA do Windows a fonte é o loopback do WASAPI, e ali
+   a abertura sem processamento falha com NotReadableError "Could not start audio source". Não há como
+   saber a superfície antes do seletor, então a 1ª tentativa continua rica (a ABA mantém o áudio sem
+   DSP) e, só nesses erros, repetimos UMA vez com as constraints que funcionavam antes de 39f69d7.
+   Não dá para reaproveitar o seletor: o stream nem chegou a existir. */
+const ERROS_QUE_PEDEM_MODO_COMPATIVEL = new Set(['NotReadableError', 'OverconstrainedError']);
+/** Uma repetição que não pôde rodar (sem gesto do usuário) deixa o PRÓXIMO clique já compatível. */
+let proximaAquisicaoCompativel = false;
+
+function constraintsDeDisplay(compativel: boolean): MediaStreamConstraints {
+  const audio: Record<string, unknown> = { suppressLocalAudioPlayback: false };
+  if (!compativel) {
+    audio.echoCancellation = false;
+    audio.noiseSuppression = false;
+    audio.autoGainControl = false;
+  }
+  return {
+    video: true,
+    audio: audio as MediaTrackConstraints,
+    systemAudio: 'include',
+    monitorTypeSurfaces: 'include',
+    selfBrowserSurface: 'exclude',
+    surfaceSwitching: 'include',
+  } as MediaStreamConstraints;
+}
+
 /**
  * Adquire um MediaStream de display (`getDisplayMedia`) de forma segura: espera qualquer
  * aquisição anterior terminar, libera o stream anterior, respeita o cooldown de liberação e só
  * então chama getDisplayMedia. Registra o resultado como `activeDisplayStream` para o próximo
  * chamador poder liberá-lo. É este ponto único que elimina a colisão probe→start.
+ * `aoRepetir` avisa a UI de que o seletor vai abrir de novo (modo compatível, ver acima).
  */
-async function acquireDisplayStream(): Promise<MediaStream> {
+export async function acquireDisplayStream(aoRepetir?: () => void): Promise<MediaStream> {
   const prior = displayAcquireLock;
   let release!: () => void;
   displayAcquireLock = new Promise<void>((r) => {
@@ -137,20 +167,37 @@ async function acquireDisplayStream(): Promise<MediaStream> {
          pode aplicá-lo à faixa de display (o padrão das constraints de áudio é ligado). A rota de
          loopback por dispositivo já desligava os três pelo mesmo motivo; esta não desligava.
        O que constraint NENHUMA resolve: JANELA não expõe áudio no Chrome/Windows (limitação de
-       plataforma; o próprio picker avisa). Esse caso vira o erro tipado JANELA_SEM_AUDIO abaixo. */
-    const stream = await navigator.mediaDevices.getDisplayMedia({
-      video: true,
-      audio: {
-        suppressLocalAudioPlayback: false,
-        echoCancellation: false,
-        noiseSuppression: false,
-        autoGainControl: false,
-      } as MediaTrackConstraints,
-      systemAudio: 'include',
-      monitorTypeSurfaces: 'include',
-      selfBrowserSurface: 'exclude',
-      surfaceSwitching: 'include',
-    } as MediaStreamConstraints);
+       plataforma; o próprio picker avisa). Esse caso vira o erro tipado JANELA_SEM_AUDIO abaixo.
+       Exceção: na TELA INTEIRA do Windows o DSP desligado pode falhar — ver MODO COMPATÍVEL. */
+    const compativel = proximaAquisicaoCompativel;
+    proximaAquisicaoCompativel = false;
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getDisplayMedia(constraintsDeDisplay(compativel));
+    } catch (err) {
+      const nome = (err as Error)?.name;
+      if (compativel || !ERROS_QUE_PEDEM_MODO_COMPATIVEL.has(nome)) throw err;
+      vlog(
+        'getDisplayMedia sem DSP falhou (' + nome + ') → repetindo no MODO COMPATÍVEL (DSP padrão do navegador); escolha a TELA de novo',
+      );
+      aoRepetir?.();
+      try {
+        stream = await navigator.mediaDevices.getDisplayMedia(constraintsDeDisplay(true));
+      } catch (err2) {
+        vlog('modo compatível também falhou:', (err2 as Error)?.name, '-', (err2 as Error)?.message);
+        // Sem gesto do usuário o navegador recusa o 2º seletor: o próximo clique já vai compatível.
+        if ((err2 as Error)?.name === 'InvalidStateError') {
+          proximaAquisicaoCompativel = true;
+          const e = new Error(
+            'O áudio da tela precisou do modo compatível e o navegador pediu um novo clique. Clique em Iniciar de novo e escolha a TELA com "compartilhar áudio do sistema".',
+          ) as Error & { code?: string };
+          e.code = 'REPETIR_COM_NOVO_CLIQUE';
+          throw e;
+        }
+        throw err2;
+      }
+      vlog('modo compatível OK: áudio da tela com o DSP padrão do navegador');
+    }
     activeDisplayStream = stream;
     return stream;
   } finally {
@@ -625,7 +672,11 @@ export async function startSystemAudioCapture(
       );
       // Aquisição serializada (ver acquireDisplayStream): um único stream de display por vez, com
       // cooldown de liberação — impede a colisão probe→start que causava NotReadableError na aba.
-      stream = await acquireDisplayStream();
+      stream = await acquireDisplayStream(() =>
+        cb.onStatus?.(
+          'O áudio da tela não abriu sem processamento; abrindo o seletor de novo no modo compatível. Escolha a TELA e marque "compartilhar áudio do sistema".',
+        ),
+      );
     } catch (err) {
       vlog('getDisplayMedia rejeitado:', (err as Error)?.name, '-', (err as Error)?.message);
       if (err instanceof DOMException && err.name === 'NotAllowedError') {

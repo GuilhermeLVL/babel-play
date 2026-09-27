@@ -53,6 +53,21 @@ try {
 }
 
 /**
+ * THREADS PEDIDAS PELO PERFIL DO DISPOSITIVO (`lib/dispositivo/perfil.ts`): 1 sem isolamento, 2 no
+ * celular fraco, até 4 no resto. Só tem efeito antes da PRIMEIRA sessão do ORT neste worker — e é o
+ * caso, porque o `load` vem antes de qualquer pipeline, e trocar de modelo recria o worker.
+ */
+function definirThreads(threads: unknown): void {
+  if (typeof threads !== 'number' || !Number.isFinite(threads) || threads < 1) return;
+  try {
+    const wasm = env.backends.onnx.wasm;
+    if (wasm) wasm.numThreads = Math.min(4, Math.floor(threads));
+  } catch {
+    // sem o campo: fica o padrão do topo do arquivo
+  }
+}
+
+/**
  * Normaliza o device pedido pelo adapter.
  * `auto` (PADRÃO) = WebGPU se houver um ADAPTADOR de verdade (decode MEDIDO ~0,48s vs ~5,2s no WASM
  * single-thread nesta classe de hardware), senão WASM (universal — Firefox/Safari/celular). Antes
@@ -136,14 +151,19 @@ async function ensurePipeline(model?: string, dtypeKey?: string, device?: string
   const chaveDtype = moonshine ? DTYPE_MOONSHINE : dtypeKey || 'hybrid';
   const wantDtype = DTYPE_PRESETS[chaveDtype] ?? DTYPE_PRESETS.hybrid;
 
+  /* q8 no ORT-web: a sessão só abre com otimização de grafo `basic` — MEDIDO na captura do Quest
+     emulado (2026-09-26): com o nível padrão, "qdq_actions.cc:137 TransposeDQWeightsForMatMulNBits
+     Missing required scale", a mesma fusão que quebra o moonshine. Vale para o q8 da rota (celular/
+     Quest) e para o fallback q8 abaixo. */
+  const sessaoQ8 = { session_options: { ...SESSAO_MOONSHINE } };
   let dtypeEfetivo = chaveDtype;
   let progresso = novoProgresso(moonshine ? 'Moonshine' : 'Whisper');
   try {
     asr = await pipeline('automatic-speech-recognition', asrModel, {
       device: dev,
       dtype: wantDtype,
-      // Moonshine: sem isto a sessão do decoder q8 não abre no ORT-web (ver `SESSAO_MOONSHINE`).
-      ...(moonshine ? { session_options: { ...SESSAO_MOONSHINE } } : {}),
+      // Moonshine e Whisper q8: sem isto a sessão q8 não abre no ORT-web (ver `SESSAO_MOONSHINE`).
+      ...(moonshine || chaveDtype === 'q8' ? sessaoQ8 : {}),
       progress_callback: progresso,
     });
   } catch (err) {
@@ -164,6 +184,7 @@ async function ensurePipeline(model?: string, dtypeKey?: string, device?: string
     asr = await pipeline('automatic-speech-recognition', asrModel, {
       device: dev,
       dtype: 'q8',
+      ...sessaoQ8,
       progress_callback: progresso,
     });
   }
@@ -318,6 +339,7 @@ self.onmessage = (e: MessageEvent): Promise<void> => {
     return Promise.resolve();
   }
   if (type === 'load') {
+    definirThreads(dados.threads);
     return fila.enfileirar({
       id: `carga-${++cargas}`,
       prioridade: 'final',

@@ -20,7 +20,7 @@ import { decodeJwt } from 'jose'
 
 import type { UserId } from './authContext'
 
-const contexto = new AsyncLocalStorage<{ userId: UserId; convidado: boolean }>()
+const contexto = new AsyncLocalStorage<{ userId: UserId; convidado: boolean; memo?: Map<string, Promise<unknown>> }>()
 
 /** O token (JÁ VERIFICADO) é de um usuário anônimo do Supabase? */
 export function ehTokenAnonimo(token: string): boolean {
@@ -34,6 +34,28 @@ export function ehTokenAnonimo(token: string): boolean {
 /** Roda `fn` (o resto do request) dentro do contexto de identidade. */
 export function comIdentidade<T>(userId: UserId, convidado: boolean, fn: () => T): T {
   return contexto.run({ userId, convidado }, fn)
+}
+
+/**
+ * MEMO POR REQUISIÇÃO de uma leitura sobre o PRÓPRIO usuário do request (auditoria de performance,
+ * 26/09/2026). `getPlanForUser` é perguntado por várias camadas do mesmo request — a porta do STT, a
+ * cota de segundos, a de tokens, as flags, a telemetria — e o inventário de consultas achou a leitura
+ * de `subscriptions` repetida 3x em cada `POST /api/ai/stt` e `/mt`.
+ *
+ * Só memoriza quando `userId` é o do request (o plano de outro id, numa rota de admin, é sempre lido
+ * de novo) e só dentro do contexto (fora dele — jobs, testes de unidade — `ler()` roda sempre). Uma
+ * leitura que FALHA sai do memo: a próxima pergunta tenta de novo em vez de herdar o erro.
+ */
+export function memoDoRequest<T>(userId: UserId, chave: string, ler: () => Promise<T>): Promise<T> {
+  const c = contexto.getStore()
+  if (!c || c.userId !== userId) return ler()
+  const memo = (c.memo ??= new Map())
+  const existente = memo.get(chave) as Promise<T> | undefined
+  if (existente) return existente
+  const p = ler()
+  memo.set(chave, p)
+  p.catch(() => memo.delete(chave))
+  return p
 }
 
 /** Este id é o convidado do request em curso? Fora de request (jobs, testes de unidade), `false`. */

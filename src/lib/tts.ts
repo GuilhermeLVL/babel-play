@@ -6,6 +6,7 @@
  * ser plugada depois, atrás de consentimento — sem nada fabricado agora.
  */
 import { idiomaDaInterface } from './i18n';
+import { toBcp47 } from './languages';
 import { play } from './soundFx';
 
 export interface SpeakOptions {
@@ -276,13 +277,22 @@ class NativeTts implements TtsEngine {
       if (import.meta.env?.DEV) throw new Error(recado);
       console.error(recado);
     }
-    const lang = opts.lang || idiomaDaInterface();
+    const lang = codigoDeFala(opts.lang || idiomaDaInterface());
     u.lang = lang;
     if (opts.rate) u.rate = opts.rate;
     if (opts.pitch) u.pitch = opts.pitch;
     // Sem `voiceName` explícito, herda a voz que o usuário escolheu para ESTE idioma no narrador.
     // É isto que faz clicar numa palavra (em qualquer tela) soar com a mesma voz do narrador.
     const voice = pickVoice(lang, opts.voiceName ?? getVoicePref(lang));
+    /* SEM VOZ DO IDIOMA, NÃO FALA. Com `u.voice` vazio o navegador lê com a voz PADRÃO do sistema
+       — em geral inglesa: a palavra portuguesa saía com pronúncia americana (relato de 2026-09-26).
+       Só quando a lista de vozes JÁ chegou: lista vazia é "ainda não sei", e aí o navegador escolhe
+       pelo `u.lang`, que agora é BCP-47 certo. */
+    if (!voice && vozesCarregadas()) {
+      avisarSemVoz(lang);
+      opts.onError?.();
+      return;
+    }
     if (voice) {
       u.voice = voice;
       u.lang = voice.lang;
@@ -315,6 +325,39 @@ class NativeTts implements TtsEngine {
   }
 }
 
+/**
+ * O código BCP-47 que vai para `utterance.lang`: 'pt' → 'pt-BR', 'en' → 'en-US'. Código com região
+ * ('pt-PT') fica como veio. `utterance.lang = 'pt'` deixava a variante ao acaso do sistema.
+ */
+export function codigoDeFala(lang: string): string {
+  const l = (lang || '').trim().replace('_', '-');
+  if (!l) return '';
+  return l.includes('-') ? l : toBcp47(l) || l;
+}
+
+/* ───────── Aviso de "sem voz neste idioma" ─────────
+   Discreto e UMA vez por idioma por carregamento: quem joga uma rodada inteira em japonês sem voz
+   instalada não precisa de dez avisos iguais. Quem mostra é quem se inscreve (o `Toast`), para este
+   módulo não depender de componente. */
+const semVozAvisado = new Set<string>();
+const ouvintesDeSemVoz = new Set<(lang: string) => void>();
+
+/** Inscreve quem mostra o aviso de que falta voz para um idioma. Devolve o cancelamento. */
+export function aoFaltarVoz(cb: (lang: string) => void): () => void {
+  ouvintesDeSemVoz.add(cb);
+  return () => {
+    ouvintesDeSemVoz.delete(cb);
+  };
+}
+
+function avisarSemVoz(lang: string): void {
+  const base = lang.toLowerCase().split('-')[0];
+  console.warn('[tts] sem voz instalada para', lang, '— a fala foi omitida em vez de sair com voz de outro idioma.');
+  if (semVozAvisado.has(base)) return;
+  semVozAvisado.add(base);
+  for (const cb of ouvintesDeSemVoz) cb(lang);
+}
+
 export const nativeTts: TtsEngine = new NativeTts();
 
 // SEAM: hoje o motor é o nativo; `setTtsEngine` permite trocar por um NeuralTts
@@ -331,6 +374,21 @@ export function speak(text: string, opts: SpeakOptions): void {
   play('speak');
   engine.speak(text, opts);
 }
+/**
+ * FALAR UM TEXTO NO IDIOMA DELE — o ponto único para os jogos, a Biblioteca e o Estudo.
+ *
+ * `idioma` é o do CONTEÚDO (para um cartão, `idiomaDoCartao(card)` de `@core/texto/idioma`):
+ * aceita base ('pt') ou BCP-47 ('pt-BR'); vira BCP-47, escolhe a melhor voz instalada DESSE idioma
+ * (a preferida do narrador, senão neural, senão qualquer uma) e, sem voz, avisa em vez de ler com
+ * voz de outro idioma. Idioma vazio não fala: devolve `false` para quem chamou decidir.
+ */
+export function falar(texto: string, idioma: string, opts: Omit<SpeakOptions, 'lang'> = {}): boolean {
+  const lang = codigoDeFala(idioma);
+  if (!lang || !(texto ?? '').trim()) return false;
+  speak(texto, { ...opts, lang });
+  return true;
+}
+
 export function cancelSpeech(): void {
   engine.cancel();
 }

@@ -7,8 +7,9 @@ import { buildGateway } from '../gateway';
 import { CREDENTIAL_KEY, setProviderChoice } from '../gateway/activeProfile';
 import { webGpuProvavel } from '../gateway/adaptadorWebGpu';
 import { DEFAULT_PROFILE_ID, getBuiltinProfile } from '../gateway/profiles';
-import { getSttQuality, MODEL_DOWNLOAD_MB, routeStt } from '../gateway/sttRouter';
+import { getSttQuality, routeStt, tamanhoDoDownloadMb } from '../gateway/sttRouter';
 import { consentiuNuvem } from '../lib/consentimentoDeNuvem';
+import { dispositivoDaRota, perfilDoDispositivo } from '../lib/dispositivo/perfil';
 import { edicaoEstatica } from '../lib/edicaoEstatica';
 import { t } from '../lib/i18n';
 import { toast } from './Toast';
@@ -56,8 +57,10 @@ function mbDoModelo(): number | null {
       hasWebGpu: webGpuProvavel(),
       cloudAvailable: false,
       profileId: DEFAULT_PROFILE_ID,
+      dispositivo: dispositivoDaRota(perfilDoDispositivo()),
     });
-    return MODEL_DOWNLOAD_MB[rota.localModel] ?? null;
+    // O tamanho do DTYPE da rota: no celular/Quest o base vai em q8 (80 MB, não 209).
+    return tamanhoDoDownloadMb(rota.localModel, rota.dtype);
   } catch {
     return null;
   }

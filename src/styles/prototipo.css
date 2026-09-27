@@ -238,7 +238,11 @@ select.campo{appearance:none;padding-right:38px;background-image:url("data:image
 .tabuleiro{perspective:900px}
 .carta{aspect-ratio:4/3;border-radius:14px;border:var(--bw-card) solid color-mix(in srgb,var(--accent) 75%,#000);color:var(--accent-contrast);font:800 15px var(--font-display);display:grid;place-items:center;padding:8px;text-align:center;box-shadow:var(--shadow-btn);transition:transform .45s var(--ease),background-color .2s,box-shadow .25s;
   background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 85%,#fff) 0%,var(--accent) 60%),repeating-linear-gradient(45deg,transparent 0 8px,rgba(255,255,255,.08) 8px 16px)}
-.carta:hover{transform:translateY(-3px);box-shadow:var(--shadow-btn),0 12px 24px -12px color-mix(in srgb,var(--accent) 70%,transparent)}
+/* O "levantar" da carta no hover NÃO desloca o alvo do clique: com `transform` a carta saía de
+   baixo do ponteiro, voltava no quadro seguinte e tremia (no modo leve a transição é instantânea),
+   e o clique não assentava — o e2e da Memória em 375 px travava nisso. Só sombra, e só onde há
+   ponteiro fino de verdade. */
+@media (hover:hover) and (pointer:fine){.carta:hover{box-shadow:var(--shadow-btn),0 12px 24px -12px color-mix(in srgb,var(--accent) 70%,transparent)}}
 .carta.virada{background:var(--surface);color:var(--ink);border-color:var(--border-subtle);box-shadow:var(--shadow-card);animation:vira .45s var(--ease)}
 @keyframes vira{from{transform:rotateY(90deg)}}
 .carta.par{background:var(--good-soft);color:var(--good-ink);border-color:var(--good);cursor:default;transform:none;animation:acerta .5s var(--ease)}
@@ -1349,7 +1353,7 @@ dialog.gaveta{margin:auto 0 0;width:100%;max-width:100%;height:auto;max-height:8
 @keyframes selo{0%{transform:scale(.3) rotate(-12deg);opacity:0}25%{transform:scale(1.15) rotate(3deg);opacity:1}70%{transform:scale(1) rotate(0);opacity:1}100%{transform:scale(1.05) translateY(-30px);opacity:0}}
 .carta.par{box-shadow:0 0 0 3px color-mix(in srgb,var(--good) 35%,transparent),0 0 24px color-mix(in srgb,var(--good) 40%,transparent)}
 .carta.errou{border-color:var(--error)!important;background:var(--error-soft)!important;color:var(--error-ink)!important}
-.carta:not(.virada):not(.par):hover{transform:translateY(-4px) rotateX(8deg);box-shadow:var(--shadow-btn),0 14px 24px -12px rgba(0,0,0,.35)}
+@media (hover:hover) and (pointer:fine){.carta:not(.virada):not(.par):hover{box-shadow:var(--shadow-btn),0 14px 24px -12px rgba(0,0,0,.35),0 0 0 2px color-mix(in srgb,var(--accent) 45%,transparent)}}
 .tabuleiro .carta{animation:carta-entra .5s cubic-bezier(.34,1.56,.64,1) backwards;animation-delay:calc(var(--i,0) * 60ms)}
 @keyframes carta-entra{from{transform:translateY(30px) rotate(-6deg) scale(.7);opacity:0}}
 .termo-dica{text-align:center;margin-bottom:14px}

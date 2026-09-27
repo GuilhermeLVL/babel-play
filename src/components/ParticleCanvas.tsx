@@ -4,6 +4,7 @@ import type { ThemeType } from '../lib/appearance';
 import { ajusteDeBurst } from '../lib/aprimoramentos';
 import { BURST_SPECS, type BurstKind, type BurstSpec,onBurst, resolveParticleStyle } from '../lib/effects';
 import { corDoCromaEquipado } from '../lib/galeria/cromas';
+import { criarLacoDeParticulas, type MensagemDoLaco, type PedidoDeRajada } from '../lib/motorDeParticulas';
 import { emojisDoPack } from '../lib/particulas';
 
 interface ParticleCanvasProps {
@@ -22,31 +23,82 @@ interface ParticleCanvasProps {
   ambient: boolean;
 }
 
-interface P {
-  x: number; y: number; vx: number; vy: number;
-  size: number; alpha: number; alphaDir: number;
-  phase: number;
-  /** Recém-nascida: não paga a vida do intervalo em que ainda não existia (ver render). */
-  nova?: boolean;
-  /**
-   * Rajada: milissegundos restantes. `null` = partícula ambiente (não morre).
-   *
-   * É TEMPO e não contagem de quadros de propósito. Com quadros, uma rajada de 700ms viraria
-   * 2,1s num PC a 20fps — e PCs modestos são justamente o público do Modo Desempenho. Medi isto
-   * na prática: com a aba em segundo plano (RAF a ~2fps) a rajada durava mais de 15 segundos.
-   */
-  life: number | null;
-  maxLife: number;
-  color: string;
-  /** Forma do desenho — ver o switch no draw(). */
-  forma?: import('../lib/effects').FormaParticula;
-  /** Caractere para a forma 'emoji'. */
-  emoji?: string;
-  /** Rotação e velocidade angular — só o confete usa (é o que dá a leitura de papel caindo). */
-  giro?: number;
-  giroVel?: number;
-  /** Gravidade própria da rajada (confete cai, faísca sobe). */
-  gravidade?: number;
+/**
+ * ONDE O LAÇO RODA. Com `OffscreenCanvas` (Chrome, Edge, Firefox, Safari 17+), o canvas é
+ * transferido para um Worker e a simulação e o desenho saem da thread principal — medido na
+ * auditoria de performance do frontend (26/09/2026): o ambiente custava 9–11 ms de thread
+ * principal por quadro num celular médio, em toda tela (ver `lib/motorDeParticulas.ts`). Sem ele (ou
+ * se o Worker não subir), o MESMO laço roda na página, como antes. A decisão é por canvas: um canvas
+ * transferido não volta.
+ */
+function podeUsarWorker(canvas: HTMLCanvasElement): boolean {
+  return typeof Worker !== 'undefined' && typeof canvas.transferControlToOffscreen === 'function';
+}
+
+interface Canal {
+  enviar: (m: MensagemDoLaco) => void;
+  encerrar: () => void;
+  usos: number;
+}
+/**
+ * UM CANAL POR CANVAS, e não por execução do efeito: `transferControlToOffscreen` só pode ser
+ * chamado uma vez por elemento, e o StrictMode do React (dev) roda o efeito, a limpeza e o efeito
+ * de novo no MESMO canvas. A limpeza só encerra o laço se nenhum efeito voltar a usar o canal até a
+ * próxima tarefa — no StrictMode ele volta na hora; numa desmontagem de verdade, não.
+ */
+const canais = new WeakMap<HTMLCanvasElement, Canal>();
+function abrirCanal(canvas: HTMLCanvasElement): Canal | null {
+  const existente = canais.get(canvas);
+  if (existente) {
+    existente.usos++;
+    return existente;
+  }
+  let canal: Canal | null = null;
+  if (podeUsarWorker(canvas)) {
+    let worker: Worker | null = null;
+    try {
+      worker = new Worker(new URL('../lib/particulas.worker.ts', import.meta.url), { type: 'module' });
+      const offscreen = canvas.transferControlToOffscreen();
+      worker.postMessage({ tipo: 'iniciar', canvas: offscreen }, [offscreen]);
+      const w = worker;
+      canal = { enviar: (m) => w.postMessage(m), encerrar: () => w.terminate(), usos: 1 };
+    } catch {
+      worker?.terminate();
+    }
+  }
+  if (!canal) {
+    let ctx: CanvasRenderingContext2D | null;
+    try {
+      ctx = canvas.getContext('2d');
+    } catch {
+      ctx = null; // canvas já transferido: não há onde desenhar
+    }
+    if (!ctx) return null;
+    const laco = criarLacoDeParticulas({
+      canvas,
+      ctx,
+      pedirQuadro: (fn) => requestAnimationFrame(fn),
+      cancelarQuadro: (id) => cancelAnimationFrame(id),
+      criarCanvas: (lado) => {
+        const c = document.createElement('canvas');
+        c.width = lado; c.height = lado;
+        return c;
+      },
+    });
+    canal = { enviar: (m) => laco.receber(m), encerrar: () => laco.encerrar(), usos: 1 };
+  }
+  canais.set(canvas, canal);
+  return canal;
+}
+function fecharCanal(canvas: HTMLCanvasElement) {
+  const canal = canais.get(canvas);
+  if (!canal) return;
+  canal.usos--;
+  setTimeout(() => {
+    if (canal.usos > 0 || canais.get(canvas) !== canal) return;
+    canais.delete(canvas);
+    canal.encerrar();
+  }, 0);
 }
 
 /**
@@ -61,13 +113,16 @@ interface P {
  *
  * Continua respeitando o que a fase 1 acertou: cor lida do token do tema, escala por DPR,
  * `prefers-reduced-motion` e o desligamento pelo Modo Desempenho.
+ *
+ * Este componente é a PONTA DA PÁGINA: lê o que só a página sabe (tokens de cor, skin, pack,
+ * croma, tamanho do canvas) e manda ao laço, que simula e desenha (`lib/motorDeParticulas.ts`).
  */
 export default function ParticleCanvas({ enabled, performanceMode, theme, darkMode, ambient }: ParticleCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  /** Fila de rajadas pedidas entre um quadro e outro (o listener não pode tocar no estado do loop). */
-  const pendingRef = useRef<Array<{ x: number; y: number; kind: BurstKind; sobrescrever?: Partial<BurstSpec> }>>([]);
-  /** Acorda o loop quando ele dormiu por falta de partículas (ver `dormindo` no render). */
-  const wakeRef = useRef<(() => void) | null>(null);
+  /** O canal até o laço — `postMessage` do Worker ou o `receber` do laço na página. */
+  const enviarRef = useRef<((m: MensagemDoLaco) => void) | null>(null);
+  /** Pedidos que chegaram antes de o laço existir (o barramento liga antes do canal). */
+  const pendingRef = useRef<MensagemDoLaco[]>([]);
 
   /**
    * `enabled` JÁ carrega a decisão resolvida: o App inicializa o interruptor a partir do
@@ -77,88 +132,85 @@ export default function ParticleCanvas({ enabled, performanceMode, theme, darkMo
    */
   const active = enabled && !performanceMode;
 
-  // O barramento fica ligado enquanto o canvas existir — inclusive quando o ambiente está off.
-  useEffect(() => {
-    if (!active) return;
-    return onBurst((e) => { pendingRef.current.push(e); wakeRef.current?.(); });
-  }, [active]);
+  const enviar = (m: MensagemDoLaco) => {
+    if (enviarRef.current) enviarRef.current(m);
+    else pendingRef.current.push(m);
+  };
 
+  // O CANAL: sobe o laço (no Worker ou na página) enquanto o canvas existir.
   useEffect(() => {
     if (!active) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
 
-    // Preset EFETIVO (com piso de opacidade e composição do modo) — nunca o preset cru.
-    const preset = resolveParticleStyle(theme, darkMode);
-    // Lido a cada quadro-chave e não uma vez só: o seletor de cor do tema Customizado altera
-    // `--custom-accent` sem mudar o `theme`, então uma leitura única congelava a cor antiga.
-    const readColor = (token: string) =>
-      getComputedStyle(document.documentElement).getPropertyValue(token).trim() || '#888888';
-    let ambientColor = readColor(preset.colorToken);
-
-    let width = 0, height = 0, animFrameId = 0;
-    const particles: P[] = [];
-
-    /**
-     * POOL DE PARTÍCULAS (personalizar-v4 2.4). Rajadas em sequência criavam e abandonavam
-     * centenas de objetos por comemoração — pressão de GC exatamente no momento do confete.
-     * Partícula morta volta para cá e `novaParticula` a reveste em vez de alocar.
-     */
-    const pool: P[] = [];
-    const novaParticula = (props: P): P => {
-      const p = pool.pop();
-      if (!p) return props;
-      Object.assign(p, props);
-      return p;
-    };
-    /** Remove por troca-e-pop (O(1), sem o deslocamento do splice) e devolve ao pool. */
-    const matarParticula = (i: number) => {
-      const morta = particles[i];
-      const ultima = particles.pop()!;
-      if (morta !== ultima) particles[i] = ultima;
-      // Limpa o que é opcional: um emoji herdado apareceria na próxima faísca redonda.
-      morta.emoji = undefined; morta.forma = undefined; morta.nova = undefined;
-      if (pool.length < 512) pool.push(morta);
-    };
-
-    /**
-     * CACHE DE EMOJI (personalizar-v4 2.4). `fillText` re-rasteriza o glifo A CADA QUADRO por
-     * partícula — shaping de fonte é o custo dominante da chuva de emojis. Cada par
-     * emoji×tamanho é desenhado UMA vez num canvas offscreen e depois só copiado (`drawImage`).
-     * Tamanho em degraus de 4px para o cache não explodir com `rand(size)` contínuo.
-     */
-    const cacheDeEmoji = new Map<string, HTMLCanvasElement>();
-    const emojiRasterizado = (emoji: string, px: number): HTMLCanvasElement => {
-      const chave = `${emoji}:${px}`;
-      const pronto = cacheDeEmoji.get(chave);
-      if (pronto) return pronto;
-      if (cacheDeEmoji.size > 256) cacheDeEmoji.clear(); // packs trocados ao vivo não acumulam
-      const off = document.createElement('canvas');
-      // Folga de 25%: glifos com ascendente/descendente (🎈, 🎉) cortavam no quadrado exato.
-      const lado = Math.ceil(px * 1.25);
-      off.width = lado; off.height = lado;
-      const octx = off.getContext('2d')!;
-      octx.font = `${px}px serif`;
-      octx.textAlign = 'center';
-      octx.textBaseline = 'middle';
-      octx.fillText(emoji, lado / 2, lado / 2);
-      cacheDeEmoji.set(chave, off);
-      return off;
-    };
+    const canal = abrirCanal(canvas);
+    if (!canal) return;
+    enviarRef.current = canal.enviar;
 
     const resize = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
       const rect = canvas.getBoundingClientRect();
-      width = rect.width; height = rect.height;
-      canvas.width = Math.round(width * dpr);
-      canvas.height = Math.round(height * dpr);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      enviarRef.current?.({ tipo: 'tamanho', largura: rect.width, altura: rect.height, dpr: Math.min(window.devicePixelRatio || 1, 2) });
     };
     resize();
+    // O que chegou antes do canal (ambiente, rajadas) segue na ordem, depois do tamanho.
+    for (const m of pendingRef.current) enviarRef.current?.(m);
+    pendingRef.current = [];
     const observer = new ResizeObserver(resize);
     observer.observe(canvas);
+
+    // Aba escondida: o laço dorme em vez de desenhar para ninguém.
+    const aoMudarVisibilidade = () => enviarRef.current?.({ tipo: document.hidden ? 'pausar' : 'retomar' });
+    document.addEventListener('visibilitychange', aoMudarVisibilidade);
+
+    return () => {
+      observer.disconnect();
+      document.removeEventListener('visibilitychange', aoMudarVisibilidade);
+      enviarRef.current = null;
+      fecharCanal(canvas);
+    };
+  }, [active]);
+
+  // O barramento fica ligado enquanto o canvas existir — inclusive quando o ambiente está off.
+  useEffect(() => {
+    if (!active) return;
+    // Lido no pedido e não uma vez só: o seletor de cor do tema Customizado altera
+    // `--custom-accent` sem mudar o `theme`.
+    const readColor = (token: string) =>
+      getComputedStyle(document.documentElement).getPropertyValue(token).trim() || '#888888';
+    return onBurst((e: { x: number; y: number; kind: BurstKind; sobrescrever?: Partial<BurstSpec> }) => {
+      const spec: BurstSpec = e.sobrescrever ? { ...BURST_SPECS[e.kind], ...e.sobrescrever } : BURST_SPECS[e.kind];
+      const { countMul, sizeMul } = ajusteDeBurst();
+      // As coordenadas da rajada chegam em VIEWPORT; o canvas pode não começar no topo da janela.
+      const rect = canvasRef.current?.getBoundingClientRect();
+      /* CROMA (mudança inventario-e-cromas): quando a pessoa desbloqueou e equipou uma cor para
+         a skin de partículas, ela vence o token do tema. Sem croma equipado a função devolve
+         null e tudo segue exatamente como antes. */
+      const skin = document.documentElement.getAttribute('data-particulas');
+      const croma = skin ? corDoCromaEquipado('part-' + skin) : null;
+      const pedido: PedidoDeRajada = {
+        x: e.x - (rect?.left ?? 0),
+        y: e.y - (rect?.top ?? 0),
+        spec,
+        countMul,
+        sizeMul,
+        cor: croma ?? readColor(spec.colorToken),
+        // LIDO UMA VEZ POR RAJADA, não por partícula: `emojisDoPack()` faz localStorage + JSON.parse.
+        pack: emojisDoPack(),
+        skin,
+        modoPixel: document.documentElement.getAttribute('data-fonte') === 'pixel',
+      };
+      enviar({ tipo: 'rajada', pedido });
+    });
+  }, [active]);
+
+  // O AMBIENTE do tema em vigor — recomeça a cada troca de tema/modo, como antes.
+  useEffect(() => {
+    if (!active) return;
+    // Preset EFETIVO (com piso de opacidade e composição do modo) — nunca o preset cru.
+    const preset = resolveParticleStyle(theme, darkMode);
+    const readColor = () =>
+      getComputedStyle(document.documentElement).getPropertyValue(preset.colorToken).trim() || '#888888';
+    enviar({ tipo: 'ambiente', preset, cor: readColor(), ambient });
 
     /**
      * Reage a mudanças de TOKEN sem remontar. Padrão canônico do repositório (o mesmo de
@@ -166,334 +218,12 @@ export default function ParticleCanvas({ enabled, performanceMode, theme, darkMo
      * também `'style'`: é onde o seletor de cor do tema Customizado escreve `--custom-accent`,
      * e sem isso mudar a paleta ao vivo não repintava as partículas.
      */
-    const releituraTema = () => {
-      ambientColor = readColor(preset.colorToken);
-      for (const p of particles) if (p.life === null) p.color = ambientColor;
-    };
-    const temaObserver = new MutationObserver(releituraTema);
+    const temaObserver = new MutationObserver(() => enviar({ tipo: 'cor', cor: readColor() }));
     temaObserver.observe(document.documentElement, {
       attributes: true,
       attributeFilter: ['class', 'data-theme', 'style'],
     });
-
-    const rand = (a: number, b: number) => a + Math.random() * (b - a);
-
-    const spawnAmbient = () => {
-      particles.length = 0;
-      if (!ambient) return;
-      // Nasce dentro da faixa visível (metade de cima); fora dela o desvanecimento já zerou.
-      for (let i = 0; i < preset.ambientCount; i++) {
-        particles.push(novaParticula({
-          x: Math.random() * width,
-          y: Math.random() * height * 0.5,
-          vx: preset.driftX * rand(-1, 1) * 2,
-          vy: preset.driftY * rand(0.6, 1.4),
-          size: rand(preset.size[0], preset.size[1]),
-          alpha: rand(preset.alpha[0], preset.alpha[1]),
-          alphaDir: Math.random() < 0.5 ? -1 : 1,
-          phase: Math.random() * Math.PI * 2,
-          life: null,
-          maxLife: 0,
-          color: ambientColor
-        }));
-      }
-    };
-    spawnAmbient();
-
-    /** As coordenadas da rajada chegam em VIEWPORT; o canvas pode não começar no topo da janela. */
-    const spawnBurst = (vx: number, vy: number, kind: BurstKind, sobrescrever?: Partial<BurstSpec>) => {
-      const spec: typeof BURST_SPECS[BurstKind] = sobrescrever ? { ...BURST_SPECS[kind], ...sobrescrever } : BURST_SPECS[kind];
-      // Aprimoramento + intensidade da loja: mais/maiores particulas para quem subiu de nivel;
-      // o TETO de vivas continua valendo por cima, e o count multiplicado entra na poda e nos angulos.
-      const { countMul, sizeMul } = ajusteDeBurst();
-      const countFinal = Math.max(1, Math.round(spec.count * countMul));
-      const rect = canvasRef.current!.getBoundingClientRect();
-      const ox = vx - rect.left;
-      const oy = vy - rect.top;
-      /* CROMA (mudança inventario-e-cromas): quando a pessoa desbloqueou e equipou uma cor para
-         a skin de partículas, ela vence o token do tema. Sem croma equipado a função devolve
-         null e tudo segue exatamente como antes — é isso que torna a economia nova aditiva. */
-      const skinAtual = typeof document !== 'undefined' ? document.documentElement.getAttribute('data-particulas') : null;
-      const croma = skinAtual ? corDoCromaEquipado('part-' + skinAtual) : null;
-      const color = croma ?? readColor(spec.colorToken);
-      // LIDO UMA VEZ POR RAJADA, não por partícula: `emojisDoPack()` faz localStorage + JSON.parse,
-      // e dentro do loop isso virava dezenas de leituras síncronas por comemoração.
-      const packDaLoja = emojisDoPack();
-      // TETO DE PARTÍCULAS VIVAS. Sem ele, comemorações em sequência empilham milhares de objetos
-      // e a animação engasga justamente na hora de comemorar — que é quando o travamento mais
-      // estraga. Descarta as rajadas mais ANTIGAS em vez de recusar a nova.
-      //
-      // CUIDADO QUE JÁ CUSTOU CARO: as partículas de AMBIENTE moram no começo do array (são as
-      // primeiras a nascer) e não têm `life`. Uma poda ingênua pelo início comeria justamente
-      // elas, e o fundo do app iria esvaziando a cada comemoração até a próxima remontagem.
-      const TETO = 420;
-      const excesso = particles.length + countFinal - TETO;
-      if (excesso > 0) {
-        let removidas = 0;
-        for (let i = 0; i < particles.length && removidas < excesso; i++) {
-          if (particles[i].life === null) continue; // ambiente: nunca é podado
-          matarParticula(i); // troca-e-pop: o slot i recebe outra e é reexaminado
-          i--;
-          removidas++;
-        }
-      }
-
-      // A SKIN de particulas (Aparencia) decide a forma das rajadas comuns; a fonte Arcade forca
-      // pixel quando a skin esta no padrao do tema. Rajadas com forma propria (eventos) nao mudam.
-      const skin = typeof document !== 'undefined' ? document.documentElement.getAttribute('data-particulas') : null;
-      const modoPixel = typeof document !== 'undefined' && document.documentElement.getAttribute('data-fonte') === 'pixel';
-      const formaDaSkin: import('../lib/effects').FormaParticula | null =
-        skin === 'pixel' ? 'pixel'
-        : skin === 'confete' ? 'confete'
-        : skin === 'coracoes' ? 'coracao'
-        : skin === 'estrelas' || skin === 'emoji' ? 'emoji'
-        : skin === 'cometa' ? 'cometa'
-        : null;
-      // 'travessia': objetos que cruzam a tela voando; o lado de entrada e sorteado por rajada.
-      const dirTravessia = Math.random() < 0.5 ? 1 : -1;
-      for (let i = 0; i < countFinal; i++) {
-        const chuva = spec.origem === 'chuva';
-        const travessia = spec.origem === 'travessia';
-        const cantos = spec.origem === 'cantos';
-        const ang = (Math.PI * 2 * i) / countFinal + rand(-0.25, 0.25);
-        const sp = spec.speed * rand(0.45, 1);
-        const ms = spec.life * rand(0.7, 1);
-        particles.push(novaParticula({
-          // A chuva nasce ao longo do topo da tela; a radial, no ponto do acontecimento.
-          x: chuva ? rand(0, width)
-            : travessia ? (dirTravessia > 0 ? -60 : width + 60)
-            : cantos ? (i % 2 === 0 ? rand(0, width * 0.12) : rand(width * 0.88, width))
-            : ox,
-          y: chuva ? rand(-40, -4)
-            : travessia ? rand(height * 0.12, height * 0.72)
-            : cantos ? (i % 4 < 2 ? rand(0, height * 0.15) : rand(height * 0.85, height))
-            : oy,
-          vx: chuva ? rand(-0.6, 0.6)
-            : travessia ? dirTravessia * sp * rand(1.6, 2.6)
-            : Math.cos(ang) * sp,
-          vy: chuva ? rand(0.6, 1.8)
-            : travessia ? rand(-0.35, 0.35)
-            : Math.sin(ang) * sp - 0.6, // radial tem viés p/ cima: cai melhor aos olhos
-          size: rand(spec.size[0], spec.size[1]) * sizeMul,
-          alpha: 0.9,
-          alphaDir: -1,
-          phase: 0,
-          nova: true,
-          life: ms,
-          maxLife: ms,
-          color: spec.paleta ? spec.paleta[Math.floor(Math.random() * spec.paleta.length)] : color,
-          forma: spec.forma ?? formaDaSkin ?? (modoPixel ? 'pixel' : 'circulo'),
-          emoji: spec.emojis
-            ? spec.emojis[Math.floor(Math.random() * spec.emojis.length)]
-            : spec.forma === 'emoji'
-              // Forma emoji sem lista própria (skin/rastro): sorteia do PACK equipado na loja.
-              ? packDaLoja[Math.floor(Math.random() * packDaLoja.length)]
-              : (!spec.forma && (skin === 'estrelas' || skin === 'emoji')
-                ? (skin === 'emoji' ? packDaLoja[Math.floor(Math.random() * packDaLoja.length)] : (Math.random() < 0.5 ? '⭐' : '✨'))
-                : undefined),
-          giro: rand(0, Math.PI * 2),
-          giroVel: rand(-0.18, 0.18),
-          gravidade: spec.gravidade,
-        }));
-      }
-    };
-
-    /* Normalização por tempo: `k` é quantos "quadros de 60fps" se passaram desde o último desenho.
-       Sem isto, a velocidade de tudo dependeria do FPS da máquina, as partículas andariam em
-       câmera lenta exatamente nos PCs modestos que o Modo Desempenho existe para atender.
-       O teto de 3 evita que uma pausa da aba teleporte tudo de uma vez ao voltar. */
-    let lastTs = 0;
-    /* SONO DO LOOP. Com ambiente desligado (perfil sênior / painel de leitura) e nenhuma rajada
-       viva, o rAF ficava limpando um canvas de viewport inteira a 60fps para sempre — custo de
-       CPU/bateria por nada. Quando não há partícula nem pedido pendente, o loop PARA; o próprio
-       barramento (`onBurst` → wakeRef) o acorda no próximo pedido. `lastTs` zera no despertar:
-       um `dtReal` do tamanho do cochilo mataria a rajada nova antes do primeiro quadro. */
-    let dormindo = false;
-    wakeRef.current = () => {
-      if (!dormindo) return;
-      dormindo = false;
-      lastTs = 0;
-      animFrameId = requestAnimationFrame(render);
-    };
-
-    const render = (ts: number) => {
-      /* DUAS MEDIDAS DE TEMPO, e a distinção não é preciosismo — foi um defeito medido.
-         `dtReal` é tempo de RELÓGIO e governa a VIDA da rajada. `dt` é limitado a 50ms e governa
-         o MOVIMENTO, para que uma pausa da aba não teleporte tudo de uma vez ao voltar.
-
-         Antes a vida também usava o valor limitado. Consequência, medida numa janela sem foco (o
-         Chrome derruba o rAF para ~3fps): uma chuva de confete de 2,2s continuava na tela DEZ
-         SEGUNDOS depois, a comemoração virava sujeira grudada. Quanto mais fraca a máquina, pior
-         ficava, que é exatamente ao contrário do que se quer. */
-      const dtReal = lastTs ? ts - lastTs : 16.7;
-      const dt = Math.min(dtReal, 50);
-      lastTs = ts;
-      const k = dt / 16.7;
-
-      // Drena os pedidos acumulados desde o último quadro.
-      if (pendingRef.current.length) {
-        for (const b of pendingRef.current) spawnBurst(b.x, b.y, b.kind, b.sobrescrever);
-        pendingRef.current.length = 0;
-      }
-
-      ctx.clearRect(0, 0, width, height);
-
-      for (let i = particles.length - 1; i >= 0; i--) {
-        const p = particles[i];
-
-        if (p.life !== null) {
-          // ── Rajada: desacelera, esmaece e morre — em tempo de RELÓGIO (ver `dtReal` acima).
-          // Exceto no quadro do NASCIMENTO: a partícula que acabou de entrar na fila não viveu o
-          // intervalo medido por `dtReal`. Numa aba estrangulada (rAF ~1fps) esse intervalo é ~1s
-          // e uma faísca de 650ms morria ANTES do primeiro desenho — rajada invisível.
-          if (p.nova) p.nova = false;
-          else p.life -= dtReal;
-          // Troca-e-pop no laço DECRESCENTE: quem entra no slot i já foi processada neste quadro.
-          if (p.life <= 0) { matarParticula(i); continue; }
-          // Confete quase não tem atrito (ele PLANA); faísca desacelera rápido.
-          const atrito = Math.pow(p.forma === 'confete' || p.forma === 'emoji' ? 0.995 : p.forma === 'fumaca' ? 0.97 : 0.94, k);
-          p.vx *= atrito; p.vy *= atrito;
-          p.vy += (p.gravidade ?? 0.045) * k;
-          p.x += p.vx * k; p.y += p.vy * k;
-          if (p.forma === 'confete') {
-            p.giro = (p.giro ?? 0) + (p.giroVel ?? 0) * k;
-            // Bamboleio horizontal: papel caindo não desce reto.
-            p.x += Math.sin((p.giro ?? 0) * 1.5) * 0.5 * k;
-          }
-          // Some só no ÚLTIMO terço da vida: sumir desde o começo deixa a rajada anêmica.
-          const restante = p.life / p.maxLife;
-          p.alpha = 0.9 * Math.min(1, restante / 0.34);
-        } else {
-          // ── Ambiente: deriva contínua, com a oscilação do preset.
-          p.phase += preset.wobbleSpeed * k;
-          p.x += (p.vx + (preset.wobble ? Math.sin(p.phase) * preset.wobble * 0.1 : 0)) * k;
-          p.y += p.vy * k;
-          p.alpha += p.alphaDir * 0.0035 * k;
-          if (p.alpha > preset.alpha[1]) { p.alpha = preset.alpha[1]; p.alphaDir = -1; }
-          if (p.alpha < preset.alpha[0]) { p.alpha = preset.alpha[0]; p.alphaDir = 1; }
-          // Reentra pelo lado oposto DENTRO DA FAIXA — se envolvesse pela altura total, a brasa
-          // do `babel` (que sobe) reapareceria lá embaixo, onde o desvanecimento já a apagou, e
-          // a faixa esvaziaria em poucos segundos.
-          const band = height * 0.5;
-          if (p.x < -10) p.x = width + 10;
-          if (p.x > width + 10) p.x = -10;
-          if (p.y < -10) p.y = band;
-          if (p.y > band) p.y = -10;
-        }
-
-        /* DESVANECIMENTO VERTICAL — por partícula, e não por máscara na camada.
-           Uma `mask-image` no <canvas> apagaria também as RAJADAS da metade de baixo, que é
-           justamente onde ficam o botão de gravar e os exercícios. Aplicando o gradiente só ao
-           ambiente, ele continua confinado à faixa do topo e a rajada aparece onde acontecer. */
-        const fade = p.life === null
-          ? Math.max(0, 1 - Math.max(0, p.y) / (height * 0.5))
-          : 1;
-
-        ctx.globalAlpha = Math.max(0, p.alpha * fade);
-        ctx.fillStyle = p.color;
-        // No escuro as partículas SOMAM luz (brasa); no claro, composição normal — somar cor a um
-        // fundo claro satura em branco e o efeito desaparece. Ver `resolveParticleStyle`.
-        ctx.globalCompositeOperation = preset.composite;
-        if (preset.glow || p.life !== null) {
-          ctx.shadowBlur = p.size * 3;
-          ctx.shadowColor = p.color;
-        } else {
-          ctx.shadowBlur = 0;
-        }
-        if (p.forma === 'confete') {
-          // Retângulo girando: a leitura de "papel picado" vem da rotação, não da cor.
-          ctx.save();
-          ctx.translate(p.x, p.y);
-          ctx.rotate(p.giro ?? 0);
-          ctx.fillRect(-p.size / 2, -p.size * 0.35, p.size, p.size * 0.7);
-          ctx.restore();
-        } else if (p.forma === 'pixel') {
-          // Quadrado duro, sem glow e em coordenadas inteiras: pixel de verdade nao borra.
-          ctx.shadowBlur = 0;
-          const lado = Math.max(2, Math.round(p.size)) * 2;
-          ctx.fillRect(Math.round(p.x) - lado / 2, Math.round(p.y) - lado / 2, lado, lado);
-        } else if (p.forma === 'emoji') {
-          ctx.shadowBlur = 0;
-          ctx.save();
-          ctx.translate(p.x, p.y);
-          ctx.rotate((p.giro ?? 0) * 0.6);
-          // Glifo pré-rasterizado (degraus de 4px) copiado com drawImage — ver cacheDeEmoji.
-          const px = Math.max(12, Math.round((p.size * 5) / 4) * 4);
-          const glifo = emojiRasterizado(p.emoji ?? '⭐', px);
-          ctx.drawImage(glifo, -glifo.width / 2, -glifo.height / 2);
-          ctx.restore();
-        } else if (p.forma === 'cometa') {
-          // Cauda: três círculos decrescentes ATRÁS do vetor de velocidade, depois a cabeça.
-          const vlen = Math.hypot(p.vx, p.vy) || 1;
-          const ux = p.vx / vlen, uy = p.vy / vlen;
-          const alphaBase = ctx.globalAlpha;
-          for (let k = 3; k >= 1; k--) {
-            ctx.globalAlpha = alphaBase * (0.18 * (4 - k));
-            ctx.beginPath();
-            ctx.arc(p.x - ux * p.size * 1.6 * k, p.y - uy * p.size * 1.6 * k, p.size * (1 - k * 0.22), 0, Math.PI * 2);
-            ctx.fill();
-          }
-          ctx.globalAlpha = alphaBase;
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-          ctx.fill();
-        } else if (p.forma === 'coracao') {
-          ctx.save();
-          ctx.translate(p.x, p.y);
-          ctx.rotate((p.giro ?? 0) * 0.3);
-          const s = p.size;
-          ctx.beginPath();
-          ctx.moveTo(0, s * 0.6);
-          ctx.bezierCurveTo(-s * 1.4, -s * 0.5, -s * 0.5, -s * 1.4, 0, -s * 0.4);
-          ctx.bezierCurveTo(s * 0.5, -s * 1.4, s * 1.4, -s * 0.5, 0, s * 0.6);
-          ctx.fill();
-          ctx.restore();
-        } else if (p.forma === 'raio') {
-          ctx.save();
-          ctx.translate(p.x, p.y);
-          ctx.rotate(p.giro ?? 0);
-          const s = p.size;
-          ctx.beginPath();
-          ctx.moveTo(0, -s * 1.6);
-          ctx.lineTo(s * 0.55, -s * 0.2);
-          ctx.lineTo(s * 0.15, -s * 0.2);
-          ctx.lineTo(s * 0.5, s * 1.6);
-          ctx.lineTo(-s * 0.45, s * 0.1);
-          ctx.lineTo(-0.05 * s, s * 0.1);
-          ctx.closePath();
-          ctx.fill();
-          ctx.restore();
-        } else if (p.forma === 'fumaca') {
-          // Cresce e esmaece: o raio sobe conforme a vida se esvai.
-          const vivida = p.maxLife > 0 ? 1 - Math.max(0, p.life ?? 0) / p.maxLife : 0;
-          ctx.globalAlpha = Math.max(0, ctx.globalAlpha * 0.35);
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, p.size * (1 + 2.2 * vivida), 0, Math.PI * 2);
-          ctx.fill();
-        } else {
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
-      ctx.globalAlpha = 1;
-      ctx.shadowBlur = 0;
-      ctx.globalCompositeOperation = 'source-over';
-
-      if (particles.length === 0 && pendingRef.current.length === 0) {
-        dormindo = true; // o quadro que acabou de rodar já deixou o canvas limpo
-        return;
-      }
-      animFrameId = requestAnimationFrame(render);
-    };
-    animFrameId = requestAnimationFrame(render);
-
-    return () => {
-      observer.disconnect();
-      temaObserver.disconnect();
-      cancelAnimationFrame(animFrameId);
-      wakeRef.current = null;
-    };
+    return () => temaObserver.disconnect();
   }, [active, theme, darkMode, ambient]);
 
   if (!active) return null;

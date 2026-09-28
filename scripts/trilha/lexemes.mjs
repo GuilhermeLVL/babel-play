@@ -209,7 +209,9 @@ export async function glosas(praticado, nativo) {
   const doWikidata = await glosasDoPar(praticado, nativo);
   const doWikcionario = await glosasDoWikcionario(praticado, nativo);
   const mapa = new Map(doWikcionario);
-  for (const [k, v] of doWikidata) mapa.set(k, v);
+  /* O filtro de escrita vem ANTES da precedência: se a glosa do Wikidata está em aljamiado, a do
+     Wikcionário fica. Filtrar depois apagava as duas — `día` e `casa` saíam sem glosa nenhuma. */
+  for (const [k, v] of doWikidata) if (escritaServe(v, nativo)) mapa.set(k, v);
   for (const [k, v] of mapa) if (!escritaServe(v, nativo)) mapa.delete(k);
   return { mapa, doWikidata: doWikidata.size, doWikcionario: doWikcionario.size };
 }
@@ -223,11 +225,15 @@ export async function glosas(praticado, nativo) {
  */
 export function montarDicionario({ bruta, mapaDeLemas, glosas: mapaDeGlosas, limite, lang, nativo }) {
   const saida = {};
+  /* Contador, não `Object.keys(saida).length` a cada volta: quando o idioma não tem `limite` lemas
+     com glosa, o laço corre a lista inteira (~1 milhão de entradas) e a contagem por chaves o
+     tornava quadrático — mais de dez minutos por idioma em vez de segundos. */
+  let n = 0;
   for (const { palavra } of lematizar(bruta, mapaDeLemas, lang)) {
-    if (Object.keys(saida).length >= limite) break;
+    if (n >= limite) break;
     const chave = String(palavra).toLowerCase();
     const g = mapaDeGlosas.get(chave);
-    if (g && escritaServe(g, nativo) && !(chave in saida)) saida[chave] = g;
+    if (g && escritaServe(g, nativo) && !(chave in saida)) { saida[chave] = g; n++; }
   }
   const formas = {};
   for (const { palavra } of bruta ?? []) {

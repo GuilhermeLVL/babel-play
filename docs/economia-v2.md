@@ -101,6 +101,23 @@ e Combo Chuva de Confete 1.190).
 | Típico  | 25 revisões + 3 rodadas + 10 palavras + meta | 149,9     | 4.496            | 69   | 34    |
 | Intenso | 60 revisões + 8 rodadas + 30 palavras + meta | 351,1     | 10.534           | 90   | 37    |
 
+**Refeita na revisão de 27/09** (itens 2, 4 e 6 da revisão): os rastros saíram do baú (só aparecem
+com ponteiro fino) e a Esteira de Bolhas saiu do catálogo, então a faixa sorteada fica sem peça nova
+mais cedo e paga Seeds de repetido — o típico sobe de 149,9 para **152,2 Seeds/dia**:
+
+| Perfil  | Seeds/dia | Seeds em 30 dias | Baús | Peças | Baú (Seeds) |
+| ------- | --------- | ---------------- | ---- | ----- | ----------- |
+| Leve    | 35,2      | 1.056            | 18   | 18    | 90          |
+| Típico  | 152,2     | 4.566            | 69   | 32    | 765         |
+| Intenso | 357,0     | 10.709           | 90   | 32    | 1.280       |
+
+As faixas continuam na meta sem mexer em preço (comum 2,3–2,9 dias · raro 6,6–7,8 · épico
+17,1–19,7 · lendário 34,2). A sessão só com palavra salva (item 2) mexe no XP, não nas Seeds — e o
+perfil típico salva 10 palavras por dia da captura, então as sessões dele continuam rendendo: o que
+fechou foi a fábrica de sessões vazias. A rodada gravada uma vez (item 4) não muda a simulação, que
+nunca reenviou rodada. A janela de 24 h do baú também não: as rodadas simuladas caem nas mesmas horas
+de cada dia.
+
 Meta do dono, no perfil típico e só com Seeds: um comum a cada 2–3 dias, um raro por semana, um épico
 a cada 2–3 semanas. Preços antigos × fator por raridade, preservando a ordem dentro da faixa:
 

@@ -109,3 +109,6 @@ vitest-resultado.json
 
 # Fixture anonimizada do banco (gerada por scripts/db/fixture-anonimizada.mjs); e a unica excecao ao *.db
 !tests/fixtures/banco-estado-atual.db
+
+# Dumps de dados baixados pelos geradores (Wikcionário/kaikki, FrequencyWords): nunca no git.
+.cache/

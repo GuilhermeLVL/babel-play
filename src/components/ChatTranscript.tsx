@@ -1,10 +1,12 @@
 import '../styles/legendas.css';
 
-import { Headphones, MessagesSquare, Mic, MonitorPlay, Play, Radio } from 'lucide-react';
+import { Headphones, Languages, MessagesSquare, Mic, MonitorPlay, Play, Radio } from 'lucide-react';
 import React from 'react';
 
+import type { ConhecidasDaFala } from '../lib/captura/traducaoSobDemanda';
 import { chaveDaPalavra, classesDoEstilo, resolverEstiloDeLegenda } from '../lib/estilosDeLegenda';
-import { toBcp47 } from '../lib/languages';
+import { t } from '../lib/i18n';
+import { baseLang, toBcp47 } from '../lib/languages';
 import type { AgeProfileType } from '../lib/profile';
 import { getTranscriptStyleClasses, type TranscriptSettings } from '../lib/transcriptUtils';
 import type { VocabWord } from '../types';
@@ -43,6 +45,8 @@ export interface ChatSegment {
   isPartial?: boolean;
   words: VocabWord[];
   lang?: string;
+  /** Ficou sem tradução automática pela preferência "Tradução": mostra "Mostrar tradução". */
+  traducaoSobDemanda?: boolean;
 }
 
 interface ChatTranscriptProps {
@@ -78,6 +82,14 @@ interface ChatTranscriptProps {
   aprendidas?: ReadonlySet<string>;
   onExamineWord: (word: VocabWord, lang: string, sentence: string) => void;
   onSpeakWord: (word: string, lang: string) => void;
+  /** "Mostrar tradução" de uma fala deixada sob demanda. Ausente = sem o botão. */
+  onRevelarTraducao?: (segId: string) => void;
+  /**
+   * Palavras que o aluno já sabe (modo "Só frases com palavra nova"): nas falas DESTE idioma, a
+   * palavra que ele ainda não sabe ganha `data-nova`, um sublinhado pontilhado discreto. Ausente =
+   * nenhuma marcada.
+   */
+  conhecidas?: ConhecidasDaFala | null;
 }
 
 /** Iniciais para o avatar ("Pessoa 2" → "P2", "Você" → "VO", "Maria Silva" → "MS"). */
@@ -196,6 +208,8 @@ export default function ChatTranscript({
   aprendidas,
   onExamineWord,
   onSpeakWord,
+  onRevelarTraducao,
+  conhecidas,
 }: ChatTranscriptProps) {
   const { sizeClasses, fontClass } = getTranscriptStyleClasses(tsSettings);
   /* O ESTILO DE LEGENDA equipado (onda 4): só classes no contêiner — a cor de alto contraste, o
@@ -204,6 +218,16 @@ export default function ChatTranscript({
     resolverEstiloDeLegenda(tsSettings.estilo, { altoContraste: tsSettings.textColor === 'highContrast' }),
   );
   const aprendida = (palavra: string) => (aprendidas?.has(chaveDaPalavra(palavra)) ? true : undefined);
+  /* A palavra NOVA (só no modo `novas`, só no idioma do predicado, nunca número nem a que já tem o
+     destaque de aprendida): `true` vira o atributo, `undefined` o omite. */
+  const nova = (palavra: string, lang: string) =>
+    conhecidas &&
+    baseLang(lang) === baseLang(conhecidas.idioma) &&
+    /\p{L}/u.test(palavra) &&
+    !aprendida(palavra) &&
+    !conhecidas.conhece(palavra)
+      ? true
+      : undefined;
 
   if (!segments.length) {
     return <EmptyState scenario={scenario} ageProfile={ageProfile} isRecording={isRecording} escuro={escuro} />;
@@ -249,6 +273,7 @@ export default function ChatTranscript({
                       type="button"
                       className="palavra"
                       data-aprendida={aprendida(wordStr)}
+                      data-nova={nova(wordStr, lineLang)}
                       onClick={() => onExamineWord(vocabMatch, lineLang, segment.originalText)}
                       title="Clique para pronúncia nativa e detalhes"
                       aria-pressed={selecionada}
@@ -270,6 +295,7 @@ export default function ChatTranscript({
                   <span
                     className="w"
                     data-aprendida={aprendida(wordStr)}
+                    data-nova={nova(wordStr, lineLang)}
                     onClick={() => onSpeakWord(wordStr, lineLang)}
                     title="Clique para ouvir"
                     style={{ cursor: 'pointer' }}
@@ -293,8 +319,22 @@ export default function ChatTranscript({
             )}
           </span>
         );
-        const traducao = segment.translatedText && (
+        /* Sob demanda (preferência "Tradução"): no lugar da linha traduzida, o convite a mostrá-la. */
+        const traducao = segment.translatedText ? (
           <span className={`trad mut ${sizeClasses.translated}`}>{segment.translatedText}</span>
+        ) : (
+          segment.traducaoSobDemanda &&
+          !segment.isPartial &&
+          onRevelarTraducao && (
+            <button
+              type="button"
+              className={`trad link ${sizeClasses.translated}`}
+              style={{ justifySelf: 'start', minHeight: 0 }}
+              onClick={() => onRevelarTraducao(segment.id)}
+            >
+              <Languages aria-hidden /> {t('Mostrar tradução')}
+            </button>
+          )
         );
 
         return (

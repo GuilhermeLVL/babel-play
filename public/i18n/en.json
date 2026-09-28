@@ -928,5 +928,13 @@
   "Traduções palavra a palavra e formas das palavras": "Word-by-word translations and word forms",
   "Frases de exemplo e suas traduções": "Example sentences and their translations",
   "Frequência das palavras, que ordena a trilha": "Word frequency, which orders the learning path",
-  "Lista completa de fontes e autores": "Full list of sources and authors"
+  "Lista completa de fontes e autores": "Full list of sources and authors",
+  "Tradução": "Translation",
+  "Toda frase ganha tradução assim que termina.": "Every sentence is translated as soon as it ends.",
+  "Nenhuma frase é traduzida sozinha: toque em \"Mostrar tradução\" na frase que quiser.": "No sentence is translated on its own: tap \"Show translation\" on the one you want.",
+  "Frases em que você já sabe todas as palavras ficam sem tradução, e dá para mostrar com um toque.": "Sentences where you already know every word stay untranslated, and one tap shows the translation.",
+  "Sempre": "Always",
+  "Só quando eu pedir": "Only when I ask",
+  "Só frases com palavra nova": "Only sentences with a new word",
+  "Mostrar tradução": "Show translation"
 }

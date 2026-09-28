@@ -85,6 +85,14 @@
   text-underline-offset: 3px;
 }
 
+/* ── a palavra que você ainda não sabe (modo "Só frases com palavra nova") ──
+   Discreta de propósito: pontilhado fino na cor do próprio texto, sem mexer na cor que a pessoa
+   escolheu — vale igual com alto contraste. */
+.leg-estilo [data-nova] {
+  text-decoration: underline 1px dotted color-mix(in srgb, currentColor 55%, transparent);
+  text-underline-offset: 3px;
+}
+
 /* Modo leve e movimento reduzido: a fala aparece parada. */
 html[data-modo-leve='true'] .leg-estilo :is(.leg-fala, .fala, .leg-o, .orig) {
   animation: none;

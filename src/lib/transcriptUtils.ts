@@ -1,3 +1,5 @@
+import type { ModoDeTraducao } from './captura/traducaoSobDemanda';
+
 export interface TranscriptSettings {
   fontSize: 'small' | 'medium' | 'large' | 'xlarge' | 'xxlarge';
   textColor: 'standard' | 'highContrast' | 'sepia' | 'ocean' | 'neon';
@@ -10,6 +12,12 @@ export interface TranscriptSettings {
    * acessibilidade e ganham dele. Pode faltar em ajustes salvos antes da onda 4 = `'classica'`.
    */
   estilo: string;
+  /**
+   * TRADUÇÃO AUTOMÁTICA da legenda ao vivo (`lib/captura/traducaoSobDemanda`): `sempre` (o de
+   * antes), `pedir` (só no toque) ou `novas` (só frases com palavra que você ainda não sabe). Pode
+   * faltar em ajustes salvos antes do campo = `sempre`.
+   */
+  traducao?: ModoDeTraducao;
 }
 
 export const DEFAULT_TRANSCRIPT_SETTINGS: TranscriptSettings = {
@@ -19,6 +27,7 @@ export const DEFAULT_TRANSCRIPT_SETTINGS: TranscriptSettings = {
   displayOrder: 'original-first',
   hideOriginal: false,
   estilo: 'classica',
+  traducao: 'sempre',
 };
 
 export function getTranscriptStyleClasses(settings: TranscriptSettings) {

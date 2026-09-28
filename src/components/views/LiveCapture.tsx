@@ -94,6 +94,8 @@ import {
 } from '../../lib/captura/tiposDaFala';
 // Relógio da sessão + pipeline de MT (retradução de degradados incluída).
 import { criarRelogioDaSessao, criarTraducaoDaFala } from '../../lib/captura/traducaoDaFala';
+import { modoDeTraducao, type PedidoSobDemanda } from '../../lib/captura/traducaoSobDemanda';
+import { usePalavrasConhecidas } from '../../lib/captura/usePalavrasConhecidas';
 import { cenarioDasFontes } from '../../lib/cenarioDeCaptura';
 import { consentiuNuvem } from '../../lib/consentimentoDeNuvem';
 import { DominantLangTracker } from '../../lib/convoLang';
@@ -1014,7 +1016,17 @@ export default function LiveCapture({
     shouldAnchorClockRef,
     systemEnabled,
   });
-  const { translateSegment, retraduzirDegradados } = criarTraducaoDaFala({
+  /* TRADUÇÃO SOB DEMANDA (harness §1.2, M0): a preferência "Tradução" dos ajustes da legenda. Em
+     `sempre` (padrão) nada muda; as refs deixam a troca valer já na fala seguinte. O predicado de
+     palavras conhecidas só é montado no modo `novas`, no idioma estudado (o observado, se houver). */
+  const modoTraducao = modoDeTraducao(tsSettings.traducao);
+  const modoDeTraducaoRef = useRef(modoTraducao);
+  modoDeTraducaoRef.current = modoTraducao;
+  const conhecidas = usePalavrasConhecidas(idiomaObservado || targetLang, modoTraducao === 'novas');
+  const conhecidasRef = useRef(conhecidas);
+  conhecidasRef.current = conhecidas;
+  const pedidosSobDemandaRef = useRef(new Map<string, PedidoSobDemanda>());
+  const { translateSegment, retraduzirDegradados, revelarTraducao } = criarTraducaoDaFala({
     gateway,
     ordemMtRef,
     sourceLangRef,
@@ -1028,6 +1040,9 @@ export default function LiveCapture({
     degradacaoAvisadaRef,
     setSpeechSegments,
     setFeedbackMsg,
+    modoDeTraducaoRef,
+    conhecidasRef,
+    pedidosSobDemandaRef,
   });
 
   // Enunciados que chegaram ENQUANTO o modelo carregava — transcritos no flush (nada se perde).
@@ -2380,6 +2395,32 @@ export default function LiveCapture({
               >
                 <Interruptor ligado={perfMode} aoTrocar={() => setPerfMode((v) => !v)} rotulo="Modo desempenho" />
               </CampoLinha>
+              {/* TRADUÇÃO SOB DEMANDA (M0): o padrão é traduzir tudo, como sempre. */}
+              <CampoLinha
+                rotulo={t('Tradução')}
+                desc={
+                  {
+                    sempre: t('Toda frase ganha tradução assim que termina.'),
+                    pedir: t('Nenhuma frase é traduzida sozinha: toque em "Mostrar tradução" na frase que quiser.'),
+                    novas: t(
+                      'Frases em que você já sabe todas as palavras ficam sem tradução, e dá para mostrar com um toque.',
+                    ),
+                  }[modoTraducao]
+                }
+              >
+                <select
+                  className="campo"
+                  id="modo-traducao"
+                  name="modoTraducao"
+                  aria-label={t('Tradução')}
+                  value={modoTraducao}
+                  onChange={(e) => updateSetting('traducao', modoDeTraducao(e.target.value))}
+                >
+                  <option value="sempre">{t('Sempre')}</option>
+                  <option value="pedir">{t('Só quando eu pedir')}</option>
+                  <option value="novas">{t('Só frases com palavra nova')}</option>
+                </select>
+              </CampoLinha>
             </section>
 
             {/* APARÊNCIA DA LEGENDA — os mesmos ajustes que a transcrição ao vivo lê. */}
@@ -2753,6 +2794,8 @@ export default function LiveCapture({
                           aprendidas={aprendidas}
                           onExamineWord={(w, lang, frase) => void examineWord(w, lang, frase)}
                           onSpeakWord={speakWord}
+                          onRevelarTraducao={revelarTraducao}
+                          conhecidas={conhecidas}
                         />
                       </div>
                     </div>
@@ -3036,6 +3079,8 @@ export default function LiveCapture({
                     setTimeout(() => setFeedbackMsg(''), 1500);
                   }}
                   onSpeakWord={speakWord}
+                  onRevelarTraducao={revelarTraducao}
+                  conhecidas={conhecidas}
                 />
               ) : (
                 <p className="foco-vazio">

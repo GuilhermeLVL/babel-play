@@ -41,6 +41,16 @@ export const economiaRepo = {
     return { jaExistia: Number((r as { rowsAffected?: number }).rowsAffected ?? 0) === 0 }
   },
 
+  /** O crédito já foi lançado? O reenvio responde `jaExistia` antes de qualquer conferência. */
+  async jaCreditado(userId: UserId, creditoId: string): Promise<boolean> {
+    const r = await db
+      .select({ id: seedCredits.id })
+      .from(seedCredits)
+      .where(and(eq(seedCredits.userId, userId), eq(seedCredits.creditoId, creditoId), isNull(seedCredits.deletedAt)))
+      .limit(1)
+    return r.length > 0
+  },
+
   /** Totais creditados — o que `computeProfile` soma ao ganho derivado. */
   async totaisCreditados(userId: UserId): Promise<{ seedsCreditadas: number; xpCreditado: number }> {
     const r = await db

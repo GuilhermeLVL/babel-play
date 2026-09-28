@@ -520,6 +520,16 @@ metricsRouter.post('/seeds/creditar', async (req, res) => {
       return
     }
 
+    /* O REENVIO DE UM CRÉDITO JÁ LANÇADO É `jaExistia`, antes de qualquer conferência (revisão de
+       27/09, P2): a janela da meta, a assinatura da trilha e o nível descrevem o momento de LANÇAR.
+       Conferir de novo no reenvio respondia 400 a uma `meta:` antiga e 403 a uma casa de assinante
+       depois do fim da assinatura — e o espelho sem conta respondia `jaExistia`. As duas pontas
+       agora dizem a mesma coisa: "isso já é seu". */
+    if (await economiaRepo.jaCreditado(req.userId, credito.creditoId)) {
+      res.json({ jaExistia: true, ...(await economiaRepo.totaisCreditados(req.userId)) })
+      return
+    }
+
     /* A MAESTRIA (recompensas v2, onda 3): `maestria:<jogo>:<nível>` só credita se os pontos do
        jogo, somados das linhas GRAVADAS desta conta (uma vez por `roundId`), alcançam o limiar do
        nível. Sem isto seriam 20 × 5 Seeds por jogo a qualquer pedido. O reenvio de um nível já

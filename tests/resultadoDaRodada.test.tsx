@@ -113,4 +113,23 @@ describe('ResultadoDaRodada', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Refazer só a errada' }))
     expect(onRefazerErradas).toHaveBeenCalledWith([expect.objectContaining({ itemRef: 'd' })])
   })
+
+  /* EXIBIDO = CREDITADO: quando a gravação da rodada falha, o servidor não creditou nada — e a
+     tela não pode anunciar Seeds, XP, baú ou maestria que não existem. */
+  it('gravação falhou: diz que nada foi creditado e não anuncia Seeds, XP nem maestria', () => {
+    montar({ gravacao: 'falhou', maestria: { pontosAntes: 10, ganho: 5 } })
+    fireEvent.click(screen.getByText('Revelar sem raspar'))
+    expect(screen.getAllByText(/não foi possível salvar — nada foi creditado/i).length).toBeGreaterThan(0)
+    expect(screen.queryByText(/\+\d+ Seeds/)).toBeNull()
+    expect(screen.queryByText('+10 XP')).toBeNull()
+    expect(document.querySelector('[data-seeds-da-rodada]')).toBeNull()
+    expect(screen.queryByRole('progressbar', { name: /maestria/i })).toBeNull()
+  })
+
+  it('gravação ok (ou ainda em curso): o prêmio de sempre', () => {
+    montar({ gravacao: 'ok' })
+    fireEvent.click(screen.getByText('Revelar sem raspar'))
+    expect(screen.queryByText(/nada foi creditado/)).toBeNull()
+    expect(screen.getByLabelText(/Recompensa revelada: mais 10 XP e 3 seeds/)).toBeTruthy()
+  })
 })

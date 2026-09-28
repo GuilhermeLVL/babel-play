@@ -27,3 +27,6 @@
   Cache-Control: public, max-age=86400, must-revalidate
 /glosas/*
   Cache-Control: public, max-age=86400, must-revalidate
+# A semente da memória de tradução (Tatoeba) também mora em `public/` sem hash: mesma regra.
+/semente-traducao/*
+  Cache-Control: public, max-age=86400, must-revalidate

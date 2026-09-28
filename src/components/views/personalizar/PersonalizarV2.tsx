@@ -181,10 +181,9 @@ export default function PersonalizarV2({
         ) : (
           <section className="secao">
             <CabecalhoDeTemporada
-              progress={progress}
+              estado={temporada}
               saldo={saldo}
               carteira={carteira}
-              temporada={temporada?.temporada ?? temporada?.proxima ?? null}
               aoComprarCreditos={mostrarCreditos ? () => setAba('loja') : undefined}
             />
             <div style={{ marginTop: 16 }}>

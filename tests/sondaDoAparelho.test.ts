@@ -17,7 +17,6 @@ import {
   comPrazo,
   type DependenciasDaSonda,
   disponibilidadeDoSttNoAparelho,
-  disponibilidadeDoTradutor,
   ehIos,
   impressaoDoAparelho,
   lembrarWebSpeechComTrilha,
@@ -72,8 +71,9 @@ function escopoCompleto(extra: Record<string, unknown> = {}) {
       available: async ({ langs }: { langs: string[] }) => (langs[0] === 'en-US' ? 'available' : 'downloadable'),
     },
     Translator: {
-      availability: async ({ sourceLanguage }: { sourceLanguage: string }) =>
+      availability: vi.fn(async ({ sourceLanguage }: { sourceLanguage: string }) =>
         sourceLanguage === 'en' ? 'available' : 'downloadable',
+      ),
     },
     PressureObserver: class {},
     ...extra,
@@ -205,18 +205,6 @@ describe('detecção de recurso com globais falsos', () => {
     expect(await r).toBeNull()
   })
 
-  it('Translator ausente: null; presente: pergunta en→pt com os nomes da API', async () => {
-    expect(await disponibilidadeDoTradutor('en', 'pt', {}, 50)).toBeNull()
-    const availability = vi.fn(async () => 'downloadable')
-    expect(await disponibilidadeDoTradutor('en', 'pt', { Translator: { availability } }, 50)).toBe('downloadable')
-    expect(availability).toHaveBeenCalledWith({ sourceLanguage: 'en', targetLanguage: 'pt' })
-  })
-
-  it('Translator que rejeita: null', async () => {
-    const t = { Translator: { availability: async () => Promise.reject(new Error('NotAllowed')) } }
-    expect(await disponibilidadeDoTradutor('pt', 'en', t, 50)).toBeNull()
-  })
-
   it('comPrazo: nunca lança, nunca espera além do prazo', async () => {
     expect(await comPrazo(() => 7, 50)).toBe(7)
     expect(
@@ -255,7 +243,7 @@ describe('sondarAparelho', () => {
     expect(s.sinais).toEqual({
       webGpu: GPU,
       sttNoAparelho: { ptBR: 'downloadable', en: 'available' },
-      tradutorNativo: { enPt: 'available', ptEn: 'downloadable' },
+      tradutorNativo: true,
       armazenamento: { cotaMb: 100, usoMb: 10 },
       nativo: false,
       iOS: false,
@@ -267,6 +255,13 @@ describe('sondarAparelho', () => {
     expect(s.modelosProibidos).toEqual([])
   })
 
+  it('o tradutor nativo NÃO é perguntado por par fixo: o par é o da sessão, no clique (ChromeTranslatorMt)', async () => {
+    const d = dep()
+    await sondarAparelho(d)
+    const { Translator } = d.escopo as { Translator: { availability: ReturnType<typeof vi.fn> } }
+    expect(Translator.availability).not.toHaveBeenCalled()
+  })
+
   it('navegador sem nenhuma API nova: tudo null/false, sem lançar', async () => {
     const s = await sondarAparelho(
       dep({ escopo: { navigator: { userAgent: 'x' } }, infoDoAdaptador: async () => null }),
@@ -274,7 +269,7 @@ describe('sondarAparelho', () => {
     expect(s.sinais).toEqual({
       webGpu: null,
       sttNoAparelho: { ptBR: null, en: null },
-      tradutorNativo: { enPt: null, ptEn: null },
+      tradutorNativo: false,
       armazenamento: null,
       nativo: false,
       iOS: false,

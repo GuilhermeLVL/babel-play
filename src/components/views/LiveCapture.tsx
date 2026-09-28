@@ -74,6 +74,7 @@ import {
 // Fontes de áudio: som do sistema/aba, microfone (Whisper ou Web Speech) e o mudo/ativo do mic.
 import { criarFontesDeAudio } from '../../lib/captura/fontesDeAudio';
 import type { EscolhaDoMic } from '../../lib/captura/motorDoMicrofone';
+import { preparoConcluido } from '../../lib/captura/pacotesNativos';
 // Vocabulário dentro da captura: examinar a palavra, fichar no deck, mandar praticar.
 import { criarPalavraDaFala } from '../../lib/captura/palavraDaFala';
 // Pipeline de fala: VAD → STT → diarização → emissão, e a preparação dos modelos locais.
@@ -294,9 +295,14 @@ export default function LiveCapture({
      primeira abertura do mic pergunta; `startMic` espera a resposta por esta promessa. A resposta
      fica nas preferências (consentimento próprio, com data) e muda no painel de ajustes. */
   const [pedidoDaEscolhaDoMic, setPedidoDaEscolhaDoMic] = useState<((e: EscolhaDoMic | null) => void) | null>(null);
+  /** O "Privado" desta pergunta é o reconhecimento do próprio navegador (pacote a instalar)? */
+  const [privadoPeloNavegador, setPrivadoPeloNavegador] = useState(false);
   const { escolha: escolhaDoMic, escolher: escolherNoMic } = useEscolhaDoMic();
-  const perguntarEscolhaDoMic = () =>
-    new Promise<EscolhaDoMic | null>((responder) => setPedidoDaEscolhaDoMic(() => responder));
+  const perguntarEscolhaDoMic = ({ pacoteDoNavegador }: { pacoteDoNavegador: boolean }) =>
+    new Promise<EscolhaDoMic | null>((responder) => {
+      setPrivadoPeloNavegador(pacoteDoNavegador);
+      setPedidoDaEscolhaDoMic(() => responder);
+    });
   /** Guarda ANTES de responder: o `startMic` que espera já lê a escolha gravada. */
   const trocarEscolhaDoMic = (e: EscolhaDoMic) =>
     void escolherNoMic(e).then((ok) => {
@@ -2854,13 +2860,11 @@ export default function LiveCapture({
                       >
                         {/* Primeiro contato: o download do modelo (dezenas de MB) acontecia atrás do painel de
                       ajustes, a tela dizia "Ouvindo…" por minutos sem explicar nada. Aqui, onde a pessoa olha. */}
-                        {isRecording &&
-                          modelPrep &&
-                          !(modelPrep.done && (modelPrep.mt == null || modelPrep.mt >= 1)) && (
-                            <div className="mb-3">
-                              <ModelPrepPanel state={modelPrep} onRetry={prepareModels} />
-                            </div>
-                          )}
+                        {isRecording && modelPrep && !preparoConcluido(modelPrep) && (
+                          <div className="mb-3">
+                            <ModelPrepPanel state={modelPrep} onRetry={prepareModels} />
+                          </div>
+                        )}
                         <ChatTranscript
                           segments={speechSegments}
                           speakers={speakerProfiles}
@@ -3136,7 +3140,7 @@ export default function LiveCapture({
               aria-live="polite"
             >
               {/* Primeiro contato: o download do modelo acontece aqui, onde a pessoa olha. */}
-              {isRecording && modelPrep && !(modelPrep.done && (modelPrep.mt == null || modelPrep.mt >= 1)) && (
+              {isRecording && modelPrep && !preparoConcluido(modelPrep) && (
                 <div className="mb-3">
                   <ModelPrepPanel state={modelPrep} onRetry={prepareModels} />
                 </div>
@@ -3244,6 +3248,7 @@ export default function LiveCapture({
       {pedidoDaEscolhaDoMic && (
         <EscolhaDoMicrofone
           mb={mbDoMicPrivado}
+          pacoteDoNavegador={privadoPeloNavegador}
           aoEscolher={(e) => responderEscolhaDoMic(e)}
           aoFechar={() => responderEscolhaDoMic(null)}
         />

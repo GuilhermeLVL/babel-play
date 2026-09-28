@@ -33,6 +33,7 @@ import { embedUtterance } from '../speakerId';
 import { isTtsActive } from '../tts';
 import { classificarVazamento, type Intervalo } from '../vazamento';
 import { disponibilidadeDaSondaParaIdioma, escolherMotorDoMic } from './motorDoMicrofone';
+import { preparoConcluido, semPacotePendente } from './pacotesNativos';
 import { type EfeitosDoRegulador, escadaDeModelos, type ReguladorDaCaptura } from './reguladorDaCaptura';
 import { planoDaReservaLocal } from './reservaLocal';
 import {
@@ -46,6 +47,10 @@ import {
 } from './tiposDaFala';
 import { marcadorDeTraducao, type OpcoesDeTraducao, origemDaFala } from './traducaoDaFala';
 import { type DecisaoDoMotorDoSistema, resolverMotorDoSistema } from './webSpeechDoSistema';
+
+/** Um preparo NOVO (Whisper/opus-mt) não apaga as linhas dos pacotes do navegador que já baixam. */
+const manterPacotes = (s: ModelPrepState | null): Pick<ModelPrepState, 'nativos'> =>
+  s?.nativos ? { nativos: s.nativos } : {};
 
 /**
  * Marca, no mapa do último texto parcial, que a fala FECHOU e o final já foi pedido. Não é texto que
@@ -1093,7 +1098,14 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       modelReadyRef.current = true;
       flushPendingUtterances();
       const carregarReserva = () => {
-        setModelPrep({ whisper: 0, mt: null, fromCache: cached, error: null, done: false });
+        setModelPrep((s) => ({
+          whisper: 0,
+          mt: null,
+          fromCache: cached,
+          error: null,
+          done: false,
+          ...manterPacotes(s),
+        }));
         const tradutorDaReserva = () =>
           gateway.mt.preload(mtDe, mtPara, (p, _l, bytes) =>
             setModelPrep((s) => (s ? { ...s, mt: p >= 1 ? 1 : p, mtBytes: bytes ?? s.mtBytes } : s)),
@@ -1111,7 +1123,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
           .then(() => {
             clog('reserva local pronta ✓ (nuvem segue como principal)');
             setModelPrep((s) => (s ? { ...s, whisper: 1, done: true } : s));
-            setTimeout(() => setModelPrep((s) => (s?.done ? null : s)), 1800);
+            setTimeout(() => setModelPrep((s) => (s?.done && semPacotePendente(s) ? null : s)), 1800);
           })
           .catch((e) => {
             // A-P1-5: aqui só havia um clog(). Com a nuvem como principal, a falha do modelo local
@@ -1140,7 +1152,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     }
 
     modelReadyRef.current = false;
-    setModelPrep({ whisper: 0, mt: null, fromCache: cached, error: null, done: false });
+    setModelPrep((s) => ({ whisper: 0, mt: null, fromCache: cached, error: null, done: false, ...manterPacotes(s) }));
     try {
       // Tradutor local (best-effort; direção "ouço → meu idioma"). Emite barra própria.
       const iniciarTradutor = () =>
@@ -1151,7 +1163,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
                intervalo já tinha degradado para "(texto original)" e ficava assim para sempre,
                medido no teste do dono (2026-08-26): legenda certa, tradução nenhuma. Retraduz. */
             retraduzirDegradados();
-            setTimeout(() => setModelPrep((s) => (s?.done ? null : s)), 1800);
+            setTimeout(() => setModelPrep((s) => (s?.done && semPacotePendente(s) ? null : s)), 1800);
           }
         });
       // Aparelho com pouca memória: o tradutor só começa DEPOIS do Whisper pronto (pico menor).
@@ -1167,8 +1179,8 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       modelReadyRef.current = true;
       flushPendingUtterances();
       setModelPrep((s) => (s ? { ...s, whisper: 1, done: true } : s));
-      // O painel só some quando o tradutor também acabou (ou não existe para este par).
-      setTimeout(() => setModelPrep((s) => (s?.done && (s.mt == null || s.mt >= 1) ? null : s)), 1800);
+      // O painel só some quando o tradutor (e o pacote do navegador) também acabou (ou não existe).
+      setTimeout(() => setModelPrep((s) => (s && preparoConcluido(s) ? null : s)), 1800);
     } catch (e) {
       clog('preparação do modelo FALHOU:', String(e));
       const msg = String((e as Error)?.message ?? e);

@@ -4,7 +4,7 @@
  *
  * `perfil.ts` continua sendo a leitura barata e síncrona que classifica o aparelho em cinco perfis.
  * A sonda é o complemento CARO e assíncrono: perguntas que levam de dezenas de ms a segundos (o
- * adaptador WebGPU, `SpeechRecognition.available`, `Translator.availability`, a cota de disco, o
+ * adaptador WebGPU, `SpeechRecognition.available`, a presença da Translator API, a cota de disco, o
  * microbenchmark) e que não mudam de uma captura para outra. Então ela roda UMA vez e fica no
  * `localStorage` (`CHAVE_DA_SONDA`), e só é refeita quando:
  *   · a VERSÃO do app muda (um deploy pode mudar o que se pergunta ou como se lê);
@@ -43,8 +43,13 @@ export interface SinaisDaSonda {
   webGpu: InfoDoAdaptadorWebGpu | null;
   /** `SpeechRecognition.available({langs, processLocally: true})`: reconhecimento NO aparelho. `null` = sem a API/sem resposta. */
   sttNoAparelho: { ptBR: Disponibilidade | null; en: Disponibilidade | null };
-  /** `Translator.availability()` (Chrome 138+): tradução nativa en↔pt. `null` = sem a API/sem resposta. */
-  tradutorNativo: { enPt: Disponibilidade | null; ptEn: Disponibilidade | null };
+  /**
+   * A Translator API EXISTE (Chrome 138+, Edge 148+). Só a presença: o PAR não é perguntado aqui.
+   * A sonda perguntava en↔pt fixo — errado para quem estuda espanhol ou japonês, e guardado por 30
+   * dias enquanto o pacote é baixado no primeiro clique. A disponibilidade de cada par é consultada
+   * sob demanda, para o par REAL da sessão, e lembrada na sessão (`ChromeTranslatorMt.preparar`).
+   */
+  tradutorNativo: boolean;
   /** `navigator.storage.estimate()` em MB: quanto cabe de modelo em cache. */
   armazenamento: { cotaMb: number; usoMb: number } | null;
   /** Rodando dentro da casca Capacitor (`Capacitor.isNativePlatform()`): há plugins nativos. */
@@ -145,18 +150,6 @@ export async function disponibilidadeDoSttNoAparelho(
   const SR = e.SpeechRecognition ?? e.webkitSpeechRecognition;
   if (typeof SR?.available !== 'function') return null;
   return disponibilidade(await comPrazo(() => SR.available!({ langs: [lang], processLocally: true }), prazoMs));
-}
-
-/** `Translator.availability({sourceLanguage, targetLanguage})` quando `'Translator' in self`. */
-export async function disponibilidadeDoTradutor(
-  de: string,
-  para: string,
-  escopo: unknown = globalThis,
-  prazoMs = PRAZO_DA_PERGUNTA_MS,
-): Promise<Disponibilidade | null> {
-  const T = (escopo as { Translator?: { availability?: (o: object) => unknown } }).Translator;
-  if (typeof T?.availability !== 'function') return null;
-  return disponibilidade(await comPrazo(() => T.availability!({ sourceLanguage: de, targetLanguage: para }), prazoMs));
 }
 
 async function estimativaDoArmazenamento(nav: NavegadorDaSonda, prazoMs: number) {
@@ -303,14 +296,13 @@ async function impressaoAtual(
 export async function sondarAparelho(dep: DependenciasDaSonda = {}): Promise<SondaDoAparelho> {
   const d = resolverDependencias(dep);
   const nav = navegadorDe(d.escopo);
-  const [{ impressao, gpu }, ptBR, en, enPt, ptEn, armazenamento] = await Promise.all([
+  const [{ impressao, gpu }, ptBR, en, armazenamento] = await Promise.all([
     impressaoAtual(d.escopo, d.infoDoAdaptador),
     disponibilidadeDoSttNoAparelho('pt-BR', d.escopo, d.prazoMs),
     disponibilidadeDoSttNoAparelho('en-US', d.escopo, d.prazoMs),
-    disponibilidadeDoTradutor('en', 'pt', d.escopo, d.prazoMs),
-    disponibilidadeDoTradutor('pt', 'en', d.escopo, d.prazoMs),
     estimativaDoArmazenamento(nav, d.prazoMs),
   ]);
+  const tradutor = (d.escopo as { Translator?: { availability?: unknown } }).Translator;
   return {
     esquema: 1,
     versaoDoApp: d.versaoDoApp,
@@ -319,7 +311,7 @@ export async function sondarAparelho(dep: DependenciasDaSonda = {}): Promise<Son
     sinais: {
       webGpu: gpu,
       sttNoAparelho: { ptBR, en },
-      tradutorNativo: { enPt, ptEn },
+      tradutorNativo: typeof tradutor?.availability === 'function',
       armazenamento,
       nativo: temPonteNativa(d.escopo),
       iOS: ehIos(String(nav.userAgent ?? ''), num(nav.maxTouchPoints) ?? 0),

@@ -31,7 +31,11 @@
  *
  * PACOTE A BAIXAR ('downloadable'): `SpeechRecognition.install()` exige ativação do usuário, então só
  * é chamado a partir do clique em "Iniciar"/microfone (`resolverMotorDoMic`, chamado de `startMic`),
- * nunca sozinho — e sem esperar: ESTA sessão usa o degrau seguinte, a próxima já acha o pacote.
+ * nunca sozinho. Quando o degrau seguinte seria o NOSSO Whisper (Privado, perfil protegido, sem
+ * consentimento), a instalação é ESPERADA (estágio 4): o pacote do navegador é grátis, nada sai do
+ * aparelho e costuma ser bem menor que o modelo — instalou, ESTA sessão já usa o local
+ * (`instalado-no-aparelho`); falhou ou passou do prazo, o Whisper segue como antes. Com o "Rápido"
+ * consentido, a nuvem atende agora e a instalação corre sem espera (a próxima sessão já é local).
  */
 import type { Disponibilidade } from '../dispositivo/sonda';
 
@@ -41,6 +45,7 @@ export type MotivoDoMotorDoMic =
   | 'escolha-whisper'
   | 'sem-web-speech'
   | 'no-aparelho'
+  | 'instalado-no-aparelho'
   | 'nuvem-consentida'
   | 'perfil-privado'
   | 'perfil-protegido'
@@ -128,20 +133,37 @@ export function disponibilidadeDaSondaParaIdioma(
 
 type ComInstalar = { install?: (o: { langs: string[]; processLocally: boolean }) => unknown };
 
+/** O que a tela mostra do pacote de voz do navegador (sem porcentagem: `install()` não informa). */
+export type EstadoDaInstalacaoDoMic = 'baixando' | 'pronto' | 'falhou';
+
+/**
+ * PRAZO DA INSTALAÇÃO ESPERADA. O mic fica fechado enquanto o pacote baixa (a barra diz o que está
+ * acontecendo); um `install()` que nunca responde não pode prender a captura — passado o prazo, o
+ * Whisper assume (e o pacote, se terminar depois, serve à próxima sessão).
+ */
+export const PRAZO_DA_INSTALACAO_MS = 180_000;
+
 /**
  * A decisão com a pergunta ao navegador AO VIVO (a sonda guardada pode ter até 30 dias; o pacote pode
  * ter sido instalado ontem). Chamada do clique — por isso pode pedir o `install()`. Nunca lança.
  *
  * `perguntar`: a tela mostra "Rápido ou Privado?" e devolve a resposta (quem a GUARDA é a tela);
  * `null` = fechou sem escolher → "Privado" nesta vez, e a pergunta volta na próxima. O clique numa
- * das opções é ativação do usuário nova, então o `install()` depois dela continua valendo.
+ * das opções é ativação do usuário nova, então o `install()` depois dela continua valendo. Recebe
+ * `pacoteDoNavegador`: o "Privado" será o reconhecimento do próprio navegador (a instalar), e não o
+ * nosso modelo — a tela o recomenda.
+ *
+ * `aoInstalar`: o progresso da instalação ESPERADA ('baixando' → 'pronto' | 'falhou'), para a barra
+ * de preparo da captura. A instalação sem espera (com o "Rápido") não fala: ninguém espera por ela.
  */
 export async function resolverMotorDoMic(
   e: Omit<EntradaDoMotorDoMic, 'noAparelho'> & {
     lang: string;
     escopo?: unknown;
     escolha?: EscolhaDoMic | null;
-    perguntar?: () => Promise<EscolhaDoMic | null>;
+    perguntar?: (contexto: { pacoteDoNavegador: boolean }) => Promise<EscolhaDoMic | null>;
+    aoInstalar?: (estado: EstadoDaInstalacaoDoMic) => void;
+    prazoDaInstalacaoMs?: number;
   },
 ): Promise<DecisaoDoMotorDoMic> {
   const escopo = e.escopo ?? globalThis;
@@ -154,22 +176,37 @@ export async function resolverMotorDoMic(
       noAparelho = null; // sem sonda: segue pelo consentimento
     }
   }
+  const s = escopo as { SpeechRecognition?: ComInstalar; webkitSpeechRecognition?: ComInstalar };
+  const SR = s.SpeechRecognition ?? s.webkitSpeechRecognition;
+  const podeInstalar = typeof SR?.install === 'function';
   let consentiuNavegador = e.consentiuNavegador;
   if (e.perguntar && e.escolha !== undefined && precisaPerguntarMotorDoMic({ ...e, noAparelho, escolha: e.escolha })) {
-    const resposta = await e.perguntar().catch(() => null);
+    const resposta = await e
+      .perguntar({ pacoteDoNavegador: noAparelho === 'downloadable' && podeInstalar })
+      .catch(() => null);
     consentiuNavegador = resposta === 'rapido';
   }
   const decisao = escolherMotorDoMic({ ...e, consentiuNavegador, noAparelho });
-  if (decisao.instalarNoAparelho) {
-    const s = escopo as { SpeechRecognition?: ComInstalar; webkitSpeechRecognition?: ComInstalar };
-    const SR = s.SpeechRecognition ?? s.webkitSpeechRecognition;
-    try {
-      void Promise.resolve(SR?.install?.({ langs: [e.lang], processLocally: true })).catch(() => {
-        /* sem ativação, sem rede, idioma recusado: a próxima sessão pergunta de novo */
-      });
-    } catch {
-      /* `install` que lança síncrono: idem */
-    }
+  if (!decisao.instalarNoAparelho || !podeInstalar) return decisao;
+  /* `install` que lança síncrono vira rejeição aqui; sem ativação, sem rede, idioma recusado: a
+     próxima sessão pergunta de novo. Só `true` conta como instalado. */
+  const instalacao = Promise.resolve()
+    .then(() => SR!.install!({ langs: [e.lang], processLocally: true }))
+    .then(
+      (r) => r === true,
+      () => false,
+    );
+  if (decisao.motor !== 'whisper') {
+    void instalacao; // "Rápido": a nuvem atende agora; o pacote serve à próxima sessão
+    return decisao;
   }
-  return decisao;
+  e.aoInstalar?.('baixando');
+  let relogio: ReturnType<typeof setTimeout> | undefined;
+  const prazo = new Promise<false>((resolver) => {
+    relogio = setTimeout(() => resolver(false), e.prazoDaInstalacaoMs ?? PRAZO_DA_INSTALACAO_MS);
+  });
+  const instalou = await Promise.race([instalacao, prazo]);
+  clearTimeout(relogio);
+  e.aoInstalar?.(instalou ? 'pronto' : 'falhou');
+  return instalou ? { motor: 'web-speech-local', motivo: 'instalado-no-aparelho', instalarNoAparelho: true } : decisao;
 }

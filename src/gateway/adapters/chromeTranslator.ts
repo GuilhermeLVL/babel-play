@@ -30,6 +30,19 @@ export const PRAZO_DA_DISPONIBILIDADE_MS = 250;
 
 type Estado = 'ready' | 'unavailable' | 'downloading' | 'consultando';
 
+/**
+ * O CÓDIGO QUE A TRANSLATOR API ENTENDE para o idioma do app. A API fala BCP 47 com a base do
+ * idioma (`pt`, `es`, `ja`) — o `pt-BR`/`es-MX` do app vira a base. A exceção é o chinês: `zh` é o
+ * simplificado e o tradicional é `zh-Hant`; cortar `zh-TW` em `zh` trocaria a escrita de quem lê.
+ * Vale para qualquer par que o app ofereça (não só en↔pt) e para o Edge 148+, que expõe a mesma API.
+ */
+export function codigoDoTradutor(lang: string): string {
+  const [base, ...resto] = lang.split('-');
+  const b = base.toLowerCase();
+  if (b === 'zh' && resto.some((r) => /^(hant|tw|hk|mo)$/i.test(r))) return 'zh-Hant';
+  return b;
+}
+
 export class ChromeTranslatorMt implements TranslationProvider {
   readonly id = 'chrome-translator';
   readonly runtime = 'browser' as const;
@@ -57,8 +70,8 @@ export class ChromeTranslatorMt implements TranslationProvider {
 
   supports(src: string | null, tgt: string): boolean {
     if (!ChromeTranslatorMt.isPresent() || !src || !tgt) return false;
-    const s = src.split('-')[0];
-    const t = tgt.split('-')[0];
+    const s = codigoDoTradutor(src);
+    const t = codigoDoTradutor(tgt);
     if (s === t) return false;
     // Já sabemos que este par não existe, que o pacote ainda está baixando, ou que a consulta está
     // pendurada: não prometa cobri-lo.
@@ -72,13 +85,35 @@ export class ChromeTranslatorMt implements TranslationProvider {
     if (!inst) {
       inst = Translator.create({ sourceLanguage: src, targetLanguage: tgt });
       this.instances.set(key, inst);
+      inst.then(
+        () => this.criados.add(key),
+        () => this.criados.delete(key),
+      );
     }
     return inst;
   }
 
+  /** Os pares cujo tradutor JÁ FOI CRIADO e resolveu (a instância existe; traduzir não cria nada). */
+  private criados = new Set<string>();
+
+  private chave(src: string, tgt: string): string {
+    return `${codigoDoTradutor(src)}|${codigoDoTradutor(tgt)}`;
+  }
+
   /** O par já está pronto nesta sessão (a próxima tradução não pergunta nada)? */
   pronto(src: string, tgt: string): boolean {
-    return this.known.get(`${src.split('-')[0]}|${tgt.split('-')[0]}`) === 'ready';
+    return this.known.get(this.chave(src, tgt)) === 'ready';
+  }
+
+  /**
+   * O tradutor do par JÁ EXISTE (criado no clique ou por um final)? É a pergunta do PARCIAL: ele
+   * roda a cada ~1 s, fora de qualquer gesto do usuário, e não pode ser quem cria o tradutor —
+   * `create()` sem ativação falha quando o pacote precisa baixar e, mesmo pronto, custa a criação
+   * no meio da legenda. Sem instância, o parcial pula o nativo (o gateway nem o tenta).
+   */
+  criado(src: string, tgt: string): boolean {
+    const key = this.chave(src, tgt);
+    return this.criados.has(key) && this.known.get(key) === 'ready';
   }
 
   /**
@@ -88,14 +123,32 @@ export class ChromeTranslatorMt implements TranslationProvider {
    * baixava mesmo em Chrome que traduz de graça. Chamado do clique em "Iniciar": consulta a
    * disponibilidade (sem o prazo curto da tradução — aqui ninguém espera legenda) e cria a
    * instância JÁ, com `monitor` para o progresso do download. Nunca lança.
+   *
+   * PROGRESSO PARA A TELA (estágio 4): `onProgress` só fala quando há DOWNLOAD — 0 na hora (a barra
+   * aparece antes do primeiro evento do `monitor`, que pode demorar), os `downloadprogress` e 1
+   * quando o tradutor fica pronto. Par já no disco não emite nada: uma barra que nasce em 100% é
+   * ruído. `aoFalhar` é chamado UMA vez se o download/criação falhar — o par sai da cascata e a
+   * tradução segue pelo opus-mt, sem aviso de erro (a pessoa não pediu este pacote).
+   *
+   * QUALQUER PAR, UMA PERGUNTA POR SESSÃO: o par é o real da sessão (idioma do conteúdo → idioma
+   * da pessoa), e o que se descobre fica em `known` — preparar de novo (retomar, desmutar) não
+   * pergunta nem cria outra vez.
    */
-  async preparar(src: string, tgt: string, onProgress?: (p: number) => void): Promise<EstadoDoTradutorNativo> {
+  async preparar(
+    src: string,
+    tgt: string,
+    onProgress?: (p: number) => void,
+    aoFalhar?: () => void,
+  ): Promise<EstadoDoTradutorNativo> {
     if (!ChromeTranslatorMt.isPresent() || !src || !tgt) return null;
-    const s = src.split('-')[0];
-    const t = tgt.split('-')[0];
+    const s = codigoDoTradutor(src);
+    const t = codigoDoTradutor(tgt);
     if (s === t) return null;
     const key = `${s}|${t}`;
-    if (this.known.get(key) === 'ready') return 'available';
+    const sabido = this.known.get(key);
+    if (sabido === 'ready') return 'available';
+    if (sabido === 'unavailable') return 'unavailable';
+    if (sabido === 'downloading' && this.instances.has(key)) return 'downloadable';
     let status: string;
     try {
       status = await Translator.availability({ sourceLanguage: s, targetLanguage: t });
@@ -108,24 +161,32 @@ export class ChromeTranslatorMt implements TranslationProvider {
       return 'unavailable';
     }
     const pronto = status === 'available' || status === 'readily';
-    if (!pronto) this.known.set(key, 'downloading');
+    if (!pronto) {
+      this.known.set(key, 'downloading');
+      onProgress?.(0);
+    }
     let inst = this.instances.get(key);
     if (!inst) {
       inst = Translator.create({
         sourceLanguage: s,
         targetLanguage: t,
-        monitor: (m) => m.addEventListener('downloadprogress', (e) => onProgress?.(e.loaded)),
+        monitor: pronto
+          ? undefined
+          : (m) => m.addEventListener('downloadprogress', (e) => onProgress?.(Math.min(1, Math.max(0, e.loaded)))),
       });
       this.instances.set(key, inst);
     }
     const criada = inst.then(
       () => {
+        this.criados.add(key);
         this.known.set(key, 'ready');
-        onProgress?.(1);
+        if (!pronto) onProgress?.(1);
       },
       () => {
         this.known.set(key, 'unavailable');
         this.instances.delete(key);
+        this.criados.delete(key);
+        if (!pronto) aoFalhar?.();
       },
     );
     // Pronto: a criação é instantânea, vale esperar. A baixar: devolve já e o download segue.
@@ -183,8 +244,8 @@ export class ChromeTranslatorMt implements TranslationProvider {
 
   async translate(text: string, src: string | null, tgt: string): Promise<MtResult> {
     if (!src) throw new Error('Chrome Translator exige idioma de origem');
-    const s = src.split('-')[0];
-    const t = tgt.split('-')[0];
+    const s = codigoDoTradutor(src);
+    const t = codigoDoTradutor(tgt);
     const key = `${s}|${t}`;
 
     // Par já pronto nesta sessão: nada de perguntar de novo a cada legenda.

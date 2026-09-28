@@ -28,5 +28,13 @@
   "Só frases com palavra nova": "Solo frases con una palabra nueva",
   "Mostrar tradução": "Mostrar traducción",
   "navegador · reconhecimento no aparelho": "navegador · reconocimiento en el dispositivo",
-  "Reconhecimento do navegador, no aparelho": "Reconocimiento del navegador, en el dispositivo"
+  "Reconhecimento do navegador, no aparelho": "Reconocimiento del navegador, en el dispositivo",
+  "Baixando o pacote de idioma do navegador…": "Descargando el paquete de idioma del navegador…",
+  "Reconhecimento de voz do navegador": "Reconocimiento de voz del navegador",
+  "Tradutor do navegador": "Traductor del navegador",
+  "O pacote é do próprio navegador: grátis, baixa uma vez só e nada sai do aparelho.": "El paquete es del propio navegador: gratis, se descarga una sola vez y nada sale del dispositivo.",
+  "Recomendado": "Recomendado",
+  "Usa o reconhecimento do próprio navegador, sem enviar o áudio. O pacote de idioma baixa agora, uma vez só.": "Usa el reconocimiento del propio navegador, sin enviar el audio. El paquete de idioma se descarga ahora, una sola vez.",
+  "Se ele não instalar, usa o nosso modelo, de cerca de {mb} MB.": "Si no se instala, usa nuestro modelo, de unos {mb} MB.",
+  "Se ele não instalar, usa o nosso modelo de transcrição.": "Si no se instala, usa nuestro modelo de transcripción."
 }

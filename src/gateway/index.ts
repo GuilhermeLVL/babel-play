@@ -14,7 +14,7 @@ import { bindingExigeConsentimento } from '@core/harness/registroDeMotores';
 
 import { detectLanguage } from '../lib/langDetect';
 import { explicarRejeicao, precisaConferir, validarTraducao } from '../lib/validaTraducao';
-import { ChromeTranslatorMt, type EstadoDoTradutorNativo } from './adapters/chromeTranslator';
+import { ChromeTranslatorMt, codigoDoTradutor, type EstadoDoTradutorNativo } from './adapters/chromeTranslator';
 import { GroqWhisperStt } from './adapters/groqWhisper';
 import { MyMemoryMt } from './adapters/mymemory';
 import { OpenAiCompatibleLlm } from './adapters/openaiCompatible';
@@ -150,7 +150,7 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
   /* TRADUTOR NATIVO preparado no clique (`mt.prepararNativo`): a promessa de cada par, para o
      `warmup`/`preload` do opus-mt esperarem por ela e pularem o download quando o nativo serve. */
   const preparacoesNativas = new Map<string, Promise<EstadoDoTradutorNativo>>();
-  const chaveDoPar = (src: string, tgt: string): string => `${src.split('-')[0]}|${tgt.split('-')[0]}`;
+  const chaveDoPar = (src: string, tgt: string): string => `${codigoDoTradutor(src)}|${codigoDoTradutor(tgt)}`;
   const tradutorNativo = (): ChromeTranslatorMt | null => {
     const b = (core.getProfile().bindings.mt ?? []).find((x) => x.adapterId === 'chrome-translator');
     if (!b) return null;
@@ -162,6 +162,9 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
     }
   };
   const nativoPronto = (src: string, tgt: string): boolean => !!tradutorNativo()?.pronto(src, tgt);
+  /** O tradutor nativo do par já foi CRIADO (o parcial só usa um que existe; ver `ChromeTranslatorMt.criado`). */
+  const nativoCriado = (src: string | null, tgt: string): boolean =>
+    !!src && !!tradutorNativo()?.criado(src, tgt);
 
   /** O preload do 1º tradutor LOCAL com `preload` (opus-mt), com o vigia de estagnação. */
   const preloadLocal = (
@@ -279,7 +282,16 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
               return r;
             },
             // Parcial: fora qualquer binding que mande o texto a terceiro (servidor, MyMemory, BYOK).
-            { isCloud, exigeConsentimento, aceita: parcial ? ehLocal : undefined },
+            /* NATIVO NO PARCIAL: só o tradutor que JÁ EXISTE (criado no clique, pacote no disco) —
+               rápido e de graça. Sem instância, o parcial não é quem cria (sem ativação do usuário,
+               e a criação no meio da legenda): o binding é pulado sem contar falha no disjuntor. */
+            {
+              isCloud,
+              exigeConsentimento,
+              aceita: parcial
+                ? (b) => ehLocal(b) && (b.adapterId !== 'chrome-translator' || nativoCriado(src, tgt))
+                : undefined,
+            },
           );
           if (!parcial) {
             const r = await cascata;
@@ -376,7 +388,13 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
        * `ChromeTranslatorMt.preparar`. A promessa de cada par fica guardada: `warmup`/`preload`
        * esperam por ela e pulam o opus-mt (113 MB) quando o nativo respondeu `available`.
        */
-      prepararNativo: (pairs: Array<[string, string]>, onProgress?: (p: number) => void): Promise<void> => {
+      /* `onProgress`/`aoFalhar` recebem o PAR (`en|pt`): a tela junta os pares que baixam numa
+         barra só ("Tradutor do navegador"). Só falam quando há download (ver `preparar`). */
+      prepararNativo: (
+        pairs: Array<[string, string]>,
+        onProgress?: (p: number, par: string) => void,
+        aoFalhar?: (par: string) => void,
+      ): Promise<void> => {
         const nativo = tradutorNativo();
         if (!nativo) return Promise.resolve();
         return Promise.all(
@@ -384,7 +402,14 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
             const key = chaveDoPar(src, tgt);
             let prep = preparacoesNativas.get(key);
             if (!prep) {
-              prep = nativo.preparar(src, tgt, onProgress).catch(() => null);
+              prep = nativo
+                .preparar(
+                  src,
+                  tgt,
+                  onProgress && ((p) => onProgress(p, key)),
+                  aoFalhar && (() => aoFalhar(key)),
+                )
+                .catch(() => null);
               preparacoesNativas.set(key, prep);
             }
             return prep;

@@ -273,11 +273,15 @@ export function definirReduzirEfeitos(valor: boolean | null): void {
 
 /**
  * Os sinais da SONDA (`sonda.ts`) que viajam com a rota. Todos OPCIONAIS: sem sonda guardada a rota
- * é a de sempre. Por ora só VIAJAM — nenhuma decisão do `sttRouter` lê estes campos ainda (a troca
- * das regras é outra tarefa do harness adaptativo, §7).
+ * é a de sempre. O `sttRouter` lê `adaptadorReal`, `shaderF16`, `gpuCaiu` e as pontuações para mandar
+ * o Whisper à GPU no Quest/celular (`usarGpuNoAparelho`) e para a troca de backend do regulador.
  */
 export interface CamposDaSondaNaRota {
   shaderF16?: boolean;
+  /** Houve adaptador na sonda e ele não é o de reserva (software). */
+  adaptadorReal?: boolean;
+  /** Algum modelo foi vetado aqui por `device-lost`: a GPU deste aparelho já caiu. */
+  gpuCaiu?: boolean;
   limites?: { maxStorageBufferBindingSize: number; maxBufferSize: number } | null;
   nativo?: boolean;
   sttNoAparelho?: SondaDoAparelho['sinais']['sttNoAparelho'];
@@ -313,6 +317,8 @@ export function dispositivoDaRota(
     iOS: s.iOS,
     pontuacaoWasm: sonda.benchmark?.pontuacaoWasm ?? null,
     pontuacaoWebgpu: sonda.benchmark?.pontuacaoWebgpu ?? null,
+    adaptadorReal: !!s.webGpu && s.webGpu.reserva !== true,
+    gpuCaiu: Object.values(sonda.motivosDaProibicao ?? {}).includes('device-lost'),
   };
 }
 

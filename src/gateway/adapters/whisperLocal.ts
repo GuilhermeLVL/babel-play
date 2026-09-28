@@ -69,8 +69,8 @@ export class WhisperLocalStt implements SttProvider {
   /** Quantização pedida pelo ROTEADOR (`q8` no celular/Quest) e com qual o worker ATUAL carregou. */
   private routedDtype: string | null = null;
   private loadedDtype: string | null = null;
-  /** Backend pedido pelo ROTEADOR (`wasm` junto com o q8). */
-  private routedDevice: 'wasm' | null = null;
+  /** Backend pedido pelo ROTEADOR (`wasm` junto com o q8; `webgpu` no Quest/celular com GPU provada). */
+  private routedDevice: 'wasm' | 'webgpu' | null = null;
 
   /**
    * Modelo Whisper. Override via localStorage `babel.whisperModel` — permite trocar
@@ -95,7 +95,7 @@ export class WhisperLocalStt implements SttProvider {
    * carregou OUTRO modelo, derruba e recria — mesma mecânica do fallback de device.
    * Chamar com o modelo já carregado é no-op (não paga teardown à toa).
    */
-  setModel(modelId: string, opcoes?: { dtype?: string; device?: 'wasm' }): void {
+  setModel(modelId: string, opcoes?: { dtype?: string; device?: 'wasm' | 'webgpu' }): void {
     if (!modelId) return;
     // Já degradamos para WASM nesta página: o roteador ainda pode pedir o small (ele não sabe da
     // queda), mas o small em WASM não é tempo real — fica o modelo que cabe.
@@ -108,7 +108,11 @@ export class WhisperLocalStt implements SttProvider {
     }
     const trocouModelo = !!this.loadedModel && this.loadedModel !== alvo;
     const trocouDtype = !!this.loadedDtype && this.loadedDtype !== this.dtype;
-    if (this.worker && (trocouModelo || trocouDtype)) {
+    // O regulador troca SÓ o backend (`trocar-backend`): mesmo modelo e dtype, outro device.
+    const pedido = this.device;
+    const trocouDevice =
+      !!this.deviceDaCarga && (pedido === 'wasm' || pedido === 'webgpu') && pedido !== this.deviceDaCarga;
+    if (this.worker && (trocouModelo || trocouDtype || trocouDevice)) {
       console.log(
         '[whisper] roteador trocou o modelo:',
         this.loadedModel,
@@ -223,6 +227,12 @@ export class WhisperLocalStt implements SttProvider {
     this.derrubarWorker(new Error('GPU indisponível, recarregando em WASM'));
     this.forcedDevice = 'wasm';
     this.routedModel = modeloParaWasm(modeloAntes);
+    /* A rota da GPU no Quest/celular (`device: 'webgpu'`) volta ao que o aparelho rodava antes dela:
+       q8 no WASM (o hybrid-fp16 em CPU é mais lento e baixa o dobro). O desktop fica no dtype dele. */
+    if (this.routedDevice === 'webgpu') {
+      this.routedDevice = 'wasm';
+      this.routedDtype = 'q8';
+    }
     this.onProgress?.(0, 'GPU indisponível, trocando para o modo compatível (WASM)…');
     this.aoDegradar?.({ motivo, modeloAntes, modelo: this.model, device: 'wasm', detalhe });
     if (carregando && armada) {

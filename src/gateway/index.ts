@@ -163,8 +163,7 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
   };
   const nativoPronto = (src: string, tgt: string): boolean => !!tradutorNativo()?.pronto(src, tgt);
   /** O tradutor nativo do par já foi CRIADO (o parcial só usa um que existe; ver `ChromeTranslatorMt.criado`). */
-  const nativoCriado = (src: string | null, tgt: string): boolean =>
-    !!src && !!tradutorNativo()?.criado(src, tgt);
+  const nativoCriado = (src: string | null, tgt: string): boolean => !!src && !!tradutorNativo()?.criado(src, tgt);
 
   /* O MOTOR LOCAL FICOU PRONTO: o disjuntor dele fecha na hora (uma falha antiga não pode segurar o
      modelo que acabou de carregar por 30 s — Quest emulado, 2026-09-28) e quem pediu aviso (a
@@ -440,12 +439,7 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
             let prep = preparacoesNativas.get(key);
             if (!prep) {
               prep = nativo
-                .preparar(
-                  src,
-                  tgt,
-                  onProgress && ((p) => onProgress(p, key)),
-                  aoFalhar && (() => aoFalhar(key)),
-                )
+                .preparar(src, tgt, onProgress && ((p) => onProgress(p, key)), aoFalhar && (() => aoFalhar(key)))
                 .catch(() => null);
               preparacoesNativas.set(key, prep);
             }
@@ -578,7 +572,7 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
        * do local — a qualidade multilíngue do large-v3-turbo é muito superior ao tiny.
        * O local continua na cadeia como reserva. Perfil Privado/Local nunca liga isto.
        */
-      setRoute(route: { preferCloud: boolean; localModel?: string; dtype?: string; device?: 'wasm' }): void {
+      setRoute(route: { preferCloud: boolean; localModel?: string; dtype?: string; device?: 'wasm' | 'webgpu' }): void {
         sttPreferCloudRef.value = route.preferCloud;
         if (route.localModel) {
           const opcoes = route.dtype || route.device ? { dtype: route.dtype, device: route.device } : undefined;
@@ -596,13 +590,16 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
 
       /**
        * O REGULADOR trocou o modelo local (um degrau abaixo ou de volta — `reguladorDaCaptura.ts`).
-       * Só o modelo: a rota (nuvem primeiro?) e o dtype ficam como o roteador deixou.
+       * Sem `opcoes`, só o modelo: a rota (nuvem primeiro?) e o dtype ficam como o roteador deixou.
+       * Com `opcoes`, o degrau diz o dtype/backend dele (o tiny só em hybrid na GPU; `trocar-backend`).
        */
-      trocarModeloLocal(modelo: string): void {
+      trocarModeloLocal(modelo: string, opcoes?: { dtype?: string; device?: 'wasm' | 'webgpu' }): void {
         for (const b of core.getProfile().bindings.stt ?? []) {
           try {
-            const a = resolveStt(b) as SttProvider & { setModel?: (m: string) => void };
-            if (a.supportsBlob && typeof a.setModel === 'function') a.setModel(modelo);
+            const a = resolveStt(b) as SttProvider & {
+              setModel?: (m: string, o?: { dtype?: string; device?: 'wasm' | 'webgpu' }) => void;
+            };
+            if (a.supportsBlob && typeof a.setModel === 'function') a.setModel(modelo, opcoes);
           } catch {
             /* próximo binding */
           }

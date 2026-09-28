@@ -62,10 +62,44 @@ export interface DispositivoDaRota {
   permiteSmall: boolean;
   /** `navigator.connection.saveData`: o menor modelo que serve. */
   economiaDeDados: boolean;
+  /* Da SONDA (`dispositivoDaRota` em `lib/dispositivo/perfil.ts`); ausentes = sem sonda guardada. */
+  /** O `requestAdapter()` entregou um adaptador e ele NÃO é o de reserva (software). */
+  adaptadorReal?: boolean;
+  /** `shader-f16`: o encoder vai em fp16 na GPU. */
+  shaderF16?: boolean;
+  /** A GPU já caiu com um modelo neste aparelho (`device-lost` gravado na sonda). */
+  gpuCaiu?: boolean;
+  /** Microbenchmark guardado (GFLOP/s relativos, `lib/dispositivo/benchmark.ts`). */
+  pontuacaoWasm?: number | null;
+  pontuacaoWebgpu?: number | null;
 }
 
 /** Preset de quantização pedido ao worker (ver `DTYPE_PRESETS` em `whisperWorker.ts`). */
-export type DtypeDaRota = 'hybrid' | 'q8';
+export type DtypeDaRota = 'hybrid' | 'hybrid-fp16' | 'q8';
+
+/**
+ * Quanto a GPU precisa medir ACIMA da CPU no microbenchmark para o Whisper ir a ela fora do desktop.
+ * Folga de propósito: o lado "wasm" do benchmark é um laço JS escalar, e o ONNX Runtime com SIMD e
+ * threads faz mais que ele — empate no benchmark é derrota da GPU no modelo de verdade.
+ */
+export const MARGEM_DA_GPU = 1.5;
+
+/**
+ * O Whisper vai à GPU NESTE aparelho móvel/Quest? Só com as três provas: adaptador real (não o de
+ * reserva), GPU que nunca caiu aqui, e benchmark com a GPU ≥ `MARGEM_DA_GPU`× a CPU. Economia de
+ * dados fica no q8 (80 MB contra 168). Pura.
+ */
+export function usarGpuNoAparelho(d: DispositivoDaRota, hasWebGpu: boolean): boolean {
+  if (!hasWebGpu || d.adaptadorReal !== true || d.gpuCaiu === true || d.economiaDeDados) return false;
+  const cpu = d.pontuacaoWasm;
+  const gpu = d.pontuacaoWebgpu;
+  return typeof cpu === 'number' && typeof gpu === 'number' && cpu > 0 && gpu >= MARGEM_DA_GPU * cpu;
+}
+
+/** O dtype que roda bem na GPU: encoder fp16 com `shader-f16`, fp32 sem (decoder q4 nos dois). */
+function dtypeNaGpu(d: DispositivoDaRota | undefined): DtypeDaRota {
+  return d?.shaderF16 === true ? 'hybrid-fp16' : 'hybrid';
+}
 
 export interface SttRoute {
   /** Modelo local a carregar (sempre definido — é a reserva mesmo no modo nuvem). */
@@ -76,8 +110,11 @@ export interface SttRoute {
   label: string;
   /** Quantização: `hybrid` (encoder fp32 + decoder q4, o padrão) ou `q8` (móvel/Quest, economia de dados). Ausente = `hybrid`. */
   dtype?: DtypeDaRota;
-  /** Backend forçado. `wasm` com q8: os pesos int8 não têm kernel nativo no WebGPU do ORT-web. */
-  device?: 'wasm';
+  /**
+   * Backend forçado. `wasm` com q8: os pesos int8 não têm kernel nativo no WebGPU do ORT-web.
+   * `webgpu` no Quest/celular com GPU provada (`usarGpuNoAparelho`). Ausente = `auto` (desktop).
+   */
+  device?: 'wasm' | 'webgpu';
 }
 
 export const WHISPER_MODELS = {
@@ -147,6 +184,18 @@ export const MODEL_DOWNLOAD_MB_Q8: Record<string, number> = {
 };
 
 /**
+ * Tamanho em `hybrid-fp16` (encoder fp16 + decoder q4 — a rota da GPU com `shader-f16`), somado da API
+ * de árvore do Hub em 2026-09-28: `encoder_model_fp16.onnx` + `decoder_model_merged_q4.onnx` + tokenizer
+ * e configs (~2,8 MB):
+ *   base 41,34 + 123,60 + 2,77 = 167,7 MB
+ *   tiny 16,51 +  86,72 + 2,77 = 106,0 MB
+ */
+export const MODEL_DOWNLOAD_MB_HYBRID_FP16: Record<string, number> = {
+  [WHISPER_MODELS.tiny]: 106,
+  [WHISPER_MODELS.base]: 168,
+};
+
+/**
  * Tradutor opus-mt em q8 (o primeiro dtype que o `mtWorker` tenta), por par: 52,90 + 60,21 MB no
  * `opus-mt-ROMANCE-en`/`en-es`/`es-en` (bytes do Hub, 2026-09-26); en-fr 107,5 e de-en 106,0. Usamos o
  * maior, para o aviso nunca prometer menos do que baixa.
@@ -159,7 +208,8 @@ export const MT_DOWNLOAD_MB = 113;
  */
 export function tamanhoDoDownloadMb(modelId: string, dtype: DtypeDaRota = 'hybrid'): number | null {
   if (/opus-mt/i.test(modelId)) return MT_DOWNLOAD_MB;
-  const tabela = dtype === 'q8' ? MODEL_DOWNLOAD_MB_Q8 : MODEL_DOWNLOAD_MB;
+  const tabela =
+    dtype === 'q8' ? MODEL_DOWNLOAD_MB_Q8 : dtype === 'hybrid-fp16' ? MODEL_DOWNLOAD_MB_HYBRID_FP16 : MODEL_DOWNLOAD_MB;
   return tabela[modelId] ?? null;
 }
 
@@ -209,13 +259,21 @@ export function routeStt(input: SttRouteInput): SttRoute {
   const movel = !!dispositivo && !dispositivo.tipo.startsWith('desktop');
   const economia = !!dispositivo?.economiaDeDados;
   const podeSmall = dispositivo ? dispositivo.permiteSmall && hasWebGpu : hasWebGpu;
-  const q8 = movel || economia;
+  /* GPU DE VERDADE NO QUEST/CELULAR (2026-09-28): adaptador real, sem queda anterior e o benchmark
+     guardado com a GPU ≥ 1,5× a CPU → o Whisper vai ao WebGPU no dtype que roda bem ali. O watchdog
+     e a queda em runtime do `whisperLocal.ts` continuam: GPU que trava ou cai volta ao WASM q8. */
+  const gpuMovel = movel && !!dispositivo && usarGpuNoAparelho(dispositivo, hasWebGpu);
+  const q8 = (movel || economia) && !gpuMovel;
   const whisperLocal = (modelo: string): Pick<SttRoute, 'localModel' | 'dtype' | 'device'> =>
-    q8 ? { localModel: modelo, dtype: 'q8', device: 'wasm' } : { localModel: modelo, dtype: 'hybrid' };
+    gpuMovel
+      ? { localModel: modelo, dtype: dtypeNaGpu(dispositivo), device: 'webgpu' }
+      : q8
+        ? { localModel: modelo, dtype: 'q8', device: 'wasm' }
+        : { localModel: modelo, dtype: 'hybrid' };
   /** Melhor modelo LOCAL viável para conteúdo não-EN neste dispositivo. */
   const bestLocal = podeSmall ? WHISPER_MODELS.small : WHISPER_MODELS.base;
   const nomeCurto = (m: string) => m.split('-').pop();
-  const sufixo = q8 ? ' q8' : '';
+  const sufixo = gpuMovel ? ' · GPU' : q8 ? ' q8' : '';
   /** Moonshine do "auto" em inglês: o tiny no celular fraco ou com economia de dados. */
   const moonshineAuto =
     dispositivo?.tipo === 'celular-fraco' || economia ? MOONSHINE_MODELS.tiny : MOONSHINE_MODELS.base;
@@ -296,6 +354,34 @@ export function routeStt(input: SttRouteInput): SttRoute {
       };
     }
   }
+}
+
+/** O backend para onde o regulador pode trocar no meio da sessão (`trocar-backend`). */
+export interface OutroBackend {
+  device: 'wasm' | 'webgpu';
+  dtype: DtypeDaRota;
+}
+
+/**
+ * O OUTRO backend, quando o microbenchmark guardado o mediu mais rápido que o desta rota — o que o
+ * regulador usa para emitir `trocar-backend` quando o atual não acompanha. Sem margem (a troca só
+ * acontece com o aparelho já sofrendo); a GPU só entra com adaptador real e sem queda anterior.
+ * Moonshine é sempre WASM (ver `whisperLocal.ts`). `null` = nenhum. Pura.
+ */
+export function outroBackend(
+  route: SttRoute,
+  d: DispositivoDaRota | undefined,
+  hasWebGpu: boolean,
+): OutroBackend | null {
+  if (!d || /moonshine/i.test(route.localModel)) return null;
+  const cpu = d.pontuacaoWasm;
+  const gpu = d.pontuacaoWebgpu;
+  if (typeof cpu !== 'number' || typeof gpu !== 'number' || cpu <= 0 || gpu <= 0) return null;
+  const gpuUtil = hasWebGpu && d.adaptadorReal === true && d.gpuCaiu !== true;
+  const atual = route.device ?? (hasWebGpu ? 'webgpu' : 'wasm');
+  if (atual === 'wasm') return gpuUtil && gpu > cpu ? { device: 'webgpu', dtype: dtypeNaGpu(d) } : null;
+  const movel = !d.tipo.startsWith('desktop');
+  return cpu > gpu ? { device: 'wasm', dtype: movel ? 'q8' : 'hybrid' } : null;
 }
 
 const QUALITY_KEY = 'babel.sttQuality';

@@ -159,8 +159,8 @@ describe('o reembolso pela rota (espelho sem conta)', () => {
     await gastosAntigos()
     const a = await reembolsar()
     const b = await reembolsar()
-    expect(a).toMatchObject({ creditado: 150, reembolsado: 150, seedsCreditadas: 150 })
-    expect(b).toMatchObject({ creditado: 0, reembolsado: 150, seedsCreditadas: 150 })
+    expect(a).toMatchObject({ creditado: 150, reembolsado: 150, seedsCreditadas: 150, avisoPendente: true })
+    expect(b).toMatchObject({ creditado: 0, reembolsado: 150, seedsCreditadas: 150, avisoPendente: false })
   })
 
   it('duas abas ao mesmo tempo: um crédito só', async () => {

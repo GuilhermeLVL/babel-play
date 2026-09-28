@@ -177,6 +177,19 @@ async function creditarDrop(creditoId: string, roundId: string, fusoPedido: stri
  * sobre o razão de gastos). A idempotência aqui é a chave do IndexedDB: `creditos` é indexado por
  * `creditoId`, então duas abas gravando o mesmo reembolso sobrescrevem a mesma linha.
  */
+const CHAVE_DO_AVISO_DE_REEMBOLSO = 'babel.efemero.aviso_reembolso';
+
+/** O aviso do corte, uma vez só neste modo (a régua do Express: `true` só no pedido que marca). */
+function marcarAvisoDeReembolso(): boolean {
+  try {
+    if (localStorage.getItem(CHAVE_DO_AVISO_DE_REEMBOLSO)) return false;
+    localStorage.setItem(CHAVE_DO_AVISO_DE_REEMBOLSO, String(Date.now()));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function reembolsarSeeds(): Promise<Response> {
   const db = await abrirStore();
   const gastos = await db.getAll('gastos');
@@ -194,6 +207,7 @@ export async function reembolsarSeeds(): Promise<Response> {
     reembolsado: todos.filter((c) => c.creditoId.startsWith('reembolso:')).reduce((n, c) => n + c.amount, 0),
     /* Sem conta não há Créditos (moeda paga nasce e morre no servidor): nada a devolver. */
     creditosDevolvidos: 0,
+    avisoPendente: creditado > 0 && marcarAvisoDeReembolso(),
     seedsCreditadas: todos.reduce((n, c) => n + c.amount, 0),
     xpCreditado: todos.reduce((n, c) => n + c.xp, 0),
   });

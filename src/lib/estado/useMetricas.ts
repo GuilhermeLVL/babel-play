@@ -68,15 +68,18 @@ export function useMetricas(quantidadeDeSessoes: number): EstadoDasMetricas {
     void registrarPresencaHoje();
   }, []);
 
-  /* O REEMBOLSO DO CORTE DO CATÁLOGO (recompensas v2): uma vez por sessão, com a flag ligada. O
-     aviso aparece uma vez só na vida da instalação, e só quando houve Seeds devolvidas. */
+  /* O REEMBOLSO DO CORTE DO CATÁLOGO (recompensas v2): uma vez por sessão, DEPOIS que as métricas
+     carregam, com a flag ligada ou não (o corte é regra do servidor). Não corre contra o cache das
+     flags: não depende dele. O aviso é por conta (`avisoPendente`). */
+  const metricasCarregadas = metrics !== null;
   useEffect(() => {
+    if (!metricasCarregadas) return;
     void reembolsarUmaVez().then((n) => {
       if (!n) return;
       toast.info(t('Trocamos os cursores e emojis por recompensas novas. Suas Seeds voltaram: +{n}', { n }));
       setVersaoDasMetricas((v) => v + 1);
     });
-  }, []);
+  }, [metricasCarregadas]);
 
   /* AS MISSÕES DO DIA (recompensas v2, onda 5): relidas do servidor a cada métrica nova (uma
      rodada, uma revisão, uma palavra salva). Quando as três fecham e a meta ainda não foi

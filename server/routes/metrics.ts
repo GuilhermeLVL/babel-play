@@ -399,12 +399,16 @@ async function creditarDrop(
  * `creditado`. Repetir o pedido depois devolve `creditado: 0`. Os Créditos pagos por item premium
  * sem equivalente livre também voltam (`creditosDevolvidos`) — em `lib/reembolsoDoCorte.ts`, porque
  * esta rota sorteia o baú e não pode tocar no razão de Créditos (`tests/eca-art20-*`).
+ *
+ * INDEPENDENTE DA FLAG `recompensas_v2` (revisão de 27/09): o corte do catálogo é regra do
+ * servidor, então quem tem direito ao reembolso o recebe com a flag ligada ou não. `avisoPendente`
+ * diz se a tela ainda deve anunciar — uma vez por conta.
  */
 metricsRouter.post('/seeds/reembolso', async (req, res) => {
   try {
-    const { creditado, reembolsado, creditosDevolvidos } = await reembolsarCorteDoCatalogo(req.userId)
+    const r = await reembolsarCorteDoCatalogo(req.userId)
     const totais = await economiaRepo.totaisCreditados(req.userId)
-    res.json({ creditado, reembolsado, creditosDevolvidos, ...totais })
+    res.json({ ...r, ...totais })
   } catch (err) {
     res.status(500).json({
       error: erroDeRota(err, { status: 500, event: 'metrics_route_error', route: req.path, requestId: req.requestId }),

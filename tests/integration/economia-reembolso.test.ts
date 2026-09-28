@@ -132,3 +132,28 @@ describe('POST /api/metrics/seeds/reembolso', () => {
     expect(await creditsRepo.totalComprado(asUserId(u))).toBe(antes + 150)
   })
 })
+
+describe('o aviso do reembolso é por CONTA (`avisoPendente`)', () => {
+  it('pendente no pedido que creditou; depois, nunca mais — nem noutro aparelho', async () => {
+    const u = 'u-aviso-1'
+    await gastosAntigos(u)
+    const a = await reembolsar(u)
+    expect(a.body).toMatchObject({ creditado: 200, avisoPendente: true })
+    const b = await reembolsar(u)
+    expect(b.body).toMatchObject({ creditado: 0, avisoPendente: false })
+  })
+
+  it('duas abas ao mesmo tempo: o aviso sai em uma só', async () => {
+    const u = 'u-aviso-concorrente'
+    await gastosAntigos(u)
+    const [a, b] = await Promise.all([reembolsar(u), reembolsar(u)])
+    expect([a.body.avisoPendente, b.body.avisoPendente].filter(Boolean)).toHaveLength(1)
+  })
+
+  it('sem nada creditado não gasta o aviso: o reembolso que chegar depois ainda é anunciado', async () => {
+    const u = 'u-aviso-tardio'
+    expect((await reembolsar(u)).body).toMatchObject({ creditado: 0, avisoPendente: false })
+    await gastosAntigos(u)
+    expect((await reembolsar(u)).body).toMatchObject({ creditado: 200, avisoPendente: true })
+  })
+})

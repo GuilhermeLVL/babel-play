@@ -13,6 +13,7 @@
 import { reembolsosDevidos, resolverPremium } from '../../src/core/reembolso'
 import { creditsRepo } from '../db/repositories/credits'
 import { economiaRepo } from '../db/repositories/economia'
+import { estadoDaContaRepo } from '../db/repositories/estadoDaConta'
 import { seedSpendsRepo } from '../db/repositories/seedSpends'
 import type { UserId } from './authContext'
 
@@ -23,6 +24,13 @@ export interface ResultadoDoReembolso {
   reembolsado: number
   /** Créditos devolvidos NESTE pedido. */
   creditosDevolvidos: number
+  /**
+   * O aviso do corte ("Suas Seeds voltaram: +N") ainda não foi dado NESTA CONTA e este pedido
+   * creditou Seeds — a tela anuncia `creditado`. `true` uma vez só por conta: a marca é gravada no
+   * mesmo pedido que responde `true` (`estado_da_conta.aviso_reembolso_em`, conferida dentro do
+   * UPDATE), então duas abas ou dois aparelhos não avisam duas vezes.
+   */
+  avisoPendente: boolean
 }
 
 export async function reembolsarCorteDoCatalogo(userId: UserId): Promise<ResultadoDoReembolso> {
@@ -38,5 +46,6 @@ export async function reembolsarCorteDoCatalogo(userId: UserId): Promise<Resulta
     if (!jaExistia) creditosDevolvidos += r.creditos
   }
   const reembolsado = (await economiaRepo.reembolsos(userId)).reduce((n, r) => n + r.amount, 0)
-  return { creditado, reembolsado, creditosDevolvidos }
+  const avisoPendente = creditado > 0 && (await estadoDaContaRepo.marcarAvisoDeReembolso(userId, Date.now()))
+  return { creditado, reembolsado, creditosDevolvidos, avisoPendente }
 }

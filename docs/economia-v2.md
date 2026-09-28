@@ -70,8 +70,11 @@ apontava para o tema Aurora, da conquista "Constante", e Créditos compravam con
 `resolverPremium` (`reembolso.ts`) decide a posse na ordem das compras: equivalente já possuído
 passa ao próximo item livre da vitrine e, sem nenhum livre, os Créditos pagos voltam como concessão
 `reembolso-creditos:<id do gasto>` na mesma rota. Posse de conquista e de maestria é conferida
-ANTES da posse premium (`posseDeCosmeticos.ts`), e a premium só abre item `vendavelEmCreditos`. O cliente chama uma vez por sessão
-com a flag `recompensas_v2` ligada e mostra o aviso uma vez só.
+ANTES da posse premium (`posseDeCosmeticos.ts`), e a premium só abre item `vendavelEmCreditos`.
+O cliente pede o reembolso uma vez por sessão, depois que as métricas carregam, COM OU SEM a flag
+`recompensas_v2` (desde 27/09 a flag só liga telas; ver `docs/flags.md`). O aviso é por CONTA: a
+resposta traz `avisoPendente`, `true` uma vez só (a marca `estado_da_conta.aviso_reembolso_em` é
+gravada no mesmo pedido, dentro do UPDATE) e só quando o pedido creditou Seeds.
 
 ## Calibragem (`npx tsx scripts/economia/simular-ritmo.ts`)
 

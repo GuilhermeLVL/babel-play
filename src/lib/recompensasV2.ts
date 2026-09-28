@@ -5,8 +5,9 @@
  * (nasce DESLIGADA na migração); na edição estática não há servidor, e quem liga é o build
  * (`VITE_RECOMPENSAS_V2=1`, a onda 5 acende).
  *
- * O REEMBOLSO: uma vez por sessão, com a flag ligada, o cliente pede `POST
- * /api/metrics/seeds/reembolso` — o servidor decide o que é devido a partir do próprio razão. O
+ * O REEMBOLSO: uma vez por sessão, COM OU SEM a flag (revisão de 27/09 — o corte do catálogo é regra
+ * do servidor, não tela nova), o cliente pede `POST /api/metrics/seeds/reembolso` depois que as
+ * métricas carregam — o servidor decide o que é devido a partir do próprio razão. O
  * aviso "Trocamos os cursores e emojis por recompensas novas. Suas Seeds voltaram: +N" aparece UMA
  * vez só na vida da instalação (`babel.aviso_reembolso_v2`), e só quando houve reembolso.
  */
@@ -34,7 +35,6 @@ let pedidoDestaSessao: Promise<number | null> | null = null;
  * ou aviso já mostrado antes).
  */
 export function reembolsarUmaVez(): Promise<number | null> {
-  if (!recompensasV2Ligadas()) return Promise.resolve(null);
   pedidoDestaSessao ??= reembolsarSeeds().then((r) => {
     if (!r || r.reembolsado <= 0) return null;
     try {

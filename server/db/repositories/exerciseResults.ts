@@ -380,12 +380,15 @@ export const exerciseResultsRepo = {
    * eram correlacionáveis a um cartão (nenhum por id). Sem a referência por id, desempenho não
    * realimenta a dificuldade.
    */
-  async addRodada(userId: UserId, rodada: NovaRodada): Promise<{ gravados: number; roundId: string }> {
+  async addRodada(
+    userId: UserId,
+    rodada: NovaRodada,
+  ): Promise<{ gravados: number; roundId: string; jaExistia: boolean }> {
     const now = Date.now()
     /* O DIA DA RODADA É O DIA EM QUE ELA COMEÇOU (recompensas v2, onda 5): quem começa às 23:59 e
        grava às 00:01 fez a rodada da véspera — nas missões, na meta e na ofensiva. */
     const inicio = inicioDaRodada(now, rodada.duracaoMs)
-    if (!rodada.itens?.length) return { gravados: 0, roundId: rodada.roundId }
+    if (!rodada.itens?.length) return { gravados: 0, roundId: rodada.roundId, jaExistia: false }
 
     // Dono da sessão conferido UMA vez para a rodada, não por item.
     let sessionId: string | null = null
@@ -434,9 +437,31 @@ export const exerciseResultsRepo = {
       } satisfies typeof exerciseResults.$inferInsert
     })
 
-    // Um INSERT multi-VALUES: ou entra a rodada toda, ou não entra nada.
-    await db.insert(exerciseResults).values(linhas)
-    return { gravados: linhas.length, roundId: rodada.roundId }
+    /* UMA RODADA, UMA VEZ, por (usuário, `roundId`) — revisão de 27/09 (P1). O retry do cliente
+       (rede instável no fim da rodada) regravava as linhas, e os acertos contavam em dobro: Seeds,
+       XP da conta e XP de temporada, que somam estas linhas. A conferência mora DENTRO do INSERT
+       (`INSERT … SELECT … WHERE NOT EXISTS`): um comando só é atômico no SQLite, então dois envios
+       simultâneos não passam os dois por uma leitura prévia. Sem índice único porque a rodada tem
+       N linhas — é a existência de QUALQUER linha da rodada que a torna repetida.
+       Um INSERT multi-VALUES: ou entra a rodada toda, ou não entra nada. */
+    const colunas = sql.join(
+      linhas.map(
+        (l) =>
+          sql`(${l.id}, ${l.createdAt}, ${l.updatedAt}, ${l.userId}, ${l.sessionId}, ${l.kind}, ${l.correct}, ${l.score}, ${l.combo}, ${l.exerciseKind}, ${l.roundId}, ${l.itemRef}, ${l.attempts}, ${l.ms}, ${l.hinted}, ${l.origem}, ${l.cardId})`,
+      ),
+      sql`, `,
+    )
+    const r = await db.run(sql`
+      INSERT INTO ${exerciseResults}
+        (id, created_at, updated_at, user_id, session_id, kind, correct, score, combo, exercise_kind, round_id, item_ref, attempts, ms, hinted, origem, card_id)
+      SELECT * FROM (VALUES ${colunas})
+      WHERE NOT EXISTS (
+        SELECT 1 FROM ${exerciseResults}
+        WHERE user_id = ${userId} AND round_id = ${rodada.roundId} AND deleted_at IS NULL
+      )
+    `)
+    const gravados = Number((r as { rowsAffected?: number }).rowsAffected ?? 0)
+    return { gravados, roundId: rodada.roundId, jaExistia: gravados === 0 }
   },
 
   /**

@@ -30,6 +30,11 @@ export interface SpeechSegment {
   lang?: string;
   /** Adapter que transcreveu (procedência: whisper-local/groq-whisper/web-speech). */
   engine?: string;
+  /**
+   * A fala ficou SEM tradução automática pela preferência "Tradução" (`traducaoSobDemanda.ts`): o
+   * balão mostra "Mostrar tradução" no lugar da linha traduzida. Ausente = o de sempre.
+   */
+  traducaoSobDemanda?: boolean;
 }
 
 // `VocabWord` agora vive em `src/types.ts` — é o contrato compartilhado do <VocabularyPanel/>,

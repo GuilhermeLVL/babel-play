@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto'
+
 import type { Request, Response } from 'express'
 import { z } from 'zod'
 
@@ -7,7 +9,7 @@ import {
   userComunicativo,
   userTextoEscrito,
 } from '../../src/lib/traducao/promptComunicativo'
-import { contarCacheDeTraducao } from '../http/metricas'
+import { contarCacheDeTraducao, contarNivelDoCacheDeTraducao } from '../http/metricas'
 import { abrirPortaGratuita, type PortaGratuita } from '../lib/convidado'
 import { getEntitlements } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
@@ -16,7 +18,7 @@ import { custoDeLlm, portaoDaNuvem, registrarGastoDeIa, responderPortaoFechado }
 import { responderErro } from '../lib/respostaDeErro'
 import { estimarTokens } from '../lib/usageQuota'
 import { planoDeAdmissao, responderNuvemOcupada } from './admissao'
-import { cacheDeTraducao, chaveDeTraducao, MAX_CARACTERES_NO_CACHE } from './cacheDeTraducao'
+import { cabeNoCache, type ConsultaDeTraducao, guardarTraducao, lerTraducao } from './cacheDeTraducao'
 import { type AdmissaoDaCascata, admitirCascata, encerrarAdmissao, percorrerCascata } from './cascata'
 import { FUNCOES_DE_IA, maxTokensDaTraducao } from './funcoesDeIa'
 import { type MensagemDeChat, tamanhoDoPrompt } from './llmClient'
@@ -41,6 +43,24 @@ import { abrirRastro, codigoDeIdioma, type RastroDeIa } from './telemetriaDeIa'
  */
 
 const TRADUCAO = FUNCOES_DE_IA.traducao
+
+/**
+ * A VERSÃO DOS PROMPTS, para a chave do cache (`cacheDeTraducao.ts`): hash do texto FIXO dos dois
+ * prompts, montado com marcadores no lugar do que muda por chamada. O L2 dura 30 dias e atravessa
+ * deploys — mudou uma vírgula do prompt, a versão muda e nenhuma tradução do prompt antigo é servida.
+ * Calculada, e não um número escrito à mão, para ninguém precisar lembrar de subir.
+ */
+export const VERSAO_DO_PROMPT = createHash('sha256')
+  .update(
+    [
+      systemComunicativo('§tgt', '§src'),
+      userComunicativo('§texto', ['§contexto']),
+      systemTextoEscrito('§tgt', '§src'),
+      userTextoEscrito('§texto'),
+    ].join('\u0000'),
+  )
+  .digest('hex')
+  .slice(0, 16)
 
 const bodySchema = z
   .object({
@@ -145,21 +165,31 @@ async function traduzir(req: Request, res: Response, rastro: RastroDeIa): Promis
 
   /* CACHE ANTES DE TUDO QUE CUSTA (cacheDeTraducao.ts): a mesma frase, no mesmo par, pelo mesmo
      modelo, não vai ao provedor de novo — nem gasta cota do usuário, porque não custa nada a ninguém.
-     A chave usa o modelo PLANEJADO (o primeiro da cascata), que é o que o plano promete. */
-  const cacheavel = text.length <= MAX_CARACTERES_NO_CACHE
-  const chave = chaveDeTraducao({
+     A chave usa o modelo PLANEJADO (o primeiro da cascata), que é o que o plano promete. Dois
+     níveis: memória do processo (L1) e SQLite (L2, só frase curta, sem nada de quem pediu). */
+  const consulta: ConsultaDeTraducao = {
     texto: text,
     src,
     tgt,
     falada: falada === true,
     contexto,
     modelo: provedores[0].model,
-  })
-  const guardada = cacheavel ? cacheDeTraducao.ler(chave) : null
-  if (cacheavel) contarCacheDeTraducao(guardada !== null)
+    versaoDoPrompt: VERSAO_DO_PROMPT,
+  }
+  const cacheavel = cabeNoCache(text)
+  const leitura = await lerTraducao(consulta)
+  if (leitura.l1) contarNivelDoCacheDeTraducao('l1', leitura.l1 === 'acerto')
+  if (leitura.l2) contarNivelDoCacheDeTraducao('l2', leitura.l2 === 'acerto')
+  if (cacheavel) contarCacheDeTraducao(leitura.guardada !== null)
+  const guardada = leitura.guardada
   if (guardada) {
     rastro.anotar({ cacheHit: true })
-    log('info', { event: 'mt_cache_hit', route: '/api/ai/mt', status: 200, requestId: req.requestId })
+    log('info', {
+      event: leitura.nivel === 'l2' ? 'mt_cache_hit_l2' : 'mt_cache_hit',
+      route: '/api/ai/mt',
+      status: 200,
+      requestId: req.requestId,
+    })
     res.json(respostaDeTraducao(guardada.texto, guardada.modelo, true))
     return
   }
@@ -206,8 +236,7 @@ async function traduzir(req: Request, res: Response, rastro: RastroDeIa): Promis
       maxTokens,
       estimativa,
       falada,
-      cacheavel,
-      chave,
+      consulta,
       admissao: admitida.admissao,
       gratuita,
       planoDaAssinatura: planoDoUsuario.plan,
@@ -228,15 +257,14 @@ async function traduzirAdmitido(
     maxTokens: number
     estimativa: number
     falada: boolean | undefined
-    cacheavel: boolean
-    chave: string
+    consulta: ConsultaDeTraducao
     admissao: AdmissaoDaCascata
     gratuita: PortaGratuita
     /** O plano da assinatura — rótulo do custo por plano (`ia_custo_usd_total{plano}`). */
     planoDaAssinatura: string
   },
 ): Promise<void> {
-  const { provedores, messages, maxTokens, falada, cacheavel, chave } = p
+  const { provedores, messages, maxTokens, falada, consulta } = p
   // RESERVA chamada + tokens ANTES do provedor (P0-1: conferir antes e contabilizar depois deixava
   // N requisições simultâneas passarem pelo mesmo teto). `null` = já respondeu 402/503.
   const reserva: ReservaDeLlm | null = await abrirReservaDeLlm(req.userId, p.estimativa, res)
@@ -310,10 +338,11 @@ async function traduzirAdmitido(
       latencyMs: Date.now() - t0,
       requestId: req.requestId,
     })
-    if (cacheavel && entregue.texto.length <= MAX_CARACTERES_NO_CACHE * 2) {
-      cacheDeTraducao.guardar(chave, { texto: entregue.texto, modelo: entregue.model })
-    }
     res.json(respostaDeTraducao(entregue.texto, entregue.model))
+    /* DEPOIS de responder: quem pediu não espera o disco. Aguardado assim mesmo, para a rota só
+       terminar com o L2 gravado (um teste que esvazia o cache logo depois não vê gravação atrasada).
+       `guardarTraducao` decide o que vai ao disco e nunca lança. */
+    await guardarTraducao(consulta, { texto: entregue.texto, modelo: entregue.model })
   } catch (err) {
     res.status(502).json({ error: `falha na tradução por LLM: ${erroDeRota(err, { event: 'mt_route_error' })}` })
   } finally {

@@ -6,7 +6,13 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { esquecerAdaptadorWebGpu, temAdaptadorWebGpu, webGpuProvavel } from '../src/gateway/adaptadorWebGpu'
+import {
+  esquecerAdaptadorWebGpu,
+  extrairInfoDoAdaptador,
+  infoDoAdaptadorWebGpu,
+  temAdaptadorWebGpu,
+  webGpuProvavel,
+} from '../src/gateway/adaptadorWebGpu'
 
 const comGpu = (requestAdapter: () => Promise<unknown>) =>
   vi.stubGlobal('navigator', { ...globalThis.navigator, gpu: { requestAdapter } })
@@ -63,5 +69,50 @@ describe('webGpuProvavel (rótulos síncronos)', () => {
     expect(webGpuProvavel()).toBe(true) // ainda não sabe: otimista, e dispara a pergunta
     await temAdaptadorWebGpu()
     expect(webGpuProvavel()).toBe(false)
+  })
+})
+
+describe('infoDoAdaptadorWebGpu (sinais da sonda: shader-f16 e limites)', () => {
+  it('lê shader-f16, limites e fornecedor do MESMO adaptador (uma pergunta só)', async () => {
+    const pedir = vi.fn(async () => ({
+      features: new Set(['shader-f16', 'timestamp-query']),
+      limits: { maxStorageBufferBindingSize: 2147483644, maxBufferSize: 4294967296 },
+      info: { vendor: 'amd', architecture: 'rdna-2' },
+    }))
+    comGpu(pedir)
+    expect(await temAdaptadorWebGpu()).toBe(true)
+    expect(await infoDoAdaptadorWebGpu()).toEqual({
+      shaderF16: true,
+      limites: { maxStorageBufferBindingSize: 2147483644, maxBufferSize: 4294967296 },
+      fornecedor: 'amd',
+      arquitetura: 'rdna-2',
+    })
+    expect(pedir).toHaveBeenCalledTimes(1)
+  })
+
+  it('sem adaptador: null', async () => {
+    comGpu(async () => null)
+    expect(await infoDoAdaptadorWebGpu()).toBeNull()
+  })
+})
+
+describe('extrairInfoDoAdaptador (pura)', () => {
+  it('adaptador sem features/limits/info: tudo desconhecido, nunca lança', () => {
+    expect(extrairInfoDoAdaptador({})).toEqual({ shaderF16: false, limites: null, fornecedor: '', arquitetura: '' })
+  })
+
+  it('limites não numéricos viram null', () => {
+    expect(
+      extrairInfoDoAdaptador({ limits: { maxStorageBufferBindingSize: 'x', maxBufferSize: 10 } }).limites,
+    ).toBeNull()
+  })
+
+  it('getter que lança não derruba a leitura', () => {
+    const a = {
+      get features(): never {
+        throw new Error('perdido')
+      },
+    }
+    expect(extrairInfoDoAdaptador(a).shaderF16).toBe(false)
   })
 })

@@ -73,10 +73,13 @@ import {
 } from '../../lib/audioDevices';
 // Fontes de áudio: som do sistema/aba, microfone (Whisper ou Web Speech) e o mudo/ativo do mic.
 import { criarFontesDeAudio } from '../../lib/captura/fontesDeAudio';
+import type { EscolhaDoMic } from '../../lib/captura/motorDoMicrofone';
+import { preparoConcluido } from '../../lib/captura/pacotesNativos';
 // Vocabulário dentro da captura: examinar a palavra, fichar no deck, mandar praticar.
 import { criarPalavraDaFala } from '../../lib/captura/palavraDaFala';
 // Pipeline de fala: VAD → STT → diarização → emissão, e a preparação dos modelos locais.
 import { criarPipelineDeFala, type EnunciadoPendente } from '../../lib/captura/pipelineDeFala';
+import { criarReguladorDaCaptura, type ReguladorDaCaptura } from '../../lib/captura/reguladorDaCaptura';
 // Ciclo da sessão: começar, retomar, parar e salvar (falas, áudio e vocabulário).
 import { criarSalvarSessao, type EstadoDaIdentificacaoDeVoz } from '../../lib/captura/salvarSessao';
 // Tipos e helpers de fala + o logger da captura (`lib/captura/tiposDaFala.ts`).
@@ -93,8 +96,10 @@ import {
 } from '../../lib/captura/tiposDaFala';
 // Relógio da sessão + pipeline de MT (retradução de degradados incluída).
 import { criarRelogioDaSessao, criarTraducaoDaFala } from '../../lib/captura/traducaoDaFala';
+import { modoDeTraducao, type PedidoSobDemanda } from '../../lib/captura/traducaoSobDemanda';
+import { usePalavrasConhecidas } from '../../lib/captura/usePalavrasConhecidas';
 import { cenarioDasFontes } from '../../lib/cenarioDeCaptura';
-import { consentiuNuvem } from '../../lib/consentimentoDeNuvem';
+import { consentiuNuvem, rapidoDoMicPermitido, useEscolhaDoMic } from '../../lib/consentimentoDeNuvem';
 import { DominantLangTracker } from '../../lib/convoLang';
 import { mbQueFaltaBaixar, precisaConfirmarDownload } from '../../lib/dispositivo/avisoDeDownload';
 import { classificarDispositivo, dispositivoDaRota, lerSinaisDoDispositivo } from '../../lib/dispositivo/perfil';
@@ -141,6 +146,7 @@ import { CabecalhoDeTela, Dialogo, fecharDialogoDe } from '../ui';
 import VocabularyPanel from '../VocabularyPanel';
 // Subcomponentes locais da captura (um arquivo por componente, em `views/captura/`).
 import EncerrarSessao from './captura/EncerrarSessao';
+import EscolhaDoMicrofone from './captura/EscolhaDoMicrofone';
 import IdiomasDaSessao, { type Lado } from './captura/IdiomasDaSessao';
 import LegendasFlutuantes, { type LegendaAoVivo } from './captura/LegendasFlutuantes';
 import ModeloNoDispositivo, { type ModeloDaCaptura } from './captura/ModeloNoDispositivo';
@@ -285,6 +291,28 @@ export default function LiveCapture({
   const [micEngine, setMicEngine] = useState<'browser' | 'whisper'>('browser');
   const webSpeechSupported =
     typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
+  /* "RÁPIDO" OU "PRIVADO" (`lib/captura/motorDoMicrofone.ts`): sem o reconhecimento no aparelho, a
+     primeira abertura do mic pergunta; `startMic` espera a resposta por esta promessa. A resposta
+     fica nas preferências (consentimento próprio, com data) e muda no painel de ajustes. */
+  const [pedidoDaEscolhaDoMic, setPedidoDaEscolhaDoMic] = useState<((e: EscolhaDoMic | null) => void) | null>(null);
+  /** O "Privado" desta pergunta é o reconhecimento do próprio navegador (pacote a instalar)? */
+  const [privadoPeloNavegador, setPrivadoPeloNavegador] = useState(false);
+  const { escolha: escolhaDoMic, escolher: escolherNoMic } = useEscolhaDoMic();
+  const perguntarEscolhaDoMic = ({ pacoteDoNavegador }: { pacoteDoNavegador: boolean }) =>
+    new Promise<EscolhaDoMic | null>((responder) => {
+      setPrivadoPeloNavegador(pacoteDoNavegador);
+      setPedidoDaEscolhaDoMic(() => responder);
+    });
+  /** Guarda ANTES de responder: o `startMic` que espera já lê a escolha gravada. */
+  const trocarEscolhaDoMic = (e: EscolhaDoMic) =>
+    void escolherNoMic(e).then((ok) => {
+      if (!ok) toast.warn(t('Não consegui registrar a escolha. Verifique a conexão e tente de novo.'));
+    });
+  const responderEscolhaDoMic = (e: EscolhaDoMic | null) => {
+    if (e) trocarEscolhaDoMic(e);
+    pedidoDaEscolhaDoMic?.(e);
+    setPedidoDaEscolhaDoMic(null);
+  };
   // Velocidade do TTS (escutar tradução/palavra). Persistida em settings.ui.
   const [ttsSpeed, setTtsSpeed] = useState(1.0);
   // Waveform REAL: histórico de níveis (0..1) que segue o áudio capturado, não animação falsa.
@@ -306,6 +334,8 @@ export default function LiveCapture({
   /* A rota do STT (ex.: "Whisper small · local") — o selo do protótipo mostra o tamanho do modelo, e
      a rota aparece no diálogo "Modelo no dispositivo". */
   const [sttRouteLabel, setSttRouteLabel] = useState('');
+  /** O áudio da aba está no reconhecedor do navegador, no aparelho (`webSpeechDoSistema.ts`). */
+  const [sistemaNoNavegador, setSistemaNoNavegador] = useState(false);
   const [sttQuality, setSttQuality] = useState<SttQuality>(() => getSttQuality());
   /* Há um ADAPTADOR WebGPU? (não só `navigator.gpu`). Começa com o palpite síncrono e vira a medida
      assim que o navegador responde — o selo e o tamanho do download mudam junto. */
@@ -1013,7 +1043,17 @@ export default function LiveCapture({
     shouldAnchorClockRef,
     systemEnabled,
   });
-  const { translateSegment, retraduzirDegradados } = criarTraducaoDaFala({
+  /* TRADUÇÃO SOB DEMANDA (harness §1.2, M0): a preferência "Tradução" dos ajustes da legenda. Em
+     `sempre` (padrão) nada muda; as refs deixam a troca valer já na fala seguinte. O predicado de
+     palavras conhecidas só é montado no modo `novas`, no idioma estudado (o observado, se houver). */
+  const modoTraducao = modoDeTraducao(tsSettings.traducao);
+  const modoDeTraducaoRef = useRef(modoTraducao);
+  modoDeTraducaoRef.current = modoTraducao;
+  const conhecidas = usePalavrasConhecidas(idiomaObservado || targetLang, modoTraducao === 'novas');
+  const conhecidasRef = useRef(conhecidas);
+  conhecidasRef.current = conhecidas;
+  const pedidosSobDemandaRef = useRef(new Map<string, PedidoSobDemanda>());
+  const { translateSegment, retraduzirDegradados, revelarTraducao } = criarTraducaoDaFala({
     gateway,
     ordemMtRef,
     sourceLangRef,
@@ -1027,17 +1067,24 @@ export default function LiveCapture({
     degradacaoAvisadaRef,
     setSpeechSegments,
     setFeedbackMsg,
+    modoDeTraducaoRef,
+    conhecidasRef,
+    pedidosSobDemandaRef,
   });
 
   // Enunciados que chegaram ENQUANTO o modelo carregava — transcritos no flush (nada se perde).
   const pendingUtterancesRef = useRef<EnunciadoPendente[]>([]);
   // ANTI-ECO: seqs cuja fala começou enquanto o TTS do app tocava (é o nosso áudio voltando).
   const suppressedSeqsRef = useRef<Set<number>>(new Set());
+  /* REGULADOR DE DESEMPENHO (harness §4): o estado vive aqui, uma vez por tela; o pipeline o
+     alimenta a cada final local e lê dele se os parciais estão cortados. */
+  const [regulador] = useState<ReguladorDaCaptura>(() => criarReguladorDaCaptura());
+  const reguladorRef = useRef(regulador);
 
   /* O PIPELINE DE FALA (VAD → STT → diarização → emissão) e a preparação dos modelos moram em
      `lib/captura/pipelineDeFala.ts`. A fábrica roda a cada render, como as closures que
      substituiu: os handlers precisam do `micEnabled`/`micEngine` do render corrente. */
-  const { sysHandlers, micHandlers, prepareModels, preaquecerModelos } = criarPipelineDeFala({
+  const { sysHandlers, micHandlers, prepareModels, preaquecerModelos, decidirMotorDoSistema } = criarPipelineDeFala({
     gateway,
     sourceLang,
     sourceLangRef,
@@ -1080,6 +1127,8 @@ export default function LiveCapture({
     setFeedbackMsg,
     setModelPrep,
     setSttRouteLabel,
+    reguladorRef,
+    sistemaAtivo: () => !!systemCaptureRef.current,
   });
 
   /* PRÉ-AQUECE o STT/MT locais que JÁ estão em cache quando a tela abre e quando o par ou a qualidade
@@ -1131,6 +1180,9 @@ export default function LiveCapture({
     setIsRecording,
     setMicAbrindo,
     finalNaNuvem: () => gateway.stt.finalNaNuvem(),
+    perguntarEscolhaDoMic,
+    decidirMotorDoSistema,
+    aoMudarMotorDoSistema: (motor) => setSistemaNoNavegador(motor === 'web-speech-local'),
   });
 
   // Harness OFFLINE de teste (dev): injeta um PCM conhecido pelo MESMO caminho do sistema
@@ -1982,6 +2034,22 @@ export default function LiveCapture({
      tradutor aparece com o tamanho dele no diálogo "Modelo no dispositivo" e entra no aviso de download. */
   const mbDoModelo = modelosDaCaptura[0]?.mbEstimado ?? 0;
 
+  /* O download do "Privado" na pergunta do microfone: o modelo que a rota do STT carrega quando a SUA
+     voz vai ao Whisper (`micLang` = o seu idioma), no dtype deste aparelho. */
+  const mbDoMicPrivado = useMemo(() => {
+    const rota = routeStt({
+      contentLang: baseLang(targetLang),
+      micLang: baseLang(sourceLang),
+      autoDetect: autoDetectLang || autoDetectMyLang,
+      quality: sttQuality,
+      hasWebGpu: temGpu,
+      cloudAvailable: false,
+      profileId: getActiveProfile().id,
+      dispositivo: dispositivoDaRota(perfilDoAparelho),
+    });
+    return tamanhoDoDownloadMb(rota.localModel, rota.dtype);
+  }, [targetLang, sourceLang, autoDetectLang, autoDetectMyLang, sttQuality, temGpu, perfilDoAparelho]);
+
   return (
     <div className="flex-1 flex flex-col h-full bg-canvas text-ink overflow-hidden relative font-body">
       <style>{`
@@ -2218,7 +2286,9 @@ export default function LiveCapture({
                 rotulo="Quem transcreve a sua voz"
                 desc={
                   micEngine === 'browser'
-                    ? 'Reconhecimento do navegador: envia o áudio ao Google/Microsoft; precisa de internet.'
+                    ? t(
+                        'Reconhecimento do navegador: no aparelho quando ele conhece o idioma; senão, como está logo abaixo.',
+                      )
                     : 'Roda no seu computador (Moonshine em inglês, Whisper nos outros idiomas); funciona sem internet.'
                 }
               >
@@ -2242,6 +2312,43 @@ export default function LiveCapture({
                   </button>
                 </div>
               </CampoLinha>
+              {/* "RÁPIDO" OU "PRIVADO" — a mesma escolha da pergunta da primeira vez, trocável aqui.
+                  Perfil Privado e perfil protegido não têm o "Rápido" (`motorDoMicrofone.ts`). */}
+              {micEngine === 'browser' && webSpeechSupported && (
+                <CampoLinha
+                  rotulo={t('Sem reconhecimento no aparelho')}
+                  desc={
+                    getActiveProfile().id === 'local-private'
+                      ? t('Perfil Privado: a sua voz é transcrita neste aparelho.')
+                      : !rapidoDoMicPermitido()
+                        ? t('Neste perfil, a sua voz é transcrita neste aparelho.')
+                        : escolhaDoMic === 'rapido'
+                          ? t('Rápido: o áudio da sua voz vai ao Google, à Microsoft ou à Apple, conforme o navegador.')
+                          : t('Privado: a transcrição roda neste aparelho, com um modelo baixado uma vez.')
+                  }
+                >
+                  {getActiveProfile().id !== 'local-private' && rapidoDoMicPermitido() && (
+                    <div className="seg" role="radiogroup" aria-label={t('Rápido ou Privado')}>
+                      <button
+                        type="button"
+                        role="radio"
+                        aria-checked={escolhaDoMic === 'rapido'}
+                        onClick={() => trocarEscolhaDoMic('rapido')}
+                      >
+                        {t('Rápido')}
+                      </button>
+                      <button
+                        type="button"
+                        role="radio"
+                        aria-checked={escolhaDoMic !== 'rapido'}
+                        onClick={() => trocarEscolhaDoMic('privado')}
+                      >
+                        {t('Privado')}
+                      </button>
+                    </div>
+                  )}
+                </CampoLinha>
+              )}
               <CampoLinha
                 rotulo="Dispositivo"
                 desc={
@@ -2334,7 +2441,12 @@ export default function LiveCapture({
               </h3>
               <CampoLinha rotulo="Motor de IA ativo" desc={`Perfil ${activeProfileName}. Troque em Ajustes.`}>
                 <span className="badge neu">
-                  <Cpu aria-hidden /> {getProviderMode() === 'cloud' ? 'Nuvem (sua chave)' : 'Local, no dispositivo'}
+                  <Cpu aria-hidden />{' '}
+                  {sistemaNoNavegador
+                    ? t('Reconhecimento do navegador, no aparelho')
+                    : getProviderMode() === 'cloud'
+                      ? 'Nuvem (sua chave)'
+                      : 'Local, no dispositivo'}
                 </span>
               </CampoLinha>
               <CampoLinha
@@ -2372,6 +2484,32 @@ export default function LiveCapture({
                 desc="Legenda só no fim de cada frase, sem o refino ao vivo: usa bem menos processador enquanto você joga."
               >
                 <Interruptor ligado={perfMode} aoTrocar={() => setPerfMode((v) => !v)} rotulo="Modo desempenho" />
+              </CampoLinha>
+              {/* TRADUÇÃO SOB DEMANDA (M0): o padrão é traduzir tudo, como sempre. */}
+              <CampoLinha
+                rotulo={t('Tradução')}
+                desc={
+                  {
+                    sempre: t('Toda frase ganha tradução assim que termina.'),
+                    pedir: t('Nenhuma frase é traduzida sozinha: toque em "Mostrar tradução" na frase que quiser.'),
+                    novas: t(
+                      'Frases em que você já sabe todas as palavras ficam sem tradução, e dá para mostrar com um toque.',
+                    ),
+                  }[modoTraducao]
+                }
+              >
+                <select
+                  className="campo"
+                  id="modo-traducao"
+                  name="modoTraducao"
+                  aria-label={t('Tradução')}
+                  value={modoTraducao}
+                  onChange={(e) => updateSetting('traducao', modoDeTraducao(e.target.value))}
+                >
+                  <option value="sempre">{t('Sempre')}</option>
+                  <option value="pedir">{t('Só quando eu pedir')}</option>
+                  <option value="novas">{t('Só frases com palavra nova')}</option>
+                </select>
               </CampoLinha>
             </section>
 
@@ -2722,13 +2860,11 @@ export default function LiveCapture({
                       >
                         {/* Primeiro contato: o download do modelo (dezenas de MB) acontecia atrás do painel de
                       ajustes, a tela dizia "Ouvindo…" por minutos sem explicar nada. Aqui, onde a pessoa olha. */}
-                        {isRecording &&
-                          modelPrep &&
-                          !(modelPrep.done && (modelPrep.mt == null || modelPrep.mt >= 1)) && (
-                            <div className="mb-3">
-                              <ModelPrepPanel state={modelPrep} onRetry={prepareModels} />
-                            </div>
-                          )}
+                        {isRecording && modelPrep && !preparoConcluido(modelPrep) && (
+                          <div className="mb-3">
+                            <ModelPrepPanel state={modelPrep} onRetry={prepareModels} />
+                          </div>
+                        )}
                         <ChatTranscript
                           segments={speechSegments}
                           speakers={speakerProfiles}
@@ -2746,6 +2882,8 @@ export default function LiveCapture({
                           aprendidas={aprendidas}
                           onExamineWord={(w, lang, frase) => void examineWord(w, lang, frase)}
                           onSpeakWord={speakWord}
+                          onRevelarTraducao={revelarTraducao}
+                          conhecidas={conhecidas}
                         />
                       </div>
                     </div>
@@ -3002,7 +3140,7 @@ export default function LiveCapture({
               aria-live="polite"
             >
               {/* Primeiro contato: o download do modelo acontece aqui, onde a pessoa olha. */}
-              {isRecording && modelPrep && !(modelPrep.done && (modelPrep.mt == null || modelPrep.mt >= 1)) && (
+              {isRecording && modelPrep && !preparoConcluido(modelPrep) && (
                 <div className="mb-3">
                   <ModelPrepPanel state={modelPrep} onRetry={prepareModels} />
                 </div>
@@ -3029,6 +3167,8 @@ export default function LiveCapture({
                     setTimeout(() => setFeedbackMsg(''), 1500);
                   }}
                   onSpeakWord={speakWord}
+                  onRevelarTraducao={revelarTraducao}
+                  conhecidas={conhecidas}
                 />
               ) : (
                 <p className="foco-vazio">
@@ -3102,6 +3242,16 @@ export default function LiveCapture({
             </button>
           </div>
         </Dialogo>
+      )}
+
+      {/* --- "RÁPIDO" OU "PRIVADO": a primeira vez que o mic abre sem reconhecimento no aparelho --- */}
+      {pedidoDaEscolhaDoMic && (
+        <EscolhaDoMicrofone
+          mb={mbDoMicPrivado}
+          pacoteDoNavegador={privadoPeloNavegador}
+          aoEscolher={(e) => responderEscolhaDoMic(e)}
+          aoFechar={() => responderEscolhaDoMic(null)}
+        />
       )}
 
       {/* --- SAIR NO MEIO DA CAPTURA: confirma antes de perder o que já foi transcrito --- */}

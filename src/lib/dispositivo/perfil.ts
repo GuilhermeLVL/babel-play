@@ -23,6 +23,7 @@
  *   · `reduzirEfeitos()` — O SINAL ÚNICO do "modo leve" para as telas e jogos (ver abaixo).
  */
 import { temAdaptadorWebGpu, webGpuProvavel } from '../../gateway/adaptadorWebGpu';
+import type { SondaDoAparelho } from './sonda';
 
 export type TipoDeDispositivo = 'quest' | 'celular-fraco' | 'celular-bom' | 'desktop-sem-gpu' | 'desktop-com-gpu';
 
@@ -271,15 +272,48 @@ export function definirReduzirEfeitos(valor: boolean | null): void {
 }
 
 /**
- * O pedaço do perfil que o roteador de STT usa (`DispositivoDaRota` em `gateway/sttRouter.ts`,
- * estrutural para não criar ciclo de import).
+ * Os sinais da SONDA (`sonda.ts`) que viajam com a rota. Todos OPCIONAIS: sem sonda guardada a rota
+ * é a de sempre. Por ora só VIAJAM — nenhuma decisão do `sttRouter` lê estes campos ainda (a troca
+ * das regras é outra tarefa do harness adaptativo, §7).
  */
-export function dispositivoDaRota(p: PerfilDoDispositivo): {
+export interface CamposDaSondaNaRota {
+  shaderF16?: boolean;
+  limites?: { maxStorageBufferBindingSize: number; maxBufferSize: number } | null;
+  nativo?: boolean;
+  sttNoAparelho?: SondaDoAparelho['sinais']['sttNoAparelho'];
+  tradutorNativo?: SondaDoAparelho['sinais']['tradutorNativo'];
+  iOS?: boolean;
+  pontuacaoWasm?: number | null;
+  pontuacaoWebgpu?: number | null;
+}
+
+/**
+ * O pedaço do perfil que o roteador de STT usa (`DispositivoDaRota` em `gateway/sttRouter.ts`,
+ * estrutural para não criar ciclo de import). A `sonda` é a guardada (`sondaGuardada()`); o
+ * import dela aqui é SÓ de tipo — o código da sonda fica fora do chunk inicial.
+ */
+export function dispositivoDaRota(
+  p: PerfilDoDispositivo,
+  sonda?: SondaDoAparelho | null,
+): {
   tipo: TipoDeDispositivo;
   permiteSmall: boolean;
   economiaDeDados: boolean;
-} {
-  return { tipo: p.tipo, permiteSmall: p.permiteSmall, economiaDeDados: p.sinais.economiaDeDados };
+} & CamposDaSondaNaRota {
+  const base = { tipo: p.tipo, permiteSmall: p.permiteSmall, economiaDeDados: p.sinais.economiaDeDados };
+  if (!sonda) return base;
+  const s = sonda.sinais;
+  return {
+    ...base,
+    shaderF16: s.webGpu?.shaderF16 ?? false,
+    limites: s.webGpu?.limites ?? null,
+    nativo: s.nativo,
+    sttNoAparelho: s.sttNoAparelho,
+    tradutorNativo: s.tradutorNativo,
+    iOS: s.iOS,
+    pontuacaoWasm: sonda.benchmark?.pontuacaoWasm ?? null,
+    pontuacaoWebgpu: sonda.benchmark?.pontuacaoWebgpu ?? null,
+  };
 }
 
 /**

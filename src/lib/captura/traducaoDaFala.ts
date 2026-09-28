@@ -14,8 +14,22 @@ import { baseLang, langLabel } from '../languages';
 import { OrdemDasTraducoes } from '../ordemDaTraducao';
 import type { PerfilAdaptativoDeIdioma } from '../perfilDeIdioma';
 // Fala do MIC em português → português claro antes de traduzir (vícios, contrações, gíria).
+import { LIMIAR_APROXIMADA, LIMIAR_APROXIMADA_NUVEM } from '../traducao/memoriaAproximada';
+import {
+  type ArmazemDeTraducoes,
+  contarPalavras,
+  deveGuardarNaMemoria,
+  MAX_PALAVRAS_SEM_CONTEXTO,
+} from '../traducao/memoriaDeTraducao';
+import { buscarNaMemoria, memoriaPadrao } from '../traducao/memoriaEmCamadas';
 import { chaveNormalizada, prepararFala } from '../traducao/prepararFala';
 import { clog, type GatewayDaCaptura, type SpeechSegment } from './tiposDaFala';
+import {
+  type ConhecidasDaFala,
+  type ModoDeTraducao,
+  motivoParaNaoTraduzir,
+  type PedidoSobDemanda,
+} from './traducaoSobDemanda';
 
 /** O que o relógio da sessão precisa da tela. */
 export interface DepsDoRelogio {
@@ -74,6 +88,8 @@ export function marcadorDeTraducao(origem: string, destino: string): string {
 export interface OpcoesDeTraducao {
   descartarSeOcupado?: boolean;
   falada?: boolean;
+  /** A pessoa PEDIU esta tradução ("Mostrar tradução"): a preferência sob demanda não se aplica. */
+  pedida?: boolean;
 }
 
 /** O que o pipeline de MT precisa da tela. */
@@ -92,7 +108,24 @@ export interface DepsDaTraducaoDaFala {
   degradacaoAvisadaRef: RefObject<boolean>;
   setSpeechSegments: Dispatch<SetStateAction<SpeechSegment[]>>;
   setFeedbackMsg: (msg: string) => void;
+  /**
+   * Memória de tradução ENTRE SESSÕES, atrás do `translationCacheRef` da aba (IndexedDB por
+   * padrão; `null` desliga). Ver `memoriaDeTraducao.ts` para o que entra e por quê.
+   */
+  memoriaPersistente?: ArmazemDeTraducoes | null;
+  /**
+   * A preferência "Tradução" (`traducaoSobDemanda.ts`). Ausente = `sempre`, o comportamento de
+   * antes. Refs, e não valores: a fábrica é recriada a cada render e a troca vale na fala seguinte.
+   */
+  modoDeTraducaoRef?: RefObject<ModoDeTraducao>;
+  /** Palavras que o aluno já sabe (M0), para o modo `novas`. `null` = ainda não carregou. */
+  conhecidasRef?: RefObject<ConhecidasDaFala | null>;
+  /** Falas deixadas sem tradução, por id: o que "Mostrar tradução" refaz. Sobrevive aos renders. */
+  pedidosSobDemandaRef?: RefObject<Map<string, PedidoSobDemanda>>;
 }
+
+/** Motores cuja tradução quem paga pela nuvem aceita de volta da memória persistente. */
+const MOTORES_DE_NUVEM = new Set(['server-llm-mt', 'groq-llm']);
 
 /**
  * Tradução DESACOPLADA, deduplicada e com cache — nunca bloqueia a exibição do texto.
@@ -115,6 +148,7 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
     setSpeechSegments,
     setFeedbackMsg,
   } = deps;
+  const memoria = deps.memoriaPersistente === undefined ? memoriaPadrao() : deps.memoriaPersistente;
 
   /**
    * AVISA QUANDO A NUVEM CAI, em vez de degradar em silêncio.
@@ -145,12 +179,50 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
     tgtCode?: string,
     opts?: OpcoesDeTraducao,
   ) => {
+    /* SOB DEMANDA (harness §1.2, degrau M0): a preferência "Tradução" deixa a fala SEM MT — "só
+       quando eu pedir", ou "só frases com palavra nova" quando o aluno já sabe todas. Desligado por
+       padrão (`sempre`): sem a ref, nada aqui roda. Mesmo idioma não é assunto deste bloco (o
+       caminho de baixo já não traduz). O final vira "sob demanda" — sem "…", com o pedido guardado
+       para "Mostrar tradução" —, invalida a tradução de parcial em voo e conta a economia; o
+       parcial só não é pedido, e o balão espera o final. */
+    const modo = deps.modoDeTraducaoRef?.current;
+    if (modo && modo !== 'sempre' && !opts?.pedida) {
+      const falada = opts?.falada === true;
+      const origemM0 = origemDaFala(srcCode ?? sourceLangRef.current.split('-')[0], idiomaObservadoRef.current, falada);
+      const tgtM0 = tgtCode ?? targetLangRef.current.split('-')[0];
+      const parcialM0 = opts?.descartarSeOcupado === true;
+      const motivo = mesmaLingua(origemM0, tgtM0)
+        ? null
+        : motivoParaNaoTraduzir({
+            modo,
+            texto: text,
+            origem: origemM0,
+            destino: tgtM0,
+            parcial: parcialM0,
+            falada,
+            conhecidas: deps.conhecidasRef?.current,
+          });
+      if (motivo) {
+        if (parcialM0) return;
+        ordemMtRef.current.encerrar(segId, ordemMtRef.current.abrir(segId));
+        deps.pedidosSobDemandaRef?.current.set(segId, { texto: text, src: srcCode, tgt: tgtCode, falada });
+        setSpeechSegments((prev) =>
+          prev.map((seg) => (seg.id === segId ? { ...seg, translatedText: '', traducaoSobDemanda: true } : seg)),
+        );
+        capMetrics.mtPulada(motivo);
+        return;
+      }
+    }
     /* PARCIAL NÃO ENFILEIRA TRADUÇÃO. Cada refinamento do parcial gastava uma chamada de MT
        inteira que era descartada segundos depois pelo refinamento seguinte. Com uma tradução já
        em voo para este balão, o parcial seguinte simplesmente não é pedido, o decode final
        sempre traduz, então nenhum balão fica sem legenda por causa disto. */
     if (opts?.descartarSeOcupado && ordemMtRef.current.ocupado(segId)) return;
     const selo = ordemMtRef.current.abrir(segId);
+    /* O pedido é de um PARCIAL (quem pede descartar-se ocupado é só o parcial do Whisper). O gateway
+       só o traduz com motor local e, sem nenhum pronto, devolve vazio; aqui ele não degrada, não
+       avisa e não entra no cache (ver adiante). */
+    const parcial = opts?.descartarSeOcupado === true;
 
     const src = srcCode ?? sourceLangRef.current.split('-')[0];
     const tgt = tgtCode ?? targetLangRef.current.split('-')[0];
@@ -233,97 +305,156 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
       if (ordemMtRef.current.encerrar(segId, selo)) applyTranslation(cached);
       return;
     }
-    const mtT0 = performance.now();
-    // Contexto para o LLM (só na fala): as últimas 3 falas comprometidas da conversa.
-    const contexto = opts?.falada
-      ? speechSegmentsRef.current
-          .filter((s) => !s.isPartial && s.originalText && s.id !== segId)
-          .slice(-3)
-          .map((s) => `${s.source === 'mic' ? 'Eu' : 'Outro'}: ${s.originalText}`)
-      : undefined;
-
-    // Rede de segurança: a tradução NUNCA pode deixar o balão preso em "…". Se vier vazia, der
-    // erro, OU travar (timeout) — degrada para o texto ORIGINAL entre parênteses (honesto e útil
-    // offline: você ao menos lê o que foi dito). Só degrada se ainda estiver em "…" (não sobrescreve
-    // uma tradução já mostrada). `settled` evita corrida entre resposta tardia e o timeout.
-    let settled = false;
-    const degrade = () => {
-      setSpeechSegments((prev) =>
-        prev.map((seg) =>
-          seg.id === segId && seg.translatedText === '…' ? { ...seg, translatedText: `(${text})` } : seg,
-        ),
-      );
-      // Degradação NUNCA mais é silenciosa (achado da auditoria): avisa UMA vez por sessão
-      // que a tradução caiu e o que o usuário está vendo é o texto original.
-      if (!mtFailNotifiedRef.current) {
-        mtFailNotifiedRef.current = true;
-        setFeedbackMsg(
-          'Tradução indisponível agora (motores locais e web falharam), mostrando o texto original entre parênteses.',
-        );
-        setTimeout(() => setFeedbackMsg(''), 8000);
-      }
-    };
-    const timeout = setTimeout(() => {
-      if (settled) return;
-      settled = true;
-      if (ordemMtRef.current.encerrar(segId, selo)) degrade();
-    }, 8000);
-
-    /* `origem` já caiu para o idioma OBSERVADO da sessão quando esta fala não foi detectada —
-       ver o bloco acima. Só chega `null` aqui quando nem o perfil convergiu ainda, e aí o
-       Tradutor IA do servidor detecta a origem sozinho, como antes. */
     /* Quem paga pela nuvem manda também o áudio do SISTEMA primeiro ao LLM do servidor (Fase 2 do
        lançamento); a fala do microfone já ia. Sem o plano, a cascata local de sempre. */
     const nuvemPrimeiro = getEntitlements().managedCloudLlm;
-    gateway.mt
-      .translate(textoParaMt, origem || null, tgt, {
-        falada: opts?.falada === true,
-        contexto,
-        nuvemPrimeiro,
-        // Parcial é descartável: o tradutor local o põe atrás do final e o interrompe quando o final chega.
-        parcial: opts?.descartarSeOcupado === true,
-      })
-      .then(({ text: translated, engine, approximate }) => {
-        if (settled) return; // timeout já degradou → ignora resposta tardia
-        settled = true;
-        clearTimeout(timeout);
-        capMetrics.mt(Math.round(performance.now() - mtT0), engine || 'mt');
-        avisarSeDegradou(engine, opts?.falada === true || nuvemPrimeiro);
-        // `atual` = este pedido ainda é o mais recente do balão. Um resultado ATRASADO não escreve
-        // na tela (sobrescreveria a tradução do final pelo texto pela metade), mas ainda é uma
-        // tradução válida deste texto: entra no cache, e o próximo pedido igual chega instantâneo.
-        const atual = ordemMtRef.current.encerrar(segId, selo);
-        if (!translated) {
-          if (atual) degrade();
-          return;
-        } // vazio → degrada (antes: ficava em "…")
-        translationCacheRef.current.set(cacheKey, translated);
-        if (translationCacheRef.current.size > 300) {
-          const firstKey = translationCacheRef.current.keys().next().value;
-          if (firstKey !== undefined) translationCacheRef.current.delete(firstKey);
+
+    const traduzir = () => {
+      const mtT0 = performance.now();
+      /* Contexto para o LLM (só na fala): as últimas 3 falas comprometidas da conversa. FALA CURTA
+         (≤ 4 palavras) VAI SEM CONTEXTO: "thank you", "ok", "let's go" se traduzem iguais em qualquer
+         conversa, e o contexto entra na chave do cache do SERVIDOR — com ele, a mesma frase nunca
+         acertava o cache de lá (auditoria de eficiência da IA, 2026-09-28, achado 2). */
+      const contexto =
+        opts?.falada && contarPalavras(textoParaMt) > MAX_PALAVRAS_SEM_CONTEXTO
+          ? speechSegmentsRef.current
+              .filter((s) => !s.isPartial && s.originalText && s.id !== segId)
+              .slice(-3)
+              .map((s) => `${s.source === 'mic' ? 'Eu' : 'Outro'}: ${s.originalText}`)
+          : undefined;
+
+      // Rede de segurança: a tradução NUNCA pode deixar o balão preso em "…". Se vier vazia, der
+      // erro, OU travar (timeout) — degrada para o texto ORIGINAL entre parênteses (honesto e útil
+      // offline: você ao menos lê o que foi dito). Só degrada se ainda estiver em "…" (não sobrescreve
+      // uma tradução já mostrada). `settled` evita corrida entre resposta tardia e o timeout.
+      // O PARCIAL nunca degrada: o balão dele espera o final, que traduz (e degrada, se for o caso).
+      let settled = false;
+      const degrade = () => {
+        if (parcial) return;
+        setSpeechSegments((prev) =>
+          prev.map((seg) =>
+            seg.id === segId && seg.translatedText === '…' ? { ...seg, translatedText: `(${text})` } : seg,
+          ),
+        );
+        // Degradação NUNCA mais é silenciosa (achado da auditoria): avisa UMA vez por sessão
+        // que a tradução caiu e o que o usuário está vendo é o texto original.
+        if (!mtFailNotifiedRef.current) {
+          mtFailNotifiedRef.current = true;
+          setFeedbackMsg(
+            'Tradução indisponível agora (motores locais e web falharam), mostrando o texto original entre parênteses.',
+          );
+          setTimeout(() => setFeedbackMsg(''), 8000);
         }
-        if (atual) applyTranslation(translated, approximate === true);
-      })
-      .catch((err) => {
+      };
+      const timeout = setTimeout(() => {
         if (settled) return;
         settled = true;
-        clearTimeout(timeout);
-        // Parcial atropelado pelo final da mesma fala: não é erro, e o balão já espera a tradução do final.
-        if (ehCancelamento(err)) {
-          ordemMtRef.current.encerrar(segId, selo);
-          return;
-        }
-        console.warn('Live translation error:', err);
-        /* Sem rota para o par (ex.: um idioma detectado errado, sem tradutor): a fala NÃO fica sem
-           legenda — `degrade` mostra o original — e o motivo vai para o log da captura. */
-        clog(
-          'tradução falhou:',
-          segId,
-          `${origem || '?'}→${tgt}`,
-          String((err as Error)?.message ?? err).slice(0, 120),
-        );
         if (ordemMtRef.current.encerrar(segId, selo)) degrade();
-      });
+      }, 8000);
+
+      /* `origem` já caiu para o idioma OBSERVADO da sessão quando esta fala não foi detectada —
+         ver o bloco acima. Só chega `null` aqui quando nem o perfil convergiu ainda, e aí o
+         Tradutor IA do servidor detecta a origem sozinho, como antes. */
+      gateway.mt
+        .translate(textoParaMt, origem || null, tgt, {
+          falada: opts?.falada === true,
+          contexto,
+          nuvemPrimeiro,
+          // Parcial é descartável e só local: o gateway não o manda à nuvem, e o tradutor local o põe
+          // atrás do final e o interrompe quando o final chega.
+          parcial,
+          /* Porta de qualidade do FINAL (harness §5): a tradução local ruim sobe à nuvem — só para
+             quem tem o plano (grátis fica com o local; o consentimento o gateway confere). */
+          escalarSeRuim: !parcial && nuvemPrimeiro,
+        })
+        .then(({ text: translated, engine, approximate }) => {
+          if (settled) return; // timeout já degradou → ignora resposta tardia
+          settled = true;
+          clearTimeout(timeout);
+          // `atual` = este pedido ainda é o mais recente do balão. Um resultado ATRASADO não escreve
+          // na tela (sobrescreveria a tradução do final pelo texto pela metade), mas ainda é uma
+          // tradução válida deste texto: entra no cache, e o próximo pedido igual chega instantâneo.
+          const atual = ordemMtRef.current.encerrar(segId, selo);
+          // Parcial sem tradutor local pronto: nada foi traduzido, nada a medir nem a avisar.
+          if (parcial && !translated) return;
+          capMetrics.mt(Math.round(performance.now() - mtT0), engine || 'mt');
+          // O parcial nunca vai à nuvem: vir do motor local é o esperado, não degradação.
+          if (!parcial) avisarSeDegradou(engine, opts?.falada === true || nuvemPrimeiro);
+          if (!translated) {
+            if (atual) degrade();
+            return;
+          } // vazio → degrada (antes: ficava em "…")
+          /* Só a tradução do FINAL entra no cache. A do parcial vem do motor local (literal) e de um
+             texto que muda: se o final chegasse igual, quem paga receberia do cache a literal em vez
+             da nuvem. */
+          if (!parcial) {
+            translationCacheRef.current.set(cacheKey, translated);
+            if (translationCacheRef.current.size > 300) {
+              const firstKey = translationCacheRef.current.keys().next().value;
+              if (firstKey !== undefined) translationCacheRef.current.delete(firstKey);
+            }
+            // Entre sessões, só fala curta e tradução garantida (ver `memoriaDeTraducao.ts`).
+            if (memoria && approximate !== true && deveGuardarNaMemoria(textoParaMt))
+              void memoria.gravar(cacheKey, translated, engine || 'mt');
+          }
+          if (atual) applyTranslation(translated, approximate === true);
+        })
+        .catch((err) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timeout);
+          // Parcial atropelado pelo final da mesma fala: não é erro, e o balão já espera a tradução do final.
+          if (ehCancelamento(err)) {
+            ordemMtRef.current.encerrar(segId, selo);
+            return;
+          }
+          console.warn('Live translation error:', err);
+          /* Sem rota para o par (ex.: um idioma detectado errado, sem tradutor): a fala NÃO fica sem
+             legenda — `degrade` mostra o original — e o motivo vai para o log da captura. */
+          clog(
+            'tradução falhou:',
+            segId,
+            `${origem || '?'}→${tgt}`,
+            String((err as Error)?.message ?? err).slice(0, 120),
+          );
+          if (ordemMtRef.current.encerrar(segId, selo)) degrade();
+        });
+    };
+
+    if (!memoria) {
+      traduzir();
+      return;
+    }
+    /* MEMÓRIA ENTRE SESSÕES, atrás do cache da aba. Quem paga pela nuvem só aceita de volta o que a
+       nuvem traduziu — a tradução literal do motor local, guardada quando a pessoa ainda não pagava,
+       não pode substituir a que ela está pagando. O armazém não rejeita (falha = `undefined`); o
+       segundo ramo existe para que nem um defeito dele deixe o balão sem tradução.
+       APROXIMADA (`memoriaAproximada.ts`): a tradução de uma frase PARECIDA, com diferença segura —
+       0,9 no grátis, 0,97 para quem paga. Não entra no cache da aba (lá só mora a exata) e, quando a
+       frase não é a mesma nem de pontuação (similaridade < 1), o balão ganha o "≈". */
+    buscarNaMemoria(memoria, cacheKey, {
+      consultaOriginal: textoParaMt,
+      limiar: nuvemPrimeiro ? LIMIAR_APROXIMADA_NUVEM : LIMIAR_APROXIMADA,
+      aceitarMotor: nuvemPrimeiro ? (m) => MOTORES_DE_NUVEM.has(m) : undefined,
+    }).then(
+      (guardada) => {
+        if (!guardada) return traduzir();
+        if (guardada.aproximada)
+          clog(
+            'memória aproximada:',
+            guardada.camada,
+            guardada.similaridade.toFixed(3),
+            JSON.stringify(text).slice(0, 60),
+          );
+        else translationCacheRef.current.set(cacheKey, guardada.texto);
+        if (ordemMtRef.current.encerrar(segId, selo))
+          applyTranslation(guardada.texto, guardada.aproximada && guardada.similaridade < 1);
+      },
+      (err: unknown) => {
+        clog('memória de tradução falhou na leitura, seguindo sem ela:', String(err).slice(0, 120));
+        traduzir();
+      },
+    );
   };
 
   /** Balões que degradaram para "(texto original)" voltam a "…" e pedem tradução de novo. */
@@ -350,5 +481,21 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
     });
   };
 
-  return { translateSegment, retraduzirDegradados };
+  /**
+   * "Mostrar tradução" de uma fala deixada sob demanda: UMA tradução, pelo caminho normal (cache,
+   * memória, MT), com os mesmos idiomas do pedido original. O pedido é consumido — dois toques não
+   * pagam duas vezes.
+   */
+  const revelarTraducao = (segId: string) => {
+    const pedidos = deps.pedidosSobDemandaRef?.current;
+    const pedido = pedidos?.get(segId);
+    if (!pedido) return;
+    pedidos!.delete(segId);
+    setSpeechSegments((prev) =>
+      prev.map((seg) => (seg.id === segId ? { ...seg, translatedText: '…', traducaoSobDemanda: undefined } : seg)),
+    );
+    translateSegment(segId, pedido.texto, pedido.src, pedido.tgt, { falada: pedido.falada, pedida: true });
+  };
+
+  return { translateSegment, retraduzirDegradados, revelarTraducao };
 }

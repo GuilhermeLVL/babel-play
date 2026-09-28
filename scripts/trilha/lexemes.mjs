@@ -191,13 +191,59 @@ export function escolherPorCognato(palavra, candidatas) {
   return melhorPerto <= 0.34 ? melhor : candidatas[0];
 }
 
+/** Nativos de escrita latina — é para eles que o filtro de escrita vale. */
+const NATIVO_LATINO = new Set(['pt', 'en', 'es', 'fr', 'it', 'de', 'nl', 'sv', 'pl', 'tr']);
+
+/**
+ * A glosa está na ESCRITA do nativo? O Wikidata tem lexemas "portugueses" em aljamiado (português
+ * em letra árabe), e o par por P5137 os devolvia como tradução: `casa` saía `كَاجَ` em es, fr, it,
+ * nl, pl, ru — ~220 entradas nos pacotes de 2026-09. Mesma régua de `glosaServe` no app.
+ */
+export function escritaServe(glosa, nativo) {
+  if (!NATIVO_LATINO.has(nativo)) return true;
+  return !/(?!\p{Script=Latin})\p{L}/u.test(String(glosa));
+}
+
 /** Wikidata primeiro (curado, CC0); Wikcionário preenche o resto. */
 export async function glosas(praticado, nativo) {
   const doWikidata = await glosasDoPar(praticado, nativo);
   const doWikcionario = await glosasDoWikcionario(praticado, nativo);
   const mapa = new Map(doWikcionario);
-  for (const [k, v] of doWikidata) mapa.set(k, v);
+  /* O filtro de escrita vem ANTES da precedência: se a glosa do Wikidata está em aljamiado, a do
+     Wikcionário fica. Filtrar depois apagava as duas — `día` e `casa` saíam sem glosa nenhuma. */
+  for (const [k, v] of doWikidata) if (escritaServe(v, nativo)) mapa.set(k, v);
+  for (const [k, v] of mapa) if (!escritaServe(v, nativo)) mapa.delete(k);
   return { mapa, doWikidata: doWikidata.size, doWikcionario: doWikcionario.size };
+}
+
+/**
+ * O DICIONÁRIO DO TOQUE (harness §1.2, M1) — maior que a trilha, que para em ~6 mil palavras por
+ * nível de estudo. Glosas dos `limite` lemas mais frequentes que têm glosa, e o mapa forma→lema das
+ * formas frequentes cujo lema entrou (é o que faz `hablo` achar `hablar` no app sem regra).
+ *
+ * `bruta` é a lista de frequência CRUA (com conjugações), na ordem do corpus.
+ */
+export function montarDicionario({ bruta, mapaDeLemas, glosas: mapaDeGlosas, limite, lang, nativo }) {
+  const saida = {};
+  /* Contador, não `Object.keys(saida).length` a cada volta: quando o idioma não tem `limite` lemas
+     com glosa, o laço corre a lista inteira (~1 milhão de entradas) e a contagem por chaves o
+     tornava quadrático — mais de dez minutos por idioma em vez de segundos. */
+  let n = 0;
+  for (const { palavra } of lematizar(bruta, mapaDeLemas, lang)) {
+    if (n >= limite) break;
+    const chave = String(palavra).toLowerCase();
+    const g = mapaDeGlosas.get(chave);
+    if (g && escritaServe(g, nativo) && !(chave in saida)) { saida[chave] = g; n++; }
+  }
+  const formas = {};
+  for (const { palavra } of bruta ?? []) {
+    const forma = String(palavra).toLowerCase();
+    const lema = mapaDeLemas.get(forma);
+    if (lema && lema.toLowerCase() !== forma && saida[lema.toLowerCase()] && !(forma in saida)) {
+      formas[forma] = lema.toLowerCase();
+    }
+  }
+  return { glosas: saida, formas };
 }
 
 /**

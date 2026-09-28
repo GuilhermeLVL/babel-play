@@ -22,6 +22,28 @@ Todo par palavra↔tradução passou por validação de **ida e volta**: a entra
 precisa listar a palavra inglesa entre as traduções dela. Sem isso, `body` virava "morto" e
 `story` virava "andar" — sentidos raros escolhidos como principais.
 
+## Glosas por par e dicionário do toque — `public/glosas/<xx>-pt.json`
+
+Quinze pares (ar, de, es, fr, he, hi, it, ja, ko, nl, pl, ru, sv, tr, zh → pt). Cada arquivo traz
+as glosas das palavras da trilha, o dicionário do toque em palavra (até 10 mil lemas mais
+frequentes com glosa) e o mapa `formas` (forma flexionada → lema). Regerados em **2026-09-28**
+com `scripts/trilha/gerar.mjs <xx> --so-glosas --dicionario=10000`, sem mexer na trilha publicada.
+
+- **Wikcionário em português**, extrato do Wiktextract publicado no kaikki.org em **2026-09-25**
+  (`pt-extract.jsonl.gz`) — licença **CC BY-SA**. É a fonte da maior parte das glosas.
+  <https://kaikki.org/dictionary/downloads/pt/pt-extract.jsonl.gz> · <https://pt.wiktionary.org/>
+  Citação do Wiktextract: Tatu Ylonen, "Wiktextract: Wiktionary as Machine-Readable Structured
+  Data", LREC 2022, pp. 1317–1325.
+- **Wikidata Lexemes** — **CC0**, consultado pelo SPARQL em 2026-09-28: pares por `P5137` (com
+  prioridade sobre o Wikcionário) e formas → lema.
+- **FrequencyWords** (hermitdave, dados OpenSubtitles, CC BY-SA 4.0) — só a ORDEM dos lemas.
+- As `frases` traduzidas de cada arquivo vêm do Tatoeba (CC BY 2.0 FR) e foram conservadas da
+  geração anterior.
+
+Diferente do inglês, estes pares **não** passam pela ida e volta. E glosa fora da escrita latina é
+descartada: o Wikidata tem lexemas "portugueses" em aljamiado (português em letra árabe), e a
+geração anterior publicava 113 deles (`casa` → `كَاجَ`). Nesses casos vale a glosa do Wikcionário.
+
 ## Frases de exemplo — **Tatoeba**, licença **CC BY 2.0 FR**
 
 As frases inglesas e as traduções portuguesas vêm do [Tatoeba](https://tatoeba.org), sob

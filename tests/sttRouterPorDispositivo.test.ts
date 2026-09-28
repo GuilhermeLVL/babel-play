@@ -104,6 +104,17 @@ describe('inglês por perfil', () => {
   it('moonshine é sempre q8', () => {
     expect(routeStt({ ...base, contentLang: 'en', dispositivo: quest }).dtype).toBe('q8')
   })
+
+  it('com nuvem: inglês vai à nuvem primeiro em todo aparelho, e a reserva é o moonshine do aparelho', () => {
+    const nuvem = { ...base, contentLang: 'en', cloudAvailable: true }
+    expect(routeStt({ ...nuvem, dispositivo: celularFraco })).toMatchObject({
+      preferCloud: true,
+      localModel: MOONSHINE_MODELS.tiny,
+      dtype: 'q8',
+    })
+    for (const dispositivo of [quest, celularBom, desktopGpu, desktopSemGpu])
+      expect(routeStt({ ...nuvem, dispositivo })).toMatchObject({ preferCloud: true, localModel: MOONSHINE_MODELS.base })
+  })
 })
 
 describe('sem perfil informado, o comportamento é o de antes', () => {

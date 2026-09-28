@@ -6,9 +6,11 @@
  * inglês — em PT-BR (e outros idiomas) ele erra feio ("fellowo americano"). O produto
  * não pode soar quebrado justamente no idioma nativo do usuário. A régua:
  *
- *   EN            → moonshine-base local (só inglês, MIT; na bancada FLEURS 2026-09-24: 10,9% de
- *                   WER contra 19,7% do whisper-tiny, ~0% de alucinação em silêncio contra 70,6%,
- *                   e ~67 MB contra 117 MB — ver `adapters/moonshine.ts`).
+ *   EN            → NUVEM primeiro quando disponível (4,9% de WER contra 13,5% do Moonshine na
+ *                   bancada 2026-09), com o moonshine como reserva local; sem nuvem → moonshine-base
+ *                   local (só inglês, MIT; na bancada FLEURS 2026-09-24: 10,9% de WER contra 19,7%
+ *                   do whisper-tiny, ~0% de alucinação em silêncio contra 70,6%, e ~67 MB contra
+ *                   117 MB — ver `adapters/moonshine.ts`).
  *   não-EN / auto → NUVEM primeiRO quando disponível (Groq whisper-large-v3-turbo —
  *                   a melhor qualidade multilíngue, ~1s/trecho), com modelo LOCAL de
  *                   reserva; sem nuvem → small (WebGPU) ou base (WASM: small é lento
@@ -266,6 +268,18 @@ export function routeStt(input: SttRouteInput): SttRoute {
       };
     case 'auto':
     default: {
+      /* INGLÊS DE QUEM TEM NUVEM VAI À NUVEM (auditoria de eficiência 2026-09-28, achado 5). Antes o
+         inglês saía aqui, no Moonshine local, ANTES de olhar a nuvem: quem paga recebia 13,5% de WER
+         no lugar dos 4,9% do large-v3-turbo (bancada 2026-09). O Moonshine continua como RESERVA —
+         menor e melhor em inglês que o Whisper base (67 MB, ou 32 no celular fraco) — e continua o
+         motor de quem não tem nuvem. */
+      if (isEnglish && cloudAllowed)
+        return {
+          localModel: moonshineAuto,
+          dtype: 'q8',
+          preferCloud: true,
+          label: 'nuvem (large-v3-turbo) · reserva local',
+        };
       if (isEnglish) return moonshine(moonshineAuto, 'local · inglês (moonshine)');
       if (cloudAllowed) {
         // Reserva base: se a nuvem cair no meio da sessão, a qualidade local não desaba p/ tiny.

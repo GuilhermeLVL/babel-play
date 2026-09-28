@@ -18,7 +18,7 @@ let h: EphemeralDb
 let mtTranslateProxy: any
 let subs: any
 let counters: any
-let esvaziar: () => void
+let esvaziar: () => Promise<void>
 
 const mes = () => new Date().toISOString().slice(0, 7)
 
@@ -48,13 +48,13 @@ afterAll(async () => {
   delete process.env.AUTH_REQUIRED
   await h.cleanup()
 })
-afterEach(() => {
+afterEach(async () => {
   vi.unstubAllGlobals()
   vi.useRealTimers()
   delete process.env.GROQ_API_KEY
   delete process.env.LLM_MODEL_GRANDE
   esquecerDisjuntores()
-  esvaziar()
+  await esvaziar()
 })
 
 async function comPlano(id: string, plan: 'pro' | 'essencial') {

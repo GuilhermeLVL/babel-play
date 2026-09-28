@@ -161,6 +161,17 @@ describe('estado de agora: disjuntor, uploads, cache', () => {
     expect(corpo).toContain('ia_cache_traducao_entradas')
   })
 
+  it('cache de tradução por nível: L1 (memória) e L2 (SQLite), acertos e faltas', async () => {
+    m.contarNivelDoCacheDeTraducao('l1', false)
+    m.contarNivelDoCacheDeTraducao('l2', true)
+    m.contarNivelDoCacheDeTraducao('l2', false)
+    m.contarNivelDoCacheDeTraducao('l2', false)
+    const corpo = await scrape()
+    expect(valor(corpo, 'ia_cache_traducao_nivel_total{nivel="l1",resultado="falta"}')).toBe(1)
+    expect(valor(corpo, 'ia_cache_traducao_nivel_total{nivel="l2",resultado="acerto"}')).toBe(1)
+    expect(valor(corpo, 'ia_cache_traducao_nivel_total{nivel="l2",resultado="falta"}')).toBe(2)
+  })
+
   it('backup: último sucesso, tamanho e falhas', async () => {
     m.observarBackup({ ok: true, bytes: 1234 })
     m.observarBackup({ ok: false })

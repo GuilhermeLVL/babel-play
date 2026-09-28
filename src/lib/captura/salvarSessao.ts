@@ -38,6 +38,7 @@ import { play } from '../soundFx';
 import { SpeakerClusterer } from '../speakerCluster';
 import { preloadSpeakerId } from '../speakerId';
 import { explicarParada, traduzirVersos } from '../versosDoVocabulario';
+import { criarProgressoDosPacotesNativos } from './pacotesNativos';
 import {
   type CaptureScenario,
   clog,
@@ -244,6 +245,25 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
     // preparação carrega o STT e depois UM tradutor; o outro sentido carrega na primeira tradução.
     const s = sourceLang.split('-')[0],
       t = targetLang.split('-')[0];
+    /* TRADUTOR NATIVO NO CLIQUE: este é o gesto do usuário que a Translator API exige para baixar o
+       pacote de idioma. Vem ANTES do aquecimento: o `warmup`/`preload` do opus-mt esperam por esta
+       preparação e não baixam os 113 MB quando o nativo do navegador já traduz o par. */
+    /* O PROGRESSO DO PACOTE vai à MESMA barra de preparo do Whisper/opus-mt (`pacotesNativos.ts`);
+       falhou, a linha some sem toast e o opus-mt segue. Parou a captura: o progresso tardio não
+       reabre o painel. */
+    const pacotes = criarProgressoDosPacotesNativos({
+      setModelPrep,
+      ativo: () => isRecordingRef.current,
+      clog,
+    });
+    void gateway.mt.prepararNativo(
+      [
+        [s, t],
+        [t, s],
+      ],
+      pacotes.tradutor.progresso,
+      pacotes.tradutor.falhou,
+    );
     if (!perfilDoDispositivo().poucaMemoria)
       gateway.mt.warmup([
         [s, t],

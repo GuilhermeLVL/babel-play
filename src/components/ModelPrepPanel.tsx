@@ -1,6 +1,8 @@
 import { AlertTriangle, CheckCircle2, Download, HardDriveDownload,Loader2, RotateCw } from 'lucide-react';
 import React from 'react';
 
+import { t } from '../lib/i18n';
+
 /**
  * Painel de PREPARAÇÃO DO MODELO local — honesto e visível (antes: uma barrinha de 1.5px no
  * rodapé que sumia/reaparecia e parecia "re-download a cada captura").
@@ -9,6 +11,8 @@ import React from 'react';
  *   de re-download quando os pesos JÁ estão no Cache Storage).
  * - Duas barras: Whisper (transcrição) e Tradutor (opus-mt) — o opus-mt antes baixava sem barra.
  * - Estado de erro com botão "Tentar de novo" (observabilidade de falha de download).
+ * - Pacotes de idioma DO NAVEGADOR (Translator, reconhecimento no aparelho) como mais linhas do mesmo
+ *   painel (`nativos`, estágio 4) — sem painel novo nem visual novo.
  */
 export interface ModelPrepState {
   whisper: number | null; // 0..1 ou null (ocioso/pronto)
@@ -19,6 +23,12 @@ export interface ModelPrepState {
   fromCache: boolean;
   error: string | null;
   done: boolean;
+  /**
+   * Pacotes de idioma DO NAVEGADOR baixando (estágio 4): o do Translator (0..1) e o de voz do
+   * reconhecimento no aparelho (`null` = sem porcentagem, `install()` não informa). Ausente = nenhum.
+   * Quem mexe é `lib/captura/pacotesNativos.ts`.
+   */
+  nativos?: { tradutor?: number | null; voz?: number | null };
 }
 
 function Bar({ label, progress, bytes }: { label: string; progress: number | null; bytes?: { loaded: number; total: number } | null }) {
@@ -57,6 +67,12 @@ export default function ModelPrepPanel({
   compact?: boolean;
 }) {
   const { whisper, mt, fromCache, error, done, whisperBytes, mtBytes } = state;
+  const nativos = state.nativos ?? {};
+  const temNativos = Object.keys(nativos).length > 0;
+  /* Só os pacotes do navegador (nenhum modelo nosso em preparo): o painel fala deles, sem a linha
+     do Whisper e sem prometer "uma vez só" de um download que não é nosso. */
+  const soNativos = temNativos && whisper === null && mt === null;
+  const nativosProntos = Object.values(nativos).every((p) => p != null && p >= 1);
 
   if (error) {
     return (
@@ -80,7 +96,7 @@ export default function ModelPrepPanel({
     );
   }
 
-  if (done) {
+  if (done && nativosProntos) {
     return (
       <div className={`flex items-center justify-center gap-2 text-[13px] font-semibold text-good ${compact ? '' : 'py-2'}`}>
         <CheckCircle2 className="w-4 h-4" /> Modelo pronto, no dispositivo, offline.
@@ -91,15 +107,27 @@ export default function ModelPrepPanel({
   return (
     <div className={`rounded-xl border border-border-subtle bg-surface p-4 space-y-3 ${compact ? 'max-w-sm mx-auto' : ''}`}>
       <div className="flex items-center gap-2 text-[13px] font-bold text-ink">
-        {fromCache ? <HardDriveDownload className="w-4 h-4 text-accent" /> : <Download className="w-4 h-4 text-accent" />}
-        {fromCache ? 'Carregando modelo (já em cache)…' : 'Baixando modelo (uma vez só)…'}
+        {fromCache && !soNativos ? (
+          <HardDriveDownload className="w-4 h-4 text-accent" />
+        ) : (
+          <Download className="w-4 h-4 text-accent" />
+        )}
+        {soNativos
+          ? t('Baixando o pacote de idioma do navegador…')
+          : fromCache
+            ? 'Carregando modelo (já em cache)…'
+            : 'Baixando modelo (uma vez só)…'}
       </div>
-      <Bar label="Transcrição (Whisper)" progress={whisper} bytes={whisperBytes} />
+      {!soNativos && <Bar label="Transcrição (Whisper)" progress={whisper} bytes={whisperBytes} />}
       {mt !== null && <Bar label="Tradutor (opus-mt)" progress={mt} bytes={mtBytes} />}
+      {nativos.voz !== undefined && <Bar label={t('Reconhecimento de voz do navegador')} progress={nativos.voz} />}
+      {nativos.tradutor !== undefined && <Bar label={t('Tradutor do navegador')} progress={nativos.tradutor} />}
       <p className="text-[11px] text-ink-muted leading-relaxed">
-        {fromCache
-          ? 'Os pesos já estão no seu navegador, nada é baixado de novo.'
-          : 'Roda 100% no seu dispositivo depois de baixar. Recarregar a página não baixa de novo.'}
+        {soNativos
+          ? t('O pacote é do próprio navegador: grátis, baixa uma vez só e nada sai do aparelho.')
+          : fromCache
+            ? 'Os pesos já estão no seu navegador, nada é baixado de novo.'
+            : 'Roda 100% no seu dispositivo depois de baixar. Recarregar a página não baixa de novo.'}
       </p>
     </div>
   );

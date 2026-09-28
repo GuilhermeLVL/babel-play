@@ -10,6 +10,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
   classificarDispositivo,
+  dispositivoDaRota,
   lerSinaisDoDispositivo,
   marcarDispositivoNoDocumento,
   REDUZIR_EFEITOS_KEY,
@@ -319,5 +320,85 @@ describe('reduzirEfeitosMedido — o automático com a resposta real do adaptado
     const { reduzirEfeitosMedido } = await import('../src/lib/dispositivo/perfil')
     vi.stubGlobal('localStorage', { getItem: () => 'false', setItem: () => undefined, removeItem: () => undefined })
     expect(await reduzirEfeitosMedido()).toBeNull()
+  })
+})
+
+describe('dispositivoDaRota + sonda (campos novos, sem mudar a decisão)', () => {
+  it('sem sonda: exatamente os três campos de sempre', () => {
+    expect(dispositivoDaRota(classificarDispositivo(desktop))).toStrictEqual({
+      tipo: 'desktop-com-gpu',
+      permiteSmall: true,
+      economiaDeDados: false,
+    })
+  })
+
+  it('com sonda: expõe f16, limites, nativo, STT/tradutor no aparelho, iOS e pontuações', () => {
+    const sonda = {
+      esquema: 1 as const,
+      versaoDoApp: 'v',
+      impressao: 'i',
+      medidaEm: 0,
+      sinais: {
+        webGpu: {
+          shaderF16: true,
+          limites: { maxStorageBufferBindingSize: 128, maxBufferSize: 256 },
+          fornecedor: 'amd',
+          arquitetura: '',
+        },
+        sttNoAparelho: { ptBR: 'downloadable' as const, en: 'available' as const },
+        tradutorNativo: true,
+        armazenamento: null,
+        nativo: false,
+        iOS: false,
+        bateria: true,
+        pressao: false,
+      },
+      benchmark: { pontuacaoWasm: 1.5, pontuacaoWebgpu: 30, melhor: 'webgpu' as const, medidoEm: 0, duracaoMs: 1 },
+      modelosProibidos: [],
+      motivosDaProibicao: {},
+    }
+    expect(dispositivoDaRota(classificarDispositivo(desktop), sonda)).toStrictEqual({
+      tipo: 'desktop-com-gpu',
+      permiteSmall: true,
+      economiaDeDados: false,
+      shaderF16: true,
+      limites: { maxStorageBufferBindingSize: 128, maxBufferSize: 256 },
+      nativo: false,
+      sttNoAparelho: { ptBR: 'downloadable', en: 'available' },
+      tradutorNativo: true,
+      iOS: false,
+      pontuacaoWasm: 1.5,
+      pontuacaoWebgpu: 30,
+    })
+  })
+
+  it('sonda sem adaptador nem benchmark: f16 falso, limites e pontuações nulos', () => {
+    const r = dispositivoDaRota(classificarDispositivo(desktop), {
+      esquema: 1,
+      versaoDoApp: 'v',
+      impressao: 'i',
+      medidaEm: 0,
+      sinais: {
+        webGpu: null,
+        sttNoAparelho: { ptBR: null, en: null },
+        tradutorNativo: false,
+        armazenamento: null,
+        nativo: true,
+        iOS: true,
+        bateria: false,
+        pressao: false,
+      },
+      benchmark: null,
+      modelosProibidos: [],
+      motivosDaProibicao: {},
+    })
+    expect(r).toMatchObject({
+      shaderF16: false,
+      limites: null,
+      nativo: true,
+      iOS: true,
+      pontuacaoWasm: null,
+      pontuacaoWebgpu: null,
+    })
   })
 })

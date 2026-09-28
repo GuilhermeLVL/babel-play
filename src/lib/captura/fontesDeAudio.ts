@@ -8,10 +8,12 @@
 import type { Dispatch, RefObject, SetStateAction } from 'react';
 
 import type { ModelPrepState } from '../../components/ModelPrepPanel';
+import { getActiveProfile } from '../../gateway/activeProfile';
 import { WebSpeechStt } from '../../gateway/adapters/webSpeech';
 import type { SttSession } from '../../gateway/capabilities';
 import {
   type AudioCapture,
+  type EspeculacaoDoFinal,
   MAX_SPEECH_MS_LOCAL,
   MAX_SPEECH_MS_NUVEM,
   type OpcoesDeCaptura,
@@ -21,16 +23,39 @@ import {
   startSystemLoopbackCapture,
 } from '../../gateway/capture/systemAudio';
 import { filterLoopbackDevices, listDevices } from '../audioDevices';
+import {
+  consentiuReconhecimentoDoNavegador,
+  escolhaDoMicGuardada,
+  rapidoDoMicPermitido,
+} from '../consentimentoDeNuvem';
+import { t } from '../i18n';
 import { isTtsActive } from '../tts';
-import { clog, formatTime, type HandlersDaFonte, type SpeechSegment, wordsFromText } from './tiposDaFala';
+import { type EscolhaDoMic, resolverMotorDoMic } from './motorDoMicrofone';
+import { criarProgressoDosPacotesNativos } from './pacotesNativos';
+import type { OpcoesDaPreparacao } from './pipelineDeFala';
+import { segmentosDaWebSpeech } from './segmentosDaWebSpeech';
+import { clog, type HandlersDaFonte, type SpeechSegment } from './tiposDaFala';
 import type { OpcoesDeTraducao } from './traducaoDaFala';
+import {
+  type ControleDaWebSpeechDoSistema,
+  type DecisaoDoMotorDoSistema,
+  iniciarWebSpeechDoSistema,
+  type MotorDoSistema,
+} from './webSpeechDoSistema';
 
 /** Tudo que as fontes precisam da tela — por parâmetro, sem contexto novo nem store global. */
 export interface DepsDasFontesDeAudio {
   /* --- o pipeline que consome o áudio --- */
   sysHandlers: HandlersDaFonte;
   micHandlers: HandlersDaFonte;
-  prepareModels: () => Promise<void>;
+  prepareModels: (opcoes?: OpcoesDaPreparacao) => Promise<void>;
+  /**
+   * O áudio da aba/sistema vai à Web Speech NO APARELHO? (`webSpeechDoSistema.ts`). Sem ele, o
+   * caminho de sempre, como antes.
+   */
+  decidirMotorDoSistema?: () => Promise<DecisaoDoMotorDoSistema>;
+  /** Quem transcreve o áudio da aba agora (o selo "Motor de IA ativo"); `null` = captura encerrada. */
+  aoMudarMotorDoSistema?: (motor: MotorDoSistema | null) => void;
   /* --- escolhas de rota/dispositivo (espelhadas em ref: lidas ao ABRIR a captura) --- */
   systemSourceRef: RefObject<'display' | 'loopback' | 'server'>;
   loopbackDeviceIdRef: RefObject<string>;
@@ -70,7 +95,23 @@ export interface DepsDasFontesDeAudio {
   /* --- rota do STT --- */
   /** O decode final vai para a nuvem AGORA? Decide o teto de fala contínua (ver `OpcoesDeCaptura`). */
   finalNaNuvem?: () => boolean;
+  /* --- privacidade do motor do microfone (padrão: as preferências, a proteção e o perfil ativo) --- */
+  /** Consentimento PRÓPRIO do reconhecimento do navegador (o "Rápido"). */
+  consentiuNavegador?: () => boolean;
+  /** O "Rápido" existe para este perfil (protegido só com o responsável autorizando)? */
+  rapidoPermitido?: () => boolean;
+  /** A resposta guardada de "Rápido ou Privado?" (`null` = nunca respondeu). */
+  escolhaDoMic?: () => EscolhaDoMic | null;
+  /**
+   * Mostra "Rápido ou Privado?" e devolve a resposta (a tela a guarda); sem ele, não pergunta.
+   * `pacoteDoNavegador`: o "Privado" será o reconhecimento do próprio navegador (a instalar).
+   */
+  perguntarEscolhaDoMic?: (contexto: { pacoteDoNavegador: boolean }) => Promise<EscolhaDoMic | null>;
+  perfilId?: () => string;
 }
+
+/** O aviso "o mic foi para o modelo local por falta de consentimento" sai UMA vez por página. */
+let avisouMicSemNuvem = false;
 
 export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
   const {
@@ -109,6 +150,10 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
     setMicAbrindo,
     finalNaNuvem,
   } = deps;
+  const consentiu = deps.consentiuNavegador ?? consentiuReconhecimentoDoNavegador;
+  const rapidoPermitido = deps.rapidoPermitido ?? rapidoDoMicPermitido;
+  const escolhaDoMic = deps.escolhaDoMic ?? (() => escolhaDoMicGuardada());
+  const perfilId = deps.perfilId ?? (() => getActiveProfile().id);
 
   /* O teto do corte forçado acompanha o motor FINAL: 12 s na nuvem (cobrança mínima de 10 s por
      pedido; frase inteira transcreve melhor), 6 s no Whisper local. Função, não número: a rota só é
@@ -118,21 +163,102 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
   };
 
   // Inicia a captura do áudio do sistema/aba: pede a fonte (gesto do usuário) e prepara o modelo.
+  /* QUEM TRANSCREVE A ABA (degrau T2, `webSpeechDoSistema.ts`). A decisão corre EM PARALELO ao seletor
+     de compartilhamento (que precisa da ativação do clique, então não espera nada): resolvida para o
+     caminho de sempre, a preparação do Whisper começa na hora, como antes. Para a Web Speech no
+     aparelho, a captura abre, a Web Speech tenta a MESMA trilha, e só então o que falta é preparado
+     (o tradutor; o Whisper só se o microfone o usar). O VAD segue ouvindo: ele é o fiscal do teste
+     em execução (fala detectada sem resultado → Whisper), e a gravação da sessão é dele.
+     Enquanto a decisão não chega, o que o VAD entrega fica guardado e vai ao pipeline se ele for o
+     motor; se for a Web Speech, é descartado (ela começa a ouvir dali em diante). */
   const handleStartSystemCapture = async () => {
     // O estado de gravação (isRecording/timer) já foi ligado por handleStartRecording (captura dupla).
     const source = systemSourceRef.current;
+    const decidir = deps.decidirMotorDoSistema;
+    let rota: 'decidindo' | 'navegador' | 'pipeline' = decidir ? 'decidindo' : 'pipeline';
+    const pendentes: Array<() => void> = [];
+    const encaminhar = (f: () => void) => {
+      if (rota === 'pipeline') f();
+      else if (rota === 'decidindo') pendentes.push(f);
+    };
+    let navegador: ControleDaWebSpeechDoSistema | null = null;
+    let prepNavegador: Promise<void> = Promise.resolve();
+    const idDoParcialDoSistema: { current: string | null } = { current: null };
+
     clog('sistema: preparar modelos locais + fonte:', source);
-    void prepareModels();
+    const decisao: Promise<DecisaoDoMotorDoSistema | null> = decidir
+      ? decidir()
+          .catch(() => null)
+          .then((d) => {
+            clog('sistema: motor', d?.motor ?? 'pipeline', `(${d?.motivo ?? 'sem decisão'})`);
+            if (d?.motor !== 'web-speech-local') void prepareModels();
+            return d;
+          })
+      : (void prepareModels(), Promise.resolve(null));
+
+    const usarPipeline = () => {
+      rota = 'pipeline';
+      for (const f of pendentes.splice(0)) f();
+    };
+
+    /* A Web Speech não serviu no meio da sessão: o Whisper entra sem a pessoa fazer nada. O balão
+       parcial que ela deixou aberto sai (nunca receberia o final). */
+    const cairParaOPipeline = (motivo: string) => {
+      clog('sistema: Web Speech no aparelho não serviu (', motivo, '), seguindo no Whisper');
+      navegador = null;
+      rota = 'pipeline';
+      const pid = idDoParcialDoSistema.current;
+      idDoParcialDoSistema.current = null;
+      if (pid) setSpeechSegments((prev) => prev.filter((seg) => seg.id !== pid));
+      deps.aoMudarMotorDoSistema?.('pipeline');
+      void prepNavegador.finally(() => void prepareModels());
+    };
+
+    const tentarNavegador = (trilha: MediaStreamTrack | undefined): boolean => {
+      if (!trilha) return false;
+      const { aoParcial, aoFinal } = segmentosDaWebSpeech({
+        source: 'system',
+        speakerId: 'system',
+        idiomaDasPalavras: targetLangRef.current,
+        de: () => targetLangRef.current.split('-')[0], // você OUVE o idioma-alvo
+        para: () => sourceLangRef.current.split('-')[0],
+        falada: false,
+        idDoParcialRef: idDoParcialDoSistema,
+        timerRef,
+        nowRel,
+        setSpeechSegments,
+        translateSegment,
+      });
+      navegador = iniciarWebSpeechDoSistema({
+        trilha,
+        lang: targetLangRef.current,
+        aoParcial,
+        aoFinal,
+        aoCair: cairParaOPipeline,
+      });
+      return navegador !== null;
+    };
+
     try {
       const cb = {
-        onUtterance: sysHandlers.onUtterance,
+        onUtterance: (pcm: Float32Array, sr: number, seq: number, esp?: EspeculacaoDoFinal) => {
+          if (rota === 'navegador') return navegador?.falaTerminou();
+          encaminhar(() => sysHandlers.onUtterance(pcm, sr, seq, esp));
+        },
         onSpeechStart: (seq: number) => {
           clog('VAD: início de fala (sistema, seq', seq, ')');
-          sysHandlers.onSpeechStart(seq);
+          if (rota === 'navegador') return navegador?.falaComecou();
+          encaminhar(() => sysHandlers.onSpeechStart(seq));
         },
-        onPartialAudio: sysHandlers.onPartialAudio,
-        onFinalEspeculativo: sysHandlers.onFinalEspeculativo,
-        onMisfire: (seq: number) => sysHandlers.onMisfire(seq),
+        // Parcial velho não tem valor: só vai ao pipeline quando ele já é o motor.
+        onPartialAudio: (pcm: Float32Array, sr: number, seq: number) => {
+          if (rota === 'pipeline') sysHandlers.onPartialAudio(pcm, sr, seq);
+        },
+        onFinalEspeculativo: (pcm: Float32Array, sr: number, seq: number) =>
+          rota === 'pipeline' ? sysHandlers.onFinalEspeculativo(pcm, sr, seq) : null,
+        onMisfire: (seq: number) => {
+          if (rota !== 'navegador') encaminhar(() => sysHandlers.onMisfire(seq));
+        },
         onLevel: pushLevel,
         onStatus: (msg: string) => {
           clog('sistema:', msg);
@@ -145,7 +271,7 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
           setTimeout(() => setFeedbackMsg(''), 6000);
         },
       };
-      systemCaptureRef.current =
+      const captura: AudioCapture =
         source === 'server'
           ? await startServerLoopbackCapture(cb, opcoesDeCaptura)
           : source === 'loopback'
@@ -165,7 +291,40 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
                 return startSystemLoopbackCapture(loopbackDeviceIdRef.current || undefined, cb, opcoesDeCaptura);
               })()
             : await startSystemAudioCapture(cb, opcoesDeCaptura);
+      /* A captura com a Web Speech junto: parar/pausar/mudar a captura faz o mesmo com o reconhecedor. */
+      systemCaptureRef.current = {
+        ...captura,
+        setMuted: (m) => {
+          captura.setMuted(m);
+          navegador?.pausar(m);
+        },
+        setPaused: (p) => {
+          captura.setPaused(p);
+          navegador?.pausar(p);
+        },
+        stop: () => {
+          navegador?.parar();
+          navegador = null;
+          deps.aoMudarMotorDoSistema?.(null);
+          return captura.stop();
+        },
+      };
       clog('captura do sistema ATIVA ✓');
+      const d = await decisao;
+      if (d?.motor === 'web-speech-local' && tentarNavegador(captura.trilhaDeAudio)) {
+        rota = 'navegador';
+        pendentes.length = 0;
+        clog('sistema: áudio da aba no reconhecedor do navegador, NO APARELHO ✓ (Whisper não carrega)');
+        deps.aoMudarMotorDoSistema?.('web-speech-local');
+        prepNavegador = prepareModels({ sistemaNoNavegador: true });
+      } else {
+        if (d?.motor === 'web-speech-local') {
+          clog('sistema: a Web Speech não abriu com a trilha, seguindo no Whisper');
+          void prepareModels();
+        }
+        usarPipeline();
+        deps.aoMudarMotorDoSistema?.('pipeline');
+      }
       if (systemCaptureRef.current) anchorSessionClock(systemCaptureRef.current.startedAtMs, 'system');
       setFeedbackMsg(
         micEnabled
@@ -284,100 +443,104 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
   // MICROFONE via Web Speech API (navegador) — motor PADRÃO: leve, sem baixar modelo, ótimo p/
   // português. Usa o adaptador WebSpeechStt do gateway. Não escolhe dispositivo (usa o padrão do
   // SO) — para isso, o usuário troca para o motor Whisper. Sem streaming de PCM: partials/finais.
-  const startWebSpeechMic = () => {
+  // `noAparelho`: reconhecimento LOCAL (`processLocally`); devolve false se o navegador não o tem —
+  // quem chama cai no Whisper em vez de mandar o áudio ao Google (ver `motorDoMicrofone.ts`).
+  const startWebSpeechMic = (noAparelho = false): boolean => {
     const speakerId = 'user';
     const from = sourceLangRef.current.split('-')[0];
     const to = targetLangRef.current.split('-')[0];
     try {
-      webSpeechRef.current = new WebSpeechStt().startLive(sourceLangRef.current, {
-        onPartial: (text: string) => {
-          if (isTtsActive()) return; // anti-eco: o mic ouviu o TTS do app pelos alto-falantes
-          const clean = text.trim();
-          if (!clean) return;
-          if (!webSpeechPartialIdRef.current) webSpeechPartialIdRef.current = Math.random().toString(36).slice(2, 11);
-          const pid = webSpeechPartialIdRef.current;
-          setSpeechSegments((prev) => {
-            const idx = prev.findIndex((s) => s.id === pid);
-            if (idx !== -1) {
-              const u = [...prev];
-              u[idx] = { ...u[idx], originalText: clean };
-              return u;
-            }
-            return [
-              ...prev,
-              {
-                id: pid,
-                speakerId,
-                source: 'mic' as const,
-                timestamp: formatTime(timerRef.current),
-                originalText: clean,
-                translatedText: '…',
-                words: [],
-                isPartial: true,
-                tStartMs: nowRel(),
-              },
-            ];
-          });
-        },
-        onFinal: ({ text }: { text: string }) => {
-          if (isTtsActive()) {
-            webSpeechPartialIdRef.current = null;
-            return;
-          } // anti-eco no final também
-          const clean = text.trim();
-          if (!clean) return;
-          const uttId = webSpeechPartialIdRef.current ?? Math.random().toString(36).slice(2, 11);
-          webSpeechPartialIdRef.current = null;
-          setSpeechSegments((prev) => {
-            const existing = prev.find((s) => s.id === uttId);
-            const committed: SpeechSegment = {
-              id: uttId,
-              speakerId,
-              source: 'mic',
-              timestamp: formatTime(timerRef.current),
-              originalText: clean,
-              translatedText: '…',
-              words: wordsFromText(clean, sourceLang),
-              isPartial: false,
-              tStartMs: existing?.tStartMs ?? nowRel(),
-              tEndMs: nowRel(),
-            };
-            const idx = prev.findIndex((s) => s.id === uttId);
-            if (idx !== -1) {
-              const u = [...prev];
-              u[idx] = committed;
-              return u;
-            }
-            return [...prev, committed];
-          });
-          translateSegment(uttId, clean, from, to, { falada: true });
-        },
+      const { aoParcial, aoFinal } = segmentosDaWebSpeech({
+        source: 'mic',
+        speakerId,
+        idiomaDasPalavras: sourceLang,
+        de: () => from,
+        para: () => to,
+        falada: true,
+        idDoParcialRef: webSpeechPartialIdRef,
+        timerRef,
+        nowRel,
+        setSpeechSegments,
+        translateSegment,
+        ignorar: isTtsActive, // anti-eco: o mic ouviu o TTS do app pelos alto-falantes
+      });
+      webSpeechRef.current = new WebSpeechStt({ processLocally: noAparelho }).startLive(sourceLangRef.current, {
+        onPartial: aoParcial,
+        onFinal: ({ text }: { text: string }) => aoFinal(text),
         onError: (e: Error) => {
           clog('web-speech mic erro:', String(e));
         },
       });
-      clog('microfone (Web Speech) ATIVO ✓');
+      clog('microfone (Web Speech', noAparelho ? 'no aparelho' : 'na nuvem', ') ATIVO ✓');
       void startMeter(); // waveform real (a Web Speech não fornece nível)
       if (!systemEnabled) {
         setFeedbackMsg('Microfone (navegador) ativo, transcrição instantânea. Fale à vontade.');
         setTimeout(() => setFeedbackMsg(''), 3000);
       }
+      return true;
     } catch (e) {
+      // O local falhou (navegador sem `processLocally`): quem chama cai no Whisper, sem aviso de erro.
+      if (noAparelho) {
+        clog('Web Speech no aparelho indisponível:', (e as Error).message);
+        return false;
+      }
       setFeedbackMsg('Web Speech indisponível: ' + (e as Error).message + ', troque para o motor Whisper.');
       setTimeout(() => setFeedbackMsg(''), 5000);
       if (!systemEnabled) {
         setIsRecording(false);
         isRecordingRef.current = false;
       }
+      return false;
     }
   };
 
   // Liga o microfone conforme o motor escolhido (navegador vs Whisper).
   // Devolve promessa para que quem liga o mic NO MEIO da sessão saiba quando a permissão
   // do navegador terminou — é esse intervalo que o botão mostra como "pedindo permissão…".
+  /* O MOTOR PASSA PELA PRIVACIDADE (`motorDoMicrofone.ts`): Web Speech no aparelho quando o navegador
+     reconhece o idioma localmente; a Web Speech na nuvem (áudio ao Google) só com o "Rápido"
+     consentido e fora dos perfis Privado e protegido; senão o Whisper local. Na primeira vez sem o
+     reconhecimento no aparelho, a tela pergunta "Rápido ou Privado?" (`perguntarEscolhaDoMic`) antes
+     de o mic abrir. Sempre a partir de um clique (Iniciar, desmutar, retomar) — é o que permite pedir
+     a instalação do pacote do idioma. */
   const startMic = async (): Promise<void> => {
-    if (micEngine === 'browser' && webSpeechSupported) startWebSpeechMic();
-    else await handleStartMicCapture();
+    const decisao = await resolverMotorDoMic({
+      preferido: micEngine,
+      webSpeechSuportado: webSpeechSupported,
+      consentiuNavegador: consentiu(),
+      rapidoPermitido: rapidoPermitido(),
+      escolha: escolhaDoMic(),
+      perguntar: deps.perguntarEscolhaDoMic,
+      perfilId: perfilId(),
+      lang: sourceLangRef.current,
+      /* Pacote de voz do navegador sendo instalado (o degrau seria o nosso Whisper): a linha dele
+         na barra de preparo, como o Translator (`pacotesNativos.ts`). */
+      aoInstalar: criarProgressoDosPacotesNativos({ setModelPrep, ativo: () => isRecordingRef.current, clog }).voz,
+    });
+    clog(
+      'microfone: motor',
+      decisao.motor,
+      `(${decisao.motivo})`,
+      decisao.instalarNoAparelho ? '| pacote local pedido' : '',
+    );
+    if (decisao.motor === 'web-speech-local' && startWebSpeechMic(true)) return;
+    if (decisao.motor === 'web-speech-nuvem') {
+      startWebSpeechMic(false);
+      return;
+    }
+    /* O aviso só onde ele informa: no perfil Privado, e para quem fechou a pergunta sem escolher.
+       Quem acabou de escolher "Privado" já sabe; o perfil protegido nunca viu o "Rápido". */
+    const semEscolha = decisao.motivo === 'sem-consentimento' && escolhaDoMic() === null;
+    if (micEngine === 'browser' && (semEscolha || decisao.motivo === 'perfil-privado') && !avisouMicSemNuvem) {
+      avisouMicSemNuvem = true;
+      setFeedbackMsg(
+        decisao.motivo === 'perfil-privado'
+          ? 'Perfil Privado: sua voz é transcrita no aparelho (a transcrição do navegador enviaria o áudio ao Google).'
+          : t('Sua voz é transcrita neste aparelho. Para o modo Rápido, troque em Dispositivos e modelos de IA.'),
+      );
+      setTimeout(() => setFeedbackMsg(''), 8000);
+    }
+    await handleStartMicCapture();
   };
 
   /**

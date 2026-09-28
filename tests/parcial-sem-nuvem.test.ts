@@ -85,6 +85,8 @@ describe('parcial: nunca vai a motor de nuvem', () => {
   it('parcial com o tradutor nativo disponível traduz localmente', async () => {
     stubTradutorNativo()
     const { gw, api } = await montar()
+    // O parcial só usa o tradutor que JÁ EXISTE: quem cria é o clique em "Iniciar" (estágio 4).
+    await gw.mt.prepararNativo([['en', 'pt']])
     const r = await gw.mt.translate(FRASE, 'en', 'pt', { falada: true, nuvemPrimeiro: true, parcial: true })
     expect(r.engine).toBe('chrome-translator')
     expect(r.text).toContain('nativo')

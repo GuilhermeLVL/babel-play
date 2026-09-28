@@ -1,6 +1,6 @@
 import '../styles/legendas.css';
 
-import { Headphones, Languages, MessagesSquare, Mic, MonitorPlay, Play, Radio } from 'lucide-react';
+import { ChevronUp, Headphones, Languages, MessagesSquare, Mic, MonitorPlay, Play, Radio } from 'lucide-react';
 import React from 'react';
 
 import type { ConhecidasDaFala } from '../lib/captura/traducaoSobDemanda';
@@ -192,7 +192,190 @@ function EmptyState({
   );
 }
 
-export default function ChatTranscript({
+/**
+ * QUANTAS FALAS VÃO AO DOM. Medido (Playwright, falas injetadas): 3.000 falas eram 48 mil nós e
+ * 191 ms por quadro PARADO — estilo e layout de milhares de linhas que ninguém está vendo. As
+ * últimas 200 cobrem vários minutos de conversa na tela; as anteriores ficam a um clique, em
+ * páginas do mesmo tamanho. Não há lib de virtualização nas dependências, e uma janela simples não
+ * mexe no acompanhamento do fim (a rolagem continua sendo a do contêiner da tela).
+ */
+export const JANELA_DA_CONVERSA = 200;
+/**
+ * A janela desliza em DEGRAUS, não fala a fala: sem isto, cada fala nova tiraria a primeira do
+ * DOM (duas mutações por fala, e a rolagem de quem relê pulando uma linha a cada fala). Com o
+ * degrau, entre 200 e 249 linhas ficam montadas e a saída acontece de 50 em 50 — o ancoramento de
+ * rolagem do navegador (`overflow-anchor`) segura a posição de quem está lendo mais acima.
+ */
+const DEGRAU_DA_JANELA = 50;
+
+/** Índice da primeira fala montada: as últimas `limite`, em degraus, sem esconder a fala `fixada`. */
+function inicioDaJanela(total: number, limite: number, fixada: number): number {
+  const bruto = Math.max(0, total - limite);
+  const inicio = Math.floor(bruto / DEGRAU_DA_JANELA) * DEGRAU_DA_JANELA;
+  return fixada >= 0 && fixada < inicio ? fixada : inicio;
+}
+
+const NENHUMA: string[] = [];
+
+interface FalaProps {
+  segment: ChatSegment;
+  speaker: ChatSpeaker;
+  lang: string;
+  esconderOriginal: boolean;
+  originalPrimeiro: boolean;
+  tamOriginal: string;
+  tamTraducao: string;
+  /** A palavra selecionada (minúscula), SÓ se ela está nesta fala (senão `null`): tocar numa
+   *  palavra não re-renderiza as outras 199 linhas. */
+  selecionada: string | null;
+  /** O caderno desta visita, só para fala com palavra do caderno (as outras não o leem). */
+  guardadas: string[];
+  aprendidas?: ReadonlySet<string>;
+  conhecidas?: ConhecidasDaFala | null;
+  aoExaminar: (segment: ChatSegment, word: VocabWord, lang: string) => void;
+  aoOuvir: (segId: string, word: string, lang: string) => void;
+  aoRevelar?: (segId: string) => void;
+}
+
+/**
+ * UMA FALA, memorizada. As props são estáveis entre renders (os callbacks chegam embrulhados pela
+ * lista, o falante é o objeto do array, o tamanho vem como string): quando chega fala nova, só a
+ * linha nova — e a parcial que virou final — renderiza de novo. Antes, cada parcial do streaming
+ * refazia um `<span>` por palavra de TODAS as falas da sessão.
+ */
+const FalaDaConversa = React.memo(function FalaDaConversa({
+  segment,
+  speaker,
+  lang: lineLang,
+  esconderOriginal,
+  originalPrimeiro,
+  tamOriginal,
+  tamTraducao,
+  selecionada,
+  guardadas,
+  aprendidas,
+  conhecidas,
+  aoExaminar,
+  aoOuvir,
+  aoRevelar,
+}: FalaProps) {
+  const aprendida = (palavra: string) => (aprendidas?.has(chaveDaPalavra(palavra)) ? true : undefined);
+  /* A palavra NOVA (só no modo `novas`, só no idioma do predicado, nunca número nem a que já tem o
+     destaque de aprendida): `true` vira o atributo, `undefined` o omite. */
+  const nova = (palavra: string, lang: string) =>
+    conhecidas &&
+    baseLang(lang) === baseLang(conhecidas.idioma) &&
+    /\p{L}/u.test(palavra) &&
+    !aprendida(palavra) &&
+    !conhecidas.conhece(palavra)
+      ? true
+      : undefined;
+
+  const original = !esconderOriginal && (
+    <span className={`orig ${tamOriginal}`} style={{ gridColumn: 2 }}>
+      {segment.originalText.split(' ').map((wordStr, wIdx) => {
+        const cleanWord = wordStr.replace(/[,.:?!]/g, '').toLowerCase();
+        const vocabMatch = segment.words.find((vw) => vw.word.toLowerCase() === cleanWord);
+        if (vocabMatch) {
+          const marcada = selecionada === cleanWord;
+          const guardada = guardadas.includes(vocabMatch.word);
+          return (
+            <React.Fragment key={wIdx}>
+              <button
+                type="button"
+                className="palavra"
+                data-aprendida={aprendida(wordStr)}
+                data-nova={nova(wordStr, lineLang)}
+                onClick={() => aoExaminar(segment, vocabMatch, lineLang)}
+                title="Clique para pronúncia nativa e detalhes"
+                aria-pressed={marcada}
+                style={
+                  marcada
+                    ? { background: 'color-mix(in srgb,var(--accent) 28%,transparent)', borderRadius: 4 }
+                    : guardada
+                      ? { borderBottomColor: 'var(--good)' }
+                      : undefined
+                }
+              >
+                {wordStr}
+              </button>{' '}
+            </React.Fragment>
+          );
+        }
+        return (
+          <React.Fragment key={wIdx}>
+            <span
+              className="w"
+              data-aprendida={aprendida(wordStr)}
+              data-nova={nova(wordStr, lineLang)}
+              onClick={() => aoOuvir(segment.id, wordStr, lineLang)}
+              title="Clique para ouvir"
+              style={{ cursor: 'pointer' }}
+            >
+              {wordStr}
+            </span>{' '}
+          </React.Fragment>
+        );
+      })}
+      {/* Fala ainda em andamento: três pontos vivos. */}
+      {segment.isPartial && !segment.originalText && (
+        <span className="inline-flex items-center gap-1 py-0.5" aria-label="transcrevendo">
+          {[0, 150, 300].map((d) => (
+            <span
+              key={d}
+              className="w-1.5 h-1.5 rounded-full animate-bounce"
+              style={{ animationDelay: `${d}ms`, background: 'currentColor', opacity: 0.5 }}
+            />
+          ))}
+        </span>
+      )}
+    </span>
+  );
+  /* Sob demanda (preferência "Tradução"): no lugar da linha traduzida, o convite a mostrá-la. */
+  const traducao = segment.translatedText ? (
+    <span className={`trad mut ${tamTraducao}`}>{segment.translatedText}</span>
+  ) : (
+    segment.traducaoSobDemanda &&
+    !segment.isPartial &&
+    aoRevelar && (
+      <button
+        type="button"
+        className={`trad link ${tamTraducao}`}
+        style={{ justifySelf: 'start', minHeight: 0 }}
+        onClick={() => aoRevelar(segment.id)}
+      >
+        <Languages aria-hidden /> {t('Mostrar tradução')}
+      </button>
+    )
+  );
+
+  return (
+    <div className={`fala ${segment.isPartial ? 'nova' : ''}`}>
+      <span className="quem" style={{ color: speaker.color }}>
+        {speaker.name}
+      </span>
+      {originalPrimeiro ? (
+        <>
+          {original}
+          {traducao}
+        </>
+      ) : (
+        <>
+          {traducao}
+          {original}
+        </>
+      )}
+    </div>
+  );
+});
+
+/**
+ * A lista, memorizada: o relógio de 1 s e todo estado da tela que não é da conversa param aqui
+ * (a tela passa props estáveis — ver o bloco da transcrição em `LiveCapture`). Os callbacks são
+ * lidos por ref: um callback novo a cada render do pai não derruba o memo das linhas, e a linha
+ * sempre chama o mais recente.
+ */
+function ChatTranscript({
   segments,
   speakers,
   scenario,
@@ -211,27 +394,33 @@ export default function ChatTranscript({
   onRevelarTraducao,
   conhecidas,
 }: ChatTranscriptProps) {
+  const callbacks = React.useRef({ onExamineWord, onSpeakWord, onRevelarTraducao });
+  callbacks.current = { onExamineWord, onSpeakWord, onRevelarTraducao };
+  /* A fala em que a pessoa tocou por último: a janela não a tira do DOM enquanto ela lê a ficha. */
+  const [fixadaId, setFixadaId] = React.useState<string | null>(null);
+  const [limite, setLimite] = React.useState(JANELA_DA_CONVERSA);
+
+  const aoExaminar = React.useCallback((segment: ChatSegment, word: VocabWord, lang: string) => {
+    setFixadaId(segment.id);
+    callbacks.current.onExamineWord(word, lang, segment.originalText);
+  }, []);
+  const aoOuvir = React.useCallback((segId: string, word: string, lang: string) => {
+    setFixadaId(segId);
+    callbacks.current.onSpeakWord(word, lang);
+  }, []);
+  const aoRevelarEstavel = React.useCallback((segId: string) => callbacks.current.onRevelarTraducao?.(segId), []);
+  const aoRevelar = onRevelarTraducao ? aoRevelarEstavel : undefined;
+
+  if (!segments.length) {
+    return <EmptyState scenario={scenario} ageProfile={ageProfile} isRecording={isRecording} escuro={escuro} />;
+  }
+
   const { sizeClasses, fontClass } = getTranscriptStyleClasses(tsSettings);
   /* O ESTILO DE LEGENDA equipado (onda 4): só classes no contêiner — a cor de alto contraste, o
      tamanho e a fonte acima continuam valendo por cima dele. */
   const estilo = classesDoEstilo(
     resolverEstiloDeLegenda(tsSettings.estilo, { altoContraste: tsSettings.textColor === 'highContrast' }),
   );
-  const aprendida = (palavra: string) => (aprendidas?.has(chaveDaPalavra(palavra)) ? true : undefined);
-  /* A palavra NOVA (só no modo `novas`, só no idioma do predicado, nunca número nem a que já tem o
-     destaque de aprendida): `true` vira o atributo, `undefined` o omite. */
-  const nova = (palavra: string, lang: string) =>
-    conhecidas &&
-    baseLang(lang) === baseLang(conhecidas.idioma) &&
-    /\p{L}/u.test(palavra) &&
-    !aprendida(palavra) &&
-    !conhecidas.conhece(palavra)
-      ? true
-      : undefined;
-
-  if (!segments.length) {
-    return <EmptyState scenario={scenario} ageProfile={ageProfile} isRecording={isRecording} escuro={escuro} />;
-  }
 
   const speakerOf = (id: string) => speakers.find((p) => p.id === id) ?? speakers[0];
   /**
@@ -249,113 +438,62 @@ export default function ChatTranscript({
     if (s.source === 'system' && observedLang) return toBcp47(observedLang) || observedLang;
     return s.source === 'system' ? targetLang : sourceLang;
   };
+  const selecionadaMin = selectedWord ? selectedWord.toLowerCase() : null;
+
+  /* A fixada é procurada de trás para frente: quase sempre está entre as últimas. */
+  let fixada = -1;
+  if (fixadaId) {
+    for (let i = segments.length - 1; i >= 0; i--) {
+      if (segments[i].id === fixadaId) {
+        fixada = i;
+        break;
+      }
+    }
+  }
+  const inicio = inicioDaJanela(segments.length, limite, fixada);
+  const visiveis = inicio > 0 ? segments.slice(inicio) : segments;
 
   /* Marcação do protótipo aprovado (`T.capturar`): cada fala é uma `.fala` — quem falou, o original
      com as palavras do caderno clicáveis (`.palavra`) e a tradução embaixo. A ordem e o "esconder o
      original" das configurações da legenda continuam valendo; a cor da pessoa vai no nome. */
   return (
     <div className={`${fontClass} ${estilo}`}>
-      {segments.map((segment) => {
-        const speaker = speakerOf(segment.speakerId);
-        const lineLang = langOf(segment);
-
-        const original = !tsSettings.hideOriginal && (
-          <span className={`orig ${sizeClasses.original}`} style={{ gridColumn: 2 }}>
-            {segment.originalText.split(' ').map((wordStr, wIdx) => {
-              const cleanWord = wordStr.replace(/[,.:?!]/g, '').toLowerCase();
-              const vocabMatch = segment.words.find((vw) => vw.word.toLowerCase() === cleanWord);
-              if (vocabMatch) {
-                const selecionada = selectedWord?.toLowerCase() === cleanWord;
-                const guardada = addedWords.includes(vocabMatch.word);
-                return (
-                  <React.Fragment key={wIdx}>
-                    <button
-                      type="button"
-                      className="palavra"
-                      data-aprendida={aprendida(wordStr)}
-                      data-nova={nova(wordStr, lineLang)}
-                      onClick={() => onExamineWord(vocabMatch, lineLang, segment.originalText)}
-                      title="Clique para pronúncia nativa e detalhes"
-                      aria-pressed={selecionada}
-                      style={
-                        selecionada
-                          ? { background: 'color-mix(in srgb,var(--accent) 28%,transparent)', borderRadius: 4 }
-                          : guardada
-                            ? { borderBottomColor: 'var(--good)' }
-                            : undefined
-                      }
-                    >
-                      {wordStr}
-                    </button>{' '}
-                  </React.Fragment>
-                );
-              }
-              return (
-                <React.Fragment key={wIdx}>
-                  <span
-                    className="w"
-                    data-aprendida={aprendida(wordStr)}
-                    data-nova={nova(wordStr, lineLang)}
-                    onClick={() => onSpeakWord(wordStr, lineLang)}
-                    title="Clique para ouvir"
-                    style={{ cursor: 'pointer' }}
-                  >
-                    {wordStr}
-                  </span>{' '}
-                </React.Fragment>
-              );
-            })}
-            {/* Fala ainda em andamento: três pontos vivos. */}
-            {segment.isPartial && !segment.originalText && (
-              <span className="inline-flex items-center gap-1 py-0.5" aria-label="transcrevendo">
-                {[0, 150, 300].map((d) => (
-                  <span
-                    key={d}
-                    className="w-1.5 h-1.5 rounded-full animate-bounce"
-                    style={{ animationDelay: `${d}ms`, background: 'currentColor', opacity: 0.5 }}
-                  />
-                ))}
-              </span>
-            )}
-          </span>
-        );
-        /* Sob demanda (preferência "Tradução"): no lugar da linha traduzida, o convite a mostrá-la. */
-        const traducao = segment.translatedText ? (
-          <span className={`trad mut ${sizeClasses.translated}`}>{segment.translatedText}</span>
-        ) : (
-          segment.traducaoSobDemanda &&
-          !segment.isPartial &&
-          onRevelarTraducao && (
-            <button
-              type="button"
-              className={`trad link ${sizeClasses.translated}`}
-              style={{ justifySelf: 'start', minHeight: 0 }}
-              onClick={() => onRevelarTraducao(segment.id)}
-            >
-              <Languages aria-hidden /> {t('Mostrar tradução')}
-            </button>
-          )
-        );
-
-        return (
-          <div key={segment.id} className={`fala ${segment.isPartial ? 'nova' : ''}`}>
-            <span className="quem" style={{ color: speaker.color }}>
-              {speaker.name}
-            </span>
-            {tsSettings.displayOrder === 'original-first' ? (
-              <>
-                {original}
-                {traducao}
-              </>
-            ) : (
-              <>
-                {traducao}
-                {original}
-              </>
-            )}
-          </div>
-        );
-      })}
+      {inicio > 0 && (
+        <div style={{ display: 'flex', justifyContent: 'center', paddingBottom: 6 }}>
+          <button
+            type="button"
+            className="link"
+            /* Abre uma página a mais A PARTIR do que já está montado (o degrau pode ter deixado
+               mais que `limite`), para o clique sempre revelar falas novas. */
+            onClick={() => setLimite((l) => Math.max(l, segments.length - inicio) + JANELA_DA_CONVERSA)}
+          >
+            <ChevronUp aria-hidden /> {t('Mostrar falas anteriores ({n})', { n: inicio })}
+          </button>
+        </div>
+      )}
+      {visiveis.map((segment) => (
+        <FalaDaConversa
+          key={segment.id}
+          segment={segment}
+          speaker={speakerOf(segment.speakerId)}
+          lang={langOf(segment)}
+          esconderOriginal={!!tsSettings.hideOriginal}
+          originalPrimeiro={tsSettings.displayOrder === 'original-first'}
+          tamOriginal={sizeClasses.original}
+          tamTraducao={sizeClasses.translated}
+          selecionada={
+            selecionadaMin && segment.words.some((w) => w.word.toLowerCase() === selecionadaMin) ? selecionadaMin : null
+          }
+          guardadas={segment.words.length ? addedWords : NENHUMA}
+          aprendidas={aprendidas}
+          conhecidas={conhecidas}
+          aoExaminar={aoExaminar}
+          aoOuvir={aoOuvir}
+          aoRevelar={aoRevelar}
+        />
+      ))}
     </div>
   );
 }
+
+export default React.memo(ChatTranscript);

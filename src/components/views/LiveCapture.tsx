@@ -71,6 +71,8 @@ import {
   onDeviceChange,
   supportsSinkId,
 } from '../../lib/audioDevices';
+// Callbacks estáveis e o texto da conversa para o App, sem re-renderizar a conversa à toa.
+import { useFuncaoEstavel, useTextoDaConversa } from '../../lib/captura/conversaEstavel';
 // Fontes de áudio: som do sistema/aba, microfone (Whisper ou Web Speech) e o mudo/ativo do mic.
 import { criarFontesDeAudio } from '../../lib/captura/fontesDeAudio';
 import type { EscolhaDoMic } from '../../lib/captura/motorDoMicrofone';
@@ -497,19 +499,24 @@ export default function LiveCapture({
 
   // As falas das LEGENDAS FLUTUANTES, derivadas das falas REAIS (sem parciais vazios). 'system' =
   // eles (áudio da aba/sistema), o resto = você (microfone).
+  // As duas últimas são procuradas DE TRÁS PARA FRENTE: filtrar a sessão inteira era O(n) por parcial.
   const legendasAoVivo: LegendaAoVivo[] = useMemo(() => {
     const nomeDe = (id: string) => speakerProfiles.find((p) => p.id === id)?.name ?? id;
-    return speechSegments
-      .filter((s) => s.originalText && s.originalText.trim())
-      .slice(-2)
-      .map((s) => ({
-        id: s.id,
-        quem: nomeDe(s.speakerId),
-        original: s.originalText,
-        // O "…" é o marcador de tradução a caminho: na legenda, some até a tradução chegar.
-        traducao: s.translatedText === '…' ? '' : s.translatedText,
-        lado: s.source === 'system' ? ('eles' as const) : ('voce' as const),
-      }));
+    const ultimas: SpeechSegment[] = [];
+    for (let i = speechSegments.length - 1; i >= 0 && ultimas.length < 2; i--) {
+      const s = speechSegments[i];
+      if (s.originalText && s.originalText.trim()) ultimas.unshift(s);
+    }
+    return ultimas.map((s) => ({
+      id: s.id,
+      quem: nomeDe(s.speakerId),
+      original: s.originalText,
+      // O "…" é o marcador de tradução a caminho: na legenda, some até a tradução chegar.
+      traducao: s.translatedText === '…' ? '' : s.translatedText,
+      lado: s.source === 'system' ? ('eles' as const) : ('voce' as const),
+      // Deixada sem tradução pela preferência "Tradução": a legenda oferece "Mostrar tradução".
+      sobDemanda: !!s.traducaoSobDemanda && !s.isPartial,
+    }));
   }, [speechSegments, speakerProfiles]);
 
   // Dispositivos de loopback candidatos (Stereo Mix / VB-Cable) entre os inputs enumerados.
@@ -711,11 +718,9 @@ export default function LiveCapture({
     [gateway],
   );
 
-  useEffect(() => {
-    if (onTranscriptChange) {
-      onTranscriptChange(speechSegments.map((s) => s.originalText).join(' '));
-    }
-  }, [speechSegments, onTranscriptChange]);
+  /* O texto da conversa sobe ao App (contexto do iChat) no máximo a cada 500 ms, só quando muda:
+     antes era um `join` de TODAS as falas e um render do App inteiro a cada parcial do streaming. */
+  useTextoDaConversa(speechSegments, onTranscriptChange);
 
   // Ref espelhando isRecording (usado pelos fluxos de start/stop das capturas).
   const isRecordingRef = useRef(false);
@@ -1678,6 +1683,19 @@ export default function LiveCapture({
     setFeedbackMsg,
     onChangeView,
   });
+  /* OS CALLBACKS DA CONVERSA, de identidade fixa: as fábricas acima são recriadas a cada render
+     (o relógio renderiza a tela a cada segundo), e um callback novo derrubava o memo da
+     `ChatTranscript` — a lista inteira refeita por tique. */
+  const examinarNaConversa = useFuncaoEstavel((w: VocabWord, lang: string, frase: string) => {
+    void examineWord(w, lang, frase);
+  });
+  const examinarNoFoco = useFuncaoEstavel((w: VocabWord, lang: string, frase: string) => {
+    void examineWord(w, lang, frase);
+    setFeedbackMsg(`Examinando: "${w.word}"`);
+    setTimeout(() => setFeedbackMsg(''), 1500);
+  });
+  const ouvirNaConversa = useFuncaoEstavel(speakWord);
+  const revelarNaConversa = useFuncaoEstavel(revelarTraducao);
 
   // Speaker Renaming
   const handleStartRenameSpeaker = (id: string, currentName: string) => {
@@ -2880,9 +2898,9 @@ export default function LiveCapture({
                           selectedWord={selectedExamWord?.word ?? null}
                           addedWords={addedWords}
                           aprendidas={aprendidas}
-                          onExamineWord={(w, lang, frase) => void examineWord(w, lang, frase)}
-                          onSpeakWord={speakWord}
-                          onRevelarTraducao={revelarTraducao}
+                          onExamineWord={examinarNaConversa}
+                          onSpeakWord={ouvirNaConversa}
+                          onRevelarTraducao={revelarNaConversa}
                           conhecidas={conhecidas}
                         />
                       </div>
@@ -3161,13 +3179,9 @@ export default function LiveCapture({
                   selectedWord={selectedExamWord?.word ?? null}
                   addedWords={addedWords}
                   aprendidas={aprendidas}
-                  onExamineWord={(w, lang, frase) => {
-                    void examineWord(w, lang, frase);
-                    setFeedbackMsg(`Examinando: "${w.word}"`);
-                    setTimeout(() => setFeedbackMsg(''), 1500);
-                  }}
-                  onSpeakWord={speakWord}
-                  onRevelarTraducao={revelarTraducao}
+                  onExamineWord={examinarNoFoco}
+                  onSpeakWord={ouvirNaConversa}
+                  onRevelarTraducao={revelarNaConversa}
                   conhecidas={conhecidas}
                 />
               ) : (
@@ -3334,6 +3348,7 @@ export default function LiveCapture({
             falas={legendasAoVivo}
             emJanela
             aprendidas={aprendidas}
+            aoRevelarTraducao={revelarNaConversa}
             aoFechar={() => setShowOverlay(false)}
           />
         </DocumentPiP>
@@ -3343,6 +3358,7 @@ export default function LiveCapture({
             falas={legendasAoVivo}
             emJanela={false}
             aprendidas={aprendidas}
+            aoRevelarTraducao={revelarNaConversa}
             aoFechar={() => setShowOverlay(false)}
           />
         )

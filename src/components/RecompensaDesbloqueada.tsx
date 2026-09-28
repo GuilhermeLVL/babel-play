@@ -21,7 +21,9 @@ import { type CSSProperties, useEffect, useId, useRef, useState } from 'react';
 
 import { celebrar } from '../lib/comemoracao';
 import {
+  capturaOcupada,
   chaveDaRecompensa,
+  EVENTO_CAPTURA_LIBEROU,
   EVENTO_RODADA_FECHOU,
   jogoAtivo,
   marcarVista,
@@ -96,7 +98,10 @@ interface Props {
 
 export default function RecompensaDesbloqueada({ fila, onEquipar, onFechar, onVerPersonalizar }: Props) {
   const atual = fila[0] ?? null;
-  const [pronta, setPronta] = useState(() => !jogoAtivo());
+  /* Espera a rodada fechar e a CAPTURA liberar (gravando, no Encerrar ou salvando): a recompensa
+     por cima do fim da captura era mais uma porta a fechar antes de conseguir sair. */
+  const telaLivre = () => !jogoAtivo() && !capturaOcupada();
+  const [pronta, setPronta] = useState(telaLivre);
   const lote = useRef<string[]>([]);
   const grupo = posicaoNoLote(lote.current, fila);
   lote.current = grupo.lote;
@@ -104,14 +109,21 @@ export default function RecompensaDesbloqueada({ fila, onEquipar, onFechar, onVe
   // Espera a rodada fechar; enquanto isso o modal não existe na tela.
   useEffect(() => {
     if (!atual) return;
-    if (!jogoAtivo()) {
+    if (telaLivre()) {
       setPronta(true);
       return;
     }
     setPronta(false);
-    const ouvir = () => setPronta(true);
+    // A rodada fecha e a captura libera em momentos diferentes: abre quando as DUAS soltaram.
+    const ouvir = () => {
+      if (!capturaOcupada()) setPronta(true);
+    };
     window.addEventListener(EVENTO_RODADA_FECHOU, ouvir);
-    return () => window.removeEventListener(EVENTO_RODADA_FECHOU, ouvir);
+    window.addEventListener(EVENTO_CAPTURA_LIBEROU, ouvir);
+    return () => {
+      window.removeEventListener(EVENTO_RODADA_FECHOU, ouvir);
+      window.removeEventListener(EVENTO_CAPTURA_LIBEROU, ouvir);
+    };
   }, [atual]);
 
   if (!atual || !pronta) return null;

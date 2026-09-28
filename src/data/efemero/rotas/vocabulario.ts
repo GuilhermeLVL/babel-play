@@ -72,9 +72,10 @@ export async function adicionarCartoes(_m: RegExpMatchArray, _u: URL, init: Requ
   /* Mesmo teto, outro recurso. A recusa é do LOTE inteiro e não parcial de propósito: fichar
      metade das palavras que a pessoa marcou, em silêncio, seria pior do que recusar e explicar. */
   const jaFichadas = await db.count('cartoes');
-  const tetoP = estadoDoTeto('palavras', jaFichadas);
+  const edicao = { edicaoEstatica: edicaoEstatica() };
+  const tetoP = estadoDoTeto('palavras', jaFichadas, edicao);
   if (!tetoP.cabe) {
-    return json({ error: motivoDoTeto('palavras', { edicaoEstatica: edicaoEstatica() }), codigo: 'TETO_ANONIMO', recurso: 'palavras', ...tetoP }, 507);
+    return json({ error: motivoDoTeto('palavras', edicao), codigo: 'TETO_ANONIMO', recurso: 'palavras', ...tetoP }, 507);
   }
 
   const agora = Date.now();

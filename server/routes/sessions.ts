@@ -24,6 +24,7 @@ import { envelopeDeErro } from '../lib/respostaDeErro'
 import { ajustarArmazenamento, corpoDeRecusa, liberarArmazenamento, reservarArmazenamento } from '../lib/storageQuota'
 import { detectarAudio, FORMATOS_DE_AUDIO_ACEITOS } from '../lib/tipoDeArquivo'
 import {
+  appendUtterancesSchema,
   createSessionSchema,
   idParamSchema,
   isSafeImageUrl,
@@ -519,6 +520,34 @@ sessionsRouter.put('/:id/utterances', async (req, res) => {
       return
     }
     // Mesma razão do GET: a capa embutida não volta inteira a cada edição (achado A62).
+    res.json({ ...updated, meta: aliviarMeta(updated.meta, alvo.id) })
+  } catch (err) {
+    res.status(400).json({
+      error: erroDeRota(err, {
+        status: 400,
+        event: 'sessions_route_error',
+        route: req.path,
+        requestId: req.requestId,
+      }),
+    })
+  }
+})
+
+/**
+ * Acrescenta um LOTE de falas à sessão (a captura longa salva em pedaços — ver
+ * `appendUtterancesSchema`). Reenviar o mesmo lote substitui a mesma faixa de `idx`.
+ */
+sessionsRouter.post('/:id/utterances', async (req, res) => {
+  const alvo = parseOr400(idParamSchema, req.params, res)
+  if (!alvo) return
+  const payload = parseOr400(appendUtterancesSchema, req.body, res)
+  if (!payload) return
+  try {
+    const updated = await sessionsRepo.appendUtterances(req.userId, alvo.id, payload.utterances)
+    if (!updated) {
+      res.status(404).json({ error: 'sessão não encontrada' })
+      return
+    }
     res.json({ ...updated, meta: aliviarMeta(updated.meta, alvo.id) })
   } catch (err) {
     res.status(400).json({

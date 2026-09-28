@@ -1837,3 +1837,30 @@ svg.lucide { flex-shrink: 0; }
  * fora do subarvore escalado. O `1` de reserva mantém isto correto se a variável faltar.
  */
 .h-tela { height: calc(100dvh / var(--zoom-a, 1)); }
+
+/*
+ * "SALVANDO…" DA CAPTURA (relato do dono, 2026-09-28): o salvamento continua fora da tela, e este
+ * selo diz isso sem bloquear nada. Embaixo e no centro, acima da barra inferior do celular
+ * (`--shell-inset-bottom`, a mesma variável do iChat); os tokens são os do aviso (`.aviso-info`).
+ */
+.indicador-de-salvamento {
+  position: fixed;
+  left: 50%;
+  bottom: calc(22px + var(--shell-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: var(--z-toast);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100vw - 32px);
+  padding: 10px 14px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-card);
+  font-size: 13px;
+}
+.indicador-de-salvamento svg { width: 16px; height: 16px; flex-shrink: 0; color: var(--accent-ink); }
+.indicador-de-salvamento.warn { border-color: color-mix(in srgb, var(--warn) 40%, var(--border-subtle)); }
+.indicador-de-salvamento.warn svg { color: var(--warn-ink); }

@@ -35,9 +35,10 @@ import {
   WandSparkles,
   X,
 } from 'lucide-react';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 
-import { fetchSessionTranscript, fetchSettings, patchUiSettings } from '../../data/api';
+import { estadoDoTeto } from '../../core/tetoAnonimo';
+import { deleteSession, fetchSessionTranscript, fetchSettings, patchUiSettings } from '../../data/api';
 import { buildGateway } from '../../gateway';
 import { getActiveProfile, getProviderMode } from '../../gateway/activeProfile';
 import { temAdaptadorWebGpu, webGpuProvavel } from '../../gateway/adaptadorWebGpu';
@@ -77,9 +78,12 @@ import {
   classificarFalhaDoMic,
   plataformaDoNavegador,
 } from '../../lib/captura/ajudaDoMicrofone';
+// Ciclo da sessão: começar, retomar, parar e salvar (falas, áudio e vocabulário).
+import { baixarCaptura } from '../../lib/captura/baixarCaptura';
 import { abrirContextoDoClique } from '../../lib/captura/contextoDoClique';
 // Callbacks estáveis e o texto da conversa para o App, sem re-renderizar a conversa à toa.
 import { useFuncaoEstavel, useTextoDaConversa } from '../../lib/captura/conversaEstavel';
+import { assinarSalvamento, capturaEmRisco, lerSalvamento } from '../../lib/captura/estadoDoSalvamento';
 import { criarFontesDeAudio } from '../../lib/captura/fontesDeAudio';
 import { type PassoDoInicio, planejarInicio, tradutorDepoisDaPrimeiraLegenda } from '../../lib/captura/inicioDaCaptura';
 import type { EscolhaDoMic } from '../../lib/captura/motorDoMicrofone';
@@ -88,8 +92,8 @@ import { preparoConcluido } from '../../lib/captura/pacotesNativos';
 import { criarPalavraDaFala } from '../../lib/captura/palavraDaFala';
 // Pipeline de fala: VAD → STT → diarização → emissão, e a preparação dos modelos locais.
 import { criarPipelineDeFala, type EnunciadoPendente } from '../../lib/captura/pipelineDeFala';
+import { lerRascunhos } from '../../lib/captura/rascunhoDaCaptura';
 import { criarReguladorDaCaptura, type ReguladorDaCaptura } from '../../lib/captura/reguladorDaCaptura';
-// Ciclo da sessão: começar, retomar, parar e salvar (falas, áudio e vocabulário).
 import { criarSalvarSessao, type EstadoDaIdentificacaoDeVoz } from '../../lib/captura/salvarSessao';
 // Tipos e helpers de fala + o logger da captura (`lib/captura/tiposDaFala.ts`).
 import {
@@ -103,6 +107,7 @@ import {
   USER_COLOR,
   wordsFromText,
 } from '../../lib/captura/tiposDaFala';
+import { descartarRascunho, tentarDeNovo } from '../../lib/captura/trabalhoDeSalvar';
 // Relógio da sessão + pipeline de MT (retradução de degradados incluída).
 import { criarRelogioDaSessao, criarTraducaoDaFala } from '../../lib/captura/traducaoDaFala';
 import { modoDeTraducao, type PedidoSobDemanda } from '../../lib/captura/traducaoSobDemanda';
@@ -112,7 +117,10 @@ import { cenarioDasFontes } from '../../lib/cenarioDeCaptura';
 import { consentiuNuvem, rapidoDoMicPermitido, useEscolhaDoMic } from '../../lib/consentimentoDeNuvem';
 import { DominantLangTracker } from '../../lib/convoLang';
 import { classificarDispositivo, dispositivoDaRota, lerSinaisDoDispositivo } from '../../lib/dispositivo/perfil';
+import { edicaoEstatica } from '../../lib/edicaoEstatica';
+import { marcarOcupacaoDaCaptura } from '../../lib/filaDeRecompensas';
 import { t } from '../../lib/i18n';
+import { estaAnonimo } from '../../lib/identidade';
 // Configuração de idioma: fonte ÚNICA (`mine` = o que VOCÊ fala no mic; `studying` = o que você
 // ESTUDA, o áudio estrangeiro). Antes os defaults nasciam aqui, em `useState`.
 import {
@@ -154,6 +162,7 @@ import { toast } from '../Toast';
 import { CabecalhoDeTela, Dialogo, fecharDialogoDe } from '../ui';
 import VocabularyPanel from '../VocabularyPanel';
 import AjudaDoMicrofone from './captura/AjudaDoMicrofone';
+import CapturaNaoSalva from './captura/CapturaNaoSalva';
 // Subcomponentes locais da captura (um arquivo por componente, em `views/captura/`).
 import EncerrarSessao from './captura/EncerrarSessao';
 import EscolhaDoMicrofone from './captura/EscolhaDoMicrofone';
@@ -168,13 +177,19 @@ export default function LiveCapture({
   onTranscriptChange,
   resumingRecordingId,
   recordings,
+  onRecordingsChange,
   onChangeView,
+  onEntrar,
   ageProfile = 'pro',
 }: {
   onSave: (recording: Recording, shouldRedirect?: boolean) => void;
   onTranscriptChange?: (text: string) => void;
   resumingRecordingId?: string | null;
   recordings?: Recording[];
+  /** A lista do App: o áudio que sobe depois de salvar e a gravação antiga apagada no aviso do teto. */
+  onRecordingsChange?: React.Dispatch<React.SetStateAction<Recording[]>>;
+  /** Entrar ou criar conta (o login do App) — a saída do teto sem conta na edição completa. */
+  onEntrar?: () => void;
   /** Navegação entre telas (ex.: "praticar esta frase" a partir da captura ao vivo). */
   onChangeView?: (view: string, data?: any) => void;
   ageProfile?: 'kids' | 'pro' | 'senior';
@@ -1280,6 +1295,31 @@ export default function LiveCapture({
       return capMetrics.summary();
     };
 
+    /* FALAS PRONTAS, sem STT nem MT (bancada do fim da captura, 2026-09-28): acrescenta finais já
+       transcritas e traduzidas, pelo MESMO estado que o pipeline escreve. É o que deixa o e2e
+       medir Parar → Salvar → sair sem modelo de fala, rede nem áudio de verdade.
+       Uso no console: window.__simFalas(['primeira frase', 'segunda frase']) */
+    (window as any).__simFalas = (textos: string[], fonte: 'system' | 'mic' = 'system') => {
+      const agora = Date.now();
+      setSpeechSegments((prev) => [
+        ...prev,
+        ...textos.map((texto, i) => ({
+          id: `sim-${agora}-${i}`,
+          speakerId: fonte === 'system' ? 'system' : 'user',
+          source: fonte,
+          timestamp: formatTime(Math.round((prev.length + i) * 2)),
+          originalText: texto,
+          translatedText: `(${texto})`,
+          words: wordsFromText(texto, 'en'),
+          isPartial: false,
+          tStartMs: (prev.length + i) * 2000,
+          tEndMs: (prev.length + i) * 2000 + 1500,
+          lang: 'en',
+        })),
+      ]);
+      return textos.length;
+    };
+
     // BENCHMARK (#0): mede o custo RAW e STEADY-STATE de decode (Whisper) e de tradução (MT),
     // SEQUENCIALMENTE (await em cada passo) — sem contenção auto-infligida de fila. É o número
     // que os wins #1–#3 (warmup/dtype/knobs) e #4 (MT local) devem melhorar. Reflete o "acompanha
@@ -1361,7 +1401,44 @@ export default function LiveCapture({
    * navegação é suspensa e o usuário decide: continuar, parar e salvar, ou sair descartando.
    */
   const [pendingNav, setPendingNav] = useState<(() => void) | null>(null);
-  const temTrabalhoEmRisco = isRecording || speechSegments.length > 0;
+  /* O FIM DA CAPTURA SEM PORTA TRANCADA (relato do dono, 2026-09-28). A chave de idempotência da
+     captura, o salvamento em segundo plano (módulo, sobrevive a sair da tela) e os rascunhos que
+     o navegador guardou quando o salvamento não deu certo. */
+  const origemLocalIdRef = useRef('');
+  const salvamento = useSyncExternalStore(assinarSalvamento, lerSalvamento, lerSalvamento);
+  const [rascunhos, setRascunhos] = useState(lerRascunhos);
+  useEffect(() => setRascunhos(lerRascunhos()), [salvamento]);
+  // A trava só vale para o que se perderia (`capturaEmRisco`): salva, salvando ou no rascunho, não.
+  const temTrabalhoEmRisco = capturaEmRisco({
+    gravando: isRecording,
+    falas: speechSegments.length,
+    salva: !!sessaoSalva,
+    salvando: salvamento.fase === 'salvando',
+    noRascunho: !!origemLocalIdRef.current && rascunhos.some((r) => r.origemLocalId === origemLocalIdRef.current),
+  });
+  /* O TETO SEM CONTA ANTES DE GRAVAR: o mesmo número que o espelho confere (`tetoAnonimoDa`, 20 na
+     edição estática, 5 na completa). Cheio, começar uma captura nova só terminaria num salvamento
+     recusado, então a tela avisa antes e dá as saídas. Retomar uma sessão existente não conta. */
+  const estatica = edicaoEstatica();
+  const estadoDoAcervo = estaAnonimo()
+    ? estadoDoTeto('sessoes', recordings?.length ?? 0, { edicaoEstatica: estatica })
+    : null;
+  const tetoAtingido = !!estadoDoAcervo && !estadoDoAcervo.cabe;
+  /** Iniciar no teto: o aviso (com as saídas) em vez de uma captura, e antes de qualquer download. */
+  const avisarTeto = () => {
+    setFeedbackMsg(t('O limite de gravações deste navegador foi atingido'));
+    document.querySelector('[data-testid="captura-nao-salva"]')?.scrollIntoView({ block: 'center' });
+  };
+  /* A COMEMORAÇÃO ESPERA (`filaDeRecompensas`): gravando ou com o Encerrar aberto, o modal de
+     resgate fica na fila. Sair da tela solta a marca (o salvamento tem a sua própria). */
+  useEffect(() => {
+    marcarOcupacaoDaCaptura('captura', isRecording || showSaveModal);
+  }, [isRecording, showSaveModal]);
+  useEffect(() => () => marcarOcupacaoDaCaptura('captura', false), []);
+  // A recusa aparece na tela normal, onde estão as saídas: o Foco cheio a esconderia.
+  useEffect(() => {
+    if (salvamento.fase === 'falhou') setIsFocusMode(false);
+  }, [salvamento.fase]);
   useEffect(() => {
     if (!temTrabalhoEmRisco) {
       setNavGuard(null);
@@ -1516,6 +1593,11 @@ export default function LiveCapture({
     setSessaoSalva,
     setPausado,
     pausaInicioRef,
+    lerFalas: () => speechSegmentsRef.current,
+    origemLocalIdRef,
+    aoAtualizarGravacao: (r) => onRecordingsChange?.((lista) => lista.map((x) => (x.id === r.id ? r : x))),
+    tetoAtingido,
+    aoTetoAtingido: avisarTeto,
   });
 
   // --- RETOMAR SESSÃO: reidrata o transcript REAL do backend (não usa mock) ---
@@ -1574,11 +1656,12 @@ export default function LiveCapture({
   }, [resumingRecordingId]);
 
   /** "Descartar" do encerramento (com confirmação no diálogo): a captura parada some sem salvar. */
-  const descartarCaptura = async () => {
+  const descartarCaptura = () => {
     setShowSaveModal(false);
-    // Descartar de dentro da pausa: as fontes fecham de verdade antes de a tela zerar.
-    if (isRecordingRef.current) await encerrarFontes();
+    // Descartar de dentro da pausa: as fontes fecham na hora (o áudio, que ninguém quer, fica para trás).
+    if (isRecordingRef.current) void encerrarFontes();
     recordedAudioRef.current = null;
+    if (origemLocalIdRef.current) descartarRascunho(origemLocalIdRef.current);
     setSpeechSegments([]);
     setTimer(0);
     setCustomSessionTitle('');
@@ -1587,6 +1670,67 @@ export default function LiveCapture({
     setFeedbackMsg('Captura descartada.');
     setTimeout(() => setFeedbackMsg(''), 2000);
   };
+
+  /* O AVISO DO FIM DA CAPTURA (`CapturaNaoSalva`): a captura recusada (com o rascunho guardado) ou,
+     antes de gravar, o teto cheio. As saídas funcionam na edição em que a pessoa está. */
+  const apagarGravacaoAntiga = async (id: string) => {
+    const ok = await deleteSession(id);
+    if (ok) onRecordingsChange?.((lista) => lista.filter((r) => r.id !== id));
+    else setFeedbackMsg(t('Não deu para apagar essa gravação agora.'));
+    return ok;
+  };
+  const rascunhoEmFoco =
+    (salvamento.fase === 'falhou' && rascunhos.find((r) => r.origemLocalId === salvamento.origemLocalId)) ||
+    rascunhos[0] ||
+    null;
+  const depsDaNovaTentativa = {
+    traduzir: (texto: string, de: string, para: string) => gateway.mt.translate(texto, de, para),
+    aoSalvar: (r: Recording) => {
+      onSave(r, false);
+      // A captura na tela era esta: agora está salva, e sair não pergunta mais nada.
+      if (rascunhoEmFoco && rascunhoEmFoco.origemLocalId === origemLocalIdRef.current)
+        setSessaoSalva({ id: r.id, palavras: null });
+    },
+    aoAtualizar: (r: Recording) => onRecordingsChange?.((lista) => lista.map((x) => (x.id === r.id ? r : x))),
+  };
+  const avisoDoFim =
+    !isRecording && salvamento.fase !== 'salvando' && rascunhoEmFoco ? (
+      <CapturaNaoSalva
+        modo="naoSalva"
+        estatica={estatica}
+        teto={estadoDoAcervo?.teto ?? 0}
+        falha={
+          salvamento.fase === 'falhou' && salvamento.origemLocalId === rascunhoEmFoco.origemLocalId
+            ? salvamento.falha
+            : null
+        }
+        rascunho={rascunhoEmFoco}
+        gravacoes={recordings ?? []}
+        aoCriarConta={onEntrar}
+        aoApagarGravacao={apagarGravacaoAntiga}
+        aoTentarDeNovo={() => void tentarDeNovo(rascunhoEmFoco, depsDaNovaTentativa)}
+        aoBaixar={() =>
+          baixarCaptura(
+            rascunhoEmFoco,
+            rascunhoEmFoco.origemLocalId === origemLocalIdRef.current ? recordedAudioRef.current : null,
+          )
+        }
+        aoDescartar={() => {
+          descartarRascunho(rascunhoEmFoco.origemLocalId);
+          setRascunhos(lerRascunhos());
+          if (rascunhoEmFoco.origemLocalId === origemLocalIdRef.current) descartarCaptura();
+        }}
+      />
+    ) : tetoAtingido && !isRecording && !resumeId ? (
+      <CapturaNaoSalva
+        modo="teto"
+        estatica={estatica}
+        teto={estadoDoAcervo?.teto ?? 0}
+        gravacoes={recordings ?? []}
+        aoCriarConta={onEntrar}
+        aoApagarGravacao={apagarGravacaoAntiga}
+      />
+    ) : null;
 
   // Colar imagem (Ctrl+V) como capa enquanto o modal de encerramento está aberto.
   useEffect(() => {
@@ -2808,7 +2952,9 @@ export default function LiveCapture({
                         <button
                           type="button"
                           className="btn btn-solid"
-                          onClick={() => iniciarCaptura()}
+                          /* No teto, nem a folha de início: escolher motor e baixar modelo para uma
+                             captura que não teria onde ficar seria mais uma porta sem saída. */
+                          onClick={() => (tetoAtingido && !resumeId ? avisarTeto() : iniciarCaptura())}
                           disabled={(!micEnabled && !systemEnabled) || abrindoCaptura}
                         >
                           {abrindoCaptura ? <Loader2 aria-hidden className="animate-spin" /> : <Mic aria-hidden />}
@@ -2904,6 +3050,8 @@ export default function LiveCapture({
                       aqui também repetia o mesmo painel duas vezes na tela. */}
                     {modelPrep && !isRecording && <ModelPrepPanel state={modelPrep} onRetry={prepareModels} compact />}
                   </section>
+
+                  {avisoDoFim}
 
                   {/* ══════════════ FALANTES (C5 do protótipo) ══════════════
                     Antes da conversa, no cenário Conversa: as vozes que o identificador local
@@ -3358,7 +3506,7 @@ export default function LiveCapture({
               <button
                 type="button"
                 className="btn btn-solid"
-                onClick={() => iniciarCaptura()}
+                onClick={() => (tetoAtingido && !resumeId ? avisarTeto() : iniciarCaptura())}
                 disabled={abrindoCaptura}
               >
                 {abrindoCaptura ? <Loader2 aria-hidden className="animate-spin" /> : <Mic aria-hidden />}{' '}
@@ -3530,7 +3678,7 @@ export default function LiveCapture({
           aoEscolherArquivo={() => coverFileRef.current?.click()}
           aoContinuar={handleCancelStop}
           aoSalvar={(ir) => void handleFinalizeSave(ir)}
-          aoDescartar={() => void descartarCaptura()}
+          aoDescartar={descartarCaptura}
         />
       )}
 

@@ -116,6 +116,31 @@ describe('sessao e rodada (self-host)', () => {
     )
   })
 
+  it('POST /api/sessions/:id/utterances acrescenta um LOTE; repetir o lote substitui a faixa, nao duplica', async () => {
+    // A captura longa salva em lotes (2026-09-28): a sessao nasce com o primeiro, o resto chega aqui.
+    const lote = {
+      utterances: [
+        { ...falas[0], idx: 2, sourceText: 'See you tomorrow.' },
+        { ...falas[1], idx: 3, sourceText: 'Take care.' },
+      ],
+    }
+    const r = await s.post(`/api/sessions/${sessaoId}/utterances`, lote)
+    expect(r.status).toBe(200)
+    await expect(JSON.stringify(await resposta(r), null, 2)).toMatchFileSnapshot(
+      '__snapshots__/post.sessions.id.utterances.json',
+    )
+    const repetido = await s.post(`/api/sessions/${sessaoId}/utterances`, lote)
+    expect(repetido.status).toBe(200)
+    const lido = await (await s.get(`/api/sessions/${sessaoId}`)).json()
+    expect(lido.utterances.map((u: { idx: number }) => u.idx)).toEqual([1, 2, 3])
+    expect(lido.session.wordCount).toBe(2 + 3 + 2)
+  })
+
+  it('POST /api/sessions/:id/utterances de sessao alheia ou inexistente → 404', async () => {
+    const r = await s.post('/api/sessions/nao-existe/utterances', { utterances: [falas[0]] })
+    expect(r.status).toBe(404)
+  })
+
   it('PATCH /api/sessions/utterances/:uid com :uid acima do teto → 400 pelo idParamSchema', async () => {
     /* FASE 4 (correção 4): o `:uid` era a leitura crua de `req.params` desta rota — só o CORPO
        tinha schema. Agora o identificador passa pelo mesmo `idParamSchema` das rotas vizinhas

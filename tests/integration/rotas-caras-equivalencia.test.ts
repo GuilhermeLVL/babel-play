@@ -109,10 +109,10 @@ describe('rotas caras: equivalência, invalidação e custo', () => {
           rastro: 'off',
         },
       })
-      /* Era `cursor: 'coroa'` (Perfeccionista); cursores saíram nas recompensas v2 e o exclusivo que
-         continua é o rastro do Duelista. */
+      /* Era `cursor: 'coroa'` (Perfeccionista); cursores saíram nas recompensas v2, e o rastro do
+         Duelista saiu na revisão de 27/09 (um rastro por forma): o exclusivo é o do Colecionador. */
       const recusa = await s.put('/api/settings', {
-        ui: { theme: 'linear', fonte: 'padrao', rastro: 'croma:pixel:verde' },
+        ui: { theme: 'linear', fonte: 'padrao', rastro: 'arcoiris' },
       })
       const corpoOk = (await ok.json()) as Record<string, unknown>
       await expect(
@@ -191,11 +191,13 @@ describe('rotas caras: equivalência, invalidação e custo', () => {
   })
 
   describe('GET /api/metrics/profile: sem escrita não relê as tabelas; com escrita, enxerga', () => {
-    it('a segunda leitura sem escrita no meio custa no máximo quatro consultas e devolve o mesmo JSON', async () => {
+    /* Eram quatro; a quinta é o fuso gravado (revisão de 27/09 das recompensas v2): os dias de
+       prática e a ofensiva contam no fuso de quem estuda, e ele é parte da chave do cache. */
+    it('a segunda leitura sem escrita no meio custa no máximo cinco consultas e devolve o mesmo JSON', async () => {
       const a = await (await s.get('/api/metrics/profile')).json()
       const { r, n } = await medir(() => s.get('/api/metrics/profile'))
       expect(await r.json()).toEqual(a)
-      expect(n).toBeLessThanOrEqual(4)
+      expect(n).toBeLessThanOrEqual(5)
     })
 
     it('uma revisão nova aparece em reviews', async () => {

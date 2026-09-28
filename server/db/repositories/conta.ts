@@ -22,6 +22,7 @@ import {
   convidados,
   creditPurchases,
   creditSpends,
+  estadoDaConta,
   exerciseResults,
   idadesDeclaradas,
   presencas,
@@ -97,6 +98,8 @@ const TABELAS_DO_TITULAR: ReadonlyArray<readonly [string, any]> = [
   /* Fase 7: o registro do convidado com nuvem (id anônimo + IP pseudonimizado do dia). Sai com a
      conta como o resto — a conversão mantém o id, então a linha passa a ser da conta convertida. */
   ['convidados', convidados],
+  /* Revisão de 27/09 das recompensas v2: o fuso gravado e o aviso do reembolso (migração 0037). */
+  ['estadoDaConta', estadoDaConta],
 ]
 
 /** Os nomes, para o teste de invariante e para quem precise listar sem tocar nas tabelas. */

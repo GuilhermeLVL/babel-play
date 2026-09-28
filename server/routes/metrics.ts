@@ -21,10 +21,9 @@ import {
   valorDoDrop,
   valorDoRepetido,
 } from '../../src/core/economiaAutoridade'
-import { diaLocal, diaNoFuso, fusoOuPadrao, sequencias } from '../../src/core/learning/economia'
+import { diaLocal, diaNoFuso, sequencias } from '../../src/core/learning/economia'
 import { maestriaPorJogo, nivelDeMaestria } from '../../src/core/maestria'
 import { estadoDasMissoes, metaConcluida, missoesComProgresso } from '../../src/core/missoes'
-import { reembolsosDevidos } from '../../src/core/reembolso'
 import {
   ehAssinanteDaTemporada,
   nivelDaTemporada,
@@ -39,6 +38,8 @@ import { economiaDoUsuario } from '../db/repositories/metrics'
 import { seedSpendsRepo } from '../db/repositories/seedSpends'
 import { getPlanForUser } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
+import { fusoDoUsuario } from '../lib/fusoDoUsuario'
+import { reembolsarCorteDoCatalogo } from '../lib/reembolsoDoCorte'
 import { responderErro } from '../lib/respostaDeErro'
 import {
   metricsProfileQuerySchema,
@@ -295,15 +296,17 @@ async function creditarDrop(
     return
   }
 
-  /* BAÚ v2 (recompensas v2): o dia do teto é o dia LOCAL de quem joga. */
-  const fuso = fusoOuPadrao(fusoPedido)
+  /* BAÚ v2 (recompensas v2): o dia do teto é o dia LOCAL de quem joga, no fuso GRAVADO (o pedido
+     só vale no primeiro uso ou depois da carência de 24 h — `fusoDoUsuario`). */
+  const fuso = await fusoDoUsuario(req.userId, fusoPedido)
   const diaDe = (t: number) => diaNoFuso(t, fuso)
+  const agora = Date.now()
   const baus = await economiaRepo.bausAbertos(req.userId)
 
   const jaAberto = baus.find((b) => b.creditoId === creditoId)
   if (jaAberto) {
     /* IDEMPOTÊNCIA POR RODADA: o baú já aberto devolve o MESMO resultado, lido do razão. */
-    const { semRaroSeguidos } = situacaoDoBau(baus, diaDe(Date.now()), diaDe)
+    const { semRaroSeguidos } = situacaoDoBau(baus, diaDe(agora), diaDe, agora)
     const totais = await economiaRepo.totaisCreditados(req.userId)
     const repetido = jaAberto.reason.startsWith('bau:repetido:')
     res.json({
@@ -320,7 +323,7 @@ async function creditarDrop(
   }
 
   const desempenho = rodadaRendeBau(linhas)
-  const { bausHoje, semRaroSeguidos } = situacaoDoBau(baus, diaDe(Date.now()), diaDe)
+  const { bausHoje, bausNas24h, semRaroSeguidos } = situacaoDoBau(baus, diaDe(agora), diaDe, agora)
   const jaPossui = new Set([
     ...(await seedSpendsRepo.itensComprados(req.userId)),
     ...baus.filter((b) => b.reason.startsWith('drop:')).map((b) => b.reason.slice('drop:'.length)),
@@ -328,6 +331,7 @@ async function creditarDrop(
   const decisao = decidirBau({
     estrelas: desempenho.estrelas,
     bausHoje,
+    bausNas24h,
     semRaroSeguidos,
     sorteio: Math.random(),
     elegiveis: itensSorteaveisNoDrop(jaPossui),
@@ -392,25 +396,19 @@ async function creditarDrop(
  * no core) menos o que já foi creditado. Cada reembolso é um crédito `reembolso:<reason do gasto>`
  * e a unicidade (usuário, `credito_id`) de `seed_credits` é o que torna dois pedidos simultâneos
  * (duas abas abrindo juntas) um crédito só: o segundo INSERT cai no `ON CONFLICT` e não soma em
- * `creditado`. Repetir o pedido depois devolve `creditado: 0`.
+ * `creditado`. Repetir o pedido depois devolve `creditado: 0`. Os Créditos pagos por item premium
+ * sem equivalente livre também voltam (`creditosDevolvidos`) — em `lib/reembolsoDoCorte.ts`, porque
+ * esta rota sorteia o baú e não pode tocar no razão de Créditos (`tests/eca-art20-*`).
+ *
+ * INDEPENDENTE DA FLAG `recompensas_v2` (revisão de 27/09): o corte do catálogo é regra do
+ * servidor, então quem tem direito ao reembolso o recebe com a flag ligada ou não. `avisoPendente`
+ * diz se a tela ainda deve anunciar — uma vez por conta.
  */
 metricsRouter.post('/seeds/reembolso', async (req, res) => {
   try {
-    const [gastos, ja] = await Promise.all([seedSpendsRepo.gastos(req.userId), economiaRepo.reembolsos(req.userId)])
-    const devidos = reembolsosDevidos(gastos, new Set(ja.map((r) => r.creditoId)))
-    let creditado = 0
-    for (const d of devidos) {
-      const { jaExistia } = await economiaRepo.creditar(req.userId, {
-        creditoId: d.creditoId,
-        amount: d.seeds,
-        xp: 0,
-        reason: d.creditoId,
-      })
-      if (!jaExistia) creditado += d.seeds
-    }
-    const reembolsado = (await economiaRepo.reembolsos(req.userId)).reduce((n, r) => n + r.amount, 0)
+    const r = await reembolsarCorteDoCatalogo(req.userId)
     const totais = await economiaRepo.totaisCreditados(req.userId)
-    res.json({ creditado, reembolsado, ...totais })
+    res.json({ ...r, ...totais })
   } catch (err) {
     res.status(500).json({
       error: erroDeRota(err, { status: 500, event: 'metrics_route_error', route: req.path, requestId: req.requestId }),
@@ -450,9 +448,9 @@ metricsRouter.get('/maestria', async (req, res) => {
  */
 metricsRouter.get('/missoes', async (req, res) => {
   try {
-    const fuso = fusoOuPadrao(typeof req.query.fuso === 'string' ? req.query.fuso : undefined)
+    const fuso = await fusoDoUsuario(req.userId, typeof req.query.fuso === 'string' ? req.query.fuso : undefined)
     const [dados, rodadas] = await Promise.all([
-      dadosDasMissoes(req.userId),
+      dadosDasMissoes(req.userId, fuso),
       exerciseResultsRepo.linhasDeMaestria(req.userId),
     ])
     res.json(
@@ -522,6 +520,16 @@ metricsRouter.post('/seeds/creditar', async (req, res) => {
       return
     }
 
+    /* O REENVIO DE UM CRÉDITO JÁ LANÇADO É `jaExistia`, antes de qualquer conferência (revisão de
+       27/09, P2): a janela da meta, a assinatura da trilha e o nível descrevem o momento de LANÇAR.
+       Conferir de novo no reenvio respondia 400 a uma `meta:` antiga e 403 a uma casa de assinante
+       depois do fim da assinatura — e o espelho sem conta respondia `jaExistia`. As duas pontas
+       agora dizem a mesma coisa: "isso já é seu". */
+    if (await economiaRepo.jaCreditado(req.userId, credito.creditoId)) {
+      res.json({ jaExistia: true, ...(await economiaRepo.totaisCreditados(req.userId)) })
+      return
+    }
+
     /* A MAESTRIA (recompensas v2, onda 3): `maestria:<jogo>:<nível>` só credita se os pontos do
        jogo, somados das linhas GRAVADAS desta conta (uma vez por `roundId`), alcançam o limiar do
        nível. Sem isto seriam 20 × 5 Seeds por jogo a qualquer pedido. O reenvio de um nível já
@@ -574,7 +582,7 @@ metricsRouter.post('/seeds/creditar', async (req, res) => {
          salvas, rodadas no dia em que começaram). Sem isto `meta:<dia>` seria 15 Seeds por dia
          por abrir o app. O reenvio de uma meta já creditada cai no `ON CONFLICT`. */
       if (credito.metaDoDia) {
-        const fuso = fusoOuPadrao(payload.fuso)
+        const fuso = await fusoDoUsuario(req.userId, payload.fuso)
         const agora = Date.now()
         const janela = [diaNoFuso(agora, fuso), diaNoFuso(agora - 86_400_000, fuso)]
         if (!janela.includes(credito.metaDoDia)) {
@@ -582,7 +590,7 @@ metricsRouter.post('/seeds/creditar', async (req, res) => {
           return
         }
         const [dados, rodadas] = await Promise.all([
-          dadosDasMissoes(req.userId),
+          dadosDasMissoes(req.userId, fuso),
           exerciseResultsRepo.linhasDeMaestria(req.userId),
         ])
         const missoes = missoesComProgresso(credito.metaDoDia, fuso, {

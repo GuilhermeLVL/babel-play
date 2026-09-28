@@ -25,7 +25,7 @@
  * reescreve o passado. É aceitável porque é a mesma propriedade que o número de hoje sempre teve;
  * o que não seria aceitável é fingir um registro histórico que não existe.
  */
-import { type EventosDeXp,nivelDoXp, xpDeEventos } from './xp';
+import { type EventosDeXp, nivelDoXp, sessaoRendeXp, xpDeEventos } from './xp';
 
 export type BaldeDeXp = 'dia' | 'semana';
 
@@ -52,8 +52,9 @@ export interface HistoricoDeXp {
 
 /** As linhas que a curva precisa, na forma mínima que as duas pontas conseguem produzir. */
 export interface LinhasDoHistorico {
-  /** Uma por gravação: quando aconteceu e quantas palavras trouxe. */
-  sessoes: Array<{ em: number; palavras: number }>;
+  /** Uma por gravação: quando aconteceu, quantas palavras trouxe e quantas viraram palavra salva
+   *  no caderno — só a sessão com palavra salva rende XP (`sessaoRendeXp`). */
+  sessoes: Array<{ em: number; palavras: number; palavrasSalvas: number }>;
   /** Uma por revisão de SRS: quando e se foi acerto (nota ≥ 3). */
   revisoes: Array<{ em: number; certa: boolean }>;
   /** Uma por item de jogo que NÃO virou revisão (`kind === 'drill'`). */
@@ -94,7 +95,7 @@ export function historicoDeXp(
   /* A sessão e as palavras dela caem no MESMO instante: a contagem mora na linha da sessão, não
      numa tabela de palavras com data própria. É a aproximação certa — as palavras foram
      capturadas naquela gravação. */
-  for (const s of linhas.sessoes) somar(s.em, { sessoes: 1, palavrasCapturadas: s.palavras });
+  for (const s of linhas.sessoes) somar(s.em, { sessoes: sessaoRendeXp(s.palavrasSalvas) ? 1 : 0, palavrasCapturadas: s.palavras });
   for (const r of linhas.revisoes) somar(r.em, { revisoes: 1, revisoesCertas: r.certa ? 1 : 0 });
   for (const i of linhas.itensDeJogo) somar(i.em, { itensDeJogo: 1, itensDeJogoCertos: i.certo ? 1 : 0 });
 

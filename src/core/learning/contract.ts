@@ -68,6 +68,12 @@ export interface AppMetrics {
   /** Palavras salvas da captura PREMIADAS (teto diário aplicado). */
   palavrasSalvasPremiadas?: number;
   /**
+   * Sessões das quais saiu ao menos UMA palavra salva no caderno — as únicas que rendem XP
+   * (revisão de 27/09: `POST /api/sessions` aceita corpo vazio, e sessão vazia não é esforço).
+   * `sessions` continua contando todas (estatística e conquista "Ouvinte").
+   */
+  sessoesComPalavraSalva?: number;
+  /**
    * Carimbos (ms) dos ACERTOS dos últimos 3 dias — revisões certas e itens de jogo certos. O
    * cliente conta os do dia LOCAL dele para saber se a meta do dia foi cumprida antes de pedir o
    * crédito `meta:<dia>`; o servidor confere com os mesmos carimbos.

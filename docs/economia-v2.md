@@ -40,8 +40,14 @@ conta dias de prática. `POST /api/metrics/presenca` continua gravando, só como
 ## Baú (`decidirBau`, `src/core/economiaAutoridade.ts`)
 
 - Só com rodada de 2+ estrelas (precisão ≥ 75%), conferida nas linhas gravadas; no máximo **3 por dia
-  local** (fuso enviado pelo cliente; ausente = `America/Sao_Paulo`). O 4º responde 200 com
-  `semBau: 'teto'` e não grava nada.
+  local E 3 em quaisquer 24 h** (janela móvel: três às 23:50 e mais três às 00:10 eram seis em vinte
+  minutos). O 4º responde 200 com `semBau: 'teto'` e não grava nada.
+- **O fuso é do servidor** (revisão de 27/09): o cliente manda o dele, o servidor o GRAVA no primeiro
+  uso (`estado_da_conta`, migração 0037) e só aceita trocar uma vez a cada 24 h (`decidirFuso`,
+  `src/core/learning/economia.ts`); sem nada gravado vale `America/Sao_Paulo`. Vale para o baú, a
+  janela de `meta:<dia>`, as missões e — antes eram do fuso do PROCESSO — a ofensiva, o congelamento,
+  os marcos de 7 dias e o teto diário de palavras salvas. Trocar o fuso a cada pedido inventava um
+  dia novo; agora custa esperar 24 h. O espelho sem conta aplica a mesma régua (`localStorage`).
 - Chances à vista na resposta e no modal: **75% comum · 25% raro**; o 5º baú seguido sem raro é raro.
 - Faixa sorteada sem peça nova: vira Seeds — **comum 15, raro 40** (`reason: bau:repetido:<r>`).
 - Peça nova: a peça + 5 Seeds (`SEEDS_DO_DROP`). Idempotente por `roundId`. Nunca pago, nunca por Créditos.
@@ -49,12 +55,35 @@ conta dias de prática. `POST /api/metrics/presenca` continua gravando, só como
 ## Corte do catálogo e reembolso (`src/core/reembolso.ts`)
 
 Saíram 97 itens: 27 cursores, 33 packs de emoji, 2 aprimoramentos, a partícula "Chuva de Emojis",
-10 capacidades de emoji da galeria, 12 rastros (fica um por forma à venda) e as 12 fontes/posições
-(que viraram opção livre em "Acessibilidade e layout"). `POST /api/metrics/seeds/reembolso` devolve,
+10 capacidades de emoji da galeria, 14 rastros e as 12 fontes/posições (que viraram opção livre
+em "Acessibilidade e layout"). Rastros: fica EXATAMENTE um por forma (Faíscas, Lampejo — que era
+"Estrelas" por emoji ⭐✨ e virou o lampejo do motor, pintado na cor pedida —, Corações, Pixel e o
+Arco-íris do Colecionador) mais os quatro dourados da vitrine de Créditos; a Esteira de Bolhas e o
+Fluxo Matrix 84 (que era a peça da conquista Duelista, que segue pagando Seeds e XP) saíram na
+revisão de 27/09. Rastro só aparece com ponteiro fino, então NENHUM rastro cai no baú
+(`ehSorteavelNoDrop`): num aparelho de toque o prêmio seria invisível. `POST /api/metrics/seeds/reembolso` devolve,
 uma vez, cada gasto `loja:`/`croma:` de item removido e todo `aprimoramento:*` como
 `reembolso:<reason>` — idempotente pelo índice único de `seed_credits`. Pago com Créditos
-(`dourada-3/5/7`) vira o equivalente (tema Aurora, até a onda 4). O cliente chama uma vez por sessão
-com a flag `recompensas_v2` ligada e mostra o aviso uma vez só.
+(`dourada-3/5/7`) vira um equivalente DA VITRINE de Créditos (3 → Corações de Ouro, 5 → Pixel
+Dourado, 7 → Aurora Dourada) — nunca um exclusivo de conquista: até a revisão de 27/09 o mapa
+apontava para o tema Aurora, da conquista "Constante", e Créditos compravam constância.
+`resolverPremium` (`reembolso.ts`) decide a posse na ordem das compras: equivalente já possuído
+passa ao próximo item livre da vitrine e, sem nenhum livre, os Créditos pagos voltam como concessão
+`reembolso-creditos:<id do gasto>` na mesma rota. Posse de conquista e de maestria é conferida
+ANTES da posse premium (`posseDeCosmeticos.ts`), e a premium só abre item `vendavelEmCreditos`.
+O cliente pede o reembolso uma vez por sessão, depois que as métricas carregam, COM OU SEM a flag
+`recompensas_v2` (desde 27/09 a flag só liga telas; ver `docs/flags.md`). O aviso é por CONTA: a
+resposta traz `avisoPendente`, `true` uma vez só (a marca `estado_da_conta.aviso_reembolso_em` é
+gravada no mesmo pedido, dentro do UPDATE) e só quando o pedido creditou Seeds.
+
+**O Passe da Temporada 1 (`passe-t1`) — nenhuma venda aconteceu.** O SKU (R$ 14,90, "1.134 Créditos
+ao longo da trilha", entregues como concessões `passe:t1:premium-<casa>` por `POST
+/api/billing/creditar-passe`) existiu no código até a onda 5, mas a cobrança nunca foi ligada em
+produção: a produção é a edição estática (sem Express, sem `/api/billing`), e o Asaas não tem conta
+configurada (`docs/LANCAMENTO.md`). Não há, portanto, compra paga nem concessão do passe em dado
+real. Como o caminho existia, o reembolso do corte cobre o caso mesmo assim: cada compra PAGA de
+`passe-t1` recebe o que faltava da promessa (1.134 − o que as casas já concederam) como concessão
+`reembolso-passe:<id da compra>`, idempotente (`reembolsosDoPasse`, `reembolso.ts`).
 
 ## Calibragem (`npx tsx scripts/economia/simular-ritmo.ts`)
 
@@ -71,6 +100,23 @@ e Combo Chuva de Confete 1.190).
 | Leve    | 10 revisões + 1 rodada                       | 35,2      | 1.056            | 18   | 18    |
 | Típico  | 25 revisões + 3 rodadas + 10 palavras + meta | 149,9     | 4.496            | 69   | 34    |
 | Intenso | 60 revisões + 8 rodadas + 30 palavras + meta | 351,1     | 10.534           | 90   | 37    |
+
+**Refeita na revisão de 27/09** (itens 2, 4 e 6 da revisão): os rastros saíram do baú (só aparecem
+com ponteiro fino) e a Esteira de Bolhas saiu do catálogo, então a faixa sorteada fica sem peça nova
+mais cedo e paga Seeds de repetido — o típico sobe de 149,9 para **152,2 Seeds/dia**:
+
+| Perfil  | Seeds/dia | Seeds em 30 dias | Baús | Peças | Baú (Seeds) |
+| ------- | --------- | ---------------- | ---- | ----- | ----------- |
+| Leve    | 35,2      | 1.056            | 18   | 18    | 90          |
+| Típico  | 152,2     | 4.566            | 69   | 32    | 765         |
+| Intenso | 357,0     | 10.709           | 90   | 32    | 1.280       |
+
+As faixas continuam na meta sem mexer em preço (comum 2,3–2,9 dias · raro 6,6–7,8 · épico
+17,1–19,7 · lendário 34,2). A sessão só com palavra salva (item 2) mexe no XP, não nas Seeds — e o
+perfil típico salva 10 palavras por dia da captura, então as sessões dele continuam rendendo: o que
+fechou foi a fábrica de sessões vazias. A rodada gravada uma vez (item 4) não muda a simulação, que
+nunca reenviou rodada. A janela de 24 h do baú também não: as rodadas simuladas caem nas mesmas horas
+de cada dia.
 
 Meta do dono, no perfil típico e só com Seeds: um comum a cada 2–3 dias, um raro por semana, um épico
 a cada 2–3 semanas. Preços antigos × fator por raridade, preservando a ordem dentro da faixa:

@@ -18,6 +18,19 @@
 
 import type { AppMetrics } from './contract';
 
+/**
+ * A SESSÃO RENDE XP? Só se dela saiu ao menos UMA palavra salva no caderno (cartão com
+ * `sessionId`). Revisão de 27/09 (P0): `POST /api/sessions` aceita corpo vazio, e cada sessão
+ * valia `PESOS_XP.sessao` na conta e na temporada — sessões vazias em série subiam a trilha
+ * grátis. Por que palavra salva e não falas: falas são volume de mídia (um vídeo importado traz
+ * centenas sem ação nenhuma, a mesma razão de `palavraCapturada` não render XP); a palavra salva
+ * é a pessoa escolhendo o que estudar, e o servidor a enxerga como linha própria, com dono.
+ */
+export const PALAVRAS_SALVAS_PARA_A_SESSAO_RENDER = 1;
+export function sessaoRendeXp(palavrasSalvasDaSessao: number): boolean {
+  return palavrasSalvasDaSessao >= PALAVRAS_SALVAS_PARA_A_SESSAO_RENDER;
+}
+
 /** Peso de cada esforço real em XP. Explícito de propósito: a regra tem de ser auditável. */
 export const PESOS_XP = {
   sessao: 25,
@@ -76,6 +89,7 @@ export const PESOS_SEEDS = {
 
 /** Os fatos que produzem XP. Todos contáveis, todos com carimbo de tempo no banco. */
 export interface EventosDeXp {
+  /** Sessões que RENDEM XP: só as que tiveram ao menos uma palavra salva (`sessaoRendeXp`). */
   sessoes: number;
   /** Palavras TRANSCRITAS: só estatística. Não rendem XP desde 27/09 (recompensas v2): é volume de
    *  mídia, não esforço — importar um vídeo de 325 palavras rendia 650 XP sem ação nenhuma. */
@@ -191,7 +205,9 @@ export function posicaoNoNivel(xp: number): PosicaoNoNivel {
  */
 export function eventosDeMetricas(m: AppMetrics): EventosDeXp {
   return {
-    sessoes: m.sessions,
+    /* SÓ SESSÃO COM PALAVRA SALVA (revisão de 27/09): contar `sessions` pagava 25 XP por
+       `POST /api/sessions` vazio. Servidor antigo sem o campo: nenhuma sessão rende. */
+    sessoes: m.sessoesComPalavraSalva ?? 0,
     palavrasCapturadas: m.wordsCaptured,
     revisoes: m.reviews,
     revisoesCertas: m.correctReviews,

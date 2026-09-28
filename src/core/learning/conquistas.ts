@@ -39,7 +39,6 @@ export type CosmeticoExclusivo =
   | 'tema-aurora'
   | 'part-cometa'
   | 'ras-arcoiris'
-  | 'ras-matrix'
   /* As molduras e os títulos do OURO (recompensas v2, onda 5) — `core/catalogoConquistas.ts`. */
   | 'moldura-conquista-biblioteca'
   | 'titulo-conquista-memoria'
@@ -232,7 +231,7 @@ export const CONQUISTAS: Conquista[] = [
   { id: 'mestre-de-um', nome: 'Mestre', desc: 'Chegue ao nível Mestre de maestria em um jogo.', pilar: 'jogos', raridade: 'epico', icone: 'GraduationCap',
     recompensa: { seeds: 120, xp: 200 }, progresso: (c) => ({ atual: Math.min(1, jogosNoNivel(c, 5)), meta: 1 }) },
   { id: 'duelista', nome: 'Duelista', desc: 'Combo ×15 no Duelo relâmpago.', pilar: 'jogos', raridade: 'epico', icone: 'Zap',
-    recompensa: { seeds: 50, xp: 80, cosmetico: 'ras-matrix' }, progresso: (c) => ({ atual: c.melhorComboPorJogo['blitz'] ?? 0, meta: 15 }) },
+    recompensa: { seeds: 50, xp: 80 }, progresso: (c) => ({ atual: c.melhorComboPorJogo['blitz'] ?? 0, meta: 15 }) },
   { id: 'imparavel', nome: 'Imparável', desc: 'Combo ×20 no Duelo relâmpago.', pilar: 'jogos', raridade: 'epico', icone: 'Rocket',
     secreta: true, dica: 'O Duelo não acaba no ×15.',
     recompensa: { seeds: 60, xp: 100 }, progresso: (c) => ({ atual: c.melhorComboPorJogo['blitz'] ?? 0, meta: 20 }) },

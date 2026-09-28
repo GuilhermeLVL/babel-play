@@ -27,10 +27,18 @@ export async function gravarRodada(_m: RegExpMatchArray, _u: URL, init: RequestI
   const db = await abrirStore();
   /* O dia da rodada é o dia em que ela COMEÇOU — a mesma régua do Express (`inicioDaRodada`). */
   const inicio = inicioDaRodada(Date.now(), num(p.duracaoMs));
+  /* UMA RODADA, UMA VEZ, por `roundId` — a régua do Express (revisão de 27/09). Cada linha nasce com
+     `uuid()` novo, então o retry do cliente regravava a rodada e os acertos contavam em dobro. A
+     conferência roda DENTRO da mesma transação de escrita: duas abas não passam as duas. */
+  const roundId = str(p.roundId);
   const tx = db.transaction('exercicios', 'readwrite');
+  if (roundId && (await tx.store.getAll()).some((e) => e.roundId === roundId)) {
+    await tx.done;
+    return json({ ok: true, gravados: 0, roundId, jaExistia: true });
+  }
   for (const it of itens) await tx.store.put(exercicioDe(p, it, inicio));
   await tx.done;
-  return json({ ok: true, gravados: itens.length });
+  return json({ ok: true, gravados: itens.length, roundId, jaExistia: false });
 }
 
 /* `POST /api/exercises/results` SAIU (07/09). Ela era o gravador POR ITEM, anterior a `/rodada`,

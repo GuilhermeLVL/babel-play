@@ -5,12 +5,12 @@
  * (nasce DESLIGADA na migração); na edição estática não há servidor, e quem liga é o build
  * (`VITE_RECOMPENSAS_V2=1`, a onda 5 acende).
  *
- * O REEMBOLSO: uma vez por sessão, com a flag ligada, o cliente pede `POST
- * /api/metrics/seeds/reembolso` — o servidor decide o que é devido a partir do próprio razão. O
- * aviso "Trocamos os cursores e emojis por recompensas novas. Suas Seeds voltaram: +N" aparece
- * quando o SERVIDOR diz que ainda falta avisar (`avisoPendente`), com o que entrou AGORA
- * (`creditado`) — não por aparelho, nem com o total da vida. Servidor antigo, sem o campo: o
- * comportamento anterior (uma vez por instalação, `babel.aviso_reembolso_v2`, com o total).
+ * O REEMBOLSO: uma vez por sessão, COM OU SEM a flag (revisão de 27/09 — o corte do catálogo é regra
+ * do servidor, não tela nova), o cliente pede `POST /api/metrics/seeds/reembolso` depois que as
+ * métricas carregam — o servidor decide o que é devido a partir do próprio razão. O aviso
+ * "Trocamos os cursores e emojis por recompensas novas. Suas Seeds voltaram: +N" aparece quando o
+ * SERVIDOR diz que ainda falta avisar (`avisoPendente`, uma vez por CONTA), com o que entrou AGORA
+ * (`creditado`). Servidor antigo, sem o campo: uma vez por instalação (`babel.aviso_reembolso_v2`).
  */
 import { FLAG_RECOMPENSAS_V2, recompensasV2Ativas } from '../core/flags';
 import { reembolsarSeeds } from '../data/api';
@@ -36,7 +36,6 @@ let pedidoDestaSessao: Promise<number | null> | null = null;
  * ou aviso já mostrado antes).
  */
 export function reembolsarUmaVez(): Promise<number | null> {
-  if (!recompensasV2Ligadas()) return Promise.resolve(null);
   pedidoDestaSessao ??= reembolsarSeeds().then((r) => {
     if (!r) return null;
     /* O servidor sabe se o aviso já foi dado (em qualquer aparelho): ele manda. */

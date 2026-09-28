@@ -17,12 +17,13 @@ autorizarGasto, BAUS_POR_DIA, CHANCES_DO_BAU, contextoConferivelDeConquistas, de
 itensSorteaveisNoDrop, progressoNoServidor, proximoRaroGarantidoEm, raridadeDoBau, rodadaRendeBau, roundIdDoDrop,
 situacaoDoBau, valorDoCredito, valorDoDrop, valorDoRepetido,
 } from '../../../core/economiaAutoridade';
-import { diaLocal, diaNoFuso, fusoOuPadrao, sequencias } from '../../../core/learning/economia';
+import { diaLocal, diaNoFuso, sequencias } from '../../../core/learning/economia';
 import { economiaDeMetricas } from '../../../core/learning/xp';
 import { type LinhaDeMaestria, maestriaPorJogo, nivelDeMaestria } from '../../../core/maestria';
 import { estadoDasMissoes, metaConcluida, missoesComProgresso } from '../../../core/missoes';
 import { reembolsosDevidos } from '../../../core/reembolso';
 import { nivelDaTemporada, proximaTemporada, temporadaAtual, xpDeTemporada } from '../../../core/temporada';
+import { fusoDoUsuarioLocal } from '../fuso';
 import { json, lerJson, num, str } from '../nucleo';
 import { abrirStore } from '../store';
 import { dadosDasMissoesEfemeros, linhasDoHistoricoLocal, perfilEfemero } from './metricas';
@@ -116,14 +117,16 @@ async function creditarDrop(creditoId: string, roundId: string, fusoPedido: stri
     xpCreditado: linhas.reduce((n, c) => n + c.xp, 0),
   });
 
-  /* BAÚ v2 (recompensas v2), com a régua e a ordem do Express: dia LOCAL no fuso de quem joga. */
-  const fuso = fusoOuPadrao(fusoPedido);
+  /* BAÚ v2 (recompensas v2), com a régua e a ordem do Express: dia LOCAL no fuso GRAVADO, e o teto
+     também na janela móvel de 24 h. */
+  const fuso = fusoDoUsuarioLocal(fusoPedido);
   const diaDe = (t: number) => diaNoFuso(t, fuso);
+  const agora = Date.now();
   const baus = creditos.filter((c) => c.creditoId.startsWith('drop:')).map((c) => ({ ...c, em: c.createdAt }));
 
   const jaAberto = baus.find((c) => c.creditoId === creditoId);
   if (jaAberto) {
-    const { semRaroSeguidos } = situacaoDoBau(baus, diaDe(Date.now()), diaDe);
+    const { semRaroSeguidos } = situacaoDoBau(baus, diaDe(agora), diaDe, agora);
     const repetido = jaAberto.reason.startsWith('bau:repetido:');
     return json({
       jaExistia: true, item: repetido ? null : jaAberto.reason.slice('drop:'.length), repetido, seeds: jaAberto.amount,
@@ -133,7 +136,7 @@ async function creditarDrop(creditoId: string, roundId: string, fusoPedido: stri
   }
 
   const desempenho = rodadaRendeBau(daRodada);
-  const { bausHoje, semRaroSeguidos } = situacaoDoBau(baus, diaDe(Date.now()), diaDe);
+  const { bausHoje, bausNas24h, semRaroSeguidos } = situacaoDoBau(baus, diaDe(agora), diaDe, agora);
   const jaPossui = new Set<string>();
   for (const g of await db.getAll('gastos')) {
     if (g.reason.startsWith('loja:')) jaPossui.add(g.reason.slice('loja:'.length));
@@ -142,7 +145,7 @@ async function creditarDrop(creditoId: string, roundId: string, fusoPedido: stri
     if (c.reason.startsWith('drop:')) jaPossui.add(c.reason.slice('drop:'.length));
   }
   const decisao = decidirBau({
-    estrelas: desempenho.estrelas, bausHoje, semRaroSeguidos, sorteio: Math.random(), elegiveis: itensSorteaveisNoDrop(jaPossui),
+    estrelas: desempenho.estrelas, bausHoje, bausNas24h, semRaroSeguidos, sorteio: Math.random(), elegiveis: itensSorteaveisNoDrop(jaPossui),
   });
 
   if (decisao.tipo === 'sem-bau' && decisao.motivo === 'estrelas') {
@@ -174,6 +177,19 @@ async function creditarDrop(creditoId: string, roundId: string, fusoPedido: stri
  * sobre o razão de gastos). A idempotência aqui é a chave do IndexedDB: `creditos` é indexado por
  * `creditoId`, então duas abas gravando o mesmo reembolso sobrescrevem a mesma linha.
  */
+const CHAVE_DO_AVISO_DE_REEMBOLSO = 'babel.efemero.aviso_reembolso';
+
+/** O aviso do corte, uma vez só neste modo (a régua do Express: `true` só no pedido que marca). */
+function marcarAvisoDeReembolso(): boolean {
+  try {
+    if (localStorage.getItem(CHAVE_DO_AVISO_DE_REEMBOLSO)) return false;
+    localStorage.setItem(CHAVE_DO_AVISO_DE_REEMBOLSO, String(Date.now()));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function reembolsarSeeds(): Promise<Response> {
   const db = await abrirStore();
   const gastos = await db.getAll('gastos');
@@ -189,6 +205,9 @@ export async function reembolsarSeeds(): Promise<Response> {
   return json({
     creditado,
     reembolsado: todos.filter((c) => c.creditoId.startsWith('reembolso:')).reduce((n, c) => n + c.amount, 0),
+    /* Sem conta não há Créditos (moeda paga nasce e morre no servidor): nada a devolver. */
+    creditosDevolvidos: 0,
+    avisoPendente: creditado > 0 && marcarAvisoDeReembolso(),
     seedsCreditadas: todos.reduce((n, c) => n + c.amount, 0),
     xpCreditado: todos.reduce((n, c) => n + c.xp, 0),
   });
@@ -220,8 +239,8 @@ export async function lerMaestria(): Promise<Response> {
  * gravadas, a meta e a ofensiva com congelamento. Espelho do Express: `estadoDasMissoes`, do core.
  */
 export async function lerMissoes(_m: RegExpMatchArray, url: URL): Promise<Response> {
-  const fuso = fusoOuPadrao(url.searchParams.get('fuso'));
-  const [dados, rodadas] = await Promise.all([dadosDasMissoesEfemeros(), linhasDeMaestria()]);
+  const fuso = fusoDoUsuarioLocal(url.searchParams.get('fuso'));
+  const [dados, rodadas] = await Promise.all([dadosDasMissoesEfemeros(fuso), linhasDeMaestria()]);
   return json(estadoDasMissoes({
     agora: Date.now(), fuso,
     fontes: { revisoes: dados.revisoes, palavrasSalvas: dados.palavrasSalvas, rodadas },
@@ -294,12 +313,12 @@ export async function creditarSeeds(_m: RegExpMatchArray, _u: URL, init: Request
     /* A META DO DIA (recompensas v2, onda 5), com a régua do Express: hoje ou ontem no fuso de
        quem joga, e as três missões daquele dia fechadas nas linhas gravadas. */
     if (credito.metaDoDia) {
-      const fuso = fusoOuPadrao(str(p.fuso));
+      const fuso = fusoDoUsuarioLocal(str(p.fuso));
       const agora = Date.now();
       if (![diaNoFuso(agora, fuso), diaNoFuso(agora - 86_400_000, fuso)].includes(credito.metaDoDia)) {
         return json({ error: 'dia da meta fora da janela', code: 'dia_fora_da_janela', codigo: 'dia_fora_da_janela', detalhes: { dia: credito.metaDoDia } }, 400);
       }
-      const [dados, rodadas] = await Promise.all([dadosDasMissoesEfemeros(), linhasDeMaestria()]);
+      const [dados, rodadas] = await Promise.all([dadosDasMissoesEfemeros(fuso), linhasDeMaestria()]);
       const missoes = missoesComProgresso(credito.metaDoDia, fuso, { revisoes: dados.revisoes, palavrasSalvas: dados.palavrasSalvas, rodadas });
       if (!metaConcluida(missoes)) {
         return json({ error: 'meta do dia ainda não cumprida', code: 'meta_nao_cumprida', codigo: 'meta_nao_cumprida', detalhes: { missoes } }, 400);

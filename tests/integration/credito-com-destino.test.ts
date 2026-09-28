@@ -115,11 +115,12 @@ describe('o Passe de Créditos saiu', () => {
 
 describe('as variantes douradas passam a existir', () => {
   /* RECOMPENSAS v2: as variantes 3, 5 e 7 eram cursor e pack de emoji e saíram; quem as tem vira
-     dono do equivalente (`equivalenteDe`, tema Aurora até a onda 4). As outras continuam. */
+     dono de um equivalente DA VITRINE (`equivalenteDe`) — nunca de um exclusivo de conquista. */
   it('cada variante existe no catálogo com preço avulso (ou virou o equivalente)', () => {
     for (let d = 1; d <= 10; d++) {
       if ([3, 5, 7].includes(d)) {
-        expect(equivalenteDe(`dourada-${d}`)).toBe('tema-aurora')
+        const eq = CATALOGO_DA_LOJA.find((i) => i.id === equivalenteDe(`dourada-${d}`))
+        expect(eq?.precoCreditos, `equivalente da dourada-${d}`).toBeGreaterThan(0)
         continue
       }
       const item = CATALOGO_DA_LOJA.find((i) => i.id === `dourada-${d}`)

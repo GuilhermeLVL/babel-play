@@ -175,8 +175,8 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     id: 'part-estrelas',
     tipo: 'particulas',
     alvo: 'estrelas',
-    nome: 'Partículas Estrelas',
-    desc: 'Estrelinhas brilhantes.',
+    nome: 'Partículas Lampejo',
+    desc: 'Lampejos de luz em ziguezague a cada acerto, nas cores do tema.',
     raridade: 'epico',
     nivel: 7,
     precoSeeds: 3000,
@@ -218,8 +218,8 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     id: 'ras-estrelas',
     tipo: 'rastro',
     alvo: 'estrelas',
-    nome: 'Rastro Estrelas',
-    desc: 'Estrelinhas atrás do mouse.',
+    nome: 'Rastro Lampejo',
+    desc: 'Lampejos em ziguezague atrás do mouse.',
     raridade: 'raro',
     nivel: 4,
     precoSeeds: 1080,
@@ -403,26 +403,9 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
    * pixel, bolinha) e nenhuma delas é pétala, fita ou glifo. Vender "pétalas" e entregar coração
    * rosa é o defeito que o Rastro Maré já custou; então aqui a cor vem do mestre e o substantivo
    * vem do motor. */
-  {
-    id: 'ras-bolhas',
-    tipo: 'rastro',
-    alvo: 'croma:arcoiris:celeste',
-    nome: 'Esteira de Bolhas',
-    desc: 'Bolinhas celestes flutuando atrás do cursor.',
-    raridade: 'raro',
-    nivel: 3,
-    precoSeeds: 1000,
-  },
-  {
-    id: 'ras-matrix',
-    tipo: 'rastro',
-    alvo: 'croma:pixel:verde',
-    nome: 'Fluxo Matrix 84',
-    desc: 'Pixels de fósforo verde caindo do cursor. Só para quem fez combo ×15 no Duelo.',
-    raridade: 'epico',
-    nivel: 1,
-    exclusivoDe: 'duelista',
-  },
+  /* A Esteira de Bolhas (arco-íris celeste) e o Fluxo Matrix 84 (pixel verde, da conquista
+     Duelista) SAÍRAM na revisão de 27/09: repetiam uma forma que já tem o seu rastro. Um rastro por
+     forma, e as Seeds de quem comprou voltam (`reembolso.ts`). */
   ...CATALOGO_DA_MAESTRIA, // onda 3: efeitos de jogo, molduras e títulos (`catalogoMaestria.ts`)
   ...CATALOGO_DAS_CONQUISTAS, // onda 5: molduras e títulos do ouro das conquistas (`catalogoConquistas.ts`)
   ...CATALOGO_DA_TEMPORADA, // onda 5: molduras e títulos da Temporada 1 (`catalogoTemporada.ts`)

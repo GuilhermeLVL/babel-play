@@ -85,8 +85,8 @@ describe('XP e nível de temporada', () => {
     const xp = xpDeTemporada(
       {
         sessoes: [
-          { em: dentro, palavras: 10 },
-          { em: antes, palavras: 50 },
+          { em: dentro, palavras: 10, palavrasSalvas: 1 },
+          { em: antes, palavras: 50, palavrasSalvas: 1 },
         ],
         revisoes: [
           { em: dentro, certa: true },

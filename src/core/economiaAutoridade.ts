@@ -483,6 +483,9 @@ export function rodadaRendeBau(linhas: ReadonlyArray<{ correct?: number | null }
  */
 function ehSorteavelNoDrop(item: ItemDaLoja): boolean {
   if (item.exclusivoDe) return false;
+  /* 5. RASTRO FORA (revisão de 27/09): o rastro só existe com ponteiro fino — num aparelho de toque
+     ele é invisível, e um baú que entrega o invisível não entregou nada. */
+  if (item.tipo === 'rastro') return false;
   if (item.precoCreditos !== undefined) return false;
   if (item.raridade !== 'comum' && item.raridade !== 'raro') return false;
   return item.precoSeeds !== undefined;
@@ -542,12 +545,14 @@ export type DecisaoDoBau =
 export function decidirBau(entrada: {
   estrelas: 0 | 1 | 2 | 3;
   bausHoje: number;
+  /** Baús abertos nas últimas 24 h (janela móvel): o teto vale também aqui (`situacaoDoBau`). */
+  bausNas24h?: number;
   semRaroSeguidos: number;
   sorteio: number;
   elegiveis: ItemDaLoja[];
 }): DecisaoDoBau {
   if (entrada.estrelas < ESTRELAS_PARA_O_BAU) return { tipo: 'sem-bau', motivo: 'estrelas' };
-  if (entrada.bausHoje >= BAUS_POR_DIA) return { tipo: 'sem-bau', motivo: 'teto' };
+  if (Math.max(entrada.bausHoje, entrada.bausNas24h ?? 0) >= BAUS_POR_DIA) return { tipo: 'sem-bau', motivo: 'teto' };
 
   /* Float defeituoso (NaN, negativo, >= 1) vira 0 em vez de derrubar a rota: um baú é bônus. */
   const f = Number.isFinite(entrada.sorteio) ? Math.min(0.999999999, Math.max(0, entrada.sorteio)) : 0;
@@ -577,23 +582,32 @@ export function raridadeDoBau(reason: string): RaridadeDoBau {
   return item?.raridade === 'raro' ? 'raro' : 'comum';
 }
 
+/** A janela MÓVEL do teto do baú (revisão de 27/09, P1). */
+export const JANELA_DO_TETO_DO_BAU_MS = 24 * 60 * 60 * 1000;
+
 /**
- * O ESTADO DO BAÚ de uma conta: quantos saíram HOJE (no fuso de quem joga) e quantos seguidos, do
- * mais recente para trás, não foram raros. `diaDe` recebe o carimbo e devolve a chave do dia no
- * fuso certo — quem chama passa `diaNoFuso(t, fuso)`; o core não sabe o fuso.
+ * O ESTADO DO BAÚ de uma conta: quantos saíram HOJE (no fuso de quem joga), quantos nas últimas
+ * 24 h, e quantos seguidos, do mais recente para trás, não foram raros. `diaDe` recebe o carimbo e
+ * devolve a chave do dia no fuso certo — quem chama passa `diaNoFuso(t, fuso)` com o fuso GRAVADO.
+ *
+ * AS DUAS CONTAGENS valem para o teto (`decidirBau`): o dia local é o que a tela promete ("3 por
+ * dia"), e a janela de 24 h fecha a virada do dia — sem ela, três baús às 23:50 e mais três às
+ * 00:10 davam seis em vinte minutos, e cada troca de fuso inventava um dia novo.
  */
 export function situacaoDoBau(
   baus: readonly BauAberto[],
   hoje: string,
   diaDe: (t: number) => string,
-): { bausHoje: number; semRaroSeguidos: number } {
+  agora: number = Date.now(),
+): { bausHoje: number; bausNas24h: number; semRaroSeguidos: number } {
   const bausHoje = baus.filter((b) => diaDe(b.em) === hoje).length;
+  const bausNas24h = baus.filter((b) => b.em > agora - JANELA_DO_TETO_DO_BAU_MS && b.em <= agora).length;
   let semRaroSeguidos = 0;
   for (const b of [...baus].sort((a, z) => z.em - a.em)) {
     if (raridadeDoBau(b.reason) === 'raro') break;
     semRaroSeguidos += 1;
   }
-  return { bausHoje, semRaroSeguidos };
+  return { bausHoje, bausNas24h, semRaroSeguidos };
 }
 
 /** Quantos baús faltam para o raro garantido, contando o próximo (1 = o próximo é raro). */

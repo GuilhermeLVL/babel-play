@@ -50,7 +50,7 @@ export const REGRAS: RegraDeGanho[] = [
   { id: 'sequencia7', como: 'Praticar 7 dias seguidos', xp: PESOS_XP.sequencia7, seeds: PESOS_SEEDS.sequencia7, teto: 'a cada 7 dias', unidade: 'por marco' },
   { id: 'palavraSalva', como: 'Salvar uma palavra nova da captura', xp: 0, seeds: PESOS_SEEDS.palavraSalva, teto: `até ${TETO_PALAVRAS_SALVAS_POR_DIA} por dia`, unidade: 'por palavra' },
   { id: 'metaDiaria', como: 'Cumprir a meta do dia', xp: PESOS_XP.metaDiaria, seeds: PESOS_SEEDS.metaDiaria, teto: '1× por dia', unidade: 'as 3 missões do dia' },
-  { id: 'sessao', como: 'Salvar a sessão', xp: PESOS_XP.sessao, seeds: 0, unidade: 'por sessão' },
+  { id: 'sessao', como: 'Salvar uma sessão e fichar ao menos uma palavra dela', xp: PESOS_XP.sessao, seeds: 0, unidade: 'por sessão' },
   { id: 'cartao', como: 'Fichar uma palavra no caderno', xp: PESOS_XP.cartao, seeds: PESOS_SEEDS.cartao, unidade: 'por palavra' },
   { id: 'revisaoCerta', como: 'Acertar uma revisão', xp: PESOS_XP.revisao + PESOS_XP.revisaoCerta, seeds: PESOS_SEEDS.revisaoCerta, unidade: 'por revisão certa' },
   { id: 'jogoCerto', como: 'Acertar um item de jogo', xp: PESOS_XP.itemDeJogo + PESOS_XP.itemDeJogoCerto, seeds: PESOS_SEEDS.jogoCerto, unidade: 'por acerto' },
@@ -69,10 +69,46 @@ export function palavrasPremiadas(palavrasPorDia: Iterable<number>): number {
 
 
 /**
- * O FUSO DO USUÁRIO. O dia da meta e o teto do baú são do dia LOCAL de quem joga; o servidor não
- * sabe o fuso, então o cliente o manda e, se vier ausente ou inválido, vale o de São Paulo.
+ * O FUSO DO USUÁRIO. O dia da meta, as missões, a ofensiva e o teto do baú são do dia LOCAL de
+ * quem joga. O cliente manda o fuso dele; o servidor o GRAVA no primeiro uso e, dali em diante,
+ * vale o gravado (`decidirFuso`). Sem nada gravado nem pedido válido, vale o de São Paulo.
  */
 export const FUSO_PADRAO = 'America/Sao_Paulo';
+
+/**
+ * A CARÊNCIA DO FUSO (revisão de 27/09, P1): o fuso gravado só muda uma vez a cada 24 h. Enquanto o
+ * fuso vinha em cada pedido, trocar de fuso a cada chamada dava um "dia novo" à vontade — três baús
+ * a mais, outra meta do dia, outras missões. Quem viaja troca de fuso uma vez; quem trapaceia
+ * trocaria a cada pedido.
+ */
+export const CARENCIA_DO_FUSO_MS = 24 * 60 * 60 * 1000;
+
+export interface FusoGravado {
+  fuso: string | null;
+  /** Quando o fuso gravado passou a valer (ms). */
+  desde: number | null;
+}
+
+/**
+ * O FUSO QUE VALE, e se é preciso gravar um novo. Puro: o Express e o espelho sem conta decidem
+ * com a mesma régua.
+ *  · nada gravado + pedido válido → grava o pedido (o primeiro uso);
+ *  · gravado + pedido válido e diferente + carência vencida → grava o pedido;
+ *  · qualquer outro caso → vale o gravado (ou o padrão, sem nada gravado).
+ */
+export function decidirFuso(
+  gravado: FusoGravado,
+  pedido: string | null | undefined,
+  agora: number,
+): { fuso: string; gravar: { fuso: string; desde: number } | null } {
+  const valido = pedido && fusoOuPadrao(pedido) === pedido ? pedido : null;
+  const atual = gravado.fuso && fusoOuPadrao(gravado.fuso) === gravado.fuso ? gravado.fuso : null;
+  if (!atual) return valido ? { fuso: valido, gravar: { fuso: valido, desde: agora } } : { fuso: FUSO_PADRAO, gravar: null };
+  if (valido && valido !== atual && agora - (gravado.desde ?? 0) >= CARENCIA_DO_FUSO_MS) {
+    return { fuso: valido, gravar: { fuso: valido, desde: agora } };
+  }
+  return { fuso: atual, gravar: null };
+}
 
 const fusosConferidos = new Map<string, boolean>();
 export function fusoOuPadrao(fuso: string | null | undefined): string {
@@ -116,6 +152,44 @@ export function acertosNoDia(carimbos: Iterable<number>, dia: string, fuso: stri
   let n = 0;
   for (const t of carimbos) if (diaNoFuso(t, fuso) === dia) n += 1;
   return n;
+}
+
+const QUARTO_DE_HORA = 15 * 60 * 1000;
+const deslocamentos = new Map<string, number>();
+/**
+ * O NÚMERO DO DIA de um carimbo NO FUSO dado — a mesma unidade de `diaLocal` e de `numeroDoDia`
+ * (`AAAA-MM-DD` contado em dias desde 1970), mas no fuso do usuário, não no do processo. É o que a
+ * ofensiva, os marcos e o teto de palavras usam no servidor (revisão de 27/09, P2: o servidor em
+ * UTC contava o dia de quem estuda em São Paulo três horas adiantado).
+ *
+ * Rápido de propósito (o perfil passa por milhares de carimbos): o deslocamento do fuso é
+ * constante dentro de um quarto de hora — todo fuso e toda troca de horário de verão caem em
+ * múltiplos de 15 min —, então ele é calculado uma vez por quarto de hora e guardado.
+ */
+export function diaNumeroNoFuso(ts: number, fuso: string): number {
+  const f = fusoOuPadrao(fuso);
+  const quarto = Math.floor(ts / QUARTO_DE_HORA) * QUARTO_DE_HORA;
+  const chave = `${f}|${quarto}`;
+  let desloc = deslocamentos.get(chave);
+  if (desloc === undefined) {
+    const [a, m, d] = diaNoFuso(quarto, f).split('-').map(Number);
+    const hm = horaNoFuso(quarto, f);
+    desloc = Date.UTC(a, m - 1, d, hm[0], hm[1]) - quarto;
+    if (deslocamentos.size > 20_000) deslocamentos.clear();
+    deslocamentos.set(chave, desloc);
+  }
+  return Math.floor((ts + desloc) / 86_400_000);
+}
+
+const formatosDeHora = new Map<string, Intl.DateTimeFormat>();
+function horaNoFuso(ts: number, fuso: string): [number, number] {
+  let fmt = formatosDeHora.get(fuso);
+  if (!fmt) {
+    fmt = new Intl.DateTimeFormat('en-GB', { timeZone: fuso, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+    formatosDeHora.set(fuso, fmt);
+  }
+  const [h, m] = fmt.format(new Date(ts)).split(':').map(Number);
+  return [h % 24, m];
 }
 
 /** Dia local (número inteiro) de um carimbo: a unidade da presença e do teto de captura. */

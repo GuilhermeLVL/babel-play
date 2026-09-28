@@ -1,6 +1,6 @@
 import { MOLDURAS_DA_T1, TITULOS_DA_T1 } from './catalogoTemporada';
 import type { LinhasDoHistorico } from './learning/historicoDeXp';
-import { xpDeEventos } from './learning/xp';
+import { sessaoRendeXp, xpDeEventos } from './learning/xp';
 import { CATALOGO_DA_LOJA } from './loja';
 import type { PlanoEfetivo } from './planos';
 import type { ItemDaLoja } from './tiposDaLoja';
@@ -102,7 +102,7 @@ export function xpDeTemporada(linhas: LinhasDoHistorico, t: Temporada): number {
   const revisoes = linhas.revisoes.filter((r) => dentro(r.em));
   const itens = linhas.itensDeJogo.filter((i) => dentro(i.em));
   return xpDeEventos({
-    sessoes: sessoes.length,
+    sessoes: sessoes.filter((s) => sessaoRendeXp(s.palavrasSalvas)).length,
     palavrasCapturadas: sessoes.reduce((n, s) => n + s.palavras, 0),
     revisoes: revisoes.length,
     revisoesCertas: revisoes.filter((r) => r.certa).length,
@@ -120,7 +120,7 @@ export function nivelDaTemporada(xp: number): number {
  *
  * GRÁTIS (os 15 níveis pares): as cinco peças da temporada nos níveis 8, 12, 18, 22 e 30 — o tema
  * Observatório é o marco — e Seeds nos outros dez. As Seeds sobem com o nível e somam 1.050 na
- * trilha inteira: ≈ 7 dias de renda do perfil típico (149,9/dia, `docs/economia-v2.md`) espalhados
+ * trilha inteira: ≈ 7 dias de renda do perfil típico (152,2/dia, `docs/economia-v2.md`) espalhados
  * por 8 semanas. `tests/temporada.test.ts` trava o total.
  *
  * ASSINANTE (os 30 níveis): um título de estrela nos ímpares e uma moldura de constelação nos pares

@@ -93,6 +93,95 @@ describe('POST /api/metrics/seeds/reembolso', () => {
     await db.insert(creditSpends).values({
       id: 'cs-1', createdAt: agora, updatedAt: agora, userId: u, spendId: 'premium-dourada-3', amount: 150, reason: 'premium:dourada-3',
     })
-    expect(await creditsRepo.itensPremium(asUserId(u))).toEqual(['tema-aurora'])
+    expect(await creditsRepo.itensPremium(asUserId(u))).toEqual(['dourada-8'])
+  })
+
+  it('P0: Créditos nunca abrem exclusivo de conquista — nem por um gasto `premium:` gravado à mão', async () => {
+    const u = 'u-premium-aurora'
+    const { db } = (await h.load('../../server/db/db')) as any
+    const { creditSpends } = (await h.load('../../server/db/schema')) as any
+    const { recusaDePosse } = (await h.load('../../server/lib/posseDeCosmeticos')) as any
+    const agora = Date.now()
+    await db.insert(creditSpends).values({
+      id: 'cs-aurora', createdAt: agora, updatedAt: agora, userId: u, spendId: 'premium-aurora', amount: 100, reason: 'premium:tema-aurora',
+    })
+    expect(await creditsRepo.itensPremium(asUserId(u))).toEqual([])
+    // Mesmo com a posse premium dizendo "tema-aurora", a conquista é conferida antes.
+    const recusa = await recusaDePosse(asUserId(u), 'tema', 'aurora', {
+      nivel: 99, comprados: [], conquistas: [], premium: ['tema-aurora'],
+    })
+    expect(recusa?.motivo).toMatch(/conquista/)
+  })
+
+  it('removida sem equivalente livre: os Créditos voltam, uma vez', async () => {
+    const u = 'u-premium-cheio'
+    const { db } = (await h.load('../../server/db/db')) as any
+    const { creditSpends } = (await h.load('../../server/db/schema')) as any
+    const agora = Date.now()
+    const vitrine = ['dourada-2', 'dourada-6', 'dourada-8', 'dourada-10']
+    await db.insert(creditSpends).values([
+      ...vitrine.map((id, n) => ({ id: `cs-v${n}`, createdAt: agora, updatedAt: agora, userId: u, spendId: `premium-${id}`, amount: 100, reason: `premium:${id}` })),
+      { id: 'cs-d3', createdAt: agora + 1, updatedAt: agora + 1, userId: u, spendId: 'premium-dourada-3', amount: 150, reason: 'premium:dourada-3' },
+    ])
+    const antes = await creditsRepo.totalComprado(asUserId(u))
+    const a = await reembolsar(u)
+    expect(a.body.creditosDevolvidos).toBe(150)
+    expect(await creditsRepo.totalComprado(asUserId(u))).toBe(antes + 150)
+    const b = await reembolsar(u)
+    expect(b.body.creditosDevolvidos).toBe(0)
+    expect(await creditsRepo.totalComprado(asUserId(u))).toBe(antes + 150)
+  })
+})
+
+describe('o aviso do reembolso é por CONTA (`avisoPendente`)', () => {
+  it('pendente no pedido que creditou; depois, nunca mais — nem noutro aparelho', async () => {
+    const u = 'u-aviso-1'
+    await gastosAntigos(u)
+    const a = await reembolsar(u)
+    expect(a.body).toMatchObject({ creditado: 200, avisoPendente: true })
+    const b = await reembolsar(u)
+    expect(b.body).toMatchObject({ creditado: 0, avisoPendente: false })
+  })
+
+  it('duas abas ao mesmo tempo: o aviso sai em uma só', async () => {
+    const u = 'u-aviso-concorrente'
+    await gastosAntigos(u)
+    const [a, b] = await Promise.all([reembolsar(u), reembolsar(u)])
+    expect([a.body.avisoPendente, b.body.avisoPendente].filter(Boolean)).toHaveLength(1)
+  })
+
+  it('sem nada creditado não gasta o aviso: o reembolso que chegar depois ainda é anunciado', async () => {
+    const u = 'u-aviso-tardio'
+    expect((await reembolsar(u)).body).toMatchObject({ creditado: 0, avisoPendente: false })
+    await gastosAntigos(u)
+    expect((await reembolsar(u)).body).toMatchObject({ creditado: 200, avisoPendente: true })
+  })
+})
+
+describe('o Passe da T1 que saiu (`passe-t1`)', () => {
+  it('quem pagou recebe de volta o que faltava da promessa (1.134 − o já concedido), uma vez', async () => {
+    const u = 'u-com-passe-pago'
+    const { db } = (await h.load('../../server/db/db')) as any
+    const { creditPurchases } = (await h.load('../../server/db/schema')) as any
+    const agora = Date.now()
+    await db.insert(creditPurchases).values([
+      { id: 'cp-passe', createdAt: agora, updatedAt: agora, userId: u, sku: 'passe-t1', creditos: 0, valorCentavos: 1490, provider: 'asaas', providerPaymentId: 'pay-passe-1', status: 'pago', paidAt: agora },
+      { id: 'cp-casa', createdAt: agora, updatedAt: agora, userId: u, sku: 'concessao', creditos: 34, valorCentavos: 0, provider: 'interno', providerPaymentId: 'passe:t1:premium-3', status: 'pago', paidAt: agora },
+    ])
+    const antes = await creditsRepo.totalComprado(asUserId(u))
+    expect((await reembolsar(u)).body.creditosDevolvidos).toBe(1100)
+    expect((await reembolsar(u)).body.creditosDevolvidos).toBe(0)
+    expect(await creditsRepo.totalComprado(asUserId(u))).toBe(antes + 1100)
+  })
+
+  it('compra do passe não paga (pendente/cancelada) não devolve nada', async () => {
+    const u = 'u-passe-pendente'
+    const { db } = (await h.load('../../server/db/db')) as any
+    const { creditPurchases } = (await h.load('../../server/db/schema')) as any
+    const agora = Date.now()
+    await db.insert(creditPurchases).values({
+      id: 'cp-passe-p', createdAt: agora, updatedAt: agora, userId: u, sku: 'passe-t1', creditos: 0, valorCentavos: 1490, provider: 'asaas', providerPaymentId: 'pay-passe-2', status: 'pendente',
+    })
+    expect((await reembolsar(u)).body.creditosDevolvidos).toBe(0)
   })
 })

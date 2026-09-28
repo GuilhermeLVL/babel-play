@@ -116,9 +116,16 @@ async function abrirJogo(page: Page, titulo: RegExp) {
     await page.getByRole('button', { name: /Começar/ }).click()
   }
   await dispensarModais(page)
-  await page.getByRole('radio', { name: /Trilha/ }).click()
-  await page.getByRole('button', { name: /Usar estas palavras/ }).click()
-  await expect(page.locator('#grade-de-jogos')).toBeVisible({ timeout: 15_000 })
+  /* A fonte escolhida fica guardada: numa rodada nova (o teste recomeça depois de um erro) o lobby
+     já abre na grade, sem a escolha de fonte. */
+  const trilha = page.getByRole('radio', { name: /Trilha/ })
+  const grade = page.locator('#grade-de-jogos')
+  await expect(trilha.or(grade).first()).toBeVisible({ timeout: 15_000 })
+  if (await trilha.isVisible().catch(() => false)) {
+    await trilha.click()
+    await page.getByRole('button', { name: /Usar estas palavras/ }).click()
+  }
+  await expect(grade).toBeVisible({ timeout: 15_000 })
   const carta = page.locator('#grade-de-jogos').getByRole('button', { name: titulo }).first()
   await expect(carta).toBeEnabled({ timeout: 15_000 })
   await carta.scrollIntoViewIfNeeded()
@@ -153,7 +160,7 @@ async function veredito(page: Page, antes: Contador | null): Promise<'acerto' | 
 /* ─────────────────────────── um acerto por jogo ─────────────────────────── */
 
 /** Memória: vira o par cuja pista é a tradução da palavra. Devolve se fechou um par. */
-async function acertarMemoria(page: Page, usados: Set<number>): Promise<boolean> {
+async function acertarMemoria(page: Page, usados: Set<number | string>): Promise<boolean> {
   const cartas = page.locator('[data-tour="mesa"] > button')
   const n = await cartas.count()
   const t: string[] = []
@@ -170,8 +177,12 @@ async function acertarMemoria(page: Page, usados: Set<number>): Promise<boolean>
   return false
 }
 
-/** Soletrar: digita a palavra da primeira pista aberta. */
-async function acertarTermo(page: Page): Promise<boolean> {
+/**
+ * Soletrar: digita a palavra da primeira pista aberta. A pista é a TRADUÇÃO, e há traduções com
+ * mais de uma palavra do mesmo tamanho na Trilha (o sorteio decide qual é a certa): a que já foi
+ * tentada e errou fica em `tentadas`, e a próxima tentativa usa a outra.
+ */
+async function acertarTermo(page: Page, tentadas: Set<number | string>): Promise<boolean> {
   const pistas = await textos(page.locator('[data-tour="tabuleiro"] .tab-termo:not(.resolvido):not(.falhou) .pista'))
   if (!pistas.length) return false
   const colunas = await page
@@ -181,8 +192,9 @@ async function acertarTermo(page: Page): Promise<boolean> {
     .first()
     .locator('> *')
     .count()
-  const w = palavrasDe(pistas[0]).find((x) => x.replace(/[^a-z]/g, '').length === colunas)
+  const w = palavrasDe(pistas[0]).find((x) => x.replace(/[^a-z]/g, '').length === colunas && !tentadas.has(x))
   if (!w) return false
+  tentadas.add(w)
   await page.keyboard.type(w, { delay: 20 })
   await page.keyboard.press('Enter')
   return true
@@ -227,11 +239,11 @@ async function acertarTabu(page: Page): Promise<boolean> {
 const CASOS: Array<{
   nome: string
   titulo: RegExp
-  acertar: (page: Page, usados: Set<number>) => Promise<boolean>
+  acertar: (page: Page, usados: Set<number | string>) => Promise<boolean>
   pausa: number
 }> = [
   { nome: 'Memória', titulo: /^Jogar: Memória/, acertar: acertarMemoria, pausa: 400 },
-  { nome: 'Soletrar', titulo: /^Jogar: Soletrar/, acertar: (p) => acertarTermo(p), pausa: 1700 },
+  { nome: 'Soletrar', titulo: /^Jogar: Soletrar/, acertar: acertarTermo, pausa: 1700 },
   { nome: 'Karuta', titulo: /^Jogar: Karuta/, acertar: (p) => acertarKaruta(p), pausa: 1000 },
   { nome: 'Tabu', titulo: /^Jogar: Tabu/, acertar: (p) => acertarTabu(p), pausa: 1000 },
 ]
@@ -239,32 +251,37 @@ const CASOS: Array<{
 for (const caso of CASOS) {
   test(`${caso.nome}: o acerto sobe "+N" e três seguidos acendem o ×2`, async ({ page }) => {
     await prepararPagina(page, false)
-    await abrirJogo(page, caso.titulo)
-    const usados = new Set<number>()
-
     let acertos = 0
     let viuMaisN = false
-    for (let volta = 0; volta < 16 && acertos < 3; volta++) {
-      const antes = await contador(page)
-      if (!(await caso.acertar(page, usados))) {
-        await page.waitForTimeout(caso.pausa)
-        continue
+    /* Até três rodadas: o que se testa é o ×2 depois de três acertos SEGUIDOS, e um erro do
+       resolvedor (tradução ambígua no Soletrar, que só tem três palavras por rodada) zera a
+       sequência sem chance de refazê-la na mesma rodada. Uma rodada nova recomeça a conta. */
+    for (let rodada = 0; rodada < 3 && acertos < 3; rodada++) {
+      await abrirJogo(page, caso.titulo)
+      const usados = new Set<number | string>()
+      acertos = 0
+      for (let volta = 0; volta < 16 && acertos < 3; volta++) {
+        const antes = await contador(page)
+        if (!(await caso.acertar(page, usados))) {
+          await page.waitForTimeout(caso.pausa)
+          continue
+        }
+        const v = await veredito(page, antes)
+        if (v !== 'acerto') {
+          if (v === 'erro') acertos = 0
+          await page.waitForTimeout(caso.pausa)
+          continue
+        }
+        acertos++
+        if (!viuMaisN) {
+          await expect(maisN(page).first(), 'o acerto mostra o que valeu').toBeVisible({ timeout: 3000 })
+          viuMaisN = true
+        }
+        /* Conferido logo depois do 3º acerto: numa rodada de três itens (Soletrar) o HUD sai de cena
+           com a pausa de leitura, antes do fim comum. */
+        if (acertos === 3) await expect(multiplicador(page)).toHaveAttribute('aria-label', /^Multiplicador [2-5],/)
+        else await page.waitForTimeout(caso.pausa)
       }
-      const v = await veredito(page, antes)
-      if (v !== 'acerto') {
-        if (v === 'erro') acertos = 0
-        await page.waitForTimeout(caso.pausa)
-        continue
-      }
-      acertos++
-      if (!viuMaisN) {
-        await expect(maisN(page).first(), 'o acerto mostra o que valeu').toBeVisible({ timeout: 3000 })
-        viuMaisN = true
-      }
-      /* Conferido logo depois do 3º acerto: numa rodada de três itens (Soletrar) o HUD sai de cena
-         com a pausa de leitura, antes do fim comum. */
-      if (acertos === 3) await expect(multiplicador(page)).toHaveAttribute('aria-label', /^Multiplicador [2-5],/)
-      else await page.waitForTimeout(caso.pausa)
     }
     expect(acertos, 'o teste precisa acertar três itens seguidos').toBe(3)
 

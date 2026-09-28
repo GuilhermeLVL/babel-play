@@ -467,7 +467,13 @@ test('Bao: semeia os pedaços até o fim', async ({ page }) => {
     const pista = (await page.locator('#palco p.font-display').first().innerText().catch(() => '')).trim();
     const covas = page.locator('[data-tour="tabuleiro"] .grid button');
     const pedacos = await textos(covas);
-    let resto = palavrasDe(pista).find((x) => pedacos.every((p) => !p || x.includes(p.toLowerCase()))) ?? '';
+    /* A pista é a tradução, e há traduções com várias palavras na Trilha ("quarto": bedroom, quarter,
+       room). A certa é a que os pedaços montam INTEIRA: contém cada um e tem a soma dos tamanhos —
+       com cova já semeada (vazia) a soma não fecha, e aí vale a primeira que contém os que restam. */
+    const soma = pedacos.reduce((n, p) => n + p.length, 0);
+    const cabe = (x: string) => pedacos.every((p) => !p || x.includes(p.toLowerCase()));
+    const candidatas = palavrasDe(pista).filter(cabe);
+    let resto = candidatas.find((x) => x.length === soma) ?? candidatas[0] ?? '';
     if (!resto) {
       // Palavra não identificada: semeia a primeira cova livre — o erro esgota a palavra e a rodada segue.
       await covas.filter({ hasNot: page.locator('svg') }).first().click({ timeout: 1500 }).catch(() => {});

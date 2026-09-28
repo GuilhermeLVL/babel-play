@@ -16,8 +16,8 @@
  * nos dois lugares: no Worker (`particulas.worker.ts`) e, onde o navegador não tem `OffscreenCanvas`,
  * na própria página, como antes.
  *
- * Tudo o que depende do DOM (cor lida do token do tema, skin e fonte no `<html>`, pack de emojis e
- * croma no localStorage, intensidade da loja, retângulo do canvas) continua sendo resolvido na
+ * Tudo o que depende do DOM (cor lida do token do tema, skin e fonte no `<html>`, croma no
+ * localStorage, intensidade da loja, retângulo do canvas) continua sendo resolvido na
  * página, no instante do pedido, e chega aqui já pronto na mensagem.
  */
 import type { BurstSpec, FormaParticula, ResolvedParticleStyle } from './effects';
@@ -60,8 +60,6 @@ export interface PedidoDeRajada {
   sizeMul: number;
   /** Croma equipado, ou a cor do token da especificação. */
   cor: string;
-  /** Emojis do pack equipado na loja (lidos uma vez por rajada). */
-  pack: string[];
   /** `data-particulas` do `<html>`. */
   skin: string | null;
   /** `data-fonte="pixel"` no `<html>`. */
@@ -175,7 +173,7 @@ export function criarLacoDeParticulas({ canvas, ctx, pedirQuadro, cancelarQuadro
     }
   };
 
-  const spawnBurst = ({ x: ox, y: oy, spec, countMul, sizeMul, cor: color, pack: packDaLoja, skin, modoPixel }: PedidoDeRajada) => {
+  const spawnBurst = ({ x: ox, y: oy, spec, countMul, sizeMul, cor: color, skin, modoPixel }: PedidoDeRajada) => {
     // Aprimoramento + intensidade da loja: mais/maiores particulas para quem subiu de nivel;
     // o TETO de vivas continua valendo por cima, e o count multiplicado entra na poda e nos angulos.
     const countFinal = Math.max(1, Math.round(spec.count * countMul));
@@ -204,7 +202,7 @@ export function criarLacoDeParticulas({ canvas, ctx, pedirQuadro, cancelarQuadro
       skin === 'pixel' ? 'pixel'
       : skin === 'confete' ? 'confete'
       : skin === 'coracoes' ? 'coracao'
-      : skin === 'estrelas' || skin === 'emoji' ? 'emoji'
+      : skin === 'estrelas' ? 'emoji'
       : skin === 'cometa' ? 'cometa'
       : null;
     // 'travessia': objetos que cruzam a tela voando; o lado de entrada e sorteado por rajada.
@@ -243,12 +241,11 @@ export function criarLacoDeParticulas({ canvas, ctx, pedirQuadro, cancelarQuadro
         forma: spec.forma ?? formaDaSkin ?? (modoPixel ? 'pixel' : 'circulo'),
         emoji: spec.emojis
           ? spec.emojis[Math.floor(Math.random() * spec.emojis.length)]
-          : spec.forma === 'emoji'
-            // Forma emoji sem lista própria (skin/rastro): sorteia do PACK equipado na loja.
-            ? packDaLoja[Math.floor(Math.random() * packDaLoja.length)]
-            : (!spec.forma && (skin === 'estrelas' || skin === 'emoji')
-              ? (skin === 'emoji' ? packDaLoja[Math.floor(Math.random() * packDaLoja.length)] : (Math.random() < 0.5 ? '⭐' : '✨'))
-              : undefined),
+          /* O pack de emojis da loja (e a skin "Chuva de Emojis") saíram nas recompensas v2: forma
+             emoji sem lista própria não existe mais. Só a skin 'estrelas' sorteia aqui. */
+          : !spec.forma && skin === 'estrelas'
+            ? (Math.random() < 0.5 ? '⭐' : '✨')
+            : undefined,
         giro: rand(0, Math.PI * 2),
         giroVel: rand(-0.18, 0.18),
         gravidade: spec.gravidade,

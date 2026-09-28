@@ -12,8 +12,10 @@ import { prepararDialogoNoJsdom } from './_dialogoNoJsdom'
 
 prepararDialogoNoJsdom()
 
-vi.mock('../src/lib/juice', () => ({ explodirAleatorio: vi.fn(), pontosDoElemento: vi.fn(), movimentoReduzido: () => true }))
+const movimento = vi.hoisted(() => ({ reduzido: true }))
+vi.mock('../src/lib/juice', () => ({ explodirAleatorio: vi.fn(), pontosDoElemento: vi.fn(), movimentoReduzido: () => movimento.reduzido }))
 vi.mock('../src/lib/comemoracao', () => ({ celebrar: vi.fn(), tocarPreviaDoEfeito: vi.fn() }))
+vi.mock('../src/lib/effects', async (orig) => ({ ...(await orig<typeof import('../src/lib/effects')>()), emitBurst: vi.fn() }))
 
 const nivel2: Recompensa = {
   tipo: 'nivel',
@@ -168,6 +170,56 @@ describe('RecompensaDesbloqueada — lote de novidades e prévia real', () => {
       vi.advanceTimersByTime(600)
     })
     expect(vi.mocked(tocarPreviaDoEfeito)).toHaveBeenCalledWith('efeito-acerto', efeito.alvo, expect.anything())
+    vi.useRealTimers()
+  })
+
+  /* SPEC 10.3: o modal mostra a PEÇA DE VERDADE em todo tipo que tem forma — nunca um símbolo. */
+  it.each(['legenda', 'cartao', 'efeito-acerto', 'tema', 'moldura', 'titulo', 'rastro', 'particulas'])(
+    'o tipo %s chega com a prévia real, sem emoji',
+    (tipo) => {
+      const item = CATALOGO_DA_LOJA.find((i) => i.tipo === tipo)!
+      expect(item, tipo).toBeTruthy()
+      render(
+        <RecompensaDesbloqueada
+          fila={[{ tipo: 'drop', roundId: `r-${tipo}`, seeds: 0, item }]}
+          onEquipar={() => true}
+          onFechar={vi.fn()}
+          onVerPersonalizar={vi.fn()}
+        />,
+      )
+      const previa = document.querySelector(`[data-previa-da-peca="${tipo}"]`)
+      expect(previa, tipo).toBeTruthy()
+      expect(screen.getByRole('dialog').textContent ?? '').not.toMatch(/\p{Extended_Pictographic}/u)
+      if (tipo === 'moldura') expect(previa!.querySelector(`[data-moldura-equipada="${item.id}"]`)).toBeTruthy()
+      if (tipo === 'titulo') expect(previa!.querySelector(`[data-titulo-equipado="${item.id}"]`)).toBeTruthy()
+      if (tipo === 'cartao') expect(previa!.querySelectorAll('.cartao-nova, .cartao-aprendida, .cartao-dominada')).toHaveLength(3)
+    },
+  )
+
+  it('rastro e partícula tocam por cima da peça ao abrir (o mesmo barramento do canvas)', async () => {
+    vi.useFakeTimers()
+    movimento.reduzido = false
+    const { emitBurst } = await import('../src/lib/effects')
+    vi.mocked(emitBurst).mockClear()
+    const rastro = CATALOGO_DA_LOJA.find((i) => i.tipo === 'rastro' && i.alvo !== 'off')!
+    const { unmount } = render(
+      <RecompensaDesbloqueada fila={[{ tipo: 'drop', roundId: 'rr', seeds: 0, item: rastro }]} onEquipar={() => true} onFechar={vi.fn()} onVerPersonalizar={vi.fn()} />,
+    )
+    act(() => {
+      vi.advanceTimersByTime(1200)
+    })
+    expect(vi.mocked(emitBurst).mock.calls.length).toBeGreaterThan(1)
+    unmount()
+    vi.mocked(emitBurst).mockClear()
+    const part = CATALOGO_DA_LOJA.find((i) => i.tipo === 'particulas' && i.alvo === 'pixel')!
+    render(
+      <RecompensaDesbloqueada fila={[{ tipo: 'drop', roundId: 'rp', seeds: 0, item: part }]} onEquipar={() => true} onFechar={vi.fn()} onVerPersonalizar={vi.fn()} />,
+    )
+    act(() => {
+      vi.advanceTimersByTime(600)
+    })
+    expect(vi.mocked(emitBurst)).toHaveBeenCalledWith(expect.any(Number), expect.any(Number), 'xp', { forma: 'pixel' })
+    movimento.reduzido = true
     vi.useRealTimers()
   })
 })

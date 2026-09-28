@@ -132,9 +132,9 @@ export default function Conquistas({ progress, ctx }: ConquistasProps) {
                     {r.teto ? ` · ${r.teto}` : ''}
                   </p>
                   <div className="linha" style={{ gap: 6, marginTop: 8 }}>
-                    <span className="badge acc">{varia ? 'XP varia' : `+${r.xp} XP`}</span>
-                    {/* A regra que dá XP e não dá Seeds não ganha ficha vazia: a ausência é a
-                        informação, e um "+0" verde parecia um ganho. */}
+                    {/* Ficha de zero não existe, nem de XP nem de Seeds: a ausência é a informação,
+                        e um "+0" parecia um ganho (salvar palavra e maestria não dão XP). */}
+                    {(varia || r.xp > 0) && <span className="badge acc">{varia ? 'XP varia' : `+${r.xp} XP`}</span>}
                     {(varia || r.seeds > 0) && (
                       <span className="badge ok">
                         <Sprout aria-hidden /> {varia ? 'varia' : `+${r.seeds}`}

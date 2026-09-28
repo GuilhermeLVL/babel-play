@@ -1,4 +1,6 @@
 import { type EstadoDasMissoes, rotuloDaMaestria } from '@core';
+/* Do módulo, e não do barril (achado A43): só a régua das datas. */
+import { temporadaAtual } from '@core/temporada';
 import { useEffect, useRef } from 'react';
 
 import { chaveDaRecompensa, type Recompensa } from '../../components/RecompensaDesbloqueada';
@@ -9,6 +11,7 @@ import { jaNotificado, notificar } from '../notificacoes';
 import { podeAvisarOfensiva, registrarAvisoDeOfensiva } from '../ofensiva';
 import type { DerivedProgress } from '../progress';
 import { perfilProtegido } from '../protecaoDoMenor';
+import { recompensasV2Ligadas } from '../recompensasV2';
 
 /** Dia local "2026-09-24" — a chave das notificações que valem por dia. */
 function hojeLocal(agora = new Date()): string {
@@ -69,13 +72,37 @@ export function notificacaoDaRecompensa(r: Recompensa) {
 }
 
 /**
+ * TEMPORADA NOVA (spec 10.2): uma notificação por temporada, no primeiro momento em que o app a
+ * vê em curso. Sem contagem regressiva no texto — vale igual para o perfil protegido. Devolve se
+ * avisou agora. A chave (`temporada:<id>`) é o que impede o segundo aviso, mesmo depois de lido.
+ */
+export function avisarTemporadaNova(agora: Date = new Date()): boolean {
+  const atual = temporadaAtual(agora);
+  if (!atual) return false;
+  const chave = `temporada:${atual.id}`;
+  if (jaNotificado(chave)) return false;
+  notificar({
+    chave,
+    tipo: 'conquista',
+    icone: 'calendar',
+    tom: 'rare',
+    titulo: t('Temporada {n} começou: {nome}', { n: atual.numero, nome: atual.nome }),
+    detalhe: t('Duas trilhas novas em Personalizar. O XP de estudo sobe o nível da temporada.'),
+    ir: 'loja',
+    dado: { aba: 'temporada' },
+  });
+  return true;
+}
+
+/**
  * OS FATOS QUE VIRAM NOTIFICAÇÃO — só o que o app já produz:
  *   · palavras vencidas hoje (`metrics.dueToday`), uma por dia, atualizada se o número mudar;
  *   · conquista, nível e baú, no momento em que entram na fila de recompensas;
  *   · ofensiva em risco: ofensiva ativa, nada estudado hoje, entre 18h e 22h (uma por dia —
  *     `lib/ofensiva`; nunca entre 22h e 8h; nunca para o perfil protegido);
  *   · missão quase completa: falta uma das três missões do dia (uma por dia, nunca entre 22h e
- *     8h, nunca para o perfil protegido — `lib/metaDoDia`).
+ *     8h, nunca para o perfil protegido — `lib/metaDoDia`);
+ *   · temporada nova: uma vez por temporada, com as recompensas v2 ligadas (`avisarTemporadaNova`).
  * A sessão salva é registrada no próprio `handleSaveRecording` (ver `notificarSessaoSalva`).
  */
 export function useNotificacoes({
@@ -137,6 +164,13 @@ export function useNotificacoes({
     const id = window.setInterval(verificar, 10 * 60_000);
     return () => window.clearInterval(id);
   }, [available, streakDays, practicedToday]);
+
+  /* TEMPORADA NOVA: conferida a cada métrica nova (inclusive a do arranque) — a temporada pode
+     começar com o app aberto. */
+  useEffect(() => {
+    if (!metrics || !recompensasV2Ligadas()) return;
+    avisarTemporadaNova();
+  }, [metrics]);
 
   /* MISSÃO QUASE COMPLETA: conferido quando o estado das missões muda (o servidor recontou). */
   useEffect(() => {

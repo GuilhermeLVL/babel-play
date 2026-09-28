@@ -181,7 +181,7 @@ export default function BlitzGame({ items, ageProfile, onFinish }: BlitzGameProp
       if (ganho.velocidade > 0 && el) {
         const r = el.getBoundingClientRect();
         setTimeout(
-          () => pontosFlutuantes('⚡ rápido +' + ganho.velocidade, r.left + r.width * 0.75, r.top, 'bom'),
+          () => pontosFlutuantes('rápido +' + ganho.velocidade, r.left + r.width * 0.75, r.top, 'bom'),
           140,
         );
       }

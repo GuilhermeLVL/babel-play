@@ -1,25 +1,39 @@
 import type { LucideIcon } from 'lucide-react';
 import {
   ArrowRight,
+  Bird,
   Captions,
   Check,
+  Coffee,
   Eye,
   Frame,
   Gamepad2,
+  Gem,
+  Ghost,
+  Headphones,
+  Heart,
+  Leaf,
   Lock,
   Moon,
   Palette,
+  PartyPopper,
   Pencil,
+  Pizza,
+  Rocket,
   Save,
   ShoppingBag,
   Sparkles,
   Sprout,
+  Square,
   Sun,
   Trash2,
+  TreePine,
+  Trees,
   Trophy,
   WalletCards,
   Wand2,
   WandSparkles,
+  Waves,
 } from 'lucide-react';
 import { Fragment, type ReactNode, useMemo, useState } from 'react';
 
@@ -29,7 +43,7 @@ import { cromaEquipado } from '../../../lib/galeria/cromas';
 import { type ContextoDeEquipar, equiparItem, equipavel } from '../../../lib/galeria/equipar';
 import { paletaPorId } from '../../../lib/galeria/paletas';
 import { PAR_DO_TEMA } from '../../../lib/galeria/parDoTema';
-import type { Perfil } from '../../../lib/galeria/perfis';
+import type { IconeDoPerfil, Perfil } from '../../../lib/galeria/perfis';
 import { estadoDaColecao } from '../../../lib/galeria/progressao';
 import { t } from '../../../lib/i18n';
 import {
@@ -65,6 +79,35 @@ import EditorDoItem, { temPersonalizacao } from './EditorDoItem';
  * O BOTÃO "PERSONALIZAR" SÓ APARECE ONDE HÁ O QUE PERSONALIZAR (`temPersonalizacao`): oferecer o
  * editor num item sem parâmetro seria abrir uma janela vazia.
  */
+
+/* O ícone de cada perfil: lucide, na cor do tema — o emoji do perfil saiu (recompensas v2: nada de
+   emoji na interface). O nome do ícone mora em `perfis.ts`, que não carrega componente. */
+const ICONE_DO_PERFIL: Record<IconeDoPerfil, LucideIcon> = {
+  passaro: Bird,
+  coracao: Heart,
+  controle: Gamepad2,
+  foguete: Rocket,
+  pizza: Pizza,
+  arvores: Trees,
+  ondas: Waves,
+  fones: Headphones,
+  fantasma: Ghost,
+  pinheiro: TreePine,
+  sol: Sun,
+  cafe: Coffee,
+  quadrado: Square,
+  folha: Leaf,
+  lua: Moon,
+  festa: PartyPopper,
+  trofeu: Trophy,
+  gema: Gem,
+  brilho: Sparkles,
+};
+
+function IconeDoPerfilDesenhado({ perfil, lado }: { perfil: Perfil; lado: number }) {
+  const Icone = ICONE_DO_PERFIL[perfil.icone] ?? Sparkles;
+  return <Icone aria-hidden style={{ width: lado, height: lado, color: 'var(--accent-ink)', flex: 'none' }} />;
+}
 
 /* As seções, na ordem da tela. As duas primeiras são as do protótipo. */
 const SECOES: Array<{ id: string; titulo: string; icone: LucideIcon; tipos: string[] }> = [
@@ -481,10 +524,10 @@ export default function Inventario({
             return (
               <article key={p.id} className="cartao peca" onDoubleClick={(e) => aoAplicarPerfil(p, e.currentTarget)}>
                 <div className="vis" aria-hidden>
-                  {cores ? <Paleta cores={cores} /> : <span style={{ fontSize: 28, lineHeight: 1 }}>{p.emoji}</span>}
+                  {cores ? <Paleta cores={cores} /> : <IconeDoPerfilDesenhado perfil={p} lado={28} />}
                 </div>
-                <h3>
-                  {cores && <span aria-hidden>{p.emoji} </span>}
+                <h3 className="linha" style={{ gap: 6 }}>
+                  {cores && <IconeDoPerfilDesenhado perfil={p} lado={16} />}
                   {p.nome}
                 </h3>
                 <p>{p.desc}</p>

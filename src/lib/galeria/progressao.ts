@@ -8,6 +8,7 @@
  * cursores e galeria que o mesmo nível libera ficavam de fora do "você destravou".
  */
 import { CONQUISTAS } from '@core'
+import { Compass, Gift, Image, type LucideIcon, MousePointer2, Palette, Sparkles, Type, WandSparkles } from 'lucide-react'
 
 import { CATALOGO_DA_LOJA, estadoDoItem, type ItemDaLoja, possuidos, temPortaDeNivel } from '../loja'
 
@@ -26,7 +27,7 @@ export function itensPorNivel(catalogo: ReadonlyArray<ItemDaLoja> = CATALOGO_DA_
 export interface ProximaRecompensa {
   nivel: number
   itens: ItemDaLoja[]
-  /** O 1º item, para caber numa linha ("próximo: 🎁 Nome"). */
+  /** O 1º item, para caber numa linha ("próximo: Nome"). */
   destaque: ItemDaLoja
 }
 
@@ -100,25 +101,21 @@ export function itemDaConquista(conquistaId: string, catalogo: ReadonlyArray<Ite
 }
 
 
-/** Emoji/ícone textual de um item, para linhas compactas ("🎁 Nome"). */
-export function emojiDoItem(item: ItemDaLoja): string {
-  /* O TIPO MANDA, e a descrição é só o desempate.
-     Antes era o contrário: o primeiro emoji da descrição, por regex, virava o ícone — então o
-     ícone dependia do texto que alguém escreveu, e dois cursores tinham símbolos diferentes
-     enquanto um tema e um pack podiam ter o mesmo. Não era um sistema, era um acidente por item.
-     Agora o tipo dá o ícone estável, e só os tipos que se distinguem PELO conteúdo (packs e
-     cursores, onde o emoji É o produto) continuam lendo a descrição. */
-  const ehDoConteudo = item.tipo === 'rastro'
-  const m = ehDoConteudo ? item.desc.match(/\p{Extended_Pictographic}/u) : null
-  if (m) return m[0]
+/**
+ * O ÍCONE DO TIPO de um item (lucide), para quando a peça não tem miniatura própria.
+ *
+ * Era `emojiDoItem`, que devolvia um emoji por tipo (e, para rastro, o primeiro emoji da descrição).
+ * Recompensas v2: nada de emoji na interface — o tipo dá um ícone lucide estável, na cor do tema.
+ */
+export function iconeDoItem(item: Pick<ItemDaLoja, 'tipo'>): LucideIcon {
   switch (item.tipo) {
-    case 'tema': return '🎨'
-    case 'fonte': return '🔤'
-    case 'posicao': return '🧭'
-    case 'estudio': return '🪄'
-    case 'particulas': return '✨'
-    case 'rastro': return '💫'
-    case 'galeria': return '🖼️'
-    default: return '🎁'
+    case 'tema': return Palette
+    case 'fonte': return Type
+    case 'posicao': return Compass
+    case 'estudio': return WandSparkles
+    case 'particulas': return Sparkles
+    case 'rastro': return MousePointer2
+    case 'galeria': return Image
+    default: return Gift
   }
 }

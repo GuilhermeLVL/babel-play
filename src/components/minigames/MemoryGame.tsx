@@ -1,3 +1,5 @@
+import '../../styles/cartoes.css';
+
 import type { ItemOutcome, MinigameItem, RoundReport } from '@core';
 import { scoreRound } from '@core';
 import { Eye } from 'lucide-react';
@@ -6,6 +8,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { celebrar } from '../../lib/comemoracao';
 import { multiplicador, pontosDoElemento } from '../../lib/juice';
 import { direcaoDoTexto } from '../../lib/languages';
+import { classeDoCartao, type EstadoDoCartao, lerPeleDeCartao } from '../../lib/pelesDeCartao';
 import type { AgeProfileType } from '../../lib/profile';
 import { play } from '../../lib/soundFx';
 import { falar } from '../../lib/tts';
@@ -17,6 +20,8 @@ interface MemoryGameProps {
   ageProfile: AgeProfileType;
   onFinish: (report: RoundReport) => void;
   onExit: () => void;
+  /** O estado do cartão da palavra (`PropsDeJogo`): a carta virada veste a pele equipada. */
+  estadoDoCartao?: (cardId: string) => EstadoDoCartao | null;
 }
 
 /** Uma carta na mesa: a frente (palavra) ou o verso (tradução) de um item. */
@@ -28,7 +33,15 @@ interface Carta {
   lang: string;
 }
 
-export default function MemoryGame({ items, ageProfile: _ageProfile, onFinish }: MemoryGameProps) {
+export default function MemoryGame({ items, ageProfile: _ageProfile, onFinish, estadoDoCartao }: MemoryGameProps) {
+  /* A PELE DE CARTÃO (spec 5.2.4): lida uma vez por rodada. Só a carta VIRADA de uma palavra do
+     baralho a veste; de costas é o verso do jogo, e par fechado/errado mantêm a cor do retorno. */
+  const pele = useMemo(() => lerPeleDeCartao(), []);
+  const peleDaCarta = (carta: Carta): string => {
+    const cardId = items[carta.itemIndex]?.cardId;
+    const estado = cardId && estadoDoCartao ? estadoDoCartao(cardId) : null;
+    return estado ? classeDoCartao(pele, estado) : '';
+  };
   /** A casca diz quando a rodada anda (fora da contagem 3-2-1 e da pausa). */
   const { ativo } = useRodada();
   /** Baralho embaralhado UMA vez (por rodada) — reembaralhar a cada render arruinaria o jogo. */
@@ -212,6 +225,7 @@ export default function MemoryGame({ items, ageProfile: _ageProfile, onFinish }:
             fechada ? 'par' : '',
             errou ? 'errou' : '',
             espiada ? 'espiando' : '',
+            aberta && !fechada && !errou ? peleDaCarta(carta) : '',
           ]
             .filter(Boolean)
             .join(' ');

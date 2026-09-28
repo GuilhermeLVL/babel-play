@@ -180,6 +180,7 @@ import {
   type OrdemDosJogos,
 } from '../../lib/ordemDosJogos';
 import { contarPassada } from '../../lib/passadasDoPipeline';
+import { estadoDoCartao } from '../../lib/pelesDeCartao';
 import { type AgeProfileType, coreOnly } from '../../lib/profile';
 import type { DerivedProgress } from '../../lib/progress';
 import { consumirQueryDoBoot, lerUrlAtual, publicarQueryDoJogar } from '../../lib/rotas';
@@ -723,6 +724,8 @@ export default function Play({
    */
   const [maestria, setMaestria] = useState<ReadonlyMap<MinigameId, number> | null>(null);
   const [maestriaDaRodada, setMaestriaDaRodada] = useState<{ pontosAntes: number; ganho: number } | null>(null);
+  /** A gravação da rodada que acabou de fechar: com `falhou`, o fim diz que nada foi creditado. */
+  const [gravacaoDaRodada, setGravacaoDaRodada] = useState<'pendente' | 'ok' | 'falhou'>('pendente');
   useEffect(() => {
     let vivo = true;
     void sincronizarMaestria().then((jogos) => {
@@ -1006,6 +1009,7 @@ export default function Play({
    */
   const aoTerminar = async (report: RoundReport) => {
     setResultado(report);
+    setGravacaoDaRodada('pendente');
     setRodada(null);
     setRodadaTermo(null);
     setRodadaFrase(null);
@@ -1131,6 +1135,9 @@ export default function Play({
       itens,
     });
     if (!gravacao.ok) falhas.push(`${gravacao.status ?? 'rede'}: ${gravacao.motivo}`);
+    /* EXIBIDO = CREDITADO: sem a rodada gravada o servidor não creditou Seeds, XP, maestria nem
+       baú — o fim da rodada troca o prêmio por "nada foi creditado". */
+    setGravacaoDaRodada(gravacao.ok ? 'ok' : 'falhou');
     /* ECONOMIA v2: a rodada gravada muda Seeds/XP (acertos, rodada perfeita) e pode fechar uma
        conquista. O App recarrega as métricas ao ouvir isto — antes só recarregava quando a lista
        de sessões mudava, e o saldo ficava uma rodada atrás. */
@@ -1178,7 +1185,11 @@ export default function Play({
       /* ANTES ISTO ERA SÓ UM console.warn: a rodada sumia e o usuário nunca sabia. Um erro que o
          usuário não vê é um erro que ninguém corrige. */
       console.warn(`[jogos] rodada ${roundId} não foi gravada por inteiro. Causa: ${falhas[0]}`);
-      toast.error('Não consegui salvar esta rodada. O placar vale, mas o histórico não foi gravado.');
+      toast.error(
+        gravacao.ok
+          ? 'Não consegui salvar esta rodada. O placar vale, mas o histórico não foi gravado.'
+          : 'Não foi possível salvar esta rodada — nada foi creditado. O placar vale.',
+      );
     }
     /**
      * A TRILHA GUARDA O QUE VOCÊ ERROU — e só isso.
@@ -3126,11 +3137,17 @@ export default function Play({
     );
   }
   if (rodada) {
+    const cartoesDoBaralho = new Map((deck ?? []).map((c) => [c.id, c]));
     const comuns = {
       items: rodada.itens,
       ageProfile,
       onFinish: aoTerminar,
       onExit: sairDaRodada(() => setRodada(null)),
+      /* A pele de cartão nos jogos que desenham cartão (Memória): o estado sai do cartão real. */
+      estadoDoCartao: (cardId: string) => {
+        const c = cartoesDoBaralho.get(cardId);
+        return c ? estadoDoCartao(c) : null;
+      },
     };
     const Tela = TELA_DO_JOGO[rodada.jogo];
     if (Tela)
@@ -3187,6 +3204,7 @@ export default function Play({
         saldoSeeds={saldoSeeds}
         onVerProgressao={() => onChangeView('loja', { aba: 'progressao' })}
         maestria={maestriaDaRodada}
+        gravacao={gravacaoDaRodada}
       />,
     );
   }

@@ -2,6 +2,7 @@ import {
   Award,
   Bell,
   BellOff,
+  CalendarClock,
   Flame,
   Gift,
   Library,
@@ -35,6 +36,7 @@ const ICONES: Record<IconeDaNotificacao, LucideIcon> = {
   gift: Gift,
   library: Library,
   flame: Flame,
+  calendar: CalendarClock,
 };
 
 /**

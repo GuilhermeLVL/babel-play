@@ -19,7 +19,7 @@ import { type MinigameId, type NivelAlcancavel, PESOS_SEEDS, rotuloDaMaestria } 
 import { Award, Check, Crown, Gem, Gift, Medal, Sparkles, Sprout, Trophy } from 'lucide-react';
 import { type CSSProperties, useEffect, useId, useRef, useState } from 'react';
 
-import { celebrar, tocarPreviaDoEfeito } from '../lib/comemoracao';
+import { celebrar } from '../lib/comemoracao';
 import { TEXTOS } from '../lib/galeria/textos';
 import { t } from '../lib/i18n';
 import { pontosDoElemento } from '../lib/juice';
@@ -27,6 +27,7 @@ import { type ItemDaLoja, type Raridade } from '../lib/loja';
 import { play } from '../lib/soundFx';
 import { iconeDaConquista } from './iconesDaConquista';
 import MiniaturaDoItem from './MiniaturaDoItem';
+import PreviaRealDaPeca, { TIPOS_COM_PREVIA_REAL } from './PreviaRealDaPeca';
 import { DialogoBase } from './ui';
 
 export type Recompensa =
@@ -95,9 +96,6 @@ export interface DetalheDoDrop {
   limite?: number;
 }
 const CHAVE_VISTAS = 'babel.recompensas_vistas';
-
-/** As peças que se mostram inteiras no modal, como aparecem de verdade. */
-const COM_PREVIA_LARGA: ReadonlySet<string> = new Set(['legenda', 'cartao', 'efeito-acerto', 'efeito-combo', 'finalizacao']);
 
 export function chaveDaRecompensa(r: Recompensa): string {
   if (r.tipo === 'nivel') return `nivel:${r.nivel}`;
@@ -230,22 +228,6 @@ export default function RecompensaDesbloqueada({ fila, onEquipar, onFechar, onVe
   );
 }
 
-/** A prévia REAL de uma peça: a legenda estilizada, o cartão, o efeito tocando (uma vez, ao abrir). */
-function PreviaDaPeca({ item }: { item: ItemDaLoja }) {
-  const ref = useRef<HTMLSpanElement>(null);
-  const efeito = item.tipo === 'efeito-acerto' || item.tipo === 'efeito-combo' || item.tipo === 'finalizacao';
-  useEffect(() => {
-    if (!efeito) return;
-    const id = window.setTimeout(() => tocarPreviaDoEfeito(item.tipo as 'efeito-acerto', item.alvo, ref.current), 450);
-    return () => window.clearTimeout(id);
-  }, [efeito, item]);
-  return (
-    <span ref={ref} data-previa-da-peca={item.tipo} style={{ display: 'grid', placeItems: 'center', width: '100%', minHeight: 44 }}>
-      <MiniaturaDoItem item={item} tam="grande" />
-    </span>
-  );
-}
-
 function Resgate({
   atual,
   onEquipar,
@@ -356,10 +338,12 @@ function Resgate({
                     borderColor: BORDA_DA_RARIDADE[i.raridade],
                   }}
                 >
-                  {/* A PRÉVIA REAL (spec 10.3): legenda, cartão e efeito ocupam a largura; o resto, a miniatura. */}
-                  {COM_PREVIA_LARGA.has(i.tipo) ? (
+                  {/* A PRÉVIA REAL (spec 10.3): legenda, cartão, efeito, tema, moldura, título, rastro e
+                      partícula aparecem como são de verdade, na largura do cartão; o resto (capacidades,
+                      fonte, menu), a miniatura. */}
+                  {TIPOS_COM_PREVIA_REAL.has(i.tipo) ? (
                     <span style={{ flex: '1 1 100%' }}>
-                      <PreviaDaPeca item={i} />
+                      <PreviaRealDaPeca item={i} />
                     </span>
                   ) : (
                     <span style={{ flex: 'none' }}>

@@ -95,6 +95,12 @@ interface ResultadoDaRodadaProps {
    * ela soma (`pontosDeMaestria` sobre o que foi gravado). `null`/ausente = sem barra.
    */
   maestria?: { pontosAntes: number; ganho: number } | null;
+  /**
+   * A GRAVAÇÃO DESTA RODADA NO SERVIDOR: `pendente` enquanto o POST não volta, `falhou` quando ele
+   * falhou. É ela que credita Seeds, XP, maestria e o baú — então, com `falhou`, a tela diz que
+   * nada foi creditado em vez de anunciar o que não entrou (exibido = creditado). Ausente = ok.
+   */
+  gravacao?: 'pendente' | 'ok' | 'falhou';
 }
 
 /** Fração raspada a partir da qual o resto é revelado sozinho (a do protótipo). */
@@ -118,7 +124,9 @@ export default function ResultadoDaRodada({
   saldoSeeds,
   onVerProgressao,
   maestria,
+  gravacao = 'ok',
 }: ResultadoDaRodadaProps) {
+  const naoCreditou = gravacao === 'falhou';
   const resumo = summarize(report);
   const estrelas = estrelasDaRodada(resumo.precisao);
   const segundos = Math.max(0, Math.round((report.durationMs ?? 0) / 1000));
@@ -182,7 +190,7 @@ export default function ResultadoDaRodada({
        não solta confete, três soltam a finalização equipada. É o único lugar em que o fim da
        rodada é comemorado — os jogos não festejam o próprio fim. Festa igual ensinaria que tanto faz. */
     celebrar({ tipo: 'rodada', estrelas, jogo: report.gameId, el: raspaRef.current });
-    pontosDoElemento(`+${resumo.xp} XP`, raspaRef.current, 'bom');
+    if (!naoCreditou) pontosDoElemento(`+${resumo.xp} XP`, raspaRef.current, 'bom');
   };
 
   /* A TAMPA DA RASPADINHA: listras nos tokens do tema e a pílula "✦ Raspe aqui", desenhadas no
@@ -329,7 +337,7 @@ export default function ResultadoDaRodada({
           )
         )}
 
-        {maestria && (
+        {maestria && !naoCreditou && (
           <div style={{ margin: '14px 0 4px', textAlign: 'left' }}>
             <BarraDeMaestria jogo={report.gameId} pontos={maestria.pontosAntes} ganho={maestria.ganho} />
           </div>
@@ -341,7 +349,11 @@ export default function ResultadoDaRodada({
           role="button"
           tabIndex={0}
           aria-label={
-            revelado ? `Recompensa revelada: mais ${resumo.xp} XP e ${seeds} seeds` : 'Raspe para revelar a recompensa'
+            revelado
+              ? naoCreditou
+                ? 'Não foi possível salvar — nada foi creditado'
+                : `Recompensa revelada: mais ${resumo.xp} XP e ${seeds} seeds`
+              : 'Raspe para revelar a recompensa'
           }
           onClick={() => {
             if (!raspouRef.current) revelar();
@@ -353,14 +365,21 @@ export default function ResultadoDaRodada({
             }
           }}
         >
-          <div className="premio" data-seeds-da-rodada={seeds} data-xp-da-rodada={resumo.xp}>
-            <b>+{resumo.xp} XP</b>
-            {seeds > 0 && (
-              <span className="badge ok">
-                <Sprout aria-hidden /> +{seeds} Seeds
-              </span>
-            )}
-          </div>
+          {naoCreditou ? (
+            <div className="premio" data-rodada-nao-creditada>
+              <b style={{ fontSize: 15 }}>Não foi possível salvar — nada foi creditado</b>
+              <small className="mut">O placar vale; Seeds, XP, baú e maestria desta rodada não entraram.</small>
+            </div>
+          ) : (
+            <div className="premio" data-seeds-da-rodada={seeds} data-xp-da-rodada={resumo.xp}>
+              <b>+{resumo.xp} XP</b>
+              {seeds > 0 && (
+                <span className="badge ok">
+                  <Sprout aria-hidden /> +{seeds} Seeds
+                </span>
+              )}
+            </div>
+          )}
           <div className="capa-raspa" aria-hidden>
             <span>
               <Sparkles aria-hidden /> Raspe aqui

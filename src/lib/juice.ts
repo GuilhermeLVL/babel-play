@@ -45,7 +45,7 @@ function centro(el: Element | null): { x: number; y: number } {
  * para a conquista Colecionador (`marcarEventoVisto`).
  */
 export function eventoRaroDoAcerto(): void {
-  const raro = sortearEventoRaro(Math.random); // sorte fixa: o aprimoramento saiu (recompensas v2);
+  const raro = sortearEventoRaro(Math.random); // sorte fixa: o aprimoramento "Sorte" saiu (recompensas v2)
   if (!raro) return;
   executarEfeito(raro);
   pontosFlutuantes(raro.nome + '!', window.innerWidth / 2, window.innerHeight * 0.22, 'bom');

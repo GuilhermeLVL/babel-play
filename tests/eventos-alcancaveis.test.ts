@@ -86,7 +86,7 @@ describe('a meta do Colecionador é alcançável jogando', () => {
      algum valor do dado que os devolva. */
   const produziveis = new Set<string>();
   for (let i = 0; i < 1000; i++) {
-    const ev = sortearEventoRaro(() => i / 1000, 1);
+    const ev = sortearEventoRaro(() => i / 1000);
     if (ev) produziveis.add(ev.id);
   }
   for (const argumento of chamadas) {

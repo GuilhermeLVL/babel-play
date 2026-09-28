@@ -8,7 +8,7 @@
 // @vitest-environment jsdom
 import { beforeEach,describe, expect, it } from 'vitest'
 
-import { emojiDoItem,estadoDaColecao } from '../src/lib/galeria/progressao'
+import { estadoDaColecao, iconeDoItem } from '../src/lib/galeria/progressao'
 import { CATALOGO_DA_LOJA, COR_DA_RARIDADE, marcarPosse, ORIGEM, type OrigemDoItem,origemDoItem,temPortaDeNivel } from '../src/lib/loja'
 
 beforeEach(() => localStorage.removeItem('babel.loja_possuidos'))
@@ -68,13 +68,13 @@ describe('estadoDaColecao separa as três origens gratuitas', () => {
 describe('ícone do item', () => {
   it('o TIPO manda: dois temas diferentes têm o mesmo ícone estável', () => {
     const temas = CATALOGO_DA_LOJA.filter((i) => i.tipo === 'tema')
-    const icones = new Set(temas.map(emojiDoItem))
+    const icones = new Set(temas.map(iconeDoItem))
     expect(icones.size, 'tema deveria ter um ícone só').toBe(1)
   })
 
-  /* Pack e cursor, que liam o emoji da descrição, saíram nas recompensas v2; o rastro ainda lê. */
-  it('rastro lê a descrição quando ela traz o emoji; sem emoji, cai no ícone do tipo', () => {
-    const rastro = CATALOGO_DA_LOJA.find((i) => i.id === 'ras-faisca')!
-    expect(emojiDoItem(rastro)).toBe('💫')
+  /* Recompensas v2: o ícone é do TIPO, nunca da descrição (nada de emoji na interface). */
+  it('dois rastros têm o mesmo ícone do tipo, venha o que vier na descrição', () => {
+    const rastros = CATALOGO_DA_LOJA.filter((i) => i.tipo === 'rastro')
+    expect(new Set(rastros.map(iconeDoItem)).size).toBe(1)
   })
 })

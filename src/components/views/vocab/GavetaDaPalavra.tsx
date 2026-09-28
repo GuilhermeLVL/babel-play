@@ -12,6 +12,8 @@
  *    (`/memoria`, contados em `review_logs`);
  *  - Editar (tradução, frase, nível), Suspender/Reativar e Excluir (dois cliques).
  */
+import '../../../styles/cartoes.css';
+
 import {
   BookMarked,
   BookOpen,
@@ -41,6 +43,7 @@ import {
 } from '../../../data/api';
 import { type DictionaryResult, forvoUrl, lookup, wiktionaryUrl } from '../../../lib/dictionary';
 import { baseLang, langLabelNaUI } from '../../../lib/languages';
+import { classesDaPalavra } from '../../../lib/pelesDeCartao';
 import type { Recording, VocabCard, VocabWord } from '../../../types';
 import { toast } from '../../Toast';
 import { DialogoBase, IconeEmBloco } from '../../ui';
@@ -363,7 +366,9 @@ export default function GavetaDaPalavra({
           </>
         )}
 
-        <section className="cartao p5 sutil">
+        {/* A PELE DE CARTÃO (spec 5.2.4): o bloco que diz o estado da palavra na memória veste a
+            pele equipada nesse estado (nova · aprendida · dominada), como o cartão do Estudar. */}
+        <section className={`cartao p5 sutil ${classesDaPalavra(cartao)}`}>
           <span className="label-mono">Na sua memória</span>
           <div className="memoria-g">
             {[

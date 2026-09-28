@@ -1,9 +1,9 @@
-import { Crown, Frame } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import { perfilEquipado } from '../../lib/galeria/equipar';
 import { t } from '../../lib/i18n';
-import { CATALOGO_DA_LOJA, estadoDoItem, type ItemDaLoja, type Raridade } from '../../lib/loja';
+import { CATALOGO_DA_LOJA, estadoDoItem, type ItemDaLoja } from '../../lib/loja';
+import { AnelDaMoldura, SeloDoTitulo } from './pecasDoPerfil';
 
 /**
  * A MOLDURA E O TÍTULO DE PERFIL EQUIPADOS (recompensas v2, onda 5 — spec 5.2.5).
@@ -20,13 +20,6 @@ import { CATALOGO_DA_LOJA, estadoDoItem, type ItemDaLoja, type Raridade } from '
  * O desenho é o do resto do app: a moldura é um anel na cor da raridade em volta do avatar (ou do
  * ícone `Frame`, sem avatar), e o título é um `badge` com a coroa. Sem emoji, sem imagem.
  */
-
-const COR: Record<Raridade, string> = {
-  comum: 'var(--border-strong, var(--border-subtle))',
-  raro: 'var(--rare)',
-  epico: 'var(--epic)',
-  lendario: 'var(--warn)',
-};
 
 /** O item vestido de um tipo, se ele ainda existe e ainda é seu. */
 function vestido(tipo: 'moldura' | 'titulo', id: string | undefined, nivel: number): ItemDaLoja | null {
@@ -59,11 +52,7 @@ export default function MolduraETitulo({
   const { moldura, titulo } = molduraETituloEquipados(nivel);
   if (!moldura && !titulo) return null;
 
-  const tituloEl = titulo && (
-    <span className="badge warn" data-titulo-equipado={titulo.id} title={titulo.desc}>
-      <Crown aria-hidden /> {titulo.nome}
-    </span>
-  );
+  const tituloEl = titulo && <SeloDoTitulo item={titulo} />;
   if (compacto) return titulo ? tituloEl : null;
 
   return (
@@ -75,25 +64,7 @@ export default function MolduraETitulo({
         .filter(Boolean)
         .join(' · ')}
     >
-      {moldura && (
-        <span
-          data-moldura-equipada={moldura.id}
-          title={moldura.nome}
-          style={{
-            display: 'inline-grid',
-            placeItems: 'center',
-            width: tamanho,
-            height: tamanho,
-            borderRadius: '50%',
-            border: `3px solid ${COR[moldura.raridade]}`,
-            boxShadow: `0 0 0 2px var(--surface), 0 0 0 4px color-mix(in srgb, ${COR[moldura.raridade]} 45%, transparent)`,
-            overflow: 'hidden',
-            flex: 'none',
-          }}
-        >
-          {avatar ?? <Frame aria-hidden style={{ width: tamanho * 0.5, height: tamanho * 0.5, color: COR[moldura.raridade] }} />}
-        </span>
-      )}
+      {moldura && <AnelDaMoldura item={moldura} tamanho={tamanho} avatar={avatar} />}
       {tituloEl}
     </span>
   );

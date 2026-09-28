@@ -43,12 +43,11 @@ export const EVENTOS_RAROS: ReadonlyArray<{ prob: number; efeito: EfeitoComposto
  * Sorteia no máximo UM evento raro por acerto. `rng` vem de fora (Math.random em produção,
  * fixo nos testes). Devolve null na imensa maioria das vezes — e é isso que os mantém raros.
  */
-export function sortearEventoRaro(rng: () => number, chanceMul = 1): EfeitoComposto | null {
+export function sortearEventoRaro(rng: () => number): EfeitoComposto | null {
   const dado = rng();
   let acumulado = 0;
   for (const { prob, efeito } of EVENTOS_RAROS) {
-    // `chanceMul` vem do aprimoramento "Sorte" da loja (1 → 1.75); com 1, nada muda.
-    acumulado += prob * chanceMul;
+    acumulado += prob;
     if (dado < acumulado) return efeito;
   }
   return null;

@@ -23,7 +23,7 @@ import type { ThemeType } from './appearance';
 // Os kinds dos EVENTOS (patos, raios...) sao usados por lib/eventosDeJogo.
 export type BurstKind = 'xp' | 'record' | 'levelUp' | 'combo' | 'perfeito' | 'confete' | 'erro'
   | 'patos' | 'voleibol' | 'coracoes' | 'raios' | 'fogos' | 'pizza' | 'trofeu' | 'fumaca'
-  | 'rastroFaisca' | 'rastroEstrelas' | 'rastroCoracoes' | 'rastroPixel' | 'rastroEmoji' | 'rastroArcoiris';
+  | 'rastroFaisca' | 'rastroEstrelas' | 'rastroCoracoes' | 'rastroPixel' | 'rastroArcoiris';
 
 /** Como a partícula é desenhada. Confete é retângulo girando — é o que dá a leitura de "festa".
  *  `cometa` (exclusiva de conquista): círculo com cauda de três círculos decrescentes atrás. */
@@ -292,7 +292,6 @@ export const BURST_SPECS: Record<BurstKind, BurstSpec> = {
   rastroEstrelas: { count: 2, speed: 1.1, size: [3.5, 5], life: 750, colorToken: '--warn', forma: 'emoji', emojis: ['⭐', '✨'] },
   rastroCoracoes: { count: 2, speed: 1.1, size: [3, 4.5], life: 750, colorToken: '--accent', forma: 'coracao', paleta: ['#F04E23', '#FF7BAC', '#E63946'] },
   rastroPixel:    { count: 4, speed: 1.6, size: [2, 3], life: 650, colorToken: '--accent', forma: 'pixel', paleta: ['#F04E23', '#F59E0B', '#3E8E4E'] },
-  rastroEmoji:    { count: 2, speed: 1.1, size: [3.5, 5], life: 800, colorToken: '--warn', forma: 'emoji' },
   // Exclusivo de conquista: seis cores, círculos com glow — o arco-íris escorrendo do cursor.
   rastroArcoiris: { count: 5, speed: 1.5, size: [2.2, 3.4], life: 700, colorToken: '--accent', gravidade: 0.015, paleta: ['#FF3B30', '#FF9500', '#FFD60A', '#34C759', '#0A84FF', '#AF52DE'] },
 };

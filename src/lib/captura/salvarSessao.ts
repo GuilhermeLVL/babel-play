@@ -6,19 +6,10 @@
  * substituiu (ela lê `timer`, `speechSegments` e o par de idiomas do render corrente), e tudo
  * que vem da tela entra por PARÂMETRO explícito — nada de contexto novo nem store global.
  */
-import { makeCloze, resumoDosPulados } from '@core';
 import type { Dispatch, RefObject, SetStateAction } from 'react';
 
 import type { ModelPrepState } from '../../components/ModelPrepPanel';
-import {
-  bulkAddCards,
-  createSession,
-  type NewUtterancePayload,
-  patchSessionMeta,
-  replaceSessionUtterances,
-  updateSession,
-  uploadSessionAudio,
-} from '../../data/api';
+import type { NewUtterancePayload } from '../../data/api';
 import type { SttSession } from '../../gateway/capabilities';
 import { capMetrics } from '../../gateway/capture/captureMetrics';
 import type { AudioCapture } from '../../gateway/capture/systemAudio';
@@ -27,9 +18,9 @@ import type { ContextoDoStt } from '../../gateway/promptDeStt';
 import { Recording } from '../../types';
 import { DominantLangTracker } from '../convoLang';
 import { perfilDoDispositivo } from '../dispositivo/perfil';
+import { comPrazo } from '../dispositivo/sonda';
 import { burstFromElement } from '../effects';
 import { dataHora } from '../i18n';
-import { baseLang } from '../languages';
 import { misturarAudios } from '../misturarAudios';
 import { OrdemDasTraducoes } from '../ordemDaTraducao';
 import { PerfilAdaptativoDeIdioma } from '../perfilDeIdioma';
@@ -37,17 +28,18 @@ import { abrirSessaoDeCaptura, fecharSessaoDeCaptura } from '../sessaoDeCaptura'
 import { play } from '../soundFx';
 import { SpeakerClusterer } from '../speakerCluster';
 import { preloadSpeakerId } from '../speakerId';
-import { explicarParada, traduzirVersos } from '../versosDoVocabulario';
+import { aguardarFinaisEmVoo, prazoDaMistura } from './finaisEmVoo';
 import { criarProgressoDosPacotesNativos } from './pacotesNativos';
+import type { RascunhoDaCaptura } from './rascunhoDaCaptura';
 import {
   type CaptureScenario,
   clog,
-  formatTime,
   type GatewayDaCaptura,
   type SpeakerProfile,
   type SpeechSegment,
 } from './tiposDaFala';
-import { idiomaDaFala, palavrasDasFalas, parDaSessao } from './vocabularioDaSessao';
+import { salvarCaptura } from './trabalhoDeSalvar';
+import { idiomaDaFala, parDaSessao } from './vocabularioDaSessao';
 
 /** Estado honesto da identificação de voz, exibido no painel Falantes. */
 export type EstadoDaIdentificacaoDeVoz = 'off' | 'loading' | 'ready' | 'unavailable';
@@ -124,6 +116,25 @@ export interface DepsDeSalvarSessao {
    */
   setPausado: (p: boolean) => void;
   pausaInicioRef: RefObject<number>;
+  /* --- fim da captura sem prender ninguém (relato do dono, 2026-09-28) --- */
+  /** As falas MAIS RECENTES (o ref da tela): o salvamento espera as que estão em voo. */
+  lerFalas?: () => SpeechSegment[];
+  /** A chave de idempotência DESTA captura: nasce no início, vale para toda tentativa de salvar. */
+  origemLocalIdRef?: RefObject<string>;
+  /** A gravação mudou depois de salva (o áudio subiu): o App atualiza a lista. */
+  aoAtualizarGravacao?: (recording: Recording) => void;
+  /** O teto sem conta já foi atingido: começar uma captura nova só leva a um salvamento recusado. */
+  tetoAtingido?: boolean;
+  aoTetoAtingido?: () => void;
+}
+
+/** Uma chave de captura (8 a 64 caracteres, como pede o `origemLocalId` do servidor). */
+function novaChaveDeCaptura(): string {
+  try {
+    return `captura-${crypto.randomUUID()}`;
+  } catch {
+    return `captura-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  }
 }
 
 export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
@@ -182,6 +193,11 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
     setSessaoSalva,
     setPausado,
     pausaInicioRef,
+    lerFalas = () => speechSegments,
+    origemLocalIdRef,
+    aoAtualizarGravacao,
+    tetoAtingido,
+    aoTetoAtingido,
   } = deps;
 
   const handleStartRecording = () => {
@@ -277,7 +293,17 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
   // Start "limpo" a partir dos botões: só descarta o transcript quando NÃO estamos
   // retomando uma sessão (retomar continua de onde parou).
   const handleStartOrResume = () => {
-    if (!(resumeId && speechSegments.length > 0)) setSpeechSegments([]);
+    const retomando = !!(resumeId && speechSegments.length > 0);
+    /* O TETO ANTES DE GRAVAR: com o acervo sem conta cheio, a captura nova só terminaria num
+       salvamento recusado. A tela mostra o aviso com as saídas; retomar uma sessão que já existe
+       não cria nada e continua livre. */
+    if (tetoAtingido && !resumeId) {
+      aoTetoAtingido?.();
+      return;
+    }
+    if (!retomando) setSpeechSegments([]);
+    // Captura nova, chave nova; retomar ou "Continuar gravando" mantêm a mesma.
+    if (origemLocalIdRef && (!retomando || !origemLocalIdRef.current)) origemLocalIdRef.current = novaChaveDeCaptura();
     handleStartRecording();
   };
 
@@ -303,7 +329,9 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
     if (webSpeechRef.current) {
       try {
         webSpeechRef.current.stop();
-      } catch {}
+      } catch {
+        /* reconhecedor já parado */
+      }
       webSpeechRef.current = null;
       webSpeechPartialIdRef.current = null;
     }
@@ -327,10 +355,16 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
   };
 
   /**
-   * ENCERRA as fontes de verdade: fecha o reconhecedor e os gravadores e guarda o áudio da sessão
-   * (misturado, com as duas fontes). Roda no Salvar/Descartar do Encerrar, ou no Parar sem falas.
+   * ENCERRA as fontes de verdade e devolve, EM SEGUNDO PLANO, o áudio da sessão (misturado, com as
+   * duas fontes). Roda no Salvar/Descartar do Encerrar, ou no Parar sem falas.
+   *
+   * O QUE É IMEDIATO e o que não é (relato do dono, 2026-09-28: "encerrar trava"): a tela para na
+   * hora (flags, reconhecedor, medidor e refs das fontes zerados antes de qualquer espera). O que
+   * demora, o gravador entregar o último pedaço e a mistura das duas fontes, fica na promessa
+   * devolvida, com PRAZO em cada passo; quem precisa do áudio espera por ela, quem não precisa
+   * (descartar, o texto do salvamento) segue. Estourou o prazo da mistura: fica o áudio do sistema.
    */
-  const encerrarFontes = async () => {
+  const encerrarFontes = (): Promise<Blob | null> => {
     play('recordStop');
     setPausado(false);
     pausaInicioRef.current = 0;
@@ -342,7 +376,9 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
     if (webSpeechRef.current) {
       try {
         webSpeechRef.current.stop();
-      } catch {}
+      } catch {
+        /* reconhecedor já parado */
+      }
       webSpeechRef.current = null;
       webSpeechPartialIdRef.current = null;
     }
@@ -350,39 +386,46 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
       meterRef.current.stop();
       meterRef.current = null;
     }
-    let sysBlob: Blob | null = null;
-    let micBlob: Blob | null = null;
-    let sysInicioMs = 0;
-    if (systemCaptureRef.current) {
-      sysInicioMs = systemCaptureRef.current.startedAtMs ?? 0;
-      try {
-        sysBlob = await systemCaptureRef.current.stop();
-      } catch {}
-      systemCaptureRef.current = null;
-    }
-    if (micCaptureRef.current) {
-      try {
-        micBlob = await micCaptureRef.current.stop();
-      } catch {}
-      micCaptureRef.current = null;
-    }
-    // Player do Analysis: com as DUAS fontes, mistura (a sua voz também fica na sessão — antes o
-    // mic era descartado e a pessoa não conseguia se reescutar nos exercícios); senão, a que houver.
-    recordedAudioRef.current = sysBlob ?? micBlob;
-    if (sysBlob && micBlob) {
-      try {
-        const offsetMic = sysInicioMs > 0 && micStartedAtRef.current > 0 ? micStartedAtRef.current - sysInicioMs : 0;
-        recordedAudioRef.current = await misturarAudios(sysBlob, micBlob, offsetMic);
-        clog('áudio da sessão: sistema + microfone misturados (offset', Math.round(offsetMic), 'ms)');
-      } catch (e) {
-        clog('mixagem falhou, mantendo só o áudio do sistema:', String(e));
-      }
-    }
+    const sistema = systemCaptureRef.current;
+    const microfone = micCaptureRef.current;
+    systemCaptureRef.current = null;
+    micCaptureRef.current = null;
+    const sysInicioMs = sistema?.startedAtMs ?? 0;
+    const micInicioMs = micStartedAtRef.current;
+    const duracaoS = timer;
     seqToSegmentRef.current.clear();
     lastPartialTextRef.current.clear();
     clog('métricas da sessão:', capMetrics.summary());
     pararTelemetriaDeCaptura(); // o último lote, antes que um START novo zere o acumulador
     fecharSessaoDeCaptura();
+
+    /* O gravador já tem prazo próprio (`pararGravador`, 5 s); este cinto cobre o resto do `stop()`
+       (VAD, contexto de áudio): nada daqui pode pendurar o fim da captura. */
+    const parar = (f: AudioCapture | null): Promise<Blob | null> => {
+      if (!f) return Promise.resolve(null);
+      let pedido: Promise<Blob | null>;
+      try {
+        pedido = f.stop(); // chamado AGORA: o gravador para neste instante, não num microtask depois
+      } catch {
+        return Promise.resolve(null);
+      }
+      return comPrazo(() => pedido, 8000);
+    };
+    return (async (): Promise<Blob | null> => {
+      const [sysBlob, micBlob] = await Promise.all([parar(sistema), parar(microfone)]);
+      // Player do Analysis: com as DUAS fontes, mistura (a sua voz também fica na sessão); senão, a que houver.
+      let final = sysBlob ?? micBlob;
+      if (sysBlob && micBlob) {
+        const offsetMic = sysInicioMs > 0 && micInicioMs > 0 ? micInicioMs - sysInicioMs : 0;
+        const misturado = await comPrazo(() => misturarAudios(sysBlob, micBlob, offsetMic), prazoDaMistura(duracaoS));
+        if (misturado) {
+          final = misturado;
+          clog('áudio da sessão: sistema + microfone misturados (offset', Math.round(offsetMic), 'ms)');
+        } else clog('mixagem falhou ou passou do prazo, mantendo só o áudio do sistema');
+      }
+      recordedAudioRef.current = final;
+      return final;
+    })();
   };
 
   const abrirEncerrar = () => {
@@ -405,13 +448,13 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
    * Encerrar abre por cima. Salvar ou descartar encerra de verdade; "Continuar gravando" retoma.
    * Sem fala nenhuma não há o que encerrar: as fontes fecham e a tela avisa.
    */
-  const handleStopRecording = async () => {
+  const handleStopRecording = () => {
     if (speechSegments.length > 0 && isRecordingRef.current && fontesAbertas()) {
       pausarFontes();
       abrirEncerrar();
       return;
     }
-    await encerrarFontes();
+    void encerrarFontes();
     if (speechSegments.length === 0) {
       setFeedbackMsg('Nenhuma fala capturada, nada para salvar.');
       setTimeout(() => setFeedbackMsg(''), 3000);
@@ -438,168 +481,106 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
     setTimeout(() => setFeedbackMsg(''), 1500);
   };
 
-  // Persistência REAL das saídas do modal. Sessão NOVA → createSession; sessão RETOMADA
-  // (resumeId) → substitui as falas + atualiza título/duração + capa, MANTENDO o mesmo id
-  // (nunca duplica na Biblioteca). Depois sobe o áudio e gera os cards de vocabulário.
-  const handleFinalizeSave = async (shouldRedirect: boolean) => {
-    const segs = speechSegments;
+  /** As falas da tela no formato do servidor. Idiomas POR FALA, não por sessão: as duas fontes são
+      INVERSAS (sistema no idioma-alvo, microfone no seu; ver `langs()` em makeCaptureHandlers). Gravar
+      `sourceLang` fixo fazia a Análise/Leitura narrarem o texto estrangeiro com a voz errada. */
+  const falasParaOServidor = (segs: ReadonlyArray<SpeechSegment>): NewUtterancePayload[] => {
+    const nameOf = (id: string) => speakerProfilesRef.current.find((p) => p.id === id)?.name ?? id;
+    return segs.map((s, i) => {
+      const isSys = s.source === 'system'; // FONTE decide a direção (speakerId agora pode ser 'voice_N')
+      return {
+        idx: i,
+        source: isSys ? 'system' : 'mic',
+        speakerName: nameOf(s.speakerId),
+        // Idioma REAL detectado (multi-idioma) vence; senão, o da config.
+        sourceLang: idiomaDaFala(s, { sourceLang, targetLang }),
+        engine: s.engine ?? (isSys ? 'whisper-local' : micEngine === 'browser' ? 'web-speech' : 'whisper-local'),
+        sourceText: s.originalText,
+        targetLang: isSys ? sourceLang : targetLang, // idioma de `translatedText`
+        translatedText: s.translatedText,
+        tStartMs: s.tStartMs,
+        tEndMs: s.tEndMs,
+      };
+    });
+  };
+
+  /**
+   * "SALVAR" do Encerrar, em SEGUNDO PLANO e sem prender a tela (relato do dono, 2026-09-28).
+   *
+   * Antes: fechava o diálogo, esperava o gravador parar e o áudio ser misturado (sem prazo), só
+   * então dizia "Salvando sessão…"; uma recusa reabria o Encerrar, que falhava de novo, e a única
+   * saída era descartar. Agora a tela para NA HORA, o aviso aparece NA HORA, e o resto é do
+   * `trabalhoDeSalvar` (falas em voo, rascunho, falas em lotes, navegação, áudio com prazo,
+   * vocabulário), que sobrevive a sair da tela. Recusa não reabre nada: vira o aviso "Esta captura
+   * ainda não foi salva", com saídas de verdade. Sessão RETOMADA mantém o mesmo id.
+   */
+  const handleFinalizeSave = (shouldRedirect: boolean): Promise<void> => {
     const title = customSessionTitle.trim() || `Captura ao vivo, ${dataHora(new Date())}`;
     const cover = customSessionImage.trim();
+    const retomada = resumeId;
+    const durationMs = timer * 1000;
+    let origemLocalId = origemLocalIdRef?.current || '';
+    if (!origemLocalId) {
+      origemLocalId = novaChaveDeCaptura();
+      if (origemLocalIdRef) origemLocalIdRef.current = origemLocalId;
+    }
     setShowSaveModal(false);
-    // Vindo do Encerrar com a gravação pausada: agora sim as fontes fecham e o áudio é guardado.
-    if (fontesAbertas()) await encerrarFontes();
+    // Vindo do Encerrar com a gravação pausada: as fontes fecham AGORA; o áudio chega depois.
+    const audio = fontesAbertas() ? encerrarFontes() : Promise.resolve(recordedAudioRef.current);
     setFeedbackMsg('Salvando sessão…');
-    try {
-      const nameOf = (id: string) => speakerProfilesRef.current.find((p) => p.id === id)?.name ?? id;
-      // Idiomas POR FALA (não por sessão): as duas fontes são INVERSAS — o áudio do SISTEMA
-      // vem no idioma-ALVO e é traduzido para o seu; o MIC é o contrário (ver `langs()` em
-      // makeCaptureHandlers). Gravar `sourceLang` fixo aqui fazia a Análise/Leitura narrarem o
-      // texto estrangeiro com a voz do idioma errado.
-      const utterances: NewUtterancePayload[] = segs.map((s, i) => {
-        const isSys = s.source === 'system'; // FONTE decide a direção (speakerId agora pode ser 'voice_N')
-        return {
-          idx: i,
-          source: isSys ? 'system' : 'mic',
-          speakerName: nameOf(s.speakerId),
-          // Idioma REAL detectado (multi-idioma) vence; senão, o da config.
-          sourceLang: idiomaDaFala(s, { sourceLang, targetLang }),
-          engine: s.engine ?? (isSys ? 'whisper-local' : micEngine === 'browser' ? 'web-speech' : 'whisper-local'),
-          sourceText: s.originalText,
-          targetLang: isSys ? sourceLang : targetLang, // idioma de `translatedText`
-          translatedText: s.translatedText,
-          tStartMs: s.tStartMs,
-          tEndMs: s.tEndMs,
-        };
-      });
 
-      let recording: Recording | null = null;
-      if (resumeId) {
-        // Retomada: substitui TODAS as falas (append duplicaria as antigas já reidratadas),
-        // renomeia/ajusta duração e grava a capa — tudo no MESMO id.
-        recording = await replaceSessionUtterances(resumeId, utterances);
-        const upd = await updateSession(resumeId, { title, durationMs: timer * 1000 });
-        if (upd) recording = upd;
-        if (cover) {
-          const r = await patchSessionMeta(resumeId, { imageUrl: cover });
-          if (r) recording = r;
-        }
-        if (!recording) {
-          // Fallback honesto se o backend não devolveu a linha: reusa o que já existia.
-          const existing = (recordings ?? []).find((r) => r.id === resumeId);
-          recording = {
-            id: resumeId,
-            title,
-            date: existing?.date ?? 'Agora',
-            durationStr: formatTime(timer),
-            wordCount: existing?.wordCount ?? 0,
-            type: existing?.type ?? 'audio',
-            tags: existing?.tags ?? [],
-            status: 'Processado',
-            imageUrl: cover || existing?.imageUrl,
-          };
-        }
-        if (recordedAudioRef.current) {
-          const url = await uploadSessionAudio(resumeId, recordedAudioRef.current);
-          if (url) recording.audioUrl = url;
-        }
-      } else {
+    return salvarCaptura({
+      origemLocalId,
+      titulo: title,
+      preparar: async () => {
+        const segs = await aguardarFinaisEmVoo(lerFalas);
+        const utterances = falasParaOServidor(segs);
         /* O par da SESSÃO é o do CONTEÚDO (o idioma dominante das falas), não o do seletor: é o que
            a Biblioteca mostra e filtra, e o que Jogar usa para a sessão (ver vocabularioDaSessao). */
-        const parGravado = parDaSessao(utterances, { sourceLang, targetLang });
-        recording = await createSession({
-          title,
-          kind: 'live',
-          sourceLang: parGravado.sourceLang,
-          targetLang: parGravado.targetLang,
-          status: 'done',
-          durationMs: timer * 1000,
+        const par = parDaSessao(utterances, { sourceLang, targetLang });
+        const rascunho: RascunhoDaCaptura = {
+          origemLocalId,
+          resumeId: retomada,
+          titulo: title,
+          capa: cover,
+          durationMs,
+          sourceLang: par.sourceLang,
+          targetLang: par.targetLang,
+          parConfigurado: { sourceLang, targetLang },
           utterances,
-        });
-        if (cover) {
-          const r = await patchSessionMeta(recording.id, { imageUrl: cover });
-          if (r) recording = r;
-        }
-        if (recordedAudioRef.current) {
-          const url = await uploadSessionAudio(recording.id, recordedAudioRef.current);
-          if (url) recording.audioUrl = url;
-        }
-      }
-
-      // Vocabulário das palavras REAIS extraídas das falas (verso via MT, cloze da frase real).
-      // O idioma da PALAVRA é o da fala de onde ela veio (sistema = alvo; mic = fonte) — é o que
-      // Estudo/Métricas leem depois para falar/traduzir no idioma certo. Traduzir sempre de
-      // `sourceLang`→`targetLang` invertia a direção nas palavras vindas do áudio do sistema.
-      /* A SESSÃO JÁ ESTÁ SALVA AQUI. Libera a tela ANTES de enriquecer o vocabulário.
-         Antes, `onSave()` só rodava depois de traduzir palavra por palavra, e a pessoa ficava
-         presa em "Salvando sessão…" sem conseguir iniciar outra captura nem navegar. O que
-         importa, a gravação e as falas, já está no servidor neste ponto; o verso dos cartões
-         é enriquecimento, e enriquecimento não segura ninguém. */
-      onSave(recording, shouldRedirect);
-      recordedAudioRef.current = null;
-      setResumeId(null);
-      // Ficando na tela, as falas continuam à vista (protótipo); indo para a análise, a tela zera.
-      if (shouldRedirect) {
-        setSpeechSegments([]);
-        setTimer(0);
-      } else setSessaoSalva({ id: recording.id, palavras: null });
-      setCustomSessionImage('');
-      setFeedbackMsg(`“${title}” salva na Biblioteca`);
-
-      /* As palavras únicas, cada uma com o idioma DA FALA de onde veio (o detectado; o do seletor só
-         quando nada foi medido) e re-extraídas nesse idioma. Ver `vocabularioDaSessao.ts`: era aqui
-         que a fala em português virava cartão em inglês. */
-      const pendentes = palavrasDasFalas(segs, { sourceLang, targetLang });
-
-      /* Os versos que faltam vão em LOTE, com desistência rápida e concorrência limitada
-         (`lib/versosDoVocabulario`). O laço serial anterior fazia uma chamada de rede por
-         palavra, e com o tradutor fora do ar, cada uma ainda pagava a tentativa antes de
-         estourar. Quanto pior o tradutor, mais longa a espera. */
-      const semVerso = pendentes.filter((p) => !p.back);
-      const traducao = await traduzirVersos(
-        semVerso.map((p) => ({ word: p.word, src: baseLang(p.srcLang), tgt: baseLang(p.tgtLang) })),
-        (texto, de, para) => gateway.mt.translate(texto, de, para),
-      );
-
-      const cards = pendentes.map((p) => {
-        const cloze = makeCloze(p.sentence, p.word);
-        return {
-          word: p.word,
-          back: p.back || traducao.versos.get(p.word.toLowerCase()) || '',
-          sentence: p.sentence,
-          srcLang: p.srcLang,
-          tgtLang: p.tgtLang,
-          clozePrompt: cloze?.prompt,
-          clozeAnswer: cloze?.answer,
-          sessionId: recording.id,
+          criadoEm: Date.now(),
         };
-      });
-      /* O NÚMERO QUE A TELA MOSTRA É O QUE O SERVIDOR GRAVOU, não o que tentamos gravar.
-         `cards` é a lista TENTADA; desde que a régua de qualidade entrou, boa parte dela é
-         recusada (repetida, sem tradução, ruído). A tela continuava anunciando o total tentado,
-         dizia "30 cards" quando entraram 12. Inflar em silêncio foi como o baralho chegou a 1.506
-         cartões com 194 repetições; anunciar o que não entrou é a mesma mentira com outro nome. */
-      const entrada = cards.length ? await bulkAddCards(cards) : { cards: [], skipped: [] };
-
-      const salvos = entrada.cards.length;
-      if (!shouldRedirect) setSessaoSalva({ id: recording.id, palavras: salvos });
-      const pulados = resumoDosPulados(entrada.skipped);
-      // A parada da tradução entra na mensagem: "sem verso" por falta de tradutor é um fato
-      // sobre o resultado, e omiti-lo faria a contagem parecer um limite do texto capturado.
-      const parada = explicarParada(traducao);
-      setFeedbackMsg(
-        salvos || entrada.skipped.length
-          ? `Sessão salva · ${salvos} palavra(s) fichada(s)` +
-              (pulados ? ` · ${entrada.skipped.length} pulada(s): ${pulados}` : '') +
-              (parada ? ` · ${parada}` : '')
-          : 'Sessão salva.',
-      );
-      // Mais tempo quando há motivo para ler: a linha ficou maior que "salvo com N cards".
-      setTimeout(() => setFeedbackMsg(''), pulados ? 7000 : 4000);
-    } catch (e) {
-      setShowSaveModal(true); // reabre para o usuário tentar de novo, sem perder o transcript
-      setFeedbackMsg('Falha ao salvar a sessão: ' + (e as Error).message);
-      setTimeout(() => setFeedbackMsg(''), 4000);
-    }
+        return { rascunho, segmentos: segs };
+      },
+      audio,
+      traduzir: (texto, de, para) => gateway.mt.translate(texto, de, para),
+      /* AS FALAS JÁ ESTÃO SALVAS AQUI: a tela é liberada antes do áudio e do vocabulário, que são
+         enriquecimento. Ficando na tela, as falas continuam à vista (protótipo); indo para a
+         análise, a tela zera. */
+      aoSalvar: (recording) => {
+        onSave(recording, shouldRedirect);
+        setResumeId(null);
+        if (shouldRedirect) {
+          setSpeechSegments([]);
+          setTimer(0);
+        } else setSessaoSalva({ id: recording.id, palavras: null });
+        setCustomSessionImage('');
+        setFeedbackMsg(`“${title}” salva na Biblioteca`);
+      },
+      aoAtualizar: aoAtualizarGravacao,
+    }).then((r) => {
+      if (r.ok) {
+        recordedAudioRef.current = null;
+        if (!shouldRedirect) setSessaoSalva({ id: r.recording.id, palavras: r.palavras });
+        setFeedbackMsg(r.resumo);
+        // Mais tempo quando há motivo para ler: a linha ficou maior que "salvo com N cards".
+        setTimeout(() => setFeedbackMsg(''), r.resumo.includes('pulada') ? 7000 : 4000);
+        return;
+      }
+      /* NÃO reabre o Encerrar (era o laço sem saída): o aviso da tela mostra o que o servidor disse
+         e as saídas, e a captura está no rascunho. */
+      setFeedbackMsg('');
+    });
   };
 
   /* `handleStartRecording` fica DENTRO: a tela chama sempre `handleStartOrResume` (que decide se

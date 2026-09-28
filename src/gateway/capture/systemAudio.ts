@@ -2,6 +2,7 @@ import { MicVAD } from '@ricky0123/vad-web';
 
 import { apiFetch } from '../../data/api';
 import { ehPrefixo, EspelhoDoVad } from './espelhoDoVad';
+import { pararGravador } from './pararGravador';
 import { TAXA_DE_BITS_DA_GRAVACAO } from './taxaDeBits';
 
 // Logger de diagnóstico da captura de sistema/VAD (observabilidade no console do navegador).
@@ -657,17 +658,8 @@ async function startCaptureFromStream(
       speaking = false;
       // Finaliza a gravação ANTES de parar as faixas (senão perde o último chunk).
       let blob: Blob | null = null;
-      if (recorder && recorder.state !== 'inactive') {
-        blob = await new Promise<Blob | null>((resolve) => {
-          recorder!.onstop = () =>
-            resolve(recChunks.length ? new Blob(recChunks, { type: recMime || 'audio/webm' }) : null);
-          try {
-            recorder!.stop();
-          } catch {
-            resolve(null);
-          }
-        });
-      }
+      // Com PRAZO (`pararGravador`): um `onstop` que não chega segurava o fim da captura para sempre.
+      if (recorder && recorder.state !== 'inactive') blob = await pararGravador(recorder, recChunks, recMime);
       try {
         vad.pause();
       } catch {

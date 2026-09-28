@@ -94,6 +94,7 @@
     "POST /api/rank/:jogo",
     "POST /api/sessions",
     "POST /api/sessions/:id/audio",
+    "POST /api/sessions/:id/utterances",
     "POST /api/sessions/utterances/relabel",
     "POST /api/vocab/:id/desfazer",
     "POST /api/vocab/:id/review",

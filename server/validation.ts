@@ -95,6 +95,24 @@ export const replaceUtterancesSchema = z
   .strip()
 
 /**
+ * UM LOTE de falas acrescentado a uma sessão (`POST /api/sessions/:id/utterances`).
+ *
+ * É o que tira o teto de 5.000 falas da captura (2026-09-28): uma aula de horas passava do
+ * `max(5_000)` do POST e voltava 400, e a tela reabria o Encerrar sem saída. O cliente agora cria
+ * a sessão com o primeiro lote e manda o resto aqui, em pedaços de 500. O teto por PEDIDO continua
+ * (o corpo e as variáveis do SQLite têm limite), o da sessão deixa de existir. `idx` é obrigatório:
+ * é ele que torna o reenvio de um lote idempotente (a faixa é substituída).
+ */
+export const appendUtterancesSchema = z
+  .object({
+    utterances: z
+      .array(utteranceSchema.extend({ idx: z.number().int().min(0).max(1_000_000) }))
+      .min(1)
+      .max(1_000),
+  })
+  .strip()
+
+/**
  * `word` com no MÍNIMO 2 caracteres. Aceitar 1 deixava passar pontuação solta e sobra de
  * tokenização — e uma palavra de uma letra não vira exercício de jeito nenhum. A régua de
  * conteúdo (tradução vazia, ruído, duplicata) mora em `core/learning/quality.ts` e é aplicada no

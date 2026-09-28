@@ -1,10 +1,10 @@
 import { randomUUID } from 'node:crypto'
 
-import { and, asc, desc, eq, isNull, like, lt } from 'drizzle-orm'
+import { and, asc, desc, eq, gte, isNull, like, lt, lte } from 'drizzle-orm'
 
 import type { UserId } from '../../lib/authContext'
 import { db } from '../db'
-import { sessions } from '../schema'
+import { sessions, utterances as tabelaDeFalas } from '../schema'
 import { type NewUtterance, type Utterance, utterancesRepo } from './utterances'
 
 export type Session = typeof sessions.$inferSelect
@@ -210,6 +210,42 @@ export const sessionsRepo = {
     // captura", então o que se perdia era trabalho do usuário. Agora ou troca tudo, ou nada.
     const apagar = utterancesRepo.stmtDeleteForSession(userId, id)
     const inserir = utterancesRepo.stmtInsertMany(userId, id, utts) // lotes; todos no mesmo batch
+    const contar = db
+      .update(sessions)
+      .set({ wordCount, updatedAt: Date.now() })
+      .where(and(eq(sessions.id, id), eq(sessions.userId, userId)))
+    await db.batch([apagar, ...inserir, contar])
+    return this.get(userId, id)
+  },
+
+  /**
+   * ACRESCENTA UM LOTE de falas (a captura longa salva em pedaços; `appendUtterancesSchema`).
+   *
+   * Idempotente por FAIXA: as falas vivas com `idx` entre o menor e o maior do lote saem no mesmo
+   * batch em que o lote entra. Repetir um lote que caiu no meio substitui o trecho em vez de
+   * duplicá-lo. A contagem acompanha pela diferença (palavras que saem, palavras que entram), sem
+   * reler a sessão inteira — uma aula longa tem milhares de falas.
+   */
+  async appendUtterances(userId: UserId, id: string, utts: NewUtterance[]): Promise<Session | undefined> {
+    const s = await this.get(userId, id)
+    if (!s) return undefined
+    if (!utts.length) return s
+    const idxs = utts.map((u, i) => u.idx ?? i)
+    const [de, ate] = [Math.min(...idxs), Math.max(...idxs)]
+    const naFaixa = and(
+      eq(tabelaDeFalas.sessionId, id),
+      eq(tabelaDeFalas.userId, userId),
+      gte(tabelaDeFalas.idx, de),
+      lte(tabelaDeFalas.idx, ate),
+    )
+    const palavras = (t: string | null | undefined) => (t ? t.trim().split(/\s+/).filter(Boolean).length : 0)
+    const saem = await db.select({ sourceText: tabelaDeFalas.sourceText }).from(tabelaDeFalas).where(naFaixa)
+    const wordCount = Math.max(
+      0,
+      (s.wordCount ?? 0) - saem.reduce((n, u) => n + palavras(u.sourceText), 0) + utts.reduce((n, u) => n + palavras(u.sourceText), 0),
+    )
+    const apagar = db.delete(tabelaDeFalas).where(naFaixa)
+    const inserir = utterancesRepo.stmtInsertMany(userId, id, utts)
     const contar = db
       .update(sessions)
       .set({ wordCount, updatedAt: Date.now() })

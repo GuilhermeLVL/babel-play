@@ -556,6 +556,31 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
         );
       },
 
+      /**
+       * PORTA DE QUALIDADE DO STT (harness §5): o final LOCAL pareceu ruim, e ESTE trecho sobe à
+       * transcrição de nuvem — só ele, só com consentimento e um `groq-whisper` no perfil. Quem decide
+       * se a pessoa tem direito (plano) é o chamador. `null` = não havia nuvem ou ela falhou (fica o local).
+       */
+      async transcribePcmNaNuvem(
+        pcm: Float32Array,
+        sampleRate: number,
+        opts?: { languageHint?: string; prompt?: string },
+      ): Promise<SttFinal | null> {
+        if (!consentiu()) return null;
+        for (const b of core.getProfile().bindings.stt ?? []) {
+          if (b.adapterId !== 'groq-whisper') continue;
+          try {
+            const a = resolveStt(b);
+            if (!a.supportsBlob || !a.transcribePcm || !a.isAvailable()) continue;
+            const r = await a.transcribePcm(pcm, sampleRate, opts);
+            return { ...r, engine: r.engine ?? b.adapterId };
+          } catch {
+            capMetrics.fallback('stt:groq-whisper');
+          }
+        }
+        return null;
+      },
+
       async transcribePcm(
         pcm: Float32Array,
         sampleRate: number,

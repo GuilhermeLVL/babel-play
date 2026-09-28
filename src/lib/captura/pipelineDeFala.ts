@@ -6,6 +6,7 @@
  * como as closures que substituiu, e tudo que vem da tela (refs, setters, gateway, o par de
  * idiomas do render corrente) entra por PARÂMETRO explícito — nada de contexto novo.
  */
+import { avaliarTrechoStt, razaoDeCompressaoAproximada } from '@core/harness/portasDeQualidade';
 import type { Dispatch, RefObject, SetStateAction } from 'react';
 
 import type { ModelPrepState } from '../../components/ModelPrepPanel';
@@ -22,6 +23,7 @@ import { getSttQuality, nomeLegivelDoModelo, routeStt } from '../../gateway/sttR
 import { consentiuNuvem } from '../consentimentoDeNuvem';
 import { DominantLangTracker } from '../convoLang';
 import { dispositivoDaRota, medirPerfilDoDispositivo } from '../dispositivo/perfil';
+import { getEntitlements } from '../entitlements';
 import { t } from '../i18n';
 import { detectLanguage } from '../langDetect';
 import { baseLang, langLabel } from '../languages';
@@ -561,6 +563,24 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
           },
         })
       )
+        /* PORTA DE QUALIDADE DO STT (harness §5, leve): o worker não devolve logprobs, então o sinal
+           é a razão de compressão aproximada do TEXTO (laço de repetição). Final LOCAL que parece
+           ruim sobe à nuvem SÓ ESTE trecho — para quem tem transcrição de nuvem no plano e consentiu
+           (o gateway confere). Grátis fica com o local; 'silencio' (sem logprob, hoje não ocorre) sai. */
+        .then(async (r): Promise<SttFinal> => {
+          const texto = (r.text ?? '').trim();
+          if (!texto || r.engine === 'groq-whisper') return r;
+          const porta = avaliarTrechoStt({ compressionRatio: razaoDeCompressaoAproximada(texto) });
+          if (porta.veredicto === 'silencio') return { ...r, text: '' };
+          if (porta.veredicto !== 'subir' || !getEntitlements().managedCloudStt) return r;
+          const nuvem = await gateway.stt
+            .transcribePcmNaNuvem(pcm, sr, { languageHint: hint, prompt })
+            .catch(() => null);
+          if (!nuvem?.text?.trim()) return r;
+          capMetrics.escalada('stt');
+          clog('porta do STT: trecho', seq, 'subiu à nuvem (', porta.motivos.join(','), ')');
+          return nuvem;
+        })
         .then(({ text, engine, language, confiancaDoIdioma, alucinacaoDescartada }) => {
           const clean = (text ?? '').trim();
           if (!clean && alucinacaoDescartada) capMetrics.alucinacao();

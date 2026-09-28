@@ -9,6 +9,12 @@ import { describe, expect, it, vi } from 'vitest'
 vi.mock('../src/data/api', () => ({ apiFetch: vi.fn(async () => ({ ok: false })) }))
 vi.mock('../src/lib/speakerId', () => ({ embedUtterance: vi.fn(async () => null) }))
 vi.mock('../src/lib/tts', () => ({ isTtsActive: () => false }))
+// O plano (transcrição de nuvem) muda por caso; o resto das permissões é o de sempre.
+const plano = vi.hoisted(() => ({ nuvemStt: false }))
+vi.mock('../src/lib/entitlements', async (original) => {
+  const m = await original<typeof import('../src/lib/entitlements')>()
+  return { ...m, getEntitlements: () => ({ ...m.getEntitlements(), managedCloudStt: plano.nuvemStt }) }
+})
 
 import { ContextoDoStt } from '../src/gateway/promptDeStt'
 import { criarPipelineDeFala } from '../src/lib/captura/pipelineDeFala'
@@ -19,6 +25,7 @@ function montar(opts: { nuvem?: boolean; autoMic?: boolean; regulador?: unknown 
   const transcribePcm = vi.fn(async () => ({ text: 'Olá, tudo bem?', engine: 'whisper-local' }))
   const transcribePartial = vi.fn(async () => ({ text: 'Olá' }))
   const translateSegment = vi.fn()
+  const transcribePcmNaNuvem = vi.fn(async () => ({ text: 'A gente vai falar disso amanhã.', engine: 'groq-whisper' }))
   const contexto = new ContextoDoStt()
   const deps = {
     gateway: {
@@ -27,6 +34,9 @@ function montar(opts: { nuvem?: boolean; autoMic?: boolean; regulador?: unknown 
         transcribePartial,
         pendingCount: () => 0,
         finalNaNuvem: () => opts.nuvem === true,
+        transcribePcmNaNuvem,
+        trocarModeloLocal: vi.fn(),
+        preloadModel: vi.fn(async () => {}),
       },
     },
     sourceLang: 'pt-BR',
@@ -74,7 +84,7 @@ function montar(opts: { nuvem?: boolean; autoMic?: boolean; regulador?: unknown 
     sistemaAtivo: () => false,
   }
   const p = criarPipelineDeFala(deps as never)
-  return { p, deps, transcribePcm, transcribePartial, translateSegment, contexto }
+  return { p, deps, transcribePcm, transcribePartial, translateSegment, contexto, transcribePcmNaNuvem }
 }
 
 const esperar = () => new Promise((r) => setTimeout(r, 0))
@@ -167,5 +177,49 @@ describe('regulador de desempenho no pipeline', () => {
     p.micHandlers.onUtterance(new Float32Array(16000), 16000, 1)
     await esperar()
     expect(regulador.aoFinal).not.toHaveBeenCalled()
+  })
+})
+
+describe('porta de qualidade do STT no pipeline', () => {
+  const LACO = 'a gente vai '.repeat(10).trim()
+
+  it('final local em laço + plano com nuvem → só este trecho sobe; a nuvem vence', async () => {
+    plano.nuvemStt = true
+    try {
+      const { p, transcribePcm, transcribePcmNaNuvem, translateSegment } = montar()
+      transcribePcm.mockResolvedValueOnce({ text: LACO, engine: 'whisper-local' })
+      p.micHandlers.onSpeechStart(1)
+      p.micHandlers.onUtterance(new Float32Array(16000), 16000, 1)
+      await esperar()
+      await esperar()
+      expect(transcribePcmNaNuvem).toHaveBeenCalledTimes(1)
+      expect(translateSegment).toHaveBeenCalledWith(expect.any(String), 'A gente vai falar disso amanhã.', 'pt', 'en', {
+        falada: true,
+      })
+    } finally {
+      plano.nuvemStt = false
+    }
+  })
+
+  it('grátis: o laço fica local (sem nuvem)', async () => {
+    const { p, transcribePcm, transcribePcmNaNuvem } = montar()
+    transcribePcm.mockResolvedValueOnce({ text: LACO, engine: 'whisper-local' })
+    p.micHandlers.onSpeechStart(1)
+    p.micHandlers.onUtterance(new Float32Array(16000), 16000, 1)
+    await esperar()
+    expect(transcribePcmNaNuvem).not.toHaveBeenCalled()
+  })
+
+  it('fala normal não sobe, nem com plano', async () => {
+    plano.nuvemStt = true
+    try {
+      const { p, transcribePcmNaNuvem } = montar()
+      p.micHandlers.onSpeechStart(1)
+      p.micHandlers.onUtterance(new Float32Array(16000), 16000, 1)
+      await esperar()
+      expect(transcribePcmNaNuvem).not.toHaveBeenCalled()
+    } finally {
+      plano.nuvemStt = false
+    }
   })
 })

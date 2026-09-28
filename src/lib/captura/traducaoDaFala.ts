@@ -23,6 +23,12 @@ import {
 } from '../traducao/memoriaDeTraducao';
 import { chaveNormalizada, prepararFala } from '../traducao/prepararFala';
 import { clog, type GatewayDaCaptura, type SpeechSegment } from './tiposDaFala';
+import {
+  type ConhecidasDaFala,
+  type ModoDeTraducao,
+  motivoParaNaoTraduzir,
+  type PedidoSobDemanda,
+} from './traducaoSobDemanda';
 
 /** O que o relógio da sessão precisa da tela. */
 export interface DepsDoRelogio {
@@ -81,6 +87,8 @@ export function marcadorDeTraducao(origem: string, destino: string): string {
 export interface OpcoesDeTraducao {
   descartarSeOcupado?: boolean;
   falada?: boolean;
+  /** A pessoa PEDIU esta tradução ("Mostrar tradução"): a preferência sob demanda não se aplica. */
+  pedida?: boolean;
 }
 
 /** O que o pipeline de MT precisa da tela. */
@@ -104,6 +112,15 @@ export interface DepsDaTraducaoDaFala {
    * padrão; `null` desliga). Ver `memoriaDeTraducao.ts` para o que entra e por quê.
    */
   memoriaPersistente?: ArmazemDeTraducoes | null;
+  /**
+   * A preferência "Tradução" (`traducaoSobDemanda.ts`). Ausente = `sempre`, o comportamento de
+   * antes. Refs, e não valores: a fábrica é recriada a cada render e a troca vale na fala seguinte.
+   */
+  modoDeTraducaoRef?: RefObject<ModoDeTraducao>;
+  /** Palavras que o aluno já sabe (M0), para o modo `novas`. `null` = ainda não carregou. */
+  conhecidasRef?: RefObject<ConhecidasDaFala | null>;
+  /** Falas deixadas sem tradução, por id: o que "Mostrar tradução" refaz. Sobrevive aos renders. */
+  pedidosSobDemandaRef?: RefObject<Map<string, PedidoSobDemanda>>;
 }
 
 /** Motores cuja tradução quem paga pela nuvem aceita de volta da memória persistente. */
@@ -161,6 +178,40 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
     tgtCode?: string,
     opts?: OpcoesDeTraducao,
   ) => {
+    /* SOB DEMANDA (harness §1.2, degrau M0): a preferência "Tradução" deixa a fala SEM MT — "só
+       quando eu pedir", ou "só frases com palavra nova" quando o aluno já sabe todas. Desligado por
+       padrão (`sempre`): sem a ref, nada aqui roda. Mesmo idioma não é assunto deste bloco (o
+       caminho de baixo já não traduz). O final vira "sob demanda" — sem "…", com o pedido guardado
+       para "Mostrar tradução" —, invalida a tradução de parcial em voo e conta a economia; o
+       parcial só não é pedido, e o balão espera o final. */
+    const modo = deps.modoDeTraducaoRef?.current;
+    if (modo && modo !== 'sempre' && !opts?.pedida) {
+      const falada = opts?.falada === true;
+      const origemM0 = origemDaFala(srcCode ?? sourceLangRef.current.split('-')[0], idiomaObservadoRef.current, falada);
+      const tgtM0 = tgtCode ?? targetLangRef.current.split('-')[0];
+      const parcialM0 = opts?.descartarSeOcupado === true;
+      const motivo = mesmaLingua(origemM0, tgtM0)
+        ? null
+        : motivoParaNaoTraduzir({
+            modo,
+            texto: text,
+            origem: origemM0,
+            destino: tgtM0,
+            parcial: parcialM0,
+            falada,
+            conhecidas: deps.conhecidasRef?.current,
+          });
+      if (motivo) {
+        if (parcialM0) return;
+        ordemMtRef.current.encerrar(segId, ordemMtRef.current.abrir(segId));
+        deps.pedidosSobDemandaRef?.current.set(segId, { texto: text, src: srcCode, tgt: tgtCode, falada });
+        setSpeechSegments((prev) =>
+          prev.map((seg) => (seg.id === segId ? { ...seg, translatedText: '', traducaoSobDemanda: true } : seg)),
+        );
+        capMetrics.mtPulada(motivo);
+        return;
+      }
+    }
     /* PARCIAL NÃO ENFILEIRA TRADUÇÃO. Cada refinamento do parcial gastava uma chamada de MT
        inteira que era descartada segundos depois pelo refinamento seguinte. Com uma tradução já
        em voo para este balão, o parcial seguinte simplesmente não é pedido, o decode final
@@ -414,5 +465,21 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
     });
   };
 
-  return { translateSegment, retraduzirDegradados };
+  /**
+   * "Mostrar tradução" de uma fala deixada sob demanda: UMA tradução, pelo caminho normal (cache,
+   * memória, MT), com os mesmos idiomas do pedido original. O pedido é consumido — dois toques não
+   * pagam duas vezes.
+   */
+  const revelarTraducao = (segId: string) => {
+    const pedidos = deps.pedidosSobDemandaRef?.current;
+    const pedido = pedidos?.get(segId);
+    if (!pedido) return;
+    pedidos!.delete(segId);
+    setSpeechSegments((prev) =>
+      prev.map((seg) => (seg.id === segId ? { ...seg, translatedText: '…', traducaoSobDemanda: undefined } : seg)),
+    );
+    translateSegment(segId, pedido.texto, pedido.src, pedido.tgt, { falada: pedido.falada, pedida: true });
+  };
+
+  return { translateSegment, retraduzirDegradados, revelarTraducao };
 }

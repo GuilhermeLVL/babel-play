@@ -68,6 +68,8 @@ let motorStt = ''
 let motorMt = ''
 /** Trechos que a porta de qualidade subiu à nuvem, desde o início da gravação. */
 const escaladas = { mt: 0, stt: 0 }
+/** Falas finais que NÃO foram à MT pela preferência "Tradução" (M0): economia, desde a gravação. */
+const mtPuladas = { pedido: 0, conhecidas: 0 }
 
 function empurrar(xs: number[], x: number): void {
   if (!Number.isFinite(x)) return
@@ -157,6 +159,15 @@ export const capMetrics = {
     escaladas[tipo]++
   },
 
+  /**
+   * Uma fala final ficou sem MT pela preferência "Tradução" (`traducaoSobDemanda.ts`): `pedido` =
+   * "só quando eu pedir"; `todas-conhecidas` = toda palavra já sabida. Fica na aba
+   * (`summary().mtPuladas`), sem texto: é a conta de quanto o M0 economiza.
+   */
+  mtPulada(motivo: 'pedido' | 'todas-conhecidas'): void {
+    mtPuladas[motivo === 'pedido' ? 'pedido' : 'conhecidas']++
+  },
+
   /** Devolve o lote desde o último envio e começa outro. Quem chama é `telemetriaDeCaptura.ts`. */
   drenarTelemetria(): LoteDeTelemetria {
     const saida: LoteDeTelemetria = { ...lote, fallbacks: { ...lote.fallbacks }, motorStt, motorMt }
@@ -187,6 +198,8 @@ export const capMetrics = {
     motorMt = ''
     escaladas.mt = 0
     escaladas.stt = 0
+    mtPuladas.pedido = 0
+    mtPuladas.conhecidas = 0
   },
 
   /** Snapshot: concluídos + em andamento, em ordem de seq. */
@@ -229,6 +242,7 @@ export const capMetrics = {
       partialsShown: done.filter((m) => m.partialCount > 0).length,
       renderedInSeqOrder: inOrder,
       escaladas: { ...escaladas },
+      mtPuladas: { ...mtPuladas },
     }
   },
 }

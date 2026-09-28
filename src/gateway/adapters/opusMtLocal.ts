@@ -137,6 +137,10 @@ export class OpusMtLocal implements TranslationProvider {
     const model = this.modelFor(src, tgt);
     if (!model) throw new Error(`opus-mt não cobre ${src}->${tgt}`);
     if (this.failed.has(model)) throw new Error('opus-mt indisponível neste ambiente (fallback)');
+    /* PARCIAL NÃO BAIXA MODELO. Um texto que o próximo refinamento joga fora não justifica abrir o
+       worker e puxar ~113 MB (no celular, plano de dados). O parcial só usa o modelo já pronto; o
+       final — ou o aquecimento do início da gravação — é quem dispara o download. */
+    if (opts?.parcial && !this.ready.has(model)) throw new Error('opus-mt não carregado: parcial fica sem tradução local');
     this.ensureWorker();
 
     // Ainda não carregou este modelo → dispara preload em background e FALHA RÁPIDO

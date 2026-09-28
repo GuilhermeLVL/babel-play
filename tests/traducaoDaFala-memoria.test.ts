@@ -28,16 +28,28 @@ import {
   MAX_PALAVRAS_GUARDADAS,
   TTL_DA_MEMORIA_MS,
 } from '../src/lib/traducao/memoriaDeTraducao'
+import { criarMemoriaEmCamadas } from '../src/lib/traducao/memoriaEmCamadas'
 
 const ref = <T>(current: T) => ({ current })
 const esperar = () => new Promise((r) => setTimeout(r, 0))
 
 type Resposta = { text: string; engine: string; approximate?: boolean }
 
-function montar(armazem: ArmazemDeTraducoes, resposta: (t: string) => Resposta = (t) => ({ text: `[mt] ${t}`, engine: 'server-llm-mt' })) {
+function montar(
+  armazem: ArmazemDeTraducoes,
+  resposta: (t: string) => Resposta = (t) => ({ text: `[mt] ${t}`, engine: 'server-llm-mt' }),
+) {
   let segs: SpeechSegment[] = [
     { id: 'u1', speakerId: 'me', source: 'mic', timestamp: '0:00', originalText: 'x', translatedText: '…', words: [] },
-    { id: 'u0', speakerId: 'me', source: 'mic', timestamp: '0:00', originalText: 'Fala anterior', translatedText: 'y', words: [] },
+    {
+      id: 'u0',
+      speakerId: 'me',
+      source: 'mic',
+      timestamp: '0:00',
+      originalText: 'Fala anterior',
+      translatedText: 'y',
+      words: [],
+    },
   ]
   const translate = vi.fn(async (texto: string, _src: string | null, _tgt: string, _o?: Record<string, unknown>) =>
     resposta(texto),
@@ -50,7 +62,11 @@ function montar(armazem: ArmazemDeTraducoes, resposta: (t: string) => Resposta =
     targetLangRef: ref('pt'),
     idiomaObservadoRef: ref('en'),
     perfilIdiomaRef: ref(new PerfilAdaptativoDeIdioma()),
-    speechSegmentsRef: { get current() { return segs } },
+    speechSegmentsRef: {
+      get current() {
+        return segs
+      },
+    },
     translationCacheRef: ref(new Map<string, string>()),
     mtFailNotifiedRef: ref(false),
     altTargetNotifiedRef: ref(false),
@@ -193,5 +209,44 @@ describe('armazém do IndexedDB: sem IndexedDB, cai para a memória em silêncio
     await a.gravar('k', 'v', 'server-llm-mt')
     expect((await a.ler('k'))?.texto).toBe('v')
     aviso.mockRestore()
+  })
+})
+
+describe('memória aproximada no balão (harness §1.2, M2)', () => {
+  const guardada = 'en|pt|can you please send me the final report before the meeting tomorrow'
+  const parecida = 'Can you please send me the final reports before the meeting tomorrow'
+
+  it('frase parecida com diferença segura: sem tradutor, com "≈"', async () => {
+    const memoria = criarMemoriaEmCamadas({ usuario: criarArmazemEmMemoria(), semente: null })
+    await memoria.gravar(guardada, 'pode me mandar o relatório final antes da reunião amanhã?', 'server-llm-mt')
+    const m = montar(memoria)
+    m.translateSegment('u1', parecida, 'en', 'pt')
+    await esperar()
+    expect(m.translate).not.toHaveBeenCalled()
+    expect(m.traducao()).toBe('≈ Pode me mandar o relatório final antes da reunião amanhã?')
+  })
+
+  it('só pontuação diferente: reaproveita sem "≈"', async () => {
+    const memoria = criarMemoriaEmCamadas({ usuario: criarArmazemEmMemoria(), semente: null })
+    await memoria.gravar('en|pt|how are you doing today', 'como você está hoje?', 'server-llm-mt')
+    const m = montar(memoria)
+    m.translateSegment('u1', 'How are you doing, today?', 'en', 'pt')
+    await esperar()
+    expect(m.translate).not.toHaveBeenCalled()
+    expect(m.traducao()).toBe('Como você está hoje?')
+  })
+
+  it('quem paga: parecida abaixo de 0,97 vai ao tradutor', async () => {
+    const memoria = criarMemoriaEmCamadas({ usuario: criarArmazemEmMemoria(), semente: null })
+    await memoria.gravar(guardada, 'x', 'server-llm-mt')
+    plano.managedCloudLlm = true
+    try {
+      const m = montar(memoria)
+      m.translateSegment('u1', parecida, 'en', 'pt')
+      await esperar()
+      expect(m.translate).toHaveBeenCalledTimes(1)
+    } finally {
+      plano.managedCloudLlm = false
+    }
   })
 })

@@ -38,6 +38,7 @@ import { useState } from 'react';
 import { CRIADOR, preenchido } from '../../lib/criador';
 import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { t } from '../../lib/i18n';
+import { ATRIBUICAO_TATOEBA } from '../../lib/traducao/atribuicaoTatoeba';
 import { VERSAO_DO_APP } from '../../lib/versao';
 import { CabecalhoDeTela, IconeEmBloco, Tela, TituloDeSecao } from '../ui';
 import DialogoLegal, { type Documento } from './sobre/DialogoLegal';
@@ -283,6 +284,10 @@ export default function Sobre({ onVerPlanos }: { onVerPlanos?: (view: string) =>
             </span>
           )}
         </div>
+        {/* Créditos que a licença exige (CC BY 2.0 FR): a semente da memória de tradução é do Tatoeba. */}
+        <p className="mut" style={{ fontSize: 12.5, marginTop: 10 }}>
+          {t(ATRIBUICAO_TATOEBA)}
+        </p>
       </section>
 
       <section className="secao">

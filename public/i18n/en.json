@@ -958,5 +958,6 @@
   "Privado: a transcrição roda neste aparelho, com um modelo baixado uma vez.": "Private: transcription runs on this device, with a model downloaded once.",
   "Rápido ou Privado": "Fast or Private",
   "Reconhecimento de voz do navegador": "Browser speech recognition",
-  "O modo Rápido do microfone: o navegador envia o áudio da sua voz ao Google, à Microsoft ou à Apple para transcrever. Desligado, a sua voz é transcrita no aparelho.": "The microphone's Fast mode: the browser sends the audio of your voice to Google, Microsoft or Apple to transcribe it. When off, your voice is transcribed on the device."
+  "O modo Rápido do microfone: o navegador envia o áudio da sua voz ao Google, à Microsoft ou à Apple para transcrever. Desligado, a sua voz é transcrita no aparelho.": "The microphone's Fast mode: the browser sends the audio of your voice to Google, Microsoft or Apple to transcribe it. When off, your voice is transcribed on the device.",
+  "Frases prontas da memória de tradução: Tatoeba (tatoeba.org), licença CC BY 2.0 FR.": "Ready-made phrases in the translation memory: Tatoeba (tatoeba.org), licensed CC BY 2.0 FR."
 }

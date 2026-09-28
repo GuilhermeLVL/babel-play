@@ -14,13 +14,14 @@ import { baseLang, langLabel } from '../languages';
 import { OrdemDasTraducoes } from '../ordemDaTraducao';
 import type { PerfilAdaptativoDeIdioma } from '../perfilDeIdioma';
 // Fala do MIC em português → português claro antes de traduzir (vícios, contrações, gíria).
+import { LIMIAR_APROXIMADA, LIMIAR_APROXIMADA_NUVEM } from '../traducao/memoriaAproximada';
 import {
   type ArmazemDeTraducoes,
-  armazemPadrao,
   contarPalavras,
   deveGuardarNaMemoria,
   MAX_PALAVRAS_SEM_CONTEXTO,
 } from '../traducao/memoriaDeTraducao';
+import { buscarNaMemoria, memoriaPadrao } from '../traducao/memoriaEmCamadas';
 import { chaveNormalizada, prepararFala } from '../traducao/prepararFala';
 import { clog, type GatewayDaCaptura, type SpeechSegment } from './tiposDaFala';
 import {
@@ -147,7 +148,7 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
     setSpeechSegments,
     setFeedbackMsg,
   } = deps;
-  const memoria = deps.memoriaPersistente === undefined ? armazemPadrao() : deps.memoriaPersistente;
+  const memoria = deps.memoriaPersistente === undefined ? memoriaPadrao() : deps.memoriaPersistente;
 
   /**
    * AVISA QUANDO A NUVEM CAI, em vez de degradar em silêncio.
@@ -427,12 +428,27 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
     /* MEMÓRIA ENTRE SESSÕES, atrás do cache da aba. Quem paga pela nuvem só aceita de volta o que a
        nuvem traduziu — a tradução literal do motor local, guardada quando a pessoa ainda não pagava,
        não pode substituir a que ela está pagando. O armazém não rejeita (falha = `undefined`); o
-       segundo ramo existe para que nem um defeito dele deixe o balão sem tradução. */
-    memoria.ler(cacheKey).then(
+       segundo ramo existe para que nem um defeito dele deixe o balão sem tradução.
+       APROXIMADA (`memoriaAproximada.ts`): a tradução de uma frase PARECIDA, com diferença segura —
+       0,9 no grátis, 0,97 para quem paga. Não entra no cache da aba (lá só mora a exata) e, quando a
+       frase não é a mesma nem de pontuação (similaridade < 1), o balão ganha o "≈". */
+    buscarNaMemoria(memoria, cacheKey, {
+      consultaOriginal: textoParaMt,
+      limiar: nuvemPrimeiro ? LIMIAR_APROXIMADA_NUVEM : LIMIAR_APROXIMADA,
+      aceitarMotor: nuvemPrimeiro ? (m) => MOTORES_DE_NUVEM.has(m) : undefined,
+    }).then(
       (guardada) => {
-        if (!guardada || (nuvemPrimeiro && !MOTORES_DE_NUVEM.has(guardada.motor))) return traduzir();
-        translationCacheRef.current.set(cacheKey, guardada.texto);
-        if (ordemMtRef.current.encerrar(segId, selo)) applyTranslation(guardada.texto);
+        if (!guardada) return traduzir();
+        if (guardada.aproximada)
+          clog(
+            'memória aproximada:',
+            guardada.camada,
+            guardada.similaridade.toFixed(3),
+            JSON.stringify(text).slice(0, 60),
+          );
+        else translationCacheRef.current.set(cacheKey, guardada.texto);
+        if (ordemMtRef.current.encerrar(segId, selo))
+          applyTranslation(guardada.texto, guardada.aproximada && guardada.similaridade < 1);
       },
       (err: unknown) => {
         clog('memória de tradução falhou na leitura, seguindo sem ela:', String(err).slice(0, 120));

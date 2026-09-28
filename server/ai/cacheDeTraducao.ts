@@ -35,6 +35,14 @@
  *     partilha global: "thank you" não identifica ninguém; doze palavras de uma conversa podem;
  *   - frase com cara de dado pessoal (número longo, e-mail, endereço web) não vai ao disco.
  *
+ * SEM BUSCA APROXIMADA AQUI, de propósito (harness §1.2, M2). O cliente tem a camada aproximada
+ * (`src/lib/traducao/memoriaAproximada.ts`: 3-gramas ≥ 0,9, número/negação/pronome/nome idênticos),
+ * mas ela precisa do TEXTO de origem para comparar — e este cache só guarda o hash dele, que é a
+ * decisão de privacidade acima. Guardar a frase em claro para ganhar a aproximada trocaria uma
+ * garantia de LGPD por uma economia pequena: caixa, espaço e pontuação final já caem na
+ * `normalizarFrase`, e a variação que sobra (vírgula no meio, uma letra) o cliente resolve antes de
+ * a frase chegar aqui.
+ *
  * O L2 é carregado PREGUIÇOSAMENTE (import dinâmico do repositório): este módulo é importado
  * estaticamente por testes que ainda não apontaram o `DATABASE_URL` para o banco efêmero, e importar
  * `server/db/db` aqui ligaria o processo ao banco errado. Falha do L2 vira falta, nunca erro de rota.

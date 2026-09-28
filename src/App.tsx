@@ -23,8 +23,14 @@ const Estatisticas = lazyComRecarga(() => import('./components/views/Estatistica
 const Ajuda = lazyComRecarga(() => import('./components/views/Ajuda'));
 const NaoEncontrado = lazyComRecarga(() => import('./components/views/NaoEncontrado'));
 const Loja = lazyComRecarga(() => import('./components/views/Loja'));
-/* O modal de resgate: só quando há recompensa na fila (a fila em si mora em `lib/filaDeRecompensas`). */
-const RecompensaDesbloqueada = lazyComRecarga(() => import('./components/RecompensaDesbloqueada'));
+/* O modal de resgate: só quando há recompensa na fila (a fila em si mora em `lib/filaDeRecompensas`).
+   O chunk é PEDIDO NO ARRANQUE (efeito abaixo), fora do JS inicial: sob demanda pura, o download só
+   começava quando a fila enchia, e o modal abria atrasado pelo tempo do chunk — já com a pessoa
+   mexendo na tela, roubando o foco do que ela fazia (e2e `fundacao`: as setas da alça do iChat caíam
+   no "Resgatar", o hover do menu esbarrava no diálogo). Pedido em paralelo com as métricas, ele chega
+   pronto quando a fila enche, como no import estático de antes. */
+const carregarRecompensaDesbloqueada = () => import('./components/RecompensaDesbloqueada');
+const RecompensaDesbloqueada = lazyComRecarga(carregarRecompensaDesbloqueada);
 const Login = lazyComRecarga(() => import('./components/Login'));
 const ResetPassword = lazyComRecarga(() => import('./components/auth/ResetPassword'));
 const DesafioSegundoFator = lazyComRecarga(() => import('./components/auth/DesafioSegundoFator'));
@@ -133,6 +139,10 @@ export default function App() {
     setDarkMode,
     setAgeProfileState,
   } = useAparencia();
+
+  useEffect(() => {
+    void carregarRecompensaDesbloqueada().catch(() => undefined);
+  }, []);
 
   // Entitlements: o servidor decide o plano; o cliente só cacheia para pintar. Recarrega quando a
   // sessão muda (login/logout), que é quando a resposta pode mudar.

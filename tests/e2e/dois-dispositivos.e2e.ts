@@ -28,26 +28,33 @@ import { fecharSobreposicoes } from './_helpers'
  */
 
 /**
- * Pares de itens da prateleira de Seeds (`CATALOGO_DA_LOJA`, precos de 08/09). Cada repeticao
- * usa um par DIFERENTE: o gasto e idempotente por `spendId`, e o servidor ja recusa comprar de
- * novo o que a conta possui — um par repetido esvaziaria a corrida.
+ * Pares de itens da prateleira de Seeds (`CATALOGO_DA_LOJA`, precos das recompensas v2, 27/09).
+ * Cada repeticao usa um par DIFERENTE: o gasto e idempotente por `spendId`, e o servidor ja
+ * recusa comprar de novo o que a conta possui — um par repetido esvaziaria a corrida.
+ *
+ * SO ITENS QUE SO SE ABREM COM SEEDS (`soPorSeeds`: preco, e nenhuma porta de nivel alcancavel),
+ * os comuns mais baratos. Nada de maestria, conquista, temporada ou Creditos: esses o servidor
+ * nunca vende por Seeds. Os pares de antes (galeria de emoji e cursores, 40-50 Seeds) SAIRAM do
+ * catalogo nas recompensas v2, e a compra voltava `400 motivo_desconhecido` ("item inexistente")
+ * — a corrida nem comecava. Um preco que mudar aparece como `400 preco_divergente`, com o preco
+ * certo no corpo, na mensagem de `respostas inesperadas`.
  */
 const PARES: Array<[{ id: string; preco: number }, { id: string; preco: number }]> = [
   [
-    { id: 'gal-cat-esportes', preco: 40 },
-    { id: 'gal-cat-patos', preco: 40 },
+    { id: 'acerto-pixel', preco: 350 },
+    { id: 'leg-cinema', preco: 350 },
   ],
   [
-    { id: 'cur-pata', preco: 45 },
-    { id: 'part-pixel', preco: 45 },
+    { id: 'cartao-caderno', preco: 360 },
+    { id: 'combo-brasa', preco: 360 },
   ],
   [
-    { id: 'cur-cafe', preco: 50 },
-    { id: 'cur-mira', preco: 50 },
+    { id: 'acerto-confete', preco: 380 },
+    { id: 'leg-fita', preco: 380 },
   ],
   [
-    { id: 'cur-tinteiro', preco: 50 },
-    { id: 'gal-cat-festa', preco: 50 },
+    { id: 'acerto-brasa', preco: 400 },
+    { id: 'leg-contorno', preco: 420 },
   ],
 ]
 
@@ -143,10 +150,12 @@ test.describe('Dois dispositivos, uma conta', () => {
        menos um deles tem de caber — senao a corrida e trivial (as duas recusam de saida). Com um
        saldo pequeno demais, ganha-se mais uma rodada; com um saldo grande demais (repeticoes
        anteriores), a compra dupla ainda e valida, so nao e uma corrida. O teste registra qual foi. */
+    /* A economia v2 pos os comuns em 350+ Seeds, e uma rodada perfeita com as 12 sementes rende
+       17 (12 acertos + 5 da rodada limpa): o teto de rodadas acompanha o preco, com folga. */
     let saldo = depoisDaRodada
     const maisCaro = Math.max(itemA.preco, itemB.preco)
-    for (let i = 0; i < 6 && saldo < maisCaro; i++) {
-      await rodadaPerfeitaViaApi(cartoes.slice(0, 8), 'memory')
+    for (let i = 0; i < 40 && saldo < maisCaro; i++) {
+      await rodadaPerfeitaViaApi(cartoes, 'memory')
       saldo = saldoEsperado(await perfil())
     }
     expect(saldo, 'nao consegui juntar Seeds para uma compra').toBeGreaterThanOrEqual(maisCaro)

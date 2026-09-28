@@ -116,6 +116,7 @@ export function fusoOuPadrao(fuso: string | null | undefined): string {
   let ok = fusosConferidos.get(fuso);
   if (ok === undefined) {
     try {
+      // ast-grep-ignore: locale-cravado — locale de MÁQUINA: en-CA dá AAAA-MM-DD (chave de dia), en-GB dá HH:MM 24 h; ninguém lê este texto.
       new Intl.DateTimeFormat('en-CA', { timeZone: fuso });
       ok = true;
     } catch {
@@ -132,6 +133,7 @@ export function diaNoFuso(ts: number, fuso: string): string {
   const f = fusoOuPadrao(fuso);
   let fmt = formatosDeDia.get(f);
   if (!fmt) {
+    // ast-grep-ignore: locale-cravado — locale de MÁQUINA: en-CA dá AAAA-MM-DD (chave de dia), en-GB dá HH:MM 24 h; ninguém lê este texto.
     fmt = new Intl.DateTimeFormat('en-CA', { timeZone: f, year: 'numeric', month: '2-digit', day: '2-digit' });
     formatosDeDia.set(f, fmt);
   }
@@ -185,6 +187,7 @@ const formatosDeHora = new Map<string, Intl.DateTimeFormat>();
 function horaNoFuso(ts: number, fuso: string): [number, number] {
   let fmt = formatosDeHora.get(fuso);
   if (!fmt) {
+    // ast-grep-ignore: locale-cravado — locale de MÁQUINA: en-CA dá AAAA-MM-DD (chave de dia), en-GB dá HH:MM 24 h; ninguém lê este texto.
     fmt = new Intl.DateTimeFormat('en-GB', { timeZone: fuso, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
     formatosDeHora.set(fuso, fmt);
   }

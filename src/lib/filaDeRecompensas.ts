@@ -106,6 +106,30 @@ export function jogoAtivo(): boolean {
 }
 
 /**
+ * A CAPTURA SEGURA A COMEMORAÇÃO (relato do dono, 2026-09-28): salvar a sessão rende conquista, e o
+ * modal de resgate abria no meio do fim da captura — por cima do Encerrar, antes de a navegação
+ * terminar — e só saía com "Resgatar e continuar". Como no jogo, a recompensa ESPERA: gravando, com
+ * o Encerrar aberto ou salvando, ela fica na fila; liberou, ela aparece.
+ *
+ * Duas marcas no `body`, cada uma de um dono: `captura` (a tela: gravando ou no Encerrar) e
+ * `salvamento` (o trabalho do módulo, que sobrevive à troca de tela). Soltar a última avisa.
+ */
+export const EVENTO_CAPTURA_LIBEROU = 'babel:captura-liberou';
+const MARCAS_DA_CAPTURA = { captura: 'data-captura-ocupada', salvamento: 'data-salvando-sessao' } as const;
+
+export function capturaOcupada(): boolean {
+  if (typeof document === 'undefined') return false;
+  return Object.values(MARCAS_DA_CAPTURA).some((m) => document.body.hasAttribute(m));
+}
+
+export function marcarOcupacaoDaCaptura(dono: keyof typeof MARCAS_DA_CAPTURA, ocupada: boolean): void {
+  if (typeof document === 'undefined') return;
+  const antes = capturaOcupada();
+  document.body.toggleAttribute(MARCAS_DA_CAPTURA[dono], ocupada);
+  if (antes && !capturaOcupada()) window.dispatchEvent(new Event(EVENTO_CAPTURA_LIBEROU));
+}
+
+/**
  * O LOTE DE NOVIDADES (recompensas v2, spec 10.2): quando várias chegam juntas (fim de rodada com
  * baú, maestria e conquista), o modal continua abrindo uma por vez, mas diz "3 novidades · 1 de 3".
  * O lote é o que estava na fila quando a primeira abriu, mais o que entrar antes de ela esvaziar.

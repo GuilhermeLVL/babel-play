@@ -157,19 +157,97 @@ describe('resolverMotorDoMic — pergunta ao navegador e instala só quando pedi
     expect(e.install).not.toHaveBeenCalled()
   })
 
-  it("'downloadable' dispara install({langs, processLocally}) sem esperar por ele", async () => {
+  it("'downloadable' e o degrau seria o Whisper: instala o pacote DO NAVEGADOR e usa o local já nesta sessão", async () => {
     const e = escopo('downloadable')
-    const d = await resolverMotorDoMic({ ...BASE, lang: 'pt-BR', escopo: e.escopo })
-    expect(d.motor).toBe('whisper')
+    const estados: string[] = []
+    const d = await resolverMotorDoMic({
+      ...BASE,
+      lang: 'pt-BR',
+      escopo: e.escopo,
+      aoInstalar: (s) => estados.push(s),
+    })
     expect(e.install).toHaveBeenCalledWith({ langs: ['pt-BR'], processLocally: true })
+    expect(d).toMatchObject({ motor: 'web-speech-local', motivo: 'instalado-no-aparelho' })
+    expect(estados).toEqual(['baixando', 'pronto'])
   })
 
-  it('install que rejeita não derruba a decisão', async () => {
+  it('install que rejeita ou devolve false: cai no Whisper, avisa a falha uma vez e não lança', async () => {
+    for (const falha of [() => Promise.reject(new Error('sem ativação do usuário')), async () => false]) {
+      const e = escopo('downloadable')
+      e.install.mockImplementationOnce(falha as never)
+      const estados: string[] = []
+      await expect(
+        resolverMotorDoMic({ ...BASE, lang: 'pt-BR', escopo: e.escopo, aoInstalar: (s) => estados.push(s) }),
+      ).resolves.toMatchObject({ motor: 'whisper', motivo: 'sem-consentimento' })
+      expect(estados).toEqual(['baixando', 'falhou'])
+    }
+  })
+
+  it('install que não responde: passado o prazo, Whisper (o mic não fica esperando para sempre)', async () => {
+    vi.useFakeTimers()
+    try {
+      const e = escopo('downloadable')
+      e.install.mockImplementationOnce(() => new Promise(() => {}))
+      const estados: string[] = []
+      const r = resolverMotorDoMic({
+        ...BASE,
+        lang: 'pt-BR',
+        escopo: e.escopo,
+        prazoDaInstalacaoMs: 1000,
+        aoInstalar: (s) => estados.push(s),
+      })
+      await vi.advanceTimersByTimeAsync(1001)
+      await expect(r).resolves.toMatchObject({ motor: 'whisper' })
+      expect(estados).toEqual(['baixando', 'falhou'])
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('"Privado" guardado + pacote a baixar: instala o do navegador (nada sai) em vez do nosso modelo', async () => {
     const e = escopo('downloadable')
-    e.install.mockRejectedValueOnce(new Error('sem ativação do usuário'))
-    await expect(resolverMotorDoMic({ ...BASE, lang: 'pt-BR', escopo: e.escopo })).resolves.toMatchObject({
-      motor: 'whisper',
+    const perguntar = vi.fn(async () => 'rapido' as const)
+    const d = await resolverMotorDoMic({ ...BASE, lang: 'pt-BR', escopo: e.escopo, escolha: 'privado', perguntar })
+    expect(perguntar).not.toHaveBeenCalled()
+    expect(d.motor).toBe('web-speech-local')
+  })
+
+  it('"Rápido" consentido + pacote a baixar: usa a nuvem AGORA e instala sem esperar (a próxima já é local)', async () => {
+    const e = escopo('downloadable')
+    e.install.mockImplementationOnce(() => new Promise(() => {}))
+    const aoInstalar = vi.fn()
+    const d = await resolverMotorDoMic({
+      ...BASE,
+      lang: 'pt-BR',
+      consentiuNavegador: true,
+      escopo: e.escopo,
+      aoInstalar,
     })
+    expect(d.motor).toBe('web-speech-nuvem')
+    expect(e.install).toHaveBeenCalledOnce()
+    expect(aoInstalar).not.toHaveBeenCalled() // sem barra: ninguém espera por ele
+  })
+
+  it('sem `install` no navegador: nenhuma barra, segue o degrau decidido', async () => {
+    const available = vi.fn(async () => 'downloadable')
+    const aoInstalar = vi.fn()
+    const d = await resolverMotorDoMic({
+      ...BASE,
+      lang: 'pt-BR',
+      escopo: { SpeechRecognition: { available } },
+      aoInstalar,
+    })
+    expect(d.motor).toBe('whisper')
+    expect(aoInstalar).not.toHaveBeenCalled()
+  })
+
+  it('a pergunta "Rápido ou Privado?" sabe quando o Privado é o pacote do navegador', async () => {
+    const perguntar = vi.fn(async () => 'privado' as const)
+    await resolverMotorDoMic({ ...BASE, lang: 'pt-BR', escopo: escopo('downloadable').escopo, escolha: null, perguntar })
+    expect(perguntar).toHaveBeenCalledWith({ pacoteDoNavegador: true })
+    perguntar.mockClear()
+    await resolverMotorDoMic({ ...BASE, lang: 'pt-BR', escopo: escopo('unavailable').escopo, escolha: null, perguntar })
+    expect(perguntar).toHaveBeenCalledWith({ pacoteDoNavegador: false })
   })
 
   it('primeira vez: pergunta DEPOIS de o navegador dizer que não reconhece no aparelho', async () => {

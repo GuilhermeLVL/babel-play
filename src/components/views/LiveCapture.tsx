@@ -1097,6 +1097,8 @@ export default function LiveCapture({
      alimenta a cada final local e lê dele se os parciais estão cortados. */
   const [regulador] = useState<ReguladorDaCaptura>(() => criarReguladorDaCaptura());
   const reguladorRef = useRef(regulador);
+  /** O tradutor local que espera a primeira legenda (celular só com o microfone; ver `pipelineDeFala`). */
+  const tradutorPendenteRef = useRef<(() => void) | null>(null);
 
   /* O PIPELINE DE FALA (VAD → STT → diarização → emissão) e a preparação dos modelos moram em
      `lib/captura/pipelineDeFala.ts`. A fábrica roda a cada render, como as closures que
@@ -1146,6 +1148,9 @@ export default function LiveCapture({
     setSttRouteLabel,
     reguladorRef,
     sistemaAtivo: () => !!systemCaptureRef.current,
+    tradutorDepois: () =>
+      tradutorDepoisDaPrimeiraLegenda({ tipo: perfilDoAparelho.tipo, sistemaLigado: !!systemCaptureRef.current || systemEnabled }),
+    tradutorPendenteRef,
   });
 
   /* PRÉ-AQUECE o STT/MT locais que JÁ estão em cache quando a tela abre e quando o par ou a qualidade

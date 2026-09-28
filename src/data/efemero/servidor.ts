@@ -63,6 +63,7 @@ const ROTAS: Array<{ metodo: string; padrao: RegExp; handler: Handler }> = [
   { metodo: 'DELETE', padrao: /^\/api\/sessions\/([^/]+)$/, handler: sessoes.apagarSessao },
   { metodo: 'PATCH', padrao: /^\/api\/sessions\/([^/]+)\/meta$/, handler: sessoes.atualizarMeta },
   { metodo: 'PUT', padrao: /^\/api\/sessions\/([^/]+)\/utterances$/, handler: sessoes.substituirFalas },
+  { metodo: 'POST', padrao: /^\/api\/sessions\/([^/]+)\/utterances$/, handler: sessoes.acrescentarFalas },
   { metodo: 'POST', padrao: /^\/api\/sessions\/([^/]+)\/audio$/, handler: sessoes.guardarAudio },
   { metodo: 'GET', padrao: /^\/api\/sessions\/([^/]+)\/audio$/, handler: sessoes.lerAudio },
   { metodo: 'GET', padrao: /^\/api\/vocab$/, handler: vocabulario.listarCartoes },

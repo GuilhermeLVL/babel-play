@@ -180,6 +180,7 @@ import {
   type OrdemDosJogos,
 } from '../../lib/ordemDosJogos';
 import { contarPassada } from '../../lib/passadasDoPipeline';
+import { estadoDoCartao } from '../../lib/pelesDeCartao';
 import { type AgeProfileType, coreOnly } from '../../lib/profile';
 import type { DerivedProgress } from '../../lib/progress';
 import { consumirQueryDoBoot, lerUrlAtual, publicarQueryDoJogar } from '../../lib/rotas';
@@ -3136,11 +3137,17 @@ export default function Play({
     );
   }
   if (rodada) {
+    const cartoesDoBaralho = new Map((deck ?? []).map((c) => [c.id, c]));
     const comuns = {
       items: rodada.itens,
       ageProfile,
       onFinish: aoTerminar,
       onExit: sairDaRodada(() => setRodada(null)),
+      /* A pele de cartão nos jogos que desenham cartão (Memória): o estado sai do cartão real. */
+      estadoDoCartao: (cardId: string) => {
+        const c = cartoesDoBaralho.get(cardId);
+        return c ? estadoDoCartao(c) : null;
+      },
     };
     const Tela = TELA_DO_JOGO[rodada.jogo];
     if (Tela)

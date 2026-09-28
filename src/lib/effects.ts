@@ -23,11 +23,15 @@ import type { ThemeType } from './appearance';
 // Os kinds dos EVENTOS (patos, raios...) sao usados por lib/eventosDeJogo.
 export type BurstKind = 'xp' | 'record' | 'levelUp' | 'combo' | 'perfeito' | 'confete' | 'erro'
   | 'patos' | 'voleibol' | 'coracoes' | 'raios' | 'fogos' | 'pizza' | 'trofeu' | 'fumaca'
-  | 'rastroFaisca' | 'rastroEstrelas' | 'rastroCoracoes' | 'rastroPixel' | 'rastroEmoji' | 'rastroArcoiris';
+  | 'rastroFaisca' | 'rastroEstrelas' | 'rastroCoracoes' | 'rastroPixel' | 'rastroArcoiris';
 
 /** Como a partícula é desenhada. Confete é retângulo girando — é o que dá a leitura de "festa".
  *  `cometa` (exclusiva de conquista): círculo com cauda de três círculos decrescentes atrás. */
-export type FormaParticula = 'circulo' | 'confete' | 'pixel' | 'raio' | 'coracao' | 'fumaca' | 'emoji' | 'cometa';
+export type FormaParticula =
+  | 'circulo' | 'confete' | 'pixel' | 'raio' | 'coracao' | 'fumaca' | 'emoji' | 'cometa'
+  /* Os objetos dos eventos raros (revisão de 27/09): eram 🦆 🏐 🍕 🏆 por `fillText`, e emoji ignora
+     a cor do tema e muda de desenho a cada sistema. Agora são ícones vetoriais do motor. */
+  | 'pato' | 'bola' | 'fatia' | 'trofeu';
 /** De onde a rajada nasce: do ponto (radial) ou do topo da tela (chuva). */
 export type OrigemRajada = 'radial' | 'chuva' | 'travessia' | 'cantos';
 
@@ -276,14 +280,15 @@ export const BURST_SPECS: Record<BurstKind, BurstSpec> = {
   // Erro: um tremor curto de partículas escuras. Existe para o acerto ter contraste.
   erro: { count: 8, speed: 1.8, size: [1, 2], life: 380, colorToken: '--ink-muted' },
 
-  // ── EVENTOS (lib/eventosDeJogo): raros e condicionais. Emojis via fillText — baratos e vivos. ──
-  patos:    { count: 16, speed: 1.6, size: [4, 7], life: 3200, colorToken: '--warn', forma: 'emoji', emojis: ['🦆'], origem: 'chuva', gravidade: 0.03 },
-  voleibol: { count: 3,  speed: 2.6, size: [6, 9], life: 2600, colorToken: '--warn', forma: 'emoji', emojis: ['🏐', '⚽', '🏀'], origem: 'travessia' },
+  // ── EVENTOS (lib/eventosDeJogo): raros e condicionais. Os objetos são ícones VETORIAIS do motor
+  //    (pato, bola, fatia, troféu), pintados com a cor do token — eram emoji, que ignora a cor. ──
+  patos:    { count: 16, speed: 1.6, size: [4, 7], life: 3200, colorToken: '--warn', forma: 'pato', origem: 'chuva', gravidade: 0.03 },
+  voleibol: { count: 3,  speed: 2.6, size: [6, 9], life: 2600, colorToken: '--warn', forma: 'bola', origem: 'travessia' },
   coracoes: { count: 22, speed: 2.0, size: [3, 6], life: 2400, colorToken: '--accent', forma: 'coracao', origem: 'chuva', gravidade: 0.02, paleta: ['#F04E23', '#FF7BAC', '#FFB3C6', '#E63946'] },
   raios:    { count: 10, speed: 4.5, size: [3, 5], life: 700,  colorToken: '--warn', forma: 'raio', origem: 'cantos', paleta: ['#F59E0B', '#FFD166', '#FFF3B0'] },
   fogos:    { count: 34, speed: 5,   size: [1.6, 3.2], life: 1200, colorToken: '--accent', paleta: ['#F04E23', '#F59E0B', '#3E8E4E', '#4C9AFF', '#FF7BAC'], gravidade: 0.03 },
-  pizza:    { count: 12, speed: 1.8, size: [4, 7], life: 3000, colorToken: '--warn', forma: 'emoji', emojis: ['🍕', '🍔', '🌮'], origem: 'chuva', gravidade: 0.035 },
-  trofeu:   { count: 2,  speed: 2.2, size: [8, 10], life: 3000, colorToken: '--warn', forma: 'emoji', emojis: ['🏆'], origem: 'travessia' },
+  pizza:    { count: 12, speed: 1.8, size: [4, 7], life: 3000, colorToken: '--warn', forma: 'fatia', origem: 'chuva', gravidade: 0.035 },
+  trofeu:   { count: 2,  speed: 2.2, size: [8, 10], life: 3000, colorToken: '--warn', forma: 'trofeu', origem: 'travessia' },
   fumaca:   { count: 14, speed: 1.2, size: [4, 7], life: 1400, colorToken: '--ink-muted', forma: 'fumaca', gravidade: -0.015 },
 
   // ── RASTRO DO MOUSE (lib/rastroDoMouse): emitido a cada ~45ms — POUCAS particulas e vida curta,
@@ -294,7 +299,6 @@ export const BURST_SPECS: Record<BurstKind, BurstSpec> = {
   rastroEstrelas: { count: 2, speed: 1.1, size: [2.4, 3.4], life: 750, colorToken: '--warn', forma: 'raio' },
   rastroCoracoes: { count: 2, speed: 1.1, size: [3, 4.5], life: 750, colorToken: '--accent', forma: 'coracao', paleta: ['#F04E23', '#FF7BAC', '#E63946'] },
   rastroPixel:    { count: 4, speed: 1.6, size: [2, 3], life: 650, colorToken: '--accent', forma: 'pixel', paleta: ['#F04E23', '#F59E0B', '#3E8E4E'] },
-  rastroEmoji:    { count: 2, speed: 1.1, size: [3.5, 5], life: 800, colorToken: '--warn', forma: 'emoji' },
   // Exclusivo de conquista: seis cores, círculos com glow — o arco-íris escorrendo do cursor.
   rastroArcoiris: { count: 5, speed: 1.5, size: [2.2, 3.4], life: 700, colorToken: '--accent', gravidade: 0.015, paleta: ['#FF3B30', '#FF9500', '#FFD60A', '#34C759', '#0A84FF', '#AF52DE'] },
 };

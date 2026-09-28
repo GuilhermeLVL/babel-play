@@ -96,6 +96,92 @@ export interface AmbienteDoLaco {
  * `requestAnimationFrame` de quem o hospeda. Dorme quando não há nada a desenhar e acorda na
  * próxima rajada ou troca de ambiente.
  */
+/* ── OS OBJETOS DOS EVENTOS RAROS (revisão de 27/09): ícones vetoriais, sem emoji ──────────────
+ *
+ * Pato, bola, fatia e troféu eram 🦆 🏐 🍕 🏆 desenhados por `fillText`: emoji ignora a cor do tema
+ * e muda de desenho a cada sistema. Cada objeto é um caminho simples, pintado com a cor da
+ * partícula (o token da rajada); os detalhes (olho, costuras, recheio) são RECORTADOS com
+ * `destination-out`, para o ícone continuar de uma cor só e legível em qualquer tema. */
+type FormaDeObjeto = 'pato' | 'bola' | 'fatia' | 'trofeu';
+const FORMAS_DE_OBJETO: ReadonlySet<string> = new Set<FormaDeObjeto>(['pato', 'bola', 'fatia', 'trofeu']);
+function ehObjeto(forma: FormaParticula | undefined): forma is FormaDeObjeto {
+  return !!forma && FORMAS_DE_OBJETO.has(forma);
+}
+
+/** Recorta (apaga) o que `desenhar` traçar — os detalhes do ícone. */
+function recortar(ctx: Contexto2d, desenhar: () => void): void {
+  const antes = ctx.globalCompositeOperation;
+  ctx.globalCompositeOperation = 'destination-out';
+  desenhar();
+  ctx.globalCompositeOperation = antes;
+}
+
+/** Desenha o objeto centrado na origem (o contexto já vem transladado e girado), com tamanho `s`. */
+function desenharObjeto(ctx: Contexto2d, forma: FormaDeObjeto, s: number): void {
+  if (forma === 'pato') {
+    ctx.beginPath();
+    ctx.ellipse(-0.1 * s, 0.25 * s, 0.75 * s, 0.5 * s, 0, 0, Math.PI * 2); // corpo
+    ctx.moveTo(0.85 * s, -0.35 * s);
+    ctx.arc(0.45 * s, -0.35 * s, 0.4 * s, 0, Math.PI * 2); // cabeça
+    ctx.moveTo(0.8 * s, -0.42 * s); // bico
+    ctx.lineTo(1.2 * s, -0.3 * s);
+    ctx.lineTo(0.8 * s, -0.2 * s);
+    ctx.fill();
+    recortar(ctx, () => {
+      ctx.beginPath();
+      ctx.arc(0.55 * s, -0.45 * s, 0.08 * s, 0, Math.PI * 2); // olho
+      ctx.fill();
+    });
+  } else if (forma === 'bola') {
+    ctx.beginPath();
+    ctx.arc(0, 0, 0.7 * s, 0, Math.PI * 2);
+    ctx.fill();
+    recortar(ctx, () => {
+      ctx.lineWidth = Math.max(1, 0.09 * s);
+      ctx.beginPath();
+      ctx.arc(-0.9 * s, 0, 0.75 * s, -0.7, 0.7); // costuras
+      ctx.moveTo(0.9 * s + 0.75 * s * Math.cos(Math.PI - 0.7), 0.75 * s * Math.sin(Math.PI - 0.7));
+      ctx.arc(0.9 * s, 0, 0.75 * s, Math.PI - 0.7, Math.PI + 0.7);
+      ctx.moveTo(-0.7 * s, 0);
+      ctx.lineTo(0.7 * s, 0);
+      ctx.stroke();
+    });
+  } else if (forma === 'fatia') {
+    ctx.beginPath();
+    ctx.moveTo(0, 0.85 * s); // ponta
+    ctx.lineTo(-0.65 * s, -0.45 * s);
+    ctx.quadraticCurveTo(0, -0.8 * s, 0.65 * s, -0.45 * s); // borda
+    ctx.closePath();
+    ctx.fill();
+    recortar(ctx, () => {
+      ctx.beginPath();
+      ctx.arc(-0.18 * s, -0.2 * s, 0.11 * s, 0, Math.PI * 2); // recheio
+      ctx.moveTo(0.3 * s, -0.12 * s);
+      ctx.arc(0.19 * s, -0.12 * s, 0.11 * s, 0, Math.PI * 2);
+      ctx.moveTo(0.1 * s, 0.3 * s);
+      ctx.arc(0, 0.3 * s, 0.1 * s, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  } else {
+    // troféu: taça, alças, haste e base
+    ctx.beginPath();
+    ctx.moveTo(-0.55 * s, -0.7 * s);
+    ctx.lineTo(0.55 * s, -0.7 * s);
+    ctx.quadraticCurveTo(0.55 * s, 0.1 * s, 0, 0.15 * s);
+    ctx.quadraticCurveTo(-0.55 * s, 0.1 * s, -0.55 * s, -0.7 * s);
+    ctx.rect(-0.1 * s, 0.1 * s, 0.2 * s, 0.4 * s);
+    ctx.rect(-0.4 * s, 0.5 * s, 0.8 * s, 0.18 * s);
+    ctx.fill();
+    ctx.lineWidth = Math.max(1, 0.1 * s);
+    ctx.beginPath();
+    ctx.arc(-0.55 * s, -0.4 * s, 0.22 * s, Math.PI * 0.5, Math.PI * 1.5);
+    ctx.moveTo(0.55 * s, -0.62 * s);
+    ctx.arc(0.55 * s, -0.4 * s, 0.22 * s, -Math.PI * 0.5, Math.PI * 0.5);
+    ctx.strokeStyle = ctx.fillStyle;
+    ctx.stroke();
+  }
+}
+
 export function criarLacoDeParticulas({ canvas, ctx, pedirQuadro, cancelarQuadro, criarCanvas }: AmbienteDoLaco) {
   let width = 0, height = 0, animFrameId = 0;
   const particles: P[] = [];
@@ -311,7 +397,7 @@ export function criarLacoDeParticulas({ canvas, ctx, pedirQuadro, cancelarQuadro
         // Troca-e-pop no laço DECRESCENTE: quem entra no slot i já foi processada neste quadro.
         if (p.life <= 0) { matarParticula(i); continue; }
         // Confete quase não tem atrito (ele PLANA); faísca desacelera rápido.
-        const atrito = Math.pow(p.forma === 'confete' || p.forma === 'emoji' ? 0.995 : p.forma === 'fumaca' ? 0.97 : 0.94, k);
+        const atrito = Math.pow(p.forma === 'confete' || p.forma === 'emoji' || ehObjeto(p.forma) ? 0.995 : p.forma === 'fumaca' ? 0.97 : 0.94, k);
         p.vx *= atrito; p.vy *= atrito;
         p.vy += (p.gravidade ?? 0.045) * k;
         p.x += p.vx * k; p.y += p.vy * k;
@@ -379,7 +465,8 @@ export function criarLacoDeParticulas({ canvas, ctx, pedirQuadro, cancelarQuadro
         ctx.rotate((p.giro ?? 0) * 0.6);
         // Glifo pré-rasterizado (degraus de 4px) copiado com drawImage — ver cacheDeEmoji.
         const px = Math.max(12, Math.round((p.size * 5) / 4) * 4);
-        const glifo = emojiRasterizado(p.emoji ?? '⭐', px);
+        if (!p.emoji) { ctx.restore(); continue; }
+        const glifo = emojiRasterizado(p.emoji, px);
         ctx.drawImage(glifo, -glifo.width / 2, -glifo.height / 2);
         ctx.restore();
       } else if (p.forma === 'cometa') {
@@ -422,6 +509,13 @@ export function criarLacoDeParticulas({ canvas, ctx, pedirQuadro, cancelarQuadro
         ctx.lineTo(-0.05 * s, s * 0.1);
         ctx.closePath();
         ctx.fill();
+        ctx.restore();
+      } else if (ehObjeto(p.forma)) {
+        ctx.shadowBlur = 0;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate((p.giro ?? 0) * 0.4);
+        desenharObjeto(ctx, p.forma, p.size * 2.2);
         ctx.restore();
       } else if (p.forma === 'fumaca') {
         // Cresce e esmaece: o raio sobe conforme a vida se esvai.

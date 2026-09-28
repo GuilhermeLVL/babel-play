@@ -140,8 +140,16 @@ describe('Web Speech — o código cru não dizia o que fazer', () => {
     expect(erroDe('language-not-supported').mock.calls[0][0].message).toContain('idioma');
   });
 
-  it('"aborted" (parada normal) e "no-speech" (o onend religa) continuam silenciosos', () => {
+  it('"aborted" (parada normal) continua silencioso', () => {
     expect(erroDe('aborted')).not.toHaveBeenCalled();
-    expect(erroDe('no-speech')).not.toHaveBeenCalled();
+  });
+
+  /* Mudou em 2026-09-28 (relato do dono no celular): no microfone, o "no-speech" sobe como AVISO —
+     a dica "fale mais perto" — sem `fatal`; o onend continua religando (ver `webSpeechDoMicrofone`). */
+  it('"no-speech" no microfone sobe como aviso, não como falha', () => {
+    const onError = erroDe('no-speech');
+    expect(onError).toHaveBeenCalledOnce();
+    expect(onError.mock.calls[0][0].message).toBe(speechErrorMessage('no-speech'));
+    expect(onError.mock.calls[0][0].fatal).toBeFalsy();
   });
 });

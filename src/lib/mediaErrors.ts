@@ -71,6 +71,10 @@ export function speechErrorMessage(code: SpeechErrorCode): string | null {
       return 'O reconhecimento de fala do navegador não conseguiu acessar a rede. Verifique sua conexão.';
     case 'language-not-supported':
       return 'O navegador não reconhece fala neste idioma.';
+    /* Não é código do navegador: o adaptador o dá quando o reconhecedor termina e religa sem nunca
+       abrir o áudio (ver `VOLTAS_SEM_AUDIO` em `gateway/adapters/webSpeech.ts`). */
+    case 'sem-audio':
+      return 'O reconhecimento de fala do navegador não conseguiu abrir o microfone.';
     default:
       return 'O reconhecimento de fala falhou.';
   }

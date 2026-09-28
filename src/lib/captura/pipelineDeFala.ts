@@ -141,6 +141,15 @@ export interface DepsDoPipelineDeFala {
   reguladorRef?: RefObject<ReguladorDaCaptura>;
   /** A captura do sistema/aba está aberta (aba escondida = "só ouvir", não pausa). */
   sistemaAtivo?: () => boolean;
+  /* --- o tradutor que espera a primeira legenda (celular só com o microfone) --- */
+  /**
+   * O opus-mt (~113 MB) carrega só DEPOIS da primeira legenda (`tradutorDepoisDaPrimeiraLegenda`):
+   * no celular, ele disputava a rede e a memória com o Whisper antes de a pessoa ver qualquer coisa.
+   * O nativo do navegador, quando cobre o par, continua dispensando-o (`mt.preload` decide).
+   */
+  tradutorDepois?: () => boolean;
+  /** A carga guardada do tradutor (um por tela: a fábrica é refeita a cada render). */
+  tradutorPendenteRef?: RefObject<(() => void) | null>;
 }
 
 export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
@@ -189,6 +198,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     contextoDoSttRef,
     reguladorRef,
     sistemaAtivo,
+    tradutorPendenteRef,
   } = deps;
 
   /** Os efeitos das ações do regulador, com o gateway/setters deste render. */
@@ -664,6 +674,13 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
           const registrarContexto = () =>
             contextoDoSttRef?.current.registrar(source, clean, from || idiomaDoMotor || hint);
           if (isSys || captureScenarioRef.current !== 'conversation') registrarContexto();
+          // A primeira legenda chegou: agora, sim, o tradutor que esperava por ela.
+          const tradutorPendente = tradutorPendenteRef?.current;
+          if (tradutorPendente) {
+            tradutorPendenteRef.current = null;
+            clog('primeira legenda na tela → carregando o tradutor local');
+            tradutorPendente();
+          }
           setSpeechSegments((prev) =>
             prev.map((s) =>
               s.id === uttId
@@ -1174,7 +1191,14 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
           setModelPrep((s) => (s ? { ...s, whisper: p >= 1 ? 1 : p, whisperBytes: bytes ?? s.whisperBytes } : s)),
         { aoDegradar: avisarDegradacao },
       );
-      if (umDeCadaVez) iniciarTradutor();
+      if (umDeCadaVez && deps.tradutorDepois?.() && tradutorPendenteRef) {
+        clog('tradutor local: espera a primeira legenda (celular, só o microfone)');
+        tradutorPendenteRef.current = () => {
+          // O painel já se fechou com o Whisper pronto: a barra do tradutor volta sozinha.
+          setModelPrep((s) => s ?? { whisper: 1, mt: 0, fromCache: false, error: null, done: true });
+          iniciarTradutor();
+        };
+      } else if (umDeCadaVez) iniciarTradutor();
       clog('modelos locais prontos ✓');
       modelReadyRef.current = true;
       flushPendingUtterances();

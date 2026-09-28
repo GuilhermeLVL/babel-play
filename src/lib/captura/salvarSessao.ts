@@ -198,7 +198,9 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
     play('recordStart');
     burstFromElement(document.activeElement, 'record');
     clog('▶ START, microfone:', micEnabled, '| sistema:', systemEnabled, resuming ? '| RETOMANDO' : '');
-    setIsRecording(true);
+    /* O ESTADO VISÍVEL (relógio, "Ouvindo…", o botão Parar) só liga quando a primeira fonte ABRE
+       (`aoAbrirFonte` em `fontesDeAudio.ts`): no celular, ele ligava aqui, com o microfone ainda
+       fechado à espera da permissão ou da segunda pergunta. A gravação LÓGICA começa já (o ref). */
     setSessaoSalva(null);
     isRecordingRef.current = true;
     sessionStartMsRef.current = resuming ? Date.now() - timer * 1000 : Date.now();

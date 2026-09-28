@@ -76,6 +76,12 @@ export const MAX_SPEECH_MS_NUVEM = 12_000;
  */
 export interface OpcoesDeCaptura {
   maxSpeechMs?: () => number;
+  /**
+   * O contexto criado e retomado NO CLIQUE (`lib/captura/contextoDoClique.ts`). Com ele, o VAD e a
+   * sonda de nível não criam contexto nenhum — no iPhone, um criado depois dos `await` pode ficar
+   * 'suspended' e a captura não recebe um quadro. A captura passa a ser a dona: o `stop` o fecha.
+   */
+  audioContext?: AudioContext;
 }
 
 // Escolhe um container/codec de áudio suportado pelo MediaRecorder deste navegador.
@@ -355,7 +361,9 @@ async function startCaptureFromStream(
   let levelCtx: AudioContext | null = null;
   let levelTimer: any = null;
   try {
-    levelCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    levelCtx = opcoes.audioContext ?? new (window.AudioContext || (window as any).webkitAudioContext)();
+    // O contexto do clique já pediu `resume()` dentro do gesto; pedir de novo não custa nada.
+    if (levelCtx.state === 'suspended') void Promise.resolve(levelCtx.resume?.()).catch(() => {});
     const analyser = levelCtx.createAnalyser();
     analyser.fftSize = 512;
     levelCtx.createMediaStreamSource(audioStream).connect(analyser);
@@ -480,6 +488,8 @@ async function startCaptureFromStream(
       baseAssetPath: '/',
       onnxWASMBasePath: '/',
       model: 'legacy', // usa /silero_vad_legacy.onnx
+      // O contexto do clique (se veio): o VAD não cria o dele, e não o fecha (não é dele).
+      ...(opcoes.audioContext ? { audioContext: opcoes.audioContext } : {}),
       getStream: () => Promise.resolve(audioStream),
       pauseStream: async () => {},
       resumeStream: async (s) => s,
@@ -805,11 +815,21 @@ export async function startMicCapture(
       });
     } catch (err) {
       vlog('getUserMedia(mic) rejeitado:', (err as Error)?.name, '-', (err as Error)?.message);
+      /* `nomeDoErro`: o nome do DOMException fica no erro traduzido — a tela classifica a falha por
+         ele (`ajudaDoMicrofone.ts`) e mostra os passos do aparelho, sem ler o texto. */
+      const nomeDoErro = (err as Error)?.name;
       if (err instanceof DOMException && (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError')) {
-        throw new Error('Permissão do microfone negada. Ative o microfone nas permissões do navegador.');
+        throw Object.assign(
+          new Error('Permissão do microfone negada. Ative o microfone nas permissões do navegador.'),
+          {
+            nomeDoErro,
+          },
+        );
       }
       if (err instanceof DOMException && (err.name === 'NotFoundError' || err.name === 'OverconstrainedError')) {
-        throw new Error('Microfone escolhido não encontrado. Selecione outro dispositivo de entrada.');
+        throw Object.assign(new Error('Microfone escolhido não encontrado. Selecione outro dispositivo de entrada.'), {
+          nomeDoErro,
+        });
       }
       throw err;
     }

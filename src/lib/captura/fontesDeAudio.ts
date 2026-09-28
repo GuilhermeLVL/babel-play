@@ -9,7 +9,7 @@ import type { Dispatch, RefObject, SetStateAction } from 'react';
 
 import type { ModelPrepState } from '../../components/ModelPrepPanel';
 import { getActiveProfile } from '../../gateway/activeProfile';
-import { WebSpeechStt } from '../../gateway/adapters/webSpeech';
+import { type ErroDaWebSpeech, WebSpeechStt } from '../../gateway/adapters/webSpeech';
 import type { SttSession } from '../../gateway/capabilities';
 import {
   type AudioCapture,
@@ -30,6 +30,7 @@ import {
 } from '../consentimentoDeNuvem';
 import { t } from '../i18n';
 import { isTtsActive } from '../tts';
+import { abrirContextoDoClique, descartarContextoDoClique, tomarContextoDoClique } from './contextoDoClique';
 import { type EscolhaDoMic, resolverMotorDoMic } from './motorDoMicrofone';
 import { criarProgressoDosPacotesNativos } from './pacotesNativos';
 import type { OpcoesDaPreparacao } from './pipelineDeFala';
@@ -108,7 +109,32 @@ export interface DepsDasFontesDeAudio {
    */
   perguntarEscolhaDoMic?: (contexto: { pacoteDoNavegador: boolean }) => Promise<EscolhaDoMic | null>;
   perfilId?: () => string;
+  /* --- o início de verdade (relato do dono no celular, 2026-09-28) --- */
+  /**
+   * A fonte ABRIU de verdade: o `getUserMedia` respondeu e o VAD subiu, a Web Speech abriu o áudio
+   * (`onaudiostart`), ou o compartilhamento da aba veio. É daqui que a tela liga o relógio e o
+   * "Ouvindo…" — antes eles ligavam no clique, com o microfone ainda fechado.
+   */
+  aoAbrirFonte?: (fonte: 'mic' | 'system') => void;
+  /**
+   * O microfone não abriu (permissão, serviço de voz, microfone ocupado…). A tela mostra a ajuda
+   * daquele aparelho (`ajudaDoMicrofone.ts`); `motorRapido`: quem falhou foi o "Rápido" (a Web Speech
+   * na nuvem), e o Privado é uma saída. Sem ele, o toast de antes.
+   */
+  aoFalharMicrofone?: (erro: unknown, o: { motorRapido: boolean }) => void;
+  /**
+   * Não abrir o SEGUNDO `getUserMedia` do medidor com a Web Speech: no Android, o reconhecedor do
+   * sistema e um stream paralelo do microfone disputam o dispositivo. O indicador segue o som que a
+   * própria Web Speech anuncia (`onSom`).
+   */
+  semMedidorParalelo?: boolean;
 }
+
+/**
+ * Quanto a Web Speech tem para abrir o áudio depois do `start()` (ela pode pedir a permissão nesse
+ * intervalo). Passado, é a falha 'sem-audio': a tela não fica em "Abrindo…" para sempre.
+ */
+export const PRAZO_DO_AUDIO_DA_WEB_SPEECH_MS = 20_000;
 
 /** O aviso "o mic foi para o modelo local por falta de consentimento" sai UMA vez por página. */
 let avisouMicSemNuvem = false;
@@ -326,6 +352,7 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
         deps.aoMudarMotorDoSistema?.('pipeline');
       }
       if (systemCaptureRef.current) anchorSessionClock(systemCaptureRef.current.startedAtMs, 'system');
+      deps.aoAbrirFonte?.('system');
       setFeedbackMsg(
         micEnabled
           ? 'Captura DUPLA ativa: microfone (você) + sistema/aba (outros). A transcrição do sistema aparece e refina em tempo real.'
@@ -364,6 +391,9 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
   const handleStartMicCapture = async () => {
     clog('mic: preparar modelos locais + getUserMedia…');
     void prepareModels();
+    /* O contexto criado NO CLIQUE (`contextoDoClique.ts`): o VAD e a sonda usam ele, e não um criado
+       depois dos `await` (no iPhone, esse pode ficar 'suspended' e nenhum quadro chega). */
+    const contexto = tomarContextoDoClique();
     try {
       micCaptureRef.current = await startMicCapture(
         inputDeviceIdRef.current || undefined,
@@ -388,9 +418,10 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
             setTimeout(() => setFeedbackMsg(''), 6000);
           },
         },
-        opcoesDeCaptura,
+        contexto ? { ...opcoesDeCaptura, audioContext: contexto } : opcoesDeCaptura,
       );
       clog('captura do microfone ATIVA ✓');
+      deps.aoAbrirFonte?.('mic');
       micStartedAtRef.current = micCaptureRef.current?.startedAtMs ?? 0;
       anchorSessionClock(micStartedAtRef.current, 'mic'); // ancora só se o mic for a fonte do áudio salvo
       if (!systemEnabled) {
@@ -399,8 +430,13 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
       }
     } catch (err) {
       clog('getUserMedia(mic) FALHOU:', (err as Error).message);
-      setFeedbackMsg((err as Error).message);
-      setTimeout(() => setFeedbackMsg(''), 7000);
+      // O contexto do clique não serviu a ninguém (a permissão falhou antes do VAD): fecha.
+      if (contexto && contexto.state !== 'closed') void contexto.close().catch(() => {});
+      if (deps.aoFalharMicrofone) deps.aoFalharMicrofone(err, { motorRapido: false });
+      else {
+        setFeedbackMsg((err as Error).message);
+        setTimeout(() => setFeedbackMsg(''), 7000);
+      }
       setModelPrep((s) => (s?.error ? s : null));
       if (!systemEnabled) {
         // mic era a única fonte → encerra a gravação
@@ -446,6 +482,8 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
   // `noAparelho`: reconhecimento LOCAL (`processLocally`); devolve false se o navegador não o tem —
   // quem chama cai no Whisper em vez de mandar o áudio ao Google (ver `motorDoMicrofone.ts`).
   const startWebSpeechMic = (noAparelho = false): boolean => {
+    // A Web Speech abre o microfone sozinha: o contexto do clique não tem uso aqui.
+    descartarContextoDoClique();
     const speakerId = 'user';
     const from = sourceLangRef.current.split('-')[0];
     const to = targetLangRef.current.split('-')[0];
@@ -464,19 +502,97 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
         translateSegment,
         ignorar: isTtsActive, // anti-eco: o mic ouviu o TTS do app pelos alto-falantes
       });
-      webSpeechRef.current = new WebSpeechStt({ processLocally: noAparelho }).startLive(sourceLangRef.current, {
+      /* O ÁUDIO ABRIU? Só o `onaudiostart` diz (o `start()` volta na hora, com a permissão ainda
+         pendente). Até lá, a tela fica em "Abrindo o microfone…", nunca em "Ouvindo…" com ele fechado. */
+      let abriu = false;
+      /** Esta sessão já acabou (falhou ou foi encerrada): o que chegar depois não conta. */
+      let acabou = false;
+      let sessao: SttSession | null = null;
+      const prazo: { id?: ReturnType<typeof setTimeout> } = {};
+      let som: ReturnType<typeof setInterval> | null = null;
+      const pararSom = () => {
+        if (som) clearInterval(som);
+        som = null;
+      };
+      const encerrar = () => {
+        acabou = true;
+        clearTimeout(prazo.id);
+        pararSom();
+        try {
+          sessao?.stop();
+        } catch {
+          /* já parado */
+        }
+        if (sessao && webSpeechRef.current === sessao) {
+          webSpeechRef.current = null;
+          webSpeechPartialIdRef.current = null;
+        }
+        meterRef.current?.stop();
+        meterRef.current = null;
+      };
+      /** A Web Speech não serve: encerra ESTA sessão e mostra a ajuda (com o "Trocar para Privado"). */
+      const falhou = (erro: unknown) => {
+        if (acabou) return;
+        // `sessao` ainda nula = falhou DENTRO do `start()`: é notícia também.
+        const ainda = sessao === null || webSpeechRef.current === sessao;
+        encerrar();
+        if (!ainda) return; // a pessoa já parou ou mutou: o erro tardio não é notícia
+        clog('web-speech mic FALHOU:', String(erro), (erro as ErroDaWebSpeech)?.codigo ?? '');
+        if (deps.aoFalharMicrofone) deps.aoFalharMicrofone(erro, { motorRapido: !noAparelho });
+        else {
+          setFeedbackMsg((erro as Error).message);
+          setTimeout(() => setFeedbackMsg(''), 7000);
+        }
+        if (!systemEnabled) {
+          setIsRecording(false);
+          isRecordingRef.current = false;
+        }
+      };
+      sessao = new WebSpeechStt({ processLocally: noAparelho }).startLive(sourceLangRef.current, {
         onPartial: aoParcial,
         onFinal: ({ text }: { text: string }) => aoFinal(text),
         onError: (e: Error) => {
           clog('web-speech mic erro:', String(e));
+          if ((e as ErroDaWebSpeech).fatal) return falhou(e);
+          // Aviso (no-speech): a sessão segue; a dica aparece e some.
+          setFeedbackMsg(e.message);
+          setTimeout(() => setFeedbackMsg(''), 4000);
+        },
+        onAudioAberto: () => {
+          if (abriu) return;
+          abriu = true;
+          clearTimeout(prazo.id);
+          if (webSpeechRef.current !== sessao || !isRecordingRef.current) return;
+          clog('microfone (Web Speech', noAparelho ? 'no aparelho' : 'na nuvem', ') ABRIU o áudio ✓');
+          // Sem gravação a alinhar (a Web Speech não grava): o relógio zera quando o áudio abre.
+          anchorSessionClock(Date.now(), 'mic');
+          deps.aoAbrirFonte?.('mic');
+          if (!deps.semMedidorParalelo) void startMeter(); // waveform real (a Web Speech não fornece nível)
+          if (!systemEnabled) {
+            setFeedbackMsg('Microfone (navegador) ativo, transcrição instantânea. Fale à vontade.');
+            setTimeout(() => setFeedbackMsg(''), 3000);
+          }
+        },
+        /* Sem o medidor paralelo, o indicador segue o som que a Web Speech anuncia: não é o nível
+           medido, é "há som" (as ondas oscilam enquanto há som e param sem ele). */
+        onSom: (ha: boolean) => {
+          if (!deps.semMedidorParalelo) return;
+          pararSom();
+          if (ha) som = setInterval(() => pushLevel(0.25 + Math.random() * 0.35), 100);
         },
       });
-      clog('microfone (Web Speech', noAparelho ? 'no aparelho' : 'na nuvem', ') ATIVO ✓');
-      void startMeter(); // waveform real (a Web Speech não fornece nível)
-      if (!systemEnabled) {
-        setFeedbackMsg('Microfone (navegador) ativo, transcrição instantânea. Fale à vontade.');
-        setTimeout(() => setFeedbackMsg(''), 3000);
-      }
+      if (acabou) return true; // falhou no próprio `start()`: a ajuda já está na tela
+      webSpeechRef.current = sessao;
+      prazo.id = setTimeout(() => {
+        if (!abriu)
+          falhou(
+            Object.assign(new Error('O reconhecimento de fala do navegador não conseguiu abrir o microfone.'), {
+              codigo: 'sem-audio',
+              fatal: true,
+            }),
+          );
+      }, PRAZO_DO_AUDIO_DA_WEB_SPEECH_MS);
+      clog('microfone (Web Speech', noAparelho ? 'no aparelho' : 'na nuvem', ') pedido, esperando o áudio abrir');
       return true;
     } catch (e) {
       // O local falhou (navegador sem `processLocally`): quem chama cai no Whisper, sem aviso de erro.
@@ -594,6 +710,7 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
     }
 
     clog('microfone ATIVO no meio da sessão: abrindo a captura agora'); // (2) primeira vez
+    abrirContextoDoClique(); // dentro do gesto, antes de qualquer `await` (ver `contextoDoClique.ts`)
     setMicAbrindo(true);
     void startMic().finally(() => setMicAbrindo(false));
   };

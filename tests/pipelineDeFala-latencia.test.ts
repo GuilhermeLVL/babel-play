@@ -21,7 +21,9 @@ import { criarPipelineDeFala } from '../src/lib/captura/pipelineDeFala'
 
 const ref = <T>(current: T) => ({ current })
 
-function montar(opts: { nuvem?: boolean; autoMic?: boolean; regulador?: unknown } = {}) {
+function montar(
+  opts: { nuvem?: boolean; autoMic?: boolean; regulador?: unknown; extra?: Record<string, unknown> } = {},
+) {
   const transcribePcm = vi.fn(async () => ({ text: 'Olá, tudo bem?', engine: 'whisper-local' }))
   const transcribePartial = vi.fn(async () => ({ text: 'Olá' }))
   const translateSegment = vi.fn()
@@ -82,6 +84,7 @@ function montar(opts: { nuvem?: boolean; autoMic?: boolean; regulador?: unknown 
     setSttRouteLabel: vi.fn(),
     reguladorRef: opts.regulador ? ref(opts.regulador) : undefined,
     sistemaAtivo: () => false,
+    ...opts.extra,
   }
   const p = criarPipelineDeFala(deps as never)
   return { p, deps, transcribePcm, transcribePartial, translateSegment, contexto, transcribePcmNaNuvem }
@@ -221,5 +224,22 @@ describe('porta de qualidade do STT no pipeline', () => {
     } finally {
       plano.nuvemStt = false
     }
+  })
+})
+
+describe('o tradutor que espera a primeira legenda (celular só com o microfone)', () => {
+  it('a primeira legenda na tela dispara a carga guardada, uma vez só', async () => {
+    const carregar = vi.fn()
+    const tradutorPendenteRef = ref<(() => void) | null>(carregar)
+    const { p } = montar({ extra: { tradutorPendenteRef } })
+    p.micHandlers.onSpeechStart(1)
+    p.micHandlers.onUtterance(new Float32Array(1600), 16000, 1)
+    await esperar()
+    expect(carregar).toHaveBeenCalledTimes(1)
+    expect(tradutorPendenteRef.current).toBeNull()
+    p.micHandlers.onSpeechStart(2)
+    p.micHandlers.onUtterance(new Float32Array(1600), 16000, 2)
+    await esperar()
+    expect(carregar).toHaveBeenCalledTimes(1)
   })
 })

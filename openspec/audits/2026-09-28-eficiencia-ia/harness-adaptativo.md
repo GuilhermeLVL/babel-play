@@ -181,6 +181,18 @@ Apple SpeechAnalyzer (WWDC25), ML Kit GenAI, capawesome/capgo, Meta PWA packagin
   sem consentimento); Web Speech na nuvem só com consentimento e fora do `local-private`; senão
   Whisper/Moonshine local. `install()` só no clique, sem esperar. O adaptador lança se o navegador
   não tem `processLocally`. A rota do STT conta o mic no Whisper quando é o que vai acontecer.
+- **Áudio da aba/sistema na Web Speech do aparelho (T2)** — `src/lib/captura/webSpeechDoSistema.ts`,
+  chamado de `handleStartSystemCapture`: Chrome/Edge do computador, `processLocally` presente, rota
+  que NÃO é nuvem primeiro, qualidade `auto`/`cloud` (sem modelo escolhido), sem multi-idioma e
+  `available({langs:[idioma do conteúdo], processLocally:true})` = `available` → a Web Speech ouve a
+  MESMA trilha da captura (`start(trilha)`, `AudioCapture.trilhaDeAudio`), e o Whisper não carrega
+  (`prepareModels({ sistemaNoNavegador })` só prepara o tradutor, ou o Whisper se o mic o usar). Nunca
+  o modo nuvem: fala de terceiros; o adaptador lança se receber trilha sem `processLocally`. Teste em
+  execução: `start` que lança, `language-not-supported`/`not-allowed`/`service-not-allowed`, ou duas
+  falas do VAD sem resultado em 10 s → volta ao VAD → Whisper sem aviso; falha antes do primeiro
+  resultado fica lembrada por aparelho (`webSpeechComTrilha` na sonda; Chrome novo = teste de novo).
+  Registro: `web-speech-local-trilha` (`requer.trilhaDeAudio`). Selo: "Reconhecimento do navegador,
+  no aparelho". Sob `navigator.webdriver` a decisão não pergunta `available()` (derruba o headless).
 - **"Rápido" ou "Privado"** (decisão do dono, opção b) — sem o reconhecimento no aparelho, a primeira
   abertura do mic pergunta (`EscolhaDoMicrofone.tsx`, `precisaPerguntarMotorDoMic`). "Rápido" grava o
   consentimento PRÓPRIO `reconhecimentoDoNavegador` (Google/Microsoft/Apple), separado do `nuvem`;
@@ -211,7 +223,10 @@ Apple SpeechAnalyzer (WWDC25), ML Kit GenAI, capawesome/capgo, Meta PWA packagin
 - Progresso do pacote do Translator só no log (sem barra); `install()` do reconhecimento sem UI.
 - Limiares (2,4 aproximado sem zlib; razão/cópia da MT) sem calibração na bancada.
 
-**Conferir em aparelho real:** `processLocally` + `available()` em pt-BR no Chrome estável;
+**Conferir em aparelho real:** `start(trilha)` COM `processLocally` (não documentado; só o Chrome com
+o pacote do idioma responde) — se o texto chega, a latência parcial/final contra o Whisper, se o
+reconhecedor encerra a cópia da trilha, e se o `onend`/religar mantém a trilha sem lacunas longas;
+`processLocally` + `available()` em pt-BR no Chrome estável;
 `install()` e `Translator.create()` dentro da janela de ativação do clique; `PressureObserver` e
 `getBattery` no Chromium; troca de modelo pelo regulador no Pixel/iPhone/Quest (tempo de recarga);
 que o mic cai no Whisper sem consentimento sem pedir download inesperado grande no celular.

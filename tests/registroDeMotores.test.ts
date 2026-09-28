@@ -44,6 +44,16 @@ describe('registro de motores — consentimento derivado', () => {
     expect(bindingExigeConsentimento({ adapterId: 'web-speech' })).toBe(true)
   })
 
+  it('a Web Speech LOCAL com TRILHA (áudio da aba) declara a entrada e também não manda nada', () => {
+    const trilha = motorPorId('web-speech-local-trilha')!
+    expect(trilha.adapterId).toBe('web-speech')
+    expect(trilha.requer.trilhaDeAudio).toBe(true)
+    expect(trilha.enviaDadosA).toBeNull()
+    expect(exigeConsentimento(trilha)).toBe(false)
+    // O microfone no aparelho não precisa de trilha.
+    expect(motorPorId('web-speech-local')!.requer.trilhaDeAudio).toBeFalsy()
+  })
+
   it('o que roda no aparelho NÃO pede consentimento', () => {
     const derivada = adaptersQueExigemConsentimento()
     for (const id of ['chrome-translator', 'opus-mt-local', 'whisper-local']) expect(derivada.has(id), id).toBe(false)

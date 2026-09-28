@@ -49,6 +49,11 @@ export interface RequisitosDoMotor {
   ponteNativa?: boolean;
   /** Precisa da extensão do navegador. */
   extensao?: boolean;
+  /**
+   * Reconhece uma TRILHA (`MediaStreamTrack` da aba/sistema) em vez do microfone: `SpeechRecognition
+   * .start(trilha)`, Chrome 133+. Se combina com `processLocally` não é documentado — testado em execução.
+   */
+  trilhaDeAudio?: boolean;
 }
 
 export interface RegistroDeMotor {
@@ -117,6 +122,24 @@ export const REGISTRO_DE_MOTORES: readonly RegistroDeMotor[] = [
     custo: 'zero',
     licenca: 'termos do navegador',
     nota: 'O pacote de idioma é do navegador; `install()` só a partir do clique em "Iniciar" (ativação do usuário).',
+  },
+  {
+    /* O MESMO modo local, ouvindo a TRILHA da aba/sistema (degrau T2 do áudio do sistema). Nunca há
+       par "na nuvem" desta entrada: o áudio de um vídeo é a fala de terceiros, e o adaptador lança se
+       receber uma trilha sem `processLocally`. Quem escolhe é a captura (`lib/captura/
+       webSpeechDoSistema.ts`: computador, fora da rota nuvem primeiro, `available()` = 'available'),
+       e o teste em execução (start que lança, erro fatal, silêncio com fala no VAD) cai no Whisper e
+       fica lembrado na sonda do aparelho (`webSpeechComTrilha`). */
+    id: 'web-speech-local-trilha',
+    adapterId: 'web-speech',
+    tarefa: 'stt',
+    runtime: 'nativo-navegador',
+    idiomas: 'todos', // idem: `available({langs:[idioma do conteúdo], processLocally:true})` em execução
+    requer: { trilhaDeAudio: true },
+    enviaDadosA: null,
+    custo: 'zero',
+    licenca: 'termos do navegador',
+    nota: 'Chrome/Edge do computador (start(trilha) M133+ com processLocally ~139+); Android, iOS, Firefox e Quest não têm.',
   },
   {
     id: 'whisper-small',

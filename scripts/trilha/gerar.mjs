@@ -5,6 +5,13 @@
  *
  *   npx tsx scripts/trilha/gerar.mjs es
  *   npx tsx scripts/trilha/gerar.mjs es --dry-run --limite=5000 --sem-frases
+ *   npx tsx scripts/trilha/gerar.mjs es --dicionario=10000   # glosas p/ o toque em palavra (M1)
+ *
+ * `--dicionario=N` amplia o arquivo de GLOSAS (não a trilha) para os N lemas mais frequentes com
+ * glosa, e grava `formas` (forma → lema) para o app achar `hablo` → `hablar` sem regra. Precisa do
+ * dump do Wikcionário do nativo em `.cache/trilha/<nativo>-extract.jsonl.gz` (kaikki.org, ~1 GB
+ * para pt; o script NÃO baixa) e baixa sozinho o resto (SPARQL do Wikidata, FrequencyWords).
+ * Sem o dump, só o Wikidata responde — cobertura bem menor (6% em es-pt), e o relatório diz.
  *
  * Roda sob **tsx** porque o pipeline importa `src/core/learning/quality.ts` — a régua real do
  * app. É o único módulo com efeito colateral: os outros são funções puras.
@@ -16,7 +23,7 @@ import path from 'node:path';
 import { atribuicao, frequenciaDe, frasesDe, traducoesDasFrases } from './fontes.mjs';
 import { filtrar } from './filtrar.mjs';
 import { faixas, coberturaDasFaixas, NIVEIS } from './faixas.mjs';
-import { formasPorLema, glosas as glosasDoIdioma, lematizar } from './lexemes.mjs';
+import { formasPorLema, glosas as glosasDoIdioma, lematizar, montarDicionario } from './lexemes.mjs';
 import { indexar, escolherFrase, vocabularioDe } from './frases.mjs';
 import { avaliarCartao } from '../../src/core/learning/quality.ts';
 
@@ -69,6 +76,7 @@ async function principal(argv) {
 
   const nativo = (argv.find((a) => a.startsWith('--nativo=')) ?? '--nativo=pt').split('=')[1];
   const semLema = argv.includes('--sem-lema');
+  const tamanhoDoDicionario = Number((argv.find((a) => a.startsWith('--dicionario=')) ?? '').split('=')[1]) || 0;
 
   const bruta = await frequenciaDe(lang);
   /* LEMATIZAR ANTES DE CORTAR: a lista de frequência traz conjugações (estoy, estás, estamos como
@@ -118,6 +126,19 @@ async function principal(argv) {
     }
   }
 
+  /* Dicionário do toque: SOMA ao que a trilha já usa, nunca tira — os jogos continuam lendo
+     `glosas[palavra]` para as palavras da trilha. */
+  let formas;
+  if (tamanhoDoDicionario) {
+    const dic = montarDicionario({
+      bruta, mapaDeLemas, glosas, limite: tamanhoDoDicionario, lang, nativo,
+    });
+    for (const [k, v] of Object.entries(dic.glosas)) if (!(k in glosasDaTrilha)) glosasDaTrilha[k] = v;
+    formas = dic.formas;
+    console.log(`  dicionário do toque: ${Object.keys(dic.glosas).length} lemas com glosa`
+      + ` (pedido ${tamanhoDoDicionario}) · ${Object.keys(formas).length} formas → lema`);
+  }
+
   // Confere a saída com a régua do jogo, em vez de confiar no filtro de entrada.
   let reprovados = 0;
   for (const n of NIVEIS) {
@@ -148,7 +169,7 @@ async function principal(argv) {
     par: `${lang}-${nativo}`, praticado: lang, nativo, versao: 1, trilhaVersao: 2,
     fonte: 'Wikidata Lexemes (CC0), pares por P5137; Wikcionário via Wiktextract (CC BY-SA)',
     cobertura: { palavras: comGlosa, doWikidata, doWikcionario },
-    glosas: glosasDaTrilha, frases: traducaoDaFrase,
+    glosas: glosasDaTrilha, frases: traducaoDaFrase, ...(formas ? { formas } : {}),
   }) + '\n');
   console.log(`escrito ${destino}`);
   console.log(`escrito ${destinoGlosas}`);

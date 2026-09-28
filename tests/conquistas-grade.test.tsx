@@ -45,4 +45,15 @@ describe('grade de conquistas por pilar', () => {
     renderizar()
     expect(screen.getByText(mira.nome)).toBeTruthy()
   })
+
+  it('"Como ganhar" não mostra ficha de +0: a regra sem XP (ou sem Seeds) só mostra o que rende', () => {
+    const { container } = renderizar()
+    const fichas = [...container.querySelectorAll('.badge')].map((b) => (b.textContent ?? '').trim())
+    expect(fichas.length).toBeGreaterThan(0)
+    expect(fichas.filter((f) => /^\+0\b/.test(f))).toEqual([])
+    // Salvar palavra: Seeds sim, XP não.
+    const salvar = screen.getByText('Salvar uma palavra nova da captura').closest('.cartao')!
+    expect(salvar.textContent).not.toMatch(/XP/)
+    expect(salvar.textContent).toMatch(/\+\d+/)
+  })
 })

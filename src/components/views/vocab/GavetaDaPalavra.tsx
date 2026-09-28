@@ -12,6 +12,8 @@
  *    (`/memoria`, contados em `review_logs`);
  *  - Editar (tradução, frase, nível), Suspender/Reativar e Excluir (dois cliques).
  */
+import '../../../styles/cartoes.css';
+
 import {
   BookMarked,
   BookOpen,
@@ -30,8 +32,6 @@ import {
   X,
   Youtube,
 } from 'lucide-react';
-import '../../../styles/cartoes.css';
-
 import { useEffect, useId, useRef, useState } from 'react';
 
 import {

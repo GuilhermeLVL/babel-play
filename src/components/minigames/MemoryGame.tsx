@@ -1,8 +1,8 @@
+import '../../styles/cartoes.css';
+
 import type { ItemOutcome, MinigameItem, RoundReport } from '@core';
 import { scoreRound } from '@core';
 import { Eye } from 'lucide-react';
-import '../../styles/cartoes.css';
-
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { celebrar } from '../../lib/comemoracao';

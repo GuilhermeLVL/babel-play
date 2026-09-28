@@ -15,17 +15,25 @@ import { Dialogo, fecharDialogoDe, IconeEmBloco } from '../../ui';
  * a pessoa autoriza, e o registro datado guarda); "Privado" diz o tamanho do download e que pode errar
  * mais em português em aparelho fraco. Nenhuma vem marcada: consentimento é ato, não padrão.
  *
+ * PACOTE DO NAVEGADOR (estágio 4): quando o navegador instala o reconhecimento NO aparelho
+ * (`available()` = 'downloadable'), o "Privado" deixa de ser o nosso modelo e passa a ser o do próprio
+ * navegador — grátis, nada sai, e em geral bem menor. É o caminho recomendado (selo), sem vir marcado;
+ * o nosso Whisper fica dito como a reserva, com o tamanho, se a instalação falhar.
+ *
  * Fechar sem escolher (Esc, "Agora não") chama `aoFechar`: o mic segue no aparelho NESTA vez e a
  * pergunta volta na próxima. "Continuar" chama `aoEscolher`, e quem chama tira o diálogo da tela
  * (sair do DOM fecha o modal). Quem guarda a resposta é a tela (`guardarEscolhaDoMic`).
  */
 export default function EscolhaDoMicrofone({
   mb,
+  pacoteDoNavegador = false,
   aoEscolher,
   aoFechar,
 }: {
   /** O download do "Privado" (o modelo que a rota do STT escolheria para a sua voz); `null` = não se sabe. */
   mb: number | null;
+  /** O "Privado" será o reconhecimento do próprio navegador (pacote a instalar no clique). */
+  pacoteDoNavegador?: boolean;
   aoEscolher: (escolha: EscolhaDoMic) => void;
   /** Fechou sem escolher. */
   aoFechar: () => void;
@@ -76,13 +84,27 @@ export default function EscolhaDoMicrofone({
               <span className="badge ok" style={{ marginLeft: 6 }}>
                 {t('Não sai do aparelho')}
               </span>
+              {pacoteDoNavegador && (
+                <span className="badge" style={{ marginLeft: 6 }}>
+                  {t('Recomendado')}
+                </span>
+              )}
             </h3>
-            <p>
-              {mb
-                ? t('A transcrição roda neste aparelho. Baixa um modelo de cerca de {mb} MB, uma vez só.', { mb })
-                : t('A transcrição roda neste aparelho. Baixa um modelo de transcrição, uma vez só.')}{' '}
-              {t('Em aparelhos mais fracos, pode errar mais em português.')}
-            </p>
+            {pacoteDoNavegador ? (
+              <p>
+                {t('Usa o reconhecimento do próprio navegador, sem enviar o áudio. O pacote de idioma baixa agora, uma vez só.')}{' '}
+                {mb
+                  ? t('Se ele não instalar, usa o nosso modelo, de cerca de {mb} MB.', { mb })
+                  : t('Se ele não instalar, usa o nosso modelo de transcrição.')}
+              </p>
+            ) : (
+              <p>
+                {mb
+                  ? t('A transcrição roda neste aparelho. Baixa um modelo de cerca de {mb} MB, uma vez só.', { mb })
+                  : t('A transcrição roda neste aparelho. Baixa um modelo de transcrição, uma vez só.')}{' '}
+                {t('Em aparelhos mais fracos, pode errar mais em português.')}
+              </p>
+            )}
           </span>
         </button>
       </div>

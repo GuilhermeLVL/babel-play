@@ -959,5 +959,11 @@
   "Rápido ou Privado": "Fast or Private",
   "Reconhecimento de voz do navegador": "Browser speech recognition",
   "O modo Rápido do microfone: o navegador envia o áudio da sua voz ao Google, à Microsoft ou à Apple para transcrever. Desligado, a sua voz é transcrita no aparelho.": "The microphone's Fast mode: the browser sends the audio of your voice to Google, Microsoft or Apple to transcribe it. When off, your voice is transcribed on the device.",
-  "Frases prontas da memória de tradução: Tatoeba (tatoeba.org), licença CC BY 2.0 FR.": "Ready-made phrases in the translation memory: Tatoeba (tatoeba.org), licensed CC BY 2.0 FR."
+  "Frases prontas da memória de tradução: Tatoeba (tatoeba.org), licença CC BY 2.0 FR.": "Ready-made phrases in the translation memory: Tatoeba (tatoeba.org), licensed CC BY 2.0 FR.",
+  "Baixando o pacote de idioma do navegador…": "Downloading the browser language pack…",
+  "O pacote é do próprio navegador: grátis, baixa uma vez só e nada sai do aparelho.": "The pack belongs to the browser itself: free, downloaded only once, and nothing leaves the device.",
+  "Recomendado": "Recommended",
+  "Usa o reconhecimento do próprio navegador, sem enviar o áudio. O pacote de idioma baixa agora, uma vez só.": "Uses the browser's own speech recognition, without sending the audio anywhere. The language pack downloads now, only once.",
+  "Se ele não instalar, usa o nosso modelo, de cerca de {mb} MB.": "If it doesn't install, our model is used instead, about {mb} MB.",
+  "Se ele não instalar, usa o nosso modelo de transcrição.": "If it doesn't install, our transcription model is used instead."
 }

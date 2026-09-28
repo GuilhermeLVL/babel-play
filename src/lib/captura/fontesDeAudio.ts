@@ -30,6 +30,7 @@ import {
 import { t } from '../i18n';
 import { isTtsActive } from '../tts';
 import { type EscolhaDoMic, resolverMotorDoMic } from './motorDoMicrofone';
+import { criarProgressoDosPacotesNativos } from './pacotesNativos';
 import { clog, formatTime, type HandlersDaFonte, type SpeechSegment, wordsFromText } from './tiposDaFala';
 import type { OpcoesDeTraducao } from './traducaoDaFala';
 
@@ -85,8 +86,11 @@ export interface DepsDasFontesDeAudio {
   rapidoPermitido?: () => boolean;
   /** A resposta guardada de "Rápido ou Privado?" (`null` = nunca respondeu). */
   escolhaDoMic?: () => EscolhaDoMic | null;
-  /** Mostra "Rápido ou Privado?" e devolve a resposta (a tela a guarda); sem ele, não pergunta. */
-  perguntarEscolhaDoMic?: () => Promise<EscolhaDoMic | null>;
+  /**
+   * Mostra "Rápido ou Privado?" e devolve a resposta (a tela a guarda); sem ele, não pergunta.
+   * `pacoteDoNavegador`: o "Privado" será o reconhecimento do próprio navegador (a instalar).
+   */
+  perguntarEscolhaDoMic?: (contexto: { pacoteDoNavegador: boolean }) => Promise<EscolhaDoMic | null>;
   perfilId?: () => string;
 }
 
@@ -425,6 +429,9 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
       perguntar: deps.perguntarEscolhaDoMic,
       perfilId: perfilId(),
       lang: sourceLangRef.current,
+      /* Pacote de voz do navegador sendo instalado (o degrau seria o nosso Whisper): a linha dele
+         na barra de preparo, como o Translator (`pacotesNativos.ts`). */
+      aoInstalar: criarProgressoDosPacotesNativos({ setModelPrep, ativo: () => isRecordingRef.current, clog }).voz,
     });
     clog('microfone: motor', decisao.motor, `(${decisao.motivo})`, decisao.instalarNoAparelho ? '| pacote local pedido' : '');
     if (decisao.motor === 'web-speech-local' && startWebSpeechMic(true)) return;

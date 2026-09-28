@@ -121,11 +121,30 @@ describe('Rápido ou Privado (a pergunta do microfone)', () => {
   beforeAll(prepararDialogoNoJsdom)
   afterEach(cleanup)
 
-  function montar(mb: number | null = 80) {
-    const props = { mb, aoEscolher: vi.fn(), aoFechar: vi.fn() }
+  function montar(mb: number | null = 80, pacoteDoNavegador = false) {
+    const props = { mb, pacoteDoNavegador, aoEscolher: vi.fn(), aoFechar: vi.fn() }
     render(<EscolhaDoMicrofone {...props} />)
     return props
   }
+
+  it('com o pacote do navegador a instalar, o "Privado" é o reconhecimento DO navegador, recomendado', () => {
+    montar(80, true)
+    const privado = screen.getByRole('button', { name: /Privado/ })
+    expect(privado.textContent).toMatch(/Recomendado/)
+    expect(privado.textContent).toMatch(/usa o reconhecimento do próprio navegador, sem enviar o áudio/i)
+    // O nosso modelo vira a reserva, com o tamanho dito: nada de download escondido.
+    expect(privado.textContent).toMatch(/cerca de 80 MB/)
+    expect(screen.getByRole('button', { name: /Rápido/ }).textContent).not.toMatch(/Recomendado/)
+    // Recomendar não é marcar: consentimento continua sendo ato.
+    expect(screen.queryAllByRole('button', { pressed: true })).toHaveLength(0)
+  })
+
+  it('sem o pacote do navegador, nada de "Recomendado" nem de promessa do navegador', () => {
+    montar(80, false)
+    const d = screen.getByRole('dialog')
+    expect(d.textContent).not.toMatch(/Recomendado/)
+    expect(d.textContent).not.toMatch(/próprio navegador/)
+  })
 
   it('diz para quem o áudio vai no "Rápido" e o tamanho do download no "Privado"', () => {
     montar(80)

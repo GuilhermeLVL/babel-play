@@ -390,6 +390,14 @@ async function startServer({ prepararDados = true } = {}) {
     console.log('[convidados] inativos há 30 dias removidos (limpeza diária)')
   }
 
+  /* PODA DO CACHE DE TRADUÇÃO PERSISTENTE (L2, migração 0038): vencidas em 30 dias e, acima do teto,
+     as menos usadas. Mesmo processo e mesmo motivo das limpezas acima; vale no self-host também,
+     porque o cache existe onde houver chave de LLM. Ver `server/ai/cacheDeTraducao.ts`. */
+  if (prepararDados) {
+    const { agendarPodaDoCacheDeTraducao } = await import('./server/ai/cacheDeTraducao')
+    agendarPodaDoCacheDeTraducao()
+  }
+
   server.on('error', (err: NodeJS.ErrnoException) => {
     if (err.code === 'EADDRINUSE') {
       console.error(`\n⚠  A porta ${PORT} já está em uso — outro servidor está rodando.`)

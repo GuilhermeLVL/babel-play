@@ -1043,3 +1043,37 @@ export const convidados = sqliteTable(
   },
   (t) => [index('idx_convidados_ip_criado').on(t.ipHash, t.criadoEm), index('idx_convidados_visto').on(t.vistoEm)],
 )
+
+/**
+ * CACHE DE TRADUÇÃO PERSISTENTE — o nível 2 (L2) de `server/ai/cacheDeTraducao.ts` (migração 0038;
+ * auditoria de eficiência da IA de 28/09). O L1 em memória perde tudo num deploy; este guarda a frase
+ * CURTA que se repete ("thank you", "let's go") por 30 dias, para ninguém pagar por ela de novo.
+ *
+ * NÃO É DADO DO TITULAR, e é por construção: não há `user_id`, IP nem nada que diga QUEM pediu, e a
+ * frase de origem não é guardada — só o hash dela (`chave`). A tradução fica em claro (é o que se
+ * serve), e por isso só entra frase de até 12 palavras (fala: até 4) sem cara de dado pessoal
+ * (`podePersistir`). Fica fora de `TABELAS_DO_TITULAR` de propósito: uma linha é compartilhada por
+ * todos que dizem a mesma frase curta, não pertence a ninguém — apagar a conta não tem o que apagar
+ * aqui, e a exportação não teria como atribuir uma linha a alguém.
+ */
+export const cacheDeTraducaoPersistente = sqliteTable(
+  'cache_de_traducao',
+  {
+    /** SHA-256 da frase normalizada + par + natureza + modelo + versão do prompt (`chaveDeTraducao`). */
+    chave: text('chave').primaryKey(),
+    /** Código do idioma de origem ('' = detectado pelo modelo) — o idioma, nunca o texto. */
+    origem: text('origem').notNull(),
+    destino: text('destino').notNull(),
+    /** O modelo que REALMENTE traduziu (procedência); o planejado já está na chave. */
+    modelo: text('modelo').notNull(),
+    versaoPrompt: text('versao_prompt').notNull(),
+    traducao: text('traducao').notNull(),
+    criadoEm: integer('criado_em').notNull(),
+    usadoEm: integer('usado_em').notNull(),
+    acertos: integer('acertos').notNull().default(0),
+  },
+  (t) => [
+    index('idx_cache_de_traducao_criado').on(t.criadoEm),
+    index('idx_cache_de_traducao_usado').on(t.usadoEm),
+  ],
+)

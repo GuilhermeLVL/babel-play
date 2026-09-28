@@ -192,7 +192,6 @@ function EmptyState({
   );
 }
 
-
 /**
  * QUANTAS FALAS VÃO AO DOM. Medido (Playwright, falas injetadas): 3.000 falas eram 48 mil nós e
  * 191 ms por quadro PARADO — estilo e layout de milhares de linhas que ninguém está vendo. As

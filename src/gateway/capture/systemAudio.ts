@@ -40,6 +40,12 @@ export interface AudioCapture {
    * compartilhamento (getDisplayMedia), e a legenda descola do áudio por esse offset variável.
    */
   startedAtMs: number;
+  /**
+   * A trilha de áudio que o VAD e o gravador ouvem — para a Web Speech no aparelho reconhecer a MESMA
+   * fonte (`start(trilha)`, `lib/captura/webSpeechDoSistema.ts`). Ausente onde não há trilha (a rota
+   * do servidor, que chega em PCM).
+   */
+  trilhaDeAudio?: MediaStreamTrack;
 }
 
 /* A taxa de bits do gravador mora num módulo-folha (a mistura sistema+mic usa a mesma); o porquê
@@ -593,6 +599,7 @@ async function startCaptureFromStream(
 
   return {
     startedAtMs,
+    trilhaDeAudio: audioTracks[0],
     setMuted(next: boolean): void {
       if (next === muted) return;
       muted = next;
@@ -744,6 +751,7 @@ export async function startSystemAudioCapture(
     // para que uma nova aquisição respeite o respiro do WASAPI.
     return {
       startedAtMs: capture.startedAtMs,
+      trilhaDeAudio: capture.trilhaDeAudio,
       setMuted: (m) => capture.setMuted(m),
       setPaused: (p) => capture.setPaused(p),
       async stop(): Promise<Blob | null> {

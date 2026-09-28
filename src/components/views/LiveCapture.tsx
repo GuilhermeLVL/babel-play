@@ -328,6 +328,8 @@ export default function LiveCapture({
   /* A rota do STT (ex.: "Whisper small · local") — o selo do protótipo mostra o tamanho do modelo, e
      a rota aparece no diálogo "Modelo no dispositivo". */
   const [sttRouteLabel, setSttRouteLabel] = useState('');
+  /** O áudio da aba está no reconhecedor do navegador, no aparelho (`webSpeechDoSistema.ts`). */
+  const [sistemaNoNavegador, setSistemaNoNavegador] = useState(false);
   const [sttQuality, setSttQuality] = useState<SttQuality>(() => getSttQuality());
   /* Há um ADAPTADOR WebGPU? (não só `navigator.gpu`). Começa com o palpite síncrono e vira a medida
      assim que o navegador responde — o selo e o tamanho do download mudam junto. */
@@ -1076,7 +1078,7 @@ export default function LiveCapture({
   /* O PIPELINE DE FALA (VAD → STT → diarização → emissão) e a preparação dos modelos moram em
      `lib/captura/pipelineDeFala.ts`. A fábrica roda a cada render, como as closures que
      substituiu: os handlers precisam do `micEnabled`/`micEngine` do render corrente. */
-  const { sysHandlers, micHandlers, prepareModels, preaquecerModelos } = criarPipelineDeFala({
+  const { sysHandlers, micHandlers, prepareModels, preaquecerModelos, decidirMotorDoSistema } = criarPipelineDeFala({
     gateway,
     sourceLang,
     sourceLangRef,
@@ -1173,6 +1175,8 @@ export default function LiveCapture({
     setMicAbrindo,
     finalNaNuvem: () => gateway.stt.finalNaNuvem(),
     perguntarEscolhaDoMic,
+    decidirMotorDoSistema,
+    aoMudarMotorDoSistema: (motor) => setSistemaNoNavegador(motor === 'web-speech-local'),
   });
 
   // Harness OFFLINE de teste (dev): injeta um PCM conhecido pelo MESMO caminho do sistema
@@ -2431,7 +2435,12 @@ export default function LiveCapture({
               </h3>
               <CampoLinha rotulo="Motor de IA ativo" desc={`Perfil ${activeProfileName}. Troque em Ajustes.`}>
                 <span className="badge neu">
-                  <Cpu aria-hidden /> {getProviderMode() === 'cloud' ? 'Nuvem (sua chave)' : 'Local, no dispositivo'}
+                  <Cpu aria-hidden />{' '}
+                  {sistemaNoNavegador
+                    ? t('Reconhecimento do navegador, no aparelho')
+                    : getProviderMode() === 'cloud'
+                      ? 'Nuvem (sua chave)'
+                      : 'Local, no dispositivo'}
                 </span>
               </CampoLinha>
               <CampoLinha

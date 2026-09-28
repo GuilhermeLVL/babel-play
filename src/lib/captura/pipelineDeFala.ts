@@ -35,6 +35,7 @@ import { classificarVazamento, type Intervalo } from '../vazamento';
 import { disponibilidadeDaSondaParaIdioma, escolherMotorDoMic } from './motorDoMicrofone';
 import { type EfeitosDoRegulador, escadaDeModelos, type ReguladorDaCaptura } from './reguladorDaCaptura';
 import { planoDaReservaLocal } from './reservaLocal';
+import { type DecisaoDoMotorDoSistema, resolverMotorDoSistema } from './webSpeechDoSistema';
 import {
   type CaptureScenario,
   clog,
@@ -56,6 +57,15 @@ export const FALA_FECHADA = '\u0000fala-fechada';
 /** O decode especulativo de uma fala: a captura só o cancela; o pipeline usa a promessa como final. */
 interface FinalEspeculativo extends EspeculacaoDoFinal {
   promessa: Promise<SttFinal>;
+}
+
+/** Como preparar os modelos desta captura. */
+export interface OpcoesDaPreparacao {
+  /**
+   * O áudio da aba/sistema está na Web Speech no aparelho (`webSpeechDoSistema.ts`): o Whisper só
+   * carrega se o MICROFONE for usá-lo; o tradutor carrega igual.
+   */
+  sistemaNoNavegador?: boolean;
 }
 
 /** Um enunciado guardado enquanto o modelo ainda carregava. */
@@ -838,7 +848,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
 
   // Prepara os modelos locais (Whisper + opus-mt) com barras honestas, detecção de cache e retry.
   // Nuvem: NÃO baixa modelo nenhum (a transcrição/tradução vai pela chave do usuário).
-  const prepareModels = async () => {
+  const prepareModels = async (opcoes: OpcoesDaPreparacao = {}) => {
     if (getProviderMode() === 'cloud') {
       modelReadyRef.current = true;
       setModelPrep(null);
@@ -853,7 +863,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     }
     prepareEmVooRef.current = true;
     try {
-      await prepareModelsInterno();
+      await prepareModelsInterno(opcoes);
     } finally {
       prepareEmVooRef.current = false;
     }
@@ -962,7 +972,23 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
        "Traduzir para". Medido no Quest emulado (2026-09-26): carregava o en→pt (sem uso), e o pt→en
        só chegava 45 s depois, na primeira tradução — ~113 MB a mais na rede e na memória. */
     const [mtDe, mtPara] = captureScenarioRef.current === 'mic' ? [myLang, listenLang] : [listenLang, myLang];
-    return { listenLang, myLang, route, perfil, mtDe, mtPara, soIngles };
+    return { listenLang, myLang, route, perfil, mtDe, mtPara, soIngles, micVaiAoWhisper };
+  };
+
+  /**
+   * O áudio da aba/sistema vai à Web Speech NO APARELHO ou ao caminho de sempre (degrau T2,
+   * `webSpeechDoSistema.ts`)? Pergunta a rota (nuvem primeiro?) só se o resto permitir. Nunca lança.
+   */
+  const decidirMotorDoSistema = async (): Promise<DecisaoDoMotorDoSistema> => {
+    const perfil = await medirPerfilDoDispositivo();
+    return resolverMotorDoSistema({
+      lang: targetLangRef.current, // você OUVE o idioma-alvo
+      desktop: perfil.tipo.startsWith('desktop'),
+      qualidade: getSttQuality(),
+      multiIdioma: autoDetectLangRef.current,
+      nuvemPrimeiro: async () => getProviderMode() === 'cloud' || (await rotaDaCaptura()).route.preferCloud,
+      lembrado: () => import('../dispositivo/sonda').then((m) => m.webSpeechComTrilhaLembrada()),
+    });
   };
 
   /**
@@ -1009,8 +1035,8 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     }
   };
 
-  const prepareModelsInterno = async () => {
-    const { route, perfil, mtDe, mtPara, soIngles } = await rotaDaCaptura();
+  const prepareModelsInterno = async (opcoes: OpcoesDaPreparacao) => {
+    const { route, perfil, mtDe, mtPara, soIngles, micVaiAoWhisper } = await rotaDaCaptura();
     // Sessão nova: o regulador começa no máximo, com a escada do modelo desta rota.
     reguladorRef?.current.reiniciar({ modelo: route.localModel, soIngles });
     gateway.stt.setRoute({
@@ -1033,6 +1059,22 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     );
     /** POUCA MEMÓRIA (Quest/celular): STT e tradutor carregam UM DE CADA VEZ, nunca juntos. */
     const umDeCadaVez = perfil.poucaMemoria;
+
+    /* O ÁUDIO DA ABA NA WEB SPEECH NO APARELHO (`webSpeechDoSistema.ts`): o Whisper não baixa nem
+       carrega — é o ponto do degrau. Só o MICROFONE no Whisper ainda o pede (aí segue o caminho de
+       sempre). O tradutor carrega em segundo plano (o nativo, se cobre o par, dispensa o opus-mt), sem
+       o painel: a barra dele é a do Whisper. Se a Web Speech cair, a captura chama `prepareModels()`
+       de novo, sem opção, e o Whisper vem pelo caminho normal. */
+    if (opcoes.sistemaNoNavegador && !route.preferCloud && !micVaiAoWhisper) {
+      clog('roteador STT: áudio da aba no reconhecedor do navegador (no aparelho); Whisper não carrega');
+      setSttRouteLabel(t('navegador · reconhecimento no aparelho'));
+      setModelPrep(null);
+      void gateway.mt
+        .preload(mtDe, mtPara)
+        .then(() => retraduzirDegradados())
+        .catch((e: unknown) => clog('tradutor local indisponível (a cascata segue):', String(e)));
+      return;
+    }
 
     const cached = await areModelsCached(expectedModelIds(mtDe, mtPara, route.localModel));
 
@@ -1136,5 +1178,5 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     }
   };
 
-  return { sysHandlers, micHandlers, prepareModels, preaquecerModelos };
+  return { sysHandlers, micHandlers, prepareModels, preaquecerModelos, decidirMotorDoSistema };
 }

@@ -124,7 +124,6 @@ export default function RecompensaDesbloqueada({ fila, onEquipar, onFechar, onVe
       window.removeEventListener(EVENTO_RODADA_FECHOU, ouvir);
       window.removeEventListener(EVENTO_CAPTURA_LIBEROU, ouvir);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- `telaLivre` lê o DOM na hora, não é estado
   }, [atual]);
 
   if (!atual || !pronta) return null;

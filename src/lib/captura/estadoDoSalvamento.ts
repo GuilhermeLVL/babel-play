@@ -62,7 +62,21 @@ export function definirSalvamento(novo: EstadoDoSalvamento): void {
   for (const o of [...ouvintes]) o();
 }
 
-/** Há um salvamento em curso? */
-export function salvandoAgora(): boolean {
-  return estado.fase === 'salvando';
+/**
+ * A TRAVA DE SAÍDA DA CAPTURA só vale para o que se perderia (relato do dono, 2026-09-28).
+ *
+ * Antes ela olhava só "há falas na tela": depois de "Salvar e ficar aqui" as falas continuavam à
+ * vista, sair perguntava de novo, e "Salvar na Biblioteca" criava uma SEGUNDA sessão (medido: 2 no
+ * IndexedDB). Gravando, trava; com falas, trava só se elas não estão salvas, nem salvando (o
+ * trabalho continua fora da tela), nem guardadas no rascunho do navegador.
+ */
+export function capturaEmRisco(e: {
+  gravando: boolean;
+  falas: number;
+  salva: boolean;
+  salvando: boolean;
+  noRascunho: boolean;
+}): boolean {
+  if (e.gravando) return true;
+  return e.falas > 0 && !e.salva && !e.salvando && !e.noRascunho;
 }

@@ -49,6 +49,7 @@ import GateDeConta from './components/conta/GateDeConta';
 import ModalDeMigracao from './components/conta/ModalDeMigracao';
 import PerguntaDeIdade from './components/conta/PerguntaDeIdade';
 import FloatingScoreLayer from './components/FloatingScoreLayer';
+import IndicadorDeSalvamento from './components/IndicadorDeSalvamento';
 import HostDeOfertas from './components/ofertas/HostDeOfertas';
 import ParticleCanvas from './components/ParticleCanvas';
 import MobileNav from './components/shell/MobileNav';
@@ -490,6 +491,8 @@ export default function App() {
           {/* Os números que sobem ("+10", "×3") — camada própria, no topo da árvore, para não
               serem cortados pelo `overflow` de nenhum container de jogo. */}
           <FloatingScoreLayer />
+          {/* O salvamento da captura continua fora da tela: o selo diz isso a quem saiu dela. */}
+          <IndicadorDeSalvamento naCaptura={activeView === 'capture'} aoVerCaptura={() => navigateTo('capture')} />
           <LayoutEditorToolbar />
           {protecao?.restrita && activeView === 'hub' && <AvisoDoResponsavel estado={protecao} />}
           <Suspense
@@ -520,7 +523,9 @@ export default function App() {
                 onTranscriptChange={setLiveTranscription}
                 resumingRecordingId={resumingRecordingId}
                 recordings={recordings}
+                onRecordingsChange={setRecordings}
                 onChangeView={navigateTo}
+                onEntrar={() => setPedindoLogin(true)}
                 ageProfile={ageProfile}
               />
             )}

@@ -15,6 +15,7 @@ import { temAdaptadorWebGpu } from '../../gateway/adaptadorWebGpu';
 import type { AvisoDeDegradacaoDoStt, SttFinal } from '../../gateway/capabilities';
 import { capMetrics, type CapSource } from '../../gateway/capture/captureMetrics';
 import type { EspeculacaoDoFinal } from '../../gateway/capture/systemAudio';
+import { aoFalharANuvemDoStt } from '../../gateway/falhaDaNuvemDoStt';
 import { areModelsCached, expectedModelIds } from '../../gateway/modelCache';
 import type { ContextoDoStt } from '../../gateway/promptDeStt';
 import { getSttQuality, nomeLegivelDoModelo, routeStt } from '../../gateway/sttRouter';
@@ -28,6 +29,7 @@ import { SpeakerClusterer } from '../speakerCluster';
 import { embedUtterance } from '../speakerId';
 import { isTtsActive } from '../tts';
 import { classificarVazamento, type Intervalo } from '../vazamento';
+import { planoDaReservaLocal } from './reservaLocal';
 import {
   type CaptureScenario,
   clog,
@@ -171,6 +173,8 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
   // O `seq` do VAD começa em 1 em CADA fonte; deslocamos o do mic (+MIC_SEQ_OFFSET) para que
   // as chaves (seqToSegment/capMetrics) nunca colidam quando as duas fontes rodam juntas.
   const MIC_SEQ_OFFSET = 1_000_000;
+  /** A reserva local desta captura (`reservaLocal.ts`): parciais locais ligados? Quem solta o ouvinte da falha? */
+  const reservaLocal: { parciaisLocais: boolean; soltar: (() => void) | null } = { parciaisLocais: true, soltar: null };
   const makeCaptureHandlers = (source: CapSource) => {
     const isSys = source === 'system';
     const idPrefix = isSys ? 'sys' : 'mic';
@@ -277,6 +281,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     // nunca enfileira → sem backlog). O texto aparece e refina em tempo real; a tradução acompanha.
     const onPartialAudio = (pcm: Float32Array, sr: number, rawSeq: number) => {
       if (perfModeRef.current) return; // modo desempenho: sem decodes parciais (só o final)
+      if (!reservaLocal.parciaisLocais) return; // celular/Quest na nuvem: o local é só reserva
       const seq = rawSeq + offset;
       if (suppressedSeqsRef.current.has(seq)) return; // anti-eco: enunciado é o nosso TTS
       const uttId = seqToSegmentRef.current.get(seq);
@@ -903,41 +908,64 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
 
     const cached = await areModelsCached(expectedModelIds(mtDe, mtPara, route.localModel));
 
+    /* RESERVA PREGUIÇOSA no celular e no Quest com nuvem primeiro (`reservaLocal.ts`, auditoria de
+       eficiência 2026-09-28, achado 4): nada baixa agora, a primeira falha da nuvem dispara a carga,
+       e o parcial local não roda. Uma nova preparação (troca de idioma/rota) solta o ouvinte antigo. */
+    const plano = planoDaReservaLocal({ preferCloud: route.preferCloud, tipo: perfil.tipo });
+    reservaLocal.soltar?.();
+    reservaLocal.soltar = null;
+    reservaLocal.parciaisLocais = plano.parciaisLocais;
+
     // NUVEM-PRIMEIRO: o motor principal é o Groq — a captura NÃO espera o download do
     // modelo local (que é só a RESERVA). Libera o pipeline já e baixa a reserva em
     // background; se a nuvem falhar num trecho, o adapter local aguarda o próprio load.
     if (route.preferCloud) {
       modelReadyRef.current = true;
       flushPendingUtterances();
-      setModelPrep({ whisper: 0, mt: null, fromCache: cached, error: null, done: false });
-      const tradutorDaReserva = () =>
-        gateway.mt.preload(mtDe, mtPara, (p, _l, bytes) =>
-          setModelPrep((s) => (s ? { ...s, mt: p >= 1 ? 1 : p, mtBytes: bytes ?? s.mtBytes } : s)),
-        );
-      if (!umDeCadaVez) tradutorDaReserva();
-      gateway.stt
-        .preloadModel(
-          (p, _l, bytes) =>
-            setModelPrep((s) => (s ? { ...s, whisper: p >= 1 ? 1 : p, whisperBytes: bytes ?? s.whisperBytes } : s)),
-          { aoDegradar: avisarDegradacao },
-        )
-        .finally(() => {
-          if (umDeCadaVez) tradutorDaReserva();
-        })
-        .then(() => {
-          clog('reserva local pronta ✓ (nuvem segue como principal)');
-          setModelPrep((s) => (s ? { ...s, whisper: 1, done: true } : s));
-          setTimeout(() => setModelPrep((s) => (s?.done ? null : s)), 1800);
-        })
-        .catch((e) => {
-          // A-P1-5: aqui só havia um clog(). Com a nuvem como principal, a falha do modelo local
-          // é degradação — não é fatal — mas ficava INVISÍVEL: medido, 150 s com a rede caída e
-          // o painel ainda dizendo "Baixando modelo", sem erro algum e sem botão de retry.
-          // Agora o estado de erro do ModelPrepPanel é alcançável nesta rota também.
-          clog('reserva local falhou (nuvem segue como principal):', String(e));
-          const msg = String((e as Error)?.message ?? e);
-          setModelPrep((s) => (s ? { ...s, error: msg } : s));
-        });
+      const carregarReserva = () => {
+        setModelPrep({ whisper: 0, mt: null, fromCache: cached, error: null, done: false });
+        const tradutorDaReserva = () =>
+          gateway.mt.preload(mtDe, mtPara, (p, _l, bytes) =>
+            setModelPrep((s) => (s ? { ...s, mt: p >= 1 ? 1 : p, mtBytes: bytes ?? s.mtBytes } : s)),
+          );
+        if (!umDeCadaVez) tradutorDaReserva();
+        gateway.stt
+          .preloadModel(
+            (p, _l, bytes) =>
+              setModelPrep((s) => (s ? { ...s, whisper: p >= 1 ? 1 : p, whisperBytes: bytes ?? s.whisperBytes } : s)),
+            { aoDegradar: avisarDegradacao },
+          )
+          .finally(() => {
+            if (umDeCadaVez) tradutorDaReserva();
+          })
+          .then(() => {
+            clog('reserva local pronta ✓ (nuvem segue como principal)');
+            setModelPrep((s) => (s ? { ...s, whisper: 1, done: true } : s));
+            setTimeout(() => setModelPrep((s) => (s?.done ? null : s)), 1800);
+          })
+          .catch((e) => {
+            // A-P1-5: aqui só havia um clog(). Com a nuvem como principal, a falha do modelo local
+            // é degradação — não é fatal — mas ficava INVISÍVEL: medido, 150 s com a rede caída e
+            // o painel ainda dizendo "Baixando modelo", sem erro algum e sem botão de retry.
+            // Agora o estado de erro do ModelPrepPanel é alcançável nesta rota também.
+            clog('reserva local falhou (nuvem segue como principal):', String(e));
+            const msg = String((e as Error)?.message ?? e);
+            setModelPrep((s) => (s ? { ...s, error: msg } : s));
+          });
+      };
+      if (plano.carregarAgora) {
+        carregarReserva();
+        return;
+      }
+      clog('reserva local preguiçosa: só carrega na primeira falha da nuvem | aparelho:', perfil.tipo);
+      setModelPrep(null);
+      const soltar = aoFalharANuvemDoStt(() => {
+        soltar();
+        if (reservaLocal.soltar === soltar) reservaLocal.soltar = null;
+        clog('nuvem do STT falhou → carregando a reserva local');
+        carregarReserva();
+      });
+      reservaLocal.soltar = soltar;
       return;
     }
 

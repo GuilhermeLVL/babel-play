@@ -1,5 +1,5 @@
 /**
- * Adapter Groq Whisper via proxy do servidor — áudio do sistema/aba (PCM → WAV) chega ao
+ * Adapter Groq Whisper via proxy do servidor — áudio do sistema/aba (PCM → Ogg Opus, ou WAV) chega ao
  * modelo whisper-large-v3-turbo na nuvem. A chave da API nunca chega ao cliente; o servidor
  * injeta via `x-credential-id`.
  */
@@ -7,8 +7,9 @@ import { apiFetch } from '../../data/api';
 import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { sinalizarRecusaLida } from '../../lib/ofertas/eventos';
 import { filtrarAlucinacao } from '../alucinacao';
-import { encodeWav } from '../audio/wav';
+import { audioParaStt } from '../audio/opusDoStt';
 import type { SttFinal, SttProvider } from '../capabilities';
+import { avisarFalhaDaNuvemDoStt } from '../falhaDaNuvemDoStt';
 import { esperaDoRetryAfter, PausaDaNuvem } from '../pausaDaNuvem';
 import { cortarPrompt } from '../promptDeStt';
 
@@ -52,10 +53,13 @@ export class GroqWhisperStt implements SttProvider {
     sampleRate: number,
     opts?: { languageHint?: string; signal?: AbortSignal; prompt?: string },
   ): Promise<SttFinal> {
-    const wav = encodeWav(pcm, sampleRate);
+    /* OGG OPUS (~24 kbps) quando o navegador codifica; WAV de 16 bits quando não (`opusDoStt.ts`).
+       ~10× menos dados por fala, mesma transcrição (bancada 2026-09). A duração cobrada é medida
+       no servidor, pelo contêiner — este cabeçalho só rotula o corpo. */
+    const audio = await audioParaStt(pcm, sampleRate);
 
     const headers: Record<string, string> = {
-      'Content-Type': 'audio/wav',
+      'Content-Type': audio.tipo,
       'x-model': this.cfg.model,
     };
     if (this.cfg.credentialId) {
@@ -65,7 +69,7 @@ export class GroqWhisperStt implements SttProvider {
       headers['x-language'] = opts.languageHint;
     }
     /* CONTEXTO: a última fala final da mesma fonte, no mesmo idioma (quem escolhe é o chamador; ver
-       `promptDeStt.ts`). Cabeçalho e não campo do corpo porque o corpo é o WAV cru. Codificado
+       `promptDeStt.ts`). Cabeçalho e não campo do corpo porque o corpo é o áudio cru. Codificado
        porque cabeçalho HTTP não carrega acento nem quebra de linha; cortado aqui de novo porque o
        teto de 224 é contrato com o servidor e não pode depender de todo chamador lembrar dele. */
     const prompt = opts?.prompt ? cortarPrompt(opts.prompt) : '';
@@ -75,17 +79,27 @@ export class GroqWhisperStt implements SttProvider {
 
     // Pelo funil (`apiFetch`): injeta o Bearer no modo público — este `fetch` cru não injetava, e
     // a STT de nuvem respondia 401 com login — e, sem conta, responde 501 sem tocar a rede.
-    const res = await apiFetch(this.endpoint, {
-      method: 'POST',
-      headers,
-      body: wav,
-      signal: opts?.signal,
-    });
+    let res: Response;
+    try {
+      res = await apiFetch(this.endpoint, {
+        method: 'POST',
+        headers,
+        body: audio.corpo,
+        signal: opts?.signal,
+      });
+    } catch (e) {
+      // Rede caída também é falha da nuvem (acorda a reserva preguiçosa); cancelamento não é.
+      if ((e as Error)?.name !== 'AbortError') avisarFalhaDaNuvemDoStt();
+      throw e;
+    }
 
     if (!res.ok) {
       const errorText = await res.text().catch(() => '');
       const retryAfter = res.headers?.get?.('retry-after');
       this.pausa.falha(res.status, retryAfter);
+      /* A reserva local preguiçosa (celular/Quest, `lib/captura/reservaLocal.ts`) começa a carregar
+         na primeira falha — o gateway já cai no local nesta mesma fala. */
+      avisarFalhaDaNuvemDoStt();
       // 402 de cota/plano vira momento de oferta (Fase 8); o host espera a captura acabar.
       sinalizarRecusaLida(res.status, errorText, 'transcricao');
       let code: string | undefined;

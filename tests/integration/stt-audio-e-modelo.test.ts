@@ -12,6 +12,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest
 
 import { asUserId } from '../../server/lib/authContext'
 import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
+import { oggOpus } from '../harness/ogg'
 import { wavPcm } from '../harness/wav'
 
 let h: EphemeralDb
@@ -154,5 +155,57 @@ describe('P0-3 — o modelo pago pelo app é decidido no servidor', () => {
     await stt({ userId: u, body: wavPcm(2), header: (n: string) => cab[n] }, res)
     expect(res.statusCode).toBe(200)
     expect(modelos[0]).toBe('whisper-large-v3')
+  })
+})
+
+describe('Ogg Opus no caminho pago pelo app (auditoria de eficiência 2026-09-28, achado 3)', () => {
+  /** Espia o `fetch` e devolve o arquivo que cada chamada levou no FormData. */
+  function espiarArquivo() {
+    const arquivos: Array<{ nome: string; tipo: string }> = []
+    const spy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (_url: any, init: any) => {
+      const f = (init?.body as FormData).get('file') as File
+      arquivos.push({ nome: f.name, tipo: f.type })
+      return { ok: true, status: 200, json: async () => ({ text: 'oi' }), text: async () => '' } as any
+    })
+    return { spy, arquivos }
+  }
+
+  it('Ogg legítimo de 6 s passa, vai ao provedor como audio/ogg e debita os 6 s reais — igual ao WAV', async () => {
+    const u = await usuarioPro('ogg-legitimo')
+    const { arquivos } = espiarArquivo()
+    const res = fakeRes()
+    await stt({ userId: u, body: oggOpus(6), header: () => undefined }, res)
+    expect(res.statusCode).toBe(200)
+    expect(arquivos[0]).toEqual({ nome: 'audio.ogg', tipo: 'audio/ogg' })
+    expect(await counters.get(u, 'stt_seconds', janela())).toBe(6)
+  })
+
+  it('WAV continua indo como audio/wav (o reserva de quem não tem WebCodecs)', async () => {
+    const u = await usuarioPro('ogg-wav-reserva')
+    const { arquivos } = espiarArquivo()
+    const res = fakeRes()
+    await stt({ userId: u, body: wavPcm(2), header: () => undefined }, res)
+    expect(res.statusCode).toBe(200)
+    expect(arquivos[0]).toEqual({ nome: 'audio.wav', tipo: 'audio/wav' })
+  })
+
+  it('granule forjado (30 s de pacotes declarados como 1 s) → 415, sem provedor e sem cota', async () => {
+    const u = await usuarioPro('ogg-forjado')
+    const { spy } = espiarArquivo()
+    const res = fakeRes()
+    await stt({ userId: u, body: oggOpus(30, { totalAmostras48k: 48_000 }), header: () => undefined }, res)
+    expect(res.statusCode).toBe(415)
+    expect(res.body?.code).toBe('audio_ilegivel')
+    expect(spy).not.toHaveBeenCalled()
+    expect(await counters.get(u, 'stt_seconds', janela())).toBe(0)
+  })
+
+  it('Ogg acima do teto por requisição → 413', async () => {
+    const u = await usuarioPro('ogg-teto')
+    const { spy } = espiarArquivo()
+    const res = fakeRes()
+    await stt({ userId: u, body: oggOpus(61), header: () => undefined }, res)
+    expect(res.statusCode).toBe(413)
+    expect(spy).not.toHaveBeenCalled()
   })
 })

@@ -21,13 +21,13 @@ export const aiRouter = Router()
 
 aiRouter.post('/llm/chat/completions', llmChatProxy)
 aiRouter.post('/providers/test', providerTest)
-/* STT de nuvem (áudio do sistema → Whisper). Corpo = bytes WAV crus (raw), não JSON.
+/* STT de nuvem (áudio do sistema → Whisper). Corpo = bytes Ogg Opus ou WAV crus (raw), não JSON.
    A PORTA vem ANTES do `raw()` (ADR 0007; fase 2 §2.3): plano (402), portão (503), configuração
    (501) e admissão (429 `nuvem_ocupada`) respondem sem ler um byte do corpo de até 25 MB. */
 aiRouter.post(
   '/stt',
   portaDoStt,
-  raw({ type: ['audio/wav', 'application/octet-stream'], limit: '25mb' }),
+  raw({ type: ['audio/wav', 'audio/ogg', 'application/octet-stream'], limit: '25mb' }),
   sttTranscribeProxy,
 )
 // Tradução via LLM (Groq) — 501 sem chave; sustenta a cadeia de MT e o modo multi-idioma.

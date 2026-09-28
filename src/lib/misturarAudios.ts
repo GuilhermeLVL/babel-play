@@ -33,7 +33,7 @@
  * pessoa numa sessão longa num navegador sem WebCodecs é ruim; perder a sessão inteira é pior.
  */
 import { TAXA_DE_BITS_DA_GRAVACAO } from '../gateway/capture/taxaDeBits';
-import { montarOggOpus, type PacoteOpus, preSkipDoOpusHead } from './oggOpus';
+import { codificarOggOpus, type ConfigOpus, opusDisponivel } from './codificadorOpus';
 
 const TAXA_SAIDA = 16_000;
 /**
@@ -41,10 +41,6 @@ const TAXA_SAIDA = 16_000;
  * não depender de arredondamento. ~57 minutos a 16 kHz/16 bits.
  */
 export const TETO_DO_WAV_BYTES = 110 * 1024 * 1024;
-/** Atraso padrão do libopus a 48 kHz (2,5 ms de lookahead + 4 ms de compensação = 312 amostras). */
-const PRE_SKIP_PADRAO = 312;
-/** Quantos pedidos de codificação deixamos na fila antes de esperar o codificador drenar. */
-const FILA_MAXIMA = 8;
 
 /**
  * Decodifica NUM contexto offline à taxa de saída: o `decodeAudioData` já devolve reamostrado a
@@ -83,94 +79,10 @@ function paraWav(buffer: AudioBuffer): Blob {
   return new Blob([dados.buffer], { type: 'audio/wav' });
 }
 
-interface ChunkOpus {
-  byteLength: number;
-  duration: number | null;
-  copyTo(dst: Uint8Array): void;
-}
-interface MetaOpus {
-  decoderConfig?: { description?: ArrayBuffer | ArrayBufferView };
-}
-
-/** O WebCodecs existe E aceita Opus mono nesta taxa? Qualquer dúvida é "não" — o WAV assume. */
-async function opusDisponivel(config: Record<string, unknown>): Promise<boolean> {
-  const g = globalThis as unknown as {
-    AudioEncoder?: { isConfigSupported(c: unknown): Promise<{ supported?: boolean }> };
-    AudioData?: unknown;
-  };
-  if (!g.AudioEncoder || !g.AudioData) return false;
-  try {
-    return (await g.AudioEncoder.isConfigSupported(config)).supported === true;
-  } catch {
-    return false;
-  }
-}
-
-/** Codifica o buffer mono em Opus pelo `AudioEncoder` e embrulha em Ogg. */
-async function codificarOpus(buffer: AudioBuffer, config: Record<string, unknown>): Promise<Blob> {
-  const g = globalThis as unknown as {
-    AudioEncoder: new (init: { output: (c: ChunkOpus, m?: MetaOpus) => void; error: (e: unknown) => void }) => {
-      configure(c: unknown): void;
-      encode(d: unknown): void;
-      flush(): Promise<void>;
-      close(): void;
-      encodeQueueSize: number;
-    };
-    AudioData: new (init: Record<string, unknown>) => { close(): void };
-  };
-  const pacotes: PacoteOpus[] = [];
-  let preSkip: number | null = null;
-  let erro: unknown = null;
-  const enc = new g.AudioEncoder({
-    output: (chunk, meta) => {
-      const dados = new Uint8Array(chunk.byteLength);
-      chunk.copyTo(dados);
-      // `duration` vem em µs; o granule do Opus conta amostras a 48 kHz, qualquer que seja a entrada.
-      pacotes.push({ dados, amostras48k: Math.round(((chunk.duration ?? 20_000) * 48_000) / 1e6) });
-      if (preSkip === null) preSkip = preSkipDoOpusHead(meta?.decoderConfig?.description);
-    },
-    error: (e) => {
-      erro = e;
-    },
-  });
-  try {
-    enc.configure(config);
-    const canal = buffer.getChannelData(0);
-    const bloco = buffer.sampleRate; // 1 s por AudioData
-    for (let i = 0; i < canal.length; i += bloco) {
-      if (erro) throw erro;
-      const parte = canal.subarray(i, Math.min(canal.length, i + bloco));
-      const quadro = new g.AudioData({
-        format: 'f32',
-        sampleRate: buffer.sampleRate,
-        numberOfFrames: parte.length,
-        numberOfChannels: 1,
-        timestamp: Math.round((i * 1e6) / buffer.sampleRate),
-        data: parte,
-      });
-      enc.encode(quadro);
-      quadro.close();
-      /* Contrapressão: sem esperar, uma sessão de uma hora enfileiraria 3600 pedidos de uma vez,
-         com cópia do PCM em cada um. Cedendo a vez, o codificador drena enquanto a fila anda. */
-      while (enc.encodeQueueSize > FILA_MAXIMA) await new Promise((r) => setTimeout(r, 0));
-    }
-    await enc.flush();
-    if (erro) throw erro;
-    const ogg = montarOggOpus({
-      pacotes,
-      canais: 1,
-      preSkip: preSkip ?? PRE_SKIP_PADRAO,
-      taxaDeEntrada: buffer.sampleRate,
-      totalAmostras48k: Math.round((canal.length * 48_000) / buffer.sampleRate),
-    });
-    return new Blob([ogg.buffer as ArrayBuffer], { type: 'audio/ogg; codecs=opus' });
-  } finally {
-    try {
-      enc.close();
-    } catch {
-      /* já fechado pelo erro */
-    }
-  }
+/** Codifica o buffer mono em Opus (`codificadorOpus.ts`) e devolve o Ogg como Blob. */
+async function codificarOpus(buffer: AudioBuffer, config: ConfigOpus): Promise<Blob> {
+  const ogg = await codificarOggOpus(buffer.getChannelData(0), config);
+  return new Blob([ogg.buffer as ArrayBuffer], { type: 'audio/ogg; codecs=opus' });
 }
 
 /**
@@ -184,7 +96,7 @@ export async function misturarAudios(a: Blob, b: Blob, offsetBMs: number): Promi
   const duracao = Math.max(bufA.duration + offA, bufB.duration + offB) + 0.05;
   const amostras = Math.ceil(duracao * TAXA_SAIDA);
 
-  const config = { codec: 'opus', sampleRate: TAXA_SAIDA, numberOfChannels: 1, bitrate: TAXA_DE_BITS_DA_GRAVACAO };
+  const config: ConfigOpus = { codec: 'opus', sampleRate: TAXA_SAIDA, numberOfChannels: 1, bitrate: TAXA_DE_BITS_DA_GRAVACAO };
   const comOpus = await opusDisponivel(config);
   /* Decidido ANTES de renderizar: sem Opus, uma mistura que não cabe no upload nem é montada — a
      renderização de uma sessão longa custaria centenas de MB de memória para um arquivo inútil. */

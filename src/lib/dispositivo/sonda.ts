@@ -121,7 +121,17 @@ export async function disponibilidadeDoSttNoAparelho(
   escopo: unknown = globalThis,
   prazoMs = PRAZO_DA_PERGUNTA_MS,
 ): Promise<Disponibilidade | null> {
-  const e = escopo as { SpeechRecognition?: ComDisponivel; webkitSpeechRecognition?: ComDisponivel };
+  const e = escopo as {
+    SpeechRecognition?: ComDisponivel;
+    webkitSpeechRecognition?: ComDisponivel;
+    navigator?: { webdriver?: boolean };
+  };
+  /* NAVEGADOR SOB AUTOMAÇÃO NÃO PERGUNTA. No Chromium do Playwright (headless, sem o serviço de voz
+     embutido) a chamada `available({processLocally})` DERRUBA a aba ("Page crashed" no e2e da
+     captura, 28/09) — num Chrome 152 comum ela responde normalmente ("unavailable" sem o pacote).
+     Com `webdriver` ligado não há usuário para ouvir: responder "sem resposta" é o mesmo que o
+     Firefox, e a captura segue pelo caminho local de sempre. */
+  if (e.navigator?.webdriver === true) return null;
   const SR = e.SpeechRecognition ?? e.webkitSpeechRecognition;
   if (typeof SR?.available !== 'function') return null;
   return disponibilidade(await comPrazo(() => SR.available!({ langs: [lang], processLocally: true }), prazoMs));

@@ -171,6 +171,13 @@ describe('detecção de recurso com globais falsos', () => {
     expect(available).toHaveBeenCalledWith({ langs: ['pt-BR'], processLocally: true })
   })
 
+  it('navegador sob automação (navigator.webdriver): não pergunta — o Chromium headless cai', async () => {
+    const available = vi.fn(async () => 'available')
+    const escopo = { SpeechRecognition: { available }, navigator: { webdriver: true } }
+    expect(await disponibilidadeDoSttNoAparelho('pt-BR', escopo, 50)).toBeNull()
+    expect(available).not.toHaveBeenCalled()
+  })
+
   it('available que lança ou devolve lixo: null', async () => {
     const lanca = {
       SpeechRecognition: {

@@ -56,6 +56,8 @@ export interface TranslationProvider extends AdapterMeta {
     tgt: string,
     onProgress?: (progress: number, label?: string, bytes?: { loaded: number; total: number }) => void,
   ): void;
+  /** Motor LOCAL que carrega modelo: avisa quando um fica pronto (o gateway fecha o disjuntor dele). */
+  aoFicarPronto?(fn: (modelo: string) => void): () => void;
 }
 
 // ───────────────────────────────── LLM ─────────────────────────────────

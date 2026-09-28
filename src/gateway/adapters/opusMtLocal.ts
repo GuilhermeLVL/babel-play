@@ -1,4 +1,4 @@
-import { ChamadaCancelada } from '@core';
+import { ChamadaCancelada, MotorAindaCarregando } from '@core';
 
 import type { MtOptions, MtResult, TranslationProvider } from '../capabilities';
 import { gravarManifesto, MENSAGEM_DO_MANIFESTO } from '../modelManifest';
@@ -11,6 +11,11 @@ import { gravarManifesto, MENSAGEM_DO_MANIFESTO } from '../modelManifest';
  * NÃO-BLOQUEANTE: o modelo (~113MB) carrega em BACKGROUND. Enquanto não estiver pronto, cada
  * `translate` falha rápido (o gateway cai para o próximo adapter — Chrome Translator/MyMemory),
  * em vez de segurar a tradução esperando o download. Quando fica pronto, passa a atender.
+ *
+ * O "falha rápido" é `MotorAindaCarregando`, um PULO: não conta no disjuntor (Quest emulado,
+ * 2026-09-28 — contado como falha, abria o disjuntor por 30 s e a primeira tradução real chegava
+ * aos 54,6 s com o modelo pronto aos 29,3 s). Quando o modelo fica pronto, `aoFicarPronto` avisa
+ * o gateway (fecha o disjuntor) e a captura (retraduz o que ficou sem tradução).
  */
 export class OpusMtLocal implements TranslationProvider {
   readonly id = 'opus-mt-local';
@@ -24,6 +29,7 @@ export class OpusMtLocal implements TranslationProvider {
   private loading = new Set<string>(); // modelos com preload em andamento
   private failed = new Set<string>(); // modelos que falharam o carregamento nesta máquina (não re-tenta)
   private onProgress: ((p: number, label?: string, bytes?: { loaded: number; total: number }) => void) | null = null;
+  private prontidao = new Set<(modelo: string) => void>();
 
   private readonly ROMANCE = new Set(['pt', 'es', 'fr', 'it', 'ro', 'ca', 'gl']);
   private readonly DEDICADOS = new Set(['es', 'fr', 'it', 'de']);
@@ -46,6 +52,12 @@ export class OpusMtLocal implements TranslationProvider {
     // Modelo que já falhou o carregamento aqui deixa de ser "suportado" → o gateway o pula
     // e roteia direto para o próximo tradutor (Chrome/Edge Translator), sem re-tentar.
     return model !== null && !this.failed.has(model);
+  }
+
+  /** Avisa quando um modelo fica PRONTO. Devolve quem solta o ouvinte. */
+  aoFicarPronto(fn: (modelo: string) => void): () => void {
+    this.prontidao.add(fn);
+    return () => this.prontidao.delete(fn);
   }
 
   /**
@@ -84,6 +96,14 @@ export class OpusMtLocal implements TranslationProvider {
       if (type === 'ready') {
         this.ready.add(model);
         this.loading.delete(model);
+        // Antes do progresso: o disjuntor fecha ANTES de a captura pedir as retraduções.
+        for (const fn of this.prontidao) {
+          try {
+            fn(model);
+          } catch {
+            /* ouvinte com defeito não impede o resto */
+          }
+        }
         this.onProgress?.(1, 'Tradutor pronto');
         return;
       }
@@ -140,7 +160,8 @@ export class OpusMtLocal implements TranslationProvider {
     /* PARCIAL NÃO BAIXA MODELO. Um texto que o próximo refinamento joga fora não justifica abrir o
        worker e puxar ~113 MB (no celular, plano de dados). O parcial só usa o modelo já pronto; o
        final — ou o aquecimento do início da gravação — é quem dispara o download. */
-    if (opts?.parcial && !this.ready.has(model)) throw new Error('opus-mt não carregado: parcial fica sem tradução local');
+    if (opts?.parcial && !this.ready.has(model))
+      throw new MotorAindaCarregando(this.id, 'opus-mt não carregado: parcial fica sem tradução local');
     this.ensureWorker();
 
     // Ainda não carregou este modelo → dispara preload em background e FALHA RÁPIDO
@@ -150,7 +171,7 @@ export class OpusMtLocal implements TranslationProvider {
         this.loading.add(model);
         this.worker!.postMessage({ type: 'preload', src, tgt });
       }
-      throw new Error('opus-mt ainda carregando (usando fallback)');
+      throw new MotorAindaCarregando(this.id, 'opus-mt ainda carregando (usando fallback)');
     }
 
     const id = Math.random().toString(36).slice(2);

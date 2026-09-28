@@ -538,7 +538,10 @@ export function criarLacoDeParticulas({ canvas, ctx, pedirQuadro, cancelarQuadro
         ctx.save();
         ctx.translate(p.x, p.y);
         ctx.rotate(p.giro ?? 0);
-        const s = p.size;
+        /* Piso de tamanho: com a skin Lampejo o raio substitui as faíscas comuns (acerto, combo),
+           de 1,2 a 3 px — o ziguezague saía com 4 px de altura e 1 de largura, um risco ilegível
+           onde antes havia a estrela de 12 px. Com 3,5 ele fica perto dos 12 px da antiga. */
+        const s = Math.max(p.size, 3.5);
         ctx.beginPath();
         ctx.moveTo(0, -s * 1.6);
         ctx.lineTo(s * 0.55, -s * 0.2);

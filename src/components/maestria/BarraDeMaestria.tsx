@@ -11,9 +11,9 @@ import { Award, Crown, Gem, type LucideIcon, Medal, Trophy } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react';
 
 import { celebrar } from '../../lib/comemoracao';
+import { EVENTO_MAESTRIA_SUBIU } from '../../lib/filaDeRecompensas';
 import { t } from '../../lib/i18n';
 import { movimentoReduzido } from '../../lib/juice';
-import { EVENTO_MAESTRIA_SUBIU } from '../RecompensaDesbloqueada';
 
 /**
  * A BARRA DE MAESTRIA DE UM JOGO (recompensas v2, onda 3 — spec 8.1).

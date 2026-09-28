@@ -10,14 +10,15 @@ import { act, cleanup, render, screen } from '@testing-library/react'
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import RecompensaDesbloqueada, {
+import RecompensaDesbloqueada from '../src/components/RecompensaDesbloqueada'
+import { SEEDS_DO_DROP } from '../src/core/economiaAutoridade'
+import {
   chaveDaRecompensa,
   EVENTO_RODADA_FECHOU,
   marcarVista,
   type Recompensa,
   recompensasVistas,
-} from '../src/components/RecompensaDesbloqueada'
-import { SEEDS_DO_DROP } from '../src/core/economiaAutoridade'
+} from '../src/lib/filaDeRecompensas'
 import { CATALOGO_DA_LOJA } from '../src/lib/loja'
 import { prepararDialogoNoJsdom } from './_dialogoNoJsdom'
 

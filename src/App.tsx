@@ -23,6 +23,8 @@ const Estatisticas = lazyComRecarga(() => import('./components/views/Estatistica
 const Ajuda = lazyComRecarga(() => import('./components/views/Ajuda'));
 const NaoEncontrado = lazyComRecarga(() => import('./components/views/NaoEncontrado'));
 const Loja = lazyComRecarga(() => import('./components/views/Loja'));
+/* O modal de resgate: só quando há recompensa na fila (a fila em si mora em `lib/filaDeRecompensas`). */
+const RecompensaDesbloqueada = lazyComRecarga(() => import('./components/RecompensaDesbloqueada'));
 const Login = lazyComRecarga(() => import('./components/Login'));
 const ResetPassword = lazyComRecarga(() => import('./components/auth/ResetPassword'));
 const DesafioSegundoFator = lazyComRecarga(() => import('./components/auth/DesafioSegundoFator'));
@@ -43,7 +45,6 @@ import PerguntaDeIdade from './components/conta/PerguntaDeIdade';
 import FloatingScoreLayer from './components/FloatingScoreLayer';
 import HostDeOfertas from './components/ofertas/HostDeOfertas';
 import ParticleCanvas from './components/ParticleCanvas';
-import RecompensaDesbloqueada, { tirarDaFila } from './components/RecompensaDesbloqueada';
 import MobileNav from './components/shell/MobileNav';
 import MobileTopBar from './components/shell/MobileTopBar';
 import StudioHeader from './components/StudioHeader';
@@ -62,6 +63,7 @@ import { useRecompensas } from './lib/estado/useRecompensas';
    das chamadas abaixo é a ordem em que os efeitos rodavam antes da divisão, e é por isso que os
    hooks são chamados exatamente onde o bloco original estava. */
 import { useSessaoSupabase } from './lib/estado/useSessaoSupabase';
+import { tirarDaFila } from './lib/filaDeRecompensas';
 import { equiparItem } from './lib/galeria/equipar';
 import { useIdiomaDaInterfaceEscolhido } from './lib/langConfig';
 import { dispararOferta } from './lib/ofertas/eventos';
@@ -596,18 +598,24 @@ export default function App() {
                 equiparCtx={equiparCtx}
               />
             )}
-            {/* v3: recompensa entregue na hora — em qualquer tela, esperando a rodada fechar. */}
-            <RecompensaDesbloqueada
-              fila={filaDeRecompensas}
-              onEquipar={(item) => equiparItem(item, equiparCtx)}
-              onFechar={(r) => {
-                setFilaDeRecompensas((f) => tirarDaFila(f, r));
-                /* Conquista relevante (Fase 8): a oferta vem DEPOIS da celebração fechar, nunca sobre
-                   ela — e o host ainda espera se houver outra recompensa na fila (diálogo aberto). */
-                if (r.tipo === 'conquista') dispararOferta('conquista', { id: r.id });
-              }}
-              onVerPersonalizar={() => navigateTo('loja', { aba: 'personalizar' })}
-            />
+            {/* v3: recompensa entregue na hora — em qualquer tela, esperando a rodada fechar. O modal
+                vem sob demanda (só existe com fila), num Suspense próprio: carregar o chunk dele não
+                pode trocar a tela inteira pelo fallback. */}
+            {filaDeRecompensas.length > 0 && (
+              <Suspense fallback={null}>
+                <RecompensaDesbloqueada
+                  fila={filaDeRecompensas}
+                  onEquipar={(item) => equiparItem(item, equiparCtx)}
+                  onFechar={(r) => {
+                    setFilaDeRecompensas((f) => tirarDaFila(f, r));
+                    /* Conquista relevante (Fase 8): a oferta vem DEPOIS da celebração fechar, nunca sobre
+                       ela — e o host ainda espera se houver outra recompensa na fila (diálogo aberto). */
+                    if (r.tipo === 'conquista') dispararOferta('conquista', { id: r.id });
+                  }}
+                  onVerPersonalizar={() => navigateTo('loja', { aba: 'personalizar' })}
+                />
+              </Suspense>
+            )}
             {activeView === 'settings' && (
               <Settings
                 theme={theme}

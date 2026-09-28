@@ -1,6 +1,13 @@
 import type { ContextoDeConquistas } from '@core';
 import { type Dispatch, type SetStateAction, useEffect, useMemo, useRef, useState } from 'react';
 
+import type { MenuPositionType } from '../../components/shell/navItems';
+import { toast } from '../../components/Toast';
+import type { AppMetrics, RecordeDoJogo } from '../../data/api';
+import type { FonteType, ThemeType } from '../appearance';
+import { celebrar } from '../comemoracao';
+import { montarContextoDeConquistas, verificarConquistas } from '../conquistas';
+import { desbloqueado } from '../desbloqueios';
 import {
   chaveDaRecompensa,
   type DetalheDaMaestria,
@@ -11,14 +18,7 @@ import {
   type Recompensa,
   recompensaDaMaestria,
   recompensasVistas,
-} from '../../components/RecompensaDesbloqueada';
-import type { MenuPositionType } from '../../components/shell/navItems';
-import { toast } from '../../components/Toast';
-import type { AppMetrics, RecordeDoJogo } from '../../data/api';
-import type { FonteType, ThemeType } from '../appearance';
-import { celebrar } from '../comemoracao';
-import { montarContextoDeConquistas, verificarConquistas } from '../conquistas';
-import { desbloqueado } from '../desbloqueios';
+} from '../filaDeRecompensas';
 import type { ContextoDeEquipar } from '../galeria/equipar';
 import { itemDaConquista, recompensasDoNivelCompleto } from '../galeria/progressao';
 import { t } from '../i18n';

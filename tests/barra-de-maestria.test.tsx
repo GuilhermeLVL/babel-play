@@ -25,7 +25,7 @@ const {
   subidasDeMaestria,
   ATRASO_DO_GANHO_MS,
 } = await import('../src/components/maestria/BarraDeMaestria')
-const { EVENTO_MAESTRIA_SUBIU } = await import('../src/components/RecompensaDesbloqueada')
+const { EVENTO_MAESTRIA_SUBIU } = await import('../src/lib/filaDeRecompensas')
 const { useRecompensas } = await import('../src/lib/estado/useRecompensas')
 const { EMPTY_PROGRESS } = await import('../src/lib/progress')
 

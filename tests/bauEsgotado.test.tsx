@@ -16,7 +16,7 @@ vi.mock('../src/lib/conquistas', () => ({
 }))
 
 const { toast } = await import('../src/components/Toast')
-const { EVENTO_DROP_GANHO } = await import('../src/components/RecompensaDesbloqueada')
+const { EVENTO_DROP_GANHO } = await import('../src/lib/filaDeRecompensas')
 const { useRecompensas } = await import('../src/lib/estado/useRecompensas')
 const { EMPTY_PROGRESS } = await import('../src/lib/progress')
 

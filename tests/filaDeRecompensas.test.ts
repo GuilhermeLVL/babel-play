@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { enfileirarSemRepetir, type Recompensa, tirarDaFila } from '../src/components/RecompensaDesbloqueada'
+import { enfileirarSemRepetir, type Recompensa, tirarDaFila } from '../src/lib/filaDeRecompensas'
 
 /**
  * A FILA DO MODAL DE RESGATE NÃO REPETE. As conquistas são reavaliadas a cada métrica nova, e

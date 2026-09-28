@@ -2,11 +2,8 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import RecompensaDesbloqueada, {
-  chaveDaRecompensa,
-  type Recompensa,
-  recompensasVistas,
-} from '../src/components/RecompensaDesbloqueada'
+import RecompensaDesbloqueada from '../src/components/RecompensaDesbloqueada'
+import { chaveDaRecompensa, type Recompensa, recompensasVistas } from '../src/lib/filaDeRecompensas'
 import { CATALOGO_DA_LOJA } from '../src/lib/loja'
 import { prepararDialogoNoJsdom } from './_dialogoNoJsdom'
 

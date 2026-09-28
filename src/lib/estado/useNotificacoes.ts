@@ -3,8 +3,8 @@ import { type EstadoDasMissoes, rotuloDaMaestria } from '@core';
 import { temporadaAtual } from '@core/temporada';
 import { useEffect, useRef } from 'react';
 
-import { chaveDaRecompensa, type Recompensa } from '../../components/RecompensaDesbloqueada';
 import type { AppMetrics } from '../../data/api';
+import { chaveDaRecompensa, type Recompensa } from '../filaDeRecompensas';
 import { t, tp } from '../i18n';
 import { podeAvisarMissao, registrarAvisoDeMissao } from '../metaDoDia';
 import { jaNotificado, notificar } from '../notificacoes';

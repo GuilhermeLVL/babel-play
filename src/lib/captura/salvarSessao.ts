@@ -526,8 +526,8 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
     }
     setShowSaveModal(false);
     // Vindo do Encerrar com a gravação pausada: as fontes fecham AGORA; o áudio chega depois.
+    // O "Salvando…" é o selo do App (`IndicadorDeSalvamento`): um toast aqui ficava na tela depois da recusa.
     const audio = fontesAbertas() ? encerrarFontes() : Promise.resolve(recordedAudioRef.current);
-    setFeedbackMsg('Salvando sessão…');
 
     return salvarCaptura({
       origemLocalId,

@@ -85,7 +85,7 @@ export default function CapturaNaoSalva({
   };
 
   return (
-    <section className="cartao pilha" aria-labelledby="captura-nao-salva-titulo" data-testid="captura-nao-salva" role="region">
+    <section className="cartao p6 pilha" aria-labelledby="captura-nao-salva-titulo" data-testid="captura-nao-salva" role="region">
       <p className="aviso-info warn">
         <TriangleAlert aria-hidden />
         <span>

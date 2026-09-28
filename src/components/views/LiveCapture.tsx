@@ -1245,6 +1245,31 @@ export default function LiveCapture({
       return capMetrics.summary();
     };
 
+    /* FALAS PRONTAS, sem STT nem MT (bancada do fim da captura, 2026-09-28): acrescenta finais já
+       transcritas e traduzidas, pelo MESMO estado que o pipeline escreve. É o que deixa o e2e
+       medir Parar → Salvar → sair sem modelo de fala, rede nem áudio de verdade.
+       Uso no console: window.__simFalas(['primeira frase', 'segunda frase']) */
+    (window as any).__simFalas = (textos: string[], fonte: 'system' | 'mic' = 'system') => {
+      const agora = Date.now();
+      setSpeechSegments((prev) => [
+        ...prev,
+        ...textos.map((texto, i) => ({
+          id: `sim-${agora}-${i}`,
+          speakerId: fonte === 'system' ? 'system' : 'user',
+          source: fonte,
+          timestamp: formatTime(Math.round((prev.length + i) * 2)),
+          originalText: texto,
+          translatedText: `(${texto})`,
+          words: wordsFromText(texto, 'en'),
+          isPartial: false,
+          tStartMs: (prev.length + i) * 2000,
+          tEndMs: (prev.length + i) * 2000 + 1500,
+          lang: 'en',
+        })),
+      ]);
+      return textos.length;
+    };
+
     // BENCHMARK (#0): mede o custo RAW e STEADY-STATE de decode (Whisper) e de tradução (MT),
     // SEQUENCIALMENTE (await em cada passo) — sem contenção auto-infligida de fila. É o número
     // que os wins #1–#3 (warmup/dtype/knobs) e #4 (MT local) devem melhorar. Reflete o "acompanha
@@ -1347,6 +1372,11 @@ export default function LiveCapture({
   const estatica = edicaoEstatica();
   const estadoDoAcervo = estaAnonimo() ? estadoDoTeto('sessoes', recordings?.length ?? 0, { edicaoEstatica: estatica }) : null;
   const tetoAtingido = !!estadoDoAcervo && !estadoDoAcervo.cabe;
+  /** Iniciar no teto: o aviso (com as saídas) em vez de uma captura, e antes de qualquer download. */
+  const avisarTeto = () => {
+    setFeedbackMsg(t('O limite de gravações deste navegador foi atingido'));
+    document.querySelector('[data-testid="captura-nao-salva"]')?.scrollIntoView({ block: 'center' });
+  };
   /* A COMEMORAÇÃO ESPERA (`filaDeRecompensas`): gravando ou com o Encerrar aberto, o modal de
      resgate fica na fila. Sair da tela solta a marca (o salvamento tem a sua própria). */
   useEffect(() => {
@@ -1515,10 +1545,7 @@ export default function LiveCapture({
     origemLocalIdRef,
     aoAtualizarGravacao: (r) => onRecordingsChange?.((lista) => lista.map((x) => (x.id === r.id ? r : x))),
     tetoAtingido,
-    aoTetoAtingido: () => {
-      setFeedbackMsg(t('O limite de gravações deste navegador foi atingido'));
-      document.querySelector('[data-testid="captura-nao-salva"]')?.scrollIntoView({ block: 'center' });
-    },
+    aoTetoAtingido: avisarTeto,
   });
 
   // --- RETOMAR SESSÃO: reidrata o transcript REAL do backend (não usa mock) ---
@@ -2757,7 +2784,9 @@ export default function LiveCapture({
                         <button
                           type="button"
                           className="btn btn-solid"
-                          onClick={() => void iniciarComAvisoDeDownload()}
+                          /* No teto, nem o aviso de download: baixar 200 MB para uma captura que não
+                             teria onde ficar seria mais uma porta sem saída. */
+                          onClick={() => (tetoAtingido && !resumeId ? avisarTeto() : void iniciarComAvisoDeDownload())}
                           disabled={!micEnabled && !systemEnabled}
                         >
                           <Mic aria-hidden />

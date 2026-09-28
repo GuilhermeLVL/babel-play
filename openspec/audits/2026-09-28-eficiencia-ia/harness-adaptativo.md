@@ -189,6 +189,13 @@ Apple SpeechAnalyzer (WWDC25), ML Kit GenAI, capawesome/capgo, Meta PWA packagin
   salvo com o vínculo do responsável aceito e a conta não restrita — a régua da nuvem.
 - **Translator API no clique** — `gateway.mt.prepararNativo` no "Iniciar" (com `monitor`); o
   `warmup`/`preload` do opus-mt pulam o par que o nativo já traduz.
+- **Pacotes do navegador (estágio 4, parte 1)** — o do Translator e o de voz (`install()`) aparecem
+  como linhas do `ModelPrepPanel` (`lib/captura/pacotesNativos.ts`); falha some em silêncio e o
+  opus-mt/Whisper seguem. Com o pacote de voz `downloadable` e o degrau seguinte sendo o Whisper, a
+  instalação é esperada (prazo de 3 min) e a sessão já usa o local; o "Privado" do diálogo vira o
+  reconhecimento do navegador, recomendado. Translator para QUALQUER par da sessão (`codigoDoTradutor`,
+  zh-Hant), lembrado por sessão; a sonda guarda só a presença da API. O parcial só usa o tradutor
+  nativo já criado — nunca cria.
 - **Regulador** — `src/lib/captura/reguladorDaCaptura.ts`, alimentado por final LOCAL (RTF, fila,
   latência, visibilidade, bateria, `PressureObserver`): corta parciais, desce o modelo
   (`stt.trocarModeloLocal`), sobe com folga, proíbe o modelo após falha de GPU em uso, oferece
@@ -208,7 +215,6 @@ Apple SpeechAnalyzer (WWDC25), ML Kit GenAI, capawesome/capgo, Meta PWA packagin
   que falhou no mesmo pedido. Vira útil quando o "local primeiro, sobe se ruim" for decidido.
 - `trocar-backend` não é emitido (microbenchmark ainda não alimenta a config). OOM fora da GPU não
   é detectado. Escaladas não vão à telemetria do servidor (só na aba).
-- Progresso do pacote do Translator só no log (sem barra); `install()` do reconhecimento sem UI.
 - Limiares (2,4 aproximado sem zlib; razão/cópia da MT) sem calibração na bancada.
 
 **Conferir em aparelho real:** `processLocally` + `available()` em pt-BR no Chrome estável;

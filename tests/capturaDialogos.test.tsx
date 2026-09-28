@@ -10,6 +10,7 @@ import React from 'react'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import EncerrarSessao from '../src/components/views/captura/EncerrarSessao'
+import EscolhaDoMicrofone from '../src/components/views/captura/EscolhaDoMicrofone'
 import IdiomasDaSessao, { type Lado } from '../src/components/views/captura/IdiomasDaSessao'
 import { prepararDialogoNoJsdom } from './_dialogoNoJsdom'
 
@@ -113,5 +114,50 @@ describe('Encerrar a sessão (C8)', () => {
     expect(p.aoTrocarCapa).toHaveBeenCalledWith(expect.stringMatching(/^data:image\/svg\+xml,/))
     fireEvent.click(screen.getByRole('button', { name: 'Buscar imagem de capa' }))
     expect(screen.getByRole('textbox', { name: 'Buscar imagem de capa' })).toHaveProperty('value', 'Reunião')
+  })
+})
+
+describe('Rápido ou Privado (a pergunta do microfone)', () => {
+  beforeAll(prepararDialogoNoJsdom)
+  afterEach(cleanup)
+
+  function montar(mb: number | null = 80) {
+    const props = { mb, aoEscolher: vi.fn(), aoFechar: vi.fn() }
+    render(<EscolhaDoMicrofone {...props} />)
+    return props
+  }
+
+  it('diz para quem o áudio vai no "Rápido" e o tamanho do download no "Privado"', () => {
+    montar(80)
+    const d = screen.getByRole('dialog', { name: 'Como transcrever a sua voz?' })
+    expect(d.textContent).toMatch(/Google \(Chrome, Android\).*Microsoft \(Edge\).*Apple \(Safari\)/)
+    expect(d.textContent).toMatch(/cerca de 80 MB/)
+    expect(d.textContent).toMatch(/pode errar mais em português/)
+  })
+
+  it('sem tamanho conhecido, não inventa número', () => {
+    montar(null)
+    expect(screen.getByRole('dialog').textContent).not.toMatch(/MB/)
+  })
+
+  it('nenhuma opção vem marcada: "Continuar" só depois de escolher, e devolve a escolha', () => {
+    const p = montar()
+    const continuar = screen.getByRole('button', { name: 'Continuar' }) as HTMLButtonElement
+    expect(continuar.disabled).toBe(true)
+    expect(screen.queryAllByRole('button', { pressed: true })).toHaveLength(0)
+    fireEvent.click(screen.getByRole('button', { name: /Privado/ }))
+    fireEvent.click(continuar)
+    expect(p.aoEscolher).toHaveBeenCalledWith('privado')
+    fireEvent.click(screen.getByRole('button', { name: /Rápido/ }))
+    fireEvent.click(continuar)
+    expect(p.aoEscolher).toHaveBeenLastCalledWith('rapido')
+    expect(p.aoFechar).not.toHaveBeenCalled()
+  })
+
+  it('"Agora não" fecha sem escolher', () => {
+    const p = montar()
+    fireEvent.click(screen.getByRole('button', { name: 'Agora não' }))
+    expect(p.aoFechar).toHaveBeenCalled()
+    expect(p.aoEscolher).not.toHaveBeenCalled()
   })
 })

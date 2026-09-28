@@ -73,6 +73,7 @@ import {
 } from '../../lib/audioDevices';
 // Fontes de áudio: som do sistema/aba, microfone (Whisper ou Web Speech) e o mudo/ativo do mic.
 import { criarFontesDeAudio } from '../../lib/captura/fontesDeAudio';
+import type { EscolhaDoMic } from '../../lib/captura/motorDoMicrofone';
 // Vocabulário dentro da captura: examinar a palavra, fichar no deck, mandar praticar.
 import { criarPalavraDaFala } from '../../lib/captura/palavraDaFala';
 // Pipeline de fala: VAD → STT → diarização → emissão, e a preparação dos modelos locais.
@@ -95,7 +96,7 @@ import {
 // Relógio da sessão + pipeline de MT (retradução de degradados incluída).
 import { criarRelogioDaSessao, criarTraducaoDaFala } from '../../lib/captura/traducaoDaFala';
 import { cenarioDasFontes } from '../../lib/cenarioDeCaptura';
-import { consentiuNuvem } from '../../lib/consentimentoDeNuvem';
+import { consentiuNuvem, rapidoDoMicPermitido, useEscolhaDoMic } from '../../lib/consentimentoDeNuvem';
 import { DominantLangTracker } from '../../lib/convoLang';
 import { mbQueFaltaBaixar, precisaConfirmarDownload } from '../../lib/dispositivo/avisoDeDownload';
 import { classificarDispositivo, dispositivoDaRota, lerSinaisDoDispositivo } from '../../lib/dispositivo/perfil';
@@ -142,6 +143,7 @@ import { CabecalhoDeTela, Dialogo, fecharDialogoDe } from '../ui';
 import VocabularyPanel from '../VocabularyPanel';
 // Subcomponentes locais da captura (um arquivo por componente, em `views/captura/`).
 import EncerrarSessao from './captura/EncerrarSessao';
+import EscolhaDoMicrofone from './captura/EscolhaDoMicrofone';
 import IdiomasDaSessao, { type Lado } from './captura/IdiomasDaSessao';
 import LegendasFlutuantes, { type LegendaAoVivo } from './captura/LegendasFlutuantes';
 import ModeloNoDispositivo, { type ModeloDaCaptura } from './captura/ModeloNoDispositivo';
@@ -286,6 +288,25 @@ export default function LiveCapture({
   const [micEngine, setMicEngine] = useState<'browser' | 'whisper'>('browser');
   const webSpeechSupported =
     typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
+  /* "RÁPIDO" OU "PRIVADO" (`lib/captura/motorDoMicrofone.ts`): sem o reconhecimento no aparelho, a
+     primeira abertura do mic pergunta; `startMic` espera a resposta por esta promessa. A resposta
+     fica nas preferências (consentimento próprio, com data) e muda no painel de ajustes. */
+  const [pedidoDaEscolhaDoMic, setPedidoDaEscolhaDoMic] = useState<((e: EscolhaDoMic | null) => void) | null>(
+    null,
+  );
+  const { escolha: escolhaDoMic, escolher: escolherNoMic } = useEscolhaDoMic();
+  const perguntarEscolhaDoMic = () =>
+    new Promise<EscolhaDoMic | null>((responder) => setPedidoDaEscolhaDoMic(() => responder));
+  /** Guarda ANTES de responder: o `startMic` que espera já lê a escolha gravada. */
+  const trocarEscolhaDoMic = (e: EscolhaDoMic) =>
+    void escolherNoMic(e).then((ok) => {
+      if (!ok) toast.warn(t('Não consegui registrar a escolha. Verifique a conexão e tente de novo.'));
+    });
+  const responderEscolhaDoMic = (e: EscolhaDoMic | null) => {
+    if (e) trocarEscolhaDoMic(e);
+    pedidoDaEscolhaDoMic?.(e);
+    setPedidoDaEscolhaDoMic(null);
+  };
   // Velocidade do TTS (escutar tradução/palavra). Persistida em settings.ui.
   const [ttsSpeed, setTtsSpeed] = useState(1.0);
   // Waveform REAL: histórico de níveis (0..1) que segue o áudio capturado, não animação falsa.
@@ -1138,6 +1159,7 @@ export default function LiveCapture({
     setIsRecording,
     setMicAbrindo,
     finalNaNuvem: () => gateway.stt.finalNaNuvem(),
+    perguntarEscolhaDoMic,
   });
 
   // Harness OFFLINE de teste (dev): injeta um PCM conhecido pelo MESMO caminho do sistema
@@ -1989,6 +2011,22 @@ export default function LiveCapture({
      tradutor aparece com o tamanho dele no diálogo "Modelo no dispositivo" e entra no aviso de download. */
   const mbDoModelo = modelosDaCaptura[0]?.mbEstimado ?? 0;
 
+  /* O download do "Privado" na pergunta do microfone: o modelo que a rota do STT carrega quando a SUA
+     voz vai ao Whisper (`micLang` = o seu idioma), no dtype deste aparelho. */
+  const mbDoMicPrivado = useMemo(() => {
+    const rota = routeStt({
+      contentLang: baseLang(targetLang),
+      micLang: baseLang(sourceLang),
+      autoDetect: autoDetectLang || autoDetectMyLang,
+      quality: sttQuality,
+      hasWebGpu: temGpu,
+      cloudAvailable: false,
+      profileId: getActiveProfile().id,
+      dispositivo: dispositivoDaRota(perfilDoAparelho),
+    });
+    return tamanhoDoDownloadMb(rota.localModel, rota.dtype);
+  }, [targetLang, sourceLang, autoDetectLang, autoDetectMyLang, sttQuality, temGpu, perfilDoAparelho]);
+
   return (
     <div className="flex-1 flex flex-col h-full bg-canvas text-ink overflow-hidden relative font-body">
       <style>{`
@@ -2225,7 +2263,7 @@ export default function LiveCapture({
                 rotulo="Quem transcreve a sua voz"
                 desc={
                   micEngine === 'browser'
-                    ? 'Reconhecimento do navegador: envia o áudio ao Google/Microsoft; precisa de internet.'
+                    ? t('Reconhecimento do navegador: no aparelho quando ele conhece o idioma; senão, como está logo abaixo.')
                     : 'Roda no seu computador (Moonshine em inglês, Whisper nos outros idiomas); funciona sem internet.'
                 }
               >
@@ -2249,6 +2287,43 @@ export default function LiveCapture({
                   </button>
                 </div>
               </CampoLinha>
+              {/* "RÁPIDO" OU "PRIVADO" — a mesma escolha da pergunta da primeira vez, trocável aqui.
+                  Perfil Privado e perfil protegido não têm o "Rápido" (`motorDoMicrofone.ts`). */}
+              {micEngine === 'browser' && webSpeechSupported && (
+                <CampoLinha
+                  rotulo={t('Sem reconhecimento no aparelho')}
+                  desc={
+                    getActiveProfile().id === 'local-private'
+                      ? t('Perfil Privado: a sua voz é transcrita neste aparelho.')
+                      : !rapidoDoMicPermitido()
+                        ? t('Neste perfil, a sua voz é transcrita neste aparelho.')
+                        : escolhaDoMic === 'rapido'
+                          ? t('Rápido: o áudio da sua voz vai ao Google, à Microsoft ou à Apple, conforme o navegador.')
+                          : t('Privado: a transcrição roda neste aparelho, com um modelo baixado uma vez.')
+                  }
+                >
+                  {getActiveProfile().id !== 'local-private' && rapidoDoMicPermitido() && (
+                    <div className="seg" role="radiogroup" aria-label={t('Rápido ou Privado')}>
+                      <button
+                        type="button"
+                        role="radio"
+                        aria-checked={escolhaDoMic === 'rapido'}
+                        onClick={() => trocarEscolhaDoMic('rapido')}
+                      >
+                        {t('Rápido')}
+                      </button>
+                      <button
+                        type="button"
+                        role="radio"
+                        aria-checked={escolhaDoMic !== 'rapido'}
+                        onClick={() => trocarEscolhaDoMic('privado')}
+                      >
+                        {t('Privado')}
+                      </button>
+                    </div>
+                  )}
+                </CampoLinha>
+              )}
               <CampoLinha
                 rotulo="Dispositivo"
                 desc={
@@ -3109,6 +3184,15 @@ export default function LiveCapture({
             </button>
           </div>
         </Dialogo>
+      )}
+
+      {/* --- "RÁPIDO" OU "PRIVADO": a primeira vez que o mic abre sem reconhecimento no aparelho --- */}
+      {pedidoDaEscolhaDoMic && (
+        <EscolhaDoMicrofone
+          mb={mbDoMicPrivado}
+          aoEscolher={(e) => responderEscolhaDoMic(e)}
+          aoFechar={() => responderEscolhaDoMic(null)}
+        />
       )}
 
       {/* --- SAIR NO MEIO DA CAPTURA: confirma antes de perder o que já foi transcrito --- */}

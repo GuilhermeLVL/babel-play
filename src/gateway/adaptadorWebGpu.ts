@@ -23,6 +23,8 @@ interface GpuDoNavegador {
 
 let resposta: Promise<boolean> | null = null;
 let conhecido: boolean | undefined;
+/** O objeto que o `requestAdapter()` entregou — a sonda lê dele `shader-f16` e limites sem perguntar de novo. */
+let adaptadorGuardado: unknown = null;
 
 function gpuDe(escopo: unknown): GpuDoNavegador | undefined {
   return (escopo as { navigator?: { gpu?: GpuDoNavegador } } | undefined)?.navigator?.gpu;
@@ -52,7 +54,10 @@ export function temAdaptadorWebGpu(prazoMs = PRAZO_DO_ADAPTADOR_MS): Promise<boo
     Promise.resolve()
       .then(() => gpu.requestAdapter!())
       .then(
-        (adaptador) => concluir(!!adaptador),
+        (adaptador) => {
+          adaptadorGuardado = adaptador ?? null;
+          concluir(!!adaptador);
+        },
         () => concluir(false),
       )
       .finally(() => clearTimeout(relogio));
@@ -70,8 +75,63 @@ export function webGpuProvavel(): boolean {
   return !!gpuDe(globalThis)?.requestAdapter;
 }
 
+/** O que a sonda do aparelho quer saber do adaptador (ver `lib/dispositivo/sonda.ts`). */
+export interface InfoDoAdaptadorWebGpu {
+  /** `adapter.features.has('shader-f16')`: pesos em fp16 na GPU (metade da memória e da banda). */
+  shaderF16: boolean;
+  /**
+   * Os tetos de buffer do adaptador. Um modelo cujo maior tensor passa de `maxStorageBufferBindingSize`
+   * não roda ali — dá para recusar ANTES de baixar (o que o WebLLM faz). `null` = não informados.
+   */
+  limites: { maxStorageBufferBindingSize: number; maxBufferSize: number } | null;
+  /** `adapter.info.vendor`/`architecture` ('' quando o navegador esconde): entram na impressão do aparelho. */
+  fornecedor: string;
+  arquitetura: string;
+}
+
+/**
+ * Lê o adaptador SEM confiar na forma: getter que lança, `features` que não é Set, limite que não é
+ * número — tudo vira "desconhecido". Pura (recebe o objeto), para testar sem GPU.
+ */
+export function extrairInfoDoAdaptador(adaptador: unknown): InfoDoAdaptadorWebGpu {
+  const ler = <T>(f: () => T, reserva: T): T => {
+    try {
+      return f() ?? reserva;
+    } catch {
+      return reserva; // getter de adaptador perdido (`device.lost`) ou de navegador antigo: sinal ausente
+    }
+  };
+  const a = adaptador as {
+    features?: { has?: (n: string) => boolean };
+    limits?: Record<string, unknown>;
+    info?: { vendor?: unknown; architecture?: unknown };
+  };
+  const shaderF16 = ler(() => typeof a.features?.has === 'function' && a.features.has('shader-f16') === true, false);
+  const limites = ler(() => {
+    const l = a.limits;
+    const bind = l?.maxStorageBufferBindingSize;
+    const buf = l?.maxBufferSize;
+    return typeof bind === 'number' && bind > 0 && typeof buf === 'number' && buf > 0
+      ? { maxStorageBufferBindingSize: bind, maxBufferSize: buf }
+      : null;
+  }, null);
+  const texto = (v: unknown) => (typeof v === 'string' ? v : '');
+  return {
+    shaderF16,
+    limites,
+    fornecedor: ler(() => texto(a.info?.vendor), ''),
+    arquitetura: ler(() => texto(a.info?.architecture), ''),
+  };
+}
+
+/** A informação do adaptador (mesma pergunta em cache de `temAdaptadorWebGpu`); `null` sem adaptador. */
+export async function infoDoAdaptadorWebGpu(prazoMs = PRAZO_DO_ADAPTADOR_MS): Promise<InfoDoAdaptadorWebGpu | null> {
+  return (await temAdaptadorWebGpu(prazoMs)) && adaptadorGuardado ? extrairInfoDoAdaptador(adaptadorGuardado) : null;
+}
+
 /** Só para testes: esquece a resposta guardada. */
 export function esquecerAdaptadorWebGpu(): void {
   resposta = null;
   conhecido = undefined;
+  adaptadorGuardado = null;
 }

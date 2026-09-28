@@ -809,6 +809,18 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     // melhor modelo local viável no dispositivo. O selo da UI reflete a rota.
     // Pelo funil: sem conta responde 501 → `cloudAvailable=false` → rota local, que é o correto.
     const perfil = await medirPerfilDoDispositivo();
+    /* SONDA DO APARELHO (harness adaptativo §2): a rota leva a sonda GUARDADA, se houver (não espera
+       medir), e a medida completa + microbenchmark ficam agendadas para o ocioso. Por `import()`:
+       a sonda e o benchmark não entram no JS inicial, e nada disso roda na abertura do site. */
+    const sonda = await import('../dispositivo/sonda')
+      .then((m) => {
+        void m.agendarSondaDoAparelho();
+        return m.sondaGuardada();
+      })
+      .catch((erro: unknown) => {
+        console.warn('[captura] sonda do aparelho indisponível; rota sem ela', erro);
+        return null;
+      });
     const cloudAvailable = await apiFetch('/api/ai/stt/available')
       .then((r) => r.ok)
       .catch(() => false);
@@ -824,7 +836,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       cloudAvailable,
       profileId: getActiveProfile().id,
       // O APARELHO (Quest/celular: base q8 em WASM; small só no desktop com GPU).
-      dispositivo: dispositivoDaRota(perfil),
+      dispositivo: dispositivoDaRota(perfil, sonda),
     });
     /* O SENTIDO DO TRADUTOR QUE A PREPARAÇÃO CARREGA. Mídia/conversa: o que você ouve → o seu idioma.
        SÓ MICROFONE (o cenário dos aparelhos sem áudio do sistema — Quest, celular): a SUA fala →

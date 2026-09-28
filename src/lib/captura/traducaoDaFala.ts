@@ -311,6 +311,9 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
           // Parcial é descartável e só local: o gateway não o manda à nuvem, e o tradutor local o põe
           // atrás do final e o interrompe quando o final chega.
           parcial,
+          /* Porta de qualidade do FINAL (harness §5): a tradução local ruim sobe à nuvem — só para
+             quem tem o plano (grátis fica com o local; o consentimento o gateway confere). */
+          escalarSeRuim: !parcial && nuvemPrimeiro,
         })
         .then(({ text: translated, engine, approximate }) => {
           if (settled) return; // timeout já degradou → ignora resposta tardia

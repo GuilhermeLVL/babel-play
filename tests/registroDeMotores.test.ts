@@ -22,19 +22,26 @@ import { BUILTIN_PROFILES } from '../src/gateway/profiles'
 import { MODEL_DOWNLOAD_MB, MOONSHINE_MODELS, MT_DOWNLOAD_MB, WHISPER_MODELS } from '../src/gateway/sttRouter'
 
 /*
- * CÓPIA da lista fixa de `exigeConsentimento` em `src/gateway/index.ts` (~linhas 49-54), feita à mão
- * de propósito: aquele módulo instancia os adaptadores (Worker, Web Speech, fetch) e não é importável
- * num teste puro, e a função nem é exportada. Se alguém mexer lá, este teste não percebe — por isso a
- * integração (passo seguinte do harness) troca aquela lista por `bindingExigeConsentimento` e apaga a
- * cópia. Casos: adaptador nomeado, `credentialId` (BYOK) e `openai-compatible` com URL não local.
+ * A lista à mão de `src/gateway/index.ts` foi APAGADA na integração do harness: o gateway usa
+ * `bindingExigeConsentimento` direto (e `tests/nuvem-primeiro-e-consentimento.test.ts` cobra o
+ * gateway). Aqui ficam as garantias que a cópia dava: todo adaptador que pedia consentimento antes
+ * continua pedindo — nomeado, `credentialId` (BYOK) e `openai-compatible` com URL não local.
  */
-const LISTA_ATUAL = ['server-llm-mt', 'groq-whisper', 'mymemory', 'openai-compatible']
-
 describe('registro de motores — consentimento derivado', () => {
-  it('a lista derivada contém a lista de hoje E a Web Speech (o furo de privacidade)', () => {
+  it('quem pedia consentimento antes continua pedindo, E a Web Speech (o furo de privacidade)', () => {
     const derivada = adaptersQueExigemConsentimento()
-    for (const id of LISTA_ATUAL) expect(derivada.has(id), id).toBe(true)
+    for (const id of ['server-llm-mt', 'groq-whisper', 'mymemory', 'openai-compatible'])
+      expect(derivada.has(id), id).toBe(true)
     expect(derivada.has('web-speech')).toBe(true)
+  })
+
+  it('a Web Speech LOCAL (`processLocally`) não manda nada, mas o BINDING `web-speech` segue pedindo', () => {
+    const local = motorPorId('web-speech-local')!
+    expect(local.adapterId).toBe('web-speech')
+    expect(local.enviaDadosA).toBeNull()
+    expect(exigeConsentimento(local)).toBe(false)
+    // O binding não sabe o modo: quem escolhe o local é a captura (`motorDoMicrofone.ts`).
+    expect(bindingExigeConsentimento({ adapterId: 'web-speech' })).toBe(true)
   })
 
   it('o que roda no aparelho NÃO pede consentimento', () => {

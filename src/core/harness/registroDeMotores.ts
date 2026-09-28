@@ -17,8 +17,9 @@
  * CÓPIA das tabelas medidas de `src/gateway/sttRouter.ts` (o núcleo não importa o gateway do
  * navegador); `tests/registroDeMotores.test.ts` compara as duas e quebra se divergirem.
  *
- * Ainda não está ligado a nada: a integração (passo seguinte) troca a lista de `index.ts` por
- * `bindingExigeConsentimento` e os `switch` por consultas a este registro.
+ * LIGADO (integração do harness, 2026-09-28): o gateway (`src/gateway/index.ts`) decide o
+ * consentimento por `bindingExigeConsentimento` — a lista à mão de lá foi apagada. Os `switch` de
+ * instanciação continuam lá; trocá-los por consultas a este registro é passo futuro.
  */
 import type { CapabilityBinding } from '../gateway/profile';
 
@@ -79,8 +80,7 @@ const mb = (n: number): number => n * 1_000_000;
 
 /**
  * Os motores de HOJE, fiéis ao código (`src/gateway/index.ts` resolveMt/resolveStt/resolveLlm,
- * `profiles.ts`, `sttRouter.ts`, `adapters/*`). Motores futuros (Web Speech com `processLocally`,
- * Bergamot, Parakeet, ML Kit) entram quando existir o adaptador — registro de motor que não roda é
+ * `profiles.ts`, `sttRouter.ts`, `adapters/*`). Motores futuros (Bergamot, Parakeet, ML Kit) entram quando existir o adaptador — registro de motor que não roda é
  * promessa, e o teste de fidelidade exige que tudo aqui corresponda a um adaptador real.
  */
 export const REGISTRO_DE_MOTORES: readonly RegistroDeMotor[] = [
@@ -96,9 +96,27 @@ export const REGISTRO_DE_MOTORES: readonly RegistroDeMotor[] = [
     custo: 'zero',
     licenca: 'termos do navegador',
     nota:
-      'Sem `processLocally` (que o app ainda não usa), o Chrome manda o áudio aos servidores do Google; ' +
-      'no Safari vai à Apple (Siri). Registramos o caso dominante (Chrome/Android): o que importa para o ' +
+      'Modo NUVEM (sem `processLocally`): o Chrome manda o áudio aos servidores do Google; no Safari vai ' +
+      'à Apple (Siri). Registramos o caso dominante (Chrome/Android): o que importa para o ' +
       'consentimento é que SAI do aparelho, qualquer que seja o destino.',
+  },
+  {
+    /* O MESMO adaptador, no modo que não sai do aparelho: `processLocally = true` (Chrome 139+ com o
+       pacote do idioma instalado). Não muda o consentimento do BINDING `web-speech` — o binding não
+       sabe o modo, e `bindingExigeConsentimento` segue pedindo (algum motor do adaptador envia). Quem
+       escolhe o modo local é a captura (`lib/captura/motorDoMicrofone.ts`), depois de o navegador
+       responder `available()` para o idioma; e o adaptador FALHA FECHADO se o navegador não conhece a
+       propriedade (sem ela, o reconhecimento iria ao Google calado). */
+    id: 'web-speech-local',
+    adapterId: 'web-speech',
+    tarefa: 'stt',
+    runtime: 'nativo-navegador',
+    idiomas: 'todos', // o pacote de cada idioma é checado em execução (`available({processLocally})`)
+    requer: {},
+    enviaDadosA: null,
+    custo: 'zero',
+    licenca: 'termos do navegador',
+    nota: 'O pacote de idioma é do navegador; `install()` só a partir do clique em "Iniciar" (ativação do usuário).',
   },
   {
     id: 'whisper-small',

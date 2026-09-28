@@ -8,6 +8,7 @@
 import type { Dispatch, RefObject, SetStateAction } from 'react';
 
 import type { ModelPrepState } from '../../components/ModelPrepPanel';
+import { getActiveProfile } from '../../gateway/activeProfile';
 import { WebSpeechStt } from '../../gateway/adapters/webSpeech';
 import type { SttSession } from '../../gateway/capabilities';
 import {
@@ -21,7 +22,9 @@ import {
   startSystemLoopbackCapture,
 } from '../../gateway/capture/systemAudio';
 import { filterLoopbackDevices, listDevices } from '../audioDevices';
+import { consentiuNuvem as consentiuNuvemPadrao } from '../consentimentoDeNuvem';
 import { isTtsActive } from '../tts';
+import { resolverMotorDoMic } from './motorDoMicrofone';
 import { clog, formatTime, type HandlersDaFonte, type SpeechSegment, wordsFromText } from './tiposDaFala';
 import type { OpcoesDeTraducao } from './traducaoDaFala';
 
@@ -70,7 +73,13 @@ export interface DepsDasFontesDeAudio {
   /* --- rota do STT --- */
   /** O decode final vai para a nuvem AGORA? Decide o teto de fala contínua (ver `OpcoesDeCaptura`). */
   finalNaNuvem?: () => boolean;
+  /* --- privacidade do motor do microfone (padrão: Ajustes → Privacidade e o perfil ativo) --- */
+  consentiuNuvem?: () => boolean;
+  perfilId?: () => string;
 }
+
+/** O aviso "o mic foi para o modelo local por falta de consentimento" sai UMA vez por página. */
+let avisouMicSemNuvem = false;
 
 export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
   const {
@@ -109,6 +118,8 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
     setMicAbrindo,
     finalNaNuvem,
   } = deps;
+  const consentiu = deps.consentiuNuvem ?? consentiuNuvemPadrao;
+  const perfilId = deps.perfilId ?? (() => getActiveProfile().id);
 
   /* O teto do corte forçado acompanha o motor FINAL: 12 s na nuvem (cobrança mínima de 10 s por
      pedido; frase inteira transcreve melhor), 6 s no Whisper local. Função, não número: a rota só é
@@ -284,12 +295,14 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
   // MICROFONE via Web Speech API (navegador) — motor PADRÃO: leve, sem baixar modelo, ótimo p/
   // português. Usa o adaptador WebSpeechStt do gateway. Não escolhe dispositivo (usa o padrão do
   // SO) — para isso, o usuário troca para o motor Whisper. Sem streaming de PCM: partials/finais.
-  const startWebSpeechMic = () => {
+  // `noAparelho`: reconhecimento LOCAL (`processLocally`); devolve false se o navegador não o tem —
+  // quem chama cai no Whisper em vez de mandar o áudio ao Google (ver `motorDoMicrofone.ts`).
+  const startWebSpeechMic = (noAparelho = false): boolean => {
     const speakerId = 'user';
     const from = sourceLangRef.current.split('-')[0];
     const to = targetLangRef.current.split('-')[0];
     try {
-      webSpeechRef.current = new WebSpeechStt().startLive(sourceLangRef.current, {
+      webSpeechRef.current = new WebSpeechStt({ processLocally: noAparelho }).startLive(sourceLangRef.current, {
         onPartial: (text: string) => {
           if (isTtsActive()) return; // anti-eco: o mic ouviu o TTS do app pelos alto-falantes
           const clean = text.trim();
@@ -356,28 +369,64 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
           clog('web-speech mic erro:', String(e));
         },
       });
-      clog('microfone (Web Speech) ATIVO ✓');
+      clog('microfone (Web Speech', noAparelho ? 'no aparelho' : 'na nuvem', ') ATIVO ✓');
       void startMeter(); // waveform real (a Web Speech não fornece nível)
       if (!systemEnabled) {
         setFeedbackMsg('Microfone (navegador) ativo, transcrição instantânea. Fale à vontade.');
         setTimeout(() => setFeedbackMsg(''), 3000);
       }
+      return true;
     } catch (e) {
+      // O local falhou (navegador sem `processLocally`): quem chama cai no Whisper, sem aviso de erro.
+      if (noAparelho) {
+        clog('Web Speech no aparelho indisponível:', (e as Error).message);
+        return false;
+      }
       setFeedbackMsg('Web Speech indisponível: ' + (e as Error).message + ', troque para o motor Whisper.');
       setTimeout(() => setFeedbackMsg(''), 5000);
       if (!systemEnabled) {
         setIsRecording(false);
         isRecordingRef.current = false;
       }
+      return false;
     }
   };
 
   // Liga o microfone conforme o motor escolhido (navegador vs Whisper).
   // Devolve promessa para que quem liga o mic NO MEIO da sessão saiba quando a permissão
   // do navegador terminou — é esse intervalo que o botão mostra como "pedindo permissão…".
+  /* O MOTOR PASSA PELA PRIVACIDADE (`motorDoMicrofone.ts`): Web Speech no aparelho quando o navegador
+     reconhece o idioma localmente; a Web Speech na nuvem (áudio ao Google) só com consentimento e
+     fora do perfil Privado; senão o Whisper local. Sempre a partir de um clique (Iniciar, desmutar,
+     retomar) — é o que permite pedir a instalação do pacote do idioma. */
   const startMic = async (): Promise<void> => {
-    if (micEngine === 'browser' && webSpeechSupported) startWebSpeechMic();
-    else await handleStartMicCapture();
+    const decisao = await resolverMotorDoMic({
+      preferido: micEngine,
+      webSpeechSuportado: webSpeechSupported,
+      consentiuNuvem: consentiu(),
+      perfilId: perfilId(),
+      lang: sourceLangRef.current,
+    });
+    clog('microfone: motor', decisao.motor, `(${decisao.motivo})`, decisao.instalarNoAparelho ? '| pacote local pedido' : '');
+    if (decisao.motor === 'web-speech-local' && startWebSpeechMic(true)) return;
+    if (decisao.motor === 'web-speech-nuvem') {
+      startWebSpeechMic(false);
+      return;
+    }
+    if (
+      micEngine === 'browser' &&
+      (decisao.motivo === 'sem-consentimento' || decisao.motivo === 'perfil-privado') &&
+      !avisouMicSemNuvem
+    ) {
+      avisouMicSemNuvem = true;
+      setFeedbackMsg(
+        decisao.motivo === 'perfil-privado'
+          ? 'Perfil Privado: sua voz é transcrita no aparelho (a transcrição do navegador enviaria o áudio ao Google).'
+          : 'Sua voz é transcrita no aparelho. A transcrição do navegador envia o áudio ao Google e só é usada com a sua autorização em Ajustes, Privacidade.',
+      );
+      setTimeout(() => setFeedbackMsg(''), 8000);
+    }
+    await handleStartMicCapture();
   };
 
   /**

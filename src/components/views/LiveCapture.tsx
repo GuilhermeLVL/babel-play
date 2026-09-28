@@ -77,6 +77,7 @@ import { criarFontesDeAudio } from '../../lib/captura/fontesDeAudio';
 import { criarPalavraDaFala } from '../../lib/captura/palavraDaFala';
 // Pipeline de fala: VAD → STT → diarização → emissão, e a preparação dos modelos locais.
 import { criarPipelineDeFala, type EnunciadoPendente } from '../../lib/captura/pipelineDeFala';
+import { criarReguladorDaCaptura, type ReguladorDaCaptura } from '../../lib/captura/reguladorDaCaptura';
 // Ciclo da sessão: começar, retomar, parar e salvar (falas, áudio e vocabulário).
 import { criarSalvarSessao, type EstadoDaIdentificacaoDeVoz } from '../../lib/captura/salvarSessao';
 // Tipos e helpers de fala + o logger da captura (`lib/captura/tiposDaFala.ts`).
@@ -1033,6 +1034,10 @@ export default function LiveCapture({
   const pendingUtterancesRef = useRef<EnunciadoPendente[]>([]);
   // ANTI-ECO: seqs cuja fala começou enquanto o TTS do app tocava (é o nosso áudio voltando).
   const suppressedSeqsRef = useRef<Set<number>>(new Set());
+  /* REGULADOR DE DESEMPENHO (harness §4): o estado vive aqui, uma vez por tela; o pipeline o
+     alimenta a cada final local e lê dele se os parciais estão cortados. */
+  const [regulador] = useState<ReguladorDaCaptura>(() => criarReguladorDaCaptura());
+  const reguladorRef = useRef(regulador);
 
   /* O PIPELINE DE FALA (VAD → STT → diarização → emissão) e a preparação dos modelos moram em
      `lib/captura/pipelineDeFala.ts`. A fábrica roda a cada render, como as closures que
@@ -1080,6 +1085,8 @@ export default function LiveCapture({
     setFeedbackMsg,
     setModelPrep,
     setSttRouteLabel,
+    reguladorRef,
+    sistemaAtivo: () => !!systemCaptureRef.current,
   });
 
   /* PRÉ-AQUECE o STT/MT locais que JÁ estão em cache quando a tela abre e quando o par ou a qualidade

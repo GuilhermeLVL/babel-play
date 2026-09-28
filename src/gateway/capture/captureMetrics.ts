@@ -66,6 +66,8 @@ const lote = {
 // O motor é "o último que atendeu" — e continua valendo entre lotes (uma janela sem fala não o apaga).
 let motorStt = ''
 let motorMt = ''
+/** Trechos que a porta de qualidade subiu à nuvem, desde o início da gravação. */
+const escaladas = { mt: 0, stt: 0 }
 
 function empurrar(xs: number[], x: number): void {
   if (!Number.isFinite(x)) return
@@ -147,6 +149,14 @@ export const capMetrics = {
     lote.fallbacks[chave] = (lote.fallbacks[chave] ?? 0) + 1
   },
 
+  /**
+   * A porta de qualidade (harness §5) subiu UM trecho do motor local à nuvem. Fica na aba
+   * (`summary().escaladas`) — é a taxa que calibra os limiares (meta ≤ 15% dos trechos).
+   */
+  escalada(tipo: 'mt' | 'stt'): void {
+    escaladas[tipo]++
+  },
+
   /** Devolve o lote desde o último envio e começa outro. Quem chama é `telemetriaDeCaptura.ts`. */
   drenarTelemetria(): LoteDeTelemetria {
     const saida: LoteDeTelemetria = { ...lote, fallbacks: { ...lote.fallbacks }, motorStt, motorMt }
@@ -175,6 +185,8 @@ export const capMetrics = {
     zerarLote()
     motorStt = ''
     motorMt = ''
+    escaladas.mt = 0
+    escaladas.stt = 0
   },
 
   /** Snapshot: concluídos + em andamento, em ordem de seq. */
@@ -216,6 +228,7 @@ export const capMetrics = {
       saturatedCount: done.filter((m) => m.saturated).length,
       partialsShown: done.filter((m) => m.partialCount > 0).length,
       renderedInSeqOrder: inOrder,
+      escaladas: { ...escaladas },
     }
   },
 }

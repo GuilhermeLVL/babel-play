@@ -88,6 +88,25 @@ export function quedasBruscas(confiancas: readonly number[], delta = LIMIARES_PA
   return n;
 }
 
+/** Abaixo disto (caracteres, depois de normalizar) o texto não tem trigramas bastantes para julgar. */
+export const MIN_CARACTERES_PARA_COMPRESSAO = 30;
+
+/**
+ * O `compression_ratio` do Whisper SEM zlib: caracteres ÷ trigramas de caractere DISTINTOS. O Whisper
+ * mede bytes ÷ bytes do gzip; o que o gzip acha é repetição, e o laço do decode greedy ("obrigado por
+ * assistir obrigado por assistir…") repete trigramas — a razão sobe como a do gzip. Fala normal fica
+ * perto de 1,1–1,6; o laço passa de 3. Síncrono e barato (um `Set`), para rodar a cada final sem
+ * `CompressionStream` assíncrono. `undefined` = curto demais para dizer algo (a porta não julga).
+ * APROXIMAÇÃO: o limiar 2,4 é o do gzip; calibrar na bancada antes de apertar.
+ */
+export function razaoDeCompressaoAproximada(texto: string): number | undefined {
+  const t = texto.toLowerCase().replace(/\s+/g, ' ').trim();
+  if (t.length < MIN_CARACTERES_PARA_COMPRESSAO) return undefined;
+  const trigramas = new Set<string>();
+  for (let i = 0; i + 3 <= t.length; i++) trigramas.add(t.slice(i, i + 3));
+  return (t.length - 2) / trigramas.size;
+}
+
 export function avaliarTrechoStt(
   s: SinaisDoTrechoStt,
   limiares: LimiaresStt = LIMIARES_PADRAO_STT,

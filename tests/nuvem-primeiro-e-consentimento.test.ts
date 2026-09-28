@@ -100,6 +100,21 @@ describe('consentimento de nuvem', () => {
     expect(chamadasMyMemory).toEqual([])
   })
 
+  it('Web Speech (modo nuvem, áudio ao Google) pelo gateway também exige o consentimento', async () => {
+    class Reconhecedor {
+      start() {}
+      stop() {}
+    }
+    vi.stubGlobal('window', { SpeechRecognition: Reconhecedor })
+    const { buildGateway } = await import('../src/gateway/index')
+    const perfil = { ...PERFIL, bindings: { stt: [{ adapterId: 'web-speech' }] } }
+    const sem = buildGateway({ profile: perfil as never, cloudConsent: () => false })
+    expect(sem.stt.isAvailable()).toBe(false)
+    expect(() => sem.stt.startLive('pt-BR', { onPartial: () => {}, onFinal: () => {} })).toThrow()
+    const com = buildGateway({ profile: perfil as never, cloudConsent: () => true })
+    expect(com.stt.isAvailable()).toBe(true)
+  })
+
   it('o consentimento é o de Ajustes → Privacidade, desligado por padrão', async () => {
     const { PADRAO } = await import('../src/lib/preferencias')
     expect(PADRAO.consentimentos.nuvem).toBe(false)

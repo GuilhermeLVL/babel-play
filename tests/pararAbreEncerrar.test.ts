@@ -40,7 +40,7 @@ function montar(nFalas = 2) {
     gravando: true,
   }
   const deps = {
-    gateway: { mt: { warmup: vi.fn(), translate: vi.fn() } },
+    gateway: { mt: { warmup: vi.fn(), prepararNativo: vi.fn(async () => {}), translate: vi.fn() } },
     onSave: vi.fn(),
     recordings: [],
     speechSegments: Array.from({ length: nFalas }, (_, i) => ({

@@ -13,6 +13,7 @@ import {
   LIMIARES_PADRAO_MT,
   LIMIARES_PADRAO_STT,
   quedasBruscas,
+  razaoDeCompressaoAproximada,
 } from '../src/core/harness/portasDeQualidade'
 
 describe('avaliarTrechoStt — regras do Whisper', () => {
@@ -160,5 +161,33 @@ describe('avaliarTraducaoLocal — porta MT local → nuvem', () => {
     }
     expect(avaliarTraducaoLocal(e).veredicto).toBe('ok')
     expect(avaliarTraducaoLocal(e, { ...LIMIARES_PADRAO_MT, tauMt: -0.5 }).veredicto).toBe('subir')
+  })
+})
+
+describe('razaoDeCompressaoAproximada — o compression_ratio sem zlib', () => {
+  it('fala normal fica abaixo do limiar do Whisper (2,4)', () => {
+    for (const t of [
+      'Então, hoje a gente vai falar sobre como funciona o sistema de transporte da cidade.',
+      'I think the main problem is that nobody really knows what the budget is going to be next year.',
+      'Olá, tudo bem? Eu queria saber se você pode me ajudar com uma coisa rapidinho.',
+    ]) {
+      expect(razaoDeCompressaoAproximada(t), t).toBeLessThan(2.4)
+    }
+  })
+
+  it('o laço do decode greedy passa do limiar', () => {
+    const laco = 'Obrigado por assistir. '.repeat(8)
+    expect(razaoDeCompressaoAproximada(laco)).toBeGreaterThan(2.4)
+    expect(razaoDeCompressaoAproximada('the the the the the the the the the the the the the the')).toBeGreaterThan(2.4)
+  })
+
+  it('texto curto não é julgado (sem sinal): undefined', () => {
+    expect(razaoDeCompressaoAproximada('Tá bom.')).toBeUndefined()
+  })
+
+  it('alimenta avaliarTrechoStt: laço → subir por compressão', () => {
+    const r = avaliarTrechoStt({ compressionRatio: razaoDeCompressaoAproximada('a gente vai '.repeat(10)) })
+    expect(r.veredicto).toBe('subir')
+    expect(r.motivos).toEqual(['compressao'])
   })
 })

@@ -9,10 +9,12 @@
  */
 import type { CapabilityBinding, ChatMessage, ChatResult, Profile } from '@core';
 import { AiGateway, BreakerRegistry, BudgetLedger, NoRouteError } from '@core';
+import { avaliarTraducaoLocal } from '@core/harness/portasDeQualidade';
+import { bindingExigeConsentimento } from '@core/harness/registroDeMotores';
 
 import { detectLanguage } from '../lib/langDetect';
 import { explicarRejeicao, precisaConferir, validarTraducao } from '../lib/validaTraducao';
-import { ChromeTranslatorMt } from './adapters/chromeTranslator';
+import { ChromeTranslatorMt, type EstadoDoTradutorNativo } from './adapters/chromeTranslator';
 import { GroqWhisperStt } from './adapters/groqWhisper';
 import { MyMemoryMt } from './adapters/mymemory';
 import { OpenAiCompatibleLlm } from './adapters/openaiCompatible';
@@ -41,20 +43,19 @@ const isLocalUrl = (u?: string): boolean => !!u && LOCAL_RE.test(u);
 const isCloud = (b: CapabilityBinding): boolean => !!b.credentialId;
 
 /**
- * O binding manda o dado do usuário para um servidor de terceiro? Então exige o CONSENTIMENTO de
- * nuvem (Ajustes → Privacidade). Antes só o BYOK era perguntado: o Tradutor IA do servidor, a
- * transcrição gerenciada e o MyMemory saíam sem consentimento nenhum, e as seis telas ainda
- * passavam `cloudConsent: () => true` (Fase 2 do lançamento).
+ * O binding manda o dado do usuário para fora do aparelho? Então exige o CONSENTIMENTO de nuvem
+ * (Ajustes → Privacidade). Antes só o BYOK era perguntado (Fase 2 do lançamento); depois, uma lista
+ * à mão aqui — que esqueceu a Web Speech, cujo modo nuvem manda o áudio do microfone ao Google até
+ * no perfil "Privado/Local" (auditoria de eficiência 2026-09-28, §3). Agora a decisão é DERIVADA do
+ * registro de motores (`enviaDadosA`), e adaptador sem registro falha fechado (pede).
  */
-const exigeConsentimento = (b: CapabilityBinding): boolean =>
-  isCloud(b) ||
-  b.adapterId === 'server-llm-mt' ||
-  b.adapterId === 'groq-whisper' ||
-  b.adapterId === 'mymemory' ||
-  (b.adapterId === 'openai-compatible' && !!b.baseUrl && !isLocalUrl(b.baseUrl));
+const exigeConsentimento = (b: CapabilityBinding): boolean => bindingExigeConsentimento(b);
 
 /** O binding traduz sem mandar o texto a ninguém (Chrome Translator nativo, opus-mt no aparelho)? */
 const ehLocal = (b: CapabilityBinding): boolean => !isCloud(b) && !exigeConsentimento(b);
+
+/** Motores de MT que traduzem no aparelho — os que a porta de qualidade do final avalia. */
+const MOTORES_LOCAIS_DE_MT = new Set(['chrome-translator', 'opus-mt-local']);
 
 /** `engine` da resposta VAZIA de um parcial sem tradutor local pronto — nada foi traduzido. */
 export const PARCIAL_SEM_MOTOR_LOCAL = 'parcial-sem-motor-local';
@@ -146,6 +147,64 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
   // Rota ativa do sttRouter (nuvem-primeiro?) — mutável via stt.setRoute sem recriar o gateway.
   const sttPreferCloudRef = { value: false };
 
+  /* TRADUTOR NATIVO preparado no clique (`mt.prepararNativo`): a promessa de cada par, para o
+     `warmup`/`preload` do opus-mt esperarem por ela e pularem o download quando o nativo serve. */
+  const preparacoesNativas = new Map<string, Promise<EstadoDoTradutorNativo>>();
+  const chaveDoPar = (src: string, tgt: string): string => `${src.split('-')[0]}|${tgt.split('-')[0]}`;
+  const tradutorNativo = (): ChromeTranslatorMt | null => {
+    const b = (core.getProfile().bindings.mt ?? []).find((x) => x.adapterId === 'chrome-translator');
+    if (!b) return null;
+    try {
+      const a = resolveMt(b);
+      return a instanceof ChromeTranslatorMt ? a : null;
+    } catch {
+      return null;
+    }
+  };
+  const nativoPronto = (src: string, tgt: string): boolean => !!tradutorNativo()?.pronto(src, tgt);
+
+  /** O preload do 1º tradutor LOCAL com `preload` (opus-mt), com o vigia de estagnação. */
+  const preloadLocal = (
+    src: string,
+    tgt: string,
+    onProgress?: (p: number, label?: string, bytes?: { loaded: number; total: number }) => void,
+  ): Promise<void> => {
+    for (const b of core.getProfile().bindings.mt ?? []) {
+      try {
+        const a = resolveMt(b);
+        if (a.preload && a.supports(src, tgt)) {
+          return new Promise<void>((resolve) => {
+            let done = false;
+            // Failsafe POR ESTAGNAÇÃO, não por prazo fixo. O prazo de 30 s resolvia a promise
+            // no meio de um download legítimo — medido, 113 MB a 0,44 MB/s levam ~257 s (A-P1-8).
+            let ultimoSinal = Date.now();
+            a.preload!(src, tgt, (p, label, bytes) => {
+              ultimoSinal = Date.now();
+              onProgress?.(p, label, bytes);
+              if (p >= 1 && !done) {
+                done = true;
+                resolve();
+              }
+            });
+            const vigia = setInterval(() => {
+              if (done) {
+                clearInterval(vigia);
+                return;
+              }
+              if (Date.now() - ultimoSinal < 30000) return; // baixando, só devagar
+              clearInterval(vigia);
+              done = true;
+              resolve(); // MT é best-effort: o gateway cai p/ o próximo adapter
+            }, 5000);
+          });
+        }
+      } catch {
+        /* próximo binding */
+      }
+    }
+    return Promise.resolve();
+  };
+
   return {
     core,
     ledger,
@@ -168,22 +227,28 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
            que o refinamento seguinte joga fora. O parcial só usa tradutor LOCAL; o final é quem vai
            ao servidor. */
           const parcial = opts?.parcial === true;
-          if (!parcial && (opts?.falada || opts?.nuvemPrimeiro)) {
+          /** O Tradutor IA do servidor, se estiver na cadeia, fechado e consentido; `null` = não serviu. */
+          let tentouNuvem = false;
+          const tentarNuvem = async (): Promise<MtResult | null> => {
             const b = (core.getProfile().bindings.mt ?? []).find((x) => x.adapterId === 'server-llm-mt');
-            if (b && !breakers.get(b.adapterId).isOpen && consentiu()) {
-              try {
-                const a = resolveMt(b);
-                if (a.supports(src, tgt)) {
-                  const r = await breakers.get(b.adapterId).run(() => a.translate(text, src, tgt, opts));
-                  const veredicto = validarTraducao(r.text, tgt, src, null, text);
-                  if (veredicto.ok && r.text) return r;
-                  capMetrics.fallback('mt:server-llm-mt'); // respondeu, mas a resposta não servia
-                }
-              } catch {
-                /* cai para a cascata normal — e a telemetria conta a queda */
-                capMetrics.fallback('mt:server-llm-mt');
-              }
+            if (!b || breakers.get(b.adapterId).isOpen || !consentiu()) return null;
+            tentouNuvem = true;
+            try {
+              const a = resolveMt(b);
+              if (!a.supports(src, tgt)) return null;
+              const r = await breakers.get(b.adapterId).run(() => a.translate(text, src, tgt, opts));
+              const veredicto = validarTraducao(r.text, tgt, src, null, text);
+              if (veredicto.ok && r.text) return r;
+              capMetrics.fallback('mt:server-llm-mt'); // respondeu, mas a resposta não servia
+            } catch {
+              /* cai para a cascata normal — e a telemetria conta a queda */
+              capMetrics.fallback('mt:server-llm-mt');
             }
+            return null;
+          };
+          if (!parcial && (opts?.falada || opts?.nuvemPrimeiro)) {
+            const r = await tentarNuvem();
+            if (r) return r;
           }
           const cascata = core.run(
             'mt',
@@ -216,7 +281,19 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
             // Parcial: fora qualquer binding que mande o texto a terceiro (servidor, MyMemory, BYOK).
             { isCloud, exigeConsentimento, aceita: parcial ? ehLocal : undefined },
           );
-          if (!parcial) return cascata;
+          if (!parcial) {
+            const r = await cascata;
+            /* PORTA DE QUALIDADE DO FINAL (harness §5): a tradução LOCAL parece ruim (vazia, tamanho
+             fora de [0,5; 2], cópia do original)? Para quem tem direito à nuvem (`escalarSeRuim`, o
+             chamador decide pelo plano) e consentiu, ESTE trecho sobe ao Tradutor IA — e só ele.
+             Não repete a nuvem que acabou de falhar neste mesmo pedido (`tentouNuvem`). */
+            if (!opts?.escalarSeRuim || tentouNuvem || !MOTORES_LOCAIS_DE_MT.has(r.engine)) return r;
+            if (avaliarTraducaoLocal({ origem: text, traducao: r.text }).veredicto !== 'subir') return r;
+            const nuvem = await tentarNuvem();
+            if (!nuvem) return r;
+            capMetrics.escalada('mt');
+            return nuvem;
+          }
           /* Nenhum tradutor local pronto (sem Chrome Translator, opus-mt ainda não carregado): o
            parcial fica SEM tradução — não é erro, o balão segue em "…" até o final traduzir. Lançar
            aqui viraria o texto original entre parênteses e o aviso de "tradução indisponível" a cada
@@ -225,7 +302,27 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
             if (!(e instanceof NoRouteError)) throw e;
             return { text: '', engine: PARCIAL_SEM_MOTOR_LOCAL };
           });
-        })(),
+        })().then((r) => {
+          /* SÓ EM DESENVOLVIMENTO: o motor que atendeu é um que o `routeMt` permitiria? (parcial
+             nunca na nuvem; nada sai sem consentimento — `conferenciaDaRotaMt.ts`). Em produção o
+             ramo some no build, e o `import()` com ele. */
+          if (import.meta.env?.DEV) {
+            const consentimento = consentiu();
+            void import('./conferenciaDaRotaMt').then(({ violacaoDaRotaMt }) => {
+              const v = violacaoDaRotaMt({
+                texto: text,
+                origem: src ?? '',
+                destino: tgt,
+                parcial: opts?.parcial === true,
+                consentimento,
+                falada: opts?.falada === true,
+                motor: r.engine,
+              });
+              if (v) console.error('[harness]', v);
+            });
+          }
+          return r;
+        }),
 
       /**
        * DIAGNÓSTICO: roda cada motor da cadeia isoladamente e diz o que cada um respondeu — com o
@@ -274,16 +371,45 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
         }
       },
 
+      /**
+       * PREPARA O TRADUTOR NATIVO (Translator API) no CLIQUE em "Iniciar" — ver
+       * `ChromeTranslatorMt.preparar`. A promessa de cada par fica guardada: `warmup`/`preload`
+       * esperam por ela e pulam o opus-mt (113 MB) quando o nativo respondeu `available`.
+       */
+      prepararNativo: (pairs: Array<[string, string]>, onProgress?: (p: number) => void): Promise<void> => {
+        const nativo = tradutorNativo();
+        if (!nativo) return Promise.resolve();
+        return Promise.all(
+          pairs.map(([src, tgt]) => {
+            const key = chaveDoPar(src, tgt);
+            let prep = preparacoesNativas.get(key);
+            if (!prep) {
+              prep = nativo.preparar(src, tgt, onProgress).catch(() => null);
+              preparacoesNativas.set(key, prep);
+            }
+            return prep;
+          }),
+        ).then(() => undefined);
+      },
+
       /** Aquece os adapters de MT locais (ex.: opus-mt) para as direções esperadas, em background. */
       warmup: (pairs: Array<[string, string]>): void => {
-        for (const b of core.getProfile().bindings.mt ?? []) {
-          try {
-            const a = resolveMt(b);
-            if (!a.preload) continue;
-            for (const [src, tgt] of pairs) if (a.supports(src, tgt)) a.preload(src, tgt);
-          } catch {
-            /* próximo binding */
-          }
+        for (const [src, tgt] of pairs) {
+          // Tradutor nativo pronto para o par: o opus-mt não baixa (nem ocupa memória) à toa.
+          const aquecer = (): void => {
+            if (nativoPronto(src, tgt)) return;
+            for (const b of core.getProfile().bindings.mt ?? []) {
+              try {
+                const a = resolveMt(b);
+                if (a.preload && a.supports(src, tgt)) a.preload(src, tgt);
+              } catch {
+                /* próximo binding */
+              }
+            }
+          };
+          const prep = preparacoesNativas.get(chaveDoPar(src, tgt));
+          if (prep) void prep.then(aquecer);
+          else aquecer();
         }
       },
 
@@ -297,40 +423,9 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
         tgt: string,
         onProgress?: (p: number, label?: string, bytes?: { loaded: number; total: number }) => void,
       ): Promise<void> => {
-        for (const b of core.getProfile().bindings.mt ?? []) {
-          try {
-            const a = resolveMt(b);
-            if (a.preload && a.supports(src, tgt)) {
-              return new Promise<void>((resolve) => {
-                let done = false;
-                // Failsafe POR ESTAGNAÇÃO, não por prazo fixo. O prazo de 30 s resolvia a promise
-                // no meio de um download legítimo — medido, 113 MB a 0,44 MB/s levam ~257 s (A-P1-8).
-                let ultimoSinal = Date.now();
-                a.preload!(src, tgt, (p, label, bytes) => {
-                  ultimoSinal = Date.now();
-                  onProgress?.(p, label, bytes);
-                  if (p >= 1 && !done) {
-                    done = true;
-                    resolve();
-                  }
-                });
-                const vigia = setInterval(() => {
-                  if (done) {
-                    clearInterval(vigia);
-                    return;
-                  }
-                  if (Date.now() - ultimoSinal < 30000) return; // baixando, só devagar
-                  clearInterval(vigia);
-                  done = true;
-                  resolve(); // MT é best-effort: o gateway cai p/ o próximo adapter
-                }, 5000);
-              });
-            }
-          } catch {
-            /* próximo binding */
-          }
-        }
-        return Promise.resolve();
+        const prep = preparacoesNativas.get(chaveDoPar(src, tgt));
+        if (prep) return prep.then(() => (nativoPronto(src, tgt) ? undefined : preloadLocal(src, tgt, onProgress)));
+        return nativoPronto(src, tgt) ? Promise.resolve() : preloadLocal(src, tgt, onProgress);
       },
     },
 
@@ -351,8 +446,12 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
     },
 
     stt: {
+      /* Ao vivo também respeita o consentimento: a Web Speech (modo nuvem) manda o áudio ao Google.
+         O modo LOCAL dela (`processLocally`) é escolhido pela captura (`motorDoMicrofone.ts`), que
+         instancia o adaptador direto — este caminho genérico não sabe o modo e falha fechado. */
       isAvailable(): boolean {
         return (core.getProfile().bindings.stt ?? []).some((b) => {
+          if (exigeConsentimento(b) && !consentiu()) return false;
           try {
             const a = resolveStt(b);
             return a.supportsLiveMic && a.isAvailable();
@@ -363,6 +462,7 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
       },
       startLive(lang: string, cb: SttCallbacks): SttSession {
         for (const b of core.getProfile().bindings.stt ?? []) {
+          if (exigeConsentimento(b) && !consentiu()) continue;
           try {
             const adapter = resolveStt(b);
             if (adapter.supportsLiveMic && adapter.isAvailable() && adapter.startLive) {
@@ -433,6 +533,21 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
       },
 
       /**
+       * O REGULADOR trocou o modelo local (um degrau abaixo ou de volta — `reguladorDaCaptura.ts`).
+       * Só o modelo: a rota (nuvem primeiro?) e o dtype ficam como o roteador deixou.
+       */
+      trocarModeloLocal(modelo: string): void {
+        for (const b of core.getProfile().bindings.stt ?? []) {
+          try {
+            const a = resolveStt(b) as SttProvider & { setModel?: (m: string) => void };
+            if (a.supportsBlob && typeof a.setModel === 'function') a.setModel(modelo);
+          } catch {
+            /* próximo binding */
+          }
+        }
+      },
+
+      /**
        * Libera o modelo local de STT (encerra o worker; a próxima transcrição recarrega do cache).
        * A captura chama ao sair, em aparelho com pouca memória (`perfilDoDispositivo().poucaMemoria`).
        */
@@ -459,6 +574,31 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
           consentiu() &&
           (core.getProfile().bindings.stt ?? []).some((b) => b.adapterId === 'groq-whisper')
         );
+      },
+
+      /**
+       * PORTA DE QUALIDADE DO STT (harness §5): o final LOCAL pareceu ruim, e ESTE trecho sobe à
+       * transcrição de nuvem — só ele, só com consentimento e um `groq-whisper` no perfil. Quem decide
+       * se a pessoa tem direito (plano) é o chamador. `null` = não havia nuvem ou ela falhou (fica o local).
+       */
+      async transcribePcmNaNuvem(
+        pcm: Float32Array,
+        sampleRate: number,
+        opts?: { languageHint?: string; prompt?: string },
+      ): Promise<SttFinal | null> {
+        if (!consentiu()) return null;
+        for (const b of core.getProfile().bindings.stt ?? []) {
+          if (b.adapterId !== 'groq-whisper') continue;
+          try {
+            const a = resolveStt(b);
+            if (!a.supportsBlob || !a.transcribePcm || !a.isAvailable()) continue;
+            const r = await a.transcribePcm(pcm, sampleRate, opts);
+            return { ...r, engine: r.engine ?? b.adapterId };
+          } catch {
+            capMetrics.fallback('stt:groq-whisper');
+          }
+        }
+        return null;
       },
 
       async transcribePcm(

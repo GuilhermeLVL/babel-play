@@ -12,6 +12,7 @@ import type { AppMetrics } from '../../../core/learning/contract';
 import { diaLocal, marcosDeSequencia, palavrasPremiadas, sequencias } from '../../../core/learning/economia';
 import { historicoDeXp, type LinhasDoHistorico } from '../../../core/learning/historicoDeXp';
 import { Fsrs5Strategy } from '../../../core/learning/scheduler';
+import { sessaoRendeXp } from '../../../core/learning/xp';
 import { ehRodadaPerfeita } from '../../../core/minigames/grade';
 import { numeroDoDia, ofensivaComCongelamento } from '../../../core/missoes';
 import { contarPalavras, DIA, json } from '../nucleo';
@@ -32,14 +33,22 @@ export async function historicoDeXpLocal(_m: RegExpMatchArray, url: URL): Promis
   return json(historicoDeXp(await linhasDoHistoricoLocal(), { balde, desde }));
 }
 
+/** Palavras salvas (cartão no baralho com `sessionId`) por sessão — a régua de `sessaoRendeXp`. */
+function salvasPorSessao(cartoes: ReadonlyArray<{ sessionId?: string | null; inDeck?: number | null }>): Map<string, number> {
+  const n = new Map<string, number>();
+  for (const c of cartoes) if (c.inDeck !== 0 && c.sessionId) n.set(c.sessionId, (n.get(c.sessionId) ?? 0) + 1);
+  return n;
+}
+
 /** As linhas com carimbo que a curva de XP soma — e que a temporada soma dentro da janela dela. */
 export async function linhasDoHistoricoLocal(): Promise<LinhasDoHistorico> {
   const db = await abrirStore();
-  const [sessoes, revisoes, exercicios] = await Promise.all([
-    db.getAll('sessoes'), db.getAll('revisoes'), db.getAll('exercicios'),
+  const [sessoes, cartoes, revisoes, exercicios] = await Promise.all([
+    db.getAll('sessoes'), db.getAll('cartoes'), db.getAll('revisoes'), db.getAll('exercicios'),
   ]);
+  const salvas = salvasPorSessao(cartoes);
   return {
-    sessoes: sessoes.map((s) => ({ em: s.createdAt, palavras: s.wordCount ?? 0 })),
+    sessoes: sessoes.map((s) => ({ em: s.createdAt, palavras: s.wordCount ?? 0, palavrasSalvas: salvas.get(s.id) ?? 0 })),
     revisoes: revisoes.map((r) => ({ em: r.reviewedAt ?? 0, certa: (r.grade ?? 0) >= 3 })),
     /* `kind === 'drill'` e o mesmo discriminador das duas pontas: um item que gravou nota no
        agendador JA esta em `revisoes`, e conta-lo de novo inflaria a curva. */
@@ -184,8 +193,11 @@ export async function perfilEfemero(sessionId: string | null): Promise<AppMetric
   const niveis = new Map<string, number>();
   for (const c of noDeck) if (c.cefrLevel) niveis.set(c.cefrLevel, (niveis.get(c.cefrLevel) ?? 0) + 1);
 
+  /* Só sessão com palavra salva rende XP (revisão de 27/09) — a régua do core, como no Express. */
+  const salvas = salvasPorSessao(cartoes);
   const m: AppMetrics = {
     sessions: sessoes.length,
+    sessoesComPalavraSalva: sessoes.filter((s) => sessaoRendeXp(salvas.get(s.id) ?? 0)).length,
     wordsCaptured: sessoes.reduce((n, s) => n + (s.wordCount ?? 0), 0),
     deckSize: noDeck.length,
     newCards: noDeck.filter((c) => c.stability == null).length,

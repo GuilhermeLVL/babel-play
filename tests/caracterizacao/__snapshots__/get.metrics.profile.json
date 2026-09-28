@@ -53,6 +53,7 @@
     "seedsGastas": "number",
     "sequencias7": "number",
     "sessions": "number",
+    "sessoesComPalavraSalva": "number",
     "speakingMs": "number",
     "streakDays": "number",
     "streakPresenca": "number",

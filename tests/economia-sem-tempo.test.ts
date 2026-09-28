@@ -10,6 +10,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { valorDoCredito } from '../src/core/economiaAutoridade'
+import type { AppMetrics } from '../src/core/learning/contract'
 import {
   acertosNoDia,
   diaNoFuso,
@@ -19,7 +20,9 @@ import {
   REGRAS,
   TETO_PALAVRAS_SALVAS_POR_DIA,
 } from '../src/core/learning/economia'
-import { PESOS_SEEDS, PESOS_XP, seedsGanhasDeEventos, xpDeEventos } from '../src/core/learning/xp'
+import { historicoDeXp } from '../src/core/learning/historicoDeXp'
+import { eventosDeMetricas, PESOS_SEEDS, PESOS_XP, seedsGanhasDeEventos, xpDeEventos } from '../src/core/learning/xp'
+import { temporadaPorId, xpDeTemporada } from '../src/core/temporada'
 
 describe('economia v2 — só resultado paga', () => {
   it('nenhuma regra paga por tempo ou presença', () => {
@@ -52,6 +55,30 @@ describe('economia v2 — só resultado paga', () => {
     expect(palavrasPremiadas([20, 20])).toBe(40)
     expect(palavrasPremiadas([])).toBe(0)
     expect(seedsGanhasDeEventos({ revisoesCertas: 0, palavrasSalvasPremiadas: 30 })).toBe(30 * PESOS_SEEDS.palavraSalva)
+  })
+
+  /* REVISÃO DE 27/09 (P0): `POST /api/sessions` aceita corpo vazio, e cada sessão valia 25 XP na
+     conta E na temporada — 40 sessões vazias por dia davam 1.000 XP e os níveis da trilha grátis
+     (1.050 Seeds). Sessão só rende XP se dela saiu ao menos UMA palavra salva no caderno: é o
+     sinal de esforço que o servidor enxerga (a palavra é um cartão com `session_id`). */
+  it('sessão sem palavra salva não rende XP — nem na conta, nem na temporada', () => {
+    const vazia = { sessions: 40, sessoesComPalavraSalva: 0, wordsCaptured: 0, reviews: 0, correctReviews: 0 } as AppMetrics
+    expect(eventosDeMetricas(vazia).sessoes).toBe(0)
+    expect(xpDeEventos(eventosDeMetricas(vazia))).toBe(0)
+    const comPalavra = { ...vazia, sessoesComPalavraSalva: 2 } as AppMetrics
+    expect(xpDeEventos(eventosDeMetricas(comPalavra))).toBe(2 * PESOS_XP.sessao)
+
+    const t1 = temporadaPorId('t1')!
+    const dentro = Date.parse(`${t1.inicio}T12:00:00-03:00`)
+    const linhas = (salvas: number) => ({
+      sessoes: Array.from({ length: 40 }, (_, i) => ({ em: dentro + i, palavras: 0, palavrasSalvas: salvas })),
+      revisoes: [],
+      itensDeJogo: [],
+    })
+    expect(xpDeTemporada(linhas(0), t1)).toBe(0)
+    expect(xpDeTemporada(linhas(1), t1)).toBe(40 * PESOS_XP.sessao)
+    // A curva de XP da conta usa a mesma régua.
+    expect(historicoDeXp(linhas(0)).xpTotal).toBe(0)
   })
 
   it('o cálculo não tem mais entrada de tempo nem de presença', () => {

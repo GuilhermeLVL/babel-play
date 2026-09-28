@@ -4,20 +4,20 @@
  * `deterministic`; retenção é `probabilistic` (estimativa FSRS) e carrega
  * `confidence` que cai com amostra pequena. A UI não deve exibir falsa precisão.
  */
-import { and, eq, isNull, sql } from 'drizzle-orm'
+import { and, count, eq, isNotNull, isNull, sql } from 'drizzle-orm'
 
 import type { AppMetrics } from '../../../src/core/learning/contract'
 import { diaLocal, marcosDeSequencia, palavrasPremiadas, sequencias } from '../../../src/core/learning/economia'
 import { type BaldeDeXp, type HistoricoDeXp, historicoDeXp, type LinhasDoHistorico } from '../../../src/core/learning/historicoDeXp'
 import { retrievability } from '../../../src/core/learning/scheduler'
-import { economiaDeMetricas } from '../../../src/core/learning/xp'
+import { economiaDeMetricas, sessaoRendeXp } from '../../../src/core/learning/xp'
 import { ehRodadaPerfeita } from '../../../src/core/minigames/grade'
 import { numeroDoDia, ofensivaComCongelamento } from '../../../src/core/missoes'
 import type { UserId } from '../../lib/authContext'
 import { CachePorVersao } from '../../lib/cachePorVersao'
 import { db } from '../db'
 import { lerCompacto } from '../leituraCompacta'
-import { exerciseResults, reviewLogs, sessions } from '../schema'
+import { exerciseResults, reviewLogs, sessions, vocabCards } from '../schema'
 import { economiaRepo } from './economia'
 import { seedSpendsRepo } from './seedSpends'
 import { versoesRepo } from './versoes'
@@ -177,6 +177,10 @@ function resumirAtividade(linhas: LinhasDaAtividade, sessionId: string | null) {
 
   const inDeck = cards.filter((c) => c.inDeck !== 0)
   const wordsCaptured = sess.reduce((n, s) => n + (s.wordCount ?? 0), 0)
+  /* SÓ SESSÃO COM PALAVRA SALVA RENDE XP (revisão de 27/09, `sessaoRendeXp` no core). */
+  const salvasPorSessao = new Map<string, number>()
+  for (const c of inDeck) if (c.sessionId) salvasPorSessao.set(c.sessionId, (salvasPorSessao.get(c.sessionId) ?? 0) + 1)
+  const sessoesComPalavraSalva = sess.filter((x) => sessaoRendeXp(salvasPorSessao.get(x.id) ?? 0)).length
 
   /**
    * ATIVO × PASSIVO (spec progresso-de-idioma): `utterances.source` distingue a VOZ do usuário
@@ -375,6 +379,7 @@ function resumirAtividade(linhas: LinhasDaAtividade, sessionId: string | null) {
 
   return {
     sessions: sess.length,
+    sessoesComPalavraSalva,
     wordsCaptured,
     deckSize: inDeck.length,
     newCards,
@@ -534,6 +539,7 @@ function montarPerfil(
 
   return {
     sessions: r.sessions,
+    sessoesComPalavraSalva: r.sessoesComPalavraSalva,
     wordsCaptured: r.wordsCaptured,
     deckSize: r.deckSize,
     newCards: r.newCards,
@@ -710,11 +716,24 @@ export async function computeXpHistory(
  * janela dela (`xpDeTemporada`, do core). Uma leitura, dois leitores.
  */
 export async function linhasDoHistoricoDeXp(userId: UserId): Promise<LinhasDoHistorico> {
-  const [sess, logs, drills] = await Promise.all([
+  const [sess, salvas, logs, drills] = await Promise.all([
     db
-      .select({ createdAt: sessions.createdAt, wordCount: sessions.wordCount })
+      .select({ id: sessions.id, createdAt: sessions.createdAt, wordCount: sessions.wordCount })
       .from(sessions)
       .where(and(eq(sessions.userId, userId), isNull(sessions.deletedAt))),
+    /* As palavras salvas por sessão — só a sessão com palavra salva rende XP (`sessaoRendeXp`). */
+    db
+      .select({ sessionId: vocabCards.sessionId, n: count() })
+      .from(vocabCards)
+      .where(
+        and(
+          eq(vocabCards.userId, userId),
+          isNull(vocabCards.deletedAt),
+          isNotNull(vocabCards.sessionId),
+          sql`coalesce(${vocabCards.inDeck}, 1) <> 0`,
+        ),
+      )
+      .groupBy(vocabCards.sessionId),
     db
       .select({ createdAt: reviewLogs.createdAt, reviewedAt: reviewLogs.reviewedAt, grade: reviewLogs.grade })
       .from(reviewLogs)
@@ -726,7 +745,11 @@ export async function linhasDoHistoricoDeXp(userId: UserId): Promise<LinhasDoHis
   ])
 
   return {
-    sessoes: sess.map((s) => ({ em: s.createdAt, palavras: s.wordCount ?? 0 })),
+    sessoes: sess.map((s) => ({
+      em: s.createdAt,
+      palavras: s.wordCount ?? 0,
+      palavrasSalvas: Number(salvas.find((x) => x.sessionId === s.id)?.n ?? 0),
+    })),
     revisoes: logs.map((l) => ({ em: l.reviewedAt ?? l.createdAt, certa: (l.grade ?? 0) >= 3 })),
     /* `kind === 'drill'` é o mesmo discriminador de `computeProfile`, e pelo mesmo motivo: um item
      que gravou nota no agendador JÁ está em `revisoes`; contá-lo de novo inflaria a curva. */

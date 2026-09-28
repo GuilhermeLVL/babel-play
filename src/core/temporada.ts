@@ -1,6 +1,6 @@
 import { MOLDURAS_DA_T1, TITULOS_DA_T1 } from './catalogoTemporada';
 import type { LinhasDoHistorico } from './learning/historicoDeXp';
-import { xpDeEventos } from './learning/xp';
+import { sessaoRendeXp, xpDeEventos } from './learning/xp';
 import { CATALOGO_DA_LOJA } from './loja';
 import type { PlanoEfetivo } from './planos';
 import type { ItemDaLoja } from './tiposDaLoja';
@@ -102,7 +102,7 @@ export function xpDeTemporada(linhas: LinhasDoHistorico, t: Temporada): number {
   const revisoes = linhas.revisoes.filter((r) => dentro(r.em));
   const itens = linhas.itensDeJogo.filter((i) => dentro(i.em));
   return xpDeEventos({
-    sessoes: sessoes.length,
+    sessoes: sessoes.filter((s) => sessaoRendeXp(s.palavrasSalvas)).length,
     palavrasCapturadas: sessoes.reduce((n, s) => n + s.palavras, 0),
     revisoes: revisoes.length,
     revisoesCertas: revisoes.filter((r) => r.certa).length,

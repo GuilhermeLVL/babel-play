@@ -50,7 +50,7 @@ export const REGRAS: RegraDeGanho[] = [
   { id: 'sequencia7', como: 'Praticar 7 dias seguidos', xp: PESOS_XP.sequencia7, seeds: PESOS_SEEDS.sequencia7, teto: 'a cada 7 dias', unidade: 'por marco' },
   { id: 'palavraSalva', como: 'Salvar uma palavra nova da captura', xp: 0, seeds: PESOS_SEEDS.palavraSalva, teto: `até ${TETO_PALAVRAS_SALVAS_POR_DIA} por dia`, unidade: 'por palavra' },
   { id: 'metaDiaria', como: 'Cumprir a meta do dia', xp: PESOS_XP.metaDiaria, seeds: PESOS_SEEDS.metaDiaria, teto: '1× por dia', unidade: 'as 3 missões do dia' },
-  { id: 'sessao', como: 'Salvar a sessão', xp: PESOS_XP.sessao, seeds: 0, unidade: 'por sessão' },
+  { id: 'sessao', como: 'Salvar uma sessão e fichar ao menos uma palavra dela', xp: PESOS_XP.sessao, seeds: 0, unidade: 'por sessão' },
   { id: 'cartao', como: 'Fichar uma palavra no caderno', xp: PESOS_XP.cartao, seeds: PESOS_SEEDS.cartao, unidade: 'por palavra' },
   { id: 'revisaoCerta', como: 'Acertar uma revisão', xp: PESOS_XP.revisao + PESOS_XP.revisaoCerta, seeds: PESOS_SEEDS.revisaoCerta, unidade: 'por revisão certa' },
   { id: 'jogoCerto', como: 'Acertar um item de jogo', xp: PESOS_XP.itemDeJogo + PESOS_XP.itemDeJogoCerto, seeds: PESOS_SEEDS.jogoCerto, unidade: 'por acerto' },

@@ -35,7 +35,6 @@ import { classificarVazamento, type Intervalo } from '../vazamento';
 import { disponibilidadeDaSondaParaIdioma, escolherMotorDoMic } from './motorDoMicrofone';
 import { type EfeitosDoRegulador, escadaDeModelos, type ReguladorDaCaptura } from './reguladorDaCaptura';
 import { planoDaReservaLocal } from './reservaLocal';
-import { type DecisaoDoMotorDoSistema, resolverMotorDoSistema } from './webSpeechDoSistema';
 import {
   type CaptureScenario,
   clog,
@@ -46,6 +45,7 @@ import {
   wordsFromText,
 } from './tiposDaFala';
 import { marcadorDeTraducao, type OpcoesDeTraducao, origemDaFala } from './traducaoDaFala';
+import { type DecisaoDoMotorDoSistema, resolverMotorDoSistema } from './webSpeechDoSistema';
 
 /**
  * Marca, no mapa do último texto parcial, que a fala FECHOU e o final já foi pedido. Não é texto que

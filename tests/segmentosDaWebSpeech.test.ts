@@ -38,12 +38,24 @@ describe('segmentosDaWebSpeech', () => {
     m.s.aoParcial('hello')
     m.s.aoParcial('hello every')
     expect(m.segs()).toHaveLength(1)
-    expect(m.segs()[0]).toMatchObject({ source: 'system', speakerId: 'system', isPartial: true, originalText: 'hello every', tStartMs: 1000 })
+    expect(m.segs()[0]).toMatchObject({
+      source: 'system',
+      speakerId: 'system',
+      isPartial: true,
+      originalText: 'hello every',
+      tStartMs: 1000,
+    })
     const id = m.segs()[0].id
     m.avancar(800)
     m.s.aoFinal('hello everyone')
     expect(m.segs()).toHaveLength(1)
-    expect(m.segs()[0]).toMatchObject({ id, isPartial: false, originalText: 'hello everyone', tStartMs: 1000, tEndMs: 1800 })
+    expect(m.segs()[0]).toMatchObject({
+      id,
+      isPartial: false,
+      originalText: 'hello everyone',
+      tStartMs: 1000,
+      tEndMs: 1800,
+    })
     expect(m.segs()[0].words.length).toBeGreaterThan(0)
     expect(m.translateSegment).toHaveBeenCalledWith(id, 'hello everyone', 'en', 'pt', { falada: false })
   })

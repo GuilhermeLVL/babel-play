@@ -14,7 +14,12 @@ import type { SystemAudioCallbacks } from '../src/gateway/capture/systemAudio'
 
 const estado = vi.hoisted(() => ({
   cb: null as SystemAudioCallbacks | null,
-  controle: null as null | { falaComecou: ReturnType<typeof vi.fn>; falaTerminou: ReturnType<typeof vi.fn>; pausar: ReturnType<typeof vi.fn>; parar: ReturnType<typeof vi.fn> },
+  controle: null as null | {
+    falaComecou: ReturnType<typeof vi.fn>
+    falaTerminou: ReturnType<typeof vi.fn>
+    pausar: ReturnType<typeof vi.fn>
+    parar: ReturnType<typeof vi.fn>
+  },
   aoCair: null as null | ((m: string) => void),
   abre: true,
   opcoesDoNavegador: null as unknown,
@@ -60,7 +65,7 @@ function handlers() {
   }
 }
 
-const ref = <T,>(current: T) => ({ current })
+const ref = <T>(current: T) => ({ current })
 
 function montar(motor: 'web-speech-local' | 'pipeline', extra: Record<string, unknown> = {}) {
   const sysHandlers = handlers()

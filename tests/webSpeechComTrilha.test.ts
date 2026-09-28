@@ -93,7 +93,9 @@ describe('WebSpeechStt com trilha (áudio da aba/sistema, no aparelho)', () => {
 
   it('start(trilha) que lança (Chrome sem a sobrecarga): LANÇA, não vira erro assíncrono', () => {
     comReconhecedor(ReconhecedorFalso)
-    ReconhecedorFalso.lancarNoStart = new TypeError('Failed to execute start: parameter 1 is not of type MediaStreamTrack')
+    ReconhecedorFalso.lancarNoStart = new TypeError(
+      'Failed to execute start: parameter 1 is not of type MediaStreamTrack',
+    )
     const cb = callbacks()
     expect(() => new WebSpeechStt({ processLocally: true, trilha: TRILHA }).startLive('en-US', cb)).toThrow(TypeError)
     expect(cb.onError).not.toHaveBeenCalled()

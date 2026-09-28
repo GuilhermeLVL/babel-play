@@ -90,7 +90,10 @@ export function escolherMotorDoSistema(e: EntradaDoMotorDoSistema): DecisaoDoMot
 /** O navegador conhece `processLocally`? Pela propriedade no protótipo — nunca pela UA. */
 export function temReconhecimentoLocal(escopo: unknown = globalThis): boolean {
   try {
-    const e = escopo as { SpeechRecognition?: { prototype?: object }; webkitSpeechRecognition?: { prototype?: object } };
+    const e = escopo as {
+      SpeechRecognition?: { prototype?: object };
+      webkitSpeechRecognition?: { prototype?: object };
+    };
     const proto = (e.SpeechRecognition ?? e.webkitSpeechRecognition)?.prototype;
     return !!proto && 'processLocally' in proto;
   } catch {
@@ -198,8 +201,7 @@ export function iniciarWebSpeechDoSistema(o: OpcoesDaWebSpeechDoSistema): Contro
   const agora = o.agora ?? Date.now;
   /* Uma CÓPIA da trilha: o reconhecedor pode encerrar a trilha que recebe, e a original alimenta o
      VAD e o gravador. A cópia morre com o compartilhamento (mesma fonte) e no `parar`. */
-  const trilha =
-    typeof (o.trilha as { clone?: unknown }).clone === 'function' ? o.trilha.clone() : o.trilha;
+  const trilha = typeof (o.trilha as { clone?: unknown }).clone === 'function' ? o.trilha.clone() : o.trilha;
 
   let algumResultado = false;
   let lembrouOk = false;

@@ -38,7 +38,11 @@ describe('escolherMotorDoSistema (pura)', () => {
   })
 
   it.each<[string, Partial<EntradaDoMotorDoSistema>, string]>([
-    ['navegador sem processLocally (Firefox/Safari/Chrome antigo)', { reconhecimentoLocalSuportado: false }, 'sem-reconhecimento-local'],
+    [
+      'navegador sem processLocally (Firefox/Safari/Chrome antigo)',
+      { reconhecimentoLocalSuportado: false },
+      'sem-reconhecimento-local',
+    ],
     ['celular/Quest', { desktop: false }, 'movel'],
     ['o teste já falhou neste aparelho', { lembrado: 'falhou' }, 'falhou-antes'],
     ['plano pago com nuvem primeiro (Groq large-v3-turbo é melhor)', { nuvemPrimeiro: true }, 'nuvem-primeiro'],
@@ -74,7 +78,9 @@ describe('escolherMotorDoSistema (pura)', () => {
     let casos = [{}] as Record<string, unknown>[]
     for (const [k, vs] of Object.entries(valores)) casos = casos.flatMap((c) => vs.map((v) => ({ ...c, [k]: v })))
     for (const c of casos)
-      expect(['web-speech-local', 'pipeline']).toContain(escolherMotorDoSistema(c as unknown as EntradaDoMotorDoSistema).motor)
+      expect(['web-speech-local', 'pipeline']).toContain(
+        escolherMotorDoSistema(c as unknown as EntradaDoMotorDoSistema).motor,
+      )
   })
 })
 

@@ -1012,6 +1012,27 @@ export const flags = sqliteTable('flags', {
  * mesmo IP em dias diferentes não se liga. `user_id` é o id do titular (anônimo): a linha entra em
  * `TABELAS_DO_TITULAR` e sai com a exclusão da conta.
  */
+/**
+ * O ESTADO DA CONTA QUE SÓ O SERVIDOR ESCREVE (revisão de 27/09 das recompensas v2, migração 0037).
+ *
+ * `fuso` / `fuso_desde`: o fuso IANA do usuário, gravado no primeiro uso e trocado no máximo uma vez
+ * a cada 24 h (`decidirFuso`, `src/core/learning/economia.ts`) — é o dia da meta, das missões, da
+ * ofensiva e do teto do baú. `aviso_reembolso_em`: quando o aviso do corte do catálogo foi entregue,
+ * uma vez por CONTA.
+ *
+ * Tabela própria, e não colunas em `settings`, por dois motivos: `PUT /api/settings` é do cliente e
+ * isto não pode ser; e a migration fica `CREATE TABLE IF NOT EXISTS` — reaplicável, como toda
+ * migration desde a 0030 (`tests/integration/migracoes-sobre-estado-atual`). Uma linha por usuário;
+ * entra em `TABELAS_DO_TITULAR`.
+ */
+export const estadoDaConta = sqliteTable('estado_da_conta', {
+  userId: text('user_id').primaryKey(),
+  fuso: text('fuso'),
+  fusoDesde: integer('fuso_desde'),
+  avisoReembolsoEm: integer('aviso_reembolso_em'),
+  atualizadoEm: integer('atualizado_em').notNull(),
+})
+
 export const convidados = sqliteTable(
   'convidados',
   {

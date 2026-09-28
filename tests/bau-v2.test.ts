@@ -152,14 +152,19 @@ describe('o baú pela rota (espelho sem conta)', () => {
     expect(repetir.jaExistia).toBe(false)
   })
 
-  it('virada de meia-noite: o teto recomeça no dia local seguinte', async () => {
+  /* Revisão de 27/09: a virada de meia-noite NÃO abre mais três baús — o teto vale também na
+     janela móvel de 24 h (`situacaoDoBau`). Três às 23:50 e mais três às 00:01 eram seis em onze
+     minutos; agora o próximo sai 24 h depois do primeiro. */
+  it('virada de meia-noite: a janela de 24 h segura o teto; 24 h depois do primeiro, abre', async () => {
     vi.useFakeTimers({ toFake: ['Date'] })
-    vi.setSystemTime(new Date(Date.UTC(2026, 8, 28, 2, 50))) // 27/09 23:50 em -03
+    const primeiro = Date.UTC(2026, 8, 28, 2, 50) // 27/09 23:50 em -03
+    vi.setSystemTime(new Date(primeiro))
     for (const id of ['m1', 'm2', 'm3']) await abrir(id)
     expect((await abrir('m4')).body.semBau).toBe('teto')
-    vi.setSystemTime(new Date(Date.UTC(2026, 8, 28, 3, 1))) // 28/09 00:01 em -03
-    const novoDia = await abrir('m5')
-    expect(novoDia.body.semBau).toBeUndefined()
+    vi.setSystemTime(new Date(Date.UTC(2026, 8, 28, 3, 1))) // 28/09 00:01 em -03: dia novo, janela cheia
+    expect((await abrir('m5')).body.semBau).toBe('teto')
+    vi.setSystemTime(new Date(primeiro + 24 * 3_600_000 + 60_000)) // 24 h e 1 min depois do primeiro
+    expect((await abrir('m6')).body.semBau).toBeUndefined()
     vi.useRealTimers()
   })
 })

@@ -7,7 +7,14 @@
 import { and, count, eq, isNotNull, isNull, sql } from 'drizzle-orm'
 
 import type { AppMetrics } from '../../../src/core/learning/contract'
-import { diaLocal, marcosDeSequencia, palavrasPremiadas, sequencias } from '../../../src/core/learning/economia'
+import {
+  diaNumeroNoFuso,
+  FUSO_PADRAO,
+  fusoOuPadrao,
+  marcosDeSequencia,
+  palavrasPremiadas,
+  sequencias,
+} from '../../../src/core/learning/economia'
 import { type BaldeDeXp, type HistoricoDeXp, historicoDeXp, type LinhasDoHistorico } from '../../../src/core/learning/historicoDeXp'
 import { retrievability } from '../../../src/core/learning/scheduler'
 import { economiaDeMetricas, sessaoRendeXp } from '../../../src/core/learning/xp'
@@ -19,6 +26,7 @@ import { db } from '../db'
 import { lerCompacto } from '../leituraCompacta'
 import { exerciseResults, reviewLogs, sessions, vocabCards } from '../schema'
 import { economiaRepo } from './economia'
+import { estadoDaContaRepo } from './estadoDaConta'
 import { seedSpendsRepo } from './seedSpends'
 import { versoesRepo } from './versoes'
 
@@ -165,7 +173,12 @@ type LinhasDaAtividade = Awaited<ReturnType<typeof lerAtividade>>
  * então o resultado é o mesmo número, bit a bit. `tests/integration/rotas-caras-equivalencia`
  * compara o JSON inteiro com o gravado antes desta divisão.
  */
-function resumirAtividade(linhas: LinhasDaAtividade, sessionId: string | null) {
+/**
+ * `fuso`: o fuso GRAVADO do usuário (revisão de 27/09, P2). Dia de prática, ofensiva, marcos e o
+ * teto diário de palavras contam no dia de quem estuda — `diaLocal` usava o fuso do PROCESSO, e o
+ * servidor em UTC fechava o dia de quem está em São Paulo às 21h.
+ */
+function resumirAtividade(linhas: LinhasDaAtividade, sessionId: string | null, fuso: string) {
   const { sessTodas, cardsTodos, logs, uttsTodas, drills } = linhas
   const sess = sessionId ? sessTodas.filter((s) => s.id === sessionId) : sessTodas
   const cards = sessionId ? cardsTodos.filter((c) => c.sessionId === sessionId) : cardsTodos
@@ -328,7 +341,7 @@ function resumirAtividade(linhas: LinhasDaAtividade, sessionId: string | null) {
   for (const c of inDeck) {
     if (!c.sessionId) continue
     const t = c.addedAt ?? c.createdAt
-    const d = diaLocal(t)
+    const d = diaNumeroNoFuso(t, fuso)
     palavrasPorDia.set(d, (palavrasPorDia.get(d) ?? 0) + 1)
     temposDePalavraSalva.push(t)
   }
@@ -338,8 +351,8 @@ function resumirAtividade(linhas: LinhasDaAtividade, sessionId: string | null) {
   /* DIAS DE PRÁTICA (recompensas v2): revisão, rodada de jogo ou palavra salva. É a unidade da
      ofensiva e dos marcos de 7 dias — abrir o app, sozinho, não entra mais. */
   const diasDePratica = new Set<number>(palavrasPorDia.keys())
-  for (const l of logsNoEscopo) diasDePratica.add(diaLocal(l.reviewedAt ?? l.createdAt))
-  for (const e of drillsNoEscopo) if (e.roundId) diasDePratica.add(diaLocal(e.createdAt))
+  for (const l of logsNoEscopo) diasDePratica.add(diaNumeroNoFuso(l.reviewedAt ?? l.createdAt, fuso))
+  for (const e of drillsNoEscopo) if (e.roundId) diasDePratica.add(diaNumeroNoFuso(e.createdAt, fuso))
 
   /* Carimbos dos ACERTOS (revisão certa ou item de jogo certo), ordenados: a meta do dia é
      conferida sobre eles, no fuso do usuário, na parte que depende do relógio. */
@@ -470,11 +483,11 @@ async function lerRazao(userId: UserId) {
  * (`ofensivaComCongelamento`). Derivada no servidor, nunca guardada: um dia perdido gasta o
  * congelamento sozinho, e nada aqui se compra.
  */
-function ofensivaDoResumo(r: ResumoDaAtividade, diasDeMeta: readonly string[], now: number) {
+function ofensivaDoResumo(r: ResumoDaAtividade, diasDeMeta: readonly string[], now: number, fuso: string) {
   return ofensivaComCongelamento({
     diasDePratica: r.diasDePratica,
     diasDeMeta: diasDeMeta.map(numeroDoDia).filter((d): d is number => d !== null),
-    hoje: diaLocal(now),
+    hoje: diaNumeroNoFuso(now, fuso),
   })
 }
 
@@ -484,6 +497,7 @@ function montarPerfil(
   razao: Awaited<ReturnType<typeof lerRazao>>,
   now: number,
   escopo: AppMetrics['escopo'],
+  fuso: string,
 ): AppMetrics {
   let dueToday = 0
   for (const t of r.vencimentos) if (t <= now) dueToday++
@@ -511,9 +525,9 @@ function montarPerfil(
   const diasDePresenca = razao.diasDePresenca
   /* A OFENSIVA CONTA PRÁTICA (recompensas v2): os dias de presença continuam gravados, só como
      estatística — abrir o app não estende sequência nem paga marco. */
-  const seqPratica = sequencias(r.diasDePratica, diaLocal(now))
+  const seqPratica = sequencias(r.diasDePratica, diaNumeroNoFuso(now, fuso))
   /* O congelamento só estende: sem meta creditada o número é o de antes. */
-  const comCongelamento = ofensivaDoResumo(r, razao.diasDeMeta, now)
+  const comCongelamento = ofensivaDoResumo(r, razao.diasDeMeta, now, fuso)
 
   /**
    * OS TRÊS CONTADORES QUE FALTAVAM — e por que eles passaram a importar.
@@ -612,24 +626,35 @@ function montarPerfil(
  * CUSTO (fix/rotas-caras): a leitura das cinco tabelas é a parte cara (medido: ~70 ms de CPU com
  * 3.000 cartões, event loop preso o tempo todo pelo driver). No escopo da conta, o resumo delas
  * fica em cache enquanto a versão de `atividade` não muda (`versoes_de_dados`, mantida por
- * gatilho); a requisição seguinte lê a versão, o razão de moedas e a presença — quatro consultas
- * pequenas — e refaz só a parte que depende do relógio.
+ * gatilho); a requisição seguinte lê o fuso gravado, a versão, o razão de moedas e a presença —
+ * cinco consultas pequenas (o fuso entrou na revisão de 27/09: os dias de prática são do fuso de
+ * quem estuda, e ele é a outra metade da chave do cache) — e refaz só a parte do relógio.
  */
 export async function computeProfile(userId: UserId, opts: OpcoesDePerfil = {}): Promise<AppMetrics> {
   const now = Date.now()
   const sessionId = opts.sessionId ?? null
   const escopo: AppMetrics['escopo'] = sessionId ? 'sessao' : 'global'
-  const resumo = sessionId ? resumirAtividade(await lerAtividade(userId), sessionId) : await resumoDaConta(userId)
-  return montarPerfil(resumo, await lerRazao(userId), now, escopo)
+  const fuso = await fusoDoPerfil(userId)
+  const resumo = sessionId
+    ? resumirAtividade(await lerAtividade(userId), sessionId, fuso)
+    : await resumoDaConta(userId, fuso)
+  return montarPerfil(resumo, await lerRazao(userId), now, escopo, fuso)
 }
 
-/** O resumo da conta inteira, do cache quando a versão de `atividade` não mudou. */
-async function resumoDaConta(userId: UserId): Promise<ResumoDaAtividade> {
-  // A versão ANTES das linhas — ver `CachePorVersao` para o porquê da ordem.
-  const versao = String((await versoesRepo.de(userId)).atividade)
+/** O fuso gravado do usuário (só leitura), ou o padrão — `decidirFuso` é de quem grava. */
+async function fusoDoPerfil(userId: UserId): Promise<string> {
+  const { fuso } = await estadoDaContaRepo.fusoGravado(userId)
+  return fuso ? fusoOuPadrao(fuso) : FUSO_PADRAO
+}
+
+/** O resumo da conta inteira, do cache quando a versão de `atividade` (e o fuso) não mudou. */
+async function resumoDaConta(userId: UserId, fuso: string): Promise<ResumoDaAtividade> {
+  // A versão ANTES das linhas — ver `CachePorVersao` para o porquê da ordem. O fuso entra na
+  // chave: os dias de prática do resumo são contados nele.
+  const versao = `${(await versoesRepo.de(userId)).atividade}|${fuso}`
   let resumo = resumosDaConta.obter(userId, versao)
   if (!resumo) {
-    resumo = resumirAtividade(await lerAtividade(userId), null)
+    resumo = resumirAtividade(await lerAtividade(userId), null, fuso)
     resumosDaConta.guardar(userId, versao, resumo, pesoDoResumo(resumo))
   }
   return resumo
@@ -641,17 +666,23 @@ async function resumoDaConta(userId: UserId): Promise<ResumoDaAtividade> {
  * (a janela da meta é hoje ou ontem, em qualquer fuso), as metas já creditadas e a ofensiva com
  * congelamento. As rodadas vêm de `exerciseResultsRepo.linhasDeMaestria`.
  */
-export async function dadosDasMissoes(userId: UserId): Promise<{
+export async function dadosDasMissoes(
+  userId: UserId,
+  fuso: string,
+): Promise<{
   revisoes: number[]
   palavrasSalvas: number[]
   metasCreditadas: string[]
   ofensiva: { atual: number; congelamentos: 0 | 1 | 2 }
 }> {
   const now = Date.now()
-  const [resumo, metasCreditadas] = await Promise.all([resumoDaConta(userId), economiaRepo.metasCreditadas(userId)])
+  const [resumo, metasCreditadas] = await Promise.all([
+    resumoDaConta(userId, fuso),
+    economiaRepo.metasCreditadas(userId),
+  ])
   const desde = now - 3 * DAY
   const recentes = (xs: Float64Array) => Array.from(xs).filter((t) => t >= desde)
-  const { atual, congelamentos } = ofensivaDoResumo(resumo, metasCreditadas, now)
+  const { atual, congelamentos } = ofensivaDoResumo(resumo, metasCreditadas, now, fuso)
   return {
     revisoes: recentes(resumo.temposDeRevisao),
     palavrasSalvas: recentes(resumo.temposDePalavraSalva),

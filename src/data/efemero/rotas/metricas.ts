@@ -9,12 +9,13 @@
  * Rotas: GET `/api/metrics/profile`, GET `/api/metrics/xp`.
  */
 import type { AppMetrics } from '../../../core/learning/contract';
-import { diaLocal, marcosDeSequencia, palavrasPremiadas, sequencias } from '../../../core/learning/economia';
+import { diaNumeroNoFuso, marcosDeSequencia, palavrasPremiadas, sequencias } from '../../../core/learning/economia';
 import { historicoDeXp, type LinhasDoHistorico } from '../../../core/learning/historicoDeXp';
 import { Fsrs5Strategy } from '../../../core/learning/scheduler';
 import { sessaoRendeXp } from '../../../core/learning/xp';
 import { ehRodadaPerfeita } from '../../../core/minigames/grade';
 import { numeroDoDia, ofensivaComCongelamento } from '../../../core/missoes';
+import { fusoGravadoLocal } from '../fuso';
 import { contarPalavras, DIA, json } from '../nucleo';
 import { abrirStore } from '../store';
 import { estadoDe } from './vocabulario';
@@ -57,14 +58,14 @@ export async function linhasDoHistoricoLocal(): Promise<LinhasDoHistorico> {
 }
 
 /** A ofensiva com congelamento: dias de prática + dias com `meta:<dia>` creditada (core). */
-export function ofensivaEfemera(diasDePratica: Iterable<number>, creditos: ReadonlyArray<{ creditoId: string }>, agora: number) {
+export function ofensivaEfemera(diasDePratica: Iterable<number>, creditos: ReadonlyArray<{ creditoId: string }>, agora: number, fuso: string) {
   return ofensivaComCongelamento({
     diasDePratica,
     diasDeMeta: creditos
       .filter((c) => c.creditoId.startsWith('meta:'))
       .map((c) => numeroDoDia(c.creditoId.slice('meta:'.length)))
       .filter((d): d is number => d !== null),
-    hoje: diaLocal(agora),
+    hoje: diaNumeroNoFuso(agora, fuso),
   });
 }
 
@@ -73,7 +74,7 @@ export function ofensivaEfemera(diasDePratica: Iterable<number>, creditos: Reado
  * carimbos de revisão e de palavra salva dos últimos 3 dias, metas creditadas e a ofensiva com
  * congelamento (dias de prática contados como em `perfilEfemero`).
  */
-export async function dadosDasMissoesEfemeros(): Promise<{
+export async function dadosDasMissoesEfemeros(fuso: string): Promise<{
   revisoes: number[];
   palavrasSalvas: number[];
   metasCreditadas: string[];
@@ -88,12 +89,12 @@ export async function dadosDasMissoesEfemeros(): Promise<{
   const revs = revisoes.filter((r) => idsDoDeck.has(r.cardId)).map((r) => r.reviewedAt);
   const palavras = cartoes.filter((c) => c.inDeck !== 0 && c.sessionId).map((c) => c.createdAt);
   const diasDePratica = new Set<number>([
-    ...palavras.map(diaLocal),
-    ...revs.map(diaLocal),
-    ...exercicios.filter((e) => e.roundId).map((e) => diaLocal(e.createdAt)),
+    ...palavras.map((t) => diaNumeroNoFuso(t, fuso)),
+    ...revs.map((t) => diaNumeroNoFuso(t, fuso)),
+    ...exercicios.filter((e) => e.roundId).map((e) => diaNumeroNoFuso(e.createdAt, fuso)),
   ]);
   const desde = agora - 3 * DIA;
-  const { atual, congelamentos } = ofensivaEfemera(diasDePratica, creditos, agora);
+  const { atual, congelamentos } = ofensivaEfemera(diasDePratica, creditos, agora, fuso);
   return {
     revisoes: revs.filter((t) => t >= desde).sort((a, b) => a - b),
     palavrasSalvas: palavras.filter((t) => t >= desde).sort((a, b) => a - b),
@@ -112,6 +113,9 @@ export async function dadosDasMissoesEfemeros(): Promise<{
 export async function perfilEfemero(sessionId: string | null): Promise<AppMetrics> {
   const db = await abrirStore();
   const agora = Date.now();
+  /* O fuso GRAVADO (revisão de 27/09): dia de prática, ofensiva e marcos no dia de quem estuda —
+     a mesma régua do Express, que não pode usar o fuso do processo. */
+  const fuso = fusoGravadoLocal();
   const [sessoesTodas, cartoesTodos, revisoes, falasTodas, exercicios, gastos, presencas, creditos] = await Promise.all([
     db.getAll('sessoes'), db.getAll('cartoes'), db.getAll('revisoes'), db.getAll('falas'), db.getAll('exercicios'), db.getAll('gastos'),
     db.getAll('presencas'), db.getAll('creditos'),
@@ -148,14 +152,14 @@ export async function perfilEfemero(sessionId: string | null): Promise<AppMetric
   const palavrasPorDia = new Map<number, number>();
   for (const c of noDeck) {
     if (!c.sessionId) continue;
-    const d = diaLocal(c.createdAt);
+    const d = diaNumeroNoFuso(c.createdAt, fuso);
     palavrasPorDia.set(d, (palavrasPorDia.get(d) ?? 0) + 1);
   }
   const palavrasSalvasPremiadas = palavrasPremiadas(palavrasPorDia.values());
   const diasDePratica = new Set<number>(palavrasPorDia.keys());
-  for (const r of revs) diasDePratica.add(diaLocal(r.reviewedAt));
-  for (const e of drills) if (e.roundId) diasDePratica.add(diaLocal(e.createdAt));
-  const seq = sequencias(diasDePratica, diaLocal(agora));
+  for (const r of revs) diasDePratica.add(diaNumeroNoFuso(r.reviewedAt, fuso));
+  for (const e of drills) if (e.roundId) diasDePratica.add(diaNumeroNoFuso(e.createdAt, fuso));
+  const seq = sequencias(diasDePratica, diaNumeroNoFuso(agora, fuso));
   const sequencias7 = marcosDeSequencia(diasDePratica, 7);
   const acertosRecentes = [
     ...revs.filter((r) => r.grade >= 3).map((r) => r.reviewedAt),
@@ -178,7 +182,7 @@ export async function perfilEfemero(sessionId: string | null): Promise<AppMetric
   const xpCreditado = creditos.reduce((n, c) => n + c.xp, 0);
   // A ofensiva que a tela mostra conta DIAS DE PRÁTICA (revisão, rodada ou palavra salva), com o
   // congelamento das metas cumpridas (recompensas v2, onda 5) — a mesma conta do Express.
-  streakDays = Math.max(streakDays, seq.atual, ofensivaEfemera(diasDePratica, creditos, agora).atual);
+  streakDays = Math.max(streakDays, seq.atual, ofensivaEfemera(diasDePratica, creditos, agora, fuso).atual);
 
   const revisados = noDeck.filter((c) => c.stability != null);
   const avgStability = revisados.length ? revisados.reduce((n, c) => n + (c.stability ?? 0), 0) / revisados.length : 0;

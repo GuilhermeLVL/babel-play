@@ -260,6 +260,13 @@
       "when": 1790370000000,
       "tag": "0036_flag_recompensas_v2",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "6",
+      "when": 1790380000000,
+      "tag": "0037_estado_da_conta",
+      "breakpoints": true
     }
   ]
 }

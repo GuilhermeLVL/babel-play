@@ -40,8 +40,14 @@ conta dias de prática. `POST /api/metrics/presenca` continua gravando, só como
 ## Baú (`decidirBau`, `src/core/economiaAutoridade.ts`)
 
 - Só com rodada de 2+ estrelas (precisão ≥ 75%), conferida nas linhas gravadas; no máximo **3 por dia
-  local** (fuso enviado pelo cliente; ausente = `America/Sao_Paulo`). O 4º responde 200 com
-  `semBau: 'teto'` e não grava nada.
+  local E 3 em quaisquer 24 h** (janela móvel: três às 23:50 e mais três às 00:10 eram seis em vinte
+  minutos). O 4º responde 200 com `semBau: 'teto'` e não grava nada.
+- **O fuso é do servidor** (revisão de 27/09): o cliente manda o dele, o servidor o GRAVA no primeiro
+  uso (`estado_da_conta`, migração 0037) e só aceita trocar uma vez a cada 24 h (`decidirFuso`,
+  `src/core/learning/economia.ts`); sem nada gravado vale `America/Sao_Paulo`. Vale para o baú, a
+  janela de `meta:<dia>`, as missões e — antes eram do fuso do PROCESSO — a ofensiva, o congelamento,
+  os marcos de 7 dias e o teto diário de palavras salvas. Trocar o fuso a cada pedido inventava um
+  dia novo; agora custa esperar 24 h. O espelho sem conta aplica a mesma régua (`localStorage`).
 - Chances à vista na resposta e no modal: **75% comum · 25% raro**; o 5º baú seguido sem raro é raro.
 - Faixa sorteada sem peça nova: vira Seeds — **comum 15, raro 40** (`reason: bau:repetido:<r>`).
 - Peça nova: a peça + 5 Seeds (`SEEDS_DO_DROP`). Idempotente por `roundId`. Nunca pago, nunca por Créditos.

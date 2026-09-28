@@ -21,7 +21,7 @@ import {
   valorDoDrop,
   valorDoRepetido,
 } from '../../src/core/economiaAutoridade'
-import { diaLocal, diaNoFuso, fusoOuPadrao, sequencias } from '../../src/core/learning/economia'
+import { diaLocal, diaNoFuso, sequencias } from '../../src/core/learning/economia'
 import { maestriaPorJogo, nivelDeMaestria } from '../../src/core/maestria'
 import { estadoDasMissoes, metaConcluida, missoesComProgresso } from '../../src/core/missoes'
 import {
@@ -38,6 +38,7 @@ import { economiaDoUsuario } from '../db/repositories/metrics'
 import { seedSpendsRepo } from '../db/repositories/seedSpends'
 import { getPlanForUser } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
+import { fusoDoUsuario } from '../lib/fusoDoUsuario'
 import { reembolsarCorteDoCatalogo } from '../lib/reembolsoDoCorte'
 import { responderErro } from '../lib/respostaDeErro'
 import {
@@ -295,15 +296,17 @@ async function creditarDrop(
     return
   }
 
-  /* BAÚ v2 (recompensas v2): o dia do teto é o dia LOCAL de quem joga. */
-  const fuso = fusoOuPadrao(fusoPedido)
+  /* BAÚ v2 (recompensas v2): o dia do teto é o dia LOCAL de quem joga, no fuso GRAVADO (o pedido
+     só vale no primeiro uso ou depois da carência de 24 h — `fusoDoUsuario`). */
+  const fuso = await fusoDoUsuario(req.userId, fusoPedido)
   const diaDe = (t: number) => diaNoFuso(t, fuso)
+  const agora = Date.now()
   const baus = await economiaRepo.bausAbertos(req.userId)
 
   const jaAberto = baus.find((b) => b.creditoId === creditoId)
   if (jaAberto) {
     /* IDEMPOTÊNCIA POR RODADA: o baú já aberto devolve o MESMO resultado, lido do razão. */
-    const { semRaroSeguidos } = situacaoDoBau(baus, diaDe(Date.now()), diaDe)
+    const { semRaroSeguidos } = situacaoDoBau(baus, diaDe(agora), diaDe, agora)
     const totais = await economiaRepo.totaisCreditados(req.userId)
     const repetido = jaAberto.reason.startsWith('bau:repetido:')
     res.json({
@@ -320,7 +323,7 @@ async function creditarDrop(
   }
 
   const desempenho = rodadaRendeBau(linhas)
-  const { bausHoje, semRaroSeguidos } = situacaoDoBau(baus, diaDe(Date.now()), diaDe)
+  const { bausHoje, bausNas24h, semRaroSeguidos } = situacaoDoBau(baus, diaDe(agora), diaDe, agora)
   const jaPossui = new Set([
     ...(await seedSpendsRepo.itensComprados(req.userId)),
     ...baus.filter((b) => b.reason.startsWith('drop:')).map((b) => b.reason.slice('drop:'.length)),
@@ -328,6 +331,7 @@ async function creditarDrop(
   const decisao = decidirBau({
     estrelas: desempenho.estrelas,
     bausHoje,
+    bausNas24h,
     semRaroSeguidos,
     sorteio: Math.random(),
     elegiveis: itensSorteaveisNoDrop(jaPossui),
@@ -440,9 +444,9 @@ metricsRouter.get('/maestria', async (req, res) => {
  */
 metricsRouter.get('/missoes', async (req, res) => {
   try {
-    const fuso = fusoOuPadrao(typeof req.query.fuso === 'string' ? req.query.fuso : undefined)
+    const fuso = await fusoDoUsuario(req.userId, typeof req.query.fuso === 'string' ? req.query.fuso : undefined)
     const [dados, rodadas] = await Promise.all([
-      dadosDasMissoes(req.userId),
+      dadosDasMissoes(req.userId, fuso),
       exerciseResultsRepo.linhasDeMaestria(req.userId),
     ])
     res.json(
@@ -564,7 +568,7 @@ metricsRouter.post('/seeds/creditar', async (req, res) => {
          salvas, rodadas no dia em que começaram). Sem isto `meta:<dia>` seria 15 Seeds por dia
          por abrir o app. O reenvio de uma meta já creditada cai no `ON CONFLICT`. */
       if (credito.metaDoDia) {
-        const fuso = fusoOuPadrao(payload.fuso)
+        const fuso = await fusoDoUsuario(req.userId, payload.fuso)
         const agora = Date.now()
         const janela = [diaNoFuso(agora, fuso), diaNoFuso(agora - 86_400_000, fuso)]
         if (!janela.includes(credito.metaDoDia)) {
@@ -572,7 +576,7 @@ metricsRouter.post('/seeds/creditar', async (req, res) => {
           return
         }
         const [dados, rodadas] = await Promise.all([
-          dadosDasMissoes(req.userId),
+          dadosDasMissoes(req.userId, fuso),
           exerciseResultsRepo.linhasDeMaestria(req.userId),
         ])
         const missoes = missoesComProgresso(credito.metaDoDia, fuso, {

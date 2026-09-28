@@ -19,6 +19,7 @@ import {
   type ManifestoDeModelo,
   modeloEstaCompleto,
   pedirArmazenamentoPersistente,
+  temCopiaNoAparelho,
 } from '../src/gateway/modelManifest'
 
 /** Cache Storage falso, fiel ao que usamos: keys() + match() + put(). */
@@ -147,6 +148,26 @@ describe('gravarManifesto / lerManifesto', () => {
   it('JSON corrompido no localStorage não derruba a leitura', () => {
     store.set(chaveDoManifesto(MANIFESTO.modelId, 'hybrid', 'wasm'), '{ isto não é json')
     expect(lerManifesto(MANIFESTO.modelId, 'hybrid', 'wasm')).toBeNull()
+  })
+})
+
+describe('temCopiaNoAparelho — a pergunta SÍNCRONA do regulador (sem download no meio da sessão)', () => {
+  it('manifesto do modelo neste dtype, em qualquer backend (os arquivos são os mesmos)', () => {
+    gravarManifesto(MANIFESTO) // hybrid @ wasm
+    expect(temCopiaNoAparelho(MANIFESTO.modelId, 'hybrid')).toBe(true)
+    gravarManifesto({ ...MANIFESTO, dtype: 'hybrid-fp16', device: 'webgpu' })
+    expect(temCopiaNoAparelho(MANIFESTO.modelId, 'hybrid-fp16')).toBe(true)
+  })
+
+  it('outro dtype é outro download', () => {
+    gravarManifesto(MANIFESTO)
+    expect(temCopiaNoAparelho(MANIFESTO.modelId, 'q8')).toBe(false)
+    expect(temCopiaNoAparelho('onnx-community/whisper-tiny', 'hybrid')).toBe(false)
+  })
+
+  it('sem dtype: qualquer um dos da rota', () => {
+    gravarManifesto({ ...MANIFESTO, dtype: 'q8' })
+    expect(temCopiaNoAparelho(MANIFESTO.modelId)).toBe(true)
   })
 })
 

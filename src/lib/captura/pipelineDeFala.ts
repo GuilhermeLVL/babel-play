@@ -18,8 +18,9 @@ import { capMetrics, type CapSource } from '../../gateway/capture/captureMetrics
 import type { EspeculacaoDoFinal } from '../../gateway/capture/systemAudio';
 import { aoFalharANuvemDoStt } from '../../gateway/falhaDaNuvemDoStt';
 import { areModelsCached, expectedModelIds } from '../../gateway/modelCache';
+import { temCopiaNoAparelho } from '../../gateway/modelManifest';
 import type { ContextoDoStt } from '../../gateway/promptDeStt';
-import { getSttQuality, nomeLegivelDoModelo, routeStt } from '../../gateway/sttRouter';
+import { getSttQuality, nomeLegivelDoModelo, outroBackend, routeStt } from '../../gateway/sttRouter';
 import { consentiuReconhecimentoDoNavegador, rapidoDoMicPermitido } from '../consentimentoDeNuvem';
 import { DominantLangTracker } from '../convoLang';
 import { dispositivoDaRota, medirPerfilDoDispositivo } from '../dispositivo/perfil';
@@ -203,9 +204,9 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
 
   /** Os efeitos das ações do regulador, com o gateway/setters deste render. */
   const efeitosDoRegulador: EfeitosDoRegulador = {
-    trocarModelo: (modelo) => {
-      clog('regulador: modelo local →', modelo);
-      gateway.stt.trocarModeloLocal(modelo);
+    trocarModelo: (modelo, opcoes) => {
+      clog('regulador: modelo local →', modelo, opcoes?.dtype ?? '', opcoes?.device ?? '');
+      gateway.stt.trocarModeloLocal(modelo, opcoes);
       setSttRouteLabel(`local · ${nomeLegivelDoModelo(modelo)} (ajustado ao aparelho)`);
       // Carrega já (do cache, se houver): a próxima fala não paga a carga inteira.
       void gateway.stt.preloadModel(undefined, { aoDegradar: avisarDegradacao }).catch((e: unknown) => {
@@ -901,7 +902,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
        aparelho (no próximo trecho medido, pelo regulador) e a escada recomeça do modelo que ficou. */
     const regulador = reguladorRef?.current;
     if (regulador) {
-      regulador.reiniciar({ modelo: aviso.modelo }); // `soIngles` fica o da rota
+      regulador.reiniciar({ modelo: aviso.modelo, backend: aviso.device }); // `soIngles` fica o da rota
       if (aviso.motivo === 'falha-gpu') regulador.registrarFalha('device-lost', aviso.modeloAntes);
     }
     setSttRouteLabel(`local · modo compatível (${aviso.modelo.split('-').pop()})`);
@@ -961,6 +962,8 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     const autoDetect = autoDetectLangRef.current || autoDetectMyLangRef.current;
     /** O modelo local só decodifica inglês: a escada do regulador pode descer ao Moonshine. */
     const soIngles = listenLang === 'en' && !autoDetect && (!micVaiAoWhisper || myLang === 'en');
+    const hasWebGpu = await temAdaptadorWebGpu();
+    const dispositivo = dispositivoDaRota(perfil, sonda);
     let route = routeStt({
       contentLang: listenLang,
       // O mesmo modelo decodifica o MIC: se você fala PT enquanto ouve EN, o moonshine (só inglês) não serve.
@@ -969,11 +972,11 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       quality: getSttQuality(),
       /* O ADAPTADOR, não a API: `navigator.gpu` existe no headless sem GPU nenhuma, e o small no
          WebGPU sem adaptador era captura sem legenda (auditoria de latência 2026-09-26). */
-      hasWebGpu: await temAdaptadorWebGpu(),
+      hasWebGpu,
       cloudAvailable,
       profileId: getActiveProfile().id,
-      // O APARELHO (Quest/celular: base q8 em WASM; small só no desktop com GPU).
-      dispositivo: dispositivoDaRota(perfil, sonda),
+      // O APARELHO (Quest/celular: base q8 em WASM, ou na GPU provada; small só no desktop com GPU).
+      dispositivo,
     });
     /* MODELO PROIBIDO NESTE APARELHO (a GPU caiu com ele — `proibirModelo`, pelo regulador): a rota
        desce a escada até um que não foi vetado. Sem nenhum livre, fica o menor. */
@@ -994,7 +997,10 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
        "Traduzir para". Medido no Quest emulado (2026-09-26): carregava o en→pt (sem uso), e o pt→en
        só chegava 45 s depois, na primeira tradução — ~113 MB a mais na rede e na memória. */
     const [mtDe, mtPara] = captureScenarioRef.current === 'mic' ? [myLang, listenLang] : [listenLang, myLang];
-    return { listenLang, myLang, route, perfil, mtDe, mtPara, soIngles, micVaiAoWhisper };
+    /** Para o regulador: onde o modelo roda e para onde ele pode trocar (`trocar-backend`). */
+    const backend: 'wasm' | 'webgpu' = route.device ?? (hasWebGpu ? 'webgpu' : 'wasm');
+    const outro = outroBackend(route, dispositivo, hasWebGpu);
+    return { listenLang, myLang, route, perfil, mtDe, mtPara, soIngles, micVaiAoWhisper, backend, outro };
   };
 
   /**
@@ -1058,9 +1064,18 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
   };
 
   const prepareModelsInterno = async (opcoes: OpcoesDaPreparacao) => {
-    const { route, perfil, mtDe, mtPara, soIngles, micVaiAoWhisper } = await rotaDaCaptura();
-    // Sessão nova: o regulador começa no máximo, com a escada do modelo desta rota.
-    reguladorRef?.current.reiniciar({ modelo: route.localModel, soIngles });
+    const { route, perfil, mtDe, mtPara, soIngles, micVaiAoWhisper, backend, outro } = await rotaDaCaptura();
+    /* Sessão nova: o regulador começa no máximo, com a escada do modelo desta rota — o backend e o
+       dtype dizem se o português pode descer ao tiny (só híbrido, só na GPU), e o manifesto diz que
+       degrau já está no aparelho (o Moonshine é sempre q8). */
+    reguladorRef?.current.reiniciar({
+      modelo: route.localModel,
+      soIngles,
+      backend,
+      dtype: route.dtype,
+      outro,
+      emCache: (m, d) => temCopiaNoAparelho(m, /moonshine/i.test(m) ? 'q8' : d),
+    });
     gateway.stt.setRoute({
       preferCloud: route.preferCloud,
       localModel: route.localModel,

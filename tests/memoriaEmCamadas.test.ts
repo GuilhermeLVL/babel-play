@@ -28,7 +28,8 @@ const TSV = [
 
 function semente(tsv = TSV) {
   const carregar = vi.fn(async (_par: string) => tsv)
-  return { s: criarSemente({ carregar }), carregar }
+  // Sem o adiamento para o ocioso: aqui a carga começa na hora (o adiamento tem teste próprio).
+  return { s: criarSemente({ carregar, agendar: (f) => f() }), carregar }
 }
 
 describe('semente do Tatoeba', () => {

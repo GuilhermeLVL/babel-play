@@ -124,6 +124,19 @@ export interface DepsDaTraducaoDaFala {
   pedidosSobDemandaRef?: RefObject<Map<string, PedidoSobDemanda>>;
 }
 
+/**
+ * Quantas falas degradadas uma retradução refaz, no máximo (as MAIS RECENTES). O tradutor local
+ * pode ficar pronto depois de minutos de sessão; retraduzir todas de uma vez enfileiraria centenas
+ * de pedidos na frente da fala que a pessoa está ouvindo agora.
+ */
+export const MAX_RETRADUCOES = 20;
+
+/**
+ * O ouvinte do "tradutor pronto" é UM por gateway, mas a fábrica é recriada a cada render: o
+ * ouvinte chama a `retraduzirDegradados` do render mais novo, guardada aqui.
+ */
+const retradutorDoGateway = new WeakMap<object, () => void>();
+
 /** Motores cuja tradução quem paga pela nuvem aceita de volta da memória persistente. */
 const MOTORES_DE_NUVEM = new Set(['server-llm-mt', 'groq-llm']);
 
@@ -460,9 +473,9 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
   /** Balões que degradaram para "(texto original)" voltam a "…" e pedem tradução de novo. */
   const retraduzirDegradados = () => {
     setSpeechSegments((prev) => {
-      const alvo = prev.filter(
-        (seg) => !seg.isPartial && seg.originalText && seg.translatedText === `(${seg.originalText})`,
-      );
+      const alvo = prev
+        .filter((seg) => !seg.isPartial && seg.originalText && seg.translatedText === `(${seg.originalText})`)
+        .slice(-MAX_RETRADUCOES);
       if (alvo.length === 0) return prev;
       clog('tradutor pronto: retraduzindo', alvo.length, 'balão(ões) degradado(s)');
       const ids = new Set(alvo.map((seg) => seg.id));
@@ -496,6 +509,17 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
     );
     translateSegment(segId, pedido.texto, pedido.src, pedido.tgt, { falada: pedido.falada, pedida: true });
   };
+
+  /* O TRADUTOR LOCAL FICOU PRONTO (aviso do gateway, depois de fechar o disjuntor dele): as falas
+     que degradaram enquanto o modelo carregava são traduzidas de novo. A barra de preparação também
+     pede isto quando chega a 100%, mas o modelo pode ficar pronto por um aquecimento ou por um pedido
+     de tradução, que não passam por ela (Quest emulado, 2026-09-28). Pedir duas vezes não custa: a
+     segunda não acha mais nada em "(original)". */
+  const mt = gateway.mt as { aoFicarPronto?: (fn: () => void) => () => void };
+  if (typeof mt.aoFicarPronto === 'function') {
+    if (!retradutorDoGateway.has(gateway)) mt.aoFicarPronto(() => retradutorDoGateway.get(gateway)?.());
+    retradutorDoGateway.set(gateway, retraduzirDegradados);
+  }
 
   return { translateSegment, retraduzirDegradados, revelarTraducao };
 }

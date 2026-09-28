@@ -369,7 +369,32 @@ describe('dispositivoDaRota + sonda (campos novos, sem mudar a decisão)', () =>
       iOS: false,
       pontuacaoWasm: 1.5,
       pontuacaoWebgpu: 30,
+      adaptadorReal: true,
+      gpuCaiu: false,
     })
+  })
+
+  it('adaptador de reserva não é "real"; um device-lost gravado vira gpuCaiu', () => {
+    const r = dispositivoDaRota(classificarDispositivo(desktop), {
+      esquema: 1,
+      versaoDoApp: 'v',
+      impressao: 'i',
+      medidaEm: 0,
+      sinais: {
+        webGpu: { shaderF16: false, limites: null, fornecedor: '', arquitetura: '', reserva: true },
+        sttNoAparelho: { ptBR: null, en: null },
+        tradutorNativo: false,
+        armazenamento: null,
+        nativo: false,
+        iOS: false,
+        bateria: false,
+        pressao: false,
+      },
+      benchmark: null,
+      modelosProibidos: ['onnx-community/whisper-base'],
+      motivosDaProibicao: { 'onnx-community/whisper-base': 'device-lost' },
+    })
+    expect(r).toMatchObject({ adaptadorReal: false, gpuCaiu: true })
   })
 
   it('sonda sem adaptador nem benchmark: f16 falso, limites e pontuações nulos', () => {
@@ -395,6 +420,7 @@ describe('dispositivoDaRota + sonda (campos novos, sem mudar a decisão)', () =>
     expect(r).toMatchObject({
       shaderF16: false,
       limites: null,
+      adaptadorReal: false,
       nativo: true,
       iOS: true,
       pontuacaoWasm: null,

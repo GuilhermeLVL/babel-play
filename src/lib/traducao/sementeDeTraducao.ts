@@ -31,15 +31,85 @@ export const PARES_DA_SEMENTE: readonly string[] = ['en-pt', 'es-pt'];
 
 const RAIZ = '/semente-traducao';
 
+/**
+ * Os pares `origem \t destino` do TSV, UM A UM (sem `split` do arquivo inteiro): `#` abre comentário
+ * (o cabeçalho de atribuição) e linha sem os dois lados é ignorada.
+ */
+export function* linhasDaSemente(tsv: string): Generator<[string, string]> {
+  let i = 0;
+  while (i < tsv.length) {
+    const fim = tsv.indexOf('\n', i);
+    const linha = tsv.slice(i, fim === -1 ? tsv.length : fim);
+    i = fim === -1 ? tsv.length : fim + 1;
+    if (!linha || linha.startsWith('#')) continue;
+    const tab = linha.indexOf('\t');
+    if (tab < 0) continue;
+    const a = linha.slice(0, tab).trim();
+    const b = linha
+      .slice(tab + 1)
+      .split('\t')[0]
+      .trim();
+    if (a && b) yield [a, b];
+  }
+}
+
 /** `origem \t destino` por linha; `#` abre comentário (o cabeçalho de atribuição). */
 export function lerSementeTsv(tsv: string): Array<[string, string]> {
-  const fora: Array<[string, string]> = [];
-  for (const linha of tsv.split('\n')) {
-    if (!linha || linha.startsWith('#')) continue;
-    const [a, b] = linha.split('\t');
-    if (a?.trim() && b?.trim()) fora.push([a.trim(), b.trim()]);
+  return [...linhasDaSemente(tsv)];
+}
+
+/**
+ * Teto de uma fatia de trabalho na thread principal. Abaixo dos 16,7 ms de um quadro com folga
+ * para o React pintar a legenda no mesmo quadro — e longe dos 50 ms de uma long task.
+ */
+export const ORCAMENTO_DA_FATIA_MS = 8;
+
+export interface OpcoesDasFatias {
+  orcamentoMs?: number;
+  agora?: () => number;
+  /** Devolve a thread (padrão: `scheduler.yield()` onde existe, senão um `setTimeout(0)`). */
+  ceder?: () => Promise<void>;
+  /** Olhar o relógio a cada N itens (padrão 1: o item da semente custa microssegundos, o relógio menos). */
+  checarACada?: number;
+}
+
+function cederPadrao(): Promise<void> {
+  const s = (globalThis as { scheduler?: { yield?: () => Promise<void> } }).scheduler;
+  if (typeof s?.yield === 'function') return s.yield();
+  return new Promise((r) => setTimeout(r, 0));
+}
+
+/**
+ * Faz `fazer(item)` para cada item em FATIAS de até `orcamentoMs`, cedendo a thread entre elas.
+ * Devolve quantas fatias usou. O erro de `fazer` sobe.
+ */
+export async function processarEmFatias<T>(
+  itens: Iterable<T>,
+  fazer: (item: T) => void,
+  o: OpcoesDasFatias = {},
+): Promise<number> {
+  const orcamento = o.orcamentoMs ?? ORCAMENTO_DA_FATIA_MS;
+  const agora = o.agora ?? (() => performance.now());
+  const ceder = o.ceder ?? cederPadrao;
+  const aCada = Math.max(1, o.checarACada ?? 1);
+  let fatias = 1;
+  let inicio = agora();
+  let n = 0;
+  for (const item of itens) {
+    fazer(item);
+    if (++n % aCada !== 0 || agora() - inicio < orcamento) continue;
+    await ceder();
+    fatias += 1;
+    inicio = agora();
   }
-  return fora;
+  return fatias;
+}
+
+/** Espera o ocioso (com teto), ou um temporizador onde `requestIdleCallback` não existe (Safari). */
+function agendarNoOcioso(f: () => void): void {
+  const g = globalThis as { requestIdleCallback?: (f: () => void, o?: { timeout: number }) => unknown };
+  if (typeof g.requestIdleCallback === 'function') g.requestIdleCallback(f, { timeout: 3000 });
+  else setTimeout(f, 1500);
 }
 
 async function baixarSemente(par: string): Promise<string | undefined> {
@@ -66,13 +136,21 @@ export interface SementeDeTraducao {
 interface OpcoesDaSemente {
   /** Quem busca o TSV de um par (`en-pt`). Injeção para teste; o padrão é `fetch` em `public/`. */
   carregar?: (par: string) => Promise<string | undefined>;
+  /** Quando começar o download + montagem (padrão: no ocioso, depois da primeira legenda). */
+  agendar?: (f: () => void) => void;
+  /** Relógio e cessão das fatias da montagem (injeção para teste). */
+  agora?: () => number;
+  ceder?: () => Promise<void>;
 }
 
 export function criarSemente(opts: OpcoesDaSemente = {}): SementeDeTraducao {
   const carregar = opts.carregar ?? baixarSemente;
+  const agendar = opts.agendar ?? agendarNoOcioso;
   const traducoes = new Map<string, string>();
   const indice = criarIndiceAproximado();
   const pedidos = new Set<string>();
+  /** Arquivos com o índice INTEIRO montado: antes disso a busca não acha nada na semente. */
+  const montados = new Set<string>();
 
   const guardar = (a: string, b: string, origem: string, destino: string) => {
     const chave = `${a}|${b}|${chaveNormalizada(origem)}`;
@@ -82,7 +160,14 @@ export function criarSemente(opts: OpcoesDaSemente = {}): SementeDeTraducao {
     indice.adicionar(chave);
   };
 
-  /** O arquivo que cobre a chave, disparando o download na primeira vez. `true` = já está pronto. */
+  /**
+   * O arquivo que cobre a chave, disparando a carga na primeira vez. `true` = índice inteiro pronto.
+   *
+   * FORA DO CAMINHO DA LEGENDA (Quest emulado, 2026-09-28): a primeira busca vem da primeira fala, e
+   * o parse + o índice aproximado do TSV (430 KB) de uma vez só travavam a thread principal por
+   * 1,3–1,6 s no meio dela. Agora a carga espera o OCIOSO (a legenda já pintou) e a montagem vai em
+   * fatias de ~8 ms; até acabar, a semente só não acha nada e a cascata segue para o tradutor.
+   */
   const pronto = (chave: string): boolean => {
     const [a, b] = separarChave(chave).par.split('|');
     const arquivo = PARES_DA_SEMENTE.find((p) => p === `${a}-${b}` || p === `${b}-${a}`);
@@ -90,15 +175,28 @@ export function criarSemente(opts: OpcoesDaSemente = {}): SementeDeTraducao {
     if (!pedidos.has(arquivo)) {
       pedidos.add(arquivo);
       const [x, y] = arquivo.split('-');
-      void carregar(arquivo).then((tsv) => {
-        for (const [ox, oy] of lerSementeTsv(tsv ?? '')) {
-          guardar(x, y, ox, oy);
-          guardar(y, x, oy, ox);
-        }
+      agendar(() => {
+        void carregar(arquivo)
+          .then((tsv) =>
+            processarEmFatias(
+              linhasDaSemente(tsv ?? ''),
+              ([ox, oy]) => {
+                guardar(x, y, ox, oy);
+                guardar(y, x, oy, ox);
+              },
+              { agora: opts.agora, ceder: opts.ceder },
+            ),
+          )
+          .then(
+            () => void montados.add(arquivo),
+            () => {
+              /* TSV com defeito: a semente só não ajuda nesta sessão */
+            },
+          );
       });
       return false;
     }
-    return true;
+    return montados.has(arquivo);
   };
 
   const resultado = (texto: string, aproximada: boolean, similaridade: number): ResultadoDaMemoria => ({

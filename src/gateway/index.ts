@@ -163,8 +163,25 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
   };
   const nativoPronto = (src: string, tgt: string): boolean => !!tradutorNativo()?.pronto(src, tgt);
   /** O tradutor nativo do par já foi CRIADO (o parcial só usa um que existe; ver `ChromeTranslatorMt.criado`). */
-  const nativoCriado = (src: string | null, tgt: string): boolean =>
-    !!src && !!tradutorNativo()?.criado(src, tgt);
+  const nativoCriado = (src: string | null, tgt: string): boolean => !!src && !!tradutorNativo()?.criado(src, tgt);
+
+  /* O MOTOR LOCAL FICOU PRONTO: o disjuntor dele fecha na hora (uma falha antiga não pode segurar o
+     modelo que acabou de carregar por 30 s — Quest emulado, 2026-09-28) e quem pediu aviso (a
+     captura, para retraduzir o que ficou sem tradução) é chamado DEPOIS disso. Um ouvinte por
+     adaptador por gateway, pendurado na primeira vez que o adaptador é resolvido aqui. */
+  const prontidao = new Set<() => void>();
+  const vigiados = new Set<string>();
+  const resolverMt = (b: CapabilityBinding): TranslationProvider => {
+    const a = resolveMt(b);
+    if (a.aoFicarPronto && !vigiados.has(b.adapterId)) {
+      vigiados.add(b.adapterId);
+      a.aoFicarPronto(() => {
+        breakers.reiniciar(b.adapterId);
+        for (const fn of prontidao) fn();
+      });
+    }
+    return a;
+  };
 
   /** O preload do 1º tradutor LOCAL com `preload` (opus-mt), com o vigia de estagnação. */
   const preloadLocal = (
@@ -174,7 +191,7 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
   ): Promise<void> => {
     for (const b of core.getProfile().bindings.mt ?? []) {
       try {
-        const a = resolveMt(b);
+        const a = resolverMt(b);
         if (a.preload && a.supports(src, tgt)) {
           return new Promise<void>((resolve) => {
             let done = false;
@@ -237,7 +254,7 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
             if (!b || breakers.get(b.adapterId).isOpen || !consentiu()) return null;
             tentouNuvem = true;
             try {
-              const a = resolveMt(b);
+              const a = resolverMt(b);
               if (!a.supports(src, tgt)) return null;
               const r = await breakers.get(b.adapterId).run(() => a.translate(text, src, tgt, opts));
               const veredicto = validarTraducao(r.text, tgt, src, null, text);
@@ -256,7 +273,7 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
           const cascata = core.run(
             'mt',
             async (b) => {
-              const adapter = resolveMt(b);
+              const adapter = resolverMt(b);
               if (!adapter.supports(src, tgt)) throw new Error(`${adapter.id} não suporta ${src}→${tgt}`);
               const r = await adapter.translate(text, src, tgt, opts);
 
@@ -346,7 +363,7 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
         for (const b of core.getProfile().bindings.mt ?? []) {
           const t0 = Date.now();
           try {
-            const a = resolveMt(b);
+            const a = resolverMt(b);
             const breaker = breakers.get(b.adapterId);
             const suporta = a.supports(src, tgt);
             if (!suporta) {
@@ -371,11 +388,30 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
         return linhas;
       },
 
+      /**
+       * Avisa quando um tradutor LOCAL fica pronto (depois de fechar o disjuntor dele). A captura usa
+       * para retraduzir as falas que ficaram sem tradução enquanto o modelo carregava.
+       */
+      aoFicarPronto: (fn: () => void): (() => void) => {
+        prontidao.add(fn);
+        // Pendura o vigia nos adaptadores locais já agora: o 1º `ready` pode vir de um aquecimento.
+        for (const b of core.getProfile().bindings.mt ?? []) {
+          try {
+            resolverMt(b);
+          } catch {
+            /* próximo binding */
+          }
+        }
+        return () => {
+          prontidao.delete(fn);
+        };
+      },
+
       /** Libera os tradutores locais (encerra os workers do opus-mt). Ver `stt.liberarModelo`. */
       liberarModelos: (): void => {
         for (const b of core.getProfile().bindings.mt ?? []) {
           try {
-            const a = resolveMt(b) as { liberar?: () => void };
+            const a = resolverMt(b) as { liberar?: () => void };
             if (typeof a.liberar === 'function') a.liberar();
           } catch {
             /* próximo binding */
@@ -403,12 +439,7 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
             let prep = preparacoesNativas.get(key);
             if (!prep) {
               prep = nativo
-                .preparar(
-                  src,
-                  tgt,
-                  onProgress && ((p) => onProgress(p, key)),
-                  aoFalhar && (() => aoFalhar(key)),
-                )
+                .preparar(src, tgt, onProgress && ((p) => onProgress(p, key)), aoFalhar && (() => aoFalhar(key)))
                 .catch(() => null);
               preparacoesNativas.set(key, prep);
             }
@@ -425,7 +456,7 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
             if (nativoPronto(src, tgt)) return;
             for (const b of core.getProfile().bindings.mt ?? []) {
               try {
-                const a = resolveMt(b);
+                const a = resolverMt(b);
                 if (a.preload && a.supports(src, tgt)) a.preload(src, tgt);
               } catch {
                 /* próximo binding */
@@ -541,7 +572,7 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
        * do local — a qualidade multilíngue do large-v3-turbo é muito superior ao tiny.
        * O local continua na cadeia como reserva. Perfil Privado/Local nunca liga isto.
        */
-      setRoute(route: { preferCloud: boolean; localModel?: string; dtype?: string; device?: 'wasm' }): void {
+      setRoute(route: { preferCloud: boolean; localModel?: string; dtype?: string; device?: 'wasm' | 'webgpu' }): void {
         sttPreferCloudRef.value = route.preferCloud;
         if (route.localModel) {
           const opcoes = route.dtype || route.device ? { dtype: route.dtype, device: route.device } : undefined;
@@ -559,13 +590,16 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
 
       /**
        * O REGULADOR trocou o modelo local (um degrau abaixo ou de volta — `reguladorDaCaptura.ts`).
-       * Só o modelo: a rota (nuvem primeiro?) e o dtype ficam como o roteador deixou.
+       * Sem `opcoes`, só o modelo: a rota (nuvem primeiro?) e o dtype ficam como o roteador deixou.
+       * Com `opcoes`, o degrau diz o dtype/backend dele (o tiny só em hybrid na GPU; `trocar-backend`).
        */
-      trocarModeloLocal(modelo: string): void {
+      trocarModeloLocal(modelo: string, opcoes?: { dtype?: string; device?: 'wasm' | 'webgpu' }): void {
         for (const b of core.getProfile().bindings.stt ?? []) {
           try {
-            const a = resolveStt(b) as SttProvider & { setModel?: (m: string) => void };
-            if (a.supportsBlob && typeof a.setModel === 'function') a.setModel(modelo);
+            const a = resolveStt(b) as SttProvider & {
+              setModel?: (m: string, o?: { dtype?: string; device?: 'wasm' | 'webgpu' }) => void;
+            };
+            if (a.supportsBlob && typeof a.setModel === 'function') a.setModel(modelo, opcoes);
           } catch {
             /* próximo binding */
           }

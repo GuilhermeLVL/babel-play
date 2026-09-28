@@ -1,3 +1,5 @@
+import { MotorAindaCarregando } from '@core';
+
 import type { MtResult, TranslationProvider } from '../capabilities';
 
 /**
@@ -275,7 +277,8 @@ export class ChromeTranslatorMt implements TranslationProvider {
             this.instances.delete(key);
           });
       }
-      throw new Error(`Chrome Translator ainda está baixando o pacote ${s}->${t}`);
+      // Pulo, não falha: o pacote baixando não pode abrir o disjuntor (ver `MotorAindaCarregando`).
+      throw new MotorAindaCarregando(this.id, `Chrome Translator ainda está baixando o pacote ${s}->${t}`);
     }
 
     this.known.set(key, 'ready');

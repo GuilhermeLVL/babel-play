@@ -189,6 +189,17 @@ export function lerManifesto(modelId: string, dtype: string, device: string): Ma
   }
 }
 
+/**
+ * Há cópia deste modelo NESTE dtype no aparelho? SÍNCRONA (só o manifesto do localStorage, sem abrir
+ * o Cache Storage): é a pergunta do regulador no meio da sessão, para preferir um degrau que não
+ * baixa nada. O manifesto só existe depois de uma carga bem-sucedida; o device não muda os arquivos.
+ * Sem `dtype`: qualquer um dos que as rotas usam. Não confere tamanhos — quem carrega confere.
+ */
+export function temCopiaNoAparelho(modelId: string, dtype?: string): boolean {
+  const dtypes = dtype ? [dtype] : ['hybrid', 'hybrid-fp16', 'q8'];
+  return dtypes.some((d) => ['wasm', 'webgpu'].some((dev) => lerManifesto(modelId, d, dev) !== null));
+}
+
 export interface EstadoDoCache {
   completo: boolean;
   motivo?: 'sem-manifesto' | 'incompleto' | 'gravacao-parcial';

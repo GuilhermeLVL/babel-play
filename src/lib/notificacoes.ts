@@ -20,7 +20,7 @@ export type TomDaNotificacao = '' | 'good' | 'warn' | 'rare';
  * é o recibo de uma ação que a própria pessoa acabou de fazer.
  */
 export type TipoDaNotificacao = 'revisao' | 'conquista' | 'sessao';
-export type IconeDaNotificacao = 'target' | 'award' | 'trending-up' | 'gift' | 'library' | 'flame';
+export type IconeDaNotificacao = 'target' | 'award' | 'trending-up' | 'gift' | 'library' | 'flame' | 'calendar';
 
 export interface Notificacao {
   id: string;

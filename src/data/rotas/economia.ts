@@ -64,13 +64,14 @@ export async function gastarSeedsEx(input: {
 /**
  * O REEMBOLSO DO CORTE DO CATÁLOGO (recompensas v2). O corpo é vazio: o servidor decide o que é
  * devido a partir do próprio razão. `creditado` é o que entrou AGORA (0 no reenvio); `reembolsado`
- * é o total já devolvido. `null` em falha — quem chama tenta de novo noutra sessão.
+ * é o total já devolvido; `avisoPendente` (servidor novo) diz se o aviso ainda não foi dado.
+ * `null` em falha — quem chama tenta de novo noutra sessão.
  */
-export async function reembolsarSeeds(): Promise<{ creditado: number; reembolsado: number } | null> {
+export async function reembolsarSeeds(): Promise<{ creditado: number; reembolsado: number; avisoPendente?: boolean } | null> {
   try {
     const res = await apiFetch('/api/metrics/seeds/reembolso', { method: 'POST' })
     if (!res.ok) return null
-    return (await res.json()) as { creditado: number; reembolsado: number }
+    return (await res.json()) as { creditado: number; reembolsado: number; avisoPendente?: boolean }
   } catch {
     return null
   }

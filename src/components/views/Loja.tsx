@@ -35,6 +35,7 @@ import { comprarPecaComSeeds } from '../../lib/galeria/comprarPeca';
 import { type ContextoDeEquipar, equiparItem, equipavel, estaEquipado } from '../../lib/galeria/equipar';
 import { estadoDaColecao, proximaRecompensa } from '../../lib/galeria/progressao';
 import { TEXTOS } from '../../lib/galeria/textos';
+import { t } from '../../lib/i18n';
 import { estaAnonimo } from '../../lib/identidade';
 import { CATALOGO_DA_LOJA, COR_DA_RARIDADE, estadoDoItem, type ItemDaLoja, soPorSeeds } from '../../lib/loja';
 import { perfilProtegido } from '../../lib/protecaoDoMenor';
@@ -137,7 +138,7 @@ function LojaClassica({
 
   // A carteira de Créditos é a única moeda que o cliente não deriva sozinho: o servidor arbitra.
   const carteira = useCarteira();
-  const temporada = useTemporada((seeds) => toast.ok(`Temporada: +${seeds} Seeds dos níveis que você alcançou.`));
+  const temporada = useTemporada((seeds) => toast.ok(t('Temporada: +{n} Seeds dos níveis que você alcançou.', { n: seeds })));
 
   // Recém-comprados nesta visita continuam na prateleira como 'Liberado · Equipar agora'.
   const [recemComprados] = useState(() => new Set<string>());

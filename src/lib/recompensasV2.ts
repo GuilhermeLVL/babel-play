@@ -7,8 +7,10 @@
  *
  * O REEMBOLSO: uma vez por sessão, com a flag ligada, o cliente pede `POST
  * /api/metrics/seeds/reembolso` — o servidor decide o que é devido a partir do próprio razão. O
- * aviso "Trocamos os cursores e emojis por recompensas novas. Suas Seeds voltaram: +N" aparece UMA
- * vez só na vida da instalação (`babel.aviso_reembolso_v2`), e só quando houve reembolso.
+ * aviso "Trocamos os cursores e emojis por recompensas novas. Suas Seeds voltaram: +N" aparece
+ * quando o SERVIDOR diz que ainda falta avisar (`avisoPendente`), com o que entrou AGORA
+ * (`creditado`) — não por aparelho, nem com o total da vida. Servidor antigo, sem o campo: o
+ * comportamento anterior (uma vez por instalação, `babel.aviso_reembolso_v2`, com o total).
  */
 import { FLAG_RECOMPENSAS_V2, recompensasV2Ativas } from '../core/flags';
 import { reembolsarSeeds } from '../data/api';
@@ -36,7 +38,11 @@ let pedidoDestaSessao: Promise<number | null> | null = null;
 export function reembolsarUmaVez(): Promise<number | null> {
   if (!recompensasV2Ligadas()) return Promise.resolve(null);
   pedidoDestaSessao ??= reembolsarSeeds().then((r) => {
-    if (!r || r.reembolsado <= 0) return null;
+    if (!r) return null;
+    /* O servidor sabe se o aviso já foi dado (em qualquer aparelho): ele manda. */
+    if (typeof r.avisoPendente === 'boolean') return r.avisoPendente && r.creditado > 0 ? r.creditado : null;
+    // Servidor antigo: uma vez por instalação, com o total reembolsado.
+    if (r.reembolsado <= 0) return null;
     try {
       if (localStorage.getItem(CHAVE_DO_AVISO_DE_REEMBOLSO)) return null;
       localStorage.setItem(CHAVE_DO_AVISO_DE_REEMBOLSO, String(r.reembolsado));

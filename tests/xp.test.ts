@@ -35,7 +35,9 @@ function metricas(p: Partial<AppMetrics> = {}): AppMetrics {
 
 describe('a fórmula é uma só', () => {
   it('deriveProgress usa exatamente xpDeEventos', () => {
-    const m = metricas({ sessions: 3, wordsCaptured: 40, reviews: 12, correctReviews: 9, drillItems: 20, drillCorrect: 15 })
+    /* `sessoes` do evento é `sessoesComPalavraSalva` (revisão de 27/09): só sessão com palavra
+       salva rende XP; `sessions` é estatística. */
+    const m = metricas({ sessions: 5, sessoesComPalavraSalva: 3, wordsCaptured: 40, reviews: 12, correctReviews: 9, drillItems: 20, drillCorrect: 15 })
 
     const esperado = xpDeEventos({
       sessoes: 3, palavrasCapturadas: 40, revisoes: 12, revisoesCertas: 9,
@@ -75,7 +77,10 @@ describe('seeds — o ganho nunca encolhe', () => {
        nenhuma. Seeds agora só vêm do que a pessoa FAZ. */
     const p = deriveProgress(metricas({ wordsCaptured: 325, sessions: 1 }))
     expect(p.seeds).toBe(0)
-    expect(p.xp).toBeGreaterThan(0) // XP continua contando a captura
+    /* Nem XP, desde a revisão de 27/09: a sessão importada sem nenhuma palavra salva não é esforço
+       (`sessaoRendeXp`). Com uma palavra salva dela, a sessão volta a render o seu XP. */
+    expect(p.xp).toBe(0)
+    expect(deriveProgress(metricas({ wordsCaptured: 325, sessions: 1, sessoesComPalavraSalva: 1 })).xp).toBe(PESOS_XP.sessao)
   })
 
   it('o saldo nunca fica negativo, mesmo com gasto acima do ganho', () => {

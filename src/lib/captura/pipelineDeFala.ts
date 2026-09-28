@@ -20,7 +20,7 @@ import { aoFalharANuvemDoStt } from '../../gateway/falhaDaNuvemDoStt';
 import { areModelsCached, expectedModelIds } from '../../gateway/modelCache';
 import type { ContextoDoStt } from '../../gateway/promptDeStt';
 import { getSttQuality, nomeLegivelDoModelo, routeStt } from '../../gateway/sttRouter';
-import { consentiuNuvem } from '../consentimentoDeNuvem';
+import { consentiuReconhecimentoDoNavegador, rapidoDoMicPermitido } from '../consentimentoDeNuvem';
 import { DominantLangTracker } from '../convoLang';
 import { dispositivoDaRota, medirPerfilDoDispositivo } from '../dispositivo/perfil';
 import { getEntitlements } from '../entitlements';
@@ -922,7 +922,8 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
         webSpeechSuportado:
           typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window),
         noAparelho: disponibilidadeDaSondaParaIdioma(sourceLangRef.current, sonda?.sinais?.sttNoAparelho),
-        consentiuNuvem: consentiuNuvem(),
+        consentiuNavegador: consentiuReconhecimentoDoNavegador(),
+        rapidoPermitido: rapidoDoMicPermitido(),
         perfilId: getActiveProfile().id,
       }).motor === 'whisper';
     const autoDetect = autoDetectLangRef.current || autoDetectMyLangRef.current;

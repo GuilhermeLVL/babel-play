@@ -11,9 +11,23 @@
  * TRÊS DEGRAUS, do que não sai do aparelho ao que sai:
  *   (a) `web-speech-local` — o navegador reconhece NO aparelho (`available({processLocally})` =
  *       'available'). Grátis, sem download nosso, sem consentimento: nada sai;
- *   (b) `web-speech-nuvem` — a de sempre, SÓ com consentimento de nuvem e NUNCA no perfil Privado;
+ *   (b) `web-speech-nuvem` — a de sempre, SÓ com o consentimento ESPECÍFICO do reconhecimento do
+ *       navegador (a opção "Rápido") e NUNCA no perfil Privado nem no perfil protegido;
  *   (c) `whisper` — o Whisper/Moonshine local que já servia a quem não tem Web Speech.
  * Quem escolheu o Whisper no seletor fica nele: a escolha da pessoa vale mais que o padrão.
+ *
+ * "RÁPIDO" OU "PRIVADO" (decisão do dono, opção b, 2026-09-28). Sem (a), a pessoa escolhe UMA vez,
+ * antes de o mic abrir: "Rápido" = (b), o áudio vai ao Google/Microsoft/Apple, sem download;
+ * "Privado" = (c), baixa o modelo e nada sai. O consentimento é PRÓPRIO
+ * (`consentimentos.reconhecimentoDoNavegador`), separado do "Usar IA de nuvem" — este fala de
+ * NOSSOS servidores de IA (Groq, OpenRouter, MyMemory); aquele, do fornecedor do navegador. Um "sim"
+ * não vale pelo outro (LGPD art. 8º, § 4º: consentimento para finalidade determinada). A escolha
+ * muda depois em "Dispositivos e modelos de IA" (Microfone) e em Ajustes → Privacidade.
+ *
+ * PERFIL PROTEGIDO (`perfilProtegido()`: menor, ou idade ainda não declarada no modo público) não
+ * vê o "Rápido": fica no "Privado" sem pergunta. É a política que o app já tem para a nuvem —
+ * a configuração mais protetiva é a padrão, e a conta de menor só sai do aparelho com o vínculo do
+ * responsável aceito (`protecaoDoMenor.ts`, `restrita`). Com o vínculo aceito, a pergunta volta.
  *
  * PACOTE A BAIXAR ('downloadable'): `SpeechRecognition.install()` exige ativação do usuário, então só
  * é chamado a partir do clique em "Iniciar"/microfone (`resolverMotorDoMic`, chamado de `startMic`),
@@ -29,7 +43,11 @@ export type MotivoDoMotorDoMic =
   | 'no-aparelho'
   | 'nuvem-consentida'
   | 'perfil-privado'
+  | 'perfil-protegido'
   | 'sem-consentimento';
+
+/** A resposta da pergunta "Rápido ou Privado?" — guardada nas preferências. */
+export type EscolhaDoMic = 'rapido' | 'privado';
 
 export interface EntradaDoMotorDoMic {
   /** O seletor da tela: 'browser' (Web Speech, padrão) ou 'whisper'. */
@@ -38,8 +56,10 @@ export interface EntradaDoMotorDoMic {
   webSpeechSuportado: boolean;
   /** `available({langs:[idioma do mic], processLocally:true})`; `null` = sem a API ou sem resposta. */
   noAparelho: Disponibilidade | null;
-  /** Consentimento de nuvem (Ajustes → Privacidade). */
-  consentiuNuvem: boolean;
+  /** Consentimento ESPECÍFICO do reconhecimento do navegador (a opção "Rápido"). */
+  consentiuNavegador: boolean;
+  /** O "Rápido" pode existir para este perfil (`podeOferecerRapido`)? */
+  rapidoPermitido: boolean;
   /** Perfil de IA ativo: `local-private` promete que nada sai do aparelho. */
   perfilId: string;
 }
@@ -60,8 +80,35 @@ export function escolherMotorDoMic(e: EntradaDoMotorDoMic): DecisaoDoMotorDoMic 
   if (e.noAparelho === 'available') return { motor: 'web-speech-local', motivo: 'no-aparelho', instalarNoAparelho: false };
   const instalarNoAparelho = e.noAparelho === 'downloadable';
   if (e.perfilId === PERFIL_PRIVADO) return { motor: 'whisper', motivo: 'perfil-privado', instalarNoAparelho };
-  if (e.consentiuNuvem) return { motor: 'web-speech-nuvem', motivo: 'nuvem-consentida', instalarNoAparelho };
+  if (!e.rapidoPermitido) return { motor: 'whisper', motivo: 'perfil-protegido', instalarNoAparelho };
+  if (e.consentiuNavegador) return { motor: 'web-speech-nuvem', motivo: 'nuvem-consentida', instalarNoAparelho };
   return { motor: 'whisper', motivo: 'sem-consentimento', instalarNoAparelho };
+}
+
+/**
+ * O "Rápido" existe para quem? Para o adulto; para o perfil protegido, só com o responsável tendo
+ * autorizado (vínculo aceito e conta não restrita) — a mesma régua da nuvem em `protecaoDoMenor.ts`.
+ */
+export function podeOferecerRapido(e: { protegido: boolean; responsavelAutorizou: boolean }): boolean {
+  return !e.protegido || e.responsavelAutorizou;
+}
+
+/** O que está guardado: consentiu → "Rápido"; já respondeu sem consentir → "Privado"; nunca → null. */
+export function escolhaGuardada(e: { consentiuNavegador: boolean; jaEscolheu: boolean }): EscolhaDoMic | null {
+  if (e.consentiuNavegador) return 'rapido';
+  return e.jaEscolheu ? 'privado' : null;
+}
+
+/**
+ * Perguntar "Rápido ou Privado?" AGORA? Só quando a resposta muda alguma coisa: há Web Speech, o
+ * seletor está no navegador, o navegador NÃO reconhece no aparelho (com (a) nada sai e nada baixa),
+ * o "Rápido" existe para este perfil, e a pessoa ainda não respondeu.
+ */
+export function precisaPerguntarMotorDoMic(e: EntradaDoMotorDoMic & { escolha: EscolhaDoMic | null }): boolean {
+  if (!e.webSpeechSuportado || e.preferido !== 'browser') return false;
+  if (e.noAparelho === 'available') return false;
+  if (e.perfilId === PERFIL_PRIVADO || !e.rapidoPermitido) return false;
+  return e.escolha === null;
 }
 
 /**
@@ -84,9 +131,18 @@ type ComInstalar = { install?: (o: { langs: string[]; processLocally: boolean })
 /**
  * A decisão com a pergunta ao navegador AO VIVO (a sonda guardada pode ter até 30 dias; o pacote pode
  * ter sido instalado ontem). Chamada do clique — por isso pode pedir o `install()`. Nunca lança.
+ *
+ * `perguntar`: a tela mostra "Rápido ou Privado?" e devolve a resposta (quem a GUARDA é a tela);
+ * `null` = fechou sem escolher → "Privado" nesta vez, e a pergunta volta na próxima. O clique numa
+ * das opções é ativação do usuário nova, então o `install()` depois dela continua valendo.
  */
 export async function resolverMotorDoMic(
-  e: Omit<EntradaDoMotorDoMic, 'noAparelho'> & { lang: string; escopo?: unknown },
+  e: Omit<EntradaDoMotorDoMic, 'noAparelho'> & {
+    lang: string;
+    escopo?: unknown;
+    escolha?: EscolhaDoMic | null;
+    perguntar?: () => Promise<EscolhaDoMic | null>;
+  },
 ): Promise<DecisaoDoMotorDoMic> {
   const escopo = e.escopo ?? globalThis;
   let noAparelho: Disponibilidade | null = null;
@@ -98,7 +154,12 @@ export async function resolverMotorDoMic(
       noAparelho = null; // sem sonda: segue pelo consentimento
     }
   }
-  const decisao = escolherMotorDoMic({ ...e, noAparelho });
+  let consentiuNavegador = e.consentiuNavegador;
+  if (e.perguntar && e.escolha !== undefined && precisaPerguntarMotorDoMic({ ...e, noAparelho, escolha: e.escolha })) {
+    const resposta = await e.perguntar().catch(() => null);
+    consentiuNavegador = resposta === 'rapido';
+  }
+  const decisao = escolherMotorDoMic({ ...e, consentiuNavegador, noAparelho });
   if (decisao.instalarNoAparelho) {
     const s = escopo as { SpeechRecognition?: ComInstalar; webkitSpeechRecognition?: ComInstalar };
     const SR = s.SpeechRecognition ?? s.webkitSpeechRecognition;

@@ -249,7 +249,9 @@ export class WebSpeechStt implements SttProvider {
     } catch (e) {
       // Com trilha, o `start` que lança É o teste da combinação trilha + no aparelho: sobe já.
       if (trilha) throw e
-      cb.onError?.(e as Error)
+      // No microfone, o `start()` que lança é o fim desta sessão (não há volta que o conserte).
+      stopped = true
+      cb.onError?.(Object.assign(e as Error, { fatal: true }) as ErroDaWebSpeech)
     }
 
     return {

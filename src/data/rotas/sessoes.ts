@@ -5,7 +5,7 @@
  * têm o MESMO recorte por domínio de rota, para que dê para lê-los lado a lado.
  *
  * Rotas: GET/POST `/api/sessions`, GET/PATCH/DELETE `/api/sessions/:id`,
- * PATCH `/api/sessions/:id/meta`, PUT `/api/sessions/:id/utterances`,
+ * PATCH `/api/sessions/:id/meta`, PUT/POST `/api/sessions/:id/utterances`,
  * POST/GET `/api/sessions/:id/audio`, PATCH `/api/sessions/utterances/:id`,
  * GET `/api/sessions/utterances/all`, POST `/api/sessions/utterances/relabel`.
  */
@@ -127,14 +127,135 @@ export interface CreateSessionPayload {
   origemLocalId?: string
 }
 
+/**
+ * A RECUSA DE UMA ESCRITA DE SESSÃO, com o que o servidor disse (relato do dono, 2026-09-28).
+ *
+ * Antes, toda recusa virava `'falha ao salvar a sessão'`: o 507 do teto sem conta, que explica o
+ * limite e o que fazer, chegava à tela como uma frase muda, e a tela reabria o Encerrar num laço.
+ * Agora o texto, o código (`TETO_ANONIMO`, `validacao`…) e o status atravessam — é a tela que
+ * decide a saída a partir deles. `status` 0 = não houve resposta (rede, prazo).
+ */
+export class ErroDeSessao extends Error {
+  readonly status: number
+  readonly codigo?: string
+  /** No 507 do teto: o recurso e os números (`teto`, `usado`). */
+  readonly detalhes: Record<string, unknown>
+  constructor(mensagem: string, status: number, codigo?: string, detalhes: Record<string, unknown> = {}) {
+    super(mensagem)
+    this.name = 'ErroDeSessao'
+    this.status = status
+    this.codigo = codigo
+    this.detalhes = detalhes
+  }
+}
+
+/** O teto sem conta recusou a gravação? (507 `TETO_ANONIMO` do espelho.) */
+export function ehTetoDeSessoes(e: unknown): boolean {
+  return e instanceof ErroDeSessao && e.codigo === 'TETO_ANONIMO'
+}
+
+/** Lê o envelope da recusa: `{ error, code | codigo, ...detalhes }` (o espelho usa `codigo`). */
+async function erroDaResposta(res: Response, padrao: string): Promise<ErroDeSessao> {
+  try {
+    const corpo = (await res.json()) as Record<string, unknown>
+    const { error, code, codigo, ...detalhes } = corpo ?? {}
+    const texto = typeof error === 'string' && error ? error : padrao
+    const cod = typeof code === 'string' ? code : typeof codigo === 'string' ? codigo : undefined
+    return new ErroDeSessao(texto, res.status, cod, detalhes)
+  } catch {
+    return new ErroDeSessao(padrao, res.status)
+  }
+}
+
+/** A escrita de sessão com a recusa tipada — e a falta de resposta também, com status 0. */
+async function escrever(url: string, metodo: string, corpo: unknown, padrao: string): Promise<SessionRow> {
+  let res: Response
+  try {
+    res = await apiFetch(url, {
+      method: metodo,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(corpo),
+    })
+  } catch (e) {
+    throw new ErroDeSessao(`${padrao}: sem resposta do servidor (${(e as Error)?.message ?? e})`, 0)
+  }
+  if (!res.ok) throw await erroDaResposta(res, padrao)
+  return (await res.json()) as SessionRow
+}
+
 export async function createSession(payload: CreateSessionPayload): Promise<Recording> {
-  const res = await apiFetch('/api/sessions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  })
-  if (!res.ok) throw new Error('falha ao salvar a sessão')
-  return sessionToRecording((await res.json()) as SessionRow)
+  return sessionToRecording(await escrever('/api/sessions', 'POST', payload, 'falha ao salvar a sessão'))
+}
+
+/**
+ * O TAMANHO DO LOTE de falas por pedido. O servidor aceita até 1.000 por lote e 5.000 no POST; 500
+ * deixa o corpo pequeno (uma fala leva até 20 KB de texto) e cada pedido curto o bastante para o
+ * prazo do funil.
+ */
+export const LOTE_DE_FALAS = 500
+
+/** Acrescenta um lote de falas (`POST /:id/utterances`); idempotente por faixa de `idx`. */
+export async function appendSessionUtterances(id: string, utterances: NewUtterancePayload[]): Promise<Recording> {
+  const lote = utterances.map((u, i) => ({ ...u, idx: u.idx ?? i }))
+  return sessionToRecording(
+    await escrever(`/api/sessions/${id}/utterances`, 'POST', { utterances: lote }, 'falha ao guardar as falas'),
+  )
+}
+
+function emLotes<T>(itens: T[], tamanho = LOTE_DE_FALAS): T[][] {
+  const lotes: T[][] = []
+  for (let i = 0; i < itens.length; i += tamanho) lotes.push(itens.slice(i, i + tamanho))
+  return lotes
+}
+
+/** Cada fala leva o seu `idx` explícito: é ele que torna o reenvio de um lote idempotente. */
+function comIdx(utterances: NewUtterancePayload[] = []): NewUtterancePayload[] {
+  return utterances.map((u, i) => ({ ...u, idx: u.idx ?? i }))
+}
+
+/**
+ * CRIA A SESSÃO DA CAPTURA EM LOTES: o primeiro vai no POST, o resto em `POST /:id/utterances`.
+ *
+ * Tira o teto de 5.000 falas por sessão (o `max` do POST) sem mexer no contrato do POST. Com
+ * `origemLocalId`, repetir tudo depois de uma falha no meio é seguro: o POST devolve a sessão que
+ * já existia (`jaExistia`) e cada lote substitui a própria faixa. `aoProgresso(feitas, total)`.
+ */
+export async function criarSessaoEmLotes(
+  payload: CreateSessionPayload,
+  aoProgresso?: (feitas: number, total: number) => void,
+): Promise<Recording> {
+  const falas = comIdx(payload.utterances)
+  const [primeiro = [], ...resto] = emLotes(falas)
+  let recording = await createSession({ ...payload, utterances: primeiro })
+  let feitas = primeiro.length
+  aoProgresso?.(feitas, falas.length)
+  for (const lote of resto) {
+    recording = await appendSessionUtterances(recording.id, lote)
+    feitas += lote.length
+    aoProgresso?.(feitas, falas.length)
+  }
+  return recording
+}
+
+/** RETOMADA em lotes: o PUT troca tudo pelo primeiro lote, o resto é acrescentado. Recusa lança. */
+export async function substituirFalasEmLotes(
+  id: string,
+  utterances: NewUtterancePayload[],
+  aoProgresso?: (feitas: number, total: number) => void,
+): Promise<Recording> {
+  const falas = comIdx(utterances)
+  const [primeiro = [], ...resto] = emLotes(falas)
+  let recording = sessionToRecording(
+    await escrever(`/api/sessions/${id}/utterances`, 'PUT', { utterances: primeiro }, 'falha ao guardar as falas'),
+  )
+  let feitas = primeiro.length
+  aoProgresso?.(feitas, falas.length)
+  for (const lote of resto) {
+    recording = await appendSessionUtterances(id, lote)
+    feitas += lote.length
+    aoProgresso?.(feitas, falas.length)
+  }
+  return recording
 }
 
 /** Sobe o áudio gravado da sessão (Blob do MediaRecorder). Best-effort — nunca quebra o save. */

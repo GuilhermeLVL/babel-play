@@ -11,7 +11,7 @@ import { filtrarAlucinacao } from '../../src/gateway/alucinacao'
 import { credentialsRepo } from '../db/repositories/credentials'
 import { contarDescartesDoStt, observarChamadaDeProvedor } from '../http/metricas'
 import { abrirPortaGratuita, type PortaGratuita } from '../lib/convidado'
-import { avaliarAudioFaturavel, duracaoDoWav, segundosFaturaveis } from '../lib/duracaoDeAudio'
+import { arquivoDoAudio, avaliarAudioFaturavel, duracaoDoAudio, segundosFaturaveis } from '../lib/duracaoDeAudio'
 import { getEntitlements } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
 import { normalizarIdiomaDoWhisper } from '../lib/idiomaDoWhisper'
@@ -238,8 +238,10 @@ async function transcrever(req: Request, res: Response, rastro: RastroDeIa): Pro
          `byteRate` que o próprio cliente escreve no cabeçalho — 13 min declarados como 1 s. Agora a
          taxa é derivada dos campos do `fmt `, o incoerente é 415 e o que passa do teto por requisição
          é 413. Recusar (em vez de cobrar pelo pior caso) não quebra o cliente legítimo: ele SEMPRE
-         manda WAV PCM 16 bits mono (`src/gateway/audio/wav.ts`). Antes da reserva de propósito:
-         recusa não toca contador, então não há o que estornar. */
+         manda Ogg Opus mono (`src/gateway/audio/opusDoStt.ts`) ou, sem WebCodecs, WAV PCM 16 bits
+         mono (`src/gateway/audio/wav.ts`). No Ogg, o granule final é conferido contra as amostras
+         dos pacotes — a mesma regra de coerência do `fmt ` (ver `duracaoDoOggOpus`). Antes da
+         reserva de propósito: recusa não toca contador, então não há o que estornar. */
       const avaliacao = avaliarAudioFaturavel(audioBuffer)
       if (avaliacao.ok === false) {
         responderErro(res, avaliacao.status, avaliacao.error, avaliacao.code)
@@ -316,10 +318,14 @@ async function transcrever(req: Request, res: Response, rastro: RastroDeIa): Pro
        palavras-função — que não tem sinal em fala curta. Foi assim que uma sessão inteira em
        espanhol apareceu rotulada como inglês. `verbose_json` traz `language` no MESMO custo de API.
 
-       FormData é de uso único (o corpo é consumido no envio), então cada tentativa monta a sua. */
+       FormData é de uso único (o corpo é consumido no envio), então cada tentativa monta a sua.
+
+       O TIPO DO ARQUIVO sai dos magic bytes (`arquivoDoAudio`): Ogg Opus vai como `audio.ogg`
+       (a Groq aceita ogg), o resto como o `audio.wav` de sempre. */
+    const arquivo = arquivoDoAudio(audioBuffer)
     const montarForm = (formato: 'verbose_json' | 'json'): FormData => {
       const f = new FormData()
-      f.append('file', new Blob([audioBuffer], { type: 'audio/wav' }), 'audio.wav')
+      f.append('file', new Blob([audioBuffer], { type: arquivo.tipo }), arquivo.nome)
       f.append('model', model)
       if (lang) f.append('language', lang)
       if (prompt) f.append('prompt', prompt)
@@ -517,9 +523,9 @@ async function transcrever(req: Request, res: Response, rastro: RastroDeIa): Pro
     const limpeza = limparTranscricao(j, audioBuffer, lang || idioma, req.requestId)
     /* A GERAÇÃO QUE ENTREGOU. `filtrado-vazio` separa "o provedor não ouviu nada" de "o provedor
        inventou e o filtro cortou" — a segunda é custo pago por alucinação, e é o número que diz se o
-       VAD do cliente está mandando silêncio demais. Os segundos REAIS são a duração do WAV; os
+       VAD do cliente está mandando silêncio demais. Os segundos REAIS são a duração do áudio; os
        FATURADOS têm o mínimo por requisição do provedor. */
-    const segundosReais = duracaoDoWav(audioBuffer) ?? (typeof j.duration === 'number' ? j.duration : 0)
+    const segundosReais = duracaoDoAudio(audioBuffer) ?? (typeof j.duration === 'number' ? j.duration : 0)
     rastro.anotar({
       parDeIdiomas: codigoDeIdioma(lang || idioma),
       segmentosDescartados: limpeza.descartados,
@@ -584,7 +590,7 @@ function limparTranscricao(
   const bruto = typeof j.text === 'string' ? j.text : ''
   const triagem = triarSegmentos(j.segments)
   const triado = triagem ? triagem.texto : bruto
-  const duracao = duracaoDoWav(audio) ?? (typeof j.duration === 'number' ? j.duration : 0)
+  const duracao = duracaoDoAudio(audio) ?? (typeof j.duration === 'number' ? j.duration : 0)
   const filtrado = filtrarAlucinacao(triado, duracao, idioma || undefined)
   const alucinacao = triado.trim() && !filtrado ? 1 : 0
 

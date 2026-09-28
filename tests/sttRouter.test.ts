@@ -20,10 +20,22 @@ const base = {
 }
 
 describe('routeStt — a régua de qualidade por idioma', () => {
-  it('inglês em auto fica LOCAL no moonshine-base (bancada FLEURS: 10,9% WER vs 19,7% do whisper-tiny)', () => {
+  it('inglês em auto COM nuvem → nuvem primeiro, moonshine-base de reserva (bancada: 4,9% contra 13,5% de WER)', () => {
+    // Auditoria de eficiência 2026-09-28, achado 5: quem paga recebia o Moonshine local em inglês.
     const r = routeStt({ ...base, contentLang: 'en' })
+    expect(r).toMatchObject({ localModel: MOONSHINE_MODELS.base, preferCloud: true, dtype: 'q8' })
+    expect(r.label).toBe('nuvem (large-v3-turbo) · reserva local')
+  })
+
+  it('inglês em auto SEM nuvem fica LOCAL no moonshine-base (10,9% WER vs 19,7% do whisper-tiny)', () => {
+    const r = routeStt({ ...base, contentLang: 'en', cloudAvailable: false })
     expect(r).toMatchObject({ localModel: MOONSHINE_MODELS.base, preferCloud: false })
     expect(r.label).toBe('local · inglês (moonshine)')
+  })
+
+  it('inglês em auto no perfil Privado/Local continua no moonshine, sem nuvem', () => {
+    const r = routeStt({ ...base, contentLang: 'en', profileId: 'local-private' })
+    expect(r).toMatchObject({ localModel: MOONSHINE_MODELS.base, preferCloud: false })
   })
 
   it('não-EN em auto com nuvem disponível → nuvem primeiro, reserva base', () => {
@@ -88,7 +100,8 @@ describe('routeStt — a régua de qualidade por idioma', () => {
   })
 
   it('BCP-47 completo é normalizado (en-US → inglês)', () => {
-    expect(routeStt({ ...base, contentLang: 'en-US' }).preferCloud).toBe(false)
+    expect(routeStt({ ...base, contentLang: 'en-US', cloudAvailable: false }).localModel).toBe(MOONSHINE_MODELS.base)
+    expect(routeStt({ ...base, contentLang: 'en-US' }).localModel).toBe(MOONSHINE_MODELS.base)
   })
 })
 

@@ -16,6 +16,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
 import { esquecerAdmissao } from '../../server/ai/admissao'
 import { esvaziarCacheDeTraducao } from '../../server/ai/cacheDeTraducao'
 import { esquecerDisjuntores } from '../../server/ai/disjuntor'
+import { oggOpus } from '../harness/ogg'
 import { type AppDeTeste, resposta, subirApp } from './_app'
 
 const ENV_PRIMARIO = {
@@ -394,6 +395,19 @@ describe('POST /api/ai/stt — transcrição gerenciada com upstream falso', () 
     expect(chamadas).toHaveLength(1)
     expect(chamadas[0].url).toBe('http://203.0.113.20/v1/audio/transcriptions')
     expect(chamadas[0].headers.authorization).toBe('Bearer chave-stt-falsa')
+  })
+
+  it('corpo Ogg Opus com content-type audio/ogg passa pelo raw() e chega ao provedor → 200', async () => {
+    fixar('STT_API_KEY', 'chave-stt-falsa')
+    fixar('STT_BASE_URL', 'http://203.0.113.20/v1')
+    responder = () =>
+      new Response(JSON.stringify({ text: 'olá', language: 'portuguese' }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      })
+    const r = await s.chamar('POST', '/api/ai/stt', { raw: oggOpus(1), headers: { 'content-type': 'audio/ogg' } })
+    expect(r.status).toBe(200)
+    expect(chamadas).toHaveLength(1)
   })
 
   it('upstream 4xx em verbose_json → repete em json; 5xx → retenta UMA vez e termina em 502', async () => {

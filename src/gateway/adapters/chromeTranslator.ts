@@ -8,8 +8,16 @@ import type { MtResult, TranslationProvider } from '../capabilities';
  */
 declare const Translator: {
   availability(opts: { sourceLanguage: string; targetLanguage: string }): Promise<string>;
-  create(opts: { sourceLanguage: string; targetLanguage: string }): Promise<{ translate(t: string): Promise<string> }>;
+  create(opts: {
+    sourceLanguage: string;
+    targetLanguage: string;
+    /** Progresso do download do pacote de idioma (`downloadprogress`, `loaded` de 0 a 1). */
+    monitor?: (m: { addEventListener(tipo: 'downloadprogress', f: (e: { loaded: number }) => void): void }) => void;
+  }): Promise<{ translate(t: string): Promise<string> }>;
 };
+
+/** O que a preparação no clique descobriu do par. `null` = sem a API. */
+export type EstadoDoTradutorNativo = 'available' | 'downloadable' | 'unavailable' | null;
 
 /**
  * PRAZO DA CONSULTA DE DISPONIBILIDADE. Medido na auditoria de latência (2026-09-26): no headless
@@ -66,6 +74,66 @@ export class ChromeTranslatorMt implements TranslationProvider {
       this.instances.set(key, inst);
     }
     return inst;
+  }
+
+  /** O par já está pronto nesta sessão (a próxima tradução não pergunta nada)? */
+  pronto(src: string, tgt: string): boolean {
+    return this.known.get(`${src.split('-')[0]}|${tgt.split('-')[0]}`) === 'ready';
+  }
+
+  /**
+   * PREPARAR NO CLIQUE (harness adaptativo §1.2, M3). `Translator.create()` precisa de ATIVAÇÃO DO
+   * USUÁRIO quando o pacote de idioma ainda vai baixar; dentro de uma tradução assíncrona ela já
+   * expirou, a criação falhava e o par ficava "indisponível" a sessão inteira — e o opus-mt (113 MB)
+   * baixava mesmo em Chrome que traduz de graça. Chamado do clique em "Iniciar": consulta a
+   * disponibilidade (sem o prazo curto da tradução — aqui ninguém espera legenda) e cria a
+   * instância JÁ, com `monitor` para o progresso do download. Nunca lança.
+   */
+  async preparar(src: string, tgt: string, onProgress?: (p: number) => void): Promise<EstadoDoTradutorNativo> {
+    if (!ChromeTranslatorMt.isPresent() || !src || !tgt) return null;
+    const s = src.split('-')[0];
+    const t = tgt.split('-')[0];
+    if (s === t) return null;
+    const key = `${s}|${t}`;
+    if (this.known.get(key) === 'ready') return 'available';
+    let status: string;
+    try {
+      status = await Translator.availability({ sourceLanguage: s, targetLanguage: t });
+    } catch {
+      this.known.set(key, 'unavailable');
+      return 'unavailable';
+    }
+    if (status === 'unavailable') {
+      this.known.set(key, 'unavailable');
+      return 'unavailable';
+    }
+    const pronto = status === 'available' || status === 'readily';
+    if (!pronto) this.known.set(key, 'downloading');
+    let inst = this.instances.get(key);
+    if (!inst) {
+      inst = Translator.create({
+        sourceLanguage: s,
+        targetLanguage: t,
+        monitor: (m) => m.addEventListener('downloadprogress', (e) => onProgress?.(e.loaded)),
+      });
+      this.instances.set(key, inst);
+    }
+    const criada = inst.then(
+      () => {
+        this.known.set(key, 'ready');
+        onProgress?.(1);
+      },
+      () => {
+        this.known.set(key, 'unavailable');
+        this.instances.delete(key);
+      },
+    );
+    // Pronto: a criação é instantânea, vale esperar. A baixar: devolve já e o download segue.
+    if (pronto) {
+      await criada;
+      return this.known.get(key) === 'ready' ? 'available' : 'unavailable';
+    }
+    return 'downloadable';
   }
 
   /**

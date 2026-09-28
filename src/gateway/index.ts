@@ -13,7 +13,7 @@ import { bindingExigeConsentimento } from '@core/harness/registroDeMotores';
 
 import { detectLanguage } from '../lib/langDetect';
 import { explicarRejeicao, precisaConferir, validarTraducao } from '../lib/validaTraducao';
-import { ChromeTranslatorMt } from './adapters/chromeTranslator';
+import { ChromeTranslatorMt, type EstadoDoTradutorNativo } from './adapters/chromeTranslator';
 import { GroqWhisperStt } from './adapters/groqWhisper';
 import { MyMemoryMt } from './adapters/mymemory';
 import { OpenAiCompatibleLlm } from './adapters/openaiCompatible';
@@ -143,6 +143,64 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
   // Rota ativa do sttRouter (nuvem-primeiro?) — mutável via stt.setRoute sem recriar o gateway.
   const sttPreferCloudRef = { value: false };
 
+  /* TRADUTOR NATIVO preparado no clique (`mt.prepararNativo`): a promessa de cada par, para o
+     `warmup`/`preload` do opus-mt esperarem por ela e pularem o download quando o nativo serve. */
+  const preparacoesNativas = new Map<string, Promise<EstadoDoTradutorNativo>>();
+  const chaveDoPar = (src: string, tgt: string): string => `${src.split('-')[0]}|${tgt.split('-')[0]}`;
+  const tradutorNativo = (): ChromeTranslatorMt | null => {
+    const b = (core.getProfile().bindings.mt ?? []).find((x) => x.adapterId === 'chrome-translator');
+    if (!b) return null;
+    try {
+      const a = resolveMt(b);
+      return a instanceof ChromeTranslatorMt ? a : null;
+    } catch {
+      return null;
+    }
+  };
+  const nativoPronto = (src: string, tgt: string): boolean => !!tradutorNativo()?.pronto(src, tgt);
+
+  /** O preload do 1º tradutor LOCAL com `preload` (opus-mt), com o vigia de estagnação. */
+  const preloadLocal = (
+    src: string,
+    tgt: string,
+    onProgress?: (p: number, label?: string, bytes?: { loaded: number; total: number }) => void,
+  ): Promise<void> => {
+    for (const b of core.getProfile().bindings.mt ?? []) {
+      try {
+        const a = resolveMt(b);
+        if (a.preload && a.supports(src, tgt)) {
+          return new Promise<void>((resolve) => {
+            let done = false;
+            // Failsafe POR ESTAGNAÇÃO, não por prazo fixo. O prazo de 30 s resolvia a promise
+            // no meio de um download legítimo — medido, 113 MB a 0,44 MB/s levam ~257 s (A-P1-8).
+            let ultimoSinal = Date.now();
+            a.preload!(src, tgt, (p, label, bytes) => {
+              ultimoSinal = Date.now();
+              onProgress?.(p, label, bytes);
+              if (p >= 1 && !done) {
+                done = true;
+                resolve();
+              }
+            });
+            const vigia = setInterval(() => {
+              if (done) {
+                clearInterval(vigia);
+                return;
+              }
+              if (Date.now() - ultimoSinal < 30000) return; // baixando, só devagar
+              clearInterval(vigia);
+              done = true;
+              resolve(); // MT é best-effort: o gateway cai p/ o próximo adapter
+            }, 5000);
+          });
+        }
+      } catch {
+        /* próximo binding */
+      }
+    }
+    return Promise.resolve();
+  };
+
   return {
     core,
     ledger,
@@ -271,16 +329,45 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
         }
       },
 
+      /**
+       * PREPARA O TRADUTOR NATIVO (Translator API) no CLIQUE em "Iniciar" — ver
+       * `ChromeTranslatorMt.preparar`. A promessa de cada par fica guardada: `warmup`/`preload`
+       * esperam por ela e pulam o opus-mt (113 MB) quando o nativo respondeu `available`.
+       */
+      prepararNativo: (pairs: Array<[string, string]>, onProgress?: (p: number) => void): Promise<void> => {
+        const nativo = tradutorNativo();
+        if (!nativo) return Promise.resolve();
+        return Promise.all(
+          pairs.map(([src, tgt]) => {
+            const key = chaveDoPar(src, tgt);
+            let prep = preparacoesNativas.get(key);
+            if (!prep) {
+              prep = nativo.preparar(src, tgt, onProgress).catch(() => null);
+              preparacoesNativas.set(key, prep);
+            }
+            return prep;
+          }),
+        ).then(() => undefined);
+      },
+
       /** Aquece os adapters de MT locais (ex.: opus-mt) para as direções esperadas, em background. */
       warmup: (pairs: Array<[string, string]>): void => {
-        for (const b of core.getProfile().bindings.mt ?? []) {
-          try {
-            const a = resolveMt(b);
-            if (!a.preload) continue;
-            for (const [src, tgt] of pairs) if (a.supports(src, tgt)) a.preload(src, tgt);
-          } catch {
-            /* próximo binding */
-          }
+        for (const [src, tgt] of pairs) {
+          // Tradutor nativo pronto para o par: o opus-mt não baixa (nem ocupa memória) à toa.
+          const aquecer = (): void => {
+            if (nativoPronto(src, tgt)) return;
+            for (const b of core.getProfile().bindings.mt ?? []) {
+              try {
+                const a = resolveMt(b);
+                if (a.preload && a.supports(src, tgt)) a.preload(src, tgt);
+              } catch {
+                /* próximo binding */
+              }
+            }
+          };
+          const prep = preparacoesNativas.get(chaveDoPar(src, tgt));
+          if (prep) void prep.then(aquecer);
+          else aquecer();
         }
       },
 
@@ -294,40 +381,9 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
         tgt: string,
         onProgress?: (p: number, label?: string, bytes?: { loaded: number; total: number }) => void,
       ): Promise<void> => {
-        for (const b of core.getProfile().bindings.mt ?? []) {
-          try {
-            const a = resolveMt(b);
-            if (a.preload && a.supports(src, tgt)) {
-              return new Promise<void>((resolve) => {
-                let done = false;
-                // Failsafe POR ESTAGNAÇÃO, não por prazo fixo. O prazo de 30 s resolvia a promise
-                // no meio de um download legítimo — medido, 113 MB a 0,44 MB/s levam ~257 s (A-P1-8).
-                let ultimoSinal = Date.now();
-                a.preload!(src, tgt, (p, label, bytes) => {
-                  ultimoSinal = Date.now();
-                  onProgress?.(p, label, bytes);
-                  if (p >= 1 && !done) {
-                    done = true;
-                    resolve();
-                  }
-                });
-                const vigia = setInterval(() => {
-                  if (done) {
-                    clearInterval(vigia);
-                    return;
-                  }
-                  if (Date.now() - ultimoSinal < 30000) return; // baixando, só devagar
-                  clearInterval(vigia);
-                  done = true;
-                  resolve(); // MT é best-effort: o gateway cai p/ o próximo adapter
-                }, 5000);
-              });
-            }
-          } catch {
-            /* próximo binding */
-          }
-        }
-        return Promise.resolve();
+        const prep = preparacoesNativas.get(chaveDoPar(src, tgt));
+        if (prep) return prep.then(() => (nativoPronto(src, tgt) ? undefined : preloadLocal(src, tgt, onProgress)));
+        return nativoPronto(src, tgt) ? Promise.resolve() : preloadLocal(src, tgt, onProgress);
       },
     },
 

@@ -32,8 +32,13 @@ export type Canal = 'app' | 'email' | 'push';
  * `nuvem` (Fase 2 do lançamento): mandar fala e texto a servidores de IA — tradução, transcrição e
  * tutor (Groq, OpenRouter) e o tradutor público MyMemory. Desligado por padrão: o app é aberto a
  * menores, e sem o "sim" datado nada sai do aparelho (o gateway pula esses motores).
+ *
+ * `reconhecimentoDoNavegador` (2026-09-28): a opção "Rápido" do microfone — o reconhecimento de voz do
+ * navegador, que manda o áudio ao Google (Chrome, Android), à Microsoft (Edge) ou à Apple (Safari).
+ * PRÓPRIO, e não o `nuvem`: o destinatário e a finalidade são outros (LGPD art. 8º, § 4º), e quem
+ * autorizou os nossos servidores de IA não autorizou o Google a ouvir a sua voz. Desligado por padrão.
  */
-export type Consentimento = 'metricas' | 'novidades' | 'ia' | 'nuvem';
+export type Consentimento = 'metricas' | 'novidades' | 'ia' | 'nuvem' | 'reconhecimentoDoNavegador';
 
 export interface Preferencias {
   lembrete: { on: boolean; hora: string };
@@ -49,6 +54,8 @@ export interface Preferencias {
   niveis: Record<string, Cefr>;
   /** Formato da cópia dos dados (Ajustes → Privacidade). */
   formatoDaCopia: 'json' | 'csv';
+  /** A pessoa já respondeu "Rápido ou Privado?" do microfone — a pergunta não volta. */
+  micEscolhido: boolean;
 }
 
 /** Os padrões do protótipo aprovado (`E.notifPref`, `E.lembrete`, `E.cons`, `E.perfil`). */
@@ -62,11 +69,12 @@ export const PADRAO: Preferencias = {
   },
   silencio: { on: true, de: '22:00', ate: '08:00' },
   semanal: { on: true, dia: 'domingo' },
-  consentimentos: { metricas: true, novidades: false, ia: false, nuvem: false },
+  consentimentos: { metricas: true, novidades: false, ia: false, nuvem: false, reconhecimentoDoNavegador: false },
   registroDeConsentimentos: [],
   metaMin: 15,
   niveis: {},
   formatoDaCopia: 'json',
+  micEscolhido: false,
 };
 
 const ESPELHO = 'babel.preferencias';
@@ -87,6 +95,7 @@ export function normalizar(bruto: unknown): Preferencias {
     metaMin: typeof p.metaMin === 'number' && p.metaMin > 0 ? p.metaMin : PADRAO.metaMin,
     niveis: p.niveis && typeof p.niveis === 'object' ? { ...p.niveis } : {},
     formatoDaCopia: p.formatoDaCopia === 'csv' ? 'csv' : 'json',
+    micEscolhido: p.micEscolhido === true,
   };
 }
 

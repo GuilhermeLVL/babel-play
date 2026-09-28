@@ -181,6 +181,12 @@ Apple SpeechAnalyzer (WWDC25), ML Kit GenAI, capawesome/capgo, Meta PWA packagin
   sem consentimento); Web Speech na nuvem só com consentimento e fora do `local-private`; senão
   Whisper/Moonshine local. `install()` só no clique, sem esperar. O adaptador lança se o navegador
   não tem `processLocally`. A rota do STT conta o mic no Whisper quando é o que vai acontecer.
+- **"Rápido" ou "Privado"** (decisão do dono, opção b) — sem o reconhecimento no aparelho, a primeira
+  abertura do mic pergunta (`EscolhaDoMicrofone.tsx`, `precisaPerguntarMotorDoMic`). "Rápido" grava o
+  consentimento PRÓPRIO `reconhecimentoDoNavegador` (Google/Microsoft/Apple), separado do `nuvem`;
+  "Privado" registra a recusa com data. Troca no painel "Dispositivos e modelos de IA" e em Ajustes →
+  Privacidade. Perfil Privado não vê o "Rápido"; perfil protegido (`perfilProtegido()`) também não,
+  salvo com o vínculo do responsável aceito e a conta não restrita — a régua da nuvem.
 - **Translator API no clique** — `gateway.mt.prepararNativo` no "Iniciar" (com `monitor`); o
   `warmup`/`preload` do opus-mt pulam o par que o nativo já traduz.
 - **Regulador** — `src/lib/captura/reguladorDaCaptura.ts`, alimentado por final LOCAL (RTF, fila,

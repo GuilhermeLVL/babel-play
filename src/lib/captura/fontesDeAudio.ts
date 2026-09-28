@@ -22,9 +22,14 @@ import {
   startSystemLoopbackCapture,
 } from '../../gateway/capture/systemAudio';
 import { filterLoopbackDevices, listDevices } from '../audioDevices';
-import { consentiuNuvem as consentiuNuvemPadrao } from '../consentimentoDeNuvem';
+import {
+  consentiuReconhecimentoDoNavegador,
+  escolhaDoMicGuardada,
+  rapidoDoMicPermitido,
+} from '../consentimentoDeNuvem';
+import { t } from '../i18n';
 import { isTtsActive } from '../tts';
-import { resolverMotorDoMic } from './motorDoMicrofone';
+import { type EscolhaDoMic, resolverMotorDoMic } from './motorDoMicrofone';
 import { clog, formatTime, type HandlersDaFonte, type SpeechSegment, wordsFromText } from './tiposDaFala';
 import type { OpcoesDeTraducao } from './traducaoDaFala';
 
@@ -73,8 +78,15 @@ export interface DepsDasFontesDeAudio {
   /* --- rota do STT --- */
   /** O decode final vai para a nuvem AGORA? Decide o teto de fala contínua (ver `OpcoesDeCaptura`). */
   finalNaNuvem?: () => boolean;
-  /* --- privacidade do motor do microfone (padrão: Ajustes → Privacidade e o perfil ativo) --- */
-  consentiuNuvem?: () => boolean;
+  /* --- privacidade do motor do microfone (padrão: as preferências, a proteção e o perfil ativo) --- */
+  /** Consentimento PRÓPRIO do reconhecimento do navegador (o "Rápido"). */
+  consentiuNavegador?: () => boolean;
+  /** O "Rápido" existe para este perfil (protegido só com o responsável autorizando)? */
+  rapidoPermitido?: () => boolean;
+  /** A resposta guardada de "Rápido ou Privado?" (`null` = nunca respondeu). */
+  escolhaDoMic?: () => EscolhaDoMic | null;
+  /** Mostra "Rápido ou Privado?" e devolve a resposta (a tela a guarda); sem ele, não pergunta. */
+  perguntarEscolhaDoMic?: () => Promise<EscolhaDoMic | null>;
   perfilId?: () => string;
 }
 
@@ -118,7 +130,9 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
     setMicAbrindo,
     finalNaNuvem,
   } = deps;
-  const consentiu = deps.consentiuNuvem ?? consentiuNuvemPadrao;
+  const consentiu = deps.consentiuNavegador ?? consentiuReconhecimentoDoNavegador;
+  const rapidoPermitido = deps.rapidoPermitido ?? rapidoDoMicPermitido;
+  const escolhaDoMic = deps.escolhaDoMic ?? (() => escolhaDoMicGuardada());
   const perfilId = deps.perfilId ?? (() => getActiveProfile().id);
 
   /* O teto do corte forçado acompanha o motor FINAL: 12 s na nuvem (cobrança mínima de 10 s por
@@ -396,14 +410,19 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
   // Devolve promessa para que quem liga o mic NO MEIO da sessão saiba quando a permissão
   // do navegador terminou — é esse intervalo que o botão mostra como "pedindo permissão…".
   /* O MOTOR PASSA PELA PRIVACIDADE (`motorDoMicrofone.ts`): Web Speech no aparelho quando o navegador
-     reconhece o idioma localmente; a Web Speech na nuvem (áudio ao Google) só com consentimento e
-     fora do perfil Privado; senão o Whisper local. Sempre a partir de um clique (Iniciar, desmutar,
-     retomar) — é o que permite pedir a instalação do pacote do idioma. */
+     reconhece o idioma localmente; a Web Speech na nuvem (áudio ao Google) só com o "Rápido"
+     consentido e fora dos perfis Privado e protegido; senão o Whisper local. Na primeira vez sem o
+     reconhecimento no aparelho, a tela pergunta "Rápido ou Privado?" (`perguntarEscolhaDoMic`) antes
+     de o mic abrir. Sempre a partir de um clique (Iniciar, desmutar, retomar) — é o que permite pedir
+     a instalação do pacote do idioma. */
   const startMic = async (): Promise<void> => {
     const decisao = await resolverMotorDoMic({
       preferido: micEngine,
       webSpeechSuportado: webSpeechSupported,
-      consentiuNuvem: consentiu(),
+      consentiuNavegador: consentiu(),
+      rapidoPermitido: rapidoPermitido(),
+      escolha: escolhaDoMic(),
+      perguntar: deps.perguntarEscolhaDoMic,
       perfilId: perfilId(),
       lang: sourceLangRef.current,
     });
@@ -413,16 +432,15 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
       startWebSpeechMic(false);
       return;
     }
-    if (
-      micEngine === 'browser' &&
-      (decisao.motivo === 'sem-consentimento' || decisao.motivo === 'perfil-privado') &&
-      !avisouMicSemNuvem
-    ) {
+    /* O aviso só onde ele informa: no perfil Privado, e para quem fechou a pergunta sem escolher.
+       Quem acabou de escolher "Privado" já sabe; o perfil protegido nunca viu o "Rápido". */
+    const semEscolha = decisao.motivo === 'sem-consentimento' && escolhaDoMic() === null;
+    if (micEngine === 'browser' && (semEscolha || decisao.motivo === 'perfil-privado') && !avisouMicSemNuvem) {
       avisouMicSemNuvem = true;
       setFeedbackMsg(
         decisao.motivo === 'perfil-privado'
           ? 'Perfil Privado: sua voz é transcrita no aparelho (a transcrição do navegador enviaria o áudio ao Google).'
-          : 'Sua voz é transcrita no aparelho. A transcrição do navegador envia o áudio ao Google e só é usada com a sua autorização em Ajustes, Privacidade.',
+          : t('Sua voz é transcrita neste aparelho. Para o modo Rápido, troque em Dispositivos e modelos de IA.'),
       );
       setTimeout(() => setFeedbackMsg(''), 8000);
     }

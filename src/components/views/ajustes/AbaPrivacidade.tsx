@@ -14,7 +14,7 @@ import { Interruptor, Linha } from './Linha';
  * AJUSTES → PRIVACIDADE (override de `T.ajustes`, 4029-4041): o que você autoriza, baixar os seus
  * dados e onde eles ficam.
  *
- * Os três consentimentos são guardados com o registro de cada mudança (data e valor), como a nota da
+ * Os consentimentos são guardados com o registro de cada mudança (data e valor), como a nota da
  * tela promete. A cópia dos dados é a exportação REAL (`GET /api/me/exportar`, LGPD art. 18, V), em
  * JSON ou em CSV; ela é gerada na hora, então "preparando" dura o tempo da requisição.
  */
@@ -27,6 +27,16 @@ const CONSENTIMENTOS: Array<[Consentimento, string, string, string]> = [
       'Tradução, transcrição e tutor por servidores de IA (Groq, OpenRouter) e o tradutor público MyMemory. Desligado, tudo roda no seu aparelho.',
     ),
     t('Usar IA de nuvem'),
+  ],
+  [
+    /* O "Rápido" do microfone: consentimento PRÓPRIO (o destinatário é o fornecedor do navegador, não
+       os nossos servidores de IA). Desligar vale como "Privado" (`consentimentoDeNuvem.ts`). */
+    'reconhecimentoDoNavegador',
+    t('Reconhecimento de voz do navegador'),
+    t(
+      'O modo Rápido do microfone: o navegador envia o áudio da sua voz ao Google, à Microsoft ou à Apple para transcrever. Desligado, a sua voz é transcrita no aparelho.',
+    ),
+    t('Reconhecimento de voz do navegador'),
   ],
   [
     'metricas',

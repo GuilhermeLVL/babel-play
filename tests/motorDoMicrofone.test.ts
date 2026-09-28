@@ -6,7 +6,7 @@
  * perguntar. Agora a escolha é uma decisão pura, em três degraus:
  *   (a) o navegador reconhece NO aparelho (`available({processLocally})` = 'available') → Web Speech
  *       local, sem consentimento (nada sai);
- *   (b) senão, com consentimento de nuvem e fora do perfil Privado → Web Speech na nuvem, como antes;
+ *   (b) senão, com o consentimento ESPECÍFICO do reconhecimento do navegador ("Rápido") e fora do perfil Privado → Web Speech na nuvem, como antes;
  *   (c) senão → o Whisper/Moonshine local que já servia a quem não tem Web Speech.
  */
 import { describe, expect, it, vi } from 'vitest'
@@ -14,7 +14,10 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   disponibilidadeDaSondaParaIdioma,
   type EntradaDoMotorDoMic,
+  escolhaGuardada,
   escolherMotorDoMic,
+  podeOferecerRapido,
+  precisaPerguntarMotorDoMic,
   resolverMotorDoMic,
 } from '../src/lib/captura/motorDoMicrofone'
 
@@ -22,7 +25,8 @@ const BASE: EntradaDoMotorDoMic = {
   preferido: 'browser',
   webSpeechSuportado: true,
   noAparelho: null,
-  consentiuNuvem: false,
+  consentiuNavegador: false,
+  rapidoPermitido: true,
   perfilId: 'free-web',
 }
 
@@ -40,7 +44,7 @@ describe('escolherMotorDoMic', () => {
   })
 
   it('sem o local e COM consentimento → Web Speech na nuvem, como antes', () => {
-    const d = escolherMotorDoMic({ ...BASE, consentiuNuvem: true })
+    const d = escolherMotorDoMic({ ...BASE, consentiuNavegador: true })
     expect(d.motor).toBe('web-speech-nuvem')
   })
 
@@ -51,7 +55,7 @@ describe('escolherMotorDoMic', () => {
   })
 
   it('o perfil Privado NUNCA usa a Web Speech na nuvem, nem com consentimento', () => {
-    const d = escolherMotorDoMic({ ...BASE, perfilId: 'local-private', consentiuNuvem: true })
+    const d = escolherMotorDoMic({ ...BASE, perfilId: 'local-private', consentiuNavegador: true })
     expect(d.motor).toBe('whisper')
     expect(d.motivo).toBe('perfil-privado')
   })
@@ -59,7 +63,7 @@ describe('escolherMotorDoMic', () => {
   it("pacote 'downloadable': pede a instalação (no clique) e usa o degrau seguinte AGORA", () => {
     const semConsentimento = escolherMotorDoMic({ ...BASE, noAparelho: 'downloadable' })
     expect(semConsentimento).toMatchObject({ motor: 'whisper', instalarNoAparelho: true })
-    const comConsentimento = escolherMotorDoMic({ ...BASE, noAparelho: 'downloadable', consentiuNuvem: true })
+    const comConsentimento = escolherMotorDoMic({ ...BASE, noAparelho: 'downloadable', consentiuNavegador: true })
     expect(comConsentimento).toMatchObject({ motor: 'web-speech-nuvem', instalarNoAparelho: true })
   })
 
@@ -69,7 +73,61 @@ describe('escolherMotorDoMic', () => {
 
   it('quem escolheu o Whisper fica no Whisper; navegador sem Web Speech também', () => {
     expect(escolherMotorDoMic({ ...BASE, preferido: 'whisper', noAparelho: 'available' }).motor).toBe('whisper')
-    expect(escolherMotorDoMic({ ...BASE, webSpeechSuportado: false, consentiuNuvem: true }).motor).toBe('whisper')
+    expect(escolherMotorDoMic({ ...BASE, webSpeechSuportado: false, consentiuNavegador: true }).motor).toBe('whisper')
+  })
+})
+
+describe('perfil protegido (menor ou idade desconhecida) — "Rápido" não é oferecido', () => {
+  it('sem "Rápido" permitido, nem o consentimento guardado manda o áudio ao Google', () => {
+    const d = escolherMotorDoMic({ ...BASE, consentiuNavegador: true, rapidoPermitido: false })
+    expect(d).toMatchObject({ motor: 'whisper', motivo: 'perfil-protegido' })
+  })
+
+  it('o reconhecimento NO aparelho continua valendo (nada sai)', () => {
+    expect(escolherMotorDoMic({ ...BASE, rapidoPermitido: false, noAparelho: 'available' }).motor).toBe(
+      'web-speech-local',
+    )
+  })
+
+  it('podeOferecerRapido: adulto sim; protegido só com o responsável autorizando (política da nuvem)', () => {
+    expect(podeOferecerRapido({ protegido: false, responsavelAutorizou: false })).toBe(true)
+    expect(podeOferecerRapido({ protegido: true, responsavelAutorizou: false })).toBe(false)
+    expect(podeOferecerRapido({ protegido: true, responsavelAutorizou: true })).toBe(true)
+  })
+})
+
+describe('precisaPerguntarMotorDoMic — a escolha "Rápido"/"Privado" aparece UMA vez', () => {
+  const P = { ...BASE, escolha: null } as const
+
+  it('primeira vez, sem reconhecimento no aparelho, com Web Speech → pergunta', () => {
+    expect(precisaPerguntarMotorDoMic(P)).toBe(true)
+    expect(precisaPerguntarMotorDoMic({ ...P, noAparelho: 'downloadable' })).toBe(true)
+    expect(precisaPerguntarMotorDoMic({ ...P, noAparelho: 'unavailable' })).toBe(true)
+  })
+
+  it('com a escolha guardada (qualquer uma) → não pergunta de novo', () => {
+    expect(precisaPerguntarMotorDoMic({ ...P, escolha: 'rapido' })).toBe(false)
+    expect(precisaPerguntarMotorDoMic({ ...P, escolha: 'privado' })).toBe(false)
+  })
+
+  it('reconhecimento no aparelho disponível → nada a perguntar (nada sai, nada a baixar)', () => {
+    expect(precisaPerguntarMotorDoMic({ ...P, noAparelho: 'available' })).toBe(false)
+  })
+
+  it('perfil Privado e perfil protegido → não pergunta: "Rápido" não existe para eles', () => {
+    expect(precisaPerguntarMotorDoMic({ ...P, perfilId: 'local-private' })).toBe(false)
+    expect(precisaPerguntarMotorDoMic({ ...P, rapidoPermitido: false })).toBe(false)
+  })
+
+  it('sem Web Speech, ou com o Whisper escolhido no seletor → não pergunta', () => {
+    expect(precisaPerguntarMotorDoMic({ ...P, webSpeechSuportado: false })).toBe(false)
+    expect(precisaPerguntarMotorDoMic({ ...P, preferido: 'whisper' })).toBe(false)
+  })
+
+  it('escolhaGuardada: consentimento → rápido; já respondeu sem consentir → privado; nunca → null', () => {
+    expect(escolhaGuardada({ consentiuNavegador: true, jaEscolheu: false })).toBe('rapido')
+    expect(escolhaGuardada({ consentiuNavegador: false, jaEscolheu: true })).toBe('privado')
+    expect(escolhaGuardada({ consentiuNavegador: false, jaEscolheu: false })).toBeNull()
   })
 })
 
@@ -114,8 +172,42 @@ describe('resolverMotorDoMic — pergunta ao navegador e instala só quando pedi
     })
   })
 
+  it('primeira vez: pergunta DEPOIS de o navegador dizer que não reconhece no aparelho', async () => {
+    const e = escopo('unavailable')
+    const perguntar = vi.fn(async () => 'rapido' as const)
+    const d = await resolverMotorDoMic({ ...BASE, lang: 'pt-BR', escopo: e.escopo, escolha: null, perguntar })
+    expect(perguntar).toHaveBeenCalledOnce()
+    expect(d.motor).toBe('web-speech-nuvem')
+  })
+
+  it('"Privado" ou fechar sem escolher → Whisper local', async () => {
+    for (const r of ['privado', null] as const) {
+      const d = await resolverMotorDoMic({
+        ...BASE,
+        lang: 'pt-BR',
+        escopo: escopo('unavailable').escopo,
+        escolha: null,
+        perguntar: async () => r,
+      })
+      expect(d.motor).toBe('whisper')
+    }
+  })
+
+  it('no aparelho disponível ou escolha guardada → não pergunta', async () => {
+    const perguntar = vi.fn(async () => 'rapido' as const)
+    await resolverMotorDoMic({ ...BASE, lang: 'pt-BR', escopo: escopo('available').escopo, escolha: null, perguntar })
+    await resolverMotorDoMic({
+      ...BASE,
+      lang: 'pt-BR',
+      escopo: escopo('unavailable').escopo,
+      escolha: 'privado',
+      perguntar,
+    })
+    expect(perguntar).not.toHaveBeenCalled()
+  })
+
   it('sem a API estática (navegador antigo) → degrau seguinte, sem lançar', async () => {
-    const d = await resolverMotorDoMic({ ...BASE, lang: 'pt-BR', consentiuNuvem: true, escopo: {} })
+    const d = await resolverMotorDoMic({ ...BASE, lang: 'pt-BR', consentiuNavegador: true, escopo: {} })
     expect(d.motor).toBe('web-speech-nuvem')
   })
 })

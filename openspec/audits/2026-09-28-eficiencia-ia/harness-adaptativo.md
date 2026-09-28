@@ -170,3 +170,42 @@ whisper_streaming (arXiv 2307.14743), SimulStreaming (2506.17077), FrugalGPT (23
 confiança de ASR (2509.07195), browser × nativo (2402.05981), LlamaWeb (2605.20706), MetricX-24
 (hf.co/google/metricx-24-hybrid-large-v2p6), WebLLM, transformers.js, asbplayer (MIT), RTranslator,
 Apple SpeechAnalyzer (WWDC25), ML Kit GenAI, capawesome/capgo, Meta PWA packaging, Webb & Rodgers (2009).
+
+## 11. Estado da integração (2026-09-28, branch `ei/h`)
+
+**Ligado:**
+- **Consentimento pelo registro** — `src/gateway/index.ts` usa `bindingExigeConsentimento`; a lista à
+  mão saiu. Web Speech em modo nuvem exige consentimento (também em `stt.startLive`/`isAvailable`).
+- **Motor do microfone** — `src/lib/captura/motorDoMicrofone.ts`, chamado de `startMic` (clique):
+  Web Speech com `processLocally` quando `available()` = `available` (registro `web-speech-local`,
+  sem consentimento); Web Speech na nuvem só com consentimento e fora do `local-private`; senão
+  Whisper/Moonshine local. `install()` só no clique, sem esperar. O adaptador lança se o navegador
+  não tem `processLocally`. A rota do STT conta o mic no Whisper quando é o que vai acontecer.
+- **Translator API no clique** — `gateway.mt.prepararNativo` no "Iniciar" (com `monitor`); o
+  `warmup`/`preload` do opus-mt pulam o par que o nativo já traduz.
+- **Regulador** — `src/lib/captura/reguladorDaCaptura.ts`, alimentado por final LOCAL (RTF, fila,
+  latência, visibilidade, bateria, `PressureObserver`): corta parciais, desce o modelo
+  (`stt.trocarModeloLocal`), sobe com folga, proíbe o modelo após falha de GPU em uso, oferece
+  nativo/nuvem pelo aviso de sempre. Aba escondida pausa só os parciais do mic. A rota desce a escada
+  quando o modelo está proibido.
+- **Porta da MT final** — `avaliarTraducaoLocal` após Chrome Translator/opus-mt; sobe o trecho ao
+  `server-llm-mt` com `escalarSeRuim` (plano `managedCloudLlm`) e consentimento.
+- **Porta do STT (leve)** — `razaoDeCompressaoAproximada` → `avaliarTrechoStt`; final local em laço
+  sobe por `stt.transcribePcmNaNuvem` para plano `managedCloudStt`. Escaladas em
+  `capMetrics.summary().escaladas`.
+- **`routeMt`** — só como conferência em DEV (`src/gateway/conferenciaDaRotaMt.ts`).
+
+**Não ligado / limites:**
+- `routeMt` não ordena a cascata (M0 precisa do vocabulário conhecido); "grátis nunca na nuvem" fica
+  com o servidor (cota de convidado).
+- Porta da MT quase dormente hoje: quem paga já vai à nuvem primeiro, e a porta não repete a nuvem
+  que falhou no mesmo pedido. Vira útil quando o "local primeiro, sobe se ruim" for decidido.
+- `trocar-backend` não é emitido (microbenchmark ainda não alimenta a config). OOM fora da GPU não
+  é detectado. Escaladas não vão à telemetria do servidor (só na aba).
+- Progresso do pacote do Translator só no log (sem barra); `install()` do reconhecimento sem UI.
+- Limiares (2,4 aproximado sem zlib; razão/cópia da MT) sem calibração na bancada.
+
+**Conferir em aparelho real:** `processLocally` + `available()` em pt-BR no Chrome estável;
+`install()` e `Translator.create()` dentro da janela de ativação do clique; `PressureObserver` e
+`getBattery` no Chromium; troca de modelo pelo regulador no Pixel/iPhone/Quest (tempo de recarga);
+que o mic cai no Whisper sem consentimento sem pedir download inesperado grande no celular.

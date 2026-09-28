@@ -30,7 +30,8 @@ import {
 import { t } from '../i18n';
 import { isTtsActive } from '../tts';
 import { type EscolhaDoMic, resolverMotorDoMic } from './motorDoMicrofone';
-import { clog, formatTime, type HandlersDaFonte, type SpeechSegment, wordsFromText } from './tiposDaFala';
+import { segmentosDaWebSpeech } from './segmentosDaWebSpeech';
+import { clog, type HandlersDaFonte, type SpeechSegment } from './tiposDaFala';
 import type { OpcoesDeTraducao } from './traducaoDaFala';
 
 /** Tudo que as fontes precisam da tela — por parâmetro, sem contexto novo nem store global. */
@@ -316,69 +317,23 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
     const from = sourceLangRef.current.split('-')[0];
     const to = targetLangRef.current.split('-')[0];
     try {
+      const { aoParcial, aoFinal } = segmentosDaWebSpeech({
+        source: 'mic',
+        speakerId,
+        idiomaDasPalavras: sourceLang,
+        de: () => from,
+        para: () => to,
+        falada: true,
+        idDoParcialRef: webSpeechPartialIdRef,
+        timerRef,
+        nowRel,
+        setSpeechSegments,
+        translateSegment,
+        ignorar: isTtsActive, // anti-eco: o mic ouviu o TTS do app pelos alto-falantes
+      });
       webSpeechRef.current = new WebSpeechStt({ processLocally: noAparelho }).startLive(sourceLangRef.current, {
-        onPartial: (text: string) => {
-          if (isTtsActive()) return; // anti-eco: o mic ouviu o TTS do app pelos alto-falantes
-          const clean = text.trim();
-          if (!clean) return;
-          if (!webSpeechPartialIdRef.current) webSpeechPartialIdRef.current = Math.random().toString(36).slice(2, 11);
-          const pid = webSpeechPartialIdRef.current;
-          setSpeechSegments((prev) => {
-            const idx = prev.findIndex((s) => s.id === pid);
-            if (idx !== -1) {
-              const u = [...prev];
-              u[idx] = { ...u[idx], originalText: clean };
-              return u;
-            }
-            return [
-              ...prev,
-              {
-                id: pid,
-                speakerId,
-                source: 'mic' as const,
-                timestamp: formatTime(timerRef.current),
-                originalText: clean,
-                translatedText: '…',
-                words: [],
-                isPartial: true,
-                tStartMs: nowRel(),
-              },
-            ];
-          });
-        },
-        onFinal: ({ text }: { text: string }) => {
-          if (isTtsActive()) {
-            webSpeechPartialIdRef.current = null;
-            return;
-          } // anti-eco no final também
-          const clean = text.trim();
-          if (!clean) return;
-          const uttId = webSpeechPartialIdRef.current ?? Math.random().toString(36).slice(2, 11);
-          webSpeechPartialIdRef.current = null;
-          setSpeechSegments((prev) => {
-            const existing = prev.find((s) => s.id === uttId);
-            const committed: SpeechSegment = {
-              id: uttId,
-              speakerId,
-              source: 'mic',
-              timestamp: formatTime(timerRef.current),
-              originalText: clean,
-              translatedText: '…',
-              words: wordsFromText(clean, sourceLang),
-              isPartial: false,
-              tStartMs: existing?.tStartMs ?? nowRel(),
-              tEndMs: nowRel(),
-            };
-            const idx = prev.findIndex((s) => s.id === uttId);
-            if (idx !== -1) {
-              const u = [...prev];
-              u[idx] = committed;
-              return u;
-            }
-            return [...prev, committed];
-          });
-          translateSegment(uttId, clean, from, to, { falada: true });
-        },
+        onPartial: aoParcial,
+        onFinal: ({ text }: { text: string }) => aoFinal(text),
         onError: (e: Error) => {
           clog('web-speech mic erro:', String(e));
         },

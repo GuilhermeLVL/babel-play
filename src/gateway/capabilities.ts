@@ -32,6 +32,11 @@ export interface MtOptions {
    * traduções de final e a interrompe (`ChamadaCancelada`) quando um final chega.
    */
   parcial?: boolean;
+  /**
+   * Porta de qualidade do FINAL (harness §5): se a tradução LOCAL parecer ruim, este trecho sobe ao
+   * Tradutor IA do servidor (com consentimento). Ligado só para quem tem direito à nuvem.
+   */
+  escalarSeRuim?: boolean;
 }
 
 export interface MtResult {

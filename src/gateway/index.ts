@@ -9,6 +9,7 @@
  */
 import type { CapabilityBinding, ChatMessage, ChatResult, Profile } from '@core';
 import { AiGateway, BreakerRegistry, BudgetLedger, NoRouteError } from '@core';
+import { avaliarTraducaoLocal } from '@core/harness/portasDeQualidade';
 import { bindingExigeConsentimento } from '@core/harness/registroDeMotores';
 
 import { detectLanguage } from '../lib/langDetect';
@@ -52,6 +53,9 @@ const exigeConsentimento = (b: CapabilityBinding): boolean => bindingExigeConsen
 
 /** O binding traduz sem mandar o texto a ninguém (Chrome Translator nativo, opus-mt no aparelho)? */
 const ehLocal = (b: CapabilityBinding): boolean => !isCloud(b) && !exigeConsentimento(b);
+
+/** Motores de MT que traduzem no aparelho — os que a porta de qualidade do final avalia. */
+const MOTORES_LOCAIS_DE_MT = new Set(['chrome-translator', 'opus-mt-local']);
 
 /** `engine` da resposta VAZIA de um parcial sem tradutor local pronto — nada foi traduzido. */
 export const PARCIAL_SEM_MOTOR_LOCAL = 'parcial-sem-motor-local';
@@ -223,22 +227,28 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
            que o refinamento seguinte joga fora. O parcial só usa tradutor LOCAL; o final é quem vai
            ao servidor. */
           const parcial = opts?.parcial === true;
-          if (!parcial && (opts?.falada || opts?.nuvemPrimeiro)) {
+          /** O Tradutor IA do servidor, se estiver na cadeia, fechado e consentido; `null` = não serviu. */
+          let tentouNuvem = false;
+          const tentarNuvem = async (): Promise<MtResult | null> => {
             const b = (core.getProfile().bindings.mt ?? []).find((x) => x.adapterId === 'server-llm-mt');
-            if (b && !breakers.get(b.adapterId).isOpen && consentiu()) {
-              try {
-                const a = resolveMt(b);
-                if (a.supports(src, tgt)) {
-                  const r = await breakers.get(b.adapterId).run(() => a.translate(text, src, tgt, opts));
-                  const veredicto = validarTraducao(r.text, tgt, src, null, text);
-                  if (veredicto.ok && r.text) return r;
-                  capMetrics.fallback('mt:server-llm-mt'); // respondeu, mas a resposta não servia
-                }
-              } catch {
-                /* cai para a cascata normal — e a telemetria conta a queda */
-                capMetrics.fallback('mt:server-llm-mt');
-              }
+            if (!b || breakers.get(b.adapterId).isOpen || !consentiu()) return null;
+            tentouNuvem = true;
+            try {
+              const a = resolveMt(b);
+              if (!a.supports(src, tgt)) return null;
+              const r = await breakers.get(b.adapterId).run(() => a.translate(text, src, tgt, opts));
+              const veredicto = validarTraducao(r.text, tgt, src, null, text);
+              if (veredicto.ok && r.text) return r;
+              capMetrics.fallback('mt:server-llm-mt'); // respondeu, mas a resposta não servia
+            } catch {
+              /* cai para a cascata normal — e a telemetria conta a queda */
+              capMetrics.fallback('mt:server-llm-mt');
             }
+            return null;
+          };
+          if (!parcial && (opts?.falada || opts?.nuvemPrimeiro)) {
+            const r = await tentarNuvem();
+            if (r) return r;
           }
           const cascata = core.run(
             'mt',
@@ -271,7 +281,19 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
             // Parcial: fora qualquer binding que mande o texto a terceiro (servidor, MyMemory, BYOK).
             { isCloud, exigeConsentimento, aceita: parcial ? ehLocal : undefined },
           );
-          if (!parcial) return cascata;
+          if (!parcial) {
+            const r = await cascata;
+            /* PORTA DE QUALIDADE DO FINAL (harness §5): a tradução LOCAL parece ruim (vazia, tamanho
+             fora de [0,5; 2], cópia do original)? Para quem tem direito à nuvem (`escalarSeRuim`, o
+             chamador decide pelo plano) e consentiu, ESTE trecho sobe ao Tradutor IA — e só ele.
+             Não repete a nuvem que acabou de falhar neste mesmo pedido (`tentouNuvem`). */
+            if (!opts?.escalarSeRuim || tentouNuvem || !MOTORES_LOCAIS_DE_MT.has(r.engine)) return r;
+            if (avaliarTraducaoLocal({ origem: text, traducao: r.text }).veredicto !== 'subir') return r;
+            const nuvem = await tentarNuvem();
+            if (!nuvem) return r;
+            capMetrics.escalada('mt');
+            return nuvem;
+          }
           /* Nenhum tradutor local pronto (sem Chrome Translator, opus-mt ainda não carregado): o
            parcial fica SEM tradução — não é erro, o balão segue em "…" até o final traduzir. Lançar
            aqui viraria o texto original entre parênteses e o aviso de "tradução indisponível" a cada

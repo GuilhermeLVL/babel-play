@@ -508,7 +508,7 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
       /** Esta sessão já acabou (falhou ou foi encerrada): o que chegar depois não conta. */
       let acabou = false;
       let sessao: SttSession | null = null;
-      let prazo: ReturnType<typeof setTimeout> | undefined;
+      const prazo: { id?: ReturnType<typeof setTimeout> } = {};
       let som: ReturnType<typeof setInterval> | null = null;
       const pararSom = () => {
         if (som) clearInterval(som);
@@ -516,7 +516,7 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
       };
       const encerrar = () => {
         acabou = true;
-        clearTimeout(prazo);
+        clearTimeout(prazo.id);
         pararSom();
         try {
           sessao?.stop();
@@ -561,7 +561,7 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
         onAudioAberto: () => {
           if (abriu) return;
           abriu = true;
-          clearTimeout(prazo);
+          clearTimeout(prazo.id);
           if (webSpeechRef.current !== sessao || !isRecordingRef.current) return;
           clog('microfone (Web Speech', noAparelho ? 'no aparelho' : 'na nuvem', ') ABRIU o áudio ✓');
           // Sem gravação a alinhar (a Web Speech não grava): o relógio zera quando o áudio abre.
@@ -583,7 +583,7 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
       });
       if (acabou) return true; // falhou no próprio `start()`: a ajuda já está na tela
       webSpeechRef.current = sessao;
-      prazo = setTimeout(() => {
+      prazo.id = setTimeout(() => {
         if (!abriu)
           falhou(
             Object.assign(new Error('O reconhecimento de fala do navegador não conseguiu abrir o microfone.'), {

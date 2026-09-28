@@ -302,7 +302,27 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
             if (!(e instanceof NoRouteError)) throw e;
             return { text: '', engine: PARCIAL_SEM_MOTOR_LOCAL };
           });
-        })(),
+        })().then((r) => {
+          /* SÓ EM DESENVOLVIMENTO: o motor que atendeu é um que o `routeMt` permitiria? (parcial
+             nunca na nuvem; nada sai sem consentimento — `conferenciaDaRotaMt.ts`). Em produção o
+             ramo some no build, e o `import()` com ele. */
+          if (import.meta.env?.DEV) {
+            const consentimento = consentiu();
+            void import('./conferenciaDaRotaMt').then(({ violacaoDaRotaMt }) => {
+              const v = violacaoDaRotaMt({
+                texto: text,
+                origem: src ?? '',
+                destino: tgt,
+                parcial: opts?.parcial === true,
+                consentimento,
+                falada: opts?.falada === true,
+                motor: r.engine,
+              });
+              if (v) console.error('[harness]', v);
+            });
+          }
+          return r;
+        }),
 
       /**
        * DIAGNÓSTICO: roda cada motor da cadeia isoladamente e diz o que cada um respondeu — com o

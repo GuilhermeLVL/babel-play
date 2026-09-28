@@ -118,7 +118,7 @@ beforeEach(async () => {
   lf.redefinirLangfuse({ arquivo, intervaloMs: 0, ambiente: 'test' })
   tel.esquecerAvisosDeLimite()
   const { esvaziarCacheDeTraducao } = await h.load<any>('../../server/ai/cacheDeTraducao')
-  esvaziarCacheDeTraducao()
+  await esvaziarCacheDeTraducao()
   const { esquecerDisjuntores } = await h.load<any>('../../server/ai/disjuntor')
   esquecerDisjuntores()
   const { esquecerAdmissao } = await h.load<any>('../../server/ai/admissao')

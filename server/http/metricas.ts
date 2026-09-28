@@ -132,6 +132,7 @@ interface Estado {
   iaCustoPorPlano: Counter<'plano'>
   gastoAnomalo: Counter<'motivo'>
   cacheDeTraducao: Counter<'resultado'>
+  cacheDeTraducaoPorNivel: Counter<'nivel' | 'resultado'>
   uploadsRecusados: Counter<'motivo'>
   backupFalhas: Counter<never>
   backupUltimoSucesso: Gauge<never>
@@ -310,6 +311,15 @@ function metricas(): Estado {
       name: 'ia_cache_traducao_total',
       help: 'Consultas ao cache de tradução do servidor, por resultado (acerto|falta). Acerto é tradução que não foi paga de novo.',
       labelNames: ['resultado'] as const,
+    }),
+    /* Por NÍVEL (auditoria de eficiência da IA, 28/09): L1 é a memória do processo, L2 o SQLite. Série
+       à parte, e não um rótulo a mais na de cima, para o painel e os alertas que já leem
+       `ia_cache_traducao_total{resultado}` continuarem valendo. O L2 só é consultado quando o L1
+       falta E a frase pode ir ao disco (curta) — por isso a soma dos dois não bate com a de cima. */
+    cacheDeTraducaoPorNivel: new Counter({
+      name: 'ia_cache_traducao_nivel_total',
+      help: 'Consultas a cada nível do cache de tradução (nivel=l1 memória | l2 SQLite), por resultado (acerto|falta).',
+      labelNames: ['nivel', 'resultado'] as const,
     }),
     uploadsRecusados: new Counter({
       name: 'uploads_grandes_recusados_total',
@@ -509,7 +519,7 @@ function registrarMedidoresLidosNoScrape(): void {
   })
   new Gauge({
     name: 'ia_cache_traducao_entradas',
-    help: 'Traduções guardadas no cache do servidor agora (teto 2.000, TTL 24 h).',
+    help: 'Traduções guardadas no cache EM MEMÓRIA (L1) do servidor agora (teto 2.000, TTL 24 h).',
     collect() {
       this.set(cacheDeTraducao.tamanho())
     },
@@ -541,6 +551,11 @@ export function contarGastoAnomalo(motivo: 'teto' | 'mediana'): void {
 export function contarCacheDeTraducao(acerto: boolean): void {
   if (!estado) return
   estado.cacheDeTraducao.inc({ resultado: acerto ? 'acerto' : 'falta' })
+}
+
+export function contarNivelDoCacheDeTraducao(nivel: 'l1' | 'l2', acerto: boolean): void {
+  if (!estado) return
+  estado.cacheDeTraducaoPorNivel.inc({ nivel, resultado: acerto ? 'acerto' : 'falta' })
 }
 
 export function contarUploadRecusado(motivo: 'usuario' | 'processo'): void {

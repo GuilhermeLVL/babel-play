@@ -94,7 +94,7 @@ afterAll(async () => {
 })
 beforeEach(async () => {
   novoDia()
-  cache.esvaziarCacheDeTraducao()
+  await cache.esvaziarCacheDeTraducao()
   await ligarNuvem(false)
 })
 afterEach(() => {

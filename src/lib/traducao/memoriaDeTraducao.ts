@@ -42,6 +42,24 @@ export interface EntradaDaMemoria {
 export interface ArmazemDeTraducoes {
   ler(chave: string): Promise<EntradaDaMemoria | undefined>;
   gravar(chave: string, texto: string, motor: string): Promise<void>;
+  /**
+   * As chaves guardadas (as vencidas podem vir junto; ler uma delas devolve `undefined`). É o que
+   * monta o índice da busca APROXIMADA ao abrir a sessão (`memoriaEmCamadas.ts`); falhar = `[]`.
+   */
+  chaves?(): Promise<string[]>;
+}
+
+/** Os armazéns daqui sempre sabem listar as chaves. */
+type ArmazemComChaves = ArmazemDeTraducoes & Required<Pick<ArmazemDeTraducoes, 'chaves'>>;
+
+/** O que a busca em camadas devolve: a entrada, de onde veio e se é de OUTRA frase parecida. */
+export interface ResultadoDaMemoria extends EntradaDaMemoria {
+  /** `true` = tradução de uma frase PARECIDA (`memoriaAproximada.ts`), não desta. */
+  aproximada: boolean;
+  /** Jaccard dos 3-gramas com a frase guardada (1 na exata). */
+  similaridade: number;
+  /** A memória do próprio usuário ou a semente do Tatoeba (só leitura). */
+  camada: 'usuario' | 'semente';
 }
 
 export function contarPalavras(texto: string): number {
@@ -70,7 +88,7 @@ interface OpcoesDoArmazem {
  * Armazém em MEMÓRIA com o mesmo contrato do IndexedDB (validade, limite, recência). É o reserva do
  * IndexedDB e o que os testes usam; dura enquanto a aba durar.
  */
-export function criarArmazemEmMemoria(opts: OpcoesDoArmazem = {}): ArmazemDeTraducoes {
+export function criarArmazemEmMemoria(opts: OpcoesDoArmazem = {}): ArmazemComChaves {
   const agora = opts.agora ?? Date.now;
   const limite = opts.limite ?? LIMITE_DA_MEMORIA;
   // `Map` preserva a ordem de inserção: reinserir no uso deixa a mais antiga sempre na frente.
@@ -95,6 +113,9 @@ export function criarArmazemEmMemoria(opts: OpcoesDoArmazem = {}): ArmazemDeTrad
         mapa.delete(velha);
       }
     },
+    async chaves() {
+      return [...mapa.keys()];
+    },
   };
 }
 
@@ -118,7 +139,7 @@ interface OpcoesDoIndexedDb extends OpcoesDoArmazem {
  * Armazém no IndexedDB. Abre o banco na primeira operação; qualquer falha (abrir, ler, gravar) troca
  * para o armazém em memória pelo resto da sessão, com um aviso no console — uma vez só.
  */
-export function criarArmazemIndexedDb(opts: OpcoesDoIndexedDb): ArmazemDeTraducoes {
+export function criarArmazemIndexedDb(opts: OpcoesDoIndexedDb): ArmazemComChaves {
   const agora = opts.agora ?? Date.now;
   const limite = opts.limite ?? LIMITE_DA_MEMORIA;
   const reserva = criarArmazemEmMemoria(opts);
@@ -201,6 +222,16 @@ export function criarArmazemIndexedDb(opts: OpcoesDoIndexedDb): ArmazemDeTraduco
       } catch (e) {
         degradar(e);
         await reserva.gravar(chave, texto, motor);
+      }
+    },
+    async chaves() {
+      if (degradado) return reserva.chaves();
+      try {
+        const l = await loja('readonly');
+        return (await pedido(l.getAllKeys())).map(String);
+      } catch (e) {
+        degradar(e);
+        return reserva.chaves();
       }
     },
   };

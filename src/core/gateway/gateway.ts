@@ -47,6 +47,13 @@ export interface RunOptions {
    * chave do usuário, e o consentimento é sobre o dado dele (Fase 2 do lançamento).
    */
   exigeConsentimento?: (binding: CapabilityBinding) => boolean;
+  /**
+   * Filtro da cadeia NESTA chamada: binding recusado é pulado sem ser tentado (não conta falha no
+   * disjuntor dele). Existe para o PARCIAL da legenda ao vivo, que só pode usar tradutor local — um
+   * texto que o próximo refinamento joga fora não pode gastar a cota de nuvem do usuário
+   * (auditoria de eficiência da IA, 2026-09-28).
+   */
+  aceita?: (binding: CapabilityBinding) => boolean;
   /** Tentativas por binding (default 2). */
   retries?: number;
   /** Teto de tempo por tentativa (ms). Default por capacidade em `DEFAULT_TIMEOUT_MS`. */
@@ -85,6 +92,7 @@ export class AiGateway {
     let reason: unknown = new Error(`nenhum binding para "${cap}" no perfil "${this.profile.id}"`);
 
     for (const binding of chain) {
+      if (opts.aceita && !opts.aceita(binding)) continue;
       const cloud = opts.isCloud?.(binding) ?? false;
       if (cloud && (this.profile.economyMode || !this.cloudConsent())) continue;
       if (opts.exigeConsentimento?.(binding) && !this.cloudConsent()) continue;

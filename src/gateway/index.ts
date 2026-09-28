@@ -8,7 +8,7 @@
  * tela muda — é o mandato provider-agnóstico do produto.
  */
 import type { CapabilityBinding, ChatMessage, ChatResult, Profile } from '@core';
-import { AiGateway, BreakerRegistry, BudgetLedger } from '@core';
+import { AiGateway, BreakerRegistry, BudgetLedger, NoRouteError } from '@core';
 
 import { detectLanguage } from '../lib/langDetect';
 import { explicarRejeicao, precisaConferir, validarTraducao } from '../lib/validaTraducao';
@@ -52,6 +52,12 @@ const exigeConsentimento = (b: CapabilityBinding): boolean =>
   b.adapterId === 'groq-whisper' ||
   b.adapterId === 'mymemory' ||
   (b.adapterId === 'openai-compatible' && !!b.baseUrl && !isLocalUrl(b.baseUrl));
+
+/** O binding traduz sem mandar o texto a ninguém (Chrome Translator nativo, opus-mt no aparelho)? */
+const ehLocal = (b: CapabilityBinding): boolean => !isCloud(b) && !exigeConsentimento(b);
+
+/** `engine` da resposta VAZIA de um parcial sem tradutor local pronto — nada foi traduzido. */
+export const PARCIAL_SEM_MOTOR_LOCAL = 'parcial-sem-motor-local';
 
 // Adapters de MT com estado (worker do opus-mt) precisam ser SINGLETON entre chamadas.
 const mtSingletons = new Map<string, TranslationProvider>();
@@ -156,7 +162,13 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
           /* ÁUDIO DO SISTEMA TAMBÉM (Fase 2 do lançamento): para quem paga pela nuvem, `nuvemPrimeiro`
            leva a legenda do vídeo ao LLM do servidor antes do opus-mt — com o prompt de texto fiel,
            porque `falada` continua falso. Falhou (cota, orçamento, 5xx), segue a cascata local. */
-          if (opts?.falada || opts?.nuvemPrimeiro) {
+          /* PARCIAL NUNCA VAI À NUVEM (auditoria de eficiência da IA, 2026-09-28, achado 1). A cada
+           ~1,1 s o parcial do Whisper pedia tradução com `falada`, e este ramo mandava cada
+           refinamento ao LLM pago — várias chamadas por frase, a cota do usuário drenada por textos
+           que o refinamento seguinte joga fora. O parcial só usa tradutor LOCAL; o final é quem vai
+           ao servidor. */
+          const parcial = opts?.parcial === true;
+          if (!parcial && (opts?.falada || opts?.nuvemPrimeiro)) {
             const b = (core.getProfile().bindings.mt ?? []).find((x) => x.adapterId === 'server-llm-mt');
             if (b && !breakers.get(b.adapterId).isOpen && consentiu()) {
               try {
@@ -173,7 +185,7 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
               }
             }
           }
-          return core.run(
+          const cascata = core.run(
             'mt',
             async (b) => {
               const adapter = resolveMt(b);
@@ -201,8 +213,18 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
               if (!veredicto.ok) throw new Error(explicarRejeicao(veredicto, adapter.id));
               return r;
             },
-            { isCloud, exigeConsentimento },
+            // Parcial: fora qualquer binding que mande o texto a terceiro (servidor, MyMemory, BYOK).
+            { isCloud, exigeConsentimento, aceita: parcial ? ehLocal : undefined },
           );
+          if (!parcial) return cascata;
+          /* Nenhum tradutor local pronto (sem Chrome Translator, opus-mt ainda não carregado): o
+           parcial fica SEM tradução — não é erro, o balão segue em "…" até o final traduzir. Lançar
+           aqui viraria o texto original entre parênteses e o aviso de "tradução indisponível" a cada
+           refinamento. Cancelamento (o final atropelou o parcial) continua subindo como antes. */
+          return cascata.catch((e: unknown): MtResult => {
+            if (!(e instanceof NoRouteError)) throw e;
+            return { text: '', engine: PARCIAL_SEM_MOTOR_LOCAL };
+          });
         })(),
 
       /**

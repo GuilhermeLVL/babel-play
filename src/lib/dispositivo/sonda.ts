@@ -24,6 +24,11 @@
  * MODELOS PROIBIDOS: um modelo que estourou a memória NESTE aparelho (OOM, `device.lost`) entra em
  * `modelosProibidos` por `proibirModelo(id, motivo)` e fica — atravessa a revalidação enquanto a
  * impressão for a mesma. Quem consulta é o roteador (`modeloProibido(id)`), numa tarefa futura.
+ *
+ * WEB SPEECH COM TRILHA: se `SpeechRecognition.start(trilha)` (Chrome 133+) combina com
+ * `processLocally` não está documentado; a captura do sistema testa em execução e guarda aqui o
+ * veredito (`lembrarWebSpeechComTrilha`), com a mesma regra das proibições: vale enquanto a
+ * impressão for a mesma — Chrome atualizado muda a UA, e o teste é refeito.
  */
 import { type InfoDoAdaptadorWebGpu, infoDoAdaptadorWebGpu } from '../../gateway/adaptadorWebGpu';
 import { VERSAO_DO_APP } from '../versao';
@@ -52,6 +57,9 @@ export interface SinaisDaSonda {
   pressao: boolean;
 }
 
+/** A Web Speech no aparelho com uma TRILHA de entrada (áudio da aba/sistema) funcionou aqui? */
+export type EstadoDaWebSpeechComTrilha = 'ok' | 'falhou';
+
 /** O que fica no `localStorage`. `sinais: null` = só proibições gravadas, a sonda ainda não rodou. */
 export interface RegistroDoAparelho {
   esquema: 1;
@@ -62,6 +70,8 @@ export interface RegistroDoAparelho {
   benchmark: PontuacaoDoBenchmark | null;
   modelosProibidos: string[];
   motivosDaProibicao: Record<string, string>;
+  /** Veredito do teste em execução da Web Speech com trilha. Ausente = nunca testada neste aparelho. */
+  webSpeechComTrilha?: EstadoDaWebSpeechComTrilha;
 }
 
 /** Uma sonda completa (com sinais). */
@@ -322,6 +332,17 @@ export async function sondarAparelho(dep: DependenciasDaSonda = {}): Promise<Son
   };
 }
 
+/** O que atravessa a revalidação no MESMO aparelho: o que foi aprendido em uso, não medido. */
+function herancaDoMesmoAparelho(
+  r: RegistroDoAparelho,
+): Pick<RegistroDoAparelho, 'modelosProibidos' | 'motivosDaProibicao' | 'webSpeechComTrilha'> {
+  return {
+    modelosProibidos: r.modelosProibidos,
+    motivosDaProibicao: r.motivosDaProibicao,
+    ...(r.webSpeechComTrilha ? { webSpeechComTrilha: r.webSpeechComTrilha } : {}),
+  };
+}
+
 /**
  * A sonda deste aparelho: a guardada se ainda vale; senão mede, herda do registro anterior do MESMO
  * aparelho as proibições e o benchmark (que tem revalidação própria) e grava.
@@ -340,8 +361,7 @@ export async function obterSondaDoAparelho(dep: DependenciasDaSonda = {}): Promi
     ? {
         ...nova,
         benchmark: guardado.benchmark ?? null,
-        modelosProibidos: guardado.modelosProibidos,
-        motivosDaProibicao: guardado.motivosDaProibicao,
+        ...herancaDoMesmoAparelho(guardado),
       }
     : nova;
   gravarRegistro(d.armazem, sonda);
@@ -354,26 +374,56 @@ export async function obterSondaDoAparelho(dep: DependenciasDaSonda = {}): Promi
  */
 export async function proibirModelo(id: string, motivo: string, dep: DependenciasDaSonda = {}): Promise<void> {
   const d = resolverDependencias(dep);
-  const { impressao } = await impressaoAtual(d.escopo, d.infoDoAdaptador);
-  const guardado = lerRegistro(d.armazem);
-  const base: RegistroDoAparelho =
-    guardado?.impressao === impressao
-      ? guardado
-      : {
-          esquema: 1,
-          versaoDoApp: d.versaoDoApp,
-          impressao,
-          medidaEm: 0,
-          sinais: null,
-          benchmark: null,
-          modelosProibidos: [],
-          motivosDaProibicao: {},
-        };
+  const base = await registroDesteAparelho(d);
   gravarRegistro(d.armazem, {
     ...base,
     modelosProibidos: base.modelosProibidos.includes(id) ? base.modelosProibidos : [...base.modelosProibidos, id],
     motivosDaProibicao: { ...base.motivosDaProibicao, [id]: motivo },
   });
+}
+
+/** O registro guardado se é DESTE aparelho; senão um vazio (só a impressão, `medidaEm: 0`). */
+async function registroDesteAparelho(d: ReturnType<typeof resolverDependencias>): Promise<RegistroDoAparelho> {
+  const { impressao } = await impressaoAtual(d.escopo, d.infoDoAdaptador);
+  const guardado = lerRegistro(d.armazem);
+  return guardado?.impressao === impressao
+    ? guardado
+    : {
+        esquema: 1,
+        versaoDoApp: d.versaoDoApp,
+        impressao,
+        medidaEm: 0,
+        sinais: null,
+        benchmark: null,
+        modelosProibidos: [],
+        motivosDaProibicao: {},
+      };
+}
+
+/**
+ * Guarda o veredito do teste da Web Speech com trilha NESTE aparelho (`'falhou'` = não tentar de
+ * novo; `'ok'` = pode ir direto). Grava mesmo sem sonda completa, como `proibirModelo`. Nunca lança.
+ */
+export async function lembrarWebSpeechComTrilha(
+  estado: EstadoDaWebSpeechComTrilha,
+  dep: DependenciasDaSonda = {},
+): Promise<void> {
+  const d = resolverDependencias(dep);
+  const base = await registroDesteAparelho(d);
+  if (base.webSpeechComTrilha === estado) return;
+  gravarRegistro(d.armazem, { ...base, webSpeechComTrilha: estado });
+}
+
+/** O veredito guardado para ESTE aparelho (mesma impressão); `null` = nunca testado aqui. */
+export async function webSpeechComTrilhaLembrada(
+  dep: DependenciasDaSonda = {},
+): Promise<EstadoDaWebSpeechComTrilha | null> {
+  const d = resolverDependencias(dep);
+  const guardado = lerRegistro(d.armazem);
+  const v = guardado?.webSpeechComTrilha;
+  if (v !== 'ok' && v !== 'falhou') return null;
+  const { impressao } = await impressaoAtual(d.escopo, d.infoDoAdaptador);
+  return guardado!.impressao === impressao ? v : null;
 }
 
 /** O modelo foi proibido NESTE aparelho (mesma impressão)? */
@@ -405,12 +455,11 @@ export async function sondarEMedir(dep: DependenciasDaSonda = {}, sinal?: AbortS
     return null;
   });
   if (!benchmark) return sonda;
-  /* Relê antes de gravar: uma proibição pode ter chegado enquanto o benchmark rodava. */
+  /* Relê antes de gravar: uma proibição (ou o veredito da trilha) pode ter chegado enquanto o benchmark rodava. */
   const atual = lerRegistro(d.armazem);
   const comBench: SondaDoAparelho = {
     ...sonda,
-    modelosProibidos: atual?.impressao === sonda.impressao ? atual.modelosProibidos : sonda.modelosProibidos,
-    motivosDaProibicao: atual?.impressao === sonda.impressao ? atual.motivosDaProibicao : sonda.motivosDaProibicao,
+    ...(atual?.impressao === sonda.impressao ? herancaDoMesmoAparelho(atual) : {}),
     benchmark,
   };
   gravarRegistro(d.armazem, comBench);

@@ -40,16 +40,18 @@ describe('resolveWord — as duas regras do produtor único', () => {
 describe('buildVocabWord — falha honesta', () => {
   const mtOk: MtLike = { translate: async () => ({ text: 'tradução', engine: 'teste' }) };
   const mtBoom: MtLike = { translate: async () => { throw new Error('boom'); } };
+  // Sem dicionário nenhum: estes casos provam o degrau do MT, e não podem ir à rede do Wiktionary.
+  const semDicionario = { local: async () => null, wiktionary: async () => null };
 
   it('traduz e declara o motor quando há cobertura', async () => {
-    const { vocab } = await buildVocabWord({ word: 'fellow', declaredLang: 'en', config }, mtOk);
+    const { vocab } = await buildVocabWord({ word: 'fellow', declaredLang: 'en', config }, mtOk, semDicionario);
     expect(vocab.translation).toBe('tradução');
     expect(vocab.mtEngine).toBe('teste');
     expect(vocab.lang).toBe('en');
   });
 
   it('MT estourou → palavra SEM tradução, sem inventar nada', async () => {
-    const { vocab } = await buildVocabWord({ word: 'fellow', declaredLang: 'en', config }, mtBoom);
+    const { vocab } = await buildVocabWord({ word: 'fellow', declaredLang: 'en', config }, mtBoom, semDicionario);
     expect(vocab.translation).toBe('');
     expect(vocab.mtEngine).toBeUndefined();
   });

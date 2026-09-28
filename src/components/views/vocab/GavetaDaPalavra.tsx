@@ -58,7 +58,13 @@ const MOTORES: Record<string, string> = {
   mymemory: 'MyMemory, na web',
   'opus-mt-local': 'opus-mt, no seu computador',
   'chrome-translator': 'tradutor do navegador, no seu computador',
+  // Degrau M1: dicionário respondeu o toque, sem MT (`lib/traducaoDePalavra.ts`).
+  'dicionario-local': 'dicionário do app, no seu computador',
+  wiktionary: 'Wikcionário',
 };
+
+/** "Motores" que são dicionários — a tradução é verbete, não saída de IA. */
+const DE_DICIONARIO = new Set(['dicionario-local', 'wiktionary']);
 
 const DIA = 86_400_000;
 function proximaRevisao(c: VocabCard): string {
@@ -126,6 +132,7 @@ export default function GavetaDaPalavra({
   const lang = baseLang(cartao.srcLang || palavra?.lang || '');
   const traducao = cartao.translation || palavra?.translation || '';
   const motor = !cartao.translation && palavra?.mtEngine ? MOTORES[palavra.mtEngine] : undefined;
+  const doDicionario = !cartao.translation && DE_DICIONARIO.has(palavra?.mtEngine ?? '');
 
   useEffect(() => {
     let vivo = true;
@@ -302,7 +309,7 @@ export default function GavetaDaPalavra({
               {traducao && (
                 <span className="proveniencia">
                   <Sparkles aria-hidden />
-                  {motor ? `Gerado por IA · ${motor}` : 'Guardada no seu caderno'} ·{' '}
+                  {motor ? `${doDicionario ? 'Do dicionário' : 'Gerado por IA'} · ${motor}` : 'Guardada no seu caderno'} ·{' '}
                   <button
                     type="button"
                     className="link"
@@ -315,7 +322,9 @@ export default function GavetaDaPalavra({
               )}
               {explicaIA && (
                 <p className="mut" style={{ fontSize: 12.5, marginTop: 6 }}>
-                  {motor
+                  {doDicionario
+                    ? 'Tradução curta de dicionário (Wikcionário e Wikidata), sem inteligência artificial. Ela dá o sentido mais comum; confira os outros no dicionário e corrija em Editar.'
+                    : motor
                     ? 'Um modelo de tradução automática escreveu esta tradução. Ele acerta a maioria, mas pode errar o sentido: confira no dicionário e corrija em Editar.'
                     : 'É a tradução que ficou gravada no cartão quando a palavra entrou no caderno. Se estiver errada, corrija em Editar.'}
                 </p>

@@ -35,6 +35,7 @@ import type { VocabWord } from '../types';
 import type { LangConfig } from './langConfig';
 import { baseLang, langLabel,mtCoverage } from './languages';
 import { resolveSpokenLang } from './spokenLang';
+import { type FonteDaPalavra, type FontesDaPalavra, traduzirPalavraSolta } from './traducaoDePalavra';
 
 /** De onde saiu o idioma que gravamos. Torna o rótulo AUDITÁVEL (ver a auditoria de idioma). */
 export type LangSource = 'detected' | 'declared' | 'config' | 'unknown';
@@ -124,15 +125,25 @@ export interface MtLike {
 }
 
 /**
- * Monta o `VocabWord` do painel: idioma certo, tradução na direção certa, motor declarado.
+ * Monta o `VocabWord` do painel: idioma certo, tradução na direção certa, fonte declarada.
  *
- * Falha honesta: se não houver motor para o par (`coverage === 'unknown'`) ou a tradução estourar, a
- * palavra vem SEM tradução — e o painel diz o motivo, em vez de ficar em "traduzindo…" para sempre.
+ * DICIONÁRIO ANTES DO MT (harness §1.2, degrau M1). A tradução sai de `traduzirPalavraSolta`:
+ * glosa local → Wiktionary → MT, parando no primeiro que responder. Antes o toque ia DIRETO ao MT,
+ * mesmo com a glosa já servida em `public/glosas` — rede e IA gastas numa pergunta que um
+ * dicionário responde melhor. `vocab.mtEngine` diz quem respondeu ('dicionario-local',
+ * 'wiktionary' ou o motor de MT) e `fonte` repete isso para a telemetria.
+ *
+ * Par sem motor de MT (`coverage === 'unknown'`) ainda consulta os dicionários: o que faltava era o
+ * MT, não a glosa.
+ *
+ * Falha honesta: ninguém respondeu, ou a tradução estourou → a palavra vem SEM tradução — e o
+ * painel diz o motivo, em vez de ficar em "traduzindo…" para sempre.
  */
 export async function buildVocabWord(
   origin: WordOrigin,
   mt: MtLike,
-): Promise<{ vocab: VocabWord; resolved: ResolvedWord }> {
+  fontes?: FontesDaPalavra,
+): Promise<{ vocab: VocabWord; resolved: ResolvedWord; fonte?: FonteDaPalavra }> {
   const resolved = await resolveWord(origin);
 
   const vocab: VocabWord = {
@@ -142,21 +153,21 @@ export async function buildVocabWord(
     example: resolved.context,
   };
 
-  if (resolved.coverage === 'unknown' || resolved.coverage === 'same') {
+  if (resolved.coverage === 'same' || !resolved.lang || !resolved.targetLang) {
     return { vocab, resolved };
   }
 
-  try {
-    const { text, engine } = await mt.translate(resolved.word, resolved.lang, resolved.targetLang);
-    if (text) {
-      vocab.translation = text;
-      vocab.mtEngine = engine;
-    }
-  } catch {
-    /* sem tradução — honesto. Quem chama decide como mostrar o motivo. */
-  }
-
-  return { vocab, resolved };
+  const r = await traduzirPalavraSolta(
+    resolved.word,
+    resolved.lang,
+    resolved.targetLang,
+    resolved.coverage === 'unknown' ? null : mt,
+    fontes,
+  );
+  if (!r) return { vocab, resolved };
+  vocab.translation = r.texto;
+  vocab.mtEngine = r.motor;
+  return { vocab, resolved, fonte: r.fonte };
 }
 
 /** Idiomas a gravar no cartão. Um lugar só, para os cinco produtores não divergirem de novo. */

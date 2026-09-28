@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { escolherPorCognato,lematizar } from '../scripts/trilha/lexemes.mjs';
+import { escolherPorCognato, escritaServe, lematizar, montarDicionario } from '../scripts/trilha/lexemes.mjs';
 
 const conta = (palavra: string, contagem: number) => ({ palavra, contagem });
 
@@ -46,5 +46,38 @@ describe('escolherPorCognato', () => {
 
   it('candidata única passa direto', () => {
     expect(escolherPorCognato('gota', ['pingo'])).toBe('pingo');
+  });
+});
+
+describe('escritaServe — o aljamiado do Wikidata não vira glosa portuguesa', () => {
+  it('recusa letra não latina para nativo latino', () => {
+    expect(escritaServe('كَاجَ', 'pt')).toBe(false);
+    expect(escritaServe('casa', 'pt')).toBe(true);
+    expect(escritaServe('hidrogénio/hidrogênio', 'pt')).toBe(true);
+  });
+
+  it('nativo de outra escrita não passa pelo filtro latino', () => {
+    expect(escritaServe('дом', 'ru')).toBe(true);
+  });
+});
+
+describe('montarDicionario — o dicionário do toque, maior que a trilha', () => {
+  const bruta = [conta('casas', 50), conta('casa', 40), conta('hablo', 30), conta('perro', 10), conta('gato', 5)];
+  const mapa = new Map([['casas', 'casa'], ['hablo', 'hablar']]);
+  const glosas = new Map([['casa', 'casa'], ['hablar', 'falar'], ['perro', 'cachorro'], ['gato', 'كَاتُ']]);
+
+  it('glosas dos N lemas mais frequentes, sem escrita errada', () => {
+    const d = montarDicionario({ bruta, mapaDeLemas: mapa, glosas, limite: 10, lang: 'es', nativo: 'pt' });
+    expect(d.glosas).toEqual({ casa: 'casa', hablar: 'falar', perro: 'cachorro' });
+  });
+
+  it('corta no limite de lemas', () => {
+    const d = montarDicionario({ bruta, mapaDeLemas: mapa, glosas, limite: 2, lang: 'es', nativo: 'pt' });
+    expect(Object.keys(d.glosas)).toEqual(['casa', 'hablar']);
+  });
+
+  it('formas → lema só para forma diferente do lema e lema com glosa', () => {
+    const d = montarDicionario({ bruta, mapaDeLemas: mapa, glosas, limite: 10, lang: 'es', nativo: 'pt' });
+    expect(d.formas).toEqual({ casas: 'casa', hablo: 'hablar' });
   });
 });

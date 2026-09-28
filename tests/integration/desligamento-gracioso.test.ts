@@ -251,6 +251,16 @@ describe('SIGTERM no meio de uma escrita', () => {
    */
   it('no cluster, o primário repassa o sinal e PARA de respawnar', async () => {
     const s = await subirServidor({ CLUSTER_WORKERS: '3' })
+    /* O ANÚNCIO DO CLUSTER VEM DEPOIS DO "rodando em", não junto. O primário imprime "rodando em" no
+       callback do `listen`, mas o `startServer()` ainda termina o boot (agendamentos por `import()`
+       dinâmico: retenção, convidados, poda do cache de tradução…) antes de o `iniciar()` forkar os
+       workers e imprimir "[cluster] N processos". Cada agendamento novo alarga essa janela — a poda
+       do cache (migração 0038) bastou para a CI, com cobertura ligada, ler a saída no meio dela
+       (28/09). Esperar pela linha, com o mesmo teto do boot, é o que o teste quer dizer. */
+    const t0 = Date.now()
+    while (!/\[cluster\] \d+ processos/.test(s.saida()) && Date.now() - t0 < 30_000) {
+      await new Promise((r) => setTimeout(r, 100))
+    }
     expect(
       s.saida(),
       `esperava o anúncio do cluster; saída:

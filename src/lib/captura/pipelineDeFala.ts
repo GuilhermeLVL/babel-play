@@ -31,6 +31,7 @@ import { embedUtterance } from '../speakerId';
 import { isTtsActive } from '../tts';
 import { classificarVazamento, type Intervalo } from '../vazamento';
 import { disponibilidadeDaSondaParaIdioma, escolherMotorDoMic } from './motorDoMicrofone';
+import { type EfeitosDoRegulador, escadaDeModelos, type ReguladorDaCaptura } from './reguladorDaCaptura';
 import { planoDaReservaLocal } from './reservaLocal';
 import {
   type CaptureScenario,
@@ -119,6 +120,10 @@ export interface DepsDoPipelineDeFala {
   /* --- contexto do STT de nuvem --- */
   /** Última final de cada fonte (o `prompt` do Whisper de nuvem). Opcional: sem ele, sem prompt. */
   contextoDoSttRef?: RefObject<ContextoDoStt>;
+  /* --- regulador de desempenho (harness §4): um por tela, alimentado por final local --- */
+  reguladorRef?: RefObject<ReguladorDaCaptura>;
+  /** A captura do sistema/aba está aberta (aba escondida = "só ouvir", não pausa). */
+  sistemaAtivo?: () => boolean;
 }
 
 export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
@@ -165,7 +170,37 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     setModelPrep,
     setSttRouteLabel,
     contextoDoSttRef,
+    reguladorRef,
+    sistemaAtivo,
   } = deps;
+
+  /** Os efeitos das ações do regulador, com o gateway/setters deste render. */
+  const efeitosDoRegulador: EfeitosDoRegulador = {
+    trocarModelo: (modelo) => {
+      clog('regulador: modelo local →', modelo);
+      gateway.stt.trocarModeloLocal(modelo);
+      setSttRouteLabel(`local · ${nomeLegivelDoModelo(modelo)} (ajustado ao aparelho)`);
+      // Carrega já (do cache, se houver): a próxima fala não paga a carga inteira.
+      void gateway.stt.preloadModel(undefined, { aoDegradar: avisarDegradacao }).catch((e: unknown) => {
+        clog('regulador: carga do modelo menor falhou:', String(e));
+      });
+    },
+    proibirModelo: (modelo, motivo) => {
+      clog('regulador: modelo', modelo, 'proibido neste aparelho (', motivo, ')');
+      void import('../dispositivo/sonda')
+        .then((m) => m.proibirModelo(modelo, motivo))
+        .catch(() => {
+          /* sem armazenamento: o veto vale só nesta página (o worker já degradou) */
+        });
+    },
+    oferecerNativoOuNuvem: () => {
+      clog('regulador: fim da escada local, oferecendo nativo/nuvem');
+      setFeedbackMsg(
+        'O aparelho não está acompanhando a fala nem com o modelo menor. Para a legenda chegar a tempo, use o Chrome no computador ou autorize a transcrição em nuvem em Ajustes, Privacidade.',
+      );
+      setTimeout(() => setFeedbackMsg(''), 10000);
+    },
+  };
 
   // Handlers de captura por FONTE (sistema/mic). Um único pipeline VAD→Whisper serve as duas
   // fontes; muda a direção da tradução, o prefixo do id e o falante conforme a fonte.
@@ -284,6 +319,9 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     const onPartialAudio = (pcm: Float32Array, sr: number, rawSeq: number) => {
       if (perfModeRef.current) return; // modo desempenho: sem decodes parciais (só o final)
       if (!reservaLocal.parciaisLocais) return; // celular/Quest na nuvem: o local é só reserva
+      // Regulador: o aparelho não acompanha (parciais cortados) ou a aba do mic está escondida.
+      if (reguladorRef?.current.parciaisCortados) return;
+      if (!isSys && reguladorRef?.current.parciaisDoMicPausados) return;
       const seq = rawSeq + offset;
       if (suppressedSeqsRef.current.has(seq)) return; // anti-eco: enunciado é o nosso TTS
       const uttId = seqToSegmentRef.current.get(seq);
@@ -541,6 +579,19 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
           );
           seqToSegmentRef.current.delete(seq);
           lastPartialTextRef.current.delete(seq);
+          /* REGULADOR: só o final LOCAL mede o aparelho (o da nuvem mede a rede). A latência é a
+             do fim da fala ao texto — o decode mais a espera na fila, como no `capMetrics`. */
+          if (reguladorRef && engine !== 'groq-whisper' && audioMs > 0) {
+            reguladorRef.current.aoFinal(
+              {
+                rtf: decodeMs / audioMs,
+                filaPendente: queueDepth,
+                latenciaMs: decodeMs,
+                modoSoOuvir: sistemaAtivo?.() ?? isSys,
+              },
+              efeitosDoRegulador,
+            );
+          }
           if (!clean) {
             /* Final vazio: o decode COMPLETO do trecho não achou fala. Antes, se um parcial já tinha
                mostrado texto, ele era COMMITADO "para evitar flicker", e era assim que uma frase
@@ -794,6 +845,13 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
    */
   const avisarDegradacao = (aviso: AvisoDeDegradacaoDoStt) => {
     clog('STT local degradou:', aviso.motivo, aviso.modeloAntes, '→', aviso.modelo, 'em', aviso.device, aviso.detalhe);
+    /* A GPU caiu EM USO (device lost / falta de memória): o modelo de antes vira proibido neste
+       aparelho (no próximo trecho medido, pelo regulador) e a escada recomeça do modelo que ficou. */
+    const regulador = reguladorRef?.current;
+    if (regulador) {
+      regulador.reiniciar({ modelo: aviso.modelo }); // `soIngles` fica o da rota
+      if (aviso.motivo === 'falha-gpu') regulador.registrarFalha('device-lost', aviso.modeloAntes);
+    }
     setSttRouteLabel(`local · modo compatível (${aviso.modelo.split('-').pop()})`);
     setFeedbackMsg(
       t(
@@ -819,8 +877,10 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     /* SONDA DO APARELHO (harness adaptativo §2): a rota leva a sonda GUARDADA, se houver (não espera
        medir), e a medida completa + microbenchmark ficam agendadas para o ocioso. Por `import()`:
        a sonda e o benchmark não entram no JS inicial, e nada disso roda na abertura do site. */
+    let modSonda: typeof import('../dispositivo/sonda') | null = null;
     const sonda = await import('../dispositivo/sonda')
       .then((m) => {
+        modSonda = m;
         void m.agendarSondaDoAparelho();
         return m.sondaGuardada();
       })
@@ -845,11 +905,14 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
         consentiuNuvem: consentiuNuvem(),
         perfilId: getActiveProfile().id,
       }).motor === 'whisper';
-    const route = routeStt({
+    const autoDetect = autoDetectLangRef.current || autoDetectMyLangRef.current;
+    /** O modelo local só decodifica inglês: a escada do regulador pode descer ao Moonshine. */
+    const soIngles = listenLang === 'en' && !autoDetect && (!micVaiAoWhisper || myLang === 'en');
+    let route = routeStt({
       contentLang: listenLang,
       // O mesmo modelo decodifica o MIC: se você fala PT enquanto ouve EN, o moonshine (só inglês) não serve.
       micLang: micVaiAoWhisper ? myLang : '',
-      autoDetect: autoDetectLangRef.current || autoDetectMyLangRef.current,
+      autoDetect,
       quality: getSttQuality(),
       /* O ADAPTADOR, não a API: `navigator.gpu` existe no headless sem GPU nenhuma, e o small no
          WebGPU sem adaptador era captura sem legenda (auditoria de latência 2026-09-26). */
@@ -859,12 +922,26 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       // O APARELHO (Quest/celular: base q8 em WASM; small só no desktop com GPU).
       dispositivo: dispositivoDaRota(perfil, sonda),
     });
+    /* MODELO PROIBIDO NESTE APARELHO (a GPU caiu com ele — `proibirModelo`, pelo regulador): a rota
+       desce a escada até um que não foi vetado. Sem nenhum livre, fica o menor. */
+    const sondaMod = modSonda as typeof import('../dispositivo/sonda') | null;
+    if (sondaMod) {
+      let modelo = route.localModel;
+      for (const menor of escadaDeModelos(route.localModel, soIngles)) {
+        if (!(await sondaMod.modeloProibido(modelo).catch(() => false))) break;
+        modelo = menor;
+      }
+      if (modelo !== route.localModel) {
+        clog('rota: modelo', route.localModel, 'proibido neste aparelho →', modelo);
+        route = { ...route, localModel: modelo, label: `${route.label} · ${nomeLegivelDoModelo(modelo)}` };
+      }
+    }
     /* O SENTIDO DO TRADUTOR QUE A PREPARAÇÃO CARREGA. Mídia/conversa: o que você ouve → o seu idioma.
        SÓ MICROFONE (o cenário dos aparelhos sem áudio do sistema — Quest, celular): a SUA fala →
        "Traduzir para". Medido no Quest emulado (2026-09-26): carregava o en→pt (sem uso), e o pt→en
        só chegava 45 s depois, na primeira tradução — ~113 MB a mais na rede e na memória. */
     const [mtDe, mtPara] = captureScenarioRef.current === 'mic' ? [myLang, listenLang] : [listenLang, myLang];
-    return { listenLang, myLang, route, perfil, mtDe, mtPara };
+    return { listenLang, myLang, route, perfil, mtDe, mtPara, soIngles };
   };
 
   /**
@@ -912,7 +989,9 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
   };
 
   const prepareModelsInterno = async () => {
-    const { route, perfil, mtDe, mtPara } = await rotaDaCaptura();
+    const { route, perfil, mtDe, mtPara, soIngles } = await rotaDaCaptura();
+    // Sessão nova: o regulador começa no máximo, com a escada do modelo desta rota.
+    reguladorRef?.current.reiniciar({ modelo: route.localModel, soIngles });
     gateway.stt.setRoute({
       preferCloud: route.preferCloud,
       localModel: route.localModel,

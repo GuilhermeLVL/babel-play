@@ -15,7 +15,7 @@ import { criarPipelineDeFala } from '../src/lib/captura/pipelineDeFala'
 
 const ref = <T>(current: T) => ({ current })
 
-function montar(opts: { nuvem?: boolean; autoMic?: boolean } = {}) {
+function montar(opts: { nuvem?: boolean; autoMic?: boolean; regulador?: unknown } = {}) {
   const transcribePcm = vi.fn(async () => ({ text: 'Olá, tudo bem?', engine: 'whisper-local' }))
   const transcribePartial = vi.fn(async () => ({ text: 'Olá' }))
   const translateSegment = vi.fn()
@@ -70,6 +70,8 @@ function montar(opts: { nuvem?: boolean; autoMic?: boolean } = {}) {
     setFeedbackMsg: vi.fn(),
     setModelPrep: vi.fn(),
     setSttRouteLabel: vi.fn(),
+    reguladorRef: opts.regulador ? ref(opts.regulador) : undefined,
+    sistemaAtivo: () => false,
   }
   const p = criarPipelineDeFala(deps as never)
   return { p, deps, transcribePcm, transcribePartial, translateSegment, contexto }
@@ -126,5 +128,44 @@ describe('parciais e o fim da fala', () => {
     p.micHandlers.onSpeechStart(2)
     p.micHandlers.onPartialAudio(new Float32Array(1600), 16000, 2)
     expect(transcribePartial).toHaveBeenCalledWith(expect.any(Float32Array), 16000, { languageHint: 'pt' })
+  })
+})
+
+describe('regulador de desempenho no pipeline', () => {
+  it('cada final LOCAL alimenta o regulador (RTF, fila, latência); parciais cortados não decodificam', async () => {
+    const regulador = { parciaisCortados: false, parciaisDoMicPausados: false, aoFinal: vi.fn(), reiniciar: vi.fn() }
+    const { p, transcribePartial } = montar({ regulador })
+    p.micHandlers.onSpeechStart(1)
+    p.micHandlers.onUtterance(new Float32Array(16000), 16000, 1)
+    await esperar()
+    expect(regulador.aoFinal).toHaveBeenCalledTimes(1)
+    const [medida, efeitos] = regulador.aoFinal.mock.calls[0]
+    expect(medida).toMatchObject({ filaPendente: 0, modoSoOuvir: false })
+    expect(typeof efeitos.trocarModelo).toBe('function')
+    regulador.parciaisCortados = true
+    p.micHandlers.onSpeechStart(2)
+    p.micHandlers.onPartialAudio(new Float32Array(1600), 16000, 2)
+    expect(transcribePartial).not.toHaveBeenCalled()
+  })
+
+  it('aba escondida: os parciais do MIC param, os do sistema seguem', () => {
+    const regulador = { parciaisCortados: false, parciaisDoMicPausados: true, aoFinal: vi.fn(), reiniciar: vi.fn() }
+    const { p, transcribePartial } = montar({ regulador })
+    p.micHandlers.onSpeechStart(1)
+    p.micHandlers.onPartialAudio(new Float32Array(1600), 16000, 1)
+    expect(transcribePartial).not.toHaveBeenCalled()
+    p.sysHandlers.onSpeechStart(1)
+    p.sysHandlers.onPartialAudio(new Float32Array(1600), 16000, 1)
+    expect(transcribePartial).toHaveBeenCalledTimes(1)
+  })
+
+  it('final da nuvem não alimenta o regulador (mede a rede, não o aparelho)', async () => {
+    const regulador = { parciaisCortados: false, parciaisDoMicPausados: false, aoFinal: vi.fn(), reiniciar: vi.fn() }
+    const { p, transcribePcm } = montar({ regulador })
+    transcribePcm.mockResolvedValueOnce({ text: 'Olá', engine: 'groq-whisper' })
+    p.micHandlers.onSpeechStart(1)
+    p.micHandlers.onUtterance(new Float32Array(16000), 16000, 1)
+    await esperar()
+    expect(regulador.aoFinal).not.toHaveBeenCalled()
   })
 })

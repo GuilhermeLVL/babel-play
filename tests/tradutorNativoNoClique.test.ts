@@ -11,10 +11,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('../src/data/api', () => ({ apiFetch: vi.fn() }))
 
 function stubTranslator(disp: string) {
-  const create = vi.fn(async (o: { monitor?: (m: { addEventListener: (t: string, f: (e: { loaded: number }) => void) => void }) => void }) => {
-    o.monitor?.({ addEventListener: (_t, f) => f({ loaded: 0.5 }) })
-    return { translate: async (t: string) => `nativo: ${t}` }
-  })
+  const create = vi.fn(
+    async (o: {
+      monitor?: (m: { addEventListener: (t: string, f: (e: { loaded: number }) => void) => void }) => void
+    }) => {
+      o.monitor?.({ addEventListener: (_t, f) => f({ loaded: 0.5 }) })
+      return { translate: async (t: string) => `nativo: ${t}` }
+    },
+  )
   vi.stubGlobal('self', globalThis)
   vi.stubGlobal('Translator', { availability: vi.fn(async () => disp), create })
   return { create }

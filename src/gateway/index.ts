@@ -491,6 +491,21 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
       },
 
       /**
+       * O REGULADOR trocou o modelo local (um degrau abaixo ou de volta — `reguladorDaCaptura.ts`).
+       * Só o modelo: a rota (nuvem primeiro?) e o dtype ficam como o roteador deixou.
+       */
+      trocarModeloLocal(modelo: string): void {
+        for (const b of core.getProfile().bindings.stt ?? []) {
+          try {
+            const a = resolveStt(b) as SttProvider & { setModel?: (m: string) => void };
+            if (a.supportsBlob && typeof a.setModel === 'function') a.setModel(modelo);
+          } catch {
+            /* próximo binding */
+          }
+        }
+      },
+
+      /**
        * Libera o modelo local de STT (encerra o worker; a próxima transcrição recarrega do cache).
        * A captura chama ao sair, em aparelho com pouca memória (`perfilDoDispositivo().poucaMemoria`).
        */

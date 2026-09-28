@@ -120,3 +120,21 @@ export async function abrirSeletor(page: Page): Promise<void> {
   }
   await trocar.evaluate((el) => el.getAttribute('aria-expanded'))
 }
+
+/**
+ * O CELULAR DE VERDADE NÃO TEM `getDisplayMedia`. O `devices['Pixel 7']` do Playwright muda a tela,
+ * o toque e o user agent, mas o Chromium por baixo continua com a captura de tela do desktop — e a
+ * captura então se comportava como no computador (oferecia o áudio do sistema, sem o aviso do
+ * celular), escondendo do e2e justamente o caminho que falhou no aparelho do dono (2026-09-28).
+ * Chamar ANTES do `goto`: o script roda em cada documento, antes do app.
+ */
+export async function semCapturaDeTela(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    try {
+      delete (MediaDevices.prototype as { getDisplayMedia?: unknown }).getDisplayMedia
+      delete (navigator.mediaDevices as { getDisplayMedia?: unknown }).getDisplayMedia
+    } catch {
+      /* sem mediaDevices: já é o caso */
+    }
+  })
+}

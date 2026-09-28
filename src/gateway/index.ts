@@ -9,6 +9,7 @@
  */
 import type { CapabilityBinding, ChatMessage, ChatResult, Profile } from '@core';
 import { AiGateway, BreakerRegistry, BudgetLedger, NoRouteError } from '@core';
+import { bindingExigeConsentimento } from '@core/harness/registroDeMotores';
 
 import { detectLanguage } from '../lib/langDetect';
 import { explicarRejeicao, precisaConferir, validarTraducao } from '../lib/validaTraducao';
@@ -41,17 +42,13 @@ const isLocalUrl = (u?: string): boolean => !!u && LOCAL_RE.test(u);
 const isCloud = (b: CapabilityBinding): boolean => !!b.credentialId;
 
 /**
- * O binding manda o dado do usuário para um servidor de terceiro? Então exige o CONSENTIMENTO de
- * nuvem (Ajustes → Privacidade). Antes só o BYOK era perguntado: o Tradutor IA do servidor, a
- * transcrição gerenciada e o MyMemory saíam sem consentimento nenhum, e as seis telas ainda
- * passavam `cloudConsent: () => true` (Fase 2 do lançamento).
+ * O binding manda o dado do usuário para fora do aparelho? Então exige o CONSENTIMENTO de nuvem
+ * (Ajustes → Privacidade). Antes só o BYOK era perguntado (Fase 2 do lançamento); depois, uma lista
+ * à mão aqui — que esqueceu a Web Speech, cujo modo nuvem manda o áudio do microfone ao Google até
+ * no perfil "Privado/Local" (auditoria de eficiência 2026-09-28, §3). Agora a decisão é DERIVADA do
+ * registro de motores (`enviaDadosA`), e adaptador sem registro falha fechado (pede).
  */
-const exigeConsentimento = (b: CapabilityBinding): boolean =>
-  isCloud(b) ||
-  b.adapterId === 'server-llm-mt' ||
-  b.adapterId === 'groq-whisper' ||
-  b.adapterId === 'mymemory' ||
-  (b.adapterId === 'openai-compatible' && !!b.baseUrl && !isLocalUrl(b.baseUrl));
+const exigeConsentimento = (b: CapabilityBinding): boolean => bindingExigeConsentimento(b);
 
 /** O binding traduz sem mandar o texto a ninguém (Chrome Translator nativo, opus-mt no aparelho)? */
 const ehLocal = (b: CapabilityBinding): boolean => !isCloud(b) && !exigeConsentimento(b);
@@ -351,8 +348,12 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
     },
 
     stt: {
+      /* Ao vivo também respeita o consentimento: a Web Speech (modo nuvem) manda o áudio ao Google.
+         O modo LOCAL dela (`processLocally`) é escolhido pela captura (`motorDoMicrofone.ts`), que
+         instancia o adaptador direto — este caminho genérico não sabe o modo e falha fechado. */
       isAvailable(): boolean {
         return (core.getProfile().bindings.stt ?? []).some((b) => {
+          if (exigeConsentimento(b) && !consentiu()) return false;
           try {
             const a = resolveStt(b);
             return a.supportsLiveMic && a.isAvailable();
@@ -363,6 +364,7 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
       },
       startLive(lang: string, cb: SttCallbacks): SttSession {
         for (const b of core.getProfile().bindings.stt ?? []) {
+          if (exigeConsentimento(b) && !consentiu()) continue;
           try {
             const adapter = resolveStt(b);
             if (adapter.supportsLiveMic && adapter.isAvailable() && adapter.startLive) {

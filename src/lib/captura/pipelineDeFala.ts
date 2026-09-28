@@ -19,6 +19,7 @@ import { aoFalharANuvemDoStt } from '../../gateway/falhaDaNuvemDoStt';
 import { areModelsCached, expectedModelIds } from '../../gateway/modelCache';
 import type { ContextoDoStt } from '../../gateway/promptDeStt';
 import { getSttQuality, nomeLegivelDoModelo, routeStt } from '../../gateway/sttRouter';
+import { consentiuNuvem } from '../consentimentoDeNuvem';
 import { DominantLangTracker } from '../convoLang';
 import { dispositivoDaRota, medirPerfilDoDispositivo } from '../dispositivo/perfil';
 import { t } from '../i18n';
@@ -29,6 +30,7 @@ import { SpeakerClusterer } from '../speakerCluster';
 import { embedUtterance } from '../speakerId';
 import { isTtsActive } from '../tts';
 import { classificarVazamento, type Intervalo } from '../vazamento';
+import { disponibilidadeDaSondaParaIdioma, escolherMotorDoMic } from './motorDoMicrofone';
 import { planoDaReservaLocal } from './reservaLocal';
 import {
   type CaptureScenario,
@@ -829,10 +831,24 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     const cloudAvailable = await apiFetch('/api/ai/stt/available')
       .then((r) => r.ok)
       .catch(() => false);
+    /* O MIC VAI AO WHISPER? Não é mais só a escolha do seletor: sem consentimento (ou no perfil
+       Privado) e sem reconhecimento no aparelho, o "navegador" cai no Whisper (`motorDoMicrofone.ts`).
+       A sonda guardada responde pelo "no aparelho"; sem ela, conta como indisponível — errar para o
+       lado do Whisper só troca o Moonshine pelo Whisper, errar para o outro daria inglês à sua voz. */
+    const micVaiAoWhisper =
+      micEnabled &&
+      escolherMotorDoMic({
+        preferido: micEngine,
+        webSpeechSuportado:
+          typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window),
+        noAparelho: disponibilidadeDaSondaParaIdioma(sourceLangRef.current, sonda?.sinais?.sttNoAparelho),
+        consentiuNuvem: consentiuNuvem(),
+        perfilId: getActiveProfile().id,
+      }).motor === 'whisper';
     const route = routeStt({
       contentLang: listenLang,
       // O mesmo modelo decodifica o MIC: se você fala PT enquanto ouve EN, o moonshine (só inglês) não serve.
-      micLang: micEnabled && micEngine === 'whisper' ? myLang : '',
+      micLang: micVaiAoWhisper ? myLang : '',
       autoDetect: autoDetectLangRef.current || autoDetectMyLangRef.current,
       quality: getSttQuality(),
       /* O ADAPTADOR, não a API: `navigator.gpu` existe no headless sem GPU nenhuma, e o small no

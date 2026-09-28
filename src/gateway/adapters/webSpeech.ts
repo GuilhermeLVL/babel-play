@@ -8,8 +8,12 @@ import type { SttCallbacks, SttProvider, SttSession } from '../capabilities'
  * auto-restart contínuo (o Web Speech encerra em silêncio) — mesmo padrão do
  * ditado contínuo do desktop.
  *
- * Nota de privacidade: no Chrome, o Web Speech envia áudio aos servidores do
- * Google. Para 100% local, o perfil deve usar um adapter Whisper-WASM (futuro).
+ * Nota de privacidade: no Chrome, o Web Speech (modo NUVEM) envia áudio aos
+ * servidores do Google — por isso exige o consentimento de nuvem (registro de
+ * motores). O modo LOCAL (`processLocally: true`, Chrome 139+ com o pacote do
+ * idioma instalado) não sai do aparelho; quem o escolhe é a captura
+ * (`lib/captura/motorDoMicrofone.ts`). E ele FALHA FECHADO: se o navegador não
+ * conhece a propriedade, lança em vez de reconhecer na nuvem calado.
  */
 
 // Tipos mínimos do Web Speech (o lib.dom do TS varia entre versões).
@@ -33,6 +37,13 @@ interface SpeechRecognitionLike {
   onresult: ((e: SpeechRecognitionEventLike) => void) | null
   onerror: ((e: { error?: string }) => void) | null
   onend: (() => void) | null
+  /** Chrome 139+: reconhecer NO aparelho. Ausente = navegador que só conhece o modo nuvem. */
+  processLocally?: boolean
+}
+
+export interface OpcoesDaWebSpeech {
+  /** Exigir o reconhecimento no aparelho (`processLocally`). Sem suporte, `startLive` lança. */
+  processLocally?: boolean
 }
 
 function getRecognitionCtor(): (new () => SpeechRecognitionLike) | null {
@@ -52,6 +63,8 @@ export class WebSpeechStt implements SttProvider {
   readonly supportsLiveMic = true
   readonly supportsBlob = false
 
+  constructor(private readonly opcoes: OpcoesDaWebSpeech = {}) {}
+
   isAvailable(): boolean {
     return getRecognitionCtor() != null
   }
@@ -65,6 +78,11 @@ export class WebSpeechStt implements SttProvider {
     rec.continuous = true
     rec.interimResults = true
     rec.maxAlternatives = 1
+    if (this.opcoes.processLocally) {
+      // `in` e não leitura: no Chrome que a suporta, a propriedade existe (e vale false).
+      if (!('processLocally' in rec)) throw new Error('Este navegador não reconhece a fala no aparelho')
+      rec.processLocally = true
+    }
 
     let stopped = false
 

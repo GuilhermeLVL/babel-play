@@ -1,3 +1,5 @@
+import '../../../styles/legendas.css';
+
 import {
   AudioLines,
   ChevronDown,
@@ -13,6 +15,13 @@ import {
 import { type CSSProperties, useEffect, useRef, useState } from 'react';
 
 import { fetchSettings, patchUiSettings } from '../../../data/api';
+import {
+  classesDoEstilo,
+  EVENTO_AJUSTES_DA_LEGENDA,
+  lerEstiloDeLegenda,
+  pedacosDaLegenda,
+  resolverEstiloDeLegenda,
+} from '../../../lib/estilosDeLegenda';
 import { toast } from '../../Toast';
 import { Interruptor, Segmentos } from '../vocab/Dialogo';
 
@@ -128,13 +137,25 @@ export default function LegendasFlutuantes({
   falas,
   emJanela,
   aoFechar,
+  aprendidas,
 }: {
   falas: LegendaAoVivo[];
   /** Dentro da janela sempre-no-topo (Document PiP): ocupa a janela inteira. */
   emJanela: boolean;
   aoFechar: () => void;
+  /** Palavras já aprendidas (minúsculas): ganham `data-aprendida`, que o estilo destaca. */
+  aprendidas?: ReadonlySet<string>;
 }) {
   const [ap, setAp] = useState<Aparencia>(lerAparencia);
+  /* O ESTILO DE LEGENDA equipado (onda 4) — o mesmo da transcrição, relido quando muda. As cores
+     que a pessoa escolheu aqui (`--leg-cor`) continuam valendo: o estilo não pinta o texto. */
+  const [estiloId, setEstiloId] = useState(lerEstiloDeLegenda);
+  useEffect(() => {
+    const reler = () => setEstiloId(lerEstiloDeLegenda());
+    window.addEventListener(EVENTO_AJUSTES_DA_LEGENDA, reler);
+    return () => window.removeEventListener(EVENTO_AJUSTES_DA_LEGENDA, reler);
+  }, []);
+  const classesDoEstiloEquipado = classesDoEstilo(resolverEstiloDeLegenda(estiloId));
   const [travado, setTravado] = useState(false);
   const [oculto, setOculto] = useState(false);
   const [recolhido, setRecolhido] = useState(false);
@@ -228,7 +249,17 @@ export default function LegendasFlutuantes({
     ult.map((x) => (
       <div key={x.id} className={`leg-fala ${ap.modo === 'conversa' ? (x.lado === 'eles' ? 'eles' : 'eles b') : ''}`}>
         {ap.modo === 'conversa' && <span className="leg-quem">{x.quem}</span>}
-        <span className="leg-o">{x.original}</span>
+        <span className="leg-o">
+          {pedacosDaLegenda(x.original, aprendidas).map((p, i) =>
+            p.aprendida ? (
+              <span key={i} data-aprendida>
+                {p.texto}
+              </span>
+            ) : (
+              p.texto
+            ),
+          )}
+        </span>
         {ap.traducao !== 'oculta' && x.traducao && <span className={`leg-t ${ap.traducao}`}>{x.traducao}</span>}
       </div>
     ))
@@ -256,7 +287,7 @@ export default function LegendasFlutuantes({
       id="leg-flut"
       role="region"
       aria-label="Legendas flutuantes"
-      className={`leg-flut modo-${ap.modo} ${travado ? 'travado' : ''} ${recolhido ? 'recolhido' : ''}`}
+      className={`leg-flut modo-${ap.modo} ${classesDoEstiloEquipado} ${travado ? 'travado' : ''} ${recolhido ? 'recolhido' : ''}`}
       style={estilo}
     >
       <div className="leg-barra">

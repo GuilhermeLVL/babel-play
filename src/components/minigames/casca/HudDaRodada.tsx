@@ -1,10 +1,11 @@
 import type { ItemOutcome, MinigameId } from '@core';
 import { pontuarRodada } from '@core';
-import type { LucideIcon } from 'lucide-react';
+import { Flame, type LucideIcon } from 'lucide-react';
 import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 
 import { SEQUENCIA_FEVER } from '../../../core/minigames/blitzRegras';
 import { multiplicador } from '../../../core/minigames/grade';
+import { celebrar } from '../../../lib/comemoracao';
 import { contarAte, tremor } from '../../../lib/juice';
 import { useRodada } from './CascaDaRodada';
 
@@ -17,9 +18,13 @@ import { useRodada } from './CascaDaRodada';
  * tela já somava, a sequência que ela já contava e o quanto da rodada já andou.
  */
 
-/** O nome da sequência, na régua do protótipo (`rotuloSeq`). */
-function rotuloDaSequencia(seq: number): string {
-  return seq >= SEQUENCIA_FEVER
+/**
+ * O nome da sequência, na régua do protótipo (`rotuloSeq`). "FEVER" só para o jogo que TEM a
+ * mecânica (o Duelo, onde a partir da sequência 10 o multiplicador dobra): nos outros o nome dizia
+ * um modo que não existe, e a sequência longa continua "em chamas".
+ */
+function rotuloDaSequencia(seq: number, comFever: boolean): string {
+  return comFever && seq >= SEQUENCIA_FEVER
     ? 'FEVER'
     : seq >= 6
       ? 'em chamas'
@@ -48,6 +53,8 @@ interface HudDaRodadaProps {
   ajudas?: ReactNode;
   /** Multiplicador mostrado, quando o jogo tem um próprio (o FEVER do Duelo dobra). */
   mult?: number;
+  /** O jogo tem a mecânica FEVER (só o Duelo). Sem isto o HUD não fala em FEVER. */
+  comFever?: boolean;
   /** `data-tour` do tempo, quando o tour do jogo aponta para o relógio. */
   tourDoTempo?: string;
   /** `data-tour` do placar inteiro, quando o tour do jogo aponta para ele. */
@@ -64,6 +71,7 @@ export default function HudDaRodada({
   pouco,
   ajudas,
   mult: multDoJogo,
+  comFever = false,
   tourDoTempo,
   tour,
 }: HudDaRodadaProps) {
@@ -81,10 +89,14 @@ export default function HudDaRodada({
     anterior.current = pontos;
     if (de !== pontos) void contarAte(ptsRef.current, pontos, { de, dur: 350 });
   }, [pontos]);
-  // O multiplicador dá um tranco quando muda de degrau.
+  /* O multiplicador SUBIU de degrau: é o evento `combo` do motor de comemoração, disparado aqui —
+     o único lugar que vê o multiplicador de todos os jogos — em vez de cada jogo repetir a conta.
+     Caiu (errou, usou ajuda): só o tranco, sem festa. */
   useEffect(() => {
-    if (multAnterior.current !== mult) tremor(comboRef.current, 3);
+    const antes = multAnterior.current;
     multAnterior.current = mult;
+    if (mult > antes && mult > 1) celebrar({ tipo: 'combo', multiplicador: mult, el: comboRef.current });
+    else if (mult !== antes) tremor(comboRef.current, 3);
   }, [mult]);
 
   const pct = Math.round(Math.max(0, Math.min(1, progresso)) * 100);
@@ -122,9 +134,11 @@ export default function HudDaRodada({
         className={`combo ${mult > 1 ? 'quente' : ''}`}
         aria-label={`Multiplicador ${mult}, ${sequencia} seguidas`}
       >
+        {/* A chama da sequência quente: ícone lucide, e não emoji (sem emoji na interface). */}
+        {mult > 1 && <Flame className="combo-chama" aria-hidden />}
         <small>×</small>
         {mult}
-        <em>{sequencia ? `${sequencia} ${rotuloDaSequencia(sequencia)}` : ''}</em>
+        <em>{sequencia ? `${sequencia} ${rotuloDaSequencia(sequencia, comFever)}` : ''}</em>
       </span>
     </div>
   );
@@ -140,11 +154,15 @@ export function usePlacarDaRodada(jogo: MinigameId) {
   const recontar = useCallback(
     (resultados: readonly ItemOutcome[]) => {
       const p = pontuarRodada(jogo, [...resultados]);
-      setPlacar({
+      const novo = {
         pontos: p.total,
         sequencia: p.sequenciaFinal,
         acertos: resultados.filter((o) => o.correct && !o.revealed).length,
-      });
+      };
+      setPlacar(novo);
+      /* O que o ÚLTIMO item valeu (o "+N" que sobe no acerto): a mesma conta, sem ele. */
+      const ganho = p.total - pontuarRodada(jogo, resultados.slice(0, -1)).total;
+      return { ...novo, ganho };
     },
     [jogo],
   );

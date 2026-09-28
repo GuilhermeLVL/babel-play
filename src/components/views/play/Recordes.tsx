@@ -17,7 +17,8 @@ import { eventosVistos, todosOsEventos } from '../../../lib/eventosDeJogo';
 import { t } from '../../../lib/i18n';
 import type { AgeProfileType } from '../../../lib/profile';
 import { perfilProtegido } from '../../../lib/protecaoDoMenor';
-import { lerApelido, lerRanking, type LinhaDoRanking } from '../../../lib/ranking';
+import { JOGOS_COM_RANKING, lerApelido, lerRanking, type LinhaDoRanking } from '../../../lib/ranking';
+import MolduraETitulo from '../../perfil/MolduraETitulo';
 import Dialogo from '../../ui/Dialogo';
 import IconeEmBloco from '../../ui/IconeEmBloco';
 import { IconePixel } from './IconesPixel';
@@ -31,7 +32,8 @@ function tituloDoJogo(id: string, ageProfile: AgeProfileType): string {
 export default function Recordes({ ageProfile, onFechar }: { ageProfile: AgeProfileType; onFechar: () => void }) {
   const [aba, setAba] = useState<'meus' | 'global'>('meus');
   const [recordes, setRecordes] = useState<RecordeDoJogo[] | null>(null);
-  const [jogoGlobal, setJogoGlobal] = useState('blitz');
+  const jogosDoRanking = JOGOS.filter((j) => JOGOS_COM_RANKING.includes(j.id));
+  const [jogoGlobal, setJogoGlobal] = useState<string>(JOGOS_COM_RANKING[0]);
   const [ranking, setRanking] = useState<LinhaDoRanking[] | null | 'carregando'>('carregando');
 
   useEffect(() => {
@@ -147,20 +149,27 @@ export default function Recordes({ ageProfile, onFechar }: { ageProfile: AgeProf
           </>
         ) : (
           <>
-            <div className="chips" role="radiogroup" aria-label={t('Jogo do ranking')}>
-              {JOGOS.map((j) => (
-                <button
-                  key={j.id}
-                  type="button"
-                  className="pill"
-                  role="radio"
-                  aria-checked={jogoGlobal === j.id}
-                  onClick={() => setJogoGlobal(j.id)}
-                >
-                  {j.titulo[ageProfile].split(':')[0]}
-                </button>
-              ))}
-            </div>
+            {/* SÓ OS JOGOS QUE ENVIAM PONTUAÇÃO (`JOGOS_COM_RANKING`). Havia um chip por jogo, e os
+                oito que nunca enviam abriam um placar vazio para sempre. Com um jogo só, não há o
+                que escolher: o nome dele vira o título do placar. */}
+            {jogosDoRanking.length > 1 ? (
+              <div className="chips" role="radiogroup" aria-label={t('Jogo do ranking')}>
+                {jogosDoRanking.map((j) => (
+                  <button
+                    key={j.id}
+                    type="button"
+                    className="pill"
+                    role="radio"
+                    aria-checked={jogoGlobal === j.id}
+                    onClick={() => setJogoGlobal(j.id)}
+                  >
+                    {j.titulo[ageProfile].split(':')[0]}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="label-mono">{tituloDoJogo(jogoGlobal, ageProfile)}</p>
+            )}
             {ranking === 'carregando' ? (
               <div className="cartao esqueleto" style={{ height: 200 }} aria-hidden />
             ) : ranking === null ? (
@@ -193,6 +202,13 @@ export default function Recordes({ ageProfile, onFechar }: { ageProfile: AgeProf
                       <span className="nome">
                         {l.apelido}
                         {voce && <small> {t('(você)')}</small>}
+                        {/* O título vestido, só na linha de quem joga: o ranking é de adulto. */}
+                        {voce && (
+                          <>
+                            {' '}
+                            <MolduraETitulo compacto />
+                          </>
+                        )}
                       </span>
                       <span className="mut tn" style={{ fontSize: 12 }}>
                         combo ×{l.combo}

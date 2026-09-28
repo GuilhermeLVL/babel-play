@@ -2,8 +2,8 @@
 import { beforeEach,describe, expect, it } from 'vitest'
 
 import { recompensasDoNivel } from '../src/lib/desbloqueios'
-import { emojiDoItem,estadoDaColecao, itemDaConquista, itensPorNivel, proximaRecompensa, recompensasDoNivelCompleto } from '../src/lib/galeria/progressao'
-import { CATALOGO_DA_LOJA } from '../src/lib/loja'
+import { estadoDaColecao, iconeDoItem, itemDaConquista, itensPorNivel, proximaRecompensa, recompensasDoNivelCompleto } from '../src/lib/galeria/progressao'
+import { abrePorNivel, CATALOGO_DA_LOJA } from '../src/lib/loja'
 
 describe('progressão — o mapa das quatro áreas', () => {
   beforeEach(() => localStorage.clear())
@@ -24,13 +24,13 @@ describe('progressão — o mapa das quatro áreas', () => {
     expect(proximaRecompensa(99)).toBeNull()
   })
 
-  it('estadoDaColecao classifica cada item em UMA área, sem aprimoramentos', () => {
+  it('estadoDaColecao classifica cada item em UMA área', () => {
     const e = estadoDaColecao(3, 100)
     const total = e.possuidos.length + e.compraveis.length + e.porNivel.length + e.porConquista.length
-    expect(total).toBe(CATALOGO_DA_LOJA.filter((i) => i.tipo !== 'aprimoramento').length)
+    expect(total).toBe(CATALOGO_DA_LOJA.length)
     expect(e.porConquista.every((i) => !!i.exclusivoDe)).toBe(true)
-    expect(e.possuidos.every((i) => i.exclusivoDe ? false : i.nivel <= 3)).toBe(true)
-    expect(e.compraveis.every((i) => i.nivel > 3 && (i.precoSeeds ?? Infinity) <= 100)).toBe(true)
+    expect(e.possuidos.every((i) => i.exclusivoDe ? false : abrePorNivel(i, 3))).toBe(true)
+    expect(e.compraveis.every((i) => !abrePorNivel(i, 3) && (i.precoSeeds ?? Infinity) <= 100)).toBe(true)
   })
 
   it('recompensas do nível completo cobrem o catálogo antigo de desbloqueios, e mais', () => {
@@ -49,7 +49,10 @@ describe('progressão — o mapa das quatro áreas', () => {
     expect(itemDaConquista('inexistente')).toBeUndefined()
   })
 
-  it('emojiDoItem sempre devolve algo visível', () => {
-    for (const i of CATALOGO_DA_LOJA) expect(emojiDoItem(i).length).toBeGreaterThan(0)
+  it('iconeDoItem sempre devolve um ícone lucide (componente, nunca texto/emoji)', () => {
+    for (const i of CATALOGO_DA_LOJA) {
+      const icone = iconeDoItem(i) as unknown
+      expect(typeof icone === 'function' || (typeof icone === 'object' && icone !== null), i.id).toBe(true)
+    }
   })
 })

@@ -24,6 +24,23 @@
  * As restrições se combinam com E.
  */
 
+/**
+ * RECOMPENSAS v2 (Tasks 2.3/2.4): o interruptor de tudo que é novo nas recompensas. Nasce
+ * DESLIGADA no servidor (migração `flag_recompensas_v2`). Na edição estática não há servidor de
+ * flags: quem liga é o build, com `VITE_RECOMPENSAS_V2=1` (a onda 5 acende).
+ */
+export const FLAG_RECOMPENSAS_V2 = 'recompensas_v2';
+
+export function recompensasV2Ativas(ctx: {
+  edicaoEstatica: boolean;
+  /** `import.meta.env.VITE_RECOMPENSAS_V2` do build. */
+  envDoBuild: string | undefined;
+  /** `flagLigada('recompensas_v2')`, do cache de `GET /api/flags`. */
+  flagDoServidor: boolean;
+}): boolean {
+  return ctx.edicaoEstatica ? ctx.envDoBuild === '1' : ctx.flagDoServidor;
+}
+
 /** Os planos que uma regra pode nomear. `convidado` é quem não tem conta (Fase 7). */
 export const PLANOS_DA_FLAG = ['convidado', 'free', 'essencial', 'pro', 'selfhost'] as const;
 export type PlanoDaFlag = (typeof PLANOS_DA_FLAG)[number];

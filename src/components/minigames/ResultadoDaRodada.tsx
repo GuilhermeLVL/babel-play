@@ -1,5 +1,5 @@
 import type { MinigameId, ResumoDaSequencia, RoundReport } from '@core';
-import { estrelasDaRodada, multiplicador, pontuarRodada, summarize } from '@core';
+import { estrelasDaRodada, ganhoDaRodada, multiplicador, pontuarRodada, summarize } from '@core';
 import {
   ArrowLeft,
   ChevronDown,
@@ -13,16 +13,21 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
-import { seedsDaRodada } from '../../core/minigames/recompensaDaRodada';
+import { celebrar } from '../../lib/comemoracao';
 import { burstFromElement } from '../../lib/effects';
+import { eventosCondicionais } from '../../lib/eventosDeJogo';
 import { proximaRecompensa } from '../../lib/galeria/progressao';
-import { comemorar, contarAte, flashDeTela, pontosDoElemento, tremor } from '../../lib/juice';
+import { contarAte, executarEfeito, flashDeTela, pontosDoElemento, tremor } from '../../lib/juice';
 import type { AgeProfileType } from '../../lib/profile';
 import type { DerivedProgress } from '../../lib/progress';
+import { temRanking } from '../../lib/ranking';
 import { play } from '../../lib/soundFx';
+import BarraDeMaestria from '../maestria/BarraDeMaestria';
+import ResumoDaPratica from '../progress/ResumoDaPratica';
 import { Tela, TituloDeSecao } from '../ui';
 import { IconePixel } from '../views/play/IconesPixel';
 import { unidadeDaRodada } from './casca/regras';
+import EnvioAoRanking from './EnvioAoRanking';
 
 /**
  * FIM DA RODADA — estrelas, raspadinha e o que escapou, num cartão só (`T.resultado` do protótipo
@@ -37,8 +42,8 @@ import { unidadeDaRodada } from './casca/regras';
  *
  * TUDO AQUI É DADO REAL. Os pontos são o `score` que o jogo mandou; a precisão, o XP e as estrelas
  * saem da mesma régua do mapa de fases (`summarize`, `estrelasDaRodada`); a melhor sequência é a
- * de `pontuarRodada`; as Seeds são as que o servidor vai creditar por esta rodada
- * (`seedsDaRodada`); o nível e a barra vêm do perfil. O que a raspadinha do app tinha e o
+ * de `pontuarRodada`; o XP e as Seeds são os que o servidor vai creditar por esta rodada
+ * (`ganhoDaRodada`); o nível e a barra vêm do perfil. O que a raspadinha do app tinha e o
  * protótipo não mostra continua: a corrente de rodadas, o combo que atravessa, "trocar mantendo o
  * combo" (o gasto de Seeds), o aviso de material esgotado e a próxima recompensa.
  */
@@ -85,6 +90,17 @@ interface ResultadoDaRodadaProps {
   saldoSeeds: number;
   /** Abre Personalizar › Progressão. */
   onVerProgressao?: () => void;
+  /**
+   * MAESTRIA (recompensas v2, onda 3): os pontos do jogo antes desta rodada (do servidor) e o que
+   * ela soma (`pontosDeMaestria` sobre o que foi gravado). `null`/ausente = sem barra.
+   */
+  maestria?: { pontosAntes: number; ganho: number } | null;
+  /**
+   * A GRAVAÇÃO DESTA RODADA NO SERVIDOR: `pendente` enquanto o POST não volta, `falhou` quando ele
+   * falhou. É ela que credita Seeds, XP, maestria e o baú — então, com `falhou`, a tela diz que
+   * nada foi creditado em vez de anunciar o que não entrou (exibido = creditado). Ausente = ok.
+   */
+  gravacao?: 'pendente' | 'ok' | 'falhou';
 }
 
 /** Fração raspada a partir da qual o resto é revelado sozinho (a do protótipo). */
@@ -107,12 +123,17 @@ export default function ResultadoDaRodada({
   custoPular,
   saldoSeeds,
   onVerProgressao,
+  maestria,
+  gravacao = 'ok',
 }: ResultadoDaRodadaProps) {
+  const naoCreditou = gravacao === 'falhou';
   const resumo = summarize(report);
   const estrelas = estrelasDaRodada(resumo.precisao);
   const segundos = Math.max(0, Math.round((report.durationMs ?? 0) / 1000));
   const melhorSequencia = pontuarRodada(report.gameId, report.items).melhorSequencia;
-  const seeds = seedsDaRodada(report);
+  /* XP (`resumo.xp`) e Seeds saem de `ganhoDaRodada`: a mesma conta que o perfil dos dois servidores
+     faz com as linhas gravadas (`tests/contratos/ganho-da-rodada`). */
+  const seeds = ganhoDaRodada(report).seeds;
   const unidade =
     report.gameId === 'memory' ? 'pares' : report.gameId === 'blitz' ? 'certas' : unidadeDaRodada(report.gameId);
   /* Recorde batido = a corrente inteira passou do melhor anterior (`>`: empatar não é festa). */
@@ -152,7 +173,10 @@ export default function ResultadoDaRodada({
       timers.push(
         window.setTimeout(() => {
           flashDeTela();
-          burstFromElement(carimboRef.current, 'record');
+          celebrar({ tipo: 'recorde', el: carimboRef.current });
+          /* O EVENTO "fogos" (recorde) — um dos onze do Colecionador. Saía só da tela de fim
+             própria do Duelo; com um fim só para todos, é aqui que ele acontece. */
+          for (const ev of eventosCondicionais({ combo: 0, fever: false, recorde: true })) executarEfeito(ev);
         }, 1700),
       );
     return () => timers.forEach((t) => window.clearTimeout(t));
@@ -162,13 +186,11 @@ export default function ResultadoDaRodada({
   const revelar = () => {
     if (revelado) return;
     setRevelado(true);
-    /* O clímax, escalado pelo resultado: 100% dentro de uma corrente ganha a festa maior, um
-       resultado bom ganha confete, um fraco ganha o mínimo. Festa igual ensinaria que tanto faz. */
-    const perfeita = resumo.precisao === 100;
-    const emCorrente = (sequencia?.rodadas ?? 0) >= 3;
-    const tipo = perfeita && emCorrente ? 'rodadaPerfeita' : perfeita || resumo.precisao >= 60 ? 'rodadaBoa' : 'acerto';
-    comemorar(tipo, raspaRef.current, { tremer: perfeita });
-    pontosDoElemento(`+${resumo.xp} XP`, raspaRef.current, 'bom');
+    /* O clímax, escalado pelas ESTRELAS da rodada (a mesma régua do mapa de fases): uma estrela
+       não solta confete, três soltam a finalização equipada. É o único lugar em que o fim da
+       rodada é comemorado — os jogos não festejam o próprio fim. Festa igual ensinaria que tanto faz. */
+    celebrar({ tipo: 'rodada', estrelas, jogo: report.gameId, el: raspaRef.current });
+    if (!naoCreditou) pontosDoElemento(`+${resumo.xp} XP`, raspaRef.current, 'bom');
   };
 
   /* A TAMPA DA RASPADINHA: listras nos tokens do tema e a pílula "✦ Raspe aqui", desenhadas no
@@ -315,13 +337,23 @@ export default function ResultadoDaRodada({
           )
         )}
 
+        {maestria && !naoCreditou && (
+          <div style={{ margin: '14px 0 4px', textAlign: 'left' }}>
+            <BarraDeMaestria jogo={report.gameId} pontos={maestria.pontosAntes} ganho={maestria.ganho} />
+          </div>
+        )}
+
         <div
           ref={raspaRef}
           className={`raspa ${revelado ? 'revelada' : ''}`}
           role="button"
           tabIndex={0}
           aria-label={
-            revelado ? `Recompensa revelada: mais ${resumo.xp} XP e ${seeds} seeds` : 'Raspe para revelar a recompensa'
+            revelado
+              ? naoCreditou
+                ? 'Não foi possível salvar — nada foi creditado'
+                : `Recompensa revelada: mais ${resumo.xp} XP e ${seeds} seeds`
+              : 'Raspe para revelar a recompensa'
           }
           onClick={() => {
             if (!raspouRef.current) revelar();
@@ -333,14 +365,21 @@ export default function ResultadoDaRodada({
             }
           }}
         >
-          <div className="premio">
-            <b>+{resumo.xp} XP</b>
-            {seeds > 0 && (
-              <span className="badge ok">
-                <Sprout aria-hidden /> +{seeds} Seeds
-              </span>
-            )}
-          </div>
+          {naoCreditou ? (
+            <div className="premio" data-rodada-nao-creditada>
+              <b style={{ fontSize: 15 }}>Não foi possível salvar — nada foi creditado</b>
+              <small className="mut">O placar vale; Seeds, XP, baú e maestria desta rodada não entraram.</small>
+            </div>
+          ) : (
+            <div className="premio" data-seeds-da-rodada={seeds} data-xp-da-rodada={resumo.xp}>
+              <b>+{resumo.xp} XP</b>
+              {seeds > 0 && (
+                <span className="badge ok">
+                  <Sprout aria-hidden /> +{seeds} Seeds
+                </span>
+              )}
+            </div>
+          )}
           <div className="capa-raspa" aria-hidden>
             <span>
               <Sparkles aria-hidden /> Raspe aqui
@@ -397,6 +436,9 @@ export default function ResultadoDaRodada({
               {multiplicador(melhorSequencia)}
               {sequencia && sequencia.combo >= 3 && ` · combo ×${sequencia.combo} continua na próxima`}
             </p>
+            {/* Recompensas v2 (spec 10.2): as missões do dia e a ofensiva, o mesmo bloco do fim da
+                revisão. Lidas depois de revelar: a rodada já foi gravada. */}
+            <ResumoDaPratica />
             {!semMaterial && (
               <button type="button" className="btn btn-solid bloco" onClick={onContinuar}>
                 <Sparkles aria-hidden /> {ageProfile === 'kids' ? 'Bora de novo!' : 'Mais uma'} · palavras novas
@@ -462,6 +504,16 @@ export default function ResultadoDaRodada({
           </div>
         )}
       </section>
+
+      {/* O ranking do Duelo mora no fim COMUM (a tela de fim própria dele saiu): só nos jogos com
+          ranking, com o número que esta tela mostra. */}
+      {temRanking(report.gameId) && (
+        <EnvioAoRanking
+          jogo={report.gameId}
+          pontos={pontosDaCorrente}
+          combo={Math.max(melhorSequencia, sequencia?.melhorSequencia ?? 0)}
+        />
+      )}
 
       {resumoAberto && (
         <section className="cartao p5 secao entra">

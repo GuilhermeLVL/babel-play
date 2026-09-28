@@ -1,6 +1,7 @@
-import { economiaDeMetricas, PESOS_SEEDS,PESOS_XP, posicaoNoNivel } from '@core';
+import { economiaDeMetricas, posicaoNoNivel } from '@core';
 
 import type { AppMetrics } from '../data/api';
+import { estudouHoje } from './ofensiva';
 
 /**
  * PROGRESSO DERIVADO — a camada de gamificação, e nada além disso.
@@ -28,21 +29,6 @@ import type { AppMetrics } from '../data/api';
  * jusante disto e não sabem que a conta se mudou de casa.
  */
 
-export interface Mission {
-  id: 'capture' | 'practice' | 'vocabulary';
-  /** View de destino — o mesmo `navigateTo` do App. */
-  view: string;
-  /** Quantos itens ainda esperam por você. 0 = nada pendente. */
-  pending: number;
-  /** `true` quando não há nada pendente NESTA frente. */
-  done: boolean;
-  /** Recompensa da ação, em XP e Seeds, segundo os pesos acima. */
-  rewardXp: number;
-  rewardSeeds: number;
-  /** O que a recompensa remunera. Sem isto, "+2 XP" no card não diz por qual esforço. */
-  rewardUnit: string;
-}
-
 export interface DerivedProgress {
   /** `false` enquanto as métricas não chegaram. A UI mostra esqueleto, não número. */
   available: boolean;
@@ -57,9 +43,16 @@ export interface DerivedProgress {
   /** Só o que foi ganho. A tela usa para explicar um saldo que encolheu por compra. */
   seedsGanhas: number;
   streakDays: number;
-  /** `true` quando houve ao menos uma revisão hoje (é o que streakDays > 0 significa). */
+  /** `true` quando houve revisão ou rodada DATADA de hoje (`lib/ofensiva`). Não é `streakDays > 0`:
+      a ofensiva conta presença, e com isso o aviso "ofensiva em risco" nunca podia sair. */
   practicedToday: boolean;
-  missions: Mission[];
+  /**
+   * Palavras novas no caderno esperando a primeira revisão — a linha do pilar Vocabulário no Início.
+   * As "missões" que moravam aqui (capturar / praticar / vocabulário) SAÍRAM (recompensas v2, onda
+   * 5): eram as três frentes do app, não missões. As missões do dia de verdade vêm do servidor
+   * (`GET /api/metrics/missoes`, `src/core/missoes.ts`) e aparecem no cartão "Missões do dia".
+   */
+  palavrasNovas: number;
 }
 
 export const EMPTY_PROGRESS: DerivedProgress = {
@@ -73,11 +66,7 @@ export const EMPTY_PROGRESS: DerivedProgress = {
   seedsGanhas: 0,
   streakDays: 0,
   practicedToday: false,
-  missions: [
-    { id: 'capture', view: 'capture', pending: 0, done: false, rewardXp: PESOS_XP.sessao, rewardSeeds: PESOS_SEEDS.capturaPor5Min, rewardUnit: 'a cada 5 min gravados' },
-    { id: 'practice', view: 'study', pending: 0, done: false, rewardXp: PESOS_XP.revisao, rewardSeeds: PESOS_SEEDS.revisaoCerta, rewardUnit: 'por revisão' },
-    { id: 'vocabulary', view: 'metrics', pending: 0, done: false, rewardXp: PESOS_XP.cartao, rewardSeeds: PESOS_SEEDS.cartao, rewardUnit: 'por palavra fichada' }
-  ]
+  palavrasNovas: 0,
 };
 
 export function deriveProgress(metrics: AppMetrics | null | undefined): DerivedProgress {
@@ -94,41 +83,6 @@ export function deriveProgress(metrics: AppMetrics | null | undefined): DerivedP
 
   const { level, xpForLevel, xpIntoLevel, levelPct } = posicaoNoNivel(xp);
 
-  // As três missões são as três frentes reais do app, e o "pendente" de cada uma é um número
-  // que o servidor mediu — não uma meta inventada.
-  const missions: Mission[] = [
-    {
-      id: 'capture',
-      view: 'capture',
-      // Sem nenhuma sessão gravada, capturar é literalmente o que falta fazer.
-      pending: metrics.sessions === 0 ? 1 : 0,
-      done: metrics.sessions > 0,
-      rewardXp: PESOS_XP.sessao,
-      /* Economia v2: gravar passou a render Seeds pelo TEMPO (1 a cada 5 min, teto diário) — é o
-         que o sistema de fato credita, então é o que a missão promete. */
-      rewardSeeds: PESOS_SEEDS.capturaPor5Min,
-      rewardUnit: 'a cada 5 min gravados'
-    },
-    {
-      id: 'practice',
-      view: 'study',
-      pending: metrics.dueToday,
-      done: metrics.dueToday === 0,
-      rewardXp: PESOS_XP.revisao + PESOS_XP.revisaoCerta,
-      rewardSeeds: PESOS_SEEDS.revisaoCerta,
-      rewardUnit: 'por revisão'
-    },
-    {
-      id: 'vocabulary',
-      view: 'metrics',
-      pending: metrics.newCards,
-      done: metrics.newCards === 0,
-      rewardXp: PESOS_XP.cartao,
-      rewardSeeds: PESOS_SEEDS.cartao,
-      rewardUnit: 'por palavra fichada'
-    }
-  ];
-
   return {
     available: true,
     xp,
@@ -139,8 +93,8 @@ export function deriveProgress(metrics: AppMetrics | null | undefined): DerivedP
     seeds: Math.round(seeds),
     seedsGanhas: Math.round(seedsGanhas),
     streakDays: metrics.streakDays,
-    practicedToday: metrics.streakDays > 0,
-    missions
+    practicedToday: estudouHoje(metrics.revisoesRecentes),
+    palavrasNovas: metrics.newCards,
   };
 }
 

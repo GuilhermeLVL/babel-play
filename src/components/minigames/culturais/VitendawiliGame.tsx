@@ -3,7 +3,7 @@ import { distractorsFor, makeCloze, MINIGAMES, scoreRound } from '@core';
 import { Volume2 } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
-import { comemorar } from '../../../lib/juice';
+import { celebrar } from '../../../lib/comemoracao';
 import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
 import { falar } from '../../../lib/tts';
@@ -119,8 +119,6 @@ export default function VitendawiliGame({ items, ageProfile, onFinish, onExit }:
     if (encerradoRef.current) return;
     encerradoRef.current = true;
     setEncerrado(true);
-    const perfeita = outcomes.length > 0 && outcomes.every((o) => o.correct && o.attempts === 1);
-    comemorar(perfeita ? 'rodadaPerfeita' : 'rodadaBoa', palcoRef.current);
     setTimeout(
       () =>
         onFinish({
@@ -138,7 +136,7 @@ export default function VitendawiliGame({ items, ageProfile, onFinish, onExit }:
 
     if (palavra !== atual.item.answer) {
       setEliminadas((prev) => [...prev, palavra]);
-      comemorar('erro', el);
+      celebrar({ tipo: 'erro', el });
       return;
     }
 
@@ -149,8 +147,8 @@ export default function VitendawiliGame({ items, ageProfile, onFinish, onExit }:
       attempts: 1 + eliminadas.length,
       ms: Date.now() - inicioEnigmaRef.current,
     });
-    recontar(outcomesRef.current);
-    comemorar('acerto', el);
+    const p = recontar(outcomesRef.current);
+    celebrar({ tipo: 'acerto', combo: p.sequencia, el, pontos: p.ganho });
     falar(atual.item.answer, atual.item.lang);
 
     if (indice + 1 >= rodada.length) {

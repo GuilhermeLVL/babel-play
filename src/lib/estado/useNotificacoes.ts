@@ -1,19 +1,22 @@
+import { type EstadoDasMissoes, rotuloDaMaestria } from '@core';
+/* Do módulo, e não do barril (achado A43): só a régua das datas. */
+import { temporadaAtual } from '@core/temporada';
 import { useEffect, useRef } from 'react';
 
-import { chaveDaRecompensa, type Recompensa } from '../../components/RecompensaDesbloqueada';
 import type { AppMetrics } from '../../data/api';
+import { chaveDaRecompensa, type Recompensa } from '../filaDeRecompensas';
 import { t, tp } from '../i18n';
+import { podeAvisarMissao, registrarAvisoDeMissao } from '../metaDoDia';
 import { jaNotificado, notificar } from '../notificacoes';
+import { podeAvisarOfensiva, registrarAvisoDeOfensiva } from '../ofensiva';
 import type { DerivedProgress } from '../progress';
 import { perfilProtegido } from '../protecaoDoMenor';
+import { recompensasV2Ligadas } from '../recompensasV2';
 
 /** Dia local "2026-09-24" — a chave das notificações que valem por dia. */
 function hojeLocal(agora = new Date()): string {
   return `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}-${String(agora.getDate()).padStart(2, '0')}`;
 }
-
-/** A hora a partir da qual uma ofensiva sem estudo no dia é dita "em risco". */
-const HORA_DO_RISCO = 18;
 
 /** O texto de cada recompensa entregue — o mesmo fato que o modal de resgate mostra. */
 export function notificacaoDaRecompensa(r: Recompensa) {
@@ -42,12 +45,26 @@ export function notificacaoDaRecompensa(r: Recompensa) {
       ir: 'loja',
       dado: { aba: 'personalizar' },
     };
+  if (r.tipo === 'maestria')
+    return {
+      chave,
+      tipo: 'conquista' as const,
+      icone: 'trending-up' as const,
+      tom: 'warn' as const,
+      titulo: t('Maestria: {nivel}', { nivel: rotuloDaMaestria(r.jogo, r.nivel) }),
+      detalhe: t('+{seeds} Seeds.', { seeds: r.seeds }),
+      ir: 'loja',
+      dado: { aba: 'personalizar' },
+    };
   return {
     chave,
     tipo: 'conquista' as const,
     icone: 'gift' as const,
     tom: 'warn' as const,
-    titulo: t('Baú da rodada: {nome}', { nome: r.item.nome }),
+    /* Baú v2: repetido (ou coleção completa) chega SEM peça — só as Seeds da faixa sorteada. */
+    titulo: r.item
+      ? t('Baú da rodada: {nome}', { nome: r.item.nome })
+      : t('Baú da rodada: repetido virou Seeds'),
     detalhe: r.seeds ? t('+{seeds} Seeds.', { seeds: r.seeds }) : t('Já está em Personalizar.'),
     ir: 'loja',
     dado: { aba: 'personalizar' },
@@ -55,20 +72,49 @@ export function notificacaoDaRecompensa(r: Recompensa) {
 }
 
 /**
+ * TEMPORADA NOVA (spec 10.2): uma notificação por temporada, no primeiro momento em que o app a
+ * vê em curso. Sem contagem regressiva no texto — vale igual para o perfil protegido. Devolve se
+ * avisou agora. A chave (`temporada:<id>`) é o que impede o segundo aviso, mesmo depois de lido.
+ */
+export function avisarTemporadaNova(agora: Date = new Date()): boolean {
+  const atual = temporadaAtual(agora);
+  if (!atual) return false;
+  const chave = `temporada:${atual.id}`;
+  if (jaNotificado(chave)) return false;
+  notificar({
+    chave,
+    tipo: 'conquista',
+    icone: 'calendar',
+    tom: 'rare',
+    titulo: t('Temporada {n} começou: {nome}', { n: atual.numero, nome: atual.nome }),
+    detalhe: t('Duas trilhas novas em Personalizar. O XP de estudo sobe o nível da temporada.'),
+    ir: 'loja',
+    dado: { aba: 'temporada' },
+  });
+  return true;
+}
+
+/**
  * OS FATOS QUE VIRAM NOTIFICAÇÃO — só o que o app já produz:
  *   · palavras vencidas hoje (`metrics.dueToday`), uma por dia, atualizada se o número mudar;
  *   · conquista, nível e baú, no momento em que entram na fila de recompensas;
- *   · ofensiva em risco: ofensiva ativa, nada estudado hoje e já passou das 18h (uma por dia).
+ *   · ofensiva em risco: ofensiva ativa, nada estudado hoje, entre 18h e 22h (uma por dia —
+ *     `lib/ofensiva`; nunca entre 22h e 8h; nunca para o perfil protegido);
+ *   · missão quase completa: falta uma das três missões do dia (uma por dia, nunca entre 22h e
+ *     8h, nunca para o perfil protegido — `lib/metaDoDia`);
+ *   · temporada nova: uma vez por temporada, com as recompensas v2 ligadas (`avisarTemporadaNova`).
  * A sessão salva é registrada no próprio `handleSaveRecording` (ver `notificarSessaoSalva`).
  */
 export function useNotificacoes({
   metrics,
   progress,
   filaDeRecompensas,
+  missoes = null,
 }: {
   metrics: AppMetrics | null;
   progress: DerivedProgress;
   filaDeRecompensas: Recompensa[];
+  missoes?: EstadoDasMissoes | null;
 }): void {
   const vencidas = metrics?.dueToday ?? 0;
   useEffect(() => {
@@ -99,10 +145,10 @@ export function useNotificacoes({
     const verificar = () => {
       /* PERFIL PROTEGIDO (Fase 4 — ECA Digital): sem pressão por sequência para menor (ou idade
          desconhecida). Conferido a cada verificação porque a idade pode chegar depois da montagem. */
-      if (perfilProtegido()) return;
       const agora = new Date();
-      if (agora.getHours() < HORA_DO_RISCO) return;
+      if (!podeAvisarOfensiva({ streakDays, estudouHoje: practicedToday, protegido: perfilProtegido() }, agora)) return;
       const chave = `ofensiva:${hojeLocal(agora)}`;
+      registrarAvisoDeOfensiva(agora);
       if (jaNotificado(chave)) return;
       notificar({
         chave,
@@ -118,6 +164,31 @@ export function useNotificacoes({
     const id = window.setInterval(verificar, 10 * 60_000);
     return () => window.clearInterval(id);
   }, [available, streakDays, practicedToday]);
+
+  /* TEMPORADA NOVA: conferida a cada métrica nova (inclusive a do arranque) — a temporada pode
+     começar com o app aberto. */
+  useEffect(() => {
+    if (!metrics || !recompensasV2Ligadas()) return;
+    avisarTemporadaNova();
+  }, [metrics]);
+
+  /* MISSÃO QUASE COMPLETA: conferido quando o estado das missões muda (o servidor recontou). */
+  useEffect(() => {
+    if (!missoes) return;
+    const agora = new Date();
+    if (!podeAvisarMissao({ missoes: missoes.missoes, protegido: perfilProtegido() }, agora)) return;
+    const chave = `missao:${missoes.dia}`;
+    registrarAvisoDeMissao(agora);
+    if (jaNotificado(chave)) return;
+    notificar({
+      chave,
+      tipo: 'revisao',
+      icone: 'target',
+      titulo: t('Falta uma missão para a meta do dia'),
+      detalhe: t('Feche a última e ganhe +{seeds} Seeds.', { seeds: missoes.recompensa.seeds }),
+      ir: 'hub',
+    });
+  }, [missoes]);
 }
 
 /** A sessão que acabou de ser salva (captura encerrada ou importação processada). */

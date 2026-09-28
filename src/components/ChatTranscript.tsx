@@ -1,6 +1,9 @@
+import '../styles/legendas.css';
+
 import { Headphones, MessagesSquare, Mic, MonitorPlay, Play, Radio } from 'lucide-react';
 import React from 'react';
 
+import { chaveDaPalavra, classesDoEstilo, resolverEstiloDeLegenda } from '../lib/estilosDeLegenda';
 import { toBcp47 } from '../lib/languages';
 import type { AgeProfileType } from '../lib/profile';
 import { getTranscriptStyleClasses, type TranscriptSettings } from '../lib/transcriptUtils';
@@ -70,6 +73,9 @@ interface ChatTranscriptProps {
   escuro?: boolean;
   selectedWord?: string | null;
   addedWords: string[];
+  /** Palavras (minúsculas, sem pontuação) que a pessoa já aprendeu: ganham `data-aprendida`, que o
+   *  estilo de legenda destaca. Ausente = nenhuma marcada. */
+  aprendidas?: ReadonlySet<string>;
   onExamineWord: (word: VocabWord, lang: string, sentence: string) => void;
   onSpeakWord: (word: string, lang: string) => void;
 }
@@ -187,10 +193,17 @@ export default function ChatTranscript({
   escuro = false,
   selectedWord,
   addedWords,
+  aprendidas,
   onExamineWord,
   onSpeakWord,
 }: ChatTranscriptProps) {
   const { sizeClasses, fontClass } = getTranscriptStyleClasses(tsSettings);
+  /* O ESTILO DE LEGENDA equipado (onda 4): só classes no contêiner — a cor de alto contraste, o
+     tamanho e a fonte acima continuam valendo por cima dele. */
+  const estilo = classesDoEstilo(
+    resolverEstiloDeLegenda(tsSettings.estilo, { altoContraste: tsSettings.textColor === 'highContrast' }),
+  );
+  const aprendida = (palavra: string) => (aprendidas?.has(chaveDaPalavra(palavra)) ? true : undefined);
 
   if (!segments.length) {
     return <EmptyState scenario={scenario} ageProfile={ageProfile} isRecording={isRecording} escuro={escuro} />;
@@ -217,7 +230,7 @@ export default function ChatTranscript({
      com as palavras do caderno clicáveis (`.palavra`) e a tradução embaixo. A ordem e o "esconder o
      original" das configurações da legenda continuam valendo; a cor da pessoa vai no nome. */
   return (
-    <div className={fontClass}>
+    <div className={`${fontClass} ${estilo}`}>
       {segments.map((segment) => {
         const speaker = speakerOf(segment.speakerId);
         const lineLang = langOf(segment);
@@ -235,6 +248,7 @@ export default function ChatTranscript({
                     <button
                       type="button"
                       className="palavra"
+                      data-aprendida={aprendida(wordStr)}
                       onClick={() => onExamineWord(vocabMatch, lineLang, segment.originalText)}
                       title="Clique para pronúncia nativa e detalhes"
                       aria-pressed={selecionada}
@@ -255,6 +269,7 @@ export default function ChatTranscript({
                 <React.Fragment key={wIdx}>
                   <span
                     className="w"
+                    data-aprendida={aprendida(wordStr)}
                     onClick={() => onSpeakWord(wordStr, lineLang)}
                     title="Clique para ouvir"
                     style={{ cursor: 'pointer' }}

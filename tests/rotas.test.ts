@@ -12,7 +12,7 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import { type EstadoDeRota, estadoParaUrl, normalizarAbaDaLoja, urlParaEstado } from '../src/lib/rotas'
+import { type EstadoDeRota, estadoParaUrl, normalizarAbaDaLoja, normalizarAbaDaLojaV2, urlParaEstado } from '../src/lib/rotas'
 
 const ida = (e: EstadoDeRota) => urlParaEstado(estadoParaUrl(e))
 
@@ -206,5 +206,35 @@ describe('abas da loja na URL', () => {
       // E o caminho volta para a MESMA aba: URL que não fecha o ciclo é link quebrado.
       expect(urlParaEstado(url).lojaTab, aba).toBe(aba)
     }
+  })
+})
+
+/* RECOMPENSAS v2 (Task 5.4): com a flag, Personalizar tem CINCO abas. A URL e os nomes antigos
+   continuam válidos nas duas versões — a tela escolhe a régua (`normalizarAbaDaLojaV2`). */
+describe('as cinco abas de Personalizar (recompensas v2)', () => {
+  it('cada aba tem endereço próprio e volta para a mesma aba', () => {
+    for (const aba of ['colecao', 'maestria', 'temporada', 'conquistas', 'loja'] as const) {
+      const url = estadoParaUrl({ view: 'loja', lojaTab: aba })
+      expect(url.startsWith('/loja/'), aba).toBe(true)
+      expect(normalizarAbaDaLojaV2(urlParaEstado(url).lojaTab), aba).toBe(aba)
+    }
+  })
+
+  it('os nomes antigos caem na aba nova onde o conteúdo está', () => {
+    expect(normalizarAbaDaLojaV2('personalizar')).toBe('colecao')
+    expect(normalizarAbaDaLojaV2('meu-visual')).toBe('colecao')
+    expect(normalizarAbaDaLojaV2('passe')).toBe('temporada')
+    expect(normalizarAbaDaLojaV2('progressao')).toBe('maestria')
+    expect(normalizarAbaDaLojaV2('desafios')).toBe('conquistas')
+    expect(normalizarAbaDaLojaV2('itens')).toBe('loja')
+    expect(normalizarAbaDaLojaV2('creditos')).toBe('loja')
+    expect(normalizarAbaDaLojaV2('inventada')).toBeNull()
+  })
+
+  it('sem a flag, as abas novas abrem a área clássica equivalente', () => {
+    expect(normalizarAbaDaLoja('colecao')).toBe('personalizar')
+    expect(normalizarAbaDaLoja('maestria')).toBe('conquistas')
+    expect(normalizarAbaDaLoja('temporada')).toBe('conquistas')
+    expect(normalizarAbaDaLoja('loja')).toBe('conquistas')
   })
 })

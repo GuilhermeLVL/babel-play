@@ -17,7 +17,7 @@ import {
   levelFloor, NIVEL_MAXIMO,
 nivelDoXp, PESOS_SEEDS,   PESOS_XP, posicaoNoNivel, seedsGanhasDeEventos,
 xpDeEventos, } from '../src/core/learning/xp'
-import { deriveProgress, EMPTY_PROGRESS } from '../src/lib/progress'
+import { deriveProgress } from '../src/lib/progress'
 
 /** Métricas mínimas, com os campos que a fórmula usa. */
 function metricas(p: Partial<AppMetrics> = {}): AppMetrics {
@@ -35,7 +35,9 @@ function metricas(p: Partial<AppMetrics> = {}): AppMetrics {
 
 describe('a fórmula é uma só', () => {
   it('deriveProgress usa exatamente xpDeEventos', () => {
-    const m = metricas({ sessions: 3, wordsCaptured: 40, reviews: 12, correctReviews: 9, drillItems: 20, drillCorrect: 15 })
+    /* `sessoes` do evento é `sessoesComPalavraSalva` (revisão de 27/09): só sessão com palavra
+       salva rende XP; `sessions` é estatística. */
+    const m = metricas({ sessions: 5, sessoesComPalavraSalva: 3, wordsCaptured: 40, reviews: 12, correctReviews: 9, drillItems: 20, drillCorrect: 15 })
 
     const esperado = xpDeEventos({
       sessoes: 3, palavrasCapturadas: 40, revisoes: 12, revisoesCertas: 9,
@@ -75,7 +77,10 @@ describe('seeds — o ganho nunca encolhe', () => {
        nenhuma. Seeds agora só vêm do que a pessoa FAZ. */
     const p = deriveProgress(metricas({ wordsCaptured: 325, sessions: 1 }))
     expect(p.seeds).toBe(0)
-    expect(p.xp).toBeGreaterThan(0) // XP continua contando a captura
+    /* Nem XP, desde a revisão de 27/09: a sessão importada sem nenhuma palavra salva não é esforço
+       (`sessaoRendeXp`). Com uma palavra salva dela, a sessão volta a render o seu XP. */
+    expect(p.xp).toBe(0)
+    expect(deriveProgress(metricas({ wordsCaptured: 325, sessions: 1, sessoesComPalavraSalva: 1 })).xp).toBe(PESOS_XP.sessao)
   })
 
   it('o saldo nunca fica negativo, mesmo com gasto acima do ganho', () => {
@@ -116,29 +121,6 @@ describe('curva de nível', () => {
     const p = posicaoNoNivel(0)
     expect(p.level).toBe(1)
     expect(p.levelPct).toBe(0)
-  })
-})
-
-describe('as missões prometem o que o sistema credita', () => {
-  it('nenhuma recompensa de seeds sai de fora das regras de ganho', () => {
-    /* A missão de captura anunciava "+20 Seeds" — um número solto. `seedsGanhasDeEventos` só conta
-       palavra capturada (1) e revisão certa (4); gravar, por si, não credita seed nenhuma. A
-       promessa era falsa e nunca seria cumprida. */
-    const permitidos = new Set<number>([0, ...Object.values(PESOS_SEEDS)])
-    for (const m of deriveProgress(metricas()).missions) {
-      expect(permitidos.has(m.rewardSeeds), `missão ${m.id} promete ${m.rewardSeeds} seeds, fora das regras de ganho`).toBe(true)
-    }
-    for (const m of EMPTY_PROGRESS.missions) {
-      expect(permitidos.has(m.rewardSeeds), `missão ${m.id} do estado vazio promete ${m.rewardSeeds}`).toBe(true)
-    }
-  })
-
-  it('nenhuma recompensa de XP sai de fora dos pesos', () => {
-    const permitidos = new Set(Object.values(PESOS_XP) as number[])
-    permitidos.add(PESOS_XP.revisao + PESOS_XP.revisaoCerta)  // revisão certa = os dois somados
-    for (const m of deriveProgress(metricas()).missions) {
-      expect(permitidos.has(m.rewardXp), `missão ${m.id} promete ${m.rewardXp} XP`).toBe(true)
-    }
   })
 })
 

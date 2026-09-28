@@ -6,10 +6,10 @@
  * a forma da skin. Rajadas com forma propria (confete de rodada perfeita, patos, raios dos
  * eventos) NAO mudam — evento raro tem identidade propria.
  */
-/* `cometa` é EXCLUSIVA de conquista ("Ouvinte"): círculo com cauda, nunca à venda. */
-import { sanearListaDeEmojis } from './galeria/emojis';
-
-export type ParticulasType = 'tema' | 'pixel' | 'confete' | 'coracoes' | 'estrelas' | 'emoji' | 'cometa';
+/* `cometa` é EXCLUSIVA de conquista ("Ouvinte"): círculo com cauda, nunca à venda.
+   RECOMPENSAS v2 (27/09): a skin "Chuva de Emojis" e os PACKS DE EMOJI saíram. Quem tinha a skin
+   equipada cai em "Do tema" (`readParticulas` só aceita o que está em PARTICULAS_OPTIONS). */
+export type ParticulasType = 'tema' | 'pixel' | 'confete' | 'coracoes' | 'estrelas' | 'cometa';
 
 export interface ParticulasOption { id: ParticulasType; name: string; desc: string }
 
@@ -18,8 +18,7 @@ export const PARTICULAS_OPTIONS: ParticulasOption[] = [
   { id: 'pixel', name: 'Pixel', desc: 'Quadrados duros, estilo 8-bits.' },
   { id: 'confete', name: 'Confete', desc: 'Papel picado girando.' },
   { id: 'coracoes', name: 'Coracoes', desc: 'Coracoes subindo a cada acerto.' },
-  { id: 'estrelas', name: 'Estrelas', desc: 'Estrelinhas brilhantes.' },
-  { id: 'emoji', name: 'Chuva de Emojis', desc: 'Os emojis do PACK equipado em cada acerto.' },
+  { id: 'estrelas', name: 'Lampejo', desc: 'Lampejos de luz em ziguezague.' },
   { id: 'cometa', name: 'Cometa', desc: 'Exclusiva de conquista: bolas de luz com cauda.' },
 ];
 
@@ -40,94 +39,4 @@ export function setParticulas(p: ParticulasType): ParticulasType {
   try { localStorage.setItem(CHAVE, p); } catch { /* sem storage */ }
   applyParticulas(p);
   return p;
-}
-
-/* ─────────────── PACKS DE EMOJI ───────────────
-   O pack equipado alimenta a skin 'emoji', o rastro do mouse e os fallbacks do canvas. Chave
-   PROPRIA de localStorage (a chave `app_particulas` valida contra PARTICULAS_OPTIONS e nao
-   aceitaria um objeto). Catalogo generoso de proposito: agora que existe loja, variedade e ativo. */
-export interface PackDeEmoji { id: string; nome: string; emojis: string[] }
-
-export const PACKS_DE_EMOJI: PackDeEmoji[] = [
-  { id: 'classico', nome: 'Clássico', emojis: ['⭐', '✨', '💫', '🌟'] },
-  { id: 'animais', nome: 'Animais', emojis: ['🦆', '🐱', '🐶', '🦊', '🐸', '🐼', '🦜'] },
-  { id: 'comidas', nome: 'Comidas', emojis: ['🍕', '🍔', '🍩', '🍦', '🌮', '🍓', '🍿'] },
-  { id: 'espaco', nome: 'Espaço', emojis: ['🚀', '🪐', '👽', '☄️', '🌌', '🛸', '⭐'] },
-  { id: 'natureza', nome: 'Natureza', emojis: ['🌸', '🍀', '🌈', '☀️', '🌊', '🍁', '🌵'] },
-  { id: 'festa', nome: 'Festa', emojis: ['🎉', '🎊', '🎈', '🥳', '🪅', '🎁', '🎂'] },
-  { id: 'arrepio', nome: 'Arrepio', emojis: ['🎃', '👻', '💀', '🦇', '🕷️', '🧟', '🌙'] },
-  { id: 'coracoes', nome: 'Corações', emojis: ['❤️', '🧡', '💛', '💚', '💙', '💜', '💖'] },
-  { id: 'musica', nome: 'Música', emojis: ['🎵', '🎶', '🎸', '🎤', '🥁', '🎹', '🎧'] },
-  { id: 'esportes', nome: 'Esportes', emojis: ['⚽', '🏀', '🏐', '🏆', '🎮', '🥇', '🏁'] },
-  { id: 'brasil', nome: 'Brasil', emojis: ['🇧🇷', '⚽', '🏖️', '🦜', '☕', '🌴', '🎭'] },
-  { id: 'tesouros', nome: 'Tesouros', emojis: ['💎', '👑', '🪙', '💰', '🔮', '🏆', '✨'] },
-  /* PACKS DA TEMPORADA 1 (mudança economia-legivel-e-moedas). O passe tinha 59 itens para 100
-     casas e 33 delas ficavam vazias — inclusive 8 dos 10 marcos de dezena. Estes packs são
-     conteúdo REAL e sem arte nova: listas curadas do mesmo catálogo de emojis que o editor já
-     usa, no mesmo formato dos 12 acima. Cada um vira um item do catálogo, nas décadas pobres. */
-  { id: 'oceano', nome: 'Oceano', emojis: ['🐬', '🐳', '🐙', '🐠', '🦈', '🌊', '🐟'] },
-  { id: 'doces', nome: 'Doces', emojis: ['🍩', '🍪', '🧁', '🍰', '🍫', '🍬', '🍭'] },
-  { id: 'gatos', nome: 'Gatos', emojis: ['🐱', '🐈', '😺', '😻', '🐯', '🦁', '🐅'] },
-  { id: 'jardim', nome: 'Jardim', emojis: ['🌷', '🌻', '🌹', '🌵', '🍀', '🌿', '🌱'] },
-  { id: 'noite', nome: 'Noite', emojis: ['🌙', '⭐', '✨', '🌌', '🦉', '🌠', '💤'] },
-  { id: 'viagem', nome: 'Viagem', emojis: ['✈️', '🚂', '⛵', '🗺️', '🏝️', '🚢', '🚁'] },
-  { id: 'clima', nome: 'Clima', emojis: ['☀️', '🌧️', '⛈️', '🌈', '❄️', '🌪️', '⚡'] },
-  { id: 'medieval', nome: 'Medieval', emojis: ['⚔️', '🛡️', '👑', '🐉', '🗝️', '🏹', '💎'] },
-  { id: 'circo', nome: 'Circo', emojis: ['🎪', '🎈', '🍿', '🎭', '🎩', '🎊', '🎁'] },
-  { id: 'gala', nome: 'Gala', emojis: ['🎩', '🥂', '🎭', '💫', '🕯️', '🪩', '🎼'] },
-  { id: 'lendas', nome: 'Lendas', emojis: ['🐉', '🦄', '🔱', '⚡', '🔥', '👑', '💫'] },
-  /* PACKS VINDOS DO CATÁLOGO MESTRE (gamificacao-sob-autoridade). O mestre descreve cada pack em
-     PROSA ("frascos de poção, pergaminhos selados e velas escuras") e guarda só um `icone` — ele
-     nunca teve a lista de caracteres. Estas listas foram derivadas dessa prosa, e é por isso que
-     elas nascem AQUI e não de um import: o mestre não é executável neste app, é um documento de
-     intenção. O que faz um pack existir de verdade é a linha desta lista — sem ela, `emojisDoPack`
-     cai no fallback ⭐✨ e o item da Loja vira promessa vazia. */
-  { id: 'cafe', nome: 'Café', emojis: ['☕', '🥐', '🥞', '🫖', '🍪', '🧋', '🍮'] },
-  { id: 'pixel', nome: 'Pixel', emojis: ['👾', '🕹️', '🎮', '🪙', '🍄', '⚔️', '💾'] },
-  { id: 'anime', nome: 'Anime', emojis: ['⚡', '👊', '💥', '👺', '🍜', '🗡️', '🌟'] },
-  { id: 'fogo', nome: 'Fogo', emojis: ['🔥', '🌋', '☄️', '💥', '🐉', '🧨', '♨️'] },
-  { id: 'mineracao', nome: 'Mineração', emojis: ['⛏️', '💎', '🪨', '🪙', '🏮', '🗿', '⚒️'] },
-  { id: 'gelo', nome: 'Gelo', emojis: ['❄️', '🧊', '🏔️', '⛄', '🌨️', '💠', '🐧'] },
-  { id: 'zen', nome: 'Zen', emojis: ['🪴', '🍵', '🪷', '🎋', '🧘', '🌿', '🎐'] },
-  { id: 'alquimia', nome: 'Alquimia', emojis: ['🔮', '⚗️', '🧪', '📜', '🕯️', '🧙', '🗝️'] },
-  { id: 'cyberpunk', nome: 'Cyberpunk', emojis: ['🌆', '💾', '🕶️', '🤖', '🌃', '💿', '📡'] },
-  /* Exclusivo de conquista ("Poliglota"): não está à venda. */
-  { id: 'astrologia', nome: 'Astrologia', emojis: ['🌙', '☀️', '🪐', '🌌', '🔭', '✨', '☄️'] },
-];
-
-const CHAVE_PACK = 'app_particulas_pack';
-const CHAVE_PACK_CUSTOM = 'babel.pack_custom';
-/** O pack PERSONALIZADO (galeria, 2026-08-28): a lista que a pessoa montou no editor. */
-export const PACK_CUSTOM = 'custom';
-
-export function readPack(): string {
-  try {
-    const v = localStorage.getItem(CHAVE_PACK) ?? 'classico';
-    if (v === PACK_CUSTOM) return lerPackCustom().length ? PACK_CUSTOM : 'classico';
-    return PACKS_DE_EMOJI.some((p) => p.id === v) ? v : 'classico';
-  } catch { return 'classico'; }
-}
-
-export function setPack(id: string): string {
-  const valido = id === PACK_CUSTOM ? PACK_CUSTOM : PACKS_DE_EMOJI.some((p) => p.id === id) ? id : 'classico';
-  try { localStorage.setItem(CHAVE_PACK, valido); } catch { /* sem storage */ }
-  return valido;
-}
-
-export function lerPackCustom(): string[] {
-  try { return sanearListaDeEmojis(JSON.parse(localStorage.getItem(CHAVE_PACK_CUSTOM) || '[]')); } catch { return []; }
-}
-
-/** Grava a lista personalizada (só emojis do catálogo) e a equipa. Lista vazia volta ao clássico. */
-export function setPackCustom(lista: string[]): string[] {
-  const limpa = sanearListaDeEmojis(lista);
-  try { localStorage.setItem(CHAVE_PACK_CUSTOM, JSON.stringify(limpa)); } catch { /* sem storage */ }
-  setPack(limpa.length ? PACK_CUSTOM : 'classico');
-  return limpa;
-}
-
-export function emojisDoPack(): string[] {
-  const id = readPack();
-  if (id === PACK_CUSTOM) { const c = lerPackCustom(); if (c.length) return c; }
-  return PACKS_DE_EMOJI.find((p) => p.id === id)?.emojis ?? ['⭐', '✨'];
 }

@@ -12,6 +12,7 @@ import {
   useState,
 } from 'react';
 
+import { definirJogoEmCurso } from '../../../lib/comemoracao';
 import { contagem321, entradaDeCamera } from '../../../lib/juice';
 import type { AgeProfileType } from '../../../lib/profile';
 import { CabecalhoDeTela, IconeEmBloco, Tela } from '../../ui';
@@ -101,6 +102,13 @@ export default function CascaDaRodada({
   const [pronto, setPronto] = useState(false);
   const [passo, setPasso] = useState<Passo>(null);
   const [explicando, setExplicando] = useState(false);
+
+  /* O JOGO EM CURSO para o motor de comemoração (recompensas v2, onda 3): o acerto e o combo não
+     dizem de que jogo vieram, e o efeito de maestria equipado só vale no jogo de origem. */
+  useEffect(() => {
+    definirJogoEmCurso(jogo);
+    return () => definirJogoEmCurso(null);
+  }, [jogo]);
 
   /* A contagem roda uma vez por montagem — "Recomeçar" remonta a casca (chave nova em Play.tsx),
      então a rodada recomeçada também conta 3-2-1. */

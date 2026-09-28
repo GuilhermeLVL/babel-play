@@ -1,4 +1,4 @@
-import { estimativaDeMinutos, rotuloDeDuracao } from '@core';
+import { type EstadoDasMissoes, estimativaDeMinutos, rotuloDeDuracao } from '@core';
 import {
   ArrowRight,
   Eye,
@@ -18,12 +18,13 @@ import React, { useEffect, useState } from 'react';
 import { type AppMetrics, fetchExerciseResults } from '../../data/api';
 import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { numero, t, tp } from '../../lib/i18n';
-import { type DerivedProgress, type Mission } from '../../lib/progress';
+import { type DerivedProgress } from '../../lib/progress';
 import { Recording } from '../../types';
 import CardDePlanos from '../CardDePlanos';
 import AvisoDeConta from '../conta/AvisoDeConta';
 import EditablePanel from '../EditablePanel';
 import FaixaDeProgresso from '../progress/FaixaDeProgresso';
+import MissoesDoDia from '../progress/MissoesDoDia';
 import { Abas, CabecalhoDeTela, IconeEmBloco, Tela, TituloDeSecao, Vazio } from '../ui';
 
 type AgeProfile = 'kids' | 'pro' | 'senior';
@@ -35,9 +36,11 @@ interface HubProps {
   /** Progresso derivado das métricas reais (ver lib/progress.ts). Vem do App. */
   progress: DerivedProgress;
   metrics: AppMetrics | null;
+  /** As missões do dia, do servidor (`GET /api/metrics/missoes`). `null` = ainda não chegaram. */
+  missoes?: EstadoDasMissoes | null;
 }
 
-export default function Hub({ onChangeView, recordings, ageProfile = 'pro', progress, metrics }: HubProps) {
+export default function Hub({ onChangeView, recordings, ageProfile = 'pro', progress, metrics, missoes = null }: HubProps) {
   const ir = (view: string, data?: unknown) => onChangeView(view, data as never);
   const [filterCategory, setFilterCategory] = useState<'all' | 'video' | 'audio' | 'document'>('all');
 
@@ -121,7 +124,7 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
               key={pillar.id}
               pillar={pillar}
               ageProfile={ageProfile}
-              mission={progress.missions.find((m) => m.id === pillar.id)}
+              palavrasNovas={progress.palavrasNovas}
               progressAvailable={progress.available}
               onChangeView={onChangeView}
             />
@@ -174,6 +177,10 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
           </div>
         )}
       </FaixaDeProgresso>
+
+      {/* AS MISSÕES DO DIA (recompensas v2, onda 5): substituem as "missões" antigas, que eram as
+          três frentes do app. Mesmo desenho de cartão; ponto de parada explícito quando fecham. */}
+      <MissoesDoDia estado={missoes} className="secao" style={{ marginTop: 14 }} />
 
       {/* "Ver estatísticas detalhadas" leva à tela Estatísticas (decisão do dono, 24/09). O bloco
           inline que abria aqui saiu; a meta de nível foi junto para Estatísticas. */}
@@ -345,7 +352,7 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
    OS TRÊS PILARES
    ═══════════════════════════════════════════════════════════════════════════ */
 
-type PillarId = Mission['id'];
+type PillarId = 'capture' | 'practice' | 'vocabulary';
 
 interface PillarDef {
   id: PillarId;
@@ -418,20 +425,20 @@ const PILLARS: PillarDef[] = [
 interface PillarCardProps {
   pillar: PillarDef;
   ageProfile: AgeProfile;
-  mission: Mission | undefined;
+  palavrasNovas: number;
   progressAvailable: boolean;
   onChangeView: (view: string, data?: any) => void;
 }
 
-const PillarCard: React.FC<PillarCardProps> = ({ pillar, ageProfile, mission, progressAvailable, onChangeView }) => {
+const PillarCard: React.FC<PillarCardProps> = ({ pillar, ageProfile, palavrasNovas, progressAvailable, onChangeView }) => {
   /* Marcação do protótipo (`article.cartao.pilar`): a ação primária (capturar) é o cartão escuro
      com botão cheio; os outros dois são claros com botão de contorno. A linha `.extra` só existe
      no pilar de vocabulário, com a fila real de palavras novas. */
   const escuro = pillar.id === 'capture';
   const extra =
-    pillar.id === 'vocabulary' && progressAvailable && mission
-      ? mission.pending > 0
-        ? tp(mission.pending, '{n} palavra nova esperando', '{n} palavras novas esperando')
+    pillar.id === 'vocabulary' && progressAvailable
+      ? palavrasNovas > 0
+        ? tp(palavrasNovas, '{n} palavra nova esperando', '{n} palavras novas esperando')
         : t('Tudo revisado hoje')
       : null;
   return (

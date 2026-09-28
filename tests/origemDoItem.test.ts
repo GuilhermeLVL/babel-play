@@ -8,8 +8,8 @@
 // @vitest-environment jsdom
 import { beforeEach,describe, expect, it } from 'vitest'
 
-import { emojiDoItem,estadoDaColecao } from '../src/lib/galeria/progressao'
-import { CATALOGO_DA_LOJA, COR_DA_RARIDADE, marcarPosse, ORIGEM, type OrigemDoItem,origemDoItem } from '../src/lib/loja'
+import { estadoDaColecao, iconeDoItem } from '../src/lib/galeria/progressao'
+import { CATALOGO_DA_LOJA, COR_DA_RARIDADE, marcarPosse, ORIGEM, type OrigemDoItem,origemDoItem,temPortaDeNivel } from '../src/lib/loja'
 
 beforeEach(() => localStorage.removeItem('babel.loja_possuidos'))
 
@@ -56,7 +56,7 @@ describe('estadoDaColecao separa as três origens gratuitas', () => {
 
   it('comprar move o item de "ganhei por nível" para "comprei"', () => {
     // Item de nível alto: no nível 1 ele não é seu; comprado, passa a ser — e por compra.
-    const alvo = CATALOGO_DA_LOJA.find((i) => !i.exclusivoDe && i.nivel >= 9 && i.precoSeeds)!
+    const alvo = CATALOGO_DA_LOJA.find((i) => !i.exclusivoDe && temPortaDeNivel(i) && i.nivel >= 9 && i.precoSeeds)!
     expect(estadoDaColecao(1, 0).possuidos.map((i) => i.id)).not.toContain(alvo.id)
     marcarPosse(alvo.id)
     const c = estadoDaColecao(1, 0)
@@ -68,12 +68,13 @@ describe('estadoDaColecao separa as três origens gratuitas', () => {
 describe('ícone do item', () => {
   it('o TIPO manda: dois temas diferentes têm o mesmo ícone estável', () => {
     const temas = CATALOGO_DA_LOJA.filter((i) => i.tipo === 'tema')
-    const icones = new Set(temas.map(emojiDoItem))
+    const icones = new Set(temas.map(iconeDoItem))
     expect(icones.size, 'tema deveria ter um ícone só').toBe(1)
   })
 
-  it('pack e cursor continuam lendo a descrição — ali o emoji É o produto', () => {
-    const pack = CATALOGO_DA_LOJA.find((i) => i.id === 'pack-oceano')!
-    expect(emojiDoItem(pack)).toBe('🐬')
+  /* Recompensas v2: o ícone é do TIPO, nunca da descrição (nada de emoji na interface). */
+  it('dois rastros têm o mesmo ícone do tipo, venha o que vier na descrição', () => {
+    const rastros = CATALOGO_DA_LOJA.filter((i) => i.tipo === 'rastro')
+    expect(new Set(rastros.map(iconeDoItem)).size).toBe(1)
   })
 })

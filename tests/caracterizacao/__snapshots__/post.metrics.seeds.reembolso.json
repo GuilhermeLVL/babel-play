@@ -1,0 +1,11 @@
+{
+  "status": 200,
+  "forma": {
+    "avisoPendente": "boolean",
+    "creditado": "number",
+    "creditosDevolvidos": "number",
+    "reembolsado": "number",
+    "seedsCreditadas": "number",
+    "xpCreditado": "number"
+  }
+}

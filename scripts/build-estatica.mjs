@@ -6,6 +6,8 @@
  *   npx wrangler pages deploy dist --project-name babel-play
  *
  * O que muda em relação ao `npm run build`:
+ *  - `VITE_RECOMPENSAS_V2=1`: as recompensas v2 (Personalizar em cinco abas, maestria, temporada)
+ *    ligadas — a flag `recompensas_v2` não tem servidor de flags para vir daqui (`core/flags.ts`);
  *  - `VITE_EDICAO_ESTATICA=1`: identidade anônima desde o arranque, nada de `/api` na rede, e o
  *    que depende de servidor (login, planos, IA de nuvem, importação pelo servidor) fora da tela
  *    (`src/lib/edicaoEstatica.ts`);
@@ -32,6 +34,8 @@ const DIST = join(RAIZ, 'dist')
 const env = {
   ...process.env,
   VITE_EDICAO_ESTATICA: '1',
+  // Recompensas v2 ligadas na edição estática (onda 5): não há servidor de flags aqui.
+  VITE_RECOMPENSAS_V2: '1',
   VITE_SUPABASE_URL: '',
   VITE_SUPABASE_ANON_KEY: '',
   VITE_AUTH_REQUIRED: '',

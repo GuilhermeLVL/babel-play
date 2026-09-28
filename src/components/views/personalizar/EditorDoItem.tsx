@@ -1,23 +1,9 @@
-import { Check, Crown, Lock, Palette, ShoppingBag, Sprout, Trophy, X } from 'lucide-react';
+import { Check, Crown, Lock, Palette, Sprout, Trophy, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { gastarSeeds } from '../../../data/api';
 import { applyCustomColors, readCustomColors, THEME_OPTIONS, type ThemeType } from '../../../lib/appearance';
-import {
-  type Intensidade,
-  intensidadeMaxima,
-  lerIntensidade,
-  nivelDoAprimoramento,
-  setIntensidade,
-} from '../../../lib/aprimoramentos';
-import { idDeCursorDeEmoji, readCursor, setCursor } from '../../../lib/cursores';
-import {
-  type Acesso,
-  acessoAoCursorDeEmoji,
-  acessoAoEditorDePack,
-  acessoAoRastroDeEmojis,
-} from '../../../lib/galeria/acesso';
 import {
   type Croma,
   cromaEquipado,
@@ -29,19 +15,11 @@ import {
 } from '../../../lib/galeria/cromas';
 import { MATIZES } from '../../../lib/galeria/paletas';
 import { CATALOGO_DA_LOJA, estadoDoItem, type ItemDaLoja } from '../../../lib/loja';
-import { lerPackCustom, PACK_CUSTOM, readPack, setPack, setPackCustom } from '../../../lib/particulas';
-import {
-  FORMAS_DE_RASTRO,
-  idDeRastroDeCroma,
-  idDeRastroDeEmojis,
-  readRastro,
-  setRastro,
-} from '../../../lib/rastroDoMouse';
+import { FORMAS_DE_RASTRO, idDeRastroDeCroma, readRastro, setRastro } from '../../../lib/rastroDoMouse';
 import { persistTheme } from '../../../lib/theme';
 import { toast } from '../../Toast';
 import { IconeEmBloco } from '../../ui';
 import CoresDoTema, { corCalculada, type CoresLivres } from './CoresDoTema';
-import SeletorDeEmojis from './SeletorDeEmojis';
 import SeletorDePaletas from './SeletorDePaletas';
 
 /**
@@ -52,8 +30,9 @@ import SeletorDePaletas from './SeletorDePaletas';
  * partícula, cursor, rastro, posição do menu. Era a mesma decisão em dois lugares com dois
  * desenhos — uma das fontes do "tudo parece mudar demais, nada parece estar ligado".
  *
- * O QUE SOBROU DELAS não era repetição, era PROFUNDIDADE: as 200 paletas, o editor do pack de
- * emojis, o cursor de qualquer emoji, o rastro de emojis escolhidos. Isso não some — muda de
+ * O QUE SOBROU DELAS não era repetição, era PROFUNDIDADE: as 200 paletas e a forma × cor do
+ * rastro. (O editor do pack de emojis, o cursor de qualquer emoji, o rastro de emojis escolhidos e
+ * a intensidade dos aprimoramentos saíram nas recompensas v2, 27/09.) Isso não some — muda de
  * lugar. Cada um agora abre a partir da SUA peça, que é onde a pergunta nasce: quem quer outra
  * cor de tema clica no tema; quem quer escolher os emojis do rastro clica no rastro.
  *
@@ -82,32 +61,14 @@ interface Props {
   onIrParaLoja?: () => void;
 }
 
-/** Peças cuja COR varia: as três que sabem pintar o que mostram. Pack e cursor são o emoji. */
+/** Peças cuja COR varia: as três que sabem pintar o que mostram. */
 export function temCroma(item: ItemDaLoja): boolean {
   return item.tipo === 'particulas' || item.tipo === 'rastro' || item.tipo === 'tema';
 }
 
 /** O que cada tipo abre. Vazio = não há o que personalizar (e o botão nem aparece). */
 export function temPersonalizacao(item: ItemDaLoja): boolean {
-  return temCroma(item) || item.tipo === 'pack' || item.tipo === 'cursor';
-}
-
-/** O cadeado do acesso: diz o motivo e o caminho, nunca esconde a capacidade. */
-function Cadeado({ a, onIrParaLoja }: { a: Acesso; onIrParaLoja?: () => void }) {
-  if (a.liberado) return null;
-  return (
-    <span className="inline-flex items-center gap-1.5 text-[11.5px] font-normal normal-case tracking-normal text-ink-muted">
-      <Lock className="w-3 h-3" aria-hidden /> {a.motivo}
-      {a.item && onIrParaLoja && (
-        <button
-          onClick={onIrParaLoja}
-          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border border-border-subtle hover:border-accent text-ink font-bold text-[11px] cursor-pointer"
-        >
-          <ShoppingBag className="w-3 h-3" aria-hidden /> ver na Loja
-        </button>
-      )}
-    </span>
-  );
+  return temCroma(item);
 }
 
 export default function EditorDoItem({
@@ -138,13 +99,6 @@ export default function EditorDoItem({
 
   const cromas = temCroma(item) ? cromasDaPeca(item.id, item.raridade) : [];
   const equipado = cromaEquipado(item.id);
-  const nivelApr = nivelDoAprimoramento('particulas');
-  const packCustom = lerPackCustom();
-  const cursorAtual = readCursor();
-  const [emojisDoRastro, setEmojisDoRastro] = useState<string[]>(() => {
-    const a = readRastro();
-    return a.startsWith('emojis:') ? a.slice(7).split(',') : [];
-  });
   /* A forma do rastro vive aqui porque ela é a OUTRA metade da peça: forma × cor são as duas
      escolhas que se combinam, e guardar só a cor faria trocar de croma perder a forma. */
   const [forma, setForma] = useState(() => {
@@ -305,9 +259,6 @@ export default function EditorDoItem({
   };
 
   const meus = cromas.filter(temOCroma).length;
-  const editorDePack = acessoAoEditorDePack(nivel, saldo);
-  const cursorDeEmoji = acessoAoCursorDeEmoji(nivel, saldo);
-  const rastroDeEmojis = acessoAoRastroDeEmojis(nivel, saldo);
 
   /* O DIÁLOGO DO PROTÓTIPO (`dlg()` + `cabDlg()`): `<dialog class="medio">` com `.dlg-cab` (ícone
      em bloco, título, subtítulo, X), `.dlg-corpo` e `.dlg-pe`, sobre o véu escuro do protótipo.
@@ -426,45 +377,7 @@ export default function EditorDoItem({
             </section>
           )}
 
-          {/* ── PARTÍCULAS: o controle que pertence a ESTE tipo ──────────────── */}
-          {item.tipo === 'particulas' && (
-            <section>
-              <p className="label-mono mb-2">Comportamento</p>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[11px] font-mono uppercase tracking-wider text-ink-faint w-20">Intensidade</span>
-                {(['pequena', 'media', 'grande'] as Intensidade[]).map((i) => {
-                  /* A intensidade JÁ existia em `aprimoramentos.ts` (grátis e reversível) e não
-                   tinha onde aparecer. O TETO já era regra: `intensidadeMaxima` limita pelo nível
-                   do aprimoramento — a mesma de antes, agora visível onde se quer usá-la. */
-                  const travada = i === 'grande' && intensidadeMaxima(nivelApr) !== 'grande';
-                  const atual = lerIntensidade() === i;
-                  return (
-                    <button
-                      key={i}
-                      onClick={() => {
-                        if (travada) {
-                          toast.warn('A intensidade grande abre no Nv.2 de Explosão de Partículas.');
-                          return;
-                        }
-                        setIntensidade(i);
-                        rerender();
-                      }}
-                      aria-pressed={atual}
-                      className="pill"
-                    >
-                      {travada && <Lock className="w-3 h-3 inline me-1" aria-hidden />}
-                      {i}
-                    </button>
-                  );
-                })}
-              </div>
-              <p className="text-[11.5px] text-ink-muted mt-2">
-                Quantas partículas e de que tamanho. Nível {nivelApr} de 3 do aprimoramento — cada nível aumenta o teto.
-              </p>
-            </section>
-          )}
-
-          {/* ── RASTRO: forma, e os emojis escolhidos um a um ────────────────── */}
+          {/* ── RASTRO: forma × cor ─────────────────────────────────────────── */}
           {item.tipo === 'rastro' && (
             <>
               <section>
@@ -491,126 +404,7 @@ export default function EditorDoItem({
                   croma, o rastro sai nas cores do tema.
                 </p>
               </section>
-
-              <section>
-                <p className="label-mono mb-2 flex flex-wrap items-center gap-2">
-                  Só estes emojis {emojisDoRastro.length ? `(${emojisDoRastro.length})` : ''}
-                  <Cadeado a={rastroDeEmojis} onIrParaLoja={onIrParaLoja} />
-                </p>
-                {rastroDeEmojis.liberado ? (
-                  <SeletorDeEmojis
-                    nivel={nivel}
-                    saldo={saldo}
-                    selecionados={new Set(emojisDoRastro)}
-                    onIrParaLoja={onIrParaLoja}
-                    aoTocar={(e) => {
-                      const nova = emojisDoRastro.includes(e)
-                        ? emojisDoRastro.filter((x) => x !== e)
-                        : [...emojisDoRastro, e];
-                      setEmojisDoRastro(nova);
-                      setRastro(nova.length ? idDeRastroDeEmojis(nova) : item.alvo);
-                      rerender();
-                    }}
-                  />
-                ) : (
-                  <p className="text-[12px] text-ink-muted">
-                    Com o Rastro Emoji da Loja você escolhe exatamente quais emojis seguem o mouse.
-                  </p>
-                )}
-              </section>
             </>
-          )}
-
-          {/* ── PACK: montar o pack emoji a emoji ────────────────────────────── */}
-          {item.tipo === 'pack' && (
-            <section>
-              <p className="label-mono mb-2 flex flex-wrap items-center gap-2">
-                Meu pack {packCustom.length ? `(${packCustom.length})` : ''}
-                <Cadeado a={editorDePack} onIrParaLoja={onIrParaLoja} />
-                {editorDePack.liberado && packCustom.length > 0 && (
-                  <>
-                    <button
-                      onClick={() => {
-                        setPack(PACK_CUSTOM);
-                        rerender();
-                      }}
-                      aria-pressed={readPack() === PACK_CUSTOM}
-                      className={`px-2 py-1 rounded-lg text-[11.5px] font-bold normal-case tracking-normal border cursor-pointer ${
-                        readPack() === PACK_CUSTOM
-                          ? 'bg-accent text-accent-contrast border-accent'
-                          : 'bg-canvas border-border-subtle text-ink-muted'
-                      }`}
-                    >
-                      usar o meu
-                    </button>
-                    <button
-                      onClick={() => {
-                        setPackCustom([]);
-                        rerender();
-                      }}
-                      className="text-[11.5px] font-normal normal-case tracking-normal text-ink-faint hover:text-error cursor-pointer"
-                    >
-                      limpar
-                    </button>
-                  </>
-                )}
-              </p>
-              {editorDePack.liberado ? (
-                <>
-                  <SeletorDeEmojis
-                    nivel={nivel}
-                    saldo={saldo}
-                    selecionados={new Set(packCustom)}
-                    onIrParaLoja={onIrParaLoja}
-                    aoTocar={(e) => {
-                      const a = lerPackCustom();
-                      setPackCustom(a.includes(e) ? a.filter((x) => x !== e) : [...a, e]);
-                      rerender();
-                    }}
-                    aoAdicionarCategoria={(emojis) => {
-                      setPackCustom([...new Set([...lerPackCustom(), ...emojis])]);
-                      rerender();
-                    }}
-                  />
-                  {packCustom.length > 0 && (
-                    <p className="text-[12px] text-ink mt-2 leading-relaxed">{packCustom.join(' ')}</p>
-                  )}
-                  <p className="text-[11.5px] text-ink-faint mt-1">
-                    Toque para incluir ou tirar. "Adicionar categoria inteira" e depois tirar um é o jeito rápido de
-                    "todos menos esse".
-                  </p>
-                </>
-              ) : (
-                <p className="text-[12px] text-ink-muted">
-                  Com o editor você escolhe emoji por emoji, categoria inteira, ou tira só um.
-                </p>
-              )}
-            </section>
-          )}
-
-          {/* ── CURSOR: qualquer emoji do catálogo vira ponteiro ─────────────── */}
-          {item.tipo === 'cursor' && (
-            <section>
-              <p className="label-mono mb-2 flex flex-wrap items-center gap-2">
-                Qualquer emoji <Cadeado a={cursorDeEmoji} onIrParaLoja={onIrParaLoja} />
-              </p>
-              {cursorDeEmoji.liberado ? (
-                <SeletorDeEmojis
-                  nivel={nivel}
-                  saldo={saldo}
-                  selecionados={new Set(cursorAtual.startsWith('emoji:') ? [cursorAtual.slice(6)] : [])}
-                  onIrParaLoja={onIrParaLoja}
-                  aoTocar={(e) => {
-                    setCursor(idDeCursorDeEmoji(e));
-                    rerender();
-                  }}
-                />
-              ) : (
-                <p className="text-[12px] text-ink-muted">
-                  Libere e todo emoji do catálogo (das categorias abertas) vira ponteiro.
-                </p>
-              )}
-            </section>
           )}
         </div>
         <div className="dlg-pe">

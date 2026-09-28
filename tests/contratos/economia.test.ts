@@ -17,13 +17,13 @@
  */
 import 'fake-indexeddb/auto'
 
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
-import { itensSorteaveisNoDrop,SEEDS_DO_DROP } from '../../src/core/economiaAutoridade'
+import { itensSorteaveisNoDrop, SEEDS_DO_DROP } from '../../src/core/economiaAutoridade'
 import { servidorEfemero } from '../../src/data/efemero/servidor'
 import { fecharStore, limparTudo } from '../../src/data/efemero/store'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let metricsRouter: any
@@ -32,8 +32,14 @@ const U = asUserId('contrato-eco')
 
 function fakeRes() {
   const r: any = { statusCode: 200, body: undefined }
-  r.status = (c: number) => { r.statusCode = c; return r }
-  r.json = (b: any) => { r.body = b; return r }
+  r.status = (c: number) => {
+    r.statusCode = c
+    return r
+  }
+  r.json = (b: any) => {
+    r.body = b
+    return r
+  }
   return r
 }
 
@@ -64,12 +70,43 @@ afterAll(async () => {
   await h?.cleanup?.()
 })
 
+/**
+ * A rodada que cumpre os pré-requisitos do Colecionador (`progressoConferivelDoColecionador`):
+ * Duelo com combo 15, perfeita, 15 acertos. Gravada nas DUAS pontas. Rende 15 Seeds dos acertos
+ * e 5 da rodada perfeita — por isso o saldo dos testes de gasto é 120, e não 100.
+ */
+async function rodadaDoColecionador(): Promise<void> {
+  const itens = Array.from({ length: 15 }, (_, i) => ({ itemRef: `c${i}`, correct: 1, kind: 'drill' }))
+  const rodada = {
+    roundId: 'blitz-colecionador-1',
+    exerciseKind: 'blitz',
+    origem: 'baralho',
+    score: 300,
+    melhorSequencia: 15,
+    itens,
+  }
+  const { exerciseResultsRepo } = (await h.load('../../server/db/repositories/exerciseResults')) as any
+  await exerciseResultsRepo.addRodada(U, rodada)
+  await servidorEfemero('/api/exercises/rodada', { method: 'POST', body: JSON.stringify(rodada) })
+}
+
 describe('crédito: o corpo não decide o valor, nas duas pontas', () => {
-  /* `colecionador` é a única conquista cuja condição o servidor não confere (eventos raros vistos
-     só existem no navegador), então ela exercita o VALOR sem exigir estado montado dos dois lados. */
+  /* `colecionador` era a única conquista que o servidor não conferia; desde 27/09 as duas pontas
+     exigem os pré-requisitos dela. Primeiro sem eles (400), depois com a rodada que os cumpre. */
   const PEDIDO = { creditoId: 'conquista-colecionador', amount: 9_999, xp: 9_999, reason: 'seja o que for' }
 
+  it('o Colecionador sem os pré-requisitos é recusado nas duas, com o mesmo código', async () => {
+    const express = await noExpress('/seeds/creditar', PEDIDO)
+    const efemero = await noEfemero('/seeds/creditar', PEDIDO)
+    expect(express.status).toBe(400)
+    expect(efemero.status).toBe(400)
+    expect(express.body.code).toBe('conquista_nao_cumprida')
+    expect(efemero.body.code).toBe('conquista_nao_cumprida')
+    expect(efemero.body.detalhes).toEqual(express.body.detalhes)
+  })
+
   it('as duas creditam 100 Seeds e 120 XP, e nenhuma lê os 9.999 do corpo', async () => {
+    await rodadaDoColecionador()
     const express = await noExpress('/seeds/creditar', PEDIDO)
     const efemero = await noEfemero('/seeds/creditar', PEDIDO)
     expect(express.status).toBe(200)
@@ -95,18 +132,26 @@ describe('crédito: o corpo não decide o valor, nas duas pontas', () => {
     expect(efemero.body.code).toBe('credito_desconhecido')
   })
 
-  it('o cofre do passe exige o nível nas duas', async () => {
-    /* Década 10 — 172 Seeds, o cofre mais caro da trilha. O crédito de `colecionador` acima já
-       levou os dois lados ao nível 2, e é justamente por isso que a década escolhida é a mais
-       alta: o que se prende aqui é o GATE, não o nível de partida. Antes, o Express respondia
-       "crédito desconhecido" e o efêmero creditava o que viesse no corpo. */
-    const cofre = { creditoId: 'passe:t1:cofre-d10-1' }
-    const express = await noExpress('/seeds/creditar', cofre)
-    const efemero = await noEfemero('/seeds/creditar', cofre)
+  it('a casa da temporada exige o XP da janela nas duas', async () => {
+    /* Nível 30 da trilha grátis — o tema Observatório. Nenhum dos dois lados tem 4.500 XP dentro da
+       janela, e é o GATE que se prende aqui. (Era o cofre do passe até a onda 5.) */
+    const casa = { creditoId: 'temporada:t1:30:gratis' }
+    const express = await noExpress('/seeds/creditar', casa)
+    const efemero = await noEfemero('/seeds/creditar', casa)
     expect(express.status).toBe(400)
     expect(efemero.status).toBe(400)
-    expect(express.body.code).toBe('nivel_insuficiente')
-    expect(efemero.body.code).toBe('nivel_insuficiente')
+    expect(express.body.code).toBe('temporada_nao_alcancada')
+    expect(efemero.body.code).toBe('temporada_nao_alcancada')
+  })
+
+  it('a trilha de assinante é 403 nas duas sem assinatura (e a edição sem conta nunca tem)', async () => {
+    const casa = { creditoId: 'temporada:t1:1:assinante' }
+    const express = await noExpress('/seeds/creditar', casa)
+    const efemero = await noEfemero('/seeds/creditar', casa)
+    expect(express.status).toBe(403)
+    expect(efemero.status).toBe(403)
+    expect(express.body.code).toBe('exige_assinatura')
+    expect(efemero.body.code).toBe('exige_assinatura')
   })
 })
 
@@ -131,18 +176,18 @@ describe('gasto: o preço é o do catálogo, nas duas pontas', () => {
     expect(efemero.body.detalhes).toMatchObject({ preco: 40 })
   })
 
-  it('o saldo acaba no mesmo ponto nas duas: o terceiro "pular rodada" é 402', async () => {
-    /* Os dois lados têm as MESMAS 100 Seeds (o crédito de `colecionador` do bloco acima), e
-       "pular rodada" custa 40. Dois passam, o terceiro não — nos dois servidores, no mesmo gasto.
-       Este é o teste que o modo sem conta nunca teve: ele gravava qualquer gasto, sem saldo. */
-    for (const n of [1, 2]) {
+  it('o saldo acaba no mesmo ponto nas duas: o quarto "pular rodada" é 402', async () => {
+    /* Os dois lados têm as MESMAS 120 Seeds (100 do `colecionador` e 20 da rodada que o cumpre,
+       no bloco acima), e "pular rodada" custa 40. Três passam, o quarto não — nos dois servidores,
+       no mesmo gasto. Este é o teste que o modo sem conta nunca teve: ele gravava qualquer gasto. */
+    for (const n of [1, 2, 3]) {
       const pedido = { spendId: `pula-000${n}`, amount: 40, reason: 'pular-rodada' }
       expect((await noExpress('/seeds/gastar', pedido)).status, `express ${n}`).toBe(200)
       expect((await noEfemero('/seeds/gastar', pedido)).status, `efêmero ${n}`).toBe(200)
     }
-    const terceiro = { spendId: 'pula-0003', amount: 40, reason: 'pular-rodada' }
-    const express = await noExpress('/seeds/gastar', terceiro)
-    const efemero = await noEfemero('/seeds/gastar', terceiro)
+    const quarto = { spendId: 'pula-0004', amount: 40, reason: 'pular-rodada' }
+    const express = await noExpress('/seeds/gastar', quarto)
+    const efemero = await noEfemero('/seeds/gastar', quarto)
     expect(express.status).toBe(402)
     expect(efemero.status).toBe(402)
     expect(express.body.detalhes.saldo).toBe(efemero.body.detalhes.saldo)
@@ -175,8 +220,10 @@ describe('drop: o baú vale o mesmo nas duas pontas', () => {
     await exerciseResultsRepo.addRodada(U, rodada)
     await servidorEfemero('/api/exercises/rodada', { method: 'POST', body: JSON.stringify(rodada) })
 
-    const antesExpress = (await noExpress('/seeds/creditar', { creditoId: 'conquista-colecionador' })).body.seedsCreditadas
-    const antesEfemero = (await noEfemero('/seeds/creditar', { creditoId: 'conquista-colecionador' })).body.seedsCreditadas
+    const antesExpress = (await noExpress('/seeds/creditar', { creditoId: 'conquista-colecionador' })).body
+      .seedsCreditadas
+    const antesEfemero = (await noEfemero('/seeds/creditar', { creditoId: 'conquista-colecionador' })).body
+      .seedsCreditadas
 
     const pedido = { creditoId: `drop:${roundId}` }
     const express = await noExpress('/seeds/creditar', pedido)
@@ -190,6 +237,34 @@ describe('drop: o baú vale o mesmo nas duas pontas', () => {
     expect(permitidos.has(efemero.body.item), `efêmero entregou ${efemero.body.item}`).toBe(true)
     expect(express.body.seedsCreditadas - antesExpress).toBe(SEEDS_DO_DROP)
     expect(efemero.body.seedsCreditadas - antesEfemero).toBe(SEEDS_DO_DROP)
+    /* BAÚ v2: a mesma forma de resposta — chances, garantia, raridade e o valor DESTE baú. */
+    for (const lado of [express.body, efemero.body]) {
+      expect(lado.chances).toEqual({ comum: 75, raro: 25 })
+      expect(lado.proximoRaroGarantidoEm).toBeGreaterThanOrEqual(1)
+      expect(lado.seeds).toBe(SEEDS_DO_DROP)
+      expect(lado.repetido).toBe(false)
+    }
+    expect(Object.keys(express.body).sort()).toEqual(Object.keys(efemero.body).sort())
+  })
+
+  it('rodada abaixo de duas estrelas não abre baú, nas duas, com o mesmo código', async () => {
+    /* 1 de 4 certos = 25%: zero estrelas. Antes, as duas pontas sorteavam um item mesmo assim. */
+    const roundId = 'termo-contrato-fraca'
+    const itens = [1, 0, 0, 0].map((correct, i) => ({ itemRef: `f${i}`, correct, kind: 'drill' }))
+    const rodada = { roundId, exerciseKind: 'termo', origem: 'baralho', score: 10, melhorSequencia: 1, itens }
+    const { exerciseResultsRepo } = (await h.load('../../server/db/repositories/exerciseResults')) as any
+    await exerciseResultsRepo.addRodada(U, rodada)
+    await servidorEfemero('/api/exercises/rodada', { method: 'POST', body: JSON.stringify(rodada) })
+
+    const pedido = { creditoId: `drop:${roundId}` }
+    const express = await noExpress('/seeds/creditar', pedido)
+    const efemero = await noEfemero('/seeds/creditar', pedido)
+    expect(express.status).toBe(400)
+    expect(efemero.status).toBe(400)
+    expect(express.body.code).toBe('rodada_sem_bau')
+    expect(efemero.body.code).toBe('rodada_sem_bau')
+    expect(express.body.detalhes).toMatchObject({ estrelas: 0, exigido: 2 })
+    expect(efemero.body.detalhes).toMatchObject({ estrelas: 0, exigido: 2 })
   })
 
   it('o reenvio devolve o MESMO item nas duas, sem creditar de novo', async () => {

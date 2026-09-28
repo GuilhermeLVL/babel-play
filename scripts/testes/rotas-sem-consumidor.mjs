@@ -27,6 +27,9 @@ import { rotasDoServidor } from './_rotas-do-servidor.mjs'
  * A52 da auditoria de 2026-09-07. Ficam nomeadas, e a próxima rota órfã derruba o CI.
  */
 const CHAMADOR_EXTERNO = {
+  'GET /api/admin/flags':
+    'porta de operação do dono (curl, `docs/flags.md` §Admin), irmã da CLI `operacao flags` (`server/operacao/flags.ts`); não há tela de admin de flags de propósito',
+  'PUT /api/admin/flags/:chave': 'idem',
   'DELETE /api/ai/credentials/:id':
     'LACUNA DE PRODUTO: `src/data/api.ts` tem `listCredentials` e `createCredential`, e nenhuma função de apagar — quem cola uma chave de IA não consegue removê-la pela interface. O servidor está pronto e coberto (`tests/caracterizacao/ia.test.ts`: 200 e 404). Falta o botão',
   'GET /api/vocab/distribuicao-dificuldade':
@@ -40,6 +43,8 @@ const CHAMADOR_EXTERNO = {
   'GET /api/sessions/:id/capa':
     'a Biblioteca renderiza `rec.imageUrl` direto (`Library.tsx:729`), que é a `data:` URI guardada em `meta`. Esta rota serve a mesma capa como binário, para a lista não carregar megabytes de base64 — a otimização existe e ninguém a chamou ainda',
   'POST /api/billing/webhook/asaas': 'o Asaas chama, não o nosso código (autenticação própria por token)',
+  'POST /api/billing/creditar-passe':
+    'DEPRECIADA (recompensas v2, onda 5): o Passe de 100 casas saiu e o cliente atual não a chama mais. Fica, sem efeito, para a aba aberta com o bundle anterior — `tests/contratos/api-depreciacoes.json` diz quando ela pode sumir',
   'GET /api/health': 'probe de deploy e o vigia `uptime.yml`',
   'GET /api/ready':
     'probe de PRONTIDAO do deploy: `HEALTHCHECK` do `Dockerfile` e `healthcheck` do `docker-compose.yml` apontam para ela desde a Fase 5. Nenhum dos dois e varrido por este script (ele le `.ts/.tsx/.mjs/.js/.yml/.yaml` em src/scripts/tests/.github, e o compose fica na raiz)',

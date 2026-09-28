@@ -48,7 +48,9 @@ describe('seeds por HTTP (modo self-host)', () => {
   beforeAll(async () => {
     s = await subirApp({ modo: 'self-host' })
     await semear(s, DONO)
-    await ganhar(s, DONO, 4) // 100 Seeds por rodadas perfeitas
+    /* 500 Seeds por rodadas perfeitas: pagam o tema Linear (440, preço calibrado das recompensas
+       v2), não o Customizado (5200). */
+    await ganhar(s, DONO, 20)
   })
   afterAll(async () => {
     await s.encerrar()
@@ -241,11 +243,12 @@ describe('seeds por HTTP (modo self-host)', () => {
     expect((await (await s.get('/api/metrics/profile')).json()).presencas).toBe(1)
   })
 
-  it('presenca com dia de ontem (fuso legitimo) entra e estende a sequencia', async () => {
+  it('presenca com dia de ontem (fuso legitimo) entra, mas NAO estende a ofensiva (recompensas v2)', async () => {
     const ontem = diaLocal(Date.now()) - 1
     const r = await s.post('/api/metrics/presenca', { dia: ontem })
     expect(r.status).toBe(200)
     expect(await r.json()).toEqual({ jaExistia: false, dia: ontem, streakPresenca: 1 })
-    expect((await (await s.get('/api/metrics/profile')).json()).streakPresenca).toBe(2)
+    // A ofensiva do perfil conta DIAS DE PRATICA: so hoje teve rodada, entao continua 1.
+    expect((await (await s.get('/api/metrics/profile')).json()).streakPresenca).toBe(1)
   })
 })

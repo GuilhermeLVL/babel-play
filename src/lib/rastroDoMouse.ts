@@ -11,7 +11,6 @@
  * GALERIA (2026-08-28): além dos estilos fixos, existem os PERSONALIZADOS, codificados no id:
  *   · `gen:<forma>:<paleta>`  — forma (faisca|estrelas|coracoes|pixel|arcoiris) nas cores da
  *                               paleta da galeria (`lib/galeria/paletas`);
- *   · `emojis:<lista>`         — emojis escolhidos um a um (separados por vírgula);
  *   · `croma:<forma>:<matiz>`  — forma na COR DE UM CROMA comprado (inventario-e-cromas).
  *
  * Por que o croma não reusa `gen:`: `gen:` aponta para uma PALETA da galeria, que tem porta
@@ -21,8 +20,16 @@
  * Nada disso cria spec nova: `estiloDeRastro()` resolve o id para um `kind` base + um
  * `sobrescrever` (cores/emojis) e o canvas aplica por cima. Centenas de combinações, zero custo.
  */
+/*
+ * RECOMPENSAS v2 (27/09): o rastro de emojis (`emoji` e `emojis:<lista>`) saiu com os packs — quem
+ * o tinha equipado volta para "desligado" sem erro, porque `estiloDeRastro` não o resolve mais. Os
+ * rastros VENDIDOS ficaram um por forma; os `gen:`/`croma:` que saíram da Loja continuam sendo
+ * combinações de forma × cor da galeria, então o valor equipado deles continua válido. O rastro só
+ * roda com PONTEIRO FINO (mouse; nunca no celular nem no Quest) e FORA DO MODO LEVE
+ * (`reduzirEfeitos`, que já inclui movimento reduzido).
+ */
+import { reduzirEfeitos } from './dispositivo/perfil';
 import { type BurstKind, type BurstSpec,emitBurst } from './effects';
-import { sanearListaDeEmojis } from './galeria/emojis';
 import { coresDaPaleta, MATIZES,paletaPorId } from './galeria/paletas';
 
 export interface EstiloDeRastro { id: string; nome: string; kind: BurstKind }
@@ -30,10 +37,9 @@ export interface EstiloDeRastro { id: string; nome: string; kind: BurstKind }
 export const RASTROS: EstiloDeRastro[] = [
   { id: 'off', nome: 'Desligado', kind: 'xp' },
   { id: 'faisca', nome: 'Faíscas', kind: 'rastroFaisca' },
-  { id: 'estrelas', nome: 'Estrelas', kind: 'rastroEstrelas' },
+  { id: 'estrelas', nome: 'Lampejo', kind: 'rastroEstrelas' },
   { id: 'coracoes', nome: 'Corações', kind: 'rastroCoracoes' },
   { id: 'pixel', nome: 'Pixel', kind: 'rastroPixel' },
-  { id: 'emoji', nome: 'Emoji (pack equipado)', kind: 'rastroEmoji' },
   /* Exclusivo de conquista ("Colecionador"): não está à venda. */
   { id: 'arcoiris', nome: 'Arco-íris', kind: 'rastroArcoiris' },
 ];
@@ -41,7 +47,7 @@ export const RASTROS: EstiloDeRastro[] = [
 /** Formas que aceitam paleta no rastro personalizado. */
 export const FORMAS_DE_RASTRO: Array<{ id: string; nome: string; kind: BurstKind }> = [
   { id: 'faisca', nome: 'Faíscas', kind: 'rastroFaisca' },
-  { id: 'estrelas', nome: 'Estrelas', kind: 'rastroEstrelas' },
+  { id: 'estrelas', nome: 'Lampejo', kind: 'rastroEstrelas' },
   { id: 'coracoes', nome: 'Corações', kind: 'rastroCoracoes' },
   { id: 'pixel', nome: 'Pixel', kind: 'rastroPixel' },
   { id: 'arcoiris', nome: 'Bolinhas', kind: 'rastroArcoiris' },
@@ -73,11 +79,6 @@ export function estiloDeRastro(id: string): RastroResolvido | null {
     // Duas cores: o matiz e uma versão mais funda dele — é o que dá volume ao rastro.
     return { kind: forma.kind, nome: `${forma.nome} · ${m.nome}`, sobrescrever: { paleta: [`hsl(${m.h} 85% 62%)`, `hsl(${m.h} 72% 46%)`] } }
   }
-  if (id.startsWith('emojis:')) {
-    const lista = sanearListaDeEmojis(id.slice('emojis:'.length).split(','));
-    if (!lista.length) return null;
-    return { kind: 'rastroEmoji', nome: `Emojis ${lista.slice(0, 3).join('')}`, sobrescrever: { emojis: lista } };
-  }
   return null;
 }
 
@@ -102,12 +103,19 @@ export function setRastro(id: string): string {
 export function idDeRastroGerado(forma: string, paletaId: string): string { return `gen:${forma}:${paletaId}`; }
 /** Monta o id de um rastro na cor de um croma comprado. */
 export function idDeRastroDeCroma(forma: string, matiz: string): string { return `croma:${forma}:${matiz}`; }
-/** Monta o id de um rastro de emojis escolhidos. */
-export function idDeRastroDeEmojis(lista: string[]): string { return `emojis:${sanearListaDeEmojis(lista).join(',')}`; }
 
 function animacoesDesligadas(): boolean {
   const b = document.body;
-  return b.classList.contains('performance-mode') || b.classList.contains('animations-off');
+  return b.classList.contains('performance-mode') || b.classList.contains('animations-off') || reduzirEfeitos();
+}
+
+/** Ponteiro fino (mouse/trackpad)? Toque e controle de VR não têm cursor para seguir. */
+export function temPonteiroFino(): boolean {
+  try {
+    return typeof matchMedia === 'function' && matchMedia('(pointer: fine)').matches;
+  } catch {
+    return false;
+  }
 }
 
 let instalado = false;
@@ -115,6 +123,8 @@ let instalado = false;
 /** Instala os listeners UMA vez (App). O estilo é relido a cada evento: trocar na Loja vale na hora. */
 export function instalarRastroDoMouse(): void {
   if (instalado || typeof window === 'undefined') return;
+  /* Sem ponteiro fino não há o que seguir: nem instala os listeners (celular e Quest). */
+  if (!temPonteiroFino()) return;
   instalado = true;
   let ultimoT = 0;
   let ultimoX = -999;

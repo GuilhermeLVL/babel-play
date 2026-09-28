@@ -187,6 +187,12 @@ no padrão. Chave sem schema aceita qualquer JSON de até 32 KB.
 | `oferta_planos`   | desligada, com 4 gatilhos          | Fase 8: banners, modais e paywall.                                                                                                                                                                                                  |
 | `vender_planos`   | **ligada**                         | Mostrar a venda. Espelha o comportamento atual; `CHECKOUT_ENABLED=0` a força para desligada.                                                                                                                                        |
 
+## Flags semeadas depois
+
+| Chave            | Migração | Estado inicial | Para quê |
+| ---------------- | -------- | -------------- | -------- |
+| `recompensas_v2` | 0036     | desligada      | Recompensas v2 (`docs/economia-v2.md`): **só as TELAS novas** (Personalizar, maestria, temporada, resumo da prática). Desde a revisão de 27/09 as regras de economia do servidor — baú por desempenho, reembolso do corte do catálogo (`POST /api/metrics/seeds/reembolso`, pedido pelo cliente uma vez por sessão depois que as métricas carregam, com a flag ligada ou não), fuso gravado, sessão só com palavra salva, rodada gravada uma vez — valem SEMPRE: são correções legais e de integridade, não um experimento. O aviso do reembolso é por conta (`avisoPendente`). Na edição estática não há flag remota: liga com `VITE_RECOMPENSAS_V2=1` no build (`src/lib/recompensasV2.ts`). |
+
 ## Boas práticas
 
 - **Toda flag nasce com data para morrer.** Escreva na `descricao` quando ela deve sair. Flag de

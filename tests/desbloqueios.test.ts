@@ -8,7 +8,8 @@ describe('desbloqueios por nível', () => {
     expect(nivelNecessario('tema', 'linear')).toBe(2)
     expect(nivelNecessario('fonte', 'pixel')).toBe(1) // fonte é livre: vitrine da identidade
     expect(nivelNecessario('posicao', 'top')).toBe(1)
-    expect(nivelNecessario('posicao', 'right')).toBe(3)
+    // Recompensas v2: posição do menu e fonte saíram do catálogo — fora do catálogo = livre.
+    expect(nivelNecessario('posicao', 'right')).toBe(1)
     expect(nivelNecessario('estudio', 'abrir')).toBe(10)
   })
   it('nível libera; escolha já salva NUNCA é rebaixada', () => {
@@ -20,7 +21,8 @@ describe('desbloqueios por nível', () => {
   })
   it('recompensas por nível alimentam o toast', () => {
     expect(recompensasDoNivel(6).map(r => r.id)).toContain('mochi')
-    expect(recompensasDoNivel(3)).toHaveLength(2)
+    // Nível 3 não abre mais aparência (as posições pagas viraram opção livre).
+    expect(recompensasDoNivel(3)).toHaveLength(0)
     expect(rotuloDaRecompensa({ tipo: 'fonte', id: 'pixel' })).toMatch(/Arcade/)
   })
 })

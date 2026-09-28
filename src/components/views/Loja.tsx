@@ -21,80 +21,45 @@
  * Comprar aqui e equipar ali passam pelo mesmo `equiparItem` (lib/galeria/equipar) — o único
  * caminho que equipa no app. Os textos dos estados vêm de `lib/galeria/textos`.
  */
-import { type ContextoDeConquistas, REGRAS } from '@core';
+import { REGRAS } from '@core';
 import { Check, Coins, Crown, Lock, Map as MapIcon, Shirt, ShoppingBag, Sparkles, Sprout, Trophy } from 'lucide-react';
 import { Fragment, useEffect, useMemo, useState } from 'react';
 
-import { gastarCreditos, gastarSeeds } from '../../data/api';
-import type { FonteType, ThemeType } from '../../lib/appearance';
-/* A intensidade das partículas saiu daqui: ela é ajuste da peça, e mora no editor da peça
-   (`personalizar/EditorDoItem`). Ter os dois lugares fazia a mesma escolha aparecer numa loja
-   e num inventário, com dois desenhos. */
-import {
-  custoDoProximoNivel,
-  NIVEL_MAXIMO,
-  nivelDoAprimoramento,
-  progressoDoAprimoramento,
-  registrarAprimoramento,
-} from '../../lib/aprimoramentos';
+import { gastarCreditos } from '../../data/api';
 import { useCarteira } from '../../lib/carteira';
-import { readCursor } from '../../lib/cursores';
+import { celebrarEscolha } from '../../lib/comemoracao';
+import { contarConquistas } from '../../lib/conquistas';
 import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { emitBurst } from '../../lib/effects';
 import { comprarPecaComSeeds } from '../../lib/galeria/comprarPeca';
-import { type ContextoDeEquipar, equiparItem, equipavel } from '../../lib/galeria/equipar';
+import { type ContextoDeEquipar, equiparItem, equipavel, estaEquipado } from '../../lib/galeria/equipar';
 import { estadoDaColecao, proximaRecompensa } from '../../lib/galeria/progressao';
 import { TEXTOS } from '../../lib/galeria/textos';
+import { t } from '../../lib/i18n';
 import { estaAnonimo } from '../../lib/identidade';
-import { comemorar, explodirAleatorio } from '../../lib/juice';
-import { CATALOGO_DA_LOJA, COR_DA_RARIDADE, estadoDoItem, type ItemDaLoja } from '../../lib/loja';
-import { readPack, readParticulas } from '../../lib/particulas';
-import type { DerivedProgress } from '../../lib/progress';
-import { readRastro } from '../../lib/rastroDoMouse';
+import { CATALOGO_DA_LOJA, COR_DA_RARIDADE, estadoDoItem, type ItemDaLoja, soPorSeeds } from '../../lib/loja';
+import { perfilProtegido } from '../../lib/protecaoDoMenor';
+import { recompensasV2Ligadas } from '../../lib/recompensasV2';
 import { normalizarAbaDaLoja } from '../../lib/rotas';
+import { useTemporada } from '../../lib/temporada';
 import CartaoDeConvite from '../conta/CartaoDeConvite';
 import MiniaturaDoItem from '../MiniaturaDoItem';
-import type { AgeProfileType, MenuPositionType } from '../shell/navItems';
 import { toast } from '../Toast';
 import { Abas, CabecalhoDeTela, PainelDeAba, Tela, TituloDeSecao } from '../ui';
 import Conquistas from './Conquistas';
 import CabecalhoDeTemporada from './loja/CabecalhoDeTemporada';
 import ComprarCreditos from './loja/ComprarCreditos';
+import type { LojaProps } from './loja/propsDaLoja';
 import PasseDeTemporada from './passe/PasseDeTemporada';
 import Personalizar from './Personalizar';
+import PersonalizarV2 from './personalizar/PersonalizarV2';
 
-interface LojaProps {
-  progress: DerivedProgress;
-  theme: ThemeType;
-  setTheme: (t: ThemeType) => void;
-  fonte: FonteType;
-  setFonte: (f: FonteType) => void;
-  menuPosition: MenuPositionType;
-  setMenuPosition: (p: MenuPositionType) => void;
-  onOpenStudio: () => void;
-  /** Contexto das conquistas (montado no App), para a aba "Desafios" desta tela. */
-  ctxConquistas: ContextoDeConquistas | null;
-  /** Perfil de exibição — editado na aba Meu visual (único dono desde 2026-08-28). */
-  ageProfile: AgeProfileType;
-  setAgeProfile: (p: AgeProfileType) => void;
-  /** v3: aba de destino ao abrir ("progressao" do fim de rodada). */
-  abaInicial?: string | null;
-  /** Espelha a aba na URL (ux-v2 §1.6): o App publica `/loja/<área>` a cada troca. */
-  aoTrocarDeAba?: (aba: string) => void;
-  /** v3: o contexto único de equipar (App). Opcional só para os testes de tela. */
-  equiparCtx?: ContextoDeEquipar;
-  /** Leva à porta de entrada. Ausente = self-host, onde não há conta. */
-  onEntrar?: () => void;
-}
 
 const FILTROS = [
   { id: 'tudo', nome: 'Tudo' },
   { id: 'tema', nome: 'Temas' },
   { id: 'particulas', nome: 'Partículas' },
-  { id: 'pack', nome: 'Emojis' },
-  { id: 'cursor', nome: 'Cursor' },
   { id: 'rastro', nome: 'Rastro' },
-  { id: 'posicao', nome: 'Layout' },
   { id: 'estudio', nome: 'Estúdio' },
   { id: 'galeria', nome: 'Galeria' },
 ] as const;
@@ -106,7 +71,15 @@ const LINHA_DE_PRECO = { font: '600 11.5px var(--font-mono)', color: 'var(--ink-
    ROTAS, e mante-las aqui fazia a Loja abrir na aba certa enquanto a URL mostrava
    `/loja/undefined` (achado A16). `normalizarAbaDaLoja` responde pelas duas. */
 
-export default function Loja({
+/**
+ * A TELA: com a flag `recompensas_v2`, as cinco abas (Coleção, Maestria, Temporada, Conquistas,
+ * Loja); sem ela, a tela clássica de duas áreas continua exatamente como era.
+ */
+export default function Loja(props: LojaProps) {
+  return recompensasV2Ligadas() ? <PersonalizarV2 {...props} /> : <LojaClassica {...props} />;
+}
+
+function LojaClassica({
   progress,
   theme,
   setTheme,
@@ -156,22 +129,26 @@ export default function Loja({
    * (Desafios, Passe, Loja), que só é confiável com o servidor arbitrando, e a acessibilidade
    * (equipar o que já é seu, o perfil de exibição), que é direito declarado e não se tranca atrás
    * de cadastro. Gatear a view inteira trancaria "Leitura ampliada" junto.
+   *
+   * NA EDIÇÃO ESTÁTICA o gate não vale: lá a identidade é SEMPRE anônima e quem arbitra é o
+   * servidor em memória (`data/efemero/rotas/economia.ts`), que credita as conquistas de verdade.
+   * Trancar a aba lá era mostrar "Disponível na versão completa" para algo que já funciona.
    */
-  const semConta = estaAnonimo();
+  const semConta = estaAnonimo() && !edicaoEstatica();
 
   // A carteira de Créditos é a única moeda que o cliente não deriva sozinho: o servidor arbitra.
   const carteira = useCarteira();
+  const temporada = useTemporada((seeds) => toast.ok(t('Temporada: +{n} Seeds dos níveis que você alcançou.', { n: seeds })));
 
   // Recém-comprados nesta visita continuam na prateleira como 'Liberado · Equipar agora'.
   const [recemComprados] = useState(() => new Set<string>());
   const colecao = useMemo(() => estadoDaColecao(nivel, saldo), [nivel, saldo, comprando]); // eslint-disable-line react-hooks/exhaustive-deps -- `comprando` força reler a posse depois da compra
   /* LOJA = só o que ainda NÃO é seu e NÃO é exclusivo. Possuído vai para "Meu visual";
-     exclusivo, para "Conquistas". Os aprimoramentos ficam aqui (são compra em degraus). */
+     exclusivo, para "Conquistas". (Os aprimoramentos saíram nas recompensas v2.) */
   const itens = useMemo(
     () =>
       CATALOGO_DA_LOJA.filter((i) => {
         if (i.exclusivoDe) return false;
-        if (i.tipo === 'aprimoramento') return filtro === 'tudo' || filtro === 'particulas';
         const seu = estadoDoItem(i, nivel, saldo).estado === 'equipavel';
         // Um item recém-comprado nesta visita continua na prateleira como "Liberado" (com Equipar agora).
         if (seu && !recemComprados.has(i.id)) return false;
@@ -183,11 +160,7 @@ export default function Loja({
      paga. A segunda vem ordenada pelo que falta: o mais perto primeiro, porque é ele que responde
      "o que eu consigo a seguir". */
   const custoDe = (i: ItemDaLoja): number | null =>
-    i.tipo === 'aprimoramento'
-      ? custoDoProximoNivel(i.alvo)
-      : estadoDoItem(i, nivel, saldo).estado === 'compravel'
-        ? (i.precoSeeds ?? null)
-        : null;
+    estadoDoItem(i, nivel, saldo).estado === 'compravel' ? (i.precoSeeds ?? null) : null;
   /* A PRATELEIRA PAGA sai das duas de Seeds: misturar as moedas na mesma grade faria o preço
      em Créditos parecer preço em Seeds. */
   const premium = itens.filter((i) => i.precoCreditos !== undefined);
@@ -206,7 +179,7 @@ export default function Loja({
       if (ca !== null && cb !== null) return ca - cb;
       if (ca !== null) return -1;
       if (cb !== null) return 1;
-      return a.nivel - b.nivel;
+      return (a.nivel ?? 99) - (b.nivel ?? 99);
     });
   /* A PEÇA DA VITRINE, por regra e não por sorteio: o mais caro que o saldo paga hoje; sem
      nada ao alcance, o que falta menos. */
@@ -217,16 +190,7 @@ export default function Loja({
   const naPrateleira = (lista: ItemDaLoja[]) => lista.filter((i) => i.id !== emDestaque?.id);
   const proxima = proximaRecompensa(nivel);
 
-  const equipadoAtual = (item: ItemDaLoja): boolean => {
-    if (item.tipo === 'tema') return theme === item.alvo;
-    if (item.tipo === 'fonte') return fonte === item.alvo;
-    if (item.tipo === 'particulas') return readParticulas() === item.alvo;
-    if (item.tipo === 'posicao') return menuPosition === item.alvo;
-    if (item.tipo === 'pack') return readPack() === item.alvo;
-    if (item.tipo === 'cursor') return readCursor() === item.alvo;
-    if (item.tipo === 'rastro') return readRastro() === item.alvo;
-    return false;
-  };
+  const equipadoAtual = (item: ItemDaLoja): boolean => estaEquipado(item, { theme, fonte, menuPosition });
 
   /**
    * IR A UMA SEÇÃO DE "DESAFIOS". Os atalhos de dentro do app ("Ver na Loja", "Ver no Passe", a
@@ -249,36 +213,8 @@ export default function Loja({
       return;
     }
     if (equiparItem(item, ctxEquipar)) {
-      comemorar('acerto', el, { texto: TEXTOS.emUso });
+      celebrarEscolha(el, TEXTOS.emUso);
       force((n) => n + 1);
-    }
-  };
-
-  /** Compra o PRÓXIMO nível de um aprimoramento (spendId por nível: idempotente por degrau). */
-  const aprimorar = async (item: ItemDaLoja, el: HTMLElement | null) => {
-    const custo = custoDoProximoNivel(item.alvo);
-    if (custo === null) return;
-    const proximo = nivelDoAprimoramento(item.alvo) + 1;
-    setComprando(item.id);
-    try {
-      const r = await gastarSeeds({
-        spendId: `apr-${item.alvo}-n${proximo}`,
-        amount: custo,
-        reason: `aprimoramento:${item.alvo}:${proximo}`,
-      });
-      if (r && (r as { ok?: boolean }).ok === false) {
-        toast.warn('Não deu para aprimorar agora. Tente de novo.');
-        return;
-      }
-      registrarAprimoramento(item.alvo);
-      comemorar('subiuNivel', el, { texto: `Nv. ${proximo}!` });
-      explodirAleatorio(2, 'fogos');
-      toast.ok(`${item.nome} subiu para o nível ${proximo}!`);
-      force((n) => n + 1);
-    } catch {
-      toast.warn('Não deu para aprimorar agora. Tente de novo.');
-    } finally {
-      setComprando(null);
     }
   };
 
@@ -305,8 +241,7 @@ export default function Loja({
         toast.warn('Não deu para completar a compra agora. Tente de novo.');
         return;
       }
-      comemorar('subiuNivel', el, { texto: 'Seu!' });
-      explodirAleatorio(3, 'fogos');
+      celebrarEscolha(el, 'Seu!');
       toast.ok(`${item.nome} é seu!`);
       carteira.recarregar();
       force((n) => n + 1);
@@ -334,8 +269,7 @@ export default function Loja({
         return;
       }
       recemComprados.add(item.id);
-      comemorar('subiuNivel', el, { texto: 'Seu!' });
-      explodirAleatorio(3, 'confete');
+      celebrarEscolha(el, 'Seu!');
       toast.ok(`${item.nome} é seu!`);
       force((n) => n + 1);
     } finally {
@@ -352,8 +286,6 @@ export default function Loja({
     const equipado = estado === 'equipavel' && equipadoAtual(item);
     const preco = item.precoSeeds;
     const falta = preco !== undefined ? preco - saldo : 0;
-    const apr = item.tipo === 'aprimoramento';
-    const custoApr = apr ? custoDoProximoNivel(item.alvo) : null;
 
     return (
       <article
@@ -373,42 +305,7 @@ export default function Loja({
         <h3>{item.nome}</h3>
         <p>{item.desc}</p>
 
-        {apr ? (
-          (() => {
-            const nv = nivelDoAprimoramento(item.alvo);
-            const pct = progressoDoAprimoramento(item.alvo);
-            return (
-              <>
-                <div className="entre" style={LINHA_DE_PRECO}>
-                  <span>
-                    Nv. {nv} / {NIVEL_MAXIMO}
-                  </span>
-                  <span>{pct}%</span>
-                </div>
-                <div className="barra">
-                  <span style={{ width: `${pct}%` }} />
-                </div>
-                {custoApr === null ? (
-                  <span className="badge warn">★ Dominado</span>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={(e) => void aprimorar(item, e.currentTarget)}
-                    disabled={comprando === item.id || saldo < custoApr}
-                    className="btn btn-outline bloco"
-                  >
-                    <Sprout aria-hidden style={{ color: 'var(--good)' }} />
-                    {comprando === item.id
-                      ? 'Aprimorando…'
-                      : saldo < custoApr
-                        ? `Faltam ${custoApr - saldo}`
-                        : `Aprimorar · ${custoApr}`}
-                  </button>
-                )}
-              </>
-            );
-          })()
-        ) : estado === 'equipavel' ? (
+        {estado === 'equipavel' ? (
           <button
             type="button"
             onClick={(e) => equiparAgora(item, e.currentTarget)}
@@ -468,9 +365,12 @@ export default function Loja({
               ) : (
                 <span>só por nível</span>
               )}
-              <span className="linha" style={{ gap: 4 }}>
-                <Lock aria-hidden style={{ width: 12, height: 12 }} /> nv. {item.nivel}
-              </span>
+              {/* Só Seeds (onda 4): não há nível a mostrar. */}
+              {!soPorSeeds(item) && (
+                <span className="linha" style={{ gap: 4 }}>
+                  <Lock aria-hidden style={{ width: 12, height: 12 }} /> nv. {item.nivel}
+                </span>
+              )}
             </div>
             {estado === 'compravel' ? (
               <button
@@ -483,7 +383,7 @@ export default function Loja({
               </button>
             ) : (
               <button type="button" className="btn btn-outline bloco" disabled>
-                {preco !== undefined && falta > 0 ? `Faltam ${falta} Seeds` : `Chega no nível ${item.nivel}`}
+                {preco !== undefined && (falta > 0 || soPorSeeds(item)) ? `Faltam ${falta} Seeds` : `Chega no nível ${item.nivel}`}
               </button>
             )}
           </>
@@ -492,7 +392,11 @@ export default function Loja({
     );
   };
 
-  const nDesafios = colecao.compraveis.length + colecao.porNivel.length + colecao.porConquista.length;
+  /* A contagem da aba é de DESAFIOS — as conquistas que ainda faltam —, no mesmo espírito da de
+     "Meu visual" (o que está na sua mão): um número que muda quando você faz algo. Antes contava
+     os itens do catálogo e dizia "Desafios (69)" para quem tinha 14 conquistas no total. */
+  const conquistasContadas = contarConquistas(ctxConquistas);
+  const nDesafios = conquistasContadas.total - conquistasContadas.feitas;
 
   return (
     <Tela largura="larga">
@@ -524,8 +428,6 @@ export default function Loja({
                 icone: <Shirt aria-hidden />,
                 contagem: colecao.possuidos.length,
               },
-              /* A contagem é de TUDO que ainda dá para desbloquear, e não só do que vem por
-                 conquista: a aba deixou de ser só sobre conquistas. */
               { id: 'conquistas', rotulo: 'Desafios', icone: <Trophy aria-hidden />, contagem: nDesafios },
             ]}
           />
@@ -566,39 +468,30 @@ export default function Loja({
               <Conquistas progress={progress} ctx={ctxConquistas} />
             </div>
 
-            {/* O PASSE fica como está: o destino dele está em aberto com o dono, e a aparência da
-                trilha é dele (`passe/PasseDeTemporada`). Aqui só o título no molde da tela. */}
+            {/* A TEMPORADA (recompensas v2, onda 5): as duas trilhas com datas. O id da seção continua
+                `secao-passe` porque é o endereço que `/loja/passe` e os atalhos já usam. */}
             <section id="secao-passe" className="secao" style={{ scrollMarginTop: 16 }}>
               <TituloDeSecao
                 icone={MapIcon}
-                titulo="Passe da temporada"
-                desc="A trilha do que cada nível entrega. Subir de nível é de graça: estudar é o único requisito."
+                titulo="Temporada"
+                desc="Duas trilhas de 30 níveis, com datas. O nível da temporada sobe com o XP de estudo ganho nela; não se compra."
               />
               {/* O cabeçalho de temporada (temporada, barra de XP e as duas carteiras) era o topo da
                   aba inteira; o protótipo abre a tela com o cabeçalho único e o saldo de Seeds.
                   Ele desce para cá, onde a temporada é o assunto. */}
               <CabecalhoDeTemporada
-                progress={progress}
+                estado={temporada}
                 saldo={saldo}
                 carteira={carteira}
-                temporada={{ numero: 1, nome: 'Fundação' }}
                 /* Edição estática: não há cobrança — sem o atalho de compra. */
                 aoComprarCreditos={edicaoEstatica() ? undefined : () => irParaSecao('loja')}
               />
               <div style={{ marginTop: 16 }}>
                 <PasseDeTemporada
-                  progress={progress}
+                  temporada={temporada}
                   ctxEquipar={ctxEquipar}
                   equipadoAtual={equipadoAtual}
-                  temPasse={carteira.temPasse}
-                  aoComprarPasse={
-                    carteira.disponivel
-                      ? () => {
-                          setFiltro('tudo');
-                          irParaSecao('loja');
-                        }
-                      : undefined
-                  }
+                  protegido={perfilProtegido()}
                 />
               </div>
             </section>

@@ -1,7 +1,7 @@
 /**
  * AS TRÊS CONQUISTAS QUE NUNCA DISPARAVAM NA CONTA LOGADA (auditoria de 07/09, achado A18).
  *
- * `ouvinte` lê `capturaMinutos`, `poliglota` lê `idiomas` e `duelista` lê `melhorComboPorJogo`.
+ * `ouvinte` lia `capturaMinutos` (desde a onda 5 das recompensas v2, conta sessões), `poliglota` lê `idiomas` e `duelista` lê `melhorComboPorJogo`.
  * Nenhum dos três existia do lado do servidor:
  *
  *  - `computeProfile` emitia só `capturaMinutosPremiados` (o total com teto diário), então
@@ -13,12 +13,12 @@
  * O sintoma era silencioso: a conquista simplesmente não acontecia, e ninguém tinha como saber se
  * era porque a pessoa não jogou o suficiente ou porque o número nunca chegou.
  */
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
 import { CONQUISTAS_CONFERIVEIS } from '../../src/core/economiaAutoridade'
 import { CONQUISTAS } from '../../src/core/learning/conquistas'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let metricsRouter: any
@@ -33,8 +33,14 @@ function handler(caminho: string): (req: any, res: any) => Promise<void> {
 }
 function mockRes(): any {
   const r: any = { statusCode: 200, body: undefined }
-  r.status = (c: number) => { r.statusCode = c; return r }
-  r.json = (b: any) => { r.body = b; return r }
+  r.status = (c: number) => {
+    r.statusCode = c
+    return r
+  }
+  r.json = (b: any) => {
+    r.body = b
+    return r
+  }
   return r
 }
 const req = (body: unknown, u: string) => ({ userId: asUserId(u), body, requestId: 'req-cb', path: '/x' })
@@ -46,18 +52,28 @@ beforeAll(async () => {
   ;({ exerciseResultsRepo } = (await h.load('../../server/db/repositories/exerciseResults')) as any)
   ;({ sessionsRepo } = (await h.load('../../server/db/repositories/sessions')) as any)
 })
-afterAll(async () => { await h.cleanup() })
+afterAll(async () => {
+  await h.cleanup()
+})
 
 describe('o combo chega ao banco', () => {
   it('a rodada grava o combo e o recorde o devolve', async () => {
     const u = 'u-combo'
     await exerciseResultsRepo.addRodada(asUserId(u), {
-      roundId: 'c-1', exerciseKind: 'blitz', origem: 'baralho', score: 900, melhorSequencia: 17,
+      roundId: 'c-1',
+      exerciseKind: 'blitz',
+      origem: 'baralho',
+      score: 900,
+      melhorSequencia: 17,
       itens: Array.from({ length: 20 }, (_, i) => ({ itemRef: `p${i}`, correct: 1, kind: 'drill' })),
     })
     /* Uma rodada pior no MESMO jogo: o recorde é o máximo, não o último. */
     await exerciseResultsRepo.addRodada(asUserId(u), {
-      roundId: 'c-2', exerciseKind: 'blitz', origem: 'baralho', score: 100, melhorSequencia: 3,
+      roundId: 'c-2',
+      exerciseKind: 'blitz',
+      origem: 'baralho',
+      score: 100,
+      melhorSequencia: 3,
       itens: [{ itemRef: 'p0', correct: 0, kind: 'drill' }],
     })
 
@@ -74,13 +90,20 @@ describe('o combo chega ao banco', () => {
   it('rodada sem combo não rebaixa o recorde para zero', async () => {
     const u = 'u-combo-nulo'
     await exerciseResultsRepo.addRodada(asUserId(u), {
-      roundId: 'n-1', exerciseKind: 'blitz', origem: 'baralho', score: 500, melhorSequencia: 12,
+      roundId: 'n-1',
+      exerciseKind: 'blitz',
+      origem: 'baralho',
+      score: 500,
+      melhorSequencia: 12,
       itens: [{ itemRef: 'a', correct: 1, kind: 'drill' }],
     })
     /* Uma rodada como as ~1.500 anteriores à migração 0025: sem o campo. `MAX` ignora NULL —
        um `COALESCE(combo, 0)` diria que essa rodada teve combo zero e apagaria o recorde. */
     await exerciseResultsRepo.addRodada(asUserId(u), {
-      roundId: 'n-2', exerciseKind: 'blitz', origem: 'baralho', score: 500,
+      roundId: 'n-2',
+      exerciseKind: 'blitz',
+      origem: 'baralho',
+      score: 500,
       itens: [{ itemRef: 'b', correct: 1, kind: 'drill' }],
     })
     expect((await exerciseResultsRepo.melhorComboPorJogo(asUserId(u))).blitz).toBe(12)
@@ -88,16 +111,16 @@ describe('o combo chega ao banco', () => {
 })
 
 describe('os campos de perfil que faltavam', () => {
-  it('capturaMinutos é o total sem teto; capturaMinutosPremiados tem o teto do dia', async () => {
+  it('capturaMinutos é o total sem teto; minuto gravado não é mais premiado (recompensas v2)', async () => {
     const u = 'u-ouvinte'
-    /* Duas sessões de 40 minutos no MESMO dia: 80 minutos gravados, 30 premiados (teto diário).
-       A conquista "Ouvinte" pede 60 minutos GRAVADOS — com o premiado ela nunca fecharia. */
+    /* Duas sessões de 40 minutos no MESMO dia: 80 minutos gravados. A conquista "Ouvinte" pede 60
+       minutos GRAVADOS. Desde 27/09 não existe mais o "premiado": tempo não paga Seeds. */
     for (const lang of ['en', 'en']) {
       await sessionsRepo.create(asUserId(u), { title: 'aula', durationMs: 40 * 60_000, sourceLang: lang })
     }
     const m = await computeProfile(asUserId(u))
     expect(m.capturaMinutos).toBe(80)
-    expect(m.capturaMinutosPremiados).toBe(30)
+    expect(m).not.toHaveProperty('capturaMinutosPremiados')
   })
 
   it('idiomas conta os idiomas distintos das sessões', async () => {
@@ -119,7 +142,11 @@ describe('as conquistas que dependiam desses números', () => {
     expect(recusa.body.detalhes).toMatchObject({ atual: 0, meta: 15 })
 
     await exerciseResultsRepo.addRodada(asUserId(u), {
-      roundId: 'd-1', exerciseKind: 'blitz', origem: 'baralho', score: 900, melhorSequencia: 15,
+      roundId: 'd-1',
+      exerciseKind: 'blitz',
+      origem: 'baralho',
+      score: 900,
+      melhorSequencia: 15,
       itens: [{ itemRef: 'x', correct: 1, kind: 'drill' }],
     })
     const ok = mockRes()
@@ -143,12 +170,19 @@ describe('as conquistas que dependiam desses números', () => {
     expect(ok.body).toMatchObject({ seedsCreditadas: 40, xpCreditado: 60 })
   })
 
-  it('ouvinte: 60 minutos gravados bastam, mesmo com o teto diário comendo o premiado', async () => {
+  it('ouvinte: 5 sessões gravadas, e não minutos (recompensas v2: nada por tempo)', async () => {
     const u = 'u-ouvinte2'
+    /* Uma sessão de 70 minutos não basta desde a onda 5: o Ouvinte conta sessões. */
     await sessionsRepo.create(asUserId(u), { title: 'longa', durationMs: 70 * 60_000, sourceLang: 'en' })
+    const cedo = mockRes()
+    await handler('/seeds/creditar')(req({ creditoId: 'conquista-ouvinte' }, u), cedo)
+    expect(cedo.statusCode).toBe(400)
+
+    for (let i = 0; i < 4; i++) {
+      await sessionsRepo.create(asUserId(u), { title: `curta ${i}`, durationMs: 60_000, sourceLang: 'en' })
+    }
     const { metricas } = await economiaDoUsuario(asUserId(u))
-    expect(metricas.capturaMinutos).toBe(70)
-    expect(metricas.capturaMinutosPremiados).toBe(30)
+    expect(metricas.sessions).toBe(5)
 
     const ok = mockRes()
     await handler('/seeds/creditar')(req({ creditoId: 'conquista-ouvinte' }, u), ok)
@@ -156,11 +190,11 @@ describe('as conquistas que dependiam desses números', () => {
     expect(ok.body).toMatchObject({ seedsCreditadas: 60 })
   })
 
-  it('só `colecionador` fica de fora da conferência do servidor', async () => {
-    /* A lista existe porque três conquistas dependiam de estado que só o navegador tinha. Duas
-       delas passaram a ser conferíveis; se uma quarta sair da lista sem que o dado exista, este
-       teste é o lugar onde isso aparece. */
+  it('nenhuma conquista fica de fora da conferência do servidor', async () => {
+    /* A lista existia porque três conquistas dependiam de estado que só o navegador tinha. Duas
+       passaram a ser conferíveis em 07/09; o Colecionador, em 27/09, pelos pré-requisitos dos
+       eventos (`progressoConferivelDoColecionador`). Se alguma sair da lista, é aqui que aparece. */
     const fora = CONQUISTAS.map((c) => c.id).filter((id) => !CONQUISTAS_CONFERIVEIS.has(id))
-    expect(fora).toEqual(['colecionador'])
+    expect(fora).toEqual([])
   })
 })

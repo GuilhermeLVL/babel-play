@@ -77,7 +77,8 @@ describe('toda rota é acionável', () => {
     '%s tem canal, frase e destino',
     (_id, item) => {
       const r = rotaDeObtencao(item, SEM_SEEDS);
-      expect(['conquistas', 'loja', 'passe']).toContain(r.destino);
+      // 'jogar' (recompensas v2, onda 3): o item de maestria se ganha jogando.
+      expect(['conquistas', 'loja', 'passe', 'jogar']).toContain(r.destino);
       expect(r.titulo.length).toBeGreaterThan(3);
       expect(r.texto.length).toBeGreaterThan(20);
       expect(r.rotuloDoBotao.length).toBeGreaterThan(3);
@@ -89,9 +90,12 @@ describe('toda rota é acionável', () => {
   it('o destino corresponde ao canal', () => {
     for (const item of CATALOGO_DA_LOJA) {
       const r = rotaDeObtencao(item, SEM_SEEDS);
-      if (r.origem === 'conquista') expect(r.destino).toBe('conquistas');
+      // Maestria é da família da conquista (só fazendo), mas o lugar de fazer é o jogo.
+      if (r.origem === 'conquista') expect(r.destino).toBe(item.origemMaestria ? 'jogar' : 'conquistas');
       if (r.origem === 'seeds') expect(r.destino).toBe('loja');
-      if (r.origem === 'nivel') expect(r.destino).toBe('passe');
+      // O nível chega estudando (o Passe de 100 casas saiu na onda 5); a temporada tem a sua seção.
+      if (r.origem === 'nivel') expect(r.destino).toBe('jogar');
+      if (r.origem === 'temporada') expect(r.destino).toBe('passe');
     }
   });
 
@@ -105,14 +109,13 @@ describe('toda rota é acionável', () => {
     expect(rotaDeObtencao(comPreco!, preco).texto).toContain(`já tem as ${preco} Seeds`);
   });
 
-  /* O item do Passe premium tem DUAS portas — a casa da trilha e a prateleira avulsa — e dizer
-     só a paga faria a trilha comprada parecer não entregar nada. */
-  it('o exclusivo do Passe cita a casa da trilha e manda para o Passe', () => {
-    const doPasse = CATALOGO_DA_LOJA.filter((i) => i.exclusivoDoPasse !== undefined);
-    expect(doPasse.length).toBeGreaterThan(0);
-    for (const item of doPasse) {
+  /* O item de temporada diz de que temporada é e que volta à Loja depois de um ano (spec 8.3). */
+  it('o item de temporada cita a temporada e manda para a Temporada', () => {
+    const daTemporada = CATALOGO_DA_LOJA.filter((i) => i.origemTemporada);
+    expect(daTemporada.length).toBeGreaterThan(0);
+    for (const item of daTemporada) {
       const r = rotaDeObtencao(item, SEM_SEEDS);
-      expect(r.texto).toContain(`casa ${item.exclusivoDoPasse}`);
+      expect(r.texto).toContain('Temporada 1');
       expect(r.destino).toBe('passe');
     }
   });
@@ -127,31 +130,13 @@ describe('toda rota é acionável', () => {
  * Ele nasceu de uma divergência real: a descrição de "Impacto" prometia "Archivo no peso máximo",
  * o CSS declarava a mesma pilha do padrão, e escolher a opção não mudava um pixel.
  */
-describe('as oito fontes do catálogo batem com as do seletor', () => {
-  const doCatalogo = CATALOGO_DA_LOJA.filter((i) => i.tipo === 'fonte');
-
-  it('há um item por família oferecida, e nenhum a mais', () => {
-    expect(doCatalogo.map((i) => i.alvo).sort()).toEqual(FONTE_OPTIONS.map((f) => f.id).sort());
-  });
-
-  it('nome e descrição são os mesmos nos dois lugares', () => {
-    for (const item of doCatalogo) {
-      const opcao = FONTE_OPTIONS.find((f) => f.id === item.alvo)!;
-      expect(item.nome, `nome de ${item.id}`).toBe(opcao.name);
-      expect(item.desc, `descrição de ${item.id}`).toBe(opcao.desc);
-    }
-  });
-
-  /* Tipografia é legibilidade, e legibilidade é DIREITO — a mesma classificação que
-     `coerencia-e-recompensa` já aplica a tamanho de texto e contraste. Nenhuma família pode ficar
-     atrás de nível, Seeds, Créditos ou conquista. */
-  it('nenhuma fonte é recompensa: todas são nível 1 e de graça', () => {
-    for (const item of doCatalogo) {
-      expect(item.nivel, `${item.id} deveria ser nível 1`).toBe(1);
-      expect(item.precoSeeds, `${item.id} não pode ter preço`).toBeUndefined();
-      expect(item.precoCreditos, `${item.id} não pode ter preço`).toBeUndefined();
-      expect(item.exclusivoDe, `${item.id} não pode ser exclusivo`).toBeUndefined();
-    }
+/* AS FONTES SAÍRAM DO CATÁLOGO (recompensas v2, 27/09): tipografia é legibilidade e legibilidade é
+   DIREITO. Elas viraram opção livre em "Acessibilidade e layout"; o que se prova aqui é que nenhuma
+   volta a ser item da Loja — e fora do catálogo, `estadoPorAlvo` a trata como livre. */
+describe('as fontes não são recompensa', () => {
+  it('nenhum item do catálogo é fonte', () => {
+    expect(CATALOGO_DA_LOJA.filter((i) => (i.tipo as string) === 'fonte')).toEqual([]);
+    expect(FONTE_OPTIONS.length).toBe(8);
   });
 });
 
@@ -179,8 +164,10 @@ describe('a raridade do exclusivo acompanha a da conquista', () => {
   const FAIXA = { comum: 0, raro: 1, epico: 2, lendario: 3 } as const;
   const comCosmetico = CONQUISTAS.filter((c) => c.recompensa.cosmetico);
 
+  /* Eram sete; `cur-coroa`, `pack-astrologia` e `cur-katana` saíram com os cursores e packs
+     (recompensas v2). A peça nova delas vem na onda 5 (moldura/título). */
   it('há exclusivos para medir', () => {
-    expect(comCosmetico.length).toBeGreaterThan(4);
+    expect(comCosmetico.length).toBeGreaterThanOrEqual(4);
   });
 
   it.each(comCosmetico.map((c) => [c.id, c] as const))(

@@ -45,6 +45,7 @@ import {
   niveisEmJogo,
   type OrigemDaPratica,
   pistasDaTriagem,
+  pontosDeMaestria,
   pontuarRodada,
   previaSegura,
   progressoDasEtapas,
@@ -57,6 +58,7 @@ import {
   type RodadaDitado,
   type RodadaEscuta,
   type RodadaFrase,
+  rodadaRendeBau,
   type RodadaTermo,
   rotuloDaFonte,
   rotuloDeDuracao,
@@ -145,9 +147,9 @@ import { listarBaralhosAnki } from '../../data/apiAnki';
 import { carregarTrilha, indiceDaTrilha, precarregarNiveis, trilhaEmCache } from '../../data/trilha/carregar';
 import { useAudioDaSessao } from '../../lib/audioDaSessao';
 import { edicaoEstatica } from '../../lib/edicaoEstatica';
+import { type DetalheDoDrop, EVENTO_DROP_GANHO } from '../../lib/filaDeRecompensas';
 import { filtroDaQuery, gravarFiltro, lerFiltroGuardado, queryDoFiltro } from '../../lib/filtroDaPratica';
 import { temFonteGuardada } from '../../lib/fonteDaPratica';
-import { playJuicedHit, triggerHaptic } from '../../lib/gameFeel';
 import { numero, t, tp } from '../../lib/i18n';
 import {
   buscarComposicaoPeloFunil,
@@ -161,6 +163,7 @@ import {
 import { langConfigFrom, saveLangConfig } from '../../lib/langConfig';
 import { baseLang, langLabelNaUI } from '../../lib/languages';
 import { lazyComRecarga } from '../../lib/lazyComRecarga';
+import { pontosPorJogo, sincronizarMaestria } from '../../lib/maestria';
 import {
   lerPrecisoes,
   registrarPrecisao,
@@ -178,10 +181,12 @@ import {
   type OrdemDosJogos,
 } from '../../lib/ordemDosJogos';
 import { contarPassada } from '../../lib/passadasDoPipeline';
+import { estadoDoCartao } from '../../lib/pelesDeCartao';
 import { type AgeProfileType, coreOnly } from '../../lib/profile';
 import type { DerivedProgress } from '../../lib/progress';
 import { consumirQueryDoBoot, lerUrlAtual, publicarQueryDoJogar } from '../../lib/rotas';
 import { type PracticeSeed, type Sentence, toSentences } from '../../lib/sentences';
+import { play } from '../../lib/soundFx';
 import { T } from '../../lib/T';
 import { aoMudarVozes, hasVoiceFor, isTtsSupported, vozesCarregadas } from '../../lib/tts';
 import type { Recording, VocabCard } from '../../types';
@@ -203,7 +208,6 @@ import ScrambleGame from '../minigames/ScrambleGame';
 import SeletorDeConteudo from '../minigames/SeletorDeConteudo';
 import TermoGame from '../minigames/TermoGame';
 import TourGuiado from '../minigames/TourGuiado';
-import { type DetalheDoDrop, EVENTO_DROP_GANHO } from '../RecompensaDesbloqueada';
 import { toast } from '../Toast';
 import { Abas, CabecalhoDeTela, IconeEmBloco, TituloDeSecao } from '../ui';
 import CuradoriaBaralho from './CuradoriaBaralho';
@@ -714,6 +718,24 @@ export default function Play({
   const [recordes, setRecordes] = useState<Map<string, number>>(new Map());
   const recordeDoJogo = (jogo: MinigameId) => recordes.get(jogo) ?? null;
   /**
+   * MAESTRIA POR JOGO (recompensas v2, onda 3): os pontos do SERVIDOR por jogo (`null` sem a flag
+   * ou sem resposta — a barra some) e, da rodada que acabou de fechar, os pontos de antes e o que
+   * ela somou. `sincronizarMaestria` também pede os créditos `maestria:` que faltam.
+   */
+  const [maestria, setMaestria] = useState<ReadonlyMap<MinigameId, number> | null>(null);
+  const [maestriaDaRodada, setMaestriaDaRodada] = useState<{ pontosAntes: number; ganho: number } | null>(null);
+  /** A gravação da rodada que acabou de fechar: com `falhou`, o fim diz que nada foi creditado. */
+  const [gravacaoDaRodada, setGravacaoDaRodada] = useState<'pendente' | 'ok' | 'falhou'>('pendente');
+  useEffect(() => {
+    let vivo = true;
+    void sincronizarMaestria().then((jogos) => {
+      if (vivo && jogos) setMaestria(pontosPorJogo(jogos));
+    });
+    return () => {
+      vivo = false;
+    };
+  }, []);
+  /**
    * Seeds gastas NESTA visita, ainda não refletidas em `progress` (que vem do App e só muda
    * quando as métricas são recarregadas). O servidor continua sendo a autoridade — isto só evita
    * que o saldo na tela minta entre o clique e a próxima leitura.
@@ -987,6 +1009,7 @@ export default function Play({
    */
   const aoTerminar = async (report: RoundReport) => {
     setResultado(report);
+    setGravacaoDaRodada('pendente');
     setRodada(null);
     setRodadaTermo(null);
     setRodadaFrase(null);
@@ -1044,6 +1067,21 @@ export default function Play({
     const pontos = pontuarRodada(report.gameId, report.items, { sequenciaInicial: herdado });
     const corrente = acumular(sequencia, report, pontos, origem, xpFromRound(report));
     setSequencia(corrente);
+    /* O GANHO DE MAESTRIA desta rodada, com a MESMA conta que o servidor refaz sobre as linhas que
+       vão ser gravadas logo abaixo: acertos (`correct: 1`), itens e o combo gravado como
+       `melhorSequencia`. Antes do primeiro `await`, para chegar junto com o resultado na tela. */
+    setMaestriaDaRodada(
+      maestria
+        ? {
+            pontosAntes: maestria.get(report.gameId) ?? 0,
+            ganho: pontosDeMaestria({
+              acertos: report.items.filter((o) => o.correct).length,
+              total: report.items.length,
+              comboMaximo: pontos.melhorSequencia,
+            }),
+          }
+        : null,
+    );
     /* O RESUMO NÃO É LIGADO AQUI — e era esse o defeito.
        `resultado` e `verResumo` viravam verdadeiros no MESMO render, e a cascata testa
        `resultado && verResumo` ANTES de `resultado`: o resumo assumia a posição da raspadinha, e
@@ -1088,6 +1126,7 @@ export default function Play({
 
     const gravacao = await salvarRodada({
       melhorSequencia: pontos.melhorSequencia,
+      duracaoMs: Number.isFinite(report.durationMs) ? Math.min(86_400_000, Math.max(0, Math.round(report.durationMs))) : undefined,
       roundId,
       exerciseKind: report.gameId,
       origem,
@@ -1096,22 +1135,47 @@ export default function Play({
       itens,
     });
     if (!gravacao.ok) falhas.push(`${gravacao.status ?? 'rede'}: ${gravacao.motivo}`);
+    /* EXIBIDO = CREDITADO: sem a rodada gravada o servidor não creditou Seeds, XP, maestria nem
+       baú — o fim da rodada troca o prêmio por "nada foi creditado". */
+    setGravacaoDaRodada(gravacao.ok ? 'ok' : 'falhou');
     /* ECONOMIA v2: a rodada gravada muda Seeds/XP (acertos, rodada perfeita) e pode fechar uma
        conquista. O App recarrega as métricas ao ouvir isto — antes só recarregava quando a lista
        de sessões mudava, e o saldo ficava uma rodada atrás. */
     if (gravacao.ok) window.dispatchEvent(new CustomEvent('babel:metricas-mudaram'));
+    /* MAESTRIA: com a rodada gravada, relê os pontos do servidor e pede o crédito dos níveis novos. */
+    if (gravacao.ok) {
+      void sincronizarMaestria().then((jogos) => {
+        if (jogos) setMaestria(pontosPorJogo(jogos));
+      });
+    }
 
     /* O BAU DA RODADA. Pedido so depois de a rodada existir no servidor: e a pre-condicao que a
        rota confere (`rodada_inexistente`). Quem sorteia e o servidor; aqui so se anuncia. Falha
        fica em silencio de proposito — perder o bau nao pode custar a rodada. */
-    if (gravacao.ok) {
+    /* O BAÚ EXIGE DUAS ESTRELAS (`rodadaRendeBau`, a mesma régua que o servidor confere nas linhas
+       gravadas): rodada abaixo disso nem pede — o servidor recusaria com `rodada_sem_bau`. */
+    if (gravacao.ok && rodadaRendeBau(itens).rende) {
       void creditarSeeds({ creditoId: `drop:${roundId}` }).then((r) => {
-        if (!r || r.jaExistia || !r.item) return;
+        if (!r || r.jaExistia) return;
+        /* `item: null` = coleção completa: nada a sortear. Antes isto sumia em silêncio; agora
+           vai com `itemId: null`, e o App avisa (uma vez por sessão) em vez de calar. */
         /* `seedsCreditadas` e o TOTAL acumulado da conta, nao o que ESTE credito valeu — a tela
            anunciava "+2049 Seeds" pelo bau. Quanto o bau paga e regra, e a regra mora no core. */
         window.dispatchEvent(
           new CustomEvent<DetalheDoDrop>(EVENTO_DROP_GANHO, {
-            detail: { roundId, itemId: r.item, seeds: SEEDS_DO_DROP },
+            /* BAÚ v2: o servidor diz quanto ESTE baú pagou (peça: SEEDS_DO_DROP; repetido: 15/40),
+               as chances e quantos faltam para o raro garantido; o teto do dia vem em `semBau`. */
+            detail: {
+              roundId,
+              itemId: r.item ?? null,
+              seeds: r.seeds ?? (r.item ? SEEDS_DO_DROP : 0),
+              repetido: r.repetido,
+              raridade: r.raridade,
+              chances: r.chances,
+              proximoRaroGarantidoEm: r.proximoRaroGarantidoEm,
+              semBau: r.semBau,
+              limite: r.limite,
+            },
           }),
         );
       });
@@ -1121,7 +1185,11 @@ export default function Play({
       /* ANTES ISTO ERA SÓ UM console.warn: a rodada sumia e o usuário nunca sabia. Um erro que o
          usuário não vê é um erro que ninguém corrige. */
       console.warn(`[jogos] rodada ${roundId} não foi gravada por inteiro. Causa: ${falhas[0]}`);
-      toast.error('Não consegui salvar esta rodada. O placar vale, mas o histórico não foi gravado.');
+      toast.error(
+        gravacao.ok
+          ? 'Não consegui salvar esta rodada. O placar vale, mas o histórico não foi gravado.'
+          : 'Não foi possível salvar esta rodada — nada foi creditado. O placar vale.',
+      );
     }
     /**
      * A TRILHA GUARDA O QUE VOCÊ ERROU — e só isso.
@@ -2270,8 +2338,7 @@ export default function Play({
   }, [jogoPendente, importando, vendoBaralhos, composicao, filtro, listaDeJogos]);
 
   const partidaRapida = useCallback(() => {
-    triggerHaptic('combo');
-    playJuicedHit(2);
+    play('select');
 
     /* SORTEIO SO ENTRE JOGOS QUE REGISTRAM. Os nove culturais entravam aqui, entao metade das
        partidas rapidas caia numa rodada que nao gravava nada — e a pessoa que apertou "Partida
@@ -2818,6 +2885,7 @@ export default function Play({
         gameId={antessala.jogo}
         titulo={jogoUI ? tituloDoJogo(jogoUI, ageProfile) : ''}
         nivelGeral={progress.available ? progress.level : undefined}
+        maestria={maestria ? { pontos: maestria.get(antessala.jogo) ?? 0 } : null}
         /* Z1 — CHIPS DE DIFICULDADE. Só aparecem onde significam algo: os 5 jogos de frase jogam
            sobre falas, que não têm dificuldade por palavra. Chip inerte ensina que a tela mente. */
         filtroDificuldade={
@@ -3069,11 +3137,17 @@ export default function Play({
     );
   }
   if (rodada) {
+    const cartoesDoBaralho = new Map((deck ?? []).map((c) => [c.id, c]));
     const comuns = {
       items: rodada.itens,
       ageProfile,
       onFinish: aoTerminar,
       onExit: sairDaRodada(() => setRodada(null)),
+      /* A pele de cartão nos jogos que desenham cartão (Memória): o estado sai do cartão real. */
+      estadoDoCartao: (cardId: string) => {
+        const c = cartoesDoBaralho.get(cardId);
+        return c ? estadoDoCartao(c) : null;
+      },
     };
     const Tela = TELA_DO_JOGO[rodada.jogo];
     if (Tela)
@@ -3129,6 +3203,8 @@ export default function Play({
         custoPular={CUSTO_PULAR}
         saldoSeeds={saldoSeeds}
         onVerProgressao={() => onChangeView('loja', { aba: 'progressao' })}
+        maestria={maestriaDaRodada}
+        gravacao={gravacaoDaRodada}
       />,
     );
   }
@@ -3355,8 +3431,7 @@ export default function Play({
     const fixado = ordem.fixados.includes(j.id);
     const titulo = tituloDoJogo(j, ageProfile);
     const jogar = () => {
-      triggerHaptic('soft');
-      playJuicedHit(1);
+      play('select');
       pedirParaJogar(j);
     };
     const porta = liberado ? null : comoDesbloquear(j.estado, contextoDoDesbloqueio);
@@ -3554,8 +3629,7 @@ export default function Play({
                   ativo={categoriaAtiva}
                   aoTrocar={(id) => {
                     setCategoriaAtiva(id as typeof categoriaAtiva);
-                    triggerHaptic('soft');
-                    playJuicedHit(1);
+                    play('select');
                   }}
                   itens={[
                     { id: 'todos', rotulo: t('Todos'), icone: <Sparkles aria-hidden />, contagem: listaDeJogos.length },
@@ -3787,8 +3861,7 @@ export default function Play({
                         aria-pressed={filtroHabilidade === id}
                         onClick={() => {
                           setFiltroHabilidade(id);
-                          triggerHaptic('soft');
-                          playJuicedHit(1);
+                          play('select');
                         }}
                       >
                         {Icone && <Icone aria-hidden />}

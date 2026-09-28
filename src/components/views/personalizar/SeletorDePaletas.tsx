@@ -2,12 +2,12 @@ import { Lock, Search, ShoppingBag } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import { applyCustomColors, type ThemeType } from '../../../lib/appearance';
+import { celebrarEscolha } from '../../../lib/comemoracao';
 import { acessoAoEstilo } from '../../../lib/galeria/acesso';
 import {
   buscarPaletas,   type EstiloDePaleta, ESTILOS, gravarPaletaAtiva,
 lerPaletaAtiva, type Paleta,
 todasAsPaletas, } from '../../../lib/galeria/paletas';
-import { comemorar } from '../../../lib/juice';
 import { toast } from '../../Toast';
 
 /**
@@ -45,7 +45,7 @@ export default function SeletorDePaletas({
     setTheme('custom');
     gravarPaletaAtiva(p.id);
     setAtiva(p.id);
-    if (el) comemorar('acerto', el, { texto: p.nome });
+    if (el) celebrarEscolha(el, p.nome);
     aoAplicar?.();
   };
 

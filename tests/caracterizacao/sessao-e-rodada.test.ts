@@ -164,7 +164,7 @@ describe('sessao e rodada (self-host)', () => {
     const r = await s.post('/api/exercises/rodada', rodadaDe('rodada-http-1'))
     expect(r.status).toBe(200)
     const corpo = await r.clone().json()
-    expect(corpo).toEqual({ gravados: 2, roundId: 'rodada-http-1' })
+    expect(corpo).toEqual({ gravados: 2, roundId: 'rodada-http-1', jaExistia: false })
     await expect(JSON.stringify(await resposta(r), null, 2)).toMatchFileSnapshot(
       '__snapshots__/post.exercises.rodada.json',
     )
@@ -208,16 +208,16 @@ describe('sessao e rodada (self-host)', () => {
     expect(String((await r.json()).error)).toContain('score')
   })
 
-  it('o mesmo roundId enviado duas vezes grava duas vezes (nao e idempotente)', async () => {
+  it('o mesmo roundId enviado duas vezes grava UMA vez (idempotente por usuário e roundId)', async () => {
     const primeira = await s.post('/api/exercises/rodada', rodadaDe('rodada-repetida'))
     const segunda = await s.post('/api/exercises/rodada', rodadaDe('rodada-repetida'))
     expect(primeira.status).toBe(200)
     expect(segunda.status).toBe(200)
-    expect(await segunda.json()).toEqual({ gravados: 2, roundId: 'rodada-repetida' })
+    expect(await segunda.json()).toEqual({ gravados: 0, roundId: 'rodada-repetida', jaExistia: true })
     const { exerciseResultsRepo } = await s.load('../../server/db/repositories/exerciseResults')
     const linhas = await exerciseResultsRepo.listarPorRodada(semente.U, 'rodada-repetida')
-    // caracterizacao: comportamento atual, nao desejado — nao ha chave de idempotencia por roundId;
-    // o reenvio (retry do cliente) duplica as linhas da rodada.
-    expect(linhas).toHaveLength(4)
+    /* Era o comportamento caracterizado como "não desejado": o retry do cliente duplicava as linhas
+       e os acertos contavam em dobro. Desde a revisão de 27/09 o reenvio devolve `jaExistia`. */
+    expect(linhas).toHaveLength(2)
   })
 })

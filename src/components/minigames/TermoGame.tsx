@@ -18,9 +18,10 @@ import {
 import { Check, ChevronRight, Delete, Lightbulb, Volume2, WandSparkles } from 'lucide-react';
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
-import { playJuicedError, playJuicedHit, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
+import { celebrar } from '../../lib/comemoracao';
 import { multiplicador, pontosDoElemento } from '../../lib/juice';
 import type { AgeProfileType } from '../../lib/profile';
+import { play } from '../../lib/soundFx';
 import { falar } from '../../lib/tts';
 import { toast } from '../Toast';
 import { useRodada } from './casca/CascaDaRodada';
@@ -290,15 +291,9 @@ export default function TermoGame({ rodadas, ageProfile, onFinish }: TermoGamePr
     const tudoCerto = resolvidosFinais.every(Boolean);
     const temProximo = tudoCerto && grupoIdx + 1 < grupos.length;
 
-    // A escada só sobe com acerto — é a regra inteira do jogo, e a comemoração precisa dizer isso.
-    if (temProximo) {
-      setSubiuDegrau(true);
-      playJuicedVictory();
-    } else if (tudoCerto) {
-      playJuicedVictory();
-    } else {
-      playJuicedError(gradeRef.current, undefined);
-    }
+    /* A escada só sobe com acerto — é a regra inteira do jogo, e o degrau que sobe diz isso. O
+       acerto e o erro já foram comemorados no palpite (`enviar`); o fim da rodada, no fim comum. */
+    if (temProximo) setSubiuDegrau(true);
 
     // Pausa para LER o resultado antes de a tela trocar; maior quando errou, porque há o que ver.
     setTimeout(
@@ -343,7 +338,9 @@ export default function TermoGame({ rodadas, ageProfile, onFinish }: TermoGamePr
         setReveladas((prev) => ({ ...prev, [i]: { ...(prev[i] ?? {}), 0: primeira } }));
       }
       if (gratis.quase) setQuaseUsado((q) => q.map((v, k) => (k === i ? true : v)));
-      playJuicedHit(1, undefined, gratis.sinonimo ? 'sinônimo!' : 'quase!');
+      // Palpite de graça (sinônimo ou quase): não é acerto — um aviso, sem festa.
+      play('select');
+      pontosDoElemento(gratis.sinonimo ? 'sinônimo!' : 'quase!', gradeRef.current, 'neutro');
       const proxima = linhaInicial(
         tamanho,
         palpitesPorTab,
@@ -388,12 +385,10 @@ export default function TermoGame({ rodadas, ageProfile, onFinish }: TermoGamePr
       setSequencia(nova);
       setAcertos((n) => n + fechouAgora);
       setPontos((p) => p + ganho);
-      triggerHaptic('success');
-      playJuicedHit(nova, undefined, `+${ganho}${mult > 1 && !usouDica ? ` ×${mult}` : ''}`);
+      celebrar({ tipo: 'acerto', combo: nova, el: gradeRef.current, pontos: ganho });
     } else {
       setSequencia(0);
-      triggerHaptic('error');
-      playJuicedError(gradeRef.current, undefined);
+      celebrar({ tipo: 'erro', el: gradeRef.current });
     }
 
     if (novosResolvidos.every(Boolean) || tentativasUsadas >= maxTentativas)
@@ -452,7 +447,6 @@ export default function TermoGame({ rodadas, ageProfile, onFinish }: TermoGamePr
 
   const digitar = (letra: string) => {
     if (fimDoGrupo) return;
-    triggerHaptic('soft');
     const n = [...atualRef.current];
     let pos = Math.min(cursorRef.current, n.length - 1);
     if (pos < 0) return;
@@ -479,7 +473,6 @@ export default function TermoGame({ rodadas, ageProfile, onFinish }: TermoGamePr
 
   const apagar = () => {
     if (fimDoGrupo) return;
-    triggerHaptic('soft');
     const n = [...atualRef.current];
     const pos = Math.max(0, Math.min(cursorRef.current, n.length - 1));
     if (n[pos]) {

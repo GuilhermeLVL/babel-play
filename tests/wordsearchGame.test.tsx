@@ -25,12 +25,7 @@ vi.mock('../src/lib/juice', () => ({
   multiplicador: (n: number) => (n >= 6 ? 3 : n >= 3 ? 2 : 1),
   pontosDoElemento: vi.fn(),
 }))
-vi.mock('../src/lib/gameFeel', () => ({
-  playJuicedError: vi.fn(),
-  playJuicedHit: vi.fn(),
-  playJuicedVictory: vi.fn(),
-  triggerHaptic: vi.fn(),
-}))
+vi.mock('../src/lib/comemoracao', () => ({ celebrar: vi.fn() }))
 vi.mock('../src/lib/effects', () => ({ emitBurst: vi.fn() }))
 vi.mock('../src/lib/tts', () => ({ speak: vi.fn(), falar: vi.fn(() => true) }))
 

@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react';
 
 import type { MinigameItem, RoundReport } from '../../../core/minigames/types';
+import type { EstadoDoCartao } from '../../../lib/pelesDeCartao';
 import type { AgeProfileType } from '../../../lib/profile';
 
 export interface PropsDeJogo {
@@ -8,6 +9,11 @@ export interface PropsDeJogo {
   ageProfile: AgeProfileType;
   onFinish: (report: RoundReport) => void;
   onExit: () => void;
+  /**
+   * O estado do cartão de uma palavra do baralho (nova · aprendida · dominada), para quem desenha
+   * cartão vestir a pele equipada (spec 5.2.4). `null`/ausente = sem pele (item de fala).
+   */
+  estadoDoCartao?: (cardId: string) => EstadoDoCartao | null;
 }
 
 /**

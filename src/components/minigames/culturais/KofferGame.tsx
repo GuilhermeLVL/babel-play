@@ -3,8 +3,8 @@ import { MINIGAMES, scoreRound } from '@core';
 import { Briefcase, Check, Eye, Lock, Unlock } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
+import { celebrar } from '../../../lib/comemoracao';
 import { t } from '../../../lib/i18n';
-import { comemorar } from '../../../lib/juice';
 import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
 import { falar } from '../../../lib/tts';
@@ -129,9 +129,6 @@ export default function KofferGame({ items, ageProfile, onFinish, onExit }: Koff
 
     const outcomes = resultadosAteAqui();
 
-    const perfeita = outcomes.length > 0 && outcomes.every((o) => o.correct && o.attempts === 1);
-    comemorar(perfeita ? 'rodadaPerfeita' : 'rodadaBoa', malaRef.current);
-
     setTimeout(
       () =>
         onFinish({
@@ -205,7 +202,7 @@ export default function KofferGame({ items, ageProfile, onFinish, onExit }: Koff
     if (escolhido.answer !== esperado.answer) {
       reg.erros += 1;
       setErrou(true);
-      comemorar('erro', el);
+      celebrar({ tipo: 'erro', el });
       recontar(resultadosAteAqui());
       const restantes = vidas - 1;
       setVidas(restantes);
@@ -220,8 +217,9 @@ export default function KofferGame({ items, ageProfile, onFinish, onExit }: Koff
     reg.colocou = true;
     reg.ms = Date.now() - inicioPosicaoRef.current;
     setErrou(false);
-    comemorar('acerto', el);
-    recontar(resultadosAteAqui());
+    const p = recontar(resultadosAteAqui());
+    // A mala guarda os resultados por posição: o que a peça valeu é a diferença no placar.
+    celebrar({ tipo: 'acerto', combo: p.sequencia, el, pontos: p.pontos - placar.pontos });
     falar(esperado.answer, esperado.lang);
 
     const proxima = posicao + 1;

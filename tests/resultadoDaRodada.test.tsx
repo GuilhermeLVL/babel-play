@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -81,6 +81,22 @@ describe('ResultadoDaRodada', () => {
     expect(onDone).toHaveBeenCalled()
   })
 
+  it('recorde batido solta o evento "fogos" (o do Colecionador), no fim comum de qualquer jogo', () => {
+    /* Até 27/09 os fogos só saíam da tela de fim própria do Duelo. Ela saiu (um fim só), e o
+       evento tinha de ir junto — senão o Colecionador, que exige ver todos, ficaria inalcançável. */
+    vi.useFakeTimers()
+    try {
+      localStorage.removeItem('babel.eventos_vistos')
+      montar({ recorde: 100 })
+      act(() => {
+        vi.advanceTimersByTime(2000)
+      })
+      expect(JSON.parse(localStorage.getItem('babel.eventos_vistos') || '[]')).toContain('fogos')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('com o recorde ao alcance, diz a distância', () => {
     montar({ sequencia: { rodadas: 2, pontos: 300, precisao: 80, combo: 2 } as never, recorde: 320 })
     expect(screen.getByText(/faltam 20 pts/)).toBeTruthy()
@@ -96,5 +112,24 @@ describe('ResultadoDaRodada', () => {
     expect(screen.getByText('trad-d')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Refazer só a errada' }))
     expect(onRefazerErradas).toHaveBeenCalledWith([expect.objectContaining({ itemRef: 'd' })])
+  })
+
+  /* EXIBIDO = CREDITADO: quando a gravação da rodada falha, o servidor não creditou nada — e a
+     tela não pode anunciar Seeds, XP, baú ou maestria que não existem. */
+  it('gravação falhou: diz que nada foi creditado e não anuncia Seeds, XP nem maestria', () => {
+    montar({ gravacao: 'falhou', maestria: { pontosAntes: 10, ganho: 5 } })
+    fireEvent.click(screen.getByText('Revelar sem raspar'))
+    expect(screen.getAllByText(/não foi possível salvar — nada foi creditado/i).length).toBeGreaterThan(0)
+    expect(screen.queryByText(/\+\d+ Seeds/)).toBeNull()
+    expect(screen.queryByText('+10 XP')).toBeNull()
+    expect(document.querySelector('[data-seeds-da-rodada]')).toBeNull()
+    expect(screen.queryByRole('progressbar', { name: /maestria/i })).toBeNull()
+  })
+
+  it('gravação ok (ou ainda em curso): o prêmio de sempre', () => {
+    montar({ gravacao: 'ok' })
+    fireEvent.click(screen.getByText('Revelar sem raspar'))
+    expect(screen.queryByText(/nada foi creditado/)).toBeNull()
+    expect(screen.getByLabelText(/Recompensa revelada: mais 10 XP e 3 seeds/)).toBeTruthy()
   })
 })

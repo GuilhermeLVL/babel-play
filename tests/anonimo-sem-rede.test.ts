@@ -13,7 +13,10 @@ import 'fake-indexeddb/auto'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../src/lib/supabase', () => ({
-  supabase: null, authRequired: true, carregarSupabase: async () => null, getAccessToken: async () => null,
+  supabase: null,
+  authRequired: true,
+  carregarSupabase: async () => null,
+  getAccessToken: async () => null,
 }))
 
 import * as api from '../src/data/api'
@@ -21,13 +24,37 @@ import { fecharStore, limparTudo } from '../src/data/efemero/store'
 import { carregarEntitlements } from '../src/lib/entitlements'
 import { definirIdentidade } from '../src/lib/identidade'
 
-const rede = vi.fn((url: unknown) => { throw new Error(`REDE PROIBIDA: ${String(url)}`) })
+const rede = vi.fn((url: unknown) => {
+  throw new Error(`REDE PROIBIDA: ${String(url)}`)
+})
 
 const CAMPOS_DE_METRICAS = [
-  'sessions', 'wordsCaptured', 'deckSize', 'newCards', 'dueToday', 'reviews', 'correctReviews',
-  'drillItems', 'drillCorrect', 'accuracy', 'accuracyConfidence', 'streakDays', 'seedsGastas',
-  'avgStability', 'avgRetention', 'avgRetentionConfidence', 'vocabByWeek', 'speakingMs', 'wpm',
-  'wpmConfidence', 'uniqueWords', 'levelDistribution', 'levelConfidence', 'asOf', 'escopo', 'base',
+  'sessions',
+  'wordsCaptured',
+  'deckSize',
+  'newCards',
+  'dueToday',
+  'reviews',
+  'correctReviews',
+  'drillItems',
+  'drillCorrect',
+  'accuracy',
+  'accuracyConfidence',
+  'streakDays',
+  'seedsGastas',
+  'avgStability',
+  'avgRetention',
+  'avgRetentionConfidence',
+  'vocabByWeek',
+  'speakingMs',
+  'wpm',
+  'wpmConfidence',
+  'uniqueWords',
+  'levelDistribution',
+  'levelConfidence',
+  'asOf',
+  'escopo',
+  'base',
 ]
 
 describe('anônimo sem rede', () => {
@@ -39,11 +66,19 @@ describe('anônimo sem rede', () => {
     definirIdentidade('anonimo')
     await limparTudo()
   })
-  afterAll(async () => { await fecharStore(); vi.unstubAllGlobals() })
+  afterAll(async () => {
+    await fecharStore()
+    vi.unstubAllGlobals()
+  })
 
   it('salva uma sessão com falas e a lê de volta', async () => {
     const rec = await api.createSession({
-      title: 'Aula', kind: 'live', sourceLang: 'pt', targetLang: 'en', status: 'done', durationMs: 65_000,
+      title: 'Aula',
+      kind: 'live',
+      sourceLang: 'pt',
+      targetLang: 'en',
+      status: 'done',
+      durationMs: 65_000,
       utterances: [
         { idx: 0, sourceText: 'hello there friend', translatedText: 'olá amigo', tStartMs: 0, tEndMs: 2000 },
         { idx: 1, sourceText: 'how are you', translatedText: 'como vai', tStartMs: 2000, tEndMs: 3500 },
@@ -120,15 +155,31 @@ describe('anônimo sem rede', () => {
 
   it('rodadas, histórico, recordes e seeds (idempotente) funcionam sem conta', async () => {
     const g = await api.salvarRodada({
-      roundId: 'r1', exerciseKind: 'termo', origem: 'baralho', score: 80,
-      itens: [{ itemRef: 'friend', correct: 1, attempts: 1, ms: 900 }, { itemRef: 'hello', correct: 0, attempts: 2, ms: 1800 }],
+      roundId: 'r1',
+      exerciseKind: 'termo',
+      origem: 'baralho',
+      score: 80,
+      itens: [
+        { itemRef: 'friend', correct: 1, attempts: 1, ms: 900 },
+        { itemRef: 'hello', correct: 0, attempts: 2, ms: 1800 },
+      ],
     })
     expect(g.ok).toBe(true)
     expect(await api.fetchExerciseResults(undefined, { origem: 'baralho' })).toHaveLength(2)
     const hist = await api.fetchHistoricoDeItens({ origem: 'baralho' })
     expect(hist.find((h) => h.itemRef === 'hello')).toMatchObject({ vezes: 1, erros: 1, ultimoAcerto: false })
     const rec = await api.fetchRecordes({ origem: 'baralho' })
-    expect(rec).toEqual([{ exerciseKind: 'termo', melhorPontos: 80, melhorEm: expect.any(Number), rodadas: 1, melhorCombo: expect.any(Number), precisao: expect.any(Number), ultimaEm: expect.any(Number) }])
+    expect(rec).toEqual([
+      {
+        exerciseKind: 'termo',
+        melhorPontos: 80,
+        melhorEm: expect.any(Number),
+        rodadas: 1,
+        melhorCombo: expect.any(Number),
+        precisao: expect.any(Number),
+        ultimaEm: expect.any(Number),
+      },
+    ])
     /**
      * O GASTO SEM CONTA PASSOU A TER A MESMA RÉGUA DA CONTA LOGADA (07/09).
      *
@@ -143,8 +194,19 @@ describe('anônimo sem rede', () => {
        rodada perfeita, cada uma), que é o que paga um "pular rodada" de 40. */
     for (const r of ['r2', 'r3']) {
       await api.salvarRodada({
-        roundId: r, exerciseKind: 'termo', origem: 'baralho', score: 100,
-        itens: Array.from({ length: 20 }, (_, i) => ({ itemRef: `w${i}`, correct: 1, attempts: 1, ms: 500 })),
+        roundId: r,
+        exerciseKind: 'termo',
+        origem: 'baralho',
+        score: 100,
+        /* `kind: 'drill'` como o cliente real manda: só a linha `drill` é item de jogo na economia
+           (a `srs` já virou revisão) — a régua do Express, que o efêmero passou a seguir em 27/09. */
+        itens: Array.from({ length: 20 }, (_, i) => ({
+          itemRef: `w${i}`,
+          correct: 1,
+          attempts: 1,
+          ms: 500,
+          kind: 'drill',
+        })),
       })
     }
     const a = await api.gastarSeeds({ spendId: 'compra-0001', amount: 40, reason: 'pular-rodada' })

@@ -17,55 +17,22 @@
  *   · SEEDS: a moeda ganha estudando compra o ATALHO.
  */
 
-export type Raridade = 'comum' | 'raro' | 'epico' | 'lendario';
+import { CATALOGO_V2, NIVEL_SO_SEEDS } from './catalogoV2';
 
-/* Vinha de `lib/desbloqueios`. Mora aqui porque o catálogo é quem o usa para tipar `tipo`, e o
-   core não pode depender de `lib/` (a seta aponta só para dentro). `desbloqueios.ts` passa a
-   importar daqui — continua sendo o dono da REGRA de nível; o core é o dono do VOCABULÁRIO. */
-export type TipoDesbloqueavel = 'tema' | 'fonte' | 'posicao' | 'estudio';
+export { NIVEL_SO_SEEDS };
+import { CATALOGO_DAS_CONQUISTAS } from './catalogoConquistas';
+import { CATALOGO_DA_MAESTRIA } from './catalogoMaestria';
+import { CATALOGO_DA_TEMPORADA } from './catalogoTemporada';
 
-/** Tipos além dos desbloqueáveis clássicos: packs de emoji, cursores, rastro do mouse e os
- *  APRIMORAMENTOS (upgrades com barra de progressão — ver lib/aprimoramentos). */
-export type TipoDaLoja = TipoDesbloqueavel | 'particulas' | 'pack' | 'cursor' | 'rastro' | 'aprimoramento' | 'galeria';
+export type { ItemDaLoja, Raridade, TipoDaLoja, TipoDesbloqueavel } from './tiposDaLoja';
+import type { ItemDaLoja } from './tiposDaLoja';
 
-export interface ItemDaLoja {
-  id: string;
-  tipo: TipoDaLoja;
-  /** id concreto usado pelo módulo que equipa (ThemeType, FonteType, ParticulasType...). */
-  alvo: string;
-  nome: string;
-  desc: string;
-  raridade: Raridade;
-  /** Nível que destrava de graça (1 = livre desde o início). */
-  nivel: number;
-  /** Preço do ATALHO em Seeds; ausente = só por nível. */
-  precoSeeds?: number;
-  /** Cores de prévia (swatches) quando fizer sentido. */
-  previa?: string[];
-  /**
-   * EXCLUSIVO DE CONQUISTA (economia v2): id da conquista que libera. Sem nível, sem preço —
-   * a Loja mostra o cadeado "Conquista: X" e o item só fica equipável com a conquista feita.
-   */
-  exclusivoDe?: string;
-  /**
-   * PREÇO EM CRÉDITOS — a moeda comprada com dinheiro (mudança credito-com-destino).
-   *
-   * Um item tem preço numa moeda OU na outra, nunca nas duas: misturar as duas faria o mesmo
-   * objeto ter dois valores e apagaria a linha que separa "ganhei estudando" de "paguei". Item
-   * com `precoCreditos` não tem `precoSeeds`, e a régua das quatro origens o classifica como
-   * `creditos`.
-   */
-  precoCreditos?: number;
-  /**
-   * EXCLUSIVO DO PASSE PREMIUM: a casa da trilha paga que o entrega. Nem nível, nem Seeds, nem
-   * Créditos avulsos — só a trilha, e só para quem comprou o passe.
-   */
-  exclusivoDoPasse?: number;
-}
-
-/* PREÇOS (economia v2, 2026-08-28). Calibrados para o ritmo que o dono pediu — lendário em ≈ 1
-   semana de uso diário (~86 Seeds/dia): comum 40-60 · raro 100-140 · épico 200-260 · lendário
-   380-600. Os EXCLUSIVOS de conquista não têm preço nem nível: só a conquista abre. */
+/* PREÇOS (recompensas v2, 27/09) — calibrados por SIMULAÇÃO (`scripts/economia/simular-ritmo.ts`,
+   tabela em `docs/economia-v2.md`). O perfil típico (25 revisões + 3 rodadas + 10 palavras salvas
+   + meta do dia) rende ≈ 158 Seeds/dia só de resultado; a meta do dono é um comum a cada 2–3 dias,
+   um raro por semana e um épico a cada 2–3 semanas: comum 350-450 · raro 1000-1260 · épico
+   2600-3000 · lendário 5200 (≈ 1 mês). A escala antiga (40-600) foi multiplicada por faixa,
+   mantendo a ordem dentro de cada raridade. Os EXCLUSIVOS de conquista não têm preço nem nível. */
 export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
   // ── TEMAS (equipam via persistTheme) ──
   {
@@ -86,7 +53,7 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     desc: 'Índigo elegante e geométrico. No escuro vira meia-noite.',
     raridade: 'comum',
     nivel: 2,
-    precoSeeds: 60,
+    precoSeeds: 440,
     previa: ['#F7F8FB', '#FFFFFF', '#5E6AD2', '#1F2023'],
   },
   {
@@ -97,7 +64,7 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     desc: 'Monocromático, cantos retos, frio.',
     raridade: 'raro',
     nivel: 4,
-    precoSeeds: 110,
+    precoSeeds: 1080,
     previa: ['#FAFAFA', '#FFFFFF', '#171717', '#171717'],
   },
   {
@@ -108,7 +75,7 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     desc: 'Everforest orgânico, arredondado.',
     raridade: 'raro',
     nivel: 6,
-    precoSeeds: 130,
+    precoSeeds: 1180,
     previa: ['#F2EFDF', '#FDF6E3', '#8DA101', '#5C6A72'],
   },
   {
@@ -119,7 +86,7 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     desc: 'Carvão sóbrio, tipográfico.',
     raridade: 'raro',
     nivel: 7,
-    precoSeeds: 140,
+    precoSeeds: 1190, // 1300 → 1190 com as ondas 3 e 4 juntas: o baú entrega mais peça e a renda típica cai para 149,9/dia (docs/economia-v2.md)
     previa: ['#F7F6F3', '#FFFFFF', '#37352F', '#37352F'],
   },
   {
@@ -130,7 +97,7 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     desc: 'Sofisticado, sereno, raro.',
     raridade: 'epico',
     nivel: 8,
-    precoSeeds: 240,
+    precoSeeds: 3000,
     previa: ['#101418', '#161C22', '#C7A76C', '#E8E3D9'],
   },
   {
@@ -141,19 +108,21 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     desc: 'Suas cores, suas regras.',
     raridade: 'lendario',
     nivel: 10,
-    precoSeeds: 600,
+    precoSeeds: 5200,
   },
   {
     id: 'tema-aurora',
     tipo: 'tema',
     alvo: 'aurora',
     nome: 'Tema Aurora',
-    desc: 'Noite polar com verde-aurora. Só para quem aparece 30 dias seguidos.',
+    desc: 'Noite polar com verde-aurora. Só para quem pratica 30 dias seguidos.',
     raridade: 'lendario',
     nivel: 1,
     exclusivoDe: 'constante',
     previa: ['#070B14', '#0E1626', '#4ADE80', '#A78BFA'],
   },
+  // ── RECOMPENSAS V2, ONDA 4: temas completos, estilos de legenda, peles de cartão (catalogoV2.ts) ──
+  ...CATALOGO_V2,
   // ── ESTÚDIO ──
   {
     id: 'estudio',
@@ -163,136 +132,13 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     desc: 'O editor completo: paleta, painéis, tudo na sua mão.',
     raridade: 'lendario',
     nivel: 10,
-    precoSeeds: 600,
+    precoSeeds: 5200,
   },
-  // ── POSIÇÕES DO MENU (topo/esquerda SEMPRE livres: equipar direita/baixo nunca tranca a
-  //    pessoa fora do layout padrão — era um beco sem saída real, 2026-08-27) ──
-  {
-    id: 'pos-topo',
-    tipo: 'posicao',
-    alvo: 'top',
-    nome: 'Menu no topo',
-    desc: 'A barra clássica, em cima.',
-    raridade: 'comum',
-    nivel: 1,
-  },
-  {
-    id: 'pos-esquerda',
-    tipo: 'posicao',
-    alvo: 'left',
-    nome: 'Menu à esquerda',
-    desc: 'O padrão da casa.',
-    raridade: 'comum',
-    nivel: 1,
-  },
-  {
-    id: 'pos-direita',
-    tipo: 'posicao',
-    alvo: 'right',
-    nome: 'Menu à direita',
-    desc: 'Navegação no lado direito.',
-    raridade: 'comum',
-    nivel: 3,
-    precoSeeds: 45,
-  },
-  {
-    id: 'pos-baixo',
-    tipo: 'posicao',
-    alvo: 'bottom',
-    nome: 'Menu embaixo',
-    desc: 'Estilo dock, embaixo.',
-    raridade: 'comum',
-    nivel: 3,
-    precoSeeds: 45,
-  },
-  /* ── FONTES (equipam via setFonte) ──
+  /* ── FONTES E POSIÇÃO DO MENU SAÍRAM DO CATÁLOGO (recompensas v2, 27/09) ──
    *
-   * ELAS NÃO EXISTIAM AQUI, e por isso NENHUMA fonte era escolhível — nem a Arcade, que tem CSS,
-   * tem som próprio e aparece no loadout do Inventário desde sempre. O tipo `'fonte'` estava
-   * declarado em `TipoDaLoja` e em `TIPOS_DE_APARENCIA`, o `equipadoAtual` da tela sabia compará-la,
-   * e a linha "Fonte" do loadout apontava para uma categoria vazia. Uma porta desenhada sem sala
-   * atrás (auditoria de 2026-09-07, achado sobre `FonteType`).
-   *
-   * TODAS DE NÍVEL 1 E SEM PREÇO, e a decisão é deliberada: tipografia é LEGIBILIDADE, não enfeite.
-   * Quem lê melhor em serifada, ou precisa de traço arredondado, não deve ter de pagar nem subir de
-   * nível por isso — é o mesmo raciocínio que já vale para o perfil de exibição e para o tamanho do
-   * texto, que este app declara como direito e não como recompensa.
-   *
-   * A prévia (`previa`) fica vazia de propósito: a amostra de uma fonte é o TEXTO dela, e quem a
-   * desenha é `FONTE_OPTIONS.previewText` — pôr cor aqui seria inventar um swatch que não diz nada
-   * sobre a família. */
-  {
-    id: 'fonte-padrao',
-    tipo: 'fonte',
-    alvo: 'padrao',
-    nome: 'Padrão (Inter)',
-    desc: 'A tipografia normal do app: Inter no corpo, Archivo nos títulos.',
-    raridade: 'comum',
-    nivel: 1,
-  },
-  {
-    id: 'fonte-pixel',
-    tipo: 'fonte',
-    alvo: 'pixel',
-    nome: 'Arcade (8-bit)',
-    desc: 'Fliperama: títulos em Silkscreen, partículas quadradas e som chiptune.',
-    raridade: 'comum',
-    nivel: 1,
-  },
-  {
-    id: 'fonte-serif',
-    tipo: 'fonte',
-    alvo: 'serif',
-    nome: 'Literária (serifada)',
-    desc: 'Clima de livro e jornal: Merriweather, com Georgia de reserva.',
-    raridade: 'comum',
-    nivel: 1,
-  },
-  {
-    id: 'fonte-mono',
-    tipo: 'fonte',
-    alvo: 'mono',
-    nome: 'Técnica (monoespaçada)',
-    desc: 'Tudo alinhado, como código: JetBrains Mono, com IBM Plex Mono de reserva.',
-    raridade: 'comum',
-    nivel: 1,
-  },
-  {
-    id: 'fonte-cyber',
-    tipo: 'fonte',
-    alvo: 'cyber',
-    nome: 'Cyberpunk (futurista)',
-    desc: 'Display de ficção científica: Orbitron nos títulos, Rajdhani no corpo.',
-    raridade: 'comum',
-    nivel: 1,
-  },
-  {
-    id: 'fonte-rounded',
-    tipo: 'fonte',
-    alvo: 'rounded',
-    nome: 'Acolhedora (arredondada)',
-    desc: 'Curvas suaves, sem canto duro: Baloo 2 nos títulos, Nunito no corpo.',
-    raridade: 'comum',
-    nivel: 1,
-  },
-  {
-    id: 'fonte-handwriting',
-    tipo: 'fonte',
-    alvo: 'handwriting',
-    nome: 'Manuscrita (caderno)',
-    desc: 'Anotação à mão: Caveat, com a cursiva do sistema de reserva.',
-    raridade: 'comum',
-    nivel: 1,
-  },
-  {
-    id: 'fonte-display',
-    tipo: 'fonte',
-    alvo: 'display',
-    nome: 'Impacto (display)',
-    desc: 'Títulos em caixa alta, no peso máximo — cara de pôster. O corpo do texto continua Inter.',
-    raridade: 'comum',
-    nivel: 1,
-  },
+   * Tipografia é legibilidade e a posição do menu é layout: as duas viraram opções LIVRES no
+   * bloco "Acessibilidade e layout" do Personalizar, sem nível e sem preço. Quem tinha pagado
+   * Seeds por "Menu à direita" ou "Menu embaixo" recebe o reembolso (`src/core/reembolso.ts`). */
 
   // ── PARTÍCULAS (equipam via setParticulas) ──
   {
@@ -303,7 +149,7 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     desc: 'Quadradinhos 8-bits em cada acerto.',
     raridade: 'comum',
     nivel: 2,
-    precoSeeds: 45,
+    precoSeeds: 350,
   },
   {
     id: 'part-confete',
@@ -313,7 +159,7 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     desc: 'Papel picado girando.',
     raridade: 'comum',
     nivel: 3,
-    precoSeeds: 55,
+    precoSeeds: 420,
   },
   {
     id: 'part-coracoes',
@@ -323,268 +169,32 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     desc: 'Corações subindo a cada acerto.',
     raridade: 'raro',
     nivel: 5,
-    precoSeeds: 120,
+    precoSeeds: 1150,
   },
   {
     id: 'part-estrelas',
     tipo: 'particulas',
     alvo: 'estrelas',
-    nome: 'Partículas Estrelas',
-    desc: 'Estrelinhas brilhantes ⭐✨.',
+    nome: 'Partículas Lampejo',
+    desc: 'Lampejos de luz em ziguezague a cada acerto, nas cores do tema.',
     raridade: 'epico',
     nivel: 7,
-    precoSeeds: 240,
-  },
-  {
-    id: 'part-emoji',
-    tipo: 'particulas',
-    alvo: 'emoji',
-    nome: 'Chuva de Emojis',
-    desc: 'Cada acerto chove o PACK de emojis equipado.',
-    raridade: 'raro',
-    nivel: 4,
-    precoSeeds: 120,
+    precoSeeds: 3000,
   },
   {
     id: 'part-cometa',
     tipo: 'particulas',
     alvo: 'cometa',
     nome: 'Partículas Cometa',
-    desc: 'Bolas de luz com cauda. Só para quem somou 60 min de escuta.',
+    desc: 'Bolas de luz com cauda. Só para quem gravou ou importou 5 sessões.',
     raridade: 'lendario',
     nivel: 1,
     exclusivoDe: 'ouvinte',
   },
-  // ── APRIMORAMENTOS (progressão Nv.0-3 com barra; ver lib/aprimoramentos) ──
-  {
-    id: 'apr-particulas',
-    tipo: 'aprimoramento',
-    alvo: 'particulas',
-    nome: 'Explosão de Partículas',
-    desc: 'Cada nível: mais partículas e maiores. Depois de dominar, a intensidade é sua (pequena/média/grande).',
-    raridade: 'epico',
-    nivel: 1,
-  },
-  {
-    id: 'apr-sorte',
-    tipo: 'aprimoramento',
-    alvo: 'sorte',
-    nome: 'Sorte de Eventos Raros',
-    desc: 'Cada nível aumenta a chance de patos, corações, glitch e cia. aparecerem.',
-    raridade: 'epico',
-    nivel: 1,
-  },
-  // ── PACKS DE EMOJI (alimentam a Chuva de Emojis, o rastro e os fallbacks) ──
-  {
-    id: 'pack-classico',
-    tipo: 'pack',
-    alvo: 'classico',
-    nome: 'Pack Clássico',
-    desc: '⭐ ✨ 💫 🌟',
-    raridade: 'comum',
-    nivel: 1,
-  },
-  {
-    id: 'pack-animais',
-    tipo: 'pack',
-    alvo: 'animais',
-    nome: 'Pack Animais',
-    desc: '🦆 🐱 🐶 🦊 🐸 🐼 🦜',
-    raridade: 'comum',
-    nivel: 2,
-    precoSeeds: 50,
-  },
-  {
-    id: 'pack-comidas',
-    tipo: 'pack',
-    alvo: 'comidas',
-    nome: 'Pack Comidas',
-    desc: '🍕 🍔 🍩 🍦 🌮 🍓 🍿',
-    raridade: 'comum',
-    nivel: 2,
-    precoSeeds: 50,
-  },
-  {
-    id: 'pack-natureza',
-    tipo: 'pack',
-    alvo: 'natureza',
-    nome: 'Pack Natureza',
-    desc: '🌸 🍀 🌈 ☀️ 🌊 🍁 🌵',
-    raridade: 'comum',
-    nivel: 3,
-    precoSeeds: 60,
-  },
-  {
-    id: 'pack-festa',
-    tipo: 'pack',
-    alvo: 'festa',
-    nome: 'Pack Festa',
-    desc: '🎉 🎊 🎈 🥳 🪅 🎁 🎂',
-    raridade: 'raro',
-    nivel: 4,
-    precoSeeds: 110,
-  },
-  {
-    id: 'pack-musica',
-    tipo: 'pack',
-    alvo: 'musica',
-    nome: 'Pack Música',
-    desc: '🎵 🎶 🎸 🎤 🥁 🎹 🎧',
-    raridade: 'raro',
-    nivel: 4,
-    precoSeeds: 110,
-  },
-  {
-    id: 'pack-esportes',
-    tipo: 'pack',
-    alvo: 'esportes',
-    nome: 'Pack Esportes',
-    desc: '⚽ 🏀 🏐 🏆 🎮 🥇 🏁',
-    raridade: 'raro',
-    nivel: 5,
-    precoSeeds: 120,
-  },
-  {
-    id: 'pack-espaco',
-    tipo: 'pack',
-    alvo: 'espaco',
-    nome: 'Pack Espaço',
-    desc: '🚀 🪐 👽 ☄️ 🌌 🛸',
-    raridade: 'epico',
-    nivel: 6,
-    precoSeeds: 220,
-  },
-  {
-    id: 'pack-arrepio',
-    tipo: 'pack',
-    alvo: 'arrepio',
-    nome: 'Pack Arrepio',
-    desc: '🎃 👻 💀 🦇 🕷️ 🧟',
-    raridade: 'epico',
-    nivel: 7,
-    precoSeeds: 240,
-  },
-  {
-    id: 'pack-brasil',
-    tipo: 'pack',
-    alvo: 'brasil',
-    nome: 'Pack Brasil',
-    desc: '🇧🇷 ⚽ 🏖️ 🦜 ☕ 🌴',
-    raridade: 'raro',
-    nivel: 3,
-    precoSeeds: 100,
-  },
-  {
-    id: 'pack-tesouros',
-    tipo: 'pack',
-    alvo: 'tesouros',
-    nome: 'Pack Tesouros',
-    desc: '💎 👑 🪙 💰 🔮',
-    raridade: 'lendario',
-    nivel: 9,
-    precoSeeds: 550,
-  },
-  // ── CURSORES ──
-  {
-    id: 'cur-padrao',
-    tipo: 'cursor',
-    alvo: 'padrao',
-    nome: 'Cursor do sistema',
-    desc: 'O de sempre — volta atrás garantida.',
-    raridade: 'comum',
-    nivel: 1,
-  },
-  {
-    id: 'cur-mira',
-    tipo: 'cursor',
-    alvo: 'mira',
-    nome: 'Cursor Mira',
-    desc: 'Precisão de sniper. 🎯',
-    raridade: 'comum',
-    nivel: 2,
-    precoSeeds: 50,
-  },
-  {
-    id: 'cur-pato',
-    tipo: 'cursor',
-    alvo: 'pato',
-    nome: 'Cursor Pato',
-    desc: 'Um pato de borracha aponta por você. 🦆',
-    raridade: 'raro',
-    nivel: 3,
-    precoSeeds: 100,
-  },
-  {
-    id: 'cur-varinha',
-    tipo: 'cursor',
-    alvo: 'varinha',
-    nome: 'Cursor Varinha',
-    desc: 'Cada clique é um feitiço. 🪄',
-    raridade: 'raro',
-    nivel: 4,
-    precoSeeds: 110,
-  },
-  {
-    id: 'cur-pizza',
-    tipo: 'cursor',
-    alvo: 'pizza',
-    nome: 'Cursor Pizza',
-    desc: 'Fome de conhecimento. 🍕',
-    raridade: 'raro',
-    nivel: 5,
-    precoSeeds: 120,
-  },
-  {
-    id: 'cur-fogo',
-    tipo: 'cursor',
-    alvo: 'fogo',
-    nome: 'Cursor Fogo',
-    desc: 'Na brasa. 🔥',
-    raridade: 'epico',
-    nivel: 6,
-    precoSeeds: 220,
-  },
-  {
-    id: 'cur-espada',
-    tipo: 'cursor',
-    alvo: 'espada',
-    nome: 'Cursor Espada',
-    desc: 'Corta a interface. ⚔️',
-    raridade: 'epico',
-    nivel: 7,
-    precoSeeds: 240,
-  },
-  {
-    id: 'cur-foguete',
-    tipo: 'cursor',
-    alvo: 'foguete',
-    nome: 'Cursor Foguete',
-    desc: 'Decolagem. 🚀',
-    raridade: 'epico',
-    nivel: 8,
-    precoSeeds: 260,
-  },
-  {
-    id: 'cur-invader',
-    tipo: 'cursor',
-    alvo: 'invader',
-    nome: 'Cursor Invader',
-    desc: '8-bits até no ponteiro. 👾',
-    raridade: 'lendario',
-    nivel: 9,
-    precoSeeds: 500,
-  },
-  {
-    id: 'cur-coroa',
-    tipo: 'cursor',
-    alvo: 'coroa',
-    nome: 'Cursor Coroa',
-    desc: 'A coroa de quem fechou 10 rodadas perfeitas. 👑',
-    raridade: 'lendario',
-    nivel: 1,
-    exclusivoDe: 'perfeccionista',
-  },
-  // ── RASTRO DO MOUSE ──
+  /* APRIMORAMENTOS, PACKS DE EMOJI, CURSORES e a partícula "Chuva de Emojis" SAÍRAM (recompensas
+     v2, 27/09): nada disso aparecia onde se estuda. A lista do que saiu e o reembolso das Seeds
+     moram em `src/core/reembolso.ts`. */
+  // ── RASTRO DO MOUSE (um por forma, só com ponteiro fino e fora do modo leve) ──
   {
     id: 'ras-off',
     tipo: 'rastro',
@@ -602,17 +212,17 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     desc: 'Faíscas seguindo o cursor; clique solta uma mini-explosão.',
     raridade: 'raro',
     nivel: 3,
-    precoSeeds: 100,
+    precoSeeds: 1000,
   },
   {
     id: 'ras-estrelas',
     tipo: 'rastro',
     alvo: 'estrelas',
-    nome: 'Rastro Estrelas',
-    desc: '⭐ atrás do mouse.',
+    nome: 'Rastro Lampejo',
+    desc: 'Lampejos em ziguezague atrás do mouse.',
     raridade: 'raro',
     nivel: 4,
-    precoSeeds: 110,
+    precoSeeds: 1080,
   },
   {
     id: 'ras-coracoes',
@@ -622,7 +232,7 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     desc: 'Corações por onde você passa.',
     raridade: 'epico',
     nivel: 5,
-    precoSeeds: 220,
+    precoSeeds: 2600,
   },
   {
     id: 'ras-pixel',
@@ -632,17 +242,7 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     desc: 'Quadradinhos 8-bits no caminho.',
     raridade: 'epico',
     nivel: 6,
-    precoSeeds: 230,
-  },
-  {
-    id: 'ras-emoji',
-    tipo: 'rastro',
-    alvo: 'emoji',
-    nome: 'Rastro Emoji',
-    desc: 'O pack equipado escorrendo do cursor.',
-    raridade: 'lendario',
-    nivel: 8,
-    precoSeeds: 380,
+    precoSeeds: 2800,
   },
   {
     id: 'ras-arcoiris',
@@ -663,7 +263,7 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     desc: '30 paletas suaves, uma por matiz.',
     raridade: 'comum',
     nivel: 2,
-    precoSeeds: 50,
+    precoSeeds: 380,
   },
   {
     id: 'gal-estilo-escuro',
@@ -673,7 +273,7 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     desc: '30 paletas escuras, uma por matiz.',
     raridade: 'comum',
     nivel: 3,
-    precoSeeds: 60,
+    precoSeeds: 440,
   },
   {
     id: 'gal-estilo-neon',
@@ -683,7 +283,7 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     desc: '30 paletas de acento néon sobre preto.',
     raridade: 'raro',
     nivel: 5,
-    precoSeeds: 120,
+    precoSeeds: 1150,
   },
   {
     id: 'gal-estilo-meia-noite',
@@ -693,107 +293,7 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     desc: '30 paletas profundas, para estudar à noite.',
     raridade: 'epico',
     nivel: 7,
-    precoSeeds: 220,
-  },
-  {
-    id: 'gal-editor-pack',
-    tipo: 'galeria',
-    alvo: 'editor-pack',
-    nome: 'Editor de pack',
-    desc: 'Monte o seu pack de emojis: escolha um a um, categoria inteira, ou tire só um.',
-    raridade: 'comum',
-    nivel: 2,
-    precoSeeds: 50,
-  },
-  {
-    id: 'gal-cursor-emoji',
-    tipo: 'galeria',
-    alvo: 'cursor-emoji',
-    nome: 'Cursor de qualquer emoji',
-    desc: 'Todo emoji liberado do catálogo vira ponteiro.',
-    raridade: 'raro',
-    nivel: 3,
-    precoSeeds: 100,
-  },
-  {
-    id: 'gal-cat-patos',
-    tipo: 'galeria',
-    alvo: 'cat:patos',
-    nome: 'Emojis: Patos & aves',
-    desc: '🦆 🐤 🐔 🦢 🦩 e cia. para packs, cursor e rastro.',
-    raridade: 'comum',
-    nivel: 2,
-    precoSeeds: 40,
-  },
-  {
-    id: 'gal-cat-esportes',
-    tipo: 'galeria',
-    alvo: 'cat:esportes',
-    nome: 'Emojis: Esportes',
-    desc: '⚽ 🏀 🏆 🎮 e cia.',
-    raridade: 'comum',
-    nivel: 2,
-    precoSeeds: 40,
-  },
-  {
-    id: 'gal-cat-festa',
-    tipo: 'galeria',
-    alvo: 'cat:festa',
-    nome: 'Emojis: Festa',
-    desc: '🎉 🎊 🎈 🥳 e cia.',
-    raridade: 'comum',
-    nivel: 3,
-    precoSeeds: 50,
-  },
-  {
-    id: 'gal-cat-musica',
-    tipo: 'galeria',
-    alvo: 'cat:musica',
-    nome: 'Emojis: Música',
-    desc: '🎵 🎸 🎧 🥁 e cia.',
-    raridade: 'comum',
-    nivel: 3,
-    precoSeeds: 50,
-  },
-  {
-    id: 'gal-cat-espaco',
-    tipo: 'galeria',
-    alvo: 'cat:espaco',
-    nome: 'Emojis: Espaço',
-    desc: '🚀 🪐 👽 🛸 e cia.',
-    raridade: 'raro',
-    nivel: 4,
-    precoSeeds: 100,
-  },
-  {
-    id: 'gal-cat-transporte',
-    tipo: 'galeria',
-    alvo: 'cat:transporte',
-    nome: 'Emojis: Transporte',
-    desc: '🚗 ✈️ 🚂 ⛵ e cia.',
-    raridade: 'raro',
-    nivel: 4,
-    precoSeeds: 100,
-  },
-  {
-    id: 'gal-cat-objetos',
-    tipo: 'galeria',
-    alvo: 'cat:objetos',
-    nome: 'Emojis: Objetos',
-    desc: '💎 👑 🔮 🔑 e cia.',
-    raridade: 'raro',
-    nivel: 5,
-    precoSeeds: 110,
-  },
-  {
-    id: 'gal-cat-bebidas',
-    tipo: 'galeria',
-    alvo: 'cat:bebidas',
-    nome: 'Emojis: Bebidas',
-    desc: '☕ 🧋 🍹 🥂 e cia.',
-    raridade: 'comum',
-    nivel: 5,
-    precoSeeds: 60,
+    precoSeeds: 2600,
   },
 
   /* ── TEMPORADA 1: O QUE ENCHE O PASSE (mudança economia-legivel-e-moedas) ──────────────
@@ -807,295 +307,32 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
    * cursores de emoji que a regra de CSS já injeta. Todos entram nos níveis 5-10, que é onde
    * faltava. Depois deles, cada década tem itens suficientes para não haver casa vazia.
    */
-  {
-    id: 'pack-oceano',
-    tipo: 'pack',
-    alvo: 'oceano',
-    nome: 'Pack Oceano',
-    desc: '🐬 🐳 🐙 🐠 🦈 🌊 🐚',
-    raridade: 'comum',
-    nivel: 5,
-    precoSeeds: 60,
-  },
 
-  {
-    id: 'pack-doces',
-    tipo: 'pack',
-    alvo: 'doces',
-    nome: 'Pack Doces',
-    desc: '🍩 🍪 🧁 🍰 🍫 🍬 🍭',
-    raridade: 'comum',
-    nivel: 6,
-    precoSeeds: 60,
-  },
-  {
-    id: 'pack-gatos',
-    tipo: 'pack',
-    alvo: 'gatos',
-    nome: 'Pack Gatos',
-    desc: '🐱 🐈 🐾 😺 😻 🐯 🦁',
-    raridade: 'comum',
-    nivel: 6,
-    precoSeeds: 60,
-  },
-  {
-    id: 'cur-golfinho',
-    tipo: 'cursor',
-    alvo: 'golfinho',
-    nome: 'Cursor Golfinho',
-    desc: 'Um golfinho nada pelo ponteiro. 🐬',
-    raridade: 'raro',
-    nivel: 6,
-    precoSeeds: 120,
-  },
   /* FAÍSCA, e não estrela: a forma `estrelas` desenha ⭐ e ✨ por `fillText` (effects.ts), e
      emoji IGNORA cor — este item prometia "nas cores do oceano profundo" e entregava a mesma
      estrela amarela do Rastro Estrelas. As miniaturas reais (01/09) mostraram os dois idênticos
      lado a lado, que foi como o defeito apareceu. Faísca é círculo pintado: a paleta vale. */
-  {
-    id: 'ras-oceano',
-    tipo: 'rastro',
-    alvo: 'gen:faisca:oceano-profundo',
-    nome: 'Rastro Maré',
-    desc: 'Faíscas nas cores do oceano profundo.',
-    raridade: 'raro',
-    nivel: 6,
-    precoSeeds: 130,
-  },
 
-  {
-    id: 'pack-jardim',
-    tipo: 'pack',
-    alvo: 'jardim',
-    nome: 'Pack Jardim',
-    desc: '🌷 🌻 🌹 🌵 🍀 🌿 🌱',
-    raridade: 'raro',
-    nivel: 7,
-    precoSeeds: 110,
-  },
-  {
-    id: 'cur-coruja',
-    tipo: 'cursor',
-    alvo: 'coruja',
-    nome: 'Cursor Coruja',
-    desc: 'Quem estuda de madrugada tem companhia. 🦉',
-    raridade: 'raro',
-    nivel: 7,
-    precoSeeds: 140,
-  },
-  {
-    id: 'ras-lofi',
-    tipo: 'rastro',
-    alvo: 'gen:coracoes:lo-fi',
-    nome: 'Rastro Lo-fi',
-    desc: 'Corações em roxo sereno, para estudar horas.',
-    raridade: 'raro',
-    nivel: 7,
-    precoSeeds: 140,
-  },
-
-  {
-    id: 'pack-noite',
-    tipo: 'pack',
-    alvo: 'noite',
-    nome: 'Pack Noite',
-    desc: '🌙 ⭐ ✨ 🌌 🦉 🌠 💤',
-    raridade: 'raro',
-    nivel: 8,
-    precoSeeds: 140,
-  },
-  {
-    id: 'pack-viagem',
-    tipo: 'pack',
-    alvo: 'viagem',
-    nome: 'Pack Viagem',
-    desc: '✈️ 🚂 ⛵ 🗺️ 🧳 🏝️ 🎒',
-    raridade: 'raro',
-    nivel: 8,
-    precoSeeds: 140,
-  },
-  {
-    id: 'pack-clima',
-    tipo: 'pack',
-    alvo: 'clima',
-    nome: 'Pack Clima',
-    desc: '☀️ 🌧️ ⛈️ 🌈 ❄️ ☁️ 🌪️',
-    raridade: 'raro',
-    nivel: 8,
-    precoSeeds: 140,
-  },
-  {
-    id: 'cur-borboleta',
-    tipo: 'cursor',
-    alvo: 'borboleta',
-    nome: 'Cursor Borboleta',
-    desc: 'Leve, e some quando você para. 🦋',
-    raridade: 'epico',
-    nivel: 8,
-    precoSeeds: 220,
-  },
-  {
-    id: 'ras-arcade',
-    tipo: 'rastro',
-    alvo: 'gen:pixel:arcade',
-    nome: 'Rastro Arcade',
-    desc: 'Quadradinhos em néon magenta, direto dos anos 80.',
-    raridade: 'epico',
-    nivel: 8,
-    precoSeeds: 230,
-  },
-
-  {
-    id: 'pack-medieval',
-    tipo: 'pack',
-    alvo: 'medieval',
-    nome: 'Pack Medieval',
-    desc: '⚔️ 🛡️ 🏰 👑 🐉 🗝️ 🏹',
-    raridade: 'epico',
-    nivel: 9,
-    precoSeeds: 240,
-  },
-  {
-    id: 'pack-circo',
-    tipo: 'pack',
-    alvo: 'circo',
-    nome: 'Pack Circo',
-    desc: '🎪 🎠 🤹 🎈 🍿 🎭 🎩',
-    raridade: 'epico',
-    nivel: 9,
-    precoSeeds: 240,
-  },
-  {
-    id: 'cur-dragao',
-    tipo: 'cursor',
-    alvo: 'dragao',
-    nome: 'Cursor Dragão',
-    desc: 'O ponteiro que guarda o tesouro. 🐉',
-    raridade: 'epico',
-    nivel: 9,
-    precoSeeds: 250,
-  },
-  {
-    id: 'cur-unicornio',
-    tipo: 'cursor',
-    alvo: 'unicornio',
-    nome: 'Cursor Unicórnio',
-    desc: 'Raro como acertar tudo de primeira. 🦄',
-    raridade: 'epico',
-    nivel: 9,
-    precoSeeds: 250,
-  },
-  {
-    id: 'ras-esmeralda',
-    tipo: 'rastro',
-    alvo: 'gen:faisca:deep-emerald',
-    nome: 'Rastro Esmeralda',
-    desc: 'Faíscas verdes profundas atrás do cursor.',
-    raridade: 'epico',
-    nivel: 9,
-    precoSeeds: 250,
-  },
-  {
-    id: 'ras-menta',
-    tipo: 'rastro',
-    alvo: 'gen:arcoiris:menta-fresca',
-    nome: 'Rastro Menta',
-    desc: 'Bolinhas verde-menta, claras e leves.',
-    raridade: 'epico',
-    nivel: 9,
-    precoSeeds: 250,
-  },
-
-  {
-    id: 'pack-gala',
-    tipo: 'pack',
-    alvo: 'gala',
-    nome: 'Pack Gala',
-    desc: '🎩 🥂 🎭 💫 🕯️ 🪩 🎼',
-    raridade: 'epico',
-    nivel: 10,
-    precoSeeds: 260,
-  },
-  {
-    id: 'pack-lendas',
-    tipo: 'pack',
-    alvo: 'lendas',
-    nome: 'Pack Lendas',
-    desc: '🐉 🦄 🔱 ⚡ 🧙 🗿 🔥',
-    raridade: 'lendario',
-    nivel: 10,
-    precoSeeds: 450,
-  },
-  {
-    id: 'cur-tridente',
-    tipo: 'cursor',
-    alvo: 'tridente',
-    nome: 'Cursor Tridente',
-    desc: 'O ponteiro dos mares. 🔱',
-    raridade: 'lendario',
-    nivel: 10,
-    precoSeeds: 400,
-  },
-  {
-    id: 'cur-raio',
-    tipo: 'cursor',
-    alvo: 'raio',
-    nome: 'Cursor Raio',
-    desc: 'Rápido como quem já sabe a resposta. ⚡',
-    raridade: 'lendario',
-    nivel: 10,
-    precoSeeds: 400,
-  },
-  {
-    id: 'ras-ametista',
-    tipo: 'rastro',
-    alvo: 'gen:estrelas:amethyst-night',
-    nome: 'Rastro Ametista',
-    desc: 'Estrelas roxas na noite — o mais raro da trilha.',
-    raridade: 'lendario',
-    nivel: 10,
-    precoSeeds: 420,
-  },
-  {
-    id: 'ras-ouro',
-    tipo: 'rastro',
-    alvo: 'gen:faisca:sunset-gold',
-    nome: 'Rastro Ouro',
-    desc: 'Faíscas douradas de fim de tarde.',
-    raridade: 'lendario',
-    nivel: 10,
-    precoSeeds: 420,
-  },
-
-  /* ── AS DEZ VARIANTES DOURADAS (mudança credito-com-destino) ───────────────────────────────
+  /* ── A VITRINE DE CRÉDITOS (recompensas v2, onda 6 — era "as dez variantes douradas") ──────
    *
-   * `galeria/passe.ts` prometia "Variante Dourada N" em cada marco de dezena da trilha paga — e a
-   * promessa era só uma string `nome`: os itens não existiam no catálogo, então o marco coroava o
-   * nada. Aqui elas passam a existir.
+   * As douradas nasceram na mudança credito-com-destino para o Passe de 100 casas, que saiu na
+   * onda 5. Sobrou UMA porta: a compra avulsa com Créditos, com prévia e preço à vista. A régua de
+   * quem pode estar aqui é `vendavelEmCreditos` (`economiaAutoridade.ts`): uma moeda só, épico ou
+   * lendário, sem nível, sem maestria, sem conquista, sem temporada e fora do baú.
    *
-   * NENHUMA ARTE NOVA, pela mesma técnica dos 25 itens das décadas 6-10: são peças que o app já
-   * sabe desenhar, na paleta dourada (`sunset-gold`, `ouro-*`). O que as torna especiais é a VIA,
-   * não o pixel.
+   * A CURADORIA DA ONDA 6 tirou três: a Faíscas Douradas (`dourada-1`) e o Confete Dourado
+   * (`dourada-9`) tinham o MESMO `alvo` da Chuva de Estrelas e do Confete da Loja de Seeds — o
+   * dinheiro comprava o que as Seeds (e o baú) já entregam —, e as Estrelas de Ouro (`dourada-4`)
+   * desenhavam a estrela por emoji, ignorando a paleta. Quem as pagou fica com o equivalente
+   * (`EQUIVALENTES` em `reembolso.ts`). Ficaram os quatro rastros dourados, que só existem aqui.
    *
-   * DUAS PORTAS, e é isso que dá destino ao Crédito: vêm de graça no Passe da temporada (`
-   * exclusivoDoPasse` = a casa que as entrega) OU se compram avulsas com Créditos.
+   * SEM `nivel`: com `nivel: 1` o item tinha porta de nível (`temPortaDeNivel`) e só não saía de
+   * graça porque cada leitor conferia `precoCreditos` antes.
    *
-   * O PREÇO DE 150 É UM PADRÃO DERIVADO, não uma decisão de produto: o Passe custa R$ 14,90 e
-   * devolve 1.134 Créditos, então as dez variantes a 150 somam 1.500 — quem compra o passe leva
-   * as dez de graça e ainda sobra crédito; quem compra avulso paga mais caro pelo conjunto. É a
-   * relação que faz o passe valer a pena sem tornar o avulso inútil. O dono ajusta o número.
+   * 100 CRÉDITOS (eram 150): todo pacote (100/300/700) compra itens inteiros, sem sobra — com 150,
+   * o pacote de 100 sozinho não comprava nada e todo pacote deixava troco que empurra a próxima
+   * compra. Equivalente em reais em `docs/economia-v2.md` ("Loja com Créditos").
    */
-  {
-    id: 'dourada-1',
-    tipo: 'particulas',
-    alvo: 'estrelas',
-    nome: 'Faíscas Douradas',
-    desc: 'A explosão de acerto em ouro velho. ✨',
-    raridade: 'lendario',
-    nivel: 1,
-    precoCreditos: 150,
-    exclusivoDoPasse: 10,
-  },
   {
     id: 'dourada-2',
     tipo: 'rastro',
@@ -1103,42 +340,7 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     nome: 'Rastro Dourado',
     desc: 'Ouro escorrendo do cursor.',
     raridade: 'lendario',
-    nivel: 1,
-    precoCreditos: 150,
-    exclusivoDoPasse: 20,
-  },
-  {
-    id: 'dourada-3',
-    tipo: 'cursor',
-    alvo: 'coroa',
-    nome: 'Ponteiro de Ouro',
-    desc: 'A coroa, em dourado. 👑',
-    raridade: 'lendario',
-    nivel: 1,
-    precoCreditos: 150,
-    exclusivoDoPasse: 30,
-  },
-  {
-    id: 'dourada-4',
-    tipo: 'rastro',
-    alvo: 'gen:estrelas:ouro-neon',
-    nome: 'Estrelas de Ouro',
-    desc: 'Estrelas douradas sobre o escuro.',
-    raridade: 'lendario',
-    nivel: 1,
-    precoCreditos: 150,
-    exclusivoDoPasse: 40,
-  },
-  {
-    id: 'dourada-5',
-    tipo: 'pack',
-    alvo: 'tesouros',
-    nome: 'Pack Tesouro Dourado',
-    desc: '💎 👑 🏆 🪙 ⭐ 🔱',
-    raridade: 'lendario',
-    nivel: 1,
-    precoCreditos: 150,
-    exclusivoDoPasse: 50,
+    precoCreditos: 100,
   },
   {
     id: 'dourada-6',
@@ -1147,20 +349,7 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     nome: 'Pixel Dourado',
     desc: 'Quadradinhos de ouro, estilo arcade.',
     raridade: 'lendario',
-    nivel: 1,
-    precoCreditos: 150,
-    exclusivoDoPasse: 60,
-  },
-  {
-    id: 'dourada-7',
-    tipo: 'cursor',
-    alvo: 'tridente',
-    nome: 'Tridente de Ouro',
-    desc: 'O ponteiro dos mares, em ouro. 🔱',
-    raridade: 'lendario',
-    nivel: 1,
-    precoCreditos: 150,
-    exclusivoDoPasse: 70,
+    precoCreditos: 100,
   },
   {
     id: 'dourada-8',
@@ -1169,31 +358,16 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
     nome: 'Corações de Ouro',
     desc: 'Corações dourados, discretos.',
     raridade: 'lendario',
-    nivel: 1,
-    precoCreditos: 150,
-    exclusivoDoPasse: 80,
-  },
-  {
-    id: 'dourada-9',
-    tipo: 'particulas',
-    alvo: 'confete',
-    nome: 'Confete Dourado',
-    desc: 'Papel picado de ouro em cada acerto.',
-    raridade: 'lendario',
-    nivel: 1,
-    precoCreditos: 150,
-    exclusivoDoPasse: 90,
+    precoCreditos: 100,
   },
   {
     id: 'dourada-10',
     tipo: 'rastro',
     alvo: 'gen:arcoiris:sunset-gold',
     nome: 'Aurora Dourada',
-    desc: 'O último marco da temporada — bolinhas de ouro.',
+    desc: 'Bolinhas de ouro atrás do cursor.',
     raridade: 'lendario',
-    nivel: 1,
-    precoCreditos: 150,
-    exclusivoDoPasse: 100,
+    precoCreditos: 100,
   },
 
   /* ── O QUE VEIO DO CATÁLOGO MESTRE (mudança gamificacao-sob-autoridade) ────────────────────
@@ -1205,10 +379,8 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
    * pagou caro (`galeria/passe.ts` prometia "Variante Dourada N" e o marco coroava o nada).
    *
    * A REGRA QUE FILTROU ESTES 24: item novo só entra se um LEITOR EXISTENTE já souber desenhá-lo.
-   * Pack precisa de linha em `PACKS_DE_EMOJI`, cursor precisa de linha em `CURSORES`, rastro
-   * precisa de um `alvo` que `estiloDeRastro()` resolva. Os packs e cursores ganharam a linha
-   * (arquivos irmãos, mesma mudança); os rastros não custaram UMA linha de código — são
-   * `gen:`/`croma:` que o motor de rastro já resolvia desde 2026-08-28.
+   * Os rastros não custaram UMA linha de código — são `gen:`/`croma:` que o motor de rastro já
+   * resolvia desde 2026-08-28. (Os packs e cursores deste bloco saíram nas recompensas v2.)
    *
    * OS QUATRO MOTORES DE PARTÍCULA DO MESTRE (Plasma, Folhas, Cristal, Fogo) FICARAM DE FORA, e
    * essa é a decisão mais importante deste bloco. A skin de partícula só vira forma no ternário
@@ -1217,195 +389,6 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
    * 400 Seeds entregando o padrão de fábrica. É o mesmo defeito que o comentário do Rastro Maré
    * documenta logo acima, e o preço aqui seria maior.
    */
-
-  // ── PACKS DE EMOJI (as listas vivem em lib/particulas) ──
-  {
-    id: 'pack-cafe',
-    tipo: 'pack',
-    alvo: 'cafe',
-    nome: 'Rota do Barista',
-    desc: '☕ 🥐 🥞 🫖 🍪 🧋 🍮',
-    raridade: 'comum',
-    nivel: 2,
-    precoSeeds: 50,
-  },
-  {
-    id: 'pack-pixel',
-    tipo: 'pack',
-    alvo: 'pixel',
-    nome: 'Pixel Nostalgia',
-    desc: '👾 🕹️ 🎮 🪙 🍄 ⚔️ 💾',
-    raridade: 'raro',
-    nivel: 3,
-    precoSeeds: 100,
-  },
-  {
-    id: 'pack-gelo',
-    tipo: 'pack',
-    alvo: 'gelo',
-    nome: 'Glaciar Ártico',
-    desc: '❄️ 🧊 🏔️ ⛄ 🌨️ 💠 🐧',
-    raridade: 'raro',
-    nivel: 5,
-    precoSeeds: 120,
-  },
-  {
-    id: 'pack-anime',
-    tipo: 'pack',
-    alvo: 'anime',
-    nome: 'Shonen Rush',
-    desc: '⚡ 👊 💥 👺 🍜 🗡️ 🌟',
-    raridade: 'raro',
-    nivel: 6,
-    precoSeeds: 120,
-  },
-  {
-    id: 'pack-zen',
-    tipo: 'pack',
-    alvo: 'zen',
-    nome: 'Jardim Bonsai',
-    desc: '🪴 🍵 🪷 🎋 🧘 🌿 🎐',
-    raridade: 'raro',
-    nivel: 7,
-    precoSeeds: 130,
-  },
-  {
-    id: 'pack-fogo',
-    tipo: 'pack',
-    alvo: 'fogo',
-    nome: 'Fúria Dracônica',
-    desc: '🔥 🌋 ☄️ 💥 🐉 🧨 ♨️',
-    raridade: 'epico',
-    nivel: 7,
-    precoSeeds: 240,
-  },
-  {
-    id: 'pack-alquimia',
-    tipo: 'pack',
-    alvo: 'alquimia',
-    nome: 'Grimório do Alquimista',
-    desc: '🔮 ⚗️ 🧪 📜 🕯️ 🧙 🗝️',
-    raridade: 'epico',
-    nivel: 8,
-    precoSeeds: 240,
-  },
-  {
-    id: 'pack-mineracao',
-    tipo: 'pack',
-    alvo: 'mineracao',
-    nome: 'Cavernas Profundas',
-    desc: '⛏️ 💎 🪨 🪙 🏮 🗿 ⚒️',
-    raridade: 'epico',
-    nivel: 9,
-    precoSeeds: 240,
-  },
-  {
-    id: 'pack-cyberpunk',
-    tipo: 'pack',
-    alvo: 'cyberpunk',
-    nome: 'Neo Tóquio 2099',
-    desc: '🌆 💾 🕶️ 🤖 🌃 💿 📡',
-    raridade: 'lendario',
-    nivel: 10,
-    precoSeeds: 450,
-  },
-  /* `nivel: 1` nos exclusivos é o que o tipo exige, e não uma exigência de progresso: quem manda
-     é `exclusivoDe`, e todo consumidor da régua (`estadoDoItem`, `progressao`, `passe`) descarta
-     o nível assim que vê o campo. Mesmo padrão de tema-aurora e cur-coroa. */
-  {
-    id: 'pack-astrologia',
-    tipo: 'pack',
-    alvo: 'astrologia',
-    nome: 'Zodíaco Celestial',
-    desc: '🌙 ☀️ 🪐 🌌 🔭 ✨ ☄️ — só para quem gravou em dois idiomas.',
-    raridade: 'epico',
-    nivel: 1,
-    exclusivoDe: 'poliglota',
-  },
-
-  // ── CURSORES (os emojis vivem em lib/cursores) ──
-  {
-    id: 'cur-pata',
-    tipo: 'cursor',
-    alvo: 'pata',
-    nome: 'Patinha Ninja',
-    desc: 'Uma patinha silenciosa aponta por você. 🐾',
-    raridade: 'comum',
-    nivel: 2,
-    precoSeeds: 45,
-  },
-  {
-    id: 'cur-tinteiro',
-    tipo: 'cursor',
-    alvo: 'tinteiro',
-    nome: 'Cursor Tinteiro',
-    desc: 'Bico de tinta para revisar com calma. 🖋️',
-    raridade: 'comum',
-    nivel: 2,
-    precoSeeds: 50,
-  },
-  {
-    id: 'cur-cafe',
-    tipo: 'cursor',
-    alvo: 'cafe',
-    nome: 'Café Espresso',
-    desc: 'A xícara que acompanha a manhã de estudo. ☕',
-    raridade: 'comum',
-    nivel: 3,
-    precoSeeds: 50,
-  },
-  /* O mestre chama este item de `cur-laser` e o entrega com 🔫. Aqui ele é LANTERNA: ver a nota
-     em `lib/cursores`, que é onde a arma seria de fato desenhada no ponteiro. */
-  {
-    id: 'cur-lanterna',
-    tipo: 'cursor',
-    alvo: 'lanterna',
-    nome: 'Cursor Lanterna',
-    desc: 'Um facho para achar a resposta no escuro. 🔦',
-    raridade: 'raro',
-    nivel: 5,
-    precoSeeds: 120,
-  },
-  {
-    id: 'cur-trevo',
-    tipo: 'cursor',
-    alvo: 'trevo',
-    nome: 'Trevo da Sorte',
-    desc: 'Quatro folhas de sorte no ponteiro. 🍀',
-    raridade: 'raro',
-    nivel: 6,
-    precoSeeds: 130,
-  },
-  {
-    id: 'cur-cristal',
-    tipo: 'cursor',
-    alvo: 'cristal',
-    nome: 'Cristal Rúnico',
-    desc: 'Lapidado, brilha sobre o que dá para clicar. 💎',
-    raridade: 'epico',
-    nivel: 8,
-    precoSeeds: 240,
-  },
-  {
-    id: 'cur-robot',
-    tipo: 'cursor',
-    alvo: 'robot',
-    nome: 'Autômato Retro',
-    desc: 'Mecatrônica vintage apontando a resposta. 🤖',
-    raridade: 'epico',
-    nivel: 8,
-    precoSeeds: 240,
-  },
-  {
-    id: 'cur-katana',
-    tipo: 'cursor',
-    alvo: 'katana',
-    nome: 'Katana Samurai',
-    desc: 'A lâmina que corta a hesitação. Só para quem fechou uma rodada com 3 estrelas. 🗡️',
-    raridade: 'epico',
-    nivel: 1,
-    exclusivoDe: 'nivel-10',
-  },
 
   /* ── RASTROS: ZERO CÓDIGO NOVO ──
    *
@@ -1420,64 +403,41 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
    * pixel, bolinha) e nenhuma delas é pétala, fita ou glifo. Vender "pétalas" e entregar coração
    * rosa é o defeito que o Rastro Maré já custou; então aqui a cor vem do mestre e o substantivo
    * vem do motor. */
-  {
-    id: 'ras-bolhas',
-    tipo: 'rastro',
-    alvo: 'croma:arcoiris:celeste',
-    nome: 'Esteira de Bolhas',
-    desc: 'Bolinhas celestes flutuando atrás do cursor.',
-    raridade: 'raro',
-    nivel: 3,
-    precoSeeds: 100,
-  },
-  {
-    id: 'ras-chamas',
-    tipo: 'rastro',
-    alvo: 'gen:faisca:halloween',
-    nome: 'Trilha de Chamas',
-    desc: 'Faíscas em laranja-brasa por onde o mouse passa.',
-    raridade: 'epico',
-    nivel: 6,
-    precoSeeds: 220,
-  },
-  {
-    id: 'ras-sakura',
-    tipo: 'rastro',
-    alvo: 'croma:coracoes:rosa',
-    nome: 'Voo de Pétalas Zen',
-    desc: 'Corações cor-de-rosa planando na cadência da mão.',
-    raridade: 'epico',
-    nivel: 7,
-    precoSeeds: 230,
-  },
-  {
-    id: 'ras-neon-ribbon',
-    tipo: 'rastro',
-    alvo: 'gen:arcoiris:arcade',
-    nome: 'Fita Cibernética',
-    desc: 'Bolinhas de néon magenta pulsando na esteira do cursor.',
-    raridade: 'lendario',
-    nivel: 8,
-    precoSeeds: 380,
-  },
-  {
-    id: 'ras-stardust',
-    tipo: 'rastro',
-    alvo: 'croma:estrelas:violeta',
-    nome: 'Poeira Estelar',
-    desc: 'Estrelas violeta com brilho demorado.',
-    raridade: 'lendario',
-    nivel: 10,
-    precoSeeds: 400,
-  },
-  {
-    id: 'ras-matrix',
-    tipo: 'rastro',
-    alvo: 'croma:pixel:verde',
-    nome: 'Fluxo Matrix 84',
-    desc: 'Pixels de fósforo verde caindo do cursor. Só para quem fez combo ×15 no Duelo.',
-    raridade: 'epico',
-    nivel: 1,
-    exclusivoDe: 'duelista',
-  },
+  /* A Esteira de Bolhas (arco-íris celeste) e o Fluxo Matrix 84 (pixel verde, da conquista
+     Duelista) SAÍRAM na revisão de 27/09: repetiam uma forma que já tem o seu rastro. Um rastro por
+     forma, e as Seeds de quem comprou voltam (`reembolso.ts`). */
+  ...CATALOGO_DA_MAESTRIA, // onda 3: efeitos de jogo, molduras e títulos (`catalogoMaestria.ts`)
+  ...CATALOGO_DAS_CONQUISTAS, // onda 5: molduras e títulos do ouro das conquistas (`catalogoConquistas.ts`)
+  ...CATALOGO_DA_TEMPORADA, // onda 5: molduras e títulos da Temporada 1 (`catalogoTemporada.ts`)
 ];
+
+/**
+ * A VITRINE DE CRÉDITOS (onda 6): os itens avulsos que se compram com a moeda paga, na ordem do
+ * catálogo. É derivada, não uma segunda lista — o que tem `precoCreditos` é o que está à venda, e
+ * `POST /api/billing/gastar` confere pela mesma régua (`autorizarGastoDeCredito`).
+ */
+export const VITRINE_DE_CREDITOS: readonly ItemDaLoja[] = CATALOGO_DA_LOJA.filter((i) => i.precoCreditos !== undefined);
+
+/**
+ * O NÍVEL DA CONTA ABRE ESTE ITEM? Duas formas de dizer "não" convivem (recompensas v2): a onda 3
+ * deixa `nivel` ausente (maestria, e o que não chega por nível), a onda 4 marca `NIVEL_SO_SEEDS`
+ * (um nível que ninguém alcança). As duas passam por aqui — nenhuma tela compara `nivel` à mão.
+ */
+export function temPortaDeNivel(
+  item: Pick<ItemDaLoja, 'nivel'>,
+): item is Pick<ItemDaLoja, 'nivel'> & { nivel: number } {
+  return item.nivel !== undefined && item.nivel < NIVEL_SO_SEEDS;
+}
+
+/** O nível `nivel` já abre o item? */
+export function abrePorNivel(item: Pick<ItemDaLoja, 'nivel'>, nivel: number): boolean {
+  return temPortaDeNivel(item) && nivel >= item.nivel!;
+}
+
+/**
+ * O item só se abre com Seeds? Tem preço e nenhuma porta de nível: a vitrine de nível, a próxima
+ * recompensa e o Passe não o prometem, e o cadeado fala só em Seeds.
+ */
+export function soPorSeeds(item: Pick<ItemDaLoja, 'nivel' | 'precoSeeds'>): boolean {
+  return item.precoSeeds !== undefined && !temPortaDeNivel(item);
+}

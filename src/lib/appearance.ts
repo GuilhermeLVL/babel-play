@@ -7,7 +7,23 @@
  */
 /* `aurora` é o tema EXCLUSIVO de conquista (economia v2): não está no catálogo de níveis nem tem
    preço; só quem fez a conquista "Constante" (30 dias seguidos) consegue equipar. */
-export type ThemeType = 'babel' | 'linear' | 'vercel' | 'mochi' | 'notion' | 'premium' | 'aurora' | 'custom';
+/* Recompensas v2, onda 4: seis temas COMPLETOS (paleta clara e escura, fonte de título, textura,
+   fundo animado leve, sons, partícula e HUD) em `src/styles/temas-v2.css`. Só com Seeds. */
+export type ThemeType =
+  | 'babel'
+  | 'linear'
+  | 'vercel'
+  | 'mochi'
+  | 'notion'
+  | 'premium'
+  | 'aurora'
+  | 'custom'
+  | 'radio'
+  | 'papel'
+  | 'neon'
+  | 'fliperama'
+  | 'jardim'
+  | 'observatorio';
 
 export interface CustomColors {
   canvas: string;
@@ -155,6 +171,42 @@ export const THEME_OPTIONS: ThemeOption[] = [
     name: 'Aurora',
     desc: 'Exclusivo de conquista: noite polar com verde-aurora e violeta.',
     swatches: { canvas: '#070B14', surface: '#0E1626', accent: '#4ADE80', ink: '#E6EDF7' },
+  },
+  {
+    id: 'radio',
+    name: 'Rádio',
+    desc: 'Madeira e mostrador âmbar, grade de alto-falante ao fundo.',
+    swatches: { canvas: '#EDE3D1', surface: '#FBF6EC', accent: '#B8501A', ink: '#2A1F16' },
+  },
+  {
+    id: 'papel',
+    name: 'Papel e tinta',
+    desc: 'Folha pautada, tinta azul-escura e títulos em serifa.',
+    swatches: { canvas: '#F1EDE3', surface: '#FFFDF7', accent: '#1F4F8C', ink: '#1C2230' },
+  },
+  {
+    id: 'neon',
+    name: 'Neon noturno',
+    desc: 'Magenta e verde elétrico sobre a noite da cidade.',
+    swatches: { canvas: '#F3F0FA', surface: '#FFFFFF', accent: '#B5157F', ink: '#17122B' },
+  },
+  {
+    id: 'fliperama',
+    name: 'Fliperama',
+    desc: 'Linhas de varredura, títulos em pixel, som de onda quadrada.',
+    swatches: { canvas: '#E6ECF6', surface: '#FFFFFF', accent: '#D1143A', ink: '#0F1526' },
+  },
+  {
+    id: 'jardim',
+    name: 'Jardim',
+    desc: 'Verde de folha e lavanda, cantos macios.',
+    swatches: { canvas: '#E8F0E1', surface: '#F9FCF4', accent: '#2E7D4F', ink: '#1C291D' },
+  },
+  {
+    id: 'observatorio',
+    name: 'Observatório',
+    desc: 'Céu de estrelas, azul profundo e títulos finos.',
+    swatches: { canvas: '#E7EBF3', surface: '#F8FAFD', accent: '#3543A8', ink: '#131A2C' },
   },
   {
     id: 'custom',

@@ -3,10 +3,9 @@ import { buildGrid, cellsBetween, letrasNaGrade, matchSelection, scoreRound, sho
 import { Check, Eraser, Eye, Highlighter, Lightbulb, Radar } from 'lucide-react';
 import React, { useMemo, useRef, useState } from 'react';
 
-import { emitBurst } from '../../lib/effects';
-import { playJuicedError, playJuicedHit, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
+import { celebrar } from '../../lib/comemoracao';
 import { t } from '../../lib/i18n';
-import { comemorar, multiplicador, pontosDoElemento } from '../../lib/juice';
+import { multiplicador, pontosDoElemento } from '../../lib/juice';
 import type { AgeProfileType } from '../../lib/profile';
 import { falar } from '../../lib/tts';
 import { useRodada } from './casca/CascaDaRodada';
@@ -82,7 +81,6 @@ export default function WordSearchGame({ items, ageProfile, onFinish }: WordSear
       hinted: comDica.has(i),
       revealed: reveladosFinais.has(i),
     }));
-    playJuicedVictory();
     setTimeout(
       () =>
         onFinish({
@@ -155,18 +153,13 @@ export default function WordSearchGame({ items, ageProfile, onFinish }: WordSear
     const achado = matchSelection(grade, inicio, fim);
     setInicio(null);
     setHover(null);
-    const rect = el?.getBoundingClientRect();
-    const coords = rect ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : undefined;
-
     if (achado && !achados.has(achado.itemIndex) && !revelados.has(achado.itemIndex)) {
       const nova = sequencia + 1;
       const mult = multiplicador(nova);
       const ganho = 10 * (comDica.has(achado.itemIndex) ? 1 : mult);
       setSequencia(nova);
       setPontos((pt) => pt + ganho);
-      triggerHaptic('success');
-      if (coords) emitBurst(coords.x, coords.y, 'confete');
-      playJuicedHit(nova, coords, '+' + ganho + (mult > 1 ? ' ×' + mult : ''));
+      celebrar({ tipo: 'acerto', combo: nova, el, pontos: ganho });
 
       // Pronuncia a palavra achada no idioma original
       const it = items[achado.itemIndex];
@@ -180,8 +173,8 @@ export default function WordSearchGame({ items, ageProfile, onFinish }: WordSear
     // Traço errado
     if (!achado) {
       setSequencia(0);
-      triggerHaptic('error');
-      playJuicedError(gradeRef.current, coords, 'Tente de novo');
+      celebrar({ tipo: 'erro', el: el ?? gradeRef.current });
+      pontosDoElemento('Tente de novo', el, 'ruim');
     }
   };
 
@@ -246,7 +239,7 @@ export default function WordSearchGame({ items, ageProfile, onFinish }: WordSear
 
   const revelar = (i: number, el: HTMLElement | null) => {
     setSequencia(0);
-    comemorar('erro', el);
+    celebrar({ tipo: 'erro', el });
     const novos = new Set([...revelados, i]);
     setRevelados(novos);
     if (achados.size + novos.size === jogaveis.length) finalizar(achados, novos);

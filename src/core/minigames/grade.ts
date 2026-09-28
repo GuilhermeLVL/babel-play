@@ -1,5 +1,6 @@
 import type { Grade } from '../learning/scheduler';
-import type { ItemOutcome, MinigameId, RoundReport } from './types';
+import { PESOS_SEEDS, PESOS_XP } from '../learning/xp';
+import { type ItemOutcome, type MinigameId, MINIGAMES, type RoundReport } from './types';
 
 /**
  * DE JOGO PARA MEMÓRIA — como o resultado de uma rodada vira nota no agendador.
@@ -144,7 +145,10 @@ export function pontuarRodada(
 ): PontosDaRodada {
   let sequencia = Math.max(0, opts.sequenciaInicial ?? 0);
   let melhorSequencia = sequencia;
-  let base = 0, bonusVelocidade = 0, bonusSemDica = 0, bonusCombo = 0;
+  let base = 0,
+    bonusVelocidade = 0,
+    bonusSemDica = 0,
+    bonusCombo = 0;
 
   for (const o of outcomes) {
     /* `revealed` é desistência declarada — nunca pontua, em nenhum jogo. E, como acerto que não
@@ -165,8 +169,12 @@ export function pontuarRodada(
 
   return {
     total: base + bonusCombo + bonusVelocidade + bonusSemDica,
-    base, bonusVelocidade, bonusSemDica, bonusCombo,
-    melhorSequencia, sequenciaFinal: sequencia,
+    base,
+    bonusVelocidade,
+    bonusSemDica,
+    bonusCombo,
+    melhorSequencia,
+    sequenciaFinal: sequencia,
   };
 }
 
@@ -179,19 +187,112 @@ export function scoreRound(gameId: MinigameId, outcomes: ItemOutcome[]): number 
 }
 
 /**
- * XP da rodada — o número que anima na tela. Deliberadamente modesto e igual para todos os
- * jogos: o XP durável do perfil é recalculado pelo servidor a partir do que foi gravado
- * (ver `lib/progress`), e dois números de XP disputando a mesma tela foi um problema real.
+ * A RODADA É PERFEITA? — todos os itens certos E o mínimo de itens do jogo.
+ *
+ * A régua que os DOIS servidores usam para contar `rodadasPerfeitas` (o Express em
+ * `server/db/repositories/metrics.ts`, o efêmero em `data/efemero/rotas/metricas.ts`) e a que a
+ * tela usa para prometer o bônus. Sem o piso, uma rodada de um item viraria fábrica de perfeitas.
+ *
+ * `exerciseKind` vem do banco e pode ser nulo, vazio ou de um jogo que não existe mais: nulo e
+ * desconhecido caem no mínimo 3; vazio vira 0 — a coerção que os servidores sempre fizeram.
+ */
+export function ehRodadaPerfeita(exerciseKind: string | null | undefined, total: number, certos: number): boolean {
+  const minimo = Number(
+    (exerciseKind && (MINIGAMES as Record<string, { minItems?: number } | undefined>)[exerciseKind]?.minItems) ?? 3,
+  );
+  return total >= minimo && certos === total;
+}
+
+/**
+ * O QUE UMA REVISÃO RENDE, pela nota (1–4). É a régua de `correctReviews` dos dois servidores:
+ * toda revisão dá `revisao` de XP; nota >= 3 soma `revisaoCerta` nas duas moedas.
+ */
+export function ganhoDaNota(nota: number): { xp: number; seeds: number } {
+  const certa = nota >= 3;
+  return {
+    xp: PESOS_XP.revisao + (certa ? PESOS_XP.revisaoCerta : 0),
+    seeds: certa ? PESOS_SEEDS.revisaoCerta : 0,
+  };
+}
+
+/**
+ * O GANHO DE UMA RODADA DE REVISÃO (recompensas v2, spec 10.2): o "+N XP · +N Seeds" do fim do
+ * Estudar, com a MESMA conta que o perfil refaz a partir das revisões gravadas. Só entram as notas
+ * que o servidor aceitou — a tela passa só essas.
+ */
+export function ganhoDaRevisao(notas: readonly number[]): { xp: number; seeds: number } {
+  return notas.reduce(
+    (soma, n) => {
+      const g = ganhoDaNota(n);
+      return { xp: soma.xp + g.xp, seeds: soma.seeds + g.seeds };
+    },
+    { xp: 0, seeds: 0 },
+  );
+}
+
+/** O que UMA rodada move na economia — o "+N XP · +N Seeds" da raspadinha. */
+export interface GanhoDaRodada {
+  xp: number;
+  seeds: number;
+  perfeita: boolean;
+}
+
+/**
+ * O GANHO DA RODADA, com a régua do crédito.
+ *
+ * O XP e as Seeds não são gravados: os servidores recontam o perfil a partir das linhas da rodada
+ * (`economiaDeMetricas`, com `PESOS_XP`/`PESOS_SEEDS`). Esta função faz a MESMA conta para uma
+ * rodada, parcela por parcela, e o teste de contrato (`tests/contratos/ganho-da-rodada`) confere
+ * que a diferença no perfil dos dois servidores é exatamente este número:
+ *
+ *   - item que vira REVISÃO (tem `cardId` e o jogo escreve no agendador) → `revisao`, e com nota
+ *     ≥ 3 também `revisaoCerta` (XP) e `revisaoCerta` (Seeds) — o corte de `correctReviews`;
+ *   - item de JOGO (linha `kind: 'drill'`) → `itemDeJogo`, e certo também `itemDeJogoCerto` (XP)
+ *     e `jogoCerto` (Seeds);
+ *   - rodada PERFEITA (`ehRodadaPerfeita`) → `rodadaPerfeita`, nas duas moedas.
+ *
+ * O baú (`SEEDS_DO_DROP`) fica de fora: quem sorteia é o servidor, e ele tem o próprio aviso.
+ */
+export function ganhoDaRodada(report: RoundReport): GanhoDaRodada {
+  const def = MINIGAMES[report.gameId];
+  let xp = 0;
+  let seeds = 0;
+  for (const o of report.items) {
+    const revisao = !!o.cardId && !!def?.writesSrs;
+    if (revisao) {
+      const g = ganhoDaNota(gradeFor(report.gameId, o));
+      xp += g.xp;
+      seeds += g.seeds;
+    } else {
+      xp += PESOS_XP.itemDeJogo;
+      if (o.correct) {
+        xp += PESOS_XP.itemDeJogoCerto;
+        seeds += PESOS_SEEDS.jogoCerto;
+      }
+    }
+  }
+  const certos = report.items.filter((o) => o.correct).length;
+  const perfeita = ehRodadaPerfeita(report.gameId, report.items.length, certos);
+  if (perfeita) {
+    xp += PESOS_XP.rodadaPerfeita;
+    seeds += PESOS_SEEDS.rodadaPerfeita;
+  }
+  return { xp, seeds, perfeita };
+}
+
+/**
+ * XP da rodada — o número que anima na tela. É o `xp` de `ganhoDaRodada`: a tela e o crédito
+ * saem da mesma conta (antes era `acertos × 2 + itens` para todo jogo, e a revisão e o bônus de
+ * rodada perfeita apareciam de um jeito na raspadinha e de outro no perfil).
  */
 export function xpFromRound(report: RoundReport): number {
-  const acertos = report.items.filter(o => o.correct && !o.revealed).length;
-  return acertos * 2 + report.items.length;
+  return ganhoDaRodada(report).xp;
 }
 
 /** Resumo honesto para a tela de fim de rodada. */
 export function summarize(report: RoundReport): { acertos: number; total: number; precisao: number; xp: number } {
   const total = report.items.length;
-  const acertos = report.items.filter(o => o.correct && !o.revealed).length;
+  const acertos = report.items.filter((o) => o.correct && !o.revealed).length;
   return {
     acertos,
     total,

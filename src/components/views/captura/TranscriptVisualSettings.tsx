@@ -1,4 +1,17 @@
+import '../../../styles/legendas.css';
+
+import {
+  classesDoEstilo,
+  ESTILOS_DE_LEGENDA,
+  possuiEstiloDeLegenda,
+  resolverEstiloDeLegenda,
+} from '../../../lib/estilosDeLegenda';
+import { CATALOGO_DA_LOJA } from '../../../lib/loja';
 import type { TranscriptSettings } from '../../../lib/transcriptUtils';
+
+/** O nome de um estilo de legenda, do catálogo (a mesma fonte da Loja). */
+const nomeDoEstilo = (id: string) =>
+  CATALOGO_DA_LOJA.find((i) => i.tipo === 'legenda' && i.alvo === id)?.nome.replace(/^Legenda /, '') ?? id;
 
 /**
  * APARÊNCIA DA LEGENDA — a seção do diálogo "Dispositivos e modelos de IA" do protótipo aprovado
@@ -6,7 +19,7 @@ import type { TranscriptSettings } from '../../../lib/transcriptUtils';
  * escolha. Os cinco campos são os de `TranscriptSettings`, os mesmos que a transcrição ao vivo lê.
  */
 const CAMPOS: Array<{
-  chave: keyof TranscriptSettings;
+  chave: Exclude<keyof TranscriptSettings, 'estilo'>;
   rotulo: string;
   opcoes: Array<[string, string]>;
 }> = [
@@ -89,6 +102,10 @@ export default function TranscriptVisualSettings({
     else updateSetting(chave, v as never);
   };
   const traduzida = <span className="t">Vamos repassar o roteiro.</span>;
+  /* O ESTILO (onda 4): só os que a pessoa tem; a prévia veste o estilo resolvido, com a cor de
+     alto contraste por cima, igual à legenda de verdade. */
+  const meusEstilos = ESTILOS_DE_LEGENDA.filter((e) => possuiEstiloDeLegenda(e.id));
+  const estilo = resolverEstiloDeLegenda(tsSettings.estilo, { altoContraste: tsSettings.textColor === 'highContrast' });
   return (
     <>
       <div className="g-vis">
@@ -111,13 +128,34 @@ export default function TranscriptVisualSettings({
             </select>
           </label>
         ))}
+        <label htmlFor={`${idPrefix}-estilo`}>
+          <span className="label-mono">Estilo</span>
+          <select
+            className="campo"
+            id={`${idPrefix}-estilo`}
+            name={`${idPrefix}-estilo`}
+            aria-label="Estilo"
+            value={estilo.id}
+            onChange={(e) => updateSetting('estilo', e.target.value)}
+          >
+            {meusEstilos.map((e) => (
+              <option key={e.id} value={e.id}>
+                {nomeDoEstilo(e.id)}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
       <div
-        className={`previa-leg tema-${TEMA[tsSettings.textColor]} tam-${TAMANHO[tsSettings.fontSize]} fonte-${tsSettings.fontFamily}`}
+        className={`previa-leg tema-${TEMA[tsSettings.textColor]} tam-${TAMANHO[tsSettings.fontSize]} fonte-${tsSettings.fontFamily} ${classesDoEstilo(estilo)}`}
         aria-label="Prévia da legenda"
       >
         {tsSettings.displayOrder === 'translated-first' && traduzida}
-        {!tsSettings.hideOriginal && <span className="o">Let&apos;s go over the roadmap.</span>}
+        {!tsSettings.hideOriginal && (
+          <span className="o leg-o">
+            Let&apos;s go over the <span data-aprendida>roadmap</span>.
+          </span>
+        )}
         {tsSettings.displayOrder === 'original-first' && traduzida}
       </div>
     </>

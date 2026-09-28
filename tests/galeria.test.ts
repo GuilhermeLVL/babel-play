@@ -1,13 +1,10 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import { cursorValido,emojiDoCursor, idDeCursorDeEmoji, readCursor, setCursor } from '../src/lib/cursores'
-import { CATEGORIAS_DE_EMOJI, sanearListaDeEmojis,todosOsEmojis } from '../src/lib/galeria/emojis'
 import { buscarPaletas, paletaPorId,todasAsPaletas } from '../src/lib/galeria/paletas'
 import { apagarPerfil, perfisSalvos, PRESETS, renomearPerfil,salvarPerfil } from '../src/lib/galeria/perfis'
 import { restaurarVisualPadrao } from '../src/lib/galeria/restaurar'
-import { emojisDoPack, lerPackCustom, PACK_CUSTOM, PACKS_DE_EMOJI, readPack, setPack,setPackCustom } from '../src/lib/particulas'
-import { estiloDeRastro, idDeRastroDeEmojis, idDeRastroGerado, rastroValido,readRastro, setRastro } from '../src/lib/rastroDoMouse'
+import { estiloDeRastro, idDeRastroGerado, rastroValido,readRastro, setRastro } from '../src/lib/rastroDoMouse'
 
 /** Luminância relativa aproximada (0..1) de um #RRGGBB. */
 function lum(hex: string): number {
@@ -39,41 +36,15 @@ describe('galeria de paletas — centenas sem CSS', () => {
   })
 })
 
-describe('catálogo de emojis', () => {
-  it('centenas de emojis, sem repetição (nem dentro de uma categoria), com patos variados', () => {
-    const t = todosOsEmojis()
-    expect(t.length).toBeGreaterThanOrEqual(350)
-    expect(new Set(t).size).toBe(t.length)
-    // Chave de React duplicada no editor: cada categoria também não pode repetir emoji.
-    for (const c of CATEGORIAS_DE_EMOJI) expect(new Set(c.emojis).size, c.id).toBe(c.emojis.length)
-    expect(CATEGORIAS_DE_EMOJI.find((c) => c.id === 'patos')!.emojis).toEqual(expect.arrayContaining(['🦆', '🐤', '🐔', '🦢']))
-  })
-  it('sanear só aceita o catálogo e tira repetidos', () => {
-    expect(sanearListaDeEmojis(['🦆', 'x', '🦆', 42, '🍕'])).toEqual(['🦆', '🍕'])
-  })
-})
-
-describe('pack personalizado', () => {
-  it('lista escolhida vira o pack equipado; vazia volta ao clássico', () => {
-    setPackCustom(['🦆', '🐤'])
-    expect(readPack()).toBe(PACK_CUSTOM)
-    expect(emojisDoPack()).toEqual(['🦆', '🐤'])
-    setPackCustom([])
-    expect(readPack()).toBe('classico')
-    expect(lerPackCustom()).toEqual([])
-    setPack('animais')
-    expect(emojisDoPack()).toEqual(PACKS_DE_EMOJI.find((p) => p.id === 'animais')!.emojis)
-  })
-})
-
+/* Catálogo de emojis, pack personalizado e cursor de qualquer emoji saíram nas recompensas v2
+   (27/09), com os testes deles. */
 describe('rastro personalizado', () => {
-  it('forma × paleta e lista de emojis resolvem para kind + sobrescrever; inválido cai em off', () => {
+  it('forma × paleta resolve para kind + sobrescrever; emojis e inválido caem em off', () => {
     const g = estiloDeRastro(idDeRastroGerado('estrelas', 'oceano-profundo'))!
     expect(g.kind).toBe('rastroEstrelas')
     expect(g.sobrescrever?.paleta?.[0]).toBe('#38BDF8')
-    const e = estiloDeRastro(idDeRastroDeEmojis(['🦆', '🐤']))!
-    expect(e.kind).toBe('rastroEmoji')
-    expect(e.sobrescrever?.emojis).toEqual(['🦆', '🐤'])
+    expect(estiloDeRastro('emojis:🦆,🐤')).toBeNull()
+    expect(rastroValido('emoji')).toBe(false)
     expect(rastroValido('gen:estrelas:nao-existe')).toBe(false)
     expect(setRastro('gen:estrelas:nao-existe')).toBe('off')
     setRastro(idDeRastroGerado('pixel', 'arcade'))
@@ -82,41 +53,29 @@ describe('rastro personalizado', () => {
   })
 })
 
-describe('cursor de qualquer emoji', () => {
-  it('aplica data-cursor e injeta a regra viva só para o equipado', () => {
-    const id = idDeCursorDeEmoji('🐔')
-    expect(cursorValido(id)).toBe(true)
-    expect(emojiDoCursor(id)).toBe('🐔')
-    setCursor(id)
-    expect(readCursor()).toBe(id)
-    expect(document.documentElement.getAttribute('data-cursor')).toBe(id)
-    expect(document.getElementById('babel-cursor-vivo-css')?.textContent).toContain('%F0%9F%90%94')
-    expect(setCursor('emoji:x')).toBe('padrao')
-    expect(document.documentElement.hasAttribute('data-cursor')).toBe(false)
-  })
-})
-
 describe('perfis', () => {
-  it('presets referenciam paletas, packs e rastros que existem', () => {
+  it('presets referenciam paletas e rastros que existem', () => {
     for (const p of PRESETS) {
       if (p.paleta) expect(paletaPorId(p.paleta), `${p.id} → ${p.paleta}`).toBeTruthy()
-      if (typeof p.pack === 'string') expect(PACKS_DE_EMOJI.some((k) => k.id === p.pack), `${p.id} → ${p.pack}`).toBe(true)
-      else expect(sanearListaDeEmojis(p.pack).length, p.id).toBe(p.pack.length)
       expect(rastroValido(p.rastro), `${p.id} → ${p.rastro}`).toBe(true)
-      expect(cursorValido(p.cursor), `${p.id} → ${p.cursor}`).toBe(true)
     }
     expect(PRESETS.length).toBeGreaterThanOrEqual(12)
   })
   it('salvar, listar e apagar perfis próprios', () => {
-    const p = salvarPerfil({ nome: 'Meu pato roxo', emoji: '🦆', desc: '', paleta: 'roxo-escuro', fonte: 'padrao', particulas: 'emoji', pack: ['🦆'], cursor: 'pato', rastro: 'off' })
+    const p = salvarPerfil({ nome: 'Meu pato roxo', icone: 'passaro', desc: '', paleta: 'roxo-escuro', fonte: 'padrao', particulas: 'estrelas', rastro: 'off' })
     expect(perfisSalvos().map((x) => x.id)).toContain(p.id)
     expect(perfisSalvos()[0].proprio).toBe(true)
     apagarPerfil(p.id)
     expect(perfisSalvos()).toEqual([])
   })
+  it('perfil salvo antes do ícone lucide (com `emoji`, sem `icone`) ganha o brilho', () => {
+    localStorage.setItem('babel.perfis', JSON.stringify([{ id: 'meu-v1', nome: 'Antigo', emoji: 'x', desc: '', tema: 'babel', fonte: 'padrao', particulas: 'tema', rastro: 'off' }]))
+    expect(perfisSalvos()[0].icone).toBe('brilho')
+    localStorage.removeItem('babel.perfis')
+  })
   it('renomear muda só o nome, no lugar, e rejeita vazio', () => {
-    const a = salvarPerfil({ nome: 'A', emoji: '🅰️', desc: '', tema: 'babel', fonte: 'padrao', particulas: 'tema', pack: 'classico', cursor: 'padrao', rastro: 'off' })
-    const b = salvarPerfil({ nome: 'B', emoji: '🅱️', desc: '', tema: 'babel', fonte: 'padrao', particulas: 'tema', pack: 'classico', cursor: 'padrao', rastro: 'off' })
+    const a = salvarPerfil({ nome: 'A', icone: 'sol', desc: '', tema: 'babel', fonte: 'padrao', particulas: 'tema', rastro: 'off' })
+    const b = salvarPerfil({ nome: 'B', icone: 'lua', desc: '', tema: 'babel', fonte: 'padrao', particulas: 'tema', rastro: 'off' })
     expect(renomearPerfil(a.id, '  ')).toBeNull()
     expect(renomearPerfil('nao-existe', 'X')).toBeNull()
     const novo = renomearPerfil(a.id, 'A renomeado')

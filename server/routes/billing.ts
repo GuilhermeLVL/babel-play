@@ -19,11 +19,9 @@ import { z } from 'zod'
 
 import { centavosParaReais, pacotePorSku } from '../../src/core/creditos'
 import { autorizarGastoDeCredito, ehRecusa } from '../../src/core/economiaAutoridade'
-import { passeNivel, premiumDoNivel, TEMPORADA_ATUAL } from '../../src/core/passe'
 import { ehPlanoDeAssinatura, PLAN_MATRIX } from '../../src/core/planos'
 import { billingEventsRepo } from '../db/repositories/billingEvents'
 import { creditsRepo } from '../db/repositories/credits'
-import { economiaDoUsuario } from '../db/repositories/metrics'
 import { subscriptionsRepo } from '../db/repositories/subscriptions'
 import { vinculosRepo } from '../db/repositories/vinculos'
 import { MENSAGEM_CHECKOUT_DESLIGADO } from '../lib/abertura'
@@ -78,6 +76,35 @@ const assinarSchema = z
   .strip()
 
 /**
+ * PERFIL PROTEGIDO NÃO COMPRA — a régua do servidor, igual à `perfilProtegido()` do cliente
+ * (`src/lib/protecaoDoMenor.ts`): menor de 18, ou quem ainda não declarou a data (a configuração
+ * mais protetiva é a padrão, ECA Digital; compra sob controle do responsável, art. 18). Vale para
+ * pagar em dinheiro (`/assinar`, `/comprar`) e para gastar Créditos (`/gastar`). Self-host não tem
+ * idade: passa. Devolve `true` depois de já ter respondido o 403.
+ */
+async function recusouPerfilProtegido(
+  req: import('express').Request,
+  res: import('express').Response,
+): Promise<boolean> {
+  if (!authRequired()) return false
+  const quem = await ehAdultoDeclarado(req.userId)
+  if (!quem.informado) {
+    responderErro(res, 403, 'informe a sua data de nascimento antes de pagar', 'idade_nao_informada')
+    return true
+  }
+  if (!quem.adulto) {
+    responderErro(
+      res,
+      403,
+      'contas de menores de 18 anos não fazem compras: peça ao seu responsável para assinar por você',
+      'menor_nao_compra',
+    )
+    return true
+  }
+  return false
+}
+
+/**
  * QUEM PAGA E PARA QUEM (Fases 3 e 4 do lançamento) — a porta comum de `/assinar` e `/comprar`.
  *
  * 1. `CHECKOUT_ENABLED=0` fecha a venda com mensagem clara (503 `checkout_desligado`).
@@ -99,20 +126,7 @@ async function autorizarPagamento(
     return null
   }
   if (!authRequired()) return req.userId
-  const pagador = await ehAdultoDeclarado(req.userId)
-  if (!pagador.informado) {
-    responderErro(res, 403, 'informe a sua data de nascimento antes de pagar', 'idade_nao_informada')
-    return null
-  }
-  if (!pagador.adulto) {
-    responderErro(
-      res,
-      403,
-      'contas de menores de 18 anos não fazem compras: peça ao seu responsável para assinar por você',
-      'menor_nao_compra',
-    )
-    return null
-  }
+  if (await recusouPerfilProtegido(req, res)) return null
   if (!paraUsuario || paraUsuario === req.userId) return req.userId
   const menor = asUserId(paraUsuario)
   if (!(await vinculosRepo.ehResponsavelDe(req.userId, menor))) {
@@ -187,7 +201,6 @@ billingRouter.get('/creditos', async (req, res) => {
     ])
     res.json({
       saldo,
-      temPasse: compras.some((c) => c.sku === 'passe-t1' && c.status === 'pago'),
       /* A posse do que se pagou vem do SERVIDOR, sempre: nada comprado com dinheiro vive em
          localStorage (spec economia-de-creditos). O cliente só espelha. */
       itensPremium,
@@ -214,6 +227,10 @@ billingRouter.post('/gastar', async (req, res) => {
   const payload = parseOr400(gastarCreditoSchema, req.body, res)
   if (!payload) return
   try {
+    /* LOJA COM CRÉDITOS (recompensas v2, onda 6): perfil protegido não gasta — nem o saldo que o
+       responsável comprou para ele, nem reenviando um `spendId` antigo. O 403 vem ANTES do motivo
+       e da idempotência: a tela dele nem mostra a vitrine, então qualquer pedido daqui é recusa. */
+    if (await recusouPerfilProtegido(req, res)) return
     const autorizacao = autorizarGastoDeCredito(payload.reason)
     if (ehRecusa(autorizacao)) {
       res.status(400).json({ error: autorizacao.erro })
@@ -255,46 +272,15 @@ billingRouter.post('/gastar', async (req, res) => {
 })
 
 /**
- * OS CRÉDITOS DA TRILHA PAGA — a promessa que a tela fazia e nenhum código cumpria.
+ * DEPRECIADA (recompensas v2, onda 5): os Créditos da trilha paga do Passe de 100 casas.
  *
- * `ComprarCreditos` e o CTA do Passe anunciam "1.134 Créditos ao longo da trilha"
- * (`core/creditos.ts`, `PasseDeTemporada.tsx`), e a fileira premium era `role="img"` sem handler:
- * ninguém creditava nada. Quem pagasse R$ 14,90 recebia uma fileira trancada que continuava
- * trancada.
- *
- * O DESENHO É O DAS SEEDS DO PASSE, que já funciona: o servidor decide QUAIS casas foram
- * alcançadas (do nível que ele mesmo calcula, não do que o cliente diz), e credita cada uma UMA
- * vez, idempotente por `passe:<temporada>:premium-<n>`. Reabrir a tela nunca credita duas vezes.
- *
- * SEM O PASSE, NADA. A fileira continua sendo vitrine honesta — mostra o que viria, sem entregar.
+ * O Passe saiu — a trilha paga agora é a de ASSINANTE da temporada (`core/temporada.ts`), que
+ * entrega item e nunca Créditos. A rota fica, sem efeito, porque uma aba aberta com o bundle
+ * anterior (ou um rollback) ainda a chama, e a política da API é depreciar antes de remover
+ * (`tests/contratos/api-depreciacoes.json`). A resposta é a honesta de quem não tem o que receber.
  */
-billingRouter.post('/creditar-passe', async (req, res) => {
-  try {
-    const compras = await creditsRepo.comprasDoUsuario(req.userId, 50)
-    const temPasse = compras.some((c) => c.sku === 'passe-t1' && c.status === 'pago')
-    if (!temPasse) {
-      res.json({ creditado: 0, temPasse: false })
-      return
-    }
-    const { nivel } = await economiaDoUsuario(req.userId)
-    // A casa alcançada vem do NÍVEL do servidor. `pct: 0` é o piso: só casa inteira conta.
-    const ate = passeNivel(nivel, 0)
-    let creditado = 0
-    for (let casa = 1; casa <= ate; casa++) {
-      const slot = premiumDoNivel(casa)
-      if (slot.tipo !== 'creditos') continue
-      const r = await creditsRepo.registrarConcessao(req.userId, {
-        concessaoId: `passe:${TEMPORADA_ATUAL}:premium-${casa}`,
-        creditos: slot.quantidade,
-      })
-      if (!r.jaExistia) creditado += slot.quantidade
-    }
-    res.json({ creditado, temPasse: true, saldo: await creditsRepo.saldo(req.userId) })
-  } catch (err) {
-    res.status(500).json({
-      error: erroDeRota(err, { status: 500, event: 'billing_error', route: req.path, requestId: req.requestId }),
-    })
-  }
+billingRouter.post('/creditar-passe', (_req, res) => {
+  res.json({ creditado: 0, temPasse: false })
 })
 
 billingRouter.post('/assinar', async (req, res) => {

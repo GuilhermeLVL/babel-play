@@ -12,15 +12,17 @@
  * que já mandam na aparência (persistTheme/setParticulas) — a loja não inventa um segundo dono.
  */
 import type { TipoDesbloqueavel } from '@core';
-import { CATALOGO_DA_LOJA, CONQUISTAS, type ItemDaLoja, type Raridade } from '@core';
+import { abrePorNivel, CATALOGO_DA_LOJA, CONQUISTAS, type ItemDaLoja, precoSeedsDoItem, type Raridade, rotuloDaMaestria, soPorSeeds, temporadaPorId, temPortaDeNivel } from '@core';
 
 import { conquistasDesbloqueadas } from './conquistasPosse';
 import { liberadoTudo } from './liberacaoDev';
+import { nivelCreditado } from './maestriaPosse';
+import { itensDaTemporadaPossuidos } from './temporadaPosse';
 
 /* O catálogo e os tipos mudaram para `src/core/loja.ts` para que o SERVIDOR possa lê-los (ver o
    cabeçalho de lá). Reexportados daqui porque 30+ telas importam `from '../lib/loja'` e trocar o
    caminho em todas seria ruído sem ganho — o dono do dado é o core, o endereço continua o mesmo. */
-export { CATALOGO_DA_LOJA };
+export { abrePorNivel, CATALOGO_DA_LOJA, soPorSeeds, temPortaDeNivel };
 export type { ItemDaLoja, Raridade, TipoDaLoja } from '@core';
 
 
@@ -108,23 +110,46 @@ export function estadoDoItem(item: ItemDaLoja, nivel: number, saldoSeeds: number
   estado: EstadoDoItem; motivo?: string;
 } {
   if (liberadoTudo()) return { estado: 'equipavel' };
+  /* O equivalente pago (recompensas v2): a posse premium vinda do servidor já troca o item pago
+     que saiu do catálogo pelo equivalente, e ela abre o item por qualquer porta. */
+  if (premiumPossuidos().has(item.id)) return { estado: 'equipavel' };
   // Exclusivo: nem nível nem Seeds abrem — só a conquista. O motivo diz QUAL.
   if (item.exclusivoDe) {
     if (conquistasDesbloqueadas().has(item.exclusivoDe)) return { estado: 'equipavel' };
     const c = CONQUISTAS.find((x) => x.id === item.exclusivoDe);
     return { estado: 'bloqueado', motivo: `Conquista: ${c?.nome ?? item.exclusivoDe}` };
   }
-  /* PREMIUM: paga-se com Créditos ou vem no Passe. Nível e Seeds não abrem — como o exclusivo
+  /* MAESTRIA (recompensas v2, onda 3): só o nível de maestria do jogo abre — nem nível da conta,
+     nem Seeds, nem Créditos. O motivo diz o jogo e o nível ("Maestria: Memória Platina"), nunca um
+     preço. A posse é o crédito `maestria:<jogo>:<nível>` que o servidor já confirmou. */
+  if (item.origemMaestria) {
+    const { jogo, nivel: exigido } = item.origemMaestria;
+    if (nivelCreditado(jogo) >= exigido) return { estado: 'equipavel' };
+    return { estado: 'bloqueado', motivo: `Maestria: ${rotuloDaMaestria(jogo, exigido)}` };
+  }
+  /* TEMPORADA (recompensas v2, onda 5): a trilha abre (crédito `temporada:` que o servidor já
+     confirmou); um ano depois do fim da temporada, também a compra com Seeds (`precoSeedsDoItem`). */
+  if (item.origemTemporada) {
+    if (itensDaTemporadaPossuidos().has(item.id) || possuidos().has(item.id)) return { estado: 'equipavel' };
+    const preco = precoSeedsDoItem(item, Date.now());
+    if (preco !== undefined) return saldoSeeds >= preco ? { estado: 'compravel' } : { estado: 'bloqueado', motivo: `${preco} Seeds` };
+    return { estado: 'bloqueado', motivo: `Temporada ${temporadaPorId(item.origemTemporada.temporada)?.numero ?? ''}`.trim() };
+  }
+    /* PREMIUM: paga-se com Créditos. Nível e Seeds não abrem — como o exclusivo
      de conquista, é uma via só, e a tela tem de dizer QUAL. O saldo de Créditos é do servidor
      (`useCarteira`), então quem decide "compravel" aqui é a POSSE; a tela pede o resto. */
   if (item.precoCreditos !== undefined) {
     if (premiumPossuidos().has(item.id)) return { estado: 'equipavel' };
-    return { estado: 'bloqueado', motivo: `${item.precoCreditos} Créditos ou o Passe` };
+    return { estado: 'bloqueado', motivo: `${item.precoCreditos} Créditos` };
   }
-  if (nivel >= item.nivel || possuidos().has(item.id)) return { estado: 'equipavel' };
+  /* SEM PORTA DE NÍVEL (recompensas v2: `nivel` ausente na onda 3, `NIVEL_SO_SEEDS` na onda 4): o
+     nível da conta não abre — só a compra com Seeds. */
+  if (abrePorNivel(item, nivel) || possuidos().has(item.id)) return { estado: 'equipavel' };
   if (item.precoSeeds !== undefined && saldoSeeds >= item.precoSeeds) return { estado: 'compravel' };
-  if (item.precoSeeds !== undefined) return { estado: 'bloqueado', motivo: `Nível ${item.nivel} ou ${item.precoSeeds} Seeds` };
-  return { estado: 'bloqueado', motivo: `Nível ${item.nivel}` };
+  if (item.precoSeeds !== undefined) {
+    return { estado: 'bloqueado', motivo: temPortaDeNivel(item) ? `Nível ${item.nivel} ou ${item.precoSeeds} Seeds` : `${item.precoSeeds} Seeds` };
+  }
+  return { estado: 'bloqueado', motivo: temPortaDeNivel(item) ? `Nível ${item.nivel}` : 'Indisponível' };
 }
 
 /**
@@ -156,8 +181,8 @@ export function estadoPorAlvo(
 
 /** Itens que o nível N (próximo) vai liberar — a vitrine de "continue jogando". */
 export function vitrineDoProximoNivel(nivelAtual: number): ItemDaLoja[] {
-  const proximos = CATALOGO_DA_LOJA.filter((i) => !i.exclusivoDe && i.nivel > nivelAtual);
-  const menorNivel = Math.min(...proximos.map((i) => i.nivel));
+  const proximos = CATALOGO_DA_LOJA.filter((i) => !i.exclusivoDe && temPortaDeNivel(i) && i.nivel! > nivelAtual);
+  const menorNivel = Math.min(...proximos.map((i) => i.nivel ?? Infinity));
   return Number.isFinite(menorNivel) ? proximos.filter((i) => i.nivel === menorNivel) : [];
 }
 
@@ -187,7 +212,7 @@ export const COR_DA_RARIDADE: Record<Raridade, { borda: string; fundo: string; r
  *
  * A partir daqui, ORIGEM é a pergunta que a COR responde, em qualquer tela; a raridade vira selo.
  */
-export type OrigemDoItem = 'nivel' | 'seeds' | 'conquista' | 'creditos';
+export type OrigemDoItem = 'nivel' | 'seeds' | 'conquista' | 'creditos' | 'temporada';
 
 export const ORIGEM: Record<OrigemDoItem, { rotulo: string; comoSeGanha: string; borda: string; fundo: string; texto: string }> = {
   // Os três primeiros reusam tokens que JÁ significam isso no app (accent = progressão na barra
@@ -195,7 +220,9 @@ export const ORIGEM: Record<OrigemDoItem, { rotulo: string; comoSeGanha: string;
   nivel: { rotulo: 'Nível', comoSeGanha: 'chega estudando', borda: 'border-accent', fundo: 'bg-accent-soft', texto: 'text-accent-ink' },
   seeds: { rotulo: 'Seeds', comoSeGanha: 'compra com a moeda de estudo', borda: 'border-good', fundo: 'bg-good-soft', texto: 'text-good-ink' },
   conquista: { rotulo: 'Conquista', comoSeGanha: 'só fazendo — não se compra', borda: 'border-warn', fundo: 'bg-warn-soft', texto: 'text-warn-ink' },
-  creditos: { rotulo: 'Créditos', comoSeGanha: 'Passe Premium e prateleira paga', borda: 'border-premium', fundo: 'bg-premium-soft', texto: 'text-premium-ink' },
+  creditos: { rotulo: 'Créditos', comoSeGanha: 'prateleira paga', borda: 'border-premium', fundo: 'bg-premium-soft', texto: 'text-premium-ink' },
+  /* A quinta origem (recompensas v2, onda 5): a trilha da temporada, grátis ou de assinante. */
+  temporada: { rotulo: 'Temporada', comoSeGanha: 'sobe estudando na temporada', borda: 'border-epic', fundo: 'bg-epic-soft', texto: 'text-epic' },
 };
 
 /**
@@ -206,9 +233,11 @@ export const ORIGEM: Record<OrigemDoItem, { rotulo: string; comoSeGanha: string;
  * do item), a resposta é a origem POSSÍVEL, não a efetiva.
  */
 export function origemDoItem(item: ItemDaLoja, possuido = false): OrigemDoItem {
-  if (item.exclusivoDe) return 'conquista';
-  /* `ORIGEM.creditos` existia com o rótulo "Passe Premium e prateleira paga" e esta função nunca
-     o devolvia — a quarta origem da régua era um rótulo sem dono. Agora tem. */
+  /* Maestria é da família da conquista: só fazendo, nunca à venda (a cor é a mesma). */
+  if (item.exclusivoDe || item.origemMaestria) return 'conquista';
+  if (item.origemTemporada) return 'temporada';
+  /* `ORIGEM.creditos` existia com um rótulo e esta função nunca o devolvia — a quarta origem da
+     régua era um rótulo sem dono. Agora tem. */
   if (item.precoCreditos !== undefined) return 'creditos';
   if (possuido) return 'seeds';
   return 'nivel';
@@ -235,7 +264,7 @@ export function origemDoItem(item: ItemDaLoja, possuido = false): OrigemDoItem {
  * A COR SAI DE `ORIGEM`, nunca de literal: é a régua que declara que "ORIGEM é a pergunta que a
  * COR responde, em qualquer tela".
  */
-export type DestinoDeObtencao = 'conquistas' | 'loja' | 'passe';
+export type DestinoDeObtencao = 'conquistas' | 'loja' | 'passe' | 'jogar';
 
 export interface RotaDeObtencao {
   origem: OrigemDoItem;
@@ -253,23 +282,38 @@ export function rotaDeObtencao(item: ItemDaLoja, saldoSeeds = 0): RotaDeObtencao
     return {
       origem: 'conquista',
       titulo: 'Só por conquista',
-      texto: `Recompensa da conquista "${c?.nome ?? item.exclusivoDe}". Não entra na Loja nem no Passe: só fazendo.`,
+      texto: `Recompensa da conquista "${c?.nome ?? item.exclusivoDe}". Não entra na Loja nem na Temporada: só fazendo.`,
       destino: 'conquistas',
       rotuloDoBotao: 'Ver em Conquistas',
     };
   }
+  if (item.origemMaestria) {
+    const { jogo, nivel } = item.origemMaestria;
+    return {
+      origem: 'conquista',
+      titulo: 'Só por maestria',
+      texto: `Recompensa da maestria: chegue a ${rotuloDaMaestria(jogo, nivel)} jogando. Não se compra, não cai no baú.`,
+      destino: 'jogar',
+      rotuloDoBotao: 'Ir jogar',
+    };
+  }
+  if (item.origemTemporada) {
+    const t = temporadaPorId(item.origemTemporada.temporada);
+    return {
+      origem: 'temporada',
+      titulo: 'Só pela temporada',
+      texto: `Recompensa da trilha da Temporada ${t?.numero ?? ''}: sobe estudando durante a temporada. Não cai no baú; volta à Loja com Seeds um ano depois do fim.`,
+      destino: 'passe',
+      rotuloDoBotao: 'Ver na Temporada',
+    };
+  }
   if (item.precoCreditos !== undefined) {
-    /* O item do Passe premium tem as DUAS portas — a casa da trilha e a prateleira avulsa — e
-       dizer só uma delas é esconder metade do preço. */
-    const naTrilha = item.exclusivoDoPasse !== undefined
-      ? ` Vem de graça na casa ${item.exclusivoDoPasse} do Passe, para quem tem o Passe Premium.`
-      : '';
     return {
       origem: 'creditos',
       titulo: 'Prateleira paga',
-      texto: `Custa ${item.precoCreditos} Créditos na Loja.${naTrilha}`,
-      destino: item.exclusivoDoPasse !== undefined ? 'passe' : 'loja',
-      rotuloDoBotao: item.exclusivoDoPasse !== undefined ? 'Ver no Passe' : 'Ver na Loja',
+      texto: `Custa ${item.precoCreditos} Créditos na Loja.`,
+      destino: 'loja',
+      rotuloDoBotao: 'Ver na Loja',
     };
   }
   if (item.precoSeeds !== undefined) {
@@ -277,6 +321,16 @@ export function rotaDeObtencao(item: ItemDaLoja, saldoSeeds = 0): RotaDeObtencao
     const bolso = falta <= 0
       ? `Você já tem as ${item.precoSeeds} Seeds.`
       : `Faltam ${falta} Seeds para o atalho.`;
+    /* Sem porta de nível (recompensas v2): a única porta é a compra. */
+    if (soPorSeeds(item)) {
+      return {
+        origem: 'seeds',
+        titulo: 'Loja com Seeds',
+        texto: `Não chega por nível: custa ${item.precoSeeds} Seeds na Loja, a moeda que se ganha estudando. ${bolso}`,
+        destino: 'loja',
+        rotuloDoBotao: 'Ver na Loja',
+      };
+    }
     return {
       origem: 'seeds',
       titulo: 'Nível ou atalho',
@@ -288,9 +342,9 @@ export function rotaDeObtencao(item: ItemDaLoja, saldoSeeds = 0): RotaDeObtencao
   return {
     origem: 'nivel',
     titulo: 'Recompensa de estudo',
-    texto: `Chega sozinho ao alcançar o nível ${item.nivel} — não se compra, e o Passe mostra em que casa ele cai.`,
-    destino: 'passe',
-    rotuloDoBotao: 'Ver no Passe',
+    texto: `Chega sozinho ao alcançar o nível ${item.nivel} — não se compra.`,
+    destino: 'jogar',
+    rotuloDoBotao: 'Ir estudar',
   };
 }
 

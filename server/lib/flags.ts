@@ -275,7 +275,7 @@ export async function definirFlag(chave: string, alt: AlteracaoDeFlag, ator: str
     if (alt.payload === null) payload = null
     else {
       const schema = SCHEMAS_DE_PAYLOAD[chave]
-      let valor = alt.payload
+      let valor: unknown = alt.payload
       if (schema) {
         const p = schema.safeParse(alt.payload)
         if (!p.success) throw new ErroDeFlag(`payload inválido para ${chave}`, detalhesDoZod(p.error))

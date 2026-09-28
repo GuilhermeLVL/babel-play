@@ -1,4 +1,7 @@
 import './index.css';
+/* Os 6 temas completos das recompensas v2 (paleta, fonte de título, textura, fundo, HUD). Logo
+   depois do index.css: os dois falam na mesma camada `base`, e o tema vem por último. */
+import './styles/temas-v2.css';
 /* O protótipo aprovado é o "Figma" do app: o mesmo CSS, gerado de docs/prototipos. Depois do
    index.css para que, onde os dois falam da mesma classe, valha o desenho aprovado. */
 import './styles/prototipo.css';

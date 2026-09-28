@@ -19,7 +19,8 @@
  * item a item. A paleta livre é uma capacidade (o "Estúdio"), e é a capacidade que tem dono — se
  * o Estúdio está liberado, as cores são da pessoa.
  */
-import { CATALOGO_DA_LOJA } from '../../src/core/loja'
+import { vendavelEmCreditos } from '../../src/core/economiaAutoridade'
+import { abrePorNivel, CATALOGO_DA_LOJA, temPortaDeNivel } from '../../src/core/loja'
 import { creditsRepo } from '../db/repositories/credits'
 import { economiaRepo } from '../db/repositories/economia'
 import { economiaDoUsuario } from '../db/repositories/metrics'
@@ -79,23 +80,32 @@ export async function recusaDePosse(
   const { nivel, comprados, conquistas, premium } =
     typeof ctx === 'function' ? await ctx() : (ctx ?? (await contextoDePosse(userId)))
 
+  /* AS ORIGENS QUE NÃO SE COMPRAM VÊM ANTES DE TUDO (revisão de 27/09, P0). A posse premium
+     chegava primeiro e abria qualquer item listado nela — e o reembolso mapeava três douradas para
+     o tema Aurora, exclusivo da conquista "Constante". Conquista e maestria se conferem pela
+     própria origem, sempre; Créditos só abrem o que está à venda em Créditos. */
   if (item.exclusivoDe) {
     return conquistas.includes(item.exclusivoDe)
       ? null
       : { tipo, alvo, motivo: `exige a conquista "${item.exclusivoDe}"` }
   }
+  /* Maestria (recompensas v2): o servidor confere a posse pelo crédito, e os efeitos de jogo não
+     passam por `settings` — quem chegar aqui com um deles é recusado. */
+  if (item.origemMaestria) return { tipo, alvo, motivo: 'exige maestria do jogo' }
+  if (vendavelEmCreditos(item) && premium.includes(item.id)) return null
   if (item.precoCreditos !== undefined) {
-    return premium.includes(item.id)
-      ? null
-      : { tipo, alvo, motivo: `item premium: ${item.precoCreditos} créditos ou o Passe` }
+    return { tipo, alvo, motivo: `item da vitrine de Créditos: ${item.precoCreditos} Créditos` }
   }
-  if (nivel >= item.nivel || comprados.includes(item.id)) return null
+  /* Sem porta de nível (recompensas v2: `nivel` ausente ou `NIVEL_SO_SEEDS`) só a compra abre. */
+  if (abrePorNivel(item, nivel) || comprados.includes(item.id)) return null
   return {
     tipo,
     alvo,
     motivo:
-      item.precoSeeds !== undefined
-        ? `exige nível ${item.nivel} ou ${item.precoSeeds} seeds`
-        : `exige nível ${item.nivel}`,
+      !temPortaDeNivel(item)
+        ? `exige ${item.precoSeeds ?? 0} seeds`
+        : item.precoSeeds !== undefined
+          ? `exige nível ${item.nivel} ou ${item.precoSeeds} seeds`
+          : `exige nível ${item.nivel}`,
   }
 }

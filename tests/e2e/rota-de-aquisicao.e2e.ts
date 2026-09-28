@@ -65,7 +65,7 @@ test.describe('Rota de aquisição no Inventário', () => {
 
     /* O BOTÃO TEM DE CHEGAR. Um CTA que não navega é pior do que nenhum: ele gasta a intenção da
        pessoa e devolve a mesma tela. */
-    const ir = page.getByRole('button', { name: /^(Ver em Conquistas|Ver na Loja|Ver no Passe)$/ }).first()
+    const ir = page.getByRole('button', { name: /^(Ver em Conquistas|Ver na Loja|Ver na Temporada)$/ }).first()
     await expect(ir).toBeVisible()
     await clicarRobusto(page, ir)
     /* Loja e Passe viraram seções de Desafios em 12/09, então os três destinos publicam a mesma
@@ -84,25 +84,15 @@ test.describe('Rota de aquisição no Inventário', () => {
        exige mouse parado e não existe no toque. */
     await expect(page.getByText('Seeds', { exact: true }).first()).toBeVisible()
 
-    /* A unidade na conta que falta. "faltam 1364" podia ser XP, Seeds ou palavras. */
-    await expect(page.getByText(/faltam \d+ XP/)).toBeVisible()
-
-    /* O GOAL-GRADIENT É CONDICIONAL, e o teste respeita a condição: quem já passou da última
-       década do catálogo não tem próxima recompensa, e a barra não pode inventar uma. A fixture
-       deste e2e está no nível 15, acima do topo da curva — então aqui a ausência é o esperado, e
-       a presença da linha para um nível abaixo do topo fica coberta por `progressao.test.ts`. */
-    const linha = page.getByText(/peças? de graça no nv\. \d+/)
-    /* O nível sai do rótulo mono "nv. N" da barra (`CabecalhoDeTemporada.tsx`), que é único e
-       explícito. O primeiro número solto da página não é o nível: numa conta recém-nascida (o
-       runner da CI) ele era outro contador, o teste lia ">= 10" e cobrava a ausência da linha
-       num nível 1 — que a tem, e deve ter. */
-    const rotulo =
-      (await page
-        .getByText(/^nv\. \d+$/)
-        .first()
-        .textContent()) ?? 'nv. 1'
-    const nivel = Number(rotulo.replace(/\D/g, '')) || 1
-    if (nivel < 10) await expect(linha).toBeVisible()
-    else await expect(linha).toHaveCount(0)
+    /* O NÍVEL DO CABEÇALHO É O DA TEMPORADA (recompensas v2, 27/09), e só existe durante ela:
+       fora das datas a faixa diz quando vem a próxima e não há barra — nunca o nível da conta.
+       Durante a temporada, a unidade na conta que falta ("faltam 1364" podia ser XP, Seeds ou
+       palavras). A unidade de `CabecalhoDeTemporada` está em `cabecalho-de-temporada.test.tsx`. */
+    const faixa = (await page.getByTestId('faixa-da-temporada').first().textContent()) ?? ''
+    if (/Próxima temporada|ainda não tem data/.test(faixa)) {
+      await expect(page.getByText(/faltam \d+ XP/)).toHaveCount(0)
+    } else {
+      await expect(page.getByText(/faltam \d+ XP/).first()).toBeVisible()
+    }
   })
 })

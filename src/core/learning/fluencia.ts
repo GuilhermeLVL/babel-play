@@ -1,6 +1,7 @@
 import type { VocabCard } from '../../types';
 import { nivelCefr } from './cefrWordlist';
 import type { CefrLevel } from './contract';
+import { RETENCAO_DE_DOMINIO } from './dominio';
 import { retrievability } from './scheduler';
 import { NIVEIS_CEFR } from './trilha';
 
@@ -55,8 +56,9 @@ export const MIN_CARTOES_POR_FAIXA = 12;
 /** Com uma faixa só não há ordenação a verificar — e a regra do rótulo É sobre ordenação. */
 export const MIN_FAIXAS_COM_EVIDENCIA = 2;
 
-/** O mesmo corte de `etapas.ts` (`CORTE_DE_FEITA`) e de `nivelSugerido`. Não é cópia: é acordo. */
-export const RETENCAO_DE_DOMINIO = 0.8;
+/* O corte de domínio mora em `dominio.ts` (sem dependências) para quem só precisa dele — a pele de
+   cartão — não arrastar a wordlist deste arquivo para o arranque. O nome continua exportado daqui. */
+export { RETENCAO_DE_DOMINIO };
 
 const DIA = 86_400_000;
 

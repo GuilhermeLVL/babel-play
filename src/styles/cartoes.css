@@ -1,0 +1,92 @@
+/*
+ * PELES DE CARTÃO (recompensas v2, onda 4) — `src/lib/pelesDeCartao.ts`.
+ *
+ * O cartão recebe `pele-<id> cartao-<estado>` (nova | aprendida | dominada). A pele só mexe na
+ * MOLDURA (borda, anel, fundo decorativo): o texto, o tamanho e o layout do cartão são os de
+ * sempre. As cores vêm dos tokens do tema, então toda pele funciona nos 14 temas, claro e escuro.
+ */
+
+/* ── padrão (livre): o cartão de sempre, com o estado dito pela cor da borda ── */
+.pele-padrao.cartao-nova { border-color: var(--border-subtle); }
+.pele-padrao.cartao-aprendida { border-color: color-mix(in srgb, var(--good) 55%, var(--border-subtle)); }
+.pele-padrao.cartao-dominada {
+  border-color: var(--warn);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--warn) 22%, transparent), var(--shadow-card);
+}
+
+/* ── caderno (comum): folha pautada; a margem acende e a dominada ganha a orelha dobrada ── */
+.pele-caderno {
+  background-image:
+    linear-gradient(90deg, transparent 22px, var(--pele-margem, transparent) 22px 24px, transparent 24px),
+    repeating-linear-gradient(180deg, transparent 0 27px, color-mix(in srgb, var(--rare) 12%, transparent) 27px 28px);
+}
+.pele-caderno.cartao-nova { --pele-margem: color-mix(in srgb, var(--error) 18%, transparent); }
+.pele-caderno.cartao-aprendida {
+  --pele-margem: color-mix(in srgb, var(--error) 45%, transparent);
+  border-color: color-mix(in srgb, var(--good) 50%, var(--border-subtle));
+}
+.pele-caderno.cartao-dominada {
+  --pele-margem: var(--error);
+  border-color: var(--warn);
+  background-image:
+    linear-gradient(225deg, color-mix(in srgb, var(--warn) 55%, var(--surface)) 0 18px, transparent 18px),
+    linear-gradient(90deg, transparent 22px, var(--pele-margem) 22px 24px, transparent 24px),
+    repeating-linear-gradient(180deg, transparent 0 27px, color-mix(in srgb, var(--rare) 12%, transparent) 27px 28px);
+}
+
+/* ── selo (comum): picote de selo; aprendida carimbada, dominada em moldura dupla ── */
+.pele-selo { outline-offset: -8px; }
+.pele-selo.cartao-nova { outline: 2px dashed color-mix(in srgb, var(--ink) 16%, transparent); }
+.pele-selo.cartao-aprendida { outline: 2px dashed color-mix(in srgb, var(--good) 60%, transparent); }
+.pele-selo.cartao-dominada {
+  outline: 4px double var(--warn);
+  border-color: var(--warn);
+}
+
+/* ── vitral (raro): borda em gradiente que esquenta com a palavra ── */
+.pele-vitral {
+  border-color: transparent;
+  background:
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    linear-gradient(135deg, var(--pele-a), var(--pele-b)) border-box;
+}
+.pele-vitral.cartao-nova {
+  --pele-a: color-mix(in srgb, var(--rare) 35%, var(--border-subtle));
+  --pele-b: color-mix(in srgb, var(--accent) 25%, var(--border-subtle));
+}
+.pele-vitral.cartao-aprendida { --pele-a: var(--good); --pele-b: var(--rare); }
+.pele-vitral.cartao-dominada {
+  --pele-a: var(--warn);
+  --pele-b: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--warn) 18%, transparent), 0 12px 30px -14px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+/* ── constelação (raro): estrelas no fundo; a dominada brilha devagar ── */
+.pele-constelacao {
+  background-image:
+    radial-gradient(1.5px 1.5px at 14% 22%, var(--pele-estrela, transparent), transparent),
+    radial-gradient(1px 1px at 78% 18%, var(--pele-estrela, transparent), transparent),
+    radial-gradient(1.5px 1.5px at 62% 78%, var(--pele-estrela, transparent), transparent),
+    radial-gradient(1px 1px at 30% 70%, var(--pele-estrela, transparent), transparent),
+    radial-gradient(1px 1px at 90% 60%, var(--pele-estrela, transparent), transparent);
+}
+.pele-constelacao.cartao-nova { --pele-estrela: color-mix(in srgb, var(--ink) 22%, transparent); }
+.pele-constelacao.cartao-aprendida {
+  --pele-estrela: color-mix(in srgb, var(--rare) 70%, transparent);
+  border-color: color-mix(in srgb, var(--rare) 55%, var(--border-subtle));
+}
+.pele-constelacao.cartao-dominada {
+  --pele-estrela: var(--warn);
+  border-color: var(--warn);
+  animation: pele-brilho 3.2s ease-in-out infinite alternate;
+}
+@keyframes pele-brilho {
+  from { box-shadow: 0 0 0 2px color-mix(in srgb, var(--warn) 14%, transparent), var(--shadow-card); }
+  to { box-shadow: 0 0 0 5px color-mix(in srgb, var(--warn) 26%, transparent), var(--shadow-card); }
+}
+
+/* Modo leve e movimento reduzido: o brilho para (a moldura continua dizendo o estado). */
+html[data-modo-leve='true'] .pele-constelacao.cartao-dominada { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  .pele-constelacao.cartao-dominada { animation: none; }
+}

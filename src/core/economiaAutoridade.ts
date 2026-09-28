@@ -1,6 +1,23 @@
-import { type Conquista,CONQUISTAS } from './learning/conquistas'
-import { CATALOGO_DA_LOJA, type ItemDaLoja, type Raridade } from './loja'
-import { type SlotDoPasse,slotsDoPasse } from './passe'
+import { type Conquista, CONQUISTAS, type ContextoDeConquistas } from './learning/conquistas';
+import { PESOS_SEEDS, PESOS_XP } from './learning/xp';
+import { CATALOGO_DA_LOJA, type ItemDaLoja, type Raridade, temPortaDeNivel } from './loja';
+import {
+  creditoDeMaestria,
+  LIMIARES_DE_MAESTRIA,
+  type LinhaDeMaestria,
+  maestriaPorJogo,
+  type NivelAlcancavel,
+} from './maestria';
+import { estrelasDaRodada } from './minigames/fases';
+import type { MinigameId } from './minigames/types';
+import {
+  lerCreditoDaTemporada,
+  precoSeedsDoItem,
+  recompensaDaTrilha,
+  type Temporada,
+  type Trilha,
+  XP_POR_NIVEL_DA_TEMPORADA,
+} from './temporada';
 
 /**
  * A TABELA DE PREÇOS QUE O SERVIDOR CONSULTA.
@@ -28,36 +45,31 @@ import { type SlotDoPasse,slotsDoPasse } from './passe'
 
 /** Croma: barato de propósito — é onde a Seed sobrando vai parar, não uma segunda barreira. */
 export const PRECO_DO_CROMA: Record<Raridade, number> = {
-  comum: 15, raro: 25, epico: 40, lendario: 60,
-}
-
-/** Aprimoramento: três degraus, cada um mais caro que o anterior. */
-export const CUSTOS_DE_NIVEL = [50, 110, 220] as const
-export const NIVEL_MAXIMO_DE_APRIMORAMENTO = 3
+  comum: 15,
+  raro: 25,
+  epico: 40,
+  lendario: 60,
+};
 
 /** Pular a rodada mantendo o combo (economia v2: ≈ metade de um dia ativo). */
-export const CUSTO_PULAR_RODADA = 40
-
-/** Os alvos de aprimoramento que existem. Fora desta lista, o servidor não cobra. */
-export const ALVOS_DE_APRIMORAMENTO = ['particulas', 'sorte'] as const
+export const CUSTO_PULAR_RODADA = 40;
 
 /* ── Autorização de um GASTO ────────────────────────────────────────────────────────────────── */
 
 export type GastoAutorizado =
   | { tipo: 'loja'; itemId: string; preco: number }
   | { tipo: 'croma'; itemId: string; matiz: string; preco: number }
-  | { tipo: 'aprimoramento'; alvo: string; nivel: number; preco: number }
-  | { tipo: 'pular-rodada'; preco: number }
+  | { tipo: 'pular-rodada'; preco: number };
 
 /** Por que um motivo foi recusado — texto curto, para o 400 dizer o que houve. */
-export type RecusaDeGasto = { erro: string }
+export type RecusaDeGasto = { erro: string };
 
 /** Vale para qualquer autorização — de Seeds ou de Créditos. */
 export function ehRecusa<T extends object>(r: T | RecusaDeGasto): r is RecusaDeGasto {
-  return 'erro' in r
+  return 'erro' in r;
 }
 
-const itemPorId = (id: string): ItemDaLoja | undefined => CATALOGO_DA_LOJA.find((i) => i.id === id)
+const itemPorId = (id: string): ItemDaLoja | undefined => CATALOGO_DA_LOJA.find((i) => i.id === id);
 
 /**
  * Traduz o `reason` de um gasto no que ele autoriza — ou recusa.
@@ -65,46 +77,47 @@ const itemPorId = (id: string): ItemDaLoja | undefined => CATALOGO_DA_LOJA.find(
  * O formato é FECHADO de propósito. Enquanto `reason` era `z.string().max(40)`, ele era ao mesmo
  * tempo o campo de diagnóstico e o título de propriedade: qualquer string virava posse.
  */
-export function autorizarGasto(reason: string): GastoAutorizado | RecusaDeGasto {
-  if (reason === 'pular-rodada') return { tipo: 'pular-rodada', preco: CUSTO_PULAR_RODADA }
+export function autorizarGasto(reason: string, agora: number = Date.now()): GastoAutorizado | RecusaDeGasto {
+  if (reason === 'pular-rodada') return { tipo: 'pular-rodada', preco: CUSTO_PULAR_RODADA };
 
   if (reason.startsWith('loja:')) {
-    const itemId = reason.slice(5)
-    const item = itemPorId(itemId)
-    if (!item) return { erro: `item inexistente: ${itemId}` }
+    const itemId = reason.slice(5);
+    const item = itemPorId(itemId);
+    if (!item) return { erro: `item inexistente: ${itemId}` };
     /* O que só sai de conquista NUNCA entra pela porta da compra. Sem esta linha, um `reason`
        forjado entregava o tema Aurora — que a Loja não vende em lugar nenhum. */
-    if (item.exclusivoDe) return { erro: `${itemId} é exclusivo de conquista e não está à venda` }
-    if (item.precoSeeds === undefined) return { erro: `${itemId} não tem preço: só destrava por nível` }
-    return { tipo: 'loja', itemId, preco: item.precoSeeds }
+    if (item.exclusivoDe) return { erro: `${itemId} é exclusivo de conquista e não está à venda` };
+    /* Item de temporada só tem preço 365 dias depois do fim da temporada (`precoSeedsDoItem`). */
+    const preco = precoSeedsDoItem(item, agora);
+    if (preco === undefined) {
+      return {
+        erro: item.origemTemporada
+          ? `${itemId} é da temporada: volta à Loja um ano depois do fim`
+          : `${itemId} não tem preço: só destrava por nível`,
+      };
+    }
+    return { tipo: 'loja', itemId, preco };
   }
 
   if (reason.startsWith('croma:')) {
-    const [, itemId, matiz] = reason.split(':')
-    if (!itemId || !matiz) return { erro: 'croma malformado' }
-    const item = itemPorId(itemId)
-    if (!item) return { erro: `item inexistente: ${itemId}` }
-    return { tipo: 'croma', itemId, matiz, preco: PRECO_DO_CROMA[item.raridade] }
+    const [, itemId, matiz] = reason.split(':');
+    if (!itemId || !matiz) return { erro: 'croma malformado' };
+    const item = itemPorId(itemId);
+    if (!item) return { erro: `item inexistente: ${itemId}` };
+    return { tipo: 'croma', itemId, matiz, preco: PRECO_DO_CROMA[item.raridade] };
   }
 
-  // `aprimoramento:<alvo>:<n>` é o razão que a Loja grava; o spendId usa `apr-<alvo>-n<N>`.
-  if (reason.startsWith('aprimoramento:')) {
-    const [, alvo, n] = reason.split(':')
-    const nivel = Number(n)
-    if (!ALVOS_DE_APRIMORAMENTO.includes(alvo as never)) return { erro: `aprimoramento inexistente: ${alvo}` }
-    if (!Number.isInteger(nivel) || nivel < 1 || nivel > NIVEL_MAXIMO_DE_APRIMORAMENTO) {
-      return { erro: `nível de aprimoramento fora da escada: ${n}` }
-    }
-    return { tipo: 'aprimoramento', alvo, nivel, preco: CUSTOS_DE_NIVEL[nivel - 1] }
-  }
+  /* APRIMORAMENTOS SAÍRAM (recompensas v2, 27/09): `aprimoramento:*` não se vende mais. Quem
+     comprou recebe o reembolso (`core/reembolso.ts`); a recusa é explícita para o motivo ficar
+     legível no 400, em vez de cair no "motivo desconhecido" genérico. */
+  if (reason.startsWith('aprimoramento:')) return { erro: 'aprimoramentos saíram do catálogo' };
 
-  return { erro: `motivo desconhecido: ${reason.slice(0, 24)}` }
+  return { erro: `motivo desconhecido: ${reason.slice(0, 24)}` };
 }
 
 /* ── Autorização de um gasto de CRÉDITOS (a moeda comprada) ────────────────────────────────── */
 
-export type GastoDeCredito =
-  | { tipo: 'premium'; itemId: string; preco: number }
+export type GastoDeCredito = { tipo: 'premium'; itemId: string; preco: number };
 
 /**
  * O gasto de Créditos tem a MESMA régua do de Seeds, e por um motivo direto: é a moeda que custou
@@ -114,63 +127,88 @@ export type GastoDeCredito =
  * paga. Quando houver um segundo, ele entra aqui e não em cada rota.
  */
 export function autorizarGastoDeCredito(reason: string): GastoDeCredito | RecusaDeGasto {
-  if (!reason.startsWith('premium:')) return { erro: `motivo desconhecido: ${reason.slice(0, 24)}` }
-  const itemId = reason.slice('premium:'.length)
-  const item = itemPorId(itemId)
-  if (!item) return { erro: `item inexistente: ${itemId}` }
-  if (item.precoCreditos === undefined) return { erro: `${itemId} não é vendido em Créditos` }
-  return { tipo: 'premium', itemId, preco: item.precoCreditos }
+  if (!reason.startsWith('premium:')) return { erro: `motivo desconhecido: ${reason.slice(0, 24)}` };
+  const itemId = reason.slice('premium:'.length);
+  const item = itemPorId(itemId);
+  if (!item) return { erro: `item inexistente: ${itemId}` };
+  if (item.precoCreditos === undefined || !vendavelEmCreditos(item)) return { erro: `${itemId} não é vendido em Créditos` };
+  return { tipo: 'premium', itemId, preco: item.precoCreditos };
+}
+
+/**
+ * O ITEM PODE ESTAR NA VITRINE DE CRÉDITOS? (recompensas v2, onda 6 — spec 6 e 3.)
+ *
+ * O catálogo já é travado por teste (`tests/loja-creditos-v2.test.ts`); esta régua repete a trava
+ * NO CAMINHO DO DINHEIRO, para um item mal cadastrado amanhã não virar venda: preço inteiro
+ * positivo, uma moeda só (sem `precoSeeds`), sem porta de nível, épico ou lendário (comum e raro
+ * são do baú e da Loja de Seeds) e nunca de maestria, conquista ou temporada — que não se vendem.
+ */
+export function vendavelEmCreditos(item: ItemDaLoja): boolean {
+  const preco = item.precoCreditos;
+  if (preco === undefined || !Number.isInteger(preco) || preco <= 0) return false;
+  if (item.precoSeeds !== undefined || temPortaDeNivel(item)) return false;
+  if (item.raridade !== 'epico' && item.raridade !== 'lendario') return false;
+  return !item.exclusivoDe && !item.origemMaestria && !item.origemTemporada;
 }
 
 /* ── Autorização de um CRÉDITO ──────────────────────────────────────────────────────────────── */
 
 /** O `creditoId` que o cliente usa para conquista é `conquista-<id>` (`src/lib/conquistas.ts`). */
 export function conquistaDoCreditoId(creditoId: string): Conquista | null {
-  if (!creditoId.startsWith('conquista-')) return null
-  const id = creditoId.slice('conquista-'.length)
-  return CONQUISTAS.find((c) => c.id === id) ?? null
+  if (!creditoId.startsWith('conquista-')) return null;
+  const id = creditoId.slice('conquista-'.length);
+  return CONQUISTAS.find((c) => c.id === id) ?? null;
 }
 
 /**
  * O QUE UM `creditoId` VALE — a metade que faltava da autoridade.
  *
- * O GASTO já era decidido aqui desde 01/09 (`autorizarGasto`); o CRÉDITO só conhecia uma família,
- * a de conquista. As outras — os cofres do passe — chegavam ao servidor e levavam 400 "crédito
- * desconhecido" (`server/routes/metrics.ts`), com dois efeitos medidos na auditoria de 07/09:
- * a tela do passe repetia o pedido a cada montagem e nunca marcava o baú, e as 36 linhas
- * `passe:t1:*` que existiam no banco tinham entrado ANTES do endurecimento, com o valor que o
- * cliente mandou (10 a 172 Seeds, 2.472 no total).
+ * O GASTO já era decidido aqui desde 01/09 (`autorizarGasto`); o CRÉDITO também passou a ser: cada
+ * família (conquista, meta do dia, maestria, temporada) tem o valor lido da regra — nunca do corpo
+ * do pedido. A temporada lê a trilha de `recompensaDaTrilha`, a mesma função que desenha a tela:
+ * uma casa vale o que a tela mostra porque é literalmente o mesmo número.
  *
- * `seedsDoCofreDoPasse` foi escrita para isto e nunca teve chamador. Ela também pedia a curva
- * (`quantiaPorDecada`) por parâmetro, o que reabria a mesma porta pelo lado de dentro: quem
- * chamasse com outra curva creditava outro valor. Aqui a curva não se passa — ela se LÊ, de
- * `slotsDoPasse()`, que é a mesma função que desenha o trilho na tela. Um cofre vale o que a tela
- * mostra porque é literalmente o mesmo número.
+ * O PASSE DE 100 CASAS SAIU (onda 5): `passe:t1:*` deixou de ser família. As linhas que já estão no
+ * banco continuam somando Seeds (o razão não se reescreve); só não se credita nenhuma nova.
  */
 
 /** O que um crédito autorizado entrega, e o que ele exige para valer. */
 export interface CreditoAutorizado {
-  creditoId: string
-  seeds: number
-  xp: number
+  creditoId: string;
+  seeds: number;
+  xp: number;
   /** O que vai para `seed_credits.reason` — a coluna de onde a posse é derivada. */
-  reason: string
+  reason: string;
   /** Nível do app exigido. 0 = sem exigência (a conquista traz a sua própria condição). */
-  nivelMinimo: number
+  nivelMinimo: number;
   /** Presente só na família de conquista: quem confere a condição precisa dela. */
-  conquista?: Conquista
+  conquista?: Conquista;
+  /**
+   * Presente só na família `meta:<AAAA-MM-DD>`: o dia (no fuso do usuário) cuja meta tem de ter
+   * sido cumprida. Quem credita confere a janela (hoje ou ontem) e os acertos daquele dia.
+   */
+  metaDoDia?: string;
+  /**
+   * Presente só na família `maestria:<jogo>:<nível>` (recompensas v2, onda 3): quem credita soma
+   * os pontos do jogo nas linhas gravadas e confere que alcançam `pontosExigidos`.
+   */
+  maestria?: { jogo: MinigameId; nivel: NivelAlcancavel; pontosExigidos: number };
+  /**
+   * Presente só na família `temporada:<id>:<nível>:<trilha>` (onda 5): quem credita soma o XP da
+   * conta DENTRO da janela da temporada e confere `xpExigido`; na trilha de assinante, confere
+   * também a assinatura ativa no servidor.
+   */
+  temporada?: { temporada: Temporada; nivel: number; trilha: Trilha; xpExigido: number };
 }
 
-/* Índice dos cofres por `creditoId`, montado uma vez. `slotsDoPasse()` percorre o catálogo
-   inteiro e é determinística — chamá-la a cada crédito seria trabalho repetido para o mesmo
-   resultado. */
-let cofresPorId: Map<string, Extract<SlotDoPasse, { tipo: 'seeds' }>> | null = null
-function cofreDoPasse(creditoId: string) {
-  if (!cofresPorId) {
-    cofresPorId = new Map()
-    for (const s of slotsDoPasse()) if (s.tipo === 'seeds') cofresPorId.set(s.creditoId, s)
-  }
-  return cofresPorId.get(creditoId)
+/** `meta:<AAAA-MM-DD>` -> o dia, ou null. Data de calendário válida, sem hora. */
+export function diaDaMeta(creditoId: string): string | null {
+  const m = /^meta:(\d{4})-(\d{2})-(\d{2})$/.exec(creditoId);
+  if (!m) return null;
+  const [a, mes, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  const data = new Date(Date.UTC(a, mes - 1, d));
+  if (data.getUTCFullYear() !== a || data.getUTCMonth() !== mes - 1 || data.getUTCDate() !== d) return null;
+  return `${m[1]}-${m[2]}-${m[3]}`;
 }
 
 /**
@@ -184,7 +222,7 @@ function cofreDoPasse(creditoId: string) {
  * ninguém precise adivinhar QUAL nível exigir.
  */
 export function valorDoCredito(creditoId: string): CreditoAutorizado | RecusaDeGasto {
-  const conquista = conquistaDoCreditoId(creditoId)
+  const conquista = conquistaDoCreditoId(creditoId);
   if (conquista) {
     return {
       creditoId,
@@ -193,14 +231,56 @@ export function valorDoCredito(creditoId: string): CreditoAutorizado | RecusaDeG
       reason: `conquista:${conquista.id}`,
       nivelMinimo: 0,
       conquista,
-    }
+    };
   }
 
-  const cofre = cofreDoPasse(creditoId)
-  if (cofre) {
-    /* A década N do passe é o nível N do app (`slotDestravado`). Sem esta linha, o crédito do
-       cofre da década 10 sairia no nível 1 — e ele vale 172 Seeds. */
-    return { creditoId, seeds: cofre.quantidade, xp: 0, reason: `passe:${creditoId.split(':')[1]}`, nivelMinimo: cofre.decada }
+  /* A TEMPORADA (recompensas v2, onda 5): `temporada:<id>:<nível>:<trilha>`. O valor é o da casa
+     (Seeds na casa de Seeds, zero na casa de item — a posse é o próprio crédito); a CONDIÇÃO (o XP
+     da janela e, na trilha de assinante, a assinatura) depende do banco, então fica com quem
+     credita. Casa sem recompensa (ímpar da grátis) é recusa: não há o que creditar. */
+  if (creditoId.startsWith('temporada:')) {
+    const c = lerCreditoDaTemporada(creditoId);
+    const r = c && recompensaDaTrilha(c.nivel, c.trilha, c.temporada.id);
+    if (!c || !r) return { erro: `temporada malformada: ${creditoId.slice(0, 40)}` };
+    return {
+      creditoId,
+      seeds: 'seeds' in r ? r.seeds : 0,
+      xp: 0,
+      reason: creditoId,
+      nivelMinimo: 0,
+      temporada: { ...c, xpExigido: c.nivel * XP_POR_NIVEL_DA_TEMPORADA },
+    };
+  }
+
+  /* A META DO DIA (recompensas v2). O valor é fixo e sai dos pesos; a CONDIÇÃO (acertos no dia)
+     depende do banco e do fuso, então fica com quem credita. */
+  if (creditoId.startsWith('meta:')) {
+    const dia = diaDaMeta(creditoId);
+    if (!dia) return { erro: `meta malformada: ${creditoId.slice(0, 40)}` };
+    return {
+      creditoId,
+      seeds: PESOS_SEEDS.metaDiaria,
+      xp: PESOS_XP.metaDiaria,
+      reason: `meta:${dia}`,
+      nivelMinimo: 0,
+      metaDoDia: dia,
+    };
+  }
+
+  /* A MAESTRIA (recompensas v2, onda 3): `maestria:<jogo>:<nível>` vale `nivelDeMaestria × nível`
+     Seeds. O valor é da regra; a CONDIÇÃO (os pontos do jogo alcançarem o limiar) depende das
+     linhas gravadas, então fica com quem credita — como a meta do dia. Nunca à venda. */
+  if (creditoId.startsWith('maestria:')) {
+    const m = creditoDeMaestria(creditoId);
+    if (!m) return { erro: `maestria malformada: ${creditoId.slice(0, 40)}` };
+    return {
+      creditoId,
+      seeds: PESOS_SEEDS.nivelDeMaestria * m.nivel,
+      xp: 0,
+      reason: creditoId,
+      nivelMinimo: 0,
+      maestria: { ...m, pontosExigidos: LIMIARES_DE_MAESTRIA[m.nivel - 1] },
+    };
   }
 
   /* A FAMÍLIA DE DROP NÃO SE RESOLVE AQUI, e a recusa é explícita para não ser confundida com um
@@ -209,30 +289,89 @@ export function valorDoCredito(creditoId: string): CreditoAutorizado | RecusaDeG
      o `creditoId`, que é exatamente o furo que o desenho do drop existe para fechar. Quem credita
      um drop é `valorDoDrop(creditoId, itemId)`, chamada pela rota DEPOIS de o servidor sortear. */
   if (roundIdDoDrop(creditoId)) {
-    return { erro: 'crédito de drop não se resolve pelo id: o item é sorteado pelo servidor' }
+    return { erro: 'crédito de drop não se resolve pelo id: o item é sorteado pelo servidor' };
   }
 
-  return { erro: `crédito desconhecido: ${creditoId.slice(0, 40)}` }
+  return { erro: `crédito desconhecido: ${creditoId.slice(0, 40)}` };
 }
 
 /**
- * AS CONQUISTAS QUE O SERVIDOR SABE CONFERIR.
+ * AS CONQUISTAS QUE O SERVIDOR SABE CONFERIR — desde as recompensas v2 (onda 5), TODAS.
  *
- * Treze das catorze dependem só de `metricas`, do nível, dos recordes ou do número de compras —
- * tudo que o servidor mede. `poliglota` e `duelista` entraram nesta lista em 07/09, quando
- * `computeProfile` passou a emitir `idiomas` e `exercise_results` passou a guardar o combo da
- * rodada; até então elas não podiam ser conferidas porque o dado não existia no banco, e não
- * porque a condição fosse subjetiva.
- *
- * A que sobra é `colecionador`, que conta eventos raros vistos — estado que só o navegador tem.
- * Para ela o servidor credita o valor CORRETO da regra sem conferir a condição. A exposição é de
- * 100 Seeds e 120 XP, uma vez (idempotente por `creditoId`); antes desta família de mudanças o
- * mesmo endpoint cunhava 1,2 milhão de Seeds por minuto.
+ * Cada condição do catálogo lê só o que o servidor mede: métricas, nível, recordes, compras e a
+ * maestria somada das linhas gravadas (`contextoConferivelDeConquistas`). O Colecionador conta
+ * eventos raros VISTOS, estado que só o navegador tem; para ele vale a régua dos pré-requisitos
+ * (`progressoConferivelDoColecionador`), aplicada em `progressoNoServidor`. O Express e o espelho
+ * sem conta conferem a mesma lista com o mesmo contexto.
  */
-export const CONQUISTAS_CONFERIVEIS: ReadonlySet<string> = new Set([
-  'primeira-captura', 'ouvinte', 'caderno-cheio', 'revisor', 'sem-erro', 'perfeccionista',
-  'maratonista', 'constante', 'cliente', 'nivel-5', 'nivel-10', 'poliglota', 'duelista',
-])
+export const CONQUISTAS_CONFERIVEIS: ReadonlySet<string> = new Set(CONQUISTAS.map((c) => c.id));
+
+/**
+ * O CONTEXTO DE CONQUISTAS QUE O SERVIDOR MONTA — o mesmo no Express e no espelho, para as duas
+ * pontas decidirem igual. Eventos vistos entram como zero (a régua do Colecionador não os lê) e a
+ * maestria sai de `maestriaPorJogo` sobre as linhas gravadas, nunca do que o cliente diz.
+ */
+export function contextoConferivelDeConquistas(p: {
+  metricas: ContextoDeConquistas['metricas'];
+  nivel: number;
+  melhorComboPorJogo: Record<string, number>;
+  linhasDeMaestria: ReadonlyArray<LinhaDeMaestria>;
+}): ContextoDeConquistas {
+  const maestria: NonNullable<ContextoDeConquistas['maestria']> = {};
+  for (const j of maestriaPorJogo(p.linhasDeMaestria)) if (j.nivel > 0) maestria[j.jogo] = j.nivel;
+  return {
+    metricas: p.metricas,
+    nivel: p.nivel,
+    melhorComboPorJogo: p.melhorComboPorJogo,
+    eventosVistos: 0,
+    totalDeEventos: 0,
+    idiomas: p.metricas.idiomas ?? 0,
+    compras: p.metricas.itensComprados?.length ?? 0,
+    maestria,
+  };
+}
+
+/**
+ * Quantos eventos RAROS existem (`EVENTOS_RAROS` em `lib/eventosDeJogo`, que o core não importa).
+ * `tests/colecionador.test.ts` confere que os dois números batem.
+ */
+export const EVENTOS_RAROS_DO_JOGO = 6;
+
+/** O combo em que o último evento condicional do Duelo acontece (`sobrecarga`, combo 15). */
+export const COMBO_DO_ULTIMO_EVENTO = 15;
+
+/**
+ * O COLECIONADOR, NA RÉGUA DO SERVIDOR. A condição real ("viu os onze eventos") o servidor não
+ * enxerga; o que ele enxerga são os PRÉ-REQUISITOS de cada evento, todos gravados no banco:
+ *
+ *  1. `aquecendo`, `tempestade` e `sobrecarga` só nascem no Duelo, nos combos 5, 10 e 15 →
+ *     melhor combo do Duelo ≥ 15;
+ *  2. `perfeita` nasce de uma rodada perfeita → ao menos uma `rodadasPerfeitas`;
+ *  3. os seis raros são sorteados um por ACERTO, no máximo → ao menos seis acertos (itens de
+ *     jogo certos + revisões certas).
+ *
+ * É condição NECESSÁRIA, não suficiente: não prova que os eventos foram vistos (`fogos`, do
+ * recorde batido, nem entra), mas fecha o crédito a quem nunca jogou o bastante para vê-los —
+ * que era o que qualquer pedido direto à rota conseguia.
+ */
+export function progressoConferivelDoColecionador(ctx: ContextoDeConquistas): { atual: number; meta: number } {
+  const m = ctx.metricas;
+  const acertos = (m.drillCorrect ?? 0) + (m.correctReviews ?? 0);
+  const requisitos = [
+    (ctx.melhorComboPorJogo['blitz'] ?? 0) >= COMBO_DO_ULTIMO_EVENTO,
+    (m.rodadasPerfeitas ?? 0) >= 1,
+    acertos >= EVENTOS_RAROS_DO_JOGO,
+  ];
+  return { atual: requisitos.filter(Boolean).length, meta: requisitos.length };
+}
+
+/**
+ * O progresso que o SERVIDOR confere antes de creditar uma conquista: o da própria regra, exceto
+ * onde a regra lê estado que só o navegador tem (hoje, só o Colecionador).
+ */
+export function progressoNoServidor(conquista: Conquista, ctx: ContextoDeConquistas): { atual: number; meta: number } {
+  return conquista.id === 'colecionador' ? progressoConferivelDoColecionador(ctx) : conquista.progresso(ctx);
+}
 
 /* ── DROP: o cosmético que cai no fim da rodada ─────────────────────────────────────────────── */
 
@@ -277,7 +416,7 @@ export const CONQUISTAS_CONFERIVEIS: ReadonlySet<string> = new Set([
  * semana de uso diário. Cinco é o valor que faz o baú parecer um bônus sem reescrever essa
  * calibragem. Zero também fecharia a conta, mas deixaria a linha do ledger sem nada além do razão.
  */
-export const SEEDS_DO_DROP = 5
+export const SEEDS_DO_DROP = 5;
 
 /**
  * O PESO DE CADA RARIDADE NO SORTEIO.
@@ -287,7 +426,7 @@ export const SEEDS_DO_DROP = 5
  * graça no fim de uma rodada apagaria o motivo de poupar, que é a única mecânica de longo prazo
  * que esta economia tem. O drop existe para dar um empurrão, não para substituir a Loja.
  */
-export const PESOS_DO_DROP: Readonly<Record<'comum' | 'raro', number>> = { comum: 75, raro: 25 }
+export const PESOS_DO_DROP: Readonly<Record<'comum' | 'raro', number>> = { comum: 75, raro: 25 };
 
 /**
  * `drop:<roundId>` -> roundId, ou null se o crédito não for desta família.
@@ -298,10 +437,32 @@ export const PESOS_DO_DROP: Readonly<Record<'comum' | 'raro', number>> = { comum
  * antes de ela existir.
  */
 export function roundIdDoDrop(creditoId: string): string | null {
-  if (!creditoId.startsWith('drop:')) return null
-  const roundId = creditoId.slice('drop:'.length)
-  if (!roundId || roundId.includes(':')) return null
-  return roundId
+  if (!creditoId.startsWith('drop:')) return null;
+  const roundId = creditoId.slice('drop:'.length);
+  if (!roundId || roundId.includes(':')) return null;
+  return roundId;
+}
+
+/**
+ * O BAÚ EXIGE DESEMPENHO — duas estrelas na régua do fim de rodada (`estrelasDaRodada` de
+ * `minigames/fases`, a mesma que a tela mostra): precisão ≥ 75%.
+ *
+ * Até 27/09 o servidor sorteava um item a cada rodada gravada, mesmo com 0% de acerto — o baú
+ * premiava abrir o jogo, não jogar. A conta é feita sobre as LINHAS GRAVADAS da rodada
+ * (`exercise_results`), não sobre o que o cliente diz: só entra quem teve resposta (`correct` não
+ * nulo), e uma rodada sem nenhuma resposta não rende baú.
+ */
+export const ESTRELAS_PARA_O_BAU = 2;
+
+export function rodadaRendeBau(linhas: ReadonlyArray<{ correct?: number | null }>): {
+  rende: boolean;
+  estrelas: 0 | 1 | 2 | 3;
+} {
+  const respondidas = linhas.filter((l) => l.correct != null);
+  if (!respondidas.length) return { rende: false, estrelas: 0 };
+  const certas = respondidas.filter((l) => (l.correct ?? 0) > 0).length;
+  const estrelas = estrelasDaRodada(Math.round((certas / respondidas.length) * 100));
+  return { rende: estrelas >= ESTRELAS_PARA_O_BAU, estrelas };
 }
 
 /**
@@ -321,10 +482,13 @@ export function roundIdDoDrop(creditoId: string): string | null {
  *     das Seeds: só é prêmio o que custaria alguma coisa.
  */
 function ehSorteavelNoDrop(item: ItemDaLoja): boolean {
-  if (item.exclusivoDe) return false
-  if (item.precoCreditos !== undefined) return false
-  if (item.raridade !== 'comum' && item.raridade !== 'raro') return false
-  return item.precoSeeds !== undefined
+  if (item.exclusivoDe) return false;
+  /* 5. RASTRO FORA (revisão de 27/09): o rastro só existe com ponteiro fino — num aparelho de toque
+     ele é invisível, e um baú que entrega o invisível não entregou nada. */
+  if (item.tipo === 'rastro') return false;
+  if (item.precoCreditos !== undefined) return false;
+  if (item.raridade !== 'comum' && item.raridade !== 'raro') return false;
+  return item.precoSeeds !== undefined;
 }
 
 /**
@@ -335,46 +499,129 @@ function ehSorteavelNoDrop(item: ItemDaLoja): boolean {
  * `itensComprados` já deriva a posse. Item repetido não é prêmio: sem esta subtração, quem já
  * comprou tudo o que é comum abriria baús de duplicata sem nunca saber por quê.
  *
- * A ordem é a do catálogo, que é estável — é o que torna `sortearItemDoDrop` reprodutível dado o
+ * A ordem é a do catálogo, que é estável — é o que torna `decidirBau` reprodutível dado o
  * mesmo float.
  */
 export function itensSorteaveisNoDrop(jaPossui: ReadonlySet<string>): ItemDaLoja[] {
-  return CATALOGO_DA_LOJA.filter((i) => ehSorteavelNoDrop(i) && !jaPossui.has(i.id))
+  return CATALOGO_DA_LOJA.filter((i) => ehSorteavelNoDrop(i) && !jaPossui.has(i.id));
+}
+
+/* ── BAÚ v2 (recompensas v2, 27/09) ─────────────────────────────────────────────────────────
+ *
+ * O que mudou em relação ao baú de antes, e por quê:
+ *
+ * · TETO DIÁRIO de três baús, no dia LOCAL de quem joga. O baú é bônus de desempenho, não renda:
+ *   sem teto, a rodada mais curta que dá duas estrelas vira fábrica de sorteio.
+ * · GARANTIA (pity): o 5º baú seguido sem raro é raro. A chance anunciada (75/25) continua a
+ *   mesma; a garantia só corta a cauda de azar — ninguém fica vinte baús sem ver um raro.
+ * · REPETIDO VIRA SEEDS. Antes, sem peça nova na faixa sorteada, a probabilidade ia para a outra
+ *   faixa e, com a coleção completa, o baú devolvia nada. Agora a faixa sorteada é a faixa que
+ *   vale: sem peça nova nela, o baú paga Seeds pela raridade (comum 15, raro 40), com a mensagem
+ *   dita. A taxa anunciada deixa de mudar sozinha à medida que a coleção enche.
+ * · AS CHANCES VÃO NA RESPOSTA, junto de quantos baús faltam para o raro garantido.
+ *
+ * Nada disto é comprável: o baú só sai de rodada gravada com duas estrelas, nunca por Créditos,
+ * e as Seeds nunca se compram (ECA Digital art. 20; `tests/eca-art20-*`).
+ */
+export const BAUS_POR_DIA = 3;
+export const PITY_DO_BAU = 5; // o 5º baú seguido sem raro é raro
+export const SEEDS_DO_REPETIDO = { comum: 15, raro: 40 } as const;
+/** As chances anunciadas, em porcentagem — as mesmas do peso do sorteio. */
+export const CHANCES_DO_BAU: Readonly<Record<'comum' | 'raro', number>> = PESOS_DO_DROP;
+
+export type RaridadeDoBau = 'comum' | 'raro';
+export type DecisaoDoBau =
+  | { tipo: 'sem-bau'; motivo: 'estrelas' | 'teto' }
+  | { tipo: 'item'; item: ItemDaLoja; raridade: RaridadeDoBau }
+  | { tipo: 'seeds'; seeds: number; raridade: RaridadeDoBau };
+
+/**
+ * A DECISÃO DO BAÚ, pura e determinística: mesmas entradas, mesma saída.
+ *
+ * O float entra por parâmetro pelo mesmo motivo de sempre: o que se quer provar é a REGRA (o
+ * corte em 75%, a garantia, o repetido), não uma média. DUAS ETAPAS: primeiro a faixa (ou a
+ * garantia), depois um item uniforme dentro dela, com a fração que sobrou do mesmo float.
+ */
+export function decidirBau(entrada: {
+  estrelas: 0 | 1 | 2 | 3;
+  bausHoje: number;
+  /** Baús abertos nas últimas 24 h (janela móvel): o teto vale também aqui (`situacaoDoBau`). */
+  bausNas24h?: number;
+  semRaroSeguidos: number;
+  sorteio: number;
+  elegiveis: ItemDaLoja[];
+}): DecisaoDoBau {
+  if (entrada.estrelas < ESTRELAS_PARA_O_BAU) return { tipo: 'sem-bau', motivo: 'estrelas' };
+  if (Math.max(entrada.bausHoje, entrada.bausNas24h ?? 0) >= BAUS_POR_DIA) return { tipo: 'sem-bau', motivo: 'teto' };
+
+  /* Float defeituoso (NaN, negativo, >= 1) vira 0 em vez de derrubar a rota: um baú é bônus. */
+  const f = Number.isFinite(entrada.sorteio) ? Math.min(0.999999999, Math.max(0, entrada.sorteio)) : 0;
+  const corte = CHANCES_DO_BAU.comum / (CHANCES_DO_BAU.comum + CHANCES_DO_BAU.raro);
+  const garantido = entrada.semRaroSeguidos >= PITY_DO_BAU - 1;
+  const raridade: RaridadeDoBau = garantido || f >= corte ? 'raro' : 'comum';
+  const dentro = garantido ? f : raridade === 'comum' ? f / corte : (f - corte) / (1 - corte);
+
+  const faixa = entrada.elegiveis.filter((i) => i.raridade === raridade && ehSorteavelNoDrop(i));
+  if (!faixa.length) return { tipo: 'seeds', seeds: SEEDS_DO_REPETIDO[raridade], raridade };
+  return { tipo: 'item', item: faixa[Math.min(faixa.length - 1, Math.floor(dentro * faixa.length))], raridade };
+}
+
+/** Um baú já aberto, como o razão o guarda: quando (carimbo) e o `reason` gravado. */
+export interface BauAberto {
+  em: number;
+  reason: string;
 }
 
 /**
- * O SORTEIO, puro e determinístico: mesmo float, mesma lista, mesmo item.
- *
- * O float entra por parâmetro em vez de sair de um `Math.random()` aqui dentro por um motivo de
- * teste: uma função que sorteia sozinha só pode ser verificada por amostragem, e o que se quer
- * provar é a REGRA (o corte em 75%, qual item sai de cada faixa), não uma média.
- *
- * DUAS ETAPAS, e não uma roleta item a item. A roleta simples (peso do item = peso da raridade)
- * faria a chance de um raro depender de QUANTOS raros ainda faltam: com 20 comuns e 10 raros o
- * raro sairia em ~14% das vezes, e essa porcentagem mudaria sozinha à medida que a coleção enche —
- * a pessoa veria a taxa variar sem nenhuma regra ter mudado. Aqui o corte é sempre 75/25: primeiro
- * a faixa, depois um item uniforme dentro dela. Faixa vazia devolve toda a probabilidade à outra,
- * que é o comportamento óbvio para quem já colecionou metade.
+ * A raridade de um baú já aberto, lida do `reason`: `drop:<itemId>` (a peça — raridade do
+ * catálogo) ou `bau:repetido:<raridade>` (virou Seeds). Peça que saiu do catálogo conta como comum.
  */
-export function sortearItemDoDrop(sorteio: number, elegiveis: ItemDaLoja[]): ItemDaLoja | null {
-  const comuns = elegiveis.filter((i) => i.raridade === 'comum')
-  const raros = elegiveis.filter((i) => i.raridade === 'raro')
-  if (!comuns.length && !raros.length) return null
+export function raridadeDoBau(reason: string): RaridadeDoBau {
+  if (reason.startsWith('bau:repetido:')) return reason.endsWith(':raro') ? 'raro' : 'comum';
+  const item = itemPorId(reason.slice('drop:'.length));
+  return item?.raridade === 'raro' ? 'raro' : 'comum';
+}
 
-  /* Float defeituoso (NaN, negativo, >= 1) vira 0 em vez de derrubar a rota: um baú é bônus, e um
-     bônus não pode ser capaz de transformar o fim de rodada em erro. */
-  const f = Number.isFinite(sorteio) ? Math.min(0.999999999, Math.max(0, sorteio)) : 0
+/** A janela MÓVEL do teto do baú (revisão de 27/09, P1). */
+export const JANELA_DO_TETO_DO_BAU_MS = 24 * 60 * 60 * 1000;
 
-  const pesoComum = comuns.length ? PESOS_DO_DROP.comum : 0
-  const pesoRaro = raros.length ? PESOS_DO_DROP.raro : 0
-  const corte = pesoComum / (pesoComum + pesoRaro)
+/**
+ * O ESTADO DO BAÚ de uma conta: quantos saíram HOJE (no fuso de quem joga), quantos nas últimas
+ * 24 h, e quantos seguidos, do mais recente para trás, não foram raros. `diaDe` recebe o carimbo e
+ * devolve a chave do dia no fuso certo — quem chama passa `diaNoFuso(t, fuso)` com o fuso GRAVADO.
+ *
+ * AS DUAS CONTAGENS valem para o teto (`decidirBau`): o dia local é o que a tela promete ("3 por
+ * dia"), e a janela de 24 h fecha a virada do dia — sem ela, três baús às 23:50 e mais três às
+ * 00:10 davam seis em vinte minutos, e cada troca de fuso inventava um dia novo.
+ */
+export function situacaoDoBau(
+  baus: readonly BauAberto[],
+  hoje: string,
+  diaDe: (t: number) => string,
+  agora: number = Date.now(),
+): { bausHoje: number; bausNas24h: number; semRaroSeguidos: number } {
+  const bausHoje = baus.filter((b) => diaDe(b.em) === hoje).length;
+  const bausNas24h = baus.filter((b) => b.em > agora - JANELA_DO_TETO_DO_BAU_MS && b.em <= agora).length;
+  let semRaroSeguidos = 0;
+  for (const b of [...baus].sort((a, z) => z.em - a.em)) {
+    if (raridadeDoBau(b.reason) === 'raro') break;
+    semRaroSeguidos += 1;
+  }
+  return { bausHoje, bausNas24h, semRaroSeguidos };
+}
 
-  const balde = f < corte ? comuns : raros
-  const dentro = f < corte
-    ? (corte > 0 ? f / corte : 0)
-    : (corte < 1 ? (f - corte) / (1 - corte) : 0)
+/** Quantos baús faltam para o raro garantido, contando o próximo (1 = o próximo é raro). */
+export function proximoRaroGarantidoEm(semRaroSeguidos: number): number {
+  return Math.max(1, PITY_DO_BAU - semRaroSeguidos);
+}
 
-  return balde[Math.min(balde.length - 1, Math.floor(dentro * balde.length))]
+/**
+ * O CRÉDITO DE UM BAÚ REPETIDO: Seeds pela raridade sorteada, e o `reason` NÃO é `drop:` — ele
+ * não atesta posse de peça nenhuma (a posse é derivada de `drop:<itemId>`).
+ */
+export function valorDoRepetido(creditoId: string, raridade: RaridadeDoBau): CreditoAutorizado | RecusaDeGasto {
+  if (!roundIdDoDrop(creditoId)) return { erro: `crédito de drop malformado: ${creditoId.slice(0, 40)}` };
+  return { creditoId, seeds: SEEDS_DO_REPETIDO[raridade], xp: 0, reason: `bau:repetido:${raridade}`, nivelMinimo: 0 };
 }
 
 /**
@@ -391,9 +638,9 @@ export function sortearItemDoDrop(sorteio: number, elegiveis: ItemDaLoja[]): Ite
  * se tem é `itensSorteaveisNoDrop`, com o conjunto lido do banco.
  */
 export function valorDoDrop(creditoId: string, itemId: string): CreditoAutorizado | RecusaDeGasto {
-  if (!roundIdDoDrop(creditoId)) return { erro: `crédito de drop malformado: ${creditoId.slice(0, 40)}` }
-  const item = itemPorId(itemId)
-  if (!item) return { erro: `item inexistente: ${itemId}` }
-  if (!ehSorteavelNoDrop(item)) return { erro: `${itemId} não sai em drop` }
-  return { creditoId, seeds: SEEDS_DO_DROP, xp: 0, reason: `drop:${itemId}`, nivelMinimo: 0 }
+  if (!roundIdDoDrop(creditoId)) return { erro: `crédito de drop malformado: ${creditoId.slice(0, 40)}` };
+  const item = itemPorId(itemId);
+  if (!item) return { erro: `item inexistente: ${itemId}` };
+  if (!ehSorteavelNoDrop(item)) return { erro: `${itemId} não sai em drop` };
+  return { creditoId, seeds: SEEDS_DO_DROP, xp: 0, reason: `drop:${itemId}`, nivelMinimo: 0 };
 }

@@ -25,7 +25,7 @@ export interface ItemDeAba {
   /** Ícone opcional à esquerda do rótulo. Já vem dimensionado pelo chamador (`w-4 h-4`). */
   icone?: ReactNode;
   /** Contagem à direita. `0` é exibido; `undefined` esconde — "0" é informação, ausência não é. */
-  contagem?: number;
+  contagem?: number | string;
 }
 
 interface AbasProps {

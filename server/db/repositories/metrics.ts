@@ -4,20 +4,29 @@
  * `deterministic`; retenção é `probabilistic` (estimativa FSRS) e carrega
  * `confidence` que cai com amostra pequena. A UI não deve exibir falsa precisão.
  */
-import { and, eq, isNull, sql } from 'drizzle-orm'
+import { and, count, eq, isNotNull, isNull, sql } from 'drizzle-orm'
 
 import type { AppMetrics } from '../../../src/core/learning/contract'
-import { diaLocal, marcosDeSequencia, minutosPremiados, sequencias } from '../../../src/core/learning/economia'
-import { type BaldeDeXp, type HistoricoDeXp, historicoDeXp } from '../../../src/core/learning/historicoDeXp'
+import {
+  diaNumeroNoFuso,
+  FUSO_PADRAO,
+  fusoOuPadrao,
+  marcosDeSequencia,
+  palavrasPremiadas,
+  sequencias,
+} from '../../../src/core/learning/economia'
+import { type BaldeDeXp, type HistoricoDeXp, historicoDeXp, type LinhasDoHistorico } from '../../../src/core/learning/historicoDeXp'
 import { retrievability } from '../../../src/core/learning/scheduler'
-import { economiaDeMetricas } from '../../../src/core/learning/xp'
-import { MINIGAMES } from '../../../src/core/minigames/types'
+import { economiaDeMetricas, sessaoRendeXp } from '../../../src/core/learning/xp'
+import { ehRodadaPerfeita } from '../../../src/core/minigames/grade'
+import { numeroDoDia, ofensivaComCongelamento } from '../../../src/core/missoes'
 import type { UserId } from '../../lib/authContext'
 import { CachePorVersao } from '../../lib/cachePorVersao'
 import { db } from '../db'
 import { lerCompacto } from '../leituraCompacta'
-import { exerciseResults, reviewLogs, sessions } from '../schema'
+import { exerciseResults, reviewLogs, sessions, vocabCards } from '../schema'
 import { economiaRepo } from './economia'
+import { estadoDaContaRepo } from './estadoDaConta'
 import { seedSpendsRepo } from './seedSpends'
 import { versoesRepo } from './versoes'
 
@@ -164,7 +173,12 @@ type LinhasDaAtividade = Awaited<ReturnType<typeof lerAtividade>>
  * então o resultado é o mesmo número, bit a bit. `tests/integration/rotas-caras-equivalencia`
  * compara o JSON inteiro com o gravado antes desta divisão.
  */
-function resumirAtividade(linhas: LinhasDaAtividade, sessionId: string | null) {
+/**
+ * `fuso`: o fuso GRAVADO do usuário (revisão de 27/09, P2). Dia de prática, ofensiva, marcos e o
+ * teto diário de palavras contam no dia de quem estuda — `diaLocal` usava o fuso do PROCESSO, e o
+ * servidor em UTC fechava o dia de quem está em São Paulo às 21h.
+ */
+function resumirAtividade(linhas: LinhasDaAtividade, sessionId: string | null, fuso: string) {
   const { sessTodas, cardsTodos, logs, uttsTodas, drills } = linhas
   const sess = sessionId ? sessTodas.filter((s) => s.id === sessionId) : sessTodas
   const cards = sessionId ? cardsTodos.filter((c) => c.sessionId === sessionId) : cardsTodos
@@ -176,6 +190,10 @@ function resumirAtividade(linhas: LinhasDaAtividade, sessionId: string | null) {
 
   const inDeck = cards.filter((c) => c.inDeck !== 0)
   const wordsCaptured = sess.reduce((n, s) => n + (s.wordCount ?? 0), 0)
+  /* SÓ SESSÃO COM PALAVRA SALVA RENDE XP (revisão de 27/09, `sessaoRendeXp` no core). */
+  const salvasPorSessao = new Map<string, number>()
+  for (const c of inDeck) if (c.sessionId) salvasPorSessao.set(c.sessionId, (salvasPorSessao.get(c.sessionId) ?? 0) + 1)
+  const sessoesComPalavraSalva = sess.filter((x) => sessaoRendeXp(salvasPorSessao.get(x.id) ?? 0)).length
 
   /**
    * ATIVO × PASSIVO (spec progresso-de-idioma): `utterances.source` distingue a VOZ do usuário
@@ -305,22 +323,43 @@ function resumirAtividade(linhas: LinhasDaAtividade, sessionId: string | null) {
      filtrar depois dá o mesmo array que filtrar e ordenar (a ordem de números iguais é a mesma). */
   const temposDeRevisao = logsNoEscopo.map((l) => l.reviewedAt ?? l.createdAt).sort((a, b) => a - b)
 
-  // Minutos de captura por DIA LOCAL — o teto diário vive no core (`minutosPremiados`), e é ele
-  // que impede uma gravação de oito horas de virar Seeds de oito horas.
-  const minutosPorDia = new Map<number, number>()
-  /* DOIS números, e não um: o PREMIADO paga Seeds (com teto diário) e o TOTAL é o que a conquista
-     "Ouvinte" conta ("some 60 minutos de sessão gravada"). O servidor emitia só o premiado, então
-     `m.capturaMinutos` chegava indefinido a `progresso()` e a conquista ficava presa em zero para
-     sempre — quem gravasse 60 minutos num dia só via o teto diário engolir a diferença. */
+  /* Minutos TOTAIS de captura — a conquista "Ouvinte" ("some 60 minutos de sessão gravada") e a
+     estatística. Desde as recompensas v2 (27/09) minuto gravado NÃO paga Seeds nem XP: premiar
+     tempo é o que o Decreto 12.880/2026, art. 9º, chama de incentivo compulsivo. */
   let capturaMinutos = 0
   for (const x of sess) {
     const min = (x.durationMs ?? 0) / 60_000
-    if (min <= 0) continue
-    capturaMinutos += min
-    const d = diaLocal(x.createdAt)
-    minutosPorDia.set(d, (minutosPorDia.get(d) ?? 0) + min)
+    if (min > 0) capturaMinutos += min
   }
-  const capturaMinutosPremiados = Math.floor(minutosPremiados(minutosPorDia.values()))
+
+  /* PALAVRAS SALVAS DA CAPTURA por DIA LOCAL (recompensas v2): cartão do caderno que nasceu de uma
+     sessão. O teto diário vive no core (`palavrasPremiadas`) — é ele que impede uma importação de
+     300 palavras de virar 300 Seeds. */
+  const palavrasPorDia = new Map<number, number>()
+  /* Os carimbos das mesmas palavras: a missão "salvar N palavras" conta no dia do FUSO do usuário. */
+  const temposDePalavraSalva: number[] = []
+  for (const c of inDeck) {
+    if (!c.sessionId) continue
+    const t = c.addedAt ?? c.createdAt
+    const d = diaNumeroNoFuso(t, fuso)
+    palavrasPorDia.set(d, (palavrasPorDia.get(d) ?? 0) + 1)
+    temposDePalavraSalva.push(t)
+  }
+  temposDePalavraSalva.sort((a, b) => a - b)
+  const palavrasSalvasPremiadas = palavrasPremiadas(palavrasPorDia.values())
+
+  /* DIAS DE PRÁTICA (recompensas v2): revisão, rodada de jogo ou palavra salva. É a unidade da
+     ofensiva e dos marcos de 7 dias — abrir o app, sozinho, não entra mais. */
+  const diasDePratica = new Set<number>(palavrasPorDia.keys())
+  for (const l of logsNoEscopo) diasDePratica.add(diaNumeroNoFuso(l.reviewedAt ?? l.createdAt, fuso))
+  for (const e of drillsNoEscopo) if (e.roundId) diasDePratica.add(diaNumeroNoFuso(e.createdAt, fuso))
+
+  /* Carimbos dos ACERTOS (revisão certa ou item de jogo certo), ordenados: a meta do dia é
+     conferida sobre eles, no fuso do usuário, na parte que depende do relógio. */
+  const temposDeAcerto: number[] = []
+  for (const l of logsNoEscopo) if ((l.grade ?? 0) >= 3) temposDeAcerto.push(l.reviewedAt ?? l.createdAt)
+  for (const d of drillsNoEscopo) if (d.kind === 'drill' && (d.correct ?? 0) > 0) temposDeAcerto.push(d.createdAt)
+  temposDeAcerto.sort((a, b) => a - b)
 
   /* Idiomas distintos das sessões — a conquista "Poliglota". Mesma conta do modo sem conta
      (`src/data/efemero/servidor.ts`): `sourceLang` não nulo, contado uma vez. `sess` já está
@@ -338,14 +377,8 @@ function resumirAtividade(linhas: LinhasDaAtividade, sessionId: string | null) {
     porRodada.set(e.roundId, r)
   }
   let rodadasPerfeitas = 0
-  for (const r of porRodada.values()) {
-    /* Com `r.kind === ''` o `&&` devolve a própria string vazia, e o `>=` a coage para 0. O
-       `Number()` reproduz EXATAMENTE essa coerção e tira o `string` do tipo de `minimo`. */
-    const minimo = Number(
-      (r.kind && (MINIGAMES as Record<string, { minItems?: number } | undefined>)[r.kind]?.minItems) ?? 3,
-    )
-    if (r.total >= minimo && r.certos === r.total) rodadasPerfeitas += 1
-  }
+  /* A régua é a do core (`ehRodadaPerfeita`), a mesma que a raspadinha usa para prometer o bônus. */
+  for (const r of porRodada.values()) if (ehRodadaPerfeita(r.kind, r.total, r.certos)) rodadasPerfeitas += 1
 
   const byWeek = new Map<number, number>()
   for (const c of inDeck) {
@@ -359,6 +392,7 @@ function resumirAtividade(linhas: LinhasDaAtividade, sessionId: string | null) {
 
   return {
     sessions: sess.length,
+    sessoesComPalavraSalva,
     wordsCaptured,
     deckSize: inDeck.length,
     newCards,
@@ -368,7 +402,8 @@ function resumirAtividade(linhas: LinhasDaAtividade, sessionId: string | null) {
     drillCorrect,
     accuracy,
     capturaMinutos,
-    capturaMinutosPremiados,
+    palavrasSalvasPremiadas,
+    diasDePratica: [...diasDePratica].sort((a, b) => a - b),
     idiomas,
     rodadasPerfeitas,
     avgStability,
@@ -386,6 +421,8 @@ function resumirAtividade(linhas: LinhasDaAtividade, sessionId: string | null) {
     retencao,
     reviewDays,
     temposDeRevisao: Float64Array.from(temposDeRevisao),
+    temposDeAcerto: Float64Array.from(temposDeAcerto),
+    temposDePalavraSalva: Float64Array.from(temposDePalavraSalva),
   }
 }
 
@@ -395,7 +432,13 @@ type ResumoDaAtividade = ReturnType<typeof resumirAtividade>
 function pesoDoResumo(r: ResumoDaAtividade): number {
   return (
     4096 +
-    8 * (r.vencimentos.length + 2 * r.retencao.estabilidade.length + r.temposDeRevisao.length) +
+    8 *
+      (r.vencimentos.length +
+        2 * r.retencao.estabilidade.length +
+        r.temposDeRevisao.length +
+        r.temposDeAcerto.length +
+        r.temposDePalavraSalva.length) +
+    8 * r.diasDePratica.length +
     32 * r.reviewDays.size +
     256 * (r.palavrasDificeis.length + r.vocabByWeek.length)
   )
@@ -428,9 +471,24 @@ async function lerRazao(userId: UserId) {
   const gastos = await seedSpendsRepo.razao(userId)
   /* ECONOMIA v2 (A7): os créditos avulsos e a presença agora existem no servidor real. O cliente
      (`deriveProgress`) já lia estes campos com `?? 0` — a paridade é com o servidor efêmero. */
-  const creditos = await economiaRepo.totaisCreditados(userId)
+  /* Os dias com meta creditada (recompensas v2, onda 5) rendem o congelamento da ofensiva; vêm
+     na mesma consulta dos totais, para o perfil não pagar uma leitura a mais. */
+  const { diasDeMeta, ...creditos } = await economiaRepo.totaisEMetas(userId)
   const diasDePresenca = await economiaRepo.diasDePresenca(userId)
-  return { gastos, creditos, diasDePresenca }
+  return { gastos, creditos, diasDePresenca, diasDeMeta }
+}
+
+/**
+ * A OFENSIVA COM CONGELAMENTO: dias de prática e dias de meta creditada, no core
+ * (`ofensivaComCongelamento`). Derivada no servidor, nunca guardada: um dia perdido gasta o
+ * congelamento sozinho, e nada aqui se compra.
+ */
+function ofensivaDoResumo(r: ResumoDaAtividade, diasDeMeta: readonly string[], now: number, fuso: string) {
+  return ofensivaComCongelamento({
+    diasDePratica: r.diasDePratica,
+    diasDeMeta: diasDeMeta.map(numeroDoDia).filter((d): d is number => d !== null),
+    hoje: diaNumeroNoFuso(now, fuso),
+  })
 }
 
 /** As linhas de hoje, o razão e o relógio viram o `AppMetrics` — a forma e a ordem de sempre. */
@@ -439,6 +497,7 @@ function montarPerfil(
   razao: Awaited<ReturnType<typeof lerRazao>>,
   now: number,
   escopo: AppMetrics['escopo'],
+  fuso: string,
 ): AppMetrics {
   let dueToday = 0
   for (const t of r.vencimentos) if (t <= now) dueToday++
@@ -461,10 +520,14 @@ function montarPerfil(
     cursor.setDate(cursor.getDate() - 1)
   }
 
-  const { seedsGastas, itensComprados, cromasComprados, aprimoramentos } = razao.gastos
+  const { seedsGastas, itensComprados, cromasComprados } = razao.gastos
   const { seedsCreditadas, xpCreditado } = razao.creditos
   const diasDePresenca = razao.diasDePresenca
-  const seqPresenca = sequencias(diasDePresenca, diaLocal(now))
+  /* A OFENSIVA CONTA PRÁTICA (recompensas v2): os dias de presença continuam gravados, só como
+     estatística — abrir o app não estende sequência nem paga marco. */
+  const seqPratica = sequencias(r.diasDePratica, diaNumeroNoFuso(now, fuso))
+  /* O congelamento só estende: sem meta creditada o número é o de antes. */
+  const comCongelamento = ofensivaDoResumo(r, razao.diasDeMeta, now, fuso)
 
   /**
    * OS TRÊS CONTADORES QUE FALTAVAM — e por que eles passaram a importar.
@@ -479,14 +542,18 @@ function montarPerfil(
    * O cálculo é o do servidor efêmero (`src/data/efemero/servidor.ts`), que é a implementação de
    * referência em uso: os mesmos ajudantes puros do core, sobre as mesmas linhas.
    */
-  const sequencias7 = marcosDeSequencia(diasDePresenca, 7)
+  const sequencias7 = marcosDeSequencia(r.diasDePratica, 7)
 
   const limiteRecente = now - 8 * DAY
   const revisoesRecentes: number[] = []
   for (const t of r.temposDeRevisao) if (t >= limiteRecente) revisoesRecentes.push(t)
+  const limiteDeAcerto = now - 3 * DAY
+  const acertosRecentes: number[] = []
+  for (const t of r.temposDeAcerto) if (t >= limiteDeAcerto) acertosRecentes.push(t)
 
   return {
     sessions: r.sessions,
+    sessoesComPalavraSalva: r.sessoesComPalavraSalva,
     wordsCaptured: r.wordsCaptured,
     deckSize: r.deckSize,
     newCards: r.newCards,
@@ -497,22 +564,22 @@ function montarPerfil(
     drillCorrect: r.drillCorrect,
     accuracy: r.accuracy,
     accuracyConfidence: r.reviews >= 4 ? 0.9 : r.reviews > 0 ? 0.4 : 0,
-    // A ofensiva exibida é a MAIOR entre revisar e aparecer — mesma regra do efêmero.
-    streakDays: Math.max(streakDays, seqPresenca.atual),
+    // A ofensiva exibida conta DIAS DE PRÁTICA — mesma regra do efêmero.
+    streakDays: Math.max(streakDays, seqPratica.atual, comCongelamento.atual),
     seedsGastas,
     itensComprados,
     cromasComprados,
-    aprimoramentos,
     seedsCreditadas,
     xpCreditado,
     presencas: diasDePresenca.length,
     sequencias7,
     capturaMinutos: Math.round(r.capturaMinutos),
-    capturaMinutosPremiados: r.capturaMinutosPremiados,
+    palavrasSalvasPremiadas: r.palavrasSalvasPremiadas,
+    acertosRecentes,
     idiomas: r.idiomas,
     rodadasPerfeitas: r.rodadasPerfeitas,
-    streakPresenca: seqPresenca.atual,
-    maiorSequenciaPresenca: seqPresenca.maior,
+    streakPresenca: seqPratica.atual,
+    maiorSequenciaPresenca: seqPratica.maior,
     avgStability: r.avgStability,
     avgRetention,
     avgRetentionConfidence: considerados >= 4 ? 0.7 : considerados > 0 ? 0.3 : 0,
@@ -559,27 +626,69 @@ function montarPerfil(
  * CUSTO (fix/rotas-caras): a leitura das cinco tabelas é a parte cara (medido: ~70 ms de CPU com
  * 3.000 cartões, event loop preso o tempo todo pelo driver). No escopo da conta, o resumo delas
  * fica em cache enquanto a versão de `atividade` não muda (`versoes_de_dados`, mantida por
- * gatilho); a requisição seguinte lê a versão, o razão de moedas e a presença — quatro consultas
- * pequenas — e refaz só a parte que depende do relógio.
+ * gatilho); a requisição seguinte lê o fuso gravado, a versão, o razão de moedas e a presença —
+ * cinco consultas pequenas (o fuso entrou na revisão de 27/09: os dias de prática são do fuso de
+ * quem estuda, e ele é a outra metade da chave do cache) — e refaz só a parte do relógio.
  */
 export async function computeProfile(userId: UserId, opts: OpcoesDePerfil = {}): Promise<AppMetrics> {
   const now = Date.now()
   const sessionId = opts.sessionId ?? null
   const escopo: AppMetrics['escopo'] = sessionId ? 'sessao' : 'global'
+  const fuso = await fusoDoPerfil(userId)
+  const resumo = sessionId
+    ? resumirAtividade(await lerAtividade(userId), sessionId, fuso)
+    : await resumoDaConta(userId, fuso)
+  return montarPerfil(resumo, await lerRazao(userId), now, escopo, fuso)
+}
 
-  let resumo: ResumoDaAtividade | undefined
-  if (sessionId) {
-    resumo = resumirAtividade(await lerAtividade(userId), sessionId)
-  } else {
-    // A versão ANTES das linhas — ver `CachePorVersao` para o porquê da ordem.
-    const versao = String((await versoesRepo.de(userId)).atividade)
-    resumo = resumosDaConta.obter(userId, versao)
-    if (!resumo) {
-      resumo = resumirAtividade(await lerAtividade(userId), null)
-      resumosDaConta.guardar(userId, versao, resumo, pesoDoResumo(resumo))
-    }
+/** O fuso gravado do usuário (só leitura), ou o padrão — `decidirFuso` é de quem grava. */
+async function fusoDoPerfil(userId: UserId): Promise<string> {
+  const { fuso } = await estadoDaContaRepo.fusoGravado(userId)
+  return fuso ? fusoOuPadrao(fuso) : FUSO_PADRAO
+}
+
+/** O resumo da conta inteira, do cache quando a versão de `atividade` (e o fuso) não mudou. */
+async function resumoDaConta(userId: UserId, fuso: string): Promise<ResumoDaAtividade> {
+  // A versão ANTES das linhas — ver `CachePorVersao` para o porquê da ordem. O fuso entra na
+  // chave: os dias de prática do resumo são contados nele.
+  const versao = `${(await versoesRepo.de(userId)).atividade}|${fuso}`
+  let resumo = resumosDaConta.obter(userId, versao)
+  if (!resumo) {
+    resumo = resumirAtividade(await lerAtividade(userId), null, fuso)
+    resumosDaConta.guardar(userId, versao, resumo, pesoDoResumo(resumo))
   }
-  return montarPerfil(resumo, await lerRazao(userId), now, escopo)
+  return resumo
+}
+
+/**
+ * O QUE AS MISSÕES DO DIA LEEM (recompensas v2, onda 5) — `GET /api/metrics/missoes` e a
+ * conferência do crédito `meta:<dia>`. Carimbos de revisão e de palavra salva dos últimos 3 dias
+ * (a janela da meta é hoje ou ontem, em qualquer fuso), as metas já creditadas e a ofensiva com
+ * congelamento. As rodadas vêm de `exerciseResultsRepo.linhasDeMaestria`.
+ */
+export async function dadosDasMissoes(
+  userId: UserId,
+  fuso: string,
+): Promise<{
+  revisoes: number[]
+  palavrasSalvas: number[]
+  metasCreditadas: string[]
+  ofensiva: { atual: number; congelamentos: 0 | 1 | 2 }
+}> {
+  const now = Date.now()
+  const [resumo, metasCreditadas] = await Promise.all([
+    resumoDaConta(userId, fuso),
+    economiaRepo.metasCreditadas(userId),
+  ])
+  const desde = now - 3 * DAY
+  const recentes = (xs: Float64Array) => Array.from(xs).filter((t) => t >= desde)
+  const { atual, congelamentos } = ofensivaDoResumo(resumo, metasCreditadas, now, fuso)
+  return {
+    revisoes: recentes(resumo.temposDeRevisao),
+    palavrasSalvas: recentes(resumo.temposDePalavraSalva),
+    metasCreditadas,
+    ofensiva: { atual, congelamentos },
+  }
 }
 
 /**
@@ -630,11 +739,32 @@ export async function computeXpHistory(
   userId: UserId,
   opts: { balde?: BaldeDeXp; desde?: number } = {},
 ): Promise<HistoricoDeXp> {
-  const [sess, logs, drills] = await Promise.all([
+  return historicoDeXp(await linhasDoHistoricoDeXp(userId), opts)
+}
+
+/**
+ * As linhas com carimbo que a curva de XP soma — também o que a TEMPORADA soma, só que dentro da
+ * janela dela (`xpDeTemporada`, do core). Uma leitura, dois leitores.
+ */
+export async function linhasDoHistoricoDeXp(userId: UserId): Promise<LinhasDoHistorico> {
+  const [sess, salvas, logs, drills] = await Promise.all([
     db
-      .select({ createdAt: sessions.createdAt, wordCount: sessions.wordCount })
+      .select({ id: sessions.id, createdAt: sessions.createdAt, wordCount: sessions.wordCount })
       .from(sessions)
       .where(and(eq(sessions.userId, userId), isNull(sessions.deletedAt))),
+    /* As palavras salvas por sessão — só a sessão com palavra salva rende XP (`sessaoRendeXp`). */
+    db
+      .select({ sessionId: vocabCards.sessionId, n: count() })
+      .from(vocabCards)
+      .where(
+        and(
+          eq(vocabCards.userId, userId),
+          isNull(vocabCards.deletedAt),
+          isNotNull(vocabCards.sessionId),
+          sql`coalesce(${vocabCards.inDeck}, 1) <> 0`,
+        ),
+      )
+      .groupBy(vocabCards.sessionId),
     db
       .select({ createdAt: reviewLogs.createdAt, reviewedAt: reviewLogs.reviewedAt, grade: reviewLogs.grade })
       .from(reviewLogs)
@@ -645,18 +775,19 @@ export async function computeXpHistory(
       .where(and(eq(exerciseResults.userId, userId), isNull(exerciseResults.deletedAt))),
   ])
 
-  return historicoDeXp(
-    {
-      sessoes: sess.map((s) => ({ em: s.createdAt, palavras: s.wordCount ?? 0 })),
-      revisoes: logs.map((l) => ({ em: l.reviewedAt ?? l.createdAt, certa: (l.grade ?? 0) >= 3 })),
-      /* `kind === 'drill'` é o mesmo discriminador de `computeProfile`, e pelo mesmo motivo: um item
-       que gravou nota no agendador JÁ está em `revisoes`; contá-lo de novo inflaria a curva. */
-      itensDeJogo: drills
-        .filter((d) => d.kind === 'drill')
-        .map((d) => ({ em: d.createdAt, certo: (d.correct ?? 0) > 0 })),
-    },
-    opts,
-  )
+  return {
+    sessoes: sess.map((s) => ({
+      em: s.createdAt,
+      palavras: s.wordCount ?? 0,
+      palavrasSalvas: Number(salvas.find((x) => x.sessionId === s.id)?.n ?? 0),
+    })),
+    revisoes: logs.map((l) => ({ em: l.reviewedAt ?? l.createdAt, certa: (l.grade ?? 0) >= 3 })),
+    /* `kind === 'drill'` é o mesmo discriminador de `computeProfile`, e pelo mesmo motivo: um item
+     que gravou nota no agendador JÁ está em `revisoes`; contá-lo de novo inflaria a curva. */
+    itensDeJogo: drills
+      .filter((d) => d.kind === 'drill')
+      .map((d) => ({ em: d.createdAt, certo: (d.correct ?? 0) > 0 })),
+  }
 }
 
 /**

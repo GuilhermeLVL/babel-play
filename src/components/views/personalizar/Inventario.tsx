@@ -1,33 +1,51 @@
 import type { LucideIcon } from 'lucide-react';
 import {
   ArrowRight,
+  Bird,
+  Captions,
   Check,
+  Coffee,
+  Eye,
+  Frame,
+  Gamepad2,
+  Gem,
+  Ghost,
+  Headphones,
+  Heart,
+  Leaf,
   Lock,
   Moon,
-  MousePointer2,
   Palette,
-  PanelLeft,
+  PartyPopper,
   Pencil,
+  Pizza,
+  Rocket,
   Save,
   ShoppingBag,
   Sparkles,
   Sprout,
+  Square,
   Sun,
   Trash2,
+  TreePine,
+  Trees,
   Trophy,
+  WalletCards,
   Wand2,
   WandSparkles,
+  Waves,
 } from 'lucide-react';
 import { Fragment, type ReactNode, useMemo, useState } from 'react';
 
+import { celebrarEscolha } from '../../../lib/comemoracao';
 import { comprarPecaComSeeds } from '../../../lib/galeria/comprarPeca';
 import { cromaEquipado } from '../../../lib/galeria/cromas';
 import { type ContextoDeEquipar, equiparItem, equipavel } from '../../../lib/galeria/equipar';
 import { paletaPorId } from '../../../lib/galeria/paletas';
 import { PAR_DO_TEMA } from '../../../lib/galeria/parDoTema';
-import type { Perfil } from '../../../lib/galeria/perfis';
+import type { IconeDoPerfil, Perfil } from '../../../lib/galeria/perfis';
 import { estadoDaColecao } from '../../../lib/galeria/progressao';
-import { comemorar } from '../../../lib/juice';
+import { t } from '../../../lib/i18n';
 import {
   CATALOGO_DA_LOJA,
   COR_DA_RARIDADE,
@@ -62,13 +80,49 @@ import EditorDoItem, { temPersonalizacao } from './EditorDoItem';
  * editor num item sem parâmetro seria abrir uma janela vazia.
  */
 
+/* O ícone de cada perfil: lucide, na cor do tema — o emoji do perfil saiu (recompensas v2: nada de
+   emoji na interface). O nome do ícone mora em `perfis.ts`, que não carrega componente. */
+const ICONE_DO_PERFIL: Record<IconeDoPerfil, LucideIcon> = {
+  passaro: Bird,
+  coracao: Heart,
+  controle: Gamepad2,
+  foguete: Rocket,
+  pizza: Pizza,
+  arvores: Trees,
+  ondas: Waves,
+  fones: Headphones,
+  fantasma: Ghost,
+  pinheiro: TreePine,
+  sol: Sun,
+  cafe: Coffee,
+  quadrado: Square,
+  folha: Leaf,
+  lua: Moon,
+  festa: PartyPopper,
+  trofeu: Trophy,
+  gema: Gem,
+  brilho: Sparkles,
+};
+
+function IconeDoPerfilDesenhado({ perfil, lado }: { perfil: Perfil; lado: number }) {
+  const Icone = ICONE_DO_PERFIL[perfil.icone] ?? Sparkles;
+  return <Icone aria-hidden style={{ width: lado, height: lado, color: 'var(--accent-ink)', flex: 'none' }} />;
+}
+
 /* As seções, na ordem da tela. As duas primeiras são as do protótipo. */
 const SECOES: Array<{ id: string; titulo: string; icone: LucideIcon; tipos: string[] }> = [
   { id: 'temas', titulo: 'Temas', icone: Palette, tipos: ['tema'] },
-  { id: 'efeitos', titulo: 'Efeitos e letras', icone: WandSparkles, tipos: ['particulas', 'rastro', 'fonte'] },
-  { id: 'cursor', titulo: 'Cursor e emojis', icone: MousePointer2, tipos: ['cursor', 'pack'] },
-  { id: 'menu', titulo: 'Menu', icone: PanelLeft, tipos: ['posicao'] },
-  { id: 'capacidades', titulo: 'Capacidades', icone: Sparkles, tipos: ['galeria', 'estudio', 'aprimoramento'] },
+  /* Recompensas v2 (27/09): "Cursor e emojis" saiu com os cursores e packs; fonte e posição do
+     menu viraram opções livres no bloco "Acessibilidade e layout" do Personalizar. */
+  { id: 'efeitos', titulo: 'Efeitos', icone: WandSparkles, tipos: ['particulas', 'rastro'] },
+  /* Recompensas v2, onda 4: a legenda ao vivo como peça, com a prévia do estilo no cartão. */
+  { id: 'legendas', titulo: 'Legendas', icone: Captions, tipos: ['legenda'] },
+  { id: 'cartoes', titulo: 'Cartões', icone: WalletCards, tipos: ['cartao'] },
+  /* Recompensas v2 (Task 5.4): os efeitos de jogo e a moldura/título de perfil ganham seção — antes
+     só se equipavam pelo modal de recompensa, no instante em que chegavam. */
+  { id: 'jogos', titulo: 'Efeitos de jogo', icone: Gamepad2, tipos: ['efeito-acerto', 'efeito-combo', 'finalizacao'] },
+  { id: 'perfil', titulo: 'Moldura e título', icone: Frame, tipos: ['moldura', 'titulo'] },
+  { id: 'capacidades', titulo: 'Capacidades', icone: Sparkles, tipos: ['galeria', 'estudio'] },
 ];
 
 /** O ícone da tela para onde a rota manda — o mesmo desenho que a tela de destino usa no menu. */
@@ -76,6 +130,8 @@ const DESTINO: Record<DestinoDeObtencao, ReactNode> = {
   conquistas: <Trophy aria-hidden />,
   loja: <ShoppingBag aria-hidden />,
   passe: <Sparkles aria-hidden />,
+  // Maestria (recompensas v2): a rota é jogar; o cartão explica e não oferece botão.
+  jogar: <Gamepad2 aria-hidden />,
 };
 
 /** As quatro cores de um perfil, quando ele aponta para uma paleta. */
@@ -137,6 +193,9 @@ export default function Inventario({
   aoApagarPerfil,
   aoSalvarPerfil,
   acaoDosPerfis,
+  aoPrever,
+  itemEmPrevia,
+  tiposComPrevia,
 }: {
   nivel: number;
   saldo: number;
@@ -162,6 +221,14 @@ export default function Inventario({
   aoSalvarPerfil: (nome: string) => void;
   /** O que vai à direita do título de Perfis (o "voltar ao visual original"). */
   acaoDosPerfis?: ReactNode;
+  /**
+   * PRÉVIA AO VIVO (recompensas v2): "Ver prévia" nas peças que têm onde aparecer (legenda, cartão,
+   * tema, efeito). Ausente = sem o botão (a tela clássica).
+   */
+  aoPrever?: (item: ItemDaLoja, el: HTMLElement) => void;
+  itemEmPrevia?: string | null;
+  /** Os tipos que têm prévia. */
+  tiposComPrevia?: ReadonlySet<string>;
 }) {
   /* O ACERVO INTEIRO, e não só o meu. `false` é o padrão porque a pergunta mais frequente na
      tela de Personalizar continua sendo "o que eu tenho". */
@@ -181,7 +248,13 @@ export default function Inventario({
 
   /** A origem de um item que JÁ é seu: como ele chegou até aqui. */
   const origemDe = (i: ItemDaLoja): OrigemDoItem =>
-    i.exclusivoDe ? 'conquista' : comprados.has(i.id) ? 'seeds' : 'nivel';
+    i.exclusivoDe || i.origemMaestria
+      ? 'conquista'
+      : i.origemTemporada
+        ? 'temporada'
+        : comprados.has(i.id)
+          ? 'seeds'
+          : 'nivel';
 
   const meus = colecao.possuidos;
   const meusIds = useMemo(() => new Set(meus.map((m) => m.id)), [meus]);
@@ -206,7 +279,7 @@ export default function Inventario({
       return;
     }
     if (equiparItem(i, ctx)) {
-      comemorar('acerto', el ?? null, { texto: i.nome });
+      celebrarEscolha(el ?? null, i.nome);
       toast.ok('Equipado');
       rerender();
     } else {
@@ -231,7 +304,7 @@ export default function Inventario({
         );
         return;
       }
-      comemorar('subiuNivel', el ?? null, { texto: 'Seu!' });
+      celebrarEscolha(el ?? null, 'Seu!');
       toast.ok(`${i.nome} é seu!`);
       rerender();
     } finally {
@@ -259,7 +332,7 @@ export default function Inventario({
         : null
       : (rota?.titulo ?? est.motivo);
     const irPara =
-      !rota || podeComprar
+      !rota || podeComprar || rota.destino === 'jogar'
         ? undefined
         : rota.destino === 'conquistas'
           ? onIrParaConquistas
@@ -349,6 +422,17 @@ export default function Inventario({
             {DESTINO[rota.destino]} {rota.rotuloDoBotao}
           </button>
         ) : null}
+
+        {aoPrever && tiposComPrevia?.has(i.tipo) && (
+          <button
+            type="button"
+            className="link editar"
+            aria-pressed={itemEmPrevia === i.id}
+            onClick={(e) => aoPrever(i, e.currentTarget)}
+          >
+            <Eye aria-hidden /> {t('Ver prévia')}
+          </button>
+        )}
 
         {/* O EDITOR DA PEÇA (paletas, pack próprio, croma) só aparece onde há o que editar. */}
         {liberado && temPersonalizacao(i) && (
@@ -440,10 +524,10 @@ export default function Inventario({
             return (
               <article key={p.id} className="cartao peca" onDoubleClick={(e) => aoAplicarPerfil(p, e.currentTarget)}>
                 <div className="vis" aria-hidden>
-                  {cores ? <Paleta cores={cores} /> : <span style={{ fontSize: 28, lineHeight: 1 }}>{p.emoji}</span>}
+                  {cores ? <Paleta cores={cores} /> : <IconeDoPerfilDesenhado perfil={p} lado={28} />}
                 </div>
-                <h3>
-                  {cores && <span aria-hidden>{p.emoji} </span>}
+                <h3 className="linha" style={{ gap: 6 }}>
+                  {cores && <IconeDoPerfilDesenhado perfil={p} lado={16} />}
                   {p.nome}
                 </h3>
                 <p>{p.desc}</p>

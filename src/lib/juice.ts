@@ -1,4 +1,3 @@
-import { sorteDeEventos } from './aprimoramentos';
 import { type BurstKind, emitBurst } from './effects';
 import { type EfeitoComposto, eventosCondicionais, marcarEventoVisto, sortearEventoRaro } from './eventosDeJogo';
 import { play } from './soundFx';
@@ -24,37 +23,8 @@ import { play } from './soundFx';
  *      que mexe em `transform` e escaparia daqueles filtros.
  */
 
-/** Acontecimentos que merecem retorno. O nome descreve o FATO, não o efeito. */
-export type Comemoracao =
-  | 'acerto' // acertou um item, o mais frequente, e por isso o mais contido
-  | 'sequencia' // emendou acertos (combo), faísca quente
-  | 'rodadaBoa' // terminou bem, confete no ponto
-  | 'rodadaPerfeita' // terminou sem erro, chuva de confete na tela toda
-  | 'subiuNivel'
-  | 'erro';
-
-const RAJADA: Record<Comemoracao, BurstKind> = {
-  acerto: 'xp',
-  sequencia: 'combo',
-  rodadaBoa: 'confete',
-  rodadaPerfeita: 'perfeito',
-  subiuNivel: 'levelUp',
-  erro: 'erro',
-};
-
-/** Exportado por ser o VOCABULÁRIO declarado (fato → som), não um detalhe de implementação:
- *  é a tabela que garante que os nove jogos comemorem a mesma coisa do mesmo jeito. */
-export const SOM: Record<Comemoracao, Parameters<typeof play>[0]> = {
-  acerto: 'success',
-  sequencia: 'combo',
-  rodadaBoa: 'success',
-  rodadaPerfeita: 'levelUp',
-  subiuNivel: 'levelUp',
-  erro: 'error',
-};
-
 /** O usuário desligou movimento? (o tremor mexe em transform e escapa dos filtros globais) */
-function movimentoReduzido(): boolean {
+export function movimentoReduzido(): boolean {
   if (typeof window === 'undefined') return true;
   const body = document.body;
   if (body.classList.contains('performance-mode') || body.classList.contains('animations-off')) return true;
@@ -70,45 +40,24 @@ function centro(el: Element | null): { x: number; y: number } {
 }
 
 /**
- * O gesto completo de uma comemoração: partícula + som + (opcional) o número que sobe.
- * É a única função que os jogos precisam chamar.
+ * O EVENTO RARO de um acerto (patos, vôlei…): sorteado a cada acerto, em qualquer jogo. Mora aqui
+ * — e não no motor de comemoração — porque o que é visto conta
+ * para a conquista Colecionador (`marcarEventoVisto`).
  */
-export function comemorar(
-  tipo: Comemoracao,
-  alvo?: Element | null,
-  opts: { texto?: string; tremer?: boolean } = {},
-): void {
-  const { x, y } = centro(alvo ?? null);
-  emitBurst(x, y, RAJADA[tipo]);
-  play(SOM[tipo]);
-  /* EVENTO RARO por acerto, em QUALQUER jogo: o sorteio mora aqui porque `comemorar` é o único
-     vocabulário compartilhado pelos nove — nenhum jogo precisa saber que os patos existem. */
-  if (tipo === 'acerto' || tipo === 'sequencia') {
-    const raro = sortearEventoRaro(Math.random, sorteDeEventos());
-    if (raro) {
-      executarEfeito(raro);
-      pontosFlutuantes(raro.nome + '!', window.innerWidth / 2, window.innerHeight * 0.22, 'bom');
-    }
-  }
-  /*
-   * O EVENTO 'perfeita' PASSA A EXISTIR (08/09).
-   *
-   * `eventosDeJogo.ts:82` declarava `if (ctx.perfeita)` e `todosOsEventos()` contava o id na meta
-   * da conquista Colecionador — mas NENHUMA chamada de `eventosCondicionais` jamais passava
-   * `perfeita`. Efeito medido: `eventosVistos()` saturava em 10 de 11, e a conquista, o rastro
-   * `ras-arcoiris` que ela entrega e o cadeado "Conquista: Colecionador" eram inalcançáveis por
-   * jogo real. O teste `tests/conquistas.test.ts` não pegava porque injeta `eventosVistos: 11` —
-   * ele prova a aritmética, não a alcançabilidade.
-   *
-   * A rodada perfeita já era conhecida em `ScratchReward.tsx` e virava só o tipo de festa. Aqui
-   * ela vira também o evento, no mesmo lugar em que o evento raro é sorteado — porque `comemorar`
-   * é o único vocabulário que todos os jogos falam.
-   */
-  if (tipo === 'rodadaPerfeita') {
-    for (const ev of eventosCondicionais({ combo: 0, fever: false, perfeita: true })) executarEfeito(ev);
-  }
-  if (opts.texto) pontosFlutuantes(opts.texto, x, y, tipo === 'erro' ? 'ruim' : 'bom');
-  if (opts.tremer) tremor(alvo ?? null, tipo === 'rodadaPerfeita' ? 6 : 3);
+export function eventoRaroDoAcerto(): void {
+  const raro = sortearEventoRaro(Math.random); // sorte fixa: o aprimoramento "Sorte" saiu (recompensas v2)
+  if (!raro) return;
+  executarEfeito(raro);
+  pontosFlutuantes(raro.nome + '!', window.innerWidth / 2, window.innerHeight * 0.22, 'bom');
+}
+
+/**
+ * O evento 'perfeita' (um dos onze do Colecionador). Sem ele a conquista era inalcançável por jogo
+ * real (08/09): nenhuma chamada passava `perfeita`. Quem chama é o motor (`lib/comemoracao`), na
+ * rodada de três estrelas — o `comemorar` antigo saiu na Task 5.4 das recompensas v2.
+ */
+export function eventosDaRodadaPerfeita(): void {
+  for (const ev of eventosCondicionais({ combo: 0, fever: false, perfeita: true })) executarEfeito(ev);
 }
 
 /* ─────────────────────────── PONTOS FLUTUANTES ───────────────────────────

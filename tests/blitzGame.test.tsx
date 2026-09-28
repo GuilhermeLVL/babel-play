@@ -148,12 +148,14 @@ describe('BlitzGame — a rodada congela quando acaba', () => {
     const segundoToque = clicar('cat')
     expect(segundoToque).toBe('desabilitado')
 
-    /* v2: a rodada termina numa TELA DE RESULTADO; o relatório só sai no "Continuar". */
+    /* O FIM É UM SÓ: o Duelo não tem mais tela de resultado própria (com outra régua de
+       estrelas). O relatório sai quando a revelação do último item termina, e quem mostra o fim
+       é o `ResultadoDaRodada` comum, como nos outros jogos. */
     avancar(500)
-    expect(relatorio).toBeNull()
-    expect(clicar('Continuar')).toBe('clicou')
     expect(relatorio).not.toBeNull()
     expect(relatorio!.items).toHaveLength(3)
+    expect(screen.queryByText('Fim da rodada')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Continuar' })).toBeNull()
   })
 
   it('nenhum cardId aparece duas vezes no relatório — é isso que dobrava a revisão', () => {
@@ -178,7 +180,6 @@ describe('BlitzGame — a rodada congela quando acaba', () => {
     clicar('cat') // toque extra na janela da revelação, deve ser ignorado
     clicar('dog') // e outro, em alternativa diferente
     avancar(500)
-    clicar('Continuar')
 
     const ids = relatorio!.items.map((o) => o.cardId)
     expect(ids).toHaveLength(3)
@@ -208,7 +209,6 @@ describe('BlitzGame — a rodada congela quando acaba', () => {
     responderCerto(items)
     clicar('cat')
     avancar(500)
-    clicar('Continuar')
     expect(relatorio!.items).toHaveLength(3)
   })
 
@@ -229,12 +229,10 @@ describe('BlitzGame — a rodada congela quando acaba', () => {
     /* Deixa o relógio inteiro correr sem responder nada. 60 s no perfil `pro`, 1 s por tique. */
     esgotarOTempo()
 
-    /* "quem não foi perguntado não errou" — e a pergunta nem existe mais: a tela de resultado
-       tomou o lugar (v2). Acertar depois da hora continua impossível. */
-    expect(clicar('house')).toBe('ausente')
+    /* "quem não foi perguntado não errou" — a pergunta fica congelada até o fim comum tomar o
+       lugar. Acertar depois da hora continua impossível. */
+    expect(clicar('house')).not.toBe('clicou')
 
-    expect(relatorio).toBeNull()
-    expect(clicar('Continuar')).toBe('clicou')
     expect(relatorio).not.toBeNull()
     expect(relatorio!.items).toHaveLength(0)
   })
@@ -243,7 +241,7 @@ describe('BlitzGame — a rodada congela quando acaba', () => {
     const items = itens()
     render(<BlitzGame items={items} ageProfile="pro" onFinish={() => {}} onExit={() => {}} />)
     esgotarOTempo()
-    /* v2: a tela de resultado substitui o jogo — a tesoura some junto com a pergunta. */
+    /* Depois do fim a tesoura fica desabilitada (ou já saiu, com o jogo). */
     const tesoura = screen.queryByRole('button', { name: 'Cortar duas alternativas' })
     expect(tesoura === null || (tesoura as HTMLButtonElement).disabled).toBe(true)
   })

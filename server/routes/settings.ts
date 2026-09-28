@@ -13,13 +13,13 @@ import { parseOr400, settingsPatchSchema } from '../validation'
  * Só estes: o blob também carrega onboarding, idioma e preferências de captura, que não são
  * itens e não têm dono. Um campo novo aqui é uma decisão consciente de "isto se compra".
  */
+/* Recompensas v2 (27/09): `pack` e `cursor` saíram do catálogo e não são mais conferidos; fonte e
+   posição continuam na lista, mas sem item no catálogo passam sempre (fora do catálogo = livre). */
 const CAMPOS_DE_ITEM: Array<[chave: string, tipo: string]> = [
   ['theme', 'tema'],
   ['fonte', 'fonte'],
   ['menuPosition', 'posicao'],
   ['particulas', 'particulas'],
-  ['pack', 'pack'],
-  ['cursor', 'cursor'],
   ['rastro', 'rastro'],
 ]
 

@@ -1,4 +1,6 @@
-import { countDue, type Grade, isDueNow, makeFsrs5, PESOS_XP } from '@core';
+import '../../styles/cartoes.css';
+
+import { countDue, ganhoDaNota, ganhoDaRevisao, type Grade, isDueNow, makeFsrs5 } from '@core';
 import {
   Brain,
   ChartColumn,
@@ -29,13 +31,16 @@ import {
 } from '../../data/api';
 import { ActiveProductionExercise, similarityPercentage, stabilityThreshold } from '../../lib/exercicios';
 import { ganho } from '../../lib/juice';
+import { classesDaPalavra } from '../../lib/pelesDeCartao';
 import { type AgeProfileType, copyDoPerfil, showsPowerUserAffordances } from '../../lib/profile';
+import { recompensasV2Ligadas } from '../../lib/recompensasV2';
 import type { PracticeSeed, Sentence } from '../../lib/sentences';
 import { speak as ttsSpeak } from '../../lib/tts';
 import { useExameDePalavra } from '../../lib/useExameDePalavra';
 import { ExerciseKind, Recording, SchedulerType, VocabCard } from '../../types';
 import CommandPalette, { useCommandPalette } from '../CommandPalette';
 import FraseComLacuna from '../FraseComLacuna';
+import ResumoDaPratica from '../progress/ResumoDaPratica';
 import { toast } from '../Toast';
 import { CabecalhoDeTela, fecharDialogoDe, IconeEmBloco, Tela } from '../ui';
 import Dialogo, { CampoLinha, Interruptor, Segmentos } from './vocab/Dialogo';
@@ -183,7 +188,7 @@ export default function Study({
    * sobre `review_logs` (`revisao` por nota, mais `revisaoCerta` quando a nota é Bom ou Fácil,
    * `grade >= 3` em `metrics.ts`). O "+10 XP" fixo do protótipo seria um número inventado.
    */
-  const xpDaNota = (nota: number) => PESOS_XP.revisao + (nota >= 3 ? PESOS_XP.revisaoCerta : 0);
+  const xpDaNota = (nota: number) => ganhoDaNota(nota).xp;
 
   // Review Session State
   const [reviewing, setReviewing] = useState(false);
@@ -222,7 +227,7 @@ export default function Study({
   const [editando, setEditando] = useState<VocabCard | null>(null);
   /** As notas desta rodada, com o estado de ANTES de cada uma — o "Desfazer" (Z) volta uma a uma. */
   const [historico, setHistorico] = useState<
-    Array<{ card: VocabCard; antes: EstadoAntesDaNota; indice: number; xp: number }>
+    Array<{ card: VocabCard; antes: EstadoAntesDaNota; indice: number; xp: number; nota: number; aceita: boolean }>
   >([]);
 
   // States for interactive typing/mc exercises within review session
@@ -272,16 +277,19 @@ export default function Study({
     /* O retângulo é lido ANTES do await: depois dele o cartão já pode ter trocado. */
     const rect = (origem ?? document.querySelector('.flash'))?.getBoundingClientRect();
     let xp = 0;
+    let aceita = false;
     try {
       const updated = await reviewCard(cardId, effectiveRating, retencao / 100);
       setVocabCards((prev) => prev.map((c) => (c.id === cardId ? updated : c)));
       // Só depois de o servidor gravar: o XP que sobe é o que de fato entrou na conta.
       xp = xpDaNota(effectiveRating);
+      aceita = true;
       if (rect) ganho(rect, `+${xp} XP`);
     } catch {
       // Offline/erro: não inventamos um agendamento novo. O cartão fica como está.
     }
-    if (antes) setHistorico((h) => [...h, { card: antes, antes: estadoDoCartao(antes), indice, xp }]);
+    if (antes)
+      setHistorico((h) => [...h, { card: antes, antes: estadoDoCartao(antes), indice, xp, nota: effectiveRating, aceita }]);
 
     /* PELO MESMO FUNIL DOS JOGOS (auditoria de 2026-09-07, achado A53): uma revisão vira uma rodada
        de um item em `/rodada`, com `roundId` — uma porta só para o mesmo dado. */
@@ -706,7 +714,11 @@ export default function Study({
     const feitas = notasDaRodada.length;
     const acertos = notasDaRodada.filter((n) => n > 1).length;
     const seg = inicioDaRodada && fimDaRodada ? Math.round((fimDaRodada - inicioDaRodada) / 1000) : 0;
-    const xp = historico.reduce((soma, h) => soma + h.xp, 0);
+    /* O QUE FOI CREDITADO, pela mesma conta do perfil (`ganhoDaRevisao`, core): só as notas que o
+       servidor aceitou. XP e Seeds do resumo são os que entraram na conta (spec 10.2). */
+    const creditado = ganhoDaRevisao(historico.filter((h) => h.aceita).map((h) => h.nota));
+    const xp = creditado.xp;
+    const v2 = recompensasV2Ligadas();
     /* Quando abre a próxima rodada: o vencimento mais próximo e quantas vencem naquele dia. */
     const proxima = (() => {
       const dues = activeVocabCards.filter((c) => c.inDeck && c.dueAtMs).map((c) => c.dueAtMs as number);
@@ -758,7 +770,15 @@ export default function Study({
               <span className="label-mono">XP</span>
               <span className="v acc">+{xp}</span>
             </div>
+            {v2 && (
+              <div className="cartao ladrilho" data-seeds-da-revisao={creditado.seeds}>
+                <span className="label-mono">Seeds</span>
+                <span className="v good">+{creditado.seeds}</span>
+              </div>
+            )}
           </div>
+          {/* Recompensas v2: as missões do dia e a ofensiva, lidas do servidor depois da rodada. */}
+          {v2 && <ResumoDaPratica />}
           <div className="linha" style={{ gap: 8, justifyContent: 'center', marginTop: 20, flexWrap: 'wrap' }}>
             <button type="button" className="btn btn-solid" onClick={() => onChangeView?.('play')}>
               <Gamepad2 aria-hidden /> Jogar com as mesmas
@@ -899,7 +919,9 @@ export default function Study({
         }
       />
 
-      <section className="cartao flash">
+      {/* A PELE DE CARTÃO equipada (onda 4): a moldura diz se a palavra é nova, aprendida ou
+          dominada — pela fase do FSRS que o cartão já carrega. */}
+      <section className={`cartao flash ${classesDaPalavra(currentCard)}`}>
         <span className="badge neu">{seloDoCartao(currentCard)}</span>
 
         {format === 'active-production' ? (

@@ -1,14 +1,17 @@
 /**
- * O CLIENTE DAS ROTAS DE ECONOMIA — Seeds, presença, créditos e passe.
+ * O CLIENTE DAS ROTAS DE ECONOMIA — Seeds, presença, créditos, maestria e temporada.
  *
  * Espelho de `src/data/efemero/rotas/economia.ts`. As três primeiras têm caminho HTTP de métrica,
  * mas o domínio é a economia — o mesmo corte é feito do outro lado. As rotas de cobrança
- * (`/api/billing/gastar`, `/api/billing/creditar-passe`) NÃO têm espelho: moeda comprada com
+ * (`/api/billing/gastar`) NÃO têm espelho: moeda comprada com
  * dinheiro nasce e morre no servidor, e o motivo está em `tests/contratos/rotas-espelhadas`.
  *
  * Rotas: POST `/api/metrics/seeds/gastar`, POST `/api/metrics/seeds/creditar`,
- * POST `/api/metrics/presenca`, POST `/api/billing/gastar`, POST `/api/billing/creditar-passe`.
+ * POST `/api/metrics/presenca`, GET `/api/metrics/maestria`, GET `/api/metrics/missoes`,
+ * GET `/api/metrics/temporada`, POST `/api/billing/gastar`.
  */
+import { type EstadoDasMissoes, fusoDoAmbiente, type MaestriaDoJogo, type Temporada } from '@core'
+
 import { apiFetch, type ErroDaApi,lerErro } from '../funil'
 
 /**
@@ -58,6 +61,83 @@ export async function gastarSeedsEx(input: {
   }
 }
 
+/**
+ * O REEMBOLSO DO CORTE DO CATÁLOGO (recompensas v2). O corpo é vazio: o servidor decide o que é
+ * devido a partir do próprio razão. `creditado` é o que entrou AGORA (0 no reenvio); `reembolsado`
+ * é o total já devolvido; `avisoPendente` (servidor novo) diz se o aviso ainda não foi dado.
+ * `null` em falha — quem chama tenta de novo noutra sessão.
+ */
+export async function reembolsarSeeds(): Promise<{ creditado: number; reembolsado: number; avisoPendente?: boolean } | null> {
+  try {
+    const res = await apiFetch('/api/metrics/seeds/reembolso', { method: 'POST' })
+    if (!res.ok) return null
+    return (await res.json()) as { creditado: number; reembolsado: number; avisoPendente?: boolean }
+  } catch {
+    return null
+  }
+}
+
+/** Um jogo na resposta da maestria: pontos e nível somados no servidor, e quanto falta. */
+export interface MaestriaNoServidor extends MaestriaDoJogo {
+  proximo: number | null
+  pctNoNivel: number
+}
+
+/**
+ * A MAESTRIA DOS 18 JOGOS (recompensas v2, onda 3). Os pontos são do servidor (linhas gravadas,
+ * uma vez por `roundId`); `creditados` são os `maestria:<jogo>:<nível>` já lançados. `null` em
+ * falha — a tela esconde a barra em vez de inventar número.
+ */
+export async function lerMaestria(): Promise<{ jogos: MaestriaNoServidor[]; creditados: string[] } | null> {
+  try {
+    const res = await apiFetch('/api/metrics/maestria')
+    if (!res.ok) return null
+    return (await res.json()) as { jogos: MaestriaNoServidor[]; creditados: string[] }
+  } catch {
+    return null
+  }
+}
+
+/**
+ * AS MISSÕES DO DIA (recompensas v2, onda 5): as três do dia LOCAL, com o progresso contado no
+ * servidor, a meta e a ofensiva com congelamento. `null` em falha — a tela esconde o cartão em vez
+ * de inventar progresso.
+ */
+export async function lerMissoes(): Promise<EstadoDasMissoes | null> {
+  try {
+    const res = await apiFetch(`/api/metrics/missoes?fuso=${encodeURIComponent(fusoDoAmbiente())}`)
+    if (!res.ok) return null
+    return (await res.json()) as EstadoDasMissoes
+  } catch {
+    return null
+  }
+}
+
+/** A temporada como o servidor a vê: datas, XP da janela, nível, assinatura e casas já creditadas. */
+export interface TemporadaNoServidor {
+  temporada: Temporada | null
+  proxima: Temporada | null
+  xp: number
+  nivel: number
+  assinante: boolean
+  creditados: string[]
+}
+
+/**
+ * A TEMPORADA (recompensas v2, onda 5). O XP é o da conta ganho dentro da janela, somado no
+ * servidor; `creditados` são os `temporada:<id>:<nível>:<trilha>` já lançados. `null` em falha — a
+ * tela mostra as trilhas sem inventar progresso.
+ */
+export async function lerTemporada(): Promise<TemporadaNoServidor | null> {
+  try {
+    const res = await apiFetch('/api/metrics/temporada')
+    if (!res.ok) return null
+    return (await res.json()) as TemporadaNoServidor
+  } catch {
+    return null
+  }
+}
+
 /* ── ECONOMIA v2 (2026-08-28) ── */
 
 /** Registra a presença do dia. Idempotente por dia; `null` em falha (a tela não credita nada). */
@@ -82,26 +162,30 @@ export async function registrarPresenca(dia: number): Promise<{ jaExistia: boole
  * servidor recusa quando o `amount` não bate com o catálogo, em vez de cobrar em silêncio um
  * valor que a tela não mostrou.
  */
-/**
- * OS CRÉDITOS DA TRILHA PAGA. O servidor decide QUAIS casas foram alcançadas (do nível que ele
- * mesmo calcula) e credita cada uma uma vez. Sem o passe devolve `creditado: 0` — não é erro,
- * é a resposta honesta de quem não comprou.
- */
-export async function creditarPasse(): Promise<{ creditado: number; temPasse: boolean; saldo?: number } | null> {
-  const r = await apiFetch('/api/billing/creditar-passe', { method: 'POST' });
-  if (!r.ok) return null;
-  return (await r.json()) as { creditado: number; temPasse: boolean; saldo?: number };
-}
 
 export async function gastarCreditos(payload: { spendId: string; amount: number; reason: string; ref?: string }):
   Promise<{ jaExistia: boolean; gasto: number; saldo: number } | null> {
-  const r = await apiFetch('/api/billing/gastar', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-  if (!r.ok) return null;
-  return (await r.json()) as { jaExistia: boolean; gasto: number; saldo: number };
+  return (await gastarCreditosEx(payload)).resultado;
+}
+
+/**
+ * O mesmo gasto de Créditos, com o MOTIVO da recusa (recompensas v2, onda 6): o perfil protegido
+ * recebe 403 `menor_nao_compra` (ou `idade_nao_informada`), e a tela precisa dizer isso em vez de
+ * "tente de novo". Gêmeo de `gastarSeedsEx`.
+ */
+export async function gastarCreditosEx(payload: { spendId: string; amount: number; reason: string; ref?: string }):
+  Promise<{ resultado: { jaExistia: boolean; gasto: number; saldo: number } | null; erro?: ErroDaApi }> {
+  try {
+    const r = await apiFetch('/api/billing/gastar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!r.ok) return { resultado: null, erro: await lerErro(r) };
+    return { resultado: (await r.json()) as { jaExistia: boolean; gasto: number; saldo: number } };
+  } catch (e) {
+    return { resultado: null, erro: { status: 0, error: String((e as Error)?.message ?? e), code: 'rede' } };
+  }
 }
 
 /**
@@ -116,14 +200,32 @@ export async function gastarCreditos(payload: { spendId: string; amount: number;
  *
  * `null` em falha — quem chamou NÃO marca a conquista, senão seria "conquistada sem as Seeds".
  */
+/** O que o baú da rodada devolve além dos totais (recompensas v2). Só na família `drop:`. */
+export interface RespostaDoBau {
+  item?: string | null
+  /** Faixa sorteada sem peça nova: virou Seeds (`seeds`). */
+  repetido?: boolean
+  /** Quanto ESTE baú pagou — não o saldo da conta. */
+  seeds?: number
+  raridade?: 'comum' | 'raro'
+  chances?: { comum: number; raro: number }
+  proximoRaroGarantidoEm?: number
+  /** Teto do dia alcançado: nada foi creditado. */
+  semBau?: 'teto'
+  bausHoje?: number
+  limite?: number
+}
+
 export async function creditarSeeds(input: {
   creditoId: string
-}): Promise<{ jaExistia: boolean; seedsCreditadas: number; xpCreditado: number; item?: string | null } | null> {
+}): Promise<({ jaExistia: boolean; seedsCreditadas: number; xpCreditado: number } & RespostaDoBau) | null> {
   try {
+    /* O FUSO VAI JUNTO (recompensas v2): a meta do dia e o teto do baú contam o dia LOCAL de quem
+       joga, e o servidor não tem outro jeito de saber qual é. Ausente, vale São Paulo. */
     const res = await apiFetch('/api/metrics/seeds/creditar', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(input),
+      body: JSON.stringify({ ...input, fuso: fusoDoAmbiente() }),
     })
     if (!res.ok) return null
     return await res.json()

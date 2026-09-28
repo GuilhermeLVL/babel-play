@@ -347,6 +347,7 @@ export default function Analysis({
     fontFamily: 'sans',
     displayOrder: 'original-first',
     hideOriginal: false,
+    estilo: 'classica',
   });
   const [showSettings, setShowSettings] = useState<boolean>(false);
   // Estado do cartão flutuante da palavra — em `lib/popoverDePalavra`, junto com a Leitura, que é

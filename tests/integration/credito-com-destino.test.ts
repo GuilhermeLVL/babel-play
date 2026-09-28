@@ -4,8 +4,8 @@
  * O que este arquivo prende, e por que ele não existia: `creditsRepo.debitar` estava escrito,
  * testado e NUNCA CHAMADO por rota nenhuma. Dava para comprar Créditos e não havia onde gastá-los
  * — quem pagasse R$ 49,90 pelos 700 recebia um número que aparecia no cabeçalho e não comprava
- * nada. E o Passe anunciava "1.134 Créditos ao longo da trilha" com a fileira premium renderizada
- * como `role="img"`, sem handler: ninguém creditava.
+ * nada. (O Passe de 100 casas, que também prometia Créditos na trilha, saiu na onda 5 das
+ * recompensas v2: a trilha paga agora é a de assinante da temporada, e ela não entrega Créditos.)
  *
  * A régua do gasto é a mesma das Seeds, e com mais razão: esta moeda custou dinheiro.
  */
@@ -13,7 +13,7 @@ import { afterAll,beforeAll, describe, expect, it } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
 import { CATALOGO_DA_LOJA } from '../../src/core/loja'
-import { totalPremiumEmCreditos } from '../../src/core/passe'
+import { equivalenteDe } from '../../src/core/reembolso'
 import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
@@ -102,47 +102,31 @@ describe('gastar Créditos', () => {
   })
 })
 
-describe('a trilha paga entrega o que promete', () => {
-  it('SEM o passe, nada é creditado — a fileira continua vitrine honesta', async () => {
-    const r = mockRes()
-    await handler('/creditar-passe')(req({}, 'u-sem-passe'), r)
-    expect(r.body).toMatchObject({ creditado: 0, temPasse: false })
-    expect(await creditsRepo.saldo(asUserId('u-sem-passe'))).toBe(0)
-  })
-
-  it('COM o passe, as casas alcançadas creditam — e uma segunda chamada não credita de novo', async () => {
+describe('o Passe de Créditos saiu', () => {
+  /* A rota ficou DEPRECIADA (`api-depreciacoes.json`): responde sem efeito para a aba velha. */
+  it('a rota antiga não credita nada — nem para quem comprou o passe', async () => {
     const u = 'u-com-passe'
-    const uid = asUserId(u)
-    await creditsRepo.registrarCompra(uid, { sku: 'passe-t1', creditos: 0, valorCentavos: 1490, providerPaymentId: 'pay-passe-1' })
-    await creditsRepo.confirmarPagamento('pay-passe-1')
-
-    const r1 = mockRes()
-    await handler('/creditar-passe')(req({}, u), r1)
-    expect(r1.body.temPasse).toBe(true)
-    // Nível 1 (conta nova) alcança a casa 1, que vale Créditos na curva.
-    expect(r1.body.creditado).toBeGreaterThan(0)
-    const saldo = await creditsRepo.saldo(uid)
-
-    const r2 = mockRes()
-    await handler('/creditar-passe')(req({}, u), r2)
-    expect(r2.body.creditado, 'reabrir a tela não pode creditar de novo').toBe(0)
-    expect(await creditsRepo.saldo(uid)).toBe(saldo)
-  })
-
-  it('a promessa da tela bate com a curva: o passe devolve mais do que custa', () => {
-    // R$ 14,90 pelo passe; a trilha devolve isto em Créditos. Se um dia deixar de ser verdade,
-    // o CTA "devolve mais do que custa" vira mentira — e é o teste que avisa.
-    expect(totalPremiumEmCreditos()).toBeGreaterThan(1000)
+    const r = mockRes()
+    await handler('/creditar-passe')(req({}, u), r)
+    expect(r.body).toMatchObject({ creditado: 0, temPasse: false })
+    expect(await creditsRepo.saldo(asUserId(u))).toBe(0)
   })
 })
 
 describe('as variantes douradas passam a existir', () => {
-  it('cada marco de dezena tem o item que o passe promete pelo nome', () => {
+  /* RECOMPENSAS v2: as variantes 3, 5 e 7 eram cursor e pack de emoji e saíram; quem as tem vira
+     dono de um equivalente DA VITRINE (`equivalenteDe`) — nunca de um exclusivo de conquista. */
+  it('cada variante existe no catálogo com preço avulso (ou virou o equivalente)', () => {
     for (let d = 1; d <= 10; d++) {
-      const casa = d * 10
-      const item = CATALOGO_DA_LOJA.find((i) => i.exclusivoDoPasse === casa)
-      expect(item, `nenhuma variante para a casa ${casa}`).toBeTruthy()
-      expect(item!.precoCreditos, `variante da casa ${casa} sem preço avulso`).toBeGreaterThan(0)
+      if ([3, 5, 7].includes(d)) {
+        const eq = CATALOGO_DA_LOJA.find((i) => i.id === equivalenteDe(`dourada-${d}`))
+        expect(eq?.precoCreditos, `equivalente da dourada-${d}`).toBeGreaterThan(0)
+        continue
+      }
+      const item = CATALOGO_DA_LOJA.find((i) => i.id === `dourada-${d}`)
+      if (!item) continue // 'dourada-3/5/7' saíram; as demais sem número próprio não existem
+      expect(item.precoCreditos, `variante ${d} sem preço avulso`).toBeGreaterThan(0)
     }
+    expect(CATALOGO_DA_LOJA.filter((i) => i.id.startsWith('dourada-')).length).toBeGreaterThan(0)
   })
 })

@@ -1,20 +1,30 @@
 import type { ContextoDeConquistas } from '@core';
-import { type Dispatch, type SetStateAction,useEffect, useMemo, useRef, useState } from 'react';
+import { type Dispatch, type SetStateAction, useEffect, useMemo, useRef, useState } from 'react';
 
-import { chaveDaRecompensa, type DetalheDoDrop, enfileirarSemRepetir, EVENTO_DROP_GANHO, type Recompensa, recompensasVistas } from '../../components/RecompensaDesbloqueada';
 import type { MenuPositionType } from '../../components/shell/navItems';
 import { toast } from '../../components/Toast';
 import type { AppMetrics, RecordeDoJogo } from '../../data/api';
-import type { FonteType,ThemeType } from '../appearance';
+import type { FonteType, ThemeType } from '../appearance';
+import { celebrar } from '../comemoracao';
 import { montarContextoDeConquistas, verificarConquistas } from '../conquistas';
 import { desbloqueado } from '../desbloqueios';
-import { emitBurst } from '../effects';
+import {
+  chaveDaRecompensa,
+  type DetalheDaMaestria,
+  type DetalheDoDrop,
+  enfileirarSemRepetir,
+  EVENTO_DROP_GANHO,
+  EVENTO_MAESTRIA_SUBIU,
+  type Recompensa,
+  recompensaDaMaestria,
+  recompensasVistas,
+} from '../filaDeRecompensas';
 import type { ContextoDeEquipar } from '../galeria/equipar';
-import { itemDaConquista,recompensasDoNivelCompleto } from '../galeria/progressao';
-import { comemorar } from '../juice';
+import { itemDaConquista, recompensasDoNivelCompleto } from '../galeria/progressao';
+import { t } from '../i18n';
 import { CATALOGO_DA_LOJA } from '../loja';
+import { itensDaMaestria } from '../maestria';
 import type { DerivedProgress } from '../progress';
-import { play } from '../soundFx';
 
 export interface DependenciasDasRecompensas {
   metrics: AppMetrics | null;
@@ -43,7 +53,8 @@ export interface EstadoDasRecompensas {
  * cima já ter enfileirado.
  */
 export function useRecompensas(deps: DependenciasDasRecompensas): EstadoDasRecompensas {
-  const { metrics, recordes, progress, setVersaoDasMetricas, setTheme, setFonte, setMenuPosition, setIsStudioOpen } = deps;
+  const { metrics, recordes, progress, setVersaoDasMetricas, setTheme, setFonte, setMenuPosition, setIsStudioOpen } =
+    deps;
 
   /* CONQUISTAS — avaliadas a cada métrica nova; o crédito é idempotente no servidor. */
   const ctxConquistas = useMemo<ContextoDeConquistas | null>(
@@ -57,7 +68,16 @@ export function useRecompensas(deps: DependenciasDasRecompensas): EstadoDasRecom
          num toast que some. A fila mostra uma por vez e espera a rodada fechar. */
       const vistas = recompensasVistas();
       const entradas: Recompensa[] = novas
-        .map((c): Recompensa => ({ tipo: 'conquista', id: c.id, nome: c.nome, emoji: c.emoji, seeds: c.recompensa.seeds, xp: c.recompensa.xp, item: itemDaConquista(c.id) }))
+        .map(
+          (c): Recompensa => ({
+            tipo: 'conquista',
+            id: c.id,
+            nome: c.nome,
+            seeds: c.recompensa.seeds,
+            xp: c.recompensa.xp,
+            item: itemDaConquista(c.id),
+          }),
+        )
         .filter((r) => !vistas.has(chaveDaRecompensa(r)));
       if (entradas.length) setFilaDeRecompensas((f) => enfileirarSemRepetir(f, entradas));
     });
@@ -66,14 +86,58 @@ export function useRecompensas(deps: DependenciasDasRecompensas): EstadoDasRecom
   /** v3: fila do modal de resgate (nível/conquista/bau) e o contexto único de equipar. */
   const [filaDeRecompensas, setFilaDeRecompensas] = useState<Recompensa[]>([]);
 
+  const avisouColecaoCompleta = useRef(false);
+  const avisouTetoDoBau = useRef(false);
   /* O BAU DA RODADA entra na mesma fila do nivel e da conquista: o `Play` anuncia o que o servidor
      sorteou e aqui o id vira item do catalogo. Sem isto o drop creditava e ninguem via. */
   useEffect(() => {
     const ouvir = (e: Event) => {
       const d = (e as CustomEvent<DetalheDoDrop>).detail;
+      /* TETO DO DIA (baú v2): três baús por dia local. Avisa uma vez por sessão, sem nada creditado. */
+      if (d?.semBau === 'teto') {
+        if (!avisouTetoDoBau.current) {
+          avisouTetoDoBau.current = true;
+          toast.info(t('Baús de hoje: {n} de {n}. Amanhã tem mais.', { n: d.limite ?? 3 }));
+        }
+        return;
+      }
+      /* REPETIDO (baú v2): a faixa sorteada não tinha peça nova e o baú pagou Seeds. Vai para a
+         mesma fila, sem item, com a mensagem "Você já tem este item: +N Seeds". */
+      if (d && d.itemId === null && d.repetido) {
+        const r: Recompensa = {
+          tipo: 'drop',
+          roundId: d.roundId,
+          seeds: d.seeds,
+          repetido: true,
+          raridade: d.raridade,
+          chances: d.chances,
+          proximoRaroGarantidoEm: d.proximoRaroGarantidoEm,
+        };
+        if (recompensasVistas().has(chaveDaRecompensa(r))) return;
+        setFilaDeRecompensas((f) => enfileirarSemRepetir(f, [r]));
+        setVersaoDasMetricas((v) => v + 1);
+        return;
+      }
+      /* COLEÇÃO COMPLETA (servidor antigo): o baú não tinha peça nova para sortear. Antes a resposta
+         sumia em silêncio e a pessoa não sabia por que o baú parou de aparecer. Uma vez por sessão basta. */
+      if (d && d.itemId === null) {
+        if (!avisouColecaoCompleta.current) {
+          avisouColecaoCompleta.current = true;
+          toast.info('Baú da rodada: coleção completa. Você já tem todas as peças que ele sorteia.');
+        }
+        return;
+      }
       const item = CATALOGO_DA_LOJA.find((i) => i.id === d?.itemId);
       if (!item) return;
-      const r: Recompensa = { tipo: 'drop', roundId: d.roundId, seeds: d.seeds, item };
+      const r: Recompensa = {
+        tipo: 'drop',
+        roundId: d.roundId,
+        seeds: d.seeds,
+        item,
+        raridade: d.raridade,
+        chances: d.chances,
+        proximoRaroGarantidoEm: d.proximoRaroGarantidoEm,
+      };
       if (recompensasVistas().has(chaveDaRecompensa(r))) return;
       setFilaDeRecompensas((f) => enfileirarSemRepetir(f, [r]));
       setVersaoDasMetricas((v) => v + 1);
@@ -81,6 +145,19 @@ export function useRecompensas(deps: DependenciasDasRecompensas): EstadoDasRecom
     window.addEventListener(EVENTO_DROP_GANHO, ouvir);
     return () => window.removeEventListener(EVENTO_DROP_GANHO, ouvir);
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  /* A MAESTRIA SUBIU (recompensas v2, onda 3): a barra do fim da rodada cruzou um limiar e já
+     comemorou; aqui o nível vira uma entrada do modal, com o que ele libera. Uma vez por nível. */
+  useEffect(() => {
+    const ouvir = (e: Event) => {
+      const d = (e as CustomEvent<DetalheDaMaestria>).detail;
+      if (!d?.jogo || !d.nivel) return;
+      const r = recompensaDaMaestria(d.jogo, d.nivel, itensDaMaestria(d.jogo, d.nivel));
+      if (recompensasVistas().has(chaveDaRecompensa(r))) return;
+      setFilaDeRecompensas((f) => enfileirarSemRepetir(f, [r]));
+    };
+    window.addEventListener(EVENTO_MAESTRIA_SUBIU, ouvir);
+    return () => window.removeEventListener(EVENTO_MAESTRIA_SUBIU, ouvir);
   }, []);
   const [lojaAba, setLojaAba] = useState<string | null>(null);
   /**
@@ -99,8 +176,12 @@ export function useRecompensas(deps: DependenciasDasRecompensas): EstadoDasRecom
   };
   // Sem useMemo: os setters são redefinidos a cada render (não são useCallback) e o objeto é barato.
   const equiparCtx: ContextoDeEquipar = {
-    setTheme, setFonte, setMenuPosition, onOpenStudio: abrirEstudio,
-    nivel: progress.available ? progress.level : 1, saldo: progress.available ? progress.seeds : 0,
+    setTheme,
+    setFonte,
+    setMenuPosition,
+    onOpenStudio: abrirEstudio,
+    nivel: progress.available ? progress.level : 1,
+    saldo: progress.available ? progress.seeds : 0,
   };
 
   /* SUBIU DE NÍVEL → festa + o que destravou. O último nível visto fica no navegador; na primeira
@@ -108,10 +189,25 @@ export function useRecompensas(deps: DependenciasDasRecompensas): EstadoDasRecom
   useEffect(() => {
     if (!progress.available) return;
     let visto = 0;
-    try { visto = Number(localStorage.getItem('babel.nivel_visto')) || 0; } catch { /* sem storage */ }
-    if (visto === 0) { try { localStorage.setItem('babel.nivel_visto', String(progress.level)); } catch { /* idem */ } return; }
+    try {
+      visto = Number(localStorage.getItem('babel.nivel_visto')) || 0;
+    } catch {
+      /* sem storage */
+    }
+    if (visto === 0) {
+      try {
+        localStorage.setItem('babel.nivel_visto', String(progress.level));
+      } catch {
+        /* idem */
+      }
+      return;
+    }
     if (progress.level > visto) {
-      try { localStorage.setItem('babel.nivel_visto', String(progress.level)); } catch { /* idem */ }
+      try {
+        localStorage.setItem('babel.nivel_visto', String(progress.level));
+      } catch {
+        /* idem */
+      }
       /* v3: cada nível subido vira UMA entrada no modal de resgate, com TUDO que abriu (Loja +
          galeria — `recompensasDoNivelCompleto`), e "Equipar agora" por item. O toast saiu. */
       const vistas = recompensasVistas();
@@ -121,27 +217,14 @@ export function useRecompensas(deps: DependenciasDasRecompensas): EstadoDasRecom
         if (!vistas.has(chaveDaRecompensa(r))) entradas.push(r);
       }
       if (entradas.length) setFilaDeRecompensas((f) => enfileirarSemRepetir(f, entradas));
-      else comemorar('subiuNivel', null, { tremer: true });
+      else celebrar({ tipo: 'nivel' });
     }
   }, [progress.available, progress.level]);
 
-  /**
-   * SUBIDA DE NÍVEL — o único momento que a app comemora com força.
-   *
-   * Detectado comparando o nível derivado entre atualizações de métrica (ver lib/progress). O
-   * `useRef` guarda o nível ANTERIOR: sem ele, a primeira carga dispararia a comemoração para
-   * quem já estava no nível 27 há meses.
-   */
-  const prevLevelRef = useRef<number | null>(null);
-  useEffect(() => {
-    if (!progress.available) return;
-    const anterior = prevLevelRef.current;
-    prevLevelRef.current = progress.level;
-    if (anterior !== null && progress.level > anterior) {
-      play('levelUp');
-      emitBurst(window.innerWidth / 2, window.innerHeight * 0.35, 'levelUp');
-    }
-  }, [progress.available, progress.level]);
+  /* A SUBIDA DE NÍVEL É FESTEJADA UMA VEZ SÓ — no modal de resgate (`RecompensaDesbloqueada`
+     chama `celebrar({ tipo: 'nivel' })` ao abrir). Havia aqui um segundo efeito, com `useRef` do nível
+     anterior, que tocava `levelUp` e soltava uma rajada no mesmo instante em que o efeito acima
+     enfileirava o modal: duas festas para o mesmo nível. */
 
   return { ctxConquistas, filaDeRecompensas, setFilaDeRecompensas, lojaAba, setLojaAba, abrirEstudio, equiparCtx };
 }

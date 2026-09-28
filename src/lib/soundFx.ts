@@ -56,6 +56,11 @@ export function setSoundMuted(muted: boolean) {
   soundMuted = muted;
 }
 
+/** O som está desligado? O motor de comemoração (`lib/comemoracao`) monta o plano sem som. */
+export function somMudo(): boolean {
+  return soundMuted;
+}
+
 
 /** Chamado de onde o tema é aplicado (lib/theme.ts). Sem isto o kit fica no padrão. */
 /** Voz do modo ARCADE: onda quadrada curta e aguda, o timbre 8-bits, independente do tema. */
@@ -83,7 +88,7 @@ function getAudioContext(): AudioContext | null {
 
 /* ─────────────────────────── Eixo 1: o TIMBRE do tema ─────────────────────────── */
 
-interface ThemeVoice {
+export interface ThemeVoice {
   wave: OscillatorType;
   /** Nota-base, em semitons a partir de A4 (440 Hz). Define o registro do tema. */
   root: number;
@@ -115,8 +120,26 @@ const THEME_VOICES: Record<ThemeType, ThemeVoice> = {
   // Escolha do usuário: neutro, para não brigar com paleta nenhuma.
   // Instrument Premium: senoide limpa, registro grave, decaimento generoso (resonante); erro macio.
   premium: { wave: 'sine',    root: -5,  decay: 1.1,  gain: 0.9,  errorWave: 'triangle' },
-  custom: { wave: 'sine',     root: 0,   decay: 0.9,  gain: 0.95, errorWave: 'square' }
+  custom: { wave: 'sine',     root: 0,   decay: 0.9,  gain: 0.95, errorWave: 'square' },
+  /* ── Temas completos (recompensas v2, onda 4): cada um traz o seu pacote de sons. ── */
+  // Rádio: válvula quente — triangular grave com cauda, erro chiado de estática.
+  radio:  { wave: 'triangle', root: -12, decay: 1.4,  gain: 0.95, errorWave: 'sawtooth' },
+  // Papel e tinta: lápis no papel — curto, seco, registro médio; erro macio.
+  papel:  { wave: 'sine',     root: -2,  decay: 0.55, gain: 0.8,  errorWave: 'triangle' },
+  // Neon noturno: sintetizador de pista — dente de serra agudo e brilhante.
+  neon:   { wave: 'sawtooth', root: 5,   decay: 0.7,  gain: 0.55, errorWave: 'square' },
+  // Fliperama: chip de 8 bits — quadrada aguda e cortada.
+  fliperama: { wave: 'square', root: 9,  decay: 0.35, gain: 0.6,  errorWave: 'sawtooth' },
+  // Jardim: sino de vento — senoide aguda que ressoa.
+  jardim: { wave: 'sine',     root: 3,   decay: 1.8,  gain: 0.95, errorWave: 'triangle' },
+  // Observatório: coro distante — triangular grave, cauda muito longa.
+  observatorio: { wave: 'triangle', root: -8, decay: 2.3, gain: 0.85, errorWave: 'sine' },
 };
+
+/** O timbre de um tema (o pacote de sons que ele traz). Tema desconhecido cai no neutro. */
+export function vozDoTema(theme: ThemeType): Readonly<ThemeVoice> {
+  return THEME_VOICES[theme] ?? THEME_VOICES.custom;
+}
 
 /* ─────────────────────────── Eixo 2: o GESTO do evento ─────────────────────────── */
 
@@ -254,7 +277,7 @@ export function play(event: SoundEvent, opts: { transpose?: number } = {}): void
     const ctx = getAudioContext();
     if (!ctx) return;
 
-    const voice = fontePixel ? PIXEL_VOICE : (THEME_VOICES[currentTheme] ?? THEME_VOICES.custom);
+    const voice = fontePixel ? PIXEL_VOICE : vozDoTema(currentTheme);
     const shape = EVENTS[event];
     if (!shape) return;
 

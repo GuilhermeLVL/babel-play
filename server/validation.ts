@@ -157,6 +157,10 @@ export const rodadaSchema = z.object({
      o servidor nunca via combo nenhum. O teto acompanha o de `itens` — não há combo maior que o
      número de itens da rodada. */
   melhorSequencia: z.number().int().min(0).max(200).optional(),
+  /* DURAÇÃO DA RODADA (recompensas v2, onda 5): o servidor grava `created_at` como o INÍCIO
+     (`inicioDaRodada`, teto de 2 h) — a rodada conta no dia em que começou, mesmo gravada depois
+     da meia-noite. O teto aqui é só de sanidade; o do core é o que vale. */
+  duracaoMs: z.number().int().min(0).max(86_400_000).optional(),
   itens: z
     .array(
       z.object({
@@ -221,6 +225,9 @@ export const seedSpendSchema = z
 export const seedCreditSchema = z
   .object({
     creditoId: z.string().min(8).max(80),
+    /** Fuso IANA do usuário (recompensas v2): o dia da meta e o teto do baú são do dia LOCAL dele.
+        Inválido ou ausente vira `America/Sao_Paulo` (`fusoOuPadrao`) — nunca 400. */
+    fuso: z.string().max(64).optional(),
   })
   .strip()
 

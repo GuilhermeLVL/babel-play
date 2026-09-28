@@ -15,29 +15,39 @@
  * agora". O protótipo mostra uma frase sob o nome da conquista; o app não tem essa frase por
  * conquista, então no lugar dela vai o que foi liberado.
  */
-import { Check, Gift, Sparkles, Sprout } from 'lucide-react';
+import { rotuloDaMaestria } from '@core';
+import { Award, Check, Crown, Gem, Gift, Medal, Sparkles, Sprout, Trophy } from 'lucide-react';
 import { type CSSProperties, useEffect, useId, useRef, useState } from 'react';
 
+import { celebrar } from '../lib/comemoracao';
+import {
+  chaveDaRecompensa,
+  EVENTO_RODADA_FECHOU,
+  jogoAtivo,
+  marcarVista,
+  posicaoNoLote,
+  type Recompensa,
+} from '../lib/filaDeRecompensas';
 import { TEXTOS } from '../lib/galeria/textos';
-import { comemorar } from '../lib/juice';
+import { t } from '../lib/i18n';
+import { pontosDoElemento } from '../lib/juice';
 import { type ItemDaLoja, type Raridade } from '../lib/loja';
+import { play } from '../lib/soundFx';
+import { iconeDaConquista } from './iconesDaConquista';
 import MiniaturaDoItem from './MiniaturaDoItem';
+import PreviaRealDaPeca, { TIPOS_COM_PREVIA_REAL } from './PreviaRealDaPeca';
 import { DialogoBase } from './ui';
-
-export type Recompensa =
-  | { tipo: 'nivel'; nivel: number; itens: ItemDaLoja[] }
-  | { tipo: 'conquista'; id: string; nome: string; emoji: string; seeds: number; xp: number; item?: ItemDaLoja }
-  /* O bau de fim de rodada. A chave e o `roundId` porque o drop e idempotente POR rodada no
-     servidor: repetir o mesmo id devolve o mesmo item, entao repetir a tela seria mostrar duas
-     vezes o mesmo premio. */
-  | { tipo: 'drop'; roundId: string; seeds: number; item: ItemDaLoja };
 
 /** Rotulo e frase de cada tipo, para o JSX parar de ramificar em quatro lugares. */
 const CABECALHO: Record<Recompensa['tipo'], { rotulo: string; frase: string }> = {
   nivel: { rotulo: 'Subiu de nível', frase: 'Você liberou:' },
   conquista: { rotulo: 'Conquista feita', frase: 'Item exclusivo liberado:' },
   drop: { rotulo: 'Baú da rodada', frase: 'O baú abriu:' },
+  maestria: { rotulo: 'Maestria', frase: 'Você liberou:' },
 };
+
+/** O ícone de cada nível de maestria — o mesmo da barra (`BarraDeMaestria`). */
+const ICONE_DO_NIVEL = { 1: Medal, 2: Award, 3: Trophy, 4: Gem, 5: Crown } as const;
 
 /** A borda do cartão do item diz a raridade — os mesmos tokens da Loja. */
 const BORDA_DA_RARIDADE: Record<Raridade, string> = {
@@ -46,62 +56,6 @@ const BORDA_DA_RARIDADE: Record<Raridade, string> = {
   epico: 'var(--epic)',
   lendario: 'var(--warn)',
 };
-
-export const EVENTO_RODADA_FECHOU = 'babel:rodada-fechou';
-/** O bau da rodada saiu. `detail` traz o que o SERVIDOR sorteou; o App resolve o id no catalogo. */
-export const EVENTO_DROP_GANHO = 'babel:drop-ganho';
-export interface DetalheDoDrop {
-  roundId: string;
-  itemId: string;
-  seeds: number;
-}
-const CHAVE_VISTAS = 'babel.recompensas_vistas';
-
-export function chaveDaRecompensa(r: Recompensa): string {
-  if (r.tipo === 'nivel') return `nivel:${r.nivel}`;
-  if (r.tipo === 'drop') return `drop:${r.roundId}`;
-  return `conquista:${r.id}`;
-}
-export function recompensasVistas(): Set<string> {
-  try {
-    return new Set(JSON.parse(localStorage.getItem(CHAVE_VISTAS) || '[]') as string[]);
-  } catch {
-    return new Set();
-  }
-}
-export function marcarVista(r: Recompensa): void {
-  try {
-    const v = recompensasVistas();
-    v.add(chaveDaRecompensa(r));
-    localStorage.setItem(CHAVE_VISTAS, JSON.stringify([...v].slice(-200)));
-  } catch {
-    /* sem storage */
-  }
-}
-/**
- * A fila não repete: as conquistas são reavaliadas a cada métrica nova, e antes de o usuário fechar
- * a primeira a mesma já tinha entrado de novo ("Primeira captura" voltava depois de fechada).
- */
-export function enfileirarSemRepetir(fila: Recompensa[], novas: Recompensa[]): Recompensa[] {
-  const ja = new Set(fila.map(chaveDaRecompensa));
-  const saida = [...fila];
-  for (const r of novas) {
-    const chave = chaveDaRecompensa(r);
-    if (ja.has(chave)) continue;
-    ja.add(chave);
-    saida.push(r);
-  }
-  return saida;
-}
-/** Fechar tira TODAS as cópias daquela recompensa, não só a da frente. */
-export function tirarDaFila(fila: Recompensa[], r: Recompensa): Recompensa[] {
-  const chave = chaveDaRecompensa(r);
-  return fila.filter((x) => chaveDaRecompensa(x) !== chave);
-}
-/** Há uma rodada de jogo em curso? (Play marca o body enquanto joga.) */
-export function jogoAtivo(): boolean {
-  return typeof document !== 'undefined' && document.body.hasAttribute('data-jogo-ativo');
-}
 
 /** Os quadradinhos da marca caindo — `confete()` do protótipo. Some sozinho; nada com movimento reduzido. */
 function Confete() {
@@ -143,6 +97,9 @@ interface Props {
 export default function RecompensaDesbloqueada({ fila, onEquipar, onFechar, onVerPersonalizar }: Props) {
   const atual = fila[0] ?? null;
   const [pronta, setPronta] = useState(() => !jogoAtivo());
+  const lote = useRef<string[]>([]);
+  const grupo = posicaoNoLote(lote.current, fila);
+  lote.current = grupo.lote;
 
   // Espera a rodada fechar; enquanto isso o modal não existe na tela.
   useEffect(() => {
@@ -166,20 +123,38 @@ export default function RecompensaDesbloqueada({ fila, onEquipar, onFechar, onVe
       onEquipar={onEquipar}
       onFechar={onFechar}
       onVerPersonalizar={onVerPersonalizar}
+      grupo={grupo}
     />
   );
 }
 
-function Resgate({ atual, onEquipar, onFechar, onVerPersonalizar }: Omit<Props, 'fila'> & { atual: Recompensa }) {
+function Resgate({
+  atual,
+  onEquipar,
+  onFechar,
+  onVerPersonalizar,
+  grupo,
+}: Omit<Props, 'fila'> & { atual: Recompensa; grupo: { posicao: number; total: number } }) {
   const [equipados, setEquipados] = useState<Set<string>>(new Set());
   const idTitulo = useId();
   const fechado = useRef(false);
 
+  /* A festa de quem abre o modal, pelo motor: nível, conquista ou baú (a raridade do baú escala). */
   useEffect(() => {
-    comemorar('subiuNivel', null, { tremer: true });
+    /* A maestria já foi comemorada pela barra, no instante em que cruzou o limiar: festa uma vez só. */
+    if (atual.tipo === 'maestria') return;
+    if (atual.tipo === 'nivel') celebrar({ tipo: 'nivel' });
+    else if (atual.tipo === 'conquista') celebrar({ tipo: 'conquista' });
+    else {
+      // Baú v2: o repetido chega sem `item` e só com a faixa sorteada.
+      const raridade = atual.item?.raridade ?? atual.raridade ?? 'comum';
+      celebrar({ tipo: 'bau', raridade: raridade === 'comum' ? 'comum' : 'raro' });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- uma festa por recompensa aberta (o `key` remonta)
   }, []);
 
-  const itens: ItemDaLoja[] = atual.tipo === 'nivel' ? atual.itens : atual.item ? [atual.item] : [];
+  const itens: ItemDaLoja[] =
+    atual.tipo === 'nivel' || atual.tipo === 'maestria' ? atual.itens : atual.item ? [atual.item] : [];
   const cabecalho = CABECALHO[atual.tipo];
   // Esc (o `close` nativo) e os dois botões passam por aqui; a recompensa sai da fila uma vez só.
   const fechar = () => {
@@ -191,12 +166,20 @@ function Resgate({ atual, onEquipar, onFechar, onVerPersonalizar }: Omit<Props, 
   const equipar = (i: ItemDaLoja, el: HTMLElement | null) => {
     if (!onEquipar(i)) return;
     setEquipados((s) => new Set(s).add(i.id));
-    comemorar('acerto', el, { texto: TEXTOS.emUso });
+    play('select');
+    pontosDoElemento(TEXTOS.emUso, el, 'bom');
   };
 
   const titulo =
-    atual.tipo === 'nivel' ? `Nível ${atual.nivel}!` : atual.tipo === 'drop' ? atual.item.nome : atual.nome;
+    atual.tipo === 'nivel'
+      ? `Nível ${atual.nivel}!`
+      : atual.tipo === 'drop'
+        ? (atual.item?.nome ?? t('Peça repetida'))
+        : atual.tipo === 'maestria'
+          ? rotuloDaMaestria(atual.jogo, atual.nivel)
+          : atual.nome;
   const icone = { width: 44, height: 44, display: 'inline-block', color: 'var(--accent-ink)' };
+  const IconeDaConquista = iconeDaConquista(atual.tipo === 'conquista' ? atual.id : '');
 
   return (
     <DialogoBase rotuloId={idTitulo} aoFechar={fechar}>
@@ -204,26 +187,44 @@ function Resgate({ atual, onEquipar, onFechar, onVerPersonalizar }: Omit<Props, 
         <Confete />
         <div className="emoji" aria-hidden>
           {atual.tipo === 'conquista' ? (
-            atual.emoji
+            /* O ícone lucide da grade de Desafios (`conquista.icone`): a mesma conquista com a mesma
+               cara nas duas telas, e nada de emoji na interface. */
+            <IconeDaConquista style={icone} />
           ) : atual.tipo === 'drop' ? (
             <Gift style={icone} />
+          ) : atual.tipo === 'maestria' ? (
+            (() => {
+              const IconeDoNivel = ICONE_DO_NIVEL[atual.nivel];
+              return <IconeDoNivel style={icone} />;
+            })()
           ) : (
             <Sparkles style={icone} />
           )}
         </div>
+        {grupo.total > 1 && (
+          <span className="badge acc" data-novidades={grupo.total} style={{ marginBottom: 6 }}>
+            {t('{n} novidades', { n: grupo.total })} · {t('{i} de {n}', { i: grupo.posicao, n: grupo.total })}
+          </span>
+        )}
         <span className="label-mono" style={{ color: 'var(--accent-ink)' }}>
           {cabecalho.rotulo}
         </span>
         <h2 id={idTitulo}>{titulo}</h2>
         <p className="mut">
-          {itens.length > 0 ? cabecalho.frase : 'Nada novo para equipar neste nível: o próximo desbloqueio vem aí.'}
+          {atual.tipo === 'drop' && !atual.item
+            ? t('Você já tem este item: +{n} Seeds', { n: atual.seeds })
+            : itens.length > 0
+              ? cabecalho.frase
+              : atual.tipo === 'maestria'
+                ? t('Novo nível de maestria neste jogo.')
+                : 'Nada novo para equipar neste nível: o próximo desbloqueio vem aí.'}
         </p>
 
         {itens.length > 0 && (
           <ul className="pilha" style={{ listStyle: 'none', padding: 0, margin: '14px 0 0', textAlign: 'left' }}>
             {itens.map((i) => {
               const equipado = equipados.has(i.id);
-              const peca = i.tipo !== 'galeria' && i.tipo !== 'aprimoramento';
+              const peca = i.tipo !== 'galeria';
               return (
                 <li
                   key={i.id}
@@ -237,9 +238,18 @@ function Resgate({ atual, onEquipar, onFechar, onVerPersonalizar }: Omit<Props, 
                     borderColor: BORDA_DA_RARIDADE[i.raridade],
                   }}
                 >
-                  <span style={{ flex: 'none' }}>
-                    <MiniaturaDoItem item={i} />
-                  </span>
+                  {/* A PRÉVIA REAL (spec 10.3): legenda, cartão, efeito, tema, moldura, título, rastro e
+                      partícula aparecem como são de verdade, na largura do cartão; o resto (capacidades,
+                      fonte, menu), a miniatura. */}
+                  {TIPOS_COM_PREVIA_REAL.has(i.tipo) ? (
+                    <span style={{ flex: '1 1 100%' }}>
+                      <PreviaRealDaPeca item={i} />
+                    </span>
+                  ) : (
+                    <span style={{ flex: 'none' }}>
+                      <MiniaturaDoItem item={i} />
+                    </span>
+                  )}
                   <span style={{ flex: '1 1 160px', minWidth: 0 }}>
                     <b style={{ display: 'block', fontSize: 13.5 }}>{i.nome}</b>
                     <small className="mut" style={{ display: 'block', fontSize: 12 }}>
@@ -278,6 +288,18 @@ function Resgate({ atual, onEquipar, onFechar, onVerPersonalizar }: Omit<Props, 
           )}
           {atual.tipo === 'conquista' && atual.xp > 0 && <span className="badge acc">+{atual.xp} XP</span>}
         </div>
+        {/* BAÚ v2: as chances ficam à vista no próprio baú, com a garantia do raro. */}
+        {atual.tipo === 'drop' && atual.chances && (
+          <p className="mut" data-chances-do-bau style={{ fontSize: 12.5, margin: '-10px 0 16px' }}>
+            {t('Chances: {comum}% comum · {raro}% raro', atual.chances)}
+            {atual.proximoRaroGarantidoEm != null &&
+              ` · ${
+                atual.proximoRaroGarantidoEm <= 1
+                  ? t('o próximo baú é raro garantido')
+                  : t('raro garantido em {n} baús', { n: atual.proximoRaroGarantidoEm })
+              }`}
+          </p>
+        )}
 
         <button type="button" className="btn btn-solid bloco" data-autofocus onClick={fechar}>
           {TEXTOS.resgatarEContinuar}

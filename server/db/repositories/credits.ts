@@ -1,8 +1,9 @@
 import { randomUUID } from 'node:crypto'
 
-import { and, desc, eq, isNull, like, sql, sum } from 'drizzle-orm'
+import { and, asc, desc, eq, isNull, like, sql, sum } from 'drizzle-orm'
 
 import type { SkuDeCredito } from '../../../src/core/creditos'
+import { type CompraPremium, resolverPremium } from '../../../src/core/reembolso'
 import type { UserId } from '../../lib/authContext'
 import { db } from '../db'
 import { creditPurchases, creditSpends } from '../schema'
@@ -193,10 +194,57 @@ export const creditsRepo = {
    * do que se paga nasce e morre no servidor, e o cliente só espelha.
    */
   async itensPremium(userId: UserId): Promise<string[]> {
-    const linhas = await db.select({ reason: creditSpends.reason }).from(creditSpends)
-      .where(and(eq(creditSpends.userId, userId), isNull(creditSpends.deletedAt), like(creditSpends.reason, 'premium:%')))
-    return [...new Set(linhas.map((l) => l.reason.slice('premium:'.length)).filter(Boolean))]
+    return resolverPremium(await this.comprasPremium(userId)).posse
   },
+
+  /**
+   * O PASSE QUE SAIU (`passe-t1`): as compras PAGAS dele e quanto as casas do passe já concederam
+   * (`passe:<temporada>:premium-<casa>`) — a entrada de `reembolsosDoPasse` (core).
+   */
+  async passeComprado(userId: UserId): Promise<{ compras: { id: string }[]; concedido: number }> {
+    const [compras, concedido] = await Promise.all([
+      db
+        .select({ id: creditPurchases.id })
+        .from(creditPurchases)
+        .where(
+          and(
+            eq(creditPurchases.userId, userId),
+            eq(creditPurchases.sku, 'passe-t1'),
+            eq(creditPurchases.status, 'pago'),
+            isNull(creditPurchases.deletedAt),
+          ),
+        )
+        .orderBy(asc(creditPurchases.createdAt), asc(creditPurchases.id)),
+      db
+        .select({ total: sum(creditPurchases.creditos) })
+        .from(creditPurchases)
+        .where(
+          and(
+            eq(creditPurchases.userId, userId),
+            eq(creditPurchases.sku, 'concessao'),
+            like(creditPurchases.providerPaymentId, 'passe:%'),
+            isNull(creditPurchases.deletedAt),
+          ),
+        ),
+    ])
+    return { compras, concedido: Number(concedido[0]?.total ?? 0) }
+  },
+
+  /**
+   * As compras premium na ordem em que aconteceram — a entrada de `resolverPremium` (core), que
+   * decide a posse E os Créditos a devolver com a mesma régua (recompensas v2, revisão P0).
+   */
+  async comprasPremium(userId: UserId): Promise<CompraPremium[]> {
+    const linhas = await db
+      .select({ id: creditSpends.id, reason: creditSpends.reason, amount: creditSpends.amount })
+      .from(creditSpends)
+      .where(and(eq(creditSpends.userId, userId), isNull(creditSpends.deletedAt), like(creditSpends.reason, 'premium:%')))
+      .orderBy(asc(creditSpends.createdAt), asc(creditSpends.id))
+    return linhas
+      .map((l) => ({ id: l.id, itemId: l.reason.slice('premium:'.length), creditos: Number(l.amount ?? 0) }))
+      .filter((c) => !!c.itemId)
+  },
+
 
   async comprasDoUsuario(userId: UserId, limite = 20) {
     return db.select().from(creditPurchases)

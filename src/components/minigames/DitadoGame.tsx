@@ -4,9 +4,9 @@ import { CornerDownLeft, Lightbulb, Play, SkipForward, Turtle } from 'lucide-rea
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { juntarPalavras, palavrasDaFrase } from '../../core/minigames/palavrasDaFrase';
+import { celebrar } from '../../lib/comemoracao';
 import { criarFalante } from '../../lib/falante';
-import { playJuicedError, playJuicedHit, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
-import { comemorar, multiplicador, pontosDoElemento } from '../../lib/juice';
+import { multiplicador, pontosDoElemento } from '../../lib/juice';
 import type { AgeProfileType } from '../../lib/profile';
 import { useRodada } from './casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda } from './casca/HudDaRodada';
@@ -69,7 +69,6 @@ export default function DitadoGame({ rodadas, audioUrl, ageProfile, onFinish }: 
   const falante = useMemo(() => criarFalante(audioRef, audioUrl), [audioUrl]);
   const ouvir = (velocidade = 1) => {
     if (!rodada || !falante.disponivel) return;
-    triggerHaptic('soft');
     falante.ouvir(
       {
         // `lang` é opcional na fala e obrigatório no `ItemAudivel`; '' e undefined percorrem o mesmo
@@ -134,12 +133,11 @@ export default function DitadoGame({ rodadas, audioUrl, ageProfile, onFinish }: 
       setSequencia(nova);
       setAcertos((n) => n + 1);
       setPontos((p) => p + ganho);
-      triggerHaptic('success');
-      playJuicedHit(nova, undefined, `+${ganho}${mult > 1 && !dicas ? ` ×${mult}` : ''}`);
+      celebrar({ tipo: 'acerto', combo: nova, el: palcoRef.current, pontos: ganho });
     } else {
       setSequencia(0);
-      triggerHaptic('error');
-      playJuicedError(palcoRef.current, undefined, 'Abaixo de 80%');
+      celebrar({ tipo: 'erro', el: palcoRef.current });
+      pontosDoElemento('Abaixo de 80%', palcoRef.current, 'ruim');
     }
 
     // Pausa maior quando errou: é onde a correção palavra a palavra é lida.
@@ -149,9 +147,6 @@ export default function DitadoGame({ rodadas, audioUrl, ageProfile, onFinish }: 
           if (encerradoRef.current) return;
           encerradoRef.current = true;
           const todos = resultadosRef.current;
-          const impecavel = todos.every((o) => o.correct && !o.hinted);
-          if (impecavel) playJuicedVictory();
-          else comemorar(todos.some((o) => o.correct) ? 'rodadaBoa' : 'erro', palcoRef.current, { tremer: impecavel });
           setTimeout(
             () =>
               onFinish({
@@ -191,7 +186,6 @@ export default function DitadoGame({ rodadas, audioUrl, ageProfile, onFinish }: 
     if (jaEscritas >= alvo.length) return;
     setDicas((d) => d + 1);
     setSequencia(0);
-    triggerHaptic('soft');
     setTexto(juntarPalavras([...escritas, alvo[jaEscritas]], lang));
     pontosDoElemento(`palavra ${jaEscritas + 1}`, el, 'neutro');
     entradaRef.current?.focus();

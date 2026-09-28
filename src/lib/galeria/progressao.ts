@@ -8,14 +8,15 @@
  * cursores e galeria que o mesmo nível libera ficavam de fora do "você destravou".
  */
 import { CONQUISTAS } from '@core'
+import { Compass, Gift, Image, type LucideIcon, MousePointer2, Palette, Sparkles, Type, WandSparkles } from 'lucide-react'
 
-import { CATALOGO_DA_LOJA, estadoDoItem, type ItemDaLoja,possuidos } from '../loja'
+import { CATALOGO_DA_LOJA, estadoDoItem, type ItemDaLoja, possuidos, temPortaDeNivel } from '../loja'
 
 /** Itens que abrem por nível (sem exclusivo), agrupados: nível → itens. Ordenado por nível. */
 export function itensPorNivel(catalogo: ReadonlyArray<ItemDaLoja> = CATALOGO_DA_LOJA): Map<number, ItemDaLoja[]> {
   const m = new Map<number, ItemDaLoja[]>()
   for (const i of catalogo) {
-    if (i.exclusivoDe) continue
+    if (i.exclusivoDe || !temPortaDeNivel(i)) continue
     const lista = m.get(i.nivel) ?? []
     lista.push(i)
     m.set(i.nivel, lista)
@@ -26,15 +27,15 @@ export function itensPorNivel(catalogo: ReadonlyArray<ItemDaLoja> = CATALOGO_DA_
 export interface ProximaRecompensa {
   nivel: number
   itens: ItemDaLoja[]
-  /** O 1º item, para caber numa linha ("próximo: 🎁 Nome"). */
+  /** O 1º item, para caber numa linha ("próximo: Nome"). */
   destaque: ItemDaLoja
 }
 
 /** O menor nível acima do atual que libera algo. `null` quando não há mais nada por nível. */
 export function proximaRecompensa(nivelAtual: number, catalogo: ReadonlyArray<ItemDaLoja> = CATALOGO_DA_LOJA): ProximaRecompensa | null {
-  const proximos = catalogo.filter((i) => !i.exclusivoDe && i.nivel > nivelAtual)
+  const proximos = catalogo.filter((i) => !i.exclusivoDe && temPortaDeNivel(i) && i.nivel! > nivelAtual)
   if (!proximos.length) return null
-  const nivel = Math.min(...proximos.map((i) => i.nivel))
+  const nivel = Math.min(...proximos.map((i) => i.nivel ?? Infinity))
   const itens = proximos.filter((i) => i.nivel === nivel)
   // O destaque é o mais raro daquele nível — é o que se mostra numa linha só.
   const peso = { lendario: 4, epico: 3, raro: 2, comum: 1 } as const
@@ -63,7 +64,7 @@ export interface EstadoDaColecao {
   porConquista: ItemDaLoja[]
 }
 
-/** Classifica cada item do catálogo numa das quatro áreas. Aprimoramentos ficam fora (têm régua própria). */
+/** Classifica cada item do catálogo numa das quatro áreas. */
 export function estadoDaColecao(nivel: number, saldo: number, catalogo: ReadonlyArray<ItemDaLoja> = CATALOGO_DA_LOJA): EstadoDaColecao {
   const r: EstadoDaColecao = {
     possuidos: [], ganhosPorNivel: [], compradosComSeeds: [], conquistados: [],
@@ -71,7 +72,6 @@ export function estadoDaColecao(nivel: number, saldo: number, catalogo: Readonly
   }
   const comprados = possuidos()
   for (const i of catalogo) {
-    if (i.tipo === 'aprimoramento') continue
     const { estado } = estadoDoItem(i, nivel, saldo)
     if (estado === 'equipavel') {
       r.possuidos.push(i)
@@ -90,7 +90,7 @@ export function estadoDaColecao(nivel: number, saldo: number, catalogo: Readonly
 
 /** TUDO que o nível `n` abre (Loja + galeria), para o modal de resgate. */
 export function recompensasDoNivelCompleto(n: number, catalogo: ReadonlyArray<ItemDaLoja> = CATALOGO_DA_LOJA): ItemDaLoja[] {
-  return catalogo.filter((i) => !i.exclusivoDe && i.nivel === n && i.tipo !== 'aprimoramento')
+  return catalogo.filter((i) => !i.exclusivoDe && temPortaDeNivel(i) && i.nivel === n)
 }
 
 /** O item exclusivo que uma conquista libera, se houver. */
@@ -101,27 +101,21 @@ export function itemDaConquista(conquistaId: string, catalogo: ReadonlyArray<Ite
 }
 
 
-/** Emoji/ícone textual de um item, para linhas compactas ("🎁 Nome"). */
-export function emojiDoItem(item: ItemDaLoja): string {
-  /* O TIPO MANDA, e a descrição é só o desempate.
-     Antes era o contrário: o primeiro emoji da descrição, por regex, virava o ícone — então o
-     ícone dependia do texto que alguém escreveu, e dois cursores tinham símbolos diferentes
-     enquanto um tema e um pack podiam ter o mesmo. Não era um sistema, era um acidente por item.
-     Agora o tipo dá o ícone estável, e só os tipos que se distinguem PELO conteúdo (packs e
-     cursores, onde o emoji É o produto) continuam lendo a descrição. */
-  const ehDoConteudo = item.tipo === 'pack' || item.tipo === 'cursor' || item.tipo === 'rastro'
-  const m = ehDoConteudo ? item.desc.match(/\p{Extended_Pictographic}/u) : null
-  if (m) return m[0]
+/**
+ * O ÍCONE DO TIPO de um item (lucide), para quando a peça não tem miniatura própria.
+ *
+ * Era `emojiDoItem`, que devolvia um emoji por tipo (e, para rastro, o primeiro emoji da descrição).
+ * Recompensas v2: nada de emoji na interface — o tipo dá um ícone lucide estável, na cor do tema.
+ */
+export function iconeDoItem(item: Pick<ItemDaLoja, 'tipo'>): LucideIcon {
   switch (item.tipo) {
-    case 'tema': return '🎨'
-    case 'fonte': return '🔤'
-    case 'posicao': return '🧭'
-    case 'estudio': return '🪄'
-    case 'particulas': return '✨'
-    case 'pack': return '😀'
-    case 'cursor': return '🖱️'
-    case 'rastro': return '💫'
-    case 'galeria': return '🖼️'
-    default: return '🎁'
+    case 'tema': return Palette
+    case 'fonte': return Type
+    case 'posicao': return Compass
+    case 'estudio': return WandSparkles
+    case 'particulas': return Sparkles
+    case 'rastro': return MousePointer2
+    case 'galeria': return Image
+    default: return Gift
   }
 }

@@ -23,7 +23,11 @@ import { type AppDeTeste, subirApp } from '../caracterizacao/_app'
 import { AGORA, type Semeado, semearRico } from './_semeaduraRica'
 
 const DONO = 'local-owner'
-const json = (v: unknown) => `${JSON.stringify(v, null, 2)}\n`
+/* Números não inteiros com 12 algarismos significativos: médias como `avgRetention` somam em
+   ordem que muda o último bit entre plataformas (0,9143289786505426 no Windows, …429 no Linux da
+   CI). A equivalência que importa é a do valor, não a da representação binária. */
+const json = (v: unknown) =>
+  `${JSON.stringify(v, (_k, x: unknown) => (typeof x === 'number' && !Number.isInteger(x) ? Number(x.toPrecision(12)) : x), 2)}\n`
 
 describe('rotas caras: equivalência, invalidação e custo', () => {
   let s: AppDeTeste
@@ -105,7 +109,11 @@ describe('rotas caras: equivalência, invalidação e custo', () => {
           rastro: 'off',
         },
       })
-      const recusa = await s.put('/api/settings', { ui: { theme: 'linear', fonte: 'padrao', cursor: 'coroa' } })
+      /* Era `cursor: 'coroa'` (Perfeccionista); cursores saíram nas recompensas v2, e o rastro do
+         Duelista saiu na revisão de 27/09 (um rastro por forma): o exclusivo é o do Colecionador. */
+      const recusa = await s.put('/api/settings', {
+        ui: { theme: 'linear', fonte: 'padrao', rastro: 'arcoiris' },
+      })
       const corpoOk = (await ok.json()) as Record<string, unknown>
       await expect(
         json({
@@ -183,11 +191,13 @@ describe('rotas caras: equivalência, invalidação e custo', () => {
   })
 
   describe('GET /api/metrics/profile: sem escrita não relê as tabelas; com escrita, enxerga', () => {
-    it('a segunda leitura sem escrita no meio custa no máximo quatro consultas e devolve o mesmo JSON', async () => {
+    /* Eram quatro; a quinta é o fuso gravado (revisão de 27/09 das recompensas v2): os dias de
+       prática e a ofensiva contam no fuso de quem estuda, e ele é parte da chave do cache. */
+    it('a segunda leitura sem escrita no meio custa no máximo cinco consultas e devolve o mesmo JSON', async () => {
       const a = await (await s.get('/api/metrics/profile')).json()
       const { r, n } = await medir(() => s.get('/api/metrics/profile'))
       expect(await r.json()).toEqual(a)
-      expect(n).toBeLessThanOrEqual(4)
+      expect(n).toBeLessThanOrEqual(5)
     })
 
     it('uma revisão nova aparece em reviews', async () => {

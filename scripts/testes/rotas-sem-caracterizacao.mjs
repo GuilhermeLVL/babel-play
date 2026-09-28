@@ -17,6 +17,8 @@ import { join } from 'node:path'
 
 /** Rotas deliberadamente fora: cada uma com o motivo. Uma entrada aqui é decisão, não pendência. */
 const SEM_CARACTERIZACAO = {
+  'GET *':
+    'o 404 JSON de rota inexistente (fallback de `server/http/app.ts`); coberto por `tests/caracterizacao/api-404-e-versao.test.ts`, que chama um caminho qualquer — o script não casa `*` com caminho de teste',
   'GET /metrics':
     'coberta por `tests/integration/metricas-prometheus.test.ts` (11 casos sobre o `criarApp()` real: formato de exposicao, ordem de montagem, cardinalidade da label de rota) e `metricas-token.test.ts`. Nao aparece aqui como "com teste" por limite deste script: ele so reconhece chamada de teste que comece por `/api/`, e a rota de operacao mora na RAIZ por convencao do Prometheus',
   'POST /api/import/web':

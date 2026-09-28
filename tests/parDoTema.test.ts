@@ -7,7 +7,9 @@ import { PAR_DO_TEMA } from '../src/lib/galeria/parDoTema'
 
 /* A prévia claro/escuro dos cartões de tema (Personalizar) repete cores de `src/index.css`.
    Se alguém mexer num tema lá, esta tabela tem de acompanhar — senão o cartão mente sobre o tema. */
-const css = readFileSync(join(__dirname, '..', 'src', 'index.css'), 'utf8')
+const css = [join('src', 'index.css'), join('src', 'styles', 'temas-v2.css')]
+  .map((f) => readFileSync(join(__dirname, '..', f), 'utf8'))
+  .join('\n')
 const bloco = (sel: string) => {
   const i = css.indexOf(sel)
   if (i < 0) return null

@@ -14,7 +14,7 @@
  *  - o round-trip do áudio no disco local continua funcionando.
  */
 import { existsSync, mkdtempSync, readdirSync, rmSync } from 'node:fs'
-import { request } from 'node:http'
+import { type ClientRequest, request } from 'node:http'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import v8 from 'node:v8'
@@ -34,6 +34,17 @@ const coletarLixo = runInNewContext('gc') as () => void
 const CABECA_WEBM = Buffer.concat([Buffer.from([0x1a, 0x45, 0xdf, 0xa3]), Buffer.alloc(60, 0x21)])
 
 const esperar = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
+/** Espera o `drain` (ou o fim da conexão) e tira os dois ouvintes — sem acumular um por pedaço. */
+function drenou(req: ClientRequest): Promise<void> {
+  return new Promise((r) => {
+    const soltar = () => {
+      req.off('drain', soltar).off('close', soltar)
+      r()
+    }
+    req.once('drain', soltar).once('close', soltar)
+  })
+}
 
 interface Resposta {
   status: number
@@ -195,7 +206,7 @@ describe('uploads grandes: semáforo, streaming e teto (ADR 0009)', () => {
 
     a.req.write(CABECA_WEBM)
     for (let i = 0; i < 130 && !respondeu; i++) {
-      if (!a.req.write(pedaco)) await new Promise((r) => a.req.once('drain', r).once('close', r))
+      if (!a.req.write(pedaco)) await drenou(a.req)
     }
     const r = await a.resposta.catch(() => null)
     a.req.destroy()
@@ -213,30 +224,44 @@ describe('uploads grandes: semáforo, streaming e teto (ADR 0009)', () => {
 
     /* Mede o RETIDO, não o alocado: sem coletar antes de cada amostra, o `arrayBuffers` conta os
        pedaços que já foram para o disco e só esperam o GC — e isso oscilou entre 10 e 70 MB de uma
-       rodada para outra nesta máquina, com o mesmo código. */
+       rodada para outra nesta máquina, com o mesmo código.
+
+       A amostra é por PROGRESSO (a cada 8 MB escritos e no fim), não por relógio. Antes havia uma
+       sonda de 20 em 20 ms, e cada amostra é um GC completo NO MESMO PROCESSO que serve o upload:
+       o servidor só lia um pedaço entre dois GCs. No runner do CI (com cobertura v8, heap maior,
+       GC de centenas de ms) isso fez o teste passar de 120 s sem nenhum defeito no upload — só a
+       sonda atrasando a leitura. Por progresso, são ~14 GCs no total, e o `express.raw` (que retém
+       o corpo inteiro até o fim) continua reprovando: a retenção dele cresce a cada amostra. */
     const retido = () => {
       coletarLixo()
       return process.memoryUsage().arrayBuffers
     }
     const antes = retido()
     let pico = antes
-    const sonda = setInterval(() => (pico = Math.max(pico, retido())), 20)
-    try {
-      a.req.write(CABECA_WEBM)
-      let enviado = CABECA_WEBM.length
-      while (enviado < total) {
-        const n = Math.min(MB, total - enviado)
-        const ok = a.req.write(n === MB ? pedaco : pedaco.subarray(0, n))
-        enviado += n
-        if (!ok) await new Promise((r) => a.req.once('drain', r))
+    /* Se o servidor responder antes de ler o corpo (429/413/507), o `drain` nunca viria e o teste
+       ficaria preso até o timeout; a resposta antecipada desbloqueia a espera e reprova no status. */
+    let respondeu = false
+    void a.resposta.then(
+      () => (respondeu = true),
+      () => (respondeu = true),
+    )
+    a.req.write(CABECA_WEBM)
+    let enviado = CABECA_WEBM.length
+    let proximaAmostra = 8 * MB
+    while (enviado < total && !respondeu) {
+      const n = Math.min(MB, total - enviado)
+      const ok = a.req.write(n === MB ? pedaco : pedaco.subarray(0, n))
+      enviado += n
+      if (!ok) await drenou(a.req)
+      if (enviado >= proximaAmostra) {
         pico = Math.max(pico, retido())
+        proximaAmostra += 8 * MB
       }
-      a.req.end()
-      const r = await a.resposta
-      expect(r.status).toBe(200)
-    } finally {
-      clearInterval(sonda)
     }
+    pico = Math.max(pico, retido())
+    a.req.end()
+    const r = await a.resposta
+    expect(r.status).toBe(200)
     /* Com `express.raw` o corpo inteiro ficava RETIDO até o fim (a lista de pedaços, depois o
        `Buffer.concat`): 100 MB ou mais aqui. Em streaming, o retido é o que está entre a rede e o
        disco — alguns pedaços de 64 KB. */

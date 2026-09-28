@@ -6,12 +6,21 @@
  * que a Loja e os desbloqueios consultam; se o crédito falhar (rede), a conquista NÃO é marcada
  * e será tentada de novo na próxima avaliação — nunca "conquistada sem as Seeds".
  */
-import { type AppMetrics, avaliarConquistas, type Conquista, type ContextoDeConquistas } from '@core';
+import {
+  type AppMetrics,
+  avaliarConquistas,
+  type Conquista,
+  CONQUISTAS,
+  type ContextoDeConquistas,
+  JOGOS_DA_MAESTRIA,
+  progressoDasConquistas,
+} from '@core';
 
 import { creditarSeeds, type RecordeDoJogo } from '../data/api';
 import { conquistasDesbloqueadas, marcarConquista, registrarDataDaConquista } from './conquistasPosse';
 import { eventosVistos, todosOsEventos } from './eventosDeJogo';
 import { possuidos } from './loja';
+import { maestriasCreditadas, nivelCreditado } from './maestriaPosse';
 
 /** Junta o que vem do servidor (métricas, recordes) com o que vive no navegador (coleção, posse). */
 export function montarContextoDeConquistas(p: {
@@ -21,6 +30,14 @@ export function montarContextoDeConquistas(p: {
 }): ContextoDeConquistas {
   const melhorComboPorJogo: Record<string, number> = {};
   for (const r of p.recordes) melhorComboPorJogo[r.exerciseKind] = r.melhorCombo ?? 0;
+  /* A maestria do navegador é a que o SERVIDOR já creditou (`maestriaPosse`): a conquista nunca
+     anda à frente do que a rota de crédito vai conferir. */
+  const creditadas = maestriasCreditadas();
+  const maestria: NonNullable<ContextoDeConquistas['maestria']> = {};
+  for (const jogo of JOGOS_DA_MAESTRIA) {
+    const n = nivelCreditado(jogo, creditadas);
+    if (n > 0) maestria[jogo] = n;
+  }
   return {
     metricas: p.metricas,
     nivel: p.nivel,
@@ -29,6 +46,7 @@ export function montarContextoDeConquistas(p: {
     totalDeEventos: todosOsEventos().length,
     idiomas: p.metricas.idiomas ?? 0,
     compras: possuidos().size,
+    maestria,
   };
 }
 
@@ -49,4 +67,24 @@ export async function verificarConquistas(ctx: ContextoDeConquistas): Promise<Co
     window.dispatchEvent(new CustomEvent(EVENTO_CONQUISTA, { detail: { ids: feitas.map((c) => c.id) } }));
   }
   return feitas;
+}
+
+/**
+ * QUANTAS CONQUISTAS JÁ FORAM FEITAS, de quantas — a conta da tela Desafios e da contagem da aba.
+ *
+ * A posse local manda junto com o progresso: uma conquista creditada continua "feita" mesmo se a
+ * métrica cair depois (ex.: sequência de presença perdida). Um id na posse que não existe mais no
+ * catálogo não conta — senão "feitas" poderia passar do total.
+ */
+export function contarConquistas(ctx: ContextoDeConquistas | null): { feitas: number; total: number } {
+  const posse = conquistasDesbloqueadas();
+  const atingidas = ctx
+    ? new Set(
+        progressoDasConquistas(ctx)
+          .filter((p) => p.conquistada)
+          .map((p) => p.conquista.id),
+      )
+    : new Set<string>();
+  const feitas = CONQUISTAS.filter((c) => posse.has(c.id) || atingidas.has(c.id)).length;
+  return { feitas, total: CONQUISTAS.length };
 }

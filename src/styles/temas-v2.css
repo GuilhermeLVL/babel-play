@@ -1,0 +1,601 @@
+/*
+ * TEMAS COMPLETOS (recompensas v2, onda 4) — "pele sobre a mesma estrutura".
+ *
+ * Um tema aqui troca a paleta (clara e escura), a fonte de título, a textura, o fundo animado
+ * leve, o pacote de sons (`lib/soundFx`), a forma de partícula (`lib/effects` → FORMA_DO_TEMA) e a
+ * pele do HUD dos jogos (`--hud-*`, lidos por `.hud`/`.combo` em prototipo.css). Layout, ícones
+ * lucide e componentes NÃO mudam. Os 8 temas de antes usam os valores neutros de `:root` (index.css).
+ *
+ * CONTRASTE: os pares de `tests/contrastePaletas.test.ts` passam AA (4,5:1) nos dois modos; os
+ * tokens de texto (`--*-ink`, `--ink-muted/faint`) foram calculados contra `--canvas`,
+ * `--surface` e `--surface-hover`.
+ *
+ * CAMADA: os tokens ficam em `@layer base`, como os temas de index.css. A letra escolhida em
+ * "Acessibilidade e layout" (`[data-fonte]`, fora de camada) ganha da fonte de título do tema.
+ *
+ * FUNDO: a textura (`body::after`) e o fundo animado (`body::before`) moram atrás de tudo; nestes
+ * temas a raiz do app e o `<main>` ficam transparentes para o fundo aparecer. O fundo anima só
+ * `transform` (compositor), e some no modo leve, com movimento reduzido e com as animações
+ * desligadas.
+ */
+@layer base {
+  [data-theme="radio"] {
+    color-scheme: light;
+    --canvas: #EDE3D1;
+    --surface: #FBF6EC;
+    --surface-hover: #F2ECE2;
+    --surface-sunken: #E1D7C6;
+    --ink: #2A1F16;
+    --ink-muted: #655A4E;
+    --ink-faint: #6C6256;
+    --ink-contrast: #EDE3D1;
+    --border-subtle: #CEC4B3;
+    --border-strong: #B2A899;
+    --accent: #B8501A;
+    --accent-soft: #F0DBCA;
+    --accent-ink: #9C4619;
+    --accent-contrast: #FFFFFF;
+    --good: #4E7A37;
+    --good-soft: #DFE2CF;
+    --good-ink: #486A31;
+    --good-contrast: #FFFFFF;
+    --warn: #B07A0C;
+    --warn-soft: #EFE2C8;
+    --warn-ink: #825B0F;
+    --warn-contrast: #111111;
+    --rare: #3C6A8A;
+    --rare-soft: #DCE0DC;
+    --rare-ink: #3B6481;
+    --error: #B3302A;
+    --error-soft: #EFD6CD;
+    --error-ink: #AC2F29;
+    --error-contrast: #FFFFFF;
+    --epic: #7B4BA8;
+    --epic-soft: #E7DBE1;
+    --epic-ink: #7849A2;
+    --font-display-val: "Rajdhani", "Archivo", sans-serif;
+    --anel: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);
+    --radius-card: 14px;
+    --radius-btn: 10px;
+    --r-card: 14px;
+    --r-btn: 10px;
+    --textura: repeating-linear-gradient(0deg, color-mix(in srgb, var(--ink) 5%, transparent) 0 1px, transparent 1px 5px);
+    --fundo-animado: radial-gradient(38% 30% at 22% 12%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 72%);
+    --hud-trilho: color-mix(in srgb, var(--ink) 12%, var(--surface));
+    --hud-barra: linear-gradient(90deg, var(--warn), var(--accent));
+    --hud-combo: color-mix(in srgb, var(--accent) 12%, var(--surface));
+    --hud-combo-quente: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 55%, #000));
+    --hud-combo-tinta: #FFFFFF;
+    --hud-raio: 10px;
+  }
+  [data-theme="radio"].dark, .dark [data-theme="radio"], [data-theme="radio"] [class*="dark"] {
+    color-scheme: dark;
+    --canvas: #19120C;
+    --surface: #241A12;
+    --surface-hover: #30261D;
+    --surface-sunken: #120D08;
+    --ink: #F4E6CF;
+    --ink-muted: #A39887;
+    --ink-faint: #9A8F7F;
+    --ink-contrast: #19120C;
+    --border-subtle: #3C342B;
+    --border-strong: #5B5247;
+    --accent: #FFA451;
+    --accent-soft: #50361F;
+    --accent-ink: #FFA451;
+    --accent-contrast: #382412;
+    --good: #8CC46A;
+    --good-soft: #393C24;
+    --good-ink: #8CC46A;
+    --good-contrast: #1F2B17;
+    --warn: #F2C14E;
+    --warn-soft: #4D3B1E;
+    --warn-ink: #F2C14E;
+    --warn-contrast: #352A11;
+    --rare: #86BEE0;
+    --rare-soft: #383B3B;
+    --rare-ink: #86BEE0;
+    --error: #FF7D6B;
+    --error-soft: #502E24;
+    --error-ink: #FF7D6B;
+    --error-contrast: #381B18;
+    --epic: #C9A0F0;
+    --epic-soft: #45353E;
+    --epic-ink: #C9A0F0;
+    --anel: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent);
+  }
+  [data-theme="papel"] {
+    color-scheme: light;
+    --canvas: #F1EDE3;
+    --surface: #FFFDF7;
+    --surface-hover: #F5F3EE;
+    --surface-sunken: #E4E1D8;
+    --ink: #1C2230;
+    --ink-muted: #5E6167;
+    --ink-faint: #67696F;
+    --ink-contrast: #F1EDE3;
+    --border-subtle: #CFCDC6;
+    --border-strong: #B1B0AD;
+    --accent: #1F4F8C;
+    --accent-soft: #DBE1E6;
+    --accent-ink: #1F4F8C;
+    --accent-contrast: #FFFFFF;
+    --good: #2F6B45;
+    --good-soft: #DEE6DB;
+    --good-ink: #2F6B45;
+    --good-contrast: #FFFFFF;
+    --warn: #B87A0E;
+    --warn-soft: #F4E8D2;
+    --warn-ink: #865E19;
+    --warn-contrast: #111111;
+    --rare: #6A3F8F;
+    --rare-soft: #E7DFE6;
+    --rare-ink: #6A3F8F;
+    --error: #A8262A;
+    --error-soft: #F1DBD6;
+    --error-ink: #A8262A;
+    --error-contrast: #FFFFFF;
+    --epic: #6A3F8F;
+    --epic-soft: #E7DFE6;
+    --epic-ink: #6A3F8F;
+    --font-display-val: "Merriweather", Georgia, serif;
+    --anel: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);
+    --radius-card: 6px;
+    --radius-btn: 6px;
+    --r-card: 6px;
+    --r-btn: 6px;
+    --border-width-card: 1px;
+    --bw-card: 1px;
+    --shadow-card-val: 0 1px 0 color-mix(in srgb, var(--ink) 8%, transparent), 0 6px 14px -10px color-mix(in srgb, var(--ink) 30%, transparent);
+    --textura: repeating-linear-gradient(180deg, transparent 0 31px, color-mix(in srgb, var(--accent) 9%, transparent) 31px 32px);
+    --fundo-animado: radial-gradient(45% 40% at 80% 18%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 70%);
+    --hud-trilho: transparent;
+    --hud-barra: repeating-linear-gradient(90deg, var(--accent) 0 6px, transparent 6px 9px);
+    --hud-combo: transparent;
+    --hud-combo-quente: var(--accent);
+    --hud-combo-tinta: var(--accent-contrast);
+    --hud-raio: 4px;
+  }
+  [data-theme="papel"].dark, .dark [data-theme="papel"], [data-theme="papel"] [class*="dark"] {
+    color-scheme: dark;
+    --canvas: #13151A;
+    --surface: #1B1E25;
+    --surface-hover: #282A30;
+    --surface-sunken: #0D0F12;
+    --ink: #ECE6D8;
+    --ink-muted: #A09D95;
+    --ink-faint: #95928C;
+    --ink-contrast: #13151A;
+    --border-subtle: #363638;
+    --border-strong: #545453;
+    --accent: #8FB6F2;
+    --accent-soft: #323C4E;
+    --accent-ink: #8FB6F2;
+    --accent-contrast: #1F2835;
+    --good: #7CC795;
+    --good-soft: #2E403B;
+    --good-ink: #7CC795;
+    --good-contrast: #1B2C21;
+    --warn: #E8B75C;
+    --warn-soft: #443D30;
+    --warn-ink: #E8B75C;
+    --warn-contrast: #332814;
+    --rare: #C3A4EA;
+    --rare-soft: #3D394C;
+    --rare-ink: #C3A4EA;
+    --error: #F28A84;
+    --error-soft: #463438;
+    --error-ink: #F28A84;
+    --error-contrast: #351E1D;
+    --epic: #C3A4EA;
+    --epic-soft: #3D394C;
+    --epic-ink: #C3A4EA;
+    --anel: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent);
+    --shadow-card-val: 0 1px 0 rgba(0,0,0,.45), 0 8px 18px -10px rgba(0,0,0,.65);
+  }
+  [data-theme="neon"] {
+    color-scheme: light;
+    --canvas: #F3F0FA;
+    --surface: #FFFFFF;
+    --surface-hover: #F5F4F5;
+    --surface-sunken: #E6E3EE;
+    --ink: #17122B;
+    --ink-muted: #666276;
+    --ink-faint: #6D697C;
+    --ink-contrast: #F3F0FA;
+    --border-subtle: #D0CCD9;
+    --border-strong: #B1ADBC;
+    --accent: #B5157F;
+    --accent-soft: #F3DAEB;
+    --accent-ink: #B5157F;
+    --accent-contrast: #FFFFFF;
+    --good: #0E7A55;
+    --good-soft: #D8EAE4;
+    --good-ink: #0F7252;
+    --good-contrast: #FFFFFF;
+    --warn: #9A6A00;
+    --warn-soft: #EFE7D6;
+    --warn-ink: #865D06;
+    --warn-contrast: #FFFFFF;
+    --rare: #4B35C9;
+    --rare-soft: #E2DFF6;
+    --rare-ink: #4B35C9;
+    --error: #C0183F;
+    --error-soft: #F5DAE0;
+    --error-ink: #BE183F;
+    --error-contrast: #FFFFFF;
+    --epic: #7A2FC0;
+    --epic-soft: #EADEF5;
+    --epic-ink: #7A2FC0;
+    --font-display-val: "Orbitron", "Archivo", sans-serif;
+    --anel: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);
+    --radius-card: 12px;
+    --radius-btn: 10px;
+    --r-card: 12px;
+    --r-btn: 10px;
+    --textura: repeating-linear-gradient(0deg, color-mix(in srgb, var(--accent) 6%, transparent) 0 1px, transparent 1px 48px), repeating-linear-gradient(90deg, color-mix(in srgb, var(--rare) 6%, transparent) 0 1px, transparent 1px 48px);
+    --fundo-animado: radial-gradient(40% 32% at 18% 8%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 70%), radial-gradient(36% 30% at 88% 20%, color-mix(in srgb, var(--good) 14%, transparent), transparent 70%);
+    --hud-trilho: color-mix(in srgb, var(--rare) 14%, var(--surface));
+    --hud-barra: linear-gradient(90deg, var(--good), var(--rare), var(--accent));
+    --hud-combo: color-mix(in srgb, var(--accent) 10%, var(--surface));
+    --hud-combo-quente: linear-gradient(135deg, var(--accent), var(--rare));
+    --hud-combo-tinta: #FFFFFF;
+    --hud-raio: 10px;
+  }
+  [data-theme="neon"].dark, .dark [data-theme="neon"], [data-theme="neon"] [class*="dark"] {
+    color-scheme: dark;
+    --canvas: #0A0714;
+    --surface: #140F24;
+    --surface-hover: #211C31;
+    --surface-sunken: #07050E;
+    --ink: #F2EEFF;
+    --ink-muted: #938F9F;
+    --ink-faint: #8A8695;
+    --ink-contrast: #0A0714;
+    --border-subtle: #2F2C3A;
+    --border-strong: #504C5B;
+    --accent: #FF4FD8;
+    --accent-soft: #431C48;
+    --accent-ink: #FF4FD8;
+    --accent-contrast: #381130;
+    --good: #3DF5A6;
+    --good-soft: #1C3D3E;
+    --good-ink: #3DF5A6;
+    --good-contrast: #0D3625;
+    --warn: #FFE14D;
+    --warn-soft: #43392C;
+    --warn-ink: #FFE14D;
+    --warn-contrast: #383111;
+    --rare: #8C9BFF;
+    --rare-soft: #2C2B50;
+    --rare-ink: #8C9BFF;
+    --error: #FF5C7A;
+    --error-soft: #431E35;
+    --error-ink: #FF5C7A;
+    --error-contrast: #38141B;
+    --epic: #C58BFF;
+    --epic-soft: #372850;
+    --epic-ink: #C58BFF;
+    --anel: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent);
+    --hud-combo-tinta: var(--accent-contrast);
+    --shadow-card-val: 0 0 0 1px color-mix(in srgb, var(--accent) 14%, transparent), 0 10px 30px -12px color-mix(in srgb, var(--accent) 35%, transparent);
+  }
+  [data-theme="fliperama"] {
+    color-scheme: light;
+    --canvas: #E6ECF6;
+    --surface: #FFFFFF;
+    --surface-hover: #F4F4F5;
+    --surface-sunken: #D9DFEA;
+    --ink: #0F1526;
+    --ink-muted: #5A606F;
+    --ink-faint: #636977;
+    --ink-contrast: #E6ECF6;
+    --border-subtle: #C4CAD5;
+    --border-strong: #A6ACB8;
+    --accent: #D1143A;
+    --accent-soft: #F8D9DF;
+    --accent-ink: #C01438;
+    --accent-contrast: #FFFFFF;
+    --good: #1E7B3C;
+    --good-soft: #DBEAE0;
+    --good-ink: #1D733A;
+    --good-contrast: #FFFFFF;
+    --warn: #A76A00;
+    --warn-soft: #F1E7D6;
+    --warn-ink: #8C5B07;
+    --warn-contrast: #000000;
+    --rare: #0B6FA4;
+    --rare-soft: #D8E8F0;
+    --rare-ink: #0B6A9C;
+    --error: #B42318;
+    --error-soft: #F3DCDA;
+    --error-ink: #B42318;
+    --error-contrast: #FFFFFF;
+    --epic: #7B2FBE;
+    --epic-soft: #EADEF5;
+    --epic-ink: #7B2FBE;
+    --font-display-val: "Silkscreen", "Archivo", sans-serif;
+    --anel: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);
+    --radius-card: 4px;
+    --radius-btn: 4px;
+    --r-card: 4px;
+    --r-btn: 4px;
+    --shadow-card-val: 4px 4px 0 color-mix(in srgb, var(--ink) 18%, transparent);
+    --textura: repeating-linear-gradient(0deg, color-mix(in srgb, var(--ink) 5%, transparent) 0 1px, transparent 1px 3px);
+    --fundo-animado: linear-gradient(180deg, transparent 0 46%, color-mix(in srgb, var(--accent) 10%, transparent) 50%, transparent 54% 100%);
+    --hud-trilho: color-mix(in srgb, var(--ink) 16%, var(--surface));
+    --hud-barra: repeating-linear-gradient(90deg, var(--good) 0 8px, color-mix(in srgb, var(--good) 70%, #000) 8px 10px);
+    --hud-combo: color-mix(in srgb, var(--ink) 8%, var(--surface));
+    --hud-combo-quente: var(--accent);
+    --hud-combo-tinta: var(--accent-contrast);
+    --hud-raio: 2px;
+  }
+  [data-theme="fliperama"].dark, .dark [data-theme="fliperama"], [data-theme="fliperama"] [class*="dark"] {
+    color-scheme: dark;
+    --canvas: #0A0D19;
+    --surface: #14192C;
+    --surface-hover: #222639;
+    --surface-sunken: #070912;
+    --ink: #F5F7FF;
+    --ink-muted: #9799A3;
+    --ink-faint: #8E909A;
+    --ink-contrast: #0A0D19;
+    --border-subtle: #30323E;
+    --border-strong: #51535E;
+    --accent: #FFD23F;
+    --accent-soft: #433E30;
+    --accent-ink: #FFD23F;
+    --accent-contrast: #382E0E;
+    --good: #52E07A;
+    --good-soft: #20413C;
+    --good-ink: #52E07A;
+    --good-contrast: #12311B;
+    --warn: #FF9F1C;
+    --warn-soft: #433429;
+    --warn-ink: #FF9F1C;
+    --warn-contrast: #382306;
+    --rare: #4CC9F0;
+    --rare-soft: #1F3C53;
+    --rare-ink: #4CC9F0;
+    --error: #FF4D6D;
+    --error-soft: #432339;
+    --error-ink: #FE617F;
+    --error-contrast: #381118;
+    --epic: #C77DFF;
+    --epic-soft: #382D56;
+    --epic-ink: #C87FFF;
+    --anel: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent);
+  }
+  [data-theme="jardim"] {
+    color-scheme: light;
+    --canvas: #E8F0E1;
+    --surface: #F9FCF4;
+    --surface-hover: #EFF3EA;
+    --surface-sunken: #DCE4D5;
+    --ink: #1C291D;
+    --ink-muted: #596558;
+    --ink-faint: #616D60;
+    --ink-contrast: #E8F0E1;
+    --border-subtle: #C7D0C2;
+    --border-strong: #ABB4A6;
+    --accent: #2E7D4F;
+    --accent-soft: #D9E8DA;
+    --accent-ink: #2B7047;
+    --accent-contrast: #FFFFFF;
+    --good: #3A7A2A;
+    --good-soft: #DAE7D4;
+    --good-ink: #366F28;
+    --good-contrast: #FFFFFF;
+    --warn: #A86B0A;
+    --warn-soft: #ECE5CF;
+    --warn-ink: #865B0F;
+    --warn-contrast: #000000;
+    --rare: #6B4C93;
+    --rare-soft: #E2E0E4;
+    --rare-ink: #6B4C93;
+    --error: #B3261E;
+    --error-soft: #EEDAD2;
+    --error-ink: #B3261E;
+    --error-contrast: #FFFFFF;
+    --epic: #8A3F7A;
+    --epic-soft: #E7DEE0;
+    --epic-ink: #8A3F7A;
+    --font-display-val: "Baloo 2", "Nunito", sans-serif;
+    --anel: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);
+    --radius-card: 22px;
+    --radius-btn: 18px;
+    --r-card: 22px;
+    --r-btn: 18px;
+    --textura: radial-gradient(circle, color-mix(in srgb, var(--good) 16%, transparent) 0 1.4px, transparent 1.8px);
+    --textura-tam: 26px 26px;
+    --fundo-animado: radial-gradient(42% 36% at 14% 90%, color-mix(in srgb, var(--good) 16%, transparent), transparent 72%), radial-gradient(34% 30% at 86% 10%, color-mix(in srgb, var(--rare) 12%, transparent), transparent 72%);
+    --hud-trilho: color-mix(in srgb, var(--good) 14%, var(--surface));
+    --hud-barra: linear-gradient(90deg, var(--good), var(--accent));
+    --hud-combo: color-mix(in srgb, var(--good) 12%, var(--surface));
+    --hud-combo-quente: linear-gradient(135deg, var(--rare), var(--accent));
+    --hud-combo-tinta: #FFFFFF;
+    --hud-raio: 18px;
+  }
+  [data-theme="jardim"].dark, .dark [data-theme="jardim"], [data-theme="jardim"] [class*="dark"] {
+    color-scheme: dark;
+    --canvas: #0F1912;
+    --surface: #17231A;
+    --surface-hover: #232F26;
+    --surface-sunken: #0B120D;
+    --ink: #E5EFE0;
+    --ink-muted: #98A296;
+    --ink-faint: #8D978C;
+    --ink-contrast: #0F1912;
+    --border-subtle: #313B33;
+    --border-strong: #4F5950;
+    --accent: #7FD18F;
+    --accent-soft: #2C4631;
+    --accent-ink: #7FD18F;
+    --accent-contrast: #1C2E1F;
+    --good: #9ED36A;
+    --good-soft: #32462A;
+    --good-ink: #9ED36A;
+    --good-contrast: #232E17;
+    --warn: #F0C26B;
+    --warn-soft: #42432A;
+    --warn-ink: #F0C26B;
+    --warn-contrast: #352B18;
+    --rare: #C4A8EC;
+    --rare-soft: #3A3E44;
+    --rare-ink: #C4A8EC;
+    --error: #FF8E86;
+    --error-soft: #453830;
+    --error-ink: #FF8E86;
+    --error-contrast: #381F1D;
+    --epic: #E9A3D8;
+    --epic-soft: #413D40;
+    --epic-ink: #E9A3D8;
+    --anel: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent);
+    --hud-combo-tinta: var(--accent-contrast);
+  }
+  [data-theme="observatorio"] {
+    color-scheme: light;
+    --canvas: #E7EBF3;
+    --surface: #F8FAFD;
+    --surface-hover: #EEF0F4;
+    --surface-sunken: #DADEE7;
+    --ink: #131A2C;
+    --ink-muted: #595F6E;
+    --ink-faint: #616776;
+    --ink-contrast: #E7EBF3;
+    --border-subtle: #C5CAD3;
+    --border-strong: #A7ACB7;
+    --accent: #3543A8;
+    --accent-soft: #D9DDEF;
+    --accent-ink: #3543A8;
+    --accent-contrast: #FFFFFF;
+    --good: #2B6E4A;
+    --good-soft: #D7E4E0;
+    --good-ink: #2B6D4A;
+    --good-contrast: #FFFFFF;
+    --warn: #B27A18;
+    --warn-soft: #EDE6D8;
+    --warn-ink: #825D1E;
+    --warn-contrast: #111111;
+    --rare: #5E3DA6;
+    --rare-soft: #DFDCEF;
+    --rare-ink: #5E3DA6;
+    --error: #B0293A;
+    --error-soft: #ECD9DE;
+    --error-ink: #B0293A;
+    --error-contrast: #FFFFFF;
+    --epic: #7A3FA6;
+    --epic-soft: #E4DCEF;
+    --epic-ink: #7A3FA6;
+    --font-display-val: "Geist", "Inter", sans-serif;
+    --anel: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);
+    --radius-card: 16px;
+    --radius-btn: 12px;
+    --r-card: 16px;
+    --r-btn: 12px;
+    --textura: radial-gradient(1px 1px at 12% 18%, color-mix(in srgb, var(--ink) 30%, transparent), transparent), radial-gradient(1.5px 1.5px at 62% 44%, color-mix(in srgb, var(--accent) 36%, transparent), transparent), radial-gradient(1px 1px at 84% 76%, color-mix(in srgb, var(--ink) 26%, transparent), transparent), radial-gradient(1px 1px at 34% 86%, color-mix(in srgb, var(--rare) 30%, transparent), transparent);
+    --textura-tam: 240px 240px;
+    --fundo-animado: radial-gradient(50% 42% at 70% 0%, color-mix(in srgb, var(--rare) 14%, transparent), transparent 72%), radial-gradient(30% 26% at 10% 40%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 72%);
+    --hud-trilho: color-mix(in srgb, var(--accent) 10%, var(--surface));
+    --hud-barra: linear-gradient(90deg, var(--rare), var(--accent));
+    --hud-combo: color-mix(in srgb, var(--rare) 10%, var(--surface));
+    --hud-combo-quente: linear-gradient(135deg, var(--rare), var(--accent));
+    --hud-combo-tinta: #FFFFFF;
+    --hud-raio: 999px;
+  }
+  [data-theme="observatorio"].dark, .dark [data-theme="observatorio"], [data-theme="observatorio"] [class*="dark"] {
+    color-scheme: dark;
+    --canvas: #070A16;
+    --surface: #0F1426;
+    --surface-hover: #1C2133;
+    --surface-sunken: #05070F;
+    --ink: #E4E9F7;
+    --ink-muted: #9094A1;
+    --ink-faint: #878B98;
+    --ink-contrast: #070A16;
+    --border-subtle: #2A2E3A;
+    --border-strong: #494D5A;
+    --accent: #A3ACFF;
+    --accent-soft: #2D3251;
+    --accent-ink: #A3ACFF;
+    --accent-contrast: #242638;
+    --good: #6FD6A0;
+    --good-soft: #223B3E;
+    --good-ink: #6FD6A0;
+    --good-contrast: #182F23;
+    --warn: #FFD27D;
+    --warn-soft: #3F3A37;
+    --warn-ink: #FFD27D;
+    --warn-contrast: #382E1B;
+    --rare: #C7B2FF;
+    --rare-soft: #343451;
+    --rare-ink: #C7B2FF;
+    --error: #FF8A96;
+    --error-soft: #3F2C3C;
+    --error-ink: #FF8A96;
+    --error-contrast: #381E21;
+    --epic: #E0A8F5;
+    --epic-soft: #39324F;
+    --epic-ink: #E0A8F5;
+    --anel: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent);
+    --hud-combo-tinta: var(--accent-contrast);
+  }
+}
+
+/* CAMADA PRÓPRIA, declarada depois das do Tailwind: a cor da raiz e do <main> vem de
+   `.bg-canvas` (camada utilities), que ganharia de qualquer regra em `base`. */
+@layer tema-fundo {
+  /* O fundo dos temas completos aparece atrás do app: a raiz e o <main> deixam de pintar a cor. */
+  html:is([data-theme="radio"], [data-theme="papel"], [data-theme="neon"], [data-theme="fliperama"], [data-theme="jardim"], [data-theme="observatorio"]) :is([data-raiz-do-app], [data-raiz-do-app] main.bg-canvas) {
+    background-color: transparent;
+  }
+  html:is([data-theme="radio"], [data-theme="papel"], [data-theme="neon"], [data-theme="fliperama"], [data-theme="jardim"], [data-theme="observatorio"]) body::before,
+  html:is([data-theme="radio"], [data-theme="papel"], [data-theme="neon"], [data-theme="fliperama"], [data-theme="jardim"], [data-theme="observatorio"]) body::after {
+    content: '';
+    position: fixed;
+    pointer-events: none;
+    z-index: -1;
+  }
+  /* Fundo animado: maior que a tela, só desliza e gira um pouco (transform = compositor). */
+  html:is([data-theme="radio"], [data-theme="papel"], [data-theme="neon"], [data-theme="fliperama"], [data-theme="jardim"], [data-theme="observatorio"]) body::before {
+    inset: -12%;
+    background-image: var(--fundo-animado);
+    animation: fundo-do-tema 48s ease-in-out infinite alternate;
+    will-change: transform;
+  }
+  /* Textura: parada, presa à tela. */
+  html:is([data-theme="radio"], [data-theme="papel"], [data-theme="neon"], [data-theme="fliperama"], [data-theme="jardim"], [data-theme="observatorio"]) body::after {
+    inset: 0;
+    background-image: var(--textura);
+    background-size: var(--textura-tam, auto);
+  }
+}
+
+@keyframes fundo-do-tema {
+  from { transform: translate3d(-3%, -2%, 0) rotate(-2deg); }
+  to { transform: translate3d(3%, 2%, 0) rotate(2deg); }
+}
+
+/* MODO LEVE (Quest, celular fraco): sem fundo animado e sem textura — é pintura de tela cheia. */
+html[data-modo-leve='true'] {
+  --fundo-animado: none !important;
+  --textura: none !important;
+}
+html[data-modo-leve='true'] body::before,
+body.performance-mode::before,
+body.animations-off::before {
+  animation: none;
+  display: none;
+}
+
+/* Movimento reduzido no sistema: o fundo para (a textura, que não se mexe, continua). O interruptor
+   "Animações" ligado de propósito no app (`body.animations-on`) vence, como no resto do app. */
+@media (prefers-reduced-motion: reduce) {
+  html:not(:has(body.animations-on)) {
+    --fundo-animado: none !important;
+  }
+  body:not(.animations-on)::before {
+    animation: none;
+    display: none;
+  }
+}

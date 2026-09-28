@@ -1,18 +1,23 @@
+import type { EstadoDasMissoes } from '@core';
 import { type Dispatch, type SetStateAction,useEffect, useMemo, useState } from 'react';
 
 import { toast } from '../../components/Toast';
-import { type AppMetrics, fetchMetrics, fetchRecordes, type RecordeDoJogo } from '../../data/api';
-import { hidratarAprimoramentos } from '../aprimoramentos';
+import { type AppMetrics, fetchMetrics, fetchRecordes, lerMissoes, type RecordeDoJogo } from '../../data/api';
 import { hidratarCromas } from '../galeria/cromas';
+import { t } from '../i18n';
 import { estadoDeIdentidade } from '../identidade';
 import { hidratarPosse } from '../loja';
+import { reivindicarMetaDoDia } from '../metaDoDia';
 import { registrarPresencaHoje } from '../presenca';
 import { type DerivedProgress,deriveProgress } from '../progress';
+import { reembolsarUmaVez } from '../recompensasV2';
 
 export interface EstadoDasMetricas {
   metrics: AppMetrics | null;
   recordes: RecordeDoJogo[];
   progress: DerivedProgress;
+  /** As missões do dia, do servidor. `null` até chegarem (ou se a rota falhar). */
+  missoes: EstadoDasMissoes | null;
   setVersaoDasMetricas: Dispatch<SetStateAction<number>>;
 }
 
@@ -50,7 +55,6 @@ export function useMetricas(quantidadeDeSessoes: number): EstadoDasMetricas {
         const comConta = estadoDeIdentidade() === 'conta';
         hidratarPosse(m?.itensComprados, comConta);
         hidratarCromas(m?.cromasComprados, comConta);
-        hidratarAprimoramentos(m?.aprimoramentos, comConta);
       })
       .catch(() => { if (alive) setMetrics(null); });
     return () => { alive = false; };
@@ -58,14 +62,42 @@ export function useMetricas(quantidadeDeSessoes: number): EstadoDasMetricas {
 
   const progress = useMemo(() => deriveProgress(metrics), [metrics]);
 
-  /* PRESENÇA DO DIA — uma vez por dia, no boot. O toast só aparece quando creditou de verdade. */
+  /* PRESENÇA DO DIA — uma vez por dia, no boot, SÓ COMO ESTATÍSTICA (recompensas v2): abrir o app
+     não paga nada e não estende a ofensiva, então não há toast nem recarga das métricas. */
   useEffect(() => {
-    void registrarPresencaHoje().then((r) => {
-      if (!r?.creditou) return;
-      toast.ok(r.streak > 1 ? `+${r.seeds} Seeds pela presença · ${r.streak} dias seguidos!` : `+${r.seeds} Seeds pela presença de hoje.`);
-      setVersaoDasMetricas((v) => v + 1);
-    });
+    void registrarPresencaHoje();
   }, []);
 
-  return { metrics, recordes, progress, setVersaoDasMetricas };
+  /* O REEMBOLSO DO CORTE DO CATÁLOGO (recompensas v2): uma vez por sessão, DEPOIS que as métricas
+     carregam, com a flag ligada ou não (o corte é regra do servidor). Não corre contra o cache das
+     flags: não depende dele. O aviso é por conta (`avisoPendente`). */
+  const metricasCarregadas = metrics !== null;
+  useEffect(() => {
+    if (!metricasCarregadas) return;
+    void reembolsarUmaVez().then((n) => {
+      if (!n) return;
+      toast.info(t('Trocamos os cursores e emojis por recompensas novas. Suas Seeds voltaram: +{n}', { n }));
+      setVersaoDasMetricas((v) => v + 1);
+    });
+  }, [metricasCarregadas]);
+
+  /* AS MISSÕES DO DIA (recompensas v2, onda 5): relidas do servidor a cada métrica nova (uma
+     rodada, uma revisão, uma palavra salva). Quando as três fecham e a meta ainda não foi
+     creditada, pede o crédito uma vez; o toast só aparece quando o servidor creditou de verdade. */
+  const [missoes, setMissoes] = useState<EstadoDasMissoes | null>(null);
+  useEffect(() => {
+    if (!metrics) return;
+    let alive = true;
+    void lerMissoes().then(async (estado) => {
+      if (!alive) return;
+      setMissoes(estado);
+      const r = await reivindicarMetaDoDia(estado);
+      if (!alive || !r) return;
+      toast.ok(t('Meta do dia concluída: +{n} Seeds', { n: r.seeds }));
+      setVersaoDasMetricas((v) => v + 1);
+    });
+    return () => { alive = false; };
+  }, [metrics]);
+
+  return { metrics, recordes, progress, missoes, setVersaoDasMetricas };
 }

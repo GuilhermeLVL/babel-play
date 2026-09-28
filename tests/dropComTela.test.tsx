@@ -10,14 +10,15 @@ import { act, cleanup, render, screen } from '@testing-library/react'
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import RecompensaDesbloqueada, {
+import RecompensaDesbloqueada from '../src/components/RecompensaDesbloqueada'
+import { SEEDS_DO_DROP } from '../src/core/economiaAutoridade'
+import {
   chaveDaRecompensa,
   EVENTO_RODADA_FECHOU,
   marcarVista,
   type Recompensa,
   recompensasVistas,
-} from '../src/components/RecompensaDesbloqueada'
-import { SEEDS_DO_DROP } from '../src/core/economiaAutoridade'
+} from '../src/lib/filaDeRecompensas'
 import { CATALOGO_DA_LOJA } from '../src/lib/loja'
 import { prepararDialogoNoJsdom } from './_dialogoNoJsdom'
 
@@ -97,5 +98,21 @@ describe('o bau da rodada na fila de recompensas', () => {
     } finally {
       document.body.removeAttribute('data-jogo-ativo')
     }
+  })
+})
+
+describe('baú v2 na tela: chances, garantia e repetido', () => {
+  it('mostra as chances e quantos baús faltam para o raro garantido', () => {
+    montar([{ tipo: 'drop', roundId: 'r-ch', seeds: 5, item, chances: { comum: 75, raro: 25 }, proximoRaroGarantidoEm: 3 }])
+    const linha = document.querySelector('[data-chances-do-bau]')!
+    expect(linha.textContent).toContain('Chances: 75% comum · 25% raro')
+    expect(linha.textContent).toContain('raro garantido em 3 baús')
+  })
+
+  it('repetido: sem peça, diz que você já tem o item e quanto pagou em Seeds', () => {
+    montar([{ tipo: 'drop', roundId: 'r-rep', seeds: 40, repetido: true, raridade: 'raro', chances: { comum: 75, raro: 25 }, proximoRaroGarantidoEm: 5 }])
+    expect(screen.getByText('Você já tem este item: +40 Seeds')).toBeTruthy()
+    expect(screen.getAllByText('+40 Seeds', { exact: false }).length).toBe(2)
+    expect(screen.queryByText(/Equipar/i)).toBeNull()
   })
 })

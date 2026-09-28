@@ -41,6 +41,16 @@ export const economiaRepo = {
     return { jaExistia: Number((r as { rowsAffected?: number }).rowsAffected ?? 0) === 0 }
   },
 
+  /** O crédito já foi lançado? O reenvio responde `jaExistia` antes de qualquer conferência. */
+  async jaCreditado(userId: UserId, creditoId: string): Promise<boolean> {
+    const r = await db
+      .select({ id: seedCredits.id })
+      .from(seedCredits)
+      .where(and(eq(seedCredits.userId, userId), eq(seedCredits.creditoId, creditoId), isNull(seedCredits.deletedAt)))
+      .limit(1)
+    return r.length > 0
+  },
+
   /** Totais creditados — o que `computeProfile` soma ao ganho derivado. */
   async totaisCreditados(userId: UserId): Promise<{ seedsCreditadas: number; xpCreditado: number }> {
     const r = await db
@@ -48,6 +58,28 @@ export const economiaRepo = {
       .from(seedCredits)
       .where(and(eq(seedCredits.userId, userId), isNull(seedCredits.deletedAt)))
     return { seedsCreditadas: Number(r[0]?.seeds ?? 0), xpCreditado: Number(r[0]?.xp ?? 0) }
+  },
+
+  /**
+   * Os totais creditados E os dias com meta do dia creditada, numa consulta só — o que
+   * `computeProfile` lê a cada chamada (o orçamento de consultas do perfil é contado em
+   * `tests/integration/rotas-caras-equivalencia`). Os dias alimentam o congelamento da ofensiva.
+   */
+  async totaisEMetas(userId: UserId): Promise<{ seedsCreditadas: number; xpCreditado: number; diasDeMeta: string[] }> {
+    const r = await db
+      .select({
+        seeds: sum(seedCredits.amount),
+        xp: sum(seedCredits.xp),
+        metas: sql<string | null>`group_concat(case when ${seedCredits.creditoId} like 'meta:%' then substr(${seedCredits.creditoId}, 6) end)`,
+      })
+      .from(seedCredits)
+      .where(and(eq(seedCredits.userId, userId), isNull(seedCredits.deletedAt)))
+    const metas = r[0]?.metas
+    return {
+      seedsCreditadas: Number(r[0]?.seeds ?? 0),
+      xpCreditado: Number(r[0]?.xp ?? 0),
+      diasDeMeta: metas ? metas.split(',').sort() : [],
+    }
   },
 
   /** Marca o dia como presente — UMA linha por (usuário, dia local). */
@@ -85,6 +117,61 @@ export const economiaRepo = {
     return rows
       .map((r) => ({ creditoId: r.creditoId, itemId: (r.reason ?? '').slice('drop:'.length) }))
       .filter((d) => !!d.itemId)
+  },
+
+  /**
+   * OS BAÚS JÁ ABERTOS (recompensas v2): toda linha de `seed_credits` cujo `credito_id` é
+   * `drop:<roundId>` — a peça (`reason = 'drop:<itemId>'`) e o repetido que virou Seeds
+   * (`reason = 'bau:repetido:<raridade>'`). O carimbo conta o teto do dia; o `reason` dá a
+   * raridade para a garantia; o `amount` responde o reenvio com o mesmo valor.
+   */
+  async bausAbertos(userId: UserId): Promise<{ creditoId: string; reason: string; amount: number; em: number }[]> {
+    const rows = await db
+      .select({
+        creditoId: seedCredits.creditoId,
+        reason: seedCredits.reason,
+        amount: seedCredits.amount,
+        em: seedCredits.createdAt,
+      })
+      .from(seedCredits)
+      .where(and(eq(seedCredits.userId, userId), isNull(seedCredits.deletedAt), like(seedCredits.creditoId, 'drop:%')))
+    return rows.map((r) => ({ creditoId: r.creditoId, reason: r.reason ?? '', amount: r.amount ?? 0, em: r.em }))
+  },
+
+  /** Os créditos de reembolso já lançados (recompensas v2): `credito_id` que começa com `reembolso:`. */
+  async reembolsos(userId: UserId): Promise<{ creditoId: string; amount: number }[]> {
+    const rows = await db
+      .select({ creditoId: seedCredits.creditoId, amount: seedCredits.amount })
+      .from(seedCredits)
+      .where(and(eq(seedCredits.userId, userId), isNull(seedCredits.deletedAt), like(seedCredits.creditoId, 'reembolso:%')))
+    return rows.map((r) => ({ creditoId: r.creditoId, amount: Number(r.amount ?? 0) }))
+  },
+
+  /** Os créditos de maestria já lançados (recompensas v2, onda 3): `maestria:<jogo>:<nível>`. */
+  async maestriasCreditadas(userId: UserId): Promise<string[]> {
+    const rows = await db
+      .select({ creditoId: seedCredits.creditoId })
+      .from(seedCredits)
+      .where(and(eq(seedCredits.userId, userId), isNull(seedCredits.deletedAt), like(seedCredits.creditoId, 'maestria:%')))
+    return rows.map((r) => r.creditoId).sort()
+  },
+
+  /** Os dias com a meta do dia creditada (recompensas v2): `meta:<AAAA-MM-DD>` -> `AAAA-MM-DD`. */
+  async metasCreditadas(userId: UserId): Promise<string[]> {
+    const rows = await db
+      .select({ creditoId: seedCredits.creditoId })
+      .from(seedCredits)
+      .where(and(eq(seedCredits.userId, userId), isNull(seedCredits.deletedAt), like(seedCredits.creditoId, 'meta:%')))
+    return rows.map((r) => r.creditoId.slice('meta:'.length)).sort()
+  },
+
+  /** Os créditos de temporada já lançados (onda 5): `temporada:<id>:<nível>:<trilha>`. */
+  async temporadasCreditadas(userId: UserId): Promise<string[]> {
+    const rows = await db
+      .select({ creditoId: seedCredits.creditoId })
+      .from(seedCredits)
+      .where(and(eq(seedCredits.userId, userId), isNull(seedCredits.deletedAt), like(seedCredits.creditoId, 'temporada:%')))
+    return rows.map((r) => r.creditoId).sort()
   },
 
   async registrarPresenca(userId: UserId, dia: number): Promise<{ jaExistia: boolean }> {

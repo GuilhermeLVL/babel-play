@@ -6,12 +6,12 @@
   "recusa": {
     "status": 403,
     "corpo": {
-      "error": "você ainda não tem esse item: exige a conquista \"perfeccionista\"",
+      "error": "você ainda não tem esse item: exige a conquista \"colecionador\"",
       "code": "item_nao_possuido",
       "detalhes": {
-        "tipo": "cursor",
-        "alvo": "coroa",
-        "motivo": "exige a conquista \"perfeccionista\""
+        "tipo": "rastro",
+        "alvo": "arcoiris",
+        "motivo": "exige a conquista \"colecionador\""
       }
     }
   }

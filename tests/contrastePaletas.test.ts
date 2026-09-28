@@ -28,7 +28,10 @@ import path from 'node:path'
 
 import { describe, expect,it } from 'vitest'
 
-const css = readFileSync(path.join(process.cwd(), 'src/index.css'), 'utf8')
+/* Os 6 temas completos das recompensas v2 moram em `src/styles/temas-v2.css`: a matriz lê os dois. */
+const css = ['src/index.css', 'src/styles/temas-v2.css']
+  .map((f) => readFileSync(path.join(process.cwd(), f), 'utf8'))
+  .join('\n')
 
 /** Mínimo WCAG 2.1 AA para texto normal (1.4.3). */
 const MINIMO_AA = 4.5
@@ -135,6 +138,11 @@ describe('todo par de texto/fundo de todo tema passa WCAG AA', () => {
     expect(paletas.length).toBeGreaterThanOrEqual(7)
     const temas = new Set(paletas.map((p) => p.rotulo.split(' ')[0]))
     for (const t of ['babel', 'linear', 'vercel', 'mochi', 'notion', 'premium']) expect(temas).toContain(t)
+    // Os temas completos das recompensas v2 (onda 4), nos dois modos.
+    for (const t of ['radio', 'papel', 'neon', 'fliperama', 'jardim', 'observatorio']) {
+      expect(paletas.map((p) => p.rotulo)).toContain(`${t} claro`)
+      expect(paletas.map((p) => p.rotulo)).toContain(`${t} escuro`)
+    }
   })
 
   it('cobre uma quantidade plausível de pares — pular em silêncio é como a lacuna anterior passou', () => {

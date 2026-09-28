@@ -6,6 +6,7 @@ import {
   ChevronUp,
   Eye,
   EyeOff,
+  Languages,
   Lock,
   MousePointerClick,
   Palette,
@@ -22,6 +23,7 @@ import {
   pedacosDaLegenda,
   resolverEstiloDeLegenda,
 } from '../../../lib/estilosDeLegenda';
+import { t } from '../../../lib/i18n';
 import { toast } from '../../Toast';
 import { Interruptor, Segmentos } from '../vocab/Dialogo';
 
@@ -42,6 +44,9 @@ export interface LegendaAoVivo {
   original: string;
   traducao: string;
   lado: 'eles' | 'voce';
+  /** Deixada sem tradução pela preferência "Tradução" (Só quando eu pedir / Só frases com palavra
+   *  nova): no lugar da tradução, o mesmo "Mostrar tradução" da conversa. */
+  sobDemanda?: boolean;
 }
 
 type Modo = 'video' | 'conversa' | 'jogo';
@@ -138,6 +143,7 @@ export default function LegendasFlutuantes({
   emJanela,
   aoFechar,
   aprendidas,
+  aoRevelarTraducao,
 }: {
   falas: LegendaAoVivo[];
   /** Dentro da janela sempre-no-topo (Document PiP): ocupa a janela inteira. */
@@ -145,6 +151,8 @@ export default function LegendasFlutuantes({
   aoFechar: () => void;
   /** Palavras já aprendidas (minúsculas): ganham `data-aprendida`, que o estilo destaca. */
   aprendidas?: ReadonlySet<string>;
+  /** "Mostrar tradução" de uma fala deixada sob demanda (`revelarTraducao`). Ausente = sem o botão. */
+  aoRevelarTraducao?: (id: string) => void;
 }) {
   const [ap, setAp] = useState<Aparencia>(lerAparencia);
   /* O ESTILO DE LEGENDA equipado (onda 4) — o mesmo da transcrição, relido quando muda. As cores
@@ -260,7 +268,23 @@ export default function LegendasFlutuantes({
             ),
           )}
         </span>
-        {ap.traducao !== 'oculta' && x.traducao && <span className={`leg-t ${ap.traducao}`}>{x.traducao}</span>}
+        {ap.traducao !== 'oculta' &&
+          (x.traducao ? (
+            <span className={`leg-t ${ap.traducao}`}>{x.traducao}</span>
+          ) : (
+            x.sobDemanda &&
+            aoRevelarTraducao && (
+              /* Compacto, na cor e no tamanho da linha de tradução que ele substitui. */
+              <button
+                type="button"
+                className={`leg-t ${ap.traducao} link`}
+                style={{ justifySelf: 'start', minHeight: 0, color: 'var(--leg-trad,#FFEA00)', font: 'inherit', fontSize: '.9em' }}
+                onClick={() => aoRevelarTraducao(x.id)}
+              >
+                <Languages aria-hidden /> {t('Mostrar tradução')}
+              </button>
+            )
+          ))}
       </div>
     ))
   );

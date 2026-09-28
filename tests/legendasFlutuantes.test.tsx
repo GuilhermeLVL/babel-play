@@ -102,4 +102,36 @@ describe('Legendas flutuantes (C6)', () => {
     expect((screen.getByRole('combobox', { name: 'Modo da janela' }) as HTMLSelectElement).value).toBe('video')
     expect(screen.getByRole('radio', { name: 'Sempre visível' }).getAttribute('aria-checked')).toBe('true')
   })
+
+  describe('"Mostrar tradução" (Tradução: Só quando eu pedir / Só frases com palavra nova)', () => {
+    const SOB_DEMANDA: LegendaAoVivo[] = [
+      { id: 'a', quem: 'Outros', original: 'Already known.', traducao: 'Já sabida.', lado: 'eles' },
+      { id: 'b', quem: 'Outros', original: 'Left untranslated.', traducao: '', lado: 'eles', sobDemanda: true },
+    ]
+
+    it('a fala deixada sem tradução ganha o botão, que chama revelarTraducao UMA vez com o id', () => {
+      const aoRevelarTraducao = vi.fn()
+      montar({ falas: SOB_DEMANDA, aoRevelarTraducao })
+      const botoes = screen.getAllByRole('button', { name: 'Mostrar tradução' })
+      expect(botoes).toHaveLength(1)
+      fireEvent.click(botoes[0])
+      expect(aoRevelarTraducao).toHaveBeenCalledOnce()
+      expect(aoRevelarTraducao).toHaveBeenCalledWith('b')
+    })
+
+    it('sem o callback, ou em Imersão (tradução oculta), nenhum botão', () => {
+      montar({ falas: SOB_DEMANDA })
+      expect(screen.queryByRole('button', { name: 'Mostrar tradução' })).toBeNull()
+      cleanup()
+      montar({ falas: SOB_DEMANDA, aoRevelarTraducao: vi.fn() })
+      fireEvent.click(screen.getByRole('button', { name: 'Personalizar' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Imersão' }))
+      expect(screen.queryByRole('button', { name: 'Mostrar tradução' })).toBeNull()
+    })
+
+    it('fala de mesmo idioma (tradução vazia, sem sobDemanda) continua numa linha só', () => {
+      montar({ falas: [FALAS[0], { ...FALAS[1], traducao: '' }], aoRevelarTraducao: vi.fn() })
+      expect(screen.queryByRole('button', { name: 'Mostrar tradução' })).toBeNull()
+    })
+  })
 })

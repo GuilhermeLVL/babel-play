@@ -241,6 +241,36 @@ export function resolverPremium(compras: readonly CompraPremium[]): {
   return { posse: [...posse], reembolsos };
 }
 
+/* ── O PASSE DA TEMPORADA 1 (`passe-t1`) QUE SAIU ──────────────────────────────────────────────
+ *
+ * O SKU `passe-t1` (R$ 14,90) prometia "1.134 Créditos ao longo da trilha" das 100 casas, entregues
+ * como concessões `passe:t1:premium-<casa>` pela rota `POST /api/billing/creditar-passe`. O Passe
+ * saiu na onda 5 e a rota ficou sem efeito — quem tivesse comprado ficaria com o que já tinha
+ * recebido. NENHUMA VENDA ACONTECEU (a cobrança nunca foi ligada em produção; `docs/economia-v2.md`),
+ * mas o caminho existia no código: se uma compra paga aparecer, o que faltava da promessa volta
+ * como concessão `reembolso-passe:<id da compra>`. */
+export const CREDITOS_PROMETIDOS_PELO_PASSE_T1 = 1134;
+export const PREFIXO_DO_REEMBOLSO_DO_PASSE = 'reembolso-passe:';
+
+/**
+ * Os Créditos devidos a quem comprou o Passe: por compra PAGA, o prometido menos o que as casas do
+ * passe já concederam (o que já entrou abate só da primeira compra). Puro; a idempotência é a do
+ * `provider_payment_id` da concessão.
+ */
+export function reembolsosDoPasse(
+  comprasPagas: readonly { id: string }[],
+  jaConcedidoPeloPasse: number,
+): { concessaoId: string; creditos: number }[] {
+  let abater = Math.max(0, Math.round(jaConcedidoPeloPasse));
+  const devidos: { concessaoId: string; creditos: number }[] = [];
+  for (const c of comprasPagas) {
+    const creditos = Math.max(0, CREDITOS_PROMETIDOS_PELO_PASSE_T1 - abater);
+    abater = Math.max(0, abater - CREDITOS_PROMETIDOS_PELO_PASSE_T1);
+    if (creditos > 0) devidos.push({ concessaoId: `${PREFIXO_DO_REEMBOLSO_DO_PASSE}${c.id}`, creditos });
+  }
+  return devidos;
+}
+
 /** A posse premium com os removidos trocados pelo equivalente, sem repetição (só os ids). */
 export function possePremiumComEquivalentes(ids: readonly string[]): string[] {
   return resolverPremium(ids.map((itemId, i) => ({ id: String(i), itemId, creditos: 0 }))).posse;

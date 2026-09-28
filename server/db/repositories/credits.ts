@@ -198,6 +198,39 @@ export const creditsRepo = {
   },
 
   /**
+   * O PASSE QUE SAIU (`passe-t1`): as compras PAGAS dele e quanto as casas do passe já concederam
+   * (`passe:<temporada>:premium-<casa>`) — a entrada de `reembolsosDoPasse` (core).
+   */
+  async passeComprado(userId: UserId): Promise<{ compras: { id: string }[]; concedido: number }> {
+    const [compras, concedido] = await Promise.all([
+      db
+        .select({ id: creditPurchases.id })
+        .from(creditPurchases)
+        .where(
+          and(
+            eq(creditPurchases.userId, userId),
+            eq(creditPurchases.sku, 'passe-t1'),
+            eq(creditPurchases.status, 'pago'),
+            isNull(creditPurchases.deletedAt),
+          ),
+        )
+        .orderBy(asc(creditPurchases.createdAt), asc(creditPurchases.id)),
+      db
+        .select({ total: sum(creditPurchases.creditos) })
+        .from(creditPurchases)
+        .where(
+          and(
+            eq(creditPurchases.userId, userId),
+            eq(creditPurchases.sku, 'concessao'),
+            like(creditPurchases.providerPaymentId, 'passe:%'),
+            isNull(creditPurchases.deletedAt),
+          ),
+        ),
+    ])
+    return { compras, concedido: Number(concedido[0]?.total ?? 0) }
+  },
+
+  /**
    * As compras premium na ordem em que aconteceram — a entrada de `resolverPremium` (core), que
    * decide a posse E os Créditos a devolver com a mesma régua (recompensas v2, revisão P0).
    */

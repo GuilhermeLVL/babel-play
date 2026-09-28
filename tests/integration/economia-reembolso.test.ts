@@ -157,3 +157,31 @@ describe('o aviso do reembolso é por CONTA (`avisoPendente`)', () => {
     expect((await reembolsar(u)).body).toMatchObject({ creditado: 200, avisoPendente: true })
   })
 })
+
+describe('o Passe da T1 que saiu (`passe-t1`)', () => {
+  it('quem pagou recebe de volta o que faltava da promessa (1.134 − o já concedido), uma vez', async () => {
+    const u = 'u-com-passe-pago'
+    const { db } = (await h.load('../../server/db/db')) as any
+    const { creditPurchases } = (await h.load('../../server/db/schema')) as any
+    const agora = Date.now()
+    await db.insert(creditPurchases).values([
+      { id: 'cp-passe', createdAt: agora, updatedAt: agora, userId: u, sku: 'passe-t1', creditos: 0, valorCentavos: 1490, provider: 'asaas', providerPaymentId: 'pay-passe-1', status: 'pago', paidAt: agora },
+      { id: 'cp-casa', createdAt: agora, updatedAt: agora, userId: u, sku: 'concessao', creditos: 34, valorCentavos: 0, provider: 'interno', providerPaymentId: 'passe:t1:premium-3', status: 'pago', paidAt: agora },
+    ])
+    const antes = await creditsRepo.totalComprado(asUserId(u))
+    expect((await reembolsar(u)).body.creditosDevolvidos).toBe(1100)
+    expect((await reembolsar(u)).body.creditosDevolvidos).toBe(0)
+    expect(await creditsRepo.totalComprado(asUserId(u))).toBe(antes + 1100)
+  })
+
+  it('compra do passe não paga (pendente/cancelada) não devolve nada', async () => {
+    const u = 'u-passe-pendente'
+    const { db } = (await h.load('../../server/db/db')) as any
+    const { creditPurchases } = (await h.load('../../server/db/schema')) as any
+    const agora = Date.now()
+    await db.insert(creditPurchases).values({
+      id: 'cp-passe-p', createdAt: agora, updatedAt: agora, userId: u, sku: 'passe-t1', creditos: 0, valorCentavos: 1490, provider: 'asaas', providerPaymentId: 'pay-passe-2', status: 'pendente',
+    })
+    expect((await reembolsar(u)).body.creditosDevolvidos).toBe(0)
+  })
+})

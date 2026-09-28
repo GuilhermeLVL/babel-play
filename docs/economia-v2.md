@@ -76,6 +76,15 @@ O cliente pede o reembolso uma vez por sessão, depois que as métricas carregam
 resposta traz `avisoPendente`, `true` uma vez só (a marca `estado_da_conta.aviso_reembolso_em` é
 gravada no mesmo pedido, dentro do UPDATE) e só quando o pedido creditou Seeds.
 
+**O Passe da Temporada 1 (`passe-t1`) — nenhuma venda aconteceu.** O SKU (R$ 14,90, "1.134 Créditos
+ao longo da trilha", entregues como concessões `passe:t1:premium-<casa>` por `POST
+/api/billing/creditar-passe`) existiu no código até a onda 5, mas a cobrança nunca foi ligada em
+produção: a produção é a edição estática (sem Express, sem `/api/billing`), e o Asaas não tem conta
+configurada (`docs/LANCAMENTO.md`). Não há, portanto, compra paga nem concessão do passe em dado
+real. Como o caminho existia, o reembolso do corte cobre o caso mesmo assim: cada compra PAGA de
+`passe-t1` recebe o que faltava da promessa (1.134 − o que as casas já concederam) como concessão
+`reembolso-passe:<id da compra>`, idempotente (`reembolsosDoPasse`, `reembolso.ts`).
+
 ## Calibragem (`npx tsx scripts/economia/simular-ritmo.ts`)
 
 30 dias, semente fixa, pesos reais do core, baú de `decidirBau` e a maestria de `src/core/maestria.ts`.

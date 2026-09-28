@@ -10,7 +10,7 @@
  * As duas devoluções são idempotentes pela chave do razão: `reembolso:<reason>` no índice único de
  * `seed_credits` e `reembolso-creditos:<id do gasto>` no de `credit_purchases`.
  */
-import { reembolsosDevidos, resolverPremium } from '../../src/core/reembolso'
+import { reembolsosDevidos, reembolsosDoPasse, resolverPremium } from '../../src/core/reembolso'
 import { creditsRepo } from '../db/repositories/credits'
 import { economiaRepo } from '../db/repositories/economia'
 import { estadoDaContaRepo } from '../db/repositories/estadoDaConta'
@@ -41,7 +41,13 @@ export async function reembolsarCorteDoCatalogo(userId: UserId): Promise<Resulta
     if (!jaExistia) creditado += d.seeds
   }
   let creditosDevolvidos = 0
-  for (const r of resolverPremium(await creditsRepo.comprasPremium(userId)).reembolsos) {
+  const passe = await creditsRepo.passeComprado(userId)
+  const devolucoes = [
+    ...resolverPremium(await creditsRepo.comprasPremium(userId)).reembolsos,
+    /* O Passe da T1 que saiu: o que faltava da promessa, se alguém o tiver comprado. */
+    ...reembolsosDoPasse(passe.compras, passe.concedido),
+  ]
+  for (const r of devolucoes) {
     const { jaExistia } = await creditsRepo.registrarConcessao(userId, { concessaoId: r.concessaoId, creditos: r.creditos })
     if (!jaExistia) creditosDevolvidos += r.creditos
   }

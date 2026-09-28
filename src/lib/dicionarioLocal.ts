@@ -37,14 +37,31 @@ export interface AchadoLocal {
   lema: string;
 }
 
-const NOME_DO_CACHE = 'babel-glosas-v1';
+/* v2: as glosas foram REGENERADAS com o Wikcionário (28/09) sem a trilha mudar — e a chave abaixo
+   só leva a versão e o total da TRILHA, então o cache v1 continuaria servindo o arquivo antigo (com
+   as glosas em escrita trocada). Regenerar glosas sem regenerar a trilha exige subir este nome. */
+const NOME_DO_CACHE = 'babel-glosas-v2';
+const CACHES_ANTIGOS = ['babel-glosas-v1'];
+let antigosApagados = false;
 const pacotes = new Map<string, Promise<Pacote | null>>();
+
+/** Apaga, uma vez por página, os caches de glosas de nomes anteriores — espaço que ninguém lê mais. */
+function apagarCachesAntigos(): void {
+  if (antigosApagados || typeof caches === 'undefined') return;
+  antigosApagados = true;
+  for (const nome of CACHES_ANTIGOS) {
+    caches.delete(nome).catch((erro: unknown) => {
+      console.warn('[glosas] não foi possível apagar o cache antigo', nome, erro);
+    });
+  }
+}
 
 async function baixarJson(url: string, versao: string): Promise<unknown> {
   /* A chave leva a versão em query; o `fetch` vai à URL limpa (o CDN e o transporte de teste
      servem pela URL do arquivo). */
   const chave = `${url}?v=${encodeURIComponent(versao)}`;
   let cache: Cache | null = null;
+  apagarCachesAntigos();
   try {
     if (typeof caches !== 'undefined') {
       cache = await caches.open(NOME_DO_CACHE);
@@ -58,7 +75,11 @@ async function baixarJson(url: string, versao: string): Promise<unknown> {
     const r = await fetch(url);
     if (!r.ok) return null;
     if (cache) {
-      try { await cache.put(chave, r.clone()); } catch { /* cota cheia: o dado ainda serve agora */ }
+      try {
+        await cache.put(chave, r.clone());
+      } catch {
+        /* cota cheia: o dado ainda serve agora */
+      }
     }
     return await r.json();
   } catch {
@@ -75,8 +96,14 @@ const emMinusculas = (g: Record<string, string>): Record<string, string> => {
   return m;
 };
 
-interface ArquivoV2 { glosas?: Record<string, string>; formas?: Record<string, string> }
-interface TrilhaV1 { versao?: unknown; niveis?: Record<string, Array<[string, string?]>> }
+interface ArquivoV2 {
+  glosas?: Record<string, string>;
+  formas?: Record<string, string>;
+}
+interface TrilhaV1 {
+  versao?: unknown;
+  niveis?: Record<string, Array<[string, string?]>>;
+}
 
 async function montarPacote(idioma: string, nativo: string): Promise<Pacote | null> {
   const entrada = indiceDaTrilha()[idioma];
@@ -109,7 +136,12 @@ function pacoteDe(lang: string, alvo: string): Promise<Pacote | null> {
   if (!p) {
     p = montarPacote(baseDoIdioma(lang), baseDoIdioma(alvo));
     // Falha não fica em cache: offline agora não condena o idioma pela sessão inteira.
-    p.then((r) => { if (!r) pacotes.delete(chave); }, () => pacotes.delete(chave));
+    p.then(
+      (r) => {
+        if (!r) pacotes.delete(chave);
+      },
+      () => pacotes.delete(chave),
+    );
     pacotes.set(chave, p);
   }
   return p;

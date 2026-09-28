@@ -11,7 +11,7 @@
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { ERROS_FATAIS_DO_MIC, type ErroDaWebSpeech, WebSpeechStt } from '../src/gateway/adapters/webSpeech'
+import { type ErroDaWebSpeech, ERROS_FATAIS_DO_MIC, WebSpeechStt } from '../src/gateway/adapters/webSpeech'
 
 class ReconhecedorFalso {
   static instancias: ReconhecedorFalso[] = []

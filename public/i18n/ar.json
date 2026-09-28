@@ -19,5 +19,13 @@
   "Jogo da memória": "لعبة الذاكرة",
   "Caça-palavras": "البحث عن الكلمات",
   "Montar a frase": "كوّن الجملة",
-  "Desafio rápido": "تحدٍ سريع"
+  "Desafio rápido": "تحدٍ سريع",
+  "Tradução": "الترجمة",
+  "Toda frase ganha tradução assim que termina.": "تُترجم كل جملة فور انتهائها.",
+  "Nenhuma frase é traduzida sozinha: toque em \"Mostrar tradução\" na frase que quiser.": "لا تُترجم أي جملة تلقائيًا: اضغط \"إظهار الترجمة\" على الجملة التي تريدها.",
+  "Frases em que você já sabe todas as palavras ficam sem tradução, e dá para mostrar com um toque.": "الجمل التي تعرف كل كلماتها تبقى بلا ترجمة، ويمكن إظهارها بلمسة واحدة.",
+  "Sempre": "دائمًا",
+  "Só quando eu pedir": "فقط عندما أطلب",
+  "Só frases com palavra nova": "فقط الجمل التي فيها كلمة جديدة",
+  "Mostrar tradução": "إظهار الترجمة"
 }

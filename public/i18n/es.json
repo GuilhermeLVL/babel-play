@@ -18,5 +18,13 @@
   "Planos": "Planes",
   "Planos e preços": "Planes y precios",
   "Ajustes": "Ajustes",
-  "Configurações": "Configuración"
+  "Configurações": "Configuración",
+  "Tradução": "Traducción",
+  "Toda frase ganha tradução assim que termina.": "Cada frase se traduce en cuanto termina.",
+  "Nenhuma frase é traduzida sozinha: toque em \"Mostrar tradução\" na frase que quiser.": "Ninguna frase se traduce sola: toca \"Mostrar traducción\" en la que quieras.",
+  "Frases em que você já sabe todas as palavras ficam sem tradução, e dá para mostrar com um toque.": "Las frases en las que ya conoces todas las palabras quedan sin traducir, y un toque muestra la traducción.",
+  "Sempre": "Siempre",
+  "Só quando eu pedir": "Solo cuando lo pida",
+  "Só frases com palavra nova": "Solo frases con una palabra nueva",
+  "Mostrar tradução": "Mostrar traducción"
 }

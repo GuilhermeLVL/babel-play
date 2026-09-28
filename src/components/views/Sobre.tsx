@@ -17,6 +17,7 @@
  */
 import type { LucideIcon } from 'lucide-react';
 import {
+  BookOpen,
   Check,
   Copy,
   CreditCard,
@@ -48,6 +49,39 @@ const REDES: Array<{ href: string; icone: LucideIcon; rotulo: string }> = [
   { href: CRIADOR.linkedin, icone: Linkedin, rotulo: 'LinkedIn' },
   { href: CRIADOR.instagram, icone: Instagram, rotulo: 'Instagram' },
   { href: CRIADOR.email, icone: Mail, rotulo: 'E-mail' },
+];
+
+/**
+ * DADOS ABERTOS — a atribuição que as licenças EXIGEM, dentro do app. O dicionário local (toque em
+ * palavra, `lib/dicionarioLocal.ts`), as glosas da trilha e as frases dos jogos são redistribuídos
+ * aqui; CC BY-SA e CC BY pedem crédito onde o dado aparece, não só no repositório. A lista dos
+ * autores do Tatoeba, longa demais para a tela, fica em `FONTES.md`, que o último item abre.
+ */
+const DADOS_ABERTOS: Array<{ nome: string; licenca: string; uso: string; href: string }> = [
+  {
+    nome: 'Wikcionário (Wiktionary)',
+    licenca: 'CC BY-SA',
+    uso: 'Traduções do dicionário do app e verbetes, via Wiktextract/Kaikki',
+    href: 'https://kaikki.org/',
+  },
+  {
+    nome: 'Wikidata Lexemes',
+    licenca: 'CC0',
+    uso: 'Traduções palavra a palavra e formas das palavras',
+    href: 'https://www.wikidata.org/wiki/Wikidata:Lexicographical_data',
+  },
+  {
+    nome: 'Tatoeba',
+    licenca: 'CC BY 2.0 FR',
+    uso: 'Frases de exemplo e suas traduções',
+    href: 'https://tatoeba.org',
+  },
+  {
+    nome: 'FrequencyWords (OpenSubtitles)',
+    licenca: 'CC BY-SA 4.0',
+    uso: 'Frequência das palavras, que ordena a trilha',
+    href: 'https://github.com/hermitdave/FrequencyWords',
+  },
 ];
 
 const hrefDe = (v: string) => (v.includes('@') && !v.startsWith('http') ? `mailto:${v}` : v);
@@ -249,6 +283,36 @@ export default function Sobre({ onVerPlanos }: { onVerPlanos?: (view: string) =>
             </span>
           )}
         </div>
+      </section>
+
+      <section className="secao">
+        <TituloDeSecao
+          icone={BookOpen}
+          titulo={t('Dados abertos')}
+          desc={t('O dicionário e as trilhas do app são feitos com dados livres. Obrigado a quem os escreve.')}
+        />
+        <ul className="pilha" style={{ fontSize: 13.5, lineHeight: 1.55 }}>
+          {DADOS_ABERTOS.map((d) => (
+            <li key={d.nome}>
+              <a className="link" href={d.href} target="_blank" rel="noreferrer noopener">
+                {d.nome}
+              </a>{' '}
+              <span className="mut">
+                ({d.licenca}) · {t(d.uso)}
+              </span>
+            </li>
+          ))}
+          <li>
+            <a
+              className="link"
+              href={`${CRIADOR.github}/babel-play/blob/main/FONTES.md`}
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              {t('Lista completa de fontes e autores')}
+            </a>
+          </li>
+        </ul>
       </section>
 
       {legal && <DialogoLegal doc={legal} aoFechar={() => setLegal(null)} />}

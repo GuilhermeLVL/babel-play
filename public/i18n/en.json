@@ -916,5 +916,17 @@
   },
   "Meta do dia concluída: +{n} Seeds": "Daily goal complete: +{n} Seeds",
   "Falta uma missão para a meta do dia": "One mission left for today's goal",
-  "Feche a última e ganhe +{seeds} Seeds.": "Finish the last one and earn +{seeds} Seeds."
+  "Feche a última e ganhe +{seeds} Seeds.": "Finish the last one and earn +{seeds} Seeds.",
+  "Dicionário do app": "App dictionary",
+  "Wikcionário": "Wiktionary",
+  "Tradução do dicionário": "Dictionary translation",
+  "glosa de dicionário": "dictionary gloss",
+  "Tradução curta de dicionário (Wikcionário e Wikidata), sem inteligência artificial. Ela dá o sentido mais comum da palavra; para os outros sentidos, use o verbete abaixo.": "Short dictionary translation (Wiktionary and Wikidata), no artificial intelligence. It gives the most common sense of the word; for the other senses, use the entry below.",
+  "Dados abertos": "Open data",
+  "O dicionário e as trilhas do app são feitos com dados livres. Obrigado a quem os escreve.": "The app's dictionary and learning paths are built from open data. Thanks to everyone who writes it.",
+  "Traduções do dicionário do app e verbetes, via Wiktextract/Kaikki": "App dictionary translations and entries, via Wiktextract/Kaikki",
+  "Traduções palavra a palavra e formas das palavras": "Word-by-word translations and word forms",
+  "Frases de exemplo e suas traduções": "Example sentences and their translations",
+  "Frequência das palavras, que ordena a trilha": "Word frequency, which orders the learning path",
+  "Lista completa de fontes e autores": "Full list of sources and authors"
 }

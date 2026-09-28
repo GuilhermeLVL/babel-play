@@ -18,7 +18,13 @@ const MT_ENGINE_LABELS: Record<string, string> = {
   'mymemory': 'MyMemory (web)',
   'opus-mt-local': 'Tradutor local (opus-mt)',
   'chrome-translator': 'Tradutor do navegador',
+  // Degrau M1: palavra solta respondida por dicionário, sem MT (`lib/traducaoDePalavra.ts`).
+  'dicionario-local': 'Dicionário do app',
+  'wiktionary': 'Wikcionário',
 };
+
+/** Estes "motores" são dicionários: a tradução é um verbete, não uma saída de máquina. */
+const DE_DICIONARIO = new Set(['dicionario-local', 'wiktionary']);
 
 /**
  * ANALISTA DE VOCABULÁRIO — painel ÚNICO e padronizado, usado por TODAS as telas
@@ -257,7 +263,9 @@ export default function VocabularyPanel({
                   e o cliente sempre descartou: a app exibia uma tradução automática com a mesma
                   autoridade de um dicionário. Não é a mesma coisa, e agora está escrito. */}
               <div className="border-t border-border-subtle pt-2 space-y-1.5">
-                <span className="label-mono block">Tradução automática</span>
+                <span className="label-mono block">
+                  {DE_DICIONARIO.has(word.mtEngine ?? '') ? t('Tradução do dicionário') : 'Tradução automática'}
+                </span>
                 {/* Sem tradução: dizemos o MOTIVO (par sem motor, falha do MT) em vez de deixar
                     "traduzindo…" eterno, e jamais preenchemos com um texto inventado. */}
                 {word.translation ? (
@@ -269,7 +277,15 @@ export default function VocabularyPanel({
                     <Loader2 className="w-3.5 h-3.5 animate-spin text-accent" /> traduzindo…
                   </p>
                 )}
-                {word.translation && (
+                {word.translation && DE_DICIONARIO.has(word.mtEngine ?? '') && (
+                  <Provenance
+                    kind="source"
+                    origin={t(MT_ENGINE_LABELS[word.mtEngine ?? ''])}
+                    method={t('glosa de dicionário')}
+                    limits={t('Tradução curta de dicionário (Wikcionário e Wikidata), sem inteligência artificial. Ela dá o sentido mais comum da palavra; para os outros sentidos, use o verbete abaixo.')}
+                  />
+                )}
+                {word.translation && !DE_DICIONARIO.has(word.mtEngine ?? '') && (
                   <Provenance
                     kind="computed"
                     origin={t(MT_ENGINE_LABELS[word.mtEngine ?? ''] ?? word.mtEngine ?? 'guardada no seu caderno')}

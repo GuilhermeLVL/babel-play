@@ -20,6 +20,7 @@ import {
   disponibilidadeDoTradutor,
   ehIos,
   impressaoDoAparelho,
+  lembrarWebSpeechComTrilha,
   lerRegistro,
   modeloProibido,
   obterSondaDoAparelho,
@@ -31,6 +32,7 @@ import {
   sondarEMedir,
   temPonteNativa,
   TRINTA_DIAS_MS,
+  webSpeechComTrilhaLembrada,
 } from '../src/lib/dispositivo/sonda'
 
 afterEach(() => {
@@ -352,6 +354,70 @@ describe('proibirModelo / modeloProibido', () => {
     const armazem = armazemFalso()
     await proibirModelo('whisper-small', 'OOM', dep({ armazem }))
     expect(await modeloProibido('whisper-small', dep({ armazem, infoDoAdaptador: async () => null }))).toBe(false)
+  })
+})
+
+/*
+ * A WEB SPEECH COM TRILHA (`start(track)` + `processLocally`) — não documentado se as duas combinam;
+ * a captura testa em execução e LEMBRA o resultado por aparelho, para não repetir o teste (e a legenda
+ * perdida dos primeiros segundos) a cada sessão. Outro Chrome (outra UA = outra impressão) testa de novo.
+ */
+describe('lembrarWebSpeechComTrilha / webSpeechComTrilhaLembrada', () => {
+  it('sem registro: não sabe (null); lembra ok/falhou antes mesmo de existir sonda', async () => {
+    const armazem = armazemFalso()
+    expect(await webSpeechComTrilhaLembrada(dep({ armazem }))).toBeNull()
+    await lembrarWebSpeechComTrilha('falhou', dep({ armazem }))
+    expect(await webSpeechComTrilhaLembrada(dep({ armazem }))).toBe('falhou')
+    await lembrarWebSpeechComTrilha('ok', dep({ armazem }))
+    expect(await webSpeechComTrilhaLembrada(dep({ armazem }))).toBe('ok')
+  })
+
+  it('não apaga as proibições nem a sonda já guardada', async () => {
+    const armazem = armazemFalso()
+    const s = await obterSondaDoAparelho(dep({ armazem }))
+    await proibirModelo('whisper-small', 'OOM', dep({ armazem }))
+    await lembrarWebSpeechComTrilha('ok', dep({ armazem }))
+    const reg = lerRegistro(armazem)!
+    expect(reg.modelosProibidos).toEqual(['whisper-small'])
+    expect(reg.sinais).toEqual(s.sinais)
+  })
+
+  it('atravessa a revalidação no MESMO aparelho; em outro (Chrome atualizado) testa de novo', async () => {
+    const armazem = armazemFalso()
+    await obterSondaDoAparelho(dep({ armazem }))
+    await lembrarWebSpeechComTrilha('falhou', dep({ armazem }))
+    const nova = await obterSondaDoAparelho(dep({ armazem, versaoDoApp: '0.2.0' }))
+    expect(nova.webSpeechComTrilha).toBe('falhou')
+    const outroUa = escopoCompleto({ navigator: { userAgent: UA_WIN + ' Chrome/151' } })
+    expect(await webSpeechComTrilhaLembrada(dep({ armazem, escopo: outroUa }))).toBeNull()
+  })
+
+  it('o benchmark que grava depois não apaga a memória', async () => {
+    const armazem = armazemFalso()
+    await obterSondaDoAparelho(dep({ armazem }))
+    await lembrarWebSpeechComTrilha('ok', dep({ armazem }))
+    const bench: PontuacaoDoBenchmark = {
+      pontuacaoWasm: 1,
+      pontuacaoWebgpu: 2,
+      melhor: 'webgpu',
+      medidoEm: 1_000_000,
+      duracaoMs: 10,
+    }
+    await sondarEMedir(dep({ armazem, medirBenchmark: async () => bench }))
+    expect(lerRegistro(armazem)!.webSpeechComTrilha).toBe('ok')
+  })
+
+  it('armazém que lança: não lança, e não lembra', async () => {
+    const armazem = {
+      getItem: () => {
+        throw new Error('SecurityError')
+      },
+      setItem: () => {
+        throw new Error('SecurityError')
+      },
+    }
+    await expect(lembrarWebSpeechComTrilha('ok', dep({ armazem }))).resolves.toBeUndefined()
+    expect(await webSpeechComTrilhaLembrada(dep({ armazem }))).toBeNull()
   })
 })
 

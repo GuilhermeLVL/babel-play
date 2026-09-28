@@ -13,6 +13,7 @@ import { WebSpeechStt } from '../../gateway/adapters/webSpeech';
 import type { SttSession } from '../../gateway/capabilities';
 import {
   type AudioCapture,
+  type EspeculacaoDoFinal,
   MAX_SPEECH_MS_LOCAL,
   MAX_SPEECH_MS_NUVEM,
   type OpcoesDeCaptura,
@@ -30,15 +31,30 @@ import {
 import { t } from '../i18n';
 import { isTtsActive } from '../tts';
 import { type EscolhaDoMic, resolverMotorDoMic } from './motorDoMicrofone';
-import { clog, formatTime, type HandlersDaFonte, type SpeechSegment, wordsFromText } from './tiposDaFala';
+import type { OpcoesDaPreparacao } from './pipelineDeFala';
+import { segmentosDaWebSpeech } from './segmentosDaWebSpeech';
+import { clog, type HandlersDaFonte, type SpeechSegment } from './tiposDaFala';
 import type { OpcoesDeTraducao } from './traducaoDaFala';
+import {
+  type ControleDaWebSpeechDoSistema,
+  type DecisaoDoMotorDoSistema,
+  iniciarWebSpeechDoSistema,
+  type MotorDoSistema,
+} from './webSpeechDoSistema';
 
 /** Tudo que as fontes precisam da tela — por parâmetro, sem contexto novo nem store global. */
 export interface DepsDasFontesDeAudio {
   /* --- o pipeline que consome o áudio --- */
   sysHandlers: HandlersDaFonte;
   micHandlers: HandlersDaFonte;
-  prepareModels: () => Promise<void>;
+  prepareModels: (opcoes?: OpcoesDaPreparacao) => Promise<void>;
+  /**
+   * O áudio da aba/sistema vai à Web Speech NO APARELHO? (`webSpeechDoSistema.ts`). Sem ele, o
+   * caminho de sempre, como antes.
+   */
+  decidirMotorDoSistema?: () => Promise<DecisaoDoMotorDoSistema>;
+  /** Quem transcreve o áudio da aba agora (o selo "Motor de IA ativo"); `null` = captura encerrada. */
+  aoMudarMotorDoSistema?: (motor: MotorDoSistema | null) => void;
   /* --- escolhas de rota/dispositivo (espelhadas em ref: lidas ao ABRIR a captura) --- */
   systemSourceRef: RefObject<'display' | 'loopback' | 'server'>;
   loopbackDeviceIdRef: RefObject<string>;
@@ -143,21 +159,102 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
   };
 
   // Inicia a captura do áudio do sistema/aba: pede a fonte (gesto do usuário) e prepara o modelo.
+  /* QUEM TRANSCREVE A ABA (degrau T2, `webSpeechDoSistema.ts`). A decisão corre EM PARALELO ao seletor
+     de compartilhamento (que precisa da ativação do clique, então não espera nada): resolvida para o
+     caminho de sempre, a preparação do Whisper começa na hora, como antes. Para a Web Speech no
+     aparelho, a captura abre, a Web Speech tenta a MESMA trilha, e só então o que falta é preparado
+     (o tradutor; o Whisper só se o microfone o usar). O VAD segue ouvindo: ele é o fiscal do teste
+     em execução (fala detectada sem resultado → Whisper), e a gravação da sessão é dele.
+     Enquanto a decisão não chega, o que o VAD entrega fica guardado e vai ao pipeline se ele for o
+     motor; se for a Web Speech, é descartado (ela começa a ouvir dali em diante). */
   const handleStartSystemCapture = async () => {
     // O estado de gravação (isRecording/timer) já foi ligado por handleStartRecording (captura dupla).
     const source = systemSourceRef.current;
+    const decidir = deps.decidirMotorDoSistema;
+    let rota: 'decidindo' | 'navegador' | 'pipeline' = decidir ? 'decidindo' : 'pipeline';
+    const pendentes: Array<() => void> = [];
+    const encaminhar = (f: () => void) => {
+      if (rota === 'pipeline') f();
+      else if (rota === 'decidindo') pendentes.push(f);
+    };
+    let navegador: ControleDaWebSpeechDoSistema | null = null;
+    let prepNavegador: Promise<void> = Promise.resolve();
+    const idDoParcialDoSistema: { current: string | null } = { current: null };
+
     clog('sistema: preparar modelos locais + fonte:', source);
-    void prepareModels();
+    const decisao: Promise<DecisaoDoMotorDoSistema | null> = decidir
+      ? decidir()
+          .catch(() => null)
+          .then((d) => {
+            clog('sistema: motor', d?.motor ?? 'pipeline', `(${d?.motivo ?? 'sem decisão'})`);
+            if (d?.motor !== 'web-speech-local') void prepareModels();
+            return d;
+          })
+      : (void prepareModels(), Promise.resolve(null));
+
+    const usarPipeline = () => {
+      rota = 'pipeline';
+      for (const f of pendentes.splice(0)) f();
+    };
+
+    /* A Web Speech não serviu no meio da sessão: o Whisper entra sem a pessoa fazer nada. O balão
+       parcial que ela deixou aberto sai (nunca receberia o final). */
+    const cairParaOPipeline = (motivo: string) => {
+      clog('sistema: Web Speech no aparelho não serviu (', motivo, '), seguindo no Whisper');
+      navegador = null;
+      rota = 'pipeline';
+      const pid = idDoParcialDoSistema.current;
+      idDoParcialDoSistema.current = null;
+      if (pid) setSpeechSegments((prev) => prev.filter((seg) => seg.id !== pid));
+      deps.aoMudarMotorDoSistema?.('pipeline');
+      void prepNavegador.finally(() => void prepareModels());
+    };
+
+    const tentarNavegador = (trilha: MediaStreamTrack | undefined): boolean => {
+      if (!trilha) return false;
+      const { aoParcial, aoFinal } = segmentosDaWebSpeech({
+        source: 'system',
+        speakerId: 'system',
+        idiomaDasPalavras: targetLangRef.current,
+        de: () => targetLangRef.current.split('-')[0], // você OUVE o idioma-alvo
+        para: () => sourceLangRef.current.split('-')[0],
+        falada: false,
+        idDoParcialRef: idDoParcialDoSistema,
+        timerRef,
+        nowRel,
+        setSpeechSegments,
+        translateSegment,
+      });
+      navegador = iniciarWebSpeechDoSistema({
+        trilha,
+        lang: targetLangRef.current,
+        aoParcial,
+        aoFinal,
+        aoCair: cairParaOPipeline,
+      });
+      return navegador !== null;
+    };
+
     try {
       const cb = {
-        onUtterance: sysHandlers.onUtterance,
+        onUtterance: (pcm: Float32Array, sr: number, seq: number, esp?: EspeculacaoDoFinal) => {
+          if (rota === 'navegador') return navegador?.falaTerminou();
+          encaminhar(() => sysHandlers.onUtterance(pcm, sr, seq, esp));
+        },
         onSpeechStart: (seq: number) => {
           clog('VAD: início de fala (sistema, seq', seq, ')');
-          sysHandlers.onSpeechStart(seq);
+          if (rota === 'navegador') return navegador?.falaComecou();
+          encaminhar(() => sysHandlers.onSpeechStart(seq));
         },
-        onPartialAudio: sysHandlers.onPartialAudio,
-        onFinalEspeculativo: sysHandlers.onFinalEspeculativo,
-        onMisfire: (seq: number) => sysHandlers.onMisfire(seq),
+        // Parcial velho não tem valor: só vai ao pipeline quando ele já é o motor.
+        onPartialAudio: (pcm: Float32Array, sr: number, seq: number) => {
+          if (rota === 'pipeline') sysHandlers.onPartialAudio(pcm, sr, seq);
+        },
+        onFinalEspeculativo: (pcm: Float32Array, sr: number, seq: number) =>
+          rota === 'pipeline' ? sysHandlers.onFinalEspeculativo(pcm, sr, seq) : null,
+        onMisfire: (seq: number) => {
+          if (rota !== 'navegador') encaminhar(() => sysHandlers.onMisfire(seq));
+        },
         onLevel: pushLevel,
         onStatus: (msg: string) => {
           clog('sistema:', msg);
@@ -170,7 +267,7 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
           setTimeout(() => setFeedbackMsg(''), 6000);
         },
       };
-      systemCaptureRef.current =
+      const captura: AudioCapture =
         source === 'server'
           ? await startServerLoopbackCapture(cb, opcoesDeCaptura)
           : source === 'loopback'
@@ -190,7 +287,40 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
                 return startSystemLoopbackCapture(loopbackDeviceIdRef.current || undefined, cb, opcoesDeCaptura);
               })()
             : await startSystemAudioCapture(cb, opcoesDeCaptura);
+      /* A captura com a Web Speech junto: parar/pausar/mudar a captura faz o mesmo com o reconhecedor. */
+      systemCaptureRef.current = {
+        ...captura,
+        setMuted: (m) => {
+          captura.setMuted(m);
+          navegador?.pausar(m);
+        },
+        setPaused: (p) => {
+          captura.setPaused(p);
+          navegador?.pausar(p);
+        },
+        stop: () => {
+          navegador?.parar();
+          navegador = null;
+          deps.aoMudarMotorDoSistema?.(null);
+          return captura.stop();
+        },
+      };
       clog('captura do sistema ATIVA ✓');
+      const d = await decisao;
+      if (d?.motor === 'web-speech-local' && tentarNavegador(captura.trilhaDeAudio)) {
+        rota = 'navegador';
+        pendentes.length = 0;
+        clog('sistema: áudio da aba no reconhecedor do navegador, NO APARELHO ✓ (Whisper não carrega)');
+        deps.aoMudarMotorDoSistema?.('web-speech-local');
+        prepNavegador = prepareModels({ sistemaNoNavegador: true });
+      } else {
+        if (d?.motor === 'web-speech-local') {
+          clog('sistema: a Web Speech não abriu com a trilha, seguindo no Whisper');
+          void prepareModels();
+        }
+        usarPipeline();
+        deps.aoMudarMotorDoSistema?.('pipeline');
+      }
       if (systemCaptureRef.current) anchorSessionClock(systemCaptureRef.current.startedAtMs, 'system');
       setFeedbackMsg(
         micEnabled
@@ -316,69 +446,23 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
     const from = sourceLangRef.current.split('-')[0];
     const to = targetLangRef.current.split('-')[0];
     try {
+      const { aoParcial, aoFinal } = segmentosDaWebSpeech({
+        source: 'mic',
+        speakerId,
+        idiomaDasPalavras: sourceLang,
+        de: () => from,
+        para: () => to,
+        falada: true,
+        idDoParcialRef: webSpeechPartialIdRef,
+        timerRef,
+        nowRel,
+        setSpeechSegments,
+        translateSegment,
+        ignorar: isTtsActive, // anti-eco: o mic ouviu o TTS do app pelos alto-falantes
+      });
       webSpeechRef.current = new WebSpeechStt({ processLocally: noAparelho }).startLive(sourceLangRef.current, {
-        onPartial: (text: string) => {
-          if (isTtsActive()) return; // anti-eco: o mic ouviu o TTS do app pelos alto-falantes
-          const clean = text.trim();
-          if (!clean) return;
-          if (!webSpeechPartialIdRef.current) webSpeechPartialIdRef.current = Math.random().toString(36).slice(2, 11);
-          const pid = webSpeechPartialIdRef.current;
-          setSpeechSegments((prev) => {
-            const idx = prev.findIndex((s) => s.id === pid);
-            if (idx !== -1) {
-              const u = [...prev];
-              u[idx] = { ...u[idx], originalText: clean };
-              return u;
-            }
-            return [
-              ...prev,
-              {
-                id: pid,
-                speakerId,
-                source: 'mic' as const,
-                timestamp: formatTime(timerRef.current),
-                originalText: clean,
-                translatedText: '…',
-                words: [],
-                isPartial: true,
-                tStartMs: nowRel(),
-              },
-            ];
-          });
-        },
-        onFinal: ({ text }: { text: string }) => {
-          if (isTtsActive()) {
-            webSpeechPartialIdRef.current = null;
-            return;
-          } // anti-eco no final também
-          const clean = text.trim();
-          if (!clean) return;
-          const uttId = webSpeechPartialIdRef.current ?? Math.random().toString(36).slice(2, 11);
-          webSpeechPartialIdRef.current = null;
-          setSpeechSegments((prev) => {
-            const existing = prev.find((s) => s.id === uttId);
-            const committed: SpeechSegment = {
-              id: uttId,
-              speakerId,
-              source: 'mic',
-              timestamp: formatTime(timerRef.current),
-              originalText: clean,
-              translatedText: '…',
-              words: wordsFromText(clean, sourceLang),
-              isPartial: false,
-              tStartMs: existing?.tStartMs ?? nowRel(),
-              tEndMs: nowRel(),
-            };
-            const idx = prev.findIndex((s) => s.id === uttId);
-            if (idx !== -1) {
-              const u = [...prev];
-              u[idx] = committed;
-              return u;
-            }
-            return [...prev, committed];
-          });
-          translateSegment(uttId, clean, from, to, { falada: true });
-        },
+        onPartial: aoParcial,
+        onFinal: ({ text }: { text: string }) => aoFinal(text),
         onError: (e: Error) => {
           clog('web-speech mic erro:', String(e));
         },

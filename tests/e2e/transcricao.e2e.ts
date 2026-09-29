@@ -28,11 +28,19 @@ test.describe('Transcricao (captura)', () => {
        nome acessivel passou a vir do `aria-label` ("Configurações de dispositivos e modelos de
        IA", o mesmo do dialogo). Kids e senior seguem com a palavra escrita. Procurar pelo
        `aria-label` cobre os tres perfis de uma vez, e e o nome que o leitor de tela anuncia. */
-    const abrirPainel = page.getByRole('button', {
-      name: /Ajustes da captura|Configurações de dispositivos e modelos de IA|Configurações Simples|Ajustes de Áudio/,
-    })
-    await expect(abrirPainel).toBeVisible()
-    await clicarRobusto(page, abrirPainel)
+    /* No celular (o projeto de 375 px emula toque) a tela é a da captura no celular: os ajustes
+       ficam na folha de Opções, na linha "Texto e tradução". */
+    const noCelular = await page.getByTestId('captura-no-celular').isVisible()
+    if (noCelular) {
+      await clicarRobusto(page, page.getByRole('button', { name: 'Opções da captura' }))
+      await clicarRobusto(page, page.getByRole('dialog', { name: 'Opções da captura' }).getByRole('button', { name: /Texto e tradução/ }))
+    } else {
+      const abrirPainel = page.getByRole('button', {
+        name: /Ajustes da captura|Configurações de dispositivos e modelos de IA|Configurações Simples|Ajustes de Áudio/,
+      })
+      await expect(abrirPainel).toBeVisible()
+      await clicarRobusto(page, abrirPainel)
+    }
 
     /* O painel é o diálogo "Dispositivos e modelos de IA" do protótipo (C1); Kids e Sênior têm o
        título na linguagem do perfil. */

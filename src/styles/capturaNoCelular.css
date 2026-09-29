@@ -1,0 +1,790 @@
+/*
+ * A ABA CAPTURAR NO CELULAR (`views/captura/celular/*`, maquete aprovada pelo dono em 2026-09-29).
+ *
+ * Só TOKENS (os sete temas × claro/escuro trocam os tokens, não as classes): o cartão escuro é o
+ * `.cartao.escuro` do protótipo (tinta sobre `--ink`, e `--surface-sunken` no tema escuro), os
+ * botões principais são o gradiente de `--accent` do `.btn-solid`. Alvos de toque de 44 a 84 px.
+ */
+
+.cel {
+  --cel-escuro: var(--ink);
+  --cel-escuro-2: color-mix(in srgb, var(--ink-contrast) 7%, var(--ink));
+  --cel-linha: color-mix(in srgb, var(--ink-contrast) 16%, var(--ink));
+  --cel-tinta: var(--ink-contrast);
+  --cel-mut: color-mix(in srgb, var(--ink-contrast) 70%, var(--ink));
+  --cel-acento: color-mix(in srgb, var(--accent) 70%, var(--ink-contrast));
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: var(--shell-inset-bottom, 0px);
+  background: var(--canvas);
+  color: var(--ink);
+}
+.dark .cel {
+  --cel-escuro: var(--surface-sunken);
+  --cel-escuro-2: var(--surface);
+  --cel-linha: var(--border-subtle);
+  --cel-tinta: var(--ink);
+  --cel-mut: var(--ink-muted);
+  --cel-acento: var(--accent);
+}
+.cel svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* ---------- pronto ---------- */
+.cel-topo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px 10px;
+}
+.cel-sobrancelha {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font: 700 10.5px var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+}
+.cel-sobrancelha svg {
+  width: 13px;
+  height: 13px;
+}
+.cel-titulo {
+  font: 900 24px var(--font-display);
+  letter-spacing: -0.01em;
+}
+.cel-ib {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface);
+  color: var(--ink);
+  display: grid;
+  place-items: center;
+  box-shadow: var(--shadow-card);
+}
+.cel-ib.peq {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+}
+.cel-ib[data-ligado] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+.cel-ib:disabled {
+  opacity: 0.6;
+}
+
+.cel-par {
+  margin: 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-card);
+}
+.cel-lado {
+  flex: 1;
+  min-width: 0;
+  min-height: 52px;
+  border: 0;
+  border-radius: 11px;
+  background: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 0 10px;
+  text-align: left;
+}
+.cel-lado.fim {
+  align-items: flex-end;
+  text-align: right;
+}
+.cel-lado small {
+  font: 700 10px var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+.cel-lado b {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cel-troca {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 0;
+  display: grid;
+  place-items: center;
+  background: var(--canvas);
+  color: var(--ink);
+}
+span.cel-troca {
+  opacity: 0.35;
+}
+
+.cel > .aviso-info,
+.cel > .aviso-simples {
+  margin: 10px 16px 0;
+}
+
+.cel-meio {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 16px 0;
+}
+.cel-vazio,
+.cel-conversa.cartao-escuro {
+  flex: 1;
+  min-height: 0;
+  border-radius: 22px;
+  background: radial-gradient(120% 90% at 0% 0%, color-mix(in srgb, var(--accent) 9%, var(--cel-escuro)) 0%, var(--cel-escuro) 55%);
+  color: var(--cel-tinta);
+}
+.cel-vazio {
+  padding: 22px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+}
+.cel-vazio h2 {
+  font: 800 18px var(--font-display);
+}
+.cel-passo {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--cel-mut);
+}
+.cel-passo b {
+  color: var(--cel-tinta);
+}
+.cel-passo > span {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--accent) 22%, var(--cel-escuro));
+  color: var(--cel-acento);
+}
+.cel-passo > span svg {
+  width: 18px;
+  height: 18px;
+}
+.cel-aviso {
+  margin-top: auto;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--cel-mut);
+}
+.cel-modo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  background: var(--cel-escuro-2);
+  border: 1px solid var(--cel-linha);
+  font-size: 12.5px;
+  color: var(--cel-mut);
+}
+.cel-modo b {
+  display: block;
+  font-size: 13.5px;
+  color: var(--cel-tinta);
+}
+.cel-modo svg.ok {
+  color: var(--good);
+}
+.cel-modo button {
+  margin-left: auto;
+  min-height: 44px;
+  padding: 0 8px;
+  border: 0;
+  background: none;
+  color: var(--cel-acento);
+  font: 700 13px var(--font-body);
+}
+
+.cel-doca {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-around;
+  padding: 14px 12px 12px;
+}
+.cel-lat {
+  width: 76px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+.cel-centro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.cel-mic {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  border: 0;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(color-mix(in srgb, var(--accent) 88%, #fff) 0%, var(--accent) 55%, color-mix(in srgb, var(--accent) 88%, #000));
+  color: var(--accent-contrast, var(--ink));
+  box-shadow: 0 10px 24px -8px color-mix(in srgb, var(--accent) 70%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+.cel-mic svg {
+  width: 34px;
+  height: 34px;
+}
+.cel-mic:disabled {
+  opacity: 0.6;
+}
+.cel-rotulo-mic {
+  font: 800 13px var(--font-display);
+}
+
+/* ---------- gravando ---------- */
+.cel-gravando {
+  background: var(--cel-escuro);
+  color: var(--cel-tinta);
+}
+.cel-gravando .cel-lat {
+  color: var(--cel-mut);
+}
+.cel-gravando .cel-ib {
+  background: var(--cel-escuro-2);
+  border-color: var(--cel-linha);
+  color: var(--cel-tinta);
+  box-shadow: none;
+}
+.cel-gravando .cel-ib[data-ligado] {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 28%, var(--cel-escuro));
+  color: var(--cel-tinta);
+}
+.cel-barra {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--cel-linha);
+}
+.cel-aovivo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 600 16px var(--font-mono);
+}
+.cel-ponto {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 25%, transparent);
+  animation: cel-pulsa 1.6s ease-in-out infinite;
+}
+@keyframes cel-pulsa {
+  50% {
+    box-shadow: 0 0 0 7px color-mix(in srgb, var(--accent) 10%, transparent);
+  }
+}
+.cel-ondas {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+  height: 20px;
+}
+.cel-ondas i {
+  width: 3px;
+  border-radius: 2px;
+  background: var(--cel-acento);
+  transition: height 0.12s;
+}
+.cel-chip {
+  margin-left: auto;
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--cel-linha);
+  background: var(--cel-escuro-2);
+  color: var(--cel-tinta);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: 700 13px var(--font-body);
+}
+.cel-chip svg {
+  width: 15px;
+  height: 15px;
+}
+.cel-gravando > .aviso-info {
+  margin: 10px 12px 0;
+  color: var(--cel-tinta);
+  border-color: var(--cel-linha);
+}
+.cel-gravando .cel-conversa {
+  flex: 1;
+  min-height: 0;
+}
+.cel-doca.escura {
+  align-items: center;
+  border-top: 1px solid var(--cel-linha);
+  background: color-mix(in srgb, #000 18%, var(--cel-escuro));
+  padding: 12px 12px calc(12px + env(safe-area-inset-bottom, 0px));
+}
+.cel-parar {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  border: 0;
+  display: grid;
+  place-items: center;
+  background: var(--cel-tinta);
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--cel-tinta) 14%, transparent);
+}
+.cel-parar i {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background: var(--accent);
+}
+
+/* ---------- a conversa em balões ---------- */
+.cel-conversa {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+.cel-conversa > .cel-rolagem {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 12px;
+}
+.cel .fala {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 94%;
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--cel-linha);
+  border-radius: 16px 16px 16px 6px;
+  background: var(--cel-escuro-2);
+  color: var(--cel-tinta);
+}
+.cel .fala > * {
+  grid-column: auto !important;
+}
+.cel .fala[data-tocavel] {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.cel .fala[data-tocavel]:active {
+  background: color-mix(in srgb, var(--accent) 12%, var(--cel-escuro-2));
+}
+.cel .fala.em-foco {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.cel .fala .quem {
+  padding-top: 0;
+  font-size: 10.5px;
+}
+.cel .fala .orig {
+  font-size: 16.5px;
+  line-height: 1.4;
+}
+.cel .fala .trad {
+  font-size: 14.5px;
+  line-height: 1.4;
+  color: var(--cel-mut);
+}
+.cel-acoes-da-fala {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+.cel-acoes-da-fala button {
+  min-height: 36px;
+  min-width: 36px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--cel-tinta) 10%, transparent);
+  color: var(--cel-tinta);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font: 600 12.5px var(--font-body);
+}
+.cel-acoes-da-fala svg {
+  width: 16px;
+  height: 16px;
+}
+.cel-novas {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  transform: translateX(-50%);
+  z-index: 2;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-contrast, var(--ink));
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: 700 13px var(--font-body);
+  box-shadow: 0 8px 20px -8px rgba(0, 0, 0, 0.5);
+}
+.cel-novas svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ---------- as folhas que sobem de baixo ---------- */
+dialog.folha-de-baixo {
+  margin: auto 0 0 !important;
+  width: 100%;
+  max-width: 100%;
+  max-height: 88dvh;
+  padding: 0 16px calc(20px + env(safe-area-inset-bottom, 0px));
+  border: 0;
+  border-radius: 24px 24px 0 0;
+  background: var(--surface);
+  color: var(--ink);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  box-shadow: 0 -14px 40px rgba(0, 0, 0, 0.25);
+  transition: transform 0.18s ease-out;
+}
+dialog.folha-de-baixo[open] {
+  animation: folha-sobe 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes folha-sobe {
+  from {
+    transform: translateY(40%);
+    opacity: 0.4;
+  }
+}
+dialog.folha-de-baixo::backdrop {
+  background: rgba(0, 0, 0, 0.5);
+}
+@media (prefers-reduced-motion: reduce) {
+  dialog.folha-de-baixo,
+  dialog.folha-de-baixo[open] {
+    animation: none;
+    transition: none;
+  }
+}
+.folha-pega {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  height: 28px;
+  margin: 0 -16px;
+  background: var(--surface);
+  touch-action: none;
+  cursor: grab;
+}
+.folha-pega span {
+  width: 40px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--border-subtle);
+}
+.folha-titulo {
+  font: 800 18px var(--font-display);
+  padding: 2px 0 10px;
+}
+.folha-corpo {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.folha-corpo svg {
+  width: 20px;
+  height: 20px;
+}
+.folha-frase {
+  font-size: 18px;
+  line-height: 1.4;
+  font-weight: 600;
+}
+.folha-frase-trad {
+  margin-top: -6px;
+  font-size: 15px;
+  line-height: 1.4;
+  color: var(--ink-muted);
+}
+.folha-grade {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.folha-acao {
+  min-height: 56px;
+  border-radius: 14px;
+  border: 1px solid var(--border-subtle);
+  background: var(--canvas);
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  font: 600 14.5px var(--font-body);
+  text-align: left;
+  box-shadow: var(--shadow-card);
+}
+.folha-acao svg {
+  flex: none;
+  color: var(--accent-ink);
+}
+.folha-acao.pri {
+  border-color: transparent;
+  background: linear-gradient(color-mix(in srgb, var(--accent) 88%, #fff) 0%, var(--accent) 55%, color-mix(in srgb, var(--accent) 88%, #000));
+  color: var(--accent-contrast, var(--ink));
+}
+.folha-acao.pri svg {
+  color: inherit;
+}
+.folha-acao[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+.folha-acao:disabled {
+  opacity: 0.6;
+}
+.folha-rotulo {
+  font: 700 11px var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+.folha-palavras {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.folha-palavras button {
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle);
+  background: var(--canvas);
+  color: var(--ink);
+  font: 500 15px var(--font-body);
+}
+.folha-palavras button[data-nova] {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border-subtle));
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-weight: 700;
+}
+.folha-voltar {
+  align-self: flex-start;
+  min-height: 40px;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: var(--ink-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: 600 13.5px var(--font-body);
+}
+.folha-pal-topo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.folha-pal {
+  font: 900 30px var(--font-display);
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+.folha-ipa {
+  margin-top: 4px;
+  font: 500 13px var(--font-mono);
+  color: var(--ink-muted);
+}
+.folha-ouvir {
+  margin-left: auto;
+  flex: none;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 0;
+  display: grid;
+  place-items: center;
+  background: var(--accent);
+  color: var(--accent-contrast, var(--ink));
+}
+.folha-vel {
+  display: flex;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.folha-vel button {
+  flex: 1;
+  min-height: 44px;
+  border: 0;
+  background: none;
+  color: var(--ink-muted);
+  font: 600 14px var(--font-body);
+}
+.folha-vel button[aria-pressed='true'] {
+  background: var(--ink);
+  color: var(--ink-contrast);
+}
+.folha-glosa {
+  font-size: 16px;
+  line-height: 1.45;
+}
+.folha-def {
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ink-muted);
+}
+.folha-ex {
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ink-muted);
+  border-left: 3px solid var(--accent-soft);
+  padding-left: 10px;
+}
+.folha-status {
+  font-size: 13.5px;
+  color: var(--ink-muted);
+}
+.folha-de-baixo .sombra {
+  margin-top: 0;
+}
+
+/* as opções */
+.opc-linha {
+  width: 100%;
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0;
+  border: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 60%, transparent);
+  background: none;
+  color: var(--ink);
+  font: 500 15px var(--font-body);
+  text-align: left;
+}
+.folha-de-opcoes .folha-corpo {
+  gap: 0;
+}
+.folha-de-opcoes .opc-linha:last-child {
+  border-bottom: 0;
+}
+.opc-ic {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+.opc-txt {
+  flex: 1;
+  min-width: 0;
+}
+.opc-txt small {
+  display: block;
+  font-size: 12.5px;
+  color: var(--ink-muted);
+}
+.opc-seta {
+  flex: none;
+  color: var(--ink-muted);
+}
+
+/* Gravando no celular: a barra de abas do app some (a conversa é a tela, como numa chamada). */
+body.captura-ao-vivo {
+  --shell-inset-bottom: 0px;
+}
+body.captura-ao-vivo .dock,
+body.captura-ao-vivo .folha:not(.on) {
+  /* A folha "Mais" da dock fica fora da tela por `transform`, mas ainda estica a área rolável da
+     moldura: um foco ou rolagem programática puxava a moldura para cima e a mostrava embaixo da
+     conversa. Sem a dock, ela não tem como abrir — sai do layout junto. */
+  display: none !important;
+}
+
+/* Os avisos da tela (nuvem sem consentimento, bipe, permissão…) no celular: o texto ocupa a linha
+   inteira e os botões descem para baixo dele — lado a lado, o texto virava uma coluna de 90 px. */
+.cel .aviso-info {
+  flex-wrap: wrap;
+  margin-bottom: 0 !important;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.cel .aviso-info > span {
+  flex: 1 1 calc(100% - 30px) !important;
+  min-width: 0;
+}
+.cel .aviso-info > .btn {
+  min-height: 40px;
+}
+.cel .aviso-info > .btn:first-of-type {
+  margin-left: 26px;
+}
+
+/* O botão do iChat, na captura do celular, cobria a doca ou o texto da tela (não há canto livre numa
+   tela de uma mão só): aqui ele sai; nas outras abas continua. */
+body:has(.cel) .fab {
+  display: none;
+}

@@ -21,16 +21,19 @@ import {
   MicOff,
   Minimize2,
   MonitorSpeaker,
+  MoreHorizontal,
   Pencil,
   PictureInPicture2,
   RefreshCw,
   Save,
   SlidersHorizontal,
+  Snail,
   Square,
   TriangleAlert,
   Type,
   UserPlus,
   Users,
+  Volume2,
   VolumeX,
   WandSparkles,
   X,
@@ -86,7 +89,7 @@ import { useFuncaoEstavel, useTextoDaConversa } from '../../lib/captura/conversa
 import { assinarSalvamento, capturaEmRisco, lerSalvamento } from '../../lib/captura/estadoDoSalvamento';
 import { criarFontesDeAudio } from '../../lib/captura/fontesDeAudio';
 import { type PassoDoInicio, planejarInicio } from '../../lib/captura/inicioDaCaptura';
-import type { EscolhaDoMic } from '../../lib/captura/motorDoMicrofone';
+import { type EscolhaDoMic, webSpeechBipaAoReligar } from '../../lib/captura/motorDoMicrofone';
 import { preparoConcluido } from '../../lib/captura/pacotesNativos';
 // Vocabulário dentro da captura: examinar a palavra, fichar no deck, mandar praticar.
 import { criarPalavraDaFala } from '../../lib/captura/palavraDaFala';
@@ -95,6 +98,9 @@ import { criarPipelineDeFala, type EnunciadoPendente } from '../../lib/captura/p
 import { lerRascunhos } from '../../lib/captura/rascunhoDaCaptura';
 import { criarReguladorDaCaptura, type ReguladorDaCaptura } from '../../lib/captura/reguladorDaCaptura';
 import { criarSalvarSessao, type EstadoDaIdentificacaoDeVoz } from '../../lib/captura/salvarSessao';
+// Produtor ÚNICO de palavra/cartão: o idioma vem da FRASE de onde a palavra saiu e a direção da
+// tradução é decidida pelo idioma DA PALAVRA (não pelo par da sessão).
+import { telaAcesaSuportada, usePreferenciaDeTelaAcesa, useTelaAcesa } from '../../lib/captura/telaAcesa';
 // Tipos e helpers de fala + o logger da captura (`lib/captura/tiposDaFala.ts`).
 import {
   type CaptureScenario,
@@ -142,8 +148,6 @@ import { play } from '../../lib/soundFx';
 import { SpeakerClusterer } from '../../lib/speakerCluster';
 import { disposeSpeakerId } from '../../lib/speakerId';
 import { DEFAULT_TRANSCRIPT_SETTINGS, permiteSuperficieEscura, TranscriptSettings } from '../../lib/transcriptUtils';
-// Produtor ÚNICO de palavra/cartão: o idioma vem da FRASE de onde a palavra saiu e a direção da
-// tradução é decidida pelo idioma DA PALAVRA (não pelo par da sessão).
 import { speak as ttsSpeak } from '../../lib/tts';
 // Cenário conversa sem fone: a caixa de som entra pelo mic — detecta e descarta.
 import { type Intervalo } from '../../lib/vazamento';
@@ -164,6 +168,10 @@ import VocabularyPanel from '../VocabularyPanel';
 import AjudaDoMicrofone from './captura/AjudaDoMicrofone';
 import AvisoDoTradutorLocal from './captura/AvisoDoTradutorLocal';
 import CapturaNaoSalva from './captura/CapturaNaoSalva';
+import CapturaNoCelular from './captura/celular/CapturaNoCelular';
+import FolhaDaFrase, { type FalaTocada } from './captura/celular/FolhaDaFrase';
+import FolhaDaPalavra from './captura/celular/FolhaDaPalavra';
+import FolhaDeOpcoes from './captura/celular/FolhaDeOpcoes';
 // Subcomponentes locais da captura (um arquivo por componente, em `views/captura/`).
 import EncerrarSessao from './captura/EncerrarSessao';
 import EscolhaDoMicrofone from './captura/EscolhaDoMicrofone';
@@ -574,6 +582,22 @@ export default function LiveCapture({
   const [folhaDoInicio, setFolhaDoInicio] = useState<Extract<PassoDoInicio, { tipo: 'folha' }> | null>(null);
   /** O microfone não abriu: a ajuda daquele aparelho (`ajudaDoMicrofone.ts`). */
   const [falhaDoMic, setFalhaDoMic] = useState<AjudaDoMic | null>(null);
+  /** Fechou (ou já aceitou) o aviso do bipe do Android nesta tela. */
+  const [dispensouBipe, setDispensouBipe] = useState(false);
+  /* A CAPTURA NO CELULAR (`captura/celular/*`): a fala e a palavra tocadas (as folhas de baixo), as
+     opções, a fala em foco (a última tocada mostra os atalhos) e a troca de modo antes de gravar. */
+  const [falaTocada, setFalaTocada] = useState<FalaTocada | null>(null);
+  const [palavraTocada, setPalavraTocada] = useState<{
+    palavra: string;
+    frase: string;
+    lang: string;
+    daFrase: FalaTocada | null;
+  } | null>(null);
+  const [opcoesAbertas, setOpcoesAbertas] = useState(false);
+  const [falaEmFoco, setFalaEmFoco] = useState<string | null>(null);
+  const [trocandoModo, setTrocandoModo] = useState(false);
+  /** A prática (Repetir eu / Falar eu) emudeceu a captura: as folhas devolvem o microfone ao fechar. */
+  const mutouParaPraticarRef = useRef(false);
 
   /* OS IDIOMAS DA SESSÃO. O par virou um chip; os campos, a busca e a explicação da direção moram
      no diálogo que ele abre (`IdiomasDaSessao`, o C7 do protótipo) — antes ocupavam três linhas
@@ -2309,6 +2333,7 @@ export default function LiveCapture({
         preferido: micEngine,
         webSpeechSuportado: webSpeechSupported,
         noAparelho: preparoDoInicio.noAparelho,
+        bipaAoReligar: webSpeechBipaAoReligar(),
         consentiuNavegador: escolha === 'rapido',
         rapidoPermitido: rapidoDoMicPermitido(),
         perfilId: getActiveProfile().id,
@@ -2358,6 +2383,46 @@ export default function LiveCapture({
     }
     iniciarCaptura(privado ? 'privado' : undefined);
   };
+  /* O BIPE DO ANDROID (`webSpeechBipaAoReligar`): quem já escolheu o Rápido ouve o sistema apitar a
+     cada frase. O aviso diz de onde vem o som e troca para o Privado num toque — o reconhecedor do
+     navegador para, e o nosso modelo abre o microfone uma vez só, na mesma sessão. */
+  const trocarParaPrivadoSemBipe = () => {
+    setDispensouBipe(true);
+    try {
+      webSpeechRef.current?.stop();
+    } catch {
+      /* já parado */
+    }
+    webSpeechRef.current = null;
+    webSpeechPartialIdRef.current = null;
+    tentarMicrofoneDeNovo(true);
+  };
+  const avisoDoBipe = isRecording &&
+    micEnabled &&
+    micEngine === 'browser' &&
+    escolhaDoMic === 'rapido' &&
+    !dispensouBipe &&
+    webSpeechBipaAoReligar() && (
+      <div className="aviso-info" role="status" data-testid="aviso-do-bipe">
+        <Info aria-hidden />
+        <span style={{ flex: 1 }}>
+          {t(
+            'O bipe vem do Android: ele religa o reconhecimento a cada frase. No modo Privado, o microfone abre uma vez só.',
+          )}
+        </span>
+        <button type="button" className="btn btn-outline" onClick={trocarParaPrivadoSemBipe}>
+          {t('Trocar para Privado')}
+        </button>
+        <button
+          type="button"
+          className="btn btn-outline"
+          aria-label={t('Fechar aviso')}
+          onClick={() => setDispensouBipe(true)}
+        >
+          <X aria-hidden />
+        </button>
+      </div>
+    );
   /** "Permita o microfone" logo antes do pedido do navegador (e enquanto ele está na tela). */
   const pedindoPermissao =
     micEnabled && (abrindoCaptura || micAbrindo) && preparoDoInicio.permissao !== 'granted' && !falhaDoMic;
@@ -2369,6 +2434,288 @@ export default function LiveCapture({
         {t('Quando o navegador perguntar, toque em Permitir. A legenda começa assim que o microfone abrir.')}
       </span>
     </p>
+  );
+
+  /* ═══════════════ A ABA NO CELULAR (maquete aprovada pelo dono, 2026-09-29) ═══════════════
+     Só no celular (`perfilDoAparelho`, por capacidade): o computador continua com a tela de sempre.
+     O estado e os efeitos são os mesmos; muda a apresentação (`CapturaNoCelular`) e o que o toque
+     faz — o balão abre a folha da frase, a palavra abre a folha da palavra. */
+  const noCelular = perfilDoAparelho.tipo.startsWith('celular');
+  const [telaAcesaLigada, setTelaAcesaLigada] = usePreferenciaDeTelaAcesa();
+  useTelaAcesa(noCelular && isRecording && telaAcesaLigada);
+  useEffect(() => {
+    if (!noCelular) return;
+    document.body.classList.toggle('captura-ao-vivo', isRecording);
+    return () => document.body.classList.remove('captura-ao-vivo');
+  }, [noCelular, isRecording]);
+
+  const tocarFala = useFuncaoEstavel(
+    (segment: { id: string; originalText: string; translatedText: string }, lang: string) => {
+      setFalaEmFoco(segment.id);
+      setFalaTocada({ id: segment.id, texto: segment.originalText, traducao: segment.translatedText, lang });
+    },
+  );
+  const examinarNoCelular = useFuncaoEstavel((w: VocabWord, lang: string, frase: string) => {
+    setPalavraTocada({ palavra: w.word, frase, lang, daFrase: null });
+  });
+  const acoesDaFalaNoCelular = useCallback(
+    (segment: { id: string; originalText: string; translatedText: string }, lang: string) => (
+      <div className="cel-acoes-da-fala">
+        <button type="button" onClick={() => ouvirNaLegenda(segment.originalText, lang, false)}>
+          <Volume2 aria-hidden /> {t('Ouvir')}
+        </button>
+        <button type="button" onClick={() => ouvirNaLegenda(segment.originalText, lang, true)}>
+          <Snail aria-hidden /> {t('Devagar')}
+        </button>
+        <button type="button" aria-label={t('Ações da fala')} onClick={() => tocarFala(segment, lang)}>
+          <MoreHorizontal aria-hidden />
+        </button>
+      </div>
+    ),
+    [ouvirNaLegenda, tocarFala],
+  );
+  /** A prática vai abrir o microfone: a captura fica muda até a folha fechar. */
+  const praticarNoCelular = () => {
+    if (!isRecordingRef.current || !micEnabled || mutouParaPraticarRef.current) return;
+    mutouParaPraticarRef.current = true;
+    alternarMicrofone(false);
+  };
+  const fecharFolhasDoCelular = () => {
+    setFalaTocada(null);
+    setPalavraTocada(null);
+    if (mutouParaPraticarRef.current) {
+      mutouParaPraticarRef.current = false;
+      if (isRecordingRef.current) alternarMicrofone(true);
+    }
+  };
+  const ehNovaNoCelular = (lang: string) => (palavra: string) =>
+    !!conhecidas && baseLang(lang) === baseLang(conhecidas.idioma) && !conhecidas.conhece(palavra);
+
+  const bipaNoCelular = webSpeechBipaAoReligar();
+  const privadoDoCelular = {
+    privado: true,
+    rotulo: bipaNoCelular ? t('Privado · sem bipe') : t('Privado'),
+    sub: t('nada sai do celular'),
+  };
+  const modoDoMic: { privado: boolean; rotulo: string; sub: string } | null =
+    !micEnabled || !webSpeechSupported || micEngine === 'whisper' || getActiveProfile().id === 'local-private'
+      ? privadoDoCelular
+      : escolhaDoMic === 'rapido'
+        ? {
+            privado: false,
+            rotulo: t('Rápido'),
+            sub: bipaNoCelular ? t('o Android apita a cada frase') : t('reconhecimento do navegador'),
+          }
+        : escolhaDoMic === 'privado'
+          ? privadoDoCelular
+          : null;
+  const podeTrocarModo =
+    micEnabled &&
+    webSpeechSupported &&
+    micEngine === 'browser' &&
+    rapidoDoMicPermitido() &&
+    getActiveProfile().id !== 'local-private';
+
+  const ladoNoCelular = (l: Lado) => ({
+    rotulo: l.rotulo,
+    nome: l.auto ? t('Detectar') : langLabel(l.codigo),
+  });
+  const trocarLadosNoCelular =
+    ladosDoPar[0].auto || ladosDoPar[1].auto || mesmoIdioma
+      ? undefined
+      : () => {
+          langTouchedRef.current = true;
+          const fonte = sourceLang;
+          setSourceLang(targetLang);
+          setTargetLang(fonte);
+        };
+  const siglaDoLado = (auto: boolean, code: string) => (auto ? t('Auto') : baseLang(code).toUpperCase());
+
+  const telaDoCelular = (
+    <>
+      <CapturaNoCelular
+        gravando={isRecording}
+        abrindo={abrindoCaptura}
+        retomar={!!resumeId}
+        tempo={formatTime(timer)}
+        niveis={levels}
+        lados={[ladoNoCelular(ladosDoPar[0]), ladoNoCelular(ladosDoPar[1])]}
+        aoTrocarLados={trocarLadosNoCelular}
+        aoAbrirIdiomas={() => setIdiomasAbertos(true)}
+        parCurto={
+          <>
+            {siglaDoLado(parResumido.auto, parResumido.de)} <ArrowRight aria-hidden />{' '}
+            {siglaDoLado(false, parResumido.para)}
+          </>
+        }
+        modo={modoDoMic}
+        aoTrocarModo={podeTrocarModo ? () => setTrocandoModo(true) : undefined}
+        micLigado={micEnabled}
+        micAbrindo={micAbrindo}
+        aoAlternarMic={alternarMicrofone}
+        flutuante={{
+          ativo: showOverlay,
+          alternar: () => {
+            const abrir = !showOverlay;
+            setShowOverlay(abrir);
+            toast.info(abrir ? t('Legendas flutuantes abertas') : t('Legendas flutuantes fechadas'));
+          },
+        }}
+        podeIniciar={micEnabled || systemEnabled}
+        aoIniciar={() => (tetoAtingido && !resumeId ? avisarTeto() : iniciarCaptura())}
+        aoParar={handleStopRecording}
+        aoAbrirOpcoes={() => setOpcoesAbertas(true)}
+        aoAbrirAjuda={() => setShowGuide(true)}
+        aoAbrirVisual={() => setShowConfigPanel(true)}
+        temFalas={speechSegments.length > 0}
+        avisos={
+          <>
+            <AvisoDeNuvemSemConsentimento />
+            {tradutorLocalFalhou && (
+              <AvisoDoTradutorLocal
+                aoAutorizar={() => {
+                  setTradutorLocalFalhou(false);
+                  retraduzirDegradados();
+                }}
+                aoFechar={() => setTradutorLocalFalhou(false)}
+              />
+            )}
+            {avisoDoFim}
+            {avisoDePermissao}
+            {avisoDoBipe}
+            {modelPrep && !isRecording && (
+              <div style={{ margin: '10px 16px 0' }}>
+                <ModelPrepPanel state={modelPrep} onRetry={prepareModels} compact />
+              </div>
+            )}
+          </>
+        }
+        conversa={
+          <>
+            {showJumpTranscript && (
+              <button type="button" className="cel-novas" onClick={() => jumpToCurrent('transcript')}>
+                <ArrowDown aria-hidden /> {t('Ir para a fala atual')}
+              </button>
+            )}
+            <div ref={transcriptScrollRef} onScroll={handleTranscriptScroll} className="cel-rolagem" aria-live="polite">
+              {isRecording && modelPrep && !preparoConcluido(modelPrep) && (
+                <div className="mb-3">
+                  <ModelPrepPanel state={modelPrep} onRetry={prepareModels} />
+                </div>
+              )}
+              <ChatTranscript
+                segments={speechSegments}
+                speakers={speakerProfiles}
+                scenario={captureScenario}
+                tsSettings={tsSettings}
+                ageProfile={ageProfile}
+                sourceLang={sourceLang}
+                targetLang={targetLang}
+                observedLang={idiomaObservado}
+                isRecording={isRecording}
+                escuro
+                selectedWord={palavraTocada?.palavra ?? null}
+                addedWords={addedWords}
+                aprendidas={aprendidas}
+                onExamineWord={examinarNoCelular}
+                onSpeakWord={ouvirNaConversa}
+                onRevelarTraducao={revelarNaConversa}
+                conhecidas={conhecidas}
+                progressoDoTradutor={modelPrep?.mt ?? null}
+                aoTocarFala={tocarFala}
+                falaEmFoco={falaEmFoco}
+                acoesDaFala={acoesDaFalaNoCelular}
+              />
+            </div>
+          </>
+        }
+        rodape={
+          !isRecording &&
+          sessaoSalva &&
+          speechSegments.length > 0 && (
+            <button
+              type="button"
+              className="btn btn-solid"
+              style={{ minHeight: 48 }}
+              onClick={() => onChangeView?.('analysis', { id: sessaoSalva.id })}
+            >
+              <Save aria-hidden /> {t('Abrir a sessão salva')}
+            </button>
+          )
+        }
+      />
+      {falaTocada && !palavraTocada && (
+        <FolhaDaFrase
+          fala={falaTocada}
+          aoOuvir={ouvirNaLegenda}
+          ehNova={ehNovaNoCelular(falaTocada.lang)}
+          aoPraticar={praticarNoCelular}
+          aoTocarPalavra={(palavra) =>
+            setPalavraTocada({ palavra, frase: falaTocada.texto, lang: falaTocada.lang, daFrase: falaTocada })
+          }
+          aoFechar={fecharFolhasDoCelular}
+        />
+      )}
+      {palavraTocada && (
+        <FolhaDaPalavra
+          palavra={palavraTocada.palavra}
+          frase={palavraTocada.frase}
+          lang={palavraTocada.lang}
+          aoConsultar={consultarNaLegenda}
+          aoOuvir={ouvirNaLegenda}
+          aoSalvar={salvarNaLegenda}
+          aoPraticar={praticarNoCelular}
+          aoVoltar={palavraTocada.daFrase ? () => setPalavraTocada(null) : undefined}
+          aoFechar={fecharFolhasDoCelular}
+        />
+      )}
+      {opcoesAbertas && (
+        <FolhaDeOpcoes
+          modo={modoDoMic}
+          par={`${parResumido.auto ? t('Detectar') : langLabel(parResumido.de)} → ${langLabel(parResumido.para)}`}
+          telaAcesa={telaAcesaSuportada() ? { ligada: telaAcesaLigada, trocar: setTelaAcesaLigada } : null}
+          aoTrocarModo={
+            podeTrocarModo && !isRecording
+              ? () => {
+                  setOpcoesAbertas(false);
+                  setTrocandoModo(true);
+                }
+              : undefined
+          }
+          aoAbrirIdiomas={() => {
+            setOpcoesAbertas(false);
+            setIdiomasAbertos(true);
+          }}
+          aoAbrirVisual={() => {
+            setOpcoesAbertas(false);
+            setShowConfigPanel(true);
+          }}
+          aoFocoCheio={() => {
+            setOpcoesAbertas(false);
+            setIsFocusMode(true);
+          }}
+          aoAbrirModelos={() => {
+            setOpcoesAbertas(false);
+            setModeloAberto(true);
+          }}
+          aoAbrirAjuda={() => {
+            setOpcoesAbertas(false);
+            setShowGuide(true);
+          }}
+          aoFechar={() => setOpcoesAbertas(false)}
+        />
+      )}
+      {trocandoModo && (
+        <EscolhaDoMicrofone
+          mb={mbDoMicPrivado}
+          aoEscolher={(e) => {
+            trocarEscolhaDoMic(e);
+            setTrocandoModo(false);
+          }}
+          aoFechar={() => setTrocandoModo(false)}
+        />
+      )}
+    </>
   );
 
   return (
@@ -2853,90 +3200,93 @@ export default function LiveCapture({
         </Dialogo>
       )}
 
-      {/* --- DASHBOARD WRAPPER --- */}
-      <div className="flex-1 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden relative">
-        {/* ============================================== */}
-        {/* LEFT COLUMN: PRIMARY WORKSPACE & STREAMS       */}
-        {/* ============================================== */}
-        <div className="rolagem flex-1">
+      {/* --- DASHBOARD WRAPPER (no celular, a tela dele: `telaDoCelular`) --- */}
+      {noCelular ? (
+        telaDoCelular
+      ) : (
+        <div className="flex-1 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden relative">
           {/* ============================================== */}
-          {/* WORKSPACE VIEWPORTS (SEPARATE AREAS)          */}
+          {/* LEFT COLUMN: PRIMARY WORKSPACE & STREAMS       */}
           {/* ============================================== */}
-          <div className="tela larga entra">
-            <AvisoDeNuvemSemConsentimento />
-            {tradutorLocalFalhou && (
-              <AvisoDoTradutorLocal
-                aoAutorizar={() => {
-                  setTradutorLocalFalhou(false);
-                  retraduzirDegradados();
-                }}
-                aoFechar={() => setTradutorLocalFalhou(false)}
-              />
-            )}
-            {/* Cabeçalho no molde do protótipo aprovado (`T.capturar`): rótulo, título, apoio e, à
+          <div className="rolagem flex-1">
+            {/* ============================================== */}
+            {/* WORKSPACE VIEWPORTS (SEPARATE AREAS)          */}
+            {/* ============================================== */}
+            <div className="tela larga entra">
+              <AvisoDeNuvemSemConsentimento />
+              {tradutorLocalFalhou && (
+                <AvisoDoTradutorLocal
+                  aoAutorizar={() => {
+                    setTradutorLocalFalhou(false);
+                    retraduzirDegradados();
+                  }}
+                  aoFechar={() => setTradutorLocalFalhou(false)}
+                />
+              )}
+              {/* Cabeçalho no molde do protótipo aprovado (`T.capturar`): rótulo, título, apoio e, à
                 direita, o modelo local, os ajustes da captura e o guia. */}
-            <CabecalhoDeTela
-              icone={ageProfile === 'kids' ? Gamepad2 : ageProfile === 'senior' ? Eye : Cpu}
-              sobrancelha="Transcrição no dispositivo"
-              titulo={
-                ageProfile === 'kids'
-                  ? 'Gravador de jogos e legendas'
-                  : ageProfile === 'senior'
-                    ? 'Gravação com tradução direta'
-                    : 'Capturar'
-              }
-              sub={
-                ageProfile === 'kids'
-                  ? 'Grave o som do Roblox, de vídeos ou do microfone e veja a legenda aparecer em tempo real.'
-                  : ageProfile === 'senior'
-                    ? 'Siga os passos abaixo para gravar o som do computador ou a sua voz e ver o texto em português.'
-                    : 'Transcreve e traduz o que você ouve e fala, em tempo real.'
-              }
-              acoes={
-                <>
-                  <button
-                    type="button"
-                    className="badge neu badge-botao"
-                    onClick={() => setModeloAberto(true)}
-                    aria-label={
-                      mbDoModelo
-                        ? `Modelo no dispositivo, ${mbDoModelo} MB: ver detalhes`
-                        : 'Modelo no dispositivo: ver detalhes'
-                    }
-                  >
-                    <Cpu aria-hidden /> modelo local{mbDoModelo ? ` · ${mbDoModelo} MB` : ''}
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-outline peq"
-                    onClick={() => setShowConfigPanel(!showConfigPanel)}
-                    aria-label="Ajustes da captura"
-                  >
-                    <SlidersHorizontal aria-hidden />
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-outline peq"
-                    onClick={() => setShowGuide(true)}
-                    aria-label="Ajuda"
-                  >
-                    <CircleHelp aria-hidden />
-                  </button>
-                </>
-              }
-            />
-            {/* TRANSCRIÇÃO AO VIVO (modo único da tela) */}
-            {
-              <EditablePanel
-                viewKey="capture"
-                panelKey="liveTranscript"
-                title="Transcrição Ao Vivo"
-                canResizeWidth={false}
-                canResizeHeight={true}
-                defaultHeight={520}
-              >
-                <div className="flex flex-col gap-5 animate-in fade-in duration-300 h-full min-h-0">
-                  {/* ══════════════ HERO RECORDER — o centro de comando da captura ══════════════
+              <CabecalhoDeTela
+                icone={ageProfile === 'kids' ? Gamepad2 : ageProfile === 'senior' ? Eye : Cpu}
+                sobrancelha="Transcrição no dispositivo"
+                titulo={
+                  ageProfile === 'kids'
+                    ? 'Gravador de jogos e legendas'
+                    : ageProfile === 'senior'
+                      ? 'Gravação com tradução direta'
+                      : 'Capturar'
+                }
+                sub={
+                  ageProfile === 'kids'
+                    ? 'Grave o som do Roblox, de vídeos ou do microfone e veja a legenda aparecer em tempo real.'
+                    : ageProfile === 'senior'
+                      ? 'Siga os passos abaixo para gravar o som do computador ou a sua voz e ver o texto em português.'
+                      : 'Transcreve e traduz o que você ouve e fala, em tempo real.'
+                }
+                acoes={
+                  <>
+                    <button
+                      type="button"
+                      className="badge neu badge-botao"
+                      onClick={() => setModeloAberto(true)}
+                      aria-label={
+                        mbDoModelo
+                          ? `Modelo no dispositivo, ${mbDoModelo} MB: ver detalhes`
+                          : 'Modelo no dispositivo: ver detalhes'
+                      }
+                    >
+                      <Cpu aria-hidden /> modelo local{mbDoModelo ? ` · ${mbDoModelo} MB` : ''}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-outline peq"
+                      onClick={() => setShowConfigPanel(!showConfigPanel)}
+                      aria-label="Ajustes da captura"
+                    >
+                      <SlidersHorizontal aria-hidden />
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-outline peq"
+                      onClick={() => setShowGuide(true)}
+                      aria-label="Ajuda"
+                    >
+                      <CircleHelp aria-hidden />
+                    </button>
+                  </>
+                }
+              />
+              {/* TRANSCRIÇÃO AO VIVO (modo único da tela) */}
+              {
+                <EditablePanel
+                  viewKey="capture"
+                  panelKey="liveTranscript"
+                  title="Transcrição Ao Vivo"
+                  canResizeWidth={false}
+                  canResizeHeight={true}
+                  defaultHeight={520}
+                >
+                  <div className="flex flex-col gap-5 animate-in fade-in duration-300 h-full min-h-0">
+                    {/* ══════════════ HERO RECORDER — o centro de comando da captura ══════════════
                     ANTES: os controles ficavam espalhados no RODAPÉ do card de transcrição (abaixo da
                     dobra), toggles, sub-toggles, guia de setup, botão "Testar" e só então o CTA. Era o
                     maior gargalo de onboarding.
@@ -2946,366 +3296,375 @@ export default function LiveCapture({
                     Resultado: iniciar uma captura = 1 clique.
                     FUNDO ESCURO (extensão do padrão do Hub/redesign): esta é a ação PRIMÁRIA da
                     tela inteira — o mesmo peso visual que o card "Escutar e traduzir" tem no Hub. */}
-                  <section className="cartao escuro estudio" aria-label="Espaço de gravação">
-                    <div className="estudio-topo">
-                      <h2>
-                        <span className={`ponto ${isRecording ? 'vivo' : ''}`} />
-                        Espaço de gravação
-                      </h2>
-                      <div className="linha" style={{ gap: 8 }}>
-                        <button
-                          ref={entrarNoFocoRef}
-                          type="button"
-                          className="btn btn-outline peq"
-                          onClick={() => setIsFocusMode(true)}
-                        >
-                          <Maximize2 aria-hidden /> Foco cheio
-                        </button>
+                    <section className="cartao escuro estudio" aria-label="Espaço de gravação">
+                      <div className="estudio-topo">
+                        <h2>
+                          <span className={`ponto ${isRecording ? 'vivo' : ''}`} />
+                          Espaço de gravação
+                        </h2>
+                        <div className="linha" style={{ gap: 8 }}>
+                          <button
+                            ref={entrarNoFocoRef}
+                            type="button"
+                            className="btn btn-outline peq"
+                            onClick={() => setIsFocusMode(true)}
+                          >
+                            <Maximize2 aria-hidden /> Foco cheio
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                    <div className="estudio-acoes">
-                      {isRecording ? (
-                        <button type="button" className="btn btn-outline" onClick={handleStopRecording} data-sfx="none">
-                          <Square aria-hidden />
-                          {ageProfile === 'senior'
-                            ? 'Parar e salvar a gravação'
-                            : ageProfile === 'kids'
-                              ? 'Parar gravação'
-                              : 'Parar captura'}
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          className="btn btn-solid"
-                          /* No teto, nem a folha de início: escolher motor e baixar modelo para uma
-                             captura que não teria onde ficar seria mais uma porta sem saída. */
-                          onClick={() => (tetoAtingido && !resumeId ? avisarTeto() : iniciarCaptura())}
-                          disabled={(!micEnabled && !systemEnabled) || abrindoCaptura}
-                        >
-                          {abrindoCaptura ? <Loader2 aria-hidden className="animate-spin" /> : <Mic aria-hidden />}
-                          {abrindoCaptura
-                            ? micEnabled
-                              ? t('Abrindo o microfone…')
-                              : t('Abrindo a captura…')
-                            : ageProfile === 'senior'
-                              ? resumeId
-                                ? 'Continuar a gravação da aula'
-                                : 'Iniciar a gravação de áudio'
+                      <div className="estudio-acoes">
+                        {isRecording ? (
+                          <button
+                            type="button"
+                            className="btn btn-outline"
+                            onClick={handleStopRecording}
+                            data-sfx="none"
+                          >
+                            <Square aria-hidden />
+                            {ageProfile === 'senior'
+                              ? 'Parar e salvar a gravação'
                               : ageProfile === 'kids'
+                                ? 'Parar gravação'
+                                : 'Parar captura'}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="btn btn-solid"
+                            /* No teto, nem a folha de início: escolher motor e baixar modelo para uma
+                             captura que não teria onde ficar seria mais uma porta sem saída. */
+                            onClick={() => (tetoAtingido && !resumeId ? avisarTeto() : iniciarCaptura())}
+                            disabled={(!micEnabled && !systemEnabled) || abrindoCaptura}
+                          >
+                            {abrindoCaptura ? <Loader2 aria-hidden className="animate-spin" /> : <Mic aria-hidden />}
+                            {abrindoCaptura
+                              ? micEnabled
+                                ? t('Abrindo o microfone…')
+                                : t('Abrindo a captura…')
+                              : ageProfile === 'senior'
                                 ? resumeId
-                                  ? 'Continuar gravação'
-                                  : 'Começar a gravar'
-                                : resumeId
-                                  ? 'Continuar captura'
-                                  : 'Iniciar captura'}
-                        </button>
-                      )}
-                      {botaoDoMicrofone()}
-                      {botaoDasLegendas()}
-                      <span style={{ flex: 1 }} />
-                      {/* O PAR NUM CHIP. Os dois seletores e a explicação da direção ocupavam três
+                                  ? 'Continuar a gravação da aula'
+                                  : 'Iniciar a gravação de áudio'
+                                : ageProfile === 'kids'
+                                  ? resumeId
+                                    ? 'Continuar gravação'
+                                    : 'Começar a gravar'
+                                  : resumeId
+                                    ? 'Continuar captura'
+                                    : 'Iniciar captura'}
+                          </button>
+                        )}
+                        {botaoDoMicrofone()}
+                        {botaoDasLegendas()}
+                        <span style={{ flex: 1 }} />
+                        {/* O PAR NUM CHIP. Os dois seletores e a explicação da direção ocupavam três
                           linhas fixas da tela — informação que se lê UMA vez e se muda quase nunca,
                           disputando espaço com o único gesto que importa aqui. Agora o chip mostra
                           o par (com bandeira, como no resto do app) e a gaveta guarda a edição.
                           Os AVISOS ficaram de fora dela de propósito: são a parte que a pessoa
                           precisa ver sem clicar em nada. */}
-                      <button
-                        type="button"
-                        onClick={() => setIdiomasAbertos(true)}
-                        aria-haspopup="dialog"
-                        className="btn btn-outline peq"
-                      >
-                        {rotuloDoPar} <ChevronDown aria-hidden />
-                      </button>
-                    </div>
-                    <div className="linha">
-                      <span className="relogio">{isRecording ? formatTime(timer) : '00:00'}</span>
-                      {/* As ondas seguem o nível REAL do áudio capturado (sonda RMS), não uma animação. */}
-                      {isRecording && (
-                        <span className="ondas" aria-hidden>
-                          {[0, 1, 2, 3, 4].map((k) => {
-                            const lvl = levels[Math.floor((k * levels.length) / 5)] ?? 0;
-                            return (
-                              <i
-                                key={k}
-                                style={{ height: `${Math.max(18, Math.min(100, lvl * 120))}%`, animation: 'none' }}
-                              />
-                            );
-                          })}
-                        </span>
-                      )}
-                    </div>
-                    {avisoDePermissao}
+                        <button
+                          type="button"
+                          onClick={() => setIdiomasAbertos(true)}
+                          aria-haspopup="dialog"
+                          className="btn btn-outline peq"
+                        >
+                          {rotuloDoPar} <ChevronDown aria-hidden />
+                        </button>
+                      </div>
+                      <div className="linha">
+                        <span className="relogio">{isRecording ? formatTime(timer) : '00:00'}</span>
+                        {/* As ondas seguem o nível REAL do áudio capturado (sonda RMS), não uma animação. */}
+                        {isRecording && (
+                          <span className="ondas" aria-hidden>
+                            {[0, 1, 2, 3, 4].map((k) => {
+                              const lvl = levels[Math.floor((k * levels.length) / 5)] ?? 0;
+                              return (
+                                <i
+                                  key={k}
+                                  style={{ height: `${Math.max(18, Math.min(100, lvl * 120))}%`, animation: 'none' }}
+                                />
+                              );
+                            })}
+                          </span>
+                        )}
+                      </div>
+                      {avisoDePermissao}
+                      {avisoDoBipe}
 
-                    {/* UMA linha de orientação, e ela vale GRAVANDO TAMBÉM.
+                      {/* UMA linha de orientação, e ela vale GRAVANDO TAMBÉM.
                       Antes só aparecia antes de iniciar — justamente quando o estado era mais fácil
                       de adivinhar. Agora que a fonte muda no meio da sessão, é durante a gravação
                       que a pessoa precisa ler, em palavras, se a própria voz está entrando. */}
-                    {systemEnabled ? (
-                      <p className="mut orientacao-da-captura" style={{ fontSize: 12.5, marginTop: 6 }}>
-                        O som do computador entra sozinho. Dê play no vídeo, aula ou chamada e clique em Iniciar. A
-                        legenda bilíngue aparece aqui e nas Legendas flutuantes.
-                      </p>
-                    ) : (
-                      /* SEM getDisplayMedia (Quest, Android, iOS): nenhum botão de "áudio do sistema"
+                      {systemEnabled ? (
+                        <p className="mut orientacao-da-captura" style={{ fontSize: 12.5, marginTop: 6 }}>
+                          O som do computador entra sozinho. Dê play no vídeo, aula ou chamada e clique em Iniciar. A
+                          legenda bilíngue aparece aqui e nas Legendas flutuantes.
+                        </p>
+                      ) : (
+                        /* SEM getDisplayMedia (Quest, Android, iOS): nenhum botão de "áudio do sistema"
                          que não funcionaria — o microfone é a fonte, e a tela diz como usá-lo. */
-                      <p className="aviso-info orientacao-da-captura" data-testid="aviso-sem-audio-do-sistema">
-                        <Mic aria-hidden />
-                        <span>
-                          {perfilDoAparelho.tipo === 'quest'
-                            ? t(
-                                'O navegador do Meta Quest não capta o som do sistema: a legenda vem do microfone do headset. Deixe o vídeo tocar no alto-falante do próprio headset (o microfone capta) ou use a captura para conversar.',
-                              )
-                            : perfilDoAparelho.tipo.startsWith('celular')
-                              ? /* O que FAZER, e não só o que falta (relato do dono, 2026-09-28): o
+                        <p className="aviso-info orientacao-da-captura" data-testid="aviso-sem-audio-do-sistema">
+                          <Mic aria-hidden />
+                          <span>
+                            {perfilDoAparelho.tipo === 'quest'
+                              ? t(
+                                  'O navegador do Meta Quest não capta o som do sistema: a legenda vem do microfone do headset. Deixe o vídeo tocar no alto-falante do próprio headset (o microfone capta) ou use a captura para conversar.',
+                                )
+                              : perfilDoAparelho.tipo.startsWith('celular')
+                                ? /* O que FAZER, e não só o que falta (relato do dono, 2026-09-28): o
                                    celular não deixa um site ouvir outros apps, e isso não muda com
                                    ajuste nenhum. Os dois caminhos que funcionam, ditos. */
-                                t(
-                                  'No celular, o navegador não deixa captar o som de outros apps: a legenda vem do microfone. Para legendar um vídeo, deixe-o tocar no alto-falante, perto do microfone, ou use um computador (Chrome ou Edge, compartilhando a aba com o áudio).',
-                                )
-                              : t(
-                                  'O navegador deste aparelho não capta o som do sistema: a legenda vem do microfone. Deixe o vídeo tocar no alto-falante, perto do microfone, ou use a captura para conversar.',
-                                )}
-                        </span>
-                      </p>
-                    )}
+                                  t(
+                                    'No celular, o navegador não deixa captar o som de outros apps: a legenda vem do microfone. Para legendar um vídeo, deixe-o tocar no alto-falante, perto do microfone, ou use um computador (Chrome ou Edge, compartilhando a aba com o áudio).',
+                                  )
+                                : t(
+                                    'O navegador deste aparelho não capta o som do sistema: a legenda vem do microfone. Deixe o vídeo tocar no alto-falante, perto do microfone, ou use a captura para conversar.',
+                                  )}
+                          </span>
+                        </p>
+                      )}
 
-                    {/* Linha 5 — preparo dos modelos locais (progresso transitório; não é configuração).
+                      {/* Linha 5 — preparo dos modelos locais (progresso transitório; não é configuração).
                       Gravando, o progresso aparece na conversa (abaixo), onde a pessoa olha: mostrar
                       aqui também repetia o mesmo painel duas vezes na tela. */}
-                    {modelPrep && !isRecording && <ModelPrepPanel state={modelPrep} onRetry={prepareModels} compact />}
-                  </section>
+                      {modelPrep && !isRecording && (
+                        <ModelPrepPanel state={modelPrep} onRetry={prepareModels} compact />
+                      )}
+                    </section>
 
-                  {avisoDoFim}
+                    {avisoDoFim}
 
-                  {/* ══════════════ FALANTES (C5 do protótipo) ══════════════
+                    {/* ══════════════ FALANTES (C5 do protótipo) ══════════════
                     Antes da conversa, no cenário Conversa: as vozes que o identificador local
                     separou (WeSpeaker, beta), com o % de fala real, renomear e adicionar. Sem a
                     separação automática, clicar num falante diz quem fala a seguir. */}
-                  {captureScenario === 'conversation' && (
-                    <section className="cartao escuro p6 falantes entra" aria-label="Falantes">
-                      <div className="entre">
-                        <h2 className="h-escuro">
-                          <Users aria-hidden /> Quem está falando
-                        </h2>
-                        <div className="op-linha escuro-op">
-                          <span>Separar vozes sozinho</span>
-                          <Interruptor
-                            ligado={speakerAutoId}
-                            rotulo="Separar vozes automaticamente"
-                            aoTrocar={() => {
-                              const liga = !speakerAutoId;
-                              setSpeakerAutoId(liga);
-                              if (!liga) setSpeakerIdStatus('off');
-                              toast.info(liga ? 'O app separa as vozes sozinho' : 'Você marca quem fala');
-                            }}
+                    {captureScenario === 'conversation' && (
+                      <section className="cartao escuro p6 falantes entra" aria-label="Falantes">
+                        <div className="entre">
+                          <h2 className="h-escuro">
+                            <Users aria-hidden /> Quem está falando
+                          </h2>
+                          <div className="op-linha escuro-op">
+                            <span>Separar vozes sozinho</span>
+                            <Interruptor
+                              ligado={speakerAutoId}
+                              rotulo="Separar vozes automaticamente"
+                              aoTrocar={() => {
+                                const liga = !speakerAutoId;
+                                setSpeakerAutoId(liga);
+                                if (!liga) setSpeakerIdStatus('off');
+                                toast.info(liga ? 'O app separa as vozes sozinho' : 'Você marca quem fala');
+                              }}
+                            />
+                          </div>
+                        </div>
+                        <div className="linha" style={{ gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
+                          {speakerProfiles
+                            .filter((f) => f.id !== 'user')
+                            .map((f) =>
+                              editingSpeakerId === f.id ? (
+                                <form
+                                  key={f.id}
+                                  className="chip-falante"
+                                  onSubmit={(e) => {
+                                    e.preventDefault();
+                                    handleSaveSpeakerName(f.id);
+                                  }}
+                                >
+                                  <label className="sr" htmlFor={`ren-${f.id}`}>
+                                    Nome do falante
+                                  </label>
+                                  <input
+                                    id={`ren-${f.id}`}
+                                    className="campo"
+                                    style={{ minHeight: 30, width: 110 }}
+                                    value={editingSpeakerName}
+                                    onChange={(e) => setEditingSpeakerName(e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Escape') setEditingSpeakerId(null);
+                                    }}
+                                    autoFocus
+                                  />
+                                  <button className="btn btn-solid peq">OK</button>
+                                </form>
+                              ) : (
+                                <span
+                                  key={f.id}
+                                  className="chip-falante"
+                                  aria-current={!speakerAutoId && f.isActive ? 'true' : undefined}
+                                  onClick={() => !speakerAutoId && handleSelectActiveSpeaker(f.id)}
+                                >
+                                  <b>{f.name}</b>
+                                  {talkTimePct?.[f.id] != null && <span className="tn">{talkTimePct[f.id]}%</span>}
+                                  <button
+                                    type="button"
+                                    className="icone-min"
+                                    aria-label={`Renomear ${f.name}`}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleStartRenameSpeaker(f.id, f.name);
+                                    }}
+                                  >
+                                    <Pencil aria-hidden />
+                                  </button>
+                                </span>
+                              ),
+                            )}
+                          <span
+                            className="chip-falante voce"
+                            aria-current={
+                              !speakerAutoId && speakerProfiles.find((f) => f.id === 'user')?.isActive
+                                ? 'true'
+                                : undefined
+                            }
+                            onClick={() => !speakerAutoId && handleSelectActiveSpeaker('user')}
+                          >
+                            <b>Você</b>
+                            <span className="tn">microfone</span>
+                          </span>
+                          <button type="button" className="btn btn-outline peq" onClick={handleAddSpeaker}>
+                            <UserPlus aria-hidden /> Adicionar falante
+                          </button>
+                        </div>
+                        {speakerAutoId && speakerIdStatus === 'loading' && (
+                          <p className="mut" style={{ fontSize: 12, marginTop: 10 }}>
+                            Carregando o separador de vozes (6,7 MB, uma vez)…
+                          </p>
+                        )}
+                        {speakerAutoId && speakerIdStatus === 'unavailable' && (
+                          <p className="mut" style={{ fontSize: 12, marginTop: 10 }}>
+                            O separador de vozes não carregou: clique num nome para dizer quem fala.
+                          </p>
+                        )}
+                      </section>
+                    )}
+
+                    {/* ══════════════ TRANSCRIÇÃO AO VIVO ══════════════ */}
+                    <section
+                      className={`cartao ${transcricaoEscura ? 'escuro' : ''} conversa flex flex-col flex-1 min-h-0`}
+                      aria-label="Conversa"
+                      aria-live="polite"
+                    >
+                      {/* Fluxo da transcrição — acompanha o fim sozinho; botão volta à fala atual */}
+                      <div className="relative flex-1 min-h-[44vh] flex flex-col">
+                        {showJumpTranscript && (
+                          <button
+                            onClick={() => jumpToCurrent('transcript')}
+                            className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 bg-accent text-white text-[11px] font-bold px-3.5 py-1.5 rounded-full shadow-xl hover:scale-[1.03] transition-transform cursor-pointer animate-in fade-in slide-in-from-bottom-2"
+                          >
+                            <ArrowDown className="w-3.5 h-3.5" /> Ir para a fala atual
+                          </button>
+                        )}
+                        <div
+                          ref={transcriptScrollRef}
+                          onScroll={handleTranscriptScroll}
+                          className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pe-2"
+                        >
+                          {/* Primeiro contato: o download do modelo (dezenas de MB) acontecia atrás do painel de
+                      ajustes, a tela dizia "Ouvindo…" por minutos sem explicar nada. Aqui, onde a pessoa olha. */}
+                          {isRecording && modelPrep && !preparoConcluido(modelPrep) && (
+                            <div className="mb-3">
+                              <ModelPrepPanel state={modelPrep} onRetry={prepareModels} />
+                            </div>
+                          )}
+                          <ChatTranscript
+                            segments={speechSegments}
+                            speakers={speakerProfiles}
+                            scenario={captureScenario}
+                            tsSettings={tsSettings}
+                            ageProfile={ageProfile}
+                            sourceLang={sourceLang}
+                            targetLang={targetLang}
+                            observedLang={idiomaObservado}
+                            isRecording={isRecording}
+                            dense
+                            escuro={transcricaoEscura}
+                            selectedWord={selectedExamWord?.word ?? null}
+                            addedWords={addedWords}
+                            aprendidas={aprendidas}
+                            onExamineWord={examinarNaConversa}
+                            onSpeakWord={ouvirNaConversa}
+                            onRevelarTraducao={revelarNaConversa}
+                            conhecidas={conhecidas}
+                            progressoDoTradutor={modelPrep?.mt ?? null}
                           />
                         </div>
                       </div>
-                      <div className="linha" style={{ gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
-                        {speakerProfiles
-                          .filter((f) => f.id !== 'user')
-                          .map((f) =>
-                            editingSpeakerId === f.id ? (
-                              <form
-                                key={f.id}
-                                className="chip-falante"
-                                onSubmit={(e) => {
-                                  e.preventDefault();
-                                  handleSaveSpeakerName(f.id);
-                                }}
-                              >
-                                <label className="sr" htmlFor={`ren-${f.id}`}>
-                                  Nome do falante
-                                </label>
-                                <input
-                                  id={`ren-${f.id}`}
-                                  className="campo"
-                                  style={{ minHeight: 30, width: 110 }}
-                                  value={editingSpeakerName}
-                                  onChange={(e) => setEditingSpeakerName(e.target.value)}
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Escape') setEditingSpeakerId(null);
-                                  }}
-                                  autoFocus
-                                />
-                                <button className="btn btn-solid peq">OK</button>
-                              </form>
-                            ) : (
-                              <span
-                                key={f.id}
-                                className="chip-falante"
-                                aria-current={!speakerAutoId && f.isActive ? 'true' : undefined}
-                                onClick={() => !speakerAutoId && handleSelectActiveSpeaker(f.id)}
-                              >
-                                <b>{f.name}</b>
-                                {talkTimePct?.[f.id] != null && <span className="tn">{talkTimePct[f.id]}%</span>}
-                                <button
-                                  type="button"
-                                  className="icone-min"
-                                  aria-label={`Renomear ${f.name}`}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleStartRenameSpeaker(f.id, f.name);
-                                  }}
-                                >
-                                  <Pencil aria-hidden />
-                                </button>
-                              </span>
-                            ),
-                          )}
-                        <span
-                          className="chip-falante voce"
-                          aria-current={
-                            !speakerAutoId && speakerProfiles.find((f) => f.id === 'user')?.isActive
-                              ? 'true'
-                              : undefined
-                          }
-                          onClick={() => !speakerAutoId && handleSelectActiveSpeaker('user')}
-                        >
-                          <b>Você</b>
-                          <span className="tn">microfone</span>
-                        </span>
-                        <button type="button" className="btn btn-outline peq" onClick={handleAddSpeaker}>
-                          <UserPlus aria-hidden /> Adicionar falante
-                        </button>
-                      </div>
-                      {speakerAutoId && speakerIdStatus === 'loading' && (
-                        <p className="mut" style={{ fontSize: 12, marginTop: 10 }}>
-                          Carregando o separador de vozes (6,7 MB, uma vez)…
-                        </p>
-                      )}
-                      {speakerAutoId && speakerIdStatus === 'unavailable' && (
-                        <p className="mut" style={{ fontSize: 12, marginTop: 10 }}>
-                          O separador de vozes não carregou: clique num nome para dizer quem fala.
-                        </p>
-                      )}
-                    </section>
-                  )}
 
-                  {/* ══════════════ TRANSCRIÇÃO AO VIVO ══════════════ */}
-                  <section
-                    className={`cartao ${transcricaoEscura ? 'escuro' : ''} conversa flex flex-col flex-1 min-h-0`}
-                    aria-label="Conversa"
-                    aria-live="polite"
-                  >
-                    {/* Fluxo da transcrição — acompanha o fim sozinho; botão volta à fala atual */}
-                    <div className="relative flex-1 min-h-[44vh] flex flex-col">
-                      {showJumpTranscript && (
-                        <button
-                          onClick={() => jumpToCurrent('transcript')}
-                          className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 bg-accent text-white text-[11px] font-bold px-3.5 py-1.5 rounded-full shadow-xl hover:scale-[1.03] transition-transform cursor-pointer animate-in fade-in slide-in-from-bottom-2"
-                        >
-                          <ArrowDown className="w-3.5 h-3.5" /> Ir para a fala atual
-                        </button>
+                      {!isRecording && sessaoSalva && speechSegments.length > 0 && (
+                        <div className="linha" style={{ marginTop: 18, gap: 10, flexWrap: 'wrap' }}>
+                          <button
+                            type="button"
+                            className="btn btn-solid"
+                            onClick={() => onChangeView?.('analysis', { id: sessaoSalva.id })}
+                          >
+                            <Save aria-hidden /> Abrir a sessão salva
+                          </button>
+                          <span className="mut" style={{ fontSize: 12.5 }}>
+                            {sessaoSalva.palavras === null
+                              ? 'Fichando o vocabulário…'
+                              : sessaoSalva.palavras === 1
+                                ? '1 palavra foi para o seu vocabulário.'
+                                : `${sessaoSalva.palavras} palavras foram para o seu vocabulário.`}
+                          </span>
+                        </div>
                       )}
-                      <div
-                        ref={transcriptScrollRef}
-                        onScroll={handleTranscriptScroll}
-                        className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pe-2"
-                      >
-                        {/* Primeiro contato: o download do modelo (dezenas de MB) acontecia atrás do painel de
-                      ajustes, a tela dizia "Ouvindo…" por minutos sem explicar nada. Aqui, onde a pessoa olha. */}
-                        {isRecording && modelPrep && !preparoConcluido(modelPrep) && (
-                          <div className="mb-3">
-                            <ModelPrepPanel state={modelPrep} onRetry={prepareModels} />
-                          </div>
-                        )}
-                        <ChatTranscript
-                          segments={speechSegments}
-                          speakers={speakerProfiles}
-                          scenario={captureScenario}
-                          tsSettings={tsSettings}
-                          ageProfile={ageProfile}
-                          sourceLang={sourceLang}
-                          targetLang={targetLang}
-                          observedLang={idiomaObservado}
-                          isRecording={isRecording}
-                          dense
-                          escuro={transcricaoEscura}
-                          selectedWord={selectedExamWord?.word ?? null}
-                          addedWords={addedWords}
-                          aprendidas={aprendidas}
-                          onExamineWord={examinarNaConversa}
-                          onSpeakWord={ouvirNaConversa}
-                          onRevelarTraducao={revelarNaConversa}
-                          conhecidas={conhecidas}
-                          progressoDoTradutor={modelPrep?.mt ?? null}
-                        />
-                      </div>
-                    </div>
 
-                    {!isRecording && sessaoSalva && speechSegments.length > 0 && (
-                      <div className="linha" style={{ marginTop: 18, gap: 10, flexWrap: 'wrap' }}>
-                        <button
-                          type="button"
-                          className="btn btn-solid"
-                          onClick={() => onChangeView?.('analysis', { id: sessaoSalva.id })}
-                        >
-                          <Save aria-hidden /> Abrir a sessão salva
-                        </button>
-                        <span className="mut" style={{ fontSize: 12.5 }}>
-                          {sessaoSalva.palavras === null
-                            ? 'Fichando o vocabulário…'
-                            : sessaoSalva.palavras === 1
-                              ? '1 palavra foi para o seu vocabulário.'
-                              : `${sessaoSalva.palavras} palavras foram para o seu vocabulário.`}
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Simulador de fala — FERRAMENTA DE DEV/TESTE, não de usuário final. Só aparece
+                      {/* Simulador de fala — FERRAMENTA DE DEV/TESTE, não de usuário final. Só aparece
                     com localStorage['babel.devTools']='1' (o harness __simSystem segue sempre
                     disponível no console p/ a bateria de regressão MCP). */}
-                    {devToolsEnabled && (
-                      <form
-                        onSubmit={handleAddManualSpeechSegment}
-                        className={`mt-2 flex gap-2 border-t pt-2 ${transcricaoEscura ? 'border-white/15' : 'border-border-subtle'}`}
-                      >
-                        <input
-                          type="text"
-                          id="sim-speaker-text"
-                          name="simSpeakerText"
-                          placeholder="Simular fala do orador... (dev)"
-                          className={`flex-1 border rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-accent font-medium ${transcricaoEscura ? 'bg-white/10 border-white/15 text-ink-contrast placeholder-white/40' : 'bg-canvas border-border-subtle text-ink placeholder-ink-faint'}`}
-                          value={manualSpeakerInput}
-                          onChange={(e) => setManualSpeakerInput(e.target.value)}
-                          disabled={isProcessingManualInput}
-                        />
-                        <button
-                          type="submit"
-                          disabled={isProcessingManualInput || !manualSpeakerInput.trim()}
-                          className="py-2.5 px-4 bg-accent hover:bg-accent-ink disabled:opacity-50 text-white text-[11px] font-bold rounded-xl shadow-btn transition-transform hover:scale-[1.01] cursor-pointer flex items-center gap-1 shrink-0"
+                      {devToolsEnabled && (
+                        <form
+                          onSubmit={handleAddManualSpeechSegment}
+                          className={`mt-2 flex gap-2 border-t pt-2 ${transcricaoEscura ? 'border-white/15' : 'border-border-subtle'}`}
                         >
-                          {isProcessingManualInput ? 'Traduzindo...' : 'Simular'}
-                        </button>
-                      </form>
-                    )}
-                  </section>
-                </div>
-              </EditablePanel>
-            }
+                          <input
+                            type="text"
+                            id="sim-speaker-text"
+                            name="simSpeakerText"
+                            placeholder="Simular fala do orador... (dev)"
+                            className={`flex-1 border rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-accent font-medium ${transcricaoEscura ? 'bg-white/10 border-white/15 text-ink-contrast placeholder-white/40' : 'bg-canvas border-border-subtle text-ink placeholder-ink-faint'}`}
+                            value={manualSpeakerInput}
+                            onChange={(e) => setManualSpeakerInput(e.target.value)}
+                            disabled={isProcessingManualInput}
+                          />
+                          <button
+                            type="submit"
+                            disabled={isProcessingManualInput || !manualSpeakerInput.trim()}
+                            className="py-2.5 px-4 bg-accent hover:bg-accent-ink disabled:opacity-50 text-white text-[11px] font-bold rounded-xl shadow-btn transition-transform hover:scale-[1.01] cursor-pointer flex items-center gap-1 shrink-0"
+                          >
+                            {isProcessingManualInput ? 'Traduzindo...' : 'Simular'}
+                          </button>
+                        </form>
+                      )}
+                    </section>
+                  </div>
+                </EditablePanel>
+              }
+            </div>
           </div>
-        </div>
 
-        {/* ============================================== */}
-        {/* COLUNA DIREITA: ANALISTA DE VOCABULÁRIO        */}
-        {/* ============================================== */}
-        {/* Painel COMPARTILHADO (o mesmo de Análise/Leitura/Estudo/Métricas). Fica OCULTO até o
+          {/* ============================================== */}
+          {/* COLUNA DIREITA: ANALISTA DE VOCABULÁRIO        */}
+          {/* ============================================== */}
+          {/* Painel COMPARTILHADO (o mesmo de Análise/Leitura/Estudo/Métricas). Fica OCULTO até o
             usuário clicar numa palavra do transcript, sem palavra, o componente nem monta. */}
-        <VocabularyPanel
-          viewKey="capture"
-          word={selectedExamWord}
-          onClose={() => setSelectedExamWord(null)}
-          onSpeak={speakWord}
-          onAddToDeck={handleAddWordToDeck}
-          isAdded={!!selectedExamWord && addedWords.includes(selectedExamWord.word)}
-          ttsSpeed={ttsSpeed}
-          setTtsSpeed={setTtsSpeed}
-          // Sem navegação → sem botões de praticar (nada de botão morto).
-          onPractice={onChangeView ? handlePracticeWord : undefined}
-        />
-      </div>
+          <VocabularyPanel
+            viewKey="capture"
+            word={selectedExamWord}
+            onClose={() => setSelectedExamWord(null)}
+            onSpeak={speakWord}
+            onAddToDeck={handleAddWordToDeck}
+            isAdded={!!selectedExamWord && addedWords.includes(selectedExamWord.word)}
+            ttsSpeed={ttsSpeed}
+            setTtsSpeed={setTtsSpeed}
+            // Sem navegação → sem botões de praticar (nada de botão morto).
+            onPractice={onChangeView ? handlePracticeWord : undefined}
+          />
+        </div>
+      )}
 
       {showGuide && (
         <GuidePanel
@@ -3550,6 +3909,7 @@ export default function LiveCapture({
             {botaoDasLegendas()}
           </div>
           {avisoDePermissao}
+          {avisoDoBipe}
         </div>
       )}
 

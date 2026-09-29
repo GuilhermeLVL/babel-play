@@ -33,7 +33,7 @@ import { SpeakerClusterer } from '../speakerCluster';
 import { embedUtterance } from '../speakerId';
 import { isTtsActive } from '../tts';
 import { classificarVazamento, type Intervalo } from '../vazamento';
-import { disponibilidadeDaSondaParaIdioma, escolherMotorDoMic } from './motorDoMicrofone';
+import { disponibilidadeDaSondaParaIdioma, escolherMotorDoMic, webSpeechBipaAoReligar } from './motorDoMicrofone';
 import { preparoConcluido, semPacotePendente } from './pacotesNativos';
 import { type EfeitosDoRegulador, escadaDeModelos, type ReguladorDaCaptura } from './reguladorDaCaptura';
 import { planoDaReservaLocal } from './reservaLocal';
@@ -938,6 +938,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
         webSpeechSuportado:
           typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window),
         noAparelho: disponibilidadeDaSondaParaIdioma(sourceLangRef.current, sonda?.sinais?.sttNoAparelho),
+        bipaAoReligar: webSpeechBipaAoReligar(),
         consentiuNavegador: consentiuReconhecimentoDoNavegador(),
         rapidoPermitido: rapidoDoMicPermitido(),
         perfilId: getActiveProfile().id,

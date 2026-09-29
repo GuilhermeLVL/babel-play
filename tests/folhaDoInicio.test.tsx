@@ -100,3 +100,19 @@ describe('ajuda do microfone', () => {
     expect(aoTrocarParaPrivado).toHaveBeenCalled()
   })
 })
+
+describe('o bipe do Android na pergunta do mic', () => {
+  it('no Android, o Rápido avisa do bipe e o Privado vem recomendado, sem bipe', () => {
+    render(<EscolhaDoMicrofone mb={80} bipa aoEscolher={vi.fn()} aoFechar={vi.fn()} />)
+    expect(screen.getByRole('button', { name: /Rápido/ }).textContent).toMatch(/apita/)
+    const privado = screen.getByRole('button', { name: /Privado/ }).textContent
+    expect(privado).toMatch(/Sem bipe/)
+    expect(privado).toMatch(/Recomendado/)
+  })
+
+  it('fora do Android, nada de bipe no texto', () => {
+    render(<EscolhaDoMicrofone mb={80} bipa={false} aoEscolher={vi.fn()} aoFechar={vi.fn()} />)
+    expect(screen.getByRole('button', { name: /Rápido/ }).textContent).not.toMatch(/apita/)
+    expect(screen.getByRole('button', { name: /Privado/ }).textContent).not.toMatch(/Sem bipe/)
+  })
+})

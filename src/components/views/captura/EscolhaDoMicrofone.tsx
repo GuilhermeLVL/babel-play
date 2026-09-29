@@ -1,7 +1,7 @@
 import { Cpu, Download, Mic, Zap } from 'lucide-react';
 import { useState } from 'react';
 
-import type { EscolhaDoMic } from '../../../lib/captura/motorDoMicrofone';
+import { type EscolhaDoMic, webSpeechBipaAoReligar } from '../../../lib/captura/motorDoMicrofone';
 import { t } from '../../../lib/i18n';
 import { Dialogo, fecharDialogoDe, IconeEmBloco } from '../../ui';
 
@@ -30,6 +30,10 @@ import { Dialogo, fecharDialogoDe, IconeEmBloco } from '../../ui';
  * modelo), o botão vira "Iniciar" ou "Baixar e iniciar", e "Agora não" CANCELA o início — nunca
  * escolhe o Privado calado. `aparelhoLento`: o nosso modelo quase não acompanha a fala aqui (celular,
  * WASM em 1 thread no iPhone), e a opção diz isso.
+ *
+ * O BIPE DO ANDROID (`bipa`, relato do dono, 2026-09-29): lá o reconhecimento do navegador religa a
+ * cada frase e o sistema apita a cada volta (`webSpeechBipaAoReligar`). O Rápido diz isso, e o Privado
+ * — que abre o microfone uma vez só — ganha "Sem bipe" e "Recomendado". Continua sem vir marcado.
  */
 export default function EscolhaDoMicrofone({
   mb,
@@ -37,6 +41,7 @@ export default function EscolhaDoMicrofone({
   aoEscolher,
   aoFechar,
   inicio,
+  bipa = webSpeechBipaAoReligar(),
 }: {
   /** O download do "Privado" (o modelo que a rota do STT escolheria para a sua voz); `null` = não se sabe. */
   mb: number | null;
@@ -50,6 +55,8 @@ export default function EscolhaDoMicrofone({
    * traduz: sem o tradutor do navegador, o nosso baixa) e se o nosso modelo atrasa neste aparelho.
    */
   inicio?: { mbSePrivado: number; mbSeRapido: number; aparelhoLento: boolean; mbTradutor?: number };
+  /** O reconhecimento do navegador apita a cada frase neste aparelho (Android). */
+  bipa?: boolean;
 }) {
   const [escolha, setEscolha] = useState<EscolhaDoMic | null>(null);
   const mbAgora = !inicio || !escolha ? 0 : escolha === 'rapido' ? inicio.mbSeRapido : inicio.mbSePrivado;
@@ -83,6 +90,7 @@ export default function EscolhaDoMicrofone({
               {t(
                 'Usa o reconhecimento de voz do navegador. O áudio da sua voz vai para os servidores do Google (Chrome, Android), da Microsoft (Edge) ou da Apple (Safari).',
               )}
+              {bipa && <> {t('No Android, o celular apita a cada frase: o sistema religa o reconhecimento sem parar.')}</>}
             </p>
           </span>
         </button>
@@ -100,7 +108,12 @@ export default function EscolhaDoMicrofone({
               <span className="badge ok" style={{ marginLeft: 6 }}>
                 {t('Não sai do aparelho')}
               </span>
-              {pacoteDoNavegador && (
+              {bipa && (
+                <span className="badge" style={{ marginLeft: 6 }}>
+                  {t('Sem bipe')}
+                </span>
+              )}
+              {(pacoteDoNavegador || bipa) && (
                 <span className="badge" style={{ marginLeft: 6 }}>
                   {t('Recomendado')}
                 </span>

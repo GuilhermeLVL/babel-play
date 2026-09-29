@@ -289,3 +289,56 @@ describe('resolverMotorDoMic — pergunta ao navegador e instala só quando pedi
     expect(d.motor).toBe('web-speech-nuvem')
   })
 })
+
+/**
+ * O BIPE DO ANDROID (relato do dono no celular, 2026-09-29: "um bipzinho estranho e incômodo"). O
+ * Chrome do Android encerra o reconhecimento a cada frase e o sistema apita a cada religada; o site
+ * não tem como calar. Lá, o reconhecimento do navegador (nuvem OU no aparelho) só entra com o
+ * "Rápido" escolhido; o "Privado" é o nosso modelo, que abre o microfone uma vez só.
+ */
+describe('Android: o reconhecimento do navegador apita a cada religada', () => {
+  it('detecta o Android pelo userAgentData ou pelo userAgent', async () => {
+    const { webSpeechBipaAoReligar } = await import('../src/lib/captura/motorDoMicrofone')
+    expect(webSpeechBipaAoReligar({ navigator: { userAgentData: { platform: 'Android' } } })).toBe(true)
+    expect(
+      webSpeechBipaAoReligar({ navigator: { userAgent: 'Mozilla/5.0 (Linux; Android 14; Pixel 8) Chrome/140' } }),
+    ).toBe(true)
+    expect(webSpeechBipaAoReligar({ navigator: { userAgent: 'Mozilla/5.0 (Windows NT 10.0) Chrome/140' } })).toBe(false)
+    expect(webSpeechBipaAoReligar({})).toBe(false)
+  })
+
+  it('no aparelho disponível NÃO basta: sem o Rápido, é o Whisper (sem bipe)', () => {
+    const d = escolherMotorDoMic({ ...BASE, noAparelho: 'available', bipaAoReligar: true })
+    expect(d.motor).toBe('whisper')
+    expect(d.instalarNoAparelho).toBe(false)
+  })
+
+  it('com o Rápido escolhido, a escolha da pessoa vale (Web Speech na nuvem)', () => {
+    expect(escolherMotorDoMic({ ...BASE, consentiuNavegador: true, bipaAoReligar: true }).motor).toBe(
+      'web-speech-nuvem',
+    )
+  })
+
+  it('não pede o pacote do navegador (ele apitaria igual)', () => {
+    expect(escolherMotorDoMic({ ...BASE, noAparelho: 'downloadable', bipaAoReligar: true }).instalarNoAparelho).toBe(
+      false,
+    )
+  })
+
+  it('a pergunta Rápido ou Privado aparece mesmo com o reconhecimento no aparelho', () => {
+    expect(precisaPerguntarMotorDoMic({ ...BASE, noAparelho: 'available', escolha: null, bipaAoReligar: true })).toBe(
+      true,
+    )
+  })
+
+  it('resolverMotorDoMic detecta o Android pelo escopo e não chama install()', async () => {
+    const install = vi.fn(async () => true)
+    const escopo = {
+      navigator: { userAgent: 'Mozilla/5.0 (Linux; Android 14) Chrome/140' },
+      SpeechRecognition: { install, available: vi.fn(async () => 'downloadable') },
+    }
+    const d = await resolverMotorDoMic({ ...BASE, lang: 'pt-BR', escopo })
+    expect(d.motor).toBe('whisper')
+    expect(install).not.toHaveBeenCalled()
+  })
+})

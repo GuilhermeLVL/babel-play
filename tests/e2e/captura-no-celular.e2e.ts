@@ -200,9 +200,10 @@ async function escolherNaFolha(page: Page, opcao: 'Rápido' | 'Privado', downloa
   // UMA janela, antes da sessão: nada de relógio andando nem de "Parar" por baixo dela.
   await expect(page.locator('dialog[open]')).toHaveCount(1)
   await expect(parar(page)).toHaveCount(0)
-  await folha.getByRole('button', { name: new RegExp(opcao) }).first().click()
+  // As comemorações de um banco usado entram por cima a qualquer momento: o clique robusto as fecha.
+  await clicarRobusto(page, folha.getByRole('button', { name: new RegExp(opcao) }).first())
   await expect(folha.getByTestId('download-da-escolha')).toHaveText(download)
-  await folha.getByRole('button', { name: confirmar }).click()
+  await clicarRobusto(page, folha.getByRole('button', { name: confirmar }))
   await expect(folha).toBeHidden()
 }
 
@@ -217,7 +218,7 @@ test.describe('Captura no celular (Pixel 7, sem getDisplayMedia)', () => {
     await expect(parar(page)).toBeVisible({ timeout: 30_000 })
     await expect(page.getByRole('dialog', { name: 'Como transcrever a sua voz?' })).toHaveCount(0)
     await expect(page.getByTestId('ajuda-do-microfone')).toHaveCount(0)
-    await expect(page.locator('.relogio').first()).not.toHaveText('00:00', { timeout: 5_000 })
+    await expect(page.locator('.cel-aovivo').first()).not.toHaveText('00:00', { timeout: 5_000 })
   })
 
   test('Rápido: a folha diz o tamanho do tradutor, a legenda chega, e nenhum segundo getUserMedia', async ({
@@ -266,5 +267,76 @@ test.describe('Captura no celular (Pixel 7, sem getDisplayMedia)', () => {
     // O reenvio depois do religar não abriu outro balão.
     await expect(baloes).toHaveCount(1)
     await expect(page.getByText(/Tradução indisponível agora/)).toHaveCount(0)
+  })
+})
+
+/** Foto de conferência, só quando pedida (`FOTOS_DIR`): a maquete aprovada contra a tela de verdade. */
+async function foto(page: Page, nome: string) {
+  const dir = process.env.FOTOS_DIR
+  if (dir) await page.screenshot({ path: `${dir}/celular-${nome}.png` })
+}
+
+/**
+ * A TELA DO CELULAR (maquete aprovada pelo dono, 2026-09-29): o microfone grande embaixo, as opções
+ * numa folha, e gravando a conversa ocupa a tela (a barra de abas some); tocar num balão abre a
+ * folha da frase, a palavra abre a folha dela, e a fala tocada mostra os atalhos.
+ */
+test.describe('Captura no celular: a tela para uma mão só', () => {
+  test('pronto: microfone grande, par num controle só e as opções numa folha', async ({ page }) => {
+    test.slow()
+    await abrirCaptura(page)
+    await expect(page.getByTestId('captura-no-celular')).toBeVisible()
+    await expect(iniciar(page)).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Trocar os idiomas' }).or(page.locator('span.cel-troca'))).toBeVisible()
+    await fecharSobreposicoes(page)
+    await foto(page, '1-pronto')
+    await clicarRobusto(page, page.getByRole('button', { name: 'Opções da captura' }))
+    const opcoes = page.getByRole('dialog', { name: 'Opções da captura' })
+    await expect(opcoes).toBeVisible()
+    await expect(opcoes.getByRole('button', { name: /Idiomas/ })).toBeVisible()
+    await expect(opcoes.getByRole('switch', { name: 'Manter a tela acesa' })).toBeVisible()
+    await foto(page, '5-opcoes')
+    await page.keyboard.press('Escape')
+    await expect(opcoes).toBeHidden()
+  })
+
+  test('gravando: a conversa é a tela, e o balão abre a frase e a palavra', async ({ page }) => {
+    test.slow()
+    await webSpeechFalsa(page, 'ok')
+    await abrirCaptura(page)
+    await escolherNaFolha(page, 'Rápido', /baixa o tradutor/, /Baixar e iniciar/)
+    await expect(parar(page)).toBeVisible({ timeout: 15_000 })
+    // A barra de abas do app some enquanto grava; o aviso do bipe (Android) diz de onde vem o som.
+    await expect(page.locator('.dock')).toBeHidden()
+    await expect(page.getByTestId('aviso-do-bipe')).toBeVisible()
+    const frase = 'The weather is supposed to be great this weekend.'
+    await page.evaluate(
+      (t) => (window as unknown as { __simFalas: (t: string[]) => number }).__simFalas(t),
+      ['So what are you planning for the weekend?', frase],
+    )
+    const balao = page.locator('.fala[data-tocavel]').filter({ hasText: 'supposed' })
+    await expect(balao).toBeVisible({ timeout: 10_000 })
+    await foto(page, '2-gravando')
+
+    await balao.click()
+    const folha = page.getByRole('dialog', { name: 'Ações da frase' })
+    await expect(folha).toBeVisible()
+    for (const nome of ['Ouvir', 'Ouvir devagar', 'Repetir eu', 'Copiar'])
+      await expect(folha.getByRole('button', { name: nome, exact: true })).toBeVisible()
+    await foto(page, '3-frase')
+
+    await folha.getByRole('button', { name: 'weather', exact: true }).click()
+    const palavra = page.getByRole('dialog', { name: 'Palavra: weather' })
+    await expect(palavra).toBeVisible()
+    await expect(palavra.getByRole('button', { name: 'Guardar' })).toBeVisible()
+    await foto(page, '4-palavra')
+    await palavra.getByRole('button', { name: 'Voltar à frase' }).click()
+    await expect(page.getByRole('dialog', { name: 'Ações da frase' })).toBeVisible()
+    await page.keyboard.press('Escape')
+
+    // A fala tocada fica em foco, com os atalhos de ouvir.
+    await expect(balao.getByRole('button', { name: 'Devagar' })).toBeVisible()
+    await clicarRobusto(page, parar(page))
+    await expect(page.getByRole('dialog', { name: /Encerrar a sessão/ })).toBeVisible()
   })
 })

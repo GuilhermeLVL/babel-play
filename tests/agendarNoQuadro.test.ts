@@ -94,7 +94,10 @@ describe('setterNoQuadro', () => {
   })
 
   it('aba escondida (o quadro não vem): a rede de segurança aplica assim mesmo', () => {
-    vi.stubGlobal('requestAnimationFrame', vi.fn(() => 1))
+    vi.stubGlobal(
+      'requestAnimationFrame',
+      vi.fn(() => 1),
+    )
     const { set, ler } = estadoFalso<Fala[]>([{ id: 'a', texto: '', isPartial: true }])
     setterNoQuadro(set)(parcial('Olá'))
     vi.advanceTimersByTime(50)

@@ -13,8 +13,8 @@
  *                   117 MB — ver `adapters/moonshine.ts`).
  *   não-EN / auto → NUVEM primeiRO quando disponível (Groq whisper-large-v3-turbo —
  *                   a melhor qualidade multilíngue, ~1s/trecho), com modelo LOCAL de
- *                   reserva; sem nuvem → small (WebGPU) ou base (WASM: small é lento
- *                   demais para tempo real sem GPU).
+ *                   reserva; sem nuvem → small (WebGPU PROVADA pela sonda — `smallComGpuProvada`)
+ *                   ou base (WASM: small é lento demais para tempo real sem GPU).
  *
  * Honestidades: o perfil Privado/Local NUNCA roteia para a nuvem; o usuário pode
  * sobrepor tudo com a preferência "Qualidade da transcrição" (fast/accurate/cloud);
@@ -94,6 +94,28 @@ export function usarGpuNoAparelho(d: DispositivoDaRota, hasWebGpu: boolean): boo
   const cpu = d.pontuacaoWasm;
   const gpu = d.pontuacaoWebgpu;
   return typeof cpu === 'number' && typeof gpu === 'number' && cpu > 0 && gpu >= MARGEM_DA_GPU * cpu;
+}
+
+/**
+ * O Whisper SMALL entra NESTE desktop? (plano "Grátis sem travar", A4.) O small (589 MB) só é tempo
+ * real na GPU: no WASM a legenda chegava 18,6 s depois da fala, com a fila crescendo (auditoria de
+ * latência 2026-09-26). Antes bastava `permiteSmall && hasWebGpu`; agora valem as provas que o Quest e
+ * o celular já exigem (`usarGpuNoAparelho`):
+ *   - a sonda viu um adaptador REAL (`adaptadorReal === true`). Sem sonda guardada, o base: ela roda
+ *     no ocioso, e a próxima captura já pode subir ao small;
+ *   - a GPU nunca caiu com um modelo aqui (`gpuCaiu`);
+ *   - o microbenchmark, QUANDO EXISTE, não mediu a GPU abaixo de `MARGEM_DA_GPU`× a CPU (sem ele, as
+ *     duas provas acima bastam — a sonda grava o benchmark depois, no ocioso);
+ *   - sem economia de dados: ela manda o q8, e o q8 vai ao WASM (sem kernel no WebGPU) — o small em
+ *     q8 seria o small no WASM. Pura.
+ */
+export function smallComGpuProvada(d: DispositivoDaRota, hasWebGpu: boolean): boolean {
+  if (!d.permiteSmall || !hasWebGpu || d.adaptadorReal !== true || d.gpuCaiu === true || d.economiaDeDados)
+    return false;
+  const cpu = d.pontuacaoWasm;
+  const gpu = d.pontuacaoWebgpu;
+  const benchmarkPresente = typeof cpu === 'number' && typeof gpu === 'number' && cpu > 0;
+  return !(benchmarkPresente && gpu < MARGEM_DA_GPU * cpu);
 }
 
 /** O dtype que roda bem na GPU: encoder fp16 com `shader-f16`, fp32 sem (decoder q4 nos dois). */
@@ -258,7 +280,8 @@ export function routeStt(input: SttRouteInput): SttRoute {
      entra fora do desktop com GPU. Economia de dados: o menor modelo que serve ao idioma. */
   const movel = !!dispositivo && !dispositivo.tipo.startsWith('desktop');
   const economia = !!dispositivo?.economiaDeDados;
-  const podeSmall = dispositivo ? dispositivo.permiteSmall && hasWebGpu : hasWebGpu;
+  // O small só com GPU PROVADA pela sonda (`smallComGpuProvada`). Sem perfil: o comportamento de antes.
+  const podeSmall = dispositivo ? smallComGpuProvada(dispositivo, hasWebGpu) : hasWebGpu;
   /* GPU DE VERDADE NO QUEST/CELULAR (2026-09-28): adaptador real, sem queda anterior e o benchmark
      guardado com a GPU ≥ 1,5× a CPU → o Whisper vai ao WebGPU no dtype que roda bem ali. O watchdog
      e a queda em runtime do `whisperLocal.ts` continuam: GPU que trava ou cai volta ao WASM q8. */

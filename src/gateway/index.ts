@@ -8,7 +8,7 @@
  * tela muda — é o mandato provider-agnóstico do produto.
  */
 import type { CapabilityBinding, ChatMessage, ChatResult, Profile } from '@core';
-import { AiGateway, BreakerRegistry, BudgetLedger, NoRouteError } from '@core';
+import { AiGateway, BreakerRegistry, BudgetLedger, MotorAindaCarregando, NoRouteError } from '@core';
 import { avaliarTraducaoLocal } from '@core/harness/portasDeQualidade';
 import { bindingExigeConsentimento } from '@core/harness/registroDeMotores';
 
@@ -181,8 +181,10 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
         breakers.reiniciar(b.adapterId);
         for (const fn of prontidao) fn();
       });
+      /* O opus-mt não carregou. Com o tradutor do NAVEGADOR presente, não é o fim: quem esperava tenta
+         de novo por ele (os ouvintes do "pronto"); sem ele, a tradução no aparelho acabou aqui. */
       a.aoFalharCarga?.(() => {
-        for (const fn of falhasDeCarga) fn();
+        for (const fn of ChromeTranslatorMt.isPresent() ? prontidao : falhasDeCarga) fn();
       });
     }
     return a;
@@ -279,7 +281,13 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
             'mt',
             async (b) => {
               const adapter = resolverMt(b);
-              if (!adapter.supports(src, tgt)) throw new Error(`${adapter.id} não suporta ${src}→${tgt}`);
+              if (!adapter.supports(src, tgt)) {
+                /* O pacote do navegador BAIXANDO tira o par da cascata, mas ele vai voltar: é "só falta
+                   carregar" (a fala fica pendente), não "não há motor". */
+                if (src && adapter.carregando?.(src, tgt))
+                  throw new MotorAindaCarregando(adapter.id, `${adapter.id} ainda carregando ${src}→${tgt}`);
+                throw new Error(`${adapter.id} não suporta ${src}→${tgt}`);
+              }
               const r = await adapter.translate(text, src, tgt, opts);
 
               /* A RESPOSTA VEIO NO IDIOMA QUE PEDIMOS?

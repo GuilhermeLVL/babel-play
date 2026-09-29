@@ -2265,6 +2265,7 @@ export default function LiveCapture({
       stt: rota.localModel,
       mbStt: tamanhoDoDownloadMb(rota.localModel, rota.dtype) ?? 0,
       tradutores: tradutores.map((id) => ({ id, mb: tamanhoDoDownloadMb(id) ?? 0 })),
+      par: [mtDe, mtPara] as const,
     };
   }, [
     targetLang,
@@ -2282,6 +2283,7 @@ export default function LiveCapture({
     langDoMic: sourceLang,
     sondarMic: webSpeechSupported && micEngine === 'browser',
     gravando: isRecording,
+    parDoTradutor: pecasDoInicio.par,
   });
   const planoDoInicio = (escolha: EscolhaDoMic | null): PassoDoInicio => {
     const completos = preparoDoInicio.completos;
@@ -2300,8 +2302,11 @@ export default function LiveCapture({
         podeInstalarPacote: preparoDoInicio.podeInstalarPacote,
       },
       mbStt: falta(pecasDoInicio.stt, pecasDoInicio.mbStt),
-      // O tradutor entra no download de TODA escolha (o Rápido também traduz): a folha diz o tamanho.
-      mbTradutor: pecasDoInicio.tradutores.reduce((s, m) => s + falta(m.id, m.mb), 0),
+      /* O tradutor entra no download de TODA escolha (o Rápido também traduz): a folha diz o tamanho —
+         menos quando o navegador já traduz o par no aparelho (aí o nosso não baixa). */
+      mbTradutor: preparoDoInicio.tradutorNativo
+        ? 0
+        : pecasDoInicio.tradutores.reduce((s, m) => s + falta(m.id, m.mb), 0),
       limiteDeDownloadMb: perfilDoAparelho.confirmarDownloadAcimaDeMb,
       downloadJaConfirmado: downloadConfirmadoRef.current,
       modoNuvem: getProviderMode() === 'cloud',

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 
+import { codigoDoTradutor } from '../../gateway/adapters/chromeTranslator';
 import { modeloDisponivel } from '../../gateway/modelManifest';
 import type { Disponibilidade } from '../dispositivo/sonda';
 
@@ -14,7 +15,9 @@ import type { Disponibilidade } from '../dispositivo/sonda';
  *     muda e quando uma gravação acaba — ela pode ter baixado algum);
  *   · `noAparelho`: o navegador reconhece a sua voz no aparelho? (`available({processLocally})`);
  *   · `podeInstalarPacote`: há `SpeechRecognition.install()` (o pacote de voz do navegador);
- *   · `permissao`: o estado da permissão do microfone ('granted' dispensa o "Permita o microfone").
+ *   · `permissao`: o estado da permissão do microfone ('granted' dispensa o "Permita o microfone");
+ *   · `tradutorNativo`: o navegador já traduz o par NO APARELHO (`Translator.availability` =
+ *     'available') — o nosso tradutor não baixa, e a folha não conta os MB dele.
  * Até chegar, `completos` é `null` e o plano conta tudo como a baixar (errar para o lado de avisar).
  */
 export interface PreparoDoInicio {
@@ -22,6 +25,7 @@ export interface PreparoDoInicio {
   noAparelho: Disponibilidade | null;
   podeInstalarPacote: boolean;
   permissao: PermissionState | null;
+  tradutorNativo: boolean;
 }
 
 type ComInstalar = { install?: unknown };
@@ -33,11 +37,32 @@ export function usePreparoDoInicio(o: {
   sondarMic: boolean;
   /** Muda quando uma gravação acaba (o cache pode ter crescido). */
   gravando: boolean;
+  /** O par do tradutor da captura (de, para). Ausente = não sonda o tradutor do navegador. */
+  parDoTradutor?: readonly [string, string];
 }): PreparoDoInicio {
   const [completos, setCompletos] = useState<ReadonlySet<string> | null>(null);
   const [noAparelho, setNoAparelho] = useState<Disponibilidade | null>(null);
   const [permissao, setPermissao] = useState<PermissionState | null>(null);
   const chave = o.modelos.join('|');
+  const [tradutorNativo, setTradutorNativo] = useState(false);
+  const [deTradutor, paraTradutor] = o.parDoTradutor ?? ['', ''];
+
+  useEffect(() => {
+    setTradutorNativo(false);
+    const api = (globalThis as { Translator?: { availability?: (x: unknown) => Promise<string> } }).Translator;
+    if (!deTradutor || !paraTradutor || typeof api?.availability !== 'function') return;
+    const s = codigoDoTradutor(deTradutor);
+    const t = codigoDoTradutor(paraTradutor);
+    if (s === t) return;
+    let vivo = true;
+    void api
+      .availability({ sourceLanguage: s, targetLanguage: t })
+      .then((d) => vivo && setTradutorNativo(d === 'available' || d === 'readily'))
+      .catch(() => {});
+    return () => {
+      vivo = false;
+    };
+  }, [deTradutor, paraTradutor, o.gravando]);
 
   useEffect(() => {
     if (o.gravando) return;
@@ -96,5 +121,5 @@ export function usePreparoDoInicio(o: {
 
   const g = globalThis as { SpeechRecognition?: ComInstalar; webkitSpeechRecognition?: ComInstalar };
   const podeInstalarPacote = typeof (g.SpeechRecognition ?? g.webkitSpeechRecognition)?.install === 'function';
-  return { completos, noAparelho, podeInstalarPacote, permissao };
+  return { completos, noAparelho, podeInstalarPacote, permissao, tradutorNativo };
 }

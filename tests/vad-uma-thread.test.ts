@@ -30,7 +30,9 @@ vi.mock('../src/gateway/adapters/whisperLocal', () => ({ WhisperLocalStt: vi.fn(
 import { startMicCapture } from '../src/gateway/capture/systemAudio'
 import { offlineTranscribe } from '../src/gateway/offlineTranscribe'
 
-const ortFalso = () => ({ env: { logLevel: 'warning', wasm: { numThreads: 4, simd: false } as Record<string, unknown> } })
+const ortFalso = () => ({
+  env: { logLevel: 'warning', wasm: { numThreads: 4, simd: false } as Record<string, unknown> },
+})
 
 class FakeRecorder {
   static isTypeSupported = () => true

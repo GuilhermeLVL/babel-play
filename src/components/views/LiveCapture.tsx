@@ -179,6 +179,7 @@ import EscolhaDoMicrofone from './captura/EscolhaDoMicrofone';
 import IdiomasDaSessao, { type Lado } from './captura/IdiomasDaSessao';
 import LegendasFlutuantes, { type LegendaAoVivo } from './captura/LegendasFlutuantes';
 import ModeloNoDispositivo, { type ModeloDaCaptura } from './captura/ModeloNoDispositivo';
+import OndasDoNivel from './captura/OndasDoNivel';
 import TranscriptVisualSettings, { TEMA } from './captura/TranscriptVisualSettings';
 import { CampoLinha, Interruptor, Segmentos } from './vocab/Dialogo';
 
@@ -350,8 +351,9 @@ export default function LiveCapture({
   };
   // Velocidade do TTS (escutar tradução/palavra). Persistida em settings.ui.
   const [ttsSpeed, setTtsSpeed] = useState(1.0);
-  // Waveform REAL: histórico de níveis (0..1) que segue o áudio capturado, não animação falsa.
-  const [levels, setLevels] = useState<number[]>(() => new Array(48).fill(0));
+  /* Waveform REAL: o pico do nível (0..1) que segue o áudio capturado, não animação falsa. As fontes
+     escrevem aqui; quem amostra e desenha é `OndasDoNivel`, uma folha com o próprio laço. Antes era um
+     `setLevels` a cada 50 ms AQUI, e esta tela inteira re-renderizava 20 vezes por segundo. */
   const currentLevelRef = useRef(0); // peak-hold do nível instantâneo (as fontes escrevem aqui)
   const meterRef = useRef<{ stop: () => void } | null>(null); // medidor de mic p/ o motor navegador
   const pushLevel = (v: number) => {
@@ -1032,22 +1034,6 @@ export default function LiveCapture({
     captureScenario,
     speakerAutoId,
   ]);
-
-  // Amostrador do waveform: enquanto grava, desloca o histórico a ~20fps lendo o peak-hold das
-  // fontes (com decaimento suave). Fora de gravação, zera. Barato: um setInterval + array de 48.
-  useEffect(() => {
-    if (!isRecording || pausado) {
-      setLevels(new Array(48).fill(0));
-      currentLevelRef.current = 0;
-      return;
-    }
-    const iv = setInterval(() => {
-      const v = currentLevelRef.current;
-      currentLevelRef.current = v * 0.55; // decai para o pico "cair" entre amostras
-      setLevels((prev) => [...prev.slice(1), v]);
-    }, 50);
-    return () => clearInterval(iv);
-  }, [isRecording, pausado]);
 
   // Sessões de captura (getDisplayMedia/getUserMedia + VAD); null quando não ativas.
   const systemCaptureRef = useRef<AudioCapture | null>(null);
@@ -2546,7 +2532,7 @@ export default function LiveCapture({
         abrindo={abrindoCaptura}
         retomar={!!resumeId}
         tempo={formatTime(timer)}
-        niveis={levels}
+        ondas={<OndasDoNivel nivelRef={currentLevelRef} ativo={isRecording && !pausado} variante="celular" />}
         lados={[ladoNoCelular(ladosDoPar[0]), ladoNoCelular(ladosDoPar[1])]}
         aoTrocarLados={trocarLadosNoCelular}
         aoAbrirIdiomas={() => setIdiomasAbertos(true)}
@@ -3383,20 +3369,9 @@ export default function LiveCapture({
                       </div>
                       <div className="linha">
                         <span className="relogio">{isRecording ? formatTime(timer) : '00:00'}</span>
-                        {/* As ondas seguem o nível REAL do áudio capturado (sonda RMS), não uma animação. */}
-                        {isRecording && (
-                          <span className="ondas" aria-hidden>
-                            {[0, 1, 2, 3, 4].map((k) => {
-                              const lvl = levels[Math.floor((k * levels.length) / 5)] ?? 0;
-                              return (
-                                <i
-                                  key={k}
-                                  style={{ height: `${Math.max(18, Math.min(100, lvl * 120))}%`, animation: 'none' }}
-                                />
-                              );
-                            })}
-                          </span>
-                        )}
+                        {/* As ondas seguem o nível REAL do áudio capturado (sonda RMS), não uma animação.
+                          Uma folha com o próprio laço: o nível mudando não re-renderiza esta tela. */}
+                        {isRecording && <OndasDoNivel nivelRef={currentLevelRef} ativo={!pausado} />}
                       </div>
                       {avisoDePermissao}
                       {avisoDoBipe}

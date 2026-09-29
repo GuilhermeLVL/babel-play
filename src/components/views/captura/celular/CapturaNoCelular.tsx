@@ -44,7 +44,7 @@ export default function CapturaNoCelular({
   abrindo,
   retomar,
   tempo,
-  niveis,
+  ondas,
   lados,
   aoTrocarLados,
   aoAbrirIdiomas,
@@ -71,7 +71,11 @@ export default function CapturaNoCelular({
   /** Há uma sessão salva a continuar (o botão diz "Continuar"). */
   retomar: boolean;
   tempo: string;
-  niveis: number[];
+  /**
+   * As ondas do nível, prontas (`OndasDoNivel` com `variante="celular"`). Chegam como nó, e não como
+   * a lista de níveis: a lista mudava a cada 50 ms e re-renderizava esta tela e a de cima inteiras.
+   */
+  ondas: ReactNode;
   lados: [LadoDoPar, LadoDoPar];
   /** Troca os dois lados; ausente quando um lado é "Detectar" (não há o que trocar). */
   aoTrocarLados?: () => void;
@@ -119,12 +123,7 @@ export default function CapturaNoCelular({
             <span className="cel-ponto" aria-hidden />
             <span className="tn">{tempo}</span>
           </span>
-          <span className="cel-ondas" aria-hidden>
-            {[0, 1, 2, 3, 4].map((k) => {
-              const lvl = niveis[Math.floor((k * niveis.length) / 5)] ?? 0;
-              return <i key={k} style={{ height: `${Math.max(20, Math.min(100, lvl * 120))}%` }} />;
-            })}
-          </span>
+          {ondas}
           <button type="button" className="cel-chip" onClick={aoAbrirIdiomas} aria-label={t('Idiomas da sessão')}>
             {parCurto}
           </button>

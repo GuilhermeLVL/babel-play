@@ -139,8 +139,11 @@ const normalizarPalavra = (w: string) => w.toLowerCase().replace(/[\p{P}\p{S}]/g
 const tokens = (s: string) => s.trim().split(/\s+/).filter((w) => normalizarPalavra(w) !== '')
 const palavras = (s: string) => tokens(s).map(normalizarPalavra)
 
-/** `b` começa com TODAS as palavras de `a` (e tem ao menos tantas)? É a hipótese que cresceu. */
-function estende(a: string, b: string): boolean {
+/**
+ * `b` começa com TODAS as palavras de `a` (e tem ao menos tantas)? É a hipótese que cresceu. Exportada
+ * para a rede de segurança dos balões (`segmentosDaWebSpeech.ts`).
+ */
+export function estende(a: string, b: string): boolean {
   const pa = palavras(a)
   const pb = palavras(b)
   return pa.length > 0 && pb.length >= pa.length && pa.every((p, i) => p === pb[i])

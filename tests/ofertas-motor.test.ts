@@ -53,7 +53,7 @@ const entrada = (p: Partial<EntradaDoMotor> = {}): EntradaDoMotor => ({
 describe('flag', () => {
   it('ligada: a oferta promocional aparece com o componente do gatilho', () => {
     const d = decidirOferta(entrada())
-    expect(d).toMatchObject({ mostrar: true, componente: 'comparacao', planoSugerido: 'pro', variante: 'padrao' })
+    expect(d).toMatchObject({ mostrar: true, componente: 'comparacao', planoSugerido: 'essencial', variante: 'padrao' })
   })
 
   it('desligada: promocional NÃO aparece, mesmo com payload em cache', () => {
@@ -246,11 +246,10 @@ describe('planos-alvo', () => {
   })
 
   it('plano sugerido: Grátis → Essencial (Pro quando esbarrou em modelo premium), Essencial → Pro', () => {
-    expect(planoSugerido('free', 'conquista')).toBe('essencial')
-    expect(planoSugerido('free', 'modelo_premium')).toBe('pro')
-    expect(planoSugerido('essencial', 'conquista')).toBe('pro')
-    expect(planoSugerido('pro', 'conquista')).toBe('nenhum')
-    expect(planoSugerido('convidado', 'fim_de_cota')).toBe('conta')
+    expect(planoSugerido('free')).toBe('essencial')
+    expect(planoSugerido('essencial')).toBe('pro')
+    expect(planoSugerido('pro')).toBe('nenhum')
+    expect(planoSugerido('convidado')).toBe('conta')
   })
 })
 

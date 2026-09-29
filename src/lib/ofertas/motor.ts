@@ -115,15 +115,16 @@ const recusa = (motivo: MotivoDeRecusa, adiar = false): DecisaoDeOferta => ({ mo
 
 /**
  * O plano que faz sentido sugerir. `nenhum` = não há o que vender (Pro, self-host). O convidado
- * ouve "crie a conta" antes de qualquer plano; o Grátis ouve Essencial, salvo quando esbarrou no
- * que é do Pro (modelo maior); o Essencial ouve Pro.
+ * ouve "crie a conta" antes de qualquer plano; o Grátis ouve Essencial — também no `modelo_premium`:
+ * o que ele esbarra (transcrição e tradução de nuvem, tutor) já está no Essencial, e sugerir o Pro
+ * era vender o dobro do preço pelo mesmo recurso (funil, 2026-09-29); o Essencial ouve Pro.
  */
-export function planoSugerido(plano: PlanoDaFlag, momento: MomentoDeOferta): PlanoSugerido {
+export function planoSugerido(plano: PlanoDaFlag): PlanoSugerido {
   switch (plano) {
     case 'convidado':
       return 'conta';
     case 'free':
-      return momento === 'modelo_premium' ? 'pro' : 'essencial';
+      return 'essencial';
     case 'essencial':
       return 'pro';
     default:
@@ -163,7 +164,7 @@ export function decidirOferta(e: EntradaDoMotor): DecisaoDeOferta {
   if (!todos.length) return recusa('sem_gatilho');
 
   // 2. Planos-alvo.
-  const sugerido = planoSugerido(e.plano, e.momento);
+  const sugerido = planoSugerido(e.plano);
   if (e.plano === 'selfhost') return recusa('plano_alvo');
   if (!funcional) {
     if (sugerido === 'nenhum') return recusa('plano_alvo');

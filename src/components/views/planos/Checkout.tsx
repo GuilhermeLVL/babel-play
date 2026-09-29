@@ -1,20 +1,20 @@
 import {
   ArrowLeft,
   ArrowRight,
-  Barcode,
+  CakeSlice,
   Check,
   CircleAlert,
   CreditCard,
   LoaderCircle,
   Lock,
-  QrCode,
+  LogIn,
   Repeat,
   UserRound,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { armazenamentoEmTexto, horasDeTranscricao } from '../../../core/planos';
-import { lerAbertura } from '../../../data/rotas/idade';
+import { declararNascimento, ehFalha } from '../../../data/rotas/idade';
 import {
   type Beneficiario,
   brl,
@@ -30,11 +30,13 @@ import {
   temAssinatura,
 } from '../../../lib/assinatura';
 import { carregarEntitlements, type Plan } from '../../../lib/entitlements';
+import { t } from '../../../lib/i18n';
 import { registrarCheckoutIniciado } from '../../../lib/ofertas/instrumentacao';
 import { estadoDaProtecao } from '../../../lib/protecaoDoMenor';
 import { CabecalhoDeTela, IconeEmBloco, Tela } from '../../ui';
 import { irSub, PLANO_ICO, PLANO_NOME } from './dados';
 import Etapas, { rolarAoTopo } from './Etapas';
+import { entrarParaAssinar, useSemConta, useVendaAberta } from './funil';
 
 /**
  * CHECKOUT — `T.checkout` do protótipo aprovado: dois passos, com o resumo sempre visível.
@@ -53,9 +55,13 @@ import Etapas, { rolarAoTopo } from './Etapas';
  * explica que o responsável assina por ela; o responsável vinculado assina PELO menor
  * (`paraUsuario`, escolhido na tela de aceite do convite). Com `CHECKOUT_ENABLED=0` no servidor, a
  * venda aparece pausada. O servidor confere tudo de novo; aqui é só não oferecer o que ele recusa.
+ *
+ * O FUNIL (teste de ponta a ponta com o Asaas sandbox, 2026-09-29): sem conta, a tela pede para
+ * entrar e guarda a intenção; a forma de pagamento NÃO se escolhe aqui (o servidor manda
+ * `UNDEFINED` e o Asaas pergunta); voltar da aba do Asaas confere o status na hora; e a data de
+ * nascimento que faltar (403 `idade_nao_informada`) é pedida ali mesmo, sem modal.
  */
 
-type Metodo = 'cartao' | 'pix' | 'boleto';
 type Campo = 'nome' | 'cpf' | 'email';
 
 const mascaraCpf = (v: string) => {
@@ -79,10 +85,11 @@ function impedimento(
   plan: Plan,
   conta: Conta,
   status: StatusDeBilling | null,
-  extra: { vendaAberta: boolean; menor: boolean; paraOutro: boolean } = {
+  extra: { vendaAberta: boolean; menor: boolean; paraOutro: boolean; semConta: boolean } = {
     vendaAberta: true,
     menor: false,
     paraOutro: false,
+    semConta: plan === 'anonimo',
   },
 ): [string, string] | null {
   if (!extra.vendaAberta)
@@ -100,7 +107,7 @@ function impedimento(
       'Nada a pagar no self-host',
       'O app roda no seu computador e já está tudo liberado. Os planos são para usar na nuvem.',
     ];
-  if (plan === 'anonimo')
+  if (extra.semConta)
     return ['Entre na sua conta para assinar', 'A assinatura fica na sua conta: é ela que o pagamento libera.'];
   if (!status?.configurado)
     return [
@@ -121,57 +128,76 @@ export default function Checkout({
   plan,
   conta,
   status,
+  aoEntrar,
 }: {
   plano: PlanoPago;
   aoTrocarPlano: (p: PlanoPago) => void;
   plan: Plan;
   conta: Conta;
   status: StatusDeBilling | null;
+  /** Abre o login (o mesmo `navigateTo('login')` do menu da conta). */
+  aoEntrar?: () => void;
 }) {
   const [passo, setPasso] = useState<1 | 2>(1);
-  const [metodo, setMetodo] = useState<Metodo>('cartao');
   const [campos, setCampos] = useState<Record<Campo, string>>({ nome: '', cpf: '', email: '' });
   const [erros, setErros] = useState<Partial<Record<Campo, string>>>({});
   const [ocupado, setOcupado] = useState(false);
   const [erroServidor, setErroServidor] = useState('');
   const [link, setLink] = useState<string | null>(null);
-  const [vendaAberta, setVendaAberta] = useState(true);
   const [beneficiario, setBeneficiario] = useState<Beneficiario | null>(lerBeneficiario);
-
+  /* O servidor tem a última palavra: 503 `checkout_desligado` pausa a venda e 403 `menor_nao_compra`
+     mostra o responsável, mesmo que o cliente ainda não soubesse. */
+  const vendaAbertaNoCliente = useVendaAberta();
+  const [recusa, setRecusa] = useState<'pausada' | 'menor' | null>(null);
+  const semConta = useSemConta(plan);
+  /* A IDADE ALI MESMO: `pedirIdade` abre o campo quando o servidor responde 403
+     `idade_nao_informada`; o próximo clique declara a data e tenta de novo. */
+  const [pedirIdade, setPedirIdade] = useState(false);
+  const [nascimento, setNascimento] = useState('');
+  const [erroIdade, setErroIdade] = useState('');
+  const [protecao, setProtecao] = useState(estadoDaProtecao);
+  const campoDaIdade = useRef<HTMLInputElement>(null);
   useEffect(() => {
-    let vivo = true;
-    void lerAbertura().then((a) => {
-      if (vivo) setVendaAberta(a.checkout);
-    });
-    return () => {
-      vivo = false;
-    };
-  }, []);
+    if (pedirIdade) campoDaIdade.current?.focus();
+  }, [pedirIdade]);
 
   const preco = precoMensal(plano);
   const P = PLANO_NOME[plano];
-  const protecao = estadoDaProtecao();
-  const menor = !!protecao && protecao.faixa !== 'adulto' && protecao.nascimentoInformado;
-  const bloqueio = impedimento(plan, conta, status, { vendaAberta, menor, paraOutro: !!beneficiario });
+  const menor =
+    recusa === 'menor' || (!!protecao && protecao.faixa !== 'adulto' && protecao.nascimentoInformado);
+  const vendaAberta = vendaAbertaNoCliente && recusa !== 'pausada';
+  const bloqueio = impedimento(plan, conta, status, { vendaAberta, menor, paraOutro: !!beneficiario, semConta });
   const assinarParaMim = () => {
     definirBeneficiario(null);
     setBeneficiario(null);
   };
 
-  /* Espera a CONFIRMAÇÃO DO SERVIDOR: o webhook promove o plano quando o Asaas avisa o pagamento. */
+  /* Espera a CONFIRMAÇÃO DO SERVIDOR: o webhook promove o plano quando o Asaas avisa o pagamento.
+     Pergunta a cada 5 s e, também, NA HORA em que a pessoa volta da aba do Asaas (foco ou aba
+     visível) — é quando ela acabou de pagar e espera ver a tela andar. */
   useEffect(() => {
     if (!link) return;
     let vivo = true;
-    const id = window.setInterval(() => {
+    let foi = false;
+    const conferir = () => {
       void carregarStatusDeBilling().then(async (s) => {
-        if (!vivo || s?.assinatura?.status !== 'active') return;
+        if (!vivo || foi || s?.assinatura?.status !== 'active') return;
+        foi = true;
         await carregarEntitlements();
         irSub('assinado');
       });
-    }, 5000);
+    };
+    const aoVoltar = () => {
+      if (document.visibilityState === 'visible') conferir();
+    };
+    const id = window.setInterval(conferir, 5000);
+    window.addEventListener('focus', aoVoltar);
+    document.addEventListener('visibilitychange', aoVoltar);
     return () => {
       vivo = false;
       window.clearInterval(id);
+      window.removeEventListener('focus', aoVoltar);
+      document.removeEventListener('visibilitychange', aoVoltar);
     };
   }, [link]);
 
@@ -193,6 +219,34 @@ export default function Checkout({
       return;
     }
     setErroServidor('');
+    if (pedirIdade) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(nascimento)) {
+        setErroIdade(t('Escolha a sua data de nascimento.'));
+        campoDaIdade.current?.focus();
+        return;
+      }
+      setErroIdade('');
+      setOcupado(true);
+      const d = await declararNascimento(nascimento);
+      if (ehFalha(d) && d.code !== 'nascimento_ja_informado') {
+        setOcupado(false);
+        setErroIdade(
+          d.code === 'nascimento_invalido'
+            ? t('Essa data não parece certa. Confira o dia, o mês e o ano.')
+            : t('Não consegui salvar a data agora ({erro}). Tente de novo.', { erro: d.error }),
+        );
+        return;
+      }
+      setPedirIdade(false);
+      if (!ehFalha(d)) {
+        setProtecao(d.estado);
+        // Menor de 18: a tela troca para "quem assina é o seu responsável" e não tenta pagar.
+        if (d.estado.faixa !== 'adulto') {
+          setOcupado(false);
+          return;
+        }
+      }
+    }
     setOcupado(true);
     const r = await iniciarAssinatura({
       plano,
@@ -202,6 +256,14 @@ export default function Checkout({
       ...(beneficiario ? { paraUsuario: beneficiario.id } : {}),
     });
     setOcupado(false);
+    if (r.codigo === 'idade_nao_informada') {
+      setPedirIdade(true);
+      return;
+    }
+    if (r.codigo === 'checkout_desligado' || r.codigo === 'menor_nao_compra') {
+      setRecusa(r.codigo === 'checkout_desligado' ? 'pausada' : 'menor');
+      return;
+    }
     if (!r.link) {
       setErroServidor(r.erro ?? 'A assinatura foi criada, mas o link de pagamento não veio. Tente de novo.');
       return;
@@ -284,24 +346,6 @@ export default function Checkout({
     </section>
   );
 
-  const corpoDoMetodo =
-    metodo === 'cartao' ? (
-      <p className="nota-seg">
-        <Lock aria-hidden /> O número do cartão você digita na página segura do Asaas, que abre quando você continuar. O
-        Babel Play não vê nem guarda esses dados.
-      </p>
-    ) : metodo === 'pix' ? (
-      <p className="mut" style={{ fontSize: 13.5 }}>
-        O QR code aparece na página segura do Asaas depois que você confirmar. Todo mês chega uma nova cobrança por
-        e-mail.
-      </p>
-    ) : (
-      <p className="mut" style={{ fontSize: 13.5 }}>
-        O boleto sai na página segura do Asaas e é compensado em até 2 dias úteis depois do pagamento. O acesso ao {P}{' '}
-        libera quando o banco confirmar. Todo mês chega um novo boleto por e-mail.
-      </p>
-    );
-
   const aguardando = link && (
     <div className="entra">
       <p className="aguarda">
@@ -317,20 +361,12 @@ export default function Checkout({
     </div>
   );
 
-  const rotuloPagar = link
-    ? 'Aguardando o pagamento…'
-    : ocupado
-      ? 'Processando…'
-      : metodo === 'pix'
-        ? `Gerar Pix de ${brl(preco)}`
-        : metodo === 'boleto'
-          ? `Gerar boleto de ${brl(preco)}`
-          : `Assinar e pagar ${brl(preco)}`;
+  const rotuloPagar = link ? 'Aguardando o pagamento…' : ocupado ? 'Processando…' : `Assinar e pagar ${brl(preco)}`;
 
   const passo2 = bloqueio ? (
     <section className="cartao p6">
       <div className="vazio">
-        <IconeEmBloco icone={plan === 'anonimo' ? UserRound : CreditCard} />
+        <IconeEmBloco icone={semConta ? UserRound : CreditCard} />
         <h3>{bloqueio[0]}</h3>
         <p>{bloqueio[1]}</p>
       </div>
@@ -341,6 +377,11 @@ export default function Checkout({
         {temAssinatura(conta.estado) && (
           <button type="button" className="btn btn-solid" onClick={() => irSub('assinatura')}>
             Ver minha assinatura
+          </button>
+        )}
+        {bloqueio[0] === 'Entre na sua conta para assinar' && (
+          <button type="button" className="btn btn-solid" onClick={() => entrarParaAssinar(plano, aoEntrar)}>
+            <LogIn aria-hidden /> {t('Entrar ou criar conta')}
           </button>
         )}
       </div>
@@ -359,30 +400,21 @@ export default function Checkout({
           </span>
         </p>
       )}
-      <fieldset className="escolha">
-        <legend className="label-mono">Forma de pagamento</legend>
-        <div className="seg metodos" role="radiogroup" aria-label="Forma de pagamento">
-          {(
-            [
-              ['cartao', 'Cartão', CreditCard],
-              ['pix', 'Pix', QrCode],
-              ['boleto', 'Boleto', Barcode],
-            ] as const
-          ).map(([v, r, I]) => (
-            <button
-              key={v}
-              type="button"
-              role="radio"
-              aria-checked={metodo === v}
-              disabled={!!link}
-              onClick={() => setMetodo(v)}
-            >
-              <I aria-hidden style={{ width: 15, height: 15 }} /> {r}
-            </button>
-          ))}
-        </div>
-      </fieldset>
-      <div className="metodo-corpo">{aguardando || corpoDoMetodo}</div>
+      {/* Sem seletor de forma de pagamento: o servidor cria a cobrança com `billingType: 'UNDEFINED'`
+          e é a página do Asaas que pergunta Pix, cartão ou boleto. Um seletor aqui seria enfeite. */}
+      <div className="metodo-corpo">
+        {aguardando || (
+          <>
+            <p className="mut" style={{ fontSize: 13.5 }}>
+              {t('Você escolhe Pix, cartão ou boleto na página segura do Asaas.')}
+            </p>
+            <p className="nota-seg">
+              <Lock aria-hidden /> O número do cartão você digita na página segura do Asaas, que abre quando você
+              continuar. O Babel Play não vê nem guarda esses dados.
+            </p>
+          </>
+        )}
+      </div>
       <div className="grid-form" style={{ marginTop: 6 }}>
         {campo('nome', 'Nome completo', 'Como está no documento', { autoComplete: 'name', readOnly: !!link })}
         {campo('cpf', 'CPF', '000.000.000-00', { inputMode: 'numeric', maxLength: 14, readOnly: !!link })}
@@ -395,6 +427,40 @@ export default function Checkout({
       <p className="mut" style={{ fontSize: 12, marginTop: -6 }}>
         O CPF é exigido para emitir a cobrança. Ele vai direto para o processador de pagamento, não fica no nosso banco.
       </p>
+      {pedirIdade && (
+        <div className="entra" style={{ marginTop: 12 }}>
+          <p className="aviso-info">
+            <CakeSlice aria-hidden />
+            <span>
+              {t(
+                'Antes de pagar, falta a sua data de nascimento. Pedimos uma vez só: quem assina precisa ter 18 anos ou mais. Depois de confirmada, a data só muda pelo suporte.',
+              )}
+            </span>
+          </p>
+          <div className={`form-l ${erroIdade ? 'com-erro' : ''}`} style={{ marginTop: 10 }}>
+            <label htmlFor="co-nascimento">{t('Data de nascimento')}</label>
+            <input
+              ref={campoDaIdade}
+              className="campo"
+              id="co-nascimento"
+              type="date"
+              max={new Date().toISOString().slice(0, 10)}
+              value={nascimento}
+              onChange={(e) => {
+                setNascimento(e.target.value);
+                if (erroIdade) setErroIdade('');
+              }}
+              aria-invalid={erroIdade ? true : undefined}
+              aria-describedby={erroIdade ? 'e-nascimento' : undefined}
+            />
+            {erroIdade && (
+              <small className="erro" id="e-nascimento">
+                <CircleAlert aria-hidden /> {erroIdade}
+              </small>
+            )}
+          </div>
+        </div>
+      )}
       {erroServidor && (
         <p className="erro-auth" role="alert">
           <CircleAlert aria-hidden /> {erroServidor}

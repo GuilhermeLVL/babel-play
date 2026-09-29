@@ -50,6 +50,7 @@ import Checkout from './planos/Checkout';
 import { irAjuda, irSub, type Plano, PLANO_NOME, PLANOS } from './planos/dados';
 import { DialogoFatura, DialogoMudarPlano, DialogoPagamento, DialogoPausar } from './planos/DialogosDaAssinatura';
 import FaixaDaConta from './planos/FaixaDaConta';
+import { entrarParaAssinar, useSemConta, useVendaAberta } from './planos/funil';
 import SuaAssinatura, { type DialogoDaAssinatura, metodoAtual } from './planos/SuaAssinatura';
 
 /**
@@ -187,7 +188,7 @@ function planoGuardado(): PlanoPago {
   }
 }
 
-export default function Planos() {
+export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
   const [entitlements, setEntitlements] = useState(() => getEntitlements());
   const [status, setStatus] = useState<StatusDeBilling | null>(null);
   const [faturas, setFaturas] = useState<Fatura[] | null>(null);
@@ -261,6 +262,8 @@ export default function Planos() {
   const meuPlano = entitlements.plan;
   const conta = estadoDaConta(meuPlano, status);
   const assina = temAssinatura(conta.estado);
+  const semConta = useSemConta(meuPlano);
+  const vendaAberta = useVendaAberta();
 
   /* Faturas só para quem assina — e só depois de saber que assina. */
   useEffect(() => {
@@ -313,7 +316,14 @@ export default function Planos() {
   /* ── Sub-telas ── */
   if (sub === 'assinar')
     return (
-      <Checkout plano={planoDoCheckout} aoTrocarPlano={escolherPlano} plan={meuPlano} conta={conta} status={status} />
+      <Checkout
+        plano={planoDoCheckout}
+        aoTrocarPlano={escolherPlano}
+        plan={meuPlano}
+        conta={conta}
+        status={status}
+        aoEntrar={onEntrar}
+      />
     );
   if (sub === 'assinado') return <Assinado />;
   if (sub === 'cancelar')
@@ -335,6 +345,19 @@ export default function Planos() {
     if (!assina) {
       if (p.id === 'gratis')
         return { rot: 'Continuar grátis', solido: false, acao: () => toast.ok('Você continua no Grátis. Nada muda.') };
+      /* Venda pausada (`CHECKOUT_ENABLED=0` ou a flag `vender_planos` desligada): o cartão continua
+         mostrando o plano, sem um botão que levaria a um checkout fechado. */
+      if (!vendaAberta) return { rot: t('Vendas reabrem em breve'), solido: false, off: true, acao: () => {} };
+      /* Sem conta: direto ao login, com a intenção guardada — o checkout só diria "entre primeiro". */
+      if (semConta)
+        return {
+          rot: t('Entrar e assinar o {plano}', { plano: p.nome }),
+          solido: !!p.destaque,
+          acao: () => {
+            escolherPlano(p.id as PlanoPago);
+            entrarParaAssinar(p.id as PlanoPago, onEntrar);
+          },
+        };
       return {
         rot: `Assinar ${p.nome}`,
         solido: !!p.destaque,

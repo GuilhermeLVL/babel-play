@@ -98,9 +98,13 @@ export default function SuaAssinatura({
               <dt>Valor</dt>
               <dd className="tn">{brl(precoMensal(plano))} por mês</dd>
             </div>
+            {/* "Próxima cobrança" só com a data do Asaas; sem ela, o que se sabe é até quando o acesso
+                vale (`valeAte`, que inclui a graça de atraso) — e a tela diz isso, não "cobrança". */}
             <div>
-              <dt>{e === 'ativa' ? 'Próxima cobrança' : 'Acesso até'}</dt>
-              <dd className="tn">{dataCurta(conta.valeAte)}</dd>
+              <dt>{e === 'ativa' && conta.proximaCobranca ? 'Próxima cobrança' : 'Acesso até'}</dt>
+              <dd className="tn">
+                {dataCurta(e === 'ativa' && conta.proximaCobranca ? conta.proximaCobranca : conta.valeAte)}
+              </dd>
             </div>
             <div>
               <dt>Pagamento</dt>

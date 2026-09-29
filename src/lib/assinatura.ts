@@ -22,6 +22,12 @@ export const ehPlanoPago = (p: unknown): p is PlanoPago => p === 'essencial' || 
 export interface StatusDeBilling {
   configurado: boolean;
   assinatura: { plano: string; status: string; valeAte: number | null; provedor: string | null } | null;
+  /**
+   * A PRÓXIMA COBRANÇA (`AAAA-MM-DD`, o `nextDueDate` do Asaas) — só para assinatura ativa, e só
+   * quando o servidor conseguiu perguntar. NÃO é `valeAte`: esse é o vencimento mais a graça de
+   * atraso, até quando o acesso vale.
+   */
+  proximaCobranca?: string;
 }
 
 export interface Fatura {
@@ -46,6 +52,8 @@ export interface Conta {
   plano: PlanoPago | null;
   /** Até quando o período pago vale (ms). `null` = o servidor não sabe ainda. */
   valeAte: number | null;
+  /** Quando o Asaas cobra de novo (`AAAA-MM-DD`). Ausente = não se sabe (e a tela diz "acesso até"). */
+  proximaCobranca?: string | null;
 }
 
 /**
@@ -58,7 +66,13 @@ export function estadoDaConta(plan: Plan, status: StatusDeBilling | null, agora 
   if (plan === 'selfhost') return { estado: 'selfhost', plano: null, valeAte: null };
   const s = status?.assinatura;
   if (s && ehPlanoPago(s.plano)) {
-    if (s.status === 'active') return { estado: 'ativa', plano: s.plano, valeAte: s.valeAte };
+    if (s.status === 'active')
+      return {
+        estado: 'ativa',
+        plano: s.plano,
+        valeAte: s.valeAte,
+        ...(status?.proximaCobranca ? { proximaCobranca: status.proximaCobranca } : {}),
+      };
     if (s.status === 'past_due') return { estado: 'falhou', plano: s.plano, valeAte: s.valeAte };
     if (s.status === 'canceled' && s.valeAte !== null && s.valeAte > agora)
       return { estado: 'cancelada', plano: s.plano, valeAte: s.valeAte };
@@ -157,15 +171,21 @@ export async function iniciarAssinatura(dados: {
   email?: string;
   /** O responsável assinando pelo menor vinculado (Fase 4): a assinatura nasce na conta dele. */
   paraUsuario?: string;
-}): Promise<{ link: string | null; erro?: string }> {
+}): Promise<{ link: string | null; erro?: string; codigo?: string }> {
   try {
     const r = await apiFetch('/api/billing/assinar', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(dados),
     });
-    const corpo = (await r.json().catch(() => ({}))) as { linkDePagamento?: string | null; error?: string };
-    if (!r.ok) return { link: null, erro: corpo.error ?? `falha (HTTP ${r.status})` };
+    const corpo = (await r.json().catch(() => ({}))) as {
+      linkDePagamento?: string | null;
+      error?: string;
+      code?: string;
+    };
+    /* O `code` do servidor decide o que a tela faz: `idade_nao_informada` pede a data ali mesmo,
+       `checkout_desligado` mostra a venda pausada, `menor_nao_compra` explica o responsável. */
+    if (!r.ok) return { link: null, erro: corpo.error ?? `falha (HTTP ${r.status})`, codigo: corpo.code };
     return { link: corpo.linkDePagamento ?? null };
   } catch {
     return { link: null, erro: 'não consegui falar com o servidor.' };

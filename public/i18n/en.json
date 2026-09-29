@@ -1171,5 +1171,16 @@
   "Modelos no aparelho": "Models on this device",
   "O que foi baixado e o tamanho": "What was downloaded and its size",
   "Parar captura": "Stop capture",
-  "No celular, o som de outros apps não entra: a legenda vem do microfone.": "On a phone, sound from other apps can't come in: captions come from the microphone."
+  "No celular, o som de outros apps não entra: a legenda vem do microfone.": "On a phone, sound from other apps can't come in: captions come from the microphone.",
+  "Você escolhe Pix, cartão ou boleto na página segura do Asaas.": "You choose Pix, card or boleto on Asaas's secure page.",
+  "Entrar ou criar conta": "Sign in or create an account",
+  "Escolha a sua data de nascimento.": "Choose your date of birth.",
+  "Essa data não parece certa. Confira o dia, o mês e o ano.": "That date doesn't look right. Check the day, month and year.",
+  "Não consegui salvar a data agora ({erro}). Tente de novo.": "I couldn't save the date right now ({erro}). Try again.",
+  "Antes de pagar, falta a sua data de nascimento. Pedimos uma vez só: quem assina precisa ter 18 anos ou mais. Depois de confirmada, a data só muda pelo suporte.": "Before paying, we still need your date of birth. We only ask once: whoever subscribes must be 18 or older. Once confirmed, the date can only be changed by support.",
+  "Data de nascimento": "Date of birth",
+  "Vendas reabrem em breve": "Sales reopen soon",
+  "Entrar e assinar o {plano}": "Sign in and subscribe to {plano}",
+  "Próxima cobrança em": "Next charge on",
+  "Acesso até": "Access until"
 }

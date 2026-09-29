@@ -92,6 +92,12 @@ export default function Login({ onContinuarSemConta }: LoginProps = {}) {
         const r = await auth.signInEmail(email, senha);
         if (!r.ok) setErro(r.message ?? 'Falha ao entrar.');
       } else if (modo === 'signup') {
+        // O mínimo do Supabase de produção, conferido aqui: o `minLength` do campo não segura um
+        // envio programático, e o erro do servidor chegaria em inglês.
+        if (senha.length < auth.SENHA_MINIMA) {
+          setErro(auth.SENHA_CURTA);
+          return;
+        }
         const r = await auth.signUpEmail(email, senha);
         if (!r.ok) setErro(r.message ?? 'Falha ao criar conta.');
         else if (r.needsEmailConfirm)
@@ -179,11 +185,13 @@ export default function Login({ onContinuarSemConta }: LoginProps = {}) {
             <PasswordField
               id="auth-senha"
               required
-              minLength={6}
+              /* Só ao CRIAR: quem entra com uma senha antiga, anterior ao mínimo de 8, não é barrado
+                 na porta — a regra vale para senha nova. */
+              minLength={modo === 'signup' ? auth.SENHA_MINIMA : undefined}
               autoComplete={modo === 'login' ? 'current-password' : 'new-password'}
               value={senha}
               onChange={(e) => setSenha(e.target.value)}
-              placeholder="mínimo 6 caracteres"
+              placeholder={`mínimo ${auth.SENHA_MINIMA} caracteres`}
             />
           </div>
         )}

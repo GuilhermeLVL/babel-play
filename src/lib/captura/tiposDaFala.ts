@@ -104,4 +104,8 @@ export interface HandlersDaFonte {
   onUtterance: (pcm: Float32Array, sr: number, rawSeq: number, especulacao?: EspeculacaoDoFinal) => void;
   /** ~450 ms de silêncio: começa o decode final já (ver `SystemAudioCallbacks.onFinalEspeculativo`). */
   onFinalEspeculativo: (pcm: Float32Array, sr: number, rawSeq: number) => EspeculacaoDoFinal | null;
+  /** O pipeline quer o parcial agora? A captura pergunta antes de copiar o áudio (ver `SystemAudioCallbacks`). */
+  querParcial?: () => boolean;
+  /** Espaçamento entre parciais (ms) que o pipeline pede à captura. */
+  intervaloDosParciais?: () => number;
 }

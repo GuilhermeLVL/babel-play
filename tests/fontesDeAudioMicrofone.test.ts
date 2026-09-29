@@ -13,13 +13,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 const estado = vi.hoisted(() => ({
   abrirMic: null as null | (() => Promise<unknown>),
   opcoesDoMic: null as null | Record<string, unknown>,
+  cbDoMic: null as null | Record<string, unknown>,
 }))
 
 vi.mock('../src/gateway/capture/systemAudio', () => ({
   MAX_SPEECH_MS_LOCAL: 6000,
   MAX_SPEECH_MS_NUVEM: 12000,
   startSystemAudioCapture: vi.fn(),
-  startMicCapture: vi.fn(async (_id: unknown, _cb: unknown, opcoes: Record<string, unknown>) => {
+  startMicCapture: vi.fn(async (_id: unknown, cb: Record<string, unknown>, opcoes: Record<string, unknown>) => {
+    estado.cbDoMic = cb
     estado.opcoesDoMic = opcoes
     return estado.abrirMic!()
   }),
@@ -58,6 +60,8 @@ const handlers = () => ({
   onPartialAudio: vi.fn(),
   onUtterance: vi.fn(),
   onFinalEspeculativo: vi.fn(() => null),
+  querParcial: vi.fn(() => false),
+  intervaloDosParciais: vi.fn(() => 2200),
 })
 
 function montar(escolha: 'rapido' | 'privado', extra: Record<string, unknown> = {}) {
@@ -114,6 +118,7 @@ beforeEach(() => {
   ReconhecedorFalso.ultimo = null
   estado.abrirMic = null
   estado.opcoesDoMic = null
+  estado.cbDoMic = null
   getUserMedia.mockClear()
   vi.stubGlobal('window', { SpeechRecognition: ReconhecedorFalso })
   vi.stubGlobal('SpeechRecognition', ReconhecedorFalso)
@@ -250,5 +255,15 @@ describe('microfone pelo Privado (Whisper)', () => {
     })
     expect(d.aoAbrirFonte).not.toHaveBeenCalled()
     expect(d.setIsRecording).toHaveBeenCalledWith(false)
+  })
+
+  it('o parcial e o espaçamento dele são do pipeline (a captura pergunta antes de copiar o áudio)', async () => {
+    estado.abrirMic = async () => ({ startedAtMs: 5, setMuted: vi.fn(), setPaused: vi.fn(), stop: vi.fn() })
+    const { fontes, d } = montar('privado')
+    await fontes.startMic()
+    const cb = estado.cbDoMic as { querParcial: () => boolean; intervaloDosParciais: () => number }
+    expect(cb.querParcial()).toBe(false)
+    expect(d.micHandlers.querParcial).toHaveBeenCalled()
+    expect(cb.intervaloDosParciais()).toBe(2200)
   })
 })

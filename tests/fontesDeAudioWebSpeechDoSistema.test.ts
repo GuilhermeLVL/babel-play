@@ -62,6 +62,8 @@ function handlers() {
     onPartialAudio: vi.fn(),
     onUtterance: vi.fn(),
     onFinalEspeculativo: vi.fn(() => null),
+    querParcial: vi.fn(() => true),
+    intervaloDosParciais: vi.fn(() => 2200),
   }
 }
 
@@ -190,5 +192,21 @@ describe('captura da aba × Web Speech no aparelho (fontesDeAudio)', () => {
     expect(m.prepareModels).toHaveBeenCalledWith()
     estado.cb!.onUtterance(PCM, 16000, 1)
     expect(m.sysHandlers.onUtterance).toHaveBeenCalled()
+  })
+
+  it('o parcial é decidido ANTES da cópia do áudio: o pipeline responde só quando é o motor', async () => {
+    const m = montar('pipeline')
+    await m.fontes.handleStartSystemCapture()
+    expect(estado.cb!.querParcial!()).toBe(true)
+    m.sysHandlers.querParcial.mockReturnValue(false) // modo desempenho, regulador, reserva…
+    expect(estado.cb!.querParcial!()).toBe(false)
+    expect(estado.cb!.intervaloDosParciais!()).toBe(2200) // o espaçamento é o do pipeline
+  })
+
+  it('com a Web Speech como motor, o VAD só fiscaliza: nenhum parcial, sem nem perguntar ao pipeline', async () => {
+    const m = montar('web-speech-local')
+    await m.fontes.handleStartSystemCapture()
+    expect(estado.cb!.querParcial!()).toBe(false)
+    expect(m.sysHandlers.querParcial).not.toHaveBeenCalled()
   })
 })

@@ -15,6 +15,13 @@ vi.mock('../src/lib/entitlements', async (original) => {
   const m = await original<typeof import('../src/lib/entitlements')>()
   return { ...m, getEntitlements: () => ({ ...m.getEntitlements(), managedCloudStt: plano.nuvemStt }) }
 })
+/* O perfil do aparelho também muda por caso. Sem o mock, o jsdom (sem getDisplayMedia, sem WebGPU)
+   seria classificado como celular fraco — leve — em todos os testes. */
+const aparelho = vi.hoisted(() => ({ leve: false }))
+vi.mock('../src/lib/dispositivo/perfil', async (original) => {
+  const m = await original<typeof import('../src/lib/dispositivo/perfil')>()
+  return { ...m, perfilDoDispositivo: () => ({ ...m.perfilDoDispositivo(), leve: aparelho.leve }) }
+})
 
 import { ContextoDoStt } from '../src/gateway/promptDeStt'
 import { criarPipelineDeFala } from '../src/lib/captura/pipelineDeFala'
@@ -327,5 +334,85 @@ describe('um setState por quadro', () => {
     expect(deps.setModelPrep).toHaveBeenCalledTimes(1)
     const atualizar = (deps.setModelPrep as ReturnType<typeof vi.fn>).mock.calls[0][0] as (s: unknown) => unknown
     expect(atualizar(null)).toMatchObject({ mt: 0.2, mtBytes: { loaded: 20, total: 100 } })
+  })
+})
+
+/**
+ * WORKERS QUE DESCANSAM ("Grátis sem travar", A5): o pipeline diz à captura se quer o parcial ANTES de
+ * ela copiar o áudio, espaça os parciais no aparelho leve e não especula onde o aparelho não acompanha.
+ */
+describe('workers que descansam', () => {
+  const reguladorFalso = () => ({
+    parciaisCortados: false,
+    parciaisDoMicPausados: false,
+    aoFinal: vi.fn(),
+    reiniciar: vi.fn(),
+  })
+
+  it('`querParcial`: não no modo desempenho, com parciais cortados, e (só no mic) com a aba escondida', () => {
+    const regulador = reguladorFalso()
+    const { p, deps } = montar({ regulador })
+    expect(p.micHandlers.querParcial()).toBe(true)
+    expect(p.sysHandlers.querParcial()).toBe(true)
+    regulador.parciaisDoMicPausados = true
+    expect(p.micHandlers.querParcial()).toBe(false)
+    expect(p.sysHandlers.querParcial()).toBe(true) // o sistema segue: é o "só ouvir"
+    regulador.parciaisDoMicPausados = false
+    regulador.parciaisCortados = true
+    expect(p.micHandlers.querParcial()).toBe(false)
+    expect(p.sysHandlers.querParcial()).toBe(false)
+    regulador.parciaisCortados = false
+    deps.perfModeRef.current = true
+    expect(p.micHandlers.querParcial()).toBe(false)
+    expect(p.sysHandlers.querParcial()).toBe(false)
+  })
+
+  it('`querParcial` falso: um parcial que chegue mesmo assim não vai ao STT', () => {
+    const { p, deps, transcribePartial } = montar()
+    deps.perfModeRef.current = true
+    expect(p.sysHandlers.querParcial()).toBe(false)
+    p.sysHandlers.onSpeechStart(1)
+    p.sysHandlers.onPartialAudio(new Float32Array(1600), 16000, 1)
+    expect(transcribePartial).not.toHaveBeenCalled()
+  })
+
+  it('`intervaloDosParciais`: 1,1 s de padrão, 2,2 s no aparelho leve', () => {
+    expect(montar().p.micHandlers.intervaloDosParciais()).toBe(1100)
+    aparelho.leve = true
+    try {
+      const { p } = montar()
+      expect(p.micHandlers.intervaloDosParciais()).toBe(2200)
+      expect(p.sysHandlers.intervaloDosParciais()).toBe(2200)
+    } finally {
+      aparelho.leve = false
+    }
+  })
+
+  it('sem final especulativo no aparelho leve — nenhum decode a mais', () => {
+    aparelho.leve = true
+    try {
+      const { p, transcribePcm } = montar()
+      p.micHandlers.onSpeechStart(1)
+      expect(p.micHandlers.onFinalEspeculativo(new Float32Array(1600), 16000, 1)).toBeNull()
+      expect(transcribePcm).not.toHaveBeenCalled()
+    } finally {
+      aparelho.leve = false
+    }
+  })
+
+  it('sem final especulativo com parciais cortados pelo regulador', () => {
+    const regulador = { ...reguladorFalso(), parciaisCortados: true }
+    const { p, transcribePcm } = montar({ regulador })
+    p.sysHandlers.onSpeechStart(1)
+    expect(p.sysHandlers.onFinalEspeculativo(new Float32Array(1600), 16000, 1)).toBeNull()
+    expect(transcribePcm).not.toHaveBeenCalled()
+  })
+
+  it('sem final especulativo no modo desempenho', () => {
+    const { p, deps, transcribePcm } = montar()
+    deps.perfModeRef.current = true
+    p.micHandlers.onSpeechStart(1)
+    expect(p.micHandlers.onFinalEspeculativo(new Float32Array(1600), 16000, 1)).toBeNull()
+    expect(transcribePcm).not.toHaveBeenCalled()
   })
 })

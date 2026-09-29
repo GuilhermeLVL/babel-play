@@ -23,7 +23,7 @@ import type { ContextoDoStt } from '../../gateway/promptDeStt';
 import { getSttQuality, nomeLegivelDoModelo, outroBackend, routeStt } from '../../gateway/sttRouter';
 import { consentiuReconhecimentoDoNavegador, rapidoDoMicPermitido } from '../consentimentoDeNuvem';
 import { DominantLangTracker } from '../convoLang';
-import { dispositivoDaRota, medirPerfilDoDispositivo } from '../dispositivo/perfil';
+import { dispositivoDaRota, medirPerfilDoDispositivo, perfilDoDispositivo } from '../dispositivo/perfil';
 import { getEntitlements } from '../entitlements';
 import { t } from '../i18n';
 import { detectLanguage } from '../langDetect';
@@ -60,6 +60,15 @@ const manterPacotes = (s: ModelPrepState | null): Pick<ModelPrepState, 'nativos'
  * o final responde, como qualquer entrada dele.
  */
 export const FALA_FECHADA = '\u0000fala-fechada';
+
+/** O espaçamento padrão entre parciais — o mesmo 1,1 s da captura (`PARTIAL_INTERVAL_MS`, `systemAudio.ts`). */
+const INTERVALO_DOS_PARCIAIS_MS = 1100;
+/**
+ * No aparelho LEVE, o dobro ("Grátis sem travar", A5): cada parcial é um decode inteiro do
+ * buffer-até-agora, e ali o Whisper mal dá conta dos finais. Metade dos parciais, e o texto ainda cresce
+ * durante a fala.
+ */
+const INTERVALO_DOS_PARCIAIS_LEVE_MS = 2200;
 
 /** O decode especulativo de uma fala: a captura só o cancela; o pipeline usa a promessa como final. */
 interface FinalEspeculativo extends EspeculacaoDoFinal {
@@ -203,6 +212,12 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
   const setSpeechSegments = falasNoQuadro.agora;
   const setModelPrep = prepNoQuadro.agora;
 
+  /* O aparelho é LEVE (`perfil.ts`: Quest, celular fraco, desktop de 2 núcleos ou 2 GB)? Lido uma vez
+     por fábrica, na primeira pergunta: é síncrono, mas lê navigator e matchMedia, e a captura pergunta a
+     cada parcial e a cada final especulativo. */
+  let leve: boolean | undefined;
+  const aparelhoLeve = (): boolean => (leve ??= perfilDoDispositivo().leve);
+
   /** Os efeitos das ações do regulador, com o gateway/setters deste render. */
   const efeitosDoRegulador: EfeitosDoRegulador = {
     trocarModelo: (modelo, opcoes) => {
@@ -343,14 +358,28 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       if (id) setSpeechSegments((prev) => prev.filter((s) => s.id !== id));
     };
 
+    /**
+     * ESTE PARCIAL SERIA DECODIFICADO? ("Grátis sem travar", A5.) A captura pergunta ANTES de montar o
+     * buffer-até-agora (`SystemAudioCallbacks.querParcial`), então o "não" poupa também a cópia do áudio,
+     * não só o decode. O `onPartialAudio` confere o mesmo na chegada: uma função só, para as duas portas
+     * não divergirem.
+     */
+    const querParcial = (): boolean => {
+      if (perfModeRef.current) return false; // modo desempenho: sem decodes parciais (só o final)
+      if (!reservaLocal.parciaisLocais) return false; // celular/Quest na nuvem: o local é só reserva
+      // Regulador: o aparelho não acompanha (parciais cortados) ou a aba do mic está escondida.
+      if (reguladorRef?.current.parciaisCortados) return false;
+      if (!isSys && reguladorRef?.current.parciaisDoMicPausados) return false;
+      return true;
+    };
+    /** Espaçamento entre parciais que a captura usa (ver `INTERVALO_DOS_PARCIAIS_LEVE_MS`). */
+    const intervaloDosParciais = (): number =>
+      aparelhoLeve() ? INTERVALO_DOS_PARCIAIS_LEVE_MS : INTERVALO_DOS_PARCIAIS_MS;
+
     // PARCIAL: transcreve o buffer-até-agora SÓ SE o Whisper estiver ocioso (idle-gating →
     // nunca enfileira → sem backlog). O texto aparece e refina em tempo real; a tradução acompanha.
     const onPartialAudio = (pcm: Float32Array, sr: number, rawSeq: number) => {
-      if (perfModeRef.current) return; // modo desempenho: sem decodes parciais (só o final)
-      if (!reservaLocal.parciaisLocais) return; // celular/Quest na nuvem: o local é só reserva
-      // Regulador: o aparelho não acompanha (parciais cortados) ou a aba do mic está escondida.
-      if (reguladorRef?.current.parciaisCortados) return;
-      if (!isSys && reguladorRef?.current.parciaisDoMicPausados) return;
+      if (!querParcial()) return;
       const seq = rawSeq + offset;
       if (suppressedSeqsRef.current.has(seq)) return; // anti-eco: enunciado é o nosso TTS
       const uttId = seqToSegmentRef.current.get(seq);
@@ -401,9 +430,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
           if (!clean) return;
           capMetrics.partial(seq);
           // No quadro seguinte, junto com o que mais chegar nele (ver `falasNoQuadro`).
-          falasNoQuadro((prev) =>
-            prev.map((s) => (s.id === uttId && s.isPartial ? { ...s, originalText: clean } : s)),
-          );
+          falasNoQuadro((prev) => prev.map((s) => (s.id === uttId && s.isPartial ? { ...s, originalText: clean } : s)));
           if (lastPartialTextRef.current.get(seq) !== clean) {
             lastPartialTextRef.current.set(seq, clean);
             // `descartarSeOcupado`: já há tradução em voo para este balão → não pede outra. Cada
@@ -427,6 +454,11 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       const seq = rawSeq + offset;
       if (!modelReadyRef.current || suppressedSeqsRef.current.has(seq)) return null;
       if (gateway.stt.finalNaNuvem()) return null;
+      /* ONDE O APARELHO NÃO ACOMPANHA, NÃO ESPECULA ("Grátis sem travar", A5). A especulação é um decode
+         a mais toda vez que a pessoa só respirou (a fala volta e ele vai fora). No aparelho leve, com os
+         parciais cortados pelo regulador ou no modo desempenho, esse decode é o que falta para o final
+         chegar a tempo; o final continua saindo quando o VAD fecha a fala, ~0,38 s depois. */
+      if (perfModeRef.current || reguladorRef?.current.parciaisCortados || aparelhoLeve()) return null;
       const { hint } = langs();
       const ctl = new AbortController();
       const promessa = gateway.stt.transcribePcm(pcm, sr, { languageHint: hint, signal: ctl.signal });
@@ -849,7 +881,15 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
         });
     };
 
-    return { onSpeechStart, onMisfire, onPartialAudio, onUtterance, onFinalEspeculativo };
+    return {
+      onSpeechStart,
+      onMisfire,
+      onPartialAudio,
+      onUtterance,
+      onFinalEspeculativo,
+      querParcial,
+      intervaloDosParciais,
+    };
   };
 
   const sysHandlers = makeCaptureHandlers('system');

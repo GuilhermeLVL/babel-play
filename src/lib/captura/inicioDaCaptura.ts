@@ -36,7 +36,7 @@ export interface EntradaDoInicio {
   motor: EntradaDoMotorDoMic & { escolha: EscolhaDoMic | null; podeInstalarPacote: boolean };
   /** MB que FALTA baixar do modelo de transcrição (0 = já no aparelho). */
   mbStt: number;
-  /** MB que falta do tradutor local; 0 quando ele carrega depois (`tradutorDepois`) ou já está aqui. */
+  /** MB que falta do tradutor local (0 = já está aqui). Entra no Rápido também: ele traduz. */
   mbTradutor: number;
   /** Pedir confirmação acima disto (`perfilDoAparelho.confirmarDownloadAcimaDeMb`); `null` = nunca. */
   limiteDeDownloadMb: number | null;
@@ -59,6 +59,8 @@ export type PassoDoInicio =
       mbSeRapido: number;
       /** O que baixa com o motor já decidido (a folha sem a pergunta). */
       mb: number;
+      /** A parte do tradutor nesses números (a folha diz "o tradutor" quando é só ele). */
+      mbTradutor: number;
     };
 
 /** O download da captura com a voz num motor ou no outro. O modelo de transcrição é UM para as duas fontes. */
@@ -76,18 +78,11 @@ export function planejarInicio(e: EntradaDoInicio): PassoDoInicio {
   const previsto = e.micEnabled ? motorPrevistoDoMic(e.motor) : 'navegador';
   const mb = e.modoNuvem ? 0 : mbCom(e, previsto === 'whisper');
   const pacoteDoNavegador = previstoPrivado === 'pacote';
-  if (perguntarMotor) return { tipo: 'folha', perguntarMotor, pacoteDoNavegador, mbSePrivado, mbSeRapido, mb };
+  const mbTradutor = e.modoNuvem ? 0 : e.mbTradutor;
+  if (perguntarMotor)
+    return { tipo: 'folha', perguntarMotor, pacoteDoNavegador, mbSePrivado, mbSeRapido, mb, mbTradutor };
   const limite = e.limiteDeDownloadMb;
   if (limite !== null && !e.downloadJaConfirmado && !e.modoNuvem && mb > 0 && mb > limite)
-    return { tipo: 'folha', perguntarMotor: false, pacoteDoNavegador, mbSePrivado, mbSeRapido, mb };
+    return { tipo: 'folha', perguntarMotor: false, pacoteDoNavegador, mbSePrivado, mbSeRapido, mb, mbTradutor };
   return { tipo: 'iniciar' };
-}
-
-/**
- * O TRADUTOR ESPERA A PRIMEIRA LEGENDA no celular com só o microfone: o opus-mt (~113 MB) disputava
- * a rede e a memória com o Whisper antes de a pessoa ver qualquer coisa. Fora disso (desktop, Quest
- * com a aba, o nativo do navegador que cobre o par), o de sempre.
- */
-export function tradutorDepoisDaPrimeiraLegenda(e: { tipo: string; sistemaLigado: boolean }): boolean {
-  return e.tipo.startsWith('celular') && !e.sistemaLigado;
 }

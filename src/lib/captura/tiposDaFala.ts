@@ -35,6 +35,11 @@ export interface SpeechSegment {
    * balão mostra "Mostrar tradução" no lugar da linha traduzida. Ausente = o de sempre.
    */
   traducaoSobDemanda?: boolean;
+  /**
+   * A tradução está A CAMINHO: a cadeia falhou só porque o tradutor local ainda carrega. O balão fica
+   * em "…" e a linha diz "Baixando o tradutor…" (`traducaoDaFala.ts`); o "tradutor pronto" a refaz.
+   */
+  traducaoPendente?: boolean;
 }
 
 // `VocabWord` agora vive em `src/types.ts` — é o contrato compartilhado do <VocabularyPanel/>,

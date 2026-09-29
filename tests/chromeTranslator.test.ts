@@ -67,4 +67,34 @@ describe('ChromeTranslatorMt', () => {
     await expect(mt.translate('oi', 'en', 'xx')).rejects.toThrow(/não cobre/)
     expect(estado(mt, 'en|xx')).toBe('unavailable')
   })
+
+  it('pacote baixando: "carregando" enquanto baixa, e avisa quem espera quando fica pronto', async () => {
+    let criar!: () => void
+    const api = instalar(async () => 'downloadable')
+    api.create.mockImplementation(
+      () => new Promise((r) => (criar = () => r({ translate: async (t: string) => `[${t}]` }))) as never,
+    )
+    const mt = new ChromeTranslatorMt()
+    const pronto = vi.fn()
+    mt.aoFicarPronto(pronto)
+    await expect(mt.translate('oi', 'pt', 'en')).rejects.toMatchObject({ name: 'MotorAindaCarregando' })
+    expect(mt.carregando('pt', 'en')).toBe(true)
+    criar()
+    await vi.waitFor(() => expect(pronto).toHaveBeenCalledTimes(1))
+    expect(mt.carregando('pt', 'en')).toBe(false)
+  })
+
+  it('pacote que falha: também avisa (quem esperava tenta pelo próximo motor)', async () => {
+    const api = instalar(async () => 'downloadable')
+    api.create.mockImplementation(async () => {
+      throw new Error('sem ativação')
+    })
+    const mt = new ChromeTranslatorMt()
+    const pronto = vi.fn()
+    mt.aoFicarPronto(pronto)
+    await expect(mt.translate('oi', 'pt', 'en')).rejects.toMatchObject({ name: 'MotorAindaCarregando' })
+    await vi.waitFor(() => expect(pronto).toHaveBeenCalledTimes(1))
+    expect(estado(mt, 'pt|en')).toBe('unavailable')
+  })
 })
+

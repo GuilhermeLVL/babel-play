@@ -227,19 +227,32 @@ describe('porta de qualidade do STT no pipeline', () => {
   })
 })
 
-describe('o tradutor que espera a primeira legenda (celular só com o microfone)', () => {
-  it('a primeira legenda na tela dispara a carga guardada, uma vez só', async () => {
-    const carregar = vi.fn()
-    const tradutorPendenteRef = ref<(() => void) | null>(carregar)
-    const { p } = montar({ extra: { tradutorPendenteRef } })
-    p.micHandlers.onSpeechStart(1)
-    p.micHandlers.onUtterance(new Float32Array(1600), 16000, 1)
-    await esperar()
-    expect(carregar).toHaveBeenCalledTimes(1)
-    expect(tradutorPendenteRef.current).toBeNull()
-    p.micHandlers.onSpeechStart(2)
-    p.micHandlers.onUtterance(new Float32Array(1600), 16000, 2)
-    await esperar()
-    expect(carregar).toHaveBeenCalledTimes(1)
+describe('o tradutor da fala do Rápido (não há modelo de transcrição a esperar)', () => {
+  it('carrega JÁ o tradutor da SUA fala (pt→en), com a barra na preparação, e retraduz no 100%', async () => {
+    let progresso: ((p: number, l?: string, b?: { loaded: number; total: number }) => void) | undefined
+    const preload = vi.fn((_de: string, _para: string, cb?: typeof progresso) => {
+      progresso = cb
+      return new Promise<void>(() => {})
+    })
+    const { p, deps } = montar()
+    ;(deps.gateway as unknown as { mt: unknown }).mt = { preload }
+    p.prepararTradutorDaFala()
+    expect(preload).toHaveBeenCalledWith('pt', 'en', expect.any(Function))
+    // Sem progresso ainda, nenhum painel (o nativo pronto nem chega a baixar nada).
+    expect(deps.setModelPrep).not.toHaveBeenCalled()
+    progresso!(0.3, 'baixando', { loaded: 30, total: 100 })
+    const atualizar = (deps.setModelPrep as ReturnType<typeof vi.fn>).mock.calls[0][0] as (s: unknown) => unknown
+    expect(atualizar(null)).toMatchObject({ whisper: null, mt: 0.3, mtBytes: { loaded: 30, total: 100 }, done: false })
+    expect(deps.retraduzirDegradados).not.toHaveBeenCalled()
+    progresso!(1)
+    expect(deps.retraduzirDegradados).toHaveBeenCalledTimes(1)
+  })
+
+  it('a sua fala já no idioma da legenda: nada carrega', () => {
+    const preload = vi.fn(async () => {})
+    const { p, deps } = montar({ extra: { targetLangRef: ref('pt-PT') } })
+    ;(deps.gateway as unknown as { mt: unknown }).mt = { preload }
+    p.prepararTradutorDaFala()
+    expect(preload).not.toHaveBeenCalled()
   })
 })

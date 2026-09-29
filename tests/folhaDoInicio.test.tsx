@@ -20,7 +20,11 @@ beforeAll(prepararDialogoNoJsdom)
 afterEach(cleanup)
 
 describe('folha do início (a pergunta do mic com o download real)', () => {
-  function montar(inicio = { mbSePrivado: 80, mbSeRapido: 0, aparelhoLento: true }) {
+  function montar(inicio: { mbSePrivado: number; mbSeRapido: number; aparelhoLento: boolean; mbTradutor?: number } = {
+    mbSePrivado: 80,
+    mbSeRapido: 0,
+    aparelhoLento: true,
+  }) {
     const props = { mb: 80, aoEscolher: vi.fn(), aoFechar: vi.fn(), inicio }
     render(<EscolhaDoMicrofone {...props} />)
     return props
@@ -31,6 +35,15 @@ describe('folha do início (a pergunta do mic com o download real)', () => {
     fireEvent.click(screen.getByRole('button', { name: /Rápido/ }))
     expect(screen.getByTestId('download-da-escolha').textContent).toMatch(/Nada a baixar/)
     fireEvent.click(screen.getByRole('button', { name: 'Iniciar' }))
+    expect(p.aoEscolher).toHaveBeenCalledWith('rapido')
+  })
+
+  it('Rápido com o tradutor a baixar: a linha diz que é o tradutor, "Baixar e iniciar", sem o selo "Sem download"', () => {
+    const p = montar({ mbSePrivado: 193, mbSeRapido: 113, mbTradutor: 113, aparelhoLento: true })
+    expect(screen.getByRole('button', { name: /Rápido/ }).textContent).not.toMatch(/Sem download/)
+    fireEvent.click(screen.getByRole('button', { name: /Rápido/ }))
+    expect(screen.getByTestId('download-da-escolha').textContent).toMatch(/tradutor.*113 MB/)
+    fireEvent.click(screen.getByRole('button', { name: /Baixar e iniciar/ }))
     expect(p.aoEscolher).toHaveBeenCalledWith('rapido')
   })
 

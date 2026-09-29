@@ -114,6 +114,81 @@ export interface CallbacksDaWebSpeech extends SttCallbacks {
   onSom?(ha: boolean): void
 }
 
+/**
+ * UM FINAL POR FALA (relato do dono no celular, 2026-09-29: "a legenda duplica, repete o que a pessoa
+ * fala"). O Chrome do Android, com `continuous`, não manda parcial nenhum: cada hipótese que cresce
+ * chega como FINAL num índice novo ("olá" → "olá tudo" → "olá tudo bem com você", confiança 0), às
+ * vezes a lista cumulativa inteira volta com `resultIndex` 0, e o religar do `onend` reenvia o último
+ * final. O laço antigo (de `resultIndex` em diante, um `onFinal` por resultado final) fazia de "olá
+ * tudo bem com você", dito UMA vez, 4 balões — ou 7.
+ *
+ * Então, sem parciais de verdade, a hipótese vai como PARCIAL (o mesmo balão) e só é comprometida
+ * depois de parar de crescer por `SILENCIO_DO_FINAL_MS`, no `onend` ou no `stop()`. Com parciais de
+ * verdade (o desktop), o final compromete na hora, como antes.
+ */
+export const SILENCIO_DO_FINAL_MS = 1200
+
+/**
+ * O reenvio depois do religar: um final da volta nova igual (ou começo) do último comprometido, até
+ * este tempo depois dele, é o mesmo texto de novo — não fala nova.
+ */
+export const JANELA_DO_REENVIO_MS = 3000
+
+/** A palavra como a comparação a vê: minúscula, sem pontuação nem símbolo (acentos ficam). */
+const normalizarPalavra = (w: string) => w.toLowerCase().replace(/[\p{P}\p{S}]/gu, '')
+const tokens = (s: string) => s.trim().split(/\s+/).filter((w) => normalizarPalavra(w) !== '')
+const palavras = (s: string) => tokens(s).map(normalizarPalavra)
+
+/**
+ * `b` começa com TODAS as palavras de `a` (e tem ao menos tantas)? É a hipótese que cresceu. Exportada
+ * para a rede de segurança dos balões (`segmentosDaWebSpeech.ts`).
+ */
+export function estende(a: string, b: string): boolean {
+  const pa = palavras(a)
+  const pb = palavras(b)
+  return pa.length > 0 && pb.length >= pa.length && pa.every((p, i) => p === pb[i])
+}
+
+/**
+ * O que `texto` traz DEPOIS das palavras `ja` (texto original, com a pontuação dele): `''` quando ele é
+ * igual a `ja` ou só o começo dele; `null` quando não começa com `ja` (fala que não é continuação).
+ */
+function restoDepoisDe(texto: string, ja: readonly string[]): string | null {
+  const t = tokens(texto)
+  const n = Math.min(t.length, ja.length)
+  for (let i = 0; i < n; i++) if (normalizarPalavra(t[i]) !== ja[i]) return null
+  return t.slice(n).join(' ')
+}
+
+/**
+ * A hipótese de UMA volta, refeita de TODOS os resultados (o `resultIndex` não serve para acumular:
+ * o Android o zera ao reenviar). Um resultado que estende o anterior o SUBSTITUI (a hipótese cresceu);
+ * os outros se juntam. `finais`: os trechos do começo que já são finais; `toda`: tudo.
+ */
+function hipoteseDaVolta(results: SpeechRecognitionEventLike['results']): {
+  finais: string
+  toda: string
+  interino: boolean
+  confianca?: number
+} {
+  const trechos: Array<{ t: string; fim: boolean }> = []
+  let interino = false
+  let confianca: number | undefined
+  for (let i = 0; i < results.length; i++) {
+    const res = results[i]
+    const t = (res?.[0]?.transcript ?? '').trim()
+    if (!t) continue
+    if (!res.isFinal) interino = true
+    confianca = res[0]?.confidence
+    const ultimo = trechos[trechos.length - 1]
+    if (ultimo && estende(ultimo.t, t)) trechos[trechos.length - 1] = { t, fim: res.isFinal }
+    else trechos.push({ t, fim: res.isFinal })
+  }
+  const fim = trechos.findIndex((x) => !x.fim)
+  const finais = (fim === -1 ? trechos : trechos.slice(0, fim)).map((x) => x.t).join(' ')
+  return { finais, toda: trechos.map((x) => x.t).join(' '), interino, confianca }
+}
+
 function getRecognitionCtor(): (new () => SpeechRecognitionLike) | null {
   if (typeof window === 'undefined') return null
   const w = window as unknown as {
@@ -181,20 +256,58 @@ export class WebSpeechStt implements SttProvider {
     rec.onsoundstart = () => cb.onSom?.(true)
     rec.onsoundend = () => cb.onSom?.(false)
 
+    /* A DEDUPLICAÇÃO (ver `SILENCIO_DO_FINAL_MS`). `commitados`: as palavras da hipótese desta volta
+       que já viraram final (saem dos finais seguintes). `pendente`: o que ainda cresce, sem parciais
+       de verdade. `ultimo`: o último comprometido, para reconhecer o reenvio da volta seguinte. */
+    let temInterinos = false
+    let commitados: string[] = []
+    let pendente: { resto: string; hipotese: string; confianca?: number } | null = null
+    let prazoDoFinal: ReturnType<typeof setTimeout> | undefined
+    let ultimo: { todas: string[]; pedaco: string[]; em: number } | null = null
+
+    const comprometer = (resto: string, hipotese: string, confianca?: number) => {
+      commitados = palavras(hipotese)
+      ultimo = { todas: commitados, pedaco: palavras(resto), em: Date.now() }
+      cb.onFinal({ text: resto, language: lang, confidence: confianca })
+    }
+    const comprometerPendente = () => {
+      clearTimeout(prazoDoFinal)
+      const p = pendente
+      pendente = null
+      if (p) comprometer(p.resto, p.hipotese, p.confianca)
+    }
+
     rec.onresult = (e) => {
-      let interim = ''
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        const res = e.results[i]
-        const alt = res[0]
-        const text = (alt?.transcript ?? '').trim()
-        if (!text) continue
-        if (res.isFinal) {
-          cb.onFinal({ text, language: lang, confidence: alt?.confidence })
-        } else {
-          interim += ' ' + text
-        }
+      const h = hipoteseDaVolta(e.results)
+      if (!h.toda) return
+      if (h.interino) temInterinos = true
+      /* Volta nova (nada comprometido nela) logo depois de um final: começa com ele? É o reenvio —
+         conta como já comprometido nesta volta, e só o que vier depois dele é fala nova. */
+      if (commitados.length === 0 && ultimo && Date.now() - ultimo.em <= JANELA_DO_REENVIO_MS) {
+        const semente = [ultimo.todas, ultimo.pedaco].find((s) => restoDepoisDe(h.toda, s) !== null)
+        if (semente) commitados = semente
       }
-      if (interim.trim()) cb.onPartial(interim.trim())
+      /* A hipótese foi revisada por baixo do que já saiu (raro): o que passa das palavras comprometidas. */
+      const resto = (texto: string) =>
+        restoDepoisDe(texto, commitados) ?? tokens(texto).slice(commitados.length).join(' ')
+
+      if (temInterinos) {
+        // DESKTOP: o final é final. Compromete na hora; o interino depois dele é o parcial.
+        clearTimeout(prazoDoFinal)
+        pendente = null
+        const novoFinal = h.finais ? resto(h.finais) : ''
+        if (novoFinal) comprometer(novoFinal, h.finais, h.confianca)
+        const parcial = resto(h.toda)
+        if (parcial) cb.onPartial(parcial)
+        return
+      }
+      // ANDROID: a hipótese inteira é parcial até parar de crescer.
+      const novo = resto(h.toda)
+      if (!novo || novo === pendente?.resto) return
+      pendente = { resto: novo, hipotese: h.toda, confianca: h.confianca }
+      cb.onPartial(novo)
+      clearTimeout(prazoDoFinal)
+      prazoDoFinal = setTimeout(comprometerPendente, SILENCIO_DO_FINAL_MS)
     }
 
     /** Liga o reconhecedor: com a trilha, ela; sem, o microfone (a chamada de sempre). */
@@ -227,6 +340,10 @@ export class WebSpeechStt implements SttProvider {
 
     // Web Speech encerra sozinho em silêncio — religa enquanto não paramos.
     rec.onend = () => {
+      // A volta acabou: o que crescia vira final, e a volta seguinte começa sem nada comprometido
+      // (o reenvio dela é reconhecido por `ultimo`).
+      comprometerPendente()
+      commitados = []
       if (!trilha && !stopped) {
         voltasSemAudio = audioNestaVolta ? 0 : voltasSemAudio + 1
         audioNestaVolta = false
@@ -257,6 +374,7 @@ export class WebSpeechStt implements SttProvider {
     return {
       stop() {
         stopped = true
+        comprometerPendente()
         try {
           rec.stop()
         } catch {

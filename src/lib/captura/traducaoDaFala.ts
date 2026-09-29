@@ -5,7 +5,7 @@
  * chamadas a cada render, exatamente como as closures que substituem, e tudo que dependia do
  * estado da tela (refs, setters, gateway) entra por PARÂMETRO explícito — nada de contexto novo.
  */
-import { ehCancelamento } from '@core';
+import { ehCancelamento, soFaltaCarregar } from '@core';
 import type { Dispatch, RefObject, SetStateAction } from 'react';
 
 import { capMetrics } from '../../gateway/capture/captureMetrics';
@@ -122,20 +122,27 @@ export interface DepsDaTraducaoDaFala {
   conhecidasRef?: RefObject<ConhecidasDaFala | null>;
   /** Falas deixadas sem tradução, por id: o que "Mostrar tradução" refaz. Sobrevive aos renders. */
   pedidosSobDemandaRef?: RefObject<Map<string, PedidoSobDemanda>>;
+  /**
+   * O tradutor LOCAL não carregou neste aparelho (WASM, memória — `mt.aoFalharCarga`): a tradução que
+   * esperava por ele não vem. A tela diz isso UMA vez, com a oferta do tradutor pela internet (sob
+   * consentimento, nunca ligado sozinho).
+   */
+  aoFalharOTradutorLocal?: () => void;
 }
 
 /**
- * Quantas falas degradadas uma retradução refaz, no máximo (as MAIS RECENTES). O tradutor local
- * pode ficar pronto depois de minutos de sessão; retraduzir todas de uma vez enfileiraria centenas
- * de pedidos na frente da fala que a pessoa está ouvindo agora.
+ * Quantas falas uma retradução traduz AO MESMO TEMPO. Ela refaz TODAS as da sessão que ficaram sem
+ * tradução (relato do dono no celular, 2026-09-29: o teto antigo de 20 deixava o começo da conversa
+ * sem tradução para sempre), as mais novas primeiro — mas poucas por vez, para não enfileirar
+ * centenas de pedidos na frente da fala que a pessoa está ouvindo agora.
  */
-export const MAX_RETRADUCOES = 20;
+export const RETRADUCOES_SIMULTANEAS = 2;
 
 /**
- * O ouvinte do "tradutor pronto" é UM por gateway, mas a fábrica é recriada a cada render: o
- * ouvinte chama a `retraduzirDegradados` do render mais novo, guardada aqui.
+ * Os ouvintes do "tradutor pronto"/"tradutor não carregou" são UM por gateway, mas a fábrica é
+ * recriada a cada render: eles chamam as funções do render mais novo, guardadas aqui.
  */
-const retradutorDoGateway = new WeakMap<object, () => void>();
+const ouvintesDoGateway = new WeakMap<object, { pronto: () => void; falhou: () => void }>();
 
 /** Motores cuja tradução quem paga pela nuvem aceita de volta da memória persistente. */
 const MOTORES_DE_NUVEM = new Set(['server-llm-mt', 'groq-llm']);
@@ -185,12 +192,25 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
     setTimeout(() => setFeedbackMsg(''), 8000);
   };
 
+  /**
+   * Pede a tradução de um balão. A promessa resolve quando o pedido ACABA (traduziu, degradou, ficou
+   * pendente ou nem precisou) — é o que deixa a retradução andar poucas por vez. Nunca rejeita.
+   */
   const translateSegment = (
     segId: string,
     text: string,
     srcCode?: string,
     tgtCode?: string,
     opts?: OpcoesDeTraducao,
+  ): Promise<void> => new Promise<void>((fim) => traduzirBalao(segId, text, srcCode, tgtCode, opts, fim));
+
+  const traduzirBalao = (
+    segId: string,
+    text: string,
+    srcCode: string | undefined,
+    tgtCode: string | undefined,
+    opts: OpcoesDeTraducao | undefined,
+    fim: () => void,
   ) => {
     /* SOB DEMANDA (harness §1.2, degrau M0): a preferência "Tradução" deixa a fala SEM MT — "só
        quando eu pedir", ou "só frases com palavra nova" quando o aluno já sabe todas. Desligado por
@@ -216,6 +236,7 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
             conhecidas: deps.conhecidasRef?.current,
           });
       if (motivo) {
+        fim();
         if (parcialM0) return;
         ordemMtRef.current.encerrar(segId, ordemMtRef.current.abrir(segId));
         deps.pedidosSobDemandaRef?.current.set(segId, { texto: text, src: srcCode, tgt: tgtCode, falada });
@@ -230,7 +251,7 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
        inteira que era descartada segundos depois pelo refinamento seguinte. Com uma tradução já
        em voo para este balão, o parcial seguinte simplesmente não é pedido, o decode final
        sempre traduz, então nenhum balão fica sem legenda por causa disto. */
-    if (opts?.descartarSeOcupado && ordemMtRef.current.ocupado(segId)) return;
+    if (opts?.descartarSeOcupado && ordemMtRef.current.ocupado(segId)) return fim();
     const selo = ordemMtRef.current.abrir(segId);
     /* O pedido é de um PARCIAL (quem pede descartar-se ocupado é só o parcial do Whisper). O gateway
        só o traduz com motor local e, sem nenhum pronto, devolve vazio; aqui ele não degrada, não
@@ -250,6 +271,7 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
        fala (`falada`) tem a própria origem — o perfil observado é o do outro lado. */
     const origemEfetiva = origemDaFala(src, idiomaObservadoRef.current, opts?.falada === true);
     if (mesmaLingua(origemEfetiva, tgt)) {
+      fim();
       // Limpa o "…" para o balão não ficar esperando uma tradução que não virá.
       if (ordemMtRef.current.encerrar(segId, selo)) {
         setSpeechSegments((prev) => prev.map((seg) => (seg.id === segId ? { ...seg, translatedText: '' } : seg)));
@@ -303,6 +325,7 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
             ? {
                 ...seg,
                 translatedText: capitalized,
+                traducaoPendente: undefined,
               }
             : seg,
         ),
@@ -311,12 +334,12 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
     // Expressão inteira conhecida ("valeu!", "pois é."): a tradução natural já está pronta.
     if (preparada.traducaoPronta) {
       if (ordemMtRef.current.encerrar(segId, selo)) applyTranslation(preparada.traducaoPronta);
-      return;
+      return fim();
     }
     const cached = translationCacheRef.current.get(cacheKey);
     if (cached) {
       if (ordemMtRef.current.encerrar(segId, selo)) applyTranslation(cached);
-      return;
+      return fim();
     }
     /* Quem paga pela nuvem manda também o áudio do SISTEMA primeiro ao LLM do servidor (Fase 2 do
        lançamento); a fala do microfone já ia. Sem o plano, a cascata local de sempre. */
@@ -346,7 +369,9 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
         if (parcial) return;
         setSpeechSegments((prev) =>
           prev.map((seg) =>
-            seg.id === segId && seg.translatedText === '…' ? { ...seg, translatedText: `(${text})` } : seg,
+            seg.id === segId && seg.translatedText === '…'
+              ? { ...seg, translatedText: `(${text})`, traducaoPendente: undefined }
+              : seg,
           ),
         );
         // Degradação NUNCA mais é silenciosa (achado da auditoria): avisa UMA vez por sessão
@@ -359,10 +384,23 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
           setTimeout(() => setFeedbackMsg(''), 8000);
         }
       };
+      /* A TRADUÇÃO A CAMINHO (relato do dono no celular, 2026-09-29): a cadeia falhou SÓ porque um
+         motor local ainda carrega (`soFaltaCarregar`). Não é falha: o balão fica em "…" marcado como
+         pendente (a linha diz "Baixando o tradutor…"), sem a faixa, e quem o traduz é a retradução
+         do "tradutor pronto" (`retraduzirDegradados`). */
+      const pendente = () => {
+        if (parcial) return;
+        setSpeechSegments((prev) =>
+          prev.map((seg) =>
+            seg.id === segId && seg.translatedText === '…' ? { ...seg, traducaoPendente: true } : seg,
+          ),
+        );
+      };
       const timeout = setTimeout(() => {
         if (settled) return;
         settled = true;
         if (ordemMtRef.current.encerrar(segId, selo)) degrade();
+        fim();
       }, 8000);
 
       /* `origem` já caiu para o idioma OBSERVADO da sessão quando esta fala não foi detectada —
@@ -384,6 +422,7 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
           if (settled) return; // timeout já degradou → ignora resposta tardia
           settled = true;
           clearTimeout(timeout);
+          fim();
           // `atual` = este pedido ainda é o mais recente do balão. Um resultado ATRASADO não escreve
           // na tela (sobrescreveria a tradução do final pelo texto pela metade), mas ainda é uma
           // tradução válida deste texto: entra no cache, e o próximo pedido igual chega instantâneo.
@@ -416,9 +455,15 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
           if (settled) return;
           settled = true;
           clearTimeout(timeout);
+          fim();
           // Parcial atropelado pelo final da mesma fala: não é erro, e o balão já espera a tradução do final.
           if (ehCancelamento(err)) {
             ordemMtRef.current.encerrar(segId, selo);
+            return;
+          }
+          if (soFaltaCarregar(err)) {
+            clog('tradução pendente (tradutor local carregando):', segId, `${origem || '?'}→${tgt}`);
+            if (ordemMtRef.current.encerrar(segId, selo)) pendente();
             return;
           }
           console.warn('Live translation error:', err);
@@ -462,6 +507,7 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
         else translationCacheRef.current.set(cacheKey, guardada.texto);
         if (ordemMtRef.current.encerrar(segId, selo))
           applyTranslation(guardada.texto, guardada.aproximada && guardada.similaridade < 1);
+        fim();
       },
       (err: unknown) => {
         clog('memória de tradução falhou na leitura, seguindo sem ela:', String(err).slice(0, 120));
@@ -470,28 +516,72 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
     );
   };
 
-  /** Balões que degradaram para "(texto original)" voltam a "…" e pedem tradução de novo. */
+  /** A fala precisa de tradução de novo: degradou para "(texto original)" ou esperava o tradutor. */
+  const semTraducao = (seg: SpeechSegment) =>
+    !seg.isPartial &&
+    !!seg.originalText &&
+    !seg.traducaoSobDemanda &&
+    (seg.translatedText === `(${seg.originalText})` || (seg.traducaoPendente === true && seg.translatedText === '…'));
+
+  /**
+   * Balões sem tradução (degradados e PENDENTES) — TODOS os da sessão — voltam a "…" pendente e pedem
+   * tradução de novo: as mais novas primeiro, `RETRADUCOES_SIMULTANEAS` por vez, com `falada` na fala
+   * do microfone (é ela que vai "arrumada" ao motor). Um balão com tradução em voo fica de fora (a
+   * barra e o gateway podem avisar "pronto" os dois).
+   */
   const retraduzirDegradados = () => {
+    let agendou = false;
     setSpeechSegments((prev) => {
-      const alvo = prev
-        .filter((seg) => !seg.isPartial && seg.originalText && seg.translatedText === `(${seg.originalText})`)
-        .slice(-MAX_RETRADUCOES);
+      const alvo = prev.filter((seg) => semTraducao(seg) && !ordemMtRef.current.ocupado(seg.id));
       if (alvo.length === 0) return prev;
-      clog('tradutor pronto: retraduzindo', alvo.length, 'balão(ões) degradado(s)');
-      const ids = new Set(alvo.map((seg) => seg.id));
-      setTimeout(() => {
-        for (const seg of alvo) {
+      if (!agendou) {
+        agendou = true;
+        clog('tradutor pronto: retraduzindo', alvo.length, 'balão(ões) sem tradução');
+        const fila = [...alvo].reverse();
+        const proximo = (): Promise<void> => {
+          const seg = fila.shift();
+          if (!seg) return Promise.resolve();
           const doSistema = seg.source === 'system';
-          translateSegment(
+          return translateSegment(
             seg.id,
             seg.originalText,
             doSistema ? targetLangRef.current : sourceLangRef.current,
             doSistema ? sourceLangRef.current : targetLangRef.current,
-          );
-        }
-      }, 0);
-      return prev.map((seg) => (ids.has(seg.id) ? { ...seg, translatedText: '…' } : seg));
+            { falada: !doSistema },
+          ).then(proximo);
+        };
+        setTimeout(() => {
+          for (let i = 0; i < RETRADUCOES_SIMULTANEAS; i++) void proximo();
+        }, 0);
+      }
+      const ids = new Set(alvo.map((seg) => seg.id));
+      return prev.map((seg) => (ids.has(seg.id) ? { ...seg, translatedText: '…', traducaoPendente: true } : seg));
     });
+  };
+
+  /**
+   * O TRADUTOR LOCAL NÃO CARREGOU (`mt.aoFalharCarga`): a tradução pendente não vem dele. Os pendentes
+   * mostram o original (honesto: você ao menos lê o que foi dito) e a tela é avisada UMA vez — o aviso
+   * dela, com a oferta do tradutor pela internet, substitui a faixa genérica de falha.
+   */
+  const tradutorLocalFalhou = () => {
+    setSpeechSegments((prev) =>
+      prev.some((seg) => seg.traducaoPendente)
+        ? prev.map((seg) =>
+            seg.traducaoPendente
+              ? {
+                  ...seg,
+                  traducaoPendente: undefined,
+                  translatedText: seg.translatedText === '…' ? `(${seg.originalText})` : seg.translatedText,
+                }
+              : seg,
+          )
+        : prev,
+    );
+    if (mtFailNotifiedRef.current) return;
+    mtFailNotifiedRef.current = true;
+    clog('tradutor local NÃO carregou neste aparelho');
+    deps.aoFalharOTradutorLocal?.();
   };
 
   /**
@@ -515,11 +605,15 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
      pede isto quando chega a 100%, mas o modelo pode ficar pronto por um aquecimento ou por um pedido
      de tradução, que não passam por ela (Quest emulado, 2026-09-28). Pedir duas vezes não custa: a
      segunda não acha mais nada em "(original)". */
-  const mt = gateway.mt as { aoFicarPronto?: (fn: () => void) => () => void };
-  if (typeof mt.aoFicarPronto === 'function') {
-    if (!retradutorDoGateway.has(gateway)) mt.aoFicarPronto(() => retradutorDoGateway.get(gateway)?.());
-    retradutorDoGateway.set(gateway, retraduzirDegradados);
+  const mt = gateway.mt as {
+    aoFicarPronto?: (fn: () => void) => () => void;
+    aoFalharCarga?: (fn: () => void) => () => void;
+  };
+  if (!ouvintesDoGateway.has(gateway)) {
+    if (typeof mt.aoFicarPronto === 'function') mt.aoFicarPronto(() => ouvintesDoGateway.get(gateway)?.pronto());
+    if (typeof mt.aoFalharCarga === 'function') mt.aoFalharCarga(() => ouvintesDoGateway.get(gateway)?.falhou());
   }
+  ouvintesDoGateway.set(gateway, { pronto: retraduzirDegradados, falhou: tradutorLocalFalhou });
 
   return { translateSegment, retraduzirDegradados, revelarTraducao };
 }

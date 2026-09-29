@@ -85,7 +85,7 @@ import { abrirContextoDoClique } from '../../lib/captura/contextoDoClique';
 import { useFuncaoEstavel, useTextoDaConversa } from '../../lib/captura/conversaEstavel';
 import { assinarSalvamento, capturaEmRisco, lerSalvamento } from '../../lib/captura/estadoDoSalvamento';
 import { criarFontesDeAudio } from '../../lib/captura/fontesDeAudio';
-import { type PassoDoInicio, planejarInicio, tradutorDepoisDaPrimeiraLegenda } from '../../lib/captura/inicioDaCaptura';
+import { type PassoDoInicio, planejarInicio } from '../../lib/captura/inicioDaCaptura';
 import type { EscolhaDoMic } from '../../lib/captura/motorDoMicrofone';
 import { preparoConcluido } from '../../lib/captura/pacotesNativos';
 // Vocabulário dentro da captura: examinar a palavra, fichar no deck, mandar praticar.
@@ -162,6 +162,7 @@ import { toast } from '../Toast';
 import { CabecalhoDeTela, Dialogo, fecharDialogoDe } from '../ui';
 import VocabularyPanel from '../VocabularyPanel';
 import AjudaDoMicrofone from './captura/AjudaDoMicrofone';
+import AvisoDoTradutorLocal from './captura/AvisoDoTradutorLocal';
 import CapturaNaoSalva from './captura/CapturaNaoSalva';
 // Subcomponentes locais da captura (um arquivo por componente, em `views/captura/`).
 import EncerrarSessao from './captura/EncerrarSessao';
@@ -1062,6 +1063,8 @@ export default function LiveCapture({
   // Compartilhada pelas DUAS fontes (mic Web Speech + sistema Whisper). Espelha o LRU do desktop.
   // Aviso único por sessão quando a tradução degrada (nunca silencioso).
   const mtFailNotifiedRef = useRef(false);
+  /** O tradutor do aparelho não carregou (`AvisoDoTradutorLocal`): a faixa com a oferta da internet. */
+  const [tradutorLocalFalhou, setTradutorLocalFalhou] = useState(false);
 
   /** Avisa UMA vez por sessão que o destino da tradução foi redirecionado (ver traducaoDaFala). */
   const altTargetNotifiedRef = useRef(false);
@@ -1111,6 +1114,7 @@ export default function LiveCapture({
     modoDeTraducaoRef,
     conhecidasRef,
     pedidosSobDemandaRef,
+    aoFalharOTradutorLocal: () => setTradutorLocalFalhou(true),
   });
 
   // Enunciados que chegaram ENQUANTO o modelo carregava — transcritos no flush (nada se perde).
@@ -1121,64 +1125,57 @@ export default function LiveCapture({
      alimenta a cada final local e lê dele se os parciais estão cortados. */
   const [regulador] = useState<ReguladorDaCaptura>(() => criarReguladorDaCaptura());
   const reguladorRef = useRef(regulador);
-  /** O tradutor local que espera a primeira legenda (celular só com o microfone; ver `pipelineDeFala`). */
-  const tradutorPendenteRef = useRef<(() => void) | null>(null);
 
   /* O PIPELINE DE FALA (VAD → STT → diarização → emissão) e a preparação dos modelos moram em
      `lib/captura/pipelineDeFala.ts`. A fábrica roda a cada render, como as closures que
      substituiu: os handlers precisam do `micEnabled`/`micEngine` do render corrente. */
-  const { sysHandlers, micHandlers, prepareModels, preaquecerModelos, decidirMotorDoSistema } = criarPipelineDeFala({
-    gateway,
-    sourceLang,
-    sourceLangRef,
-    targetLangRef,
-    autoDetectLangRef,
-    autoDetectMyLangRef,
-    idiomaObservadoRef,
-    captureScenarioRef,
-    perfModeRef,
-    micEnabled,
-    micEngine,
-    timerRef,
-    nowRel,
-    setSpeechSegments,
-    seqToSegmentRef,
-    lastPartialTextRef,
-    contextoDoSttRef,
-    pendingUtterancesRef,
-    suppressedSeqsRef,
-    modelReadyRef,
-    prepareEmVooRef,
-    speakerProfilesRef,
-    setSpeakerProfiles,
-    speakerAutoIdRef,
-    clustererRef,
-    lastVoiceIdRef,
-    provisionalUttsRef,
-    ensureVoiceProfile,
-    dominantLangRef,
-    perfilIdiomaRef,
-    perfilMicRef,
-    avisoIdiomaMicRef,
-    setIdiomaObservado,
-    sysFalasRef,
-    sysAbertasRef,
-    micInicioRef,
-    avisoVazamentoRef,
-    translateSegment,
-    retraduzirDegradados,
-    setFeedbackMsg,
-    setModelPrep,
-    setSttRouteLabel,
-    reguladorRef,
-    sistemaAtivo: () => !!systemCaptureRef.current,
-    tradutorDepois: () =>
-      tradutorDepoisDaPrimeiraLegenda({
-        tipo: perfilDoAparelho.tipo,
-        sistemaLigado: !!systemCaptureRef.current || systemEnabled,
-      }),
-    tradutorPendenteRef,
-  });
+  const { sysHandlers, micHandlers, prepareModels, preaquecerModelos, decidirMotorDoSistema, prepararTradutorDaFala } =
+    criarPipelineDeFala({
+      gateway,
+      sourceLang,
+      sourceLangRef,
+      targetLangRef,
+      autoDetectLangRef,
+      autoDetectMyLangRef,
+      idiomaObservadoRef,
+      captureScenarioRef,
+      perfModeRef,
+      micEnabled,
+      micEngine,
+      timerRef,
+      nowRel,
+      setSpeechSegments,
+      seqToSegmentRef,
+      lastPartialTextRef,
+      contextoDoSttRef,
+      pendingUtterancesRef,
+      suppressedSeqsRef,
+      modelReadyRef,
+      prepareEmVooRef,
+      speakerProfilesRef,
+      setSpeakerProfiles,
+      speakerAutoIdRef,
+      clustererRef,
+      lastVoiceIdRef,
+      provisionalUttsRef,
+      ensureVoiceProfile,
+      dominantLangRef,
+      perfilIdiomaRef,
+      perfilMicRef,
+      avisoIdiomaMicRef,
+      setIdiomaObservado,
+      sysFalasRef,
+      sysAbertasRef,
+      micInicioRef,
+      avisoVazamentoRef,
+      translateSegment,
+      retraduzirDegradados,
+      setFeedbackMsg,
+      setModelPrep,
+      setSttRouteLabel,
+      reguladorRef,
+      sistemaAtivo: () => !!systemCaptureRef.current,
+    });
 
   /* PRÉ-AQUECE o STT/MT locais que JÁ estão em cache quando a tela abre e quando o par ou a qualidade
      mudam (nunca baixa nada: ver `preaquecerModelos`). Com um respiro, para não disputar a
@@ -1252,6 +1249,7 @@ export default function LiveCapture({
     perguntarEscolhaDoMic,
     decidirMotorDoSistema,
     aoMudarMotorDoSistema: (motor) => setSistemaNoNavegador(motor === 'web-speech-local'),
+    prepararTradutorDaFala,
   });
 
   // Harness OFFLINE de teste (dev): injeta um PCM conhecido pelo MESMO caminho do sistema
@@ -2281,6 +2279,7 @@ export default function LiveCapture({
       stt: rota.localModel,
       mbStt: tamanhoDoDownloadMb(rota.localModel, rota.dtype) ?? 0,
       tradutores: tradutores.map((id) => ({ id, mb: tamanhoDoDownloadMb(id) ?? 0 })),
+      par: [mtDe, mtPara] as const,
     };
   }, [
     targetLang,
@@ -2298,9 +2297,8 @@ export default function LiveCapture({
     langDoMic: sourceLang,
     sondarMic: webSpeechSupported && micEngine === 'browser',
     gravando: isRecording,
+    parDoTradutor: pecasDoInicio.par,
   });
-  /** No celular só com o microfone, o tradutor espera a primeira legenda (não entra no download inicial). */
-  const tradutorDepois = tradutorDepoisDaPrimeiraLegenda({ tipo: perfilDoAparelho.tipo, sistemaLigado: systemEnabled });
   const planoDoInicio = (escolha: EscolhaDoMic | null): PassoDoInicio => {
     const completos = preparoDoInicio.completos;
     const falta = (id: string, mb: number) => (completos?.has(id) ? 0 : mb);
@@ -2318,7 +2316,11 @@ export default function LiveCapture({
         podeInstalarPacote: preparoDoInicio.podeInstalarPacote,
       },
       mbStt: falta(pecasDoInicio.stt, pecasDoInicio.mbStt),
-      mbTradutor: tradutorDepois ? 0 : pecasDoInicio.tradutores.reduce((s, m) => s + falta(m.id, m.mb), 0),
+      /* O tradutor entra no download de TODA escolha (o Rápido também traduz): a folha diz o tamanho —
+         menos quando o navegador já traduz o par no aparelho (aí o nosso não baixa). */
+      mbTradutor: preparoDoInicio.tradutorNativo
+        ? 0
+        : pecasDoInicio.tradutores.reduce((s, m) => s + falta(m.id, m.mb), 0),
       limiteDeDownloadMb: perfilDoAparelho.confirmarDownloadAcimaDeMb,
       downloadJaConfirmado: downloadConfirmadoRef.current,
       modoNuvem: getProviderMode() === 'cloud',
@@ -2862,6 +2864,15 @@ export default function LiveCapture({
           {/* ============================================== */}
           <div className="tela larga entra">
             <AvisoDeNuvemSemConsentimento />
+            {tradutorLocalFalhou && (
+              <AvisoDoTradutorLocal
+                aoAutorizar={() => {
+                  setTradutorLocalFalhou(false);
+                  retraduzirDegradados();
+                }}
+                aoFechar={() => setTradutorLocalFalhou(false)}
+              />
+            )}
             {/* Cabeçalho no molde do protótipo aprovado (`T.capturar`): rótulo, título, apoio e, à
                 direita, o modelo local, os ajustes da captura e o guia. */}
             <CabecalhoDeTela
@@ -3219,6 +3230,7 @@ export default function LiveCapture({
                           onSpeakWord={ouvirNaConversa}
                           onRevelarTraducao={revelarNaConversa}
                           conhecidas={conhecidas}
+                          progressoDoTradutor={modelPrep?.mt ?? null}
                         />
                       </div>
                     </div>
@@ -3500,6 +3512,7 @@ export default function LiveCapture({
                   onSpeakWord={ouvirNaConversa}
                   onRevelarTraducao={revelarNaConversa}
                   conhecidas={conhecidas}
+                  progressoDoTradutor={modelPrep?.mt ?? null}
                 />
               ) : (
                 <p className="foco-vazio">
@@ -3551,7 +3564,11 @@ export default function LiveCapture({
           aoFechar={() => setFolhaDoInicio(null)}
         >
           <div className="dlg-corpo pilha" data-testid="aviso-de-download">
-            <p>{t('A transcrição e a tradução no aparelho precisam de cerca de {mb} MB.', { mb: folhaDoInicio.mb })}</p>
+            <p>
+              {folhaDoInicio.mb === folhaDoInicio.mbTradutor
+                ? t('O tradutor no aparelho precisa de cerca de {mb} MB.', { mb: folhaDoInicio.mb })
+                : t('A transcrição e a tradução no aparelho precisam de cerca de {mb} MB.', { mb: folhaDoInicio.mb })}
+            </p>
             {perfilDoAparelho.sinais.economiaDeDados && (
               <p className="aviso-info warn">
                 <TriangleAlert aria-hidden />
@@ -3598,6 +3615,7 @@ export default function LiveCapture({
           inicio={{
             mbSePrivado: folhaDoInicio.mbSePrivado,
             mbSeRapido: folhaDoInicio.mbSeRapido,
+            mbTradutor: folhaDoInicio.mbTradutor,
             aparelhoLento: !perfilDoAparelho.tipo.startsWith('desktop'),
           }}
           aoEscolher={(e) => {

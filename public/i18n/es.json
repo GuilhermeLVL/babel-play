@@ -178,5 +178,12 @@
   "{n} novas": {
     "one": "{n} nueva",
     "other": "{n} nuevas"
-  }
+  },
+  "Baixando o tradutor… {pct}%": "Descargando el traductor… {pct}%",
+  "Preparando a tradução…": "Preparando la traducción…",
+  "Para traduzir, baixa o tradutor, de cerca de {mb} MB, uma vez só.": "Para traducir, descarga el traductor, de unos {mb} MB, una sola vez.",
+  "O tradutor no aparelho precisa de cerca de {mb} MB.": "El traductor en el dispositivo necesita unos {mb} MB.",
+  "O tradutor deste aparelho não carregou (pouca memória ou navegador sem suporte). As falas seguem sem tradução.": "El traductor de este dispositivo no cargó (poca memoria o navegador sin soporte). Las frases siguen sin traducción.",
+  "Dá para traduzir pela internet com o MyMemory: o texto das falas sai do aparelho.": "Se puede traducir por internet con MyMemory: el texto de las frases sale del dispositivo.",
+  "Traduzir pela internet": "Traducir por internet"
 }

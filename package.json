@@ -86,7 +86,7 @@
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
     "recharts": "^3.9.2",
-    "undici": "^7.25.0",
+    "undici": "^7.30.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {

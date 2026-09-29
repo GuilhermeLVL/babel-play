@@ -162,6 +162,7 @@ import { toast } from '../Toast';
 import { CabecalhoDeTela, Dialogo, fecharDialogoDe } from '../ui';
 import VocabularyPanel from '../VocabularyPanel';
 import AjudaDoMicrofone from './captura/AjudaDoMicrofone';
+import AvisoDoTradutorLocal from './captura/AvisoDoTradutorLocal';
 import CapturaNaoSalva from './captura/CapturaNaoSalva';
 // Subcomponentes locais da captura (um arquivo por componente, em `views/captura/`).
 import EncerrarSessao from './captura/EncerrarSessao';
@@ -1058,6 +1059,8 @@ export default function LiveCapture({
   // Compartilhada pelas DUAS fontes (mic Web Speech + sistema Whisper). Espelha o LRU do desktop.
   // Aviso único por sessão quando a tradução degrada (nunca silencioso).
   const mtFailNotifiedRef = useRef(false);
+  /** O tradutor do aparelho não carregou (`AvisoDoTradutorLocal`): a faixa com a oferta da internet. */
+  const [tradutorLocalFalhou, setTradutorLocalFalhou] = useState(false);
 
   /** Avisa UMA vez por sessão que o destino da tradução foi redirecionado (ver traducaoDaFala). */
   const altTargetNotifiedRef = useRef(false);
@@ -1107,6 +1110,7 @@ export default function LiveCapture({
     modoDeTraducaoRef,
     conhecidasRef,
     pedidosSobDemandaRef,
+    aoFalharOTradutorLocal: () => setTradutorLocalFalhou(true),
   });
 
   // Enunciados que chegaram ENQUANTO o modelo carregava — transcritos no flush (nada se perde).
@@ -2841,6 +2845,15 @@ export default function LiveCapture({
           {/* ============================================== */}
           <div className="tela larga entra">
             <AvisoDeNuvemSemConsentimento />
+            {tradutorLocalFalhou && (
+              <AvisoDoTradutorLocal
+                aoAutorizar={() => {
+                  setTradutorLocalFalhou(false);
+                  retraduzirDegradados();
+                }}
+                aoFechar={() => setTradutorLocalFalhou(false)}
+              />
+            )}
             {/* Cabeçalho no molde do protótipo aprovado (`T.capturar`): rótulo, título, apoio e, à
                 direita, o modelo local, os ajustes da captura e o guia. */}
             <CabecalhoDeTela

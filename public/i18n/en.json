@@ -1040,5 +1040,8 @@
   "Baixando o tradutor… {pct}%": "Downloading the translator… {pct}%",
   "Preparando a tradução…": "Preparing the translation…",
   "Para traduzir, baixa o tradutor, de cerca de {mb} MB, uma vez só.": "To translate, it downloads the translator, about {mb} MB, only once.",
-  "O tradutor no aparelho precisa de cerca de {mb} MB.": "The on-device translator needs about {mb} MB."
+  "O tradutor no aparelho precisa de cerca de {mb} MB.": "The on-device translator needs about {mb} MB.",
+  "O tradutor deste aparelho não carregou (pouca memória ou navegador sem suporte). As falas seguem sem tradução.": "This device's translator did not load (low memory or unsupported browser). Speech stays untranslated.",
+  "Dá para traduzir pela internet com o MyMemory: o texto das falas sai do aparelho.": "You can translate over the internet with MyMemory: the text of what is said leaves the device.",
+  "Traduzir pela internet": "Translate over the internet"
 }

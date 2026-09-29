@@ -181,6 +181,28 @@ describe('regulador de desempenho no pipeline', () => {
     await esperar()
     expect(regulador.aoFinal).not.toHaveBeenCalled()
   })
+
+  it('cada parcial decodificado alimenta aoParcial com a latência; worker ocupado não mede nada', async () => {
+    const regulador = {
+      parciaisCortados: false,
+      parciaisDoMicPausados: false,
+      aoFinal: vi.fn(),
+      aoParcial: vi.fn(),
+      reiniciar: vi.fn(),
+    }
+    const { p, transcribePartial } = montar({ regulador })
+    p.micHandlers.onSpeechStart(1)
+    p.micHandlers.onPartialAudio(new Float32Array(1600), 16000, 1)
+    await esperar()
+    expect(regulador.aoParcial).toHaveBeenCalledTimes(1)
+    const [latenciaMs, efeitos] = regulador.aoParcial.mock.calls[0]
+    expect(latenciaMs).toBeGreaterThanOrEqual(0)
+    expect(typeof efeitos.trocarModelo).toBe('function')
+    transcribePartial.mockResolvedValueOnce(null as never) // worker ocupado: o parcial foi descartado
+    p.micHandlers.onPartialAudio(new Float32Array(3200), 16000, 1)
+    await esperar()
+    expect(regulador.aoParcial).toHaveBeenCalledTimes(1)
+  })
 })
 
 describe('porta de qualidade do STT no pipeline', () => {

@@ -40,6 +40,7 @@ import {
 } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 
+import { configDoReguladorPara } from '../../core/harness/reguladorDeDesempenho';
 import { estadoDoTeto } from '../../core/tetoAnonimo';
 import { deleteSession, fetchSessionTranscript, fetchSettings, patchUiSettings } from '../../data/api';
 import { buildGateway } from '../../gateway';
@@ -638,8 +639,11 @@ export default function LiveCapture({
   const [systemSource, setSystemSource] = useState<'display' | 'loopback' | 'server'>('display');
   // MODO DESEMPENHO (jogos): pula os decodes PARCIAIS (a legenda só aparece no fim de cada frase).
   // Corta a maior fatia de GPU/CPU da captura contínua — o decode final continua intacto.
-  const [perfMode, setPerfMode] = useState(false);
-  const perfModeRef = useRef(false);
+  /* Começa LIGADO no aparelho leve (Quest, celular fraco, desktop de 2 núcleos): ali o parcial é o
+     que mais trava a aba, e esperar o regulador descobrir isso custa as primeiras falas. A escolha
+     salva em `ui.perfMode` (o interruptor abaixo) vence assim que os ajustes carregam. */
+  const [perfMode, setPerfMode] = useState(() => perfilDoAparelho.leve);
+  const perfModeRef = useRef(perfMode);
   useEffect(() => {
     perfModeRef.current = perfMode;
   }, [perfMode]);
@@ -1146,8 +1150,12 @@ export default function LiveCapture({
   // ANTI-ECO: seqs cuja fala começou enquanto o TTS do app tocava (é o nosso áudio voltando).
   const suppressedSeqsRef = useRef<Set<number>>(new Set());
   /* REGULADOR DE DESEMPENHO (harness §4): o estado vive aqui, uma vez por tela; o pipeline o
-     alimenta a cada final local e lê dele se os parciais estão cortados. */
-  const [regulador] = useState<ReguladorDaCaptura>(() => criarReguladorDaCaptura());
+     alimenta a cada final (e parcial) local e lê dele se os parciais estão cortados. A config é lida
+     do perfil CORRENTE a cada medida: o aparelho leve desce mais cedo, e o perfil muda quando o
+     `requestAdapter()` responde (o celular sem adaptador só se revela fraco aí). */
+  const [regulador] = useState<ReguladorDaCaptura>(() =>
+    criarReguladorDaCaptura({ config: () => configDoReguladorPara(perfilDoAparelhoRef.current) }),
+  );
   const reguladorRef = useRef(regulador);
 
   /* O PIPELINE DE FALA (VAD → STT → diarização → emissão) e a preparação dos modelos moram em

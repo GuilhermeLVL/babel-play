@@ -374,6 +374,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
         hint = provisorio;
         from = provisorio;
       }
+      const t0Parcial = performance.now();
       gateway.stt
         .transcribePartial(pcm, sr, { languageHint: hint })
         .then((res) => {
@@ -381,6 +382,8 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
             capMetrics.saturated(seq);
             return;
           } // worker ocupado → parcial descartado
+          // Regulador: o parcial chega bem mais vezes que o final — a latência dele avisa antes.
+          reguladorRef?.current.aoParcial(Math.round(performance.now() - t0Parcial), efeitosDoRegulador);
           if (!seqToSegmentRef.current.has(seq)) return; // já finalizou → o final é autoritativo
           /* A fala fechou enquanto este parcial decodificava: o final (que já está no worker, na
              frente) é quem escreve e quem traduz. Traduzir este texto agora só disputaria o tradutor

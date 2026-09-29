@@ -1,19 +1,24 @@
 /**
  * Seed de DEMONSTRAÇÃO (dev): se o banco não tiver sessões, insere uma sessão de
- * exemplo + alguns cards, para o app não abrir vazio antes de o usuário gravar a
- * primeira sessão real. Idempotente (só roda com o banco vazio). Honesto: são
- * dados de demonstração explícitos, não mock disfarçado de real.
+ * exemplo, para o app não abrir vazio antes de o usuário gravar a primeira sessão real.
+ * Idempotente (só roda com o banco vazio). Honesto: são dados de demonstração
+ * explícitos, não mock disfarçado de real.
+ *
+ * SEM CARTÕES (achado 7 do funil, 29/09): a semente punha três palavras no caderno, e a
+ * conquista "Primeira palavra" (+10 Seeds, +15 XP) aparecia logo depois do onboarding, sem a
+ * pessoa ter fichado nada — a condição (`deckSize >= 1`) já nascia cumprida. As palavras da
+ * sessão de exemplo continuam lá para a pessoa fichar ela mesma; aí a conquista é dela.
+ * `tests/integration/semente-sem-conquista.test.ts`.
  */
 import { LOCAL_OWNER } from '../lib/authContext'
 import { sessionsRepo } from './repositories/sessions'
-import { vocabRepo } from './repositories/vocab'
 
 export async function seedIfEmpty(): Promise<void> {
   // Seed de demonstração pertence ao dono local (Marco 1). Idempotente: se ele já tem sessões, sai.
   const existing = await sessionsRepo.list(LOCAL_OWNER)
   if (existing.length > 0) return
 
-  const session = await sessionsRepo.createWithUtterances(
+  await sessionsRepo.createWithUtterances(
     LOCAL_OWNER,
     {
       title: 'Reunião de Alinhamento (Q3) — demo',
@@ -45,11 +50,5 @@ export async function seedIfEmpty(): Promise<void> {
     ]
   )
 
-  await vocabRepo.bulkAdd(LOCAL_OWNER, [
-    { word: 'leverage', back: 'alavancar', sentence: 'We must leverage our onboarding flow.', srcLang: 'en', tgtLang: 'pt', sessionId: session.id },
-    { word: 'retention', back: 'retenção', sentence: 'improve retention', srcLang: 'en', tgtLang: 'pt', sessionId: session.id },
-    { word: 'cohort', back: 'safra / coorte', sentence: 'The July cohort exceeded expectations.', srcLang: 'en', tgtLang: 'pt', sessionId: session.id },
-  ])
-
-  console.log('[db] seed de demonstração inserido (1 sessão + 3 cards)')
+  console.log('[db] seed de demonstração inserido (1 sessão, sem cartões)')
 }

@@ -27,6 +27,7 @@ import { vinculosRepo } from '../db/repositories/vinculos'
 import { MENSAGEM_CHECKOUT_DESLIGADO } from '../lib/abertura'
 import {
   asaasConfigurado,
+  buscarAssinatura,
   criarAssinatura,
   criarCliente,
   criarCobrancaAvulsa,
@@ -335,14 +336,47 @@ billingRouter.post('/assinar', async (req, res) => {
   }
 })
 
-/** O que a tela de Planos mostra: existe assinatura? em que estado? até quando vale? */
+/**
+ * A PRÓXIMA COBRANÇA — o `nextDueDate` da assinatura no Asaas, que é a data que a tela promete
+ * ("Próxima cobrança em 30/10"). NÃO é o `valeAte`: esse é o vencimento mais a graça de atraso,
+ * até quando o acesso vale — mostrar um no lugar do outro dizia "renova em 04/11" para uma
+ * cobrança do dia 30.
+ *
+ * Cache em memória de 10 min por assinatura: a tela de Planos e a espera do checkout perguntam o
+ * status várias vezes, e o Asaas não precisa ouvir cada uma. Falha é silenciosa (o campo some,
+ * o status continua): nenhuma data é melhor que a tela de Planos quebrada.
+ */
+const CACHE_DA_PROXIMA_COBRANCA_MS = 10 * 60_000
+const proximasCobrancas = new Map<string, { data: string | null; ate: number }>()
+
+async function proximaCobranca(assinaturaId: string): Promise<string | null> {
+  const agora = Date.now()
+  const guardada = proximasCobrancas.get(assinaturaId)
+  if (guardada && guardada.ate > agora) return guardada.data
+  try {
+    const a = await buscarAssinatura(assinaturaId)
+    const data = typeof a.nextDueDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(a.nextDueDate) ? a.nextDueDate : null
+    proximasCobrancas.set(assinaturaId, { data, ate: agora + CACHE_DA_PROXIMA_COBRANCA_MS })
+    return data
+  } catch (err) {
+    log('warn', { event: 'billing_proxima_cobranca_falhou', error: String(err).slice(0, 120) })
+    return null
+  }
+}
+
+/** O que a tela de Planos mostra: existe assinatura? em que estado? até quando vale? quando cobra? */
 billingRouter.get('/status', async (req, res) => {
   const sub = await subscriptionsRepo.getActive(req.userId)
+  const proxima =
+    sub?.status === 'active' && sub.provider === 'asaas' && sub.providerSubscriptionId && asaasConfigurado()
+      ? await proximaCobranca(sub.providerSubscriptionId)
+      : null
   res.json({
     configurado: asaasConfigurado(),
     assinatura: sub
       ? { plano: sub.plan, status: sub.status, valeAte: sub.currentPeriodEnd, provedor: sub.provider }
       : null,
+    ...(proxima ? { proximaCobranca: proxima } : {}),
   })
 })
 

@@ -11,6 +11,7 @@ import { describe, expect, it } from 'vitest'
 import {
   CONFIG_PADRAO_DO_REGULADOR,
   type ConfigDoRegulador,
+  configDoReguladorPara,
   type EntradaDoRegulador,
   escadaDeDescida,
   type EstadoDoRegulador,
@@ -224,6 +225,138 @@ describe('OOM, device.lost e aba escondida', () => {
 
   it('em modo "só ouvir" a aba escondida NÃO pausa', () => {
     expect(rodar([ok(0, { visivel: false, modoSoOuvir: true })]).acoes[0]).toEqual([])
+  })
+})
+
+/*
+ * OS SINAIS QUE FALTAVAM (Grátis sem travar, A6). O regulador só ouvia o final — um por fala, a cada
+ * vários segundos — e só olhava o modelo, nunca a TELA. No aparelho fraco a aba congelava (quadros
+ * longos no main thread) antes de três finais ruins chegarem. Agora: o bloqueio do main thread, o
+ * atalho do caso grave e o parcial, que chega bem mais vezes que o final.
+ */
+describe('travamento do main thread', () => {
+  it('≥ 400 ms bloqueados na janela desce na hora, com o motivo "travamento"', () => {
+    const r = regular(estadoInicialDoRegulador(), ok(0, { bloqueioDoMainMs: 400 }))
+    expect(r.acoes).toEqual(['cortar-parciais'])
+    expect(r.motivos).toContain('travamento')
+  })
+
+  it('abaixo de 400 ms não desce', () => {
+    expect(regular(estadoInicialDoRegulador(), ok(0, { bloqueioDoMainMs: 399 })).acoes).toEqual([])
+  })
+
+  it('sem o sinal (navegador sem LoAF nem longtask) nada muda', () => {
+    expect(regular(estadoInicialDoRegulador(), ok(0)).motivos).not.toContain('travamento')
+  })
+
+  it('respeita o intervalo entre descidas (a tela travada não varre a escada)', () => {
+    const passo = CONFIG_PADRAO_DO_REGULADOR.intervaloEntreDescidasMs
+    const { acoes } = rodar([
+      ok(0, { bloqueioDoMainMs: 900 }),
+      ok(passo / 2, { bloqueioDoMainMs: 900 }),
+      ok(passo, { bloqueioDoMainMs: 900 }),
+    ])
+    expect(acoes).toEqual([['cortar-parciais'], [], ['modelo-menor']])
+  })
+})
+
+describe('caminho severo — RTF > 1,5 com fila', () => {
+  it('desce já no PRIMEIRO final (não espera os trechos seguidos)', () => {
+    const r = regular(estadoInicialDoRegulador(), ok(0, { rtf: 1.6, filaPendente: 1 }))
+    expect(r.acoes).toEqual(['cortar-parciais'])
+    expect(r.motivos).toContain('rtf')
+  })
+
+  it('RTF alto SEM fila espera os trechos seguidos (um trecho lento isolado não basta)', () => {
+    expect(regular(estadoInicialDoRegulador(), ok(0, { rtf: 1.6, filaPendente: 0 })).acoes).toEqual([])
+  })
+
+  it('RTF exatamente 1,5 com fila não é severo (o limiar é estrito)', () => {
+    expect(regular(estadoInicialDoRegulador(), ok(0, { rtf: 1.5, filaPendente: 1 })).acoes).toEqual([])
+  })
+
+  it('respeita o intervalo entre descidas', () => {
+    const passo = CONFIG_PADRAO_DO_REGULADOR.intervaloEntreDescidasMs
+    const grave = (t: number) => ok(t, { rtf: 2, filaPendente: 1 })
+    expect(rodar([grave(0), grave(1000), grave(passo)]).acoes).toEqual([['cortar-parciais'], [], ['modelo-menor']])
+  })
+})
+
+describe('parcial — latência acima de 1,5 s é ruim (não o RTF)', () => {
+  const parcial = (agoraMs: number, latenciaMs: number, extra: Partial<EntradaDoRegulador> = {}) =>
+    ok(agoraMs, { origem: 'parcial', latenciaMs, ...extra })
+
+  it('3 parciais lentos SEGUIDOS descem com o motivo "latencia"; 2 não bastam', () => {
+    const { acoes } = rodar([parcial(0, 1600), parcial(500, 1800), parcial(1000, 2000)])
+    expect(acoes[0]).toEqual([])
+    expect(acoes[1]).toEqual([])
+    expect(acoes[2]).toEqual(['cortar-parciais'])
+    const e2 = rodar([parcial(0, 1600), parcial(500, 1800)]).estado
+    expect(regular(e2, parcial(1000, 2000)).motivos).toEqual(['latencia'])
+  })
+
+  it('um parcial rápido no meio zera a contagem; 1,5 s exato não conta como lento', () => {
+    const { acoes } = rodar([parcial(0, 1600), parcial(500, 1500), parcial(1000, 1600), parcial(1500, 1600)])
+    expect(acoes.flat()).toEqual([])
+  })
+
+  it('não mexe no RTF, na janela de latência dos finais nem na contagem de trechos', () => {
+    const { estado } = rodar([parcial(0, 2000, { rtf: 9 }), parcial(500, 2000, { rtf: 9 })])
+    expect(estado.rtfEwma).toBeNull()
+    expect(estado.latencias).toEqual([])
+    expect(estado.trechos).toBe(0)
+    expect(estado.ruinsSeguidos).toBe(0)
+  })
+
+  it('não pausa nem retoma: quem sabe se a aba escondida é "só ouvir" é o final', () => {
+    expect(regular(estadoInicialDoRegulador(), parcial(0, 300, { visivel: false })).acoes).toEqual([])
+  })
+
+  it('com o regulador pausado, o parcial é ignorado (não há o que medir)', () => {
+    const { acoes, estado } = rodar([
+      ok(0, { visivel: false }),
+      parcial(100, 5000, { visivel: false }),
+      parcial(200, 5000, { visivel: false }),
+      parcial(300, 5000, { visivel: false }),
+    ])
+    expect(acoes).toEqual([['pausar'], [], [], []])
+    expect(estado.nivel).toBe(0)
+  })
+
+  it('um parcial lento tira a folga: o relógio da subida recomeça', () => {
+    const passo = CONFIG_PADRAO_DO_REGULADOR.intervaloEntreDescidasMs
+    const e0 = rodar([ok(0, { filaPendente: 5 }), ok(passo, { filaPendente: 5 })]).estado
+    const t = 100_000
+    const { acoes } = rodar([ok(t), parcial(t + 30_000, 2500), ok(t + 61_000)], undefined, e0)
+    expect(acoes.flat()).toEqual([])
+  })
+
+  it('os sinais agudos valem no parcial também (ele chega bem mais vezes que o final)', () => {
+    expect(regular(estadoInicialDoRegulador(), parcial(0, 300, { bloqueioDoMainMs: 500 })).acoes).toEqual([
+      'cortar-parciais',
+    ])
+  })
+})
+
+describe('configDoReguladorPara — o aparelho leve desce mais cedo', () => {
+  it('leve: 2 trechos para descer e 6 s entre descidas; o resto é o padrão', () => {
+    expect(configDoReguladorPara({ leve: true })).toEqual({
+      ...CONFIG_PADRAO_DO_REGULADOR,
+      trechosParaDescer: 2,
+      intervaloEntreDescidasMs: 6_000,
+    })
+  })
+
+  it('os outros aparelhos ficam com o padrão, intocado', () => {
+    expect(configDoReguladorPara({ leve: false })).toEqual(CONFIG_PADRAO_DO_REGULADOR)
+    expect(CONFIG_PADRAO_DO_REGULADOR.trechosParaDescer).toBe(3)
+    expect(CONFIG_PADRAO_DO_REGULADOR.intervaloEntreDescidasMs).toBe(10_000)
+  })
+
+  it('no leve, 2 finais lentos descem e o degrau seguinte vem 6 s depois', () => {
+    const lento = (t: number) => ok(t, { rtf: 1.2 })
+    const { acoes } = rodar([lento(0), lento(1000), lento(6000), lento(7000)], configDoReguladorPara({ leve: true }))
+    expect(acoes).toEqual([[], ['cortar-parciais'], [], ['modelo-menor']])
   })
 })
 

@@ -40,6 +40,7 @@ import {
 } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 
+import { configDoReguladorPara } from '../../core/harness/reguladorDeDesempenho';
 import { estadoDoTeto } from '../../core/tetoAnonimo';
 import { deleteSession, fetchSessionTranscript, fetchSettings, patchUiSettings } from '../../data/api';
 import { buildGateway } from '../../gateway';
@@ -178,6 +179,7 @@ import EscolhaDoMicrofone from './captura/EscolhaDoMicrofone';
 import IdiomasDaSessao, { type Lado } from './captura/IdiomasDaSessao';
 import LegendasFlutuantes, { type LegendaAoVivo } from './captura/LegendasFlutuantes';
 import ModeloNoDispositivo, { type ModeloDaCaptura } from './captura/ModeloNoDispositivo';
+import OndasDoNivel from './captura/OndasDoNivel';
 import TranscriptVisualSettings, { TEMA } from './captura/TranscriptVisualSettings';
 import { CampoLinha, Interruptor, Segmentos } from './vocab/Dialogo';
 
@@ -349,8 +351,9 @@ export default function LiveCapture({
   };
   // Velocidade do TTS (escutar tradução/palavra). Persistida em settings.ui.
   const [ttsSpeed, setTtsSpeed] = useState(1.0);
-  // Waveform REAL: histórico de níveis (0..1) que segue o áudio capturado, não animação falsa.
-  const [levels, setLevels] = useState<number[]>(() => new Array(48).fill(0));
+  /* Waveform REAL: o pico do nível (0..1) que segue o áudio capturado, não animação falsa. As fontes
+     escrevem aqui; quem amostra e desenha é `OndasDoNivel`, uma folha com o próprio laço. Antes era um
+     `setLevels` a cada 50 ms AQUI, e esta tela inteira re-renderizava 20 vezes por segundo. */
   const currentLevelRef = useRef(0); // peak-hold do nível instantâneo (as fontes escrevem aqui)
   const meterRef = useRef<{ stop: () => void } | null>(null); // medidor de mic p/ o motor navegador
   const pushLevel = (v: number) => {
@@ -638,8 +641,11 @@ export default function LiveCapture({
   const [systemSource, setSystemSource] = useState<'display' | 'loopback' | 'server'>('display');
   // MODO DESEMPENHO (jogos): pula os decodes PARCIAIS (a legenda só aparece no fim de cada frase).
   // Corta a maior fatia de GPU/CPU da captura contínua — o decode final continua intacto.
-  const [perfMode, setPerfMode] = useState(false);
-  const perfModeRef = useRef(false);
+  /* Começa LIGADO no aparelho leve (Quest, celular fraco, desktop de 2 núcleos): ali o parcial é o
+     que mais trava a aba, e esperar o regulador descobrir isso custa as primeiras falas. A escolha
+     salva em `ui.perfMode` (o interruptor abaixo) vence assim que os ajustes carregam. */
+  const [perfMode, setPerfMode] = useState(() => perfilDoAparelho.leve);
+  const perfModeRef = useRef(perfMode);
   useEffect(() => {
     perfModeRef.current = perfMode;
   }, [perfMode]);
@@ -826,18 +832,32 @@ export default function LiveCapture({
       setShowJumpFocus(false);
     }
   };
+  /* SEGUIR O FIM SEM FORÇAR LAYOUT A CADA MUDANÇA ("Grátis sem travar", A2). Ler `scrollHeight` força
+     um layout síncrono, e este efeito rodava a cada nova versão de `speechSegments` — cada parcial,
+     cada palavra, cada marcação — mesmo quando a conversa não crescia. Agora:
+       · só quando ela CRESCE: muda o número de falas ou o tamanho do texto das duas últimas (a que
+         está sendo falada e a anterior, cuja tradução costuma chegar depois de a seguinte começar);
+       · a leitura vai para um rAF, junto do layout que o quadro já faria, e se junta à do quadro;
+       · só enquanto a pessoa está no fim. Rolada para cima, basta mostrar "Ir para a fala atual". */
+  const tamanhoDaFala = (s: SpeechSegment | undefined) =>
+    s ? `${s.originalText.length}/${s.translatedText?.length ?? 0}` : '';
+  const crescimentoDaConversa = [
+    speechSegments.length,
+    tamanhoDaFala(speechSegments[speechSegments.length - 2]),
+    tamanhoDaFala(speechSegments[speechSegments.length - 1]),
+  ].join(':');
   useEffect(() => {
-    const t = transcriptScrollRef.current;
-    if (t) {
-      if (transcriptPinnedRef.current) t.scrollTop = t.scrollHeight;
-      else setShowJumpTranscript(true);
-    }
-    const f = focusScrollRef.current;
-    if (f) {
-      if (focusPinnedRef.current) f.scrollTop = f.scrollHeight;
-      else setShowJumpFocus(true);
-    }
-  }, [speechSegments, isRecording]);
+    if (transcriptScrollRef.current && !transcriptPinnedRef.current) setShowJumpTranscript(true);
+    if (focusScrollRef.current && !focusPinnedRef.current) setShowJumpFocus(true);
+    if (!transcriptPinnedRef.current && !focusPinnedRef.current) return;
+    const quadro = requestAnimationFrame(() => {
+      const t = transcriptScrollRef.current;
+      if (t && transcriptPinnedRef.current) t.scrollTop = t.scrollHeight;
+      const f = focusScrollRef.current;
+      if (f && focusPinnedRef.current) f.scrollTop = f.scrollHeight;
+    });
+    return () => cancelAnimationFrame(quadro);
+  }, [crescimentoDaConversa, isRecording]);
 
   // Manual select speaker helper
   const handleSelectActiveSpeaker = (id: string) => {
@@ -1029,22 +1049,6 @@ export default function LiveCapture({
     speakerAutoId,
   ]);
 
-  // Amostrador do waveform: enquanto grava, desloca o histórico a ~20fps lendo o peak-hold das
-  // fontes (com decaimento suave). Fora de gravação, zera. Barato: um setInterval + array de 48.
-  useEffect(() => {
-    if (!isRecording || pausado) {
-      setLevels(new Array(48).fill(0));
-      currentLevelRef.current = 0;
-      return;
-    }
-    const iv = setInterval(() => {
-      const v = currentLevelRef.current;
-      currentLevelRef.current = v * 0.55; // decai para o pico "cair" entre amostras
-      setLevels((prev) => [...prev.slice(1), v]);
-    }, 50);
-    return () => clearInterval(iv);
-  }, [isRecording, pausado]);
-
   // Sessões de captura (getDisplayMedia/getUserMedia + VAD); null quando não ativas.
   const systemCaptureRef = useRef<AudioCapture | null>(null);
   const micCaptureRef = useRef<AudioCapture | null>(null);
@@ -1146,8 +1150,12 @@ export default function LiveCapture({
   // ANTI-ECO: seqs cuja fala começou enquanto o TTS do app tocava (é o nosso áudio voltando).
   const suppressedSeqsRef = useRef<Set<number>>(new Set());
   /* REGULADOR DE DESEMPENHO (harness §4): o estado vive aqui, uma vez por tela; o pipeline o
-     alimenta a cada final local e lê dele se os parciais estão cortados. */
-  const [regulador] = useState<ReguladorDaCaptura>(() => criarReguladorDaCaptura());
+     alimenta a cada final (e parcial) local e lê dele se os parciais estão cortados. A config é lida
+     do perfil CORRENTE a cada medida: o aparelho leve desce mais cedo, e o perfil muda quando o
+     `requestAdapter()` responde (o celular sem adaptador só se revela fraco aí). */
+  const [regulador] = useState<ReguladorDaCaptura>(() =>
+    criarReguladorDaCaptura({ config: () => configDoReguladorPara(perfilDoAparelhoRef.current) }),
+  );
   const reguladorRef = useRef(regulador);
 
   /* O PIPELINE DE FALA (VAD → STT → diarização → emissão) e a preparação dos modelos moram em
@@ -2538,7 +2546,7 @@ export default function LiveCapture({
         abrindo={abrindoCaptura}
         retomar={!!resumeId}
         tempo={formatTime(timer)}
-        niveis={levels}
+        ondas={<OndasDoNivel nivelRef={currentLevelRef} ativo={isRecording && !pausado} variante="celular" />}
         lados={[ladoNoCelular(ladosDoPar[0]), ladoNoCelular(ladosDoPar[1])]}
         aoTrocarLados={trocarLadosNoCelular}
         aoAbrirIdiomas={() => setIdiomasAbertos(true)}
@@ -3375,20 +3383,9 @@ export default function LiveCapture({
                       </div>
                       <div className="linha">
                         <span className="relogio">{isRecording ? formatTime(timer) : '00:00'}</span>
-                        {/* As ondas seguem o nível REAL do áudio capturado (sonda RMS), não uma animação. */}
-                        {isRecording && (
-                          <span className="ondas" aria-hidden>
-                            {[0, 1, 2, 3, 4].map((k) => {
-                              const lvl = levels[Math.floor((k * levels.length) / 5)] ?? 0;
-                              return (
-                                <i
-                                  key={k}
-                                  style={{ height: `${Math.max(18, Math.min(100, lvl * 120))}%`, animation: 'none' }}
-                                />
-                              );
-                            })}
-                          </span>
-                        )}
+                        {/* As ondas seguem o nível REAL do áudio capturado (sonda RMS), não uma animação.
+                          Uma folha com o próprio laço: o nível mudando não re-renderiza esta tela. */}
+                        {isRecording && <OndasDoNivel nivelRef={currentLevelRef} ativo={!pausado} />}
                       </div>
                       {avisoDePermissao}
                       {avisoDoBipe}

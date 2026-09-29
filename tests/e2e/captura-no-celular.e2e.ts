@@ -10,12 +10,17 @@ import { clicarRobusto, fecharSobreposicoes, semCapturaDeTela } from './_helpers
  * se comportava como no computador. Aqui ele é removido (`semCapturaDeTela`) e o microfone é o falso
  * do Chromium (`--use-fake-device-for-media-stream`, permissão já dada). O que se prova:
  *   · UMA folha antes da sessão, com o download do que a escolha baixa (Privado: o nosso modelo;
- *     Rápido: nada) — e não mais duas janelas empilhadas com o relógio andando;
+ *     Rápido: o tradutor, que ele também usa) — e não mais duas janelas empilhadas com o relógio andando;
  *   · Privado: o microfone abre (getUserMedia + VAD) e só ENTÃO a sessão começa (botão Parar);
  *   · Rápido: a Web Speech (falsa aqui) abre o áudio, a legenda chega, e nenhum segundo
  *     `getUserMedia` é aberto para o medidor;
  *   · Rápido com erro: a ajuda aparece (em vez de "Ouvindo…" calado) e "Trocar para Privado" abre o
- *     microfone num toque.
+ *     microfone num toque;
+ *   · Rápido como o Chrome do Android (relato do dono, 2026-09-29: "a legenda duplica" e "a tradução
+ *     não funciona"): finais que crescem em índices novos, sem parcial, e o reenvio do último depois
+ *     do religar viram UM balão; e, com o tradutor baixando, a fala espera a tradução (sem o
+ *     original entre parênteses nem a faixa de falha) e a recebe quando ele fica pronto. O tradutor
+ *     é o do navegador, falso (`tradutorFalso`): o opus-mt não baixa aqui (Hugging Face cortado).
  * Os modelos NÃO baixam: os pedidos ao Hugging Face são cortados (a captura abre sem eles; a legenda
  * do Privado não é o objeto deste teste, a abertura do microfone é). A escolha "Rápido ou Privado"
  * é zerada na leitura das preferências e não vai ao banco (a suíte divide um banco só).
@@ -64,12 +69,17 @@ async function semEscolhaGuardada(page: Page) {
   })
 }
 
+/** A frase do modo `android`, dita UMA vez (crescendo como o Chrome do Android a entrega). */
+const FRASE_ANDROID = 'eu gosto de estudar inglês'
+
 /**
  * Uma Web Speech FALSA (o Chromium do runner não alcança o serviço do Google). `ok`: abre o áudio e
- * entrega uma frase; `erro`: falha com `network`, como o celular sem rede. Conta os `getUserMedia`.
+ * entrega uma frase; `erro`: falha com `network`, como o celular sem rede; `android`: a frase chega
+ * como o Chrome do Android a manda — cada hipótese que cresce é um FINAL num índice novo, confiança
+ * 0, nenhum parcial, e depois do religar o último final vem de novo. Conta os `getUserMedia`.
  */
-async function webSpeechFalsa(page: Page, modo: 'ok' | 'erro') {
-  await page.addInitScript((m) => {
+async function webSpeechFalsa(page: Page, modo: 'ok' | 'erro' | 'android') {
+  await page.addInitScript(([m, frase]) => {
     const w = window as unknown as Record<string, unknown>
     w.__getUserMedia = 0
     const original = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices)
@@ -78,6 +88,13 @@ async function webSpeechFalsa(page: Page, modo: 'ok' | 'erro') {
       return original(c)
     }
     type Ev = { error?: string; resultIndex?: number; results?: unknown }
+    /** A lista de resultados como o navegador a entrega: `[texto, final]` → `{ length, 0: [...] }`. */
+    const lista = (itens: Array<[string, boolean]>) => {
+      const r: Record<number, unknown> & { length: number } = { length: itens.length }
+      itens.forEach(([t, f], i) => (r[i] = Object.assign([{ transcript: t, confidence: 0 }], { isFinal: f })))
+      return r
+    }
+    let voltas = 0
     class Falso {
       lang = ''
       continuous = false
@@ -100,6 +117,25 @@ async function webSpeechFalsa(page: Page, modo: 'ok' | 'erro') {
           }
           this.onaudiostart?.()
           this.onsoundstart?.()
+          if (m === 'android') {
+            voltas++
+            const palavras = frase.split(' ')
+            if (voltas === 1) {
+              // Finais crescendo, cada um num índice novo; o onend (silêncio) e o religar.
+              const passos = [1, 2, palavras.length].map((n) => palavras.slice(0, n).join(' '))
+              passos.forEach((_, i) =>
+                setTimeout(() => {
+                  const itens = passos.slice(0, i + 1).map((t) => [t, true] as [string, boolean])
+                  this.onresult?.({ resultIndex: i, results: lista(itens) })
+                }, 300 + i * 500),
+              )
+              setTimeout(() => this.onend?.(), 2500)
+            } else if (voltas === 2) {
+              // A volta nova reenvia o último final.
+              setTimeout(() => this.onresult?.({ resultIndex: 0, results: lista([[frase, true]]) }), 400)
+            }
+            return
+          }
           setTimeout(() => {
             const r = Object.assign([{ transcript: 'bom dia a todos', confidence: 0.9 }], { isFinal: true })
             this.onresult?.({ resultIndex: 0, results: { length: 1, 0: r } })
@@ -111,7 +147,36 @@ async function webSpeechFalsa(page: Page, modo: 'ok' | 'erro') {
     }
     w.SpeechRecognition = Falso
     w.webkitSpeechRecognition = Falso
-  }, modo)
+  }, [modo, FRASE_ANDROID] as const)
+}
+
+/**
+ * O tradutor DO NAVEGADOR, falso (a Translator API): o pacote do par "baixa" em ~4 s (com o
+ * `downloadprogress`) e então traduz como `[trad] texto`. Enquanto baixa, a cadeia só tem motores
+ * carregando — a fala tem de ficar PENDENTE, e não virar o original entre parênteses.
+ */
+async function tradutorFalso(page: Page) {
+  await page.addInitScript(() => {
+    const w = window as unknown as Record<string, unknown>
+    let pronto = false
+    w.Translator = {
+      availability: async () => (pronto ? 'available' : 'downloadable'),
+      create: (o: { monitor?: (m: { addEventListener(t: string, f: (e: { loaded: number }) => void): void }) => void }) =>
+        new Promise((resolver) => {
+          const ouvintes: Array<(e: { loaded: number }) => void> = []
+          o.monitor?.({ addEventListener: (_t, f) => ouvintes.push(f) })
+          let p = 0
+          const id = setInterval(() => {
+            p += 0.25
+            for (const f of ouvintes) f({ loaded: p })
+            if (p < 1) return
+            clearInterval(id)
+            pronto = true
+            resolver({ translate: async (t: string) => `[trad] ${t}` })
+          }, 1000)
+        }),
+    }
+  })
 }
 
 async function abrirCaptura(page: Page) {
@@ -155,11 +220,14 @@ test.describe('Captura no celular (Pixel 7, sem getDisplayMedia)', () => {
     await expect(page.locator('.relogio').first()).not.toHaveText('00:00', { timeout: 5_000 })
   })
 
-  test('Rápido: nada a baixar, a legenda chega, e nenhum segundo getUserMedia', async ({ page }) => {
+  test('Rápido: a folha diz o tamanho do tradutor, a legenda chega, e nenhum segundo getUserMedia', async ({
+    page,
+  }) => {
     test.slow()
     await webSpeechFalsa(page, 'ok')
     await abrirCaptura(page)
-    await escolherNaFolha(page, 'Rápido', /Nada a baixar/, /^Iniciar$/)
+    // O celular não tem o tradutor do navegador: o nosso baixa, e a folha diz isso (o Rápido também traduz).
+    await escolherNaFolha(page, 'Rápido', /baixa o tradutor, de cerca de \d+ MB/, /Baixar e iniciar/)
     await expect(parar(page)).toBeVisible({ timeout: 15_000 })
     await expect(page.getByText('bom dia a todos').first()).toBeVisible({ timeout: 10_000 })
     expect(await page.evaluate(() => (window as unknown as { __getUserMedia: number }).__getUserMedia)).toBe(0)
@@ -169,12 +237,34 @@ test.describe('Captura no celular (Pixel 7, sem getDisplayMedia)', () => {
     test.slow()
     await webSpeechFalsa(page, 'erro')
     await abrirCaptura(page)
-    await escolherNaFolha(page, 'Rápido', /Nada a baixar/, /^Iniciar$/)
+    await escolherNaFolha(page, 'Rápido', /baixa o tradutor/, /Baixar e iniciar/)
     const ajuda = page.getByRole('dialog', { name: 'O modo Rápido precisa de internet' })
     await expect(ajuda).toBeVisible({ timeout: 10_000 })
     // Nada de "Ouvindo…" calado: a sessão não começou.
     await expect(parar(page)).toHaveCount(0)
     await ajuda.getByRole('button', { name: /Trocar para Privado/ }).click()
     await expect(parar(page)).toBeVisible({ timeout: 30_000 })
+  })
+
+  test('Rápido como o Chrome do Android: UM balão por fala, e a tradução chega quando o tradutor fica pronto', async ({
+    page,
+  }) => {
+    test.slow()
+    await webSpeechFalsa(page, 'android')
+    await tradutorFalso(page)
+    await abrirCaptura(page)
+    // O tradutor do navegador ainda vai baixar ('downloadable'): o nosso conta na folha.
+    await escolherNaFolha(page, 'Rápido', /baixa o tradutor/, /Baixar e iniciar/)
+    await expect(parar(page)).toBeVisible({ timeout: 15_000 })
+    const baloes = page.locator('.fala').filter({ hasText: 'gosto' })
+    await expect(baloes.filter({ hasText: FRASE_ANDROID })).toHaveCount(1, { timeout: 10_000 })
+    // Enquanto o pacote baixa, a fala ESPERA a tradução: nada de "(original)" nem da faixa de falha.
+    await expect(page.getByTestId('traducao-pendente').first()).toBeVisible({ timeout: 5_000 })
+    await expect(page.getByText(`(${FRASE_ANDROID})`)).toHaveCount(0)
+    // Pronto o tradutor, a tradução chega ao MESMO balão.
+    await expect(baloes.getByText(`[trad] ${FRASE_ANDROID}`)).toBeVisible({ timeout: 15_000 })
+    // O reenvio depois do religar não abriu outro balão.
+    await expect(baloes).toHaveCount(1)
+    await expect(page.getByText(/Tradução indisponível agora/)).toHaveCount(0)
   })
 })

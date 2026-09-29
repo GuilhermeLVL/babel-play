@@ -23,6 +23,19 @@ export function ehMomento(v: unknown): v is MomentoDeOferta {
   return typeof v === 'string' && (MOMENTOS_DE_OFERTA as readonly string[]).includes(v);
 }
 
+/**
+ * O PEDIDO DE CONTA — "Criar conta" de quem não está numa tela com o login à mão (o aviso do teto
+ * de palavras sem conta, que sai do salvamento da captura, fora da árvore de componentes). Quem
+ * escuta é o `HostDeOfertas`, que já recebe o login do App. NÃO é oferta: não passa pelo motor
+ * (a pessoa clicou, não há o que dosar). Na edição estática não há login e ninguém escuta.
+ */
+export const EVENTO_PEDIR_CONTA = 'babel:pedir-conta';
+
+export function pedirConta(): void {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new Event(EVENTO_PEDIR_CONTA));
+}
+
 export function dispararOferta(momento: MomentoDeOferta, contexto?: Record<string, unknown>): void {
   if (typeof window === 'undefined') return;
   window.dispatchEvent(new CustomEvent<DetalheDaOferta>(EVENTO_OFERTA, { detail: { momento, contexto } }));

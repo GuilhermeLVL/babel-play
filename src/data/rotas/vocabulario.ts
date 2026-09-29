@@ -294,8 +294,13 @@ export async function bulkAddCards(cards: NewCardPayload[]): Promise<BulkAddResu
    * Quem chama já tem `try/catch` e já sabe mostrar erro; o que faltava era o erro existir.
    */
   if (!res.ok) {
-    const corpo = await res.json().catch(() => null) as { error?: string } | null
-    throw new Error(corpo?.error ?? `não consegui salvar as palavras (HTTP ${res.status})`)
+    const corpo = await res.json().catch(() => null) as { error?: string; code?: unknown; codigo?: unknown } | null
+    /* O status e o código vão no erro: o teto sem conta (507 `TETO_ANONIMO`) tem saída ("Criar conta"). */
+    const codigo = typeof corpo?.code === 'string' ? corpo.code : typeof corpo?.codigo === 'string' ? corpo.codigo : undefined
+    throw Object.assign(new Error(corpo?.error ?? `não consegui salvar as palavras (HTTP ${res.status})`), {
+      status: res.status,
+      ...(codigo ? { codigo } : {}),
+    })
   }
   const body = (await res.json()) as { cards: VocabRow[]; skipped?: CartaoPulado[] }
   const criados = (body.cards ?? []).map(rowToVocabCard)

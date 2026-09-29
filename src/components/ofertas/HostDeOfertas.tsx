@@ -15,7 +15,13 @@ import { ehConfigDeOfertas, useConfigRemota, useFlag } from '../../lib/flags';
 import { estadoDeIdentidade } from '../../lib/identidade';
 import { verificarCota } from '../../lib/ofertas/cota';
 import { pedirDestaqueEmPlanos } from '../../lib/ofertas/destaque';
-import { type DetalheDaOferta, dispararOferta, ehMomento, EVENTO_OFERTA } from '../../lib/ofertas/eventos';
+import {
+  type DetalheDaOferta,
+  dispararOferta,
+  ehMomento,
+  EVENTO_OFERTA,
+  EVENTO_PEDIR_CONTA,
+} from '../../lib/ofertas/eventos';
 import {
   iniciarSessaoDeUso,
   lerHistorico,
@@ -147,6 +153,15 @@ export default function HostDeOfertas({ aoEntrar, aoVerPlanos }: { aoEntrar: () 
     window.addEventListener(EVENTO_OFERTA, ouvir);
     return () => window.removeEventListener(EVENTO_OFERTA, ouvir);
   }, [avaliar]);
+
+  /* O pedido de conta de fora da árvore (`pedirConta`): o login do App, sem passar pelo motor. */
+  const aoEntrarRef = useRef(aoEntrar);
+  aoEntrarRef.current = aoEntrar;
+  useEffect(() => {
+    const entrar = () => aoEntrarRef.current();
+    window.addEventListener(EVENTO_PEDIR_CONTA, entrar);
+    return () => window.removeEventListener(EVENTO_PEDIR_CONTA, entrar);
+  }, []);
 
   // 2. O pedido adiado: de novo quando a rodada fecha e a cada 5 s, até valer ou vencer.
   useEffect(() => {

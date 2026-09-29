@@ -1172,7 +1172,6 @@
   "O que foi baixado e o tamanho": "What was downloaded and its size",
   "Parar captura": "Stop capture",
   "No celular, o som de outros apps não entra: a legenda vem do microfone.": "On a phone, sound from other apps can't come in: captions come from the microphone.",
-<<<<<<< HEAD
   "Você escolhe Pix, cartão ou boleto na página segura do Asaas.": "You choose Pix, card or boleto on Asaas's secure page.",
   "Entrar ou criar conta": "Sign in or create an account",
   "Escolha a sua data de nascimento.": "Choose your date of birth.",
@@ -1183,8 +1182,7 @@
   "Vendas reabrem em breve": "Sales reopen soon",
   "Entrar e assinar o {plano}": "Sign in and subscribe to {plano}",
   "Próxima cobrança em": "Next charge on",
-  "Acesso até": "Access until"
-=======
+  "Acesso até": "Access until",
   "O áudio desta sessão não coube no seu espaço de armazenamento. As falas foram salvas; para guardar o áudio, libere espaço ou veja os planos.": "This session's audio did not fit in your storage space. The transcript was saved; to keep the audio, free up space or see the plans.",
   "O vocabulário não foi fichado: {motivo}": "The vocabulary was not saved: {motivo}",
   "Criar conta": "Create account",
@@ -1192,5 +1190,4 @@
   "Criar conta na versão completa": "Create an account in the full version",
   "Não conseguimos confirmar o pagamento da sua assinatura. Pague a fatura para continuar com o {plano}.": "We couldn't confirm your subscription payment. Pay the invoice to keep your {plano} plan.",
   "Ver minha assinatura": "View my subscription"
->>>>>>> fix/funil-ofertas
 }

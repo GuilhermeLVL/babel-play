@@ -1113,5 +1113,9 @@
   "O tradutor no aparelho precisa de cerca de {mb} MB.": "The on-device translator needs about {mb} MB.",
   "O tradutor deste aparelho não carregou (pouca memória ou navegador sem suporte). As falas seguem sem tradução.": "This device's translator did not load (low memory or unsupported browser). Speech stays untranslated.",
   "Dá para traduzir pela internet com o MyMemory: o texto das falas sai do aparelho.": "You can translate over the internet with MyMemory: the text of what is said leaves the device.",
-  "Traduzir pela internet": "Translate over the internet"
+  "Traduzir pela internet": "Translate over the internet",
+  "No Android, o celular apita a cada frase: o sistema religa o reconhecimento sem parar.": "On Android, the phone beeps after every sentence: the system keeps restarting speech recognition.",
+  "Sem bipe": "No beep",
+  "O bipe vem do Android: ele religa o reconhecimento a cada frase. No modo Privado, o microfone abre uma vez só.": "The beep comes from Android: it restarts speech recognition after every sentence. In Private mode, the microphone opens only once.",
+  "Fechar aviso": "Close notice"
 }

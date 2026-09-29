@@ -86,7 +86,7 @@ import { useFuncaoEstavel, useTextoDaConversa } from '../../lib/captura/conversa
 import { assinarSalvamento, capturaEmRisco, lerSalvamento } from '../../lib/captura/estadoDoSalvamento';
 import { criarFontesDeAudio } from '../../lib/captura/fontesDeAudio';
 import { type PassoDoInicio, planejarInicio } from '../../lib/captura/inicioDaCaptura';
-import type { EscolhaDoMic } from '../../lib/captura/motorDoMicrofone';
+import { type EscolhaDoMic, webSpeechBipaAoReligar } from '../../lib/captura/motorDoMicrofone';
 import { preparoConcluido } from '../../lib/captura/pacotesNativos';
 // Vocabulário dentro da captura: examinar a palavra, fichar no deck, mandar praticar.
 import { criarPalavraDaFala } from '../../lib/captura/palavraDaFala';
@@ -574,6 +574,8 @@ export default function LiveCapture({
   const [folhaDoInicio, setFolhaDoInicio] = useState<Extract<PassoDoInicio, { tipo: 'folha' }> | null>(null);
   /** O microfone não abriu: a ajuda daquele aparelho (`ajudaDoMicrofone.ts`). */
   const [falhaDoMic, setFalhaDoMic] = useState<AjudaDoMic | null>(null);
+  /** Fechou (ou já aceitou) o aviso do bipe do Android nesta tela. */
+  const [dispensouBipe, setDispensouBipe] = useState(false);
 
   /* OS IDIOMAS DA SESSÃO. O par virou um chip; os campos, a busca e a explicação da direção moram
      no diálogo que ele abre (`IdiomasDaSessao`, o C7 do protótipo) — antes ocupavam três linhas
@@ -2309,6 +2311,7 @@ export default function LiveCapture({
         preferido: micEngine,
         webSpeechSuportado: webSpeechSupported,
         noAparelho: preparoDoInicio.noAparelho,
+        bipaAoReligar: webSpeechBipaAoReligar(),
         consentiuNavegador: escolha === 'rapido',
         rapidoPermitido: rapidoDoMicPermitido(),
         perfilId: getActiveProfile().id,
@@ -2358,6 +2361,39 @@ export default function LiveCapture({
     }
     iniciarCaptura(privado ? 'privado' : undefined);
   };
+  /* O BIPE DO ANDROID (`webSpeechBipaAoReligar`): quem já escolheu o Rápido ouve o sistema apitar a
+     cada frase. O aviso diz de onde vem o som e troca para o Privado num toque — o reconhecedor do
+     navegador para, e o nosso modelo abre o microfone uma vez só, na mesma sessão. */
+  const trocarParaPrivadoSemBipe = () => {
+    setDispensouBipe(true);
+    try {
+      webSpeechRef.current?.stop();
+    } catch {
+      /* já parado */
+    }
+    webSpeechRef.current = null;
+    webSpeechPartialIdRef.current = null;
+    tentarMicrofoneDeNovo(true);
+  };
+  const avisoDoBipe = isRecording &&
+    micEnabled &&
+    micEngine === 'browser' &&
+    escolhaDoMic === 'rapido' &&
+    !dispensouBipe &&
+    webSpeechBipaAoReligar() && (
+      <div className="aviso-info" role="status" data-testid="aviso-do-bipe">
+        <Info aria-hidden />
+        <span style={{ flex: 1 }}>
+          {t('O bipe vem do Android: ele religa o reconhecimento a cada frase. No modo Privado, o microfone abre uma vez só.')}
+        </span>
+        <button type="button" className="btn btn-outline" onClick={trocarParaPrivadoSemBipe}>
+          {t('Trocar para Privado')}
+        </button>
+        <button type="button" className="btn btn-outline" aria-label={t('Fechar aviso')} onClick={() => setDispensouBipe(true)}>
+          <X aria-hidden />
+        </button>
+      </div>
+    );
   /** "Permita o microfone" logo antes do pedido do navegador (e enquanto ele está na tela). */
   const pedindoPermissao =
     micEnabled && (abrindoCaptura || micAbrindo) && preparoDoInicio.permissao !== 'granted' && !falhaDoMic;
@@ -3036,6 +3072,7 @@ export default function LiveCapture({
                       )}
                     </div>
                     {avisoDePermissao}
+                    {avisoDoBipe}
 
                     {/* UMA linha de orientação, e ela vale GRAVANDO TAMBÉM.
                       Antes só aparecia antes de iniciar — justamente quando o estado era mais fácil
@@ -3550,6 +3587,7 @@ export default function LiveCapture({
             {botaoDasLegendas()}
           </div>
           {avisoDePermissao}
+          {avisoDoBipe}
         </div>
       )}
 

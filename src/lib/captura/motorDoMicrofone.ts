@@ -67,6 +67,11 @@ export interface EntradaDoMotorDoMic {
   rapidoPermitido: boolean;
   /** Perfil de IA ativo: `local-private` promete que nada sai do aparelho. */
   perfilId: string;
+  /**
+   * O reconhecimento do navegador apita a cada religada neste aparelho (Android, ver
+   * `webSpeechBipaAoReligar`): o "no aparelho" deixa de valer por si só, e só o "Rápido" o chama.
+   */
+  bipaAoReligar?: boolean;
 }
 
 export interface DecisaoDoMotorDoMic {
@@ -79,7 +84,26 @@ export interface DecisaoDoMotorDoMic {
 /** O perfil que promete "100% offline". */
 export const PERFIL_PRIVADO = 'local-private';
 
-export function escolherMotorDoMic(e: EntradaDoMotorDoMic): DecisaoDoMotorDoMic {
+/**
+ * O BIPE DO ANDROID (relato do dono no celular, 2026-09-29). O Chrome do Android ignora o
+ * `continuous`: encerra o reconhecimento a cada frase (ou em ~3 s de silêncio), o `onend` religa, e o
+ * SISTEMA toca o som de "começou a ouvir"/"parou" a cada volta — um bipe a cada poucos segundos, que o
+ * site não tem como calar (WICG/speech-api#99). Lá, o reconhecimento do navegador (na nuvem ou no
+ * aparelho, que passa pelo mesmo serviço) só entra quando a pessoa escolheu o "Rápido"; o "Privado" é o
+ * nosso modelo, que abre o microfone UMA vez e não apita.
+ */
+export function webSpeechBipaAoReligar(escopo: unknown = globalThis): boolean {
+  const n = (escopo as { navigator?: { userAgent?: string; userAgentData?: { platform?: string } } })?.navigator;
+  if (!n) return false;
+  if (n.userAgentData?.platform) return n.userAgentData.platform === 'Android';
+  return /Android/i.test(n.userAgent ?? '');
+}
+
+/** O "no aparelho" que conta: no Android ele apita igual à nuvem, então não decide sozinho. */
+const noAparelhoQueConta = (e: EntradaDoMotorDoMic) => (e.bipaAoReligar ? null : e.noAparelho);
+
+export function escolherMotorDoMic(entrada: EntradaDoMotorDoMic): DecisaoDoMotorDoMic {
+  const e = { ...entrada, noAparelho: noAparelhoQueConta(entrada) };
   if (!e.webSpeechSuportado) return { motor: 'whisper', motivo: 'sem-web-speech', instalarNoAparelho: false };
   if (e.preferido === 'whisper') return { motor: 'whisper', motivo: 'escolha-whisper', instalarNoAparelho: false };
   if (e.noAparelho === 'available') return { motor: 'web-speech-local', motivo: 'no-aparelho', instalarNoAparelho: false };
@@ -111,7 +135,7 @@ export function escolhaGuardada(e: { consentiuNavegador: boolean; jaEscolheu: bo
  */
 export function precisaPerguntarMotorDoMic(e: EntradaDoMotorDoMic & { escolha: EscolhaDoMic | null }): boolean {
   if (!e.webSpeechSuportado || e.preferido !== 'browser') return false;
-  if (e.noAparelho === 'available') return false;
+  if (noAparelhoQueConta(e) === 'available') return false;
   if (e.perfilId === PERFIL_PRIVADO || !e.rapidoPermitido) return false;
   return e.escolha === null;
 }
@@ -167,8 +191,9 @@ export async function resolverMotorDoMic(
   },
 ): Promise<DecisaoDoMotorDoMic> {
   const escopo = e.escopo ?? globalThis;
+  const bipaAoReligar = e.bipaAoReligar ?? webSpeechBipaAoReligar(escopo);
   let noAparelho: Disponibilidade | null = null;
-  if (e.webSpeechSuportado && e.preferido === 'browser') {
+  if (e.webSpeechSuportado && e.preferido === 'browser' && !bipaAoReligar) {
     try {
       const { disponibilidadeDoSttNoAparelho } = await import('../dispositivo/sonda');
       noAparelho = await disponibilidadeDoSttNoAparelho(e.lang, escopo);
@@ -180,13 +205,13 @@ export async function resolverMotorDoMic(
   const SR = s.SpeechRecognition ?? s.webkitSpeechRecognition;
   const podeInstalar = typeof SR?.install === 'function';
   let consentiuNavegador = e.consentiuNavegador;
-  if (e.perguntar && e.escolha !== undefined && precisaPerguntarMotorDoMic({ ...e, noAparelho, escolha: e.escolha })) {
+  if (e.perguntar && e.escolha !== undefined && precisaPerguntarMotorDoMic({ ...e, bipaAoReligar, noAparelho, escolha: e.escolha })) {
     const resposta = await e
       .perguntar({ pacoteDoNavegador: noAparelho === 'downloadable' && podeInstalar })
       .catch(() => null);
     consentiuNavegador = resposta === 'rapido';
   }
-  const decisao = escolherMotorDoMic({ ...e, consentiuNavegador, noAparelho });
+  const decisao = escolherMotorDoMic({ ...e, bipaAoReligar, consentiuNavegador, noAparelho });
   if (!decisao.instalarNoAparelho || !podeInstalar) return decisao;
   /* `install` que lança síncrono vira rejeição aqui; sem ativação, sem rede, idioma recusado: a
      próxima sessão pergunta de novo. Só `true` conta como instalado. */

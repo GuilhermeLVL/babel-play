@@ -1,10 +1,19 @@
 import { type Dispatch, type SetStateAction, useEffect, useRef, useState } from 'react';
 
 import type { Recording, ViewType } from '../../types';
-import { isOnAuthCallback } from '../authCallback';
+import { clearAuthCallbackUrl, isOnAuthCallback } from '../authCallback';
 import { edicaoEstatica } from '../edicaoEstatica';
+import { aoMudarIdentidade } from '../identidade';
+import { consumirIntencao } from '../intencaoDeLogin';
 import { askNavGuard } from '../navGuard';
-import { type EstadoDeRota, irParaSubTelaDePlanos, lerUrlAtual, publicarUrl, type ViewDeRota } from '../rotas';
+import {
+  estadoDaIntencao,
+  type EstadoDeRota,
+  irParaSubTelaDePlanos,
+  lerUrlAtual,
+  publicarUrl,
+  type ViewDeRota,
+} from '../rotas';
 import type { PracticeSeed } from '../sentences';
 
 export interface DependenciasDaNavegacao {
@@ -130,6 +139,47 @@ export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
     }
   };
 
+  /** Um estado de rota (URL, intenção de login) vira navegação — o mesmo mapa do boot e do voltar. */
+  const irParaEstado = (e: EstadoDeRota, via: (view: string, data?: any) => void = doNavigate) =>
+    via(e.subTab === 'study' ? 'study' : e.view, {
+      id: e.sessionId,
+      subTab: e.subTab,
+      aba: e.lojaTab,
+      planosTela: e.planosTela,
+    });
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     O LOGIN TERMINA ONDE A PESSOA IA (funil de venda, 2026-09-29 — `lib/intencaoDeLogin`).
+
+     Três jeitos de terminar um login, um lugar só para a volta:
+       · mesma aba (e-mail e senha, ou o convidado que converte): a identidade vai de `anonimo` a
+         `conta`;
+       · o Google e o link de confirmação do e-mail voltam em `/auth/callback`, numa carga nova (às
+         vezes numa ABA nova): a identidade vai de `carregando` a `conta`, e a página nasceu no
+         callback.
+     Recarregar já logado (`carregando` → `conta` fora do callback) NÃO consome: a pessoa está onde
+     a URL diz, e uma intenção esquecida não pode sequestrar a tela.
+     ═══════════════════════════════════════════════════════════════════════ */
+  const nasceuNoCallback = useRef(isOnAuthCallback());
+  useEffect(
+    () =>
+      aoMudarIdentidade((depois, antes) => {
+        if (depois !== 'conta') return;
+        const terminouLogin = antes === 'anonimo' || nasceuNoCallback.current;
+        nasceuNoCallback.current = false;
+        if (!terminouLogin) return;
+        const intencao = consumirIntencao();
+        if (!intencao) return;
+        // Os tokens do callback não ficam no histórico: a barra volta a `/` ANTES de a navegação
+        // empurrar a rota da intenção (o "voltar" nunca devolve ao `/auth/callback#…`).
+        clearAuthCallbackUrl();
+        irParaEstado(estadoDaIntencao(intencao.rota));
+      }),
+    // `irParaEstado` só usa setters estáveis e funções de módulo — ver a nota do efeito do "voltar".
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+
   /* ═══════════════════════════════════════════════════════════════════════
      F10, A URL ESPELHA O ESTADO.
 
@@ -151,12 +201,7 @@ export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
     if (isOnAuthCallback()) return; // o callback tem dono; não é rota de tela
     const e = lerUrlAtual();
     if (e.view === 'hub' && window.location.pathname === '/') return;
-    doNavigate(e.subTab === 'study' ? 'study' : e.view, {
-      id: e.sessionId,
-      subTab: e.subTab,
-      aba: e.lojaTab,
-      planosTela: e.planosTela,
-    });
+    irParaEstado(e);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -174,15 +219,7 @@ export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
   /* 3) BOTÃO VOLTAR. Sem isto, "voltar" saía do app — era o beco relatado na auditoria.
         Passa pelo `navGuard`: uma captura em andamento ainda pode pedir confirmação. */
   useEffect(() => {
-    const aoVoltar = () => {
-      const e = lerUrlAtual();
-      navigateTo(e.subTab === 'study' ? 'study' : e.view, {
-        id: e.sessionId,
-        subTab: e.subTab,
-        aba: e.lojaTab,
-        planosTela: e.planosTela,
-      });
-    };
+    const aoVoltar = () => irParaEstado(lerUrlAtual(), navigateTo);
     window.addEventListener('popstate', aoVoltar);
     return () => window.removeEventListener('popstate', aoVoltar);
     /* `navigateTo` FICA DE FORA das dependências, de propósito. Ela é recriada a cada render (é

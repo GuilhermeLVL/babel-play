@@ -61,6 +61,7 @@ import { lerTokenDoConvite } from './lib/conviteNaUrl';
 import { edicaoEstatica } from './lib/edicaoEstatica';
 import { carregarEntitlements } from './lib/entitlements';
 import { useAparencia, useHidratacaoDeAjustes } from './lib/estado/useAparencia';
+import { useEmCheckout } from './lib/estado/useEmCheckout';
 import { useGateDeConta } from './lib/estado/useGateDeConta';
 import { useMetricas } from './lib/estado/useMetricas';
 import { useNavegacao } from './lib/estado/useNavegacao';
@@ -99,6 +100,10 @@ export default function App() {
   const { session, recovery, setRecovery, processingCallback, segundoFatorPendente, reconferirSegundoFator } =
     useSessaoSupabase();
 
+  /* No checkout (`/plano/assinar`, `/plano/assinado`) nada sobe por cima nem toma a tela: a
+     migração e a pergunta da idade esperam a pessoa sair dali (funil de venda, 2026-09-29). */
+  const emCheckout = useEmCheckout(activeView);
+
   const {
     anonimo,
     semContaAceito,
@@ -109,7 +114,7 @@ export default function App() {
     migracao,
     setMigracao,
     fecharGate,
-  } = useGateDeConta();
+  } = useGateDeConta({ adiarMigracao: emCheckout });
 
   const {
     theme,
@@ -350,8 +355,9 @@ export default function App() {
     );
   }
 
-  /* A IDADE antes de tudo o que é da conta: sem ela o app não sabe qual perfil aplicar. */
-  if (authRequired && idDaConta && protecao && !protecao.nascimentoInformado) {
+  /* A IDADE antes de tudo o que é da conta: sem ela o app não sabe qual perfil aplicar. No
+     checkout, não: o próprio Checkout pergunta no formulário, e esta tela inteira o derrubaria. */
+  if (authRequired && idDaConta && protecao && !protecao.nascimentoInformado && !emCheckout) {
     return (
       <>
         <PerguntaDeIdade aoConcluir={() => void carregarProtecao()} />

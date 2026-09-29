@@ -584,7 +584,7 @@ export default function App() {
                   onVoltar={() => setActiveView('hub')}
                 />
               ) : (
-                <Planos />
+                <Planos onEntrar={() => navigateTo('login')} />
               ))}
             {activeView === 'estatisticas' && (
               <Estatisticas metrics={metrics} onChangeView={(v) => navigateTo(v as ViewType)} />

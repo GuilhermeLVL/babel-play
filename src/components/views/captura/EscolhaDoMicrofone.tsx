@@ -45,8 +45,11 @@ export default function EscolhaDoMicrofone({
   aoEscolher: (escolha: EscolhaDoMic) => void;
   /** Fechou sem escolher. */
   aoFechar: () => void;
-  /** A folha do início: o que cada opção baixa agora (MB) e se o nosso modelo atrasa neste aparelho. */
-  inicio?: { mbSePrivado: number; mbSeRapido: number; aparelhoLento: boolean };
+  /**
+   * A folha do início: o que cada opção baixa agora (MB), a parte do tradutor nisso (o Rápido também
+   * traduz: sem o tradutor do navegador, o nosso baixa) e se o nosso modelo atrasa neste aparelho.
+   */
+  inicio?: { mbSePrivado: number; mbSeRapido: number; aparelhoLento: boolean; mbTradutor?: number };
 }) {
   const [escolha, setEscolha] = useState<EscolhaDoMic | null>(null);
   const mbAgora = !inicio || !escolha ? 0 : escolha === 'rapido' ? inicio.mbSeRapido : inicio.mbSePrivado;
@@ -70,9 +73,11 @@ export default function EscolhaDoMicrofone({
           <span style={{ flex: 1 }}>
             <h3>
               {t('Rápido')}{' '}
-              <span className="badge" style={{ marginLeft: 6 }}>
-                {t('Sem download')}
-              </span>
+              {!(inicio && inicio.mbSeRapido > 0) && (
+                <span className="badge" style={{ marginLeft: 6 }}>
+                  {t('Sem download')}
+                </span>
+              )}
             </h3>
             <p>
               {t(
@@ -123,7 +128,9 @@ export default function EscolhaDoMicrofone({
         {inicio && escolha && (
           <p className="mut" data-testid="download-da-escolha" style={{ fontSize: 12.5 }}>
             {mbAgora > 0
-              ? t('Para começar, baixa cerca de {mb} MB, uma vez só.', { mb: mbAgora })
+              ? escolha === 'rapido' && mbAgora === inicio.mbTradutor
+                ? t('Para traduzir, baixa o tradutor, de cerca de {mb} MB, uma vez só.', { mb: mbAgora })
+                : t('Para começar, baixa cerca de {mb} MB, uma vez só.', { mb: mbAgora })
               : t('Nada a baixar para começar.')}
           </p>
         )}

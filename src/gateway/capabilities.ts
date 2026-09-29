@@ -58,6 +58,10 @@ export interface TranslationProvider extends AdapterMeta {
   ): void;
   /** Motor LOCAL que carrega modelo: avisa quando um fica pronto (o gateway fecha o disjuntor dele). */
   aoFicarPronto?(fn: (modelo: string) => void): () => void;
+  /** Motor LOCAL: o par está carregando (fora da cascata AGORA, mas vai voltar) — pacote do navegador baixando. */
+  carregando?(src: string, tgt: string): boolean;
+  /** Motor LOCAL: avisa quando um modelo NÃO carrega neste aparelho (WASM, memória) — não vai ficar pronto. */
+  aoFalharCarga?(fn: (modelo: string) => void): () => void;
 }
 
 // ───────────────────────────────── LLM ─────────────────────────────────

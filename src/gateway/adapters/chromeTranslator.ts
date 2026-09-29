@@ -66,6 +66,37 @@ export class ChromeTranslatorMt implements TranslationProvider {
   /** A consulta de disponibilidade EM CURSO por par — uma só, reaproveitada. */
   private consultas = new Map<string, Promise<string>>();
 
+  /**
+   * Quem espera um PACOTE baixando (a captura: a tradução pendente, `soFaltaCarregar`). Avisados
+   * quando o download acaba — pronto OU falho: nos dois casos, quem esperava tenta de novo (pelo
+   * nativo, ou pelo próximo motor da cascata). Sem isto, a fala pendente só por este pacote ficava
+   * em "Preparando a tradução…" até outro motor ficar pronto.
+   */
+  private prontidao = new Set<(par: string) => void>();
+
+  aoFicarPronto(fn: (par: string) => void): () => void {
+    this.prontidao.add(fn);
+    return () => this.prontidao.delete(fn);
+  }
+
+  private avisarQueAcabou(key: string): void {
+    for (const fn of this.prontidao) {
+      try {
+        fn(key);
+      } catch {
+        /* ouvinte com defeito não impede o resto */
+      }
+    }
+  }
+
+  /**
+   * O pacote do par está BAIXANDO? `supports()` o tira da cascata enquanto isso; o gateway pergunta
+   * aqui para dizer "só falta carregar" em vez de "não há motor" (`MotorAindaCarregando`).
+   */
+  carregando(src: string, tgt: string): boolean {
+    return this.known.get(this.chave(src, tgt)) === 'downloading';
+  }
+
   static isPresent(): boolean {
     return typeof self !== 'undefined' && 'Translator' in self;
   }
@@ -182,13 +213,19 @@ export class ChromeTranslatorMt implements TranslationProvider {
       () => {
         this.criados.add(key);
         this.known.set(key, 'ready');
-        if (!pronto) onProgress?.(1);
+        if (!pronto) {
+          onProgress?.(1);
+          this.avisarQueAcabou(key);
+        }
       },
       () => {
         this.known.set(key, 'unavailable');
         this.instances.delete(key);
         this.criados.delete(key);
-        if (!pronto) aoFalhar?.();
+        if (!pronto) {
+          aoFalhar?.();
+          this.avisarQueAcabou(key);
+        }
       },
     );
     // Pronto: a criação é instantânea, vale esperar. A baixar: devolve já e o download segue.
@@ -271,10 +308,14 @@ export class ChromeTranslatorMt implements TranslationProvider {
       if (this.known.get(key) !== 'downloading') {
         this.known.set(key, 'downloading');
         void this.getInstance(s, t)
-          .then(() => this.known.set(key, 'ready'))
+          .then(() => {
+            this.known.set(key, 'ready');
+            this.avisarQueAcabou(key);
+          })
           .catch(() => {
             this.known.set(key, 'unavailable');
             this.instances.delete(key);
+            this.avisarQueAcabou(key);
           });
       }
       // Pulo, não falha: o pacote baixando não pode abrir o disjuntor (ver `MotorAindaCarregando`).

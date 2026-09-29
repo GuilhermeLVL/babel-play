@@ -10,7 +10,7 @@
  * `attempt(binding)` — assim o núcleo não referencia tipos de DOM (MediaStream,
  * AbortSignal) nem SDKs.
  */
-import { BreakerRegistry, ehCancelamento, withRetry, withTimeout } from '../robustness';
+import { BreakerRegistry, ehCancelamento, ehMotorCarregando, withRetry, withTimeout } from '../robustness';
 import type { BudgetLedger } from './budget';
 import type { Capability, CapabilityBinding, Profile } from './profile';
 
@@ -31,10 +31,23 @@ export class NoRouteError extends Error {
   constructor(
     readonly capability: Capability,
     readonly reason?: unknown,
+    /**
+     * Algum motor da cadeia só está CARREGANDO (`MotorAindaCarregando`): a rota vai existir quando
+     * ele ficar pronto. É o que separa "tradução a caminho" de "tradução indisponível" (relato do
+     * dono no celular, 2026-09-29: cada final durante o download do opus-mt virava o original entre
+     * parênteses e o aviso de falha).
+     */
+    readonly carregando = false,
   ) {
     super(`sem rota disponível para a capacidade "${capability}"`);
     this.name = 'NoRouteError';
   }
+}
+
+/** Sem rota AGORA só porque um motor ainda carrega (pelo nome: o erro atravessa bundles). */
+export function soFaltaCarregar(e: unknown): boolean {
+  const x = e as { name?: string; carregando?: boolean } | null;
+  return x?.name === 'NoRouteError' && x.carregando === true;
 }
 
 export interface RunOptions {
@@ -90,6 +103,7 @@ export class AiGateway {
   ): Promise<R> {
     const chain = this.profile.bindings[cap] ?? [];
     let reason: unknown = new Error(`nenhum binding para "${cap}" no perfil "${this.profile.id}"`);
+    let carregando = false;
 
     for (const binding of chain) {
       if (opts.aceita && !opts.aceita(binding)) continue;
@@ -119,10 +133,11 @@ export class AiGateway {
       } catch (e) {
         // Cancelada por quem pediu: a cascata para aqui (o próximo binding faria o mesmo trabalho à toa).
         if (ehCancelamento(e)) throw e;
+        if (ehMotorCarregando(e)) carregando = true;
         reason = e;
       }
     }
 
-    throw new NoRouteError(cap, reason);
+    throw new NoRouteError(cap, reason, carregando);
   }
 }

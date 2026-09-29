@@ -79,6 +79,24 @@ describe('WhisperLocalStt × perfil do dispositivo', () => {
     expect(cargas()[0].threads).toBe(4)
   })
 
+  /* ORÇAMENTO GLOBAL (`orcamentoDeThreads.ts`): o Whisper leva o que sobra depois da thread principal,
+     do tradutor e da voz — não mais `min(núcleos, 4)` sozinho. */
+  it('isolado num desktop de 6 núcleos: 3 threads (1 fica para o tradutor, 1 para a voz, 1 para a tela)', async () => {
+    navegador({ hardwareConcurrency: 6, mediaDevices: { getDisplayMedia: () => undefined } })
+    vi.stubGlobal('crossOriginIsolated', true)
+    const stt = new WhisperLocalStt()
+    await stt.preload()
+    expect(cargas()[0].threads).toBe(3)
+  })
+
+  it('modo leve (Quest de 8 núcleos, isolado): no máximo 2 threads', async () => {
+    navegador({ userAgent: 'Mozilla/5.0 (X11; Linux x86_64; Quest 3) OculusBrowser/40.0' })
+    vi.stubGlobal('crossOriginIsolated', true)
+    const stt = new WhisperLocalStt()
+    await stt.preload()
+    expect(cargas()[0].threads).toBe(2)
+  })
+
   it('trocar só o dtype (híbrido → q8) recria o worker', async () => {
     navegador({})
     const stt = new WhisperLocalStt()

@@ -36,26 +36,25 @@ import { configureModelDelivery } from './transformersEnv';
 // Entrega dos pesos: cache do navegador (padrão) ou self-host same-origin (VITE_SELF_HOST_MODELS).
 configureModelDelivery();
 
-// Threads do runtime WASM do ONNX. Multithread exige SharedArrayBuffer → página cross-origin
-// isolada (COOP/COEP). SEM isolamento, o ort cai graciosamente para 1 thread (mais lento, porém
-// FUNCIONA). SIMD funciona sem isolamento. Limitamos as threads p/ não saturar a máquina.
+// SIMD do runtime WASM do ONNX (funciona sem isolamento). As THREADS não se escolhem aqui: quem
+// decide é a mensagem `load` (`definirThreads`, abaixo). O `min(núcleos, 4)` que ficava aqui não
+// sabia do tradutor nem da thread principal — num desktop de 8 núcleos eram 4 do Whisper mais as do
+// tradutor disputando os núcleos com a interface.
 try {
-  const cores = (self as any).navigator?.hardwareConcurrency || 4;
   // `wasm` é opcional no tipo do runtime; se faltar, o comportamento é o mesmo do catch abaixo
   // (não mexe em nada e usa os defaults do runtime).
   const wasm = env.backends.onnx.wasm;
-  if (wasm) {
-    wasm.simd = true;
-    wasm.numThreads = Math.max(1, Math.min(cores, 4));
-  }
+  if (wasm) wasm.simd = true;
 } catch {
   // ambiente sem esses campos — ignora (usa defaults do runtime)
 }
 
 /**
- * THREADS PEDIDAS PELO PERFIL DO DISPOSITIVO (`lib/dispositivo/perfil.ts`): 1 sem isolamento, 2 no
- * celular fraco, até 4 no resto. Só tem efeito antes da PRIMEIRA sessão do ORT neste worker — e é o
- * caso, porque o `load` vem antes de qualquer pipeline, e trocar de modelo recria o worker.
+ * THREADS PEDIDAS PELO ORÇAMENTO GLOBAL (`lib/dispositivo/orcamentoDeThreads.ts`): a parte do Whisper
+ * depois da thread principal, do tradutor e da voz — 1 sem isolamento (sem SharedArrayBuffer, o ORT
+ * não abre threads), até 2 no modo leve, até 4 no resto. Só tem efeito antes da PRIMEIRA sessão do
+ * ORT neste worker — e é o caso, porque o `load` vem antes de qualquer pipeline, e trocar de modelo
+ * recria o worker. O teto de 4 fica como rede de segurança.
  */
 function definirThreads(threads: unknown): void {
   if (typeof threads !== 'number' || !Number.isFinite(threads) || threads < 1) return;
@@ -63,7 +62,7 @@ function definirThreads(threads: unknown): void {
     const wasm = env.backends.onnx.wasm;
     if (wasm) wasm.numThreads = Math.min(4, Math.floor(threads));
   } catch {
-    // sem o campo: fica o padrão do topo do arquivo
+    // sem o campo: fica o padrão do runtime
   }
 }
 

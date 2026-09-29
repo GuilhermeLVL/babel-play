@@ -4,7 +4,7 @@
  * do MyMemory (que medimos em ~476ms p50 / ~1900ms p95). Modelos pequenos, carregados sob
  * demanda por direção. Espelha o padrão do whisperWorker.
  */
-import { pipeline, Tensor } from '@huggingface/transformers';
+import { env, pipeline, Tensor } from '@huggingface/transformers';
 
 import { juntarFrases, separarEmFrases } from '../../core/texto/frases';
 import { registrarModeloBaixado } from '../modelManifest';
@@ -14,6 +14,25 @@ import { configureModelDelivery } from './transformersEnv';
 
 // Entrega dos pesos: cache do navegador (padrão) ou self-host same-origin (VITE_SELF_HOST_MODELS).
 configureModelDelivery();
+
+/**
+ * THREADS DO ORÇAMENTO GLOBAL (`lib/dispositivo/orcamentoDeThreads.ts`), espelho do `definirThreads`
+ * do whisperWorker. Antes este worker não escolhia nada e ficava o padrão do ORT — `min(4, ⌈núcleos/2⌉)`
+ * com isolamento: 4 num desktop de 8 núcleos, somadas às 4 do Whisper. O adapter manda a parte do
+ * tradutor em cada `preload`/`translate`; vale a PRIMEIRA — o ORT lê o número ao abrir a primeira
+ * sessão, e depois dela mudar não teria efeito.
+ */
+let threadsDefinidas = false;
+function definirThreads(threads: unknown): void {
+  if (threadsDefinidas || typeof threads !== 'number' || !Number.isFinite(threads) || threads < 1) return;
+  threadsDefinidas = true;
+  try {
+    const wasm = env.backends.onnx.wasm;
+    if (wasm) wasm.numThreads = Math.min(4, Math.floor(threads));
+  } catch {
+    // sem o campo: fica o padrão do runtime
+  }
+}
 
 /**
  * Progresso de download do opus-mt (~113 MB no int8).
@@ -230,6 +249,8 @@ self.onmessage = (e: MessageEvent): Promise<void> => {
     fila.cancelar(id);
     return Promise.resolve();
   }
+  // Antes de qualquer sessão: a primeira mensagem com modelo decide as threads (ver `definirThreads`).
+  if (type === 'preload' || type === 'translate') definirThreads(e.data.threads);
 
   // PRELOAD: carrega o modelo da direção em background (o adapter só roteia p/ cá quando 'ready').
   if (type === 'preload') {

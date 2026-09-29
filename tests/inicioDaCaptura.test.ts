@@ -9,7 +9,6 @@ import {
   type EntradaDoInicio,
   motorPrevistoDoMic,
   planejarInicio,
-  tradutorDepoisDaPrimeiraLegenda,
 } from '../src/lib/captura/inicioDaCaptura'
 
 const motor = (o: Partial<EntradaDoInicio['motor']> = {}): EntradaDoInicio['motor'] => ({
@@ -24,7 +23,7 @@ const motor = (o: Partial<EntradaDoInicio['motor']> = {}): EntradaDoInicio['moto
   ...o,
 })
 
-/** O celular do relato: só microfone, Whisper base q8 (80 MB) a baixar, tradutor depois da 1ª legenda. */
+/** O celular do relato: só microfone, Whisper base q8 (80 MB) a baixar, o tradutor já no aparelho. */
 const celular = (o: Partial<EntradaDoInicio> = {}): EntradaDoInicio => ({
   micEnabled: true,
   systemEnabled: false,
@@ -47,6 +46,7 @@ describe('planejarInicio', () => {
       mbSePrivado: 80,
       mbSeRapido: 0,
       mb: 80,
+      mbTradutor: 0,
     })
   })
 
@@ -120,11 +120,21 @@ describe('motorPrevistoDoMic', () => {
   })
 })
 
-describe('tradutorDepoisDaPrimeiraLegenda', () => {
-  it('só no celular com só o microfone', () => {
-    expect(tradutorDepoisDaPrimeiraLegenda({ tipo: 'celular-fraco', sistemaLigado: false })).toBe(true)
-    expect(tradutorDepoisDaPrimeiraLegenda({ tipo: 'celular-bom', sistemaLigado: false })).toBe(true)
-    expect(tradutorDepoisDaPrimeiraLegenda({ tipo: 'desktop-com-gpu', sistemaLigado: false })).toBe(false)
-    expect(tradutorDepoisDaPrimeiraLegenda({ tipo: 'quest', sistemaLigado: false })).toBe(false)
+describe('o tradutor na folha (relato do dono no celular, 2026-09-29: "a tradução não funciona")', () => {
+  it('o Rápido também traduz: com o tradutor a baixar, a folha diz o tamanho dele nas duas escolhas', () => {
+    expect(planejarInicio(celular({ mbTradutor: 113 }))).toMatchObject({
+      tipo: 'folha',
+      perguntarMotor: true,
+      mbSeRapido: 113,
+      mbSePrivado: 193,
+    })
+  })
+
+  it('Rápido guardado com o tradutor a baixar acima do limite do celular: a folha confirma o download', () => {
+    expect(planejarInicio(celular({ mbTradutor: 113, motor: motor({ escolha: 'rapido' }) }))).toMatchObject({
+      tipo: 'folha',
+      perguntarMotor: false,
+      mb: 113,
+    })
   })
 })

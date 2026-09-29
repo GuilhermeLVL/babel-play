@@ -136,6 +136,23 @@ describe('microfone pelo Rápido (Web Speech)', () => {
     expect(getUserMedia).not.toHaveBeenCalled()
   })
 
+  it('o tradutor da fala começa a carregar quando o áudio ABRE (não na primeira legenda)', async () => {
+    const prepararTradutorDaFala = vi.fn()
+    const { fontes } = montar('rapido', { prepararTradutorDaFala })
+    await fontes.startMic()
+    expect(prepararTradutorDaFala).not.toHaveBeenCalled()
+    ReconhecedorFalso.ultimo!.onaudiostart?.()
+    expect(prepararTradutorDaFala).toHaveBeenCalledTimes(1)
+  })
+
+  it('com o áudio do sistema ligado, quem prepara o tradutor é a preparação do sistema', async () => {
+    const prepararTradutorDaFala = vi.fn()
+    const { fontes } = montar('rapido', { prepararTradutorDaFala, systemEnabled: true })
+    await fontes.startMic()
+    ReconhecedorFalso.ultimo!.onaudiostart?.()
+    expect(prepararTradutorDaFala).not.toHaveBeenCalled()
+  })
+
   it('o som anunciado anima o indicador (sem medidor paralelo)', async () => {
     vi.useFakeTimers()
     const { fontes, d } = montar('rapido')

@@ -128,6 +128,11 @@ export interface DepsDasFontesDeAudio {
    * própria Web Speech anuncia (`onSom`).
    */
   semMedidorParalelo?: boolean;
+  /**
+   * O tradutor da SUA fala no "Rápido" (`pipelineDeFala.prepararTradutorDaFala`): começa a carregar
+   * quando o microfone abre, e não no primeiro final (relato do dono no celular, 2026-09-29).
+   */
+  prepararTradutorDaFala?: () => void;
 }
 
 /**
@@ -568,6 +573,8 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
           anchorSessionClock(Date.now(), 'mic');
           deps.aoAbrirFonte?.('mic');
           if (!deps.semMedidorParalelo) void startMeter(); // waveform real (a Web Speech não fornece nível)
+          // O tradutor já, sem esperar a primeira legenda. Com o sistema, quem o prepara é `prepareModels`.
+          if (!systemEnabled) deps.prepararTradutorDaFala?.();
           if (!systemEnabled) {
             setFeedbackMsg('Microfone (navegador) ativo, transcrição instantânea. Fale à vontade.');
             setTimeout(() => setFeedbackMsg(''), 3000);

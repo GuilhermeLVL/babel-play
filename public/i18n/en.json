@@ -1038,5 +1038,7 @@
     "other": "{n} lines"
   },
   "Baixando o tradutor… {pct}%": "Downloading the translator… {pct}%",
-  "Preparando a tradução…": "Preparing the translation…"
+  "Preparando a tradução…": "Preparing the translation…",
+  "Para traduzir, baixa o tradutor, de cerca de {mb} MB, uma vez só.": "To translate, it downloads the translator, about {mb} MB, only once.",
+  "O tradutor no aparelho precisa de cerca de {mb} MB.": "The on-device translator needs about {mb} MB."
 }

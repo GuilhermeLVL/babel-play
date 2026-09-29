@@ -114,5 +114,7 @@
     "other": "{n} عبارة"
   },
   "Baixando o tradutor… {pct}%": "جارٍ تنزيل المترجم… {pct}%",
-  "Preparando a tradução…": "جارٍ تجهيز الترجمة…"
+  "Preparando a tradução…": "جارٍ تجهيز الترجمة…",
+  "Para traduzir, baixa o tradutor, de cerca de {mb} MB, uma vez só.": "للترجمة، يتم تنزيل المترجم، بحجم {mb} ميغابايت تقريبًا، مرة واحدة فقط.",
+  "O tradutor no aparelho precisa de cerca de {mb} MB.": "يحتاج المترجم على الجهاز إلى حوالي {mb} ميغابايت."
 }

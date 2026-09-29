@@ -96,7 +96,8 @@ export default function ModelPrepPanel({
     );
   }
 
-  if (done && nativosProntos) {
+  // "Pronto" é TUDO pronto: o tradutor pode seguir baixando depois do Whisper (pouca memória).
+  if (done && nativosProntos && (mt === null || mt >= 1)) {
     return (
       <div className={`flex items-center justify-center gap-2 text-[13px] font-semibold text-good ${compact ? '' : 'py-2'}`}>
         <CheckCircle2 className="w-4 h-4" /> Modelo pronto, no dispositivo, offline.
@@ -118,7 +119,10 @@ export default function ModelPrepPanel({
             ? 'Carregando modelo (já em cache)…'
             : 'Baixando modelo (uma vez só)…'}
       </div>
-      {!soNativos && <Bar label="Transcrição (Whisper)" progress={whisper} bytes={whisperBytes} />}
+      {/* Sem modelo de transcrição (o "Rápido": só o tradutor baixa), sem a linha dele parada em "-". */}
+      {!soNativos && !(whisper === null && mt !== null) && (
+        <Bar label="Transcrição (Whisper)" progress={whisper} bytes={whisperBytes} />
+      )}
       {mt !== null && <Bar label="Tradutor (opus-mt)" progress={mt} bytes={mtBytes} />}
       {nativos.voz !== undefined && <Bar label={t('Reconhecimento de voz do navegador')} progress={nativos.voz} />}
       {nativos.tradutor !== undefined && <Bar label={t('Tradutor do navegador')} progress={nativos.tradutor} />}

@@ -109,5 +109,7 @@
     "other": "{n} frases"
   },
   "Baixando o tradutor… {pct}%": "Descargando el traductor… {pct}%",
-  "Preparando a tradução…": "Preparando la traducción…"
+  "Preparando a tradução…": "Preparando la traducción…",
+  "Para traduzir, baixa o tradutor, de cerca de {mb} MB, uma vez só.": "Para traducir, descarga el traductor, de unos {mb} MB, una sola vez.",
+  "O tradutor no aparelho precisa de cerca de {mb} MB.": "El traductor en el dispositivo necesita unos {mb} MB."
 }

@@ -16,10 +16,25 @@ import type { ReactNode } from 'react';
  * eles tenham para onde ir.
  */
 
-/** `rotulo` é `ReactNode` porque as ações de vazio quase sempre levam ícone ("🎤 Nova captura"). */
-interface AcaoDeVazio {
-  rotulo: ReactNode;
-  aoClicar: () => void;
+/**
+ * `rotulo` é `ReactNode` porque as ações de vazio quase sempre levam ícone ("🎤 Nova captura").
+ * Com `href` no lugar de `aoClicar`, a ação é um LINK EXTERNO (nova aba, sem `opener`): é a saída
+ * da edição estática para a versão completa (`VITE_URL_APP_COMPLETO`).
+ */
+type AcaoDeVazio = { rotulo: ReactNode } & ({ aoClicar: () => void; href?: never } | { href: string; aoClicar?: never });
+
+function BotaoDeVazio({ acao, classe }: { acao: AcaoDeVazio; classe: string }) {
+  if (acao.href)
+    return (
+      <a href={acao.href} target="_blank" rel="noopener noreferrer" className={classe}>
+        {acao.rotulo}
+      </a>
+    );
+  return (
+    <button type="button" onClick={acao.aoClicar} className={classe}>
+      {acao.rotulo}
+    </button>
+  );
 }
 
 interface VazioProps {
@@ -57,16 +72,8 @@ export default function Vazio({ icone, titulo, explicacao, acao, acaoSecundaria,
 
       {(acao || acaoSecundaria) && (
         <div className="flex flex-wrap items-center justify-center gap-2 mt-5">
-          {acao && (
-            <button type="button" onClick={acao.aoClicar} className="btn-solid">
-              {acao.rotulo}
-            </button>
-          )}
-          {acaoSecundaria && (
-            <button type="button" onClick={acaoSecundaria.aoClicar} className="btn-outline">
-              {acaoSecundaria.rotulo}
-            </button>
-          )}
+          {acao && <BotaoDeVazio acao={acao} classe="btn-solid" />}
+          {acaoSecundaria && <BotaoDeVazio acao={acaoSecundaria} classe="btn-outline" />}
         </div>
       )}
     </div>

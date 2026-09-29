@@ -24,3 +24,16 @@ export function edicaoEstatica(): boolean {
      `vi.stubEnv` alcança no teste (um cast sobre `import.meta` escapava das duas). */
   return import.meta.env?.VITE_EDICAO_ESTATICA === '1';
 }
+
+/**
+ * A SAÍDA DA EDIÇÃO ESTÁTICA PARA A VERSÃO COMPLETA (funil de 29/09) — `VITE_URL_APP_COMPLETO`, a
+ * URL do app com servidor (onde há conta, planos e nuvem). Com ela, os avisos do teto sem conta e o
+ * cartão "Disponível na versão completa" ganham o link "Criar conta na versão completa"; sem ela
+ * (o padrão), nada muda. Só `http(s)://`: o valor vai para um `href`, e `javascript:` não passa.
+ * Só na edição estática: no build completo o caminho é o login, e esta função devolve `null`.
+ */
+export function urlDoAppCompleto(): string | null {
+  if (!edicaoEstatica()) return null;
+  const url = (import.meta.env?.VITE_URL_APP_COMPLETO ?? '').trim();
+  return /^https?:\/\/[^\s"'<>]+$/i.test(url) ? url : null;
+}

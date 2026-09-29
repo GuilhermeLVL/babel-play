@@ -1,9 +1,11 @@
-import { Download, HardDrive, RotateCw, Trash2, TriangleAlert, UserPlus } from 'lucide-react';
+import { Download, Gauge, HardDrive, RotateCw, Trash2, TriangleAlert, UserPlus } from 'lucide-react';
 import { useState } from 'react';
 
 import type { FalhaDoSalvamento } from '../../../lib/captura/estadoDoSalvamento';
 import type { RascunhoDaCaptura } from '../../../lib/captura/rascunhoDaCaptura';
+import { urlDoAppCompleto } from '../../../lib/edicaoEstatica';
 import { t, tp } from '../../../lib/i18n';
+import { navegarPara } from '../../../lib/rotas';
 import type { Recording } from '../../../types';
 
 /**
@@ -18,6 +20,12 @@ import type { Recording } from '../../../types';
  *  - `naoSalva`: a captura foi recusada (teto, rede, servidor). Ela está no rascunho do navegador;
  *    as saídas são tentar de novo, baixar (texto e áudio) e descartar — com confirmação, porque é
  *    a única que perde alguma coisa.
+ *
+ * ESPAÇO CHEIO (507 `storage_quota_exceeded`, `falha.cheio`): a recusa é do plano, não do navegador;
+ * tentar de novo não resolve, então o aviso diz isso e leva a Planos ("Ver planos").
+ *
+ * EDIÇÃO ESTÁTICA COM `VITE_URL_APP_COMPLETO`: no teto, o link "Criar conta na versão completa"
+ * (nova aba) é a saída que a demonstração não tem. Sem a variável, nada muda.
  *
  * A Biblioteca não serve de saída aqui: sem conta ela mostra o convite, não a lista. Por isso a
  * lista das gravações guardadas, com "Apagar", aparece dentro do próprio aviso.
@@ -59,6 +67,9 @@ export default function CapturaNaoSalva({
 
   const pediuTeto = modo === 'teto' || !!falha?.teto;
   const podeCriarConta = pediuTeto && !estatica && !!aoCriarConta;
+  const cheio = modo === 'naoSalva' && !!falha?.cheio;
+  /* Só no teto da edição estática, e só com a variável no build (`urlDoAppCompleto`). */
+  const appCompleto = pediuTeto && estatica ? urlDoAppCompleto() : null;
 
   const titulo =
     modo === 'teto' ? t('O limite de gravações deste navegador foi atingido') : t('Esta captura ainda não foi salva');
@@ -66,7 +77,9 @@ export default function CapturaNaoSalva({
     ? estatica
       ? t('Esta é a edição de demonstração: ela guarda até {n} gravações neste navegador.', { n: teto })
       : t('Sem conta dá para guardar {n} gravações neste navegador.', { n: teto })
-    : (falha?.mensagem ?? '');
+    : cheio
+      ? t('Seu espaço de armazenamento está cheio. Apague sessões antigas na Biblioteca ou veja os planos com mais espaço.')
+      : (falha?.mensagem ?? '');
   const oQueFazer =
     modo === 'teto'
       ? estatica
@@ -109,6 +122,16 @@ export default function CapturaNaoSalva({
           <button type="button" className="btn btn-solid peq" onClick={aoTentarDeNovo} disabled={salvando}>
             <RotateCw aria-hidden /> {salvando ? t('Salvando…') : t('Tentar de novo')}
           </button>
+        )}
+        {cheio && (
+          <button type="button" className="btn btn-outline peq" onClick={() => navegarPara({ view: 'planos' })}>
+            <Gauge aria-hidden /> {t('Ver planos')}
+          </button>
+        )}
+        {appCompleto && (
+          <a className="btn btn-solid peq" href={appCompleto} target="_blank" rel="noopener noreferrer">
+            <UserPlus aria-hidden /> {t('Criar conta na versão completa')}
+          </a>
         )}
         {podeCriarConta && (
           <button type="button" className="btn btn-solid peq" onClick={aoCriarConta}>

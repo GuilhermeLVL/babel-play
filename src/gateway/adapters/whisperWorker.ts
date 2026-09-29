@@ -215,6 +215,12 @@ async function ensurePipeline(model?: string, dtypeKey?: string, device?: string
   }
 }
 
+/**
+ * Espaçamento mínimo entre dois `update` do streaming: ~8 por segundo, mais rápido que a leitura e
+ * uma fração dos renders de antes (um por token).
+ */
+const INTERVALO_DOS_UPDATES_MS = 120;
+
 /** A fila serial deste worker: uma tarefa por vez, o final na frente (ver `filaDoWorker.ts`). */
 const fila = new FilaSerial();
 let cargas = 0;
@@ -232,14 +238,34 @@ async function transcrever(dados: any, sinal: SinalDeCancelamento): Promise<void
   // mensagens `update` incrementais conforme os tokens saem — a UI vê o texto crescendo
   // durante a fala (sensação de tempo real). Acumulamos aqui e postamos o texto-até-agora.
   // (Padrão do exemplo oficial realtime-whisper-webgpu.)
+  /* ~8 MENSAGENS POR SEGUNDO, NÃO UMA POR TOKEN ("Grátis sem travar", A1). Cada `update` vira um
+     `setSpeechSegments` e um render da tela da captura, e o decode solta dezenas de tokens por
+     segundo — no aparelho fraco era a thread principal que travava, não o worker. Borda de ataque: a
+     primeira palavra sai na hora; as seguintes, no máximo a cada `INTERVALO_DOS_UPDATES_MS`. Não há
+     meia palavra a evitar: o `TextStreamer` já entrega até o último espaço. O que o limitador segurou
+     sai em `descarregarUpdates`, antes do `result`. */
   let acc = '';
+  let postado = '';
+  let postadoEm = -Infinity;
+  const postarUpdate = () => {
+    const texto = acc.trim();
+    if (!texto || texto === postado) return;
+    postado = texto;
+    postadoEm = Date.now();
+    self.postMessage({ type: 'update', id, text: texto });
+  };
+  /** O último `update` é o texto inteiro do decode — nunca um pedaço retido pelo limitador. */
+  const descarregarUpdates = () => {
+    if (!sinal.cancelado) postarUpdate();
+  };
   const streamer = new TextStreamer(asr.tokenizer, {
     skip_prompt: true,
     skip_special_tokens: true,
     callback_function: (t: string) => {
       acc += t;
       // Decode sendo interrompido: o que sai daqui em diante não é a fala, não vai para a tela.
-      if (!sinal.cancelado) self.postMessage({ type: 'update', id, text: acc.trim() });
+      if (sinal.cancelado) return;
+      if (Date.now() - postadoEm >= INTERVALO_DOS_UPDATES_MS) postarUpdate();
     },
   });
   /* PARAR NO MEIO: o final chegou e este parcial ficou velho. Um processador NOVO por chamada (o
@@ -265,6 +291,7 @@ async function transcrever(dados: any, sinal: SinalDeCancelamento): Promise<void
     if (!moonshineAceita(language)) throw new Error(`moonshine só transcreve inglês (pedido: ${language})`);
     const out = await asr(pcm, { ...opcoesDeDecodeMoonshine(audioSec), streamer, ...interrupcao });
     if (sinal.cancelado) return responderCancelado(id);
+    descarregarUpdates();
     const bruto = (out.text ?? '').trim();
     const filtrado = filtrarAlucinacao(bruto, audioSec, 'en');
     self.postMessage({ type: 'result', id, text: filtrado, descartado: !!bruto && !filtrado });
@@ -310,6 +337,7 @@ async function transcrever(dados: any, sinal: SinalDeCancelamento): Promise<void
     ...interrupcao,
   });
   if (sinal.cancelado) return responderCancelado(id);
+  descarregarUpdates();
 
   const bruto = (out.text ?? '').trim();
   const filtrado = filtrarAlucinacao(bruto, audioSec, idioma);

@@ -104,6 +104,12 @@ const ORT_GRAPH_OPT = 'basic';
    longa, sem freio. Beam 2 é o menor que já melhora a escolha de expressão sem dobrar o tempo no
    WASM; `no_repeat_ngram_size` mata o "the the" do greedy; `max_length` é o freio. */
 const GERACAO = { num_beams: 2, max_length: 256, no_repeat_ngram_size: 3, early_stopping: true } as const;
+/* PARCIAL: greedy ("Grátis sem travar", A5). O texto dele é trocado ~1 s depois — pelo parcial
+   seguinte ou pelo final, que traduz de novo com o `GERACAO` acima —, e o beam 2 custa quase o dobro
+   no WASM, disputando a CPU com o Whisper justo durante a fala. 128 cobre com folga a frase de um
+   parcial (~1–6 s de fala). A legenda que FICA na tela é a do final, e essa não muda. */
+const GERACAO_DO_PARCIAL = { ...GERACAO, num_beams: 1, max_length: 128 } as const;
+const geracaoPara = (prioridade: unknown) => (prioridade === 'parcial' ? GERACAO_DO_PARCIAL : GERACAO);
 // `diag` (só diagnóstico, via mensagem): força a lista de dtypes e o nível de otimização do ORT.
 let diag: { dtypes?: string[]; graphOpt?: string } = {};
 async function getPipe(model: string): Promise<any> {
@@ -179,7 +185,8 @@ async function traduzir(dados: any, sinal: SinalDeCancelamento): Promise<void> {
     }
     // Parar no meio: força o fim da sequência no próximo passo do `generate` (ver filaDoWorker.ts).
     const proc = processadorDeCancelamento(sinal, pipe.model?.generation_config?.eos_token_id);
-    const geracao = proc ? { ...GERACAO, logits_processor: [proc] } : GERACAO;
+    const base = geracaoPara(dados.prioridade);
+    const geracao = proc ? { ...base, logits_processor: [proc] } : base;
     /** Traduz UMA frase. Extraído do laço porque o opus-mt só sabe traduzir uma (ver abaixo). */
     const traduzirFrase = async (trecho: string): Promise<string> => {
       if (cfg.langToken && typeof tokenId === 'number') {

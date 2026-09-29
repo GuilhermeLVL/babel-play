@@ -245,7 +245,7 @@ describe('planos-alvo', () => {
     })
   })
 
-  it('plano sugerido: Grátis → Essencial (Pro quando esbarrou em modelo premium), Essencial → Pro', () => {
+  it('plano sugerido: Grátis → Essencial (também no modelo premium), Essencial → Pro', () => {
     expect(planoSugerido('free')).toBe('essencial')
     expect(planoSugerido('essencial')).toBe('pro')
     expect(planoSugerido('pro')).toBe('nenhum')

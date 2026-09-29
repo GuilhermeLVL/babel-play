@@ -7,7 +7,10 @@
  * (`PressureObserver('cpu')`, Chromium desktop) — e (2) traduzem as AÇÕES em estado e efeitos:
  *
  *   `cortar-parciais`           → `parciaisCortados` (o pipeline para de decodificar parciais);
- *   `modelo-menor`              → o próximo da escada small → base → tiny (inglês: → Moonshine);
+ *   `modelo-menor`              → o próximo da escada small → base → tiny (inglês: → Moonshine). O
+ *     português só desce ao tiny NA GPU e em hybrid: o tiny q8 errou 41,6% contra 29,2% na bancada pt
+ *     (a razão por que nenhuma rota o escolhe) — no WASM a escada para no base, e o que resta é cortar
+ *     parciais e oferecer nativo/nuvem. Degrau já baixado vence (sem download no meio da sessão);
  *   `subir`                     → desfaz o último passo (parciais de volta / o modelo de antes);
  *   `proibir-modelo`            → grava o veto do modelo que estourou a GPU neste aparelho;
  *   `oferecer-nativo-ou-nuvem`  → o aviso (é oferta, não troca silenciosa);
@@ -15,7 +18,8 @@
  *     com ela ligada a aba do app fica escondida atrás do vídeo o tempo todo, e isso é "só ouvir"
  *     (`modoSoOuvir`); não há outro modo "só ouvir" no app, então o conservador é não pausar nada
  *     além do parcial do mic;
- *   `trocar-backend`            → não emitido (o microbenchmark ainda não alimenta a config).
+ *   `trocar-backend`            → o OUTRO backend (WebGPU↔WASM), quando o microbenchmark guardado o
+ *     mediu mais rápido (`outroBackend` em `sttRouter.ts`, na rota) e o dtype dele já está no aparelho.
  *
  * O estado mora num objeto criado UMA vez pela tela (um `useRef`); o pipeline, que é refeito a cada
  * render, só chama `aoFinal` com os efeitos do render corrente.
@@ -29,27 +33,57 @@ import {
   regular,
 } from '@core/harness/reguladorDeDesempenho';
 
-import { MOONSHINE_MODELS, WHISPER_MODELS } from '../../gateway/sttRouter';
+import { type DtypeDaRota, MOONSHINE_MODELS, type OutroBackend, WHISPER_MODELS } from '../../gateway/sttRouter';
+
+type Backend = 'wasm' | 'webgpu';
+
+/** Dtype/backend que um degrau PRECISA; ausente = fica o que está carregado (só troca o modelo). */
+export interface OpcoesDoDegrau {
+  dtype?: DtypeDaRota;
+  device?: Backend;
+}
+
+/** Um degrau da escada de modelos. */
+export interface DegrauDoModelo {
+  modelo: string;
+  opcoes?: OpcoesDoDegrau;
+}
+
+interface OpcoesDaEscada {
+  /** O backend EM QUE a escada vai rodar é a GPU (só aí o português desce ao tiny, em hybrid). */
+  gpu?: boolean;
+  /** O dtype hybrid da GPU (`hybrid-fp16` com shader-f16). */
+  dtypeNaGpu?: DtypeDaRota;
+}
 
 /** Um degrau abaixo do modelo; `null` = já é o menor. `soIngles`: o Moonshine (só inglês) serve. */
-function umAbaixo(modelo: string, soIngles: boolean): string | null {
+function umAbaixo(modelo: string, soIngles: boolean, o: OpcoesDaEscada): DegrauDoModelo | null {
   switch (modelo) {
     case WHISPER_MODELS.small:
-      return WHISPER_MODELS.base;
+      return { modelo: WHISPER_MODELS.base };
     case WHISPER_MODELS.base:
-      return soIngles ? MOONSHINE_MODELS.base : WHISPER_MODELS.tiny;
+      if (soIngles) return { modelo: MOONSHINE_MODELS.base };
+      // Nunca o tiny q8; o tiny híbrido só na GPU (na CPU ele não acompanha melhor que o base q8).
+      return o.gpu
+        ? { modelo: WHISPER_MODELS.tiny, opcoes: { dtype: o.dtypeNaGpu ?? 'hybrid', device: 'webgpu' } }
+        : null;
     case MOONSHINE_MODELS.base:
-      return MOONSHINE_MODELS.tiny;
+      return { modelo: MOONSHINE_MODELS.tiny };
     default:
       return null;
   }
 }
 
-/** Os modelos MENORES que `modelo`, em ordem de descida (o mesmo que a sonda usa para os vetados). */
-export function escadaDeModelos(modelo: string, soIngles: boolean): string[] {
-  const escada: string[] = [];
-  for (let m = umAbaixo(modelo, soIngles); m; m = umAbaixo(m, soIngles)) escada.push(m);
+/** Os degraus MENORES que `modelo`, em ordem de descida. */
+export function degrausAbaixo(modelo: string, soIngles: boolean, o: OpcoesDaEscada = {}): DegrauDoModelo[] {
+  const escada: DegrauDoModelo[] = [];
+  for (let d = umAbaixo(modelo, soIngles, o); d; d = umAbaixo(d.modelo, soIngles, o)) escada.push(d);
   return escada;
+}
+
+/** Os modelos MENORES que `modelo`, em ordem de descida (o mesmo que a sonda usa para os vetados). */
+export function escadaDeModelos(modelo: string, soIngles: boolean, o: OpcoesDaEscada = {}): string[] {
+  return degrausAbaixo(modelo, soIngles, o).map((d) => d.modelo);
 }
 
 export interface SinaisDoAmbiente {
@@ -124,14 +158,33 @@ export interface MedidaDoTrecho {
 }
 
 export interface EfeitosDoRegulador {
-  trocarModelo(modelo: string): void;
+  /** Sem `opcoes`: só o modelo (dtype/backend ficam). Com: o degrau ou a troca de backend dizem quais. */
+  trocarModelo(modelo: string, opcoes?: OpcoesDoDegrau): void;
   proibirModelo(modelo: string, motivo: 'oom' | 'device-lost'): void;
   oferecerNativoOuNuvem(): void;
 }
 
+/** A sessão que o regulador passa a vigiar (a rota do STT local, `pipelineDeFala.ts`). */
+export interface InicioDoRegulador {
+  modelo: string;
+  /** Sem ele, fica o da última rota. */
+  soIngles?: boolean;
+  /** Onde o modelo roda. Ausente = WASM (o conservador: sem GPU, o português não desce ao tiny). */
+  backend?: Backend;
+  /** O dtype da rota (para voltar a ele ao subir, e o hybrid da GPU no tiny). */
+  dtype?: DtypeDaRota;
+  /** O backend que o benchmark mediu mais rápido (`outroBackend`); `null`/ausente = nenhum. */
+  outro?: OutroBackend | null;
+  /**
+   * Este modelo/dtype JÁ está no aparelho? (Síncrono: o manifesto no localStorage.) Com ele, a escada
+   * prefere os degraus baixados e a troca de backend só vale se o outro dtype estiver baixado.
+   */
+  emCache?: (modelo: string, dtype?: DtypeDaRota) => boolean;
+}
+
 export interface ReguladorDaCaptura {
-  /** Sessão nova (ou o worker trocou de modelo sozinho). Sem `soIngles`, fica o da última rota. */
-  reiniciar(o: { modelo: string; soIngles?: boolean }): void;
+  /** Sessão nova (ou o worker trocou de modelo sozinho). */
+  reiniciar(o: InicioDoRegulador): void;
   /** Uma falha de memória/GPU do modelo; vira `proibir-modelo` no próximo trecho medido. */
   registrarFalha(erro: 'oom' | 'device-lost', modelo: string): void;
   aoFinal(m: MedidaDoTrecho, efeitos: EfeitosDoRegulador): AcaoDoRegulador[];
@@ -145,22 +198,50 @@ export function criarReguladorDaCaptura(
 ): ReguladorDaCaptura {
   let sinais = opts.sinais;
   let estado: EstadoDoRegulador = estadoInicialDoRegulador();
-  let original = '';
-  let escada: string[] = [];
+  let original: DegrauDoModelo = { modelo: '' };
+  let escada: DegrauDoModelo[] = [];
   let degrau = 0; // quantos modelos abaixo do original
   let falha: { erro: 'oom' | 'device-lost'; modelo: string } | null = null;
   let parciaisCortados = false;
   let parciaisDoMicPausados = false;
   let soInglesDaRota = false;
+  /** A troca de backend disponível nesta sessão, e se está aplicada. */
+  let troca: OutroBackend | null = null;
+  let trocado = false;
 
-  const modeloEmUso = () => (degrau === 0 ? original : escada[degrau - 1]);
+  const emUso = (): DegrauDoModelo => (degrau === 0 ? original : escada[degrau - 1]);
+  const modeloEmUso = () => emUso().modelo;
+  /** Dtype/backend em vigor: o da troca, se aplicada; senão o da rota. */
+  const opcoesDoBackend = (): OpcoesDoDegrau | undefined =>
+    trocado && troca ? { dtype: troca.dtype, device: troca.device } : original.opcoes;
+  /**
+   * De um degrau a outro: dtype/backend só vão quando o destino os exige ou quando se sai de um degrau
+   * que os mudou (o tiny híbrido). As `opcoes` do ORIGINAL são as da rota, já carregadas.
+   */
+  const irPara = (de: DegrauDoModelo, para: DegrauDoModelo, efeitos: EfeitosDoRegulador) => {
+    if (para.opcoes || (de !== original && de.opcoes))
+      efeitos.trocarModelo(para.modelo, para.opcoes ?? opcoesDoBackend());
+    else efeitos.trocarModelo(para.modelo);
+  };
 
   return {
-    reiniciar({ modelo, soIngles }) {
+    reiniciar({ modelo, soIngles, backend = 'wasm', dtype, outro, emCache }) {
       estado = estadoInicialDoRegulador();
-      original = modelo;
+      original = { modelo, ...(dtype ? { opcoes: { dtype, device: backend } } : {}) };
       if (soIngles !== undefined) soInglesDaRota = soIngles;
-      escada = escadaDeModelos(modelo, soInglesDaRota);
+      /* A troca de backend só vale com o dtype dela JÁ no aparelho: sair do q8 para o hybrid-fp16 no
+         meio da sessão seria baixar 168 MB justo quando o aparelho não está acompanhando. */
+      troca = outro && (!emCache || emCache(modelo, outro.dtype)) ? outro : null;
+      trocado = false;
+      // O tiny do português só na GPU — a do backend FINAL, depois de uma eventual troca.
+      const naGpu = (troca?.device ?? backend) === 'webgpu';
+      const dtypeNaGpu =
+        troca?.device === 'webgpu' ? troca.dtype : dtype === 'hybrid-fp16' || dtype === 'hybrid' ? dtype : 'hybrid';
+      const todos = degrausAbaixo(modelo, soInglesDaRota, { gpu: naGpu, dtypeNaGpu });
+      /* SEM DOWNLOAD NO MEIO DA SESSÃO QUANDO DÁ: havendo degraus já baixados, a escada é só deles.
+         Nenhum baixado, fica inteira — baixar um modelo menor ainda é melhor que não acompanhar. */
+      const baixados = emCache ? todos.filter((d) => emCache(d.modelo, d.opcoes?.dtype ?? dtype)) : [];
+      escada = baixados.length > 0 ? baixados : todos;
       degrau = 0;
       parciaisCortados = false;
       parciaisDoMicPausados = false;
@@ -190,7 +271,7 @@ export function criarReguladorDaCaptura(
           modoSoOuvir: m.modoSoOuvir,
           agoraMs: sinais.agoraMs(),
         },
-        { ...opts.config, modelosMenores: escada.length },
+        { ...opts.config, modelosMenores: escada.length, outroBackendMaisRapido: !!troca },
       );
       estado = saida.estado;
       for (const acao of saida.acoes) {
@@ -200,8 +281,9 @@ export function criarReguladorDaCaptura(
             break;
           case 'modelo-menor':
             if (degrau < escada.length) {
+              const de = emUso();
               degrau += 1;
-              efeitos.trocarModelo(modeloEmUso());
+              irPara(de, emUso(), efeitos);
             }
             break;
           case 'oferecer-nativo-ou-nuvem':
@@ -210,8 +292,16 @@ export function criarReguladorDaCaptura(
           case 'subir':
             if (saida.desfaz === 'cortar-parciais') parciaisCortados = false;
             else if (saida.desfaz === 'modelo-menor' && degrau > 0) {
+              const de = emUso();
               degrau -= 1;
-              efeitos.trocarModelo(modeloEmUso());
+              irPara(de, emUso(), efeitos);
+            } else if (saida.desfaz === 'trocar-backend' && trocado && troca) {
+              trocado = false;
+              // Volta ao backend da rota (explícito: no `auto` o worker não recriaria).
+              efeitos.trocarModelo(
+                modeloEmUso(),
+                original.opcoes ?? { device: troca.device === 'webgpu' ? 'wasm' : 'webgpu' },
+              );
             }
             break;
           case 'pausar':
@@ -224,7 +314,11 @@ export function criarReguladorDaCaptura(
             if (falha) efeitos.proibirModelo(falha.modelo, falha.erro);
             break;
           case 'trocar-backend':
-            break; // não emitido: `outroBackendMaisRapido` fica falso até o microbenchmark alimentar
+            if (troca && !trocado) {
+              trocado = true;
+              efeitos.trocarModelo(modeloEmUso(), { dtype: troca.dtype, device: troca.device });
+            }
+            break;
         }
       }
       falha = null;

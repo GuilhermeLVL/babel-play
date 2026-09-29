@@ -87,6 +87,11 @@ export interface InfoDoAdaptadorWebGpu {
   /** `adapter.info.vendor`/`architecture` ('' quando o navegador esconde): entram na impressão do aparelho. */
   fornecedor: string;
   arquitetura: string;
+  /**
+   * O adaptador de RESERVA (`isFallbackAdapter`: rasterizador em software, SwiftShader). Existe, mas
+   * não é GPU: o Whisper nele é mais lento que no WASM. Ausente em registros antigos = `false`.
+   */
+  reserva?: boolean;
 }
 
 /**
@@ -104,7 +109,9 @@ export function extrairInfoDoAdaptador(adaptador: unknown): InfoDoAdaptadorWebGp
   const a = adaptador as {
     features?: { has?: (n: string) => boolean };
     limits?: Record<string, unknown>;
-    info?: { vendor?: unknown; architecture?: unknown };
+    info?: { vendor?: unknown; architecture?: unknown; isFallbackAdapter?: unknown };
+    /** O campo antigo (antes de ir para `info`, Chrome < 136). */
+    isFallbackAdapter?: unknown;
   };
   const shaderF16 = ler(() => typeof a.features?.has === 'function' && a.features.has('shader-f16') === true, false);
   const limites = ler(() => {
@@ -121,6 +128,7 @@ export function extrairInfoDoAdaptador(adaptador: unknown): InfoDoAdaptadorWebGp
     limites,
     fornecedor: ler(() => texto(a.info?.vendor), ''),
     arquitetura: ler(() => texto(a.info?.architecture), ''),
+    reserva: ler(() => a.info?.isFallbackAdapter === true || a.isFallbackAdapter === true, false),
   };
 }
 

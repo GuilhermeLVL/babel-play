@@ -223,6 +223,30 @@ describe('IDOR — usuario B contra os recursos de A', () => {
         const { id } = await novaSessao()
         return { caminho: `/api/sessions/${id}/meta`, corpo: { pinned: true }, aindaExiste: sessaoExiste(id) }
       },
+      /* Lote da captura longa (salvar em pedaços): B não pode acrescentar nem trocar falas na
+         sessão de A — o repositório só acha a sessão pelo dono (`appendUtterances` → `get`). */
+      'POST /api/sessions/:id/utterances': async () => {
+        const { id } = await novaSessao()
+        return {
+          caminho: `/api/sessions/${id}/utterances`,
+          corpo: {
+            utterances: [
+              {
+                idx: 0,
+                source: 'mic',
+                speakerName: 'B',
+                sourceLang: 'en',
+                sourceText: 'acrescentado por B',
+                targetLang: 'pt',
+                translatedText: 'x',
+                tStartMs: 0,
+                tEndMs: 10,
+              },
+            ],
+          },
+          aindaExiste: sessaoExiste(id),
+        }
+      },
       'PUT /api/sessions/:id/utterances': async () => {
         const { id } = await novaSessao()
         return {

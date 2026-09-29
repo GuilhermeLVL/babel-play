@@ -3,7 +3,7 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import RecompensaDesbloqueada from '../src/components/RecompensaDesbloqueada'
-import { chaveDaRecompensa, type Recompensa, recompensasVistas } from '../src/lib/filaDeRecompensas'
+import { chaveDaRecompensa, marcarOcupacaoDaCaptura, type Recompensa, recompensasVistas } from '../src/lib/filaDeRecompensas'
 import { CATALOGO_DA_LOJA } from '../src/lib/loja'
 import { prepararDialogoNoJsdom } from './_dialogoNoJsdom'
 
@@ -74,6 +74,20 @@ describe('RecompensaDesbloqueada — o modal de resgate', () => {
       document.body.removeAttribute('data-jogo-ativo')
       window.dispatchEvent(new Event('babel:rodada-fechou'))
     })
+    expect(screen.getByRole('dialog')).toBeTruthy()
+  })
+
+  it('espera a captura liberar: gravando, no Encerrar ou salvando, a recompensa fica na fila', () => {
+    marcarOcupacaoDaCaptura('captura', true)
+    marcarOcupacaoDaCaptura('salvamento', true)
+    render(
+      <RecompensaDesbloqueada fila={[nivel2]} onEquipar={() => true} onFechar={vi.fn()} onVerPersonalizar={vi.fn()} />,
+    )
+    expect(screen.queryByRole('dialog')).toBeNull()
+    // A tela soltou, o salvamento ainda não: continua esperando.
+    act(() => marcarOcupacaoDaCaptura('captura', false))
+    expect(screen.queryByRole('dialog')).toBeNull()
+    act(() => marcarOcupacaoDaCaptura('salvamento', false))
     expect(screen.getByRole('dialog')).toBeTruthy()
   })
 

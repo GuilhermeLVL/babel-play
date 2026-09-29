@@ -17,6 +17,7 @@ interface Msg {
   id?: string
   model?: string
   device?: string
+  dtype?: string
   prioridade?: string
 }
 
@@ -142,6 +143,49 @@ describe('WhisperLocalStt: GPU que não serve', () => {
     stt.setModel(WHISPER_MODELS.small)
     await stt.preload()
     expect(cargas()).toEqual(['small@wasm'])
+  })
+})
+
+describe('WhisperLocalStt: rota da GPU no Quest/celular (device `webgpu` + hybrid-fp16)', () => {
+  const cargasComDtype = () =>
+    enviadas.filter((m) => m.type === 'load').map((m) => `${m.model?.split('-').pop()}@${m.device}:${m.dtype}`)
+
+  it('carrega no WebGPU com o dtype da rota', async () => {
+    comGpu({})
+    const stt = new WhisperLocalStt()
+    stt.setModel(WHISPER_MODELS.base, { dtype: 'hybrid-fp16', device: 'webgpu' })
+    await stt.preload()
+    expect(cargasComDtype()).toEqual(['base@webgpu:hybrid-fp16'])
+  })
+
+  it('GPU que cai em uso: volta ao WASM em q8 (o que o aparelho já rodava), avisa e segue transcrevendo', async () => {
+    comGpu({})
+    aoTranscrever = (m, w) =>
+      w.responder(
+        m.device === 'webgpu'
+          ? { type: 'error', id: m.id, message: 'WebGPU device lost' }
+          : { type: 'result', id: m.id, text: 'ok' },
+      )
+    const avisos: AvisoDeDegradacaoDoStt[] = []
+    const stt = new WhisperLocalStt()
+    stt.setModel(WHISPER_MODELS.base, { dtype: 'hybrid-fp16', device: 'webgpu' })
+    await stt.preload(undefined, { aoDegradar: (a) => avisos.push(a) })
+    await expect(stt.transcribePcm(new Float32Array(1600), 16000, { languageHint: 'pt' })).rejects.toThrow(/lost/)
+    await expect(stt.transcribePcm(new Float32Array(1600), 16000, { languageHint: 'pt' })).resolves.toMatchObject({
+      text: 'ok',
+    })
+    expect(cargasComDtype()).toEqual(['base@webgpu:hybrid-fp16', 'base@wasm:q8'])
+    expect(avisos.map((a) => a.motivo)).toEqual(['falha-gpu'])
+  })
+
+  it('trocar só o BACKEND (mesmo modelo e dtype) recria o worker', async () => {
+    comGpu({})
+    const stt = new WhisperLocalStt()
+    stt.setModel(WHISPER_MODELS.base, { dtype: 'hybrid', device: 'wasm' })
+    await stt.preload()
+    stt.setModel(WHISPER_MODELS.base, { dtype: 'hybrid', device: 'webgpu' })
+    await stt.preload()
+    expect(cargasComDtype()).toEqual(['base@wasm:hybrid', 'base@webgpu:hybrid'])
   })
 })
 

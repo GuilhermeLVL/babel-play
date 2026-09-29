@@ -2,6 +2,7 @@ import { MicVAD } from '@ricky0123/vad-web';
 
 import { apiFetch } from '../../data/api';
 import { ehPrefixo, EspelhoDoVad } from './espelhoDoVad';
+import { pararGravador } from './pararGravador';
 import { TAXA_DE_BITS_DA_GRAVACAO } from './taxaDeBits';
 
 // Logger de diagnóstico da captura de sistema/VAD (observabilidade no console do navegador).
@@ -76,6 +77,12 @@ export const MAX_SPEECH_MS_NUVEM = 12_000;
  */
 export interface OpcoesDeCaptura {
   maxSpeechMs?: () => number;
+  /**
+   * O contexto criado e retomado NO CLIQUE (`lib/captura/contextoDoClique.ts`). Com ele, o VAD e a
+   * sonda de nível não criam contexto nenhum — no iPhone, um criado depois dos `await` pode ficar
+   * 'suspended' e a captura não recebe um quadro. A captura passa a ser a dona: o `stop` o fecha.
+   */
+  audioContext?: AudioContext;
 }
 
 // Escolhe um container/codec de áudio suportado pelo MediaRecorder deste navegador.
@@ -131,9 +138,19 @@ function releaseActiveDisplayStream(): void {
    `suppressLocalAudioPlayback: false` mantém o som no alto-falante; `echoCancellation`,
    `noiseSuppression` e `autoGainControl` desligados porque o que chega é música, jogo, a voz já
    processada pelo app de chamada: o DSP de conferência come consoantes e bombeia o volume. */
+/* O VÍDEO VEM NO MÍNIMO. A API exige `video` (não existe getDisplayMedia só de áudio) e a faixa de
+   vídeo NÃO pode ser parada: na "Tela inteira" pará-la encerra o áudio do sistema junto (ver o
+   comentário em `startSystemAudioCapture`). Mas ninguém aqui consome os quadros — e o navegador
+   captura, redimensiona e mantém cada um na taxa pedida. Com `video: true` isso é a tela cheia a
+   30 quadros/s (cópia de GPU, conversão de cor) só para ser jogado fora: peso real num Quest ou num
+   notebook fraco. 1 quadro/s em até 640×360 mantém o compartilhamento vivo quase de graça.
+   Quando um recurso de visão precisar da imagem, `applyConstraints` na faixa sobe a taxa e a
+   resolução sem pedir o compartilhamento de novo. */
+const QUALIDADE_DO_VIDEO_DA_TELA = { frameRate: { max: 1 }, width: { max: 640 }, height: { max: 360 } } as const;
+
 function constraintsDeDisplay(): MediaStreamConstraints {
   return {
-    video: true,
+    video: { ...QUALIDADE_DO_VIDEO_DA_TELA },
     audio: {
       suppressLocalAudioPlayback: false,
       restrictOwnAudio: true,
@@ -345,7 +362,9 @@ async function startCaptureFromStream(
   let levelCtx: AudioContext | null = null;
   let levelTimer: any = null;
   try {
-    levelCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    levelCtx = opcoes.audioContext ?? new (window.AudioContext || (window as any).webkitAudioContext)();
+    // O contexto do clique já pediu `resume()` dentro do gesto; pedir de novo não custa nada.
+    if (levelCtx.state === 'suspended') void Promise.resolve(levelCtx.resume?.()).catch(() => {});
     const analyser = levelCtx.createAnalyser();
     analyser.fftSize = 512;
     levelCtx.createMediaStreamSource(audioStream).connect(analyser);
@@ -470,6 +489,8 @@ async function startCaptureFromStream(
       baseAssetPath: '/',
       onnxWASMBasePath: '/',
       model: 'legacy', // usa /silero_vad_legacy.onnx
+      // O contexto do clique (se veio): o VAD não cria o dele, e não o fecha (não é dele).
+      ...(opcoes.audioContext ? { audioContext: opcoes.audioContext } : {}),
       getStream: () => Promise.resolve(audioStream),
       pauseStream: async () => {},
       resumeStream: async (s) => s,
@@ -657,17 +678,8 @@ async function startCaptureFromStream(
       speaking = false;
       // Finaliza a gravação ANTES de parar as faixas (senão perde o último chunk).
       let blob: Blob | null = null;
-      if (recorder && recorder.state !== 'inactive') {
-        blob = await new Promise<Blob | null>((resolve) => {
-          recorder!.onstop = () =>
-            resolve(recChunks.length ? new Blob(recChunks, { type: recMime || 'audio/webm' }) : null);
-          try {
-            recorder!.stop();
-          } catch {
-            resolve(null);
-          }
-        });
-      }
+      // Com PRAZO (`pararGravador`): um `onstop` que não chega segurava o fim da captura para sempre.
+      if (recorder && recorder.state !== 'inactive') blob = await pararGravador(recorder, recChunks, recMime);
       try {
         vad.pause();
       } catch {
@@ -795,11 +807,21 @@ export async function startMicCapture(
       });
     } catch (err) {
       vlog('getUserMedia(mic) rejeitado:', (err as Error)?.name, '-', (err as Error)?.message);
+      /* `nomeDoErro`: o nome do DOMException fica no erro traduzido — a tela classifica a falha por
+         ele (`ajudaDoMicrofone.ts`) e mostra os passos do aparelho, sem ler o texto. */
+      const nomeDoErro = (err as Error)?.name;
       if (err instanceof DOMException && (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError')) {
-        throw new Error('Permissão do microfone negada. Ative o microfone nas permissões do navegador.');
+        throw Object.assign(
+          new Error('Permissão do microfone negada. Ative o microfone nas permissões do navegador.'),
+          {
+            nomeDoErro,
+          },
+        );
       }
       if (err instanceof DOMException && (err.name === 'NotFoundError' || err.name === 'OverconstrainedError')) {
-        throw new Error('Microfone escolhido não encontrado. Selecione outro dispositivo de entrada.');
+        throw Object.assign(new Error('Microfone escolhido não encontrado. Selecione outro dispositivo de entrada.'), {
+          nomeDoErro,
+        });
       }
       throw err;
     }

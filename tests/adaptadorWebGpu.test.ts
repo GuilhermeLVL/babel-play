@@ -86,6 +86,7 @@ describe('infoDoAdaptadorWebGpu (sinais da sonda: shader-f16 e limites)', () => 
       limites: { maxStorageBufferBindingSize: 2147483644, maxBufferSize: 4294967296 },
       fornecedor: 'amd',
       arquitetura: 'rdna-2',
+      reserva: false,
     })
     expect(pedir).toHaveBeenCalledTimes(1)
   })
@@ -98,13 +99,25 @@ describe('infoDoAdaptadorWebGpu (sinais da sonda: shader-f16 e limites)', () => 
 
 describe('extrairInfoDoAdaptador (pura)', () => {
   it('adaptador sem features/limits/info: tudo desconhecido, nunca lança', () => {
-    expect(extrairInfoDoAdaptador({})).toEqual({ shaderF16: false, limites: null, fornecedor: '', arquitetura: '' })
+    expect(extrairInfoDoAdaptador({})).toEqual({
+      shaderF16: false,
+      limites: null,
+      fornecedor: '',
+      arquitetura: '',
+      reserva: false,
+    })
   })
 
   it('limites não numéricos viram null', () => {
     expect(
       extrairInfoDoAdaptador({ limits: { maxStorageBufferBindingSize: 'x', maxBufferSize: 10 } }).limites,
     ).toBeNull()
+  })
+
+  it('adaptador de RESERVA (software): `info.isFallbackAdapter` ou o campo antigo no adaptador', () => {
+    expect(extrairInfoDoAdaptador({ info: { isFallbackAdapter: true } }).reserva).toBe(true)
+    expect(extrairInfoDoAdaptador({ isFallbackAdapter: true }).reserva).toBe(true)
+    expect(extrairInfoDoAdaptador({ info: { isFallbackAdapter: false } }).reserva).toBe(false)
   })
 
   it('getter que lança não derruba a leitura', () => {

@@ -7,7 +7,7 @@
  * mesma forma.
  *
  * Rotas: GET/POST `/api/sessions`, GET/PATCH/DELETE `/api/sessions/:id`,
- * PATCH `/api/sessions/:id/meta`, PUT `/api/sessions/:id/utterances`,
+ * PATCH `/api/sessions/:id/meta`, PUT/POST `/api/sessions/:id/utterances`,
  * POST/GET `/api/sessions/:id/audio`, PATCH `/api/sessions/utterances/:id`,
  * GET `/api/sessions/utterances/all`.
  */
@@ -39,29 +39,36 @@ export async function criarSessao(_m: RegExpMatchArray, _u: URL, init: RequestIn
   const p = lerJson(init);
   const db = await abrirStore();
 
-  /* O TETO DO MODO SEM CONTA (mudança porta-de-entrada). Sem conta o acervo mora num só navegador
-     e some com ele; deixar acumular é deixar preparada uma perda grande. O 507 é o mesmo código
-     que a cota de armazenamento do servidor real usa — a tela já sabe tratá-lo. */
-  const jaGuardadas = await db.count('sessoes');
-  const teto = estadoDoTeto('sessoes', jaGuardadas);
-  if (!teto.cabe) {
-    return json({ error: motivoDoTeto('sessoes', { edicaoEstatica: edicaoEstatica() }), codigo: 'TETO_ANONIMO', recurso: 'sessoes', ...teto }, 507);
-  }
-
   /**
    * IDEMPOTÊNCIA PELO `origemLocalId`, como no Express (achado A23).
    *
    * Lá a coluna tem índice único e reenviar devolve `jaExistia: true`. Aqui o campo era ignorado,
    * então a mesma operação tinha garantias diferentes conforme onde rodava — e uma migração
    * interrompida no meio, repetida, duplicava as sessões deste lado. Varredura simples porque o
-   * modo sem conta tem teto de 5 sessões (`TETO_ANONIMO`): índice novo no IndexedDB custaria uma
-   * migração de schema para percorrer, no máximo, cinco registros.
+   * modo sem conta tem teto pequeno (`tetoAnonimoDa`): índice novo no IndexedDB custaria uma
+   * migração de schema para percorrer, no máximo, vinte registros.
+   *
+   * VEM ANTES DO TETO (2026-09-28): o reenvio de uma captura que JÁ entrou não é uma gravação
+   * nova. Com a conferência depois do teto, a quinta gravação reenviada (a tela tenta de novo
+   * quando uma etapa seguinte falha) recebia 507 — e a pessoa via "limite atingido" sobre uma
+   * sessão que estava guardada.
    */
   const origemLocalId = str(p.origemLocalId);
   if (origemLocalId) {
     const existentes = await db.getAll('sessoes');
     const ja = existentes.find((s) => s.origemLocalId === origemLocalId);
     if (ja) return json({ ...ja, jaExistia: true });
+  }
+
+  /* O TETO DO MODO SEM CONTA (mudança porta-de-entrada). Sem conta o acervo mora num só navegador
+     e some com ele; deixar acumular é deixar preparada uma perda grande. O 507 é o mesmo código
+     que a cota de armazenamento do servidor real usa — a tela já sabe tratá-lo. O número é o da
+     EDIÇÃO (20 na estática, 5 na completa): o mesmo que a tela de captura confere antes de gravar. */
+  const edicao = { edicaoEstatica: edicaoEstatica() };
+  const jaGuardadas = await db.count('sessoes');
+  const teto = estadoDoTeto('sessoes', jaGuardadas, edicao);
+  if (!teto.cabe) {
+    return json({ error: motivoDoTeto('sessoes', edicao), codigo: 'TETO_ANONIMO', recurso: 'sessoes', ...teto }, 507);
   }
 
   const agora = Date.now();
@@ -130,6 +137,39 @@ export async function substituirFalas(m: RegExpMatchArray, _u: URL, init: Reques
   for (const k of antigas) await tx.objectStore('falas').delete(k);
   for (const f of falas) await tx.objectStore('falas').put(f);
   const nova = { ...s, wordCount: contarPalavras(falas), updatedAt: Date.now() };
+  await tx.objectStore('sessoes').put(nova);
+  await tx.done;
+  return json(nova);
+}
+
+/**
+ * ACRESCENTA UM LOTE de falas (`POST /api/sessions/:id/utterances`) — a captura longa salva em
+ * pedaços, espelho do Express.
+ *
+ * IDEMPOTENTE POR FAIXA: as falas já guardadas com `idx` dentro da faixa do lote saem antes de o
+ * lote entrar. Uma tentativa que caiu no meio e é repetida substitui o mesmo trecho, em vez de
+ * duplicá-lo. A contagem de palavras é refeita sobre a sessão inteira, na mesma transação.
+ */
+export async function acrescentarFalas(m: RegExpMatchArray, _u: URL, init: RequestInit): Promise<Response> {
+  const p = lerJson(init);
+  const db = await abrirStore();
+  const s = await db.get('sessoes', m[1]);
+  if (!s) return json({ error: 'sessão não encontrada' }, 404);
+  const brutas = Array.isArray(p.utterances) ? (p.utterances as Json[]) : [];
+  if (!brutas.length) return json(s);
+  const falas = brutas.map((u, i) => falaDePayload(s.id, u, i));
+  const idxs = falas.map((f) => f.idx ?? 0);
+  const [de, ate] = [Math.min(...idxs), Math.max(...idxs)];
+  const tx = db.transaction(['sessoes', 'falas'], 'readwrite');
+  const indice = tx.objectStore('falas').index('porSessao');
+  const antigas = await indice.getAll(s.id);
+  for (const f of antigas) {
+    const i = f.idx ?? 0;
+    if (i >= de && i <= ate) await tx.objectStore('falas').delete(f.id);
+  }
+  for (const f of falas) await tx.objectStore('falas').put(f);
+  const todas = await tx.objectStore('falas').index('porSessao').getAll(s.id);
+  const nova = { ...s, wordCount: contarPalavras(todas), updatedAt: Date.now() };
   await tx.objectStore('sessoes').put(nova);
   await tx.done;
   return json(nova);

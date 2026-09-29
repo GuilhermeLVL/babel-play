@@ -3,75 +3,96 @@
  * Resolve os dois buracos do piloto: lista de frequência traz conjugações, e sem glosa os jogos
  * de par não abrem.
  */
-import { readFileSync, existsSync, writeFileSync, mkdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { readFileSync, existsSync, writeFileSync, mkdirSync } from 'node:fs'
+import { join } from 'node:path'
 
-const ENDPOINT = 'https://query.wikidata.org/sparql';
-const CACHE = '.cache/trilha';
+const ENDPOINT = 'https://query.wikidata.org/sparql'
+const CACHE = '.cache/trilha'
 
 /** Wikidata item de cada idioma. */
 export const ITEM_DO_IDIOMA = {
-  en: 'Q1860', pt: 'Q5146', es: 'Q1321', fr: 'Q150', de: 'Q188', it: 'Q652',
-  ru: 'Q7737', ja: 'Q5287', zh: 'Q7850', ko: 'Q9176', ar: 'Q13955', nl: 'Q7411',
-  pl: 'Q809', tr: 'Q256', el: 'Q9129', he: 'Q9288', hi: 'Q1568', th: 'Q9217',
-};
+  en: 'Q1860',
+  pt: 'Q5146',
+  es: 'Q1321',
+  fr: 'Q150',
+  de: 'Q188',
+  it: 'Q652',
+  ru: 'Q7737',
+  ja: 'Q5287',
+  zh: 'Q7850',
+  ko: 'Q9176',
+  ar: 'Q13955',
+  nl: 'Q7411',
+  pl: 'Q809',
+  tr: 'Q256',
+  el: 'Q9129',
+  he: 'Q9288',
+  hi: 'Q1568',
+  th: 'Q9217',
+  sv: 'Q9027',
+}
 
 async function sparql(query, arquivo) {
-  mkdirSync(CACHE, { recursive: true });
-  const caminho = join(CACHE, arquivo);
-  if (existsSync(caminho)) return readFileSync(caminho, 'utf8');
-  const url = `${ENDPOINT}?query=${encodeURIComponent(query)}`;
+  mkdirSync(CACHE, { recursive: true })
+  const caminho = join(CACHE, arquivo)
+  if (existsSync(caminho)) return readFileSync(caminho, 'utf8')
+  const url = `${ENDPOINT}?query=${encodeURIComponent(query)}`
   const r = await fetch(url, {
     headers: { Accept: 'text/csv', 'User-Agent': 'BabelPlay/1.0 (trilha educacional)' },
-  });
-  if (!r.ok) throw new Error(`SPARQL ${r.status}: ${arquivo}`);
-  const csv = await r.text();
-  writeFileSync(caminho, csv, 'utf8');
-  return csv;
+  })
+  if (!r.ok) throw new Error(`SPARQL ${r.status}: ${arquivo}`)
+  const csv = await r.text()
+  writeFileSync(caminho, csv, 'utf8')
+  return csv
 }
 
 function linhasCsv(csv) {
-  return csv.split(/\r?\n/).slice(1).filter(Boolean).map(l => {
-    const i = l.indexOf(',');
-    return i < 0 ? null : [l.slice(0, i).replace(/^"|"$/g, ''), l.slice(i + 1).replace(/^"|"$/g, '')];
-  }).filter(Boolean);
+  return csv
+    .split(/\r?\n/)
+    .slice(1)
+    .filter(Boolean)
+    .map((l) => {
+      const i = l.indexOf(',')
+      return i < 0 ? null : [l.slice(0, i).replace(/^"|"$/g, ''), l.slice(i + 1).replace(/^"|"$/g, '')]
+    })
+    .filter(Boolean)
 }
 
 /** forma (minúscula) → lema. Forma ambígua fica com o lema mais curto, que é o mais comum. */
 export async function formasPorLema(lang) {
-  const item = ITEM_DO_IDIOMA[lang];
-  if (!item) return new Map();
+  const item = ITEM_DO_IDIOMA[lang]
+  if (!item) return new Map()
   const csv = await sparql(
     `SELECT ?forma ?lema WHERE { ?l dct:language wd:${item} ; wikibase:lemma ?lema ; ontolex:lexicalForm ?f . ?f ontolex:representation ?forma . }`,
     `formas-${lang}.csv`,
-  );
-  const mapa = new Map();
+  )
+  const mapa = new Map()
   for (const [forma, lema] of linhasCsv(csv)) {
-    const k = forma.toLowerCase();
-    const anterior = mapa.get(k);
-    if (!anterior || lema.length < anterior.length) mapa.set(k, lema);
+    const k = forma.toLowerCase()
+    const anterior = mapa.get(k)
+    if (!anterior || lema.length < anterior.length) mapa.set(k, lema)
   }
-  return mapa;
+  return mapa
 }
 
 /** lema do idioma praticado → tradução no nativo. */
 export async function glosasDoPar(praticado, nativo) {
-  const a = ITEM_DO_IDIOMA[praticado];
-  const b = ITEM_DO_IDIOMA[nativo];
-  if (!a || !b) return new Map();
+  const a = ITEM_DO_IDIOMA[praticado]
+  const b = ITEM_DO_IDIOMA[nativo]
+  if (!a || !b) return new Map()
   const csv = await sparql(
-    `SELECT DISTINCT ?a ?b WHERE {`
-    + ` ?la dct:language wd:${a} ; wikibase:lemma ?a ; ontolex:sense ?sa . ?sa wdt:P5137 ?c .`
-    + ` ?lb dct:language wd:${b} ; wikibase:lemma ?b ; ontolex:sense ?sb . ?sb wdt:P5137 ?c . }`,
+    `SELECT DISTINCT ?a ?b WHERE {` +
+      ` ?la dct:language wd:${a} ; wikibase:lemma ?a ; ontolex:sense ?sa . ?sa wdt:P5137 ?c .` +
+      ` ?lb dct:language wd:${b} ; wikibase:lemma ?b ; ontolex:sense ?sb . ?sb wdt:P5137 ?c . }`,
     `glosas-${praticado}-${nativo}.csv`,
-  );
-  const mapa = new Map();
+  )
+  const mapa = new Map()
   for (const [origem, destino] of linhasCsv(csv)) {
-    const k = origem.toLowerCase();
+    const k = origem.toLowerCase()
     // Primeira tradução vence; a segunda seria sinônimo, e a pista quer uma resposta só.
-    if (!mapa.has(k) && origem.toLowerCase() !== destino.toLowerCase()) mapa.set(k, destino);
+    if (!mapa.has(k) && origem.toLowerCase() !== destino.toLowerCase()) mapa.set(k, destino)
   }
-  return mapa;
+  return mapa
 }
 
 /**
@@ -83,80 +104,90 @@ export async function glosasDoPar(praticado, nativo) {
  * O verbete fala SOBRE a palavra em vez de traduzi-la: "feminino de alto", "pôr na massa". Numa
  * carta de jogo isso não é pista, é uma nota de dicionário — e a pessoa não tem como responder.
  */
-const METALINGUAGEM = /^(?:o |a |ação de |ato de )?(?:feminino|masculino|plural|singular|diminutivo|aumentativo|superlativo|particípio|gerúndio|forma|flexão|variante|grafia|sinônimo|antônimo)\b|\bde\s+\w+ar$|^(?:pôr|dar|fazer|tornar)\s/i;
+const METALINGUAGEM =
+  /^(?:o |a |ação de |ato de )?(?:feminino|masculino|plural|singular|diminutivo|aumentativo|superlativo|particípio|gerúndio|forma|flexão|variante|grafia|sinônimo|antônimo)\b|\bde\s+\w+ar$|^(?:pôr|dar|fazer|tornar)\s/i
 
 export async function glosasDoWikcionario(praticado, nativo) {
-  const { createReadStream } = await import('node:fs');
-  const { createGunzip } = await import('node:zlib');
-  const { createInterface } = await import('node:readline');
-  const arquivo = join(CACHE, `${nativo}-extract.jsonl.gz`);
-  if (!existsSync(arquivo)) return new Map();
+  const { createReadStream } = await import('node:fs')
+  const { createGunzip } = await import('node:zlib')
+  const { createInterface } = await import('node:readline')
+  const arquivo = join(CACHE, `${nativo}-extract.jsonl.gz`)
+  if (!existsSync(arquivo)) return new Map()
 
-  const direto = new Map();
-  const inverso = new Map();
-  const rl = createInterface({ input: createReadStream(arquivo).pipe(createGunzip()) });
+  const direto = new Map()
+  const inverso = new Map()
+  const rl = createInterface({ input: createReadStream(arquivo).pipe(createGunzip()) })
   for await (const linha of rl) {
-    if (!linha.trim()) continue;
-    let verbete;
-    try { verbete = JSON.parse(linha); } catch { continue; }
-    if (!verbete.word) continue;
+    if (!linha.trim()) continue
+    let verbete
+    try {
+      verbete = JSON.parse(linha)
+    } catch {
+      continue
+    }
+    if (!verbete.word) continue
 
     // Verbete do praticado definido no nativo: a definição É a glosa.
     if (verbete.lang_code === praticado) {
-      const glosa = verbete.senses?.find((s) => s.glosses?.length)?.glosses[0];
+      const glosa = verbete.senses?.find((s) => s.glosses?.length)?.glosses[0]
       // Primeira acepção, cortada na primeira vírgula: a pista quer uma resposta, não um verbete.
-      const curta = glosa ? limparLema(String(glosa).split(/[,;(]/)[0]) : '';
-      const chave = String(verbete.word).toLowerCase();
-      if (curta && curta.length <= 40 && curta.toLowerCase() !== chave
-          && !METALINGUAGEM.test(curta) && !direto.has(chave)) {
-        direto.set(chave, curta);
+      const curta = glosa ? limparLema(String(glosa).split(/[,;(]/)[0]) : ''
+      const chave = String(verbete.word).toLowerCase()
+      if (
+        curta &&
+        curta.length <= 40 &&
+        curta.toLowerCase() !== chave &&
+        !METALINGUAGEM.test(curta) &&
+        !direto.has(chave)
+      ) {
+        direto.set(chave, curta)
       }
-      continue;
+      continue
     }
 
     /* Verbete do nativo com tabela de traduções: invertida, cobre 3,6× mais que a via direta,
        porque o Wikcionário nativo descreve o próprio idioma com muito mais fôlego. */
-    if (verbete.lang_code !== nativo) continue;
+    if (verbete.lang_code !== nativo) continue
     for (const t of verbete.translations ?? []) {
-      if ((t.code ?? t.lang_code) !== praticado || !t.word) continue;
-      const chave = String(t.word).toLowerCase();
+      if ((t.code ?? t.lang_code) !== praticado || !t.word) continue
+      const chave = String(t.word).toLowerCase()
       // TODAS as candidatas, não a primeira: é entre elas que o cognato desempata.
-      const glosa = limparLema(String(verbete.word));
-      if (!glosa) continue;
-      if (!inverso.has(chave)) inverso.set(chave, []);
-      inverso.get(chave).push(glosa);
+      const glosa = limparLema(String(verbete.word))
+      if (!glosa) continue
+      if (!inverso.has(chave)) inverso.set(chave, [])
+      inverso.get(chave).push(glosa)
     }
   }
   // A definição direta descreve o sentido; a inversa é palavra a palavra. Direta ganha.
-  const mapa = new Map();
+  const mapa = new Map()
   for (const [k, candidatas] of inverso) {
-    const escolhida = escolherPorCognato(k, candidatas);
-    if (escolhida !== null) mapa.set(k, escolhida);
+    const escolhida = escolherPorCognato(k, candidatas)
+    if (escolhida !== null) mapa.set(k, escolhida)
   }
-  for (const [k, v] of direto) mapa.set(k, v);
-  return mapa;
+  for (const [k, v] of direto) mapa.set(k, v)
+  return mapa
 }
 
-const semAcento = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const semAcento = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 
 /**
  * O Wikcionário numera homógrafos no próprio lema (`cebola¹`) e às vezes deixa pontuação de
  * entrada (`África:`). Nada disso é parte da palavra, e tudo isso apareceria na carta do jogo.
  */
-const limparLema = (s) => s.replace(/[¹²³⁴⁵⁶⁷⁸⁹⁰]+$/u, '').replace(/^[\s:;,.·-]+|[\s:;,.·-]+$/gu, '');
+const limparLema = (s) => s.replace(/[¹²³⁴⁵⁶⁷⁸⁹⁰]+$/u, '').replace(/^[\s:;,.·-]+|[\s:;,.·-]+$/gu, '')
 
 function distancia(a, b) {
-  const linha = Array.from({ length: b.length + 1 }, (_, i) => i);
+  const linha = Array.from({ length: b.length + 1 }, (_, i) => i)
   for (let i = 1; i <= a.length; i++) {
-    let anterior = linha[0];
-    linha[0] = i;
+    let anterior = linha[0]
+    linha[0] = i
     for (let j = 1; j <= b.length; j++) {
-      const atual = linha[j];
-      linha[j] = Math.min(linha[j] + 1, linha[j - 1] + 1, anterior + (a[i - 1] === b[j - 1] ? 0 : 1));
-      anterior = atual;
+      const atual = linha[j]
+      linha[j] = Math.min(linha[j] + 1, linha[j - 1] + 1, anterior + (a[i - 1] === b[j - 1] ? 0 : 1))
+      anterior = atual
     }
   }
-  return linha[b.length];
+  return linha[b.length]
 }
 
 /**
@@ -169,7 +200,7 @@ function distancia(a, b) {
  * e por isso um falso amigo só entra se já fosse uma tradução legítima daquela palavra.
  */
 export function escolherPorCognato(palavra, candidatas) {
-  const alvo = semAcento(palavra);
+  const alvo = semAcento(palavra)
 
   /* PALAVRA TRANSPARENTE devolve `null`, não uma glosa. Se o dicionário traduz `temor` por `temor`,
      as outras candidatas daquela entrada são acepções laterais — era assim que saíam
@@ -178,21 +209,24 @@ export function escolherPorCognato(palavra, candidatas) {
 
      Grafia EXATA, não normalizada: `negocio`→`negócio` difere por um acento e é a glosa perfeita,
      enquanto `temor`→`temor` é a mesma palavra escrita igual nos dois idiomas. */
-  const exata = palavra.toLowerCase();
-  if (candidatas.some((c) => c.toLowerCase() === exata)) return null;
+  const exata = palavra.toLowerCase()
+  if (candidatas.some((c) => c.toLowerCase() === exata)) return null
 
-  let melhor = candidatas[0];
-  let melhorPerto = Infinity;
+  let melhor = candidatas[0]
+  let melhorPerto = Infinity
   for (const c of candidatas) {
-    const d = distancia(alvo, semAcento(c)) / Math.max(alvo.length, c.length);
-    if (d < melhorPerto) { melhorPerto = d; melhor = c; }
+    const d = distancia(alvo, semAcento(c)) / Math.max(alvo.length, c.length)
+    if (d < melhorPerto) {
+      melhorPerto = d
+      melhor = c
+    }
   }
   // Longe demais para ser cognato: nenhuma pista de forma, fica a ordem do dicionário.
-  return melhorPerto <= 0.34 ? melhor : candidatas[0];
+  return melhorPerto <= 0.34 ? melhor : candidatas[0]
 }
 
 /** Nativos de escrita latina — é para eles que o filtro de escrita vale. */
-const NATIVO_LATINO = new Set(['pt', 'en', 'es', 'fr', 'it', 'de', 'nl', 'sv', 'pl', 'tr']);
+const NATIVO_LATINO = new Set(['pt', 'en', 'es', 'fr', 'it', 'de', 'nl', 'sv', 'pl', 'tr'])
 
 /**
  * A glosa está na ESCRITA do nativo? O Wikidata tem lexemas "portugueses" em aljamiado (português
@@ -200,20 +234,20 @@ const NATIVO_LATINO = new Set(['pt', 'en', 'es', 'fr', 'it', 'de', 'nl', 'sv', '
  * nl, pl, ru — ~220 entradas nos pacotes de 2026-09. Mesma régua de `glosaServe` no app.
  */
 export function escritaServe(glosa, nativo) {
-  if (!NATIVO_LATINO.has(nativo)) return true;
-  return !/(?!\p{Script=Latin})\p{L}/u.test(String(glosa));
+  if (!NATIVO_LATINO.has(nativo)) return true
+  return !/(?!\p{Script=Latin})\p{L}/u.test(String(glosa))
 }
 
 /** Wikidata primeiro (curado, CC0); Wikcionário preenche o resto. */
 export async function glosas(praticado, nativo) {
-  const doWikidata = await glosasDoPar(praticado, nativo);
-  const doWikcionario = await glosasDoWikcionario(praticado, nativo);
-  const mapa = new Map(doWikcionario);
+  const doWikidata = await glosasDoPar(praticado, nativo)
+  const doWikcionario = await glosasDoWikcionario(praticado, nativo)
+  const mapa = new Map(doWikcionario)
   /* O filtro de escrita vem ANTES da precedência: se a glosa do Wikidata está em aljamiado, a do
      Wikcionário fica. Filtrar depois apagava as duas — `día` e `casa` saíam sem glosa nenhuma. */
-  for (const [k, v] of doWikidata) if (escritaServe(v, nativo)) mapa.set(k, v);
-  for (const [k, v] of mapa) if (!escritaServe(v, nativo)) mapa.delete(k);
-  return { mapa, doWikidata: doWikidata.size, doWikcionario: doWikcionario.size };
+  for (const [k, v] of doWikidata) if (escritaServe(v, nativo)) mapa.set(k, v)
+  for (const [k, v] of mapa) if (!escritaServe(v, nativo)) mapa.delete(k)
+  return { mapa, doWikidata: doWikidata.size, doWikcionario: doWikcionario.size }
 }
 
 /**
@@ -224,26 +258,29 @@ export async function glosas(praticado, nativo) {
  * `bruta` é a lista de frequência CRUA (com conjugações), na ordem do corpus.
  */
 export function montarDicionario({ bruta, mapaDeLemas, glosas: mapaDeGlosas, limite, lang, nativo }) {
-  const saida = {};
+  const saida = {}
   /* Contador, não `Object.keys(saida).length` a cada volta: quando o idioma não tem `limite` lemas
      com glosa, o laço corre a lista inteira (~1 milhão de entradas) e a contagem por chaves o
      tornava quadrático — mais de dez minutos por idioma em vez de segundos. */
-  let n = 0;
+  let n = 0
   for (const { palavra } of lematizar(bruta, mapaDeLemas, lang)) {
-    if (n >= limite) break;
-    const chave = String(palavra).toLowerCase();
-    const g = mapaDeGlosas.get(chave);
-    if (g && escritaServe(g, nativo) && !(chave in saida)) { saida[chave] = g; n++; }
-  }
-  const formas = {};
-  for (const { palavra } of bruta ?? []) {
-    const forma = String(palavra).toLowerCase();
-    const lema = mapaDeLemas.get(forma);
-    if (lema && lema.toLowerCase() !== forma && saida[lema.toLowerCase()] && !(forma in saida)) {
-      formas[forma] = lema.toLowerCase();
+    if (n >= limite) break
+    const chave = String(palavra).toLowerCase()
+    const g = mapaDeGlosas.get(chave)
+    if (g && escritaServe(g, nativo) && !(chave in saida)) {
+      saida[chave] = g
+      n++
     }
   }
-  return { glosas: saida, formas };
+  const formas = {}
+  for (const { palavra } of bruta ?? []) {
+    const forma = String(palavra).toLowerCase()
+    const lema = mapaDeLemas.get(forma)
+    if (lema && lema.toLowerCase() !== forma && saida[lema.toLowerCase()] && !(forma in saida)) {
+      formas[forma] = lema.toLowerCase()
+    }
+  }
+  return { glosas: saida, formas }
 }
 
 /**
@@ -255,13 +292,13 @@ const ENCLITICOS = {
   es: ['me', 'te', 'se', 'lo', 'la', 'le', 'nos', 'los', 'las', 'les', 'selo', 'sela'],
   pt: ['me', 'te', 'se', 'lo', 'la', 'lhe', 'nos', 'los', 'las', 'lhes'],
   it: ['mi', 'ti', 'si', 'lo', 'la', 'ci', 'li', 'le', 'ne', 'gli'],
-};
-const FORMA_VERBAL = /(?:ar|er|ir|ír|ndo)$/;
+}
+const FORMA_VERBAL = /(?:ar|er|ir|ír|ndo)$/
 /* Raiz de três letras é ambígua: `par` de `parte` tem a mesma cara de `dar` de `darme`. Os verbos
    tão curtos assim cabem numa lista. */
-const VERBOS_CURTOS = new Set(['dar', 'ver', 'ir', 'oír', 'ser', 'ter', 'ver', 'vir', 'pôr']);
+const VERBOS_CURTOS = new Set(['dar', 'ver', 'ir', 'oír', 'ser', 'ter', 'ver', 'vir', 'pôr'])
 
-const pareceVerbo = (raiz) => (raiz.length > 3 ? FORMA_VERBAL.test(raiz) : VERBOS_CURTOS.has(raiz));
+const pareceVerbo = (raiz) => (raiz.length > 3 ? FORMA_VERBAL.test(raiz) : VERBOS_CURTOS.has(raiz))
 
 /**
  * `darme` → `dar`. Sem isto o pronome vira palavra da trilha e o mesmo verbo ocupa várias vagas.
@@ -270,21 +307,21 @@ const pareceVerbo = (raiz) => (raiz.length > 3 ? FORMA_VERBAL.test(raiz) : VERBO
  */
 function semEnclitico(palavra, mapa, lang) {
   for (const pronome of ENCLITICOS[lang] ?? []) {
-    if (!palavra.endsWith(pronome)) continue;
-    const raiz = palavra.slice(0, -pronome.length);
-    if (raiz.length >= 2 && pareceVerbo(raiz) && mapa.has(raiz)) return mapa.get(raiz);
+    if (!palavra.endsWith(pronome)) continue
+    const raiz = palavra.slice(0, -pronome.length)
+    if (raiz.length >= 2 && pareceVerbo(raiz) && mapa.has(raiz)) return mapa.get(raiz)
   }
-  return null;
+  return null
 }
 
 export function lematizar(palavras, mapa, lang) {
-  const porLema = new Map();
+  const porLema = new Map()
   for (const p of palavras ?? []) {
-    const chave = String(p.palavra).toLowerCase();
-    const lema = mapa.get(chave) ?? semEnclitico(chave, mapa, lang) ?? p.palavra;
-    const atual = porLema.get(lema);
-    if (atual) atual.contagem += Number(p.contagem) || 0;
-    else porLema.set(lema, { palavra: lema, contagem: Number(p.contagem) || 0 });
+    const chave = String(p.palavra).toLowerCase()
+    const lema = mapa.get(chave) ?? semEnclitico(chave, mapa, lang) ?? p.palavra
+    const atual = porLema.get(lema)
+    if (atual) atual.contagem += Number(p.contagem) || 0
+    else porLema.set(lema, { palavra: lema, contagem: Number(p.contagem) || 0 })
   }
-  return [...porLema.values()].sort((x, y) => y.contagem - x.contagem);
+  return [...porLema.values()].sort((x, y) => y.contagem - x.contagem)
 }

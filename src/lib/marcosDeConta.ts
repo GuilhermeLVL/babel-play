@@ -1,4 +1,4 @@
-import { estadoDoTeto, TETO_ANONIMO } from '@core';
+import { estadoDoTeto, TETO_ANONIMO, TETO_DA_EDICAO_ESTATICA } from '@core';
 
 import { edicaoEstatica } from './edicaoEstatica';
 
@@ -87,7 +87,7 @@ const TEXTO_DA_EDICAO_ESTATICA: Record<MarcoDeConta, AvisoDeConta> = {
   },
   'acervo-quase-cheio': {
     marco: 'acervo-quase-cheio',
-    titulo: `Você está chegando no limite de ${TETO_ANONIMO.sessoes} gravações`,
+    titulo: `Você está chegando no limite de ${TETO_DA_EDICAO_ESTATICA.sessoes} gravações`,
     texto:
       'Esta é a edição de demonstração, e a próxima gravação não cabe. A versão completa do Babel Play não tem esse limite.',
   },
@@ -101,12 +101,14 @@ const TEXTO_DA_EDICAO_ESTATICA: Record<MarcoDeConta, AvisoDeConta> = {
  */
 export function avisoPendente(estado: { sessoes: number; palavras: number; semConta: boolean }): AvisoDeConta | null {
   if (!estado.semConta) return null;
-  const TEXTO = edicaoEstatica() ? TEXTO_DA_EDICAO_ESTATICA : TEXTO_COM_CONTA;
+  const estatica = edicaoEstatica();
+  const TEXTO = estatica ? TEXTO_DA_EDICAO_ESTATICA : TEXTO_COM_CONTA;
 
-  const acervo = estadoDoTeto('sessoes', estado.sessoes);
+  // O teto é o da EDIÇÃO (20 na estática, 5 na completa): avisar "perto" em 4 de 20 seria cedo demais.
+  const acervo = estadoDoTeto('sessoes', estado.sessoes, { edicaoEstatica: estatica });
   if (acervo.perto && !jaViu('acervo-quase-cheio')) return TEXTO['acervo-quase-cheio'];
 
-  const caderno = estadoDoTeto('palavras', estado.palavras);
+  const caderno = estadoDoTeto('palavras', estado.palavras, { edicaoEstatica: estatica });
   if (caderno.perto && !jaViu('caderno-quase-cheio')) return TEXTO['caderno-quase-cheio'];
 
   // O mais genérico por último: só fala quando não há nada mais concreto para dizer.

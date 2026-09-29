@@ -11,7 +11,7 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-import { TETO_ANONIMO } from '../../core/tetoAnonimo';
+import { tetoAnonimoDa } from '../../core/tetoAnonimo';
 import * as auth from '../../lib/auth';
 import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { useFlag } from '../../lib/flags';
@@ -147,7 +147,7 @@ export default function MenuDaConta({ onIr }: MenuDaContaProps) {
                   <HardDrive aria-hidden />
                   {t(
                     'Fica só neste aparelho, até {sessoes} gravações e {palavras} palavras. Loja, ranking, importação e sincronização pedem conta.',
-                    { sessoes: TETO_ANONIMO.sessoes, palavras: TETO_ANONIMO.palavras },
+                    tetoAnonimoDa({ edicaoEstatica: semServidor }),
                   )}
                 </p>
               )}

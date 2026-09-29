@@ -1,4 +1,5 @@
 import '../../../styles/legendas.css';
+import '../../../styles/legendasFlutuantes.css';
 
 import { ArrowDown, AudioLines } from 'lucide-react';
 import {

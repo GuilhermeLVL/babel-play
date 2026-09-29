@@ -6,7 +6,7 @@ import { t } from '../../../../lib/i18n';
 import type { Traducao } from './aparenciaDaLegenda';
 
 /** Os atalhos da janelinha, na ordem da ajuda. As teclas valem com o foco dentro da janela. */
-export const ATALHOS: ReadonlyArray<[string, string]> = [
+const ATALHOS: ReadonlyArray<[string, string]> = [
   ['Espaço', 'Pausar ou continuar'],
   ['← →', 'Voltar e avançar pelas falas'],
   ['T', 'Tradução da fala em foco'],

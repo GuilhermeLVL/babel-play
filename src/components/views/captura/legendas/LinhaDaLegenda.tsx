@@ -22,7 +22,7 @@ export interface LegendaAoVivo {
 }
 
 /** A palavra de um pedaço do texto, sem a pontuação colada ("today?" → "today"). */
-export function limparPalavra(pedaco: string): string {
+function limparPalavra(pedaco: string): string {
   return pedaco.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
 }
 

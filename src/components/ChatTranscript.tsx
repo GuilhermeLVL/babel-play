@@ -47,6 +47,8 @@ export interface ChatSegment {
   lang?: string;
   /** Ficou sem tradução automática pela preferência "Tradução": mostra "Mostrar tradução". */
   traducaoSobDemanda?: boolean;
+  /** A tradução espera o tradutor local carregar: a linha diz "Baixando o tradutor…". */
+  traducaoPendente?: boolean;
 }
 
 interface ChatTranscriptProps {
@@ -90,6 +92,11 @@ interface ChatTranscriptProps {
    * nenhuma marcada.
    */
   conhecidas?: ConhecidasDaFala | null;
+  /**
+   * O download do tradutor local (0..1), para a linha das falas que esperam por ele ("Baixando o
+   * tradutor… 42%"). Ausente/`null` = sem porcentagem ("Preparando a tradução…").
+   */
+  progressoDoTradutor?: number | null;
 }
 
 /** Iniciais para o avatar ("Pessoa 2" → "P2", "Você" → "VO", "Maria Silva" → "MS"). */
@@ -235,6 +242,8 @@ interface FalaProps {
   aoExaminar: (segment: ChatSegment, word: VocabWord, lang: string) => void;
   aoOuvir: (segId: string, word: string, lang: string) => void;
   aoRevelar?: (segId: string) => void;
+  /** O que a linha da tradução diz enquanto ela espera o tradutor (só nas falas pendentes). */
+  pendente?: string;
 }
 
 /**
@@ -258,6 +267,7 @@ const FalaDaConversa = React.memo(function FalaDaConversa({
   aoExaminar,
   aoOuvir,
   aoRevelar,
+  pendente,
 }: FalaProps) {
   const aprendida = (palavra: string) => (aprendidas?.has(chaveDaPalavra(palavra)) ? true : undefined);
   /* A palavra NOVA (só no modo `novas`, só no idioma do predicado, nunca número nem a que já tem o
@@ -332,7 +342,11 @@ const FalaDaConversa = React.memo(function FalaDaConversa({
     </span>
   );
   /* Sob demanda (preferência "Tradução"): no lugar da linha traduzida, o convite a mostrá-la. */
-  const traducao = segment.translatedText ? (
+  const traducao = pendente ? (
+    <span className={`trad mut ${tamTraducao}`} data-testid="traducao-pendente">
+      {pendente}
+    </span>
+  ) : segment.translatedText ? (
     <span className={`trad mut ${tamTraducao}`}>{segment.translatedText}</span>
   ) : (
     segment.traducaoSobDemanda &&
@@ -393,6 +407,7 @@ function ChatTranscript({
   onSpeakWord,
   onRevelarTraducao,
   conhecidas,
+  progressoDoTradutor,
 }: ChatTranscriptProps) {
   const callbacks = React.useRef({ onExamineWord, onSpeakWord, onRevelarTraducao });
   callbacks.current = { onExamineWord, onSpeakWord, onRevelarTraducao };
@@ -452,6 +467,10 @@ function ChatTranscript({
   }
   const inicio = inicioDaJanela(segments.length, limite, fixada);
   const visiveis = inicio > 0 ? segments.slice(inicio) : segments;
+  const rotuloPendente =
+    progressoDoTradutor != null && progressoDoTradutor < 1
+      ? t('Baixando o tradutor… {pct}%', { pct: Math.round(progressoDoTradutor * 100) })
+      : t('Preparando a tradução…');
 
   /* Marcação do protótipo aprovado (`T.capturar`): cada fala é uma `.fala` — quem falou, o original
      com as palavras do caderno clicáveis (`.palavra`) e a tradução embaixo. A ordem e o "esconder o
@@ -472,6 +491,7 @@ function ChatTranscript({
         </div>
       )}
       {visiveis.map((segment) => (
+        // A linha da fala que espera o tradutor: a porcentagem só chega a ela (as outras não mudam).
         <FalaDaConversa
           key={segment.id}
           segment={segment}
@@ -490,6 +510,7 @@ function ChatTranscript({
           aoExaminar={aoExaminar}
           aoOuvir={aoOuvir}
           aoRevelar={aoRevelar}
+          pendente={segment.traducaoPendente && segment.translatedText === '…' ? rotuloPendente : undefined}
         />
       ))}
     </div>

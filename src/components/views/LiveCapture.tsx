@@ -3205,6 +3205,7 @@ export default function LiveCapture({
                           onSpeakWord={ouvirNaConversa}
                           onRevelarTraducao={revelarNaConversa}
                           conhecidas={conhecidas}
+                          progressoDoTradutor={modelPrep?.mt ?? null}
                         />
                       </div>
                     </div>
@@ -3486,6 +3487,7 @@ export default function LiveCapture({
                   onSpeakWord={ouvirNaConversa}
                   onRevelarTraducao={revelarNaConversa}
                   conhecidas={conhecidas}
+                  progressoDoTradutor={modelPrep?.mt ?? null}
                 />
               ) : (
                 <p className="foco-vazio">

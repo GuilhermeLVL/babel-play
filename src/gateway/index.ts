@@ -170,6 +170,8 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
      captura, para retraduzir o que ficou sem tradução) é chamado DEPOIS disso. Um ouvinte por
      adaptador por gateway, pendurado na primeira vez que o adaptador é resolvido aqui. */
   const prontidao = new Set<() => void>();
+  /** Quem quer saber que um tradutor local NÃO carregou (a captura: a tradução pendente não virá dele). */
+  const falhasDeCarga = new Set<() => void>();
   const vigiados = new Set<string>();
   const resolverMt = (b: CapabilityBinding): TranslationProvider => {
     const a = resolveMt(b);
@@ -178,6 +180,9 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
       a.aoFicarPronto(() => {
         breakers.reiniciar(b.adapterId);
         for (const fn of prontidao) fn();
+      });
+      a.aoFalharCarga?.(() => {
+        for (const fn of falhasDeCarga) fn();
       });
     }
     return a;
@@ -404,6 +409,21 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
         }
         return () => {
           prontidao.delete(fn);
+        };
+      },
+
+      /** Avisa quando um tradutor LOCAL não carrega neste aparelho (WASM, memória): não vai ficar pronto. */
+      aoFalharCarga: (fn: () => void): (() => void) => {
+        falhasDeCarga.add(fn);
+        for (const b of core.getProfile().bindings.mt ?? []) {
+          try {
+            resolverMt(b);
+          } catch {
+            /* próximo binding */
+          }
+        }
+        return () => {
+          falhasDeCarga.delete(fn);
         };
       },
 

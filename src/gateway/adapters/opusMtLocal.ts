@@ -30,6 +30,7 @@ export class OpusMtLocal implements TranslationProvider {
   private failed = new Set<string>(); // modelos que falharam o carregamento nesta máquina (não re-tenta)
   private onProgress: ((p: number, label?: string, bytes?: { loaded: number; total: number }) => void) | null = null;
   private prontidao = new Set<(modelo: string) => void>();
+  private falhasDeCarga = new Set<(modelo: string) => void>();
 
   private readonly ROMANCE = new Set(['pt', 'es', 'fr', 'it', 'ro', 'ca', 'gl']);
   private readonly DEDICADOS = new Set(['es', 'fr', 'it', 'de']);
@@ -58,6 +59,12 @@ export class OpusMtLocal implements TranslationProvider {
   aoFicarPronto(fn: (modelo: string) => void): () => void {
     this.prontidao.add(fn);
     return () => this.prontidao.delete(fn);
+  }
+
+  /** Avisa quando um modelo NÃO carrega aqui (vai para `failed`). Devolve quem solta o ouvinte. */
+  aoFalharCarga(fn: (modelo: string) => void): () => void {
+    this.falhasDeCarga.add(fn);
+    return () => this.falhasDeCarga.delete(fn);
   }
 
   /**
@@ -112,6 +119,14 @@ export class OpusMtLocal implements TranslationProvider {
         // falho para PARAR de re-tentar a cada tradução — o gateway usa o próximo adapter.
         this.loading.delete(model);
         this.failed.add(model);
+        // Quem esperava a tradução "a caminho" (a captura) precisa saber que ela não vem daqui.
+        for (const fn of this.falhasDeCarga) {
+          try {
+            fn(model);
+          } catch {
+            /* ouvinte com defeito não impede o resto */
+          }
+        }
         return;
       }
       const p = this.pending.get(id);

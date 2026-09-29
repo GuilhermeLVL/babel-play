@@ -35,6 +35,9 @@ class WorkerFalso {
   pronto(model: string) {
     this.onmessage?.({ data: { type: 'ready', model } } as MessageEvent)
   }
+  falhou(model: string) {
+    this.onmessage?.({ data: { type: 'loadError', model } } as MessageEvent)
+  }
   terminate() {}
 }
 
@@ -97,5 +100,26 @@ describe('opus-mt carregando', () => {
     w.pronto('Xenova/opus-mt-en-ROMANCE')
     const r = await gw.mt.translate('fechado', 'pt', 'en')
     expect(r.text).toBe('[opus] fechado')
+  })
+
+  it('enquanto o modelo baixa, a falha do final é PENDENTE (só falta carregar), não definitiva', async () => {
+    const gw = await montar()
+    const { soFaltaCarregar } = await import('../src/core')
+    const erro = await gw.mt.translate('bom dia', 'pt', 'en').catch((e: unknown) => e)
+    expect(erro).toMatchObject({ name: 'NoRouteError', carregando: true })
+    expect(soFaltaCarregar(erro)).toBe(true)
+  })
+
+  it('o modelo que NÃO carrega avisa (aoFalharCarga) e a falha seguinte deixa de ser pendente', async () => {
+    const gw = await montar()
+    const { soFaltaCarregar } = await import('../src/core')
+    const falhou = vi.fn()
+    gw.mt.aoFalharCarga(falhou)
+    gw.mt.warmup([['pt', 'en']])
+    WorkerFalso.ultimo!.falhou('Xenova/opus-mt-ROMANCE-en')
+    expect(falhou).toHaveBeenCalledTimes(1)
+    const erro = await gw.mt.translate('bom dia', 'pt', 'en').catch((e: unknown) => e)
+    expect(erro).toMatchObject({ name: 'NoRouteError' })
+    expect(soFaltaCarregar(erro)).toBe(false)
   })
 })

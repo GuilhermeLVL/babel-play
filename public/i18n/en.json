@@ -1036,5 +1036,7 @@
   "{n} falas": {
     "one": "{n} line",
     "other": "{n} lines"
-  }
+  },
+  "Baixando o tradutor… {pct}%": "Downloading the translator… {pct}%",
+  "Preparando a tradução…": "Preparing the translation…"
 }

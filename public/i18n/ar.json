@@ -112,5 +112,7 @@
     "few": "{n} عبارات",
     "many": "{n} عبارة",
     "other": "{n} عبارة"
-  }
+  },
+  "Baixando o tradutor… {pct}%": "جارٍ تنزيل المترجم… {pct}%",
+  "Preparando a tradução…": "جارٍ تجهيز الترجمة…"
 }

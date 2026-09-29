@@ -107,5 +107,7 @@
   "{n} falas": {
     "one": "{n} frase",
     "other": "{n} frases"
-  }
+  },
+  "Baixando o tradutor… {pct}%": "Descargando el traductor… {pct}%",
+  "Preparando a tradução…": "Preparando la traducción…"
 }

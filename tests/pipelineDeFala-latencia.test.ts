@@ -91,6 +91,22 @@ function montar(
 }
 
 const esperar = () => new Promise((r) => setTimeout(r, 0))
+/** Um quadro de pintura (o jsdom do vitest tem `requestAnimationFrame`). */
+const quadro = () => new Promise<void>((r) => requestAnimationFrame(() => r()))
+
+interface Balao {
+  id: string
+  originalText: string
+  isPartial: boolean
+}
+/** Um `setSpeechSegments` de verdade em miniatura: guarda o estado e conta as chamadas. */
+function falasFalsas() {
+  let estado: Balao[] = []
+  const set = vi.fn((a: Balao[] | ((p: Balao[]) => Balao[])) => {
+    estado = typeof a === 'function' ? a(estado) : a
+  })
+  return { set, ler: () => estado }
+}
 
 describe('final especulativo no pipeline', () => {
   it('o decode especulativo É o final: nenhum decode novo, a mesma tradução', async () => {
@@ -241,6 +257,7 @@ describe('o tradutor da fala do Rápido (não há modelo de transcrição a espe
     // Sem progresso ainda, nenhum painel (o nativo pronto nem chega a baixar nada).
     expect(deps.setModelPrep).not.toHaveBeenCalled()
     progresso!(0.3, 'baixando', { loaded: 30, total: 100 })
+    await quadro() // o progresso vai para a tela no quadro seguinte (um setState por quadro)
     const atualizar = (deps.setModelPrep as ReturnType<typeof vi.fn>).mock.calls[0][0] as (s: unknown) => unknown
     expect(atualizar(null)).toMatchObject({ whisper: null, mt: 0.3, mtBytes: { loaded: 30, total: 100 }, done: false })
     expect(deps.retraduzirDegradados).not.toHaveBeenCalled()
@@ -254,5 +271,61 @@ describe('o tradutor da fala do Rápido (não há modelo de transcrição a espe
     ;(deps.gateway as unknown as { mt: unknown }).mt = { preload }
     p.prepararTradutorDaFala()
     expect(preload).not.toHaveBeenCalled()
+  })
+})
+
+/**
+ * UM setState POR QUADRO ("Grátis sem travar", A1): o streaming do final e o progresso dos modelos
+ * chegavam à tela como dezenas de `setState` por segundo. As atualizações de um mesmo quadro viram
+ * uma; o final passa na frente de tudo o que estava pendente, na mesma chamada.
+ */
+describe('um setState por quadro', () => {
+  it('cinco tokens do streaming do final no mesmo quadro → UM setSpeechSegments', async () => {
+    const falas = falasFalsas()
+    const { p, transcribePcm } = montar({ extra: { setSpeechSegments: falas.set } })
+    transcribePcm.mockImplementationOnce(((_pcm: Float32Array, _sr: number, o: { onUpdate: (t: string) => void }) => {
+      for (const t of ['Olá', 'Olá, tu', 'Olá, tudo', 'Olá, tudo be', 'Olá, tudo bem']) o.onUpdate(t)
+      return new Promise(() => {})
+    }) as never)
+    p.micHandlers.onSpeechStart(1)
+    p.micHandlers.onUtterance(new Float32Array(1600), 16000, 1)
+    const antes = falas.set.mock.calls.length
+    await quadro()
+    expect(falas.set.mock.calls.length - antes).toBe(1)
+    expect(falas.ler()[0]).toMatchObject({ originalText: 'Olá, tudo bem', isPartial: true })
+  })
+
+  it('o final chega com streaming pendente: aplica os dois em ordem e nada velho cai depois dele', async () => {
+    const falas = falasFalsas()
+    const { p, transcribePcm } = montar({ extra: { setSpeechSegments: falas.set } })
+    transcribePcm.mockImplementationOnce(((_pcm: Float32Array, _sr: number, o: { onUpdate: (t: string) => void }) => {
+      o.onUpdate('Olá, tu')
+      return Promise.resolve({ text: 'Olá, tudo bem?', engine: 'whisper-local' })
+    }) as never)
+    p.micHandlers.onSpeechStart(1)
+    p.micHandlers.onUtterance(new Float32Array(1600), 16000, 1)
+    await esperar()
+    expect(falas.ler()[0]).toMatchObject({ originalText: 'Olá, tudo bem?', isPartial: false })
+    const depoisDoFinal = falas.set.mock.calls.length
+    await quadro()
+    expect(falas.set.mock.calls.length).toBe(depoisDoFinal) // o quadro não tinha mais nada a aplicar
+    expect(falas.ler()[0]).toMatchObject({ originalText: 'Olá, tudo bem?', isPartial: false })
+  })
+
+  it('rajada de progresso do modelo no mesmo quadro → UM setModelPrep', async () => {
+    let progresso: ((p: number, l?: string, b?: { loaded: number; total: number }) => void) | undefined
+    const preload = vi.fn((_de: string, _para: string, cb?: typeof progresso) => {
+      progresso = cb
+      return new Promise<void>(() => {})
+    })
+    const { p, deps } = montar()
+    ;(deps.gateway as unknown as { mt: unknown }).mt = { preload }
+    p.prepararTradutorDaFala()
+    for (let i = 1; i <= 20; i++) progresso!(i / 100, 'baixando', { loaded: i, total: 100 })
+    expect(deps.setModelPrep).not.toHaveBeenCalled()
+    await quadro()
+    expect(deps.setModelPrep).toHaveBeenCalledTimes(1)
+    const atualizar = (deps.setModelPrep as ReturnType<typeof vi.fn>).mock.calls[0][0] as (s: unknown) => unknown
+    expect(atualizar(null)).toMatchObject({ mt: 0.2, mtBytes: { loaded: 20, total: 100 } })
   })
 })

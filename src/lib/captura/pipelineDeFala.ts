@@ -33,6 +33,7 @@ import { SpeakerClusterer } from '../speakerCluster';
 import { embedUtterance } from '../speakerId';
 import { isTtsActive } from '../tts';
 import { classificarVazamento, type Intervalo } from '../vazamento';
+import { setterNoQuadro } from './agendarNoQuadro';
 import { disponibilidadeDaSondaParaIdioma, escolherMotorDoMic, webSpeechBipaAoReligar } from './motorDoMicrofone';
 import { preparoConcluido, semPacotePendente } from './pacotesNativos';
 import { type EfeitosDoRegulador, escadaDeModelos, type ReguladorDaCaptura } from './reguladorDaCaptura';
@@ -159,7 +160,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     micEngine,
     timerRef,
     nowRel,
-    setSpeechSegments,
+    setSpeechSegments: setSpeechSegmentsDaTela,
     seqToSegmentRef,
     lastPartialTextRef,
     pendingUtterancesRef,
@@ -185,12 +186,22 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     translateSegment,
     retraduzirDegradados,
     setFeedbackMsg,
-    setModelPrep,
+    setModelPrep: setModelPrepDaTela,
     setSttRouteLabel,
     contextoDoSttRef,
     reguladorRef,
     sistemaAtivo,
   } = deps;
+
+  /* UM SETSTATE POR QUADRO ("Grátis sem travar", A1; ver `agendarNoQuadro.ts`). O que chega em
+     rajada — os tokens do streaming e o progresso dos modelos — vai por `falasNoQuadro` e
+     `prepNoQuadro`, e só é aplicado no quadro seguinte, junto. Todo o resto usa os `set…` abaixo, que
+     são os `agora` dos mesmos agendadores: aplicam o que estava pendente ANTES e na mesma chamada, então
+     a ordem é a de sempre e um parcial velho nunca cai por cima de um final. */
+  const falasNoQuadro = setterNoQuadro(setSpeechSegmentsDaTela);
+  const prepNoQuadro = setterNoQuadro(setModelPrepDaTela);
+  const setSpeechSegments = falasNoQuadro.agora;
+  const setModelPrep = prepNoQuadro.agora;
 
   /** Os efeitos das ações do regulador, com o gateway/setters deste render. */
   const efeitosDoRegulador: EfeitosDoRegulador = {
@@ -389,7 +400,8 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
           const clean = (res.text ?? '').trim();
           if (!clean) return;
           capMetrics.partial(seq);
-          setSpeechSegments((prev) =>
+          // No quadro seguinte, junto com o que mais chegar nele (ver `falasNoQuadro`).
+          falasNoQuadro((prev) =>
             prev.map((s) => (s.id === uttId && s.isPartial ? { ...s, originalText: clean } : s)),
           );
           if (lastPartialTextRef.current.get(seq) !== clean) {
@@ -569,11 +581,12 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
         gateway.stt.transcribePcm(pcm, sr, {
           languageHint: hint,
           prompt,
-          // STREAMING: mostra os tokens do decode final crescendo no balão em tempo real.
+          // STREAMING: mostra os tokens do decode final crescendo no balão em tempo real — um
+          // setState por quadro, não um por token (ver `falasNoQuadro`); o final vem por `agora`.
           onUpdate: (streamed) => {
             const partial = (streamed ?? '').trim();
             if (!partial || !seqToSegmentRef.current.has(seq)) return;
-            setSpeechSegments((prev) =>
+            falasNoQuadro((prev) =>
               prev.map((s) => (s.id === uttId && s.isPartial ? { ...s, originalText: partial } : s)),
             );
           },
@@ -1124,13 +1137,13 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
         }));
         const tradutorDaReserva = () =>
           gateway.mt.preload(mtDe, mtPara, (p, _l, bytes) =>
-            setModelPrep((s) => (s ? { ...s, mt: p >= 1 ? 1 : p, mtBytes: bytes ?? s.mtBytes } : s)),
+            prepNoQuadro((s) => (s ? { ...s, mt: p >= 1 ? 1 : p, mtBytes: bytes ?? s.mtBytes } : s)),
           );
         if (!umDeCadaVez) tradutorDaReserva();
         gateway.stt
           .preloadModel(
             (p, _l, bytes) =>
-              setModelPrep((s) => (s ? { ...s, whisper: p >= 1 ? 1 : p, whisperBytes: bytes ?? s.whisperBytes } : s)),
+              prepNoQuadro((s) => (s ? { ...s, whisper: p >= 1 ? 1 : p, whisperBytes: bytes ?? s.whisperBytes } : s)),
             { aoDegradar: avisarDegradacao },
           )
           .finally(() => {
@@ -1173,7 +1186,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       // Tradutor local (best-effort; direção "ouço → meu idioma"). Emite barra própria.
       const iniciarTradutor = () =>
         gateway.mt.preload(mtDe, mtPara, (p, _l, bytes) => {
-          setModelPrep((s) => (s ? { ...s, mt: p >= 1 ? 1 : p, mtBytes: bytes ?? s.mtBytes } : s));
+          prepNoQuadro((s) => (s ? { ...s, mt: p >= 1 ? 1 : p, mtBytes: bytes ?? s.mtBytes } : s));
           if (p >= 1) {
             /* O tradutor local (113 MB) fica pronto DEPOIS do Whisper. Tudo que foi falado nesse
                intervalo já tinha degradado para "(texto original)" e ficava assim para sempre,
@@ -1187,7 +1200,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       // Whisper (obrigatório para transcrever o áudio do sistema/aba).
       await gateway.stt.preloadModel(
         (p, _l, bytes) =>
-          setModelPrep((s) => (s ? { ...s, whisper: p >= 1 ? 1 : p, whisperBytes: bytes ?? s.whisperBytes } : s)),
+          prepNoQuadro((s) => (s ? { ...s, whisper: p >= 1 ? 1 : p, whisperBytes: bytes ?? s.whisperBytes } : s)),
         { aoDegradar: avisarDegradacao },
       );
       /* Pouca memória: o tradutor logo DEPOIS do Whisper pronto — não depois da primeira legenda
@@ -1227,7 +1240,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     void gateway.mt
       .preload(de, para, (p, _l, bytes) => {
         const pronto = p >= 1;
-        setModelPrep((s) => {
+        prepNoQuadro((s) => {
           const base = s ?? { whisper: null, mt: 0, fromCache: false, error: null, done: false };
           return { ...base, mt: pronto ? 1 : p, mtBytes: bytes ?? base.mtBytes, done: base.whisper === null ? pronto : base.done };
         });

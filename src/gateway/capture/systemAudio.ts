@@ -283,6 +283,14 @@ export interface SystemAudioCallbacks {
    * transcrever incrementalmente e exibir "em tempo real" em vez de esperar a fala fechar.
    */
   onPartialAudio?: (pcm: Float32Array, sampleRate: number, seq: number) => void;
+  /**
+   * O dono do pipeline QUER um parcial agora? Perguntado ANTES de montar o buffer-até-agora: com o
+   * modo desempenho, o regulador cortando parciais ou o local só de reserva, a resposta é não, e o
+   * tique nem copia o áudio. Sem o callback, quer sempre (o comportamento de antes).
+   */
+  querParcial?: () => boolean;
+  /** Espaçamento entre parciais (ms). Sem o callback, `PARTIAL_INTERVAL_MS`; o aparelho leve pede mais. */
+  intervaloDosParciais?: () => number;
   onMisfire?: (seq: number) => void;
   onError?: (err: Error) => void;
   onStatus?: (msg: string) => void;
@@ -304,6 +312,7 @@ const PRE_FALA_MS = 300;
 export const ESPECULATIVO_MS = 450;
 
 // Cadência dos parciais: reprocessa o buffer-até-agora a cada ~1.1s enquanto a fala continua.
+// É o padrão: o pipeline pode pedir outro (`intervaloDosParciais`, 2,2 s no aparelho leve).
 const PARTIAL_INTERVAL_MS = 1100;
 // Com que frequência o relógio dos parciais olha o buffer (o 1º parcial não espera o intervalo).
 const PARTIAL_TICK_MS = 200;
@@ -603,7 +612,13 @@ async function startCaptureFromStream(
     if (especulacao?.seq === currentSeq) return;
     if (accumSamples - lastPartialSamples < PARTIAL_MIN_NEW_SAMPLES) return;
     const primeiro = lastPartialSamples === 0;
-    if (!primeiro && performance.now() - ultimoParcialTs < PARTIAL_INTERVAL_MS) return;
+    const intervalo = cb.intervaloDosParciais?.() ?? PARTIAL_INTERVAL_MS;
+    if (!primeiro && performance.now() - ultimoParcialTs < intervalo) return;
+    /* WORKERS QUE DESCANSAM ("Grátis sem travar", A5): o pipeline ia descartar este parcial (modo
+       desempenho, regulador, reserva de nuvem) — então nem se monta. O `concatFrames` abaixo copia a
+       fala inteira até aqui, a cada parcial. Nada é marcado: quando o pipeline voltar a querer, o
+       próximo tique já entrega. */
+    if (cb.querParcial && !cb.querParcial()) return;
     lastPartialSamples = accumSamples;
     ultimoParcialTs = performance.now();
     const soFar = concatFrames();

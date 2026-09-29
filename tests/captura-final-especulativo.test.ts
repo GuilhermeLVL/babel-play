@@ -159,3 +159,58 @@ describe('parciais mais cedo', () => {
     }
   })
 })
+
+/**
+ * WORKERS QUE DESCANSAM ("Grátis sem travar", A5). A captura pergunta ao pipeline ANTES de montar o
+ * parcial: com o modo desempenho, o regulador cortando parciais ou a reserva de nuvem, a resposta é
+ * não, e o tique nem copia o buffer-até-agora (que numa fala longa são megabytes a cada parcial). E o
+ * espaçamento entre parciais passa a ser do pipeline: 2,2 s no aparelho leve.
+ */
+describe('parciais sob demanda do pipeline', () => {
+  it('`querParcial` falso: nenhum parcial (nem a cópia); volta assim que o pipeline quer', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'setTimeout', 'clearTimeout', 'performance'] })
+    try {
+      let quer = false
+      const querParcial = vi.fn(() => quer)
+      const parciais: number[] = []
+      const cap = await startMicCapture(undefined, {
+        onUtterance: vi.fn(),
+        onPartialAudio: (pcm: Float32Array) => parciais.push(pcm.length),
+        querParcial,
+      } as never)
+      await alimentar([...silencio(3), ...fala(8)])
+      await vi.advanceTimersByTimeAsync(1_000)
+      expect(parciais).toHaveLength(0)
+      expect(querParcial).toHaveBeenCalled() // perguntou, ouviu não, e não montou o parcial
+      quer = true
+      await vi.advanceTimersByTimeAsync(200)
+      expect(parciais).toHaveLength(1)
+      await cap.stop()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('`intervaloDosParciais` 2200 (aparelho leve): o 2º parcial espera 2,2 s, não 1,1 s', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'setTimeout', 'clearTimeout', 'performance'] })
+    try {
+      const parciais: number[] = []
+      const cap = await startMicCapture(undefined, {
+        onUtterance: vi.fn(),
+        onPartialAudio: (pcm: Float32Array) => parciais.push(pcm.length),
+        intervaloDosParciais: () => 2_200,
+      } as never)
+      await alimentar([...silencio(3), ...fala(8)])
+      await vi.advanceTimersByTimeAsync(200)
+      expect(parciais).toHaveLength(1) // o 1º continua saindo cedo
+      await alimentar(fala(20))
+      await vi.advanceTimersByTimeAsync(1_200)
+      expect(parciais).toHaveLength(1) // com 1,1 s já teria saído o 2º
+      await vi.advanceTimersByTimeAsync(1_000) // 2,2 s desde o 1º
+      expect(parciais).toHaveLength(2)
+      await cap.stop()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+})

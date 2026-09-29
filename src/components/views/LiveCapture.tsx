@@ -832,18 +832,32 @@ export default function LiveCapture({
       setShowJumpFocus(false);
     }
   };
+  /* SEGUIR O FIM SEM FORÇAR LAYOUT A CADA MUDANÇA ("Grátis sem travar", A2). Ler `scrollHeight` força
+     um layout síncrono, e este efeito rodava a cada nova versão de `speechSegments` — cada parcial,
+     cada palavra, cada marcação — mesmo quando a conversa não crescia. Agora:
+       · só quando ela CRESCE: muda o número de falas ou o tamanho do texto das duas últimas (a que
+         está sendo falada e a anterior, cuja tradução costuma chegar depois de a seguinte começar);
+       · a leitura vai para um rAF, junto do layout que o quadro já faria, e se junta à do quadro;
+       · só enquanto a pessoa está no fim. Rolada para cima, basta mostrar "Ir para a fala atual". */
+  const tamanhoDaFala = (s: SpeechSegment | undefined) =>
+    s ? `${s.originalText.length}/${s.translatedText?.length ?? 0}` : '';
+  const crescimentoDaConversa = [
+    speechSegments.length,
+    tamanhoDaFala(speechSegments[speechSegments.length - 2]),
+    tamanhoDaFala(speechSegments[speechSegments.length - 1]),
+  ].join(':');
   useEffect(() => {
-    const t = transcriptScrollRef.current;
-    if (t) {
-      if (transcriptPinnedRef.current) t.scrollTop = t.scrollHeight;
-      else setShowJumpTranscript(true);
-    }
-    const f = focusScrollRef.current;
-    if (f) {
-      if (focusPinnedRef.current) f.scrollTop = f.scrollHeight;
-      else setShowJumpFocus(true);
-    }
-  }, [speechSegments, isRecording]);
+    if (transcriptScrollRef.current && !transcriptPinnedRef.current) setShowJumpTranscript(true);
+    if (focusScrollRef.current && !focusPinnedRef.current) setShowJumpFocus(true);
+    if (!transcriptPinnedRef.current && !focusPinnedRef.current) return;
+    const quadro = requestAnimationFrame(() => {
+      const t = transcriptScrollRef.current;
+      if (t && transcriptPinnedRef.current) t.scrollTop = t.scrollHeight;
+      const f = focusScrollRef.current;
+      if (f && focusPinnedRef.current) f.scrollTop = f.scrollHeight;
+    });
+    return () => cancelAnimationFrame(quadro);
+  }, [crescimentoDaConversa, isRecording]);
 
   // Manual select speaker helper
   const handleSelectActiveSpeaker = (id: string) => {

@@ -25,7 +25,8 @@ que frequência, como mudar textos e gatilhos sem deploy, e como medir a convers
 - **"Não mostrar novamente" é para sempre**, por gatilho, e está visível em todo componente.
 - **Flag desligada = só o que é informação.** Com `oferta_planos` desligada, só aparecem os avisos
   funcionais (a cota acabou, a cota está perto do fim), com textos embutidos. Toda oferta
-  promocional depende da flag ligada.
+  promocional depende da flag ligada. **A flag nasce LIGADA** desde a migração 0039 (decisão do dono,
+  29/09), com um gatilho para cada um dos seis momentos; o operador desliga pelo admin ou pela CLI.
 - **Design do app, não um anúncio à parte.** O banner e o aviso de cota têm o desenho do
   `AvisoDeConta` do Hub; o modal é a casca dos diálogos de "Sua assinatura" (`.dlg-cab`,
   `.dlg-corpo`, `.dlg-pe`); os ícones são lucide; nenhum emoji.

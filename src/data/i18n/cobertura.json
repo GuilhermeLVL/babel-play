@@ -1,22 +1,41 @@
 {
+<<<<<<< HEAD
   "total": 1121,
   "piso": 0.9,
   "idiomas": {
     "pt": {
       "chaves": 1121,
+=======
+  "total": 1117,
+  "piso": 0.9,
+  "idiomas": {
+    "pt": {
+      "chaves": 1117,
+>>>>>>> fix/funil-ofertas
       "cobertura": 1
     },
     "ar": {
       "chaves": 182,
+<<<<<<< HEAD
       "cobertura": 0.1624
     },
     "en": {
       "chaves": 1121,
+=======
+      "cobertura": 0.1629
+    },
+    "en": {
+      "chaves": 1117,
+>>>>>>> fix/funil-ofertas
       "cobertura": 1
     },
     "es": {
       "chaves": 181,
+<<<<<<< HEAD
       "cobertura": 0.1615
+=======
+      "cobertura": 0.162
+>>>>>>> fix/funil-ofertas
     }
   }
 }

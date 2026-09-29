@@ -42,6 +42,7 @@ const Onboarding = lazyComRecarga(() => import('./components/Onboarding'));
 // Fase 4: o aceite do responsável só existe para quem abriu o link do convite.
 const AceiteDoResponsavel = lazyComRecarga(() => import('./components/conta/AceiteDoResponsavel'));
 import BuscaGlobal from './components/BuscaGlobal';
+import AvisoDePagamentoAtrasado from './components/conta/AvisoDePagamentoAtrasado';
 import AvisoDoResponsavel from './components/conta/AvisoDoResponsavel';
 import CartaoDeConvite from './components/conta/CartaoDeConvite';
 import { aceitarAnonimo, exigeConta, porta } from './components/conta/exigeConta';
@@ -501,6 +502,8 @@ export default function App() {
           <IndicadorDeSalvamento naCaptura={activeView === 'capture'} aoVerCaptura={() => navigateTo('capture')} />
           <LayoutEditorToolbar />
           {protecao?.restrita && activeView === 'hub' && <AvisoDoResponsavel estado={protecao} />}
+          {/* A assinatura com pagamento atrasado (past_due), em qualquer tela menos Planos, onde já está. */}
+          {activeView !== 'planos' && <AvisoDePagamentoAtrasado />}
           <Suspense
             fallback={<div className="flex-1 flex items-center justify-center text-ink-muted text-sm">Carregando…</div>}
           >

@@ -258,8 +258,26 @@ export async function substituirFalasEmLotes(
   return recording
 }
 
-/** Sobe o áudio gravado da sessão (Blob do MediaRecorder). Best-effort — nunca quebra o save. */
-export async function uploadSessionAudio(id: string, blob: Blob): Promise<string | null> {
+/** O espaço de armazenamento do plano recusou a escrita? (507 `storage_quota_exceeded`.) */
+export function ehArmazenamentoCheio(e: unknown): boolean {
+  return e instanceof ErroDeSessao && e.codigo === 'storage_quota_exceeded'
+}
+
+/** A recusa do upload do áudio, para quem precisa dizer o porquê (`status` 0 = sem resposta). */
+export interface RecusaDoAudio {
+  status: number
+  codigo?: string
+}
+
+/**
+ * Sobe o áudio gravado da sessão (Blob do MediaRecorder). Best-effort — nunca quebra o save.
+ * `aoRecusar` ouve a recusa (o 507 do espaço cheio não pode sumir em silêncio: funil de 29/09).
+ */
+export async function uploadSessionAudio(
+  id: string,
+  blob: Blob,
+  aoRecusar?: (r: RecusaDoAudio) => void,
+): Promise<string | null> {
   try {
     const res = await apiFetch(`/api/sessions/${id}/audio`, {
       timeoutMs: IMPORT_TIMEOUT_MS, // upload de áudio grande (até 120MB)
@@ -267,10 +285,18 @@ export async function uploadSessionAudio(id: string, blob: Blob): Promise<string
       headers: { 'Content-Type': blob.type || 'audio/webm' },
       body: blob,
     })
-    if (!res.ok) return null
+    if (!res.ok) {
+      if (aoRecusar) {
+        const corpo = (await res.json().catch(() => null)) as { code?: unknown; codigo?: unknown } | null
+        const cod = typeof corpo?.code === 'string' ? corpo.code : typeof corpo?.codigo === 'string' ? corpo.codigo : undefined
+        aoRecusar({ status: res.status, ...(cod ? { codigo: cod } : {}) })
+      }
+      return null
+    }
     const data = (await res.json()) as { audioUrl?: string }
     return data.audioUrl ?? `/api/sessions/${id}/audio`
   } catch {
+    aoRecusar?.({ status: 0 })
     return null
   }
 }

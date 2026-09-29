@@ -10,6 +10,12 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+const rotas = vi.hoisted(() => ({ navegarPara: vi.fn() }))
+vi.mock('../src/lib/rotas', async (original) => {
+  const real = await original<typeof import('../src/lib/rotas')>()
+  return { ...real, navegarPara: rotas.navegarPara }
+})
+
 import CapturaNaoSalva from '../src/components/views/captura/CapturaNaoSalva'
 import type { Recording } from '../src/types'
 
@@ -19,7 +25,11 @@ const gravacoes: Recording[] = [
 
 const base = { gravacoes, teto: 20, aoApagarGravacao: vi.fn(async () => true) }
 
-afterEach(() => cleanup())
+afterEach(() => {
+  cleanup()
+  vi.unstubAllEnvs()
+  rotas.navegarPara.mockClear()
+})
 
 describe('antes de gravar, no teto', () => {
   it('edição estática: o limite de 20, apagar uma antiga, e nenhum "Criar conta"', async () => {
@@ -90,5 +100,61 @@ describe('captura recusada', () => {
     expect(screen.getByText(/guarda até 20 gravações/)).toBeTruthy()
     expect(screen.getByRole('button', { name: /Apagar uma gravação antiga/ })).toBeTruthy()
     expect(screen.getByRole('button', { name: /Baixar esta sessão/ })).toBeTruthy()
+  })
+})
+
+describe('espaço de armazenamento cheio (507 storage_quota_exceeded)', () => {
+  const rascunho = {
+    origemLocalId: 'c2', resumeId: null, titulo: 'Aula cheia', capa: '', durationMs: 1000, sourceLang: 'en', targetLang: 'pt',
+    parConfigurado: { sourceLang: 'pt', targetLang: 'en' }, utterances: [{ idx: 0, sourceText: 'oi' }], criadoEm: 1,
+  }
+
+  it('diz que o espaço acabou e "Ver planos" leva a Planos', () => {
+    render(
+      <CapturaNaoSalva
+        {...base}
+        modo="naoSalva"
+        estatica={false}
+        rascunho={rascunho}
+        falha={{ mensagem: 'armazenamento cheio: 500 MB de 500 MB usados.', status: 507, codigo: 'storage_quota_exceeded', teto: false, cheio: true }}
+        aoTentarDeNovo={vi.fn()}
+        aoBaixar={vi.fn()}
+        aoDescartar={vi.fn()}
+      />,
+    )
+    expect(screen.getByText(/seu espaço de armazenamento está cheio/i)).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: /Ver planos/ }))
+    expect(rotas.navegarPara).toHaveBeenCalledWith({ view: 'planos' })
+  })
+
+  it('outra recusa não mostra "Ver planos"', () => {
+    render(
+      <CapturaNaoSalva {...base} modo="naoSalva" estatica={false} rascunho={rascunho} falha={{ mensagem: 'x', status: 503, teto: false }} />,
+    )
+    expect(screen.queryByRole('button', { name: /Ver planos/ })).toBeNull()
+  })
+})
+
+describe('edição estática no teto: a saída para a versão completa (VITE_URL_APP_COMPLETO)', () => {
+  it('com a URL: link primário para criar a conta na versão completa, em nova aba e sem opener', () => {
+    vi.stubEnv('VITE_EDICAO_ESTATICA', '1')
+    vi.stubEnv('VITE_URL_APP_COMPLETO', 'https://app.exemplo.com.br')
+    render(<CapturaNaoSalva {...base} modo="teto" estatica />)
+    const link = screen.getByRole('link', { name: /Criar conta na versão completa/ })
+    expect(link.getAttribute('href')).toBe('https://app.exemplo.com.br')
+    expect(link.getAttribute('rel')).toContain('noopener')
+    expect(link.getAttribute('target')).toBe('_blank')
+  })
+
+  it('sem a URL: nada novo (o comportamento de antes)', () => {
+    vi.stubEnv('VITE_EDICAO_ESTATICA', '1')
+    render(<CapturaNaoSalva {...base} modo="teto" estatica />)
+    expect(screen.queryByRole('link', { name: /versão completa/ })).toBeNull()
+  })
+
+  it('na edição completa a URL não muda nada (lá o botão é o login)', () => {
+    vi.stubEnv('VITE_URL_APP_COMPLETO', 'https://app.exemplo.com.br')
+    render(<CapturaNaoSalva {...base} modo="teto" estatica={false} aoCriarConta={vi.fn()} />)
+    expect(screen.queryByRole('link', { name: /versão completa/ })).toBeNull()
   })
 })

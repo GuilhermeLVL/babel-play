@@ -646,6 +646,11 @@ export default function LiveCapture({
      salva em `ui.perfMode` (o interruptor abaixo) vence assim que os ajustes carregam. */
   const [perfMode, setPerfMode] = useState(() => perfilDoAparelho.leve);
   const perfModeRef = useRef(perfMode);
+  /* O modo leve AUTOMÁTICO não é escolha da pessoa: só vira preferência salva quando ela mexe no
+     interruptor (ou quando já havia uma salva). Sem isto, o primeiro ajuste salvo por qualquer outro
+     motivo gravava o valor automático em `ui.perfMode`, e ele passava a valer como manual para
+     sempre — até num aparelho que depois se mostrasse forte. */
+  const perfModeEscolhidoRef = useRef(false);
   useEffect(() => {
     perfModeRef.current = perfMode;
   }, [perfMode]);
@@ -972,7 +977,10 @@ export default function LiveCapture({
       if (ui.loopbackDeviceId) setLoopbackDeviceId(ui.loopbackDeviceId);
       if (typeof ui.ttsSpeed === 'number') setTtsSpeed(ui.ttsSpeed);
       if (ui.micEngine === 'browser' || ui.micEngine === 'whisper') setMicEngine(ui.micEngine);
-      if (typeof ui.perfMode === 'boolean') setPerfMode(ui.perfMode);
+      if (typeof ui.perfMode === 'boolean') {
+        perfModeEscolhidoRef.current = true;
+        setPerfMode(ui.perfMode);
+      }
       if (!langTouchedRef.current && typeof ui.autoDetectLang === 'boolean') setAutoDetectLang(ui.autoDetectLang);
       if (!langTouchedRef.current && typeof ui.autoDetectMyLang === 'boolean') setAutoDetectMyLang(ui.autoDetectMyLang);
       if (typeof ui.speakerAutoId === 'boolean') setSpeakerAutoId(ui.speakerAutoId);
@@ -1027,7 +1035,7 @@ export default function LiveCapture({
         micEngine,
         systemSource,
         loopbackDeviceId,
-        perfMode,
+        ...(perfModeEscolhidoRef.current ? { perfMode } : {}),
         autoDetectLang,
         autoDetectMyLang,
         captureScenario,
@@ -3159,7 +3167,14 @@ export default function LiveCapture({
                 rotulo="Modo desempenho (jogos)"
                 desc="Legenda só no fim de cada frase, sem o refino ao vivo: usa bem menos processador enquanto você joga."
               >
-                <Interruptor ligado={perfMode} aoTrocar={() => setPerfMode((v) => !v)} rotulo="Modo desempenho" />
+                <Interruptor
+                  ligado={perfMode}
+                  aoTrocar={() => {
+                    perfModeEscolhidoRef.current = true;
+                    setPerfMode((v) => !v);
+                  }}
+                  rotulo="Modo desempenho"
+                />
               </CampoLinha>
               {/* TRADUÇÃO SOB DEMANDA (M0): o padrão é traduzir tudo, como sempre. */}
               <CampoLinha

@@ -169,7 +169,7 @@ describe('parciais e o fim da fala', () => {
 
 describe('regulador de desempenho no pipeline', () => {
   it('cada final LOCAL alimenta o regulador (RTF, fila, latência); parciais cortados não decodificam', async () => {
-    const regulador = { parciaisCortados: false, parciaisDoMicPausados: false, aoFinal: vi.fn(), reiniciar: vi.fn() }
+    const regulador = { parciaisCortados: false, parciaisDoMicPausados: false, aoFinal: vi.fn(), aoParcial: vi.fn(), reiniciar: vi.fn() }
     const { p, transcribePartial } = montar({ regulador })
     p.micHandlers.onSpeechStart(1)
     p.micHandlers.onUtterance(new Float32Array(16000), 16000, 1)
@@ -185,7 +185,7 @@ describe('regulador de desempenho no pipeline', () => {
   })
 
   it('aba escondida: os parciais do MIC param, os do sistema seguem', () => {
-    const regulador = { parciaisCortados: false, parciaisDoMicPausados: true, aoFinal: vi.fn(), reiniciar: vi.fn() }
+    const regulador = { parciaisCortados: false, parciaisDoMicPausados: true, aoFinal: vi.fn(), aoParcial: vi.fn(), reiniciar: vi.fn() }
     const { p, transcribePartial } = montar({ regulador })
     p.micHandlers.onSpeechStart(1)
     p.micHandlers.onPartialAudio(new Float32Array(1600), 16000, 1)
@@ -196,7 +196,7 @@ describe('regulador de desempenho no pipeline', () => {
   })
 
   it('final da nuvem não alimenta o regulador (mede a rede, não o aparelho)', async () => {
-    const regulador = { parciaisCortados: false, parciaisDoMicPausados: false, aoFinal: vi.fn(), reiniciar: vi.fn() }
+    const regulador = { parciaisCortados: false, parciaisDoMicPausados: false, aoFinal: vi.fn(), aoParcial: vi.fn(), reiniciar: vi.fn() }
     const { p, transcribePcm } = montar({ regulador })
     transcribePcm.mockResolvedValueOnce({ text: 'Olá', engine: 'groq-whisper' })
     p.micHandlers.onSpeechStart(1)
@@ -368,6 +368,7 @@ describe('workers que descansam', () => {
     parciaisCortados: false,
     parciaisDoMicPausados: false,
     aoFinal: vi.fn(),
+    aoParcial: vi.fn(),
     reiniciar: vi.fn(),
   })
 

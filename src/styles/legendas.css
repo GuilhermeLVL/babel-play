@@ -102,3 +102,340 @@ html[data-modo-leve='true'] .leg-estilo :is(.leg-fala, .fala, .leg-o, .orig) {
     animation: none;
   }
 }
+
+/*
+ * ── A JANELINHA COM RITMO (ei/leg) ──
+ * As peças novas das Legendas flutuantes: o título que recolhe, os seletores com ícone da barra,
+ * a ajuda dos atalhos, a fala em foco (as anteriores esmaecidas), a palavra tocável, as ações da
+ * fala, o "N novas", o cartão da palavra e o aviso. Mesma linguagem da janela (C6, prototipo.css):
+ * fundo escuro, alvos de 32 px, branco e amarelo; nada aqui mexe na cor que a pessoa escolheu.
+ */
+/* A janela nunca passa da tela: com o Personalizar aberto (ou 5 falas longas no celular) quem rola
+   é o painel ou o corpo, e a barra fica sempre à mão. Na PiP a altura é a da janela (inline). */
+.leg-flut {
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 120px);
+}
+.leg-flut > .leg-barra {
+  flex: none;
+}
+.leg-flut > .leg-corpo {
+  flex: 0 1 auto;
+  min-height: 60px;
+  overflow-y: auto;
+}
+.leg-flut > .leg-painel {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+.leg-barra .leg-tit {
+  width: auto;
+  padding: 0 8px 0 4px;
+  gap: 6px;
+  display: inline-flex;
+  align-items: center;
+}
+.leg-escolha {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding-left: 4px;
+}
+.leg-escolha svg {
+  width: 14px;
+  height: 14px;
+  opacity: 0.75;
+  flex: none;
+}
+.leg-barra .leg-escolha select {
+  max-width: 96px;
+}
+.leg-ajuda {
+  position: relative;
+  display: inline-grid;
+}
+.leg-atalhos {
+  position: absolute;
+  top: 36px;
+  right: 0;
+  z-index: 6;
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: #1f1b17;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.leg-atalhos kbd {
+  display: inline-block;
+  min-width: 22px;
+  margin-right: 6px;
+  padding: 1px 6px;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  font: 600 11px var(--font-mono);
+  text-align: center;
+}
+/* Sem mouse não há teclado por perto: a ajuda dos atalhos só ocuparia a barra. */
+@media (hover: none) {
+  .leg-ajuda {
+    display: none;
+  }
+}
+html[data-dispositivo^='celular'] .leg-ajuda {
+  display: none;
+}
+/* Janela estreita (PiP pequena, celular): o título fica só no ícone. */
+@container (max-width: 470px) {
+  .leg-barra .leg-tit span {
+    display: none;
+  }
+}
+/* Celular: os dois seletores descem para uma segunda linha, meio a meio, em vez de cortar o texto. */
+@container (max-width: 400px) {
+  .leg-barra {
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+  .leg-barra .leg-escolha {
+    order: 2;
+    flex: 1 1 40%;
+  }
+  .leg-barra .leg-escolha select {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.leg-flut button:focus-visible,
+.leg-flut select:focus-visible,
+.leg-flut input:focus-visible {
+  outline: 2px solid #ffb597;
+  outline-offset: 1px;
+}
+
+.leg-corpo {
+  position: relative;
+  overflow-wrap: anywhere;
+}
+.leg-fala {
+  position: relative;
+  transition: opacity 0.2s var(--ease, ease-out);
+}
+.leg-fala.anterior {
+  opacity: 0.6;
+}
+.leg-fala.anterior:hover,
+.leg-fala.anterior:focus-within {
+  opacity: 0.9;
+}
+.leg-o [data-palavra] {
+  cursor: pointer;
+  border-radius: 4px;
+}
+.leg-o [data-palavra]:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+.leg-revelar {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--leg-trad, #ffea00);
+  font: inherit;
+  font-size: 0.9em;
+}
+.leg-revelar svg {
+  width: 1em;
+  height: 1em;
+}
+
+/* As ações da fala: por cima, no canto, ao passar o mouse ou focar. */
+.leg-acoes {
+  position: absolute;
+  top: -8px;
+  right: -10px;
+  z-index: 2;
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 10px;
+  background: rgba(31, 27, 23, 0.97);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+  font-size: 12px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s var(--ease, ease-out);
+}
+.leg-fala:hover .leg-acoes,
+.leg-fala:focus-within .leg-acoes {
+  opacity: 1;
+  pointer-events: auto;
+}
+.leg-acoes button,
+.leg-cartao-topo button {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: #fff;
+  display: grid;
+  place-items: center;
+}
+.leg-acoes button:hover,
+.leg-acoes button[aria-pressed='true'],
+.leg-cartao-topo button:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+.leg-acoes svg,
+.leg-cartao svg {
+  width: 15px;
+  height: 15px;
+}
+/* No toque não há "passar o mouse": na fala em foco as ações ficam à vista, embaixo dela. */
+@media (hover: none) {
+  .leg-fala:not(.atual) .leg-acoes {
+    display: none;
+  }
+  .leg-fala.atual .leg-acoes {
+    position: static;
+    justify-self: start;
+    margin: 2px 0 0 -6px;
+    background: none;
+    box-shadow: none;
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+.leg-novas {
+  justify-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 32px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: #fff;
+  color: #111;
+  font: 700 12px var(--font-display);
+}
+.leg-novas svg {
+  width: 14px;
+  height: 14px;
+}
+
+.leg-cartao {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 5;
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: #1f1b17;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.55);
+  font-size: 14px;
+}
+/* A palavra veio de uma fala de baixo: o cartão abre em cima, para a frase continuar à vista. */
+.leg-cartao.no-alto {
+  top: 48px;
+  bottom: auto;
+}
+.leg-cartao-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.leg-cartao-topo b {
+  font: 700 1.1em var(--font-display);
+}
+.leg-cartao-glosa {
+  margin: 0;
+  color: var(--leg-trad, #ffea00);
+}
+.leg-cartao-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.leg-acao-texto {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: none;
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.leg-acao-texto:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+.leg-acao-texto:disabled {
+  opacity: 0.6;
+}
+.leg-cartao-status {
+  margin: 0;
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.leg-aviso {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  z-index: 6;
+  margin: 0;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #fff;
+  color: #111;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  transform: translateX(-50%);
+}
+.leg-anuncio {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.leg-painel .leg-select {
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: #26221d;
+  color: #fff;
+  font-size: 12px;
+  padding: 0 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .leg-fala,
+  .leg-acoes {
+    transition: none;
+  }
+}

@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 /**
- * LEGENDAS FLUTUANTES NO DESENHO DO PROTÓTIPO (C6), com as falas REAIS da captura: a barra
- * (travar o clique, modo, personalizar, esconder, recolher, fechar), o corpo com as últimas falas
- * e o painel de personalização, que é guardado e sobrevive a fechar e abrir.
+ * LEGENDAS FLUTUANTES NO DESENHO DO PROTÓTIPO (C6), com as falas REAIS da captura: a barra enxuta
+ * (pausar, leitura, tradução, personalizar, fechar; o título recolhe), o corpo com as últimas falas
+ * e o painel de personalização (modo, predefinições, esconder…), guardado entre aberturas. O ritmo,
+ * o histórico, o teclado e o cartão da palavra estão em `legendasRitmo.test.tsx`.
  */
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -21,6 +22,9 @@ const FALAS: LegendaAoVivo[] = [
   { id: '3', quem: 'Você', original: 'Third line.', traducao: 'Terceira linha.', lado: 'voce' },
 ]
 
+/** O original vem em pedaços tocáveis (uma `span` por palavra): confere o texto da linha inteira. */
+const falaVisivel = (texto: string) => [...document.querySelectorAll('.leg-o')].some((e) => e.textContent === texto)
+
 beforeEach(() => localStorage.clear())
 afterEach(cleanup)
 
@@ -28,19 +32,20 @@ const montar = (extra: Partial<React.ComponentProps<typeof LegendasFlutuantes>> 
   render(<LegendasFlutuantes falas={FALAS} emJanela={false} aoFechar={vi.fn()} {...extra} />)
 
 describe('Legendas flutuantes (C6)', () => {
-  it('modo vídeo com histórico mostra as DUAS últimas falas, com a tradução', () => {
+  it('por padrão, as TRÊS últimas falas à vista, com a tradução; a atual em foco e as anteriores esmaecidas', () => {
     montar()
-    expect(screen.queryByText('First line.')).toBeNull()
-    expect(screen.getByText('Second line.')).toBeTruthy()
-    expect(screen.getByText('Third line.')).toBeTruthy()
+    expect(falaVisivel('First line.')).toBe(true)
+    expect(falaVisivel('Third line.')).toBe(true)
     expect(screen.getByText('Terceira linha.')).toBeTruthy()
+    expect(document.querySelector('.leg-fala.atual')?.textContent).toContain('Third line.')
+    expect(document.querySelectorAll('.leg-fala.anterior')).toHaveLength(2)
   })
 
   it('mesmo idioma (tradução vazia): UMA linha só, sem linha de tradução nem marcador', () => {
     const { container } = montar({
       falas: [{ id: '9', quem: 'Outros', original: 'Alguns cruzeiros mostram Berlim.', traducao: '', lado: 'eles' }],
     })
-    expect(screen.getByText('Alguns cruzeiros mostram Berlim.')).toBeTruthy()
+    expect(container.querySelector('.leg-o')?.textContent).toBe('Alguns cruzeiros mostram Berlim.')
     expect(container.querySelectorAll('.leg-t')).toHaveLength(0)
   })
 
@@ -49,21 +54,34 @@ describe('Legendas flutuantes (C6)', () => {
     expect(screen.getByText('Esperando a primeira fala')).toBeTruthy()
   })
 
-  it('modo conversa mostra quem fala e só a última', () => {
+  it('modo conversa (no Personalizar) mostra quem fala', () => {
     montar()
+    fireEvent.click(screen.getByRole('button', { name: 'Personalizar' }))
     fireEvent.change(screen.getByRole('combobox', { name: 'Modo da janela' }), { target: { value: 'conversa' } })
-    expect(screen.queryByText('Second line.')).toBeNull()
     expect(screen.getByText('Você')).toBeTruthy()
     expect(document.querySelector('.leg-fala.b')).toBeTruthy()
   })
 
-  it('esconder, recolher e fechar', () => {
+  it('a barra enxuta: pausar, leitura, tradução, personalizar e fechar — o resto no Personalizar', () => {
+    montar()
+    const barra = document.querySelector('.leg-barra') as HTMLElement
+    for (const nome of ['Pausar legendas', 'Personalizar', 'Fechar as legendas flutuantes'])
+      expect(within(barra).getByRole('button', { name: nome })).toBeTruthy()
+    expect(within(barra).getByRole('combobox', { name: 'Ritmo de leitura' })).toBeTruthy()
+    expect(within(barra).getByRole('combobox', { name: 'Tradução' })).toBeTruthy()
+    expect(within(barra).queryByRole('combobox', { name: 'Modo da janela' })).toBeNull()
+    expect(within(barra).queryByRole('button', { name: 'Esconder a legenda' })).toBeNull()
+  })
+
+  it('esconder (no Personalizar), recolher (pelo título) e fechar', () => {
     const aoFechar = vi.fn()
     montar({ aoFechar })
-    fireEvent.click(screen.getByRole('button', { name: 'Esconder a legenda' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Personalizar' }))
+    fireEvent.click(screen.getByRole('switch', { name: 'Esconder a legenda' }))
     expect(screen.getByText('Legenda escondida')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Recolher' }))
     expect(document.querySelector('.leg-corpo')).toBeNull()
+    expect(screen.getByRole('button', { name: 'Expandir' }).getAttribute('aria-expanded')).toBe('false')
     fireEvent.click(screen.getByRole('button', { name: 'Fechar as legendas flutuantes' }))
     expect(aoFechar).toHaveBeenCalledTimes(1)
   })
@@ -96,8 +114,8 @@ describe('Legendas flutuantes (C6)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Jogo' }))
     cleanup()
     montar()
-    expect((screen.getByRole('combobox', { name: 'Modo da janela' }) as HTMLSelectElement).value).toBe('jogo')
     fireEvent.click(screen.getByRole('button', { name: 'Personalizar' }))
+    expect((screen.getByRole('combobox', { name: 'Modo da janela' }) as HTMLSelectElement).value).toBe('jogo')
     fireEvent.click(screen.getByRole('button', { name: 'Meu perfil' }))
     expect((screen.getByRole('combobox', { name: 'Modo da janela' }) as HTMLSelectElement).value).toBe('video')
     expect(screen.getByRole('radio', { name: 'Sempre visível' }).getAttribute('aria-checked')).toBe('true')

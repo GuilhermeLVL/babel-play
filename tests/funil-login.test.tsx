@@ -255,3 +255,14 @@ describe('senha de 8 caracteres, como o Supabase de produção', () => {
     expect((await auth.signUpEmail('a@x.com', 'senha1234')).message).toMatch(/vazamento/)
   })
 })
+
+describe('o plano da intenção chega ao checkout', () => {
+  it('lembrarPlanoDoCheckout grava só essencial/pro, na chave que a tela de Planos lê', async () => {
+    const { lembrarPlanoDoCheckout, CHAVE_DO_PLANO_DO_CHECKOUT } = await import('../src/lib/assinatura')
+    sessionStorage.clear()
+    lembrarPlanoDoCheckout('gratis')
+    expect(sessionStorage.getItem(CHAVE_DO_PLANO_DO_CHECKOUT)).toBeNull()
+    lembrarPlanoDoCheckout('essencial')
+    expect(sessionStorage.getItem(CHAVE_DO_PLANO_DO_CHECKOUT)).toBe('essencial')
+  })
+})

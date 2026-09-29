@@ -229,3 +229,19 @@ export async function cancelarRenovacao(): Promise<{
     return { ok: false, erro: 'não consegui falar com o servidor.' };
   }
 }
+
+/**
+ * O PLANO QUE O CHECKOUT ABRE — por aba (`sessionStorage`), como a tela de Planos sempre guardou.
+ * Quem termina um login com a intenção "assinar o X" (`lib/intencaoDeLogin`) grava aqui antes de
+ * navegar: a aba da confirmação do e-mail é outra, e sem isto ela abriria o checkout no plano padrão.
+ */
+export const CHAVE_DO_PLANO_DO_CHECKOUT = 'babel.checkout.plano';
+
+export function lembrarPlanoDoCheckout(plano: string | undefined): void {
+  if (plano !== 'essencial' && plano !== 'pro') return;
+  try {
+    sessionStorage.setItem(CHAVE_DO_PLANO_DO_CHECKOUT, plano);
+  } catch {
+    /* sem armazenamento: o checkout abre no plano padrão */
+  }
+}

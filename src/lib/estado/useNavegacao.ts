@@ -1,6 +1,7 @@
 import { type Dispatch, type SetStateAction, useEffect, useRef, useState } from 'react';
 
 import type { Recording, ViewType } from '../../types';
+import { lembrarPlanoDoCheckout } from '../assinatura';
 import { clearAuthCallbackUrl, isOnAuthCallback } from '../authCallback';
 import { edicaoEstatica } from '../edicaoEstatica';
 import { aoMudarIdentidade } from '../identidade';
@@ -170,6 +171,7 @@ export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
         if (!terminouLogin) return;
         const intencao = consumirIntencao();
         if (!intencao) return;
+        lembrarPlanoDoCheckout(intencao.plano); // "assinar o Pro" abre o checkout no Pro
         // Os tokens do callback não ficam no histórico: a barra volta a `/` ANTES de a navegação
         // empurrar a rota da intenção (o "voltar" nunca devolve ao `/auth/callback#…`).
         clearAuthCallbackUrl();

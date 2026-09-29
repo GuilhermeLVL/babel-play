@@ -23,6 +23,7 @@ import { armazenamentoEmTexto, horasDeTranscricao, precoDoPlano } from '../../co
 import {
   carregarFaturas,
   carregarStatusDeBilling,
+  CHAVE_DO_PLANO_DO_CHECKOUT,
   estadoDaConta,
   type Fatura,
   faturaEmAberto,
@@ -179,7 +180,7 @@ const FAQ: [string, string][] = [
   ['O que é o self-host?', 'É o Babel Play rodando no seu próprio computador. Ali tudo fica liberado e não há cota.'],
 ];
 
-const CHAVE_DO_CHECKOUT = 'babel.checkout.plano';
+const CHAVE_DO_CHECKOUT = CHAVE_DO_PLANO_DO_CHECKOUT;
 function planoGuardado(): PlanoPago {
   try {
     return sessionStorage.getItem(CHAVE_DO_CHECKOUT) === 'essencial' ? 'essencial' : 'pro';

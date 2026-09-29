@@ -522,11 +522,13 @@ export default function LiveCapture({
 
   // As falas das LEGENDAS FLUTUANTES, derivadas das falas REAIS (sem parciais vazios). 'system' =
   // eles (áudio da aba/sistema), o resto = você (microfone).
-  // As duas últimas são procuradas DE TRÁS PARA FRENTE: filtrar a sessão inteira era O(n) por parcial.
+  // As últimas são procuradas DE TRÁS PARA FRENTE: filtrar a sessão inteira era O(n) por parcial.
+  // 24, não 2 (ei/leg): a janela tem ritmo de leitura e histórico (até 5 à vista, ← → para voltar),
+  // e é ela quem decide quais e quando aparecem.
   const legendasAoVivo: LegendaAoVivo[] = useMemo(() => {
     const nomeDe = (id: string) => speakerProfiles.find((p) => p.id === id)?.name ?? id;
     const ultimas: SpeechSegment[] = [];
-    for (let i = speechSegments.length - 1; i >= 0 && ultimas.length < 2; i--) {
+    for (let i = speechSegments.length - 1; i >= 0 && ultimas.length < 24; i--) {
       const s = speechSegments[i];
       if (s.originalText && s.originalText.trim()) ultimas.unshift(s);
     }
@@ -537,6 +539,8 @@ export default function LiveCapture({
       // O "…" é o marcador de tradução a caminho: na legenda, some até a tradução chegar.
       traducao: s.translatedText === '…' ? '' : s.translatedText,
       lado: s.source === 'system' ? ('eles' as const) : ('voce' as const),
+      lang: s.lang || undefined,
+      parcial: !!s.isPartial,
       // Deixada sem tradução pela preferência "Tradução": a legenda oferece "Mostrar tradução".
       sobDemanda: !!s.traducaoSobDemanda && !s.isPartial,
     }));
@@ -1860,7 +1864,7 @@ export default function LiveCapture({
 
   /* O VOCABULÁRIO DA CAPTURA (examinar, fichar no deck, mandar praticar) mora em
      `lib/captura/palavraDaFala.ts`. Fábrica por render, como as closures que substituiu. */
-  const { examineWord, handleAddWordToDeck, handlePracticeWord } = criarPalavraDaFala({
+  const { examineWord, handleAddWordToDeck, handlePracticeWord, glosaDaPalavra } = criarPalavraDaFala({
     gateway,
     langConfigRef,
     targetLangRef,
@@ -1885,6 +1889,16 @@ export default function LiveCapture({
   });
   const ouvirNaConversa = useFuncaoEstavel(speakWord);
   const revelarNaConversa = useFuncaoEstavel(revelarTraducao);
+  /* AS LEGENDAS FLUTUANTES (ei/leg): tocar uma palavra consulta a glosa e ficha; ouvir usa a voz do
+     navegador, com "devagar" a 70% do ritmo escolhido. Identidade fixa, como os da conversa. */
+  const consultarNaLegenda = useFuncaoEstavel(glosaDaPalavra);
+  const ouvirNaLegenda = useFuncaoEstavel((texto: string, lang: string | undefined, lenta: boolean) => {
+    ttsSpeak(texto, { lang: lang || targetLangRef.current, rate: lenta ? ttsSpeed * 0.7 : ttsSpeed });
+  });
+  const salvarNaLegenda = useFuncaoEstavel(
+    (item: { palavra: string; frase?: string; lang?: string; traducao?: string }) =>
+      handleAddWordToDeck({ word: item.palavra, sentence: item.frase, lang: item.lang, translation: item.traducao }),
+  );
 
   // Speaker Renaming
   const handleStartRenameSpeaker = (id: string, currentName: string) => {
@@ -3697,6 +3711,9 @@ export default function LiveCapture({
             emJanela
             aprendidas={aprendidas}
             aoRevelarTraducao={revelarNaConversa}
+            aoConsultarPalavra={consultarNaLegenda}
+            aoOuvir={ouvirNaLegenda}
+            aoSalvarPalavra={salvarNaLegenda}
             aoFechar={() => setShowOverlay(false)}
           />
         </DocumentPiP>
@@ -3707,6 +3724,9 @@ export default function LiveCapture({
             emJanela={false}
             aprendidas={aprendidas}
             aoRevelarTraducao={revelarNaConversa}
+            aoConsultarPalavra={consultarNaLegenda}
+            aoOuvir={ouvirNaLegenda}
+            aoSalvarPalavra={salvarNaLegenda}
             aoFechar={() => setShowOverlay(false)}
           />
         )

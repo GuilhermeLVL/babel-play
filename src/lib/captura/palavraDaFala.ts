@@ -92,9 +92,10 @@ export function criarPalavraDaFala(deps: DepsDaPalavraDaFala) {
    * AGORA: o idioma sai da LINHA de onde a palavra veio (`resolveWord`) e os rótulos do cartão saem
    * de `cardLangs` — o mesmo produtor que as outras telas usam.
    */
-  const handleAddWordToDeck = async (wordObj: any) => {
+  const handleAddWordToDeck = async (wordObj: any): Promise<string> => {
     const word: string = wordObj.word;
     setAddedWords(prev => prev.includes(word) ? prev : [...prev, word]);
+    let msg: string;
     try {
       const sentence: string = wordObj.sentence || wordObj.example || '';
       const origin: WordOrigin = {
@@ -125,15 +126,29 @@ export function criarPalavraDaFala(deps: DepsDaPalavraDaFala) {
       /* Confirmar antes de saber é o defeito mais fácil de cometer aqui: a régua pode recusar a
          palavra (repetida, sem tradução) e a tela dizia "adicionado" do mesmo jeito. A pessoa
          então procura no baralho o que nunca entrou e conclui que o app perde coisa. */
-      setFeedbackMsg(
-        r.cards.length
-          ? `"${word}" adicionado ao seu deck (FSRS)!`
-          : `"${word}" não entrou: ${motivoLegivel(r.skipped[0]?.motivo ?? '')}.`,
-      );
+      msg = r.cards.length
+        ? `"${word}" adicionado ao seu deck (FSRS)!`
+        : `"${word}" não entrou: ${motivoLegivel(r.skipped[0]?.motivo ?? '')}.`;
     } catch {
-      setFeedbackMsg(`Falha ao adicionar "${word}" ao deck.`);
+      msg = `Falha ao adicionar "${word}" ao deck.`;
     }
+    setFeedbackMsg(msg);
     setTimeout(() => setFeedbackMsg(''), 3000);
+    /* Devolvida também a quem pediu: a janelinha das legendas (PiP) não vê o aviso desta tela. */
+    return msg;
+  };
+
+  /**
+   * A GLOSA DA PALAVRA TOCADA NAS LEGENDAS FLUTUANTES (ei/leg): o mesmo `buildVocabWord` do
+   * Analista (dicionário local → Wiktionary → MT, idioma resolvido pela frase), sem abrir o painel
+   * da tela nem falar a palavra — quem está vendo um vídeo não quer som nem painel por um toque.
+   */
+  const glosaDaPalavra = async (word: string, frase: string, declaredLang?: string): Promise<{ traducao: string }> => {
+    const { vocab } = await buildVocabWord(
+      { word, context: frase || undefined, declaredLang: declaredLang || undefined, config: langConfigRef.current },
+      gateway.mt,
+    );
+    return { traducao: vocab.translation || '' };
   };
 
   /**
@@ -159,5 +174,5 @@ export function criarPalavraDaFala(deps: DepsDaPalavraDaFala) {
     onChangeView(telaDoExercicio(exercise), { seed });
   };
 
-  return { examineWord, handleAddWordToDeck, handlePracticeWord };
+  return { examineWord, handleAddWordToDeck, handlePracticeWord, glosaDaPalavra };
 }

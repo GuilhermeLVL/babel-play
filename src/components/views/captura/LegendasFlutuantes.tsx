@@ -1,142 +1,74 @@
 import '../../../styles/legendas.css';
+import '../../../styles/legendasFlutuantes.css';
 
+import { ArrowDown, AudioLines } from 'lucide-react';
 import {
-  AudioLines,
-  ChevronDown,
-  ChevronUp,
-  Eye,
-  EyeOff,
-  Languages,
-  Lock,
-  MousePointerClick,
-  Palette,
-  PictureInPicture2,
-  X,
-} from 'lucide-react';
-import { type CSSProperties, useEffect, useRef, useState } from 'react';
+  type CSSProperties,
+  type KeyboardEvent as KeyboardEventDoReact,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 import { fetchSettings, patchUiSettings } from '../../../data/api';
+import {
+  avancar,
+  type FalaDoRitmo,
+  iniciarRitmo,
+  janelaDaLegenda,
+  pendentes,
+  saltarParaOFim,
+} from '../../../lib/captura/ritmoDaLegenda';
 import {
   classesDoEstilo,
   EVENTO_AJUSTES_DA_LEGENDA,
   lerEstiloDeLegenda,
-  pedacosDaLegenda,
   resolverEstiloDeLegenda,
 } from '../../../lib/estilosDeLegenda';
-import { t } from '../../../lib/i18n';
+import { t, tp } from '../../../lib/i18n';
 import { toast } from '../../Toast';
-import { Interruptor, Segmentos } from '../vocab/Dialogo';
+import {
+  type Aparencia,
+  CHAVE,
+  CHAVE_MEU,
+  lerAparencia,
+  normalizar,
+  PADRAO,
+  type Preset,
+  PRESETS,
+  traducaoAMostra,
+} from './legendas/aparenciaDaLegenda';
+import BarraDaLegenda from './legendas/BarraDaLegenda';
+import CartaoDaPalavra, { type PalavraTocada } from './legendas/CartaoDaPalavra';
+import LinhaDaLegenda, { type LegendaAoVivo } from './legendas/LinhaDaLegenda';
+import PainelDaLegenda from './legendas/PainelDaLegenda';
+
+export type { LegendaAoVivo };
 
 /**
  * LEGENDAS FLUTUANTES — o `desenharLegendas()` do protótipo aprovado (C6): a janelinha escura com a
- * barra (travar o clique, modo, personalizar, esconder, recolher, fechar), as últimas falas e o
- * painel de personalização (predefinições, tradução, tamanho, histórico, cores, "Meu perfil").
+ * barra, as falas e o painel de personalização. Esta é a RAIZ da composição; as peças moram em
+ * `./legendas/` (barra, linha da fala, cartão da palavra, painel, aparência guardada).
  *
  * O MECANISMO é o de antes: no Chrome/Edge a janelinha vive numa Document Picture-in-Picture,
  * SEMPRE NO TOPO por cima do jogo, do vídeo ou da chamada (`emJanela`). Sem essa API, ela flutua
  * dentro do app, no canto, como no protótipo. As falas são as REAIS da captura, nunca texto fixo.
+ *
+ * O RITMO (ei/leg, relato do dono: "a legenda some rápido demais"): cada fala fica pelo menos o
+ * tempo de ler (`lib/captura/ritmoDaLegenda`), a seguinte espera a vez, as N últimas ficam à vista,
+ * e dá para pausar (botão, Espaço, ou só passar o mouse), voltar pelo histórico (rolar, ← →) e
+ * tocar uma palavra para ver a glosa, ouvir e salvar. A captura NUNCA para: pausar congela só a
+ * janela, e continuar pula para a mais recente.
  */
 
-/** Uma fala real da captura, pronta para a legenda. `lado` = de quem é (sistema = eles). */
-export interface LegendaAoVivo {
-  id: string;
-  quem: string;
-  original: string;
-  traducao: string;
-  lado: 'eles' | 'voce';
-  /** Deixada sem tradução pela preferência "Tradução" (Só quando eu pedir / Só frases com palavra
-   *  nova): no lugar da tradução, o mesmo "Mostrar tradução" da conversa. */
-  sobDemanda?: boolean;
-}
-
-type Modo = 'video' | 'conversa' | 'jogo';
-type Traducao = 'sempre' | 'discreta' | 'oculta';
-type Preset = 'filme' | 'conversa' | 'jogo' | 'imersao' | 'meu';
-
-/** O que é GUARDADO (aparência). Travar, esconder, recolher e o painel valem só enquanto a janela está aberta. */
-interface Aparencia {
-  modo: Modo;
-  preset: Preset;
-  traducao: Traducao;
-  tam: number;
-  historico: boolean;
-  cores: { legenda: string; traducao: string };
-}
-
-const PADRAO: Aparencia = {
-  modo: 'video',
-  preset: 'filme',
-  traducao: 'discreta',
-  tam: 100,
-  historico: true,
-  cores: { legenda: '#FFFFFF', traducao: '#FFEA00' },
-};
-
-/** As predefinições do protótipo: modo, tradução e tamanho de uma vez. */
-const PRESETS: Record<Exclude<Preset, 'meu'>, [Modo, Traducao, number]> = {
-  filme: ['video', 'discreta', 100],
-  conversa: ['conversa', 'sempre', 110],
-  jogo: ['jogo', 'discreta', 90],
-  imersao: ['video', 'oculta', 100],
-};
-
-const CHAVE = 'babel.legendasFlutuantes';
-const CHAVE_MEU = 'babel.legendasMeuPerfil';
-/** A configuração da janela antiga (Overlay), migrada na primeira abertura para ninguém perder a sua. */
-const CHAVE_ANTIGA = 'babel.overlaySettings';
-
-const MODOS = new Set<Modo>(['video', 'conversa', 'jogo']);
-const TRADUCOES = new Set<Traducao>(['sempre', 'discreta', 'oculta']);
-
-/** Aceita só o que tem forma de `Aparencia` (o que vem do disco ou do servidor pode ser qualquer coisa). */
-function normalizar(bruto: unknown): Aparencia {
-  const o = (bruto && typeof bruto === 'object' ? bruto : {}) as Partial<Aparencia>;
-  const cores = (o.cores && typeof o.cores === 'object' ? o.cores : {}) as Partial<Aparencia['cores']>;
-  const tam = typeof o.tam === 'number' && Number.isFinite(o.tam) ? Math.min(160, Math.max(70, o.tam)) : PADRAO.tam;
-  return {
-    modo: o.modo && MODOS.has(o.modo) ? o.modo : PADRAO.modo,
-    preset: o.preset && (o.preset in PRESETS || o.preset === 'meu') ? o.preset : PADRAO.preset,
-    traducao: o.traducao && TRADUCOES.has(o.traducao) ? o.traducao : PADRAO.traducao,
-    tam: Math.round(tam / 10) * 10,
-    historico: typeof o.historico === 'boolean' ? o.historico : PADRAO.historico,
-    cores: {
-      legenda: typeof cores.legenda === 'string' ? cores.legenda : PADRAO.cores.legenda,
-      traducao: typeof cores.traducao === 'string' ? cores.traducao : PADRAO.cores.traducao,
-    },
-  };
-}
-
-/** A janela antiga guardava outro formato: modo em inglês, "independência" e escala de fonte. */
-function migrarDaAntiga(bruto: Record<string, unknown>): Aparencia {
-  const modo = { video: 'video', conversation: 'conversa', game: 'jogo' }[String(bruto.layoutMode)] as Modo | undefined;
-  const traducao = { assisted: 'sempre', intermediate: 'discreta', immersion: 'oculta' }[String(bruto.independence)] as
-    | Traducao
-    | undefined;
-  return normalizar({
-    modo,
-    traducao,
-    tam: typeof bruto.fontScale === 'number' ? bruto.fontScale * 100 : undefined,
-    historico: bruto.videoShowHistory,
-    cores: { legenda: bruto.originalTextColor, traducao: bruto.translatedTextColor },
-  });
-}
-
-export function lerAparencia(): Aparencia {
-  try {
-    const salvo = localStorage.getItem(CHAVE);
-    if (salvo) return normalizar(JSON.parse(salvo));
-    const antiga = localStorage.getItem(CHAVE_ANTIGA);
-    if (antiga) return migrarDaAntiga(JSON.parse(antiga));
-  } catch {
-    /* disco corrompido ou bloqueado: segue o padrão */
-  }
-  return PADRAO;
-}
-
-/** As falas que a janela mostra: a última, ou as duas últimas no modo vídeo com histórico (protótipo). */
-export function falasVisiveis<T>(falas: T[], modo: Modo, historico: boolean): T[] {
-  return falas.slice(historico && modo === 'video' ? -2 : -1);
-}
+/** Intervalo mínimo entre dois passos de histórico pela roda do mouse (um gesto dispara dezenas). */
+const PASSO_DA_RODA_MS = 160;
+/** Quanto o dedo precisa arrastar para um passo de histórico. */
+const PASSO_DO_DEDO_PX = 36;
+/** Um toque dispara `mouseenter` de compatibilidade logo depois: isso não é "mouse em cima". */
+const TOQUE_RECENTE_MS = 800;
 
 export default function LegendasFlutuantes({
   falas,
@@ -144,7 +76,11 @@ export default function LegendasFlutuantes({
   aoFechar,
   aprendidas,
   aoRevelarTraducao,
+  aoConsultarPalavra,
+  aoOuvir,
+  aoSalvarPalavra,
 }: {
+  /** As últimas falas da captura, em ordem. A janela decide quais e quando aparecem. */
   falas: LegendaAoVivo[];
   /** Dentro da janela sempre-no-topo (Document PiP): ocupa a janela inteira. */
   emJanela: boolean;
@@ -153,6 +89,12 @@ export default function LegendasFlutuantes({
   aprendidas?: ReadonlySet<string>;
   /** "Mostrar tradução" de uma fala deixada sob demanda (`revelarTraducao`). Ausente = sem o botão. */
   aoRevelarTraducao?: (id: string) => void;
+  /** A glosa da palavra tocada (o caminho do Analista: dicionário local → Wiktionary → MT). */
+  aoConsultarPalavra?: (palavra: string, frase: string, lang?: string) => Promise<{ traducao: string }>;
+  /** A voz do navegador (não o áudio original). `lenta` = ritmo reduzido. */
+  aoOuvir?: (texto: string, lang: string | undefined, lenta: boolean) => void;
+  /** Ficha no vocabulário (FSRS); devolve o que o fichamento disse, para a janela mostrar. */
+  aoSalvarPalavra?: (item: { palavra: string; frase?: string; lang?: string; traducao?: string }) => Promise<string>;
 }) {
   const [ap, setAp] = useState<Aparencia>(lerAparencia);
   /* O ESTILO DE LEGENDA equipado (onda 4) — o mesmo da transcrição, relido quando muda. As cores
@@ -181,8 +123,8 @@ export default function LegendasFlutuantes({
     } catch {
       /* best-effort */
     }
-    const t = setTimeout(() => void patchUiSettings({ legendasFlutuantes: ap }), 600);
-    return () => clearTimeout(t);
+    const id = setTimeout(() => void patchUiSettings({ legendasFlutuantes: ap }), 600);
+    return () => clearTimeout(id);
   }, [ap]);
 
   /* Reidrata do servidor uma vez, se este navegador ainda não tem a sua. */
@@ -216,7 +158,7 @@ export default function LegendasFlutuantes({
         meu = null;
       }
       if (!meu) {
-        toast.info('Você ainda não salvou um “Meu perfil”: ajuste e use “Salvar como Meu perfil”.');
+        toast.info(t('Você ainda não salvou um “Meu perfil”: ajuste e use “Salvar como Meu perfil”.'));
         return;
       }
       setAp({ ...meu, preset: 'meu' });
@@ -230,63 +172,213 @@ export default function LegendasFlutuantes({
     try {
       localStorage.setItem(CHAVE_MEU, JSON.stringify({ ...ap, preset: 'meu' }));
       setAp((a) => ({ ...a, preset: 'meu' }));
-      toast.info('Configuração salva como “Meu perfil”');
+      toast.info(t('Configuração salva como “Meu perfil”'));
     } catch {
-      toast.info('Não deu para salvar o perfil neste navegador.');
+      toast.info(t('Não deu para salvar o perfil neste navegador.'));
     }
   };
-
-  const resetar = () => mudar({ ...PADRAO });
 
   const alternarTravado = () => {
     const novo = !travado;
     setTravado(novo);
     toast.info(
-      novo ? 'Clique travado: ele passa através da janela. Destrave pelo cadeado.' : 'A janela volta a receber cliques',
+      novo
+        ? t('Clique travado: ele passa através da janela. Destrave pelo cadeado.')
+        : t('A janela volta a receber cliques'),
     );
   };
 
-  const ult = falasVisiveis(falas, ap.modo, ap.historico);
+  /* ── O RITMO ──────────────────────────────────────────────────────────────────────────────── */
+  const [pausaManual, setPausaManual] = useState(false);
+  const [sobre, setSobre] = useState(false);
+  const [segurando, setSegurando] = useState(false);
+  const [cartao, setCartao] = useState<PalavraTocada | null>(null);
+  /** Tradução trocada fala a fala (vence o modo da janela). */
+  const [trocas, setTrocas] = useState<Record<string, boolean>>({});
+  /** A fala em foco ao voltar pelo histórico; `null` = seguindo o fim. */
+  const [cursor, setCursor] = useState<string | null>(null);
+  /* Pausa efetiva: o botão, o cartão aberto (a fala não pode sair debaixo dele) e, se ligado,
+     o mouse em cima ou o dedo segurando a janela. */
+  const pausado = pausaManual || !!cartao || (ap.pausarAoPassar && (sobre || segurando));
+
+  const aMostra = useCallback((f: LegendaAoVivo) => traducaoAMostra(ap.traducao, trocas[f.id]), [ap.traducao, trocas]);
+  const doRitmo: FalaDoRitmo[] = useMemo(
+    () => falas.map((f) => ({ id: f.id, caracteres: f.original.length + (aMostra(f) ? f.traducao.length : 0) })),
+    [falas, aMostra],
+  );
+  const [ritmo, setRitmo] = useState(() => iniciarRitmo(doRitmo, Date.now()));
+  const [tique, setTique] = useState(0);
+  useEffect(() => {
+    if (pausado) return;
+    const { estado, proximaEmMs } = avancar(ritmo, doRitmo, Date.now(), ap.leitura);
+    if (estado !== ritmo) setRitmo(estado);
+    if (proximaEmMs === null) return;
+    const id = setTimeout(() => setTique((n) => n + 1), proximaEmMs + 16);
+    return () => clearTimeout(id);
+  }, [ritmo, doRitmo, pausado, ap.leitura, tique]);
+
+  const porId = useMemo(() => new Map(falas.map((f) => [f.id, f])), [falas]);
+  const reveladas = ritmo.reveladas.filter((id) => porId.has(id));
+  const janela = janelaDaLegenda(reveladas, ap.visiveis, cursor, ritmo.atual);
+  const idsAVista = janela.ids;
+  const emFoco = janela.foco ? porId.get(janela.foco) : undefined;
+  const esperando = pausado ? pendentes(ritmo, doRitmo) : 0;
+  const novas = janela.novasDepois + esperando;
+
+  const irParaOFim = () => {
+    setCursor(null);
+    setPausaManual(false);
+    setRitmo((r) => saltarParaOFim(r, doRitmo, Date.now()));
+  };
+  const alternarPausa = () => {
+    if (pausaManual) irParaOFim();
+    else setPausaManual(true);
+  };
+  const navegar = (passo: -1 | 1) => {
+    if (!reveladas.length) return;
+    const i = reveladas.indexOf(janela.foco ?? '');
+    if (passo > 0 && (cursor === null || i + 1 >= reveladas.length - 1)) {
+      setCursor(null);
+      return;
+    }
+    setCursor(reveladas[Math.max(0, (i < 0 ? reveladas.length - 1 : i) + passo)]);
+  };
+
+  /* ── AS AÇÕES DA FALA ─────────────────────────────────────────────────────────────────────── */
+  const raiz = useRef<HTMLDivElement>(null);
+  const [aviso, setAviso] = useState('');
+  useEffect(() => {
+    if (!aviso) return;
+    const id = setTimeout(() => setAviso(''), 2600);
+    return () => clearTimeout(id);
+  }, [aviso]);
+
+  const alternarTraducao = useCallback(
+    (f: LegendaAoVivo) => {
+      if (!f.traducao) {
+        if (f.sobDemanda && aoRevelarTraducao) {
+          aoRevelarTraducao(f.id);
+          setTrocas((m) => ({ ...m, [f.id]: true }));
+        }
+        return;
+      }
+      setTrocas((m) => ({ ...m, [f.id]: !traducaoAMostra(ap.traducao, m[f.id]) }));
+    },
+    [ap.traducao, aoRevelarTraducao],
+  );
+  const ouvirFala = useCallback(
+    (f: LegendaAoVivo, lenta: boolean) => aoOuvir?.(f.original, f.lang, lenta),
+    [aoOuvir],
+  );
+  const copiar = useCallback((f: LegendaAoVivo) => {
+    /* A área de transferência da JANELA onde a pessoa está: na PiP é a dela, não a do app. */
+    const nav = raiz.current?.ownerDocument.defaultView?.navigator ?? navigator;
+    const texto = f.traducao ? `${f.original}\n${f.traducao}` : f.original;
+    if (!nav.clipboard) {
+      setAviso(t('Não deu para copiar.'));
+      return;
+    }
+    nav.clipboard.writeText(texto).then(
+      () => setAviso(t('Texto copiado')),
+      () => setAviso(t('Não deu para copiar.')),
+    );
+  }, []);
+  const salvarFrase = useCallback(
+    (f: LegendaAoVivo) => {
+      aoSalvarPalavra?.({ palavra: f.original, lang: f.lang, traducao: f.traducao || undefined }).then(setAviso, () =>
+        setAviso(t('Não deu para salvar agora.')),
+      );
+    },
+    [aoSalvarPalavra],
+  );
+  const [cartaoNoAlto, setCartaoNoAlto] = useState(false);
+  const idsAVistaRef = useRef<string[]>([]);
+  const tocarPalavra = useCallback((palavra: string, f: LegendaAoVivo) => {
+    /* Da metade de baixo da janela, o cartão abre em cima: a frase tocada continua à vista. */
+    const ids = idsAVistaRef.current;
+    setCartaoNoAlto(ids.indexOf(f.id) >= ids.length / 2);
+    setCartao({ palavra, frase: f.original, lang: f.lang });
+  }, []);
+
+  useEffect(() => {
+    idsAVistaRef.current = idsAVista;
+  });
+
+  /* ── LEITOR DE TELA: só a fala NOVA e já fechada é anunciada, nunca cada parcial. ─────────── */
+  const anunciada = useRef<string | null>(ritmo.atual);
+  const [anuncio, setAnuncio] = useState('');
+  const atual = ritmo.atual ? porId.get(ritmo.atual) : undefined;
+  useEffect(() => {
+    if (!atual || atual.parcial || anunciada.current === atual.id) return;
+    anunciada.current = atual.id;
+    setAnuncio(atual.traducao && aMostra(atual) ? `${atual.original} — ${atual.traducao}` : atual.original);
+  }, [atual, aMostra]);
+
+  /* ── TECLADO ───────────────────────────────────────────────────────────────────────────────── */
+  const teclar = (e: KeyboardEvent) => {
+    if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return;
+    const alvo = e.target as HTMLElement | null;
+    if (alvo?.closest?.('input,select,textarea,[contenteditable="true"],.leg-cartao')) return;
+    const tecla = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    if (tecla === ' ') {
+      if (alvo?.closest?.('button')) return; // o próprio botão já responde ao Espaço
+      alternarPausa();
+    } else if (tecla === 'ArrowLeft') navegar(-1);
+    else if (tecla === 'ArrowRight') navegar(1);
+    else if (tecla === 't' && emFoco) alternarTraducao(emFoco);
+    else if (tecla === 'p' && emFoco) ouvirFala(emFoco, false);
+    else return;
+    e.preventDefault();
+  };
+  const teclarRef = useRef(teclar);
+  teclarRef.current = teclar;
+  /* Na PiP o foco costuma ficar no `body` da janelinha, fora da árvore do React: escuta o documento
+     DELA. Dentro do app, só com o foco na janela (Espaço no resto do app é do resto do app). */
+  useEffect(() => {
+    if (!emJanela) return;
+    const doc = raiz.current?.ownerDocument;
+    if (!doc) return;
+    const ouvinte = (e: KeyboardEvent) => teclarRef.current(e);
+    doc.addEventListener('keydown', ouvinte);
+    return () => doc.removeEventListener('keydown', ouvinte);
+  }, [emJanela]);
+  const teclarNoApp = emJanela
+    ? undefined
+    : (e: KeyboardEventDoReact<HTMLDivElement>) => teclarRef.current(e.nativeEvent);
+
+  /* ── ROLAR PARA VOLTAR (roda do mouse e arrasto do dedo, uma fala por passo) ────────────────── */
+  const ultimaRoda = useRef(0);
+  const dedoY = useRef<number | null>(null);
+  const ultimoToque = useRef(0);
+
   const corpo = recolhido ? null : oculto ? (
-    <p className="leg-vazio">Legenda escondida</p>
-  ) : !ult.length ? (
+    <p className="leg-vazio">{t('Legenda escondida')}</p>
+  ) : !janela.ids.length ? (
     <p className="leg-vazio">
-      <AudioLines aria-hidden /> Esperando a primeira fala
+      <AudioLines aria-hidden /> {t('Esperando a primeira fala')}
     </p>
   ) : (
-    ult.map((x) => (
-      <div key={x.id} className={`leg-fala ${ap.modo === 'conversa' ? (x.lado === 'eles' ? 'eles' : 'eles b') : ''}`}>
-        {ap.modo === 'conversa' && <span className="leg-quem">{x.quem}</span>}
-        <span className="leg-o">
-          {pedacosDaLegenda(x.original, aprendidas).map((p, i) =>
-            p.aprendida ? (
-              <span key={i} data-aprendida>
-                {p.texto}
-              </span>
-            ) : (
-              p.texto
-            ),
-          )}
-        </span>
-        {ap.traducao !== 'oculta' &&
-          (x.traducao ? (
-            <span className={`leg-t ${ap.traducao}`}>{x.traducao}</span>
-          ) : (
-            x.sobDemanda &&
-            aoRevelarTraducao && (
-              /* Compacto, na cor e no tamanho da linha de tradução que ele substitui. */
-              <button
-                type="button"
-                className={`leg-t ${ap.traducao} link`}
-                style={{ justifySelf: 'start', minHeight: 0, color: 'var(--leg-trad,#FFEA00)', font: 'inherit', fontSize: '.9em' }}
-                onClick={() => aoRevelarTraducao(x.id)}
-              >
-                <Languages aria-hidden /> {t('Mostrar tradução')}
-              </button>
-            )
-          ))}
-      </div>
-    ))
+    janela.ids.map((id) => {
+      const f = porId.get(id)!;
+      const podeTrocar = !!f.traducao || (!!f.sobDemanda && !!aoRevelarTraducao);
+      return (
+        <LinhaDaLegenda
+          key={id}
+          fala={f}
+          modo={ap.modo}
+          modoDaTraducao={ap.traducao}
+          traducaoVisivel={aMostra(f)}
+          emFoco={id === janela.foco}
+          aprendidas={aprendidas}
+          aoTocarPalavra={tocarPalavra}
+          aoAlternarTraducao={podeTrocar ? alternarTraducao : undefined}
+          aoRevelarTraducao={aoRevelarTraducao}
+          aoOuvir={aoOuvir ? ouvirFala : undefined}
+          aoCopiar={copiar}
+          aoSalvarFrase={aoSalvarPalavra ? salvarFrase : undefined}
+        />
+      );
+    })
   );
 
   const estilo = {
@@ -296,9 +388,12 @@ export default function LegendasFlutuantes({
     /* Na janela sempre-no-topo, a caixa É a janela: ocupa tudo e rola se o painel não couber. */
     ...(emJanela
       ? {
-          position: 'static',
+          position: 'relative',
+          right: 'auto',
+          bottom: 'auto',
           width: '100%',
           height: '100vh',
+          maxHeight: 'none',
           borderRadius: 0,
           boxShadow: 'none',
           overflowY: 'auto',
@@ -309,154 +404,98 @@ export default function LegendasFlutuantes({
   return (
     <div
       id="leg-flut"
+      ref={raiz}
       role="region"
-      aria-label="Legendas flutuantes"
-      className={`leg-flut modo-${ap.modo} ${classesDoEstiloEquipado} ${travado ? 'travado' : ''} ${recolhido ? 'recolhido' : ''}`}
+      aria-label={t('Legendas flutuantes')}
+      tabIndex={-1}
+      className={`leg-flut modo-${ap.modo} ${classesDoEstiloEquipado} ${travado ? 'travado' : ''} ${recolhido ? 'recolhido' : ''} ${pausado ? 'pausado' : ''}`}
       style={estilo}
+      onKeyDown={teclarNoApp}
+      onMouseEnter={() => {
+        if (Date.now() - ultimoToque.current > TOQUE_RECENTE_MS) setSobre(true);
+      }}
+      onMouseLeave={() => setSobre(false)}
+      onTouchStart={() => {
+        ultimoToque.current = Date.now();
+        setSegurando(true);
+      }}
+      onTouchEnd={() => setSegurando(false)}
+      onTouchCancel={() => setSegurando(false)}
     >
-      <div className="leg-barra">
-        <span className="leg-tit">
-          <PictureInPicture2 aria-hidden /> Legendas
-        </span>
-        {/* Deixar o clique passar só existe dentro do app: uma janela sempre-no-topo do navegador
-            sempre recebe o clique (limitação da plataforma), então lá o cadeado não aparece. */}
-        {!emJanela && (
-          <button
-            type="button"
-            aria-pressed={travado}
-            aria-label={travado ? 'Destravar o clique' : 'Deixar o clique passar pela janela'}
-            title="Travar o clique"
-            onClick={alternarTravado}
-          >
-            {travado ? <Lock aria-hidden /> : <MousePointerClick aria-hidden />}
-          </button>
-        )}
-        <select aria-label="Modo da janela" value={ap.modo} onChange={(e) => mudar({ modo: e.target.value as Modo })}>
-          <option value="video">Modo vídeo</option>
-          <option value="conversa">Conversa</option>
-          <option value="jogo">Jogo</option>
-        </select>
-        <button
-          type="button"
-          aria-pressed={painel}
-          aria-label="Personalizar"
-          title="Personalizar"
-          onClick={() => setPainel((v) => !v)}
-        >
-          <Palette aria-hidden />
-        </button>
-        <button
-          type="button"
-          aria-pressed={oculto}
-          aria-label={oculto ? 'Mostrar a legenda' : 'Esconder a legenda'}
-          title="Esconder"
-          onClick={() => setOculto((v) => !v)}
-        >
-          {oculto ? <Eye aria-hidden /> : <EyeOff aria-hidden />}
-        </button>
-        <button
-          type="button"
-          aria-pressed={recolhido}
-          aria-label={recolhido ? 'Expandir' : 'Recolher'}
-          title="Recolher"
-          onClick={() => setRecolhido((v) => !v)}
-        >
-          {recolhido ? <ChevronUp aria-hidden /> : <ChevronDown aria-hidden />}
-        </button>
-        <button type="button" aria-label="Fechar as legendas flutuantes" title="Fechar" onClick={aoFechar}>
-          <X aria-hidden />
-        </button>
-      </div>
+      <BarraDaLegenda
+        emJanela={emJanela}
+        travado={travado}
+        aoTravar={alternarTravado}
+        pausado={pausaManual}
+        aoPausar={alternarPausa}
+        recolhido={recolhido}
+        aoRecolher={() => setRecolhido((v) => !v)}
+        leitura={ap.leitura}
+        aoTrocarLeitura={(leitura) => mudar({ leitura })}
+        traducao={ap.traducao}
+        aoTrocarTraducao={(traducao) => mudar({ traducao })}
+        painel={painel}
+        aoPainel={() => setPainel((v) => !v)}
+        aoFechar={aoFechar}
+      />
       {corpo && (
-        <div className="leg-corpo" aria-live="polite" style={travado ? { pointerEvents: 'none' } : undefined}>
+        <div
+          className="leg-corpo"
+          style={travado ? { pointerEvents: 'none' } : undefined}
+          onWheel={(e) => {
+            const agora = Date.now();
+            if (!e.deltaY || agora - ultimaRoda.current < PASSO_DA_RODA_MS) return;
+            ultimaRoda.current = agora;
+            navegar(e.deltaY < 0 ? -1 : 1);
+          }}
+          onTouchStart={(e) => {
+            dedoY.current = e.touches[0]?.clientY ?? null;
+          }}
+          onTouchMove={(e) => {
+            const y = e.touches[0]?.clientY;
+            if (dedoY.current === null || y === undefined) return;
+            const dy = y - dedoY.current;
+            if (Math.abs(dy) < PASSO_DO_DEDO_PX) return;
+            dedoY.current = y;
+            navegar(dy > 0 ? -1 : 1);
+          }}
+        >
           {corpo}
+          {novas > 0 && !oculto && (
+            <button type="button" className="leg-novas" onClick={irParaOFim}>
+              {tp(novas, '{n} nova', '{n} novas')} <ArrowDown aria-hidden />
+            </button>
+          )}
         </div>
       )}
+      {cartao && !recolhido && (
+        <CartaoDaPalavra
+          alvo={cartao}
+          noAlto={cartaoNoAlto}
+          aoConsultar={aoConsultarPalavra}
+          aoOuvir={aoOuvir}
+          aoSalvar={aoSalvarPalavra}
+          aoFechar={() => setCartao(null)}
+        />
+      )}
+      {aviso && (
+        <p className="leg-aviso" role="status">
+          {aviso}
+        </p>
+      )}
+      <p className="leg-anuncio" aria-live="polite">
+        {anuncio}
+      </p>
       {painel && !recolhido && (
-        <div className="leg-painel">
-          <div className="entre">
-            <b>Personalização</b>
-            <button type="button" className="link" onClick={resetar}>
-              Resetar tudo
-            </button>
-          </div>
-          <span className="label-mono">Predefinições</span>
-          <div className="chips">
-            {(
-              [
-                ['filme', 'Filme'],
-                ['conversa', 'Conversa'],
-                ['jogo', 'Jogo'],
-                ['imersao', 'Imersão'],
-                ['meu', 'Meu perfil'],
-              ] as Array<[Preset, string]>
-            ).map(([v, r]) => (
-              <button
-                key={v}
-                type="button"
-                className="pill"
-                aria-pressed={ap.preset === v}
-                onClick={() => aplicarPreset(v)}
-              >
-                {r}
-              </button>
-            ))}
-          </div>
-          <span className="label-mono">Tradução</span>
-          <Segmentos<Traducao>
-            rotulo="Tradução"
-            atual={ap.traducao}
-            opcoes={[
-              ['sempre', 'Sempre visível'],
-              ['discreta', 'Discreta'],
-              ['oculta', 'Imersão'],
-            ]}
-            aoTrocar={(traducao) => mudar({ traducao })}
-          />
-          <label>
-            <span className="label-mono">Tamanho · {ap.tam}%</span>
-            <input
-              type="range"
-              min={70}
-              max={160}
-              step={10}
-              value={ap.tam}
-              aria-label="Tamanho da legenda"
-              className="trilho"
-              style={{ '--p': `${((ap.tam - 70) / 90) * 100}%` } as CSSProperties}
-              onChange={(e) => mudar({ tam: +e.target.value })}
-            />
-          </label>
-          <div className="entre">
-            <span>Histórico no modo vídeo</span>
-            <Interruptor
-              ligado={ap.historico}
-              rotulo="Histórico no modo vídeo"
-              aoTrocar={() => mudar({ historico: !ap.historico })}
-            />
-          </div>
-          <div className="linha" style={{ gap: 10, flexWrap: 'wrap' }}>
-            {(
-              [
-                ['legenda', 'Legenda'],
-                ['traducao', 'Tradução'],
-              ] as Array<[keyof Aparencia['cores'], string]>
-            ).map(([k, r]) => (
-              <label key={k} className="cor">
-                <input
-                  type="color"
-                  value={ap.cores[k]}
-                  aria-label={`Cor da ${r.toLowerCase()}`}
-                  onChange={(e) => mudar({ cores: { ...ap.cores, [k]: e.target.value } })}
-                />
-                {r}
-              </label>
-            ))}
-          </div>
-          <button type="button" className="link" onClick={salvarMeu}>
-            Salvar como “Meu perfil”
-          </button>
-        </div>
+        <PainelDaLegenda
+          ap={ap}
+          mudar={mudar}
+          aoPreset={aplicarPreset}
+          aoSalvarMeu={salvarMeu}
+          aoResetar={() => mudar({ ...PADRAO })}
+          oculto={oculto}
+          aoOcultar={() => setOculto((v) => !v)}
+        />
       )}
     </div>
   );

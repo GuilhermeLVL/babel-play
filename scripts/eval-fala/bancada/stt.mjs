@@ -9,6 +9,9 @@
  *   local:tiny|base|small[:dtype]          transformers.js em Node, com as opções de decode do
  *                                            `whisperWorker.ts` e o filtro de alucinação (dtype
  *                                            padrão `hibrido` = encoder fp32 + decoder q4, o da produção)
+ *   parakeet:v3-int8                       Parakeet TDT 0.6B v3 int8 (onnxruntime-node, `parakeet.mjs`)
+ *   parakeet:tagarela-int8                 o mesmo com ajuste fino em pt-BR (só pt; ver a nota legal lá)
+ *     (aceitam os mesmos extras `+vad`/`+vadNNN`/`+esp` dos locais; o filtro de alucinação é o mesmo)
  * Conjuntos (`--conjuntos`): fleurs_pt, fleurs_en, fleurs_pt_snr5, …, fleurs_en_opus24, sem_fala.
  *
  * No conjunto `sem_fala` a métrica é outra: TAXA DE ALUCINAÇÃO — a fração de trechos sem fala que
@@ -48,6 +51,7 @@ import {
   registrarGasto,
   TetoDeGasto,
 } from './comum.mjs'
+import { carregarParakeet, transcreverParakeet } from './parakeet.mjs'
 
 /** US$ por hora, com o mínimo de 10 s por requisição — console.groq.com/docs/speech-to-text (24/09/2026). */
 const PRECO_HORA = { 'whisper-large-v3-turbo': 0.04, 'whisper-large-v3': 0.111 }
@@ -246,6 +250,20 @@ async function transcreverLocal(sis, pcm, idioma) {
   return { texto: filtrarAlucinacao((out.text ?? '').trim(), dur, idioma), ms }
 }
 
+/**
+ * Parakeet: sem dica de idioma (o v3 detecta sozinho) e sem travas de decodificação a espelhar — a
+ * TDT gulosa não entra em laço de repetição como o Whisper. O filtro de alucinação é o MESMO dos
+ * outros locais, para o WER e a taxa de alucinação serem comparáveis.
+ */
+async function transcreverParakeetBancada(sis, pcm, idioma) {
+  await carregarParakeet(sis.modelo) // download e carga FORA do cronômetro, como em `asrLocal`
+  const dur = pcm.length / 16000
+  const t0 = performance.now()
+  const texto = await transcreverParakeet(sis.modelo, pcm)
+  const ms = performance.now() - t0
+  return { texto: filtrarAlucinacao(texto.trim(), dur, idioma), ms }
+}
+
 // ------------------------------------------------------------------ execução
 async function rodar(sis, spec) {
   const { nome: conjunto, n } = comAmostra(spec)
@@ -261,7 +279,11 @@ async function rodar(sis, spec) {
     if (!r) {
       const pcm = lerWav(readFileSync(path.join(BANCADA_DIR, it.arquivo)))
       const um = (x) =>
-        sis.tipo === 'groq' ? transcreverNuvem(sis, x, idiomaDoConjunto) : transcreverLocal(sis, x, idiomaDoConjunto)
+        sis.tipo === 'groq'
+          ? transcreverNuvem(sis, x, idiomaDoConjunto)
+          : sis.tipo === 'parakeet'
+            ? transcreverParakeetBancada(sis, x, idiomaDoConjunto)
+            : transcreverLocal(sis, x, idiomaDoConjunto)
       if (sis.vad) {
         const partes = []
         let ms = 0

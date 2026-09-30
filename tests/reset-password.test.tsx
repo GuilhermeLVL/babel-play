@@ -9,6 +9,8 @@ import { afterEach,describe, expect, it, vi } from 'vitest';
 
 const m = vi.hoisted(() => ({
   updatePassword: vi.fn(),
+  SENHA_MINIMA: 8,
+  SENHA_CURTA: 'A senha precisa ter pelo menos 8 caracteres.',
 }));
 vi.mock('../src/lib/supabase', () => ({ supabase: {}, authRequired: true, getAccessToken: async () => null }));
 vi.mock('../src/lib/auth', () => m);
@@ -27,10 +29,18 @@ describe('SaaS Fatia 5 — ResetPassword', () => {
   it('senhas divergentes → erro e NÃO redefine', async () => {
     const onDone = vi.fn();
     render(<ResetPassword onDone={onDone} />);
-    preencher('abc123', 'abc999');
+    preencher('abc12345', 'abc99999');
     await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('não coincidem'));
     expect(m.updatePassword).not.toHaveBeenCalled();
     expect(onDone).not.toHaveBeenCalled();
+  });
+
+  it('menos de 8 caracteres (o mínimo do Supabase de produção) → erro e NÃO redefine', async () => {
+    render(<ResetPassword onDone={vi.fn()} />);
+    expect((screen.getByLabelText('Nova senha') as HTMLInputElement).placeholder).toBe('mínimo 8 caracteres');
+    preencher('abc1234', 'abc1234');
+    await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('pelo menos 8 caracteres'));
+    expect(m.updatePassword).not.toHaveBeenCalled();
   });
 
   it('senhas iguais + sucesso → redefine e conclui', async () => {

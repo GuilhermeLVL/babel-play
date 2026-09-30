@@ -14,6 +14,8 @@
  * chega sem JWT, descobre de quem é o evento.
  */
 import type { UserId } from './authContext'
+import { lerAppUrl } from './config'
+import { log } from './logger'
 
 const base = (): string => process.env.ASAAS_BASE_URL || 'https://api-sandbox.asaas.com/v3'
 
@@ -102,7 +104,33 @@ export async function listarCobrancasDaAssinatura(assinaturaId: string, limite =
   return r.data ?? []
 }
 
-/** Cria a assinatura mensal. `billingType: 'UNDEFINED'` deixa o pagador escolher Pix ou cartão. */
+/**
+ * PARA ONDE O ASAAS DEVOLVE O PAGADOR (funil de venda, 2026-09-29): `APP_URL/plano/assinado`, que
+ * pergunta ao servidor se o pagamento confirmou (nada ali confia no redirecionamento). SÓ com https
+ * num domínio de verdade: o Asaas recusa localhost e domínio que não esteja cadastrado na conta, e
+ * em desenvolvimento a aba do checkout já espera a confirmação sozinha. `null` = não pedir a volta.
+ */
+export function urlDeVoltaDoPagamento(): string | null {
+  const base = lerAppUrl()
+  if (!base) return null
+  try {
+    const u = new URL(base)
+    const host = u.hostname.toLowerCase()
+    const local = host === 'localhost' || host.endsWith('.localhost') || host === '127.0.0.1' || host === '[::1]'
+    return u.protocol === 'https:' && !local ? `${base}/plano/assinado` : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Cria a assinatura mensal. `billingType: 'UNDEFINED'` deixa o pagador escolher Pix, boleto ou
+ * cartão na página do Asaas.
+ *
+ * Com a URL de volta, o corpo leva `callback`. Se o Asaas recusar o pedido COM ela (400 — domínio
+ * não cadastrado, por exemplo), cria de novo sem: a volta automática é conforto, a venda não é.
+ * Um 400 não cria nada no Asaas, então a segunda tentativa não duplica a assinatura.
+ */
 export async function criarAssinatura(
   userId: UserId,
   clienteId: string,
@@ -110,18 +138,25 @@ export async function criarAssinatura(
   descricao: string,
 ): Promise<AssinaturaAsaas> {
   const amanha = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10)
-  return chamar<AssinaturaAsaas>('/subscriptions', {
-    method: 'POST',
-    body: JSON.stringify({
-      customer: clienteId,
-      billingType: 'UNDEFINED',
-      value: valorBrl,
-      nextDueDate: amanha,
-      cycle: 'MONTHLY',
-      description: descricao,
-      externalReference: String(userId),
-    }),
-  })
+  const corpo = {
+    customer: clienteId,
+    billingType: 'UNDEFINED',
+    value: valorBrl,
+    nextDueDate: amanha,
+    cycle: 'MONTHLY',
+    description: descricao,
+    externalReference: String(userId),
+  }
+  const criar = (b: object) => chamar<AssinaturaAsaas>('/subscriptions', { method: 'POST', body: JSON.stringify(b) })
+  const volta = urlDeVoltaDoPagamento()
+  if (!volta) return criar(corpo)
+  try {
+    return await criar({ ...corpo, callback: { successUrl: volta, autoRedirect: true } })
+  } catch (err) {
+    if (!String(err).includes('HTTP 400')) throw err
+    log('warn', { event: 'asaas_callback_recusado' })
+    return criar(corpo)
+  }
 }
 
 /**

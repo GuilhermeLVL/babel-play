@@ -7,7 +7,7 @@
  */
 import { Lock } from 'lucide-react';
 
-import { edicaoEstatica } from '../../lib/edicaoEstatica';
+import { edicaoEstatica, urlDoAppCompleto } from '../../lib/edicaoEstatica';
 import { t } from '../../lib/i18n';
 import { Vazio } from '../ui';
 import { CONVITE } from './exigeConta';
@@ -21,8 +21,11 @@ interface CartaoDeConviteProps {
 export default function CartaoDeConvite({ view, onEntrar, onVoltar }: CartaoDeConviteProps) {
   /* EDIÇÃO ESTÁTICA (site sem servidor): não há conta a criar. O cartão diz a verdade — isto existe
      na versão completa — e a única saída é voltar para o que funciona aqui. Nada de botão de login
-     que levaria a uma porta inexistente. */
+     que levaria a uma porta inexistente. Com `VITE_URL_APP_COMPLETO` no build, a porta existe — em
+     outro endereço: o link para criar a conta lá vira a ação principal, e voltar fica em segundo. */
   if (edicaoEstatica()) {
+    const appCompleto = urlDoAppCompleto();
+    const voltar = { rotulo: t('Voltar ao início'), aoClicar: onVoltar };
     return (
       <div className="flex-1 flex items-center justify-center p-6" data-testid="cartao-de-convite">
         <Vazio
@@ -31,7 +34,8 @@ export default function CartaoDeConvite({ view, onEntrar, onVoltar }: CartaoDeCo
           explicacao={t(
             'Esta é a edição de demonstração do Babel Play: roda inteira no seu navegador, sem servidor. Esta parte depende de um servidor, e por isso só existe na versão completa.',
           )}
-          acao={{ rotulo: t('Voltar ao início'), aoClicar: onVoltar }}
+          acao={appCompleto ? { rotulo: t('Criar conta na versão completa'), href: appCompleto } : voltar}
+          acaoSecundaria={appCompleto ? voltar : undefined}
           className="max-w-xl w-full"
         />
       </div>

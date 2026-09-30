@@ -21,9 +21,11 @@
  */
 import { makeCloze, resumoDosPulados } from '@core';
 
+import { toast } from '../../components/Toast';
 import {
   bulkAddCards,
   criarSessaoEmLotes,
+  ehArmazenamentoCheio,
   ehTetoDeSessoes,
   ErroDeSessao,
   patchSessionMeta,
@@ -33,8 +35,12 @@ import {
 } from '../../data/api';
 import type { Recording } from '../../types';
 import { comPrazo } from '../dispositivo/sonda';
+import { edicaoEstatica } from '../edicaoEstatica';
 import { marcarOcupacaoDaCaptura } from '../filaDeRecompensas';
+import { t } from '../i18n';
 import { baseLang } from '../languages';
+import { pedirConta } from '../ofertas/eventos';
+import { navegarPara } from '../rotas';
 import { explicarParada, traduzirVersos } from '../versosDoVocabulario';
 import { definirSalvamento, type FalhaDoSalvamento, lerSalvamento } from './estadoDoSalvamento';
 import { apagarRascunho, guardarRascunho, type RascunhoDaCaptura } from './rascunhoDaCaptura';
@@ -43,6 +49,32 @@ import { palavrasDasFalas } from './vocabularioDaSessao';
 
 /** Quanto o áudio pode demorar depois de o texto estar salvo, antes de a sessão seguir sem ele. */
 export const PRAZO_DO_AUDIO_MS = 45_000;
+
+/** Quanto um aviso com ação fica na tela: tempo de ler e de clicar (o padrão do `warn` é 2,6 s). */
+const DURACAO_DO_AVISO_COM_ACAO_MS = 12_000;
+
+/**
+ * OS RECADOS QUE TÊM SAÍDA (funil de 29/09) — antes, o 507 do espaço cheio no áudio era jogado fora
+ * em silêncio e o teto de palavras sem conta era uma frase sem ação. Saem daqui, e não da tela,
+ * porque o salvamento sobrevive a sair da captura (e a nova tentativa não passa pela tela).
+ */
+function avisarAudioSemEspaco(): void {
+  toast.warn(
+    t('O áudio desta sessão não coube no seu espaço de armazenamento. As falas foram salvas; para guardar o áudio, libere espaço ou veja os planos.'),
+    {
+      duration: DURACAO_DO_AVISO_COM_ACAO_MS,
+      action: { label: t('Ver planos'), onClick: () => navegarPara({ view: 'planos' }) },
+    },
+  );
+}
+
+function avisarTetoDePalavras(motivo: string): void {
+  toast.warn(t('O vocabulário não foi fichado: {motivo}', { motivo }), {
+    duration: DURACAO_DO_AVISO_COM_ACAO_MS,
+    /* Na edição estática não há conta a criar: o aviso fica, sem botão para um login que não existe. */
+    ...(edicaoEstatica() ? {} : { action: { label: t('Criar conta'), onClick: pedirConta } }),
+  });
+}
 
 type Traduzir = (texto: string, de: string, para: string) => Promise<{ text?: string }>;
 
@@ -73,7 +105,14 @@ let emCurso: { origemLocalId: string; promessa: Promise<ResultadoDoSalvamento> }
 
 /** A recusa em termos que a tela usa para escolher a saída. */
 export function falhaDe(e: unknown): FalhaDoSalvamento {
-  if (e instanceof ErroDeSessao) return { mensagem: e.message, codigo: e.codigo, status: e.status, teto: ehTetoDeSessoes(e) };
+  if (e instanceof ErroDeSessao)
+    return {
+      mensagem: e.message,
+      codigo: e.codigo,
+      status: e.status,
+      teto: ehTetoDeSessoes(e),
+      ...(ehArmazenamentoCheio(e) ? { cheio: true } : {}),
+    };
   return { mensagem: String((e as Error)?.message ?? e), status: 0, teto: false };
 }
 
@@ -162,7 +201,13 @@ async function ficharVocabulario(
         : 'Sessão salva.';
     return { palavras: salvos, resumo };
   } catch (e) {
-    return { palavras: 0, resumo: `Sessão salva. O vocabulário não foi fichado: ${String((e as Error)?.message ?? e)}` };
+    const motivo = String((e as Error)?.message ?? e);
+    /* O teto sem conta tem saída: o aviso com "Criar conta" diz o motivo, e o resumo não o repete. */
+    if ((e as { codigo?: unknown })?.codigo === 'TETO_ANONIMO') {
+      avisarTetoDePalavras(motivo);
+      return { palavras: 0, resumo: 'Sessão salva.' };
+    }
+    return { palavras: 0, resumo: `Sessão salva. O vocabulário não foi fichado: ${motivo}` };
   }
 }
 
@@ -198,11 +243,14 @@ async function executar(e: EntradaDoSalvamento): Promise<ResultadoDoSalvamento> 
     definirSalvamento({ fase: 'salvando', origemLocalId, titulo, etapa: 'audio', feitas: 0, total: 0 });
     const blob = await comPrazo(() => e.audio as Promise<Blob | null>, e.prazoDoAudioMs ?? PRAZO_DO_AUDIO_MS);
     if (blob) {
-      const url = await uploadSessionAudio(recording.id, blob);
+      let semEspaco = false;
+      const url = await uploadSessionAudio(recording.id, blob, (r) => {
+        semEspaco = r.status === 507 && r.codigo === 'storage_quota_exceeded';
+      });
       if (url) {
         recording = { ...recording, audioUrl: url };
         e.aoAtualizar?.(recording);
-      }
+      } else if (semEspaco) avisarAudioSemEspaco();
     }
   }
 

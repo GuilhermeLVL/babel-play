@@ -21,7 +21,7 @@ async function abrir(page: Page, caminho = '/') {
   await page.goto(caminho)
   await expect(page.getByRole('main')).toBeVisible()
   /* O MODAL DE RESGATE CHEGA DEPOIS DO `<main>`. Contexto novo = posse local vazia: as conquistas
-     que o banco já cumpre (a sessão demo do banco novo dá "Primeira palavra" e "Primeira captura")
+     que o banco já cumpre (a sessão demo do banco novo dá "Primeira captura")
      são reavaliadas, creditadas e entram na fila — métricas, créditos e o chunk do modal, tudo
      assíncrono. Fechar logo após o `<main>` corria contra isso: o diálogo abria no meio do teste,
      roubava o foco (as setas da alça do iChat iam para o "Resgatar") e barrava o hover do menu.

@@ -14,6 +14,7 @@ const m = vi.hoisted(() => ({
   unenrollTotp: vi.fn(),
   updatePassword: vi.fn(),
   signOut: vi.fn(),
+  SENHA_MINIMA: 8,
 }));
 vi.mock('../src/lib/supabase', () => ({ supabase: {}, authRequired: true, getAccessToken: async () => null }));
 vi.mock('../src/lib/auth', () => m);

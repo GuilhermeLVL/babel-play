@@ -2,7 +2,7 @@ import type { AppMetrics } from '@core';
 import { CloudOff, X } from 'lucide-react';
 import { useState } from 'react';
 
-import { edicaoEstatica } from '../../lib/edicaoEstatica';
+import { edicaoEstatica, urlDoAppCompleto } from '../../lib/edicaoEstatica';
 import { t } from '../../lib/i18n';
 import { estaAnonimo } from '../../lib/identidade';
 import { avisoPendente, marcarVisto } from '../../lib/marcosDeConta';
@@ -31,6 +31,8 @@ export default function AvisoDeConta({ metrics, onEntrar }: { metrics: AppMetric
     semConta: estaAnonimo(),
   });
   if (!aviso || dispensado) return null;
+  /* Edição estática com `VITE_URL_APP_COMPLETO`: a conta existe na versão completa, noutro endereço. */
+  const appCompleto = urlDoAppCompleto();
 
   const dispensar = () => {
     marcarVisto(aviso.marco);
@@ -47,11 +49,24 @@ export default function AvisoDeConta({ metrics, onEntrar }: { metrics: AppMetric
         <p className="font-display font-black text-[14.5px] text-ink">{t(aviso.titulo)}</p>
         <p className="text-[12.5px] text-ink-muted mt-1 leading-relaxed max-w-[72ch]">{t(aviso.texto)}</p>
         <div className="flex flex-wrap gap-2 mt-3">
-          {/* Edição estática: não há conta a criar — o aviso informa, e a saída é só dispensar. */}
+          {/* Edição estática: não há conta a criar AQUI — o aviso informa e, com a URL da versão
+              completa no build, leva até lá; sem ela, a saída é só dispensar. */}
           {edicaoEstatica() ? (
-            <button onClick={dispensar} className="btn-outline !py-2 !text-[12.5px]">
-              {t('Entendi')}
-            </button>
+            <>
+              {appCompleto && (
+                <a
+                  href={appCompleto}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-solid !py-2 !text-[12.5px]"
+                >
+                  {t('Criar conta na versão completa')}
+                </a>
+              )}
+              <button onClick={dispensar} className="btn-outline !py-2 !text-[12.5px]">
+                {t('Entendi')}
+              </button>
+            </>
           ) : (
             <>
               <button onClick={onEntrar} className="btn-solid !py-2 !text-[12.5px]">

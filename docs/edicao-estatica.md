@@ -25,24 +25,43 @@ npx wrangler pages deploy dist --project-name babel-play
   (COOP `same-origin` + COEP `credentialless`, vindos de `public/_headers`), nenhum arquivo de
   protótipo nem `lucide.min.js`, nenhuma URL de projeto Supabase no bundle.
 
+### A saída para a versão completa (`VITE_URL_APP_COMPLETO`)
+
+Opcional. Com a URL da versão completa (a que tem servidor, conta e planos) no ambiente de quem
+compila, o build estático leva a pessoa até lá nos três pontos em que a demonstração para:
+
+- o teto de gravações na Captura (`CapturaNaoSalva`, no teto e na captura recusada pelo teto);
+- o aviso de marco de uso no Hub (`AvisoDeConta`), ao lado de "Entendi";
+- o cartão "Disponível na versão completa" (`CartaoDeConvite`), com "Voltar ao início" em segundo.
+
+Nos três o link é "Criar conta na versão completa", abre em nova aba (`rel="noopener noreferrer"`)
+e só aceita `http://` ou `https://` (`urlDoAppCompleto`, `src/lib/edicaoEstatica.ts`). Sem a
+variável, nada muda. Ela passa pelo `build:estatica` como qualquer outra do ambiente:
+
+```bash
+VITE_URL_APP_COMPLETO=https://app.exemplo.com.br npm run build:estatica   # bash
+```
+
+No PowerShell: `$env:VITE_URL_APP_COMPLETO='https://app.exemplo.com.br'; npm run build:estatica`.
+
 O `wrangler login` abre o navegador para autorizar a conta Cloudflare — é um passo do dono, não
 do build.
 
 ## O que muda na edição estática
 
-| Área                                                                   | Build normal                                     | Edição estática                                                |
-| ---------------------------------------------------------------------- | ------------------------------------------------ | -------------------------------------------------------------- |
-| Identidade                                                             | `selfhost`, `carregando` → `anonimo`/`conta`     | `anonimo` desde o arranque, e não muda                         |
-| Rede `/api`                                                            | servidor real (ou servidor em memória sem conta) | **nunca**: tudo no servidor em memória (`src/data/efemero`)    |
-| Flags (`/api/flags`)                                                   | perguntadas ao servidor                          | cache/padrão embutido, sem pergunta nem refresh                |
-| Métricas de oferta e de captura                                        | enviadas                                         | descartadas em silêncio (nem beacon)                           |
-| Login, criar conta, menu com "Entrar"                                  | presentes                                        | ausentes                                                       |
-| Planos, checkout, compra de Créditos, ofertas de plano                 | presentes                                        | ausentes; `/plano` mostra "Disponível na versão completa"      |
-| IA de nuvem (Groq Whisper, LLM do servidor, iChat, "Usar a sua chave") | oferecida                                        | indisponível; o roteador de STT nunca escolhe nuvem            |
-| Importação pelo servidor (YouTube, web, documentos, Anki)              | presente                                         | ausente                                                        |
-| Ranking global                                                         | presente                                         | ausente (só os recordes do aparelho)                           |
-| Biblioteca, Vocabulário, Análise, Perfil                               | telas completas com conta                        | cartão "Disponível na versão completa", com "Voltar ao início" |
-| Teto local (5 gravações, 80 palavras)                                  | mensagem convida a criar conta                   | mesmo teto; a mensagem diz que é a edição de demonstração      |
+| Área                                                                   | Build normal                                     | Edição estática                                                                                                    |
+| ---------------------------------------------------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| Identidade                                                             | `selfhost`, `carregando` → `anonimo`/`conta`     | `anonimo` desde o arranque, e não muda                                                                             |
+| Rede `/api`                                                            | servidor real (ou servidor em memória sem conta) | **nunca**: tudo no servidor em memória (`src/data/efemero`)                                                        |
+| Flags (`/api/flags`)                                                   | perguntadas ao servidor                          | cache/padrão embutido, sem pergunta nem refresh                                                                    |
+| Métricas de oferta e de captura                                        | enviadas                                         | descartadas em silêncio (nem beacon)                                                                               |
+| Login, criar conta, menu com "Entrar"                                  | presentes                                        | ausentes                                                                                                           |
+| Planos, checkout, compra de Créditos, ofertas de plano                 | presentes                                        | ausentes; `/plano` mostra "Disponível na versão completa"                                                          |
+| IA de nuvem (Groq Whisper, LLM do servidor, iChat, "Usar a sua chave") | oferecida                                        | indisponível; o roteador de STT nunca escolhe nuvem                                                                |
+| Importação pelo servidor (YouTube, web, documentos, Anki)              | presente                                         | ausente                                                                                                            |
+| Ranking global                                                         | presente                                         | ausente (só os recordes do aparelho)                                                                               |
+| Biblioteca, Vocabulário, Análise, Perfil                               | telas completas com conta                        | cartão "Disponível na versão completa", com "Voltar ao início"                                                     |
+| Teto local (5 gravações, 80 palavras)                                  | mensagem convida a criar conta                   | mesmo teto; a mensagem diz que é a edição de demonstração (e, com `VITE_URL_APP_COMPLETO`, leva à versão completa) |
 
 ## Limitações
 

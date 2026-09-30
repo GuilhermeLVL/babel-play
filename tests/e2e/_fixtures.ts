@@ -50,10 +50,10 @@ export interface CartaoNoServidor {
 }
 
 /**
- * O BARALHO INTEIRO como dicionario palavra -> traducao (e o inverso). Um banco recem-criado NAO
- * nasce vazio: `server/db/seed.ts` insere uma sessao de demonstracao com tres cartoes (leverage,
- * retention, cohort). Um jogo montado sobre "o baralho" traz esses tres junto com os semeados,
- * entao quem precisa fechar pares ou digitar respostas le a fonte real, nao a lista da fixture.
+ * O BARALHO INTEIRO como dicionario palavra -> traducao (e o inverso). O baralho pode ter mais do
+ * que os cartoes da fixture (outro teste fichou palavras no mesmo banco; ate 29/09 a semente de
+ * `server/db/seed.ts` tambem punha tres), entao quem precisa fechar pares ou digitar respostas le
+ * a fonte real, nao a lista da fixture.
  */
 export async function mapaDoBaralho(): Promise<{ traducaoDe: Map<string, string>; palavraDe: Map<string, string> }> {
   const cartoes = await listarCartoes();

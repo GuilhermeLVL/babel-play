@@ -94,7 +94,8 @@ export default function CapturaNoCelular({
   aoParar: () => void;
   aoAbrirOpcoes: () => void;
   aoAbrirAjuda: () => void;
-  /** Abre o modo intérprete (E3); ausente quando o par não serve (um lado em "Detectar", o mesmo idioma). */
+  /** Abre o modo intérprete (E3); ausente quando os dois lados são o mesmo idioma. Com "Detectar", vale o
+   *  idioma que está por baixo (`interpretePossivel` na `LiveCapture`). */
   aoAbrirInterprete?: () => void;
   aoAbrirVisual: () => void;
   temFalas: boolean;

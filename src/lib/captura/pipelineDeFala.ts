@@ -49,6 +49,8 @@ import { planoDaReservaLocal } from './reservaLocal';
 import {
   type CaptureScenario,
   clog,
+  type DirecaoDaFala,
+  type FimDaFala,
   formatTime,
   type GatewayDaCaptura,
   type SpeakerProfile,
@@ -190,6 +192,15 @@ export interface DepsDoPipelineDeFala {
    * (restam X)" e devolve `true` quando mostrou. Sem ela (ou com `false`), o aviso de sempre.
    */
   pedirNuvemDeAlivio?: (motivo: MotivoDaOfertaDeAlivio, aparelho: SinaisDoAparelhoParaAlivio) => Promise<boolean>;
+  /* --- modo intérprete (Fase E) --- */
+  /**
+   * A direção da fala do MICROFONE pelo lado tocado (`interprete.ts`, `direcaoAtual`). Só vale no
+   * cenário `interprete`: lá as duas pessoas falam no mesmo microfone, e a dica do Whisper, a origem e
+   * o destino da tradução são os do lado — não os da configuração. `null` = a direção de sempre.
+   */
+  direcaoDoMicrofone?: () => DirecaoDaFala | null;
+  /** O microfone ouviu o fim de uma fala (o VAD fechou): o intérprete fecha o microfone aqui. */
+  aoFimDaFala?: (fim: FimDaFala) => void;
 }
 
 export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
@@ -240,6 +251,8 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     reguladorRef,
     sistemaAtivo,
     pedirNuvemDeAlivio,
+    direcaoDoMicrofone,
+    aoFimDaFala,
   } = deps;
 
   /* UM SETSTATE POR QUADRO ("Grátis sem travar", A1; ver `agendarNoQuadro.ts`). O que chega em
@@ -313,7 +326,17 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     // MIC = você → orador ativo (se houver) ou 'user'. SISTEMA = 'system' (eles).
     const speakerIdFor = (): string =>
       isSys ? 'system' : (speakerProfilesRef.current.find((p) => p.isActive && p.id !== 'system')?.id ?? 'user');
-    const langs = () => {
+    /* O LADO DE CADA FALA no modo intérprete: a direção de quando ela COMEÇOU. Tocar o outro lado no
+       meio de uma fala não a vira — a dica do final e a tradução seguem o idioma de quem começou. */
+    const direcoesPorSeq = new Map<number, DirecaoDaFala>();
+    const direcaoDoLado = (seq?: number): DirecaoDaFala | null => {
+      if (isSys || captureScenarioRef.current !== 'interprete') return null;
+      return (seq !== undefined ? direcoesPorSeq.get(seq) : undefined) ?? direcaoDoMicrofone?.() ?? null;
+    };
+    const langs = (seq?: number) => {
+      /* MODO INTÉRPRETE: as duas pessoas falam no mesmo microfone; o idioma é o do LADO tocado. */
+      const doLado = direcaoDoLado(seq);
+      if (doLado) return { hint: doLado.de, from: doLado.de, to: doLado.para };
       // MULTI-IDIOMA: hint vazio → Whisper detecta o idioma da fala; origem vazia → o
       // Tradutor IA do servidor detecta e traduz para o alvo. Sistema traduz para o idioma
       // do usuário; mic traduz para o idioma de estudo (mesmo alvo do modo fixo).
@@ -355,8 +378,8 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     };
 
     /** "…" (tradução a caminho) ou '' quando a origem já conhecida é o próprio idioma da legenda. */
-    const marcadorPrevisto = (origemDoMotor = ''): string => {
-      const { from, to } = langs();
+    const marcadorPrevisto = (origemDoMotor = '', idiomas = langs()): string => {
+      const { from, to } = idiomas;
       return marcadorDeTraducao(origemDaFala(from || origemDoMotor, idiomaObservadoRef.current, !isSys), to);
     };
 
@@ -374,6 +397,8 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       if (!modelReadyRef.current) return; // modelo ainda baixando → não cria balão vazio
       const uttId = `${idPrefix}-${seq}`;
       seqToSegmentRef.current.set(seq, uttId);
+      const doLado = direcaoDoLado();
+      if (doLado) direcoesPorSeq.set(seq, doLado);
       capMetrics.start(seq, source);
       if (isSys) sysAbertasRef.current.set(seq, Date.now());
       else micInicioRef.current.set(seq, Date.now());
@@ -388,10 +413,11 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
                 source,
                 timestamp: formatTime(timerRef.current),
                 originalText: '',
-                translatedText: marcadorPrevisto(),
+                translatedText: marcadorPrevisto('', langs(seq)),
                 words: [],
                 isPartial: true,
                 tStartMs: nowRel(),
+                ...(doLado ? { lado: doLado.lado } : {}),
               },
             ],
       );
@@ -401,6 +427,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     const onMisfire = (rawSeq: number) => {
       const seq = rawSeq + offset;
       suppressedSeqsRef.current.delete(seq); // anti-eco: não deixa entrada órfã no set
+      direcoesPorSeq.delete(seq);
       const id = seqToSegmentRef.current.get(seq);
       seqToSegmentRef.current.delete(seq);
       lastPartialTextRef.current.delete(seq);
@@ -448,7 +475,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       if (lastPartialTextRef.current.get(seq) === FALA_FECHADA) return;
       // O parcial único do automático já foi pedido para esta fala (a marca é posta no pedido, abaixo).
       if (perfModeAutomatico() && lastPartialTextRef.current.has(seq)) return;
-      const idiomas = langs();
+      const idiomas = langs(seq);
       const { to } = idiomas;
       let { hint, from } = idiomas;
       /* ENQUANTO NÃO SABEMOS O IDIOMA, O PARCIAL ATRAPALHA MAIS DO QUE AJUDA.
@@ -527,7 +554,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
          parciais cortados pelo regulador ou no modo desempenho, esse decode é o que falta para o final
          chegar a tempo; o final continua saindo quando o VAD fecha a fala, ~0,38 s depois. */
       if (perfModeRef.current || reguladorRef?.current.parciaisCortados || aparelhoLeve()) return null;
-      const { hint } = langs();
+      const { hint } = langs(seq);
       const ctl = new AbortController();
       const promessa = gateway.stt.transcribePcm(pcm, sr, { languageHint: hint, signal: ctl.signal });
       promessa.catch(() => {
@@ -572,6 +599,11 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       }
       const seq = rawSeq + offset;
       const uttId = seqToSegmentRef.current.get(seq) ?? `${idPrefix}-${seq}`;
+      /* O lado desta fala (o do começo, se o VAD o viu; senão o de agora) — e ele sai do mapa: daqui
+         em diante a direção vai nas variáveis deste final. */
+      const doLado = direcaoDoLado(seq);
+      const idiomasDaFala = langs(seq);
+      direcoesPorSeq.delete(seq);
       capMetrics.speechEnd(seq);
       // Daqui até o resultado do final, nenhum parcial desta fala decodifica nem traduz.
       lastPartialTextRef.current.set(seq, FALA_FECHADA);
@@ -587,13 +619,17 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
                 source,
                 timestamp: formatTime(timerRef.current),
                 originalText: '',
-                translatedText: marcadorPrevisto(),
+                translatedText: marcadorPrevisto('', idiomasDaFala),
                 words: [],
                 isPartial: true,
                 tStartMs: nowRel(),
+                ...(doLado ? { lado: doLado.lado } : {}),
               },
             ],
       );
+      /* A fala ACABOU (o VAD fechou): no intérprete é aqui que o microfone fecha — a voz que lê a
+         tradução vem depois, e o guarda de eco cobre a cauda. */
+      aoFimDaFala?.({ segId: uttId, source, ...(doLado ? { lado: doLado.lado } : {}) });
 
       // IDENTIFICAÇÃO DE VOZ (paralela ao decode; nunca atrasa a legenda): quem falou?
       // Só nas vozes do SISTEMA em Conversa — a sua voz já é "Você" por definição.
@@ -668,7 +704,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
         });
       }
 
-      const { hint, from, to } = langs();
+      const { hint, from, to } = idiomasDaFala;
       const t0 = performance.now();
       const audioMs = Math.round((pcm.length / sr) * 1000);
       const queueDepth = gateway.stt.pendingCount();
@@ -784,7 +820,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
                 ? {
                     ...s,
                     originalText: clean,
-                    translatedText: marcadorPrevisto(idiomaDoMotor),
+                    translatedText: marcadorPrevisto(idiomaDoMotor, idiomasDaFala),
                     words: wordsFromText(clean, from || idiomaDoMotor || sourceLang),
                     isPartial: false,
                     tEndMs: nowRel(),

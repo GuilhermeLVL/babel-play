@@ -131,7 +131,7 @@ import { criarRelogioDaSessao, criarTraducaoDaFala } from '../../lib/captura/tra
 import { modoDeTraducao, type PedidoSobDemanda } from '../../lib/captura/traducaoSobDemanda';
 import { usePalavrasConhecidas } from '../../lib/captura/usePalavrasConhecidas';
 import { usePreparoDoInicio } from '../../lib/captura/usePreparoDoInicio';
-import { cenarioDasFontes } from '../../lib/cenarioDeCaptura';
+import { cenarioDasFontes, type CenarioDeCaptura } from '../../lib/cenarioDeCaptura';
 import { consentiuNuvem, rapidoDoMicPermitido, useEscolhaDoMic } from '../../lib/consentimentoDeNuvem';
 import { DominantLangTracker } from '../../lib/convoLang';
 import { classificarDispositivo, dispositivoDaRota, lerSinaisDoDispositivo } from '../../lib/dispositivo/perfil';
@@ -722,7 +722,8 @@ export default function LiveCapture({
   // 'media' = assistir vídeo/aula/podcast (só sistema) · 'conversation' = chamada/reunião
   // (mic+sistema) · 'mic' = praticar a própria voz (só mic). Trocar de cenário só ajusta as
   // FONTES; os idiomas escolhidos permanecem. (O tipo vive em `lib/captura/tiposDaFala.ts`.)
-  const [captureScenario, setCaptureScenario] = useState<CaptureScenario>(() =>
+  // Nunca o `interprete` (Fase E): o intérprete tem a tela própria, que põe o cenário no ref do pipeline.
+  const [captureScenario, setCaptureScenario] = useState<CenarioDeCaptura>(() =>
     cenarioDasFontes(micEnabled, systemEnabled),
   );
   // Espelho p/ os handlers assíncronos (a identificação de voz só roda no cenário Conversa).

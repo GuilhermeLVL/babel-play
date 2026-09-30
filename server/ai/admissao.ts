@@ -46,7 +46,8 @@ import { contarAdmissaoRecusada, registrarLeitorDeSaldo } from '../http/metricas
 import { configDeAdmissao } from '../lib/config'
 import type { LimitesDeclarados } from './registroDeProvedores'
 
-export type TipoDeIa = 'stt' | 'llm'
+/** `tts`: a voz natural do modo intérprete (E4 da Fase E) — balde e vaga em voo próprios, sem tokens. */
+export type TipoDeIa = 'stt' | 'llm' | 'tts'
 export type PlanoDeAdmissao = 'premium' | 'gratis' | 'alivio'
 export type MotivoDeRecusa = 'minuto' | 'tokens_minuto' | 'dia' | 'tokens_dia' | 'provedor_limitou' | 'em_voo'
 
@@ -146,7 +147,7 @@ function limitesDe(tipo: TipoDeIa, declarados?: LimitesDeclarados): LimitesDoBal
     }
   }
   const c = configDeAdmissao()
-  const l = tipo === 'stt' ? c.stt : c.llm
+  const l = tipo === 'stt' ? c.stt : tipo === 'tts' ? c.tts : c.llm
   return { rpm: l.rpm, tpm: 0, rpd: l.rpd, tpd: l.tpd }
 }
 
@@ -326,11 +327,11 @@ export function fracaoDoBalde(
 
 /**
  * Ocupa uma vaga EM VOO do usuário. Devolve a função que a libera (idempotente), ou `null` quando
- * ele já está no teto — 1 STT, 2 LLM por padrão.
+ * ele já está no teto — 1 STT, 2 LLM e 1 voz natural por padrão.
  */
 export function ocuparVaga(userId: string, tipo: TipoDeIa): (() => void) | null {
   const cfg = configDeAdmissao()
-  const teto = tipo === 'stt' ? cfg.emVooStt : cfg.emVooLlm
+  const teto = tipo === 'stt' ? cfg.emVooStt : tipo === 'tts' ? cfg.emVooTts : cfg.emVooLlm
   const chave = `${tipo}:${userId}`
   const atuais = emVoo.get(chave) ?? 0
   if (atuais >= teto) return null

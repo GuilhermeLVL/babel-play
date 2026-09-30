@@ -40,6 +40,11 @@ export interface SpeechSegment {
    * em "…" e a linha diz "Baixando o tradutor…" (`traducaoDaFala.ts`); o "tradutor pronto" a refaz.
    */
   traducaoPendente?: boolean;
+  /**
+   * MODO INTÉRPRETE (Fase E): de que metade da tela veio esta fala. É o LADO, e não a fonte, que diz a
+   * direção — as duas pessoas falam no mesmo microfone. Ausente fora do intérprete.
+   */
+  lado?: LadoDoInterprete;
 }
 
 // `VocabWord` agora vive em `src/types.ts` — é o contrato compartilhado do <VocabularyPanel/>,
@@ -82,8 +87,42 @@ export const USER_COLOR = '#EA580C';
 /** Voz do sistema ainda não identificada (cinza neutro: "alguém", não uma pessoa nomeada). */
 export const UNKNOWN_VOICE_COLOR = '#64748B';
 
-/** Cenário de captura: a intenção do usuário decide fontes, rótulos e painéis. */
-export type CaptureScenario = 'media' | 'conversation' | 'mic';
+/**
+ * Cenário de captura: a intenção do usuário decide fontes, rótulos e painéis. `interprete` (Fase E):
+ * duas pessoas frente a frente num aparelho só, cada uma com o seu botão de falar; a direção da
+ * tradução vem do LADO tocado (`interprete.ts`), e a tradução é lida em voz alta para o outro.
+ */
+export type CaptureScenario = 'media' | 'conversation' | 'mic' | 'interprete';
+
+/**
+ * A METADE DA TELA no modo intérprete (Fase E): `meu` é a metade virada para quem segura o aparelho;
+ * `outro`, a metade virada 180° para a outra pessoa. Cada metade tem o seu botão de falar e o seu
+ * idioma (`interprete.ts`, `direcaoDoLado`).
+ */
+export type LadoDoInterprete = 'meu' | 'outro';
+
+/**
+ * A DIREÇÃO DA FALA DO MICROFONE quando ela vem do lado, e não da configuração (modo intérprete):
+ * quem fala, em que idioma o reconhecedor ouve e para qual idioma vai a tradução.
+ */
+export interface DirecaoDaFala {
+  lado: LadoDoInterprete;
+  /** BCP-47 de quem fala — o idioma em que a Web Speech abre (`pt-BR`, `en-US`). */
+  fala: string;
+  /** ISO-639-1 da fala (a dica do Whisper e a origem da tradução). */
+  de: string;
+  /** ISO-639-1 da tradução — o idioma de quem ouve. */
+  para: string;
+}
+
+/** Uma fala terminou no microfone (o VAD fechou, ou a Web Speech comprometeu o final). */
+export interface FimDaFala {
+  /** O id do balão da fala. */
+  segId: string;
+  source: 'system' | 'mic';
+  /** No modo intérprete, o lado de quem falou. */
+  lado?: LadoDoInterprete;
+}
 
 /** mm:ss a partir de segundos — o carimbo de tempo de cada fala e o cronômetro da sessão. */
 export const formatTime = (s: number) => {

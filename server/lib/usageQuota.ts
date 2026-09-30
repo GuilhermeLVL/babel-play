@@ -65,6 +65,13 @@ const METRICA = {
 export const METRIC_STT_SEGUNDOS_DIA = 'stt_seconds_dia'
 export const METRIC_LLM_TOKENS_DIA = 'llm_tokens_dia'
 
+/**
+ * A VOZ NATURAL do modo intérprete (E4 da Fase E, `server/ai/ttsProxy.ts`): caracteres lidos em voz alta
+ * pela nuvem — a unidade em que o provedor cobra. No mês e no dia local, como o STT e os tokens.
+ */
+export const METRIC_TTS_CARACTERES = 'tts_chars'
+export const METRIC_TTS_CARACTERES_DIA = 'tts_chars_dia'
+
 /** Qual teto recusou: o do MÊS (402 `quota_exceeded`) ou o do DIA (429 `uso_justo_do_dia`). */
 export type RecusaDaCota = 'mes' | 'dia'
 
@@ -395,5 +402,48 @@ export async function acertarTokensDeLlm(
     }
   } catch (err) {
     log('warn', { event: 'llm_tokens_acerto_falhou', error: String(err).slice(0, 120) })
+  }
+}
+
+/** Teto MENSAL de caracteres da voz natural. `<PLANO>_MONTHLY_TTS_CHARS` sobrepõe; ∞ = sem teto. */
+export function capCaracteresDeVozParaPlano(plan: PlanoEfetivo): number {
+  return tetoComEnv(definicaoDoPlano(plan).quotas.vozCaracteresMes, envDoPlano(plan, 'MONTHLY_TTS_CHARS'))
+}
+
+/** Teto DIÁRIO (o uso justo) de caracteres da voz natural. `<PLANO>_DAILY_TTS_CHARS` sobrepõe; ∞ = sem teto no dia. */
+export function capCaracteresDeVozDoDia(plan: PlanoEfetivo): number {
+  return tetoComEnv(definicaoDoPlano(plan).quotas.vozCaracteresDia, envDoPlano(plan, 'DAILY_TTS_CHARS'))
+}
+
+/**
+ * RESERVA os caracteres de UMA fala lida pela voz natural ANTES de chamar o provedor — o mês e depois o
+ * dia, como os segundos do STT (`reservarNoMesENoDia`). A recusa diz qual: o mês é o 402
+ * `quota_exceeded`; o dia, o 429 `uso_justo_do_dia`. Falha de infra → `ContadorIndisponivel`.
+ */
+export async function reservarCaracteresDeVoz(userId: UserId, caracteres: number): Promise<ReservaDaCota> {
+  const quantidade = Math.max(1, Math.round(caracteres))
+  try {
+    const plano = await getPlanForUser(userId)
+    return await reservarNoMesENoDia(
+      userId,
+      METRIC_TTS_CARACTERES,
+      capCaracteresDeVozParaPlano(plano),
+      METRIC_TTS_CARACTERES_DIA,
+      capCaracteresDeVozDoDia(plano),
+      quantidade,
+    )
+  } catch (err) {
+    falharFechado('quota_tts_failed_closed', err)
+  }
+}
+
+/** Estorna caracteres reservados que não viraram voz (o provedor recusou ou caiu) — do mês e do dia da reserva. */
+export async function estornarCaracteresDeVoz(userId: UserId, caracteres: number, dia: string | null): Promise<void> {
+  const quantidade = Math.max(1, Math.round(caracteres))
+  try {
+    await usageCountersRepo.refund(userId, METRIC_TTS_CARACTERES, currentWindow(), quantidade)
+    if (dia) await usageCountersRepo.refund(userId, METRIC_TTS_CARACTERES_DIA, dia, quantidade)
+  } catch (err) {
+    log('warn', { event: 'quota_tts_refund_failed', error: String(err).slice(0, 120) })
   }
 }

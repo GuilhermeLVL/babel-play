@@ -14,6 +14,7 @@ import { llmChatProxy, providerTest } from '../ai/proxy'
 import { sttDeNuvemConfigurado } from '../ai/registroDeProvedores'
 import { apagarDoGlossario, gravarNoGlossario, listarGlossario } from '../ai/rotasDoGlossario'
 import { portaDoStt, sttTranscribeProxy } from '../ai/sttProxy'
+import { ttsProxy } from '../ai/ttsProxy'
 import { credentialsRepo } from '../db/repositories/credentials'
 import { getPlanForUser, hasEntitlement } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
@@ -43,6 +44,11 @@ aiRouter.post('/mt/alternativas', alternativasProxy)
 /* "Polir a tradução da sessão" (D5 da Fase D): um bloco de até 40 falas por pedido, lidas do banco,
    no nível `polimento`; a polida vai AO LADO da original, e o bloco já polido não é cobrado de novo. */
 aiRouter.post('/mt/polir', polirProxy)
+/* A VOZ NATURAL do modo intérprete (E4 da Fase E): a tradução lida em voz alta pela nuvem, só com o
+   `vozNatural` (402 pelo entitlement) e a flag `voz_natural` (503), com a admissão `tts`, a cota de
+   caracteres no mês e no dia e o custo das outras funções. Sem clonagem de voz. O cliente cai na voz
+   do aparelho a qualquer recusa (`src/lib/voz/vozDaNuvem.ts`). */
+aiRouter.post('/tts', ttsProxy)
 /* O GLOSSÁRIO PESSOAL da Tradução Nuance (D3 da Fase D): ler e apagar em qualquer plano (é dado da
    pessoa), gravar só com `traducaoNuance` (`server/ai/rotasDoGlossario.ts`). */
 aiRouter.get('/glossario', listarGlossario)

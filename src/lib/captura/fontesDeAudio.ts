@@ -35,7 +35,7 @@ import { type EscolhaDoMic, resolverMotorDoMic } from './motorDoMicrofone';
 import { criarProgressoDosPacotesNativos } from './pacotesNativos';
 import type { OpcoesDaPreparacao } from './pipelineDeFala';
 import { segmentosDaWebSpeech } from './segmentosDaWebSpeech';
-import { clog, type HandlersDaFonte, type SpeechSegment } from './tiposDaFala';
+import { clog, type DirecaoDaFala, type FimDaFala, type HandlersDaFonte, type SpeechSegment } from './tiposDaFala';
 import type { OpcoesDeTraducao } from './traducaoDaFala';
 import {
   type ControleDaWebSpeechDoSistema,
@@ -133,6 +133,14 @@ export interface DepsDasFontesDeAudio {
    * quando o microfone abre, e não no primeiro final (relato do dono no celular, 2026-09-29).
    */
   prepararTradutorDaFala?: () => void;
+  /* --- modo intérprete (Fase E) --- */
+  /**
+   * A direção do microfone pelo lado tocado (`interprete.ts`, `direcaoAtual`): a Web Speech abre no
+   * idioma de quem fala e traduz para o de quem ouve. `null`/ausente = a configuração de sempre.
+   */
+  direcaoDoMicrofone?: () => DirecaoDaFala | null;
+  /** A Web Speech comprometeu o final de uma fala: o intérprete fecha o microfone aqui. */
+  aoFimDaFala?: (fim: FimDaFala) => void;
 }
 
 /**
@@ -143,6 +151,15 @@ export const PRAZO_DO_AUDIO_DA_WEB_SPEECH_MS = 20_000;
 
 /** O aviso "o mic foi para o modelo local por falta de consentimento" sai UMA vez por página. */
 let avisouMicSemNuvem = false;
+
+/**
+ * O MODO E O IDIOMA de cada sessão da Web Speech do microfone, e o modo da última de cada tela (a
+ * chave é o `webSpeechRef`, que é o mesmo entre os renders; a fábrica não é). É o que deixa o
+ * intérprete REABRIR a Web Speech no idioma de outro lado sem perguntar de novo "Rápido ou Privado?"
+ * — no aparelho continua no aparelho, na nuvem continua na nuvem.
+ */
+const sessoesDaWebSpeech = new WeakMap<SttSession, { noAparelho: boolean; idioma: string }>();
+const modoDaWebSpeech = new WeakMap<object, { noAparelho: boolean }>();
 
 export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
   const {
@@ -497,16 +514,23 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
     // A Web Speech abre o microfone sozinha: o contexto do clique não tem uso aqui.
     descartarContextoDoClique();
     const speakerId = 'user';
-    const from = sourceLangRef.current.split('-')[0];
-    const to = targetLangRef.current.split('-')[0];
+    /* MODO INTÉRPRETE: o idioma é o do LADO tocado, lido na abertura — a Web Speech ouve num idioma só,
+       e trocar de lado reabre a sessão (`abrirMicrofoneNoLado`). Fora dele, a configuração. */
+    const direcao = deps.direcaoDoMicrofone?.() ?? null;
+    const from = direcao?.de ?? sourceLangRef.current.split('-')[0];
+    const to = direcao?.para ?? targetLangRef.current.split('-')[0];
+    const idiomaDaFala = direcao?.fala ?? sourceLangRef.current;
     try {
       const { aoParcial, aoFinal } = segmentosDaWebSpeech({
         source: 'mic',
         speakerId,
-        idiomaDasPalavras: sourceLang,
+        idiomaDasPalavras: direcao?.fala ?? sourceLang,
         de: () => from,
         para: () => to,
         falada: true,
+        ...(direcao ? { lado: direcao.lado } : {}),
+        aoFinalComprometido: (segId) =>
+          deps.aoFimDaFala?.({ segId, source: 'mic', ...(direcao ? { lado: direcao.lado } : {}) }),
         idDoParcialRef: webSpeechPartialIdRef,
         timerRef,
         nowRel,
@@ -560,7 +584,7 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
           isRecordingRef.current = false;
         }
       };
-      sessao = new WebSpeechStt({ processLocally: noAparelho }).startLive(sourceLangRef.current, {
+      sessao = new WebSpeechStt({ processLocally: noAparelho }).startLive(idiomaDaFala, {
         onPartial: aoParcial,
         onFinal: ({ text }: { text: string }) => aoFinal(text),
         onError: (e: Error) => {
@@ -597,6 +621,8 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
       });
       if (acabou) return true; // falhou no próprio `start()`: a ajuda já está na tela
       webSpeechRef.current = sessao;
+      sessoesDaWebSpeech.set(sessao, { noAparelho, idioma: idiomaDaFala });
+      modoDaWebSpeech.set(webSpeechRef, { noAparelho });
       prazo.id = setTimeout(() => {
         if (!abriu)
           falhou(
@@ -729,5 +755,57 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
     void startMic().finally(() => setMicAbrindo(false));
   };
 
-  return { handleStartSystemCapture, startMic, alternarMicrofone };
+  /** Encerra a sessão da Web Speech do microfone, se houver (o `stop` compromete o final pendente). */
+  const encerrarWebSpeechDoMic = () => {
+    const sessao = webSpeechRef.current;
+    if (!sessao) return;
+    try {
+      sessao.stop();
+    } catch {
+      /* já parado */
+    }
+    if (webSpeechRef.current === sessao) {
+      webSpeechRef.current = null;
+      webSpeechPartialIdRef.current = null;
+    }
+  };
+
+  /**
+   * MODO INTÉRPRETE: abre o microfone para o lado tocado (`direcaoDoMicrofone`). A primeira vez passa
+   * pela decisão de sempre (`startMic`: no aparelho, Rápido ou Privado — no Android, o Whisper, que não
+   * apita). Depois:
+   *   - Whisper: só tira o mudo — a dica do idioma vai a cada fala (`pipelineDeFala.ts`), nada reinicia;
+   *   - Web Speech aberta noutro idioma: REINICIA no idioma do lado, no mesmo modo (aparelho ou nuvem);
+   *   - Web Speech fechada (o fim da fala a fechou): abre outra, no mesmo modo da última.
+   * Sempre a partir do toque — a Web Speech só religa quando alguém pede para falar.
+   */
+  const abrirMicrofoneNoLado = async (): Promise<void> => {
+    if (micCaptureRef.current) {
+      micCaptureRef.current.setMuted(false);
+      return;
+    }
+    const direcao = deps.direcaoDoMicrofone?.() ?? null;
+    const aberta = webSpeechRef.current;
+    const daAberta = aberta ? sessoesDaWebSpeech.get(aberta) : undefined;
+    if (aberta && daAberta && (!direcao || daAberta.idioma === direcao.fala)) return;
+    if (aberta) {
+      clog('intérprete: Web Speech reinicia no idioma do lado', direcao?.fala ?? '?');
+      encerrarWebSpeechDoMic();
+    }
+    const modo = daAberta ?? modoDaWebSpeech.get(webSpeechRef);
+    if (modo && startWebSpeechMic(modo.noAparelho)) return;
+    await startMic();
+  };
+
+  /**
+   * MODO INTÉRPRETE: o fim da fala fecha o microfone — a voz que lê a tradução vem depois, e o guarda
+   * de eco cobre a cauda. Whisper: mudo (a captura segue aberta, sem novo pedido de permissão); Web
+   * Speech: a sessão acaba (nada de religar sozinha a cada silêncio, que no Android apita).
+   */
+  const fecharMicrofoneDoLado = (): void => {
+    micCaptureRef.current?.setMuted(true);
+    encerrarWebSpeechDoMic();
+  };
+
+  return { handleStartSystemCapture, startMic, alternarMicrofone, abrirMicrofoneNoLado, fecharMicrofoneDoLado };
 }

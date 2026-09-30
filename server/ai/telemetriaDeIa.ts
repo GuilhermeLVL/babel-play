@@ -39,7 +39,7 @@ import { log } from '../lib/logger'
 import { salDoPseudonimo } from '../lib/pseudonimoDeUsuario'
 import { fornecedorDaBase } from './registroDeProvedores'
 
-/** A função de produto que a requisição serve — a dimensão "feature" do painel. */
+/** A função de produto que a requisição serve — a dimensão "feature" do painel. `tts`: a voz natural do intérprete (E4 da Fase E). */
 export type FuncaoTelemetrada =
   | 'stt'
   | 'mt-fala'
@@ -49,6 +49,7 @@ export type FuncaoTelemetrada =
   | 'tutor'
   | 'corretor'
   | 'byok-chat'
+  | 'tts'
 
 /** Os metadados de RASTRO que as rotas podem anotar. Lista fechada: nada de texto livre. */
 export interface AnotacoesDoRastro {

@@ -285,6 +285,24 @@ describe('POST /api/ai/mt/polir — polir a tradução da sessão (D5)', () => {
   })
 })
 
+/* E4 (Fase E): a voz natural do intérprete. No self-host o plano é o `selfhost`, que tem a `vozNatural`; a
+   flag `voz_natural` nasce desligada (migração 0046) — e é isso que a rota diz, sem chamar provedor. */
+describe('POST /api/ai/tts — voz natural do intérprete (E4)', () => {
+  it('flag desligada (o padrão da 0046) → 503 voz_natural_desligada, sem provedor', async () => {
+    const r = await s.post('/api/ai/tts', { texto: 'Olá, tudo bem?', idioma: 'pt-BR' })
+    expect(r.status).toBe(503)
+    expect((await r.json()).code).toBe('voz_natural_desligada')
+    expect(chamadas).toHaveLength(0)
+  })
+
+  it('pedido com áudio de referência → 400 clonagem_de_voz_recusada, antes de tudo', async () => {
+    const r = await s.post('/api/ai/tts', { texto: 'Olá', idioma: 'pt', audio_prompt: 'data:audio/wav;base64,AAAA' })
+    expect(r.status).toBe(400)
+    expect((await r.json()).code).toBe('clonagem_de_voz_recusada')
+    expect(chamadas).toHaveLength(0)
+  })
+})
+
 describe('GET /api/ai/stt/available', () => {
   it('com chave de STT no servidor e plano self-host → 200 { available: true }', async () => {
     fixar('STT_API_KEY', 'chave-stt-falsa')

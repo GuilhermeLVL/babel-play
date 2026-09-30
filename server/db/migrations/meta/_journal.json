@@ -323,6 +323,13 @@
       "when": 1790780000000,
       "tag": "0045_ofertas_v2",
       "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "6",
+      "when": 1790790000000,
+      "tag": "0046_flag_voz_natural",
+      "breakpoints": true
     }
   ]
 }

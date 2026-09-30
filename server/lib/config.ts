@@ -271,7 +271,8 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     nome: 'CROSS_ORIGIN_ISOLATION',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
-    paraQue: 'habilita COOP/COEP, necessário para SharedArrayBuffer na inferência local',
+    paraQue:
+      'isolamento de origem (SharedArrayBuffer → WASM com threads na inferência local), LIGADO por padrão: ausente ou `1` = COOP same-origin + COEP credentialless + Document-Isolation-Policy; `dip` = só o DIP (Chromium; para quando um iframe de terceiro não aceitar COEP); `0` desliga (server/http/isolamento.ts)',
   },
   {
     nome: 'DATABASE_AUTH_TOKEN',

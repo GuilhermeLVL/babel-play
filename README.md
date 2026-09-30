@@ -109,7 +109,7 @@ Details in [docs/arquitetura.md](docs/arquitetura.md).
 | WebGPU | Chrome/Edge 113+, Safari 18+; Firefox falls back to WASM (slower, works) |
 | First load | ~40–80 MB of model weights from the Hugging Face Hub, cached by the browser |
 | System audio | Windows loopback via the local server (self-host), or tab/screen share anywhere |
-| WASM threads | need cross-origin isolation (`CROSS_ORIGIN_ISOLATION=1`); single-thread otherwise |
+| WASM threads | cross-origin isolation is on by default (Chrome/Edge/Firefox; Safari stays single-thread); `CROSS_ORIGIN_ISOLATION=0` turns it off |
 
 ## Measured, not claimed
 

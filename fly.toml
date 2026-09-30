@@ -48,6 +48,9 @@ kill_timeout = 30
   # interna 9091, que o bloco `[metrics]` abaixo manda o Fly raspar. Não é segredo: é configuração.
   METRICS_ENABLED = "1"
   METRICS_PORTA_INTERNA = "9091"
+  # Isolamento de origem (COOP + COEP credentialless + Document-Isolation-Policy) sai LIGADO sem
+  # variável nenhuma: é o que dá threads ao WASM do Whisper no aparelho. Só defina
+  # CROSS_ORIGIN_ISOLATION = "dip" (ou "0") se um recurso de terceiro quebrar — server/http/isolamento.ts.
 
 [[mounts]]
   source = "babel_dados"

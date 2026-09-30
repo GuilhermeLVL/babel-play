@@ -1,22 +1,22 @@
 {
-  "total": 1501,
+  "total": 1502,
   "piso": 0.9,
   "idiomas": {
     "pt": {
-      "chaves": 1501,
+      "chaves": 1502,
       "cobertura": 1
     },
     "ar": {
       "chaves": 284,
-      "cobertura": 0.1892
+      "cobertura": 0.1891
     },
     "en": {
-      "chaves": 1501,
+      "chaves": 1502,
       "cobertura": 1
     },
     "es": {
       "chaves": 283,
-      "cobertura": 0.1885
+      "cobertura": 0.1884
     }
   }
 }

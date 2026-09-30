@@ -5,6 +5,7 @@ import {
   CircleHelp,
   Cpu,
   Hand,
+  Languages,
   Loader2,
   Mic,
   MicOff,
@@ -60,6 +61,7 @@ export default function CapturaNoCelular({
   aoParar,
   aoAbrirOpcoes,
   aoAbrirAjuda,
+  aoAbrirInterprete,
   aoAbrirVisual,
   temFalas,
   conversa,
@@ -92,6 +94,8 @@ export default function CapturaNoCelular({
   aoParar: () => void;
   aoAbrirOpcoes: () => void;
   aoAbrirAjuda: () => void;
+  /** Abre o modo intérprete (E3); ausente quando o par não serve (um lado em "Detectar", o mesmo idioma). */
+  aoAbrirInterprete?: () => void;
   aoAbrirVisual: () => void;
   temFalas: boolean;
   conversa: ReactNode;
@@ -145,7 +149,13 @@ export default function CapturaNoCelular({
               disabled={micAbrindo}
               onClick={() => aoAlternarMic(!micLigado)}
             >
-              {micAbrindo ? <Loader2 aria-hidden className="animate-spin" /> : micLigado ? <Mic aria-hidden /> : <MicOff aria-hidden />}
+              {micAbrindo ? (
+                <Loader2 aria-hidden className="animate-spin" />
+              ) : micLigado ? (
+                <Mic aria-hidden />
+              ) : (
+                <MicOff aria-hidden />
+              )}
             </button>
             <span aria-hidden>{micLigado ? t('Mudo') : t('Ativar')}</span>
           </div>
@@ -167,6 +177,17 @@ export default function CapturaNoCelular({
           </p>
           <h1 className="cel-titulo">{t('Capturar')}</h1>
         </div>
+        {aoAbrirInterprete && (
+          <button
+            type="button"
+            className="cel-ib peq"
+            onClick={aoAbrirInterprete}
+            aria-label={t('Modo intérprete')}
+            data-testid="entrar-no-interprete"
+          >
+            <Languages aria-hidden />
+          </button>
+        )}
         <button type="button" className="cel-ib peq" onClick={aoAbrirAjuda} aria-label={t('Ajuda')}>
           <CircleHelp aria-hidden />
         </button>

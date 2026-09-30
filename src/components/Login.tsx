@@ -8,12 +8,16 @@ import React, { useEffect, useState } from 'react';
 
 import { lerAbertura } from '../data/rotas/idade';
 import * as auth from '../lib/auth';
+import { t } from '../lib/i18n';
 import { supabase } from '../lib/supabase';
+import { T } from '../lib/T';
 import AuthShell from './auth/AuthShell';
 import PasswordField from './auth/PasswordField';
 
 type Mode = 'login' | 'signup' | 'forgot';
 
+/* As tabelas guardam a CHAVE (o português); quem traduz é o ponto de uso, `t(TITULO[modo])` —
+   traduzir aqui, na carga do módulo, prenderia a frase ao idioma daquele instante. */
 const TITULO: Record<Mode, string> = { login: 'Entrar', signup: 'Criar conta', forgot: 'Recuperar senha' };
 const SUB: Record<Mode, string> = {
   login: 'Bem-vindo de volta.',
@@ -76,7 +80,7 @@ export default function Login({ onContinuarSemConta }: LoginProps = {}) {
     setCarregando(true);
     const r = await auth.signInWithProvider(provider, redirectTo);
     if (!r.ok) {
-      setErro(r.message ?? 'Falha no login social.');
+      setErro(r.message ?? t('Falha no login social.'));
       setCarregando(false);
     }
     // sucesso → o browser é redirecionado ao provedor; nada a fazer aqui.
@@ -90,21 +94,21 @@ export default function Login({ onContinuarSemConta }: LoginProps = {}) {
     try {
       if (modo === 'login') {
         const r = await auth.signInEmail(email, senha);
-        if (!r.ok) setErro(r.message ?? 'Falha ao entrar.');
+        if (!r.ok) setErro(r.message ?? t('Falha ao entrar.'));
       } else if (modo === 'signup') {
         // O mínimo do Supabase de produção, conferido aqui: o `minLength` do campo não segura um
         // envio programático, e o erro do servidor chegaria em inglês.
         if (senha.length < auth.SENHA_MINIMA) {
-          setErro(auth.SENHA_CURTA);
+          setErro(t(auth.SENHA_CURTA, { n: auth.SENHA_MINIMA }));
           return;
         }
         const r = await auth.signUpEmail(email, senha);
-        if (!r.ok) setErro(r.message ?? 'Falha ao criar conta.');
+        if (!r.ok) setErro(r.message ?? t('Falha ao criar conta.'));
         else if (r.needsEmailConfirm)
-          setAviso(r.message ?? 'Conta criada! Confirme pelo link enviado ao seu e-mail para entrar.');
+          setAviso(r.message ?? t('Conta criada! Confirme pelo link enviado ao seu e-mail para entrar.'));
       } else {
         const r = await auth.sendPasswordReset(email, redirectTo);
-        setAviso(r.message ?? 'Se existir uma conta, enviamos um link.');
+        setAviso(r.message ?? t('Se existir uma conta, enviamos um link.'));
       }
     } finally {
       setCarregando(false);
@@ -112,24 +116,23 @@ export default function Login({ onContinuarSemConta }: LoginProps = {}) {
   }
 
   const heroRecuperar = {
-    title: (
-      <>
-        Sem
-        <br />
-        estresse.
-      </>
-    ),
-    subtitle: 'Enviamos um link seguro pro seu e-mail, você define uma nova senha e volta em segundos.',
+    // A quebra de linha mora na frase: em outro idioma ela cai onde o tradutor puser o `<br>`.
+    title: <T txt="Sem<br>estresse." />,
+    subtitle: t('Enviamos um link seguro pro seu e-mail, você define uma nova senha e volta em segundos.'),
   };
 
   return (
     <AuthShell hero={modo === 'forgot' ? heroRecuperar : undefined}>
-      <h1 className="font-display text-2xl font-bold text-ink">{TITULO[modo]}</h1>
-      <p className="mt-1 mb-6 text-sm text-ink-muted">{SUB[modo]}</p>
+      <h1 className="font-display text-2xl font-bold text-ink">{t(TITULO[modo])}</h1>
+      <p className="mt-1 mb-6 text-sm text-ink-muted">{t(SUB[modo])}</p>
 
       {!configurado && (
         <p className="mb-4 rounded-lg bg-warn-soft px-3 py-2 text-sm text-warn-ink" role="alert">
-          Login não configurado neste ambiente, defina as variáveis <code>VITE_SUPABASE_*</code> no <code>.env</code>.
+          {/* Os nomes entram como VALOR, fora da frase: o tradutor não os vê, então não os traduz. */}
+          <T
+            txt="Login não configurado neste ambiente, defina as variáveis <code>{variaveis}</code> no <code>{arquivo}</code>."
+            val={{ variaveis: 'VITE_SUPABASE_*', arquivo: '.env' }}
+          />
         </p>
       )}
 
@@ -142,12 +145,12 @@ export default function Login({ onContinuarSemConta }: LoginProps = {}) {
               disabled={carregando}
               className="btn-outline w-full justify-center disabled:opacity-50"
             >
-              Continuar com Google
+              {t('Continuar com Google')}
             </button>
           </div>
           <div className="my-5 flex items-center gap-3 text-xs text-ink-faint">
             <span className="h-px flex-1 bg-border-subtle" />
-            ou
+            {t('ou')}
             <span className="h-px flex-1 bg-border-subtle" />
           </div>
         </>
@@ -156,7 +159,7 @@ export default function Login({ onContinuarSemConta }: LoginProps = {}) {
       <form onSubmit={submit} className="grid gap-4">
         <div>
           <label htmlFor="auth-email" className="mb-1 block text-xs font-medium text-ink-muted">
-            E-mail
+            {t('E-mail')}
           </label>
           <input
             id="auth-email"
@@ -165,7 +168,7 @@ export default function Login({ onContinuarSemConta }: LoginProps = {}) {
             autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="voce@exemplo.com"
+            placeholder={t('voce@exemplo.com')}
             className="field-input"
           />
         </div>
@@ -174,11 +177,11 @@ export default function Login({ onContinuarSemConta }: LoginProps = {}) {
           <div>
             <div className="mb-1 flex items-center justify-between">
               <label htmlFor="auth-senha" className="block text-xs font-medium text-ink-muted">
-                Senha
+                {t('Senha')}
               </label>
               {modo === 'login' && (
                 <button type="button" onClick={() => trocaModo('forgot')} className="text-xs text-accent-ink underline">
-                  Esqueci
+                  {t('Esqueci')}
                 </button>
               )}
             </div>
@@ -191,7 +194,7 @@ export default function Login({ onContinuarSemConta }: LoginProps = {}) {
               autoComplete={modo === 'login' ? 'current-password' : 'new-password'}
               value={senha}
               onChange={(e) => setSenha(e.target.value)}
-              placeholder={`mínimo ${auth.SENHA_MINIMA} caracteres`}
+              placeholder={t('mínimo {n} caracteres', { n: auth.SENHA_MINIMA })}
             />
           </div>
         )}
@@ -212,35 +215,45 @@ export default function Login({ onContinuarSemConta }: LoginProps = {}) {
           disabled={carregando || !configurado}
           className="btn-ink w-full justify-center disabled:opacity-60"
         >
-          {carregando ? 'Aguarde…' : modo === 'login' ? 'Entrar' : modo === 'signup' ? 'Criar conta' : 'Enviar link'}
+          {carregando
+            ? t('Aguarde…')
+            : modo === 'login'
+              ? t('Entrar')
+              : modo === 'signup'
+                ? t('Criar conta')
+                : t('Enviar link')}
         </button>
       </form>
 
       <div className="mt-6 border-t border-border-subtle pt-5 text-center text-xs text-ink-muted">
         {modo === 'login' && cadastroAberto && (
           <>
-            Não tem conta?{' '}
+            {t('Não tem conta?')}{' '}
             <button
               type="button"
               onClick={() => trocaModo('signup')}
               className="font-medium text-accent-ink underline underline-offset-2"
             >
-              Criar uma conta
+              {t('Criar uma conta')}
             </button>
           </>
         )}
         {modo === 'login' && !cadastroAberto && (
-          <>O cadastro de contas novas está pausado temporariamente. Você pode usar o app sem conta, no seu aparelho.</>
+          <>
+            {t(
+              'O cadastro de contas novas está pausado temporariamente. Você pode usar o app sem conta, no seu aparelho.',
+            )}
+          </>
         )}
         {modo === 'signup' && (
           <>
-            Já tem conta?{' '}
+            {t('Já tem conta?')}{' '}
             <button
               type="button"
               onClick={() => trocaModo('login')}
               className="font-medium text-accent-ink underline underline-offset-2"
             >
-              Entrar
+              {t('Entrar')}
             </button>
           </>
         )}
@@ -250,7 +263,8 @@ export default function Login({ onContinuarSemConta }: LoginProps = {}) {
             onClick={() => trocaModo('login')}
             className="font-medium text-accent-ink underline underline-offset-2"
           >
-            ← Voltar ao login
+            {/* A seta fica DENTRO da frase: em árabe e hebraico "voltar" aponta para o outro lado. */}
+            {t('← Voltar ao login')}
           </button>
         )}
       </div>
@@ -258,22 +272,22 @@ export default function Login({ onContinuarSemConta }: LoginProps = {}) {
       {onContinuarSemConta && modo !== 'forgot' && (
         <div className="mt-4 text-center">
           <button type="button" onClick={onContinuarSemConta} className="btn-outline w-full justify-center">
-            Continuar sem conta
+            {t('Continuar sem conta')}
           </button>
-          {/* E5 — quem cria conta precisa conseguir LER o que está aceitando, antes de aceitar. */}
+          {/* E5 — quem cria conta precisa conseguir LER o que está aceitando, antes de aceitar.
+              UMA frase com os dois links dentro: cada idioma põe "termos" e "privacidade" na ordem
+              dele. O `href` fica no código (`tags`), nunca no catálogo baixado. */}
           <p className="text-[11px] text-ink-faint text-center mt-3">
-            Ao criar uma conta você concorda com os{' '}
-            <a href="/termos.html" target="_blank" rel="noopener" className="underline">
-              termos de uso
-            </a>{' '}
-            e a{' '}
-            <a href="/privacidade.html" target="_blank" rel="noopener" className="underline">
-              política de privacidade
-            </a>
-            .
+            <T
+              txt="Ao criar uma conta você concorda com os <termos>termos de uso</termos> e a <privacidade>política de privacidade</privacidade>."
+              tags={{
+                termos: <a href="/termos.html" target="_blank" rel="noopener" className="underline" />,
+                privacidade: <a href="/privacidade.html" target="_blank" rel="noopener" className="underline" />,
+              }}
+            />
           </p>
           <p className="mt-2 text-[11px] text-ink-faint">
-            Transcreva, traduza e jogue com a sessão atual. Nada sai deste navegador até você criar uma conta.
+            {t('Transcreva, traduza e jogue com a sessão atual. Nada sai deste navegador até você criar uma conta.')}
           </p>
         </div>
       )}

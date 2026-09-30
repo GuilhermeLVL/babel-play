@@ -135,8 +135,12 @@
     "faltamNoEspelho": [
       "[].createdAt",
       "[].deletedAt",
+      "[].polidoEm",
+      "[].polimentoModelo",
+      "[].polimentoVersao",
       "[].speakerId",
       "[].status",
+      "[].traducaoPolida",
       "[].updatedAt",
       "[].userId"
     ]

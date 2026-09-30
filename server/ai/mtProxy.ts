@@ -246,7 +246,8 @@ async function traduzir(req: Request, res: Response, rastro: RastroDeIa): Promis
      tradução dele já em voo), 429 `nuvem_ocupada` com `Retry-After` — e o cliente traduz no local. */
   const admitida = admitirCascata(custo.pernas, {
     userId: req.userId,
-    plano: planoDeAdmissao(planoDoUsuario.plan, alivio),
+    // O teste de 14 dias (C6) tem o Premium nos entitlements, mas entra na faixa grátis.
+    plano: planoDeAdmissao(planoDoUsuario.plan, alivio, gratuita.teste === true),
     tokens: estimativa,
   })
   if (admitida.ok === false) {

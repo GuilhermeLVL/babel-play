@@ -46,7 +46,7 @@ import { usageCountersRepo } from '../db/repositories/usageCounters'
 import { authRequired } from './auth'
 import { asUserId, type UserId } from './authContext'
 import { limitesAntiabusoDoConvidado, parametrosDoPoolGratuito } from './config'
-import { getPlanForUser } from './entitlements'
+import { resolverPlano } from './entitlements'
 import { flagLigada } from './flags'
 import { log } from './logger'
 import { avaliarAlivio, pedeAlivio, registrarCustoDoAlivio, responderRecusaDoAlivio } from './nuvemDeAlivio'
@@ -158,8 +158,14 @@ function contadorIndisponivel(res: Response, err: unknown): void {
 // ───────────────────────────── a porta ─────────────────────────────
 
 export interface PortaGratuita {
-  /** O plano resolvido (um só `getPlanForUser` por request). */
+  /** O plano resolvido (um só `resolverPlano` por request). */
   plano: PlanoEfetivo
+  /**
+   * O Premium é o do TESTE de 14 dias (C6): os entitlements são os do Premium, mas a admissão da nuvem
+   * trata a conta como grátis (`planoDeAdmissao(..., teste = true)`) — quem ainda não paga não disputa
+   * a capacidade de quem paga.
+   */
+  teste?: boolean
   /**
    * A conta Grátis aceitou a NUVEM DE ALÍVIO e passou pelas travas dela (A10): a chamada sai da
    * franquia do alívio (modo `alivio` de `usageQuota.ts`) e entra na faixa `alivio` da admissão.
@@ -183,13 +189,16 @@ export async function abrirPortaGratuita(
   recurso: RecursoDeNuvem,
 ): Promise<PortaGratuita | null> {
   let plano: PlanoEfetivo
+  let teste: boolean
   try {
-    plano = await getPlanForUser(req.userId)
+    const resolvido = await resolverPlano(req.userId)
+    plano = resolvido.plano
+    teste = resolvido.teste !== null
   } catch (err) {
     contadorIndisponivel(res, err)
     return null
   }
-  if (plano !== 'convidado' && plano !== 'free') return { plano, registrarCusto: semNada, estornar: semNada }
+  if (plano !== 'convidado' && plano !== 'free') return { plano, teste, registrarCusto: semNada, estornar: semNada }
 
   const agora = relogio()
   const hoje = dia(agora)

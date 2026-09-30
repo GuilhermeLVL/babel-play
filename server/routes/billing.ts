@@ -19,10 +19,11 @@ import { z } from 'zod'
 
 import { centavosParaReais, pacotePorSku } from '../../src/core/creditos'
 import { autorizarGastoDeCredito, ehRecusa } from '../../src/core/economiaAutoridade'
-import { normalizarPlano, PARCELAS_DO_ANUAL, PLAN_MATRIX } from '../../src/core/planos'
+import { DIAS_DO_TESTE_PREMIUM, normalizarPlano, PARCELAS_DO_ANUAL, PLAN_MATRIX } from '../../src/core/planos'
 import { billingEventsRepo } from '../db/repositories/billingEvents'
 import { creditsRepo } from '../db/repositories/credits'
 import { subscriptionsRepo } from '../db/repositories/subscriptions'
+import { type TestePremium, testesPremiumRepo } from '../db/repositories/testesPremium'
 import { vinculosRepo } from '../db/repositories/vinculos'
 import { MENSAGEM_CHECKOUT_DESLIGADO } from '../lib/abertura'
 import {
@@ -37,7 +38,7 @@ import {
   primeiraCobranca,
   webhookToken,
 } from '../lib/asaas'
-import { authRequired } from '../lib/auth'
+import { authRequired, emailDaRequisicao } from '../lib/auth'
 import { asUserId, type UserId } from '../lib/authContext'
 import { aplicarEvento, eventoSchema, providerRefDoEvento, referenciaDoEvento } from '../lib/billingEventos'
 import { checkoutLigado } from '../lib/config'
@@ -46,6 +47,14 @@ import { erroDeRota } from '../lib/erroDeRota'
 import { ehAdultoDeclarado } from '../lib/idade'
 import { log } from '../lib/logger'
 import { responderErro } from '../lib/respostaDeErro'
+import {
+  DURACAO_DO_TESTE_MS,
+  marcaDoTeste,
+  type OrigemDaMarca,
+  type SituacaoDoTeste,
+  situacaoDoTeste,
+  testeAtivo,
+} from '../lib/testePremium'
 import { parseOr400 } from '../validation'
 
 /* ------------------------------------------------------------------ rotas do usuário (atrás do auth) */
@@ -433,6 +442,136 @@ async function proximaCobranca(assinaturaId: string): Promise<string | null> {
   }
 }
 
+/* ------------------------------------------------------------------ o teste de 14 dias (C6) */
+
+/**
+ * A conta já teve o Premium PAGO? Ativa, atrasada ou cancelada — qualquer linha do Premium que não
+ * seja só o checkout iniciado (`trialing`). O teste é para quem ainda não conhece o Premium: quem já
+ * assinou e cancelou não ganha mais 14 dias por isso.
+ */
+function jaAssinou(sub: Awaited<ReturnType<typeof subscriptionsRepo.getActive>>): boolean {
+  return !!sub && sub.status !== 'trialing' && normalizarPlano(sub.plan) === 'premium'
+}
+
+/** A situação do teste para a tela (`/status`). Falha de leitura não derruba o status: some o campo. */
+async function situacaoParaATela(req: import('express').Request): Promise<SituacaoDoTeste | null> {
+  const dias = DIAS_DO_TESTE_PREMIUM
+  if (!authRequired()) return { estado: 'indisponivel', dias, motivo: 'selfhost' }
+  if (req.convidado) return { estado: 'indisponivel', dias, motivo: 'convidado' }
+  try {
+    const [sub, idade] = await Promise.all([subscriptionsRepo.getActive(req.userId), ehAdultoDeclarado(req.userId)])
+    return await situacaoDoTeste(req.userId, { email: emailDaRequisicao(req), jaAssinou: jaAssinou(sub), idade })
+  } catch (err) {
+    log('warn', { event: 'billing_teste_situacao_falhou', error: String(err).slice(0, 120) })
+    return null
+  }
+}
+
+const testeSchema = z
+  .object({
+    /** O RESPONSÁVEL ativa o teste para o menor vinculado — o mesmo `paraUsuario` do checkout. */
+    paraUsuario: z.string().min(1).max(128).optional(),
+  })
+  .strip()
+
+/**
+ * COMEÇAR O TESTE DE 14 DIAS — um toque, sem cartão (C6, padrão do dono).
+ *
+ * NADA AQUI FALA COM O ASAAS: não há cartão para pedir, cobrança para criar nem renovação para
+ * agendar. No fim a conta volta ao Grátis sozinha (`resolverPlano` deixa de ver o teste ativo).
+ *
+ * A ORDEM DAS RECUSAS: self-host (já tem tudo) → convidado (sem conta) → venda pausada (depois do
+ * teste não haveria como assinar) → quem ativa é adulto declarado, e o menor não ativa sozinho
+ * ("peça ao seu responsável"; o responsável vinculado ativa pelo `paraUsuario`) → a conta já testou
+ * (o 2º toque devolve o MESMO teste; vencido, 409) → já assinou → sem e-mail não há marca → a marca
+ * do e-mail já testou noutra conta (inclusive numa apagada). Só então a marca e o teste são gravados,
+ * juntos (`testesPremiumRepo.iniciar`).
+ */
+billingRouter.post('/teste', async (req, res) => {
+  const dados = parseOr400(testeSchema, req.body ?? {}, res)
+  if (!dados) return
+  if (!authRequired()) {
+    responderErro(res, 409, 'no self-host o app já está todo liberado', 'teste_indisponivel')
+    return
+  }
+  if (req.convidado) {
+    responderErro(res, 403, 'crie uma conta para testar o Premium', 'exige_conta')
+    return
+  }
+  if (!checkoutLigado()) {
+    responderErro(res, 503, MENSAGEM_CHECKOUT_DESLIGADO, 'checkout_desligado')
+    return
+  }
+
+  /* QUEM ATIVA é adulto declarado; QUEM RECEBE é a própria conta ou o menor vinculado. */
+  const quem = await ehAdultoDeclarado(req.userId)
+  if (!quem.informado) {
+    responderErro(res, 403, 'informe a sua data de nascimento antes de começar o teste', 'idade_nao_informada')
+    return
+  }
+  if (!quem.adulto) {
+    responderErro(
+      res,
+      403,
+      'contas de menores de 18 anos não começam o teste sozinhas: peça ao seu responsável — pela conta dele, vinculada à sua, ele ativa o teste para você',
+      'teste_pelo_responsavel',
+    )
+    return
+  }
+  let destino: UserId = req.userId
+  let origem: OrigemDaMarca = 'conta'
+  if (dados.paraUsuario && dados.paraUsuario !== req.userId) {
+    const menor = asUserId(dados.paraUsuario)
+    if (!(await vinculosRepo.ehResponsavelDe(req.userId, menor))) {
+      responderErro(res, 403, 'você não está vinculado como responsável por esta conta', 'sem_vinculo')
+      return
+    }
+    destino = menor
+    origem = 'responsavel'
+  }
+
+  try {
+    const jaAtivo = (t: TestePremium) =>
+      res.json({
+        teste: { iniciadoEm: t.iniciadoEm, terminaEm: t.terminaEm, dias: DIAS_DO_TESTE_PREMIUM },
+        jaEstavaAtivo: true,
+      })
+    const usado = () => responderErro(res, 409, 'o teste do Premium já foi usado por esta pessoa', 'teste_ja_usado')
+
+    const existente = await testesPremiumRepo.doUsuario(destino)
+    if (existente) {
+      if (testeAtivo(existente)) jaAtivo(existente)
+      else usado()
+      return
+    }
+    if (jaAssinou(await subscriptionsRepo.getActive(destino))) {
+      responderErro(res, 409, 'esta conta já tem (ou já teve) o Premium', 'ja_assinante')
+      return
+    }
+    const email = emailDaRequisicao(req)
+    const marca = email ? await marcaDoTeste(email, origem) : null
+    if (!marca) {
+      responderErro(res, 409, 'o teste precisa de uma conta com e-mail', 'teste_sem_email')
+      return
+    }
+
+    const agora = Date.now()
+    const r = await testesPremiumRepo.iniciar(destino, marca, agora, agora + DURACAO_DO_TESTE_MS)
+    if (r.tipo === 'iniciado') {
+      log('info', { event: 'billing_teste_iniciado', route: '/api/billing/teste', requestId: req.requestId })
+      res.json({ teste: { iniciadoEm: r.teste.iniciadoEm, terminaEm: r.teste.terminaEm, dias: DIAS_DO_TESTE_PREMIUM } })
+      return
+    }
+    /* `ja_existia`, ou a marca já estava gravada: pode ser o 2º toque que perdeu a corrida para o 1º
+       (a mesma conta, o mesmo e-mail) — relido, o teste ativo desta conta é a resposta certa. */
+    const agoraExiste = r.tipo === 'ja_existia' ? r.teste : await testesPremiumRepo.doUsuario(destino)
+    if (agoraExiste && testeAtivo(agoraExiste)) jaAtivo(agoraExiste)
+    else usado()
+  } catch (err) {
+    res.status(500).json({ error: erroDeRota(err, { status: 500, event: 'billing_teste_error' }) })
+  }
+})
+
 /** O que a tela de Planos mostra: existe assinatura? em que estado? até quando vale? quando cobra? */
 billingRouter.get('/status', async (req, res) => {
   const sub = await subscriptionsRepo.getActive(req.userId)
@@ -440,7 +579,11 @@ billingRouter.get('/status', async (req, res) => {
     sub?.status === 'active' && sub.provider === 'asaas' && sub.providerSubscriptionId && asaasConfigurado()
       ? await proximaCobranca(sub.providerSubscriptionId)
       : null
+  /* C6: a situação do teste de 14 dias — a tela de Planos (C7) oferece o toque só a quem o servidor
+     deixaria começar, e diz por que não quando não. */
+  const teste = await situacaoParaATela(req)
   res.json({
+    ...(teste ? { teste } : {}),
     configurado: asaasConfigurado(),
     /* O plano no nome ATUAL (a linha pode ser de antes da 0041) e, desde a matriz v2, o ciclo e o
        meio — a tela de conta do C7 fala de "renova todo mês" ou "vale até <data> (anual)".

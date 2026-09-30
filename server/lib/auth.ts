@@ -167,6 +167,32 @@ export function nivelDoToken(token: string): 'aal1' | 'aal2' {
 const BEARER = /^Bearer\s+(.+)$/i
 
 /**
+ * O E-MAIL de um token JÁ VERIFICADO (claim `email` do Supabase), ou `null` — C6, a marca do teste
+ * do Premium (`server/lib/testePremium.ts`) e nada mais. O mesmo molde de `nivelDoToken`: decodificar
+ * de novo é barato e não muda o caminho de autenticação, que continua retendo só o `sub`. O e-mail
+ * NÃO é guardado nem logado por quem pede: vira um HMAC na hora.
+ */
+export function emailDoToken(token: string): string | null {
+  try {
+    const email = decodeJwt(token).email
+    return typeof email === 'string' && email.includes('@') ? email : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * O e-mail da requisição em curso. SÓ para rotas montadas atrás do `authMiddleware`: é ele que
+ * verificou ESTE mesmo `Authorization` antes de a rota rodar — fora dele o token não foi conferido e
+ * o valor não vale nada. No self-host não há token, e a resposta é `null`.
+ */
+export function emailDaRequisicao(req: Request): string | null {
+  if (!authRequired()) return null
+  const m = BEARER.exec(req.header('authorization') ?? '')
+  return m ? emailDoToken(m[1]) : null
+}
+
+/**
  * Fábrica do middleware, parametrizada pelo verificador (injetável nos testes). Em modo aberto,
  * atribui LOCAL_OWNER e segue; em modo público, exige `Authorization: Bearer <jwt>` válido.
  */

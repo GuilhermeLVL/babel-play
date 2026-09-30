@@ -156,6 +156,40 @@ portão do perfil protegido (C8), textos jurídicos (C9), o teto de 60 h (depois
 - `/status` ganha `assinatura.renovacaoAutomatica` (só assinatura ativa); o 12x não tem `proximaCobranca`.
   `/faturas` do 12x lista as parcelas do parcelamento.
 
+### 6. Teste de 14 dias sem cartão (C6)
+
+- **Um toque**: `POST /api/billing/teste` (corpo vazio, ou `{ paraUsuario }` do responsável). Sem nome, CPF
+  nem cartão, e **nenhuma chamada ao Asaas** — não há o que cobrar, nem no fim. Dura `DIAS_DO_TESTE_PREMIUM`
+  (14) dias; depois `resolverPlano` deixa de ver o teste e a conta volta ao Grátis sozinha. O 2º toque devolve
+  o mesmo teste (`jaEstavaAtivo`).
+- **Onde mora**: `testes_premium` (`user_id`, `iniciado_em`, `termina_em`) — dado do titular, em
+  `TABELAS_DO_TITULAR`. **Não** é `subscriptions` e não reusa `trialing` (que continua "checkout iniciado").
+- **Um por pessoa**: `marcas_de_teste` guarda o HMAC-SHA256 (chave `CHAVE_DE_HASH`) do e-mail do token
+  normalizado (caixa baixa, sem `+etiqueta`, sem os pontos do Gmail/googlemail), **sem `user_id`**: sobrevive à
+  exclusão da conta, então apagar e recriar não renova. Início = marca + teste numa transação (a PK da marca
+  decide a corrida). Retenção de 730 dias com poda diária (`agendarPodaDasMarcasDeTeste`, em `server.ts`).
+  Trocar a `SECRET_KEY` invalida as marcas (preço aceito de não guardar o e-mail).
+- **Entitlements**: `resolverPlano(userId) → { plano, teste }` — assinatura que concede > teste ativo > free.
+  `/api/me/entitlements` ganha `teste: { terminaEm } | null`; `abrirPortaGratuita` devolve `teste`, e STT,
+  tradução e tutor chamam `planoDeAdmissao(plano, alivio, teste)` → **faixa `gratis`** na admissão. As cotas
+  são as do Premium (2 h/dia, 40 h/mês).
+- **Recusas**, na ordem: self-host 409 `teste_indisponivel` · convidado 403 `exige_conta` · venda pausada 503
+  `checkout_desligado` · sem idade 403 `idade_nao_informada` · **menor 403 `teste_pelo_responsavel`** ("peça ao
+  seu responsável") · `paraUsuario` sem vínculo 403 `sem_vinculo` · a conta já testou 409 `teste_ja_usado` ·
+  já assinou o Premium (qualquer status fora `trialing`) 409 `ja_assinante` · sem e-mail no token 409
+  `teste_sem_email` · a marca já testou 409 `teste_ja_usado`.
+- **Menor**: o responsável vinculado ativa pela conta dele; a marca é a do e-mail do **responsável**, no espaço
+  `responsavel` (não gasta o teste da própria conta dele). Consequência: **um teste por responsável** para as
+  contas vinculadas (decisão pendente do dono — ver abaixo).
+- **`/api/billing/status`** ganha `teste: { estado: 'disponivel' | 'ativo' | 'usado' | 'indisponivel', dias,
+  iniciadoEm?, terminaEm?, motivo? }` — a tela só oferece o toque a quem o servidor deixaria começar.
+- **Ofertas**: momento FUNCIONAL `fim_do_teste` com `fase` `d3`/`d0` (dias de calendário do aparelho até o
+  último dia), gatilhos embutidos `funcional_fim_do_teste_d3`/`_d0` (banner, uma vez por fase, só `premium`),
+  disparado pelo host só quando os entitlements trazem `teste`. O botão abre Planos **sem destaque de venda**.
+- **Pendências do dono**: um teste por responsável (ou por menor)?; o custo do teste nas cotas do Premium
+  (até ~28 h em 14 dias, ~US$ 2,2 no pior caso típico) e o rótulo `teste` nas métricas de custo; o texto
+  jurídico do teste nos Termos (C9).
+
 ## Sondagem do Asaas (sandbox, 29–30/09/2026)
 
 Script de sondagem fora do repositório; chave lida do `.env.local` pelo processo, nunca impressa; cliente de

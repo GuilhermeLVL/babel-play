@@ -38,6 +38,8 @@ const SEM_CARACTERIZACAO = {
   'POST /api/billing/assinar': 'idem',
   'GET /api/billing/status': 'idem',
   'POST /api/billing/cancelar': 'idem',
+  'POST /api/billing/teste':
+    'o teste de 14 dias (C6) é coberto pelo app inteiro, com JWT de verdade, em `tests/integration/teste-premium.test.ts` (um toque, vence, apagar e recriar, menor, responsável, sem e-mail, venda pausada)',
   'POST /api/billing/webhook/asaas': 'idem (é o próprio webhook)',
   'GET /api/images/search':
     'proxy do Openverse; `tests/integration/audit-s13-image-url.test.ts` e `images` com cache em memória — Fase 5 troca o cache e escreve o teste HTTP',

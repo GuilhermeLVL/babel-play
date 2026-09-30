@@ -52,11 +52,13 @@
       `pix_automatico_indisponivel` até a conta PJ ser elegível (a flag entra com a integração)
 - [x] 5.7 Checkout: Mensal / Anual em uma vez / Anual em 12x no cartão, com `ciclo` e `meio` no pedido
 
-## C6 — Teste de 14 dias sem cartão (depois)
+## C6 — Teste de 14 dias sem cartão (branch `feat/c-anual-e-teste`)
 
-- [ ] 6.1 Tabela `testes_premium` (não reusa `trialing`) e `marcas_de_teste` (HMAC do e-mail)
-- [ ] 6.2 Começa com um toque; `fim_do_teste` em D-3 e D0; nunca cobra sozinho; menor: "peça ao responsável"
-- [ ] 6.3 `planoDeAdmissao(plano, alivio, teste = true)` → faixa `gratis`
+- [x] 6.1 Tabela `testes_premium` (não reusa `trialing`) e `marcas_de_teste` (HMAC do e-mail) — migração 0043
+- [x] 6.2 Começa com um toque (`POST /api/billing/teste`); `fim_do_teste` em D-3 e D0; nunca cobra sozinho;
+      menor: "peça ao responsável" (o responsável vinculado ativa com `paraUsuario`)
+- [x] 6.3 `planoDeAdmissao(plano, alivio, teste = true)` → faixa `gratis` (STT, tradução e tutor)
+- [x] 6.4 LGPD: `docs/lgpd/ropa.csv` (T12) e `public/privacidade.html` — a marca, a finalidade e os 730 dias
 
 ## C7 — Tela de Planos nova (depois)
 

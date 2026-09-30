@@ -281,6 +281,13 @@
       "when": 1790720000000,
       "tag": "0039_oferta_planos_ligada",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "6",
+      "when": 1790730000000,
+      "tag": "0040_flag_nuvem_gratuita_alivio",
+      "breakpoints": true
     }
   ]
 }

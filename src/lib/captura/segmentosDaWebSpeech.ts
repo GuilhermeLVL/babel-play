@@ -131,7 +131,9 @@ export function segmentosDaWebSpeech(d: DepsDosSegmentosDaWebSpeech) {
         isPartial: false,
         tStartMs: existing?.tStartMs ?? d.nowRel(),
         tEndMs: d.nowRel(),
-        ...(d.lado ? { lado: d.lado } : {}),
+        /* No intérprete o idioma é o do lado (declarado, não detectado): a sessão salva narra e estuda
+           cada lado no idioma dele. */
+        ...(d.lado ? { lado: d.lado, lang: d.de() } : {}),
       };
       const idx = prev.findIndex((s) => s.id === uttId);
       if (idx !== -1) {

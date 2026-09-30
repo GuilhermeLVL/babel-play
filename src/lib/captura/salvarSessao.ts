@@ -39,7 +39,7 @@ import {
   type SpeechSegment,
 } from './tiposDaFala';
 import { salvarCaptura } from './trabalhoDeSalvar';
-import { idiomaDaFala, parDaSessao } from './vocabularioDaSessao';
+import { idiomaDaFala, idiomaDoVerso, parDaSessao } from './vocabularioDaSessao';
 
 /** Estado honesto da identificação de voz, exibido no painel Falantes. */
 export type EstadoDaIdentificacaoDeVoz = 'off' | 'loading' | 'ready' | 'unavailable';
@@ -126,6 +126,16 @@ export interface DepsDeSalvarSessao {
   /** O teto sem conta já foi atingido: começar uma captura nova só leva a um salvamento recusado. */
   tetoAtingido?: boolean;
   aoTetoAtingido?: () => void;
+  /* --- modo intérprete (Fase E) --- */
+  /**
+   * A sessão é do intérprete: o microfone só abre no TOQUE de um lado (`abrirMicrofoneNoLado`), e
+   * nada abre sozinho — nem ao começar, nem ao continuar depois do Encerrar. O som do computador
+   * não entra (as duas pessoas falam no mesmo microfone), e não há identificação de voz: o lado já
+   * diz quem fala.
+   */
+  soNoToque?: () => boolean;
+  /** O cenário que vai ao `meta` da sessão salva (`scenario: interprete`). */
+  cenarioDaSessao?: () => 'interprete' | undefined;
 }
 
 /** Uma chave de captura (8 a 64 caracteres, como pede o `origemLocalId` do servidor). */
@@ -200,8 +210,11 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
     aoTetoAtingido,
   } = deps;
 
+  const soNoToque = () => deps.soNoToque?.() ?? false;
+
   const handleStartRecording = () => {
-    if (!micEnabled && !systemEnabled) {
+    const soToque = soNoToque();
+    if (!soToque && !micEnabled && !systemEnabled) {
       setFeedbackMsg('Selecione ao menos uma fonte: Microfone e/ou Sistema.');
       setTimeout(() => setFeedbackMsg(''), 4000);
       return;
@@ -243,7 +256,7 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
       lastVoiceIdRef.current = null;
       provisionalUttsRef.current.clear();
     }
-    if (captureScenario === 'conversation' && speakerAutoId && systemEnabled) {
+    if (!soToque && captureScenario === 'conversation' && speakerAutoId && systemEnabled) {
       setSpeakerIdStatus('loading');
       void preloadSpeakerId().then((ok) => {
         setSpeakerIdStatus(ok ? 'ready' : 'unavailable');
@@ -288,6 +301,7 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
         [t, s],
       ]);
     if (!resuming) setTimer(0);
+    if (soToque) return; // o intérprete abre o microfone no toque de um lado
     if (micEnabled) void startMic();
     if (systemEnabled) void handleStartSystemCapture();
   };
@@ -351,7 +365,7 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
     systemCaptureRef.current?.setPaused(false);
     micCaptureRef.current?.setPaused(false);
     // Microfone pelo motor navegador: o reconhecedor foi encerrado na pausa, começa outro.
-    if (micEnabled && !micCaptureRef.current && !webSpeechRef.current) void startMic();
+    if (!soNoToque() && micEnabled && !micCaptureRef.current && !webSpeechRef.current) void startMic();
     setPausado(false);
     clog('▶ RETOMADA depois de', Math.round(pausa), 'ms de pausa');
   };
@@ -477,8 +491,10 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
     setIsRecording(true);
     isRecordingRef.current = true;
     sessionStartMsRef.current = Date.now() - timer * 1000; // continua a linha do tempo
-    if (micEnabled) void startMic();
-    if (systemEnabled) void handleStartSystemCapture();
+    if (!soNoToque()) {
+      if (micEnabled) void startMic();
+      if (systemEnabled) void handleStartSystemCapture();
+    }
     setFeedbackMsg('Gravação retomada!');
     setTimeout(() => setFeedbackMsg(''), 1500);
   };
@@ -498,7 +514,8 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
         sourceLang: idiomaDaFala(s, { sourceLang, targetLang }),
         engine: s.engine ?? (isSys ? 'whisper-local' : micEngine === 'browser' ? 'web-speech' : 'whisper-local'),
         sourceText: s.originalText,
-        targetLang: isSys ? sourceLang : targetLang, // idioma de `translatedText`
+        // Idioma de `translatedText`. No intérprete, o do OUTRO lado: as duas pessoas falam no microfone.
+        targetLang: s.lado ? idiomaDoVerso(s, { sourceLang, targetLang }) : isSys ? sourceLang : targetLang,
         translatedText: s.translatedText,
         tStartMs: s.tStartMs,
         tEndMs: s.tEndMs,
@@ -551,6 +568,7 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
           parConfigurado: { sourceLang, targetLang },
           utterances,
           criadoEm: Date.now(),
+          ...(deps.cenarioDaSessao?.() === 'interprete' ? { cenario: 'interprete' as const } : {}),
         };
         return { rascunho, segmentos: segs };
       },

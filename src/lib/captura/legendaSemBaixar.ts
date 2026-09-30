@@ -51,18 +51,37 @@ export interface EntradaDaOfertaSemBaixar {
   comIdiomaEscolhido: DecisaoDoMotorDoSistema | null;
 }
 
-/** As condições que a tela já sabe, sem perguntar nada ao navegador (o `ativo` do hook). */
-export function podePerguntarLegendaSemBaixar(e: Omit<EntradaDaOfertaSemBaixar, 'comIdiomaEscolhido'>): boolean {
-  return e.desktopFraco && e.soOSomDoComputador && e.detectarIdioma && !e.gravando && !e.dispensada;
+/**
+ * Vale perguntar ao navegador (o `ativo` do hook)? O que a tela já sabe, sem pergunta nenhuma. A
+ * detecção fica de FORA de propósito: com o idioma já escolhido, a mesma resposta diz ao selo do
+ * cabeçalho que a transcrição não baixa modelo (`transcricaoNoNavegadorAntesDeGravar`).
+ */
+export function podePerguntarLegendaSemBaixar(
+  e: Pick<EntradaDaOfertaSemBaixar, 'desktopFraco' | 'soOSomDoComputador' | 'gravando'>,
+): boolean {
+  return e.desktopFraco && e.soOSomDoComputador && !e.gravando;
 }
 
 export function oferecerLegendaSemBaixar(e: EntradaDaOfertaSemBaixar): boolean {
-  return podePerguntarLegendaSemBaixar(e) && e.comIdiomaEscolhido?.motor === 'web-speech-local';
+  return (
+    podePerguntarLegendaSemBaixar(e) &&
+    e.detectarIdioma &&
+    !e.dispensada &&
+    e.comIdiomaEscolhido?.motor === 'web-speech-local'
+  );
 }
 
 /**
- * A decisão do motor do sistema com o idioma do vídeo escolhido, perguntada só quando a oferta pode
- * aparecer (`ativo`) e de novo quando o idioma ou a qualidade mudam — ou quando a gravação acaba (o
+ * O idioma do vídeo JÁ escolhido e o navegador vai transcrever a aba no aparelho: antes de gravar, o
+ * selo do cabeçalho não pode dizer "modelo local · N MB" — nada nosso vai baixar para a transcrição.
+ */
+export function transcricaoNoNavegadorAntesDeGravar(e: EntradaDaOfertaSemBaixar): boolean {
+  return podePerguntarLegendaSemBaixar(e) && !e.detectarIdioma && e.comIdiomaEscolhido?.motor === 'web-speech-local';
+}
+
+/**
+ * A decisão do motor do sistema com o idioma do vídeo escolhido, perguntada só quando pode mudar a
+ * tela (`ativo`) e de novo quando o idioma ou a qualidade mudam — ou quando a gravação acaba (o
  * `ativo` volta: o teste em execução pode ter gravado 'falhou'). Enquanto a resposta não chega, e se
  * ela falhar, `null`: nenhuma oferta velha para o idioma novo. Nunca lança.
  */

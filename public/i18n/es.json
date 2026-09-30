@@ -189,5 +189,7 @@
   "Legenda sem baixar nada: escolha o idioma do vídeo.": "Subtítulos sin descargar nada: elige el idioma del video.",
   "Transcrição sem baixar nada: escolha o idioma do vídeo.": "Transcripción sin descargar nada: elige el idioma del video.",
   "Com o idioma certo, o próprio navegador transcreve no aparelho, e o computador não fica pesado.": "Con el idioma correcto, el propio navegador transcribe en el dispositivo y la computadora no se pone lenta.",
-  "Outro idioma": "Otro idioma"
+  "Outro idioma": "Otro idioma",
+  "reconhecimento do navegador": "reconocimiento del navegador",
+  "Transcrição pelo reconhecimento do navegador, no aparelho: ver detalhes": "Transcripción por el reconocimiento del navegador, en el dispositivo: ver detalles"
 }

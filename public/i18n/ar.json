@@ -198,5 +198,7 @@
   "Legenda sem baixar nada: escolha o idioma do vídeo.": "ترجمة دون تنزيل أي شيء: اختر لغة الفيديو.",
   "Transcrição sem baixar nada: escolha o idioma do vídeo.": "نسخ دون تنزيل أي شيء: اختر لغة الفيديو.",
   "Com o idioma certo, o próprio navegador transcreve no aparelho, e o computador não fica pesado.": "باللغة الصحيحة، يقوم المتصفح نفسه بالنسخ على الجهاز، ولا يصبح الحاسوب بطيئًا.",
-  "Outro idioma": "لغة أخرى"
+  "Outro idioma": "لغة أخرى",
+  "reconhecimento do navegador": "التعرّف في المتصفح",
+  "Transcrição pelo reconhecimento do navegador, no aparelho: ver detalhes": "النسخ عبر التعرّف في المتصفح، على الجهاز: عرض التفاصيل"
 }

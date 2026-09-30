@@ -1193,5 +1193,6 @@
   "Legenda sem baixar nada: escolha o idioma do vídeo.": "Subtitles without downloading anything: choose the video language.",
   "Transcrição sem baixar nada: escolha o idioma do vídeo.": "Transcription without downloading anything: choose the video language.",
   "Com o idioma certo, o próprio navegador transcreve no aparelho, e o computador não fica pesado.": "With the right language, the browser itself transcribes on this device, and the computer stays light.",
-  "Outro idioma": "Another language"
+  "Outro idioma": "Another language",
+  "Transcrição pelo reconhecimento do navegador, no aparelho: ver detalhes": "Transcription by browser speech recognition, on this device: see details"
 }

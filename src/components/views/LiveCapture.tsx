@@ -94,6 +94,7 @@ import {
   desktopFraco,
   oferecerLegendaSemBaixar,
   podePerguntarLegendaSemBaixar,
+  transcricaoNoNavegadorAntesDeGravar,
   useMotorComIdiomaEscolhido,
 } from '../../lib/captura/legendaSemBaixar';
 import { cancelarLiberacaoDosModelos, liberarModelosDepois } from '../../lib/captura/memoriaDosModelos';
@@ -2379,6 +2380,14 @@ export default function LiveCapture({
     qualidade: sttQuality,
     decidir: () => decidirMotorDoSistema({ multiIdioma: false }),
   });
+  /* O SELO DO CABEÇALHO segue a mesma resposta: com o áudio da aba no reconhecedor do navegador (só o
+     som do computador), nada nosso baixa para a transcrição — o selo não diz "modelo local · N MB".
+     Gravando, quem diz é o motor que a captura de fato abriu (`sistemaNoNavegador`). */
+  const transcricaoNoNavegador =
+    captureScenario === 'media' &&
+    (isRecording
+      ? sistemaNoNavegador
+      : transcricaoNoNavegadorAntesDeGravar({ ...condicoesDaOferta, comIdiomaEscolhido }));
   const ofertaSemBaixar = oferecerLegendaSemBaixar({ ...condicoesDaOferta, comIdiomaEscolhido }) && (
     <Suspense fallback={null}>
       <LegendaSemBaixar
@@ -3327,12 +3336,19 @@ export default function LiveCapture({
                       className="badge neu badge-botao"
                       onClick={() => setModeloAberto(true)}
                       aria-label={
-                        mbDoModelo
-                          ? `Modelo no dispositivo, ${mbDoModelo} MB: ver detalhes`
-                          : 'Modelo no dispositivo: ver detalhes'
+                        transcricaoNoNavegador
+                          ? t('Transcrição pelo reconhecimento do navegador, no aparelho: ver detalhes')
+                          : mbDoModelo
+                            ? `Modelo no dispositivo, ${mbDoModelo} MB: ver detalhes`
+                            : 'Modelo no dispositivo: ver detalhes'
                       }
                     >
-                      <Cpu aria-hidden /> modelo local{mbDoModelo ? ` · ${mbDoModelo} MB` : ''}
+                      <Cpu aria-hidden />{' '}
+                      {transcricaoNoNavegador ? (
+                        t('reconhecimento do navegador')
+                      ) : (
+                        <>modelo local{mbDoModelo ? ` · ${mbDoModelo} MB` : ''}</>
+                      )}
                     </button>
                     <button
                       type="button"

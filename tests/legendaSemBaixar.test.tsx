@@ -13,7 +13,13 @@ import React, { Suspense } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import LegendaSemBaixar from '../src/components/views/captura/LegendaSemBaixar'
-import { desktopFraco, oferecerLegendaSemBaixar, useMotorComIdiomaEscolhido } from '../src/lib/captura/legendaSemBaixar'
+import {
+  desktopFraco,
+  oferecerLegendaSemBaixar,
+  podePerguntarLegendaSemBaixar,
+  transcricaoNoNavegadorAntesDeGravar,
+  useMotorComIdiomaEscolhido,
+} from '../src/lib/captura/legendaSemBaixar'
 import type { DecisaoDoMotorDoSistema } from '../src/lib/captura/webSpeechDoSistema'
 import { classificarDispositivo, type SinaisDoDispositivo } from '../src/lib/dispositivo/perfil'
 
@@ -118,6 +124,30 @@ describe('oferecerLegendaSemBaixar', () => {
     ],
   ])('não oferece: %s', (_nome, mudanca) => {
     expect(oferecerLegendaSemBaixar({ ...base, ...mudanca })).toBe(false)
+  })
+})
+
+describe('a mesma pergunta serve ao selo do cabeçalho depois da escolha', () => {
+  it('pergunta ao navegador com a detecção ligada OU desligada (só o gravando e o aparelho decidem)', () => {
+    const semDeteccao = { ...base, detectarIdioma: false }
+    const dispensada = { ...base, dispensada: true }
+    expect(podePerguntarLegendaSemBaixar(semDeteccao)).toBe(true)
+    expect(podePerguntarLegendaSemBaixar(dispensada)).toBe(true)
+    expect(podePerguntarLegendaSemBaixar({ ...base, gravando: true })).toBe(false)
+    expect(podePerguntarLegendaSemBaixar({ ...base, desktopFraco: false })).toBe(false)
+  })
+
+  it('idioma escolhido e o navegador transcreve: o selo não diz "modelo local · N MB"', () => {
+    expect(transcricaoNoNavegadorAntesDeGravar({ ...base, detectarIdioma: false })).toBe(true)
+    // Com a detecção ligada, quem transcreveria é o Whisper: o selo fica como está.
+    expect(transcricaoNoNavegadorAntesDeGravar(base)).toBe(false)
+    expect(
+      transcricaoNoNavegadorAntesDeGravar({
+        ...base,
+        detectarIdioma: false,
+        comIdiomaEscolhido: { motor: 'pipeline', motivo: 'idioma-indisponivel' },
+      }),
+    ).toBe(false)
   })
 })
 

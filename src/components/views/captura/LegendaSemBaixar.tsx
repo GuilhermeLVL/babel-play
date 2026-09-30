@@ -30,7 +30,10 @@ export default function LegendaSemBaixar({
   aoFechar: () => void;
 }) {
   return (
-    <div className="aviso-info" role="status" data-testid="legenda-sem-baixar">
+    /* A cor do texto do cartão (não a esmaecida do `.aviso-info`): a faixa mora no cartão escuro do
+       Espaço de gravação, e a oferta é para ser lida — o mesmo ajuste da orientação no celular
+       (`dispositivo.css`). A explicação fica no `.mut`, que o cartão escuro já clareia. */
+    <div className="aviso-info" role="status" data-testid="legenda-sem-baixar" style={{ color: 'inherit' }}>
       <Captions aria-hidden />
       <span style={{ flex: 1 }}>
         <strong>
@@ -38,7 +41,9 @@ export default function LegendaSemBaixar({
             ? t('Transcrição sem baixar nada: escolha o idioma do vídeo.')
             : t('Legenda sem baixar nada: escolha o idioma do vídeo.')}
         </strong>{' '}
-        {t('Com o idioma certo, o próprio navegador transcreve no aparelho, e o computador não fica pesado.')}
+        <span className="mut">
+          {t('Com o idioma certo, o próprio navegador transcreve no aparelho, e o computador não fica pesado.')}
+        </span>
       </span>
       <button type="button" className="btn btn-solid peq" onClick={aoEscolherIdioma}>
         <LangFlag code={idioma} className="w-4 h-3" />

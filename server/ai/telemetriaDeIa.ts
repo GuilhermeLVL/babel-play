@@ -36,6 +36,7 @@ import {
 } from '../lib/langfuse'
 import { log } from '../lib/logger'
 import { salDoPseudonimo } from '../lib/pseudonimoDeUsuario'
+import { fornecedorDaBase } from './registroDeProvedores'
 
 /** A função de produto que a requisição serve — a dimensão "feature" do painel. */
 export type FuncaoTelemetrada = 'stt' | 'mt-fala' | 'mt-texto' | 'tutor' | 'corretor' | 'byok-chat'
@@ -61,20 +62,14 @@ export function codigoDeIdioma(v: unknown): string {
 }
 
 /**
- * O nome NEUTRO do provedor pela base — `groq`, `openrouter`, `ollama` ou `outro`. Nunca a URL: no
- * BYOK ela é escolha do usuário, e mesmo no gerenciado não há por que mandá-la a um terceiro.
+ * O nome NEUTRO do provedor pela base — nunca a URL: no BYOK ela é escolha do usuário, e mesmo no
+ * gerenciado não há por que mandá-la a um terceiro. Desde o B1 da Fase B a resposta sai do registro
+ * (`fornecedorDaBase`): o `id` declarado em `IA_PROVEDORES` quando a base é de um provedor dele;
+ * senão, pelo host — `groq`, `openrouter`, `deepinfra`, `cerebras`, `cloudflare`, `ollama` ou `outro`.
+ * É uma lista FECHADA: o rótulo nunca carrega texto que o usuário escolheu.
  */
 export function nomeDoProvedor(base: string): string {
-  let host: string
-  try {
-    host = new URL(base).hostname.toLowerCase()
-  } catch {
-    return 'outro'
-  }
-  if (host === 'api.groq.com') return 'groq'
-  if (host === 'openrouter.ai' || host.endsWith('.openrouter.ai')) return 'openrouter'
-  if (host === 'localhost' || host === '127.0.0.1' || host === 'ollama') return 'ollama'
-  return 'outro'
+  return fornecedorDaBase(base)
 }
 
 /** O status de uma tentativa a partir do HTTP (0 = rede/timeout) e da causa. */

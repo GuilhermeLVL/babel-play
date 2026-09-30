@@ -104,6 +104,19 @@ export const VARIAVEIS_POR_PLANO: readonly VariavelDeclarada[] = [...Object.keys
     })),
 )
 
+/**
+ * As variáveis de CHAVE e de CONTA que o registro de provedores lê por nome montado
+ * (`env[provedor.chave]`, `server/ai/registroDeProvedores.ts`). Como as por plano, a varredura do
+ * inventário não as enxerga — o registro diz o nome em JSON —, então elas são nomeadas aqui. As
+ * outras chaves de IA (`GROQ_API_KEY`, `OPENROUTER_API_KEY`…) têm leitura literal no legado.
+ */
+export const VARIAVEIS_DE_CHAVE_DE_IA: readonly string[] = [
+  'CEREBRAS_API_KEY',
+  'CLOUDFLARE_ACCOUNT_ID',
+  'CLOUDFLARE_API_TOKEN',
+  'DEEPINFRA_API_KEY',
+]
+
 export const VARIAVEIS: readonly VariavelDeclarada[] = [
   ...VARIAVEIS_POR_PLANO,
   {
@@ -132,7 +145,7 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
     paraQue:
-      'JSON com o preço por modelo que o orçamento usa: {"modelo": {"entrada": US$/1M, "saida": US$/1M}} para LLM e {"modelo": {"hora": US$}} para STT. Sobrepõe a tabela oficial embutida',
+      'JSON com o preço que o orçamento usa, por "fornecedor:modelo" (ex.: "deepinfra:openai/gpt-oss-120b") ou só por "modelo": {"entrada": US$/1M, "entradaEmCache": US$/1M, "saida": US$/1M} para LLM e {"hora": US$, "minimoFaturadoS": s} para STT. Sobrepõe a tabela oficial embutida; o preço declarado no IA_PROVEDORES vence os dois',
   },
   {
     nome: 'AI_USUARIO_ALERTA_FATOR',
@@ -241,11 +254,32 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
       'bucket dos snapshots diários; sem ela, o mesmo `S3_BUCKET` da mídia. Um bucket próprio deixa a regra de retenção (30 dias) separada da mídia',
   },
   {
+    nome: 'CEREBRAS_API_KEY',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'chave da Cerebras, lida só quando um provedor de IA_PROVEDORES declara "chave": "CEREBRAS_API_KEY" (server/ai/registroDeProvedores.ts). Ausente, a perna não existe',
+  },
+  {
     nome: 'CHECKOUT_ENABLED',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
     paraQue:
       'chave de emergência da VENDA: `0` fecha assinar e comprar (503 com mensagem clara); quem já paga continua com o plano. Ausente = ligada',
+  },
+  {
+    nome: 'CLOUDFLARE_ACCOUNT_ID',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'conta da Cloudflare do Workers AI, lida quando um provedor de IA_PROVEDORES declara "conta": "CLOUDFLARE_ACCOUNT_ID" — entra na base (/accounts/<conta>/ai/v1). Ausente, a perna não existe',
+  },
+  {
+    nome: 'CLOUDFLARE_API_TOKEN',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'token do Workers AI (só a permissão "Workers AI"), lido quando um provedor de IA_PROVEDORES declara "chave": "CLOUDFLARE_API_TOKEN". Ausente, a perna não existe',
   },
   {
     nome: 'CLUSTER_WORKERS',
@@ -305,6 +339,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
     paraQue: 'raiz dos dados persistentes',
+  },
+  {
+    nome: 'DEEPINFRA_API_KEY',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'chave da DeepInfra, lida só quando um provedor de IA_PROVEDORES declara "chave": "DEEPINFRA_API_KEY" (server/ai/registroDeProvedores.ts). Ausente, a perna não existe',
   },
   {
     nome: 'DESLIGAMENTO_TIMEOUT_MS',
@@ -412,6 +453,19 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     criticidade: 'degrada-capacidade',
     paraQue:
       'chamadas de STT de nuvem EM VOO por usuário ao mesmo tempo; a seguinte recebe 429 nuvem_ocupada. Padrão 1',
+  },
+  {
+    nome: 'IA_PROVEDORES',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'registro DECLARATIVO dos provedores de IA (JSON sem segredo, server/ai/registroDeProvedores.ts): formato, retenção, limites, modelos por função com preço e o NOME da variável da chave. A ordem é a da cascata. Gemini é recusado; OpenRouter exige roteamento com zdr e sem o Google; em produção todo provedor declara retencao "zdr" (senão o boot aborta). Ausente: o registro legado, derivado de LLM_*/GROQ_*/LLM_RESERVA_*/OPENROUTER_API_KEY/STT_*, com o comportamento de sempre',
+  },
+  {
+    nome: 'IA_PROVEDORES_ARQUIVO',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'o mesmo registro de IA_PROVEDORES, lido de um arquivo (caminho). Declarar as duas é ambíguo e é recusado',
   },
   {
     nome: 'LANGFUSE_AMOSTRAGEM',
@@ -960,16 +1014,73 @@ export function diasDeRetencaoDeAudio(env: NodeJS.ProcessEnv = process.env): num
   return Number.isInteger(n) && n >= 0 ? n : RETENCAO_DE_AUDIO_PADRAO_DIAS
 }
 
-/**
- * A nuvem de STT está configurada? Lido por `GET /api/ai/stt/available`, que existe para o
- * roteador decidir sem gastar chamada de API.
- */
-export function sttDeNuvemConfigurado(env: NodeJS.ProcessEnv = process.env): boolean {
-  // `LLM_API_KEY` entra aqui também: sem isto, quem configurasse só o nome novo veria a rota
-  // `/api/ai/stt/available` responder "não configurado" com a chave presente — e a UI esconderia
-  // uma capacidade que existe.
-  return Boolean(env.LLM_API_KEY || env.GROQ_API_KEY || env.STT_API_KEY)
+/** O modelo de STT gerenciado quando `STT_MODEL` não diz outro (medido: docs/auditoria/eval/bancada-2026-09.md). */
+export const MODELO_STT_PADRAO = 'whisper-large-v3-turbo'
+const BASE_DA_GROQ = 'https://api.groq.com/openai/v1'
+
+/** O STT gerenciado — a chave do DONO — como o ambiente o configura. */
+export interface ConfigDoSttGerenciado {
+  secret: string
+  baseUrl: string
+  model: string
+  /** O NOME da variável de onde a chave saiu — o registro de provedores (B1) guarda nomes, nunca valores. */
+  chave: 'GROQ_API_KEY' | 'STT_API_KEY' | 'LLM_API_KEY'
 }
+
+/**
+ * UMA FONTE SÓ PARA O STT GERENCIADO (B0 da Fase B, 29/09/2026).
+ *
+ * Havia duas leituras do mesmo fato, e elas discordavam. `GET /api/ai/stt/available` perguntava
+ * `LLM_API_KEY || GROQ_API_KEY || STT_API_KEY`; a porta da transcrição (`sttProxy.ts`) perguntava
+ * `GROQ_API_KEY ?? STT_API_KEY`. Os dois casos em que isso mordia são os de verdade:
+ *
+ *   - o `.env.production.example` configura SÓ `LLM_API_KEY`, com a base da Groq. A disponibilidade
+ *     dizia 200, o roteador do cliente mandava o áudio para a nuvem — e toda transcrição voltava
+ *     501. O STT de nuvem de produção estava desligado sem ninguém saber;
+ *   - `GROQ_API_KEY=` vazia (é assim que os testes e muito `.env` "desligam" a variável, porque o
+ *     dotenv repõe a apagada) com `STT_API_KEY` definida: o `??` tomava a string vazia como chave.
+ *
+ * A REGRA, agora escrita num lugar: as chaves próprias do STT, na precedência de sempre
+ * (`GROQ_*` antes de `STT_*`, vazia conta como ausente); sem elas, a chave do LLM — MAS SÓ quando o
+ * LLM é a Groq, que é o que o `.env.production.example` descreve. A chave de um LLM em outro
+ * provedor não anuncia STT: aquele endereço não tem Whisper garantido, e anunciar uma capacidade que
+ * responde 404 é o mesmo defeito do 200/501 com outra cara. O teste que prende a regra é
+ * `tests/integration/stt-disponivel-coerente.test.ts`.
+ */
+export function sttGerenciadoDoEnv(env: NodeJS.ProcessEnv = process.env): ConfigDoSttGerenciado | null {
+  /* Leitura por NOME literal (`env.X`), e não por `env[nome]`: é o que o inventário enxerga
+     (`tests/integration/config-inventario.test.ts`). Vazia ou só espaço conta como ausente. */
+  const semBarra = (u: string) => u.replace(/\/+$/, '')
+  const model = env.STT_MODEL?.trim() || MODELO_STT_PADRAO
+  const doGroq = env.GROQ_API_KEY?.trim()
+  const propria = doGroq || env.STT_API_KEY?.trim()
+  if (propria) {
+    return {
+      secret: propria,
+      baseUrl: semBarra(env.GROQ_BASE_URL?.trim() || env.STT_BASE_URL?.trim() || BASE_DA_GROQ),
+      model,
+      chave: doGroq ? 'GROQ_API_KEY' : 'STT_API_KEY',
+    }
+  }
+  const doLlm = env.LLM_API_KEY?.trim()
+  if (!doLlm) return null
+  /* A mesma base que `server/ai/provedores.ts` usa para o LLM primário com essa chave. */
+  const base = semBarra(env.LLM_BASE_URL?.trim() || env.GROQ_BASE_URL?.trim() || BASE_DA_GROQ)
+  let host: string
+  try {
+    host = new URL(base).hostname.toLowerCase()
+  } catch {
+    return null
+  }
+  return host === 'api.groq.com' ? { secret: doLlm, baseUrl: base, model, chave: 'LLM_API_KEY' } : null
+}
+
+/*
+ * `sttDeNuvemConfigurado` — a pergunta de `GET /api/ai/stt/available` — mora em
+ * `server/ai/registroDeProvedores.ts` desde o B1: com `IA_PROVEDORES` o STT pode vir do registro
+ * declarado, e a resposta tem de ser a mesma que a porta da transcrição recebe. No legado ela é
+ * exatamente `sttGerenciadoDoEnv(env) !== null`.
+ */
 
 /* ─────────────── admissão de IA ao vivo (ADR 0007) ─────────────── */
 
@@ -1120,10 +1231,17 @@ export function limiaresDeGastoPorUsuario(env: NodeJS.ProcessEnv = process.env):
 export interface PrecoDeModelo {
   /** US$ por 1 milhão de tokens de entrada (LLM). */
   entrada?: number
+  /**
+   * US$ por 1 milhão de tokens de entrada servidos do CACHE de prompt do provedor (a Groq cobra 50%
+   * da entrada nos gpt-oss — console.groq.com/docs/prompt-caching). Ausente: o preço da entrada.
+   */
+  entradaEmCache?: number
   /** US$ por 1 milhão de tokens de saída (LLM). */
   saida?: number
-  /** US$ por hora de áudio (STT). */
+  /** US$ por hora de áudio (STT) — o custo é por segundo, `segundos × hora / 3600`. */
   hora?: number
+  /** Segundos faturados no mínimo POR PEDIDO de STT (a Groq cobra 10). Ausente: 10, o conservador. */
+  minimoFaturadoS?: number
 }
 
 /**
@@ -1139,7 +1257,13 @@ export function precosDeModelosDoEnv(env: NodeJS.ProcessEnv = process.env): Reco
     const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : undefined)
     for (const [modelo, p] of Object.entries(obj ?? {})) {
       if (!p || typeof p !== 'object') continue
-      saida[modelo] = { entrada: num(p.entrada), saida: num(p.saida), hora: num(p.hora) }
+      saida[modelo] = {
+        entrada: num(p.entrada),
+        entradaEmCache: num(p.entradaEmCache),
+        saida: num(p.saida),
+        hora: num(p.hora),
+        minimoFaturadoS: num(p.minimoFaturadoS),
+      }
     }
     return saida
   } catch {

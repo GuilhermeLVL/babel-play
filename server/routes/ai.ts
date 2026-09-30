@@ -7,10 +7,11 @@ import { raw, Router } from 'express'
 
 import { mtTranslateProxy } from '../ai/mtProxy'
 import { llmChatProxy, providerTest } from '../ai/proxy'
+// F14-02: a leitura de env sai do handler. B1 (Fase B): a pergunta é do registro de provedores, a
+// MESMA que a porta da transcrição faz — as duas discordavam (B0).
+import { sttDeNuvemConfigurado } from '../ai/registroDeProvedores'
 import { portaDoStt, sttTranscribeProxy } from '../ai/sttProxy'
 import { credentialsRepo } from '../db/repositories/credentials'
-// F14-02: a leitura de env sai do handler e passa pelo inventario declarado em lib/config.
-import { sttDeNuvemConfigurado } from '../lib/config'
 import { getPlanForUser, hasEntitlement } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
 import { flagLigada } from '../lib/flags'

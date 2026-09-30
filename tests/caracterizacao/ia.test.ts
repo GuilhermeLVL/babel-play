@@ -209,13 +209,32 @@ describe('POST /api/ai/mt — tradução gerenciada', () => {
 })
 
 describe('GET /api/ai/stt/available', () => {
-  it('com chave de LLM no servidor e plano self-host → 200 { available: true }', async () => {
+  it('com chave de STT no servidor e plano self-host → 200 { available: true }', async () => {
+    fixar('STT_API_KEY', 'chave-stt-falsa')
+    try {
+      const r = await s.get('/api/ai/stt/available')
+      expect(r.status).toBe(200)
+      expect(await r.clone().json()).toEqual({ available: true })
+      await expect(JSON.stringify(await resposta(r), null, 2)).toMatchFileSnapshot(
+        '__snapshots__/get.api.ai.stt.available.json',
+      )
+    } finally {
+      fixar('STT_API_KEY', undefined) // o `POST /api/ai/stt` sem chave, mais abaixo, precisa dela ausente
+    }
+  })
+
+  /*
+   * MUDOU NO B0 DA FASE B (29/09/2026), de propósito. Este caso respondia 200 só com a chave do LLM
+   * (`LLM_API_KEY` apontando para `llm-falso.local`) — e o `POST /api/ai/stt` do mesmo ambiente,
+   * logo abaixo, responde 501 "STT de nuvem não configurado". Eram duas leituras da configuração, e
+   * a caracterização gravava as duas sem ver que se contradiziam. Agora as duas saem de
+   * `sttGerenciadoDoEnv` (`server/lib/config.ts`): a chave do LLM só vale para o STT quando o LLM é
+   * a Groq, e as duas rotas respondem 501 aqui.
+   */
+  it('só com a chave de um LLM que não é a Groq → 501, o MESMO veredito do POST /api/ai/stt', async () => {
     const r = await s.get('/api/ai/stt/available')
-    expect(r.status).toBe(200)
-    expect(await r.clone().json()).toEqual({ available: true })
-    await expect(JSON.stringify(await resposta(r), null, 2)).toMatchFileSnapshot(
-      '__snapshots__/get.api.ai.stt.available.json',
-    )
+    expect(r.status).toBe(501)
+    expect((await r.json()).available).toBe(false)
   })
 })
 

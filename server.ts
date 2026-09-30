@@ -15,6 +15,8 @@
 import dotenv from 'dotenv'
 import path from 'path'
 
+import { avisoDeIaSemReserva } from './server/ai/provedores'
+import { avisosDoRegistroDeIa, erroDoRegistroDeIa } from './server/ai/registroDeProvedores'
 import { dbReady } from './server/db/db'
 import { seedIfEmpty } from './server/db/seed'
 import { criarApp } from './server/http/app'
@@ -38,6 +40,7 @@ import { registrarDesligamento } from './server/lib/desligamento'
    resposta so, em `server/lib/diretorios.ts` (auditoria de 2026-09-07, achado A34). */
 import { diretorioGravavel, erroDeMultiReplica } from './server/lib/diretorios'
 import { erroGlobal } from './server/lib/erroGlobal'
+import { log } from './server/lib/logger'
 
 dotenv.config()
 
@@ -90,6 +93,18 @@ async function startServer({ prepararDados = true } = {}) {
   if (metricasInseguras) {
     console.error(`[boot] ABORTADO: ${metricasInseguras}`)
     process.exit(1)
+  }
+  /* B1 da Fase B: o registro de provedores de IA (`IA_PROVEDORES`) inválido — Gemini, OpenRouter sem
+     retenção zero, provedor sem `retencao: "zdr"` em produção, segredo no JSON. Em produção o boot
+     ABORTA, como as travas acima: subir recusando a nuvem em silêncio é descobrir no primeiro
+     assinante. Fora de produção a nuvem fica FECHADA (nenhuma perna) e o motivo vai para o log. */
+  const registroDeIaInvalido = erroDoRegistroDeIa()
+  if (registroDeIaInvalido) {
+    if (process.env.NODE_ENV === 'production') {
+      console.error(`[boot] ABORTADO: ${registroDeIaInvalido}`)
+      process.exit(1)
+    }
+    console.error(`[ia] ${registroDeIaInvalido} — a IA de nuvem fica DESLIGADA até corrigir.`)
   }
   /*
    * DIÁRIO DE ERROS — achado F5-04, a parte que não depende de escolher fornecedor.
@@ -185,6 +200,13 @@ async function startServer({ prepararDados = true } = {}) {
      AVISA e segue — o resto do app serve, e quem abre só para adultos pode subir assim. */
   const conviteSemEmail = avisoDeConviteSemEmail()
   if (conviteSemEmail) console.warn(`[convite] AVISO: ${conviteSemEmail}`)
+  /* ADR 0008: produção sem reserva de IA avisa no boot — e o aviso vai ao Sentry (`AVISOS_QUE_ALERTAM`),
+     porque a reserva fora do ar só aparece de outro jeito no dia em que o primário cair. */
+  const semReserva = avisoDeIaSemReserva()
+  if (semReserva) log('warn', { event: 'ia_sem_reserva', error: semReserva })
+  /* O legado sem retenção zero declarada (base fora da Groq/OpenRouter) avisa em produção — recusar
+     mudaria o comportamento de quem já opera assim; o `IA_PROVEDORES` é onde a recusa vale. */
+  for (const aviso of avisosDoRegistroDeIa()) log('warn', { event: 'ia_provedor_sem_zdr', error: aviso })
 
   // P0-2: garante que WAL/busy_timeout já valem ANTES de qualquer escrita (inclusive o seed).
   await dbReady

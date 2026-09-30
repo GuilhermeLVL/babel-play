@@ -109,7 +109,9 @@ const sinks: SinkDeErro[] = []
  *     a 100% sai `ia_orcamento_esgotado`, que já é `error`;
  *   - `backup_heartbeat_falhou`: o snapshot diário foi feito, mas o alarme externo não soube;
  *   - `ia_provedor_limite`: o provedor de IA respondeu 429 — a camada contratada não aguenta o
- *     tráfego. Já sai no máximo uma vez por minuto por provedor (`server/ai/telemetriaDeIa.ts`).
+ *     tráfego. Já sai no máximo uma vez por minuto por provedor (`server/ai/telemetriaDeIa.ts`);
+ *   - `ia_sem_reserva`: produção subiu com a IA de nuvem sem reserva (ADR 0008). Sai uma vez por
+ *     boot (`server.ts`), e é o aviso de que a próxima queda do primário chega a todo assinante.
  * O resto dos `warn` fica no stdout: mandar todos viraria ruído e gastaria a cota do Sentry.
  */
 export const AVISOS_QUE_ALERTAM: ReadonlySet<string> = new Set([
@@ -118,6 +120,7 @@ export const AVISOS_QUE_ALERTAM: ReadonlySet<string> = new Set([
   'ia_gasto_anomalo_usuario',
   'backup_heartbeat_falhou',
   'ia_provedor_limite',
+  'ia_sem_reserva',
 ])
 
 /** Registra um destino externo para eventos `error`. Devolve como desregistrar. */

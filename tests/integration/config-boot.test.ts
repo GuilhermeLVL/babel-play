@@ -6,14 +6,10 @@
  * reimport do módulo para reavaliar o env, o que o torna sensível a ordem e a carga da máquina.
  * Uma função pura não tem esse problema: o teste diz o que entra e confere o que sai.
  */
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
-import {
-  adminDoSupabase,
-  conferirConfiguracao,
-  sttDeNuvemConfigurado,
-  VARIAVEIS,
-} from '../../server/lib/config'
+import { sttDeNuvemConfigurado } from '../../server/ai/registroDeProvedores'
+import { adminDoSupabase, conferirConfiguracao, sttGerenciadoDoEnv, VARIAVEIS } from '../../server/lib/config'
 
 /** Ambiente mínimo de um deploy público bem configurado. */
 const PUBLICO_COMPLETO = {
@@ -80,6 +76,77 @@ describe('acessores que saíram de dentro dos handlers', () => {
     expect(sttDeNuvemConfigurado({ GROQ_API_KEY: 'x' } as NodeJS.ProcessEnv)).toBe(true)
     expect(sttDeNuvemConfigurado({ STT_API_KEY: 'x' } as NodeJS.ProcessEnv)).toBe(true)
     expect(sttDeNuvemConfigurado({} as NodeJS.ProcessEnv)).toBe(false)
+  })
+
+  /*
+   * B0 (Fase B, 29/09/2026): UMA FONTE SÓ. `sttDeNuvemConfigurado` (lido por `/stt/available`) e o
+   * `sttGerenciado` do `sttProxy.ts` (lido pela transcrição) liam o ambiente cada um do seu jeito, e
+   * discordavam: o `.env.production.example` configura só `LLM_API_KEY` com a base da Groq — a
+   * disponibilidade respondia 200 e a transcrição, 501. Agora as duas saem de `sttGerenciadoDoEnv`.
+   */
+  it('STT de nuvem: a chave do LLM vale quando o LLM é a Groq (o .env.production.example)', () => {
+    const env = { LLM_API_KEY: 'chave-llm-falsa', LLM_BASE_URL: 'https://api.groq.com/openai/v1' } as NodeJS.ProcessEnv
+    expect(sttGerenciadoDoEnv(env)).toEqual({
+      secret: 'chave-llm-falsa',
+      baseUrl: 'https://api.groq.com/openai/v1',
+      model: 'whisper-large-v3-turbo',
+      chave: 'LLM_API_KEY',
+    })
+    // Sem LLM_BASE_URL o LLM já é a Groq (o padrão de `provedores.ts`): o mesmo vale.
+    expect(sttGerenciadoDoEnv({ LLM_API_KEY: 'chave-llm-falsa' } as NodeJS.ProcessEnv)?.secret).toBe('chave-llm-falsa')
+    expect(sttDeNuvemConfigurado(env)).toBe(true)
+  })
+
+  it('STT de nuvem: a chave de um LLM que NÃO é a Groq não anuncia STT (aquele endereço não tem Whisper garantido)', () => {
+    const env = { LLM_API_KEY: 'chave-llm-falsa', LLM_BASE_URL: 'http://llm-falso.local/v1' } as NodeJS.ProcessEnv
+    expect(sttGerenciadoDoEnv(env)).toBeNull()
+    expect(sttDeNuvemConfigurado(env)).toBe(false)
+  })
+
+  it('STT de nuvem: GROQ_API_KEY vazia não esconde a STT_API_KEY (o `??` tratava "" como chave)', () => {
+    const env = { GROQ_API_KEY: '', STT_API_KEY: 'chave-stt-falsa', STT_BASE_URL: 'http://203.0.113.20/v1' }
+    expect(sttGerenciadoDoEnv(env as NodeJS.ProcessEnv)).toEqual({
+      secret: 'chave-stt-falsa',
+      baseUrl: 'http://203.0.113.20/v1',
+      model: 'whisper-large-v3-turbo',
+      chave: 'STT_API_KEY',
+    })
+  })
+
+  it('STT de nuvem: a precedência de antes continua — GROQ_* vence STT_*, e STT_MODEL escolhe o modelo', () => {
+    const env = {
+      GROQ_API_KEY: 'chave-groq',
+      STT_API_KEY: 'chave-stt',
+      GROQ_BASE_URL: 'https://groq.exemplo/v1/',
+      STT_BASE_URL: 'https://stt.exemplo/v1',
+      STT_MODEL: 'whisper-large-v3',
+      LLM_API_KEY: 'chave-llm',
+    } as NodeJS.ProcessEnv
+    expect(sttGerenciadoDoEnv(env)).toEqual({
+      secret: 'chave-groq',
+      baseUrl: 'https://groq.exemplo/v1',
+      model: 'whisper-large-v3',
+      chave: 'GROQ_API_KEY',
+    })
+  })
+
+  it('STT de nuvem: a disponibilidade é exatamente "há configuração", em toda a matriz', () => {
+    const matriz: Record<string, string>[] = [
+      {},
+      { GROQ_API_KEY: 'k' },
+      { STT_API_KEY: 'k' },
+      { GROQ_API_KEY: '', STT_API_KEY: 'k' },
+      { GROQ_API_KEY: '   ' },
+      { LLM_API_KEY: 'k' },
+      { LLM_API_KEY: 'k', LLM_BASE_URL: 'https://api.groq.com/openai/v1' },
+      { LLM_API_KEY: 'k', LLM_BASE_URL: 'https://openrouter.ai/api/v1' },
+      { LLM_API_KEY: 'k', GROQ_BASE_URL: 'http://203.0.113.20/v1' },
+    ]
+    for (const env of matriz) {
+      expect(sttDeNuvemConfigurado(env as NodeJS.ProcessEnv), JSON.stringify(env)).toBe(
+        sttGerenciadoDoEnv(env as NodeJS.ProcessEnv) !== null,
+      )
+    }
   })
 
   it('admin do Supabase: devolve null quando falta qualquer uma das partes', () => {

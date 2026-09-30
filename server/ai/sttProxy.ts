@@ -10,13 +10,20 @@ import type { NextFunction, Request, Response } from 'express'
 import { filtrarAlucinacao } from '../../src/gateway/alucinacao'
 import { credentialsRepo } from '../db/repositories/credentials'
 import { contarDescartesDoStt, observarChamadaDeProvedor } from '../http/metricas'
+import type { PrecoDeModelo } from '../lib/config'
 import { abrirPortaGratuita, type PortaGratuita } from '../lib/convidado'
 import { arquivoDoAudio, avaliarAudioFaturavel, duracaoDoAudio, segundosFaturaveis } from '../lib/duracaoDeAudio'
 import { getEntitlements } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
 import { normalizarIdiomaDoWhisper } from '../lib/idiomaDoWhisper'
 import { log } from '../lib/logger'
-import { custoDeStt, portaoDaNuvem, registrarGastoDeIa, responderPortaoFechado } from '../lib/orcamentoDeIa'
+import {
+  custoDeStt,
+  minimoFaturadoDoStt,
+  portaoDaNuvem,
+  registrarGastoDeIa,
+  responderPortaoFechado,
+} from '../lib/orcamentoDeIa'
 import { responderErro } from '../lib/respostaDeErro'
 import {
   ContadorIndisponivel,
@@ -45,6 +52,7 @@ import {
   registrarFalha,
   registrarSucesso,
 } from './disjuntor'
+import { sttGerenciado } from './registroDeProvedores'
 import { responderContadorIndisponivel, responderFranquiaDeAlivioEsgotada } from './reservaDeNuvem'
 import { assertPublicUrl, despachanteSeguro, type InitSeguro } from './ssrf'
 import { promptDoCabecalho, triarSegmentos } from './sttQualidade'
@@ -70,17 +78,13 @@ const RETENTATIVAS_DE_STT = 1
 
 /* ─────────────── a PORTA do STT: tudo que é barato, ANTES de ler o corpo ─────────────── */
 
-/**
- * O STT gerenciado — a chave do DONO — como o servidor está configurado. Lido na porta para o 501
- * sair ANTES de o corpo de 25 MB ser lido (antes ele saía depois até da reserva de cota).
+/*
+ * O STT gerenciado — a chave do DONO — é lido na porta para o 501 sair ANTES de o corpo de 25 MB ser
+ * lido. A leitura mora em `sttGerenciado` (`server/ai/registroDeProvedores.ts`; no legado, o
+ * `sttGerenciadoDoEnv` de `server/lib/config.ts`), a MESMA que responde `GET /api/ai/stt/available`
+ * (B0 da Fase B): eram duas, e discordavam — a disponibilidade dizia 200 com só `LLM_API_KEY`
+ * configurada, e esta porta respondia 501.
  */
-function sttGerenciado(): { secret: string | null; baseUrl: string; model: string } {
-  return {
-    secret: process.env.GROQ_API_KEY ?? process.env.STT_API_KEY ?? null,
-    baseUrl: process.env.GROQ_BASE_URL || process.env.STT_BASE_URL || 'https://api.groq.com/openai/v1',
-    model: process.env.STT_MODEL || 'whisper-large-v3-turbo',
-  }
-}
 
 /** O que a porta decidiu, do middleware até o handler. */
 interface PortaDoStt {
@@ -93,6 +97,8 @@ interface PortaDoStt {
   baseUrl?: string
   model?: string
   provedor?: string
+  /** B2: o preço que o registro declarou para este provedor:modelo (mínimo faturado incluído). */
+  preco?: PrecoDeModelo
   /** O provedor chegou a ser chamado? Se não, o pedido volta ao balde. */
   chamouProvedor: boolean
   /** Fase 7: as travas de convidado/free (pool do dia, tetos por id e por IP). */
@@ -140,7 +146,7 @@ async function abrirPortaDoStt(req: Request, res: Response): Promise<PortaDoStt 
     return null
   }
   const cfg = sttGerenciado()
-  if (!cfg.secret) {
+  if (!cfg) {
     res.status(501).json({ error: 'STT de nuvem não configurado: defina GROQ_API_KEY no servidor (.env)' })
     return null
   }
@@ -160,6 +166,7 @@ async function abrirPortaDoStt(req: Request, res: Response): Promise<PortaDoStt 
     baseUrl: cfg.baseUrl,
     model: cfg.model,
     provedor,
+    preco: cfg.preco,
     chamouProvedor: false,
     gratuita,
     modo: alivio ? 'alivio' : 'plano',
@@ -515,9 +522,12 @@ async function transcrever(req: Request, res: Response, rastro: RastroDeIa): Pro
     // TAMBÉM o caminho BYOK — uso da chave do próprio usuário descontava da quota gerenciada.
     reservaPendente = false
     /* Só o caminho da chave do DONO entra no orçamento global; BYOK é conta do próprio usuário. E
-       aqui o número é o que o PROVEDOR fatura (`segundosFaturaveis`, com o mínimo de 10 s), não o
-       que saiu da cota do assinante: o orçamento existe para bater com a fatura. */
-    const custoUsd = gerenciado ? custoDeStt(model, segundosFaturaveis(audioBuffer)) : undefined
+       aqui o número é o que o PROVEDOR fatura (`segundosFaturaveis`, com o mínimo DELE — 10 s na
+       Groq, zero em quem cobra por segundo; B2 da Fase B), não o que saiu da cota do assinante: o
+       orçamento existe para bater com a fatura. */
+    const quemCobra = { fornecedor: porta?.provedor, preco: porta?.preco }
+    const faturados = segundosFaturaveis(audioBuffer, minimoFaturadoDoStt(model, quemCobra))
+    const custoUsd = gerenciado ? custoDeStt(model, faturados, quemCobra) : undefined
     if (custoUsd !== undefined) {
       await registrarGastoDeIa(custoUsd, { userId: req.userId, plano: porta?.planoDaAssinatura })
       await porta?.gratuita?.registrarCusto(custoUsd)
@@ -528,6 +538,8 @@ async function transcrever(req: Request, res: Response, rastro: RastroDeIa): Pro
       funcao: 'stt',
       ms: Date.now() - inicioDoProvedor,
       custoUsd,
+      fornecedor: gerenciado ? porta?.provedor : 'byok',
+      modelo: gerenciado ? model : 'byok',
     })
 
     // `language` vazio = o provedor não informou (ou caímos no `json`): o cliente volta ao
@@ -551,7 +563,7 @@ async function transcrever(req: Request, res: Response, rastro: RastroDeIa): Pro
       status: limpeza.esvaziado ? 'filtrado-vazio' : 'ok',
       uso: {
         audio_seconds: Math.round(segundosReais * 100) / 100,
-        audio_seconds_billed: segundosFaturaveis(audioBuffer),
+        audio_seconds_billed: faturados,
       },
       custoUsd,
       metadados: {

@@ -405,7 +405,12 @@ test('Choseong: quando o tempo acaba, a resposta aparece', async ({ page }) => {
   await expect(aviso, 'o tempo da 1ª palavra acaba e a resposta aparece').toBeVisible({ timeout: 25_000 });
   const revelada = await aviso.locator('b').innerText();
   expect(revelada.trim().length).toBeGreaterThan(0);
-  for (let v = 0; v < 12 && !(await terminou(page)); v++) {
+  /* PRAZO, não número de voltas: cada espera de 400 ms pelo aviso (1,8 s por palavra) gastava uma
+     volta, e uma palavra fora do dicionário gasta o relógio inteiro (15 s). Com 12 voltas a rodada de
+     8 palavras podia sobrar para o `chegarAoResultado`, que só espera ~36 s — a falha do e2e-estatica
+     do #51. O pior caso (8 × (15 s + 1,8 s) ≈ 135 s) cabe no prazo, e o teste é `slow`. */
+  const prazo = Date.now() + 200_000;
+  while (Date.now() < prazo && !(await terminou(page))) {
     const pista = page.locator('[data-tour="pista"]');
     if (!(await pista.isVisible().catch(() => false)) || (await aviso.isVisible().catch(() => false))) {
       await page.waitForTimeout(400);

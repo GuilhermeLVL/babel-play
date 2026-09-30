@@ -79,75 +79,81 @@ const FRASE_ANDROID = 'eu gosto de estudar inglês'
  * 0, nenhum parcial, e depois do religar o último final vem de novo. Conta os `getUserMedia`.
  */
 async function webSpeechFalsa(page: Page, modo: 'ok' | 'erro' | 'android') {
-  await page.addInitScript(([m, frase]) => {
-    const w = window as unknown as Record<string, unknown>
-    w.__getUserMedia = 0
-    const original = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices)
-    navigator.mediaDevices.getUserMedia = (c) => {
-      w.__getUserMedia = (w.__getUserMedia as number) + 1
-      return original(c)
-    }
-    type Ev = { error?: string; resultIndex?: number; results?: unknown }
-    /** A lista de resultados como o navegador a entrega: `[texto, final]` → `{ length, 0: [...] }`. */
-    const lista = (itens: Array<[string, boolean]>) => {
-      const r: Record<number, unknown> & { length: number } = { length: itens.length }
-      itens.forEach(([t, f], i) => (r[i] = Object.assign([{ transcript: t, confidence: 0 }], { isFinal: f })))
-      return r
-    }
-    let voltas = 0
-    class Falso {
-      lang = ''
-      continuous = false
-      interimResults = false
-      maxAlternatives = 1
-      onresult: ((e: Ev) => void) | null = null
-      onerror: ((e: Ev) => void) | null = null
-      onend: (() => void) | null = null
-      onstart: (() => void) | null = null
-      onaudiostart: (() => void) | null = null
-      onsoundstart: (() => void) | null = null
-      onsoundend: (() => void) | null = null
-      start() {
-        setTimeout(() => {
-          this.onstart?.()
-          if (m === 'erro') {
-            this.onerror?.({ error: 'network' })
-            this.onend?.()
-            return
-          }
-          this.onaudiostart?.()
-          this.onsoundstart?.()
-          if (m === 'android') {
-            voltas++
-            const palavras = frase.split(' ')
-            if (voltas === 1) {
-              // Finais crescendo, cada um num índice novo; o onend (silêncio) e o religar.
-              const passos = [1, 2, palavras.length].map((n) => palavras.slice(0, n).join(' '))
-              passos.forEach((_, i) =>
-                setTimeout(() => {
-                  const itens = passos.slice(0, i + 1).map((t) => [t, true] as [string, boolean])
-                  this.onresult?.({ resultIndex: i, results: lista(itens) })
-                }, 300 + i * 500),
-              )
-              setTimeout(() => this.onend?.(), 2500)
-            } else if (voltas === 2) {
-              // A volta nova reenvia o último final.
-              setTimeout(() => this.onresult?.({ resultIndex: 0, results: lista([[frase, true]]) }), 400)
-            }
-            return
-          }
-          setTimeout(() => {
-            const r = Object.assign([{ transcript: 'bom dia a todos', confidence: 0.9 }], { isFinal: true })
-            this.onresult?.({ resultIndex: 0, results: { length: 1, 0: r } })
-          }, 400)
-        }, 300)
+  await page.addInitScript(
+    ([m, frase]) => {
+      const w = window as unknown as Record<string, unknown>
+      w.__getUserMedia = 0
+      const original = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices)
+      navigator.mediaDevices.getUserMedia = (c) => {
+        w.__getUserMedia = (w.__getUserMedia as number) + 1
+        return original(c)
       }
-      stop() {}
-      abort() {}
-    }
-    w.SpeechRecognition = Falso
-    w.webkitSpeechRecognition = Falso
-  }, [modo, FRASE_ANDROID] as const)
+      type Ev = { error?: string; resultIndex?: number; results?: unknown }
+      /** A lista de resultados como o navegador a entrega: `[texto, final]` → `{ length, 0: [...] }`. */
+      const lista = (itens: Array<[string, boolean]>) => {
+        const r: Record<number, unknown> & { length: number } = { length: itens.length }
+        itens.forEach(([t, f], i) => (r[i] = Object.assign([{ transcript: t, confidence: 0 }], { isFinal: f })))
+        return r
+      }
+      let voltas = 0
+      class Falso {
+        lang = ''
+        continuous = false
+        interimResults = false
+        maxAlternatives = 1
+        onresult: ((e: Ev) => void) | null = null
+        onerror: ((e: Ev) => void) | null = null
+        onend: (() => void) | null = null
+        onstart: (() => void) | null = null
+        onaudiostart: (() => void) | null = null
+        onsoundstart: (() => void) | null = null
+        onsoundend: (() => void) | null = null
+        start() {
+          setTimeout(() => {
+            this.onstart?.()
+            if (m === 'erro') {
+              this.onerror?.({ error: 'network' })
+              this.onend?.()
+              return
+            }
+            this.onaudiostart?.()
+            this.onsoundstart?.()
+            if (m === 'android') {
+              voltas++
+              const palavras = frase.split(' ')
+              if (voltas === 1) {
+                // Finais crescendo, cada um num índice novo; o onend (silêncio) e o religar.
+                const passos = [1, 2, palavras.length].map((n) => palavras.slice(0, n).join(' '))
+                passos.forEach((_, i) =>
+                  setTimeout(
+                    () => {
+                      const itens = passos.slice(0, i + 1).map((t) => [t, true] as [string, boolean])
+                      this.onresult?.({ resultIndex: i, results: lista(itens) })
+                    },
+                    300 + i * 500,
+                  ),
+                )
+                setTimeout(() => this.onend?.(), 2500)
+              } else if (voltas === 2) {
+                // A volta nova reenvia o último final.
+                setTimeout(() => this.onresult?.({ resultIndex: 0, results: lista([[frase, true]]) }), 400)
+              }
+              return
+            }
+            setTimeout(() => {
+              const r = Object.assign([{ transcript: 'bom dia a todos', confidence: 0.9 }], { isFinal: true })
+              this.onresult?.({ resultIndex: 0, results: { length: 1, 0: r } })
+            }, 400)
+          }, 300)
+        }
+        stop() {}
+        abort() {}
+      }
+      w.SpeechRecognition = Falso
+      w.webkitSpeechRecognition = Falso
+    },
+    [modo, FRASE_ANDROID] as const,
+  )
 }
 
 /**
@@ -161,7 +167,9 @@ async function tradutorFalso(page: Page) {
     let pronto = false
     w.Translator = {
       availability: async () => (pronto ? 'available' : 'downloadable'),
-      create: (o: { monitor?: (m: { addEventListener(t: string, f: (e: { loaded: number }) => void): void }) => void }) =>
+      create: (o: {
+        monitor?: (m: { addEventListener(t: string, f: (e: { loaded: number }) => void): void }) => void
+      }) =>
         new Promise((resolver) => {
           const ouvintes: Array<(e: { loaded: number }) => void> = []
           o.monitor?.({ addEventListener: (_t, f) => ouvintes.push(f) })
@@ -183,6 +191,10 @@ async function abrirCaptura(page: Page) {
   await semCapturaDeTela(page)
   await semEscolhaGuardada(page)
   await page.route(/huggingface\.co|\.hf\.co/, (r) => r.abort())
+  /* O Bergamot (pt→en no aparelho, A9b) vem do PRÓPRIO domínio e fica pronto em menos de 1 s: sem
+     isto a frase em português seria traduzida por ele na hora, e o teste do tradutor do navegador
+     que ainda baixa não teria o que medir. Fora, como o opus-mt do Hub logo acima. */
+  await page.route(/\/modelos\/bergamot\/|bergamot-translator-worker/, (r) => r.abort())
   await page.goto('/capturar')
   await expect(page.getByRole('main')).toBeVisible()
   await fecharSobreposicoes(page)
@@ -208,9 +220,7 @@ async function escolherNaFolha(page: Page, opcao: 'Rápido' | 'Privado', downloa
 }
 
 test.describe('Captura no celular (Pixel 7, sem getDisplayMedia)', () => {
-  test('Privado: a folha diz o tamanho do nosso modelo e a sessão começa com o microfone aberto', async ({
-    page,
-  }) => {
+  test('Privado: a folha diz o tamanho do nosso modelo e a sessão começa com o microfone aberto', async ({ page }) => {
     test.slow()
     await abrirCaptura(page)
     await escolherNaFolha(page, 'Privado', /cerca de \d+ MB/, /Baixar e iniciar/)
@@ -287,7 +297,9 @@ test.describe('Captura no celular: a tela para uma mão só', () => {
     await abrirCaptura(page)
     await expect(page.getByTestId('captura-no-celular')).toBeVisible()
     await expect(iniciar(page)).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Trocar os idiomas' }).or(page.locator('span.cel-troca'))).toBeVisible()
+    await expect(
+      page.getByRole('button', { name: 'Trocar os idiomas' }).or(page.locator('span.cel-troca')),
+    ).toBeVisible()
     await fecharSobreposicoes(page)
     await foto(page, '1-pronto')
     await clicarRobusto(page, page.getByRole('button', { name: 'Opções da captura' }))

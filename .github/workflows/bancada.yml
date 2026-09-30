@@ -13,7 +13,8 @@ name: Bancada (Etapa 5)
 # Todo STT com `+vad800`: o mesmo Silero e os mesmos limiares do navegador (fecha em 800 ms). Sem VAD
 # a comparação mediria um pipeline que o usuário nunca vê.
 #
-# Sem segredo nenhum: nada de nuvem nesta execução (o livro-caixa da bancada fica em US$ 0).
+# Sem segredo nenhum: nada de nuvem nesta execução (o livro-caixa da bancada fica em US$ 0). A bancada
+# dos provedores de NUVEM (com as chaves e o teto de US$ 3) é o workflow irmão `bancada-nuvem.yml`.
 # O resultado não volta para o repositório sozinho: sai no resumo do job e no artefato
 # `bancada-etapa5` (resumo JSON + Markdown + brutos caso a caso). Quem decide a troca é o dono.
 
@@ -129,7 +130,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/bancada/brutos"
           if [ "${#brutos[@]}" -eq 0 ]; then echo "nenhum bruto gerado" >> "$GITHUB_STEP_SUMMARY"; exit 0; fi
           cp "${brutos[@]}" "$RUNNER_TEMP/bancada/brutos/"
-          $TSX scripts/eval-fala/bancada/resumo.mjs --saida "$RUNNER_TEMP/bancada" "${brutos[@]}"
+          $TSX scripts/eval-fala/bancada/resumo.mjs --saida "$RUNNER_TEMP/bancada" --titulo "Bancada — candidatos × linhas de base (Etapa 5)" "${brutos[@]}"
           cat "$RUNNER_TEMP/bancada/resumo-bancada.md" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Artefato

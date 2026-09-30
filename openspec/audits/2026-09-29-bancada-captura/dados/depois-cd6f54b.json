@@ -1,0 +1,126 @@
+{
+ "ambiente": "local-win32",
+ "quando": "2026-09-30T02:27:11.025Z",
+ "commit": "bde13bd",
+ "alvo": {
+  "nome": "depois",
+  "url": "http://127.0.0.1:4183"
+ },
+ "maquina": {
+  "so": "Windows_NT 10.0.26100",
+  "cpu": "AMD Ryzen 5 5600 6-Core Processor",
+  "nucleos": 12,
+  "memoriaGb": 16,
+  "navegador": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36"
+ },
+ "perfis": {
+  "desktop": {
+   "rodadas": 3,
+   "invalidas": [],
+   "falasNoRtf": 24,
+   "metricas": {
+    "framesLongos.n50": 1,
+    "framesLongos.n100": 1,
+    "framesLongos.somaMs": 207,
+    "framesLongos.maiorMs": 207,
+    "primeiraLegendaMs": 2382,
+    "sttProntoMs": -896,
+    "memoriaPicoMb": 1234,
+    "heapPicoMb": 26,
+    "cpuSilencio.processoPct": 15.286795865633085,
+    "cpuSilencio.principalPct": 3.8411563307493566,
+    "cpuSilencio.foraDaPrincipalPct": 11.445639534883728,
+    "cpuSilencio.workersPct": null,
+    "rendersPorS.silencio": 30.328853979650578,
+    "rendersPorS.fala": 138.82990249187432,
+    "commitsPorS.silencio": 1.010961799321686,
+    "commitsPorS.fala": 2.8169014084507045,
+    "fimATraducao.p50": 1070.5,
+    "regulador.trocasDeModelo": 0,
+    "rtf.p50": 0.091,
+    "rtf.p95": 0.16774999999999993
+   },
+   "dispersao": {
+    "framesLongos.n50": 0,
+    "framesLongos.n100": 0,
+    "framesLongos.somaMs": 0.17391304347826086,
+    "framesLongos.maiorMs": 0.17391304347826086,
+    "primeiraLegendaMs": 1.1435768261964736,
+    "sttProntoMs": 0.6618303571428571,
+    "memoriaPicoMb": 0.09562398703403566,
+    "heapPicoMb": 0.11538461538461539,
+    "cpuSilencio.processoPct": 0.12368626119202487,
+    "cpuSilencio.principalPct": 0.12331034415085695,
+    "cpuSilencio.foraDaPrincipalPct": 0.12381241894128112,
+    "cpuSilencio.workersPct": null,
+    "rendersPorS.silencio": 0.01108956083551022,
+    "rendersPorS.fala": 0.27110972373965975,
+    "commitsPorS.silencio": 0.011089560835510293,
+    "commitsPorS.fala": 0.18461538461538454,
+    "fimATraducao.p50": 0.3115366651097618,
+    "regulador.trocasDeModelo": null
+   },
+   "modelos": [
+    "onnx-community/moonshine-base-ONNX"
+   ],
+   "aparelho": {
+    "tipo": "desktop-sem-gpu",
+    "modoLeve": "false"
+   }
+  },
+  "fraco": {
+   "rodadas": 3,
+   "invalidas": [],
+   "falasNoRtf": 24,
+   "metricas": {
+    "framesLongos.n50": 3,
+    "framesLongos.n100": 2,
+    "framesLongos.somaMs": 1141,
+    "framesLongos.maiorMs": 924,
+    "primeiraLegendaMs": 5014,
+    "sttProntoMs": -500,
+    "memoriaPicoMb": 1160,
+    "heapPicoMb": 25,
+    "cpuSilencio.processoPct": 7.2896281675792585,
+    "cpuSilencio.principalPct": 1.7017954921685958,
+    "cpuSilencio.foraDaPrincipalPct": 5.587832675410663,
+    "cpuSilencio.workersPct": null,
+    "rendersPorS.silencio": 31.15077371497545,
+    "rendersPorS.fala": 90.79089924160347,
+    "commitsPorS.silencio": 1.0383591238325152,
+    "commitsPorS.fala": 2.3185265438786566,
+    "fimATraducao.p50": 1259,
+    "regulador.trocasDeModelo": 0,
+    "rtf.p50": 0.122,
+    "rtf.p95": 0.14184999999999998
+   },
+   "dispersao": {
+    "framesLongos.n50": 0.3333333333333333,
+    "framesLongos.n100": 0,
+    "framesLongos.somaMs": 0.14986853637160386,
+    "framesLongos.maiorMs": 0.10606060606060606,
+    "primeiraLegendaMs": 0.0023932987634623054,
+    "sttProntoMs": 0.35,
+    "memoriaPicoMb": 0.045689655172413794,
+    "heapPicoMb": 0.12,
+    "cpuSilencio.processoPct": 0.08363706977449346,
+    "cpuSilencio.principalPct": 0.06798372850205926,
+    "cpuSilencio.foraDaPrincipalPct": 0.08840435382937038,
+    "cpuSilencio.workersPct": null,
+    "rendersPorS.silencio": 0.006130568010063913,
+    "rendersPorS.fala": 0.036276849642004734,
+    "commitsPorS.silencio": 0.006130568010063898,
+    "commitsPorS.fala": 0.04672897196261694,
+    "fimATraducao.p50": 0.046068308181096106,
+    "regulador.trocasDeModelo": null
+   },
+   "modelos": [
+    "onnx-community/moonshine-base-ONNX"
+   ],
+   "aparelho": {
+    "tipo": "desktop-sem-gpu",
+    "modoLeve": "true"
+   }
+  }
+ }
+}

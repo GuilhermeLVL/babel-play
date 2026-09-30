@@ -60,7 +60,9 @@ const DURACAO_DO_AVISO_COM_ACAO_MS = 12_000;
  */
 function avisarAudioSemEspaco(): void {
   toast.warn(
-    t('O áudio desta sessão não coube no seu espaço de armazenamento. As falas foram salvas; para guardar o áudio, libere espaço ou veja os planos.'),
+    t(
+      'O áudio desta sessão não coube no seu espaço de armazenamento. As falas foram salvas; para guardar o áudio, libere espaço ou veja os planos.',
+    ),
     {
       duration: DURACAO_DO_AVISO_COM_ACAO_MS,
       action: { label: t('Ver planos'), onClick: () => navegarPara({ view: 'planos' }) },
@@ -157,6 +159,12 @@ async function guardarFalas(r: RascunhoDaCaptura, titulo: string, origemLocalId:
   if (r.capa) {
     const comCapa = await patchSessionMeta(recording.id, { imageUrl: r.capa });
     if (comCapa) recording = comCapa;
+  }
+  /* O intérprete marca a sessão (a Biblioteca e a Análise sabem que foi uma conversa frente a frente).
+     Falhou: a sessão está salva do mesmo jeito, só sem a marca. */
+  if (r.cenario) {
+    const marcada = await patchSessionMeta(recording.id, { scenario: r.cenario });
+    if (marcada) recording = marcada;
   }
   return recording;
 }

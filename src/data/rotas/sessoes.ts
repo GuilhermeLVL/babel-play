@@ -10,7 +10,7 @@
  * GET `/api/sessions/utterances/all`, POST `/api/sessions/utterances/relabel`.
  */
 import { data } from '../../lib/i18n'
-import type { Recording } from '../../types'
+import type { CenarioDaSessao, Recording } from '../../types'
 import { apiFetch, IMPORT_TIMEOUT_MS } from '../funil'
 
 interface SessionRow {
@@ -79,6 +79,8 @@ function parseMeta(meta: string | null): Record<string, unknown> {
   }
 }
 
+const CENARIOS: ReadonlySet<string> = new Set<CenarioDaSessao>(['media', 'conversation', 'mic', 'interprete'])
+
 export function sessionToRecording(s: SessionRow): Recording {
   const m = parseMeta(s.meta)
   return {
@@ -93,6 +95,7 @@ export function sessionToRecording(s: SessionRow): Recording {
     audioUrl: m.audioFile ? `/api/sessions/${s.id}/audio` : undefined,
     imageUrl: typeof m.imageUrl === 'string' ? m.imageUrl : undefined,
     pinned: m.pinned === true,
+    ...(typeof m.scenario === 'string' && CENARIOS.has(m.scenario) ? { cenario: m.scenario as CenarioDaSessao } : {}),
     idioma: s.sourceLang ?? undefined,
     pronta: (s.status === 'done' || s.status === 'ready') && (s.wordCount ?? 0) > 0,
   }
@@ -306,10 +309,10 @@ export async function uploadSessionAudio(
   }
 }
 
-/** Mescla `{ pinned?, imageUrl? }` no `meta` da sessão. Devolve o Recording atualizado. */
+/** Mescla `{ pinned?, imageUrl?, scenario? }` no `meta` da sessão. Devolve o Recording atualizado. */
 export async function patchSessionMeta(
   id: string,
-  patch: { pinned?: boolean; imageUrl?: string | null },
+  patch: { pinned?: boolean; imageUrl?: string | null; scenario?: CenarioDaSessao },
 ): Promise<Recording | null> {
   try {
     const res = await apiFetch(`/api/sessions/${id}/meta`, {

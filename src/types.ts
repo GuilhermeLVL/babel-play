@@ -22,7 +22,12 @@ export interface Recording {
    * "Situação" da Biblioteca.
    */
   pronta?: boolean;
+  /** O cenário da captura (`meta.scenario`): `interprete` = uma conversa do modo intérprete (Fase E). */
+  cenario?: CenarioDaSessao;
 }
+
+/** Os cenários que uma sessão de captura guarda (o `CaptureScenario` da captura). */
+export type CenarioDaSessao = 'media' | 'conversation' | 'mic' | 'interprete';
 
 /**
  * Palavra em análise no Analista de Vocabulário — o contrato compartilhado por TODAS as telas

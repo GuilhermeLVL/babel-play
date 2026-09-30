@@ -625,6 +625,7 @@ sessionsRouter.patch('/:id/meta', async (req, res) => {
       }
       patch.imageUrl = raw
     }
+    if (body.scenario !== undefined) patch.scenario = body.scenario
     const updated = await sessionsRepo.patchMeta(req.userId, alvo.id, patch)
     if (!updated) {
       res.status(404).json({ error: 'sessão não encontrada' })

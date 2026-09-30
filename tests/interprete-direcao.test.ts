@@ -304,7 +304,8 @@ describe('fontes: a Web Speech abre e reinicia no idioma do lado', () => {
     rec.emitir('where is', false)
     rec.emitir('where is the station', true)
     const fala = m.falas.ler().find((s) => !s.isPartial)!
-    expect(fala).toMatchObject({ lado: 'outro', originalText: 'where is the station' })
+    /* O idioma do lado vai na fala: a sessão salva narra e estuda cada lado no idioma dele. */
+    expect(fala).toMatchObject({ lado: 'outro', lang: 'en', originalText: 'where is the station' })
     expect(m.translateSegment).toHaveBeenCalledWith(fala.id, 'where is the station', 'en', 'pt', { falada: true })
     expect(m.aoFimDaFala).toHaveBeenCalledWith({ segId: fala.id, source: 'mic', lado: 'outro' })
   })

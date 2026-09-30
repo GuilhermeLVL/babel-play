@@ -15,8 +15,13 @@
  *   STT sem_fala  taxa de alucinação (trecho c/ letra) Δ < 0 é melhor
  *   MT            COMET médio (wmt22-comet-da)         Δ > 0 é melhor (chrF++ ao lado)
  *
+ * Cada linha leva também o CUSTO por hora (MT: `usdPorHoraDeFala`; STT: `custoUsdPorHora`, com o
+ * mínimo faturado), os `parametros` do pedido de nuvem (`foraDaProducao`) e os casos acima do timeout
+ * da produção — é daqui que `decisao.mjs` tira a regra de custo e os avisos para o B7.
+ *
  * Uso:
- *   node node_modules/tsx/dist/cli.mjs scripts/eval-fala/bancada/resumo.mjs --saida <dir> arq1.json arq2.json …
+ *   node node_modules/tsx/dist/cli.mjs scripts/eval-fala/bancada/resumo.mjs --saida <dir> \
+ *     [--candidatos deepinfra:,cerebras:] [--titulo "Bancada de nuvem"] arq1.json arq2.json …
  * Grava `<dir>/resumo-bancada.json` e `<dir>/resumo-bancada.md` e imprime o Markdown.
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
@@ -42,6 +47,8 @@ export function alinhar(casosA, casosB) {
     }
   return [a, b]
 }
+
+const usdH = (x) => (Number.isFinite(x) ? x.toFixed(4) : '—')
 
 const temLetra = (s) => (/\p{L}/u.test(s ?? '') ? 1 : 0)
 
@@ -85,6 +92,8 @@ export function resumir(brutos, prefixos = ['parakeet:', 'bergamot:']) {
         valor: bootstrap(r.casos.length, est),
         rtf: r.rtf,
         latenciaMs: r.latenciaMs,
+        custoUsdPorHora: r.custoUsdPorHora ?? null,
+        faturadoSobreReal: r.faturadoSobreReal ?? null,
         comparacoes: doConj
           .filter((b) => b !== r && ehCandidato(r.sistema) && !ehCandidato(b.sistema))
           .map((b) => {
@@ -117,6 +126,9 @@ export function resumir(brutos, prefixos = ['parakeet:', 'bergamot:']) {
         latenciaMs: r.latenciaMs,
         latenciaPorFraseMs: r.latenciaPorFraseMs ?? null,
         falhas: r.falhas ?? 0,
+        usdPorHoraDeFala: r.usdPorHoraDeFala ?? null,
+        parametros: r.parametros ?? null,
+        acimaDoTimeoutDeProducao: r.acimaDoTimeoutDeProducao ?? 0,
         comparacoes: !ehCandidato(r.sistema)
           ? []
           : [...porSistema.values()]
@@ -145,7 +157,7 @@ export function resumir(brutos, prefixos = ['parakeet:', 'bergamot:']) {
 
 export function markdown({ stt, mt }, meta = {}) {
   const l = []
-  l.push('# Bancada — candidatos × linhas de base (Etapa 5)')
+  l.push(`# ${meta.titulo ?? 'Bancada — candidatos × linhas de base'}`)
   l.push('')
   if (meta.commit || meta.geradoEm) l.push(`Commit \`${meta.commit ?? '?'}\` · ${meta.geradoEm ?? ''}`, '')
   l.push(
@@ -154,12 +166,12 @@ export function markdown({ stt, mt }, meta = {}) {
   )
   if (stt.length) {
     l.push('## Transcrição', '')
-    l.push('| Conjunto | Sistema | n | WER / alucinação % [IC 95%] | RTF | p50 ms | Δ pareado vs base (pts) |')
-    l.push('| --- | --- | --: | --- | --: | --: | --- |')
+    l.push('| Conjunto | Sistema | n | WER / alucinação % [IC 95%] | RTF | p50 ms | US$/h | Δ pareado vs base (pts) |')
+    l.push('| --- | --- | --: | --- | --: | --: | --: | --- |')
     for (const r of stt) {
       const deltas = r.comparacoes.map((c) => `vs \`${c.contra}\`: ${fmtDelta(c.diferenca, pct)}`).join('<br>')
       l.push(
-        `| ${r.conjunto} | \`${r.sistema}\`${r.candidato ? ' ★' : ''} | ${r.n} | ${fmtIc(r.valor, pct)} | ${Number.isFinite(r.rtf) ? r.rtf.toFixed(3) : '—'} | ${Number.isFinite(r.latenciaMs?.p50) ? r.latenciaMs.p50.toFixed(0) : '—'} | ${deltas || '—'} |`,
+        `| ${r.conjunto} | \`${r.sistema}\`${r.candidato ? ' ★' : ''} | ${r.n} | ${fmtIc(r.valor, pct)} | ${Number.isFinite(r.rtf) ? r.rtf.toFixed(3) : '—'} | ${Number.isFinite(r.latenciaMs?.p50) ? r.latenciaMs.p50.toFixed(0) : '—'} | ${usdH(r.custoUsdPorHora)} | ${deltas || '—'} |`,
       )
     }
     l.push('')
@@ -167,8 +179,8 @@ export function markdown({ stt, mt }, meta = {}) {
   if (mt.length) {
     const f3 = (x) => x.toFixed(3)
     l.push('## Tradução', '')
-    l.push('| Corpus | Sistema | n | COMET [IC 95%] | chrF++ | BLEU | ms/frase p50 · p95 | Δ pareado vs base |')
-    l.push('| --- | --- | --: | --- | --: | --: | --- | --- |')
+    l.push('| Corpus | Sistema | n | COMET [IC 95%] | chrF++ | BLEU | ms/frase p50 · p95 | US$/h | Δ pareado vs base |')
+    l.push('| --- | --- | --: | --- | --: | --: | --- | --: | --- |')
     for (const r of mt) {
       const deltas = r.comparacoes
         .map(
@@ -178,7 +190,7 @@ export function markdown({ stt, mt }, meta = {}) {
         .join('<br>')
       const pf = r.latenciaPorFraseMs
       l.push(
-        `| ${r.corpus} | \`${r.sistema}\`${r.candidato ? ' ★' : ''} | ${r.n}${r.falhas ? ` (${r.falhas} falhas)` : ''} | ${r.comet ? fmtIc(r.comet, f3) : '— (rode pontuar.py)'} | ${r.chrf?.valor?.toFixed(1) ?? '—'} | ${r.bleu?.toFixed(1) ?? '—'} | ${pf ? `${pf.p50.toFixed(0)} · ${pf.p95.toFixed(0)}` : '—'} | ${deltas || '—'} |`,
+        `| ${r.corpus} | \`${r.sistema}\`${r.candidato ? ' ★' : ''} | ${r.n}${r.falhas ? ` (${r.falhas} falhas)` : ''} | ${r.comet ? fmtIc(r.comet, f3) : '— (rode pontuar.py)'} | ${r.chrf?.valor?.toFixed(1) ?? '—'} | ${r.bleu?.toFixed(1) ?? '—'} | ${pf ? `${pf.p50.toFixed(0)} · ${pf.p95.toFixed(0)}` : '—'} | ${usdH(r.usdPorHoraDeFala)} | ${deltas || '—'} |`,
       )
     }
     l.push('')
@@ -191,16 +203,18 @@ function main() {
   const args = process.argv.slice(2)
   let saida = '.'
   let prefixos
+  let titulo
   const arquivos = []
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--saida') saida = args[++i]
     else if (args[i] === '--candidatos') prefixos = args[++i].split(',')
+    else if (args[i] === '--titulo') titulo = args[++i]
     else arquivos.push(args[i])
   }
   if (!arquivos.length) throw new Error('nenhum bruto informado')
   const brutos = arquivos.map((a) => JSON.parse(readFileSync(a, 'utf8')))
   const res = resumir(brutos, prefixos)
-  const meta = { geradoEm: new Date().toISOString(), commit: brutos.find((b) => b.commit)?.commit ?? null }
+  const meta = { geradoEm: new Date().toISOString(), commit: brutos.find((b) => b.commit)?.commit ?? null, titulo }
   const md = markdown(res, meta)
   mkdirSync(saida, { recursive: true })
   writeFileSync(path.join(saida, 'resumo-bancada.json'), `${JSON.stringify({ ...meta, arquivos, ...res }, null, 2)}\n`)

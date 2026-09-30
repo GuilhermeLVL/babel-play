@@ -1,0 +1,72 @@
+/**
+ * OS NÍVEIS POR PLANO × FUNÇÃO (`IA_NIVEIS`) — B3 da Fase B, 29/09/2026.
+ *
+ * A decisão do dono: o Grátis e o convidado recebem a TRADUÇÃO RÁPIDA (o modelo barato); quem paga,
+ * a TRADUÇÃO NUANCE (o modelo que o registro marca para a nuance — o vencedor da bancada, no B7 —,
+ * com o barato de reserva). O contrato dos níveis mora em `src/core/nivelDeTraducao.ts`; o modelo de
+ * cada nível, no registro de provedores (campo `niveis` de cada modelo); ESTE arquivo diz, função por
+ * função, que nível cada capacidade de plano recebe, e monta a cascata daquele nível.
+ *
+ * PELA CAPACIDADE, NUNCA PELO NOME. A tabela lê `traducaoNuance` (a matriz de `src/core/planos.ts`),
+ * e nenhuma linha daqui compara `plan` com uma string: a Fase C renomeia essencial/pro → premium, e
+ * o entitlement atravessa o rename sem que ninguém precise lembrar deste arquivo.
+ *
+ * UNIFICA O `largerModels`. Antes, mtProxy e tutor montavam a cascata com
+ * `cascataDeNuvem({ modelosGrandes: plano.largerModels })`. Agora os dois chamam `cascataDoPlano`,
+ * que resolve o nível e ainda repassa o `largerModels` — que só o registro LEGADO lê (o
+ * `LLM_MODEL_GRANDE` de sempre, para quem tem `largerModels`). Sem `IA_PROVEDORES` nenhum modelo
+ * declara nível, a nuance desce inteira para a rápida, e a cascata de cada plano é a de antes
+ * (`tests/integration/niveis-de-traducao.test.ts` confere numa matriz de ambientes).
+ *
+ * O POLIMENTO (Fase D, D5) não aparece na tabela: nenhuma função o usa ainda. Quando a rota de
+ * "polir a sessão" existir, ela pede o nível dela e o servidor rebaixa quem não tem a capacidade
+ * (`rebaixarNivel`) — a cascata do polimento já desce a escada até a rápida (`pernasDaFuncao`).
+ */
+import { type CapacidadeDeNivel, type NivelDaTraducao, rebaixarNivel } from '../../src/core/nivelDeTraducao'
+import type { FuncaoDeIa } from './funcoesDeIa'
+import { cascataDeNuvem, type Provedor } from './provedores'
+
+/** O nível de uma função para quem tem (ou não) a capacidade da nuance. */
+export interface NiveisDaFuncao {
+  semNuance: NivelDaTraducao
+  comNuance: NivelDaTraducao
+}
+
+/**
+ * A TABELA. O corretor (a checagem curta de uma resposta do exercício) segue o tutor, com quem
+ * divide os modelos: um JSON de ~30 tokens custa quase nada em qualquer nível, e dar a quem paga um
+ * corretor pior que o tutor seria a incoerência que o plano não explica. Mudar uma linha aqui é
+ * decisão de produto — o custo de cada nível está na bancada (B5) e no `politicaDeCusto.ts` (B4).
+ */
+export const IA_NIVEIS: Readonly<Record<FuncaoDeIa, NiveisDaFuncao>> = {
+  traducao: { semNuance: 'rapida', comNuance: 'nuance' },
+  tutor: { semNuance: 'rapida', comNuance: 'nuance' },
+  corretor: { semNuance: 'rapida', comNuance: 'nuance' },
+}
+
+/** O nível que a função entrega a este plano — pela capacidade `traducaoNuance`. */
+export function nivelDaFuncao(funcao: FuncaoDeIa, capacidade: CapacidadeDeNivel): NivelDaTraducao {
+  const linha = IA_NIVEIS[funcao]
+  /* `rebaixarNivel` é a mesma régua do D1: sem a capacidade, a rápida, qualquer que seja o pedido. */
+  return rebaixarNivel(capacidade.traducaoNuance === true ? linha.comNuance : linha.semNuance, capacidade)
+}
+
+/** A cascata de um nível, com o nível que a escolheu (para o rastro, a política de custo e o cache). */
+export interface CascataDoNivel {
+  nivel: NivelDaTraducao
+  pernas: Provedor[]
+}
+
+/**
+ * A CASCATA DE NUVEM DE UM PLANO para uma função: o nível pela capacidade, as pernas pelo registro.
+ * `largerModels` segue só para o legado (ver o topo). Sem pernas, a lista vem vazia — quem chama
+ * responde 501 como sempre.
+ */
+export function cascataDoPlano(
+  funcao: FuncaoDeIa,
+  plano: CapacidadeDeNivel & { largerModels?: boolean },
+  env: NodeJS.ProcessEnv = process.env,
+): CascataDoNivel {
+  const nivel = nivelDaFuncao(funcao, plano)
+  return { nivel, pernas: cascataDeNuvem({ funcao, nivel, modelosGrandes: plano.largerModels === true }, env) }
+}

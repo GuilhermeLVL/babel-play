@@ -23,7 +23,8 @@ import { planoDeAdmissao, responderNuvemOcupada } from '../ai/admissao'
 import { type AdmissaoDaCascata, admitirCascata, encerrarAdmissao, percorrerCascata } from '../ai/cascata'
 import { chamarChat, type MensagemDeChat, tamanhoDoPrompt } from '../ai/llmClient'
 import { prepareLlmRequest } from '../ai/llmRequest'
-import { cascataDeNuvem, llmLocal } from '../ai/provedores'
+import { cascataDoPlano } from '../ai/niveis'
+import { llmLocal } from '../ai/provedores'
 import { abrirReservaDeLlm, type ReservaDeLlm } from '../ai/reservaDeNuvem'
 import { abrirRastro, nomeDoProvedor, type RastroDeIa, statusDaTentativa } from '../ai/telemetriaDeIa'
 import { authRequired } from '../lib/auth'
@@ -107,8 +108,10 @@ async function conversar(req: Request, res: Response, rastro: RastroDeIa): Promi
     const plano = getEntitlements(gratuita.plano)
 
     if (plano.managedCloudLlm) {
-      /* B1: com `IA_PROVEDORES`, o tutor (e o corretor) têm os modelos DELES; no legado, a mesma cascata. */
-      const provedores = cascataDeNuvem({ modelosGrandes: plano.largerModels, funcao: prep.funcao })
+      /* B1: com `IA_PROVEDORES`, o tutor (e o corretor) têm os modelos DELES; no legado, a mesma cascata.
+         B3: o modelo sai do NÍVEL do plano (`niveis.ts`) — a nuance para quem tem `traducaoNuance`. */
+      const { nivel, pernas: provedores } = cascataDoPlano(prep.funcao, plano)
+      rastro.anotar({ nivel })
       // Chave de emergência e orçamento global: fechado, o hospedado explica; o self-host cai no Ollama.
       const portao = provedores.length > 0 ? await portaoDaNuvem() : { ok: false }
       if (provedores.length > 0 && !portao.ok && !selfHost) {

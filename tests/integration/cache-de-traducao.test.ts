@@ -134,4 +134,18 @@ describe('o cache em si: TTL e teto de tamanho', () => {
     const k = chaveDeTraducao({ texto: 'segredo do usuário', src: 'pt', tgt: 'en', falada: false, modelo: 'm' })
     expect(k).toMatch(/^[0-9a-f]{64}$/)
   })
+
+  /* B3: o `registro` (formal/informal, variante — Fase D) entra na chave; AUSENTE, a chave é a de
+     antes, byte a byte: o L2 dura 30 dias, e mudar a chave de toda frase jogaria fora o cache inteiro. */
+  it('sem registro, a chave é a de antes; com registro, outra', async () => {
+    const { chaveDeTraducao } = await h.load<any>('../../server/ai/cacheDeTraducao')
+    const { createHash } = await import('node:crypto')
+    const c = { texto: 'Thank you.', src: 'en', tgt: 'pt', falada: false, modelo: 'm', versaoDoPrompt: 'v1' }
+    const antes = createHash('sha256')
+      .update(['thank you', 'en', 'pt', 'texto', '', 'm', 'v1'].join('\u0000'))
+      .digest('hex')
+    expect(chaveDeTraducao(c)).toBe(antes)
+    expect(chaveDeTraducao({ ...c, registro: 'formal' })).not.toBe(antes)
+    expect(chaveDeTraducao({ ...c, registro: 'formal' })).not.toBe(chaveDeTraducao({ ...c, registro: 'informal' }))
+  })
 })

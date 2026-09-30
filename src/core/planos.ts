@@ -59,6 +59,13 @@ export interface EntitlementsDoPlano {
   managedCloudLlm: boolean;
   /** Modelos locais maiores (whisper-base+). */
   largerModels: boolean;
+  /**
+   * A "Tradução Nuance" (B3 da Fase B): o nível `nuance` da tradução e do tutor — o modelo que o
+   * registro de provedores marca para a nuance. Sem ela, o nível é o `rapida` ("Tradução rápida ao
+   * vivo"). O servidor decide o nível por ESTE campo, nunca pelo nome do plano
+   * (`src/core/nivelDeTraducao.ts`).
+   */
+  traducaoNuance: boolean;
 }
 
 export interface QuotasDoPlano {
@@ -85,7 +92,13 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
   free: {
     rotulo: 'Grátis',
     precoMensalBrl: null,
-    entitlements: { youtubeImport: false, managedCloudStt: false, managedCloudLlm: false, largerModels: false },
+    entitlements: {
+      youtubeImport: false,
+      managedCloudStt: false,
+      managedCloudLlm: false,
+      largerModels: false,
+      traducaoNuance: false,
+    },
     // Chamadas 0: o free já é barrado antes, pelo entitlement — o teto só reafirma.
     quotas: { chamadasMes: 0, sttSegundosMes: 0, tokensMes: 0, armazenamentoMb: 500 },
   },
@@ -95,13 +108,25 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
     /* LLM e transcrição de nuvem, com o modelo padrão. YouTube fica de fora em TODO plano vendido:
        no modo hospedado a importação responde 403 (o yt-dlp roda no servidor; só o self-host a
        libera) — vender o que a rota recusa seria cobrar por uma promessa. */
-    entitlements: { youtubeImport: false, managedCloudStt: true, managedCloudLlm: true, largerModels: false },
+    entitlements: {
+      youtubeImport: false,
+      managedCloudStt: true,
+      managedCloudLlm: true,
+      largerModels: false,
+      traducaoNuance: true,
+    },
     quotas: { chamadasMes: 20_000, sttSegundosMes: 54_000, tokensMes: 3_000_000, armazenamentoMb: 1_000 },
   },
   pro: {
     rotulo: 'Pro',
     precoMensalBrl: 39.9,
-    entitlements: { youtubeImport: false, managedCloudStt: true, managedCloudLlm: true, largerModels: true },
+    entitlements: {
+      youtubeImport: false,
+      managedCloudStt: true,
+      managedCloudLlm: true,
+      largerModels: true,
+      traducaoNuance: true,
+    },
     /* 20 h de transcrição e o modelo maior. A conta de cada número está no topo do arquivo. */
     quotas: { chamadasMes: 26_000, sttSegundosMes: 72_000, tokensMes: 5_000_000, armazenamentoMb: 5_000 },
   },
@@ -109,7 +134,13 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
     rotulo: 'Self-host (tudo liberado)',
     precoMensalBrl: null,
     // A chave de IA é do próprio dono da instância: não há custo nosso, nada a gatear.
-    entitlements: { youtubeImport: true, managedCloudStt: true, managedCloudLlm: true, largerModels: true },
+    entitlements: {
+      youtubeImport: true,
+      managedCloudStt: true,
+      managedCloudLlm: true,
+      largerModels: true,
+      traducaoNuance: true,
+    },
     quotas: { chamadasMes: null, sttSegundosMes: null, tokensMes: null, armazenamentoMb: null },
   },
 };
@@ -138,7 +169,14 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
 export const PLANO_CONVIDADO: DefinicaoDePlano = {
   rotulo: 'Convidado',
   precoMensalBrl: null,
-  entitlements: { youtubeImport: false, managedCloudStt: true, managedCloudLlm: true, largerModels: false },
+  /* A nuvem do convidado é a da tradução RÁPIDA: a nuance é de quem paga. */
+  entitlements: {
+    youtubeImport: false,
+    managedCloudStt: true,
+    managedCloudLlm: true,
+    largerModels: false,
+    traducaoNuance: false,
+  },
   /* Armazenamento 0: o convidado guarda tudo no aparelho; o servidor recusa escrita (`exige_conta`).
      Chamadas: 600 s ÷ 6 s × 2 (transcrever + traduzir) = 200, mais as 5 do tutor, com folga. */
   quotas: { chamadasMes: 220, sttSegundosMes: 600, tokensMes: 40_000, armazenamentoMb: 0 },

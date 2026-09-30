@@ -263,15 +263,24 @@ describe('registro declarado — IA_PROVEDORES', () => {
     expect(pernasDaFuncao('corretor', {}, env).map((p) => p.model)).toEqual(['openai/gpt-oss-120b'])
   })
 
-  it('o modelo "grande" de um provedor substitui o comum dele para quem tem o entitlement', () => {
+  /* O `grande` DECLARADO era provisório (B1) e virou, no B3, sinônimo de `niveis: ["nuance"]`: o
+     modelo melhor é de quem tem a NUANCE (todo plano pago), com o barato de reserva — e não mais de
+     quem tem `largerModels`. A regra dos níveis inteira está em `niveis-de-traducao.test.ts`. */
+  it('o modelo "grande" declarado é o da nuance: primeiro para quem paga, fora da rápida', () => {
     const env = declarado([DEEPINFRA, GROQ])
-    expect(cascataDeNuvem({ modelosGrandes: false }, env).map((p) => `${p.fornecedor}:${p.model}`)).toEqual([
+    expect(cascataDeNuvem({ nivel: 'rapida' }, env).map((p) => `${p.fornecedor}:${p.model}`)).toEqual([
       'deepinfra:openai/gpt-oss-20b',
       'groq:openai/gpt-oss-120b',
     ])
-    expect(cascataDeNuvem({ modelosGrandes: true }, env).map((p) => `${p.fornecedor}:${p.model}`)).toEqual([
+    expect(cascataDeNuvem({ nivel: 'nuance' }, env).map((p) => `${p.fornecedor}:${p.model}`)).toEqual([
       'deepinfra:openai/gpt-oss-120b',
+      'deepinfra:openai/gpt-oss-20b',
       'groq:openai/gpt-oss-120b',
+    ])
+    // O `largerModels` não o alcança mais no declarado: só o legado o lê.
+    expect(cascataDeNuvem({ modelosGrandes: true }, env).map((p) => p.model)).toEqual([
+      'openai/gpt-oss-20b',
+      'openai/gpt-oss-120b',
     ])
   })
 

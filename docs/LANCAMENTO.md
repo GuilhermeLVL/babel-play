@@ -172,6 +172,12 @@ sem o roteamento de retenção zero que ignora o Google, ou qualquer provedor se
 — confira a retenção zero no painel de cada provedor ANTES de declarar. Trocar o provedor ou o
 modelo padrão só com o resultado da bancada (Fase B, B5/B7).
 
+**Os níveis (B3).** Com o registro, cada modelo de tradução/tutor pode dizer a quem serve:
+`"niveis": ["rapida"]` (o padrão — Grátis, convidado e a nuvem de alívio) ou `["nuance"]` (quem paga:
+o entitlement `traducaoNuance`). Quem paga começa pelo modelo da nuance e cai no da rápida se ele
+falhar; quem não paga nunca chega ao da nuance. Sem o registro, vale o `LLM_MODEL_GRANDE` de sempre,
+para o plano com `largerModels`.
+
 Decida o **orçamento global** `AI_BUDGET_USD_MONTH` (soma do que aceita gastar nos dois; sem ela o
 app usa US$ 20). O servidor estima o gasto de cada chamada (`server/lib/orcamentoDeIa.ts`) pelo
 preço do **provedor que de fato respondeu** — com o primário em 429, o da reserva —, com os tokens do

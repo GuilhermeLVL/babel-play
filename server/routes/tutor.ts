@@ -32,7 +32,7 @@ import { getEntitlements } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
 import { ehMenor, INSTRUCAO_DE_SEGURANCA_PARA_MENORES } from '../lib/idade'
 import { log } from '../lib/logger'
-import { custoDeLlm, portaoDaNuvem, registrarGastoDeIa, responderPortaoFechado } from '../lib/orcamentoDeIa'
+import { portaoDaNuvem, registrarGastoDeIa, responderPortaoFechado } from '../lib/orcamentoDeIa'
 import { estimarTokens } from '../lib/usageQuota'
 
 export const tutorRouter = Router()
@@ -149,7 +149,8 @@ async function conversar(req: Request, res: Response, rastro: RastroDeIa): Promi
         )
         if (entregue) {
           await reserva.consumir(entregue.tokensEntrada + entregue.tokensSaida)
-          const custo = custoDeLlm(entregue.model, entregue.tokensEntrada, entregue.tokensSaida)
+          /* B2: o custo de quem respondeu, pelo preço dele e com o cache — calculado na cascata. */
+          const custo = entregue.custoUsd
           await registrarGastoDeIa(custo, { userId: req.userId, plano: plano.plan })
           await gratuita.registrarCusto(custo)
           respondeuDaNuvem = true

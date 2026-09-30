@@ -145,7 +145,7 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
     paraQue:
-      'JSON com o preço por modelo que o orçamento usa: {"modelo": {"entrada": US$/1M, "saida": US$/1M}} para LLM e {"modelo": {"hora": US$}} para STT. Sobrepõe a tabela oficial embutida',
+      'JSON com o preço que o orçamento usa, por "fornecedor:modelo" (ex.: "deepinfra:openai/gpt-oss-120b") ou só por "modelo": {"entrada": US$/1M, "entradaEmCache": US$/1M, "saida": US$/1M} para LLM e {"hora": US$, "minimoFaturadoS": s} para STT. Sobrepõe a tabela oficial embutida; o preço declarado no IA_PROVEDORES vence os dois',
   },
   {
     nome: 'AI_USUARIO_ALERTA_FATOR',
@@ -1242,7 +1242,13 @@ export function precosDeModelosDoEnv(env: NodeJS.ProcessEnv = process.env): Reco
     const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : undefined)
     for (const [modelo, p] of Object.entries(obj ?? {})) {
       if (!p || typeof p !== 'object') continue
-      saida[modelo] = { entrada: num(p.entrada), saida: num(p.saida), hora: num(p.hora) }
+      saida[modelo] = {
+        entrada: num(p.entrada),
+        entradaEmCache: num(p.entradaEmCache),
+        saida: num(p.saida),
+        hora: num(p.hora),
+        minimoFaturadoS: num(p.minimoFaturadoS),
+      }
     }
     return saida
   } catch {

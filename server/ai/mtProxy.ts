@@ -14,7 +14,7 @@ import { abrirPortaGratuita, type PortaGratuita } from '../lib/convidado'
 import { getEntitlements } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
 import { log } from '../lib/logger'
-import { custoDeLlm, portaoDaNuvem, registrarGastoDeIa, responderPortaoFechado } from '../lib/orcamentoDeIa'
+import { portaoDaNuvem, registrarGastoDeIa, responderPortaoFechado } from '../lib/orcamentoDeIa'
 import { responderErro } from '../lib/respostaDeErro'
 import { estimarTokens } from '../lib/usageQuota'
 import { planoDeAdmissao, responderNuvemOcupada } from './admissao'
@@ -327,7 +327,9 @@ async function traduzirAdmitido(
     /* O `usage` do provedor acerta a reserva de tokens pelo número REAL — nos modelos de raciocínio a
        saída inclui os tokens de pensamento, a parte cara. */
     await reserva.consumir(entregue.tokensEntrada + entregue.tokensSaida)
-    const custo = custoDeLlm(entregue.model, entregue.tokensEntrada, entregue.tokensSaida)
+    /* O custo da perna que DE FATO respondeu (a reserva, se o primário caiu), pelo preço dela e com o
+       cache de prompt — calculado uma vez na cascata (B2 da Fase B). */
+    const custo = entregue.custoUsd
     await registrarGastoDeIa(custo, { userId: req.userId, plano: p.planoDaAssinatura })
     await p.gratuita.registrarCusto(custo)
     log('info', {

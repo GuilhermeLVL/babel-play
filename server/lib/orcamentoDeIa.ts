@@ -45,16 +45,31 @@ import { log } from './logger'
 import { pseudonimoDoUsuario } from './pseudonimoDeUsuario'
 
 /**
- * Preços OFICIAIS (US$) usados quando o operador não sobrepõe — página de preços da Groq
- * (groq.com/pricing), consultada em 24/09/2026. LLM: por 1 milhão de tokens de entrada/saída. STT:
- * por hora de áudio (a Groq cobra no mínimo 10 s por requisição; `segundosFaturaveis` já aplica o
- * mínimo, e `custoDeStt` o reaplica por segurança).
+ * Preços OFICIAIS (US$) usados quando nem o registro de provedores nem o operador declaram um. LLM:
+ * por 1 milhão de tokens de entrada / entrada em cache / saída. STT: por hora de áudio, com o mínimo
+ * faturado por pedido.
  *
- * É A TABELA ÚNICA: o orçamento global e a métrica `ia_provedor_custo_usd_total`
- * (`server/http/metricas.ts`) usam as mesmas `custoDeLlm`/`custoDeStt`, para o painel e o teto
- * nunca discordarem sobre quanto uma chamada custou.
+ * POR PROVEDOR:MODELO desde o B2 da Fase B (29/09/2026). A tabela era só por modelo — o preço da
+ * Groq —, e o mesmo `gpt-oss-120b` custa US$ 0,037/0,17 na DeepInfra (deepinfra.com, consultada em
+ * 29/09/2026, retenção zero): com a cascata barata, o orçamento superestimaria o gasto ~4× e fecharia
+ * a nuvem antes da hora. Fontes: Groq — groq.com/pricing (24/09/2026) e o desconto de 50% nos tokens
+ * do cache de prompt dos gpt-oss (console.groq.com/docs/prompt-caching, 29/09/2026); o mínimo de 10 s
+ * por pedido do Whisper é da Groq. As linhas SÓ-MODELO são o preço de antes, e valem para fornecedor
+ * sem preço próprio — inclusive o OpenRouter, cujo preço depende do provedor que ele escolhe (declare
+ * no `IA_PROVEDORES` ou em `AI_PRECOS_MODELOS` como `openrouter:<modelo>`). Elas não têm preço de
+ * cache: sem saber o desconto, o cache custa a entrada inteira (o erro para mais).
+ *
+ * É A TABELA ÚNICA: o orçamento global, a métrica `ia_provedor_custo_usd_total`
+ * (`server/http/metricas.ts`) e o Langfuse usam o custo calculado AQUI, uma vez, sobre a perna que de
+ * fato respondeu (`server/ai/cascata.ts`) — para o painel e o teto nunca discordarem.
  */
 const PRECOS_OFICIAIS: Readonly<Record<string, PrecoDeModelo>> = {
+  'groq:openai/gpt-oss-120b': { entrada: 0.15, entradaEmCache: 0.075, saida: 0.6 },
+  'groq:openai/gpt-oss-20b': { entrada: 0.075, entradaEmCache: 0.0375, saida: 0.3 },
+  'groq:whisper-large-v3-turbo': { hora: 0.04, minimoFaturadoS: 10 },
+  'groq:whisper-large-v3': { hora: 0.111, minimoFaturadoS: 10 },
+  'deepinfra:openai/gpt-oss-120b': { entrada: 0.037, saida: 0.17 },
+  'deepinfra:openai/gpt-oss-20b': { entrada: 0.03, saida: 0.14 },
   'openai/gpt-oss-120b': { entrada: 0.15, saida: 0.6 },
   'openai/gpt-oss-20b': { entrada: 0.075, saida: 0.3 },
   'whisper-large-v3-turbo': { hora: 0.04 },
@@ -64,28 +79,67 @@ const PRECOS_OFICIAIS: Readonly<Record<string, PrecoDeModelo>> = {
 /**
  * Modelo sem preço conhecido é cobrado CARO de propósito: errar para mais fecha a nuvem um pouco
  * antes; errar para menos deixaria um modelo novo (trocado por env) gastar sem que o orçamento o
- * enxergasse. O operador corrige declarando o preço em `AI_PRECOS_MODELOS`.
+ * enxergasse. O operador corrige declarando o preço no `IA_PROVEDORES` ou em `AI_PRECOS_MODELOS`.
+ * O mínimo do STT não declarado é o da Groq (10 s), pelo mesmo motivo.
  */
 const PRECO_LLM_DESCONHECIDO = { entrada: 1, saida: 3 }
 const PRECO_STT_DESCONHECIDO = { hora: 0.111 }
 const MINIMO_FATURADO_STT_S = 10
 
-function precoDe(modelo: string): PrecoDeModelo | undefined {
-  return precosDeModelosDoEnv()[modelo] ?? PRECOS_OFICIAIS[modelo]
+/** Quem cobrou: o fornecedor que respondeu e o preço que o registro declarou para ele. */
+export interface QuemCobra {
+  /** O id neutro do fornecedor (`groq`, `deepinfra`…) — a chave `fornecedor:modelo` das tabelas. */
+  fornecedor?: string
+  /** O preço declarado no registro para esta perna (`IA_PROVEDORES`). Vence as tabelas. */
+  preco?: PrecoDeModelo
 }
 
-/** Custo estimado (US$) de uma chamada de LLM. */
-export function custoDeLlm(modelo: string, tokensEntrada: number, tokensSaida: number): number {
-  const p = precoDe(modelo)
+/**
+ * O preço de um modelo, do mais específico ao mais geral: o declarado no registro; o
+ * `AI_PRECOS_MODELOS` por `fornecedor:modelo` e por modelo; a tabela oficial nas mesmas duas chaves.
+ */
+function precoDe(modelo: string, quem: QuemCobra = {}): PrecoDeModelo | undefined {
+  if (quem.preco) return quem.preco
+  const doEnv = precosDeModelosDoEnv()
+  const f = quem.fornecedor
+  return (
+    (f ? doEnv[`${f}:${modelo}`] : undefined) ??
+    doEnv[modelo] ??
+    (f ? PRECOS_OFICIAIS[`${f}:${modelo}`] : undefined) ??
+    PRECOS_OFICIAIS[modelo]
+  )
+}
+
+/**
+ * Custo estimado (US$) de uma chamada de LLM. `emCache` são os tokens de entrada servidos do cache
+ * de prompt do provedor — já DENTRO de `tokensEntrada` (é assim que o formato OpenAI os devolve) —,
+ * cobrados pelo preço de cache; sem ele declarado, pelo da entrada.
+ */
+export function custoDeLlm(
+  modelo: string,
+  tokensEntrada: number,
+  tokensSaida: number,
+  quem: QuemCobra & { emCache?: number } = {},
+): number {
+  const p = precoDe(modelo, quem)
   const entrada = p?.entrada ?? PRECO_LLM_DESCONHECIDO.entrada
+  const emCache = p?.entradaEmCache ?? entrada
   const saida = p?.saida ?? PRECO_LLM_DESCONHECIDO.saida
-  return (Math.max(0, tokensEntrada) * entrada + Math.max(0, tokensSaida) * saida) / 1_000_000
+  const total = Math.max(0, tokensEntrada)
+  /* O cache nunca passa da entrada: um provedor que conte errado não produz custo negativo. */
+  const doCache = Math.min(total, Math.max(0, quem.emCache ?? 0))
+  return ((total - doCache) * entrada + doCache * emCache + Math.max(0, tokensSaida) * saida) / 1_000_000
 }
 
-/** Custo estimado (US$) de uma transcrição, já com o mínimo faturado por requisição. */
-export function custoDeStt(modelo: string, segundos: number): number {
-  const hora = precoDe(modelo)?.hora ?? PRECO_STT_DESCONHECIDO.hora
-  return (Math.max(MINIMO_FATURADO_STT_S, segundos) * hora) / 3600
+/** O mínimo de segundos que o provedor fatura POR PEDIDO de STT (Groq: 10; não declarado: 10). */
+export function minimoFaturadoDoStt(modelo: string, quem: QuemCobra = {}): number {
+  return precoDe(modelo, quem)?.minimoFaturadoS ?? MINIMO_FATURADO_STT_S
+}
+
+/** Custo estimado (US$) de uma transcrição — por segundo, com o mínimo faturado DO PROVEDOR. */
+export function custoDeStt(modelo: string, segundos: number, quem: QuemCobra = {}): number {
+  const hora = precoDe(modelo, quem)?.hora ?? PRECO_STT_DESCONHECIDO.hora
+  return (Math.max(minimoFaturadoDoStt(modelo, quem), segundos) * hora) / 3600
 }
 
 const mesAtual = (): string => new Date().toISOString().slice(0, 7)

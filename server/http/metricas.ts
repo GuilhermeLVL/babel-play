@@ -67,6 +67,7 @@ import { collectDefaultMetrics, Counter, Gauge, Histogram, register } from 'prom
 
 import { cacheDeTraducao } from '../ai/cacheDeTraducao'
 import { contagemDosDisjuntores } from '../ai/disjuntor'
+import { rotulosDoRegistro } from '../ai/registroDeProvedores'
 import { registrarObservadorDeConsultas, type TipoDeConsulta } from '../db/observadorDeConsultas'
 import { tokenDeMetricas } from '../lib/config'
 import { log } from '../lib/logger'
@@ -111,8 +112,8 @@ interface Estado {
   duracao: Histogram<'method' | 'route' | 'status'>
   errosHttp: Counter<'method' | 'route' | 'status'>
   chamadasDeIa: Counter<'route' | 'status' | 'resultado'>
-  provedorLatencia: Histogram<'provedor' | 'funcao'>
-  provedorCusto: Counter<'provedor' | 'funcao'>
+  provedorLatencia: Histogram<'provedor' | 'funcao' | 'fornecedor' | 'modelo'>
+  provedorCusto: Counter<'provedor' | 'funcao' | 'fornecedor' | 'modelo'>
   provedorLimite: Counter<'provedor' | 'modelo'>
   admissaoRecusada: Counter<'motivo' | 'plano'>
   sttDescartes: Counter<'motivo'>
@@ -186,17 +187,20 @@ function metricas(): Estado {
        o proxy e diz, com razão, que não enxerga o provedor. Estas duas são alimentadas por
        `server/ai/sttProxy.ts` e `server/ai/cascata.ts`, que sabem QUEM atendeu. As labels são
        rótulos fixos do código (`llm-primario`, `llm-reserva`, `stt-gerenciado`, `byok`) — nunca a
-       URL do provedor, que no BYOK é escolha do usuário e seria uma série por usuário. */
+       URL do provedor, que no BYOK é escolha do usuário e seria uma série por usuário.
+       B2 DA FASE B: `fornecedor` e `modelo` dizem QUEM atendeu (`deepinfra`, `openai/gpt-oss-120b`).
+       A lista é FECHADA e vem do registro de provedores (`rotulosDoRegistro`): o que não foi declarado
+       vira `outro`, e o BYOK continua `byok` — a cardinalidade é a do registro, não a do tráfego. */
     provedorLatencia: new Histogram({
       name: 'ia_provedor_latencia_ms',
-      help: 'Latência da chamada ao provedor de IA (com as retentativas), em ms, por provedor e função.',
-      labelNames: ['provedor', 'funcao'] as const,
+      help: 'Latência da chamada ao provedor de IA (com as retentativas), em ms, por papel (provedor), função, fornecedor e modelo.',
+      labelNames: ['provedor', 'funcao', 'fornecedor', 'modelo'] as const,
       buckets: BALDES_MS,
     }),
     provedorCusto: new Counter({
       name: 'ia_provedor_custo_usd_total',
-      help: 'Custo ESTIMADO (US$) das chamadas entregues com a chave do dono, pela tabela de preços de server/lib/orcamentoDeIa.ts. BYOK não entra: não é dinheiro do serviço.',
-      labelNames: ['provedor', 'funcao'] as const,
+      help: 'Custo ESTIMADO (US$) das chamadas entregues com a chave do dono, pelo preço de fornecedor:modelo (server/lib/orcamentoDeIa.ts), por papel, função, fornecedor e modelo. BYOK não entra: não é dinheiro do serviço.',
+      labelNames: ['provedor', 'funcao', 'fornecedor', 'modelo'] as const,
     }),
     /* O LIMITE DO PROVEDOR (429), por provedor e MODELO. É o número que diz "a camada gratuita da
        Groq não aguenta o tráfego — suba o tier". O modelo entra porque os limites da Groq são POR
@@ -590,15 +594,33 @@ export function contarAdmissaoRecusada(motivo: string, plano: string): void {
  * não existe e eles não fazem nada. Quem chama não precisa saber se a observabilidade está ligada.
  */
 
+/**
+ * O rótulo de fornecedor/modelo, pela lista FECHADA do registro de provedores. `byok` passa (é rótulo
+ * fixo do código); o resto que o registro não conhece vira `outro`.
+ */
+function rotuloFechado(valor: string | undefined, conhecidos: Set<string>): string {
+  if (valor === 'byok') return 'byok'
+  return valor && conhecidos.has(valor) ? valor : 'outro'
+}
+
 /** Uma chamada ao provedor de IA terminou: latência sempre; custo só quando é dinheiro do dono. */
 export function observarChamadaDeProvedor(o: {
   provedor: string
   funcao: string
   ms: number
   custoUsd?: number
+  /** Quem atendeu (`groq`, `deepinfra`…) e o modelo — saneados contra o registro. */
+  fornecedor?: string
+  modelo?: string
 }): void {
   if (!estado) return
-  const labels = { provedor: o.provedor, funcao: o.funcao }
+  const conhecidos = rotulosDoRegistro()
+  const labels = {
+    provedor: o.provedor,
+    funcao: o.funcao,
+    fornecedor: rotuloFechado(o.fornecedor, conhecidos.fornecedores),
+    modelo: rotuloFechado(o.modelo, conhecidos.modelos),
+  }
   if (Number.isFinite(o.ms) && o.ms >= 0) estado.provedorLatencia.observe(labels, o.ms)
   if (o.custoUsd !== undefined && Number.isFinite(o.custoUsd) && o.custoUsd > 0)
     estado.provedorCusto.inc(labels, o.custoUsd)

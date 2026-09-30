@@ -172,7 +172,10 @@ sem o roteamento de retenção zero que ignora o Google, ou qualquer provedor se
 modelo padrão só com o resultado da bancada (Fase B, B5/B7).
 
 Decida o **orçamento global** `AI_BUDGET_USD_MONTH` (soma do que aceita gastar nos dois; sem ela o
-app usa US$ 20). O servidor estima o gasto de cada chamada (`server/lib/orcamentoDeIa.ts`): a 80 %
+app usa US$ 20). O servidor estima o gasto de cada chamada (`server/lib/orcamentoDeIa.ts`) pelo
+preço do **provedor que de fato respondeu** — com o primário em 429, o da reserva —, com os tokens do
+cache de prompt mais baratos e o mínimo faturado do STT de cada provedor; o `/metrics` mostra o custo
+e a latência por `fornecedor` e `modelo` (`ia_provedor_custo_usd_total`, `ia_provedor_latencia_ms`). A 80 %
 sai o evento `ia_orcamento_alerta_80` e a 100 % o `ia_orcamento_esgotado` — a IA de nuvem fecha
 sozinha até o mês virar e o app volta para os modelos locais. Os dois chegam ao Sentry; a regra de
 alerta está no passo 7.

@@ -10,13 +10,20 @@ import type { NextFunction, Request, Response } from 'express'
 import { filtrarAlucinacao } from '../../src/gateway/alucinacao'
 import { credentialsRepo } from '../db/repositories/credentials'
 import { contarDescartesDoStt, observarChamadaDeProvedor } from '../http/metricas'
+import type { PrecoDeModelo } from '../lib/config'
 import { abrirPortaGratuita, type PortaGratuita } from '../lib/convidado'
 import { arquivoDoAudio, avaliarAudioFaturavel, duracaoDoAudio, segundosFaturaveis } from '../lib/duracaoDeAudio'
 import { getEntitlements } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
 import { normalizarIdiomaDoWhisper } from '../lib/idiomaDoWhisper'
 import { log } from '../lib/logger'
-import { custoDeStt, portaoDaNuvem, registrarGastoDeIa, responderPortaoFechado } from '../lib/orcamentoDeIa'
+import {
+  custoDeStt,
+  minimoFaturadoDoStt,
+  portaoDaNuvem,
+  registrarGastoDeIa,
+  responderPortaoFechado,
+} from '../lib/orcamentoDeIa'
 import { responderErro } from '../lib/respostaDeErro'
 import {
   ContadorIndisponivel,
@@ -89,6 +96,8 @@ interface PortaDoStt {
   baseUrl?: string
   model?: string
   provedor?: string
+  /** B2: o preço que o registro declarou para este provedor:modelo (mínimo faturado incluído). */
+  preco?: PrecoDeModelo
   /** O provedor chegou a ser chamado? Se não, o pedido volta ao balde. */
   chamouProvedor: boolean
   /** Fase 7: as travas de convidado/free (pool do dia, tetos por id e por IP). */
@@ -150,6 +159,7 @@ async function abrirPortaDoStt(req: Request, res: Response): Promise<PortaDoStt 
     baseUrl: cfg.baseUrl,
     model: cfg.model,
     provedor,
+    preco: cfg.preco,
     chamouProvedor: false,
     gratuita,
   }
@@ -499,9 +509,12 @@ async function transcrever(req: Request, res: Response, rastro: RastroDeIa): Pro
     // TAMBÉM o caminho BYOK — uso da chave do próprio usuário descontava da quota gerenciada.
     reservaPendente = false
     /* Só o caminho da chave do DONO entra no orçamento global; BYOK é conta do próprio usuário. E
-       aqui o número é o que o PROVEDOR fatura (`segundosFaturaveis`, com o mínimo de 10 s), não o
-       que saiu da cota do assinante: o orçamento existe para bater com a fatura. */
-    const custoUsd = gerenciado ? custoDeStt(model, segundosFaturaveis(audioBuffer)) : undefined
+       aqui o número é o que o PROVEDOR fatura (`segundosFaturaveis`, com o mínimo DELE — 10 s na
+       Groq, zero em quem cobra por segundo; B2 da Fase B), não o que saiu da cota do assinante: o
+       orçamento existe para bater com a fatura. */
+    const quemCobra = { fornecedor: porta?.provedor, preco: porta?.preco }
+    const faturados = segundosFaturaveis(audioBuffer, minimoFaturadoDoStt(model, quemCobra))
+    const custoUsd = gerenciado ? custoDeStt(model, faturados, quemCobra) : undefined
     if (custoUsd !== undefined) {
       await registrarGastoDeIa(custoUsd, { userId: req.userId, plano: porta?.planoDaAssinatura })
       await porta?.gratuita?.registrarCusto(custoUsd)
@@ -512,6 +525,8 @@ async function transcrever(req: Request, res: Response, rastro: RastroDeIa): Pro
       funcao: 'stt',
       ms: Date.now() - inicioDoProvedor,
       custoUsd,
+      fornecedor: gerenciado ? porta?.provedor : 'byok',
+      modelo: gerenciado ? model : 'byok',
     })
 
     // `language` vazio = o provedor não informou (ou caímos no `json`): o cliente volta ao
@@ -535,7 +550,7 @@ async function transcrever(req: Request, res: Response, rastro: RastroDeIa): Pro
       status: limpeza.esvaziado ? 'filtrado-vazio' : 'ok',
       uso: {
         audio_seconds: Math.round(segundosReais * 100) / 100,
-        audio_seconds_billed: segundosFaturaveis(audioBuffer),
+        audio_seconds_billed: faturados,
       },
       custoUsd,
       metadados: {

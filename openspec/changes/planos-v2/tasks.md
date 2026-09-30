@@ -93,7 +93,8 @@
       justo) e §5 (sem "números de qualidade"); "texto a validar com o jurídico" em comentário HTML. `privacidade.html`:
       a tabela sem Essencial/Pro e a normalização do e-mail da marca do teste (a marca, o HMAC e os 730 dias do C6
       conferem com o código)
-- [ ] 9.3 Poda das janelas diárias de `usage_counters` (fica para a operação)
+- [x] 9.3 Poda das janelas diárias de `usage_counters`: `podarJanelasDiarias` (`server/lib/usageQuota.ts`), diária no
+      processo que prepara os dados (`server.ts`); ficam hoje, ontem e anteontem, e o mês não é tocado
 
 ## Portões (cada item)
 

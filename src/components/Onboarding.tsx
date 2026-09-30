@@ -24,6 +24,7 @@ import { getActiveProfile, setProviderChoice } from '../gateway/activeProfile';
 import { webGpuProvavel } from '../gateway/adaptadorWebGpu';
 import { getSttQuality, MODEL_DOWNLOAD_MEDIDO, routeStt, tamanhoDoDownloadMb } from '../gateway/sttRouter';
 import { dispositivoDaRota, perfilDoDispositivo } from '../lib/dispositivo/perfil';
+import { useSondaGuardada } from '../lib/dispositivo/useSondaGuardada';
 import { edicaoEstatica } from '../lib/edicaoEstatica';
 import { t } from '../lib/i18n';
 import { DEFAULT_LANG_CONFIG, idiomasDaInterfaceOferecidos, saveLangConfig } from '../lib/langConfig';
@@ -238,6 +239,7 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
    * O ONBOARDING NÃO BAIXA NADA — correção de A-P0-3. O download acontece num lugar só, a primeira
    * captura, que sempre consulta o roteador; aqui só se ESTIMA o tamanho para dizer antes.
    */
+  const sonda = useSondaGuardada();
   const tamanho = useMemo(() => {
     const rota = routeStt({
       contentLang: DEFAULT_LISTEN,
@@ -246,13 +248,13 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
       hasWebGpu: webGpuProvavel(),
       cloudAvailable: false,
       profileId: getActiveProfile().id,
-      dispositivo: dispositivoDaRota(perfilDoDispositivo()),
+      dispositivo: dispositivoDaRota(perfilDoDispositivo(), sonda),
     });
     return {
       mb: tamanhoDoDownloadMb(rota.localModel, rota.dtype),
       medido: !!MODEL_DOWNLOAD_MEDIDO[rota.localModel],
     };
-  }, []);
+  }, [sonda]);
 
   const pickKind = (k: keyof typeof PROVIDERS) => {
     setKind(k);

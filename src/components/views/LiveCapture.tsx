@@ -125,6 +125,7 @@ import { cenarioDasFontes } from '../../lib/cenarioDeCaptura';
 import { consentiuNuvem, rapidoDoMicPermitido, useEscolhaDoMic } from '../../lib/consentimentoDeNuvem';
 import { DominantLangTracker } from '../../lib/convoLang';
 import { classificarDispositivo, dispositivoDaRota, lerSinaisDoDispositivo } from '../../lib/dispositivo/perfil';
+import { useSondaGuardada } from '../../lib/dispositivo/useSondaGuardada';
 import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { marcarOcupacaoDaCaptura } from '../../lib/filaDeRecompensas';
 import { t } from '../../lib/i18n';
@@ -389,6 +390,8 @@ export default function LiveCapture({
      baixam modelos menores (q8) e liberam a memória ao sair da tela. */
   const perfilDoAparelho = useMemo(() => classificarDispositivo(lerSinaisDoDispositivo(temGpu)), [temGpu]);
   const perfilDoAparelhoRef = useRef(perfilDoAparelho);
+  /* A sonda GUARDADA, para as estimativas de download baterem com a rota real (`useSondaGuardada`). */
+  const sondaGuardada = useSondaGuardada();
   perfilDoAparelhoRef.current = perfilDoAparelho;
 
   // --- SPEAKER DIARIZATION STATE ---
@@ -2235,7 +2238,7 @@ export default function LiveCapture({
       hasWebGpu: temGpu,
       cloudAvailable: false,
       profileId: getActiveProfile().id,
-      dispositivo: dispositivoDaRota(perfilDoAparelho),
+      dispositivo: dispositivoDaRota(perfilDoAparelho, sondaGuardada),
     });
     // Só microfone: o tradutor é o da SUA fala (o mesmo sentido que `prepareModels` carrega).
     const [mtDe, mtPara] = captureScenario === 'mic' ? [meu, ouvir] : [ouvir, meu];
@@ -2273,6 +2276,7 @@ export default function LiveCapture({
     sttQuality,
     temGpu,
     perfilDoAparelho,
+    sondaGuardada,
     captureScenario,
   ]);
   /* AVISO ANTES DE BAIXAR (perfil do aparelho): com economia de dados, rede abaixo de 4g, ou mais de
@@ -2298,10 +2302,10 @@ export default function LiveCapture({
       hasWebGpu: temGpu,
       cloudAvailable: false,
       profileId: getActiveProfile().id,
-      dispositivo: dispositivoDaRota(perfilDoAparelho),
+      dispositivo: dispositivoDaRota(perfilDoAparelho, sondaGuardada),
     });
     return tamanhoDoDownloadMb(rota.localModel, rota.dtype);
-  }, [targetLang, sourceLang, autoDetectLang, autoDetectMyLang, sttQuality, temGpu, perfilDoAparelho]);
+  }, [targetLang, sourceLang, autoDetectLang, autoDetectMyLang, sttQuality, temGpu, perfilDoAparelho, sondaGuardada]);
 
   /* A FOLHA DO INÍCIO (`inicioDaCaptura.ts`) — o que o toque em Iniciar precisa saber, pronto desde
      que a tela abriu (`usePreparoDoInicio`): o clique não espera cache nem sonda nenhuma. As peças
@@ -2317,7 +2321,7 @@ export default function LiveCapture({
       hasWebGpu: temGpu,
       cloudAvailable: false,
       profileId: getActiveProfile().id,
-      dispositivo: dispositivoDaRota(perfilDoAparelho),
+      dispositivo: dispositivoDaRota(perfilDoAparelho, sondaGuardada),
     });
     const [mtDe, mtPara] = captureScenario === 'mic' ? [meu, ouvir] : [ouvir, meu];
     const tradutores = expectedModelIds(mtDe, mtPara, rota.localModel).filter((id) => id !== rota.localModel);
@@ -2336,6 +2340,7 @@ export default function LiveCapture({
     sttQuality,
     temGpu,
     perfilDoAparelho,
+    sondaGuardada,
     captureScenario,
   ]);
   const preparoDoInicio = usePreparoDoInicio({

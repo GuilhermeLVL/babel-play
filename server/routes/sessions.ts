@@ -132,6 +132,10 @@ sessionsRouter.get('/:id/capa', async (req, res) => {
     if (!capa) return res.status(404).json({ error: 'esta sessão não tem capa embutida' })
     res.setHeader('Content-Type', capa.mime)
     res.setHeader('Cache-Control', 'private, max-age=86400')
+    /* Bytes de imagem com o Content-Type de uma lista FECHADA (sem svg+xml, ver
+       `SUBTIPOS_DE_CAPA_ACEITOS`): não há HTML a escapar, e o `render()` que a regra sugere não se
+       aplica a binário. */
+    // nosemgrep: javascript.express.security.audit.xss.direct-response-write.direct-response-write
     return res.send(capa.bytes)
   } catch (err) {
     return res.status(500).json({

@@ -122,15 +122,48 @@ describe('migrations sobre o estado atual — caminho do boot', () => {
 })
 
 describe('migrations sobre o estado atual — caracterizacao do diario', () => {
-  it('apagar a linha da ULTIMA migration e reaplicar: idempotente, porque a ultima e toda IF NOT EXISTS', async () => {
+  /*
+   * QUAL É A ÚLTIMA decide o que se caracteriza. Enquanto ela era toda `IF NOT EXISTS`/`INSERT OR
+   * IGNORE`, reaplicar era idempotente. A 0041 (matriz v2) acrescenta colunas, e `ALTER TABLE ... ADD`
+   * não tem `IF NOT EXISTS` no SQLite: reaplicada, ela falha ("duplicate column"), o lote volta atrás e
+   * o boot SEGUE com aviso — o mesmo caminho da 0026 abaixo. O teste lê a última do journal e cobra o
+   * caminho certo para ela, em vez de supor que a última é sempre reexecutável.
+   */
+  it('apagar a linha da ULTIMA migration e reaplicar: idempotente se ela for toda IF NOT EXISTS; se acrescenta coluna, o boot segue e nada se perde', async () => {
     const total = await contar('__drizzle_migrations')
     const rankAntes = await contar('rank')
     const ultima = (
       await linhas('SELECT hash, created_at FROM __drizzle_migrations ORDER BY created_at DESC LIMIT 1')
     )[0]
+    const journal = JSON.parse(readFileSync(JOURNAL, 'utf8')) as { entries: Array<{ tag: string }> }
+    const sqlDaUltima = readFileSync(
+      path.join(process.env.MIGRATIONS_DIR!, `${journal.entries[journal.entries.length - 1].tag}.sql`),
+      'utf8',
+    ).replace(/--[^\n]*/g, '')
+    const acrescentaColuna = /\bALTER\s+TABLE\b[^;]*\bADD\b/i.test(sqlDaUltima)
 
     await client.execute({ sql: 'DELETE FROM __drizzle_migrations WHERE created_at = ?', args: [ultima.created_at] })
     expect(await contar('__drizzle_migrations')).toBe(total - 1)
+
+    if (acrescentaColuna) {
+      const aviso = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      try {
+        await expect(aplicarMigrations()).resolves.not.toThrow()
+        expect(aviso).toHaveBeenCalledTimes(1)
+      } finally {
+        aviso.mockRestore()
+      }
+      // O lote voltou atrás: o diário ficou um passo atrás, e o dado não foi tocado.
+      expect(await contar('__drizzle_migrations')).toBe(total - 1)
+      expect(await contar('rank')).toBe(rankAntes)
+      // Devolve a linha, para o caso seguinte partir do diário completo.
+      await client.execute({
+        sql: 'INSERT INTO __drizzle_migrations (hash, created_at) VALUES (?, ?)',
+        args: [ultima.hash, ultima.created_at],
+      })
+      expect(await contar('__drizzle_migrations')).toBe(total)
+      return
+    }
 
     await expect(aplicarMigrations()).resolves.not.toThrow()
 

@@ -31,9 +31,9 @@ test('checkout: dois passos, e no self-host o passo de pagamento diz que não h�
   await abrir(page, '/plano')
   /* `clicarRobusto`: a recompensa de uma conquista (fila assíncrona) pode abrir DEPOIS do
      `fecharSobreposicoes` e cobrir o botão — medido: 1 em 15 no celular com o banco compartilhado. */
-  await clicarRobusto(page, page.getByRole('button', { name: 'Assinar Pro' }))
+  await clicarRobusto(page, page.getByRole('button', { name: 'Assinar Premium' }))
   await expect(page).toHaveURL(/\/plano\/assinar$/)
-  await expect(page.getByRole('heading', { level: 1, name: 'Assinar o Pro' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Assinar o Premium' })).toBeVisible()
   await expect(page.getByRole('list', { name: 'Etapas' })).toContainText('Plano e período')
 
   await clicarRobusto(page, page.getByRole('button', { name: 'Ir para o pagamento' }))

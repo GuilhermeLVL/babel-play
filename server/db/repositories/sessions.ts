@@ -10,6 +10,20 @@ import { type NewUtterance, type Utterance, utterancesRepo } from './utterances'
 export type Session = typeof sessions.$inferSelect
 
 /**
+ * A ORIGEM DA SESSÃO DE DEMONSTRAÇÃO (`server/db/seed.ts`), gravada em `origem_local_id`.
+ *
+ * A semente não tinha marca nenhuma — só o título terminado em "— demo" —, e as métricas da conta
+ * a contavam como captura da pessoa: a conquista "Primeira captura" (`sessions >= 1`) nascia
+ * cumprida no banco novo. A marca mora na coluna de origem, e não no `meta`, porque o perfil a lê
+ * a cada mudança de atividade: `origem_local_id` é um texto curto, barato de trazer na varredura
+ * das sessões que ele já faz, e o `meta` pode carregar a capa inteira em data-URI. As chaves do
+ * cliente não têm este formato (`captura-<uuid>` na captura, o id local na migração), e a coluna
+ * é única por dono. Uma coluna própria pediria migração de schema para um dado que só o
+ * self-host tem.
+ */
+export const ORIGEM_DA_DEMONSTRACAO = 'semente:demonstracao'
+
+/**
  * Lê o `meta` para MESCLAR nele. Falha alto se o JSON estiver ilegível.
  *
  * P1-8: aqui havia `catch { meta = {} }`, e logo abaixo um `JSON.stringify(meta)` no UPDATE.
@@ -40,7 +54,7 @@ export interface NewSession {
   durationMs?: number
   wordCount?: number
   meta?: unknown
-  /** Id da sessão no navegador de origem (migração sem conta → conta). */
+  /** Id da sessão no navegador de origem (migração sem conta → conta), ou `ORIGEM_DA_DEMONSTRACAO`. */
   origemLocalId?: string
 }
 
@@ -209,7 +223,9 @@ export const sessionsRepo = {
     // insert apagava a transcrição inteira e não devolvia nada. É o caminho de "retomar
     // captura", então o que se perdia era trabalho do usuário. Agora ou troca tudo, ou nada.
     const apagar = utterancesRepo.stmtDeleteForSession(userId, id)
-    const inserir = utterancesRepo.stmtInsertMany(userId, id, utts) // lotes; todos no mesmo batch
+    // D5: a fala que volta igual mantém a tradução polida (polir de novo cobraria outra vez).
+    const preservadas = await utterancesRepo.polidasParaPreservar(userId, id)
+    const inserir = utterancesRepo.stmtInsertMany(userId, id, utts, preservadas) // lotes; todos no mesmo batch
     const contar = db
       .update(sessions)
       .set({ wordCount, updatedAt: Date.now() })
@@ -242,10 +258,14 @@ export const sessionsRepo = {
     const saem = await db.select({ sourceText: tabelaDeFalas.sourceText }).from(tabelaDeFalas).where(naFaixa)
     const wordCount = Math.max(
       0,
-      (s.wordCount ?? 0) - saem.reduce((n, u) => n + palavras(u.sourceText), 0) + utts.reduce((n, u) => n + palavras(u.sourceText), 0),
+      (s.wordCount ?? 0) -
+        saem.reduce((n, u) => n + palavras(u.sourceText), 0) +
+        utts.reduce((n, u) => n + palavras(u.sourceText), 0),
     )
     const apagar = db.delete(tabelaDeFalas).where(naFaixa)
-    const inserir = utterancesRepo.stmtInsertMany(userId, id, utts)
+    // D5: o lote repetido não apaga a tradução polida das falas que voltam iguais.
+    const preservadas = await utterancesRepo.polidasParaPreservar(userId, id, { de, ate })
+    const inserir = utterancesRepo.stmtInsertMany(userId, id, utts, preservadas)
     const contar = db
       .update(sessions)
       .set({ wordCount, updatedAt: Date.now() })

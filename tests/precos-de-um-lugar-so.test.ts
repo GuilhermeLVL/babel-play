@@ -47,13 +47,13 @@ describe('nenhum preço literal nas telas de venda', () => {
 
 describe('os formatadores derivam da matriz', () => {
   it('preço de plano sai da matriz e vem em vírgula', () => {
-    expect(precoDoPlano('essencial')).toMatch(/^\d+,\d{2}$/)
+    expect(precoDoPlano('premium')).toMatch(/^\d+,\d{2}$/)
     expect(precoDoPlano('free'), 'plano sem preço não inventa número').toBeNull()
   })
 
   it('o menor preço é o menor dos vendáveis', () => {
     const menor = menorPrecoDeAssinatura()!
-    expect(Number(menor.replace(',', '.'))).toBeLessThanOrEqual(Number(precoDoPlano('pro')!.replace(',', '.')))
+    expect(Number(menor.replace(',', '.'))).toBeLessThanOrEqual(Number(precoDoPlano('premium')!.replace(',', '.')))
   })
 
   it('armazenamento vira texto a partir da quota, não de um literal', () => {

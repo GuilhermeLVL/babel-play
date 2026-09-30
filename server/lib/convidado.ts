@@ -29,15 +29,16 @@
  * FALHA FECHADA, como as cotas: sem conseguir ler um contador, 503 `contador_indisponivel` e o
  * cliente cai no motor local.
  *
- * O `free` logado passa só pela trava 3: hoje ele não tem nuvem (o entitlement recusa antes); no dia
- * em que tiver, o pool já o inclui.
+ * O `free` logado passa só pela trava 3. Sem a oferta de alívio aceita, ele continua sem nuvem (o
+ * entitlement recusa depois); com ela (`x-nuvem-alivio: 1`, A10), as travas da NUVEM DE ALÍVIO vêm
+ * em seguida (`server/lib/nuvemDeAlivio.ts`) e o custo entregue soma no pool gratuito E no do alívio.
  */
 import { createHmac } from 'node:crypto'
 
 import type { NextFunction, Request, Response } from 'express'
 import { ipKeyGenerator } from 'express-rate-limit'
 
-import { LIMITES_DO_CONVIDADO, PLAN_MATRIX, type PlanoEfetivo } from '../../src/core/planos'
+import { LIMITES_DO_CONVIDADO, normalizarPlano, PLAN_MATRIX, type PlanoEfetivo } from '../../src/core/planos'
 import { convidadosRepo } from '../db/repositories/convidados'
 import { gastoDeIaRepo } from '../db/repositories/gastoDeIa'
 import { subscriptionsRepo } from '../db/repositories/subscriptions'
@@ -45,9 +46,10 @@ import { usageCountersRepo } from '../db/repositories/usageCounters'
 import { authRequired } from './auth'
 import { asUserId, type UserId } from './authContext'
 import { limitesAntiabusoDoConvidado, parametrosDoPoolGratuito } from './config'
-import { getPlanForUser } from './entitlements'
+import { resolverPlano } from './entitlements'
 import { flagLigada } from './flags'
 import { log } from './logger'
+import { avaliarAlivio, pedeAlivio, registrarCustoDoAlivio, responderRecusaDoAlivio } from './nuvemDeAlivio'
 import { tetoDoMesUsd } from './orcamentoDeIa'
 import { responderErro } from './respostaDeErro'
 
@@ -113,9 +115,15 @@ async function receitaLiquidaDoMesUsd(agora: number): Promise<number> {
   if (receitaEmCache && receitaEmCache.ate > agora) return receitaEmCache.valor
   const porPlano = await subscriptionsRepo.contarAtivasPorPlano()
   let brl = 0
-  for (const { plan, n } of porPlano) {
-    const preco = (PLAN_MATRIX as Record<string, { precoMensalBrl: number | null } | undefined>)[plan]?.precoMensalBrl
-    if (preco) brl += n * Math.max(0, preco * (1 - IMPOSTO) - TAXA_FIXA_BRL)
+  for (const { plan, ciclo, n } of porPlano) {
+    /* Nome antigo conta como o atual (matriz v2): o Pro antigo que ainda paga R$ 39,90 entra pelo
+       preço do Premium — o pool erra para MENOS, que é o lado seguro de um orçamento gratuito. */
+    const plano = normalizarPlano(plan)
+    if (!plano) continue
+    const { precoMensalBrl, precoAnualBrl } = PLAN_MATRIX[plano]
+    /* O anual rende por mês a 12ª parte do ano líquido — uma taxa fixa por ano, não por mês. */
+    if (ciclo === 'anual' && precoAnualBrl) brl += (n * Math.max(0, precoAnualBrl * (1 - IMPOSTO) - TAXA_FIXA_BRL)) / 12
+    else if (precoMensalBrl) brl += n * Math.max(0, precoMensalBrl * (1 - IMPOSTO) - TAXA_FIXA_BRL)
   }
   const valor = brl / CAMBIO_BRL_POR_USD
   receitaEmCache = { valor, ate: agora + 10 * 60_000 }
@@ -150,8 +158,19 @@ function contadorIndisponivel(res: Response, err: unknown): void {
 // ───────────────────────────── a porta ─────────────────────────────
 
 export interface PortaGratuita {
-  /** O plano resolvido (um só `getPlanForUser` por request). */
+  /** O plano resolvido (um só `resolverPlano` por request). */
   plano: PlanoEfetivo
+  /**
+   * O Premium é o do TESTE de 14 dias (C6): os entitlements são os do Premium, mas a admissão da nuvem
+   * trata a conta como grátis (`planoDeAdmissao(..., teste = true)`) — quem ainda não paga não disputa
+   * a capacidade de quem paga.
+   */
+  teste?: boolean
+  /**
+   * A conta Grátis aceitou a NUVEM DE ALÍVIO e passou pelas travas dela (A10): a chamada sai da
+   * franquia do alívio (modo `alivio` de `usageQuota.ts`) e entra na faixa `alivio` da admissão.
+   */
+  alivio?: boolean
   /** Soma o custo ESTIMADO (US$) da chamada entregue: pool do dia, convidado no mês, IP no dia. */
   registrarCusto(usd: number): Promise<void>
   /** A chamada não aconteceu: devolve a mensagem de tutor reservada. Best-effort. */
@@ -170,13 +189,16 @@ export async function abrirPortaGratuita(
   recurso: RecursoDeNuvem,
 ): Promise<PortaGratuita | null> {
   let plano: PlanoEfetivo
+  let teste: boolean
   try {
-    plano = await getPlanForUser(req.userId)
+    const resolvido = await resolverPlano(req.userId)
+    plano = resolvido.plano
+    teste = resolvido.teste !== null
   } catch (err) {
     contadorIndisponivel(res, err)
     return null
   }
-  if (plano !== 'convidado' && plano !== 'free') return { plano, registrarCusto: semNada, estornar: semNada }
+  if (plano !== 'convidado' && plano !== 'free') return { plano, teste, registrarCusto: semNada, estornar: semNada }
 
   const agora = relogio()
   const hoje = dia(agora)
@@ -231,7 +253,27 @@ export async function abrirPortaGratuita(
       return null
     }
 
-    if (plano !== 'convidado') return { plano, registrarCusto: (usd) => somarGasto(usd, { agora }), estornar: semNada }
+    if (plano !== 'convidado') {
+      /* O alívio é só transcrição e tradução da captura; o tutor segue a regra do plano. */
+      if (!(plano === 'free' && recurso !== 'tutor' && pedeAlivio(req)))
+        return { plano, registrarCusto: (usd) => somarGasto(usd, { agora }), estornar: semNada }
+      /* A NUVEM DE ALÍVIO (A10): flag, perfil protegido, franquia do mês, pool do dia e reserva. */
+      const veredicto = await avaliarAlivio(req, agora)
+      if (veredicto.ok === false) {
+        responderRecusaDoAlivio(res, veredicto)
+        return null
+      }
+      const conta = req.userId
+      return {
+        plano,
+        alivio: true,
+        registrarCusto: async (usd) => {
+          await somarGasto(usd, { agora })
+          await registrarCustoDoAlivio(conta, usd, agora)
+        },
+        estornar: semNada,
+      }
+    }
 
     // 4) Tetos do convidado: US$ no mês (id) e US$ no dia (IP).
     const { ipUsdDia, ipTutorDia } = limitesAntiabusoDoConvidado()

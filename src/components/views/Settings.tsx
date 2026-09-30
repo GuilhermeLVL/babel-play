@@ -12,13 +12,14 @@ import {
   User,
   Zap,
 } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 
 import { fetchSettings, saveSettings } from '../../data/api';
 import { DEFAULT_PROFILE_ID } from '../../gateway/profiles';
 import type { ThemeType } from '../../lib/appearance';
 import { getEntitlements, onPlanChange } from '../../lib/entitlements';
 import { idiomasAbaixoDoPiso, t } from '../../lib/i18n';
+import { irPara } from '../../lib/irPara';
 import {
   DEFAULT_LANG_CONFIG,
   fetchLangConfig,
@@ -28,6 +29,8 @@ import {
   saveLangConfig,
 } from '../../lib/langConfig';
 import { baseLang, langLabelNaUI } from '../../lib/languages';
+import { lazyComRecarga } from '../../lib/lazyComRecarga';
+import { perfilProtegido } from '../../lib/protecaoDoMenor';
 import AiEnginePanel from '../AiEnginePanel';
 import LangPicker from '../LangPicker';
 import type { FontScale } from '../shell/ControlCluster';
@@ -39,6 +42,9 @@ import AbaNotificacoes from './ajustes/AbaNotificacoes';
 import AbaPrivacidade from './ajustes/AbaPrivacidade';
 import { Linha } from './ajustes/Linha';
 import LangAudit from './LangAudit';
+
+/* O painel da Tradução Nuance (D6 da Fase D): registro padrão, variantes e glossário, por `import()`. */
+const PainelDaNuance = lazyComRecarga(() => import('./ajustes/PainelDaNuance'));
 
 /**
  * AJUSTES — idêntico ao protótipo aprovado (`T.ajustes` + override em
@@ -315,6 +321,11 @@ export default function Settings({
             </div>
           </div>
         </section>
+
+        {/* O convite ao Premium é promocional: o perfil protegido não o recebe. */}
+        <Suspense fallback={null}>
+          <PainelDaNuance aoConhecer={perfilProtegido() ? undefined : () => irPara({ view: 'planos' })} />
+        </Suspense>
 
         <LangAudit />
       </PainelDeAba>

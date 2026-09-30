@@ -15,6 +15,9 @@
  *   /assets/*            1 ano + `immutable` — o nome muda quando o conteúdo muda
  *   ort-wasm-*, silero_* 1 ano + `immutable` — versionados pelo pacote; mesmo tratamento do
  *                        `public/_headers` da edição estática
+ *   /modelos/bergamot/…  1 ano + `immutable` — o motor mora em `motor-<versão>/` e o modelo em
+ *                        `<par>/<execução de treino>/` (`scripts/baixar-modelos-bergamot.mjs`): o
+ *                        caminho muda quando o conteúdo muda. O LEIA-ME da pasta, não.
  *   /trilha/*, /glosas/* 1 dia com revalidação — dado sem hash no nome (ver `public/_headers`)
  *   index.html           `no-cache` — sempre revalida, é ele que diz quais chunks valem
  *   o resto              padrão do Express (revalida por ETag)
@@ -38,6 +41,7 @@ export function cacheDoArquivo(relativo: string): string | null {
   if (r === 'index.html') return SEMPRE_REVALIDA
   if (r.startsWith('assets/')) return IMUTAVEL
   if (/^(ort-wasm-[^/]+\.(mjs|wasm)|silero_vad_[^/]+\.onnx)$/.test(r)) return IMUTAVEL
+  if (/^modelos\/bergamot\/(motor-[^/]+|[a-z]{2,3}-[a-z]{2,3}\/[^/]+)\/[^/]+$/.test(r)) return IMUTAVEL
   if (r.startsWith('trilha/') || r.startsWith('glosas/')) return UM_DIA_REVALIDANDO
   return null
 }
@@ -134,6 +138,8 @@ export function montarSpa(app: Express, distPath: string): void {
   )
   app.get('*', (_req, res) => {
     res.setHeader('Cache-Control', SEMPRE_REVALIDA)
+    // Caminho FIXO (a pasta do build + `index.html`): nada do request entra nele.
+    // nosemgrep: javascript.express.security.audit.express-res-sendfile.express-res-sendfile
     res.sendFile(path.join(distPath, 'index.html'))
   })
 }

@@ -62,12 +62,22 @@
   animation: leg-digitar 0.28s steps(14, end) both;
 }
 @keyframes leg-surgir {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 @keyframes leg-digitar {
-  from { clip-path: inset(0 100% 0 0); }
-  to { clip-path: inset(0 0 0 0); }
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
 }
 
 /* ── a palavra que você já aprendeu ── */
@@ -101,4 +111,11 @@ html[data-modo-leve='true'] .leg-estilo :is(.leg-fala, .fala, .leg-o, .orig) {
   .leg-estilo :is(.leg-fala, .fala, .leg-o, .orig) {
     animation: none;
   }
+}
+
+/* O MENU DO BALÃO NO COMPUTADOR (Tradução Nuance, D4 da Fase D): o mesmo `.fala-acoes` da Análise —
+   discreto em repouso, inteiro com o mouse ou o foco na fala. */
+.fala:hover .fala-acoes,
+.fala:focus-within .fala-acoes {
+  opacity: 1;
 }

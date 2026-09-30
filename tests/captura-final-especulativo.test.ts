@@ -56,6 +56,12 @@ vi.mock('@ricky0123/vad-web', () => ({
   },
 }))
 
+const vigia = vi.hoisted(() => ({ aberturas: [] as Array<[number, number]> }))
+vi.mock('../src/lib/captura/vigiaDoMainThread', async (original) => ({
+  ...(await original<typeof import('../src/lib/captura/vigiaDoMainThread')>()),
+  marcarAberturaDoVad: (ini: number, fim: number) => vigia.aberturas.push([ini, fim]),
+}))
+
 import { startMicCapture } from '../src/gateway/capture/systemAudio'
 
 beforeEach(() => {
@@ -96,6 +102,22 @@ async function capturar() {
   } as never)
   return { cap, handles, finais }
 }
+
+/* A ABERTURA DO VAD É MARCADA PARA O VIGIA (A6c): a 1ª sessão do ORT instancia o WASM do Silero na
+   thread principal (~880 ms com a CPU 4× mais lenta). O quadro longo que começa aí não é travamento. */
+describe('abertura do VAD', () => {
+  it('a captura marca o intervalo do `MicVAD.new` (uma vez por captura)', async () => {
+    vigia.aberturas.length = 0
+    const antes = performance.now()
+    const { cap } = await capturar()
+    expect(vigia.aberturas).toHaveLength(1)
+    const [ini, fim] = vigia.aberturas[0]
+    expect(ini).toBeGreaterThanOrEqual(antes)
+    expect(fim).toBeGreaterThanOrEqual(ini)
+    expect(fim).toBeLessThanOrEqual(performance.now())
+    await cap.stop()
+  })
+})
 
 describe('captura com final especulativo', () => {
   it('especula com ~450 ms de silêncio e o final É a janela especulativa (mesma entrada, mesmo texto)', async () => {
@@ -153,6 +175,91 @@ describe('parciais mais cedo', () => {
       expect(parciais).toHaveLength(1) // 0,6 s de áudio novo, mas só 0,6 s desde o último
       await vi.advanceTimersByTimeAsync(800) // 1,2 s desde o 1º
       expect(parciais).toHaveLength(2)
+      await cap.stop()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+})
+
+/**
+ * WORKERS QUE DESCANSAM ("Grátis sem travar", A5). A captura pergunta ao pipeline ANTES de montar o
+ * parcial: com o modo desempenho, o regulador cortando parciais ou a reserva de nuvem, a resposta é
+ * não, e o tique nem copia o buffer-até-agora (que numa fala longa são megabytes a cada parcial). E o
+ * espaçamento entre parciais passa a ser do pipeline: 2,2 s no aparelho leve.
+ */
+describe('parciais sob demanda do pipeline', () => {
+  it('`querParcial` falso: nenhum parcial (nem a cópia); volta assim que o pipeline quer', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'setTimeout', 'clearTimeout', 'performance'] })
+    try {
+      let quer = false
+      const querParcial = vi.fn(() => quer)
+      const parciais: number[] = []
+      const cap = await startMicCapture(undefined, {
+        onUtterance: vi.fn(),
+        onPartialAudio: (pcm: Float32Array) => parciais.push(pcm.length),
+        querParcial,
+      } as never)
+      await alimentar([...silencio(3), ...fala(8)])
+      await vi.advanceTimersByTimeAsync(1_000)
+      expect(parciais).toHaveLength(0)
+      expect(querParcial).toHaveBeenCalled() // perguntou, ouviu não, e não montou o parcial
+      quer = true
+      await vi.advanceTimersByTimeAsync(200)
+      expect(parciais).toHaveLength(1)
+      await cap.stop()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('`intervaloDosParciais` 2200 (aparelho leve): o 2º parcial espera 2,2 s, não 1,1 s', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'setTimeout', 'clearTimeout', 'performance'] })
+    try {
+      const parciais: number[] = []
+      const cap = await startMicCapture(undefined, {
+        onUtterance: vi.fn(),
+        onPartialAudio: (pcm: Float32Array) => parciais.push(pcm.length),
+        intervaloDosParciais: () => 2_200,
+      } as never)
+      await alimentar([...silencio(3), ...fala(8)])
+      await vi.advanceTimersByTimeAsync(200)
+      expect(parciais).toHaveLength(1) // o 1º continua saindo cedo
+      await alimentar(fala(20))
+      await vi.advanceTimersByTimeAsync(1_200)
+      expect(parciais).toHaveLength(1) // com 1,1 s já teria saído o 2º
+      await vi.advanceTimersByTimeAsync(1_000) // 2,2 s desde o 1º
+      expect(parciais).toHaveLength(2)
+      await cap.stop()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  /* O PARCIAL ÚNICO do modo desempenho automático (A6b): o pipeline pede 1,5 s de fala para o 1º e
+     espaçamento infinito para os outros. Com 0,6 s, o Moonshine devolveu "" ou ". So." na bancada. */
+  it('`primeiroParcialComMs` 1500 e `intervaloDosParciais` infinito: um parcial só, com 1,5 s de fala', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'setTimeout', 'clearTimeout', 'performance'] })
+    try {
+      const parciais: number[] = []
+      const cap = await startMicCapture(undefined, {
+        onUtterance: vi.fn(),
+        onPartialAudio: (pcm: Float32Array) => parciais.push(pcm.length),
+        primeiroParcialComMs: () => 1_500,
+        intervaloDosParciais: () => Infinity,
+      } as never)
+      await alimentar([...silencio(3), ...fala(8)]) // 7 quadros: o parcial de sempre sairia aqui
+      await vi.advanceTimersByTimeAsync(200)
+      expect(parciais).toHaveLength(0)
+      await alimentar(fala(8)) // 15 quadros: 1,44 s
+      await vi.advanceTimersByTimeAsync(200)
+      expect(parciais).toHaveLength(0)
+      await alimentar(fala(1)) // 16 quadros: 1,54 s
+      await vi.advanceTimersByTimeAsync(200)
+      expect(parciais).toEqual([16 * QUADRO])
+      await alimentar(fala(20))
+      await vi.advanceTimersByTimeAsync(3_000)
+      expect(parciais).toHaveLength(1) // nenhum outro até o fim da fala
       await cap.stop()
     } finally {
       vi.useRealTimers()

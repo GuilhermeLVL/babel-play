@@ -23,6 +23,7 @@
  */
 import { NonRealTimeVAD } from '@ricky0123/vad-web';
 
+import { ortDoVadNumaThread } from '../lib/dispositivo/orcamentoDeThreads';
 import { WhisperLocalStt } from './adapters/whisperLocal';
 import type { SttFinal } from './capabilities';
 import { cortarPrompt } from './promptDeStt';
@@ -168,6 +169,8 @@ export async function offlineTranscribe(blob: Blob, opts: OfflineOptions = {}): 
   const vad = await NonRealTimeVAD.new({
     modelURL: '/silero_vad_legacy.onnx',
     ortConfig: (ort: any) => {
+      // 1 thread, como o VAD ao vivo: roda na thread principal (ver `ortDoVadNumaThread`).
+      ortDoVadNumaThread(ort);
       try {
         ort.env.wasm.wasmPaths = '/';
       } catch {

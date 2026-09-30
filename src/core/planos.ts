@@ -4,9 +4,8 @@
  * POR QUE ISTO EXISTE. A lista de planos estava copiada à mão em CINCO lugares (tipo do servidor,
  * guard do servidor, tipo do cliente, lista do cliente, z.enum do admin), e quatro deles falhavam
  * EM SILÊNCIO: uma assinatura com plano fora da lista degradava para `free`, o cliente descartava a
- * resposta inteira de entitlements, e as quotas devolviam zero. Adicionar o plano Essencial em cima
- * disso semearia exatamente essa classe de bug — por isso a consolidação veio ANTES do plano novo.
- * Especificação: `openspec/changes/planos-essencial/`.
+ * resposta inteira de entitlements, e as quotas devolviam zero. Especificação original:
+ * `openspec/changes/archive/2026-09-07-planos-essencial/`; a matriz v2: `openspec/changes/planos-v2/`.
  *
  * PURO E ISOMÓRFICO, de propósito. Servidor e cliente importam DAQUI (o precedente é
  * `src/lib/traducao/promptComunicativo.ts`, compartilhado com `server/ai/mtProxy.ts`). Nada de I/O
@@ -17,38 +16,71 @@
  * `anonimo` NÃO está aqui: é identidade do cliente sem conta, não um plano que o servidor possa
  * atribuir a uma assinatura. O tipo do cliente o acrescenta por união.
  *
- * OS NÚMEROS DO LANÇAMENTO (Fase 2, decisão do dono em 24/09/2026) — a conta de custo, para que
- * nenhum plano dê prejuízo no PIOR caso (assinante que usa o teto inteiro):
+ * A MATRIZ V2 (decisão do dono em 29/09/2026, ADR 0011): Grátis + PREMIUM. O Essencial e o Pro
+ * saíram — dois planos pagos quase iguais pediam uma conta que a pessoa não quer fazer — e os nomes
+ * antigos continuam sendo LIDOS como Premium (`PLANOS_LEGADOS`, `normalizarPlano`): linha antiga no
+ * banco, regra antiga de flag e cache antigo no navegador não derrubam o acesso de ninguém.
  *
- *   Preços (Groq, 24/09/2026): whisper-large-v3-turbo US$ 0,04/h, mínimo de 10 s por requisição
- *   (cobrado do DONO, não da cota: o assinante gasta segundos REAIS — `segundosDeAudioDoUsuario`; o
- *   mínimo entra só no orçamento global); gpt-oss-120b US$ 0,15 por 1M tokens de entrada e US$ 0,60
- *   de saída. Câmbio de planejamento R$ 5,60/US$. Líquido = preço − Asaas (R$ 1,09) − Simples (~6%).
- *   Tradução medida: ~350 tokens de entrada + ~90 de saída por fala (US$ 0,107 por mil falas).
+ * A CONTA DE CUSTO, para que o Premium não dê prejuízo no uso TÍPICO de quem usa o teto inteiro:
  *
- *   MEDIDO NA BANCADA DE 2026-09 (docs/auditoria/eval/bancada-2026-09.md): com o VAD fechando a
- *   fala após 800 ms, a Groq fatura 1,08× o tempo real (mínimo de 10 s por pedaço; com 450 ms eram
- *   2,06×). A tradução com gpt-oss-120b em raciocínio "low" custou US$ 0,036 por hora de fala.
+ *   Preços (Groq, 24/09/2026): whisper-large-v3-turbo US$ 0,04/h, faturado 1,08× o tempo real com o
+ *   VAD fechando a fala após 800 ms (mínimo de 10 s por pedaço — custo do DONO, não da cota: o
+ *   assinante gasta segundos REAIS, `segundosDeAudioDoUsuario`); gpt-oss-120b em raciocínio "low"
+ *   custou US$ 0,036 por hora de fala traduzida (docs/auditoria/eval/bancada-2026-09.md), a US$ 0,15
+ *   por 1M tokens de entrada e US$ 0,60 de saída. Câmbio de planejamento R$ 5,60/US$.
+ *   UMA HORA DE LEGENDA (transcrita e traduzida) ≈ 1,08 × 0,04 + 0,036 = US$ 0,079.
  *
- *   ESSENCIAL R$ 19,90 → líquido ≈ R$ 17,62
- *     STT   54.000 s = 15 h × 1,08 × US$ 0,04                           = US$ 0,65
- *     LLM   3.000.000 tokens: pior caso tudo saída 3M × 0,60            = US$ 1,80
- *           (típico, 80% entrada: 3M × (0,8 × 0,15 + 0,2 × 0,60) / 1M  = US$ 0,72)
- *     PIOR CASO US$ 2,45 ≈ R$ 13,72 < R$ 17,62. 3M tokens ≈ 6.800 falas traduzidas + tutor.
- *     Chamadas 20.000: 15 h ÷ 6 s ≈ 9.000 falas × 2 (transcrever + traduzir) = 18.000, com folga
- *     para o tutor. Quem limita dinheiro são segundos e tokens; chamadas é fair-use.
+ *   PREMIUM R$ 19,90 → líquido ≈ R$ 17,62 (− Asaas R$ 1,09 − Simples ~6%) ≈ US$ 3,15
+ *     O TETO MENSAL É O EMPATE: 40 h × US$ 0,079 = US$ 3,17. É o número do plano ATÉ o B7 medir a
+ *     cascata barata (DeepInfra ~US$ 0,024/h); aí o mensal sobe para 60 h (= 30 dias × 2 h) — com a
+ *     pilha de hoje 60 h custariam ~US$ 4,74, prejuízo em todo assinante intenso. Quem mexe antes disso
+ *     mexe por `PREMIUM_MONTHLY_STT_SECONDS`, sabendo que passa do empate.
+ *     TOKENS: US$ 0,036/h ÷ US$ 0,24 por 1M (mistura medida: 80% entrada, 20% saída) ≈ 150 MIL TOKENS
+ *     POR HORA DE FALA → 6 M no mês (40 h) e 300 mil no dia (2 h). O PIOR CASO TEÓRICO (tudo saída,
+ *     6 M × 0,60 = US$ 3,60, mais o STT) NÃO fecha no líquido, e isto é declarado: quem segura esse
+ *     caso é o orçamento global (`AI_BUDGET_USD_MONTH`/`_DAY`) e o teto do dia, não esta matriz.
+ *     CHAMADAS 50.000: 40 h ÷ 6 s × 2 (transcrever + traduzir) = 48.000, com folga para o tutor. Quem
+ *     limita dinheiro são segundos e tokens; chamadas é fair-use.
  *
- *   PRO R$ 39,90 → líquido ≈ R$ 36,42
- *     STT   72.000 s = 20 h × 1,08 × US$ 0,04                           = US$ 0,86
- *     LLM   5.000.000 tokens: pior caso 5M × 0,60                       = US$ 3,00
- *     PIOR CASO US$ 3,86 ≈ R$ 21,62 < R$ 36,42. Chamadas 26.000 (20 h ÷ 6 s × 2 = 24.000 + folga).
- *     O MODELO MAIOR (`LLM_MODEL_GRANDE`) muda a conta: para o pior caso não passar do líquido, ele
- *     pode custar até ~US$ 1,10 por 1M tokens de SAÍDA ((36,42 ÷ 5,60 − 0,86) ÷ 5M). Acima disso,
- *     baixe `PRO_MONTHLY_LLM_TOKENS`. O orçamento global (`AI_BUDGET_USD_MONTH`) cobre o resto.
+ *   O USO JUSTO DO DIA ("sem limite no dia a dia", decisão do dono): 2 h de STT por dia local, e os
+ *   tokens de 2 h de fala. Passando disso a nuvem descansa até amanhã e a legenda segue no aparelho
+ *   (429 `uso_justo_do_dia`, `src/core/usoJusto.ts`) — sem venda nenhuma. Com o mensal em 40 h, quem
+ *   usa 2 h TODO dia encontra o mensal no dia 20; depois do B7 o diário passa a ser o teto que manda.
  */
 
 /** Planos que o servidor pode atribuir. Derive listas com `PLANOS_DE_ASSINATURA`, nunca à mão. */
-export type PlanoDeAssinatura = 'free' | 'essencial' | 'pro' | 'selfhost';
+export type PlanoDeAssinatura = 'free' | 'premium' | 'selfhost';
+
+/**
+ * OS NOMES QUE JÁ EXISTIRAM, e o plano que eles são hoje. Existe porque o nome antigo vive FORA do
+ * código: `subscriptions.plan` gravado antes da migração 0041 (ou por um processo velho durante o
+ * deploy), `regras.planos` de uma flag editada à mão, o script de admin de alguém, o cache do
+ * navegador de quem não recarregou a aba. Toda fronteira que lê plano de fora passa por
+ * `normalizarPlano`; o código de dentro só conhece os nomes atuais.
+ */
+export const PLANOS_LEGADOS = Object.freeze({ essencial: 'premium', pro: 'premium' }) satisfies Readonly<
+  Record<string, PlanoDeAssinatura>
+>;
+
+/** Como a pessoa paga: por MÊS, ou o ANO (inteiro, na assinatura `YEARLY`, ou em 12x no cartão). */
+export type CicloDeCobranca = 'mensal' | 'anual';
+
+/**
+ * O FLUXO do Asaas que cobra (sondagem de 29/09/2026, `openspec/changes/planos-v2/design.md`): a
+ * ASSINATURA recorrente (mensal ou `YEARLY`), o PARCELAMENTO do anual em 12x (outro recurso da API,
+ * sem renovação automática) e o Pix Automático (API de autorização à parte, atrás de flag no C5).
+ */
+export type MeioDeCobranca = 'assinatura' | 'parcelamento' | 'pix_automatico';
+
+/** Em quantas vezes o anual é vendido. Outra quantidade de parcelas não paga plano nenhum. */
+export const PARCELAS_DO_ANUAL = 12;
+
+/**
+ * O TESTE DO PREMIUM (C6): quantos dias ele dura. Sem cartão e sem cobrança automática nunca — no
+ * fim a conta volta ao Grátis sozinha. Um por pessoa (o servidor guarda a marca do e-mail, ver
+ * `server/lib/testePremium.ts`). A tela diz o número a partir daqui, nunca à mão.
+ */
+export const DIAS_DO_TESTE_PREMIUM = 14;
 
 export interface EntitlementsDoPlano {
   /** Importação de YouTube (yt-dlp roda no servidor — custo/infra de quem hospeda). */
@@ -57,26 +89,49 @@ export interface EntitlementsDoPlano {
   managedCloudStt: boolean;
   /** Tradução/LLM de nuvem com a chave do dono. */
   managedCloudLlm: boolean;
-  /** Modelos locais maiores (whisper-base+). */
+  /** Modelos locais maiores (whisper-base+) e o `LLM_MODEL_GRANDE`, quando o operador o define. */
   largerModels: boolean;
+  /**
+   * A TRADUÇÃO NUANCE (B3 da Fase B, telas na Fase D): o nível `nuance` da tradução e do tutor — o
+   * modelo que o registro de provedores marca para a nuance. Sem ela, o nível é o `rapida`
+   * ("Tradução rápida ao vivo"). O servidor decide o nível por ESTE campo, nunca pelo nome do plano
+   * (`src/core/nivelDeTraducao.ts`).
+   */
+  traducaoNuance: boolean;
+  /** A VOZ NATURAL da nuvem no modo intérprete (Fase E); sem ela, a voz do aparelho. */
+  vozNatural: boolean;
 }
 
 export interface QuotasDoPlano {
   /** Chamadas gerenciadas por mês (STT + tradução + tutor dividem este pool). `null` = sem teto. */
   chamadasMes: number | null;
-  /** Segundos REAIS de áudio no STT de nuvem por mês — a promessa ao assinante ("15 h"). O custo do
-   dono é maior (mínimo de 10 s por requisição do provedor); ver a conta no topo. `null` = sem teto. */
+  /** Segundos REAIS de áudio no STT de nuvem por mês — a promessa ao assinante. O custo do dono é
+   maior (mínimo de 10 s por requisição do provedor); ver a conta no topo. `null` = sem teto. */
   sttSegundosMes: number | null;
   /** Tokens (entrada + saída) no LLM de nuvem por mês — tradução e tutor dividem. `null` = sem teto. */
   tokensMes: number | null;
   /** Armazenamento de sessões/mídia, em MB. `null` = sem teto. */
   armazenamentoMb: number | null;
+  /** O USO JUSTO DO DIA: segundos de STT de nuvem por dia LOCAL da pessoa. `null` = sem teto no dia
+   (e nada é contado por dia). */
+  sttSegundosDia: number | null;
+  /** Tokens de LLM de nuvem por dia local. `null` = sem teto no dia. */
+  tokensDia: number | null;
+  /**
+   * A VOZ NATURAL do modo intérprete (Fase E): caracteres lidos em voz alta pela nuvem, no mês e no
+   * dia local. Só conta para quem tem `vozNatural`; sem ele, o plano nem chega à nuvem (402). A conta
+   * está em `PLAN_MATRIX.premium`. `null` = sem teto.
+   */
+  vozCaracteresMes: number | null;
+  vozCaracteresDia: number | null;
 }
 
 export interface DefinicaoDePlano {
   rotulo: string;
   /** Preço mensal em reais. `null` = não-vendável (free é grátis; selfhost não se compra). */
   precoMensalBrl: number | null;
+  /** Preço do ANO em reais (à vista na assinatura `YEARLY`, ou em `PARCELAS_DO_ANUAL` vezes). */
+  precoAnualBrl: number | null;
   entitlements: EntitlementsDoPlano;
   quotas: QuotasDoPlano;
 }
@@ -85,32 +140,88 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
   free: {
     rotulo: 'Grátis',
     precoMensalBrl: null,
-    entitlements: { youtubeImport: false, managedCloudStt: false, managedCloudLlm: false, largerModels: false },
-    // Chamadas 0: o free já é barrado antes, pelo entitlement — o teto só reafirma.
-    quotas: { chamadasMes: 0, sttSegundosMes: 0, tokensMes: 0, armazenamentoMb: 500 },
+    precoAnualBrl: null,
+    entitlements: {
+      youtubeImport: false,
+      managedCloudStt: false,
+      managedCloudLlm: false,
+      largerModels: false,
+      traducaoNuance: false,
+      vozNatural: false,
+    },
+    /* Chamadas 0: o free já é barrado antes, pelo entitlement — o teto só reafirma. A nuvem de
+       aparelho fraco do Grátis NÃO é esta quota: é a `FRANQUIA_DE_ALIVIO`, com contadores próprios. */
+    quotas: {
+      chamadasMes: 0,
+      sttSegundosMes: 0,
+      tokensMes: 0,
+      armazenamentoMb: 500,
+      sttSegundosDia: null,
+      tokensDia: null,
+      vozCaracteresMes: 0,
+      vozCaracteresDia: null,
+    },
   },
-  essencial: {
-    rotulo: 'Essencial',
+  premium: {
+    rotulo: 'Premium',
     precoMensalBrl: 19.9,
-    /* LLM e transcrição de nuvem, com o modelo padrão. YouTube fica de fora em TODO plano vendido:
-       no modo hospedado a importação responde 403 (o yt-dlp roda no servidor; só o self-host a
-       libera) — vender o que a rota recusa seria cobrar por uma promessa. */
-    entitlements: { youtubeImport: false, managedCloudStt: true, managedCloudLlm: true, largerModels: false },
-    quotas: { chamadasMes: 20_000, sttSegundosMes: 54_000, tokensMes: 3_000_000, armazenamentoMb: 1_000 },
-  },
-  pro: {
-    rotulo: 'Pro',
-    precoMensalBrl: 39.9,
-    entitlements: { youtubeImport: false, managedCloudStt: true, managedCloudLlm: true, largerModels: true },
-    /* 20 h de transcrição e o modelo maior. A conta de cada número está no topo do arquivo. */
-    quotas: { chamadasMes: 26_000, sttSegundosMes: 72_000, tokensMes: 5_000_000, armazenamentoMb: 5_000 },
+    precoAnualBrl: 179,
+    /* A nuvem inteira. YouTube fica de fora: no modo hospedado a importação responde 403 (o yt-dlp
+       roda no servidor; só o self-host a libera) — vender o que a rota recusa seria cobrar por uma
+       promessa. `largerModels` vem do Pro (quem pagava por ele não perde nada); `LLM_MODEL_GRANDE`
+       continua ausente por padrão, e o modelo mais forte chega pelo nível `nuance` (B3/D1). */
+    entitlements: {
+      youtubeImport: false,
+      managedCloudStt: true,
+      managedCloudLlm: true,
+      largerModels: true,
+      traducaoNuance: true,
+      vozNatural: true,
+    },
+    /* 5 GB: o maior dos dois planos antigos — ninguém do Pro perde espaço. A conta de cada número
+       está no topo do arquivo. */
+    quotas: {
+      chamadasMes: 50_000,
+      sttSegundosMes: 144_000,
+      tokensMes: 6_000_000,
+      armazenamentoMb: 5_000,
+      sttSegundosDia: 7_200,
+      tokensDia: 300_000,
+      /* A VOZ NATURAL (E4 da Fase E). Chatterbox Multilingual na DeepInfra: US$ 1,00 por 1M de caracteres
+         (deepinfra.com, 30/09/2026). A voz lê ~15 caracteres por segundo → ~54.000 por hora de voz
+         → ~US$ 0,054 por hora.
+           dia  60.000 ≈ 1,1 h de voz — a tradução lida de ~2 h de conversa (o uso justo do Premium,
+                a metade do tempo é a pessoa falando) → no máximo ~US$ 0,06 no dia;
+           mês 600.000 ≈ 11 h de voz → no máximo ~US$ 0,60 por assinante no mês.
+         PROVISÓRIO, como as 40 h: o teto liga com o custo medido no uso real (E6); `PREMIUM_*_TTS_CHARS`
+         sobrepõe. Passando dele, a voz do aparelho segue — o intérprete nunca para. */
+      vozCaracteresMes: 600_000,
+      vozCaracteresDia: 60_000,
+    },
   },
   selfhost: {
     rotulo: 'Self-host (tudo liberado)',
     precoMensalBrl: null,
+    precoAnualBrl: null,
     // A chave de IA é do próprio dono da instância: não há custo nosso, nada a gatear.
-    entitlements: { youtubeImport: true, managedCloudStt: true, managedCloudLlm: true, largerModels: true },
-    quotas: { chamadasMes: null, sttSegundosMes: null, tokensMes: null, armazenamentoMb: null },
+    entitlements: {
+      youtubeImport: true,
+      managedCloudStt: true,
+      managedCloudLlm: true,
+      largerModels: true,
+      traducaoNuance: true,
+      vozNatural: true,
+    },
+    quotas: {
+      chamadasMes: null,
+      sttSegundosMes: null,
+      tokensMes: null,
+      armazenamentoMb: null,
+      sttSegundosDia: null,
+      tokensDia: null,
+      vozCaracteresMes: null,
+      vozCaracteresDia: null,
+    },
   },
 };
 
@@ -138,10 +249,28 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
 export const PLANO_CONVIDADO: DefinicaoDePlano = {
   rotulo: 'Convidado',
   precoMensalBrl: null,
-  entitlements: { youtubeImport: false, managedCloudStt: true, managedCloudLlm: true, largerModels: false },
+  precoAnualBrl: null,
+  entitlements: {
+    youtubeImport: false,
+    managedCloudStt: true,
+    managedCloudLlm: true,
+    largerModels: false,
+    traducaoNuance: false,
+    vozNatural: false,
+  },
   /* Armazenamento 0: o convidado guarda tudo no aparelho; o servidor recusa escrita (`exige_conta`).
-     Chamadas: 600 s ÷ 6 s × 2 (transcrever + traduzir) = 200, mais as 5 do tutor, com folga. */
-  quotas: { chamadasMes: 220, sttSegundosMes: 600, tokensMes: 40_000, armazenamentoMb: 0 },
+     Chamadas: 600 s ÷ 6 s × 2 (transcrever + traduzir) = 200, mais as 5 do tutor, com folga. Sem teto
+     no dia: os 10 min do mês já são o limite, e o teto em dólar fecha antes. */
+  quotas: {
+    chamadasMes: 220,
+    sttSegundosMes: 600,
+    tokensMes: 40_000,
+    armazenamentoMb: 0,
+    sttSegundosDia: null,
+    tokensDia: null,
+    vozCaracteresMes: 0,
+    vozCaracteresDia: null,
+  },
 };
 
 /** O que só o convidado tem: teto de mensagens de tutor e teto de gasto por mês. */
@@ -149,6 +278,52 @@ export const LIMITES_DO_CONVIDADO = {
   tutorMensagensMes: 5,
   /** Teto de gasto ESTIMADO por convidado no mês, em US$ (conferido antes, somado depois). */
   tetoUsdMes: 0.02,
+} as const;
+
+/**
+ * Quanto a Groq FATURA para cada segundo real de fala, com o VAD fechando a fala após 800 ms
+ * (mínimo de 10 s por pedaço) — MEDIDO na bancada de 2026-09 (`docs/auditoria/eval/bancada-2026-09.md`).
+ * É o número que converte a cota em segundos REAIS no custo do dono.
+ */
+export const FATOR_FATURADO_DO_STT = 1.08;
+
+/**
+ * A NUVEM DE ALÍVIO (A10 do plano "Grátis sem travar", decisão do dono em 29/09/2026): o Grátis tem
+ * 3 h/mês de nuvem PARA APARELHO FRACO, além do aparelho sem limite. NÃO é um plano nem muda o
+ * `free` da matriz (que continua sem nuvem): é uma franquia à parte, contada POR CONTA no servidor
+ * (`server/lib/nuvemDeAlivio.ts`, contadores próprios em `usage_counters`), que só vale para quem o
+ * aparelho não aguenta o modelo local. No aparelho forte a pessoa roda local de graça, e oferecer a
+ * nuvem ali só custaria dinheiro — por isso a elegibilidade por aparelho é um portão de UX no
+ * cliente (`src/core/nuvemDeAlivio.ts`), e o limite de verdade é este, no servidor.
+ *
+ * A CONTA DE CUSTO, com os preços que o código usa (`server/lib/orcamentoDeIa.ts`, Groq 24/09/2026):
+ *
+ *   STT   10.800 s × 1,08 (faturado) × US$ 0,04/h                        = US$ 0,1296
+ *   LLM   gpt-oss-120b: US$ 0,15 por 1M de entrada, US$ 0,60 de saída. A tradução medida na
+ *         bancada custa US$ 0,036 por hora de fala (raciocínio "low"): 3 h traduzidas na nuvem
+ *         seriam mais US$ 0,108 — as duas coisas juntas (~US$ 0,24) NÃO cabem no aceite.
+ *
+ *   O ACEITE DO PLANO É ≤ US$ 0,13 POR USUÁRIO GRÁTIS/MÊS, e quem o garante é `tetoUsdMes`: um teto
+ *   em DÓLAR por conta, conferido ANTES de cada chamada e somado DEPOIS (o mesmo molde do teto do
+ *   convidado). As 3 h de transcrição cabem nele (US$ 0,1296); a tradução na nuvem sai do MESMO
+ *   teto, então quem traduz na nuvem transcreve menos que 3 h — e o "restam X" que a pessoa vê já
+ *   é o menor dos dois (`segundosRestantesDoAlivio`). Com a cascata barata da Fase B (DeepInfra
+ *   ~US$ 0,024/h de fala e tradução), as 3 h passam a caber com tradução; o teto não muda.
+ *
+ *   Tokens e chamadas são tetos de USO JUSTO, não de dinheiro (quem fecha o dinheiro é o dólar):
+ *     tokens   540.000 = o que gastaria a franquia inteira só em tradução, na mistura típica de 80%
+ *              de entrada: US$ 0,13 ÷ (0,8 × 0,15 + 0,2 × 0,60) × 1M;
+ *     chamadas 4.000  = 10.800 s ÷ 6 s por fala × 2 (transcrever + traduzir) = 3.600, com folga.
+ *
+ * O pool DIÁRIO do alívio (teto somando TODOS os grátis, ≤ 20% do orçamento diário de nuvem) e a
+ * reserva de 80% para quem paga estão em `src/core/nuvemDeAlivio.ts`.
+ */
+export const FRANQUIA_DE_ALIVIO = {
+  sttSegundosMes: 10_800,
+  tokensMes: 540_000,
+  chamadasMes: 4_000,
+  /** Teto de gasto ESTIMADO por conta no mês, em US$ — o aceite do plano. */
+  tetoUsdMes: 0.13,
 } as const;
 
 /** O plano EFETIVO que o servidor resolve: um de assinatura, ou `convidado` (anônimo com JWT). */
@@ -162,26 +337,88 @@ export function definicaoDoPlano(plano: PlanoEfetivo): DefinicaoDePlano {
 /** A lista derivada — o que substitui as cinco cópias manuais. */
 export const PLANOS_DE_ASSINATURA = Object.keys(PLAN_MATRIX) as readonly PlanoDeAssinatura[];
 
+/** ESTRITO: só o nome ATUAL é plano de assinatura. Quem aceita nome antigo chama `normalizarPlano`. */
 export const ehPlanoDeAssinatura = (v: unknown): v is PlanoDeAssinatura =>
   typeof v === 'string' && (PLANOS_DE_ASSINATURA as readonly string[]).includes(v);
 
 /**
- * QUAL PLANO CUSTA ESTE VALOR — a pergunta que o webhook precisa fazer.
- *
- * O DEFEITO QUE ISTO FECHA (auditoria de 01/09). O webhook concedia `atual.plan`, que é a
- * INTENÇÃO gravada por `POST /api/billing/assinar` — e assinar é de graça. A sequência era:
- * assinar `essencial`, assinar `pro` (a intenção vira `pro`), pagar só a cobrança do essencial, e
- * receber Pro por R$ 9,90. O dinheiro tem de decidir, não a intenção.
- *
- * Tolerância de um centavo porque o provedor devolve o valor em ponto flutuante.
+ * O PLANO QUE UM NOME É HOJE: o atual passa, o antigo (`PLANOS_LEGADOS`) vira o atual, o resto é
+ * `null` — e quem recebe `null` decide (o servidor degrada para `free` com log; o cliente, para o
+ * rótulo Grátis com as flags que o servidor mandou). `hasOwn`, e não `in`: `constructor` não é plano.
  */
-export function planoPeloPreco(valor: number | undefined): PlanoDeAssinatura | null {
-  if (typeof valor !== 'number' || !Number.isFinite(valor)) return null;
-  for (const p of PLANOS_DE_ASSINATURA) {
-    const preco = PLAN_MATRIX[p].precoMensalBrl;
-    if (preco !== null && Math.abs(preco - valor) < 0.01) return p;
-  }
+export function normalizarPlano(v: unknown): PlanoDeAssinatura | null {
+  if (ehPlanoDeAssinatura(v)) return v;
+  if (typeof v === 'string' && Object.hasOwn(PLANOS_LEGADOS, v))
+    return PLANOS_LEGADOS[v as keyof typeof PLANOS_LEGADOS];
   return null;
+}
+
+/** O plano é vendável (tem preço)? Hoje, só o Premium. */
+export const ehPlanoPago = (p: unknown): p is PlanoDeAssinatura =>
+  ehPlanoDeAssinatura(p) && PLAN_MATRIX[p].precoMensalBrl !== null;
+
+/**
+ * OS PREÇOS QUE JÁ FORAM COBRADOS, e o plano que eles pagam hoje. Uma assinatura recorrente criada
+ * antes da matriz v2 continua mandando a mesma cobrança ao Asaas todo mês (o Pro a R$ 39,90, até o
+ * dono decidir baixar o valor dela) — e o webhook precisa reconhecê-la, senão o assinante antigo
+ * cairia na intenção gravada ou, pior, ficaria sem plano no mês seguinte.
+ */
+const PRECOS_LEGADOS: ReadonlyArray<{ valor: number; plano: PlanoDeAssinatura }> = [
+  { valor: 19.9, plano: 'premium' }, // Essencial (o mesmo preço do Premium mensal)
+  { valor: 39.9, plano: 'premium' }, // Pro
+];
+
+/* O provedor devolve o valor em ponto flutuante (19.899999…). Meio centavo, e não um: todo preço é
+   um número inteiro de centavos, então o ruído do ponto flutuante fica muito abaixo disso — e um
+   centavo inteiro de tolerância deixaria dois preços vizinhos (R$ 14,91 e R$ 14,92) empatarem. */
+const casa = (a: number, b: number) => Math.abs(a - b) < 0.005;
+
+/**
+ * AS PARCELAS COMO O ASAAS AS COBRA (sondagem de 29/09/2026): com `totalValue`, ele TRUNCA a divisão
+ * e joga a diferença na ÚLTIMA — 179 em 12x são 11 × R$ 14,91 + R$ 14,99. Em centavos inteiros, para
+ * a soma fechar exata.
+ */
+export function valoresDasParcelas(total: number, parcelas: number): { padrao: number; ultima: number } {
+  const centavos = Math.round(total * 100);
+  const padrao = Math.floor(centavos / parcelas);
+  return { padrao: padrao / 100, ultima: (centavos - padrao * (parcelas - 1)) / 100 };
+}
+
+/**
+ * QUE PLANO E QUE CICLO ESTE PAGAMENTO PAGA — a pergunta que o webhook faz.
+ *
+ * O DEFEITO QUE ISTO FECHA (auditoria de 01/09, GAP-001). O webhook concedia `atual.plan`, que é a
+ * INTENÇÃO gravada por `POST /api/billing/assinar` — e assinar é de graça: assinar o barato, assinar
+ * o caro, pagar só o barato e receber o caro. O dinheiro tem de decidir, não a intenção.
+ *
+ * NA MATRIZ V2 o valor também diz o CICLO: o preço mensal é mensal; o anual inteiro é anual; a
+ * parcela do 12x (`parcelas: PARCELAS_DO_ANUAL`, que o webhook do parcelamento informa) é anual.
+ * Parcela de outra quantidade, ou parcela que chega sem dizer que é parcela, não paga plano nenhum:
+ * R$ 14,91 como mensalidade seria o Premium pela terça parte. Os preços antigos pagam Premium mensal.
+ */
+export function planoPeloPagamento(
+  valor: number | undefined,
+  opcoes: { parcelas?: number } = {},
+): { plano: PlanoDeAssinatura; ciclo: CicloDeCobranca } | null {
+  if (typeof valor !== 'number' || !Number.isFinite(valor) || valor <= 0) return null;
+  const parcelas = opcoes.parcelas ?? 1;
+  if (parcelas > 1) {
+    if (parcelas !== PARCELAS_DO_ANUAL) return null;
+    for (const plano of PLANOS_DE_ASSINATURA) {
+      const anual = PLAN_MATRIX[plano].precoAnualBrl;
+      if (anual === null) continue;
+      const { padrao, ultima } = valoresDasParcelas(anual, parcelas);
+      if (casa(valor, padrao) || casa(valor, ultima)) return { plano, ciclo: 'anual' };
+    }
+    return null;
+  }
+  for (const plano of PLANOS_DE_ASSINATURA) {
+    const { precoMensalBrl: mensal, precoAnualBrl: anual } = PLAN_MATRIX[plano];
+    if (mensal !== null && casa(valor, mensal)) return { plano, ciclo: 'mensal' };
+    if (anual !== null && casa(valor, anual)) return { plano, ciclo: 'anual' };
+  }
+  const legado = PRECOS_LEGADOS.find((p) => casa(valor, p.valor));
+  return legado ? { plano: legado.plano, ciclo: 'mensal' } : null;
 }
 
 /**
@@ -210,11 +447,17 @@ export function menorPrecoDeAssinatura(): string | null {
 }
 
 /**
- * Horas de transcrição de nuvem por mês, derivadas da quota em segundos — a tela escreve "15 h"
+ * Horas de transcrição de nuvem por mês, derivadas da quota em segundos — a tela escreve o número
  * a partir daqui, nunca à mão. `null` = sem teto (self-host).
  */
 export function horasDeTranscricao(plano: PlanoDeAssinatura): number | null {
   const s = PLAN_MATRIX[plano].quotas.sttSegundosMes;
+  return s === null ? null : Math.round((s / 3600) * 10) / 10;
+}
+
+/** Horas de nuvem por DIA (o uso justo), da quota do dia. `null` = sem teto no dia. */
+export function horasDoUsoJusto(plano: PlanoDeAssinatura): number | null {
+  const s = PLAN_MATRIX[plano].quotas.sttSegundosDia;
   return s === null ? null : Math.round((s / 3600) * 10) / 10;
 }
 

@@ -25,7 +25,7 @@ vi.mock('../src/lib/assinatura', async (original) => {
 /* Hospedado (com login): no teste o padrão seria o self-host, onde não há cobrança. */
 vi.mock('../src/lib/entitlements', async (original) => {
   const real = await original<typeof import('../src/lib/entitlements')>()
-  return { ...real, getEntitlements: () => ({ ...real.getEntitlements(), plan: 'essencial' }) }
+  return { ...real, getEntitlements: () => ({ ...real.getEntitlements(), plan: 'premium' }) }
 })
 vi.mock('../src/lib/rotas', async (original) => {
   const real = await original<typeof import('../src/lib/rotas')>()
@@ -35,7 +35,7 @@ vi.mock('../src/lib/rotas', async (original) => {
 import AvisoDePagamentoAtrasado from '../src/components/conta/AvisoDePagamentoAtrasado'
 import { _reiniciarIdentidade, definirIdentidade } from '../src/lib/identidade'
 
-const atrasada = (plano = 'essencial'): StatusDeBilling => ({
+const atrasada = (plano = 'premium'): StatusDeBilling => ({
   configurado: true,
   assinatura: { plano, status: 'past_due', valeAte: null, provedor: 'asaas' },
 })
@@ -60,13 +60,13 @@ afterEach(() => {
 
 describe('pagamento atrasado', () => {
   it('mostra o aviso com o plano e leva a Planos → Sua assinatura', async () => {
-    m.status = atrasada('pro')
+    m.status = atrasada('premium')
     await montar()
     const aviso = screen.getByTestId('aviso-de-pagamento-atrasado')
     expect(aviso.className).toContain('aviso-info')
     expect(aviso.className).toContain('warn')
     expect(aviso.textContent).toContain(
-      'Não conseguimos confirmar o pagamento da sua assinatura. Pague a fatura para continuar com o Pro.',
+      'Não conseguimos confirmar o pagamento da sua assinatura. Pague a fatura para continuar com o Premium.',
     )
     fireEvent.click(screen.getByRole('button', { name: /Ver minha assinatura/ }))
     expect(m.navegarPara).toHaveBeenCalledWith({ view: 'planos', planosTela: 'assinatura' })
@@ -87,7 +87,10 @@ describe('pagamento atrasado', () => {
   })
 
   it('assinatura ativa: nada', async () => {
-    m.status = { configurado: true, assinatura: { plano: 'essencial', status: 'active', valeAte: null, provedor: 'asaas' } }
+    m.status = {
+      configurado: true,
+      assinatura: { plano: 'premium', status: 'active', valeAte: null, provedor: 'asaas' },
+    }
     await montar()
     expect(screen.queryByTestId('aviso-de-pagamento-atrasado')).toBeNull()
   })

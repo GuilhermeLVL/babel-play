@@ -14,12 +14,77 @@
  */
 import { z } from 'zod'
 
-import { ehPlanoDeAssinatura, PLAN_MATRIX, type PlanoDeAssinatura, planoPeloPreco } from '../../src/core/planos'
+import {
+  type CicloDeCobranca,
+  ehPlanoPago,
+  normalizarPlano,
+  PARCELAS_DO_ANUAL,
+  type PlanoDeAssinatura,
+  planoPeloPagamento,
+} from '../../src/core/planos'
 import { creditsRepo } from '../db/repositories/credits'
-import { subscriptionsRepo } from '../db/repositories/subscriptions'
-import { asaasConfigurado, buscarPagamento, estornarCobranca, type PagamentoAsaas } from './asaas'
-import { asUserId } from './authContext'
+import { type Subscription, subscriptionsRepo } from '../db/repositories/subscriptions'
+import { asaasConfigurado, buscarPagamento, estornarCobranca, estornarParcelamento, type PagamentoAsaas } from './asaas'
+import { asUserId, type UserId } from './authContext'
 import { log } from './logger'
+
+/**
+ * O período que um pagamento confirmado concede: o ciclo mais cinco dias para a próxima cobrança
+ * compensar. O ANUAL vale para as duas formas de pagar o ano — a assinatura `YEARLY` paga inteira e o
+ * 12x (contado do vencimento da 1ª parcela).
+ */
+export const DIAS_DO_PERIODO_MENSAL = 35
+export const DIAS_DO_PERIODO_ANUAL = 370
+
+const DIA_MS = 86_400_000
+
+/** O vencimento `AAAA-MM-DD` ao meio-dia UTC (longe da virada do dia em qualquer fuso do Brasil). */
+const meioDiaDo = (iso: string | undefined): number => (iso ? Date.parse(`${iso}T12:00:00Z`) : NaN)
+
+/**
+ * O VENCIMENTO DA 1ª PARCELA, a partir de qualquer uma delas: as parcelas do Asaas vencem todo mês no
+ * mesmo dia (sondagem de 29/09/2026), então a n-ésima vence n − 1 meses depois da primeira. É isso
+ * que faz as 12 confirmações do cartão concederem o MESMO ano — sem a âncora, a 12ª parcela daria
+ * onze meses a mais. No fim de mês (31 → 28/30) a conta volta um ou dois dias; o "nunca encurta"
+ * abaixo segura a data maior.
+ */
+export function vencimentoDaPrimeiraParcela(dueDate: string | undefined, numero: number | undefined): number {
+  const venc = meioDiaDo(dueDate)
+  if (!Number.isFinite(venc)) return NaN
+  const n = Number.isInteger(numero) && (numero as number) > 1 ? (numero as number) : 1
+  const d = new Date(venc)
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth() - (n - 1), d.getUTCDate(), 12)
+}
+
+/**
+ * A assinatura concede AGORA um período pago à frente? O mesmo critério de `subConcede`
+ * (entitlements), repetido aqui só para a regra de não encurtar.
+ */
+function periodoPagoAFrente(sub: Subscription | null, agora: number): number | null {
+  if (!sub || sub.currentPeriodEnd == null || sub.currentPeriodEnd <= agora) return null
+  if (sub.status === 'active' || sub.status === 'past_due' || sub.status === 'canceled') return sub.currentPeriodEnd
+  return null
+}
+
+/**
+ * UM PAGAMENTO NUNCA ENCURTA O QUE JÁ FOI PAGO (C5). Com o anual e o 12x, a mesma conta pode
+ * receber a confirmação de uma cobrança menor depois de uma maior: a mensalidade de uma assinatura
+ * antiga que o Asaas ainda cobrou, ou a parcela 12 do cartão chegando depois do anual. Gravar o
+ * período do pagamento mais recente derrubaria o ano pago para um mês. Vale o fim MAIOR, com o ciclo
+ * que o concedeu.
+ */
+function periodoQueVale(
+  atual: Subscription | null,
+  fim: number,
+  ciclo: CicloDeCobranca,
+  agora = Date.now(),
+): { fim: number; ciclo: CicloDeCobranca; manteve: boolean } {
+  const jaPago = periodoPagoAFrente(atual, agora)
+  if (jaPago !== null && jaPago > fim) {
+    return { fim: jaPago, ciclo: atual?.ciclo === 'anual' ? 'anual' : 'mensal', manteve: true }
+  }
+  return { fim, ciclo, manteve: false }
+}
 
 /** GAP-011: confere um pagamento contra a fonte autoritativa (a API do Asaas). Injetável p/ teste. */
 export type VerificadorDePagamento = (id: string) => Promise<PagamentoAsaas | null>
@@ -37,6 +102,12 @@ export const eventoSchema = z
         /* O VALOR PAGO. Entrou em 01/09: sem ele, o webhook não tinha como saber se a parcela que
        confirmou era a do plano que ele estava prestes a conceder. */
         value: z.number().optional(),
+        /* C5 — a PARCELA do 12x: `installment` presente e `subscription` ausente é o discriminador
+           do ramo do parcelamento (sondagem de 29/09/2026). Sem estes campos no schema, o zod os
+           descartaria e a parcela cairia no ramo da compra avulsa. */
+        installment: z.string().optional(),
+        installmentNumber: z.number().optional(),
+        billingType: z.string().optional(),
       })
       .optional(),
     subscription: z
@@ -109,6 +180,9 @@ export async function aplicarEvento(
       let vValor = ev.payment?.value
       let vSub = ev.payment?.subscription
       let vVenc = ev.payment?.dueDate
+      let vParcelamento = ev.payment?.installment
+      let vNumero = ev.payment?.installmentNumber
+      let vTipo = ev.payment?.billingType
       let userIdEfetivo = userId
       if (verificar && vId) {
         const real = await verificar(vId)
@@ -124,7 +198,25 @@ export async function aplicarEvento(
         vValor = real.value
         vSub = real.subscription
         vVenc = real.dueDate ?? vVenc
+        // O parcelamento também vem da API: o payload não decide se é parcela nem de quê.
+        vParcelamento = real.installment
+        vNumero = real.installmentNumber
+        vTipo = real.billingType
         if (real.externalReference) userIdEfetivo = asUserId(real.externalReference)
+      }
+
+      /* PARCELA DO 12x (C5): `installment` presente e `subscription` ausente. Vem ANTES da compra
+         avulsa, que também não tem `subscription` — sem esta ordem, a parcela do ano viraria
+         "avulso desconhecido" e o pagante ficaria sem o plano. */
+      if (!vSub && vParcelamento) {
+        return aplicarParcela(userIdEfetivo, {
+          parcelamento: vParcelamento,
+          numero: vNumero,
+          tipo: vTipo,
+          valor: vValor,
+          vencimento: vVenc,
+          requestId,
+        })
       }
 
       /**
@@ -143,11 +235,16 @@ export async function aplicarEvento(
       }
 
       const atual = await subscriptionsRepo.getActive(userIdEfetivo)
-      const planoPago = planoPeloPreco(vValor)
-      const planoDaIntencao: PlanoDeAssinatura =
-        atual && ehPlanoDeAssinatura(atual.plan) && PLAN_MATRIX[atual.plan].precoMensalBrl !== null
-          ? atual.plan
-          : 'essencial'
+      /* O PLANO E O CICLO SAEM DO VALOR (matriz v2): R$ 19,90 é o Premium mensal, R$ 179 o anual, e
+         os preços antigos (Essencial R$ 19,90, Pro R$ 39,90) continuam pagando o Premium mensal — a
+         assinatura recorrente de antes não perde o plano no mês seguinte. O ramo do parcelamento
+         (`parcelas`, a parcela do 12x) é do C5. */
+      const pago = planoPeloPagamento(vValor)
+      const planoPago = pago?.plano ?? null
+      /* A intenção gravada pode ter nome antigo (linha de antes da 0041): lida como o atual. */
+      const planoGravado = atual ? normalizarPlano(atual.plan) : null
+      const planoDaIntencao: PlanoDeAssinatura = planoGravado && ehPlanoPago(planoGravado) ? planoGravado : 'premium'
+      const cicloDaIntencao: CicloDeCobranca = atual?.ciclo === 'anual' ? 'anual' : 'mensal'
 
       /**
        * A ASSINATURA QUE PAGOU TEM DE SER A QUE ESTÁ REGISTRADA — `POST /api/billing/assinar`
@@ -171,20 +268,30 @@ export async function aplicarEvento(
        * uma escalada por uma negação de serviço a quem pagou.
        */
       const plano: PlanoDeAssinatura = planoPago ?? planoDaIntencao
-      if (planoPago && planoPago !== planoDaIntencao) {
-        const nota = `plano-divergente: pago ${planoPago} (R$ ${vValor}), intenção ${planoDaIntencao} — vale o pago`
+      const ciclo: CicloDeCobranca = pago?.ciclo ?? cicloDaIntencao
+      if (pago && (pago.plano !== planoDaIntencao || pago.ciclo !== cicloDaIntencao)) {
+        const nota = `plano-divergente: pago ${pago.plano} ${pago.ciclo} (R$ ${vValor}), intenção ${planoDaIntencao} ${cicloDaIntencao} — vale o pago`
         log('warn', { event: 'billing_plano_divergente', error: nota, requestId })
         motivo = motivo ? `${motivo}; ${nota}` : nota
       }
 
-      /* A validade sai do VENCIMENTO da parcela paga quando ele vem, com cinco dias de folga
-         para a próxima cobrança compensar. Sem `dueDate`, o mês redondo de antes. */
-      const vencimento = vVenc ? Date.parse(`${vVenc}T12:00:00Z`) : NaN
+      /* A validade sai do VENCIMENTO da parcela paga quando ele vem, com cinco dias de folga para a
+         próxima cobrança compensar: um mês e cinco dias no mensal, um ano e cinco dias no anual pago
+         inteiro (`YEARLY`). Sem `dueDate`, conta de hoje. E nunca encurta o que já foi pago. */
+      const vencimento = meioDiaDo(vVenc)
       const base = Number.isFinite(vencimento) ? vencimento : Date.now()
+      const dias = ciclo === 'anual' ? DIAS_DO_PERIODO_ANUAL : DIAS_DO_PERIODO_MENSAL
+      const vale = periodoQueVale(atual, base + dias * DIA_MS, ciclo)
+      if (vale.manteve) {
+        const nota = 'periodo-mantido: o pago antes vale até mais tarde'
+        log('warn', { event: 'billing_periodo_mantido', error: nota, requestId })
+        motivo = motivo ? `${motivo}; ${nota}` : nota
+      }
       await subscriptionsRepo.upsert(userIdEfetivo, {
         plan: plano,
         status: 'active',
-        currentPeriodEnd: base + 35 * 86_400_000,
+        ciclo: vale.ciclo,
+        currentPeriodEnd: vale.fim,
         cancelAtPeriodEnd: 0,
       })
       return { estado: 'aplicado', motivo }
@@ -194,8 +301,9 @@ export async function aplicarEvento(
       await subscriptionsRepo.upsert(userId, { status: 'past_due' })
       return { estado: 'aplicado', motivo: null }
     case 'PAYMENT_REFUNDED':
-      // Estorno de compra avulsa: a compra deixa de conceder crédito (evento inverso).
-      if (!ev.payment?.subscription && ev.payment?.id) {
+      /* Estorno de compra avulsa: a compra deixa de conceder crédito (evento inverso). A parcela do
+         12x também não tem `subscription` — mas tem `installment`, e o estorno dela é do PLANO. */
+      if (!ev.payment?.subscription && !ev.payment?.installment && ev.payment?.id) {
         await creditsRepo.cancelarCompra(ev.payment.id)
         return { estado: 'aplicado', motivo: null }
       }
@@ -206,11 +314,15 @@ export async function aplicarEvento(
       return { estado: 'aplicado', motivo: null }
     case 'ESTORNO_ARREPENDIMENTO': {
       /* REAPLICAÇÃO de um arrependimento cujo estorno o Asaas recusou (fila do admin). Tenta o
-         estorno de novo; falhando outra vez, continua pendente com o motivo novo. */
+         estorno de novo; falhando outra vez, continua pendente com o motivo novo. O do 12x estorna o
+         PARCELAMENTO inteiro (`installment`), numa chamada só. */
       const pagamentoId = ev.payment?.id
-      if (!pagamentoId) return { estado: 'nao-aplicado', motivo: 'estorno sem id de pagamento' }
+      const parcelamentoId = ev.payment?.installment
+      if (!pagamentoId && !parcelamentoId) return { estado: 'nao-aplicado', motivo: 'estorno sem id de pagamento' }
       try {
-        await estornarCobranca(pagamentoId, 'Arrependimento em 7 dias (CDC art. 49) — reprocessado')
+        const descricao = 'Arrependimento em 7 dias (CDC art. 49) — reprocessado'
+        if (parcelamentoId) await estornarParcelamento(parcelamentoId, descricao)
+        else await estornarCobranca(pagamentoId as string, descricao)
       } catch (err) {
         return { estado: 'nao-aplicado', motivo: `estorno falhou de novo: ${String(err).slice(0, 200)}` }
       }
@@ -224,4 +336,68 @@ export async function aplicarEvento(
       // Evento que não tratamos: auditado pela tabela, sem efeito — nunca pendente.
       return { estado: 'ignorado', motivo: `evento-nao-tratado: ${ev.event}` }
   }
+}
+
+/**
+ * O EFEITO DE UMA PARCELA DO 12x CONFIRMADA (C5) — o ano inteiro, no vencimento da 1ª parcela.
+ *
+ * As três conferências, na ordem:
+ *  1. A PARCELA É DO ANUAL: o valor é uma das parcelas que o Asaas cobra de `precoAnualBrl` em
+ *     `PARCELAS_DO_ANUAL` vezes (R$ 14,91, ou R$ 14,99 na última). Qualquer outro valor não paga plano
+ *     nenhum — R$ 14,91 como mensalidade seria o Premium pela terça parte.
+ *  2. NO CARTÃO: o 12x só é criado com `CREDIT_CARD` (`criarParcelamento`), e só nele o ano inteiro
+ *     é compromisso da operadora. Uma parcela de carnê (Pix/boleto) que confirme aqui não é nossa —
+ *     fica pendente para o admin, em vez de dar o ano por uma parcela.
+ *  3. O PARCELAMENTO É O REGISTRADO: se não for, o pagante recebe o que pagou e a divergência fica
+ *     escrita (a mesma regra da assinatura divergente).
+ *
+ * IDEMPOTENTE POR CONSTRUÇÃO, além da marca do evento: as 12 confirmações ancoram no vencimento da
+ * 1ª parcela (`vencimentoDaPrimeiraParcela`) e dão o MESMO fim; e o período nunca encurta.
+ */
+async function aplicarParcela(
+  userId: UserId,
+  p: {
+    parcelamento: string
+    numero: number | undefined
+    tipo: string | undefined
+    valor: number | undefined
+    vencimento: string | undefined
+    requestId: string | undefined
+  },
+): Promise<ResultadoDoEvento> {
+  const pago = planoPeloPagamento(p.valor, { parcelas: PARCELAS_DO_ANUAL })
+  if (!pago) {
+    return {
+      estado: 'nao-aplicado',
+      motivo: `parcela-desconhecida: R$ ${p.valor} do parcelamento ${p.parcelamento} não é parcela do anual`,
+    }
+  }
+  if (p.tipo && p.tipo !== 'CREDIT_CARD') {
+    return {
+      estado: 'nao-aplicado',
+      motivo: `parcelamento ${p.parcelamento} fora do cartão (${p.tipo}): o 12x só concede o ano no cartão`,
+    }
+  }
+
+  const atual = await subscriptionsRepo.getActive(userId)
+  let motivo: string | null = null
+  if (atual?.providerInstallmentId && atual.providerInstallmentId !== p.parcelamento) {
+    motivo = `parcelamento-divergente: pago ${p.parcelamento}, registrado ${atual.providerInstallmentId}`
+    log('warn', { event: 'billing_parcelamento_divergente', error: motivo, requestId: p.requestId })
+  }
+
+  const primeira = vencimentoDaPrimeiraParcela(p.vencimento, p.numero)
+  const base = Number.isFinite(primeira) ? primeira : Date.now()
+  const vale = periodoQueVale(atual, base + DIAS_DO_PERIODO_ANUAL * DIA_MS, 'anual')
+  await subscriptionsRepo.upsert(userId, {
+    plan: pago.plano,
+    status: 'active',
+    ciclo: vale.ciclo,
+    provider: 'asaas',
+    meio: 'parcelamento',
+    providerInstallmentId: p.parcelamento,
+    currentPeriodEnd: vale.fim,
+    cancelAtPeriodEnd: 0,
+  })
+  return { estado: 'aplicado', motivo }
 }

@@ -6,9 +6,13 @@ import {
   carregarFaturas,
   carregarStatusDeBilling,
   dataCurta,
-  ehPlanoPago,
   type Fatura,
+  formaDaConta,
+  parcelasDoAnual,
+  planoPagoDe,
+  precoAnual,
   precoMensal,
+  rotuloDaForma,
   type StatusDeBilling,
 } from '../../../lib/assinatura';
 import { carregarEntitlements } from '../../../lib/entitlements';
@@ -16,7 +20,7 @@ import { t } from '../../../lib/i18n';
 import { registrarAssinaturaConcluida } from '../../../lib/ofertas/instrumentacao';
 import { navegarPara } from '../../../lib/rotas';
 import { IconeEmBloco, Tela } from '../../ui';
-import { irSub, PLANO_NOME, planoPorId } from './dados';
+import { irSub, itemCompleto, PLANO_NOME, planoPorId } from './dados';
 
 /**
  * ASSINATURA CONFIRMADA — `T.assinado` do protótipo aprovado.
@@ -25,6 +29,9 @@ import { irSub, PLANO_NOME, planoPorId } from './dados';
  * pergunta a `/api/billing/status` e só comemora se a assinatura estiver `active` (o webhook do
  * Asaas é quem põe esse estado, quando o dinheiro entra). Aberta antes disso — ou digitada na
  * barra de endereço —, ela mostra que ainda espera a confirmação e continua perguntando.
+ *
+ * O CICLO E O MEIO (C7): "Premium · mensal", "· anual" ou "· anual em 12x", do status; sem fatura
+ * ainda, o valor mostrado é o que aquela forma cobra (o mês, o ano ou a parcela).
  */
 export default function Assinado() {
   const [status, setStatus] = useState<StatusDeBilling | null | 'carregando'>('carregando');
@@ -59,7 +66,7 @@ export default function Assinado() {
   }, []);
 
   const a = status !== 'carregando' ? status?.assinatura : null;
-  const confirmada = !!a && a.status === 'active' && ehPlanoPago(a.plano);
+  const confirmada = !!a && a.status === 'active' && planoPagoDe(a.plano) !== null;
 
   if (!confirmada) {
     return (
@@ -84,8 +91,11 @@ export default function Assinado() {
     );
   }
 
-  const plano = a.plano as 'essencial' | 'pro';
+  const plano = planoPagoDe(a.plano) ?? 'premium';
   const P = PLANO_NOME[plano];
+  const forma = formaDaConta({ ciclo: a.ciclo, meio: a.meio });
+  const valorDaForma =
+    forma === 'anual' ? precoAnual(plano) : forma === 'anual_12x' ? parcelasDoAnual(plano).padrao : precoMensal(plano);
   const ultima = faturas?.find((f) => f.status === 'paga') ?? null;
   const hoje = new Date().toISOString().slice(0, 10);
 
@@ -103,21 +113,21 @@ export default function Assinado() {
           Já está tudo liberado. O recibo fica em Planos → Sua assinatura.
         </p>
         <ul className="lista-check liberado">
-          {planoPorId(plano).itens.map(([, t]) => (
-            <li key={t}>
+          {planoPorId(plano).itens.map((item) => (
+            <li key={item.texto}>
               <Check aria-hidden />
-              {t}
+              {itemCompleto(item)}
             </li>
           ))}
         </ul>
         <dl className="dados centro">
           <div>
             <dt>Plano</dt>
-            <dd>{P} · mensal</dd>
+            <dd>{`${P} · ${rotuloDaForma(forma)}`}</dd>
           </div>
           <div>
             <dt>{ultima && ultima.data !== hoje ? `Pago em ${dataCurta(ultima.data)}` : 'Pago hoje'}</dt>
-            <dd className="tn">{brl(ultima?.valor ?? precoMensal(plano))}</dd>
+            <dd className="tn">{brl(ultima?.valor ?? valorDaForma)}</dd>
           </div>
           {/* A PRÓXIMA COBRANÇA vem do Asaas (`proximaCobranca`). `valeAte` é outra coisa — o vencimento
               mais a graça de atraso — e aparece como "acesso até" quando o Asaas não respondeu. */}

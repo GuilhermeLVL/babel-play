@@ -3,18 +3,31 @@
  * medidos, por sistema × corpus, com IC de 95% e comparação pareada.
  *
  * Sistemas (`--sistemas`):
- *   groq:openai/gpt-oss-120b            a produção de hoje (sem reasoning_effort → o padrão, "medium")
- *   groq:openai/gpt-oss-20b@low         candidato barato, com raciocínio "low" e oculto
- *   openrouter:google/gemini-2.5-flash-lite   (sempre com provider.zdr = true)
+ *   groq:openai/gpt-oss-120b            a produção de hoje
+ *   deepinfra:openai/gpt-oss-20b        candidatos de nuvem (B5): DeepInfra, Cerebras, Cloudflare
+ *   cerebras:gpt-oss-120b                 Workers AI e os de antes (Groq, OpenRouter, HF) — o
+ *   cloudflare:@cf/openai/gpt-oss-20b     registro, com preço, chave e retenção de cada um, está
+ *   deepinfra:Qwen/Qwen3.5-9B@none        em `nuvem.mjs`. `@esforço` é ajuste de candidato que a
+ *                                         produção ainda não manda (fica marcado no bruto)
  *   local:opus-mt                       o tradutor do navegador (Xenova/opus-mt-*, q8, beam 2)
  *   local:tc-big                        opus-mt-tc-big-en-pt (repositório privado já convertido)
+ *   bergamot:en-pt | bergamot:pt-en     Firefox Translations (Mozilla, MPL-2.0) no WASM do
+ *                                       bergamot-translator — `bergamot.mjs`. O par tem de bater
+ *                                       com o do corpus (erro claro se não bater); `bergamot:auto`
+ *                                       segue o corpus. Registra também a latência POR FRASE.
  * Corpora (`--corpora`):
  *   fleurs:en-pt  fleurs:pt-en  wmt:en-pt  gold:en-pt
  *   cascata:<sistema-stt>:en-pt   o texto que o STT ENTENDEU do áudio em inglês, traduzido e
  *                                 comparado com a referência humana em pt — o que o usuário vê.
  *
- * PROMPT DE PRODUÇÃO (`promptComunicativo.ts`) e temperatura 0: a bancada mede o que o servidor
- * manda, sem variação de amostragem entre execuções.
+ * NUVEM = O PEDIDO DA PRODUÇÃO (B5): prompt comunicativo, temperatura da fala (0,2), `max_tokens`
+ * proporcional e o raciocínio/retenção de `parametrosDoProvedor` — montado em `nuvem.mjs` com as
+ * funções do servidor. Até 29/09 a bancada mandava temperatura 0 e o raciocínio padrão do provedor;
+ * os brutos antigos NÃO são pareáveis com os novos (o cache também separa: o nome leva o perfil).
+ *
+ * SEM CHAVE, PULA: o sistema de nuvem cuja chave não existe sai com aviso e entra em `pulados` no
+ * bruto — a bancada roda em ensaio sem nenhuma chave. Cada chamada RESERVA o pior caso no
+ * livro-caixa antes de sair (`livroCaixa.mjs`); o teto é `BANCADA_TETO_USD`.
  */
 /* global AbortSignal */
 import path from 'node:path'
@@ -24,39 +37,38 @@ import os from 'node:os'
 import { bootstrap, bootstrapPareado, mediaEm } from '../../../src/core/eval/bootstrap.ts'
 import { chrf } from '../../../src/core/eval/chrf.ts'
 import { juntarFrases, separarEmFrases } from '../../../src/core/texto/frases.ts'
-import { systemComunicativo, userComunicativo } from '../../../src/lib/traducao/promptComunicativo.ts'
 import {
   BANCADA_DIR,
   cache,
-  chave,
   comAmostra,
   comRetentativa,
   CotaDoProvedor,
-  respeitarRitmo,
   gastoTotal,
   gravarResultado,
+  hash,
   lerJsonl,
   opt,
   percentis,
-  registrarGasto,
+  respeitarRitmo,
+  segredos,
+  tentativaPaga,
   TetoDeGasto,
 } from './comum.mjs'
-
-/** US$ por 1M tokens (entrada, saída) na Groq — console.groq.com/docs/models, 24/09/2026. */
-const PRECO_GROQ = {
-  'openai/gpt-oss-20b': [0.075, 0.3],
-  'openai/gpt-oss-120b': [0.15, 0.6],
-  'qwen/qwen3.8-27b': [0.8, 4],
-}
-/** Hugging Face Inference Providers (router, sem margem sobre o provedor) — /v1/models, 24/09/2026. */
-const PRECO_HF = {
-  'google/gemma-3-27b-it:deepinfra': [0.08, 0.16],
-  'google/gemma-3-12b-it:deepinfra': [0.05, 0.15],
-  'Qwen/Qwen3-235B-A22B-Instruct-2507:deepinfra': [0.09, 0.55],
-  'meta-llama/Llama-3.1-8B-Instruct:deepinfra': [0.02, 0.05],
-  'openai/gpt-oss-120b:novita': [0.05, 0.25],
-  'openai/gpt-oss-20b:novita': [0.04, 0.15],
-}
+import { prepararBergamot, traduzirBergamot } from './bergamot.mjs'
+import {
+  chavesAusentes,
+  conferirPolitica,
+  custoDeMt,
+  ehDeNuvem,
+  estimarCustoMaximoDeMt,
+  interpretarSistema,
+  lerRespostaDeMt,
+  montarPedidoDeMt,
+  PoliticaDeDados,
+  precoDeMt,
+  PROVEDORES,
+  TIMEOUT_DE_PRODUCAO_MS,
+} from './nuvem.mjs'
 
 const SISTEMAS = opt('sistemas', 'groq:openai/gpt-oss-120b')
   .split(',')
@@ -69,11 +81,19 @@ const CORPORA = opt('corpora', 'fleurs:en-pt')
 const LIMITE = Number(opt('limite', '0')) || 0
 const CONCORRENCIA = Number(opt('concorrencia', '4')) || 4
 
-function interpretar(s) {
-  const i = s.indexOf(':')
-  const [modelo, esforco] = s.slice(i + 1).split('@')
-  return { id: s, provedor: s.slice(0, i), modelo, esforco: esforco || null }
+/** As chaves de todos os provedores de nuvem que existirem (ambiente, `.env.local`, `.env`). */
+function ambienteDeNuvem() {
+  const env = segredos([...new Set(Object.values(PROVEDORES).flatMap((p) => p.chaves))])
+  if (!env.HF_TOKEN) {
+    try {
+      env.HF_TOKEN = readFileSync(path.join(os.homedir(), '.cache/huggingface/token'), 'utf8').trim()
+    } catch {
+      /* sem token do HF: o provedor `hf` é pulado */
+    }
+  }
+  return env
 }
+const ENV_NUVEM = ambienteDeNuvem()
 
 // ------------------------------------------------------------------ corpora
 function carregarCorpus(specComAmostra) {
@@ -135,69 +155,54 @@ function carregarCorpus(specComAmostra) {
 }
 
 // ------------------------------------------------------------------ nuvem
+/**
+ * Uma tradução de nuvem com o pedido da produção (`montarPedidoDeMt`). Cada TENTATIVA reserva o pior
+ * caso antes de sair (`tentativaPaga`); a resposta acerta pelo custo real. O timeout daqui (60 s) é o
+ * da medição; o da produção (12 s) vira a contagem `acimaDoTimeoutDeProducao` no resultado.
+ */
 async function traduzirNuvem(sis, caso, src, tgt) {
-  const base = {
-    groq: 'https://api.groq.com/openai/v1',
-    openrouter: 'https://openrouter.ai/api/v1',
-    hf: 'https://router.huggingface.co/v1',
-  }[sis.provedor]
-  const k = sis.provedor === 'hf' ? tokenHf() : chave(sis.provedor === 'groq' ? 'GROQ_API_KEY' : 'OPENROUTER_API_KEY')
-  const corpo = {
-    model: sis.modelo,
-    temperature: 0,
-    max_tokens: 1200, // o teto de funcoesDeIa.ts para tradução
-    messages: [
-      { role: 'system', content: systemComunicativo(tgt, src) },
-      { role: 'user', content: userComunicativo(caso.origem, caso.contexto) },
-    ],
-  }
-  if (sis.provedor === 'hf' && sis.esforco) corpo.reasoning_effort = sis.esforco
-  if (sis.provedor === 'groq' && sis.esforco) {
-    corpo.reasoning_effort = sis.esforco
-    corpo.include_reasoning = false
-  }
-  if (sis.provedor === 'openrouter') {
-    corpo.provider = { zdr: true }
-    corpo.usage = { include: true }
-    if (sis.esforco)
-      corpo.reasoning = sis.esforco === 'off' ? { enabled: false } : { effort: sis.esforco, exclude: true }
-  }
-  await respeitarRitmo(`LLM_${sis.modelo.replace(/[^a-z0-9]/gi, '')}`, 16)
+  const pedido = montarPedidoDeMt({ sis, caso, src, tgt, env: ENV_NUVEM })
+  const estimativa = estimarCustoMaximoDeMt(sis, pedido.corpo)
+  await respeitarRitmo(`LLM_${sis.provedor}_${sis.modelo.replace(/[^a-z0-9]/gi, '')}`, PROVEDORES[sis.provedor].rpmMt)
   const r = await comRetentativa(
-    () =>
-      fetch(`${base}/chat/completions`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${k}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(corpo),
-        signal: AbortSignal.timeout(60_000),
-      }),
+    tentativaPaga(sis.id, estimativa, () => fetch(pedido.url, { ...pedido.init, signal: AbortSignal.timeout(60_000) })),
     sis.id,
   )
-  const j = await r.json()
-  const ms = r.ms
-  const u = j.usage ?? {}
-  let usd = Number(u.cost)
-  if (!Number.isFinite(usd)) {
-    const p = (sis.provedor === 'hf' ? PRECO_HF : PRECO_GROQ)[sis.modelo]
-    usd = p ? ((u.prompt_tokens ?? 0) * p[0] + (u.completion_tokens ?? 0) * p[1]) / 1e6 : 0
+  let lido
+  try {
+    lido = lerRespostaDeMt(await r.json())
+  } catch (e) {
+    r.acertar(Number.NaN) // não deu para ler o custo: cobra o reservado
+    throw e
   }
-  registrarGasto(sis.id, usd)
-  const texto = String(j.choices?.[0]?.message?.content ?? '')
-    .replace(/^["“]|["”]$/g, '')
-    .trim()
+  const usd = custoDeMt(sis, lido, lido.custoInformado)
+  r.acertar(usd)
   return {
-    texto,
-    ms,
-    tokensEntrada: u.prompt_tokens ?? null,
-    tokensSaida: u.completion_tokens ?? null,
-    usd,
-    provedorReal: j.provider ?? null,
+    texto: lido.texto,
+    ms: r.ms,
+    tokensEntrada: lido.tokensEntrada,
+    tokensSaida: lido.tokensSaida,
+    tokensEmCache: lido.tokensEmCache,
+    tokensDeRaciocinio: lido.tokensDeRaciocinio,
+    usd: Number.isFinite(usd) ? usd : estimativa,
+    provedorReal: lido.provedorReal,
   }
 }
 
-function tokenHf() {
-  if (process.env.HF_TOKEN) return process.env.HF_TOKEN
-  return readFileSync(path.join(os.homedir(), '.cache/huggingface/token'), 'utf8').trim()
+/**
+ * O PERFIL do pedido de nuvem (tudo menos as mensagens e o `max_tokens`, que variam por caso): entra
+ * no nome do cache, para uma mudança de parâmetro na produção não servir respostas antigas.
+ */
+function perfilDoPedido(sis) {
+  const { corpo, parametros } = montarPedidoDeMt({
+    sis,
+    caso: { origem: 'x', contexto: [] },
+    src: 'en',
+    tgt: 'pt',
+    env: ENV_NUVEM,
+  })
+  const resto = Object.fromEntries(Object.entries(corpo).filter(([k]) => k !== 'messages' && k !== 'max_tokens'))
+  return { resto, parametros }
 }
 
 // ------------------------------------------------------------------ local
@@ -250,12 +255,33 @@ async function traduzirLocal(sis, caso, src, tgt) {
   return { texto: juntarFrases(partes).trim(), ms: performance.now() - t0, usd: 0 }
 }
 
+/** Par do sistema ≠ par do corpus: erro de USO, não falha do modelo — para em vez de gravar vazios. */
+class ParErrado extends Error {}
+
+async function traduzirBergamotBancada(sis, caso, src, tgt) {
+  if (sis.modelo !== 'auto' && sis.modelo !== `${src}-${tgt}`)
+    throw new ParErrado(`${sis.id} não traduz ${src}→${tgt}: rode este corpus com bergamot:${src}-${tgt}`)
+  await prepararBergamot(src, tgt) // download e carga fora do cronômetro
+  const t0 = performance.now()
+  const texto = (await traduzirBergamot(src, tgt, caso.origem)).trim()
+  const ms = performance.now() - t0
+  return { texto, ms, frases: separarEmFrases(caso.origem).length, usd: 0 }
+}
+
 // ------------------------------------------------------------------ execução
 async function rodar(sis, spec) {
   const { src, tgt, casos } = carregarCorpus(spec)
-  const c = cache(`mt_${sis.id}_${comAmostra(spec).nome}`)
-  const saida = new Array(casos.length)
+  const nuvem = ehDeNuvem(sis.provedor)
+  const perfil = nuvem ? perfilDoPedido(sis) : null
+  const c = cache(`mt_${sis.id}_${comAmostra(spec).nome}${perfil ? `_p${hash(JSON.stringify(perfil.resto))}` : ''}`)
+  const todas = new Array(casos.length)
   let feitos = 0
+  /**
+   * INTERROMPIDO, não perdido: o teto de gasto ou a cota diária do provedor param a fila, mas os
+   * casos que já responderam ficam no resultado — o resumo pareia por id, então um sistema com 200
+   * de 400 casos ainda compara nos 200.
+   */
+  let interrompido = null
   const trabalho = async (i) => {
     const caso = casos[i]
     const k = `${caso.id}|${caso.origem}`
@@ -263,17 +289,26 @@ async function rodar(sis, spec) {
     if (!r) {
       try {
         r =
-          sis.provedor === 'local' ? await traduzirLocal(sis, caso, src, tgt) : await traduzirNuvem(sis, caso, src, tgt)
+          sis.provedor === 'local'
+            ? await traduzirLocal(sis, caso, src, tgt)
+            : sis.provedor === 'bergamot'
+              ? await traduzirBergamotBancada(sis, caso, src, tgt)
+              : await traduzirNuvem(sis, caso, src, tgt)
       } catch (e) {
-        if (e instanceof TetoDeGasto || e instanceof CotaDoProvedor) throw e
+        if (e instanceof TetoDeGasto || e instanceof CotaDoProvedor) {
+          interrompido ??= { tipo: e instanceof TetoDeGasto ? 'teto' : 'cota', mensagem: e.message }
+          return
+        }
+        if (e instanceof ParErrado || e instanceof PoliticaDeDados) throw e
         r = { texto: '', ms: NaN, erro: String(e.message).slice(0, 200) }
       }
       if (!r.erro) c.set(k, r)
     }
-    saida[i] = {
+    todas[i] = {
       ...caso,
       hipotese: r.texto,
       ms: r.ms,
+      frases: r.frases ?? separarEmFrases(caso.origem).length,
       usd: r.usd ?? 0,
       tokensEntrada: r.tokensEntrada,
       tokensSaida: r.tokensSaida,
@@ -282,19 +317,30 @@ async function rodar(sis, spec) {
     process.stdout.write(`\r  ${sis.id} × ${spec}: ${++feitos}/${casos.length}   `)
   }
   // Local é CPU: um por vez. Nuvem: poucos em paralelo (a latência medida é por chamada).
-  const conc = sis.provedor === 'local' ? 1 : CONCORRENCIA
+  const conc = sis.provedor === 'local' || sis.provedor === 'bergamot' ? 1 : CONCORRENCIA
   let proximo = 0
   await Promise.all(
     Array.from({ length: conc }, async () => {
-      while (proximo < casos.length) await trabalho(proximo++)
+      while (proximo < casos.length && !interrompido) await trabalho(proximo++)
     }),
   )
   c.salvar()
+  const saida = todas.filter(Boolean)
+  if (interrompido)
+    console.error(`\n  ${sis.id} × ${spec} INTERROMPIDO (${saida.length}/${casos.length}): ${interrompido.mensagem}`)
   const notas = saida.map((x) => chrf(x.referencia, x.hipotese).chrf * 100)
   const q = bootstrap(saida.length, mediaEm(notas))
   const falhas = saida.filter((x) => x.erro).length
   const [p50, p95] = percentis(saida.map((x) => x.ms))
+  // Latência POR FRASE (o que a legenda espera a cada fim de frase), só para os motores locais: na
+  // nuvem a chamada leva o trecho inteiro e dividir mediria a rede, não o modelo.
+  const porFrase =
+    sis.provedor === 'local' || sis.provedor === 'bergamot'
+      ? percentis(saida.filter((x) => x.frases > 0).map((x) => x.ms / x.frases))
+      : null
   const usd = saida.reduce((s, x) => s + (x.usd || 0), 0)
+  // O que a produção teria desistido de esperar (o cliente cai no tradutor local).
+  const acimaDoTimeoutDeProducao = nuvem ? saida.filter((x) => x.ms > TIMEOUT_DE_PRODUCAO_MS).length : 0
   const palavras = saida.reduce((s, x) => s + x.origem.split(/\s+/).length, 0)
   // Custo por HORA DE FALA: ~9.000 palavras por hora de conversa (ritmo médio de 150 palavras/min).
   const usdPorHora = palavras ? (usd / palavras) * 9000 : 0
@@ -308,6 +354,9 @@ async function rodar(sis, spec) {
     falhas,
     chrf: q,
     latenciaMs: { p50, p95 },
+    ...(porFrase && { latenciaPorFraseMs: { p50: porFrase[0], p95: porFrase[1] } }),
+    ...(perfil && { parametros: perfil.parametros, acimaDoTimeoutDeProducao }),
+    ...(interrompido && { interrompido }),
     usdTotal: usd,
     usdPorHoraDeFala: usdPorHora,
     casos: saida.map((x, i) => ({
@@ -325,18 +374,57 @@ async function rodar(sis, spec) {
   }
 }
 
-async function main() {
-  const resultados = []
-  try {
-    for (const spec of CORPORA) for (const s of SISTEMAS) resultados.push(await rodar(interpretar(s), spec))
-  } catch (e) {
-    if (!(e instanceof TetoDeGasto || e instanceof CotaDoProvedor)) throw e
-    console.error(`\n${e.message} — resultados parciais gravados.`)
+/**
+ * Os sistemas que vão rodar: a política e o preço são conferidos ANTES de qualquer chamada (um erro
+ * de digitação não gasta nada), e o de nuvem sem chave é pulado com aviso.
+ */
+function sistemasChamaveis() {
+  const pulados = []
+  const sistemas = []
+  for (const s of SISTEMAS) {
+    const sis = interpretarSistema(s)
+    if (!ehDeNuvem(sis.provedor) && sis.provedor !== 'local' && sis.provedor !== 'bergamot')
+      throw new Error(`provedor desconhecido em --sistemas: ${sis.provedor} (os de nuvem estão em nuvem.mjs)`)
+    if (ehDeNuvem(sis.provedor)) {
+      conferirPolitica(sis)
+      precoDeMt(sis)
+      const faltam = chavesAusentes(sis.provedor, ENV_NUVEM)
+      if (faltam.length) {
+        console.warn(`  pulado: ${sis.id} — falta ${faltam.join(' e ')} (modo ensaio)`)
+        pulados.push({ sistema: sis.id, motivo: `falta ${faltam.join(', ')}` })
+        continue
+      }
+    }
+    sistemas.push(sis)
   }
+  return { sistemas, pulados }
+}
+
+async function main() {
+  const { sistemas, pulados } = sistemasChamaveis()
+  const resultados = []
+  // Cota diária de UM provedor tira só aquele sistema das rodadas seguintes; o teto para tudo.
+  const esgotados = new Set()
+  let teto = null
+  for (const spec of CORPORA) {
+    for (const sis of sistemas) {
+      if (teto) break
+      if (esgotados.has(sis.id)) continue
+      const r = await rodar(sis, spec)
+      resultados.push(r)
+      if (r.interrompido?.tipo === 'cota') {
+        esgotados.add(sis.id)
+        pulados.push({ sistema: sis.id, motivo: `cota do provedor a partir de ${spec}` })
+      }
+      if (r.interrompido?.tipo === 'teto') teto = r.interrompido.mensagem
+    }
+  }
+  if (teto) console.error(`\n${teto} — resultados parciais gravados.`)
   const comparacoes = []
   for (const spec of CORPORA) {
     const doCorpus = resultados.filter((r) => r.corpus === spec)
     const base = doCorpus[0]
+    if (!base) continue
     for (const outro of doCorpus.slice(1)) {
       const n = Math.min(base.casos.length, outro.casos.length)
       const d = bootstrapPareado(n, mediaEm(outro.casos.map((x) => x.chrf)), mediaEm(base.casos.map((x) => x.chrf)))
@@ -346,14 +434,16 @@ async function main() {
       )
     }
   }
-  const nome = `mt_${CORPORA.join('-')}_${SISTEMAS.length}sis_${Date.now().toString(36)}`.replace(
+  const nome = `mt_${CORPORA.join('-')}_${sistemas.length}sis_${Date.now().toString(36)}`.replace(
     /[^a-zA-Z0-9._-]+/g,
     '_',
   )
   const saida = gravarResultado(nome, {
-    sistemas: SISTEMAS,
+    sistemas: sistemas.map((x) => x.id),
     corpora: CORPORA,
     gastoTotalUsd: gastoTotal(),
+    ...(teto && { paradoPeloTeto: teto }),
+    pulados,
     resultados,
     comparacoes,
   })

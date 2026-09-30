@@ -28,6 +28,11 @@ html[data-dispositivo='quest'] {
 :is(html[data-dispositivo='quest'], html[data-dispositivo^='celular']) .estudio-acoes {
   gap: 12px;
 }
+/* Rodapé de diálogo com três botões ("Modelo no dispositivo": Liberar espaço, Procurar atualização,
+   Fechar) não cabe em 375 px com o alvo de 48: sem quebra, o primeiro saía cortado pela borda. */
+html[data-dispositivo^='celular'] .dlg-pe {
+  flex-wrap: wrap;
+}
 
 /* Barra das Legendas flutuantes: botões de 32 px viram alvos de verdade. */
 :is(html[data-dispositivo='quest'], html[data-dispositivo^='celular']) .leg-barra button {

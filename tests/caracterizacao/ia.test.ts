@@ -208,14 +208,128 @@ describe('POST /api/ai/mt — tradução gerenciada', () => {
   })
 })
 
-describe('GET /api/ai/stt/available', () => {
-  it('com chave de LLM no servidor e plano self-host → 200 { available: true }', async () => {
-    const r = await s.get('/api/ai/stt/available')
+/* D4 (Fase D): as "Outras formas". No self-host o plano é o `selfhost`, que tem a Tradução Nuance. */
+describe('POST /api/ai/mt/alternativas — outras formas (D4)', () => {
+  it('provedor devolve o JSON → 200 com as opções, a nota e a procedência', async () => {
+    responder = () => completacao('{"opcoes":["Até logo","A gente se vê"],"nota":"A segunda é mais informal."}')
+    const r = await s.post('/api/ai/mt/alternativas', { text: 'see you later', src: 'en', tgt: 'pt' })
     expect(r.status).toBe(200)
-    expect(await r.clone().json()).toEqual({ available: true })
-    await expect(JSON.stringify(await resposta(r), null, 2)).toMatchFileSnapshot(
-      '__snapshots__/get.api.ai.stt.available.json',
-    )
+    const corpo = await r.json()
+    expect(corpo).toMatchObject({
+      opcoes: ['Até logo', 'A gente se vê'],
+      nota: 'A segunda é mais informal.',
+      provenance: { kind: 'ai', origin: 'modelo-do-env' },
+    })
+    expect(chamadas).toHaveLength(1)
+    expect(chamadas[0].url).toBe('http://llm-falso.local/v1/chat/completions')
+    expect(chamadas[0].body?.max_tokens).toBe(900)
+  })
+
+  it('provedor devolve texto solto → 502 resposta_invalida, sem opção inventada', async () => {
+    responder = () => completacao('não sei')
+    const r = await s.post('/api/ai/mt/alternativas', { text: 'see you', tgt: 'pt' })
+    expect(r.status).toBe(502)
+    const corpo = await r.json()
+    expect(corpo.code).toBe('resposta_invalida')
+    expect(corpo.opcoes).toBeUndefined()
+  })
+
+  it('corpo inválido (sem tgt) → 400, sem provedor', async () => {
+    const r = await s.post('/api/ai/mt/alternativas', { text: 'hello' })
+    expect(r.status).toBe(400)
+    expect(chamadas).toHaveLength(0)
+  })
+})
+
+/* D5 (Fase D): o "polir a sessão". No self-host o plano é o `selfhost`, que tem a Tradução Nuance; as
+   falas vêm do banco, então o caso cria a sessão pela rota de sempre. */
+describe('POST /api/ai/mt/polir — polir a tradução da sessão (D5)', () => {
+  async function sessaoComDuasFalas(): Promise<string> {
+    const r = await s.post('/api/sessions', {
+      title: 'polir',
+      kind: 'live',
+      sourceLang: 'en',
+      targetLang: 'pt',
+      utterances: [
+        { idx: 0, sourceLang: 'en', targetLang: 'pt', sourceText: 'see you', translatedText: 'te vejo' },
+        { idx: 1, sourceLang: 'en', targetLang: 'pt', sourceText: 'good night', translatedText: 'boa noite' },
+      ],
+    })
+    expect(r.status).toBe(200)
+    return (await r.json()).id
+  }
+
+  it('provedor devolve o JSON → 200 com as polidas; pedir de novo não chama o provedor', async () => {
+    const id = await sessaoComDuasFalas()
+    responder = () => completacao('{"linhas":[{"n":1,"traducao":"Até mais"},{"n":2,"traducao":"Boa noite!"}]}')
+    const r = await s.post('/api/ai/mt/polir', { sessionId: id, bloco: 0 })
+    expect(r.status).toBe(200)
+    const corpo = await r.json()
+    expect(corpo).toMatchObject({ bloco: 0, blocos: 1, pendentes: 0, jaPolido: false })
+    expect(corpo.polidas.map((p: { traducaoPolida: string }) => p.traducaoPolida)).toEqual(['Até mais', 'Boa noite!'])
+    expect(chamadas).toHaveLength(1)
+    expect(chamadas[0].body?.max_tokens).toBe(1500)
+
+    const deNovo = await s.post('/api/ai/mt/polir', { sessionId: id, bloco: 0 })
+    expect((await deNovo.json()).jaPolido).toBe(true)
+    expect(chamadas).toHaveLength(1)
+    // A original continua na sessão, com a polida ao lado.
+    const sessao = await (await s.get(`/api/sessions/${id}`)).json()
+    expect(sessao.utterances[0]).toMatchObject({ translatedText: 'te vejo', traducaoPolida: 'Até mais' })
+  })
+
+  it('sessão que não existe → 404, sem provedor', async () => {
+    const r = await s.post('/api/ai/mt/polir', { sessionId: 'nao-existe', bloco: 0 })
+    expect(r.status).toBe(404)
+    expect(chamadas).toHaveLength(0)
+  })
+})
+
+/* E4 (Fase E): a voz natural do intérprete. No self-host o plano é o `selfhost`, que tem a `vozNatural`; a
+   flag `voz_natural` nasce desligada (migração 0046) — e é isso que a rota diz, sem chamar provedor. */
+describe('POST /api/ai/tts — voz natural do intérprete (E4)', () => {
+  it('flag desligada (o padrão da 0046) → 503 voz_natural_desligada, sem provedor', async () => {
+    const r = await s.post('/api/ai/tts', { texto: 'Olá, tudo bem?', idioma: 'pt-BR' })
+    expect(r.status).toBe(503)
+    expect((await r.json()).code).toBe('voz_natural_desligada')
+    expect(chamadas).toHaveLength(0)
+  })
+
+  it('pedido com áudio de referência → 400 clonagem_de_voz_recusada, antes de tudo', async () => {
+    const r = await s.post('/api/ai/tts', { texto: 'Olá', idioma: 'pt', audio_prompt: 'data:audio/wav;base64,AAAA' })
+    expect(r.status).toBe(400)
+    expect((await r.json()).code).toBe('clonagem_de_voz_recusada')
+    expect(chamadas).toHaveLength(0)
+  })
+})
+
+describe('GET /api/ai/stt/available', () => {
+  it('com chave de STT no servidor e plano self-host → 200 { available: true }', async () => {
+    fixar('STT_API_KEY', 'chave-stt-falsa')
+    try {
+      const r = await s.get('/api/ai/stt/available')
+      expect(r.status).toBe(200)
+      expect(await r.clone().json()).toEqual({ available: true })
+      await expect(JSON.stringify(await resposta(r), null, 2)).toMatchFileSnapshot(
+        '__snapshots__/get.api.ai.stt.available.json',
+      )
+    } finally {
+      fixar('STT_API_KEY', undefined) // o `POST /api/ai/stt` sem chave, mais abaixo, precisa dela ausente
+    }
+  })
+
+  /*
+   * MUDOU NO B0 DA FASE B (29/09/2026), de propósito. Este caso respondia 200 só com a chave do LLM
+   * (`LLM_API_KEY` apontando para `llm-falso.local`) — e o `POST /api/ai/stt` do mesmo ambiente,
+   * logo abaixo, responde 501 "STT de nuvem não configurado". Eram duas leituras da configuração, e
+   * a caracterização gravava as duas sem ver que se contradiziam. Agora as duas saem de
+   * `sttGerenciadoDoEnv` (`server/lib/config.ts`): a chave do LLM só vale para o STT quando o LLM é
+   * a Groq, e as duas rotas respondem 501 aqui.
+   */
+  it('só com a chave de um LLM que não é a Groq → 501, o MESMO veredito do POST /api/ai/stt', async () => {
+    const r = await s.get('/api/ai/stt/available')
+    expect(r.status).toBe(501)
+    expect((await r.json()).available).toBe(false)
   })
 })
 

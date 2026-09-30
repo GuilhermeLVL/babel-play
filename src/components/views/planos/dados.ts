@@ -1,25 +1,30 @@
 import {
+  AudioLines,
   Bot,
   Cloud,
   Cpu,
   Download,
-  Gauge,
   HardDrive,
   Languages,
   type LucideIcon,
-  MessageSquareQuote,
-  Mic,
   ShieldCheck,
   Sparkles,
 } from 'lucide-react';
 
-import { armazenamentoEmTexto, horasDeTranscricao, type PlanoDeAssinatura } from '../../../core/planos';
+import {
+  armazenamentoEmTexto,
+  FRANQUIA_DE_ALIVIO,
+  horasDeTranscricao,
+  horasDoUsoJusto,
+  type PlanoDeAssinatura,
+} from '../../../core/planos';
+import { t } from '../../../lib/i18n';
 import { irParaSubTelaDePlanos, navegarPara, type SubTelaDePlanos } from '../../../lib/rotas';
 
 /**
  * OS PLANOS COMO A TELA OS MOSTRA — `PLANOS`, `PLANO_NOME` e `PLANO_ICO` do protótipo aprovado
- * (`docs/prototipos/consistencia-telas.html`), com os números do app: preço da `PLAN_MATRIX`,
- * armazenamento da quota e qualidade medida (`docs/auditoria/eval-producao-v1.md`).
+ * (`docs/prototipos/consistencia-telas.html`), com os números do app: preço da `PLAN_MATRIX`, as
+ * horas e o armazenamento das quotas, as horas de alívio do Grátis da `FRANQUIA_DE_ALIVIO`.
  *
  * Mora fora de `Planos.tsx` porque três telas o leem: os cartões de Planos, o "o que ficou
  * liberado" da confirmação e o "você deixa de ter" do cancelamento.
@@ -27,18 +32,39 @@ import { irParaSubTelaDePlanos, navegarPara, type SubTelaDePlanos } from '../../
  * SÓ O QUE EXISTE (Fase 2 do lançamento, `tests/planos-so-o-que-existe.test.ts`). Saíram três
  * promessas que o app hospedado não cumpria: "Importar do YouTube" (a rota responde 403 fora do
  * self-host), "Nada para baixar" (os modelos locais continuam sendo a reserva quando a nuvem falha
- * ou a cota acaba) e "Download menor" (número não medido com a transcrição de nuvem). O "modelo
- * maior" do Pro também não aparece aqui: ele só existe quando `LLM_MODEL_GRANDE` está definido no
- * servidor, e a tela não sabe disso — volta à vitrine quando o modelo for escolhido e medido.
+ * ou a cota acaba) e "Download menor" (número não medido com a transcrição de nuvem). O que ainda não
+ * chegou — a voz natural do modo intérprete, Fase E — é dito como "em breve", nunca como pronto.
+ *
+ * A TELA NOVA (C7 da change `planos-v2`, ADR 0011): o Grátis é apresentado pelo que ele JÁ tem
+ * ("Tradução rápida ao vivo", o aparelho sem limite e a nuvem de alívio do aparelho fraco) e o Premium
+ * pelo que ele soma ("Tradução Nuance"). Nada de "% de qualidade": vender qualidade pega mal
+ * (decisão do dono), e os números medidos saíram da tela.
+ *
+ * O "SEM LIMITE NO DIA A DIA" LEVA A NOTA AO LADO (Código de Defesa do Consumidor, art. 6º, III, e 31:
+ * a limitação não pode ficar escondida). O item traz a `nota` do uso justo — o dia E o mês, derivados
+ * das quotas —, e toda tela que desenha o item desenha a nota junto (`tests/planos-tela-v2.test.tsx`).
+ *
+ * OS TEXTOS SÃO CHAVES DO i18n (o português), traduzidos no ponto de uso por `textoDoItem`: uma tabela
+ * de módulo traduzida na carga congelaria o idioma de quando o arquivo foi lido.
  */
 
-export type Coluna = 'gratis' | 'essencial' | 'pro';
+export type Coluna = 'gratis' | 'premium';
 
 /** O download dos modelos locais do plano Grátis — o único plano que depende só deles. */
 export const DOWNLOAD_DO_GRATIS = '230–413 MB';
 
-/** "15 h de transcrição de nuvem por mês", derivado da quota. */
-const horas = (plano: PlanoDeAssinatura) => `${horasDeTranscricao(plano) ?? 0} h de transcrição de nuvem por mês`;
+/** As horas de nuvem por mês do Grátis para aparelho fraco (A10), da franquia — nunca à mão. */
+export const horasDoAlivio = (): number => Math.round(FRANQUIA_DE_ALIVIO.sttSegundosMes / 360) / 10;
+
+/** Um item de "o que você tem": ícone, a frase (chave do i18n) e, quando há limite, a nota AO LADO. */
+export interface ItemDoPlano {
+  icone: LucideIcon;
+  texto: string;
+  /** A letra miúda que acompanha o texto onde ele aparecer (o uso justo do "sem limite"). */
+  nota?: string;
+  /** Os números do texto e da nota. */
+  vars?: Record<string, string | number>;
+}
 
 export interface Plano {
   id: Coluna;
@@ -49,9 +75,15 @@ export interface Plano {
   tag: string;
   para: string;
   base: string | null;
-  itens: [LucideIcon, string][];
+  itens: ItemDoPlano[];
   destaque?: boolean;
 }
+
+/** As variáveis do uso justo: o dia e o mês, das quotas do Premium. */
+const USO_JUSTO = (plano: PlanoDeAssinatura) => ({
+  dia: horasDoUsoJusto(plano) ?? 0,
+  mes: horasDeTranscricao(plano) ?? 0,
+});
 
 export const PLANOS: Plano[] = [
   {
@@ -59,51 +91,66 @@ export const PLANOS: Plano[] = [
     chave: 'free',
     icone: Cpu,
     nome: 'Grátis',
-    tag: 'Tudo local, sem custo',
-    para: 'Para estudar no seu computador, sem conta e sem pagar.',
+    tag: 'Tradução rápida ao vivo',
+    para: 'Para ver a legenda bilíngue ao vivo no seu aparelho, sem pagar nada.',
     base: null,
     itens: [
-      [Cpu, 'Tudo roda no seu aparelho'],
-      [ShieldCheck, 'Nada do que você fala sai do computador'],
-      [Download, `Baixa ${DOWNLOAD_DO_GRATIS} de modelos uma vez`],
-      [HardDrive, `${armazenamentoEmTexto('free')} para sessões`],
+      { icone: Languages, texto: 'Tradução rápida ao vivo, no seu aparelho, sem limite' },
+      {
+        icone: Cloud,
+        texto: '{horas} h por mês de nuvem grátis para aparelho fraco',
+        vars: { horas: horasDoAlivio() },
+      },
+      { icone: ShieldCheck, texto: 'Na legenda do aparelho, o que você fala não sai dele' },
+      {
+        icone: Download,
+        texto: 'Os modelos do aparelho ({tamanho}) baixam uma vez',
+        vars: { tamanho: DOWNLOAD_DO_GRATIS },
+      },
+      { icone: HardDrive, texto: '{espaco} para sessões', vars: { espaco: armazenamentoEmTexto('free') } },
     ],
   },
   {
-    id: 'essencial',
-    chave: 'essencial',
+    id: 'premium',
+    chave: 'premium',
     icone: Sparkles,
-    nome: 'Essencial',
-    tag: 'Tradução e transcrição com IA de nuvem',
-    para: 'Para quem quer traduções e transcrições melhores sem trocar de computador.',
+    nome: 'Premium',
+    tag: 'Tradução Nuance',
+    para: 'Para entender o jeito de dizer, não só a palavra.',
     base: 'Grátis',
     itens: [
-      [Languages, 'Tradução com IA de nuvem: 85% de qualidade'],
-      [MessageSquareQuote, 'Expressões idiomáticas: 83%'],
-      [Mic, horas('essencial')],
-      [Bot, 'Tutor de IA (iChat) sobre o seu material'],
-      [HardDrive, `${armazenamentoEmTexto('essencial')} para sessões`],
-    ],
-  },
-  {
-    id: 'pro',
-    chave: 'pro',
-    icone: Cloud,
-    nome: 'Pro',
-    tag: 'Mais horas de IA de nuvem',
-    para: 'Para quem estuda todo dia e transcreve muito.',
-    base: 'Essencial',
-    itens: [
-      [Mic, horas('pro')],
-      [Gauge, 'Limite maior de tradução e tutor de IA'],
-      [HardDrive, `${armazenamentoEmTexto('pro')} para sessões`],
+      {
+        icone: Languages,
+        texto: 'Tradução Nuance: outras formas de dizer, formal ou informal, variantes e glossário',
+      },
+      {
+        icone: Cloud,
+        texto: 'Nuvem sem limite no dia a dia',
+        nota: 'uso justo: até {dia} h de nuvem por dia e {mes} h por mês; passando disso, a legenda segue no aparelho',
+        vars: USO_JUSTO('premium'),
+      },
+      { icone: Bot, texto: 'Tutor de IA (iChat) sobre o seu material' },
+      { icone: AudioLines, texto: 'Voz natural no modo intérprete (em breve)' },
+      { icone: HardDrive, texto: '{espaco} para sessões', vars: { espaco: armazenamentoEmTexto('premium') } },
     ],
     destaque: true,
   },
 ];
 
-export const PLANO_NOME: Record<Coluna, string> = { gratis: 'Grátis', essencial: 'Essencial', pro: 'Pro' };
-export const PLANO_ICO: Record<Coluna, LucideIcon> = { gratis: Cpu, essencial: Sparkles, pro: Cloud };
+/** A frase do item no idioma da tela. */
+export const textoDoItem = (i: ItemDoPlano): string => t(i.texto, i.vars);
+
+/** A nota do item (o uso justo), ou `null`. */
+export const notaDoItem = (i: ItemDoPlano): string | null => (i.nota ? t(i.nota, i.vars) : null);
+
+/** A frase com a nota entre parênteses — para as listas corridas (confirmação, cancelamento). */
+export function itemCompleto(i: ItemDoPlano): string {
+  const nota = notaDoItem(i);
+  return nota ? `${textoDoItem(i)} (${nota})` : textoDoItem(i);
+}
+
+export const PLANO_NOME: Record<Coluna, string> = { gratis: 'Grátis', premium: 'Premium' };
+export const PLANO_ICO: Record<Coluna, LucideIcon> = { gratis: Cpu, premium: Sparkles };
 
 export const planoPorId = (id: Coluna): Plano => PLANOS.find((p) => p.id === id)!;
 

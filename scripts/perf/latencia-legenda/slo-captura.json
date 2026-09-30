@@ -1,0 +1,104 @@
+{
+  "versao": 1,
+  "documento": "openspec/audits/2026-09-29-bancada-captura/relatorio.md",
+  "comentario": "Linha de base da bancada de desempenho da captura (A0). Cada ambiente tem a sua: a base só vale no mesmo tipo de máquina. Os números de cada perfil são a mediana de N rodadas (RTF: p50/p95 das falas somadas). Tolerâncias do ruído medido entre duas execuções seguidas (ver o relatório): frames longos contados e a 1ª legenda (o tique dos parciais a faz saltar ~1,2 s) levam folga absoluta; a base do ci-ubuntu sai do workflow desempenho com gravar_linha_de_base. A 1ª legenda do fraco no local-win32 foi regravada no A6b (a6b-primeira-legenda.md): o parcial único do modo desempenho automático a trouxe de ~5,0 s (o final da frase) para ~2,0 s; a tolerância e a folga ficam, e o teto (2 004 × 1,25 + 1 500 ≈ 4,0 s) reprova a volta aos 5 s.",
+  "metricas": {
+    "framesLongos.n50": {
+      "rotulo": "frames > 50 ms na sessão",
+      "sentido": "menor",
+      "toleranciaPct": 50,
+      "folgaAbs": 5
+    },
+    "framesLongos.n100": {
+      "rotulo": "frames > 100 ms na sessão",
+      "sentido": "menor",
+      "toleranciaPct": 50,
+      "folgaAbs": 3
+    },
+    "framesLongos.somaMs": {
+      "rotulo": "soma dos frames longos (ms)",
+      "sentido": "menor",
+      "toleranciaPct": 50,
+      "folgaAbs": 500
+    },
+    "primeiraLegendaMs": {
+      "rotulo": "início da 1ª fala → 1º texto (ms)",
+      "sentido": "menor",
+      "toleranciaPct": 25,
+      "folgaAbs": 1500
+    },
+    "rtf.p50": {
+      "rotulo": "RTF do STT local, p50",
+      "sentido": "menor",
+      "toleranciaPct": 25,
+      "folgaAbs": 0.02
+    },
+    "rtf.p95": {
+      "rotulo": "RTF do STT local, p95",
+      "sentido": "menor",
+      "toleranciaPct": 35,
+      "folgaAbs": 0.03
+    },
+    "memoriaPicoMb": {
+      "rotulo": "memória de pico do processo da aba (MB)",
+      "sentido": "menor",
+      "toleranciaPct": 15,
+      "folgaAbs": 50
+    },
+    "cpuSilencio.processoPct": {
+      "rotulo": "CPU da aba no silêncio (% de um núcleo)",
+      "sentido": "menor",
+      "toleranciaPct": 40,
+      "folgaAbs": 5
+    },
+    "rendersPorS.silencio": {
+      "rotulo": "renders/s no silêncio",
+      "sentido": "menor",
+      "toleranciaPct": 25,
+      "folgaAbs": 3
+    },
+    "rendersPorS.fala": {
+      "rotulo": "renders/s com fala",
+      "sentido": "menor",
+      "toleranciaPct": 25,
+      "folgaAbs": 10
+    }
+  },
+  "ambientes": {
+    "local-win32": {
+      "descricao": "Windows 11 · AMD Ryzen 5 5600 6-Core Processor · 12 núcleos · 16 GB · Chromium 151.0.7922.34 headless — máquina COMPARTILHADA com outras sessões: referência para quem roda a bancada aqui, não número de produto",
+      "medidoEm": "2026-09-30T01:53:36.417Z",
+      "commit": "bde13bd",
+      "rodadas": {
+        "desktop": 6,
+        "fraco": 6
+      },
+      "perfis": {
+        "desktop": {
+          "framesLongos.n50": 1,
+          "framesLongos.n100": 1,
+          "framesLongos.somaMs": 228,
+          "primeiraLegendaMs": 1227.5,
+          "rtf.p50": 0.096,
+          "rtf.p95": 0.158,
+          "memoriaPicoMb": 1293.5,
+          "cpuSilencio.processoPct": 25.26,
+          "rendersPorS.silencio": 30.96,
+          "rendersPorS.fala": 103.6
+        },
+        "fraco": {
+          "framesLongos.n50": 4,
+          "framesLongos.n100": 2,
+          "framesLongos.somaMs": 1270,
+          "primeiraLegendaMs": 2004,
+          "rtf.p50": 0.11,
+          "rtf.p95": 0.153,
+          "memoriaPicoMb": 1173.5,
+          "cpuSilencio.processoPct": 7.32,
+          "rendersPorS.silencio": 30.55,
+          "rendersPorS.fala": 89.43
+        }
+      }
+    }
+  }
+}

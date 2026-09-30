@@ -34,6 +34,7 @@ import {
   FORMATO_DA_CHAVE,
   partesDaVersao,
   type PlanoDaFlag,
+  planoDaFlag,
   PLANOS_DA_FLAG,
   type RegrasDaFlag,
 } from '../../src/core/flags'
@@ -57,9 +58,20 @@ export const CABECALHO_DA_VERSAO_DO_CLIENTE = 'x-babel-versao'
 
 // ───────────────────────────── schemas ─────────────────────────────
 
+/**
+ * A lista de planos de uma regra, lida com TOLERÂNCIA ao nome antigo (matriz v2, ADR 0011):
+ * `essencial`/`pro` viram `premium` e a repetição some ANTES do teto de tamanho — sem isso,
+ * `["free","essencial","pro"]` viraria `["free","premium","premium"]` e uma regra que só envelheceu
+ * seria recusada como inválida, desligando a flag inteira. Nome desconhecido continua recusado.
+ */
+const planosDaRegra = z.preprocess(
+  (v) => (Array.isArray(v) ? [...new Set(v.map((p) => planoDaFlag(p) ?? p))] : v),
+  z.array(z.enum(PLANOS_DA_FLAG)).max(PLANOS_DA_FLAG.length),
+)
+
 export const regrasSchema = z
   .object({
-    planos: z.array(z.enum(PLANOS_DA_FLAG)).max(PLANOS_DA_FLAG.length).optional(),
+    planos: planosDaRegra.optional(),
     percentual: z.number().int().min(0).max(100).optional(),
     ids: z.array(z.string().trim().min(1).max(128)).max(1000).optional(),
     idiomas: z.array(z.string().regex(FORMATO_DE_IDIOMA)).max(60).optional(),

@@ -18,7 +18,7 @@ afterAll(async () => {
 })
 afterEach(() => {
   delete process.env.AUTH_REQUIRED
-  delete process.env.PRO_MONTHLY_MANAGED_CALLS
+  delete process.env.PREMIUM_MONTHLY_MANAGED_CALLS
 })
 
 describe('usageQuota', () => {
@@ -28,17 +28,17 @@ describe('usageQuota', () => {
        e cada fala ao microfone gasta DUAS chamadas (transcrever + traduzir). 12.000 ≈ 6.000 falas
        ≈ 10 h — o perfil do usuário pesado, ~US$ 0,64/mês ao preço medido. */
     /* Fase 2 do lançamento: 26.000 = 20 h ÷ 6 s × 2 chamadas + folga (conta em src/core/planos.ts). */
-    expect(quota.capForPlan('pro')).toBe(26_000)
-    process.env.PRO_MONTHLY_MANAGED_CALLS = '3'
-    expect(quota.capForPlan('pro')).toBe(3)
+    expect(quota.capForPlan('premium')).toBe(50_000)
+    process.env.PREMIUM_MONTHLY_MANAGED_CALLS = '3'
+    expect(quota.capForPlan('premium')).toBe(3)
     expect(quota.capForPlan('free')).toBe(0)
   })
 
   it('pro abaixo do teto reserva; no teto recusa', async () => {
     process.env.AUTH_REQUIRED = '1'
-    process.env.PRO_MONTHLY_MANAGED_CALLS = '2'
+    process.env.PREMIUM_MONTHLY_MANAGED_CALLS = '2'
     const u = asUserId('q-pro')
-    await subs.upsert(u, { plan: 'pro', status: 'active' })
+    await subs.upsert(u, { plan: 'premium', status: 'active' })
     expect(await quota.reserveManagedCall(u)).toBe(true) // 1/2
     expect(await quota.reserveManagedCall(u)).toBe(true) // 2/2
     expect(await quota.reserveManagedCall(u)).toBe(false) // no teto

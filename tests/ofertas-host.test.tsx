@@ -17,6 +17,7 @@ const estado = vi.hoisted(() => ({
   flag: false,
   config: { gatilhos: [] } as ConfigDeOfertas,
   plano: 'free' as string,
+  pessoa: { protegido: false, podeTestar: false },
   eventos: [] as Array<{ evento: string; gatilho: string; componente: string }>,
 }))
 
@@ -25,7 +26,7 @@ vi.mock('../src/lib/flags', () => ({
   useConfigRemota: () => estado.config,
   ehConfigDeOfertas: () => true,
 }))
-vi.mock('../src/lib/ofertas/plano', () => ({ planoDaOferta: () => estado.plano }))
+vi.mock('../src/lib/ofertas/plano', () => ({ planoDaOferta: () => estado.plano, pessoaDaOferta: () => estado.pessoa }))
 vi.mock('../src/lib/ofertas/cota', () => ({ verificarCota: async () => null }))
 vi.mock('../src/lib/ofertas/instrumentacao', async (original) => {
   const real = await original<typeof import('../src/lib/ofertas/instrumentacao')>()
@@ -46,7 +47,7 @@ const gatilho = (p: Partial<GatilhoDeOferta>): GatilhoDeOferta => ({
   momento: 'conquista',
   componente: 'modal',
   titulo: { pt: 'Você está indo longe' },
-  texto: { pt: 'Com o Essencial a tradução de nuvem vem junto.' },
+  texto: { pt: 'Com o Premium a tradução de nuvem vem junto.' },
   cta: { pt: 'Ver planos' },
   maxPorDia: 1,
   maxPorSemana: 3,
@@ -76,6 +77,7 @@ beforeEach(() => {
   estado.flag = false
   estado.config = { gatilhos: [] }
   estado.plano = 'free'
+  estado.pessoa = { protegido: false, podeTestar: false }
   estado.eventos = []
 })
 afterEach(() => {
@@ -123,7 +125,7 @@ describe('modal (flag ligada)', () => {
     expect(screen.getByRole('button', { name: 'Agora não' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Não mostrar novamente' })).toBeTruthy()
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Ver planos' }))
-    expect(dialogo.textContent).toMatch(/Sugerido: Essencial · R\$ \d/)
+    expect(dialogo.textContent).toMatch(/Sugerido: Premium · R\$ \d/)
   })
 
   it('Esc fecha e conta como dispensa', () => {
@@ -141,7 +143,7 @@ describe('modal (flag ligada)', () => {
   it('clique fora (no fundo) fecha; clique dentro não', () => {
     montar()
     disparar('conquista')
-    fireEvent.click(screen.getByText('Com o Essencial a tradução de nuvem vem junto.'))
+    fireEvent.click(screen.getByText('Com o Premium a tradução de nuvem vem junto.'))
     expect(screen.queryByRole('dialog')).not.toBeNull()
     fireEvent.click(screen.getByRole('dialog'))
     expect(screen.queryByRole('dialog')).toBeNull()
@@ -169,7 +171,7 @@ describe('modal (flag ligada)', () => {
     disparar('conquista')
     fireEvent.click(screen.getByRole('button', { name: 'Ver planos' }))
     expect(aoVerPlanos).toHaveBeenCalledOnce()
-    expect(consumirDestaqueEmPlanos()).toEqual({ plano: 'essencial' })
+    expect(consumirDestaqueEmPlanos()).toEqual({ plano: 'premium' })
     expect(estado.eventos.map((e) => e.evento)).toEqual(['oferta_exibida', 'oferta_clicada'])
   })
 
@@ -248,8 +250,8 @@ describe('banner e convidado', () => {
     expect(estado.eventos.at(-1)).toMatchObject({ evento: 'oferta_dispensada', gatilho: 'funcional_cota_proxima' })
   })
 
-  it('Pro vê o aviso de cota sem venda: a ação leva ao consumo do mês', () => {
-    estado.plano = 'pro'
+  it('Premium vê o aviso de cota sem venda: a ação leva ao consumo do mês', () => {
+    estado.plano = 'premium'
     montar()
     disparar('fim_de_cota')
     expect(screen.getByTestId('cartao-de-oferta').textContent).not.toMatch(/Sugerido/)
@@ -265,5 +267,40 @@ describe('o pedido de conta de fora da árvore (pedirConta)', () => {
     act(() => pedirConta())
     expect(aoEntrar).toHaveBeenCalledTimes(1)
     expect(estado.eventos).toEqual([])
+  })
+})
+
+describe('C8 — o perfil protegido e o teste no host', () => {
+  it('perfil protegido: a promocional não aparece; o aviso funcional aparece sem venda e leva ao consumo', () => {
+    estado.flag = true
+    estado.pessoa = { protegido: true, podeTestar: true }
+    estado.config = {
+      gatilhos: [
+        gatilho({}),
+        gatilho({ id: 'cota_acabou', momento: 'fim_de_cota', texto: { pt: 'Com o Premium você continua.' } }),
+      ],
+    }
+    montar()
+    disparar('conquista')
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(estado.eventos).toEqual([])
+    disparar('fim_de_cota')
+    const aviso = screen.getByTestId('cartao-de-oferta')
+    expect(aviso.textContent).toContain('A IA de nuvem do seu plano acabou neste mês')
+    expect(aviso.textContent).not.toMatch(/Premium você continua|Sugerido/)
+    fireEvent.click(screen.getByRole('button', { name: 'Ver consumo do mês' }))
+    expect(consumirDestaqueEmPlanos()).toEqual({ aba: 'consumo' })
+  })
+
+  it('quem pode testar: o selo sugere o teste sem cartão, e a ação destaca o teste em Planos', () => {
+    estado.flag = true
+    estado.pessoa = { protegido: false, podeTestar: true }
+    estado.config = { gatilhos: [gatilho({})] }
+    montar()
+    disparar('conquista')
+    const dialogo = screen.getByRole('dialog')
+    expect(dialogo.textContent).toMatch(/Sugerido: 14 dias de Premium grátis, sem cartão/)
+    fireEvent.click(screen.getByRole('button', { name: 'Ver planos' }))
+    expect(consumirDestaqueEmPlanos()).toEqual({ plano: 'teste' })
   })
 })

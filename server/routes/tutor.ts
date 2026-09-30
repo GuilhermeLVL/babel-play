@@ -23,7 +23,9 @@ import { planoDeAdmissao, responderNuvemOcupada } from '../ai/admissao'
 import { type AdmissaoDaCascata, admitirCascata, encerrarAdmissao, percorrerCascata } from '../ai/cascata'
 import { chamarChat, type MensagemDeChat, tamanhoDoPrompt } from '../ai/llmClient'
 import { prepareLlmRequest } from '../ai/llmRequest'
-import { cascataDeNuvem, llmLocal } from '../ai/provedores'
+import { cascataDoPlano } from '../ai/niveis'
+import { aplicarPoliticaDeCusto } from '../ai/politicaDeCusto'
+import { llmLocal } from '../ai/provedores'
 import { abrirReservaDeLlm, type ReservaDeLlm } from '../ai/reservaDeNuvem'
 import { abrirRastro, nomeDoProvedor, type RastroDeIa, statusDaTentativa } from '../ai/telemetriaDeIa'
 import { authRequired } from '../lib/auth'
@@ -32,7 +34,7 @@ import { getEntitlements } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
 import { ehMenor, INSTRUCAO_DE_SEGURANCA_PARA_MENORES } from '../lib/idade'
 import { log } from '../lib/logger'
-import { custoDeLlm, portaoDaNuvem, registrarGastoDeIa, responderPortaoFechado } from '../lib/orcamentoDeIa'
+import { type Portao, portaoDaNuvem, registrarGastoDeIa, responderPortaoFechado } from '../lib/orcamentoDeIa'
 import { estimarTokens } from '../lib/usageQuota'
 
 export const tutorRouter = Router()
@@ -107,19 +109,34 @@ async function conversar(req: Request, res: Response, rastro: RastroDeIa): Promi
     const plano = getEntitlements(gratuita.plano)
 
     if (plano.managedCloudLlm) {
-      const provedores = cascataDeNuvem({ modelosGrandes: plano.largerModels })
+      /* B1: com `IA_PROVEDORES`, o tutor (e o corretor) têm os modelos DELES; no legado, a mesma cascata.
+         B3: o modelo sai do NÍVEL do plano (`niveis.ts`) — a nuance para quem tem `traducaoNuance`. */
+      const { nivel, pernas: provedores } = cascataDoPlano(prep.funcao, plano)
+      rastro.anotar({ nivel })
       // Chave de emergência e orçamento global: fechado, o hospedado explica; o self-host cai no Ollama.
-      const portao = provedores.length > 0 ? await portaoDaNuvem() : { ok: false }
+      const portao: Portao = provedores.length > 0 ? await portaoDaNuvem() : { ok: false }
       if (provedores.length > 0 && !portao.ok && !selfHost) {
         responderPortaoFechado(res, portao)
         return
       }
       const estimativa = estimarTokens(tamanhoDoPrompt(prep.messages), prep.maxTokens)
+      /* B4: a política de custo — o degrau mais barato primeiro a 70% (pagante, balde baixo) e a 90%
+         (todos), com a saída dos modelos sem raciocínio a 75% (`politicaDeCusto.ts`). */
+      const custo = aplicarPoliticaDeCusto({
+        pernas: provedores,
+        nivel,
+        fracaoDoOrcamento: portao.fracaoDoOrcamento ?? 0,
+        tokensEntrada: estimativa - prep.maxTokens,
+        tokensSaida: prep.maxTokens,
+      })
+      if (custo.degradacao !== 'nenhuma') rastro.anotar({ degradacao: custo.degradacao })
       /* ADMISSÃO antes da cota: sem saldo, o hospedado responde 429 `nuvem_ocupada` (o cliente
-         tenta de novo depois do `Retry-After`); o self-host cai no Ollama, como com o portão fechado. */
+         tenta de novo depois do `Retry-After`); o self-host cai no Ollama, como com o portão fechado.
+         O teste de 14 dias (C6) tem o Premium nos entitlements, mas entra na faixa grátis. */
+      const faixa = planoDeAdmissao(plano.plan, false, gratuita.teste === true)
       const admitida =
         provedores.length > 0 && portao.ok
-          ? admitirCascata(provedores, { userId: req.userId, plano: planoDeAdmissao(plano.plan), tokens: estimativa })
+          ? admitirCascata(custo.pernas, { userId: req.userId, plano: faixa, tokens: estimativa })
           : null
       if (admitida && admitida.ok === false && !selfHost) {
         responderNuvemOcupada(res, admitida.recusa)
@@ -130,7 +147,7 @@ async function conversar(req: Request, res: Response, rastro: RastroDeIa): Promi
         reserva = await abrirReservaDeLlm(req.userId, estimativa, res)
         if (!reserva) return // já respondeu: 402 de cota ou 503 do contador
         const { entregue, ultimaFalha } = await percorrerCascata(
-          provedores,
+          custo.pernas,
           {
             messages: prep.messages,
             temperature: prep.temperature,
@@ -144,11 +161,13 @@ async function conversar(req: Request, res: Response, rastro: RastroDeIa): Promi
             funcao: prep.funcao,
             rastro,
             admissao,
+            fatorDeSaida: custo.fatorDeSaida,
           },
         )
         if (entregue) {
           await reserva.consumir(entregue.tokensEntrada + entregue.tokensSaida)
-          const custo = custoDeLlm(entregue.model, entregue.tokensEntrada, entregue.tokensSaida)
+          /* B2: o custo de quem respondeu, pelo preço dele e com o cache — calculado na cascata. */
+          const custo = entregue.custoUsd
           await registrarGastoDeIa(custo, { userId: req.userId, plano: plano.plan })
           await gratuita.registrarCusto(custo)
           respondeuDaNuvem = true

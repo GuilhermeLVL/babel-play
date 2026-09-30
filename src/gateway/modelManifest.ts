@@ -101,10 +101,18 @@ export type SituacaoDaVersao = 'atual' | 'desatualizado' | 'sem-copia' | 'sem-re
  * Com a revisão guardada no download, compara o commit. Em cópias antigas (sem revisão), a
  * pergunta vira "o repositório mudou DEPOIS que este navegador baixou?" — a data da última
  * mudança contra a data da gravação. As duas são fatos; nenhuma é palpite.
+ *
+ * `revisaoFixa`: o modelo NÃO vem do Hub (o Bergamot: a execução de treino é fixada no código,
+ * `adapters/modelosDoBergamot.json`). A versão certa é a que o código pede; compara sem rede.
  */
-export async function situacaoDaVersao(modelId: string, buscar: Buscar = fetch): Promise<SituacaoDaVersao> {
+export async function situacaoDaVersao(
+  modelId: string,
+  buscar: Buscar = fetch,
+  revisaoFixa?: string | null,
+): Promise<SituacaoDaVersao> {
   const m = manifestoMaisNovo(modelId);
   if (!m) return 'sem-copia';
+  if (revisaoFixa) return m.revisao === revisaoFixa ? 'atual' : 'desatualizado';
   const pub = await consultarRevisao(modelId, buscar);
   if (!pub) return 'sem-rede';
   if (m.revisao) return m.revisao === pub.sha ? 'atual' : 'desatualizado';

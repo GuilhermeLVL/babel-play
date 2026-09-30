@@ -15,7 +15,12 @@ import {
   palavrasPremiadas,
   sequencias,
 } from '../../../src/core/learning/economia'
-import { type BaldeDeXp, type HistoricoDeXp, historicoDeXp, type LinhasDoHistorico } from '../../../src/core/learning/historicoDeXp'
+import {
+  type BaldeDeXp,
+  type HistoricoDeXp,
+  historicoDeXp,
+  type LinhasDoHistorico,
+} from '../../../src/core/learning/historicoDeXp'
 import { retrievability } from '../../../src/core/learning/scheduler'
 import { economiaDeMetricas, sessaoRendeXp } from '../../../src/core/learning/xp'
 import { ehRodadaPerfeita } from '../../../src/core/minigames/grade'
@@ -28,6 +33,7 @@ import { exerciseResults, reviewLogs, sessions, vocabCards } from '../schema'
 import { economiaRepo } from './economia'
 import { estadoDaContaRepo } from './estadoDaConta'
 import { seedSpendsRepo } from './seedSpends'
+import { ORIGEM_DA_DEMONSTRACAO } from './sessions'
 import { versoesRepo } from './versoes'
 
 // M-06: `AppMetrics` agora vem do contrato único em src/core/learning/contract.ts (era duplicado
@@ -58,13 +64,15 @@ async function lerAtividade(userId: UserId) {
      linha (ver `server/db/leituraCompacta.ts`; ~2,5x menos CPU na leitura). */
   const [sessTodas, cardsTodos, logs, uttsTodas, drills] = await Promise.all([
     /* `source_lang`: uma coluna a mais na varredura que já acontecia — é o que a conquista
-       "Poliglota" precisava, e ela nunca disparava na conta logada por falta deste dado. */
+       "Poliglota" precisava, e ela nunca disparava na conta logada por falta deste dado.
+       `origem_local_id`: é onde a sessão de demonstração leva a marca (`ORIGEM_DA_DEMONSTRACAO`). */
     lerCompacto<{
       id: string
       createdAt: number
       wordCount: number | null
       durationMs: number | null
       sourceLang: string | null
+      origemLocalId: string | null
     }>(
       [
         ['id', 'id', 'texto'],
@@ -72,6 +80,7 @@ async function lerAtividade(userId: UserId) {
         ['wordCount', 'word_count'],
         ['durationMs', 'duration_ms'],
         ['sourceLang', 'source_lang', 'texto'],
+        ['origemLocalId', 'origem_local_id', 'texto'],
       ],
       { tabela: 'sessions', onde: sql`user_id = ${userId} AND deleted_at IS NULL` },
     ),
@@ -188,8 +197,20 @@ function resumirAtividade(linhas: LinhasDaAtividade, sessionId: string | null, f
   const logsNoEscopo = sessionId ? logs.filter((l) => idsDeCartao.has(l.cardId)) : logs
   const drillsNoEscopo = sessionId ? drills.filter((d) => (d.origem ?? '') === `sessao:${sessionId}`) : drills
 
+  /* A SESSÃO DE DEMONSTRAÇÃO (`server/db/seed.ts`) mora na biblioteca para o app não abrir vazio,
+     mas não é captura da pessoa. Contada, ela cumpria a "Primeira captura" (`sessions >= 1`) no
+     banco recém-criado e punha o inglês dela na conta da "Poliglota". Na CONTA, fica fora de tudo
+     o que mede o que a pessoa gravou (sessões, idiomas, palavras e minutos transcritos, tempo de
+     fala); dentro dela mesma (`?sessao=<id>`) os números são os dela. As palavras que a pessoa
+     fichar DELA continuam valendo (`sessoesComPalavraSalva`, caderno): fichar é ação da pessoa. */
+  const daDemonstracao = new Set(
+    sessionId ? [] : sessTodas.filter((s) => s.origemLocalId === ORIGEM_DA_DEMONSTRACAO).map((s) => s.id),
+  )
+  const capturadas = daDemonstracao.size ? sess.filter((s) => !daDemonstracao.has(s.id)) : sess
+  const falasCapturadas = daDemonstracao.size ? utts.filter((u) => !daDemonstracao.has(u.sessionId)) : utts
+
   const inDeck = cards.filter((c) => c.inDeck !== 0)
-  const wordsCaptured = sess.reduce((n, s) => n + (s.wordCount ?? 0), 0)
+  const wordsCaptured = capturadas.reduce((n, s) => n + (s.wordCount ?? 0), 0)
   /* SÓ SESSÃO COM PALAVRA SALVA RENDE XP (revisão de 27/09, `sessaoRendeXp` no core). */
   const salvasPorSessao = new Map<string, number>()
   for (const c of inDeck) if (c.sessionId) salvasPorSessao.set(c.sessionId, (salvasPorSessao.get(c.sessionId) ?? 0) + 1)
@@ -205,7 +226,7 @@ function resumirAtividade(linhas: LinhasDaAtividade, sessionId: string | null, f
   let speakingMs = 0
   let listeningMs = 0
   let timedWords = 0
-  for (const u of utts) {
+  for (const u of falasCapturadas) {
     const a = u.tStartMs,
       b = u.tEndMs
     if (a == null || b == null || b <= a) continue
@@ -327,7 +348,7 @@ function resumirAtividade(linhas: LinhasDaAtividade, sessionId: string | null, f
      estatística. Desde as recompensas v2 (27/09) minuto gravado NÃO paga Seeds nem XP: premiar
      tempo é o que o Decreto 12.880/2026, art. 9º, chama de incentivo compulsivo. */
   let capturaMinutos = 0
-  for (const x of sess) {
+  for (const x of capturadas) {
     const min = (x.durationMs ?? 0) / 60_000
     if (min > 0) capturaMinutos += min
   }
@@ -364,7 +385,7 @@ function resumirAtividade(linhas: LinhasDaAtividade, sessionId: string | null, f
   /* Idiomas distintos das sessões — a conquista "Poliglota". Mesma conta do modo sem conta
      (`src/data/efemero/servidor.ts`): `sourceLang` não nulo, contado uma vez. `sess` já está
      escopado, então dentro de uma sessão o número é 1, que é a resposta certa. */
-  const idiomas = new Set(sess.map((x) => x.sourceLang).filter((l): l is string => !!l)).size
+  const idiomas = new Set(capturadas.map((x) => x.sourceLang).filter((l): l is string => !!l)).size
 
   /* Rodada perfeita = todos os itens certos E tamanho ≥ mínimo do jogo. Sem o piso, uma rodada de
      um item só viraria fábrica de "perfeitas" — e cada uma vale 5 Seeds e 15 XP. */
@@ -391,7 +412,7 @@ function resumirAtividade(linhas: LinhasDaAtividade, sessionId: string | null, f
     .sort((a, b) => a.weekStart - b.weekStart)
 
   return {
-    sessions: sess.length,
+    sessions: capturadas.length,
     sessoesComPalavraSalva,
     wordsCaptured,
     deckSize: inDeck.length,

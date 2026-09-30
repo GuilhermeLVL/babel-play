@@ -1,5 +1,7 @@
 import { ChamadaCancelada, MotorAindaCarregando } from '@core';
 
+import { distribuirThreads } from '../../lib/dispositivo/orcamentoDeThreads';
+import { perfilDoDispositivo } from '../../lib/dispositivo/perfil';
 import type { MtOptions, MtResult, TranslationProvider } from '../capabilities';
 import { gravarManifesto, MENSAGEM_DO_MANIFESTO } from '../modelManifest';
 
@@ -31,6 +33,12 @@ export class OpusMtLocal implements TranslationProvider {
   private onProgress: ((p: number, label?: string, bytes?: { loaded: number; total: number }) => void) | null = null;
   private prontidao = new Set<(modelo: string) => void>();
   private falhasDeCarga = new Set<(modelo: string) => void>();
+  /**
+   * A parte do tradutor no ORÇAMENTO GLOBAL de threads (`orcamentoDeThreads.ts`): 2 com 8 núcleos ou
+   * mais, senão 1. Vai em todo `preload`/`translate`; o worker aplica a primeira (antes da 1ª sessão).
+   * Sem isto o worker ficava no padrão do ORT, 4 num desktop de 8 núcleos, somadas às do Whisper.
+   */
+  private threads = 1;
 
   private readonly ROMANCE = new Set(['pt', 'es', 'fr', 'it', 'ro', 'ca', 'gl']);
   private readonly DEDICADOS = new Set(['es', 'fr', 'it', 'de']);
@@ -88,6 +96,12 @@ export class OpusMtLocal implements TranslationProvider {
 
   private ensureWorker(): void {
     if (this.worker) return;
+    const perfil = perfilDoDispositivo();
+    this.threads = distribuirThreads({
+      nucleos: perfil.sinais.nucleos,
+      isolado: perfil.sinais.isolado,
+      leve: perfil.leve,
+    }).mt;
     this.worker = new Worker(new URL('./mtWorker.ts', import.meta.url), { type: 'module' });
     this.worker.onmessage = (msg: MessageEvent) => {
       const { type, id, text, message, model, progress, label, loaded, total } = msg.data;
@@ -129,6 +143,13 @@ export class OpusMtLocal implements TranslationProvider {
         }
         return;
       }
+      if (type === 'descarregado') {
+        /* O worker guarda só os DOIS tradutores mais recentes (`lruDePipes.ts`) e descartou este. Sem
+           esquecer o "pronto", a próxima tradução iria ao worker e esperaria o download de novo na
+           fila; assim ela pede a carga e cai na cascata até o `ready`, como na primeira vez. */
+        this.ready.delete(model);
+        return;
+      }
       const p = this.pending.get(id);
       if (!p) return;
       this.pending.delete(id);
@@ -164,7 +185,7 @@ export class OpusMtLocal implements TranslationProvider {
     }
     if (this.loading.has(model)) return;
     this.loading.add(model);
-    this.worker!.postMessage({ type: 'preload', src, tgt });
+    this.worker!.postMessage({ type: 'preload', src, tgt, threads: this.threads });
   }
 
   async translate(text: string, src: string | null, tgt: string, opts?: MtOptions): Promise<MtResult> {
@@ -184,7 +205,7 @@ export class OpusMtLocal implements TranslationProvider {
     if (!this.ready.has(model)) {
       if (!this.loading.has(model)) {
         this.loading.add(model);
-        this.worker!.postMessage({ type: 'preload', src, tgt });
+        this.worker!.postMessage({ type: 'preload', src, tgt, threads: this.threads });
       }
       throw new MotorAindaCarregando(this.id, 'opus-mt ainda carregando (usando fallback)');
     }
@@ -201,6 +222,7 @@ export class OpusMtLocal implements TranslationProvider {
         src,
         tgt,
         prioridade: opts?.parcial ? 'parcial' : 'final',
+        threads: this.threads,
       });
     });
     if (!translated) throw new Error('opus-mt devolveu vazio');

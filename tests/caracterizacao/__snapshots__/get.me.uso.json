@@ -1,10 +1,24 @@
 {
   "status": 200,
   "forma": {
+    "alivio": {
+      "disponivel": "boolean",
+      "motivo": "string",
+      "restanteSegundos": "number",
+      "segundosDeAudio": {
+        "teto": "number",
+        "usado": "number"
+      },
+      "tokensDeLlm": {
+        "teto": "number",
+        "usado": "number"
+      }
+    },
     "chamadas": {
       "teto": "number",
       "usado": "number"
     },
+    "hoje": "null",
     "iaDeNuvem": {
       "disponivel": "boolean",
       "mensagem": "null",

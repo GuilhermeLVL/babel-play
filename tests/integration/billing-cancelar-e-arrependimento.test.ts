@@ -124,7 +124,8 @@ describe('POST /api/billing/cancelar — depois dos 7 dias', () => {
     expect(dataIso(sub.currentPeriodEnd - 3 * 3_600_000)).toBe(dataIso(fim))
     expect(res.body.valeAte).toBe(sub.currentPeriodEnd)
     // E o acesso CONTINUA: cancelado com período pago no futuro ainda concede o plano.
-    expect(await ent.getPlanForUser(asUserId('u-cx-velho'))).toBe('pro')
+    // A linha é de antes da matriz v2 (`pro`): lida como Premium.
+    expect(await ent.getPlanForUser(asUserId('u-cx-velho'))).toBe('premium')
   })
 })
 

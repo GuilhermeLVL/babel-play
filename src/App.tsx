@@ -41,13 +41,17 @@ const DesafioSegundoFator = lazyComRecarga(() => import('./components/auth/Desaf
 const Onboarding = lazyComRecarga(() => import('./components/Onboarding'));
 // Fase 4: o aceite do responsável só existe para quem abriu o link do convite.
 const AceiteDoResponsavel = lazyComRecarga(() => import('./components/conta/AceiteDoResponsavel'));
+// O aviso de pagamento atrasado só existe para quem tem conta: carregado junto, levava o módulo
+// inteiro da assinatura para o JS de arranque de todo mundo (orçamento do bundle, 30/09/2026).
+const AvisoDePagamentoAtrasado = lazyComRecarga(() => import('./components/conta/AvisoDePagamentoAtrasado'));
+// Pelo mesmo motivo: o aviso do responsável só existe para perfil protegido, e a migração só abre
+// quando há dados no aparelho para subir depois de um login.
+const AvisoDoResponsavel = lazyComRecarga(() => import('./components/conta/AvisoDoResponsavel'));
+const ModalDeMigracao = lazyComRecarga(() => import('./components/conta/ModalDeMigracao'));
 import BuscaGlobal from './components/BuscaGlobal';
-import AvisoDePagamentoAtrasado from './components/conta/AvisoDePagamentoAtrasado';
-import AvisoDoResponsavel from './components/conta/AvisoDoResponsavel';
 import CartaoDeConvite from './components/conta/CartaoDeConvite';
 import { aceitarAnonimo, exigeConta, porta } from './components/conta/exigeConta';
 import GateDeConta from './components/conta/GateDeConta';
-import ModalDeMigracao from './components/conta/ModalDeMigracao';
 import PerguntaDeIdade from './components/conta/PerguntaDeIdade';
 import FloatingScoreLayer from './components/FloatingScoreLayer';
 import IndicadorDeSalvamento from './components/IndicadorDeSalvamento';
@@ -74,6 +78,7 @@ import { useRecompensas } from './lib/estado/useRecompensas';
 import { useSessaoSupabase } from './lib/estado/useSessaoSupabase';
 import { tirarDaFila } from './lib/filaDeRecompensas';
 import { equiparItem } from './lib/galeria/equipar';
+import { t } from './lib/i18n';
 import { useIdiomaDaInterfaceEscolhido } from './lib/langConfig';
 import { dispararOferta } from './lib/ofertas/eventos';
 import {
@@ -295,14 +300,16 @@ export default function App() {
   if (authRequired && processingCallback) {
     return (
       <div className="flex h-tela w-full items-center justify-center bg-canvas text-ink-muted text-sm">
-        Concluindo login…
+        {t('Concluindo login…')}
       </div>
     );
   }
   // Marco 1: porta de login. Só no modo público (authRequired); no local é pulada inteira.
   if (authRequired && session === undefined) {
     return (
-      <div className="flex h-tela w-full items-center justify-center bg-canvas text-ink-muted text-sm">Carregando…</div>
+      <div className="flex h-tela w-full items-center justify-center bg-canvas text-ink-muted text-sm">
+        {t('Carregando…')}
+      </div>
     );
   }
   if (authRequired && recovery) {
@@ -310,7 +317,7 @@ export default function App() {
       <Suspense
         fallback={
           <div className="flex h-tela w-full items-center justify-center bg-canvas text-ink-muted text-sm">
-            Carregando…
+            {t('Carregando…')}
           </div>
         }
       >
@@ -326,7 +333,7 @@ export default function App() {
       <Suspense
         fallback={
           <div className="flex h-tela w-full items-center justify-center bg-canvas text-ink-muted text-sm">
-            Carregando…
+            {t('Carregando…')}
           </div>
         }
       >
@@ -340,7 +347,7 @@ export default function App() {
       <Suspense
         fallback={
           <div className="flex h-tela w-full items-center justify-center bg-canvas text-ink-muted text-sm">
-            Carregando…
+            {t('Carregando…')}
           </div>
         }
       >
@@ -501,9 +508,17 @@ export default function App() {
           {/* O salvamento da captura continua fora da tela: o selo diz isso a quem saiu dela. */}
           <IndicadorDeSalvamento naCaptura={activeView === 'capture'} aoVerCaptura={() => navigateTo('capture')} />
           <LayoutEditorToolbar />
-          {protecao?.restrita && activeView === 'hub' && <AvisoDoResponsavel estado={protecao} />}
+          {protecao?.restrita && activeView === 'hub' && (
+            <Suspense fallback={null}>
+              <AvisoDoResponsavel estado={protecao} />
+            </Suspense>
+          )}
           {/* A assinatura com pagamento atrasado (past_due), em qualquer tela menos Planos, onde já está. */}
-          {activeView !== 'planos' && <AvisoDePagamentoAtrasado />}
+          {activeView !== 'planos' && !anonimo && !edicaoEstatica() && (
+            <Suspense fallback={null}>
+              <AvisoDePagamentoAtrasado />
+            </Suspense>
+          )}
           <Suspense
             fallback={<div className="flex-1 flex items-center justify-center text-ink-muted text-sm">Carregando…</div>}
           >
@@ -687,16 +702,20 @@ export default function App() {
             setPedindoLogin(true);
           }}
         />
-        <ModalDeMigracao
-          aberto={migracao}
-          onFechar={() => setMigracao(false)}
-          onMigrou={() => {
-            fetchSessions()
-              .then(setRecordings)
-              .catch(() => {});
-            void carregarEntitlements();
-          }}
-        />
+        {migracao && (
+          <Suspense fallback={null}>
+            <ModalDeMigracao
+              aberto={migracao}
+              onFechar={() => setMigracao(false)}
+              onMigrou={() => {
+                fetchSessions()
+                  .then(setRecordings)
+                  .catch(() => {});
+                void carregarEntitlements();
+              }}
+            />
+          </Suspense>
+        )}
 
         <PracticeMenu onChangeView={navigateTo} sessionId={selectedRecording?.id} />
 

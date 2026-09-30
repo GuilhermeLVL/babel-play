@@ -12,7 +12,7 @@
  *   M1 `dicionario` — toque numa palavra solta: glosa/dicionário é melhor que MT para palavra isolada;
  *   M2 `memoria`    — memória de tradução (exata/aproximada) — consulta barata, erra rápido;
  *   M3 `nativo`     — Translator API do navegador (no aparelho, sem download nosso);
- *   M4 `local`      — nosso modelo no aparelho (opus-mt; Bergamot quando existir);
+ *   M4 `local`      — nosso modelo no aparelho (Bergamot no pt→en, opus-mt no resto e de reserva);
  *   M5 `nuvem`      — LLM do nosso servidor: SÓ texto final, SÓ para quem tem direito, SÓ com consentimento;
  *   +  `terceiro`   — MyMemory, direto do navegador: último recurso, também só final e com consentimento.
  *
@@ -56,7 +56,10 @@ export interface DisponibilidadeMt {
   tradutorNativo: boolean;
   /** opus-mt cobre o par (ver `dirConfig` em `mtWorker.ts`). */
   opusMt: boolean;
-  /** Bergamot cobre o par — candidato, ainda sem adaptador. */
+  /**
+   * Bergamot oferecido neste aparelho: modelo no build, WASM que abre, sem falha anterior (ver
+   * `gateway/adapters/bergamotModelo.ts`). O PAR quem decide é a escada: só pt→en, pela bancada.
+   */
   bergamot?: boolean;
   /** O servidor tem tradutor de nuvem configurado e o disjuntor está fechado. */
   nuvem: boolean;
@@ -79,7 +82,7 @@ export interface EntradaDaRotaMt {
   ehToqueEmPalavra: boolean;
   /** Texto provisório (parcial do STT), que será refeito em ~1 s. */
   parcial: boolean;
-  /** Plano pago (Essencial/Pro/self-host). */
+  /** Plano pago (Premium/self-host). */
   pago: boolean;
   /** Grátis/convidado com cota de nuvem disponível (a cota é decidida no servidor; aqui é só o sinal). */
   cotaDeConvidado?: boolean;
@@ -110,6 +113,11 @@ export interface RotaMt {
 }
 
 const idiomaBase = (l: string): string => l.toLowerCase().split('-')[0];
+
+/** O único par em que o Bergamot entra (bancada Etapa 5): português → inglês. */
+export function bergamotVenceNoPar(origem: string, destino: string): boolean {
+  return idiomaBase(origem) === 'pt' && idiomaBase(destino) === 'en';
+}
 
 export function routeMt(e: EntradaDaRotaMt): RotaMt {
   const descartados: RotaMt['descartados'] = [];
@@ -160,11 +168,15 @@ export function routeMt(e: EntradaDaRotaMt): RotaMt {
   if (d.tradutorNativo) degraus.push({ degrau: 'nativo', motor: 'chrome-translator', motivo: 'no-aparelho' });
   else descartados.push({ degrau: 'nativo', motivo: 'indisponivel' });
 
-  /* M4 — nosso modelo local. opus-mt antes do Bergamot: o opus-mt está medido na bancada (COMET 0,847
-     no gold); o Bergamot é candidato (36 MB contra 113 MB) e troca de lugar quando ganhar lá. */
+  /* M4 — nosso modelo local. A bancada da Etapa 5 (`docs/auditoria/eval/bancada-2026-09-etapa5.md`)
+     decidiu por par, não por motor: no pt→en o Bergamot ganhou (COMET +0,028 com IC que exclui 0,
+     ~10× mais rápido, 31 MB contra 113 MB) e vai PRIMEIRO, com o opus-mt de reserva; no en→pt ele
+     escreve português europeu e o gold de conversa piora, então ali o Bergamot não entra — mesmo
+     que o chamador o diga disponível. */
   const locais: PassoDaRotaMt[] = [];
+  if (d.bergamot && bergamotVenceNoPar(e.origem, e.destino))
+    locais.push({ degrau: 'local', motor: 'bergamot-local', motivo: 'no-aparelho' });
   if (d.opusMt) locais.push({ degrau: 'local', motor: 'opus-mt-local', motivo: 'no-aparelho' });
-  if (d.bergamot) locais.push({ degrau: 'local', motor: 'bergamot', motivo: 'no-aparelho' });
   if (locais.length) degraus.push(...locais);
   else descartados.push({ degrau: 'local', motivo: 'indisponivel' });
 

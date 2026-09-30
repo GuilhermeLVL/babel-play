@@ -23,7 +23,7 @@
 <main>
   <p class="kicker">Babel Play</p>
   <h1>Política de Privacidade</h1>
-  <p class="muted"><strong>Versão para revisão jurídica</strong> — 25 de setembro de 2026.</p>
+  <p class="muted"><strong>Versão para revisão jurídica</strong> — 30 de setembro de 2026.</p>
 
   <p>O Babel Play foi desenhado para processar o máximo possível <strong>no seu próprio
   navegador</strong>. Ainda assim, algumas funções usam serviços de nuvem — de tradução, de
@@ -76,12 +76,12 @@
       <strong>Edge</strong>, à <strong>Microsoft</strong> —, sob os termos e a política de privacidade
       desse fabricante, e não sob o nosso controle. Nós não recebemos esse áudio. Se preferir que a
       voz não vá a eles, o app oferece alternativas: a transcrição <strong>local</strong>, que roda no
-      seu dispositivo, e a transcrição na <strong>nossa nuvem</strong> (planos pagos), descrita
-      abaixo.</li>
+      seu dispositivo, e a transcrição na <strong>nossa nuvem</strong> (Premium, o teste de 14 dias e a
+      nuvem do Grátis para aparelho fraco), descrita abaixo.</li>
     <li><strong>Tradução rápida (MyMemory)</strong>: quando essa engine é usada, o <strong>texto a
       traduzir é enviado ao serviço MyMemory</strong> (terceiro).</li>
-    <li><strong>IA de nuvem (transcrição/tradução gerenciadas e o tutor iChat)</strong>: nos planos
-      pagos e no tutor, os trechos enviados são processados por provedores de inferência contratados
+    <li><strong>IA de nuvem (transcrição/tradução gerenciadas e o tutor iChat)</strong>: no Premium
+      (e no teste de 14 dias), na nuvem do Grátis para aparelho fraco e no tutor, os trechos enviados são processados por provedores de inferência contratados
       por nós — hoje <strong>Groq</strong> (transcrição, tradução e tutor) e, como reserva quando ele falha,
       a <strong>OpenRouter</strong> com retenção zero — apenas para gerar a resposta daquela chamada. O provedor em uso aparece no selo de
       procedência dentro do app.</li>
@@ -92,9 +92,12 @@
   <h2>O que vai para o nosso servidor (com conta)</h2>
   <table>
     <tr><th>Plano</th><th>Áudio (voz) para tradução/transcrição na nuvem</th><th>Texto transcrito</th></tr>
-    <tr><td>Grátis</td><td>não usa nossa IA de nuvem (mas veja Web Speech acima)</td><td>—</td></tr>
-    <tr><td>Essencial</td><td>não</td><td>enviado para tradução na nuvem</td></tr>
-    <tr><td>Pro</td><td>enviado para transcrição na nuvem</td><td>enviado para tradução na nuvem</td></tr>
+    <tr><td>Grátis</td><td>não usa nossa IA de nuvem (mas veja Web Speech acima) — exceto a nuvem para
+      aparelho fraco (até 3 h por mês), <strong>só quando você a liga</strong>: aí o áudio vai para
+      transcrição na nuvem</td><td>com a nuvem para aparelho fraco ligada, enviado para tradução na
+      nuvem; senão, —</td></tr>
+    <tr><td>Premium (e o teste de 14 dias)</td><td>enviado para transcrição na nuvem</td><td>enviado
+      para tradução na nuvem</td></tr>
   </table>
   <p class="muted">Com conta, as sessões que você <strong>salva</strong> — incluindo o
   <strong>áudio gravado da sessão</strong>, as transcrições, o vocabulário e o progresso — ficam no
@@ -112,7 +115,20 @@
       histórico de revisão e resultados de exercícios.</li>
     <li><strong>Pagamento</strong>: usamos o <strong>Asaas</strong>. Seu nome e CPF vão
       <strong>direto ao Asaas</strong> no ato da assinatura e <strong>não guardamos o CPF</strong>;
-      guardamos os identificadores da assinatura e o registro dos eventos de cobrança.</li>
+      guardamos os identificadores da assinatura (ou do parcelamento em 12x) e o registro dos eventos
+      de cobrança.</li>
+    <li><strong>Teste de 14 dias do Premium</strong>: o teste não pede cartão e nunca cobra nada. Na
+      sua conta guardamos quando ele começou e quando termina. Para que o teste seja
+      <strong>um por pessoa</strong> — e não recomece quando alguém apaga a conta e cria outra —,
+      guardamos também uma <strong>marca</strong>: um código calculado a partir do seu e-mail com uma
+      chave secreta que fica no nosso servidor (<em>HMAC</em>). Antes do cálculo, o e-mail é
+      normalizado (maiúsculas e minúsculas, o <code>+etiqueta</code> e os pontos de um endereço do Gmail
+      não mudam a marca), para que variações do mesmo endereço contem como a mesma pessoa. A marca
+      <strong>não é o e-mail</strong>,
+      não permite recuperá-lo sem essa chave e não fica ligada à sua conta. Quando o responsável ativa
+      o teste para a conta de um menor, a marca é calculada com o e-mail do <strong>responsável</strong>,
+      e nada do menor entra nela. Fazemos isso por legítimo interesse (evitar o abuso do benefício
+      gratuito), com o mínimo de dado possível.</li>
     <li><strong>Ranking</strong>: só contas de adultos publicam. Guardamos o apelido público e uma
       versão <strong>anonimizada (hash)</strong> do IP, para evitar abuso do placar.</li>
     <li><strong>Relatórios de erro</strong> do app: a mensagem técnica do erro e a tela onde ocorreu
@@ -146,6 +162,10 @@
   <p>Cópias de segurança do banco são rotacionadas (as mais antigas são apagadas automaticamente); os
   dados que você excluir desaparecem das cópias no ciclo de rotação. Os relatórios de erro são
   mantidos por 14 dias.</p>
+  <p>A <strong>marca do teste do Premium</strong> é apagada automaticamente <strong>730 dias</strong>
+  (dois anos) depois do início do teste. Ela <strong>não sai com a exclusão da conta</strong> — é
+  justamente para isso que ela existe —, mas não contém o e-mail nem nada que a ligue à conta apagada.
+  Se quiser se opor a esse tratamento, escreva para o contato abaixo.</p>
 
   <h2>Seus direitos (LGPD, art. 18)</h2>
   <p>Dentro do app, em <strong>Perfil → Seus dados</strong>, você pode:</p>
@@ -153,7 +173,8 @@
     <li><strong>Exportar</strong> tudo o que guardamos sobre você, em um arquivo JSON;</li>
     <li><strong>Excluir a conta</strong> — a assinatura, se houver, é cancelada antes; depois,
       exclusão física, imediata, de todas as suas linhas e arquivos de mídia (inclusive a data de
-      nascimento e o vínculo com o responsável), incluindo o desvínculo do login. Se qualquer parte falhar, o app mostra
+      nascimento e o vínculo com o responsável), incluindo o desvínculo do login. A única exceção é a
+      marca do teste do Premium, descrita em Retenção. Se qualquer parte falhar, o app mostra
       exatamente o que não foi apagado, em vez de confirmar o que não aconteceu.</li>
   </ul>
 

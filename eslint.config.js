@@ -74,6 +74,34 @@ export default tseslint.config(
   },
   {
     /**
+     * FASE F — O NÚCLEO DE IA NÃO CONHECE O EXPRESS.
+     *
+     * `server/ai/nucleo/` é o código que o app, a futura rota `/v1` com chave de API e o futuro
+     * servidor MCP chamam igual: recebe o contexto de quem pede, devolve o resultado. Um `import` do
+     * Express (ou da porta do app, que lê IP e cabeçalho do request, ou do adaptador HTTP) aqui dentro
+     * seria o primeiro passo de volta para a regra presa à rota — e a API teria de copiá-la.
+     */
+    files: ['server/ai/nucleo/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            { name: 'express', message: 'o núcleo de IA não depende do Express: receba o ContextoDeIa.' },
+            { name: 'express-rate-limit', message: 'o núcleo de IA não depende do Express.' },
+          ],
+          patterns: [
+            {
+              group: ['**/lib/convidado', '**/lib/nuvemDeAlivio', '**/respostaDoNucleo'],
+              message: 'a porta e a resposta HTTP são do adaptador; o núcleo recebe o veredicto no contexto.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    /**
      * F5-04 — `console.*` PROIBIDO no caminho de request do servidor.
      *
      * O recorte é estreito de propósito, e o número que o justifica corrige o próprio achado: a

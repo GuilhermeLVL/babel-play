@@ -21,7 +21,7 @@
  * O que ele faz é o que faltava: DECLARAR o contrato, CONFERIR no boot, e servir as duas leituras
  * que estavam dentro de handler.
  */
-import { PLAN_MATRIX } from '../../src/core/planos'
+import { FRANQUIA_DE_ALIVIO, PLAN_MATRIX } from '../../src/core/planos'
 import { authRequired } from './auth'
 import { registrarFalhaDeBoot } from './bootStatus'
 import { log } from './logger'
@@ -81,15 +81,38 @@ export interface VariavelDeclarada {
  * `storageQuota.ts` e `usageQuota.ts` montam o nome em tempo de execucao
  * (`${plan.toUpperCase()}_STORAGE_MB`), e leitura montada e invisivel ao grep, ao inventario e a
  * regra `env-fora-de-config`. A lista trazia so `ESSENCIAL_*` e `PRO_*` escritas a mao — mas o
- * codigo aceita os QUATRO planos, entao quem definisse `FREE_STORAGE_MB` teria o valor honrado
+ * codigo aceita todos os planos, entao quem definisse `FREE_STORAGE_MB` teria o valor honrado
  * sem que ele constasse em lugar nenhum. Gerando a partir de `PLAN_MATRIX`, um plano novo declara
- * as suas tres variaveis no mesmo commit em que nasce.
+ * as suas variaveis no mesmo commit em que nasce.
+ *
+ * MATRIZ V2 (ADR 0011): com o Essencial e o Pro fora da matriz, as `ESSENCIAL_*`/`PRO_*` deixam de
+ * ser lidas — quem as tinha no deploy passa o valor para a `PREMIUM_*` correspondente. Nao ha leitura
+ * de compatibilidade de proposito: o teto do Premium e outro numero (40 h, o empate de custo), e
+ * herdar em silencio as 15 h do Essencial ou as 20 h do Pro seria vender "sem limite no dia a dia"
+ * com o teto de um plano que nao existe mais.
  */
 const SUFIXOS_POR_PLANO: ReadonlyArray<{ sufixo: string; paraQue: string }> = [
   { sufixo: 'STORAGE_MB', paraQue: 'teto de armazenamento do plano, em MB (override da PLAN_MATRIX)' },
   { sufixo: 'MONTHLY_MANAGED_CALLS', paraQue: 'cota mensal de chamadas gerenciadas do plano (default da PLAN_MATRIX)' },
   { sufixo: 'MONTHLY_STT_SECONDS', paraQue: 'teto mensal de segundos de STT do plano' },
   { sufixo: 'MONTHLY_LLM_TOKENS', paraQue: 'teto mensal de tokens (entrada + saída) do LLM de nuvem do plano' },
+  /* O USO JUSTO DO DIA (matriz v2, ADR 0011): o teto por dia LOCAL da pessoa. Só vale para plano com
+     teto diário na matriz (hoje, o Premium); nos outros o dia não é contado e a variável não tem efeito. */
+  {
+    sufixo: 'DAILY_STT_SECONDS',
+    paraQue: 'teto DIÁRIO (dia local) de segundos de STT de nuvem do plano — o uso justo',
+  },
+  { sufixo: 'DAILY_LLM_TOKENS', paraQue: 'teto DIÁRIO (dia local) de tokens do LLM de nuvem do plano — o uso justo' },
+  /* A VOZ NATURAL do modo intérprete (E4 da Fase E, `server/ai/ttsProxy.ts`): caracteres lidos em voz
+     alta pela nuvem, no mês e no dia local. Só vale para plano com `vozNatural` na matriz. */
+  {
+    sufixo: 'MONTHLY_TTS_CHARS',
+    paraQue: 'teto MENSAL de caracteres da voz natural de nuvem (modo intérprete) do plano',
+  },
+  {
+    sufixo: 'DAILY_TTS_CHARS',
+    paraQue: 'teto DIÁRIO (dia local) de caracteres da voz natural de nuvem do plano — o uso justo',
+  },
 ]
 
 /* O `convidado` (Fase 7) não está na matriz de assinatura, mas as cotas dele passam pelas MESMAS
@@ -103,6 +126,20 @@ export const VARIAVEIS_POR_PLANO: readonly VariavelDeclarada[] = [...Object.keys
       paraQue: `${paraQue} — plano ${plano}`,
     })),
 )
+
+/**
+ * As variáveis de CHAVE e de CONTA que o registro de provedores lê por nome montado
+ * (`env[provedor.chave]`, `server/ai/registroDeProvedores.ts`). Como as por plano, a varredura do
+ * inventário não as enxerga — o registro diz o nome em JSON —, então elas são nomeadas aqui. As
+ * outras chaves de IA (`GROQ_API_KEY`, `OPENROUTER_API_KEY`…) têm leitura literal no legado.
+ */
+export const VARIAVEIS_DE_CHAVE_DE_IA: readonly string[] = [
+  'CEREBRAS_API_KEY',
+  'CLOUDFLARE_ACCOUNT_ID',
+  'CLOUDFLARE_API_TOKEN',
+  'DEEPINFRA_API_KEY',
+  'GOOGLE_TTS_API_KEY',
+]
 
 export const VARIAVEIS: readonly VariavelDeclarada[] = [
   ...VARIAVEIS_POR_PLANO,
@@ -132,7 +169,7 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
     paraQue:
-      'JSON com o preço por modelo que o orçamento usa: {"modelo": {"entrada": US$/1M, "saida": US$/1M}} para LLM e {"modelo": {"hora": US$}} para STT. Sobrepõe a tabela oficial embutida',
+      'JSON com o preço que o orçamento usa, por "fornecedor:modelo" (ex.: "deepinfra:openai/gpt-oss-120b") ou só por "modelo": {"entrada": US$/1M, "entradaEmCache": US$/1M, "saida": US$/1M} para LLM e {"hora": US$, "minimoFaturadoS": s} para STT. Sobrepõe a tabela oficial embutida; o preço declarado no IA_PROVEDORES vence os dois',
   },
   {
     nome: 'AI_USUARIO_ALERTA_FATOR',
@@ -147,6 +184,20 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     criticidade: 'degrada-capacidade',
     paraQue:
       'gasto anômalo por usuário: teto ABSOLUTO em US$ por usuário por dia acima do qual sai o alerta ia_gasto_anomalo_usuario (não bloqueia — quem bloqueia é a cota do plano). Padrão US$ 0,50 (um Essencial típico gasta ~US$ 0,03/dia)',
+  },
+  {
+    nome: 'ALIVIO_POOL_USD_DIA',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'pool DIÁRIO da nuvem de alívio do Grátis (A10), em US$, somando todas as contas. Só BAIXA o pool: ele nunca passa de 20% do orçamento diário (AI_BUDGET_USD_DAY, ou AI_BUDGET_USD_MONTH ÷ 30), a reserva de 80% de quem paga. Ausente: os 20%',
+  },
+  {
+    nome: 'ALIVIO_TETO_USD_MES',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'teto de gasto ESTIMADO por conta Grátis no mês com a nuvem de alívio (A10), em US$. Padrão US$ 0,13 (FRANQUIA_DE_ALIVIO em src/core/planos.ts: cobre as 3 h de transcrição). 0 fecha o alívio para todos',
   },
   {
     nome: 'APP_URL',
@@ -227,11 +278,32 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
       'bucket dos snapshots diários; sem ela, o mesmo `S3_BUCKET` da mídia. Um bucket próprio deixa a regra de retenção (30 dias) separada da mídia',
   },
   {
+    nome: 'CEREBRAS_API_KEY',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'chave da Cerebras, lida só quando um provedor de IA_PROVEDORES declara "chave": "CEREBRAS_API_KEY" (server/ai/registroDeProvedores.ts). Ausente, a perna não existe',
+  },
+  {
     nome: 'CHECKOUT_ENABLED',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
     paraQue:
       'chave de emergência da VENDA: `0` fecha assinar e comprar (503 com mensagem clara); quem já paga continua com o plano. Ausente = ligada',
+  },
+  {
+    nome: 'CLOUDFLARE_ACCOUNT_ID',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'conta da Cloudflare do Workers AI, lida quando um provedor de IA_PROVEDORES declara "conta": "CLOUDFLARE_ACCOUNT_ID" — entra na base (/accounts/<conta>/ai/v1; o STT usa a rota nativa /ai/run/<modelo>, com o áudio em base64 — B6). Ausente, a perna não existe',
+  },
+  {
+    nome: 'CLOUDFLARE_API_TOKEN',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'token do Workers AI (só a permissão "Workers AI"), lido quando um provedor de IA_PROVEDORES declara "chave": "CLOUDFLARE_API_TOKEN". Ausente, a perna não existe',
   },
   {
     nome: 'CLUSTER_WORKERS',
@@ -271,7 +343,8 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     nome: 'CROSS_ORIGIN_ISOLATION',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
-    paraQue: 'habilita COOP/COEP, necessário para SharedArrayBuffer na inferência local',
+    paraQue:
+      'isolamento de origem (SharedArrayBuffer → WASM com threads na inferência local), LIGADO por padrão: ausente ou `1` = COOP same-origin + COEP credentialless + Document-Isolation-Policy; `dip` = só o DIP (Chromium; para quando um iframe de terceiro não aceitar COEP); `0` desliga (server/http/isolamento.ts)',
   },
   {
     nome: 'DATABASE_AUTH_TOKEN',
@@ -290,6 +363,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
     paraQue: 'raiz dos dados persistentes',
+  },
+  {
+    nome: 'DEEPINFRA_API_KEY',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'chave da DeepInfra, lida só quando um provedor de IA_PROVEDORES declara "chave": "DEEPINFRA_API_KEY" (server/ai/registroDeProvedores.ts). Ausente, a perna não existe',
   },
   {
     nome: 'DESLIGAMENTO_TIMEOUT_MS',
@@ -317,6 +397,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     criticidade: 'degrada-capacidade',
     paraQue:
       'commit da versão do app (`0.1.0+<sha7>`, server/lib/versao.ts); o Dockerfile a preenche no build pelo arg VERSAO; ausente, vale SENTRY_RELEASE ou só a versão do package.json',
+  },
+  {
+    nome: 'GOOGLE_TTS_API_KEY',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'chave do Google Cloud Text-to-Speech (Chirp 3 HD), lida só quando um provedor de IA_PROVEDORES com formato "google-tts" a declara (voz natural do intérprete, OPÇÃO — o padrão é a DeepInfra). Nunca a API do Gemini. Ausente, a perna não existe',
   },
   {
     nome: 'GROQ_API_KEY',
@@ -349,7 +436,7 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
     paraQue:
-      'admissão de IA (ADR 0007): teto de pedidos POR DIA a cada modelo de LLM da conta do app (server/ai/admissao.ts). Padrão 1000, o da camada atual da Groq para gpt-oss-120b. 0 = sem teto',
+      'admissão de IA (ADR 0007): teto de pedidos POR DIA a cada modelo de LLM da conta do app (server/ai/admissao.ts). Padrão 1000, o da camada atual da Groq para gpt-oss-120b. 0 = sem teto. Vale para a perna SEM "limites" no IA_PROVEDORES (o legado inteiro); com eles, os declarados (B4) — e isso vale para todas as IA_ADMISSAO_* de pedidos e tokens',
   },
   {
     nome: 'IA_ADMISSAO_LLM_RPM',
@@ -369,7 +456,7 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
     paraQue:
-      'admissão de IA: fração do saldo de cada modelo reservada SÓ ao Pro (0 a 0,9). Padrão 0,2 — o Essencial usa até 80%; convidado, até 50% (ou menos, se a reserva passar disso)',
+      'admissão de IA: fração do saldo de cada modelo reservada SÓ a quem paga (o Premium; o nome da variável é de antes da matriz v2) (0 a 0,9). Padrão 0,2 — quem não paga (convidado, Grátis, teste) usa até 50%, e o alívio do Grátis até 20% (ou menos, se a reserva passar disso)',
   },
   {
     nome: 'IA_ADMISSAO_STT_RPD',
@@ -385,6 +472,20 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     paraQue: 'admissão de IA: pedidos de STT POR MINUTO a cada modelo (token bucket). Padrão 20 (Groq). 0 = sem teto',
   },
   {
+    nome: 'IA_ADMISSAO_TTS_RPD',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'admissão de IA: pedidos de VOZ NATURAL (TTS do intérprete) POR DIA a cada modelo sem "limites" no IA_PROVEDORES. Padrão 5000. 0 = sem teto',
+  },
+  {
+    nome: 'IA_ADMISSAO_TTS_RPM',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'admissão de IA: pedidos de VOZ NATURAL (TTS do intérprete) POR MINUTO a cada modelo sem "limites" no IA_PROVEDORES (token bucket). Padrão 60. 0 = sem teto',
+  },
+  {
     nome: 'IA_EM_VOO_LLM',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
@@ -397,6 +498,26 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     criticidade: 'degrada-capacidade',
     paraQue:
       'chamadas de STT de nuvem EM VOO por usuário ao mesmo tempo; a seguinte recebe 429 nuvem_ocupada. Padrão 1',
+  },
+  {
+    nome: 'IA_EM_VOO_TTS',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'pedidos de voz natural (TTS do intérprete) EM VOO por usuário ao mesmo tempo; o seguinte recebe 429 nuvem_ocupada e o cliente lê com a voz do aparelho. Padrão 1 (a fila de fala lê uma de cada vez)',
+  },
+  {
+    nome: 'IA_PROVEDORES',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'registro DECLARATIVO dos provedores de IA (JSON sem segredo, server/ai/registroDeProvedores.ts): formato, retenção, limites, modelos por função com preço, os NÍVEIS de cada modelo de tradução/tutor ("niveis": rapida/nuance/polimento — a nuance é de quem tem traducaoNuance, B3) e o NOME da variável da chave. A ordem é a da cascata. Gemini é recusado; OpenRouter exige roteamento com zdr e sem o Google; em produção todo provedor declara retencao "zdr" (senão o boot aborta). Ausente: o registro legado, derivado de LLM_*/GROQ_*/LLM_RESERVA_*/OPENROUTER_API_KEY/STT_*, com o comportamento de sempre',
+  },
+  {
+    nome: 'IA_PROVEDORES_ARQUIVO',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'o mesmo registro de IA_PROVEDORES, lido de um arquivo (caminho). Declarar as duas é ambíguo e é recusado',
   },
   {
     nome: 'LANGFUSE_AMOSTRAGEM',
@@ -461,7 +582,7 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
     paraQue:
-      'modelo entregue a quem tem o entitlement `largerModels` (planos pro e selfhost). Ausente, todo plano recebe o mesmo modelo de `LLM_MODEL` — que era o comportamento antes da Fase 4, quando `largerModels` nao era lido por linha nenhuma do servidor',
+      'modelo entregue a quem tem o entitlement `largerModels` (planos pro e selfhost). Ausente, todo plano recebe o mesmo modelo de `LLM_MODEL` — que era o comportamento antes da Fase 4, quando `largerModels` nao era lido por linha nenhuma do servidor. Só no registro LEGADO (sem IA_PROVEDORES): no declarado, o modelo de quem paga é o que declara "niveis": ["nuance"] (B3)',
   },
   {
     nome: 'LLM_RESERVA_API_KEY',
@@ -519,6 +640,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
     paraQue: 'production liga CSP, exige auth por padrão e muda o pipeline do Vite',
+  },
+  {
+    nome: 'NUANCE_AO_VIVO',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      '1 liga a Tradução Nuance também na legenda AO VIVO para quem tem o entitlement traducaoNuance (server/ai/niveis.ts, D1 da Fase D). Ausente: a legenda ao vivo usa o modelo rápido e a nuance entra só quando a pessoa toca numa frase (o cliente pede nivel "nuance") — o padrão do dono, porque é a legenda ao vivo que roda o tempo todo',
   },
   { nome: 'OLLAMA_MODEL', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'modelo do Ollama local' },
   {
@@ -707,6 +835,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     criticidade: 'degrada-capacidade',
     paraQue:
       'quantos corpos grandes o MESMO usuário pode ter em voo ao mesmo tempo (server/lib/corposGrandes.ts). Ausente ou inválido: 1',
+  },
+  {
+    nome: 'VITE_BERGAMOT_MODELOS_URL',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'base de onde o navegador baixa os modelos do Bergamot (tradução pt→en no aparelho, A9b). Ausente: os modelos saem do PRÓPRIO domínio (o build os baixa com sha256 conferido). Com ela, a CSP libera a origem em `connect-src`',
   },
   {
     nome: 'VITE_SELF_HOST_MODELS',
@@ -945,16 +1080,73 @@ export function diasDeRetencaoDeAudio(env: NodeJS.ProcessEnv = process.env): num
   return Number.isInteger(n) && n >= 0 ? n : RETENCAO_DE_AUDIO_PADRAO_DIAS
 }
 
-/**
- * A nuvem de STT está configurada? Lido por `GET /api/ai/stt/available`, que existe para o
- * roteador decidir sem gastar chamada de API.
- */
-export function sttDeNuvemConfigurado(env: NodeJS.ProcessEnv = process.env): boolean {
-  // `LLM_API_KEY` entra aqui também: sem isto, quem configurasse só o nome novo veria a rota
-  // `/api/ai/stt/available` responder "não configurado" com a chave presente — e a UI esconderia
-  // uma capacidade que existe.
-  return Boolean(env.LLM_API_KEY || env.GROQ_API_KEY || env.STT_API_KEY)
+/** O modelo de STT gerenciado quando `STT_MODEL` não diz outro (medido: docs/auditoria/eval/bancada-2026-09.md). */
+export const MODELO_STT_PADRAO = 'whisper-large-v3-turbo'
+const BASE_DA_GROQ = 'https://api.groq.com/openai/v1'
+
+/** O STT gerenciado — a chave do DONO — como o ambiente o configura. */
+export interface ConfigDoSttGerenciado {
+  secret: string
+  baseUrl: string
+  model: string
+  /** O NOME da variável de onde a chave saiu — o registro de provedores (B1) guarda nomes, nunca valores. */
+  chave: 'GROQ_API_KEY' | 'STT_API_KEY' | 'LLM_API_KEY'
 }
+
+/**
+ * UMA FONTE SÓ PARA O STT GERENCIADO (B0 da Fase B, 29/09/2026).
+ *
+ * Havia duas leituras do mesmo fato, e elas discordavam. `GET /api/ai/stt/available` perguntava
+ * `LLM_API_KEY || GROQ_API_KEY || STT_API_KEY`; a porta da transcrição (`sttProxy.ts`) perguntava
+ * `GROQ_API_KEY ?? STT_API_KEY`. Os dois casos em que isso mordia são os de verdade:
+ *
+ *   - o `.env.production.example` configura SÓ `LLM_API_KEY`, com a base da Groq. A disponibilidade
+ *     dizia 200, o roteador do cliente mandava o áudio para a nuvem — e toda transcrição voltava
+ *     501. O STT de nuvem de produção estava desligado sem ninguém saber;
+ *   - `GROQ_API_KEY=` vazia (é assim que os testes e muito `.env` "desligam" a variável, porque o
+ *     dotenv repõe a apagada) com `STT_API_KEY` definida: o `??` tomava a string vazia como chave.
+ *
+ * A REGRA, agora escrita num lugar: as chaves próprias do STT, na precedência de sempre
+ * (`GROQ_*` antes de `STT_*`, vazia conta como ausente); sem elas, a chave do LLM — MAS SÓ quando o
+ * LLM é a Groq, que é o que o `.env.production.example` descreve. A chave de um LLM em outro
+ * provedor não anuncia STT: aquele endereço não tem Whisper garantido, e anunciar uma capacidade que
+ * responde 404 é o mesmo defeito do 200/501 com outra cara. O teste que prende a regra é
+ * `tests/integration/stt-disponivel-coerente.test.ts`.
+ */
+export function sttGerenciadoDoEnv(env: NodeJS.ProcessEnv = process.env): ConfigDoSttGerenciado | null {
+  /* Leitura por NOME literal (`env.X`), e não por `env[nome]`: é o que o inventário enxerga
+     (`tests/integration/config-inventario.test.ts`). Vazia ou só espaço conta como ausente. */
+  const semBarra = (u: string) => u.replace(/\/+$/, '')
+  const model = env.STT_MODEL?.trim() || MODELO_STT_PADRAO
+  const doGroq = env.GROQ_API_KEY?.trim()
+  const propria = doGroq || env.STT_API_KEY?.trim()
+  if (propria) {
+    return {
+      secret: propria,
+      baseUrl: semBarra(env.GROQ_BASE_URL?.trim() || env.STT_BASE_URL?.trim() || BASE_DA_GROQ),
+      model,
+      chave: doGroq ? 'GROQ_API_KEY' : 'STT_API_KEY',
+    }
+  }
+  const doLlm = env.LLM_API_KEY?.trim()
+  if (!doLlm) return null
+  /* A mesma base que `server/ai/provedores.ts` usa para o LLM primário com essa chave. */
+  const base = semBarra(env.LLM_BASE_URL?.trim() || env.GROQ_BASE_URL?.trim() || BASE_DA_GROQ)
+  let host: string
+  try {
+    host = new URL(base).hostname.toLowerCase()
+  } catch {
+    return null
+  }
+  return host === 'api.groq.com' ? { secret: doLlm, baseUrl: base, model, chave: 'LLM_API_KEY' } : null
+}
+
+/*
+ * `sttDeNuvemConfigurado` — a pergunta de `GET /api/ai/stt/available` — mora em
+ * `server/ai/registroDeProvedores.ts` desde o B1: com `IA_PROVEDORES` o STT pode vir do registro
+ * declarado, e a resposta tem de ser a mesma que a porta da transcrição recebe. No legado ela é
+ * exatamente `sttGerenciadoDoEnv(env) !== null`.
+ */
 
 /* ─────────────── admissão de IA ao vivo (ADR 0007) ─────────────── */
 
@@ -971,10 +1163,14 @@ export interface LimitesDeModelo {
 export interface ConfigDeAdmissao {
   stt: LimitesDeModelo
   llm: LimitesDeModelo
-  /** fração do saldo que só o Pro alcança */
-  reservaPro: number
+  /** A voz natural do intérprete (E4 da Fase E); não conta tokens. */
+  tts: LimitesDeModelo
+  /** fração do saldo que só quem PAGA alcança (`IA_ADMISSAO_RESERVA_PRO`; o nome da env é de antes
+   da matriz v2 e fica — renomear variável de operação apagaria em silêncio um valor já configurado) */
+  reservaDosPagantes: number
   emVooStt: number
   emVooLlm: number
+  emVooTts: number
 }
 
 /** Inteiro >= 0 da variável; ausente ou inválido cai no padrão (erro de digitação não abre a porta). */
@@ -993,7 +1189,7 @@ function inteiroNaoNegativo(bruto: string | undefined, padrao: number): number {
  */
 export function configDeAdmissao(env: NodeJS.ProcessEnv = process.env): ConfigDeAdmissao {
   const reservaBruta = Number(env.IA_ADMISSAO_RESERVA_PRO?.trim().replace(',', '.'))
-  const reservaPro =
+  const reservaDosPagantes =
     env.IA_ADMISSAO_RESERVA_PRO?.trim() && Number.isFinite(reservaBruta) && reservaBruta >= 0 && reservaBruta <= 0.9
       ? reservaBruta
       : 0.2
@@ -1008,10 +1204,19 @@ export function configDeAdmissao(env: NodeJS.ProcessEnv = process.env): ConfigDe
       rpd: inteiroNaoNegativo(env.IA_ADMISSAO_LLM_RPD, 1000),
       tpd: inteiroNaoNegativo(env.IA_ADMISSAO_LLM_TPD, 200_000),
     },
-    reservaPro,
+    /* A voz natural não tem legado (nasce no registro): estes padrões só valem para perna sem "limites"
+       declarados, e são folgados — a DeepInfra aceita bem mais; quem segura o gasto são as cotas de
+       caracteres e o orçamento. */
+    tts: {
+      rpm: inteiroNaoNegativo(env.IA_ADMISSAO_TTS_RPM, 60),
+      rpd: inteiroNaoNegativo(env.IA_ADMISSAO_TTS_RPD, 5000),
+      tpd: 0,
+    },
+    reservaDosPagantes,
     /* Piso 1: `0` em voo recusaria toda chamada, e quem quer desligar a nuvem tem `AI_ENABLED=0`. */
     emVooStt: Math.max(1, inteiroNaoNegativo(env.IA_EM_VOO_STT, 1)),
     emVooLlm: Math.max(1, inteiroNaoNegativo(env.IA_EM_VOO_LLM, 2)),
+    emVooTts: Math.max(1, inteiroNaoNegativo(env.IA_EM_VOO_TTS, 1)),
   }
 }
 
@@ -1105,10 +1310,19 @@ export function limiaresDeGastoPorUsuario(env: NodeJS.ProcessEnv = process.env):
 export interface PrecoDeModelo {
   /** US$ por 1 milhão de tokens de entrada (LLM). */
   entrada?: number
+  /**
+   * US$ por 1 milhão de tokens de entrada servidos do CACHE de prompt do provedor (a Groq cobra 50%
+   * da entrada nos gpt-oss — console.groq.com/docs/prompt-caching). Ausente: o preço da entrada.
+   */
+  entradaEmCache?: number
   /** US$ por 1 milhão de tokens de saída (LLM). */
   saida?: number
-  /** US$ por hora de áudio (STT). */
+  /** US$ por hora de áudio (STT) — o custo é por segundo, `segundos × hora / 3600`. */
   hora?: number
+  /** Segundos faturados no mínimo POR PEDIDO de STT (a Groq cobra 10). Ausente: 10, o conservador. */
+  minimoFaturadoS?: number
+  /** US$ por 1 milhão de CARACTERES lidos (a voz natural, TTS — a DeepInfra cobra assim). */
+  milhaoDeCaracteres?: number
 }
 
 /**
@@ -1124,7 +1338,14 @@ export function precosDeModelosDoEnv(env: NodeJS.ProcessEnv = process.env): Reco
     const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : undefined)
     for (const [modelo, p] of Object.entries(obj ?? {})) {
       if (!p || typeof p !== 'object') continue
-      saida[modelo] = { entrada: num(p.entrada), saida: num(p.saida), hora: num(p.hora) }
+      saida[modelo] = {
+        entrada: num(p.entrada),
+        entradaEmCache: num(p.entradaEmCache),
+        saida: num(p.saida),
+        hora: num(p.hora),
+        minimoFaturadoS: num(p.minimoFaturadoS),
+        milhaoDeCaracteres: num(p.milhaoDeCaracteres),
+      }
     }
     return saida
   } catch {
@@ -1236,4 +1457,31 @@ export function parametrosDoPoolGratuito(env: NodeJS.ProcessEnv = process.env): 
     pisoUsdDia: numeroDoEnv(env.POOL_GRATUITO_PISO_USD_DIA, 0.5, 'config_pool_piso_invalido'),
     fracaoDaReceita: Math.min(1, numeroDoEnv(env.POOL_GRATUITO_FRACAO_RECEITA, 0.05, 'config_pool_fracao_invalida')),
   }
+}
+
+/* ─────────────── Nuvem de alívio do Grátis (A10) ─────────────── */
+
+/**
+ * Os parâmetros da nuvem de alívio (`server/lib/nuvemDeAlivio.ts`). Os segundos, tokens e chamadas
+ * da franquia vêm da matriz (`FRANQUIA_DE_ALIVIO`): são a PROMESSA que a tela escreve ("3 h") e
+ * mudam por código. O dinheiro é do operador: o teto por conta (`ALIVIO_TETO_USD_MES`) e o pool do
+ * dia (`ALIVIO_POOL_USD_DIA`, `null` = os 20% do orçamento diário — ver `poolDoAlivioUsd`).
+ */
+export function parametrosDoAlivio(env: NodeJS.ProcessEnv = process.env): {
+  tetoUsdMes: number
+  poolUsdDia: number | null
+} {
+  const pool = env.ALIVIO_POOL_USD_DIA?.trim()
+  return {
+    tetoUsdMes: numeroDoEnv(env.ALIVIO_TETO_USD_MES, FRANQUIA_DE_ALIVIO.tetoUsdMes, 'config_alivio_teto_invalido'),
+    poolUsdDia: pool ? numeroDoEnv(pool, 0, 'config_alivio_pool_invalido') : null,
+  }
+}
+
+/**
+ * O modelo do STT gerenciado (a chave do dono) — o mesmo padrão de `server/ai/sttProxy.ts`. A nuvem
+ * de alívio precisa dele para converter o dólar que sobra em "restam X" de transcrição.
+ */
+export function modeloDoSttGerenciado(env: NodeJS.ProcessEnv = process.env): string {
+  return env.STT_MODEL || 'whisper-large-v3-turbo'
 }

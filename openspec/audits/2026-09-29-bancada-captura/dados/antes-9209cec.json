@@ -1,0 +1,126 @@
+{
+ "ambiente": "local-win32",
+ "quando": "2026-09-30T02:27:11.024Z",
+ "commit": "bde13bd",
+ "alvo": {
+  "nome": "antes",
+  "url": "http://127.0.0.1:4182"
+ },
+ "maquina": {
+  "so": "Windows_NT 10.0.26100",
+  "cpu": "AMD Ryzen 5 5600 6-Core Processor",
+  "nucleos": 12,
+  "memoriaGb": 16,
+  "navegador": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36"
+ },
+ "perfis": {
+  "desktop": {
+   "rodadas": 3,
+   "invalidas": [],
+   "falasNoRtf": 24,
+   "metricas": {
+    "framesLongos.n50": 1,
+    "framesLongos.n100": 1,
+    "framesLongos.somaMs": 188,
+    "framesLongos.maiorMs": 188,
+    "primeiraLegendaMs": 2345,
+    "sttProntoMs": -859,
+    "memoriaPicoMb": 1257,
+    "heapPicoMb": 31,
+    "cpuSilencio.processoPct": 90.11389741341517,
+    "cpuSilencio.principalPct": 6.686497150372649,
+    "cpuSilencio.foraDaPrincipalPct": 83.42740026304253,
+    "cpuSilencio.workersPct": null,
+    "rendersPorS.silencio": 600,
+    "rendersPorS.fala": 682.4702058504876,
+    "commitsPorS.silencio": 20,
+    "commitsPorS.fala": 21.473456121343446,
+    "fimATraducao.p50": 830,
+    "regulador.trocasDeModelo": 0,
+    "rtf.p50": 0.0905,
+    "rtf.p95": 0.18544999999999992
+   },
+   "dispersao": {
+    "framesLongos.n50": 0,
+    "framesLongos.n100": 0,
+    "framesLongos.somaMs": 0.12234042553191489,
+    "framesLongos.maiorMs": 0.12234042553191489,
+    "primeiraLegendaMs": 0.428997867803838,
+    "sttProntoMs": 0.6158323632130385,
+    "memoriaPicoMb": 0.08194112967382657,
+    "heapPicoMb": 0.03225806451612903,
+    "cpuSilencio.processoPct": 0.13012892267462828,
+    "cpuSilencio.principalPct": 0.32646207374703445,
+    "cpuSilencio.foraDaPrincipalPct": 0.1143933124191223,
+    "cpuSilencio.workersPct": null,
+    "rendersPorS.silencio": 0.011730205278593076,
+    "rendersPorS.fala": 0.01346202692405389,
+    "commitsPorS.silencio": 0.011730205278593253,
+    "commitsPorS.fala": 0.005045408678102939,
+    "fimATraducao.p50": 0.14518072289156628,
+    "regulador.trocasDeModelo": null
+   },
+   "modelos": [
+    "onnx-community/moonshine-base-ONNX"
+   ],
+   "aparelho": {
+    "tipo": "desktop-sem-gpu",
+    "modoLeve": "false"
+   }
+  },
+  "fraco": {
+   "rodadas": 3,
+   "invalidas": [],
+   "falasNoRtf": 24,
+   "metricas": {
+    "framesLongos.n50": 18,
+    "framesLongos.n100": 5,
+    "framesLongos.somaMs": 2640,
+    "framesLongos.maiorMs": 1017,
+    "primeiraLegendaMs": 2301,
+    "sttProntoMs": -434,
+    "memoriaPicoMb": 1188,
+    "heapPicoMb": 30,
+    "cpuSilencio.processoPct": 8.426294155427236,
+    "cpuSilencio.principalPct": 2.6284714193962726,
+    "cpuSilencio.foraDaPrincipalPct": 5.797822736030963,
+    "cpuSilencio.workersPct": null,
+    "rendersPorS.silencio": 600.555854285844,
+    "rendersPorS.fala": 682.0151679306609,
+    "commitsPorS.silencio": 20.0185284761948,
+    "commitsPorS.fala": 21.06175514626219,
+    "fimATraducao.p50": 1050.5,
+    "regulador.trocasDeModelo": 0,
+    "rtf.p50": 0.127,
+    "rtf.p95": 0.20674999999999993
+   },
+   "dispersao": {
+    "framesLongos.n50": 0.7222222222222222,
+    "framesLongos.n100": 0.2,
+    "framesLongos.somaMs": 0.09848484848484848,
+    "framesLongos.maiorMs": 0.4060963618485742,
+    "primeiraLegendaMs": 1.0682312038244242,
+    "sttProntoMs": 0.5806451612903226,
+    "memoriaPicoMb": 0.117003367003367,
+    "heapPicoMb": 0.06666666666666667,
+    "cpuSilencio.processoPct": 0.09346089524707459,
+    "cpuSilencio.principalPct": 0.13489446296631621,
+    "cpuSilencio.foraDaPrincipalPct": 0.07467678377763684,
+    "cpuSilencio.workersPct": null,
+    "rendersPorS.silencio": 0.0017947924862877522,
+    "rendersPorS.fala": 0.006608419380460716,
+    "commitsPorS.silencio": 0.001794792486287918,
+    "commitsPorS.fala": 0.011316872427983633,
+    "fimATraducao.p50": 0.23131841980009518,
+    "regulador.trocasDeModelo": null
+   },
+   "modelos": [
+    "onnx-community/moonshine-base-ONNX"
+   ],
+   "aparelho": {
+    "tipo": "desktop-sem-gpu",
+    "modoLeve": "true"
+   }
+  }
+ }
+}

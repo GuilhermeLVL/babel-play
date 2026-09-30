@@ -1,0 +1,975 @@
+{
+ "documento": "openspec/audits/2026-09-29-bancada-captura/a6c-regulador-e-abertura-do-vad.md",
+ "quando": "2026-09-30T05:23:17.581Z",
+ "baseDoCodigo": "perf/a6b-primeira-legenda 03edd13 (antes = a037514, pela chave temporária ?a6c-antes na URL da navegação)",
+ "maquina": {
+  "so": "Windows_NT 10.0.26100",
+  "cpu": "AMD Ryzen 5 5600 6-Core Processor",
+  "nucleos": 12,
+  "memoriaGb": 16,
+  "navegador": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36"
+ },
+ "variantes": {
+  "antes": "o regulador de a037514: a janela de 10 s conta o que veio antes da sessão e a abertura do VAD",
+  "depois": "a janela começa no reiniciar da sessão e o quadro que começa dentro do MicVAD.new sai da conta"
+ },
+ "observacao": "No desktop o modo desempenho não liga: as falas têm parciais a cada 1,1 s nos dois lados. No fraco, CPU fora da principal inclui ~100% de um núcleo do freio de CPU do CDP. Os cortes do regulador que sobraram vieram da pressão de CPU da máquina compartilhada (Compute Pressure), ver o relatório.",
+ "perfis": {
+  "fraco": {
+   "antes": {
+    "rodadas": 6,
+    "decisao": {
+     "primeira": {
+      "mediana": 2068,
+      "min": 2000,
+      "max": 2172
+     },
+     "primeiraUtil": {
+      "mediana": 2068,
+      "min": 2000,
+      "max": 2172
+     },
+     "n50": {
+      "mediana": 3,
+      "min": 2,
+      "max": 4
+     },
+     "n100": {
+      "mediana": 2,
+      "min": 2,
+      "max": 3
+     },
+     "somaMs": {
+      "mediana": 1162,
+      "min": 925,
+      "max": 1222
+     },
+     "cpuFalaProc": {
+      "mediana": 121.97260454950921,
+      "min": 120.74956309290606,
+      "max": 124.58469004383217
+     },
+     "cpuFalaPrinc": {
+      "mediana": 3.6155901085774405,
+      "min": 3.323461232779936,
+      "max": 4.114024062975222
+     },
+     "cpuFalaFora": {
+      "mediana": 118.30584617385705,
+      "min": 117.02601413069797,
+      "max": 120.47066598085695
+     },
+     "cpuSilProc": {
+      "mediana": 5.919586146210159,
+      "min": 5.643758349413706,
+      "max": 6.596503178928239
+     },
+     "cpuSilFora": {
+      "mediana": 4.561742425438553,
+      "min": 4.361891154695424,
+      "max": 5.065674062540538
+     },
+     "rtfP95": {
+      "mediana": 0.1061,
+      "min": 0.103,
+      "max": 0.1353
+     },
+     "parciais": {
+      "mediana": 1,
+      "min": 1,
+      "max": 1
+     },
+     "decodes": {
+      "mediana": 9,
+      "min": 9,
+      "max": 9
+     },
+     "mts": {
+      "mediana": 4,
+      "min": 3,
+      "max": 4
+     },
+     "trocas": {
+      "mediana": 0,
+      "min": 0,
+      "max": 0
+     },
+     "memMb": {
+      "mediana": 1183.5,
+      "min": 1172,
+      "max": 1242
+     },
+     "fimATrad": {
+      "mediana": 1182.25,
+      "min": 1146,
+      "max": 1309
+     }
+    },
+    "rtfFalasSomadas": {
+     "p50": 0.099,
+     "p95": 0.12744999999999998
+    },
+    "bancada": {
+     "framesLongos.n50": 3,
+     "framesLongos.n100": 2,
+     "framesLongos.somaMs": 1162,
+     "framesLongos.maiorMs": 886.5,
+     "primeiraLegendaMs": 2068,
+     "sttProntoMs": -522.5,
+     "memoriaPicoMb": 1183.5,
+     "heapPicoMb": 25.5,
+     "cpuSilencio.processoPct": 5.919586146210159,
+     "cpuSilencio.principalPct": 1.3734535878502188,
+     "cpuSilencio.foraDaPrincipalPct": 4.561742425438553,
+     "cpuSilencio.workersPct": null,
+     "rendersPorS.silencio": 30.026009611990695,
+     "rendersPorS.fala": 92.329360780065,
+     "commitsPorS.silencio": 1.0008669870663565,
+     "commitsPorS.fala": 2.329360780065006,
+     "fimATraducao.p50": 1182.25,
+     "regulador.trocasDeModelo": 0,
+     "rtf.p50": 0.099,
+     "rtf.p95": 0.12744999999999998
+    },
+    "porRodada": [
+     {
+      "r": "c-fraco#1",
+      "valida": true,
+      "variante": "antes",
+      "primeira": 2000,
+      "primeiraUtil": 2000,
+      "primeiroTexto": "Rions are the most social cat",
+      "n50": 3,
+      "n100": 3,
+      "somaMs": 1157,
+      "cpuFalaProc": 122.10657154164099,
+      "cpuFalaPrinc": 3.5076312549467943,
+      "cpuFalaFora": 118.59894028669419,
+      "cpuSilProc": 6.245783308931154,
+      "cpuSilFora": 4.780724743777419,
+      "rtfP95": 0.103,
+      "parciais": 1,
+      "decodes": 9,
+      "mts": 4,
+      "trocas": 0,
+      "memMb": 1192,
+      "fimATrad": 1196,
+      "perdidas": 0
+     },
+     {
+      "r": "c-fraco#2",
+      "valida": true,
+      "variante": "antes",
+      "primeira": 2099,
+      "primeiraUtil": 2099,
+      "primeiroTexto": "Inns are the most social cats",
+      "n50": 2,
+      "n100": 2,
+      "somaMs": 1134,
+      "cpuFalaProc": 124.58469004383217,
+      "cpuFalaPrinc": 4.114024062975222,
+      "cpuFalaFora": 120.47066598085695,
+      "cpuSilProc": 5.702071697623079,
+      "cpuSilFora": 4.361891154695424,
+      "rtfP95": 0.1353,
+      "parciais": 1,
+      "decodes": 9,
+      "mts": 4,
+      "trocas": 0,
+      "memMb": 1242,
+      "fimATrad": 1309,
+      "perdidas": 0
+     },
+     {
+      "r": "c-fraco#3",
+      "valida": true,
+      "variante": "antes",
+      "primeira": 2075,
+      "primeiraUtil": 2075,
+      "primeiroTexto": "Clients are the most social cat",
+      "n50": 3,
+      "n100": 2,
+      "somaMs": 1199,
+      "cpuFalaProc": 122.22614377583831,
+      "cpuFalaPrinc": 3.45546164446486,
+      "cpuFalaFora": 118.77068213137345,
+      "cpuSilProc": 5.643758349413706,
+      "cpuSilFora": 4.37133739052993,
+      "rtfP95": 0.10429999999999999,
+      "parciais": 1,
+      "decodes": 9,
+      "mts": 4,
+      "trocas": 0,
+      "memMb": 1198,
+      "fimATrad": 1168.5,
+      "perdidas": 0
+     },
+     {
+      "r": "c-fraco#4",
+      "valida": true,
+      "variante": "antes",
+      "primeira": 2061,
+      "primeiraUtil": 2061,
+      "primeiroTexto": "Clients are the most social cat",
+      "n50": 4,
+      "n100": 2,
+      "somaMs": 1222,
+      "cpuFalaProc": 121.83863755737742,
+      "cpuFalaPrinc": 3.8258854963575333,
+      "cpuFalaFora": 118.0127520610199,
+      "cpuSilProc": 5.991637335419081,
+      "cpuSilFora": 4.584910702646298,
+      "rtfP95": 0.10765,
+      "parciais": 1,
+      "decodes": 9,
+      "mts": 3,
+      "trocas": 0,
+      "memMb": 1174,
+      "fimATrad": 1200,
+      "perdidas": 0
+     },
+     {
+      "r": "c-fraco#5",
+      "valida": true,
+      "variante": "antes",
+      "primeira": 2043,
+      "primeiraUtil": 2043,
+      "primeiroTexto": "Clients are the most social cat",
+      "n50": 2,
+      "n100": 2,
+      "somaMs": 925,
+      "cpuFalaProc": 120.99907497350762,
+      "cpuFalaPrinc": 3.323461232779936,
+      "cpuFalaFora": 117.67561374072768,
+      "cpuSilProc": 5.847534957001238,
+      "cpuSilFora": 4.538574148230806,
+      "rtfP95": 0.10654999999999999,
+      "parciais": 1,
+      "decodes": 9,
+      "mts": 4,
+      "trocas": 0,
+      "memMb": 1175,
+      "fimATrad": 1146,
+      "perdidas": 0
+     },
+     {
+      "r": "c-fraco#6",
+      "valida": true,
+      "variante": "antes",
+      "primeira": 2172,
+      "primeiraUtil": 2172,
+      "primeiroTexto": "And are the most social cats.",
+      "n50": 4,
+      "n100": 3,
+      "somaMs": 1167,
+      "cpuFalaProc": 120.74956309290606,
+      "cpuFalaPrinc": 3.723548962208086,
+      "cpuFalaFora": 117.02601413069797,
+      "cpuSilProc": 6.596503178928239,
+      "cpuSilFora": 5.065674062540538,
+      "rtfP95": 0.10565,
+      "parciais": 1,
+      "decodes": 9,
+      "mts": 3,
+      "trocas": 0,
+      "memMb": 1172,
+      "fimATrad": 1164,
+      "perdidas": 0
+     }
+    ]
+   },
+   "depois": {
+    "rodadas": 6,
+    "decisao": {
+     "primeira": {
+      "mediana": 2055.5,
+      "min": 1921,
+      "max": 2075
+     },
+     "primeiraUtil": {
+      "mediana": 2055.5,
+      "min": 1921,
+      "max": 2075
+     },
+     "n50": {
+      "mediana": 3.5,
+      "min": 2,
+      "max": 10
+     },
+     "n100": {
+      "mediana": 2,
+      "min": 2,
+      "max": 6
+     },
+     "somaMs": {
+      "mediana": 1150,
+      "min": 1008,
+      "max": 2389
+     },
+     "cpuFalaProc": {
+      "mediana": 129.21211256184318,
+      "min": 127.79054128420171,
+      "max": 130.74423167161976
+     },
+     "cpuFalaPrinc": {
+      "mediana": 3.7372898118824467,
+      "min": 3.6497369521671175,
+      "max": 4.410153715346922
+     },
+     "cpuFalaFora": {
+      "mediana": 125.45470586385696,
+      "min": 123.93755397937039,
+      "max": 127.0131991151431
+     },
+     "cpuSilProc": {
+      "mediana": 6.36737884204412,
+      "min": 5.97291096336854,
+      "max": 7.668181171786093
+     },
+     "cpuSilFora": {
+      "mediana": 4.89756372384122,
+      "min": 4.559268674227618,
+      "max": 6.029510776599373
+     },
+     "rtfP95": {
+      "mediana": 0.11352499999999999,
+      "min": 0.1013,
+      "max": 0.1382
+     },
+     "parciais": {
+      "mediana": 6,
+      "min": 5,
+      "max": 7
+     },
+     "decodes": {
+      "mediana": 16,
+      "min": 13,
+      "max": 16
+     },
+     "mts": {
+      "mediana": 9,
+      "min": 7,
+      "max": 11
+     },
+     "trocas": {
+      "mediana": 0,
+      "min": 0,
+      "max": 0
+     },
+     "memMb": {
+      "mediana": 1206,
+      "min": 1177,
+      "max": 1263
+     },
+     "fimATrad": {
+      "mediana": 1180,
+      "min": 1151.5,
+      "max": 1502.5
+     }
+    },
+    "rtfFalasSomadas": {
+     "p50": 0.098,
+     "p95": 0.11895
+    },
+    "bancada": {
+     "framesLongos.n50": 3.5,
+     "framesLongos.n100": 2,
+     "framesLongos.somaMs": 1150,
+     "framesLongos.maiorMs": 871,
+     "primeiraLegendaMs": 2055.5,
+     "sttProntoMs": -523,
+     "memoriaPicoMb": 1206,
+     "heapPicoMb": 26,
+     "cpuSilencio.processoPct": 6.36737884204412,
+     "cpuSilencio.principalPct": 1.469815118202901,
+     "cpuSilencio.foraDaPrincipalPct": 4.89756372384122,
+     "cpuSilencio.workersPct": null,
+     "rendersPorS.silencio": 29.539527667377456,
+     "rendersPorS.fala": 110.98591549295776,
+     "commitsPorS.silencio": 0.9846509222459152,
+     "commitsPorS.fala": 2.621885157096425,
+     "fimATraducao.p50": 1180,
+     "regulador.trocasDeModelo": 0,
+     "rtf.p50": 0.098,
+     "rtf.p95": 0.11895
+    },
+    "porRodada": [
+     {
+      "r": "c-fraco#1",
+      "valida": true,
+      "variante": "depois",
+      "primeira": 2059,
+      "primeiraUtil": 2059,
+      "primeiroTexto": "And are the most social cats.",
+      "n50": 5,
+      "n100": 2,
+      "somaMs": 1216,
+      "cpuFalaProc": 130.74423167161976,
+      "cpuFalaPrinc": 3.7310325564766615,
+      "cpuFalaFora": 127.0131991151431,
+      "cpuSilProc": 7.668181171786093,
+      "cpuSilFora": 5.840713879408391,
+      "rtfP95": 0.11284999999999999,
+      "parciais": 5,
+      "decodes": 16,
+      "mts": 11,
+      "trocas": 0,
+      "memMb": 1218,
+      "fimATrad": 1502.5,
+      "perdidas": 0
+     },
+     {
+      "r": "c-fraco#2",
+      "valida": true,
+      "variante": "depois",
+      "primeira": 2052,
+      "primeiraUtil": 2052,
+      "primeiroTexto": "Lions are the most social cat",
+      "n50": 10,
+      "n100": 6,
+      "somaMs": 2389,
+      "cpuFalaProc": 128.34770769471731,
+      "cpuFalaPrinc": 4.410153715346922,
+      "cpuFalaFora": 123.93755397937039,
+      "cpuSilProc": 7.660102634279839,
+      "cpuSilFora": 6.029510776599373,
+      "rtfP95": 0.1382,
+      "parciais": 5,
+      "decodes": 13,
+      "mts": 7,
+      "trocas": 0,
+      "memMb": 1263,
+      "fimATrad": 1187.5,
+      "perdidas": 0
+     },
+     {
+      "r": "c-fraco#3",
+      "valida": true,
+      "variante": "depois",
+      "primeira": 1921,
+      "primeiraUtil": 1921,
+      "primeiroTexto": "Clients are the most social cat",
+      "n50": 3,
+      "n100": 2,
+      "somaMs": 1041,
+      "cpuFalaProc": 129.93482164416642,
+      "cpuFalaPrinc": 3.742669300845132,
+      "cpuFalaFora": 126.19215234332128,
+      "cpuSilProc": 6.25645565884609,
+      "cpuSilFora": 4.822930500221329,
+      "rtfP95": 0.12864999999999996,
+      "parciais": 6,
+      "decodes": 16,
+      "mts": 9,
+      "trocas": 0,
+      "memMb": 1181,
+      "fimATrad": 1172.5,
+      "perdidas": 0
+     },
+     {
+      "r": "c-fraco#4",
+      "valida": true,
+      "variante": "depois",
+      "primeira": 2066,
+      "primeiraUtil": 2066,
+      "primeiroTexto": "Lions are the most social cat",
+      "n50": 4,
+      "n100": 2,
+      "somaMs": 1218,
+      "cpuFalaProc": 130.21948259707017,
+      "cpuFalaPrinc": 3.731910322919761,
+      "cpuFalaFora": 126.48757227415041,
+      "cpuSilProc": 6.478302025242151,
+      "cpuSilFora": 4.972196947461111,
+      "rtfP95": 0.10794999999999999,
+      "parciais": 7,
+      "decodes": 16,
+      "mts": 10,
+      "trocas": 0,
+      "memMb": 1249,
+      "fimATrad": 1170,
+      "perdidas": 0
+     },
+     {
+      "r": "c-fraco#5",
+      "valida": true,
+      "variante": "depois",
+      "primeira": 1994,
+      "primeiraUtil": 1994,
+      "primeiroTexto": "Lions are the most social cat",
+      "n50": 3,
+      "n100": 2,
+      "somaMs": 1008,
+      "cpuFalaProc": 127.79054128420171,
+      "cpuFalaPrinc": 3.6497369521671175,
+      "cpuFalaFora": 124.14080433203459,
+      "cpuSilProc": 5.97291096336854,
+      "cpuSilFora": 4.559268674227618,
+      "rtfP95": 0.1013,
+      "parciais": 6,
+      "decodes": 16,
+      "mts": 9,
+      "trocas": 0,
+      "memMb": 1194,
+      "fimATrad": 1151.5,
+      "perdidas": 0
+     },
+     {
+      "r": "c-fraco#6",
+      "valida": true,
+      "variante": "depois",
+      "primeira": 2075,
+      "primeiraUtil": 2075,
+      "primeiroTexto": "Ions are the most social cat.",
+      "n50": 2,
+      "n100": 2,
+      "somaMs": 1084,
+      "cpuFalaProc": 128.48940347951998,
+      "cpuFalaPrinc": 3.7721440951273557,
+      "cpuFalaFora": 124.71725938439262,
+      "cpuSilProc": 6.097190927957279,
+      "cpuSilFora": 4.709598280462467,
+      "rtfP95": 0.1142,
+      "parciais": 6,
+      "decodes": 16,
+      "mts": 8,
+      "trocas": 0,
+      "memMb": 1177,
+      "fimATrad": 1192,
+      "perdidas": 0
+     }
+    ]
+   }
+  },
+  "desktop": {
+   "antes": {
+    "rodadas": 4,
+    "decisao": {
+     "primeira": {
+      "mediana": 2321,
+      "min": 1191,
+      "max": 2355
+     },
+     "primeiraUtil": {
+      "mediana": 2321,
+      "min": 1191,
+      "max": 2355
+     },
+     "n50": {
+      "mediana": 1,
+      "min": 1,
+      "max": 1
+     },
+     "n100": {
+      "mediana": 1,
+      "min": 1,
+      "max": 1
+     },
+     "somaMs": {
+      "mediana": 251.5,
+      "min": 232,
+      "max": 291
+     },
+     "cpuFalaProc": {
+      "mediana": 139.71669274745352,
+      "min": 113.69267696762664,
+      "max": 146.9096266276907
+     },
+     "cpuFalaPrinc": {
+      "mediana": 9.355448321913132,
+      "min": 8.790267145405688,
+      "max": 10.013987067056428
+     },
+     "cpuFalaFora": {
+      "mediana": 130.5074790857629,
+      "min": 104.60994050177591,
+      "max": 136.89563956063427
+     },
+     "cpuSilProc": {
+      "mediana": 15.425326686524286,
+      "min": 14.895839180037882,
+      "max": 18.891812715875673
+     },
+     "cpuSilFora": {
+      "mediana": 11.503171516678773,
+      "min": 11.209004941736376,
+      "max": 13.974977612894987
+     },
+     "rtfP95": {
+      "mediana": 0.1794,
+      "min": 0.1719,
+      "max": 0.19954999999999995
+     },
+     "parciais": {
+      "mediana": 18.5,
+      "min": 11,
+      "max": 21
+     },
+     "decodes": {
+      "mediana": 33.5,
+      "min": 23,
+      "max": 34
+     },
+     "mts": {
+      "mediana": 20,
+      "min": 15,
+      "max": 22
+     },
+     "trocas": {
+      "mediana": 0,
+      "min": 0,
+      "max": 0
+     },
+     "memMb": {
+      "mediana": 1202.5,
+      "min": 1181,
+      "max": 1209
+     },
+     "fimATrad": {
+      "mediana": 745.25,
+      "min": 663.5,
+      "max": 907.5
+     }
+    },
+    "rtfFalasSomadas": {
+     "p50": 0.0885,
+     "p95": 0.1819
+    },
+    "bancada": {
+     "framesLongos.n50": 1,
+     "framesLongos.n100": 1,
+     "framesLongos.somaMs": 251.5,
+     "framesLongos.maiorMs": 251.5,
+     "primeiraLegendaMs": 2321,
+     "sttProntoMs": -708,
+     "memoriaPicoMb": 1202.5,
+     "heapPicoMb": 28.5,
+     "cpuSilencio.processoPct": 15.425326686524286,
+     "cpuSilencio.principalPct": 3.922155169845513,
+     "cpuSilencio.foraDaPrincipalPct": 11.503171516678773,
+     "cpuSilencio.workersPct": null,
+     "rendersPorS.silencio": 30.251627926022366,
+     "rendersPorS.fala": 143.51029252437704,
+     "commitsPorS.silencio": 1.0083875975340788,
+     "commitsPorS.fala": 2.9794149512459374,
+     "fimATraducao.p50": 745.25,
+     "regulador.trocasDeModelo": 0,
+     "rtf.p50": 0.0885,
+     "rtf.p95": 0.1819
+    },
+    "porRodada": [
+     {
+      "r": "c-desktop#1",
+      "valida": true,
+      "variante": "antes",
+      "primeira": 1191,
+      "primeiraUtil": 1191,
+      "primeiroTexto": "The most of",
+      "n50": 1,
+      "n100": 1,
+      "somaMs": 291,
+      "cpuFalaProc": 113.69267696762664,
+      "cpuFalaPrinc": 9.082736465850735,
+      "cpuFalaFora": 104.60994050177591,
+      "cpuSilProc": 15.248800561439307,
+      "cpuSilFora": 11.360877886946518,
+      "rtfP95": 0.19954999999999995,
+      "parciais": 11,
+      "decodes": 23,
+      "mts": 15,
+      "trocas": 0,
+      "memMb": 1207,
+      "fimATrad": 907.5,
+      "perdidas": 0
+     },
+     {
+      "r": "c-desktop#2",
+      "valida": true,
+      "variante": "antes",
+      "primeira": 2333,
+      "primeiraUtil": 2333,
+      "primeiroTexto": "The hands are the most social cats.",
+      "n50": 1,
+      "n100": 1,
+      "somaMs": 232,
+      "cpuFalaProc": 143.79908565072301,
+      "cpuFalaPrinc": 9.628160177975529,
+      "cpuFalaFora": 134.17092547274748,
+      "cpuSilProc": 14.895839180037882,
+      "cpuSilFora": 11.209004941736376,
+      "rtfP95": 0.17895,
+      "parciais": 21,
+      "decodes": 34,
+      "mts": 22,
+      "trocas": 0,
+      "memMb": 1181,
+      "fimATrad": 663.5,
+      "perdidas": 0
+     },
+     {
+      "r": "c-desktop#3",
+      "valida": true,
+      "variante": "antes",
+      "primeira": 2355,
+      "primeiraUtil": 2355,
+      "primeiroTexto": "Ends are the most social cats.",
+      "n50": 1,
+      "n100": 1,
+      "somaMs": 236,
+      "cpuFalaProc": 135.634299844184,
+      "cpuFalaPrinc": 8.790267145405688,
+      "cpuFalaFora": 126.8440326987783,
+      "cpuSilProc": 15.601852811609266,
+      "cpuSilFora": 11.645465146411029,
+      "rtfP95": 0.1719,
+      "parciais": 20,
+      "decodes": 34,
+      "mts": 21,
+      "trocas": 0,
+      "memMb": 1209,
+      "fimATrad": 664.5,
+      "perdidas": 0
+     },
+     {
+      "r": "c-desktop#4",
+      "valida": true,
+      "variante": "antes",
+      "primeira": 2309,
+      "primeiraUtil": 2309,
+      "primeiroTexto": "Lions are the most social cats.",
+      "n50": 1,
+      "n100": 1,
+      "somaMs": 267,
+      "cpuFalaProc": 146.9096266276907,
+      "cpuFalaPrinc": 10.013987067056428,
+      "cpuFalaFora": 136.89563956063427,
+      "cpuSilProc": 18.891812715875673,
+      "cpuSilFora": 13.974977612894987,
+      "rtfP95": 0.17984999999999998,
+      "parciais": 17,
+      "decodes": 33,
+      "mts": 19,
+      "trocas": 0,
+      "memMb": 1198,
+      "fimATrad": 826,
+      "perdidas": 0
+     }
+    ]
+   },
+   "depois": {
+    "rodadas": 4,
+    "decisao": {
+     "primeira": {
+      "mediana": 1735.5,
+      "min": 1151,
+      "max": 2343
+     },
+     "primeiraUtil": {
+      "mediana": 1735.5,
+      "min": 1151,
+      "max": 2343
+     },
+     "n50": {
+      "mediana": 1,
+      "min": 1,
+      "max": 1
+     },
+     "n100": {
+      "mediana": 1,
+      "min": 1,
+      "max": 1
+     },
+     "somaMs": {
+      "mediana": 242.5,
+      "min": 189,
+      "max": 276
+     },
+     "cpuFalaProc": {
+      "mediana": 98.75599199852915,
+      "min": 85.006343535122,
+      "max": 138.27339509659927
+     },
+     "cpuFalaPrinc": {
+      "mediana": 8.545581167625752,
+      "min": 7.942869048155322,
+      "max": 9.351645287228111
+     },
+     "cpuFalaFora": {
+      "mediana": 90.10873483083745,
+      "min": 76.75285829850343,
+      "max": 129.43571799796635
+     },
+     "cpuSilProc": {
+      "mediana": 15.84873858455729,
+      "min": 13.95572717243166,
+      "max": 17.841107425363546
+     },
+     "cpuSilFora": {
+      "mediana": 11.762259942103103,
+      "min": 10.442001427737,
+      "max": 13.013753508548032
+     },
+     "rtfP95": {
+      "mediana": 0.13629999999999995,
+      "min": 0.10664999999999998,
+      "max": 0.18264999999999998
+     },
+     "parciais": {
+      "mediana": 8.5,
+      "min": 6,
+      "max": 23
+     },
+     "decodes": {
+      "mediana": 20,
+      "min": 16,
+      "max": 34
+     },
+     "mts": {
+      "mediana": 12,
+      "min": 7,
+      "max": 25
+     },
+     "trocas": {
+      "mediana": 0,
+      "min": 0,
+      "max": 0
+     },
+     "memMb": {
+      "mediana": 1267,
+      "min": 1160,
+      "max": 1329
+     },
+     "fimATrad": {
+      "mediana": 974,
+      "min": 818.5,
+      "max": 1199
+     }
+    },
+    "rtfFalasSomadas": {
+     "p50": 0.0805,
+     "p95": 0.16319999999999998
+    },
+    "bancada": {
+     "framesLongos.n50": 1,
+     "framesLongos.n100": 1,
+     "framesLongos.somaMs": 242.5,
+     "framesLongos.maiorMs": 242.5,
+     "primeiraLegendaMs": 1735.5,
+     "sttProntoMs": -730,
+     "memoriaPicoMb": 1267,
+     "heapPicoMb": 28,
+     "cpuSilencio.processoPct": 15.84873858455729,
+     "cpuSilencio.principalPct": 4.086478642454187,
+     "cpuSilencio.foraDaPrincipalPct": 11.762259942103103,
+     "cpuSilencio.workersPct": null,
+     "rendersPorS.silencio": 30.42041943052268,
+     "rendersPorS.fala": 116.98808234019502,
+     "commitsPorS.silencio": 1.0140139810174227,
+     "commitsPorS.fala": 2.6327193932827737,
+     "fimATraducao.p50": 974,
+     "regulador.trocasDeModelo": 0,
+     "rtf.p50": 0.0805,
+     "rtf.p95": 0.16319999999999998
+    },
+    "porRodada": [
+     {
+      "r": "c-desktop#1",
+      "valida": true,
+      "variante": "depois",
+      "primeira": 1154,
+      "primeiraUtil": 1154,
+      "primeiroTexto": "The science are the most",
+      "n50": 1,
+      "n100": 1,
+      "somaMs": 189,
+      "cpuFalaProc": 92.8422353597323,
+      "cpuFalaPrinc": 9.351645287228111,
+      "cpuFalaFora": 83.49059007250419,
+      "cpuSilProc": 16.16012946228289,
+      "cpuSilFora": 11.993219252707807,
+      "rtfP95": 0.13139999999999996,
+      "parciais": 6,
+      "decodes": 16,
+      "mts": 7,
+      "trocas": 0,
+      "memMb": 1261,
+      "fimATrad": 1199,
+      "perdidas": 0
+     },
+     {
+      "r": "c-desktop#2",
+      "valida": true,
+      "variante": "depois",
+      "primeira": 2343,
+      "primeiraUtil": 2343,
+      "primeiroTexto": "The hands are the most social cats.",
+      "n50": 1,
+      "n100": 1,
+      "somaMs": 245,
+      "cpuFalaProc": 138.27339509659927,
+      "cpuFalaPrinc": 8.837677098632923,
+      "cpuFalaFora": 129.43571799796635,
+      "cpuSilProc": 17.841107425363546,
+      "cpuSilFora": 13.013753508548032,
+      "rtfP95": 0.18264999999999998,
+      "parciais": 23,
+      "decodes": 34,
+      "mts": 25,
+      "trocas": 0,
+      "memMb": 1160,
+      "fimATrad": 985,
+      "perdidas": 0
+     },
+     {
+      "r": "c-desktop#3",
+      "valida": true,
+      "variante": "depois",
+      "primeira": 2317,
+      "primeiraUtil": 2317,
+      "primeiroTexto": "Lions are the most social cats.",
+      "n50": 1,
+      "n100": 1,
+      "somaMs": 240,
+      "cpuFalaProc": 104.66974863732601,
+      "cpuFalaPrinc": 7.942869048155322,
+      "cpuFalaFora": 96.7268795891707,
+      "cpuSilProc": 15.537347706831692,
+      "cpuSilFora": 11.531300631498398,
+      "rtfP95": 0.14119999999999994,
+      "parciais": 11,
+      "decodes": 24,
+      "mts": 15,
+      "trocas": 0,
+      "memMb": 1273,
+      "fimATrad": 818.5,
+      "perdidas": 0
+     },
+     {
+      "r": "c-desktop#4",
+      "valida": true,
+      "variante": "depois",
+      "primeira": 1151,
+      "primeiraUtil": 1151,
+      "primeiroTexto": "I am the most.",
+      "n50": 1,
+      "n100": 1,
+      "somaMs": 276,
+      "cpuFalaProc": 85.006343535122,
+      "cpuFalaPrinc": 8.253485236618578,
+      "cpuFalaFora": 76.75285829850343,
+      "cpuSilProc": 13.95572717243166,
+      "cpuSilFora": 10.442001427737,
+      "rtfP95": 0.10664999999999998,
+      "parciais": 6,
+      "decodes": 16,
+      "mts": 9,
+      "trocas": 0,
+      "memMb": 1329,
+      "fimATrad": 963,
+      "perdidas": 0
+     }
+    ]
+   }
+  }
+ }
+}

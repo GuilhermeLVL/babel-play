@@ -1,8 +1,11 @@
 import { apiFetch } from '../../data/api';
 import { edicaoEstatica } from '../../lib/edicaoEstatica';
+import { alivioAceito, cabecalhoDoAlivio, registrarRecusaDoAlivio } from '../../lib/nuvemDeAlivio/estado';
 import { sinalizarRecusaDaNuvem } from '../../lib/ofertas/eventos';
+import { nuanceDasPreferencias } from '../../lib/traducao/preferenciasDaNuance';
+import { registrarRecusaDoUsoJusto } from '../../lib/usoJustoDoDia';
 import type { MtResult, TranslationProvider } from '../capabilities';
-import { PausaDaNuvem } from '../pausaDaNuvem';
+import { PAUSA_MAXIMA_MS, PausaDaNuvem } from '../pausaDaNuvem';
 
 /**
  * Tradução via LLM no SERVIDOR (Groq) — o elo de qualidade da cadeia de MT quando os
@@ -44,13 +47,17 @@ export class ServerLlmMt implements TranslationProvider {
     // este adaptador se marca indisponível — a tradução cai para o caminho local, como deve.
     const res = await apiFetch('/api/ai/mt', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      /* A NUVEM DE ALÍVIO (A10): o cabeçalho só vai depois do "Usar a nuvem grátis". */
+      headers: { 'Content-Type': 'application/json', ...cabecalhoDoAlivio() },
       body: JSON.stringify({
         text,
         src: src || undefined,
         tgt,
         contexto: opts?.contexto?.slice(-3),
         falada: opts?.falada === true,
+        /* A TRADUÇÃO NUANCE (D2/D6): o registro padrão e a variante dos Ajustes, só fora do padrão e
+           só para quem tem a capacidade. Sem `nivel`: a legenda ao vivo fica na rápida (D1). */
+        ...nuanceDasPreferencias(tgt),
       }),
       signal: opts?.signal,
     });
@@ -60,8 +67,29 @@ export class ServerLlmMt implements TranslationProvider {
     }
     /* 429 `nuvem_ocupada` (admissão do servidor), 402 (plano/cota) e 503 (portão, Pages sem
        API_ORIGIN): pausa pelo `Retry-After`. 5xx avulso: só conta — o terceiro seguido pausa. */
+    /* O ALÍVIO RECUSADO (A10): o 403 do perfil protegido e as recusas com código do alívio pausam pelo
+       teto — a tradução segue no motor local, sem perguntar de novo a cada fala e sem oferta de venda. */
+    if (alivioAceito() && res.status >= 400) {
+      const corpo: unknown =
+        typeof res.clone === 'function'
+          ? await res
+              .clone()
+              .json()
+              .catch(() => null)
+          : null;
+      if (registrarRecusaDoAlivio(res.status, corpo) || res.status === 403) this.pausa.pausar(PAUSA_MAXIMA_MS);
+    }
     if (res.status === 402 || res.status === 429 || res.status >= 500) {
       this.pausa.falha(res.status, res.headers?.get?.('retry-after'));
+      /* O USO JUSTO DO DIA (429 `uso_justo_do_dia`, matriz v2): a pausa acima já vale; sai o aviso
+         funcional, uma vez por dia — e nada de venda (o 429 não é momento de oferta). */
+      if (res.status === 429 && typeof res.clone === 'function') {
+        const corpo: unknown = await res
+          .clone()
+          .json()
+          .catch(() => null);
+        registrarRecusaDoUsoJusto(res.status, corpo);
+      }
       /* O 402 não é mais silencioso: cota acabada ou plano insuficiente viram um MOMENTO de oferta
          (Fase 8). O host espera a captura acabar para mostrar — a tradução segue no motor local. */
       void sinalizarRecusaDaNuvem(res, 'traducao');

@@ -10,6 +10,8 @@ import { DEFAULT_PROFILE_ID, getBuiltinProfile } from '../gateway/profiles';
 import { getSttQuality, routeStt, tamanhoDoDownloadMb } from '../gateway/sttRouter';
 import { consentiuNuvem } from '../lib/consentimentoDeNuvem';
 import { dispositivoDaRota, perfilDoDispositivo } from '../lib/dispositivo/perfil';
+import type { SondaDoAparelho } from '../lib/dispositivo/sonda';
+import { useSondaGuardada } from '../lib/dispositivo/useSondaGuardada';
 import { edicaoEstatica } from '../lib/edicaoEstatica';
 import { t } from '../lib/i18n';
 import { toast } from './Toast';
@@ -48,7 +50,7 @@ function lerCredencial(): string | null {
 }
 
 /** O tamanho do modelo local, estimado como a apresentação estima (o download é na 1ª captura). */
-function mbDoModelo(): number | null {
+function mbDoModelo(sonda: SondaDoAparelho | null): number | null {
   try {
     const rota = routeStt({
       contentLang: 'en',
@@ -57,7 +59,7 @@ function mbDoModelo(): number | null {
       hasWebGpu: webGpuProvavel(),
       cloudAvailable: false,
       profileId: DEFAULT_PROFILE_ID,
-      dispositivo: dispositivoDaRota(perfilDoDispositivo()),
+      dispositivo: dispositivoDaRota(perfilDoDispositivo(), sonda),
     });
     // O tamanho do DTYPE da rota: no celular/Quest o base vai em q8 (80 MB, não 209).
     return tamanhoDoDownloadMb(rota.localModel, rota.dtype);
@@ -99,7 +101,8 @@ export default function AiEnginePanel({
   const [result, setResult] = useState<{ text: string; engine: string } | null>(null);
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [error, setError] = useState('');
-  const mb = useMemo(mbDoModelo, []);
+  const sonda = useSondaGuardada();
+  const mb = useMemo(() => mbDoModelo(sonda), [sonda]);
 
   const profile = getBuiltinProfile(activeId);
   const gateway = useMemo(
@@ -216,7 +219,7 @@ export default function AiEnginePanel({
               className={`cartao opcao ${nuvem ? 'sel' : ''}`}
               aria-pressed={nuvem}
               disabled={bloqueadaNuvem}
-              title={bloqueadaNuvem ? 'Disponível no plano Pro' : undefined}
+              title={bloqueadaNuvem ? 'Disponível no plano Premium' : undefined}
               onClick={() => void escolherNuvem()}
             >
               <span className="radio" aria-hidden="true" />
@@ -225,7 +228,7 @@ export default function AiEnginePanel({
                 <h3>
                   Usar a sua chave (nuvem){' '}
                   <span className="badge rare" style={{ marginLeft: 6 }}>
-                    {bloqueadaNuvem ? 'Pro' : 'BYO key'}
+                    {bloqueadaNuvem ? 'Premium' : 'BYO key'}
                   </span>
                 </h3>
                 <p>OpenAI, Groq, OpenRouter… Melhor qualidade, sem baixar modelo. A chave fica cifrada no servidor.</p>

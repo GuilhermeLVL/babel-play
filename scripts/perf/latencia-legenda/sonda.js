@@ -12,7 +12,11 @@
  *  - `aud`  : a cada 20 ms, RMS e razão de Goertzel em 2 kHz do MESMO áudio que o app recebe (um
  *             AudioWorklet pendurado no stream do getUserMedia/getDisplayMedia). É daqui que sai a
  *             ÂNCORA do relógio: o bipe de 2 kHz que `montar-audio.mjs` põe antes da primeira fala;
- *  - `loaf` : Long Animation Frames (> 50 ms) com atribuição de script — custo de render no main thread.
+ *  - `loaf` : Long Animation Frames (> 50 ms) com atribuição de script — custo de render no main thread
+ *             (`longtask` onde o navegador não tem LoAF; `L.tipoFrameLongo` diz qual);
+ *  - `rc`   : cada COMMIT do React, `[t, componentes que renderizaram nele]` — os renders/s da tela
+ *             (bancada de desempenho da captura, A0). Vem do gancho do React DevTools, que o react-dom
+ *             de PRODUÇÃO também chama; nada disso existe no bundle nem sem a sonda.
  *
  * Configuração (argumento do addInitScript): { modo: 'mic' | 'sistema', semWebGpu: boolean }.
  *  - modo 'mic': `getDisplayMedia` é recusado (NotAllowedError) — a captura do sistema falha e o
@@ -25,7 +29,7 @@
 // eslint-disable-next-line @typescript-eslint/no-unused-expressions -- expressão lida como texto por medir.mjs
 (cfg) => {
   cfg = cfg || {};
-  const L = (window.__lat = { ev: [], dom: [], aud: [], loaf: [], cfg });
+  const L = (window.__lat = { ev: [], dom: [], aud: [], loaf: [], rc: [], cfg });
   const now = () => performance.now();
   const ev = (k, o) => {
     L.ev.push(Object.assign({ t: now(), k }, o || {}));
@@ -270,6 +274,9 @@ registerProcessor('sonda-lat', SondaLat);`;
     }).observe(document.documentElement, { subtree: true, childList: true, characterData: true, attributes: true });
   } catch {}
   try {
+    // LoAF desde o Chromium 123; `longtask` (só a duração da tarefa) onde ele não existir.
+    const tipos = PerformanceObserver.supportedEntryTypes || [];
+    L.tipoFrameLongo = tipos.includes('long-animation-frame') ? 'long-animation-frame' : 'longtask';
     new PerformanceObserver((lista) => {
       for (const e of lista.getEntries()) {
         if (e.duration < 50) continue;
@@ -285,6 +292,46 @@ registerProcessor('sonda-lat', SondaLat);`;
           ),
         });
       }
-    }).observe({ type: 'long-animation-frame', buffered: true });
+    }).observe({ type: L.tipoFrameLongo, buffered: true });
   } catch {}
+
+  // ---------------------------------------------------------------- React: commits e renders
+  // O react-dom de produção chama `__REACT_DEVTOOLS_GLOBAL_HOOK__.onCommitFiberRoot` a cada commit (é
+  // por aí que a extensão inspeciona sites publicados). Instalado ANTES do app, este gancho conta os
+  // commits e, em cada um, os componentes que renderizaram de fato. Critério do próprio DevTools:
+  // fibra montada agora (sem `alternate`) ou com a flag PerformedWork (1); subárvore cujo filho é o
+  // MESMO objeto da árvore anterior não foi tocada neste commit e nem é percorrida — o custo fica
+  // proporcional ao que renderizou. Tags contadas: Function (0), Class (1), ForwardRef (11),
+  // SimpleMemo (15); o Memo (14) embrulha uma fibra que já conta.
+  if (!window.__REACT_DEVTOOLS_GLOBAL_HOOK__) {
+    const COMPONENTE = new Set([0, 1, 11, 15]);
+    const contar = (raiz) => {
+      let n = 0;
+      const pilha = [raiz.current];
+      while (pilha.length) {
+        const f = pilha.pop();
+        const alt = f.alternate;
+        if (COMPONENTE.has(f.tag) && (alt === null || (f.flags & 1) !== 0)) n++;
+        if (f.child && !(alt && alt.child === f.child)) for (let c = f.child; c; c = c.sibling) pilha.push(c);
+      }
+      return n;
+    };
+    const renderers = new Map();
+    window.__REACT_DEVTOOLS_GLOBAL_HOOK__ = {
+      supportsFiber: true,
+      renderers,
+      inject(r) {
+        renderers.set(renderers.size + 1, r);
+        return renderers.size;
+      },
+      onCommitFiberRoot(_id, raiz) {
+        try {
+          L.rc.push([Math.round(now()), contar(raiz)]);
+        } catch {}
+      },
+      onCommitFiberUnmount() {},
+      onPostCommitFiberRoot() {},
+      checkDCE() {},
+    };
+  }
 };

@@ -9,6 +9,9 @@
     "managedCloudLlm": "boolean",
     "managedCloudStt": "boolean",
     "plan": "string",
+    "teste": "null",
+    "traducaoNuance": "boolean",
+    "vozNatural": "boolean",
     "youtubeImport": "boolean"
   }
 }

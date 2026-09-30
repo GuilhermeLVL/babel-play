@@ -25,6 +25,18 @@
  * seguidos de folga). Entre os dois limiares de RTF (0,5 e 0,8) nada muda — sem isso o regulador
  * oscilaria entre dois modelos a cada troca, e cada troca custa recarregar pesos.
  *
+ * OS SINAIS RÁPIDOS ("Grátis sem travar", 2026-09-29). Só com o final, o regulador reagia tarde: um
+ * final por fala, a cada vários segundos, e três deles até o primeiro degrau — no aparelho fraco a
+ * ABA já tinha congelado antes. Por isso:
+ *   · `travamento` — o main thread ficou bloqueado ≥ 400 ms numa janela de 10 s (quadros longos, pelo
+ *     `PerformanceObserver`; ver `lib/captura/vigiaDoMainThread.ts`). É o sintoma que a pessoa sente,
+ *     não o do modelo: a legenda pode até chegar, mas a tela não responde;
+ *   · o caso GRAVE — RTF do trecho > 1,5 com fila: não há o que esperar, desce no primeiro final;
+ *   · o PARCIAL (`origem: 'parcial'`) — chega bem mais vezes que o final e é julgado pela LATÊNCIA
+ *     (> 1,5 s é ruim), não pelo RTF: ele redecodifica o áudio que cresce, e a razão decode/áudio dele
+ *     não é a do final;
+ *   · o aparelho LEVE (`configDoReguladorPara`) desce com 2 trechos e 6 s entre degraus.
+ *
  * Todos os números estão em `CONFIG_PADRAO_DO_REGULADOR`; vêm do desenho e são A CALIBRAR com
  * telemetria real por classe de aparelho.
  */
@@ -45,7 +57,8 @@ export type MotivoDoRegulador =
   | 'device-lost'
   | 'folga'
   | 'escondida'
-  | 'visivel';
+  | 'visivel'
+  | 'travamento';
 
 /** O estado da CPU pelo `PressureObserver` (Chromium desktop). */
 export type PressaoDeCpu = 'nominal' | 'fair' | 'serious' | 'critical';
@@ -69,6 +82,16 @@ export interface EntradaDoRegulador {
   modoSoOuvir: boolean;
   /** Relógio monotônico do chamador (ms). */
   agoraMs: number;
+  /**
+   * Quanto o main thread ficou BLOQUEADO (ms) na janela `janelaDeBloqueioMs` que acabou agora — a soma
+   * do tempo de bloqueio dos quadros longos. Ausente = o navegador não mede (sem LoAF nem longtask).
+   */
+  bloqueioDoMainMs?: number;
+  /**
+   * De onde vem a medida. `'parcial'` é só uma amostra de LATÊNCIA (`latenciaMs` = o decode do parcial)
+   * e dos sinais do ambiente: `rtf`, `filaPendente` e `modoSoOuvir` não valem nela. Ausente = final.
+   */
+  origem?: 'final' | 'parcial';
 }
 
 export interface ConfigDoRegulador {
@@ -105,6 +128,14 @@ export interface ConfigDoRegulador {
   outroBackendMaisRapido: boolean;
   /** Quantos modelos menores existem abaixo do atual (small → base → tiny = 2). */
   modelosMenores: number;
+  /** RTF do trecho ACIMA disto, com fila, desce já no primeiro final (o caso grave). */
+  rtfSevero: number;
+  /** Parcial que levou mais que isto (ms) conta como lento. */
+  latenciaParcialMaxMs: number;
+  /** Bloqueio do main thread na janela a partir do qual a tela conta como travada (ms). */
+  bloqueioMaximoMs: number;
+  /** A janela em que o bloqueio é somado (ms) — quem mede o bloqueio usa este número. */
+  janelaDeBloqueioMs: number;
 }
 
 /** Padrões do desenho (§4). A calibrar com telemetria por classe de aparelho. */
@@ -122,13 +153,32 @@ export const CONFIG_PADRAO_DO_REGULADOR: ConfigDoRegulador = {
   intervaloEntreDescidasMs: 10_000,
   outroBackendMaisRapido: false,
   modelosMenores: 2,
+  rtfSevero: 1.5,
+  latenciaParcialMaxMs: 1_500,
+  bloqueioMaximoMs: 400,
+  janelaDeBloqueioMs: 10_000,
 };
+
+/**
+ * A config por aparelho. No LEVE (Quest, celular fraco, desktop de 2 núcleos — `leve` do perfil em
+ * `lib/dispositivo/perfil.ts`, que entra aqui pelo formato para o núcleo não depender do navegador)
+ * o aparelho não tem margem: esperar 3 trechos e 10 s por degrau é deixar a fila crescer e a tela
+ * travar enquanto o regulador ainda "confirma". Desce com 2 trechos e 6 s entre degraus — 6 s ainda
+ * cobrem a carga de um modelo menor já baixado. Os outros aparelhos ficam com o padrão, intocado.
+ */
+export function configDoReguladorPara(perfil: { leve: boolean }): ConfigDoRegulador {
+  return perfil.leve
+    ? { ...CONFIG_PADRAO_DO_REGULADOR, trechosParaDescer: 2, intervaloEntreDescidasMs: 6_000 }
+    : { ...CONFIG_PADRAO_DO_REGULADOR };
+}
 
 export interface EstadoDoRegulador {
   /** Média móvel exponencial do RTF; `null` antes do primeiro trecho. */
   rtfEwma: number | null;
   /** Trechos seguidos com a média acima de `rtfDescer`. */
   ruinsSeguidos: number;
+  /** Parciais seguidos acima de `latenciaParcialMaxMs` (contagem À PARTE: são outro sinal). */
+  parciaisLentosSeguidos: number;
   /** Últimas latências (janela deslizante). */
   latencias: number[];
   /** Quantos passos da escada estão aplicados (0 = tudo no máximo). */
@@ -155,6 +205,7 @@ export function estadoInicialDoRegulador(): EstadoDoRegulador {
   return {
     rtfEwma: null,
     ruinsSeguidos: 0,
+    parciaisLentosSeguidos: 0,
     latencias: [],
     nivel: 0,
     ultimaDescidaMs: null,
@@ -190,11 +241,16 @@ export function regular(
   const config = { ...CONFIG_PADRAO_DO_REGULADOR, ...parcial };
   const estado: EstadoDoRegulador = { ...anterior, latencias: [...anterior.latencias] };
   const agora = entrada.agoraMs;
+  const doParcial = entrada.origem === 'parcial';
 
-  /* ABA ESCONDIDA: pausar o STT, a menos que a pessoa esteja em "só ouvir". Enquanto pausado não se
-     mede nada — trecho que chega nesse intervalo não diz nada sobre o aparelho em uso normal — e a
-     folga recomeça do zero: estar escondido não é evidência de que o aparelho aguenta mais. */
-  if (!entrada.visivel && !entrada.modoSoOuvir) {
+  /* O PARCIAL NÃO DECIDE A PAUSA: ele não sabe se a aba escondida é "só ouvir" (a captura do sistema
+     ligada) — quem sabe é o final. Com o regulador pausado, ele é ignorado como qualquer medida. */
+  if (doParcial) {
+    if (estado.pausado) return { estado, acoes: [], motivos: [] };
+  } else if (!entrada.visivel && !entrada.modoSoOuvir) {
+    /* ABA ESCONDIDA: pausar o STT, a menos que a pessoa esteja em "só ouvir". Enquanto pausado não se
+       mede nada — trecho que chega nesse intervalo não diz nada sobre o aparelho em uso normal — e a
+       folga recomeça do zero: estar escondido não é evidência de que o aparelho aguenta mais. */
     estado.inicioDaFolgaMs = null;
     if (estado.pausado) return { estado, acoes: [], motivos: [] };
     estado.pausado = true;
@@ -208,14 +264,21 @@ export function regular(
     motivos.push('visivel');
   }
 
-  // Monitorar: média móvel, janela de latência, contadores.
-  estado.trechos += 1;
-  estado.rtfEwma =
-    estado.rtfEwma === null ? entrada.rtf : config.alfaEwma * entrada.rtf + (1 - config.alfaEwma) * estado.rtfEwma;
-  estado.ruinsSeguidos = estado.rtfEwma > config.rtfDescer ? estado.ruinsSeguidos + 1 : 0;
-  estado.latencias.push(entrada.latenciaMs);
-  if (estado.latencias.length > config.janelaDeLatencia)
-    estado.latencias.splice(0, estado.latencias.length - config.janelaDeLatencia);
+  if (doParcial) {
+    /* Parcial: só a latência, numa contagem À PARTE. Não toca a média do RTF nem a janela dos finais —
+       misturar as duas medidas faria um parcial rápido (áudio curto) "absolver" um final lento. */
+    estado.parciaisLentosSeguidos =
+      entrada.latenciaMs > config.latenciaParcialMaxMs ? estado.parciaisLentosSeguidos + 1 : 0;
+  } else {
+    // Monitorar: média móvel, janela de latência, contadores.
+    estado.trechos += 1;
+    estado.rtfEwma =
+      estado.rtfEwma === null ? entrada.rtf : config.alfaEwma * entrada.rtf + (1 - config.alfaEwma) * estado.rtfEwma;
+    estado.ruinsSeguidos = estado.rtfEwma > config.rtfDescer ? estado.ruinsSeguidos + 1 : 0;
+    estado.latencias.push(entrada.latenciaMs);
+    if (estado.latencias.length > config.janelaDeLatencia)
+      estado.latencias.splice(0, estado.latencias.length - config.janelaDeLatencia);
+  }
   if (entrada.erro) estado.erros += 1;
 
   /* OOM / device.lost: o modelo ATUAL não cabe neste aparelho. O pipeline grava o veto e carrega
@@ -227,16 +290,26 @@ export function regular(
 
   // Analisar: algum gatilho de descida?
   const gatilhos: MotivoDoRegulador[] = [];
-  if (estado.ruinsSeguidos >= config.trechosParaDescer) gatilhos.push('rtf');
-  if (entrada.filaPendente > config.filaMaxima) gatilhos.push('fila');
-  if (
-    estado.latencias.length >= config.minAmostrasDeLatencia &&
-    percentil(estado.latencias, 0.9) > config.latenciaP90MaxMs
-  )
-    gatilhos.push('latencia');
+  if (doParcial) {
+    if (estado.parciaisLentosSeguidos >= config.trechosParaDescer) gatilhos.push('latencia');
+  } else {
+    /* O CASO GRAVE não espera a contagem: o trecho levou mais de 1,5× a própria duração e já há outro
+       na fila — a legenda vai atrasar mais a cada fala, e esperar três finais é deixar a fila crescer. */
+    const grave = entrada.rtf > config.rtfSevero && entrada.filaPendente >= 1;
+    if (estado.ruinsSeguidos >= config.trechosParaDescer || grave) gatilhos.push('rtf');
+    if (entrada.filaPendente > config.filaMaxima) gatilhos.push('fila');
+    if (
+      estado.latencias.length >= config.minAmostrasDeLatencia &&
+      percentil(estado.latencias, 0.9) > config.latenciaP90MaxMs
+    )
+      gatilhos.push('latencia');
+  }
+  // Os sinais do AMBIENTE valem em qualquer medida — e o parcial chega bem mais vezes que o final.
   if (entrada.pressao === 'serious' || entrada.pressao === 'critical') gatilhos.push('pressao');
   if (entrada.bateria && !entrada.bateria.carregando && entrada.bateria.nivel < config.bateriaMinima)
     gatilhos.push('bateria');
+  if (entrada.bloqueioDoMainMs !== undefined && entrada.bloqueioDoMainMs >= config.bloqueioMaximoMs)
+    gatilhos.push('travamento');
 
   // Planejar e executar (devolver a ação).
   const escada = escadaDeDescida(config);
@@ -253,8 +326,16 @@ export function regular(
       /* O passo muda o que se mede: a contagem e a janela recomeçam para julgar o degrau NOVO, e
          não o antigo (senão a latência lenta de antes derrubaria o degrau seguinte de graça). */
       estado.ruinsSeguidos = 0;
+      estado.parciaisLentosSeguidos = 0;
       estado.latencias = [];
     }
+    return { estado, acoes, motivos };
+  }
+
+  /* Parcial não prova folga (decodifica pouco áudio, é sempre mais rápido que o final); parcial LENTO
+     prova o contrário e zera o relógio da subida. */
+  if (doParcial) {
+    if (estado.parciaisLentosSeguidos > 0) estado.inicioDaFolgaMs = null;
     return { estado, acoes, motivos };
   }
 

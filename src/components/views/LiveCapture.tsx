@@ -28,6 +28,7 @@ import {
   Save,
   SlidersHorizontal,
   Snail,
+  Sparkles,
   Square,
   TriangleAlert,
   Type,
@@ -38,13 +39,16 @@ import {
   WandSparkles,
   X,
 } from 'lucide-react';
-import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import React, { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 
+import { configDoReguladorPara } from '../../core/harness/reguladorDeDesempenho';
+import type { MotivoDaOfertaDeAlivio, SinaisDoAparelhoParaAlivio } from '../../core/nuvemDeAlivio';
 import { estadoDoTeto } from '../../core/tetoAnonimo';
 import { deleteSession, fetchSessionTranscript, fetchSettings, patchUiSettings } from '../../data/api';
 import { buildGateway } from '../../gateway';
 import { getActiveProfile, getProviderMode } from '../../gateway/activeProfile';
 import { temAdaptadorWebGpu, webGpuProvavel } from '../../gateway/adaptadorWebGpu';
+import { ID_DO_BERGAMOT_PT_EN } from '../../gateway/adapters/bergamotModelo';
 import type { SttSession } from '../../gateway/capabilities';
 import { capMetrics } from '../../gateway/capture/captureMetrics';
 import {
@@ -89,6 +93,14 @@ import { useFuncaoEstavel, useTextoDaConversa } from '../../lib/captura/conversa
 import { assinarSalvamento, capturaEmRisco, lerSalvamento } from '../../lib/captura/estadoDoSalvamento';
 import { criarFontesDeAudio } from '../../lib/captura/fontesDeAudio';
 import { type PassoDoInicio, planejarInicio } from '../../lib/captura/inicioDaCaptura';
+import {
+  desktopFraco,
+  oferecerLegendaSemBaixar,
+  podePerguntarLegendaSemBaixar,
+  transcricaoNoNavegadorAntesDeGravar,
+  useMotorComIdiomaEscolhido,
+} from '../../lib/captura/legendaSemBaixar';
+import { cancelarLiberacaoDosModelos, liberarModelosDepois } from '../../lib/captura/memoriaDosModelos';
 import { type EscolhaDoMic, webSpeechBipaAoReligar } from '../../lib/captura/motorDoMicrofone';
 import { preparoConcluido } from '../../lib/captura/pacotesNativos';
 // Vocabulário dentro da captura: examinar a palavra, fichar no deck, mandar praticar.
@@ -119,11 +131,13 @@ import { criarRelogioDaSessao, criarTraducaoDaFala } from '../../lib/captura/tra
 import { modoDeTraducao, type PedidoSobDemanda } from '../../lib/captura/traducaoSobDemanda';
 import { usePalavrasConhecidas } from '../../lib/captura/usePalavrasConhecidas';
 import { usePreparoDoInicio } from '../../lib/captura/usePreparoDoInicio';
-import { cenarioDasFontes } from '../../lib/cenarioDeCaptura';
+import { cenarioDasFontes, type CenarioDeCaptura } from '../../lib/cenarioDeCaptura';
 import { consentiuNuvem, rapidoDoMicPermitido, useEscolhaDoMic } from '../../lib/consentimentoDeNuvem';
 import { DominantLangTracker } from '../../lib/convoLang';
 import { classificarDispositivo, dispositivoDaRota, lerSinaisDoDispositivo } from '../../lib/dispositivo/perfil';
+import { useSondaGuardada } from '../../lib/dispositivo/useSondaGuardada';
 import { edicaoEstatica } from '../../lib/edicaoEstatica';
+import { getEntitlements } from '../../lib/entitlements';
 import { marcarOcupacaoDaCaptura } from '../../lib/filaDeRecompensas';
 import { t } from '../../lib/i18n';
 import { estaAnonimo } from '../../lib/identidade';
@@ -137,11 +151,13 @@ import {
   saveLangConfig,
 } from '../../lib/langConfig';
 import { baseLang, langLabel, langLabelNaUI, mtCoverage } from '../../lib/languages';
+import { lazyComRecarga } from '../../lib/lazyComRecarga';
 import { setNavGuard } from '../../lib/navGuard';
 import { OrdemDasTraducoes } from '../../lib/ordemDaTraducao';
 import { usePalavrasAprendidas } from '../../lib/palavrasAprendidas';
 import { destinoDaTraducao, PerfilAdaptativoDeIdioma } from '../../lib/perfilDeIdioma';
 import { coreOnly } from '../../lib/profile';
+import { perfilProtegido } from '../../lib/protecaoDoMenor';
 import { play } from '../../lib/soundFx';
 // Identificação automática de voz (diarização leve): embedding WeSpeaker por enunciado
 // (worker WASM, 6,7MB) + agrupamento online → "Pessoa 1/2/3" com cor própria.
@@ -150,6 +166,7 @@ import { disposeSpeakerId } from '../../lib/speakerId';
 import { DEFAULT_TRANSCRIPT_SETTINGS, permiteSuperficieEscura, TranscriptSettings } from '../../lib/transcriptUtils';
 import { speak as ttsSpeak } from '../../lib/tts';
 // Cenário conversa sem fone: a caixa de som entra pelo mic — detecta e descarta.
+import { aoUsoJustoDoDia } from '../../lib/usoJustoDoDia';
 import { type Intervalo } from '../../lib/vazamento';
 import { Recording, type VocabWord } from '../../types';
 import AvisoDeNuvemSemConsentimento from '../AvisoDeNuvemSemConsentimento';
@@ -169,8 +186,8 @@ import AjudaDoMicrofone from './captura/AjudaDoMicrofone';
 import AvisoDoTradutorLocal from './captura/AvisoDoTradutorLocal';
 import CapturaNaoSalva from './captura/CapturaNaoSalva';
 import CapturaNoCelular from './captura/celular/CapturaNoCelular';
-import FolhaDaFrase, { type FalaTocada } from './captura/celular/FolhaDaFrase';
-import FolhaDaPalavra from './captura/celular/FolhaDaPalavra';
+import FolhaDaFrase, { type FalaTocada, type NuanceNaFolhaDaFrase } from './captura/celular/FolhaDaFrase';
+import FolhaDaPalavra, { type NuanceNaFolhaDaPalavra } from './captura/celular/FolhaDaPalavra';
 import FolhaDeOpcoes from './captura/celular/FolhaDeOpcoes';
 // Subcomponentes locais da captura (um arquivo por componente, em `views/captura/`).
 import EncerrarSessao from './captura/EncerrarSessao';
@@ -178,8 +195,18 @@ import EscolhaDoMicrofone from './captura/EscolhaDoMicrofone';
 import IdiomasDaSessao, { type Lado } from './captura/IdiomasDaSessao';
 import LegendasFlutuantes, { type LegendaAoVivo } from './captura/LegendasFlutuantes';
 import ModeloNoDispositivo, { type ModeloDaCaptura } from './captura/ModeloNoDispositivo';
+import ModoDesempenho from './captura/ModoDesempenho';
+import OndasDoNivel from './captura/OndasDoNivel';
 import TranscriptVisualSettings, { TEMA } from './captura/TranscriptVisualSettings';
 import { CampoLinha, Interruptor, Segmentos } from './vocab/Dialogo';
+
+/* A oferta "Legenda sem baixar nada" só existe no desktop fraco, antes de começar: fora do JS da tela
+   para todo o resto (`lib/captura/legendaSemBaixar.ts`). */
+const LegendaSemBaixar = lazy(() => import('./captura/LegendaSemBaixar'));
+/* A oferta da nuvem grátis para aparelho fraco (A10): só existe no aparelho que precisa dela. */
+const OfertaDaNuvemDeAlivio = lazyComRecarga(() => import('./captura/OfertaDaNuvemDeAlivio'));
+/* A Tradução Nuance da fala no computador (D4 da Fase D): o menu do balão abre um diálogo com ela. */
+const NuanceDaFrase = lazyComRecarga(() => import('./captura/nuance/NuanceDaFrase'));
 
 export default function LiveCapture({
   onSave,
@@ -209,6 +236,13 @@ export default function LiveCapture({
   const setFeedbackMsg = useCallback((msg: string) => {
     if (msg) toast.info(msg);
   }, []);
+  /* O USO JUSTO DO DIA (matriz v2, ADR 0011): a nuvem recusou com 429 `uso_justo_do_dia`, o adaptador
+     já pausou e o aparelho assumiu a legenda; a tela só dá o recado FUNCIONAL, uma vez por dia
+     (`lib/usoJustoDoDia`). Nada de oferta: quem chega aqui já assina. */
+  useEffect(
+    () => aoUsoJustoDoDia(() => setFeedbackMsg(t('A nuvem descansa até amanhã; a legenda segue no aparelho.'))),
+    [setFeedbackMsg],
+  );
   // Diagnóstico de captura do áudio do sistema (botão "Testar").
   const [probe, setProbe] = useState<SystemAudioProbe | null>(null);
   const [probing, setProbing] = useState(false);
@@ -349,8 +383,9 @@ export default function LiveCapture({
   };
   // Velocidade do TTS (escutar tradução/palavra). Persistida em settings.ui.
   const [ttsSpeed, setTtsSpeed] = useState(1.0);
-  // Waveform REAL: histórico de níveis (0..1) que segue o áudio capturado, não animação falsa.
-  const [levels, setLevels] = useState<number[]>(() => new Array(48).fill(0));
+  /* Waveform REAL: o pico do nível (0..1) que segue o áudio capturado, não animação falsa. As fontes
+     escrevem aqui; quem amostra e desenha é `OndasDoNivel`, uma folha com o próprio laço. Antes era um
+     `setLevels` a cada 50 ms AQUI, e esta tela inteira re-renderizava 20 vezes por segundo. */
   const currentLevelRef = useRef(0); // peak-hold do nível instantâneo (as fontes escrevem aqui)
   const meterRef = useRef<{ stop: () => void } | null>(null); // medidor de mic p/ o motor navegador
   const pushLevel = (v: number) => {
@@ -385,6 +420,8 @@ export default function LiveCapture({
      baixam modelos menores (q8) e liberam a memória ao sair da tela. */
   const perfilDoAparelho = useMemo(() => classificarDispositivo(lerSinaisDoDispositivo(temGpu)), [temGpu]);
   const perfilDoAparelhoRef = useRef(perfilDoAparelho);
+  /* A sonda GUARDADA, para as estimativas de download baterem com a rota real (`useSondaGuardada`). */
+  const sondaGuardada = useSondaGuardada();
   perfilDoAparelhoRef.current = perfilDoAparelho;
 
   // --- SPEAKER DIARIZATION STATE ---
@@ -584,9 +621,13 @@ export default function LiveCapture({
   const [falhaDoMic, setFalhaDoMic] = useState<AjudaDoMic | null>(null);
   /** Fechou (ou já aceitou) o aviso do bipe do Android nesta tela. */
   const [dispensouBipe, setDispensouBipe] = useState(false);
+  /** Fechou a oferta "Legenda sem baixar nada" (`lib/captura/legendaSemBaixar.ts`) nesta tela. */
+  const [dispensouSemBaixar, setDispensouSemBaixar] = useState(false);
   /* A CAPTURA NO CELULAR (`captura/celular/*`): a fala e a palavra tocadas (as folhas de baixo), as
      opções, a fala em foco (a última tocada mostra os atalhos) e a troca de modo antes de gravar. */
   const [falaTocada, setFalaTocada] = useState<FalaTocada | null>(null);
+  /* A fala do menu do balão no computador (Tradução Nuance, D4). */
+  const [falaNoComputador, setFalaNoComputador] = useState<FalaTocada | null>(null);
   const [palavraTocada, setPalavraTocada] = useState<{
     palavra: string;
     frase: string;
@@ -638,8 +679,22 @@ export default function LiveCapture({
   const [systemSource, setSystemSource] = useState<'display' | 'loopback' | 'server'>('display');
   // MODO DESEMPENHO (jogos): pula os decodes PARCIAIS (a legenda só aparece no fim de cada frase).
   // Corta a maior fatia de GPU/CPU da captura contínua — o decode final continua intacto.
-  const [perfMode, setPerfMode] = useState(false);
-  const perfModeRef = useRef(false);
+  /* Começa LIGADO no aparelho leve (Quest, celular fraco, desktop de 2 núcleos): ali o parcial é o
+     que mais trava a aba, e esperar o regulador descobrir isso custa as primeiras falas. A escolha
+     salva em `ui.perfMode` (o interruptor abaixo) vence assim que os ajustes carregam.
+     O AUTOMÁTICO não é o modo inteiro: guarda UM parcial por fala, com 1,5 s dela, senão a 1ª legenda
+     espera o fim da frase (5,0 s contra 2,0 s na bancada; `PRIMEIRO_PARCIAL_DO_AUTOMATICO_MS`). O pipeline
+     sabe qual é pelo `perfModeEscolhidoRef`; o que a pessoa liga cumpre "só no fim de cada frase". */
+  const [perfMode, setPerfMode] = useState(() => perfilDoAparelho.leve);
+  const perfModeRef = useRef(perfMode);
+  /* O modo leve AUTOMÁTICO não é escolha da pessoa: só vira preferência salva quando ela mexe no
+     interruptor (ou quando já havia uma salva). Sem isto, o primeiro ajuste salvo por qualquer outro
+     motivo gravava o valor automático em `ui.perfMode`, e ele passava a valer como manual para
+     sempre — até num aparelho que depois se mostrasse forte. */
+  const perfModeEscolhidoRef = useRef(false);
+  /* O mesmo "escolhido", como estado: a descrição do interruptor muda com ele (`ModoDesempenho`), e o
+     ajuste salvo pode chegar com o mesmo valor do automático — só o ref não faria a tela renderizar. */
+  const [perfModeEscolhido, setPerfModeEscolhido] = useState(false);
   useEffect(() => {
     perfModeRef.current = perfMode;
   }, [perfMode]);
@@ -667,7 +722,8 @@ export default function LiveCapture({
   // 'media' = assistir vídeo/aula/podcast (só sistema) · 'conversation' = chamada/reunião
   // (mic+sistema) · 'mic' = praticar a própria voz (só mic). Trocar de cenário só ajusta as
   // FONTES; os idiomas escolhidos permanecem. (O tipo vive em `lib/captura/tiposDaFala.ts`.)
-  const [captureScenario, setCaptureScenario] = useState<CaptureScenario>(() =>
+  // Nunca o `interprete` (Fase E): o intérprete tem a tela própria, que põe o cenário no ref do pipeline.
+  const [captureScenario, setCaptureScenario] = useState<CenarioDeCaptura>(() =>
     cenarioDasFontes(micEnabled, systemEnabled),
   );
   // Espelho p/ os handlers assíncronos (a identificação de voz só roda no cenário Conversa).
@@ -766,18 +822,23 @@ export default function LiveCapture({
     (window as any).__babelGateway = gateway;
   }, [gateway]);
 
-  /* SAIR DA CAPTURA EM APARELHO COM POUCA MEMÓRIA (Quest/celular): encerra os workers do Whisper e do
-     tradutor. O heap do WASM só volta ao sistema com o `terminate()`; sem isso o modelo (80–300 MB de
-     pesos, mais o heap da inferência) fica preso na aba enquanto a pessoa joga ou lê — e no iOS a aba
-     morre perto de 0,5–1,5 GB. A próxima captura recarrega do cache (sem baixar de novo). */
-  useEffect(
-    () => () => {
-      if (!perfilDoAparelhoRef.current.poucaMemoria) return;
-      gateway.stt.liberarModelo();
-      gateway.mt.liberarModelos();
-    },
-    [gateway],
-  );
+  /* SAIR DA CAPTURA: encerra os workers do Whisper e do tradutor. O heap do WASM só volta ao sistema
+     com o `terminate()`; sem isso os modelos (67–589 MB de pesos do Whisper e ~113 MB por tradutor,
+     mais o heap da inferência) ficam presos na aba enquanto a pessoa joga ou lê. POUCA MEMÓRIA (Quest/celular — no iOS a aba morre perto de
+     0,5–1,5 GB): na hora. No resto, 90 s depois (`memoriaDosModelos.ts`): quem sai para conferir algo
+     e volta antes disso encontra o modelo quente — a volta cancela a liberação. A próxima captura
+     recarrega do cache (sem baixar de novo). */
+  useEffect(() => {
+    cancelarLiberacaoDosModelos();
+    return () => {
+      const liberar = () => {
+        gateway.stt.liberarModelo();
+        gateway.mt.liberarModelos();
+      };
+      if (perfilDoAparelhoRef.current.poucaMemoria) liberar();
+      else liberarModelosDepois(liberar);
+    };
+  }, [gateway]);
 
   /* O texto da conversa sobe ao App (contexto do iChat) no máximo a cada 500 ms, só quando muda:
      antes era um `join` de TODAS as falas e um render do App inteiro a cada parcial do streaming. */
@@ -826,18 +887,32 @@ export default function LiveCapture({
       setShowJumpFocus(false);
     }
   };
+  /* SEGUIR O FIM SEM FORÇAR LAYOUT A CADA MUDANÇA ("Grátis sem travar", A2). Ler `scrollHeight` força
+     um layout síncrono, e este efeito rodava a cada nova versão de `speechSegments` — cada parcial,
+     cada palavra, cada marcação — mesmo quando a conversa não crescia. Agora:
+       · só quando ela CRESCE: muda o número de falas ou o tamanho do texto das duas últimas (a que
+         está sendo falada e a anterior, cuja tradução costuma chegar depois de a seguinte começar);
+       · a leitura vai para um rAF, junto do layout que o quadro já faria, e se junta à do quadro;
+       · só enquanto a pessoa está no fim. Rolada para cima, basta mostrar "Ir para a fala atual". */
+  const tamanhoDaFala = (s: SpeechSegment | undefined) =>
+    s ? `${s.originalText.length}/${s.translatedText?.length ?? 0}` : '';
+  const crescimentoDaConversa = [
+    speechSegments.length,
+    tamanhoDaFala(speechSegments[speechSegments.length - 2]),
+    tamanhoDaFala(speechSegments[speechSegments.length - 1]),
+  ].join(':');
   useEffect(() => {
-    const t = transcriptScrollRef.current;
-    if (t) {
-      if (transcriptPinnedRef.current) t.scrollTop = t.scrollHeight;
-      else setShowJumpTranscript(true);
-    }
-    const f = focusScrollRef.current;
-    if (f) {
-      if (focusPinnedRef.current) f.scrollTop = f.scrollHeight;
-      else setShowJumpFocus(true);
-    }
-  }, [speechSegments, isRecording]);
+    if (transcriptScrollRef.current && !transcriptPinnedRef.current) setShowJumpTranscript(true);
+    if (focusScrollRef.current && !focusPinnedRef.current) setShowJumpFocus(true);
+    if (!transcriptPinnedRef.current && !focusPinnedRef.current) return;
+    const quadro = requestAnimationFrame(() => {
+      const t = transcriptScrollRef.current;
+      if (t && transcriptPinnedRef.current) t.scrollTop = t.scrollHeight;
+      const f = focusScrollRef.current;
+      if (f && focusPinnedRef.current) f.scrollTop = f.scrollHeight;
+    });
+    return () => cancelAnimationFrame(quadro);
+  }, [crescimentoDaConversa, isRecording]);
 
   // Manual select speaker helper
   const handleSelectActiveSpeaker = (id: string) => {
@@ -952,7 +1027,11 @@ export default function LiveCapture({
       if (ui.loopbackDeviceId) setLoopbackDeviceId(ui.loopbackDeviceId);
       if (typeof ui.ttsSpeed === 'number') setTtsSpeed(ui.ttsSpeed);
       if (ui.micEngine === 'browser' || ui.micEngine === 'whisper') setMicEngine(ui.micEngine);
-      if (typeof ui.perfMode === 'boolean') setPerfMode(ui.perfMode);
+      if (typeof ui.perfMode === 'boolean') {
+        perfModeEscolhidoRef.current = true;
+        setPerfModeEscolhido(true);
+        setPerfMode(ui.perfMode);
+      }
       if (!langTouchedRef.current && typeof ui.autoDetectLang === 'boolean') setAutoDetectLang(ui.autoDetectLang);
       if (!langTouchedRef.current && typeof ui.autoDetectMyLang === 'boolean') setAutoDetectMyLang(ui.autoDetectMyLang);
       if (typeof ui.speakerAutoId === 'boolean') setSpeakerAutoId(ui.speakerAutoId);
@@ -1007,7 +1086,7 @@ export default function LiveCapture({
         micEngine,
         systemSource,
         loopbackDeviceId,
-        perfMode,
+        ...(perfModeEscolhidoRef.current ? { perfMode } : {}),
         autoDetectLang,
         autoDetectMyLang,
         captureScenario,
@@ -1028,22 +1107,6 @@ export default function LiveCapture({
     captureScenario,
     speakerAutoId,
   ]);
-
-  // Amostrador do waveform: enquanto grava, desloca o histórico a ~20fps lendo o peak-hold das
-  // fontes (com decaimento suave). Fora de gravação, zera. Barato: um setInterval + array de 48.
-  useEffect(() => {
-    if (!isRecording || pausado) {
-      setLevels(new Array(48).fill(0));
-      currentLevelRef.current = 0;
-      return;
-    }
-    const iv = setInterval(() => {
-      const v = currentLevelRef.current;
-      currentLevelRef.current = v * 0.55; // decai para o pico "cair" entre amostras
-      setLevels((prev) => [...prev.slice(1), v]);
-    }, 50);
-    return () => clearInterval(iv);
-  }, [isRecording, pausado]);
 
   // Sessões de captura (getDisplayMedia/getUserMedia + VAD); null quando não ativas.
   const systemCaptureRef = useRef<AudioCapture | null>(null);
@@ -1089,6 +1152,30 @@ export default function LiveCapture({
   const mtFailNotifiedRef = useRef(false);
   /** O tradutor do aparelho não carregou (`AvisoDoTradutorLocal`): a faixa com a oferta da internet. */
   const [tradutorLocalFalhou, setTradutorLocalFalhou] = useState(false);
+  /**
+   * A NUVEM DE ALÍVIO (A10): a oferta "Usar a nuvem grátis (restam X)" desta captura, quando o aparelho
+   * não aguenta e o servidor tem franquia para a conta Grátis. `null` = nada a oferecer.
+   */
+  const [ofertaDeAlivio, setOfertaDeAlivio] = useState<{
+    motivo: MotivoDaOfertaDeAlivio;
+    restanteSegundos: number;
+  } | null>(null);
+  /* A oferta já na tela responde "mostrei" sem perguntar ao servidor de novo (o regulador pode chegar ao
+     chão mais de uma vez na sessão). */
+  const ofertaDeAlivioRef = useRef(ofertaDeAlivio);
+  ofertaDeAlivioRef.current = ofertaDeAlivio;
+  /** O pipeline pergunta; a regra e a consulta ao servidor moram em `lib/nuvemDeAlivio/consulta.ts`. */
+  const pedirNuvemDeAlivio = useCallback(
+    async (motivo: MotivoDaOfertaDeAlivio, aparelho: SinaisDoAparelhoParaAlivio): Promise<boolean> => {
+      if (ofertaDeAlivioRef.current) return true;
+      const { ofertaDoAlivio } = await import('../../lib/nuvemDeAlivio/consulta');
+      const oferta = await ofertaDoAlivio(aparelho);
+      if (!oferta) return false;
+      setOfertaDeAlivio((atual) => atual ?? { motivo, restanteSegundos: oferta.restanteSegundos });
+      return true;
+    },
+    [],
+  );
 
   /** Avisa UMA vez por sessão que o destino da tradução foi redirecionado (ver traducaoDaFala). */
   const altTargetNotifiedRef = useRef(false);
@@ -1146,60 +1233,92 @@ export default function LiveCapture({
   // ANTI-ECO: seqs cuja fala começou enquanto o TTS do app tocava (é o nosso áudio voltando).
   const suppressedSeqsRef = useRef<Set<number>>(new Set());
   /* REGULADOR DE DESEMPENHO (harness §4): o estado vive aqui, uma vez por tela; o pipeline o
-     alimenta a cada final local e lê dele se os parciais estão cortados. */
-  const [regulador] = useState<ReguladorDaCaptura>(() => criarReguladorDaCaptura());
+     alimenta a cada final (e parcial) local e lê dele se os parciais estão cortados. A config é lida
+     do perfil CORRENTE a cada medida: o aparelho leve desce mais cedo, e o perfil muda quando o
+     `requestAdapter()` responde (o celular sem adaptador só se revela fraco aí). */
+  const [regulador] = useState<ReguladorDaCaptura>(() =>
+    criarReguladorDaCaptura({ config: () => configDoReguladorPara(perfilDoAparelhoRef.current) }),
+  );
   const reguladorRef = useRef(regulador);
 
   /* O PIPELINE DE FALA (VAD → STT → diarização → emissão) e a preparação dos modelos moram em
      `lib/captura/pipelineDeFala.ts`. A fábrica roda a cada render, como as closures que
      substituiu: os handlers precisam do `micEnabled`/`micEngine` do render corrente. */
-  const { sysHandlers, micHandlers, prepareModels, preaquecerModelos, decidirMotorDoSistema, prepararTradutorDaFala } =
-    criarPipelineDeFala({
-      gateway,
-      sourceLang,
-      sourceLangRef,
-      targetLangRef,
-      autoDetectLangRef,
-      autoDetectMyLangRef,
-      idiomaObservadoRef,
-      captureScenarioRef,
-      perfModeRef,
-      micEnabled,
-      micEngine,
-      timerRef,
-      nowRel,
-      setSpeechSegments,
-      seqToSegmentRef,
-      lastPartialTextRef,
-      contextoDoSttRef,
-      pendingUtterancesRef,
-      suppressedSeqsRef,
-      modelReadyRef,
-      prepareEmVooRef,
-      speakerProfilesRef,
-      setSpeakerProfiles,
-      speakerAutoIdRef,
-      clustererRef,
-      lastVoiceIdRef,
-      provisionalUttsRef,
-      ensureVoiceProfile,
-      dominantLangRef,
-      perfilIdiomaRef,
-      perfilMicRef,
-      avisoIdiomaMicRef,
-      setIdiomaObservado,
-      sysFalasRef,
-      sysAbertasRef,
-      micInicioRef,
-      avisoVazamentoRef,
-      translateSegment,
-      retraduzirDegradados,
-      setFeedbackMsg,
-      setModelPrep,
-      setSttRouteLabel,
-      reguladorRef,
-      sistemaAtivo: () => !!systemCaptureRef.current,
-    });
+  const {
+    sysHandlers,
+    micHandlers,
+    prepareModels,
+    preaquecerModelos,
+    decidirMotorDoSistema,
+    prepararTradutorDaFala,
+    ligarNuvemDeAlivio,
+  } = criarPipelineDeFala({
+    gateway,
+    sourceLang,
+    sourceLangRef,
+    targetLangRef,
+    autoDetectLangRef,
+    autoDetectMyLangRef,
+    idiomaObservadoRef,
+    captureScenarioRef,
+    perfModeRef,
+    perfModeEscolhidoRef,
+    micEnabled,
+    micEngine,
+    timerRef,
+    nowRel,
+    setSpeechSegments,
+    seqToSegmentRef,
+    lastPartialTextRef,
+    contextoDoSttRef,
+    pendingUtterancesRef,
+    suppressedSeqsRef,
+    modelReadyRef,
+    prepareEmVooRef,
+    speakerProfilesRef,
+    setSpeakerProfiles,
+    speakerAutoIdRef,
+    clustererRef,
+    lastVoiceIdRef,
+    provisionalUttsRef,
+    ensureVoiceProfile,
+    dominantLangRef,
+    perfilIdiomaRef,
+    perfilMicRef,
+    avisoIdiomaMicRef,
+    setIdiomaObservado,
+    sysFalasRef,
+    sysAbertasRef,
+    micInicioRef,
+    avisoVazamentoRef,
+    translateSegment,
+    retraduzirDegradados,
+    setFeedbackMsg,
+    setModelPrep,
+    setSttRouteLabel,
+    reguladorRef,
+    sistemaAtivo: () => !!systemCaptureRef.current,
+    pedirNuvemDeAlivio,
+  });
+
+  /* A faixa da nuvem de alívio, a mesma no celular e no desktop. Aceita, a rota passa à nuvem na hora
+     (o modelo local fica de reserva); se o servidor recusar agora, a legenda segue no aparelho. */
+  const faixaDaNuvemDeAlivio = ofertaDeAlivio ? (
+    <React.Suspense fallback={null}>
+      <OfertaDaNuvemDeAlivio
+        motivo={ofertaDeAlivio.motivo}
+        restanteSegundos={ofertaDeAlivio.restanteSegundos}
+        aoAceitar={() => {
+          setOfertaDeAlivio(null);
+          void ligarNuvemDeAlivio().then((ligou) => {
+            if (ligou) return;
+            setFeedbackMsg(t('A nuvem grátis não respondeu agora; a legenda segue no aparelho.'));
+          });
+        }}
+        aoFechar={() => setOfertaDeAlivio(null)}
+      />
+    </React.Suspense>
+  ) : null;
 
   /* PRÉ-AQUECE o STT/MT locais que JÁ estão em cache quando a tela abre e quando o par ou a qualidade
      mudam (nunca baixa nada: ver `preaquecerModelos`). Com um respiro, para não disputar a
@@ -2213,7 +2332,7 @@ export default function LiveCapture({
       hasWebGpu: temGpu,
       cloudAvailable: false,
       profileId: getActiveProfile().id,
-      dispositivo: dispositivoDaRota(perfilDoAparelho),
+      dispositivo: dispositivoDaRota(perfilDoAparelho, sondaGuardada),
     });
     // Só microfone: o tradutor é o da SUA fala (o mesmo sentido que `prepareModels` carrega).
     const [mtDe, mtPara] = captureScenario === 'mic' ? [meu, ouvir] : [ouvir, meu];
@@ -2230,15 +2349,17 @@ export default function LiveCapture({
           }
         : {
             id,
-            // O tradutor também baixa (~113 MB por par em q8): o aviso de download conta os dois.
+            // O tradutor também baixa (~113 MB por par em q8; 31 MB o Bergamot): o aviso conta os dois.
             mbEstimado: tamanhoDoDownloadMb(id) ?? undefined,
             /* "Tradutor inglês → português (opus-mt)": o protótipo escreve ↔, mas cada opus-mt traduz
                num sentido só (en-ROMANCE ou ROMANCE-en) — a seta diz o que o modelo faz. */
             titulo: /en-ROMANCE/i.test(id)
               ? `Tradutor ${langLabelNaUI('en')} → ${langLabelNaUI(baseLang(meu) === 'en' ? ouvir : meu)} (opus-mt)`
-              : /ROMANCE-en/i.test(id)
-                ? `Tradutor ${langLabelNaUI(baseLang(ouvir) === 'en' ? meu : ouvir)} → ${langLabelNaUI('en')} (opus-mt)`
-                : `Tradutor (${id.split('/').pop()})`,
+              : id === ID_DO_BERGAMOT_PT_EN
+                ? `Tradutor ${langLabelNaUI('pt')} → ${langLabelNaUI('en')} (Bergamot)`
+                : /ROMANCE-en/i.test(id)
+                  ? `Tradutor ${langLabelNaUI(baseLang(ouvir) === 'en' ? meu : ouvir)} → ${langLabelNaUI('en')} (opus-mt)`
+                  : `Tradutor (${id.split('/').pop()})`,
           },
     );
   }, [
@@ -2251,6 +2372,7 @@ export default function LiveCapture({
     sttQuality,
     temGpu,
     perfilDoAparelho,
+    sondaGuardada,
     captureScenario,
   ]);
   /* AVISO ANTES DE BAIXAR (perfil do aparelho): com economia de dados, rede abaixo de 4g, ou mais de
@@ -2276,10 +2398,10 @@ export default function LiveCapture({
       hasWebGpu: temGpu,
       cloudAvailable: false,
       profileId: getActiveProfile().id,
-      dispositivo: dispositivoDaRota(perfilDoAparelho),
+      dispositivo: dispositivoDaRota(perfilDoAparelho, sondaGuardada),
     });
     return tamanhoDoDownloadMb(rota.localModel, rota.dtype);
-  }, [targetLang, sourceLang, autoDetectLang, autoDetectMyLang, sttQuality, temGpu, perfilDoAparelho]);
+  }, [targetLang, sourceLang, autoDetectLang, autoDetectMyLang, sttQuality, temGpu, perfilDoAparelho, sondaGuardada]);
 
   /* A FOLHA DO INÍCIO (`inicioDaCaptura.ts`) — o que o toque em Iniciar precisa saber, pronto desde
      que a tela abriu (`usePreparoDoInicio`): o clique não espera cache nem sonda nenhuma. As peças
@@ -2295,7 +2417,7 @@ export default function LiveCapture({
       hasWebGpu: temGpu,
       cloudAvailable: false,
       profileId: getActiveProfile().id,
-      dispositivo: dispositivoDaRota(perfilDoAparelho),
+      dispositivo: dispositivoDaRota(perfilDoAparelho, sondaGuardada),
     });
     const [mtDe, mtPara] = captureScenario === 'mic' ? [meu, ouvir] : [ouvir, meu];
     const tradutores = expectedModelIds(mtDe, mtPara, rota.localModel).filter((id) => id !== rota.localModel);
@@ -2314,6 +2436,7 @@ export default function LiveCapture({
     sttQuality,
     temGpu,
     perfilDoAparelho,
+    sondaGuardada,
     captureScenario,
   ]);
   const preparoDoInicio = usePreparoDoInicio({
@@ -2323,6 +2446,46 @@ export default function LiveCapture({
     gravando: isRecording,
     parDoTradutor: pecasDoInicio.par,
   });
+  /* "LEGENDA SEM BAIXAR NADA: ESCOLHA O IDIOMA DO VÍDEO" (`lib/captura/legendaSemBaixar.ts`, A9a). No
+     desktop fraco, com a detecção automática ligada, a captura cairia no Whisper local; com o idioma
+     escolhido, o próprio navegador transcreve a aba no aparelho. A oferta aparece só quando a MESMA
+     decisão do clique, perguntada com o idioma do vídeo, responde que sim. */
+  const condicoesDaOferta = {
+    desktopFraco: desktopFraco(perfilDoAparelho, sondaGuardada, temGpu),
+    soOSomDoComputador: captureScenario === 'media' && systemEnabled,
+    detectarIdioma: autoDetectLang,
+    gravando: isRecording,
+    dispensada: dispensouSemBaixar,
+  };
+  const comIdiomaEscolhido = useMotorComIdiomaEscolhido({
+    ativo: podePerguntarLegendaSemBaixar(condicoesDaOferta),
+    idioma: targetLang,
+    qualidade: sttQuality,
+    decidir: () => decidirMotorDoSistema({ multiIdioma: false }),
+  });
+  /* O SELO DO CABEÇALHO segue a mesma resposta: com o áudio da aba no reconhecedor do navegador (só o
+     som do computador), nada nosso baixa para a transcrição — o selo não diz "modelo local · N MB".
+     Gravando, quem diz é o motor que a captura de fato abriu (`sistemaNoNavegador`). */
+  const transcricaoNoNavegador =
+    captureScenario === 'media' &&
+    (isRecording
+      ? sistemaNoNavegador
+      : transcricaoNoNavegadorAntesDeGravar({ ...condicoesDaOferta, comIdiomaEscolhido }));
+  const ofertaSemBaixar = oferecerLegendaSemBaixar({ ...condicoesDaOferta, comIdiomaEscolhido }) && (
+    <Suspense fallback={null}>
+      <LegendaSemBaixar
+        idioma={targetLang}
+        /* Sem o tradutor do navegador para o par e fora do cache, o nosso ainda baixa: a faixa não
+           promete "nada", só a transcrição sem download. */
+        tradutorBaixa={
+          !preparoDoInicio.tradutorNativo && pecasDoInicio.tradutores.some((m) => !preparoDoInicio.completos?.has(m.id))
+        }
+        aoEscolherIdioma={() => escolherIdioma('alvo', setAutoDetectLang)({ auto: false, code: targetLang })}
+        aoEscolherOutro={() => setIdiomasAbertos(true)}
+        aoFechar={() => setDispensouSemBaixar(true)}
+      />
+    </Suspense>
+  );
   const planoDoInicio = (escolha: EscolhaDoMic | null): PassoDoInicio => {
     const completos = preparoDoInicio.completos;
     const falta = (id: string, mb: number) => (completos?.has(id) ? 0 : mb);
@@ -2458,6 +2621,52 @@ export default function LiveCapture({
   const examinarNoCelular = useFuncaoEstavel((w: VocabWord, lang: string, frase: string) => {
     setPalavraTocada({ palavra: w.word, frase, lang, daFrase: null });
   });
+  /* A TRADUÇÃO NUANCE NAS FOLHAS (Fase D). O destino de uma fala é o "outro" idioma do par — o seu,
+     quando ela é do idioma que você estuda (a mesma regra do fichamento, `palavraDaFala.ts`). O
+     convite ao Premium é promocional: o perfil protegido não o recebe (vê o cadeado e o texto). A
+     tela só PINTA pelo entitlement; quem decide é o servidor, pelo mesmo campo. */
+  const destinoDaFala = (lang: string): string => {
+    const { mine, studying } = langConfigRef.current;
+    return baseLang(lang) === baseLang(mine) ? studying : mine;
+  };
+  const conhecerOPremium = perfilProtegido()
+    ? undefined
+    : () => {
+        fecharFolhasDoCelular();
+        onChangeView?.('planos');
+      };
+  const nuanceDaPalavra = (lang: string): NuanceNaFolhaDaPalavra => ({
+    disponivel: getEntitlements().traducaoNuance,
+    destino: destinoDaFala(lang),
+    aoConhecer: conhecerOPremium,
+  });
+  /* ESCOLHER UMA FORMA troca a tradução da fala na conversa (e na folha aberta). A fala já gravada num
+     lote da captura longa não é reescrita no banco: a sessão salva no fim leva a tradução da tela. */
+  const trocarTraducaoDaFala = (id: string, traducao: string) => {
+    setSpeechSegments((prev) => prev.map((seg) => (seg.id === id ? { ...seg, translatedText: traducao } : seg)));
+    setFalaTocada((f) => (f && f.id === id ? { ...f, traducao } : f));
+    setFalaNoComputador((f) => (f && f.id === id ? { ...f, traducao } : f));
+  };
+  const nuanceDaFrase = (fala: FalaTocada): NuanceNaFolhaDaFrase => {
+    const i = speechSegments.findIndex((seg) => seg.id === fala.id);
+    const contexto = speechSegments
+      .slice(Math.max(0, i - 3), Math.max(0, i))
+      .filter((seg) => !seg.isPartial && seg.originalText)
+      .map((seg) => seg.originalText);
+    return {
+      disponivel: getEntitlements().traducaoNuance,
+      destino: destinoDaFala(fala.lang),
+      contexto,
+      falada: speechSegments[i]?.source === 'mic',
+      aoConhecer: conhecerOPremium,
+      aoEscolher: (traducao) => trocarTraducaoDaFala(fala.id, traducao),
+    };
+  };
+  const abrirNuanceNoComputador = useFuncaoEstavel(
+    (segment: { id: string; originalText: string; translatedText: string }, lang: string) => {
+      setFalaNoComputador({ id: segment.id, texto: segment.originalText, traducao: segment.translatedText, lang });
+    },
+  );
   const acoesDaFalaNoCelular = useCallback(
     (segment: { id: string; originalText: string; translatedText: string }, lang: string) => (
       <div className="cel-acoes-da-fala">
@@ -2538,7 +2747,7 @@ export default function LiveCapture({
         abrindo={abrindoCaptura}
         retomar={!!resumeId}
         tempo={formatTime(timer)}
-        niveis={levels}
+        ondas={<OndasDoNivel nivelRef={currentLevelRef} ativo={isRecording && !pausado} variante="celular" />}
         lados={[ladoNoCelular(ladosDoPar[0]), ladoNoCelular(ladosDoPar[1])]}
         aoTrocarLados={trocarLadosNoCelular}
         aoAbrirIdiomas={() => setIdiomasAbertos(true)}
@@ -2571,6 +2780,7 @@ export default function LiveCapture({
         avisos={
           <>
             <AvisoDeNuvemSemConsentimento />
+            {faixaDaNuvemDeAlivio}
             {tradutorLocalFalhou && (
               <AvisoDoTradutorLocal
                 aoAutorizar={() => {
@@ -2654,6 +2864,7 @@ export default function LiveCapture({
             setPalavraTocada({ palavra, frase: falaTocada.texto, lang: falaTocada.lang, daFrase: falaTocada })
           }
           aoFechar={fecharFolhasDoCelular}
+          nuance={nuanceDaFrase(falaTocada)}
         />
       )}
       {palavraTocada && (
@@ -2667,6 +2878,7 @@ export default function LiveCapture({
           aoPraticar={praticarNoCelular}
           aoVoltar={palavraTocada.daFrase ? () => setPalavraTocada(null) : undefined}
           aoFechar={fecharFolhasDoCelular}
+          nuance={nuanceDaPalavra(palavraTocada.lang)}
         />
       )}
       {opcoesAbertas && (
@@ -2751,6 +2963,30 @@ export default function LiveCapture({
             <X className="w-3 h-3" /> Sair do modo retomar
           </button>
         </div>
+      )}
+
+      {/* --- A TRADUÇÃO NUANCE DA FALA (D4): o menu do balão no computador --- */}
+      {falaNoComputador && (
+        <Dialogo
+          icone={Sparkles}
+          titulo={t('Tradução Nuance')}
+          sub={t('Outras formas de dizer, formal ou informal.')}
+          aoFechar={() => setFalaNoComputador(null)}
+        >
+          <div className="dlg-corpo">
+            <div className="folha-corpo">
+              <p className="folha-frase" lang={falaNoComputador.lang}>
+                {falaNoComputador.texto}
+              </p>
+              {falaNoComputador.traducao && falaNoComputador.traducao !== '…' && (
+                <p className="folha-frase-trad">{falaNoComputador.traducao}</p>
+              )}
+              <Suspense fallback={null}>
+                <NuanceDaFrase fala={falaNoComputador} {...nuanceDaFrase(falaNoComputador)} />
+              </Suspense>
+            </div>
+          </div>
+        </Dialogo>
       )}
 
       {/* --- AJUSTES DA CAPTURA: o `dialogoAjustesCaptura()` do protótipo (C1) ---
@@ -3147,12 +3383,15 @@ export default function LiveCapture({
                   <option value="cloud">Nuvem</option>
                 </select>
               </CampoLinha>
-              <CampoLinha
-                rotulo="Modo desempenho (jogos)"
-                desc="Legenda só no fim de cada frase, sem o refino ao vivo: usa bem menos processador enquanto você joga."
-              >
-                <Interruptor ligado={perfMode} aoTrocar={() => setPerfMode((v) => !v)} rotulo="Modo desempenho" />
-              </CampoLinha>
+              <ModoDesempenho
+                ligado={perfMode}
+                escolhido={perfModeEscolhido}
+                aoTrocar={() => {
+                  perfModeEscolhidoRef.current = true;
+                  setPerfModeEscolhido(true);
+                  setPerfMode((v) => !v);
+                }}
+              />
               {/* TRADUÇÃO SOB DEMANDA (M0): o padrão é traduzir tudo, como sempre. */}
               <CampoLinha
                 rotulo={t('Tradução')}
@@ -3214,6 +3453,7 @@ export default function LiveCapture({
             {/* ============================================== */}
             <div className="tela larga entra">
               <AvisoDeNuvemSemConsentimento />
+              {faixaDaNuvemDeAlivio}
               {tradutorLocalFalhou && (
                 <AvisoDoTradutorLocal
                   aoAutorizar={() => {
@@ -3249,12 +3489,19 @@ export default function LiveCapture({
                       className="badge neu badge-botao"
                       onClick={() => setModeloAberto(true)}
                       aria-label={
-                        mbDoModelo
-                          ? `Modelo no dispositivo, ${mbDoModelo} MB: ver detalhes`
-                          : 'Modelo no dispositivo: ver detalhes'
+                        transcricaoNoNavegador
+                          ? t('Transcrição pelo reconhecimento do navegador, no aparelho: ver detalhes')
+                          : mbDoModelo
+                            ? `Modelo no dispositivo, ${mbDoModelo} MB: ver detalhes`
+                            : 'Modelo no dispositivo: ver detalhes'
                       }
                     >
-                      <Cpu aria-hidden /> modelo local{mbDoModelo ? ` · ${mbDoModelo} MB` : ''}
+                      <Cpu aria-hidden />{' '}
+                      {transcricaoNoNavegador ? (
+                        t('reconhecimento do navegador')
+                      ) : (
+                        <>modelo local{mbDoModelo ? ` · ${mbDoModelo} MB` : ''}</>
+                      )}
                     </button>
                     <button
                       type="button"
@@ -3375,23 +3622,13 @@ export default function LiveCapture({
                       </div>
                       <div className="linha">
                         <span className="relogio">{isRecording ? formatTime(timer) : '00:00'}</span>
-                        {/* As ondas seguem o nível REAL do áudio capturado (sonda RMS), não uma animação. */}
-                        {isRecording && (
-                          <span className="ondas" aria-hidden>
-                            {[0, 1, 2, 3, 4].map((k) => {
-                              const lvl = levels[Math.floor((k * levels.length) / 5)] ?? 0;
-                              return (
-                                <i
-                                  key={k}
-                                  style={{ height: `${Math.max(18, Math.min(100, lvl * 120))}%`, animation: 'none' }}
-                                />
-                              );
-                            })}
-                          </span>
-                        )}
+                        {/* As ondas seguem o nível REAL do áudio capturado (sonda RMS), não uma animação.
+                          Uma folha com o próprio laço: o nível mudando não re-renderiza esta tela. */}
+                        {isRecording && <OndasDoNivel nivelRef={currentLevelRef} ativo={!pausado} />}
                       </div>
                       {avisoDePermissao}
                       {avisoDoBipe}
+                      {ofertaSemBaixar}
 
                       {/* UMA linha de orientação, e ela vale GRAVANDO TAMBÉM.
                       Antes só aparecia antes de iniciar — justamente quando o estado era mais fácil
@@ -3589,6 +3826,7 @@ export default function LiveCapture({
                             onRevelarTraducao={revelarNaConversa}
                             conhecidas={conhecidas}
                             progressoDoTradutor={modelPrep?.mt ?? null}
+                            aoAbrirMenuDaFala={abrirNuanceNoComputador}
                           />
                         </div>
                       </div>
@@ -3872,6 +4110,7 @@ export default function LiveCapture({
                   onRevelarTraducao={revelarNaConversa}
                   conhecidas={conhecidas}
                   progressoDoTradutor={modelPrep?.mt ?? null}
+                  aoAbrirMenuDaFala={abrirNuanceNoComputador}
                 />
               ) : (
                 <p className="foco-vazio">

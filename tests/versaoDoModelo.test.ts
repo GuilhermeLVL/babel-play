@@ -107,3 +107,26 @@ describe('gravarManifesto dentro de um Web Worker', () => {
     expect(lerManifesto(ID, 'hybrid', 'wasm')?.revisao).toBe('abc')
   })
 })
+
+/* O Bergamot não vem do Hugging Face: a versão é a execução de treino FIXADA no código
+   (`modelosDoBergamot.json`), e o manifesto guarda a que baixou. Comparar é local — nada de rede. */
+describe('situacaoDaVersao — versão fixada no código (Bergamot)', () => {
+  const B = 'bergamot/pt-en'
+  const doBergamot = (revisao: string) => manifesto({ modelId: B, dtype: 'int8', revisao })
+
+  it('a cópia é da execução que o código pede: atual, sem perguntar ao Hub', async () => {
+    gravarManifesto(doBergamot('run_atual'))
+    const buscar = vi.fn()
+    expect(await situacaoDaVersao(B, buscar as never, 'run_atual')).toBe('atual')
+    expect(buscar).not.toHaveBeenCalled()
+  })
+
+  it('o código passou a pedir outra execução: desatualizado ("Atualizar" apaga a velha)', async () => {
+    gravarManifesto(doBergamot('run_velha'))
+    expect(await situacaoDaVersao(B, vi.fn() as never, 'run_nova')).toBe('desatualizado')
+  })
+
+  it('sem cópia continua "sem-copia"', async () => {
+    expect(await situacaoDaVersao(B, vi.fn() as never, 'run_atual')).toBe('sem-copia')
+  })
+})

@@ -133,6 +133,9 @@ export function analisarRodada(d, pular = 0) {
         .at(-1)
     if (P) {
       const R = sttIn.get(P.id)
+      // Quando o final foi postado: a bancada de desempenho só conta o RTF de quem foi postado com o
+      // modelo já pronto (antes disso, R − P mede a espera da carga, não o decode).
+      linha.tPostFinal = Math.round(P.t)
       if (R) {
         linha.stt = Math.round(R.t - P.t)
         const upd = sttUpd.find((u) => u.id === P.id)

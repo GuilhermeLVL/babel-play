@@ -77,6 +77,17 @@ describe('cache da SPA', () => {
   it('cacheDoArquivo aceita separador do Windows', () => {
     expect(cacheDoArquivo('assets\\x-1.js')).toBe('public, max-age=31536000, immutable')
   })
+
+  /* A9b: o caminho do Bergamot tem a versão do motor ou o id da execução de treino — o conteúdo de
+     um caminho nunca muda, e 25 MB revalidados a cada captura seriam uma ida e volta à toa. */
+  it('Bergamot (motor versionado e modelo por execução): 1 ano, immutable; o LEIA-ME não', () => {
+    const IMUTAVEL = 'public, max-age=31536000, immutable'
+    expect(cacheDoArquivo('modelos/bergamot/motor-0.4.9/bergamot-translator-worker.wasm')).toBe(IMUTAVEL)
+    expect(cacheDoArquivo('modelos/bergamot/motor-0.4.9/bergamot-translator-worker.mjs')).toBe(IMUTAVEL)
+    expect(cacheDoArquivo('modelos/bergamot/pt-en/retrain_hr_x/model.pten.intgemm.alphas.bin.gz')).toBe(IMUTAVEL)
+    expect(cacheDoArquivo('modelos\\bergamot\\pt-en\\run\\vocab.pten.spm.gz')).toBe(IMUTAVEL)
+    expect(cacheDoArquivo('modelos/bergamot/LEIA-ME.txt')).toBeNull()
+  })
 })
 
 describe('irmão pré-comprimido (Fase 4)', () => {

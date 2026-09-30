@@ -11,10 +11,49 @@ import React from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import ChatTranscript from '../src/components/ChatTranscript'
+import CapturaNoCelular from '../src/components/views/captura/celular/CapturaNoCelular'
 import { palavrasDaFrase } from '../src/components/views/captura/celular/FolhaDaFrase'
 import { useTelaAcesa } from '../src/lib/captura/telaAcesa'
 
 afterEach(cleanup)
+
+describe('CapturaNoCelular: as ondas chegam prontas (a folha que não re-renderiza a tela)', () => {
+  const props = {
+    abrindo: false,
+    retomar: false,
+    tempo: '00:07',
+    lados: [
+      { rotulo: 'Eles falam', nome: 'Inglês' },
+      { rotulo: 'Você lê', nome: 'Português' },
+    ] as [{ rotulo: string; nome: string }, { rotulo: string; nome: string }],
+    aoAbrirIdiomas: vi.fn(),
+    parCurto: 'EN → PT',
+    modo: null,
+    micLigado: true,
+    micAbrindo: false,
+    aoAlternarMic: vi.fn(),
+    flutuante: { ativo: false, alternar: vi.fn() },
+    podeIniciar: true,
+    aoIniciar: vi.fn(),
+    aoParar: vi.fn(),
+    aoAbrirOpcoes: vi.fn(),
+    aoAbrirAjuda: vi.fn(),
+    aoAbrirVisual: vi.fn(),
+    temFalas: false,
+    conversa: null,
+    ondas: <span data-testid="ondas" />,
+  }
+
+  it('gravando, a barra do alto mostra as ondas recebidas', () => {
+    const { container } = render(<CapturaNoCelular {...props} gravando />)
+    expect(container.querySelector('.cel-barra [data-testid="ondas"]')).not.toBeNull()
+  })
+
+  it('pronto para começar, sem ondas (não há o que medir)', () => {
+    render(<CapturaNoCelular {...props} gravando={false} />)
+    expect(screen.queryByTestId('ondas')).toBeNull()
+  })
+})
 
 describe('palavrasDaFrase', () => {
   it('tira a pontuação das pontas, ignora número solto e não repete', () => {

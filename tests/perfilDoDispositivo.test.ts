@@ -428,3 +428,26 @@ describe('dispositivoDaRota + sonda (campos novos, sem mudar a decisão)', () =>
     })
   })
 })
+
+/* ROTA HONESTA DO SMALL (plano "Grátis sem travar", A4): o adaptador de RESERVA (SwiftShader) conta
+   como sem GPU já na medida — o desktop vira `desktop-sem-gpu` e o small não é oferecido. */
+describe('medirPerfilDoDispositivo × adaptador de reserva', () => {
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('desktop cujo único adaptador é o de software: desktop-sem-gpu, sem small', async () => {
+    const { esquecerAdaptadorWebGpu } = await import('../src/gateway/adaptadorWebGpu')
+    const { medirPerfilDoDispositivo } = await import('../src/lib/dispositivo/perfil')
+    esquecerAdaptadorWebGpu()
+    vi.stubGlobal('navigator', {
+      userAgent: UA_WIN,
+      hardwareConcurrency: 8,
+      maxTouchPoints: 0,
+      gpu: { requestAdapter: async () => ({ info: { vendor: 'google', isFallbackAdapter: true } }) },
+      mediaDevices: { getDisplayMedia: () => undefined },
+    })
+    const p = await medirPerfilDoDispositivo()
+    expect(p.tipo).toBe('desktop-sem-gpu')
+    expect(p.permiteSmall).toBe(false)
+    esquecerAdaptadorWebGpu()
+  })
+})

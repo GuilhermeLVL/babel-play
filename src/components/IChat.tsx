@@ -100,6 +100,10 @@ function motivoDaResposta(res: Response, data: Record<string, unknown>): string 
   if (code === 'quota_exceeded') {
     return '**Você usou toda a IA de nuvem do seu plano neste mês.** Ela volta no dia 1º; a tradução e a transcrição locais continuam funcionando.';
   }
+  /* O uso justo do dia (matriz v2): é "hoje já deu", não "assine" — nenhuma venda a quem já assina. */
+  if (code === 'uso_justo_do_dia') {
+    return '**A nuvem descansa até amanhã.** Você chegou ao uso justo de IA de nuvem de hoje; o tutor volta amanhã, e a tradução e a transcrição seguem no aparelho.';
+  }
   if (
     reason === 'managed_requires_plan' ||
     reason === 'managed_requires_pro' ||

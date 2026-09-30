@@ -7,9 +7,10 @@
  * cada aba, cada sessão e cada assinante pagava de novo o mesmo "Thank you.".
  *
  * A CHAVE é o SHA-256 de: frase normalizada (`normalizarFrase`) + origem + destino + natureza (fala
- * ou texto) + CONTEXTO da fala + MODELO + VERSÃO DO PROMPT. O modelo entra porque o Pro recebe um
- * modelo maior (`LLM_MODEL_GRANDE`): servir a ele a tradução do modelo menor seria vender uma coisa e
- * entregar outra. A versão do prompt (hash do texto dos prompts, `mtProxy.ts`) entra porque o L2 dura
+ * ou texto) + CONTEXTO da fala + MODELO + VERSÃO DO PROMPT. O modelo entra porque quem paga recebe
+ * outro modelo (a nuance, B3; no legado, o `LLM_MODEL_GRANDE`): servir a ele a tradução do modelo
+ * menor seria vender uma coisa e entregar outra — e por isso a gravação vai sob o modelo que DE FATO
+ * respondeu, não sob o planejado. A versão do prompt (hash do texto dos prompts, `mtProxy.ts`) entra porque o L2 dura
  * 30 dias e atravessa deploys: prompt novo não herda tradução do antigo. Hash, e não a frase, para a
  * chave não guardar texto de ninguém em claro.
  *
@@ -148,10 +149,20 @@ export interface ConsultaDeTraducao {
   tgt: string
   falada: boolean
   contexto?: ReadonlyArray<string>
-  /** O modelo PLANEJADO (o primeiro da cascata) — o que o plano promete. */
+  /**
+   * O MODELO da tradução. Na LEITURA, o planejado (o primeiro da cascata do nível) — o que o plano
+   * promete; na GRAVAÇÃO, o que DE FATO respondeu (B3 da Fase B): gravar sob o planejado guardava a
+   * tradução da reserva na chave do primário (`mtProxy.ts`).
+   */
   modelo: string
   /** Hash curto do texto dos prompts (`mtProxy.ts`). */
   versaoDoPrompt?: string
+  /**
+   * O que mais muda o texto pedido além do modelo e do prompt fixo — o REGISTRO (formal/informal,
+   * variante pt-BR/pt-PT) da Fase D (D2). Ausente, a chave é exatamente a de antes (nada no L2 vence
+   * por causa dele); presente, entra no fim.
+   */
+  registro?: string
 }
 
 export function chaveDeTraducao(p: ConsultaDeTraducao): string {
@@ -164,6 +175,7 @@ export function chaveDeTraducao(p: ConsultaDeTraducao): string {
     semContexto ? '' : (p.contexto ?? []).map(normalizarContexto).join('\u0001'),
     p.modelo,
     p.versaoDoPrompt ?? '',
+    ...(p.registro ? [`registro:${p.registro}`] : []),
   ]
   return createHash('sha256').update(partes.join('\u0000')).digest('hex')
 }
@@ -239,7 +251,9 @@ export async function guardarTraducao(c: ConsultaDeTraducao, valor: TraducaoGuar
   if (!podePersistir(c)) return
   try {
     const agora = Date.now()
-    await (await nivelPersistente()).gravar({
+    await (
+      await nivelPersistente()
+    ).gravar({
       chave,
       origem: (c.src ?? '').toLowerCase(),
       destino: c.tgt.toLowerCase(),

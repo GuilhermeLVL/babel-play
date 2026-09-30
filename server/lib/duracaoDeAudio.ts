@@ -153,8 +153,10 @@ function amostrasDoPacote(toc: number, segundoByte: number | undefined, tamanho:
   if (tamanho < 1) return null
   const config = toc >> 3
   let quadro: number
-  if (config < 12) quadro = [480, 960, 1920, 2880][config & 3] // SILK: 10/20/40/60 ms
-  else if (config < 16) quadro = [480, 960][config & 1] // híbrido: 10/20 ms
+  if (config < 12)
+    quadro = [480, 960, 1920, 2880][config & 3] // SILK: 10/20/40/60 ms
+  else if (config < 16)
+    quadro = [480, 960][config & 1] // híbrido: 10/20 ms
   else quadro = [120, 240, 480, 960][config & 3] // CELT: 2,5/5/10/20 ms
   const codigo = toc & 3
   let quadros: number
@@ -309,11 +311,16 @@ export function arquivoDoAudio(buf: Buffer): { tipo: 'audio/ogg' | 'audio/wav'; 
  *
  * Áudio ilegível cai no mínimo, e não em zero: se não sabemos medir, a suposição segura é a que
  * protege o dono da chave, não a que libera consumo não contabilizado.
+ *
+ * O MÍNIMO É DO PROVEDOR (B2 da Fase B): a Groq fatura 10 s por pedido, e um provedor que cobra por
+ * segundo não fatura mínimo nenhum. Quem chama passa o do provedor que atendeu
+ * (`minimoFaturadoDoStt`, `server/lib/orcamentoDeIa.ts`); sem ele, o da Groq. O ilegível continua
+ * no maior dos dois — é exatamente o caso em que não sabemos quanto o provedor vai cobrar.
  */
-export function segundosFaturaveis(buf: Buffer): number {
+export function segundosFaturaveis(buf: Buffer, minimo: number = MINIMO_FATURADO_S): number {
   const real = duracaoDoAudio(buf)
-  if (real === null || !Number.isFinite(real) || real <= 0) return MINIMO_FATURADO_S
-  return Math.max(MINIMO_FATURADO_S, Math.ceil(real))
+  if (real === null || !Number.isFinite(real) || real <= 0) return Math.max(minimo, MINIMO_FATURADO_S)
+  return Math.max(minimo, Math.ceil(real))
 }
 
 /**

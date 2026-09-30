@@ -11,6 +11,8 @@ import { defineConfig, devices } from '@playwright/test'
  * nessa porta, é reaproveitado — quem o subiu é quem o derruba.
  *
  * Screenshots das telas vão para `SCREENSHOTS_ESTATICA` (ou `test-results/estatica/`).
+ *
+ * No CI é o job `e2e-estatica` de `.github/workflows/ci.yml` (o build e os dois projetos).
  */
 const PORTA = Number(process.env.PORTA_ESTATICA || 4175)
 

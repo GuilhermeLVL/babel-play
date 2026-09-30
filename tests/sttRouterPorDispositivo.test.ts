@@ -53,8 +53,8 @@ describe('português (não-EN) por perfil', () => {
     expect(r).toMatchObject({ localModel: WHISPER_MODELS.base, dtype: 'q8' })
   })
 
-  it('desktop com GPU segue no small híbrido (sem mudança)', () => {
-    const r = routeStt({ ...base, hasWebGpu: true, dispositivo: desktopGpu })
+  it('desktop com GPU que a sonda provou: small híbrido, sem device forçado', () => {
+    const r = routeStt({ ...base, hasWebGpu: true, dispositivo: { ...desktopGpu, adaptadorReal: true } })
     expect(r).toMatchObject({ localModel: WHISPER_MODELS.small, dtype: 'hybrid' })
     expect(r.device).toBeUndefined()
   })
@@ -113,7 +113,10 @@ describe('inglês por perfil', () => {
       dtype: 'q8',
     })
     for (const dispositivo of [quest, celularBom, desktopGpu, desktopSemGpu])
-      expect(routeStt({ ...nuvem, dispositivo })).toMatchObject({ preferCloud: true, localModel: MOONSHINE_MODELS.base })
+      expect(routeStt({ ...nuvem, dispositivo })).toMatchObject({
+        preferCloud: true,
+        localModel: MOONSHINE_MODELS.base,
+      })
   })
 })
 
@@ -141,5 +144,86 @@ describe('tamanhoDoDownloadMb — bytes do Hub por dtype', () => {
   })
   it('modelo desconhecido: null (a tela não inventa número)', () => {
     expect(tamanhoDoDownloadMb('x/y')).toBeNull()
+  })
+})
+
+/**
+ * O SMALL SÓ COM GPU PROVADA (plano "Grátis sem travar", A4). O small (589 MB) só é tempo real na
+ * GPU; no WASM a legenda chegava 18,6 s depois da fala (auditoria de latência 2026-09-26). No desktop
+ * bastava `permiteSmall && hasWebGpu` — sem olhar a sonda que o Quest e o celular já olham
+ * (`usarGpuNoAparelho`). Agora as mesmas provas valem no desktop: adaptador real (não o de reserva),
+ * GPU que nunca caiu aqui, e o microbenchmark, quando existe, sem a GPU perder por `MARGEM_DA_GPU`.
+ * Sem sonda guardada, o base: a sonda roda no ocioso e a próxima captura já pode subir ao small.
+ */
+describe('desktop: o small só com GPU provada', () => {
+  const provado: DispositivoDaRota = { ...desktopGpu, adaptadorReal: true }
+  const pt = { ...base, hasWebGpu: true }
+
+  it('sem sonda guardada (adaptadorReal ausente): base híbrido', () => {
+    expect(routeStt({ ...pt, dispositivo: desktopGpu })).toMatchObject({
+      localModel: WHISPER_MODELS.base,
+      dtype: 'hybrid',
+    })
+  })
+
+  it('adaptador de reserva (software): base', () => {
+    expect(routeStt({ ...pt, dispositivo: { ...provado, adaptadorReal: false } }).localModel).toBe(WHISPER_MODELS.base)
+  })
+
+  it('GPU que já caiu neste aparelho (device-lost gravado): base', () => {
+    expect(routeStt({ ...pt, dispositivo: { ...provado, gpuCaiu: true } }).localModel).toBe(WHISPER_MODELS.base)
+  })
+
+  it('benchmark com a GPU abaixo de 1,5× a CPU: base', () => {
+    const d = { ...provado, pontuacaoWasm: 10, pontuacaoWebgpu: 14.9 }
+    expect(routeStt({ ...pt, dispositivo: d }).localModel).toBe(WHISPER_MODELS.base)
+  })
+
+  it('benchmark com a GPU ≥ 1,5× a CPU: small', () => {
+    const d = { ...provado, pontuacaoWasm: 10, pontuacaoWebgpu: 15 }
+    expect(routeStt({ ...pt, dispositivo: d }).localModel).toBe(WHISPER_MODELS.small)
+  })
+
+  it('sonda com adaptador real e ainda sem benchmark: small', () => {
+    const d = { ...provado, pontuacaoWasm: null, pontuacaoWebgpu: null }
+    expect(routeStt({ ...pt, dispositivo: d }).localModel).toBe(WHISPER_MODELS.small)
+  })
+
+  it('sem adaptador agora (hasWebGpu false), mesmo com sonda antiga que o provou: base', () => {
+    expect(routeStt({ ...base, hasWebGpu: false, dispositivo: provado }).localModel).toBe(WHISPER_MODELS.base)
+  })
+
+  it('"preciso" e "nuvem indisponível" seguem a mesma prova', () => {
+    for (const quality of ['accurate', 'cloud'] as const) {
+      expect(routeStt({ ...pt, quality, dispositivo: desktopGpu }).localModel).toBe(WHISPER_MODELS.base)
+      expect(routeStt({ ...pt, quality, dispositivo: provado }).localModel).toBe(WHISPER_MODELS.small)
+    }
+  })
+
+  it('economia de dados: base q8 — nunca o small em q8, que vai ao WASM (sem kernel q8 no WebGPU)', () => {
+    const r = routeStt({ ...pt, dispositivo: { ...provado, economiaDeDados: true } })
+    expect(r).toMatchObject({ localModel: WHISPER_MODELS.base, dtype: 'q8', device: 'wasm' })
+  })
+
+  it('o desktop não muda de dtype nem de device por isso (o híbrido fica; nada de q8)', () => {
+    for (const dispositivo of [desktopGpu, provado, { ...provado, gpuCaiu: true }]) {
+      const r = routeStt({ ...pt, dispositivo })
+      expect(r.dtype).toBe('hybrid')
+      expect(r.device).toBeUndefined()
+    }
+  })
+})
+
+describe('tamanhoDoDownloadMb — tradutores', () => {
+  it('opus-mt: 113 MB (o maior par em q8)', () => {
+    expect(tamanhoDoDownloadMb('Xenova/opus-mt-ROMANCE-en')).toBe(113)
+  })
+
+  it('Bergamot pt→en: 31 MB (os três .gz, 25,6 MB, + o WASM sem compressão de transporte)', () => {
+    expect(tamanhoDoDownloadMb('bergamot/pt-en')).toBe(31)
+  })
+
+  it('id desconhecido: null (a tela não inventa número)', () => {
+    expect(tamanhoDoDownloadMb('bergamot/xx-yy')).toBeNull()
   })
 })

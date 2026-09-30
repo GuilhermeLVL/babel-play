@@ -92,6 +92,18 @@ export const utterances = sqliteTable(
     status: text('status'),
     engine: text('engine'),
     confidence: real('confidence'),
+    /**
+     * "POLIR A SESSÃO" (D5 da Fase D, migração 0044): a tradução reescrita pelo nível `polimento`,
+     * AO LADO da original — `translated_text` nunca é sobrescrita, e a pessoa alterna entre as duas
+     * na Análise. Nulo = ainda não polida (é o que torna o polimento idempotente por bloco: o
+     * servidor só manda ao modelo as linhas sem polida). Com ela, o modelo que poliu, a versão do
+     * prompt (`server/ai/polimento.ts`) e quando. Corrigir o texto ou a tradução da fala apaga as
+     * quatro (`utterancesRepo.update`): a polida era de outro texto.
+     */
+    traducaoPolida: text('traducao_polida'),
+    polimentoModelo: text('polimento_modelo'),
+    polimentoVersao: text('polimento_versao'),
+    polidoEm: integer('polido_em'),
   },
   (t) => [
     /** Chave de junção óbvia e sem índice: `computeProfile` fazia full scan por pageview. */
@@ -698,19 +710,27 @@ export const userInterests = sqliteTable(
 /**
  * SaaS Fatia 1 — ASSINATURA (o "que você pagou"), eixo SEPARADO do `role`. Fonte da verdade do plano
  * server-side (o billing escreve aqui via webhook — Fatia 6). Uma assinatura por usuário.
+ *
+ * MATRIZ V2 (migração 0041, ADR 0011): `plan` é `free | premium | selfhost` — linha antiga com
+ * `essencial`/`pro` é LIDA como `premium` (`normalizarPlano`) — e a assinatura diz o CICLO (mensal ou
+ * anual) e o MEIO do Asaas que cobra (assinatura recorrente, parcelamento do 12x ou Pix Automático),
+ * com o id do parcelamento quando é ele (C5).
  */
 export const subscriptions = sqliteTable(
   'subscriptions',
   {
     id: text('id').primaryKey(),
     ...meta,
-    plan: text('plan').notNull().default('free'), // 'free' | 'pro' | 'selfhost'
+    plan: text('plan').notNull().default('free'), // 'free' | 'premium' | 'selfhost' (PlanoDeAssinatura)
     status: text('status').notNull().default('active'), // 'trialing'|'active'|'past_due'|'canceled'
     currentPeriodEnd: integer('current_period_end'),
     cancelAtPeriodEnd: integer('cancel_at_period_end'), // 0/1
-    provider: text('provider'), // 'stripe' | 'lemonsqueezy' | null
+    provider: text('provider'), // 'asaas' | null (concedida pelo admin)
     providerCustomerId: text('provider_customer_id'),
     providerSubscriptionId: text('provider_subscription_id'),
+    ciclo: text('ciclo').notNull().default('mensal'), // CicloDeCobranca: 'mensal' | 'anual'
+    meio: text('meio'), // MeioDeCobranca: 'assinatura' | 'parcelamento' | 'pix_automatico'; null = sem cobrança
+    providerInstallmentId: text('provider_installment_id'), // o parcelamento do Asaas (12x), quando é ele
   },
   (t) => [unique('uq_subscriptions_user').on(t.userId)],
 )
@@ -772,8 +792,8 @@ export const usageCounters = sqliteTable(
   {
     id: text('id').primaryKey(),
     ...meta,
-    metric: text('metric').notNull(), // 'stt_seconds' | 'llm_tokens' | 'youtube_imports'
-    window: text('window').notNull(), // 'YYYY-MM'
+    metric: text('metric').notNull(), // 'stt_seconds' | 'llm_tokens' | 'stt_seconds_dia' | 'llm_tokens_dia' | …
+    window: text('window').notNull(), // 'YYYY-MM' (o mês) ou 'YYYY-MM-DD' (o dia local do uso justo)
     count: integer('count').notNull().default(0),
   },
   (t) => [
@@ -1072,8 +1092,72 @@ export const cacheDeTraducaoPersistente = sqliteTable(
     usadoEm: integer('usado_em').notNull(),
     acertos: integer('acertos').notNull().default(0),
   },
-  (t) => [
-    index('idx_cache_de_traducao_criado').on(t.criadoEm),
-    index('idx_cache_de_traducao_usado').on(t.usadoEm),
-  ],
+  (t) => [index('idx_cache_de_traducao_criado').on(t.criadoEm), index('idx_cache_de_traducao_usado').on(t.usadoEm)],
+)
+
+/**
+ * O GLOSSÁRIO PESSOAL DA TRADUÇÃO NUANCE (D3 da Fase D, migração 0042) — `server/ai/glossario.ts`.
+ *
+ * "Sempre traduzir assim": a pessoa fixa a tradução de uma palavra salva (a folha da palavra) ou de
+ * uma frase (a escolha entre as "Outras formas"), e o servidor injeta no prompt as entradas que
+ * aparecem no texto — no máximo 12 por pedido, como DADO delimitado. Até 500 por pessoa.
+ *
+ * `origem`/`destino` são o IDIOMA base (`en`, `pt`), sem a variante: o termo inglês que a pessoa
+ * fixou em português vale para pt-BR e pt-PT. `termo_norm` (NFC, minúsculas, espaços colapsados) é a
+ * chave do UNIQUE — "Deadline" e "deadline" são a mesma entrada. É dado do titular: entra em
+ * `TABELAS_DO_TITULAR` (exportação e exclusão), e o resultado de uma tradução com glossário NUNCA
+ * vai para o cache compartilhado (`cache_de_traducao`), que é de todos.
+ */
+export const glossario = sqliteTable(
+  'glossario',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull(),
+    origem: text('origem').notNull(),
+    destino: text('destino').notNull(),
+    termo: text('termo').notNull(),
+    termoNorm: text('termo_norm').notNull(),
+    traducao: text('traducao').notNull(),
+    criadoEm: integer('criado_em').notNull(),
+    atualizadoEm: integer('atualizado_em').notNull(),
+  },
+  (t) => [uniqueIndex('uq_glossario_termo').on(t.userId, t.origem, t.destino, t.termoNorm)],
+)
+
+/**
+ * O TESTE DE 14 DIAS DO PREMIUM (C6 da change `planos-v2`, migração 0043). Uma linha por conta que
+ * testou: quando começou e quando termina. Enquanto `termina_em` estiver no futuro, o servidor
+ * concede o Premium nos entitlements (`resolverPlano`), mas a admissão da nuvem trata a conta como
+ * GRÁTIS (`planoDeAdmissao(..., teste = true)`) — quem ainda não paga não disputa a capacidade de quem
+ * paga.
+ *
+ * NÃO É `subscriptions` e NÃO REUSA `trialing`: `trialing` continua querendo dizer "checkout
+ * iniciado, não pago" (GAP-001), e misturar os dois faria um checkout abandonado virar teste (ou o
+ * teste virar "assinatura" na tela). Sem cartão, sem cobrança, sem renovação: nada aqui fala com o
+ * Asaas. É DADO DO TITULAR (`user_id`): sai com a exclusão da conta e entra na exportação.
+ */
+export const testesPremium = sqliteTable('testes_premium', {
+  userId: text('user_id').primaryKey(),
+  iniciadoEm: integer('iniciado_em').notNull(),
+  terminaEm: integer('termina_em').notNull(),
+})
+
+/**
+ * A MARCA DO TESTE (C6, migração 0043) — o que impede apagar a conta e criar outra para ganhar mais
+ * 14 dias. `marca` é o HMAC-SHA256 do e-mail NORMALIZADO com a chave de hash do servidor
+ * (`CHAVE_DE_HASH`, `server/lib/testePremium.ts`): não guarda o e-mail, não volta a ele sem o
+ * segredo, e NÃO tem `user_id` — por isso sobrevive à exclusão da conta, que é exatamente o objetivo.
+ *
+ * É dado PSEUDONIMIZADO (LGPD art. 13 §4º: continua dado pessoal para quem tem a chave), tratado por
+ * legítimo interesse (prevenir o abuso do benefício gratuito) e guardado por 730 dias, com poda
+ * diária (`podarMarcasDeTeste`). Fica fora de `TABELAS_DO_TITULAR` de propósito — documentado em
+ * `docs/lgpd/ropa.csv` (T12) e em `public/privacidade.html`.
+ */
+export const marcasDeTeste = sqliteTable(
+  'marcas_de_teste',
+  {
+    marca: text('marca').primaryKey(),
+    criadoEm: integer('criado_em').notNull(),
+  },
+  (t) => [index('idx_marcas_de_teste_criado').on(t.criadoEm)],
 )

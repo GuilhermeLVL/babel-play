@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest'
 import { brl, dataCurta, estadoDaConta, faturaEmAberto, temAssinatura } from '../src/lib/assinatura'
 
 const AGORA = 1_790_000_000_000
-const sub = (status: string, valeAte: number | null = AGORA + 86_400_000, plano = 'pro') => ({
+const sub = (status: string, valeAte: number | null = AGORA + 86_400_000, plano = 'premium') => ({
   configurado: true,
   assinatura: { plano, status, valeAte, provedor: 'asaas' },
 })
@@ -21,13 +21,13 @@ describe('estadoDaConta', () => {
   })
 
   it('ativa, pagamento pendente e cancelada vêm do status do servidor', () => {
-    expect(estadoDaConta('pro', sub('active'), AGORA)).toEqual({
+    expect(estadoDaConta('premium', sub('active'), AGORA)).toEqual({
       estado: 'ativa',
-      plano: 'pro',
+      plano: 'premium',
       valeAte: AGORA + 86_400_000,
     })
-    expect(estadoDaConta('pro', sub('past_due'), AGORA).estado).toBe('falhou')
-    expect(estadoDaConta('pro', sub('canceled'), AGORA).estado).toBe('cancelada')
+    expect(estadoDaConta('premium', sub('past_due'), AGORA).estado).toBe('falhou')
+    expect(estadoDaConta('premium', sub('canceled'), AGORA).estado).toBe('cancelada')
   })
 
   it('cancelada com o período vencido volta ao Grátis', () => {
@@ -41,9 +41,9 @@ describe('estadoDaConta', () => {
   })
 
   it('plano pago sem cobrança no provedor fica ativo, sem data', () => {
-    expect(estadoDaConta('essencial', { configurado: true, assinatura: null }, AGORA)).toEqual({
+    expect(estadoDaConta('premium', { configurado: true, assinatura: null }, AGORA)).toEqual({
       estado: 'ativa',
-      plano: 'essencial',
+      plano: 'premium',
       valeAte: null,
     })
   })
@@ -51,6 +51,19 @@ describe('estadoDaConta', () => {
   it('anônimo e grátis sem assinatura são Grátis', () => {
     expect(estadoDaConta('anonimo', null, AGORA).estado).toBe('gratis')
     expect(estadoDaConta('free', null, AGORA).estado).toBe('gratis')
+  })
+
+  it('matriz v2: o servidor anterior manda o nome antigo, e a conta é do Premium', () => {
+    expect(estadoDaConta('free', sub('active', AGORA + 1000, 'pro'), AGORA)).toMatchObject({
+      estado: 'ativa',
+      plano: 'premium',
+    })
+    expect(estadoDaConta('essencial' as never, { configurado: true, assinatura: null }, AGORA).plano).toBe('premium')
+  })
+
+  it('o ciclo da assinatura chega à conta quando o servidor o diz (o anual do C5)', () => {
+    const anual = { configurado: true, assinatura: { ...sub('active').assinatura, ciclo: 'anual' as const } }
+    expect(estadoDaConta('premium', anual, AGORA)).toMatchObject({ estado: 'ativa', ciclo: 'anual' })
   })
 })
 
@@ -62,7 +75,7 @@ describe('formatação', () => {
   })
 
   it('a fatura em aberto é a atrasada/pendente que tem página para pagar', () => {
-    const base = { descricao: 'Pro · mensal', valor: 1, metodo: null, recibo: null, data: null }
+    const base = { descricao: 'Premium · mensal', valor: 1, metodo: null, recibo: null, data: null }
     expect(
       faturaEmAberto([
         { ...base, id: 'a', status: 'paga', link: 'https://www.asaas.com/i/a' },

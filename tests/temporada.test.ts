@@ -205,8 +205,7 @@ describe('o crédito da temporada', () => {
   })
 
   it('assinante é quem tem plano pago concedido pelo servidor — nunca free, convidado ou self-host', () => {
-    expect(ehAssinanteDaTemporada('pro')).toBe(true)
-    expect(ehAssinanteDaTemporada('essencial')).toBe(true)
+    expect(ehAssinanteDaTemporada('premium')).toBe(true)
     expect(ehAssinanteDaTemporada('free')).toBe(false)
     expect(ehAssinanteDaTemporada('convidado')).toBe(false)
     expect(ehAssinanteDaTemporada('selfhost')).toBe(false)

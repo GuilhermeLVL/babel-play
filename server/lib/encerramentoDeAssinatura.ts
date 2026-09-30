@@ -20,15 +20,27 @@
  *
  * IDEMPOTENTE: a marca é `arrependimento:<id do pagamento>`, gravada ANTES do estorno — repetir o
  * cancelamento nunca estorna duas vezes.
+ *
+ * O ANUAL E O 12x (C5, padrão recomendado que o dono aprovou — VALIDAR COM O JURÍDICO):
+ *  - o ANUAL em uma vez é uma assinatura `YEARLY`: o caminho é o de sempre. Em 7 dias estorna os
+ *    R$ 179; depois, para a renovação e o ano vale até o `nextDueDate` do Asaas — sem reembolso
+ *    proporcional do que falta do ano;
+ *  - o 12x é um PARCELAMENTO no cartão: em 7 dias estorna o parcelamento INTEIRO numa chamada só
+ *    (marca `arrependimento:parcelamento:<id>`) e remove o que ainda estiver pendente; depois, não
+ *    há renovação a parar (o 12x acaba na 12ª parcela) — cancelar só registra que a pessoa não quer
+ *    mais, o ano pago vale até o fim e as parcelas seguem no cartão, sem reembolso proporcional.
  */
 import { billingEventsRepo } from '../db/repositories/billingEvents'
-import { subscriptionsRepo } from '../db/repositories/subscriptions'
+import { type Subscription, subscriptionsRepo } from '../db/repositories/subscriptions'
 import {
   buscarAssinatura,
   cancelarAssinatura,
   type CobrancaListadaAsaas,
   estornarCobranca,
+  estornarParcelamento,
   listarCobrancasDaAssinatura,
+  listarCobrancasDoParcelamento,
+  removerParcelamento,
 } from './asaas'
 import type { UserId } from './authContext'
 import { log } from './logger'
@@ -110,6 +122,107 @@ async function estornarUma(userId: UserId, c: CobrancaListadaAsaas, requestId?: 
   }
 }
 
+/** As cobranças pagas, da mais antiga para a mais nova, com a data em que contaram como feitas. */
+function pagasEmOrdem(cobrancas: CobrancaListadaAsaas[]): Array<{ c: CobrancaListadaAsaas; em: number }> {
+  return cobrancas
+    .filter((c) => PAGAS.has(c.status))
+    .map((c) => ({ c, em: dataDoPagamento(c) }))
+    .filter((x): x is { c: CobrancaListadaAsaas; em: number } => x.em !== null)
+    .sort((a, b) => a.em - b.em)
+}
+
+const somaEmReais = (xs: Array<{ c: CobrancaListadaAsaas }>): number =>
+  Math.round(xs.reduce((s, { c }) => s + c.value, 0) * 100) / 100
+
+/**
+ * O estorno do PARCELAMENTO inteiro, com a mesma disciplina de `estornarUma`: a marca vem antes, e
+ * a falha vira pendência reaplicável na fila do admin (`ESTORNO_ARREPENDIMENTO` com `installment`).
+ */
+async function estornarParcelamentoInteiro(
+  userId: UserId,
+  parcelamentoId: string,
+  primeiraPaga: CobrancaListadaAsaas,
+  valor: number,
+  requestId?: string,
+): Promise<{ estornado: boolean; protocolo: string }> {
+  const marca = `arrependimento:parcelamento:${parcelamentoId}`
+  const payload = {
+    id: marca,
+    event: 'ESTORNO_ARREPENDIMENTO',
+    payment: { id: primeiraPaga.id, installment: parcelamentoId, externalReference: String(userId), value: valor },
+  }
+  const novo = await billingEventsRepo.marcarSeNovo(
+    marca,
+    'asaas',
+    'ESTORNO_ARREPENDIMENTO',
+    userId,
+    parcelamentoId,
+    payload,
+  )
+  if (!novo) return { estornado: (await billingEventsRepo.ler(marca))?.estado === 'aplicado', protocolo: marca }
+  try {
+    await estornarParcelamento(parcelamentoId, 'Arrependimento em 7 dias (CDC art. 49)')
+    await billingEventsRepo.registrarResultado(marca, 'aplicado', null)
+    return { estornado: true, protocolo: marca }
+  } catch (err) {
+    const motivo = `estorno do parcelamento no arrependimento falhou no Asaas: ${String(err).slice(0, 200)}`
+    await billingEventsRepo.registrarResultado(marca, 'nao-aplicado', motivo)
+    log('error', { event: 'billing_estorno_falhou', error: motivo, requestId })
+    return { estornado: false, protocolo: marca }
+  }
+}
+
+/** O 12x: arrependimento estorna o parcelamento inteiro; depois dele, o ano pago vale até o fim. */
+async function encerrarParcelamento(
+  userId: UserId,
+  sub: Subscription,
+  parcelamentoId: string,
+  agora: number,
+  requestId?: string,
+): Promise<ResultadoDoEncerramento> {
+  const parcelas = await listarCobrancasDoParcelamento(parcelamentoId)
+  const pagas = pagasEmOrdem(parcelas)
+  const primeira = pagas[0]
+
+  if (primeira && dentroDoArrependimento(primeira.em, agora)) {
+    const valor = somaEmReais(pagas)
+    const r = await estornarParcelamentoInteiro(userId, parcelamentoId, primeira.c, valor, requestId)
+    /* No cartão as 12 parcelas confirmam juntas e o estorno leva todas; se alguma ainda estiver em
+       aberto (não deveria), ela é removida para não ser cobrada depois do arrependimento. Falha aqui
+       não desfaz o arrependimento — fica no log para o admin. */
+    if (parcelas.some((c) => c.status === 'PENDING' || c.status === 'OVERDUE')) {
+      try {
+        await removerParcelamento(parcelamentoId)
+      } catch (err) {
+        log('error', { event: 'billing_parcelas_pendentes_nao_removidas', error: String(err).slice(0, 160), requestId })
+      }
+    }
+    await subscriptionsRepo.upsert(userId, { status: 'canceled', cancelAtPeriodEnd: 0, currentPeriodEnd: agora })
+    log('info', {
+      event: r.estornado ? 'billing_arrependimento_estornado' : 'billing_arrependimento_manual',
+      requestId,
+    })
+    return {
+      semAssinatura: false,
+      valeAte: null,
+      arrependimento: {
+        valor,
+        estornado: r.estornado,
+        protocolo: r.protocolo,
+        registradoEm: agora,
+        ...(r.estornado ? {} : { prazoManualDias: PRAZO_DO_REEMBOLSO_MANUAL_DIAS }),
+      },
+    }
+  }
+
+  /* Depois dos 7 dias: nada a cancelar no Asaas — o parcelamento não renova, e as parcelas são do
+     cartão (o compromisso do ano, sem reembolso proporcional). A linha registra o cancelamento e o
+     acesso fica até o fim do ano que o webhook concedeu. */
+  const valeAte = sub.currentPeriodEnd ?? null
+  await subscriptionsRepo.upsert(userId, { status: 'canceled', cancelAtPeriodEnd: 1, currentPeriodEnd: valeAte })
+  return { semAssinatura: false, valeAte, arrependimento: null }
+}
+
 /**
  * Encerra a assinatura do usuário. LANÇA se o Asaas não confirmar o cancelamento (ou não listar
  * as cobranças): quem chama responde 502 e — na exclusão de conta — NÃO apaga nada.
@@ -120,23 +233,19 @@ export async function encerrarAssinatura(
 ): Promise<ResultadoDoEncerramento> {
   const agora = opts.agora ?? Date.now()
   const sub = await subscriptionsRepo.getActive(userId)
+  if (sub?.meio === 'parcelamento' && sub.providerInstallmentId) {
+    return encerrarParcelamento(userId, sub, sub.providerInstallmentId, agora, opts.requestId)
+  }
   if (!sub?.providerSubscriptionId) return { semAssinatura: true, valeAte: null, arrependimento: null }
   const assinaturaId = sub.providerSubscriptionId
 
-  const cobrancas = await listarCobrancasDaAssinatura(assinaturaId)
-  const pagas = cobrancas
-    .filter((c) => PAGAS.has(c.status))
-    .map((c) => ({ c, em: dataDoPagamento(c) }))
-    .filter((x): x is { c: CobrancaListadaAsaas; em: number } => x.em !== null)
-    .sort((a, b) => a.em - b.em)
+  const pagas = pagasEmOrdem(await listarCobrancasDaAssinatura(assinaturaId))
   const primeira = pagas[0]
 
   if (primeira && dentroDoArrependimento(primeira.em, agora)) {
     await cancelarAssinatura(assinaturaId)
     let todos = true
-    let valor = 0
     for (const { c } of pagas) {
-      valor += c.value
       if (!(await estornarUma(userId, c, opts.requestId))) todos = false
     }
     await subscriptionsRepo.upsert(userId, { status: 'canceled', cancelAtPeriodEnd: 0, currentPeriodEnd: agora })
@@ -148,7 +257,7 @@ export async function encerrarAssinatura(
       semAssinatura: false,
       valeAte: null,
       arrependimento: {
-        valor: Math.round(valor * 100) / 100,
+        valor: somaEmReais(pagas),
         estornado: todos,
         protocolo: `arrependimento:${primeira.c.id}`,
         registradoEm: agora,

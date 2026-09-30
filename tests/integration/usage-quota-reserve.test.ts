@@ -26,15 +26,15 @@ afterAll(async () => {
 })
 afterEach(() => {
   delete process.env.AUTH_REQUIRED
-  delete process.env.PRO_MONTHLY_MANAGED_CALLS
+  delete process.env.PREMIUM_MONTHLY_MANAGED_CALLS
 })
 
 describe('reserveManagedCall', () => {
   it('pro abaixo do teto reserva; no teto recusa', async () => {
     process.env.AUTH_REQUIRED = '1'
-    process.env.PRO_MONTHLY_MANAGED_CALLS = '2'
+    process.env.PREMIUM_MONTHLY_MANAGED_CALLS = '2'
     const u = asUserId('rq-pro')
-    await subs.upsert(u, { plan: 'pro', status: 'active' })
+    await subs.upsert(u, { plan: 'premium', status: 'active' })
 
     expect(await quota.reserveManagedCall(u)).toBe(true) // 1/2
     expect(await quota.reserveManagedCall(u)).toBe(true) // 2/2
@@ -56,9 +56,9 @@ describe('reserveManagedCall', () => {
   /** O cenário exato medido na auditoria: 20 simultâneas contra teto 5. */
   it('20 reservas SIMULTÂNEAS contra teto 5 → exatamente 5 passam', async () => {
     process.env.AUTH_REQUIRED = '1'
-    process.env.PRO_MONTHLY_MANAGED_CALLS = '5'
+    process.env.PREMIUM_MONTHLY_MANAGED_CALLS = '5'
     const u = asUserId('rq-corrida')
-    await subs.upsert(u, { plan: 'pro', status: 'active' })
+    await subs.upsert(u, { plan: 'premium', status: 'active' })
 
     const r = await Promise.all(Array.from({ length: 20 }, () => quota.reserveManagedCall(u)))
     expect(r.filter(Boolean)).toHaveLength(5)
@@ -66,9 +66,9 @@ describe('reserveManagedCall', () => {
 
   it('falha FECHADA: falha de infra recusa a chamada (Fase 2 do lançamento, OWASP LLM10)', async () => {
     process.env.AUTH_REQUIRED = '1'
-    process.env.PRO_MONTHLY_MANAGED_CALLS = '1'
+    process.env.PREMIUM_MONTHLY_MANAGED_CALLS = '1'
     const u = asUserId('rq-failclosed')
-    await subs.upsert(u, { plan: 'pro', status: 'active' })
+    await subs.upsert(u, { plan: 'premium', status: 'active' })
 
     // Simula o banco fora do ar NA RESERVA. Liberar aqui desligava todos os tetos de uma vez;
     // agora a reserva lança, e a rota responde 503 (ver cota-que-vale.test.ts).
@@ -84,9 +84,9 @@ describe('reserveManagedCall', () => {
 describe('refundManagedCall', () => {
   it('devolve a vaga quando o provedor falha depois da reserva', async () => {
     process.env.AUTH_REQUIRED = '1'
-    process.env.PRO_MONTHLY_MANAGED_CALLS = '1'
+    process.env.PREMIUM_MONTHLY_MANAGED_CALLS = '1'
     const u = asUserId('rq-estorno')
-    await subs.upsert(u, { plan: 'pro', status: 'active' })
+    await subs.upsert(u, { plan: 'premium', status: 'active' })
 
     expect(await quota.reserveManagedCall(u)).toBe(true)
     expect(await quota.reserveManagedCall(u)).toBe(false) // cheio

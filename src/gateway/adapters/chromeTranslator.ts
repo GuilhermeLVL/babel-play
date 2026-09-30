@@ -30,6 +30,13 @@ export type EstadoDoTradutorNativo = 'available' | 'downloadable' | 'unavailable
  */
 export const PRAZO_DA_DISPONIBILIDADE_MS = 250;
 
+/**
+ * PRAZO DA PERGUNTA SEM O CLIQUE (`atendeSemBaixar`): quem pergunta é o aquecimento da tela aberta,
+ * que não tem legenda esperando — pode esperar mais que a tradução. Mas não os 6 s do headless shell:
+ * sem resposta, o opus-mt aquece como antes (errar para o lado de a tradução funcionar).
+ */
+export const PRAZO_DA_PERGUNTA_SEM_CLIQUE_MS = 1500;
+
 type Estado = 'ready' | 'unavailable' | 'downloading' | 'consultando';
 
 /**
@@ -234,6 +241,39 @@ export class ChromeTranslatorMt implements TranslationProvider {
       return this.known.get(key) === 'ready' ? 'available' : 'unavailable';
     }
     return 'downloadable';
+  }
+
+  /**
+   * O PAR JÁ ESTÁ NO DISCO (`availability` = 'available')? A pergunta de quem aquece o opus-mt SEM o
+   * clique (a tela abrindo — plano "Grátis sem travar", A9a): se o navegador traduz o par agora, o
+   * nosso tradutor não precisa ocupar memória nem CPU. SÓ PERGUNTA: não cria o tradutor (o de um
+   * pacote a baixar exige o gesto do clique, e falhar aqui o tiraria da sessão inteira) e não muda o
+   * que a sessão sabe do par — `preparar` continua sendo quem cria no clique. Nunca lança; sem
+   * resposta no prazo, `false`.
+   */
+  async atendeSemBaixar(src: string, tgt: string, prazoMs = PRAZO_DA_PERGUNTA_SEM_CLIQUE_MS): Promise<boolean> {
+    if (!ChromeTranslatorMt.isPresent() || !src || !tgt) return false;
+    const s = codigoDoTradutor(src);
+    const t = codigoDoTradutor(tgt);
+    if (s === t) return false;
+    const sabido = this.known.get(`${s}|${t}`);
+    if (sabido === 'ready') return true;
+    if (sabido === 'unavailable' || sabido === 'downloading') return false;
+    let relogio: ReturnType<typeof setTimeout> | undefined;
+    const prazo = new Promise<null>((resolve) => {
+      relogio = setTimeout(() => resolve(null), prazoMs);
+    });
+    try {
+      const status = await Promise.race([
+        Promise.resolve().then(() => Translator.availability({ sourceLanguage: s, targetLanguage: t })),
+        prazo,
+      ]);
+      return status === 'available' || status === 'readily';
+    } catch {
+      return false;
+    } finally {
+      clearTimeout(relogio);
+    }
   }
 
   /**

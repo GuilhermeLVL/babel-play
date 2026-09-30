@@ -15,7 +15,7 @@ const evento = (p: Record<string, unknown> = {}) => ({
   gatilho: 'premium',
   componente: 'comparacao',
   plano_atual: 'free',
-  plano_sugerido: 'pro',
+  plano_sugerido: 'premium',
   variante: 'padrao',
   ...p,
 })
@@ -25,6 +25,14 @@ const conhecidos = { gatilhos: new Set(['premium', 'nenhum']), variantes: new Se
 describe('validarLoteDeOfertas (o contrato do corpo)', () => {
   it('aceita o lote do contrato', () => {
     expect(validarLoteDeOfertas({ v: 1, eventos: [evento()] }, conhecidos)).toEqual([evento()])
+  })
+
+  it('matriz v2: a aba aberta com o bundle anterior manda o nome antigo, e o evento conta como Premium', () => {
+    const lote = [evento({ plano_atual: 'essencial', plano_sugerido: 'pro' }), evento({ plano_sugerido: 'essencial' })]
+    expect(validarLoteDeOfertas({ v: 1, eventos: lote }, conhecidos)).toEqual([
+      evento({ plano_atual: 'premium', plano_sugerido: 'premium' }),
+      evento({ plano_sugerido: 'premium' }),
+    ])
   })
 
   it('recusa versão, lista vazia, lista grande e campo fora do alfabeto', () => {
@@ -105,7 +113,7 @@ describe('POST /api/metricas/ofertas na montagem real (modo público)', () => {
     )
     expect(corpo).toMatch(/oferta_eventos_total\{evento="oferta_exibida",gatilho="outro",componente="comparacao"\} 1/)
     expect(corpo).toMatch(
-      /oferta_eventos_por_plano_total\{evento="oferta_exibida",plano_atual="free",plano_sugerido="pro",variante="padrao"\} 2/,
+      /oferta_eventos_por_plano_total\{evento="oferta_exibida",plano_atual="free",plano_sugerido="premium",variante="padrao"\} 2/,
     )
   })
 

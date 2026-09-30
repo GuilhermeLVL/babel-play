@@ -15,7 +15,12 @@
  */
 import { describe, expect, it, vi } from 'vitest'
 
-import { criarRastreadorDeProgresso, criarWatchdogDeEstagnacao,lerProgresso } from '../src/gateway/adapters/modelProgress'
+import {
+  criarRastreadorDeProgresso,
+  criarWatchdogDeEstagnacao,
+  lerProgresso,
+  limitarProgresso,
+} from '../src/gateway/adapters/modelProgress'
 
 /** Eventos fiéis ao que @huggingface/transformers 4.2 emite (utils/core.js, utils/hub.js). */
 const ev = {
@@ -175,5 +180,106 @@ describe('criarWatchdogDeEstagnacao — regressão A-P1-6', () => {
     await vi.advanceTimersByTimeAsync(10_000)
     expect(travou).toBe(false)
     vi.useRealTimers()
+  })
+})
+
+/**
+ * A TEMPESTADE DE PROGRESSO ("Grátis sem travar", A1). A lib chama o `progress_callback` a CADA chunk
+ * do stream — inclusive quando o arquivo vem do cache (`transformers.web.js`, `readResponse`) —, e cada
+ * chamada virava um `postMessage` e um `setModelPrep` na thread principal: milhares de renders para
+ * abrir um modelo que já estava no aparelho. O limitador deixa passar só o que muda a barra de forma
+ * visível, SEM calar o sinal de vida de que o watchdog de estagnação depende.
+ */
+describe('limitarProgresso — a barra não afoga a thread principal', () => {
+  const p = (progress: number, loaded = progress * 1000, total = 1000) => ({ progress, loaded, total })
+
+  it('5000 eventos de cache (todos no mesmo instante) viram no máximo ~100 emissões, e o 100% sai', () => {
+    vi.useFakeTimers()
+    try {
+      const vistos: number[] = []
+      const rastrear = criarRastreadorDeProgresso((x) => vistos.push(x.progress))
+      const TOTAL = 85_000_000
+      for (let i = 1; i <= 5000; i++) rastrear(ev.progressTotal(Math.round((TOTAL * i) / 5000), TOTAL))
+      rastrear(ev.ready())
+      expect(vistos.length).toBeLessThanOrEqual(110)
+      expect(vistos.length).toBeGreaterThan(50) // a barra ANDA: um passo por ~1%
+      expect(vistos.at(-1)).toBe(1) // o `ready` nunca é segurado
+      for (let i = 1; i < vistos.length; i++) expect(vistos[i]).toBeGreaterThanOrEqual(vistos[i - 1])
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('avanço de 1% sai na hora; abaixo disso, só depois de 200 ms', () => {
+    vi.useFakeTimers()
+    try {
+      const vistos: number[] = []
+      const limitar = limitarProgresso((x) => vistos.push(x.progress), { intervaloMs: 200, passoMinimo: 0.01 })
+      limitar(p(0.1)) // a primeira sempre sai: a barra nasce
+      limitar(p(0.101))
+      limitar(p(0.105))
+      expect(vistos).toEqual([0.1])
+      limitar(p(0.11)) // +1% desde a última emitida
+      expect(vistos).toEqual([0.1, 0.11])
+      vi.advanceTimersByTime(199)
+      limitar(p(0.111))
+      expect(vistos).toHaveLength(2)
+      vi.advanceTimersByTime(1)
+      limitar(p(0.112)) // 200 ms e houve avanço: sai
+      expect(vistos).toEqual([0.1, 0.11, 0.112])
+      limitar(p(1)) // 100% sai sempre
+      expect(vistos.at(-1)).toBe(1)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('download lento porém vivo: o watchdog segue recebendo sinal de vida e NÃO dispara', async () => {
+    vi.useFakeTimers()
+    try {
+      let travou = false
+      let emissoes = 0
+      const w = criarWatchdogDeEstagnacao({ semProgressoMs: 1_000, tickMs: 100, aoTravar: () => (travou = true) })
+      const rastrear = criarRastreadorDeProgresso(() => {
+        emissoes++
+        w.sinalDeVida()
+      })
+      const TOTAL = 146_000_000
+      // 10 s de chunks de 16 KB a cada 50 ms: cada um move a barra ~0,01% (nunca 1% de uma vez).
+      for (let i = 1; i <= 200; i++) {
+        await vi.advanceTimersByTimeAsync(50)
+        rastrear(ev.progressTotal(i * 16_384, TOTAL))
+      }
+      expect(travou).toBe(false)
+      expect(emissoes).toBeLessThanOrEqual(10 * 5 + 1) // no máximo 5/s
+      expect(emissoes).toBeGreaterThanOrEqual(10 * 4) // e não cala: ~1 a cada 200 ms
+      w.cancelar()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('download PARADO não emite nada (nem repetindo o mesmo número) — e o watchdog dispara', async () => {
+    vi.useFakeTimers()
+    try {
+      let travou = false
+      let emissoes = 0
+      const w = criarWatchdogDeEstagnacao({ semProgressoMs: 1_000, tickMs: 100, aoTravar: () => (travou = true) })
+      const rastrear = criarRastreadorDeProgresso(() => {
+        emissoes++
+        w.sinalDeVida()
+      })
+      rastrear(ev.progressTotal(1_000, 100_000))
+      expect(emissoes).toBe(1)
+      // Nenhum byte novo por 2 s, mesmo com eventos repetidos chegando: não é sinal de vida.
+      for (let i = 0; i < 20; i++) {
+        await vi.advanceTimersByTimeAsync(100)
+        rastrear(ev.progressTotal(1_000, 100_000))
+      }
+      expect(emissoes).toBe(1)
+      expect(travou).toBe(true)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })

@@ -57,6 +57,7 @@ const MOTORES: Record<string, string> = {
   'server-llm-mt': 'tradutor de IA no servidor',
   mymemory: 'MyMemory, na web',
   'opus-mt-local': 'opus-mt, no seu computador',
+  'bergamot-local': 'Bergamot, no seu computador',
   'chrome-translator': 'tradutor do navegador, no seu computador',
   // Degrau M1: dicionário respondeu o toque, sem MT (`lib/traducaoDePalavra.ts`).
   'dicionario-local': 'dicionário do app, no seu computador',
@@ -309,7 +310,10 @@ export default function GavetaDaPalavra({
               {traducao && (
                 <span className="proveniencia">
                   <Sparkles aria-hidden />
-                  {motor ? `${doDicionario ? 'Do dicionário' : 'Gerado por IA'} · ${motor}` : 'Guardada no seu caderno'} ·{' '}
+                  {motor
+                    ? `${doDicionario ? 'Do dicionário' : 'Gerado por IA'} · ${motor}`
+                    : 'Guardada no seu caderno'}{' '}
+                  ·{' '}
                   <button
                     type="button"
                     className="link"
@@ -325,8 +329,8 @@ export default function GavetaDaPalavra({
                   {doDicionario
                     ? 'Tradução curta de dicionário (Wikcionário e Wikidata), sem inteligência artificial. Ela dá o sentido mais comum; confira os outros no dicionário e corrija em Editar.'
                     : motor
-                    ? 'Um modelo de tradução automática escreveu esta tradução. Ele acerta a maioria, mas pode errar o sentido: confira no dicionário e corrija em Editar.'
-                    : 'É a tradução que ficou gravada no cartão quando a palavra entrou no caderno. Se estiver errada, corrija em Editar.'}
+                      ? 'Um modelo de tradução automática escreveu esta tradução. Ele acerta a maioria, mas pode errar o sentido: confira no dicionário e corrija em Editar.'
+                      : 'É a tradução que ficou gravada no cartão quando a palavra entrou no caderno. Se estiver errada, corrija em Editar.'}
                 </p>
               )}
             </section>

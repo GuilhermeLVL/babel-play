@@ -15,7 +15,7 @@ import { readFileSync } from 'node:fs'
 
 import { describe, expect, it } from 'vitest'
 
-import { horasDeTranscricao, PLAN_MATRIX } from '../src/core/planos'
+import { horasDeTranscricao, horasDoUsoJusto, PLAN_MATRIX } from '../src/core/planos'
 
 const TELAS = [
   'src/components/views/Planos.tsx',
@@ -46,9 +46,10 @@ describe('nenhuma promessa que o app hospedado não cumpre', () => {
 })
 
 describe('as horas de transcrição vêm da matriz', () => {
-  it('Essencial 15 h, Pro 20 h, Grátis nenhuma', () => {
-    expect(horasDeTranscricao('essencial')).toBe(15)
-    expect(horasDeTranscricao('pro')).toBe(20)
+  it('Premium 40 h no mês (o empate de custo) e 2 h no dia (o uso justo); Grátis nenhuma', () => {
+    expect(horasDeTranscricao('premium')).toBe(40)
+    expect(horasDoUsoJusto('premium')).toBe(2)
+    expect(horasDoUsoJusto('free')).toBeNull()
     expect(horasDeTranscricao('free')).toBe(0)
     expect(horasDeTranscricao('selfhost')).toBeNull()
   })
@@ -56,7 +57,7 @@ describe('as horas de transcrição vêm da matriz', () => {
   it('a tela de planos escreve as horas pela função, não à mão', () => {
     const dados = semComentarios(readFileSync('src/components/views/planos/dados.ts', 'utf8'))
     expect(dados).toContain('horasDeTranscricao(')
-    expect(dados).not.toMatch(/\b(15|20)\s*h\b/)
-    expect(PLAN_MATRIX.essencial.quotas.sttSegundosMes).toBe(54_000)
+    expect(dados).not.toMatch(/\b(2|40)\s*h\b/)
+    expect(PLAN_MATRIX.premium.quotas.sttSegundosMes).toBe(144_000)
   })
 })

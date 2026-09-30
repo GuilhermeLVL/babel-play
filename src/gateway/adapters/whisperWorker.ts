@@ -36,26 +36,25 @@ import { configureModelDelivery } from './transformersEnv';
 // Entrega dos pesos: cache do navegador (padrão) ou self-host same-origin (VITE_SELF_HOST_MODELS).
 configureModelDelivery();
 
-// Threads do runtime WASM do ONNX. Multithread exige SharedArrayBuffer → página cross-origin
-// isolada (COOP/COEP). SEM isolamento, o ort cai graciosamente para 1 thread (mais lento, porém
-// FUNCIONA). SIMD funciona sem isolamento. Limitamos as threads p/ não saturar a máquina.
+// SIMD do runtime WASM do ONNX (funciona sem isolamento). As THREADS não se escolhem aqui: quem
+// decide é a mensagem `load` (`definirThreads`, abaixo). O `min(núcleos, 4)` que ficava aqui não
+// sabia do tradutor nem da thread principal — num desktop de 8 núcleos eram 4 do Whisper mais as do
+// tradutor disputando os núcleos com a interface.
 try {
-  const cores = (self as any).navigator?.hardwareConcurrency || 4;
   // `wasm` é opcional no tipo do runtime; se faltar, o comportamento é o mesmo do catch abaixo
   // (não mexe em nada e usa os defaults do runtime).
   const wasm = env.backends.onnx.wasm;
-  if (wasm) {
-    wasm.simd = true;
-    wasm.numThreads = Math.max(1, Math.min(cores, 4));
-  }
+  if (wasm) wasm.simd = true;
 } catch {
   // ambiente sem esses campos — ignora (usa defaults do runtime)
 }
 
 /**
- * THREADS PEDIDAS PELO PERFIL DO DISPOSITIVO (`lib/dispositivo/perfil.ts`): 1 sem isolamento, 2 no
- * celular fraco, até 4 no resto. Só tem efeito antes da PRIMEIRA sessão do ORT neste worker — e é o
- * caso, porque o `load` vem antes de qualquer pipeline, e trocar de modelo recria o worker.
+ * THREADS PEDIDAS PELO ORÇAMENTO GLOBAL (`lib/dispositivo/orcamentoDeThreads.ts`): a parte do Whisper
+ * depois da thread principal, do tradutor e da voz — 1 sem isolamento (sem SharedArrayBuffer, o ORT
+ * não abre threads), até 2 no modo leve, até 4 no resto. Só tem efeito antes da PRIMEIRA sessão do
+ * ORT neste worker — e é o caso, porque o `load` vem antes de qualquer pipeline, e trocar de modelo
+ * recria o worker. O teto de 4 fica como rede de segurança.
  */
 function definirThreads(threads: unknown): void {
   if (typeof threads !== 'number' || !Number.isFinite(threads) || threads < 1) return;
@@ -63,7 +62,7 @@ function definirThreads(threads: unknown): void {
     const wasm = env.backends.onnx.wasm;
     if (wasm) wasm.numThreads = Math.min(4, Math.floor(threads));
   } catch {
-    // sem o campo: fica o padrão do topo do arquivo
+    // sem o campo: fica o padrão do runtime
   }
 }
 
@@ -215,6 +214,12 @@ async function ensurePipeline(model?: string, dtypeKey?: string, device?: string
   }
 }
 
+/**
+ * Espaçamento mínimo entre dois `update` do streaming: ~8 por segundo, mais rápido que a leitura e
+ * uma fração dos renders de antes (um por token).
+ */
+const INTERVALO_DOS_UPDATES_MS = 120;
+
 /** A fila serial deste worker: uma tarefa por vez, o final na frente (ver `filaDoWorker.ts`). */
 const fila = new FilaSerial();
 let cargas = 0;
@@ -232,14 +237,34 @@ async function transcrever(dados: any, sinal: SinalDeCancelamento): Promise<void
   // mensagens `update` incrementais conforme os tokens saem — a UI vê o texto crescendo
   // durante a fala (sensação de tempo real). Acumulamos aqui e postamos o texto-até-agora.
   // (Padrão do exemplo oficial realtime-whisper-webgpu.)
+  /* ~8 MENSAGENS POR SEGUNDO, NÃO UMA POR TOKEN ("Grátis sem travar", A1). Cada `update` vira um
+     `setSpeechSegments` e um render da tela da captura, e o decode solta dezenas de tokens por
+     segundo — no aparelho fraco era a thread principal que travava, não o worker. Borda de ataque: a
+     primeira palavra sai na hora; as seguintes, no máximo a cada `INTERVALO_DOS_UPDATES_MS`. Não há
+     meia palavra a evitar: o `TextStreamer` já entrega até o último espaço. O que o limitador segurou
+     sai em `descarregarUpdates`, antes do `result`. */
   let acc = '';
+  let postado = '';
+  let postadoEm = -Infinity;
+  const postarUpdate = () => {
+    const texto = acc.trim();
+    if (!texto || texto === postado) return;
+    postado = texto;
+    postadoEm = Date.now();
+    self.postMessage({ type: 'update', id, text: texto });
+  };
+  /** O último `update` é o texto inteiro do decode — nunca um pedaço retido pelo limitador. */
+  const descarregarUpdates = () => {
+    if (!sinal.cancelado) postarUpdate();
+  };
   const streamer = new TextStreamer(asr.tokenizer, {
     skip_prompt: true,
     skip_special_tokens: true,
     callback_function: (t: string) => {
       acc += t;
       // Decode sendo interrompido: o que sai daqui em diante não é a fala, não vai para a tela.
-      if (!sinal.cancelado) self.postMessage({ type: 'update', id, text: acc.trim() });
+      if (sinal.cancelado) return;
+      if (Date.now() - postadoEm >= INTERVALO_DOS_UPDATES_MS) postarUpdate();
     },
   });
   /* PARAR NO MEIO: o final chegou e este parcial ficou velho. Um processador NOVO por chamada (o
@@ -265,6 +290,7 @@ async function transcrever(dados: any, sinal: SinalDeCancelamento): Promise<void
     if (!moonshineAceita(language)) throw new Error(`moonshine só transcreve inglês (pedido: ${language})`);
     const out = await asr(pcm, { ...opcoesDeDecodeMoonshine(audioSec), streamer, ...interrupcao });
     if (sinal.cancelado) return responderCancelado(id);
+    descarregarUpdates();
     const bruto = (out.text ?? '').trim();
     const filtrado = filtrarAlucinacao(bruto, audioSec, 'en');
     self.postMessage({ type: 'result', id, text: filtrado, descartado: !!bruto && !filtrado });
@@ -310,6 +336,7 @@ async function transcrever(dados: any, sinal: SinalDeCancelamento): Promise<void
     ...interrupcao,
   });
   if (sinal.cancelado) return responderCancelado(id);
+  descarregarUpdates();
 
   const bruto = (out.text ?? '').trim();
   const filtrado = filtrarAlucinacao(bruto, audioSec, idioma);

@@ -37,6 +37,12 @@ comprometida é o app inteiro comprometido.
 
 O Asaas não tem mensalidade: cobra por transação (cartão ~R$ 0,49 + 1,99 % a 2,99 %; Pix ~R$ 0,99).
 
+**O que se vende (planos v2, ADR 0011):** Grátis + **Premium** — R$ 19,90/mês, **R$ 179/ano** à vista (Pix,
+boleto ou cartão; renova em um ano) ou em **12x no cartão** (11 × R$ 14,91 + R$ 14,99; não renova), e o
+**teste de 14 dias sem cartão** (um toque, um por pessoa, nunca cobra). "Sem limite no dia a dia" com **uso
+justo** de 2 h/dia e 40 h/mês de nuvem (o empate de custo na pilha de hoje; 60 h só depois do B7). A conta
+de custo por assinante está em `scripts/custo/modelo.mjs` (`node scripts/custo/modelo.mjs`).
+
 ---
 
 ## 1. Domínio (Registro.br) — 10 min
@@ -71,9 +77,10 @@ O Asaas não tem mensalidade: cobra por transação (cartão ~R$ 0,49 + 1,99 % a
      }
    ]
    ```
-   (O app não liga COOP/COEP por padrão, então `Cross-Origin-Resource-Policy` não é exigido. Se um
-   dia ligar `CROSS_ORIGIN_ISOLATION=1`, crie uma _Transform Rule_ de resposta para
-   `modelos.<domínio>` com `Cross-Origin-Resource-Policy: cross-origin`.)
+   (O app sai com isolamento de origem ligado — COEP `credentialless` + Document-Isolation-Policy —
+   para o WASM ter threads. Os pesos são baixados por `fetch` com CORS, então esta política de CORS é
+   tudo o que o bucket precisa: `Cross-Origin-Resource-Policy` não é exigido. Sem o CORS, os modelos
+   locais não carregam.)
 6. **R2 → Manage API tokens** → criar **três tokens** "Object Read & Write", cada um restrito a UM
    bucket: `midia` (+ `backups`), `litestream`, `modelos`. Anotar _Access Key ID_, _Secret_ e o
    endpoint `https://<conta>.r2.cloudflarestorage.com`.
@@ -154,11 +161,53 @@ mensal** (ex.: US$ 30) e alerta em 80 % → **Settings → Data controls → Zer
 retention"_ e _"Disable training"_ ligados (roteia só para provedores ZDR) → **Keys** → criar a
 chave com **credit limit** (ex.: US$ 10).
 
+**Sem reserva não lança tranquilo.** Em produção, se a IA de nuvem subir sem reserva (chave da
+OpenRouter ausente ou expirada, ou meia `LLM_RESERVA_*`), o boot registra o aviso `ia_sem_reserva`,
+que chega ao Sentry (ADR 0008): a próxima queda da Groq chegaria a todo assinante ao mesmo tempo.
+
+**STT:** não precisa de chave própria — com só `LLM_API_KEY` da Groq, a transcrição usa a mesma chave
+(a disponibilidade e a transcrição leem a mesma regra desde o B0 da Fase B).
+
+**Opcional — o registro declarativo (`IA_PROVEDORES`).** Sem ele, nada muda: vale o que está acima.
+Com ele, a lista de provedores, a ordem da cascata, a retenção, os limites e o **preço por
+provedor:modelo** (inclusive a entrada em cache e o mínimo faturado do STT) ficam num JSON sem
+segredo; as chaves continuam em `fly secrets` com os nomes que o JSON cita (`DEEPINFRA_API_KEY`,
+`CLOUDFLARE_ACCOUNT_ID`/`CLOUDFLARE_API_TOKEN`, `CEREBRAS_API_KEY`…). O formato e um exemplo estão no
+`.env.production.example`. Em produção o boot **aborta** se o registro citar o Gemini, um OpenRouter
+sem o roteamento de retenção zero que ignora o Google, ou qualquer provedor sem `"retencao": "zdr"`
+— confira a retenção zero no painel de cada provedor ANTES de declarar. Trocar o provedor ou o
+modelo padrão só com o resultado da bancada (Fase B, B5/B7).
+
+**Os níveis (B3).** Com o registro, cada modelo de tradução/tutor pode dizer a quem serve:
+`"niveis": ["rapida"]` (o padrão — Grátis, convidado e a nuvem de alívio) ou `["nuance"]` (quem paga:
+o entitlement `traducaoNuance`). Quem paga começa pelo modelo da nuance e cai no da rápida se ele
+falhar; quem não paga nunca chega ao da nuance. Sem o registro, vale o `LLM_MODEL_GRANDE` de sempre,
+para o plano com `largerModels`.
+
+**A cascata do STT (B6).** Com mais de um provedor de STT no registro, cada áudio vai primeiro para
+quem cobra MENOS por ele — com o mínimo faturado de cada um: a Groq cobra 10 s por pedido, então a
+fala curta vai para quem cobra por segundo (declare `"minimoFaturadoS": 0` nele; ausente, o servidor
+supõe 10 s). 429, 5xx e timeout passam para o próximo, e o disjuntor é por provedor. A Cloudflare
+(Workers AI) entra com `"formato": "cloudflare"` e o modelo `@cf/openai/whisper-large-v3-turbo` — o
+áudio vai em base64 pela rota nativa; confira no painel dela que a conta não guarda o conteúdo
+(Workers AI → Privacy) antes de declarar `"retencao": "zdr"`.
+
 Decida o **orçamento global** `AI_BUDGET_USD_MONTH` (soma do que aceita gastar nos dois; sem ela o
-app usa US$ 20). O servidor estima o gasto de cada chamada (`server/lib/orcamentoDeIa.ts`): a 80 %
+app usa US$ 20). O servidor estima o gasto de cada chamada (`server/lib/orcamentoDeIa.ts`) pelo
+preço do **provedor que de fato respondeu** — com o primário em 429, o da reserva —, com os tokens do
+cache de prompt mais baratos e o mínimo faturado do STT de cada provedor; o `/metrics` mostra o custo
+e a latência por `fornecedor` e `modelo` (`ia_provedor_custo_usd_total`, `ia_provedor_latencia_ms`). A 80 %
 sai o evento `ia_orcamento_alerta_80` e a 100 % o `ia_orcamento_esgotado` — a IA de nuvem fecha
 sozinha até o mês virar e o app volta para os modelos locais. Os dois chegam ao Sentry; a regra de
 alerta está no passo 7.
+
+**Antes do corte, a degradação suave (B4).** Com o orçamento (do mês ou do dia, o que estiver mais
+perto do fim) a **70 %**, quem paga começa no modelo mais barato da cascata quando o balde do primeiro
+provedor está abaixo de 20 %; a **90 %**, todo mundo começa no mais barato, e a saída dos modelos sem
+raciocínio cai para 75 %. Não há variável: é a regra do plano. O `/metrics` conta cada chamada
+degradada em `ia_degradacao_de_custo_total{motivo,nivel}` — subindo antes do fim do mês, o orçamento
+está curto para o tráfego. Com o `IA_PROVEDORES`, os `limites` declarados (rpm, tpm, rpd, tpd) são
+os baldes da admissão de cada provedor; sem eles, valem as `IA_ADMISSAO_*`.
 
 ## 6. Asaas (cobrança, conta PJ) — 1 a 3 dias úteis de aprovação
 
@@ -171,6 +220,17 @@ alerta está no passo 7.
    `ASAAS_WEBHOOK_TOKEN`. Fila de sincronização **ligada**.
 4. Configurar a emissão de **NFS-e** (obrigatória no padrão nacional a partir de 01/11/2026) com o
    contador.
+5. **As três formas de assinar** (C5) não pedem configuração a mais no painel: o servidor cria a assinatura
+   mensal (`MONTHLY`), a anual (`YEARLY`, R$ 179) ou o **parcelamento** do 12x (`installmentCount: 12`, só
+   `CREDIT_CARD` — um carnê de Pix/boleto daria o ano pela 1ª parcela). As parcelas chegam pelos mesmos
+   eventos de **cobrança** do webhook (o ramo do parcelamento confere `installment` na API). Confira no painel
+   que **juros e multa** da conta estão zerados, como na sondagem: o valor pago é o que decide plano e ciclo.
+6. **Pix Automático** fica DESLIGADO (o `/assinar` responde 501 `pix_automatico_indisponivel`): em produção o
+   Asaas exige conta **PJ com CNPJ ativo há 6 meses ou mais** e sem restrição de Pix. Quando a conta for
+   elegível, a integração entra atrás de flag (change `planos-v2`, C5).
+7. **Teste de 14 dias:** nada a configurar no Asaas (o teste não cria cobrança). A marca "um por pessoa" é
+   o HMAC do e-mail com a chave derivada da `SECRET_KEY`: **trocar a `SECRET_KEY` invalida as marcas** — quem
+   já testou poderia testar de novo. Mais um motivo para guardá-la no cofre (passo 8).
 
 ## 7. Sentry e UptimeRobot — 20 min
 
@@ -251,11 +311,25 @@ https://<domínio>/api/health` (liga o `uptime.yml`, o segundo par de olhos, que
 - [ ] Criar uma conta de teste, confirmar o e-mail (chega pelo Resend), entrar, **ativar o 2FA** em
       Ajustes → Conta, sair e entrar de novo (o app pede o código).
 - [ ] Gravar uma sessão curta: o áudio aparece no bucket `babel-midia`.
+- [ ] **Threads do WASM**: no Chrome ou no Firefox, console da página → `crossOriginIsolated` dá
+      `true` (`curl -sI https://<domínio>/` mostra `cross-origin-embedder-policy: credentialless` e
+      `document-isolation-policy`). Se algum recurso de terceiro parar de carregar por causa do COEP,
+      `CROSS_ORIGIN_ISOLATION=dip` (no `[env]` do `fly.toml`, ou `fly secrets set` para valer sem
+      novo deploy) mantém as threads no Chrome/Edge; `0` desliga.
 - [ ] No dia seguinte: `backups/diario/<data>.db.gz` no `babel-backups`, heartbeat verde no UptimeRobot.
 - [ ] **Restaurar o Litestream** num arquivo à parte (runbook §0.2-A) e anotar a data no runbook.
 - [ ] Rodar o **ZAP Baseline** (Actions → _ZAP Baseline (staging)_ com a URL do staging) e triar.
 - [ ] **Cobrança real de R$ 5** no seu cartão pelo fluxo do app, conferir o plano liberado pelo
       webhook, e **estornar** no painel do Asaas.
+- [ ] **Os três ciclos no sandbox** (C5): mensal, anual em uma vez e anual em 12x com o cartão de teste do
+      Asaas — conferir na tela "Premium · mensal / anual / anual em 12x", o fim do período (35 d ou 370 d) e o
+      arrependimento de 7 dias devolvendo o ano inteiro (o parcelamento inteiro no 12x). Quantos webhooks o 12x
+      manda ao confirmar ainda não foi medido (a sondagem não digitou cartão).
+- [ ] **O teste de 14 dias** numa conta nova: um toque em Planos, a faixa "Premium · teste" com a data, nada
+      no Asaas; apagar a conta e recriar com o mesmo e-mail **não** renova o teste.
+- [ ] **Termos §3–§4 validados pelo jurídico** (anual, 12x, teste, uso justo, cancelamento sem reembolso
+      proporcional depois dos 7 dias — marcado "texto a validar" no HTML). **Sem isso, não abra a venda do
+      anual.**
 - [ ] Forçar um erro de teste e ver o evento no Sentry **sem** e-mail nem IP.
 - [ ] Aceitar os DPAs e marcar `docs/lgpd/operadores.md`; atualizar a política de privacidade com os
       operadores novos (a lista está lá).

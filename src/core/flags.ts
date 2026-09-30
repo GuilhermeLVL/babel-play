@@ -24,6 +24,8 @@
  * As restrições se combinam com E.
  */
 
+import { normalizarPlano, type PlanoEfetivo } from './planos';
+
 /**
  * RECOMPENSAS v2 (Tasks 2.3/2.4): o interruptor de tudo que é novo nas recompensas. Nasce
  * DESLIGADA no servidor (migração `flag_recompensas_v2`). Na edição estática não há servidor de
@@ -41,9 +43,22 @@ export function recompensasV2Ativas(ctx: {
   return ctx.edicaoEstatica ? ctx.envDoBuild === '1' : ctx.flagDoServidor;
 }
 
-/** Os planos que uma regra pode nomear. `convidado` é quem não tem conta (Fase 7). */
-export const PLANOS_DA_FLAG = ['convidado', 'free', 'essencial', 'pro', 'selfhost'] as const;
+/**
+ * Os planos que uma regra pode nomear: os da matriz, mais `convidado` (quem não tem conta, Fase 7).
+ * O `satisfies` prende a lista à matriz: um plano que sair de `PLAN_MATRIX` quebra a compilação aqui,
+ * e não uma regra de flag em produção.
+ */
+export const PLANOS_DA_FLAG = ['convidado', 'free', 'premium', 'selfhost'] as const satisfies readonly PlanoEfetivo[];
 export type PlanoDaFlag = (typeof PLANOS_DA_FLAG)[number];
+
+/**
+ * O PLANO DE UMA REGRA ESCRITA ANTES DA MATRIZ V2: `essencial`/`pro` são lidos como `premium`
+ * (`normalizarPlano`), `convidado` passa, o resto é `null`. A migração 0041 reescreve as regras do
+ * banco; isto cobre a regra editada à mão depois dela, ou um script de operação antigo.
+ */
+export function planoDaFlag(v: unknown): PlanoDaFlag | null {
+  return v === 'convidado' ? 'convidado' : normalizarPlano(v);
+}
 
 export interface RegrasDaFlag {
   planos?: PlanoDaFlag[];

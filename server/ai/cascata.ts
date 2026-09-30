@@ -19,6 +19,7 @@ import {
 } from './admissao'
 import { chaveDoProvedor, disjuntorPermite, registrarFalha, registrarSucesso } from './disjuntor'
 import { chamarChat, parametrosDoProvedor, type PedidoDeChat } from './llmClient'
+import { ehModeloDeRaciocinio } from './parametrosDoProvedor'
 import type { Provedor } from './provedores'
 import { nomeDoProvedor, type RastroDeIa, registrarLimiteDoProvedor, statusDaTentativa } from './telemetriaDeIa'
 
@@ -34,6 +35,14 @@ interface EntregaDaCascata {
   tokensSaida: number
   rotulo: string
   model: string
+  /** O fornecedor que DE FATO respondeu — com o primário em 429, é o da reserva (B2). */
+  fornecedor: string
+  /**
+   * O custo desta entrega, calculado UMA vez sobre a perna que respondeu (preço de
+   * `fornecedor:modelo`, tokens do cache pelo preço de cache). É o MESMO número da métrica e do
+   * Langfuse; o chamador o soma ao orçamento em vez de recalcular com o modelo planejado.
+   */
+  custoUsd: number
 }
 
 interface ResultadoDaCascata {
@@ -65,6 +74,24 @@ export interface AdmissaoDaCascata {
   usada: boolean
 }
 
+/**
+ * O BALDE DE UMA PERNA (B4): o fornecedor e o modelo, e os limites que o registro declarou para ela
+ * — da conta no provedor (`limitesDaConta`: um balde só para os modelos dele) ou do modelo. Sem
+ * limites declarados (o legado), as `IA_ADMISSAO_*` de sempre.
+ */
+export function alvoDaPerna(prov: Provedor): {
+  provedor: string
+  modelo: string
+  limites?: Provedor['limites']
+  compartilhado?: boolean
+} {
+  return {
+    provedor: nomeDoProvedor(prov.base),
+    modelo: prov.model,
+    ...(prov.limites ? { limites: prov.limites, compartilhado: prov.limitesDaConta === true } : {}),
+  }
+}
+
 export function admitirCascata(
   provedores: Provedor[],
   p: { userId: string; plano: PlanoDeAdmissao; tokens: number },
@@ -79,8 +106,7 @@ export function admitirCascata(
     const prov = provedores[i]
     const r = admitirNoBalde({
       tipo: 'llm',
-      provedor: nomeDoProvedor(prov.base),
-      modelo: prov.model,
+      ...alvoDaPerna(prov),
       plano: p.plano,
       tokens: p.tokens,
       silenciosa: true,
@@ -108,6 +134,21 @@ export function encerrarAdmissao(a: AdmissaoDaCascata | null | undefined): void 
   a.liberar()
 }
 
+/**
+ * O `max_tokens` DE UMA PERNA: o do pedido, e — com a saída econômica da política de custo (B4) — 75%
+ * dele, SÓ se o modelo não raciocina. Num gpt-oss o pensamento sai do mesmo teto, e cortá-lo
+ * devolveria a resposta vazia (`chamarChat`); o corte vale para o modelo que só escreve a resposta.
+ */
+function maxTokensDaPerna(
+  maxTokens: number | undefined,
+  modelo: string,
+  fator: number | undefined,
+): number | undefined {
+  if (maxTokens === undefined || fator === undefined || !(fator > 0 && fator < 1)) return maxTokens
+  if (ehModeloDeRaciocinio(modelo)) return maxTokens
+  return Math.max(1, Math.floor(maxTokens * fator))
+}
+
 export async function percorrerCascata(
   provedores: Provedor[],
   pedido: Omit<PedidoDeChat, 'base' | 'apiKey' | 'model'>,
@@ -120,6 +161,11 @@ export async function percorrerCascata(
     rastro?: RastroDeIa
     /** A admissão aberta por `admitirCascata`. Ausente = sem admissão (chamador que não gasta a conta do app). */
     admissao?: AdmissaoDaCascata
+    /**
+     * A saída econômica da política de custo (B4, `politicaDeCusto.ts`): multiplica o `max_tokens`
+     * das pernas SEM raciocínio. Ausente ou 1 = o teto inteiro.
+     */
+    fatorDeSaida?: number
   },
 ): Promise<ResultadoDaCascata> {
   const rastro = contexto.rastro
@@ -143,13 +189,7 @@ export async function percorrerCascata(
       }
       if (i === adm.indice) ticket = adm.ticket
       else {
-        const r = admitirNoBalde({
-          tipo: 'llm',
-          provedor: nomeDoProvedor(prov.base),
-          modelo: prov.model,
-          plano: adm.plano,
-          tokens: adm.tokens,
-        })
+        const r = admitirNoBalde({ tipo: 'llm', ...alvoDaPerna(prov), plano: adm.plano, tokens: adm.tokens })
         if (r.ok === false) {
           ultimaFalha = `sem saldo na admissão para ${prov.rotulo} (${prov.model})`
           continue
@@ -184,22 +224,47 @@ export async function percorrerCascata(
       continue
     }
     const inicio = Date.now()
-    const r = await chamarChat({ ...pedido, base: prov.base, apiKey: prov.apiKey, model: prov.model })
+    const r = await chamarChat({
+      ...pedido,
+      maxTokens: maxTokensDaPerna(pedido.maxTokens, prov.model, contexto.fatorDeSaida),
+      base: prov.base,
+      apiKey: prov.apiKey,
+      model: prov.model,
+      roteamento: prov.roteamento,
+    })
     const fim = Date.now()
     const provedor = nomeDoProvedor(prov.base)
+    const fornecedor = prov.fornecedor ?? provedor
+    /* O CUSTO DA PERNA (B2 da Fase B): preço de `fornecedor:modelo` — o declarado no registro, se
+       houver —, com os tokens do cache de prompt pelo preço de cache. Calculado aqui, uma vez, e usado
+       no rastro, na métrica e no orçamento: os três nunca discordam. Perna que falhou não custa. */
+    const custoUsd = r.ok
+      ? custoDeLlm(prov.model, r.tokensEntrada ?? 0, r.tokensSaida ?? 0, {
+          fornecedor,
+          preco: prov.preco,
+          emCache: r.tokensEmCache ?? 0,
+        })
+      : undefined
     chamadas += 1
     if (r.status === 429) {
       registrarLimiteDoProvedor(provedor, prov.model)
       /* O 429 do provedor fecha o balde até o `Retry-After` dele: a próxima fala nem tenta. */
-      const espera = registrarLimiteNaAdmissao('llm', provedor, prov.model, r.retryAfterS)
+      const espera = registrarLimiteNaAdmissao(
+        'llm',
+        provedor,
+        prov.model,
+        r.retryAfterS,
+        Date.now(),
+        alvoDaPerna(prov),
+      )
       limitadas += 1
       esperaDoLimite = Math.min(esperaDoLimite, espera)
     }
     /* Os tokens do dia saem da estimativa para o REAL; perna que falhou não gerou tokens. */
     ticket?.acertarTokens(r.ok ? (r.tokensEntrada ?? 0) + (r.tokensSaida ?? 0) : 0)
     /* UMA GERAÇÃO POR PERNA, inclusive a que falhou — é assim que o fallback aparece no painel. O
-       custo sai da MESMA `custoDeLlm` do orçamento e da métrica: os três nunca discordam. O texto
-       só entra quando o rastro permite (dev, `LANGFUSE_CONTEUDO=1`); em produção nem é montado. */
+       custo é o `custoUsd` acima, o mesmo do orçamento e da métrica. O texto só entra quando o
+       rastro permite (dev, `LANGFUSE_CONTEUDO=1`); em produção nem é montado. */
     rastro?.tentativa({
       inicio,
       fim,
@@ -209,7 +274,7 @@ export async function percorrerCascata(
       uso: r.ok
         ? { input: r.tokensEntrada ?? 0, output: r.tokensSaida ?? 0, cached_input: r.tokensEmCache ?? 0 }
         : undefined,
-      custoUsd: r.ok ? custoDeLlm(prov.model, r.tokensEntrada ?? 0, r.tokensSaida ?? 0) : undefined,
+      custoUsd,
       metadados: {
         rotulo: prov.rotulo,
         esforco: esforcoPedido(prov.base, prov.model),
@@ -220,12 +285,15 @@ export async function percorrerCascata(
         : {}),
     })
     /* A latência de CADA perna, inclusive a que falhou: um primário que demora 12 s para cair é
-       exatamente o que a p95 da tradução precisa mostrar. Custo só de quem entregou. */
+       exatamente o que a p95 da tradução precisa mostrar. Custo só de quem entregou. Fornecedor e
+       modelo como rótulos desde o B2 — lista fechada, vinda do registro (`server/http/metricas.ts`). */
     observarChamadaDeProvedor({
       provedor: prov.rotulo,
       funcao: contexto.funcao ?? contexto.evento,
       ms: fim - inicio,
-      custoUsd: r.ok ? custoDeLlm(prov.model, r.tokensEntrada ?? 0, r.tokensSaida ?? 0) : undefined,
+      custoUsd,
+      fornecedor,
+      modelo: prov.model,
     })
     if (r.ok) {
       registrarSucesso(chave)
@@ -236,6 +304,8 @@ export async function percorrerCascata(
           tokensSaida: r.tokensSaida ?? 0,
           rotulo: prov.rotulo,
           model: prov.model,
+          fornecedor,
+          custoUsd: custoUsd ?? 0,
         },
         ultimaFalha: '',
       }

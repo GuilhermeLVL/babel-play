@@ -6,12 +6,14 @@
 import React, { useEffect, useState } from 'react';
 
 import * as auth from '../../lib/auth';
+import { t } from '../../lib/i18n';
 import { supabase } from '../../lib/supabase';
 
 function QrView({ svg }: { svg?: string }) {
   if (!svg) return null;
-  if (svg.startsWith('data:') || svg.startsWith('http')) return <img src={svg} alt="QR do 2FA" className="h-32 w-32" />;
-  return <div className="h-32 w-32" role="img" aria-label="QR do 2FA" dangerouslySetInnerHTML={{ __html: svg }} />;
+  if (svg.startsWith('data:') || svg.startsWith('http'))
+    return <img src={svg} alt={t('QR do 2FA')} className="h-32 w-32" />;
+  return <div className="h-32 w-32" role="img" aria-label={t('QR do 2FA')} dangerouslySetInnerHTML={{ __html: svg }} />;
 }
 
 export default function SecurityPanel() {
@@ -39,90 +41,161 @@ export default function SecurityPanel() {
   }, []);
 
   async function iniciarEnroll() {
-    setErro(null); setAviso(null); setBusy(true);
+    setErro(null);
+    setAviso(null);
+    setBusy(true);
     const r = await auth.enrollTotp();
-    if (!r.ok) setErro(r.message ?? 'Falha ao iniciar o 2FA.');
+    if (!r.ok) setErro(r.message ?? t('Falha ao iniciar o 2FA.'));
     else setEnroll(r);
     setBusy(false);
   }
   async function confirmar() {
     if (!enroll?.factorId) return;
-    setErro(null); setBusy(true);
+    setErro(null);
+    setBusy(true);
     const r = await auth.confirmTotp(enroll.factorId, code.trim());
-    if (!r.ok) setErro(r.message ?? 'Código inválido.');
-    else { setEnroll(null); setCode(''); setAviso('2FA ativado com sucesso.'); await refresh(); }
+    if (!r.ok) setErro(r.message ?? t('Código inválido.'));
+    else {
+      setEnroll(null);
+      setCode('');
+      setAviso(t('2FA ativado com sucesso.'));
+      await refresh();
+    }
     setBusy(false);
   }
   async function desativar(id: string) {
-    setErro(null); setBusy(true);
+    setErro(null);
+    setBusy(true);
     const r = await auth.unenrollTotp(id);
-    if (!r.ok) setErro(r.message ?? 'Falha ao desativar.');
-    else { setAviso('2FA desativado.'); await refresh(); }
+    if (!r.ok) setErro(r.message ?? t('Falha ao desativar.'));
+    else {
+      setAviso(t('2FA desativado.'));
+      await refresh();
+    }
     setBusy(false);
   }
   async function trocarSenha(e: React.FormEvent) {
-    e.preventDefault(); setErro(null); setAviso(null); setBusy(true);
+    e.preventDefault();
+    setErro(null);
+    setAviso(null);
+    setBusy(true);
     const r = await auth.updatePassword(novaSenha);
-    if (!r.ok) setErro(r.message ?? 'Falha ao trocar a senha.');
-    else { setNovaSenha(''); setAviso('Senha atualizada.'); }
+    if (!r.ok) setErro(r.message ?? t('Falha ao trocar a senha.'));
+    else {
+      setNovaSenha('');
+      setAviso(t('Senha atualizada.'));
+    }
     setBusy(false);
   }
 
   if (!configurado) {
-    return <p className="text-sm text-ink-muted">Segurança da conta fica disponível no modo com login (Supabase configurado).</p>;
+    return (
+      <p className="text-sm text-ink-muted">
+        {t('Segurança da conta fica disponível no modo com login (Supabase configurado).')}
+      </p>
+    );
   }
 
   return (
     <div className="grid gap-6">
       <section className="card-panel p-5">
-        <h3 className="font-display text-base font-bold text-ink">Verificação em duas etapas (2FA)</h3>
-        <p className="mt-1 text-sm text-ink-muted">Um código do app autenticador além da senha, recomendado.</p>
+        <h3 className="font-display text-base font-bold text-ink">{t('Verificação em duas etapas (2FA)')}</h3>
+        <p className="mt-1 text-sm text-ink-muted">{t('Um código do app autenticador além da senha, recomendado.')}</p>
 
-        {erro && <p className="mt-3 text-sm text-error-ink" role="alert">{erro}</p>}
-        {aviso && <p className="mt-3 text-sm text-good-ink" role="status">{aviso}</p>}
+        {erro && (
+          <p className="mt-3 text-sm text-error-ink" role="alert">
+            {erro}
+          </p>
+        )}
+        {aviso && (
+          <p className="mt-3 text-sm text-good-ink" role="status">
+            {aviso}
+          </p>
+        )}
 
         {loading ? (
-          <p className="mt-3 text-sm text-ink-faint">Carregando…</p>
+          <p className="mt-3 text-sm text-ink-faint">{t('Carregando…')}</p>
         ) : enroll ? (
           <div className="mt-4 grid gap-3">
-            <p className="text-sm text-ink-muted">Escaneie o QR no app (Google Authenticator, Authy…) ou digite o segredo:</p>
+            <p className="text-sm text-ink-muted">
+              {t('Escaneie o QR no app (Google Authenticator, Authy…) ou digite o segredo:')}
+            </p>
             <div className="flex items-center gap-4">
               <QrView svg={enroll.qrSvg} />
               <code className="break-all rounded bg-canvas px-2 py-1 text-xs text-ink-muted">{enroll.secret}</code>
             </div>
-            <label htmlFor="mfa-code" className="text-xs font-medium text-ink-muted">Código de 6 dígitos</label>
-            <input id="mfa-code" inputMode="numeric" autoComplete="one-time-code" value={code}
-              onChange={(e) => setCode(e.target.value)} placeholder="000000" className="ap-input w-40" />
+            <label htmlFor="mfa-code" className="text-xs font-medium text-ink-muted">
+              {t('Código de 6 dígitos')}
+            </label>
+            <input
+              id="mfa-code"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              placeholder="000000"
+              className="ap-input w-40"
+            />
             <div className="flex gap-2">
-              <button type="button" className="btn-ink" disabled={busy || code.trim().length < 6} onClick={confirmar}>Confirmar</button>
-              <button type="button" className="btn-outline" disabled={busy} onClick={() => { setEnroll(null); setCode(''); }}>Cancelar</button>
+              <button type="button" className="btn-ink" disabled={busy || code.trim().length < 6} onClick={confirmar}>
+                {t('Confirmar')}
+              </button>
+              <button
+                type="button"
+                className="btn-outline"
+                disabled={busy}
+                onClick={() => {
+                  setEnroll(null);
+                  setCode('');
+                }}
+              >
+                {t('Cancelar')}
+              </button>
             </div>
           </div>
         ) : fatorAtivo ? (
           <div className="mt-4 flex items-center justify-between">
-            <span className="badge-tag ok">Ativo</span>
-            <button type="button" className="btn-outline" disabled={busy} onClick={() => desativar(fatorAtivo.id)}>Desativar</button>
+            <span className="badge-tag ok">{t('Ativo')}</span>
+            <button type="button" className="btn-outline" disabled={busy} onClick={() => desativar(fatorAtivo.id)}>
+              {t('Desativar')}
+            </button>
           </div>
         ) : (
-          <button type="button" className="btn-ink mt-4" disabled={busy} onClick={iniciarEnroll}>Habilitar 2FA</button>
+          <button type="button" className="btn-ink mt-4" disabled={busy} onClick={iniciarEnroll}>
+            {t('Habilitar 2FA')}
+          </button>
         )}
       </section>
 
       <section className="card-panel p-5">
-        <h3 className="font-display text-base font-bold text-ink">Senha</h3>
+        <h3 className="font-display text-base font-bold text-ink">{t('Senha')}</h3>
         <form onSubmit={trocarSenha} className="mt-3 flex items-end gap-2">
           <div className="flex-1">
-            <label htmlFor="nova-senha" className="mb-1 block text-xs font-medium text-ink-muted">Nova senha</label>
-            <input id="nova-senha" type="password" minLength={auth.SENHA_MINIMA} required value={novaSenha}
-              onChange={(e) => setNovaSenha(e.target.value)} placeholder={`mínimo ${auth.SENHA_MINIMA} caracteres`} className="ap-input w-full" />
+            <label htmlFor="nova-senha" className="mb-1 block text-xs font-medium text-ink-muted">
+              {t('Nova senha')}
+            </label>
+            <input
+              id="nova-senha"
+              type="password"
+              minLength={auth.SENHA_MINIMA}
+              required
+              value={novaSenha}
+              onChange={(e) => setNovaSenha(e.target.value)}
+              placeholder={t('mínimo {n} caracteres', { n: auth.SENHA_MINIMA })}
+              className="ap-input w-full"
+            />
           </div>
-          <button type="submit" className="btn-ink" disabled={busy}>Trocar</button>
+          <button type="submit" className="btn-ink" disabled={busy}>
+            {t('Trocar')}
+          </button>
         </form>
       </section>
 
       <section className="card-panel p-5">
-        <h3 className="font-display text-base font-bold text-ink">Sessão</h3>
-        <button type="button" className="btn-outline mt-3" onClick={() => void auth.signOut()}>Sair da conta</button>
+        <h3 className="font-display text-base font-bold text-ink">{t('Sessão')}</h3>
+        <button type="button" className="btn-outline mt-3" onClick={() => void auth.signOut()}>
+          {t('Sair da conta')}
+        </button>
       </section>
     </div>
   );

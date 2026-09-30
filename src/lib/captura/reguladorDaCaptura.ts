@@ -22,18 +22,29 @@
  *     mediu mais rápido (`outroBackend` em `sttRouter.ts`, na rota) e o dtype dele já está no aparelho.
  *
  * O estado mora num objeto criado UMA vez pela tela (um `useRef`); o pipeline, que é refeito a cada
- * render, só chama `aoFinal` com os efeitos do render corrente.
+ * render, só chama `aoFinal`/`aoParcial` com os efeitos do render corrente.
+ *
+ * SINAIS RÁPIDOS ("Grátis sem travar", 2026-09-29): cada medida leva também o BLOQUEIO do main thread
+ * (`vigiaDoMainThread.ts`), e o parcial entra como amostra de latência (`aoParcial`) — ele chega bem
+ * mais vezes que o final, e o regulador reage antes de a aba congelar.
+ *
+ * SÓ O TRAVAMENTO DA SESSÃO (A6c, 30/09/2026): o bloqueio conta a partir do `reiniciar`, e a abertura
+ * do VAD sai da conta (`marcarAberturaDoVad`). Antes, no aparelho fraco, esses dois quadros — o React
+ * de antes do "Iniciar" e o WASM do Silero instanciando — cortavam os parciais já no 1º parcial.
  */
 import {
   type AcaoDoRegulador,
+  CONFIG_PADRAO_DO_REGULADOR,
   type ConfigDoRegulador,
   type EstadoDoRegulador,
   estadoInicialDoRegulador,
   type PressaoDeCpu,
   regular,
+  type SaidaDoRegulador,
 } from '@core/harness/reguladorDeDesempenho';
 
 import { type DtypeDaRota, MOONSHINE_MODELS, type OutroBackend, WHISPER_MODELS } from '../../gateway/sttRouter';
+import { type VigiaDoMainThread, vigiaDoMainThread } from './vigiaDoMainThread';
 
 type Backend = 'wasm' | 'webgpu';
 
@@ -188,15 +199,31 @@ export interface ReguladorDaCaptura {
   /** Uma falha de memória/GPU do modelo; vira `proibir-modelo` no próximo trecho medido. */
   registrarFalha(erro: 'oom' | 'device-lost', modelo: string): void;
   aoFinal(m: MedidaDoTrecho, efeitos: EfeitosDoRegulador): AcaoDoRegulador[];
+  /**
+   * Um parcial LOCAL decodificou: `latenciaMs` = do pedido ao texto. Acima de 1,5 s é lento (o RTF do
+   * parcial não diz nada: ele redecodifica o áudio que cresce). Leva os efeitos porque os sinais do
+   * ambiente que vêm junto (travamento, pressão) podem descer um degrau que troca o modelo.
+   */
+  aoParcial(latenciaMs: number, efeitos: EfeitosDoRegulador): AcaoDoRegulador[];
   modeloEmUso(): string;
   readonly parciaisCortados: boolean;
   readonly parciaisDoMicPausados: boolean;
 }
 
 export function criarReguladorDaCaptura(
-  opts: { sinais?: SinaisDoAmbiente; config?: Partial<ConfigDoRegulador> } = {},
+  opts: {
+    sinais?: SinaisDoAmbiente;
+    /**
+     * Uma config fixa, ou uma função lida a CADA medida: a tela passa `configDoReguladorPara(perfil)`
+     * do perfil corrente, e o perfil muda quando o `requestAdapter()` responde (o celular sem adaptador
+     * só se revela leve aí) — o regulador, criado uma vez, não pode congelar o palpite da montagem.
+     */
+    config?: Partial<ConfigDoRegulador> | (() => Partial<ConfigDoRegulador>);
+    vigia?: VigiaDoMainThread;
+  } = {},
 ): ReguladorDaCaptura {
   let sinais = opts.sinais;
+  let vigia = opts.vigia;
   let estado: EstadoDoRegulador = estadoInicialDoRegulador();
   let original: DegrauDoModelo = { modelo: '' };
   let escada: DegrauDoModelo[] = [];
@@ -223,6 +250,87 @@ export function criarReguladorDaCaptura(
       efeitos.trocarModelo(para.modelo, para.opcoes ?? opcoesDoBackend());
     else efeitos.trocarModelo(para.modelo);
   };
+  /** A config desta medida: a da tela (fixa ou lida agora) com a escada DESTA sessão. */
+  const configDaMedida = (): Partial<ConfigDoRegulador> => ({
+    ...(typeof opts.config === 'function' ? opts.config() : opts.config),
+    modelosMenores: escada.length,
+    outroBackendMaisRapido: !!troca,
+  });
+  /** Quando a sessão começou (`reiniciar`); `null` antes da primeira. */
+  let inicioDaSessaoMs: number | null = null;
+  /**
+   * O bloqueio do main thread na janela da config; `undefined` onde o navegador não mede. Depois de um
+   * degrau, só o de DEPOIS dele: o bloqueio de antes é justamente o que o degrau veio curar, e contá-lo
+   * derrubaria o degrau seguinte de graça (a mesma razão por que o núcleo zera a janela de latência).
+   * E nunca o de ANTES da sessão (A6c): montar a tela e escolher os idiomas não são a captura, e cortar
+   * parciais não os cura — na bancada, os quadros de React de antes do "Iniciar" somavam ~400 ms na
+   * janela do 1º parcial e disparavam o `travamento` sozinhos. A abertura do VAD, que é da sessão, o
+   * próprio vigia descarta (`marcarAberturaDoVad`).
+   */
+  const bloqueioDoMain = (agora: number, config: Partial<ConfigDoRegulador>): number | undefined => {
+    vigia ??= vigiaDoMainThread();
+    if (!vigia.suportado) return undefined;
+    const janela = config.janelaDeBloqueioMs ?? CONFIG_PADRAO_DO_REGULADOR.janelaDeBloqueioMs;
+    const desdeODegrau = estado.ultimaDescidaMs === null ? janela : Math.max(0, agora - estado.ultimaDescidaMs);
+    const desdeASessao = inicioDaSessaoMs === null ? janela : Math.max(0, agora - inicioDaSessaoMs);
+    return vigia.bloqueioRecenteMs(Math.min(janela, desdeODegrau, desdeASessao));
+  };
+  /** Traduz as ações do núcleo em estado e efeitos — o mesmo para o final e para o parcial. */
+  const aplicar = (saida: SaidaDoRegulador, efeitos: EfeitosDoRegulador): AcaoDoRegulador[] => {
+    estado = saida.estado;
+    /* Cada decisão vai ao console com o motivo: são poucas por sessão, e sem isto a bancada só via as
+       trocas de modelo — um corte de parciais pela tela travada e um pela pressão da CPU (a máquina
+       inteira ocupada) pareciam iguais. */
+    if (saida.acoes.length) console.log('[cap] regulador:', saida.acoes.join('+'), '←', saida.motivos.join('+'));
+    for (const acao of saida.acoes) {
+      switch (acao) {
+        case 'cortar-parciais':
+          parciaisCortados = true;
+          break;
+        case 'modelo-menor':
+          if (degrau < escada.length) {
+            const de = emUso();
+            degrau += 1;
+            irPara(de, emUso(), efeitos);
+          }
+          break;
+        case 'oferecer-nativo-ou-nuvem':
+          efeitos.oferecerNativoOuNuvem();
+          break;
+        case 'subir':
+          if (saida.desfaz === 'cortar-parciais') parciaisCortados = false;
+          else if (saida.desfaz === 'modelo-menor' && degrau > 0) {
+            const de = emUso();
+            degrau -= 1;
+            irPara(de, emUso(), efeitos);
+          } else if (saida.desfaz === 'trocar-backend' && trocado && troca) {
+            trocado = false;
+            // Volta ao backend da rota (explícito: no `auto` o worker não recriaria).
+            efeitos.trocarModelo(
+              modeloEmUso(),
+              original.opcoes ?? { device: troca.device === 'webgpu' ? 'wasm' : 'webgpu' },
+            );
+          }
+          break;
+        case 'pausar':
+          parciaisDoMicPausados = true;
+          break;
+        case 'retomar':
+          parciaisDoMicPausados = false;
+          break;
+        case 'proibir-modelo':
+          if (falha) efeitos.proibirModelo(falha.modelo, falha.erro);
+          break;
+        case 'trocar-backend':
+          if (troca && !trocado) {
+            trocado = true;
+            efeitos.trocarModelo(modeloEmUso(), { dtype: troca.dtype, device: troca.device });
+          }
+          break;
+      }
+    }
+    return saida.acoes;
+  };
 
   return {
     reiniciar({ modelo, soIngles, backend = 'wasm', dtype, outro, emCache }) {
@@ -245,6 +353,11 @@ export function criarReguladorDaCaptura(
       degrau = 0;
       parciaisCortados = false;
       parciaisDoMicPausados = false;
+      /* O vigia nasce com a sessão, e a janela dele começa AQUI (ver `bloqueioDoMain`): no primeiro
+         final, conta o que a tela sofreu desde o "Iniciar", não o que veio antes. */
+      vigia ??= vigiaDoMainThread();
+      sinais ??= sinaisDoNavegador();
+      inicioDaSessaoMs = sinais.agoraMs();
     },
     registrarFalha(erro, modelo) {
       falha = { erro, modelo };
@@ -258,6 +371,8 @@ export function criarReguladorDaCaptura(
     },
     aoFinal(m, efeitos) {
       sinais ??= sinaisDoNavegador();
+      const agora = sinais.agoraMs();
+      const config = configDaMedida();
       const saida = regular(
         estado,
         {
@@ -269,60 +384,38 @@ export function criarReguladorDaCaptura(
           bateria: sinais.bateria(),
           visivel: sinais.visivel(),
           modoSoOuvir: m.modoSoOuvir,
-          agoraMs: sinais.agoraMs(),
+          agoraMs: agora,
+          bloqueioDoMainMs: bloqueioDoMain(agora, config),
         },
-        { ...opts.config, modelosMenores: escada.length, outroBackendMaisRapido: !!troca },
+        config,
       );
-      estado = saida.estado;
-      for (const acao of saida.acoes) {
-        switch (acao) {
-          case 'cortar-parciais':
-            parciaisCortados = true;
-            break;
-          case 'modelo-menor':
-            if (degrau < escada.length) {
-              const de = emUso();
-              degrau += 1;
-              irPara(de, emUso(), efeitos);
-            }
-            break;
-          case 'oferecer-nativo-ou-nuvem':
-            efeitos.oferecerNativoOuNuvem();
-            break;
-          case 'subir':
-            if (saida.desfaz === 'cortar-parciais') parciaisCortados = false;
-            else if (saida.desfaz === 'modelo-menor' && degrau > 0) {
-              const de = emUso();
-              degrau -= 1;
-              irPara(de, emUso(), efeitos);
-            } else if (saida.desfaz === 'trocar-backend' && trocado && troca) {
-              trocado = false;
-              // Volta ao backend da rota (explícito: no `auto` o worker não recriaria).
-              efeitos.trocarModelo(
-                modeloEmUso(),
-                original.opcoes ?? { device: troca.device === 'webgpu' ? 'wasm' : 'webgpu' },
-              );
-            }
-            break;
-          case 'pausar':
-            parciaisDoMicPausados = true;
-            break;
-          case 'retomar':
-            parciaisDoMicPausados = false;
-            break;
-          case 'proibir-modelo':
-            if (falha) efeitos.proibirModelo(falha.modelo, falha.erro);
-            break;
-          case 'trocar-backend':
-            if (troca && !trocado) {
-              trocado = true;
-              efeitos.trocarModelo(modeloEmUso(), { dtype: troca.dtype, device: troca.device });
-            }
-            break;
-        }
-      }
+      const acoes = aplicar(saida, efeitos);
       falha = null;
-      return saida.acoes;
+      return acoes;
+    },
+    aoParcial(latenciaMs, efeitos) {
+      sinais ??= sinaisDoNavegador();
+      const agora = sinais.agoraMs();
+      const config = configDaMedida();
+      /* `rtf`, `filaPendente` e `modoSoOuvir` não valem no parcial (o núcleo não os lê nele); a falha
+         registrada fica para o final, que é quem a consome. */
+      const saida = regular(
+        estado,
+        {
+          origem: 'parcial',
+          rtf: 0,
+          filaPendente: 0,
+          latenciaMs,
+          pressao: sinais.pressao(),
+          bateria: sinais.bateria(),
+          visivel: sinais.visivel(),
+          modoSoOuvir: false,
+          agoraMs: agora,
+          bloqueioDoMainMs: bloqueioDoMain(agora, config),
+        },
+        config,
+      );
+      return aplicar(saida, efeitos);
     },
   };
 }

@@ -65,8 +65,10 @@ import { type IntervalHistogram, monitorEventLoopDelay } from 'node:perf_hooks'
 import type { NextFunction, Request, RequestHandler, Response } from 'express'
 import { collectDefaultMetrics, Counter, Gauge, Histogram, register } from 'prom-client'
 
+import { normalizarPlano } from '../../src/core/planos'
 import { cacheDeTraducao } from '../ai/cacheDeTraducao'
 import { contagemDosDisjuntores } from '../ai/disjuntor'
+import { rotulosDoRegistro } from '../ai/registroDeProvedores'
 import { registrarObservadorDeConsultas, type TipoDeConsulta } from '../db/observadorDeConsultas'
 import { tokenDeMetricas } from '../lib/config'
 import { log } from '../lib/logger'
@@ -111,10 +113,11 @@ interface Estado {
   duracao: Histogram<'method' | 'route' | 'status'>
   errosHttp: Counter<'method' | 'route' | 'status'>
   chamadasDeIa: Counter<'route' | 'status' | 'resultado'>
-  provedorLatencia: Histogram<'provedor' | 'funcao'>
-  provedorCusto: Counter<'provedor' | 'funcao'>
+  provedorLatencia: Histogram<'provedor' | 'funcao' | 'fornecedor' | 'modelo'>
+  provedorCusto: Counter<'provedor' | 'funcao' | 'fornecedor' | 'modelo'>
   provedorLimite: Counter<'provedor' | 'modelo'>
   admissaoRecusada: Counter<'motivo' | 'plano'>
+  degradacaoDeCusto: Counter<'motivo' | 'nivel'>
   sttDescartes: Counter<'motivo'>
   capturaSttFinal: Histogram<'motor'>
   capturaPrimeiroParcial: Histogram<'motor'>
@@ -186,17 +189,20 @@ function metricas(): Estado {
        o proxy e diz, com razão, que não enxerga o provedor. Estas duas são alimentadas por
        `server/ai/sttProxy.ts` e `server/ai/cascata.ts`, que sabem QUEM atendeu. As labels são
        rótulos fixos do código (`llm-primario`, `llm-reserva`, `stt-gerenciado`, `byok`) — nunca a
-       URL do provedor, que no BYOK é escolha do usuário e seria uma série por usuário. */
+       URL do provedor, que no BYOK é escolha do usuário e seria uma série por usuário.
+       B2 DA FASE B: `fornecedor` e `modelo` dizem QUEM atendeu (`deepinfra`, `openai/gpt-oss-120b`).
+       A lista é FECHADA e vem do registro de provedores (`rotulosDoRegistro`): o que não foi declarado
+       vira `outro`, e o BYOK continua `byok` — a cardinalidade é a do registro, não a do tráfego. */
     provedorLatencia: new Histogram({
       name: 'ia_provedor_latencia_ms',
-      help: 'Latência da chamada ao provedor de IA (com as retentativas), em ms, por provedor e função.',
-      labelNames: ['provedor', 'funcao'] as const,
+      help: 'Latência da chamada ao provedor de IA (com as retentativas), em ms, por papel (provedor), função, fornecedor e modelo.',
+      labelNames: ['provedor', 'funcao', 'fornecedor', 'modelo'] as const,
       buckets: BALDES_MS,
     }),
     provedorCusto: new Counter({
       name: 'ia_provedor_custo_usd_total',
-      help: 'Custo ESTIMADO (US$) das chamadas entregues com a chave do dono, pela tabela de preços de server/lib/orcamentoDeIa.ts. BYOK não entra: não é dinheiro do serviço.',
-      labelNames: ['provedor', 'funcao'] as const,
+      help: 'Custo ESTIMADO (US$) das chamadas entregues com a chave do dono, pelo preço de fornecedor:modelo (server/lib/orcamentoDeIa.ts), por papel, função, fornecedor e modelo. BYOK não entra: não é dinheiro do serviço.',
+      labelNames: ['provedor', 'funcao', 'fornecedor', 'modelo'] as const,
     }),
     /* O LIMITE DO PROVEDOR (429), por provedor e MODELO. É o número que diz "a camada gratuita da
        Groq não aguenta o tráfego — suba o tier". O modelo entra porque os limites da Groq são POR
@@ -208,13 +214,23 @@ function metricas(): Estado {
       labelNames: ['provedor', 'modelo'] as const,
     }),
     /* A ADMISSÃO DE IA (ADR 0007): quantas chamadas o PRÓPRIO servidor recusou antes de gastar o
-       limite do provedor, por motivo (`minuto`, `dia`, `tokens_dia`, `provedor_limitou`, `em_voo`) e
-       plano (`pro`, `essencial`, `convidado`). Subindo `minuto` para o Pro é a hora de subir o tier
-       do provedor; subindo só para `essencial` é a reserva do Pro fazendo o seu trabalho. */
+       limite do provedor, por motivo (`minuto`, `tokens_minuto`, `dia`, `tokens_dia`, `provedor_limitou`, `em_voo`) e
+       faixa (`premium`, `gratis`, `alivio` — matriz v2). Subindo `minuto` para o Premium é a hora de
+       subir o tier do provedor; subindo só para `gratis`/`alivio` é a reserva dos pagantes fazendo o
+       seu trabalho. */
     admissaoRecusada: new Counter({
       name: 'ia_admissao_recusada_total',
       help: 'Chamadas de IA ao vivo recusadas pela admissão do servidor (429 nuvem_ocupada), por motivo e plano.',
       labelNames: ['motivo', 'plano'] as const,
+    }),
+    /* A DEGRADAÇÃO SUAVE (B4, `server/ai/politicaDeCusto.ts`): quantas chamadas começaram no degrau
+       mais barato, por motivo (`orcamento_70` — pagante com o primeiro balde baixo; `orcamento_90` —
+       todo mundo) e nível (`rapida`, `nuance`, `polimento`). Rótulos fixos do código. Subindo antes
+       do fim do mês, o orçamento está curto para o tráfego. */
+    degradacaoDeCusto: new Counter({
+      name: 'ia_degradacao_de_custo_total',
+      help: 'Chamadas de LLM que começaram no degrau mais barato da cascata pela política de custo, por motivo e nível.',
+      labelNames: ['motivo', 'nivel'] as const,
     }),
     sttDescartes: new Counter({
       name: 'stt_segmentos_descartados_total',
@@ -534,13 +550,20 @@ function registrarMedidoresLidosNoScrape(): void {
   })
 }
 
-/** Os planos que viram rótulo — a lista fechada da PLAN_MATRIX. Fora dela, `desconhecido`. */
-const PLANOS = new Set(['free', 'essencial', 'pro', 'selfhost'])
+/**
+ * O plano que vira rótulo — a lista fechada da PLAN_MATRIX, mais o `convidado` (que também custa).
+ * Fora dela, `desconhecido`: o rótulo nunca é o texto que chegou. O nome antigo (`pro`/`essencial`,
+ * matriz v2) soma no Premium, e não vira uma série que ninguém mais olha.
+ */
+function rotuloDoPlano(plano: string | undefined): string {
+  if (plano === 'convidado') return plano
+  return normalizarPlano(plano) ?? 'desconhecido'
+}
 
 /** Custo de uma chamada paga pelo serviço, pelo plano de quem pediu. */
 export function contarCustoPorPlano(plano: string | undefined, custoUsd: number): void {
   if (!estado || !Number.isFinite(custoUsd) || custoUsd <= 0) return
-  estado.iaCustoPorPlano.inc({ plano: plano && PLANOS.has(plano) ? plano : 'desconhecido' }, custoUsd)
+  estado.iaCustoPorPlano.inc({ plano: rotuloDoPlano(plano) }, custoUsd)
 }
 
 export function contarGastoAnomalo(motivo: 'teto' | 'mediana'): void {
@@ -583,6 +606,12 @@ export function contarAdmissaoRecusada(motivo: string, plano: string): void {
   estado.admissaoRecusada.inc({ motivo, plano })
 }
 
+/** Uma chamada que a política de custo começou no degrau mais barato. Rótulos fixos do código. */
+export function contarDegradacaoDeCusto(motivo: 'orcamento_70' | 'orcamento_90', nivel: string): void {
+  if (!estado) return
+  estado.degradacaoDeCusto.inc({ motivo, nivel })
+}
+
 /* ─────────────── ganchos para quem mede de dentro (server/ai, server/routes) ─────────────── */
 
 /**
@@ -590,15 +619,33 @@ export function contarAdmissaoRecusada(motivo: string, plano: string): void {
  * não existe e eles não fazem nada. Quem chama não precisa saber se a observabilidade está ligada.
  */
 
+/**
+ * O rótulo de fornecedor/modelo, pela lista FECHADA do registro de provedores. `byok` passa (é rótulo
+ * fixo do código); o resto que o registro não conhece vira `outro`.
+ */
+function rotuloFechado(valor: string | undefined, conhecidos: Set<string>): string {
+  if (valor === 'byok') return 'byok'
+  return valor && conhecidos.has(valor) ? valor : 'outro'
+}
+
 /** Uma chamada ao provedor de IA terminou: latência sempre; custo só quando é dinheiro do dono. */
 export function observarChamadaDeProvedor(o: {
   provedor: string
   funcao: string
   ms: number
   custoUsd?: number
+  /** Quem atendeu (`groq`, `deepinfra`…) e o modelo — saneados contra o registro. */
+  fornecedor?: string
+  modelo?: string
 }): void {
   if (!estado) return
-  const labels = { provedor: o.provedor, funcao: o.funcao }
+  const conhecidos = rotulosDoRegistro()
+  const labels = {
+    provedor: o.provedor,
+    funcao: o.funcao,
+    fornecedor: rotuloFechado(o.fornecedor, conhecidos.fornecedores),
+    modelo: rotuloFechado(o.modelo, conhecidos.modelos),
+  }
   if (Number.isFinite(o.ms) && o.ms >= 0) estado.provedorLatencia.observe(labels, o.ms)
   if (o.custoUsd !== undefined && Number.isFinite(o.custoUsd) && o.custoUsd > 0)
     estado.provedorCusto.inc(labels, o.custoUsd)

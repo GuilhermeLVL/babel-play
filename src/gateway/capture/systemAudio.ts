@@ -1,6 +1,8 @@
 import { MicVAD } from '@ricky0123/vad-web';
 
 import { apiFetch } from '../../data/api';
+import { marcarAberturaDoVad } from '../../lib/captura/vigiaDoMainThread';
+import { ortDoVadNumaThread } from '../../lib/dispositivo/orcamentoDeThreads';
 import { ehPrefixo, EspelhoDoVad } from './espelhoDoVad';
 import { pararGravador } from './pararGravador';
 import { TAXA_DE_BITS_DA_GRAVACAO } from './taxaDeBits';
@@ -283,6 +285,19 @@ export interface SystemAudioCallbacks {
    * transcrever incrementalmente e exibir "em tempo real" em vez de esperar a fala fechar.
    */
   onPartialAudio?: (pcm: Float32Array, sampleRate: number, seq: number) => void;
+  /**
+   * O dono do pipeline QUER um parcial agora? Perguntado ANTES de montar o buffer-até-agora: com o
+   * modo desempenho, o regulador cortando parciais ou o local só de reserva, a resposta é não, e o
+   * tique nem copia o áudio. Sem o callback, quer sempre (o comportamento de antes).
+   */
+  querParcial?: () => boolean;
+  /** Espaçamento entre parciais (ms). Sem o callback, `PARTIAL_INTERVAL_MS`; o aparelho leve pede mais. */
+  intervaloDosParciais?: () => number;
+  /**
+   * Quanto de fala (ms) o PRIMEIRO parcial de cada fala espera. Sem o callback (ou abaixo do mínimo da
+   * captura, 0,6 s), o de sempre.
+   */
+  primeiroParcialComMs?: () => number;
   onMisfire?: (seq: number) => void;
   onError?: (err: Error) => void;
   onStatus?: (msg: string) => void;
@@ -304,6 +319,7 @@ const PRE_FALA_MS = 300;
 export const ESPECULATIVO_MS = 450;
 
 // Cadência dos parciais: reprocessa o buffer-até-agora a cada ~1.1s enquanto a fala continua.
+// É o padrão: o pipeline pode pedir outro (`intervaloDosParciais`, 2,2 s no aparelho leve).
 const PARTIAL_INTERVAL_MS = 1100;
 // Com que frequência o relógio dos parciais olha o buffer (o 1º parcial não espera o intervalo).
 const PARTIAL_TICK_MS = 200;
@@ -484,10 +500,20 @@ async function startCaptureFromStream(
   };
 
   vlog(label, 'criando Silero VAD sobre o áudio…');
+  /* A ABERTURA DO VAD TRAVA A TELA UMA VEZ, e não é travamento (A6c, medido em 30/09/2026): a 1ª sessão
+     do ORT da página instancia o WASM de 12 MB (`ort-wasm-simd-threaded.wasm`) na thread principal —
+     ~170 ms no desktop, ~880 ms com a CPU 4× mais lenta, sem script no LoAF. Com `env.wasm.proxy` ele
+     sai da thread principal (medido: 0 quadros longos), mas o vad-web reusa o tensor `sr` a cada quadro
+     e o proxy o transfere (DataCloneError no 2º quadro): é outra mudança. Até lá, o intervalo é marcado
+     e o vigia do regulador não o conta (`vigiaDoMainThread.ts`). */
+  const inicioDoVad = performance.now();
   try {
     vad = await MicVAD.new({
       baseAssetPath: '/',
       onnxWASMBasePath: '/',
+      /* 1 THREAD (orçamento global, `orcamentoDeThreads.ts`): o Silero roda o ONNX na thread principal,
+         e com o padrão do ORT ele abriria workers de pthread que a thread principal espera girando. */
+      ortConfig: ortDoVadNumaThread,
       model: 'legacy', // usa /silero_vad_legacy.onnx
       // O contexto do clique (se veio): o VAD não cria o dele, e não o fecha (não é dele).
       ...(opcoes.audioContext ? { audioContext: opcoes.audioContext } : {}),
@@ -589,21 +615,33 @@ async function startCaptureFromStream(
   }
 
   vad.start();
+  marcarAberturaDoVad(inicioDoVad, performance.now());
   vlog(label, 'VAD iniciado ✓');
 
   // Tick de PARCIAIS: enquanto se fala, transcreve o buffer-até-agora (rolling partial).
   /* O PRIMEIRO PARCIAL SAI ASSIM QUE HÁ 0,6 s DE FALA, e não no próximo tique de 1,1 s. Medido na
      auditoria de latência (2026-09-26): o 1º texto aparecia 2,6 s depois do início da fala — o tique
      de 1,1 s, mais os 0,6 s de áudio novo, mais o decode. O relógio agora olha a cada 200 ms; o
-     espaçamento ENTRE parciais continua 1,1 s (o custo por fala não muda). */
+     espaçamento ENTRE parciais continua 1,1 s (o custo por fala não muda).
+     Quando há um parcial SÓ por fala (o modo desempenho automático, A6b), o pipeline pede que ele
+     espere mais (`primeiroParcialComMs`, 1,5 s): com 0,6 s o Moonshine devolveu "" ou ". So.". */
   let ultimoParcialTs = 0;
   const partialTimer: any = setInterval(() => {
     if (!speaking || !cb.onPartialAudio) return;
     // O final especulativo desta fala já está no worker: um parcial agora só o atrasaria.
     if (especulacao?.seq === currentSeq) return;
-    if (accumSamples - lastPartialSamples < PARTIAL_MIN_NEW_SAMPLES) return;
     const primeiro = lastPartialSamples === 0;
-    if (!primeiro && performance.now() - ultimoParcialTs < PARTIAL_INTERVAL_MS) return;
+    const minimo = primeiro
+      ? Math.max(PARTIAL_MIN_NEW_SAMPLES, ((cb.primeiroParcialComMs?.() ?? 0) * 16000) / 1000)
+      : PARTIAL_MIN_NEW_SAMPLES;
+    if (accumSamples - lastPartialSamples < minimo) return;
+    const intervalo = cb.intervaloDosParciais?.() ?? PARTIAL_INTERVAL_MS;
+    if (!primeiro && performance.now() - ultimoParcialTs < intervalo) return;
+    /* WORKERS QUE DESCANSAM ("Grátis sem travar", A5): o pipeline ia descartar este parcial (modo
+       desempenho, regulador, reserva de nuvem) — então nem se monta. O `concatFrames` abaixo copia a
+       fala inteira até aqui, a cada parcial. Nada é marcado: quando o pipeline voltar a querer, o
+       próximo tique já entrega. */
+    if (cb.querParcial && !cb.querParcial()) return;
     lastPartialSamples = accumSamples;
     ultimoParcialTs = performance.now();
     const soFar = concatFrames();

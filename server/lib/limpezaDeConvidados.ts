@@ -26,6 +26,7 @@ import { convidadosRepo } from '../db/repositories/convidados'
 import { adminDoSupabase } from './config'
 import { CHAVE_POOL, PREFIXO_IP } from './convidado'
 import { log } from './logger'
+import { CHAVE_POOL_DO_ALIVIO } from './nuvemDeAlivio'
 
 const DIA_MS = 86_400_000
 
@@ -146,7 +147,8 @@ export async function limparConvidadosInativos(o: Opcoes = {}): Promise<Resultad
   }
 
   const doisDiasAtras = new Date(agora - 2 * DIA_MS).toISOString().slice(0, 10)
-  await convidadosRepo.podarContadoresDiarios([PREFIXO_IP, CHAVE_POOL], doisDiasAtras)
+  /* O pool diário da nuvem de alívio (A10) é contador do mesmo tipo: um por dia, sem dono. */
+  await convidadosRepo.podarContadoresDiarios([PREFIXO_IP, CHAVE_POOL, CHAVE_POOL_DO_ALIVIO], doisDiasAtras)
 
   if (r.removidos + r.convertidos + r.semAdmin + r.falhas > 0) {
     log('info', {

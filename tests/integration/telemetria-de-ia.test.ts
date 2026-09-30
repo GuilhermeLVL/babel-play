@@ -135,7 +135,7 @@ afterEach(() => {
   rmSync(dir, { recursive: true, force: true })
 })
 
-async function assinante(id: string, plano = 'pro') {
+async function assinante(id: string, plano = 'premium') {
   const u = asUserId(id)
   await subs.upsert(u, { plan: plano, status: 'active' })
   return u
@@ -163,8 +163,8 @@ describe('STT de nuvem emite rastro + geração com áudio e custo', () => {
     const trace = ev.find((e) => e.type === 'trace-create')
     const gens = ev.filter((e) => e.type === 'generation-create')
     expect(trace.body.name).toBe('stt')
-    expect(trace.body.metadata).toMatchObject({ plano: 'pro', feature: 'stt', statusHttp: 200, fallback: false })
-    expect(trace.body.tags).toEqual(['stt', 'pro'])
+    expect(trace.body.metadata).toMatchObject({ plano: 'premium', feature: 'stt', statusHttp: 200, fallback: false })
+    expect(trace.body.tags).toEqual(['stt', 'premium'])
     // Pseudônimo: presente, estável no formato, e sem o id em claro.
     expect(trace.body.userId).toMatch(/^u_[0-9a-f]{24}$/)
     expect(trace.body.sessionId).toMatch(/^u_[0-9a-f]{24}$/)
@@ -177,7 +177,7 @@ describe('STT de nuvem emite rastro + geração com áudio e custo', () => {
     expect(g.usageDetails).toEqual({ audio_seconds: 6, audio_seconds_billed: 10 })
     const orc = await h.load<any>('../../server/lib/orcamentoDeIa')
     expect(g.costDetails.total).toBeCloseTo(orc.custoDeStt('whisper-large-v3-turbo', 10), 12)
-    expect(g.metadata).toMatchObject({ status: 'ok', plano: 'pro', tentativa: 1 })
+    expect(g.metadata).toMatchObject({ status: 'ok', plano: 'premium', tentativa: 1 })
     // Nada do texto do usuário, por padrão.
     expect(JSON.stringify(ev)).not.toContain('secreta')
   })
@@ -224,7 +224,12 @@ describe('tradução: uma geração por perna da cascata, e o 429 contado', () =
     const ev = await eventos()
     const trace = ev.find((e) => e.type === 'trace-create')
     expect(trace.body.name).toBe('mt-fala')
-    expect(trace.body.metadata).toMatchObject({ plano: 'pro', fallback: true, tentativas: 2, parDeIdiomas: 'en-pt' })
+    expect(trace.body.metadata).toMatchObject({
+      plano: 'premium',
+      fallback: true,
+      tentativas: 2,
+      parDeIdiomas: 'en-pt',
+    })
     const gens = ev.filter((e) => e.type === 'generation-create').map((e) => e.body)
     expect(gens.map((g) => g.metadata.provedor)).toEqual(['groq', 'openrouter'])
     expect(gens[0].metadata.status).toBe('429')

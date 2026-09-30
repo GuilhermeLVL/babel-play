@@ -5,12 +5,14 @@
  */
 import { apiFetch } from '../../data/api';
 import { edicaoEstatica } from '../../lib/edicaoEstatica';
+import { cabecalhoDoAlivio, registrarRecusaDoAlivio } from '../../lib/nuvemDeAlivio/estado';
 import { sinalizarRecusaLida } from '../../lib/ofertas/eventos';
+import { registrarRecusaDoUsoJusto } from '../../lib/usoJustoDoDia';
 import { filtrarAlucinacao } from '../alucinacao';
 import { audioParaStt } from '../audio/opusDoStt';
 import type { SttFinal, SttProvider } from '../capabilities';
 import { avisarFalhaDaNuvemDoStt } from '../falhaDaNuvemDoStt';
-import { esperaDoRetryAfter, PausaDaNuvem } from '../pausaDaNuvem';
+import { esperaDoRetryAfter, PAUSA_MAXIMA_MS, PausaDaNuvem } from '../pausaDaNuvem';
 import { cortarPrompt } from '../promptDeStt';
 
 export interface GroqWhisperConfig {
@@ -61,6 +63,9 @@ export class GroqWhisperStt implements SttProvider {
     const headers: Record<string, string> = {
       'Content-Type': audio.tipo,
       'x-model': this.cfg.model,
+      /* A NUVEM DE ALÍVIO (A10): só depois do "Usar a nuvem grátis" — sem ele, a conta Grátis nunca
+         gasta a franquia por acaso (o servidor responde o 402 de sempre). */
+      ...cabecalhoDoAlivio(),
     };
     if (this.cfg.credentialId) {
       headers['x-credential-id'] = this.cfg.credentialId;
@@ -103,11 +108,20 @@ export class GroqWhisperStt implements SttProvider {
       // 402 de cota/plano vira momento de oferta (Fase 8); o host espera a captura acabar.
       sinalizarRecusaLida(res.status, errorText, 'transcricao');
       let code: string | undefined;
+      let corpo: unknown = null;
       try {
-        code = (JSON.parse(errorText) as { code?: unknown }).code as string | undefined;
+        corpo = JSON.parse(errorText);
+        code = (corpo as { code?: unknown }).code as string | undefined;
       } catch {
         /* corpo não-JSON */
       }
+      /* O SERVIDOR RECUSOU O ALÍVIO (flag, responsável, pool, franquia): a nuvem pausa pelo teto — o
+         aparelho segue sem uma ida ao servidor por fala para ouvir a mesma recusa. */
+      if (registrarRecusaDoAlivio(res.status, corpo)) this.pausa.pausar(PAUSA_MAXIMA_MS);
+      /* O USO JUSTO DO DIA ACABOU (429 `uso_justo_do_dia`, matriz v2): a pausa acima já vale (todo 429
+         pausa pelo `Retry-After`, com o teto que reavalia); aqui só sai o aviso funcional, uma vez por
+         dia. Nenhuma oferta: o 429 não é momento de venda (`momentoDaRecusa`). */
+      registrarRecusaDoUsoJusto(res.status, corpo);
       /* O STATUS, o CÓDIGO e a ESPERA vão no erro, e não só na mensagem: quem chama decide por eles
          (a importação espera o `Retry-After` do 429 `nuvem_ocupada` e volta à nuvem; o resto de
          402/429/501/503 recusa a nuvem no arquivo). */

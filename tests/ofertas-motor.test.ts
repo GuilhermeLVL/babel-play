@@ -26,13 +26,13 @@ const gatilho = (p: Partial<GatilhoDeOferta> = {}): GatilhoDeOferta => ({
   id: 'premium',
   momento: 'modelo_premium',
   componente: 'comparacao',
-  titulo: 'Modelos maiores estão no Pro',
+  titulo: 'A nuvem inteira está no Premium',
   texto: 'Compare',
   cta: 'Comparar planos',
   maxPorDia: 2,
   maxPorSemana: 5,
   intervaloMinHoras: 2,
-  planos: ['free', 'essencial'],
+  planos: ['free'],
   ...p,
 })
 
@@ -53,7 +53,7 @@ const entrada = (p: Partial<EntradaDoMotor> = {}): EntradaDoMotor => ({
 describe('flag', () => {
   it('ligada: a oferta promocional aparece com o componente do gatilho', () => {
     const d = decidirOferta(entrada())
-    expect(d).toMatchObject({ mostrar: true, componente: 'comparacao', planoSugerido: 'essencial', variante: 'padrao' })
+    expect(d).toMatchObject({ mostrar: true, componente: 'comparacao', planoSugerido: 'premium', variante: 'padrao' })
   })
 
   it('desligada: promocional NÃO aparece, mesmo com payload em cache', () => {
@@ -199,11 +199,11 @@ describe('teto global (promocionais)', () => {
 })
 
 describe('planos-alvo', () => {
-  const todos: PlanoDaFlag[] = ['convidado', 'free', 'essencial', 'pro', 'selfhost']
+  const todos: PlanoDaFlag[] = ['convidado', 'free', 'premium', 'selfhost']
   const amplo = gatilho({ planos: todos })
 
-  it('Pro nunca recebe oferta promocional (não se oferece Pro a quem é Pro)', () => {
-    expect(decidirOferta(entrada({ plano: 'pro', config: config(amplo) }))).toMatchObject({ motivo: 'plano_alvo' })
+  it('Premium nunca recebe oferta promocional (não se oferece o Premium a quem é Premium)', () => {
+    expect(decidirOferta(entrada({ plano: 'premium', config: config(amplo) }))).toMatchObject({ motivo: 'plano_alvo' })
   })
 
   it('self-host nunca recebe nada, nem aviso de cota', () => {
@@ -211,8 +211,8 @@ describe('planos-alvo', () => {
     expect(decidirOferta(entrada({ plano: 'selfhost', momento: 'fim_de_cota', flagLigada: false })).mostrar).toBe(false)
   })
 
-  it('Pro recebe o aviso funcional de cota, sem plano sugerido', () => {
-    const d = decidirOferta(entrada({ plano: 'pro', momento: 'fim_de_cota', flagLigada: false }))
+  it('Premium recebe o aviso funcional de cota, sem plano sugerido', () => {
+    const d = decidirOferta(entrada({ plano: 'premium', momento: 'fim_de_cota', flagLigada: false }))
     expect(d).toMatchObject({ mostrar: true, planoSugerido: 'nenhum' })
   })
 
@@ -240,16 +240,75 @@ describe('planos-alvo', () => {
   })
 
   it('o gatilho só vale para os planos que lista', () => {
-    expect(decidirOferta(entrada({ config: config(gatilho({ planos: ['essencial'] })) }))).toMatchObject({
+    expect(decidirOferta(entrada({ config: config(gatilho({ planos: ['premium'] })) }))).toMatchObject({
       motivo: 'plano_alvo',
     })
   })
 
-  it('plano sugerido: Grátis → Essencial (também no modelo premium), Essencial → Pro', () => {
-    expect(planoSugerido('free')).toBe('essencial')
-    expect(planoSugerido('essencial')).toBe('pro')
-    expect(planoSugerido('pro')).toBe('nenhum')
+  it('plano sugerido (matriz v2): Grátis → Premium; o Premium não tem para onde subir', () => {
+    expect(planoSugerido('free')).toBe('premium')
+    expect(planoSugerido('premium')).toBe('nenhum')
+    expect(planoSugerido('selfhost')).toBe('nenhum')
     expect(planoSugerido('convidado')).toBe('conta')
+  })
+})
+
+describe('C8 — o teste de 14 dias como sugestão', () => {
+  it('Grátis que pode testar → teste; que não pode (ou não se sabe) → Premium; o resto não muda', () => {
+    expect(planoSugerido('free', { podeTestar: true })).toBe('teste')
+    expect(planoSugerido('free', { podeTestar: false })).toBe('premium')
+    expect(planoSugerido('convidado', { podeTestar: true })).toBe('conta')
+    expect(planoSugerido('premium', { podeTestar: true })).toBe('nenhum')
+    expect(planoSugerido('selfhost', { podeTestar: true })).toBe('nenhum')
+  })
+
+  it('a decisão leva o teste como sugestão para quem pode testar', () => {
+    expect(decidirOferta(entrada({ podeTestar: true }))).toMatchObject({ mostrar: true, planoSugerido: 'teste' })
+    expect(decidirOferta(entrada({ podeTestar: false }))).toMatchObject({ mostrar: true, planoSugerido: 'premium' })
+  })
+})
+
+describe('C8 — perfil protegido: só o funcional, nunca o promocional', () => {
+  it('nenhum momento promocional aparece, mesmo com a flag ligada e um gatilho para ele', () => {
+    for (const momento of ['modelo_premium', 'conquista', 'fim_de_sessao'] as const) {
+      const d = decidirOferta(entrada({ protegido: true, momento, config: config(gatilho({ momento })) }))
+      expect(d, momento).toMatchObject({ mostrar: false, motivo: 'perfil_protegido', adiar: false })
+    }
+  })
+
+  it('o funcional aparece com o texto EMBUTIDO — nunca o da flag, que pode vender — e sem plano sugerido', () => {
+    const vende = gatilho({
+      id: 'cota_acabou',
+      momento: 'fim_de_cota',
+      componente: 'modal',
+      texto: { pt: 'Com o Premium você continua usando a nuvem.' },
+      planos: ['free'],
+    })
+    const d = decidirOferta(
+      entrada({ protegido: true, podeTestar: true, momento: 'fim_de_cota', config: config(vende) }),
+    )
+    expect(d.mostrar).toBe(true)
+    if (d.mostrar) {
+      expect(GATILHOS_FUNCIONAIS).toContain(d.gatilho)
+      expect(d.gatilho.id).toBe('funcional_fim_de_cota')
+      expect(d.planoSugerido).toBe('nenhum')
+      expect(d.variante).toBe('embutida')
+    }
+  })
+
+  it('sem sugestão de teste nem de Premium, e o fim do teste (ativado pelo responsável) continua chegando', () => {
+    expect(planoSugerido('free', { protegido: true, podeTestar: true })).toBe('nenhum')
+    const d = decidirOferta(
+      entrada({
+        protegido: true,
+        plano: 'premium',
+        momento: 'fim_do_teste',
+        fase: 'd3',
+        flagLigada: false,
+        config: config(),
+      }),
+    )
+    expect(d).toMatchObject({ mostrar: true, planoSugerido: 'nenhum', gatilho: { id: 'funcional_fim_do_teste_d3' } })
   })
 })
 

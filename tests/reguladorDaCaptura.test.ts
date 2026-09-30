@@ -253,3 +253,161 @@ describe('criarReguladorDaCaptura', () => {
     expect(r.parciaisCortados).toBe(false)
   })
 })
+
+/** Um vigia do main thread falso: o bloqueio que ele "mediu" e as janelas que lhe pediram. */
+function vigiaFalso(bloqueioMs = 0, suportado = true) {
+  const v = {
+    bloqueioMs,
+    janelas: [] as number[],
+    suportado,
+    bloqueioRecenteMs(janelaMs: number) {
+      v.janelas.push(janelaMs)
+      return v.bloqueioMs
+    },
+    guardados: () => 0,
+    parar: () => undefined,
+  }
+  return v
+}
+
+describe('aoParcial — a latência do parcial alimenta o regulador (Grátis sem travar)', () => {
+  it('3 parciais lentos (> 1,5 s) cortam os parciais; rápidos, não', () => {
+    const { s, sinais } = ambiente()
+    const r = criarReguladorDaCaptura({ sinais, vigia: vigiaFalso() })
+    r.reiniciar({ modelo: WHISPER_MODELS.base, soIngles: false })
+    const e = efeitos()
+    for (let i = 0; i < 5; i++) {
+      s.agora += 500
+      r.aoParcial(900, e)
+    }
+    expect(r.parciaisCortados).toBe(false)
+    const acoes = [0, 1, 2].flatMap(() => {
+      s.agora += 500
+      return r.aoParcial(2_000, e)
+    })
+    expect(acoes).toEqual(['cortar-parciais'])
+    expect(r.parciaisCortados).toBe(true)
+    expect(e.trocarModelo).not.toHaveBeenCalled()
+  })
+
+  it('o parcial com a aba escondida não pausa nada (quem sabe se é "só ouvir" é o final)', () => {
+    const { sinais } = ambiente({ visivel: false })
+    const r = criarReguladorDaCaptura({ sinais, vigia: vigiaFalso() })
+    r.reiniciar({ modelo: WHISPER_MODELS.base, soIngles: false })
+    expect(r.aoParcial(300, efeitos())).toEqual([])
+    expect(r.parciaisDoMicPausados).toBe(false)
+  })
+
+  it('a falha registrada fica para o final (o parcial não a consome)', () => {
+    const { sinais } = ambiente()
+    const r = criarReguladorDaCaptura({ sinais, vigia: vigiaFalso() })
+    r.reiniciar({ modelo: WHISPER_MODELS.small, soIngles: false })
+    const e = efeitos()
+    r.registrarFalha('oom', WHISPER_MODELS.small)
+    r.aoParcial(300, e)
+    expect(e.proibirModelo).not.toHaveBeenCalled()
+    r.aoFinal(FOLGA, e)
+    expect(e.proibirModelo).toHaveBeenCalledWith(WHISPER_MODELS.small, 'oom')
+  })
+})
+
+describe('o vigia do main thread no regulador', () => {
+  it('tela travada (≥ 400 ms na janela de 10 s) corta os parciais já no primeiro final', () => {
+    const { s, sinais } = ambiente({ agora: 20_000 })
+    const vigia = vigiaFalso(450)
+    const r = criarReguladorDaCaptura({ sinais, vigia })
+    r.reiniciar({ modelo: WHISPER_MODELS.base, soIngles: false })
+    s.agora = 30_000
+    expect(r.aoFinal(FOLGA, efeitos())).toEqual(['cortar-parciais'])
+    expect(vigia.janelas).toEqual([10_000])
+  })
+
+  it('o parcial também pergunta ao vigia (é ele que chega mais vezes)', () => {
+    const { s, sinais } = ambiente({ agora: 20_000 })
+    const r = criarReguladorDaCaptura({ sinais, vigia: vigiaFalso(600) })
+    r.reiniciar({ modelo: WHISPER_MODELS.base, soIngles: false })
+    s.agora = 30_000
+    expect(r.aoParcial(300, efeitos())).toEqual(['cortar-parciais'])
+  })
+
+  /* O QUE A TELA SOFREU ANTES DA CAPTURA NÃO É DA CAPTURA (A6c). Montar a tela, escolher os idiomas, o
+     pré-aquecimento: nada disso é o STT nem os parciais, e cortá-los não o cura. Na bancada, os quadros
+     de React de 2–3 s antes do "Iniciar" caíam na janela do 1º parcial e somavam ~400 ms. */
+  it('a janela começa no `reiniciar` da sessão: o bloqueio de antes dela não conta', () => {
+    const { s, sinais } = ambiente({ agora: 30_000 })
+    const vigia = vigiaFalso(0)
+    const r = criarReguladorDaCaptura({ sinais, vigia })
+    r.reiniciar({ modelo: WHISPER_MODELS.base, soIngles: false })
+    s.agora = 33_000
+    r.aoParcial(300, efeitos())
+    s.agora = 45_000
+    r.aoFinal(FOLGA, efeitos())
+    expect(vigia.janelas).toEqual([3_000, 10_000])
+  })
+
+  it('cada decisão vai ao console com o motivo (a bancada separa a tela travada da pressão da CPU)', () => {
+    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined)
+    try {
+      const { s, sinais } = ambiente({ agora: 30_000 })
+      const r = criarReguladorDaCaptura({ sinais, vigia: vigiaFalso(500) })
+      r.reiniciar({ modelo: WHISPER_MODELS.base, soIngles: false })
+      s.agora = 40_000
+      r.aoParcial(300, efeitos())
+      const linhas = log.mock.calls.map((c) => c.join(' '))
+      expect(linhas).toContainEqual(expect.stringMatching(/\[cap\] regulador: cortar-parciais ← travamento/))
+    } finally {
+      log.mockRestore()
+    }
+  })
+
+  it('travamento DEPOIS de a sessão começar continua cortando os parciais', () => {
+    const { s, sinais } = ambiente({ agora: 30_000 })
+    const vigia = vigiaFalso(0)
+    const r = criarReguladorDaCaptura({ sinais, vigia })
+    r.reiniciar({ modelo: WHISPER_MODELS.base, soIngles: false })
+    s.agora = 36_000
+    expect(r.aoParcial(300, efeitos())).toEqual([])
+    vigia.bloqueioMs = 500 // a tela travou de verdade durante a fala
+    s.agora = 38_000
+    expect(r.aoParcial(300, efeitos())).toEqual(['cortar-parciais'])
+    expect(vigia.janelas).toEqual([6_000, 8_000])
+  })
+
+  it('depois de um degrau, só conta o bloqueio de DEPOIS dele (o de antes é o que o degrau veio curar)', () => {
+    const { s, sinais } = ambiente({ agora: 20_000 })
+    const vigia = vigiaFalso(450)
+    const r = criarReguladorDaCaptura({ sinais, vigia })
+    r.reiniciar({ modelo: WHISPER_MODELS.base, soIngles: false })
+    s.agora = 30_000
+    r.aoFinal(FOLGA, efeitos()) // desce em 30 s
+    s.agora = 34_000
+    r.aoFinal(FOLGA, efeitos())
+    expect(vigia.janelas).toEqual([10_000, 4_000])
+  })
+
+  it('navegador sem LoAF/longtask: nenhum sinal de travamento (e o resto segue)', () => {
+    const { sinais } = ambiente()
+    const vigia = vigiaFalso(5_000, false)
+    const r = criarReguladorDaCaptura({ sinais, vigia })
+    r.reiniciar({ modelo: WHISPER_MODELS.base, soIngles: false })
+    expect(r.aoFinal(FOLGA, efeitos())).toEqual([])
+    expect(vigia.janelas).toEqual([])
+  })
+})
+
+describe('config por aparelho — lida a cada medida', () => {
+  it('uma função de config vale na hora: o aparelho que virou leve desce com 2 finais lentos', () => {
+    const { sinais } = ambiente()
+    let leve = false
+    const r = criarReguladorDaCaptura({
+      sinais,
+      vigia: vigiaFalso(),
+      config: () => (leve ? { trechosParaDescer: 2 } : {}),
+    })
+    r.reiniciar({ modelo: WHISPER_MODELS.base, soIngles: false })
+    leve = true
+    r.aoFinal(LENTO, efeitos())
+    r.aoFinal(LENTO, efeitos())
+    expect(r.parciaisCortados).toBe(true)
+  })
+})

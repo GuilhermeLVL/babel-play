@@ -6,8 +6,9 @@
  * provedor escreve isso de um jeito:
  *
  *   - Groq: `reasoning_effort: "low"` + `include_reasoning: false` (não devolve o raciocínio);
- *   - OpenRouter: `reasoning: { effort: "low", exclude: true }` — e SEMPRE `provider: { zdr: true }`,
- *     que só roteia para provedores com retenção zero de dados (o app é aberto a menores).
+ *   - OpenRouter: `reasoning: { effort: "low", exclude: true }` — e SEMPRE o `provider` de retenção
+ *     zero: `zdr: true` e, desde o B1 da Fase B, `data_collection: "deny"` e `ignore` com os dois
+ *     provedores do Google (o app é aberto a menores; o Gemini é proibido para eles).
  *
  * E o cache de prompt dos provedores é por PREFIXO: o `system` precisa começar pelo texto fixo e
  * terminar pelo que muda (idioma), senão cada par de idiomas é um prefixo novo e o cache nunca acerta.
@@ -33,6 +34,8 @@ function stubFetch() {
 afterEach(() => vi.unstubAllGlobals())
 
 const mensagens = [{ role: 'user' as const, content: 'oi' }]
+/** O mínimo que todo pedido ao OpenRouter leva (docs do OpenRouter, "Provider Routing"). */
+const ZDR_SEM_GOOGLE = { data_collection: 'deny', zdr: true, ignore: ['google-ai-studio', 'google-vertex'] }
 
 describe('parâmetros de raciocínio e retenção por provedor', () => {
   it('Groq + gpt-oss: reasoning_effort low e include_reasoning false, sem campos do OpenRouter', async () => {
@@ -43,11 +46,11 @@ describe('parâmetros de raciocínio e retenção por provedor', () => {
     expect(corpos[0]).not.toHaveProperty('provider')
   })
 
-  it('OpenRouter + gpt-oss: reasoning {effort, exclude} e provider {zdr}', async () => {
+  it('OpenRouter + gpt-oss: reasoning {effort, exclude} e provider de retenção zero, sem o Google', async () => {
     stubFetch()
     await chamarChat({ base: 'https://openrouter.ai/api/v1', model: 'openai/gpt-oss-120b', messages: mensagens })
     expect(corpos[0].reasoning).toEqual({ effort: 'low', exclude: true })
-    expect(corpos[0].provider).toEqual({ zdr: true })
+    expect(corpos[0].provider).toEqual(ZDR_SEM_GOOGLE)
     expect(corpos[0]).not.toHaveProperty('reasoning_effort')
     expect(corpos[0]).not.toHaveProperty('include_reasoning')
   })
@@ -55,7 +58,7 @@ describe('parâmetros de raciocínio e retenção por provedor', () => {
   it('OpenRouter com outro modelo: zdr SEMPRE, raciocínio não', async () => {
     stubFetch()
     await chamarChat({ base: 'https://openrouter.ai/api/v1/', model: 'mistralai/mistral-small', messages: mensagens })
-    expect(corpos[0].provider).toEqual({ zdr: true })
+    expect(corpos[0].provider).toEqual(ZDR_SEM_GOOGLE)
     expect(corpos[0]).not.toHaveProperty('reasoning')
   })
 
@@ -73,6 +76,41 @@ describe('parâmetros de raciocínio e retenção por provedor', () => {
     expect(corpos[0].reasoning_effort).toBe('low')
     expect(corpos[0]).not.toHaveProperty('include_reasoning')
     expect(corpos[0]).not.toHaveProperty('provider')
+  })
+})
+
+/**
+ * O MÓDULO PURO (B5): a bancada de provedores importa `parametrosDoProvedor` para mandar ao candidato
+ * EXATAMENTE o que a produção mandaria — e a bancada roda fora do servidor, sem `config`/`metricas`.
+ * Estes casos também registram o que a produção mandaria HOJE aos provedores novos, se o B7 os
+ * configurar como base OpenAI-compatible: só o `reasoning_effort` padrão da API.
+ */
+describe('parametrosDoProvedor (módulo puro, sem dependências do servidor)', () => {
+  it('é a mesma função que o chamarChat usa', async () => {
+    const puro = await import('../server/ai/parametrosDoProvedor')
+    const doCliente = await import('../server/ai/llmClient')
+    expect(doCliente.parametrosDoProvedor).toBe(puro.parametrosDoProvedor)
+  })
+
+  it('DeepInfra, Cerebras e Cloudflare com gpt-oss: só reasoning_effort low', async () => {
+    const { parametrosDoProvedor } = await import('../server/ai/parametrosDoProvedor')
+    for (const base of [
+      'https://api.deepinfra.com/v1/openai',
+      'https://api.cerebras.ai/v1',
+      'https://api.cloudflare.com/client/v4/accounts/0123456789abcdef0123456789abcdef/ai/v1',
+    ]) {
+      expect(parametrosDoProvedor(base, 'openai/gpt-oss-20b')).toEqual({ reasoning_effort: 'low' })
+    }
+  })
+
+  it('modelo sem raciocínio fora do OpenRouter: nada a mais', async () => {
+    const { parametrosDoProvedor } = await import('../server/ai/parametrosDoProvedor')
+    expect(parametrosDoProvedor('https://api.deepinfra.com/v1/openai', 'google/gemma-4-26B-A4B-it')).toEqual({})
+  })
+
+  it('base inválida não lança: cai no caso genérico', async () => {
+    const { parametrosDoProvedor } = await import('../server/ai/parametrosDoProvedor')
+    expect(parametrosDoProvedor('não é url', 'gpt-oss-120b')).toEqual({ reasoning_effort: 'low' })
   })
 })
 

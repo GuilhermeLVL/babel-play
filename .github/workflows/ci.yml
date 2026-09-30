@@ -228,6 +228,49 @@ jobs:
           path: test-results/
           if-no-files-found: ignore
 
+  # E2E DA EDIÇÃO ESTÁTICA — o `dist/` de `npm run build:estatica`, servido como o Cloudflare Pages
+  # serve (tests/e2e-estatica/_servidor-estatico.mjs: arquivos, fallback de SPA, os cabeçalhos de
+  # `_headers`, nenhum servidor Node). É o que vai para produção em babel-play.pages.dev, e a suíte
+  # não rodava em workflow nenhum: apodreceu sem ninguém ver (perfis de dispositivo falhando nos três
+  # aparelhos desde a captura mobile-first de 29/09). Os dois projetos, desktop-1280 e mobile-375.
+  e2e-estatica:
+    runs-on: ubuntu-latest
+    # A suíte leva ~13 min numa máquina de 16 threads; o Quest roda com a CPU 4× mais lenta (CDP).
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Navegador do Playwright
+        run: npx playwright install --with-deps chromium
+      # O build baixa os modelos do Bergamot pt→en (~26 MB, `scripts/baixar-modelos-bergamot.mjs`) do
+      # bucket da Mozilla e confere o sha256 de cada um. Os testes não dependem dele para passar (sem
+      # rede, o build sai sem oferecê-lo e os totais são conferidos entre si, não fixados), mas o `dist`
+      # testado tem que ser o do Pages, que o oferece: a lista de modelos e o aviso de download contam
+      # com ele. Com o cache, o bucket só é tocado quando a fonte dos hashes muda;
+      # a chave é essa fonte (`modelosDoBergamot.json`, a mesma que o script e o app leem), então um
+      # cache velho nunca serve um modelo que não confere — no pior caso, o script baixa de novo.
+      - name: Cache dos modelos do Bergamot
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: public/modelos/bergamot
+          key: bergamot-${{ hashFiles('src/gateway/adapters/modelosDoBergamot.json') }}
+      - name: Build da edição estática
+        run: npm run build:estatica
+      - name: E2E da edição estática
+        run: npx playwright test -c playwright.estatica.config.ts
+      # Trace e screenshot de falha (`retain-on-failure` na config) e as fotos das telas.
+      - name: Artefato do e2e estático (trace, screenshot)
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: playwright-estatica
+          path: test-results/
+          if-no-files-found: ignore
+
   # A IMAGEM DE PRODUÇÃO (Fase 5). Constrói o Dockerfile de verdade e sobe o container como o Fly
   # sobe: NODE_ENV=production, AUTH_REQUIRED=1, TRUST_PROXY declarada. Depois confere o que só a
   # imagem pode provar: /api/ready 200, a API fechada sem token, os cabeçalhos de cache e de CSP da
@@ -338,13 +381,19 @@ jobs:
           docker build -t babel-play:ci \
             --build-arg VITE_SUPABASE_URL=https://ci-exemplo.supabase.co \
             --build-arg VITE_SUPABASE_ANON_KEY=anon-publica-de-ci .
+      # A imagem `minio/minio` saiu do Docker Hub (o pull passou a responder "repository does not
+      # exist", 30/09/2026). A `bitnamilegacy/minio` é o mesmo servidor MinIO, congelada — para um
+      # dublê de R2 no CI isso basta —, FIXADA pelo digest: se sumir ou mudar, o pull falha em vez de
+      # rodar outra coisa. A Bitnami sobe com o próprio entrypoint (sem `server /data`), lê as
+      # mesmas MINIO_ROOT_* e demora mais no primeiro boot: daí 60 s de espera, não 30.
       - name: MinIO no lugar do R2
         run: |
           docker network create rede
           docker run -d --name minio --network rede -p 9000:9000 \
             -e MINIO_ROOT_USER=$AWS_ACCESS_KEY_ID -e MINIO_ROOT_PASSWORD=$AWS_SECRET_ACCESS_KEY \
-            minio/minio:RELEASE.2025-04-22T22-12-26Z server /data
-          for i in $(seq 1 30); do curl -sf http://127.0.0.1:9000/minio/health/live && break; sleep 1; done
+            bitnamilegacy/minio:2025.7.23-debian-12-r5@sha256:6dabb4a2088c9a79908de3bc05f4586c23ad2182c8908e7e3acbf61c1467fb20
+          for i in $(seq 1 60); do curl -sf http://127.0.0.1:9000/minio/health/live && break; sleep 1; done
+          curl -sf http://127.0.0.1:9000/minio/health/live || { docker logs minio | tail -30; exit 1; }
           aws --endpoint-url http://127.0.0.1:9000 s3 mb s3://litestream-ci
       - name: Primeiro container grava e replica
         run: |

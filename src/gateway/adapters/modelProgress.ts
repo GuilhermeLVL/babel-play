@@ -64,16 +64,75 @@ export function lerProgresso(info: EventoDeProgresso): ProgressoModelo | null {
  * A guarda de monotonicidade permanece, mas agora é apenas higiene contra reordenação de eventos —
  * não é mais ela que segura o número, porque o denominador já é o certo desde o início. (Era o
  * clamp sobre um denominador incompleto que travava a barra em 100%.)
+ *
+ * E a saída passa pelo `limitarProgresso`: a lib emite um evento POR CHUNK, e sem o limitador cada
+ * um virava um `postMessage` e um render na thread principal (ver abaixo).
  */
 export function criarRastreadorDeProgresso(
   emitir: (p: ProgressoModelo) => void,
 ): (info: EventoDeProgresso) => void {
+  const emitirLimitado = limitarProgresso(emitir, LIMITE_DA_BARRA)
   let ultimo = -1
   return (info: EventoDeProgresso) => {
     const p = lerProgresso(info)
     if (!p) return
     if (p.progress < ultimo) return
     ultimo = p.progress
+    emitirLimitado(p)
+  }
+}
+
+export interface OpcoesDoLimitador {
+  /** Com avanço menor que o passo, emite mesmo assim depois deste tempo desde a última emissão. */
+  intervaloMs: number
+  /** Avanço (0..1) desde a última emissão que sai na hora. */
+  passoMinimo: number
+  /** Injetável para teste. */
+  agora?: () => number
+}
+
+/**
+ * 1% ou 200 ms: no máximo ~5 mensagens por segundo num download lento, ~100 no total num modelo que
+ * abre do cache — e a barra continua andando de um jeito que o olho não distingue do contínuo.
+ */
+const LIMITE_DA_BARRA: OpcoesDoLimitador = { intervaloMs: 200, passoMinimo: 0.01 }
+
+/** Folga de ponto flutuante: 0,53 − 0,52 não dá exatamente 0,01. */
+const EPSILON = 1e-9
+
+/**
+ * A TEMPESTADE DE PROGRESSO. A lib chama o `progress_callback` a CADA chunk do stream, INCLUSIVE
+ * quando o arquivo vem do cache do navegador (`readResponse` em `dist/transformers.web.js`): abrir um
+ * modelo que já está no aparelho gerava milhares de `postMessage`, cada um um `setModelPrep` e um
+ * render da tela da captura — o "grátis trava" começava antes da primeira fala.
+ *
+ * Emite quando: é a primeira (a barra nasce), chegou ao 100% (o fim nunca é segurado; o `ready`
+ * também é 100%), andou pelo menos `passoMinimo`, ou passou `intervaloMs` desde a última emissão E
+ * houve algum byte novo.
+ *
+ * ESSA ÚLTIMA REGRA É A DO WATCHDOG (`whisperLocal.ts`): cada mensagem de progresso é o sinal de vida
+ * que reinicia o relógio de estagnação. Um download lento anda menos de 1% por minuto, e só a regra do
+ * passo o calaria — o watchdog o tomaria por GPU travada. E a condição "houve byte novo" é o outro
+ * lado: evento repetido sem byte novo NÃO é vida, e um download parado não emite nada, como antes.
+ */
+export function limitarProgresso(
+  emitir: (p: ProgressoModelo) => void,
+  opts: OpcoesDoLimitador,
+): (p: ProgressoModelo) => void {
+  const agora = opts.agora ?? (() => Date.now())
+  let anterior: ProgressoModelo | null = null
+  let emitidoEm = 0
+  return (p: ProgressoModelo) => {
+    const t = agora()
+    const houveByte = !anterior || p.loaded > anterior.loaded || p.progress > anterior.progress
+    const sai =
+      !anterior ||
+      p.progress >= 1 ||
+      p.progress - anterior.progress >= opts.passoMinimo - EPSILON ||
+      (houveByte && t - emitidoEm >= opts.intervaloMs)
+    if (!sai) return
+    anterior = p
+    emitidoEm = t
     emitir(p)
   }
 }

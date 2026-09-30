@@ -178,6 +178,14 @@ o entitlement `traducaoNuance`). Quem paga começa pelo modelo da nuance e cai n
 falhar; quem não paga nunca chega ao da nuance. Sem o registro, vale o `LLM_MODEL_GRANDE` de sempre,
 para o plano com `largerModels`.
 
+**A cascata do STT (B6).** Com mais de um provedor de STT no registro, cada áudio vai primeiro para
+quem cobra MENOS por ele — com o mínimo faturado de cada um: a Groq cobra 10 s por pedido, então a
+fala curta vai para quem cobra por segundo (declare `"minimoFaturadoS": 0` nele; ausente, o servidor
+supõe 10 s). 429, 5xx e timeout passam para o próximo, e o disjuntor é por provedor. A Cloudflare
+(Workers AI) entra com `"formato": "cloudflare"` e o modelo `@cf/openai/whisper-large-v3-turbo` — o
+áudio vai em base64 pela rota nativa; confira no painel dela que a conta não guarda o conteúdo
+(Workers AI → Privacy) antes de declarar `"retencao": "zdr"`.
+
 Decida o **orçamento global** `AI_BUDGET_USD_MONTH` (soma do que aceita gastar nos dois; sem ela o
 app usa US$ 20). O servidor estima o gasto de cada chamada (`server/lib/orcamentoDeIa.ts`) pelo
 preço do **provedor que de fato respondeu** — com o primário em 429, o da reserva —, com os tokens do

@@ -684,29 +684,53 @@ export function pernasDaFuncao(
   return ordem.map((c, i) => ({ rotulo: rotuloDaPerna(c.provedor, f, i), ...c.perna }))
 }
 
-/** O STT gerenciado que o `sttProxy` sabe chamar HOJE: a primeira perna `openai` (multipart). */
+/** Segmento de caminho de modelo aceitável numa URL: nada de vazio, `.`, `..` nem caractere de fora. */
+const SEGMENTO_DE_MODELO = /^[A-Za-z0-9@._:+-]+$/
+
+/**
+ * O ENDPOINT DE TRANSCRIÇÃO de uma perna de STT (B6), ou `null` quando o proxy não sabe chamá-la:
+ *
+ *   - `openai`: `<base>/audio/transcriptions`, multipart — Groq, DeepInfra, OpenAI;
+ *   - `cloudflare`: a rota NATIVA do Workers AI, `…/ai/run/<modelo>` (o endpoint OpenAI-compatible
+ *     dela não tem `/audio/transcriptions`), derivada da base da API (`…/accounts/<conta>/ai/v1`) ou
+ *     do AI Gateway (`…/<gateway>/workers-ai/v1` → `…/workers-ai/<modelo>`). O modelo vai no CAMINHO,
+ *     então cada segmento dele é conferido: `@cf/../../x` subiria de rota.
+ */
+export function endpointDaTranscricao(p: Pick<Provedor, 'base' | 'model' | 'formato'>): string | null {
+  const base = semBarra(p.base)
+  if ((p.formato ?? 'openai') === 'openai') return `${base}/audio/transcriptions`
+  const segmentos = p.model.split('/')
+  if (!segmentos.every((s) => SEGMENTO_DE_MODELO.test(s) && s !== '.' && s !== '..')) return null
+  if (/\/ai\/v1$/.test(base)) return `${base.replace(/\/v1$/, '')}/run/${p.model}`
+  if (/\/workers-ai\/v1$/.test(base)) return `${base.replace(/\/v1$/, '')}/${p.model}`
+  return null
+}
+
+/** A perna de STT que o `sttProxy` sabe chamar — a primeira (na ordem do registro) com endpoint. */
 export interface SttGerenciado {
   secret: string
   baseUrl: string
   model: string
   fornecedor: string
+  formato: FormatoDeProvedor
   preco?: PrecoDeModelo
 }
 
 /**
  * O STT GERENCIADO, PELO REGISTRO — a fonte que `GET /api/ai/stt/available` e a porta da
  * transcrição consultam (B0: eram duas leituras, e discordavam). No legado é exatamente o
- * `sttGerenciadoDoEnv`. Perna no formato `cloudflare` (base64) fica de fora até o B6 trazer a
- * cascata do STT; anunciar uma perna que o proxy não sabe chamar seria o 200/501 de novo.
+ * `sttGerenciadoDoEnv`. Desde o B6 a porta percorre TODAS as pernas (`cascataDeStt.ts`), e a
+ * Cloudflare (base64) entra: a pergunta "há STT de nuvem?" é "há perna com endpoint?".
  */
 export function sttGerenciado(env: NodeJS.ProcessEnv = process.env): SttGerenciado | null {
-  const perna = pernasDaFuncao('stt', {}, env).find((p) => p.formato === 'openai')
+  const perna = pernasDaFuncao('stt', {}, env).find((p) => endpointDaTranscricao(p) !== null)
   if (!perna?.apiKey) return null
   return {
     secret: perna.apiKey,
     baseUrl: perna.base,
     model: perna.model,
     fornecedor: perna.fornecedor ?? fornecedorDoHost(perna.base),
+    formato: perna.formato ?? 'openai',
     ...(perna.preco ? { preco: perna.preco } : {}),
   }
 }

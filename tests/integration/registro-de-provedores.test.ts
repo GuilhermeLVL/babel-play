@@ -298,7 +298,9 @@ describe('registro declarado — IA_PROVEDORES', () => {
     expect(or.roteamento).toEqual({ data_collection: 'deny', zdr: true, ignore: ['google-ai-studio', 'google-vertex'] })
   })
 
-  it('STT: a primeira perna no formato openai; Cloudflare (base64) só entra com o B6', () => {
+  /* B6: a cascata do STT sabe o base64 da Cloudflare (`cascataDeStt.ts`), e ela passa a contar como
+     STT de nuvem — antes ficava de fora para `/stt/available` não prometer o que a porta não chamava. */
+  it('STT: a primeira perna com endpoint, inclusive a Cloudflare (base64) desde o B6', () => {
     expect(sttGerenciado(declarado([GROQ, CLOUDFLARE]))).toMatchObject({
       secret: 'chave-groq-falsa',
       baseUrl: 'https://api.groq.com/openai/v1',
@@ -306,9 +308,9 @@ describe('registro declarado — IA_PROVEDORES', () => {
       fornecedor: 'groq',
       preco: { hora: 0.04, minimoFaturadoS: 10 },
     })
-    expect(sttGerenciado(declarado([CLOUDFLARE]))).toBeNull()
-    expect(sttDeNuvemConfigurado(declarado([CLOUDFLARE]))).toBe(false)
-    // As pernas do registro existem mesmo assim: é o que o B6 vai percorrer.
+    expect(sttGerenciado(declarado([CLOUDFLARE]))).toMatchObject({ fornecedor: 'cloudflare', formato: 'cloudflare' })
+    expect(sttDeNuvemConfigurado(declarado([CLOUDFLARE]))).toBe(true)
+    // As pernas do registro, na ordem dele: a cascata do STT reordena pelo custo de cada pedido.
     expect(pernasDaFuncao('stt', {}, declarado([CLOUDFLARE, GROQ])).map((p) => [p.fornecedor, p.formato])).toEqual([
       ['cloudflare', 'cloudflare'],
       ['groq', 'openai'],

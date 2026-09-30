@@ -272,7 +272,7 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
     paraQue:
-      'conta da Cloudflare do Workers AI, lida quando um provedor de IA_PROVEDORES declara "conta": "CLOUDFLARE_ACCOUNT_ID" — entra na base (/accounts/<conta>/ai/v1). Ausente, a perna não existe',
+      'conta da Cloudflare do Workers AI, lida quando um provedor de IA_PROVEDORES declara "conta": "CLOUDFLARE_ACCOUNT_ID" — entra na base (/accounts/<conta>/ai/v1; o STT usa a rota nativa /ai/run/<modelo>, com o áudio em base64 — B6). Ausente, a perna não existe',
   },
   {
     nome: 'CLOUDFLARE_API_TOKEN',

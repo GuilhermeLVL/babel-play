@@ -13,6 +13,7 @@
  * O `externalReference` de cliente e assinatura carrega o NOSSO userId — é como o webhook, que
  * chega sem JWT, descobre de quem é o evento.
  */
+import type { CicloDeCobranca } from '../../src/core/planos'
 import type { UserId } from './authContext'
 import { lerAppUrl } from './config'
 import { log } from './logger'
@@ -124,30 +125,12 @@ export function urlDeVoltaDoPagamento(): string | null {
 }
 
 /**
- * Cria a assinatura mensal. `billingType: 'UNDEFINED'` deixa o pagador escolher Pix, boleto ou
- * cartão na página do Asaas.
- *
- * Com a URL de volta, o corpo leva `callback`. Se o Asaas recusar o pedido COM ela (400 — domínio
- * não cadastrado, por exemplo), cria de novo sem: a volta automática é conforto, a venda não é.
- * Um 400 não cria nada no Asaas, então a segunda tentativa não duplica a assinatura.
+ * Cria o pedido COM a URL de volta (`callback`) e, se o Asaas recusar o pedido por causa dela (400 —
+ * domínio não cadastrado, por exemplo), cria de novo sem: a volta automática é conforto, a venda não
+ * é. Um 400 não cria nada no Asaas, então a segunda tentativa não duplica a cobrança.
  */
-export async function criarAssinatura(
-  userId: UserId,
-  clienteId: string,
-  valorBrl: number,
-  descricao: string,
-): Promise<AssinaturaAsaas> {
-  const amanha = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10)
-  const corpo = {
-    customer: clienteId,
-    billingType: 'UNDEFINED',
-    value: valorBrl,
-    nextDueDate: amanha,
-    cycle: 'MONTHLY',
-    description: descricao,
-    externalReference: String(userId),
-  }
-  const criar = (b: object) => chamar<AssinaturaAsaas>('/subscriptions', { method: 'POST', body: JSON.stringify(b) })
+async function criarComVolta<T>(caminho: string, corpo: object): Promise<T> {
+  const criar = (b: object) => chamar<T>(caminho, { method: 'POST', body: JSON.stringify(b) })
   const volta = urlDeVoltaDoPagamento()
   if (!volta) return criar(corpo)
   try {
@@ -156,6 +139,113 @@ export async function criarAssinatura(
     if (!String(err).includes('HTTP 400')) throw err
     log('warn', { event: 'asaas_callback_recusado' })
     return criar(corpo)
+  }
+}
+
+const amanha = (): string => new Date(Date.now() + 86_400_000).toISOString().slice(0, 10)
+
+/**
+ * Cria a assinatura recorrente: `MONTHLY` no mensal, `YEARLY` no ANUAL em uma vez (C5, sondagem de
+ * 29/09/2026: `cycle: 'YEARLY'` a R$ 179 é aceito, a 1ª cobrança nasce na hora e o `nextDueDate` já
+ * pula um ano — é a renovação que `/status` mostra). `billingType: 'UNDEFINED'` deixa o pagador
+ * escolher Pix, boleto ou cartão na página do Asaas, nos dois ciclos.
+ */
+export async function criarAssinatura(
+  userId: UserId,
+  clienteId: string,
+  valorBrl: number,
+  descricao: string,
+  ciclo: CicloDeCobranca = 'mensal',
+): Promise<AssinaturaAsaas> {
+  return criarComVolta<AssinaturaAsaas>('/subscriptions', {
+    customer: clienteId,
+    billingType: 'UNDEFINED',
+    value: valorBrl,
+    nextDueDate: amanha(),
+    cycle: ciclo === 'anual' ? 'YEARLY' : 'MONTHLY',
+    description: descricao,
+    externalReference: String(userId),
+  })
+}
+
+/** A 1ª parcela, como `POST /payments` com `installmentCount` a devolve. */
+export interface ParcelaCriadaAsaas {
+  id: string
+  /** O id do PARCELAMENTO — é ele que a nossa linha guarda e que o webhook reconhece. */
+  installment?: string
+  invoiceUrl?: string
+}
+
+/**
+ * O ANUAL EM 12x — o recurso de PARCELAMENTO da API, não uma assinatura (C5; sondagem de 29/09/2026).
+ *
+ * `totalValue` + `installmentCount`, e não `value`: o Asaas TRUNCA a divisão e joga a diferença na
+ * última (179 em 12x = 11 × R$ 14,91 + R$ 14,99), e é essa conta que `valoresDasParcelas` reproduz
+ * para o webhook reconhecer a parcela.
+ *
+ * SÓ NO CARTÃO (`CREDIT_CARD`, sem dados de cartão: o pagador digita na fatura do Asaas). Com
+ * `UNDEFINED`, Pix ou boleto o Asaas também aceita — mas cada parcela vira uma COBRANÇA À PARTE (um
+ * carnê) que a pessoa pode deixar de pagar depois da 1ª, e o ano de acesso sairia por R$ 14,91. No
+ * cartão, o compromisso do ano inteiro é da operadora.
+ *
+ * SEM RENOVAÇÃO AUTOMÁTICA: o parcelamento acaba na 12ª parcela. Um ano depois a pessoa escolhe de
+ * novo — nada é cobrado sozinho.
+ */
+export async function criarParcelamento(
+  userId: UserId,
+  clienteId: string,
+  totalBrl: number,
+  parcelas: number,
+  descricao: string,
+): Promise<ParcelaCriadaAsaas> {
+  return criarComVolta<ParcelaCriadaAsaas>('/payments', {
+    customer: clienteId,
+    billingType: 'CREDIT_CARD',
+    totalValue: totalBrl,
+    installmentCount: parcelas,
+    dueDate: amanha(),
+    description: descricao,
+    externalReference: String(userId),
+  })
+}
+
+/** As parcelas de um parcelamento — a lista de faturas do 12x e o marco do arrependimento. */
+export async function listarCobrancasDoParcelamento(
+  parcelamentoId: string,
+  limite = 24,
+): Promise<CobrancaListadaAsaas[]> {
+  const r = await chamar<{ data?: CobrancaListadaAsaas[] }>(
+    `/installments/${encodeURIComponent(parcelamentoId)}/payments?limit=${limite}`,
+  )
+  return r.data ?? []
+}
+
+/**
+ * ESTORNO INTEGRAL do parcelamento (arrependimento do 12x, CDC art. 49): `POST
+ * /v3/installments/{id}/refund` sem `value` estorna o parcelamento INTEIRO no cartão
+ * (docs.asaas.com/reference/estornar-parcelamento, conferido em 30/09/2026) — uma chamada só, e não
+ * uma por parcela. Recusa sobe como exceção, e quem chama manda o pedido para a fila do admin.
+ */
+export async function estornarParcelamento(parcelamentoId: string, descricao: string): Promise<void> {
+  await chamar(`/installments/${encodeURIComponent(parcelamentoId)}/refund`, {
+    method: 'POST',
+    body: JSON.stringify({ description: descricao.slice(0, 200) }),
+  })
+}
+
+/**
+ * Remove as parcelas ainda PENDENTES de um parcelamento (`DELETE /v3/installments/{id}`). Na
+ * sondagem a remoção devolveu 500 na 1ª tentativa e 200 na 2ª — por isso ela é REPETIDA uma vez. 404
+ * = já não existe lá, o mesmo resultado para quem pediu.
+ */
+export async function removerParcelamento(parcelamentoId: string): Promise<void> {
+  const remover = () => chamar(`/installments/${encodeURIComponent(parcelamentoId)}`, { method: 'DELETE' })
+  try {
+    await remover()
+  } catch (err) {
+    if (String(err).includes('HTTP 404')) return
+    if (!/HTTP 5\d\d/.test(String(err))) throw err
+    await remover()
   }
 }
 
@@ -247,6 +337,12 @@ export interface PagamentoAsaas {
   externalReference?: string
   /** Vencimento autoritativo: o payload forjado com data distante estenderia o período pago. */
   dueDate?: string
+  /** O PARCELAMENTO a que a parcela pertence (12x) — presente só em parcela, sem `subscription`. */
+  installment?: string
+  /** Qual das parcelas (1 a 12): é o que ancora o ano no vencimento da PRIMEIRA. */
+  installmentNumber?: number
+  /** `CREDIT_CARD`, `PIX`, `BOLETO`… — o 12x só concede o ano no cartão. */
+  billingType?: string
 }
 
 /**

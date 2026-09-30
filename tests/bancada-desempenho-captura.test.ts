@@ -71,7 +71,7 @@ function rodadaSintetica(extra: Record<string, unknown> = {}) {
         // fala 1: final postado em 10100, resultado em 10500 (RTF 0,2)
         { t: 10100, k: 'w:out', nome: 'whisperWorker-x.js', type: 'transcribe', id: 2, n: 32000 },
         { t: 10500, k: 'w:in', nome: 'whisperWorker-x.js', type: 'result', id: 2, text: 'Cats sleep.' },
-      ],
+      ] as Record<string, any>[],
       loaf: [
         { t: 500, ms: 400 }, // antes do clique: fora da sessão
         { t: 2000, ms: 60 },

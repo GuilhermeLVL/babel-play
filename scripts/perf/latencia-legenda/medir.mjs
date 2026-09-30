@@ -169,13 +169,22 @@ function cpuPorThread(pid) {
  */
 async function ligarCacheDeModelos(contexto, dir) {
   mkdirSync(dir, { recursive: true })
-  const estat = { doDisco: 0, daRede: 0, mbDaRede: 0 }
+  const estat = { doDisco: 0, daRede: 0, mbDaRede: 0, semCache: 0 }
   await contexto.route(/^https:\/\/huggingface\.co\/[^?#]+\/resolve\//, async (route) => {
     const req = route.request()
-    if (req.method() !== 'GET') return route.fallback()
     const chave = createHash('sha256').update(req.url()).digest('hex').slice(0, 40)
     const arqCorpo = path.join(dir, `${chave}.bin`)
     const arqMeta = path.join(dir, `${chave}.json`)
+    // HEAD (o transformers.js pergunta o tamanho de alguns arquivos): responde do que já está guardado.
+    if (req.method() === 'HEAD' && existsSync(arqMeta)) {
+      const meta = JSON.parse(readFileSync(arqMeta, 'utf8'))
+      estat.doDisco++
+      return route.fulfill({ status: meta.status, headers: meta.headers, body: '' })
+    }
+    if (req.method() !== 'GET') {
+      estat.semCache++
+      return route.fallback()
+    }
     if (existsSync(arqCorpo) && existsSync(arqMeta)) {
       const meta = JSON.parse(readFileSync(arqMeta, 'utf8'))
       estat.doDisco++
@@ -228,7 +237,7 @@ const page = ctx.pages()[0] ?? (await ctx.newPage())
 const rede = []
 page.on('request', (r) => {
   const u = r.url()
-  if (/huggingface|hf\.co|cdn-lfs|xethub/.test(u)) rede.push({ t: Date.now(), u: u.slice(0, 200) })
+  if (/huggingface|hf\.co|cdn-lfs|xethub/.test(u)) rede.push({ t: Date.now(), m: r.method(), u: u.slice(0, 200) })
 })
 const erros = []
 page.on('pageerror', (e) => erros.push(String(e).slice(0, 300)))
@@ -613,6 +622,8 @@ writeFileSync(
       tAbrirEpoch: tAbrir,
       gpuInfo,
       pedidosAoHub: bytes,
+      // Quais foram (os 40 primeiros): numa rodada medida, o que ainda vai ao Hub é o que o cache não cobriu.
+      pedidosAoHubLista: rede.slice(0, 40).map((r) => `${r.m} ${r.u}`),
       queda,
       cacheStorage,
       erros: erros.slice(0, 40),

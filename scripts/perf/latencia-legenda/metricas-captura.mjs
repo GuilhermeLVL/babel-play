@@ -133,6 +133,9 @@ export function janelasDaRodada(d, relogio = relogioDoArquivo(d)) {
 /**
  * As métricas de UMA rodada. `valida: false` (com `motivo`) quando não dá para medir sem inventar:
  * a aba caiu, ou a sonda não achou o bipe.
+ *
+ * @param {any} d a rodada bruta, como `medir.mjs` a grava
+ * @returns {Record<string, any>} a forma válida e a inválida numa só (para quem importa de TS)
  */
 export function metricasDaRodada(d) {
   const base = { rotulo: d.rotulo, perfil: d.perfilDoAparelho ?? null }
@@ -209,6 +212,10 @@ const ler = (o, caminho) => caminho.split('.').reduce((v, k) => (v == null ? v :
  * N rodadas → um número por métrica: a MEDIANA das rodadas válidas (uma rodada ruim não arrasta o
  * resultado) e, para o RTF, p50/p95 sobre TODAS as falas somadas (com 8 falas por rodada, o p95 de
  * uma rodada só é o segundo maior valor). `dispersao` = (máx − mín) ÷ mediana, para ler o ruído.
+ *
+ * @param {Record<string, any>[]} rodadas as métricas de cada rodada (`metricasDaRodada`)
+ * @returns {{ rodadas: number, invalidas: { rotulo: string, motivo: string }[], falasNoRtf: number,
+ *   metricas: Record<string, number | null>, dispersao: Record<string, number | null> }}
  */
 export function agregarRodadas(rodadas) {
   const validas = rodadas.filter((r) => r.valida)

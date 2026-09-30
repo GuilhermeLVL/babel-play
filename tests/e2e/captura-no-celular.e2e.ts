@@ -330,7 +330,8 @@ test.describe('Captura no celular: a tela para uma mão só', () => {
     await expect(balao).toBeVisible({ timeout: 10_000 })
     await foto(page, '2-gravando')
 
-    await balao.click()
+    // No rótulo de quem fala: o meio do balão pode ser uma palavra (botão da folha DA PALAVRA).
+    await balao.locator('.quem').click()
     const folha = page.getByRole('dialog', { name: 'Ações da frase' })
     await expect(folha).toBeVisible()
     for (const nome of ['Ouvir', 'Ouvir devagar', 'Repetir eu', 'Copiar'])

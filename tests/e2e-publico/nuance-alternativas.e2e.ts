@@ -67,7 +67,10 @@ test('celular: Formal/Informal e "Outras formas" na folha da frase, e a escolhid
   // 1. Tocar no balão abre a folha com a Tradução Nuance da frase.
   const balao = page.locator('.fala[data-tocavel]').filter({ hasText: 'supposed' })
   await chegarEm(page, balao)
-  await clicar(page, balao)
+  /* No rótulo de quem fala, e não no meio do balão: as palavras do balão são botões (abrem a folha DA
+     PALAVRA), e no runner do CI o destaque de vocabulário já tinha chegado quando o toque caiu no centro
+     — em "weekend". O rótulo é parte do balão e não é botão: o toque é sempre o da frase. */
+  await clicar(page, balao.locator('.quem'))
   const folha = page.getByRole('dialog', { name: 'Ações da frase' })
   await expect(folha).toBeVisible()
   const nuance = folha.getByRole('region', { name: 'Tradução Nuance' })

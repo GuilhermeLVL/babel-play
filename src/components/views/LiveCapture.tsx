@@ -38,7 +38,7 @@ import {
   WandSparkles,
   X,
 } from 'lucide-react';
-import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import React, { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 
 import { configDoReguladorPara } from '../../core/harness/reguladorDeDesempenho';
 import { estadoDoTeto } from '../../core/tetoAnonimo';
@@ -90,6 +90,12 @@ import { useFuncaoEstavel, useTextoDaConversa } from '../../lib/captura/conversa
 import { assinarSalvamento, capturaEmRisco, lerSalvamento } from '../../lib/captura/estadoDoSalvamento';
 import { criarFontesDeAudio } from '../../lib/captura/fontesDeAudio';
 import { type PassoDoInicio, planejarInicio } from '../../lib/captura/inicioDaCaptura';
+import {
+  desktopFraco,
+  oferecerLegendaSemBaixar,
+  podePerguntarLegendaSemBaixar,
+  useMotorComIdiomaEscolhido,
+} from '../../lib/captura/legendaSemBaixar';
 import { cancelarLiberacaoDosModelos, liberarModelosDepois } from '../../lib/captura/memoriaDosModelos';
 import { type EscolhaDoMic, webSpeechBipaAoReligar } from '../../lib/captura/motorDoMicrofone';
 import { preparoConcluido } from '../../lib/captura/pacotesNativos';
@@ -184,6 +190,10 @@ import ModeloNoDispositivo, { type ModeloDaCaptura } from './captura/ModeloNoDis
 import OndasDoNivel from './captura/OndasDoNivel';
 import TranscriptVisualSettings, { TEMA } from './captura/TranscriptVisualSettings';
 import { CampoLinha, Interruptor, Segmentos } from './vocab/Dialogo';
+
+/* A oferta "Legenda sem baixar nada" só existe no desktop fraco, antes de começar: fora do JS da tela
+   para todo o resto (`lib/captura/legendaSemBaixar.ts`). */
+const LegendaSemBaixar = lazy(() => import('./captura/LegendaSemBaixar'));
 
 export default function LiveCapture({
   onSave,
@@ -591,6 +601,8 @@ export default function LiveCapture({
   const [falhaDoMic, setFalhaDoMic] = useState<AjudaDoMic | null>(null);
   /** Fechou (ou já aceitou) o aviso do bipe do Android nesta tela. */
   const [dispensouBipe, setDispensouBipe] = useState(false);
+  /** Fechou a oferta "Legenda sem baixar nada" (`lib/captura/legendaSemBaixar.ts`) nesta tela. */
+  const [dispensouSemBaixar, setDispensouSemBaixar] = useState(false);
   /* A CAPTURA NO CELULAR (`captura/celular/*`): a fala e a palavra tocadas (as folhas de baixo), as
      opções, a fala em foco (a última tocada mostra os atalhos) e a troca de modo antes de gravar. */
   const [falaTocada, setFalaTocada] = useState<FalaTocada | null>(null);
@@ -2350,6 +2362,38 @@ export default function LiveCapture({
     gravando: isRecording,
     parDoTradutor: pecasDoInicio.par,
   });
+  /* "LEGENDA SEM BAIXAR NADA: ESCOLHA O IDIOMA DO VÍDEO" (`lib/captura/legendaSemBaixar.ts`, A9a). No
+     desktop fraco, com a detecção automática ligada, a captura cairia no Whisper local; com o idioma
+     escolhido, o próprio navegador transcreve a aba no aparelho. A oferta aparece só quando a MESMA
+     decisão do clique, perguntada com o idioma do vídeo, responde que sim. */
+  const condicoesDaOferta = {
+    desktopFraco: desktopFraco(perfilDoAparelho, sondaGuardada, temGpu),
+    soOSomDoComputador: captureScenario === 'media' && systemEnabled,
+    detectarIdioma: autoDetectLang,
+    gravando: isRecording,
+    dispensada: dispensouSemBaixar,
+  };
+  const comIdiomaEscolhido = useMotorComIdiomaEscolhido({
+    ativo: podePerguntarLegendaSemBaixar(condicoesDaOferta),
+    idioma: targetLang,
+    qualidade: sttQuality,
+    decidir: () => decidirMotorDoSistema({ multiIdioma: false }),
+  });
+  const ofertaSemBaixar = oferecerLegendaSemBaixar({ ...condicoesDaOferta, comIdiomaEscolhido }) && (
+    <Suspense fallback={null}>
+      <LegendaSemBaixar
+        idioma={targetLang}
+        /* Sem o tradutor do navegador para o par e fora do cache, o nosso ainda baixa: a faixa não
+           promete "nada", só a transcrição sem download. */
+        tradutorBaixa={
+          !preparoDoInicio.tradutorNativo && pecasDoInicio.tradutores.some((m) => !preparoDoInicio.completos?.has(m.id))
+        }
+        aoEscolherIdioma={() => escolherIdioma('alvo', setAutoDetectLang)({ auto: false, code: targetLang })}
+        aoEscolherOutro={() => setIdiomasAbertos(true)}
+        aoFechar={() => setDispensouSemBaixar(true)}
+      />
+    </Suspense>
+  );
   const planoDoInicio = (escolha: EscolhaDoMic | null): PassoDoInicio => {
     const completos = preparoDoInicio.completos;
     const falta = (id: string, mb: number) => (completos?.has(id) ? 0 : mb);
@@ -3415,6 +3459,7 @@ export default function LiveCapture({
                       </div>
                       {avisoDePermissao}
                       {avisoDoBipe}
+                      {ofertaSemBaixar}
 
                       {/* UMA linha de orientação, e ela vale GRAVANDO TAMBÉM.
                       Antes só aparecia antes de iniciar — justamente quando o estado era mais fácil

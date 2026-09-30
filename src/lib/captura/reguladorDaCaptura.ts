@@ -27,6 +27,10 @@
  * SINAIS RÁPIDOS ("Grátis sem travar", 2026-09-29): cada medida leva também o BLOQUEIO do main thread
  * (`vigiaDoMainThread.ts`), e o parcial entra como amostra de latência (`aoParcial`) — ele chega bem
  * mais vezes que o final, e o regulador reage antes de a aba congelar.
+ *
+ * SÓ O TRAVAMENTO DA SESSÃO (A6c, 30/09/2026): o bloqueio conta a partir do `reiniciar`, e a abertura
+ * do VAD sai da conta (`marcarAberturaDoVad`). Antes, no aparelho fraco, esses dois quadros — o React
+ * de antes do "Iniciar" e o WASM do Silero instanciando — cortavam os parciais já no 1º parcial.
  */
 import {
   type AcaoDoRegulador,
@@ -252,21 +256,32 @@ export function criarReguladorDaCaptura(
     modelosMenores: escada.length,
     outroBackendMaisRapido: !!troca,
   });
+  /** Quando a sessão começou (`reiniciar`); `null` antes da primeira. */
+  let inicioDaSessaoMs: number | null = null;
   /**
    * O bloqueio do main thread na janela da config; `undefined` onde o navegador não mede. Depois de um
    * degrau, só o de DEPOIS dele: o bloqueio de antes é justamente o que o degrau veio curar, e contá-lo
    * derrubaria o degrau seguinte de graça (a mesma razão por que o núcleo zera a janela de latência).
+   * E nunca o de ANTES da sessão (A6c): montar a tela e escolher os idiomas não são a captura, e cortar
+   * parciais não os cura — na bancada, os quadros de React de antes do "Iniciar" somavam ~400 ms na
+   * janela do 1º parcial e disparavam o `travamento` sozinhos. A abertura do VAD, que é da sessão, o
+   * próprio vigia descarta (`marcarAberturaDoVad`).
    */
   const bloqueioDoMain = (agora: number, config: Partial<ConfigDoRegulador>): number | undefined => {
     vigia ??= vigiaDoMainThread();
     if (!vigia.suportado) return undefined;
     const janela = config.janelaDeBloqueioMs ?? CONFIG_PADRAO_DO_REGULADOR.janelaDeBloqueioMs;
     const desdeODegrau = estado.ultimaDescidaMs === null ? janela : Math.max(0, agora - estado.ultimaDescidaMs);
-    return vigia.bloqueioRecenteMs(Math.min(janela, desdeODegrau));
+    const desdeASessao = inicioDaSessaoMs === null ? janela : Math.max(0, agora - inicioDaSessaoMs);
+    return vigia.bloqueioRecenteMs(Math.min(janela, desdeODegrau, desdeASessao));
   };
   /** Traduz as ações do núcleo em estado e efeitos — o mesmo para o final e para o parcial. */
   const aplicar = (saida: SaidaDoRegulador, efeitos: EfeitosDoRegulador): AcaoDoRegulador[] => {
     estado = saida.estado;
+    /* Cada decisão vai ao console com o motivo: são poucas por sessão, e sem isto a bancada só via as
+       trocas de modelo — um corte de parciais pela tela travada e um pela pressão da CPU (a máquina
+       inteira ocupada) pareciam iguais. */
+    if (saida.acoes.length) console.log('[cap] regulador:', saida.acoes.join('+'), '←', saida.motivos.join('+'));
     for (const acao of saida.acoes) {
       switch (acao) {
         case 'cortar-parciais':
@@ -338,8 +353,11 @@ export function criarReguladorDaCaptura(
       degrau = 0;
       parciaisCortados = false;
       parciaisDoMicPausados = false;
-      // O vigia nasce com a sessão: no primeiro final, a janela já tem o que a tela sofreu até ali.
+      /* O vigia nasce com a sessão, e a janela dele começa AQUI (ver `bloqueioDoMain`): no primeiro
+         final, conta o que a tela sofreu desde o "Iniciar", não o que veio antes. */
       vigia ??= vigiaDoMainThread();
+      sinais ??= sinaisDoNavegador();
+      inicioDaSessaoMs = sinais.agoraMs();
     },
     registrarFalha(erro, modelo) {
       falha = { erro, modelo };

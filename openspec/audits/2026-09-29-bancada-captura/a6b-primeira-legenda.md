@@ -69,7 +69,7 @@ A regra: fica a **menor 1ª legenda** entre as variantes que passam nos dois lim
    - Causa: o quadro longo de 0,8–1,3 s da abertura da captura (VAD) cai na janela de 10 s do `travamento`.
    - Por isso, no (b) e no (c), só a 1ª fala tem parcial. As seguintes voltam a ter quando o regulador sobe, depois de 60 s de folga.
    - O ganho da 1ª legenda não depende disso.
-   - **Recomendação (A6):** o vigia não contar o que aconteceu antes de a captura ficar ativa.
+   - **Recomendação (A6):** o vigia não contar o que aconteceu antes de a captura ficar ativa. **Feito no A6c** (`a6c-regulador-e-abertura-do-vad.md`): no fraco, a prévia passou de 1 para 6 das 8 falas.
 2. **Descidas de modelo nas rodadas com rajada de frames longos.** Elas vieram da máquina compartilhada e aconteceram nas três variantes (1, 3 e 1 de 6). São elas que abrem a dispersão (CPU no silêncio de 89–186%, memória de 2,5–2,8 GB). A mediana não se mexe.
 3. **A métrica `primeiraLegendaMs` da bancada conta qualquer texto.** Com o 1º parcial de 0,6 s, isso inclui ". So.". Fica como está (é o SLO), mas quem comparar variantes deve olhar o texto.
 

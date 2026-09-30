@@ -1,6 +1,7 @@
 import { MicVAD } from '@ricky0123/vad-web';
 
 import { apiFetch } from '../../data/api';
+import { marcarAberturaDoVad } from '../../lib/captura/vigiaDoMainThread';
 import { ortDoVadNumaThread } from '../../lib/dispositivo/orcamentoDeThreads';
 import { ehPrefixo, EspelhoDoVad } from './espelhoDoVad';
 import { pararGravador } from './pararGravador';
@@ -499,6 +500,13 @@ async function startCaptureFromStream(
   };
 
   vlog(label, 'criando Silero VAD sobre o áudio…');
+  /* A ABERTURA DO VAD TRAVA A TELA UMA VEZ, e não é travamento (A6c, medido em 30/09/2026): a 1ª sessão
+     do ORT da página instancia o WASM de 12 MB (`ort-wasm-simd-threaded.wasm`) na thread principal —
+     ~170 ms no desktop, ~880 ms com a CPU 4× mais lenta, sem script no LoAF. Com `env.wasm.proxy` ele
+     sai da thread principal (medido: 0 quadros longos), mas o vad-web reusa o tensor `sr` a cada quadro
+     e o proxy o transfere (DataCloneError no 2º quadro): é outra mudança. Até lá, o intervalo é marcado
+     e o vigia do regulador não o conta (`vigiaDoMainThread.ts`). */
+  const inicioDoVad = performance.now();
   try {
     vad = await MicVAD.new({
       baseAssetPath: '/',
@@ -607,6 +615,7 @@ async function startCaptureFromStream(
   }
 
   vad.start();
+  marcarAberturaDoVad(inicioDoVad, performance.now());
   vlog(label, 'VAD iniciado ✓');
 
   // Tick de PARCIAIS: enquanto se fala, transcreve o buffer-até-agora (rolling partial).

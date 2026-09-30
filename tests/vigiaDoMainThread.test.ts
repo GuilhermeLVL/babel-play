@@ -9,7 +9,11 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import { criarVigiaDoMainThread } from '../src/lib/captura/vigiaDoMainThread'
+import {
+  criarVigiaDoMainThread,
+  marcarAberturaDoVad,
+  MEDIDA_DA_ABERTURA_DO_VAD,
+} from '../src/lib/captura/vigiaDoMainThread'
 
 type Entrada = { startTime: number; duration: number; blockingDuration?: number }
 
@@ -111,6 +115,55 @@ describe('criarVigiaDoMainThread', () => {
     // Um quadro longo a cada 100 ms: em 10 s cabem 100 deles, 100 × 30 ms.
     expect(vigia.bloqueioRecenteMs(10_000)).toBe(3_000)
     expect(vigia.guardados()).toBeLessThanOrEqual(1_000)
+  })
+
+  /* A ABERTURA DO VAD (A6c). `MicVAD.new` cria a sessão do Silero, e a 1ª sessão do ORT instancia o
+     WASM de 12 MB NA THREAD PRINCIPAL: um quadro de ~170 ms no desktop e ~880 ms com a CPU 4× mais
+     lenta, sem script atribuído no LoAF. Acontece uma vez, antes da 1ª fala, e cortar parciais não o
+     cura — então não é travamento. Só ele sai da conta: o que começa DENTRO da abertura. */
+  it('o quadro que começa dentro da abertura do VAD não conta; os de antes e de depois, sim', () => {
+    const { f, Observador } = observadorFalso(['long-animation-frame'])
+    const vigia = criarVigiaDoMainThread({
+      Observador,
+      agoraMs: () => 12_000,
+      quadrosConhecidos: () => [{ inicioMs: 4_000, fimMs: 5_900 }],
+    })
+    f.entregar([
+      { startTime: 5_000, duration: 840, blockingDuration: 790 }, // o WASM do Silero instanciando
+      { startTime: 3_800, duration: 300, blockingDuration: 250 }, // começou antes da abertura: conta
+      { startTime: 6_000, duration: 180, blockingDuration: 130 }, // depois dela: conta
+    ])
+    expect(vigia.bloqueioRecenteMs(10_000)).toBe(380)
+  })
+
+  it('a abertura marcada DEPOIS de o quadro chegar também vale (a medida sai no fim do MicVAD.new)', () => {
+    const { f, Observador } = observadorFalso(['long-animation-frame'])
+    const conhecidos: Array<{ inicioMs: number; fimMs: number }> = []
+    const vigia = criarVigiaDoMainThread({ Observador, agoraMs: () => 8_000, quadrosConhecidos: () => conhecidos })
+    f.entregar([{ startTime: 5_000, duration: 840, blockingDuration: 790 }])
+    expect(vigia.bloqueioRecenteMs(10_000)).toBe(790)
+    conhecidos.push({ inicioMs: 4_000, fimMs: 5_900 })
+    expect(vigia.bloqueioRecenteMs(10_000)).toBe(0)
+  })
+
+  it('`marcarAberturaDoVad` grava uma medida do User Timing, e o vigia de fábrica a lê', () => {
+    const { f, Observador } = observadorFalso(['long-animation-frame'])
+    try {
+      marcarAberturaDoVad(100, 2_000)
+      expect(performance.getEntriesByName(MEDIDA_DA_ABERTURA_DO_VAD, 'measure')).toHaveLength(1)
+      const vigia = criarVigiaDoMainThread({ Observador, agoraMs: () => 5_000 })
+      f.entregar([
+        { startTime: 900, duration: 900, blockingDuration: 850 }, // dentro
+        { startTime: 2_200, duration: 200, blockingDuration: 150 }, // fora
+      ])
+      expect(vigia.bloqueioRecenteMs(10_000)).toBe(150)
+    } finally {
+      performance.clearMeasures(MEDIDA_DA_ABERTURA_DO_VAD)
+    }
+  })
+
+  it('`marcarAberturaDoVad` nunca lança (navegador sem User Timing de nível 3)', () => {
+    expect(() => marcarAberturaDoVad(Number.NaN, -1)).not.toThrow()
   })
 
   it('parar desconecta o observador e zera o que foi guardado', () => {

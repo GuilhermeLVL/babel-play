@@ -45,6 +45,11 @@
  *     (CSP) já impedia o embed em iframe de terceiros — o motivo "AI Studio" do comentário antigo;
  *   - workers: todos são `new Worker(new URL(...))` da mesma origem, e este middleware roda antes do
  *     Vite e do estático, então o script de cada worker também sai com o cabeçalho.
+ *
+ * MEDIDO NO APP DE PÉ (servidor dev, Chromium 151, 12 núcleos): nos modos completo e `dip`,
+ * `crossOriginIsolated` é `true`, o orçamento do A3 dá whisper 4 / mt 2, e o ORT-web carregou o
+ * Silero com `numThreads` 4 abrindo 3 workers de pthread; os dois popups da mesma origem continuaram
+ * acessíveis. Com `0`: `crossOriginIsolated` `false`, sem `SharedArrayBuffer`, e o ORT volta a 1 thread.
  */
 import type { RequestHandler } from 'express'
 

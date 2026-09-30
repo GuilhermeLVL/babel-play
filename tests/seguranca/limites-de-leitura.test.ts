@@ -48,6 +48,17 @@ async function primeiro429(n: number, caminho: string, headers: Record<string, s
   return 0
 }
 
+/**
+ * O balde da busca de imagens é o MINUTO DO RELÓGIO (`rateLimitStore.ts`: `Math.floor(t / 60_000)`).
+ * Um laço que atravessa a virada começa a contar de novo no meio, e o primeiro 429 chega depois do
+ * teto (visto no CI: o 62º; reproduzido começando o laço 50 ms antes da virada). Com menos de
+ * `folgaMs` sobrando no minuto, espera o próximo — o teste mede o teto, não a sorte do relógio.
+ */
+async function noComecoDeUmMinuto(folgaMs = 30_000): Promise<void> {
+  const resta = 60_000 - (Date.now() % 60_000)
+  if (resta < folgaMs) await new Promise((r) => setTimeout(r, resta + 50))
+}
+
 describe('exportação da conta', () => {
   it('repetir a exportação acaba em 429 (teto por usuário e por hora)', async () => {
     const token = await s.token('quem-exporta-em-laco')
@@ -80,10 +91,11 @@ describe('leituras autenticadas', () => {
     const token = await s.token('quem-busca-imagem-em-laco')
     const headers = { authorization: `Bearer ${token}`, 'x-forwarded-for': '198.51.100.3' }
     /* `q` vazio responde sem ir ao Openverse — o teste mede o limitador, não a rede. */
+    await noComecoDeUmMinuto()
     const em = await primeiro429(100, '/api/images/search?q=', headers)
     expect(em, 'a busca de imagens nunca foi barrada').toBeGreaterThan(0)
     expect(em).toBeLessThanOrEqual(61)
-  }, 60_000)
+  }, 90_000)
 })
 
 describe('rotas públicas de leitura', () => {

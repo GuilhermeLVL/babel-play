@@ -122,6 +122,14 @@ COPY package.json package-lock.json ./
 # wasm + Silero VAD) para `public/`, e o estagio de build ja o executa explicitamente antes do
 # `vite build` — eles chegam aqui dentro de `dist/`, que e copiado logo abaixo. O estagio de build
 # usa `--ignore-scripts` pela mesma razao e chama o script a mao.
+#
+# `adm-zip` e `sharp` (+ os binários `@img/*`) só existem porque o `@huggingface/transformers` e o
+# `onnxruntime-node` os puxam — os dois já saem daqui, e sobravam os filhos, com CVE HIGH no Trivy
+# (30/09/2026). O `@browsermt/bergamot-translator` é o Bergamot do navegador (A9b): chega em `dist/`.
+#
+# Por fim sai o PRÓPRIO npm (e o corepack): a imagem nunca instala nada depois deste passo, o
+# entrypoint e o HEALTHCHECK usam `node`, e o npm que vem no `node:22-slim` trazia sete CVE HIGH
+# nos pacotes dele (brace-expansion, pacote, sigstore…) para uma ferramenta que ninguém chama.
 RUN npm ci --omit=dev --ignore-scripts \
  && rm -rf \
       node_modules/onnxruntime-node \
@@ -134,7 +142,12 @@ RUN npm ci --omit=dev --ignore-scripts \
       node_modules/country-flag-icons \
       node_modules/recharts \
       node_modules/react node_modules/react-dom \
- && npm cache clean --force
+      node_modules/adm-zip \
+      node_modules/sharp node_modules/@img \
+      node_modules/@browsermt \
+ && npm cache clean --force \
+ && rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+      /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
 
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/dist-server ./dist-server

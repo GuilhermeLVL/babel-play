@@ -338,13 +338,19 @@ jobs:
           docker build -t babel-play:ci \
             --build-arg VITE_SUPABASE_URL=https://ci-exemplo.supabase.co \
             --build-arg VITE_SUPABASE_ANON_KEY=anon-publica-de-ci .
+      # A imagem `minio/minio` saiu do Docker Hub (o pull passou a responder "repository does not
+      # exist", 30/09/2026). A `bitnamilegacy/minio` é o mesmo servidor MinIO, congelada — para um
+      # dublê de R2 no CI isso basta —, FIXADA pelo digest: se sumir ou mudar, o pull falha em vez de
+      # rodar outra coisa. A Bitnami sobe com o próprio entrypoint (sem `server /data`), lê as
+      # mesmas MINIO_ROOT_* e demora mais no primeiro boot: daí 60 s de espera, não 30.
       - name: MinIO no lugar do R2
         run: |
           docker network create rede
           docker run -d --name minio --network rede -p 9000:9000 \
             -e MINIO_ROOT_USER=$AWS_ACCESS_KEY_ID -e MINIO_ROOT_PASSWORD=$AWS_SECRET_ACCESS_KEY \
-            minio/minio:RELEASE.2025-04-22T22-12-26Z server /data
-          for i in $(seq 1 30); do curl -sf http://127.0.0.1:9000/minio/health/live && break; sleep 1; done
+            bitnamilegacy/minio:2025.7.23-debian-12-r5@sha256:6dabb4a2088c9a79908de3bc05f4586c23ad2182c8908e7e3acbf61c1467fb20
+          for i in $(seq 1 60); do curl -sf http://127.0.0.1:9000/minio/health/live && break; sleep 1; done
+          curl -sf http://127.0.0.1:9000/minio/health/live || { docker logs minio | tail -30; exit 1; }
           aws --endpoint-url http://127.0.0.1:9000 s3 mb s3://litestream-ci
       - name: Primeiro container grava e replica
         run: |

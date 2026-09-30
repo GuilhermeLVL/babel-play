@@ -29,13 +29,17 @@ export interface RascunhoDaCaptura {
   parConfigurado: { sourceLang: string; targetLang: string };
   utterances: NewUtterancePayload[];
   criadoEm: number;
+  /** A captura foi uma conversa do modo intérprete (Fase E): vai ao `meta.scenario` da sessão. */
+  cenario?: 'interprete';
 }
 
 export function lerRascunhos(): RascunhoDaCaptura[] {
   try {
     const bruto = JSON.parse(localStorage.getItem(CHAVE_DO_RASCUNHO) || '[]') as unknown;
     return Array.isArray(bruto)
-      ? (bruto as RascunhoDaCaptura[]).filter((r) => r && typeof r.origemLocalId === 'string' && Array.isArray(r.utterances))
+      ? (bruto as RascunhoDaCaptura[]).filter(
+          (r) => r && typeof r.origemLocalId === 'string' && Array.isArray(r.utterances),
+        )
       : [];
   } catch {
     return [];

@@ -112,6 +112,8 @@ export async function atualizarSessao(m: RegExpMatchArray, _u: URL, init: Reques
   return json(nova);
 }
 
+const CENARIOS = new Set(['media', 'conversation', 'mic', 'interprete']);
+
 export async function atualizarMeta(m: RegExpMatchArray, _u: URL, init: RequestInit): Promise<Response> {
   const p = lerJson(init);
   const db = await abrirStore();
@@ -120,6 +122,8 @@ export async function atualizarMeta(m: RegExpMatchArray, _u: URL, init: RequestI
   const meta = lerMeta(s.meta);
   if ('pinned' in p) meta.pinned = p.pinned === true;
   if ('imageUrl' in p) { if (typeof p.imageUrl === 'string') meta.imageUrl = p.imageUrl; else delete meta.imageUrl; }
+  // O cenário da captura (Fase E), só os conhecidos — como o `patchMetaSchema` do Express.
+  if (typeof p.scenario === 'string' && CENARIOS.has(p.scenario)) meta.scenario = p.scenario;
   const nova = { ...s, meta: JSON.stringify(meta), updatedAt: Date.now() };
   await db.put('sessoes', nova);
   return json(nova);

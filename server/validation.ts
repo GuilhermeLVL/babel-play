@@ -47,14 +47,19 @@ export function isSafeImageUrl(url: string): boolean {
   }
 }
 
+/** Os cenários de captura que a sessão guarda no `meta` (`CaptureScenario` do cliente). */
+export const CENARIOS_DE_CAPTURA = ['media', 'conversation', 'mic', 'interprete'] as const
+
 /**
- * PATCH /api/sessions/:id/meta — a rota lia `req.body` cru (resto do P2-1). Só as duas
- * chaves conhecidas passam; `imageUrl: null` limpa a capa.
+ * PATCH /api/sessions/:id/meta — a rota lia `req.body` cru (resto do P2-1). Só as chaves
+ * conhecidas passam; `imageUrl: null` limpa a capa. `scenario` (Fase E): a captura do modo
+ * intérprete é salva com `interprete`.
  */
 export const patchMetaSchema = z
   .object({
     pinned: z.boolean().optional(),
     imageUrl: z.string().max(MAX_IMAGE_URL).nullable().optional(),
+    scenario: z.enum(CENARIOS_DE_CAPTURA).optional(),
   })
   .strip()
 

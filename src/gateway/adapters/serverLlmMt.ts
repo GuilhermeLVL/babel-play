@@ -2,8 +2,8 @@ import { apiFetch } from '../../data/api';
 import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { alivioAceito, cabecalhoDoAlivio, registrarRecusaDoAlivio } from '../../lib/nuvemDeAlivio/estado';
 import { sinalizarRecusaDaNuvem } from '../../lib/ofertas/eventos';
-import { registrarRecusaDoUsoJusto } from '../../lib/usoJustoDoDia';
 import { nuanceDasPreferencias } from '../../lib/traducao/preferenciasDaNuance';
+import { registrarRecusaDoUsoJusto } from '../../lib/usoJustoDoDia';
 import type { MtResult, TranslationProvider } from '../capabilities';
 import { PAUSA_MAXIMA_MS, PausaDaNuvem } from '../pausaDaNuvem';
 

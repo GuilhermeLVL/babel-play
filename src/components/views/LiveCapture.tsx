@@ -1123,9 +1123,14 @@ export default function LiveCapture({
     motivo: MotivoDaOfertaDeAlivio;
     restanteSegundos: number;
   } | null>(null);
+  /* A oferta já na tela responde "mostrei" sem perguntar ao servidor de novo (o regulador pode chegar ao
+     chão mais de uma vez na sessão). */
+  const ofertaDeAlivioRef = useRef(ofertaDeAlivio);
+  ofertaDeAlivioRef.current = ofertaDeAlivio;
   /** O pipeline pergunta; a regra e a consulta ao servidor moram em `lib/nuvemDeAlivio/consulta.ts`. */
   const pedirNuvemDeAlivio = useCallback(
     async (motivo: MotivoDaOfertaDeAlivio, aparelho: SinaisDoAparelhoParaAlivio): Promise<boolean> => {
+      if (ofertaDeAlivioRef.current) return true;
       const { ofertaDoAlivio } = await import('../../lib/nuvemDeAlivio/consulta');
       const oferta = await ofertaDoAlivio(aparelho);
       if (!oferta) return false;

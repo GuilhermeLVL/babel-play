@@ -44,7 +44,12 @@ const api = apiFetch as unknown as ReturnType<typeof vi.fn>
 const FRACO = { leve: true, travamento: false, gpuReal: false }
 const FORTE = { leve: false, travamento: false, gpuReal: true }
 
-const uso = (alivio: unknown, iaDeNuvem = { disponivel: true, motivo: null, mensagem: null }) =>
+interface IaDeNuvem {
+  disponivel: boolean
+  motivo: string | null
+  mensagem: string | null
+}
+const uso = (alivio: unknown, iaDeNuvem: IaDeNuvem = { disponivel: true, motivo: null, mensagem: null }) =>
   new Response(JSON.stringify({ plano: 'free', alivio, iaDeNuvem }), { status: 200 })
 
 beforeEach(() => {

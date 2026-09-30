@@ -18,6 +18,12 @@ on:
 permissions:
   contents: read
 
+# O `npm ci` do onnxruntime-node baixa do nuget.org, no Linux x64, os binários de CUDA — o runner
+# não tem GPU, e o nuget fora do ar derrubava o job antes de qualquer teste (ETIMEDOUT, 30/09/2026).
+# Os binários de CPU vêm no próprio pacote do npm.
+env:
+  ONNXRUNTIME_NODE_INSTALL: skip
+
 jobs:
   lighthouse:
     runs-on: ubuntu-latest

@@ -44,6 +44,22 @@ export function chave(nome) {
   throw new Error(`${nome} não encontrada (ambiente, .env.local ou .env)`)
 }
 
+/**
+ * As chaves que EXISTEM, entre as pedidas — para a bancada pular o provedor sem chave em vez de
+ * quebrar. Mesma ordem de `chave()`; o valor nunca é impresso.
+ */
+export function segredos(nomes) {
+  const achados = {}
+  for (const nome of nomes) {
+    try {
+      achados[nome] = chave(nome)
+    } catch {
+      /* ausente: quem chama decide pular */
+    }
+  }
+  return achados
+}
+
 export function lerJsonl(rel) {
   const p = path.isAbsolute(rel) ? rel : path.join(BANCADA_DIR, rel)
   if (!existsSync(p)) throw new Error(`ausente: ${p} — rode antes: python scripts/eval-fala/baixar-bancada.py`)
@@ -204,7 +220,7 @@ export function lerWav(buf) {
 /**
  * RITMO por provedor: a camada gratuita da Groq permite 20 requisições/minuto no Whisper e ~8 mil
  * tokens/minuto nos LLMs. Espaçar as chamadas custa menos tempo do que apanhar 429 em rajada.
- * `BANCADA_RPM_<ROTULO>` ajusta (ex.: BANCADA_RPM_STT=19).
+ * `BANCADA_RPM_<ROTULO>` ajusta (ex.: BANCADA_RPM_STT_groq=19; o padrão de cada provedor está em `nuvem.mjs`).
  */
 const ultimoPorRitmo = new Map()
 export async function respeitarRitmo(rotulo, rpmPadrao) {

@@ -1,5 +1,7 @@
-#!/usr/bin/env node
 /**
+ * (Sem `#!/usr/bin/env node` de propósito: o `vite.config.ts` IMPORTA este módulo, e o empacotador
+ * da config põe código antes da primeira linha — com o shebang lá, a config não carrega.)
+ *
  * GARANTE O BERGAMOT NO `public/` — o motor (WASM + cola) e os modelos pt→en, servidos do PRÓPRIO
  * domínio (A9b do plano "Grátis sem travar").
  *

@@ -123,6 +123,20 @@ describe('pt→en prefere o Bergamot', () => {
     expect(pedido).toMatchObject({ textos: ['bom dia'], prioridade: 'final' })
   })
 
+  /* Achado na prova real (Chromium, 29/09): o download chega a 100% ANTES de o WASM montar o modelo, e o
+     `preload` do gateway resolve no primeiro `p >= 1` — a captura achava o tradutor pronto e as falas
+     seguintes davam "sem rota". Só o `ready` pode dizer 1. */
+  it('100% do download NÃO é "pronto": a barra para em 0,99 até o ready', async () => {
+    const { local } = await montar()
+    const barra = vi.fn()
+    local.preload('pt', 'en', barra)
+    const [b] = WorkerFalso.de('bergamot')
+    b.responder({ type: 'progress', progress: 1, loaded: 25, total: 25, label: '25 de 25' })
+    expect(barra).toHaveBeenLastCalledWith(0.99, '25 de 25', { loaded: 25, total: 25 })
+    b.responder({ type: 'ready', model: 'bergamot/pt-en' })
+    expect(barra).toHaveBeenLastCalledWith(1, 'Tradutor pronto')
+  })
+
   it('parcial sem o Bergamot pronto não abre worker (não baixa por um texto descartável)', async () => {
     const { local } = await montar()
     await expect(local.translate('bo', 'pt', 'en', { parcial: true })).rejects.toMatchObject({

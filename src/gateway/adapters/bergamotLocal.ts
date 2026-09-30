@@ -107,7 +107,14 @@ export class BergamotLocal implements TranslationProvider {
       }
       switch (m.type) {
         case 'progress':
-          this.onProgress?.(m.progress, m.label, m.total > 0 ? { loaded: m.loaded, total: m.total } : undefined);
+          /* O download chega a 100% ANTES de o WASM montar o modelo e aquecer — e o `preload` do
+             gateway resolve no primeiro `p >= 1` (a captura acharia o tradutor pronto e as falas
+             dariam "sem rota"; achado na prova real no Chromium). Só o `ready` diz 1. */
+          this.onProgress?.(
+            Math.min(m.progress, 0.99),
+            m.label,
+            m.total > 0 ? { loaded: m.loaded, total: m.total } : undefined,
+          );
           return;
         case 'ready': {
           const par = parDoId(m.model);

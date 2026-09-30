@@ -39,8 +39,6 @@
  * bucket e a soma passaria do limite da conta. O ADR 0007 registra a troca por estado compartilhado
  * junto com o gatilho do ADR 0006 — até lá a trava de boot mantém uma réplica só.
  */
-import type { Response } from 'express'
-
 import { normalizarPlano } from '../../src/core/planos'
 import { contarAdmissaoRecusada, registrarLeitorDeSaldo } from '../http/metricas'
 import { configDeAdmissao } from '../lib/config'
@@ -401,20 +399,6 @@ export function registrarLimiteNaAdmissao(
   if (lim.tpm > 0) b.saldoDeTokens = Math.min(b.saldoDeTokens, 0)
   b.bloqueadoAte = Math.max(b.bloqueadoAte, agora + espera * 1000)
   return Math.max(1, espera)
-}
-
-/**
- * A resposta da recusa. `Retry-After` no cabeçalho (é o que o cliente e qualquer proxy entendem) e
- * no corpo, com o motivo para o painel e para o log do cliente. O texto é para gente: o app NÃO
- * quebra, ele usa o motor local.
- */
-export function responderNuvemOcupada(res: Response, recusa: Recusa): void {
-  if (typeof res.setHeader === 'function') res.setHeader('Retry-After', String(recusa.retryAfterS))
-  res.status(429).json({
-    error: 'A nuvem está cheia agora; o app segue com o motor local e volta à nuvem sozinho.',
-    code: 'nuvem_ocupada',
-    detalhes: { motivo: recusa.motivo, retryAfter: recusa.retryAfterS },
-  })
 }
 
 /** O saldo atual de cada balde (reabastecido até agora) — para o gauge de `/metrics`. */

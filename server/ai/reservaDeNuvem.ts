@@ -13,12 +13,9 @@
  * do dia em que caiu, para o acerto voltar para ela.
  *
  * AS RECUSAS SÃO DADO (Fase F): `reservarLlm` devolve a recusa em vez de escrever na resposta, para o
- * núcleo de IA (`server/ai/nucleo/`) servir o app, a API e o MCP com as mesmas regras.
- * `abrirReservaDeLlm` é o adaptador do Express, para quem ainda fala com `res` (o tutor) — o corpo é
- * um só, o das `recusa*`.
+ * núcleo de IA (`server/ai/nucleo/`) servir o app, a API e o MCP com as mesmas regras. Quem traduz a
+ * recusa em resposta HTTP é o adaptador (`respostaDoNucleo.ts`).
  */
-import type { Response } from 'express'
-
 import { segundosAteVirarODia } from '../../src/core/learning/economia'
 import { CODIGO_USO_JUSTO_DO_DIA } from '../../src/core/usoJusto'
 import type { UserId } from '../lib/authContext'
@@ -32,7 +29,6 @@ import {
   reserveManagedCall,
 } from '../lib/usageQuota'
 import { recusaDeErro, type RecusaDeIa, recusar } from './nucleo/recusa'
-import { responderRecusa } from './respostaDoNucleo'
 
 /** O 503 quando o contador não responde. O cliente cai nos modelos locais. */
 export function recusaContadorIndisponivel(): RecusaDeIa {
@@ -132,20 +128,4 @@ export async function reservarLlm(
     if (err instanceof ContadorIndisponivel) return recusaContadorIndisponivel()
     throw err
   }
-}
-
-/**
- * O adaptador do Express para `reservarLlm`: devolve `null` quando JÁ RESPONDEU a recusa — quem
- * chama só precisa sair.
- */
-export async function abrirReservaDeLlm(
-  userId: UserId,
-  estimativaDeTokens: number,
-  res: Response,
-  modo: ModoDaCota = 'plano',
-): Promise<ReservaDeLlm | null> {
-  const r = await reservarLlm(userId, estimativaDeTokens, modo)
-  if (r instanceof ReservaDeLlm) return r
-  responderRecusa(res, r)
-  return null
 }

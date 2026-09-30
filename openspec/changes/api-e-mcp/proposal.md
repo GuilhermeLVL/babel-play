@@ -39,7 +39,8 @@ divergiria na primeira mudança de cobrança ou de retenção — e o app atende
   é da change que vier depois desta, com tasks e testes próprios.
 - Preço da API, plano que a inclui e tetos por chave: são decisões do dono (perguntas abertas no
   `design.md`).
-- Expor o tutor pela API: ele continua preso ao Express (`server/routes/tutor.ts`) e fora da Fase F.
+- Expor o tutor pela API. Ele entrou no núcleo depois da Fase F (`server/ai/nucleo/conversarComTutor.ts`,
+  30/09/2026), mas publicá-lo em `/v1` é decisão do dono.
 - Mudar qualquer comportamento do app: a Fase F é refactor; os testes de rota, de caracterização, de
   segurança e o contrato da API ficaram iguais.
 

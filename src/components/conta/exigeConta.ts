@@ -6,6 +6,7 @@
  * perfil — mostra um convite em vez da tela, e NUNCA some do menu: "mostra, explica, não esconde".
  */
 import { edicaoEstatica } from '../../lib/edicaoEstatica';
+import { t } from '../../lib/i18n';
 import type { ViewType } from '../../types';
 
 export const EXIGE_CONTA: ReadonlySet<ViewType> = new Set<ViewType>([
@@ -92,21 +93,30 @@ export function motivoDoGate(origem: string): string {
      ali não existe. */
   if (edicaoEstatica()) {
     if (origem.includes('/api/ai/') || origem.includes('/api/tutor/'))
-      return 'A inteligência artificial de nuvem depende do servidor, que esta edição de demonstração não tem. A transcrição e a tradução locais continuam livres.';
-    return 'Isto depende do servidor, que esta edição de demonstração não tem. Na versão completa do Babel Play funciona.';
+      return t(
+        'A inteligência artificial de nuvem depende do servidor, que esta edição de demonstração não tem. A transcrição e a tradução locais continuam livres.',
+      );
+    return t(
+      'Isto depende do servidor, que esta edição de demonstração não tem. Na versão completa do Babel Play funciona.',
+    );
   }
   const c = CONVITE[origem];
-  if (c) return c.titulo + '.';
+  if (c) return t(c.titulo) + '.';
   if (origem.includes('/api/import/youtube'))
-    return 'Importar do YouTube só existe no self-host: o download roda no servidor de quem hospeda.';
-  if (origem.includes('/api/import/')) return 'Importar conteúdo para a biblioteca precisa de conta.';
+    return t('Importar do YouTube só existe no self-host: o download roda no servidor de quem hospeda.');
+  if (origem.includes('/api/import/')) return t('Importar conteúdo para a biblioteca precisa de conta.');
   if (origem.includes('/api/ai/') || origem.includes('/api/tutor/'))
-    return 'A inteligência artificial de nuvem precisa de conta. A transcrição e a tradução locais continuam livres.';
-  if (origem.includes('/api/images/')) return 'Buscar capas precisa de conta.';
-  return 'Esta ação guarda dados na sua conta.';
+    return t(
+      'A inteligência artificial de nuvem precisa de conta. A transcrição e a tradução locais continuam livres.',
+    );
+  if (origem.includes('/api/images/')) return t('Buscar capas precisa de conta.');
+  return t('Esta ação guarda dados na sua conta.');
 }
 
-/** Texto do convite por tela — diz o que a conta desbloqueia ALI, não genericamente. */
+/**
+ * Texto do convite por tela — diz o que a conta desbloqueia ALI, não genericamente. Em português: o
+ * ponto de uso traduz (`t(c.titulo)`), e as frases estão no catálogo.
+ */
 export const CONVITE: Record<string, { titulo: string; explicacao: string }> = {
   library: {
     titulo: 'Sua biblioteca fica na sua conta',

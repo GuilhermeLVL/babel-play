@@ -14,6 +14,7 @@ import {
   comparar,
   gravarLinhaDeBase,
   ruidoEntre,
+  tabelaAntesDepois,
   tabelaMarkdown,
   validarSlo,
 } from '../scripts/perf/latencia-legenda/comparar.mjs'
@@ -159,6 +160,11 @@ describe('janelas e métricas de uma rodada', () => {
     expect(j.silencio).toEqual([13000, 22000])
   })
 
+  it('silêncio só depois que o freio de CPU do CDP foi solto (o freio gira um núcleo inteiro)', () => {
+    const j = janelasDaRodada(rodadaSintetica({ cpuSoltaEm: 15000 }))
+    expect(j.silencio).toEqual([16000, 22000])
+  })
+
   it('métricas: frames longos, 1ª legenda, RTF, memória, CPU no silêncio, renders/s', () => {
     const m = metricasDaRodada(rodadaSintetica())
     expect(m.framesLongos).toEqual({ n50: 2, n100: 1, somaMs: 180, maiorMs: 120 })
@@ -177,6 +183,21 @@ describe('janelas e métricas de uma rodada', () => {
     expect(m.rendersPorS.silencio).toBeCloseTo(4 / 9, 5)
     expect(m.commitsPorS.fala).toBeCloseTo(3 / 6, 5)
     expect(m.valida).toBe(true)
+  })
+
+  it('regulador: trocas de modelo no meio da sessão (a descida do A6) e os modelos carregados', () => {
+    const d = rodadaSintetica()
+    d.lat.ev.push(
+      { t: 9000, k: 'log', s: '[cap]  regulador: modelo local → onnx-community/moonshine-tiny-ONNX  ' },
+      { t: 9001, k: 'w:out', nome: 'whisperWorker-x.js', type: 'load', model: 'onnx-community/moonshine-tiny-ONNX' },
+    )
+    const m = metricasDaRodada(d)
+    expect(m.regulador).toEqual({
+      trocasDeModelo: 1,
+      primeiraTrocaMs: 8000,
+      modelos: ['onnx-community/moonshine-base-ONNX', 'onnx-community/moonshine-tiny-ONNX'],
+    })
+    expect(metricasDaRodada(rodadaSintetica()).regulador.trocasDeModelo).toBe(0)
   })
 
   it('RTF só das falas postadas depois do modelo pronto (a espera da carga não é decode)', () => {
@@ -421,5 +442,17 @@ describe('áudio da bancada (WAV PCM16 e µ-law)', () => {
   it('WAV em outro formato (estéreo, 44,1 kHz): recusa com mensagem', () => {
     const buf = wavPcm16(new Float32Array(10), 44100)
     expect(() => lerWav(buf, { sr: 16000 })).toThrow(/16000/)
+  })
+})
+
+describe('tabela antes × depois', () => {
+  it('uma linha por perfil × métrica, com Δ% do depois sobre o antes', () => {
+    const antes = { perfis: { fraco: { rodadas: 3, metricas: { 'framesLongos.n50': 20, 'rendersPorS.silencio': 0 } } } }
+    const depois = { perfis: { fraco: { rodadas: 3, metricas: { 'framesLongos.n50': 5, 'rendersPorS.silencio': 0 } } } }
+    const md = tabelaAntesDepois(antes, depois, METRICAS_DO_SLO, { antes: '9209cec', depois: 'cd6f54b' })
+    expect(md).toContain('| perfil | métrica | 9209cec | cd6f54b | Δ |')
+    expect(md).toContain('| fraco | frames > 50 ms | 20 | 5 | −75% |')
+    expect(md).toContain('| fraco | renders/s no silêncio | 0 | 0 | 0% |')
+    expect(md).toContain('| fraco | memória de pico (MB) | — | — | — |')
   })
 })

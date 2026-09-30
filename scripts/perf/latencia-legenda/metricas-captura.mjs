@@ -11,7 +11,10 @@
  *   sessão   = do clique em "Iniciar captura" ao fim do áudio (frames longos);
  *   fala     = do início da 1ª voz a 1 s depois do fim da última (renders/s com fala);
  *   silêncio = do que vier depois — fim da última voz + 3 s, última mudança de balão + 1,5 s — ao fim
- *              do áudio (CPU e renders/s com a captura ligada e nada para transcrever).
+ *              do áudio (CPU e renders/s com a captura ligada e nada para transcrever). No aparelho
+ *              emulado, só depois de `cpuSoltaEm` + 1 s: o freio de CPU do CDP
+ *              (`Emulation.setCPUThrottlingRate`) GIRA um núcleo inteiro no processo da aba, até
+ *              ocioso (medido: 99,9% com 4×, 0,2% sem), e `medir.mjs` o solta ao fim da última voz.
  */
 import { analisarRodada } from './analisar.mjs'
 
@@ -37,6 +40,7 @@ export const METRICAS_ESCALARES = [
   'commitsPorS.silencio',
   'commitsPorS.fala',
   'fimATraducao.p50',
+  'regulador.trocasDeModelo',
 ]
 
 const finito = (x) => typeof x === 'number' && Number.isFinite(x)
@@ -122,7 +126,7 @@ export function janelasDaRodada(d, relogio = relogioDoArquivo(d)) {
   return {
     sessao: [d.tIniciarPerf, fimDoAudio],
     fala: [inicioDaVoz, fimDaVoz + 1000],
-    silencio: [Math.max(fimDaVoz + 3000, ultimoBalao + 1500), fimDoAudio],
+    silencio: [Math.max(fimDaVoz + 3000, ultimoBalao + 1500, (d.cpuSoltaEm ?? -Infinity) + 1000), fimDoAudio],
   }
 }
 
@@ -160,6 +164,15 @@ export function metricasDaRodada(d) {
 
   const tr = analise.falas.map((f) => f.fimATraducao).filter(finito)
 
+  // O regulador (A6) desce o modelo no meio da sessão quando o aparelho não acompanha: numa rodada
+  // com descida, memória e RTF mudam de patamar. Contado para que a mediana seja lida sabendo disso.
+  const trocas = ev.filter((e) => e.k === 'log' && /regulador: modelo local →/.test(e.s ?? ''))
+  const modelos = [
+    ...new Set(
+      ev.filter((e) => e.k === 'w:out' && e.type === 'load' && e.nome?.startsWith('whisperWorker')).map((e) => e.model),
+    ),
+  ].filter(Boolean)
+
   return {
     ...base,
     valida: true,
@@ -180,6 +193,11 @@ export function metricasDaRodada(d) {
     rendersPorS: { silencio: rSil?.porS ?? null, fala: rFala?.porS ?? null },
     commitsPorS: { silencio: rSil?.eventosPorS ?? null, fala: rFala?.eventosPorS ?? null },
     fimATraducao: { p50: percentil(tr, 50), p95: percentil(tr, 95) },
+    regulador: {
+      trocasDeModelo: trocas.length,
+      primeiraTrocaMs: trocas.length ? Math.round(trocas[0].t - d.tIniciarPerf) : null,
+      modelos,
+    },
     falasPerdidas: analise.falas.filter((f) => f.perdida).length,
     pedidosAoHub: d.pedidosAoHub ?? null,
   }

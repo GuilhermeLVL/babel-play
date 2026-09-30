@@ -98,6 +98,13 @@ export function formatar(x) {
   return String(Number(x.toFixed(casas))).replace('.', ',')
 }
 
+/** Δ% com sinal (o menos tipográfico, como no resto dos relatórios); `—` sem número. */
+function pct(d) {
+  if (!finito(d)) return '—'
+  const r = Math.round(d)
+  return r === 0 ? '0%' : `${r > 0 ? '+' : '−'}${Math.abs(r)}%`
+}
+
 const SITUACAO = {
   ok: 'ok',
   melhorou: 'melhorou',
@@ -109,7 +116,7 @@ const SITUACAO = {
 export function tabelaMarkdown(comparacao) {
   const cab = ['| perfil | métrica | linha de base | medido | Δ | limite | situação |', '|---|---|---|---|---|---|---|']
   const corpo = comparacao.linhas.map((l) => {
-    const delta = finito(l.deltaPct) ? `${l.deltaPct >= 0 ? '+' : ''}${Math.round(l.deltaPct)}%` : '—'
+    const delta = pct(l.deltaPct)
     return `| ${l.perfil} | ${l.rotulo} | ${formatar(l.base)} | ${formatar(l.medido)} | ${delta} | ${formatar(l.limite)} | ${SITUACAO[l.status]} |`
   })
   return [...cab, ...corpo].join('\n')
@@ -140,6 +147,23 @@ export function gravarLinhaDeBase(slo, resultado, ambiente, meta = {}) {
       [ambiente]: { ...(slo.ambientes?.[ambiente] ?? {}), ...meta, rodadas, perfis },
     },
   }
+}
+
+/**
+ * ANTES × DEPOIS (duas builds medidas na mesma máquina, rodadas intercaladas): uma linha por perfil ×
+ * métrica do SLO, com o Δ% do depois sobre o antes. `rotulos` = { antes, depois } (ex.: os commits).
+ */
+export function tabelaAntesDepois(antes, depois, metricas, rotulos = { antes: 'antes', depois: 'depois' }) {
+  const perfis = [...new Set([...Object.keys(antes.perfis ?? {}), ...Object.keys(depois.perfis ?? {})])]
+  const linhas = [`| perfil | métrica | ${rotulos.antes} | ${rotulos.depois} | Δ |`, '|---|---|---|---|---|']
+  for (const perfil of perfis)
+    for (const [metrica, cfg] of Object.entries(metricas)) {
+      const a = antes.perfis?.[perfil]?.metricas?.[metrica]
+      const b = depois.perfis?.[perfil]?.metricas?.[metrica]
+      const d = !finito(a) || !finito(b) ? null : a === b ? 0 : a === 0 ? null : ((b - a) / Math.abs(a)) * 100
+      linhas.push(`| ${perfil} | ${cfg.rotulo ?? metrica} | ${formatar(a)} | ${formatar(b)} | ${pct(d)} |`)
+    }
+  return linhas.join('\n')
 }
 
 /**

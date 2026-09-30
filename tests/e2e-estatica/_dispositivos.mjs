@@ -85,8 +85,11 @@ export const DISPOSITIVOS = {
  *  - fraco  notebook de entrada: desktop (getDisplayMedia, mouse, sem toque) SEM WebGPU, 2 núcleos,
  *           `deviceMemory` 2 e CPU 4× mais lenta. É o `desktop-sem-gpu` "modesto" de
  *           `src/lib/dispositivo/perfil.ts`: modo leve, pouca memória, 2 threads no WASM. O
- *           `Emulation.setCPUThrottlingRate` do CDP freia a thread PRINCIPAL; os workers rodam na
- *           velocidade da máquina (o orçamento de threads, esse sim, vê só 2 núcleos).
+ *           `Emulation.setCPUThrottlingRate` do CDP freia só a thread PRINCIPAL (medido: um laço
+ *           levou 491 ms com 4× e 107 sem; num worker, 343 e 320) — os workers rodam na velocidade
+ *           da máquina, e o orçamento de threads, esse sim, vê só 2 núcleos. E o freio GIRA um
+ *           núcleo inteiro no processo da aba, até ocioso (99,9% contra 0,2%): a bancada o solta
+ *           antes de medir a CPU no silêncio (`medir.mjs --soltar-cpu-no-silencio`).
  */
 export const APARELHOS_DA_BANCADA = {
   fraco: {

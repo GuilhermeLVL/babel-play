@@ -12,13 +12,18 @@
  *  - aplica os cabeçalhos globais de `dist/_headers` (COOP/COEP): sem eles o teste não veria o
  *    que o Pages entrega.
  * Não é um servidor de produção: sem compressão, sem cache condicional.
+ *
+ * `DIST_ESTATICA=<pasta>` serve outro `dist/` (a bancada de desempenho mede a build de ANTES, de
+ * outra worktree, ao lado da de agora — cada uma na sua porta).
  */
 import { createReadStream, existsSync, readFileSync, statSync } from 'node:fs';
 import { createServer } from 'node:http';
-import { dirname, extname, join, normalize, sep } from 'node:path';
+import { dirname, extname, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'dist');
+const RAIZ = process.env.DIST_ESTATICA
+  ? resolve(process.env.DIST_ESTATICA)
+  : join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'dist');
 const PORTA = Number(process.argv[2] || process.env.PORTA_ESTATICA || 4175);
 
 const TIPOS = {

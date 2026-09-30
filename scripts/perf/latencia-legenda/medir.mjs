@@ -39,6 +39,8 @@
  *  - `--cache-modelos DIR` serve os pesos do Hub de um cache em disco (URL fixada por commit = chave
  *    imutável) e grava nele o que ainda não tem: a rede sai da medição, e o CI guarda a pasta com
  *    `actions/cache`;
+ *  - `--soltar-cpu-no-silencio` solta o freio de CPU do aparelho emulado ao fim da última voz (o
+ *    freio do CDP gira um núcleo; ver `cpuSoltaEm` abaixo);
  *  - `--desempenho padrao` não mexe no "Modo desempenho" (fica o de fábrica do perfil do aparelho);
  *  - `--dispositivo fraco` usa os aparelhos da bancada (`APARELHOS_DA_BANCADA`).
  */
@@ -389,20 +391,26 @@ async function pidDoRenderer() {
 }
 const metricasDoCdp = async () =>
   Object.fromEntries(((await cdp.send('Performance.getMetrics')).metrics ?? []).map((m) => [m.name, m.value]))
-// `Timestamp − NavigationStart` é o `performance.now()` da página; o desvio é medido uma vez.
-const desvioDoRelogio = await (async () => {
-  const [agora, m] = await Promise.all([page.evaluate(() => performance.now()), metricasDoCdp()])
-  return agora - (m.Timestamp - m.NavigationStart) * 1000
-})().catch(() => 0)
+// O `t` de cada amostra é o relógio da PÁGINA (`performance.now()`), para cair nas mesmas janelas
+// dos eventos da sonda. Vem do relógio do Node calibrado uma vez: o `Timestamp` do próprio
+// `Performance.getMetrics` anda no domínio `threadTicks` pedido acima e atrasou ~11 s em 75 s.
+const relogioDaPagina = await (async () => {
+  const antes = Date.now()
+  const agora = await page.evaluate(() => performance.now())
+  const meio = (antes + Date.now()) / 2
+  return () => agora + (Date.now() - meio)
+})()
 const amostras = []
 let pidDaAba = null
 const MEMORIA_A_CADA = process.platform === 'linux' ? 1 : Math.max(1, Math.round(3000 / AMOSTRA_MS))
 async function amostrar(i) {
+  const antes = Date.now()
   const m = await metricasDoCdp()
+  const t = relogioDaPagina() - (Date.now() - antes) / 2
   if (!pidDaAba || i % 20 === 0) pidDaAba = (await pidDoRenderer()) ?? pidDaAba
   const threads = cpuPorThread(pidDaAba)
   amostras.push({
-    t: Math.round((m.Timestamp - m.NavigationStart) * 1000 + desvioDoRelogio),
+    t: Math.round(t),
     cpuProcessoS: m.ProcessTime ?? null,
     cpuPrincipalS: threads ? threads.principal : (m.ThreadTime ?? null),
     cpuWorkersS: threads ? threads.workers : null,
@@ -434,11 +442,27 @@ const coletarLeve = () =>
     let traduzidas = 0
     for (const r of ultimas.values()) if (!r.nova && r.tr && r.tr !== '…') traduzidas++
     const agoraPerf = performance.now()
-    return { traduzidas, baixando: L.ev.some((e) => e.k === 'w:prog' && e.t > agoraPerf - 60_000), agoraPerf }
+    // A âncora do bipe (a mesma de `analisar.mjs`): diz ao laço onde o áudio está.
+    const bipe = L.aud.find((a) => a[2] > 0.5 && a[1] > 0.01)
+    return {
+      traduzidas,
+      baixando: L.ev.some((e) => e.k === 'w:prog' && e.t > agoraPerf - 60_000),
+      agoraPerf,
+      bipe: bipe ? bipe[0] : null,
+    }
   })
 let dados = null
 let queda = null
 let voltas = 0
+/**
+ * O FREIO DE CPU DO CDP é solto 2 s depois do fim da última voz (`--soltar-cpu-no-silencio`): o
+ * `Emulation.setCPUThrottlingRate` gira um núcleo inteiro no processo da aba, até ocioso (medido:
+ * 99,9% com 4×, 0,2% sem), e a CPU no silêncio mediria o freio, não o app. Ele só freia a thread
+ * PRINCIPAL (um laço num worker levou 343 ms com 4× e 320 sem); no silêncio ela quase não trabalha,
+ * então soltá-lo não muda o que se mede ali. `cpuSoltaEm` (relógio da página) vai no JSON.
+ */
+let cpuSoltaEm = null
+const SOLTAR_CPU = flag('soltar-cpu-no-silencio') && (APARELHO?.cpu ?? 1) > 1
 page.on('crash', () => {
   queda = queda ?? 'a aba travou (page crash) em ' + new Date().toISOString()
 })
@@ -457,6 +481,14 @@ for (;;) {
     await amostrar(volta)
     if (RETRATOS > 0 && volta % RETRATOS === 0) dados = await coletar()
     estado = await coletarLeve()
+    if (SOLTAR_CPU && cpuSoltaEm === null && estado.bipe !== null) {
+      const fimDaVoz = estado.bipe - 10 + (roteiro.falas[roteiro.falas.length - 1].fimS - roteiro.bipeS) * 1000
+      if (estado.agoraPerf > fimDaVoz + 2000) {
+        await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 })
+        cpuSoltaEm = Math.round(estado.agoraPerf)
+        log('freio de CPU solto em', cpuSoltaEm, 'ms (fim da última voz + 2 s)')
+      }
+    }
   } catch (e) {
     queda = queda ?? String(e).slice(0, 200)
     break
@@ -565,6 +597,7 @@ writeFileSync(
       },
       perfilDoAparelho,
       pidDaAba,
+      cpuSoltaEm,
       amostras,
       cacheDeModelos,
       avisoDeDownload,

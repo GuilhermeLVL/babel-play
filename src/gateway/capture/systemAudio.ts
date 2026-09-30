@@ -1,6 +1,7 @@
 import { MicVAD } from '@ricky0123/vad-web';
 
 import { apiFetch } from '../../data/api';
+import { ortDoVadNumaThread } from '../../lib/dispositivo/orcamentoDeThreads';
 import { ehPrefixo, EspelhoDoVad } from './espelhoDoVad';
 import { pararGravador } from './pararGravador';
 import { TAXA_DE_BITS_DA_GRAVACAO } from './taxaDeBits';
@@ -497,6 +498,9 @@ async function startCaptureFromStream(
     vad = await MicVAD.new({
       baseAssetPath: '/',
       onnxWASMBasePath: '/',
+      /* 1 THREAD (orçamento global, `orcamentoDeThreads.ts`): o Silero roda o ONNX na thread principal,
+         e com o padrão do ORT ele abriria workers de pthread que a thread principal espera girando. */
+      ortConfig: ortDoVadNumaThread,
       model: 'legacy', // usa /silero_vad_legacy.onnx
       // O contexto do clique (se veio): o VAD não cria o dele, e não o fecha (não é dele).
       ...(opcoes.audioContext ? { audioContext: opcoes.audioContext } : {}),

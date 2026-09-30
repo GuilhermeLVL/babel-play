@@ -90,6 +90,7 @@ import { useFuncaoEstavel, useTextoDaConversa } from '../../lib/captura/conversa
 import { assinarSalvamento, capturaEmRisco, lerSalvamento } from '../../lib/captura/estadoDoSalvamento';
 import { criarFontesDeAudio } from '../../lib/captura/fontesDeAudio';
 import { type PassoDoInicio, planejarInicio } from '../../lib/captura/inicioDaCaptura';
+import { cancelarLiberacaoDosModelos, liberarModelosDepois } from '../../lib/captura/memoriaDosModelos';
 import { type EscolhaDoMic, webSpeechBipaAoReligar } from '../../lib/captura/motorDoMicrofone';
 import { preparoConcluido } from '../../lib/captura/pacotesNativos';
 // Vocabulário dentro da captura: examinar a palavra, fichar no deck, mandar praticar.
@@ -777,18 +778,23 @@ export default function LiveCapture({
     (window as any).__babelGateway = gateway;
   }, [gateway]);
 
-  /* SAIR DA CAPTURA EM APARELHO COM POUCA MEMÓRIA (Quest/celular): encerra os workers do Whisper e do
-     tradutor. O heap do WASM só volta ao sistema com o `terminate()`; sem isso o modelo (80–300 MB de
-     pesos, mais o heap da inferência) fica preso na aba enquanto a pessoa joga ou lê — e no iOS a aba
-     morre perto de 0,5–1,5 GB. A próxima captura recarrega do cache (sem baixar de novo). */
-  useEffect(
-    () => () => {
-      if (!perfilDoAparelhoRef.current.poucaMemoria) return;
-      gateway.stt.liberarModelo();
-      gateway.mt.liberarModelos();
-    },
-    [gateway],
-  );
+  /* SAIR DA CAPTURA: encerra os workers do Whisper e do tradutor. O heap do WASM só volta ao sistema
+     com o `terminate()`; sem isso os modelos (67–589 MB de pesos do Whisper e ~113 MB por tradutor,
+     mais o heap da inferência) ficam presos na aba enquanto a pessoa joga ou lê. POUCA MEMÓRIA (Quest/celular — no iOS a aba morre perto de
+     0,5–1,5 GB): na hora. No resto, 90 s depois (`memoriaDosModelos.ts`): quem sai para conferir algo
+     e volta antes disso encontra o modelo quente — a volta cancela a liberação. A próxima captura
+     recarrega do cache (sem baixar de novo). */
+  useEffect(() => {
+    cancelarLiberacaoDosModelos();
+    return () => {
+      const liberar = () => {
+        gateway.stt.liberarModelo();
+        gateway.mt.liberarModelos();
+      };
+      if (perfilDoAparelhoRef.current.poucaMemoria) liberar();
+      else liberarModelosDepois(liberar);
+    };
+  }, [gateway]);
 
   /* O texto da conversa sobe ao App (contexto do iChat) no máximo a cada 500 ms, só quando muda:
      antes era um `join` de TODAS as falas e um render do App inteiro a cada parcial do streaming. */

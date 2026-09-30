@@ -54,6 +54,19 @@ describe('temAdaptadorWebGpu', () => {
     expect(await r).toBe(false)
   })
 
+  /* ROTA HONESTA DO SMALL (plano "Grátis sem travar", A4): o adaptador de RESERVA (SwiftShader,
+     rasterizador em software) existe, mas não é GPU — o Whisper nele é mais lento que no WASM. */
+  it('adaptador de reserva (software, `info.isFallbackAdapter`): conta como SEM GPU', async () => {
+    comGpu(async () => ({ info: { vendor: 'google', architecture: 'swiftshader', isFallbackAdapter: true } }))
+    expect(await temAdaptadorWebGpu()).toBe(false)
+    expect(webGpuProvavel()).toBe(false)
+  })
+
+  it('o campo antigo (`adapter.isFallbackAdapter`, Chrome < 136) também', async () => {
+    comGpu(async () => ({ isFallbackAdapter: true }))
+    expect(await temAdaptadorWebGpu()).toBe(false)
+  })
+
   it('pergunta UMA vez e guarda a resposta', async () => {
     const pedir = vi.fn(async () => ({}))
     comGpu(pedir)
@@ -94,6 +107,15 @@ describe('infoDoAdaptadorWebGpu (sinais da sonda: shader-f16 e limites)', () => 
   it('sem adaptador: null', async () => {
     comGpu(async () => null)
     expect(await infoDoAdaptadorWebGpu()).toBeNull()
+  })
+
+  it('adaptador de reserva: a sonda ainda o lê (reserva: true; o fornecedor entra na impressão)', async () => {
+    comGpu(async () => ({ info: { vendor: 'google', architecture: 'swiftshader', isFallbackAdapter: true } }))
+    expect(await infoDoAdaptadorWebGpu()).toMatchObject({
+      reserva: true,
+      fornecedor: 'google',
+      arquitetura: 'swiftshader',
+    })
   })
 })
 

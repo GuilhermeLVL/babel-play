@@ -55,8 +55,12 @@ export function temAdaptadorWebGpu(prazoMs = PRAZO_DO_ADAPTADOR_MS): Promise<boo
       .then(() => gpu.requestAdapter!())
       .then(
         (adaptador) => {
+          // Guardado MESMO quando é o de reserva: a sonda lê dele o fornecedor e o `reserva: true`.
           adaptadorGuardado = adaptador ?? null;
-          concluir(!!adaptador);
+          /* O adaptador de RESERVA (SwiftShader, rasterizador em software) existe mas não é GPU: o
+             Whisper nele é mais lento que no WASM, e o `auto` o mandava para lá — e o roteador, ao
+             small. Conta como "sem GPU" (plano "Grátis sem travar", A4). */
+          concluir(!!adaptador && extrairInfoDoAdaptador(adaptador).reserva !== true);
         },
         () => concluir(false),
       )
@@ -132,9 +136,17 @@ export function extrairInfoDoAdaptador(adaptador: unknown): InfoDoAdaptadorWebGp
   };
 }
 
-/** A informação do adaptador (mesma pergunta em cache de `temAdaptadorWebGpu`); `null` sem adaptador. */
+/**
+ * A informação do adaptador (mesma pergunta em cache de `temAdaptadorWebGpu`); `null` sem adaptador.
+ * O de RESERVA também volta (com `reserva: true`), embora `temAdaptadorWebGpu` o conte como sem GPU:
+ * a sonda precisa dele para a impressão do aparelho e para gravar `adaptadorReal: false`.
+ */
 export async function infoDoAdaptadorWebGpu(prazoMs = PRAZO_DO_ADAPTADOR_MS): Promise<InfoDoAdaptadorWebGpu | null> {
-  return (await temAdaptadorWebGpu(prazoMs)) && adaptadorGuardado ? extrairInfoDoAdaptador(adaptadorGuardado) : null;
+  const tem = await temAdaptadorWebGpu(prazoMs);
+  if (!adaptadorGuardado) return null;
+  const info = extrairInfoDoAdaptador(adaptadorGuardado);
+  // Um adaptador de verdade que respondeu DEPOIS do prazo continua "sem adaptador", como antes.
+  return tem || info.reserva === true ? info : null;
 }
 
 /** Só para testes: esquece a resposta guardada. */

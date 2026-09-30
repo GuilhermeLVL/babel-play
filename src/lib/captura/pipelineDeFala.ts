@@ -34,6 +34,7 @@ import { embedUtterance } from '../speakerId';
 import { isTtsActive } from '../tts';
 import { classificarVazamento, type Intervalo } from '../vazamento';
 import { setterNoQuadro } from './agendarNoQuadro';
+import { umModeloDeCadaVez } from './memoriaDosModelos';
 import { disponibilidadeDaSondaParaIdioma, escolherMotorDoMic, webSpeechBipaAoReligar } from './motorDoMicrofone';
 import { preparoConcluido, semPacotePendente } from './pacotesNativos';
 import { type EfeitosDoRegulador, escadaDeModelos, type ReguladorDaCaptura } from './reguladorDaCaptura';
@@ -1071,7 +1072,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
   const preaquecerModelos = async (): Promise<void> => {
     try {
       if (getProviderMode() === 'cloud' || prepareEmVooRef.current || modelReadyRef.current) return;
-      const { listenLang, myLang, route, perfil } = await rotaDaCaptura();
+      const { route, perfil, mtDe, mtPara } = await rotaDaCaptura();
       if (route.preferCloud) return;
       let sttAquecendo: Promise<unknown> = Promise.resolve();
       if (await areModelsCached([route.localModel])) {
@@ -1088,16 +1089,14 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
           .then(() => clog('STT local pré-aquecido ✓'))
           .catch((e) => clog('pré-aquecimento do STT falhou (a captura tenta de novo):', String(e)));
       }
-      // POUCA MEMÓRIA (Quest/celular): um modelo grande de cada vez — o tradutor espera o STT.
-      if (perfil.poucaMemoria) await sttAquecendo;
-      // Os dois sentidos do tradutor (o que você ouve e o que você fala), cada um só se já baixado.
-      for (const [de, para] of [
-        [listenLang, myLang],
-        [myLang, listenLang],
-      ] as const) {
-        const mt = expectedModelIds(de, para, route.localModel).slice(1);
-        if (mt.length && (await areModelsCached(mt))) gateway.mt.warmup([[de, para]]);
-      }
+      /* UM MODELO GRANDE DE CADA VEZ (`umModeloDeCadaVez`): o tradutor espera o STT em todo aparelho
+         que não seja desktop com GPU e ≥ 8 GB — antes só no de pouca memória (Quest/celular). */
+      if (umModeloDeCadaVez(perfil)) await sttAquecendo;
+      /* UM SENTIDO SÓ: o par que a preparação carrega (`mtDe → mtPara`), se já baixado. Antes eram os
+         dois sentidos — ~113 MB a mais na memória antes de a pessoa apertar Iniciar. O outro sentido
+         carrega quando é pedido (o microfone da conversa). */
+      const mt = expectedModelIds(mtDe, mtPara, route.localModel).slice(1);
+      if (mt.length && (await areModelsCached(mt))) gateway.mt.warmup([[mtDe, mtPara]]);
     } catch (e) {
       clog('pré-aquecimento ignorado:', String(e));
     }
@@ -1134,8 +1133,8 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       '| aparelho:',
       perfil.tipo,
     );
-    /** POUCA MEMÓRIA (Quest/celular): STT e tradutor carregam UM DE CADA VEZ, nunca juntos. */
-    const umDeCadaVez = perfil.poucaMemoria;
+    /** STT e tradutor UM DE CADA VEZ, fora do desktop com GPU e ≥ 8 GB (`memoriaDosModelos.ts`). */
+    const umDeCadaVez = umModeloDeCadaVez(perfil);
 
     /* O ÁUDIO DA ABA NA WEB SPEECH NO APARELHO (`webSpeechDoSistema.ts`): o Whisper não baixa nem
        carrega — é o ponto do degrau. Só o MICROFONE no Whisper ainda o pede (aí segue o caminho de

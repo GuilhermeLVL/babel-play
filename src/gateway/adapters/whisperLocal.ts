@@ -3,6 +3,7 @@
  * mas web-nativo via Web Worker. Backend PADRÃO = `auto`: WebGPU quando há um ADAPTADOR de verdade
  * (`adaptadorWebGpu.ts`), WASM no resto; `babel.whisperDevice` força um dos dois.
  */
+import { distribuirThreads } from '../../lib/dispositivo/orcamentoDeThreads';
 import { perfilDoDispositivo } from '../../lib/dispositivo/perfil';
 import { temAdaptadorWebGpu } from '../adaptadorWebGpu';
 import type { AvisoDeDegradacaoDoStt, SttFinal, SttProvider } from '../capabilities';
@@ -435,8 +436,15 @@ export class WhisperLocalStt implements SttProvider {
     this.loadedModel = this.model;
     this.loadedDtype = this.dtype;
     this.deviceDaCarga = ehMoonshine(this.model) ? 'wasm' : device;
-    // Threads do WASM pelo PERFIL: 1 sem isolamento (sem SharedArrayBuffer), 2 no celular fraco.
-    const threads = perfilDoDispositivo().threadsWasm;
+    /* Threads do WASM pelo ORÇAMENTO GLOBAL (`orcamentoDeThreads.ts`): o que sobra depois da thread
+       principal, do tradutor e da voz — 1 sem isolamento (sem SharedArrayBuffer), até 2 no modo leve.
+       O `perfil.threadsWasm` fica para o diagnóstico: ele não sabe dos outros motores. */
+    const perfil = perfilDoDispositivo();
+    const threads = distribuirThreads({
+      nucleos: perfil.sinais.nucleos,
+      isolado: perfil.sinais.isolado,
+      leve: perfil.leve,
+    }).whisper;
     this.worker.postMessage({ type: 'load', model: this.model, dtype: this.dtype, device, threads });
 
     // Watchdog: só quando o caminho efetivo é WebGPU. O moonshine carrega sempre em WASM.

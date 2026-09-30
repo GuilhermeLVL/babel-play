@@ -21,7 +21,7 @@
  * O que ele faz é o que faltava: DECLARAR o contrato, CONFERIR no boot, e servir as duas leituras
  * que estavam dentro de handler.
  */
-import { PLAN_MATRIX } from '../../src/core/planos'
+import { FRANQUIA_DE_ALIVIO, PLAN_MATRIX } from '../../src/core/planos'
 import { authRequired } from './auth'
 import { registrarFalhaDeBoot } from './bootStatus'
 import { log } from './logger'
@@ -147,6 +147,20 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     criticidade: 'degrada-capacidade',
     paraQue:
       'gasto anômalo por usuário: teto ABSOLUTO em US$ por usuário por dia acima do qual sai o alerta ia_gasto_anomalo_usuario (não bloqueia — quem bloqueia é a cota do plano). Padrão US$ 0,50 (um Essencial típico gasta ~US$ 0,03/dia)',
+  },
+  {
+    nome: 'ALIVIO_POOL_USD_DIA',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'pool DIÁRIO da nuvem de alívio do Grátis (A10), em US$, somando todas as contas. Só BAIXA o pool: ele nunca passa de 20% do orçamento diário (AI_BUDGET_USD_DAY, ou AI_BUDGET_USD_MONTH ÷ 30), a reserva de 80% de quem paga. Ausente: os 20%',
+  },
+  {
+    nome: 'ALIVIO_TETO_USD_MES',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'teto de gasto ESTIMADO por conta Grátis no mês com a nuvem de alívio (A10), em US$. Padrão US$ 0,13 (FRANQUIA_DE_ALIVIO em src/core/planos.ts: cobre as 3 h de transcrição). 0 fecha o alívio para todos',
   },
   {
     nome: 'APP_URL',
@@ -1237,4 +1251,31 @@ export function parametrosDoPoolGratuito(env: NodeJS.ProcessEnv = process.env): 
     pisoUsdDia: numeroDoEnv(env.POOL_GRATUITO_PISO_USD_DIA, 0.5, 'config_pool_piso_invalido'),
     fracaoDaReceita: Math.min(1, numeroDoEnv(env.POOL_GRATUITO_FRACAO_RECEITA, 0.05, 'config_pool_fracao_invalida')),
   }
+}
+
+/* ─────────────── Nuvem de alívio do Grátis (A10) ─────────────── */
+
+/**
+ * Os parâmetros da nuvem de alívio (`server/lib/nuvemDeAlivio.ts`). Os segundos, tokens e chamadas
+ * da franquia vêm da matriz (`FRANQUIA_DE_ALIVIO`): são a PROMESSA que a tela escreve ("3 h") e
+ * mudam por código. O dinheiro é do operador: o teto por conta (`ALIVIO_TETO_USD_MES`) e o pool do
+ * dia (`ALIVIO_POOL_USD_DIA`, `null` = os 20% do orçamento diário — ver `poolDoAlivioUsd`).
+ */
+export function parametrosDoAlivio(env: NodeJS.ProcessEnv = process.env): {
+  tetoUsdMes: number
+  poolUsdDia: number | null
+} {
+  const pool = env.ALIVIO_POOL_USD_DIA?.trim()
+  return {
+    tetoUsdMes: numeroDoEnv(env.ALIVIO_TETO_USD_MES, FRANQUIA_DE_ALIVIO.tetoUsdMes, 'config_alivio_teto_invalido'),
+    poolUsdDia: pool ? numeroDoEnv(pool, 0, 'config_alivio_pool_invalido') : null,
+  }
+}
+
+/**
+ * O modelo do STT gerenciado (a chave do dono) — o mesmo padrão de `server/ai/sttProxy.ts`. A nuvem
+ * de alívio precisa dele para converter o dólar que sobra em "restam X" de transcrição.
+ */
+export function modeloDoSttGerenciado(env: NodeJS.ProcessEnv = process.env): string {
+  return env.STT_MODEL || 'whisper-large-v3-turbo'
 }

@@ -41,6 +41,7 @@ import {
 import React, { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 
 import { configDoReguladorPara } from '../../core/harness/reguladorDeDesempenho';
+import type { MotivoDaOfertaDeAlivio, SinaisDoAparelhoParaAlivio } from '../../core/nuvemDeAlivio';
 import { estadoDoTeto } from '../../core/tetoAnonimo';
 import { deleteSession, fetchSessionTranscript, fetchSettings, patchUiSettings } from '../../data/api';
 import { buildGateway } from '../../gateway';
@@ -147,6 +148,7 @@ import {
   saveLangConfig,
 } from '../../lib/langConfig';
 import { baseLang, langLabel, langLabelNaUI, mtCoverage } from '../../lib/languages';
+import { lazyComRecarga } from '../../lib/lazyComRecarga';
 import { setNavGuard } from '../../lib/navGuard';
 import { OrdemDasTraducoes } from '../../lib/ordemDaTraducao';
 import { usePalavrasAprendidas } from '../../lib/palavrasAprendidas';
@@ -195,6 +197,8 @@ import { CampoLinha, Interruptor, Segmentos } from './vocab/Dialogo';
 /* A oferta "Legenda sem baixar nada" só existe no desktop fraco, antes de começar: fora do JS da tela
    para todo o resto (`lib/captura/legendaSemBaixar.ts`). */
 const LegendaSemBaixar = lazy(() => import('./captura/LegendaSemBaixar'));
+/* A oferta da nuvem grátis para aparelho fraco (A10): só existe no aparelho que precisa dela. */
+const OfertaDaNuvemDeAlivio = lazyComRecarga(() => import('./captura/OfertaDaNuvemDeAlivio'));
 
 export default function LiveCapture({
   onSave,
@@ -1123,6 +1127,30 @@ export default function LiveCapture({
   const mtFailNotifiedRef = useRef(false);
   /** O tradutor do aparelho não carregou (`AvisoDoTradutorLocal`): a faixa com a oferta da internet. */
   const [tradutorLocalFalhou, setTradutorLocalFalhou] = useState(false);
+  /**
+   * A NUVEM DE ALÍVIO (A10): a oferta "Usar a nuvem grátis (restam X)" desta captura, quando o aparelho
+   * não aguenta e o servidor tem franquia para a conta Grátis. `null` = nada a oferecer.
+   */
+  const [ofertaDeAlivio, setOfertaDeAlivio] = useState<{
+    motivo: MotivoDaOfertaDeAlivio;
+    restanteSegundos: number;
+  } | null>(null);
+  /* A oferta já na tela responde "mostrei" sem perguntar ao servidor de novo (o regulador pode chegar ao
+     chão mais de uma vez na sessão). */
+  const ofertaDeAlivioRef = useRef(ofertaDeAlivio);
+  ofertaDeAlivioRef.current = ofertaDeAlivio;
+  /** O pipeline pergunta; a regra e a consulta ao servidor moram em `lib/nuvemDeAlivio/consulta.ts`. */
+  const pedirNuvemDeAlivio = useCallback(
+    async (motivo: MotivoDaOfertaDeAlivio, aparelho: SinaisDoAparelhoParaAlivio): Promise<boolean> => {
+      if (ofertaDeAlivioRef.current) return true;
+      const { ofertaDoAlivio } = await import('../../lib/nuvemDeAlivio/consulta');
+      const oferta = await ofertaDoAlivio(aparelho);
+      if (!oferta) return false;
+      setOfertaDeAlivio((atual) => atual ?? { motivo, restanteSegundos: oferta.restanteSegundos });
+      return true;
+    },
+    [],
+  );
 
   /** Avisa UMA vez por sessão que o destino da tradução foi redirecionado (ver traducaoDaFala). */
   const altTargetNotifiedRef = useRef(false);
@@ -1191,53 +1219,80 @@ export default function LiveCapture({
   /* O PIPELINE DE FALA (VAD → STT → diarização → emissão) e a preparação dos modelos moram em
      `lib/captura/pipelineDeFala.ts`. A fábrica roda a cada render, como as closures que
      substituiu: os handlers precisam do `micEnabled`/`micEngine` do render corrente. */
-  const { sysHandlers, micHandlers, prepareModels, preaquecerModelos, decidirMotorDoSistema, prepararTradutorDaFala } =
-    criarPipelineDeFala({
-      gateway,
-      sourceLang,
-      sourceLangRef,
-      targetLangRef,
-      autoDetectLangRef,
-      autoDetectMyLangRef,
-      idiomaObservadoRef,
-      captureScenarioRef,
-      perfModeRef,
-      micEnabled,
-      micEngine,
-      timerRef,
-      nowRel,
-      setSpeechSegments,
-      seqToSegmentRef,
-      lastPartialTextRef,
-      contextoDoSttRef,
-      pendingUtterancesRef,
-      suppressedSeqsRef,
-      modelReadyRef,
-      prepareEmVooRef,
-      speakerProfilesRef,
-      setSpeakerProfiles,
-      speakerAutoIdRef,
-      clustererRef,
-      lastVoiceIdRef,
-      provisionalUttsRef,
-      ensureVoiceProfile,
-      dominantLangRef,
-      perfilIdiomaRef,
-      perfilMicRef,
-      avisoIdiomaMicRef,
-      setIdiomaObservado,
-      sysFalasRef,
-      sysAbertasRef,
-      micInicioRef,
-      avisoVazamentoRef,
-      translateSegment,
-      retraduzirDegradados,
-      setFeedbackMsg,
-      setModelPrep,
-      setSttRouteLabel,
-      reguladorRef,
-      sistemaAtivo: () => !!systemCaptureRef.current,
-    });
+  const {
+    sysHandlers,
+    micHandlers,
+    prepareModels,
+    preaquecerModelos,
+    decidirMotorDoSistema,
+    prepararTradutorDaFala,
+    ligarNuvemDeAlivio,
+  } = criarPipelineDeFala({
+    gateway,
+    sourceLang,
+    sourceLangRef,
+    targetLangRef,
+    autoDetectLangRef,
+    autoDetectMyLangRef,
+    idiomaObservadoRef,
+    captureScenarioRef,
+    perfModeRef,
+    micEnabled,
+    micEngine,
+    timerRef,
+    nowRel,
+    setSpeechSegments,
+    seqToSegmentRef,
+    lastPartialTextRef,
+    contextoDoSttRef,
+    pendingUtterancesRef,
+    suppressedSeqsRef,
+    modelReadyRef,
+    prepareEmVooRef,
+    speakerProfilesRef,
+    setSpeakerProfiles,
+    speakerAutoIdRef,
+    clustererRef,
+    lastVoiceIdRef,
+    provisionalUttsRef,
+    ensureVoiceProfile,
+    dominantLangRef,
+    perfilIdiomaRef,
+    perfilMicRef,
+    avisoIdiomaMicRef,
+    setIdiomaObservado,
+    sysFalasRef,
+    sysAbertasRef,
+    micInicioRef,
+    avisoVazamentoRef,
+    translateSegment,
+    retraduzirDegradados,
+    setFeedbackMsg,
+    setModelPrep,
+    setSttRouteLabel,
+    reguladorRef,
+    sistemaAtivo: () => !!systemCaptureRef.current,
+    pedirNuvemDeAlivio,
+  });
+
+  /* A faixa da nuvem de alívio, a mesma no celular e no desktop. Aceita, a rota passa à nuvem na hora
+     (o modelo local fica de reserva); se o servidor recusar agora, a legenda segue no aparelho. */
+  const faixaDaNuvemDeAlivio = ofertaDeAlivio ? (
+    <React.Suspense fallback={null}>
+      <OfertaDaNuvemDeAlivio
+        motivo={ofertaDeAlivio.motivo}
+        restanteSegundos={ofertaDeAlivio.restanteSegundos}
+        aoAceitar={() => {
+          setOfertaDeAlivio(null);
+          void ligarNuvemDeAlivio().then((ligou) => {
+            if (ligou) return;
+            setFeedbackMsg(t('A nuvem grátis não respondeu agora; a legenda segue no aparelho.'));
+          });
+        }}
+        aoFechar={() => setOfertaDeAlivio(null)}
+      />
+    </React.Suspense>
+  ) : null;
 
   /* PRÉ-AQUECE o STT/MT locais que JÁ estão em cache quando a tela abre e quando o par ou a qualidade
      mudam (nunca baixa nada: ver `preaquecerModelos`). Com um respiro, para não disputar a
@@ -2651,6 +2706,7 @@ export default function LiveCapture({
         avisos={
           <>
             <AvisoDeNuvemSemConsentimento />
+            {faixaDaNuvemDeAlivio}
             {tradutorLocalFalhou && (
               <AvisoDoTradutorLocal
                 aoAutorizar={() => {
@@ -3301,6 +3357,7 @@ export default function LiveCapture({
             {/* ============================================== */}
             <div className="tela larga entra">
               <AvisoDeNuvemSemConsentimento />
+              {faixaDaNuvemDeAlivio}
               {tradutorLocalFalhou && (
                 <AvisoDoTradutorLocal
                   aoAutorizar={() => {

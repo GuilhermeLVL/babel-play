@@ -151,6 +151,52 @@ export const LIMITES_DO_CONVIDADO = {
   tetoUsdMes: 0.02,
 } as const;
 
+/**
+ * Quanto a Groq FATURA para cada segundo real de fala, com o VAD fechando a fala após 800 ms
+ * (mínimo de 10 s por pedaço) — MEDIDO na bancada de 2026-09 (`docs/auditoria/eval/bancada-2026-09.md`).
+ * É o número que converte a cota em segundos REAIS no custo do dono.
+ */
+export const FATOR_FATURADO_DO_STT = 1.08;
+
+/**
+ * A NUVEM DE ALÍVIO (A10 do plano "Grátis sem travar", decisão do dono em 29/09/2026): o Grátis tem
+ * 3 h/mês de nuvem PARA APARELHO FRACO, além do aparelho sem limite. NÃO é um plano nem muda o
+ * `free` da matriz (que continua sem nuvem): é uma franquia à parte, contada POR CONTA no servidor
+ * (`server/lib/nuvemDeAlivio.ts`, contadores próprios em `usage_counters`), que só vale para quem o
+ * aparelho não aguenta o modelo local. No aparelho forte a pessoa roda local de graça, e oferecer a
+ * nuvem ali só custaria dinheiro — por isso a elegibilidade por aparelho é um portão de UX no
+ * cliente (`src/core/nuvemDeAlivio.ts`), e o limite de verdade é este, no servidor.
+ *
+ * A CONTA DE CUSTO, com os preços que o código usa (`server/lib/orcamentoDeIa.ts`, Groq 24/09/2026):
+ *
+ *   STT   10.800 s × 1,08 (faturado) × US$ 0,04/h                        = US$ 0,1296
+ *   LLM   gpt-oss-120b: US$ 0,15 por 1M de entrada, US$ 0,60 de saída. A tradução medida na
+ *         bancada custa US$ 0,036 por hora de fala (raciocínio "low"): 3 h traduzidas na nuvem
+ *         seriam mais US$ 0,108 — as duas coisas juntas (~US$ 0,24) NÃO cabem no aceite.
+ *
+ *   O ACEITE DO PLANO É ≤ US$ 0,13 POR USUÁRIO GRÁTIS/MÊS, e quem o garante é `tetoUsdMes`: um teto
+ *   em DÓLAR por conta, conferido ANTES de cada chamada e somado DEPOIS (o mesmo molde do teto do
+ *   convidado). As 3 h de transcrição cabem nele (US$ 0,1296); a tradução na nuvem sai do MESMO
+ *   teto, então quem traduz na nuvem transcreve menos que 3 h — e o "restam X" que a pessoa vê já
+ *   é o menor dos dois (`segundosRestantesDoAlivio`). Com a cascata barata da Fase B (DeepInfra
+ *   ~US$ 0,024/h de fala e tradução), as 3 h passam a caber com tradução; o teto não muda.
+ *
+ *   Tokens e chamadas são tetos de USO JUSTO, não de dinheiro (quem fecha o dinheiro é o dólar):
+ *     tokens   540.000 = o que gastaria a franquia inteira só em tradução, na mistura típica de 80%
+ *              de entrada: US$ 0,13 ÷ (0,8 × 0,15 + 0,2 × 0,60) × 1M;
+ *     chamadas 4.000  = 10.800 s ÷ 6 s por fala × 2 (transcrever + traduzir) = 3.600, com folga.
+ *
+ * O pool DIÁRIO do alívio (teto somando TODOS os grátis, ≤ 20% do orçamento diário de nuvem) e a
+ * reserva de 80% para quem paga estão em `src/core/nuvemDeAlivio.ts`.
+ */
+export const FRANQUIA_DE_ALIVIO = {
+  sttSegundosMes: 10_800,
+  tokensMes: 540_000,
+  chamadasMes: 4_000,
+  /** Teto de gasto ESTIMADO por conta no mês, em US$ — o aceite do plano. */
+  tetoUsdMes: 0.13,
+} as const;
+
 /** O plano EFETIVO que o servidor resolve: um de assinatura, ou `convidado` (anônimo com JWT). */
 export type PlanoEfetivo = PlanoDeAssinatura | 'convidado';
 

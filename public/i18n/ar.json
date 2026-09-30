@@ -200,5 +200,12 @@
   "Com o idioma certo, o próprio navegador transcreve no aparelho, e o computador não fica pesado.": "باللغة الصحيحة، يقوم المتصفح نفسه بالنسخ على الجهاز، ولا يصبح الحاسوب بطيئًا.",
   "Outro idioma": "لغة أخرى",
   "reconhecimento do navegador": "التعرّف في المتصفح",
-  "Transcrição pelo reconhecimento do navegador, no aparelho: ver detalhes": "النسخ عبر التعرّف في المتصفح، على الجهاز: عرض التفاصيل"
+  "Transcrição pelo reconhecimento do navegador, no aparelho: ver detalhes": "النسخ عبر التعرّف في المتصفح، على الجهاز: عرض التفاصيل",
+  "O aparelho não está dando conta da legenda.": "هذا الجهاز لا يواكب الترجمة المصاحبة.",
+  "Este aparelho pode ficar lento com a legenda feita nele.": "قد يصبح هذا الجهاز بطيئًا إذا أنشأ الترجمة المصاحبة بنفسه.",
+  "Com a nuvem grátis, o áudio das falas é transcrito no servidor e o aparelho fica leve.": "مع السحابة المجانية، يُفرَّغ صوت العبارات على الخادم ويبقى الجهاز خفيفًا.",
+  "Usar a nuvem grátis (restam {tempo})": "استخدام السحابة المجانية (متبقٍ {tempo})",
+  "Nuvem grátis ligada nesta sessão": "السحابة المجانية مفعّلة في هذه الجلسة",
+  "A nuvem grátis não respondeu agora; a legenda segue no aparelho.": "لم تستجب السحابة المجانية الآن؛ تستمر الترجمة المصاحبة على الجهاز.",
+  "nuvem grátis · reserva no aparelho": "سحابة مجانية · احتياطي على الجهاز"
 }

@@ -191,5 +191,12 @@
   "Com o idioma certo, o próprio navegador transcreve no aparelho, e o computador não fica pesado.": "Con el idioma correcto, el propio navegador transcribe en el dispositivo y la computadora no se pone lenta.",
   "Outro idioma": "Otro idioma",
   "reconhecimento do navegador": "reconocimiento del navegador",
-  "Transcrição pelo reconhecimento do navegador, no aparelho: ver detalhes": "Transcripción por el reconocimiento del navegador, en el dispositivo: ver detalles"
+  "Transcrição pelo reconhecimento do navegador, no aparelho: ver detalhes": "Transcripción por el reconocimiento del navegador, en el dispositivo: ver detalles",
+  "O aparelho não está dando conta da legenda.": "El dispositivo no está dando abasto con los subtítulos.",
+  "Este aparelho pode ficar lento com a legenda feita nele.": "Este dispositivo puede volverse lento si genera los subtítulos él mismo.",
+  "Com a nuvem grátis, o áudio das falas é transcrito no servidor e o aparelho fica leve.": "Con la nube gratis, el audio de las frases se transcribe en el servidor y el dispositivo queda liviano.",
+  "Usar a nuvem grátis (restam {tempo})": "Usar la nube gratis (quedan {tempo})",
+  "Nuvem grátis ligada nesta sessão": "Nube gratis activada en esta sesión",
+  "A nuvem grátis não respondeu agora; a legenda segue no aparelho.": "La nube gratis no respondió ahora; los subtítulos siguen en el dispositivo.",
+  "nuvem grátis · reserva no aparelho": "nube gratis · respaldo en el dispositivo"
 }

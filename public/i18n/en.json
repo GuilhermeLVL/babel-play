@@ -1194,5 +1194,12 @@
   "Transcrição sem baixar nada: escolha o idioma do vídeo.": "Transcription without downloading anything: choose the video language.",
   "Com o idioma certo, o próprio navegador transcreve no aparelho, e o computador não fica pesado.": "With the right language, the browser itself transcribes on this device, and the computer stays light.",
   "Outro idioma": "Another language",
-  "Transcrição pelo reconhecimento do navegador, no aparelho: ver detalhes": "Transcription by browser speech recognition, on this device: see details"
+  "Transcrição pelo reconhecimento do navegador, no aparelho: ver detalhes": "Transcription by browser speech recognition, on this device: see details",
+  "O aparelho não está dando conta da legenda.": "This device is not keeping up with the captions.",
+  "Este aparelho pode ficar lento com a legenda feita nele.": "This device may slow down if it makes the captions itself.",
+  "Com a nuvem grátis, o áudio das falas é transcrito no servidor e o aparelho fica leve.": "With the free cloud, the speech audio is transcribed on the server and the device stays light.",
+  "Usar a nuvem grátis (restam {tempo})": "Use the free cloud ({tempo} left)",
+  "Nuvem grátis ligada nesta sessão": "Free cloud on for this session",
+  "A nuvem grátis não respondeu agora; a legenda segue no aparelho.": "The free cloud did not respond right now; captions continue on the device.",
+  "nuvem grátis · reserva no aparelho": "free cloud · device as backup"
 }

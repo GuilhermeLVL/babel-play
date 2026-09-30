@@ -16,7 +16,7 @@ import { erroDeRota } from '../lib/erroDeRota'
 import { log } from '../lib/logger'
 import { custoDeLlm, portaoDaNuvem, registrarGastoDeIa, responderPortaoFechado } from '../lib/orcamentoDeIa'
 import { responderErro } from '../lib/respostaDeErro'
-import { estimarTokens } from '../lib/usageQuota'
+import { estimarTokens, type ModoDaCota } from '../lib/usageQuota'
 import { planoDeAdmissao, responderNuvemOcupada } from './admissao'
 import { cabeNoCache, type ConsultaDeTraducao, guardarTraducao, lerTraducao } from './cacheDeTraducao'
 import { type AdmissaoDaCascata, admitirCascata, encerrarAdmissao, percorrerCascata } from './cascata'
@@ -143,9 +143,12 @@ async function traduzir(req: Request, res: Response, rastro: RastroDeIa): Promis
      `null` = já respondeu (403 `exige_conta`, 429, 402, 503). */
   const gratuita = await abrirPortaGratuita(req, res, 'mt')
   if (!gratuita) return
+  /* A NUVEM DE ALÍVIO (A10): a conta Grátis que aceitou a oferta traduz pela franquia do alívio
+     (`nuvemDeAlivio.ts`); o entitlement do plano continua falso. */
+  const alivio = gratuita.alivio === true
   try {
     planoDoUsuario = getEntitlements(gratuita.plano)
-    if (!planoDoUsuario.managedCloudLlm) {
+    if (!planoDoUsuario.managedCloudLlm && !alivio) {
       res.status(402).json({ error: 'tradução por IA gerenciada requer um plano pago', entitlement: 'managedCloudLlm' })
       return
     }
@@ -222,7 +225,7 @@ async function traduzir(req: Request, res: Response, rastro: RastroDeIa): Promis
      tradução dele já em voo), 429 `nuvem_ocupada` com `Retry-After` — e o cliente traduz no local. */
   const admitida = admitirCascata(provedores, {
     userId: req.userId,
-    plano: planoDeAdmissao(planoDoUsuario.plan),
+    plano: planoDeAdmissao(planoDoUsuario.plan, alivio),
     tokens: estimativa,
   })
   if (admitida.ok === false) {
@@ -240,6 +243,7 @@ async function traduzir(req: Request, res: Response, rastro: RastroDeIa): Promis
       admissao: admitida.admissao,
       gratuita,
       planoDaAssinatura: planoDoUsuario.plan,
+      modo: alivio ? 'alivio' : 'plano',
     })
   } finally {
     encerrarAdmissao(admitida.admissao)
@@ -262,12 +266,14 @@ async function traduzirAdmitido(
     gratuita: PortaGratuita
     /** O plano da assinatura — rótulo do custo por plano (`ia_custo_usd_total{plano}`). */
     planoDaAssinatura: string
+    /** De que franquia saem a chamada e os tokens: a do plano, ou a da nuvem de alívio (A10). */
+    modo: ModoDaCota
   },
 ): Promise<void> {
   const { provedores, messages, maxTokens, falada, consulta } = p
   // RESERVA chamada + tokens ANTES do provedor (P0-1: conferir antes e contabilizar depois deixava
   // N requisições simultâneas passarem pelo mesmo teto). `null` = já respondeu 402/503.
-  const reserva: ReservaDeLlm | null = await abrirReservaDeLlm(req.userId, p.estimativa, res)
+  const reserva: ReservaDeLlm | null = await abrirReservaDeLlm(req.userId, p.estimativa, res, p.modo)
   if (!reserva) return
 
   const t0 = Date.now()

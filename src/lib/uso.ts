@@ -30,6 +30,21 @@ export interface UsoDoMes {
   tokensDeLlm: Contador;
   /** Portão global da nuvem (chave de emergência e orçamento do mês). Ausente em servidor antigo. */
   iaDeNuvem?: { disponivel: boolean; motivo: string | null; mensagem: string | null };
+  /**
+   * A NUVEM DE ALÍVIO do Grátis (A10): o que resta, em segundos de transcrição (o menor entre os
+   * segundos e o dólar que sobram da franquia), e se ela pode ser usada agora. `null` fora do Grátis;
+   * ausente em servidor antigo.
+   */
+  alivio?: AlivioDoMes | null;
+}
+
+export interface AlivioDoMes {
+  disponivel: boolean;
+  /** Por que não (`alivio_desligado`, `alivio_exige_responsavel`, `pool_de_alivio_esgotado`, `quota_exceeded`). */
+  motivo: string | null;
+  restanteSegundos: number;
+  segundosDeAudio: Contador;
+  tokensDeLlm: Contador;
 }
 
 /** Busca o consumo. Devolve `null` quando a rota não responde — a tela mostra isso, não zera. */

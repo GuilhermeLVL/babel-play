@@ -93,3 +93,7 @@ zero erros no console, nenhum botão de login/planos à vista, o cartão honesto
 existem na versão completa, e uma rodada inteira de jogo sem microfone (palavras da Trilha)
 gravada no IndexedDB. As regras de unidade estão em `tests/edicao-estatica.test.ts` e
 `tests/edicao-estatica-telas.test.tsx`.
+
+A suíte roda no CI no job `e2e-estatica` (`.github/workflows/ci.yml`), com o build e os dois
+projetos; trace e screenshot da falha saem como o artefato `playwright-estatica`. Antes dele ela
+não rodava em workflow nenhum e ficou vermelha sem ninguém ver.

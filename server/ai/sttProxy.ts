@@ -10,6 +10,7 @@ import type { NextFunction, Request, Response } from 'express'
 import { filtrarAlucinacao } from '../../src/gateway/alucinacao'
 import { credentialsRepo } from '../db/repositories/credentials'
 import { contarDescartesDoStt, observarChamadaDeProvedor } from '../http/metricas'
+import { sttGerenciadoDoEnv } from '../lib/config'
 import { abrirPortaGratuita, type PortaGratuita } from '../lib/convidado'
 import { arquivoDoAudio, avaliarAudioFaturavel, duracaoDoAudio, segundosFaturaveis } from '../lib/duracaoDeAudio'
 import { getEntitlements } from '../lib/entitlements'
@@ -69,17 +70,12 @@ const RETENTATIVAS_DE_STT = 1
 
 /* ─────────────── a PORTA do STT: tudo que é barato, ANTES de ler o corpo ─────────────── */
 
-/**
- * O STT gerenciado — a chave do DONO — como o servidor está configurado. Lido na porta para o 501
- * sair ANTES de o corpo de 25 MB ser lido (antes ele saía depois até da reserva de cota).
+/*
+ * O STT gerenciado — a chave do DONO — é lido na porta para o 501 sair ANTES de o corpo de 25 MB ser
+ * lido. A leitura mora em `sttGerenciadoDoEnv` (`server/lib/config.ts`), a MESMA que responde
+ * `GET /api/ai/stt/available` (B0 da Fase B): eram duas, e discordavam — a disponibilidade dizia 200
+ * com só `LLM_API_KEY` configurada, e esta porta respondia 501.
  */
-function sttGerenciado(): { secret: string | null; baseUrl: string; model: string } {
-  return {
-    secret: process.env.GROQ_API_KEY ?? process.env.STT_API_KEY ?? null,
-    baseUrl: process.env.GROQ_BASE_URL || process.env.STT_BASE_URL || 'https://api.groq.com/openai/v1',
-    model: process.env.STT_MODEL || 'whisper-large-v3-turbo',
-  }
-}
 
 /** O que a porta decidiu, do middleware até o handler. */
 interface PortaDoStt {
@@ -132,8 +128,8 @@ async function abrirPortaDoStt(req: Request, res: Response): Promise<PortaDoStt 
     responderPortaoFechado(res, portao)
     return null
   }
-  const cfg = sttGerenciado()
-  if (!cfg.secret) {
+  const cfg = sttGerenciadoDoEnv()
+  if (!cfg) {
     res.status(501).json({ error: 'STT de nuvem não configurado: defina GROQ_API_KEY no servidor (.env)' })
     return null
   }

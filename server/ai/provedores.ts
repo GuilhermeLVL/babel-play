@@ -38,11 +38,11 @@ const BASE_OPENROUTER = 'https://openrouter.ai/api/v1'
  * deliberado: a variavel e uma decisao de produto (qual modelo vale a diferenca de preco) e nao
  * cabe a este arquivo inventar um. O que muda e que, definida, ela passa a ser respeitada.
  */
-export const LLM_MODEL_GRANDE = () => process.env.LLM_MODEL_GRANDE?.trim() || null
+export const LLM_MODEL_GRANDE = (env: NodeJS.ProcessEnv = process.env) => env.LLM_MODEL_GRANDE?.trim() || null
 
 /** Quem tem `largerModels` e um modelo grande configurado recebe ele; o resto, o de sempre. */
-function modeloDoPlano(padrao: string, modelosGrandes?: boolean): string {
-  return (modelosGrandes && LLM_MODEL_GRANDE()) || padrao
+function modeloDoPlano(padrao: string, modelosGrandes: boolean | undefined, env: NodeJS.ProcessEnv): string {
+  return (modelosGrandes && LLM_MODEL_GRANDE(env)) || padrao
 }
 
 /** O que o chamador sabe sobre o plano de quem esta pedindo. */
@@ -61,16 +61,17 @@ export interface Provedor {
 }
 
 /** O LLM de nuvem principal. `null` quando não há chave — quem chama decide o que fazer. */
-export function llmDeNuvem(opcoes: OpcoesDeProvedor = {}): Provedor | null {
-  const apiKey = process.env.LLM_API_KEY || process.env.GROQ_API_KEY
+export function llmDeNuvem(opcoes: OpcoesDeProvedor = {}, env: NodeJS.ProcessEnv = process.env): Provedor | null {
+  const apiKey = env.LLM_API_KEY || env.GROQ_API_KEY
   if (!apiKey) return null
   return {
     rotulo: 'llm-primario',
-    base: semBarra(process.env.LLM_BASE_URL || process.env.GROQ_BASE_URL || 'https://api.groq.com/openai/v1'),
+    base: semBarra(env.LLM_BASE_URL || env.GROQ_BASE_URL || 'https://api.groq.com/openai/v1'),
     apiKey,
     model: modeloDoPlano(
-      process.env.LLM_MODEL || process.env.GROQ_LLM_MODEL || process.env.GROQ_MODEL || MODELO_LLM_PADRAO,
+      env.LLM_MODEL || env.GROQ_LLM_MODEL || env.GROQ_MODEL || MODELO_LLM_PADRAO,
       opcoes.modelosGrandes,
+      env,
     ),
   }
 }
@@ -88,8 +89,8 @@ export function llmDeNuvem(opcoes: OpcoesDeProvedor = {}): Provedor | null {
  *     modelo de `LLM_RESERVA_MODEL`, ou o padrão (`openai/gpt-oss-120b` tem o mesmo nome no
  *     catálogo do OpenRouter). As `LLM_RESERVA_*` completas vencem o atalho.
  */
-export function llmDeReserva(): Provedor | null {
-  const { LLM_RESERVA_BASE_URL, LLM_RESERVA_API_KEY, LLM_RESERVA_MODEL, OPENROUTER_API_KEY } = process.env
+export function llmDeReserva(env: NodeJS.ProcessEnv = process.env): Provedor | null {
+  const { LLM_RESERVA_BASE_URL, LLM_RESERVA_API_KEY, LLM_RESERVA_MODEL, OPENROUTER_API_KEY } = env
   if (LLM_RESERVA_BASE_URL && LLM_RESERVA_API_KEY && LLM_RESERVA_MODEL) {
     return {
       rotulo: 'llm-reserva',
@@ -127,8 +128,28 @@ export function llmLocal(): Provedor {
  * janelas inteiras com 429. A reserva é o que permite colher a economia sem apostar a experiência
  * do assinante na cota de um terceiro.
  */
-export function cascataDeNuvem(opcoes: OpcoesDeProvedor = {}): Provedor[] {
-  const primario = llmDeNuvem(opcoes)
-  const reserva = llmDeReserva()
+export function cascataDeNuvem(opcoes: OpcoesDeProvedor = {}, env: NodeJS.ProcessEnv = process.env): Provedor[] {
+  const primario = llmDeNuvem(opcoes, env)
+  const reserva = llmDeReserva(env)
   return [...(primario ? [primario] : []), ...(reserva ? [reserva] : [])]
+}
+
+/**
+ * O AVISO DO ADR 0008: em produção, a nuvem configurada SEM reserva. O ADR diz como a decisão é
+ * cobrada — "aviso no boot em produção quando não há reserva configurada" — e o aviso não existia,
+ * justo quando a reserva de produção está fora (a chave da OpenRouter expirou). Sem ela, um 429 ou
+ * uma queda do primário derruba a tradução e o tutor de todo assinante AO MESMO TEMPO; o piso local
+ * do navegador segura a legenda, mas quem paga sente. Fora de produção não avisa (ruído de dev), e
+ * sem primário não há o que reservar — a ausência da nuvem já aparece em `config_capacidade_degradada`.
+ *
+ * Devolve a frase do aviso, ou `null`. Quem loga é o `server.ts`, com o evento `ia_sem_reserva`.
+ */
+export function avisoDeIaSemReserva(env: NodeJS.ProcessEnv = process.env): string | null {
+  if (env.NODE_ENV !== 'production') return null
+  if (!llmDeNuvem({}, env) || llmDeReserva(env)) return null
+  return (
+    'a IA de nuvem (tradução e tutor) está SEM RESERVA (ADR 0008): uma queda ou um 429 do provedor ' +
+    'principal derruba todo assinante ao mesmo tempo. Configure as três LLM_RESERVA_* ou o atalho ' +
+    'OPENROUTER_API_KEY (docs/LANCAMENTO.md, passo 5).'
+  )
 }

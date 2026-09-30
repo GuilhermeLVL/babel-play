@@ -945,15 +945,70 @@ export function diasDeRetencaoDeAudio(env: NodeJS.ProcessEnv = process.env): num
   return Number.isInteger(n) && n >= 0 ? n : RETENCAO_DE_AUDIO_PADRAO_DIAS
 }
 
+/** O modelo de STT gerenciado quando `STT_MODEL` não diz outro (medido: docs/auditoria/eval/bancada-2026-09.md). */
+export const MODELO_STT_PADRAO = 'whisper-large-v3-turbo'
+const BASE_DA_GROQ = 'https://api.groq.com/openai/v1'
+
+/** O STT gerenciado — a chave do DONO — como o ambiente o configura. */
+export interface ConfigDoSttGerenciado {
+  secret: string
+  baseUrl: string
+  model: string
+}
+
+/**
+ * UMA FONTE SÓ PARA O STT GERENCIADO (B0 da Fase B, 29/09/2026).
+ *
+ * Havia duas leituras do mesmo fato, e elas discordavam. `GET /api/ai/stt/available` perguntava
+ * `LLM_API_KEY || GROQ_API_KEY || STT_API_KEY`; a porta da transcrição (`sttProxy.ts`) perguntava
+ * `GROQ_API_KEY ?? STT_API_KEY`. Os dois casos em que isso mordia são os de verdade:
+ *
+ *   - o `.env.production.example` configura SÓ `LLM_API_KEY`, com a base da Groq. A disponibilidade
+ *     dizia 200, o roteador do cliente mandava o áudio para a nuvem — e toda transcrição voltava
+ *     501. O STT de nuvem de produção estava desligado sem ninguém saber;
+ *   - `GROQ_API_KEY=` vazia (é assim que os testes e muito `.env` "desligam" a variável, porque o
+ *     dotenv repõe a apagada) com `STT_API_KEY` definida: o `??` tomava a string vazia como chave.
+ *
+ * A REGRA, agora escrita num lugar: as chaves próprias do STT, na precedência de sempre
+ * (`GROQ_*` antes de `STT_*`, vazia conta como ausente); sem elas, a chave do LLM — MAS SÓ quando o
+ * LLM é a Groq, que é o que o `.env.production.example` descreve. A chave de um LLM em outro
+ * provedor não anuncia STT: aquele endereço não tem Whisper garantido, e anunciar uma capacidade que
+ * responde 404 é o mesmo defeito do 200/501 com outra cara. O teste que prende a regra é
+ * `tests/integration/stt-disponivel-coerente.test.ts`.
+ */
+export function sttGerenciadoDoEnv(env: NodeJS.ProcessEnv = process.env): ConfigDoSttGerenciado | null {
+  /* Leitura por NOME literal (`env.X`), e não por `env[nome]`: é o que o inventário enxerga
+     (`tests/integration/config-inventario.test.ts`). Vazia ou só espaço conta como ausente. */
+  const semBarra = (u: string) => u.replace(/\/+$/, '')
+  const model = env.STT_MODEL?.trim() || MODELO_STT_PADRAO
+  const propria = env.GROQ_API_KEY?.trim() || env.STT_API_KEY?.trim()
+  if (propria) {
+    return {
+      secret: propria,
+      baseUrl: semBarra(env.GROQ_BASE_URL?.trim() || env.STT_BASE_URL?.trim() || BASE_DA_GROQ),
+      model,
+    }
+  }
+  const doLlm = env.LLM_API_KEY?.trim()
+  if (!doLlm) return null
+  /* A mesma base que `server/ai/provedores.ts` usa para o LLM primário com essa chave. */
+  const base = semBarra(env.LLM_BASE_URL?.trim() || env.GROQ_BASE_URL?.trim() || BASE_DA_GROQ)
+  let host: string
+  try {
+    host = new URL(base).hostname.toLowerCase()
+  } catch {
+    return null
+  }
+  return host === 'api.groq.com' ? { secret: doLlm, baseUrl: base, model } : null
+}
+
 /**
  * A nuvem de STT está configurada? Lido por `GET /api/ai/stt/available`, que existe para o
- * roteador decidir sem gastar chamada de API.
+ * roteador decidir sem gastar chamada de API. É, por construção, a MESMA pergunta que a porta da
+ * transcrição faz (`sttGerenciadoDoEnv`) — ver o B0 acima.
  */
 export function sttDeNuvemConfigurado(env: NodeJS.ProcessEnv = process.env): boolean {
-  // `LLM_API_KEY` entra aqui também: sem isto, quem configurasse só o nome novo veria a rota
-  // `/api/ai/stt/available` responder "não configurado" com a chave presente — e a UI esconderia
-  // uma capacidade que existe.
-  return Boolean(env.LLM_API_KEY || env.GROQ_API_KEY || env.STT_API_KEY)
+  return sttGerenciadoDoEnv(env) !== null
 }
 
 /* ─────────────── admissão de IA ao vivo (ADR 0007) ─────────────── */

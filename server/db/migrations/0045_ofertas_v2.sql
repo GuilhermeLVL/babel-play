@@ -14,8 +14,8 @@
 -- selo do host ("Sugerido: 14 dias de Premium grátis, sem cartão"), não do texto: aqui não se promete o teste a
 -- quem já testou.
 --
--- NÚMERO 0045 porque a 0044 está reservada para a Fase D (outra branch). No merge, o `when` da 0044 no journal
--- precisa ficar MENOR que o desta (o migrador do drizzle pula a migration com `when` anterior à última aplicada).
+-- Vem DEPOIS da 0044 (polir a sessão, Fase D): no journal o `when` da 0044 é menor que o desta (o migrador do
+-- drizzle pula a migration com `when` anterior à última aplicada), e o snapshot desta parte do da 0044.
 --
 -- SÓ A LINHA DA SEMENTE (`atualizado_por = 'semente'`): se o operador já mexeu na flag pelo admin ou pela CLI, a
 -- escolha dele vale e esta migração não faz nada. Não liga nem desliga a flag. Reaplicar escreve os mesmos

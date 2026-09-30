@@ -154,7 +154,7 @@ import {
   onLangConfigChange,
   saveLangConfig,
 } from '../../lib/langConfig';
-import { baseLang, langLabel, langLabelNaUI, mtCoverage } from '../../lib/languages';
+import { baseLang, langLabel, langLabelNaUI, mtCoverage, toBcp47 } from '../../lib/languages';
 import { lazyComRecarga } from '../../lib/lazyComRecarga';
 import { setNavGuard } from '../../lib/navGuard';
 import { OrdemDasTraducoes } from '../../lib/ordemDaTraducao';
@@ -2687,7 +2687,13 @@ export default function LiveCapture({
   const tocarFala = useFuncaoEstavel(
     (segment: { id: string; originalText: string; translatedText: string }, lang: string) => {
       setFalaEmFoco(segment.id);
-      setFalaTocada({ id: segment.id, texto: segment.originalText, traducao: segment.translatedText, lang });
+      setFalaTocada({
+        id: segment.id,
+        texto: segment.originalText,
+        traducao: segment.translatedText,
+        lang,
+        langDaTraducao: toBcp47(destinoDaFala(lang)) || destinoDaFala(lang),
+      });
     },
   );
   const examinarNoCelular = useFuncaoEstavel((w: VocabWord, lang: string, frase: string) => {

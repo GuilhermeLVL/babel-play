@@ -72,10 +72,15 @@
 - [x] 7.4 Troca de ciclo com assinatura ativa: o caminho honesto, sem rota nova (`DialogoCiclo`) — cancelar a
       renovação e assinar o outro ciclo no fim do período; o 12x não troca (não renova)
 
-## C8 — Ofertas (depois)
+## C8 — Ofertas (branch `feat/c-tela-de-planos`)
 
-- [ ] 8.1 `planoSugerido`: free → `teste` ou `premium`; perfil protegido só recebe ofertas funcionais
-- [ ] 8.2 Payload novo de `oferta_planos` via migração
+- [x] 8.1 `planoSugerido`: free → `teste` (o servidor deixa testar: `/api/billing/status`, lembrado por 1 h em
+      `lib/ofertas/teste.ts`) ou `premium`; o selo diz "Sugerido: 14 dias de Premium grátis, sem cartão"
+- [x] 8.2 Portão novo: a CONTA de perfil protegido só recebe o funcional, com o texto EMBUTIDO (o da flag pode
+      vender) e sem plano sugerido (`perfil_protegido` no motor)
+- [x] 8.3 Payload v2 de `oferta_planos` via migração 0045 (textos do Premium, sem qualidade, `variante: v2`; só a
+      linha da semente)
+- [x] 8.4 O `fim_do_teste` do C6 integrado na tela: a faixa "Premium · teste" diz a mesma frase de D-3/D0
 
 ## C9 — Docs e jurídico (depois)
 

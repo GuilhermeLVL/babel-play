@@ -253,6 +253,65 @@ describe('planos-alvo', () => {
   })
 })
 
+describe('C8 — o teste de 14 dias como sugestão', () => {
+  it('Grátis que pode testar → teste; que não pode (ou não se sabe) → Premium; o resto não muda', () => {
+    expect(planoSugerido('free', { podeTestar: true })).toBe('teste')
+    expect(planoSugerido('free', { podeTestar: false })).toBe('premium')
+    expect(planoSugerido('convidado', { podeTestar: true })).toBe('conta')
+    expect(planoSugerido('premium', { podeTestar: true })).toBe('nenhum')
+    expect(planoSugerido('selfhost', { podeTestar: true })).toBe('nenhum')
+  })
+
+  it('a decisão leva o teste como sugestão para quem pode testar', () => {
+    expect(decidirOferta(entrada({ podeTestar: true }))).toMatchObject({ mostrar: true, planoSugerido: 'teste' })
+    expect(decidirOferta(entrada({ podeTestar: false }))).toMatchObject({ mostrar: true, planoSugerido: 'premium' })
+  })
+})
+
+describe('C8 — perfil protegido: só o funcional, nunca o promocional', () => {
+  it('nenhum momento promocional aparece, mesmo com a flag ligada e um gatilho para ele', () => {
+    for (const momento of ['modelo_premium', 'conquista', 'fim_de_sessao'] as const) {
+      const d = decidirOferta(entrada({ protegido: true, momento, config: config(gatilho({ momento })) }))
+      expect(d, momento).toMatchObject({ mostrar: false, motivo: 'perfil_protegido', adiar: false })
+    }
+  })
+
+  it('o funcional aparece com o texto EMBUTIDO — nunca o da flag, que pode vender — e sem plano sugerido', () => {
+    const vende = gatilho({
+      id: 'cota_acabou',
+      momento: 'fim_de_cota',
+      componente: 'modal',
+      texto: { pt: 'Com o Premium você continua usando a nuvem.' },
+      planos: ['free'],
+    })
+    const d = decidirOferta(
+      entrada({ protegido: true, podeTestar: true, momento: 'fim_de_cota', config: config(vende) }),
+    )
+    expect(d.mostrar).toBe(true)
+    if (d.mostrar) {
+      expect(GATILHOS_FUNCIONAIS).toContain(d.gatilho)
+      expect(d.gatilho.id).toBe('funcional_fim_de_cota')
+      expect(d.planoSugerido).toBe('nenhum')
+      expect(d.variante).toBe('embutida')
+    }
+  })
+
+  it('sem sugestão de teste nem de Premium, e o fim do teste (ativado pelo responsável) continua chegando', () => {
+    expect(planoSugerido('free', { protegido: true, podeTestar: true })).toBe('nenhum')
+    const d = decidirOferta(
+      entrada({
+        protegido: true,
+        plano: 'premium',
+        momento: 'fim_do_teste',
+        fase: 'd3',
+        flagLigada: false,
+        config: config(),
+      }),
+    )
+    expect(d).toMatchObject({ mostrar: true, planoSugerido: 'nenhum', gatilho: { id: 'funcional_fim_do_teste_d3' } })
+  })
+})
+
 describe('histórico', () => {
   it('normaliza storage estranho em vez de lançar', () => {
     expect(normalizarHistorico('lixo')).toEqual(HISTORICO_VAZIO)

@@ -215,6 +215,22 @@ iniciadoEm?, terminaEm?, motivo? }` — a tela só oferece o toque a quem o serv
   e sem o jurídico; e uma segunda assinatura cobraria junto (o servidor já recusa, 409 `ja_assinante`). O 12x não
   troca: não renova, e no fim do ano escolhe-se de novo. Rota de troca na hora fica como decisão do dono.
 
+### 8. Ofertas v2 e o portão do perfil protegido (C8)
+
+- **`planoSugerido(plano, { protegido, podeTestar })`**: convidado → `conta`; Grátis → `teste` quando o servidor
+  deixa testar (`teste.estado === 'disponivel'` em `/api/billing/status`, lembrado 1 h no aparelho; o host pergunta
+  no máximo 1×/h, e a tela de Planos atualiza a lembrança a cada status) e `premium` quando não — ou quando não se
+  sabe: prometer o teste a quem já testou seria mentir. `teste` entra em `PLANOS_SUGERIDOS` (a métrica do funil o
+  aceita) e no destaque de Planos (que realça o cartão do Premium, onde o toque do teste já é o botão).
+- **Portão novo (o furo do plano):** a CONTA de perfil protegido (menor, ou idade não declarada) só recebe o
+  momento FUNCIONAL, e só com o gatilho EMBUTIDO — o gatilho da flag para `fim_de_cota` podia trazer texto de
+  venda ("com um plano pago você continua…") —, sem plano sugerido (a ação leva ao consumo do mês). Promocional →
+  recusa `perfil_protegido`. O convidado não é "protegido" aqui: a única promocional dele já é criar a conta (é
+  onde a idade é perguntada) — decisão a confirmar com o dono.
+- **Payload v2 (migração 0045, só a linha da semente):** os seis gatilhos com os textos do Premium (a Tradução
+  Nuance ao tocar, a nuvem, o aparelho que segue sem limite), sem "qualidade"/"mais precisa"/"planos pagos",
+  `variante: "v2"` para o funil separar a conversão dos textos novos, e alvo só Grátis (e o convidado na conta).
+
 ## Sondagem do Asaas (sandbox, 29–30/09/2026)
 
 Script de sondagem fora do repositório; chave lida do `.env.local` pelo processo, nunca impressa; cliente de

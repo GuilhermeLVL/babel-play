@@ -1529,5 +1529,6 @@
   "anual": "yearly",
   "anual em 12x": "yearly in 12 installments",
   "sem cobrança": "no charge",
-  "mensal": "monthly"
+  "mensal": "monthly",
+  "Sugerido: {dias} dias de {plano} grátis, sem cartão": "Suggested: {dias} days of {plano} free, no card needed"
 }

@@ -300,7 +300,8 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
         return;
       }
       setAbaLocal('planos');
-      setSugerido(p.plano);
+      /* O teste sugerido (C8) destaca o cartão do Premium: o toque do teste já é o botão dele. */
+      setSugerido('premium');
     };
     ler();
     window.addEventListener(EVENTO_SUBTELA_DE_PLANOS, ler);

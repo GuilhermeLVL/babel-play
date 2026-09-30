@@ -26,6 +26,7 @@ import {
 import { apiFetch } from '../data/api';
 import type { Plan } from './entitlements';
 import { t } from './i18n';
+import { lembrarSituacaoDoTeste } from './ofertas/teste';
 
 export type PlanoPago = 'premium';
 export const PLANOS_PAGOS: readonly PlanoPago[] = ['premium'];
@@ -314,7 +315,12 @@ export const faturaEmAberto = (fs: Fatura[] | null): Fatura | null =>
 export async function carregarStatusDeBilling(): Promise<StatusDeBilling | null> {
   try {
     const r = await apiFetch('/api/billing/status');
-    return r.ok ? ((await r.json()) as StatusDeBilling) : null;
+    if (!r.ok) return null;
+    const s = (await r.json()) as StatusDeBilling;
+    /* O motor de ofertas sugere o teste só a quem o servidor deixa testar (C8): toda resposta nova
+       atualiza o que ele sabe — quem acabou de começar o teste deixa de ouvir "teste 14 dias". */
+    lembrarSituacaoDoTeste(s?.teste?.estado);
+    return s;
   } catch {
     return null;
   }

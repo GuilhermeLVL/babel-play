@@ -174,10 +174,11 @@ export type EventoDeOferta = (typeof EVENTOS_DE_OFERTA)[number];
 
 /**
  * O plano que a oferta sugere: `conta` é "crie a conta" (o convidado vem antes de qualquer plano);
- * `nenhum` é quem não tem para onde subir. Matriz v2: um plano pago só, o Premium (o C8 acrescenta
- * o `teste` de 14 dias).
+ * `teste` é o teste de 14 dias do Premium, sem cartão, para quem o servidor deixa testar (C8);
+ * `premium` é assinar; `nenhum` é quem não tem para onde subir — e o perfil protegido, a quem nada se
+ * vende.
  */
-export const PLANOS_SUGERIDOS = ['conta', 'premium', 'nenhum'] as const;
+export const PLANOS_SUGERIDOS = ['conta', 'teste', 'premium', 'nenhum'] as const;
 export type PlanoSugerido = (typeof PLANOS_SUGERIDOS)[number];
 
 /**
@@ -185,7 +186,7 @@ export type PlanoSugerido = (typeof PLANOS_SUGERIDOS)[number];
  * antigo (`essencial`/`pro`) de uma aba aberta antes do deploy é o Premium; o que não é plano é `null`.
  */
 export function planoSugeridoDe(v: unknown): PlanoSugerido | null {
-  if (v === 'conta' || v === 'nenhum') return v;
+  if (v === 'conta' || v === 'nenhum' || v === 'teste') return v;
   const plano = normalizarPlano(v);
   return plano && ehPlanoPago(plano) ? 'premium' : null;
 }

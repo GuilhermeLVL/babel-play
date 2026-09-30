@@ -9,7 +9,7 @@ import {
   type PlanoSugerido,
   resolverTextoRemoto,
 } from '../../core/ofertas';
-import { PLAN_MATRIX, precoDoPlano } from '../../core/planos';
+import { DIAS_DO_TESTE_PREMIUM, PLAN_MATRIX, precoDoPlano } from '../../core/planos';
 import { onPlanChange } from '../../lib/entitlements';
 import { ehConfigDeOfertas, useConfigRemota, useFlag } from '../../lib/flags';
 import { estadoDeIdentidade } from '../../lib/identidade';
@@ -38,7 +38,8 @@ import {
   rotulosDaOferta,
 } from '../../lib/ofertas/instrumentacao';
 import { decidirOferta, type DecisaoDeOferta, type EstadoDaTela } from '../../lib/ofertas/motor';
-import { planoDaOferta } from '../../lib/ofertas/plano';
+import { pessoaDaOferta, planoDaOferta } from '../../lib/ofertas/plano';
+import { verificarTeste } from '../../lib/ofertas/teste';
 import { capturaAtiva } from '../../lib/sessaoDeCaptura';
 import { useI18n } from '../../lib/useI18n';
 import CartaoDeOferta from './CartaoDeOferta';
@@ -66,6 +67,10 @@ import ModalDeOferta from './ModalDeOferta';
  *
  * FIM DO TESTE (C6): nas mesmas horas, quem está no teste de 14 dias (o `teste` dos entitlements)
  * recebe `fim_do_teste` em D-3 e em D0 — informativo: o botão abre Planos sem destacar venda.
+ *
+ * A PESSOA (C8, `pessoaDaOferta`): a conta de perfil protegido só recebe o funcional, com o texto
+ * embutido e sem venda; o Grátis que o servidor deixa testar ouve o teste de 14 dias sem cartão (a
+ * situação vem de `/api/billing/status`, lembrada por 1 h — `lib/ofertas/teste.ts`).
  */
 
 const ICONE: Record<MomentoDeOferta, LucideIcon> = {
@@ -125,6 +130,7 @@ export default function HostDeOfertas({ aoEntrar, aoVerPlanos }: { aoEntrar: () 
     const decisao = decidirOferta({
       momento,
       fase,
+      ...pessoaDaOferta(),
       flagLigada: flagRef.current,
       config: configRef.current,
       plano,
@@ -196,6 +202,8 @@ export default function HostDeOfertas({ aoEntrar, aoVerPlanos }: { aoEntrar: () 
       if (estadoDeIdentidade() !== 'conta') return;
       const fase = faseDoTesteAgora();
       if (fase) dispararOferta('fim_do_teste', { origem: 'teste', fase });
+      // Quem pode testar (o Grátis com conta): uma pergunta por hora no máximo, com cache.
+      if (planoDaOferta() === 'free') void verificarTeste();
       void verificarCota().then((estado) => {
         if (estado === 'perto') dispararOferta('cota_proxima', { origem: 'consumo' });
         else if (estado === 'esgotada') dispararOferta('fim_de_cota', { origem: 'consumo' });
@@ -267,8 +275,16 @@ function renderizar(componente: ComponenteDeOferta, props: Parameters<typeof Mod
   return <CartaoDeOferta tom={componente === 'aviso_cota' ? 'alerta' : 'acento'} {...props} />;
 }
 
-/** "Sugerido: Premium · R$ 19,90/mês" — o nome e o preço da matriz, nunca escritos à mão. */
+/**
+ * "Sugerido: Premium · R$ 19,90/mês" — o nome e o preço da matriz, nunca escritos à mão. Para quem
+ * pode testar: "Sugerido: 14 dias de Premium grátis, sem cartão" (C8).
+ */
 function seloDoPlano(sugerido: PlanoSugerido, t: (s: string, v?: Record<string, string | number>) => string) {
+  if (sugerido === 'teste')
+    return t('Sugerido: {dias} dias de {plano} grátis, sem cartão', {
+      dias: DIAS_DO_TESTE_PREMIUM,
+      plano: PLAN_MATRIX.premium.rotulo,
+    });
   if (sugerido !== 'premium') return undefined;
   const nome = PLAN_MATRIX[sugerido].rotulo;
   const preco = precoDoPlano(sugerido);

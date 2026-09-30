@@ -18,35 +18,24 @@ import { execSync } from 'node:child_process'
  * HIGH sem fix upstream, aceitas com justificativa. A chave é o nome do pacote (como o `npm audit`
  * chaveia `vulnerabilities`). `ghsa`: advisory próprio quando existe; `null` = flagado por transitividade.
  */
-const ALLOWLIST = {
-  'adm-zip': {
-    ghsa: 'GHSA-xcpc-8h2w-3j85',
-    reevaluateBy: '2026-11-01',
-    reason: 'via onnxruntime-node → @huggingface/transformers; inferência roda no navegador, fora do servidor.',
-  },
-  'sharp': {
-    ghsa: 'GHSA-f88m-g3jw-g9cj',
-    reevaluateBy: '2026-11-01',
-    reason: 'CVEs do libvips; dep de @huggingface/transformers; não está no caminho de execução do servidor.',
-  },
-  'onnxruntime-node': {
-    ghsa: null, // sem advisory próprio — flagado por transitividade (adm-zip)
-    reevaluateBy: '2026-11-01',
-    reason: 'transitivo via adm-zip; runtime de inferência local, fora do servidor.',
-  },
-  '@huggingface/transformers': {
-    ghsa: null, // flagado por transitividade (onnxruntime-node + sharp)
-    reevaluateBy: '2026-11-01',
-    reason: 'flagado por transitividade dos itens acima; inferência no navegador.',
-  },
-}
+/* VAZIA desde 30/09/2026: o `adm-zip` (via onnxruntime-node) e o `sharp` (via transformers), que eram
+   as HIGH aceitas, ganharam correção e vão forçados pelo `overrides` do package.json — e o
+   `onnxruntime-node` e o `@huggingface/transformers` só entravam aqui por transitividade deles. Com
+   a lista vazia, uma HIGH nova nesses pacotes reprova o build em vez de passar calada pela exceção.
+   Uma entrada nova segue a forma: `'pacote': { ghsa: 'GHSA-…' | null, reevaluateBy: 'AAAA-MM-DD', reason }`. */
+const ALLOWLIST = {}
 
 let report
 try {
   report = JSON.parse(execSync('npm audit --json', { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }))
 } catch (e) {
   // npm audit sai com código != 0 quando há vulnerabilidades — o JSON ainda vem no stdout.
-  try { report = JSON.parse(e.stdout) } catch { console.error('audit-gate: não consegui ler `npm audit --json`'); process.exit(2) }
+  try {
+    report = JSON.parse(e.stdout)
+  } catch {
+    console.error('audit-gate: não consegui ler `npm audit --json`')
+    process.exit(2)
+  }
 }
 
 const vulns = report.vulnerabilities ?? {}
@@ -54,12 +43,17 @@ const bloqueantes = []
 const permitidas = []
 for (const [name, v] of Object.entries(vulns)) {
   if (v.severity !== 'high' && v.severity !== 'critical') continue
-  if (name in ALLOWLIST) { permitidas.push(name); continue }
+  if (name in ALLOWLIST) {
+    permitidas.push(name)
+    continue
+  }
   bloqueantes.push(`${v.severity.toUpperCase()} ${name} ${v.range ?? ''} (fix: ${JSON.stringify(v.fixAvailable)})`)
 }
 
 if (bloqueantes.length) {
-  console.error('❌ audit-gate: HIGH/CRITICAL fora da allowlist — corrija ou justifique:\n  ' + bloqueantes.join('\n  '))
+  console.error(
+    '❌ audit-gate: HIGH/CRITICAL fora da allowlist — corrija ou justifique:\n  ' + bloqueantes.join('\n  '),
+  )
   process.exit(1)
 }
 
@@ -67,8 +61,12 @@ if (bloqueantes.length) {
 const hoje = new Date()
 const vencidas = permitidas.filter((n) => new Date(ALLOWLIST[n].reevaluateBy) < hoje)
 if (vencidas.length) {
-  console.warn(`⚠  audit-gate: reavaliar a allowlist (data vencida): ${vencidas.map((n) => `${n} [${ALLOWLIST[n].reevaluateBy}]`).join(', ')}`)
+  console.warn(
+    `⚠  audit-gate: reavaliar a allowlist (data vencida): ${vencidas.map((n) => `${n} [${ALLOWLIST[n].reevaluateBy}]`).join(', ')}`,
+  )
 }
 
-const resumo = permitidas.map((n) => `${n}${ALLOWLIST[n].ghsa ? ` (${ALLOWLIST[n].ghsa})` : ' (transitivo)'}`).join(', ')
+const resumo = permitidas
+  .map((n) => `${n}${ALLOWLIST[n].ghsa ? ` (${ALLOWLIST[n].ghsa})` : ' (transitivo)'}`)
+  .join(', ')
 console.log(`✅ audit-gate: ok. HIGH permitidas só na allowlist (sem fix upstream): ${resumo || '(nenhuma)'}`)

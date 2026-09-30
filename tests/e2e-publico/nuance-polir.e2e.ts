@@ -60,9 +60,8 @@ async function foto(page: Page, nome: string) {
 }
 
 /**
- * Abre a sessão PELA BIBLIOTECA, como a pessoa abre. (Abrir `/sessao/<id>` direto numa aba nova
- * derruba a Análise enquanto a lista de gravações ainda está vazia — defeito anterior a este teste,
- * registrado à parte.)
+ * Abre a sessão PELA BIBLIOTECA, como a pessoa abre. (Abrir `/sessao/<id>` direto também funciona: a
+ * Análise espera a lista de gravações — `lib/sessaoAberta.ts`, `tests/e2e/sessao-direta.e2e.ts`.)
  */
 async function abrirSessao(page: Page, titulo: string) {
   await page.goto('/biblioteca')

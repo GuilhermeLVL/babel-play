@@ -175,7 +175,11 @@ describe('3. voltar da aba do Asaas', () => {
   })
 })
 
-describe('4. a idade ali mesmo', () => {
+/* 20 s por teste, e não os 5 s padrão: cada teste espera até 5 s por DUAS telas seguidas (o campo da
+   data e o aviso do responsável) depois de reimportar o Checkout inteiro (`vi.resetModules`). Na suíte
+   cheia do CI, com 700 arquivos disputando a máquina, o teste estourava os 5 s antes de as esperas
+   dele acabarem (30/09/2026) — o limite do teste tem de caber as esperas que ele mesmo declara. */
+describe('4. a idade ali mesmo', { timeout: 20_000 }, () => {
   const idadeFaltando = (init?: RequestInit) => {
     void init
     return {

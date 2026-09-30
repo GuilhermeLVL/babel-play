@@ -21,11 +21,16 @@ import {
   type Conta,
   dataCurta,
   type Fatura,
+  formaDaConta,
+  parcelasDoAnual,
+  precoAnual,
   precoMensal,
+  rotuloDaForma,
 } from '../../../lib/assinatura';
+import { t } from '../../../lib/i18n';
 import { navegarPara } from '../../../lib/rotas';
 import { CabecalhoDeTela, IconeEmBloco, Tela } from '../../ui';
-import { irAjuda, irSub, PLANO_NOME, planoPorId } from './dados';
+import { irAjuda, irSub, itemCompleto, PLANO_NOME, planoPorId } from './dados';
 import Etapas, { rolarAoTopo } from './Etapas';
 
 /**
@@ -42,6 +47,11 @@ import Etapas, { rolarAoTopo } from './Etapas';
  * tela avisa ANTES de confirmar e, depois, confirma o recebimento do pedido na hora, com o protocolo
  * que o servidor registrou. Se o Asaas recusar o estorno, o servidor o põe na fila do admin e a
  * tela diz que o reembolso sai manualmente, com prazo — nunca some.
+ *
+ * O CICLO E O MEIO (C5/C7, padrão do dono a validar com o jurídico): o arrependimento devolve o ANO
+ * inteiro no anual e o PARCELAMENTO inteiro no 12x. Depois dos 7 dias, o anual para a renovação e o
+ * 12x não para as parcelas — o servidor não escreve nada no Asaas, e o ano pago vale até o fim. Por
+ * isso a confirmação do 12x nunca diz "novas cobranças: nenhuma".
  */
 
 const MOTIVOS: [string, string][] = [
@@ -89,7 +99,13 @@ export default function Cancelar({
   const primeira = pagas.length ? pagas[pagas.length - 1].data : null;
   // A mesma régua do servidor (encerramentoDeAssinatura.ts): até o fim do 7º dia após o pagamento.
   const dentro7 = !!primeira && Date.now() - new Date(`${primeira}T00:00:00`).getTime() < SETE_DIAS + 86_400_000;
-  const valorPago = pagas.reduce((s, f) => s + f.valor, 0) || precoMensal(plano);
+  const forma = formaDaConta(conta);
+  const doze = forma === 'anual_12x';
+  const comCiclo = `${p} · ${rotuloDaForma(forma)}`;
+  const valorPago =
+    pagas.reduce((s, f) => s + f.valor, 0) || (forma === 'mensal' ? precoMensal(plano) : precoAnual(plano));
+  /* O 12x depois dos 7 dias: as parcelas que faltam continuam no cartão (nada novo é cobrado). */
+  const parcelasSeguem = doze && !dentro7;
 
   const ofertas: Record<string, [LucideIcon, string, string][]> = {
     /* Matriz v2: não há plano mais barato para onde descer — o "caro" não tem oferta de troca. */
@@ -153,10 +169,10 @@ export default function Cancelar({
           <div className="cartao p5">
             <span className="label-mono">Você deixa de ter</span>
             <ul className="lista-x">
-              {planoPorId(plano).itens.map(([, t]) => (
-                <li key={t}>
+              {planoPorId(plano).itens.map((item) => (
+                <li key={item.texto}>
                   <X aria-hidden />
-                  {t}
+                  {itemCompleto(item)}
                 </li>
               ))}
             </ul>
@@ -169,10 +185,10 @@ export default function Cancelar({
                 'Seu progresso, XP e conquistas',
                 `O ${p} até ${ate}`,
                 'O plano Grátis, para sempre',
-              ].map((t) => (
-                <li key={t}>
+              ].map((x) => (
+                <li key={x}>
                   <Check aria-hidden />
-                  {t}
+                  {x}
                 </li>
               ))}
             </ul>
@@ -252,11 +268,11 @@ export default function Cancelar({
               : 'Podemos resolver isso?'}
         </h2>
         <div className="pilha">
-          {oferta.map(([I, t, d]) => (
-            <button key={t} type="button" className="cartao clicavel acao-assin" onClick={irAjuda}>
+          {oferta.map(([I, titulo, d]) => (
+            <button key={titulo} type="button" className="cartao clicavel acao-assin" onClick={irAjuda}>
               <IconeEmBloco icone={I} tom="good" />
               <span style={{ flex: 1 }}>
-                <b>{t}</b>
+                <b>{titulo}</b>
                 <small className="mut">{d}</small>
               </span>
               <ChevronRight aria-hidden style={{ width: 16, height: 16 }} />
@@ -281,16 +297,27 @@ export default function Cancelar({
         <dl className="dados">
           <div>
             <dt>Plano</dt>
-            <dd>{p} · mensal</dd>
+            <dd>{comCiclo}</dd>
           </div>
           <div>
             <dt>Acesso ao {p} até</dt>
             <dd className="tn">{dentro7 ? 'Termina agora, com o reembolso' : ate}</dd>
           </div>
-          <div>
-            <dt>Novas cobranças</dt>
-            <dd>Nenhuma</dd>
-          </div>
+          {parcelasSeguem ? (
+            <div>
+              <dt>{t('Parcelas que faltam')}</dt>
+              <dd>
+                {t('Seguem no cartão até a {n}ª, sem reembolso proporcional', {
+                  n: parcelasDoAnual(plano).quantidade,
+                })}
+              </dd>
+            </div>
+          ) : (
+            <div>
+              <dt>Novas cobranças</dt>
+              <dd>Nenhuma</dd>
+            </div>
+          )}
           <div>
             <dt>Seus dados</dt>
             <dd>Continuam salvos</dd>
@@ -300,8 +327,19 @@ export default function Cancelar({
           <div className="aviso-info reembolso">
             <BadgeCheck aria-hidden />
             <span>
-              Você assinou há 7 dias ou menos: ao confirmar, você recebe o <b>reembolso integral de {brl(valorPago)}</b>{' '}
-              no mesmo meio de pagamento (CDC, art. 49), sem precisar pedir a ninguém, e o acesso ao {p} termina agora.
+              {doze ? (
+                <>
+                  Você assinou há 7 dias ou menos: ao confirmar, o{' '}
+                  <b>parcelamento inteiro ({brl(precoAnual(plano))})</b> é estornado no cartão (CDC, art. 49), as
+                  parcelas que faltam são canceladas, sem precisar pedir a ninguém, e o acesso ao {p} termina agora.
+                </>
+              ) : (
+                <>
+                  Você assinou há 7 dias ou menos: ao confirmar, você recebe o{' '}
+                  <b>reembolso integral de {brl(valorPago)}</b> no mesmo meio de pagamento (CDC, art. 49), sem precisar
+                  pedir a ninguém, e o acesso ao {p} termina agora.
+                </>
+              )}
             </span>
           </div>
         )}
@@ -368,8 +406,11 @@ export default function Cancelar({
         </div>
         <h1 style={{ fontSize: 28, fontWeight: 900, margin: '8px 0 6px' }}>Assinatura cancelada</h1>
         <p className="mut" style={{ maxWidth: '54ch', margin: '0 auto' }}>
-          Você continua com o {p} até <b>{ate}</b>. Depois disso, volta para o Grátis, sem cobrança. Suas sessões e
-          palavras continuam aqui.
+          Você continua com o {p} até <b>{ate}</b>.{' '}
+          {doze
+            ? t('As parcelas que faltam seguem no cartão; nada novo é cobrado. Depois disso, volta para o Grátis.')
+            : t('Depois disso, volta para o Grátis, sem cobrança.')}{' '}
+          Suas sessões e palavras continuam aqui.
         </p>
         <dl className="dados centro">
           <div>
@@ -380,8 +421,8 @@ export default function Cancelar({
             </dd>
           </div>
           <div>
-            <dt>Novas cobranças</dt>
-            <dd>Nenhuma</dd>
+            <dt>{doze ? t('Parcelas que faltam') : 'Novas cobranças'}</dt>
+            <dd>{doze ? t('Seguem no cartão') : 'Nenhuma'}</dd>
           </div>
         </dl>
         <div className="linha" style={{ gap: 10, justifyContent: 'center', flexWrap: 'wrap', marginTop: 18 }}>

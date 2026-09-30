@@ -76,12 +76,12 @@
       <strong>Edge</strong>, à <strong>Microsoft</strong> —, sob os termos e a política de privacidade
       desse fabricante, e não sob o nosso controle. Nós não recebemos esse áudio. Se preferir que a
       voz não vá a eles, o app oferece alternativas: a transcrição <strong>local</strong>, que roda no
-      seu dispositivo, e a transcrição na <strong>nossa nuvem</strong> (planos pagos), descrita
-      abaixo.</li>
+      seu dispositivo, e a transcrição na <strong>nossa nuvem</strong> (Premium, o teste de 14 dias e a
+      nuvem do Grátis para aparelho fraco), descrita abaixo.</li>
     <li><strong>Tradução rápida (MyMemory)</strong>: quando essa engine é usada, o <strong>texto a
       traduzir é enviado ao serviço MyMemory</strong> (terceiro).</li>
-    <li><strong>IA de nuvem (transcrição/tradução gerenciadas e o tutor iChat)</strong>: nos planos
-      pagos e no tutor, os trechos enviados são processados por provedores de inferência contratados
+    <li><strong>IA de nuvem (transcrição/tradução gerenciadas e o tutor iChat)</strong>: no Premium
+      (e no teste de 14 dias), na nuvem do Grátis para aparelho fraco e no tutor, os trechos enviados são processados por provedores de inferência contratados
       por nós — hoje <strong>Groq</strong> (transcrição, tradução e tutor) e, como reserva quando ele falha,
       a <strong>OpenRouter</strong> com retenção zero — apenas para gerar a resposta daquela chamada. O provedor em uso aparece no selo de
       procedência dentro do app.</li>
@@ -92,9 +92,12 @@
   <h2>O que vai para o nosso servidor (com conta)</h2>
   <table>
     <tr><th>Plano</th><th>Áudio (voz) para tradução/transcrição na nuvem</th><th>Texto transcrito</th></tr>
-    <tr><td>Grátis</td><td>não usa nossa IA de nuvem (mas veja Web Speech acima)</td><td>—</td></tr>
-    <tr><td>Essencial</td><td>não</td><td>enviado para tradução na nuvem</td></tr>
-    <tr><td>Pro</td><td>enviado para transcrição na nuvem</td><td>enviado para tradução na nuvem</td></tr>
+    <tr><td>Grátis</td><td>não usa nossa IA de nuvem (mas veja Web Speech acima) — exceto a nuvem para
+      aparelho fraco (até 3 h por mês), <strong>só quando você a liga</strong>: aí o áudio vai para
+      transcrição na nuvem</td><td>com a nuvem para aparelho fraco ligada, enviado para tradução na
+      nuvem; senão, —</td></tr>
+    <tr><td>Premium (e o teste de 14 dias)</td><td>enviado para transcrição na nuvem</td><td>enviado
+      para tradução na nuvem</td></tr>
   </table>
   <p class="muted">Com conta, as sessões que você <strong>salva</strong> — incluindo o
   <strong>áudio gravado da sessão</strong>, as transcrições, o vocabulário e o progresso — ficam no
@@ -118,7 +121,10 @@
       sua conta guardamos quando ele começou e quando termina. Para que o teste seja
       <strong>um por pessoa</strong> — e não recomece quando alguém apaga a conta e cria outra —,
       guardamos também uma <strong>marca</strong>: um código calculado a partir do seu e-mail com uma
-      chave secreta que fica no nosso servidor (<em>HMAC</em>). A marca <strong>não é o e-mail</strong>,
+      chave secreta que fica no nosso servidor (<em>HMAC</em>). Antes do cálculo, o e-mail é
+      normalizado (maiúsculas e minúsculas, o <code>+etiqueta</code> e os pontos de um endereço do Gmail
+      não mudam a marca), para que variações do mesmo endereço contem como a mesma pessoa. A marca
+      <strong>não é o e-mail</strong>,
       não permite recuperá-lo sem essa chave e não fica ligada à sua conta. Quando o responsável ativa
       o teste para a conta de um menor, a marca é calculada com o e-mail do <strong>responsável</strong>,
       e nada do menor entra nela. Fazemos isso por legítimo interesse (evitar o abuso do benefício

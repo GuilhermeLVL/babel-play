@@ -25,6 +25,8 @@ import {
 } from '../core/planos';
 import { apiFetch } from '../data/api';
 import type { Plan } from './entitlements';
+import { t } from './i18n';
+import { lembrarSituacaoDoTeste } from './ofertas/teste';
 
 export type PlanoPago = 'premium';
 export const PLANOS_PAGOS: readonly PlanoPago[] = ['premium'];
@@ -93,18 +95,29 @@ export interface Fatura {
   link: string | null;
 }
 
-export type EstadoDaConta = 'selfhost' | 'gratis' | 'ativa' | 'falhou' | 'cancelada';
+/**
+ * `teste` (C6/C7): o teste de 14 dias do Premium, sem cartão. NÃO é assinatura — não tem aba "Sua
+ * assinatura", não se cancela e nunca cobra: no fim a conta volta ao Grátis sozinha.
+ */
+export type EstadoDaConta = 'selfhost' | 'gratis' | 'teste' | 'ativa' | 'falhou' | 'cancelada';
 
 export interface Conta {
   estado: EstadoDaConta;
-  /** O plano pago da assinatura (quando há uma). */
+  /** O plano pago da assinatura (quando há uma), ou o Premium do teste. */
   plano: PlanoPago | null;
-  /** Até quando o período pago vale (ms). `null` = o servidor não sabe ainda. */
+  /** Até quando o período pago vale (ms) — no teste, quando ele termina. `null` = o servidor não sabe. */
   valeAte: number | null;
   /** Quando o Asaas cobra de novo (`AAAA-MM-DD`). Ausente = não se sabe (e a tela diz "acesso até"). */
   proximaCobranca?: string | null;
-  /** Por mês ou o ano — só quando o servidor disse (C5/C7 falam do ciclo na tela). */
+  /** Por mês ou o ano — só quando o servidor disse. */
   ciclo?: CicloDeCobranca;
+  /**
+   * O fluxo do Asaas que cobra: `assinatura` (mensal ou `YEARLY`), `parcelamento` (o 12x) — e `null`
+   * quando ninguém cobra (concedido pela equipe). AUSENTE = o servidor não disse (anterior ao C5).
+   */
+  meio?: string | null;
+  /** Renova sozinha? Só a assinatura ativa; o 12x acaba na 12ª parcela. Ausente = não se sabe. */
+  renovacaoAutomatica?: boolean;
 }
 
 /**
@@ -112,25 +125,47 @@ export interface Conta {
  *
  * `trialing` é só a intenção gravada ao iniciar o checkout (não concede nada no servidor): para a
  * tela, a conta continua no Grátis até o webhook confirmar o pagamento.
+ *
+ * O TESTE (C7): quem testa tem o Premium nos entitlements, mas não tem assinatura. Antes disto ele
+ * caía no "plano pago sem cobrança" e a tela o tratava como assinante (aba "Sua assinatura", "Voltar
+ * ao Grátis" levando a um cancelamento que não existe). O teste vem do status (`teste.estado`) ou,
+ * sem ele, dos entitlements (`teste.terminaEm`, o que o aviso de D-3/D0 já lê).
  */
-export function estadoDaConta(plan: Plan, status: StatusDeBilling | null, agora = Date.now()): Conta {
+export function estadoDaConta(
+  plan: Plan,
+  status: StatusDeBilling | null,
+  agora = Date.now(),
+  testeDosEntitlements?: { terminaEm: number } | null,
+): Conta {
   if (plan === 'selfhost') return { estado: 'selfhost', plano: null, valeAte: null };
   const s = status?.assinatura;
   const pagoNaAssinatura = s ? planoPagoDe(s.plano) : null;
   if (s && pagoNaAssinatura) {
-    const ciclo = s.ciclo ? { ciclo: s.ciclo } : {};
+    const extra: Pick<Conta, 'ciclo' | 'meio' | 'renovacaoAutomatica'> = {
+      ...(s.ciclo ? { ciclo: s.ciclo } : {}),
+      ...(s.meio !== undefined ? { meio: s.meio } : {}),
+      ...(typeof s.renovacaoAutomatica === 'boolean' ? { renovacaoAutomatica: s.renovacaoAutomatica } : {}),
+    };
     if (s.status === 'active')
       return {
         estado: 'ativa',
         plano: pagoNaAssinatura,
         valeAte: s.valeAte,
         ...(status?.proximaCobranca ? { proximaCobranca: status.proximaCobranca } : {}),
-        ...ciclo,
+        ...extra,
       };
-    if (s.status === 'past_due') return { estado: 'falhou', plano: pagoNaAssinatura, valeAte: s.valeAte, ...ciclo };
+    if (s.status === 'past_due') return { estado: 'falhou', plano: pagoNaAssinatura, valeAte: s.valeAte, ...extra };
     if (s.status === 'canceled' && s.valeAte !== null && s.valeAte > agora)
-      return { estado: 'cancelada', plano: pagoNaAssinatura, valeAte: s.valeAte, ...ciclo };
+      return { estado: 'cancelada', plano: pagoNaAssinatura, valeAte: s.valeAte, ...extra };
   }
+  const t = status?.teste;
+  const terminaEm =
+    t?.estado === 'ativo'
+      ? t.terminaEm
+      : !status?.teste && testeDosEntitlements
+        ? testeDosEntitlements.terminaEm
+        : null;
+  if (terminaEm !== null && terminaEm > agora) return { estado: 'teste', plano: 'premium', valeAte: terminaEm };
   // Plano pago sem cobrança no provedor (concedido pelo administrador): ativo, sem data.
   const pagoNoPlano = planoPagoDe(plan);
   if (pagoNoPlano) return { estado: 'ativa', plano: pagoNoPlano, valeAte: null };
@@ -138,6 +173,38 @@ export function estadoDaConta(plan: Plan, status: StatusDeBilling | null, agora 
 }
 
 export const temAssinatura = (e: EstadoDaConta): boolean => e === 'ativa' || e === 'falhou' || e === 'cancelada';
+
+/**
+ * COMO ESTA CONTA PAGA, para a tela dizer o ciclo e o meio (C7): o mensal, o anual à vista (renova
+ * em um ano), o anual em 12x no cartão (não renova) — ou `concedido`, quando ninguém cobra (meio
+ * `null`). Servidor anterior ao C5 (sem ciclo nem meio) é o mensal de sempre.
+ */
+export type FormaDaConta = FormaDeAssinar | 'concedido';
+export function formaDaConta(c: Pick<Conta, 'ciclo' | 'meio'>): FormaDaConta {
+  if (c.meio === null) return 'concedido';
+  if (c.ciclo !== 'anual') return 'mensal';
+  return c.meio === 'parcelamento' ? 'anual_12x' : 'anual';
+}
+
+/** "mensal", "anual" ou "anual em 12x" — o que vem depois de "Premium ·". */
+export function rotuloDaForma(f: FormaDaConta): string {
+  if (f === 'anual') return t('anual');
+  if (f === 'anual_12x') return t('anual em 12x');
+  if (f === 'concedido') return t('sem cobrança');
+  return t('mensal');
+}
+
+/**
+ * QUANTO O ANUAL ECONOMIZA contra 12 mensalidades — em reais e em meses inteiros ("equivale a 3
+ * meses grátis": R$ 179 contra 12 × R$ 19,90 = R$ 238,80). Da matriz, nunca à mão: mudar um preço
+ * muda a frase.
+ */
+export function economiaDoAnual(p: PlanoPago): { reais: number; meses: number; dozeMeses: number } {
+  const mensal = precoMensal(p);
+  const dozeMeses = Math.round(mensal * 12 * 100) / 100;
+  const reais = Math.round((dozeMeses - precoAnual(p)) * 100) / 100;
+  return { reais, meses: mensal > 0 ? Math.floor(reais / mensal + 1e-9) : 0, dozeMeses };
+}
 
 /**
  * PARA QUEM É O CHECKOUT (Fase 4): o responsável que aceitou o convite pode assinar pelo menor. A
@@ -179,6 +246,27 @@ export const precoAnual = (p: PlanoPago): number => PLAN_MATRIX[p].precoAnualBrl
  */
 export type FormaDeAssinar = 'mensal' | 'anual' | 'anual_12x';
 export const FORMAS_DE_ASSINAR: readonly FormaDeAssinar[] = ['mensal', 'anual', 'anual_12x'];
+
+/**
+ * A FORMA COM QUE O CHECKOUT ABRE — o período escolhido no seletor Mensal/Anual da tela de Planos
+ * (C7), por aba, como o plano (`planoDoCheckout`). Recarregar o checkout não volta ao mensal.
+ */
+const CHAVE_DA_FORMA_DO_CHECKOUT = 'babel.checkout.forma';
+export function lembrarFormaDoCheckout(f: FormaDeAssinar): void {
+  try {
+    sessionStorage.setItem(CHAVE_DA_FORMA_DO_CHECKOUT, f);
+  } catch {
+    /* sem armazenamento: o checkout abre no período escolhido só enquanto a tela está aberta */
+  }
+}
+export function formaGuardadaDoCheckout(): FormaDeAssinar | null {
+  try {
+    const f = sessionStorage.getItem(CHAVE_DA_FORMA_DO_CHECKOUT);
+    return (FORMAS_DE_ASSINAR as readonly string[]).includes(f ?? '') ? (f as FormaDeAssinar) : null;
+  } catch {
+    return null;
+  }
+}
 
 /** O que o servidor recebe de cada forma: o ciclo e o fluxo do Asaas que cobra. */
 export function cobrancaDaForma(f: FormaDeAssinar): { ciclo: CicloDeCobranca; meio: 'assinatura' | 'parcelamento' } {
@@ -227,7 +315,12 @@ export const faturaEmAberto = (fs: Fatura[] | null): Fatura | null =>
 export async function carregarStatusDeBilling(): Promise<StatusDeBilling | null> {
   try {
     const r = await apiFetch('/api/billing/status');
-    return r.ok ? ((await r.json()) as StatusDeBilling) : null;
+    if (!r.ok) return null;
+    const s = (await r.json()) as StatusDeBilling;
+    /* O motor de ofertas sugere o teste só a quem o servidor deixa testar (C8): toda resposta nova
+       atualiza o que ele sabe — quem acabou de começar o teste deixa de ouvir "teste 14 dias". */
+    lembrarSituacaoDoTeste(s?.teste?.estado);
+    return s;
   } catch {
     return null;
   }

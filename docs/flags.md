@@ -23,7 +23,7 @@ resultado vai para o navegador, e o navegador pode mentir.
   e o escopo por `UserId` dos repositórios.
 - **Nunca use flag para cota ou direito de plano.** Quem pode gastar nuvem é
   `server/lib/entitlements.ts` e `server/lib/usageQuota.ts`, no servidor. Uma flag pode _mostrar_ a
-  oferta do Pro; quem _concede_ o Pro é a assinatura.
+  oferta do Premium; quem _concede_ o Premium é a assinatura (ou o teste de 14 dias, `testes_premium`).
 - **Portas de emergência vencem flags.** `CHECKOUT_ENABLED=0` desliga `vender_planos` para todo
   mundo, qualquer que seja a regra no banco (a trava está em `server/lib/flags.ts`, que consulta
   `estadoDaAbertura()` em vez de copiar a lógica de `abertura.ts`). A porta é do plantão (variável
@@ -38,7 +38,7 @@ restrição). As restrições se combinam com **E**.
 | -------------- | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `habilitada`   | `false`                                | Desligada para todos, sem exceção.                                                                                                                             |
 | `ids`          | `["<userId>", "<uuid da instalação>"]` | Alvo individual: quem está na lista recebe a flag ligada **independentemente das outras regras**. Para liberar _só_ para a lista, combine com `percentual: 0`. |
-| `planos`       | `["convidado", "free"]`                | Plano do contexto na lista. Valores: `convidado` (sem conta), `free`, `essencial`, `pro`, `selfhost`.                                                          |
+| `planos`       | `["convidado", "free"]`                | Plano do contexto na lista. Valores: `convidado` (sem conta), `free`, `premium`, `selfhost` (`essencial`/`pro` são lidos como `premium`).                      |
 | `idiomas`      | `["pt", "es"]`                         | Idioma da interface. `pt` casa `pt-BR` e vice-versa; `pt-BR` não casa `pt-PT`. Idioma desconhecido não passa.                                                  |
 | `versaoMinima` | `"0.2.0"`                              | Versão do app (semver; o `+sha` é ignorado) maior ou igual. Versão desconhecida não passa.                                                                     |
 | `percentual`   | `10`                                   | 0–100 das pessoas, por balde estável (abaixo). Sem id estável, só `100` passa.                                                                                 |
@@ -153,19 +153,30 @@ no padrão. Chave sem schema aceita qualquer JSON de até 32 KB.
       "id": "cota_acabou",
       "momento": "fim_de_cota",
       "componente": "modal",
-      "titulo": { "pt": "Sua cota do mês acabou", "en": "You have used this month's quota" },
-      "texto": "Com um plano pago você continua usando a nuvem.",
-      "cta": { "pt": "Ver planos", "en": "See plans" },
+      "titulo": {
+        "pt": "A nuvem grátis do mês acabou",
+        "en": "This month's free cloud is used up"
+      },
+      "texto": {
+        "pt": "A legenda continua no seu aparelho, sem limite. Com o Premium, a transcrição e a tradução voltam para a nuvem."
+      },
+      "cta": { "pt": "Conhecer o Premium", "en": "Discover Premium" },
       "maxPorDia": 1,
       "maxPorSemana": 3,
       "intervaloMinHoras": 12,
-      "planos": ["free", "essencial"]
+      "planos": ["free"],
+      "variante": "v2"
     }
   ]
 }
 ```
 
-- `momento`: `fim_de_cota`, `modelo_premium`, `conquista`, `fim_de_sessao`, `convidado_para_conta`, `cota_proxima`.
+- `momento`: `fim_de_cota`, `modelo_premium`, `conquista`, `fim_de_sessao`, `convidado_para_conta`, `cota_proxima`
+  (e `fim_do_teste`, só com os avisos embutidos do código).
+- **A conta de perfil protegido não lê este payload** (C8): recebe só os avisos funcionais EMBUTIDOS, sem venda —
+  um gatilho da flag para `fim_de_cota` pode trazer texto de venda. Ver `docs/ofertas.md`.
+- `planos`: não ponha `premium` num gatilho promocional (o motor o recusa: não há para onde subir). Um texto
+  com "sem limite no dia a dia" precisa da nota do uso justo ao lado (CDC).
 - `componente`: `banner`, `modal`, `aviso_cota`, `comparacao`.
 - `titulo`, `texto`, `cta`: **texto** é uma chave do i18n (o português é a chave, como no resto do
   app); **objeto** é o texto literal por idioma, para mudar sem deploy o que ainda não está no
@@ -192,6 +203,7 @@ no padrão. Chave sem schema aceita qualquer JSON de até 32 KB.
 | Chave                   | Migração | Estado inicial                | Para quê                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | ----------------------- | -------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `oferta_planos`         | 0039     | **ligada**, com 6 gatilhos    | Ofertas de planos ligadas por padrão (decisão do dono, 29/09). A 0039 liga a flag e completa o payload com `fim_de_sessao` e `conquista` (banners, só para o Grátis) além dos quatro gatilhos da 0031 — antes esses dois momentos caíam em `sem_gatilho`. Só altera a linha da semente (`atualizado_por = 'semente'`): se o operador já mexeu, a escolha dele vale. Banco novo e banco antigo terminam iguais. `modo_convidado` e `nuvem_convidado` seguem desligadas. As regras antichateação do motor valem sempre (`docs/ofertas.md`).                                                                                                                                                      |
+| `oferta_planos`         | 0045     | ligada, 6 gatilhos (v2)       | C8 da change `planos-v2`: os textos da matriz v2 (o Premium, a Tradução Nuance, o aparelho sem limite), sem "qualidade" nem "planos pagos", com `variante: "v2"` em todos (o funil separa a conversão dos textos novos) e alvo só Grátis (a conta para o convidado). Só a linha da semente; não liga nem desliga.                                                                                                                                                                                                                                                                                                                                                                              |
 | `nuvem_gratuita_alivio` | 0040     | desligada, `planos: ["free"]` | A10 do plano "Grátis sem travar": 3 h/mês de nuvem para aparelho fraco na conta Grátis. A flag só liga o produto; o limite é do servidor e é por CONTA (`FRANQUIA_DE_ALIVIO` em `src/core/planos.ts`: 10.800 s e teto de US$ 0,13), com pool do dia de no máximo 20% do orçamento diário e reserva de 80% para quem paga (`server/lib/nuvemDeAlivio.ts`). Perfil protegido só com o responsável. Antes de ligar: `AI_BUDGET_USD_DAY` definido (é dele que sai o pool) e a retenção zero da Groq ligada no console. Desligada, a conta Grátis que pedir o alívio recebe 503 `alivio_desligado` e segue no aparelho. Número de migração provisório (Fase C).                                     |
 | `recompensas_v2`        | 0036     | desligada                     | Recompensas v2 (`docs/economia-v2.md`): **só as TELAS novas** (Personalizar, maestria, temporada, resumo da prática). Desde a revisão de 27/09 as regras de economia do servidor — baú por desempenho, reembolso do corte do catálogo (`POST /api/metrics/seeds/reembolso`, pedido pelo cliente uma vez por sessão depois que as métricas carregam, com a flag ligada ou não), fuso gravado, sessão só com palavra salva, rodada gravada uma vez — valem SEMPRE: são correções legais e de integridade, não um experimento. O aviso do reembolso é por conta (`avisoPendente`). Na edição estática não há flag remota: liga com `VITE_RECOMPENSAS_V2=1` no build (`src/lib/recompensasV2.ts`). |
 

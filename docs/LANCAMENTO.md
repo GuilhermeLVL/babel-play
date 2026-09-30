@@ -37,6 +37,12 @@ comprometida é o app inteiro comprometido.
 
 O Asaas não tem mensalidade: cobra por transação (cartão ~R$ 0,49 + 1,99 % a 2,99 %; Pix ~R$ 0,99).
 
+**O que se vende (planos v2, ADR 0011):** Grátis + **Premium** — R$ 19,90/mês, **R$ 179/ano** à vista (Pix,
+boleto ou cartão; renova em um ano) ou em **12x no cartão** (11 × R$ 14,91 + R$ 14,99; não renova), e o
+**teste de 14 dias sem cartão** (um toque, um por pessoa, nunca cobra). "Sem limite no dia a dia" com **uso
+justo** de 2 h/dia e 40 h/mês de nuvem (o empate de custo na pilha de hoje; 60 h só depois do B7). A conta
+de custo por assinante está em `scripts/custo/modelo.mjs` (`node scripts/custo/modelo.mjs`).
+
 ---
 
 ## 1. Domínio (Registro.br) — 10 min
@@ -214,6 +220,17 @@ os baldes da admissão de cada provedor; sem eles, valem as `IA_ADMISSAO_*`.
    `ASAAS_WEBHOOK_TOKEN`. Fila de sincronização **ligada**.
 4. Configurar a emissão de **NFS-e** (obrigatória no padrão nacional a partir de 01/11/2026) com o
    contador.
+5. **As três formas de assinar** (C5) não pedem configuração a mais no painel: o servidor cria a assinatura
+   mensal (`MONTHLY`), a anual (`YEARLY`, R$ 179) ou o **parcelamento** do 12x (`installmentCount: 12`, só
+   `CREDIT_CARD` — um carnê de Pix/boleto daria o ano pela 1ª parcela). As parcelas chegam pelos mesmos
+   eventos de **cobrança** do webhook (o ramo do parcelamento confere `installment` na API). Confira no painel
+   que **juros e multa** da conta estão zerados, como na sondagem: o valor pago é o que decide plano e ciclo.
+6. **Pix Automático** fica DESLIGADO (o `/assinar` responde 501 `pix_automatico_indisponivel`): em produção o
+   Asaas exige conta **PJ com CNPJ ativo há 6 meses ou mais** e sem restrição de Pix. Quando a conta for
+   elegível, a integração entra atrás de flag (change `planos-v2`, C5).
+7. **Teste de 14 dias:** nada a configurar no Asaas (o teste não cria cobrança). A marca "um por pessoa" é
+   o HMAC do e-mail com a chave derivada da `SECRET_KEY`: **trocar a `SECRET_KEY` invalida as marcas** — quem
+   já testou poderia testar de novo. Mais um motivo para guardá-la no cofre (passo 8).
 
 ## 7. Sentry e UptimeRobot — 20 min
 
@@ -304,6 +321,15 @@ https://<domínio>/api/health` (liga o `uptime.yml`, o segundo par de olhos, que
 - [ ] Rodar o **ZAP Baseline** (Actions → _ZAP Baseline (staging)_ com a URL do staging) e triar.
 - [ ] **Cobrança real de R$ 5** no seu cartão pelo fluxo do app, conferir o plano liberado pelo
       webhook, e **estornar** no painel do Asaas.
+- [ ] **Os três ciclos no sandbox** (C5): mensal, anual em uma vez e anual em 12x com o cartão de teste do
+      Asaas — conferir na tela "Premium · mensal / anual / anual em 12x", o fim do período (35 d ou 370 d) e o
+      arrependimento de 7 dias devolvendo o ano inteiro (o parcelamento inteiro no 12x). Quantos webhooks o 12x
+      manda ao confirmar ainda não foi medido (a sondagem não digitou cartão).
+- [ ] **O teste de 14 dias** numa conta nova: um toque em Planos, a faixa "Premium · teste" com a data, nada
+      no Asaas; apagar a conta e recriar com o mesmo e-mail **não** renova o teste.
+- [ ] **Termos §3–§4 validados pelo jurídico** (anual, 12x, teste, uso justo, cancelamento sem reembolso
+      proporcional depois dos 7 dias — marcado "texto a validar" no HTML). **Sem isso, não abra a venda do
+      anual.**
 - [ ] Forçar um erro de teste e ver o evento no Sentry **sem** e-mail nem IP.
 - [ ] Aceitar os DPAs e marcar `docs/lgpd/operadores.md`; atualizar a política de privacidade com os
       operadores novos (a lista está lá).

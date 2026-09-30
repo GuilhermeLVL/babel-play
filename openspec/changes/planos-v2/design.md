@@ -182,13 +182,54 @@ portão do perfil protegido (C8), textos jurídicos (C9), o teto de 60 h (depois
   `responsavel` (não gasta o teste da própria conta dele). Consequência: **um teste por responsável** para as
   contas vinculadas (decisão pendente do dono — ver abaixo).
 - **`/api/billing/status`** ganha `teste: { estado: 'disponivel' | 'ativo' | 'usado' | 'indisponivel', dias,
-  iniciadoEm?, terminaEm?, motivo? }` — a tela só oferece o toque a quem o servidor deixaria começar.
+iniciadoEm?, terminaEm?, motivo? }` — a tela só oferece o toque a quem o servidor deixaria começar.
 - **Ofertas**: momento FUNCIONAL `fim_do_teste` com `fase` `d3`/`d0` (dias de calendário do aparelho até o
   último dia), gatilhos embutidos `funcional_fim_do_teste_d3`/`_d0` (banner, uma vez por fase, só `premium`),
   disparado pelo host só quando os entitlements trazem `teste`. O botão abre Planos **sem destaque de venda**.
 - **Pendências do dono**: um teste por responsável (ou por menor)?; o custo do teste nas cotas do Premium
   (até ~28 h em 14 dias, ~US$ 2,2 no pior caso típico) e o rótulo `teste` nas métricas de custo; o texto
   jurídico do teste nos Termos (C9).
+
+### 7. A tela de Planos nova e a troca de ciclo (C7)
+
+- **Conteúdo reorganizado, desenho mantido** (o dono reprovou um protótipo minimalista): faixa da conta, o título
+  do produto no alto da aba ("Legenda bilíngue de qualquer coisa que você ouve, em qualquer aparelho" — o `<h1>`
+  continua "Planos", como em toda tela), o seletor `.seg.periodo` do protótipo com "equivale a N meses grátis"
+  (N = ⌊(12 × mensal − anual) ÷ mensal⌋ = 3), os cartões `.plano2`, a tabela e as perguntas. Sem seletor no
+  self-host (nada a comprar).
+- **Grátis = "Tradução rápida ao vivo"** (o aparelho sem limite + as horas da `FRANQUIA_DE_ALIVIO` para aparelho
+  fraco); **Premium = "Tradução Nuance"** (outras formas, formal/informal, variantes, glossário; tutor; a voz
+  natural do intérprete dita "em breve").
+- **CDC:** todo "sem limite no dia a dia" leva a nota do uso justo no MESMO item/linha, com o dia E o mês (o teto
+  mensal de 40 h também é limitação; esconder o mês seria o mesmo defeito).
+- **Saíram** o grupo de qualidade, o medidor e os textos CORAA/chrF++; o consumo do mês perdeu a `%` do nome
+  acessível da barra (o `aria-valuenow` já anuncia). `tests/planos-tela-v2.test.tsx` reprova `%` e "qualidade".
+- **Estado `teste` da conta:** antes o teste caía em "plano pago sem cobrança" e a tela o tratava como assinante
+  (aba "Sua assinatura", "Voltar ao Grátis" levando a um cancelamento inexistente). Agora é um estado próprio,
+  com a faixa "Premium · teste" (a frase de D-3/D0 é a do aviso `fim_do_teste`) e o Premium assinável.
+- **Troca de ciclo com assinatura ativa: SEM rota nova — o caminho honesto.** "Mudar para o anual" abre o
+  `DialogoCiclo`: cancelar a renovação, ficar com o pago até o fim do período e assinar o anual nesse dia (dentro
+  dos 7 dias, o arrependimento devolve tudo e dá para assinar na hora). Por que não editar a assinatura no Asaas
+  (`cycle`/`value`): mudaria a natureza da cobrança no meio — o arrependimento de 7 dias (hoje contado do
+  PRIMEIRO pagamento), a data de renovação e o `periodoQueVale` teriam de ser repensados, sem sondagem no sandbox
+  e sem o jurídico; e uma segunda assinatura cobraria junto (o servidor já recusa, 409 `ja_assinante`). O 12x não
+  troca: não renova, e no fim do ano escolhe-se de novo. Rota de troca na hora fica como decisão do dono.
+
+### 8. Ofertas v2 e o portão do perfil protegido (C8)
+
+- **`planoSugerido(plano, { protegido, podeTestar })`**: convidado → `conta`; Grátis → `teste` quando o servidor
+  deixa testar (`teste.estado === 'disponivel'` em `/api/billing/status`, lembrado 1 h no aparelho; o host pergunta
+  no máximo 1×/h, e a tela de Planos atualiza a lembrança a cada status) e `premium` quando não — ou quando não se
+  sabe: prometer o teste a quem já testou seria mentir. `teste` entra em `PLANOS_SUGERIDOS` (a métrica do funil o
+  aceita) e no destaque de Planos (que realça o cartão do Premium, onde o toque do teste já é o botão).
+- **Portão novo (o furo do plano):** a CONTA de perfil protegido (menor, ou idade não declarada) só recebe o
+  momento FUNCIONAL, e só com o gatilho EMBUTIDO — o gatilho da flag para `fim_de_cota` podia trazer texto de
+  venda ("com um plano pago você continua…") —, sem plano sugerido (a ação leva ao consumo do mês). Promocional →
+  recusa `perfil_protegido`. O convidado não é "protegido" aqui: a única promocional dele já é criar a conta (é
+  onde a idade é perguntada) — decisão a confirmar com o dono.
+- **Payload v2 (migração 0045, só a linha da semente):** os seis gatilhos com os textos do Premium (a Tradução
+  Nuance ao tocar, a nuvem, o aparelho que segue sem limite), sem "qualidade"/"mais precisa"/"planos pagos",
+  `variante: "v2"` para o funil separar a conversão dos textos novos, e alvo só Grátis (e o convidado na conta).
 
 ## Sondagem do Asaas (sandbox, 29–30/09/2026)
 

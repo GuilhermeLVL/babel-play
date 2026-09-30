@@ -10,6 +10,10 @@
  *
  *  1. FLAG. Desligada = só os avisos FUNCIONAIS (fim de cota, cota próxima), com os textos
  *     embutidos (`GATILHOS_FUNCIONAIS`). Ofertas promocionais só existem com a flag ligada.
+ *  1b. PERFIL PROTEGIDO (C8 — o furo achado no plano): a conta de menor, ou sem idade declarada, só
+ *     recebe o FUNCIONAL, e só com o texto EMBUTIDO — o gatilho da flag para um momento funcional pode
+ *     trazer texto de venda ("com o Premium você continua…"). Sem plano sugerido: a ação leva ao
+ *     consumo do mês, nunca à venda (ECA Digital, art. 18; LGPD, art. 14).
  *  2. PLANOS-ALVO. Assinante Premium e self-host nunca veem oferta promocional (não há o que vender);
  *     o convidado vê primeiro a CONTA, nunca um plano (`convidado → conta antes de plano`); e o
  *     gatilho só vale para os planos que ele lista.
@@ -76,6 +80,10 @@ export interface EstadoDaTela {
 
 export interface EntradaDoMotor {
   momento: MomentoDeOferta;
+  /** A CONTA de perfil protegido (menor, ou idade não declarada). O convidado não entra aqui. */
+  protegido?: boolean;
+  /** O servidor deixa esta conta começar o teste de 14 dias (`lib/ofertas/teste.ts`). */
+  podeTestar?: boolean;
   /** A etapa do momento (o fim do teste: `d3` ou `d0`). Gatilho com `fase` só vale na dele. */
   fase?: string;
   flagLigada: boolean;
@@ -90,6 +98,7 @@ export interface EntradaDoMotor {
 
 export type MotivoDeRecusa =
   | 'flag_desligada'
+  | 'perfil_protegido'
   | 'sem_gatilho'
   | 'plano_alvo'
   | 'convidado_primeiro_conta'
@@ -116,19 +125,18 @@ export type DecisaoDeOferta =
 const recusa = (motivo: MotivoDeRecusa, adiar = false): DecisaoDeOferta => ({ mostrar: false, motivo, adiar });
 
 /**
- * O plano que faz sentido sugerir. `nenhum` = não há o que vender (Premium, self-host). O convidado
- * ouve "crie a conta" antes de qualquer plano; o Grátis ouve o Premium (matriz v2: um plano pago só —
- * o C8 acrescenta o teste de 14 dias para quem pode testar).
+ * O plano que faz sentido sugerir. `nenhum` = não há o que vender (Premium, self-host) ou a quem
+ * vender (o perfil protegido). O convidado ouve "crie a conta" antes de qualquer plano; o Grátis ouve
+ * o TESTE de 14 dias sem cartão quando o servidor deixa testar, e o Premium quando não (ou quando não
+ * se sabe: prometer um teste já usado seria mentir).
  */
-export function planoSugerido(plano: PlanoDaFlag): PlanoSugerido {
-  switch (plano) {
-    case 'convidado':
-      return 'conta';
-    case 'free':
-      return 'premium';
-    default:
-      return 'nenhum';
-  }
+export function planoSugerido(
+  plano: PlanoDaFlag,
+  pessoa: { protegido?: boolean; podeTestar?: boolean } = {},
+): PlanoSugerido {
+  if (plano === 'convidado') return 'conta';
+  if (plano !== 'free' || pessoa.protegido) return 'nenhum';
+  return pessoa.podeTestar ? 'teste' : 'premium';
 }
 
 const dentro = (lista: number[] | undefined, desde: number) => (lista ?? []).filter((t) => t > desde).length;
@@ -150,7 +158,8 @@ export function bloqueioDeFrequencia(
 /** Os gatilhos candidatos do momento: os da flag (ligada) ou, para os funcionais, os embutidos. */
 function candidatos(e: EntradaDoMotor, funcional: boolean): GatilhoDeOferta[] {
   const doMomento = (g: GatilhoDeOferta) => g.momento === e.momento && (!g.fase || g.fase === e.fase);
-  const daFlag = e.flagLigada ? e.config.gatilhos.filter(doMomento) : [];
+  /* O perfil protegido nunca lê o gatilho da flag: ele pode vender até num momento funcional. */
+  const daFlag = e.flagLigada && !e.protegido ? e.config.gatilhos.filter(doMomento) : [];
   if (daFlag.length || !funcional) return daFlag;
   return GATILHOS_FUNCIONAIS.filter(doMomento);
 }
@@ -160,11 +169,13 @@ export function decidirOferta(e: EntradaDoMotor): DecisaoDeOferta {
 
   // 1. Flag desligada: só os funcionais.
   if (!funcional && !e.flagLigada) return recusa('flag_desligada');
+  // 1b. Perfil protegido: só os funcionais, com o texto embutido (`candidatos`).
+  if (!funcional && e.protegido) return recusa('perfil_protegido');
   const todos = candidatos(e, funcional);
   if (!todos.length) return recusa('sem_gatilho');
 
   // 2. Planos-alvo.
-  const sugerido = planoSugerido(e.plano);
+  const sugerido = planoSugerido(e.plano, e);
   if (e.plano === 'selfhost') return recusa('plano_alvo');
   if (!funcional) {
     if (sugerido === 'nenhum') return recusa('plano_alvo');

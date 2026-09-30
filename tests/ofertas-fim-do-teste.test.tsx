@@ -26,7 +26,10 @@ vi.mock('../src/lib/flags', () => ({
   useConfigRemota: () => ({ gatilhos: [] }),
   ehConfigDeOfertas: () => true,
 }))
-vi.mock('../src/lib/ofertas/plano', () => ({ planoDaOferta: () => 'premium' }))
+vi.mock('../src/lib/ofertas/plano', () => ({
+  planoDaOferta: () => 'premium',
+  pessoaDaOferta: () => ({ protegido: false, podeTestar: false }),
+}))
 vi.mock('../src/lib/ofertas/cota', () => ({ verificarCota: async () => null }))
 vi.mock('../src/lib/identidade', () => ({ estadoDeIdentidade: () => 'conta', estaAnonimo: () => false }))
 vi.mock('../src/lib/entitlements', async (original) => {

@@ -60,21 +60,40 @@
 - [x] 6.3 `planoDeAdmissao(plano, alivio, teste = true)` → faixa `gratis` (STT, tradução e tutor)
 - [x] 6.4 LGPD: `docs/lgpd/ropa.csv` (T12) e `public/privacidade.html` — a marca, a finalidade e os 730 dias
 
-## C7 — Tela de Planos nova (depois)
+## C7 — Tela de Planos nova (branch `feat/c-tela-de-planos`)
 
-- [ ] 7.1 Seletor Mensal/Anual; sem `%`, sem "qualidade", sem o `Medidor` (teste automático)
-- [ ] 7.2 Nota do uso justo AO LADO de "sem limite" (CDC); checkout e conta falando de ciclo
+- [x] 7.1 Título do produto, seletor Mensal/Anual ("equivale a 3 meses grátis", da matriz); colunas Grátis
+      ("Tradução rápida ao vivo") e Premium ("Tradução Nuance"); sem `%`, sem "qualidade", sem o `Medidor`
+      (`tests/planos-tela-v2.test.tsx`)
+- [x] 7.2 Nota do uso justo AO LADO de "sem limite" (CDC), no cartão, na tabela e no checkout; checkout abre no
+      período escolhido; faixa, "Sua assinatura", cancelamento e confirmação falando de ciclo e meio
+      (`tests/conta-fala-do-ciclo.test.tsx`)
+- [x] 7.3 O teste de 14 dias com um toque no cartão do Premium; o estado `teste` da conta (não é assinatura)
+- [x] 7.4 Troca de ciclo com assinatura ativa: o caminho honesto, sem rota nova (`DialogoCiclo`) — cancelar a
+      renovação e assinar o outro ciclo no fim do período; o 12x não troca (não renova)
 
-## C8 — Ofertas (depois)
+## C8 — Ofertas (branch `feat/c-tela-de-planos`)
 
-- [ ] 8.1 `planoSugerido`: free → `teste` ou `premium`; perfil protegido só recebe ofertas funcionais
-- [ ] 8.2 Payload novo de `oferta_planos` via migração
+- [x] 8.1 `planoSugerido`: free → `teste` (o servidor deixa testar: `/api/billing/status`, lembrado por 1 h em
+      `lib/ofertas/teste.ts`) ou `premium`; o selo diz "Sugerido: 14 dias de Premium grátis, sem cartão"
+- [x] 8.2 Portão novo: a CONTA de perfil protegido só recebe o funcional, com o texto EMBUTIDO (o da flag pode
+      vender) e sem plano sugerido (`perfil_protegido` no motor)
+- [x] 8.3 Payload v2 de `oferta_planos` via migração 0045 (textos do Premium, sem qualidade, `variante: v2`; só a
+      linha da semente)
+- [x] 8.4 O `fim_do_teste` do C6 integrado na tela: a faixa "Premium · teste" diz a mesma frase de D-3/D0
 
-## C9 — Docs e jurídico (depois)
+## C9 — Docs e jurídico (branch `feat/c-tela-de-planos`)
 
-- [ ] 9.1 `docs/LANCAMENTO.md`, `ofertas.md`, `monetizacao.md`, `flags.md`, `scripts/custo/modelo.mjs`
-- [ ] 9.2 `termos.html` §3 (anual, teste, uso justo, 12x) e `privacidade.html` (a marca do teste)
-- [ ] 9.3 Poda das janelas diárias de `usage_counters`
+- [x] 9.1 `docs/LANCAMENTO.md`, `ofertas.md`, `monetizacao.md`, `flags.md`; `scripts/custo/modelo.mjs` na matriz v2
+      (Premium mensal/anual/12x, teto de 40 h até o B7, uso justo de 2 h/dia, teste de 14 dias, alívio de 3 h do
+      Grátis), com as tabelas em `openspec/changes/planos-v2/custo/` (as de 25/09 ficam como o retrato da matriz v1)
+- [x] 9.2 `termos.html` v5: §3 (Grátis e Premium, mensal/anual/12x, troca de ciclo, preço travado), §3.1
+      (arrependimento do ano e do parcelamento inteiros), §3.2 (cancelamento por ciclo: depois dos 7 dias, sem
+      reembolso proporcional; o 12x segue no cartão), §3.4, §3.5 (teste de 14 dias sem cobrança automática), §4 (uso
+      justo) e §5 (sem "números de qualidade"); "texto a validar com o jurídico" em comentário HTML. `privacidade.html`:
+      a tabela sem Essencial/Pro e a normalização do e-mail da marca do teste (a marca, o HMAC e os 730 dias do C6
+      conferem com o código)
+- [ ] 9.3 Poda das janelas diárias de `usage_counters` (fica para a operação)
 
 ## Portões (cada item)
 

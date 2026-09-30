@@ -16,6 +16,8 @@ src/data/i18n
 tests/caracterizacao/__snapshots__
 tests/__snapshots__
 openspec/audits
+# as tabelas do modelo de custo (`node scripts/custo/modelo.mjs`)
+openspec/changes/planos-v2/custo
 
 # CSS escrito à mão com blocos alinhados de propósito (paletas, @theme): o Prettier
 # desalinha as colunas de token que a documentação de contraste usa como prova.

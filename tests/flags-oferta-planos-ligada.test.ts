@@ -33,8 +33,15 @@ const updatesDaV2 = () =>
     .split(/-->\s*statement-breakpoint/)
     .map((c) => c.replace(/--[^\n]*/g, '').trim())
     .filter((c) => /^UPDATE\b/i.test(c))
+/* E a 0045 (C8) troca os textos pelos da matriz v2: a sequência inteira é 0039 → 0041 → 0045. */
+const MIGRACAO_OFERTAS_V2 = path.join('server', 'db', 'migrations', '0045_ofertas_v2.sql')
+const updatesDasOfertasV2 = () =>
+  readFileSync(MIGRACAO_OFERTAS_V2, 'utf8')
+    .split(/-->\s*statement-breakpoint/)
+    .map((c) => c.replace(/^\s*--[^\n]*$/gm, '').trim())
+    .filter((c) => /^UPDATE\b/i.test(c))
 const reaplicar = async () => {
-  for (const c of [...comandosDaMigracao(), ...updatesDaV2()]) await client.execute(c)
+  for (const c of [...comandosDaMigracao(), ...updatesDaV2(), ...updatesDasOfertasV2()]) await client.execute(c)
 }
 
 let h: EphemeralDb

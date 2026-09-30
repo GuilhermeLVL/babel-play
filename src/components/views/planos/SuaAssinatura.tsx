@@ -1,6 +1,29 @@
-import { ChevronRight, CirclePause, CreditCard, FileText, type LucideIcon, Receipt, RotateCcw, X } from 'lucide-react';
+import {
+  CalendarRange,
+  ChevronRight,
+  CirclePause,
+  CreditCard,
+  FileText,
+  type LucideIcon,
+  Receipt,
+  RotateCcw,
+  X,
+} from 'lucide-react';
 
-import { brl, type Conta, dataCurta, type Fatura, precoMensal, ROTULO_DO_METODO } from '../../../lib/assinatura';
+import {
+  brl,
+  type Conta,
+  dataCurta,
+  economiaDoAnual,
+  type Fatura,
+  formaDaConta,
+  parcelasDoAnual,
+  precoAnual,
+  precoMensal,
+  ROTULO_DO_METODO,
+  rotuloDaForma,
+} from '../../../lib/assinatura';
+import { t } from '../../../lib/i18n';
 import { IconeEmBloco, TituloDeSecao } from '../../ui';
 import { PLANO_ICO, PLANO_NOME } from './dados';
 import FaixaDaConta from './FaixaDaConta';
@@ -10,11 +33,16 @@ import FaixaDaConta from './FaixaDaConta';
  *
  * Resumo, ações, faturas e a zona de cancelar, na marcação do protótipo. Os dados são do
  * servidor: status e fim do período de `/api/billing/status`, faturas de `/api/billing/faturas`.
- * "Passar para anual" ainda não aparece: o anual chega com o C5 (change `planos-v2`). "Mudar de
- * plano" saiu com a matriz v2 — há um plano pago só.
+ * "Mudar de plano" saiu com a matriz v2 — há um plano pago só.
+ *
+ * O CICLO E O MEIO (C7): o resumo diz mensal, anual ou anual em 12x, com o valor de cada um.
+ * "Passar para o anual" (e "para o mensal") é a ação do protótipo com o caminho HONESTO de hoje —
+ * cancelar a renovação e assinar o outro ciclo no fim do período (`DialogoCiclo`): uma segunda
+ * assinatura cobraria junto com a primeira, e o servidor recusa (409 `ja_assinante`). O 12x não tem
+ * troca (não renova: no fim do ano escolhe-se de novo) e nem pausa (as parcelas são do cartão).
  */
 
-export type DialogoDaAssinatura = 'pagamento' | 'pausar' | { fatura: Fatura };
+export type DialogoDaAssinatura = 'pagamento' | 'pausar' | 'ciclo' | { fatura: Fatura };
 
 const STATUS: Record<Fatura['status'], [string, string]> = {
   paga: ['ok', 'Paga'],
@@ -49,12 +77,60 @@ export default function SuaAssinatura({
   const e = conta.estado;
   const plano = conta.plano ?? 'premium';
   const p = PLANO_NOME[plano];
+  const forma = formaDaConta(conta);
+  const parcelas = parcelasDoAnual(plano);
   const pagas = (faturas ?? []).filter((f) => f.status === 'paga');
   const desde = pagas.length ? pagas[pagas.length - 1].data : null;
 
+  const valor =
+    forma === 'anual'
+      ? t('{valor} por ano', { valor: brl(precoAnual(plano)) })
+      : forma === 'anual_12x'
+        ? t('{m} × {parcela} + {ultima} no cartão (total {total})', {
+            m: parcelas.quantidade - 1,
+            parcela: brl(parcelas.padrao),
+            ultima: brl(parcelas.ultima),
+            total: brl(precoAnual(plano)),
+          })
+        : forma === 'concedido'
+          ? t('Sem cobrança')
+          : t('{valor} por mês', { valor: brl(precoMensal(plano)) });
+
+  /* A TROCA DE CICLO só existe para a assinatura ATIVA que renova (mensal ou anual à vista). */
+  const trocaDeCiclo: [LucideIcon, string, string, DialogoDaAssinatura, boolean] =
+    forma === 'mensal'
+      ? [
+          CalendarRange,
+          t('Passar para o anual'),
+          t('Economize {valor} por ano.', { valor: brl(economiaDoAnual(plano).reais) }),
+          'ciclo',
+          e === 'ativa',
+        ]
+      : [
+          CalendarRange,
+          t('Passar para o mensal'),
+          t('Pague mês a mês depois do fim do ano pago.'),
+          'ciclo',
+          e === 'ativa' && forma === 'anual',
+        ];
   const acoes: [LucideIcon, string, string, DialogoDaAssinatura, boolean][] = [
-    [CreditCard, 'Forma de pagamento', `${metodoAtual(faturas)} · você escolhe a cada cobrança`, 'pagamento', true],
-    [CirclePause, 'Pausar a assinatura', 'De 1 a 3 meses, pelo suporte.', 'pausar', e !== 'cancelada'],
+    trocaDeCiclo,
+    [
+      CreditCard,
+      t('Forma de pagamento'),
+      forma === 'anual_12x'
+        ? t('Cartão · {n} parcelas', { n: parcelas.quantidade })
+        : t('{metodo} · você escolhe a cada cobrança', { metodo: metodoAtual(faturas) }),
+      'pagamento',
+      forma !== 'concedido',
+    ],
+    [
+      CirclePause,
+      t('Pausar a assinatura'),
+      t('De 1 a 3 meses, pelo suporte.'),
+      'pausar',
+      e !== 'cancelada' && forma !== 'anual_12x' && forma !== 'concedido',
+    ],
   ];
 
   return (
@@ -73,29 +149,36 @@ export default function SuaAssinatura({
           <div className="linha" style={{ gap: 12 }}>
             <IconeEmBloco icone={PLANO_ICO[plano]} />
             <div>
-              <span className="label-mono">Plano</span>
-              <h2 style={{ fontSize: 20, fontWeight: 900 }}>{p} · mensal</h2>
+              <span className="label-mono">{t('Plano')}</span>
+              <h2 style={{ fontSize: 20, fontWeight: 900 }}>{`${p} · ${rotuloDaForma(forma)}`}</h2>
             </div>
           </div>
           <dl className="dados">
             <div>
-              <dt>Valor</dt>
-              <dd className="tn">{brl(precoMensal(plano))} por mês</dd>
+              <dt>{t('Valor')}</dt>
+              <dd className="tn">{valor}</dd>
             </div>
             {/* "Próxima cobrança" só com a data do Asaas; sem ela, o que se sabe é até quando o acesso
-                vale (`valeAte`, que inclui a graça de atraso) — e a tela diz isso, não "cobrança". */}
+                vale (`valeAte`, que inclui a graça de atraso) — e a tela diz isso, não "cobrança". O
+                anual chama a data de "Renova em"; o 12x não tem próxima cobrança do plano. */}
             <div>
-              <dt>{e === 'ativa' && conta.proximaCobranca ? 'Próxima cobrança' : 'Acesso até'}</dt>
+              <dt>
+                {e === 'ativa' && conta.proximaCobranca
+                  ? forma === 'anual'
+                    ? t('Renova em')
+                    : t('Próxima cobrança')
+                  : t('Acesso até')}
+              </dt>
               <dd className="tn">
                 {dataCurta(e === 'ativa' && conta.proximaCobranca ? conta.proximaCobranca : conta.valeAte)}
               </dd>
             </div>
             <div>
-              <dt>Pagamento</dt>
-              <dd>{metodoAtual(faturas)}</dd>
+              <dt>{t('Pagamento')}</dt>
+              <dd>{forma === 'anual_12x' ? t('Cartão, sem renovação automática') : metodoAtual(faturas)}</dd>
             </div>
             <div>
-              <dt>Assinante desde</dt>
+              <dt>{t('Assinante desde')}</dt>
               <dd className="tn">{dataCurta(desde)}</dd>
             </div>
           </dl>
@@ -103,11 +186,11 @@ export default function SuaAssinatura({
         <section className="acoes-assin">
           {acoes
             .filter((a) => a[4])
-            .map(([I, t, d, k]) => (
-              <button key={t} type="button" className="cartao clicavel acao-assin" onClick={() => abrir(k)}>
+            .map(([I, titulo, d, k]) => (
+              <button key={titulo} type="button" className="cartao clicavel acao-assin" onClick={() => abrir(k)}>
                 <IconeEmBloco icone={I} />
                 <span style={{ flex: 1, minWidth: 0 }}>
-                  <b>{t}</b>
+                  <b>{titulo}</b>
                   <small className="mut">{d}</small>
                 </span>
                 <ChevronRight aria-hidden style={{ width: 16, height: 16, color: 'var(--ink-muted)' }} />
@@ -181,15 +264,19 @@ export default function SuaAssinatura({
       {e !== 'cancelada' && (
         <section className="secao cancelar-zona">
           <div>
-            <b>Cancelar assinatura</b>
+            <b>{t('Cancelar assinatura')}</b>
             <p className="mut">
-              Você mantém o {p}
-              {conta.valeAte ? ` até ${dataCurta(conta.valeAte)}` : ' até o fim do período pago'} e seus dados continuam
-              salvos.
+              {conta.valeAte
+                ? t('Você mantém o {plano} até {data} e seus dados continuam salvos.', {
+                    plano: p,
+                    data: dataCurta(conta.valeAte),
+                  })
+                : t('Você mantém o {plano} até o fim do período pago e seus dados continuam salvos.', { plano: p })}
+              {forma === 'anual_12x' ? ` ${t('Depois dos 7 dias, as parcelas que faltam seguem no cartão.')}` : ''}
             </p>
           </div>
           <button type="button" className="btn btn-outline perigo" onClick={aoCancelar}>
-            <X aria-hidden /> Cancelar assinatura
+            <X aria-hidden /> {t('Cancelar assinatura')}
           </button>
         </section>
       )}

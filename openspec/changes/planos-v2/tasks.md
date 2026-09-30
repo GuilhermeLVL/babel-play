@@ -74,6 +74,6 @@
 
 ## Portões (cada item)
 
-- [ ] testes relacionados · `tsc` · `typecheck:estrito` · `typecheck:core` · eslint · prettier
-- [ ] `migracoes/conferir.mjs` · `contrato-api.mjs` · i18n (`pseudo --check`, `orfas`, `cobertura --check`)
-- [ ] `build:estatica` + `orcamento-bundle.mjs` (JS inicial ≤ 180 KB gzip)
+- [x] testes relacionados · `tsc` · `typecheck:estrito` · `typecheck:core` · eslint · prettier
+- [x] `migracoes/conferir.mjs` · `contrato-api.mjs` · i18n (`pseudo --check`, `orfas`, `cobertura --check`)
+- [x] `build:estatica` + `orcamento-bundle.mjs` (JS inicial ≤ 180 KB gzip)

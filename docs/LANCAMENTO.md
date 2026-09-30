@@ -71,9 +71,10 @@ O Asaas não tem mensalidade: cobra por transação (cartão ~R$ 0,49 + 1,99 % a
      }
    ]
    ```
-   (O app não liga COOP/COEP por padrão, então `Cross-Origin-Resource-Policy` não é exigido. Se um
-   dia ligar `CROSS_ORIGIN_ISOLATION=1`, crie uma _Transform Rule_ de resposta para
-   `modelos.<domínio>` com `Cross-Origin-Resource-Policy: cross-origin`.)
+   (O app sai com isolamento de origem ligado — COEP `credentialless` + Document-Isolation-Policy —
+   para o WASM ter threads. Os pesos são baixados por `fetch` com CORS, então esta política de CORS é
+   tudo o que o bucket precisa: `Cross-Origin-Resource-Policy` não é exigido. Sem o CORS, os modelos
+   locais não carregam.)
 6. **R2 → Manage API tokens** → criar **três tokens** "Object Read & Write", cada um restrito a UM
    bucket: `midia` (+ `backups`), `litestream`, `modelos`. Anotar _Access Key ID_, _Secret_ e o
    endpoint `https://<conta>.r2.cloudflarestorage.com`.
@@ -251,6 +252,11 @@ https://<domínio>/api/health` (liga o `uptime.yml`, o segundo par de olhos, que
 - [ ] Criar uma conta de teste, confirmar o e-mail (chega pelo Resend), entrar, **ativar o 2FA** em
       Ajustes → Conta, sair e entrar de novo (o app pede o código).
 - [ ] Gravar uma sessão curta: o áudio aparece no bucket `babel-midia`.
+- [ ] **Threads do WASM**: no Chrome ou no Firefox, console da página → `crossOriginIsolated` dá
+      `true` (`curl -sI https://<domínio>/` mostra `cross-origin-embedder-policy: credentialless` e
+      `document-isolation-policy`). Se algum recurso de terceiro parar de carregar por causa do COEP,
+      `CROSS_ORIGIN_ISOLATION=dip` (no `[env]` do `fly.toml`, ou `fly secrets set` para valer sem
+      novo deploy) mantém as threads no Chrome/Edge; `0` desliga.
 - [ ] No dia seguinte: `backups/diario/<data>.db.gz` no `babel-backups`, heartbeat verde no UptimeRobot.
 - [ ] **Restaurar o Litestream** num arquivo à parte (runbook §0.2-A) e anotar a data no runbook.
 - [ ] Rodar o **ZAP Baseline** (Actions → _ZAP Baseline (staging)_ com a URL do staging) e triar.

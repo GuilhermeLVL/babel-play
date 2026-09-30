@@ -1,0 +1,103 @@
+# BANCADA DE DESEMPENHO DA CAPTURA (A0 do plano "grátis sem travar"). A régua que prova e vigia os
+# ganhos da Fase A: frames longos na thread principal, 1ª legenda, RTF do STT local, memória de pico,
+# CPU no silêncio e renders/s da tela de captura — na edição estática, no Chromium do runner, com o
+# áudio versionado em tests/fixtures/bancada-captura/ tocando como microfone falso.
+#
+# Dois perfis: o desktop do runner (headless: WebGPU sem adaptador → desktop-sem-gpu) e um notebook de
+# entrada emulado (sem WebGPU, 2 núcleos, 2 GB, CPU 4× mais lenta pelo CDP). O cenário é o que a rota
+# resolve com os MENORES modelos (mídia em inglês → Moonshine base q8 + opus-mt), para caber no CI.
+#
+# Só roda em PR que mexe na captura (telas, gateway/adapters, pipeline, regulador, perfil do aparelho)
+# ou na própria bancada, e sob demanda. Falha quando uma métrica piora além da tolerância de
+# scripts/perf/latencia-legenda/slo-captura.json para o ambiente `ci-ubuntu`; sem linha de base, só
+# relata. A BASE sai daqui: `workflow_dispatch` com `gravar_linha_de_base` grava o slo-captura.json
+# novo no artefato — quem aprova a base é quem o commita (o workflow não escreve no repositório).
+#
+# Os pesos do Hub vêm de um cache em disco (URL fixada por commit, `revisoesDosModelos.ts`) guardado
+# pelo actions/cache: a rede sai da medição e o job não baixa ~180 MB a cada PR.
+name: desempenho
+
+on:
+  pull_request:
+    paths:
+      - 'src/components/views/LiveCapture.tsx'
+      - 'src/components/views/captura/**'
+      - 'src/components/ChatTranscript.tsx'
+      - 'src/gateway/**'
+      - 'src/lib/captura/**'
+      - 'src/lib/dispositivo/**'
+      - 'src/core/harness/**'
+      - 'scripts/perf/latencia-legenda/**'
+      - 'tests/fixtures/bancada-captura/**'
+      - 'tests/e2e-estatica/_dispositivos.mjs'
+      - 'tests/e2e-estatica/_servidor-estatico.mjs'
+      - 'package-lock.json'
+      - 'vite.config.ts'
+      - '.github/workflows/desempenho.yml'
+  workflow_dispatch:
+    inputs:
+      rodadas:
+        description: 'Rodadas medidas por perfil (a mediana vai para a comparação)'
+        required: false
+        default: '3'
+      perfis:
+        description: 'Perfis de aparelho (desktop, fraco)'
+        required: false
+        default: 'desktop,fraco'
+      gravar_linha_de_base:
+        description: 'Gravar a linha de base do ci-ubuntu (o slo-captura.json novo vai no artefato)'
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desempenho-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bancada:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Edição estática (o dist que o Pages serve)
+        run: npm run build:estatica
+      - name: Navegador do Playwright
+        run: npx playwright install --with-deps chromium
+      # A chave muda quando uma revisão de modelo muda; o restore-keys aproveita o que ainda vale.
+      - name: Pesos dos modelos (cache em disco)
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.cache/babel-bancada/modelos
+          key: modelos-hf-${{ hashFiles('src/gateway/revisoesDosModelos.ts') }}
+          restore-keys: |
+            modelos-hf-
+      - name: Bancada (aquecimento + N rodadas por perfil)
+        env:
+          RODADAS: ${{ github.event.inputs.rodadas || '3' }}
+          PERFIS: ${{ github.event.inputs.perfis || 'desktop,fraco' }}
+          GRAVAR: ${{ github.event.inputs.gravar_linha_de_base == 'true' && '--gravar-linha-de-base' || '' }}
+        run: >-
+          node scripts/perf/latencia-legenda/bancada-captura.mjs
+          --rodadas "$RODADAS" --perfis "$PERFIS" --porta 4181
+          --saida bancada-resultado --cache-modelos "$HOME/.cache/babel-bancada/modelos"
+          --ambiente ci-ubuntu $GRAVAR
+      # Os brutos (eventos da sonda, amostras de CPU e memória) vão SEMPRE: sem eles, uma métrica que
+      # piorou não tem como ser explicada por quem não roda a bancada.
+      - name: Artefato (brutos, métricas e o SLO usado)
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: bancada-desempenho
+          path: |
+            bancada-resultado/
+            scripts/perf/latencia-legenda/slo-captura.json
+          if-no-files-found: ignore

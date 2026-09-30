@@ -1,0 +1,126 @@
+{
+ "ambiente": "local-win32",
+ "quando": "2026-09-30T01:53:36.417Z",
+ "commit": "bde13bd",
+ "alvo": {
+  "nome": "atual",
+  "url": "http://127.0.0.1:4181"
+ },
+ "maquina": {
+  "so": "Windows_NT 10.0.26100",
+  "cpu": "AMD Ryzen 5 5600 6-Core Processor",
+  "nucleos": 12,
+  "memoriaGb": 16,
+  "navegador": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36"
+ },
+ "perfis": {
+  "desktop": {
+   "rodadas": 3,
+   "invalidas": [],
+   "falasNoRtf": 24,
+   "metricas": {
+    "framesLongos.n50": 1,
+    "framesLongos.n100": 1,
+    "framesLongos.somaMs": 237,
+    "framesLongos.maiorMs": 219,
+    "primeiraLegendaMs": 2347,
+    "sttProntoMs": -986,
+    "memoriaPicoMb": 1322,
+    "heapPicoMb": 26,
+    "cpuSilencio.processoPct": 24.99354444142429,
+    "cpuSilencio.principalPct": 6.980341125305789,
+    "cpuSilencio.foraDaPrincipalPct": 18.013203316118503,
+    "cpuSilencio.workersPct": null,
+    "rendersPorS.silencio": 31.366027394233633,
+    "rendersPorS.fala": 100.28169014084507,
+    "commitsPorS.silencio": 1.0457426279757915,
+    "commitsPorS.fala": 2.4918743228602382,
+    "fimATraducao.p50": 1104.5,
+    "regulador.trocasDeModelo": 0,
+    "rtf.p50": 0.0925,
+    "rtf.p95": 0.15449999999999994
+   },
+   "dispersao": {
+    "framesLongos.n50": 20,
+    "framesLongos.n100": 1,
+    "framesLongos.somaMs": 6,
+    "framesLongos.maiorMs": 0.1415525114155251,
+    "primeiraLegendaMs": 0.5492117596932254,
+    "sttProntoMs": 0.3843813387423935,
+    "memoriaPicoMb": 0.926626323751891,
+    "heapPicoMb": 0.11538461538461539,
+    "cpuSilencio.processoPct": 6.79562686640302,
+    "cpuSilencio.principalPct": 0.3392854326294952,
+    "cpuSilencio.foraDaPrincipalPct": 9.297539759867004,
+    "cpuSilencio.workersPct": null,
+    "rendersPorS.silencio": 0.015314542198937277,
+    "rendersPorS.fala": 0.06395851339671574,
+    "commitsPorS.silencio": 0.13273583969930508,
+    "commitsPorS.fala": 0.03478260869565222,
+    "fimATraducao.p50": 0.47397012222725216,
+    "regulador.trocasDeModelo": null
+   },
+   "modelos": [
+    "onnx-community/moonshine-base-ONNX"
+   ],
+   "aparelho": {
+    "tipo": "desktop-sem-gpu",
+    "modoLeve": "false"
+   }
+  },
+  "fraco": {
+   "rodadas": 3,
+   "invalidas": [],
+   "falasNoRtf": 24,
+   "metricas": {
+    "framesLongos.n50": 7,
+    "framesLongos.n100": 4,
+    "framesLongos.somaMs": 1788,
+    "framesLongos.maiorMs": 973,
+    "primeiraLegendaMs": 4972,
+    "sttProntoMs": -452,
+    "memoriaPicoMb": 1179,
+    "heapPicoMb": 26,
+    "cpuSilencio.processoPct": 9.85223641057846,
+    "cpuSilencio.principalPct": 2.076781912941348,
+    "cpuSilencio.foraDaPrincipalPct": 7.434463749912771,
+    "cpuSilencio.workersPct": null,
+    "rendersPorS.silencio": 30.042961434848483,
+    "rendersPorS.fala": 89.4907908992416,
+    "commitsPorS.silencio": 1.0399970635377032,
+    "commitsPorS.fala": 2.2751895991332614,
+    "fimATraducao.p50": 1306.5,
+    "regulador.trocasDeModelo": 0,
+    "rtf.p50": 0.1155,
+    "rtf.p95": 0.1588
+   },
+   "dispersao": {
+    "framesLongos.n50": 0.7142857142857143,
+    "framesLongos.n100": 0.5,
+    "framesLongos.somaMs": 0.395413870246085,
+    "framesLongos.maiorMs": 0.18705035971223022,
+    "primeiraLegendaMs": 0.010659694288012871,
+    "sttProntoMs": 0.5199115044247787,
+    "memoriaPicoMb": 1.0025445292620865,
+    "heapPicoMb": 0.07692307692307693,
+    "cpuSilencio.processoPct": 15.427522158932822,
+    "cpuSilencio.principalPct": 0.2544312683003086,
+    "cpuSilencio.foraDaPrincipalPct": 20.419520914693635,
+    "cpuSilencio.workersPct": null,
+    "rendersPorS.silencio": 0.0628317163634494,
+    "rendersPorS.fala": 0.022760290556900768,
+    "commitsPorS.silencio": 0.08360233380900325,
+    "commitsPorS.fala": 0.02857142857142856,
+    "fimATraducao.p50": 0.257558362035974,
+    "regulador.trocasDeModelo": null
+   },
+   "modelos": [
+    "onnx-community/moonshine-base-ONNX"
+   ],
+   "aparelho": {
+    "tipo": "desktop-sem-gpu",
+    "modoLeve": "true"
+   }
+  }
+ }
+}

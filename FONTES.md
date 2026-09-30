@@ -85,3 +85,12 @@ executável saiba onde está o código-fonte — é o que esta seção e o `LEIA
 Por que só pt→en: a bancada da Etapa 5 (`docs/auditoria/eval/bancada-2026-09-etapa5.md`) mediu COMET
 +0,028 (significativo) sobre o opus-mt nesse sentido; no en→pt o modelo da Mozilla escreve português
 de Portugal e o gold de conversa piora, então ali fica o opus-mt (Helsinki-NLP, CC-BY-4.0).
+
+## Áudio de teste da bancada de desempenho — **FLEURS**, licença **CC BY 4.0**
+
+Fora do aplicativo: só o repositório carrega `tests/fixtures/bancada-captura/fleurs-en-8.wav`, as
+8 falas em inglês que a bancada de desempenho da captura toca como microfone falso. Vêm do
+[FLEURS](https://huggingface.co/datasets/google/fleurs) (Conneau et al., 2022), sob
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Modificações: cada clipe foi aparado na
+voz, normalizado em nível e gravado em µ-law 8 bits (o JSON ao lado lista as falas e a referência
+de cada uma).

@@ -134,6 +134,8 @@ export function montarSpa(app: Express, distPath: string): void {
   )
   app.get('*', (_req, res) => {
     res.setHeader('Cache-Control', SEMPRE_REVALIDA)
+    // Caminho FIXO (a pasta do build + `index.html`): nada do request entra nele.
+    // nosemgrep: javascript.express.security.audit.express-res-sendfile.express-res-sendfile
     res.sendFile(path.join(distPath, 'index.html'))
   })
 }

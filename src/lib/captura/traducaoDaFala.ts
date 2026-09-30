@@ -128,7 +128,38 @@ export interface DepsDaTraducaoDaFala {
    * consentimento, nunca ligado sozinho).
    */
   aoFalharOTradutorLocal?: () => void;
+  /**
+   * O FINAL DE UMA FALA TEM TRADUÇÃO (ou não terá): o modo intérprete (Fase E) lê a tradução em voz
+   * alta (`lib/voz/filaDeFala.ts`). SÓ FINAIS e UMA VEZ SÓ POR FALA — a retradução, o final que cresce
+   * e a fábrica recriada a cada render não repetem (`finaisAvisados`). `sem-traducao`: mesmo idioma,
+   * falhou ou ficou sob demanda — não haverá o que ler, e quem espera deixa de esperar.
+   */
+  aoTraduzirFinal?: (final: TraducaoFinal) => void;
 }
+
+/** O que `aoTraduzirFinal` entrega. */
+export interface TraducaoFinal {
+  segId: string;
+  /** O texto que foi traduzido (o do final). */
+  original: string;
+  resultado: 'traduzida' | 'sem-traducao';
+  /** O que ler: a tradução como o balão mostra, sem o "≈" da aproximada. `''` em `sem-traducao`. */
+  traducao: string;
+  /** ISO-639-1 da origem efetiva e do destino. */
+  de: string;
+  para: string;
+  /** A tradução é do último recurso (MyMemory) ou da memória aproximada. */
+  aproximada: boolean;
+  /** A fala é do microfone (a pessoa falando). */
+  falada: boolean;
+}
+
+/**
+ * As falas cujo final já foi avisado, por tela. A chave é o `ordemMtRef` — o ref é o mesmo entre os
+ * renders, a fábrica não. Com teto, para uma sessão longa não crescer sem fim.
+ */
+const finaisAvisados = new WeakMap<object, Set<string>>();
+const TETO_DOS_FINAIS_AVISADOS = 500;
 
 /**
  * Quantas falas uma retradução traduz AO MESMO TEMPO. Ela refaz TODAS as da sessão que ficaram sem
@@ -169,6 +200,37 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
     setFeedbackMsg,
   } = deps;
   const memoria = deps.memoriaPersistente === undefined ? memoriaPadrao() : deps.memoriaPersistente;
+
+  /** Avisa o final desta fala a quem lê em voz alta — uma vez só (ver `aoTraduzirFinal`). */
+  const avisarFinal = (f: TraducaoFinal) => {
+    const aviso = deps.aoTraduzirFinal;
+    if (!aviso) return;
+    let vistos = finaisAvisados.get(ordemMtRef);
+    if (!vistos) finaisAvisados.set(ordemMtRef, (vistos = new Set()));
+    if (vistos.has(f.segId)) return;
+    vistos.add(f.segId);
+    if (vistos.size > TETO_DOS_FINAIS_AVISADOS) {
+      const maisAntigo = vistos.values().next().value;
+      if (maisAntigo !== undefined) vistos.delete(maisAntigo);
+    }
+    aviso(f);
+  };
+  const finalSemTraducao = (
+    segId: string,
+    original: string,
+    de: string,
+    para: string,
+    falada: boolean,
+  ): TraducaoFinal => ({
+    segId,
+    original,
+    resultado: 'sem-traducao',
+    traducao: '',
+    de: baseLang(de || ''),
+    para: baseLang(para || ''),
+    aproximada: false,
+    falada,
+  });
 
   /**
    * AVISA QUANDO A NUVEM CAI, em vez de degradar em silêncio.
@@ -244,6 +306,7 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
           prev.map((seg) => (seg.id === segId ? { ...seg, translatedText: '', traducaoSobDemanda: true } : seg)),
         );
         capMetrics.mtPulada(motivo);
+        avisarFinal(finalSemTraducao(segId, text, origemM0, tgtM0, falada));
         return;
       }
     }
@@ -276,6 +339,7 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
       if (ordemMtRef.current.encerrar(segId, selo)) {
         setSpeechSegments((prev) => prev.map((seg) => (seg.id === segId ? { ...seg, translatedText: '' } : seg)));
       }
+      if (!parcial) avisarFinal(finalSemTraducao(segId, text, origemEfetiva, tgt, opts?.falada === true));
       /* AVISO ÚNICO, só quando é conclusão da sessão (perfil convergido), não palpite de uma fala. */
       if (!opts?.falada && !altTargetNotifiedRef.current && perfilIdiomaRef.current.observado()) {
         altTargetNotifiedRef.current = true;
@@ -316,7 +380,20 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
     const applyTranslation = (translated: string, aproximada = false) => {
       // "≈" na frente: o último recurso público (MyMemory) acerta frases comuns e erra gíria e
       // contexto. Dizer que é aproximada é o que separa "tradução ruim" de "app mentindo".
-      const capitalized = (aproximada ? '≈ ' : '') + translated.charAt(0).toUpperCase() + translated.slice(1);
+      const legivel = translated.charAt(0).toUpperCase() + translated.slice(1);
+      const capitalized = (aproximada ? '≈ ' : '') + legivel;
+      /* O final (nunca o parcial) vai a quem lê em voz alta: o texto do balão, sem o "≈". */
+      if (!parcial)
+        avisarFinal({
+          segId,
+          original: text,
+          resultado: 'traduzida',
+          traducao: legivel,
+          de: baseLang(origem),
+          para: baseLang(tgt),
+          aproximada,
+          falada: opts?.falada === true,
+        });
       // As palavras de vocabulário já foram extraídas da fala real no commit do
       // enunciado (wordsFromText); a tradução só atualiza o texto traduzido.
       setSpeechSegments((prev) =>
@@ -374,6 +451,7 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
               : seg,
           ),
         );
+        avisarFinal(finalSemTraducao(segId, text, origem, tgt, opts?.falada === true));
         // Degradação NUNCA mais é silenciosa (achado da auditoria): avisa UMA vez por sessão
         // que a tradução caiu e o que o usuário está vendo é o texto original.
         if (!mtFailNotifiedRef.current) {
@@ -565,6 +643,11 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
    * dela, com a oferta do tradutor pela internet, substitui a faixa genérica de falha.
    */
   const tradutorLocalFalhou = () => {
+    /* A tradução que esperava o tradutor local não vem: quem ia lê-la em voz alta deixa de esperar. */
+    for (const seg of speechSegmentsRef.current) {
+      if (seg.traducaoPendente && !seg.isPartial)
+        avisarFinal(finalSemTraducao(seg.id, seg.originalText, seg.lang ?? '', '', seg.source === 'mic'));
+    }
     setSpeechSegments((prev) =>
       prev.some((seg) => seg.traducaoPendente)
         ? prev.map((seg) =>

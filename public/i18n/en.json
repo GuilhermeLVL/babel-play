@@ -1189,5 +1189,10 @@
   "Seu espaço de armazenamento está cheio. Apague sessões antigas na Biblioteca ou veja os planos com mais espaço.": "Your storage space is full. Delete old sessions in the Library or see the plans with more space.",
   "Criar conta na versão completa": "Create an account in the full version",
   "Não conseguimos confirmar o pagamento da sua assinatura. Pague a fatura para continuar com o {plano}.": "We couldn't confirm your subscription payment. Pay the invoice to keep your {plano} plan.",
-  "Ver minha assinatura": "View my subscription"
+  "Ver minha assinatura": "View my subscription",
+  "Legenda sem baixar nada: escolha o idioma do vídeo.": "Subtitles without downloading anything: choose the video language.",
+  "Transcrição sem baixar nada: escolha o idioma do vídeo.": "Transcription without downloading anything: choose the video language.",
+  "Com o idioma certo, o próprio navegador transcreve no aparelho, e o computador não fica pesado.": "With the right language, the browser itself transcribes on this device, and the computer stays light.",
+  "Outro idioma": "Another language",
+  "Transcrição pelo reconhecimento do navegador, no aparelho: ver detalhes": "Transcription by browser speech recognition, on this device: see details"
 }

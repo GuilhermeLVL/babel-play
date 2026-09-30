@@ -185,5 +185,11 @@
   "O tradutor no aparelho precisa de cerca de {mb} MB.": "El traductor en el dispositivo necesita unos {mb} MB.",
   "O tradutor deste aparelho não carregou (pouca memória ou navegador sem suporte). As falas seguem sem tradução.": "El traductor de este dispositivo no cargó (poca memoria o navegador sin soporte). Las frases siguen sin traducción.",
   "Dá para traduzir pela internet com o MyMemory: o texto das falas sai do aparelho.": "Se puede traducir por internet con MyMemory: el texto de las frases sale del dispositivo.",
-  "Traduzir pela internet": "Traducir por internet"
+  "Traduzir pela internet": "Traducir por internet",
+  "Legenda sem baixar nada: escolha o idioma do vídeo.": "Subtítulos sin descargar nada: elige el idioma del video.",
+  "Transcrição sem baixar nada: escolha o idioma do vídeo.": "Transcripción sin descargar nada: elige el idioma del video.",
+  "Com o idioma certo, o próprio navegador transcreve no aparelho, e o computador não fica pesado.": "Con el idioma correcto, el propio navegador transcribe en el dispositivo y la computadora no se pone lenta.",
+  "Outro idioma": "Otro idioma",
+  "reconhecimento do navegador": "reconocimiento del navegador",
+  "Transcrição pelo reconhecimento do navegador, no aparelho: ver detalhes": "Transcripción por el reconocimiento del navegador, en el dispositivo: ver detalles"
 }

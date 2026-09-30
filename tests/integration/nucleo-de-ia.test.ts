@@ -45,6 +45,7 @@ const ENVS = [
 let h: EphemeralDb
 let nucleoMt: typeof import('../../server/ai/nucleo/traduzirNoNivel')
 let nucleoAlt: typeof import('../../server/ai/nucleo/sugerirAlternativas')
+let nucleoPolir: typeof import('../../server/ai/nucleo/polirLote')
 let contexto: typeof import('../../server/ai/nucleo/contexto')
 let recusa: typeof import('../../server/ai/nucleo/recusa')
 let resposta: typeof import('../../server/ai/respostaDoNucleo')
@@ -106,6 +107,7 @@ beforeAll(async () => {
   delete process.env.AUTH_REQUIRED
   nucleoMt = await h.load('../../server/ai/nucleo/traduzirNoNivel')
   nucleoAlt = await h.load('../../server/ai/nucleo/sugerirAlternativas')
+  nucleoPolir = await h.load('../../server/ai/nucleo/polirLote')
   contexto = await h.load('../../server/ai/nucleo/contexto')
   recusa = await h.load('../../server/ai/nucleo/recusa')
   resposta = await h.load('../../server/ai/respostaDoNucleo')
@@ -296,5 +298,96 @@ describe('sugerirAlternativas', () => {
     provedorDeChat(() => ({ status: 429 }))
     const r = await nucleoAlt.sugerirAlternativas(ctx('premium'), { text: 'See you', tgt: 'pt' })
     expect(r).toMatchObject({ ok: false, status: 429, code: 'nuvem_ocupada' })
+  })
+})
+
+describe('polirLote', () => {
+  let sessionsRepo: any
+  let utterancesRepo: any
+  const DONO = asUserId('nucleo-premium')
+
+  /** O modelo bem-comportado: "polida: <tradução>" para cada linha do bloco que foi ao prompt. */
+  function provedorDoPolimento() {
+    const chamadas: string[] = []
+    vi.stubGlobal('fetch', async (_u: unknown, init: any) => {
+      const corpo = JSON.parse(init.body) as { model: string; messages: Array<{ role: string; content: string }> }
+      chamadas.push(corpo.model)
+      const user = corpo.messages.find((m) => m.role === 'user')?.content ?? ''
+      const inicio = user.indexOf('Linhas do bloco: <<<') + 'Linhas do bloco: <<<'.length
+      const linhas = JSON.parse(user.slice(inicio, user.lastIndexOf('>>>'))) as Array<{ n: number; traducao: string }>
+      const texto = JSON.stringify({ linhas: linhas.map((l) => ({ n: l.n, traducao: `polida: ${l.traducao}` })) })
+      return {
+        ok: true,
+        json: async () => ({
+          choices: [{ message: { content: texto } }],
+          usage: { prompt_tokens: 90, completion_tokens: 70 },
+        }),
+      }
+    })
+    return chamadas
+  }
+
+  async function sessaoCom(n: number): Promise<string> {
+    const s = await sessionsRepo.create(DONO, { title: 'aula', kind: 'live', sourceLang: 'en', targetLang: 'pt' })
+    await utterancesRepo.insertMany(
+      DONO,
+      s.id,
+      Array.from({ length: n }, (_, i) => ({
+        idx: i,
+        sourceLang: 'en',
+        targetLang: 'pt',
+        sourceText: `line ${i}`,
+        translatedText: `linha ${i}`,
+      })),
+    )
+    return s.id
+  }
+
+  beforeAll(async () => {
+    ;({ sessionsRepo } = await h.load<any>('../../server/db/repositories/sessions'))
+    ;({ utterancesRepo } = await h.load<any>('../../server/db/repositories/utterances'))
+  })
+
+  it('lê o corpo cru: sem sessão ou bloco é o 400 `payload_invalido`', () => {
+    expect(nucleoPolir.lerPedidoDoPolimento({ bloco: 0 })).toMatchObject({ status: 400, code: 'payload_invalido' })
+  })
+
+  it('polir o bloco grava ao lado e diz o modelo; pedir de novo é `jaPolido`, sem provedor', async () => {
+    const id = await sessaoCom(3)
+    const chamadas = provedorDoPolimento()
+    const aoDecidir = vi.fn()
+    const r = await nucleoPolir.polirLote(ctx('premium'), { sessionId: id, bloco: 0 }, { aoDecidir })
+    expect(r).toMatchObject({
+      ok: true,
+      bloco: 0,
+      blocos: 1,
+      pendentes: 0,
+      jaPolido: false,
+      modelo: 'modelo-do-polimento',
+    })
+    expect(r.ok === true && r.polidas[0].traducaoPolida).toBe('polida: linha 0')
+    expect(aoDecidir).toHaveBeenCalledWith(r)
+    const outra = await nucleoPolir.polirLote(ctx('premium'), { sessionId: id, bloco: 0 })
+    expect(outra).toMatchObject({ ok: true, jaPolido: true, pendentes: 0 })
+    expect(chamadas).toHaveLength(1)
+  })
+
+  it('sessão de outra pessoa é 404 e bloco que não existe é 404 com o total de blocos', async () => {
+    const id = await sessaoCom(2)
+    provedorDoPolimento()
+    const alheia = await nucleoPolir.polirLote(ctx('premium', { userId: asUserId('nucleo-outra') }), {
+      sessionId: id,
+      bloco: 0,
+    })
+    expect(alheia).toMatchObject({ ok: false, status: 404, code: 'sessao_inexistente' })
+    const fora = await nucleoPolir.polirLote(ctx('premium'), { sessionId: id, bloco: 5 })
+    expect(fora).toMatchObject({ ok: false, status: 404, code: 'bloco_inexistente', corpo: { blocos: 1 } })
+  })
+
+  it('sem a Tradução Nuance é 402 `exige_nuance`, antes de ler a sessão', async () => {
+    const chamadas = provedorDoPolimento()
+    const r = await nucleoPolir.polirLote(ctx('free'), { sessionId: 'qualquer', bloco: 0 })
+    expect(r).toMatchObject({ ok: false, status: 402, code: 'exige_nuance' })
+    expect(chamadas).toHaveLength(0)
   })
 })

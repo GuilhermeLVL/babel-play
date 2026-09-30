@@ -1,13 +1,22 @@
 #!/usr/bin/env node
 /**
- * MONTA O ÁUDIO DE TESTE da auditoria de latência da legenda (2026-09-26).
+ * MONTA O ÁUDIO DE TESTE da auditoria de latência da legenda (2026-09-26) e da bancada de desempenho
+ * da captura (A0, 2026-09-29).
  *
  *   node scripts/perf/latencia-legenda/montar-audio.mjs --idioma pt|en [--n 12] [--saida DIR]
+ *        [--silencio-inicial 30] [--silencio-final 6] [--voz-min 2] [--voz-max 5.8] [--nome BASE]
+ *        [--fixture <falas.json>]          as falas vêm do fixture versionado, não do FLEURS local
+ *        [--gerar-fixture <falas.json>]    grava o fixture (WAV µ-law + JSON) com as falas escolhidas
  *
  * Fala REAL do FLEURS (a mesma da bancada de 2026-09: `%LOCALAPPDATA%/babel-bancada/stt/fleurs_<idioma>`,
  * baixada por `scripts/eval-fala/baixar-bancada.py`), concatenada com PAUSAS CONHECIDAS, num WAV
  * 16 kHz mono PCM16 que o Chromium toca como microfone falso
  * (`--use-file-for-fake-audio-capture=<wav>`).
+ *
+ * FIXTURE: o CI não tem o FLEURS local. `--gerar-fixture` guarda as MESMAS falas já aparadas e
+ * normalizadas num WAV µ-law (8 bits, metade do PCM16 — ver `wav.mjs`) com um JSON ao lado (onde
+ * cada fala começa, a referência, a licença). `--fixture` monta o áudio da rodada a partir dele,
+ * igual em qualquer máquina. O da bancada é `tests/fixtures/bancada-captura/fleurs-en-8.json`.
  *
  * Layout do arquivo (tudo em segundos, gravado no roteiro JSON ao lado do WAV):
  *
@@ -21,12 +30,16 @@
  *  - cada clipe do FLEURS é APARADO na fala (energia por quadro de 20 ms), então `fimS` de cada
  *    fala é o fim REAL da voz, não o do arquivo original (que tem silêncio de sobra);
  *  - as pausas alternam 1,2 / 1,6 / 2,0 / 2,4 s: todas maiores que os 800 ms do `redemptionMs` do
- *    VAD, como numa conversa em que o outro responde logo.
+ *    VAD, como numa conversa em que o outro responde logo;
+ *  - o silêncio FINAL (padrão 6 s) é, na bancada de desempenho, a janela em que se mede a CPU e os
+ *    renders/s com a captura ligada e nada para transcrever.
  *
  * Escolhe falas com 2–5,8 s de voz (turno de conversa, abaixo do corte forçado de 6 s do VAD local), as primeiras N em ordem de id — determinístico.
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
+
+import { lerWav, wavMulaw, wavPcm16 } from './wav.mjs'
 
 const args = process.argv.slice(2)
 const opt = (n, d) => {
@@ -36,34 +49,15 @@ const opt = (n, d) => {
 const IDIOMA = opt('idioma', 'pt')
 const N = Number(opt('n', 12))
 const SIL_INICIAL = Number(opt('silencio-inicial', 30))
+const SIL_FINAL = Number(opt('silencio-final', 6))
 const BANCADA = process.env.BANCADA_DIR || path.join(process.env.LOCALAPPDATA || '.', 'babel-bancada')
 const SAIDA = opt('saida', path.join(process.env.TEMP || '.', 'latencia-legenda'))
 const SR = 16000
 const PAUSAS = [1.2, 1.6, 2.0, 2.4]
 const VOZ_MIN = Number(opt('voz-min', 2))
 const VOZ_MAX = Number(opt('voz-max', 5.8))
-
-function lerWav(arq) {
-  const b = readFileSync(arq)
-  if (b.toString('ascii', 0, 4) !== 'RIFF') throw new Error(`não é WAV: ${arq}`)
-  let off = 12
-  let fmt = null
-  while (off < b.length) {
-    const id = b.toString('ascii', off, off + 4)
-    const tam = b.readUInt32LE(off + 4)
-    if (id === 'fmt ')
-      fmt = { canais: b.readUInt16LE(off + 10), sr: b.readUInt32LE(off + 12), bits: b.readUInt16LE(off + 22) }
-    if (id === 'data') {
-      if (!fmt || fmt.canais !== 1 || fmt.sr !== SR || fmt.bits !== 16) throw new Error(`formato inesperado em ${arq}`)
-      const n = tam / 2
-      const out = new Float32Array(n)
-      for (let i = 0; i < n; i++) out[i] = b.readInt16LE(off + 8 + i * 2) / 32768
-      return out
-    }
-    off += 8 + tam + (tam % 2)
-  }
-  throw new Error(`sem bloco data: ${arq}`)
-}
+const FIXTURE = opt('fixture', '')
+const GERAR_FIXTURE = opt('gerar-fixture', '')
 
 /** Limites da voz por energia (quadros de 20 ms). Limiar = pico − 35 dB, ou piso de ruído + 6 dB se maior. */
 function limitesDaFala(x) {
@@ -84,46 +78,105 @@ function limitesDaFala(x) {
   return { iniA: ini * q, fimA: (fim + 1) * q }
 }
 
-const linhas = readFileSync(path.join(BANCADA, 'stt', `fleurs_${IDIOMA}.jsonl`), 'utf8')
-  .trim()
-  .split('\n')
-  .map((l) => JSON.parse(l))
-const escolhidas = []
-for (const l of linhas.sort((a, b) => a.floresId - b.floresId)) {
-  const arq = path.join(BANCADA, l.arquivo)
-  if (!existsSync(arq)) continue
-  const x = lerWav(arq)
-  const lim = limitesDaFala(x)
-  if (!lim) continue
-  const margem = Math.round(SR * 0.05)
-  const ini = Math.max(0, lim.iniA - margem)
-  const fim = Math.min(x.length, lim.fimA + margem)
-  const durVoz = (lim.fimA - lim.iniA) / SR
-  if (durVoz < VOZ_MIN || durVoz > VOZ_MAX) continue
-  /* NÍVEL: parte dos clipes do FLEURS vem a −38 dBFS de pico. O Silero, sem o AGC do microfone,
-     perde palavras inteiras nesse nível (medido na 1ª rodada de teste: o começo das frases sumia).
-     Normaliza a VOZ para RMS −20 dBFS (nível típico de fala em vídeo/chamada), com pico ≤ −1 dBFS. */
-  const trecho = x.slice(ini, fim)
-  let soma = 0
-  let pico = 0
-  for (let i = lim.iniA - ini; i < lim.fimA - ini; i++) {
-    soma += trecho[i] * trecho[i]
-    pico = Math.max(pico, Math.abs(trecho[i]))
+/** As falas do FLEURS local: aparadas na voz (± 50 ms) e normalizadas. */
+function falasDoFleurs() {
+  const linhas = readFileSync(path.join(BANCADA, 'stt', `fleurs_${IDIOMA}.jsonl`), 'utf8')
+    .trim()
+    .split('\n')
+    .map((l) => JSON.parse(l))
+  const escolhidas = []
+  for (const l of linhas.sort((a, b) => a.floresId - b.floresId)) {
+    const arq = path.join(BANCADA, l.arquivo)
+    if (!existsSync(arq)) continue
+    const x = lerWav(readFileSync(arq), { sr: SR }).amostras
+    const lim = limitesDaFala(x)
+    if (!lim) continue
+    const margem = Math.round(SR * 0.05)
+    const ini = Math.max(0, lim.iniA - margem)
+    const fim = Math.min(x.length, lim.fimA + margem)
+    const durVoz = (lim.fimA - lim.iniA) / SR
+    if (durVoz < VOZ_MIN || durVoz > VOZ_MAX) continue
+    /* NÍVEL: parte dos clipes do FLEURS vem a −38 dBFS de pico. O Silero, sem o AGC do microfone,
+       perde palavras inteiras nesse nível (medido na 1ª rodada de teste: o começo das frases sumia).
+       Normaliza a VOZ para RMS −20 dBFS (nível típico de fala em vídeo/chamada), com pico ≤ −1 dBFS. */
+    const trecho = x.slice(ini, fim)
+    let soma = 0
+    let pico = 0
+    for (let i = lim.iniA - ini; i < lim.fimA - ini; i++) {
+      soma += trecho[i] * trecho[i]
+      pico = Math.max(pico, Math.abs(trecho[i]))
+    }
+    const rms = Math.sqrt(soma / (lim.fimA - lim.iniA))
+    const ganho = Math.min(10 ** (-20 / 20) / rms, 0.89 / pico)
+    for (let i = 0; i < trecho.length; i++) trecho[i] *= ganho
+    escolhidas.push({
+      id: l.id,
+      referencia: l.referencia,
+      pcm: trecho,
+      vozIni: (lim.iniA - ini) / SR,
+      vozFim: (lim.fimA - ini) / SR,
+      ganhoDb: +(20 * Math.log10(ganho)).toFixed(1),
+    })
+    if (escolhidas.length >= N) break
   }
-  const rms = Math.sqrt(soma / (lim.fimA - lim.iniA))
-  const ganho = Math.min(10 ** (-20 / 20) / rms, 0.89 / pico)
-  for (let i = 0; i < trecho.length; i++) trecho[i] *= ganho
-  escolhidas.push({
-    id: l.id,
-    referencia: l.referencia,
-    pcm: trecho,
-    vozIni: (lim.iniA - ini) / SR,
-    vozFim: (lim.fimA - ini) / SR,
-    ganhoDb: +(20 * Math.log10(ganho)).toFixed(1),
-  })
-  if (escolhidas.length >= N) break
+  if (escolhidas.length < N) throw new Error(`só ${escolhidas.length} falas de ${VOZ_MIN}–${VOZ_MAX} s em ${IDIOMA}`)
+  return escolhidas
 }
-if (escolhidas.length < N) throw new Error(`só ${escolhidas.length} falas de ${VOZ_MIN}–${VOZ_MAX} s em ${IDIOMA}`)
+
+/** As falas do fixture versionado (WAV µ-law com todas as falas em sequência + o JSON do mapa). */
+function falasDoFixture(arqJson) {
+  const mapa = JSON.parse(readFileSync(arqJson, 'utf8'))
+  const x = lerWav(readFileSync(path.join(path.dirname(arqJson), mapa.wav)), { sr: SR }).amostras
+  return mapa.falas.slice(0, N).map((f) => ({ ...f, pcm: x.slice(f.amostra, f.amostra + f.amostras) }))
+}
+
+if (GERAR_FIXTURE) {
+  const falas = falasDoFleurs()
+  const total = falas.reduce((s, f) => s + f.pcm.length, 0)
+  const tudo = new Float32Array(total)
+  let pos = 0
+  const mapa = falas.map((f) => {
+    tudo.set(f.pcm, pos)
+    const item = {
+      id: f.id,
+      referencia: f.referencia,
+      amostra: pos,
+      amostras: f.pcm.length,
+      vozIni: f.vozIni,
+      vozFim: f.vozFim,
+      ganhoDb: f.ganhoDb,
+    }
+    pos += f.pcm.length
+    return item
+  })
+  const wav = path.basename(GERAR_FIXTURE).replace(/\.json$/, '.wav')
+  mkdirSync(path.dirname(GERAR_FIXTURE), { recursive: true })
+  writeFileSync(path.join(path.dirname(GERAR_FIXTURE), wav), wavMulaw(tudo, SR))
+  writeFileSync(
+    GERAR_FIXTURE,
+    JSON.stringify(
+      {
+        fonte:
+          'FLEURS (Conneau et al., 2022, "FLEURS: Few-shot Learning Evaluation of Universal Representations of Speech"), split de teste, https://huggingface.co/datasets/google/fleurs',
+        licenca: 'CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)',
+        modificacoes:
+          'cada clipe aparado na voz (± 50 ms), normalizado a RMS −20 dBFS (pico ≤ −1 dBFS) e gravado em µ-law 8 bits, 16 kHz mono',
+        geradoPor: 'scripts/perf/latencia-legenda/montar-audio.mjs --gerar-fixture',
+        idioma: IDIOMA,
+        vozS: [VOZ_MIN, VOZ_MAX],
+        sr: SR,
+        wav,
+        falas: mapa,
+      },
+      null,
+      2,
+    ) + '\n',
+  )
+  console.log(`${GERAR_FIXTURE}: ${falas.length} falas, ${(total / SR).toFixed(1)} s, ${wav} em µ-law`)
+  process.exit(0)
+}
+
+const escolhidas = FIXTURE ? falasDoFixture(FIXTURE) : falasDoFleurs()
 
 const pedacos = []
 let t = 0
@@ -155,40 +208,28 @@ escolhidas.forEach((e, k) => {
     durVozS: +(e.vozFim - e.vozIni).toFixed(3),
     ganhoDb: e.ganhoDb,
   })
-  empurrar(silencio(k === escolhidas.length - 1 ? 6 : PAUSAS[k % PAUSAS.length]))
+  empurrar(silencio(k === escolhidas.length - 1 ? SIL_FINAL : PAUSAS[k % PAUSAS.length]))
 })
 
 const total = pedacos.reduce((s, p) => s + p.length, 0)
-const buf = Buffer.alloc(44 + total * 2)
-buf.write('RIFF', 0)
-buf.writeUInt32LE(36 + total * 2, 4)
-buf.write('WAVE', 8)
-buf.write('fmt ', 12)
-buf.writeUInt32LE(16, 16)
-buf.writeUInt16LE(1, 20)
-buf.writeUInt16LE(1, 22)
-buf.writeUInt32LE(SR, 24)
-buf.writeUInt32LE(SR * 2, 28)
-buf.writeUInt16LE(2, 32)
-buf.writeUInt16LE(16, 34)
-buf.write('data', 36)
-buf.writeUInt32LE(total * 2, 40)
-let o = 44
-for (const p of pedacos)
-  for (let i = 0; i < p.length; i++) {
-    buf.writeInt16LE(Math.max(-32768, Math.min(32767, Math.round(p[i] * 32767))), o)
-    o += 2
-  }
+const tudo = new Float32Array(total)
+let o = 0
+for (const p of pedacos) {
+  tudo.set(p, o)
+  o += p.length
+}
 mkdirSync(SAIDA, { recursive: true })
-const base = path.join(SAIDA, `conversa_${IDIOMA}_${N}`)
-writeFileSync(`${base}.wav`, buf)
+const base = path.join(SAIDA, opt('nome', `conversa_${IDIOMA}_${N}`))
+writeFileSync(`${base}.wav`, wavPcm16(tudo, SR))
 const roteiro = {
   idioma: IDIOMA,
   sr: SR,
   silencioInicialS: SIL_INICIAL,
+  silencioFinalS: SIL_FINAL,
   bipeS,
   duracaoS: +(total / SR).toFixed(3),
   pausasS: PAUSAS,
+  ...(FIXTURE ? { fixture: path.basename(FIXTURE) } : {}),
   falas,
 }
 writeFileSync(`${base}.json`, JSON.stringify(roteiro, null, 2))

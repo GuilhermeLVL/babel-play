@@ -64,3 +64,12 @@ O jogo **Caça-conectores** continua BLOQUEADO no modo trilha, e não é por fal
 Tatoeba são curtas por natureza (a média fica perto de 5,5 palavras) e frase curta raramente traz
 "however" ou "although". Um jogo de conectores sobre 116 palavras cairia sempre nas mesmas — pior
 que o bloqueio honesto.
+
+## Áudio de teste da bancada de desempenho — **FLEURS**, licença **CC BY 4.0**
+
+Fora do aplicativo: só o repositório carrega `tests/fixtures/bancada-captura/fleurs-en-8.wav`, as
+8 falas em inglês que a bancada de desempenho da captura toca como microfone falso. Vêm do
+[FLEURS](https://huggingface.co/datasets/google/fleurs) (Conneau et al., 2022), sob
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Modificações: cada clipe foi aparado na
+voz, normalizado em nível e gravado em µ-law 8 bits (o JSON ao lado lista as falas e a referência
+de cada uma).

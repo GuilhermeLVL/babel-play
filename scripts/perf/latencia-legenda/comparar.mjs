@@ -142,6 +142,28 @@ export function gravarLinhaDeBase(slo, resultado, ambiente, meta = {}) {
   }
 }
 
+/**
+ * RUÍDO entre duas execuções da bancada na mesma máquina: |a − b| ÷ média, por perfil × métrica. É o
+ * número do aceite do A0 (≤ 10% nas métricas principais) e o que justifica cada tolerância do SLO.
+ */
+export function ruidoEntre(a, b, nomes) {
+  const perfis = [...new Set([...Object.keys(a.perfis ?? {}), ...Object.keys(b.perfis ?? {})])]
+  const linhas = []
+  for (const perfil of perfis)
+    for (const metrica of nomes) {
+      const va = a.perfis?.[perfil]?.metricas?.[metrica]
+      const vb = b.perfis?.[perfil]?.metricas?.[metrica]
+      if (!finito(va) || !finito(vb)) {
+        linhas.push({ perfil, metrica, a: va ?? null, b: vb ?? null, ruidoPct: null })
+        continue
+      }
+      const media = (Math.abs(va) + Math.abs(vb)) / 2
+      linhas.push({ perfil, metrica, a: va, b: vb, ruidoPct: media === 0 ? 0 : (Math.abs(va - vb) / media) * 100 })
+    }
+  const pcts = linhas.map((l) => l.ruidoPct).filter(finito)
+  return { linhas, maiorPct: pcts.length ? Math.max(...pcts) : null }
+}
+
 // ───────────────────────────── CLI ─────────────────────────────
 
 const AQUI = path.dirname(fileURLToPath(import.meta.url))

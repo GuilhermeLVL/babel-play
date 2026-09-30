@@ -1,0 +1,84 @@
+{
+  "fonte": "FLEURS (Conneau et al., 2022, \"FLEURS: Few-shot Learning Evaluation of Universal Representations of Speech\"), split de teste, https://huggingface.co/datasets/google/fleurs",
+  "licenca": "CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)",
+  "modificacoes": "cada clipe aparado na voz (± 50 ms), normalizado a RMS −20 dBFS (pico ≤ −1 dBFS) e gravado em µ-law 8 bits, 16 kHz mono",
+  "geradoPor": "scripts/perf/latencia-legenda/montar-audio.mjs --gerar-fixture",
+  "idioma": "en",
+  "vozS": [2, 4.5],
+  "sr": 16000,
+  "wav": "fleurs-en-8.wav",
+  "falas": [
+    {
+      "id": "fleurs_en_1737",
+      "referencia": "Lions are the most social cats, living in large groups called prides.",
+      "amostra": 0,
+      "amostras": 64000,
+      "vozIni": 0.05,
+      "vozFim": 3.95,
+      "ganhoDb": 25.2
+    },
+    {
+      "id": "fleurs_en_1747",
+      "referencia": "Fellow wrestlers also paid tribute to Luna.",
+      "amostra": 64000,
+      "amostras": 55520,
+      "vozIni": 0.02,
+      "vozFim": 3.42,
+      "ganhoDb": 39.8
+    },
+    {
+      "id": "fleurs_en_1748",
+      "referencia": "Fire rescue crews eventually doused the fire by 11:35 pm.",
+      "amostra": 119520,
+      "amostras": 68480,
+      "vozIni": 0.05,
+      "vozFim": 4.23,
+      "ganhoDb": 8.8
+    },
+    {
+      "id": "fleurs_en_1750",
+      "referencia": "The find also grants insight into the evolution of feathers in birds.",
+      "amostra": 188000,
+      "amostras": 69120,
+      "vozIni": 0.05,
+      "vozFim": 4.27,
+      "ganhoDb": 44.3
+    },
+    {
+      "id": "fleurs_en_1776",
+      "referencia": "Through the night between 150 and 200 copies were made, now known as \"Dunlap broadsides\".",
+      "amostra": 257120,
+      "amostras": 73120,
+      "vozIni": 0.05,
+      "vozFim": 4.55,
+      "ganhoDb": 44.5
+    },
+    {
+      "id": "fleurs_en_1791",
+      "referencia": "Do not deface the site by marking or scratching graffiti into structures.",
+      "amostra": 330240,
+      "amostras": 65120,
+      "vozIni": 0.02,
+      "vozFim": 4.02,
+      "ganhoDb": 44.4
+    },
+    {
+      "id": "fleurs_en_1839",
+      "referencia": "Think of the skiing route as of a similar hiking route.",
+      "amostra": 395360,
+      "amostras": 64320,
+      "vozIni": 0.05,
+      "vozFim": 3.97,
+      "ganhoDb": 1.6
+    },
+    {
+      "id": "fleurs_en_1853",
+      "referencia": "Giancarlo Fisichella lost control of his car and ended the race very soon after the start.",
+      "amostra": 459680,
+      "amostras": 72320,
+      "vozIni": 0.05,
+      "vozFim": 4.47,
+      "ganhoDb": 42
+    }
+  ]
+}

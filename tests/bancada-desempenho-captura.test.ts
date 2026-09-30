@@ -10,7 +10,13 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { comparar, gravarLinhaDeBase, tabelaMarkdown, validarSlo } from '../scripts/perf/latencia-legenda/comparar.mjs'
+import {
+  comparar,
+  gravarLinhaDeBase,
+  ruidoEntre,
+  tabelaMarkdown,
+  validarSlo,
+} from '../scripts/perf/latencia-legenda/comparar.mjs'
 import {
   agregarRodadas,
   cpuNaJanela,
@@ -22,6 +28,7 @@ import {
   relogioDoArquivo,
   taxaNaJanela,
 } from '../scripts/perf/latencia-legenda/metricas-captura.mjs'
+import { deMulaw, lerWav, mulawDe, wavMulaw, wavPcm16 } from '../scripts/perf/latencia-legenda/wav.mjs'
 
 /**
  * Uma rodada sintética no formato que `medir.mjs` grava. Linha do tempo (ms da página):
@@ -350,5 +357,69 @@ describe('slo-captura.json versionado', () => {
     })
     expect(erros.join(' ')).toMatch(/sentido/)
     expect(erros.join(' ')).toMatch(/"y"/)
+  })
+})
+
+describe('ruído entre duas execuções da bancada', () => {
+  it('|a − b| ÷ média, por perfil × métrica; o maior fica em destaque', () => {
+    const a = { perfis: { desktop: { metricas: { 'framesLongos.n50': 10, memoriaPicoMb: 1000 } } } }
+    const b = { perfis: { desktop: { metricas: { 'framesLongos.n50': 12, memoriaPicoMb: 1000 } } } }
+    const r = ruidoEntre(a, b, ['framesLongos.n50', 'memoriaPicoMb', 'rtf.p50'])
+    expect(r.linhas).toEqual([
+      { perfil: 'desktop', metrica: 'framesLongos.n50', a: 10, b: 12, ruidoPct: (2 / 11) * 100 },
+      { perfil: 'desktop', metrica: 'memoriaPicoMb', a: 1000, b: 1000, ruidoPct: 0 },
+      { perfil: 'desktop', metrica: 'rtf.p50', a: null, b: null, ruidoPct: null },
+    ])
+    expect(r.maiorPct).toBeCloseTo((2 / 11) * 100, 5)
+  })
+
+  it('as duas em zero: ruído zero, não NaN', () => {
+    const z = { perfis: { desktop: { metricas: { x: 0 } } } }
+    expect(ruidoEntre(z, z, ['x']).linhas[0].ruidoPct).toBe(0)
+  })
+})
+
+describe('áudio da bancada (WAV PCM16 e µ-law)', () => {
+  it('µ-law G.711: valores de referência', () => {
+    expect(mulawDe(0)).toBe(0xff)
+    expect(deMulaw(0xff)).toBe(0)
+    expect(deMulaw(0x7f)).toBe(0)
+    expect(mulawDe(32767)).toBe(0x80)
+    expect(deMulaw(0x80)).toBe(32124)
+    expect(deMulaw(0x00)).toBe(-32124)
+  })
+
+  it('µ-law ida e volta: erro relativo pequeno em toda a faixa', () => {
+    let pior = 0
+    for (let s = -32768; s <= 32767; s += 7) {
+      const erro = Math.abs(deMulaw(mulawDe(s)) - s) / Math.max(Math.abs(s), 256)
+      pior = Math.max(pior, erro)
+    }
+    expect(pior).toBeLessThan(0.05)
+  })
+
+  it('WAV µ-law de 16 kHz: lido de volta com a taxa e as amostras (≈) certas', () => {
+    const x = new Float32Array(1600)
+    for (let i = 0; i < x.length; i++) x[i] = 0.5 * Math.sin((2 * Math.PI * 440 * i) / 16000)
+    const buf = wavMulaw(x, 16000)
+    expect(buf.length).toBeLessThan(44 + 1600 + 32)
+    const w = lerWav(buf)
+    expect(w.sr).toBe(16000)
+    expect(w.amostras.length).toBe(1600)
+    let pior = 0
+    for (let i = 0; i < x.length; i++) pior = Math.max(pior, Math.abs(w.amostras[i] - x[i]))
+    expect(pior).toBeLessThan(0.02)
+  })
+
+  it('WAV PCM16: ida e volta com erro de quantização só', () => {
+    const x = Float32Array.from([0, 0.25, -0.25, 0.999, -1])
+    const w = lerWav(wavPcm16(x, 16000))
+    expect(w.sr).toBe(16000)
+    for (let i = 0; i < x.length; i++) expect(Math.abs(w.amostras[i] - x[i])).toBeLessThan(1 / 16384)
+  })
+
+  it('WAV em outro formato (estéreo, 44,1 kHz): recusa com mensagem', () => {
+    const buf = wavPcm16(new Float32Array(10), 44100)
+    expect(() => lerWav(buf, { sr: 16000 })).toThrow(/16000/)
   })
 })

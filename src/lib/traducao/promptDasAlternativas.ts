@@ -62,8 +62,11 @@ export function userDasAlternativas(
 
 const chaveDaOpcao = (s: string) => s.normalize('NFC').replace(/\s+/g, ' ').trim().toLowerCase();
 
-/** O primeiro objeto JSON da resposta (tira a cerca de código e o texto em volta), ou `null`. */
-function objetoDaResposta(bruto: string): Record<string, unknown> | null {
+/**
+ * O primeiro objeto JSON da resposta (tira a cerca de código e o texto em volta), ou `null`.
+ * Exportado para a leitura do "polir a sessão" (`promptDoPolimento.ts`) errar do mesmo jeito.
+ */
+export function objetoDaResposta(bruto: string): Record<string, unknown> | null {
   const semCerca = bruto.replace(/```(?:json)?/gi, '');
   const i = semCerca.indexOf('{');
   const f = semCerca.lastIndexOf('}');

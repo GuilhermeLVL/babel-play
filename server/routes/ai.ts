@@ -7,6 +7,7 @@ import { raw, Router } from 'express'
 
 import { alternativasProxy } from '../ai/alternativas'
 import { mtTranslateProxy } from '../ai/mtProxy'
+import { polirProxy } from '../ai/polimento'
 import { llmChatProxy, providerTest } from '../ai/proxy'
 // F14-02: a leitura de env sai do handler. B1 (Fase B): a pergunta é do registro de provedores, a
 // MESMA que a porta da transcrição faz — as duas discordavam (B0).
@@ -39,6 +40,9 @@ aiRouter.post('/mt', mtTranslateProxy)
 /* "Outras formas" ao tocar numa frase (D4 da Fase D): até 3 opções e uma nota, só com a Tradução
    Nuance (402 `exige_nuance` pelo entitlement), com a cota, a admissão e o custo das outras funções. */
 aiRouter.post('/mt/alternativas', alternativasProxy)
+/* "Polir a tradução da sessão" (D5 da Fase D): um bloco de até 40 falas por pedido, lidas do banco,
+   no nível `polimento`; a polida vai AO LADO da original, e o bloco já polido não é cobrado de novo. */
+aiRouter.post('/mt/polir', polirProxy)
 /* O GLOSSÁRIO PESSOAL da Tradução Nuance (D3 da Fase D): ler e apagar em qualquer plano (é dado da
    pessoa), gravar só com `traducaoNuance` (`server/ai/rotasDoGlossario.ts`). */
 aiRouter.get('/glossario', listarGlossario)

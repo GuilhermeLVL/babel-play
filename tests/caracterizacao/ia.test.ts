@@ -241,6 +241,50 @@ describe('POST /api/ai/mt/alternativas — outras formas (D4)', () => {
   })
 })
 
+/* D5 (Fase D): o "polir a sessão". No self-host o plano é o `selfhost`, que tem a Tradução Nuance; as
+   falas vêm do banco, então o caso cria a sessão pela rota de sempre. */
+describe('POST /api/ai/mt/polir — polir a tradução da sessão (D5)', () => {
+  async function sessaoComDuasFalas(): Promise<string> {
+    const r = await s.post('/api/sessions', {
+      title: 'polir',
+      kind: 'live',
+      sourceLang: 'en',
+      targetLang: 'pt',
+      utterances: [
+        { idx: 0, sourceLang: 'en', targetLang: 'pt', sourceText: 'see you', translatedText: 'te vejo' },
+        { idx: 1, sourceLang: 'en', targetLang: 'pt', sourceText: 'good night', translatedText: 'boa noite' },
+      ],
+    })
+    expect(r.status).toBe(200)
+    return (await r.json()).id
+  }
+
+  it('provedor devolve o JSON → 200 com as polidas; pedir de novo não chama o provedor', async () => {
+    const id = await sessaoComDuasFalas()
+    responder = () => completacao('{"linhas":[{"n":1,"traducao":"Até mais"},{"n":2,"traducao":"Boa noite!"}]}')
+    const r = await s.post('/api/ai/mt/polir', { sessionId: id, bloco: 0 })
+    expect(r.status).toBe(200)
+    const corpo = await r.json()
+    expect(corpo).toMatchObject({ bloco: 0, blocos: 1, pendentes: 0, jaPolido: false })
+    expect(corpo.polidas.map((p: { traducaoPolida: string }) => p.traducaoPolida)).toEqual(['Até mais', 'Boa noite!'])
+    expect(chamadas).toHaveLength(1)
+    expect(chamadas[0].body?.max_tokens).toBe(1500)
+
+    const deNovo = await s.post('/api/ai/mt/polir', { sessionId: id, bloco: 0 })
+    expect((await deNovo.json()).jaPolido).toBe(true)
+    expect(chamadas).toHaveLength(1)
+    // A original continua na sessão, com a polida ao lado.
+    const sessao = await (await s.get(`/api/sessions/${id}`)).json()
+    expect(sessao.utterances[0]).toMatchObject({ translatedText: 'te vejo', traducaoPolida: 'Até mais' })
+  })
+
+  it('sessão que não existe → 404, sem provedor', async () => {
+    const r = await s.post('/api/ai/mt/polir', { sessionId: 'nao-existe', bloco: 0 })
+    expect(r.status).toBe(404)
+    expect(chamadas).toHaveLength(0)
+  })
+})
+
 describe('GET /api/ai/stt/available', () => {
   it('com chave de STT no servidor e plano self-host → 200 { available: true }', async () => {
     fixar('STT_API_KEY', 'chave-stt-falsa')

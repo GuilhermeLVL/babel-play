@@ -266,8 +266,8 @@ export const REGISTRO_DE_MOTORES: readonly RegistroDeMotor[] = [
     custo: 'download',
     licenca: 'MPL-2.0 (motor @browsermt/bergamot-translator e modelos Mozilla translations)',
     nota:
-      'WASM de UMA thread (cabe na parte do tradutor no orçamento). Memória medida em Node: o heap do WASM ' +
-      'reserva ~548 MB na 1ª tradução (+~200 MB residentes); no navegador, ainda por medir no aparelho fraco.',
+      'WASM de UMA thread (cabe na parte do tradutor no orçamento). O heap do WASM vai a 548 MB reservados no ' +
+      'aquecimento (medido no Chromium e em Node; em Node, +~200 MB residentes) — falta medir no Quest/celular.',
   },
   {
     id: 'server-llm-mt',

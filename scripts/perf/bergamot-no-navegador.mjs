@@ -155,6 +155,8 @@ async function rodada(contexto, rotulo) {
       memoriaAntesMb: memoriaAntes,
       memoriaDepoisMb: await memoria(),
       falhaLembrada: localStorage.getItem('babel.bergamot.falha'),
+      // O manifesto que "Modelo no dispositivo" e o aviso de download leem (gravado pela janela).
+      manifestoGravado: !!localStorage.getItem('babel.modelManifest.bergamot/pt-en|int8|wasm'),
     }
   }, FRASES)
   await pagina.waitForTimeout(300)

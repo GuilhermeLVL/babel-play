@@ -316,6 +316,10 @@ export function criarWorkerDoBergamot(deps: DependenciasDoWorker) {
     } catch (e) {
       throw new FalhaDeCarga('motor', `modelo não montou: ${String((e as Error)?.message ?? e)}`);
     }
+    /* Uma linha por carga (como o `[mt:worker] … carregado`): o heap do WASM depois do aquecimento é
+       a memória que este worker segura enquanto estiver vivo — o número que o aparelho fraco sente. */
+    const heap = (M as unknown as { HEAP8?: Int8Array }).HEAP8?.length;
+    if (heap) console.info(`[bergamot] ${plano.modelId} pronto (heap do WASM ${Math.round(heap / 1e6)} MB)`);
 
     if (noCache.length) {
       registrar({

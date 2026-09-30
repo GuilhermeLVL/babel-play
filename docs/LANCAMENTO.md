@@ -209,6 +209,11 @@ degradada em `ia_degradacao_de_custo_total{motivo,nivel}` — subindo antes do f
 está curto para o tráfego. Com o `IA_PROVEDORES`, os `limites` declarados (rpm, tpm, rpd, tpd) são
 os baldes da admissão de cada provedor; sem eles, valem as `IA_ADMISSAO_*`.
 
+**A nuvem de alívio do Grátis (A10)** nasce desligada (flag `nuvem_gratuita_alivio`). Ligada, ela sai
+do mesmo orçamento, com dois tetos opcionais: `ALIVIO_TETO_USD_MES` (por conta, no mês; padrão
+US$ 0,13, que cobre as 3 h; `0` fecha o alívio) e `ALIVIO_POOL_USD_DIA` (todas as contas, no dia;
+ausente, 20 % do orçamento diário — o valor só baixa esse pool, os 80 % restantes são de quem paga).
+
 ## 6. Asaas (cobrança, conta PJ) — 1 a 3 dias úteis de aprovação
 
 1. asaas.com → abrir conta **PJ** com o CNPJ → enviar documentos → esperar aprovação.

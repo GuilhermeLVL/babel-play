@@ -78,6 +78,33 @@ export const DISPOSITIVOS = {
 };
 
 /**
+ * APARELHOS SÓ DA BANCADA DE DESEMPENHO (`scripts/perf/latencia-legenda/bancada-captura.mjs`). Ficam
+ * fora de `DISPOSITIVOS` porque a e2e de perfis confere, em todos aqueles, o comportamento de
+ * celular/Quest (sem áudio do sistema, aviso de download) — que um notebook não tem.
+ *
+ *  - fraco  notebook de entrada: desktop (getDisplayMedia, mouse, sem toque) SEM WebGPU, 2 núcleos,
+ *           `deviceMemory` 2 e CPU 4× mais lenta. É o `desktop-sem-gpu` "modesto" de
+ *           `src/lib/dispositivo/perfil.ts`: modo leve, pouca memória, 2 threads no WASM. O
+ *           `Emulation.setCPUThrottlingRate` do CDP freia a thread PRINCIPAL; os workers rodam na
+ *           velocidade da máquina (o orçamento de threads, esse sim, vê só 2 núcleos).
+ */
+export const APARELHOS_DA_BANCADA = {
+  fraco: {
+    contexto: { viewport: { width: 1280, height: 720 }, isMobile: false, hasTouch: false, deviceScaleFactor: 1 },
+    cpu: 4,
+    sinais: {
+      semTela: false,
+      semGpu: true,
+      xr: false,
+      nucleos: 2,
+      memoriaGb: 2,
+      naoIsolado: false,
+      semMemoriaDoAparelho: false,
+    },
+  },
+};
+
+/**
  * Script de inicialização (roda antes do app): tira/põe as APIs conforme o aparelho. Serializável —
  * vai por `addInitScript({ content })`.
  */

@@ -13,11 +13,52 @@
  * Onde nenhum dos dois existe (Safari, Firefox), o vigia é um no-op: `suportado` é falso e o bloqueio
  * é sempre 0 — o gatilho some, o resto do regulador segue igual.
  *
+ * O QUE NÃO CONTA: a ABERTURA DO VAD (A6c, medido em 30/09/2026). `MicVAD.new` cria a sessão do
+ * Silero, e a 1ª sessão do ORT da página instancia o WASM de 12 MB NA THREAD PRINCIPAL: um quadro de
+ * ~170 ms no desktop e ~880 ms com a CPU 4× mais lenta, sem script atribuído no LoAF (é o V8
+ * instanciando o módulo, não JS). Acontece uma vez, antes da 1ª fala, e cortar parciais não o cura; na
+ * bancada ele disparava o `travamento` já no 1º parcial da sessão. A captura marca o intervalo
+ * (`marcarAberturaDoVad`, uma medida do User Timing, que o DevTools também mostra) e o quadro que
+ * COMEÇA dentro dele sai da soma. Qualquer outro quadro, antes ou depois, continua contando.
+ *
  * Um por página (`vigiaDoMainThread()`), preguiçoso como os sinais de bateria/pressão; o observador
  * é injetável para os testes. Nunca lança.
  */
 
 type TipoObservado = 'long-animation-frame' | 'longtask';
+
+/** O nome da medida (User Timing) que marca a abertura do VAD — ver o cabeçalho. */
+export const MEDIDA_DA_ABERTURA_DO_VAD = 'babel:abertura-do-vad';
+
+/** Um intervalo (relógio de `performance.now()`) em que um quadro longo é esperado e não é travamento. */
+export interface QuadroConhecido {
+  inicioMs: number;
+  fimMs: number;
+}
+
+/**
+ * A captura abriu o VAD entre `inicioMs` e `fimMs`: o quadro longo que começar aí é a instanciação do
+ * WASM do Silero, não travamento (ver o cabeçalho). Nunca lança: sem User Timing de nível 3 (medida com
+ * início e fim), o quadro volta a contar, como antes.
+ */
+export function marcarAberturaDoVad(inicioMs: number, fimMs: number): void {
+  try {
+    globalThis.performance?.measure(MEDIDA_DA_ABERTURA_DO_VAD, { start: inicioMs, end: fimMs });
+  } catch {
+    /* navegador sem medida com opções, ou valores inválidos */
+  }
+}
+
+/** As aberturas do VAD que a captura marcou nesta página. */
+function aberturasDoVadMarcadas(): QuadroConhecido[] {
+  try {
+    return globalThis.performance
+      .getEntriesByName(MEDIDA_DA_ABERTURA_DO_VAD, 'measure')
+      .map((m) => ({ inicioMs: m.startTime, fimMs: m.startTime + m.duration }));
+  } catch {
+    return [];
+  }
+}
 
 /** O pedaço de `PerformanceEntry` (e do `PerformanceLongAnimationFrameTiming`) que o vigia lê. */
 interface QuadroLongo {
@@ -60,13 +101,19 @@ const NO_OP: VigiaDoMainThread = {
 };
 
 export function criarVigiaDoMainThread(
-  opts: { Observador?: ObservadorDePerformance | null; agoraMs?: () => number } = {},
+  opts: {
+    Observador?: ObservadorDePerformance | null;
+    agoraMs?: () => number;
+    /** Os intervalos de quadro longo esperado; de fábrica, as aberturas do VAD marcadas. */
+    quadrosConhecidos?: () => readonly QuadroConhecido[];
+  } = {},
 ): VigiaDoMainThread {
   const Observador =
     opts.Observador === undefined
       ? (globalThis as { PerformanceObserver?: ObservadorDePerformance }).PerformanceObserver
       : opts.Observador;
   const agoraMs = opts.agoraMs ?? (() => globalThis.performance?.now() ?? Date.now());
+  const quadrosConhecidos = opts.quadrosConhecidos ?? aberturasDoVadMarcadas;
   if (typeof Observador !== 'function') return NO_OP;
   const tipos = Observador.supportedEntryTypes ?? [];
   const tipo: TipoObservado | null = tipos.includes('long-animation-frame')
@@ -76,8 +123,8 @@ export function criarVigiaDoMainThread(
       : null;
   if (!tipo) return NO_OP;
 
-  /** Fim do quadro (relógio de `performance.now()`) e quanto ele bloqueou. */
-  let bloqueios: Array<{ fimMs: number; ms: number }> = [];
+  /** Início e fim do quadro (relógio de `performance.now()`) e quanto ele bloqueou. */
+  let bloqueios: Array<{ inicioMs: number; fimMs: number; ms: number }> = [];
   const esquecerAntigos = () => {
     const limite = agoraMs() - RETENCAO_MS;
     let i = 0;
@@ -94,7 +141,7 @@ export function criarVigiaDoMainThread(
           tipo === 'long-animation-frame' && typeof q.blockingDuration === 'number'
             ? q.blockingDuration
             : q.duration - TAREFA_LONGA_MS;
-        if (ms > 0) bloqueios.push({ fimMs: q.startTime + q.duration, ms });
+        if (ms > 0) bloqueios.push({ inicioMs: q.startTime, fimMs: q.startTime + q.duration, ms });
       }
       esquecerAntigos();
     });
@@ -109,8 +156,12 @@ export function criarVigiaDoMainThread(
     suportado: true,
     bloqueioRecenteMs(janelaMs) {
       const desde = agoraMs() - janelaMs;
+      // Lidos a cada pergunta: a abertura do VAD é marcada no FIM do `MicVAD.new`, depois do quadro.
+      const conhecidos = quadrosConhecidos();
+      const esperado = (b: { inicioMs: number }) =>
+        conhecidos.some((c) => b.inicioMs >= c.inicioMs && b.inicioMs <= c.fimMs);
       let soma = 0;
-      for (const b of bloqueios) if (b.fimMs >= desde) soma += b.ms;
+      for (const b of bloqueios) if (b.fimMs >= desde && !esperado(b)) soma += b.ms;
       return Math.round(soma);
     },
     guardados: () => bloqueios.length,

@@ -313,26 +313,72 @@ describe('aoParcial — a latência do parcial alimenta o regulador (Grátis sem
 
 describe('o vigia do main thread no regulador', () => {
   it('tela travada (≥ 400 ms na janela de 10 s) corta os parciais já no primeiro final', () => {
-    const { sinais } = ambiente({ agora: 30_000 })
+    const { s, sinais } = ambiente({ agora: 20_000 })
     const vigia = vigiaFalso(450)
     const r = criarReguladorDaCaptura({ sinais, vigia })
     r.reiniciar({ modelo: WHISPER_MODELS.base, soIngles: false })
+    s.agora = 30_000
     expect(r.aoFinal(FOLGA, efeitos())).toEqual(['cortar-parciais'])
     expect(vigia.janelas).toEqual([10_000])
   })
 
   it('o parcial também pergunta ao vigia (é ele que chega mais vezes)', () => {
-    const { sinais } = ambiente({ agora: 30_000 })
+    const { s, sinais } = ambiente({ agora: 20_000 })
     const r = criarReguladorDaCaptura({ sinais, vigia: vigiaFalso(600) })
     r.reiniciar({ modelo: WHISPER_MODELS.base, soIngles: false })
+    s.agora = 30_000
     expect(r.aoParcial(300, efeitos())).toEqual(['cortar-parciais'])
   })
 
-  it('depois de um degrau, só conta o bloqueio de DEPOIS dele (o de antes é o que o degrau veio curar)', () => {
+  /* O QUE A TELA SOFREU ANTES DA CAPTURA NÃO É DA CAPTURA (A6c). Montar a tela, escolher os idiomas, o
+     pré-aquecimento: nada disso é o STT nem os parciais, e cortá-los não o cura. Na bancada, os quadros
+     de React de 2–3 s antes do "Iniciar" caíam na janela do 1º parcial e somavam ~400 ms. */
+  it('a janela começa no `reiniciar` da sessão: o bloqueio de antes dela não conta', () => {
     const { s, sinais } = ambiente({ agora: 30_000 })
+    const vigia = vigiaFalso(0)
+    const r = criarReguladorDaCaptura({ sinais, vigia })
+    r.reiniciar({ modelo: WHISPER_MODELS.base, soIngles: false })
+    s.agora = 33_000
+    r.aoParcial(300, efeitos())
+    s.agora = 45_000
+    r.aoFinal(FOLGA, efeitos())
+    expect(vigia.janelas).toEqual([3_000, 10_000])
+  })
+
+  it('cada decisão vai ao console com o motivo (a bancada separa a tela travada da pressão da CPU)', () => {
+    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined)
+    try {
+      const { s, sinais } = ambiente({ agora: 30_000 })
+      const r = criarReguladorDaCaptura({ sinais, vigia: vigiaFalso(500) })
+      r.reiniciar({ modelo: WHISPER_MODELS.base, soIngles: false })
+      s.agora = 40_000
+      r.aoParcial(300, efeitos())
+      const linhas = log.mock.calls.map((c) => c.join(' '))
+      expect(linhas).toContainEqual(expect.stringMatching(/\[cap\] regulador: cortar-parciais ← travamento/))
+    } finally {
+      log.mockRestore()
+    }
+  })
+
+  it('travamento DEPOIS de a sessão começar continua cortando os parciais', () => {
+    const { s, sinais } = ambiente({ agora: 30_000 })
+    const vigia = vigiaFalso(0)
+    const r = criarReguladorDaCaptura({ sinais, vigia })
+    r.reiniciar({ modelo: WHISPER_MODELS.base, soIngles: false })
+    s.agora = 36_000
+    expect(r.aoParcial(300, efeitos())).toEqual([])
+    vigia.bloqueioMs = 500 // a tela travou de verdade durante a fala
+    s.agora = 38_000
+    expect(r.aoParcial(300, efeitos())).toEqual(['cortar-parciais'])
+    expect(vigia.janelas).toEqual([6_000, 8_000])
+  })
+
+  it('depois de um degrau, só conta o bloqueio de DEPOIS dele (o de antes é o que o degrau veio curar)', () => {
+    const { s, sinais } = ambiente({ agora: 20_000 })
     const vigia = vigiaFalso(450)
     const r = criarReguladorDaCaptura({ sinais, vigia })
     r.reiniciar({ modelo: WHISPER_MODELS.base, soIngles: false })
+    s.agora = 30_000
     r.aoFinal(FOLGA, efeitos()) // desce em 30 s
     s.agora = 34_000
     r.aoFinal(FOLGA, efeitos())

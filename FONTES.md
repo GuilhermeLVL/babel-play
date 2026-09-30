@@ -64,3 +64,24 @@ O jogo **Caça-conectores** continua BLOQUEADO no modo trilha, e não é por fal
 Tatoeba são curtas por natureza (a média fica perto de 5,5 palavras) e frase curta raramente traz
 "however" ou "although". Um jogo de conectores sobre 116 palavras cairia sempre nas mesmas — pior
 que o bloqueio honesto.
+
+## Tradução português → inglês no aparelho — **Bergamot**, licença **MPL-2.0**
+
+Desde o A9b (29/09/2026) o app serve, do próprio domínio (`/modelos/bergamot/`), o motor e o modelo
+que traduzem pt→en no navegador. Os dois são **MPL-2.0**, e a licença pede que quem recebe o
+executável saiba onde está o código-fonte — é o que esta seção e o `LEIA-ME.txt` servido junto fazem.
+
+- **Motor**: `@browsermt/bergamot-translator` **0.4.9** (o Marian compilado para WASM, o mesmo do
+  Firefox Translations) — <https://github.com/browsermt/bergamot-translator>. O `.wasm` vai sem
+  mudança; a cola do Emscripten (`bergamot-translator-worker.js`) vai embrulhada como módulo ES, com
+  UMA linha trocada (`global_object` passa de `this` a `globalThis`) e o aviso da MPL no topo
+  (`scripts/baixar-modelos-bergamot.mjs`, `colaComoModulo`).
+- **Modelo pt→en**: Mozilla translations, execução `retrain_hr_drxrs5bGSsOWvfK9lyZISw`, arquitetura
+  `base-memory`, do registro público <https://mozilla.github.io/translations/model-registry/>
+  (código e licença em <https://github.com/mozilla/translations>: "The model files are distributed
+  under the MPL 2.0 license"). Os três arquivos (`model`, `lex`, `vocab`) vão sem mudança, com o
+  sha256 conferido no build e de novo no navegador (`src/gateway/adapters/modelosDoBergamot.json`).
+
+Por que só pt→en: a bancada da Etapa 5 (`docs/auditoria/eval/bancada-2026-09-etapa5.md`) mediu COMET
++0,028 (significativo) sobre o opus-mt nesse sentido; no en→pt o modelo da Mozilla escreve português
+de Portugal e o gold de conversa piora, então ali fica o opus-mt (Helsinki-NLP, CC-BY-4.0).

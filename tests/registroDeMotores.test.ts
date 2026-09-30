@@ -18,6 +18,7 @@ import {
   motorPorId,
   REGISTRO_DE_MOTORES,
 } from '../src/core/harness/registroDeMotores'
+import { mbDoDownload } from '../src/gateway/adapters/bergamotModelo'
 import { BUILTIN_PROFILES } from '../src/gateway/profiles'
 import { MODEL_DOWNLOAD_MB, MOONSHINE_MODELS, MT_DOWNLOAD_MB, WHISPER_MODELS } from '../src/gateway/sttRouter'
 
@@ -133,6 +134,21 @@ describe('registro de motores — fidelidade ao código de hoje', () => {
       expect(m.bytes! / 1_000_000, id).toBe(MODEL_DOWNLOAD_MB[modelo])
     }
     expect(motorPorId('opus-mt-local')!.bytes! / 1_000_000).toBe(MT_DOWNLOAD_MB)
+    // O Bergamot: cópia do total do `modelosDoBergamot.json` (os três .gz + o WASM), em MB para cima.
+    expect(motorPorId('bergamot-local')!.bytes! / 1_000_000).toBe(mbDoDownload('pt-en'))
+  })
+
+  it('o Bergamot roda no aparelho, dentro do binding do tradutor local, e é MPL-2.0', () => {
+    const b = motorPorId('bergamot-local')!
+    expect(b.tarefa).toBe('mt')
+    expect(b.runtime).toBe('local')
+    // O composto `TradutorLocalComBergamot` responde pelo binding `opus-mt-local` (perfis intactos).
+    expect(b.adapterId).toBe('opus-mt-local')
+    expect(b.enviaDadosA).toBeNull()
+    expect(exigeConsentimento(b)).toBe(false)
+    expect(bindingExigeConsentimento({ adapterId: 'opus-mt-local' })).toBe(false)
+    expect(b.idiomas).toEqual(['pt', 'en'])
+    expect(b.licenca).toMatch(/MPL-2.0/)
   })
 
   it('Moonshine é só inglês; Whisper é multilíngue; o small exige WebGPU', () => {
@@ -153,7 +169,9 @@ describe('registro de motores — fidelidade ao código de hoje', () => {
 
   it('motoresDaTarefa filtra por tarefa', () => {
     const mt = motoresDaTarefa('mt').map((m) => m.id)
-    expect(mt).toEqual(expect.arrayContaining(['chrome-translator', 'opus-mt-local', 'server-llm-mt', 'mymemory']))
+    expect(mt).toEqual(
+      expect.arrayContaining(['chrome-translator', 'opus-mt-local', 'bergamot-local', 'server-llm-mt', 'mymemory']),
+    )
     expect(motoresDaTarefa('stt').every((m) => m.tarefa === 'stt')).toBe(true)
   })
 

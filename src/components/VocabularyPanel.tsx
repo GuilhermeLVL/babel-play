@@ -1,8 +1,8 @@
-import { Check, ExternalLink, Loader2,Plus, SlidersHorizontal, Sparkles, Volume2, X, Zap } from 'lucide-react';
+import { Check, ExternalLink, Loader2, Plus, SlidersHorizontal, Sparkles, Volume2, X, Zap } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
-import { type DictionaryResult,forvoUrl, lookup, wiktionaryUrl } from '../lib/dictionary';
-import { idiomaDaInterface,t } from '../lib/i18n';
+import { type DictionaryResult, forvoUrl, lookup, wiktionaryUrl } from '../lib/dictionary';
+import { idiomaDaInterface, t } from '../lib/i18n';
 import { baseLang, langLabel, langLabelNaUI } from '../lib/languages';
 import type { AppLayoutConfig } from '../lib/layoutStore';
 import type { ExerciseId } from '../lib/sentences';
@@ -15,12 +15,14 @@ const MT_ENGINE_LABELS: Record<string, string> = {
   // As duas chaves de propósito: sessões antigas gravaram 'groq-llm'; as novas gravam o id neutro.
   'groq-llm': 'Tradutor IA (servidor)',
   'server-llm-mt': 'Tradutor IA (servidor)',
-  'mymemory': 'MyMemory (web)',
+  mymemory: 'MyMemory (web)',
   'opus-mt-local': 'Tradutor local (opus-mt)',
+  // O pt→en do tradutor local (A9b): o Bergamot traduz no aparelho, como o opus-mt.
+  'bergamot-local': 'Tradutor local (Bergamot)',
   'chrome-translator': 'Tradutor do navegador',
   // Degrau M1: palavra solta respondida por dicionário, sem MT (`lib/traducaoDePalavra.ts`).
   'dicionario-local': 'Dicionário do app',
-  'wiktionary': 'Wikcionário',
+  wiktionary: 'Wikcionário',
 };
 
 /** Estes "motores" são dicionários: a tradução é um verbete, não uma saída de máquina. */
@@ -117,11 +119,18 @@ export default function VocabularyPanel({
   }, [term]);
 
   useEffect(() => {
-    if (!term || !lang) { setEntry(null); return; }
+    if (!term || !lang) {
+      setEntry(null);
+      return;
+    }
     let alive = true;
     setEntry(null); // limpa o verbete da palavra anterior, nunca mostrar dado de outra palavra
-    void lookup(term, lang).then(r => { if (alive) setEntry(r); });
-    return () => { alive = false; };
+    void lookup(term, lang).then((r) => {
+      if (alive) setEntry(r);
+    });
+    return () => {
+      alive = false;
+    };
   }, [term, lang]);
 
   // Sem palavra selecionada → o painel simplesmente não existe (nada de empty-state ocupando espaço).
@@ -168,7 +177,6 @@ export default function VocabularyPanel({
       {/* `min-h-0` é o que permite a área de conteúdo encolher e ROLAR dentro do teto
           (70dvh na folha inferior, 1 viewport na coluna) em vez de estourar e ser cortada. */}
       <div className="flex-1 min-h-0 flex flex-col h-full bg-surface overflow-hidden rounded-t-2xl lg:rounded-none">
-
         {/* Cabeçalho: título + selo CEFR (se houver) + fechar */}
         <div className="bg-canvas border-b border-border-subtle px-5 py-3.5 flex shrink-0 justify-between items-center">
           <span className="text-xs font-bold uppercase tracking-wider font-display text-ink flex items-center gap-2">
@@ -190,18 +198,22 @@ export default function VocabularyPanel({
           </div>
         </div>
 
-        <div ref={rolagemRef} className="flex-1 min-h-0 p-5 overflow-y-auto custom-scrollbar space-y-4 bg-surface flex flex-col">
+        <div
+          ref={rolagemRef}
+          className="flex-1 min-h-0 p-5 overflow-y-auto custom-scrollbar space-y-4 bg-surface flex flex-col"
+        >
           <span className="text-[10px] font-mono text-ink-muted font-bold uppercase tracking-wider">
             Análise Linguística de Termos
           </span>
 
           <div className="space-y-4 animate-in fade-in duration-200">
             <div className="bg-canvas border border-border-subtle rounded-xl p-4 space-y-3 shadow-sm">
-
               {/* Palavra + fonética + ouvir */}
               <div className="flex items-start justify-between">
                 <div className="min-w-0">
-                  <h4 className="font-display font-black text-2xl text-ink tracking-tight break-words">"{word.word}"</h4>
+                  <h4 className="font-display font-black text-2xl text-ink tracking-tight break-words">
+                    "{word.word}"
+                  </h4>
                   {/* Fonética REAL do verbete. Fonte própria: na prática só o Wiktionary inglês publica
                       IPA em marcação legível, então uma definição em português costuma vir com um IPA
                       vindo do wiki inglês, e o link diz exatamente de onde. */}
@@ -227,9 +239,7 @@ export default function VocabularyPanel({
                       O verbete não traz transcrição fonética.
                     </span>
                   )}
-                  {word.lang && (
-                    <span className="label-mono block mt-1">{langLabel(word.lang)}</span>
-                  )}
+                  {word.lang && <span className="label-mono block mt-1">{langLabel(word.lang)}</span>}
                 </div>
                 <button
                   onClick={() => onSpeak(word.word)}
@@ -282,7 +292,9 @@ export default function VocabularyPanel({
                     kind="source"
                     origin={t(MT_ENGINE_LABELS[word.mtEngine ?? ''])}
                     method={t('glosa de dicionário')}
-                    limits={t('Tradução curta de dicionário (Wikcionário e Wikidata), sem inteligência artificial. Ela dá o sentido mais comum da palavra; para os outros sentidos, use o verbete abaixo.')}
+                    limits={t(
+                      'Tradução curta de dicionário (Wikcionário e Wikidata), sem inteligência artificial. Ela dá o sentido mais comum da palavra; para os outros sentidos, use o verbete abaixo.',
+                    )}
                   />
                 )}
                 {word.translation && !DE_DICIONARIO.has(word.mtEngine ?? '') && (
@@ -320,10 +332,13 @@ export default function VocabularyPanel({
                         sobre um verbete que estava, sim, no idioma dele (achado A39). */}
                     {found.glossLang !== baseLang(idiomaDaInterface()) && (
                       <p className="text-[10.5px] text-warn-ink bg-warn-soft border border-warn/20 rounded-lg px-2.5 py-1.5 leading-relaxed">
-                        {t('Não há verbete em {idioma} para esta palavra. A definição abaixo está escrita em {outro}.', {
-                          idioma: langLabelNaUI(idiomaDaInterface()),
-                          outro: langLabelNaUI(found.glossLang),
-                        })}
+                        {t(
+                          'Não há verbete em {idioma} para esta palavra. A definição abaixo está escrita em {outro}.',
+                          {
+                            idioma: langLabelNaUI(idiomaDaInterface()),
+                            outro: langLabelNaUI(found.glossLang),
+                          },
+                        )}
                       </p>
                     )}
                     <ul className="space-y-2">
@@ -335,9 +350,7 @@ export default function VocabularyPanel({
                             </span>
                           )}
                           <p className="text-[11.5px] text-ink-muted leading-relaxed">{s.definition}</p>
-                          {s.examples[0] && (
-                            <p className="text-[11px] text-ink italic">"{s.examples[0]}"</p>
-                          )}
+                          {s.examples[0] && <p className="text-[11px] text-ink italic">"{s.examples[0]}"</p>}
                         </li>
                       ))}
                     </ul>
@@ -353,8 +366,8 @@ export default function VocabularyPanel({
 
                 {entry?.status === 'not-found' && (
                   <p className="text-[11.5px] text-ink-muted leading-relaxed">
-                    O Wiktionary não tem verbete para esta palavra em {word.lang ? langLabel(word.lang) : 'neste idioma'}.
-                    Não vamos inventar uma definição.{' '}
+                    O Wiktionary não tem verbete para esta palavra em{' '}
+                    {word.lang ? langLabel(word.lang) : 'neste idioma'}. Não vamos inventar uma definição.{' '}
                     <a
                       href={entry.sourceUrl}
                       target="_blank"

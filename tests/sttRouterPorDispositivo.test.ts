@@ -113,7 +113,10 @@ describe('inglês por perfil', () => {
       dtype: 'q8',
     })
     for (const dispositivo of [quest, celularBom, desktopGpu, desktopSemGpu])
-      expect(routeStt({ ...nuvem, dispositivo })).toMatchObject({ preferCloud: true, localModel: MOONSHINE_MODELS.base })
+      expect(routeStt({ ...nuvem, dispositivo })).toMatchObject({
+        preferCloud: true,
+        localModel: MOONSHINE_MODELS.base,
+      })
   })
 })
 
@@ -208,5 +211,19 @@ describe('desktop: o small só com GPU provada', () => {
       expect(r.dtype).toBe('hybrid')
       expect(r.device).toBeUndefined()
     }
+  })
+})
+
+describe('tamanhoDoDownloadMb — tradutores', () => {
+  it('opus-mt: 113 MB (o maior par em q8)', () => {
+    expect(tamanhoDoDownloadMb('Xenova/opus-mt-ROMANCE-en')).toBe(113)
+  })
+
+  it('Bergamot pt→en: 31 MB (os três .gz, 25,6 MB, + o WASM sem compressão de transporte)', () => {
+    expect(tamanhoDoDownloadMb('bergamot/pt-en')).toBe(31)
+  })
+
+  it('id desconhecido: null (a tela não inventa número)', () => {
+    expect(tamanhoDoDownloadMb('bergamot/xx-yy')).toBeNull()
   })
 })

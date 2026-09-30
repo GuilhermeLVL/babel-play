@@ -61,6 +61,7 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "@browsermt/bergamot-translator": "0.4.9",
     "@huggingface/transformers": "^4.2.0",
     "@libsql/client": "^0.17.4",
     "@mozilla/readability": "^0.6.0",
@@ -91,7 +92,6 @@
   },
   "devDependencies": {
     "@ast-grep/cli": "0.45.1",
-    "@browsermt/bergamot-translator": "0.4.9",
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.62.1",
     "@testing-library/dom": "^10.4.1",
@@ -128,6 +128,11 @@
     "typescript-eslint": "^8.65.0",
     "vite": "^6.2.3",
     "vitest": "^4.1.10"
+  },
+  "overrides": {
+    "@ricky0123/vad-web": {
+      "onnxruntime-web": "1.26.0-dev.20260416-b7804b056c"
+    }
   },
   "lint-staged": {
     "*.{ts,tsx,mjs,js}": [

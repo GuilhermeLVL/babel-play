@@ -3,6 +3,7 @@
   "entry": [
     "index.html",
     "src/gateway/adapters/mtWorker.ts",
+    "src/gateway/adapters/bergamotWorker.ts",
     "src/gateway/adapters/whisperWorker.ts",
     "src/lib/speakerIdWorker.ts",
     "tests/**/*.{test,spec}.{ts,tsx}",

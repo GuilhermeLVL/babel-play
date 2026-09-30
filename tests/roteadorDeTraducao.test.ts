@@ -30,12 +30,50 @@ const degraus = (e: EntradaDaRotaMt) => routeMt(e).degraus.map((d) => d.degrau)
 
 describe('routeMt — ordem da escada', () => {
   it('pago, texto final, tudo disponível: memória → nativo → local → nuvem → terceiro', () => {
-    expect(degraus(base())).toEqual(['memoria', 'nativo', 'local', 'local', 'nuvem', 'terceiro'])
+    expect(degraus(base())).toEqual(['memoria', 'nativo', 'local', 'nuvem', 'terceiro'])
   })
 
-  it('o degrau local lista opus-mt antes do Bergamot (o medido antes do candidato)', () => {
+  /* Bancada Etapa 5 (`docs/auditoria/eval/bancada-2026-09-etapa5.md`): o Bergamot ganha no pt→en
+     (COMET +0,028, IC exclui 0, ~10× mais rápido) e fica FORA do en→pt (português europeu; o gold de
+     conversa piora). A decisão vale mesmo que o chamador diga que o Bergamot "cobre" o par. */
+  it('pt→en: o Bergamot vem ANTES do opus-mt (venceu na bancada)', () => {
+    const r = routeMt(base({ texto: 'Eu gostaria de um café', origem: 'pt', destino: 'en' }))
+    const locais = r.degraus.filter((d) => d.degrau === 'local')
+    expect(locais.map((d) => d.motor)).toEqual(['bergamot-local', 'opus-mt-local'])
+  })
+
+  it('pt-BR→en-US também (a decisão é pelo idioma base)', () => {
+    const r = routeMt(base({ texto: 'Eu gostaria de um café', origem: 'pt-BR', destino: 'en-US' }))
+    expect(r.degraus.filter((d) => d.degrau === 'local').map((d) => d.motor)[0]).toBe('bergamot-local')
+  })
+
+  it('en→pt NUNCA usa o Bergamot, mesmo com ele disponível (português europeu)', () => {
     const locais = routeMt(base()).degraus.filter((d) => d.degrau === 'local')
-    expect(locais.map((d) => d.motor)).toEqual(['opus-mt-local', 'bergamot'])
+    expect(locais.map((d) => d.motor)).toEqual(['opus-mt-local'])
+  })
+
+  it('pt→en sem o Bergamot (sem modelo no build, falhou aqui): fica o opus-mt', () => {
+    const r = routeMt(
+      base({
+        texto: 'Eu gostaria de um café',
+        origem: 'pt',
+        destino: 'en',
+        disponibilidade: { ...tudo, bergamot: false },
+      }),
+    )
+    expect(r.degraus.filter((d) => d.degrau === 'local').map((d) => d.motor)).toEqual(['opus-mt-local'])
+  })
+
+  it('pt→en só com o Bergamot (opus-mt fora): o local ainda existe', () => {
+    const r = routeMt(
+      base({
+        texto: 'Eu gostaria de um café',
+        origem: 'pt',
+        destino: 'en',
+        disponibilidade: { ...tudo, opusMt: false },
+      }),
+    )
+    expect(r.degraus.filter((d) => d.degrau === 'local').map((d) => d.motor)).toEqual(['bergamot-local'])
   })
 
   it('cada degrau nomeia o motor do registro', () => {
@@ -46,7 +84,7 @@ describe('routeMt — ordem da escada', () => {
   })
 
   it('fala FINAL de quem paga: nuvem sobe para antes do nativo (o LLM traduz sentido, não palavra)', () => {
-    expect(degraus(base({ falada: true }))).toEqual(['memoria', 'nuvem', 'nativo', 'local', 'local', 'terceiro'])
+    expect(degraus(base({ falada: true }))).toEqual(['memoria', 'nuvem', 'nativo', 'local', 'terceiro'])
   })
 
   it('nuvemPrimeiro (legenda do sistema de quem paga) também sobe a nuvem', () => {
@@ -98,7 +136,7 @@ describe('routeMt — plano e consentimento', () => {
 
   it('sem consentimento, nada sai do aparelho (nem nuvem, nem terceiro)', () => {
     const r = routeMt(base({ consentimento: false }))
-    expect(r.degraus.map((d) => d.degrau)).toEqual(['memoria', 'nativo', 'local', 'local'])
+    expect(r.degraus.map((d) => d.degrau)).toEqual(['memoria', 'nativo', 'local'])
     expect(r.descartados).toEqual(
       expect.arrayContaining([
         { degrau: 'nuvem', motivo: 'consentimento' },
@@ -141,7 +179,6 @@ describe('routeMt — degraus sem IA (M0–M2)', () => {
       'dicionario',
       'memoria',
       'nativo',
-      'local',
       'local',
       'nuvem',
       'terceiro',

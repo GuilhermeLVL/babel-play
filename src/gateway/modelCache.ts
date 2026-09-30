@@ -8,7 +8,8 @@
  * impressão de "re-download a cada captura" (a barra reaparecia mesmo em cache-hit).
  */
 
-import { modeloDisponivel } from './modelManifest'
+import { bergamotOferecido, ID_DO_BERGAMOT_PT_EN } from './adapters/bergamotModelo';
+import { modeloDisponivel } from './modelManifest';
 
 /**
  * Todos os modelos da lista têm cópia COMPLETA no navegador? (decide "Baixando" vs
@@ -21,28 +22,31 @@ import { modeloDisponivel } from './modelManifest'
  */
 export async function areModelsCached(modelIds: string[]): Promise<boolean> {
   for (const id of modelIds) {
-    if (!(await modeloDisponivel(id)).completo) return false
+    if (!(await modeloDisponivel(id)).completo) return false;
   }
-  return true
+  return true;
 }
 
 /** Id do modelo Whisper EFETIVO — mesma fonte de verdade do worker (override em localStorage). */
 function activeWhisperModelId(): string {
   try {
-    return localStorage.getItem('babel.whisperModel') || 'onnx-community/whisper-tiny'
+    return localStorage.getItem('babel.whisperModel') || 'onnx-community/whisper-tiny';
   } catch {
-    return 'onnx-community/whisper-tiny'
+    return 'onnx-community/whisper-tiny';
   }
 }
 
 /** Ids dos modelos que a preparação da captura vai tocar, dado o par de idiomas.
- *  `whisperModel` explícito (vindo do sttRouter) vence o override/default. */
+ *  `whisperModel` explícito (vindo do sttRouter) vence o override/default.
+ *  pt→en com o Bergamot oferecido (`adapters/bergamotModelo.ts`) espera o Bergamot: é ele que o
+ *  tradutor local carrega (`adapters/bergamotLocal.ts`), e o opus-mt só entra se ele falhar. */
 export function expectedModelIds(src: string, tgt: string, whisperModel?: string): string[] {
-  const ids = [whisperModel || activeWhisperModelId()]
-  const s = (src || '').toLowerCase().split('-')[0]
-  const t = (tgt || '').toLowerCase().split('-')[0]
-  const ROMANCE = new Set(['pt', 'es', 'fr', 'it', 'ro', 'ca', 'gl'])
-  if (s === 'en' && ROMANCE.has(t)) ids.push('Xenova/opus-mt-en-ROMANCE')
-  else if (ROMANCE.has(s) && t === 'en') ids.push('Xenova/opus-mt-ROMANCE-en')
-  return ids
+  const ids = [whisperModel || activeWhisperModelId()];
+  const s = (src || '').toLowerCase().split('-')[0];
+  const t = (tgt || '').toLowerCase().split('-')[0];
+  const ROMANCE = new Set(['pt', 'es', 'fr', 'it', 'ro', 'ca', 'gl']);
+  if (s === 'en' && ROMANCE.has(t)) ids.push('Xenova/opus-mt-en-ROMANCE');
+  else if (bergamotOferecido(s, t)) ids.push(ID_DO_BERGAMOT_PT_EN);
+  else if (ROMANCE.has(s) && t === 'en') ids.push('Xenova/opus-mt-ROMANCE-en');
+  return ids;
 }

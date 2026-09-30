@@ -7,6 +7,7 @@ import fs from 'fs'
 import os from 'os'
 import { defineConfig, loadEnv, type Plugin } from 'vite'
 
+import { bergamotNoPublic } from './scripts/baixar-modelos-bergamot.mjs'
 import { preCarregarEfemeroNaEdicaoEstatica } from './scripts/vite/preCarregarEfemero'
 import { precomprimir } from './scripts/vite/precomprimir'
 import { aplicarUrlPublica } from './scripts/vite/urlPublica'
@@ -49,6 +50,37 @@ function serveVadOnnxAssets(): Plugin {
         }
         next()
       })
+    },
+  }
+}
+
+/**
+ * O BERGAMOT NO BUILD (A9b): garante o motor e os modelos pt→en em `public/modelos/bergamot/`
+ * (`scripts/baixar-modelos-bergamot.mjs`: baixa do bucket da Mozilla, confere o sha256, idempotente)
+ * e diz ao cliente se pode oferecê-lo — `__BERGAMOT_PT_EN__`, lido por
+ * `src/gateway/adapters/bergamotModelo.ts`. Roda no `config` (e não no `buildStart`, como o ORT)
+ * porque o `define` precisa da resposta antes de o Vite montar a configuração. Build sem rede sai
+ * com `false`: o app segue no opus-mt, sem prometer 31 MB que não estão no `dist`. Com
+ * `VITE_BERGAMOT_MODELOS_URL` (R2/CDN) basta o motor, que sempre sai do próprio domínio.
+ * `BERGAMOT_BAIXAR=0` desliga (nem baixa, nem oferece).
+ */
+function modelosDoBergamot(urlDosModelos: string | undefined): Plugin {
+  return {
+    name: 'modelos-do-bergamot',
+    config() {
+      if (process.env.BERGAMOT_BAIXAR === '0') return { define: { __BERGAMOT_PT_EN__: 'false' } }
+      try {
+        execFileSync(process.execPath, [path.join(__dirname, 'scripts', 'baixar-modelos-bergamot.mjs')], {
+          stdio: 'inherit',
+        })
+      } catch {
+        /* o script já avisou; sem os arquivos, a conferência abaixo diz `false` */
+      }
+      const disponivel = bergamotNoPublic({
+        raiz: path.join(__dirname, 'public', 'modelos', 'bergamot'),
+        exigirModelos: !urlDosModelos?.trim(),
+      })
+      return { define: { __BERGAMOT_PT_EN__: JSON.stringify(disponivel) } }
     },
   }
 }
@@ -97,6 +129,7 @@ export default defineConfig(({ mode }) => {
       react(),
       tailwindcss(),
       serveVadOnnxAssets(),
+      modelosDoBergamot(env.VITE_BERGAMOT_MODELOS_URL || process.env.VITE_BERGAMOT_MODELOS_URL),
       urlPublica(env.VITE_PUBLIC_URL),
       versaoNoBuild(versao),
       // Edição estática: o servidor em memória vem como modulepreload (sem cascata no arranque).

@@ -45,22 +45,23 @@ export default function CartaoDeConvite({ view, onEntrar, onVoltar }: CartaoDeCo
     titulo: 'Esta parte precisa de conta',
     explicacao: 'Crie uma conta para guardar seu progresso.',
   };
+  /* As frases da tabela estão no catálogo: a tradução é aqui, no ponto de uso. */
   return (
     <div className="flex-1 flex items-center justify-center p-6" data-testid="cartao-de-convite">
       <Vazio
         icone={<Lock className="w-7 h-7" aria-hidden />}
-        titulo={c.titulo}
+        titulo={t(c.titulo)}
         explicacao={
           <>
-            {c.explicacao}
+            {t(c.explicacao)}
             <br />
             <span className="text-ink-faint">
-              O que você já capturou neste navegador sobe para a conta assim que você entrar.
+              {t('O que você já capturou neste navegador sobe para a conta assim que você entrar.')}
             </span>
           </>
         }
-        acao={{ rotulo: 'Entrar ou criar conta', aoClicar: onEntrar }}
-        acaoSecundaria={{ rotulo: 'Continuar sem conta', aoClicar: onVoltar }}
+        acao={{ rotulo: t('Entrar ou criar conta'), aoClicar: onEntrar }}
+        acaoSecundaria={{ rotulo: t('Continuar sem conta'), aoClicar: onVoltar }}
         className="max-w-xl w-full"
       />
     </div>

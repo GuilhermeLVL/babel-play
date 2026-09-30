@@ -46,6 +46,7 @@ import { deleteSession, fetchSessionTranscript, fetchSettings, patchUiSettings }
 import { buildGateway } from '../../gateway';
 import { getActiveProfile, getProviderMode } from '../../gateway/activeProfile';
 import { temAdaptadorWebGpu, webGpuProvavel } from '../../gateway/adaptadorWebGpu';
+import { ID_DO_BERGAMOT_PT_EN } from '../../gateway/adapters/bergamotModelo';
 import type { SttSession } from '../../gateway/capabilities';
 import { capMetrics } from '../../gateway/capture/captureMetrics';
 import {
@@ -2255,15 +2256,17 @@ export default function LiveCapture({
           }
         : {
             id,
-            // O tradutor também baixa (~113 MB por par em q8): o aviso de download conta os dois.
+            // O tradutor também baixa (~113 MB por par em q8; 31 MB o Bergamot): o aviso conta os dois.
             mbEstimado: tamanhoDoDownloadMb(id) ?? undefined,
             /* "Tradutor inglês → português (opus-mt)": o protótipo escreve ↔, mas cada opus-mt traduz
                num sentido só (en-ROMANCE ou ROMANCE-en) — a seta diz o que o modelo faz. */
             titulo: /en-ROMANCE/i.test(id)
               ? `Tradutor ${langLabelNaUI('en')} → ${langLabelNaUI(baseLang(meu) === 'en' ? ouvir : meu)} (opus-mt)`
-              : /ROMANCE-en/i.test(id)
-                ? `Tradutor ${langLabelNaUI(baseLang(ouvir) === 'en' ? meu : ouvir)} → ${langLabelNaUI('en')} (opus-mt)`
-                : `Tradutor (${id.split('/').pop()})`,
+              : id === ID_DO_BERGAMOT_PT_EN
+                ? `Tradutor ${langLabelNaUI('pt')} → ${langLabelNaUI('en')} (Bergamot)`
+                : /ROMANCE-en/i.test(id)
+                  ? `Tradutor ${langLabelNaUI(baseLang(ouvir) === 'en' ? meu : ouvir)} → ${langLabelNaUI('en')} (opus-mt)`
+                  : `Tradutor (${id.split('/').pop()})`,
           },
     );
   }, [

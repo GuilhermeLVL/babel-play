@@ -23,6 +23,7 @@
 
 import type { TipoDeDispositivo } from '../lib/dispositivo/perfil';
 import { edicaoEstatica } from '../lib/edicaoEstatica';
+import { mbDoDownload, parDoId } from './adapters/bergamotModelo';
 
 export type SttQuality = 'auto' | 'fast' | 'accurate' | 'cloud';
 
@@ -226,10 +227,15 @@ export const MT_DOWNLOAD_MB = 113;
 
 /**
  * Quantos MB este modelo baixa NESTE dtype. `null` quando não sabemos — a tela não inventa número.
- * Os tradutores opus-mt (`Xenova/opus-mt-*`) valem `MT_DOWNLOAD_MB`.
+ * Os tradutores opus-mt (`Xenova/opus-mt-*`) valem `MT_DOWNLOAD_MB`; o Bergamot (`bergamot/pt-en`),
+ * os três `.gz` do par mais o WASM do motor (`adapters/bergamotModelo.ts`: 31 MB no pt→en).
  */
 export function tamanhoDoDownloadMb(modelId: string, dtype: DtypeDaRota = 'hybrid'): number | null {
   if (/opus-mt/i.test(modelId)) return MT_DOWNLOAD_MB;
+  if (modelId.startsWith('bergamot/')) {
+    const par = parDoId(modelId);
+    return par ? mbDoDownload(par) : null;
+  }
   const tabela =
     dtype === 'q8' ? MODEL_DOWNLOAD_MB_Q8 : dtype === 'hybrid-fp16' ? MODEL_DOWNLOAD_MB_HYBRID_FP16 : MODEL_DOWNLOAD_MB;
   return tabela[modelId] ?? null;

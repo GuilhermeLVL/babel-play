@@ -62,8 +62,13 @@ const portaLivre = () => proximaPorta++
  * Sobe `server.ts` via tsx num diretório de dados próprio e devolve o que ele imprimiu até
  * atender — ou até estourar o prazo. Ler o stdout é frágil como ÚNICA evidência, por isso ele
  * serve só para saber QUANDO o servidor está de pé; a contagem de processos vem das respostas.
+ *
+ * `pronto`: a linha que diz "de pé". No modo cluster NÃO é o `rodando em`: o primário imprime essa
+ * linha no `listen` e só anuncia `[cluster] N processos` depois de o `startServer()` terminar (as
+ * limpezas diárias entram por `import()` dinâmico). Com o runner carregado o intervalo passa da
+ * checagem de 250 ms, e o teste lia a saída antes do anúncio (reproduzido com a CPU cheia).
  */
-function subirServidor(env: Record<string, string>, prazoMs = 60_000) {
+function subirServidor(env: Record<string, string>, prazoMs = 60_000, pronto = /rodando em|ABORTADO/) {
   const dados = mkdtempSync(path.join(tmpdir(), 'cluster-'))
   temporarios.push(dados)
   const porta = portaLivre()
@@ -117,7 +122,7 @@ function subirServidor(env: Record<string, string>, prazoMs = 60_000) {
     saida += String(b)
   })
 
-  const pronto = new Promise<{ porta: number; saida: () => string; codigo: number | null }>((resolve) => {
+  const dePe = new Promise<{ porta: number; saida: () => string; codigo: number | null }>((resolve) => {
     let terminou = false
     const fim = (codigo: number | null) => {
       if (!terminou) {
@@ -132,13 +137,13 @@ function subirServidor(env: Record<string, string>, prazoMs = 60_000) {
         clearInterval(olhar)
         return
       }
-      if (/rodando em|ABORTADO/.test(saida) || Date.now() - t0 > prazoMs) {
+      if (pronto.test(saida) || Date.now() - t0 > prazoMs) {
         clearInterval(olhar)
         fim(null)
       }
     }, 250)
   })
-  return pronto
+  return dePe
 }
 
 /** Bate no /api/health até responder; devolve os PIDs distintos que atenderam. */
@@ -165,7 +170,7 @@ describe('F6-01 — modo cluster', () => {
   }, 90_000)
 
   it('com CLUSTER_WORKERS=3, o primário anuncia 3 processos na mesma porta', async () => {
-    const { porta, saida } = await subirServidor({ CLUSTER_WORKERS: '3' })
+    const { porta, saida } = await subirServidor({ CLUSTER_WORKERS: '3' }, 60_000, /\[cluster\] \d+ processos|ABORTADO/)
     expect(saida()).toMatch(/rodando em/)
     // `Math.min(pedidos, availableParallelism())` — numa máquina de 1 núcleo o número cai, e o
     // teste não pode exigir 3 onde o hardware não dá. Exigir >= 2 é o que prova que forkou.

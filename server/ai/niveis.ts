@@ -47,6 +47,9 @@ export const IA_NIVEIS: Readonly<Record<FuncaoDeIa, NiveisDaFuncao>> = {
   traducao: { semNuance: 'rapida', comNuance: 'nuance' },
   tutor: { semNuance: 'rapida', comNuance: 'nuance' },
   corretor: { semNuance: 'rapida', comNuance: 'nuance' },
+  /* As "Outras formas" (D4) são da Tradução Nuance: a rota recusa (402) quem não tem a capacidade,
+     e a linha `semNuance` só existe porque a tabela cobre toda função. */
+  alternativas: { semNuance: 'rapida', comNuance: 'nuance' },
 }
 
 /** O nível que a função entrega a este plano — pela capacidade `traducaoNuance`. */

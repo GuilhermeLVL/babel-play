@@ -70,6 +70,7 @@
     "POST /api/ai/glossario",
     "POST /api/ai/llm/chat/completions",
     "POST /api/ai/mt",
+    "POST /api/ai/mt/alternativas",
     "POST /api/ai/providers/test",
     "POST /api/ai/stt",
     "POST /api/anki/decks/:id/ativar",

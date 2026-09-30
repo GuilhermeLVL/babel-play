@@ -208,6 +208,39 @@ describe('POST /api/ai/mt — tradução gerenciada', () => {
   })
 })
 
+/* D4 (Fase D): as "Outras formas". No self-host o plano é o `selfhost`, que tem a Tradução Nuance. */
+describe('POST /api/ai/mt/alternativas — outras formas (D4)', () => {
+  it('provedor devolve o JSON → 200 com as opções, a nota e a procedência', async () => {
+    responder = () => completacao('{"opcoes":["Até logo","A gente se vê"],"nota":"A segunda é mais informal."}')
+    const r = await s.post('/api/ai/mt/alternativas', { text: 'see you later', src: 'en', tgt: 'pt' })
+    expect(r.status).toBe(200)
+    const corpo = await r.json()
+    expect(corpo).toMatchObject({
+      opcoes: ['Até logo', 'A gente se vê'],
+      nota: 'A segunda é mais informal.',
+      provenance: { kind: 'ai', origin: 'modelo-do-env' },
+    })
+    expect(chamadas).toHaveLength(1)
+    expect(chamadas[0].url).toBe('http://llm-falso.local/v1/chat/completions')
+    expect(chamadas[0].body?.max_tokens).toBe(900)
+  })
+
+  it('provedor devolve texto solto → 502 resposta_invalida, sem opção inventada', async () => {
+    responder = () => completacao('não sei')
+    const r = await s.post('/api/ai/mt/alternativas', { text: 'see you', tgt: 'pt' })
+    expect(r.status).toBe(502)
+    const corpo = await r.json()
+    expect(corpo.code).toBe('resposta_invalida')
+    expect(corpo.opcoes).toBeUndefined()
+  })
+
+  it('corpo inválido (sem tgt) → 400, sem provedor', async () => {
+    const r = await s.post('/api/ai/mt/alternativas', { text: 'hello' })
+    expect(r.status).toBe(400)
+    expect(chamadas).toHaveLength(0)
+  })
+})
+
 describe('GET /api/ai/stt/available', () => {
   it('com chave de STT no servidor e plano self-host → 200 { available: true }', async () => {
     fixar('STT_API_KEY', 'chave-stt-falsa')

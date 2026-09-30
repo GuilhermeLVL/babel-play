@@ -2,6 +2,7 @@
 import { Router } from 'express'
 import { z } from 'zod'
 
+import { diaNoFuso } from '../../src/core/learning/economia'
 import { contaRepo } from '../db/repositories/conta'
 import { idadesRepo } from '../db/repositories/idades'
 import { perfilRepo } from '../db/repositories/perfil'
@@ -31,11 +32,16 @@ import { responderErro } from '../lib/respostaDeErro'
 import { capDeArmazenamento, reconciliarSeVencido, usoDeArmazenamento } from '../lib/storageQuota'
 import {
   capForPlan,
+  capSegundosDoDia,
   capSegundosParaPlano,
+  capTokensDoDia,
   capTokensParaPlano,
+  fusoDaCota,
   METRIC_LLM_TOKENS,
+  METRIC_LLM_TOKENS_DIA,
   METRIC_MANAGED,
   METRIC_STT_SEGUNDOS,
+  METRIC_STT_SEGUNDOS_DIA,
 } from '../lib/usageQuota'
 import { excluirContaSchema, parseOr400, perfilPatchSchema } from '../validation'
 // O store de mídia é um só; importar daqui evita uma segunda resolução de `AUDIO_DIR` que
@@ -393,12 +399,35 @@ meRouter.delete('/', async (req, res) => {
  * "desconhecido" — `Infinity` não sobrevive ao JSON.
  *
  * Read-only e derivado do plano NO SERVIDOR, como `/entitlements`.
+ *
+ * `hoje` (matriz v2, uso justo): o DIA local da pessoa — janela `AAAA-MM-DD`, o fuso que a define e
+ * os contadores do dia com os tetos. `null` para plano sem teto no dia (Grátis, self-host): ali nada é
+ * contado por dia, e "0 usado hoje" seria uma mentira.
  */
+async function usoDeHoje(userId: import('../lib/authContext').UserId, plano: Parameters<typeof capSegundosDoDia>[0]) {
+  const tetoSegundos = capSegundosDoDia(plano)
+  const tetoTokens = capTokensDoDia(plano)
+  if (!Number.isFinite(tetoSegundos) && !Number.isFinite(tetoTokens)) return null
+  const fuso = await fusoDaCota(userId)
+  const janela = diaNoFuso(Date.now(), fuso)
+  const [segundos, tokens] = await Promise.all([
+    usageCountersRepo.get(userId, METRIC_STT_SEGUNDOS_DIA, janela),
+    usageCountersRepo.get(userId, METRIC_LLM_TOKENS_DIA, janela),
+  ])
+  const finito = (n: number): number | null => (Number.isFinite(n) ? n : null)
+  return {
+    janela,
+    fuso,
+    segundosDeAudio: { usado: segundos, teto: finito(tetoSegundos) },
+    tokensDeLlm: { usado: tokens, teto: finito(tetoTokens) },
+  }
+}
+
 meRouter.get('/uso', async (req, res) => {
   try {
     const plano = await getPlanForUser(req.userId)
     const janela = new Date().toISOString().slice(0, 7)
-    const [chamadas, segundos, tokens, portao, alivio] = await Promise.all([
+    const [chamadas, segundos, tokens, portao, alivio, hoje] = await Promise.all([
       usageCountersRepo.get(req.userId, METRIC_MANAGED, janela),
       usageCountersRepo.get(req.userId, METRIC_STT_SEGUNDOS, janela),
       usageCountersRepo.get(req.userId, METRIC_LLM_TOKENS, janela),
@@ -406,6 +435,7 @@ meRouter.get('/uso', async (req, res) => {
       /* A NUVEM DE ALÍVIO (A10) só existe para a conta Grátis; para os outros planos (e o convidado,
          que tem o pool dele), `null`. */
       plano === 'free' ? resumoDoAlivio(req) : null,
+      usoDeHoje(req.userId, plano),
     ])
     const finito = (n: number): number | null => (Number.isFinite(n) ? n : null)
     res.json({
@@ -423,6 +453,8 @@ meRouter.get('/uso', async (req, res) => {
          segundos e o dólar que sobram): é o "restam X" da oferta. `disponivel` é o mesmo veredicto da
          porta; o valor em dólar fica com o operador. */
       alivio,
+      /* O USO JUSTO DO DIA (matriz v2): o dia local, com os contadores e os tetos; `null` sem teto no dia. */
+      hoje,
     })
   } catch (err) {
     res.status(500).json({ error: erroDeRota(err, { status: 500, event: 'me_route_error' }) })

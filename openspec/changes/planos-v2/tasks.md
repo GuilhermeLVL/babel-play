@@ -36,10 +36,10 @@
 
 ## C4 — Uso justo por dia
 
-- [ ] 4.1 Janela `AAAA-MM-DD` no fuso da pessoa; reserva mês → dia; devolve o mês se o dia recusar
-- [ ] 4.2 429 `uso_justo_do_dia` com `Retry-After`, sem oferta; STT, tradução e tutor
-- [ ] 4.3 Cliente: `PausaDaNuvem` pausa, aviso funcional via i18n, nenhum momento de oferta
-- [ ] 4.4 `/api/me/uso` com `hoje`
+- [x] 4.1 Janela `AAAA-MM-DD` no fuso da pessoa; reserva mês → dia; devolve o mês se o dia recusar
+- [x] 4.2 429 `uso_justo_do_dia` com `Retry-After`, sem oferta; STT, tradução e tutor
+- [x] 4.3 Cliente: `PausaDaNuvem` pausa, aviso funcional via i18n, nenhum momento de oferta
+- [x] 4.4 `/api/me/uso` com `hoje`
 
 ## C5 — Anual e 12x (depois)
 

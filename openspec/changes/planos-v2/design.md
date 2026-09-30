@@ -183,7 +183,8 @@ CANCELLED | REFUSED | EXPIRED`. **Em produção** a documentação exige conta *
   mediu, o teto de tokens morde antes do de segundos. É uma decisão a confirmar com o dono e a medir no B7.
 - **Os contadores diários crescem** (2 linhas por assinante por dia). A poda (`usageCountersRepo.prune`) das
   janelas diárias com mais de 35 dias fica para o C9/operação.
-- **`Retry-After` do uso justo ignora a troca de horário de verão** no dia da troca (erro de até 1 h): o
-  cliente reavalia a cada 15 min de qualquer forma.
+- **O dia do aviso no cliente é o do aparelho**, e o do servidor é o fuso gravado da conta: para quem viaja,
+  o recado pode reaparecer ou atrasar um dia. O `Retry-After` procura a virada do dia de verdade, inclusive no
+  dia da troca de horário de verão (23 h ou 25 h), e o cliente reavalia a cada 15 min de qualquer forma.
 - **O aviso do uso justo depende da tela de captura** para aparecer (é ela que mostra o recado); na
   importação o arquivo segue no aparelho em silêncio, como já faz com qualquer recusa da nuvem.

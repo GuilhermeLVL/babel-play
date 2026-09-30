@@ -7,14 +7,21 @@
  * estornos que precisam andar juntos. Escrever isso duas vezes seria convidar um dos dois a
  * esquecer o estorno de tokens, que é exatamente o defeito que ninguém percebe (o usuário perde
  * cota por uma tradução que não recebeu).
+ *
+ * E O USO JUSTO DO DIA (matriz v2, C4): a reserva de tokens confere o mês e depois o dia; a recusa do
+ * dia é o 429 `uso_justo_do_dia` (`responderUsoJustoDoDia`), nunca o 402 — e a reserva lembra a
+ * janela do dia em que caiu, para o acerto voltar para ela.
  */
 import type { Response } from 'express'
 
+import { segundosAteVirarODia } from '../../src/core/learning/economia'
+import { CODIGO_USO_JUSTO_DO_DIA } from '../../src/core/usoJusto'
 import type { UserId } from '../lib/authContext'
 import { responderErro } from '../lib/respostaDeErro'
 import {
   acertarTokensDeLlm,
   ContadorIndisponivel,
+  fusoDaCota,
   type ModoDaCota,
   refundManagedCall,
   reservarTokensDeLlm,
@@ -44,19 +51,38 @@ export function responderFranquiaDeAlivioEsgotada(res: Response): void {
   )
 }
 
+/**
+ * O USO JUSTO DE HOJE ACABOU (429 `uso_justo_do_dia`). Serve ao STT e ao LLM. `Retry-After` é o tempo
+ * até a virada do dia LOCAL da pessoa (o mesmo fuso da janela do dia); o cliente pausa a nuvem, o
+ * aparelho assume e o aviso é funcional — nada de venda: quem chega aqui já é assinante.
+ */
+export async function responderUsoJustoDoDia(res: Response, userId: UserId): Promise<void> {
+  const retryAfter = segundosAteVirarODia(Date.now(), await fusoDaCota(userId).catch(() => ''))
+  if (typeof res.setHeader === 'function') res.setHeader('Retry-After', String(retryAfter))
+  responderErro(
+    res,
+    429,
+    'O uso justo de nuvem de hoje acabou; a legenda segue no aparelho e a nuvem volta amanhã.',
+    CODIGO_USO_JUSTO_DO_DIA,
+    { retryAfter },
+  )
+}
+
 export class ReservaDeLlm {
   private pendente = true
   constructor(
     private readonly userId: UserId,
     private readonly tokensReservados: number,
     private readonly modo: ModoDaCota = 'plano',
+    /** A janela do dia em que os tokens foram reservados (`null` = sem teto no dia). */
+    private readonly dia: string | null = null,
   ) {}
 
   /** A chamada aconteceu: a reserva de chamada vira consumo e os tokens são acertados pelo real. */
   async consumir(tokensReais: number): Promise<void> {
     if (!this.pendente) return
     this.pendente = false
-    await acertarTokensDeLlm(this.userId, this.tokensReservados, tokensReais, this.modo)
+    await acertarTokensDeLlm(this.userId, this.tokensReservados, tokensReais, this.modo, this.dia)
   }
 
   /** A chamada NÃO aconteceu (provedor fora, erro): devolve as duas reservas. */
@@ -64,13 +90,13 @@ export class ReservaDeLlm {
     if (!this.pendente) return
     this.pendente = false
     await refundManagedCall(this.userId, this.modo)
-    await acertarTokensDeLlm(this.userId, this.tokensReservados, 0, this.modo)
+    await acertarTokensDeLlm(this.userId, this.tokensReservados, 0, this.modo, this.dia)
   }
 }
 
 /**
- * Abre as duas reservas. Devolve `null` quando JÁ RESPONDEU (402 de cota, 503 de contador) — quem
- * chama só precisa sair. Nenhum caminho de recusa deixa reserva pendurada.
+ * Abre as duas reservas. Devolve `null` quando JÁ RESPONDEU (402 de cota do mês, 429 do uso justo do
+ * dia, 503 de contador) — quem chama só precisa sair. Nenhum caminho de recusa deixa reserva pendurada.
  */
 export async function abrirReservaDeLlm(
   userId: UserId,
@@ -85,20 +111,21 @@ export async function abrirReservaDeLlm(
       else res.status(402).json({ error: 'limite mensal do plano atingido', code: 'quota_exceeded' })
       return null
     }
-    let cabe: boolean
+    let tokens: Awaited<ReturnType<typeof reservarTokensDeLlm>>
     try {
-      cabe = await reservarTokensDeLlm(userId, estimativaDeTokens, modo)
+      tokens = await reservarTokensDeLlm(userId, estimativaDeTokens, modo)
     } catch (err) {
       await refundManagedCall(userId, modo)
       throw err
     }
-    if (!cabe) {
+    if (tokens.cabe === false) {
       await refundManagedCall(userId, modo)
       if (modo === 'alivio') responderFranquiaDeAlivioEsgotada(res)
+      else if (tokens.recusa === 'dia') await responderUsoJustoDoDia(res, userId)
       else res.status(402).json({ error: 'limite mensal de IA de nuvem do plano atingido', code: 'quota_exceeded' })
       return null
     }
-    return new ReservaDeLlm(userId, estimativaDeTokens, modo)
+    return new ReservaDeLlm(userId, estimativaDeTokens, modo, tokens.dia)
   } catch (err) {
     if (err instanceof ContadorIndisponivel) {
       responderContadorIndisponivel(res)

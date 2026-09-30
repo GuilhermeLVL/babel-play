@@ -163,6 +163,7 @@ import { disposeSpeakerId } from '../../lib/speakerId';
 import { DEFAULT_TRANSCRIPT_SETTINGS, permiteSuperficieEscura, TranscriptSettings } from '../../lib/transcriptUtils';
 import { speak as ttsSpeak } from '../../lib/tts';
 // Cenário conversa sem fone: a caixa de som entra pelo mic — detecta e descarta.
+import { aoUsoJustoDoDia } from '../../lib/usoJustoDoDia';
 import { type Intervalo } from '../../lib/vazamento';
 import { Recording, type VocabWord } from '../../types';
 import AvisoDeNuvemSemConsentimento from '../AvisoDeNuvemSemConsentimento';
@@ -229,6 +230,13 @@ export default function LiveCapture({
   const setFeedbackMsg = useCallback((msg: string) => {
     if (msg) toast.info(msg);
   }, []);
+  /* O USO JUSTO DO DIA (matriz v2, ADR 0011): a nuvem recusou com 429 `uso_justo_do_dia`, o adaptador
+     já pausou e o aparelho assumiu a legenda; a tela só dá o recado FUNCIONAL, uma vez por dia
+     (`lib/usoJustoDoDia`). Nada de oferta: quem chega aqui já assina. */
+  useEffect(
+    () => aoUsoJustoDoDia(() => setFeedbackMsg(t('A nuvem descansa até amanhã; a legenda segue no aparelho.'))),
+    [setFeedbackMsg],
+  );
   // Diagnóstico de captura do áudio do sistema (botão "Testar").
   const [probe, setProbe] = useState<SystemAudioProbe | null>(null);
   const [probing, setProbing] = useState(false);

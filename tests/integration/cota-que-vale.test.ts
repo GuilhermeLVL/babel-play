@@ -137,7 +137,8 @@ describe('teto de tokens por plano', () => {
   it('reserva a estimativa, e o acerto devolve o que não foi gasto', async () => {
     process.env.PREMIUM_MONTHLY_LLM_TOKENS = '10000'
     const u = await pro('tk-acerto')
-    expect(await quota.reservarTokensDeLlm(u, 3000)).toBe(true)
+    // Matriz v2: a reserva diz se coube e em que dia caiu (o uso justo); a recusa diz qual teto.
+    expect(await quota.reservarTokensDeLlm(u, 3000)).toMatchObject({ cabe: true })
     expect(await repo.get(u, quota.METRIC_LLM_TOKENS, janela())).toBe(3000)
     await quota.acertarTokensDeLlm(u, 3000, 700)
     expect(await repo.get(u, quota.METRIC_LLM_TOKENS, janela())).toBe(700)
@@ -146,8 +147,8 @@ describe('teto de tokens por plano', () => {
   it('acima do teto a reserva recusa', async () => {
     process.env.PREMIUM_MONTHLY_LLM_TOKENS = '1000'
     const u = await pro('tk-teto')
-    expect(await quota.reservarTokensDeLlm(u, 800)).toBe(true)
-    expect(await quota.reservarTokensDeLlm(u, 800)).toBe(false)
+    expect(await quota.reservarTokensDeLlm(u, 800)).toMatchObject({ cabe: true })
+    expect(await quota.reservarTokensDeLlm(u, 800)).toEqual({ cabe: false, recusa: 'mes' })
   })
 
   it('tradução com o teto de tokens esgotado → 402 quota_exceeded, sem chamar o provedor', async () => {

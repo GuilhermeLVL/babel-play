@@ -10,7 +10,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { normalizar, PADRAO } from '../src/lib/preferencias'
-import { nuanceDoPedido } from '../src/lib/traducao/preferenciasDaNuance'
+import { nuanceDoPedido, nuanceDoPolimento } from '../src/lib/traducao/preferenciasDaNuance'
 
 describe('a preferência guardada', () => {
   it('o padrão: automático, pt-BR e es-419', () => {
@@ -45,5 +45,25 @@ describe('o que vai no pedido', () => {
 
   it('sem a Tradução Nuance, nada vai', () => {
     expect(nuanceDoPedido('pt', com('formal', 'pt-PT', 'es-ES'), false)).toEqual({})
+  })
+})
+
+describe('o que vai no "polir a sessão" (D5)', () => {
+  const com = (registro: 'automatico' | 'formal' | 'informal', pt: 'pt-BR' | 'pt-PT', es: 'es-419' | 'es-ES') => ({
+    registro,
+    variantes: { pt, es },
+  })
+
+  it('o padrão não manda nada; fora dele, o registro e as variantes (o servidor aplica cada uma à linha dela)', () => {
+    expect(nuanceDoPolimento(com('automatico', 'pt-BR', 'es-419'), true)).toEqual({})
+    expect(nuanceDoPolimento(com('informal', 'pt-PT', 'es-ES'), true)).toEqual({
+      registro: 'informal',
+      variantes: ['pt-PT', 'es-ES'],
+    })
+    expect(nuanceDoPolimento(com('automatico', 'pt-BR', 'es-ES'), true)).toEqual({ variantes: ['es-ES'] })
+  })
+
+  it('sem a Tradução Nuance, nada vai', () => {
+    expect(nuanceDoPolimento(com('formal', 'pt-PT', 'es-ES'), false)).toEqual({})
   })
 })

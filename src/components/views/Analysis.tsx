@@ -63,6 +63,8 @@ import Study from './Study';
  * que `lazyComRecarga` existe para evitar.
  */
 const PlayLobby = lazyComRecarga(() => import('./Play'));
+/* "Polir a tradução da sessão" (D5 da Fase D): a UI e o cliente da Nuance só chegam ao abrir a aba. */
+const PolirSessao = lazyComRecarga(() => import('./analise/PolirSessao'));
 import { buildGateway } from '../../gateway';
 import { getActiveProfile } from '../../gateway/activeProfile';
 import { criarEdicaoDeFala } from '../../lib/analise/edicaoDeFala';
@@ -71,8 +73,10 @@ import { criarPalavraDaAnalise, useCacheDeHover } from '../../lib/analise/palavr
 import { formatSeconds, usePlayerDaSessao } from '../../lib/analise/playerDaSessao';
 import { useAudioDaSessao } from '../../lib/audioDaSessao';
 import { consentiuNuvem } from '../../lib/consentimentoDeNuvem';
+import { getEntitlements } from '../../lib/entitlements';
 import { numero } from '../../lib/i18n';
 import type { DerivedProgress } from '../../lib/progress';
+import { perfilProtegido } from '../../lib/protecaoDoMenor';
 import { TranscriptSettings } from '../../lib/transcriptUtils';
 import AvisoDeNuvemSemConsentimento from '../AvisoDeNuvemSemConsentimento';
 import EditablePanel from '../EditablePanel';
@@ -81,6 +85,7 @@ import { Abas, CabecalhoDeTela, TituloDeSecao } from '../ui';
 import AnalistaDaSessao from './analise/AnalistaDaSessao';
 import ExportarSessao from './analise/ExportarSessao';
 import PlayerInterativo from './analise/PlayerInterativo';
+import type { VersaoDaTraducao } from './analise/PolirSessao';
 import SombraDaFala from './analise/SombraDaFala';
 
 /** Selo de PROCEDÊNCIA da transcrição (honestidade): de onde vieram as falas desta sessão. */
@@ -233,6 +238,23 @@ export default function Analysis({
       alive = false;
     };
   }, [recording.id]);
+
+  /* A TRADUÇÃO POLIDA (D5 da Fase D): mora ao lado da original em cada fala (`traducaoPolida`), e a
+     tela mostra uma ou outra — a original nunca é trocada. A escolha vale para a sessão em que foi
+     feita (guardada com o id, como `prontosDaSessao`): outra sessão abre na original. */
+  const [versaoEscolhida, setVersaoEscolhida] = useState<{ id: string; v: VersaoDaTraducao } | null>(null);
+  const versaoDaTraducao: VersaoDaTraducao = versaoEscolhida?.id === recording.id ? versaoEscolhida.v : 'original';
+  const polidaDaFala = React.useMemo(
+    () =>
+      new Map<string, string>(
+        (realUtterances as UtteranceRow[]).flatMap((u) => (u.traducaoPolida ? [[u.id, u.traducaoPolida]] : [])),
+      ),
+    [realUtterances],
+  );
+  const aplicarPolidas = (polidas: ReadonlyArray<{ id: string; traducaoPolida: string }>) => {
+    const mapa = new Map(polidas.map((p) => [p.id, p.traducaoPolida]));
+    setRealUtterances((prev) => prev.map((u) => (mapa.has(u.id) ? { ...u, traducaoPolida: mapa.get(u.id) } : u)));
+  };
 
   // Configuração de idioma do usuário — LEITOR ÚNICO (`lib/langConfig.ts`). Antes esta tela lia a
   // chave `ui.captureSourceLang/captureTargetLang` como `{src, tgt}` e o Estudo/Métricas liam a MESMA
@@ -1073,6 +1095,18 @@ export default function Analysis({
                       </span>
                     )}
                   </div>
+                  <Suspense fallback={null}>
+                    <PolirSessao
+                      key={recording.id}
+                      sessionId={recording.id}
+                      utterances={realUtterances as UtteranceRow[]}
+                      disponivel={getEntitlements().traducaoNuance}
+                      versao={versaoDaTraducao}
+                      aoTrocarVersao={(v) => setVersaoEscolhida({ id: recording.id, v })}
+                      aoPolir={aplicarPolidas}
+                      aoConhecer={perfilProtegido() ? undefined : () => onChangeView('planos')}
+                    />
+                  </Suspense>
                   {parsedSentences.map((sentence, sIdx) => {
                     const propsDosTokens = {
                       tokens: tokenizarTexto(sentence.original),
@@ -1087,7 +1121,12 @@ export default function Analysis({
                     const original = !tsSettings.hideOriginal && (
                       <TokensClicaveis {...propsDosTokens} className="orig" />
                     );
-                    const traducao = <span className="trad">{sentence.translation}</span>;
+                    const polida = versaoDaTraducao === 'polida' && uttId ? polidaDaFala.get(uttId) : undefined;
+                    const traducao = (
+                      <span className="trad" data-polida={polida ? '' : undefined}>
+                        {polida ?? sentence.translation}
+                      </span>
+                    );
                     return (
                       <div
                         key={sIdx}

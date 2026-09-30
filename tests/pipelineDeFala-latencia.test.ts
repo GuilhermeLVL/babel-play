@@ -169,7 +169,13 @@ describe('parciais e o fim da fala', () => {
 
 describe('regulador de desempenho no pipeline', () => {
   it('cada final LOCAL alimenta o regulador (RTF, fila, latência); parciais cortados não decodificam', async () => {
-    const regulador = { parciaisCortados: false, parciaisDoMicPausados: false, aoFinal: vi.fn(), aoParcial: vi.fn(), reiniciar: vi.fn() }
+    const regulador = {
+      parciaisCortados: false,
+      parciaisDoMicPausados: false,
+      aoFinal: vi.fn(),
+      aoParcial: vi.fn(),
+      reiniciar: vi.fn(),
+    }
     const { p, transcribePartial } = montar({ regulador })
     p.micHandlers.onSpeechStart(1)
     p.micHandlers.onUtterance(new Float32Array(16000), 16000, 1)
@@ -185,7 +191,13 @@ describe('regulador de desempenho no pipeline', () => {
   })
 
   it('aba escondida: os parciais do MIC param, os do sistema seguem', () => {
-    const regulador = { parciaisCortados: false, parciaisDoMicPausados: true, aoFinal: vi.fn(), aoParcial: vi.fn(), reiniciar: vi.fn() }
+    const regulador = {
+      parciaisCortados: false,
+      parciaisDoMicPausados: true,
+      aoFinal: vi.fn(),
+      aoParcial: vi.fn(),
+      reiniciar: vi.fn(),
+    }
     const { p, transcribePartial } = montar({ regulador })
     p.micHandlers.onSpeechStart(1)
     p.micHandlers.onPartialAudio(new Float32Array(1600), 16000, 1)
@@ -196,7 +208,13 @@ describe('regulador de desempenho no pipeline', () => {
   })
 
   it('final da nuvem não alimenta o regulador (mede a rede, não o aparelho)', async () => {
-    const regulador = { parciaisCortados: false, parciaisDoMicPausados: false, aoFinal: vi.fn(), aoParcial: vi.fn(), reiniciar: vi.fn() }
+    const regulador = {
+      parciaisCortados: false,
+      parciaisDoMicPausados: false,
+      aoFinal: vi.fn(),
+      aoParcial: vi.fn(),
+      reiniciar: vi.fn(),
+    }
     const { p, transcribePcm } = montar({ regulador })
     transcribePcm.mockResolvedValueOnce({ text: 'Olá', engine: 'groq-whisper' })
     p.micHandlers.onSpeechStart(1)
@@ -437,5 +455,111 @@ describe('workers que descansam', () => {
     p.micHandlers.onSpeechStart(1)
     expect(p.micHandlers.onFinalEspeculativo(new Float32Array(1600), 16000, 1)).toBeNull()
     expect(transcribePcm).not.toHaveBeenCalled()
+  })
+})
+
+/**
+ * O MODO DESEMPENHO DA PESSOA × O AUTOMÁTICO (A6b, medido na bancada A0 em 30/09/2026). O da pessoa
+ * promete na tela "Legenda só no fim de cada frase" e cumpre, também no aparelho leve. O automático
+ * (o perfil leve o liga de fábrica, sem a pessoa escolher) guarda UM parcial por fala, com 1,5 s de
+ * fala: é o que traz a 1ª legenda de ~5 s de volta para ~2 s sem pagar os parciais da fala inteira.
+ */
+describe('modo desempenho: o da pessoa × o automático', () => {
+  const comAparelhoLeve = (corpo: () => void | Promise<void>) => async () => {
+    aparelho.leve = true
+    try {
+      await corpo()
+    } finally {
+      aparelho.leve = false
+    }
+  }
+  const montarNoModo = (escolhido: boolean, regulador?: unknown) => {
+    const r = montar({ regulador, extra: { perfModeEscolhidoRef: ref(escolhido) } })
+    r.deps.perfModeRef.current = true
+    return r
+  }
+
+  it(
+    'ESCOLHIDO pela pessoa: nenhum parcial, nem no aparelho leve ("só no fim de cada frase")',
+    comAparelhoLeve(async () => {
+      const { p, transcribePartial } = montarNoModo(true)
+      expect(p.sysHandlers.querParcial()).toBe(false)
+      expect(p.micHandlers.querParcial()).toBe(false)
+      p.sysHandlers.onSpeechStart(1)
+      p.sysHandlers.onPartialAudio(new Float32Array(24000), 16000, 1)
+      p.micHandlers.onSpeechStart(1)
+      p.micHandlers.onPartialAudio(new Float32Array(24000), 16000, 1)
+      await esperar()
+      expect(transcribePartial).not.toHaveBeenCalled()
+    }),
+  )
+
+  it(
+    'AUTOMÁTICO: quer o parcial, o 1º espera 1,5 s de fala e não há 2º',
+    comAparelhoLeve(() => {
+      const { p } = montarNoModo(false)
+      for (const h of [p.sysHandlers, p.micHandlers]) {
+        expect(h.querParcial()).toBe(true)
+        expect(h.primeiroParcialComMs()).toBe(1500)
+        expect(h.intervaloDosParciais()).toBe(Infinity)
+      }
+    }),
+  )
+
+  it(
+    'AUTOMÁTICO: um parcial só por fala, mesmo que outro chegue (em voo ou depois do texto)',
+    comAparelhoLeve(async () => {
+      const { p, transcribePartial, translateSegment } = montarNoModo(false)
+      p.sysHandlers.onSpeechStart(1)
+      p.sysHandlers.onPartialAudio(new Float32Array(24000), 16000, 1)
+      p.sysHandlers.onPartialAudio(new Float32Array(28000), 16000, 1) // o 1º ainda decodifica
+      await esperar()
+      p.sysHandlers.onPartialAudio(new Float32Array(40000), 16000, 1) // o 1º já trouxe o texto
+      expect(transcribePartial).toHaveBeenCalledTimes(1)
+      expect(translateSegment).toHaveBeenCalledTimes(1) // o parcial também é traduzido, uma vez
+      // A fala seguinte tem o seu.
+      p.sysHandlers.onSpeechStart(2)
+      p.sysHandlers.onPartialAudio(new Float32Array(24000), 16000, 2)
+      expect(transcribePartial).toHaveBeenCalledTimes(2)
+    }),
+  )
+
+  it(
+    'AUTOMÁTICO: o regulador ainda corta o parcial único quando o aparelho não acompanha',
+    comAparelhoLeve(() => {
+      const regulador = {
+        parciaisCortados: true,
+        parciaisDoMicPausados: false,
+        aoFinal: vi.fn(),
+        aoParcial: vi.fn(),
+        reiniciar: vi.fn(),
+      }
+      const { p } = montarNoModo(false, regulador)
+      expect(p.sysHandlers.querParcial()).toBe(false)
+      expect(p.micHandlers.querParcial()).toBe(false)
+    }),
+  )
+
+  it(
+    'a pessoa DESLIGA o modo: parciais de volta, no espaçamento do aparelho leve',
+    comAparelhoLeve(() => {
+      const { p, deps } = montarNoModo(true)
+      deps.perfModeRef.current = false
+      expect(p.sysHandlers.querParcial()).toBe(true)
+      expect(p.sysHandlers.intervaloDosParciais()).toBe(2200)
+      expect(p.sysHandlers.primeiroParcialComMs()).toBe(0)
+    }),
+  )
+
+  it('sem o modo desempenho, o 1º parcial sai no mínimo da própria captura', () => {
+    const { p } = montar()
+    expect(p.sysHandlers.primeiroParcialComMs()).toBe(0)
+    expect(p.micHandlers.primeiroParcialComMs()).toBe(0)
+  })
+
+  it('sem saber quem ligou (quem monta o pipeline não diz): vale a promessa, nenhum parcial', () => {
+    const { p, deps } = montar()
+    deps.perfModeRef.current = true
+    expect(p.sysHandlers.querParcial()).toBe(false)
   })
 })

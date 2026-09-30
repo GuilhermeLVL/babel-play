@@ -665,7 +665,10 @@ export default function LiveCapture({
   // Corta a maior fatia de GPU/CPU da captura contínua — o decode final continua intacto.
   /* Começa LIGADO no aparelho leve (Quest, celular fraco, desktop de 2 núcleos): ali o parcial é o
      que mais trava a aba, e esperar o regulador descobrir isso custa as primeiras falas. A escolha
-     salva em `ui.perfMode` (o interruptor abaixo) vence assim que os ajustes carregam. */
+     salva em `ui.perfMode` (o interruptor abaixo) vence assim que os ajustes carregam.
+     O AUTOMÁTICO não é o modo inteiro: guarda UM parcial por fala, com 1,5 s dela, senão a 1ª legenda
+     espera o fim da frase (5,0 s contra 2,0 s na bancada; `PRIMEIRO_PARCIAL_DO_AUTOMATICO_MS`). O pipeline
+     sabe qual é pelo `perfModeEscolhidoRef`; o que a pessoa liga cumpre "só no fim de cada frase". */
   const [perfMode, setPerfMode] = useState(() => perfilDoAparelho.leve);
   const perfModeRef = useRef(perfMode);
   /* O modo leve AUTOMÁTICO não é escolha da pessoa: só vira preferência salva quando ela mexe no
@@ -1238,6 +1241,7 @@ export default function LiveCapture({
     idiomaObservadoRef,
     captureScenarioRef,
     perfModeRef,
+    perfModeEscolhidoRef,
     micEnabled,
     micEngine,
     timerRef,

@@ -78,6 +78,24 @@ const INTERVALO_DOS_PARCIAIS_MS = 1100;
  */
 const INTERVALO_DOS_PARCIAIS_LEVE_MS = 2200;
 
+/**
+ * O PARCIAL ÚNICO DO MODO DESEMPENHO AUTOMÁTICO ("Grátis sem travar", A6b). O perfil leve liga o modo
+ * desempenho de fábrica (`LiveCapture`), e sem nenhum parcial a 1ª legenda passou a esperar o fim da
+ * frase: 2,3 → 5,0 s no notebook fraco da bancada A0. No AUTOMÁTICO fica UM parcial por fala, quando ela
+ * já tem 1,5 s; no modo que a PESSOA liga, nenhum ("Legenda só no fim de cada frase", como a tela promete).
+ *
+ * Medido na bancada A0 (`openspec/audits/2026-09-29-bancada-captura/a6b-primeira-legenda.md`), perfil
+ * fraco, 6 rodadas intercaladas, mediana [mín–máx], contra (a) sem parcial e (b) o modo desligado
+ * (parciais a cada 2,2 s, o regulador corta):
+ *   1ª legenda:      (a) 4 942 [4 917–5 026] · (b) 1 210 [1 136–4 965] · este 2 004 [1 936–2 189] ms;
+ *   frames > 50 ms:  (a) 3 [2–21] · (b) 5 [2–41] · este 3 [2–34]  (> 100 ms: 2 nos três);
+ *   CPU fora da thread principal na fala: 117,6 · 126,9 · 118,1% de um núcleo (~100 são o freio do CDP).
+ * O (b) perde duas vezes: o 1º parcial dele, com 0,6 s de fala, volta vazio ou com um pedaço ("the most",
+ * ". So."), e os frames longos passam de +20% do (a). Por isso o parcial único espera 1,5 s: com ele o
+ * texto já é a frase ("Lions are the most social cat").
+ */
+const PRIMEIRO_PARCIAL_DO_AUTOMATICO_MS = 1500;
+
 /** O decode especulativo de uma fala: a captura só o cancela; o pipeline usa a promessa como final. */
 interface FinalEspeculativo extends EspeculacaoDoFinal {
   promessa: Promise<SttFinal>;
@@ -113,6 +131,12 @@ export interface DepsDoPipelineDeFala {
   idiomaObservadoRef: RefObject<string>;
   captureScenarioRef: RefObject<CaptureScenario>;
   perfModeRef: RefObject<boolean>;
+  /**
+   * O modo desempenho foi ESCOLHIDO pela pessoa (interruptor ou ajuste salvo)? `false` = o automático do
+   * perfil leve, que guarda um parcial por fala (ver `PRIMEIRO_PARCIAL_DO_AUTOMATICO_MS`). Sem ele, vale
+   * a promessa do interruptor: nenhum parcial.
+   */
+  perfModeEscolhidoRef?: RefObject<boolean>;
   /** Valores do render: o roteador de STT decide o modelo também pelo idioma do MIC. */
   micEnabled: boolean;
   micEngine: 'browser' | 'whisper';
@@ -179,6 +203,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     idiomaObservadoRef,
     captureScenarioRef,
     perfModeRef,
+    perfModeEscolhidoRef,
     micEnabled,
     micEngine,
     timerRef,
@@ -389,17 +414,27 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
      * não só o decode. O `onPartialAudio` confere o mesmo na chegada: uma função só, para as duas portas
      * não divergirem.
      */
+    /** O modo desempenho está ligado SÓ pelo perfil leve (a pessoa não escolheu): um parcial por fala. */
+    const perfModeAutomatico = (): boolean => perfModeRef.current && perfModeEscolhidoRef?.current === false;
     const querParcial = (): boolean => {
-      if (perfModeRef.current) return false; // modo desempenho: sem decodes parciais (só o final)
+      // O modo que a PESSOA ligou: "legenda só no fim de cada frase", nenhum parcial.
+      if (perfModeRef.current && !perfModeAutomatico()) return false;
       if (!reservaLocal.parciaisLocais) return false; // celular/Quest na nuvem: o local é só reserva
       // Regulador: o aparelho não acompanha (parciais cortados) ou a aba do mic está escondida.
       if (reguladorRef?.current.parciaisCortados) return false;
       if (!isSys && reguladorRef?.current.parciaisDoMicPausados) return false;
       return true;
     };
-    /** Espaçamento entre parciais que a captura usa (ver `INTERVALO_DOS_PARCIAIS_LEVE_MS`). */
-    const intervaloDosParciais = (): number =>
-      aparelhoLeve() ? INTERVALO_DOS_PARCIAIS_LEVE_MS : INTERVALO_DOS_PARCIAIS_MS;
+    /**
+     * Espaçamento entre parciais que a captura usa (ver `INTERVALO_DOS_PARCIAIS_LEVE_MS`). No modo
+     * desempenho automático, infinito: depois do parcial único, nada até o final.
+     */
+    const intervaloDosParciais = (): number => {
+      if (perfModeAutomatico()) return Infinity;
+      return aparelhoLeve() ? INTERVALO_DOS_PARCIAIS_LEVE_MS : INTERVALO_DOS_PARCIAIS_MS;
+    };
+    /** Quanto de fala o 1º parcial espera: 1,5 s no automático; 0 = o mínimo da própria captura (0,6 s). */
+    const primeiroParcialComMs = (): number => (perfModeAutomatico() ? PRIMEIRO_PARCIAL_DO_AUTOMATICO_MS : 0);
 
     // PARCIAL: transcreve o buffer-até-agora SÓ SE o Whisper estiver ocioso (idle-gating →
     // nunca enfileira → sem backlog). O texto aparece e refina em tempo real; a tradução acompanha.
@@ -411,6 +446,8 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       if (!uttId) return; // enunciado já finalizado/descartado
       // A fala já fechou e o final está a caminho: um parcial agora só atrasaria o final.
       if (lastPartialTextRef.current.get(seq) === FALA_FECHADA) return;
+      // O parcial único do automático já foi pedido para esta fala (a marca é posta no pedido, abaixo).
+      if (perfModeAutomatico() && lastPartialTextRef.current.has(seq)) return;
       const idiomas = langs();
       const { to } = idiomas;
       let { hint, from } = idiomas;
@@ -439,6 +476,9 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
         hint = provisorio;
         from = provisorio;
       }
+      /* A marca do parcial único: '' = pedido, sem texto ainda. Posta no PEDIDO, e não na resposta, para
+         que nem um segundo em voo nem um retorno vazio abram espaço para outro decode desta fala. */
+      if (perfModeAutomatico()) lastPartialTextRef.current.set(seq, '');
       const t0Parcial = performance.now();
       gateway.stt
         .transcribePartial(pcm, sr, { languageHint: hint })
@@ -917,6 +957,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       onFinalEspeculativo,
       querParcial,
       intervaloDosParciais,
+      primeiroParcialComMs,
     };
   };
 

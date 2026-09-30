@@ -4,8 +4,9 @@
  * Três regras que cada script daqui herda deste arquivo, e que não dependem da boa vontade de quem
  * escrever o próximo:
  *   1. CHAVE NUNCA IMPRESSA. Vem do ambiente, de `.env.local` ou de `.env`, nessa ordem.
- *   2. TETO DE GASTO. Cada chamada paga entra num livro-caixa em disco (`BANCADA_DIR/gasto.json`) e,
- *      passado o teto (`BANCADA_TETO_USD`, padrão 5), a bancada PARA — não "avisa e continua".
+ *   2. TETO DE GASTO. Cada chamada paga RESERVA o pior caso num livro-caixa em disco
+ *      (`BANCADA_DIR/gasto.json`) ANTES de sair; a que passaria do teto (`BANCADA_TETO_USD`, padrão
+ *      5; 3 no workflow da nuvem) não sai, e a bancada PARA — não "avisa e continua".
  *   3. RESPOSTAS EM CACHE. A saída de cada (sistema, caso) fica gravada; re-pontuar com outra métrica
  *      ou refazer o relatório não paga de novo. Só `--refazer` ignora o cache.
  */
@@ -15,6 +16,8 @@ import { execSync } from 'node:child_process'
 import path from 'node:path'
 import { Readable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
+
+import { LivroCaixa, TetoDeGasto } from './livroCaixa.mjs'
 
 export const BANCADA_DIR =
   process.env.BANCADA_DIR || path.join(process.env.LOCALAPPDATA || process.env.HOME || '.', 'babel-bancada')
@@ -60,6 +63,11 @@ export function commitAtual() {
 }
 
 // ---------------------------------------------------------------- livro-caixa
+/**
+ * O livro-caixa em disco. A regra (reserva ANTES da chamada, acerto depois) está em `livroCaixa.mjs`;
+ * aqui fica só o armazém: `BANCADA_DIR/gasto.json`, lido a cada reserva e somado a cada acerto —
+ * as etapas do workflow são processos separados e o teto vale para a execução inteira.
+ */
 const CAIXA = path.join(BANCADA_DIR, 'gasto.json')
 function lerCaixa() {
   try {
@@ -68,22 +76,54 @@ function lerCaixa() {
     return { totalUsd: 0, porSistema: {} }
   }
 }
+const armazemEmDisco = {
+  ler: lerCaixa,
+  somar: (sistema, usd) => {
+    const c = lerCaixa()
+    c.totalUsd += usd
+    c.porSistema[sistema] = (c.porSistema[sistema] ?? 0) + usd
+    mkdirSync(BANCADA_DIR, { recursive: true })
+    writeFileSync(CAIXA, JSON.stringify(c, null, 2))
+  },
+}
+let livro = null
+const livroDaBancada = () => (livro ??= new LivroCaixa({ tetoUsd: TETO_USD, armazem: armazemEmDisco }))
+
+export { TetoDeGasto }
 export function gastoTotal() {
   return lerCaixa().totalUsd
 }
-/** Registra o gasto de uma chamada e lança quando o teto é ultrapassado. */
+/** Registra o gasto de uma chamada JÁ FEITA e lança quando o teto é ultrapassado (sonda de latência). */
 export function registrarGasto(sistema, usd) {
-  if (!Number.isFinite(usd) || usd <= 0) return
-  const c = lerCaixa()
-  c.totalUsd += usd
-  c.porSistema[sistema] = (c.porSistema[sistema] ?? 0) + usd
-  mkdirSync(BANCADA_DIR, { recursive: true })
-  writeFileSync(CAIXA, JSON.stringify(c, null, 2))
-  if (c.totalUsd > TETO_USD) throw new TetoDeGasto(c.totalUsd)
+  livroDaBancada().registrar(sistema, usd)
 }
-export class TetoDeGasto extends Error {
-  constructor(total) {
-    super(`teto de gasto da bancada atingido: US$ ${total.toFixed(4)} > ${TETO_USD}`)
+/** Reserva o pior caso de uma chamada ANTES dela; `TetoDeGasto` se não couber (ver `livroCaixa.mjs`). */
+export function reservarGasto(sistema, estimativaUsd) {
+  return livroDaBancada().reservar(sistema, estimativaUsd)
+}
+
+/**
+ * UMA TENTATIVA PAGA, para passar a `comRetentativa`: reserva o pior caso antes de sair, CANCELA
+ * quando o provedor recusou (4xx/5xx não são cobrados — e a retentativa reserva de novo), cobra o
+ * reservado quando a rede caiu no meio (a chamada pode ter sido cobrada). A resposta ok volta com
+ * `r.acertar(usdReal)`, que quem chama DEVE chamar — com `NaN` se não conseguiu ler o custo.
+ */
+export function tentativaPaga(sistema, estimativaUsd, fazerFetch) {
+  return async () => {
+    const reserva = reservarGasto(sistema, estimativaUsd)
+    let r
+    try {
+      r = await fazerFetch()
+    } catch (e) {
+      reserva.acertar(estimativaUsd)
+      throw e
+    }
+    if (!r.ok) {
+      reserva.cancelar()
+      return r
+    }
+    r.acertar = (usd) => reserva.acertar(usd)
+    return r
   }
 }
 

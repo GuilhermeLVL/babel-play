@@ -85,7 +85,7 @@ const mb = (n: number): number => n * 1_000_000;
 
 /**
  * Os motores de HOJE, fiéis ao código (`src/gateway/index.ts` resolveMt/resolveStt/resolveLlm,
- * `profiles.ts`, `sttRouter.ts`, `adapters/*`). Motores futuros (Bergamot, Parakeet, ML Kit) entram quando existir o adaptador — registro de motor que não roda é
+ * `profiles.ts`, `sttRouter.ts`, `adapters/*`). Motores futuros (Parakeet, ML Kit) entram quando existir o adaptador — registro de motor que não roda é
  * promessa, e o teste de fidelidade exige que tudo aqui corresponda a um adaptador real.
  */
 export const REGISTRO_DE_MOTORES: readonly RegistroDeMotor[] = [
@@ -248,6 +248,26 @@ export const REGISTRO_DE_MOTORES: readonly RegistroDeMotor[] = [
     enviaDadosA: null,
     custo: 'download',
     licenca: 'CC-BY-4.0 (Helsinki-NLP)',
+  },
+  {
+    /* O pt→en do MESMO binding: o tradutor local (`adapters/bergamotLocal.ts`,
+       `TradutorLocalComBergamot`) manda o pt→en ao Bergamot e deixa o opus-mt de reserva — como o
+       worker do Whisper carrega o Moonshine. Bancada Etapa 5: COMET +0,028 (IC exclui 0), ~10× mais
+       rápido; o en→pt ficou fora (português europeu, o gold de conversa piora). */
+    id: 'bergamot-local',
+    adapterId: 'opus-mt-local',
+    modelo: 'mozilla/translations pt-en (retrain_hr_drxrs5bGSsOWvfK9lyZISw)',
+    tarefa: 'mt',
+    runtime: 'local',
+    idiomas: ['pt', 'en'], // só o par pt→en; a escada (`bergamotVenceNoPar`) decide o sentido
+    bytes: mb(31), // os três .gz (25,6 MB) + o WASM do motor (5,2 MB) — `mbDoDownload` em bergamotModelo.ts
+    requer: {},
+    enviaDadosA: null,
+    custo: 'download',
+    licenca: 'MPL-2.0 (motor @browsermt/bergamot-translator e modelos Mozilla translations)',
+    nota:
+      'WASM de UMA thread (cabe na parte do tradutor no orçamento). Memória medida em Node: o heap do WASM ' +
+      'reserva ~548 MB na 1ª tradução (+~200 MB residentes); no navegador, ainda por medir no aparelho fraco.',
   },
   {
     id: 'server-llm-mt',

@@ -14,6 +14,7 @@ import { bindingExigeConsentimento } from '@core/harness/registroDeMotores';
 
 import { detectLanguage } from '../lib/langDetect';
 import { explicarRejeicao, precisaConferir, validarTraducao } from '../lib/validaTraducao';
+import { BergamotLocal, TradutorLocalComBergamot } from './adapters/bergamotLocal';
 import { ChromeTranslatorMt, codigoDoTradutor, type EstadoDoTradutorNativo } from './adapters/chromeTranslator';
 import { GroqWhisperStt } from './adapters/groqWhisper';
 import { MyMemoryMt } from './adapters/mymemory';
@@ -55,7 +56,7 @@ const exigeConsentimento = (b: CapabilityBinding): boolean => bindingExigeConsen
 const ehLocal = (b: CapabilityBinding): boolean => !isCloud(b) && !exigeConsentimento(b);
 
 /** Motores de MT que traduzem no aparelho — os que a porta de qualidade do final avalia. */
-const MOTORES_LOCAIS_DE_MT = new Set(['chrome-translator', 'opus-mt-local']);
+const MOTORES_LOCAIS_DE_MT = new Set(['chrome-translator', 'opus-mt-local', 'bergamot-local']);
 
 /** `engine` da resposta VAZIA de um parcial sem tradutor local pronto — nada foi traduzido. */
 export const PARCIAL_SEM_MOTOR_LOCAL = 'parcial-sem-motor-local';
@@ -72,7 +73,10 @@ function resolveMt(b: CapabilityBinding): TranslationProvider {
       adapter = new ChromeTranslatorMt();
       break;
     case 'opus-mt-local':
-      adapter = new OpusMtLocal();
+      /* O TRADUTOR LOCAL: Bergamot no pt→en (bancada Etapa 5), opus-mt no resto e de reserva — ver
+         `adapters/bergamotLocal.ts`. O binding e o id continuam `opus-mt-local` (perfis, disjuntor,
+         registro); o `engine` da resposta diz qual dos dois traduziu. */
+      adapter = new TradutorLocalComBergamot(new BergamotLocal(), new OpusMtLocal());
       break;
     case 'mymemory':
       adapter = new MyMemoryMt();

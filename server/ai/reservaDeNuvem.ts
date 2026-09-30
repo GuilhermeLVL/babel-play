@@ -13,9 +13,9 @@
  * do dia em que caiu, para o acerto voltar para ela.
  *
  * AS RECUSAS SÃO DADO (Fase F): `reservarLlm` devolve a recusa em vez de escrever na resposta, para o
- * núcleo de IA (`server/ai/nucleo/`) servir o app, a API e o MCP com as mesmas regras. As funções
- * `responder*` e `abrirReservaDeLlm` são o adaptador do Express, para quem ainda fala com `res` (o
- * tutor) — o corpo é um só, o das `recusa*`.
+ * núcleo de IA (`server/ai/nucleo/`) servir o app, a API e o MCP com as mesmas regras.
+ * `abrirReservaDeLlm` é o adaptador do Express, para quem ainda fala com `res` (o tutor) — o corpo é
+ * um só, o das `recusa*`.
  */
 import type { Response } from 'express'
 
@@ -148,19 +148,4 @@ export async function abrirReservaDeLlm(
   if (r instanceof ReservaDeLlm) return r
   responderRecusa(res, r)
   return null
-}
-
-/** O 503 do contador, no Express. */
-export function responderContadorIndisponivel(res: Response): void {
-  responderRecusa(res, recusaContadorIndisponivel())
-}
-
-/** O 402 da franquia de alívio, no Express. */
-export function responderFranquiaDeAlivioEsgotada(res: Response): void {
-  responderRecusa(res, recusaFranquiaDeAlivioEsgotada())
-}
-
-/** O 429 do uso justo do dia, no Express (com o `Retry-After`). */
-export async function responderUsoJustoDoDia(res: Response, userId: UserId): Promise<void> {
-  responderRecusa(res, await recusaUsoJustoDoDia(userId))
 }

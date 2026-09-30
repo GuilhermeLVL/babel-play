@@ -14,6 +14,7 @@ import { esquecerDisjuntores } from '../../server/ai/disjuntor'
 import { esquecerRegistro } from '../../server/ai/registroDeProvedores'
 import { asUserId } from '../../server/lib/authContext'
 import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
+import { wavPcm } from '../harness/wav'
 
 const PROVEDOR = {
   id: 'deepinfra',
@@ -47,6 +48,7 @@ let nucleoMt: typeof import('../../server/ai/nucleo/traduzirNoNivel')
 let nucleoAlt: typeof import('../../server/ai/nucleo/sugerirAlternativas')
 let nucleoPolir: typeof import('../../server/ai/nucleo/polirLote')
 let nucleoVoz: typeof import('../../server/ai/nucleo/sintetizarVoz')
+let nucleoStt: typeof import('../../server/ai/nucleo/transcrever')
 let contexto: typeof import('../../server/ai/nucleo/contexto')
 let recusa: typeof import('../../server/ai/nucleo/recusa')
 let resposta: typeof import('../../server/ai/respostaDoNucleo')
@@ -110,6 +112,7 @@ beforeAll(async () => {
   nucleoAlt = await h.load('../../server/ai/nucleo/sugerirAlternativas')
   nucleoPolir = await h.load('../../server/ai/nucleo/polirLote')
   nucleoVoz = await h.load('../../server/ai/nucleo/sintetizarVoz')
+  nucleoStt = await h.load('../../server/ai/nucleo/transcrever')
   contexto = await h.load('../../server/ai/nucleo/contexto')
   recusa = await h.load('../../server/ai/nucleo/recusa')
   resposta = await h.load('../../server/ai/respostaDoNucleo')
@@ -467,5 +470,78 @@ describe('sintetizarVoz', () => {
     provedorDeVoz(500)
     const r = await nucleoVoz.sintetizarVoz(comVoz(), { texto: 'Good night', idioma: 'en' })
     expect(r).toMatchObject({ ok: false, status: 502, code: 'provedor_indisponivel' })
+  })
+})
+
+describe('admitirTranscricao e transcrever', () => {
+  /* O legado do STT: uma perna, a da `GROQ_API_KEY` (sem registro declarado). */
+  beforeEach(() => {
+    process.env.IA_PROVEDORES = ''
+    process.env.GROQ_API_KEY = 'chave-groq-falsa'
+  })
+
+  function provedorDeStt(status = 200) {
+    const chamadas: string[] = []
+    vi.stubGlobal('fetch', async (u: unknown) => {
+      chamadas.push(String(u))
+      if (status !== 200) return { ok: false, status, headers: new Headers(), text: async () => 'limite' }
+      return { ok: true, status: 200, json: async () => ({ text: 'bom dia' }), text: async () => '' }
+    })
+    return chamadas
+  }
+
+  /** A porta aberta pelo núcleo, como o middleware do app a abriria. */
+  async function porta(plano = 'premium', extra: Record<string, unknown> = {}) {
+    const { rastro: _sem, ...semRastro } = ctx(plano, extra)
+    const r = await nucleoStt.admitirTranscricao(semRastro)
+    if (r.ok === false) throw new Error(`porta recusada: ${r.status}`)
+    return r.porta
+  }
+
+  it('a porta recusa o plano sem STT gerenciado (402), a falta de configuração (501) e, pela API, o menor (403)', async () => {
+    const semPlano = await nucleoStt.admitirTranscricao(ctx('free'))
+    expect(semPlano).toMatchObject({ ok: false, status: 402, corpo: { entitlement: 'managedCloudStt' } })
+    const menor = await nucleoStt.admitirTranscricao(ctx('premium', { canal: 'mcp', perfilProtegido: true }))
+    expect(menor).toMatchObject({ ok: false, status: 403, code: 'perfil_protegido' })
+    process.env.GROQ_API_KEY = ''
+    const semChave = await nucleoStt.admitirTranscricao(ctx('premium'))
+    expect(semChave).toMatchObject({ ok: false, status: 501 })
+  })
+
+  it('transcreve o áudio, soma o custo na franquia de quem abriu a porta e decide uma vez', async () => {
+    const chamadas = provedorDeStt()
+    const registrarCusto = vi.fn(async (_usd: number) => {})
+    const p = await porta('premium', { registrarCusto })
+    const aoDecidir = vi.fn()
+    const r = await nucleoStt.transcrever(ctx('premium'), p, { audio: wavPcm(2), idioma: 'pt' }, { aoDecidir })
+    expect(r).toEqual({ ok: true, texto: 'bom dia', idioma: '' })
+    expect(chamadas).toHaveLength(1)
+    expect(registrarCusto).toHaveBeenCalledTimes(1)
+    expect(aoDecidir).toHaveBeenCalledWith(r)
+  })
+
+  it('corpo vazio é 400, áudio ilegível é 415, e nenhum chega ao provedor', async () => {
+    const chamadas = provedorDeStt()
+    const vazio = await nucleoStt.transcrever(ctx('premium'), await porta(), { audio: Buffer.alloc(0) })
+    expect(vazio).toMatchObject({ ok: false, status: 400, corpo: { error: 'corpo de áudio vazio' } })
+    const ilegivel = await nucleoStt.transcrever(ctx('premium'), await porta(), {
+      audio: Buffer.from('isto não é áudio nenhum, só texto'),
+    })
+    expect(ilegivel).toMatchObject({ ok: false, status: 415 })
+    expect(chamadas).toHaveLength(0)
+  })
+
+  it('o cabeçalho fora do formato é o 400 de sempre, depois da medição do áudio', async () => {
+    provedorDeStt()
+    const r = await nucleoStt.transcrever(ctx('premium'), await porta(), { audio: wavPcm(1), idioma: 'pt; drop' })
+    expect(r).toMatchObject({ ok: false, status: 400 })
+    expect(r.ok === false && r.corpo.error).toMatch(/^payload inválido: x-language/)
+  })
+
+  it('o provedor limitando é 429 `nuvem_ocupada` com a espera', async () => {
+    provedorDeStt(429)
+    const r = await nucleoStt.transcrever(ctx('premium'), await porta(), { audio: wavPcm(1) })
+    expect(r).toMatchObject({ ok: false, status: 429, code: 'nuvem_ocupada' })
+    expect(r.ok === false && r.retryAfterS).toBeGreaterThanOrEqual(1)
   })
 })

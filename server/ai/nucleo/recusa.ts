@@ -57,7 +57,7 @@ export function recusaDeErro(
 
 /**
  * 429 `nuvem_ocupada` (ADR 0007): a admissão, ou o provedor, disse "agora não". O mesmo corpo de
- * `responderNuvemOcupada` (`admissao.ts`), que o tutor ainda usa — `tests/nucleoDeIa-recusa.test.ts`
+ * `responderNuvemOcupada` (`admissao.ts`), que o tutor ainda usa — `tests/integration/nucleo-de-ia.test.ts`
  * confere que os dois não se separam.
  */
 export function recusaNuvemOcupada(recusa: Recusa): RecusaDeIa {
@@ -72,7 +72,7 @@ export function recusaNuvemOcupada(recusa: Recusa): RecusaDeIa {
   )
 }
 
-/** 503 do portão da nuvem (chave de emergência, orçamento): o corpo de `responderPortaoFechado`. */
+/** 503 do portão da nuvem (chave de emergência, orçamento): o corpo de `responderPortaoFechado` (o mesmo teste). */
 export function recusaPortaoFechado(portao: Portao): RecusaDeIa {
   return recusar(503, { error: portao.mensagem as string, code: portao.motivo })
 }

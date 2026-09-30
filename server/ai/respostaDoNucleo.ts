@@ -3,9 +3,9 @@
  *
  * O núcleo (`server/ai/nucleo/`) devolve a recusa como dado; aqui ela vira exatamente a resposta que
  * as rotas davam antes da Fase F: o cabeçalho `Retry-After` quando há espera, o status e o corpo. A
- * ordem (cabeçalho antes do status) e a guarda do `setHeader` são as de `responderNuvemOcupada` e de
- * `responderUsoJustoDoDia`: os testes de rota chamam os handlers com uma resposta falsa que às vezes
- * não tem `setHeader`.
+ * ordem (cabeçalho antes do status) e a guarda do `setHeader` são as das respostas de antes
+ * (`responderNuvemOcupada`, o 429 do uso justo): os testes de rota chamam os handlers com uma resposta
+ * falsa que às vezes não tem `setHeader`.
  */
 import type { Response } from 'express'
 

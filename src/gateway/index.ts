@@ -165,6 +165,31 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
   /** O tradutor nativo do par já foi CRIADO (o parcial só usa um que existe; ver `ChromeTranslatorMt.criado`). */
   const nativoCriado = (src: string | null, tgt: string): boolean => !!src && !!tradutorNativo()?.criado(src, tgt);
 
+  /* SEM O CLIQUE, O NATIVO É PERGUNTADO ANTES (plano "Grátis sem travar", A9a). O pré-aquecimento da
+     tela aberta (`preaquecerModelos`) não tem `prepararNativo` para esperar, e o opus-mt (113 MB na
+     memória, o worker ocupando a CPU) aquecia mesmo no Chrome que já traduz o par no aparelho. A
+     pergunta (`atendeSemBaixar`) não cria nada e vale UMA vez por par na sessão; a preparação do
+     clique, quando existe, continua sendo a resposta. */
+  const perguntasSemClique = new Map<string, Promise<boolean>>();
+  /**
+   * O que o opus-mt espera antes de aquecer o par: a preparação do clique, ou a pergunta sem clique.
+   * `null` = não há o que esperar (sem a Translator API) — quem chama aquece na hora, como antes.
+   */
+  const nativoAtende = (src: string, tgt: string): Promise<boolean> | null => {
+    const key = chaveDoPar(src, tgt);
+    const prep = preparacoesNativas.get(key);
+    if (prep) return prep.then(() => nativoPronto(src, tgt));
+    if (nativoPronto(src, tgt)) return Promise.resolve(true);
+    const nativo = tradutorNativo();
+    if (!nativo || !ChromeTranslatorMt.isPresent()) return null;
+    let pergunta = perguntasSemClique.get(key);
+    if (!pergunta) {
+      pergunta = nativo.atendeSemBaixar(src, tgt);
+      perguntasSemClique.set(key, pergunta);
+    }
+    return pergunta;
+  };
+
   /* O MOTOR LOCAL FICOU PRONTO: o disjuntor dele fecha na hora (uma falha antiga não pode segurar o
      modelo que acabou de carregar por 30 s — Quest emulado, 2026-09-28) e quem pediu aviso (a
      captura, para retraduzir o que ficou sem tradução) é chamado DEPOIS disso. Um ouvinte por
@@ -479,9 +504,9 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
       /** Aquece os adapters de MT locais (ex.: opus-mt) para as direções esperadas, em background. */
       warmup: (pairs: Array<[string, string]>): void => {
         for (const [src, tgt] of pairs) {
-          // Tradutor nativo pronto para o par: o opus-mt não baixa (nem ocupa memória) à toa.
-          const aquecer = (): void => {
-            if (nativoPronto(src, tgt)) return;
+          // Tradutor nativo que atende o par: o opus-mt não baixa (nem ocupa memória) à toa.
+          const aquecer = (atende: boolean): void => {
+            if (atende || nativoPronto(src, tgt)) return;
             for (const b of core.getProfile().bindings.mt ?? []) {
               try {
                 const a = resolverMt(b);
@@ -491,9 +516,9 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
               }
             }
           };
-          const prep = preparacoesNativas.get(chaveDoPar(src, tgt));
-          if (prep) void prep.then(aquecer);
-          else aquecer();
+          const resposta = nativoAtende(src, tgt);
+          if (resposta) void resposta.then(aquecer, () => aquecer(false));
+          else aquecer(false);
         }
       },
 
@@ -507,9 +532,13 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
         tgt: string,
         onProgress?: (p: number, label?: string, bytes?: { loaded: number; total: number }) => void,
       ): Promise<void> => {
-        const prep = preparacoesNativas.get(chaveDoPar(src, tgt));
-        if (prep) return prep.then(() => (nativoPronto(src, tgt) ? undefined : preloadLocal(src, tgt, onProgress)));
-        return nativoPronto(src, tgt) ? Promise.resolve() : preloadLocal(src, tgt, onProgress);
+        // O nativo responde ANTES: com o par no disco, o opus-mt nem abre o worker (ver `nativoAtende`).
+        const resposta = nativoAtende(src, tgt);
+        if (!resposta) return preloadLocal(src, tgt, onProgress);
+        return resposta.then(
+          (atende) => (atende ? undefined : preloadLocal(src, tgt, onProgress)),
+          () => preloadLocal(src, tgt, onProgress),
+        );
       },
     },
 

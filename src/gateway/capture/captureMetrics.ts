@@ -70,11 +70,6 @@ let motorMt = '';
 const escaladas = { mt: 0, stt: 0 };
 /** Falas finais que NÃO foram à MT pela preferência "Tradução" (M0): economia, desde a gravação. */
 const mtPuladas = { pedido: 0, conhecidas: 0 };
-/**
- * `tts_inicio` (modo intérprete, Fase E): do fim da fala original ao começo da voz que lê a tradução,
- * por motor. Fica na aba (`summary().ttsInicioMs`, lido pelo e2e do E6); não vai no lote.
- */
-const ttsInicios: { ms: number; motor: string }[] = [];
 
 function empurrar(xs: number[], x: number): void {
   if (!Number.isFinite(x)) return;
@@ -172,16 +167,6 @@ export const capMetrics = {
     mtPuladas[motivo === 'pedido' ? 'pedido' : 'conhecidas']++;
   },
 
-  /**
-   * A voz do intérprete começou a ler uma tradução, `ms` depois do fim da fala original
-   * (`filaDeFala.ts`, `aoIniciar`). `motor`: `voz-do-aparelho` ou `voz-da-nuvem`.
-   */
-  ttsInicio(ms: number, motor: string): void {
-    if (!Number.isFinite(ms) || ms < 0) return;
-    ttsInicios.push({ ms: Math.round(ms), motor: motor || 'desconhecido' });
-    if (ttsInicios.length > RING_MAX) ttsInicios.shift();
-  },
-
   /** Devolve o lote desde o último envio e começa outro. Quem chama é `telemetriaDeCaptura.ts`. */
   drenarTelemetria(): LoteDeTelemetria {
     const saida: LoteDeTelemetria = { ...lote, fallbacks: { ...lote.fallbacks }, motorStt, motorMt };
@@ -214,7 +199,6 @@ export const capMetrics = {
     escaladas.stt = 0;
     mtPuladas.pedido = 0;
     mtPuladas.conhecidas = 0;
-    ttsInicios.length = 0;
   },
 
   /** Snapshot: concluídos + em andamento, em ordem de seq. */
@@ -259,16 +243,6 @@ export const capMetrics = {
 
     const seqs = done.map((m) => m.seq);
     const inOrder = seqs.every((s, i) => i === 0 || s > seqs[i - 1]);
-    const motoresDaVoz = [...new Set(ttsInicios.map((s) => s.motor))];
-    const ttsInicioMs = ttsInicios.length
-      ? {
-          ...stat(ttsInicios.map((s) => s.ms)),
-          motores: motoresDaVoz,
-          porMotor: Object.fromEntries(
-            motoresDaVoz.map((m) => [m, stat(ttsInicios.filter((s) => s.motor === m).map((s) => s.ms))]),
-          ),
-        }
-      : null;
     return {
       count: done.length,
       ttftMs: stat(firstPartial), // time-to-first-token (parcial visível)
@@ -282,7 +256,6 @@ export const capMetrics = {
       renderedInSeqOrder: inOrder,
       escaladas: { ...escaladas },
       mtPuladas: { ...mtPuladas },
-      ttsInicioMs, // intérprete: fim da fala → voz da tradução (meta do E6)
     };
   },
 };

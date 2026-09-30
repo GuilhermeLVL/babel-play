@@ -12,6 +12,7 @@ import {
   type StatusDeBilling,
 } from '../../../lib/assinatura';
 import { carregarEntitlements } from '../../../lib/entitlements';
+import { t } from '../../../lib/i18n';
 import { registrarAssinaturaConcluida } from '../../../lib/ofertas/instrumentacao';
 import { navegarPara } from '../../../lib/rotas';
 import { IconeEmBloco, Tela } from '../../ui';
@@ -118,9 +119,13 @@ export default function Assinado() {
             <dt>{ultima && ultima.data !== hoje ? `Pago em ${dataCurta(ultima.data)}` : 'Pago hoje'}</dt>
             <dd className="tn">{brl(ultima?.valor ?? precoMensal(plano))}</dd>
           </div>
+          {/* A PRÓXIMA COBRANÇA vem do Asaas (`proximaCobranca`). `valeAte` é outra coisa — o vencimento
+              mais a graça de atraso — e aparece como "acesso até" quando o Asaas não respondeu. */}
           <div>
-            <dt>Renova em</dt>
-            <dd className="tn">{dataCurta(a.valeAte)}</dd>
+            <dt>{status !== 'carregando' && status?.proximaCobranca ? t('Próxima cobrança em') : t('Acesso até')}</dt>
+            <dd className="tn">
+              {dataCurta(status !== 'carregando' && status?.proximaCobranca ? status.proximaCobranca : a.valeAte)}
+            </dd>
           </div>
         </dl>
         <div className="linha" style={{ gap: 10, justifyContent: 'center', flexWrap: 'wrap', marginTop: 20 }}>

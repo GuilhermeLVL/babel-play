@@ -20,6 +20,7 @@ export default function ResetPassword({ onDone }: { onDone: () => void }) {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setErro(null); setAviso(null);
+    if (senha.length < auth.SENHA_MINIMA) { setErro(auth.SENHA_CURTA); return; }
     if (senha !== confirma) { setErro('As senhas não coincidem.'); return; }
     setCarregando(true);
     const r = await auth.updatePassword(senha);
@@ -37,12 +38,12 @@ export default function ResetPassword({ onDone }: { onDone: () => void }) {
       <form onSubmit={submit} className="grid gap-4">
         <div>
           <label htmlFor="reset-senha" className="mb-1 block text-xs font-medium text-ink-muted">Nova senha</label>
-          <PasswordField id="reset-senha" required minLength={6} autoComplete="new-password" value={senha}
-            onChange={(e) => setSenha(e.target.value)} placeholder="mínimo 6 caracteres" />
+          <PasswordField id="reset-senha" required minLength={auth.SENHA_MINIMA} autoComplete="new-password" value={senha}
+            onChange={(e) => setSenha(e.target.value)} placeholder={`mínimo ${auth.SENHA_MINIMA} caracteres`} />
         </div>
         <div>
           <label htmlFor="reset-confirma" className="mb-1 block text-xs font-medium text-ink-muted">Confirmar senha</label>
-          <PasswordField id="reset-confirma" required minLength={6} autoComplete="new-password" value={confirma}
+          <PasswordField id="reset-confirma" required minLength={auth.SENHA_MINIMA} autoComplete="new-password" value={confirma}
             onChange={(e) => setConfirma(e.target.value)} placeholder="repita a senha" />
         </div>
 

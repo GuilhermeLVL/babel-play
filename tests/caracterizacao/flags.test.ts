@@ -59,7 +59,7 @@ describe('GET /api/flags (pública)', () => {
     expect(r.headers.get('ratelimit-limit'), 'balde próprio por IP no modo público').toBe('60')
     expect(corpo!.flags.modo_convidado).toEqual({ ligada: false })
     expect(corpo!.flags.vender_planos).toEqual({ ligada: true })
-    expect(corpo!.flags.oferta_planos).toEqual({ ligada: false }) // desligada: sem payload
+    expect(corpo!.flags.oferta_planos.ligada, 'ligada pela 0039').toBe(true) // o convidado segue desligado
   })
 
   it('nunca expõe regras, listas de ids, percentual nem descrição', async () => {
@@ -72,7 +72,13 @@ describe('GET /api/flags (pública)', () => {
         })
       ).status,
     ).toBe(200)
-    const texto = await (await s.chamar('GET', '/api/flags', { token: tokenComum })).text()
+    const cru = JSON.parse(await (await s.chamar('GET', '/api/flags', { token: tokenComum })).text()) as {
+      flags: Record<string, { payload?: unknown }>
+    }
+    /* O payload de `oferta_planos` é PÚBLICO por desenho (cada gatilho lista os `planos` a que se dirige);
+       o que não pode vazar são as REGRAS das flags. Fora ele, nada disso aparece. */
+    delete cru.flags.oferta_planos?.payload
+    const texto = JSON.stringify(cru)
     for (const proibido of [
       'ID-SECRETO-1',
       'DESCRICAO-INTERNA',

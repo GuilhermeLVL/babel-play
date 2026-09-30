@@ -282,6 +282,35 @@ export function urlParaEstado(caminho: string): EstadoDeRota {
   return view ? { view } : { view: 'naoencontrado' };
 }
 
+/**
+ * A ROTA DA INTENÇÃO DE LOGIN como estado (funil de venda, 2026-09-29). Quem termina o login
+ * navega para ela — e ela foi escrita no `localStorage`, que outra aba também escreve. Por isso
+ * passa pelo MESMO parser das URLs: só vira tela o que é rota conhecida do app; o resto (o 404, o
+ * próprio `/auth/callback`) cai no Início, que é para onde o login levava antes.
+ */
+export function estadoDaIntencao(rota: string): EstadoDeRota {
+  const e = urlParaEstado(rota);
+  return e.view === 'naoencontrado' ? { view: 'hub' } : e;
+}
+
+/**
+ * O CHECKOUT EM ANDAMENTO: escolher o pagamento (`assinar`) e a volta dele (`assinado`). Enquanto
+ * a pessoa está aqui, nada de modal por cima (a migração) nem de tela que a tire dali (a pergunta
+ * da idade — o Checkout pergunta no próprio formulário). Cancelar e "Sua assinatura" não entram:
+ * não há pagamento para atrapalhar.
+ */
+const SUBTELAS_DE_CHECKOUT: readonly SubTelaDePlanos[] = ['assinar', 'assinado'];
+
+/** A sub-tela é de checkout? Serve também à sub-tela do boot, que ainda não voltou à barra. */
+export function ehSubTelaDeCheckout(tela: SubTelaDePlanos | null | undefined): boolean {
+  return !!tela && SUBTELAS_DE_CHECKOUT.includes(tela);
+}
+
+export function ehRotaDeCheckout(caminho: string): boolean {
+  const e = urlParaEstado(caminho);
+  return e.view === 'planos' && ehSubTelaDeCheckout(e.planosTela);
+}
+
 /* ── Ligação com o navegador ──────────────────────────────────────────────
    Isolada aqui para o resto do app não falar com `history` diretamente, e para os testes
    acima poderem exercitar o contrato sem tocar em `window`. */

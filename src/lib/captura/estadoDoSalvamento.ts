@@ -20,6 +20,8 @@ export interface FalhaDoSalvamento {
   status: number;
   /** O teto sem conta recusou (507 `TETO_ANONIMO`). */
   teto: boolean;
+  /** O espaço de armazenamento do plano está cheio (507 `storage_quota_exceeded`): a saída é "Ver planos". */
+  cheio?: boolean;
 }
 
 export type EstadoDoSalvamento =

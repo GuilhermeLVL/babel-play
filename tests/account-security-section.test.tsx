@@ -7,7 +7,7 @@ afterEach(() => { cleanup(); vi.resetModules() })
 
 it('authRequired=true → renderiza "Conta e Segurança" e o botão de sair', async () => {
   vi.doMock('../src/lib/supabase', () => ({ supabase: {}, authRequired: true, getAccessToken: async () => null }))
-  vi.doMock('../src/lib/auth', () => ({ listTotpFactors: async () => [], signOut: vi.fn(), updatePassword: vi.fn() }))
+  vi.doMock('../src/lib/auth', () => ({ listTotpFactors: async () => [], signOut: vi.fn(), updatePassword: vi.fn(), SENHA_MINIMA: 8 }))
   const { default: Section } = await import('../src/components/auth/AccountSecuritySection')
   render(<Section />)
   expect(screen.getByRole('heading', { name: 'Conta e Segurança' })).toBeTruthy()

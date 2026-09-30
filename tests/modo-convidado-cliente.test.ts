@@ -180,7 +180,10 @@ describe('conversão mantém o id', () => {
     supa.estado.sessao = { access_token: 't', user: { is_anonymous: true } }
     const r = await auth.signUpEmail('pessoa@exemplo.com', 'senha-forte-123')
     expect(r).toMatchObject({ ok: true, needsEmailConfirm: true })
-    expect(supa.auth.updateUser).toHaveBeenCalledWith({ email: 'pessoa@exemplo.com' })
+    expect(supa.auth.updateUser).toHaveBeenCalledWith(
+      { email: 'pessoa@exemplo.com' },
+      { emailRedirectTo: `${window.location.origin}/auth/callback` },
+    )
     expect(supa.auth.signUp).not.toHaveBeenCalled()
   })
 

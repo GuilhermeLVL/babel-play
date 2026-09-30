@@ -78,9 +78,10 @@ export default function FaixaDaConta({
         <Check aria-hidden /> Ativa
       </span>
     );
-    texto = conta.valeAte ? (
+    /* A data da cobrança é a do Asaas (`proximaCobranca`), não `valeAte` (que soma a graça). */
+    texto = conta.proximaCobranca ? (
       <>
-        Próxima cobrança em {ate}: {preco}.
+        Próxima cobrança em <b>{dataCurta(conta.proximaCobranca)}</b>: {preco}.
       </>
     ) : (
       `${preco} por mês.`

@@ -113,8 +113,8 @@ export default function SecurityPanel() {
         <form onSubmit={trocarSenha} className="mt-3 flex items-end gap-2">
           <div className="flex-1">
             <label htmlFor="nova-senha" className="mb-1 block text-xs font-medium text-ink-muted">Nova senha</label>
-            <input id="nova-senha" type="password" minLength={6} required value={novaSenha}
-              onChange={(e) => setNovaSenha(e.target.value)} placeholder="mínimo 6 caracteres" className="ap-input w-full" />
+            <input id="nova-senha" type="password" minLength={auth.SENHA_MINIMA} required value={novaSenha}
+              onChange={(e) => setNovaSenha(e.target.value)} placeholder={`mínimo ${auth.SENHA_MINIMA} caracteres`} className="ap-input w-full" />
           </div>
           <button type="submit" className="btn-ink" disabled={busy}>Trocar</button>
         </form>

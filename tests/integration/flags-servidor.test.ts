@@ -32,13 +32,13 @@ afterAll(async () => {
 
 const ctx = { plano: 'free' as const, instalacao: '3f1c2d7e-0000-4000-8000-000000000001' }
 
-describe('semente da migração 0031', () => {
+describe('semente das migrações 0031 e 0039', () => {
   it('cria as quatro flags iniciais no estado combinado', async () => {
     const porChave = Object.fromEntries((await F.listarFlagsCruas()).map((f) => [f.chave, f]))
     expect(porChave.modo_convidado.habilitada).toBe(false)
     expect(porChave.nuvem_convidado.habilitada).toBe(false)
     expect(porChave.nuvem_convidado.regras).toEqual({ planos: ['convidado'] })
-    expect(porChave.oferta_planos.habilitada).toBe(false)
+    expect(porChave.oferta_planos.habilitada, 'ligada pela 0039').toBe(true)
     expect(porChave.vender_planos.habilitada).toBe(true)
   })
 

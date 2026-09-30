@@ -42,6 +42,7 @@ const Onboarding = lazyComRecarga(() => import('./components/Onboarding'));
 // Fase 4: o aceite do responsável só existe para quem abriu o link do convite.
 const AceiteDoResponsavel = lazyComRecarga(() => import('./components/conta/AceiteDoResponsavel'));
 import BuscaGlobal from './components/BuscaGlobal';
+import AvisoDePagamentoAtrasado from './components/conta/AvisoDePagamentoAtrasado';
 import AvisoDoResponsavel from './components/conta/AvisoDoResponsavel';
 import CartaoDeConvite from './components/conta/CartaoDeConvite';
 import { aceitarAnonimo, exigeConta, porta } from './components/conta/exigeConta';
@@ -61,6 +62,7 @@ import { lerTokenDoConvite } from './lib/conviteNaUrl';
 import { edicaoEstatica } from './lib/edicaoEstatica';
 import { carregarEntitlements } from './lib/entitlements';
 import { useAparencia, useHidratacaoDeAjustes } from './lib/estado/useAparencia';
+import { useEmCheckout } from './lib/estado/useEmCheckout';
 import { useGateDeConta } from './lib/estado/useGateDeConta';
 import { useMetricas } from './lib/estado/useMetricas';
 import { useNavegacao } from './lib/estado/useNavegacao';
@@ -99,6 +101,10 @@ export default function App() {
   const { session, recovery, setRecovery, processingCallback, segundoFatorPendente, reconferirSegundoFator } =
     useSessaoSupabase();
 
+  /* No checkout (`/plano/assinar`, `/plano/assinado`) nada sobe por cima nem toma a tela: a
+     migração e a pergunta da idade esperam a pessoa sair dali (funil de venda, 2026-09-29). */
+  const emCheckout = useEmCheckout(activeView);
+
   const {
     anonimo,
     semContaAceito,
@@ -109,7 +115,7 @@ export default function App() {
     migracao,
     setMigracao,
     fecharGate,
-  } = useGateDeConta();
+  } = useGateDeConta({ adiarMigracao: emCheckout });
 
   const {
     theme,
@@ -350,8 +356,9 @@ export default function App() {
     );
   }
 
-  /* A IDADE antes de tudo o que é da conta: sem ela o app não sabe qual perfil aplicar. */
-  if (authRequired && idDaConta && protecao && !protecao.nascimentoInformado) {
+  /* A IDADE antes de tudo o que é da conta: sem ela o app não sabe qual perfil aplicar. No
+     checkout, não: o próprio Checkout pergunta no formulário, e esta tela inteira o derrubaria. */
+  if (authRequired && idDaConta && protecao && !protecao.nascimentoInformado && !emCheckout) {
     return (
       <>
         <PerguntaDeIdade aoConcluir={() => void carregarProtecao()} />
@@ -495,6 +502,8 @@ export default function App() {
           <IndicadorDeSalvamento naCaptura={activeView === 'capture'} aoVerCaptura={() => navigateTo('capture')} />
           <LayoutEditorToolbar />
           {protecao?.restrita && activeView === 'hub' && <AvisoDoResponsavel estado={protecao} />}
+          {/* A assinatura com pagamento atrasado (past_due), em qualquer tela menos Planos, onde já está. */}
+          {activeView !== 'planos' && <AvisoDePagamentoAtrasado />}
           <Suspense
             fallback={<div className="flex-1 flex items-center justify-center text-ink-muted text-sm">Carregando…</div>}
           >
@@ -584,7 +593,7 @@ export default function App() {
                   onVoltar={() => setActiveView('hub')}
                 />
               ) : (
-                <Planos />
+                <Planos onEntrar={() => navigateTo('login')} />
               ))}
             {activeView === 'estatisticas' && (
               <Estatisticas metrics={metrics} onChangeView={(v) => navigateTo(v as ViewType)} />

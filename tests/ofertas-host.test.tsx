@@ -257,3 +257,13 @@ describe('banner e convidado', () => {
     expect(consumirDestaqueEmPlanos()).toEqual({ aba: 'consumo' })
   })
 })
+
+describe('o pedido de conta de fora da árvore (pedirConta)', () => {
+  it('abre o login do App, sem passar pelo motor e sem contar oferta', async () => {
+    const { pedirConta } = await import('../src/lib/ofertas/eventos')
+    montar()
+    act(() => pedirConta())
+    expect(aoEntrar).toHaveBeenCalledTimes(1)
+    expect(estado.eventos).toEqual([])
+  })
+})

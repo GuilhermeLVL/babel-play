@@ -1,0 +1,25 @@
+-- OFERTAS DE PLANOS LIGADAS POR PADRÃO (funil de 29/09, decisão do dono) — `docs/flags.md`, `docs/ofertas.md`.
+--
+-- A 0031 semeou `oferta_planos` DESLIGADA e sem gatilho para `fim_de_sessao` e `conquista`: os dois
+-- momentos que o app já dispara (fim de captura/rodada, celebração de conquista) caíam em `sem_gatilho`,
+-- e só os avisos funcionais de cota apareciam. Aqui a flag LIGA e o payload cobre os seis momentos:
+-- os quatro gatilhos da 0031, sem mudança, mais `fim_sessao` e `conquista` (banners, só para o Grátis,
+-- no máximo 1 por dia e 2 por semana). As regras antichateação do motor (`src/lib/ofertas/motor.ts`:
+-- nada em captura/jogo/diálogo, nada nos 3 primeiros minutos, 1 promocional por sessão, 30 min entre
+-- ofertas) não dependem do payload e continuam valendo.
+--
+-- NÃO toca `modo_convidado` nem `nuvem_convidado`: o modo convidado segue desligado.
+--
+-- SÓ A LINHA DA SEMENTE (`atualizado_por = 'semente'`): se o operador já mexeu na flag pelo admin ou
+-- pela CLI, a escolha dele vale e esta migração não faz nada. Banco novo (0031 → 0039) e banco antigo
+-- que ninguém editou terminam na mesma linha. Reaplicar escreve os mesmos valores (idempotente).
+--
+-- Aditiva (expand): só dado, nenhum schema muda; o código anterior já lia payload e flag ligada.
+-- REVERSAO: `UPDATE flags SET habilitada = 0 WHERE chave = 'oferta_planos' AND atualizado_por = 'semente'`
+-- (ou desligar pelo admin) — com a flag desligada voltam a aparecer só os avisos funcionais de cota.
+UPDATE flags SET
+  habilitada = 1,
+  descricao = 'Fase 8: banners, modais e paywall de planos. O payload define gatilhos, textos e frequência. Ligada desde a 0039.',
+  payload = '{"gatilhos":[{"id":"cota_acabou","momento":"fim_de_cota","componente":"modal","titulo":{"pt":"Sua cota do mês acabou","en":"You have used this month''s quota","es":"Se acabó tu cuota del mes"},"texto":{"pt":"Com um plano pago você continua usando a nuvem sem esperar o mês virar.","en":"With a paid plan you keep using the cloud without waiting for next month.","es":"Con un plan de pago sigues usando la nube sin esperar al próximo mes."},"cta":{"pt":"Ver planos","en":"See plans","es":"Ver planes"},"maxPorDia":1,"maxPorSemana":3,"intervaloMinHoras":12,"planos":["free","essencial"]},{"id":"cota_perto","momento":"cota_proxima","componente":"aviso_cota","titulo":{"pt":"Sua cota está quase no fim","en":"Your quota is almost used up","es":"Tu cuota está por acabarse"},"texto":{"pt":"Você já usou a maior parte da cota deste mês.","en":"You have used most of this month''s quota.","es":"Ya usaste la mayor parte de la cuota de este mes."},"cta":{"pt":"Ver planos","en":"See plans","es":"Ver planes"},"maxPorDia":1,"maxPorSemana":2,"intervaloMinHoras":24,"planos":["free","essencial"]},{"id":"premium","momento":"modelo_premium","componente":"comparacao","titulo":{"pt":"A IA de nuvem está nos planos pagos","en":"Cloud AI is in the paid plans","es":"La IA en la nube está en los planes de pago"},"texto":{"pt":"Compare o que cada plano inclui.","en":"Compare what each plan includes.","es":"Compara lo que incluye cada plan."},"cta":{"pt":"Comparar planos","en":"Compare plans","es":"Comparar planes"},"maxPorDia":2,"maxPorSemana":5,"intervaloMinHoras":2,"planos":["free","essencial"]},{"id":"criar_conta","momento":"convidado_para_conta","componente":"banner","titulo":{"pt":"Guarde seu progresso","en":"Keep your progress","es":"Guarda tu progreso"},"texto":{"pt":"Crie uma conta para levar seus cartões e sessões para outros aparelhos.","en":"Create an account to take your cards and sessions to other devices.","es":"Crea una cuenta para llevar tus tarjetas y sesiones a otros dispositivos."},"cta":{"pt":"Criar conta","en":"Create account","es":"Crear cuenta"},"maxPorDia":1,"maxPorSemana":3,"intervaloMinHoras":24,"planos":["convidado"]},{"id":"fim_sessao","momento":"fim_de_sessao","componente":"banner","titulo":{"pt":"Boa sessão!","en":"Nice session!","es":"¡Buena sesión!"},"texto":{"pt":"Nos planos pagos, a transcrição e a tradução usam a IA de nuvem, mais precisa que a do aparelho.","en":"On paid plans, transcription and translation use the cloud AI, more accurate than the on-device one.","es":"En los planes de pago, la transcripción y la traducción usan la IA en la nube, más precisa que la del dispositivo."},"cta":{"pt":"Ver planos","en":"See plans","es":"Ver planes"},"maxPorDia":1,"maxPorSemana":2,"intervaloMinHoras":24,"planos":["free"]},{"id":"conquista","momento":"conquista","componente":"banner","titulo":{"pt":"Mais uma conquista","en":"Another achievement","es":"Otro logro"},"texto":{"pt":"Quer ir mais longe? Os planos pagos trazem a IA de nuvem para a captura e o tutor.","en":"Want to go further? Paid plans bring the cloud AI to capture and the tutor.","es":"¿Quieres ir más lejos? Los planes de pago traen la IA en la nube a la captura y al tutor."},"cta":{"pt":"Ver planos","en":"See plans","es":"Ver planes"},"maxPorDia":1,"maxPorSemana":2,"intervaloMinHoras":48,"planos":["free"]}]}',
+  atualizado_em = 1790720000000
+WHERE chave = 'oferta_planos' AND atualizado_por = 'semente';

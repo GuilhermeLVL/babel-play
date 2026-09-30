@@ -9,6 +9,7 @@
  * Nota: a API de MFA (enroll/challenge/verify) segue o SDK atual do @supabase/supabase-js; revalidar
  * contra a doc do Supabase ao ligar de verdade (o MCP tem `search_docs`).
  */
+import { AUTH_CALLBACK_PATH } from './authCallback';
 import { ehSessaoAnonima } from './convidado';
 import { supabase } from './supabase';
 
@@ -27,6 +28,39 @@ const INVALID_CREDS = 'E-mail ou senha incorretos.'; // genérica: não diz QUAL
 const CONVIDADO_CONFIRMA_EMAIL =
   'Enviamos um link para o seu e-mail. Depois de confirmar, defina a senha em Ajustes → Conta — o que você fez como convidado continua com você.';
 const RESET_SENT = 'Se existir uma conta com esse e-mail, enviamos um link de recuperação.';
+
+/**
+ * O MÍNIMO DA SENHA é o do Supabase de produção (docs/LANCAMENTO.md, passo 3: 8 caracteres, com a
+ * proteção contra senha vazada). A porta dizia 6 — quem digitava 6 ou 7 passava no navegador e
+ * levava um erro em inglês do servidor. As telas de senha leem daqui.
+ */
+export const SENHA_MINIMA = 8;
+export const SENHA_CURTA = `A senha precisa ter pelo menos ${SENHA_MINIMA} caracteres.`;
+const SENHA_VAZADA = 'Essa senha já apareceu em vazamentos de dados conhecidos. Escolha outra, só sua.';
+const SENHA_FRACA = `Senha fraca: use pelo menos ${SENHA_MINIMA} caracteres, misturando letras e números.`;
+
+/**
+ * O erro de senha do Supabase (`AuthWeakPasswordError`, `code: 'weak_password'`, com `reasons`)
+ * vem em inglês; o resto passa como veio.
+ */
+function mensagemDoErroDeSenha(error: { message: string; code?: string; name?: string; reasons?: string[] }): string {
+  const fraca = error.code === 'weak_password' || error.name === 'AuthWeakPasswordError';
+  if (!fraca) return /at least \d+ characters/i.test(error.message) ? SENHA_CURTA : error.message;
+  const motivos = error.reasons ?? [];
+  if (motivos.includes('pwned')) return SENHA_VAZADA;
+  if (motivos.includes('length')) return SENHA_CURTA;
+  return SENHA_FRACA;
+}
+
+/**
+ * Para onde o link de CONFIRMAÇÃO DO E-MAIL leva: o mesmo `/auth/callback` do Google, onde a
+ * intenção guardada antes do login é consumida (`lib/intencaoDeLogin`). Sem isto o Supabase usava
+ * a Site URL do painel — a raiz — e a pessoa caía no Início. Precisa estar na allowlist de
+ * redirecionamento do painel, como o callback do Google já está.
+ */
+function retornoDaConfirmacao(): string | undefined {
+  return typeof window !== 'undefined' ? `${window.location.origin}${AUTH_CALLBACK_PATH}` : undefined;
+}
 
 /** E-mail + senha. Erro → mensagem genérica (anti-enumeração). */
 export async function signInEmail(email: string, password: string): Promise<AuthResult> {
@@ -60,13 +94,18 @@ async function sessaoAnonimaAtiva(): Promise<boolean> {
  */
 export async function signUpEmail(email: string, password: string): Promise<AuthResult> {
   if (!supabase) return { ok: false, message: NOT_CONFIGURED };
+  const emailRedirectTo = retornoDaConfirmacao();
   if (await sessaoAnonimaAtiva()) {
-    const { error } = await supabase.auth.updateUser({ email });
+    const { error } = await supabase.auth.updateUser({ email }, emailRedirectTo ? { emailRedirectTo } : undefined);
     if (error) return { ok: false, message: error.message };
     return { ok: true, needsEmailConfirm: true, message: CONVIDADO_CONFIRMA_EMAIL };
   }
-  const { data, error } = await supabase.auth.signUp({ email, password });
-  if (error) return { ok: false, message: error.message };
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    ...(emailRedirectTo ? { options: { emailRedirectTo } } : {}),
+  });
+  if (error) return { ok: false, message: mensagemDoErroDeSenha(error) };
   if (!data.session) return { ok: true, needsEmailConfirm: true };
   return { ok: true };
 }
@@ -106,7 +145,7 @@ export async function sendPasswordReset(email: string, redirectTo?: string): Pro
 export async function updatePassword(newPassword: string): Promise<AuthResult> {
   if (!supabase) return { ok: false, message: NOT_CONFIGURED };
   const { error } = await supabase.auth.updateUser({ password: newPassword });
-  return error ? { ok: false, message: error.message } : { ok: true };
+  return error ? { ok: false, message: mensagemDoErroDeSenha(error) } : { ok: true };
 }
 
 export async function signOut(): Promise<void> {

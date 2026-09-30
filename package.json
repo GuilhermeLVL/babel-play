@@ -91,6 +91,7 @@
   },
   "devDependencies": {
     "@ast-grep/cli": "0.45.1",
+    "@browsermt/bergamot-translator": "0.4.9",
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.62.1",
     "@testing-library/dom": "^10.4.1",

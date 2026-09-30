@@ -53,6 +53,12 @@ import { z } from 'zod'
 
 import { type PrecoDeModelo, sttGerenciadoDoEnv } from '../lib/config'
 import { log } from '../lib/logger'
+import {
+  ehBaseDoOpenRouter,
+  PROVEDORES_DO_GOOGLE_NO_OPENROUTER,
+  ROTEAMENTO_OPENROUTER,
+  type RoteamentoOpenRouter,
+} from './parametrosDoProvedor'
 
 /* ─────────────────────────────── o vocabulário ─────────────────────────────── */
 
@@ -70,16 +76,6 @@ export interface LimitesDeclarados {
   rpd?: number
   tpm?: number
   tpd?: number
-}
-
-/** O `provider` do OpenRouter (docs "Provider Routing"). Os três primeiros campos são obrigatórios. */
-export interface RoteamentoOpenRouter {
-  data_collection: 'deny'
-  zdr: true
-  ignore: string[]
-  only?: string[]
-  order?: string[]
-  allow_fallbacks?: boolean
 }
 
 export interface ModeloDeclarado {
@@ -139,15 +135,9 @@ const BASE_CLOUDFLARE = 'https://api.cloudflare.com/client/v4/accounts/{conta}/a
 /** O default do LLM de nuvem. Medido no gold set (docs/auditoria/eval-producao-v1.md). */
 export const MODELO_LLM_PADRAO = 'openai/gpt-oss-120b'
 
-/** Os dois provedores do Google no OpenRouter — `google-vertex` casa também as regiões dele. */
-export const PROVEDORES_DO_GOOGLE_NO_OPENROUTER = ['google-ai-studio', 'google-vertex'] as const
-
-/** O mínimo que todo pedido ao OpenRouter leva, declarado ou não (`llmClient.ts`). */
-export const ROTEAMENTO_OPENROUTER: RoteamentoOpenRouter = {
-  data_collection: 'deny',
-  zdr: true,
-  ignore: [...PROVEDORES_DO_GOOGLE_NO_OPENROUTER],
-}
+/* O roteamento mínimo do OpenRouter e o reconhecimento da base moram em `parametrosDoProvedor.ts`
+   (módulo sem imports, que a bancada também carrega); daqui, o repasse para quem já importava. */
+export { ehBaseDoOpenRouter, PROVEDORES_DO_GOOGLE_NO_OPENROUTER, ROTEAMENTO_OPENROUTER, type RoteamentoOpenRouter }
 
 const semBarra = (u: string) => u.replace(/\/+$/, '')
 
@@ -160,23 +150,6 @@ function hostDe(base: string): string {
 }
 
 const ehOpenRouter = (host: string) => host === 'openrouter.ai' || host.endsWith('.openrouter.ai')
-
-/**
- * A base FALA com o OpenRouter? Direto, ou pelo AI Gateway da Cloudflare (`…/<gateway>/openrouter`):
- * pelos dois caminhos o pedido chega ao mesmo roteador, e o roteamento de retenção zero tem de ir
- * junto. Usada pela validação (que exige o `roteamento`) e pelo `llmClient` (que o manda sempre).
- */
-export function ehBaseDoOpenRouter(base: string): boolean {
-  let url: URL
-  try {
-    url = new URL(base.replace('{conta}', 'conta'))
-  } catch {
-    return false
-  }
-  const host = url.hostname.toLowerCase()
-  if (ehOpenRouter(host)) return true
-  return host === 'gateway.ai.cloudflare.com' && /\/openrouter(\/|$)/i.test(url.pathname)
-}
 
 /**
  * O nome neutro pelo HOST: `groq`, `openrouter`, `deepinfra`, `cerebras`, `cloudflare`, `ollama` ou

@@ -1,0 +1,10 @@
+# Python da bancada de fala e tradução (`baixar-bancada.py` e `pontuar.py`) — 3.11, só CPU.
+# O torch vem ANTES e do índice CPU do PyTorch (o wheel padrão do PyPI traz CUDA: ~2 GB à toa):
+#   pip install --index-url https://download.pytorch.org/whl/cpu torch
+# Versões = as do venv que produziu os números de docs/auditoria/eval/bancada-2026-09.md.
+unbabel-comet==2.2.7
+sacrebleu==2.6.0
+numpy==1.26.4
+huggingface_hub==0.36.2
+pyarrow>=17,<22
+soundfile>=0.12

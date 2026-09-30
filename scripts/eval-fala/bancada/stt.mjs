@@ -6,9 +6,20 @@
  *   groq:whisper-large-v3-turbo+t0+seg     + temperature 0 + descarte por no_speech/compressão +
  *                                            filtrarAlucinacao: o pipeline de nuvem PROPOSTO
  *   groq:whisper-large-v3[+...]            o modelo grande, 2,8× mais caro
+ *   deepinfra:openai/whisper-large-v3-turbo[+t0+seg]      o mesmo turbo na DeepInfra (formulário
+ *                                            OpenAI, retenção zero, por segundo, sem mínimo publicado)
+ *   cloudflare:@cf/openai/whisper-large-v3-turbo[+seg]    no Workers AI (JSON com áudio em base64;
+ *                                            sem temperatura na API) — registro em `nuvem.mjs`
+ *     Nos de nuvem, `+t0+seg` = o pipeline da PRODUÇÃO (`sttProxy.ts`): temperatura 0, `verbose_json`,
+ *     a triagem `triarSegmentos` de `sttQualidade.ts` e o `filtrarAlucinacao`. O custo leva o MÍNIMO
+ *     FATURADO de cada provedor por pedido (10 s na Groq) — com `+vad`, por trecho, como na produção.
+ *     Sem a chave do provedor, o sistema é PULADO com aviso (modo ensaio).
  *   local:tiny|base|small[:dtype]          transformers.js em Node, com as opções de decode do
  *                                            `whisperWorker.ts` e o filtro de alucinação (dtype
  *                                            padrão `hibrido` = encoder fp32 + decoder q4, o da produção)
+ *   parakeet:v3-int8                       Parakeet TDT 0.6B v3 int8 (onnxruntime-node, `parakeet.mjs`)
+ *   parakeet:tagarela-int8                 o mesmo com ajuste fino em pt-BR (só pt; ver a nota legal lá)
+ *     (aceitam os mesmos extras `+vad`/`+vadNNN`/`+esp` dos locais; o filtro de alucinação é o mesmo)
  * Conjuntos (`--conjuntos`): fleurs_pt, fleurs_en, fleurs_pt_snr5, …, fleurs_en_opus24, sem_fala.
  *
  * No conjunto `sem_fala` a métrica é outra: TAXA DE ALUCINAÇÃO — a fração de trechos sem fala que
@@ -22,35 +33,47 @@
  *   node scripts/eval-fala/bancada/stt.mjs --sistemas groq:whisper-large-v3-turbo --conjuntos fleurs_pt,fleurs_en
  *   ... --limite 20   (iterar rápido)   ... --refazer (ignora o cache)
  */
-/* global FormData, Blob, AbortSignal */
+/* global AbortSignal */
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import path from 'node:path'
 
 import { bootstrap, bootstrapPareado, razaoEm } from '../../../src/core/eval/bootstrap.ts'
 import { cer, wer } from '../../../src/core/eval/wer.ts'
+import { triarSegmentos } from '../../../server/ai/sttQualidade.ts'
 import { filtrarAlucinacao } from '../../../src/gateway/alucinacao.ts'
 import { ehPrefixo, EspelhoDoVad } from '../../../src/gateway/capture/espelhoDoVad.ts'
 import {
   BANCADA_DIR,
   cache,
-  chave,
   comAmostra,
   comRetentativa,
   CotaDoProvedor,
-  respeitarRitmo,
   gastoTotal,
   gravarResultado,
   lerJsonl,
   lerWav,
   opt,
   percentis,
-  registrarGasto,
+  respeitarRitmo,
+  segredos,
+  tentativaPaga,
   TetoDeGasto,
 } from './comum.mjs'
+import {
+  chavesAusentes,
+  conferirPolitica,
+  custoDeStt,
+  ehDeNuvem,
+  lerRespostaDeStt,
+  montarPedidoDeStt,
+  precoDeStt,
+  PROVEDORES,
+} from './nuvem.mjs'
+import { carregarParakeet, transcreverParakeet } from './parakeet.mjs'
 
-/** US$ por hora, com o mínimo de 10 s por requisição — console.groq.com/docs/speech-to-text (24/09/2026). */
-const PRECO_HORA = { 'whisper-large-v3-turbo': 0.04, 'whisper-large-v3': 0.111 }
+/** As chaves dos provedores de nuvem que existirem (ambiente, `.env.local`, `.env`). */
+const ENV_NUVEM = segredos([...new Set(Object.values(PROVEDORES).flatMap((p) => p.chaves))])
 
 const SISTEMAS = opt('sistemas', 'groq:whisper-large-v3-turbo')
   .split(',')
@@ -63,9 +86,11 @@ const CONJUNTOS = opt('conjuntos', 'fleurs_pt,fleurs_en')
 const LIMITE = Number(opt('limite', '0')) || 0
 
 function interpretar(s) {
-  const [tipo, resto] = s.split(':')
-  const [modelo, ...extras] = resto.split('+')
-  const [nome, dtype] = modelo.split('@')
+  const i = s.indexOf(':')
+  const tipo = s.slice(0, i)
+  const [modelo, ...extras] = s.slice(i + 1).split('+')
+  // `@dtype` só nos locais: nos de nuvem o `@` é parte do id (`@cf/openai/…` no Cloudflare).
+  const [nome, dtype] = ehDeNuvem(tipo) ? [modelo, null] : modelo.split('@')
   return {
     id: s,
     tipo,
@@ -164,44 +189,40 @@ function montarWav(pcm) {
 }
 
 /**
- * Descarte por segmento — a proposta da Fase B para `sttProxy.ts`, com os limiares do
- * faster-whisper (no_speech 0,6 com logprob < −1; compression_ratio > 2,4 = laço de repetição).
+ * Um trecho na nuvem, com o pedido de `nuvem.mjs` (o formulário do `sttProxy.ts`, ou o JSON do
+ * Cloudflare). O custo de STT é EXATO (duração × preço, com o mínimo faturado), então a reserva do
+ * livro-caixa é o próprio custo. `+seg` = a limpeza da produção (`limparTranscricao`): triagem dos
+ * segmentos e depois o filtro de alucinação sobre o que ficou.
  */
-function textoDosSegmentos(json) {
-  if (!Array.isArray(json.segments)) return (json.text ?? '').trim()
-  const bons = json.segments.filter(
-    (s) => !((s.no_speech_prob > 0.6 && s.avg_logprob < -1) || s.compression_ratio > 2.4),
-  )
-  return bons
-    .map((s) => s.text)
-    .join('')
-    .trim()
-}
-
 async function transcreverNuvem(sis, pcm, idioma) {
-  const k = chave('GROQ_API_KEY')
-  await respeitarRitmo('STT', 19)
-  const r = await comRetentativa(() => {
-    const fd = new FormData()
-    fd.append('file', new Blob([montarWav(pcm)], { type: 'audio/wav' }), 'audio.wav')
-    fd.append('model', sis.modelo)
-    fd.append('language', idioma)
-    fd.append('response_format', 'verbose_json')
-    if (sis.t0) fd.append('temperature', '0')
-    return fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${k}` },
-      body: fd,
-      signal: AbortSignal.timeout(60_000),
-    })
-  }, sis.id)
-  const json = await r.json()
-  const ms = r.ms
+  const alvo = { id: sis.id, provedor: sis.tipo, modelo: sis.modelo }
+  const wav = montarWav(pcm)
   const dur = pcm.length / 16000
-  registrarGasto(sis.id, (Math.max(10, dur) / 3600) * (PRECO_HORA[sis.modelo] ?? 0.111))
-  let texto = sis.seg ? textoDosSegmentos(json) : (json.text ?? '').trim()
-  if (sis.seg) texto = filtrarAlucinacao(texto, dur, idioma)
-  return { texto, ms }
+  const { usd, segundosFaturados } = custoDeStt(alvo, dur)
+  await respeitarRitmo(`STT_${sis.tipo}`, PROVEDORES[sis.tipo].rpmStt)
+  let formato = null
+  const r = await comRetentativa(
+    tentativaPaga(sis.id, usd, () => {
+      const pedido = montarPedidoDeStt({ sis: alvo, wav, idioma, t0: sis.t0, env: ENV_NUVEM })
+      formato = pedido.formato
+      return fetch(pedido.url, { ...pedido.init, signal: AbortSignal.timeout(60_000) })
+    }),
+    sis.id,
+  )
+  let lido
+  try {
+    lido = lerRespostaDeStt(formato, await r.json())
+  } catch (e) {
+    r.acertar(Number.NaN)
+    throw e
+  }
+  r.acertar(usd)
+  let texto = lido.texto.trim()
+  if (sis.seg) {
+    const triagem = triarSegmentos(lido.segmentos)
+    texto = filtrarAlucinacao(triagem ? triagem.texto : lido.texto, dur, idioma)
+  }
+  return { texto, ms: r.ms, usd, segundosFaturados }
 }
 
 // ------------------------------------------------------------------ local
@@ -246,6 +267,20 @@ async function transcreverLocal(sis, pcm, idioma) {
   return { texto: filtrarAlucinacao((out.text ?? '').trim(), dur, idioma), ms }
 }
 
+/**
+ * Parakeet: sem dica de idioma (o v3 detecta sozinho) e sem travas de decodificação a espelhar — a
+ * TDT gulosa não entra em laço de repetição como o Whisper. O filtro de alucinação é o MESMO dos
+ * outros locais, para o WER e a taxa de alucinação serem comparáveis.
+ */
+async function transcreverParakeetBancada(sis, pcm, idioma) {
+  await carregarParakeet(sis.modelo) // download e carga FORA do cronômetro, como em `asrLocal`
+  const dur = pcm.length / 16000
+  const t0 = performance.now()
+  const texto = await transcreverParakeet(sis.modelo, pcm)
+  const ms = performance.now() - t0
+  return { texto: filtrarAlucinacao(texto.trim(), dur, idioma), ms }
+}
+
 // ------------------------------------------------------------------ execução
 async function rodar(sis, spec) {
   const { nome: conjunto, n } = comAmostra(spec)
@@ -255,38 +290,62 @@ async function rodar(sis, spec) {
   const idiomaDoConjunto = semFala ? 'pt' : itens[0].idioma
   const c = cache(`stt_${sis.id}_${conjunto}`)
   const casos = []
+  // Teto ou cota diária param a fila; os casos já transcritos ficam (o resumo pareia por id).
+  let interrompido = null
   for (let i = 0; i < itens.length; i++) {
     const it = itens[i]
     let r = c.get(it.id)
     if (!r) {
-      const pcm = lerWav(readFileSync(path.join(BANCADA_DIR, it.arquivo)))
-      const um = (x) =>
-        sis.tipo === 'groq' ? transcreverNuvem(sis, x, idiomaDoConjunto) : transcreverLocal(sis, x, idiomaDoConjunto)
-      if (sis.vad) {
-        const partes = []
-        let ms = 0
-        const segs = await segmentosDeFala(pcm, sis.redencaoMs, sis.esp)
-        for (const seg of segs) {
-          const p = await um(seg)
-          partes.push(p.texto)
-          ms += p.ms
-        }
-        r = { texto: partes.filter(Boolean).join(' '), ms, segmentos: segs.length }
-      } else r = await um(pcm)
-      r.duracaoS = pcm.length / 16000
-      c.set(it.id, r)
+      try {
+        const pcm = lerWav(readFileSync(path.join(BANCADA_DIR, it.arquivo)))
+        const um = (x) =>
+          ehDeNuvem(sis.tipo)
+            ? transcreverNuvem(sis, x, idiomaDoConjunto)
+            : sis.tipo === 'parakeet'
+              ? transcreverParakeetBancada(sis, x, idiomaDoConjunto)
+              : transcreverLocal(sis, x, idiomaDoConjunto)
+        if (sis.vad) {
+          const partes = []
+          let ms = 0
+          let usd = 0
+          let segundosFaturados = 0
+          const segs = await segmentosDeFala(pcm, sis.redencaoMs, sis.esp)
+          for (const seg of segs) {
+            const p = await um(seg)
+            partes.push(p.texto)
+            ms += p.ms
+            usd += p.usd ?? 0
+            segundosFaturados += p.segundosFaturados ?? 0
+          }
+          r = { texto: partes.filter(Boolean).join(' '), ms, segmentos: segs.length, usd, segundosFaturados }
+        } else r = await um(pcm)
+        r.duracaoS = pcm.length / 16000
+        c.set(it.id, r)
+      } catch (e) {
+        if (!(e instanceof TetoDeGasto || e instanceof CotaDoProvedor)) throw e
+        interrompido = { tipo: e instanceof TetoDeGasto ? 'teto' : 'cota', mensagem: e.message }
+        console.error(`\n  ${sis.id} × ${conjunto} INTERROMPIDO (${casos.length}/${itens.length}): ${e.message}`)
+        break
+      }
     }
-    casos.push({ ...it, hipotese: r.texto, ms: r.ms, duracaoS: r.duracaoS })
+    casos.push({
+      ...it,
+      hipotese: r.texto,
+      ms: r.ms,
+      duracaoS: r.duracaoS,
+      usd: r.usd,
+      segundosFaturados: r.segundosFaturados,
+    })
     process.stdout.write(`\r  ${sis.id} × ${conjunto}: ${i + 1}/${itens.length}   `)
   }
   c.salvar()
+  if (!casos.length) return { sistema: sis.id, conjunto, n: 0, interrompido, casos: [] }
   const audioS = casos.reduce((s, x) => s + x.duracaoS, 0)
   const rtf = casos.reduce((s, x) => s + x.ms, 0) / 1000 / audioS
   const [p50, p95] = percentis(casos.map((x) => x.ms))
-  const custoHora =
-    sis.tipo === 'groq'
-      ? (casos.reduce((s, x) => s + Math.max(10, x.duracaoS), 0) / audioS) * (PRECO_HORA[sis.modelo] ?? 0.111)
-      : 0
+  const { custoHora, faturadoSobreReal } = ehDeNuvem(sis.tipo)
+    ? custoPorHora(sis, casos, audioS)
+    : { custoHora: 0, faturadoSobreReal: null }
   if (semFala) {
     const alucinou = casos.map((x) => (/\p{L}/u.test(x.hipotese) ? 1 : 0))
     const taxa = bootstrap(casos.length, (idx) => idx.reduce((s, i) => s + alucinou[i], 0) / idx.length)
@@ -302,6 +361,8 @@ async function rodar(sis, spec) {
       exemplos,
       rtf,
       latenciaMs: { p50, p95 },
+      custoUsdPorHora: custoHora,
+      ...(interrompido && { interrompido }),
       casos: casos.map(({ id, categoria, hipotese }) => ({ id, categoria, hipotese })),
     }
   }
@@ -333,6 +394,8 @@ async function rodar(sis, spec) {
     rtf,
     latenciaMs: { p50, p95 },
     custoUsdPorHora: custoHora,
+    faturadoSobreReal,
+    ...(interrompido && { interrompido }),
     casos: casos.map((x, i) => ({
       id: x.id,
       referencia: x.referencia,
@@ -344,23 +407,75 @@ async function rodar(sis, spec) {
   }
 }
 
-async function main() {
-  const resultados = []
-  try {
-    for (const s of SISTEMAS) {
-      const sis = interpretar(s)
-      for (const conj of CONJUNTOS) resultados.push(await rodar(sis, conj))
-    }
-  } catch (e) {
-    if (!(e instanceof TetoDeGasto || e instanceof CotaDoProvedor)) throw e
-    console.error(`\n${e.message} — resultados parciais gravados.`)
+/**
+ * US$ por HORA DE ÁUDIO com o que o provedor fatura de fato: a soma do custo de cada pedido (com o
+ * mínimo por pedido) sobre a duração real. `faturadoSobreReal` é o fator do mínimo (1,08× com o VAD
+ * de 800 ms na Groq). Um caso do cache antigo, sem custo gravado, conta como um pedido só.
+ */
+function custoPorHora(sis, casos, audioS) {
+  const alvo = { id: sis.id, provedor: sis.tipo, modelo: sis.modelo }
+  let usd = 0
+  let faturados = 0
+  for (const x of casos) {
+    const antigo = custoDeStt(alvo, x.duracaoS)
+    usd += Number.isFinite(x.usd) ? x.usd : antigo.usd
+    faturados += Number.isFinite(x.segundosFaturados) ? x.segundosFaturados : antigo.segundosFaturados
   }
+  return audioS ? { custoHora: (usd / audioS) * 3600, faturadoSobreReal: faturados / audioS } : { custoHora: 0 }
+}
+
+/** Política, preço e chave ANTES de qualquer chamada; o de nuvem sem chave é pulado com aviso. */
+function sistemasChamaveis() {
+  const pulados = []
+  const sistemas = []
+  for (const s of SISTEMAS) {
+    const sis = interpretar(s)
+    if (ehDeNuvem(sis.tipo)) {
+      const alvo = { id: sis.id, provedor: sis.tipo, modelo: sis.modelo }
+      conferirPolitica(alvo)
+      precoDeStt(alvo)
+      const faltam = chavesAusentes(sis.tipo, ENV_NUVEM)
+      if (faltam.length) {
+        console.warn(`  pulado: ${sis.id} — falta ${faltam.join(' e ')} (modo ensaio)`)
+        pulados.push({ sistema: sis.id, motivo: `falta ${faltam.join(', ')}` })
+        continue
+      }
+    } else if (!['local', 'parakeet'].includes(sis.tipo)) {
+      throw new Error(`tipo desconhecido em --sistemas: ${sis.tipo} (os de nuvem estão em nuvem.mjs)`)
+    }
+    sistemas.push(sis)
+  }
+  return { sistemas, pulados }
+}
+
+async function main() {
+  const { sistemas, pulados } = sistemasChamaveis()
+  const resultados = []
+  // Cota diária de UM provedor tira só aquele sistema dos conjuntos seguintes; o teto para tudo.
+  let teto = null
+  for (const sis of sistemas) {
+    if (teto) break
+    for (const conj of CONJUNTOS) {
+      const r = await rodar(sis, conj)
+      if (r.n) resultados.push(r)
+      if (r.interrompido?.tipo === 'cota') {
+        pulados.push({ sistema: sis.id, motivo: `cota do provedor a partir de ${conj}` })
+        break
+      }
+      if (r.interrompido?.tipo === 'teto') {
+        teto = r.interrompido.mensagem
+        break
+      }
+    }
+  }
+  if (teto) console.error(`\n${teto} — resultados parciais gravados.`)
 
   // Comparações pareadas contra o PRIMEIRO sistema, no mesmo conjunto e nos mesmos casos.
   const comparacoes = []
   for (const conj of CONJUNTOS.map((c) => comAmostra(c).nome).filter((c) => c !== 'sem_fala')) {
     const doConj = resultados.filter((r) => r.conjunto === conj)
     const base = doConj[0]
+    if (!base) continue
     for (const outro of doConj.slice(1)) {
       const ids = base.casos.map((x) => x.id)
       const mapa = new Map(outro.casos.map((x) => [x.id, x]))
@@ -389,9 +504,11 @@ async function main() {
     150,
   )
   const saida = gravarResultado(nome, {
-    sistemas: SISTEMAS,
+    sistemas: sistemas.map((x) => x.id),
     conjuntos: CONJUNTOS,
     gastoTotalUsd: gastoTotal(),
+    ...(teto && { paradoPeloTeto: teto }),
+    pulados,
     resultados,
     comparacoes,
   })

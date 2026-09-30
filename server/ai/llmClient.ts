@@ -24,12 +24,7 @@
  * quebrou. O resultado carrega a causa em texto, que é o que vai para o log e para a decisão.
  */
 import { segundosDoRetryAfter } from './admissao'
-import {
-  ehBaseDoOpenRouter,
-  PROVEDORES_DO_GOOGLE_NO_OPENROUTER,
-  ROTEAMENTO_OPENROUTER,
-  type RoteamentoOpenRouter,
-} from './registroDeProvedores'
+import { parametrosDoProvedor, type RoteamentoOpenRouter } from './parametrosDoProvedor'
 
 export interface MensagemDeChat {
   role: 'system' | 'user' | 'assistant'
@@ -99,73 +94,11 @@ export const MAX_TOKENS_PADRAO = 1200
 export const TIMEOUT_PADRAO_MS = 30_000
 
 /**
- * OS PARÂMETROS QUE DEPENDEM DE QUEM ATENDE (24/09/2026) — raciocínio e retenção de dados.
- *
- * RACIOCÍNIO. O `gpt-oss` (o default de `provedores.ts`) é modelo de raciocínio, e sem instrução
- * ele pensa no esforço MÉDIO: o pensamento sai do `max_tokens` (a "resposta vazia" explicada logo
- * abaixo) e entra na conta como saída — a parte cara. Traduzir uma fala ou responder o tutor em
- * quatro frases não precisa disso; "low" basta. Cada provedor escreve o pedido de um jeito:
- *
- *   - Groq: `reasoning_effort: "low"` e `include_reasoning: false` — o segundo tira o raciocínio da
- *     resposta, que ninguém aqui lê (docs da Groq, "Reasoning", 2026-09);
- *   - OpenRouter: `reasoning: { effort: "low", exclude: true }`, o formato unificado dele — o
- *     `reasoning_effort` solto não é o contrato de lá (docs do OpenRouter, "Reasoning Tokens");
- *   - qualquer outro OpenAI-compatible (Ollama, BYOK): só `reasoning_effort`, que é o parâmetro da
- *     própria API da OpenAI. `include_reasoning` é extensão da Groq e um provedor estrito recusaria.
- *
- * RETENÇÃO. No OpenRouter a requisição vai com `provider` de retenção zero SEMPRE, qualquer que seja
- * o modelo: o OpenRouter é um roteador, e sem isso a fala do usuário pode cair num provedor que
- * guarda o prompt. O app é aberto a menores (LGPD art. 14); retenção zero não é opcional. Desde o B1
- * da Fase B o mínimo é `{ data_collection: 'deny', zdr: true, ignore: ['google-ai-studio',
- * 'google-vertex'] }` (docs do OpenRouter, "Provider Routing", 29/09/2026): nem o provedor que coleta
- * dados, nem o Google — o Gemini é proibido para menores, e o `ignore` fecha a porta mesmo que um
- * modelo aberto passe a ser servido por lá. O roteamento DECLARADO no registro pode acrescentar
- * (`only`, `order`, mais `ignore`), nunca afrouxar: `roteamentoEndurecido` reimpõe o mínimo.
- *
- * O provedor é reconhecido pela BASE, não pelo rótulo: a reserva configurada por `LLM_RESERVA_*`
- * pode apontar para o OpenRouter sem usar o atalho `OPENROUTER_API_KEY` — e, desde o B1, também
- * pelo AI Gateway da Cloudflare (`ehBaseDoOpenRouter`).
+ * OS PARÂMETROS QUE DEPENDEM DE QUEM ATENDE — raciocínio e retenção de dados. Moram em
+ * `parametrosDoProvedor.ts`, um módulo sem imports, para a bancada de provedores medir o candidato com
+ * o MESMO pedido da produção (B5); a explicação de cada campo está lá.
  */
-function hostDe(base: string): string {
-  try {
-    return new URL(base).hostname.toLowerCase()
-  } catch {
-    return ''
-  }
-}
-
-/** O roteamento que vai no pedido: o declarado, com o mínimo de retenção zero e sem o Google reimposto. */
-function roteamentoEndurecido(declarado?: RoteamentoOpenRouter): RoteamentoOpenRouter {
-  const r = declarado ?? ROTEAMENTO_OPENROUTER
-  const semGoogle = (l: string[]) => l.filter((s) => !/^google/i.test(s))
-  return {
-    ...r,
-    ...(r.only ? { only: semGoogle(r.only) } : {}),
-    ...(r.order ? { order: semGoogle(r.order) } : {}),
-    data_collection: 'deny',
-    zdr: true,
-    ignore: [...new Set([...(r.ignore ?? []), ...PROVEDORES_DO_GOOGLE_NO_OPENROUTER])],
-  }
-}
-
-export function parametrosDoProvedor(
-  base: string,
-  model: string,
-  roteamento?: RoteamentoOpenRouter,
-): Record<string, unknown> {
-  const host = hostDe(base)
-  const raciocinio = /gpt-oss/i.test(model)
-  /* Direto ou pelo AI Gateway da Cloudflare: o roteamento de retenção zero vai nos dois caminhos. */
-  if (ehBaseDoOpenRouter(base)) {
-    return {
-      provider: roteamentoEndurecido(roteamento),
-      ...(raciocinio ? { reasoning: { effort: 'low', exclude: true } } : {}),
-    }
-  }
-  if (!raciocinio) return {}
-  if (host === 'api.groq.com') return { reasoning_effort: 'low', include_reasoning: false }
-  return { reasoning_effort: 'low' }
-}
+export { parametrosDoProvedor }
 
 /** O texto inteiro que vai no prompt — para o teto ser conferido em um lugar só. */
 export function tamanhoDoPrompt(messages: MensagemDeChat[]): number {

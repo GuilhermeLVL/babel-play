@@ -15,6 +15,7 @@ import {
   Gamepad2,
   Headphones,
   Info,
+  Languages,
   Loader2,
   Maximize2,
   Mic,
@@ -44,6 +45,7 @@ import React, { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useStat
 import { configDoReguladorPara } from '../../core/harness/reguladorDeDesempenho';
 import type { MotivoDaOfertaDeAlivio, SinaisDoAparelhoParaAlivio } from '../../core/nuvemDeAlivio';
 import { estadoDoTeto } from '../../core/tetoAnonimo';
+import { FLAG_VOZ_NATURAL } from '../../core/vozNatural';
 import { deleteSession, fetchSessionTranscript, fetchSettings, patchUiSettings } from '../../data/api';
 import { buildGateway } from '../../gateway';
 import { getActiveProfile, getProviderMode } from '../../gateway/activeProfile';
@@ -88,6 +90,7 @@ import {
 // Ciclo da sessão: começar, retomar, parar e salvar (falas, áudio e vocabulário).
 import { baixarCaptura } from '../../lib/captura/baixarCaptura';
 import { abrirContextoDoClique } from '../../lib/captura/contextoDoClique';
+import type { PonteDoInterprete } from '../../lib/captura/controleDoInterprete';
 // Callbacks estáveis e o texto da conversa para o App, sem re-renderizar a conversa à toa.
 import { useFuncaoEstavel, useTextoDaConversa } from '../../lib/captura/conversaEstavel';
 import { assinarSalvamento, capturaEmRisco, lerSalvamento } from '../../lib/captura/estadoDoSalvamento';
@@ -139,6 +142,7 @@ import { useSondaGuardada } from '../../lib/dispositivo/useSondaGuardada';
 import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { getEntitlements } from '../../lib/entitlements';
 import { marcarOcupacaoDaCaptura } from '../../lib/filaDeRecompensas';
+import { flagLigada } from '../../lib/flagsCache';
 import { t } from '../../lib/i18n';
 import { estaAnonimo } from '../../lib/identidade';
 // Configuração de idioma: fonte ÚNICA (`mine` = o que VOCÊ fala no mic; `studying` = o que você
@@ -150,7 +154,7 @@ import {
   onLangConfigChange,
   saveLangConfig,
 } from '../../lib/langConfig';
-import { baseLang, langLabel, langLabelNaUI, mtCoverage } from '../../lib/languages';
+import { baseLang, langLabel, langLabelNaUI, mtCoverage, toBcp47 } from '../../lib/languages';
 import { lazyComRecarga } from '../../lib/lazyComRecarga';
 import { setNavGuard } from '../../lib/navGuard';
 import { OrdemDasTraducoes } from '../../lib/ordemDaTraducao';
@@ -207,6 +211,8 @@ const LegendaSemBaixar = lazy(() => import('./captura/LegendaSemBaixar'));
 const OfertaDaNuvemDeAlivio = lazyComRecarga(() => import('./captura/OfertaDaNuvemDeAlivio'));
 /* A Tradução Nuance da fala no computador (D4 da Fase D): o menu do balão abre um diálogo com ela. */
 const NuanceDaFrase = lazyComRecarga(() => import('./captura/nuance/NuanceDaFrase'));
+/* O MODO INTÉRPRETE (E3 da Fase E): a tela, o controle e a fila de voz chegam só quando alguém entra nele. */
+const ModoInterprete = lazyComRecarga(() => import('./captura/interprete/ModoInterprete'));
 
 export default function LiveCapture({
   onSave,
@@ -728,9 +734,20 @@ export default function LiveCapture({
   );
   // Espelho p/ os handlers assíncronos (a identificação de voz só roda no cenário Conversa).
   const captureScenarioRef = useRef<CaptureScenario>(captureScenario);
+  /* O MODO INTÉRPRETE (E3 da Fase E): a tela própria (`ModoInterprete`, por `import()`) fica por cima
+     da captura. Aberto, o cenário do pipeline é `interprete` (a direção vem do lado tocado). A SESSÃO
+     do intérprete dura além da tela: o Encerrar que abre ao sair salva com `scenario: interprete`, e
+     "Continuar gravando" devolve a tela. A ponte liga o pipeline, as fontes e a tradução ao controle
+     da tela aberta; sem tela, ela é `null` e nada muda. */
+  const [interpreteAberto, setInterpreteAberto] = useState(false);
+  const sessaoDoInterpreteRef = useRef(false);
+  const ponteDoInterpreteRef = useRef<PonteDoInterprete | null>(null);
+  const registrarPonteDoInterprete = useCallback((p: PonteDoInterprete | null) => {
+    ponteDoInterpreteRef.current = p;
+  }, []);
   useEffect(() => {
-    captureScenarioRef.current = captureScenario;
-  }, [captureScenario]);
+    captureScenarioRef.current = interpreteAberto ? 'interprete' : captureScenario;
+  }, [captureScenario, interpreteAberto]);
   /** Escolha de IDIOMA feita antes de a carga assíncrona chegar não pode ser desfeita por ela. */
   const langTouchedRef = useRef(false);
   /*
@@ -1203,7 +1220,8 @@ export default function LiveCapture({
      palavras conhecidas só é montado no modo `novas`, no idioma estudado (o observado, se houver). */
   const modoTraducao = modoDeTraducao(tsSettings.traducao);
   const modoDeTraducaoRef = useRef(modoTraducao);
-  modoDeTraducaoRef.current = modoTraducao;
+  /* No intérprete, toda fala é traduzida (e lida): a tradução sob demanda deixaria o outro sem nada. */
+  modoDeTraducaoRef.current = interpreteAberto ? 'sempre' : modoTraducao;
   const conhecidas = usePalavrasConhecidas(idiomaObservado || targetLang, modoTraducao === 'novas');
   const conhecidasRef = useRef(conhecidas);
   conhecidasRef.current = conhecidas;
@@ -1226,6 +1244,7 @@ export default function LiveCapture({
     conhecidasRef,
     pedidosSobDemandaRef,
     aoFalharOTradutorLocal: () => setTradutorLocalFalhou(true),
+    aoTraduzirFinal: (f) => ponteDoInterpreteRef.current?.aoTraduzirFinal(f),
   });
 
   // Enunciados que chegaram ENQUANTO o modelo carregava — transcritos no flush (nada se perde).
@@ -1299,6 +1318,8 @@ export default function LiveCapture({
     reguladorRef,
     sistemaAtivo: () => !!systemCaptureRef.current,
     pedirNuvemDeAlivio,
+    direcaoDoMicrofone: () => ponteDoInterpreteRef.current?.direcao() ?? null,
+    aoFimDaFala: (fim) => ponteDoInterpreteRef.current?.aoFimDaFala(fim),
   });
 
   /* A faixa da nuvem de alívio, a mesma no celular e no desktop. Aceita, a rota passa à nuvem na hora
@@ -1334,66 +1355,69 @@ export default function LiveCapture({
   /* AS FONTES DE ÁUDIO (sistema/aba, microfone, medidor e o interruptor do mic) moram em
      `lib/captura/fontesDeAudio.ts`. Fábrica por render, como as closures que substituiu: elas
      leem `micEnabled`/`micEngine`/`systemEnabled` do render corrente nos caminhos de erro. */
-  const { handleStartSystemCapture, startMic, alternarMicrofone } = criarFontesDeAudio({
-    sysHandlers,
-    micHandlers,
-    prepareModels,
-    systemSourceRef,
-    loopbackDeviceIdRef,
-    inputDeviceIdRef,
-    systemCaptureRef,
-    micCaptureRef,
-    webSpeechRef,
-    webSpeechPartialIdRef,
-    meterRef,
-    isRecordingRef,
-    micStartedAtRef,
-    timerRef,
-    sourceLang,
-    sourceLangRef,
-    targetLangRef,
-    micEnabled,
-    systemEnabled,
-    micEngine,
-    webSpeechSupported,
-    pushLevel,
-    nowRel,
-    anchorSessionClock,
-    translateSegment,
-    marcarMicrofone,
-    setSpeechSegments,
-    setFeedbackMsg,
-    setIsFocusMode,
-    setGuiaDeAudio,
-    setModelPrep,
-    // Uma fonte que falha e encerra a gravação também encerra o "Abrindo…".
-    setIsRecording: (v) => {
-      if (v === false) setAbrindoCaptura(false);
-      setIsRecording(v);
-    },
-    setMicAbrindo,
-    /* O INÍCIO DE VERDADE: o relógio e o "Ouvindo…" ligam quando a primeira fonte abre, não no toque. */
-    aoAbrirFonte: () => {
-      if (!isRecordingRef.current) return;
-      setAbrindoCaptura(false);
-      setIsRecording(true);
-    },
-    aoFalharMicrofone: (erro, { motorRapido }) =>
-      setFalhaDoMic(
-        ajudaDoMic(
-          classificarFalhaDoMic(erro),
-          plataformaDoNavegador(navigator.userAgent, navigator.maxTouchPoints ?? 0),
-          { motorRapido },
+  const { handleStartSystemCapture, startMic, alternarMicrofone, abrirMicrofoneNoLado, fecharMicrofoneDoLado } =
+    criarFontesDeAudio({
+      sysHandlers,
+      micHandlers,
+      prepareModels,
+      systemSourceRef,
+      loopbackDeviceIdRef,
+      inputDeviceIdRef,
+      systemCaptureRef,
+      micCaptureRef,
+      webSpeechRef,
+      webSpeechPartialIdRef,
+      meterRef,
+      isRecordingRef,
+      micStartedAtRef,
+      timerRef,
+      sourceLang,
+      sourceLangRef,
+      targetLangRef,
+      micEnabled,
+      systemEnabled,
+      micEngine,
+      webSpeechSupported,
+      pushLevel,
+      nowRel,
+      anchorSessionClock,
+      translateSegment,
+      marcarMicrofone,
+      setSpeechSegments,
+      setFeedbackMsg,
+      setIsFocusMode,
+      setGuiaDeAudio,
+      setModelPrep,
+      // Uma fonte que falha e encerra a gravação também encerra o "Abrindo…".
+      setIsRecording: (v) => {
+        if (v === false) setAbrindoCaptura(false);
+        setIsRecording(v);
+      },
+      setMicAbrindo,
+      /* O INÍCIO DE VERDADE: o relógio e o "Ouvindo…" ligam quando a primeira fonte abre, não no toque. */
+      aoAbrirFonte: () => {
+        if (!isRecordingRef.current) return;
+        setAbrindoCaptura(false);
+        setIsRecording(true);
+      },
+      aoFalharMicrofone: (erro, { motorRapido }) =>
+        setFalhaDoMic(
+          ajudaDoMic(
+            classificarFalhaDoMic(erro),
+            plataformaDoNavegador(navigator.userAgent, navigator.maxTouchPoints ?? 0),
+            { motorRapido },
+          ),
         ),
-      ),
-    // Sem áudio do sistema (celular, Quest): nada de segundo getUserMedia ao lado da Web Speech.
-    semMedidorParalelo: !perfilDoAparelho.capturaDoSistema || perfilDoAparelho.tipo.startsWith('celular'),
-    finalNaNuvem: () => gateway.stt.finalNaNuvem(),
-    perguntarEscolhaDoMic,
-    decidirMotorDoSistema,
-    aoMudarMotorDoSistema: (motor) => setSistemaNoNavegador(motor === 'web-speech-local'),
-    prepararTradutorDaFala,
-  });
+      // Sem áudio do sistema (celular, Quest): nada de segundo getUserMedia ao lado da Web Speech.
+      semMedidorParalelo: !perfilDoAparelho.capturaDoSistema || perfilDoAparelho.tipo.startsWith('celular'),
+      finalNaNuvem: () => gateway.stt.finalNaNuvem(),
+      perguntarEscolhaDoMic,
+      decidirMotorDoSistema,
+      aoMudarMotorDoSistema: (motor) => setSistemaNoNavegador(motor === 'web-speech-local'),
+      prepararTradutorDaFala,
+      direcaoDoMicrofone: () => ponteDoInterpreteRef.current?.direcao() ?? null,
+      aoFimDaFala: (fim) => ponteDoInterpreteRef.current?.aoFimDaFala(fim),
+    });
 
   // Harness OFFLINE de teste (dev): injeta um PCM conhecido pelo MESMO caminho do sistema
   // (speechStart → parciais crescentes → utterance final), sem precisar de um compartilhamento
@@ -1743,6 +1767,8 @@ export default function LiveCapture({
     aoAtualizarGravacao: (r) => onRecordingsChange?.((lista) => lista.map((x) => (x.id === r.id ? r : x))),
     tetoAtingido,
     aoTetoAtingido: avisarTeto,
+    soNoToque: () => sessaoDoInterpreteRef.current,
+    cenarioDaSessao: () => (sessaoDoInterpreteRef.current ? 'interprete' : undefined),
   });
 
   // --- RETOMAR SESSÃO: reidrata o transcript REAL do backend (não usa mock) ---
@@ -2497,12 +2523,15 @@ export default function LiveCapture({
       />
     </Suspense>
   );
-  const planoDoInicio = (escolha: EscolhaDoMic | null): PassoDoInicio => {
+  /** `fontes`: as do intérprete (só o microfone) em vez das da captura. */
+  const planoDoInicio = (
+    escolha: EscolhaDoMic | null,
+    fontes: { micEnabled: boolean; systemEnabled: boolean } = { micEnabled, systemEnabled },
+  ): PassoDoInicio => {
     const completos = preparoDoInicio.completos;
     const falta = (id: string, mb: number) => (completos?.has(id) ? 0 : mb);
     return planejarInicio({
-      micEnabled,
-      systemEnabled,
+      ...fontes,
       motor: {
         preferido: micEngine,
         webSpeechSuportado: webSpeechSupported,
@@ -2525,8 +2554,12 @@ export default function LiveCapture({
       modoNuvem: getProviderMode() === 'cloud',
     });
   };
+  /** O que a folha do início começa quando a pessoa confirma: a captura ou o intérprete. */
+  const acaoDoInicioRef = useRef<'captura' | 'interprete'>('captura');
   /** Começa AGORA — sempre de dentro de um toque (Iniciar, a folha, a ajuda do microfone). */
   const comecarCaptura = () => {
+    if (acaoDoInicioRef.current === 'interprete') return abrirOInterprete();
+    sessaoDoInterpreteRef.current = false;
     if (!micEnabled && !systemEnabled) return handleStartOrResume(); // o aviso "Selecione ao menos uma fonte"
     setFalhaDoMic(null);
     // Dentro do gesto, antes de qualquer `await`: no iPhone, o áudio criado depois pode ficar mudo.
@@ -2537,6 +2570,7 @@ export default function LiveCapture({
   /** O toque em Iniciar: começa já, ou abre a folha quando há o que decidir (nunca duas janelas). */
   const iniciarCaptura = (escolha?: EscolhaDoMic) => {
     if (abrindoCaptura) return;
+    acaoDoInicioRef.current = 'captura';
     const passo = planoDoInicio(escolha ?? escolhaDoMic);
     if (passo.tipo === 'folha') {
       setFolhaDoInicio(passo);
@@ -2544,10 +2578,49 @@ export default function LiveCapture({
     }
     comecarCaptura();
   };
+  /* O MODO INTÉRPRETE: a sessão começa sem abrir nada (o microfone abre no toque de um lado, dentro
+     da tela) e só com o microfone — o som do computador não entra. O relógio liga já: não há fonte
+     que avise a abertura antes do primeiro toque. */
+  const abrirOInterprete = () => {
+    acaoDoInicioRef.current = 'captura';
+    sessaoDoInterpreteRef.current = true;
+    setFalhaDoMic(null);
+    if (!micEnabled) marcarMicrofone(true);
+    setInterpreteAberto(true);
+    handleStartOrResume();
+    if (isRecordingRef.current) setIsRecording(true);
+  };
+  /** O par do intérprete: dois idiomas diferentes. Com "Detectar", vale o idioma que está por baixo
+      dele: no intérprete cada lado DECLARA o seu, e o microfone abre nele. */
+  const interpretePossivel = !mesmoIdioma;
+  /** A entrada (celular e cabeçalho do computador): a mesma folha do início, se houver o que decidir. */
+  const entrarNoInterprete = () => {
+    if (abrindoCaptura || isRecordingRef.current || !interpretePossivel) return;
+    if (tetoAtingido && !resumeId) return avisarTeto();
+    acaoDoInicioRef.current = 'interprete';
+    const passo = planoDoInicio(escolhaDoMic, { micEnabled: true, systemEnabled: false });
+    if (passo.tipo === 'folha') {
+      setFolhaDoInicio(passo);
+      return;
+    }
+    abrirOInterprete();
+  };
+  /** Sair da tela: o Encerrar de sempre (salvar ou descartar), ou nada, se ninguém falou. */
+  const sairDoInterprete = () => {
+    setInterpreteAberto(false);
+    handleStopRecording();
+  };
+  /** "Continuar gravando" do Encerrar: numa sessão do intérprete, a tela volta. */
+  const continuarGravando = () => {
+    handleCancelStop();
+    if (sessaoDoInterpreteRef.current) setInterpreteAberto(true);
+  };
   /** A ajuda do microfone: tentar de novo e, quando o Rápido falhou, trocar para o Privado num toque. */
   const tentarMicrofoneDeNovo = (privado: boolean) => {
     setFalhaDoMic(null);
     if (privado) trocarEscolhaDoMic('privado');
+    /* No intérprete o microfone só abre no toque de um lado: a ajuda fecha e a pessoa toca de novo. */
+    if (interpreteAberto) return;
     if (isRecordingRef.current) {
       // Outra fonte segue aberta (a aba): só o microfone recomeça.
       abrirContextoDoClique();
@@ -2626,7 +2699,13 @@ export default function LiveCapture({
   const tocarFala = useFuncaoEstavel(
     (segment: { id: string; originalText: string; translatedText: string }, lang: string) => {
       setFalaEmFoco(segment.id);
-      setFalaTocada({ id: segment.id, texto: segment.originalText, traducao: segment.translatedText, lang });
+      setFalaTocada({
+        id: segment.id,
+        texto: segment.originalText,
+        traducao: segment.translatedText,
+        lang,
+        langDaTraducao: toBcp47(destinoDaFala(lang)) || destinoDaFala(lang),
+      });
     },
   );
   const examinarNoCelular = useFuncaoEstavel((w: VocabWord, lang: string, frase: string) => {
@@ -2786,6 +2865,7 @@ export default function LiveCapture({
         aoParar={handleStopRecording}
         aoAbrirOpcoes={() => setOpcoesAbertas(true)}
         aoAbrirAjuda={() => setShowGuide(true)}
+        aoAbrirInterprete={interpretePossivel ? entrarNoInterprete : undefined}
         aoAbrirVisual={() => setShowConfigPanel(true)}
         temFalas={speechSegments.length > 0}
         avisos={
@@ -3514,6 +3594,17 @@ export default function LiveCapture({
                         <>modelo local{mbDoModelo ? ` · ${mbDoModelo} MB` : ''}</>
                       )}
                     </button>
+                    {!isRecording && interpretePossivel && (
+                      <button
+                        type="button"
+                        className="btn btn-outline peq"
+                        onClick={entrarNoInterprete}
+                        aria-label={t('Modo intérprete')}
+                        data-testid="entrar-no-interprete"
+                      >
+                        <Languages aria-hidden /> {t('Intérprete')}
+                      </button>
+                    )}
                     <button
                       type="button"
                       className="btn btn-outline peq"
@@ -4239,6 +4330,30 @@ export default function LiveCapture({
         />
       )}
 
+      {/* --- O MODO INTÉRPRETE (E3): por cima da captura; os diálogos (`showModal`) ficam acima dele --- */}
+      {interpreteAberto && (
+        <Suspense fallback={null}>
+          <ModoInterprete
+            idiomas={{ meu: sourceLang, outro: targetLang }}
+            falas={speechSegments}
+            microfone={{
+              abrir: () => {
+                /* Dentro do toque, antes de qualquer `await`: no iPhone, o áudio criado depois fica mudo. */
+                if (!micCaptureRef.current && !webSpeechRef.current) abrirContextoDoClique();
+                return abrirMicrofoneNoLado();
+              },
+              fechar: fecharMicrofoneDoLado,
+            }}
+            registrarPonte={registrarPonteDoInterprete}
+            vozNaturalDisponivel={getEntitlements().vozNatural && flagLigada(FLAG_VOZ_NATURAL)}
+            velocidade={ttsSpeed}
+            layout={noCelular ? 'celular' : 'computador'}
+            abrindo={micAbrindo}
+            aoSair={sairDoInterprete}
+          />
+        </Suspense>
+      )}
+
       {/* --- O MICROFONE NÃO ABRIU: a ajuda daquele aparelho, com o caminho de volta --- */}
       {falhaDoMic && (
         <AjudaDoMicrofone
@@ -4319,7 +4434,7 @@ export default function LiveCapture({
           aoTrocarCapa={setCustomSessionImage}
           buscaInicial={imgQuery}
           aoEscolherArquivo={() => coverFileRef.current?.click()}
-          aoContinuar={handleCancelStop}
+          aoContinuar={continuarGravando}
           aoSalvar={(ir) => void handleFinalizeSave(ir)}
           aoDescartar={descartarCaptura}
         />

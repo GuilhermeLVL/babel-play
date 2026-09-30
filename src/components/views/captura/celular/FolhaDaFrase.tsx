@@ -1,4 +1,4 @@
-import { Copy, Mic, Snail, Volume2 } from 'lucide-react';
+import { Copy, Languages, Mic, Snail, Volume2 } from 'lucide-react';
 import { lazy, Suspense, useState } from 'react';
 
 import { t } from '../../../../lib/i18n';
@@ -32,6 +32,8 @@ export interface FalaTocada {
   traducao: string;
   /** Idioma REAL da fala (BCP-47): o da voz do navegador e o do reconhecimento na prática. */
   lang: string;
+  /** Idioma da tradução (BCP-47): o de "Ouvir tradução". Ausente = sem o botão. */
+  langDaTraducao?: string;
 }
 
 /** As palavras da frase como botões: sem pontuação nas pontas, sem repetir a mesma palavra. */
@@ -51,8 +53,8 @@ export function palavrasDaFrase(texto: string): string[] {
 
 /**
  * A FOLHA DA FRASE — tocar num balão da conversa, no celular (maquete aprovada pelo dono,
- * 2026-09-29). Os ícones de 14 px da conversa viram botões de 56 px: Ouvir, Ouvir devagar, Repetir
- * eu (o shadowing de `SombraDaFala`, a mesma nota por texto da Análise) e Copiar. As palavras viram
+ * 2026-09-29). Os ícones de 14 px da conversa viram botões de 56 px: Ouvir, Ouvir devagar, Ouvir
+ * tradução (no idioma dela; o Ouvir fala o original), Repetir eu (o shadowing de `SombraDaFala`, a mesma nota por texto da Análise) e Copiar. As palavras viram
  * botões — o dedo não acerta uma palavra solta no texto — e a que a pessoa ainda não conhece vem
  * marcada (`ehNova`, a mesma régua do sublinhado da conversa).
  *
@@ -79,6 +81,7 @@ export default function FolhaDaFrase({
 }) {
   const [praticando, setPraticando] = useState(false);
   const palavras = palavrasDaFrase(fala.texto);
+  const temTraducao = !!fala.traducao && fala.traducao !== '…';
 
   const copiar = () => {
     const texto = fala.traducao ? `${fala.texto}\n${fala.traducao}` : fala.texto;
@@ -95,7 +98,11 @@ export default function FolhaDaFrase({
       <p className="folha-frase" lang={fala.lang}>
         {fala.texto}
       </p>
-      {fala.traducao && fala.traducao !== '…' && <p className="folha-frase-trad">{fala.traducao}</p>}
+      {temTraducao && (
+        <p className="folha-frase-trad" lang={fala.langDaTraducao}>
+          {fala.traducao}
+        </p>
+      )}
       <div className="folha-grade">
         <button type="button" className="folha-acao pri" onClick={() => aoOuvir(fala.texto, fala.lang, false)}>
           <Volume2 aria-hidden /> {t('Ouvir')}
@@ -103,6 +110,15 @@ export default function FolhaDaFrase({
         <button type="button" className="folha-acao" onClick={() => aoOuvir(fala.texto, fala.lang, true)}>
           <Snail aria-hidden /> {t('Ouvir devagar')}
         </button>
+        {temTraducao && fala.langDaTraducao && (
+          <button
+            type="button"
+            className="folha-acao"
+            onClick={() => aoOuvir(fala.traducao, fala.langDaTraducao!, false)}
+          >
+            <Languages aria-hidden /> {t('Ouvir tradução')}
+          </button>
+        )}
         <button
           type="button"
           className="folha-acao"

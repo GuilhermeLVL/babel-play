@@ -1,0 +1,236 @@
+/*
+ * O MODO INTÉRPRETE (`views/captura/interprete/ModoInterprete.tsx`, maquete aprovada pelo dono em
+ * 2026-09-30). O mesmo cartão escuro e os mesmos tokens da captura no celular
+ * (`capturaNoCelular.css`): os temas trocam os tokens, não as classes. Alvos de toque de 48 a 96 px.
+ *
+ * CELULAR: frente a frente, a metade de cima virada 180° para a outra pessoa, a faixa no meio.
+ * COMPUTADOR: duas colunas, a faixa em cima.
+ */
+
+.int {
+  --int-escuro: var(--ink);
+  --int-escuro-2: color-mix(in srgb, var(--ink-contrast) 7%, var(--ink));
+  --int-linha: color-mix(in srgb, var(--ink-contrast) 16%, var(--ink));
+  --int-tinta: var(--ink-contrast);
+  --int-mut: color-mix(in srgb, var(--ink-contrast) 70%, var(--ink));
+  --int-acento: color-mix(in srgb, var(--accent) 70%, var(--ink-contrast));
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: flex;
+  flex-direction: column;
+  background: var(--int-escuro);
+  color: var(--int-tinta);
+  padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
+  overscroll-behavior: contain;
+}
+.dark .int {
+  --int-escuro: var(--surface-sunken);
+  --int-escuro-2: var(--surface);
+  --int-linha: var(--border-subtle);
+  --int-tinta: var(--ink);
+  --int-mut: var(--ink-muted);
+  --int-acento: var(--accent);
+}
+.int svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* ---------- uma metade ---------- */
+.int-metade {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--accent) 9%, var(--int-escuro)) 0%,
+    var(--int-escuro) 60%
+  );
+}
+.int-metade[data-virada] {
+  transform: rotate(180deg);
+}
+.int-idioma {
+  margin: 0;
+  font: 700 11px var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--int-acento);
+}
+.int-frase {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+}
+.int-traducao {
+  margin: 0;
+  font: 800 clamp(22px, 6.4vw, 34px) / 1.2 var(--font-display);
+  overflow-wrap: anywhere;
+}
+.int-original,
+.int-ao-vivo,
+.int-dica {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--int-mut);
+  overflow-wrap: anywhere;
+}
+.int-ao-vivo {
+  font-size: 18px;
+  color: var(--int-tinta);
+}
+.int-status {
+  min-height: 1.3em;
+  margin: 0;
+  text-align: center;
+  font: 700 12.5px var(--font-body);
+  color: var(--int-mut);
+}
+.int-acoes {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+}
+
+/* ---------- o botão Falar ---------- */
+.int-falar {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  border: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  background: linear-gradient(
+    color-mix(in srgb, var(--accent) 88%, #fff) 0%,
+    var(--accent) 55%,
+    color-mix(in srgb, var(--accent) 88%, #000)
+  );
+  color: var(--accent-contrast, var(--ink));
+  font: 800 13px var(--font-display);
+  box-shadow:
+    0 10px 24px -8px color-mix(in srgb, var(--accent) 70%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+.int-falar svg {
+  width: 32px;
+  height: 32px;
+}
+/* OUVINDO: o anel em volta de quem fala. */
+.int-falar[data-ouvindo] {
+  background: var(--int-tinta);
+  color: var(--accent);
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 45%, transparent);
+  animation: int-anel 1.6s ease-in-out infinite;
+}
+@keyframes int-anel {
+  50% {
+    box-shadow: 0 0 0 11px color-mix(in srgb, var(--accent) 18%, transparent);
+  }
+}
+.int-ib {
+  min-width: var(--alvo-min, 48px);
+  height: var(--alvo-min, 48px);
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--int-linha);
+  background: var(--int-escuro-2);
+  color: var(--int-tinta);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font: 700 13px var(--font-body);
+}
+.int-ib.peq {
+  width: var(--alvo-min, 48px);
+  padding: 0;
+}
+.int kbd {
+  font: 600 10.5px var(--font-mono);
+  padding: 1px 5px;
+  border-radius: 5px;
+  border: 1px solid var(--int-linha);
+  color: var(--int-mut);
+}
+.int-falar kbd {
+  position: absolute;
+  bottom: -26px;
+}
+
+/* ---------- a faixa do meio ---------- */
+.int-faixa {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  border-block: 1px solid var(--int-linha);
+  background: color-mix(in srgb, #000 18%, var(--int-escuro));
+}
+.int-voz {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--int-linha);
+  background: var(--int-escuro-2);
+  font: 700 12.5px var(--font-body);
+  color: var(--int-mut);
+}
+.int-voz svg {
+  width: 15px;
+  height: 15px;
+}
+.int-voz[data-natural] {
+  border-color: var(--accent);
+  color: var(--int-tinta);
+}
+
+/* ---------- computador: duas colunas, a faixa em cima ---------- */
+.int[data-layout='computador'] {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto 1fr;
+  grid-template-areas:
+    'faixa faixa'
+    'meu outro';
+}
+.int[data-layout='computador'] .int-faixa {
+  grid-area: faixa;
+  border-top: 0;
+}
+.int[data-layout='computador'] .int-metade[data-lado='meu'] {
+  grid-area: meu;
+  border-right: 1px solid var(--int-linha);
+}
+.int[data-layout='computador'] .int-metade[data-lado='outro'] {
+  grid-area: outro;
+}
+.int[data-layout='computador'] .int-metade {
+  padding: 28px 32px 48px;
+}
+.int[data-layout='computador'] .int-traducao {
+  font-size: clamp(24px, 2.6vw, 40px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .int-falar[data-ouvindo] {
+    animation: none;
+  }
+}

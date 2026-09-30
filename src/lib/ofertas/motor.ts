@@ -76,6 +76,8 @@ export interface EstadoDaTela {
 
 export interface EntradaDoMotor {
   momento: MomentoDeOferta;
+  /** A etapa do momento (o fim do teste: `d3` ou `d0`). Gatilho com `fase` só vale na dele. */
+  fase?: string;
   flagLigada: boolean;
   /** O payload de `oferta_planos` (ignorado com a flag desligada). */
   config: ConfigDeOfertas;
@@ -147,9 +149,10 @@ export function bloqueioDeFrequencia(
 
 /** Os gatilhos candidatos do momento: os da flag (ligada) ou, para os funcionais, os embutidos. */
 function candidatos(e: EntradaDoMotor, funcional: boolean): GatilhoDeOferta[] {
-  const daFlag = e.flagLigada ? e.config.gatilhos.filter((g) => g.momento === e.momento) : [];
+  const doMomento = (g: GatilhoDeOferta) => g.momento === e.momento && (!g.fase || g.fase === e.fase);
+  const daFlag = e.flagLigada ? e.config.gatilhos.filter(doMomento) : [];
   if (daFlag.length || !funcional) return daFlag;
-  return GATILHOS_FUNCIONAIS.filter((g) => g.momento === e.momento);
+  return GATILHOS_FUNCIONAIS.filter(doMomento);
 }
 
 export function decidirOferta(e: EntradaDoMotor): DecisaoDeOferta {

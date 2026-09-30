@@ -1,4 +1,4 @@
-import { Cloud, CloudOff, Gauge, type LucideIcon, Sparkles, Trophy } from 'lucide-react';
+import { Cloud, CloudOff, Gauge, Hourglass, type LucideIcon, Sparkles, Trophy } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { PlanoDaFlag } from '../../core/flags';
@@ -22,6 +22,7 @@ import {
   EVENTO_OFERTA,
   EVENTO_PEDIR_CONTA,
 } from '../../lib/ofertas/eventos';
+import { faseDoTesteAgora } from '../../lib/ofertas/fimDoTeste';
 import {
   iniciarSessaoDeUso,
   lerHistorico,
@@ -62,6 +63,9 @@ import ModalDeOferta from './ModalDeOferta';
  *
  * COTA PRÓXIMA: com conta, pergunta `GET /api/me/uso` (cache de 1 h) ao montar, quando o plano muda
  * e a cada hora; ≥ 80% dispara `cota_proxima`, 100% dispara `fim_de_cota`.
+ *
+ * FIM DO TESTE (C6): nas mesmas horas, quem está no teste de 14 dias (o `teste` dos entitlements)
+ * recebe `fim_do_teste` em D-3 e em D0 — informativo: o botão abre Planos sem destacar venda.
  */
 
 const ICONE: Record<MomentoDeOferta, LucideIcon> = {
@@ -71,6 +75,7 @@ const ICONE: Record<MomentoDeOferta, LucideIcon> = {
   conquista: Trophy,
   fim_de_sessao: Sparkles,
   convidado_para_conta: CloudOff,
+  fim_do_teste: Hourglass,
 };
 
 const VALIDADE_DO_ADIADO_MS = 10 * 60_000;
@@ -107,18 +112,19 @@ export default function HostDeOfertas({ aoEntrar, aoVerPlanos }: { aoEntrar: () 
   configRef.current = config;
   const atualRef = useRef(atual);
   atualRef.current = atual;
-  const adiado = useRef<{ momento: MomentoDeOferta; ate: number } | null>(null);
+  const adiado = useRef<{ momento: MomentoDeOferta; fase?: string; ate: number } | null>(null);
 
   useEffect(() => {
     iniciarSessaoDeUso();
   }, []);
 
-  const avaliar = useCallback((momento: MomentoDeOferta) => {
+  const avaliar = useCallback((momento: MomentoDeOferta, fase?: string) => {
     if (atualRef.current) return; // uma oferta por vez
     const plano = planoDaOferta();
     const agora = Date.now();
     const decisao = decidirOferta({
       momento,
+      fase,
       flagLigada: flagRef.current,
       config: configRef.current,
       plano,
@@ -128,7 +134,7 @@ export default function HostDeOfertas({ aoEntrar, aoVerPlanos }: { aoEntrar: () 
       agora,
     });
     if (decisao.mostrar === false) {
-      if (decisao.adiar) adiado.current = { momento, ate: agora + VALIDADE_DO_ADIADO_MS };
+      if (decisao.adiar) adiado.current = { momento, fase, ate: agora + VALIDADE_DO_ADIADO_MS };
       return;
     }
     if (adiado.current?.momento === momento) adiado.current = null;
@@ -148,7 +154,8 @@ export default function HostDeOfertas({ aoEntrar, aoVerPlanos }: { aoEntrar: () 
   useEffect(() => {
     const ouvir = (ev: Event) => {
       const d = (ev as CustomEvent<DetalheDaOferta>).detail;
-      if (d && ehMomento(d.momento)) avaliar(d.momento);
+      const fase = typeof d?.contexto?.fase === 'string' ? d.contexto.fase : undefined;
+      if (d && ehMomento(d.momento)) avaliar(d.momento, fase);
     };
     window.addEventListener(EVENTO_OFERTA, ouvir);
     return () => window.removeEventListener(EVENTO_OFERTA, ouvir);
@@ -173,7 +180,7 @@ export default function HostDeOfertas({ aoEntrar, aoVerPlanos }: { aoEntrar: () 
         return;
       }
       adiado.current = null;
-      avaliar(a.momento);
+      avaliar(a.momento, a.fase);
     };
     const id = window.setInterval(tentar, INTERVALO_DE_NOVA_TENTATIVA_MS);
     window.addEventListener('babel:rodada-fechou', tentar);
@@ -183,10 +190,12 @@ export default function HostDeOfertas({ aoEntrar, aoVerPlanos }: { aoEntrar: () 
     };
   }, [avaliar]);
 
-  // 3. A cota perto do fim (só com conta).
+  // 3. A cota perto do fim e o fim do teste de 14 dias (só com conta).
   useEffect(() => {
     const conferir = () => {
       if (estadoDeIdentidade() !== 'conta') return;
+      const fase = faseDoTesteAgora();
+      if (fase) dispararOferta('fim_do_teste', { origem: 'teste', fase });
       void verificarCota().then((estado) => {
         if (estado === 'perto') dispararOferta('cota_proxima', { origem: 'consumo' });
         else if (estado === 'esgotada') dispararOferta('fim_de_cota', { origem: 'consumo' });
@@ -209,6 +218,9 @@ export default function HostDeOfertas({ aoEntrar, aoVerPlanos }: { aoEntrar: () 
   const sugerido = decisao.planoSugerido;
   const fechar = () => setAtual(null);
 
+  /* O fim do teste é INFORMATIVO: o botão abre Planos como ela é, sem destacar venda nem a aba de
+     consumo (quem testa tem o Premium, e `planoSugerido` diria "nenhum"). */
+  const informativoDoTeste = momento === 'fim_do_teste';
   const agir = () => {
     registrarEventoDeOferta('oferta_clicada', rotulos);
     lembrarAtribuicao(rotulos);
@@ -217,7 +229,7 @@ export default function HostDeOfertas({ aoEntrar, aoVerPlanos }: { aoEntrar: () 
       aoEntrar();
       return;
     }
-    pedirDestaqueEmPlanos(sugerido === 'nenhum' ? { aba: 'consumo' } : { plano: sugerido });
+    if (!informativoDoTeste) pedirDestaqueEmPlanos(sugerido === 'nenhum' ? { aba: 'consumo' } : { plano: sugerido });
     aoVerPlanos();
   };
   const dispensar = () => {
@@ -234,7 +246,8 @@ export default function HostDeOfertas({ aoEntrar, aoVerPlanos }: { aoEntrar: () 
   const titulo = resolverTextoRemoto(g.titulo, idioma, t);
   const texto = resolverTextoRemoto(g.texto, idioma, t);
   /* Quem não tem plano a subir (Premium) vê o consumo, não uma venda. */
-  const cta = sugerido === 'nenhum' ? t('Ver consumo do mês') : resolverTextoRemoto(g.cta, idioma, t);
+  const cta =
+    sugerido === 'nenhum' && !informativoDoTeste ? t('Ver consumo do mês') : resolverTextoRemoto(g.cta, idioma, t);
   const selo = seloDoPlano(sugerido, t);
   const props = {
     icone: ICONE[momento],

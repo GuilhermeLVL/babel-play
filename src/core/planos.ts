@@ -75,6 +75,13 @@ export type MeioDeCobranca = 'assinatura' | 'parcelamento' | 'pix_automatico';
 /** Em quantas vezes o anual é vendido. Outra quantidade de parcelas não paga plano nenhum. */
 export const PARCELAS_DO_ANUAL = 12;
 
+/**
+ * O TESTE DO PREMIUM (C6): quantos dias ele dura. Sem cartão e sem cobrança automática nunca — no
+ * fim a conta volta ao Grátis sozinha. Um por pessoa (o servidor guarda a marca do e-mail, ver
+ * `server/lib/testePremium.ts`). A tela diz o número a partir daqui, nunca à mão.
+ */
+export const DIAS_DO_TESTE_PREMIUM = 14;
+
 export interface EntitlementsDoPlano {
   /** Importação de YouTube (yt-dlp roda no servidor — custo/infra de quem hospeda). */
   youtubeImport: boolean;

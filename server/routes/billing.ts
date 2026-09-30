@@ -19,10 +19,11 @@ import { z } from 'zod'
 
 import { centavosParaReais, pacotePorSku } from '../../src/core/creditos'
 import { autorizarGastoDeCredito, ehRecusa } from '../../src/core/economiaAutoridade'
-import { normalizarPlano, PLAN_MATRIX } from '../../src/core/planos'
+import { DIAS_DO_TESTE_PREMIUM, normalizarPlano, PARCELAS_DO_ANUAL, PLAN_MATRIX } from '../../src/core/planos'
 import { billingEventsRepo } from '../db/repositories/billingEvents'
 import { creditsRepo } from '../db/repositories/credits'
 import { subscriptionsRepo } from '../db/repositories/subscriptions'
+import { type TestePremium, testesPremiumRepo } from '../db/repositories/testesPremium'
 import { vinculosRepo } from '../db/repositories/vinculos'
 import { MENSAGEM_CHECKOUT_DESLIGADO } from '../lib/abertura'
 import {
@@ -31,11 +32,13 @@ import {
   criarAssinatura,
   criarCliente,
   criarCobrancaAvulsa,
+  criarParcelamento,
   listarCobrancasDaAssinatura,
+  listarCobrancasDoParcelamento,
   primeiraCobranca,
   webhookToken,
 } from '../lib/asaas'
-import { authRequired } from '../lib/auth'
+import { authRequired, emailDaRequisicao } from '../lib/auth'
 import { asUserId, type UserId } from '../lib/authContext'
 import { aplicarEvento, eventoSchema, providerRefDoEvento, referenciaDoEvento } from '../lib/billingEventos'
 import { checkoutLigado } from '../lib/config'
@@ -44,6 +47,14 @@ import { erroDeRota } from '../lib/erroDeRota'
 import { ehAdultoDeclarado } from '../lib/idade'
 import { log } from '../lib/logger'
 import { responderErro } from '../lib/respostaDeErro'
+import {
+  DURACAO_DO_TESTE_MS,
+  marcaDoTeste,
+  type OrigemDaMarca,
+  type SituacaoDoTeste,
+  situacaoDoTeste,
+  testeAtivo,
+} from '../lib/testePremium'
 import { parseOr400 } from '../validation'
 
 /* ------------------------------------------------------------------ rotas do usuário (atrás do auth) */
@@ -73,8 +84,26 @@ const assinarSchema = z
     email: z.string().email().max(200).optional(),
     /** O RESPONSÁVEL paga pelo menor vinculado: a assinatura nasce na conta do menor. */
     paraUsuario: z.string().min(1).max(128).optional(),
+    /* C5 — O CICLO E O MEIO. Ausentes = o mensal recorrente de sempre (a aba aberta com o bundle
+       anterior continua assinando como antes). `parcelamento` é o anual em 12x no cartão;
+       `pix_automatico` é a API de autorização à parte, ainda não integrada (501). */
+    ciclo: z.enum(['mensal', 'anual']).default('mensal'),
+    meio: z.enum(['assinatura', 'parcelamento', 'pix_automatico']).default('assinatura'),
   })
   .strip()
+
+/**
+ * A linha JÁ É PAGA no Asaas? Ativa (ou atrasada, ainda na graça) com um id de cobrança do provedor.
+ * Quem está assim não abre uma SEGUNDA cobrança por `/assinar`: a assinatura antiga continuaria
+ * cobrando junto (dois débitos por mês, ou o mensal por cima do anual), e a troca de ciclo é um
+ * fluxo próprio da tela de Planos (C7). A fatura atrasada se paga pelo link dela, não assinando de
+ * novo. A linha do admin (sem provedor) e a cancelada podem assinar.
+ */
+function jaPagaNoAsaas(sub: Awaited<ReturnType<typeof subscriptionsRepo.getActive>>): boolean {
+  if (!sub || sub.provider !== 'asaas') return false
+  if (sub.status !== 'active' && sub.status !== 'past_due') return false
+  return Boolean(sub.providerSubscriptionId || sub.providerInstallmentId)
+}
 
 /**
  * PERFIL PROTEGIDO NÃO COMPRA — a régua do servidor, igual à `perfilProtegido()` do cliente
@@ -294,55 +323,92 @@ billingRouter.post('/assinar', async (req, res) => {
     return
   }
   /* O nome antigo (`essencial`/`pro`) de uma aba aberta com o bundle anterior é lido como o atual:
-     quem clicou "Assinar o Pro" antes do deploy assina o Premium agora, em vez de receber um 400.
-     O ciclo é o mensal: o anual e o 12x entram no C5 (change `planos-v2`). */
+     quem clicou "Assinar o Pro" antes do deploy assina o Premium agora, em vez de receber um 400. */
   const plano = normalizarPlano(dados.plano)
   if (!plano || PLAN_MATRIX[plano].precoMensalBrl === null) {
     res.status(400).json({ error: 'este plano não é vendável' })
     return
   }
-  const preco = PLAN_MATRIX[plano].precoMensalBrl
+  const { ciclo, meio } = dados
+  /* O PIX AUTOMÁTICO é uma API de autorização à parte, e em produção exige conta PJ com CNPJ ativo há
+     seis meses ou mais (sondagem do C5, `openspec/changes/planos-v2/design.md`). Enquanto a conta do
+     serviço não for elegível, ele não é oferecido — e o servidor diz isso, em vez de cair noutro meio. */
+  if (meio === 'pix_automatico') {
+    responderErro(
+      res,
+      501,
+      'o Pix Automático ainda não está disponível; escolha outra forma de pagamento',
+      'pix_automatico_indisponivel',
+    )
+    return
+  }
+  // O 12x parcela o ANO; parcelar a mensalidade não é um produto.
+  if (meio === 'parcelamento' && ciclo !== 'anual') {
+    res.status(400).json({ error: 'o parcelamento em 12x é só do plano anual' })
+    return
+  }
+  const preco = ciclo === 'anual' ? PLAN_MATRIX[plano].precoAnualBrl : PLAN_MATRIX[plano].precoMensalBrl
+  if (preco === null) {
+    res.status(400).json({ error: 'este plano não é vendável neste ciclo' })
+    return
+  }
 
   try {
     // Reusa o cliente Asaas já criado numa tentativa anterior — recomeçar o checkout não duplica.
     const atual = await subscriptionsRepo.getActive(destino)
+    if (jaPagaNoAsaas(atual)) {
+      responderErro(
+        res,
+        409,
+        'esta conta já tem o Premium pago; para trocar de ciclo, use Planos → Sua assinatura',
+        'ja_assinante',
+      )
+      return
+    }
     const clienteId =
       atual?.providerCustomerId ?? (await criarCliente(destino, dados.nome, dados.cpfCnpj, dados.email)).id
+    const descricao = `Babel Play ${PLAN_MATRIX[plano].rotulo}${ciclo === 'anual' ? ' anual' : ''}`
 
-    const assinatura = await criarAssinatura(destino, clienteId, preco, `Babel Play ${PLAN_MATRIX[plano].rotulo}`)
+    /* A COBRANÇA NO ASAAS: a assinatura recorrente (mensal ou `YEARLY`) ou o parcelamento do 12x no
+       cartão. Cada uma devolve o link da 1ª fatura por um caminho — e a linha guarda SÓ o id do fluxo
+       desta tentativa (o outro fica nulo), para o cancelamento e as faturas saberem onde perguntar. */
+    let ids: { providerSubscriptionId: string | null; providerInstallmentId: string | null }
+    let link: string | null
+    if (meio === 'parcelamento') {
+      const parcela = await criarParcelamento(destino, clienteId, preco, PARCELAS_DO_ANUAL, descricao)
+      if (!parcela.installment) throw new Error('o Asaas não devolveu o id do parcelamento')
+      ids = { providerSubscriptionId: null, providerInstallmentId: parcela.installment }
+      link = parcela.invoiceUrl ?? null
+    } else {
+      const assinatura = await criarAssinatura(destino, clienteId, preco, descricao, ciclo)
+      ids = { providerSubscriptionId: assinatura.id, providerInstallmentId: null }
+      link = (await primeiraCobranca(assinatura.id))?.invoiceUrl ?? null
+    }
+
     /* NÃO conceder aqui (GAP-001, auditoria 2026-09-13): a promoção é EXCLUSIVA do webhook, quando o
-       pagamento confirmar. O webhook decide o plano pelo VALOR pago (billingEventos.ts), então
-       iniciar o checkout nunca pode dar plano de graça.
+       pagamento confirmar. O webhook decide o plano E O CICLO pelo VALOR pago (billingEventos.ts),
+       então iniciar o checkout nunca pode dar plano (nem o ano) de graça.
        - Assinatura NOVA: grava a INTENÇÃO em `trialing`, que NÃO concede (entitlements.subConcede) e
          serve de fallback ao webhook quando o evento vier sem valor.
-       - Assinatura JÁ existente: só atualiza os ids da nova tentativa de cobrança; NÃO toca em
-         plan/status. Sobrescrever `plan` de um assinante ativo o promoveria sem pagar (a escalada
-         que o GAP-001 fechou); baixá-lo para `trialing` revogaria o que ele já paga. O `meio` diz só
-         qual fluxo do Asaas cobra esta tentativa — não concede nada; o `ciclo` quem grava é o
-         webhook, pelo valor pago. */
+       - Assinatura JÁ existente (cancelada, ou tentativa anterior não paga): só atualiza os ids da
+         nova tentativa de cobrança; NÃO toca em plan/status/ciclo. Sobrescrever `plan` promoveria
+         sem pagar (a escalada que o GAP-001 fechou); baixar para `trialing` revogaria o período que
+         a cancelada ainda tem. O `meio` diz só qual fluxo do Asaas cobra esta tentativa. */
     await subscriptionsRepo.upsert(
       destino,
       atual
-        ? {
-            provider: 'asaas',
-            providerCustomerId: clienteId,
-            providerSubscriptionId: assinatura.id,
-            meio: 'assinatura',
-          }
-        : {
-            provider: 'asaas',
-            providerCustomerId: clienteId,
-            providerSubscriptionId: assinatura.id,
-            meio: 'assinatura',
-            ciclo: 'mensal',
-            plan: plano,
-            status: 'trialing',
-          },
+        ? { provider: 'asaas', providerCustomerId: clienteId, ...ids, meio }
+        : { provider: 'asaas', providerCustomerId: clienteId, ...ids, meio, ciclo, plan: plano, status: 'trialing' },
     )
 
-    const cobranca = await primeiraCobranca(assinatura.id)
     log('info', { event: 'billing_assinatura_criada', route: '/api/billing/assinar', requestId: req.requestId })
-    res.json({ linkDePagamento: cobranca?.invoiceUrl ?? null, assinatura: assinatura.id })
+    res.json({
+      linkDePagamento: link,
+      ...(ids.providerSubscriptionId ? { assinatura: ids.providerSubscriptionId } : {}),
+      ...(ids.providerInstallmentId ? { parcelamento: ids.providerInstallmentId } : {}),
+      ciclo,
+      meio,
+    })
   } catch (err) {
     res.status(502).json({ error: `falha ao criar assinatura: ${erroDeRota(err, { event: 'billing_error' })}` })
   }
@@ -376,6 +442,136 @@ async function proximaCobranca(assinaturaId: string): Promise<string | null> {
   }
 }
 
+/* ------------------------------------------------------------------ o teste de 14 dias (C6) */
+
+/**
+ * A conta já teve o Premium PAGO? Ativa, atrasada ou cancelada — qualquer linha do Premium que não
+ * seja só o checkout iniciado (`trialing`). O teste é para quem ainda não conhece o Premium: quem já
+ * assinou e cancelou não ganha mais 14 dias por isso.
+ */
+function jaAssinou(sub: Awaited<ReturnType<typeof subscriptionsRepo.getActive>>): boolean {
+  return !!sub && sub.status !== 'trialing' && normalizarPlano(sub.plan) === 'premium'
+}
+
+/** A situação do teste para a tela (`/status`). Falha de leitura não derruba o status: some o campo. */
+async function situacaoParaATela(req: import('express').Request): Promise<SituacaoDoTeste | null> {
+  const dias = DIAS_DO_TESTE_PREMIUM
+  if (!authRequired()) return { estado: 'indisponivel', dias, motivo: 'selfhost' }
+  if (req.convidado) return { estado: 'indisponivel', dias, motivo: 'convidado' }
+  try {
+    const [sub, idade] = await Promise.all([subscriptionsRepo.getActive(req.userId), ehAdultoDeclarado(req.userId)])
+    return await situacaoDoTeste(req.userId, { email: emailDaRequisicao(req), jaAssinou: jaAssinou(sub), idade })
+  } catch (err) {
+    log('warn', { event: 'billing_teste_situacao_falhou', error: String(err).slice(0, 120) })
+    return null
+  }
+}
+
+const testeSchema = z
+  .object({
+    /** O RESPONSÁVEL ativa o teste para o menor vinculado — o mesmo `paraUsuario` do checkout. */
+    paraUsuario: z.string().min(1).max(128).optional(),
+  })
+  .strip()
+
+/**
+ * COMEÇAR O TESTE DE 14 DIAS — um toque, sem cartão (C6, padrão do dono).
+ *
+ * NADA AQUI FALA COM O ASAAS: não há cartão para pedir, cobrança para criar nem renovação para
+ * agendar. No fim a conta volta ao Grátis sozinha (`resolverPlano` deixa de ver o teste ativo).
+ *
+ * A ORDEM DAS RECUSAS: self-host (já tem tudo) → convidado (sem conta) → venda pausada (depois do
+ * teste não haveria como assinar) → quem ativa é adulto declarado, e o menor não ativa sozinho
+ * ("peça ao seu responsável"; o responsável vinculado ativa pelo `paraUsuario`) → a conta já testou
+ * (o 2º toque devolve o MESMO teste; vencido, 409) → já assinou → sem e-mail não há marca → a marca
+ * do e-mail já testou noutra conta (inclusive numa apagada). Só então a marca e o teste são gravados,
+ * juntos (`testesPremiumRepo.iniciar`).
+ */
+billingRouter.post('/teste', async (req, res) => {
+  const dados = parseOr400(testeSchema, req.body ?? {}, res)
+  if (!dados) return
+  if (!authRequired()) {
+    responderErro(res, 409, 'no self-host o app já está todo liberado', 'teste_indisponivel')
+    return
+  }
+  if (req.convidado) {
+    responderErro(res, 403, 'crie uma conta para testar o Premium', 'exige_conta')
+    return
+  }
+  if (!checkoutLigado()) {
+    responderErro(res, 503, MENSAGEM_CHECKOUT_DESLIGADO, 'checkout_desligado')
+    return
+  }
+
+  /* QUEM ATIVA é adulto declarado; QUEM RECEBE é a própria conta ou o menor vinculado. */
+  const quem = await ehAdultoDeclarado(req.userId)
+  if (!quem.informado) {
+    responderErro(res, 403, 'informe a sua data de nascimento antes de começar o teste', 'idade_nao_informada')
+    return
+  }
+  if (!quem.adulto) {
+    responderErro(
+      res,
+      403,
+      'contas de menores de 18 anos não começam o teste sozinhas: peça ao seu responsável — pela conta dele, vinculada à sua, ele ativa o teste para você',
+      'teste_pelo_responsavel',
+    )
+    return
+  }
+  let destino: UserId = req.userId
+  let origem: OrigemDaMarca = 'conta'
+  if (dados.paraUsuario && dados.paraUsuario !== req.userId) {
+    const menor = asUserId(dados.paraUsuario)
+    if (!(await vinculosRepo.ehResponsavelDe(req.userId, menor))) {
+      responderErro(res, 403, 'você não está vinculado como responsável por esta conta', 'sem_vinculo')
+      return
+    }
+    destino = menor
+    origem = 'responsavel'
+  }
+
+  try {
+    const jaAtivo = (t: TestePremium) =>
+      res.json({
+        teste: { iniciadoEm: t.iniciadoEm, terminaEm: t.terminaEm, dias: DIAS_DO_TESTE_PREMIUM },
+        jaEstavaAtivo: true,
+      })
+    const usado = () => responderErro(res, 409, 'o teste do Premium já foi usado por esta pessoa', 'teste_ja_usado')
+
+    const existente = await testesPremiumRepo.doUsuario(destino)
+    if (existente) {
+      if (testeAtivo(existente)) jaAtivo(existente)
+      else usado()
+      return
+    }
+    if (jaAssinou(await subscriptionsRepo.getActive(destino))) {
+      responderErro(res, 409, 'esta conta já tem (ou já teve) o Premium', 'ja_assinante')
+      return
+    }
+    const email = emailDaRequisicao(req)
+    const marca = email ? await marcaDoTeste(email, origem) : null
+    if (!marca) {
+      responderErro(res, 409, 'o teste precisa de uma conta com e-mail', 'teste_sem_email')
+      return
+    }
+
+    const agora = Date.now()
+    const r = await testesPremiumRepo.iniciar(destino, marca, agora, agora + DURACAO_DO_TESTE_MS)
+    if (r.tipo === 'iniciado') {
+      log('info', { event: 'billing_teste_iniciado', route: '/api/billing/teste', requestId: req.requestId })
+      res.json({ teste: { iniciadoEm: r.teste.iniciadoEm, terminaEm: r.teste.terminaEm, dias: DIAS_DO_TESTE_PREMIUM } })
+      return
+    }
+    /* `ja_existia`, ou a marca já estava gravada: pode ser o 2º toque que perdeu a corrida para o 1º
+       (a mesma conta, o mesmo e-mail) — relido, o teste ativo desta conta é a resposta certa. */
+    const agoraExiste = r.tipo === 'ja_existia' ? r.teste : await testesPremiumRepo.doUsuario(destino)
+    if (agoraExiste && testeAtivo(agoraExiste)) jaAtivo(agoraExiste)
+    else usado()
+  } catch (err) {
+    res.status(500).json({ error: erroDeRota(err, { status: 500, event: 'billing_teste_error' }) })
+  }
+})
+
 /** O que a tela de Planos mostra: existe assinatura? em que estado? até quando vale? quando cobra? */
 billingRouter.get('/status', async (req, res) => {
   const sub = await subscriptionsRepo.getActive(req.userId)
@@ -383,10 +579,16 @@ billingRouter.get('/status', async (req, res) => {
     sub?.status === 'active' && sub.provider === 'asaas' && sub.providerSubscriptionId && asaasConfigurado()
       ? await proximaCobranca(sub.providerSubscriptionId)
       : null
+  /* C6: a situação do teste de 14 dias — a tela de Planos (C7) oferece o toque só a quem o servidor
+     deixaria começar, e diz por que não quando não. */
+  const teste = await situacaoParaATela(req)
   res.json({
+    ...(teste ? { teste } : {}),
     configurado: asaasConfigurado(),
     /* O plano no nome ATUAL (a linha pode ser de antes da 0041) e, desde a matriz v2, o ciclo e o
-       meio — a tela de conta do C7 fala de "renova todo mês" ou "vale até <data> (anual)". */
+       meio — a tela de conta do C7 fala de "renova todo mês" ou "vale até <data> (anual)".
+       `renovacaoAutomatica` é a promessa que a tela faz: só a ASSINATURA ativa renova sozinha
+       (mensal ou `YEARLY`); o 12x acaba na 12ª parcela e a cancelada não renova mais. */
     assinatura: sub
       ? {
           plano: normalizarPlano(sub.plan) ?? sub.plan,
@@ -395,6 +597,7 @@ billingRouter.get('/status', async (req, res) => {
           provedor: sub.provider,
           ciclo: sub.ciclo === 'anual' ? 'anual' : 'mensal',
           meio: sub.meio ?? null,
+          renovacaoAutomatica: sub.status === 'active' && sub.meio === 'assinatura' && !!sub.providerSubscriptionId,
         }
       : null,
     ...(proxima ? { proximaCobranca: proxima } : {}),
@@ -443,16 +646,19 @@ billingRouter.get('/faturas', async (req, res) => {
     return
   }
   const sub = await subscriptionsRepo.getActive(req.userId)
-  if (!sub?.providerSubscriptionId) {
+  /* O 12x não tem assinatura: as faturas são as PARCELAS do parcelamento (C5). */
+  const parcelado = sub?.meio === 'parcelamento' && !!sub.providerInstallmentId
+  if (!sub || (!parcelado && !sub.providerSubscriptionId)) {
     res.json({ faturas: [] })
     return
   }
   try {
     const plano = normalizarPlano(sub.plan)
-    const descricao = plano
-      ? `${PLAN_MATRIX[plano].rotulo} · ${sub.ciclo === 'anual' ? 'anual' : 'mensal'}`
-      : 'Assinatura'
-    const cobrancas = await listarCobrancasDaAssinatura(sub.providerSubscriptionId)
+    const ciclo = parcelado ? 'anual em 12x' : sub.ciclo === 'anual' ? 'anual' : 'mensal'
+    const descricao = plano ? `${PLAN_MATRIX[plano].rotulo} · ${ciclo}` : 'Assinatura'
+    const cobrancas = parcelado
+      ? await listarCobrancasDoParcelamento(sub.providerInstallmentId as string)
+      : await listarCobrancasDaAssinatura(sub.providerSubscriptionId as string)
     res.json({
       faturas: cobrancas.map((c) => ({
         id: c.id,
@@ -476,7 +682,9 @@ billingRouter.get('/faturas', async (req, res) => {
  * Toda a regra mora em `encerrarAssinatura` (server/lib/encerramentoDeAssinatura.ts), que a
  * exclusão de conta também usa: dentro de 7 dias do primeiro pagamento é ARREPENDIMENTO (cancela,
  * estorna tudo e o acesso acaba agora, com protocolo); depois, para a renovação e o período pago
- * vale até o próximo vencimento informado pelo Asaas.
+ * vale até o próximo vencimento informado pelo Asaas. O anual e o 12x (C5) seguem a mesma regra: o
+ * arrependimento estorna o ano inteiro (o 12x, o parcelamento inteiro); depois dos 7 dias não há
+ * reembolso proporcional e o acesso vale até o fim do ano pago (a validar com o jurídico).
  */
 billingRouter.post('/cancelar', async (req, res) => {
   if (!asaasConfigurado()) {

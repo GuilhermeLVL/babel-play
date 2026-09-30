@@ -43,6 +43,12 @@ export interface Entitlements {
   vozNatural: boolean;
   /** Disco usado/teto em bytes; `teto: null` = sem teto; `null` inteiro = desconhecido. */
   armazenamento: { usados: number; teto: number | null } | null;
+  /**
+   * O TESTE de 14 dias do Premium (C6): presente só enquanto ele vale — o Premium de `plan` é o do
+   * teste, e ele termina em `terminaEm` (ms) sem cobrar nada. Ausente/`null` = Premium pago, ou não é
+   * Premium. É o que o aviso `fim_do_teste` (D-3 e D0) lê.
+   */
+  teste?: { terminaEm: number } | null;
 }
 
 const CACHE_KEY = 'babel.entitlements';
@@ -113,6 +119,8 @@ function normalizar(v: unknown): Entitlements | null {
     if (typeof a.usados === 'number')
       armazenamento = { usados: a.usados, teto: typeof a.teto === 'number' ? a.teto : null };
   }
+  const t = o.teste as { terminaEm?: unknown } | null | undefined;
+  const teste = t && typeof t === 'object' && typeof t.terminaEm === 'number' ? { terminaEm: t.terminaEm } : null;
   return {
     plan,
     youtubeImport: bool('youtubeImport'),
@@ -122,6 +130,7 @@ function normalizar(v: unknown): Entitlements | null {
     traducaoNuance: bool('traducaoNuance'),
     vozNatural: bool('vozNatural'),
     armazenamento,
+    teste,
   };
 }
 

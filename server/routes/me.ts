@@ -22,7 +22,7 @@ import {
   type ResultadoDoEnvio,
 } from '../lib/conviteDoResponsavel'
 import { encerrarAssinatura } from '../lib/encerramentoDeAssinatura'
-import { getEntitlementsForUser, getPlanForUser } from '../lib/entitlements'
+import { getEntitlementsForUser, getPlanForUser, resolverPlano } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
 import { estadoDeProtecao, mascararEmail, validarNascimento } from '../lib/idade'
 import { log } from '../lib/logger'
@@ -466,7 +466,12 @@ meRouter.get('/entitlements', async (req, res) => {
     // Provisiona a conta no 1º acesso (idempotente) — assim o usuário aparece na gestão admin.
     // O convidado (Fase 7) NÃO vira conta: anônimo não entra na gestão admin nem ganha linha em `users`.
     if (!req.convidado) await usersRepo.ensure(req.userId)
-    const [entitlements, plano] = await Promise.all([getEntitlementsForUser(req.userId), getPlanForUser(req.userId)])
+    /* `resolverPlano` e não só o plano: o TESTE de 14 dias (C6) chega ao cliente com o fim dele, para
+       o aviso de D-3 e D0 (`fim_do_teste`) e a tela dizerem "teste até <data>" em vez de "Premium". */
+    const [entitlements, { plano, teste }] = await Promise.all([
+      getEntitlementsForUser(req.userId),
+      resolverPlano(req.userId),
+    ])
     const teto = capDeArmazenamento(plano)
     /*
      * F9-02: aqui é o chamador de `reconciliarArmazenamento`. É a rota por onde todo usuário ativo
@@ -476,7 +481,7 @@ meRouter.get('/entitlements', async (req, res) => {
      */
     const usados = Number.isFinite(teto) ? await reconciliarSeVencido(req.userId) : await usoDeArmazenamento(req.userId)
     // `Infinity` não sobrevive ao JSON (vira null); `null` diz "sem teto" de forma explícita.
-    res.json({ ...entitlements, armazenamento: { usados, teto: Number.isFinite(teto) ? teto : null } })
+    res.json({ ...entitlements, teste, armazenamento: { usados, teto: Number.isFinite(teto) ? teto : null } })
   } catch (err) {
     res.status(500).json({ error: erroDeRota(err, { status: 500, event: 'me_route_error' }) })
   }

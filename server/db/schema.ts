@@ -1111,3 +1111,41 @@ export const glossario = sqliteTable(
   },
   (t) => [uniqueIndex('uq_glossario_termo').on(t.userId, t.origem, t.destino, t.termoNorm)],
 )
+
+/**
+ * O TESTE DE 14 DIAS DO PREMIUM (C6 da change `planos-v2`, migração 0043). Uma linha por conta que
+ * testou: quando começou e quando termina. Enquanto `termina_em` estiver no futuro, o servidor
+ * concede o Premium nos entitlements (`resolverPlano`), mas a admissão da nuvem trata a conta como
+ * GRÁTIS (`planoDeAdmissao(..., teste = true)`) — quem ainda não paga não disputa a capacidade de quem
+ * paga.
+ *
+ * NÃO É `subscriptions` e NÃO REUSA `trialing`: `trialing` continua querendo dizer "checkout
+ * iniciado, não pago" (GAP-001), e misturar os dois faria um checkout abandonado virar teste (ou o
+ * teste virar "assinatura" na tela). Sem cartão, sem cobrança, sem renovação: nada aqui fala com o
+ * Asaas. É DADO DO TITULAR (`user_id`): sai com a exclusão da conta e entra na exportação.
+ */
+export const testesPremium = sqliteTable('testes_premium', {
+  userId: text('user_id').primaryKey(),
+  iniciadoEm: integer('iniciado_em').notNull(),
+  terminaEm: integer('termina_em').notNull(),
+})
+
+/**
+ * A MARCA DO TESTE (C6, migração 0043) — o que impede apagar a conta e criar outra para ganhar mais
+ * 14 dias. `marca` é o HMAC-SHA256 do e-mail NORMALIZADO com a chave de hash do servidor
+ * (`CHAVE_DE_HASH`, `server/lib/testePremium.ts`): não guarda o e-mail, não volta a ele sem o
+ * segredo, e NÃO tem `user_id` — por isso sobrevive à exclusão da conta, que é exatamente o objetivo.
+ *
+ * É dado PSEUDONIMIZADO (LGPD art. 13 §4º: continua dado pessoal para quem tem a chave), tratado por
+ * legítimo interesse (prevenir o abuso do benefício gratuito) e guardado por 730 dias, com poda
+ * diária (`podarMarcasDeTeste`). Fica fora de `TABELAS_DO_TITULAR` de propósito — documentado em
+ * `docs/lgpd/ropa.csv` (T12) e em `public/privacidade.html`.
+ */
+export const marcasDeTeste = sqliteTable(
+  'marcas_de_teste',
+  {
+    marca: text('marca').primaryKey(),
+    criadoEm: integer('criado_em').notNull(),
+  },
+  (t) => [index('idx_marcas_de_teste_criado').on(t.criadoEm)],
+)

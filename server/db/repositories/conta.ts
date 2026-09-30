@@ -35,6 +35,7 @@ import {
   sessions,
   settings,
   subscriptions,
+  testesPremium,
   usageCounters,
   userInterests,
   users,
@@ -104,6 +105,10 @@ const TABELAS_DO_TITULAR: ReadonlyArray<readonly [string, any]> = [
   /* D3 da Fase D: o glossário pessoal da Tradução Nuance (migração 0042) — as traduções que a pessoa
      fixou. Sem FOREIGN KEY para ninguém: a posição na lista não importa. */
   ['glossario', glossario],
+  /* C6: o teste de 14 dias do Premium (início e fim) é da conta e sai com ela. A MARCA do teste
+     (`marcas_de_teste`, o HMAC do e-mail) NÃO entra aqui de propósito: não tem `user_id` e existe
+     para sobreviver à exclusão — senão apagar e recriar a conta renovaria o teste. Ver o schema. */
+  ['testesPremium', testesPremium],
 ]
 
 /** Os nomes, para o teste de invariante e para quem precise listar sem tocar nas tabelas. */

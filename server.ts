@@ -412,6 +412,14 @@ async function startServer({ prepararDados = true } = {}) {
     console.log('[convidados] inativos há 30 dias removidos (limpeza diária)')
   }
 
+  /* RETENÇÃO DA MARCA DO TESTE DO PREMIUM (C6): o HMAC do e-mail sai 730 dias depois do teste (LGPD
+     art. 15 — sem finalidade depois disso). Mesmo processo e mesmo motivo das limpezas acima; só no
+     modo público, o único em que há teste. Ver `server/lib/testePremium.ts`. */
+  if (prepararDados && authRequired()) {
+    const { agendarPodaDasMarcasDeTeste } = await import('./server/lib/testePremium')
+    agendarPodaDasMarcasDeTeste()
+  }
+
   /* PODA DO CACHE DE TRADUÇÃO PERSISTENTE (L2, migração 0038): vencidas em 30 dias e, acima do teto,
      as menos usadas. Mesmo processo e mesmo motivo das limpezas acima; vale no self-host também,
      porque o cache existe onde houver chave de LLM. Ver `server/ai/cacheDeTraducao.ts`. */

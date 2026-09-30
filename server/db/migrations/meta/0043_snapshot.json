@@ -1,6 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
+  "id": "7a98fc37-b13f-44a9-9940-b9dbfbb9a7dc",
+  "prevId": "20fea04e-7e4b-45fc-977a-df52b24e9360",
   "tables": {
     "anki_decks": {
       "name": "anki_decks",
@@ -3450,17 +3452,79 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {}
+    },
+    "marcas_de_teste": {
+      "name": "marcas_de_teste",
+      "columns": {
+        "marca": {
+          "name": "marca",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "idx_marcas_de_teste_criado": {
+          "name": "idx_marcas_de_teste_criado",
+          "columns": [
+            "criado_em"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "testes_premium": {
+      "name": "testes_premium",
+      "columns": {
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "iniciado_em": {
+          "name": "iniciado_em",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "termina_em": {
+          "name": "termina_em",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
     }
   },
   "views": {},
   "enums": {},
   "_meta": {
+    "schemas": {},
     "tables": {},
     "columns": {}
   },
   "internal": {
     "indexes": {}
-  },
-  "id": "20fea04e-7e4b-45fc-977a-df52b24e9360",
-  "prevId": "a30c14f0-8a85-4620-8c42-ccc6b2d5c3b3"
+  }
 }

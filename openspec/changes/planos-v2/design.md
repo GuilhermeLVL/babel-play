@@ -118,6 +118,78 @@ portão do perfil protegido (C8), textos jurídicos (C9), o teto de 60 h (depois
 - **`/api/me/uso` ganha `hoje`**: `{ janela, fuso, segundosDeAudio, tokensDeLlm }` para plano com teto
   diário; `null` para os outros (nada é contado ali, e "0 usado hoje" seria mentira).
 
+### 5. Anual e 12x (C5)
+
+- **Três formas de pagar**, escolhidas no checkout e mandadas em `POST /api/billing/assinar` como
+  `{ ciclo, meio }` (ausentes = o mensal de sempre, para a aba com o bundle anterior):
+  - `mensal` + `assinatura` → `criarAssinatura(..., 'mensal')`, `cycle: MONTHLY`, R$ 19,90;
+  - `anual` + `assinatura` → `criarAssinatura(..., 'anual')`, `cycle: YEARLY`, R$ 179, `UNDEFINED` (Pix,
+    boleto ou cartão), renova em um ano;
+  - `anual` + `parcelamento` → `criarParcelamento`, `POST /payments` com `totalValue: 179`,
+    `installmentCount: 12` e `billingType: CREDIT_CARD` — **só no cartão** (fora dele cada parcela seria
+    uma cobrança avulsa que se deixa de pagar). Sem renovação automática.
+  - `pix_automatico` → **501 `pix_automatico_indisponivel`**: não há integração enquanto a conta do serviço
+    não for PJ elegível. `parcelamento` com `mensal` → 400.
+- A linha guarda **só o id do fluxo da tentativa** (`provider_subscription_id` OU `provider_installment_id`,
+  o outro nulo) e o `meio`; o cancelamento e as faturas perguntam ao Asaas por ele.
+- **Quem já paga não abre segunda cobrança**: linha do Asaas `active`/`past_due` com id do provedor →
+  **409 `ja_assinante`** (a assinatura antiga continuaria cobrando junto). A troca de ciclo é fluxo do C7.
+- **Webhook, ramo do parcelamento**: depois da conferência na API (GAP-011, que agora devolve também
+  `installment`, `installmentNumber` e `billingType`), `installment` presente e `subscription` ausente vai
+  para `aplicarParcela` — ANTES do ramo da compra avulsa. Confere que o valor é parcela do anual
+  (`planoPeloPagamento(valor, { parcelas: 12 })`), que é cartão (carnê → `nao-aplicado`, fila do admin) e se
+  o parcelamento é o registrado (divergente → aplica o que foi pago e escreve o motivo). O ano é o
+  **vencimento da 1ª parcela + 370 d**: a n-ésima parcela volta n − 1 meses (`vencimentoDaPrimeiraParcela`),
+  então as 12 confirmações do cartão dão o mesmo fim.
+- **Um pagamento nunca encurta o período já pago** (`periodoQueVale`, nos dois ramos): com um fim maior
+  ainda concedendo, ele e o ciclo dele ficam (motivo `periodo-mantido`). É o que impede a mensalidade de uma
+  assinatura antiga de derrubar o anual.
+- **`PAYMENT_REFUNDED` com `installment`** revoga o plano (antes cairia no estorno de créditos).
+- **Cancelar** (`encerramentoDeAssinatura.ts`, padrão do dono — **VALIDAR COM O JURÍDICO**):
+  - anual `YEARLY`: o caminho de sempre — em 7 dias estorna os R$ 179 e o acesso acaba; depois, para a
+    renovação e vale até o `nextDueDate` (um ano), **sem reembolso proporcional**;
+  - 12x: em 7 dias, **um** `POST /installments/{id}/refund` estorna o parcelamento inteiro (marca
+    `arrependimento:parcelamento:<id>`, reaplicável pela fila do admin), e parcela ainda pendente é removida
+    (`DELETE`, repetido uma vez — a sondagem viu 500 e depois 200); depois dos 7 dias **nenhuma escrita no
+    Asaas**: a linha fica `canceled` com `cancel_at_period_end = 1`, o ano vale até o fim e as parcelas
+    seguem no cartão, sem reembolso proporcional.
+- `/status` ganha `assinatura.renovacaoAutomatica` (só assinatura ativa); o 12x não tem `proximaCobranca`.
+  `/faturas` do 12x lista as parcelas do parcelamento.
+
+### 6. Teste de 14 dias sem cartão (C6)
+
+- **Um toque**: `POST /api/billing/teste` (corpo vazio, ou `{ paraUsuario }` do responsável). Sem nome, CPF
+  nem cartão, e **nenhuma chamada ao Asaas** — não há o que cobrar, nem no fim. Dura `DIAS_DO_TESTE_PREMIUM`
+  (14) dias; depois `resolverPlano` deixa de ver o teste e a conta volta ao Grátis sozinha. O 2º toque devolve
+  o mesmo teste (`jaEstavaAtivo`).
+- **Onde mora**: `testes_premium` (`user_id`, `iniciado_em`, `termina_em`) — dado do titular, em
+  `TABELAS_DO_TITULAR`. **Não** é `subscriptions` e não reusa `trialing` (que continua "checkout iniciado").
+- **Um por pessoa**: `marcas_de_teste` guarda o HMAC-SHA256 (chave `CHAVE_DE_HASH`) do e-mail do token
+  normalizado (caixa baixa, sem `+etiqueta`, sem os pontos do Gmail/googlemail), **sem `user_id`**: sobrevive à
+  exclusão da conta, então apagar e recriar não renova. Início = marca + teste numa transação (a PK da marca
+  decide a corrida). Retenção de 730 dias com poda diária (`agendarPodaDasMarcasDeTeste`, em `server.ts`).
+  Trocar a `SECRET_KEY` invalida as marcas (preço aceito de não guardar o e-mail).
+- **Entitlements**: `resolverPlano(userId) → { plano, teste }` — assinatura que concede > teste ativo > free.
+  `/api/me/entitlements` ganha `teste: { terminaEm } | null`; `abrirPortaGratuita` devolve `teste`, e STT,
+  tradução e tutor chamam `planoDeAdmissao(plano, alivio, teste)` → **faixa `gratis`** na admissão. As cotas
+  são as do Premium (2 h/dia, 40 h/mês).
+- **Recusas**, na ordem: self-host 409 `teste_indisponivel` · convidado 403 `exige_conta` · venda pausada 503
+  `checkout_desligado` · sem idade 403 `idade_nao_informada` · **menor 403 `teste_pelo_responsavel`** ("peça ao
+  seu responsável") · `paraUsuario` sem vínculo 403 `sem_vinculo` · a conta já testou 409 `teste_ja_usado` ·
+  já assinou o Premium (qualquer status fora `trialing`) 409 `ja_assinante` · sem e-mail no token 409
+  `teste_sem_email` · a marca já testou 409 `teste_ja_usado`.
+- **Menor**: o responsável vinculado ativa pela conta dele; a marca é a do e-mail do **responsável**, no espaço
+  `responsavel` (não gasta o teste da própria conta dele). Consequência: **um teste por responsável** para as
+  contas vinculadas (decisão pendente do dono — ver abaixo).
+- **`/api/billing/status`** ganha `teste: { estado: 'disponivel' | 'ativo' | 'usado' | 'indisponivel', dias,
+  iniciadoEm?, terminaEm?, motivo? }` — a tela só oferece o toque a quem o servidor deixaria começar.
+- **Ofertas**: momento FUNCIONAL `fim_do_teste` com `fase` `d3`/`d0` (dias de calendário do aparelho até o
+  último dia), gatilhos embutidos `funcional_fim_do_teste_d3`/`_d0` (banner, uma vez por fase, só `premium`),
+  disparado pelo host só quando os entitlements trazem `teste`. O botão abre Planos **sem destaque de venda**.
+- **Pendências do dono**: um teste por responsável (ou por menor)?; o custo do teste nas cotas do Premium
+  (até ~28 h em 14 dias, ~US$ 2,2 no pior caso típico) e o rótulo `teste` nas métricas de custo; o texto
+  jurídico do teste nos Termos (C9).
+
 ## Sondagem do Asaas (sandbox, 29–30/09/2026)
 
 Script de sondagem fora do repositório; chave lida do `.env.local` pelo processo, nunca impressa; cliente de

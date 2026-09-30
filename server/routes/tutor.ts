@@ -131,10 +131,12 @@ async function conversar(req: Request, res: Response, rastro: RastroDeIa): Promi
       })
       if (custo.degradacao !== 'nenhuma') rastro.anotar({ degradacao: custo.degradacao })
       /* ADMISSÃO antes da cota: sem saldo, o hospedado responde 429 `nuvem_ocupada` (o cliente
-         tenta de novo depois do `Retry-After`); o self-host cai no Ollama, como com o portão fechado. */
+         tenta de novo depois do `Retry-After`); o self-host cai no Ollama, como com o portão fechado.
+         O teste de 14 dias (C6) tem o Premium nos entitlements, mas entra na faixa grátis. */
+      const faixa = planoDeAdmissao(plano.plan, false, gratuita.teste === true)
       const admitida =
         provedores.length > 0 && portao.ok
-          ? admitirCascata(custo.pernas, { userId: req.userId, plano: planoDeAdmissao(plano.plan), tokens: estimativa })
+          ? admitirCascata(custo.pernas, { userId: req.userId, plano: faixa, tokens: estimativa })
           : null
       if (admitida && admitida.ok === false && !selfHost) {
         responderNuvemOcupada(res, admitida.recusa)

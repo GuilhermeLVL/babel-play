@@ -136,7 +136,8 @@ async function abrirPortaDoStt(req: Request, res: Response): Promise<PortaDoStt 
     res.status(501).json({ error: 'STT de nuvem não configurado: defina GROQ_API_KEY no servidor (.env)' })
     return null
   }
-  const faixa = planoDeAdmissao(plano.plan, alivio)
+  // O teste de 14 dias (C6) tem o Premium nos entitlements, mas entra na faixa grátis.
+  const faixa = planoDeAdmissao(plano.plan, alivio, gratuita.teste === true)
   const admissao = admitirStt(pernas, { userId: req.userId, plano: faixa })
   if (admissao.ok === false) {
     responderNuvemOcupada(res, admissao.recusa)

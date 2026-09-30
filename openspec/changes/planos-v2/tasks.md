@@ -41,20 +41,24 @@
 - [x] 4.3 Cliente: `PausaDaNuvem` pausa, aviso funcional via i18n, nenhum momento de oferta
 - [x] 4.4 `/api/me/uso` com `hoje`
 
-## C5 — Anual e 12x (depois)
+## C5 — Anual e 12x (branch `feat/c-anual-e-teste`)
 
-- [ ] 5.1 `criarAssinatura(..., ciclo)` com `YEARLY`; `criarParcelamento` (12x só com `CREDIT_CARD` — ver a sondagem)
-- [ ] 5.2 Webhook: ramo do parcelamento (`installment` presente, `subscription` ausente), `provider_installment_id`
-- [ ] 5.3 Período: mensal = vencimento + 35 d; anual e 12x = vencimento + 370 d
-- [ ] 5.4 Reembolso de 7 dias cobre o anual e o parcelamento inteiro (`encerramentoDeAssinatura.ts`)
-- [ ] 5.5 Anual depois de 7 dias: cancela a renovação, mantém até o fim, sem reembolso proporcional (jurídico)
-- [ ] 5.6 Pix Automático atrás de flag (conta PJ elegível)
+- [x] 5.1 `criarAssinatura(..., ciclo)` com `YEARLY`; `criarParcelamento` (12x só com `CREDIT_CARD` — ver a sondagem)
+- [x] 5.2 Webhook: ramo do parcelamento (`installment` presente, `subscription` ausente), `provider_installment_id`
+- [x] 5.3 Período: mensal = vencimento + 35 d; anual e 12x = vencimento + 370 d (o 12x ancorado na 1ª parcela)
+- [x] 5.4 Reembolso de 7 dias cobre o anual e o parcelamento inteiro (`encerramentoDeAssinatura.ts`)
+- [x] 5.5 Anual depois de 7 dias: cancela a renovação, mantém até o fim, sem reembolso proporcional (jurídico)
+- [x] 5.6 Pix Automático: NÃO integrado — `/assinar` com `meio: 'pix_automatico'` responde 501
+      `pix_automatico_indisponivel` até a conta PJ ser elegível (a flag entra com a integração)
+- [x] 5.7 Checkout: Mensal / Anual em uma vez / Anual em 12x no cartão, com `ciclo` e `meio` no pedido
 
-## C6 — Teste de 14 dias sem cartão (depois)
+## C6 — Teste de 14 dias sem cartão (branch `feat/c-anual-e-teste`)
 
-- [ ] 6.1 Tabela `testes_premium` (não reusa `trialing`) e `marcas_de_teste` (HMAC do e-mail)
-- [ ] 6.2 Começa com um toque; `fim_do_teste` em D-3 e D0; nunca cobra sozinho; menor: "peça ao responsável"
-- [ ] 6.3 `planoDeAdmissao(plano, alivio, teste = true)` → faixa `gratis`
+- [x] 6.1 Tabela `testes_premium` (não reusa `trialing`) e `marcas_de_teste` (HMAC do e-mail) — migração 0043
+- [x] 6.2 Começa com um toque (`POST /api/billing/teste`); `fim_do_teste` em D-3 e D0; nunca cobra sozinho;
+      menor: "peça ao responsável" (o responsável vinculado ativa com `paraUsuario`)
+- [x] 6.3 `planoDeAdmissao(plano, alivio, teste = true)` → faixa `gratis` (STT, tradução e tutor)
+- [x] 6.4 LGPD: `docs/lgpd/ropa.csv` (T12) e `public/privacidade.html` — a marca, a finalidade e os 730 dias
 
 ## C7 — Tela de Planos nova (depois)
 

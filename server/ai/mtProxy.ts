@@ -4,10 +4,14 @@ import type { Request, Response } from 'express'
 import { z } from 'zod'
 
 import {
+  type OpcoesDaNuance,
+  REGISTROS_DA_TRADUCAO,
   systemComunicativo,
   systemTextoEscrito,
   userComunicativo,
   userTextoEscrito,
+  type VarianteDaTraducao,
+  VARIANTES_DA_TRADUCAO,
 } from '../../src/lib/traducao/promptComunicativo'
 import { contarCacheDeTraducao, contarNivelDoCacheDeTraducao } from '../http/metricas'
 import { abrirPortaGratuita, type PortaGratuita } from '../lib/convidado'
@@ -23,6 +27,7 @@ import { type AdmissaoDaCascata, admitirCascata, encerrarAdmissao, percorrerCasc
 import { FUNCOES_DE_IA, maxTokensDaTraducao } from './funcoesDeIa'
 import { type MensagemDeChat, tamanhoDoPrompt } from './llmClient'
 import { cascataDaTraducao } from './niveis'
+import { aplicarNuance } from './nuanceDaTraducao'
 import { aplicarPoliticaDeCusto } from './politicaDeCusto'
 import type { Provedor } from './provedores'
 import { abrirReservaDeLlm, type ReservaDeLlm } from './reservaDeNuvem'
@@ -81,6 +86,12 @@ const bodySchema = z
      * blocos, e aqui seria só um jeito de pedir o modelo mais caro frase a frase.
      */
     nivel: z.enum(['rapida', 'nuance']).optional(),
+    /**
+     * O REGISTRO e a VARIANTE da Tradução Nuance (D2). Pedidos, como o nível: sem `traducaoNuance`, o
+     * servidor os ignora (`aplicarNuance`). A lista fechada é a da tela; outra variante é 400.
+     */
+    registro: z.enum(REGISTROS_DA_TRADUCAO).optional(),
+    variante: z.enum(Object.keys(VARIANTES_DA_TRADUCAO) as [VarianteDaTraducao, ...VarianteDaTraducao[]]).optional(),
   })
   .strip()
 
@@ -91,9 +102,9 @@ const bodySchema = z
  * `system` diz que o que está dentro é dado. O texto dos dois prompts mora em
  * `src/lib/traducao/promptComunicativo.ts`, com o fixo na frente para o cache de prompt acertar.
  */
-function mensagensDeTextoEscrito(text: string, tgt: string, src?: string): MensagemDeChat[] {
+function mensagensDeTextoEscrito(text: string, tgt: string, src?: string, opcoes?: OpcoesDaNuance): MensagemDeChat[] {
   return [
-    { role: 'system', content: systemTextoEscrito(tgt, src) },
+    { role: 'system', content: systemTextoEscrito(tgt, src, opcoes) },
     { role: 'user', content: userTextoEscrito(text) },
   ]
 }
@@ -139,7 +150,7 @@ async function traduzir(req: Request, res: Response, rastro: RastroDeIa): Promis
     res.status(400).json({ error: 'payload inválido: text/tgt obrigatórios' })
     return
   }
-  const { text, src, tgt, falada, contexto, nivel: nivelPedido } = parsed.data
+  const { text, src, tgt, falada, contexto, nivel: nivelPedido, registro, variante } = parsed.data
   rastro.anotar({ parDeIdiomas: `${codigoDeIdioma(src)}-${codigoDeIdioma(tgt)}` })
 
   // SaaS Fatia 1b — este proxy é 100% nuvem GERENCIADA (chave do dono). Exige o entitlement; a cadeia
@@ -179,14 +190,19 @@ async function traduzir(req: Request, res: Response, rastro: RastroDeIa): Promis
   }
   rastro.anotar({ nivel })
 
+  /* O REGISTRO E A VARIANTE (D2): só para quem tem `traducaoNuance`; o resto recebe o prompt de
+     sempre, e por isso a chave de sempre (`nuanceDaTraducao.ts`). */
+  const nuance = aplicarNuance({ tgt, src, registro, variante }, planoDoUsuario)
+  const opcoesDaNuance: OpcoesDaNuance = nuance.registro ? { registro: nuance.registro } : {}
+
   /* CACHE ANTES DE TUDO QUE CUSTA (cacheDeTraducao.ts): a mesma frase, no mesmo par, pelo mesmo
      modelo, não vai ao provedor de novo — nem gasta cota do usuário, porque não custa nada a ninguém.
      A LEITURA usa o modelo PLANEJADO (o primeiro da cascata do nível), que é o que o plano promete; a
      GRAVAÇÃO, o que de fato respondeu (ver `guardarTraducao` lá embaixo). Dois níveis: memória do
      processo (L1) e SQLite (L2, só frase curta, sem nada de quem pediu). O NÍVEL não entra na chave:
      hoje ele muda só o modelo, e o modelo já está nela — com ele, a rápida e a nuance servidas pelo
-     MESMO modelo (o legado inteiro) dividiriam o cache em dois por nada. Quando um nível mudar o
-     prompt (Fase D), a versão do prompt ou o `registro` da consulta separam. */
+     MESMO modelo (o legado inteiro) dividiriam o cache em dois por nada. O que a Nuance muda no prompt
+     (registro, variante — D2) entra pelo `registro` da consulta; sem ele, a chave é a de antes. */
   const consulta: ConsultaDeTraducao = {
     texto: text,
     src,
@@ -195,6 +211,7 @@ async function traduzir(req: Request, res: Response, rastro: RastroDeIa): Promis
     contexto,
     modelo: provedores[0].model,
     versaoDoPrompt: VERSAO_DO_PROMPT,
+    ...(nuance.chave ? { registro: nuance.chave } : {}),
   }
   const cacheavel = cabeNoCache(text)
   const leitura = await lerTraducao(consulta)
@@ -227,10 +244,10 @@ async function traduzir(req: Request, res: Response, rastro: RastroDeIa): Promis
      texto do usuário vai delimitado como DADO. */
   const messages: MensagemDeChat[] = falada
     ? [
-        { role: 'system', content: systemComunicativo(tgt, src) },
+        { role: 'system', content: systemComunicativo(nuance.tgt, nuance.src, opcoesDaNuance) },
         { role: 'user', content: userComunicativo(text, contexto) },
       ]
-    : mensagensDeTextoEscrito(text, tgt, src)
+    : mensagensDeTextoEscrito(text, nuance.tgt, nuance.src, opcoesDaNuance)
 
   /* `max_tokens` PROPORCIONAL À FONTE (`maxTokensDaTraducao`): uma fala de 60 caracteres não
      reserva mais o teto de um parágrafo. A folga para o raciocínio "low" está lá explicada. */

@@ -1,7 +1,7 @@
 /**
  * FASE F — O NÚCLEO DE IA CHAMADO DIRETO, SEM EXPRESS.
  *
- * As rotas do app (`/api/ai/mt`, `/mt/alternativas`, `/mt/polir`, `/tts`, `/stt`) viraram adaptadores
+ * As rotas do app (`/api/ai/mt`, `/mt/alternativas`, `/mt/polir`, `/tts`, `/stt`, `/api/tutor/chat`) viraram adaptadores
  * finos de funções que recebem um CONTEXTO (quem pede, já resolvido) e devolvem um RESULTADO tipado.
  * Os testes de rota continuam sendo a rede do comportamento de hoje; estes provam o que a Fase F
  * promete à API `/v1` e ao MCP: a mesma função, chamada sem `req` nem `res`, entrega e recusa com os
@@ -49,10 +49,10 @@ let nucleoAlt: typeof import('../../server/ai/nucleo/sugerirAlternativas')
 let nucleoPolir: typeof import('../../server/ai/nucleo/polirLote')
 let nucleoVoz: typeof import('../../server/ai/nucleo/sintetizarVoz')
 let nucleoStt: typeof import('../../server/ai/nucleo/transcrever')
+let nucleoTutor: typeof import('../../server/ai/nucleo/conversarComTutor')
 let contexto: typeof import('../../server/ai/nucleo/contexto')
 let recusa: typeof import('../../server/ai/nucleo/recusa')
 let resposta: typeof import('../../server/ai/respostaDoNucleo')
-let admissao: typeof import('../../server/ai/admissao')
 let orcamento: typeof import('../../server/lib/orcamentoDeIa')
 let cache: typeof import('../../server/ai/cacheDeTraducao')
 let getEntitlements: (plano: string) => any
@@ -113,10 +113,10 @@ beforeAll(async () => {
   nucleoPolir = await h.load('../../server/ai/nucleo/polirLote')
   nucleoVoz = await h.load('../../server/ai/nucleo/sintetizarVoz')
   nucleoStt = await h.load('../../server/ai/nucleo/transcrever')
+  nucleoTutor = await h.load('../../server/ai/nucleo/conversarComTutor')
   contexto = await h.load('../../server/ai/nucleo/contexto')
   recusa = await h.load('../../server/ai/nucleo/recusa')
   resposta = await h.load('../../server/ai/respostaDoNucleo')
-  admissao = await h.load('../../server/ai/admissao')
   orcamento = await h.load('../../server/lib/orcamentoDeIa')
   cache = await h.load('../../server/ai/cacheDeTraducao')
   ;({ getEntitlements } = await h.load<any>('../../server/lib/entitlements'))
@@ -140,15 +140,19 @@ afterEach(() => {
 })
 
 describe('o contrato do núcleo', () => {
-  it('a recusa de nuvem ocupada é a mesma resposta de `responderNuvemOcupada` (o tutor ainda a usa)', () => {
+  it('a recusa de nuvem ocupada é o 429 de sempre: `Retry-After`, texto, código e detalhes', () => {
     const r = { motivo: 'minuto' as const, retryAfterS: 7 }
-    const velha = mockRes()
-    admissao.responderNuvemOcupada(velha, r)
-    const nova = mockRes()
-    resposta.responderRecusa(nova, recusa.recusaNuvemOcupada(r))
-    expect(nova.statusCode).toBe(velha.statusCode)
-    expect(nova.headers).toEqual(velha.headers)
-    expect(JSON.stringify(nova.body)).toBe(JSON.stringify(velha.body))
+    const res = mockRes()
+    resposta.responderRecusa(res, recusa.recusaNuvemOcupada(r))
+    expect(res.statusCode).toBe(429)
+    expect(res.headers).toEqual({ 'retry-after': '7' })
+    expect(JSON.stringify(res.body)).toBe(
+      JSON.stringify({
+        error: 'A nuvem está cheia agora; o app segue com o motor local e volta à nuvem sozinho.',
+        code: 'nuvem_ocupada',
+        detalhes: { motivo: 'minuto', retryAfter: 7 },
+      }),
+    )
     expect(recusa.recusaNuvemOcupada(r)).toMatchObject({ status: 429, code: 'nuvem_ocupada', retryAfterS: 7 })
   })
 
@@ -172,6 +176,82 @@ describe('o contrato do núcleo', () => {
         code: 'perfil_protegido',
       })
     }
+  })
+})
+
+describe('conversarComTutor', () => {
+  const PERGUNTA = { messages: [{ role: 'user', content: 'o que é leverage?' }] }
+
+  it('lê o corpo cru: função desconhecida é o 400 de sempre; válido diz a função', () => {
+    expect(nucleoTutor.lerPedidoDoTutor({ funcao: 'pirata', messages: [] })).toMatchObject({
+      ok: false,
+      status: 400,
+      code: 'funcao_desconhecida',
+      corpo: { error: 'função de IA desconhecida', code: 'funcao_desconhecida' },
+    })
+    const ok = nucleoTutor.lerPedidoDoTutor(PERGUNTA)
+    expect(ok).toMatchObject({ ok: true, pedido: { funcao: 'tutor' } })
+  })
+
+  it('entrega a resposta da nuvem, soma o custo na franquia e decide uma vez', async () => {
+    const chamadas = provedorDeChat(() => ({ texto: '**leverage** é alavancar.' }))
+    const registrarCusto = vi.fn(async (_usd: number) => {})
+    const aoDecidir = vi.fn()
+    const lido = nucleoTutor.lerPedidoDoTutor(PERGUNTA)
+    if (lido.ok === false) throw new Error('pedido inválido')
+    const r = await nucleoTutor.conversarComTutor(ctx('premium', { registrarCusto }), lido.pedido, { aoDecidir })
+    expect(r).toEqual({ ok: true, texto: '**leverage** é alavancar.', motor: 'nuvem' })
+    expect(chamadas).toEqual([RAPIDA])
+    expect(aoDecidir).toHaveBeenCalledTimes(1)
+    expect(aoDecidir.mock.calls[0][0]).toBe(r)
+    expect(registrarCusto).toHaveBeenCalledTimes(1)
+    expect(registrarCusto.mock.calls[0][0]).toBeGreaterThan(0)
+  })
+
+  it('self-host: a nuvem fora cai no Ollama; o Ollama fora também é "sem modelo local", sem custo', async () => {
+    const chamadas: string[] = []
+    let ollamaResponde = true
+    vi.stubGlobal('fetch', async (u: unknown) => {
+      chamadas.push(String(u))
+      if (String(u).includes('11434') && ollamaResponde)
+        return new Response(JSON.stringify({ choices: [{ message: { content: 'resposta local' } }] }), { status: 200 })
+      return new Response('caiu', { status: 500 })
+    })
+    const registrarCusto = vi.fn(async (_usd: number) => {})
+    const lido = nucleoTutor.lerPedidoDoTutor(PERGUNTA)
+    if (lido.ok === false) throw new Error('pedido inválido')
+
+    const local = await nucleoTutor.conversarComTutor(ctx('premium', { registrarCusto }), lido.pedido)
+    expect(local).toEqual({ ok: true, texto: 'resposta local', motor: 'ollama' })
+    expect(chamadas.some((u) => u.includes('deepinfra'))).toBe(true)
+
+    ollamaResponde = false
+    const nada = await nucleoTutor.conversarComTutor(ctx('premium', { registrarCusto }), lido.pedido)
+    expect(nada).toEqual({ ok: true, texto: null, motor: null, indisponivel: 'no_local_model' })
+    expect(registrarCusto).not.toHaveBeenCalled()
+  })
+
+  it('hospedado, plano sem nuvem: explica o plano, sem provedor nem Ollama', async () => {
+    process.env.AUTH_REQUIRED = '1'
+    try {
+      const chamadas = provedorDeChat(() => ({ texto: 'não deveria' }))
+      const lido = nucleoTutor.lerPedidoDoTutor(PERGUNTA)
+      if (lido.ok === false) throw new Error('pedido inválido')
+      const r = await nucleoTutor.conversarComTutor(ctx('free'), lido.pedido)
+      expect(r).toEqual({ ok: true, texto: null, motor: null, indisponivel: 'managed_requires_plan' })
+      expect(chamadas).toHaveLength(0)
+    } finally {
+      delete process.env.AUTH_REQUIRED
+    }
+  })
+
+  it('pela API, o perfil protegido é recusado antes de tudo', async () => {
+    const chamadas = provedorDeChat(() => ({ texto: 'oi' }))
+    const lido = nucleoTutor.lerPedidoDoTutor(PERGUNTA)
+    if (lido.ok === false) throw new Error('pedido inválido')
+    const r = await nucleoTutor.conversarComTutor(ctx('premium', { canal: 'mcp', perfilProtegido: true }), lido.pedido)
+    expect(r).toMatchObject({ ok: false, status: 403, code: 'perfil_protegido' })
+    expect(chamadas).toHaveLength(0)
   })
 })
 

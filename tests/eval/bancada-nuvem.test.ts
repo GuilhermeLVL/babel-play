@@ -314,10 +314,11 @@ describe('deriva contra a produção', () => {
     expect(fonte).toContain('timeoutMs: 12_000')
     expect(TIMEOUT_DE_PRODUCAO_MS).toBe(12_000)
   })
-  it('sttProxy.ts: temperatura 0 e verbose_json', () => {
-    const fonte = readFileSync('server/ai/sttProxy.ts', 'utf8')
+  /* Desde o B6 o pedido de STT é montado na cascata (uma perna por provedor), não no proxy. */
+  it('cascataDeStt.ts: temperatura 0 e verbose_json', () => {
+    const fonte = readFileSync('server/ai/cascataDeStt.ts', 'utf8')
     expect(fonte).toContain("f.append('temperature', '0')")
-    expect(fonte).toContain("f.append('response_format', formato)")
+    expect(fonte).toContain("f.append('response_format', o.formato)")
     expect(fonte).toContain("enviar('verbose_json')")
   })
 })

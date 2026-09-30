@@ -61,6 +61,7 @@ import MobileNav from './components/shell/MobileNav';
 import MobileTopBar from './components/shell/MobileTopBar';
 import StudioHeader from './components/StudioHeader';
 import Toaster from './components/Toast';
+import Vazio from './components/ui/Vazio';
 import { carregarProtecao, fetchSessions } from './data/api';
 import { lerTokenDoConvite } from './lib/conviteNaUrl';
 import { edicaoEstatica } from './lib/edicaoEstatica';
@@ -88,6 +89,7 @@ import {
   estadoDaProtecao,
   type EstadoDeProtecao,
 } from './lib/protecaoDoMenor';
+import { sessaoAberta } from './lib/sessaoAberta';
 import { play } from './lib/soundFx';
 import { authRequired } from './lib/supabase';
 import { Recording, ViewType } from './types';
@@ -188,10 +190,14 @@ export default function App() {
   // Fase 2: carrega as sessões reais do backend (substitui o mockData seed). Recarrega quando a
   // conta passa a (ou deixa de) depender do responsável: os dados trocam entre nuvem e aparelho.
   const restrita = !!protecao?.restrita;
+  /* A lista já respondeu? Até lá, `/sessao/<id>` aberto direto numa aba nova espera por ela
+     (`sessaoAberta`), em vez de montar a Análise sem gravação. */
+  const [gravacoesCarregadas, setGravacoesCarregadas] = useState(false);
   useEffect(() => {
     fetchSessions()
       .then(setRecordings)
-      .catch(() => setRecordings([]));
+      .catch(() => setRecordings([]))
+      .finally(() => setGravacoesCarregadas(true));
   }, [restrita]);
 
   const { metrics, recordes, progress, missoes, setVersaoDasMetricas } = useMetricas(recordings.length);
@@ -285,6 +291,11 @@ export default function App() {
   };
 
   const selectedRecording = recordings.find((r) => r.id === selectedRecordingId) || recordings[0];
+  const analiseAberta = sessaoAberta({
+    carregadas: gravacoesCarregadas,
+    gravacoes: recordings,
+    id: selectedRecordingId,
+  });
 
   // Map sub tabs like reading and study to distinct views for precise iChat context matching
   const mappedActiveViewForChat =
@@ -575,10 +586,32 @@ export default function App() {
                 toggleSound={toggleSound}
               />
             )}
-            {activeView === 'analysis' && !anonimo && (
+            {activeView === 'analysis' && !anonimo && analiseAberta.tipo === 'carregando' && (
+              <div className="flex flex-1 items-center justify-center p-10 text-ink-muted text-sm" role="status">
+                {t('Carregando…')}
+              </div>
+            )}
+            {activeView === 'analysis' &&
+              !anonimo &&
+              (analiseAberta.tipo === 'nao-encontrada' || analiseAberta.tipo === 'vazia') && (
+                <div className="tela">
+                  <Vazio
+                    titulo={
+                      analiseAberta.tipo === 'vazia' ? t('Nenhuma sessão ainda') : t('Não encontramos esta sessão')
+                    }
+                    explicacao={
+                      analiseAberta.tipo === 'vazia'
+                        ? t('Capture uma aula, um vídeo ou uma conversa, e a análise aparece aqui.')
+                        : t('Ela pode ter sido apagada, ou ser de outra conta. As suas sessões estão na Biblioteca.')
+                    }
+                    acao={{ rotulo: t('Ir para a Biblioteca'), aoClicar: () => navigateTo('library') }}
+                  />
+                </div>
+              )}
+            {activeView === 'analysis' && !anonimo && analiseAberta.tipo === 'sessao' && (
               <Analysis
                 onChangeView={navigateTo}
-                recording={selectedRecording}
+                recording={analiseAberta.gravacao}
                 allRecordings={recordings}
                 subTab={analysisSubTab}
                 onSubTabChange={setAnalysisSubTab}

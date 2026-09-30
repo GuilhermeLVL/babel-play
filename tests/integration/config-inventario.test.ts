@@ -19,9 +19,9 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
-import { VARIAVEIS,VARIAVEIS_POR_PLANO } from '../../server/lib/config'
+import { VARIAVEIS, VARIAVEIS_DE_CHAVE_DE_IA, VARIAVEIS_POR_PLANO } from '../../server/lib/config'
 
 /** Arquivos de servidor. `server.ts` entra porque é onde metade das leituras acontece. */
 function arquivosDeServidor(dir = 'server', fora: string[] = []): string[] {
@@ -79,12 +79,13 @@ function variaveisLidas(): Map<string, string[]> {
  * lugar nenhum. Agora ela vem de `VARIAVEIS_POR_PLANO`, gerada da `PLAN_MATRIX` (ADR 0005): um
  * plano novo declara as suas três variáveis no mesmo commit em que nasce.
  */
-const MONTADAS_EM_RUNTIME = VARIAVEIS_POR_PLANO.map((v) => v.nome)
+/* B1 (Fase B): o registro de provedores lê a chave pelo NOME que o JSON declara (`env[p.chave]`) —
+   `DEEPINFRA_API_KEY`, `CLOUDFLARE_*`, `CEREBRAS_API_KEY` são montadas do mesmo jeito. */
+const MONTADAS_EM_RUNTIME = [...VARIAVEIS_POR_PLANO.map((v) => v.nome), ...VARIAVEIS_DE_CHAVE_DE_IA]
 
 const declaradas = new Set(VARIAVEIS.map((v) => v.nome))
 
 describe('inventário de configuração', () => {
-
   it('toda variável lida pelo servidor está declarada', () => {
     const lidas = variaveisLidas()
     const faltando = [...lidas.entries()]
@@ -110,7 +111,9 @@ describe('inventário de configuração', () => {
   it('as variáveis por plano cobrem TODOS os planos, não só os pagos', () => {
     // O defeito que isto fecha: `FREE_STORAGE_MB` era lido e não declarado.
     for (const plano of ['free', 'essencial', 'pro', 'selfhost']) {
-      expect(declaradas.has(`${plano.toUpperCase()}_STORAGE_MB`), `${plano} sem teto de armazenamento declarado`).toBe(true)
+      expect(declaradas.has(`${plano.toUpperCase()}_STORAGE_MB`), `${plano} sem teto de armazenamento declarado`).toBe(
+        true,
+      )
     }
   })
 
@@ -139,6 +142,8 @@ describe('.env.example acompanha o inventário', () => {
 
   it('não inventa variável que o código não conhece', () => {
     const desconhecidas = [...nomesNoExemplo].filter((n) => !declaradas.has(n) && !n.startsWith('VITE_'))
-    expect(desconhecidas, 'variável no exemplo que o servidor não lê: ou foi removida, ou está com outro nome').toEqual([])
+    expect(desconhecidas, 'variável no exemplo que o servidor não lê: ou foi removida, ou está com outro nome').toEqual(
+      [],
+    )
   })
 })

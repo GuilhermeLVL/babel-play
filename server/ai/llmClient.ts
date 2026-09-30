@@ -24,6 +24,12 @@
  * quebrou. O resultado carrega a causa em texto, que é o que vai para o log e para a decisão.
  */
 import { segundosDoRetryAfter } from './admissao'
+import {
+  ehBaseDoOpenRouter,
+  PROVEDORES_DO_GOOGLE_NO_OPENROUTER,
+  ROTEAMENTO_OPENROUTER,
+  type RoteamentoOpenRouter,
+} from './registroDeProvedores'
 
 export interface MensagemDeChat {
   role: 'system' | 'user' | 'assistant'
@@ -38,6 +44,8 @@ export interface PedidoDeChat {
   temperature?: number
   maxTokens?: number
   timeoutMs?: number
+  /** O `provider` do OpenRouter que o registro declarou para esta perna (sempre endurecido aqui). */
+  roteamento?: RoteamentoOpenRouter
 }
 
 /**
@@ -105,12 +113,18 @@ export const TIMEOUT_PADRAO_MS = 30_000
  *   - qualquer outro OpenAI-compatible (Ollama, BYOK): só `reasoning_effort`, que é o parâmetro da
  *     própria API da OpenAI. `include_reasoning` é extensão da Groq e um provedor estrito recusaria.
  *
- * RETENÇÃO. No OpenRouter a requisição vai com `provider: { zdr: true }` SEMPRE, qualquer que seja
+ * RETENÇÃO. No OpenRouter a requisição vai com `provider` de retenção zero SEMPRE, qualquer que seja
  * o modelo: o OpenRouter é um roteador, e sem isso a fala do usuário pode cair num provedor que
- * guarda o prompt. O app é aberto a menores (LGPD art. 14); retenção zero não é opcional.
+ * guarda o prompt. O app é aberto a menores (LGPD art. 14); retenção zero não é opcional. Desde o B1
+ * da Fase B o mínimo é `{ data_collection: 'deny', zdr: true, ignore: ['google-ai-studio',
+ * 'google-vertex'] }` (docs do OpenRouter, "Provider Routing", 29/09/2026): nem o provedor que coleta
+ * dados, nem o Google — o Gemini é proibido para menores, e o `ignore` fecha a porta mesmo que um
+ * modelo aberto passe a ser servido por lá. O roteamento DECLARADO no registro pode acrescentar
+ * (`only`, `order`, mais `ignore`), nunca afrouxar: `roteamentoEndurecido` reimpõe o mínimo.
  *
- * O provedor é reconhecido pelo HOST da base, não pelo rótulo: a reserva configurada por
- * `LLM_RESERVA_*` pode apontar para o OpenRouter sem usar o atalho `OPENROUTER_API_KEY`.
+ * O provedor é reconhecido pela BASE, não pelo rótulo: a reserva configurada por `LLM_RESERVA_*`
+ * pode apontar para o OpenRouter sem usar o atalho `OPENROUTER_API_KEY` — e, desde o B1, também
+ * pelo AI Gateway da Cloudflare (`ehBaseDoOpenRouter`).
  */
 function hostDe(base: string): string {
   try {
@@ -120,11 +134,33 @@ function hostDe(base: string): string {
   }
 }
 
-export function parametrosDoProvedor(base: string, model: string): Record<string, unknown> {
+/** O roteamento que vai no pedido: o declarado, com o mínimo de retenção zero e sem o Google reimposto. */
+function roteamentoEndurecido(declarado?: RoteamentoOpenRouter): RoteamentoOpenRouter {
+  const r = declarado ?? ROTEAMENTO_OPENROUTER
+  const semGoogle = (l: string[]) => l.filter((s) => !/^google/i.test(s))
+  return {
+    ...r,
+    ...(r.only ? { only: semGoogle(r.only) } : {}),
+    ...(r.order ? { order: semGoogle(r.order) } : {}),
+    data_collection: 'deny',
+    zdr: true,
+    ignore: [...new Set([...(r.ignore ?? []), ...PROVEDORES_DO_GOOGLE_NO_OPENROUTER])],
+  }
+}
+
+export function parametrosDoProvedor(
+  base: string,
+  model: string,
+  roteamento?: RoteamentoOpenRouter,
+): Record<string, unknown> {
   const host = hostDe(base)
   const raciocinio = /gpt-oss/i.test(model)
-  if (host === 'openrouter.ai' || host.endsWith('.openrouter.ai')) {
-    return { provider: { zdr: true }, ...(raciocinio ? { reasoning: { effort: 'low', exclude: true } } : {}) }
+  /* Direto ou pelo AI Gateway da Cloudflare: o roteamento de retenção zero vai nos dois caminhos. */
+  if (ehBaseDoOpenRouter(base)) {
+    return {
+      provider: roteamentoEndurecido(roteamento),
+      ...(raciocinio ? { reasoning: { effort: 'low', exclude: true } } : {}),
+    }
   }
   if (!raciocinio) return {}
   if (host === 'api.groq.com') return { reasoning_effort: 'low', include_reasoning: false }
@@ -163,7 +199,7 @@ export async function chamarChat(p: PedidoDeChat): Promise<RespostaDeChat> {
         stream: false,
         ...(p.temperature !== undefined ? { temperature: p.temperature } : {}),
         max_tokens: p.maxTokens ?? MAX_TOKENS_PADRAO,
-        ...parametrosDoProvedor(p.base, p.model),
+        ...parametrosDoProvedor(p.base, p.model, p.roteamento),
       }),
       signal: AbortSignal.timeout(p.timeoutMs ?? TIMEOUT_PADRAO_MS),
     })

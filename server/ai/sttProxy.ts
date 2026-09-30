@@ -10,7 +10,6 @@ import type { NextFunction, Request, Response } from 'express'
 import { filtrarAlucinacao } from '../../src/gateway/alucinacao'
 import { credentialsRepo } from '../db/repositories/credentials'
 import { contarDescartesDoStt, observarChamadaDeProvedor } from '../http/metricas'
-import { sttGerenciadoDoEnv } from '../lib/config'
 import { abrirPortaGratuita, type PortaGratuita } from '../lib/convidado'
 import { arquivoDoAudio, avaliarAudioFaturavel, duracaoDoAudio, segundosFaturaveis } from '../lib/duracaoDeAudio'
 import { getEntitlements } from '../lib/entitlements'
@@ -45,6 +44,7 @@ import {
   registrarFalha,
   registrarSucesso,
 } from './disjuntor'
+import { sttGerenciado } from './registroDeProvedores'
 import { responderContadorIndisponivel } from './reservaDeNuvem'
 import { assertPublicUrl, despachanteSeguro, type InitSeguro } from './ssrf'
 import { promptDoCabecalho, triarSegmentos } from './sttQualidade'
@@ -72,9 +72,10 @@ const RETENTATIVAS_DE_STT = 1
 
 /*
  * O STT gerenciado — a chave do DONO — é lido na porta para o 501 sair ANTES de o corpo de 25 MB ser
- * lido. A leitura mora em `sttGerenciadoDoEnv` (`server/lib/config.ts`), a MESMA que responde
- * `GET /api/ai/stt/available` (B0 da Fase B): eram duas, e discordavam — a disponibilidade dizia 200
- * com só `LLM_API_KEY` configurada, e esta porta respondia 501.
+ * lido. A leitura mora em `sttGerenciado` (`server/ai/registroDeProvedores.ts`; no legado, o
+ * `sttGerenciadoDoEnv` de `server/lib/config.ts`), a MESMA que responde `GET /api/ai/stt/available`
+ * (B0 da Fase B): eram duas, e discordavam — a disponibilidade dizia 200 com só `LLM_API_KEY`
+ * configurada, e esta porta respondia 501.
  */
 
 /** O que a porta decidiu, do middleware até o handler. */
@@ -128,7 +129,7 @@ async function abrirPortaDoStt(req: Request, res: Response): Promise<PortaDoStt 
     responderPortaoFechado(res, portao)
     return null
   }
-  const cfg = sttGerenciadoDoEnv()
+  const cfg = sttGerenciado()
   if (!cfg) {
     res.status(501).json({ error: 'STT de nuvem não configurado: defina GROQ_API_KEY no servidor (.env)' })
     return null

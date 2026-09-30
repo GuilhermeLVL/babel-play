@@ -8,13 +8,8 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import {
-  adminDoSupabase,
-  conferirConfiguracao,
-  sttDeNuvemConfigurado,
-  sttGerenciadoDoEnv,
-  VARIAVEIS,
-} from '../../server/lib/config'
+import { sttDeNuvemConfigurado } from '../../server/ai/registroDeProvedores'
+import { adminDoSupabase, conferirConfiguracao, sttGerenciadoDoEnv, VARIAVEIS } from '../../server/lib/config'
 
 /** Ambiente mínimo de um deploy público bem configurado. */
 const PUBLICO_COMPLETO = {
@@ -95,6 +90,7 @@ describe('acessores que saíram de dentro dos handlers', () => {
       secret: 'chave-llm-falsa',
       baseUrl: 'https://api.groq.com/openai/v1',
       model: 'whisper-large-v3-turbo',
+      chave: 'LLM_API_KEY',
     })
     // Sem LLM_BASE_URL o LLM já é a Groq (o padrão de `provedores.ts`): o mesmo vale.
     expect(sttGerenciadoDoEnv({ LLM_API_KEY: 'chave-llm-falsa' } as NodeJS.ProcessEnv)?.secret).toBe('chave-llm-falsa')
@@ -113,6 +109,7 @@ describe('acessores que saíram de dentro dos handlers', () => {
       secret: 'chave-stt-falsa',
       baseUrl: 'http://203.0.113.20/v1',
       model: 'whisper-large-v3-turbo',
+      chave: 'STT_API_KEY',
     })
   })
 
@@ -129,6 +126,7 @@ describe('acessores que saíram de dentro dos handlers', () => {
       secret: 'chave-groq',
       baseUrl: 'https://groq.exemplo/v1',
       model: 'whisper-large-v3',
+      chave: 'GROQ_API_KEY',
     })
   })
 

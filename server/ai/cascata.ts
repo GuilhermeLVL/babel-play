@@ -184,7 +184,13 @@ export async function percorrerCascata(
       continue
     }
     const inicio = Date.now()
-    const r = await chamarChat({ ...pedido, base: prov.base, apiKey: prov.apiKey, model: prov.model })
+    const r = await chamarChat({
+      ...pedido,
+      base: prov.base,
+      apiKey: prov.apiKey,
+      model: prov.model,
+      roteamento: prov.roteamento,
+    })
     const fim = Date.now()
     const provedor = nomeDoProvedor(prov.base)
     chamadas += 1

@@ -12,6 +12,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import { esquecerAdmissao } from '../../server/ai/admissao'
 import { esvaziarCacheDeTraducao } from '../../server/ai/cacheDeTraducao'
 import { esquecerDisjuntores } from '../../server/ai/disjuntor'
+import { esquecerRegistro } from '../../server/ai/registroDeProvedores'
 import { asUserId } from '../../server/lib/authContext'
 import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
@@ -28,6 +29,8 @@ const ENVS = [
   'LLM_RESERVA_BASE_URL',
   'LLM_RESERVA_MODEL',
   'GROQ_API_KEY',
+  'IA_PROVEDORES',
+  'DEEPINFRA_API_KEY',
 ] as const
 
 function mockReq(userId: any): any {
@@ -78,6 +81,7 @@ afterEach(() => {
   /* A admissão de IA (ADR 0007) é estado de processo como o disjuntor: um 429 encenado fecha o
      balde do modelo, e os casos somados passariam do limite por minuto. Zerada entre casos. */
   esquecerAdmissao()
+  esquecerRegistro()
 })
 
 function configurarPrimario() {
@@ -213,5 +217,62 @@ describe('cascata de MT com reserva', () => {
     vi.stubGlobal('fetch', async () => ({ ok: false, status: 500, text: async () => 'caiu' }))
     await mtTranslateProxy(mockReq(u), mockRes())
     expect(await counters.get(u, 'managed_calls', janela)).toBe(1)
+  })
+
+  /* B1 (Fase B): com `IA_PROVEDORES`, quem atende é o REGISTRO — na ordem dele, com a chave lida da
+     variável que ele NOMEIA. As `LLM_*` do legado ficam de fora: o registro declarado é a verdade. */
+  it('IA_PROVEDORES: a cascata segue o registro, e a chave sai da variável nomeada', async () => {
+    configurarPrimario() // presente de propósito: com o registro declarado, o legado não entra
+    process.env.IA_PROVEDORES = JSON.stringify({
+      provedores: [
+        {
+          id: 'deepinfra',
+          formato: 'openai',
+          base: 'https://deepinfra.exemplo/v1',
+          chave: 'DEEPINFRA_API_KEY',
+          retencao: 'zdr',
+          modelos: [{ id: 'modelo-deepinfra', funcoes: ['traducao'] }],
+        },
+        {
+          id: 'groq',
+          formato: 'openai',
+          base: 'https://groq.exemplo/v1',
+          chave: 'GROQ_API_KEY',
+          retencao: 'zdr',
+          modelos: [{ id: 'modelo-groq', funcoes: ['traducao', 'tutor'] }],
+        },
+      ],
+    })
+    process.env.DEEPINFRA_API_KEY = 'chave-deepinfra-falsa'
+    process.env.GROQ_API_KEY = 'chave-groq-falsa'
+    const chamadas: Array<{ url: string; auth: string; modelo: string }> = []
+    vi.stubGlobal('fetch', async (url: any, init: any) => {
+      chamadas.push({ url: String(url), auth: init.headers.Authorization, modelo: JSON.parse(init.body).model })
+      if (String(url).includes('deepinfra')) return { ok: false, status: 503, text: async () => 'fora' }
+      return respostaOk('servido pela groq')
+    })
+    const res = mockRes()
+    await mtTranslateProxy(mockReq(asUserId('cascata')), res)
+    expect(res.statusCode).toBe(200)
+    expect(res.body?.provenance?.origin).toBe('modelo-groq')
+    expect(chamadas).toEqual([
+      {
+        url: 'https://deepinfra.exemplo/v1/chat/completions',
+        auth: 'Bearer chave-deepinfra-falsa',
+        modelo: 'modelo-deepinfra',
+      },
+      { url: 'https://groq.exemplo/v1/chat/completions', auth: 'Bearer chave-groq-falsa', modelo: 'modelo-groq' },
+    ])
+  })
+
+  it('IA_PROVEDORES inválido: a nuvem FECHA (501), e o legado não volta em silêncio', async () => {
+    configurarPrimario()
+    process.env.IA_PROVEDORES = '{ "provedores": [ { "id": "gemini" } ] }'
+    const chamadas: string[] = []
+    vi.stubGlobal('fetch', async (url: any) => (chamadas.push(String(url)), respostaOk('não devia')))
+    const res = mockRes()
+    await mtTranslateProxy(mockReq(asUserId('cascata')), res)
+    expect(res.statusCode).toBe(501)
+    expect(chamadas).toEqual([])
   })
 })

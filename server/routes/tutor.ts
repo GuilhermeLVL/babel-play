@@ -107,7 +107,8 @@ async function conversar(req: Request, res: Response, rastro: RastroDeIa): Promi
     const plano = getEntitlements(gratuita.plano)
 
     if (plano.managedCloudLlm) {
-      const provedores = cascataDeNuvem({ modelosGrandes: plano.largerModels })
+      /* B1: com `IA_PROVEDORES`, o tutor (e o corretor) têm os modelos DELES; no legado, a mesma cascata. */
+      const provedores = cascataDeNuvem({ modelosGrandes: plano.largerModels, funcao: prep.funcao })
       // Chave de emergência e orçamento global: fechado, o hospedado explica; o self-host cai no Ollama.
       const portao = provedores.length > 0 ? await portaoDaNuvem() : { ok: false }
       if (provedores.length > 0 && !portao.ok && !selfHost) {

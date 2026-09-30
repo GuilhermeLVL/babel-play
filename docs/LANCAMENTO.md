@@ -154,6 +154,23 @@ mensal** (ex.: US$ 30) e alerta em 80 % → **Settings → Data controls → Zer
 retention"_ e _"Disable training"_ ligados (roteia só para provedores ZDR) → **Keys** → criar a
 chave com **credit limit** (ex.: US$ 10).
 
+**Sem reserva não lança tranquilo.** Em produção, se a IA de nuvem subir sem reserva (chave da
+OpenRouter ausente ou expirada, ou meia `LLM_RESERVA_*`), o boot registra o aviso `ia_sem_reserva`,
+que chega ao Sentry (ADR 0008): a próxima queda da Groq chegaria a todo assinante ao mesmo tempo.
+
+**STT:** não precisa de chave própria — com só `LLM_API_KEY` da Groq, a transcrição usa a mesma chave
+(a disponibilidade e a transcrição leem a mesma regra desde o B0 da Fase B).
+
+**Opcional — o registro declarativo (`IA_PROVEDORES`).** Sem ele, nada muda: vale o que está acima.
+Com ele, a lista de provedores, a ordem da cascata, a retenção, os limites e o **preço por
+provedor:modelo** (inclusive a entrada em cache e o mínimo faturado do STT) ficam num JSON sem
+segredo; as chaves continuam em `fly secrets` com os nomes que o JSON cita (`DEEPINFRA_API_KEY`,
+`CLOUDFLARE_ACCOUNT_ID`/`CLOUDFLARE_API_TOKEN`, `CEREBRAS_API_KEY`…). O formato e um exemplo estão no
+`.env.production.example`. Em produção o boot **aborta** se o registro citar o Gemini, um OpenRouter
+sem o roteamento de retenção zero que ignora o Google, ou qualquer provedor sem `"retencao": "zdr"`
+— confira a retenção zero no painel de cada provedor ANTES de declarar. Trocar o provedor ou o
+modelo padrão só com o resultado da bancada (Fase B, B5/B7).
+
 Decida o **orçamento global** `AI_BUDGET_USD_MONTH` (soma do que aceita gastar nos dois; sem ela o
 app usa US$ 20). O servidor estima o gasto de cada chamada (`server/lib/orcamentoDeIa.ts`): a 80 %
 sai o evento `ia_orcamento_alerta_80` e a 100 % o `ia_orcamento_esgotado` — a IA de nuvem fecha

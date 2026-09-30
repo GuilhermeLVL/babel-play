@@ -46,6 +46,7 @@ let h: EphemeralDb
 let nucleoMt: typeof import('../../server/ai/nucleo/traduzirNoNivel')
 let nucleoAlt: typeof import('../../server/ai/nucleo/sugerirAlternativas')
 let nucleoPolir: typeof import('../../server/ai/nucleo/polirLote')
+let nucleoVoz: typeof import('../../server/ai/nucleo/sintetizarVoz')
 let contexto: typeof import('../../server/ai/nucleo/contexto')
 let recusa: typeof import('../../server/ai/nucleo/recusa')
 let resposta: typeof import('../../server/ai/respostaDoNucleo')
@@ -108,6 +109,7 @@ beforeAll(async () => {
   nucleoMt = await h.load('../../server/ai/nucleo/traduzirNoNivel')
   nucleoAlt = await h.load('../../server/ai/nucleo/sugerirAlternativas')
   nucleoPolir = await h.load('../../server/ai/nucleo/polirLote')
+  nucleoVoz = await h.load('../../server/ai/nucleo/sintetizarVoz')
   contexto = await h.load('../../server/ai/nucleo/contexto')
   recusa = await h.load('../../server/ai/nucleo/recusa')
   resposta = await h.load('../../server/ai/respostaDoNucleo')
@@ -389,5 +391,81 @@ describe('polirLote', () => {
     const r = await nucleoPolir.polirLote(ctx('free'), { sessionId: 'qualquer', bloco: 0 })
     expect(r).toMatchObject({ ok: false, status: 402, code: 'exige_nuance' })
     expect(chamadas).toHaveLength(0)
+  })
+})
+
+describe('sintetizarVoz', () => {
+  const VOZ = {
+    id: 'deepinfra',
+    formato: 'openai',
+    base: 'https://deepinfra.exemplo/v1/openai',
+    chave: 'DEEPINFRA_API_KEY',
+    retencao: 'zdr',
+    modelos: [{ id: 'ResembleAI/chatterbox-multilingual', funcoes: ['tts'], preco: { milhaoDeCaracteres: 1 } }],
+  }
+  const AUDIO = Buffer.from('ID3-audio-falso')
+  /** A flag da voz natural vem do contexto: o núcleo não lê o request para saber. */
+  const comVoz = (extra: Record<string, unknown> = {}) => ctx('premium', { flagLigada: async () => true, ...extra })
+
+  function provedorDeVoz(status = 200) {
+    const chamadas: string[] = []
+    vi.stubGlobal('fetch', async (u: unknown) => {
+      chamadas.push(String(u))
+      if (status !== 200) return new Response('falhou', { status })
+      return new Response(AUDIO, { status: 200, headers: { 'content-type': 'audio/mpeg' } })
+    })
+    return chamadas
+  }
+
+  beforeEach(async () => {
+    process.env.IA_PROVEDORES = JSON.stringify({ provedores: [VOZ] })
+    const { esvaziarCacheDeVoz } = await h.load<any>('../../server/ai/nucleo/sintetizarVoz')
+    esvaziarCacheDeVoz()
+  })
+
+  it('lê o corpo cru: pedir clonagem é 400 próprio, antes do esquema; corpo inválido é `payload_invalido`', () => {
+    expect(nucleoVoz.lerPedidoDeVoz({ texto: 'oi', idioma: 'pt', reference_audio: 'x' })).toMatchObject({
+      status: 400,
+      code: 'clonagem_de_voz_recusada',
+    })
+    expect(nucleoVoz.lerPedidoDeVoz({ texto: 'oi' })).toMatchObject({ status: 400, code: 'payload_invalido' })
+  })
+
+  it('entrega o áudio com o tipo e o modelo; a mesma fala volta do cache, sem provedor', async () => {
+    const chamadas = provedorDeVoz()
+    const aoDecidir = vi.fn()
+    const r = await nucleoVoz.sintetizarVoz(comVoz(), { texto: 'Good morning', idioma: 'en' }, { aoDecidir })
+    expect(r).toMatchObject({
+      ok: true,
+      tipo: 'audio/mpeg',
+      modelo: 'ResembleAI/chatterbox-multilingual',
+      doCache: false,
+    })
+    expect(r.ok === true && r.bytes.equals(AUDIO)).toBe(true)
+    expect(aoDecidir).toHaveBeenCalledTimes(1)
+    const deNovo = await nucleoVoz.sintetizarVoz(comVoz(), { texto: 'Good morning', idioma: 'en' })
+    expect(deNovo).toMatchObject({ ok: true, doCache: true })
+    expect(chamadas).toHaveLength(1)
+  })
+
+  it('sem quem responda pela flag, a voz está desligada: 503, sem provedor (fail-closed)', async () => {
+    const chamadas = provedorDeVoz()
+    const r = await nucleoVoz.sintetizarVoz(ctx('premium'), { texto: 'Good morning', idioma: 'en' })
+    expect(r).toMatchObject({ ok: false, status: 503, code: 'voz_natural_desligada' })
+    expect(chamadas).toHaveLength(0)
+  })
+
+  it('sem o entitlement `vozNatural` é 402 `exige_voz_natural`', async () => {
+    const r = await nucleoVoz.sintetizarVoz(ctx('free', { flagLigada: async () => true }), {
+      texto: 'Good morning',
+      idioma: 'en',
+    })
+    expect(r).toMatchObject({ ok: false, status: 402, code: 'exige_voz_natural', corpo: { entitlement: 'vozNatural' } })
+  })
+
+  it('o provedor em 5xx é 502 `provedor_indisponivel`', async () => {
+    provedorDeVoz(500)
+    const r = await nucleoVoz.sintetizarVoz(comVoz(), { texto: 'Good night', idioma: 'en' })
+    expect(r).toMatchObject({ ok: false, status: 502, code: 'provedor_indisponivel' })
   })
 })

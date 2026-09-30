@@ -78,6 +78,7 @@ import { useRecompensas } from './lib/estado/useRecompensas';
 import { useSessaoSupabase } from './lib/estado/useSessaoSupabase';
 import { tirarDaFila } from './lib/filaDeRecompensas';
 import { equiparItem } from './lib/galeria/equipar';
+import { t } from './lib/i18n';
 import { useIdiomaDaInterfaceEscolhido } from './lib/langConfig';
 import { dispararOferta } from './lib/ofertas/eventos';
 import {
@@ -299,14 +300,16 @@ export default function App() {
   if (authRequired && processingCallback) {
     return (
       <div className="flex h-tela w-full items-center justify-center bg-canvas text-ink-muted text-sm">
-        Concluindo login…
+        {t('Concluindo login…')}
       </div>
     );
   }
   // Marco 1: porta de login. Só no modo público (authRequired); no local é pulada inteira.
   if (authRequired && session === undefined) {
     return (
-      <div className="flex h-tela w-full items-center justify-center bg-canvas text-ink-muted text-sm">Carregando…</div>
+      <div className="flex h-tela w-full items-center justify-center bg-canvas text-ink-muted text-sm">
+        {t('Carregando…')}
+      </div>
     );
   }
   if (authRequired && recovery) {
@@ -314,7 +317,7 @@ export default function App() {
       <Suspense
         fallback={
           <div className="flex h-tela w-full items-center justify-center bg-canvas text-ink-muted text-sm">
-            Carregando…
+            {t('Carregando…')}
           </div>
         }
       >
@@ -330,7 +333,7 @@ export default function App() {
       <Suspense
         fallback={
           <div className="flex h-tela w-full items-center justify-center bg-canvas text-ink-muted text-sm">
-            Carregando…
+            {t('Carregando…')}
           </div>
         }
       >
@@ -344,7 +347,7 @@ export default function App() {
       <Suspense
         fallback={
           <div className="flex h-tela w-full items-center justify-center bg-canvas text-ink-muted text-sm">
-            Carregando…
+            {t('Carregando…')}
           </div>
         }
       >

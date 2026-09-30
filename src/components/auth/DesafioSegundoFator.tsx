@@ -7,6 +7,8 @@
 import React, { useState } from 'react';
 
 import * as auth from '../../lib/auth';
+import { t } from '../../lib/i18n';
+import { T } from '../../lib/T';
 import AuthShell from './AuthShell';
 
 export default function DesafioSegundoFator({ onConcluido }: { onConcluido: () => void }) {
@@ -21,7 +23,7 @@ export default function DesafioSegundoFator({ onConcluido }: { onConcluido: () =
     const r = await auth.verificarSegundoFator(codigo.trim());
     setCarregando(false);
     if (!r.ok) {
-      setErro(r.message ?? 'Código inválido. Tente de novo.');
+      setErro(r.message ?? t('Código inválido. Tente de novo.'));
       return;
     }
     onConcluido();
@@ -30,23 +32,17 @@ export default function DesafioSegundoFator({ onConcluido }: { onConcluido: () =
   return (
     <AuthShell
       hero={{
-        title: (
-          <>
-            Mais um
-            <br />
-            passo.
-          </>
-        ),
-        subtitle: 'Sua conta tem verificação em duas etapas. Confirme que é você.',
+        title: <T txt="Mais um<br>passo." />,
+        subtitle: t('Sua conta tem verificação em duas etapas. Confirme que é você.'),
       }}
     >
-      <h1 className="font-display text-2xl font-bold text-ink">Verificação em duas etapas</h1>
-      <p className="mt-1 mb-6 text-sm text-ink-muted">Digite o código de 6 dígitos do seu app autenticador.</p>
+      <h1 className="font-display text-2xl font-bold text-ink">{t('Verificação em duas etapas')}</h1>
+      <p className="mt-1 mb-6 text-sm text-ink-muted">{t('Digite o código de 6 dígitos do seu app autenticador.')}</p>
 
       <form onSubmit={submit} className="grid gap-4">
         <div>
           <label htmlFor="mfa-login-codigo" className="mb-1 block text-xs font-medium text-ink-muted">
-            Código
+            {t('Código')}
           </label>
           <input
             id="mfa-login-codigo"
@@ -74,7 +70,7 @@ export default function DesafioSegundoFator({ onConcluido }: { onConcluido: () =
           disabled={carregando || codigo.length !== 6}
           className="btn-ink w-full justify-center disabled:opacity-60"
         >
-          {carregando ? 'Aguarde…' : 'Confirmar'}
+          {carregando ? t('Aguarde…') : t('Confirmar')}
         </button>
       </form>
 
@@ -84,7 +80,7 @@ export default function DesafioSegundoFator({ onConcluido }: { onConcluido: () =
           onClick={() => void auth.signOut()}
           className="font-medium text-accent-ink underline underline-offset-2"
         >
-          Sair e entrar com outra conta
+          {t('Sair e entrar com outra conta')}
         </button>
       </div>
     </AuthShell>

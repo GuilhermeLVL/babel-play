@@ -11,23 +11,31 @@
  */
 import { AUTH_CALLBACK_PATH } from './authCallback';
 import { ehSessaoAnonima } from './convidado';
+import { t } from './i18n';
 import { supabase } from './supabase';
 
 export type AuthProvider = 'google' | 'facebook';
 
 export interface AuthResult {
   ok: boolean;
-  /** Mensagem pronta p/ UI. Genérica em login/reset. */
+  /** Mensagem pronta p/ UI, já no idioma da interface. Genérica em login/reset. */
   message?: string;
   /** Cadastro sem sessão → precisa confirmar o e-mail antes de entrar. */
   needsEmailConfirm?: boolean;
 }
 
+/* AS MENSAGENS SÃO A CHAVE DO CATÁLOGO (o português, ver `lib/i18n.ts`) e passam por `t()` NA HORA
+   de devolver, não aqui em cima: traduzida na carga do módulo, a frase ficaria presa ao idioma
+   daquele instante — o catálogo chega depois, por `fetch`, e a pessoa pode trocar de idioma. O
+   erro que vem do Supabase (`error.message`) passa como veio: não é frase nossa. */
 const NOT_CONFIGURED = 'Login não configurado neste ambiente.';
 const INVALID_CREDS = 'E-mail ou senha incorretos.'; // genérica: não diz QUAL está errado
 const CONVIDADO_CONFIRMA_EMAIL =
   'Enviamos um link para o seu e-mail. Depois de confirmar, defina a senha em Ajustes → Conta — o que você fez como convidado continua com você.';
 const RESET_SENT = 'Se existir uma conta com esse e-mail, enviamos um link de recuperação.';
+const CODIGO_INVALIDO = 'Código inválido. Tente de novo.';
+
+const naoConfigurado = () => ({ ok: false, message: t(NOT_CONFIGURED) });
 
 /**
  * O MÍNIMO DA SENHA é o do Supabase de produção (docs/LANCAMENTO.md, passo 3: 8 caracteres, com a
@@ -35,21 +43,27 @@ const RESET_SENT = 'Se existir uma conta com esse e-mail, enviamos um link de re
  * levava um erro em inglês do servidor. As telas de senha leem daqui.
  */
 export const SENHA_MINIMA = 8;
-export const SENHA_CURTA = `A senha precisa ter pelo menos ${SENHA_MINIMA} caracteres.`;
+/**
+ * A CHAVE da mensagem de senha curta, com `{n}` no lugar do mínimo — não a frase pronta. Quem mostra
+ * escreve `t(SENHA_CURTA, { n: SENHA_MINIMA })`: com o número dentro da chave, cada mudança do
+ * mínimo orfanaria a tradução, e o tradutor não teria como pôr o número onde o idioma dele pede.
+ */
+export const SENHA_CURTA = 'A senha precisa ter pelo menos {n} caracteres.';
 const SENHA_VAZADA = 'Essa senha já apareceu em vazamentos de dados conhecidos. Escolha outra, só sua.';
-const SENHA_FRACA = `Senha fraca: use pelo menos ${SENHA_MINIMA} caracteres, misturando letras e números.`;
+const SENHA_FRACA = 'Senha fraca: use pelo menos {n} caracteres, misturando letras e números.';
 
 /**
  * O erro de senha do Supabase (`AuthWeakPasswordError`, `code: 'weak_password'`, com `reasons`)
  * vem em inglês; o resto passa como veio.
  */
 function mensagemDoErroDeSenha(error: { message: string; code?: string; name?: string; reasons?: string[] }): string {
+  const curta = () => t(SENHA_CURTA, { n: SENHA_MINIMA });
   const fraca = error.code === 'weak_password' || error.name === 'AuthWeakPasswordError';
-  if (!fraca) return /at least \d+ characters/i.test(error.message) ? SENHA_CURTA : error.message;
+  if (!fraca) return /at least \d+ characters/i.test(error.message) ? curta() : error.message;
   const motivos = error.reasons ?? [];
-  if (motivos.includes('pwned')) return SENHA_VAZADA;
-  if (motivos.includes('length')) return SENHA_CURTA;
-  return SENHA_FRACA;
+  if (motivos.includes('pwned')) return t(SENHA_VAZADA);
+  if (motivos.includes('length')) return curta();
+  return t(SENHA_FRACA, { n: SENHA_MINIMA });
 }
 
 /**
@@ -64,9 +78,9 @@ function retornoDaConfirmacao(): string | undefined {
 
 /** E-mail + senha. Erro → mensagem genérica (anti-enumeração). */
 export async function signInEmail(email: string, password: string): Promise<AuthResult> {
-  if (!supabase) return { ok: false, message: NOT_CONFIGURED };
+  if (!supabase) return naoConfigurado();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
-  return error ? { ok: false, message: INVALID_CREDS } : { ok: true };
+  return error ? { ok: false, message: t(INVALID_CREDS) } : { ok: true };
 }
 
 /**
@@ -93,12 +107,12 @@ async function sessaoAnonimaAtiva(): Promise<boolean> {
  * senha"). Guardar a senha no aparelho até lá seria pior do que pedir de novo.
  */
 export async function signUpEmail(email: string, password: string): Promise<AuthResult> {
-  if (!supabase) return { ok: false, message: NOT_CONFIGURED };
+  if (!supabase) return naoConfigurado();
   const emailRedirectTo = retornoDaConfirmacao();
   if (await sessaoAnonimaAtiva()) {
     const { error } = await supabase.auth.updateUser({ email }, emailRedirectTo ? { emailRedirectTo } : undefined);
     if (error) return { ok: false, message: error.message };
-    return { ok: true, needsEmailConfirm: true, message: CONVIDADO_CONFIRMA_EMAIL };
+    return { ok: true, needsEmailConfirm: true, message: t(CONVIDADO_CONFIRMA_EMAIL) };
   }
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -112,7 +126,7 @@ export async function signUpEmail(email: string, password: string): Promise<Auth
 
 /** Login social (redireciona o browser). O `redirectTo` deve estar na allowlist do painel Supabase. */
 export async function signInWithProvider(provider: AuthProvider, redirectTo?: string): Promise<AuthResult> {
-  if (!supabase) return { ok: false, message: NOT_CONFIGURED };
+  if (!supabase) return naoConfigurado();
   /* Convidado com sessão anônima: vincula o provedor ao MESMO usuário (exige "manual linking" no
      painel do Supabase). Se o Google já for de outra conta, o Supabase recusa — aí é LOGIN naquela
      conta, pelo caminho normal abaixo, e os dados do aparelho sobem pelo `ModalDeMigracao`. */
@@ -127,23 +141,25 @@ export async function signInWithProvider(provider: AuthProvider, redirectTo?: st
     provider,
     ...(redirectTo ? { options: { redirectTo } } : {}),
   });
-  return error ? { ok: false, message: `Não foi possível iniciar o login com ${provider}.` } : { ok: true };
+  return error
+    ? { ok: false, message: t('Não foi possível iniciar o login com {provedor}.', { provedor: provider }) }
+    : { ok: true };
 }
 
 /** Recuperação de senha. SEMPRE devolve ok+genérico (não revela se o e-mail existe). */
 export async function sendPasswordReset(email: string, redirectTo?: string): Promise<AuthResult> {
-  if (!supabase) return { ok: false, message: NOT_CONFIGURED };
+  if (!supabase) return naoConfigurado();
   try {
     await supabase.auth.resetPasswordForEmail(email, redirectTo ? { redirectTo } : undefined);
   } catch {
     /* silencioso de propósito: anti-enumeração */
   }
-  return { ok: true, message: RESET_SENT };
+  return { ok: true, message: t(RESET_SENT) };
 }
 
 /** Define a nova senha (a partir do link de recuperação, ou em Conta). */
 export async function updatePassword(newPassword: string): Promise<AuthResult> {
-  if (!supabase) return { ok: false, message: NOT_CONFIGURED };
+  if (!supabase) return naoConfigurado();
   const { error } = await supabase.auth.updateUser({ password: newPassword });
   return error ? { ok: false, message: mensagemDoErroDeSenha(error) } : { ok: true };
 }
@@ -163,7 +179,7 @@ export interface MfaEnroll {
 
 /** Inicia o cadastro de um fator TOTP: devolve o QR (SVG) + segredo p/ o app autenticador. */
 export async function enrollTotp(friendlyName = 'App autenticador'): Promise<MfaEnroll> {
-  if (!supabase) return { ok: false, message: NOT_CONFIGURED };
+  if (!supabase) return naoConfigurado();
   const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName });
   if (error) return { ok: false, message: error.message };
   return { ok: true, factorId: data.id, qrSvg: data.totp.qr_code, secret: data.totp.secret };
@@ -171,16 +187,16 @@ export async function enrollTotp(friendlyName = 'App autenticador'): Promise<Mfa
 
 /** Confirma o fator (challenge + verify) com o código do app — ativa o 2FA. */
 export async function confirmTotp(factorId: string, code: string): Promise<AuthResult> {
-  if (!supabase) return { ok: false, message: NOT_CONFIGURED };
+  if (!supabase) return naoConfigurado();
   const ch = await supabase.auth.mfa.challenge({ factorId });
   if (ch.error) return { ok: false, message: ch.error.message };
   const { error } = await supabase.auth.mfa.verify({ factorId, challengeId: ch.data.id, code });
-  return error ? { ok: false, message: 'Código inválido. Tente de novo.' } : { ok: true };
+  return error ? { ok: false, message: t(CODIGO_INVALIDO) } : { ok: true };
 }
 
 /** Remove um fator (desabilitar 2FA). */
 export async function unenrollTotp(factorId: string): Promise<AuthResult> {
-  if (!supabase) return { ok: false, message: NOT_CONFIGURED };
+  if (!supabase) return naoConfigurado();
   const { error } = await supabase.auth.mfa.unenroll({ factorId });
   return error ? { ok: false, message: error.message } : { ok: true };
 }
@@ -205,16 +221,16 @@ export async function precisaDoSegundoFator(): Promise<boolean> {
 
 /** Verifica o código do app autenticador no login e eleva a sessão para `aal2`. */
 export async function verificarSegundoFator(code: string): Promise<AuthResult> {
-  if (!supabase) return { ok: false, message: NOT_CONFIGURED };
+  if (!supabase) return naoConfigurado();
   const { data } = await supabase.auth.mfa.listFactors();
   const fator = (data?.totp ?? []).find((f: { status?: string }) => f.status === 'verified') as
     | { id: string }
     | undefined;
-  if (!fator) return { ok: false, message: 'Nenhum app autenticador ativo nesta conta.' };
+  if (!fator) return { ok: false, message: t('Nenhum app autenticador ativo nesta conta.') };
   const ch = await supabase.auth.mfa.challenge({ factorId: fator.id });
-  if (ch.error) return { ok: false, message: 'Não foi possível iniciar a verificação. Tente de novo.' };
+  if (ch.error) return { ok: false, message: t('Não foi possível iniciar a verificação. Tente de novo.') };
   const { error } = await supabase.auth.mfa.verify({ factorId: fator.id, challengeId: ch.data.id, code });
-  return error ? { ok: false, message: 'Código inválido. Tente de novo.' } : { ok: true };
+  return error ? { ok: false, message: t(CODIGO_INVALIDO) } : { ok: true };
 }
 
 export interface TotpFactor {

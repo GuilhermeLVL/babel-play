@@ -6,6 +6,7 @@
 import { Shield } from 'lucide-react';
 import React from 'react';
 
+import { t } from '../../lib/i18n';
 import { authRequired } from '../../lib/supabase';
 import { TituloDeSecao } from '../ui';
 import SecurityPanel from './SecurityPanel';
@@ -14,7 +15,7 @@ export default function AccountSecuritySection() {
   if (!authRequired) return null;
   return (
     <section>
-      <TituloDeSecao icone={Shield} titulo="Conta e Segurança" />
+      <TituloDeSecao icone={Shield} titulo={t('Conta e Segurança')} />
       <SecurityPanel />
     </section>
   );

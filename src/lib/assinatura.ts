@@ -230,18 +230,5 @@ export async function cancelarRenovacao(): Promise<{
   }
 }
 
-/**
- * O PLANO QUE O CHECKOUT ABRE — por aba (`sessionStorage`), como a tela de Planos sempre guardou.
- * Quem termina um login com a intenção "assinar o X" (`lib/intencaoDeLogin`) grava aqui antes de
- * navegar: a aba da confirmação do e-mail é outra, e sem isto ela abriria o checkout no plano padrão.
- */
-export const CHAVE_DO_PLANO_DO_CHECKOUT = 'babel.checkout.plano';
-
-export function lembrarPlanoDoCheckout(plano: string | undefined): void {
-  if (plano !== 'essencial' && plano !== 'pro') return;
-  try {
-    sessionStorage.setItem(CHAVE_DO_PLANO_DO_CHECKOUT, plano);
-  } catch {
-    /* sem armazenamento: o checkout abre no plano padrão */
-  }
-}
+// O plano que o checkout abre mora em `lib/planoDoCheckout` (fora do JS de arranque); daqui, só o repasse.
+export { CHAVE_DO_PLANO_DO_CHECKOUT, lembrarPlanoDoCheckout } from './planoDoCheckout';

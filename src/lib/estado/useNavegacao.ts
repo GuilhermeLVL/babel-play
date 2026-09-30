@@ -1,12 +1,12 @@
 import { type Dispatch, type SetStateAction, useEffect, useRef, useState } from 'react';
 
 import type { Recording, ViewType } from '../../types';
-import { lembrarPlanoDoCheckout } from '../assinatura';
 import { clearAuthCallbackUrl, isOnAuthCallback } from '../authCallback';
 import { edicaoEstatica } from '../edicaoEstatica';
 import { aoMudarIdentidade } from '../identidade';
 import { consumirIntencao } from '../intencaoDeLogin';
 import { askNavGuard } from '../navGuard';
+import { lembrarPlanoDoCheckout } from '../planoDoCheckout';
 import {
   estadoDaIntencao,
   type EstadoDeRota,

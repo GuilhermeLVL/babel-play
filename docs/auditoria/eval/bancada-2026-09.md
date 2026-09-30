@@ -35,6 +35,8 @@ node node_modules/tsx/dist/cli.mjs scripts/eval-fala/bancada/refiltrar.mjs
 
 Os resultados brutos ficam em `bancada-2026-09/*.json`.
 
+**Etapa 5 (modelos novos, 29/09/2026):** Parakeet TDT 0.6B v3 int8 (`parakeet:v3-int8`, `parakeet:tagarela-int8`, em `bancada/parakeet.mjs`) e Bergamot/Firefox Translations (`bergamot:en-pt`, `bergamot:pt-en`, em `bancada/bergamot.mjs`) rodam no GitHub Actions (`.github/workflows/bancada.yml`, push em `bancada/**` ou manual), contra as linhas de base da produção nos mesmos casos. O resumo pareado (`bancada/resumo.mjs`) sai no resumo do job e no artefato `bancada-etapa5`.
+
 **Gasto total da bancada: US$ 0,53** pela tabela de preço. Foi pago US$ 0, porque a chave é da camada gratuita da Groq.
 
 ## Transcrição

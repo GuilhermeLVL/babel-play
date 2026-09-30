@@ -10,9 +10,11 @@
  *      ou refazer o relatório não paga de novo. Só `--refazer` ignora o cache.
  */
 import { createHash } from 'node:crypto'
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { createWriteStream, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { execSync } from 'node:child_process'
 import path from 'node:path'
+import { Readable } from 'node:stream'
+import { pipeline } from 'node:stream/promises'
 
 export const BANCADA_DIR =
   process.env.BANCADA_DIR || path.join(process.env.LOCALAPPDATA || process.env.HOME || '.', 'babel-bancada')
@@ -32,7 +34,9 @@ export function chave(nome) {
     try {
       const m = readFileSync(arq, 'utf8').match(new RegExp(`^${nome}=(.+)$`, 'm'))
       if (m && m[1].trim()) return m[1].trim()
-    } catch { /* ausente é normal */ }
+    } catch {
+      /* ausente é normal */
+    }
   }
   throw new Error(`${nome} não encontrada (ambiente, .env.local ou .env)`)
 }
@@ -40,19 +44,33 @@ export function chave(nome) {
 export function lerJsonl(rel) {
   const p = path.isAbsolute(rel) ? rel : path.join(BANCADA_DIR, rel)
   if (!existsSync(p)) throw new Error(`ausente: ${p} — rode antes: python scripts/eval-fala/baixar-bancada.py`)
-  return readFileSync(p, 'utf8').trim().split('\n').filter(Boolean).map((l) => JSON.parse(l))
+  return readFileSync(p, 'utf8')
+    .trim()
+    .split('\n')
+    .filter(Boolean)
+    .map((l) => JSON.parse(l))
 }
 
 export function commitAtual() {
-  try { return execSync('git rev-parse --short HEAD').toString().trim() } catch { return null }
+  try {
+    return execSync('git rev-parse --short HEAD').toString().trim()
+  } catch {
+    return null
+  }
 }
 
 // ---------------------------------------------------------------- livro-caixa
 const CAIXA = path.join(BANCADA_DIR, 'gasto.json')
 function lerCaixa() {
-  try { return JSON.parse(readFileSync(CAIXA, 'utf8')) } catch { return { totalUsd: 0, porSistema: {} } }
+  try {
+    return JSON.parse(readFileSync(CAIXA, 'utf8'))
+  } catch {
+    return { totalUsd: 0, porSistema: {} }
+  }
 }
-export function gastoTotal() { return lerCaixa().totalUsd }
+export function gastoTotal() {
+  return lerCaixa().totalUsd
+}
 /** Registra o gasto de uma chamada e lança quando o teto é ultrapassado. */
 export function registrarGasto(sistema, usd) {
   if (!Number.isFinite(usd) || usd <= 0) return
@@ -64,14 +82,20 @@ export function registrarGasto(sistema, usd) {
   if (c.totalUsd > TETO_USD) throw new TetoDeGasto(c.totalUsd)
 }
 export class TetoDeGasto extends Error {
-  constructor(total) { super(`teto de gasto da bancada atingido: US$ ${total.toFixed(4)} > ${TETO_USD}`) }
+  constructor(total) {
+    super(`teto de gasto da bancada atingido: US$ ${total.toFixed(4)} > ${TETO_USD}`)
+  }
 }
 
 // ---------------------------------------------------------------- cache
 export function cache(nome) {
   const arq = path.join(BANCADA_DIR, 'cache', `${nome.replace(/[^a-zA-Z0-9._-]+/g, '_')}.json`)
   let dados = {}
-  try { dados = JSON.parse(readFileSync(arq, 'utf8')) } catch { /* vazio */ }
+  try {
+    dados = JSON.parse(readFileSync(arq, 'utf8'))
+  } catch {
+    /* vazio */
+  }
   const refazer = flag('refazer')
   let sujo = 0
   return {
@@ -89,15 +113,40 @@ export function cache(nome) {
 }
 export const hash = (s) => createHash('sha256').update(s).digest('hex').slice(0, 16)
 
+// ---------------------------------------------------------------- modelos
+/**
+ * Baixa um arquivo de modelo para `BANCADA_DIR/cache/modelos/<rel>` — fora do git, e é essa pasta
+ * que o `actions/cache` do workflow da bancada guarda entre execuções. Grava em `.parcial` e só
+ * renomeia no fim: um download interrompido não passa por modelo inteiro na próxima vez.
+ */
+export async function baixarModelo(url, rel) {
+  const destino = path.join(BANCADA_DIR, 'cache', 'modelos', rel)
+  if (existsSync(destino)) return destino
+  mkdirSync(path.dirname(destino), { recursive: true })
+  const r = await fetch(url, { redirect: 'follow' })
+  if (!r.ok || !r.body) throw new Error(`download ${url}: HTTP ${r.status}`)
+  const parcial = `${destino}.parcial`
+  await pipeline(Readable.fromWeb(r.body), createWriteStream(parcial))
+  renameSync(parcial, destino)
+  return destino
+}
+
 // ---------------------------------------------------------------- áudio
 /** Lê WAV PCM 16-bit (a bancada grava tudo em 16 kHz mono). */
 export function lerWav(buf) {
-  let pos = 12, fmt = null, dados = null
+  let pos = 12,
+    fmt = null,
+    dados = null
   while (pos + 8 <= buf.length) {
     const id = buf.toString('ascii', pos, pos + 4)
     const tam = buf.readUInt32LE(pos + 4)
     const corpo = pos + 8
-    if (id === 'fmt ') fmt = { canais: buf.readUInt16LE(corpo + 2), taxa: buf.readUInt32LE(corpo + 4), bits: buf.readUInt16LE(corpo + 14) }
+    if (id === 'fmt ')
+      fmt = {
+        canais: buf.readUInt16LE(corpo + 2),
+        taxa: buf.readUInt32LE(corpo + 4),
+        bits: buf.readUInt16LE(corpo + 14),
+      }
     else if (id === 'data') dados = buf.subarray(corpo, Math.min(corpo + tam, buf.length))
     pos = corpo + tam + (tam % 2)
   }
@@ -148,13 +197,20 @@ export async function comRetentativa(fn, rotulo) {
       }
       throw e
     }
-    if (r.ok) { r.ms = performance.now() - inicio; return r }
+    if (r.ok) {
+      r.ms = performance.now() - inicio
+      return r
+    }
     if (r.status === 429 || r.status >= 500) {
       const corpo = await r.text()
-      if (/per day|\(RPD\)|\(ASD\)|\(TPD\)/i.test(corpo)) throw new CotaDoProvedor(`${rotulo}: cota diária do provedor esgotada — ${corpo.slice(0, 160)}`)
+      if (/per day|\(RPD\)|\(ASD\)|\(TPD\)/i.test(corpo))
+        throw new CotaDoProvedor(`${rotulo}: cota diária do provedor esgotada — ${corpo.slice(0, 160)}`)
       if (t < 12) {
         const sug = Number(r.headers.get('retry-after')) * 1000
-        const espera = Math.max(r.status === 429 ? 5000 : 1000, Number.isFinite(sug) && sug > 0 ? Math.min(sug + 500, 90_000) : Math.min(2000 * 2 ** t, 60_000))
+        const espera = Math.max(
+          r.status === 429 ? 5000 : 1000,
+          Number.isFinite(sug) && sug > 0 ? Math.min(sug + 500, 90_000) : Math.min(2000 * 2 ** t, 60_000),
+        )
         await new Promise((s) => setTimeout(s, espera))
         continue
       }

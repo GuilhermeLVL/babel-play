@@ -117,6 +117,13 @@ export interface QuotasDoPlano {
   sttSegundosDia: number | null;
   /** Tokens de LLM de nuvem por dia local. `null` = sem teto no dia. */
   tokensDia: number | null;
+  /**
+   * A VOZ NATURAL do modo intérprete (Fase E): caracteres lidos em voz alta pela nuvem, no mês e no
+   * dia local. Só conta para quem tem `vozNatural`; sem ele, o plano nem chega à nuvem (402). A conta
+   * está em `PLAN_MATRIX.premium`. `null` = sem teto.
+   */
+  vozCaracteresMes: number | null;
+  vozCaracteresDia: number | null;
 }
 
 export interface DefinicaoDePlano {
@@ -151,6 +158,8 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       armazenamentoMb: 500,
       sttSegundosDia: null,
       tokensDia: null,
+      vozCaracteresMes: 0,
+      vozCaracteresDia: null,
     },
   },
   premium: {
@@ -178,6 +187,16 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       armazenamentoMb: 5_000,
       sttSegundosDia: 7_200,
       tokensDia: 300_000,
+      /* A VOZ NATURAL (E4 da Fase E). Chatterbox Multilingual na DeepInfra: US$ 1,00 por 1M de caracteres
+         (deepinfra.com, 30/09/2026). A voz lê ~15 caracteres por segundo → ~54.000 por hora de voz
+         → ~US$ 0,054 por hora.
+           dia  60.000 ≈ 1,1 h de voz — a tradução lida de ~2 h de conversa (o uso justo do Premium,
+                a metade do tempo é a pessoa falando) → no máximo ~US$ 0,06 no dia;
+           mês 600.000 ≈ 11 h de voz → no máximo ~US$ 0,60 por assinante no mês.
+         PROVISÓRIO, como as 40 h: o teto liga com o custo medido no uso real (E6); `PREMIUM_*_TTS_CHARS`
+         sobrepõe. Passando dele, a voz do aparelho segue — o intérprete nunca para. */
+      vozCaracteresMes: 600_000,
+      vozCaracteresDia: 60_000,
     },
   },
   selfhost: {
@@ -200,6 +219,8 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       armazenamentoMb: null,
       sttSegundosDia: null,
       tokensDia: null,
+      vozCaracteresMes: null,
+      vozCaracteresDia: null,
     },
   },
 };
@@ -247,6 +268,8 @@ export const PLANO_CONVIDADO: DefinicaoDePlano = {
     armazenamentoMb: 0,
     sttSegundosDia: null,
     tokensDia: null,
+    vozCaracteresMes: 0,
+    vozCaracteresDia: null,
   },
 };
 

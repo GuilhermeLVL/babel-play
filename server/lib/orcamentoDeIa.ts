@@ -74,6 +74,12 @@ const PRECOS_OFICIAIS: Readonly<Record<string, PrecoDeModelo>> = {
   'openai/gpt-oss-20b': { entrada: 0.075, saida: 0.3 },
   'whisper-large-v3-turbo': { hora: 0.04 },
   'whisper-large-v3': { hora: 0.111 },
+  /* A VOZ NATURAL do intérprete (E4 da Fase E), por 1M de caracteres lidos: Chatterbox Multilingual e
+     Qwen3-TTS na DeepInfra (deepinfra.com, 30/09/2026, retenção zero); Chirp 3 HD no Google Cloud
+     Text-to-Speech (cloud.google.com/text-to-speech/pricing — a opção cara, declarável no registro). */
+  'deepinfra:ResembleAI/chatterbox-multilingual': { milhaoDeCaracteres: 1 },
+  'deepinfra:Qwen/Qwen3-TTS': { milhaoDeCaracteres: 20 },
+  'google-tts:chirp3-hd': { milhaoDeCaracteres: 30 },
 }
 
 /**
@@ -84,6 +90,8 @@ const PRECOS_OFICIAIS: Readonly<Record<string, PrecoDeModelo>> = {
  */
 const PRECO_LLM_DESCONHECIDO = { entrada: 1, saida: 3 }
 const PRECO_STT_DESCONHECIDO = { hora: 0.111 }
+/** A voz sem preço conhecido custa o da mais cara que o código conhece (Chirp 3 HD). */
+const PRECO_TTS_DESCONHECIDO = { milhaoDeCaracteres: 30 }
 const MINIMO_FATURADO_STT_S = 10
 
 /** Quem cobrou: o fornecedor que respondeu e o preço que o registro declarou para ele. */
@@ -140,6 +148,15 @@ export function minimoFaturadoDoStt(modelo: string, quem: QuemCobra = {}): numbe
 export function custoDeStt(modelo: string, segundos: number, quem: QuemCobra = {}): number {
   const hora = precoDe(modelo, quem)?.hora ?? PRECO_STT_DESCONHECIDO.hora
   return (Math.max(minimoFaturadoDoStt(modelo, quem), segundos) * hora) / 3600
+}
+
+/**
+ * Custo estimado (US$) de UMA fala lida pela voz natural — por caractere, que é como a DeepInfra e o
+ * Google cobram. Sem preço declarado, o da voz mais cara conhecida (o erro para mais).
+ */
+export function custoDeTts(modelo: string, caracteres: number, quem: QuemCobra = {}): number {
+  const preco = precoDe(modelo, quem)?.milhaoDeCaracteres ?? PRECO_TTS_DESCONHECIDO.milhaoDeCaracteres
+  return (Math.max(0, caracteres) * preco) / 1_000_000
 }
 
 const mesAtual = (): string => new Date().toISOString().slice(0, 7)

@@ -73,6 +73,7 @@
     "POST /api/ai/mt/alternativas",
     "POST /api/ai/providers/test",
     "POST /api/ai/stt",
+    "POST /api/ai/tts",
     "POST /api/anki/decks/:id/ativar",
     "POST /api/anki/decks/:id/desativar",
     "POST /api/billing/assinar",

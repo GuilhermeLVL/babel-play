@@ -13,6 +13,7 @@ import { llmChatProxy, providerTest } from '../ai/proxy'
 import { sttDeNuvemConfigurado } from '../ai/registroDeProvedores'
 import { apagarDoGlossario, gravarNoGlossario, listarGlossario } from '../ai/rotasDoGlossario'
 import { portaDoStt, sttTranscribeProxy } from '../ai/sttProxy'
+import { ttsProxy } from '../ai/ttsProxy'
 import { credentialsRepo } from '../db/repositories/credentials'
 import { getPlanForUser, hasEntitlement } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
@@ -39,6 +40,11 @@ aiRouter.post('/mt', mtTranslateProxy)
 /* "Outras formas" ao tocar numa frase (D4 da Fase D): até 3 opções e uma nota, só com a Tradução
    Nuance (402 `exige_nuance` pelo entitlement), com a cota, a admissão e o custo das outras funções. */
 aiRouter.post('/mt/alternativas', alternativasProxy)
+/* A VOZ NATURAL do modo intérprete (E4 da Fase E): a tradução lida em voz alta pela nuvem, só com o
+   `vozNatural` (402 pelo entitlement) e a flag `voz_natural` (503), com a admissão `tts`, a cota de
+   caracteres no mês e no dia e o custo das outras funções. Sem clonagem de voz. O cliente cai na voz
+   do aparelho a qualquer recusa (`src/lib/voz/vozDaNuvem.ts`). */
+aiRouter.post('/tts', ttsProxy)
 /* O GLOSSÁRIO PESSOAL da Tradução Nuance (D3 da Fase D): ler e apagar em qualquer plano (é dado da
    pessoa), gravar só com `traducaoNuance` (`server/ai/rotasDoGlossario.ts`). */
 aiRouter.get('/glossario', listarGlossario)

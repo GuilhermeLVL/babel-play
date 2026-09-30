@@ -24,9 +24,13 @@
  *   - SEM SEGREDO. `chave` e `conta` são NOMES de variáveis de ambiente (`DEEPINFRA_API_KEY`,
  *     `CLOUDFLARE_ACCOUNT_ID`); o valor é lido do ambiente na hora da chamada. Campo com cara de
  *     segredo (`apiKey`, `token`…) e `chave` que não é nome de variável de IA são recusados.
- *   - `preco`: US$ por 1M de tokens (`entrada`, `entradaEmCache`, `saida`) ou por hora de áudio
- *     (`hora`, com o `minimoFaturadoS` por pedido). Ausente, vale a tabela embutida em
- *     `server/lib/orcamentoDeIa.ts` — e, sem ela, o preço CONSERVADOR de lá.
+ *   - `preco`: US$ por 1M de tokens (`entrada`, `entradaEmCache`, `saida`), por hora de áudio
+ *     (`hora`, com o `minimoFaturadoS` por pedido) ou, na voz, por 1M de caracteres lidos
+ *     (`milhaoDeCaracteres`). Ausente, vale a tabela embutida em `server/lib/orcamentoDeIa.ts` — e,
+ *     sem ela, o preço CONSERVADOR de lá.
+ *   - `tts` (E4 da Fase E): a VOZ NATURAL do modo intérprete. Quem sabe chamar cada modelo, e o que
+ *     nunca vai no pedido (áudio de referência: sem clonagem de voz), é `server/ai/provedoresDeVoz.ts`.
+ *     O formato `google-tts` (Chirp 3 HD, Google Cloud Text-to-Speech — não é o Gemini) só atende `tts`.
  *   - `niveis` (B3): os NÍVEIS da tradução e do tutor que o modelo atende — `rapida`, `nuance`,
  *     `polimento` (`src/core/nivelDeTraducao.ts`). Ausente, `["rapida"]`. A cascata de um nível
  *     começa pelos modelos DELE e desce a escada (nuance → rápida): o modelo marcado para a nuance
@@ -70,12 +74,18 @@ import {
 
 /* ─────────────────────────────── o vocabulário ─────────────────────────────── */
 
-/** Como o provedor fala. `cloudflare` = Workers AI (o LLM pelo endpoint OpenAI dela; o STT em base64, no B6). */
-export const FORMATOS_DE_PROVEDOR = ['openai', 'cloudflare'] as const
+/**
+ * Como o provedor fala. `cloudflare` = Workers AI (o LLM pelo endpoint OpenAI dela; o STT em base64, no B6).
+ * `google-tts` = o Google Cloud Text-to-Speech (`text:synthesize`), só para a voz (`tts`).
+ */
+export const FORMATOS_DE_PROVEDOR = ['openai', 'cloudflare', 'google-tts'] as const
 export type FormatoDeProvedor = (typeof FORMATOS_DE_PROVEDOR)[number]
 
-/** As funções que o registro distribui. O `corretor` usa os modelos do `tutor` (a mesma rota). */
-export const FUNCOES_DO_REGISTRO = ['traducao', 'tutor', 'stt'] as const
+/**
+ * As funções que o registro distribui. O `corretor` usa os modelos do `tutor` (a mesma rota). `tts` é a
+ * voz natural do modo intérprete (E4 da Fase E).
+ */
+export const FUNCOES_DO_REGISTRO = ['traducao', 'tutor', 'stt', 'tts'] as const
 export type FuncaoDoRegistro = (typeof FUNCOES_DO_REGISTRO)[number]
 
 /**
@@ -234,6 +244,7 @@ const precoSchema = z.strictObject({
   saida: z.number().nonnegative().optional(),
   hora: z.number().nonnegative().optional(),
   minimoFaturadoS: z.number().int().nonnegative().optional(),
+  milhaoDeCaracteres: z.number().nonnegative().optional(),
 })
 
 const modeloSchema = z.strictObject({
@@ -323,8 +334,15 @@ function errosDeNegocio(reg: z.infer<typeof registroSchema>, producao: boolean):
       /* B3: `grande` é o sinônimo provisório da nuance; os dois juntos deixariam a dúvida de qual vale. */
       if (m.grande && m.niveis)
         erros.push(`${onde}: modelo "${m.id}" declara "grande" e "niveis" — use só "niveis" (grande = ["nuance"])`)
-      if (m.niveis && !m.funcoes.some((f) => f !== 'stt'))
-        erros.push(`${onde}: modelo "${m.id}" declara "niveis", que só valem para traducao/tutor (o STT não tem nível)`)
+      if (m.niveis && !m.funcoes.some((f) => f === 'traducao' || f === 'tutor'))
+        erros.push(
+          `${onde}: modelo "${m.id}" declara "niveis", que só valem para traducao/tutor (o STT e a voz não têm nível)`,
+        )
+      /* A voz só sabe falar com o formato OpenAI (`/audio/speech`) e com o do Google; e o do Google só fala. */
+      if (m.funcoes.includes('tts') && p.formato === 'cloudflare')
+        erros.push(`${onde}: modelo "${m.id}": a voz (tts) não tem o formato cloudflare — use openai ou google-tts`)
+      if (p.formato === 'google-tts' && m.funcoes.some((f) => f !== 'tts'))
+        erros.push(`${onde}: modelo "${m.id}": o formato google-tts só atende a voz (funcoes: ["tts"])`)
     }
 
     if (base && ehBaseDoOpenRouter(base)) {
@@ -611,6 +629,7 @@ function baseEfetiva(p: ProvedorDeclarado, env: NodeJS.ProcessEnv): string | nul
 function rotuloDaPerna(p: ProvedorDeclarado | undefined, funcao: FuncaoDoRegistro, indice: number): string {
   if (p?.rotulo) return p.rotulo
   if (funcao === 'stt') return indice === 0 ? 'stt-gerenciado' : 'stt-reserva'
+  if (funcao === 'tts') return indice === 0 ? 'tts-primario' : 'tts-reserva'
   return indice === 0 ? 'llm-primario' : 'llm-reserva'
 }
 
@@ -673,7 +692,8 @@ export function pernasDaFuncao(
   const f: FuncaoDoRegistro = funcao === 'corretor' ? 'tutor' : funcao === 'alternativas' ? 'traducao' : funcao
   const candidatas = candidatasDaFuncao(f, opcoes.modelosGrandes === true, env)
   const ordem: Candidata[] = []
-  if (f === 'stt') ordem.push(...candidatas)
+  /* O STT e a voz não têm nível: vale a ordem do registro. */
+  if (f === 'stt' || f === 'tts') ordem.push(...candidatas)
   else {
     for (const nivel of niveisAtendidos(opcoes.nivel ?? 'rapida')) {
       for (const c of candidatas) {

@@ -103,6 +103,16 @@ const SUFIXOS_POR_PLANO: ReadonlyArray<{ sufixo: string; paraQue: string }> = [
     paraQue: 'teto DIÁRIO (dia local) de segundos de STT de nuvem do plano — o uso justo',
   },
   { sufixo: 'DAILY_LLM_TOKENS', paraQue: 'teto DIÁRIO (dia local) de tokens do LLM de nuvem do plano — o uso justo' },
+  /* A VOZ NATURAL do modo intérprete (E4 da Fase E, `server/ai/ttsProxy.ts`): caracteres lidos em voz
+     alta pela nuvem, no mês e no dia local. Só vale para plano com `vozNatural` na matriz. */
+  {
+    sufixo: 'MONTHLY_TTS_CHARS',
+    paraQue: 'teto MENSAL de caracteres da voz natural de nuvem (modo intérprete) do plano',
+  },
+  {
+    sufixo: 'DAILY_TTS_CHARS',
+    paraQue: 'teto DIÁRIO (dia local) de caracteres da voz natural de nuvem do plano — o uso justo',
+  },
 ]
 
 /* O `convidado` (Fase 7) não está na matriz de assinatura, mas as cotas dele passam pelas MESMAS
@@ -128,6 +138,7 @@ export const VARIAVEIS_DE_CHAVE_DE_IA: readonly string[] = [
   'CLOUDFLARE_ACCOUNT_ID',
   'CLOUDFLARE_API_TOKEN',
   'DEEPINFRA_API_KEY',
+  'GOOGLE_TTS_API_KEY',
 ]
 
 export const VARIAVEIS: readonly VariavelDeclarada[] = [
@@ -388,6 +399,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
       'commit da versão do app (`0.1.0+<sha7>`, server/lib/versao.ts); o Dockerfile a preenche no build pelo arg VERSAO; ausente, vale SENTRY_RELEASE ou só a versão do package.json',
   },
   {
+    nome: 'GOOGLE_TTS_API_KEY',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'chave do Google Cloud Text-to-Speech (Chirp 3 HD), lida só quando um provedor de IA_PROVEDORES com formato "google-tts" a declara (voz natural do intérprete, OPÇÃO — o padrão é a DeepInfra). Nunca a API do Gemini. Ausente, a perna não existe',
+  },
+  {
     nome: 'GROQ_API_KEY',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
@@ -454,6 +472,20 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     paraQue: 'admissão de IA: pedidos de STT POR MINUTO a cada modelo (token bucket). Padrão 20 (Groq). 0 = sem teto',
   },
   {
+    nome: 'IA_ADMISSAO_TTS_RPD',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'admissão de IA: pedidos de VOZ NATURAL (TTS do intérprete) POR DIA a cada modelo sem "limites" no IA_PROVEDORES. Padrão 5000. 0 = sem teto',
+  },
+  {
+    nome: 'IA_ADMISSAO_TTS_RPM',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'admissão de IA: pedidos de VOZ NATURAL (TTS do intérprete) POR MINUTO a cada modelo sem "limites" no IA_PROVEDORES (token bucket). Padrão 60. 0 = sem teto',
+  },
+  {
     nome: 'IA_EM_VOO_LLM',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
@@ -466,6 +498,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     criticidade: 'degrada-capacidade',
     paraQue:
       'chamadas de STT de nuvem EM VOO por usuário ao mesmo tempo; a seguinte recebe 429 nuvem_ocupada. Padrão 1',
+  },
+  {
+    nome: 'IA_EM_VOO_TTS',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'pedidos de voz natural (TTS do intérprete) EM VOO por usuário ao mesmo tempo; o seguinte recebe 429 nuvem_ocupada e o cliente lê com a voz do aparelho. Padrão 1 (a fila de fala lê uma de cada vez)',
   },
   {
     nome: 'IA_PROVEDORES',
@@ -1124,11 +1163,14 @@ export interface LimitesDeModelo {
 export interface ConfigDeAdmissao {
   stt: LimitesDeModelo
   llm: LimitesDeModelo
+  /** A voz natural do intérprete (E4 da Fase E); não conta tokens. */
+  tts: LimitesDeModelo
   /** fração do saldo que só quem PAGA alcança (`IA_ADMISSAO_RESERVA_PRO`; o nome da env é de antes
    da matriz v2 e fica — renomear variável de operação apagaria em silêncio um valor já configurado) */
   reservaDosPagantes: number
   emVooStt: number
   emVooLlm: number
+  emVooTts: number
 }
 
 /** Inteiro >= 0 da variável; ausente ou inválido cai no padrão (erro de digitação não abre a porta). */
@@ -1162,10 +1204,19 @@ export function configDeAdmissao(env: NodeJS.ProcessEnv = process.env): ConfigDe
       rpd: inteiroNaoNegativo(env.IA_ADMISSAO_LLM_RPD, 1000),
       tpd: inteiroNaoNegativo(env.IA_ADMISSAO_LLM_TPD, 200_000),
     },
+    /* A voz natural não tem legado (nasce no registro): estes padrões só valem para perna sem "limites"
+       declarados, e são folgados — a DeepInfra aceita bem mais; quem segura o gasto são as cotas de
+       caracteres e o orçamento. */
+    tts: {
+      rpm: inteiroNaoNegativo(env.IA_ADMISSAO_TTS_RPM, 60),
+      rpd: inteiroNaoNegativo(env.IA_ADMISSAO_TTS_RPD, 5000),
+      tpd: 0,
+    },
     reservaDosPagantes,
     /* Piso 1: `0` em voo recusaria toda chamada, e quem quer desligar a nuvem tem `AI_ENABLED=0`. */
     emVooStt: Math.max(1, inteiroNaoNegativo(env.IA_EM_VOO_STT, 1)),
     emVooLlm: Math.max(1, inteiroNaoNegativo(env.IA_EM_VOO_LLM, 2)),
+    emVooTts: Math.max(1, inteiroNaoNegativo(env.IA_EM_VOO_TTS, 1)),
   }
 }
 
@@ -1270,6 +1321,8 @@ export interface PrecoDeModelo {
   hora?: number
   /** Segundos faturados no mínimo POR PEDIDO de STT (a Groq cobra 10). Ausente: 10, o conservador. */
   minimoFaturadoS?: number
+  /** US$ por 1 milhão de CARACTERES lidos (a voz natural, TTS — a DeepInfra cobra assim). */
+  milhaoDeCaracteres?: number
 }
 
 /**
@@ -1291,6 +1344,7 @@ export function precosDeModelosDoEnv(env: NodeJS.ProcessEnv = process.env): Reco
         saida: num(p.saida),
         hora: num(p.hora),
         minimoFaturadoS: num(p.minimoFaturadoS),
+        milhaoDeCaracteres: num(p.milhaoDeCaracteres),
       }
     }
     return saida

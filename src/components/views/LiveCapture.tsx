@@ -192,6 +192,7 @@ import EscolhaDoMicrofone from './captura/EscolhaDoMicrofone';
 import IdiomasDaSessao, { type Lado } from './captura/IdiomasDaSessao';
 import LegendasFlutuantes, { type LegendaAoVivo } from './captura/LegendasFlutuantes';
 import ModeloNoDispositivo, { type ModeloDaCaptura } from './captura/ModeloNoDispositivo';
+import ModoDesempenho from './captura/ModoDesempenho';
 import OndasDoNivel from './captura/OndasDoNivel';
 import TranscriptVisualSettings, { TEMA } from './captura/TranscriptVisualSettings';
 import { CampoLinha, Interruptor, Segmentos } from './vocab/Dialogo';
@@ -684,6 +685,9 @@ export default function LiveCapture({
      motivo gravava o valor automático em `ui.perfMode`, e ele passava a valer como manual para
      sempre — até num aparelho que depois se mostrasse forte. */
   const perfModeEscolhidoRef = useRef(false);
+  /* O mesmo "escolhido", como estado: a descrição do interruptor muda com ele (`ModoDesempenho`), e o
+     ajuste salvo pode chegar com o mesmo valor do automático — só o ref não faria a tela renderizar. */
+  const [perfModeEscolhido, setPerfModeEscolhido] = useState(false);
   useEffect(() => {
     perfModeRef.current = perfMode;
   }, [perfMode]);
@@ -1017,6 +1021,7 @@ export default function LiveCapture({
       if (ui.micEngine === 'browser' || ui.micEngine === 'whisper') setMicEngine(ui.micEngine);
       if (typeof ui.perfMode === 'boolean') {
         perfModeEscolhidoRef.current = true;
+        setPerfModeEscolhido(true);
         setPerfMode(ui.perfMode);
       }
       if (!langTouchedRef.current && typeof ui.autoDetectLang === 'boolean') setAutoDetectLang(ui.autoDetectLang);
@@ -3298,19 +3303,15 @@ export default function LiveCapture({
                   <option value="cloud">Nuvem</option>
                 </select>
               </CampoLinha>
-              <CampoLinha
-                rotulo="Modo desempenho (jogos)"
-                desc="Legenda só no fim de cada frase, sem o refino ao vivo: usa bem menos processador enquanto você joga."
-              >
-                <Interruptor
-                  ligado={perfMode}
-                  aoTrocar={() => {
-                    perfModeEscolhidoRef.current = true;
-                    setPerfMode((v) => !v);
-                  }}
-                  rotulo="Modo desempenho"
-                />
-              </CampoLinha>
+              <ModoDesempenho
+                ligado={perfMode}
+                escolhido={perfModeEscolhido}
+                aoTrocar={() => {
+                  perfModeEscolhidoRef.current = true;
+                  setPerfModeEscolhido(true);
+                  setPerfMode((v) => !v);
+                }}
+              />
               {/* TRADUÇÃO SOB DEMANDA (M0): o padrão é traduzir tudo, como sempre. */}
               <CampoLinha
                 rotulo={t('Tradução')}

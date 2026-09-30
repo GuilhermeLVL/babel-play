@@ -1545,5 +1545,22 @@
   "Polimento pausado: {feitos} de {total} blocos.": "Polishing paused: {feitos} of {total} blocks.",
   "{feitos} de {total} blocos polidos.": "{feitos} of {total} blocks polished.",
   "Revise a tradução da sessão inteira com o contexto da conversa. A original continua guardada.": "Revise the whole session translation with the context of the conversation. The original stays saved.",
-  "Retomar o polimento": "Resume polishing"
+  "Retomar o polimento": "Resume polishing",
+  "Falar em {idioma}": "Speak in {idioma}",
+  "Falar": "Speak",
+  "Lado de quem fala {idioma}": "Side of the {idioma} speaker",
+  "Lendo a tradução": "Reading the translation",
+  "Modo intérprete": "Interpreter mode",
+  "Ouvindo…": "Listening…",
+  "Parar a voz": "Stop the voice",
+  "Parar de ouvir": "Stop listening",
+  "Parar voz": "Stop voice",
+  "Parar": "Stop",
+  "Repetir a tradução": "Repeat the translation",
+  "Repetir": "Repeat",
+  "Sair do modo intérprete": "Leave interpreter mode",
+  "Toque em Falar e fale. A tradução aparece do outro lado e é lida em voz alta.": "Tap Speak and talk. The translation shows on the other side and is read aloud.",
+  "Trocar os lados": "Swap sides",
+  "Voz do aparelho": "Device voice",
+  "Voz natural · Premium": "Natural voice · Premium"
 }

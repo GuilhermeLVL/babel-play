@@ -70,6 +70,9 @@ export interface ControleDoInterprete {
   estado(): EstadoDoControle;
 }
 
+/** O que a captura (`LiveCapture`) repassa ao intérprete aberto: a direção e os avisos do pipeline. */
+export type PonteDoInterprete = Pick<ControleDoInterprete, 'direcao' | 'aoFimDaFala' | 'aoTraduzirFinal'>;
+
 const relogioPadrao = (): number => (typeof performance !== 'undefined' ? performance.now() : Date.now());
 const outroLado = (lado: LadoDoInterprete): LadoDoInterprete => (lado === 'meu' ? 'outro' : 'meu');
 

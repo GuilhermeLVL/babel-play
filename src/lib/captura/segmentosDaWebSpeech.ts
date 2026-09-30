@@ -15,7 +15,7 @@
 import type { Dispatch, SetStateAction } from 'react';
 
 import { estende, JANELA_DO_REENVIO_MS } from '../../gateway/adapters/webSpeech';
-import { formatTime, type SpeechSegment, wordsFromText } from './tiposDaFala';
+import { formatTime, type LadoDoInterprete, type SpeechSegment, wordsFromText } from './tiposDaFala';
 import type { OpcoesDeTraducao } from './traducaoDaFala';
 
 export interface DepsDosSegmentosDaWebSpeech {
@@ -35,6 +35,13 @@ export interface DepsDosSegmentosDaWebSpeech {
   translateSegment: (segId: string, text: string, srcCode?: string, tgtCode?: string, opts?: OpcoesDeTraducao) => void;
   /** Descartar este resultado (anti-eco do microfone: era o TTS do app). */
   ignorar?: () => boolean;
+  /** Modo intérprete: o lado de quem fala nesta sessão (vai em cada balão). */
+  lado?: LadoDoInterprete;
+  /**
+   * Um final NOVO foi comprometido (não o reenvio que só cresce o anterior): no intérprete, é o fim da
+   * fala — o microfone fecha aqui.
+   */
+  aoFinalComprometido?: (segId: string) => void;
 }
 
 const novoId = () => Math.random().toString(36).slice(2, 11);
@@ -68,6 +75,7 @@ export function segmentosDaWebSpeech(d: DepsDosSegmentosDaWebSpeech) {
           words: [],
           isPartial: true,
           tStartMs: d.nowRel(),
+          ...(d.lado ? { lado: d.lado } : {}),
         },
       ];
     });
@@ -123,6 +131,7 @@ export function segmentosDaWebSpeech(d: DepsDosSegmentosDaWebSpeech) {
         isPartial: false,
         tStartMs: existing?.tStartMs ?? d.nowRel(),
         tEndMs: d.nowRel(),
+        ...(d.lado ? { lado: d.lado } : {}),
       };
       const idx = prev.findIndex((s) => s.id === uttId);
       if (idx !== -1) {
@@ -133,6 +142,7 @@ export function segmentosDaWebSpeech(d: DepsDosSegmentosDaWebSpeech) {
       return [...prev, committed];
     });
     d.translateSegment(uttId, clean, d.de(), d.para(), { falada: d.falada });
+    d.aoFinalComprometido?.(uttId);
   };
 
   return { aoParcial, aoFinal };

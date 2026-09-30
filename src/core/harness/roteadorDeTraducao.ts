@@ -82,7 +82,7 @@ export interface EntradaDaRotaMt {
   ehToqueEmPalavra: boolean;
   /** Texto provisório (parcial do STT), que será refeito em ~1 s. */
   parcial: boolean;
-  /** Plano pago (Essencial/Pro/self-host). */
+  /** Plano pago (Premium/self-host). */
   pago: boolean;
   /** Grátis/convidado com cota de nuvem disponível (a cota é decidida no servidor; aqui é só o sinal). */
   cotaDeConvidado?: boolean;

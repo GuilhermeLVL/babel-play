@@ -16,6 +16,8 @@ import {
   type ContextoDaFlag,
   type DefinicaoDeFlag,
   idiomaCasa,
+  planoDaFlag,
+  PLANOS_DA_FLAG,
 } from '../src/core/flags'
 import { OFERTAS_PADRAO, resolverTextoRemoto } from '../src/core/ofertas'
 
@@ -40,17 +42,25 @@ describe('interruptor mestre', () => {
 
 describe('regra por plano', () => {
   it('só os planos da lista', () => {
-    const f = flag({ planos: ['convidado', 'pro'] })
+    const f = flag({ planos: ['convidado', 'premium'] })
     expect(avaliarFlag(f, ctx({ plano: 'convidado' }))).toBe(true)
-    expect(avaliarFlag(f, ctx({ plano: 'pro' }))).toBe(true)
+    expect(avaliarFlag(f, ctx({ plano: 'premium' }))).toBe(true)
     expect(avaliarFlag(f, ctx({ plano: 'free' }))).toBe(false)
-    expect(avaliarFlag(f, ctx({ plano: 'essencial' }))).toBe(false)
+    expect(avaliarFlag(f, ctx({ plano: 'selfhost' }))).toBe(false)
+  })
+
+  it('matriz v2: o plano de uma regra antiga é lido pela régua da matriz', () => {
+    expect(planoDaFlag('pro')).toBe('premium')
+    expect(planoDaFlag('essencial')).toBe('premium')
+    expect(planoDaFlag('convidado')).toBe('convidado')
+    expect(planoDaFlag('ouro')).toBeNull()
+    expect(PLANOS_DA_FLAG).toEqual(['convidado', 'free', 'premium', 'selfhost'])
   })
 })
 
 describe('regra por lista de ids', () => {
   it('quem está na lista (conta ou instalação) liga mesmo fora do plano e do percentual', () => {
-    const f = flag({ ids: ['conta-1', 'inst-9'], planos: ['pro'], percentual: 0 })
+    const f = flag({ ids: ['conta-1', 'inst-9'], planos: ['premium'], percentual: 0 })
     expect(avaliarFlag(f, ctx({ userId: 'conta-1' }))).toBe(true)
     expect(avaliarFlag(f, ctx({ instalacao: 'inst-9' }))).toBe(true)
     expect(avaliarFlag(f, ctx({ userId: 'outra' }))).toBe(false)
@@ -146,7 +156,7 @@ describe('combinação e saída', () => {
     const f = flag({ planos: ['free'], idiomas: ['pt'] })
     expect(avaliarFlag(f, ctx({ plano: 'free', idioma: 'pt' }))).toBe(true)
     expect(avaliarFlag(f, ctx({ plano: 'free', idioma: 'en' }))).toBe(false)
-    expect(avaliarFlag(f, ctx({ plano: 'pro', idioma: 'pt' }))).toBe(false)
+    expect(avaliarFlag(f, ctx({ plano: 'premium', idioma: 'pt' }))).toBe(false)
   })
 
   it('avaliarFlags devolve só ligada + payload, e payload só quando ligada', () => {

@@ -19,7 +19,7 @@ import { z } from 'zod'
 
 import { centavosParaReais, pacotePorSku } from '../../src/core/creditos'
 import { autorizarGastoDeCredito, ehRecusa } from '../../src/core/economiaAutoridade'
-import { ehPlanoDeAssinatura, PLAN_MATRIX } from '../../src/core/planos'
+import { normalizarPlano, PLAN_MATRIX } from '../../src/core/planos'
 import { billingEventsRepo } from '../db/repositories/billingEvents'
 import { creditsRepo } from '../db/repositories/credits'
 import { subscriptionsRepo } from '../db/repositories/subscriptions'
@@ -293,8 +293,11 @@ billingRouter.post('/assinar', async (req, res) => {
     res.status(501).json({ error: 'cobrança não configurada no servidor (ASAAS_API_KEY ausente)' })
     return
   }
-  const plano = dados.plano
-  if (!ehPlanoDeAssinatura(plano) || PLAN_MATRIX[plano].precoMensalBrl === null) {
+  /* O nome antigo (`essencial`/`pro`) de uma aba aberta com o bundle anterior é lido como o atual:
+     quem clicou "Assinar o Pro" antes do deploy assina o Premium agora, em vez de receber um 400.
+     O ciclo é o mensal: o anual e o 12x entram no C5 (change `planos-v2`). */
+  const plano = normalizarPlano(dados.plano)
+  if (!plano || PLAN_MATRIX[plano].precoMensalBrl === null) {
     res.status(400).json({ error: 'este plano não é vendável' })
     return
   }
@@ -313,16 +316,25 @@ billingRouter.post('/assinar', async (req, res) => {
        - Assinatura NOVA: grava a INTENÇÃO em `trialing`, que NÃO concede (entitlements.subConcede) e
          serve de fallback ao webhook quando o evento vier sem valor.
        - Assinatura JÁ existente: só atualiza os ids da nova tentativa de cobrança; NÃO toca em
-         plan/status. Sobrescrever `plan` de um assinante ativo o promoveria sem pagar (escalada
-         essencial→pro); baixá-lo para `trialing` revogaria o que ele já paga. */
+         plan/status. Sobrescrever `plan` de um assinante ativo o promoveria sem pagar (a escalada
+         que o GAP-001 fechou); baixá-lo para `trialing` revogaria o que ele já paga. O `meio` diz só
+         qual fluxo do Asaas cobra esta tentativa — não concede nada; o `ciclo` quem grava é o
+         webhook, pelo valor pago. */
     await subscriptionsRepo.upsert(
       destino,
       atual
-        ? { provider: 'asaas', providerCustomerId: clienteId, providerSubscriptionId: assinatura.id }
+        ? {
+            provider: 'asaas',
+            providerCustomerId: clienteId,
+            providerSubscriptionId: assinatura.id,
+            meio: 'assinatura',
+          }
         : {
             provider: 'asaas',
             providerCustomerId: clienteId,
             providerSubscriptionId: assinatura.id,
+            meio: 'assinatura',
+            ciclo: 'mensal',
             plan: plano,
             status: 'trialing',
           },
@@ -373,8 +385,17 @@ billingRouter.get('/status', async (req, res) => {
       : null
   res.json({
     configurado: asaasConfigurado(),
+    /* O plano no nome ATUAL (a linha pode ser de antes da 0041) e, desde a matriz v2, o ciclo e o
+       meio — a tela de conta do C7 fala de "renova todo mês" ou "vale até <data> (anual)". */
     assinatura: sub
-      ? { plano: sub.plan, status: sub.status, valeAte: sub.currentPeriodEnd, provedor: sub.provider }
+      ? {
+          plano: normalizarPlano(sub.plan) ?? sub.plan,
+          status: sub.status,
+          valeAte: sub.currentPeriodEnd,
+          provedor: sub.provider,
+          ciclo: sub.ciclo === 'anual' ? 'anual' : 'mensal',
+          meio: sub.meio ?? null,
+        }
       : null,
     ...(proxima ? { proximaCobranca: proxima } : {}),
   })
@@ -427,7 +448,10 @@ billingRouter.get('/faturas', async (req, res) => {
     return
   }
   try {
-    const descricao = ehPlanoDeAssinatura(sub.plan) ? `${PLAN_MATRIX[sub.plan].rotulo} · mensal` : 'Assinatura'
+    const plano = normalizarPlano(sub.plan)
+    const descricao = plano
+      ? `${PLAN_MATRIX[plano].rotulo} · ${sub.ciclo === 'anual' ? 'anual' : 'mensal'}`
+      : 'Assinatura'
     const cobrancas = await listarCobrancasDaAssinatura(sub.providerSubscriptionId)
     res.json({
       faturas: cobrancas.map((c) => ({

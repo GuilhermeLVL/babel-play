@@ -6,7 +6,7 @@
 import { Router } from 'express'
 import { z } from 'zod'
 
-import { type PlanoDeAssinatura, PLANOS_DE_ASSINATURA } from '../../src/core/planos'
+import { normalizarPlano, type PlanoDeAssinatura, PLANOS_DE_ASSINATURA } from '../../src/core/planos'
 import { billingEventsRepo } from '../db/repositories/billingEvents'
 import { resumoDoDono } from '../db/repositories/resumo'
 import { subscriptionsRepo } from '../db/repositories/subscriptions'
@@ -88,9 +88,16 @@ adminRouter.patch('/users/:id', requireRole('admin'), async (req, res) => {
   res.json(await usersRepo.get(target))
 })
 
+/* Deriva da matriz. O nome antigo (`essencial`/`pro`) de um script de operação escrito antes da matriz
+   v2 é lido como o atual — conceder "pro" hoje é conceder o Premium, não um 400 no meio do suporte. */
 const planSchema = z
-  .object({ plan: z.enum(PLANOS_DE_ASSINATURA as unknown as [PlanoDeAssinatura, ...PlanoDeAssinatura[]]) })
-  .strip() // deriva da matriz
+  .object({
+    plan: z.preprocess(
+      (v) => normalizarPlano(v) ?? v,
+      z.enum(PLANOS_DE_ASSINATURA as unknown as [PlanoDeAssinatura, ...PlanoDeAssinatura[]]),
+    ),
+  })
+  .strip()
 
 adminRouter.patch('/users/:id/plan', requireRole('admin'), async (req, res) => {
   const parsed = planSchema.safeParse(req.body ?? {})

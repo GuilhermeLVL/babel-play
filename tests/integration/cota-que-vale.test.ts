@@ -60,13 +60,13 @@ afterEach(() => {
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
   delete process.env.GROQ_API_KEY
-  delete process.env.PRO_MONTHLY_LLM_TOKENS
+  delete process.env.PREMIUM_MONTHLY_LLM_TOKENS
   esquecerDisjuntores()
 })
 
 async function pro(id: string) {
   const u = asUserId(id)
-  await subs.upsert(u, { plan: 'pro', status: 'active' })
+  await subs.upsert(u, { plan: 'premium', status: 'active' })
   return u
 }
 
@@ -129,30 +129,31 @@ describe('falha fechada', () => {
 describe('teto de tokens por plano', () => {
   it('o teto vem da matriz e aceita override por env', async () => {
     const { PLAN_MATRIX } = await h.load<any>('../../src/core/planos')
-    expect(quota.capTokensParaPlano('pro')).toBe(PLAN_MATRIX.pro.quotas.tokensMes)
-    process.env.PRO_MONTHLY_LLM_TOKENS = '1234'
-    expect(quota.capTokensParaPlano('pro')).toBe(1234)
+    expect(quota.capTokensParaPlano('premium')).toBe(PLAN_MATRIX.premium.quotas.tokensMes)
+    process.env.PREMIUM_MONTHLY_LLM_TOKENS = '1234'
+    expect(quota.capTokensParaPlano('premium')).toBe(1234)
   })
 
   it('reserva a estimativa, e o acerto devolve o que não foi gasto', async () => {
-    process.env.PRO_MONTHLY_LLM_TOKENS = '10000'
+    process.env.PREMIUM_MONTHLY_LLM_TOKENS = '10000'
     const u = await pro('tk-acerto')
-    expect(await quota.reservarTokensDeLlm(u, 3000)).toBe(true)
+    // Matriz v2: a reserva diz se coube e em que dia caiu (o uso justo); a recusa diz qual teto.
+    expect(await quota.reservarTokensDeLlm(u, 3000)).toMatchObject({ cabe: true })
     expect(await repo.get(u, quota.METRIC_LLM_TOKENS, janela())).toBe(3000)
     await quota.acertarTokensDeLlm(u, 3000, 700)
     expect(await repo.get(u, quota.METRIC_LLM_TOKENS, janela())).toBe(700)
   })
 
   it('acima do teto a reserva recusa', async () => {
-    process.env.PRO_MONTHLY_LLM_TOKENS = '1000'
+    process.env.PREMIUM_MONTHLY_LLM_TOKENS = '1000'
     const u = await pro('tk-teto')
-    expect(await quota.reservarTokensDeLlm(u, 800)).toBe(true)
-    expect(await quota.reservarTokensDeLlm(u, 800)).toBe(false)
+    expect(await quota.reservarTokensDeLlm(u, 800)).toMatchObject({ cabe: true })
+    expect(await quota.reservarTokensDeLlm(u, 800)).toEqual({ cabe: false, recusa: 'mes' })
   })
 
   it('tradução com o teto de tokens esgotado → 402 quota_exceeded, sem chamar o provedor', async () => {
     process.env.GROQ_API_KEY = 'chave'
-    process.env.PRO_MONTHLY_LLM_TOKENS = '100'
+    process.env.PREMIUM_MONTHLY_LLM_TOKENS = '100'
     const u = await pro('tk-mt')
     const chamadas: string[] = []
     vi.stubGlobal('fetch', async (url: any) => (chamadas.push(String(url)), respostaOk('oi')))

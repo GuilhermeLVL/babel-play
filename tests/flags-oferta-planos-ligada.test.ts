@@ -13,12 +13,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import type { ConfigDeOfertas } from '../src/core/ofertas'
 import { momentoDaRecusa } from '../src/lib/ofertas/eventos'
-import {
-  decidirOferta,
-  type EntradaDoMotor,
-  HISTORICO_VAZIO,
-  INICIO_SEM_OFERTA_MS,
-} from '../src/lib/ofertas/motor'
+import { decidirOferta, type EntradaDoMotor, HISTORICO_VAZIO, INICIO_SEM_OFERTA_MS } from '../src/lib/ofertas/motor'
 import { type EphemeralDb, setupEphemeralDb } from './harness/ephemeralDb'
 
 type Cliente = { execute: (q: string) => Promise<{ rows: Array<Record<string, unknown>> }> }
@@ -29,6 +24,18 @@ const comandosDaMigracao = () =>
     .split(/-->\s*statement-breakpoint/)
     .map((c) => c.trim())
     .filter((c) => c.replace(/--[^\n]*/g, '').trim())
+
+/* A 0041 (matriz v2) roda DEPOIS da 0039 e tira o `essencial` dos gatilhos da semente: reaplicar a
+   0039 sozinha devolveria o nome antigo, então a sequência reaplicada é 0039 → os UPDATEs da 0041. */
+const MIGRACAO_V2 = path.join('server', 'db', 'migrations', '0041_planos_v2.sql')
+const updatesDaV2 = () =>
+  readFileSync(MIGRACAO_V2, 'utf8')
+    .split(/-->\s*statement-breakpoint/)
+    .map((c) => c.replace(/--[^\n]*/g, '').trim())
+    .filter((c) => /^UPDATE\b/i.test(c))
+const reaplicar = async () => {
+  for (const c of [...comandosDaMigracao(), ...updatesDaV2()]) await client.execute(c)
+}
 
 let h: EphemeralDb
 let client: Cliente
@@ -72,13 +79,13 @@ describe('a semente no banco', () => {
 
   it('reaplicar é idempotente e NÃO sobrescreve o que o operador mudou', async () => {
     const antes = await linha('oferta_planos')
-    for (const c of comandosDaMigracao()) await client.execute(c)
+    await reaplicar()
     expect(await linha('oferta_planos')).toEqual(antes)
 
     await client.execute(
       `UPDATE flags SET habilitada = 0, payload = '{"gatilhos":[]}', atualizado_por = 'admin-1' WHERE chave = 'oferta_planos'`,
     )
-    for (const c of comandosDaMigracao()) await client.execute(c)
+    await reaplicar()
     const depois = await linha('oferta_planos')
     expect(Number(depois.habilitada)).toBe(0)
     expect(depois.payload).toBe('{"gatilhos":[]}')
@@ -122,7 +129,7 @@ describe('o motor com o payload semeado', () => {
     expect(recusa({ historico: { ...HISTORICO_VAZIO, ultimaExibicao: AGORA - 60_000 } })).toBe('intervalo_global')
     expect(recusa({ tela: { capturaAtiva: true, jogoAtivo: false, dialogoAberto: false } })).toBe('ocupado')
     expect(recusa({ tela: { capturaAtiva: false, jogoAtivo: true, dialogoAberto: false } })).toBe('ocupado')
-    expect(recusa({ plano: 'pro' })).toBe('plano_alvo')
+    expect(recusa({ plano: 'premium' })).toBe('plano_alvo')
     expect(recusa({ plano: 'convidado' })).toBe('convidado_primeiro_conta')
   })
 })

@@ -10,7 +10,7 @@
  *
  *  1. FLAG. Desligada = só os avisos FUNCIONAIS (fim de cota, cota próxima), com os textos
  *     embutidos (`GATILHOS_FUNCIONAIS`). Ofertas promocionais só existem com a flag ligada.
- *  2. PLANOS-ALVO. Assinante Pro e self-host nunca veem oferta promocional (não há o que vender);
+ *  2. PLANOS-ALVO. Assinante Premium e self-host nunca veem oferta promocional (não há o que vender);
  *     o convidado vê primeiro a CONTA, nunca um plano (`convidado → conta antes de plano`); e o
  *     gatilho só vale para os planos que ele lista.
  *  3. "NÃO MOSTRAR NOVAMENTE" é permanente, por gatilho.
@@ -114,19 +114,16 @@ export type DecisaoDeOferta =
 const recusa = (motivo: MotivoDeRecusa, adiar = false): DecisaoDeOferta => ({ mostrar: false, motivo, adiar });
 
 /**
- * O plano que faz sentido sugerir. `nenhum` = não há o que vender (Pro, self-host). O convidado
- * ouve "crie a conta" antes de qualquer plano; o Grátis ouve Essencial — também no `modelo_premium`:
- * o que ele esbarra (transcrição e tradução de nuvem, tutor) já está no Essencial, e sugerir o Pro
- * era vender o dobro do preço pelo mesmo recurso (funil, 2026-09-29); o Essencial ouve Pro.
+ * O plano que faz sentido sugerir. `nenhum` = não há o que vender (Premium, self-host). O convidado
+ * ouve "crie a conta" antes de qualquer plano; o Grátis ouve o Premium (matriz v2: um plano pago só —
+ * o C8 acrescenta o teste de 14 dias para quem pode testar).
  */
 export function planoSugerido(plano: PlanoDaFlag): PlanoSugerido {
   switch (plano) {
     case 'convidado':
       return 'conta';
     case 'free':
-      return 'essencial';
-    case 'essencial':
-      return 'pro';
+      return 'premium';
     default:
       return 'nenhum';
   }

@@ -86,7 +86,7 @@ describe('registro declarado: o modelo marcado para a nuance, com o mais barato 
   })
 
   it('nuance: primeiro o modelo da nuance, depois a cascata da rápida inteira', () => {
-    const { nivel, pernas } = cascataDoPlano('traducao', getEntitlements('essencial'), declarado([DEEPINFRA, GROQ]))
+    const { nivel, pernas } = cascataDoPlano('traducao', getEntitlements('premium'), declarado([DEEPINFRA, GROQ]))
     expect(nivel).toBe('nuance')
     expect(nomes(pernas)).toEqual([
       'deepinfra:openai/gpt-oss-120b',
@@ -98,14 +98,14 @@ describe('registro declarado: o modelo marcado para a nuance, com o mais barato 
   })
 
   it('o tutor segue a mesma regra, com os modelos declarados para o tutor', () => {
-    const { pernas } = cascataDoPlano('tutor', getEntitlements('pro'), declarado([DEEPINFRA, GROQ]))
+    const { pernas } = cascataDoPlano('tutor', getEntitlements('premium'), declarado([DEEPINFRA, GROQ]))
     expect(nomes(pernas)[0]).toBe('deepinfra:openai/gpt-oss-120b')
   })
 
   it('sem modelo marcado para a nuance, a nuance é a própria rápida', () => {
     const semNuance = { ...DEEPINFRA, modelos: [DEEPINFRA.modelos[0]] }
     const env = declarado([semNuance, GROQ])
-    expect(nomes(cascataDoPlano('traducao', getEntitlements('pro'), env).pernas)).toEqual(
+    expect(nomes(cascataDoPlano('traducao', getEntitlements('premium'), env).pernas)).toEqual(
       nomes(cascataDoPlano('traducao', getEntitlements('free'), env).pernas),
     )
   })
@@ -135,7 +135,7 @@ describe('registro declarado: o modelo marcado para a nuance, com o mais barato 
       modelos: [DEEPINFRA.modelos[0], { id: 'openai/gpt-oss-120b', funcoes: ['traducao', 'tutor'], grande: true }],
     }
     const env = declarado([comGrande, GROQ])
-    expect(nomes(cascataDoPlano('traducao', getEntitlements('essencial'), env).pernas)[0]).toBe(
+    expect(nomes(cascataDoPlano('traducao', getEntitlements('premium'), env).pernas)[0]).toBe(
       'deepinfra:openai/gpt-oss-120b',
     )
     expect(nomes(cascataDoPlano('traducao', getEntitlements('free'), env).pernas)).not.toContain(
@@ -184,9 +184,11 @@ describe('legado: sem IA_PROVEDORES, a cascata de cada plano é a de antes', () 
     }
   })
 
-  it('o Essencial (nuance, sem largerModels) continua no modelo comum; o Pro no grande', () => {
+  /* Matriz v2: um plano pago só, e o Premium herdou o largerModels do Pro (quem pagava por ele não
+     perde nada) — no legado, o modelo grande é dele; o Grátis fica no comum. */
+  it('no legado, o Premium (largerModels) recebe o grande; o Grátis fica no modelo comum', () => {
     const env = ambientes[2] // com LLM_MODEL_GRANDE, sem reserva
-    expect(cascataDoPlano('traducao', getEntitlements('essencial'), env).pernas[0].model).toBe('modelo-de-todo-dia')
-    expect(cascataDoPlano('traducao', getEntitlements('pro'), env).pernas[0].model).toBe('modelo-caro')
+    expect(cascataDoPlano('traducao', getEntitlements('free'), env).pernas[0].model).toBe('modelo-de-todo-dia')
+    expect(cascataDoPlano('traducao', getEntitlements('premium'), env).pernas[0].model).toBe('modelo-caro')
   })
 })

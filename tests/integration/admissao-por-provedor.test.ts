@@ -33,7 +33,7 @@ afterEach(() => {
 })
 
 /** Quantos pedidos o plano consegue no mesmo instante. */
-function contar(p: Record<string, unknown>, plano = 'pro', tokens = 0): number {
+function contar(p: Record<string, unknown>, plano = 'premium', tokens = 0): number {
   let n = 0
   while (
     admitirNoBalde({ tipo: 'llm', provedor: 'deepinfra', modelo: 'm', plano, tokens, agora: T0, ...p } as any).ok
@@ -63,19 +63,20 @@ describe('limites declarados no MODELO', () => {
   it('rpd declarado fecha o dia', () => {
     const lim = { rpm: 100, rpd: 3 }
     const pedir = () =>
-      admitirNoBalde({ tipo: 'llm', provedor: 'x', modelo: 'd', plano: 'pro', limites: lim, agora: T0 })
+      admitirNoBalde({ tipo: 'llm', provedor: 'x', modelo: 'd', plano: 'premium', limites: lim, agora: T0 })
     expect([pedir().ok, pedir().ok, pedir().ok]).toEqual([true, true, true])
     const r = pedir()
     expect(r.ok).toBe(false)
     if (r.ok === false) expect(r.recusa.motivo).toBe('dia')
   })
 
-  it('as faixas valem sobre o declarado: Essencial para na reserva do Pro, alívio só nos 20% de cima', () => {
+  /* Matriz v2: três faixas. O Premium usa o balde inteiro; o grátis (e o convidado) para na metade;
+     o alívio do Grátis só nos 20% de cima (a reserva de 80% dos pagantes). */
+  it('as faixas valem sobre o declarado: grátis para na metade, alívio só nos 20% de cima', () => {
     const lim = { rpm: 10 }
-    expect(contar({ limites: lim, modelo: 'a' }, 'pro')).toBe(10)
-    expect(contar({ limites: lim, modelo: 'b' }, 'essencial')).toBe(8)
-    expect(contar({ limites: lim, modelo: 'c' }, 'convidado')).toBe(5)
-    expect(contar({ limites: lim, modelo: 'd' }, 'alivio')).toBe(2)
+    expect(contar({ limites: lim, modelo: 'a' }, 'premium')).toBe(10)
+    expect(contar({ limites: lim, modelo: 'b' }, 'gratis')).toBe(5)
+    expect(contar({ limites: lim, modelo: 'c' }, 'alivio')).toBe(2)
   })
 })
 
@@ -83,7 +84,7 @@ describe('tokens por minuto (tpm) — o balde de tokens', () => {
   it('pedidos de 400 tokens num tpm de 1.000: dois passam, o terceiro espera', () => {
     const lim = { rpm: 100, tpm: 1000 }
     const pedir = (agora = T0) =>
-      admitirNoBalde({ tipo: 'llm', provedor: 'x', modelo: 'm', plano: 'pro', tokens: 400, limites: lim, agora })
+      admitirNoBalde({ tipo: 'llm', provedor: 'x', modelo: 'm', plano: 'premium', tokens: 400, limites: lim, agora })
     expect(pedir().ok).toBe(true)
     expect(pedir().ok).toBe(true)
     const r = pedir()
@@ -99,7 +100,15 @@ describe('tokens por minuto (tpm) — o balde de tokens', () => {
   it('o acerto pelo uso REAL devolve ao balde de tokens o que a estimativa superestimou', () => {
     const lim = { tpm: 1000 }
     const pedir = () =>
-      admitirNoBalde({ tipo: 'llm', provedor: 'x', modelo: 'm', plano: 'pro', tokens: 600, limites: lim, agora: T0 })
+      admitirNoBalde({
+        tipo: 'llm',
+        provedor: 'x',
+        modelo: 'm',
+        plano: 'premium',
+        tokens: 600,
+        limites: lim,
+        agora: T0,
+      })
     const a = pedir()
     expect(a.ok).toBe(true)
     expect(pedir().ok).toBe(false)
@@ -112,7 +121,7 @@ describe('tokens por minuto (tpm) — o balde de tokens', () => {
       tipo: 'llm',
       provedor: 'x',
       modelo: 'm',
-      plano: 'pro',
+      plano: 'premium',
       tokens: 5000,
       limites: { tpm: 1000 },
       agora: T0,
@@ -123,7 +132,15 @@ describe('tokens por minuto (tpm) — o balde de tokens', () => {
   it('ticket devolvido repõe os tokens', () => {
     const lim = { tpm: 1000 }
     const pedir = () =>
-      admitirNoBalde({ tipo: 'llm', provedor: 'x', modelo: 'm', plano: 'pro', tokens: 800, limites: lim, agora: T0 })
+      admitirNoBalde({
+        tipo: 'llm',
+        provedor: 'x',
+        modelo: 'm',
+        plano: 'premium',
+        tokens: 800,
+        limites: lim,
+        agora: T0,
+      })
     const a = pedir()
     expect(pedir().ok).toBe(false)
     if (a.ok) a.ticket.devolver()
@@ -139,7 +156,7 @@ describe('limites do PROVEDOR: um balde só para os modelos dele', () => {
         tipo: 'llm',
         provedor: 'cf',
         modelo,
-        plano: 'pro',
+        plano: 'premium',
         limites: lim,
         compartilhado: true,
         agora: T0,
@@ -151,7 +168,7 @@ describe('limites do PROVEDOR: um balde só para os modelos dele', () => {
   it('o 429 do provedor fecha o balde da conta para todos os modelos dele', () => {
     const alvo = { limites: { rpm: 60 }, compartilhado: true }
     registrarLimiteNaAdmissao('llm', 'cf', 'a', 5, T0, alvo)
-    const r = admitirNoBalde({ tipo: 'llm', provedor: 'cf', modelo: 'b', plano: 'pro', ...alvo, agora: T0 + 1000 })
+    const r = admitirNoBalde({ tipo: 'llm', provedor: 'cf', modelo: 'b', plano: 'premium', ...alvo, agora: T0 + 1000 })
     expect(r.ok).toBe(false)
     if (r.ok === false) expect(r.recusa.motivo).toBe('provedor_limitou')
   })
@@ -161,7 +178,7 @@ describe('fracaoDoBalde — quanto sobra, para a política de custo (B4)', () =>
   it('balde novo está cheio; consumido, a fração cai; fechado pelo 429, zero', () => {
     const alvo = { tipo: 'llm' as const, provedor: 'x', modelo: 'm', limites: { rpm: 10 } }
     expect(fracaoDoBalde({ ...alvo, agora: T0 })).toBe(1)
-    for (let i = 0; i < 9; i++) admitirNoBalde({ ...alvo, plano: 'pro', agora: T0 })
+    for (let i = 0; i < 9; i++) admitirNoBalde({ ...alvo, plano: 'premium', agora: T0 })
     expect(fracaoDoBalde({ ...alvo, agora: T0 })).toBeCloseTo(0.1, 5)
     registrarLimiteNaAdmissao('llm', 'x', 'm', 5, T0, { limites: alvo.limites })
     expect(fracaoDoBalde({ ...alvo, agora: T0 + 1000 })).toBe(0)
@@ -169,7 +186,7 @@ describe('fracaoDoBalde — quanto sobra, para a política de custo (B4)', () =>
 
   it('a menor das dimensões manda: pedidos sobrando e tokens do minuto no fim', () => {
     const alvo = { tipo: 'llm' as const, provedor: 'x', modelo: 't', limites: { rpm: 100, tpm: 1000 } }
-    admitirNoBalde({ ...alvo, plano: 'pro', tokens: 900, agora: T0 })
+    admitirNoBalde({ ...alvo, plano: 'premium', tokens: 900, agora: T0 })
     expect(fracaoDoBalde({ ...alvo, agora: T0 })).toBeCloseTo(0.1, 5)
   })
 

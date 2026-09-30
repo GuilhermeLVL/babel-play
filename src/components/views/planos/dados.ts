@@ -1,6 +1,5 @@
 import {
   Bot,
-  Cloud,
   Cpu,
   Download,
   Gauge,
@@ -13,7 +12,12 @@ import {
   Sparkles,
 } from 'lucide-react';
 
-import { armazenamentoEmTexto, horasDeTranscricao, type PlanoDeAssinatura } from '../../../core/planos';
+import {
+  armazenamentoEmTexto,
+  horasDeTranscricao,
+  horasDoUsoJusto,
+  type PlanoDeAssinatura,
+} from '../../../core/planos';
 import { irParaSubTelaDePlanos, navegarPara, type SubTelaDePlanos } from '../../../lib/rotas';
 
 /**
@@ -27,18 +31,24 @@ import { irParaSubTelaDePlanos, navegarPara, type SubTelaDePlanos } from '../../
  * SÓ O QUE EXISTE (Fase 2 do lançamento, `tests/planos-so-o-que-existe.test.ts`). Saíram três
  * promessas que o app hospedado não cumpria: "Importar do YouTube" (a rota responde 403 fora do
  * self-host), "Nada para baixar" (os modelos locais continuam sendo a reserva quando a nuvem falha
- * ou a cota acaba) e "Download menor" (número não medido com a transcrição de nuvem). O "modelo
- * maior" do Pro também não aparece aqui: ele só existe quando `LLM_MODEL_GRANDE` está definido no
- * servidor, e a tela não sabe disso — volta à vitrine quando o modelo for escolhido e medido.
+ * ou a cota acaba) e "Download menor" (número não medido com a transcrição de nuvem).
+ *
+ * MATRIZ V2 (ADR 0011): um plano pago só. O Premium soma o que o Essencial e o Pro davam, e diz o
+ * USO JUSTO do dia ao lado das horas do mês — o limite que a pessoa vai encontrar é o do dia, e ele
+ * volta amanhã. A tela nova (título, seletor Mensal/Anual, sem os números de qualidade) é o C7.
  */
 
-export type Coluna = 'gratis' | 'essencial' | 'pro';
+export type Coluna = 'gratis' | 'premium';
 
 /** O download dos modelos locais do plano Grátis — o único plano que depende só deles. */
 export const DOWNLOAD_DO_GRATIS = '230–413 MB';
 
-/** "15 h de transcrição de nuvem por mês", derivado da quota. */
+/** "40 h de transcrição de nuvem por mês", derivado da quota. */
 const horas = (plano: PlanoDeAssinatura) => `${horasDeTranscricao(plano) ?? 0} h de transcrição de nuvem por mês`;
+
+/** "Uso justo: até 2 h de nuvem por dia; depois, segue no aparelho", derivado da quota do dia. */
+const usoJusto = (plano: PlanoDeAssinatura) =>
+  `Uso justo: até ${horasDoUsoJusto(plano) ?? 0} h de nuvem por dia; depois, segue no aparelho`;
 
 export interface Plano {
   id: Coluna;
@@ -70,40 +80,27 @@ export const PLANOS: Plano[] = [
     ],
   },
   {
-    id: 'essencial',
-    chave: 'essencial',
+    id: 'premium',
+    chave: 'premium',
     icone: Sparkles,
-    nome: 'Essencial',
+    nome: 'Premium',
     tag: 'Tradução e transcrição com IA de nuvem',
     para: 'Para quem quer traduções e transcrições melhores sem trocar de computador.',
     base: 'Grátis',
     itens: [
       [Languages, 'Tradução com IA de nuvem: 85% de qualidade'],
       [MessageSquareQuote, 'Expressões idiomáticas: 83%'],
-      [Mic, horas('essencial')],
+      [Mic, horas('premium')],
+      [Gauge, usoJusto('premium')],
       [Bot, 'Tutor de IA (iChat) sobre o seu material'],
-      [HardDrive, `${armazenamentoEmTexto('essencial')} para sessões`],
-    ],
-  },
-  {
-    id: 'pro',
-    chave: 'pro',
-    icone: Cloud,
-    nome: 'Pro',
-    tag: 'Mais horas de IA de nuvem',
-    para: 'Para quem estuda todo dia e transcreve muito.',
-    base: 'Essencial',
-    itens: [
-      [Mic, horas('pro')],
-      [Gauge, 'Limite maior de tradução e tutor de IA'],
-      [HardDrive, `${armazenamentoEmTexto('pro')} para sessões`],
+      [HardDrive, `${armazenamentoEmTexto('premium')} para sessões`],
     ],
     destaque: true,
   },
 ];
 
-export const PLANO_NOME: Record<Coluna, string> = { gratis: 'Grátis', essencial: 'Essencial', pro: 'Pro' };
-export const PLANO_ICO: Record<Coluna, LucideIcon> = { gratis: Cpu, essencial: Sparkles, pro: Cloud };
+export const PLANO_NOME: Record<Coluna, string> = { gratis: 'Grátis', premium: 'Premium' };
+export const PLANO_ICO: Record<Coluna, LucideIcon> = { gratis: Cpu, premium: Sparkles };
 
 export const planoPorId = (id: Coluna): Plano => PLANOS.find((p) => p.id === id)!;
 

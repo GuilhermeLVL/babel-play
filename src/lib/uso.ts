@@ -36,6 +36,20 @@ export interface UsoDoMes {
    * ausente em servidor antigo.
    */
   alivio?: AlivioDoMes | null;
+  /**
+   * O USO JUSTO DO DIA (matriz v2): o dia LOCAL da conta, com os contadores e os tetos do dia. `null`
+   * para plano sem teto no dia (Grátis, self-host) — ali nada é contado por dia; ausente em servidor
+   * anterior. A tela que o mostra é o C7.
+   */
+  hoje?: UsoDeHoje | null;
+}
+
+export interface UsoDeHoje {
+  /** `AAAA-MM-DD` no fuso da conta; zera na virada do dia de lá. */
+  janela: string;
+  fuso: string;
+  segundosDeAudio: Contador;
+  tokensDeLlm: Contador;
 }
 
 export interface AlivioDoMes {

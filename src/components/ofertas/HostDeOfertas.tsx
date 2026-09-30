@@ -9,7 +9,7 @@ import {
   type PlanoSugerido,
   resolverTextoRemoto,
 } from '../../core/ofertas';
-import { precoDoPlano } from '../../core/planos';
+import { PLAN_MATRIX, precoDoPlano } from '../../core/planos';
 import { onPlanChange } from '../../lib/entitlements';
 import { ehConfigDeOfertas, useConfigRemota, useFlag } from '../../lib/flags';
 import { estadoDeIdentidade } from '../../lib/identidade';
@@ -233,7 +233,7 @@ export default function HostDeOfertas({ aoEntrar, aoVerPlanos }: { aoEntrar: () 
 
   const titulo = resolverTextoRemoto(g.titulo, idioma, t);
   const texto = resolverTextoRemoto(g.texto, idioma, t);
-  /* Quem não tem plano a subir (Pro) vê o consumo, não uma venda. */
+  /* Quem não tem plano a subir (Premium) vê o consumo, não uma venda. */
   const cta = sugerido === 'nenhum' ? t('Ver consumo do mês') : resolverTextoRemoto(g.cta, idioma, t);
   const selo = seloDoPlano(sugerido, t);
   const props = {
@@ -254,10 +254,10 @@ function renderizar(componente: ComponenteDeOferta, props: Parameters<typeof Mod
   return <CartaoDeOferta tom={componente === 'aviso_cota' ? 'alerta' : 'acento'} {...props} />;
 }
 
-/** "Sugerido: Essencial · R$ 19,90/mês" — o preço da matriz, nunca escrito à mão. */
+/** "Sugerido: Premium · R$ 19,90/mês" — o nome e o preço da matriz, nunca escritos à mão. */
 function seloDoPlano(sugerido: PlanoSugerido, t: (s: string, v?: Record<string, string | number>) => string) {
-  if (sugerido !== 'essencial' && sugerido !== 'pro') return undefined;
-  const nome = sugerido === 'pro' ? 'Pro' : 'Essencial';
+  if (sugerido !== 'premium') return undefined;
+  const nome = PLAN_MATRIX[sugerido].rotulo;
   const preco = precoDoPlano(sugerido);
   return preco
     ? t('Sugerido: {plano} · R$ {preco}/mês', { plano: nome, preco })

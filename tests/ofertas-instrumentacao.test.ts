@@ -32,7 +32,7 @@ const rotulos = I.rotulosDaOferta({
   gatilho: 'premium',
   componente: 'comparacao',
   planoAtual: 'free',
-  planoSugerido: 'pro',
+  planoSugerido: 'premium',
   variante: 'padrao',
 })
 
@@ -89,7 +89,7 @@ describe('envio', () => {
 describe('atribuição: oferta → checkout → assinatura', () => {
   it('o checkout herda a última oferta clicada, e a assinatura conta uma vez só', () => {
     I.lembrarAtribuicao(rotulos)
-    I.registrarCheckoutIniciado('pro')
+    I.registrarCheckoutIniciado('premium')
     I.registrarAssinaturaConcluida()
     I.registrarAssinaturaConcluida() // recarregar a tela de confirmação
     vi.advanceTimersByTime(I.ESPERA_DO_LOTE_MS)
@@ -101,19 +101,19 @@ describe('atribuição: oferta → checkout → assinatura', () => {
   })
 
   it('checkout sem oferta clicada é orgânico (`nenhum`)', () => {
-    I.registrarCheckoutIniciado('essencial')
+    I.registrarCheckoutIniciado('premium')
     vi.advanceTimersByTime(I.ESPERA_DO_LOTE_MS)
     expect(estado.chamadas[0].corpo.eventos[0]).toMatchObject({
       evento: 'checkout_iniciado',
       gatilho: 'nenhum',
       componente: 'nenhum',
-      plano_sugerido: 'essencial',
+      plano_sugerido: 'premium',
     })
   })
 
   it('atribuição vence em 24 h', () => {
     I.lembrarAtribuicao(rotulos, Date.now() - 25 * 60 * 60_000)
-    expect(I.atribuicaoDoCheckout('pro').gatilho).toBe('nenhum')
+    expect(I.atribuicaoDoCheckout('premium').gatilho).toBe('nenhum')
   })
 
   it('assinatura sem checkout iniciado neste aparelho não conta', () => {

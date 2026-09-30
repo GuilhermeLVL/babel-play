@@ -47,18 +47,74 @@ export const TETO_PALAVRAS_SALVAS_POR_DIA = 30;
 export const META_DIARIA_ACERTOS = 20;
 
 export const REGRAS: RegraDeGanho[] = [
-  { id: 'sequencia7', como: 'Praticar 7 dias seguidos', xp: PESOS_XP.sequencia7, seeds: PESOS_SEEDS.sequencia7, teto: 'a cada 7 dias', unidade: 'por marco' },
-  { id: 'palavraSalva', como: 'Salvar uma palavra nova da captura', xp: 0, seeds: PESOS_SEEDS.palavraSalva, teto: `até ${TETO_PALAVRAS_SALVAS_POR_DIA} por dia`, unidade: 'por palavra' },
-  { id: 'metaDiaria', como: 'Cumprir a meta do dia', xp: PESOS_XP.metaDiaria, seeds: PESOS_SEEDS.metaDiaria, teto: '1× por dia', unidade: 'as 3 missões do dia' },
-  { id: 'sessao', como: 'Salvar uma sessão e fichar ao menos uma palavra dela', xp: PESOS_XP.sessao, seeds: 0, unidade: 'por sessão' },
-  { id: 'cartao', como: 'Fichar uma palavra no caderno', xp: PESOS_XP.cartao, seeds: PESOS_SEEDS.cartao, unidade: 'por palavra' },
-  { id: 'revisaoCerta', como: 'Acertar uma revisão', xp: PESOS_XP.revisao + PESOS_XP.revisaoCerta, seeds: PESOS_SEEDS.revisaoCerta, unidade: 'por revisão certa' },
-  { id: 'jogoCerto', como: 'Acertar um item de jogo', xp: PESOS_XP.itemDeJogo + PESOS_XP.itemDeJogoCerto, seeds: PESOS_SEEDS.jogoCerto, unidade: 'por acerto' },
-  { id: 'rodadaPerfeita', como: 'Fechar uma rodada sem errar (3 estrelas)', xp: PESOS_XP.rodadaPerfeita, seeds: PESOS_SEEDS.rodadaPerfeita, unidade: 'por rodada' },
-  { id: 'nivelDeMaestria', como: 'Subir de nível de maestria num jogo', xp: 0, seeds: PESOS_SEEDS.nivelDeMaestria, unidade: 'vezes o nível alcançado' },
+  {
+    id: 'sequencia7',
+    como: 'Praticar 7 dias seguidos',
+    xp: PESOS_XP.sequencia7,
+    seeds: PESOS_SEEDS.sequencia7,
+    teto: 'a cada 7 dias',
+    unidade: 'por marco',
+  },
+  {
+    id: 'palavraSalva',
+    como: 'Salvar uma palavra nova da captura',
+    xp: 0,
+    seeds: PESOS_SEEDS.palavraSalva,
+    teto: `até ${TETO_PALAVRAS_SALVAS_POR_DIA} por dia`,
+    unidade: 'por palavra',
+  },
+  {
+    id: 'metaDiaria',
+    como: 'Cumprir a meta do dia',
+    xp: PESOS_XP.metaDiaria,
+    seeds: PESOS_SEEDS.metaDiaria,
+    teto: '1× por dia',
+    unidade: 'as 3 missões do dia',
+  },
+  {
+    id: 'sessao',
+    como: 'Salvar uma sessão e fichar ao menos uma palavra dela',
+    xp: PESOS_XP.sessao,
+    seeds: 0,
+    unidade: 'por sessão',
+  },
+  {
+    id: 'cartao',
+    como: 'Fichar uma palavra no caderno',
+    xp: PESOS_XP.cartao,
+    seeds: PESOS_SEEDS.cartao,
+    unidade: 'por palavra',
+  },
+  {
+    id: 'revisaoCerta',
+    como: 'Acertar uma revisão',
+    xp: PESOS_XP.revisao + PESOS_XP.revisaoCerta,
+    seeds: PESOS_SEEDS.revisaoCerta,
+    unidade: 'por revisão certa',
+  },
+  {
+    id: 'jogoCerto',
+    como: 'Acertar um item de jogo',
+    xp: PESOS_XP.itemDeJogo + PESOS_XP.itemDeJogoCerto,
+    seeds: PESOS_SEEDS.jogoCerto,
+    unidade: 'por acerto',
+  },
+  {
+    id: 'rodadaPerfeita',
+    como: 'Fechar uma rodada sem errar (3 estrelas)',
+    xp: PESOS_XP.rodadaPerfeita,
+    seeds: PESOS_SEEDS.rodadaPerfeita,
+    unidade: 'por rodada',
+  },
+  {
+    id: 'nivelDeMaestria',
+    como: 'Subir de nível de maestria num jogo',
+    xp: 0,
+    seeds: PESOS_SEEDS.nivelDeMaestria,
+    unidade: 'vezes o nível alcançado',
+  },
   { id: 'conquista', como: 'Desbloquear uma conquista', xp: 0, seeds: 0, unidade: 'varia por conquista' },
 ];
-
 
 /** Palavras PREMIADAS de um conjunto de dias: por dia, min(teto, palavras do dia). */
 export function palavrasPremiadas(palavrasPorDia: Iterable<number>): number {
@@ -66,7 +122,6 @@ export function palavrasPremiadas(palavrasPorDia: Iterable<number>): number {
   for (const n of palavrasPorDia) total += Math.min(TETO_PALAVRAS_SALVAS_POR_DIA, Math.max(0, Math.floor(n)));
   return total;
 }
-
 
 /**
  * O FUSO DO USUÁRIO. O dia da meta, as missões, a ofensiva e o teto do baú são do dia LOCAL de
@@ -103,7 +158,8 @@ export function decidirFuso(
 ): { fuso: string; gravar: { fuso: string; desde: number } | null } {
   const valido = pedido && fusoOuPadrao(pedido) === pedido ? pedido : null;
   const atual = gravado.fuso && fusoOuPadrao(gravado.fuso) === gravado.fuso ? gravado.fuso : null;
-  if (!atual) return valido ? { fuso: valido, gravar: { fuso: valido, desde: agora } } : { fuso: FUSO_PADRAO, gravar: null };
+  if (!atual)
+    return valido ? { fuso: valido, gravar: { fuso: valido, desde: agora } } : { fuso: FUSO_PADRAO, gravar: null };
   if (valido && valido !== atual && agora - (gravado.desde ?? 0) >= CARENCIA_DO_FUSO_MS) {
     return { fuso: valido, gravar: { fuso: valido, desde: agora } };
   }
@@ -138,6 +194,26 @@ export function diaNoFuso(ts: number, fuso: string): string {
     formatosDeDia.set(f, fmt);
   }
   return fmt.format(new Date(ts));
+}
+
+const MINUTO_MS = 60_000;
+
+/**
+ * Quantos segundos faltam para o dia LOCAL virar no fuso — o `Retry-After` da recusa do uso justo do
+ * dia (`src/core/usoJusto.ts`). Procura, de 15 em 15 min a partir de agora, o primeiro instante em que
+ * `diaNoFuso` muda, e volta de minuto em minuto até o início do minuto da virada: assim o dia da
+ * troca de horário de verão (23 h ou 25 h) também fecha certo, sem tabela de fusos. Mínimo 1.
+ */
+export function segundosAteVirarODia(agora: number, fuso: string): number {
+  const f = fusoOuPadrao(fuso);
+  const hoje = diaNoFuso(agora, f);
+  let t = agora;
+  while (diaNoFuso(t, f) === hoje) t += 15 * MINUTO_MS;
+  while (t - MINUTO_MS > agora && diaNoFuso(t - MINUTO_MS, f) !== hoje) t -= MINUTO_MS;
+  /* `t` está dentro do primeiro minuto de amanhã; a meia-noite local cai no início dele (todo fuso
+     é múltiplo de minuto, então o início do minuto no relógio UTC é o início no relógio local). */
+  const virada = t - (t % MINUTO_MS);
+  return Math.max(1, Math.ceil((Math.max(virada, agora + 1000) - agora) / 1000));
 }
 
 /** O fuso de quem está no navegador (ou o padrão, fora dele). */

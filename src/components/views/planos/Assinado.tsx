@@ -6,8 +6,8 @@ import {
   carregarFaturas,
   carregarStatusDeBilling,
   dataCurta,
-  ehPlanoPago,
   type Fatura,
+  planoPagoDe,
   precoMensal,
   type StatusDeBilling,
 } from '../../../lib/assinatura';
@@ -59,7 +59,7 @@ export default function Assinado() {
   }, []);
 
   const a = status !== 'carregando' ? status?.assinatura : null;
-  const confirmada = !!a && a.status === 'active' && ehPlanoPago(a.plano);
+  const confirmada = !!a && a.status === 'active' && planoPagoDe(a.plano) !== null;
 
   if (!confirmada) {
     return (
@@ -84,7 +84,7 @@ export default function Assinado() {
     );
   }
 
-  const plano = a.plano as 'essencial' | 'pro';
+  const plano = planoPagoDe(a.plano) ?? 'premium';
   const P = PLANO_NOME[plano];
   const ultima = faturas?.find((f) => f.status === 'paga') ?? null;
   const hoje = new Date().toISOString().slice(0, 10);

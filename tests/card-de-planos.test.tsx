@@ -32,7 +32,7 @@ it('anônimo também vê', async () => {
   expect(screen.getByTestId('card-de-planos')).toBeTruthy()
 })
 
-for (const plan of ['essencial', 'pro', 'selfhost']) {
+for (const plan of ['premium', 'selfhost']) {
   it(`${plan} NUNCA vê anúncio`, async () => {
     const { container } = await montar(plan)
     expect(container.querySelector('[data-testid="card-de-planos"]')).toBeNull()

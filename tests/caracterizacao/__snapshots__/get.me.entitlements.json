@@ -10,6 +10,7 @@
     "managedCloudStt": "boolean",
     "plan": "string",
     "traducaoNuance": "boolean",
+    "vozNatural": "boolean",
     "youtubeImport": "boolean"
   }
 }

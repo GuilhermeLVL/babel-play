@@ -1,5 +1,4 @@
 import {
-  ArrowDownRight,
   ArrowLeft,
   ArrowRight,
   BadgeCheck,
@@ -35,7 +34,7 @@ import Etapas, { rolarAoTopo } from './Etapas';
  * peso da oferta.
  *
  * O CANCELAMENTO É O REAL: `POST /api/billing/cancelar` para a renovação no Asaas, e o que já foi
- * pago vale até o fim do período (a data vem do Asaas). As ofertas (Essencial, pausa, suporte) levam
+ * pago vale até o fim do período (a data vem do Asaas). As ofertas (pausa, suporte) levam
  * ao suporte, porque trocar de plano e pausar não têm rota no servidor.
  *
  * ARREPENDIMENTO (CDC art. 49; Decreto 7.962/2013 art. 5º): dentro de 7 dias do primeiro pagamento,
@@ -83,7 +82,7 @@ export default function Cancelar({
     rolarAoTopo();
   };
 
-  const plano = conta.plano ?? 'pro';
+  const plano = conta.plano ?? 'premium';
   const p = PLANO_NOME[plano];
   const ate = valeAte ? dataCurta(valeAte) : 'o fim do período pago';
   const pagas = (faturas ?? []).filter((f) => f.status === 'paga' && f.data);
@@ -93,16 +92,8 @@ export default function Cancelar({
   const valorPago = pagas.reduce((s, f) => s + f.valor, 0) || precoMensal(plano);
 
   const ofertas: Record<string, [LucideIcon, string, string][]> = {
-    caro:
-      plano === 'pro'
-        ? [
-            [
-              ArrowDownRight,
-              `Mudar para o Essencial por ${brl(precoMensal('essencial'))}/mês`,
-              'Você mantém a tradução com IA de nuvem. O suporte faz a troca.',
-            ],
-          ]
-        : [],
+    /* Matriz v2: não há plano mais barato para onde descer — o "caro" não tem oferta de troca. */
+    caro: [],
     pouco: [[CirclePause, 'Pausar por 1, 2 ou 3 meses', 'Sem cobrança nesse período. O suporte faz a pausa.']],
     tecnico: [[LifeBuoy, 'Falar com o suporte', 'Conte o que aconteceu: dá para resolver antes de cancelar.']],
   };

@@ -2,6 +2,7 @@ import { apiFetch } from '../../data/api';
 import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { alivioAceito, cabecalhoDoAlivio, registrarRecusaDoAlivio } from '../../lib/nuvemDeAlivio/estado';
 import { sinalizarRecusaDaNuvem } from '../../lib/ofertas/eventos';
+import { registrarRecusaDoUsoJusto } from '../../lib/usoJustoDoDia';
 import type { MtResult, TranslationProvider } from '../capabilities';
 import { PAUSA_MAXIMA_MS, PausaDaNuvem } from '../pausaDaNuvem';
 
@@ -76,6 +77,15 @@ export class ServerLlmMt implements TranslationProvider {
     }
     if (res.status === 402 || res.status === 429 || res.status >= 500) {
       this.pausa.falha(res.status, res.headers?.get?.('retry-after'));
+      /* O USO JUSTO DO DIA (429 `uso_justo_do_dia`, matriz v2): a pausa acima já vale; sai o aviso
+         funcional, uma vez por dia — e nada de venda (o 429 não é momento de oferta). */
+      if (res.status === 429 && typeof res.clone === 'function') {
+        const corpo: unknown = await res
+          .clone()
+          .json()
+          .catch(() => null);
+        registrarRecusaDoUsoJusto(res.status, corpo);
+      }
       /* O 402 não é mais silencioso: cota acabada ou plano insuficiente viram um MOMENTO de oferta
          (Fase 8). O host espera a captura acabar para mostrar — a tradução segue no motor local. */
       void sinalizarRecusaDaNuvem(res, 'traducao');

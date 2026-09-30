@@ -183,17 +183,29 @@ describe('compra avulsa não vira assinatura', () => {
  *   4. o webhook lê a intenção (`pro`) e concede Pro por R$ 19,90
  *
  * As duas defesas: a assinatura que pagou tem de ser a registrada, e o PLANO SAI DO VALOR PAGO.
+ *
+ * NA MATRIZ V2 (ADR 0011) há um plano pago só, e a escalada que sobra é a de CICLO: registrar a
+ * intenção do ANUAL (um ano de acesso) e pagar só o MENSAL. O valor decide o ciclo como decidia o
+ * plano: R$ 19,90 é um mês e cinco dias; R$ 179 é um ano e cinco dias. E o valor ANTIGO (o Pro a
+ * R$ 39,90, o Essencial a R$ 19,90) continua concedendo — assinatura recorrente de antes não perde o
+ * plano no mês seguinte.
  */
 describe('a assinatura concedida é a que foi paga', () => {
   /**
    * A05 (auditoria de 2026-09-07): este caso caía num `break` e respondia 200 — o pagante tinha
    * pago e ficava sem plano, sem reentrega e sem trilha. Agora o plano sai do VALOR PAGO (a
-   * intenção `pro` não vale nada: pagou 19,90, recebe essencial) e a divergência fica escrita no
+   * intenção do anual não vale nada: pagou 19,90, recebe o mensal) e a divergência fica escrita no
    * evento. Só quando não há valor para deduzir o plano é que o evento fica pendente.
    */
   it('parcela de OUTRA assinatura concede o plano do valor pago e registra a divergência', async () => {
     const u = asUserId('u-esc1')
-    await subs.upsert(u, { plan: 'pro', status: 'trialing', provider: 'asaas', providerSubscriptionId: 'sub_S2' })
+    await subs.upsert(u, {
+      plan: 'premium',
+      ciclo: 'anual',
+      status: 'trialing',
+      provider: 'asaas',
+      providerSubscriptionId: 'sub_S2',
+    })
     const res = mockRes()
     await handler()(
       req({
@@ -206,17 +218,17 @@ describe('a assinatura concedida é a que foi paga', () => {
     expect(res.statusCode).toBe(200)
     expect(res.body.estado).toBe('aplicado')
     expect(res.body.motivo).toMatch(/assinatura-divergente/)
+    expect(res.body.motivo).toMatch(/plano-divergente/)
     const sub = await subs.getActive(u)
     expect(sub.status).toBe('active')
-    expect(sub.plan, 'pagou 19,90 pela outra assinatura — recebe o que pagou, nunca o pro da intenção').toBe(
-      'essencial',
-    )
+    expect(sub.plan).toBe('premium')
+    expect(sub.ciclo, 'pagou 19,90 pela outra assinatura — recebe o mês, nunca o ano da intenção').toBe('mensal')
     expect((await eventos.ler('evt_esc1')).estado).toBe('aplicado')
   })
 
   it('parcela de OUTRA assinatura SEM valor fica pendente, não some', async () => {
     const u = asUserId('u-esc4')
-    await subs.upsert(u, { plan: 'pro', status: 'trialing', provider: 'asaas', providerSubscriptionId: 'sub_S9' })
+    await subs.upsert(u, { plan: 'premium', status: 'trialing', provider: 'asaas', providerSubscriptionId: 'sub_S9' })
     const res = mockRes()
     await handler()(
       req({
@@ -233,9 +245,15 @@ describe('a assinatura concedida é a que foi paga', () => {
     expect(pendentes.map((e: any) => e.id)).toContain('evt_esc4')
   })
 
-  it('pagar o preço do essencial concede ESSENCIAL, mesmo com a intenção em pro', async () => {
+  it('pagar o preço do MENSAL concede um mês, mesmo com a intenção no anual', async () => {
     const u = asUserId('u-esc2')
-    await subs.upsert(u, { plan: 'pro', status: 'trialing', provider: 'asaas', providerSubscriptionId: 'sub_S1' })
+    await subs.upsert(u, {
+      plan: 'premium',
+      ciclo: 'anual',
+      status: 'trialing',
+      provider: 'asaas',
+      providerSubscriptionId: 'sub_S1',
+    })
     const res = mockRes()
     await handler()(
       req({
@@ -248,12 +266,42 @@ describe('a assinatura concedida é a que foi paga', () => {
     expect(res.statusCode).toBe(200)
     const sub = await subs.getActive(u)
     expect(sub.status).toBe('active')
-    expect(sub.plan, 'pagou 19,90 — não pode receber Pro').toBe('essencial')
+    expect(sub.plan).toBe('premium')
+    expect(sub.ciclo, 'pagou 19,90 — não pode receber o ano').toBe('mensal')
+    expect(sub.currentPeriodEnd).toBeLessThan(Date.now() + 40 * 86_400_000)
   })
 
-  it('pagar o preço do Pro concede PRO', async () => {
+  it('pagar o preço do ANUAL concede o ano: vencimento + 370 dias', async () => {
+    const u = asUserId('u-esc5')
+    await subs.upsert(u, { plan: 'premium', status: 'trialing', provider: 'asaas', providerSubscriptionId: 'sub_S5' })
+    await handler()(
+      req({
+        id: 'evt_esc5',
+        event: 'PAYMENT_CONFIRMED',
+        payment: {
+          id: 'pay_esc5',
+          subscription: 'sub_S5',
+          externalReference: 'u-esc5',
+          value: 179,
+          dueDate: '2026-10-01',
+        },
+      }),
+      mockRes(),
+    )
+    const sub = await subs.getActive(u)
+    expect(sub).toMatchObject({ plan: 'premium', ciclo: 'anual', status: 'active' })
+    expect(sub.currentPeriodEnd).toBe(Date.parse('2026-10-01T12:00:00Z') + 370 * 86_400_000)
+  })
+
+  it('o valor ANTIGO do Pro (R$ 39,90) continua concedendo: Premium mensal', async () => {
     const u = asUserId('u-esc3')
-    await subs.upsert(u, { plan: 'essencial', status: 'trialing', provider: 'asaas', providerSubscriptionId: 'sub_S3' })
+    // A intenção também é de antes da matriz v2 — a linha que a migração 0041 ainda não reescreveu.
+    await subs.upsert(u, {
+      plan: 'essencial' as never,
+      status: 'trialing',
+      provider: 'asaas',
+      providerSubscriptionId: 'sub_S3',
+    })
     const res = mockRes()
     await handler()(
       req({
@@ -263,19 +311,22 @@ describe('a assinatura concedida é a que foi paga', () => {
       }),
       res,
     )
-    expect((await subs.getActive(u)).plan).toBe('pro')
+    expect(res.body.estado).toBe('aplicado')
+    expect(await subs.getActive(u)).toMatchObject({ plan: 'premium', ciclo: 'mensal', status: 'active' })
+    expect(await entitlements.getPlanForUser(u)).toBe('premium')
   })
 })
 
 describe('o ciclo de vida do plano', () => {
-  it('pagamento confirmado ativa o plano da INTENÇÃO gravada por /assinar', async () => {
+  it('pagamento confirmado ativa o plano da INTENÇÃO gravada por /assinar (nome antigo lido como Premium)', async () => {
     const u = asUserId('u-ciclo')
-    await subs.upsert(u, { plan: 'pro', status: 'trialing', provider: 'asaas' })
+    await subs.upsert(u, { plan: 'pro' as never, status: 'trialing', provider: 'asaas' })
     const res = mockRes()
     await handler()(req(evento('evt_c1', 'PAYMENT_CONFIRMED', 'u-ciclo')), res)
     expect(res.statusCode).toBe(200)
     const sub = await subs.getActive(u)
-    expect(sub.plan).toBe('pro')
+    expect(sub.plan).toBe('premium')
+    expect(sub.ciclo).toBe('mensal')
     expect(sub.status).toBe('active')
     expect(sub.currentPeriodEnd).toBeGreaterThan(Date.now())
     // E o entitlement REAL passa a valer — o que o assinante comprou.
@@ -284,7 +335,7 @@ describe('o ciclo de vida do plano', () => {
 
   it('IDEMPOTÊNCIA: o mesmo evento duas vezes = uma promoção, segunda resposta marca repetido', async () => {
     const u = asUserId('u-idem')
-    await subs.upsert(u, { plan: 'essencial', status: 'trialing' })
+    await subs.upsert(u, { plan: 'premium', status: 'trialing' })
     await handler()(req(evento('evt_i1', 'PAYMENT_CONFIRMED', 'u-idem')), mockRes())
     const primeiraJanela = (await subs.getActive(u)).currentPeriodEnd
 
@@ -298,7 +349,7 @@ describe('o ciclo de vida do plano', () => {
 
   it('atraso → past_due; estorno → canceled', async () => {
     const u = asUserId('u-vida')
-    await subs.upsert(u, { plan: 'pro', status: 'active' })
+    await subs.upsert(u, { plan: 'premium', status: 'active' })
     await handler()(req(evento('evt_v1', 'PAYMENT_OVERDUE', 'u-vida')), mockRes())
     expect((await subs.getActive(u)).status).toBe('past_due')
     await handler()(req(evento('evt_v2', 'PAYMENT_REFUNDED', 'u-vida')), mockRes())
@@ -316,7 +367,7 @@ describe('o ciclo de vida do plano', () => {
 describe('falha nossa depois da marca', () => {
   it('desmarca e responde 500 — a reentrega do Asaas NÃO é tratada como repetida', async () => {
     const u = asUserId('u-falha')
-    await subs.upsert(u, { plan: 'pro', status: 'trialing' })
+    await subs.upsert(u, { plan: 'premium', status: 'trialing' })
 
     // 1ª entrega: o upsert do plano falha DEPOIS da marca de idempotência.
     const original = subs.upsert

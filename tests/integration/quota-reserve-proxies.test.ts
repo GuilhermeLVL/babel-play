@@ -31,7 +31,7 @@ afterAll(async () => {
 })
 afterEach(() => {
   delete process.env.AUTH_REQUIRED
-  delete process.env.PRO_MONTHLY_MANAGED_CALLS
+  delete process.env.PREMIUM_MONTHLY_MANAGED_CALLS
   delete process.env.IA_EM_VOO_LLM
   vi.restoreAllMocks()
   esquecerAdmissao()
@@ -68,9 +68,9 @@ beforeEach(() => esvaziarCacheDeTraducao())
 describe('mtProxy — reserva e estorno', () => {
   it('sucesso consome exatamente 1 da quota', async () => {
     process.env.AUTH_REQUIRED = '1'
-    process.env.PRO_MONTHLY_MANAGED_CALLS = '10'
+    process.env.PREMIUM_MONTHLY_MANAGED_CALLS = '10'
     const u = asUserId('mtp-ok')
-    await subs.upsert(u, { plan: 'pro', status: 'active' })
+    await subs.upsert(u, { plan: 'premium', status: 'active' })
     process.env.GROQ_API_KEY = 'k'
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(okGroq() as any)
 
@@ -83,9 +83,9 @@ describe('mtProxy — reserva e estorno', () => {
 
   it('provedor falhou → a reserva é ESTORNADA (usuário não perde a vaga)', async () => {
     process.env.AUTH_REQUIRED = '1'
-    process.env.PRO_MONTHLY_MANAGED_CALLS = '10'
+    process.env.PREMIUM_MONTHLY_MANAGED_CALLS = '10'
     const u = asUserId('mtp-falha')
-    await subs.upsert(u, { plan: 'pro', status: 'active' })
+    await subs.upsert(u, { plan: 'premium', status: 'active' })
     process.env.GROQ_API_KEY = 'k'
     vi.spyOn(globalThis, 'fetch').mockResolvedValue({
       ok: false,
@@ -102,9 +102,9 @@ describe('mtProxy — reserva e estorno', () => {
 
   it('exceção de rede → a reserva é ESTORNADA', async () => {
     process.env.AUTH_REQUIRED = '1'
-    process.env.PRO_MONTHLY_MANAGED_CALLS = '10'
+    process.env.PREMIUM_MONTHLY_MANAGED_CALLS = '10'
     const u = asUserId('mtp-rede')
-    await subs.upsert(u, { plan: 'pro', status: 'active' })
+    await subs.upsert(u, { plan: 'premium', status: 'active' })
     process.env.GROQ_API_KEY = 'k'
     vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('ECONNRESET'))
 
@@ -118,13 +118,13 @@ describe('mtProxy — reserva e estorno', () => {
   /** O teste do dinheiro: o cenário exato medido na auditoria. */
   it('20 requisições SIMULTÂNEAS contra teto 5 → 5 aceitas e só 5 chamadas ao provedor', async () => {
     process.env.AUTH_REQUIRED = '1'
-    process.env.PRO_MONTHLY_MANAGED_CALLS = '5'
+    process.env.PREMIUM_MONTHLY_MANAGED_CALLS = '5'
     /* ADR 0007: a admissão limita a 2 traduções EM VOO por usuário — o mesmo usuário com 20
        simultâneas teria 18 recusadas com 429 antes de chegar à cota. Este caso mede a CORRIDA DA
        COTA, então abre as vagas; o teto de vagas tem teste próprio (admissao-de-ia.test.ts). */
     process.env.IA_EM_VOO_LLM = '20'
     const u = asUserId('mtp-corrida')
-    await subs.upsert(u, { plan: 'pro', status: 'active' })
+    await subs.upsert(u, { plan: 'premium', status: 'active' })
     process.env.GROQ_API_KEY = 'k'
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(okGroq() as any)
 
@@ -145,9 +145,9 @@ describe('mtProxy — reserva e estorno', () => {
 describe('sttProxy — reserva e estorno', () => {
   it('BYOK (chave do usuário) NÃO consome a quota gerenciada', async () => {
     process.env.AUTH_REQUIRED = '1'
-    process.env.PRO_MONTHLY_MANAGED_CALLS = '10'
+    process.env.PREMIUM_MONTHLY_MANAGED_CALLS = '10'
     const u = asUserId('sttp-byok')
-    await subs.upsert(u, { plan: 'pro', status: 'active' })
+    await subs.upsert(u, { plan: 'premium', status: 'active' })
 
     const { credentialsRepo } = (await h.load('../../server/db/repositories/credentials')) as any
     const cred = await credentialsRepo.create(u, {
@@ -180,9 +180,9 @@ describe('sttProxy — reserva e estorno', () => {
 
   it('gerenciado: provedor falhou → reserva ESTORNADA', async () => {
     process.env.AUTH_REQUIRED = '1'
-    process.env.PRO_MONTHLY_MANAGED_CALLS = '10'
+    process.env.PREMIUM_MONTHLY_MANAGED_CALLS = '10'
     const u = asUserId('sttp-falha')
-    await subs.upsert(u, { plan: 'pro', status: 'active' })
+    await subs.upsert(u, { plan: 'premium', status: 'active' })
     process.env.GROQ_API_KEY = 'k'
     vi.spyOn(globalThis, 'fetch').mockResolvedValue({
       ok: false,

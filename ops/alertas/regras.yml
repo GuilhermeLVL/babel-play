@@ -99,7 +99,7 @@ groups:
           severity: aviso
         annotations:
           summary: 'Admissão de IA recusando mais de 10 chamadas por minuto'
-          description: '{{ $value | printf "%.1f" }} recusas/min (429 nuvem_ocupada). Veja no painel se é `minuto` do Pro (subir o tier) ou só `essencial`/`convidado` (a reserva do Pro trabalhando).'
+          description: '{{ $value | printf "%.1f" }} recusas/min (429 nuvem_ocupada). Veja no painel se é `minuto` do `premium` (subir o tier) ou só `gratis`/`alivio` (a reserva dos pagantes trabalhando).'
           runbook_url: 'https://github.com/GuilhermeLVL/babel-play/blob/main/docs/runbook.md#alerta-admissao'
 
       - alert: BabelDisjuntorAberto

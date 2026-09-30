@@ -14,6 +14,7 @@
  * gatilho, contados no aparelho. Não é cota nem segurança — é educação com a pessoa.
  */
 import type { PlanoDaFlag } from './flags';
+import { ehPlanoPago, normalizarPlano } from './planos';
 
 export const MOMENTOS_DE_OFERTA = [
   'fim_de_cota',
@@ -101,7 +102,7 @@ export const GATILHOS_FUNCIONAIS: readonly GatilhoDeOferta[] = Object.freeze([
     maxPorDia: 1,
     maxPorSemana: 3,
     intervaloMinHoras: 12,
-    planos: ['convidado', 'free', 'essencial', 'pro'],
+    planos: ['convidado', 'free', 'premium'],
   },
   {
     id: 'funcional_cota_proxima',
@@ -113,7 +114,7 @@ export const GATILHOS_FUNCIONAIS: readonly GatilhoDeOferta[] = Object.freeze([
     maxPorDia: 1,
     maxPorSemana: 2,
     intervaloMinHoras: 24,
-    planos: ['convidado', 'free', 'essencial', 'pro'],
+    planos: ['convidado', 'free', 'premium'],
   },
 ] satisfies GatilhoDeOferta[]);
 
@@ -135,9 +136,23 @@ export const EVENTOS_DE_OFERTA = [
 ] as const;
 export type EventoDeOferta = (typeof EVENTOS_DE_OFERTA)[number];
 
-/** O plano que a oferta sugere: `conta` é "crie a conta" (o convidado vem antes de qualquer plano). */
-export const PLANOS_SUGERIDOS = ['conta', 'essencial', 'pro', 'nenhum'] as const;
+/**
+ * O plano que a oferta sugere: `conta` é "crie a conta" (o convidado vem antes de qualquer plano);
+ * `nenhum` é quem não tem para onde subir. Matriz v2: um plano pago só, o Premium (o C8 acrescenta
+ * o `teste` de 14 dias).
+ */
+export const PLANOS_SUGERIDOS = ['conta', 'premium', 'nenhum'] as const;
 export type PlanoSugerido = (typeof PLANOS_SUGERIDOS)[number];
+
+/**
+ * O plano sugerido de um evento que chegou de FORA (a métrica do funil, um histórico antigo): o nome
+ * antigo (`essencial`/`pro`) de uma aba aberta antes do deploy é o Premium; o que não é plano é `null`.
+ */
+export function planoSugeridoDe(v: unknown): PlanoSugerido | null {
+  if (v === 'conta' || v === 'nenhum') return v;
+  const plano = normalizarPlano(v);
+  return plano && ehPlanoPago(plano) ? 'premium' : null;
+}
 
 /** Rótulo de gatilho/componente quando o evento não veio de uma oferta (checkout orgânico). */
 export const SEM_OFERTA = 'nenhum';

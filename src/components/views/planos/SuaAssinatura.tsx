@@ -1,14 +1,4 @@
-import {
-  ArrowLeftRight,
-  ChevronRight,
-  CirclePause,
-  CreditCard,
-  FileText,
-  type LucideIcon,
-  Receipt,
-  RotateCcw,
-  X,
-} from 'lucide-react';
+import { ChevronRight, CirclePause, CreditCard, FileText, type LucideIcon, Receipt, RotateCcw, X } from 'lucide-react';
 
 import { brl, type Conta, dataCurta, type Fatura, precoMensal, ROTULO_DO_METODO } from '../../../lib/assinatura';
 import { IconeEmBloco, TituloDeSecao } from '../../ui';
@@ -20,10 +10,11 @@ import FaixaDaConta from './FaixaDaConta';
  *
  * Resumo, ações, faturas e a zona de cancelar, na marcação do protótipo. Os dados são do
  * servidor: status e fim do período de `/api/billing/status`, faturas de `/api/billing/faturas`.
- * "Passar para anual" não aparece: o servidor só cobra por mês.
+ * "Passar para anual" ainda não aparece: o anual chega com o C5 (change `planos-v2`). "Mudar de
+ * plano" saiu com a matriz v2 — há um plano pago só.
  */
 
-export type DialogoDaAssinatura = 'mudar-plano' | 'pagamento' | 'pausar' | { fatura: Fatura };
+export type DialogoDaAssinatura = 'pagamento' | 'pausar' | { fatura: Fatura };
 
 const STATUS: Record<Fatura['status'], [string, string]> = {
   paga: ['ok', 'Paga'],
@@ -56,19 +47,12 @@ export default function SuaAssinatura({
   aoReativar: () => void;
 }) {
   const e = conta.estado;
-  const plano = conta.plano ?? 'pro';
+  const plano = conta.plano ?? 'premium';
   const p = PLANO_NOME[plano];
   const pagas = (faturas ?? []).filter((f) => f.status === 'paga');
   const desde = pagas.length ? pagas[pagas.length - 1].data : null;
 
   const acoes: [LucideIcon, string, string, DialogoDaAssinatura, boolean][] = [
-    [
-      ArrowLeftRight,
-      'Mudar de plano',
-      'Suba ou desça de plano, com a ajuda do suporte.',
-      'mudar-plano',
-      e !== 'cancelada',
-    ],
     [CreditCard, 'Forma de pagamento', `${metodoAtual(faturas)} · você escolhe a cada cobrança`, 'pagamento', true],
     [CirclePause, 'Pausar a assinatura', 'De 1 a 3 meses, pelo suporte.', 'pausar', e !== 'cancelada'],
   ];

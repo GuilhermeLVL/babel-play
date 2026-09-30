@@ -217,7 +217,7 @@ function baldeDaNuanceCom(sobra: number) {
       tipo: 'llm',
       provedor: 'deepinfra',
       modelo: 'openai/gpt-oss-120b',
-      plano: 'pro',
+      plano: 'premium',
       limites: { rpm: 10 },
     })
 }

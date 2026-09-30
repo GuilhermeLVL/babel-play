@@ -9,19 +9,38 @@
  *
  * O protótipo aprovado simula sete estados de conta (`ESTADOS_CONTA`). O app tem cinco de
  * verdade: self-host, grátis, ativa, pagamento pendente e cancelada. "Pausada" não existe (a
- * cobrança não tem pausa) e "Pro anual" também não (o servidor só cobra por mês).
+ * cobrança não tem pausa).
+ *
+ * MATRIZ V2 (ADR 0011): um plano pago só, o Premium. O ciclo (mensal ou anual) vem do servidor; o
+ * checkout do anual e do 12x é o C5. O nome antigo (`essencial`/`pro`) de um servidor anterior é lido
+ * como o Premium (`planoPagoDe`).
  */
-import { PLAN_MATRIX } from '../core/planos';
+import { type CicloDeCobranca, ehPlanoPago as ehPlanoPagoDaMatriz, normalizarPlano, PLAN_MATRIX } from '../core/planos';
 import { apiFetch } from '../data/api';
 import type { Plan } from './entitlements';
 
-export type PlanoPago = 'essencial' | 'pro';
-export const PLANOS_PAGOS: readonly PlanoPago[] = ['essencial', 'pro'];
-export const ehPlanoPago = (p: unknown): p is PlanoPago => p === 'essencial' || p === 'pro';
+export type PlanoPago = 'premium';
+export const PLANOS_PAGOS: readonly PlanoPago[] = ['premium'];
+/** ESTRITO: só o nome atual. Para ler o que veio de fora (servidor, armazenamento), `planoPagoDe`. */
+export const ehPlanoPago = (p: unknown): p is PlanoPago => ehPlanoPagoDaMatriz(p);
+/** O plano pago que um valor de fora é — o nome antigo vira o atual; o que não é plano pago, `null`. */
+export function planoPagoDe(p: unknown): PlanoPago | null {
+  const plano = normalizarPlano(p);
+  return ehPlanoPago(plano) ? plano : null;
+}
 
 export interface StatusDeBilling {
   configurado: boolean;
-  assinatura: { plano: string; status: string; valeAte: number | null; provedor: string | null } | null;
+  assinatura: {
+    plano: string;
+    status: string;
+    valeAte: number | null;
+    provedor: string | null;
+    /** Matriz v2: por mês ou o ano. Ausente em servidor anterior (= mensal). */
+    ciclo?: CicloDeCobranca;
+    /** O fluxo do Asaas que cobra (`assinatura`, `parcelamento`, `pix_automatico`); `null` = admin. */
+    meio?: string | null;
+  } | null;
   /**
    * A PRÓXIMA COBRANÇA (`AAAA-MM-DD`, o `nextDueDate` do Asaas) — só para assinatura ativa, e só
    * quando o servidor conseguiu perguntar. NÃO é `valeAte`: esse é o vencimento mais a graça de
@@ -54,6 +73,8 @@ export interface Conta {
   valeAte: number | null;
   /** Quando o Asaas cobra de novo (`AAAA-MM-DD`). Ausente = não se sabe (e a tela diz "acesso até"). */
   proximaCobranca?: string | null;
+  /** Por mês ou o ano — só quando o servidor disse (C5/C7 falam do ciclo na tela). */
+  ciclo?: CicloDeCobranca;
 }
 
 /**
@@ -65,20 +86,24 @@ export interface Conta {
 export function estadoDaConta(plan: Plan, status: StatusDeBilling | null, agora = Date.now()): Conta {
   if (plan === 'selfhost') return { estado: 'selfhost', plano: null, valeAte: null };
   const s = status?.assinatura;
-  if (s && ehPlanoPago(s.plano)) {
+  const pagoNaAssinatura = s ? planoPagoDe(s.plano) : null;
+  if (s && pagoNaAssinatura) {
+    const ciclo = s.ciclo ? { ciclo: s.ciclo } : {};
     if (s.status === 'active')
       return {
         estado: 'ativa',
-        plano: s.plano,
+        plano: pagoNaAssinatura,
         valeAte: s.valeAte,
         ...(status?.proximaCobranca ? { proximaCobranca: status.proximaCobranca } : {}),
+        ...ciclo,
       };
-    if (s.status === 'past_due') return { estado: 'falhou', plano: s.plano, valeAte: s.valeAte };
+    if (s.status === 'past_due') return { estado: 'falhou', plano: pagoNaAssinatura, valeAte: s.valeAte, ...ciclo };
     if (s.status === 'canceled' && s.valeAte !== null && s.valeAte > agora)
-      return { estado: 'cancelada', plano: s.plano, valeAte: s.valeAte };
+      return { estado: 'cancelada', plano: pagoNaAssinatura, valeAte: s.valeAte, ...ciclo };
   }
   // Plano pago sem cobrança no provedor (concedido pelo administrador): ativo, sem data.
-  if (ehPlanoPago(plan)) return { estado: 'ativa', plano: plan, valeAte: null };
+  const pagoNoPlano = planoPagoDe(plan);
+  if (pagoNoPlano) return { estado: 'ativa', plano: pagoNoPlano, valeAte: null };
   return { estado: 'gratis', plano: null, valeAte: null };
 }
 

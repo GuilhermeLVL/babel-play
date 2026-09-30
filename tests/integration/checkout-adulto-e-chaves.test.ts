@@ -27,7 +27,7 @@ function nascidoHa(anos: number): string {
 async function declarar(sub: string, anos: number) {
   expect((await s.put('/api/me/idade', { nascimento: nascidoHa(anos) }, await tk(sub))).status).toBe(200)
 }
-const pedido = { plano: 'pro', nome: 'Ana Souza', cpfCnpj: '12345678901', email: 'ana@exemplo.com' }
+const pedido = { plano: 'premium', nome: 'Ana Souza', cpfCnpj: '12345678901', email: 'ana@exemplo.com' }
 const creditos = { sku: 'c100', nome: 'Ana Souza', cpfCnpj: '12345678901' }
 
 /** Asaas simulado: só o que o checkout usa. O `fetch` real segue para o servidor de teste. */
@@ -136,7 +136,8 @@ describe('CHECKOUT_ENABLED', () => {
     expect((await s.post('/api/billing/comprar', creditos, await tk('p-adulto'))).status).toBe(503)
     expect(corpos).toHaveLength(0)
     const ent = await (await s.get('/api/me/entitlements', await tk('p-ja-paga'))).json()
-    expect(ent.plan).toBe('pro')
+    // A linha é de antes da matriz v2 (`pro`): lida como Premium, e quem já paga segue pagando.
+    expect(ent.plan).toBe('premium')
     const abertura = await (await s.get('/api/abertura')).json()
     expect(abertura).toMatchObject({ checkout: false })
   })

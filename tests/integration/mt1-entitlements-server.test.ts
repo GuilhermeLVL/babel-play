@@ -55,8 +55,8 @@ describe('SaaS Fatia 1a — entitlements server-side', () => {
   it('assinatura ativa é autoritativa: pro → pro', async () => {
     process.env.AUTH_REQUIRED = '1'
     const u = asUserId('u-sub-pro')
-    await subs.upsert(u, { plan: 'pro', status: 'active' })
-    expect(await ent.getPlanForUser(u)).toBe('pro')
+    await subs.upsert(u, { plan: 'premium', status: 'active' })
+    expect(await ent.getPlanForUser(u)).toBe('premium')
   })
 
   it('assinatura cancelada sem período pago à frente → free, mesmo com settings.ui.plan=pro (sub manda)', async () => {
@@ -73,15 +73,16 @@ describe('SaaS Fatia 1a — entitlements server-side', () => {
   it('assinatura cancelada com período pago no futuro → mantém o plano até o fim (Decreto 11.034/2022)', async () => {
     process.env.AUTH_REQUIRED = '1'
     const u = asUserId('u-sub-cancel-no-periodo')
+    // Nome de antes da matriz v2 na linha: lido como Premium.
     await subs.upsert(u, { plan: 'essencial', status: 'canceled', currentPeriodEnd: Date.now() + 5 * 86_400_000 })
-    expect(await ent.getPlanForUser(u)).toBe('essencial')
+    expect(await ent.getPlanForUser(u)).toBe('premium')
   })
 
   it('past_due dentro da graça → mantém o plano; graça expirada → free', async () => {
     process.env.AUTH_REQUIRED = '1'
     const uGraca = asUserId('u-graca')
-    await subs.upsert(uGraca, { plan: 'pro', status: 'past_due', currentPeriodEnd: Date.now() + 60_000 })
-    expect(await ent.getPlanForUser(uGraca)).toBe('pro')
+    await subs.upsert(uGraca, { plan: 'premium', status: 'past_due', currentPeriodEnd: Date.now() + 60_000 })
+    expect(await ent.getPlanForUser(uGraca)).toBe('premium')
 
     const uExpirado = asUserId('u-expirado')
     await subs.upsert(uExpirado, { plan: 'pro', status: 'past_due', currentPeriodEnd: Date.now() - 60_000 })

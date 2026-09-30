@@ -99,7 +99,7 @@ describe('a consulta ao servidor', () => {
     estado.flag = false
     expect(await consultarAlivio()).toBeNull()
     estado.flag = true
-    estado.plano = 'essencial'
+    estado.plano = 'premium'
     expect(await consultarAlivio()).toBeNull()
     estado.plano = 'free'
     estado.identidade = 'anonimo'

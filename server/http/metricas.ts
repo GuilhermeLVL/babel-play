@@ -65,6 +65,7 @@ import { type IntervalHistogram, monitorEventLoopDelay } from 'node:perf_hooks'
 import type { NextFunction, Request, RequestHandler, Response } from 'express'
 import { collectDefaultMetrics, Counter, Gauge, Histogram, register } from 'prom-client'
 
+import { normalizarPlano } from '../../src/core/planos'
 import { cacheDeTraducao } from '../ai/cacheDeTraducao'
 import { contagemDosDisjuntores } from '../ai/disjuntor'
 import { rotulosDoRegistro } from '../ai/registroDeProvedores'
@@ -213,10 +214,10 @@ function metricas(): Estado {
       labelNames: ['provedor', 'modelo'] as const,
     }),
     /* A ADMISSÃO DE IA (ADR 0007): quantas chamadas o PRÓPRIO servidor recusou antes de gastar o
-       limite do provedor, por motivo (`minuto`, `tokens_minuto`, `dia`, `tokens_dia`,
-       `provedor_limitou`, `em_voo`) e plano (`pro`, `essencial`, `convidado`, `alivio`). Subindo
-       `minuto` para o Pro é a hora de subir o tier do provedor; subindo só para `essencial` é a
-       reserva do Pro fazendo o seu trabalho. */
+       limite do provedor, por motivo (`minuto`, `tokens_minuto`, `dia`, `tokens_dia`, `provedor_limitou`, `em_voo`) e
+       faixa (`premium`, `gratis`, `alivio` — matriz v2). Subindo `minuto` para o Premium é a hora de
+       subir o tier do provedor; subindo só para `gratis`/`alivio` é a reserva dos pagantes fazendo o
+       seu trabalho. */
     admissaoRecusada: new Counter({
       name: 'ia_admissao_recusada_total',
       help: 'Chamadas de IA ao vivo recusadas pela admissão do servidor (429 nuvem_ocupada), por motivo e plano.',
@@ -549,13 +550,20 @@ function registrarMedidoresLidosNoScrape(): void {
   })
 }
 
-/** Os planos que viram rótulo — a lista fechada da PLAN_MATRIX. Fora dela, `desconhecido`. */
-const PLANOS = new Set(['free', 'essencial', 'pro', 'selfhost'])
+/**
+ * O plano que vira rótulo — a lista fechada da PLAN_MATRIX, mais o `convidado` (que também custa).
+ * Fora dela, `desconhecido`: o rótulo nunca é o texto que chegou. O nome antigo (`pro`/`essencial`,
+ * matriz v2) soma no Premium, e não vira uma série que ninguém mais olha.
+ */
+function rotuloDoPlano(plano: string | undefined): string {
+  if (plano === 'convidado') return plano
+  return normalizarPlano(plano) ?? 'desconhecido'
+}
 
 /** Custo de uma chamada paga pelo serviço, pelo plano de quem pediu. */
 export function contarCustoPorPlano(plano: string | undefined, custoUsd: number): void {
   if (!estado || !Number.isFinite(custoUsd) || custoUsd <= 0) return
-  estado.iaCustoPorPlano.inc({ plano: plano && PLANOS.has(plano) ? plano : 'desconhecido' }, custoUsd)
+  estado.iaCustoPorPlano.inc({ plano: rotuloDoPlano(plano) }, custoUsd)
 }
 
 export function contarGastoAnomalo(motivo: 'teto' | 'mediana'): void {

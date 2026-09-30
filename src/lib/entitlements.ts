@@ -15,7 +15,7 @@
  *
  * Regra de honestidade (inalterada): gate NUNCA esconde a feature — mostra com selo e explica.
  */
-import { PLAN_MATRIX, type PlanoDeAssinatura, PLANOS_DE_ASSINATURA } from '../core/planos';
+import { normalizarPlano, PLAN_MATRIX, type PlanoDeAssinatura, PLANOS_DE_ASSINATURA } from '../core/planos';
 import { apiFetch } from '../data/api';
 import { edicaoEstatica } from './edicaoEstatica';
 import { authRequired } from './supabase';
@@ -34,6 +34,10 @@ export interface Entitlements {
   managedCloudLlm: boolean;
   /** Modelos locais maiores (whisper-base+) — mais download/latência, mais precisão. */
   largerModels: boolean;
+  /** A Tradução Nuance (matriz v2): o nível `nuance` da tradução de nuvem. */
+  traducaoNuance: boolean;
+  /** A voz natural da nuvem no modo intérprete (matriz v2); sem ela, a voz do aparelho. */
+  vozNatural: boolean;
   /** Disco usado/teto em bytes; `teto: null` = sem teto; `null` inteiro = desconhecido. */
   armazenamento: { usados: number; teto: number | null } | null;
 }
@@ -47,6 +51,8 @@ const FECHADO: Entitlements = Object.freeze({
   managedCloudStt: false,
   managedCloudLlm: false,
   largerModels: false,
+  traducaoNuance: false,
+  vozNatural: false,
   armazenamento: null,
 });
 const SELFHOST: Entitlements = Object.freeze({
@@ -55,6 +61,8 @@ const SELFHOST: Entitlements = Object.freeze({
   managedCloudStt: true,
   managedCloudLlm: true,
   largerModels: true,
+  traducaoNuance: true,
+  vozNatural: true,
   armazenamento: null,
 });
 
@@ -69,10 +77,14 @@ const EDICAO_ESTATICA: Entitlements = Object.freeze({
   managedCloudStt: false,
   managedCloudLlm: false,
   largerModels: false,
+  traducaoNuance: false,
+  vozNatural: false,
   armazenamento: { usados: 0, teto: 0 },
 });
 
-const PLANOS: readonly string[] = [...PLANOS_DE_ASSINATURA, 'anonimo'];
+/** O plano da resposta: `anonimo` passa; o nome antigo (`essencial`/`pro` de um servidor anterior ou
+ *  do cache de antes da matriz v2) é o Premium; o resto é `null`. */
+const planoDaResposta = (v: string): Plan | null => (v === 'anonimo' ? 'anonimo' : normalizarPlano(v));
 
 /**
  * Aceita só o que tem a forma do servidor; forma inválida vira `null` (e o default conservador vale).
@@ -81,12 +93,16 @@ const PLANOS: readonly string[] = [...PLANOS_DE_ASSINATURA, 'anonimo'];
  * estivesse na lista local — ou seja, um cliente antigo diante de um plano novo do servidor jogava
  * fora as FLAGS verdadeiras que vieram junto e fechava tudo. Agora o plano vira `free` (só o
  * rótulo degrada) e as flags do servidor valem — a UI mostra o que o servidor de fato concedeu.
+ *
+ * O NOME ANTIGO É O PREMIUM (matriz v2): um servidor anterior durante o deploy, ou o cache do
+ * navegador de antes da troca, diz `pro`/`essencial` — e a tela mostra o Premium, não o Grátis.
+ * Entitlement que não veio (servidor anterior não conhece `traducaoNuance`) fica FECHADO.
  */
 function normalizar(v: unknown): Entitlements | null {
   if (!v || typeof v !== 'object') return null;
   const o = v as Record<string, unknown>;
   if (typeof o.plan !== 'string') return null;
-  const plan: Plan = PLANOS.includes(o.plan) ? (o.plan as Plan) : 'free';
+  const plan: Plan = planoDaResposta(o.plan) ?? 'free';
   const bool = (k: string) => o[k] === true;
   let armazenamento: Entitlements['armazenamento'] = null;
   if (o.armazenamento && typeof o.armazenamento === 'object') {
@@ -100,6 +116,8 @@ function normalizar(v: unknown): Entitlements | null {
     managedCloudStt: bool('managedCloudStt'),
     managedCloudLlm: bool('managedCloudLlm'),
     largerModels: bool('largerModels'),
+    traducaoNuance: bool('traducaoNuance'),
+    vozNatural: bool('vozNatural'),
     armazenamento,
   };
 }

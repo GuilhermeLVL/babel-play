@@ -90,7 +90,14 @@ describe('1. sem conta, no checkout', () => {
     const aoEntrar = vi.fn()
     const { default: Checkout } = await import('../src/components/views/planos/Checkout')
     render(
-      <Checkout plano="essencial" aoTrocarPlano={() => {}} plan="free" conta={contaGratis} status={null} aoEntrar={aoEntrar} />,
+      <Checkout
+        plano="premium"
+        aoTrocarPlano={() => {}}
+        plan="free"
+        conta={contaGratis}
+        status={null}
+        aoEntrar={aoEntrar}
+      />,
     )
     fireEvent.click(screen.getByRole('button', { name: /Ir para o pagamento/ }))
     expect(screen.getByRole('heading', { name: 'Entre na sua conta para assinar' })).toBeTruthy()
@@ -98,7 +105,7 @@ describe('1. sem conta, no checkout', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Entrar ou criar conta' }))
     expect(aoEntrar).toHaveBeenCalledTimes(1)
     const { lerIntencao } = await import('../src/lib/intencaoDeLogin')
-    expect(lerIntencao()).toMatchObject({ rota: '/plano/assinar', plano: 'essencial' })
+    expect(lerIntencao()).toMatchObject({ rota: '/plano/assinar', plano: 'premium' })
   })
 })
 
@@ -109,7 +116,7 @@ describe('2. forma de pagamento', () => {
     const { default: Checkout } = await import('../src/components/views/planos/Checkout')
     render(
       <Checkout
-        plano="pro"
+        plano="premium"
         aoTrocarPlano={() => {}}
         plan="free"
         conta={contaGratis}
@@ -131,7 +138,7 @@ describe('3. voltar da aba do Asaas', () => {
       '/api/billing/assinar': { linkDePagamento: 'https://sandbox.asaas.com/i/1' },
       '/api/billing/status': () => ({
         status: 200,
-        corpo: { configurado: true, assinatura: { plano: 'pro', status: statusAtual, valeAte: null } },
+        corpo: { configurado: true, assinatura: { plano: 'premium', status: statusAtual, valeAte: null } },
       }),
     })
     mockIdade()
@@ -140,7 +147,7 @@ describe('3. voltar da aba do Asaas', () => {
     const { default: Checkout } = await import('../src/components/views/planos/Checkout')
     render(
       <Checkout
-        plano="pro"
+        plano="premium"
         aoTrocarPlano={() => {}}
         plan="free"
         conta={contaGratis}
@@ -171,7 +178,10 @@ describe('3. voltar da aba do Asaas', () => {
 describe('4. a idade ali mesmo', () => {
   const idadeFaltando = (init?: RequestInit) => {
     void init
-    return { status: 403, corpo: { error: 'informe a sua data de nascimento antes de pagar', code: 'idade_nao_informada' } }
+    return {
+      status: 403,
+      corpo: { error: 'informe a sua data de nascimento antes de pagar', code: 'idade_nao_informada' },
+    }
   }
 
   it('403 idade_nao_informada: pede a data inline, declara e tenta de novo', async () => {
@@ -189,7 +199,7 @@ describe('4. a idade ali mesmo', () => {
     const { default: Checkout } = await import('../src/components/views/planos/Checkout')
     render(
       <Checkout
-        plano="pro"
+        plano="premium"
         aoTrocarPlano={() => {}}
         plan="free"
         conta={contaGratis}
@@ -213,7 +223,7 @@ describe('4. a idade ali mesmo', () => {
     const { default: Checkout } = await import('../src/components/views/planos/Checkout')
     render(
       <Checkout
-        plano="pro"
+        plano="premium"
         aoTrocarPlano={() => {}}
         plan="free"
         conta={contaGratis}
@@ -222,9 +232,13 @@ describe('4. a idade ali mesmo', () => {
     )
     fireEvent.click(screen.getByRole('button', { name: /Ir para o pagamento/ }))
     await preencherEPagar()
-    fireEvent.change(await screen.findByLabelText('Data de nascimento', {}, { timeout: 5000 }), { target: { value: '2010-01-01' } })
+    fireEvent.change(await screen.findByLabelText('Data de nascimento', {}, { timeout: 5000 }), {
+      target: { value: '2010-01-01' },
+    })
     fireEvent.click(screen.getByRole('button', { name: /Assinar e pagar/ }))
-    expect(await screen.findByRole('heading', { name: 'Quem assina é o seu responsável' }, { timeout: 5000 })).toBeTruthy()
+    expect(
+      await screen.findByRole('heading', { name: 'Quem assina é o seu responsável' }, { timeout: 5000 }),
+    ).toBeTruthy()
     expect(chamadas.filter((c) => c.url === '/api/billing/assinar')).toHaveLength(1)
     const { definirProtecao } = await import('../src/lib/protecaoDoMenor')
     definirProtecao(null)
@@ -236,7 +250,7 @@ describe('cartões de Planos', () => {
     '/api/billing/status': { configurado: true, assinatura: null },
   }
 
-  it('1. sem conta: "Entrar e assinar o Pro" leva ao login com a intenção guardada', async () => {
+  it('1. sem conta: "Entrar e assinar o Premium" leva ao login com a intenção guardada', async () => {
     mockApi(basico)
     mockIdade()
     const { definirIdentidade } = await import('../src/lib/identidade')
@@ -244,11 +258,11 @@ describe('cartões de Planos', () => {
     const onEntrar = vi.fn()
     const { default: Planos } = await import('../src/components/views/Planos')
     render(<Planos onEntrar={onEntrar} />)
-    fireEvent.click(await screen.findByRole('button', { name: 'Entrar e assinar o Pro' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Entrar e assinar o Premium' }))
     expect(onEntrar).toHaveBeenCalledTimes(1)
     const { lerIntencao } = await import('../src/lib/intencaoDeLogin')
-    expect(lerIntencao()).toMatchObject({ rota: '/plano/assinar', plano: 'pro' })
-    expect(screen.queryByRole('button', { name: 'Assinar Pro' })).toBeNull()
+    expect(lerIntencao()).toMatchObject({ rota: '/plano/assinar', plano: 'premium' })
+    expect(screen.queryByRole('button', { name: 'Assinar Premium' })).toBeNull()
   })
 
   it('5. venda pausada (abertura): "Vendas reabrem em breve", desabilitado', async () => {
@@ -257,7 +271,8 @@ describe('cartões de Planos', () => {
     const { default: Planos } = await import('../src/components/views/Planos')
     render(<Planos />)
     const botoes = await screen.findAllByRole('button', { name: 'Vendas reabrem em breve' })
-    expect(botoes).toHaveLength(2)
+    // Matriz v2: um cartão pago só, o Premium.
+    expect(botoes).toHaveLength(1)
     expect(botoes.every((b) => (b as HTMLButtonElement).disabled)).toBe(true)
     expect(screen.queryByRole('button', { name: /^Assinar / })).toBeNull()
   })
@@ -268,15 +283,15 @@ describe('cartões de Planos', () => {
     localStorage.setItem('babel.flags', JSON.stringify({ vender_planos: { ligada: false } }))
     const { default: Planos } = await import('../src/components/views/Planos')
     render(<Planos />)
-    expect(await screen.findAllByRole('button', { name: 'Vendas reabrem em breve' })).toHaveLength(2)
+    expect(await screen.findAllByRole('button', { name: 'Vendas reabrem em breve' })).toHaveLength(1)
   })
 
-  it('venda aberta e com conta: "Assinar Pro" continua', async () => {
+  it('venda aberta e com conta: "Assinar Premium" continua', async () => {
     mockApi(basico)
     mockIdade()
     const { default: Planos } = await import('../src/components/views/Planos')
     render(<Planos />)
-    expect(await screen.findByRole('button', { name: 'Assinar Pro' })).toBeTruthy()
+    expect(await screen.findByRole('button', { name: 'Assinar Premium' })).toBeTruthy()
   })
 })
 
@@ -285,14 +300,14 @@ describe('6. a próxima cobrança', () => {
     mockApi({
       '/api/billing/status': {
         configurado: true,
-        assinatura: { plano: 'pro', status: 'active', valeAte: new Date(2026, 10, 4).getTime() },
+        assinatura: { plano: 'premium', status: 'active', valeAte: new Date(2026, 10, 4).getTime() },
         proximaCobranca: '2026-10-30',
       },
       '/api/billing/faturas': { faturas: [] },
     })
     const { default: Assinado } = await import('../src/components/views/planos/Assinado')
     render(<Assinado />)
-    expect(await screen.findByText('Bem-vindo ao Pro!')).toBeTruthy()
+    expect(await screen.findByText('Bem-vindo ao Premium!')).toBeTruthy()
     expect(screen.getByText('Próxima cobrança em')).toBeTruthy()
     expect(screen.getByText('30/10/2026')).toBeTruthy()
     expect(screen.queryByText('04/11/2026')).toBeNull()
@@ -302,13 +317,13 @@ describe('6. a próxima cobrança', () => {
     mockApi({
       '/api/billing/status': {
         configurado: true,
-        assinatura: { plano: 'pro', status: 'active', valeAte: new Date(2026, 10, 4).getTime() },
+        assinatura: { plano: 'premium', status: 'active', valeAte: new Date(2026, 10, 4).getTime() },
       },
       '/api/billing/faturas': { faturas: [] },
     })
     const { default: Assinado } = await import('../src/components/views/planos/Assinado')
     render(<Assinado />)
-    expect(await screen.findByText('Bem-vindo ao Pro!')).toBeTruthy()
+    expect(await screen.findByText('Bem-vindo ao Premium!')).toBeTruthy()
     expect(screen.queryByText(/Renova em/)).toBeNull()
     expect(screen.getByText('Acesso até')).toBeTruthy()
   })
@@ -316,7 +331,7 @@ describe('6. a próxima cobrança', () => {
   it('Sua assinatura: "Próxima cobrança" com a data do Asaas; sem ela, "Acesso até"', async () => {
     mockApi({})
     const { default: SuaAssinatura } = await import('../src/components/views/planos/SuaAssinatura')
-    const base = { estado: 'ativa', plano: 'pro', valeAte: new Date(2026, 10, 4).getTime() } as const
+    const base = { estado: 'ativa', plano: 'premium', valeAte: new Date(2026, 10, 4).getTime() } as const
     const props = {
       faturas: [],
       carregandoFaturas: false,
@@ -337,9 +352,9 @@ describe('6. a próxima cobrança', () => {
 
   it('estadoDaConta leva a próxima cobrança do status para a conta ativa', async () => {
     const { estadoDaConta } = await import('../src/lib/assinatura')
-    const c = estadoDaConta('pro', {
+    const c = estadoDaConta('premium', {
       configurado: true,
-      assinatura: { plano: 'pro', status: 'active', valeAte: 1, provedor: 'asaas' },
+      assinatura: { plano: 'premium', status: 'active', valeAte: 1, provedor: 'asaas' },
       proximaCobranca: '2026-10-30',
     })
     expect(c.proximaCobranca).toBe('2026-10-30')

@@ -101,15 +101,25 @@ describe('banco: escritas e leituras contadas no cliente libsql', () => {
 
 describe('custo de IA: por plano, e o gasto do dia e do mês lidos do banco', () => {
   it('ia_custo_usd_total soma por plano; plano fora da lista vira `desconhecido`', async () => {
-    m.contarCustoPorPlano('pro', 0.25)
-    m.contarCustoPorPlano('pro', 0.25)
-    m.contarCustoPorPlano('essencial', 0.1)
+    m.contarCustoPorPlano('premium', 0.25)
+    m.contarCustoPorPlano('premium', 0.25)
+    m.contarCustoPorPlano('convidado', 0.05)
     m.contarCustoPorPlano('plano-inventado-pelo-cliente', 0.1)
     const corpo = await scrape()
-    expect(valor(corpo, 'ia_custo_usd_total{plano="pro"}')).toBeCloseTo(0.5, 6)
-    expect(valor(corpo, 'ia_custo_usd_total{plano="essencial"}')).toBeCloseTo(0.1, 6)
+    expect(valor(corpo, 'ia_custo_usd_total{plano="premium"}')).toBeCloseTo(0.5, 6)
+    expect(valor(corpo, 'ia_custo_usd_total{plano="convidado"}')).toBeCloseTo(0.05, 6)
     expect(corpo).toContain('ia_custo_usd_total{plano="desconhecido"}')
     expect(corpo).not.toContain('plano-inventado-pelo-cliente')
+  })
+
+  it('matriz v2: o nome antigo soma no Premium, e não vira série própria', async () => {
+    const antes = valor(await scrape(), 'ia_custo_usd_total{plano="premium"}') ?? 0
+    m.contarCustoPorPlano('pro', 0.2)
+    m.contarCustoPorPlano('essencial', 0.1)
+    const corpo = await scrape()
+    expect(valor(corpo, 'ia_custo_usd_total{plano="premium"}')).toBeCloseTo(antes + 0.3, 6)
+    expect(corpo).not.toContain('ia_custo_usd_total{plano="pro"}')
+    expect(corpo).not.toContain('ia_custo_usd_total{plano="essencial"}')
   })
 
   it('ia_gasto_usd{periodo} vem de gasto_de_ia; o teto só aparece quando existe', async () => {
@@ -117,7 +127,7 @@ describe('custo de IA: por plano, e o gasto do dia e do mês lidos do banco', ()
     fixar('AI_BUDGET_USD_MONTH', '10')
     fixar('AI_BUDGET_USD_DAY', undefined)
     const orc = await h.load<typeof import('../../server/lib/orcamentoDeIa')>('../../server/lib/orcamentoDeIa')
-    await orc.registrarGastoDeIa(0.4, { plano: 'pro' })
+    await orc.registrarGastoDeIa(0.4, { plano: 'premium' })
     const corpo = await scrape()
     expect(valor(corpo, 'ia_gasto_usd{periodo="dia"}')).toBeCloseTo(0.4, 6)
     expect(valor(corpo, 'ia_gasto_usd{periodo="mes"}')).toBeCloseTo(0.4, 6)

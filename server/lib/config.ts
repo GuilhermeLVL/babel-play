@@ -81,15 +81,28 @@ export interface VariavelDeclarada {
  * `storageQuota.ts` e `usageQuota.ts` montam o nome em tempo de execucao
  * (`${plan.toUpperCase()}_STORAGE_MB`), e leitura montada e invisivel ao grep, ao inventario e a
  * regra `env-fora-de-config`. A lista trazia so `ESSENCIAL_*` e `PRO_*` escritas a mao — mas o
- * codigo aceita os QUATRO planos, entao quem definisse `FREE_STORAGE_MB` teria o valor honrado
+ * codigo aceita todos os planos, entao quem definisse `FREE_STORAGE_MB` teria o valor honrado
  * sem que ele constasse em lugar nenhum. Gerando a partir de `PLAN_MATRIX`, um plano novo declara
- * as suas tres variaveis no mesmo commit em que nasce.
+ * as suas variaveis no mesmo commit em que nasce.
+ *
+ * MATRIZ V2 (ADR 0011): com o Essencial e o Pro fora da matriz, as `ESSENCIAL_*`/`PRO_*` deixam de
+ * ser lidas — quem as tinha no deploy passa o valor para a `PREMIUM_*` correspondente. Nao ha leitura
+ * de compatibilidade de proposito: o teto do Premium e outro numero (40 h, o empate de custo), e
+ * herdar em silencio as 15 h do Essencial ou as 20 h do Pro seria vender "sem limite no dia a dia"
+ * com o teto de um plano que nao existe mais.
  */
 const SUFIXOS_POR_PLANO: ReadonlyArray<{ sufixo: string; paraQue: string }> = [
   { sufixo: 'STORAGE_MB', paraQue: 'teto de armazenamento do plano, em MB (override da PLAN_MATRIX)' },
   { sufixo: 'MONTHLY_MANAGED_CALLS', paraQue: 'cota mensal de chamadas gerenciadas do plano (default da PLAN_MATRIX)' },
   { sufixo: 'MONTHLY_STT_SECONDS', paraQue: 'teto mensal de segundos de STT do plano' },
   { sufixo: 'MONTHLY_LLM_TOKENS', paraQue: 'teto mensal de tokens (entrada + saída) do LLM de nuvem do plano' },
+  /* O USO JUSTO DO DIA (matriz v2, ADR 0011): o teto por dia LOCAL da pessoa. Só vale para plano com
+     teto diário na matriz (hoje, o Premium); nos outros o dia não é contado e a variável não tem efeito. */
+  {
+    sufixo: 'DAILY_STT_SECONDS',
+    paraQue: 'teto DIÁRIO (dia local) de segundos de STT de nuvem do plano — o uso justo',
+  },
+  { sufixo: 'DAILY_LLM_TOKENS', paraQue: 'teto DIÁRIO (dia local) de tokens do LLM de nuvem do plano — o uso justo' },
 ]
 
 /* O `convidado` (Fase 7) não está na matriz de assinatura, mas as cotas dele passam pelas MESMAS
@@ -425,7 +438,7 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
     paraQue:
-      'admissão de IA: fração do saldo de cada modelo reservada SÓ ao Pro (0 a 0,9). Padrão 0,2 — o Essencial usa até 80%; convidado, até 50% (ou menos, se a reserva passar disso)',
+      'admissão de IA: fração do saldo de cada modelo reservada SÓ a quem paga (o Premium; o nome da variável é de antes da matriz v2) (0 a 0,9). Padrão 0,2 — quem não paga (convidado, Grátis, teste) usa até 50%, e o alívio do Grátis até 20% (ou menos, se a reserva passar disso)',
   },
   {
     nome: 'IA_ADMISSAO_STT_RPD',
@@ -1104,8 +1117,9 @@ export interface LimitesDeModelo {
 export interface ConfigDeAdmissao {
   stt: LimitesDeModelo
   llm: LimitesDeModelo
-  /** fração do saldo que só o Pro alcança */
-  reservaPro: number
+  /** fração do saldo que só quem PAGA alcança (`IA_ADMISSAO_RESERVA_PRO`; o nome da env é de antes
+   da matriz v2 e fica — renomear variável de operação apagaria em silêncio um valor já configurado) */
+  reservaDosPagantes: number
   emVooStt: number
   emVooLlm: number
 }
@@ -1126,7 +1140,7 @@ function inteiroNaoNegativo(bruto: string | undefined, padrao: number): number {
  */
 export function configDeAdmissao(env: NodeJS.ProcessEnv = process.env): ConfigDeAdmissao {
   const reservaBruta = Number(env.IA_ADMISSAO_RESERVA_PRO?.trim().replace(',', '.'))
-  const reservaPro =
+  const reservaDosPagantes =
     env.IA_ADMISSAO_RESERVA_PRO?.trim() && Number.isFinite(reservaBruta) && reservaBruta >= 0 && reservaBruta <= 0.9
       ? reservaBruta
       : 0.2
@@ -1141,7 +1155,7 @@ export function configDeAdmissao(env: NodeJS.ProcessEnv = process.env): ConfigDe
       rpd: inteiroNaoNegativo(env.IA_ADMISSAO_LLM_RPD, 1000),
       tpd: inteiroNaoNegativo(env.IA_ADMISSAO_LLM_TPD, 200_000),
     },
-    reservaPro,
+    reservaDosPagantes,
     /* Piso 1: `0` em voo recusaria toda chamada, e quem quer desligar a nuvem tem `AI_ENABLED=0`. */
     emVooStt: Math.max(1, inteiroNaoNegativo(env.IA_EM_VOO_STT, 1)),
     emVooLlm: Math.max(1, inteiroNaoNegativo(env.IA_EM_VOO_LLM, 2)),

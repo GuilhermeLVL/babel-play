@@ -219,7 +219,7 @@ export default function AiEnginePanel({
               className={`cartao opcao ${nuvem ? 'sel' : ''}`}
               aria-pressed={nuvem}
               disabled={bloqueadaNuvem}
-              title={bloqueadaNuvem ? 'Disponível no plano Pro' : undefined}
+              title={bloqueadaNuvem ? 'Disponível no plano Premium' : undefined}
               onClick={() => void escolherNuvem()}
             >
               <span className="radio" aria-hidden="true" />
@@ -228,7 +228,7 @@ export default function AiEnginePanel({
                 <h3>
                   Usar a sua chave (nuvem){' '}
                   <span className="badge rare" style={{ marginLeft: 6 }}>
-                    {bloqueadaNuvem ? 'Pro' : 'BYO key'}
+                    {bloqueadaNuvem ? 'Premium' : 'BYO key'}
                   </span>
                 </h3>
                 <p>OpenAI, Groq, OpenRouter… Melhor qualidade, sem baixar modelo. A chave fica cifrada no servidor.</p>

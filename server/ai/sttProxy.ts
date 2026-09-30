@@ -49,7 +49,11 @@ import {
 } from './cascataDeStt'
 import { JANELA_ABERTA_MS } from './disjuntor'
 import type { Provedor } from './provedores'
-import { responderContadorIndisponivel, responderFranquiaDeAlivioEsgotada } from './reservaDeNuvem'
+import {
+  responderContadorIndisponivel,
+  responderFranquiaDeAlivioEsgotada,
+  responderUsoJustoDoDia,
+} from './reservaDeNuvem'
 import { promptDoCabecalho, triarSegmentos } from './sttQualidade'
 import { abrirRastro, codigoDeIdioma, nomeDoProvedor, type RastroDeIa } from './telemetriaDeIa'
 
@@ -77,7 +81,7 @@ import { abrirRastro, codigoDeIdioma, nomeDoProvedor, type RastroDeIa } from './
 interface PortaDoStt {
   byok: boolean
   plano?: PlanoDeAdmissao
-  /** O plano da assinatura (`free|essencial|pro|selfhost`) — rótulo da métrica de custo por plano. */
+  /** O plano da assinatura (`free|premium|selfhost`, matriz v2) — rótulo da métrica de custo por plano. */
   planoDaAssinatura?: string
   /** B6: as pernas de STT da chave do DONO, na ordem do registro (o handler reordena pelo custo). */
   pernas?: Provedor[]
@@ -193,6 +197,8 @@ async function transcrever(req: Request, res: Response, rastro: RastroDeIa): Pro
   let reservaPendente = false
   /** Segundos reservados nesta requisição (0 = nenhum). Precisa ser estornado junto da chamada. */
   let segundosReservados = 0
+  /** A janela do dia em que os segundos caíram (uso justo, matriz v2): o estorno volta para ela. */
+  let diaDaReserva: string | null = null
   /* A porta normalmente já rodou no middleware (antes do `raw()`); chamada direta ao handler — os
      testes, e qualquer montagem sem o middleware — passa por ela aqui. */
   let porta: PortaDoStt | undefined = portas.get(req)
@@ -259,12 +265,18 @@ async function transcrever(req: Request, res: Response, rastro: RastroDeIa): Pro
          ~6 s o plano que promete 15 h entregava ~9 h de fala. O mínimo é custo do DONO: ele entra
          no orçamento global, logo abaixo, e não na cota de quem paga o plano. */
       segundosReservados = avaliacao.segundosDoUsuario
-      if (!(await reservarSegundosDeStt(req.userId, segundosReservados, modo))) {
+      /* O MÊS E DEPOIS O DIA (uso justo, matriz v2): passou do dia, 429 `uso_justo_do_dia` — a
+         legenda segue no aparelho e ninguém vende nada a quem já assina. A chamada reservada acima
+         cai no `finally`, como em toda recusa. */
+      const reservaDeSegundos = await reservarSegundosDeStt(req.userId, segundosReservados, modo)
+      if (reservaDeSegundos.cabe === false) {
         segundosReservados = 0
         if (modo === 'alivio') responderFranquiaDeAlivioEsgotada(res)
+        else if (reservaDeSegundos.recusa === 'dia') await responderUsoJustoDoDia(res, req.userId)
         else res.status(402).json({ error: 'limite mensal de áudio do plano atingido', code: 'quota_exceeded' })
         return
       }
+      diaDaReserva = reservaDeSegundos.dia
       /* B6: a ORDEM DAS PERNAS é o custo deste áudio — com o mínimo faturado de cada uma. */
       pernas = ordenarPorCustoEfetivo(porta.pernas ?? [], duracaoDoAudio(audioBuffer) ?? avaliacao.segundosDoUsuario)
     }
@@ -449,7 +461,7 @@ async function transcrever(req: Request, res: Response, rastro: RastroDeIa): Pro
     // As duas reservas caem juntas: cobrar segundos por uma transcrição que não aconteceu é o
     // mesmo defeito que cobrar a chamada.
     if (reservaPendente) await refundManagedCall(req.userId, modo)
-    if (segundosReservados > 0) await estornarSegundosDeStt(req.userId, segundosReservados, modo)
+    if (segundosReservados > 0) await estornarSegundosDeStt(req.userId, segundosReservados, modo, diaDaReserva)
   }
 }
 

@@ -11,11 +11,20 @@
  *
  * O ESTORNO continua best-effort (só loga): ele devolve cota ao usuário, e falhar nele erra a favor
  * do dono, não contra.
+ *
+ * O USO JUSTO DO DIA (matriz v2, C4 da change `planos-v2`, ADR 0011): segundos de STT e tokens de LLM
+ * têm, além do teto do MÊS, um teto por DIA LOCAL da pessoa (`sttSegundosDia`/`tokensDia` na
+ * matriz). A reserva confere o mês e DEPOIS o dia; se o dia recusa, devolve o mês. A recusa diz QUAL
+ * teto recusou (`recusa: 'mes' | 'dia'`), porque as respostas são outras: o mês é o 402
+ * `quota_exceeded` de sempre; o dia é o 429 `uso_justo_do_dia`, que não vende nada.
  */
+import { diaNoFuso } from '../../src/core/learning/economia'
 import { definicaoDoPlano, FRANQUIA_DE_ALIVIO, type PlanoEfetivo } from '../../src/core/planos'
 import { usageCountersRepo } from '../db/repositories/usageCounters'
 import type { UserId } from './authContext'
+import { memoDoRequest } from './contextoDeConvidado'
 import { getPlanForUser } from './entitlements'
+import { fusoGravado } from './fusoDoUsuario'
 import { log } from './logger'
 
 export const METRIC_MANAGED = 'managed_calls'
@@ -47,6 +56,37 @@ const METRICA = {
   segundos: { plano: METRIC_STT_SEGUNDOS, alivio: METRIC_ALIVIO_STT_SEGUNDOS },
   tokens: { plano: METRIC_LLM_TOKENS, alivio: METRIC_ALIVIO_TOKENS },
 } as const
+
+/**
+ * Os contadores do USO JUSTO DO DIA, na janela `AAAA-MM-DD` do dia local. Métricas PRÓPRIAS, e não
+ * as do mês com outra janela: a poda (`usageCountersRepo.prune`) e quem lê o contador para
+ * diagnóstico nunca misturam `AAAA-MM` com `AAAA-MM-DD` numa comparação de texto.
+ */
+export const METRIC_STT_SEGUNDOS_DIA = 'stt_seconds_dia'
+export const METRIC_LLM_TOKENS_DIA = 'llm_tokens_dia'
+
+/** Qual teto recusou: o do MÊS (402 `quota_exceeded`) ou o do DIA (429 `uso_justo_do_dia`). */
+export type RecusaDaCota = 'mes' | 'dia'
+
+/**
+ * O resultado de uma reserva com o uso justo do dia. `dia` é a JANELA do dia em que a reserva caiu
+ * (`null` = o plano não tem teto no dia, nada foi contado ali): o estorno e o acerto voltam para ELA,
+ * mesmo que o provedor responda depois da meia-noite.
+ */
+export type ReservaDaCota = { cabe: true; dia: string | null } | { cabe: false; recusa: RecusaDaCota }
+
+/**
+ * A janela do DIA LOCAL da pessoa, `AAAA-MM-DD`: o fuso GRAVADO dela (o mesmo da ofensiva e das
+ * missões, `fusoDoUsuario.ts`, que só muda uma vez a cada 24 h — trocar de fuso a cada pedido não
+ * inventa um dia novo de nuvem), ou `America/Sao_Paulo` quando não há. Lido UMA vez por requisição.
+ */
+export async function fusoDaCota(userId: UserId): Promise<string> {
+  return memoDoRequest(userId, 'fuso', () => fusoGravado(userId))
+}
+
+export async function janelaDoDia(userId: UserId): Promise<string> {
+  return diaNoFuso(Date.now(), await fusoDaCota(userId))
+}
 
 /**
  * O contador de uso não respondeu. Quem chama devolve 503 com `code: 'contador_indisponivel'` — nunca
@@ -81,12 +121,12 @@ function tetoComEnv(padrao: number | null, envNome: string): number {
   return padrao === null ? Infinity : padrao
 }
 
-/** Env de quota por plano: `PRO_MONTHLY_MANAGED_CALLS`, `ESSENCIAL_MONTHLY_MANAGED_CALLS`… */
+/** Env de quota por plano: `PREMIUM_MONTHLY_MANAGED_CALLS`, `FREE_STORAGE_MB`… (geradas da matriz, `config.ts`). */
 const envDoPlano = (plan: PlanoEfetivo, sufixo: string): string => `${plan.toUpperCase()}_${sufixo}`
 
 /**
- * Teto mensal de CHAMADAS gerenciadas. O default vem da matriz (`src/core/planos.ts`: 20.000 no
- * Essencial, 26.000 no Pro, ∞ no selfhost, 0 no free — que já é barrado antes, pelo entitlement), e
+ * Teto mensal de CHAMADAS gerenciadas. O default vem da matriz (`src/core/planos.ts`: 50.000 no
+ * Premium, ∞ no selfhost, 0 no free — que já é barrado antes, pelo entitlement), e
  * `<PLANO>_MONTHLY_MANAGED_CALLS` sobrepõe.
  *
  * O DEFAULT ERA 1.000, E ISSO ENTREGAVA ~50 MINUTOS DE CONVERSA POR MÊS. Três rotas dividem este
@@ -147,9 +187,9 @@ export async function refundManagedCall(userId: UserId, modo: ModoDaCota = 'plan
 
 /**
  * Teto MENSAL DE SEGUNDOS de áudio no STT gerenciado. O default vem da matriz (`src/core/planos.ts`:
- * 54.000 s = 15 h no Essencial, 72.000 s = 20 h no Pro, ∞ no selfhost, 0 no free — barrado antes,
- * pelo entitlement), e `<PLANO>_MONTHLY_STT_SECONDS` sobrepõe. Os segundos contados são os REAIS da
- * fala (`segundosDeAudioDoUsuario`): 15 h no plano são 15 h de áudio transcrito.
+ * 144.000 s = 40 h no Premium — o empate de custo na pilha atual, até o B7 —, ∞ no selfhost, 0 no
+ * free — barrado antes, pelo entitlement), e `<PLANO>_MONTHLY_STT_SECONDS` sobrepõe. Os segundos
+ * contados são os REAIS da fala (`segundosDeAudioDoUsuario`): 40 h no plano são 40 h de áudio transcrito.
  *
  * POR QUE ESTE TETO EXISTE, ao lado do de chamadas. O de chamadas é fair-use; este é o de DINHEIRO.
  * A Groq cobra STT por hora de áudio, então o gasto de um usuário depende de quanto tempo ele fala,
@@ -157,8 +197,8 @@ export async function refundManagedCall(userId: UserId, modo: ModoDaCota = 'plan
  * ordens de grandeza mais que o assinante típico — e o contador de chamadas nem pisca.
  *
  * O CUSTO DO DONO é maior que o número da cota, e isso é deliberado: com falas de ~6 s o provedor
- * fatura ~10/6 dos segundos contados aqui (mínimo de 10 s por requisição). No pior caso as 15 h do
- * Essencial custam ~25 h faturadas (~US$ 1,00/mês a US$ 0,04/h) — dentro da margem do plano. O teto
+ * fatura ~10/6 dos segundos contados aqui (mínimo de 10 s por requisição); com o VAD de 800 ms a
+ * bancada mediu 1,08× (`FATOR_FATURADO_DO_STT`), e é esse o número da conta da matriz. O teto
  * que protege a FATURA como um todo é o orçamento global (`orcamentoDeIa.ts`), que conta os
  * segundos faturados.
  */
@@ -166,10 +206,63 @@ export function capSegundosParaPlano(plan: PlanoEfetivo): number {
   return tetoComEnv(definicaoDoPlano(plan).quotas.sttSegundosMes, envDoPlano(plan, 'MONTHLY_STT_SECONDS'))
 }
 
+/** Teto DIÁRIO de segundos de STT (o uso justo). `<PLANO>_DAILY_STT_SECONDS` sobrepõe; ∞ = sem teto no dia. */
+export function capSegundosDoDia(plan: PlanoEfetivo): number {
+  return tetoComEnv(definicaoDoPlano(plan).quotas.sttSegundosDia, envDoPlano(plan, 'DAILY_STT_SECONDS'))
+}
+
+/** Teto DIÁRIO de tokens de LLM (o uso justo). `<PLANO>_DAILY_LLM_TOKENS` sobrepõe; ∞ = sem teto no dia. */
+export function capTokensDoDia(plan: PlanoEfetivo): number {
+  return tetoComEnv(definicaoDoPlano(plan).quotas.tokensDia, envDoPlano(plan, 'DAILY_LLM_TOKENS'))
+}
+
+/**
+ * O MÊS, DEPOIS O DIA — a reserva de uma unidade de dinheiro (segundos ou tokens) nos dois tetos.
+ *
+ * A ORDEM É DE PROPÓSITO: o mês é o teto que já existia e o que mais recusa perto do fim do ciclo;
+ * o dia só é tocado quando o mês coube. Se o DIA recusar, o mês reservado para a mesma fala é
+ * DEVOLVIDO na hora — a fala não aconteceu, e ela não pode sair do mês de ninguém. Se o contador do
+ * dia CAIR, o mês também é devolvido antes de a falha subir (fechada, como toda reserva).
+ *
+ * Plano sem teto no dia (`Infinity`: Grátis, self-host, convidado) nem lê o fuso: nada é contado ali.
+ */
+async function reservarNoMesENoDia(
+  userId: UserId,
+  metricaMes: string,
+  capMes: number,
+  metricaDia: string,
+  capDia: number,
+  quantidade: number,
+): Promise<ReservaDaCota> {
+  if (!(await usageCountersRepo.reserve(userId, metricaMes, currentWindow(), capMes, quantidade))) {
+    return { cabe: false, recusa: 'mes' }
+  }
+  if (!Number.isFinite(capDia)) return { cabe: true, dia: null }
+  const devolverOMes = () =>
+    usageCountersRepo.refund(userId, metricaMes, currentWindow(), quantidade).catch((err: unknown) => {
+      log('warn', { event: 'quota_mes_devolucao_falhou', error: String(err).slice(0, 120) })
+    })
+  let dia: string
+  let cabeNoDia: boolean
+  try {
+    dia = await janelaDoDia(userId)
+    cabeNoDia = await usageCountersRepo.reserve(userId, metricaDia, dia, capDia, quantidade)
+  } catch (err) {
+    await devolverOMes()
+    throw err
+  }
+  if (!cabeNoDia) {
+    await devolverOMes()
+    return { cabe: false, recusa: 'dia' }
+  }
+  return { cabe: true, dia }
+}
+
 /**
  * RESERVA `segundos` de áudio ANTES de mandar ao provedor — mesma disciplina de
  * `reserveManagedCall`: decidir e contabilizar na MESMA instrução, senão o teto não vale sob
- * concorrência.
+ * concorrência. No plano, o mês e depois o dia (`reservarNoMesENoDia`); no alívio, só a franquia
+ * do mês dele (o alívio tem o pool do dia próprio, `nuvemDeAlivio.ts`).
  *
  * Falha FECHADA como as outras reservas: erro de infra lança `ContadorIndisponivel`.
  */
@@ -177,24 +270,45 @@ export async function reservarSegundosDeStt(
   userId: UserId,
   segundos: number,
   modo: ModoDaCota = 'plano',
-): Promise<boolean> {
+): Promise<ReservaDaCota> {
   try {
-    const cap =
-      modo === 'alivio' ? FRANQUIA_DE_ALIVIO.sttSegundosMes : capSegundosParaPlano(await getPlanForUser(userId))
-    return await usageCountersRepo.reserve(userId, METRICA.segundos[modo], currentWindow(), cap, segundos)
+    if (modo === 'alivio') {
+      const cabe = await usageCountersRepo.reserve(
+        userId,
+        METRICA.segundos.alivio,
+        currentWindow(),
+        FRANQUIA_DE_ALIVIO.sttSegundosMes,
+        segundos,
+      )
+      return cabe ? { cabe: true, dia: null } : { cabe: false, recusa: 'mes' }
+    }
+    const plano = await getPlanForUser(userId)
+    return await reservarNoMesENoDia(
+      userId,
+      METRIC_STT_SEGUNDOS,
+      capSegundosParaPlano(plano),
+      METRIC_STT_SEGUNDOS_DIA,
+      capSegundosDoDia(plano),
+      segundos,
+    )
   } catch (err) {
     falharFechado('quota_seconds_failed_closed', err)
   }
 }
 
-/** Estorna segundos reservados que não viraram transcrição (o provedor recusou ou caiu). */
+/**
+ * Estorna segundos reservados que não viraram transcrição (o provedor recusou ou caiu) — do mês e,
+ * quando a reserva caiu num dia (`dia` da `ReservaDaCota`), do dia também.
+ */
 export async function estornarSegundosDeStt(
   userId: UserId,
   segundos: number,
   modo: ModoDaCota = 'plano',
+  dia: string | null = null,
 ): Promise<void> {
   try {
     await usageCountersRepo.refund(userId, METRICA.segundos[modo], currentWindow(), segundos)
+    if (dia && modo === 'plano') await usageCountersRepo.refund(userId, METRIC_STT_SEGUNDOS_DIA, dia, segundos)
   } catch (err) {
     log('warn', { event: 'quota_seconds_refund_failed', error: String(err).slice(0, 120) })
   }
@@ -223,22 +337,34 @@ export function estimarTokens(caracteresDoPrompt: number, maxTokens: number): nu
 
 /**
  * RESERVA a estimativa de tokens ANTES de chamar o provedor — a mesma disciplina das outras
- * reservas: decidir e contabilizar na MESMA instrução. `false` = não cabe no teto do mês.
- * Falha de infra → `ContadorIndisponivel`.
+ * reservas: decidir e contabilizar na MESMA instrução. No plano, o mês e depois o dia; a recusa diz
+ * qual. Falha de infra → `ContadorIndisponivel`.
  */
 export async function reservarTokensDeLlm(
   userId: UserId,
   estimativa: number,
   modo: ModoDaCota = 'plano',
-): Promise<boolean> {
+): Promise<ReservaDaCota> {
+  const quantidade = Math.max(1, Math.round(estimativa))
   try {
-    const cap = modo === 'alivio' ? FRANQUIA_DE_ALIVIO.tokensMes : capTokensParaPlano(await getPlanForUser(userId))
-    return await usageCountersRepo.reserve(
+    if (modo === 'alivio') {
+      const cabe = await usageCountersRepo.reserve(
+        userId,
+        METRICA.tokens.alivio,
+        currentWindow(),
+        FRANQUIA_DE_ALIVIO.tokensMes,
+        quantidade,
+      )
+      return cabe ? { cabe: true, dia: null } : { cabe: false, recusa: 'mes' }
+    }
+    const plano = await getPlanForUser(userId)
+    return await reservarNoMesENoDia(
       userId,
-      METRICA.tokens[modo],
-      currentWindow(),
-      cap,
-      Math.max(1, Math.round(estimativa)),
+      METRIC_LLM_TOKENS,
+      capTokensParaPlano(plano),
+      METRIC_LLM_TOKENS_DIA,
+      capTokensDoDia(plano),
+      quantidade,
     )
   } catch (err) {
     falharFechado('quota_tokens_failed_closed', err)
@@ -248,20 +374,25 @@ export async function reservarTokensDeLlm(
 /**
  * ACERTA a reserva pelo número REAL do provedor (`usage`): devolve o que sobrou ou, se o provedor
  * gastou mais do que a estimativa (raro — o `max_tokens` limita a saída), soma a diferença. Com
- * `reais = 0` é o estorno total de uma chamada que não aconteceu. Best-effort: só loga.
+ * `reais = 0` é o estorno total de uma chamada que não aconteceu. O acerto vale para o mês e, quando
+ * a reserva caiu num dia, para o MESMO dia. Best-effort: só loga.
  */
 export async function acertarTokensDeLlm(
   userId: UserId,
   reservados: number,
   reais: number,
   modo: ModoDaCota = 'plano',
+  dia: string | null = null,
 ): Promise<void> {
   const diferenca = Math.round(reservados) - Math.round(Number.isFinite(reais) ? Math.max(0, reais) : 0)
   if (diferenca === 0) return
-  const metrica = METRICA.tokens[modo]
+  const janelas: Array<[string, string]> = [[METRICA.tokens[modo], currentWindow()]]
+  if (dia && modo === 'plano') janelas.push([METRIC_LLM_TOKENS_DIA, dia])
   try {
-    if (diferenca > 0) await usageCountersRepo.refund(userId, metrica, currentWindow(), diferenca)
-    else await usageCountersRepo.increment(userId, metrica, currentWindow(), -diferenca)
+    for (const [metrica, janela] of janelas) {
+      if (diferenca > 0) await usageCountersRepo.refund(userId, metrica, janela, diferenca)
+      else await usageCountersRepo.increment(userId, metrica, janela, -diferenca)
+    }
   } catch (err) {
     log('warn', { event: 'llm_tokens_acerto_falhou', error: String(err).slice(0, 120) })
   }

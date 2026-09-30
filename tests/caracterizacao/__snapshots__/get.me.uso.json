@@ -18,6 +18,7 @@
       "teto": "number",
       "usado": "number"
     },
+    "hoje": "null",
     "iaDeNuvem": {
       "disponivel": "boolean",
       "mensagem": "null",

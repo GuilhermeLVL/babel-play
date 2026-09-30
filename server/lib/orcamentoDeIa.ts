@@ -275,7 +275,7 @@ const vigiaDeGasto = criarVigiaDeGasto({ limiares: () => limiaresDeGastoPorUsuar
 /** Quem pagou a chamada — para o custo por plano e o gasto anômalo por usuário. */
 export interface ContextoDoGasto {
   userId?: string
-  /** O plano da assinatura (`free|essencial|pro|selfhost`). */
+  /** O plano da assinatura (`free|premium|selfhost`, matriz v2). */
   plano?: string
 }
 

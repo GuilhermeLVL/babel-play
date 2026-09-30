@@ -110,11 +110,21 @@ describe('inventário de configuração', () => {
 
   it('as variáveis por plano cobrem TODOS os planos, não só os pagos', () => {
     // O defeito que isto fecha: `FREE_STORAGE_MB` era lido e não declarado.
-    for (const plano of ['free', 'essencial', 'pro', 'selfhost']) {
+    for (const plano of ['free', 'premium', 'selfhost']) {
       expect(declaradas.has(`${plano.toUpperCase()}_STORAGE_MB`), `${plano} sem teto de armazenamento declarado`).toBe(
         true,
       )
     }
+  })
+
+  it('matriz v2: o Premium declara o mensal E o uso justo do dia; os planos antigos não declaram nada', () => {
+    for (const nome of ['PREMIUM_MONTHLY_STT_SECONDS', 'PREMIUM_DAILY_STT_SECONDS', 'PREMIUM_DAILY_LLM_TOKENS']) {
+      expect(declaradas.has(nome), nome).toBe(true)
+    }
+    /* Sem leitura de compatibilidade: herdar as 15 h do Essencial ou as 20 h do Pro seria vender o
+       Premium com o teto de um plano que não existe mais (`server/lib/config.ts`, ADR 0011). */
+    const antigas = [...declaradas].filter((n) => /^(ESSENCIAL|PRO)_/.test(n))
+    expect(antigas).toEqual([])
   })
 
   it('nenhuma declaração sem explicação de PARA QUÊ', () => {

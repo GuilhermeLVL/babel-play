@@ -2,7 +2,7 @@
  * O CONTEXTO DE UM PEDIDO AO NÚCLEO DE IA — quem pede, já resolvido (Fase F, ganchos para API e MCP).
  *
  * As funções do núcleo (`traduzirNoNivel`, `sugerirAlternativas`, `polirLote`, `sintetizarVoz`,
- * `transcrever`) não leem `req`: tudo o que dependia da requisição do app chega aqui, explícito. O
+ * `transcrever`, `conversarComTutor`) não leem `req`: tudo o que dependia da requisição do app chega aqui, explícito. O
  * adaptador HTTP do app monta este objeto a partir do `req` (a porta gratuita, o plano, as flags); a
  * rota `/v1` com chave de API, ou o servidor MCP, vão montá-lo a partir da chave — e chamar o MESMO
  * código, com as mesmas recusas, a mesma cota, o mesmo custo e a mesma retenção zero.

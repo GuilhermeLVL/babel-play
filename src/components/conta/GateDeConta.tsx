@@ -52,19 +52,21 @@ export default function GateDeConta({ aberto, motivo, onFechar, onEntrar }: Gate
           </span>
           <div className="min-w-0 flex-1">
             <h2 id="gate-conta-titulo" className="font-display font-bold text-lg text-ink">
-              {semServidor ? t('Disponível na versão completa') : 'Isto precisa de conta'}
+              {semServidor ? t('Disponível na versão completa') : t('Isto precisa de conta')}
             </h2>
             <p className="mt-1 text-sm text-ink-muted">{motivo}</p>
             <p className="mt-2 text-xs text-ink-faint">
               {semServidor
                 ? t('Transcrever, traduzir e jogar continuam livres nesta edição, tudo no seu navegador.')
-                : 'Transcrever, traduzir e jogar com a sessão atual continuam livres. O que você já fez neste navegador sobe para a conta quando você entrar.'}
+                : t(
+                    'Transcrever, traduzir e jogar com a sessão atual continuam livres. O que você já fez neste navegador sobe para a conta quando você entrar.',
+                  )}
             </p>
           </div>
           <button
             type="button"
             onClick={onFechar}
-            aria-label="Fechar"
+            aria-label={t('Fechar')}
             className="text-ink-muted hover:text-ink cursor-pointer"
           >
             <X className="w-4 h-4" aria-hidden />
@@ -78,10 +80,10 @@ export default function GateDeConta({ aberto, motivo, onFechar, onEntrar }: Gate
           ) : (
             <>
               <button ref={primeiro} type="button" onClick={onEntrar} className="btn-ink w-full justify-center">
-                Entrar ou criar conta
+                {t('Entrar ou criar conta')}
               </button>
               <button type="button" onClick={onFechar} className="btn-outline w-full justify-center">
-                Continuar sem conta
+                {t('Continuar sem conta')}
               </button>
             </>
           )}

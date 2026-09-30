@@ -59,9 +59,10 @@ os mesmos provedores (retenção zero; o registro recusa o Gemini em qualquer fo
 testes diretos, sem Express (`tests/integration/nucleo-de-ia.test.ts`). As rotas caíram para 82–135 linhas.
 
 Pior: um arquivo a mais por função (o adaptador e o núcleo), e os rótulos de log (`route: '/api/ai/…'`)
-continuam os da rota do app até a `/v1` existir. O tutor (`server/routes/tutor.ts`) continua preso ao
-Express (não é função da API nesta fase); por isso `abrirReservaDeLlm` e `responderNuvemOcupada`
-seguem existindo, como adaptadores dos mesmos corpos. Uma divergência antiga ficou visível e foi mantida:
+continuam os da rota do app até a `/v1` existir. O tutor entrou no núcleo depois (30/09/2026,
+`nucleo/conversarComTutor.ts`, com a rota `server/routes/tutor.ts` como adaptador), mas não é função da
+API nesta fase: expô-lo é decisão do dono. Com ele, `abrirReservaDeLlm` e `responderNuvemOcupada`
+perderam o último usuário e saíram. Uma divergência antiga ficou visível e foi mantida:
 as alternativas nunca leram o teste de 14 dias (admitem o teste como Premium; o `/mt` e o polimento, como
 grátis) — alinhar é decisão de produto, não deste refactor.
 
@@ -79,5 +80,6 @@ função do núcleo; um canal fora do app sem `perfilProtegido === false`.
   segurança (`tests/seguranca/*`) e o contrato (`node scripts/testes/contrato-api.mjs`) passaram sem
   mudança de comportamento — o único teste tocado lia um literal por caminho de arquivo
   (`tests/eval/bancada-nuvem.test.ts`, que agora lê o núcleo).
-- **Contrato das recusas duplicadas:** o mesmo arquivo confere que `recusaNuvemOcupada` e
-  `recusaPortaoFechado` produzem a resposta de `responderNuvemOcupada` e `responderPortaoFechado`.
+- **Contrato das recusas:** o mesmo arquivo confere que `recusaPortaoFechado` produz a resposta de
+  `responderPortaoFechado`, e que `recusaNuvemOcupada` produz, literal, o 429 que o `responderNuvemOcupada`
+  respondia (a função saiu quando o tutor entrou no núcleo).

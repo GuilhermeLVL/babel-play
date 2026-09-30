@@ -10,7 +10,7 @@ import {
   type SituacaoDaVersao,
   situacaoDaVersao,
 } from '../../../gateway/modelManifest';
-import { data } from '../../../lib/i18n';
+import { data, t } from '../../../lib/i18n';
 import { toast } from '../../Toast';
 import { Dialogo, fecharDialogoDe } from '../../ui';
 
@@ -34,14 +34,17 @@ export interface ModeloDaCaptura {
   mbEstimado?: number;
   /** O estimado foi medido (e não calculado por proporção)? */
   medido?: boolean;
+  /** É o modelo de TRANSCRIÇÃO (o Whisper/Moonshine), e não um tradutor. */
+  transcricao?: boolean;
 }
 
 const mb = (bytes: number) => Math.round(bytes / 1_048_576);
 
 export default function ModeloNoDispositivo({
-  modelos,
+  modelos: todos,
   rota,
   nuvem,
+  transcricaoNoNavegador = false,
   aoFechar,
 }: {
   modelos: ModeloDaCaptura[];
@@ -49,8 +52,15 @@ export default function ModeloNoDispositivo({
   rota?: string;
   /** O provedor ativo é a nuvem (a chave da pessoa): o modelo local é só a reserva. */
   nuvem: boolean;
+  /**
+   * A legenda vem do reconhecedor do NAVEGADOR (o áudio da aba no aparelho, ou o "Rápido" do microfone
+   * sem o som do computador): nada nosso baixa para transcrever. O modelo de transcrição sai da lista
+   * (e do "Liberar espaço"); os tradutores continuam, porque baixam do mesmo jeito.
+   */
+  transcricaoNoNavegador?: boolean;
   aoFechar: () => void;
 }) {
+  const modelos = transcricaoNoNavegador ? todos.filter((m) => !m.transcricao) : todos;
   const [estados, setEstados] = useState<Record<string, EstadoDoCache | undefined>>({});
   const [apagando, setApagando] = useState<'nao' | 'confirmar' | 'rodando'>('nao');
   const [versao, setVersao] = useState(0);
@@ -157,6 +167,17 @@ export default function ModeloNoDispositivo({
       aoFechar={aoFechar}
     >
       <div className="dlg-corpo pilha">
+        {transcricaoNoNavegador && (
+          <div className="op-linha" data-testid="transcricao-no-navegador">
+            <div>
+              <b>{t('Transcrição pelo reconhecimento do navegador')}</b>
+              <small>{t('Nada a baixar: o próprio navegador transcreve.')}</small>
+            </div>
+            <span className="badge ok">
+              <Check aria-hidden /> {t('pronto')}
+            </span>
+          </div>
+        )}
         {modelos.map((m) => {
           const e = estados[m.id];
           const tamanho = e?.completo

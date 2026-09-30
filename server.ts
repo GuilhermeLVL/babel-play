@@ -412,6 +412,15 @@ async function startServer({ prepararDados = true } = {}) {
     console.log('[convidados] inativos há 30 dias removidos (limpeza diária)')
   }
 
+  /* A PODA DAS JANELAS DIÁRIAS do uso justo (C9, item 9.3): os contadores `AAAA-MM-DD` com mais de
+     três dias saem. Mesmo processo e mesmo motivo das limpezas acima; só no modo público, o único com
+     teto no dia. Ver `podarJanelasDiarias` em `server/lib/usageQuota.ts`. */
+  if (prepararDados && authRequired()) {
+    const { agendarPodaDasJanelasDiarias } = await import('./server/lib/usageQuota')
+    agendarPodaDasJanelasDiarias()
+    console.log('[uso justo] janelas diárias com mais de 3 dias removidas (poda diária)')
+  }
+
   /* RETENÇÃO DA MARCA DO TESTE DO PREMIUM (C6): o HMAC do e-mail sai 730 dias depois do teste (LGPD
      art. 15 — sem finalidade depois disso). Mesmo processo e mesmo motivo das limpezas acima; só no
      modo público, o único em que há teste. Ver `server/lib/testePremium.ts`. */

@@ -24,7 +24,7 @@
  * quebrou. O resultado carrega a causa em texto, que é o que vai para o log e para a decisão.
  */
 import { segundosDoRetryAfter } from './admissao'
-import { parametrosDoProvedor, type RoteamentoOpenRouter } from './parametrosDoProvedor'
+import { parametrosDoProvedor, registrarRaciocinioObservado, type RoteamentoOpenRouter } from './parametrosDoProvedor'
 
 export interface MensagemDeChat {
   role: 'system' | 'user' | 'assistant'
@@ -157,6 +157,9 @@ export async function chamarChat(p: PedidoDeChat): Promise<RespostaDeChat> {
       }
     }
     const texto = data.choices?.[0]?.message?.content?.trim()
+    /* O provedor disse que o modelo pensou: a política de custo não corta mais o teto dele, com ou
+       sem o nome na lista (`ehModeloDeRaciocinio`). */
+    if ((data.usage?.completion_tokens_details?.reasoning_tokens ?? 0) > 0) registrarRaciocinioObservado(p.model)
     if (!texto) {
       /* RESPOSTA VAZIA TEM UMA CAUSA COMUM E NADA ÓBVIA: modelo de raciocínio que gasta o
          `max_tokens` inteiro PENSANDO — o provedor devolve HTTP 200 sem conteúdo e sem erro para

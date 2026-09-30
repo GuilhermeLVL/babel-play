@@ -23,6 +23,7 @@ import { type AdmissaoDaCascata, admitirCascata, encerrarAdmissao, percorrerCasc
 import { FUNCOES_DE_IA, maxTokensDaTraducao } from './funcoesDeIa'
 import { type MensagemDeChat, tamanhoDoPrompt } from './llmClient'
 import { cascataDoPlano } from './niveis'
+import { aplicarPoliticaDeCusto } from './politicaDeCusto'
 import type { Provedor } from './provedores'
 import { abrirReservaDeLlm, type ReservaDeLlm } from './reservaDeNuvem'
 import { abrirRastro, codigoDeIdioma, type RastroDeIa } from './telemetriaDeIa'
@@ -229,9 +230,21 @@ async function traduzir(req: Request, res: Response, rastro: RastroDeIa): Promis
 
   const estimativa = estimarTokens(tamanhoDoPrompt(messages), maxTokens)
 
+  /* A POLÍTICA DE CUSTO (B4, `politicaDeCusto.ts`): com o orçamento a 70% (pagante com o primeiro
+     balde baixo) ou a 90% (todos), a cascata começa no degrau mais barato e a saída dos modelos sem
+     raciocínio cai para 75%. A fração vem do mesmo portão, sem outra leitura do banco. */
+  const custo = aplicarPoliticaDeCusto({
+    pernas: provedores,
+    nivel,
+    fracaoDoOrcamento: portao.fracaoDoOrcamento ?? 0,
+    tokensEntrada: estimativa - maxTokens,
+    tokensSaida: maxTokens,
+  })
+  if (custo.degradacao !== 'nenhuma') rastro.anotar({ degradacao: custo.degradacao })
+
   /* ADMISSÃO (ADR 0007) ANTES da cota do usuário: sem saldo no balde do modelo (ou com a 2ª
      tradução dele já em voo), 429 `nuvem_ocupada` com `Retry-After` — e o cliente traduz no local. */
-  const admitida = admitirCascata(provedores, {
+  const admitida = admitirCascata(custo.pernas, {
     userId: req.userId,
     plano: planoDeAdmissao(planoDoUsuario.plan, alivio),
     tokens: estimativa,
@@ -242,7 +255,8 @@ async function traduzir(req: Request, res: Response, rastro: RastroDeIa): Promis
   }
   try {
     await traduzirAdmitido(req, res, rastro, {
-      provedores,
+      provedores: custo.pernas,
+      fatorDeSaida: custo.fatorDeSaida,
       messages,
       maxTokens,
       estimativa,
@@ -265,6 +279,8 @@ async function traduzirAdmitido(
   rastro: RastroDeIa,
   p: {
     provedores: Provedor[]
+    /** A saída econômica da política de custo (B4): 1 = o `max_tokens` inteiro. */
+    fatorDeSaida: number
     messages: MensagemDeChat[]
     maxTokens: number
     estimativa: number
@@ -298,6 +314,7 @@ async function traduzirAdmitido(
         funcao: 'traducao',
         rastro,
         admissao: p.admissao,
+        fatorDeSaida: p.fatorDeSaida,
       },
     )
 

@@ -187,6 +187,14 @@ sai o evento `ia_orcamento_alerta_80` e a 100 % o `ia_orcamento_esgotado` — a 
 sozinha até o mês virar e o app volta para os modelos locais. Os dois chegam ao Sentry; a regra de
 alerta está no passo 7.
 
+**Antes do corte, a degradação suave (B4).** Com o orçamento (do mês ou do dia, o que estiver mais
+perto do fim) a **70 %**, quem paga começa no modelo mais barato da cascata quando o balde do primeiro
+provedor está abaixo de 20 %; a **90 %**, todo mundo começa no mais barato, e a saída dos modelos sem
+raciocínio cai para 75 %. Não há variável: é a regra do plano. O `/metrics` conta cada chamada
+degradada em `ia_degradacao_de_custo_total{motivo,nivel}` — subindo antes do fim do mês, o orçamento
+está curto para o tráfego. Com o `IA_PROVEDORES`, os `limites` declarados (rpm, tpm, rpd, tpd) são
+os baldes da admissão de cada provedor; sem eles, valem as `IA_ADMISSAO_*`.
+
 ## 6. Asaas (cobrança, conta PJ) — 1 a 3 dias úteis de aprovação
 
 1. asaas.com → abrir conta **PJ** com o CNPJ → enviar documentos → esperar aprovação.

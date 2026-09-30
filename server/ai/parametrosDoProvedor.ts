@@ -113,3 +113,18 @@ export function parametrosDoProvedor(
   if (host === 'api.groq.com') return { reasoning_effort: 'low', include_reasoning: false }
   return { reasoning_effort: 'low' }
 }
+
+/**
+ * O MODELO PENSA ANTES DE RESPONDER? Pergunta da política de custo (B4, `politicaDeCusto.ts`): num
+ * modelo de raciocínio o pensamento sai do MESMO `max_tokens` da resposta, e cortar o teto produz a
+ * "resposta vazia" que `chamarChat` explica. Na dúvida, SIM — errar para esse lado só deixa de
+ * economizar uns tokens; errar para o outro devolve legenda vazia. Por isso a lista é larga: o
+ * `gpt-oss` (o padrão), a família R1, o QwQ, o Qwen3 (pensa por padrão; a bancada roda o 3.5 "sem
+ * thinking", mas isso é parâmetro do pedido, não do nome) e quem se anuncia pensador.
+ *
+ * NÃO muda o que `parametrosDoProvedor` manda: lá o `reasoning_effort` continua só no `gpt-oss`, o
+ * único que a bancada mediu com ele — mandar o campo a outro modelo seria outro pedido, sem medição.
+ */
+export function ehModeloDeRaciocinio(model: string): boolean {
+  return /gpt-oss|deepseek-r1|(^|[/-])r1([-_.]|$)|qwq|qwen3|thinking|reason|magistral/i.test(model)
+}

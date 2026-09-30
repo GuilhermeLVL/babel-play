@@ -53,6 +53,8 @@ export interface AnotacoesDoRastro {
   segmentosDescartados?: number
   /** O nível da tradução/tutor que o plano recebeu (B3): `rapida`, `nuance`, `polimento`. */
   nivel?: NivelDaTraducao
+  /** A política de custo começou no degrau mais barato (B4): `orcamento_70` ou `orcamento_90`. */
+  degradacao?: 'orcamento_70' | 'orcamento_90'
 }
 
 /** O id da sessão de captura que o cliente PODE mandar. Formato fechado; fora dele, ignorado. */
@@ -229,6 +231,7 @@ export function abrirRastro(req: Request, funcao: FuncaoTelemetrada): RastroDeIa
             byok: anotacoes.byok,
             segmentosDescartados: anotacoes.segmentosDescartados,
             nivel: anotacoes.nivel,
+            degradacao: anotacoes.degradacao,
             custoUsd: somaDeCusto(geracoes),
           }
           cliente.enviar({

@@ -78,7 +78,10 @@ export type FormatoDeProvedor = (typeof FORMATOS_DE_PROVEDOR)[number]
 export const FUNCOES_DO_REGISTRO = ['traducao', 'tutor', 'stt'] as const
 export type FuncaoDoRegistro = (typeof FUNCOES_DO_REGISTRO)[number]
 
-/** Limites da conta do app naquele provedor (ou modelo), quando conhecidos. Consumidos pelo B4. */
+/**
+ * Limites da conta do app naquele provedor (ou modelo), quando conhecidos — a capacidade dos baldes
+ * da admissão (`admissao.ts`, B4). Dimensão ausente = sem teto nela.
+ */
 export interface LimitesDeclarados {
   rpm?: number
   rpd?: number
@@ -135,6 +138,8 @@ export interface Provedor {
   preco?: PrecoDeModelo
   roteamento?: RoteamentoOpenRouter
   limites?: LimitesDeclarados
+  /** Os `limites` são da CONTA no provedor (declarados nele, não no modelo): um balde só na admissão (B4). */
+  limitesDaConta?: boolean
   /** Os níveis que a perna atende, como declarados (B3). Ausente = `["rapida"]`. */
   niveis?: NivelDaTraducao[]
 }
@@ -639,7 +644,9 @@ function candidatasDaFuncao(f: FuncaoDoRegistro, modelosGrandes: boolean, env: N
           formato: p.formato,
           ...(m.preco ? { preco: m.preco } : {}),
           ...(p.roteamento ? { roteamento: p.roteamento } : {}),
-          ...(m.limites || p.limites ? { limites: m.limites ?? p.limites } : {}),
+          /* B4: os limites do MODELO são do balde dele; os do PROVEDOR, da conta inteira — um balde
+             só para todos os modelos dele (`limitesDaConta`), senão dois modelos somariam o dobro. */
+          ...(m.limites ? { limites: m.limites } : p.limites ? { limites: p.limites, limitesDaConta: true } : {}),
           ...(m.niveis ? { niveis: m.niveis } : {}),
         },
       })

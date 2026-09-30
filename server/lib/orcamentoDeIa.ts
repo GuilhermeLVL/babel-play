@@ -171,6 +171,11 @@ export interface Portao {
   motivo?: MotivoDoPortao
   /** A frase para o usuário: o que houve e o que o app faz agora. */
   mensagem?: string
+  /**
+   * Aberto: a maior fração já gasta do orçamento (mês ou dia), de 0 a 1 — a entrada da degradação
+   * suave (B4, `server/ai/politicaDeCusto.ts`). Ausente = sem teto finito (nada a degradar).
+   */
+  fracaoDoOrcamento?: number
 }
 
 const MENSAGENS: Record<MotivoDoPortao, string> = {
@@ -201,7 +206,12 @@ export async function portaoDaNuvem(): Promise<Portao> {
       return fechado('orcamento_esgotado')
     if (Number.isFinite(tetoDia) && (gastoDia?.microUsd ?? 0) >= Math.round(tetoDia * 1_000_000))
       return fechado('orcamento_diario_esgotado')
-    return { ok: true }
+    /* A FRAÇÃO GASTA, para a degradação suave (B4, `server/ai/politicaDeCusto.ts`): a maior entre o
+       mês e o dia — é a que fecha primeiro. Sai das MESMAS leituras do portão: a política não custa
+       uma ida ao banco a mais. Teto zero já fechou acima; aqui só entra teto positivo. */
+    const fracao = (g: { microUsd: number } | null, t: number) =>
+      Number.isFinite(t) && t > 0 ? (g?.microUsd ?? 0) / (t * 1_000_000) : 0
+    return { ok: true, fracaoDoOrcamento: Math.max(fracao(gasto, teto), fracao(gastoDia, tetoDia)) }
   } catch (err) {
     log('error', { event: 'ia_orcamento_leitura_falhou', error: String((err as Error)?.message ?? err).slice(0, 120) })
     return fechado('orcamento_indisponivel')

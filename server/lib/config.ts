@@ -405,7 +405,7 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
     paraQue:
-      'admissão de IA (ADR 0007): teto de pedidos POR DIA a cada modelo de LLM da conta do app (server/ai/admissao.ts). Padrão 1000, o da camada atual da Groq para gpt-oss-120b. 0 = sem teto',
+      'admissão de IA (ADR 0007): teto de pedidos POR DIA a cada modelo de LLM da conta do app (server/ai/admissao.ts). Padrão 1000, o da camada atual da Groq para gpt-oss-120b. 0 = sem teto. Vale para a perna SEM "limites" no IA_PROVEDORES (o legado inteiro); com eles, os declarados (B4) — e isso vale para todas as IA_ADMISSAO_* de pedidos e tokens',
   },
   {
     nome: 'IA_ADMISSAO_LLM_RPM',

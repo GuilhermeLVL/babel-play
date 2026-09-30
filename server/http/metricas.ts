@@ -116,6 +116,7 @@ interface Estado {
   provedorCusto: Counter<'provedor' | 'funcao' | 'fornecedor' | 'modelo'>
   provedorLimite: Counter<'provedor' | 'modelo'>
   admissaoRecusada: Counter<'motivo' | 'plano'>
+  degradacaoDeCusto: Counter<'motivo' | 'nivel'>
   sttDescartes: Counter<'motivo'>
   capturaSttFinal: Histogram<'motor'>
   capturaPrimeiroParcial: Histogram<'motor'>
@@ -212,13 +213,23 @@ function metricas(): Estado {
       labelNames: ['provedor', 'modelo'] as const,
     }),
     /* A ADMISSÃO DE IA (ADR 0007): quantas chamadas o PRÓPRIO servidor recusou antes de gastar o
-       limite do provedor, por motivo (`minuto`, `dia`, `tokens_dia`, `provedor_limitou`, `em_voo`) e
-       plano (`pro`, `essencial`, `convidado`). Subindo `minuto` para o Pro é a hora de subir o tier
-       do provedor; subindo só para `essencial` é a reserva do Pro fazendo o seu trabalho. */
+       limite do provedor, por motivo (`minuto`, `tokens_minuto`, `dia`, `tokens_dia`,
+       `provedor_limitou`, `em_voo`) e plano (`pro`, `essencial`, `convidado`, `alivio`). Subindo
+       `minuto` para o Pro é a hora de subir o tier do provedor; subindo só para `essencial` é a
+       reserva do Pro fazendo o seu trabalho. */
     admissaoRecusada: new Counter({
       name: 'ia_admissao_recusada_total',
       help: 'Chamadas de IA ao vivo recusadas pela admissão do servidor (429 nuvem_ocupada), por motivo e plano.',
       labelNames: ['motivo', 'plano'] as const,
+    }),
+    /* A DEGRADAÇÃO SUAVE (B4, `server/ai/politicaDeCusto.ts`): quantas chamadas começaram no degrau
+       mais barato, por motivo (`orcamento_70` — pagante com o primeiro balde baixo; `orcamento_90` —
+       todo mundo) e nível (`rapida`, `nuance`, `polimento`). Rótulos fixos do código. Subindo antes
+       do fim do mês, o orçamento está curto para o tráfego. */
+    degradacaoDeCusto: new Counter({
+      name: 'ia_degradacao_de_custo_total',
+      help: 'Chamadas de LLM que começaram no degrau mais barato da cascata pela política de custo, por motivo e nível.',
+      labelNames: ['motivo', 'nivel'] as const,
     }),
     sttDescartes: new Counter({
       name: 'stt_segmentos_descartados_total',
@@ -585,6 +596,12 @@ export function registrarLeitorDeSaldo(fn: () => Array<{ provedor: string; model
 export function contarAdmissaoRecusada(motivo: string, plano: string): void {
   if (!estado) return
   estado.admissaoRecusada.inc({ motivo, plano })
+}
+
+/** Uma chamada que a política de custo começou no degrau mais barato. Rótulos fixos do código. */
+export function contarDegradacaoDeCusto(motivo: 'orcamento_70' | 'orcamento_90', nivel: string): void {
+  if (!estado) return
+  estado.degradacaoDeCusto.inc({ motivo, nivel })
 }
 
 /* ─────────────── ganchos para quem mede de dentro (server/ai, server/routes) ─────────────── */

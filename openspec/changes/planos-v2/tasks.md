@@ -30,9 +30,9 @@
 
 ## C3 — Cliente
 
-- [ ] 3.1 `assinatura`, `entitlements` (com os entitlements novos), `flags`, `ofertas`, `intencaoDeLogin`,
+- [x] 3.1 `assinatura`, `entitlements` (com os entitlements novos), `flags`, `ofertas`, `intencaoDeLogin`,
       `planoDoCheckout`, `planos/funil`
-- [ ] 3.2 Telas que citavam Essencial/Pro funcionando com um plano pago só (checkout no Premium mensal)
+- [x] 3.2 Telas que citavam Essencial/Pro funcionando com um plano pago só (checkout no Premium mensal)
 
 ## C4 — Uso justo por dia
 

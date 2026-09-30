@@ -6,7 +6,7 @@
  * Um recado de uma vez só em `sessionStorage`: a oferta escreve, a tela de Planos lê ao montar e
  * apaga. Recarregar Planos depois disso volta ao normal.
  */
-export type PedidoDeDestaque = { plano: 'essencial' | 'pro' } | { aba: 'consumo' };
+export type PedidoDeDestaque = { plano: 'premium' } | { aba: 'consumo' };
 
 const CHAVE = 'babel.planos.destaque';
 let emMemoria: PedidoDeDestaque | null = null;
@@ -33,7 +33,8 @@ export function consumirDestaqueEmPlanos(): PedidoDeDestaque | null {
   }
   if (!p || typeof p !== 'object') return null;
   const o = p as Record<string, unknown>;
-  if (o.plano === 'essencial' || o.plano === 'pro') return { plano: o.plano };
+  /* O nome antigo de um pedido gravado antes do deploy (`essencial`/`pro`) destaca o Premium. */
+  if (o.plano === 'premium' || o.plano === 'essencial' || o.plano === 'pro') return { plano: 'premium' };
   if (o.aba === 'consumo') return { aba: 'consumo' };
   return null;
 }

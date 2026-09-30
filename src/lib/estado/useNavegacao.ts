@@ -171,7 +171,7 @@ export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
         if (!terminouLogin) return;
         const intencao = consumirIntencao();
         if (!intencao) return;
-        lembrarPlanoDoCheckout(intencao.plano); // "assinar o Pro" abre o checkout no Pro
+        lembrarPlanoDoCheckout(intencao.plano); // "assinar o Premium" abre o checkout no Premium
         // Os tokens do callback não ficam no histórico: a barra volta a `/` ANTES de a navegação
         // empurrar a rota da intenção (o "voltar" nunca devolve ao `/auth/callback#…`).
         clearAuthCallbackUrl();

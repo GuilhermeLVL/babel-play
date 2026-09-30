@@ -162,7 +162,7 @@ export function atribuicaoDoCheckout(planoEscolhido: PlanoSugerido, agora = Date
 }
 
 /** O checkout abriu a página de pagamento. */
-export function registrarCheckoutIniciado(planoEscolhido: 'essencial' | 'pro', agora = Date.now()): void {
+export function registrarCheckoutIniciado(planoEscolhido: 'premium', agora = Date.now()): void {
   const r = atribuicaoDoCheckout(planoEscolhido, agora);
   registrarEventoDeOferta('checkout_iniciado', r);
   try {

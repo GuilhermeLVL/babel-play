@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
-import { armazenamentoEmTexto, horasDeTranscricao } from '../../../core/planos';
+import { armazenamentoEmTexto, horasDeTranscricao, horasDoUsoJusto } from '../../../core/planos';
 import { declararNascimento, ehFalha } from '../../../data/rotas/idade';
 import {
   type Beneficiario,
@@ -48,7 +48,7 @@ import { entrarParaAssinar, useSemConta, useVendaAberta } from './funil';
  * esta tela só ESPERA essa confirmação perguntando ao servidor (`/api/billing/status`) e, quando
  * ela chega, leva à confirmação. Nada aqui confia em parâmetro de URL.
  *
- * O QUE O PROTÓTIPO TEM E O APP NÃO: período anual e parcelas (o servidor só cobra por mês), cupom
+ * O QUE O PROTÓTIPO TEM E O APP NÃO: período anual e parcelas (chegam com o C5, change `planos-v2`), cupom
  * (não há cupom no servidor) e o QR code do Pix dentro do app (ele está na página do Asaas).
  *
  * QUEM PAGA É ADULTO (Fases 3 e 4 do lançamento): conta de menor não chega ao formulário — a tela
@@ -163,8 +163,7 @@ export default function Checkout({
 
   const preco = precoMensal(plano);
   const P = PLANO_NOME[plano];
-  const menor =
-    recusa === 'menor' || (!!protecao && protecao.faixa !== 'adulto' && protecao.nascimentoInformado);
+  const menor = recusa === 'menor' || (!!protecao && protecao.faixa !== 'adulto' && protecao.nascimentoInformado);
   const vendaAberta = vendaAbertaNoCliente && recusa !== 'pausada';
   const bloqueio = impedimento(plan, conta, status, { vendaAberta, menor, paraOutro: !!beneficiario, semConta });
   const assinarParaMim = () => {
@@ -313,9 +312,7 @@ export default function Checkout({
               <span style={{ flex: 1 }}>
                 <h3>{PLANO_NOME[id]}</h3>
                 <p>
-                  {id === 'pro'
-                    ? `${horasDeTranscricao('pro')} h de transcrição de nuvem, limite maior de IA, ${armazenamentoEmTexto('pro')}`
-                    : `Tradução e ${horasDeTranscricao('essencial')} h de transcrição de nuvem, ${armazenamentoEmTexto('essencial')}`}
+                  {`Tradução e ${horasDeTranscricao(id)} h de transcrição de nuvem por mês (uso justo de ${horasDoUsoJusto(id)} h por dia), ${armazenamentoEmTexto(id)}`}
                 </p>
               </span>
               <b className="tn">

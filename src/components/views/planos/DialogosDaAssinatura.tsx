@@ -1,5 +1,4 @@
 import {
-  ArrowLeftRight,
   Check,
   CirclePause,
   CreditCard,
@@ -11,16 +10,16 @@ import {
   Receipt,
 } from 'lucide-react';
 
-import { brl, type Conta, dataCurta, type Fatura, precoMensal, ROTULO_DO_METODO } from '../../../lib/assinatura';
+import { brl, type Conta, dataCurta, type Fatura, ROTULO_DO_METODO } from '../../../lib/assinatura';
 import { Dialogo, fecharDialogoDe } from '../../ui';
 import { irAjuda, PLANO_NOME } from './dados';
 
 /**
- * OS DIÁLOGOS DE "SUA ASSINATURA" — `dialogoMudarPlano`, `dialogoPagamento`, `dialogoPausar` e
- * `dialogoFatura` do protótipo aprovado, com a mesma casca (`.dlg-cab`, `.dlg-corpo`, `.dlg-pe`).
+ * OS DIÁLOGOS DE "SUA ASSINATURA" — `dialogoPagamento`, `dialogoPausar` e `dialogoFatura` do
+ * protótipo aprovado, com a mesma casca (`.dlg-cab`, `.dlg-corpo`, `.dlg-pe`). O `dialogoMudarPlano`
+ * saiu com a matriz v2 (um plano pago só); a troca de CICLO, mensal ↔ anual, volta com o C5/C7.
  *
- * O QUE O SERVIDOR AINDA NÃO FAZ, O DIÁLOGO DIZ. Trocar de plano, trocar o cartão e pausar não
- * têm rota no servidor: a assinatura do Asaas é criada com `billingType: 'UNDEFINED'` (o pagador
+ * O QUE O SERVIDOR AINDA NÃO FAZ, O DIÁLOGO DIZ. Trocar o cartão e pausar não têm rota no servidor: a assinatura do Asaas é criada com `billingType: 'UNDEFINED'` (o pagador
  * escolhe Pix, boleto ou cartão A CADA cobrança, na página do Asaas), e não existe pausa na
  * cobrança. Criar essas operações mexe em valor e em regra de cobrança — fora do escopo desta
  * tela. Então o diálogo tem a forma do protótipo e o conteúdo honesto: o que fazer hoje, e o
@@ -53,47 +52,6 @@ function BotaoSuporte() {
     >
       <LifeBuoy aria-hidden /> Falar com o suporte
     </button>
-  );
-}
-
-/** Subir para o Pro / mudar para o Essencial. */
-export function DialogoMudarPlano({ conta, aoFechar }: { conta: Conta; aoFechar: () => void }) {
-  const atual = conta.plano ?? 'essencial';
-  const outro = atual === 'pro' ? 'essencial' : 'pro';
-  const sobe = outro === 'pro';
-  return (
-    <Dialogo
-      icone={ArrowLeftRight}
-      titulo={`${sobe ? 'Subir' : 'Mudar'} para o ${PLANO_NOME[outro]}`}
-      sub={`${PLANO_NOME[atual]} → ${PLANO_NOME[outro]} · mensal`}
-      largura=""
-      aoFechar={aoFechar}
-    >
-      <div className="dlg-corpo pilha">
-        <p>
-          A troca de plano ainda não é feita direto por aqui. <b>O suporte faz a troca</b> na sua assinatura, sem você
-          perder o que já pagou.
-        </p>
-        <dl className="linhas-preco">
-          <div>
-            <dt>{PLANO_NOME[atual]}, hoje</dt>
-            <dd className="tn">{brl(precoMensal(atual))} por mês</dd>
-          </div>
-          <div className="total">
-            <dt>{PLANO_NOME[outro]}</dt>
-            <dd className="tn">{brl(precoMensal(outro))} por mês</dd>
-          </div>
-        </dl>
-        {!sobe && (
-          <p className="mut" style={{ fontSize: 13 }}>
-            No Essencial, sessões acima do espaço do plano ficam guardadas, mas só para leitura.
-          </p>
-        )}
-      </div>
-      <Rodape>
-        <BotaoSuporte />
-      </Rodape>
-    </Dialogo>
   );
 }
 

@@ -31,7 +31,7 @@ function mockApi(rotas: Record<string, unknown>) {
 }
 
 const contaGratis = { estado: 'gratis', plano: null, valeAte: null } as const
-const contaAtiva = { estado: 'ativa', plano: 'pro', valeAte: new Date(2026, 9, 22).getTime() } as const
+const contaAtiva = { estado: 'ativa', plano: 'premium', valeAte: new Date(2026, 9, 22).getTime() } as const
 
 describe('checkout', () => {
   it('só inicia: cria a assinatura, abre a página do Asaas e fica esperando o servidor', async () => {
@@ -40,7 +40,7 @@ describe('checkout', () => {
     const { default: Checkout } = await import('../src/components/views/planos/Checkout')
     render(
       <Checkout
-        plano="pro"
+        plano="premium"
         aoTrocarPlano={() => {}}
         plan="free"
         conta={contaGratis}
@@ -56,7 +56,7 @@ describe('checkout', () => {
     await waitFor(() => expect(abrir).toHaveBeenCalledWith('https://sandbox.asaas.com/i/1', '_blank', 'noopener'))
     const pedido = chamadas.find((c) => c.url === '/api/billing/assinar')!
     expect(JSON.parse(String(pedido.init?.body))).toEqual({
-      plano: 'pro',
+      plano: 'premium',
       nome: 'Ana Souza',
       cpfCnpj: '12345678901',
       email: 'ana@exemplo.com',
@@ -70,7 +70,7 @@ describe('checkout', () => {
     const { default: Checkout } = await import('../src/components/views/planos/Checkout')
     render(
       <Checkout
-        plano="essencial"
+        plano="premium"
         aoTrocarPlano={() => {}}
         plan="free"
         conta={contaGratis}
@@ -90,12 +90,12 @@ describe('checkout', () => {
     ['self-host', 'selfhost', { estado: 'selfhost', plano: null, valeAte: null }, null, 'Nada a pagar no self-host'],
     ['sem conta', 'anonimo', contaGratis, { configurado: true, assinatura: null }, 'Entre na sua conta para assinar'],
     ['sem cobrança', 'free', contaGratis, { configurado: false, assinatura: null }, 'Nesta instalação não há cobrança'],
-    ['já assina', 'pro', contaAtiva, { configurado: true, assinatura: null }, 'Você já tem uma assinatura'],
+    ['já assina', 'premium', contaAtiva, { configurado: true, assinatura: null }, 'Você já tem uma assinatura'],
   ] as const) {
     it(`${nome}: o passo de pagamento diz por quê e não oferece pagar`, async () => {
       mockApi({})
       const { default: Checkout } = await import('../src/components/views/planos/Checkout')
-      render(<Checkout plano="pro" aoTrocarPlano={() => {}} plan={plan} conta={conta} status={status} />)
+      render(<Checkout plano="premium" aoTrocarPlano={() => {}} plan={plan} conta={conta} status={status} />)
       fireEvent.click(screen.getByRole('button', { name: /Ir para o pagamento/ }))
       expect(screen.getByRole('heading', { name: titulo })).toBeTruthy()
       expect(screen.queryByRole('button', { name: /Assinar e pagar/ })).toBeNull()
@@ -119,7 +119,7 @@ describe('quem paga é adulto (Fase 4)', () => {
     const { default: Checkout } = await import('../src/components/views/planos/Checkout')
     render(
       <Checkout
-        plano="pro"
+        plano="premium"
         aoTrocarPlano={() => {}}
         plan="free"
         conta={contaGratis}
@@ -139,7 +139,7 @@ describe('quem paga é adulto (Fase 4)', () => {
     const { default: Checkout } = await import('../src/components/views/planos/Checkout')
     render(
       <Checkout
-        plano="essencial"
+        plano="premium"
         aoTrocarPlano={() => {}}
         plan="free"
         conta={contaGratis}
@@ -162,7 +162,7 @@ describe('quem paga é adulto (Fase 4)', () => {
 describe('assinatura confirmada', () => {
   it('não comemora se o servidor não disser active', async () => {
     mockApi({
-      '/api/billing/status': { configurado: true, assinatura: { plano: 'pro', status: 'trialing', valeAte: null } },
+      '/api/billing/status': { configurado: true, assinatura: { plano: 'premium', status: 'trialing', valeAte: null } },
     })
     const { default: Assinado } = await import('../src/components/views/planos/Assinado')
     render(<Assinado />)
@@ -174,14 +174,14 @@ describe('assinatura confirmada', () => {
     mockApi({
       '/api/billing/status': {
         configurado: true,
-        assinatura: { plano: 'pro', status: 'active', valeAte: 1_790_000_000_000 },
+        assinatura: { plano: 'premium', status: 'active', valeAte: 1_790_000_000_000 },
       },
       '/api/billing/faturas': { faturas: [] },
-      '/api/me/entitlements': { plan: 'pro' },
+      '/api/me/entitlements': { plan: 'premium' },
     })
     const { default: Assinado } = await import('../src/components/views/planos/Assinado')
     render(<Assinado />)
-    expect(await screen.findByText('Bem-vindo ao Pro!')).toBeTruthy()
+    expect(await screen.findByText('Bem-vindo ao Premium!')).toBeTruthy()
   })
 })
 
@@ -204,7 +204,7 @@ describe('cancelar', () => {
     {
       id: 'pay_1',
       data: hojeIso(),
-      descricao: 'Pro · mensal',
+      descricao: 'Premium · mensal',
       valor: 39.9,
       metodo: 'cartao',
       status: 'paga',

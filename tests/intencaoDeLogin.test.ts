@@ -11,10 +11,19 @@ beforeEach(() => localStorage.clear())
 
 describe('intenção de login', () => {
   it('guarda a rota e o plano, e o consumo acontece uma vez só', () => {
-    guardarIntencao({ rota: '/plano/assinar', plano: 'pro' }, 1000)
-    expect(lerIntencao(2000)).toMatchObject({ rota: '/plano/assinar', plano: 'pro' })
+    guardarIntencao({ rota: '/plano/assinar', plano: 'premium' }, 1000)
+    expect(lerIntencao(2000)).toMatchObject({ rota: '/plano/assinar', plano: 'premium' })
     expect(consumirIntencao(2000)?.rota).toBe('/plano/assinar')
     expect(consumirIntencao(2000)).toBeNull()
+  })
+
+  it('matriz v2: a intenção de antes do deploy ("assinar o Pro") volta como Premium; plano que não existe, sem plano', () => {
+    guardarIntencao({ rota: '/plano/assinar', plano: 'pro' }, 1000)
+    expect(lerIntencao(2000)).toMatchObject({ rota: '/plano/assinar', plano: 'premium' })
+    guardarIntencao({ rota: '/plano/assinar', plano: 'ouro' }, 1000)
+    const i = lerIntencao(2000)
+    expect(i?.rota).toBe('/plano/assinar')
+    expect(i?.plano).toBeUndefined()
   })
 
   it('vence depois de uma hora', () => {

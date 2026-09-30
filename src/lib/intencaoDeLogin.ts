@@ -2,7 +2,7 @@
  * A INTENÇÃO QUE SOBREVIVE AO LOGIN (funil de venda, 2026-09-29).
  *
  * O teste de ponta a ponta com o Asaas mostrou o furo: quem entra pelo Google, ou confirma o e-mail
- * numa aba nova, caía no Início e perdia o "eu ia assinar o Pro". A tela guarda AQUI, antes de
+ * numa aba nova, caía no Início e perdia o "eu ia assinar o Premium". A tela guarda AQUI, antes de
  * mandar para o login, a rota para onde a pessoa ia (`/plano/assinar`, ou a tela em que ela estava);
  * quem termina o login (a mesma aba, o `/auth/callback` do Google, a aba da confirmação do e-mail)
  * consome e navega para ela.
@@ -12,6 +12,8 @@
  * fora a partir de algo que outra aba escreveu). Todo acesso ao armazenamento é protegido: navegação
  * privada pode recusá-lo, e aí só se perde a volta, nunca o login.
  */
+
+import { ehPlanoPago, normalizarPlano } from '../core/planos';
 
 const CHAVE = 'babel.intencaoDeLogin';
 
@@ -59,7 +61,10 @@ export function lerIntencao(agora: number = Date.now()): IntencaoDeLogin | null 
     const i = JSON.parse(bruto) as Partial<IntencaoDeLogin>;
     if (!rotaInterna(i.rota) || typeof i.criadaEm !== 'number') return null;
     if (agora - i.criadaEm > VALIDADE_DA_INTENCAO_MS || i.criadaEm > agora + 60_000) return null;
-    return { rota: i.rota, plano: typeof i.plano === 'string' ? i.plano : undefined, criadaEm: i.criadaEm };
+    /* O plano é lido com a régua da matriz (v2): o nome antigo de uma intenção guardada antes do deploy
+       ("assinar o Pro") é o Premium; o que não é plano pago some, e a rota continua valendo. */
+    const plano = normalizarPlano(i.plano);
+    return { rota: i.rota, plano: ehPlanoPago(plano) ? plano : undefined, criadaEm: i.criadaEm };
   } catch {
     return null;
   }

@@ -20,8 +20,13 @@ const resposta = (corpo: unknown, status = 200) =>
   new Response(JSON.stringify(corpo), { status, headers: { 'content-type': 'application/json' } })
 
 describe('entitlements do cliente', () => {
-  beforeEach(() => { localStorage.clear(); limparEntitlements() })
-  afterEach(() => { vi.unstubAllGlobals() })
+  beforeEach(() => {
+    localStorage.clear()
+    limparEntitlements()
+  })
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
 
   it('sem cache e sem rede, o default do modo público é FECHADO (não selfhost)', () => {
     const e = getEntitlements()
@@ -29,22 +34,49 @@ describe('entitlements do cliente', () => {
     expect(e.youtubeImport).toBe(false)
     expect(e.managedCloudStt).toBe(false)
     expect(e.managedCloudLlm).toBe(false)
+    expect(e.traducaoNuance).toBe(false)
+    expect(e.vozNatural).toBe(false)
   })
 
   it('o que o servidor responde vira o que a tela mostra, e quem está aberto é avisado', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => resposta({
-      plan: 'pro', youtubeImport: true, managedCloudStt: true, managedCloudLlm: true, largerModels: true,
-      armazenamento: { usados: 1024, teto: 5_000_000_000 },
-    })))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        resposta({
+          plan: 'premium',
+          youtubeImport: true,
+          managedCloudStt: true,
+          managedCloudLlm: true,
+          largerModels: true,
+          traducaoNuance: true,
+          vozNatural: true,
+          armazenamento: { usados: 1024, teto: 5_000_000_000 },
+        }),
+      ),
+    )
     const avisos = vi.fn()
     const parar = onPlanChange(avisos)
     const e = await carregarEntitlements()
     parar()
-    expect(e.plan).toBe('pro')
+    expect(e.plan).toBe('premium')
+    expect(e.traducaoNuance).toBe(true)
+    expect(e.vozNatural).toBe(true)
     expect(getEntitlements().youtubeImport).toBe(true)
     expect(getEntitlements().armazenamento).toEqual({ usados: 1024, teto: 5_000_000_000 })
     expect(avisos).toHaveBeenCalledTimes(1)
-    expect(JSON.parse(localStorage.getItem('babel.entitlements')!).plan).toBe('pro')
+    expect(JSON.parse(localStorage.getItem('babel.entitlements')!).plan).toBe('premium')
+  })
+
+  it('matriz v2: o nome antigo (servidor anterior ou cache antigo) é lido como Premium, com as flags dele', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => resposta({ plan: 'pro', managedCloudLlm: true })),
+    )
+    const e = await carregarEntitlements()
+    expect(e.plan).toBe('premium')
+    expect(e.managedCloudLlm).toBe(true)
+    // O servidor anterior não mandava os entitlements novos: sem eles, fechados.
+    expect(e.traducaoNuance).toBe(false)
   })
 
   it('não existe caminho para o cliente mudar o plano', async () => {
@@ -54,21 +86,35 @@ describe('entitlements do cliente', () => {
   })
 
   it('resposta fora da forma ou erro de rede mantém o último valor conhecido', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => resposta({ plan: 'pro', youtubeImport: true })))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => resposta({ plan: 'pro', youtubeImport: true })),
+    )
     await carregarEntitlements()
     expect(getEntitlements().youtubeImport).toBe(true)
 
-    vi.stubGlobal('fetch', vi.fn(async () => resposta({ error: 'x' }, 500)))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => resposta({ error: 'x' }, 500)),
+    )
     expect((await carregarEntitlements()).youtubeImport).toBe(true)
 
-    vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('rede') }))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new Error('rede')
+      }),
+    )
     expect((await carregarEntitlements()).youtubeImport).toBe(true)
 
     /* CONTRATO NOVO (mudança planos-essencial): plano desconhecido NÃO descarta mais a resposta.
        O comportamento antigo jogava fora as flags VERDADEIRAS que vieram junto — um cliente antigo
        diante do plano `essencial` recém-lançado fecharia tudo. Agora só o rótulo degrada
        (`free`); as flags do servidor valem, porque a autoridade é ele. */
-    vi.stubGlobal('fetch', vi.fn(async () => resposta({ plan: 'deus', youtubeImport: true })))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => resposta({ plan: 'deus', youtubeImport: true })),
+    )
     const comPlanoDesconhecido = await carregarEntitlements()
     expect(comPlanoDesconhecido.plan).toBe('free')
     expect(comPlanoDesconhecido.youtubeImport).toBe(true)
@@ -80,7 +126,12 @@ describe('entitlements do cliente', () => {
     expect(getEntitlements().plan).toBe('free')
     localStorage.setItem('babel.entitlements', '{"plan":"pro","youtubeImport":true}')
     vi.resetModules()
-    vi.doMock('../src/lib/supabase', () => ({ supabase: null, authRequired: true, carregarSupabase: async () => null, getAccessToken: async () => null }))
+    vi.doMock('../src/lib/supabase', () => ({
+      supabase: null,
+      authRequired: true,
+      carregarSupabase: async () => null,
+      getAccessToken: async () => null,
+    }))
     const fresco = await import('../src/lib/entitlements')
     expect(fresco.getEntitlements().youtubeImport).toBe(true)
     localStorage.setItem('babel.entitlements', 'não é json')

@@ -46,7 +46,7 @@ const gatilho = (p: Partial<GatilhoDeOferta>): GatilhoDeOferta => ({
   momento: 'conquista',
   componente: 'modal',
   titulo: { pt: 'Você está indo longe' },
-  texto: { pt: 'Com o Essencial a tradução de nuvem vem junto.' },
+  texto: { pt: 'Com o Premium a tradução de nuvem vem junto.' },
   cta: { pt: 'Ver planos' },
   maxPorDia: 1,
   maxPorSemana: 3,
@@ -123,7 +123,7 @@ describe('modal (flag ligada)', () => {
     expect(screen.getByRole('button', { name: 'Agora não' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Não mostrar novamente' })).toBeTruthy()
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Ver planos' }))
-    expect(dialogo.textContent).toMatch(/Sugerido: Essencial · R\$ \d/)
+    expect(dialogo.textContent).toMatch(/Sugerido: Premium · R\$ \d/)
   })
 
   it('Esc fecha e conta como dispensa', () => {
@@ -141,7 +141,7 @@ describe('modal (flag ligada)', () => {
   it('clique fora (no fundo) fecha; clique dentro não', () => {
     montar()
     disparar('conquista')
-    fireEvent.click(screen.getByText('Com o Essencial a tradução de nuvem vem junto.'))
+    fireEvent.click(screen.getByText('Com o Premium a tradução de nuvem vem junto.'))
     expect(screen.queryByRole('dialog')).not.toBeNull()
     fireEvent.click(screen.getByRole('dialog'))
     expect(screen.queryByRole('dialog')).toBeNull()
@@ -169,7 +169,7 @@ describe('modal (flag ligada)', () => {
     disparar('conquista')
     fireEvent.click(screen.getByRole('button', { name: 'Ver planos' }))
     expect(aoVerPlanos).toHaveBeenCalledOnce()
-    expect(consumirDestaqueEmPlanos()).toEqual({ plano: 'essencial' })
+    expect(consumirDestaqueEmPlanos()).toEqual({ plano: 'premium' })
     expect(estado.eventos.map((e) => e.evento)).toEqual(['oferta_exibida', 'oferta_clicada'])
   })
 
@@ -248,8 +248,8 @@ describe('banner e convidado', () => {
     expect(estado.eventos.at(-1)).toMatchObject({ evento: 'oferta_dispensada', gatilho: 'funcional_cota_proxima' })
   })
 
-  it('Pro vê o aviso de cota sem venda: a ação leva ao consumo do mês', () => {
-    estado.plano = 'pro'
+  it('Premium vê o aviso de cota sem venda: a ação leva ao consumo do mês', () => {
+    estado.plano = 'premium'
     montar()
     disparar('fim_de_cota')
     expect(screen.getByTestId('cartao-de-oferta').textContent).not.toMatch(/Sugerido/)

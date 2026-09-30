@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
-import { armazenamentoEmTexto, horasDeTranscricao, precoDoPlano } from '../../core/planos';
+import { armazenamentoEmTexto, horasDeTranscricao, horasDoUsoJusto, precoDoPlano } from '../../core/planos';
 import {
   carregarFaturas,
   carregarStatusDeBilling,
@@ -28,6 +28,7 @@ import {
   type Fatura,
   faturaEmAberto,
   type PlanoPago,
+  planoPagoDe,
   type StatusDeBilling,
   temAssinatura,
 } from '../../lib/assinatura';
@@ -49,7 +50,7 @@ import Assinado from './planos/Assinado';
 import Cancelar from './planos/Cancelar';
 import Checkout from './planos/Checkout';
 import { irAjuda, irSub, type Plano, PLANO_NOME, PLANOS } from './planos/dados';
-import { DialogoFatura, DialogoMudarPlano, DialogoPagamento, DialogoPausar } from './planos/DialogosDaAssinatura';
+import { DialogoFatura, DialogoPagamento, DialogoPausar } from './planos/DialogosDaAssinatura';
 import FaixaDaConta from './planos/FaixaDaConta';
 import { entrarParaAssinar, useSemConta, useVendaAberta } from './planos/funil';
 import SuaAssinatura, { type DialogoDaAssinatura, metodoAtual } from './planos/SuaAssinatura';
@@ -68,38 +69,37 @@ import SuaAssinatura, { type DialogoDaAssinatura, metodoAtual } from './planos/S
  * de `/api/billing/faturas`. O dinheiro não passa por aqui: o checkout abre a página de pagamento
  * do Asaas, e quem concede o plano é o webhook do servidor.
  *
- * O QUE DO PROTÓTIPO FICOU DE FORA, E POR QUÊ: o seletor Mensal/Anual (o servidor só cobra por
- * mês — não se cria plano novo numa tela), cupom e parcelas (não existem no servidor), e as
- * operações que o servidor não tem — trocar de plano, trocar o cartão e pausar — que
- * aparecem com a forma do protótipo e o caminho honesto: o suporte.
+ * O QUE DO PROTÓTIPO FICOU DE FORA, E POR QUÊ: o seletor Mensal/Anual (o anual e o 12x chegam no
+ * C5, e a tela nova no C7 — change `planos-v2`), cupom (não existe no servidor), e as operações que
+ * o servidor não tem — trocar o cartão e pausar — que aparecem com a forma do protótipo e o caminho
+ * honesto: o suporte. "Mudar de plano" saiu (matriz v2): há um plano pago só.
  */
 
 type Celula = 'ok' | 'nao' | number | string;
 
-/** Uma linha do comparativo: rótulo, um valor por plano, nota e se "menor é melhor". */
-type Linha = [rotulo: string, valores: [Celula, Celula, Celula], nota?: string, invertido?: boolean];
+/** Uma linha do comparativo: rótulo, um valor por plano (Grátis, Premium), nota e se "menor é melhor". */
+type Linha = [rotulo: string, valores: [Celula, Celula], nota?: string, invertido?: boolean];
 
 const COMPARA: [grupo: string, linhas: Linha[]][] = [
   [
     'Captura e estudo',
     [
-      ['Captura ao vivo (mic + sistema)', ['ok', 'ok', 'ok']],
-      ['Jogos, vocabulário e revisão', ['ok', 'ok', 'ok']],
-      ['Tutor de IA (iChat)', ['nao', 'ok', 'ok']],
+      ['Captura ao vivo (mic + sistema)', ['ok', 'ok']],
+      ['Jogos, vocabulário e revisão', ['ok', 'ok']],
+      ['Tutor de IA (iChat)', ['nao', 'ok']],
       /* Derivado da quota: mudar `sttSegundosMes` e esquecer esta linha prometeria outro teto. */
-      [
-        'Transcrição de nuvem por mês',
-        ['nao', `${horasDeTranscricao('essencial')} h`, `${horasDeTranscricao('pro')} h`],
-      ],
-      ['Sua própria chave de IA (BYOK)', ['ok', 'ok', 'ok']],
+      ['Transcrição de nuvem por mês', ['nao', `${horasDeTranscricao('premium')} h`]],
+      /* O uso justo do dia, da quota do dia: passando dele a legenda segue no aparelho. */
+      ['Nuvem por dia (uso justo)', ['nao', `${horasDoUsoJusto('premium')} h`]],
+      ['Sua própria chave de IA (BYOK)', ['ok', 'ok']],
     ],
   ],
   [
     'Qualidade da IA · medida, não estimada',
     [
-      ['Qualidade de tradução (geral)', [57, 85, 85], 'maior é melhor'],
-      ['Expressões idiomáticas', [27, 83, 83], 'maior é melhor'],
-      ['Erro de transcrição em PT falado', [57, 24, 24], 'menor é melhor', true],
+      ['Qualidade de tradução (geral)', [57, 85], 'maior é melhor'],
+      ['Expressões idiomáticas', [27, 83], 'maior é melhor'],
+      ['Erro de transcrição em PT falado', [57, 24], 'menor é melhor', true],
     ],
   ],
   [
@@ -107,10 +107,7 @@ const COMPARA: [grupo: string, linhas: Linha[]][] = [
     [
       /* Derivado da quota, não escrito à mão: mudar `armazenamentoMb` na matriz e esquecer esta
          linha faria a tabela prometer um teto que o servidor não aplica. */
-      [
-        'Armazenamento de sessões',
-        [armazenamentoEmTexto('free'), armazenamentoEmTexto('essencial'), armazenamentoEmTexto('pro')],
-      ],
+      ['Armazenamento de sessões', [armazenamentoEmTexto('free'), armazenamentoEmTexto('premium')]],
     ],
   ],
 ];
@@ -162,8 +159,8 @@ const FAQ: [string, string][] = [
     'Por enquanto só existe o mensal: você paga todo mês e pode cancelar a qualquer momento. O plano anual ainda não está à venda.',
   ],
   [
-    'Posso trocar de plano depois?',
-    'Sim. Por enquanto a troca é feita pelo suporte, que ajusta a sua assinatura para o outro plano sem você perder o que já pagou.',
+    'Tem limite no dia a dia?',
+    'Não no dia a dia: o Premium tem um uso justo de algumas horas de nuvem por dia. Passando dele, a legenda segue no aparelho até o dia seguinte, sem cobrança a mais e sem oferta.',
   ],
   [
     'Posso cancelar quando quiser?',
@@ -181,11 +178,12 @@ const FAQ: [string, string][] = [
 ];
 
 const CHAVE_DO_CHECKOUT = CHAVE_DO_PLANO_DO_CHECKOUT;
+/** O plano do checkout desta aba; o nome antigo guardado antes do deploy é o Premium, e o padrão também. */
 function planoGuardado(): PlanoPago {
   try {
-    return sessionStorage.getItem(CHAVE_DO_CHECKOUT) === 'essencial' ? 'essencial' : 'pro';
+    return planoPagoDe(sessionStorage.getItem(CHAVE_DO_CHECKOUT)) ?? 'premium';
   } catch {
-    return 'pro';
+    return 'premium';
   }
 }
 
@@ -203,7 +201,7 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
   /* A OFERTA (Fase 8) não tem comparação própria: abre ESTA tela com o plano sugerido destacado,
      ou direto no consumo do mês (`lib/ofertas/destaque.ts`). O pedido é lido ao montar e quando o
      menu leva a Planos com a tela já aberta (o mesmo evento da sub-tela). */
-  const [sugerido, setSugerido] = useState<'essencial' | 'pro' | null>(null);
+  const [sugerido, setSugerido] = useState<'premium' | null>(null);
   useEffect(() => {
     const ler = () => {
       const p = consumirDestaqueEmPlanos();
@@ -300,7 +298,6 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
   const aberta = faturaEmAberto(faturas);
   const dialogos = dialogo && (
     <>
-      {dialogo === 'mudar-plano' && <DialogoMudarPlano conta={conta} aoFechar={() => setDialogo(null)} />}
       {dialogo === 'pagamento' && (
         <DialogoPagamento
           conta={conta}
@@ -368,14 +365,9 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
         },
       };
     }
-    if (p.id === conta.plano) return { rot: 'Seu plano', solido: false, off: true, acao: () => {} };
     if (p.id === 'gratis') return { rot: 'Voltar ao Grátis', solido: false, acao: () => irSub('cancelar') };
-    const sobe = p.id === 'pro' && conta.plano === 'essencial';
-    return {
-      rot: `${sobe ? 'Subir' : 'Mudar'} para ${p.nome}`,
-      solido: !!p.destaque,
-      acao: () => setDialogo('mudar-plano'),
-    };
+    /* Um plano pago só (matriz v2): o cartão pago de quem assina é o dele. */
+    return { rot: 'Seu plano', solido: false, off: true, acao: () => {} };
   };
 
   const cartao = (p: Plano) => {
@@ -553,7 +545,7 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
               {COMPARA.map(([grupo, linhas]) => (
                 <tbody key={grupo}>
                   <tr className="grupo">
-                    <th colSpan={4} scope="colgroup">
+                    <th colSpan={PLANOS.length + 1} scope="colgroup">
                       {grupo}
                     </th>
                   </tr>

@@ -26,13 +26,13 @@ const gatilho = (p: Partial<GatilhoDeOferta> = {}): GatilhoDeOferta => ({
   id: 'premium',
   momento: 'modelo_premium',
   componente: 'comparacao',
-  titulo: 'Modelos maiores estão no Pro',
+  titulo: 'A nuvem inteira está no Premium',
   texto: 'Compare',
   cta: 'Comparar planos',
   maxPorDia: 2,
   maxPorSemana: 5,
   intervaloMinHoras: 2,
-  planos: ['free', 'essencial'],
+  planos: ['free'],
   ...p,
 })
 
@@ -53,7 +53,7 @@ const entrada = (p: Partial<EntradaDoMotor> = {}): EntradaDoMotor => ({
 describe('flag', () => {
   it('ligada: a oferta promocional aparece com o componente do gatilho', () => {
     const d = decidirOferta(entrada())
-    expect(d).toMatchObject({ mostrar: true, componente: 'comparacao', planoSugerido: 'essencial', variante: 'padrao' })
+    expect(d).toMatchObject({ mostrar: true, componente: 'comparacao', planoSugerido: 'premium', variante: 'padrao' })
   })
 
   it('desligada: promocional NÃO aparece, mesmo com payload em cache', () => {
@@ -199,11 +199,11 @@ describe('teto global (promocionais)', () => {
 })
 
 describe('planos-alvo', () => {
-  const todos: PlanoDaFlag[] = ['convidado', 'free', 'essencial', 'pro', 'selfhost']
+  const todos: PlanoDaFlag[] = ['convidado', 'free', 'premium', 'selfhost']
   const amplo = gatilho({ planos: todos })
 
-  it('Pro nunca recebe oferta promocional (não se oferece Pro a quem é Pro)', () => {
-    expect(decidirOferta(entrada({ plano: 'pro', config: config(amplo) }))).toMatchObject({ motivo: 'plano_alvo' })
+  it('Premium nunca recebe oferta promocional (não se oferece o Premium a quem é Premium)', () => {
+    expect(decidirOferta(entrada({ plano: 'premium', config: config(amplo) }))).toMatchObject({ motivo: 'plano_alvo' })
   })
 
   it('self-host nunca recebe nada, nem aviso de cota', () => {
@@ -211,8 +211,8 @@ describe('planos-alvo', () => {
     expect(decidirOferta(entrada({ plano: 'selfhost', momento: 'fim_de_cota', flagLigada: false })).mostrar).toBe(false)
   })
 
-  it('Pro recebe o aviso funcional de cota, sem plano sugerido', () => {
-    const d = decidirOferta(entrada({ plano: 'pro', momento: 'fim_de_cota', flagLigada: false }))
+  it('Premium recebe o aviso funcional de cota, sem plano sugerido', () => {
+    const d = decidirOferta(entrada({ plano: 'premium', momento: 'fim_de_cota', flagLigada: false }))
     expect(d).toMatchObject({ mostrar: true, planoSugerido: 'nenhum' })
   })
 
@@ -240,15 +240,15 @@ describe('planos-alvo', () => {
   })
 
   it('o gatilho só vale para os planos que lista', () => {
-    expect(decidirOferta(entrada({ config: config(gatilho({ planos: ['essencial'] })) }))).toMatchObject({
+    expect(decidirOferta(entrada({ config: config(gatilho({ planos: ['premium'] })) }))).toMatchObject({
       motivo: 'plano_alvo',
     })
   })
 
-  it('plano sugerido: Grátis → Essencial (também no modelo premium), Essencial → Pro', () => {
-    expect(planoSugerido('free')).toBe('essencial')
-    expect(planoSugerido('essencial')).toBe('pro')
-    expect(planoSugerido('pro')).toBe('nenhum')
+  it('plano sugerido (matriz v2): Grátis → Premium; o Premium não tem para onde subir', () => {
+    expect(planoSugerido('free')).toBe('premium')
+    expect(planoSugerido('premium')).toBe('nenhum')
+    expect(planoSugerido('selfhost')).toBe('nenhum')
     expect(planoSugerido('convidado')).toBe('conta')
   })
 })

@@ -114,7 +114,7 @@ describe('edição estática ligada', () => {
       gatilho: 'fim_de_sessao',
       componente: 'banner',
       plano_atual: 'gratis',
-      plano_sugerido: 'pro',
+      plano_sugerido: 'premium',
       variante: 'a',
     } as never)
     inst.enviarLoteDeOfertas(true)

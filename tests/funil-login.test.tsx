@@ -94,10 +94,10 @@ describe('pedir o login guarda de onde a pessoa veio', () => {
 
   it('não sobrescreve a intenção específica guardada há instantes (o Checkout)', () => {
     irPara('/plano')
-    guardarIntencao({ rota: '/plano/assinar', plano: 'pro' })
+    guardarIntencao({ rota: '/plano/assinar', plano: 'premium' })
     const { result } = renderHook(() => useGateDeConta())
     act(() => result.current.setPedindoLogin(true))
-    expect(lerIntencao()).toMatchObject({ rota: '/plano/assinar', plano: 'pro' })
+    expect(lerIntencao()).toMatchObject({ rota: '/plano/assinar', plano: 'premium' })
   })
 
   it('uma intenção antiga (não de agora) é trocada pelo lugar atual', () => {
@@ -245,24 +245,40 @@ describe('senha de 8 caracteres, como o Supabase de produção', () => {
   it('a senha fraca do Supabase vira mensagem em português (curta e vazada)', async () => {
     supa.auth.signUp.mockResolvedValueOnce({
       data: { session: null },
-      error: { name: 'AuthWeakPasswordError', code: 'weak_password', message: 'Password should be at least 8 characters.', reasons: ['length'] },
+      error: {
+        name: 'AuthWeakPasswordError',
+        code: 'weak_password',
+        message: 'Password should be at least 8 characters.',
+        reasons: ['length'],
+      },
     } as never)
     expect((await auth.signUpEmail('a@x.com', 'curta')).message).toMatch(/pelo menos 8 caracteres/)
     supa.auth.signUp.mockResolvedValueOnce({
       data: { session: null },
-      error: { name: 'AuthWeakPasswordError', code: 'weak_password', message: 'Password is known to be weak', reasons: ['pwned'] },
+      error: {
+        name: 'AuthWeakPasswordError',
+        code: 'weak_password',
+        message: 'Password is known to be weak',
+        reasons: ['pwned'],
+      },
     } as never)
     expect((await auth.signUpEmail('a@x.com', 'senha1234')).message).toMatch(/vazamento/)
   })
 })
 
 describe('o plano da intenção chega ao checkout', () => {
-  it('lembrarPlanoDoCheckout grava só essencial/pro, na chave que a tela de Planos lê', async () => {
+  it('lembrarPlanoDoCheckout grava só o plano pago, na chave que a tela de Planos lê', async () => {
     const { lembrarPlanoDoCheckout, CHAVE_DO_PLANO_DO_CHECKOUT } = await import('../src/lib/assinatura')
     sessionStorage.clear()
     lembrarPlanoDoCheckout('gratis')
     expect(sessionStorage.getItem(CHAVE_DO_PLANO_DO_CHECKOUT)).toBeNull()
+    lembrarPlanoDoCheckout('free')
+    expect(sessionStorage.getItem(CHAVE_DO_PLANO_DO_CHECKOUT)).toBeNull()
+    lembrarPlanoDoCheckout('premium')
+    expect(sessionStorage.getItem(CHAVE_DO_PLANO_DO_CHECKOUT)).toBe('premium')
+    // Matriz v2: a intenção de antes do deploy ("assinar o Essencial") abre o checkout no Premium.
+    sessionStorage.clear()
     lembrarPlanoDoCheckout('essencial')
-    expect(sessionStorage.getItem(CHAVE_DO_PLANO_DO_CHECKOUT)).toBe('essencial')
+    expect(sessionStorage.getItem(CHAVE_DO_PLANO_DO_CHECKOUT)).toBe('premium')
   })
 })

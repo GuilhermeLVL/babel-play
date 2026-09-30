@@ -20,7 +20,7 @@ vi.mock('../src/lib/uso', async (original) => {
 const { estadoDaCota, verificarCota, VALIDADE_DO_CACHE_DA_COTA_MS } = await import('../src/lib/ofertas/cota')
 
 const uso = (usado: number, teto: number | null) => ({
-  plano: 'essencial' as const,
+  plano: 'premium' as const,
   janela: '2026-09',
   chamadas: { usado: 0, teto: 1000 },
   segundosDeAudio: { usado, teto },

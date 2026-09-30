@@ -1,22 +1,10 @@
-import {
-  CalendarX,
-  Check,
-  Cloud,
-  Cpu,
-  CreditCard,
-  RotateCcw,
-  Server,
-  Settings,
-  Settings2,
-  Sparkles,
-  TriangleAlert,
-} from 'lucide-react';
+import { CalendarX, Check, Cpu, CreditCard, RotateCcw, Server, Settings, Settings2, TriangleAlert } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import { brl, type Conta, dataCurta, precoMensal } from '../../../lib/assinatura';
 import { navegarPara } from '../../../lib/rotas';
 import { IconeEmBloco, type TomDoIcone } from '../../ui';
-import { PLANO_NOME } from './dados';
+import { PLANO_ICO, PLANO_NOME } from './dados';
 
 /**
  * "SEU PLANO AGORA" — a faixa do topo de Planos e de Sua assinatura (`faixaConta()` do protótipo).
@@ -46,7 +34,7 @@ export default function FaixaDaConta({
   const p = conta.plano ? PLANO_NOME[conta.plano] : '';
   const preco = conta.plano ? brl(precoMensal(conta.plano)) : '';
   const ate = <b>{dataCurta(conta.valeAte)}</b>;
-  const IconePago = conta.plano === 'essencial' ? Sparkles : Cloud;
+  const IconePago = PLANO_ICO[conta.plano ?? 'premium'];
 
   let icone = Cpu;
   let tom: TomDoIcone = 'accent';

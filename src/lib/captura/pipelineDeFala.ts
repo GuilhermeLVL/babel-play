@@ -1044,21 +1044,35 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     return { listenLang, myLang, route, perfil, mtDe, mtPara, soIngles, micVaiAoWhisper, backend, outro };
   };
 
-  /**
-   * O áudio da aba/sistema vai à Web Speech NO APARELHO ou ao caminho de sempre (degrau T2,
-   * `webSpeechDoSistema.ts`)? Pergunta a rota (nuvem primeiro?) só se o resto permitir. Nunca lança.
-   */
-  const decidirMotorDoSistema = async (): Promise<DecisaoDoMotorDoSistema> => {
+  /** A decisão do motor do sistema, com a detecção de idioma e a pergunta da nuvem dadas por quem chama. */
+  const motorDoSistema = async (
+    multiIdioma: boolean,
+    nuvemPrimeiro: () => Promise<boolean>,
+  ): Promise<DecisaoDoMotorDoSistema> => {
     const perfil = await medirPerfilDoDispositivo();
     return resolverMotorDoSistema({
       lang: targetLangRef.current, // você OUVE o idioma-alvo
       desktop: perfil.tipo.startsWith('desktop'),
       qualidade: getSttQuality(),
-      multiIdioma: autoDetectLangRef.current,
-      nuvemPrimeiro: async () => getProviderMode() === 'cloud' || (await rotaDaCaptura()).route.preferCloud,
+      multiIdioma,
+      nuvemPrimeiro,
       lembrado: () => import('../dispositivo/sonda').then((m) => m.webSpeechComTrilhaLembrada()),
     });
   };
+
+  /**
+   * O áudio da aba/sistema vai à Web Speech NO APARELHO ou ao caminho de sempre (degrau T2,
+   * `webSpeechDoSistema.ts`)? Pergunta a rota (nuvem primeiro?) só se o resto permitir. Nunca lança.
+   *
+   * `multiIdioma: false` é a pergunta da oferta "Legenda sem baixar nada" (A9a): com a detecção
+   * automática ligada, e se a pessoa escolhesse o idioma do vídeo, o navegador transcreveria? É a MESMA
+   * decisão que a captura toma no clique — a tela só oferece o que vai acontecer de verdade.
+   */
+  const decidirMotorDoSistema = (opcoes: { multiIdioma?: boolean } = {}): Promise<DecisaoDoMotorDoSistema> =>
+    motorDoSistema(
+      opcoes.multiIdioma ?? autoDetectLangRef.current,
+      async () => getProviderMode() === 'cloud' || (await rotaDaCaptura()).route.preferCloud,
+    );
 
   /**
    * PRÉ-AQUECER AO ABRIR A TELA (auditoria de latência 2026-09-26, item 6). "STT pronto" levava de
@@ -1072,10 +1086,20 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
   const preaquecerModelos = async (): Promise<void> => {
     try {
       if (getProviderMode() === 'cloud' || prepareEmVooRef.current || modelReadyRef.current) return;
-      const { route, perfil, mtDe, mtPara } = await rotaDaCaptura();
+      const { route, perfil, mtDe, mtPara, micVaiAoWhisper } = await rotaDaCaptura();
       if (route.preferCloud) return;
+      /* NATIVO PRIMEIRO (plano "Grátis sem travar", A9a): o áudio da aba vai ao reconhecedor do
+         navegador, no aparelho, e a sua voz não passa pelo Whisper → aquecê-lo seria memória e CPU à
+         toa, justo no desktop que mais sofre com isso. A pergunta é a mesma que a captura faz no
+         clique (a nuvem já está descartada acima). Se a Web Speech cair na sessão, o Whisper vem pelo
+         caminho de sempre. */
+      const whisperSemUso =
+        captureScenarioRef.current !== 'mic' &&
+        !micVaiAoWhisper &&
+        (await motorDoSistema(autoDetectLangRef.current, async () => false)).motor === 'web-speech-local';
+      if (whisperSemUso) clog('pré-aquecimento: áudio da aba no reconhecedor do navegador; Whisper não aquece');
       let sttAquecendo: Promise<unknown> = Promise.resolve();
-      if (await areModelsCached([route.localModel])) {
+      if (!whisperSemUso && (await areModelsCached([route.localModel]))) {
         gateway.stt.setRoute({
           preferCloud: false,
           localModel: route.localModel,
@@ -1284,7 +1308,12 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
         const pronto = p >= 1;
         prepNoQuadro((s) => {
           const base = s ?? { whisper: null, mt: 0, fromCache: false, error: null, done: false };
-          return { ...base, mt: pronto ? 1 : p, mtBytes: bytes ?? base.mtBytes, done: base.whisper === null ? pronto : base.done };
+          return {
+            ...base,
+            mt: pronto ? 1 : p,
+            mtBytes: bytes ?? base.mtBytes,
+            done: base.whisper === null ? pronto : base.done,
+          };
         });
         if (pronto) {
           retraduzirDegradados();

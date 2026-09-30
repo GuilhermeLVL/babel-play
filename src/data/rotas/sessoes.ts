@@ -39,6 +39,11 @@ export interface UtteranceRow {
   tEndMs: number | null
   /** Procedência da transcrição: 'youtube-caption-*' | 'whisper-local' | 'import-text' | live STT. */
   engine?: string | null
+  /**
+   * A tradução POLIDA ("polir a sessão", D5 da Fase D), ao lado da original — `translatedText` nunca
+   * é sobrescrita. Ausente no servidor anterior e no modo sem conta; nulo = ainda não polida.
+   */
+  traducaoPolida?: string | null
 }
 
 function fmtDuration(ms: number | null): string {

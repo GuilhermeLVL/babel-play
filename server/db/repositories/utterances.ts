@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 
-import { and, asc, eq, isNull } from 'drizzle-orm'
+import { and, asc, eq, gte, isNotNull, isNull, lte } from 'drizzle-orm'
 
 import type { UserId } from '../../lib/authContext'
 import { db, type ExecutorDb } from '../db'
@@ -24,10 +24,30 @@ export interface NewUtterance {
   engine?: string
 }
 
+/** A tradução polida de uma fala (D5), com a procedência — o que "retomar a captura" preserva. */
+type Polimento = Pick<Utterance, 'traducaoPolida' | 'polimentoModelo' | 'polimentoVersao' | 'polidoEm'>
+
+/**
+ * AS POLIDAS QUE SOBREVIVEM À TROCA DAS FALAS, pelo texto e pela tradução da fala. "Retomar a
+ * captura" (`replaceUtterances`) e o lote da captura longa (`appendUtterances`) APAGAM as falas e
+ * inserem de novo — com ids novos. Sem isto, a polida de uma fala que voltou IGUAL sumia, e polir de
+ * novo cobraria outra vez o que já foi polido. A chave é o texto e a tradução, não o `idx`: a fala
+ * que mudou não herda a polida de outro texto, e a que só mudou de lugar a mantém.
+ */
+export type PolidasPreservadas = ReadonlyMap<string, Polimento>
+const chaveDaPolida = (sourceText: string | null | undefined, translatedText: string | null | undefined) =>
+  `${sourceText ?? ''}\u0000${translatedText ?? ''}`
+
 /** As linhas do INSERT de falas — um `now` só para o lote inteiro. */
-function montarLinhas(userId: UserId, sessionId: string, items: NewUtterance[]): (typeof utterances.$inferInsert)[] {
+function montarLinhas(
+  userId: UserId,
+  sessionId: string,
+  items: NewUtterance[],
+  preservadas?: PolidasPreservadas,
+): (typeof utterances.$inferInsert)[] {
   const now = Date.now()
   return items.map((u, i) => ({
+    ...preservadas?.get(chaveDaPolida(u.sourceText, u.translatedText)),
     id: randomUUID(),
     createdAt: now,
     updatedAt: now,
@@ -59,9 +79,46 @@ export const utterancesRepo = {
    * teto a partir de 1.928 falas e a sessão inteira era recusada. Os lotes vão todos no MESMO
    * batch do chamador, então a atomicidade continua a da sessão inteira.
    */
-  stmtInsertMany(userId: UserId, sessionId: string, items: NewUtterance[]) {
+  stmtInsertMany(userId: UserId, sessionId: string, items: NewUtterance[], preservadas?: PolidasPreservadas) {
     const lote = tamanhoDoLoteDeInsert(utterances)
-    return emLotes(montarLinhas(userId, sessionId, items), lote).map((linhas) => db.insert(utterances).values(linhas))
+    return emLotes(montarLinhas(userId, sessionId, items, preservadas), lote).map((linhas) =>
+      db.insert(utterances).values(linhas),
+    )
+  },
+
+  /**
+   * As polidas da sessão (ou de uma faixa de `idx`) que devem sobreviver à troca das falas — ver
+   * `PolidasPreservadas`. Lida ANTES do batch que apaga e insere.
+   */
+  async polidasParaPreservar(
+    userId: UserId,
+    sessionId: string,
+    faixa?: { de: number; ate: number },
+  ): Promise<PolidasPreservadas> {
+    const linhas = await db
+      .select({
+        sourceText: utterances.sourceText,
+        translatedText: utterances.translatedText,
+        traducaoPolida: utterances.traducaoPolida,
+        polimentoModelo: utterances.polimentoModelo,
+        polimentoVersao: utterances.polimentoVersao,
+        polidoEm: utterances.polidoEm,
+      })
+      .from(utterances)
+      .where(
+        and(
+          eq(utterances.sessionId, sessionId),
+          eq(utterances.userId, userId),
+          isNotNull(utterances.traducaoPolida),
+          ...(faixa ? [gte(utterances.idx, faixa.de), lte(utterances.idx, faixa.ate)] : []),
+        ),
+      )
+    const mapa = new Map<string, Polimento>()
+    for (const { sourceText, translatedText, ...polimento } of linhas) {
+      const chave = chaveDaPolida(sourceText, translatedText)
+      if (!mapa.has(chave)) mapa.set(chave, polimento)
+    }
+    return mapa
   },
 
   /** MONTA o delete das falas de uma sessão, para compor um batch atômico. */

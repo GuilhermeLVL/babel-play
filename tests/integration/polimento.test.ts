@@ -330,6 +330,28 @@ describe('com a Tradução Nuance', () => {
     expect(chamadas).toHaveLength(0)
   })
 
+  it('retomar a captura (troca das falas) e o lote repetido mantêm a polida das falas que voltam iguais', async () => {
+    const id = await sessaoCom(PAGANTE, 3)
+    provedor(polidaDeTudo)
+    await pedir({ sessionId: id, bloco: 0 })
+    const fala = (i: number, traducao = `linha ${i}`) => ({
+      idx: i,
+      sourceLang: 'en',
+      targetLang: 'pt',
+      sourceText: `line ${i}`,
+      translatedText: traducao,
+    })
+    // "Retomar a captura": as três de volta (a do meio com outra tradução) e uma nova no fim.
+    await sessionsRepo.replaceUtterances(PAGANTE, id, [fala(0), fala(1, 'linha um, outra'), fala(2), fala(3)])
+    let depois = await falas(id)
+    expect(depois.map((u) => u.traducaoPolida)).toEqual(['polida: linha 0', null, 'polida: linha 2', null])
+    expect(depois[0].polimentoModelo).toBe('modelo-do-polimento')
+    // O lote da captura longa repetido (a mesma faixa de idx) também não a apaga.
+    await sessionsRepo.appendUtterances(PAGANTE, id, [fala(2), fala(3)])
+    depois = await falas(id)
+    expect(depois.map((u) => u.traducaoPolida)).toEqual(['polida: linha 0', null, 'polida: linha 2', null])
+  })
+
   it('corrigir o texto ou a tradução da fala apaga a polida (ela era de outro texto)', async () => {
     const id = await sessaoCom(PAGANTE, 2)
     provedor(polidaDeTudo)

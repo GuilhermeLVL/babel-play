@@ -56,6 +56,18 @@ export interface Preferencias {
   formatoDaCopia: 'json' | 'csv';
   /** A pessoa já respondeu "Rápido ou Privado?" do microfone — a pergunta não volta. */
   micEscolhido: boolean;
+  /**
+   * A TRADUÇÃO NUANCE (Fase D, D6 — Ajustes → Idiomas): o registro que a tradução usa quando a pessoa
+   * não escolhe na hora, e a variante de cada idioma. Só valem com a capacidade `traducaoNuance`
+   * (quem decide é o servidor); `lib/traducao/preferenciasDaNuance.ts` diz o que vai no pedido.
+   */
+  nuance: PreferenciasDaNuance;
+}
+
+export type RegistroPadrao = 'automatico' | 'formal' | 'informal';
+export interface PreferenciasDaNuance {
+  registro: RegistroPadrao;
+  variantes: { pt: 'pt-BR' | 'pt-PT'; es: 'es-419' | 'es-ES' };
 }
 
 /** Os padrões do protótipo aprovado (`E.notifPref`, `E.lembrete`, `E.cons`, `E.perfil`). */
@@ -75,6 +87,7 @@ export const PADRAO: Preferencias = {
   niveis: {},
   formatoDaCopia: 'json',
   micEscolhido: false,
+  nuance: { registro: 'automatico', variantes: { pt: 'pt-BR', es: 'es-419' } },
 };
 
 const ESPELHO = 'babel.preferencias';
@@ -96,6 +109,19 @@ export function normalizar(bruto: unknown): Preferencias {
     niveis: p.niveis && typeof p.niveis === 'object' ? { ...p.niveis } : {},
     formatoDaCopia: p.formatoDaCopia === 'csv' ? 'csv' : 'json',
     micEscolhido: p.micEscolhido === true,
+    nuance: normalizarNuance(p.nuance),
+  };
+}
+
+/** A Nuance guardada, com o que não é valor conhecido caindo no padrão (versão antiga, blob editado). */
+function normalizarNuance(bruto: unknown): PreferenciasDaNuance {
+  const n = (bruto && typeof bruto === 'object' ? bruto : {}) as Partial<PreferenciasDaNuance>;
+  const v = (n.variantes && typeof n.variantes === 'object' ? n.variantes : {}) as Partial<
+    PreferenciasDaNuance['variantes']
+  >;
+  return {
+    registro: n.registro === 'formal' || n.registro === 'informal' ? n.registro : 'automatico',
+    variantes: { pt: v.pt === 'pt-PT' ? 'pt-PT' : 'pt-BR', es: v.es === 'es-ES' ? 'es-ES' : 'es-419' },
   };
 }
 

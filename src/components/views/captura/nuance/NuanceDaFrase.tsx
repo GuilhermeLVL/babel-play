@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import type { FalhaDaNuance, PedidoDeNuance } from '../../../../data/apiDaNuance';
 import { useConsentimentoDeNuvem } from '../../../../lib/consentimentoDeNuvem';
 import { t } from '../../../../lib/i18n';
+import { nuanceDasPreferencias } from '../../../../lib/traducao/preferenciasDaNuance';
 import type { RegistroDaTraducao } from '../../../../lib/traducao/promptComunicativo';
 import ConviteDaNuance from './ConviteDaNuance';
 import FixarNoGlossario, { cabeNoGlossario } from './FixarNoGlossario';
@@ -76,12 +77,15 @@ export default function NuanceDaFrase({
   const [escolhida, setEscolhida] = useState<string | null>(null);
   const [convite, setConvite] = useState(false);
 
+  /* O registro padrão e a variante dos Ajustes (D6) valem aqui também; o Formal/Informal da folha
+     pede o registro explícito por cima. */
   const pedido: PedidoDeNuance = {
     texto: fala.texto,
     src: fala.lang,
     tgt: destino,
     contexto,
     falada,
+    ...nuanceDasPreferencias(destino),
   };
 
   /* A Nuance da frase, ao abrir — só com a capacidade e a nuvem autorizada. */

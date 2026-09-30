@@ -67,7 +67,6 @@ import {
   ehDeNuvem,
   lerRespostaDeStt,
   montarPedidoDeStt,
-  PoliticaDeDados,
   precoDeStt,
   PROVEDORES,
 } from './nuvem.mjs'
@@ -291,34 +290,43 @@ async function rodar(sis, spec) {
   const idiomaDoConjunto = semFala ? 'pt' : itens[0].idioma
   const c = cache(`stt_${sis.id}_${conjunto}`)
   const casos = []
+  // Teto ou cota diária param a fila; os casos já transcritos ficam (o resumo pareia por id).
+  let interrompido = null
   for (let i = 0; i < itens.length; i++) {
     const it = itens[i]
     let r = c.get(it.id)
     if (!r) {
-      const pcm = lerWav(readFileSync(path.join(BANCADA_DIR, it.arquivo)))
-      const um = (x) =>
-        ehDeNuvem(sis.tipo)
-          ? transcreverNuvem(sis, x, idiomaDoConjunto)
-          : sis.tipo === 'parakeet'
-            ? transcreverParakeetBancada(sis, x, idiomaDoConjunto)
-            : transcreverLocal(sis, x, idiomaDoConjunto)
-      if (sis.vad) {
-        const partes = []
-        let ms = 0
-        let usd = 0
-        let segundosFaturados = 0
-        const segs = await segmentosDeFala(pcm, sis.redencaoMs, sis.esp)
-        for (const seg of segs) {
-          const p = await um(seg)
-          partes.push(p.texto)
-          ms += p.ms
-          usd += p.usd ?? 0
-          segundosFaturados += p.segundosFaturados ?? 0
-        }
-        r = { texto: partes.filter(Boolean).join(' '), ms, segmentos: segs.length, usd, segundosFaturados }
-      } else r = await um(pcm)
-      r.duracaoS = pcm.length / 16000
-      c.set(it.id, r)
+      try {
+        const pcm = lerWav(readFileSync(path.join(BANCADA_DIR, it.arquivo)))
+        const um = (x) =>
+          ehDeNuvem(sis.tipo)
+            ? transcreverNuvem(sis, x, idiomaDoConjunto)
+            : sis.tipo === 'parakeet'
+              ? transcreverParakeetBancada(sis, x, idiomaDoConjunto)
+              : transcreverLocal(sis, x, idiomaDoConjunto)
+        if (sis.vad) {
+          const partes = []
+          let ms = 0
+          let usd = 0
+          let segundosFaturados = 0
+          const segs = await segmentosDeFala(pcm, sis.redencaoMs, sis.esp)
+          for (const seg of segs) {
+            const p = await um(seg)
+            partes.push(p.texto)
+            ms += p.ms
+            usd += p.usd ?? 0
+            segundosFaturados += p.segundosFaturados ?? 0
+          }
+          r = { texto: partes.filter(Boolean).join(' '), ms, segmentos: segs.length, usd, segundosFaturados }
+        } else r = await um(pcm)
+        r.duracaoS = pcm.length / 16000
+        c.set(it.id, r)
+      } catch (e) {
+        if (!(e instanceof TetoDeGasto || e instanceof CotaDoProvedor)) throw e
+        interrompido = { tipo: e instanceof TetoDeGasto ? 'teto' : 'cota', mensagem: e.message }
+        console.error(`\n  ${sis.id} × ${conjunto} INTERROMPIDO (${casos.length}/${itens.length}): ${e.message}`)
+        break
+      }
     }
     casos.push({
       ...it,
@@ -331,6 +339,7 @@ async function rodar(sis, spec) {
     process.stdout.write(`\r  ${sis.id} × ${conjunto}: ${i + 1}/${itens.length}   `)
   }
   c.salvar()
+  if (!casos.length) return { sistema: sis.id, conjunto, n: 0, interrompido, casos: [] }
   const audioS = casos.reduce((s, x) => s + x.duracaoS, 0)
   const rtf = casos.reduce((s, x) => s + x.ms, 0) / 1000 / audioS
   const [p50, p95] = percentis(casos.map((x) => x.ms))
@@ -353,6 +362,7 @@ async function rodar(sis, spec) {
       rtf,
       latenciaMs: { p50, p95 },
       custoUsdPorHora: custoHora,
+      ...(interrompido && { interrompido }),
       casos: casos.map(({ id, categoria, hipotese }) => ({ id, categoria, hipotese })),
     }
   }
@@ -385,6 +395,7 @@ async function rodar(sis, spec) {
     latenciaMs: { p50, p95 },
     custoUsdPorHora: custoHora,
     faturadoSobreReal,
+    ...(interrompido && { interrompido }),
     casos: casos.map((x, i) => ({
       id: x.id,
       referencia: x.referencia,
@@ -440,12 +451,24 @@ function sistemasChamaveis() {
 async function main() {
   const { sistemas, pulados } = sistemasChamaveis()
   const resultados = []
-  try {
-    for (const sis of sistemas) for (const conj of CONJUNTOS) resultados.push(await rodar(sis, conj))
-  } catch (e) {
-    if (!(e instanceof TetoDeGasto || e instanceof CotaDoProvedor || e instanceof PoliticaDeDados)) throw e
-    console.error(`\n${e.message} — resultados parciais gravados.`)
+  // Cota diária de UM provedor tira só aquele sistema dos conjuntos seguintes; o teto para tudo.
+  let teto = null
+  for (const sis of sistemas) {
+    if (teto) break
+    for (const conj of CONJUNTOS) {
+      const r = await rodar(sis, conj)
+      if (r.n) resultados.push(r)
+      if (r.interrompido?.tipo === 'cota') {
+        pulados.push({ sistema: sis.id, motivo: `cota do provedor a partir de ${conj}` })
+        break
+      }
+      if (r.interrompido?.tipo === 'teto') {
+        teto = r.interrompido.mensagem
+        break
+      }
+    }
   }
+  if (teto) console.error(`\n${teto} — resultados parciais gravados.`)
 
   // Comparações pareadas contra o PRIMEIRO sistema, no mesmo conjunto e nos mesmos casos.
   const comparacoes = []
@@ -484,6 +507,7 @@ async function main() {
     sistemas: sistemas.map((x) => x.id),
     conjuntos: CONJUNTOS,
     gastoTotalUsd: gastoTotal(),
+    ...(teto && { paradoPeloTeto: teto }),
     pulados,
     resultados,
     comparacoes,

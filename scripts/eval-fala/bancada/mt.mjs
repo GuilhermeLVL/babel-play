@@ -274,8 +274,14 @@ async function rodar(sis, spec) {
   const nuvem = ehDeNuvem(sis.provedor)
   const perfil = nuvem ? perfilDoPedido(sis) : null
   const c = cache(`mt_${sis.id}_${comAmostra(spec).nome}${perfil ? `_p${hash(JSON.stringify(perfil.resto))}` : ''}`)
-  const saida = new Array(casos.length)
+  const todas = new Array(casos.length)
   let feitos = 0
+  /**
+   * INTERROMPIDO, não perdido: o teto de gasto ou a cota diária do provedor param a fila, mas os
+   * casos que já responderam ficam no resultado — o resumo pareia por id, então um sistema com 200
+   * de 400 casos ainda compara nos 200.
+   */
+  let interrompido = null
   const trabalho = async (i) => {
     const caso = casos[i]
     const k = `${caso.id}|${caso.origem}`
@@ -289,18 +295,16 @@ async function rodar(sis, spec) {
               ? await traduzirBergamotBancada(sis, caso, src, tgt)
               : await traduzirNuvem(sis, caso, src, tgt)
       } catch (e) {
-        if (
-          e instanceof TetoDeGasto ||
-          e instanceof CotaDoProvedor ||
-          e instanceof ParErrado ||
-          e instanceof PoliticaDeDados
-        )
-          throw e
+        if (e instanceof TetoDeGasto || e instanceof CotaDoProvedor) {
+          interrompido ??= { tipo: e instanceof TetoDeGasto ? 'teto' : 'cota', mensagem: e.message }
+          return
+        }
+        if (e instanceof ParErrado || e instanceof PoliticaDeDados) throw e
         r = { texto: '', ms: NaN, erro: String(e.message).slice(0, 200) }
       }
       if (!r.erro) c.set(k, r)
     }
-    saida[i] = {
+    todas[i] = {
       ...caso,
       hipotese: r.texto,
       ms: r.ms,
@@ -317,10 +321,13 @@ async function rodar(sis, spec) {
   let proximo = 0
   await Promise.all(
     Array.from({ length: conc }, async () => {
-      while (proximo < casos.length) await trabalho(proximo++)
+      while (proximo < casos.length && !interrompido) await trabalho(proximo++)
     }),
   )
   c.salvar()
+  const saida = todas.filter(Boolean)
+  if (interrompido)
+    console.error(`\n  ${sis.id} × ${spec} INTERROMPIDO (${saida.length}/${casos.length}): ${interrompido.mensagem}`)
   const notas = saida.map((x) => chrf(x.referencia, x.hipotese).chrf * 100)
   const q = bootstrap(saida.length, mediaEm(notas))
   const falhas = saida.filter((x) => x.erro).length
@@ -349,6 +356,7 @@ async function rodar(sis, spec) {
     latenciaMs: { p50, p95 },
     ...(porFrase && { latenciaPorFraseMs: { p50: porFrase[0], p95: porFrase[1] } }),
     ...(perfil && { parametros: perfil.parametros, acimaDoTimeoutDeProducao }),
+    ...(interrompido && { interrompido }),
     usdTotal: usd,
     usdPorHoraDeFala: usdPorHora,
     casos: saida.map((x, i) => ({
@@ -395,12 +403,23 @@ function sistemasChamaveis() {
 async function main() {
   const { sistemas, pulados } = sistemasChamaveis()
   const resultados = []
-  try {
-    for (const spec of CORPORA) for (const sis of sistemas) resultados.push(await rodar(sis, spec))
-  } catch (e) {
-    if (!(e instanceof TetoDeGasto || e instanceof CotaDoProvedor)) throw e
-    console.error(`\n${e.message} — resultados parciais gravados.`)
+  // Cota diária de UM provedor tira só aquele sistema das rodadas seguintes; o teto para tudo.
+  const esgotados = new Set()
+  let teto = null
+  for (const spec of CORPORA) {
+    for (const sis of sistemas) {
+      if (teto) break
+      if (esgotados.has(sis.id)) continue
+      const r = await rodar(sis, spec)
+      resultados.push(r)
+      if (r.interrompido?.tipo === 'cota') {
+        esgotados.add(sis.id)
+        pulados.push({ sistema: sis.id, motivo: `cota do provedor a partir de ${spec}` })
+      }
+      if (r.interrompido?.tipo === 'teto') teto = r.interrompido.mensagem
+    }
   }
+  if (teto) console.error(`\n${teto} — resultados parciais gravados.`)
   const comparacoes = []
   for (const spec of CORPORA) {
     const doCorpus = resultados.filter((r) => r.corpus === spec)
@@ -423,6 +442,7 @@ async function main() {
     sistemas: sistemas.map((x) => x.id),
     corpora: CORPORA,
     gastoTotalUsd: gastoTotal(),
+    ...(teto && { paradoPeloTeto: teto }),
     pulados,
     resultados,
     comparacoes,

@@ -12,7 +12,7 @@
  * O ESTORNO continua best-effort (só loga): ele devolve cota ao usuário, e falhar nele erra a favor
  * do dono, não contra.
  */
-import { definicaoDoPlano, type PlanoEfetivo } from '../../src/core/planos'
+import { definicaoDoPlano, FRANQUIA_DE_ALIVIO, type PlanoEfetivo } from '../../src/core/planos'
 import { usageCountersRepo } from '../db/repositories/usageCounters'
 import type { UserId } from './authContext'
 import { getPlanForUser } from './entitlements'
@@ -27,6 +27,26 @@ export const METRIC_MANAGED = 'managed_calls'
 export const METRIC_STT_SEGUNDOS = 'stt_seconds'
 /** Tokens (entrada + saída) gastos no LLM gerenciado. Reservados ANTES, acertados DEPOIS. */
 export const METRIC_LLM_TOKENS = 'llm_tokens'
+
+/**
+ * DE QUE FRANQUIA sai a chamada: a do PLANO (o de sempre) ou a da NUVEM DE ALÍVIO do Grátis (A10,
+ * `server/lib/nuvemDeAlivio.ts`). O alívio tem CONTADORES PRÓPRIOS de propósito: quem assina no meio
+ * do mês não começa o plano com os segundos do alívio já descontados, e quem volta ao Grátis depois
+ * de um plano pago não chega ao alívio com o contador do plano estourado. A porta da nuvem decide o
+ * modo UMA vez por requisição; daqui para baixo ninguém pergunta o plano de novo.
+ */
+export type ModoDaCota = 'plano' | 'alivio'
+
+/** Os contadores do alívio, em `usage_counters`, na mesma janela mensal dos do plano. */
+export const METRIC_ALIVIO_CHAMADAS = 'alivio_calls'
+export const METRIC_ALIVIO_STT_SEGUNDOS = 'alivio_stt_seconds'
+export const METRIC_ALIVIO_TOKENS = 'alivio_llm_tokens'
+
+const METRICA = {
+  chamadas: { plano: METRIC_MANAGED, alivio: METRIC_ALIVIO_CHAMADAS },
+  segundos: { plano: METRIC_STT_SEGUNDOS, alivio: METRIC_ALIVIO_STT_SEGUNDOS },
+  tokens: { plano: METRIC_LLM_TOKENS, alivio: METRIC_ALIVIO_TOKENS },
+} as const
 
 /**
  * O contador de uso não respondeu. Quem chama devolve 503 com `code: 'contador_indisponivel'` — nunca
@@ -47,7 +67,7 @@ function falharFechado(evento: string, err: unknown): never {
 }
 
 /** Janela mensal 'YYYY-MM' (Date é permitido — módulo Node normal). */
-function currentWindow(): string {
+export function currentWindow(): string {
   return new Date().toISOString().slice(0, 7)
 }
 
@@ -97,10 +117,10 @@ export function capForPlan(plan: PlanoEfetivo): number {
  *
  * Erro → LANÇA `ContadorIndisponivel` (falha fechada; ver o topo do arquivo).
  */
-export async function reserveManagedCall(userId: UserId): Promise<boolean> {
+export async function reserveManagedCall(userId: UserId, modo: ModoDaCota = 'plano'): Promise<boolean> {
   try {
-    const cap = capForPlan(await getPlanForUser(userId))
-    return await usageCountersRepo.reserve(userId, METRIC_MANAGED, currentWindow(), cap)
+    const cap = modo === 'alivio' ? FRANQUIA_DE_ALIVIO.chamadasMes : capForPlan(await getPlanForUser(userId))
+    return await usageCountersRepo.reserve(userId, METRICA.chamadas[modo], currentWindow(), cap)
   } catch (err) {
     falharFechado('quota_reserve_failed_closed', err)
   }
@@ -111,9 +131,9 @@ export async function reserveManagedCall(userId: UserId): Promise<boolean> {
  * indisponibilidade do provedor consumiria a quota do usuário sem entregar nada.
  * Erro só loga — o estorno é best-effort e não deve afetar a resposta.
  */
-export async function refundManagedCall(userId: UserId): Promise<void> {
+export async function refundManagedCall(userId: UserId, modo: ModoDaCota = 'plano'): Promise<void> {
   try {
-    await usageCountersRepo.refund(userId, METRIC_MANAGED, currentWindow())
+    await usageCountersRepo.refund(userId, METRICA.chamadas[modo], currentWindow())
   } catch (err) {
     /*
      * F5-04: era `console.warn`, ou seja, texto solto que ninguém agrega. E este evento é de
@@ -153,19 +173,28 @@ export function capSegundosParaPlano(plan: PlanoEfetivo): number {
  *
  * Falha FECHADA como as outras reservas: erro de infra lança `ContadorIndisponivel`.
  */
-export async function reservarSegundosDeStt(userId: UserId, segundos: number): Promise<boolean> {
+export async function reservarSegundosDeStt(
+  userId: UserId,
+  segundos: number,
+  modo: ModoDaCota = 'plano',
+): Promise<boolean> {
   try {
-    const cap = capSegundosParaPlano(await getPlanForUser(userId))
-    return await usageCountersRepo.reserve(userId, METRIC_STT_SEGUNDOS, currentWindow(), cap, segundos)
+    const cap =
+      modo === 'alivio' ? FRANQUIA_DE_ALIVIO.sttSegundosMes : capSegundosParaPlano(await getPlanForUser(userId))
+    return await usageCountersRepo.reserve(userId, METRICA.segundos[modo], currentWindow(), cap, segundos)
   } catch (err) {
     falharFechado('quota_seconds_failed_closed', err)
   }
 }
 
 /** Estorna segundos reservados que não viraram transcrição (o provedor recusou ou caiu). */
-export async function estornarSegundosDeStt(userId: UserId, segundos: number): Promise<void> {
+export async function estornarSegundosDeStt(
+  userId: UserId,
+  segundos: number,
+  modo: ModoDaCota = 'plano',
+): Promise<void> {
   try {
-    await usageCountersRepo.refund(userId, METRIC_STT_SEGUNDOS, currentWindow(), segundos)
+    await usageCountersRepo.refund(userId, METRICA.segundos[modo], currentWindow(), segundos)
   } catch (err) {
     log('warn', { event: 'quota_seconds_refund_failed', error: String(err).slice(0, 120) })
   }
@@ -197,12 +226,16 @@ export function estimarTokens(caracteresDoPrompt: number, maxTokens: number): nu
  * reservas: decidir e contabilizar na MESMA instrução. `false` = não cabe no teto do mês.
  * Falha de infra → `ContadorIndisponivel`.
  */
-export async function reservarTokensDeLlm(userId: UserId, estimativa: number): Promise<boolean> {
+export async function reservarTokensDeLlm(
+  userId: UserId,
+  estimativa: number,
+  modo: ModoDaCota = 'plano',
+): Promise<boolean> {
   try {
-    const cap = capTokensParaPlano(await getPlanForUser(userId))
+    const cap = modo === 'alivio' ? FRANQUIA_DE_ALIVIO.tokensMes : capTokensParaPlano(await getPlanForUser(userId))
     return await usageCountersRepo.reserve(
       userId,
-      METRIC_LLM_TOKENS,
+      METRICA.tokens[modo],
       currentWindow(),
       cap,
       Math.max(1, Math.round(estimativa)),
@@ -217,12 +250,18 @@ export async function reservarTokensDeLlm(userId: UserId, estimativa: number): P
  * gastou mais do que a estimativa (raro — o `max_tokens` limita a saída), soma a diferença. Com
  * `reais = 0` é o estorno total de uma chamada que não aconteceu. Best-effort: só loga.
  */
-export async function acertarTokensDeLlm(userId: UserId, reservados: number, reais: number): Promise<void> {
+export async function acertarTokensDeLlm(
+  userId: UserId,
+  reservados: number,
+  reais: number,
+  modo: ModoDaCota = 'plano',
+): Promise<void> {
   const diferenca = Math.round(reservados) - Math.round(Number.isFinite(reais) ? Math.max(0, reais) : 0)
   if (diferenca === 0) return
+  const metrica = METRICA.tokens[modo]
   try {
-    if (diferenca > 0) await usageCountersRepo.refund(userId, METRIC_LLM_TOKENS, currentWindow(), diferenca)
-    else await usageCountersRepo.increment(userId, METRIC_LLM_TOKENS, currentWindow(), -diferenca)
+    if (diferenca > 0) await usageCountersRepo.refund(userId, metrica, currentWindow(), diferenca)
+    else await usageCountersRepo.increment(userId, metrica, currentWindow(), -diferenca)
   } catch (err) {
     log('warn', { event: 'llm_tokens_acerto_falhou', error: String(err).slice(0, 120) })
   }

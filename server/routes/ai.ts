@@ -11,9 +11,10 @@ import { portaDoStt, sttTranscribeProxy } from '../ai/sttProxy'
 import { credentialsRepo } from '../db/repositories/credentials'
 // F14-02: a leitura de env sai do handler e passa pelo inventario declarado em lib/config.
 import { sttDeNuvemConfigurado } from '../lib/config'
-import { hasEntitlement } from '../lib/entitlements'
+import { getPlanForUser, hasEntitlement } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
 import { flagLigada } from '../lib/flags'
+import { avaliarAlivio, pedeAlivio } from '../lib/nuvemDeAlivio'
 import { portaoDaNuvem } from '../lib/orcamentoDeIa'
 import { createCredentialSchema, idParamSchema, parseOr400 } from '../validation'
 
@@ -59,8 +60,19 @@ aiRouter.get('/stt/available', async (req, res) => {
        responder "disponível" com a nuvem fechada mandaria o roteador para um 503 no meio da captura. */
     /* Fase 7: o convidado só tem nuvem com a flag `nuvem_convidado` ligada (`server/lib/convidado.ts`). */
     const convidadoSemNuvem = req.convidado === true && !(await flagLigada(req, 'nuvem_convidado'))
-    const portao =
-      !convidadoSemNuvem && (await hasEntitlement(req.userId, 'managedCloudStt')) ? await portaoDaNuvem() : null
+    /* A NUVEM DE ALÍVIO (A10): a conta Grátis que aceitou a oferta pergunta com `x-nuvem-alivio: 1`,
+       e a resposta é o MESMO veredicto da porta (flag, perfil protegido, franquia, pool do dia) —
+       dizer "disponível" e recusar na primeira fala seria o defeito que esta rota existe para evitar. */
+    const alivio =
+      req.convidado !== true && pedeAlivio(req) && (await getPlanForUser(req.userId)) === 'free'
+        ? await avaliarAlivio(req)
+        : null
+    if (alivio && alivio.ok === false) {
+      res.status(501).json({ available: false, motivo: alivio.code })
+      return
+    }
+    const direito = alivio?.ok === true || (!convidadoSemNuvem && (await hasEntitlement(req.userId, 'managedCloudStt')))
+    const portao = direito ? await portaoDaNuvem() : null
     const ok = !!portao?.ok
     res
       .status(ok ? 200 : 501)

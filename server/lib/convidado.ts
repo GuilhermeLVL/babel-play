@@ -29,8 +29,9 @@
  * FALHA FECHADA, como as cotas: sem conseguir ler um contador, 503 `contador_indisponivel` e o
  * cliente cai no motor local.
  *
- * O `free` logado passa só pela trava 3: hoje ele não tem nuvem (o entitlement recusa antes); no dia
- * em que tiver, o pool já o inclui.
+ * O `free` logado passa só pela trava 3. Sem a oferta de alívio aceita, ele continua sem nuvem (o
+ * entitlement recusa depois); com ela (`x-nuvem-alivio: 1`, A10), as travas da NUVEM DE ALÍVIO vêm
+ * em seguida (`server/lib/nuvemDeAlivio.ts`) e o custo entregue soma no pool gratuito E no do alívio.
  */
 import { createHmac } from 'node:crypto'
 
@@ -48,6 +49,7 @@ import { limitesAntiabusoDoConvidado, parametrosDoPoolGratuito } from './config'
 import { getPlanForUser } from './entitlements'
 import { flagLigada } from './flags'
 import { log } from './logger'
+import { avaliarAlivio, pedeAlivio, registrarCustoDoAlivio, responderRecusaDoAlivio } from './nuvemDeAlivio'
 import { tetoDoMesUsd } from './orcamentoDeIa'
 import { responderErro } from './respostaDeErro'
 
@@ -152,6 +154,11 @@ function contadorIndisponivel(res: Response, err: unknown): void {
 export interface PortaGratuita {
   /** O plano resolvido (um só `getPlanForUser` por request). */
   plano: PlanoEfetivo
+  /**
+   * A conta Grátis aceitou a NUVEM DE ALÍVIO e passou pelas travas dela (A10): a chamada sai da
+   * franquia do alívio (modo `alivio` de `usageQuota.ts`) e entra na faixa `alivio` da admissão.
+   */
+  alivio?: boolean
   /** Soma o custo ESTIMADO (US$) da chamada entregue: pool do dia, convidado no mês, IP no dia. */
   registrarCusto(usd: number): Promise<void>
   /** A chamada não aconteceu: devolve a mensagem de tutor reservada. Best-effort. */
@@ -231,7 +238,27 @@ export async function abrirPortaGratuita(
       return null
     }
 
-    if (plano !== 'convidado') return { plano, registrarCusto: (usd) => somarGasto(usd, { agora }), estornar: semNada }
+    if (plano !== 'convidado') {
+      /* O alívio é só transcrição e tradução da captura; o tutor segue a regra do plano. */
+      if (!(plano === 'free' && recurso !== 'tutor' && pedeAlivio(req)))
+        return { plano, registrarCusto: (usd) => somarGasto(usd, { agora }), estornar: semNada }
+      /* A NUVEM DE ALÍVIO (A10): flag, perfil protegido, franquia do mês, pool do dia e reserva. */
+      const veredicto = await avaliarAlivio(req, agora)
+      if (veredicto.ok === false) {
+        responderRecusaDoAlivio(res, veredicto)
+        return null
+      }
+      const conta = req.userId
+      return {
+        plano,
+        alivio: true,
+        registrarCusto: async (usd) => {
+          await somarGasto(usd, { agora })
+          await registrarCustoDoAlivio(conta, usd, agora)
+        },
+        estornar: semNada,
+      }
+    }
 
     // 4) Tetos do convidado: US$ no mês (id) e US$ no dia (IP).
     const { ipUsdDia, ipTutorDia } = limitesAntiabusoDoConvidado()

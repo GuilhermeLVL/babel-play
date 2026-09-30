@@ -25,6 +25,7 @@ import { getEntitlementsForUser, getPlanForUser } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
 import { estadoDeProtecao, mascararEmail, validarNascimento } from '../lib/idade'
 import { log } from '../lib/logger'
+import { resumoDoAlivio } from '../lib/nuvemDeAlivio'
 import { portaoDaNuvem } from '../lib/orcamentoDeIa'
 import { responderErro } from '../lib/respostaDeErro'
 import { capDeArmazenamento, reconciliarSeVencido, usoDeArmazenamento } from '../lib/storageQuota'
@@ -397,11 +398,14 @@ meRouter.get('/uso', async (req, res) => {
   try {
     const plano = await getPlanForUser(req.userId)
     const janela = new Date().toISOString().slice(0, 7)
-    const [chamadas, segundos, tokens, portao] = await Promise.all([
+    const [chamadas, segundos, tokens, portao, alivio] = await Promise.all([
       usageCountersRepo.get(req.userId, METRIC_MANAGED, janela),
       usageCountersRepo.get(req.userId, METRIC_STT_SEGUNDOS, janela),
       usageCountersRepo.get(req.userId, METRIC_LLM_TOKENS, janela),
       portaoDaNuvem(),
+      /* A NUVEM DE ALÍVIO (A10) só existe para a conta Grátis; para os outros planos (e o convidado,
+         que tem o pool dele), `null`. */
+      plano === 'free' ? resumoDoAlivio(req) : null,
     ])
     const finito = (n: number): number | null => (Number.isFinite(n) ? n : null)
     res.json({
@@ -415,6 +419,10 @@ meRouter.get('/uso', async (req, res) => {
          não está respondendo. Só o estado e o motivo: o valor em dólares é do operador
          (`GET /api/admin/ia`), não de cada assinante. */
       iaDeNuvem: { disponivel: portao.ok, motivo: portao.motivo ?? null, mensagem: portao.mensagem ?? null },
+      /* O que resta da nuvem grátis de aparelho fraco, em segundos de TRANSCRIÇÃO (o menor entre os
+         segundos e o dólar que sobram): é o "restam X" da oferta. `disponivel` é o mesmo veredicto da
+         porta; o valor em dólar fica com o operador. */
+      alivio,
     })
   } catch (err) {
     res.status(500).json({ error: erroDeRota(err, { status: 500, event: 'me_route_error' }) })

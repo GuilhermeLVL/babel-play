@@ -15,8 +15,9 @@
  *   2. TOKEN BUCKET POR PROVEDOR E MODELO — capacidade = pedidos por minuto, reabastecido de forma
  *      contínua; ao lado, os tetos DIÁRIOS de pedidos e de tokens (UTC, como a Groq conta).
  *   3. PRIORIDADE POR PLANO, como LIMIAR sobre o saldo: o Pro alcança o bucket inteiro; o Essencial
- *      para quando sobra a reserva do Pro (20% por padrão); o convidado para na metade. Assim o
- *      pagante do plano de cima nunca encontra o bucket vazio por causa de quem paga menos.
+ *      para quando sobra a reserva do Pro (20% por padrão); o convidado para na metade; a nuvem de
+ *      alívio do Grátis (A10) só usa os 20% de cima — os 80% são de quem paga. Assim o pagante do
+ *      plano de cima nunca encontra o bucket vazio por causa de quem paga menos.
  *   4. O 429 DO PROVEDOR ALIMENTA O BUCKET: zera o saldo e bloqueia até o `Retry-After` dele. O
  *      provedor sabe mais do que o nosso contador (outra réplica, outro app na mesma organização).
  *
@@ -33,7 +34,7 @@ import { contarAdmissaoRecusada, registrarLeitorDeSaldo } from '../http/metricas
 import { configDeAdmissao, type LimitesDeModelo } from '../lib/config'
 
 export type TipoDeIa = 'stt' | 'llm'
-export type PlanoDeAdmissao = 'pro' | 'essencial' | 'convidado'
+export type PlanoDeAdmissao = 'pro' | 'essencial' | 'convidado' | 'alivio'
 export type MotivoDeRecusa = 'minuto' | 'dia' | 'tokens_dia' | 'provedor_limitou' | 'em_voo'
 
 export interface Recusa {
@@ -43,10 +44,19 @@ export interface Recusa {
 }
 
 /**
- * O plano da assinatura vira uma das três faixas de prioridade. `selfhost` é Pro: a chave é do
- * próprio dono. Todo o resto (free hoje, anônimo/convidado amanhã) é `convidado` — o seguro.
+ * A RESERVA DOS PAGANTES NA CAPACIDADE (A10): a nuvem de alívio do Grátis nunca alcança os 80% de
+ * baixo do balde (pedidos por minuto, por dia e tokens por dia). O dinheiro tem a mesma reserva, no
+ * pool do dia (`src/core/nuvemDeAlivio.ts`).
  */
-export function planoDeAdmissao(plan: string | undefined): PlanoDeAdmissao {
+export const PISO_DO_ALIVIO = 0.8
+
+/**
+ * O plano da assinatura vira uma das faixas de prioridade. `selfhost` é Pro: a chave é do próprio
+ * dono. A requisição da nuvem de alívio (A10: conta Grátis, oferta aceita, franquia conferida na porta)
+ * é `alivio`. Todo o resto (free sem alívio, anônimo/convidado) é `convidado` — o seguro.
+ */
+export function planoDeAdmissao(plan: string | undefined, alivio = false): PlanoDeAdmissao {
+  if (alivio) return 'alivio'
   if (plan === 'pro' || plan === 'selfhost') return 'pro'
   if (plan === 'essencial') return 'essencial'
   return 'convidado'
@@ -56,6 +66,7 @@ export function planoDeAdmissao(plan: string | undefined): PlanoDeAdmissao {
 export function pisoDoPlano(plano: PlanoDeAdmissao, reservaPro: number): number {
   if (plano === 'pro') return 0
   if (plano === 'essencial') return reservaPro
+  if (plano === 'alivio') return Math.max(PISO_DO_ALIVIO, reservaPro)
   return Math.max(0.5, reservaPro)
 }
 

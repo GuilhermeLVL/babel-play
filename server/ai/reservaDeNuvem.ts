@@ -11,9 +11,11 @@
 import type { Response } from 'express'
 
 import type { UserId } from '../lib/authContext'
+import { responderErro } from '../lib/respostaDeErro'
 import {
   acertarTokensDeLlm,
   ContadorIndisponivel,
+  type ModoDaCota,
   refundManagedCall,
   reservarTokensDeLlm,
   reserveManagedCall,
@@ -27,26 +29,42 @@ export function responderContadorIndisponivel(res: Response): void {
   })
 }
 
+/**
+ * A FRANQUIA DE ALÍVIO DO MÊS ACABOU (A10). É o 402 `quota_exceeded` de sempre — o cliente mostra o
+ * aviso FUNCIONAL de fim de cota ("a cota volta no dia 1º"), nunca uma oferta promocional —, com o
+ * `escopo` dizendo que foi a nuvem grátis, e não um plano, que acabou. Serve ao STT e ao LLM.
+ */
+export function responderFranquiaDeAlivioEsgotada(res: Response): void {
+  responderErro(
+    res,
+    402,
+    'A nuvem grátis deste mês acabou; o app segue no aparelho e ela volta no dia 1º.',
+    'quota_exceeded',
+    { escopo: 'alivio' },
+  )
+}
+
 export class ReservaDeLlm {
   private pendente = true
   constructor(
     private readonly userId: UserId,
     private readonly tokensReservados: number,
+    private readonly modo: ModoDaCota = 'plano',
   ) {}
 
   /** A chamada aconteceu: a reserva de chamada vira consumo e os tokens são acertados pelo real. */
   async consumir(tokensReais: number): Promise<void> {
     if (!this.pendente) return
     this.pendente = false
-    await acertarTokensDeLlm(this.userId, this.tokensReservados, tokensReais)
+    await acertarTokensDeLlm(this.userId, this.tokensReservados, tokensReais, this.modo)
   }
 
   /** A chamada NÃO aconteceu (provedor fora, erro): devolve as duas reservas. */
   async estornar(): Promise<void> {
     if (!this.pendente) return
     this.pendente = false
-    await refundManagedCall(this.userId)
-    await acertarTokensDeLlm(this.userId, this.tokensReservados, 0)
+    await refundManagedCall(this.userId, this.modo)
+    await acertarTokensDeLlm(this.userId, this.tokensReservados, 0, this.modo)
   }
 }
 
@@ -58,25 +76,29 @@ export async function abrirReservaDeLlm(
   userId: UserId,
   estimativaDeTokens: number,
   res: Response,
+  /** De que franquia sai a chamada: a do plano, ou a da nuvem de alívio do Grátis (A10). */
+  modo: ModoDaCota = 'plano',
 ): Promise<ReservaDeLlm | null> {
   try {
-    if (!(await reserveManagedCall(userId))) {
-      res.status(402).json({ error: 'limite mensal do plano atingido', code: 'quota_exceeded' })
+    if (!(await reserveManagedCall(userId, modo))) {
+      if (modo === 'alivio') responderFranquiaDeAlivioEsgotada(res)
+      else res.status(402).json({ error: 'limite mensal do plano atingido', code: 'quota_exceeded' })
       return null
     }
     let cabe: boolean
     try {
-      cabe = await reservarTokensDeLlm(userId, estimativaDeTokens)
+      cabe = await reservarTokensDeLlm(userId, estimativaDeTokens, modo)
     } catch (err) {
-      await refundManagedCall(userId)
+      await refundManagedCall(userId, modo)
       throw err
     }
     if (!cabe) {
-      await refundManagedCall(userId)
-      res.status(402).json({ error: 'limite mensal de IA de nuvem do plano atingido', code: 'quota_exceeded' })
+      await refundManagedCall(userId, modo)
+      if (modo === 'alivio') responderFranquiaDeAlivioEsgotada(res)
+      else res.status(402).json({ error: 'limite mensal de IA de nuvem do plano atingido', code: 'quota_exceeded' })
       return null
     }
-    return new ReservaDeLlm(userId, estimativaDeTokens)
+    return new ReservaDeLlm(userId, estimativaDeTokens, modo)
   } catch (err) {
     if (err instanceof ContadorIndisponivel) {
       responderContadorIndisponivel(res)

@@ -21,6 +21,7 @@ import { responderErro } from '../lib/respostaDeErro'
 import {
   ContadorIndisponivel,
   estornarSegundosDeStt,
+  type ModoDaCota,
   refundManagedCall,
   reservarSegundosDeStt,
   reserveManagedCall,
@@ -44,7 +45,7 @@ import {
   registrarFalha,
   registrarSucesso,
 } from './disjuntor'
-import { responderContadorIndisponivel } from './reservaDeNuvem'
+import { responderContadorIndisponivel, responderFranquiaDeAlivioEsgotada } from './reservaDeNuvem'
 import { assertPublicUrl, despachanteSeguro, type InitSeguro } from './ssrf'
 import { promptDoCabecalho, triarSegmentos } from './sttQualidade'
 import {
@@ -96,6 +97,8 @@ interface PortaDoStt {
   chamouProvedor: boolean
   /** Fase 7: as travas de convidado/free (pool do dia, tetos por id e por IP). */
   gratuita?: PortaGratuita
+  /** De que franquia saem a chamada e os segundos: a do plano, ou a da nuvem de alívio (A10). */
+  modo?: ModoDaCota
 }
 
 const portas = new WeakMap<Request, PortaDoStt>()
@@ -122,7 +125,11 @@ async function abrirPortaDoStt(req: Request, res: Response): Promise<PortaDoStt 
   const gratuita = await abrirPortaGratuita(req, res, 'stt')
   if (!gratuita) return null
   const plano = getEntitlements(gratuita.plano)
-  if (!plano.managedCloudStt) {
+  /* A NUVEM DE ALÍVIO (A10): a conta Grátis que aceitou a oferta e passou pelas travas dela
+     (`nuvemDeAlivio.ts`) usa o STT gerenciado pela franquia do alívio — o entitlement do plano
+     continua falso, e é por isso que ele não é consultado aqui. */
+  const alivio = gratuita.alivio === true
+  if (!plano.managedCloudStt && !alivio) {
     res.status(402).json({ error: 'STT de nuvem gerenciada requer um plano pago', entitlement: 'managedCloudStt' })
     return null
   }
@@ -137,7 +144,7 @@ async function abrirPortaDoStt(req: Request, res: Response): Promise<PortaDoStt 
     res.status(501).json({ error: 'STT de nuvem não configurado: defina GROQ_API_KEY no servidor (.env)' })
     return null
   }
-  const faixa = planoDeAdmissao(plano.plan)
+  const faixa = planoDeAdmissao(plano.plan, alivio)
   const provedor = nomeDoProvedor(cfg.baseUrl)
   const admissao = admitirChamada({ userId: req.userId, tipo: 'stt', provedor, modelo: cfg.model, plano: faixa })
   if (admissao.ok === false) {
@@ -155,6 +162,7 @@ async function abrirPortaDoStt(req: Request, res: Response): Promise<PortaDoStt 
     provedor,
     chamouProvedor: false,
     gratuita,
+    modo: alivio ? 'alivio' : 'plano',
   }
 }
 
@@ -205,11 +213,14 @@ async function transcrever(req: Request, res: Response, rastro: RastroDeIa): Pro
   /* A porta normalmente já rodou no middleware (antes do `raw()`); chamada direta ao handler — os
      testes, e qualquer montagem sem o middleware — passa por ela aqui. */
   let porta: PortaDoStt | undefined = portas.get(req)
+  /** A franquia desta requisição (A10): a do plano ou a do alívio. As duas reservas e os estornos seguem ela. */
+  let modo: ModoDaCota = 'plano'
   try {
     if (!porta) {
       porta = (await abrirPortaDoStt(req, res)) ?? undefined
       if (!porta) return
     }
+    modo = porta.modo ?? 'plano'
     const audioBuffer = req.body as Buffer | undefined
     if (!audioBuffer || !audioBuffer.length) {
       res.status(400).json({ error: 'corpo de áudio vazio' })
@@ -250,8 +261,9 @@ async function transcrever(req: Request, res: Response, rastro: RastroDeIa): Pro
       // Fair-use: RESERVA antes de chamar o provedor (P0-1 — conferir antes e contabilizar
       // depois deixava N requisições simultâneas passarem pelo mesmo teto). BYOK/local não
       // chegam aqui, então só o uso da chave do DONO consome quota.
-      if (!(await reserveManagedCall(req.userId))) {
-        res.status(402).json({ error: 'limite mensal do plano atingido', code: 'quota_exceeded' })
+      if (!(await reserveManagedCall(req.userId, modo))) {
+        if (modo === 'alivio') responderFranquiaDeAlivioEsgotada(res)
+        else res.status(402).json({ error: 'limite mensal do plano atingido', code: 'quota_exceeded' })
         return
       }
       reservaPendente = true
@@ -263,9 +275,10 @@ async function transcrever(req: Request, res: Response, rastro: RastroDeIa): Pro
          ~6 s o plano que promete 15 h entregava ~9 h de fala. O mínimo é custo do DONO: ele entra
          no orçamento global, logo abaixo, e não na cota de quem paga o plano. */
       segundosReservados = avaliacao.segundosDoUsuario
-      if (!(await reservarSegundosDeStt(req.userId, segundosReservados))) {
+      if (!(await reservarSegundosDeStt(req.userId, segundosReservados, modo))) {
         segundosReservados = 0
-        res.status(402).json({ error: 'limite mensal de áudio do plano atingido', code: 'quota_exceeded' })
+        if (modo === 'alivio') responderFranquiaDeAlivioEsgotada(res)
+        else res.status(402).json({ error: 'limite mensal de áudio do plano atingido', code: 'quota_exceeded' })
         return
       }
       secret = porta.secret ?? null
@@ -562,8 +575,8 @@ async function transcrever(req: Request, res: Response, rastro: RastroDeIa): Pro
     if (porta) fecharPorta(porta)
     // As duas reservas caem juntas: cobrar segundos por uma transcrição que não aconteceu é o
     // mesmo defeito que cobrar a chamada.
-    if (reservaPendente) await refundManagedCall(req.userId)
-    if (segundosReservados > 0) await estornarSegundosDeStt(req.userId, segundosReservados)
+    if (reservaPendente) await refundManagedCall(req.userId, modo)
+    if (segundosReservados > 0) await estornarSegundosDeStt(req.userId, segundosReservados, modo)
   }
 }
 

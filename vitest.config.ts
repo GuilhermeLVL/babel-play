@@ -1,5 +1,5 @@
-import { defineConfig } from 'vitest/config';
-import path from 'path';
+import { defineConfig } from 'vitest/config'
+import path from 'path'
 
 export default defineConfig({
   test: {
@@ -12,6 +12,16 @@ export default defineConfig({
      * ORDEM de atualização de estado dentro do React.
      */
     include: ['tests/**/*.test.ts', 'tests/**/*.test.tsx'],
+    /*
+     * O PRAZO POR TESTE (30/09/2026). O padrão do vitest é 5 s, e o `verify` do CI roda a suíte
+     * inteira em paralelo e com a cobertura v8 ligada — o que deixa cada teste várias vezes mais
+     * lento que aqui. Testes de tela que montam uma aba inteira passavam dos 5 s sem estar travados
+     * (medido: "o tema pinta o app só até Parar prévia" é síncrono e leva 1,2 s sozinho; no CI
+     * estourou os 5 s), e falhavam em PRs que não os tocavam. O prazo não afrouxa asserção nenhuma:
+     * um teste travado continua falhando, só mais tarde.
+     */
+    testTimeout: 20_000,
+    hookTimeout: 20_000,
     /* Padrão `node`: os testes puros não precisam de DOM e pagariam o custo do jsdom à toa. Quem
        precisa declara `// @vitest-environment jsdom` no topo do arquivo. */
     environment: 'node',
@@ -54,4 +64,4 @@ export default defineConfig({
       '@gateway': path.resolve(__dirname, 'src/gateway'),
     },
   },
-});
+})

@@ -12,15 +12,62 @@
  * 5. Venda pausada: o cartão mostra "Vendas reabrem em breve", desabilitado.
  * 6. A confirmação e "Sua assinatura" mostram a PRÓXIMA COBRANÇA do Asaas, não o fim da graça.
  */
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, configure, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+
+/*
+ * OS PRAZOS DESTE ARQUIVO. Cada teste reimporta a tela do zero (`vi.resetModules()` no `afterEach`,
+ * `await import(...)` no teste), e montar o Checkout com a CPU disputada — o CI roda com a cobertura
+ * v8 — passava do 1 s padrão do `findBy`/`waitFor` e dos 5 s por teste: o arquivo falhava em PRs sem
+ * relação, cada vez num passo diferente (reproduzido aqui com a CPU cheia). O prazo não afrouxa
+ * nenhuma asserção: só espera o que já ia acontecer.
+ */
+configure({ asyncUtilTimeout: 15_000 })
+vi.setConfig({ testTimeout: 30_000 })
+
+/*
+ * OS SIMULADOS DA API E DA IDADE, REGISTRADOS UMA VEZ SÓ. Eram `vi.doMock` por teste, com
+ * `vi.doUnmock` + `vi.resetModules()` no `afterEach` — e, com a CPU disputada, um `import()` que o
+ * teste anterior deixou no ar terminava DEPOIS do reset e gravava o módulo REAL no cache novo; o
+ * `doMock` do teste seguinte não substitui o que já está em cache, e a tela chamava o
+ * `declararNascimento` de verdade ("não consegui falar com o servidor"). Com `vi.mock` todo import,
+ * atrasado ou não, recebe o simulado, que delega para o que o teste corrente pediu (sem pedido, o
+ * módulo real — como antes).
+ */
+type Delegado = (...a: never[]) => unknown
+const simulado = vi.hoisted(() => ({
+  apiFetch: null as null | ((url: string, init?: RequestInit) => Promise<unknown>),
+  idade: null as null | Record<string, Delegado>,
+}))
+vi.mock('../src/data/api', async (original) => {
+  const real = await original<typeof import('../src/data/api')>()
+  return {
+    ...real,
+    apiFetch: (url: string, init?: RequestInit) =>
+      simulado.apiFetch ? simulado.apiFetch(url, init) : real.apiFetch(url, init),
+  }
+})
+vi.mock('../src/data/rotas/idade', async (original) => {
+  const real = await original<typeof import('../src/data/rotas/idade')>()
+  const via =
+    (nome: 'lerAbertura' | 'declararNascimento' | 'carregarProtecao' | 'ehFalha') =>
+    (...a: unknown[]) =>
+      ((simulado.idade?.[nome] ?? real[nome]) as (...b: unknown[]) => unknown)(...a)
+  return {
+    ...real,
+    lerAbertura: via('lerAbertura'),
+    declararNascimento: via('declararNascimento'),
+    carregarProtecao: via('carregarProtecao'),
+    ehFalha: via('ehFalha'),
+  }
+})
 
 afterEach(() => {
   cleanup()
   vi.resetModules()
   vi.restoreAllMocks()
-  vi.doUnmock('../src/data/api')
-  vi.doUnmock('../src/data/rotas/idade')
+  simulado.apiFetch = null
+  simulado.idade = null
   localStorage.clear()
   sessionStorage.clear()
   window.history.replaceState({}, '', '/')
@@ -31,19 +78,17 @@ type Rota = unknown | ((init?: RequestInit) => { status: number; corpo: unknown 
 
 function mockApi(rotas: Record<string, Rota>) {
   const chamadas: { url: string; init?: RequestInit }[] = []
-  vi.doMock('../src/data/api', () => ({
-    apiFetch: vi.fn(async (url: string, init?: RequestInit): Promise<Resposta> => {
-      chamadas.push({ url, init })
-      const chave = Object.keys(rotas).find((k) => url.includes(k))
-      if (!chave) return { ok: false, status: 404, json: async () => ({}) }
-      const r = rotas[chave]
-      if (typeof r === 'function') {
-        const { status, corpo } = (r as (i?: RequestInit) => { status: number; corpo: unknown })(init)
-        return { ok: status < 400, status, json: async () => corpo }
-      }
-      return { ok: true, status: 200, json: async () => r }
-    }),
-  }))
+  simulado.apiFetch = vi.fn(async (url: string, init?: RequestInit): Promise<Resposta> => {
+    chamadas.push({ url, init })
+    const chave = Object.keys(rotas).find((k) => url.includes(k))
+    if (!chave) return { ok: false, status: 404, json: async () => ({}) }
+    const r = rotas[chave]
+    if (typeof r === 'function') {
+      const { status, corpo } = (r as (i?: RequestInit) => { status: number; corpo: unknown })(init)
+      return { ok: status < 400, status, json: async () => corpo }
+    }
+    return { ok: true, status: 200, json: async () => r }
+  })
   return chamadas
 }
 
@@ -63,12 +108,12 @@ function mockIdade(o: { checkout?: boolean; faixaDeclarada?: 'adulto' | '16-17' 
     definirProtecao(estado)
     return { ok: true as const, estado, nascimento }
   })
-  vi.doMock('../src/data/rotas/idade', () => ({
+  simulado.idade = {
     lerAbertura: async () => ({ cadastro: true, checkout: o.checkout ?? true }),
-    declararNascimento: declarar,
+    declararNascimento: declarar as Delegado,
     carregarProtecao: async () => null,
-    ehFalha: (r: { ok: boolean }) => r.ok === false,
-  }))
+    ehFalha: ((r: { ok: boolean }) => r.ok === false) as Delegado,
+  }
   return declarar
 }
 
@@ -179,7 +224,7 @@ describe('3. voltar da aba do Asaas', () => {
    data e o aviso do responsável) depois de reimportar o Checkout inteiro (`vi.resetModules`). Na suíte
    cheia do CI, com 700 arquivos disputando a máquina, o teste estourava os 5 s antes de as esperas
    dele acabarem (30/09/2026) — o limite do teste tem de caber as esperas que ele mesmo declara. */
-describe('4. a idade ali mesmo', { timeout: 20_000 }, () => {
+describe('4. a idade ali mesmo', () => {
   const idadeFaltando = (init?: RequestInit) => {
     void init
     return {
@@ -236,13 +281,11 @@ describe('4. a idade ali mesmo', { timeout: 20_000 }, () => {
     )
     fireEvent.click(screen.getByRole('button', { name: /Ir para o pagamento/ }))
     await preencherEPagar()
-    fireEvent.change(await screen.findByLabelText('Data de nascimento', {}, { timeout: 5000 }), {
+    fireEvent.change(await screen.findByLabelText('Data de nascimento'), {
       target: { value: '2010-01-01' },
     })
     fireEvent.click(screen.getByRole('button', { name: /Assinar e pagar/ }))
-    expect(
-      await screen.findByRole('heading', { name: 'Quem assina é o seu responsável' }, { timeout: 5000 }),
-    ).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: 'Quem assina é o seu responsável' })).toBeTruthy()
     expect(chamadas.filter((c) => c.url === '/api/billing/assinar')).toHaveLength(1)
     const { definirProtecao } = await import('../src/lib/protecaoDoMenor')
     definirProtecao(null)

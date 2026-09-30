@@ -217,8 +217,12 @@ test('Caça-palavras: marca por toque (celular) ou por teclado (desktop)', async
   const lado = Math.round(Math.sqrt(n));
   const letras = await textos(celulas);
   const G = (l: number, c: number) => letras[l * lado + c];
-  const achar = (w: string) => {
+  /** Todas as ocorrências da palavra na grade, como [início, fim]; o mesmo traço lido nos dois
+   *  sentidos (palíndromo) conta uma vez. */
+  const ocorrencias = (w: string) => {
     const W = w.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^A-Z]/g, '');
+    const achadas = new Map<string, readonly [number, number]>();
+    if (!W) return [];
     for (let l = 0; l < lado; l++)
       for (let c = 0; c < lado; c++)
         for (const [dl, dc] of [[0, 1], [1, 0], [1, 1], [-1, 1], [0, -1], [-1, 0], [-1, -1], [1, -1]]) {
@@ -228,17 +232,24 @@ test('Caça-palavras: marca por toque (celular) ou por teclado (desktop)', async
             const C = c + dc * k;
             if (L < 0 || C < 0 || L >= lado || C >= lado || G(L, C) !== W[k]) ok = false;
           }
-          if (ok) return [l * lado + c, (l + dl * (W.length - 1)) * lado + c + dc * (W.length - 1)] as const;
+          if (!ok) continue;
+          const [a, b] = [l * lado + c, (l + dl * (W.length - 1)) * lado + c + dc * (W.length - 1)];
+          achadas.set(a < b ? `${a}-${b}` : `${b}-${a}`, [a, b] as const);
         }
-    return null;
+    return [...achadas.values()];
   };
   const pistas = await textos(page.locator('[data-tour="pistas"] li > span:first-child'));
   const achadas = () => page.locator('[data-tour="pistas"] li [aria-label="encontrada"]').count();
   let primeira = true;
   for (const p of pistas) {
-    let pos: readonly [number, number] | null = null;
-    for (const w of palavrasDe(p)) if ((pos = achar(w))) break;
-    if (!pos) continue;
+    /* A grade é sorteada, e a sequência de letras de uma palavra pode aparecer também POR ACASO no
+       preenchimento. O jogo só aceita as pontas de onde a palavra foi COLOCADA; marcar a outra
+       ocorrência não conta (0,7% das grades, medido com o gerador). A marcação conferida usa só a
+       pista cuja palavra aparece uma vez só na grade; as outras seguem pela primeira ocorrência e
+       o que não casar sai no "Revelar" do fim. */
+    const todas = palavrasDe(p).flatMap(ocorrencias);
+    if (primeira ? todas.length !== 1 : todas.length === 0) continue;
+    const pos = todas[0];
     const antes = await achadas();
     const [a, b] = [celulas.nth(pos[0]), celulas.nth(pos[1])];
     if (primeira && info.project.name.startsWith('mobile')) {
@@ -394,7 +405,12 @@ test('Choseong: quando o tempo acaba, a resposta aparece', async ({ page }) => {
   await expect(aviso, 'o tempo da 1ª palavra acaba e a resposta aparece').toBeVisible({ timeout: 25_000 });
   const revelada = await aviso.locator('b').innerText();
   expect(revelada.trim().length).toBeGreaterThan(0);
-  for (let v = 0; v < 12 && !(await terminou(page)); v++) {
+  /* PRAZO, não número de voltas: cada espera de 400 ms pelo aviso (1,8 s por palavra) gastava uma
+     volta, e uma palavra fora do dicionário gasta o relógio inteiro (15 s). Com 12 voltas a rodada de
+     8 palavras podia sobrar para o `chegarAoResultado`, que só espera ~36 s — a falha do e2e-estatica
+     do #51. O pior caso (8 × (15 s + 1,8 s) ≈ 135 s) cabe no prazo, e o teste é `slow`. */
+  const prazo = Date.now() + 200_000;
+  while (Date.now() < prazo && !(await terminou(page))) {
     const pista = page.locator('[data-tour="pista"]');
     if (!(await pista.isVisible().catch(() => false)) || (await aviso.isVisible().catch(() => false))) {
       await page.waitForTimeout(400);

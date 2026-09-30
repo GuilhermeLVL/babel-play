@@ -53,4 +53,4 @@ europeu o bastante; para quem aprende no Brasil, isso importa.
    rápido, saída em inglês — sem o problema do europeu).
 4. **Tradução en→pt:** fica o opus-mt (gold de conversa não pode piorar; europeu no Bergamot).
 5. **TAGARELA:** não entra (dados de treino não comerciais).
-6. **Nuvem (Cloudflare Workers AI, DeepInfra):** aguardam as chaves do dono.
+6. **Nuvem (Cloudflare Workers AI, DeepInfra, Cerebras):** a bancada está pronta (B5, [`bancada-nuvem.md`](bancada-nuvem.md)) e aguarda as chaves do dono.

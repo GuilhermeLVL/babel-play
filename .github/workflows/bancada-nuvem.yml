@@ -11,7 +11,7 @@ name: Bancada de nuvem (B5)
 # RESERVA o pior caso de cada chamada antes de ela sair (max_tokens inteiro de saída, 1 token por
 # caractere de entrada, o mínimo faturado do STT) e recusa a que passaria do teto: a bancada para
 # ANTES de passar, não depois. O runner começa sem `gasto.json`, então o teto é desta execução, e as
-# etapas somam no mesmo arquivo. Estimativa da execução completa pela tabela: ~US$ 1,5.
+# etapas somam no mesmo arquivo. Estimativa da execução completa pela tabela: ~US$ 1 (MT ~0,80; STT ~0,21).
 #
 # SEGREDOS DO REPOSITÓRIO (Settings → Secrets and variables → Actions). O que faltar é PULADO com
 # aviso — sem nenhum, a execução inteira é um ensaio de US$ 0:

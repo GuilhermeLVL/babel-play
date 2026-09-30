@@ -58,16 +58,55 @@ export function isTtsSupported(): boolean {
 // acabou de falar)" para o pipeline de captura DESCARTAR o próprio eco.
 let ttsActiveCount = 0;
 let ttsLastEndTs = 0;
-function markTtsStart(): void { ttsActiveCount++; }
-function markTtsEnd(): void { ttsActiveCount = Math.max(0, ttsActiveCount - 1); ttsLastEndTs = performance.now(); }
+/* A FALA DE FORA do `speechSynthesis` (a voz natural da nuvem, E5 da Fase E) conta à parte: o
+   `cancel()` do motor nativo zera o contador dele, e não pode apagar um áudio que outro motor toca. */
+let falasExternas = 0;
+/** Depois deste instante a cauda do ÚLTIMO fim não vale mais (`cortarCaudaDoEco`, o barge-in). */
+let caudaCortadaAte = 0;
+function markTtsStart(): void {
+  ttsActiveCount++;
+}
+function markTtsEnd(): void {
+  ttsActiveCount = Math.max(0, ttsActiveCount - 1);
+  ttsLastEndTs = performance.now();
+}
 
 /**
  * true enquanto o TTS fala e por `tailMs` depois do fim (o eco chega com atraso de
  * buffer/decodificação). Consumido pelo LiveCapture para suprimir o próprio áudio.
  */
 export function isTtsActive(tailMs = 800): boolean {
-  if (ttsActiveCount > 0) return true;
-  return ttsLastEndTs > 0 && performance.now() - ttsLastEndTs < tailMs;
+  if (ttsActiveCount > 0 || falasExternas > 0) return true;
+  if (ttsLastEndTs <= 0) return false;
+  const fimDaCauda =
+    caudaCortadaAte > ttsLastEndTs ? Math.min(ttsLastEndTs + tailMs, caudaCortadaAte) : ttsLastEndTs + tailMs;
+  return performance.now() < fimDaCauda;
+}
+
+/**
+ * Uma fala que NÃO passa pelo `speechSynthesis` começou a tocar (o áudio da voz natural): o guarda
+ * de eco vale até a função devolvida ser chamada, e pela cauda depois. O fim é idempotente — chamar
+ * duas vezes não desconta outra fala em curso.
+ */
+export function marcarFalaExterna(): () => void {
+  falasExternas++;
+  let terminou = false;
+  return () => {
+    if (terminou) return;
+    terminou = true;
+    falasExternas = Math.max(0, falasExternas - 1);
+    ttsLastEndTs = performance.now();
+  };
+}
+
+/**
+ * BARGE-IN: a pessoa interrompeu a voz para falar. A cauda de 800 ms protege do eco do áudio que ainda
+ * sai do alto-falante, mas depois de um corte o que resta no buffer é curto — e a fala de quem tocou
+ * logo em seguida seria descartada como eco. Encurta a cauda do fim ATUAL para `restanteMs`; uma fala
+ * que termine depois tem a cauda inteira.
+ */
+export function cortarCaudaDoEco(restanteMs = 150): void {
+  caudaCortadaAte = performance.now() + Math.max(0, restanteMs);
 }
 
 // Cache de vozes: `getVoices()` costuma vir vazio no 1º acesso e popular via
@@ -92,7 +131,7 @@ export function pickVoice(lang: string, preferredName?: string): SpeechSynthesis
   const voices = getVoices();
   if (!voices.length) return null;
   if (preferredName) {
-    const named = voices.find(v => v.name === preferredName);
+    const named = voices.find((v) => v.name === preferredName);
     if (named) return named;
   }
   const want = (lang || '').toLowerCase();
@@ -100,10 +139,10 @@ export function pickVoice(lang: string, preferredName?: string): SpeechSynthesis
   const inLang = (v: SpeechSynthesisVoice) => v.lang.toLowerCase().replace('_', '-');
   return (
     // 1) região exata + neural   2) região exata   3) mesmo idioma + neural   4) mesmo idioma
-    voices.find(v => inLang(v) === want && isNeuralVoice(v)) ||
-    voices.find(v => inLang(v) === want) ||
-    voices.find(v => inLang(v).startsWith(base) && isNeuralVoice(v)) ||
-    voices.find(v => inLang(v).startsWith(base)) ||
+    voices.find((v) => inLang(v) === want && isNeuralVoice(v)) ||
+    voices.find((v) => inLang(v) === want) ||
+    voices.find((v) => inLang(v).startsWith(base) && isNeuralVoice(v)) ||
+    voices.find((v) => inLang(v).startsWith(base)) ||
     null
   );
 }
@@ -156,10 +195,10 @@ export function voicesByLang(): Map<string, VoiceInfo[]> {
   }
   for (const list of out.values()) {
     // Neural primeiro; depois locais (offline); depois alfabética.
-    list.sort((a, b) =>
-      Number(b.neural) - Number(a.neural) ||
-      Number(b.local) - Number(a.local) ||
-      a.name.localeCompare(b.name));
+    list.sort(
+      (a, b) =>
+        Number(b.neural) - Number(a.neural) || Number(b.local) - Number(a.local) || a.name.localeCompare(b.name),
+    );
   }
   return out;
 }
@@ -249,7 +288,9 @@ export function setVoicePref(lang: string, voiceName: string): void {
     localStorage.setItem(VOICE_PREFS_KEY, JSON.stringify(prefs));
     // Barramento de reatividade (mesmo padrão do layoutStore) — as telas abertas se atualizam.
     window.dispatchEvent(new CustomEvent('babel_voice_prefs_changed', { detail: prefs }));
-  } catch { /* storage cheio/bloqueado, a fala continua funcionando, só não persiste */ }
+  } catch {
+    /* storage cheio/bloqueado, a fala continua funcionando, só não persiste */
+  }
 }
 
 /** Escuta mudanças na preferência de voz. Devolve o unsubscribe. */
@@ -297,9 +338,18 @@ class NativeTts implements TtsEngine {
       u.voice = voice;
       u.lang = voice.lang;
     }
-    u.onstart = () => { markTtsStart(); opts.onStart?.(); };
-    u.onend = () => { markTtsEnd(); opts.onEnd?.(); };
-    u.onerror = () => { markTtsEnd(); opts.onError?.(); };
+    u.onstart = () => {
+      markTtsStart();
+      opts.onStart?.();
+    };
+    u.onend = () => {
+      markTtsEnd();
+      opts.onEnd?.();
+    };
+    u.onerror = () => {
+      markTtsEnd();
+      opts.onError?.();
+    };
     synth.speak(u);
   }
   cancel(): void {
@@ -360,8 +410,8 @@ function avisarSemVoz(lang: string): void {
 
 export const nativeTts: TtsEngine = new NativeTts();
 
-// SEAM: hoje o motor é o nativo; `setTtsEngine` permite trocar por um NeuralTts
-// (nuvem) no futuro sem tocar em quem chama `speak()`.
+// SEAM: o motor padrão é o nativo; `setTtsEngine` troca por outro (a voz natural da nuvem,
+// `lib/voz/vozDaNuvem.ts`) sem tocar em quem chama `speak()`.
 let engine: TtsEngine = nativeTts;
 export function setTtsEngine(e: TtsEngine): void {
   engine = e;

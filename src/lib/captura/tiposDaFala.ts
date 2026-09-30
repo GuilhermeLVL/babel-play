@@ -85,6 +85,13 @@ export const UNKNOWN_VOICE_COLOR = '#64748B';
 /** Cenário de captura: a intenção do usuário decide fontes, rótulos e painéis. */
 export type CaptureScenario = 'media' | 'conversation' | 'mic';
 
+/**
+ * A METADE DA TELA no modo intérprete (Fase E): `meu` é a metade virada para quem segura o aparelho;
+ * `outro`, a metade virada 180° para a outra pessoa. Cada metade tem o seu botão de falar e o seu
+ * idioma (`interprete.ts`, `direcaoDoLado`).
+ */
+export type LadoDoInterprete = 'meu' | 'outro';
+
 /** mm:ss a partir de segundos — o carimbo de tempo de cada fala e o cronômetro da sessão. */
 export const formatTime = (s: number) => {
   const mins = Math.floor(s / 60);

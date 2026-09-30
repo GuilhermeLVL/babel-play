@@ -279,7 +279,6 @@ export default function ModoInterprete({
         </span>
         <button type="button" className="int-ib peq" onClick={sair} aria-label={t('Sair do modo intérprete')}>
           <X aria-hidden />
-          {computador && <kbd aria-hidden>Esc</kbd>}
         </button>
       </div>
       {computador ? metade('outro') : metade('meu')}

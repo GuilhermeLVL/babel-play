@@ -2579,8 +2579,9 @@ export default function LiveCapture({
     handleStartOrResume();
     if (isRecordingRef.current) setIsRecording(true);
   };
-  /** O par do intérprete: dois idiomas declarados e diferentes (sem "Detectar"). */
-  const interpretePossivel = !ladosDoPar[0].auto && !ladosDoPar[1].auto && !mesmoIdioma;
+  /** O par do intérprete: dois idiomas diferentes. Com "Detectar", vale o idioma que está por baixo
+      dele: no intérprete cada lado DECLARA o seu, e o microfone abre nele. */
+  const interpretePossivel = !mesmoIdioma;
   /** A entrada (celular e cabeçalho do computador): a mesma folha do início, se houver o que decidir. */
   const entrarNoInterprete = () => {
     if (abrindoCaptura || isRecordingRef.current || !interpretePossivel) return;

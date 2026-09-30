@@ -12,10 +12,17 @@
  * cobrança não tem pausa).
  *
  * MATRIZ V2 (ADR 0011): um plano pago só, o Premium. O ciclo (mensal ou anual) vem do servidor; o
- * checkout do anual e do 12x é o C5. O nome antigo (`essencial`/`pro`) de um servidor anterior é lido
- * como o Premium (`planoPagoDe`).
+ * checkout escolhe entre o mensal, o anual em uma vez e o anual em 12x no cartão (C5). O nome antigo
+ * (`essencial`/`pro`) de um servidor anterior é lido como o Premium (`planoPagoDe`).
  */
-import { type CicloDeCobranca, ehPlanoPago as ehPlanoPagoDaMatriz, normalizarPlano, PLAN_MATRIX } from '../core/planos';
+import {
+  type CicloDeCobranca,
+  ehPlanoPago as ehPlanoPagoDaMatriz,
+  normalizarPlano,
+  PARCELAS_DO_ANUAL,
+  PLAN_MATRIX,
+  valoresDasParcelas,
+} from '../core/planos';
 import { apiFetch } from '../data/api';
 import type { Plan } from './entitlements';
 
@@ -40,6 +47,11 @@ export interface StatusDeBilling {
     ciclo?: CicloDeCobranca;
     /** O fluxo do Asaas que cobra (`assinatura`, `parcelamento`, `pix_automatico`); `null` = admin. */
     meio?: string | null;
+    /**
+     * Renova sozinha? Só a assinatura ativa (mensal ou anual `YEARLY`); o 12x acaba na 12ª parcela e
+     * a cancelada não renova. Ausente em servidor anterior ao C5.
+     */
+    renovacaoAutomatica?: boolean;
   } | null;
   /**
    * A PRÓXIMA COBRANÇA (`AAAA-MM-DD`, o `nextDueDate` do Asaas) — só para assinatura ativa, e só
@@ -139,6 +151,33 @@ export function definirBeneficiario(b: Beneficiario | null): void {
 /** Preço mensal do plano, da matriz — nunca escrito à mão numa tela. */
 export const precoMensal = (p: PlanoPago): number => PLAN_MATRIX[p].precoMensalBrl ?? 0;
 
+/** Preço do ANO, da matriz (à vista na assinatura anual, ou o total do 12x). */
+export const precoAnual = (p: PlanoPago): number => PLAN_MATRIX[p].precoAnualBrl ?? 0;
+
+/**
+ * AS FORMAS DE PAGAR que o checkout oferece (C5): o mensal recorrente, o anual em uma vez (assinatura
+ * `YEARLY`, que renova em um ano) e o anual em 12x no cartão (parcelamento, sem renovação automática).
+ * O Pix Automático fica de fora enquanto a conta do serviço não for elegível (ver o servidor).
+ */
+export type FormaDeAssinar = 'mensal' | 'anual' | 'anual_12x';
+export const FORMAS_DE_ASSINAR: readonly FormaDeAssinar[] = ['mensal', 'anual', 'anual_12x'];
+
+/** O que o servidor recebe de cada forma: o ciclo e o fluxo do Asaas que cobra. */
+export function cobrancaDaForma(f: FormaDeAssinar): { ciclo: CicloDeCobranca; meio: 'assinatura' | 'parcelamento' } {
+  if (f === 'mensal') return { ciclo: 'mensal', meio: 'assinatura' };
+  return { ciclo: 'anual', meio: f === 'anual_12x' ? 'parcelamento' : 'assinatura' };
+}
+
+/**
+ * As parcelas do 12x COMO O ASAAS AS COBRA — ele trunca e joga a diferença na última (11 × R$ 14,91
+ * + R$ 14,99 = R$ 179). A tela mostra as duas: prometer "12x de R$ 14,91" seria um centavo a menos
+ * por mês do que a última parcela cobra.
+ */
+export const parcelasDoAnual = (p: PlanoPago): { padrao: number; ultima: number; quantidade: number } => ({
+  ...valoresDasParcelas(precoAnual(p), PARCELAS_DO_ANUAL),
+  quantidade: PARCELAS_DO_ANUAL,
+});
+
 /** "R$ 19,90" — a formatação do protótipo (`brl`). */
 export const brl = (v: number): string => 'R$ ' + v.toFixed(2).replace('.', ',');
 
@@ -196,6 +235,9 @@ export async function iniciarAssinatura(dados: {
   email?: string;
   /** O responsável assinando pelo menor vinculado (Fase 4): a assinatura nasce na conta dele. */
   paraUsuario?: string;
+  /** C5: sem os dois, o servidor cria o mensal recorrente de sempre. */
+  ciclo?: CicloDeCobranca;
+  meio?: 'assinatura' | 'parcelamento';
 }): Promise<{ link: string | null; erro?: string; codigo?: string }> {
   try {
     const r = await apiFetch('/api/billing/assinar', {

@@ -19,12 +19,17 @@ import {
   type Beneficiario,
   brl,
   carregarStatusDeBilling,
+  cobrancaDaForma,
   type Conta,
   definirBeneficiario,
+  type FormaDeAssinar,
+  FORMAS_DE_ASSINAR,
   iniciarAssinatura,
   lerBeneficiario,
+  parcelasDoAnual,
   type PlanoPago,
   PLANOS_PAGOS,
+  precoAnual,
   precoMensal,
   type StatusDeBilling,
   temAssinatura,
@@ -48,8 +53,13 @@ import { entrarParaAssinar, useSemConta, useVendaAberta } from './funil';
  * esta tela só ESPERA essa confirmação perguntando ao servidor (`/api/billing/status`) e, quando
  * ela chega, leva à confirmação. Nada aqui confia em parâmetro de URL.
  *
- * O QUE O PROTÓTIPO TEM E O APP NÃO: período anual e parcelas (chegam com o C5, change `planos-v2`), cupom
- * (não há cupom no servidor) e o QR code do Pix dentro do app (ele está na página do Asaas).
+ * O PERÍODO (C5, change `planos-v2`): mensal recorrente, anual em uma vez (assinatura `YEARLY`, Pix,
+ * boleto ou cartão, renova em um ano) e anual em 12x no cartão (parcelamento, sem renovação
+ * automática). Os preços saem da matriz; as parcelas, da mesma conta que o Asaas faz. A tela de Planos
+ * nova, com o seletor Mensal/Anual e o "equivale a 3 meses grátis", é o C7.
+ *
+ * O QUE O PROTÓTIPO TEM E O APP NÃO: cupom (não há cupom no servidor) e o QR code do Pix dentro do
+ * app (ele está na página do Asaas).
  *
  * QUEM PAGA É ADULTO (Fases 3 e 4 do lançamento): conta de menor não chega ao formulário — a tela
  * explica que o responsável assina por ela; o responsável vinculado assina PELO menor
@@ -71,6 +81,45 @@ const mascaraCpf = (v: string) => {
     .replace(/(\d{3})(\d)/, '$1.$2')
     .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
 };
+
+/** O nome, a linha de preço e a frase de renovação de cada forma de pagar — da matriz, nunca à mão. */
+function textosDaForma(plano: PlanoPago, f: FormaDeAssinar) {
+  const { padrao, ultima, quantidade } = parcelasDoAnual(plano);
+  if (f === 'mensal') {
+    const preco = brl(precoMensal(plano));
+    return {
+      titulo: t('Mensal recorrente'),
+      descricao: t('{preco} todo mês. Renova sozinho, cancele quando quiser.', { preco }),
+      renova: t('Renova todo mês por {preco}', { preco }),
+      linha: [t('1 mês'), preco] as const,
+      pagar: t('Assinar e pagar {valor}', { valor: preco }),
+    };
+  }
+  const total = brl(precoAnual(plano));
+  if (f === 'anual')
+    return {
+      titulo: t('Anual em uma vez'),
+      descricao: t(
+        '{preco} por ano, no Pix, no boleto ou no cartão. Renova sozinho em um ano; cancele quando quiser.',
+        {
+          preco: total,
+        },
+      ),
+      renova: t('Renova em um ano por {preco}', { preco: total }),
+      linha: [t('1 ano'), total] as const,
+      pagar: t('Assinar e pagar {valor}', { valor: total }),
+    };
+  return {
+    titulo: t('Anual em 12x no cartão'),
+    descricao: t(
+      '{n} parcelas no cartão: {m} de {parcela} e a última de {ultima} (total {total}). Não renova sozinho: daqui a um ano você escolhe de novo.',
+      { n: quantidade, m: quantidade - 1, parcela: brl(padrao), ultima: brl(ultima), total },
+    ),
+    renova: t('Não renova sozinho: o ano acaba na última parcela'),
+    linha: [t('1 ano em {n} parcelas', { n: quantidade }), total] as const,
+    pagar: t('Assinar e pagar em {n}x de {parcela}', { n: quantidade, parcela: brl(padrao) }),
+  };
+}
 
 function validar(c: Record<Campo, string>): Partial<Record<Campo, string>> {
   const e: Partial<Record<Campo, string>> = {};
@@ -139,6 +188,7 @@ export default function Checkout({
   aoEntrar?: () => void;
 }) {
   const [passo, setPasso] = useState<1 | 2>(1);
+  const [forma, setForma] = useState<FormaDeAssinar>('mensal');
   const [campos, setCampos] = useState<Record<Campo, string>>({ nome: '', cpf: '', email: '' });
   const [erros, setErros] = useState<Partial<Record<Campo, string>>>({});
   const [ocupado, setOcupado] = useState(false);
@@ -162,6 +212,7 @@ export default function Checkout({
   }, [pedirIdade]);
 
   const preco = precoMensal(plano);
+  const daForma = textosDaForma(plano, forma);
   const P = PLANO_NOME[plano];
   const menor = recusa === 'menor' || (!!protecao && protecao.faixa !== 'adulto' && protecao.nascimentoInformado);
   const vendaAberta = vendaAbertaNoCliente && recusa !== 'pausada';
@@ -253,6 +304,7 @@ export default function Checkout({
       cpfCnpj: campos.cpf.replace(/\D/g, ''),
       email: campos.email.trim(),
       ...(beneficiario ? { paraUsuario: beneficiario.id } : {}),
+      ...cobrancaDaForma(forma),
     });
     setOcupado(false);
     if (r.codigo === 'idade_nao_informada') {
@@ -326,13 +378,24 @@ export default function Checkout({
       <fieldset className="escolha">
         <legend className="label-mono">Como você quer pagar</legend>
         <div className="opcoes">
-          <button type="button" className="cartao opcao sel" aria-pressed>
-            <span className="radio" aria-hidden />
-            <span style={{ flex: 1 }}>
-              <h3>Mensal recorrente</h3>
-              <p>{brl(preco)} todo mês. Renova sozinho, cancele quando quiser.</p>
-            </span>
-          </button>
+          {FORMAS_DE_ASSINAR.map((f) => {
+            const x = textosDaForma(plano, f);
+            return (
+              <button
+                key={f}
+                type="button"
+                className={`cartao opcao ${forma === f ? 'sel' : ''}`}
+                aria-pressed={forma === f}
+                onClick={() => setForma(f)}
+              >
+                <span className="radio" aria-hidden />
+                <span style={{ flex: 1 }}>
+                  <h3>{x.titulo}</h3>
+                  <p>{x.descricao}</p>
+                </span>
+              </button>
+            );
+          })}
         </div>
       </fieldset>
       <div className="linha" style={{ justifyContent: 'flex-end', marginTop: 8 }}>
@@ -358,7 +421,7 @@ export default function Checkout({
     </div>
   );
 
-  const rotuloPagar = link ? 'Aguardando o pagamento…' : ocupado ? 'Processando…' : `Assinar e pagar ${brl(preco)}`;
+  const rotuloPagar = link ? 'Aguardando o pagamento…' : ocupado ? 'Processando…' : daForma.pagar;
 
   const passo2 = bloqueio ? (
     <section className="cartao p6">
@@ -477,7 +540,23 @@ export default function Checkout({
         </button>
       </div>
       <p className="legal">
-        Ao assinar, você autoriza a cobrança de <b>{brl(preco)}</b> por mês, renovada todo mês até você cancelar.
+        {/* O que cada forma AUTORIZA. Depois dos 7 dias, o anual e o 12x não devolvem o proporcional do
+            ano: é o padrão que o dono aprovou para o C5, a validar com o jurídico (C9). */}
+        {forma === 'mensal' ? (
+          <>
+            Ao assinar, você autoriza a cobrança de <b>{brl(preco)}</b> por mês, renovada todo mês até você cancelar.
+          </>
+        ) : forma === 'anual' ? (
+          t(
+            'Ao assinar, você autoriza a cobrança de {preco} por ano, renovada todo ano até você cancelar. Depois dos 7 dias, cancelar para a renovação e o acesso vale até o fim do ano pago, sem reembolso proporcional.',
+            { preco: brl(precoAnual(plano)) },
+          )
+        ) : (
+          t(
+            'Ao assinar, você autoriza {n} parcelas no cartão, no total de {total}, sem renovação automática. Depois dos 7 dias, cancelar não interrompe as parcelas: o acesso vale até o fim do ano pago, sem reembolso proporcional.',
+            { n: parcelasDoAnual(plano).quantidade, total: brl(precoAnual(plano)) },
+          )
+        )}{' '}
         Cancele quando quiser em Planos → Sua assinatura. Você tem <b>7 dias</b> para desistir com reembolso integral
         (CDC, art. 49). Veja os{' '}
         <a className="link" href="/termos.html" target="_blank" rel="noopener">
@@ -496,22 +575,29 @@ export default function Checkout({
         <div>
           <b style={{ font: '800 17px var(--font-display)' }}>Babel Play {P}</b>
           <p className="mut" style={{ fontSize: 13 }}>
-            Mensal recorrente
+            {daForma.titulo}
           </p>
         </div>
       </div>
       <dl className="linhas-preco">
         <div>
-          <dt>1 mês</dt>
-          <dd className="tn">{brl(preco)}</dd>
+          <dt>{daForma.linha[0]}</dt>
+          <dd className="tn">{daForma.linha[1]}</dd>
         </div>
-        <div className="total">
-          <dt>Total hoje</dt>
-          <dd className="tn">{brl(preco)}</dd>
-        </div>
+        {forma === 'anual_12x' ? (
+          <div className="total">
+            <dt>{t('Por mês no cartão')}</dt>
+            <dd className="tn">{brl(parcelasDoAnual(plano).padrao)}</dd>
+          </div>
+        ) : (
+          <div className="total">
+            <dt>Total hoje</dt>
+            <dd className="tn">{daForma.linha[1]}</dd>
+          </div>
+        )}
       </dl>
       <p className="mut renova">
-        <Repeat aria-hidden style={{ width: 14, height: 14 }} /> Renova todo mês por {brl(preco)}
+        <Repeat aria-hidden style={{ width: 14, height: 14 }} /> {daForma.renova}
       </p>
       {/* No lugar do cupom do protótipo (não há cupom no servidor): onde o pagamento acontece. */}
       <div className="cupom">

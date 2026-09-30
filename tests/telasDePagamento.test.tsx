@@ -55,11 +55,14 @@ describe('checkout', () => {
 
     await waitFor(() => expect(abrir).toHaveBeenCalledWith('https://sandbox.asaas.com/i/1', '_blank', 'noopener'))
     const pedido = chamadas.find((c) => c.url === '/api/billing/assinar')!
+    // C5: o pedido diz o ciclo e o meio (aqui o mensal recorrente, a forma que o checkout abre).
     expect(JSON.parse(String(pedido.init?.body))).toEqual({
       plano: 'premium',
       nome: 'Ana Souza',
       cpfCnpj: '12345678901',
       email: 'ana@exemplo.com',
+      ciclo: 'mensal',
+      meio: 'assinatura',
     })
     expect(screen.getByText(/Aguardando a confirmação do pagamento/)).toBeTruthy()
     expect(screen.queryByText(/Bem-vindo/)).toBeNull()

@@ -62,7 +62,10 @@ export class BergamotLocal implements TranslationProvider {
    * tradução recria o worker e recarrega do Cache Storage, sem rede.
    */
   liberar(): void {
-    this.encerrar(new Error('tradutor local liberado'));
+    /* CANCELAMENTO, não falha: a tradução que estava em voo quando a captura soltou os modelos não
+       interessa mais — e uma falha faria o composto cair no opus-mt, que começaria a baixar 113 MB
+       justo quando a memória está sendo devolvida. */
+    this.encerrar(new ChamadaCancelada('tradutor local liberado'));
   }
 
   private encerrar(motivo: Error): void {

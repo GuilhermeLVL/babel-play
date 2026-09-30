@@ -251,6 +251,20 @@ describe('sem os modelos no build', () => {
 })
 
 describe('liberar', () => {
+  it('tradução em voo quando os modelos são soltos: cancela, NÃO cai no opus-mt (que baixaria 113 MB)', async () => {
+    const { local } = await montar()
+    local.preload('pt', 'en')
+    const b = WorkerFalso.de('bergamot')[0]
+    b.responder({ type: 'ready', model: 'bergamot/pt-en' })
+    b.postMessage = function (m: Mensagem) {
+      this.recebidas.push(m) // não responde: a tradução fica em voo
+    }
+    const emVoo = local.translate('bom dia', 'pt', 'en')
+    local.liberar()
+    await expect(emVoo).rejects.toMatchObject({ name: 'ChamadaCancelada' })
+    expect(WorkerFalso.de('opus')).toHaveLength(0)
+  })
+
   it('solta os dois: descartar + terminate no Bergamot, terminate no opus-mt', async () => {
     const { local } = await montar()
     local.preload('pt', 'en')

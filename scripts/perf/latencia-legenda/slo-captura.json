@@ -1,7 +1,7 @@
 {
   "versao": 1,
   "documento": "openspec/audits/2026-09-29-bancada-captura/relatorio.md",
-  "comentario": "Linha de base da bancada de desempenho da captura (A0). Cada ambiente tem a sua: a base só vale no mesmo tipo de máquina. Os números de cada perfil são a mediana de N rodadas (RTF: p50/p95 das falas somadas). Tolerâncias do ruído medido entre duas execuções seguidas (ver o relatório): frames longos contados e a 1ª legenda (o tique dos parciais a faz saltar ~1,2 s) levam folga absoluta; a base do ci-ubuntu sai do workflow desempenho com gravar_linha_de_base.",
+  "comentario": "Linha de base da bancada de desempenho da captura (A0). Cada ambiente tem a sua: a base só vale no mesmo tipo de máquina. Os números de cada perfil são a mediana de N rodadas (RTF: p50/p95 das falas somadas). Tolerâncias do ruído medido entre duas execuções seguidas (ver o relatório): frames longos contados e a 1ª legenda (o tique dos parciais a faz saltar ~1,2 s) levam folga absoluta; a base do ci-ubuntu sai do workflow desempenho com gravar_linha_de_base. A 1ª legenda do fraco no local-win32 foi regravada no A6b (a6b-primeira-legenda.md): o parcial único do modo desempenho automático a trouxe de ~5,0 s (o final da frase) para ~2,0 s; a tolerância e a folga ficam, e o teto (2 004 × 1,25 + 1 500 ≈ 4,0 s) reprova a volta aos 5 s.",
   "metricas": {
     "framesLongos.n50": {
       "rotulo": "frames > 50 ms na sessão",
@@ -90,7 +90,7 @@
           "framesLongos.n50": 4,
           "framesLongos.n100": 2,
           "framesLongos.somaMs": 1270,
-          "primeiraLegendaMs": 5003,
+          "primeiraLegendaMs": 2004,
           "rtf.p50": 0.11,
           "rtf.p95": 0.153,
           "memoriaPicoMb": 1173.5,

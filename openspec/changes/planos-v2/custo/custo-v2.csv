@@ -1,0 +1,590 @@
+secao,cenario,plano,perfil,patamar,metrica,valor,unidade
+por_usuario,base,convidado,leve,,horas_fala_nuvem,0.000000,h
+por_usuario,base,convidado,leve,,stt,0.000000,USD
+por_usuario,base,convidado,leve,,traducao,0.000000,USD
+por_usuario,base,convidado,leve,,tutor,0.000000,USD
+por_usuario,base,convidado,leve,,llm_pior_absoluto,0.000000,USD
+por_usuario,base,convidado,leve,,audio_retido,0.000000,MB
+por_usuario,base,convidado,leve,,r2_audio,0.000000,USD
+por_usuario,base,convidado,leve,,fly_egress,0.000080,USD
+por_usuario,base,convidado,leve,,banco,0.000000,USD
+por_usuario,base,convidado,leve,,langfuse_unidades,0.000000,un
+por_usuario,base,convidado,leve,,langfuse_marginal,0.000000,BRL
+por_usuario,base,convidado,leve,,receita_mes,0.000000,BRL
+por_usuario,base,convidado,leve,,taxa_pagamento,0.000000,BRL
+por_usuario,base,convidado,leve,,imposto_1a_faixa,0.000000,BRL
+por_usuario,base,convidado,leve,,margem_sem_fixo,-0.000430,BRL
+por_usuario,base,convidado,tipico,,horas_fala_nuvem,0.000000,h
+por_usuario,base,convidado,tipico,,stt,0.000000,USD
+por_usuario,base,convidado,tipico,,traducao,0.000000,USD
+por_usuario,base,convidado,tipico,,tutor,0.000000,USD
+por_usuario,base,convidado,tipico,,llm_pior_absoluto,0.000000,USD
+por_usuario,base,convidado,tipico,,audio_retido,0.000000,MB
+por_usuario,base,convidado,tipico,,r2_audio,0.000000,USD
+por_usuario,base,convidado,tipico,,fly_egress,0.000200,USD
+por_usuario,base,convidado,tipico,,banco,0.000000,USD
+por_usuario,base,convidado,tipico,,langfuse_unidades,0.000000,un
+por_usuario,base,convidado,tipico,,langfuse_marginal,0.000000,BRL
+por_usuario,base,convidado,tipico,,receita_mes,0.000000,BRL
+por_usuario,base,convidado,tipico,,taxa_pagamento,0.000000,BRL
+por_usuario,base,convidado,tipico,,imposto_1a_faixa,0.000000,BRL
+por_usuario,base,convidado,tipico,,margem_sem_fixo,-0.001076,BRL
+por_usuario,base,convidado,teto,,horas_fala_nuvem,0.000000,h
+por_usuario,base,convidado,teto,,stt,0.000000,USD
+por_usuario,base,convidado,teto,,traducao,0.000000,USD
+por_usuario,base,convidado,teto,,tutor,0.000000,USD
+por_usuario,base,convidado,teto,,llm_pior_absoluto,0.000000,USD
+por_usuario,base,convidado,teto,,audio_retido,0.000000,MB
+por_usuario,base,convidado,teto,,r2_audio,0.000000,USD
+por_usuario,base,convidado,teto,,fly_egress,0.000400,USD
+por_usuario,base,convidado,teto,,banco,0.000000,USD
+por_usuario,base,convidado,teto,,langfuse_unidades,0.000000,un
+por_usuario,base,convidado,teto,,langfuse_marginal,0.000000,BRL
+por_usuario,base,convidado,teto,,receita_mes,0.000000,BRL
+por_usuario,base,convidado,teto,,taxa_pagamento,0.000000,BRL
+por_usuario,base,convidado,teto,,imposto_1a_faixa,0.000000,BRL
+por_usuario,base,convidado,teto,,margem_sem_fixo,-0.002152,BRL
+por_usuario,base,free,leve,,horas_fala_nuvem,0.000000,h
+por_usuario,base,free,leve,,stt,0.000000,USD
+por_usuario,base,free,leve,,traducao,0.000000,USD
+por_usuario,base,free,leve,,tutor,0.000000,USD
+por_usuario,base,free,leve,,llm_pior_absoluto,0.000000,USD
+por_usuario,base,free,leve,,audio_retido,33.000000,MB
+por_usuario,base,free,leve,,r2_audio,0.000495,USD
+por_usuario,base,free,leve,,fly_egress,0.000800,USD
+por_usuario,base,free,leve,,banco,0.000075,USD
+por_usuario,base,free,leve,,langfuse_unidades,0.000000,un
+por_usuario,base,free,leve,,langfuse_marginal,0.000000,BRL
+por_usuario,base,free,leve,,receita_mes,0.000000,BRL
+por_usuario,base,free,leve,,taxa_pagamento,0.000000,BRL
+por_usuario,base,free,leve,,imposto_1a_faixa,0.000000,BRL
+por_usuario,base,free,leve,,margem_sem_fixo,-0.007372,BRL
+por_usuario,base,free,tipico,,horas_fala_nuvem,0.000000,h
+por_usuario,base,free,tipico,,stt,0.000000,USD
+por_usuario,base,free,tipico,,traducao,0.000000,USD
+por_usuario,base,free,tipico,,tutor,0.000000,USD
+por_usuario,base,free,tipico,,llm_pior_absoluto,0.000000,USD
+por_usuario,base,free,tipico,,audio_retido,132.000000,MB
+por_usuario,base,free,tipico,,r2_audio,0.001980,USD
+por_usuario,base,free,tipico,,fly_egress,0.003200,USD
+por_usuario,base,free,tipico,,banco,0.000225,USD
+por_usuario,base,free,tipico,,langfuse_unidades,0.000000,un
+por_usuario,base,free,tipico,,langfuse_marginal,0.000000,BRL
+por_usuario,base,free,tipico,,receita_mes,0.000000,BRL
+por_usuario,base,free,tipico,,taxa_pagamento,0.000000,BRL
+por_usuario,base,free,tipico,,imposto_1a_faixa,0.000000,BRL
+por_usuario,base,free,tipico,,margem_sem_fixo,-0.029085,BRL
+por_usuario,base,free,teto,,horas_fala_nuvem,0.000000,h
+por_usuario,base,free,teto,,stt,0.000000,USD
+por_usuario,base,free,teto,,traducao,0.000000,USD
+por_usuario,base,free,teto,,tutor,0.000000,USD
+por_usuario,base,free,teto,,llm_pior_absoluto,0.000000,USD
+por_usuario,base,free,teto,,audio_retido,500.000000,MB
+por_usuario,base,free,teto,,r2_audio,0.007500,USD
+por_usuario,base,free,teto,,fly_egress,0.012000,USD
+por_usuario,base,free,teto,,banco,0.000585,USD
+por_usuario,base,free,teto,,langfuse_unidades,0.000000,un
+por_usuario,base,free,teto,,langfuse_marginal,0.000000,BRL
+por_usuario,base,free,teto,,receita_mes,0.000000,BRL
+por_usuario,base,free,teto,,taxa_pagamento,0.000000,BRL
+por_usuario,base,free,teto,,imposto_1a_faixa,0.000000,BRL
+por_usuario,base,free,teto,,margem_sem_fixo,-0.108079,BRL
+por_usuario,base,teste,leve,,horas_fala_nuvem,2.800000,h
+por_usuario,base,teste,leve,,stt,0.120960,USD
+por_usuario,base,teste,leve,,traducao,0.100800,USD
+por_usuario,base,teste,leve,,tutor,0.003600,USD
+por_usuario,base,teste,leve,,llm_pior_absoluto,0.104400,USD
+por_usuario,base,teste,leve,,audio_retido,92.400000,MB
+por_usuario,base,teste,leve,,r2_audio,0.001386,USD
+por_usuario,base,teste,leve,,fly_egress,0.000600,USD
+por_usuario,base,teste,leve,,banco,0.000045,USD
+por_usuario,base,teste,leve,,langfuse_unidades,6740.000000,un
+por_usuario,base,teste,leve,,langfuse_marginal,2.901472,BRL
+por_usuario,base,teste,leve,,receita_mes,0.000000,BRL
+por_usuario,base,teste,leve,,taxa_pagamento,0.000000,BRL
+por_usuario,base,teste,leve,,imposto_1a_faixa,0.000000,BRL
+por_usuario,base,teste,leve,,margem_sem_fixo,-1.223607,BRL
+por_usuario,base,teste,tipico,,horas_fala_nuvem,11.200000,h
+por_usuario,base,teste,tipico,,stt,0.483840,USD
+por_usuario,base,teste,tipico,,traducao,0.403200,USD
+por_usuario,base,teste,tipico,,tutor,0.025200,USD
+por_usuario,base,teste,tipico,,llm_pior_absoluto,0.428400,USD
+por_usuario,base,teste,tipico,,audio_retido,369.600000,MB
+por_usuario,base,teste,tipico,,r2_audio,0.005544,USD
+por_usuario,base,teste,tipico,,fly_egress,0.002000,USD
+por_usuario,base,teste,tipico,,banco,0.000120,USD
+por_usuario,base,teste,tipico,,langfuse_unidades,27020.000000,un
+por_usuario,base,teste,tipico,,langfuse_marginal,11.631718,BRL
+por_usuario,base,teste,tipico,,receita_mes,0.000000,BRL
+por_usuario,base,teste,tipico,,taxa_pagamento,0.000000,BRL
+por_usuario,base,teste,tipico,,imposto_1a_faixa,0.000000,BRL
+por_usuario,base,teste,tipico,,margem_sem_fixo,-4.950066,BRL
+por_usuario,base,teste,teto,,horas_fala_nuvem,28.000000,h
+por_usuario,base,teste,teto,,stt,1.209600,USD
+por_usuario,base,teste,teto,,traducao,1.008000,USD
+por_usuario,base,teste,teto,,tutor,0.000000,USD
+por_usuario,base,teste,teto,,llm_pior_absoluto,2.520000,USD
+por_usuario,base,teste,teto,,audio_retido,924.000000,MB
+por_usuario,base,teste,teto,,r2_audio,0.013860,USD
+por_usuario,base,teste,teto,,fly_egress,0.006000,USD
+por_usuario,base,teste,teto,,banco,0.000300,USD
+por_usuario,base,teste,teto,,langfuse_unidades,67200.000000,un
+por_usuario,base,teste,teto,,langfuse_marginal,28.928624,BRL
+por_usuario,base,teste,teto,,receita_mes,0.000000,BRL
+por_usuario,base,teste,teto,,taxa_pagamento,0.000000,BRL
+por_usuario,base,teste,teto,,imposto_1a_faixa,0.000000,BRL
+por_usuario,base,teste,teto,,margem_sem_fixo,-12.041540,BRL
+por_usuario,base,premium,leve,,horas_fala_nuvem,4.000000,h
+por_usuario,base,premium,leve,,stt,0.172800,USD
+por_usuario,base,premium,leve,,traducao,0.144000,USD
+por_usuario,base,premium,leve,,tutor,0.010800,USD
+por_usuario,base,premium,leve,,llm_pior_absoluto,0.154800,USD
+por_usuario,base,premium,leve,,audio_retido,132.000000,MB
+por_usuario,base,premium,leve,,r2_audio,0.001980,USD
+por_usuario,base,premium,leve,,fly_egress,0.001200,USD
+por_usuario,base,premium,leve,,banco,0.000075,USD
+por_usuario,base,premium,leve,,langfuse_unidades,9660.000000,un
+por_usuario,base,premium,leve,,langfuse_marginal,4.158490,BRL
+por_usuario,base,premium,leve,,receita_mes,17.906667,BRL
+por_usuario,base,premium,leve,,taxa_pagamento,1.152587,BRL
+por_usuario,base,premium,leve,,imposto_1a_faixa,1.074400,BRL
+por_usuario,base,premium,leve,,margem_sem_fixo,13.899326,BRL
+por_usuario,base,premium,tipico,,horas_fala_nuvem,16.000000,h
+por_usuario,base,premium,tipico,,stt,0.691200,USD
+por_usuario,base,premium,tipico,,traducao,0.576000,USD
+por_usuario,base,premium,tipico,,tutor,0.054000,USD
+por_usuario,base,premium,tipico,,llm_pior_absoluto,0.630000,USD
+por_usuario,base,premium,tipico,,audio_retido,528.000000,MB
+por_usuario,base,premium,tipico,,r2_audio,0.007920,USD
+por_usuario,base,premium,tipico,,fly_egress,0.004000,USD
+por_usuario,base,premium,tipico,,banco,0.000225,USD
+por_usuario,base,premium,tipico,,langfuse_unidades,38700.000000,un
+por_usuario,base,premium,tipico,,langfuse_marginal,16.659788,BRL
+por_usuario,base,premium,tipico,,receita_mes,17.906667,BRL
+por_usuario,base,premium,tipico,,taxa_pagamento,1.152587,BRL
+por_usuario,base,premium,tipico,,imposto_1a_faixa,1.074400,BRL
+por_usuario,base,premium,tipico,,margem_sem_fixo,8.504859,BRL
+por_usuario,base,premium,teto,,horas_fala_nuvem,40.000000,h
+por_usuario,base,premium,teto,,stt,1.728000,USD
+por_usuario,base,premium,teto,,traducao,1.440000,USD
+por_usuario,base,premium,teto,,tutor,0.000000,USD
+por_usuario,base,premium,teto,,llm_pior_absoluto,3.600000,USD
+por_usuario,base,premium,teto,,audio_retido,1320.000000,MB
+por_usuario,base,premium,teto,,r2_audio,0.019800,USD
+por_usuario,base,premium,teto,,fly_egress,0.012000,USD
+por_usuario,base,premium,teto,,banco,0.000585,USD
+por_usuario,base,premium,teto,,langfuse_unidades,96000.000000,un
+por_usuario,base,premium,teto,,langfuse_marginal,41.326606,BRL
+por_usuario,base,premium,teto,,receita_mes,17.906667,BRL
+por_usuario,base,premium,teto,,taxa_pagamento,1.152587,BRL
+por_usuario,base,premium,teto,,imposto_1a_faixa,1.074400,BRL
+por_usuario,base,premium,teto,,margem_sem_fixo,-1.541812,BRL
+por_ciclo,base,premium,,,receita_mes_mensal,19.900000,BRL
+por_ciclo,base,premium,,,taxa_mes_mensal,1.537505,BRL
+por_ciclo,base,premium,tipico,,margem_mensal,9.993674,BRL
+por_ciclo,base,premium,teto,,margem_mensal,-0.052996,BRL
+por_ciclo,base,premium,,,receita_mes_anual,14.916667,BRL
+por_ciclo,base,premium,,,taxa_mes_anual,0.326338,BRL
+por_ciclo,base,premium,tipico,,margem_anual,6.520508,BRL
+por_ciclo,base,premium,teto,,margem_anual,-3.526162,BRL
+por_ciclo,base,premium,,,receita_mes_anual12x,14.916667,BRL
+por_ciclo,base,premium,,,taxa_mes_anual12x,0.990000,BRL
+por_ciclo,base,premium,tipico,,margem_anual12x,5.856846,BRL
+por_ciclo,base,premium,teto,,margem_anual12x,-4.189824,BRL
+teste,base,teste,leve,,custo_do_teste,1.223607,BRL
+teste,base,teste,tipico,,custo_do_teste,4.950066,BRL
+teste,base,teste,teto,,custo_do_teste,12.041540,BRL
+por_usuario,nuvem_gratis,convidado,leve,,horas_fala_nuvem,0.050000,h
+por_usuario,nuvem_gratis,convidado,leve,,stt,0.002160,USD
+por_usuario,nuvem_gratis,convidado,leve,,traducao,0.001800,USD
+por_usuario,nuvem_gratis,convidado,leve,,tutor,0.000540,USD
+por_usuario,nuvem_gratis,convidado,leve,,llm_pior_absoluto,0.002340,USD
+por_usuario,nuvem_gratis,convidado,leve,,audio_retido,0.000000,MB
+por_usuario,nuvem_gratis,convidado,leve,,r2_audio,0.000000,USD
+por_usuario,nuvem_gratis,convidado,leve,,fly_egress,0.000080,USD
+por_usuario,nuvem_gratis,convidado,leve,,banco,0.000000,USD
+por_usuario,nuvem_gratis,convidado,leve,,langfuse_unidades,123.000000,un
+por_usuario,nuvem_gratis,convidado,leve,,langfuse_marginal,0.052950,BRL
+por_usuario,nuvem_gratis,convidado,leve,,receita_mes,0.000000,BRL
+por_usuario,nuvem_gratis,convidado,leve,,taxa_pagamento,0.000000,BRL
+por_usuario,nuvem_gratis,convidado,leve,,imposto_1a_faixa,0.000000,BRL
+por_usuario,nuvem_gratis,convidado,leve,,margem_sem_fixo,-0.024645,BRL
+por_usuario,nuvem_gratis,convidado,tipico,,horas_fala_nuvem,0.166667,h
+por_usuario,nuvem_gratis,convidado,tipico,,stt,0.007200,USD
+por_usuario,nuvem_gratis,convidado,tipico,,traducao,0.006000,USD
+por_usuario,nuvem_gratis,convidado,tipico,,tutor,0.001800,USD
+por_usuario,nuvem_gratis,convidado,tipico,,llm_pior_absoluto,0.007800,USD
+por_usuario,nuvem_gratis,convidado,tipico,,audio_retido,0.000000,MB
+por_usuario,nuvem_gratis,convidado,tipico,,r2_audio,0.000000,USD
+por_usuario,nuvem_gratis,convidado,tipico,,fly_egress,0.000200,USD
+por_usuario,nuvem_gratis,convidado,tipico,,banco,0.000000,USD
+por_usuario,nuvem_gratis,convidado,tipico,,langfuse_unidades,410.000000,un
+por_usuario,nuvem_gratis,convidado,tipico,,langfuse_marginal,0.176499,BRL
+por_usuario,nuvem_gratis,convidado,tipico,,receita_mes,0.000000,BRL
+por_usuario,nuvem_gratis,convidado,tipico,,taxa_pagamento,0.000000,BRL
+por_usuario,nuvem_gratis,convidado,tipico,,imposto_1a_faixa,0.000000,BRL
+por_usuario,nuvem_gratis,convidado,tipico,,margem_sem_fixo,-0.081792,BRL
+por_usuario,nuvem_gratis,convidado,teto,,horas_fala_nuvem,0.166667,h
+por_usuario,nuvem_gratis,convidado,teto,,stt,0.007200,USD
+por_usuario,nuvem_gratis,convidado,teto,,traducao,0.006000,USD
+por_usuario,nuvem_gratis,convidado,teto,,tutor,0.001800,USD
+por_usuario,nuvem_gratis,convidado,teto,,llm_pior_absoluto,0.007800,USD
+por_usuario,nuvem_gratis,convidado,teto,,audio_retido,0.000000,MB
+por_usuario,nuvem_gratis,convidado,teto,,r2_audio,0.000000,USD
+por_usuario,nuvem_gratis,convidado,teto,,fly_egress,0.000400,USD
+por_usuario,nuvem_gratis,convidado,teto,,banco,0.000000,USD
+por_usuario,nuvem_gratis,convidado,teto,,langfuse_unidades,410.000000,un
+por_usuario,nuvem_gratis,convidado,teto,,langfuse_marginal,0.176499,BRL
+por_usuario,nuvem_gratis,convidado,teto,,receita_mes,0.000000,BRL
+por_usuario,nuvem_gratis,convidado,teto,,taxa_pagamento,0.000000,BRL
+por_usuario,nuvem_gratis,convidado,teto,,imposto_1a_faixa,0.000000,BRL
+por_usuario,nuvem_gratis,convidado,teto,,margem_sem_fixo,-0.082868,BRL
+por_usuario,nuvem_gratis,free,leve,,horas_fala_nuvem,0.270000,h
+por_usuario,nuvem_gratis,free,leve,,stt,0.011664,USD
+por_usuario,nuvem_gratis,free,leve,,traducao,0.009720,USD
+por_usuario,nuvem_gratis,free,leve,,tutor,0.000000,USD
+por_usuario,nuvem_gratis,free,leve,,llm_pior_absoluto,0.032400,USD
+por_usuario,nuvem_gratis,free,leve,,audio_retido,33.000000,MB
+por_usuario,nuvem_gratis,free,leve,,r2_audio,0.000495,USD
+por_usuario,nuvem_gratis,free,leve,,fly_egress,0.000800,USD
+por_usuario,nuvem_gratis,free,leve,,banco,0.000075,USD
+por_usuario,nuvem_gratis,free,leve,,langfuse_unidades,648.000000,un
+por_usuario,nuvem_gratis,free,leve,,langfuse_marginal,0.278955,BRL
+por_usuario,nuvem_gratis,free,leve,,receita_mes,0.000000,BRL
+por_usuario,nuvem_gratis,free,leve,,taxa_pagamento,0.000000,BRL
+por_usuario,nuvem_gratis,free,leve,,imposto_1a_faixa,0.000000,BRL
+por_usuario,nuvem_gratis,free,leve,,margem_sem_fixo,-0.122441,BRL
+por_usuario,nuvem_gratis,free,tipico,,horas_fala_nuvem,0.492424,h
+por_usuario,nuvem_gratis,free,tipico,,stt,0.021273,USD
+por_usuario,nuvem_gratis,free,tipico,,traducao,0.017727,USD
+por_usuario,nuvem_gratis,free,tipico,,tutor,0.000000,USD
+por_usuario,nuvem_gratis,free,tipico,,llm_pior_absoluto,0.108000,USD
+por_usuario,nuvem_gratis,free,tipico,,audio_retido,132.000000,MB
+por_usuario,nuvem_gratis,free,tipico,,r2_audio,0.001980,USD
+por_usuario,nuvem_gratis,free,tipico,,fly_egress,0.003200,USD
+por_usuario,nuvem_gratis,free,tipico,,banco,0.000225,USD
+por_usuario,nuvem_gratis,free,tipico,,langfuse_unidades,1181.818182,un
+por_usuario,nuvem_gratis,free,tipico,,langfuse_marginal,0.508756,BRL
+por_usuario,nuvem_gratis,free,tipico,,receita_mes,0.000000,BRL
+por_usuario,nuvem_gratis,free,tipico,,taxa_pagamento,0.000000,BRL
+por_usuario,nuvem_gratis,free,tipico,,imposto_1a_faixa,0.000000,BRL
+por_usuario,nuvem_gratis,free,tipico,,margem_sem_fixo,-0.238946,BRL
+por_usuario,nuvem_gratis,free,teto,,horas_fala_nuvem,0.492424,h
+por_usuario,nuvem_gratis,free,teto,,stt,0.021273,USD
+por_usuario,nuvem_gratis,free,teto,,traducao,0.017727,USD
+por_usuario,nuvem_gratis,free,teto,,tutor,0.000000,USD
+por_usuario,nuvem_gratis,free,teto,,llm_pior_absoluto,0.108000,USD
+por_usuario,nuvem_gratis,free,teto,,audio_retido,500.000000,MB
+por_usuario,nuvem_gratis,free,teto,,r2_audio,0.007500,USD
+por_usuario,nuvem_gratis,free,teto,,fly_egress,0.012000,USD
+por_usuario,nuvem_gratis,free,teto,,banco,0.000585,USD
+por_usuario,nuvem_gratis,free,teto,,langfuse_unidades,1181.818182,un
+por_usuario,nuvem_gratis,free,teto,,langfuse_marginal,0.508756,BRL
+por_usuario,nuvem_gratis,free,teto,,receita_mes,0.000000,BRL
+por_usuario,nuvem_gratis,free,teto,,taxa_pagamento,0.000000,BRL
+por_usuario,nuvem_gratis,free,teto,,imposto_1a_faixa,0.000000,BRL
+por_usuario,nuvem_gratis,free,teto,,margem_sem_fixo,-0.317940,BRL
+por_usuario,nuvem_gratis,teste,leve,,horas_fala_nuvem,2.800000,h
+por_usuario,nuvem_gratis,teste,leve,,stt,0.120960,USD
+por_usuario,nuvem_gratis,teste,leve,,traducao,0.100800,USD
+por_usuario,nuvem_gratis,teste,leve,,tutor,0.003600,USD
+por_usuario,nuvem_gratis,teste,leve,,llm_pior_absoluto,0.104400,USD
+por_usuario,nuvem_gratis,teste,leve,,audio_retido,92.400000,MB
+por_usuario,nuvem_gratis,teste,leve,,r2_audio,0.001386,USD
+por_usuario,nuvem_gratis,teste,leve,,fly_egress,0.000600,USD
+por_usuario,nuvem_gratis,teste,leve,,banco,0.000045,USD
+por_usuario,nuvem_gratis,teste,leve,,langfuse_unidades,6740.000000,un
+por_usuario,nuvem_gratis,teste,leve,,langfuse_marginal,2.901472,BRL
+por_usuario,nuvem_gratis,teste,leve,,receita_mes,0.000000,BRL
+por_usuario,nuvem_gratis,teste,leve,,taxa_pagamento,0.000000,BRL
+por_usuario,nuvem_gratis,teste,leve,,imposto_1a_faixa,0.000000,BRL
+por_usuario,nuvem_gratis,teste,leve,,margem_sem_fixo,-1.223607,BRL
+por_usuario,nuvem_gratis,teste,tipico,,horas_fala_nuvem,11.200000,h
+por_usuario,nuvem_gratis,teste,tipico,,stt,0.483840,USD
+por_usuario,nuvem_gratis,teste,tipico,,traducao,0.403200,USD
+por_usuario,nuvem_gratis,teste,tipico,,tutor,0.025200,USD
+por_usuario,nuvem_gratis,teste,tipico,,llm_pior_absoluto,0.428400,USD
+por_usuario,nuvem_gratis,teste,tipico,,audio_retido,369.600000,MB
+por_usuario,nuvem_gratis,teste,tipico,,r2_audio,0.005544,USD
+por_usuario,nuvem_gratis,teste,tipico,,fly_egress,0.002000,USD
+por_usuario,nuvem_gratis,teste,tipico,,banco,0.000120,USD
+por_usuario,nuvem_gratis,teste,tipico,,langfuse_unidades,27020.000000,un
+por_usuario,nuvem_gratis,teste,tipico,,langfuse_marginal,11.631718,BRL
+por_usuario,nuvem_gratis,teste,tipico,,receita_mes,0.000000,BRL
+por_usuario,nuvem_gratis,teste,tipico,,taxa_pagamento,0.000000,BRL
+por_usuario,nuvem_gratis,teste,tipico,,imposto_1a_faixa,0.000000,BRL
+por_usuario,nuvem_gratis,teste,tipico,,margem_sem_fixo,-4.950066,BRL
+por_usuario,nuvem_gratis,teste,teto,,horas_fala_nuvem,28.000000,h
+por_usuario,nuvem_gratis,teste,teto,,stt,1.209600,USD
+por_usuario,nuvem_gratis,teste,teto,,traducao,1.008000,USD
+por_usuario,nuvem_gratis,teste,teto,,tutor,0.000000,USD
+por_usuario,nuvem_gratis,teste,teto,,llm_pior_absoluto,2.520000,USD
+por_usuario,nuvem_gratis,teste,teto,,audio_retido,924.000000,MB
+por_usuario,nuvem_gratis,teste,teto,,r2_audio,0.013860,USD
+por_usuario,nuvem_gratis,teste,teto,,fly_egress,0.006000,USD
+por_usuario,nuvem_gratis,teste,teto,,banco,0.000300,USD
+por_usuario,nuvem_gratis,teste,teto,,langfuse_unidades,67200.000000,un
+por_usuario,nuvem_gratis,teste,teto,,langfuse_marginal,28.928624,BRL
+por_usuario,nuvem_gratis,teste,teto,,receita_mes,0.000000,BRL
+por_usuario,nuvem_gratis,teste,teto,,taxa_pagamento,0.000000,BRL
+por_usuario,nuvem_gratis,teste,teto,,imposto_1a_faixa,0.000000,BRL
+por_usuario,nuvem_gratis,teste,teto,,margem_sem_fixo,-12.041540,BRL
+por_usuario,nuvem_gratis,premium,leve,,horas_fala_nuvem,4.000000,h
+por_usuario,nuvem_gratis,premium,leve,,stt,0.172800,USD
+por_usuario,nuvem_gratis,premium,leve,,traducao,0.144000,USD
+por_usuario,nuvem_gratis,premium,leve,,tutor,0.010800,USD
+por_usuario,nuvem_gratis,premium,leve,,llm_pior_absoluto,0.154800,USD
+por_usuario,nuvem_gratis,premium,leve,,audio_retido,132.000000,MB
+por_usuario,nuvem_gratis,premium,leve,,r2_audio,0.001980,USD
+por_usuario,nuvem_gratis,premium,leve,,fly_egress,0.001200,USD
+por_usuario,nuvem_gratis,premium,leve,,banco,0.000075,USD
+por_usuario,nuvem_gratis,premium,leve,,langfuse_unidades,9660.000000,un
+por_usuario,nuvem_gratis,premium,leve,,langfuse_marginal,4.158490,BRL
+por_usuario,nuvem_gratis,premium,leve,,receita_mes,17.906667,BRL
+por_usuario,nuvem_gratis,premium,leve,,taxa_pagamento,1.152587,BRL
+por_usuario,nuvem_gratis,premium,leve,,imposto_1a_faixa,1.074400,BRL
+por_usuario,nuvem_gratis,premium,leve,,margem_sem_fixo,13.899326,BRL
+por_usuario,nuvem_gratis,premium,tipico,,horas_fala_nuvem,16.000000,h
+por_usuario,nuvem_gratis,premium,tipico,,stt,0.691200,USD
+por_usuario,nuvem_gratis,premium,tipico,,traducao,0.576000,USD
+por_usuario,nuvem_gratis,premium,tipico,,tutor,0.054000,USD
+por_usuario,nuvem_gratis,premium,tipico,,llm_pior_absoluto,0.630000,USD
+por_usuario,nuvem_gratis,premium,tipico,,audio_retido,528.000000,MB
+por_usuario,nuvem_gratis,premium,tipico,,r2_audio,0.007920,USD
+por_usuario,nuvem_gratis,premium,tipico,,fly_egress,0.004000,USD
+por_usuario,nuvem_gratis,premium,tipico,,banco,0.000225,USD
+por_usuario,nuvem_gratis,premium,tipico,,langfuse_unidades,38700.000000,un
+por_usuario,nuvem_gratis,premium,tipico,,langfuse_marginal,16.659788,BRL
+por_usuario,nuvem_gratis,premium,tipico,,receita_mes,17.906667,BRL
+por_usuario,nuvem_gratis,premium,tipico,,taxa_pagamento,1.152587,BRL
+por_usuario,nuvem_gratis,premium,tipico,,imposto_1a_faixa,1.074400,BRL
+por_usuario,nuvem_gratis,premium,tipico,,margem_sem_fixo,8.504859,BRL
+por_usuario,nuvem_gratis,premium,teto,,horas_fala_nuvem,40.000000,h
+por_usuario,nuvem_gratis,premium,teto,,stt,1.728000,USD
+por_usuario,nuvem_gratis,premium,teto,,traducao,1.440000,USD
+por_usuario,nuvem_gratis,premium,teto,,tutor,0.000000,USD
+por_usuario,nuvem_gratis,premium,teto,,llm_pior_absoluto,3.600000,USD
+por_usuario,nuvem_gratis,premium,teto,,audio_retido,1320.000000,MB
+por_usuario,nuvem_gratis,premium,teto,,r2_audio,0.019800,USD
+por_usuario,nuvem_gratis,premium,teto,,fly_egress,0.012000,USD
+por_usuario,nuvem_gratis,premium,teto,,banco,0.000585,USD
+por_usuario,nuvem_gratis,premium,teto,,langfuse_unidades,96000.000000,un
+por_usuario,nuvem_gratis,premium,teto,,langfuse_marginal,41.326606,BRL
+por_usuario,nuvem_gratis,premium,teto,,receita_mes,17.906667,BRL
+por_usuario,nuvem_gratis,premium,teto,,taxa_pagamento,1.152587,BRL
+por_usuario,nuvem_gratis,premium,teto,,imposto_1a_faixa,1.074400,BRL
+por_usuario,nuvem_gratis,premium,teto,,margem_sem_fixo,-1.541812,BRL
+patamar,base,,,10,receita_bruta,53.720000,BRL
+patamar,base,,,10,fixo_infra,354.731168,BRL
+patamar,base,,,10,fixo_fly_maquinas,10.806923,USD
+patamar,base,,,10,fixo_fly_volume,0.450000,USD
+patamar,base,,,10,fixo_supabase,25.000000,USD
+patamar,base,,,10,fixo_r2_armazenamento,0.000000,USD
+patamar,base,,,10,fixo_r2_classe_a,0.000000,USD
+patamar,base,,,10,fixo_fly_egress,0.031370,USD
+patamar,base,,,10,fixo_resend,0.000000,USD
+patamar,base,,,10,fixo_sentry,0.000000,USD
+patamar,base,,,10,fixo_langfuse,29.014320,USD
+patamar,base,,,10,ia_total,18.171373,BRL
+patamar,base,convidado,,10,ia_plano,0.000000,BRL
+patamar,base,free,,10,ia_plano,0.000000,BRL
+patamar,base,teste,,10,ia_plano,1.881587,BRL
+patamar,base,premium,,10,ia_plano,16.289786,BRL
+patamar,base,,,10,taxa_pagamento,3.457762,BRL
+patamar,base,,,10,aliquota_simples,0.060000,fracao
+patamar,base,,,10,imposto,3.223200,BRL
+patamar,base,,,10,custo_total,379.583503,BRL
+patamar,base,,,10,resultado,-325.863503,BRL
+patamar,base,,,10,langfuse_unidades,100179.000000,un
+patamar,base,,,10,litestream_puts,448521.924819,PUT
+patamar,base,,,10,r2_gb,5.267420,GB
+patamar,base,,,10,demanda_stt_h,41.540000,h
+patamar,base,,,10,demanda_llm_req,25165.500000,req
+patamar,base,,,100,receita_bruta,537.200000,BRL
+patamar,base,,,100,fixo_infra,774.839839,BRL
+patamar,base,,,100,fixo_fly_maquinas,10.806923,USD
+patamar,base,,,100,fixo_fly_volume,0.450000,USD
+patamar,base,,,100,fixo_supabase,25.000000,USD
+patamar,base,,,100,fixo_r2_armazenamento,0.235113,USD
+patamar,base,,,100,fixo_r2_classe_a,5.425285,USD
+patamar,base,,,100,fixo_fly_egress,0.313700,USD
+patamar,base,,,100,fixo_resend,0.000000,USD
+patamar,base,,,100,fixo_sentry,0.000000,USD
+patamar,base,,,100,fixo_langfuse,101.143200,USD
+patamar,base,,,100,ia_total,181.713733,BRL
+patamar,base,convidado,,100,ia_plano,0.000000,BRL
+patamar,base,free,,100,ia_plano,0.000000,BRL
+patamar,base,teste,,100,ia_plano,18.815875,BRL
+patamar,base,premium,,100,ia_plano,162.897858,BRL
+patamar,base,,,100,taxa_pagamento,34.577621,BRL
+patamar,base,,,100,aliquota_simples,0.060000,fracao
+patamar,base,,,100,imposto,32.232000,BRL
+patamar,base,,,100,custo_total,1023.363192,BRL
+patamar,base,,,100,resultado,-486.163192,BRL
+patamar,base,,,100,langfuse_unidades,1001790.000000,un
+patamar,base,,,100,litestream_puts,2204318.138975,PUT
+patamar,base,,,100,r2_gb,25.674200,GB
+patamar,base,,,100,demanda_stt_h,415.400000,h
+patamar,base,,,100,demanda_llm_req,251655.000000,req
+patamar,base,,,1000,receita_bruta,5372.000000,BRL
+patamar,base,,,1000,fixo_infra,4918.891502,BRL
+patamar,base,,,1000,fixo_fly_maquinas,53.307692,USD
+patamar,base,,,1000,fixo_fly_volume,1.500000,USD
+patamar,base,,,1000,fixo_supabase,25.000000,USD
+patamar,base,,,1000,fixo_supabase_compute_extra,5.000000,USD
+patamar,base,,,1000,fixo_supabase_disco_extra,0.000000,USD
+patamar,base,,,1000,fixo_r2_armazenamento,3.114405,USD
+patamar,base,,,1000,fixo_r2_classe_a,0.000000,USD
+patamar,base,,,1000,fixo_fly_egress,3.137000,USD
+patamar,base,,,1000,fixo_resend,0.000000,USD
+patamar,base,,,1000,fixo_sentry,0.000000,USD
+patamar,base,,,1000,fixo_langfuse,822.432000,USD
+patamar,base,,,1000,ia_total,1817.137327,BRL
+patamar,base,convidado,,1000,ia_plano,0.000000,BRL
+patamar,base,free,,1000,ia_plano,0.000000,BRL
+patamar,base,teste,,1000,ia_plano,188.158746,BRL
+patamar,base,premium,,1000,ia_plano,1628.978581,BRL
+patamar,base,,,1000,taxa_pagamento,345.776212,BRL
+patamar,base,,,1000,aliquota_simples,0.060000,fracao
+patamar,base,,,1000,imposto,322.320000,BRL
+patamar,base,,,1000,custo_total,7404.125041,BRL
+patamar,base,,,1000,resultado,-2032.125041,BRL
+patamar,base,,,1000,langfuse_unidades,10017900.000000,un
+patamar,base,,,1000,litestream_puts,0.000000,PUT
+patamar,base,,,1000,r2_gb,217.627000,GB
+patamar,base,,,1000,demanda_stt_h,4154.000000,h
+patamar,base,,,1000,demanda_llm_req,2516550.000000,req
+patamar,base,,,10000,receita_bruta,53720.000000,BRL
+patamar,base,,,10000,fixo_infra,45804.738508,BRL
+patamar,base,,,10000,fixo_fly_maquinas,266.538461,USD
+patamar,base,,,10000,fixo_fly_volume,0.750000,USD
+patamar,base,,,10000,fixo_supabase,25.000000,USD
+patamar,base,,,10000,fixo_supabase_compute_extra,100.000000,USD
+patamar,base,,,10000,fixo_supabase_disco_extra,0.514375,USD
+patamar,base,,,10000,fixo_r2_armazenamento,32.089050,USD
+patamar,base,,,10000,fixo_r2_classe_a,0.000000,USD
+patamar,base,,,10000,fixo_fly_egress,31.370000,USD
+patamar,base,,,10000,fixo_resend,20.000000,USD
+patamar,base,,,10000,fixo_sentry,0.000000,USD
+patamar,base,,,10000,fixo_langfuse,8035.320000,USD
+patamar,base,,,10000,ia_total,18171.373266,BRL
+patamar,base,convidado,,10000,ia_plano,0.000000,BRL
+patamar,base,free,,10000,ia_plano,0.000000,BRL
+patamar,base,teste,,10000,ia_plano,1881.587460,BRL
+patamar,base,premium,,10000,ia_plano,16289.785806,BRL
+patamar,base,,,10000,taxa_pagamento,3457.762125,BRL
+patamar,base,,,10000,aliquota_simples,0.107636,fracao
+patamar,base,,,10000,imposto,5782.200000,BRL
+patamar,base,,,10000,custo_total,73216.073899,BRL
+patamar,base,,,10000,resultado,-19496.073899,BRL
+patamar,base,,,10000,langfuse_unidades,100179000.000000,un
+patamar,base,,,10000,litestream_puts,0.000000,PUT
+patamar,base,,,10000,r2_gb,2149.270000,GB
+patamar,base,,,10000,demanda_stt_h,41540.000000,h
+patamar,base,,,10000,demanda_llm_req,25165500.000000,req
+equilibrio,base,,,,cadastrados,-1.000000,usuarios
+sensibilidade,base,,,10,resultado,-325.863503,BRL
+sensibilidade,base,,,100,resultado,-486.163192,BRL
+sensibilidade,base,,,1000,resultado,-2032.125041,BRL
+sensibilidade,base,,,10000,resultado,-19496.073899,BRL
+sensibilidade,base,,,,equilibrio,-1.000000,usuarios
+sensibilidade,base,premium,teto,,margem_teto,-1.541812,BRL
+sensibilidade,câmbio −20%,,,10,resultado,-251.949661,BRL
+sensibilidade,câmbio −20%,,,100,resultado,-295.519145,BRL
+sensibilidade,câmbio −20%,,,1000,resultado,-685.585942,BRL
+sensibilidade,câmbio −20%,,,10000,resultado,-6701.518211,BRL
+sensibilidade,câmbio −20%,,,,equilibrio,-1.000000,usuarios
+sensibilidade,câmbio −20%,premium,teto,,margem_teto,1.902487,BRL
+sensibilidade,câmbio +20%,,,10,resultado,-399.777344,BRL
+sensibilidade,câmbio +20%,,,100,resultado,-676.807240,BRL
+sensibilidade,câmbio +20%,,,1000,resultado,-3378.664140,BRL
+sensibilidade,câmbio +20%,,,10000,resultado,-32290.629587,BRL
+sensibilidade,câmbio +20%,,,,equilibrio,-1.000000,usuarios
+sensibilidade,câmbio +20%,premium,teto,,margem_teto,-4.986110,BRL
+sensibilidade,uso 2×,,,10,resultado,-367.774052,BRL
+sensibilidade,uso 2×,,,100,resultado,-906.836525,BRL
+sensibilidade,uso 2×,,,1000,resultado,-6237.880496,BRL
+sensibilidade,uso 2×,,,10000,resultado,-61561.777406,BRL
+sensibilidade,uso 2×,,,,equilibrio,-1.000000,usuarios
+sensibilidade,uso 2×,premium,teto,,margem_teto,-1.716078,BRL
+sensibilidade,Anexo V (Fator R < 28%),,,10,resultado,-330.966903,BRL
+sensibilidade,Anexo V (Fator R < 28%),,,100,resultado,-537.197192,BRL
+sensibilidade,Anexo V (Fator R < 28%),,,1000,resultado,-2542.465041,BRL
+sensibilidade,Anexo V (Fator R < 28%),,,10000,resultado,-23364.273899,BRL
+sensibilidade,Anexo V (Fator R < 28%),,,,equilibrio,-1.000000,usuarios
+sensibilidade,Anexo V (Fator R < 28%),premium,teto,,margem_teto,-3.242945,BRL
+sensibilidade,100% Pix (mensal e anual à vista),,,10,resultado,-326.557616,BRL
+sensibilidade,100% Pix (mensal e anual à vista),,,100,resultado,-493.104321,BRL
+sensibilidade,100% Pix (mensal e anual à vista),,,1000,resultado,-2101.536329,BRL
+sensibilidade,100% Pix (mensal e anual à vista),,,10000,resultado,-20190.186774,BRL
+sensibilidade,100% Pix (mensal e anual à vista),,,,equilibrio,-1.000000,usuarios
+sensibilidade,100% Pix (mensal e anual à vista),premium,teto,,margem_teto,-1.773183,BRL
+sensibilidade,"mais anual (30% mensal, 40% à vista, 30% 12x)",,,10,resultado,-329.288000,BRL
+sensibilidade,"mais anual (30% mensal, 40% à vista, 30% 12x)",,,100,resultado,-520.408166,BRL
+sensibilidade,"mais anual (30% mensal, 40% à vista, 30% 12x)",,,1000,resultado,-2374.574779,BRL
+sensibilidade,"mais anual (30% mensal, 40% à vista, 30% 12x)",,,10000,resultado,-22584.196274,BRL
+sensibilidade,"mais anual (30% mensal, 40% à vista, 30% 12x)",,,,equilibrio,-1.000000,usuarios
+sensibilidade,"mais anual (30% mensal, 40% à vista, 30% 12x)",premium,teto,,margem_teto,-2.683311,BRL
+sensibilidade,"teto de 60 h JÁ (antes do B7, pilha de hoje)",,,10,resultado,-334.619578,BRL
+sensibilidade,"teto de 60 h JÁ (antes do B7, pilha de hoje)",,,100,resultado,-573.723939,BRL
+sensibilidade,"teto de 60 h JÁ (antes do B7, pilha de hoje)",,,1000,resultado,-2907.732507,BRL
+sensibilidade,"teto de 60 h JÁ (antes do B7, pilha de hoje)",,,10000,resultado,-28252.148562,BRL
+sensibilidade,"teto de 60 h JÁ (antes do B7, pilha de hoje)",,,,equilibrio,-1.000000,usuarios
+sensibilidade,"teto de 60 h JÁ (antes do B7, pilha de hoje)",premium,teto,,margem_teto,-10.065424,BRL
+sensibilidade,o dobro de contas em teste (10%),,,10,resultado,-332.240058,BRL
+sensibilidade,o dobro de contas em teste (10%),,,100,resultado,-549.995127,BRL
+sensibilidade,o dobro de contas em teste (10%),,,1000,resultado,-2670.455126,BRL
+sensibilidade,o dobro de contas em teste (10%),,,10000,resultado,-25879.183047,BRL
+sensibilidade,o dobro de contas em teste (10%),,,,equilibrio,-1.000000,usuarios
+sensibilidade,o dobro de contas em teste (10%),premium,teto,,margem_teto,-1.541812,BRL
+sensibilidade,"10% pagantes (85% Grátis, 5% teste)",,,10,resultado,-190.229365,BRL
+sensibilidade,"10% pagantes (85% Grátis, 5% teste)",,,100,resultado,-433.109329,BRL
+sensibilidade,"10% pagantes (85% Grátis, 5% teste)",,,1000,resultado,-1501.671491,BRL
+sensibilidade,"10% pagantes (85% Grátis, 5% teste)",,,10000,resultado,-11783.685067,BRL
+sensibilidade,"10% pagantes (85% Grátis, 5% teste)",,,,equilibrio,-1.000000,usuarios
+sensibilidade,"10% pagantes (85% Grátis, 5% teste)",premium,teto,,margem_teto,-1.541812,BRL
+sensibilidade,Langfuse desligado,,,10,resultado,-169.735460,BRL
+sensibilidade,Langfuse desligado,,,100,resultado,58.095295,BRL
+sensibilidade,Langfuse desligado,,,1000,resultado,2393.437887,BRL
+sensibilidade,Langfuse desligado,,,10000,resultado,23742.533440,BRL
+sensibilidade,Langfuse desligado,,,,equilibrio,78.000000,usuarios
+sensibilidade,Langfuse desligado,premium,teto,,margem_teto,-1.541812,BRL
+sensibilidade,Langfuse com amostragem 10%,,,10,resultado,-169.735460,BRL
+sensibilidade,Langfuse com amostragem 10%,,,100,resultado,-98.032748,BRL
+sensibilidade,Langfuse com amostragem 10%,,,1000,resultado,1849.179400,BRL
+sensibilidade,Langfuse com amostragem 10%,,,10000,resultado,19316.970512,BRL
+sensibilidade,Langfuse com amostragem 10%,,,,equilibrio,143.000000,usuarios
+sensibilidade,Langfuse com amostragem 10%,premium,teto,,margem_teto,-1.541812,BRL
+sensibilidade,nuvem grátis ligada (alívio + convidado),,,10,resultado,-331.151483,BRL
+sensibilidade,nuvem grátis ligada (alívio + convidado),,,100,resultado,-539.042992,BRL
+sensibilidade,nuvem grátis ligada (alívio + convidado),,,1000,resultado,-2560.923034,BRL
+sensibilidade,nuvem grátis ligada (alívio + convidado),,,10000,resultado,-24784.053827,BRL
+sensibilidade,nuvem grátis ligada (alívio + convidado),,,,equilibrio,-1.000000,usuarios
+sensibilidade,nuvem grátis ligada (alívio + convidado),premium,teto,,margem_teto,-1.541812,BRL
+sensibilidade,"pior combinado (câmbio +20%, uso 2×, Anexo V)",,,10,resultado,-455.173403,BRL
+sensibilidade,"pior combinado (câmbio +20%, uso 2×, Anexo V)",,,100,resultado,-1232.649240,BRL
+sensibilidade,"pior combinado (câmbio +20%, uso 2×, Anexo V)",,,1000,resultado,-8935.910686,BRL
+sensibilidade,"pior combinado (câmbio +20%, uso 2×, Anexo V)",,,10000,resultado,-86637.673795,BRL
+sensibilidade,"pior combinado (câmbio +20%, uso 2×, Anexo V)",,,,equilibrio,-1.000000,usuarios
+sensibilidade,"pior combinado (câmbio +20%, uso 2×, Anexo V)",premium,teto,,margem_teto,-6.896362,BRL
+nuvem_gratis,ligada,,,10,custo_ia_free_convidado,1.580678,BRL
+nuvem_gratis,ligada,,,10,pool_alivio_dia,0.800000,USD
+nuvem_gratis,ligada,,,10,demanda_alivio_dia,0.006542,USD
+nuvem_gratis,ligada,,,100,custo_ia_free_convidado,15.806781,BRL
+nuvem_gratis,ligada,,,100,pool_alivio_dia,0.800000,USD
+nuvem_gratis,ligada,,,100,demanda_alivio_dia,0.065416,USD
+nuvem_gratis,ligada,,,1000,custo_ia_free_convidado,158.067811,BRL
+nuvem_gratis,ligada,,,1000,pool_alivio_dia,0.800000,USD
+nuvem_gratis,ligada,,,1000,demanda_alivio_dia,0.654160,USD
+nuvem_gratis,ligada,,,10000,custo_ia_free_convidado,1580.678110,BRL
+nuvem_gratis,ligada,,,10000,pool_alivio_dia,0.800000,USD
+nuvem_gratis,ligada,,,10000,demanda_alivio_dia,6.541600,USD
+economias,base,,,,Cache de tradução sem contexto para falas curtas,"MT = 43,6% da IA do Premium típico; cada 10 p.p. de acerto = 4,4% da IA",a medir (taxa de repetição de falas curtas)
+economias,base,,,,"Prompt caching da Groq (automático, −50% na entrada em cache, mín. 128–1.024 tokens)","entrada = 49,3% do custo por fala; se 60% da entrada for prefixo em cache: −14,8% na tradução","a medir (`cached_tokens` na resposta; prefixo pode ser menor que o mínimo)"
+economias,base,,,,"Cascata barata da Fase B (DeepInfra ~US$ 0,024/h de fala e tradução)",o que deixa o teto do Premium subir de 40 h para 60 h sem prejuízo,a medir no B5/B7 (bancada com IC pareado)
+economias,base,,,,Amostrar Langfuse em 10% (erros 100%),"1.000 cadastrados: US$ 822,43 → 101,14/mês",calculado
+economias,base,,,,Litestream sync-interval 1 s → 10 s,"100 cadastrados: classe A US$ 5,43 → 0,00/mês (perda máx. 10 s)",calculado
+economias,base,,,,Anual à vista (1 cobrança Asaas em vez de 12),"taxa do ano: mensal R$ 18,45, anual à vista R$ 3,92, 12x R$ 11,88","calculado (o 12x, da sondagem do sandbox)"
+economias,base,,,,"Mover STT/tradução para o navegador (Moonshine en, opus-mt)","até 100% da parte movida; custa WER 4,9%→13,5% (en) e COMET 0,917→0,847",decisão de produto (bancada-2026-09.md)
+premissa,base,,,,fly_shared1gb_gru,10.806923,USD
+premissa,base,,,,fly_perf1x2gb_gru,53.307692,USD

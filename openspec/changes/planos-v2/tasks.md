@@ -82,11 +82,18 @@
       linha da semente)
 - [x] 8.4 O `fim_do_teste` do C6 integrado na tela: a faixa "Premium · teste" diz a mesma frase de D-3/D0
 
-## C9 — Docs e jurídico (depois)
+## C9 — Docs e jurídico (branch `feat/c-tela-de-planos`)
 
-- [ ] 9.1 `docs/LANCAMENTO.md`, `ofertas.md`, `monetizacao.md`, `flags.md`, `scripts/custo/modelo.mjs`
-- [ ] 9.2 `termos.html` §3 (anual, teste, uso justo, 12x) e `privacidade.html` (a marca do teste)
-- [ ] 9.3 Poda das janelas diárias de `usage_counters`
+- [x] 9.1 `docs/LANCAMENTO.md`, `ofertas.md`, `monetizacao.md`, `flags.md`; `scripts/custo/modelo.mjs` na matriz v2
+      (Premium mensal/anual/12x, teto de 40 h até o B7, uso justo de 2 h/dia, teste de 14 dias, alívio de 3 h do
+      Grátis), com as tabelas em `openspec/changes/planos-v2/custo/` (as de 25/09 ficam como o retrato da matriz v1)
+- [x] 9.2 `termos.html` v5: §3 (Grátis e Premium, mensal/anual/12x, troca de ciclo, preço travado), §3.1
+      (arrependimento do ano e do parcelamento inteiros), §3.2 (cancelamento por ciclo: depois dos 7 dias, sem
+      reembolso proporcional; o 12x segue no cartão), §3.4, §3.5 (teste de 14 dias sem cobrança automática), §4 (uso
+      justo) e §5 (sem "números de qualidade"); "texto a validar com o jurídico" em comentário HTML. `privacidade.html`:
+      a tabela sem Essencial/Pro e a normalização do e-mail da marca do teste (a marca, o HMAC e os 730 dias do C6
+      conferem com o código)
+- [ ] 9.3 Poda das janelas diárias de `usage_counters` (fica para a operação)
 
 ## Portões (cada item)
 

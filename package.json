@@ -107,7 +107,7 @@
     "axe-core": "^4.12.1",
     "depcheck": "^1.4.7",
     "drizzle-kit": "^0.31.10",
-    "esbuild": "^0.25.0",
+    "esbuild": "^0.28.1",
     "eslint": "^10.7.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-simple-import-sort": "^14.0.0",

@@ -16,13 +16,12 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import {
-  classificar,
-  decidir,
-  decisoesDoResumo,
-  markdownDasDecisoes,
-} from '../../scripts/eval-fala/bancada/decisao.mjs'
-import { resumir } from '../../scripts/eval-fala/bancada/resumo.mjs'
+import * as moduloDecisao from '../../scripts/eval-fala/bancada/decisao.mjs'
+import * as moduloResumo from '../../scripts/eval-fala/bancada/resumo.mjs'
+
+/** O .mjs não tem tipos (o tsc infere do JS): a borda é `any`, como em `bancada-etapa5.test.ts`. */
+const { classificar, decidir, decisoesDoResumo, markdownDasDecisoes } = moduloDecisao as any
+const { resumir } = moduloResumo as any
 
 const MARGENS = { comet: 0.01, chrf: 1, wer: 0.005, alucinacao: 0.02 }
 const comp = (corpus: string, metrica: string, valor: number, lo: number, hi: number) => ({

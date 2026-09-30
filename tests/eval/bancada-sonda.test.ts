@@ -7,14 +7,17 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import {
+import * as moduloSonda from '../../scripts/eval-fala/bancada/sondar-contratos.mjs'
+
+/** O .mjs não tem tipos (o tsc infere do JS): a borda é `any`, como em `bancada-etapa5.test.ts`. */
+const {
   camposDeRetencao,
   classificarFalhaHttp,
   conferirContratoMt,
   conferirContratoStt,
   limitesDosCabecalhos,
   planoDaSonda,
-} from '../../scripts/eval-fala/bancada/sondar-contratos.mjs'
+} = moduloSonda as any
 
 const cabecalhos = (o: Record<string, string>) => new Headers(o)
 

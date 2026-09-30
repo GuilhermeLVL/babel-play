@@ -15,7 +15,12 @@ import { readFileSync } from 'node:fs'
 
 import { describe, expect, it } from 'vitest'
 
-import {
+import * as moduloNuvem from '../../scripts/eval-fala/bancada/nuvem.mjs'
+import { maxTokensDaTraducao } from '../../server/ai/funcoesDeIa'
+import { systemComunicativo, userComunicativo } from '../../src/lib/traducao/promptComunicativo'
+
+/** O .mjs não tem tipos (o tsc infere do JS): a borda é `any`, como em `bancada-etapa5.test.ts`. */
+const {
   chavesAusentes,
   custoDeMt,
   custoDeStt,
@@ -29,9 +34,7 @@ import {
   PROVEDORES,
   TEMPERATURA_DA_FALA,
   TIMEOUT_DE_PRODUCAO_MS,
-} from '../../scripts/eval-fala/bancada/nuvem.mjs'
-import { maxTokensDaTraducao } from '../../server/ai/funcoesDeIa'
-import { systemComunicativo, userComunicativo } from '../../src/lib/traducao/promptComunicativo'
+} = moduloNuvem as any
 
 const CONTA = '0123456789abcdef0123456789abcdef'
 const ENV = {
@@ -82,9 +85,10 @@ describe('política de dados', () => {
     expect(corpo.reasoning).toEqual({ effort: 'low', exclude: true })
   })
   it('todo provedor declara a retenção com fonte e data', () => {
-    for (const [nome, p] of Object.entries(PROVEDORES)) {
+    for (const [nome, p] of Object.entries<any>(PROVEDORES)) {
       expect(p.retencao?.declarada, nome).toBeTruthy()
       expect(p.retencao?.fonte, nome).toBeTruthy()
+      expect(p.retencao?.consultadoEm, nome).toMatch(/^2026-/)
     }
   })
 })

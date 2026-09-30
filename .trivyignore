@@ -1,0 +1,18 @@
+# RISCO ACEITO, com prazo. O Trivy lê este arquivo sozinho (é o `--ignorefile` padrão) no passo que
+# reprova a imagem (`.github/workflows/ci.yml`, "Trivy — vulnerabilidades da imagem"). Cada linha
+# vence em `exp:` e volta a reprovar — é o lembrete de reavaliar, não um silêncio.
+#
+# Litestream 0.5.17 (/usr/local/bin/litestream), a versão mais nova em 30/09/2026: o binário oficial
+# foi compilado com módulos Go que têm CVE HIGH corrigida depois. Nenhum caminho vulnerável é
+# alcançável COMO O USAMOS — réplica `type: s3` só (litestream.yml), sem servidor escutando:
+#   - x/crypto/ssh: burla de restrição de origem no SERVIDOR ssh; o Litestream só teria cliente
+#     ssh na réplica SFTP, que não usamos.
+#   - x/net/dns/dnsmessage: DoS ao interpretar registro DNS forjado; o resolvedor usado é o do Go
+#     padrão contra o DNS do provedor da máquina.
+#   - grpc (2): DoS por pedido RPC malformado no SERVIDOR gRPC; o gRPC vem do cliente do GCS, e não
+#     há servidor gRPC no processo.
+# Saída de verdade: a próxima release do Litestream (ou compilar da fonte com os módulos novos).
+CVE-2026-56854 exp:2026-11-30
+CVE-2026-46600 exp:2026-11-30
+CVE-2026-84304 exp:2026-11-30
+CVE-2026-84445 exp:2026-11-30

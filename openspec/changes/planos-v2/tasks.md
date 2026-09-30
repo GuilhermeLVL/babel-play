@@ -60,10 +60,17 @@
 - [x] 6.3 `planoDeAdmissao(plano, alivio, teste = true)` → faixa `gratis` (STT, tradução e tutor)
 - [x] 6.4 LGPD: `docs/lgpd/ropa.csv` (T12) e `public/privacidade.html` — a marca, a finalidade e os 730 dias
 
-## C7 — Tela de Planos nova (depois)
+## C7 — Tela de Planos nova (branch `feat/c-tela-de-planos`)
 
-- [ ] 7.1 Seletor Mensal/Anual; sem `%`, sem "qualidade", sem o `Medidor` (teste automático)
-- [ ] 7.2 Nota do uso justo AO LADO de "sem limite" (CDC); checkout e conta falando de ciclo
+- [x] 7.1 Título do produto, seletor Mensal/Anual ("equivale a 3 meses grátis", da matriz); colunas Grátis
+      ("Tradução rápida ao vivo") e Premium ("Tradução Nuance"); sem `%`, sem "qualidade", sem o `Medidor`
+      (`tests/planos-tela-v2.test.tsx`)
+- [x] 7.2 Nota do uso justo AO LADO de "sem limite" (CDC), no cartão, na tabela e no checkout; checkout abre no
+      período escolhido; faixa, "Sua assinatura", cancelamento e confirmação falando de ciclo e meio
+      (`tests/conta-fala-do-ciclo.test.tsx`)
+- [x] 7.3 O teste de 14 dias com um toque no cartão do Premium; o estado `teste` da conta (não é assinatura)
+- [x] 7.4 Troca de ciclo com assinatura ativa: o caminho honesto, sem rota nova (`DialogoCiclo`) — cancelar a
+      renovação e assinar o outro ciclo no fim do período; o 12x não troca (não renova)
 
 ## C8 — Ofertas (depois)
 

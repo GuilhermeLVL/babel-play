@@ -24,6 +24,7 @@ import {
   type Conta,
   dataCurta,
   definirBeneficiario,
+  economiaDoAnual,
   type FormaDeAssinar,
   FORMAS_DE_ASSINAR,
   iniciarAssinatura,
@@ -59,8 +60,8 @@ import { entrarParaAssinar, useSemConta, useVendaAberta } from './funil';
  *
  * O PERÍODO (C5, change `planos-v2`): mensal recorrente, anual em uma vez (assinatura `YEARLY`, Pix,
  * boleto ou cartão, renova em um ano) e anual em 12x no cartão (parcelamento, sem renovação
- * automática). Os preços saem da matriz; as parcelas, da mesma conta que o Asaas faz. A tela de Planos
- * nova, com o seletor Mensal/Anual e o "equivale a 3 meses grátis", é o C7.
+ * automática). Os preços saem da matriz; as parcelas, da mesma conta que o Asaas faz. O checkout abre
+ * na forma do período escolhido no seletor Mensal/Anual da tela de Planos (C7, `formaInicial`).
  *
  * O QUE O PROTÓTIPO TEM E O APP NÃO: cupom (não há cupom no servidor) e o QR code do Pix dentro do
  * app (ele está na página do Asaas).
@@ -129,7 +130,8 @@ function textosDaForma(plano: PlanoPago, f: FormaDeAssinar) {
  * O TESTE DE 14 DIAS, COM UM TOQUE (C6) — sem nome, CPF nem cartão: nada é cobrado, nem no fim. Só
  * aparece quando o SERVIDOR diz que dá (`teste.estado: 'disponivel'`), ou quando o responsável escolheu
  * o menor vinculado (ele ativa por ele; o servidor confere o vínculo). O perfil protegido recebe o
- * caminho do responsável, não o botão. A tela de Planos nova (C7) dá o destaque; aqui é o mínimo.
+ * caminho do responsável, não o botão. O destaque do teste é o cartão do Premium na tela de Planos
+ * (C7); aqui ele continua para quem chega direto ao checkout.
  */
 function TesteDoPremium({ teste, beneficiario }: { teste?: SituacaoDoTeste; beneficiario: Beneficiario | null }) {
   const [ocupado, setOcupado] = useState(false);
@@ -270,7 +272,9 @@ function impedimento(
   if (temAssinatura(conta.estado) && !extra.paraOutro)
     return [
       'Você já tem uma assinatura',
-      'Para trocar de plano ou de forma de pagamento, use Planos → Sua assinatura.',
+      t(
+        'Para passar do mensal para o anual (ou o contrário), veja Planos → Sua assinatura: a troca é no fim do período, sem pagar duas vezes.',
+      ),
     ];
   return null;
 }
@@ -278,6 +282,7 @@ function impedimento(
 export default function Checkout({
   plano,
   aoTrocarPlano,
+  formaInicial = 'mensal',
   plan,
   conta,
   status,
@@ -285,6 +290,8 @@ export default function Checkout({
 }: {
   plano: PlanoPago;
   aoTrocarPlano: (p: PlanoPago) => void;
+  /** O período escolhido na tela de Planos (C7): o anual abre no anual em uma vez. */
+  formaInicial?: FormaDeAssinar;
   plan: Plan;
   conta: Conta;
   status: StatusDeBilling | null;
@@ -292,7 +299,7 @@ export default function Checkout({
   aoEntrar?: () => void;
 }) {
   const [passo, setPasso] = useState<1 | 2>(1);
-  const [forma, setForma] = useState<FormaDeAssinar>('mensal');
+  const [forma, setForma] = useState<FormaDeAssinar>(formaInicial);
   const [campos, setCampos] = useState<Record<Campo, string>>({ nome: '', cpf: '', email: '' });
   const [erros, setErros] = useState<Partial<Record<Campo, string>>>({});
   const [ocupado, setOcupado] = useState(false);
@@ -468,13 +475,21 @@ export default function Checkout({
               <IconeEmBloco icone={PLANO_ICO[id]} />
               <span style={{ flex: 1 }}>
                 <h3>{PLANO_NOME[id]}</h3>
+                {/* O "sem limite" com a nota do uso justo AO LADO (CDC), o dia e o mês das quotas. */}
                 <p>
-                  {`Tradução e ${horasDeTranscricao(id)} h de transcrição de nuvem por mês (uso justo de ${horasDoUsoJusto(id)} h por dia), ${armazenamentoEmTexto(id)}`}
+                  {t(
+                    'Tradução Nuance e nuvem sem limite no dia a dia (uso justo: até {dia} h de nuvem por dia e {mes} h por mês; passando disso, a legenda segue no aparelho), {espaco} para sessões',
+                    {
+                      dia: horasDoUsoJusto(id) ?? 0,
+                      mes: horasDeTranscricao(id) ?? 0,
+                      espaco: armazenamentoEmTexto(id),
+                    },
+                  )}
                 </p>
               </span>
               <b className="tn">
-                {brl(precoMensal(id))}
-                <small className="mut">/mês</small>
+                {forma === 'mensal' ? brl(precoMensal(id)) : brl(precoAnual(id))}
+                <small className="mut">{forma === 'mensal' ? t('/mês') : t('/ano')}</small>
               </b>
             </button>
           ))}
@@ -495,7 +510,14 @@ export default function Checkout({
               >
                 <span className="radio" aria-hidden />
                 <span style={{ flex: 1 }}>
-                  <h3>{x.titulo}</h3>
+                  <h3>
+                    {x.titulo}{' '}
+                    {f !== 'mensal' && (
+                      <span className="badge ok">
+                        {t('equivale a {n} meses grátis', { n: economiaDoAnual(plano).meses })}
+                      </span>
+                    )}
+                  </h3>
                   <p>{x.descricao}</p>
                 </span>
               </button>

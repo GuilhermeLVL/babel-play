@@ -20,7 +20,7 @@ import {
   Target,
   UserRound,
 } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { type CSSProperties, useCallback, useEffect, useRef, useState } from 'react';
 
 import { armazenamentoEmTexto, DIAS_DO_TESTE_PREMIUM, horasDeTranscricao, horasDoUsoJusto } from '../../core/planos';
 import {
@@ -779,7 +779,9 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
             </div>
           )}
         </div>
-        <div className="planos-grade">{PLANOS.map(cartao)}</div>
+        <div className="planos-grade" style={{ '--planos': PLANOS.length } as CSSProperties}>
+          {PLANOS.map(cartao)}
+        </div>
         <p className="mut garantia">
           <ShieldCheck aria-hidden />{' '}
           {t('Pagamento seguro · 7 dias para desistir com reembolso · cancele quando quiser')}

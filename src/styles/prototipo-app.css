@@ -28,12 +28,20 @@
   right: calc(22px + var(--shell-inset-right, 0px));
   bottom: calc(22px + var(--shell-inset-bottom, 0px));
 }
-.toast { right: calc(22px + var(--shell-inset-right, 0px)); }
+.toast {
+  right: calc(22px + var(--shell-inset-right, 0px));
+}
 @container app (max-width: 760px) {
   /* z-index: no protótipo as partículas moram dentro do conteúdo; no app são uma camada fixa
      (`ParticleCanvas`, z 38) e passariam por cima do chat em tela cheia (z do protótipo: dock + 5). */
-  .painel-chat { right: 0; bottom: 0; z-index: var(--z-pop); }
-  .toast { right: 14px; }
+  .painel-chat {
+    right: 0;
+    bottom: 0;
+    z-index: var(--z-pop);
+  }
+  .toast {
+    right: 14px;
+  }
 }
 
 /* O reset do Tailwind (preflight) põe `svg { display: block }`; o protótipo não tem reset, então lá
@@ -51,4 +59,17 @@
 }
 .sentidos {
   list-style: decimal;
+}
+
+/* A GRADE DOS PLANOS segue QUANTOS planos o app vende (`--planos`, em Planos.tsx). O protótipo
+   simulava três (Grátis, Essencial, Pro); a matriz v2 vende dois, e as três colunas fixas deixavam
+   um buraco à direita. Mesmo cartão e mesmo espaçamento; só o número de colunas vem do app. No
+   estreito vale a regra do protótipo (`@container (max-width: 880px)`: uma coluna). */
+@container (min-width: 881px) {
+  .planos-grade {
+    grid-template-columns: repeat(var(--planos, 3), minmax(0, 1fr));
+    max-width: calc(var(--planos, 3) * 380px);
+    margin-left: auto;
+    margin-right: auto;
+  }
 }

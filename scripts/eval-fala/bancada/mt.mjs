@@ -8,6 +8,10 @@
  *   openrouter:google/gemini-2.5-flash-lite   (sempre com provider.zdr = true)
  *   local:opus-mt                       o tradutor do navegador (Xenova/opus-mt-*, q8, beam 2)
  *   local:tc-big                        opus-mt-tc-big-en-pt (repositório privado já convertido)
+ *   bergamot:en-pt | bergamot:pt-en     Firefox Translations (Mozilla, MPL-2.0) no WASM do
+ *                                       bergamot-translator — `bergamot.mjs`. O par tem de bater
+ *                                       com o do corpus (erro claro se não bater); `bergamot:auto`
+ *                                       segue o corpus. Registra também a latência POR FRASE.
  * Corpora (`--corpora`):
  *   fleurs:en-pt  fleurs:pt-en  wmt:en-pt  gold:en-pt
  *   cascata:<sistema-stt>:en-pt   o texto que o STT ENTENDEU do áudio em inglês, traduzido e
@@ -41,6 +45,7 @@ import {
   registrarGasto,
   TetoDeGasto,
 } from './comum.mjs'
+import { prepararBergamot, traduzirBergamot } from './bergamot.mjs'
 
 /** US$ por 1M tokens (entrada, saída) na Groq — console.groq.com/docs/models, 24/09/2026. */
 const PRECO_GROQ = {
@@ -250,6 +255,19 @@ async function traduzirLocal(sis, caso, src, tgt) {
   return { texto: juntarFrases(partes).trim(), ms: performance.now() - t0, usd: 0 }
 }
 
+/** Par do sistema ≠ par do corpus: erro de USO, não falha do modelo — para em vez de gravar vazios. */
+class ParErrado extends Error {}
+
+async function traduzirBergamotBancada(sis, caso, src, tgt) {
+  if (sis.modelo !== 'auto' && sis.modelo !== `${src}-${tgt}`)
+    throw new ParErrado(`${sis.id} não traduz ${src}→${tgt}: rode este corpus com bergamot:${src}-${tgt}`)
+  await prepararBergamot(src, tgt) // download e carga fora do cronômetro
+  const t0 = performance.now()
+  const texto = (await traduzirBergamot(src, tgt, caso.origem)).trim()
+  const ms = performance.now() - t0
+  return { texto, ms, frases: separarEmFrases(caso.origem).length, usd: 0 }
+}
+
 // ------------------------------------------------------------------ execução
 async function rodar(sis, spec) {
   const { src, tgt, casos } = carregarCorpus(spec)
@@ -263,9 +281,13 @@ async function rodar(sis, spec) {
     if (!r) {
       try {
         r =
-          sis.provedor === 'local' ? await traduzirLocal(sis, caso, src, tgt) : await traduzirNuvem(sis, caso, src, tgt)
+          sis.provedor === 'local'
+            ? await traduzirLocal(sis, caso, src, tgt)
+            : sis.provedor === 'bergamot'
+              ? await traduzirBergamotBancada(sis, caso, src, tgt)
+              : await traduzirNuvem(sis, caso, src, tgt)
       } catch (e) {
-        if (e instanceof TetoDeGasto || e instanceof CotaDoProvedor) throw e
+        if (e instanceof TetoDeGasto || e instanceof CotaDoProvedor || e instanceof ParErrado) throw e
         r = { texto: '', ms: NaN, erro: String(e.message).slice(0, 200) }
       }
       if (!r.erro) c.set(k, r)
@@ -274,6 +296,7 @@ async function rodar(sis, spec) {
       ...caso,
       hipotese: r.texto,
       ms: r.ms,
+      frases: r.frases ?? separarEmFrases(caso.origem).length,
       usd: r.usd ?? 0,
       tokensEntrada: r.tokensEntrada,
       tokensSaida: r.tokensSaida,
@@ -282,7 +305,7 @@ async function rodar(sis, spec) {
     process.stdout.write(`\r  ${sis.id} × ${spec}: ${++feitos}/${casos.length}   `)
   }
   // Local é CPU: um por vez. Nuvem: poucos em paralelo (a latência medida é por chamada).
-  const conc = sis.provedor === 'local' ? 1 : CONCORRENCIA
+  const conc = sis.provedor === 'local' || sis.provedor === 'bergamot' ? 1 : CONCORRENCIA
   let proximo = 0
   await Promise.all(
     Array.from({ length: conc }, async () => {
@@ -294,6 +317,12 @@ async function rodar(sis, spec) {
   const q = bootstrap(saida.length, mediaEm(notas))
   const falhas = saida.filter((x) => x.erro).length
   const [p50, p95] = percentis(saida.map((x) => x.ms))
+  // Latência POR FRASE (o que a legenda espera a cada fim de frase), só para os motores locais: na
+  // nuvem a chamada leva o trecho inteiro e dividir mediria a rede, não o modelo.
+  const porFrase =
+    sis.provedor === 'local' || sis.provedor === 'bergamot'
+      ? percentis(saida.filter((x) => x.frases > 0).map((x) => x.ms / x.frases))
+      : null
   const usd = saida.reduce((s, x) => s + (x.usd || 0), 0)
   const palavras = saida.reduce((s, x) => s + x.origem.split(/\s+/).length, 0)
   // Custo por HORA DE FALA: ~9.000 palavras por hora de conversa (ritmo médio de 150 palavras/min).
@@ -308,6 +337,7 @@ async function rodar(sis, spec) {
     falhas,
     chrf: q,
     latenciaMs: { p50, p95 },
+    ...(porFrase && { latenciaPorFraseMs: { p50: porFrase[0], p95: porFrase[1] } }),
     usdTotal: usd,
     usdPorHoraDeFala: usdPorHora,
     casos: saida.map((x, i) => ({

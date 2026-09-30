@@ -7,9 +7,9 @@
  *
  *   1. quem não tem o entitlement `traducaoNuance` pede a nuance e recebe a RÁPIDA (o modelo barato),
  *      sem erro — a rápida é tradução de verdade, é o Grátis;
- *   2. a decisão lê o ENTITLEMENT, nunca o nome do plano. O caso de prova é um plano PAGO sem a
- *      nuance (o `essencial` com `traducaoNuance: false`, forjado pelo mock): a Fase C está
- *      renomeando os planos agora, e um `plan === 'pro'` escondido viraria, no rename, um furo;
+ *   2. a decisão lê o ENTITLEMENT, nunca o nome do plano. O caso de prova é a MESMA conta paga com
+ *      `traducaoNuance: false` (forjado pelo mock, por um interruptor): a Fase C renomeia os planos, e
+ *      um `plan === 'pro'` escondido viraria, no rename, um furo;
  *   3. quem tem a nuance recebe o modelo dela só quando PEDE (ou com `NUANCE_AO_VIVO=1`): sem
  *      `nivel`, a legenda ao vivo segue no modelo rápido, que é o custo que o plano foi calculado;
  *   4. nível fora do contrato (inclusive `polimento`, que é da rota de polir, D5) é 400, sem chamar
@@ -24,16 +24,19 @@ import { esquecerRegistro } from '../../server/ai/registroDeProvedores'
 import { asUserId } from '../../server/lib/authContext'
 import { getEntitlements } from '../../server/lib/entitlements'
 import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
+import { PLANO_PAGO } from '../harness/planoPago'
 
 /* O PLANO PAGO SEM A NUANCE. Hoje todo plano pago tem `traducaoNuance`; o mock forja o que a matriz
-   não tem (ainda), para provar que o servidor decide pelo campo e não pelo nome `essencial`. */
+   não tem, para provar que o servidor decide pelo CAMPO. Um interruptor, e não o nome do plano: o
+   nome muda na Fase C, o campo não. */
+const forja = vi.hoisted(() => ({ semNuance: false }))
 vi.mock('../../server/lib/entitlements', async (original) => {
   const real = await original<typeof import('../../server/lib/entitlements')>()
   return {
     ...real,
     getEntitlements: (plano: Parameters<typeof real.getEntitlements>[0]) => {
       const e = real.getEntitlements(plano)
-      return plano === 'essencial' ? { ...e, traducaoNuance: false } : e
+      return forja.semNuance ? { ...e, traducaoNuance: false } : e
     },
   }
 })
@@ -58,8 +61,7 @@ const RAPIDO = 'openai/gpt-oss-20b'
 const NUANCE = 'openai/gpt-oss-120b'
 
 const ENVS = ['IA_PROVEDORES', 'DEEPINFRA_API_KEY', 'LLM_API_KEY', 'OPENROUTER_API_KEY', 'NUANCE_AO_VIVO'] as const
-const SEM_NUANCE = asUserId('nivel-pago-sem-nuance')
-const COM_NUANCE = asUserId('nivel-pago-com-nuance')
+const PAGANTE = asUserId('nivel-pagante')
 
 let h: EphemeralDb
 let mtTranslateProxy: (req: any, res: any) => Promise<void>
@@ -104,8 +106,7 @@ beforeAll(async () => {
   ;({ mtTranslateProxy } = await h.load<any>('../../server/ai/mtProxy'))
   ;({ esvaziarCacheDeTraducao: esvaziarCache } = await h.load<any>('../../server/ai/cacheDeTraducao'))
   const { subscriptionsRepo } = await h.load<any>('../../server/db/repositories/subscriptions')
-  await subscriptionsRepo.upsert(SEM_NUANCE, { plan: 'essencial', status: 'active' })
-  await subscriptionsRepo.upsert(COM_NUANCE, { plan: 'pro', status: 'active' })
+  await subscriptionsRepo.upsert(PAGANTE, { plan: PLANO_PAGO, status: 'active' })
 })
 afterAll(async () => {
   delete process.env.AUTH_REQUIRED
@@ -120,6 +121,7 @@ beforeEach(async () => {
   await esvaziarCache()
 })
 afterEach(() => {
+  forja.semNuance = false
   vi.unstubAllGlobals()
   esquecerDisjuntores()
   esquecerAdmissao()
@@ -127,9 +129,13 @@ afterEach(() => {
 })
 
 describe('quem não tem traducaoNuance é rebaixado para a rápida', () => {
+  beforeEach(() => {
+    forja.semNuance = true
+  })
+
   it('um plano PAGO sem o entitlement pede a nuance e recebe o modelo rápido, sem erro', async () => {
     const modelos = provedorFalso()
-    const res = await traduzir(SEM_NUANCE, { nivel: 'nuance' })
+    const res = await traduzir(PAGANTE, { nivel: 'nuance' })
     expect(res.statusCode).toBe(200)
     expect(modelos).toEqual([RAPIDO])
     expect(res.body?.provenance?.origin).toBe(RAPIDO)
@@ -138,8 +144,8 @@ describe('quem não tem traducaoNuance é rebaixado para a rápida', () => {
   it('nem o NUANCE_AO_VIVO=1 leva a nuance a quem não a tem', async () => {
     process.env.NUANCE_AO_VIVO = '1'
     const modelos = provedorFalso()
-    await traduzir(SEM_NUANCE)
-    await traduzir(SEM_NUANCE, { nivel: 'nuance' })
+    await traduzir(PAGANTE)
+    await traduzir(PAGANTE, { nivel: 'nuance' })
     expect(modelos).toEqual([RAPIDO, RAPIDO])
   })
 
@@ -159,22 +165,22 @@ describe('quem não tem traducaoNuance é rebaixado para a rápida', () => {
 describe('quem tem traducaoNuance recebe a nuance quando pede', () => {
   it('pedido explícito (tocar numa frase): o modelo da nuance', async () => {
     const modelos = provedorFalso()
-    const res = await traduzir(COM_NUANCE, { nivel: 'nuance' })
+    const res = await traduzir(PAGANTE, { nivel: 'nuance' })
     expect(res.statusCode).toBe(200)
     expect(modelos).toEqual([NUANCE])
   })
 
   it('sem nível (a legenda ao vivo): o modelo rápido — o padrão até o dono decidir diferente', async () => {
     const modelos = provedorFalso()
-    await traduzir(COM_NUANCE)
-    await traduzir(COM_NUANCE, { nivel: 'rapida' })
+    await traduzir(PAGANTE)
+    await traduzir(PAGANTE, { nivel: 'rapida' })
     expect(modelos).toEqual([RAPIDO, RAPIDO])
   })
 
   it('NUANCE_AO_VIVO=1 liga a nuance também na legenda ao vivo', async () => {
     process.env.NUANCE_AO_VIVO = '1'
     const modelos = provedorFalso()
-    await traduzir(COM_NUANCE)
+    await traduzir(PAGANTE)
     expect(modelos).toEqual([NUANCE])
   })
 })
@@ -183,7 +189,7 @@ describe('nível fora do contrato da rota', () => {
   it('"polimento" (é da rota de polir, D5) e nomes inventados são 400, sem chamar provedor', async () => {
     const modelos = provedorFalso()
     for (const nivel of ['polimento', 'premium', 'NUANCE', 1]) {
-      const res = await traduzir(COM_NUANCE, { nivel })
+      const res = await traduzir(PAGANTE, { nivel })
       expect(res.statusCode, String(nivel)).toBe(400)
     }
     expect(modelos).toEqual([])

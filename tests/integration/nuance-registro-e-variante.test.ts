@@ -22,23 +22,24 @@ import { esquecerRegistro } from '../../server/ai/registroDeProvedores'
 import { asUserId } from '../../server/lib/authContext'
 import { systemComunicativo, systemTextoEscrito } from '../../src/lib/traducao/promptComunicativo'
 import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
+import { PLANO_PAGO } from '../harness/planoPago'
 
-/* Um plano PAGO sem a Nuance (o mock forja o que a matriz ainda não tem), como em
-   `seguranca/modelo-por-plano-nivel`: a regra lê o entitlement, não o nome. */
+/* A conta paga SEM a Nuance (o mock forja o que a matriz não tem), como em
+   `seguranca/modelo-por-plano-nivel`: um interruptor, e não o nome do plano — a regra lê o campo. */
+const forja = vi.hoisted(() => ({ semNuance: false }))
 vi.mock('../../server/lib/entitlements', async (original) => {
   const real = await original<typeof import('../../server/lib/entitlements')>()
   return {
     ...real,
     getEntitlements: (plano: Parameters<typeof real.getEntitlements>[0]) => {
       const e = real.getEntitlements(plano)
-      return plano === 'essencial' ? { ...e, traducaoNuance: false } : e
+      return forja.semNuance ? { ...e, traducaoNuance: false } : e
     },
   }
 })
 
 const ENVS = ['IA_PROVEDORES', 'GROQ_API_KEY', 'LLM_API_KEY', 'OPENROUTER_API_KEY', 'NUANCE_AO_VIVO'] as const
-const PREMIUM = asUserId('d2-com-nuance')
-const SEM_NUANCE = asUserId('d2-sem-nuance')
+const PREMIUM = asUserId('d2-pagante')
 
 let h: EphemeralDb
 let mtTranslateProxy: (req: any, res: any) => Promise<void>
@@ -89,8 +90,7 @@ beforeAll(async () => {
   ;({ mtTranslateProxy, VERSAO_DO_PROMPT: versaoDoPrompt } = await h.load<any>('../../server/ai/mtProxy'))
   ;({ esvaziarCacheDeTraducao: esvaziarCache } = await h.load<any>('../../server/ai/cacheDeTraducao'))
   const { subscriptionsRepo } = await h.load<any>('../../server/db/repositories/subscriptions')
-  await subscriptionsRepo.upsert(PREMIUM, { plan: 'pro', status: 'active' })
-  await subscriptionsRepo.upsert(SEM_NUANCE, { plan: 'essencial', status: 'active' })
+  await subscriptionsRepo.upsert(PREMIUM, { plan: PLANO_PAGO, status: 'active' })
 })
 afterAll(async () => {
   delete process.env.AUTH_REQUIRED
@@ -104,6 +104,7 @@ beforeEach(async () => {
   await esvaziarCache()
 })
 afterEach(() => {
+  forja.semNuance = false
   vi.unstubAllGlobals()
   esquecerDisjuntores()
   esquecerAdmissao()
@@ -188,9 +189,13 @@ describe('as variantes da Tradução Nuance', () => {
 })
 
 describe('sem traducaoNuance: o prompt e a chave de sempre', () => {
+  beforeEach(() => {
+    forja.semNuance = true
+  })
+
   it('registro e variante pedidos são ignorados; a região do destino não vai ao prompt', async () => {
     const chamadas = provedorFalso()
-    await traduzir(SEM_NUANCE, {
+    await traduzir(PREMIUM, {
       text: 'thank you so much',
       src: 'en',
       tgt: 'pt-PT',
@@ -202,8 +207,8 @@ describe('sem traducaoNuance: o prompt e a chave de sempre', () => {
 
   it('e o pedido com registro cai na MESMA chave do pedido sem ele (um provedor chamado)', async () => {
     const chamadas = provedorFalso()
-    await traduzir(SEM_NUANCE, { text: 'good night', src: 'en', registro: 'formal' })
-    const segunda = await traduzir(SEM_NUANCE, { text: 'good night', src: 'en' })
+    await traduzir(PREMIUM, { text: 'good night', src: 'en', registro: 'formal' })
+    const segunda = await traduzir(PREMIUM, { text: 'good night', src: 'en' })
     expect(chamadas).toHaveLength(1)
     expect(segunda.body?.cache).toBe(true)
   })

@@ -66,3 +66,22 @@ describe('OpusMtLocal × orçamento de threads', () => {
     expect(WorkerFalso.ultimo!.recebidas[0]).toMatchObject({ type: 'preload', threads: 1 })
   })
 })
+
+/* CACHE DE DOIS NO WORKER (plano "Grátis sem travar", A7): quando o worker descarta um tradutor
+   (`descarregado`), o adapter deixa de contá-lo como pronto — a próxima tradução pede a carga de novo
+   e cai na cascata (`MotorAindaCarregando`) em vez de ir ao worker e esperar o download na fila. */
+describe('OpusMtLocal × tradutor descarregado pelo worker', () => {
+  it('descarregado → a próxima tradução pede a carga e falha rápido; pronto de novo → traduz', async () => {
+    aparelho(8, true)
+    const mt = new OpusMtLocal()
+    mt.preload('es', 'en')
+    const w = WorkerFalso.ultimo!
+    w.responder({ type: 'ready', model: 'Xenova/opus-mt-es-en' })
+    expect((await mt.translate('hola', 'es', 'en')).text).toBe('ok')
+    w.responder({ type: 'descarregado', model: 'Xenova/opus-mt-es-en' })
+    await expect(mt.translate('hola', 'es', 'en')).rejects.toMatchObject({ name: 'MotorAindaCarregando' })
+    expect(w.recebidas.filter((m) => m.type === 'preload')).toHaveLength(2)
+    w.responder({ type: 'ready', model: 'Xenova/opus-mt-es-en' })
+    expect((await mt.translate('hola', 'es', 'en')).text).toBe('ok')
+  })
+})

@@ -143,6 +143,13 @@ export class OpusMtLocal implements TranslationProvider {
         }
         return;
       }
+      if (type === 'descarregado') {
+        /* O worker guarda só os DOIS tradutores mais recentes (`lruDePipes.ts`) e descartou este. Sem
+           esquecer o "pronto", a próxima tradução iria ao worker e esperaria o download de novo na
+           fila; assim ela pede a carga e cai na cascata até o `ready`, como na primeira vez. */
+        this.ready.delete(model);
+        return;
+      }
       const p = this.pending.get(id);
       if (!p) return;
       this.pending.delete(id);

@@ -9,6 +9,7 @@ import { env, pipeline, Tensor } from '@huggingface/transformers';
 import { juntarFrases, separarEmFrases } from '../../core/texto/frases';
 import { registrarModeloBaixado } from '../modelManifest';
 import { FilaSerial, processadorDeCancelamento, type SinalDeCancelamento } from './filaDoWorker';
+import { LruDePipes, type ReservaDePipe } from './lruDePipes';
 import { criarRastreadorDeProgresso, rotuloDeBytes } from './modelProgress';
 import { configureModelDelivery } from './transformersEnv';
 
@@ -98,7 +99,13 @@ function dirConfig(src: string, tgt: string): DirCfg | null {
   return null; // par não coberto → o gateway cai para o próximo adapter (MyMemory)
 }
 
-const pipes = new Map<string, any>();
+/**
+ * OS DOIS TRADUTORES MAIS RECENTES (`lruDePipes.ts`, plano "Grátis sem travar", A7). Era um `Map` sem
+ * fim: trocar de par numa sessão longa empilhava ~113 MB por modelo no heap do worker. A conversa usa
+ * dois sentidos; o terceiro despeja o menos usado (com `dispose`, que solta as sessões do ORT) e o
+ * adapter é avisado (`descarregado`) para voltar a pedir a carga em vez de mandar tradução.
+ */
+const pipes = new LruDePipes<any>(2, (modelo) => self.postMessage({ type: 'descarregado', model: modelo }));
 // Modelos que JÁ falharam a criação de sessão nesta máquina/navegador (ex.: o erro real observado
 // em produção: "Can't create a session … qdq_actions.cc:137" — o ORT não consegue criar a sessão
 // ONNX do opus-mt quantizado neste ambiente). Sem este cache, cada tradução re-tentava o download
@@ -126,24 +133,65 @@ const GERACAO = { num_beams: 2, max_length: 256, no_repeat_ngram_size: 3, early_
 // `diag` (só diagnóstico, via mensagem): força a lista de dtypes e o nível de otimização do ORT.
 let diag: { dtypes?: string[]; graphOpt?: string } = {};
 async function getPipe(model: string): Promise<any> {
-  let p = pipes.get(model);
-  if (p) return p;
+  const pronto = pipes.obter(model);
+  if (pronto) return pronto;
   const prevFail = failedModels.get(model);
   if (prevFail) {
     // Fail-fast: já sabemos que este modelo não carrega aqui — não re-tenta o cascade.
     throw new Error(`opus-mt indisponível neste ambiente (falha anterior: ${prevFail})`);
   }
+  /* UMA CARGA DE CADA VEZ, e uma só por modelo. Dois preloads (os dois sentidos da conversa) abriam
+     duas sessões de ~113 MB ao mesmo tempo — o pico de memória somava as duas. Agora vão numa fila
+     SÓ DE CARGA: a tradução de um sentido já pronto não passa por ela (sai no `obter` acima) e não
+     espera o download do outro. O mesmo modelo pedido de novo durante a carga espera a mesma. */
+  const emVoo = cargasEmVoo.get(model);
+  if (emVoo) return emVoo;
+  const carga = filaDeCarga.then(() => carregarPipe(model));
+  filaDeCarga = carga.catch(() => undefined);
+  cargasEmVoo.set(model, carga);
+  carga
+    .finally(() => cargasEmVoo.delete(model))
+    .catch(() => {
+      /* quem pediu recebe o erro pela própria promessa */
+    });
+  return carga;
+}
+
+/** A fila das cargas (ver `getPipe`) e a carga em andamento de cada modelo. */
+let filaDeCarga: Promise<unknown> = Promise.resolve();
+const cargasEmVoo = new Map<string, Promise<any>>();
+
+/**
+ * O pipe para UMA tradução, RESERVADO até o `soltar`: o cache não o descarta no meio do uso (uma carga
+ * que termina durante a tradução despeja outro). Se ele sair do cache entre a carga e a reserva,
+ * carrega de novo — no máximo três voltas.
+ */
+async function reservarPipe(model: string): Promise<ReservaDePipe<any>> {
+  for (let volta = 0; volta < 3; volta++) {
+    const reserva = pipes.reservar(model);
+    if (reserva) return reserva;
+    await getPipe(model);
+  }
+  throw new Error(`opus-mt: ${model} saiu do cache enquanto carregava`);
+}
+
+/** O cascade de dtypes de UM modelo — só roda pela fila de carga (`getPipe`). */
+async function carregarPipe(model: string): Promise<any> {
+  const pronto = pipes.obter(model);
+  if (pronto) return pronto;
+  // Despeja ANTES de carregar: a memória solta pelo menos usado é reusada por este (pico de 2, não 3).
+  await pipes.abrirEspaco();
   let lastErr: unknown = null;
   for (const dtype of (diag.dtypes ?? MT_DTYPES) as readonly string[]) {
     try {
       const progresso = novoProgresso('Tradutor (opus-mt)');
-      p = await pipeline('translation', model, {
+      const p = await pipeline('translation', model, {
         device: 'wasm',
         dtype: dtype as any,
         progress_callback: progresso,
         session_options: { graphOptimizationLevel: diag.graphOpt ?? ORT_GRAPH_OPT },
       } as any);
-      pipes.set(model, p);
+      await pipes.guardar(model, p);
       console.log(`[mt:worker] ${model} carregado (dtype=${dtype})`);
       // Manifesto com o dtype que REALMENTE venceu o cascade (int8 ou fp16 baixam arquivos
       // diferentes — a versao antiga classificava os dois como "em cache").
@@ -165,21 +213,25 @@ async function getPipe(model: string): Promise<any> {
  * tradução do parcial e a do final da mesma fala se intercalarem, e a do final (a que a pessoa espera)
  * saía mais lenta — a MT do final variava de 0,24 a 1,67 s, e as lentas eram as intercaladas
  * (auditoria de latência 2026-09-26). Agora a do final passa na frente, e a do parcial que ficou
- * velha é descartada ou parada no meio. A CARGA (preload) fica fora da fila: um download de 113 MB
- * de uma direção não pode segurar a tradução da outra, que já está pronta.
+ * velha é descartada ou parada no meio. A CARGA (preload) fica fora desta fila — vai na fila SÓ DE
+ * CARGA de `getPipe`: um download de 113 MB de uma direção não pode segurar a tradução da outra, que
+ * já está pronta.
  */
 const fila = new FilaSerial();
 
 async function traduzir(dados: any, sinal: SinalDeCancelamento): Promise<void> {
   const { id, text, src, tgt } = dados;
   const cancelado = () => self.postMessage({ type: 'cancelado', id });
+  // O pipe fica RESERVADO do começo ao fim desta tradução: o cache de dois não o descarta no meio.
+  let reserva: ReservaDePipe<any> | null = null;
   try {
     const cfg = dirConfig(src, tgt);
     if (!cfg) {
       self.postMessage({ type: 'error', id, message: `par ${src}->${tgt} não suportado pelo opus-mt` });
       return;
     }
-    const pipe = await getPipe(cfg.model);
+    reserva = await reservarPipe(cfg.model);
+    const pipe = reserva.valor;
     if (sinal.cancelado) return cancelado();
     let tokenId: number | undefined;
     if (cfg.langToken) {
@@ -234,6 +286,8 @@ async function traduzir(dados: any, sinal: SinalDeCancelamento): Promise<void> {
   } catch (err) {
     console.error('[mt:worker] ERRO:', err instanceof Error ? err.stack || err.message : String(err));
     self.postMessage({ type: 'error', id, message: err instanceof Error ? err.message : String(err) });
+  } finally {
+    void reserva?.soltar();
   }
 }
 
@@ -242,7 +296,7 @@ self.onmessage = (e: MessageEvent): Promise<void> => {
   if (type === 'diag') {
     diag = e.data.diag ?? {};
     failedModels.clear();
-    pipes.clear();
+    void pipes.limpar();
     return Promise.resolve();
   }
   if (type === 'cancelar') {

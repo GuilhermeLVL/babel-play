@@ -221,9 +221,14 @@ function baldeDaNuanceCom(sobra: number) {
       limites: { rpm: 10 },
     })
 }
+/* O pagante PEDE a nuance (D1 da Fase D: sem `nivel`, a legenda ao vivo fica na rápida, e a
+   degradação que estes casos medem é a do degrau da nuance). */
 const traduzir = async (texto: string) => {
   const res = mockRes()
-  await mtTranslateProxy({ userId: PAGANTE, body: { text: texto, tgt: 'pt' }, requestId: 'r-custo' }, res)
+  await mtTranslateProxy(
+    { userId: PAGANTE, body: { text: texto, tgt: 'pt', nivel: 'nuance' }, requestId: 'r-custo' },
+    res,
+  )
   return res
 }
 

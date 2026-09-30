@@ -18,6 +18,11 @@
  * declara nível, a nuance desce inteira para a rápida, e a cascata de cada plano é a de antes
  * (`tests/integration/niveis-de-traducao.test.ts` confere numa matriz de ambientes).
  *
+ * A TABELA É O TETO, NÃO O PADRÃO DA LEGENDA (D1 da Fase D). Na tradução, a nuance chega quando o
+ * cliente a PEDE (`nivel`, ao tocar numa frase); a legenda ao vivo, sem pedido, fica na rápida — o
+ * padrão do dono —, salvo com `NUANCE_AO_VIVO=1` (`nivelDaTraducaoPedida`). O pedido é do corpo, e
+ * por isso passa sempre pelo `rebaixarNivel`: quem não tem `traducaoNuance` recebe a rápida.
+ *
  * O POLIMENTO (Fase D, D5) não aparece na tabela: nenhuma função o usa ainda. Quando a rota de
  * "polir a sessão" existir, ela pede o nível dela e o servidor rebaixa quem não tem a capacidade
  * (`rebaixarNivel`) — a cascata do polimento já desce a escada até a rápida (`pernasDaFuncao`).
@@ -51,6 +56,29 @@ export function nivelDaFuncao(funcao: FuncaoDeIa, capacidade: CapacidadeDeNivel)
   return rebaixarNivel(capacidade.traducaoNuance === true ? linha.comNuance : linha.semNuance, capacidade)
 }
 
+/**
+ * A NUANCE NA LEGENDA AO VIVO (D1 da Fase D). O padrão do dono, até ele decidir diferente: a legenda
+ * ao vivo usa o modelo RÁPIDO — é ela que roda o tempo todo, e o custo do plano foi feito com ela —,
+ * e a nuance entra quando a pessoa toca numa frase (o cliente pede `nivel: 'nuance'`) e no "polir"
+ * (D5). `NUANCE_AO_VIVO=1` liga a nuance também ao vivo, para quem tem a capacidade.
+ */
+export const nuanceAoVivo = (env: NodeJS.ProcessEnv = process.env): boolean => env.NUANCE_AO_VIVO?.trim() === '1'
+
+/**
+ * O NÍVEL DE UMA TRADUÇÃO PEDIDA (D1): o que o cliente pediu, rebaixado pela capacidade
+ * (`rebaixarNivel`: sem `traducaoNuance`, a rápida, qualquer que seja o pedido). Sem pedido é a
+ * legenda ao vivo: a rápida, ou o nível da função com `NUANCE_AO_VIVO=1`. O corpo é do cliente e
+ * qualquer um escreve `"nivel": "nuance"` num `curl` — por isso o pedido nunca passa sem o rebaixo.
+ */
+export function nivelDaTraducaoPedida(
+  pedido: NivelDaTraducao | undefined,
+  capacidade: CapacidadeDeNivel,
+  env: NodeJS.ProcessEnv = process.env,
+): NivelDaTraducao {
+  const aoVivo = nuanceAoVivo(env) ? nivelDaFuncao('traducao', capacidade) : 'rapida'
+  return rebaixarNivel(pedido ?? aoVivo, capacidade)
+}
+
 /** A cascata de um nível, com o nível que a escolheu (para o rastro, a política de custo e o cache). */
 export interface CascataDoNivel {
   nivel: NivelDaTraducao
@@ -69,4 +97,20 @@ export function cascataDoPlano(
 ): CascataDoNivel {
   const nivel = nivelDaFuncao(funcao, plano)
   return { nivel, pernas: cascataDeNuvem({ funcao, nivel, modelosGrandes: plano.largerModels === true }, env) }
+}
+
+/**
+ * A CASCATA DA TRADUÇÃO PEDIDA (`POST /api/ai/mt`, D1): o nível de `nivelDaTraducaoPedida`, as
+ * pernas do registro para ele. No legado nenhum modelo declara nível, e o pedido não muda nada.
+ */
+export function cascataDaTraducao(
+  pedido: NivelDaTraducao | undefined,
+  plano: CapacidadeDeNivel & { largerModels?: boolean },
+  env: NodeJS.ProcessEnv = process.env,
+): CascataDoNivel {
+  const nivel = nivelDaTraducaoPedida(pedido, plano, env)
+  return {
+    nivel,
+    pernas: cascataDeNuvem({ funcao: 'traducao', nivel, modelosGrandes: plano.largerModels === true }, env),
+  }
 }

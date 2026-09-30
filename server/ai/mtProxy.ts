@@ -22,7 +22,7 @@ import { cabeNoCache, type ConsultaDeTraducao, guardarTraducao, lerTraducao } fr
 import { type AdmissaoDaCascata, admitirCascata, encerrarAdmissao, percorrerCascata } from './cascata'
 import { FUNCOES_DE_IA, maxTokensDaTraducao } from './funcoesDeIa'
 import { type MensagemDeChat, tamanhoDoPrompt } from './llmClient'
-import { cascataDoPlano } from './niveis'
+import { cascataDaTraducao } from './niveis'
 import { aplicarPoliticaDeCusto } from './politicaDeCusto'
 import type { Provedor } from './provedores'
 import { abrirReservaDeLlm, type ReservaDeLlm } from './reservaDeNuvem'
@@ -74,6 +74,13 @@ const bodySchema = z
     falada: z.boolean().optional(),
     /** Últimas falas da conversa (≤ 3, ≤ 300 chars cada), só para referência. */
     contexto: z.array(z.string().max(300)).max(3).optional(),
+    /**
+     * O NÍVEL PEDIDO (D1 da Fase D): `nuance` quando a pessoa toca numa frase; ausente na legenda ao
+     * vivo. É um PEDIDO — o servidor rebaixa para a rápida quem não tem `traducaoNuance`
+     * (`nivelDaTraducaoPedida`). O `polimento` fica de fora: é da rota de polir a sessão (D5), em
+     * blocos, e aqui seria só um jeito de pedir o modelo mais caro frase a frase.
+     */
+    nivel: z.enum(['rapida', 'nuance']).optional(),
   })
   .strip()
 
@@ -132,7 +139,7 @@ async function traduzir(req: Request, res: Response, rastro: RastroDeIa): Promis
     res.status(400).json({ error: 'payload inválido: text/tgt obrigatórios' })
     return
   }
-  const { text, src, tgt, falada, contexto } = parsed.data
+  const { text, src, tgt, falada, contexto, nivel: nivelPedido } = parsed.data
   rastro.anotar({ parDeIdiomas: `${codigoDeIdioma(src)}-${codigoDeIdioma(tgt)}` })
 
   // SaaS Fatia 1b — este proxy é 100% nuvem GERENCIADA (chave do dono). Exige o entitlement; a cadeia
@@ -163,8 +170,9 @@ async function traduzir(req: Request, res: Response, rastro: RastroDeIa): Promis
   /* NOME NEUTRO, COM COMPATIBILIDADE. `LLM_*` é o nome honesto; os `GROQ_*` continuam válidos. QUEM
      é o provedor sai do registro (`registroDeProvedores.ts`, achado A31); QUAL modelo, do NÍVEL do
      plano (B3, `niveis.ts`): a rápida para o Grátis, o convidado e o alívio (o entitlement deles não
-     tem `traducaoNuance`), a nuance para quem paga. */
-  const { nivel, pernas: provedores } = cascataDoPlano('traducao', planoDoUsuario)
+     tem `traducaoNuance`). D1: quem tem a nuance a recebe quando PEDE (`nivel`, tocar numa frase) —
+     a legenda ao vivo, sem pedido, segue na rápida, salvo com `NUANCE_AO_VIVO=1`. */
+  const { nivel, pernas: provedores } = cascataDaTraducao(nivelPedido, planoDoUsuario)
   if (provedores.length === 0) {
     res.status(501).json({ error: 'tradução por LLM não configurada no servidor (defina LLM_API_KEY)' })
     return

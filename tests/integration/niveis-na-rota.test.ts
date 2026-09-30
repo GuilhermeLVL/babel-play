@@ -121,12 +121,17 @@ afterEach(() => {
   esquecerRegistro()
 })
 
+/* D1 (Fase D): a nuance da TRADUÇÃO vem quando o cliente a PEDE (`nivel: 'nuance'`, tocar numa
+   frase); sem pedido é a legenda ao vivo, que fica na rápida — ver `seguranca/modelo-por-plano-nivel`.
+   O tutor não mudou: o nível dele continua saindo de `IA_NIVEIS`. */
+const NUANCE = { tgt: 'pt', nivel: 'nuance' } as const
+
 describe('a tradução segue o nível do plano', () => {
-  it('o pagante recebe o modelo da nuance, e a procedência diz qual', async () => {
+  it('o pagante que pede a nuance recebe o modelo dela, e a procedência diz qual', async () => {
     registroNaRota()
     const modelos = provedorFalso(() => false)
     const res = mockRes()
-    await mtTranslateProxy({ userId: PAGANTE, body: { text: 'good evening', tgt: 'pt' }, requestId: 'r-n1' }, res)
+    await mtTranslateProxy({ userId: PAGANTE, body: { text: 'good evening', ...NUANCE }, requestId: 'r-n1' }, res)
     expect(res.statusCode).toBe(200)
     expect(modelos).toEqual(['openai/gpt-oss-120b'])
     expect(res.body?.provenance?.origin).toBe('openai/gpt-oss-120b')
@@ -152,7 +157,7 @@ describe('o cache grava sob o modelo que DE FATO respondeu', () => {
     const consulta = { texto: 'see you soon', tgt: 'pt', falada: false, versaoDoPrompt }
 
     const a = mockRes()
-    await mtTranslateProxy({ userId: PAGANTE, body: { text: consulta.texto, tgt: 'pt' }, requestId: 'r-n2' }, a)
+    await mtTranslateProxy({ userId: PAGANTE, body: { text: consulta.texto, ...NUANCE }, requestId: 'r-n2' }, a)
     expect(a.body?.provenance?.origin).toBe('openai/gpt-oss-20b')
     expect(modelos).toEqual(['openai/gpt-oss-120b', 'openai/gpt-oss-20b'])
 
@@ -165,7 +170,7 @@ describe('o cache grava sob o modelo que DE FATO respondeu', () => {
     // O próximo pedido do pagante volta a tentar o modelo que o plano promete.
     modelos.length = 0
     const b = mockRes()
-    await mtTranslateProxy({ userId: PAGANTE, body: { text: consulta.texto, tgt: 'pt' }, requestId: 'r-n3' }, b)
+    await mtTranslateProxy({ userId: PAGANTE, body: { text: consulta.texto, ...NUANCE }, requestId: 'r-n3' }, b)
     expect(b.body?.cache).toBeUndefined()
     expect(modelos[0]).toBe('openai/gpt-oss-120b')
   })

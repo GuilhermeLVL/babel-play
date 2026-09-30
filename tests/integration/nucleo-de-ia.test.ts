@@ -44,6 +44,7 @@ const ENVS = [
 
 let h: EphemeralDb
 let nucleoMt: typeof import('../../server/ai/nucleo/traduzirNoNivel')
+let nucleoAlt: typeof import('../../server/ai/nucleo/sugerirAlternativas')
 let contexto: typeof import('../../server/ai/nucleo/contexto')
 let recusa: typeof import('../../server/ai/nucleo/recusa')
 let resposta: typeof import('../../server/ai/respostaDoNucleo')
@@ -104,6 +105,7 @@ beforeAll(async () => {
      tem os dela (`quota-reserve-proxies`, `uso-justo-do-dia`). */
   delete process.env.AUTH_REQUIRED
   nucleoMt = await h.load('../../server/ai/nucleo/traduzirNoNivel')
+  nucleoAlt = await h.load('../../server/ai/nucleo/sugerirAlternativas')
   contexto = await h.load('../../server/ai/nucleo/contexto')
   recusa = await h.load('../../server/ai/nucleo/recusa')
   resposta = await h.load('../../server/ai/respostaDoNucleo')
@@ -241,5 +243,58 @@ describe('traduzirNoNivel', () => {
     })
     expect(r).toMatchObject({ ok: false, status: 403, code: 'perfil_protegido' })
     expect(chamadas).toHaveLength(0)
+  })
+})
+
+describe('sugerirAlternativas', () => {
+  const FORMAS = JSON.stringify({ opcoes: ['Até logo', 'A gente se vê', 'Tchau'], nota: 'A primeira é neutra.' })
+
+  it('lê o corpo cru: inválido é o 400 `payload_invalido`', () => {
+    expect(nucleoAlt.lerPedidoDeAlternativas({ text: '' })).toMatchObject({
+      ok: false,
+      status: 400,
+      code: 'payload_invalido',
+    })
+  })
+
+  it('entrega até 3 formas e a nota, pelo modelo da nuance, e decide uma vez', async () => {
+    const chamadas = provedorDeChat(() => ({ texto: FORMAS }))
+    const aoDecidir = vi.fn()
+    const r = await nucleoAlt.sugerirAlternativas(
+      ctx('premium'),
+      { text: 'See you', tgt: 'pt', traducaoAtual: 'Até mais' },
+      {
+        aoDecidir,
+      },
+    )
+    expect(r).toEqual({
+      ok: true,
+      opcoes: ['Até logo', 'A gente se vê', 'Tchau'],
+      nota: 'A primeira é neutra.',
+      modelo: 'openai/gpt-oss-120b',
+    })
+    expect(chamadas).toEqual(['openai/gpt-oss-120b'])
+    expect(aoDecidir).toHaveBeenCalledTimes(1)
+  })
+
+  it('sem a Tradução Nuance é 402 `exige_nuance`, sem provedor', async () => {
+    const chamadas = provedorDeChat(() => ({ texto: FORMAS }))
+    const r = await nucleoAlt.sugerirAlternativas(ctx('free'), { text: 'See you', tgt: 'pt' })
+    expect(r).toMatchObject({ ok: false, status: 402, code: 'exige_nuance', corpo: { entitlement: 'traducaoNuance' } })
+    expect(chamadas).toHaveLength(0)
+  })
+
+  it('resposta que não é JSON utilizável é 502 `resposta_invalida`, e o custo cobrado conta', async () => {
+    provedorDeChat(() => ({ texto: 'não sei' }))
+    const registrarCusto = vi.fn(async (_usd: number) => {})
+    const r = await nucleoAlt.sugerirAlternativas(ctx('premium', { registrarCusto }), { text: 'See you', tgt: 'pt' })
+    expect(r).toMatchObject({ ok: false, status: 502, code: 'resposta_invalida' })
+    expect(registrarCusto).toHaveBeenCalledTimes(1)
+  })
+
+  it('todas as pernas em 429 é 429 `nuvem_ocupada`', async () => {
+    provedorDeChat(() => ({ status: 429 }))
+    const r = await nucleoAlt.sugerirAlternativas(ctx('premium'), { text: 'See you', tgt: 'pt' })
+    expect(r).toMatchObject({ ok: false, status: 429, code: 'nuvem_ocupada' })
   })
 })

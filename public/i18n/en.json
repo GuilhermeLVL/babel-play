@@ -1530,5 +1530,20 @@
   "anual em 12x": "yearly in 12 installments",
   "sem cobrança": "no charge",
   "mensal": "monthly",
-  "Sugerido: {dias} dias de {plano} grátis, sem cartão": "Suggested: {dias} days of {plano} free, no card needed"
+  "Sugerido: {dias} dias de {plano} grátis, sem cartão": "Suggested: {dias} days of {plano} free, no card needed",
+  "Esta sessão já está sendo polida em outra janela. Tente de novo em instantes.": "This session is already being polished in another window. Try again in a moment.",
+  "Não deu para polir agora. Tente de novo em instantes.": "Couldn't polish it right now. Try again in a moment.",
+  "Polir a tradução da sessão": "Polish the session translation",
+  "Com a Tradução Nuance do Premium, a tradução da sessão inteira é revisada com o contexto da conversa, e a original continua guardada.": "With Premium's Nuance Translation, the whole session translation is revised with the context of the conversation, and the original stays saved.",
+  "Tradução exibida": "Translation shown",
+  "Original": "Original",
+  "Polida": "Polished",
+  "Cancelando depois deste bloco…": "Cancelling after this block…",
+  "Polindo o bloco {n} de {total}…": "Polishing block {n} of {total}…",
+  "Progresso do polimento": "Polishing progress",
+  "Tradução polida com o contexto da sessão. A original continua guardada.": "Translation polished with the context of the session. The original stays saved.",
+  "Polimento pausado: {feitos} de {total} blocos.": "Polishing paused: {feitos} of {total} blocks.",
+  "{feitos} de {total} blocos polidos.": "{feitos} of {total} blocks polished.",
+  "Revise a tradução da sessão inteira com o contexto da conversa. A original continua guardada.": "Revise the whole session translation with the context of the conversation. The original stays saved.",
+  "Retomar o polimento": "Resume polishing"
 }

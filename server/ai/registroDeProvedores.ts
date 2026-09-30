@@ -665,12 +665,14 @@ function candidatasDaFuncao(f: FuncaoDoRegistro, modelosGrandes: boolean, env: N
  * antes. O STT não tem nível: vale a ordem do registro (a cascata do STT reordena pelo custo, B6).
  */
 export function pernasDaFuncao(
-  funcao: FuncaoDoRegistro | 'corretor' | 'alternativas',
+  funcao: FuncaoDoRegistro | 'corretor' | 'alternativas' | 'polimento',
   opcoes: { modelosGrandes?: boolean; nivel?: NivelDaTraducao } = {},
   env: NodeJS.ProcessEnv = process.env,
 ): Provedor[] {
-  /* O corretor usa os modelos do tutor; as "Outras formas" (D4), os da tradução — é tradução. */
-  const f: FuncaoDoRegistro = funcao === 'corretor' ? 'tutor' : funcao === 'alternativas' ? 'traducao' : funcao
+  /* O corretor usa os modelos do tutor; as "Outras formas" (D4) e o "polir a sessão" (D5), os da
+     tradução — é tradução. */
+  const f: FuncaoDoRegistro =
+    funcao === 'corretor' ? 'tutor' : funcao === 'alternativas' || funcao === 'polimento' ? 'traducao' : funcao
   const candidatas = candidatasDaFuncao(f, opcoes.modelosGrandes === true, env)
   const ordem: Candidata[] = []
   if (f === 'stt') ordem.push(...candidatas)

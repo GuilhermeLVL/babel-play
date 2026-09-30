@@ -92,6 +92,18 @@ export const utterances = sqliteTable(
     status: text('status'),
     engine: text('engine'),
     confidence: real('confidence'),
+    /**
+     * "POLIR A SESSÃO" (D5 da Fase D, migração 0044): a tradução reescrita pelo nível `polimento`,
+     * AO LADO da original — `translated_text` nunca é sobrescrita, e a pessoa alterna entre as duas
+     * na Análise. Nulo = ainda não polida (é o que torna o polimento idempotente por bloco: o
+     * servidor só manda ao modelo as linhas sem polida). Com ela, o modelo que poliu, a versão do
+     * prompt (`server/ai/polimento.ts`) e quando. Corrigir o texto ou a tradução da fala apaga as
+     * quatro (`utterancesRepo.update`): a polida era de outro texto.
+     */
+    traducaoPolida: text('traducao_polida'),
+    polimentoModelo: text('polimento_modelo'),
+    polimentoVersao: text('polimento_versao'),
+    polidoEm: integer('polido_em'),
   },
   (t) => [
     /** Chave de junção óbvia e sem índice: `computeProfile` fazia full scan por pageview. */

@@ -27,6 +27,9 @@
         "engine": "null",
         "id": "string",
         "idx": "number",
+        "polidoEm": "null",
+        "polimentoModelo": "null",
+        "polimentoVersao": "null",
         "sessionId": "string",
         "source": "string",
         "sourceLang": "string",
@@ -37,6 +40,7 @@
         "tEndMs": "number",
         "tStartMs": "number",
         "targetLang": "string",
+        "traducaoPolida": "null",
         "translatedText": "string",
         "updatedAt": "number",
         "userId": "string"

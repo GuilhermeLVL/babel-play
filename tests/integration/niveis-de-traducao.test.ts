@@ -72,6 +72,22 @@ describe('IA_NIVEIS: o nível de cada função, pela capacidade do plano', () =>
     }
   })
 
+  it('"polir a sessão" (D5): o nível polimento com a nuance, nos modelos da tradução, descendo a escada', () => {
+    expect(nivelDaFuncao('polimento', { traducaoNuance: true })).toBe('polimento')
+    expect(nivelDaFuncao('polimento', { traducaoNuance: false })).toBe('rapida')
+    const polimento = {
+      ...GROQ,
+      modelos: [{ id: 'modelo-do-polimento', funcoes: ['traducao'], niveis: ['polimento'] }],
+    }
+    const { nivel, pernas } = cascataDoPlano('polimento', getEntitlements('premium'), declarado([polimento, DEEPINFRA]))
+    expect(nivel).toBe('polimento')
+    expect(nomes(pernas)).toEqual([
+      'groq:modelo-do-polimento',
+      'deepinfra:openai/gpt-oss-120b',
+      'deepinfra:openai/gpt-oss-20b',
+    ])
+  })
+
   it('a decisão lê o entitlement, não o nome: um plano qualquer com traducaoNuance recebe a nuance', () => {
     expect(nivelDaFuncao('traducao', { traducaoNuance: true })).toBe('nuance')
     expect(nivelDaFuncao('traducao', { traducaoNuance: false })).toBe('rapida')

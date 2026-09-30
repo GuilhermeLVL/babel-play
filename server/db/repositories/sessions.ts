@@ -223,7 +223,9 @@ export const sessionsRepo = {
     // insert apagava a transcrição inteira e não devolvia nada. É o caminho de "retomar
     // captura", então o que se perdia era trabalho do usuário. Agora ou troca tudo, ou nada.
     const apagar = utterancesRepo.stmtDeleteForSession(userId, id)
-    const inserir = utterancesRepo.stmtInsertMany(userId, id, utts) // lotes; todos no mesmo batch
+    // D5: a fala que volta igual mantém a tradução polida (polir de novo cobraria outra vez).
+    const preservadas = await utterancesRepo.polidasParaPreservar(userId, id)
+    const inserir = utterancesRepo.stmtInsertMany(userId, id, utts, preservadas) // lotes; todos no mesmo batch
     const contar = db
       .update(sessions)
       .set({ wordCount, updatedAt: Date.now() })
@@ -261,7 +263,9 @@ export const sessionsRepo = {
         utts.reduce((n, u) => n + palavras(u.sourceText), 0),
     )
     const apagar = db.delete(tabelaDeFalas).where(naFaixa)
-    const inserir = utterancesRepo.stmtInsertMany(userId, id, utts)
+    // D5: o lote repetido não apaga a tradução polida das falas que voltam iguais.
+    const preservadas = await utterancesRepo.polidasParaPreservar(userId, id, { de, ate })
+    const inserir = utterancesRepo.stmtInsertMany(userId, id, utts, preservadas)
     const contar = db
       .update(sessions)
       .set({ wordCount, updatedAt: Date.now() })

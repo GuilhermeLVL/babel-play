@@ -56,6 +56,12 @@ vi.mock('@ricky0123/vad-web', () => ({
   },
 }))
 
+const vigia = vi.hoisted(() => ({ aberturas: [] as Array<[number, number]> }))
+vi.mock('../src/lib/captura/vigiaDoMainThread', async (original) => ({
+  ...(await original<typeof import('../src/lib/captura/vigiaDoMainThread')>()),
+  marcarAberturaDoVad: (ini: number, fim: number) => vigia.aberturas.push([ini, fim]),
+}))
+
 import { startMicCapture } from '../src/gateway/capture/systemAudio'
 
 beforeEach(() => {
@@ -96,6 +102,22 @@ async function capturar() {
   } as never)
   return { cap, handles, finais }
 }
+
+/* A ABERTURA DO VAD É MARCADA PARA O VIGIA (A6c): a 1ª sessão do ORT instancia o WASM do Silero na
+   thread principal (~880 ms com a CPU 4× mais lenta). O quadro longo que começa aí não é travamento. */
+describe('abertura do VAD', () => {
+  it('a captura marca o intervalo do `MicVAD.new` (uma vez por captura)', async () => {
+    vigia.aberturas.length = 0
+    const antes = performance.now()
+    const { cap } = await capturar()
+    expect(vigia.aberturas).toHaveLength(1)
+    const [ini, fim] = vigia.aberturas[0]
+    expect(ini).toBeGreaterThanOrEqual(antes)
+    expect(fim).toBeGreaterThanOrEqual(ini)
+    expect(fim).toBeLessThanOrEqual(performance.now())
+    await cap.stop()
+  })
+})
 
 describe('captura com final especulativo', () => {
   it('especula com ~450 ms de silêncio e o final É a janela especulativa (mesma entrada, mesmo texto)', async () => {

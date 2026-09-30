@@ -11,7 +11,7 @@
  * "nuvem ocupada" e "fora do ar" pedem reações diferentes (o convite, o "tente em instantes", o aviso).
  *
  * Rotas: POST `/api/ai/mt` (com `nivel: 'nuance'`), POST `/api/ai/mt/alternativas`,
- * GET/POST `/api/ai/glossario`, DELETE `/api/ai/glossario/:id`.
+ * POST `/api/ai/mt/polir`, GET/POST `/api/ai/glossario`, DELETE `/api/ai/glossario/:id`.
  */
 import type { RegistroDaTraducao, VarianteDaTraducao } from '../lib/traducao/promptComunicativo';
 import { apiFetch, lerErro } from './funil';
@@ -21,6 +21,7 @@ export type FalhaDaNuance =
   | 'sem_conta'
   | 'nuvem_ocupada'
   | 'glossario_cheio'
+  | 'em_andamento'
   | 'invalido'
   | 'indisponivel';
 
@@ -31,6 +32,7 @@ function motivoDaFalha(status: number, code: string | undefined): FalhaDaNuance 
   if (status === 401 || status === 403 || code === 'exige_conta') return 'sem_conta';
   if (status === 429) return 'nuvem_ocupada';
   if (status === 409 && code === 'glossario_cheio') return 'glossario_cheio';
+  if (status === 409 && code === 'polimento_em_andamento') return 'em_andamento';
   if (status === 400) return 'invalido';
   return 'indisponivel';
 }
@@ -115,6 +117,62 @@ export function pedirAlternativas(
       const o = (c ?? {}) as { opcoes?: unknown; nota?: unknown };
       const opcoes = Array.isArray(o.opcoes) ? o.opcoes.filter((x): x is string => typeof x === 'string' && !!x) : [];
       return opcoes.length ? { opcoes: opcoes.slice(0, 3), nota: typeof o.nota === 'string' ? o.nota : '' } : null;
+    },
+  );
+}
+
+/** A tradução polida de uma fala (D5): a original continua na fala, ao lado. */
+export interface PolidaDaFala {
+  id: string;
+  traducaoPolida: string;
+}
+
+export interface PolimentoDoBloco {
+  bloco: number;
+  /** Quantos blocos a sessão tem, pela conta do servidor. */
+  blocos: number;
+  /** As falas do bloco que têm polida (as de antes e as de agora). */
+  polidas: PolidaDaFala[];
+  /** Falas do bloco que ficaram sem polida (o modelo pulou): pendentes para a próxima vez. */
+  pendentes: number;
+  /** O bloco já estava inteiro polido: nada foi ao provedor, nada foi cobrado. */
+  jaPolido: boolean;
+}
+
+/** Teto de um bloco: 40 falas com raciocínio levam mais que uma frase (o servidor espera até 45 s). */
+const TIMEOUT_DO_POLIMENTO_MS = 60_000;
+
+const ehPolida = (p: unknown): p is PolidaDaFala => {
+  const o = (p ?? {}) as Record<string, unknown>;
+  return typeof o.id === 'string' && typeof o.traducaoPolida === 'string' && !!o.traducaoPolida;
+};
+
+/**
+ * "Polir a sessão" (D5): UM bloco de até 40 falas, que o servidor lê do banco. Só com a Tradução
+ * Nuance (402 sem ela). `sinal` cancela a espera — o bloco que já foi ao provedor o servidor grava
+ * assim mesmo, e pedi-lo de novo não cobra.
+ */
+export function polirBloco(
+  p: { sessionId: string; bloco: number; registro?: RegistroDaTraducao; variantes?: VarianteDaTraducao[] },
+  sinal?: AbortSignal,
+): Promise<ResultadoDaNuance<PolimentoDoBloco>> {
+  const teto = AbortSignal.timeout(TIMEOUT_DO_POLIMENTO_MS);
+  return chamar(
+    '/api/ai/mt/polir',
+    {
+      ...json({ sessionId: p.sessionId, bloco: p.bloco, registro: p.registro, variantes: p.variantes }),
+      signal: sinal && typeof AbortSignal.any === 'function' ? AbortSignal.any([sinal, teto]) : (sinal ?? teto),
+    },
+    (c) => {
+      const o = (c ?? {}) as Record<string, unknown>;
+      if (typeof o.bloco !== 'number' || typeof o.blocos !== 'number' || !Array.isArray(o.polidas)) return null;
+      return {
+        bloco: o.bloco,
+        blocos: o.blocos,
+        polidas: o.polidas.filter(ehPolida),
+        pendentes: typeof o.pendentes === 'number' ? o.pendentes : 0,
+        jaPolido: o.jaPolido === true,
+      };
     },
   );
 }

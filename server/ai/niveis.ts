@@ -23,9 +23,9 @@
  * padrão do dono —, salvo com `NUANCE_AO_VIVO=1` (`nivelDaTraducaoPedida`). O pedido é do corpo, e
  * por isso passa sempre pelo `rebaixarNivel`: quem não tem `traducaoNuance` recebe a rápida.
  *
- * O POLIMENTO (Fase D, D5) não aparece na tabela: nenhuma função o usa ainda. Quando a rota de
- * "polir a sessão" existir, ela pede o nível dela e o servidor rebaixa quem não tem a capacidade
- * (`rebaixarNivel`) — a cascata do polimento já desce a escada até a rápida (`pernasDaFuncao`).
+ * O POLIMENTO (D5 da Fase D) é a linha `polimento` da tabela: o "polir a sessão"
+ * (`server/ai/polimento.ts`) recusa (402) quem não tem a capacidade, e quem tem recebe o nível
+ * `polimento` — a cascata dele desce a escada (polimento → nuance → rápida, `pernasDaFuncao`).
  */
 import { type CapacidadeDeNivel, type NivelDaTraducao, rebaixarNivel } from '../../src/core/nivelDeTraducao'
 import type { FuncaoDeIa } from './funcoesDeIa'
@@ -50,6 +50,9 @@ export const IA_NIVEIS: Readonly<Record<FuncaoDeIa, NiveisDaFuncao>> = {
   /* As "Outras formas" (D4) são da Tradução Nuance: a rota recusa (402) quem não tem a capacidade,
      e a linha `semNuance` só existe porque a tabela cobre toda função. */
   alternativas: { semNuance: 'rapida', comNuance: 'nuance' },
+  /* "Polir a sessão" (D5): blocos inteiros, sem pressa de legenda — o nível mais alto da escada. Como
+     as "Outras formas", a rota recusa (402) quem não tem a capacidade. */
+  polimento: { semNuance: 'rapida', comNuance: 'polimento' },
 }
 
 /** O nível que a função entrega a este plano — pela capacidade `traducaoNuance`. */

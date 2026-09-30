@@ -28,6 +28,13 @@
  *               mais a tradução atual. 900 de saída: três opções da frase + a nota em JSON (~150
  *               tokens) mais a folga do raciocínio. Temperatura 0,5: o pedido é justamente variar.
  *               Pior caso: ~600 tokens de entrada + 900 de saída ≈ US$ 0,0006 no gpt-oss-120b.
+ *   polimento   12.000 caracteres: UM BLOCO do "polir a sessão" (D5 da Fase D) — até 40 linhas, com
+ *               o original e a tradução de cada uma, mais 3 de contexto e o glossário. O bloco já nasce
+ *               com peso ≤ 6.000 (`promptDoPolimento.ts`), então o teto é folga, não alvo. 1.500 de
+ *               saída: a tradução reescrita das 40 linhas em JSON (~1.000 tokens numa fala típica) e o
+ *               raciocínio "low". Temperatura 0,2: reescrever com liberdade de expressão, sem variar à
+ *               toa. Um bloco típico: ~1.500 de entrada + ~1.200 de saída ≈ US$ 0,001 no gpt-oss-120b;
+ *               uma hora de conversa (~600 falas, 15 blocos) ≈ US$ 0,015, uma vez só (é idempotente).
  *
  * O teto ABSOLUTO continua em `llmClient.ts` (`MAX_PROMPT_CHARS`): é a rede de segurança para
  * qualquer caminho que um dia chame o provedor sem passar por aqui.
@@ -35,7 +42,7 @@
 import { TETO_DE_ENTRADA_DO_TUTOR } from '../../src/lib/ichat/contencao'
 import type { AgeProfileType } from '../../src/lib/profile'
 
-export type FuncaoDeIa = 'tutor' | 'corretor' | 'traducao' | 'alternativas'
+export type FuncaoDeIa = 'tutor' | 'corretor' | 'traducao' | 'alternativas' | 'polimento'
 
 interface DefinicaoDeFuncao {
   /** Caracteres de conteúdo do cliente aceitos (o `system` é nosso e não conta). */
@@ -50,6 +57,7 @@ export const FUNCOES_DE_IA: Readonly<Record<FuncaoDeIa, DefinicaoDeFuncao>> = {
   corretor: { tetoEntrada: 1_000, maxTokens: 400, temperatura: 0 },
   traducao: { tetoEntrada: 4_000, maxTokens: 1_200, temperatura: 0 },
   alternativas: { tetoEntrada: 500, maxTokens: 900, temperatura: 0.5 },
+  polimento: { tetoEntrada: 12_000, maxTokens: 1_500, temperatura: 0.2 },
 }
 
 /**

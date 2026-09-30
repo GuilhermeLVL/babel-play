@@ -304,12 +304,13 @@ describe('pedido de transcrição', () => {
 })
 
 /**
- * DERIVA: a temperatura da fala e o timeout da tradução são literais em `mtProxy.ts` (o B5 não mexe
- * no servidor além do `parametrosDoProvedor`). Se a produção mudar, a bancada tem de mudar junto.
+ * DERIVA: a temperatura da fala e o timeout da tradução são literais no núcleo da tradução
+ * (`server/ai/nucleo/traduzirNoNivel.ts` desde a Fase F; antes, `mtProxy.ts` — o B5 não mexe no
+ * servidor além do `parametrosDoProvedor`). Se a produção mudar, a bancada tem de mudar junto.
  */
 describe('deriva contra a produção', () => {
-  it('mtProxy.ts: temperatura da fala e timeout', () => {
-    const fonte = readFileSync('server/ai/mtProxy.ts', 'utf8')
+  it('traduzirNoNivel.ts: temperatura da fala e timeout', () => {
+    const fonte = readFileSync('server/ai/nucleo/traduzirNoNivel.ts', 'utf8')
     expect(fonte).toContain(`temperature: falada ? ${TEMPERATURA_DA_FALA} :`)
     expect(fonte).toContain('timeoutMs: 12_000')
     expect(TIMEOUT_DE_PRODUCAO_MS).toBe(12_000)

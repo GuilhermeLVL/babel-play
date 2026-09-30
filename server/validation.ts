@@ -766,15 +766,26 @@ export const sttHeadersSchema = z
   .strip()
 
 /**
+ * Valida sem responder: o dado, ou a PRIMEIRA razão legível — o texto do 400 de `parseOr400`. Existe
+ * para quem não fala com `res` (o núcleo de IA, Fase F) dar a mesma mensagem que a rota dava.
+ */
+export function parseOuMotivo<T>(
+  schema: z.ZodType<T>,
+  body: unknown,
+): { ok: true; data: T } | { ok: false; error: string } {
+  const r = schema.safeParse(body ?? {})
+  if (r.success) return { ok: true, data: r.data }
+  const first = r.error.issues[0]
+  return { ok: false, error: `payload inválido: ${first?.path?.join('.') || '?'} — ${first?.message || 'malformado'}` }
+}
+
+/**
  * Valida e responde 400 com a PRIMEIRA razão legível quando o payload não passa.
  * Devolve `null` nesse caso — o handler deve retornar imediatamente.
  */
 export function parseOr400<T>(schema: z.ZodType<T>, body: unknown, res: Response): T | null {
-  const r = schema.safeParse(body ?? {})
-  if (r.success) return r.data
-  const first = r.error.issues[0]
-  res
-    .status(400)
-    .json({ error: `payload inválido: ${first?.path?.join('.') || '?'} — ${first?.message || 'malformado'}` })
+  const r = parseOuMotivo(schema, body)
+  if (r.ok === true) return r.data
+  res.status(400).json({ error: r.error })
   return null
 }

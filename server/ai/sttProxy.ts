@@ -94,7 +94,7 @@ const RETENTATIVAS_DE_STT = 1
 interface PortaDoStt {
   byok: boolean
   plano?: PlanoDeAdmissao
-  /** O plano da assinatura (`free|essencial|pro|selfhost`) — rótulo da métrica de custo por plano. */
+  /** O plano da assinatura (`free|premium|selfhost`, matriz v2) — rótulo da métrica de custo por plano. */
   planoDaAssinatura?: string
   chamada?: ChamadaAdmitida
   secret?: string

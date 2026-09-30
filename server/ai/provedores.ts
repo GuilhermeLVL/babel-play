@@ -32,7 +32,7 @@ export const MODELO_OLLAMA_PADRAO = 'llama3.2'
  * O MODELO MAIOR, O QUE O PLANO PROMETE E NINGUEM ENTREGAVA (Fase 4).
  *
  * `largerModels` existe na matriz de planos desde a Fatia 1 (`src/core/planos.ts`): `false` para
- * anonimo, free e essencial, `true` para pro e selfhost. Ele e devolvido ao cliente por
+ * anonimo e free, `true` para premium e selfhost (matriz v2). Ele e devolvido ao cliente por
  * `/api/me/entitlements` e — medido em 2026-09-09 com `grep largerModels server/` — **nenhuma
  * linha do servidor o lia**. Todo plano recebia exatamente o mesmo modelo.
  *

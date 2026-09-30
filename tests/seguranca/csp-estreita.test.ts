@@ -43,6 +43,15 @@ describe('diretivasDeCsp', () => {
     expect(c).toContain('https://modelos.exemplo.com.br')
   })
 
+  it('os modelos do Bergamot num CDN (VITE_BERGAMOT_MODELOS_URL) entram pela origem', () => {
+    const c = diretivasDeCsp(env({ VITE_BERGAMOT_MODELOS_URL: 'https://r2.exemplo.dev/modelos/' })).connectSrc
+    expect(c).toContain('https://r2.exemplo.dev')
+    // O motor (WASM e cola) é código: continua só do próprio domínio.
+    expect(diretivasDeCsp(env({ VITE_BERGAMOT_MODELOS_URL: 'https://r2.exemplo.dev' })).scriptSrc).not.toContain(
+      'https://r2.exemplo.dev',
+    )
+  })
+
   it('VITE_SELF_HOST_MODELS=1 (mesmo domínio) não acrescenta host', () => {
     const base = diretivasDeCsp(env({})).connectSrc
     expect(diretivasDeCsp(env({ VITE_SELF_HOST_MODELS: '1' })).connectSrc).toEqual(base)

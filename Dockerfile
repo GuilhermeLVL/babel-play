@@ -21,6 +21,11 @@ COPY . .
 # Binários de runtime (ORT wasm + Silero VAD) não são versionados: `npm ci --ignore-scripts`
 # pulou o postinstall que os copia, então copiamos aqui, antes do build (falha se faltar).
 RUN node scripts/copiar-assets-runtime.mjs --exigir
+# Bergamot (tradução pt→en no aparelho): motor + modelos em public/modelos/bergamot/, com sha256
+# conferido. SEM --exigir de propósito: sem rede no build, a imagem sai sem o Bergamot e o app segue
+# no opus-mt (o vite.config.ts faz a mesma conferência e não o oferece). O bucket da Mozilla não
+# manda CORS para a nossa origem, por isso os arquivos vão na imagem, servidos do próprio domínio.
+RUN node scripts/baixar-modelos-bergamot.mjs
 
 # As VITE_* são embutidas no bundle do CLIENTE em BUILD TIME — não adianta passá-las
 # só no runtime. Sem elas, `src/lib/supabase.ts` cria um cliente nulo, `authRequired`
@@ -37,6 +42,8 @@ ARG VITE_AUTH_REQUIRED=1
 # dos modelos (`https://…`, ou `1` para /models no mesmo domínio) e o DSN do Sentry do navegador.
 ARG VITE_PUBLIC_URL
 ARG VITE_SELF_HOST_MODELS
+# A9b (opcional): os modelos do Bergamot num R2/CDN com CORS; sem ela, do próprio domínio.
+ARG VITE_BERGAMOT_MODELOS_URL
 ARG VITE_SENTRY_DSN
 # Fase 7 (opcional): a chave PÚBLICA do Cloudflare Turnstile — o captcha do convidado com nuvem.
 ARG VITE_TURNSTILE_SITE_KEY
@@ -45,6 +52,7 @@ ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL \
     VITE_AUTH_REQUIRED=$VITE_AUTH_REQUIRED \
     VITE_PUBLIC_URL=$VITE_PUBLIC_URL \
     VITE_SELF_HOST_MODELS=$VITE_SELF_HOST_MODELS \
+    VITE_BERGAMOT_MODELOS_URL=$VITE_BERGAMOT_MODELOS_URL \
     VITE_SENTRY_DSN=$VITE_SENTRY_DSN \
     VITE_TURNSTILE_SITE_KEY=$VITE_TURNSTILE_SITE_KEY
 # P0-7b: o commit entra na VERSÃO do app (`0.1.0+<sha7>`) já no build — o `vite.config.ts` a
@@ -149,11 +157,14 @@ COPY --chmod=0755 scripts/iniciar-container.sh /usr/local/bin/iniciar-container.
 # Sentry mostra. Repetidas aqui porque ARG não atravessa estágio sozinho.
 ARG VITE_SUPABASE_URL
 ARG VITE_SELF_HOST_MODELS
+# A9b (opcional): os modelos do Bergamot num R2/CDN com CORS; sem ela, do próprio domínio.
+ARG VITE_BERGAMOT_MODELOS_URL
 ARG VITE_SENTRY_DSN
 ARG VITE_TURNSTILE_SITE_KEY
 ARG VERSAO
 ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL \
     VITE_SELF_HOST_MODELS=$VITE_SELF_HOST_MODELS \
+    VITE_BERGAMOT_MODELOS_URL=$VITE_BERGAMOT_MODELOS_URL \
     VITE_SENTRY_DSN=$VITE_SENTRY_DSN \
     VITE_TURNSTILE_SITE_KEY=$VITE_TURNSTILE_SITE_KEY \
     SENTRY_RELEASE=$VERSAO

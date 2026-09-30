@@ -23,6 +23,9 @@
  *
  *   SUPABASE_URL / VITE_SUPABASE_URL            o login (supabase-js)
  *   VITE_SELF_HOST_MODELS (quando é URL)        o bucket R2 dos pesos dos modelos
+ *   VITE_BERGAMOT_MODELOS_URL                   os modelos do Bergamot num R2/CDN (o motor, que é
+ *                                               código, vem sempre do próprio domínio: `script-src`
+ *                                               não muda)
  *   VITE_SENTRY_DSN                             o envio de erro do navegador
  *
  *   VITE_TURNSTILE_SITE_KEY (quando existe)     o captcha do Cloudflare Turnstile no convidado com
@@ -95,6 +98,8 @@ export function diretivasDeCsp(env: NodeJS.ProcessEnv = process.env): DiretivasD
     /* `VITE_SELF_HOST_MODELS=1` significa "mesmo domínio" e não acrescenta nada; só uma URL traz
        host novo (o bucket R2 público dos pesos). */
     origemDe(env.VITE_SELF_HOST_MODELS),
+    /* A9b: sem ela, os `.gz` do Bergamot saem do próprio domínio (`'self'`). */
+    origemDe(env.VITE_BERGAMOT_MODELOS_URL),
     /* O DSN tem a chave pública no userinfo; `origin` a descarta e fica só o host de ingestão. */
     origemDe(env.VITE_SENTRY_DSN),
   ].filter((o): o is string => o !== null)

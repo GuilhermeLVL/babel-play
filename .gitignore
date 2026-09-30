@@ -32,6 +32,8 @@ id_ed25519*
 /public/vad.worklet.bundle*
 # Pesos dos modelos (scripts/fetch-models.mjs; Docker assa na imagem)
 /public/models/
+# Motor e modelos do Bergamot (scripts/baixar-modelos-bergamot.mjs; o build os garante, com sha256)
+/public/modelos/
 
 # ── Banco local (SQLite) e dados — SÓ o diretório do root (não src/data/) ───
 /data/

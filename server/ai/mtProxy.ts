@@ -22,7 +22,9 @@ import { cabeNoCache, type ConsultaDeTraducao, guardarTraducao, lerTraducao } fr
 import { type AdmissaoDaCascata, admitirCascata, encerrarAdmissao, percorrerCascata } from './cascata'
 import { FUNCOES_DE_IA, maxTokensDaTraducao } from './funcoesDeIa'
 import { type MensagemDeChat, tamanhoDoPrompt } from './llmClient'
-import { cascataDeNuvem } from './provedores'
+import { cascataDoPlano } from './niveis'
+import { aplicarPoliticaDeCusto } from './politicaDeCusto'
+import type { Provedor } from './provedores'
 import { abrirReservaDeLlm, type ReservaDeLlm } from './reservaDeNuvem'
 import { abrirRastro, codigoDeIdioma, type RastroDeIa } from './telemetriaDeIa'
 
@@ -159,17 +161,24 @@ async function traduzir(req: Request, res: Response, rastro: RastroDeIa): Promis
 
   // Configuração ANTES da reserva: sem chave não há chamada a reservar.
   /* NOME NEUTRO, COM COMPATIBILIDADE. `LLM_*` é o nome honesto; os `GROQ_*` continuam válidos. QUEM
-     é o provedor sai de `server/ai/provedores.ts` (achado A31), junto com o porquê da reserva. */
-  const provedores = cascataDeNuvem({ modelosGrandes: planoDoUsuario.largerModels })
+     é o provedor sai do registro (`registroDeProvedores.ts`, achado A31); QUAL modelo, do NÍVEL do
+     plano (B3, `niveis.ts`): a rápida para o Grátis, o convidado e o alívio (o entitlement deles não
+     tem `traducaoNuance`), a nuance para quem paga. */
+  const { nivel, pernas: provedores } = cascataDoPlano('traducao', planoDoUsuario)
   if (provedores.length === 0) {
     res.status(501).json({ error: 'tradução por LLM não configurada no servidor (defina LLM_API_KEY)' })
     return
   }
+  rastro.anotar({ nivel })
 
   /* CACHE ANTES DE TUDO QUE CUSTA (cacheDeTraducao.ts): a mesma frase, no mesmo par, pelo mesmo
      modelo, não vai ao provedor de novo — nem gasta cota do usuário, porque não custa nada a ninguém.
-     A chave usa o modelo PLANEJADO (o primeiro da cascata), que é o que o plano promete. Dois
-     níveis: memória do processo (L1) e SQLite (L2, só frase curta, sem nada de quem pediu). */
+     A LEITURA usa o modelo PLANEJADO (o primeiro da cascata do nível), que é o que o plano promete; a
+     GRAVAÇÃO, o que de fato respondeu (ver `guardarTraducao` lá embaixo). Dois níveis: memória do
+     processo (L1) e SQLite (L2, só frase curta, sem nada de quem pediu). O NÍVEL não entra na chave:
+     hoje ele muda só o modelo, e o modelo já está nela — com ele, a rápida e a nuance servidas pelo
+     MESMO modelo (o legado inteiro) dividiriam o cache em dois por nada. Quando um nível mudar o
+     prompt (Fase D), a versão do prompt ou o `registro` da consulta separam. */
   const consulta: ConsultaDeTraducao = {
     texto: text,
     src,
@@ -221,9 +230,21 @@ async function traduzir(req: Request, res: Response, rastro: RastroDeIa): Promis
 
   const estimativa = estimarTokens(tamanhoDoPrompt(messages), maxTokens)
 
+  /* A POLÍTICA DE CUSTO (B4, `politicaDeCusto.ts`): com o orçamento a 70% (pagante com o primeiro
+     balde baixo) ou a 90% (todos), a cascata começa no degrau mais barato e a saída dos modelos sem
+     raciocínio cai para 75%. A fração vem do mesmo portão, sem outra leitura do banco. */
+  const custo = aplicarPoliticaDeCusto({
+    pernas: provedores,
+    nivel,
+    fracaoDoOrcamento: portao.fracaoDoOrcamento ?? 0,
+    tokensEntrada: estimativa - maxTokens,
+    tokensSaida: maxTokens,
+  })
+  if (custo.degradacao !== 'nenhuma') rastro.anotar({ degradacao: custo.degradacao })
+
   /* ADMISSÃO (ADR 0007) ANTES da cota do usuário: sem saldo no balde do modelo (ou com a 2ª
      tradução dele já em voo), 429 `nuvem_ocupada` com `Retry-After` — e o cliente traduz no local. */
-  const admitida = admitirCascata(provedores, {
+  const admitida = admitirCascata(custo.pernas, {
     userId: req.userId,
     plano: planoDeAdmissao(planoDoUsuario.plan, alivio),
     tokens: estimativa,
@@ -234,7 +255,8 @@ async function traduzir(req: Request, res: Response, rastro: RastroDeIa): Promis
   }
   try {
     await traduzirAdmitido(req, res, rastro, {
-      provedores,
+      provedores: custo.pernas,
+      fatorDeSaida: custo.fatorDeSaida,
       messages,
       maxTokens,
       estimativa,
@@ -256,7 +278,9 @@ async function traduzirAdmitido(
   res: Response,
   rastro: RastroDeIa,
   p: {
-    provedores: ReturnType<typeof cascataDeNuvem>
+    provedores: Provedor[]
+    /** A saída econômica da política de custo (B4): 1 = o `max_tokens` inteiro. */
+    fatorDeSaida: number
     messages: MensagemDeChat[]
     maxTokens: number
     estimativa: number
@@ -290,6 +314,7 @@ async function traduzirAdmitido(
         funcao: 'traducao',
         rastro,
         admissao: p.admissao,
+        fatorDeSaida: p.fatorDeSaida,
       },
     )
 
@@ -349,8 +374,14 @@ async function traduzirAdmitido(
     res.json(respostaDeTraducao(entregue.texto, entregue.model))
     /* DEPOIS de responder: quem pediu não espera o disco. Aguardado assim mesmo, para a rota só
        terminar com o L2 gravado (um teste que esvazia o cache logo depois não vê gravação atrasada).
-       `guardarTraducao` decide o que vai ao disco e nunca lança. */
-    await guardarTraducao(consulta, { texto: entregue.texto, modelo: entregue.model })
+       `guardarTraducao` decide o que vai ao disco e nunca lança.
+
+       SOB O MODELO QUE DE FATO RESPONDEU (B3). A consulta traz o PLANEJADO; gravar nela guardava a
+       tradução da reserva — outro modelo, às vezes o barato — 30 dias sob a chave do primário, e o
+       pagante recebia a do barato como se fosse a da nuance. Agora ela vai para a chave de quem a
+       escreveu: serve a quem PLANEJA aquele modelo (o Grátis, se é o barato), e o pagante volta a
+       tentar a nuance no próximo pedido. */
+    await guardarTraducao({ ...consulta, modelo: entregue.model }, { texto: entregue.texto, modelo: entregue.model })
   } catch (err) {
     res.status(502).json({ error: `falha na tradução por LLM: ${erroDeRota(err, { event: 'mt_route_error' })}` })
   } finally {

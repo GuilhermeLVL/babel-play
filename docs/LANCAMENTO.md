@@ -172,6 +172,20 @@ sem o roteamento de retenção zero que ignora o Google, ou qualquer provedor se
 — confira a retenção zero no painel de cada provedor ANTES de declarar. Trocar o provedor ou o
 modelo padrão só com o resultado da bancada (Fase B, B5/B7).
 
+**Os níveis (B3).** Com o registro, cada modelo de tradução/tutor pode dizer a quem serve:
+`"niveis": ["rapida"]` (o padrão — Grátis, convidado e a nuvem de alívio) ou `["nuance"]` (quem paga:
+o entitlement `traducaoNuance`). Quem paga começa pelo modelo da nuance e cai no da rápida se ele
+falhar; quem não paga nunca chega ao da nuance. Sem o registro, vale o `LLM_MODEL_GRANDE` de sempre,
+para o plano com `largerModels`.
+
+**A cascata do STT (B6).** Com mais de um provedor de STT no registro, cada áudio vai primeiro para
+quem cobra MENOS por ele — com o mínimo faturado de cada um: a Groq cobra 10 s por pedido, então a
+fala curta vai para quem cobra por segundo (declare `"minimoFaturadoS": 0` nele; ausente, o servidor
+supõe 10 s). 429, 5xx e timeout passam para o próximo, e o disjuntor é por provedor. A Cloudflare
+(Workers AI) entra com `"formato": "cloudflare"` e o modelo `@cf/openai/whisper-large-v3-turbo` — o
+áudio vai em base64 pela rota nativa; confira no painel dela que a conta não guarda o conteúdo
+(Workers AI → Privacy) antes de declarar `"retencao": "zdr"`.
+
 Decida o **orçamento global** `AI_BUDGET_USD_MONTH` (soma do que aceita gastar nos dois; sem ela o
 app usa US$ 20). O servidor estima o gasto de cada chamada (`server/lib/orcamentoDeIa.ts`) pelo
 preço do **provedor que de fato respondeu** — com o primário em 429, o da reserva —, com os tokens do
@@ -180,6 +194,14 @@ e a latência por `fornecedor` e `modelo` (`ia_provedor_custo_usd_total`, `ia_pr
 sai o evento `ia_orcamento_alerta_80` e a 100 % o `ia_orcamento_esgotado` — a IA de nuvem fecha
 sozinha até o mês virar e o app volta para os modelos locais. Os dois chegam ao Sentry; a regra de
 alerta está no passo 7.
+
+**Antes do corte, a degradação suave (B4).** Com o orçamento (do mês ou do dia, o que estiver mais
+perto do fim) a **70 %**, quem paga começa no modelo mais barato da cascata quando o balde do primeiro
+provedor está abaixo de 20 %; a **90 %**, todo mundo começa no mais barato, e a saída dos modelos sem
+raciocínio cai para 75 %. Não há variável: é a regra do plano. O `/metrics` conta cada chamada
+degradada em `ia_degradacao_de_custo_total{motivo,nivel}` — subindo antes do fim do mês, o orçamento
+está curto para o tráfego. Com o `IA_PROVEDORES`, os `limites` declarados (rpm, tpm, rpd, tpd) são
+os baldes da admissão de cada provedor; sem eles, valem as `IA_ADMISSAO_*`.
 
 ## 6. Asaas (cobrança, conta PJ) — 1 a 3 dias úteis de aprovação
 

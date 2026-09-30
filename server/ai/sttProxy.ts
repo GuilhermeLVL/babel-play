@@ -4,15 +4,19 @@
  * o server resolve a credencial → segredo + baseUrl, valida SSRF, e encaminha ao
  * Whisper de nuvem (OpenAI-compatible `/audio/transcriptions`). A chave NUNCA
  * chega ao cliente.
+ *
+ * DESDE O B6 DA FASE B a chave do DONO percorre uma CASCATA (`cascataDeStt.ts`): as pernas de STT
+ * do registro, na ordem do custo efetivo DESTE áudio (o mínimo de 10 s da Groq manda o clipe curto
+ * para quem cobra por segundo), nos formatos OpenAI multipart e Cloudflare base64, com 429/5xx/timeout
+ * passando para a próxima. No legado (uma perna) e no BYOK, o comportamento é o de antes.
  */
 import type { NextFunction, Request, Response } from 'express'
 
 import { filtrarAlucinacao } from '../../src/gateway/alucinacao'
 import { credentialsRepo } from '../db/repositories/credentials'
 import { contarDescartesDoStt, observarChamadaDeProvedor } from '../http/metricas'
-import type { PrecoDeModelo } from '../lib/config'
 import { abrirPortaGratuita, type PortaGratuita } from '../lib/convidado'
-import { arquivoDoAudio, avaliarAudioFaturavel, duracaoDoAudio, segundosFaturaveis } from '../lib/duracaoDeAudio'
+import { avaliarAudioFaturavel, duracaoDoAudio, segundosFaturaveis } from '../lib/duracaoDeAudio'
 import { getEntitlements } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
 import { normalizarIdiomaDoWhisper } from '../lib/idiomaDoWhisper'
@@ -34,56 +38,39 @@ import {
   reserveManagedCall,
 } from '../lib/usageQuota'
 import { parseOr400, sttHeadersSchema } from '../validation'
+import { type PlanoDeAdmissao, planoDeAdmissao, responderNuvemOcupada } from './admissao'
 import {
-  admitirChamada,
-  admitirNoBalde,
-  type ChamadaAdmitida,
-  type PlanoDeAdmissao,
-  planoDeAdmissao,
-  registrarLimiteNaAdmissao,
-  responderNuvemOcupada,
-  segundosDoRetryAfter,
-} from './admissao'
-import {
-  chaveDoProvedor,
-  disjuntorPermite,
-  esperaDaRetentativa,
-  JANELA_ABERTA_MS,
-  registrarFalha,
-  registrarSucesso,
-} from './disjuntor'
-import { sttGerenciado } from './registroDeProvedores'
+  type AdmissaoDoStt,
+  admitirStt,
+  encerrarAdmissaoDoStt,
+  ordenarPorCustoEfetivo,
+  percorrerCascataDeStt,
+  pernasDoStt,
+} from './cascataDeStt'
+import { JANELA_ABERTA_MS } from './disjuntor'
+import type { Provedor } from './provedores'
 import { responderContadorIndisponivel, responderFranquiaDeAlivioEsgotada } from './reservaDeNuvem'
-import { assertPublicUrl, despachanteSeguro, type InitSeguro } from './ssrf'
 import { promptDoCabecalho, triarSegmentos } from './sttQualidade'
-import {
-  abrirRastro,
-  codigoDeIdioma,
-  nomeDoProvedor,
-  type RastroDeIa,
-  registrarLimiteDoProvedor,
-  statusDaTentativa,
-} from './telemetriaDeIa'
+import { abrirRastro, codigoDeIdioma, nomeDoProvedor, type RastroDeIa } from './telemetriaDeIa'
 
-/**
- * Quantas tentativas EXTRAS o STT faz — UMA, e só em 5xx (ADR 0007).
+/*
+ * QUANTAS TENTATIVAS EXTRAS — UMA, e só em 5xx (ADR 0007). Mora em `cascataDeStt.ts`
+ * (`RETENTATIVAS_DE_STT`), e desde o B6 vale para a ÚLTIMA perna: havendo outra, ela atende na hora.
  *
  * Eram duas, e valiam também para o 429: cada limite de taxa do provedor virava TRÊS pedidos, no
  * exato momento em que ele pedia para diminuir o ritmo, e o `Retry-After` era ignorado. Agora o 429
- * não repete — ele fecha o balde da admissão até o `Retry-After` e volta ao cliente como 429
- * `nuvem_ocupada`, e o cliente usa o motor local na hora. O 5xx ainda repete uma vez (o provedor
- * disse que não fez; não há efeito para duplicar), e só se o balde tiver saldo para o repique.
+ * não repete — ele fecha o balde da admissão até o `Retry-After` e passa para a próxima perna ou volta
+ * ao cliente como 429 `nuvem_ocupada`, e o cliente usa o motor local na hora.
  */
-const RETENTATIVAS_DE_STT = 1
 
 /* ─────────────── a PORTA do STT: tudo que é barato, ANTES de ler o corpo ─────────────── */
 
 /*
  * O STT gerenciado — a chave do DONO — é lido na porta para o 501 sair ANTES de o corpo de 25 MB ser
- * lido. A leitura mora em `sttGerenciado` (`server/ai/registroDeProvedores.ts`; no legado, o
- * `sttGerenciadoDoEnv` de `server/lib/config.ts`), a MESMA que responde `GET /api/ai/stt/available`
- * (B0 da Fase B): eram duas, e discordavam — a disponibilidade dizia 200 com só `LLM_API_KEY`
- * configurada, e esta porta respondia 501.
+ * lido. As pernas saem do registro (`pernasDoStt`; no legado, o `sttGerenciadoDoEnv` de
+ * `server/lib/config.ts`), a MESMA fonte que responde `GET /api/ai/stt/available` (B0 da Fase B):
+ * eram duas, e discordavam — a disponibilidade dizia 200 com só `LLM_API_KEY` configurada, e esta
+ * porta respondia 501.
  */
 
 /** O que a porta decidiu, do middleware até o handler. */
@@ -92,15 +79,10 @@ interface PortaDoStt {
   plano?: PlanoDeAdmissao
   /** O plano da assinatura (`free|essencial|pro|selfhost`) — rótulo da métrica de custo por plano. */
   planoDaAssinatura?: string
-  chamada?: ChamadaAdmitida
-  secret?: string
-  baseUrl?: string
-  model?: string
-  provedor?: string
-  /** B2: o preço que o registro declarou para este provedor:modelo (mínimo faturado incluído). */
-  preco?: PrecoDeModelo
-  /** O provedor chegou a ser chamado? Se não, o pedido volta ao balde. */
-  chamouProvedor: boolean
+  /** B6: as pernas de STT da chave do DONO, na ordem do registro (o handler reordena pelo custo). */
+  pernas?: Provedor[]
+  /** A vaga em voo e o pedido no balde da primeira perna com saldo. */
+  admissao?: AdmissaoDoStt
   /** Fase 7: as travas de convidado/free (pool do dia, tetos por id e por IP). */
   gratuita?: PortaGratuita
   /** De que franquia saem a chamada e os segundos: a do plano, ou a da nuvem de alívio (A10). */
@@ -109,21 +91,21 @@ interface PortaDoStt {
 
 const portas = new WeakMap<Request, PortaDoStt>()
 
-/** Solta a vaga em voo e, se ninguém chamou o provedor, devolve o pedido ao balde. Idempotente. */
+/** Solta a vaga em voo e, se a perna da porta não foi chamada, devolve o pedido ao balde. Idempotente. */
 function fecharPorta(p: PortaDoStt): void {
-  p.chamada?.liberar()
-  if (!p.chamouProvedor) p.chamada?.ticket.devolver()
+  encerrarAdmissaoDoStt(p.admissao)
 }
 
 /**
  * As checagens BARATAS do STT gerenciado, em ordem de custo: plano (402), portão global (503),
- * configuração (501) e admissão (429 `nuvem_ocupada`: vaga em voo do usuário + balde do modelo).
- * Devolve `null` quando JÁ RESPONDEU. BYOK passa direto: a chave e o limite são do usuário.
+ * configuração (501) e admissão (429 `nuvem_ocupada`: vaga em voo do usuário + balde da primeira
+ * perna com saldo). Devolve `null` quando JÁ RESPONDEU. BYOK passa direto: a chave e o limite são
+ * do usuário.
  *
  * A cota do usuário NÃO é reservada aqui: ela depende da DURAÇÃO do áudio, que só o corpo diz.
  */
 async function abrirPortaDoStt(req: Request, res: Response): Promise<PortaDoStt | null> {
-  if (req.header('x-credential-id')) return { byok: true, chamouProvedor: false }
+  if (req.header('x-credential-id')) return { byok: true }
   // SaaS Fatia 1b — STT de nuvem GERENCIADA (chave do DONO) exige o entitlement. BYOK e o STT local
   // (no navegador) passam livres: só o caminho que gasta a chave do serviço é gateado.
   /* Fase 7: convidado (flag, limite por IP, tetos) e pool gratuito do dia — antes do entitlement,
@@ -145,14 +127,13 @@ async function abrirPortaDoStt(req: Request, res: Response): Promise<PortaDoStt 
     responderPortaoFechado(res, portao)
     return null
   }
-  const cfg = sttGerenciado()
-  if (!cfg) {
+  const pernas = pernasDoStt()
+  if (pernas.length === 0) {
     res.status(501).json({ error: 'STT de nuvem não configurado: defina GROQ_API_KEY no servidor (.env)' })
     return null
   }
   const faixa = planoDeAdmissao(plano.plan, alivio)
-  const provedor = nomeDoProvedor(cfg.baseUrl)
-  const admissao = admitirChamada({ userId: req.userId, tipo: 'stt', provedor, modelo: cfg.model, plano: faixa })
+  const admissao = admitirStt(pernas, { userId: req.userId, plano: faixa })
   if (admissao.ok === false) {
     responderNuvemOcupada(res, admissao.recusa)
     return null
@@ -161,13 +142,8 @@ async function abrirPortaDoStt(req: Request, res: Response): Promise<PortaDoStt 
     byok: false,
     plano: faixa,
     planoDaAssinatura: plano.plan,
-    chamada: admissao.chamada,
-    secret: cfg.secret,
-    baseUrl: cfg.baseUrl,
-    model: cfg.model,
-    provedor,
-    preco: cfg.preco,
-    chamouProvedor: false,
+    pernas,
+    admissao: admissao.admissao,
     gratuita,
     modo: alivio ? 'alivio' : 'plano',
   }
@@ -236,18 +212,19 @@ async function transcrever(req: Request, res: Response, rastro: RastroDeIa): Pro
 
     // Duas formas de resolver a chave:
     //  (a) x-credential-id → credencial POR USUÁRIO (cifrada no DB) — modo BYO-key.
-    //  (b) SEM credencial → chave do DONO no servidor (env GROQ_API_KEY). É o modo padrão
+    //  (b) SEM credencial → chave do DONO no servidor (as pernas do registro). É o modo padrão
     //      "distribuível em escala": o usuário não precisa de chave nenhuma, o app só funciona.
     const credentialId = req.header('x-credential-id')
-    let baseUrl: string | null
-    let secret: string | null
-    let defaultModel: string | null
+    /** BYOK: a credencial do usuário. */
+    let byok: { baseUrl: string | null; secret: string | null; defaultModel: string | null } | null = null
+    /** Chave do DONO: as pernas, na ordem do custo DESTE áudio. */
+    let pernas: Provedor[] = []
     /** Ramo da chave do DONO: o cliente não escolhe o modelo nem a duração cobrada (P0-2/P0-3). */
     let pagoPeloApp = false
 
     if (credentialId) {
       rastro.anotar({ byok: true })
-      ;({ baseUrl, secret, defaultModel } = await credentialsRepo.getSecret(req.userId, credentialId))
+      byok = await credentialsRepo.getSecret(req.userId, credentialId)
     } else {
       // Plano, portão, configuração e admissão já passaram na porta (`abrirPortaDoStt`).
       pagoPeloApp = true
@@ -288,20 +265,22 @@ async function transcrever(req: Request, res: Response, rastro: RastroDeIa): Pro
         else res.status(402).json({ error: 'limite mensal de áudio do plano atingido', code: 'quota_exceeded' })
         return
       }
-      secret = porta.secret ?? null
-      baseUrl = porta.baseUrl ?? null
-      defaultModel = porta.model ?? null
+      /* B6: a ORDEM DAS PERNAS é o custo deste áudio — com o mínimo faturado de cada uma. */
+      pernas = ordenarPorCustoEfetivo(porta.pernas ?? [], duracaoDoAudio(audioBuffer) ?? avaliacao.segundosDoUsuario)
     }
 
-    if (!baseUrl) {
-      res.status(400).json({ error: 'credencial sem baseUrl' })
-      return
+    if (byok) {
+      if (!byok.baseUrl) {
+        res.status(400).json({ error: 'credencial sem baseUrl' })
+        return
+      }
+      if (!byok.secret) {
+        res.status(400).json({ error: 'credencial sem segredo' })
+        return
+      }
+      /* O anti-SSRF do endereço do usuário é o da cascata (`assertPublicUrl` perna a perna, com o
+         `fetch` pelo `despachanteSeguro` logo depois) — o mesmo das pernas da chave do DONO. */
     }
-    if (!secret) {
-      res.status(400).json({ error: 'credencial sem segredo' })
-      return
-    }
-    await assertPublicUrl(baseUrl) // anti-SSRF
 
     /* ACHADO DA FASE 4: `x-model` e `x-language` iam do cabeçalho para dentro do `FormData` do
        provedor sem validação nenhuma — o cabeçalho escolhia (e pagava) o modelo, e o idioma
@@ -317,194 +296,75 @@ async function transcrever(req: Request, res: Response, rastro: RastroDeIa): Pro
     )
     if (!cabecalhos) return
 
-    /* P0-3 (auditoria de prontidão): na chave do DONO, `x-model` é IGNORADO. O schema acima só
-       garante o FORMATO do nome — o cliente ainda escolhia qual modelo a conta do app pagava, e
-       nada impedia trocar o turbo pelo modelo cheio (2,8× o preço por hora de áudio). Quem decide é
-       o `STT_MODEL` do servidor. No BYOK a chave e a conta são do usuário: ele escolhe livremente. */
-    const model = pagoPeloApp
-      ? defaultModel || 'whisper-large-v3-turbo'
-      : cabecalhos['x-model'] || defaultModel || 'whisper-large-v3-turbo'
+    /* P0-3 (auditoria de prontidão): na chave do DONO, `x-model` é IGNORADO — quem decide é o
+       registro (cada perna tem o modelo dela). O schema acima só garante o FORMATO do nome; nada
+       impedia trocar o turbo pelo modelo cheio (2,8× o preço por hora de áudio). No BYOK a chave e a
+       conta são do usuário: ele escolhe livremente. */
+    if (byok) {
+      pernas = [
+        {
+          rotulo: 'byok',
+          base: byok.baseUrl as string,
+          apiKey: byok.secret,
+          model: cabecalhos['x-model'] || byok.defaultModel || 'whisper-large-v3-turbo',
+          formato: 'openai',
+        },
+      ]
+    }
     const lang = cabecalhos['x-language']
     /* O CONTEXTO DA FALA ANTERIOR, como `prompt` do Whisper. Sem ele cada enunciado de ~6 s é
        decodificado do zero: nome próprio muda de grafia de uma fala para a outra, e em áudio curto
        o idioma oscila. O cliente manda a última frase confirmada; `promptDoCabecalho` decodifica,
        limpa e corta — e ignora em silêncio o que não decodifica. */
     const prompt = promptDoCabecalho(req.header('x-stt-prompt'))
-    const endpoint = baseUrl.replace(/\/+$/, '') + '/audio/transcriptions'
-
-    /* PEDIMOS `verbose_json` PARA NÃO JOGAR FORA O IDIOMA.
-       O Whisper identifica o idioma a partir do ÁUDIO, dentro do decode. Pedindo `json` recebíamos
-       só o texto, e o cliente reconstruía o idioma passando esse texto por um detector de
-       palavras-função — que não tem sinal em fala curta. Foi assim que uma sessão inteira em
-       espanhol apareceu rotulada como inglês. `verbose_json` traz `language` no MESMO custo de API.
-
-       FormData é de uso único (o corpo é consumido no envio), então cada tentativa monta a sua.
-
-       O TIPO DO ARQUIVO sai dos magic bytes (`arquivoDoAudio`): Ogg Opus vai como `audio.ogg`
-       (a Groq aceita ogg), o resto como o `audio.wav` de sempre. */
-    const arquivo = arquivoDoAudio(audioBuffer)
-    const montarForm = (formato: 'verbose_json' | 'json'): FormData => {
-      const f = new FormData()
-      f.append('file', new Blob([audioBuffer], { type: arquivo.tipo }), arquivo.nome)
-      f.append('model', model)
-      if (lang) f.append('language', lang)
-      if (prompt) f.append('prompt', prompt)
-      /* TEMPERATURA ZERO: decode guloso, o mesmo áudio dá o mesmo texto. Sem o campo, o provedor
-         escolhe — e amostragem em transcrição só serve para variar a grafia da mesma fala. */
-      f.append('temperature', '0')
-      f.append('response_format', formato)
-      return f
-    }
-    // Sem anotação de retorno: neste arquivo `Response` é o da Express (importado acima), não o
-    // do fetch. Deixar o TypeScript inferir evita a colisão de nomes.
-    const enviar = (formato: 'verbose_json' | 'json') =>
-      fetch(endpoint, {
-        method: 'POST',
-        headers: { Authorization: 'Bearer ' + secret },
-        body: montarForm(formato),
-        signal: AbortSignal.timeout(30_000),
-        /* Auditoria de segurança 2026-09-26: este fetch SEGUIA redirect — o GAP-002 tirou isso só
-           do proxy de chat. Um provedor cadastrado pelo usuário respondendo 302 para um IP literal
-           interno levava o áudio (e o Bearer) até lá. E o IP é conferido na CONEXÃO (DNS
-           rebinding), ver ssrf.ts. */
-        redirect: 'manual',
-        dispatcher: despachanteSeguro,
-      } as InitSeguro)
-
-    /**
-     * UMA tentativa completa contra o provedor.
-     *
-     * Nem todo endpoint OpenAI-compatible implementa `verbose_json`. Quando ele RECUSA o formato
-     * (4xx), repetimos em `json` — degrada para o comportamento antigo (sem idioma) em vez de
-     * quebrar a transcrição de quem usa outro provedor. Erro 5xx não é sobre o formato: não repete.
-     *
-     * O 429 SAIU DESSA REGRA (Fase 5). Ele é 4xx e caía aqui, então um limite de taxa disparava um
-     * reenvio IMEDIATO do mesmo áudio em outro formato — dois pedidos recusados em vez de um, no
-     * exato momento em que o provedor está pedindo para diminuir o ritmo. Limite de taxa não é
-     * desacordo sobre formato; quem cuida dele é a retentativa com espera, logo abaixo.
-     */
-    const umaTentativa = async () => {
-      const r = await enviar('verbose_json')
-      if (!r.ok && r.status >= 400 && r.status < 500 && r.status !== 429) return await enviar('json')
-      return r
-    }
-
-    /* O NOME DO PROVEDOR PARA A TELEMETRIA. No BYOK a URL é escolha do usuário: vai o rótulo fixo
-       `byok`, nunca o host. O modelo do BYOK também vira `byok` no CONTADOR de 429 (Prometheus não
-       aguenta uma série por nome que o usuário digitou); na geração do Langfuse ele vai como é. */
-    const byok = Boolean(credentialId)
-    const provedorTelemetria = byok ? 'byok' : nomeDoProvedor(baseUrl)
     rastro.anotar({ parDeIdiomas: codigoDeIdioma(lang) })
 
-    /** Uma tentativa medida: a que falha vira geração aqui; a que dá certo, depois do texto. */
-    let inicioDaTentativa = Date.now()
-    const tentativaMedida = async () => {
-      inicioDaTentativa = Date.now()
-      try {
-        const r = await umaTentativa()
-        if (r.status === 429) registrarLimiteDoProvedor(provedorTelemetria, byok ? 'byok' : model)
-        if (!r.ok)
-          rastro.tentativa({
-            inicio: inicioDaTentativa,
-            fim: Date.now(),
-            provedor: provedorTelemetria,
-            modelo: model,
-            status: statusDaTentativa(r.status),
-            metadados: { statusHttp: r.status },
-          })
-        return r
-      } catch (err) {
-        rastro.tentativa({
-          inicio: inicioDaTentativa,
-          fim: Date.now(),
-          provedor: provedorTelemetria,
-          modelo: model,
-          status: statusDaTentativa(0, String((err as Error)?.name ?? '') + String((err as Error)?.message ?? err)),
-        })
-        throw err
+    /* A CASCATA (`cascataDeStt.ts`): perna a perna, com admissão, disjuntor e medição. Pedimos
+       `verbose_json` PARA NÃO JOGAR FORA O IDIOMA: o Whisper identifica o idioma a partir do ÁUDIO,
+       dentro do decode, e pedindo `json` recebíamos só o texto — foi assim que uma sessão inteira em
+       espanhol apareceu rotulada como inglês. No BYOK a URL é escolha do usuário: a telemetria usa o
+       rótulo fixo `byok`, nunca o host. */
+    const resultado = await percorrerCascataDeStt(
+      pernas,
+      { audio: audioBuffer, idioma: lang, prompt },
+      { requestId: req.requestId, rastro, byok: !pagoPeloApp, admissao: porta.admissao },
+    )
+
+    if (resultado.ok === false) {
+      const falha = resultado.falha
+      /* O DISJUNTOR (ADR 0007): com os provedores fora do ar, cada fala pagava 30 s de timeout antes
+         de o cliente cair no local. Aberto, a resposta é imediata: 503 com `Retry-After`, e o
+         cliente religa a nuvem sozinho depois. */
+      if (falha.tipo === 'disjuntor') {
+        res.setHeader?.('Retry-After', String(Math.ceil(JANELA_ABERTA_MS / 1000)))
+        responderErro(
+          res,
+          503,
+          'transcrição de nuvem indisponível agora; o app segue com o motor local',
+          'provedor_em_disjuntor',
+        )
+        return
       }
-    }
-
-    /* O DISJUNTOR, AGORA TAMBÉM NO STT (ADR 0007). Com o provedor fora do ar, cada fala pagava 30 s
-       de timeout antes de o cliente cair no local. Aberto, a resposta é imediata: 503 com
-       `Retry-After`, e o cliente religa a nuvem sozinho depois. Só na chave do DONO: no BYOK o
-       endereço é do usuário, e o estado de um endereço dele não é assunto do processo. */
-    const chaveDoDisjuntor = pagoPeloApp ? chaveDoProvedor({ base: baseUrl, model }) : null
-    if (chaveDoDisjuntor && !disjuntorPermite(chaveDoDisjuntor)) {
-      res.setHeader?.('Retry-After', String(Math.ceil(JANELA_ABERTA_MS / 1000)))
-      responderErro(
-        res,
-        503,
-        'transcrição de nuvem indisponível agora; o app segue com o motor local',
-        'provedor_em_disjuntor',
-      )
-      return
-    }
-
-    /** Uma tentativa que também alimenta o disjuntor: 5xx e rede contam; 4xx (inclusive 429) não. */
-    const tentativaComDisjuntor = async () => {
-      if (porta) porta.chamouProvedor = true
-      try {
-        const r = await tentativaMedida()
-        if (chaveDoDisjuntor) {
-          if (r.ok) registrarSucesso(chaveDoDisjuntor)
-          else if (r.status >= 500) registrarFalha(chaveDoDisjuntor, r.status)
-        }
-        return r
-      } catch (err) {
-        if (chaveDoDisjuntor) registrarFalha(chaveDoDisjuntor, 0)
-        throw err
+      /* 429 DO PROVEDOR (todas as pernas chamadas) ou balde vazio em todas: 429 `nuvem_ocupada` —
+         antes virava 502, e o cliente tratava limite de taxa como defeito. */
+      if (falha.tipo === 'limitado') {
+        responderNuvemOcupada(res, { motivo: 'provedor_limitou', retryAfterS: falha.retryAfterS })
+        return
       }
-    }
-
-    const inicioDoProvedor = Date.now()
-    let upstream = await tentativaComDisjuntor()
-    /* 5xx repete UMA vez, com espera curta, e só se o balde tiver saldo para o repique — a
-       retentativa também é um pedido contra o limite da conta. `deveRetentar` explica por que o
-       TIMEOUT fica de fora (a requisição pode ter sido processada e cobrada do outro lado). */
-    for (let n = 1; n <= RETENTATIVAS_DE_STT && upstream.status >= 500 && upstream.status < 600; n++) {
-      if (pagoPeloApp && porta?.provedor && porta.plano) {
-        const repique = admitirNoBalde({ tipo: 'stt', provedor: porta.provedor, modelo: model, plano: porta.plano })
-        if (repique.ok === false) break
+      if (falha.tipo === 'sem_saldo') {
+        responderNuvemOcupada(res, falha.recusa)
+        return
       }
-      if (chaveDoDisjuntor && !disjuntorPermite(chaveDoDisjuntor)) break
-      const espera = esperaDaRetentativa(n)
-      log('warn', {
-        event: 'stt_retentativa',
-        route: '/api/ai/stt',
-        status: upstream.status,
-        error: `tentativa ${n} de ${RETENTATIVAS_DE_STT} após ${espera} ms`,
-        requestId: req.requestId,
-      })
-      await new Promise((r) => setTimeout(r, espera))
-      upstream = await tentativaComDisjuntor()
-    }
-
-    /* 429 DO PROVEDOR: não repete, fecha o balde até o `Retry-After` dele e chega ao cliente como
-       429 `nuvem_ocupada` — antes virava 502, e o cliente tratava limite de taxa como defeito. */
-    if (upstream.status === 429) {
-      const doProvedor = segundosDoRetryAfter(upstream.headers?.get?.('retry-after'))
-      const retryAfterS =
-        pagoPeloApp && porta?.provedor
-          ? registrarLimiteNaAdmissao('stt', porta.provedor, model, doProvedor)
-          : (doProvedor ?? 1)
-      await upstream.text().catch(() => '')
-      responderNuvemOcupada(res, { motivo: 'provedor_limitou', retryAfterS })
-      return
-    }
-
-    if (!upstream.ok) {
-      /* O CORPO DO TERCEIRO NÃO É PARA O CLIENTE (achado da Fase 4). Até aqui, 160 caracteres da
-         resposta do provedor eram ecoados dentro de `error` — e o que o provedor escreve num erro
-         não é contrato nosso: pode trazer nome de modelo interno, id de organização, host ou
+      if (falha.tipo === 'excecao') throw falha.erro
+      /* O CORPO DO TERCEIRO NÃO É PARA O CLIENTE (achado da Fase 4). O que o provedor escreve num
+         erro não é contrato nosso: pode trazer nome de modelo interno, id de organização, host ou
          trecho do pedido. O cliente precisa saber que falhou e poder CITAR o `requestId`; o texto
          do upstream fica no log estruturado, que é onde alguém investiga. */
-      const text = await upstream.text().catch(() => '')
       log('error', {
         event: 'stt_upstream_erro',
         route: '/api/ai/stt',
-        status: upstream.status,
-        error: text.slice(0, 300),
+        status: falha.status,
+        error: falha.texto.slice(0, 300),
         requestId: req.requestId,
       })
       responderErro(
@@ -516,30 +376,31 @@ async function transcrever(req: Request, res: Response, rastro: RastroDeIa): Pro
       return
     }
 
-    const j = await upstream.json()
+    const { perna, resposta: j } = resultado
     const gerenciado = segundosReservados > 0
     // Consumada. Antes daqui havia um `recordManagedCall` incondicional, que contabilizava
     // TAMBÉM o caminho BYOK — uso da chave do próprio usuário descontava da quota gerenciada.
     reservaPendente = false
     /* Só o caminho da chave do DONO entra no orçamento global; BYOK é conta do próprio usuário. E
-       aqui o número é o que o PROVEDOR fatura (`segundosFaturaveis`, com o mínimo DELE — 10 s na
-       Groq, zero em quem cobra por segundo; B2 da Fase B), não o que saiu da cota do assinante: o
-       orçamento existe para bater com a fatura. */
-    const quemCobra = { fornecedor: porta?.provedor, preco: porta?.preco }
-    const faturados = segundosFaturaveis(audioBuffer, minimoFaturadoDoStt(model, quemCobra))
-    const custoUsd = gerenciado ? custoDeStt(model, faturados, quemCobra) : undefined
+       aqui o número é o que o PROVEDOR QUE RESPONDEU fatura (`segundosFaturaveis`, com o mínimo DELE
+       — 10 s na Groq, zero em quem cobra por segundo; B2 e B6 da Fase B), não o que saiu da cota do
+       assinante: o orçamento existe para bater com a fatura. */
+    const fornecedor = nomeDoProvedor(perna.base)
+    const quemCobra = pagoPeloApp ? { fornecedor, preco: perna.preco } : {}
+    const faturados = segundosFaturaveis(audioBuffer, minimoFaturadoDoStt(perna.model, quemCobra))
+    const custoUsd = gerenciado ? custoDeStt(perna.model, faturados, quemCobra) : undefined
     if (custoUsd !== undefined) {
-      await registrarGastoDeIa(custoUsd, { userId: req.userId, plano: porta?.planoDaAssinatura })
-      await porta?.gratuita?.registrarCusto(custoUsd)
+      await registrarGastoDeIa(custoUsd, { userId: req.userId, plano: porta.planoDaAssinatura })
+      await porta.gratuita?.registrarCusto(custoUsd)
     }
     segundosReservados = 0 // consumados junto com a chamada: nada a estornar
     observarChamadaDeProvedor({
-      provedor: gerenciado ? 'stt-gerenciado' : 'byok',
+      provedor: gerenciado ? perna.rotulo : 'byok',
       funcao: 'stt',
-      ms: Date.now() - inicioDoProvedor,
+      ms: Date.now() - resultado.inicioDaPerna,
       custoUsd,
-      fornecedor: gerenciado ? porta?.provedor : 'byok',
-      modelo: gerenciado ? model : 'byok',
+      fornecedor: gerenciado ? fornecedor : 'byok',
+      modelo: gerenciado ? perna.model : 'byok',
     })
 
     // `language` vazio = o provedor não informou (ou caímos no `json`): o cliente volta ao
@@ -556,10 +417,10 @@ async function transcrever(req: Request, res: Response, rastro: RastroDeIa): Pro
       segmentosDescartados: limpeza.descartados,
     })
     rastro.tentativa({
-      inicio: inicioDaTentativa,
+      inicio: resultado.inicioDaTentativa,
       fim: Date.now(),
-      provedor: provedorTelemetria,
-      modelo: model,
+      provedor: pagoPeloApp ? fornecedor : 'byok',
+      modelo: perna.model,
       status: limpeza.esvaziado ? 'filtrado-vazio' : 'ok',
       uso: {
         audio_seconds: Math.round(segundosReais * 100) / 100,
@@ -567,7 +428,7 @@ async function transcrever(req: Request, res: Response, rastro: RastroDeIa): Pro
       },
       custoUsd,
       metadados: {
-        statusHttp: upstream.status,
+        statusHttp: resultado.status,
         semFala: limpeza.semFala,
         repeticao: limpeza.repeticao,
         alucinacao: limpeza.alucinacao,

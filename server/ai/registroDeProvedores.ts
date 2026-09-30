@@ -27,8 +27,15 @@
  *   - `preco`: US$ por 1M de tokens (`entrada`, `entradaEmCache`, `saida`) ou por hora de áudio
  *     (`hora`, com o `minimoFaturadoS` por pedido). Ausente, vale a tabela embutida em
  *     `server/lib/orcamentoDeIa.ts` — e, sem ela, o preço CONSERVADOR de lá.
- *   - `grande: true`: o modelo só para quem tem `largerModels`, e para essa pessoa ele SUBSTITUI os
- *     comuns do mesmo provedor naquela função — a mesma regra do `LLM_MODEL_GRANDE` de sempre.
+ *   - `niveis` (B3): os NÍVEIS da tradução e do tutor que o modelo atende — `rapida`, `nuance`,
+ *     `polimento` (`src/core/nivelDeTraducao.ts`). Ausente, `["rapida"]`. A cascata de um nível
+ *     começa pelos modelos DELE e desce a escada (nuance → rápida): o modelo marcado para a nuance
+ *     nunca chega a quem só tem a rápida, e quem paga tem o barato de reserva. Quem decide o nível
+ *     de cada plano é `server/ai/niveis.ts`, pela capacidade (`traducaoNuance`), nunca pelo nome;
+ *   - `grande: true` — o PROVISÓRIO do B1, resolvido no B3: no registro declarado é sinônimo de
+ *     `niveis: ["nuance"]` (o modelo melhor de quem paga), e declarar os dois no mesmo modelo é
+ *     recusado. No LEGADO o `LLM_MODEL_GRANDE` continua sendo o que sempre foi — o modelo de quem tem
+ *     `largerModels`, no lugar do comum do mesmo provedor —, para o ambiente de hoje não mudar.
  *
  * AS RECUSAS (o registro inteiro fica inválido, e a nuvem fica FECHADA — nunca volta ao legado em
  * silêncio, que mandaria o tráfego para um provedor que o operador acabou de tirar):
@@ -44,13 +51,14 @@
  * e a cascata sai idêntica à de antes — o teste de equivalência (`registro-de-provedores.test.ts`)
  * compara, numa matriz de milhares de ambientes, contra a cópia literal do `provedores.ts` anterior.
  *
- * DEPENDÊNCIAS, DE PROPÓSITO: só `zod`, `node:fs`, `config` e `logger`. Métricas, telemetria e o
+ * DEPENDÊNCIAS, DE PROPÓSITO: só `zod`, `node:fs`, `config`, `logger` e contratos puros. Métricas, telemetria e o
  * cliente de LLM importam ESTE módulo para rotular e endurecer o pedido; o contrário criaria ciclo.
  */
 import { readFileSync } from 'node:fs'
 
 import { z } from 'zod'
 
+import { NIVEIS_DA_TRADUCAO, niveisAtendidos, type NivelDaTraducao } from '../../src/core/nivelDeTraducao'
 import { type PrecoDeModelo, sttGerenciadoDoEnv } from '../lib/config'
 import { log } from '../lib/logger'
 import {
@@ -70,7 +78,10 @@ export type FormatoDeProvedor = (typeof FORMATOS_DE_PROVEDOR)[number]
 export const FUNCOES_DO_REGISTRO = ['traducao', 'tutor', 'stt'] as const
 export type FuncaoDoRegistro = (typeof FUNCOES_DO_REGISTRO)[number]
 
-/** Limites da conta do app naquele provedor (ou modelo), quando conhecidos. Consumidos pelo B4. */
+/**
+ * Limites da conta do app naquele provedor (ou modelo), quando conhecidos — a capacidade dos baldes
+ * da admissão (`admissao.ts`, B4). Dimensão ausente = sem teto nela.
+ */
 export interface LimitesDeclarados {
   rpm?: number
   rpd?: number
@@ -83,7 +94,10 @@ export interface ModeloDeclarado {
   funcoes: FuncaoDoRegistro[]
   preco?: PrecoDeModelo
   limites?: LimitesDeclarados
+  /** Depois da validação, só no LEGADO: o `LLM_MODEL_GRANDE`, de quem tem `largerModels`. */
   grande?: boolean
+  /** Os níveis da tradução/tutor que o modelo atende (B3). Ausente = `["rapida"]`. */
+  niveis?: NivelDaTraducao[]
 }
 
 export interface ProvedorDeclarado {
@@ -124,6 +138,10 @@ export interface Provedor {
   preco?: PrecoDeModelo
   roteamento?: RoteamentoOpenRouter
   limites?: LimitesDeclarados
+  /** Os `limites` são da CONTA no provedor (declarados nele, não no modelo): um balde só na admissão (B4). */
+  limitesDaConta?: boolean
+  /** Os níveis que a perna atende, como declarados (B3). Ausente = `["rapida"]`. */
+  niveis?: NivelDaTraducao[]
 }
 
 /* ─────────────────────────────── os fornecedores que o código conhece ─────────────────────────────── */
@@ -228,6 +246,7 @@ const modeloSchema = z.strictObject({
   preco: precoSchema.optional(),
   limites: limitesSchema.optional(),
   grande: z.boolean().optional(),
+  niveis: z.array(z.enum(NIVEIS_DA_TRADUCAO)).min(1).max(NIVEIS_DA_TRADUCAO.length).optional(),
 })
 
 const roteamentoSchema = z.strictObject({
@@ -301,6 +320,11 @@ function errosDeNegocio(reg: z.infer<typeof registroSchema>, producao: boolean):
     if (ehGemini(base)) erros.push(`${onde}: base do Gemini/Google recusada — o app atende menores`)
     for (const m of p.modelos) {
       if (ehGemini(undefined, m.id)) erros.push(`${onde}: modelo "${m.id}" é Gemini — recusado (o app atende menores)`)
+      /* B3: `grande` é o sinônimo provisório da nuance; os dois juntos deixariam a dúvida de qual vale. */
+      if (m.grande && m.niveis)
+        erros.push(`${onde}: modelo "${m.id}" declara "grande" e "niveis" — use só "niveis" (grande = ["nuance"])`)
+      if (m.niveis && !m.funcoes.some((f) => f !== 'stt'))
+        erros.push(`${onde}: modelo "${m.id}" declara "niveis", que só valem para traducao/tutor (o STT não tem nível)`)
     }
 
     if (base && ehBaseDoOpenRouter(base)) {
@@ -351,9 +375,25 @@ export function validarRegistro(bruto: unknown, opcoes: { producao: boolean }): 
     ok: true,
     registro: {
       origem: 'declarado',
-      provedores: r.data.provedores.map((p) => ({ ...p, base: p.base ? semBarra(p.base) : undefined })),
+      provedores: r.data.provedores.map((p) => ({
+        ...p,
+        base: p.base ? semBarra(p.base) : undefined,
+        modelos: p.modelos.map(normalizarGrande),
+      })),
     },
   }
+}
+
+/**
+ * O `grande` DECLARADO vira a nuance (B3). No B1 ele copiava a regra do `LLM_MODEL_GRANDE` — o modelo
+ * de quem tem `largerModels` — e ficou marcado como provisório: a decisão do dono é por NÍVEL, e o
+ * modelo melhor de quem paga é o da nuance (`traducaoNuance`, verdadeiro em todo plano pago). Um
+ * registro escrito com `grande` continua dizendo o que queria dizer: "este é o de quem paga".
+ */
+function normalizarGrande(m: ModeloDeclarado): ModeloDeclarado {
+  if (!m.grande) return m
+  const { grande: _grande, ...resto } = m
+  return { ...resto, niveis: ['nuance'] }
 }
 
 /* ─────────────────────────────── o legado ─────────────────────────────── */
@@ -567,24 +607,23 @@ function baseEfetiva(p: ProvedorDeclarado, env: NodeJS.ProcessEnv): string | nul
   return semBarra(molde.replace('{conta}', conta))
 }
 
-/** O rótulo da perna: o papel fixo do legado ou, no declarado, a POSIÇÃO (primário, reserva). */
-function rotuloDaPerna(p: ProvedorDeclarado, funcao: FuncaoDoRegistro, indice: number): string {
-  if (p.rotulo) return p.rotulo
+/** O rótulo da perna: o papel fixo do legado ou, no declarado, a POSIÇÃO na cascata (primário, reserva). */
+function rotuloDaPerna(p: ProvedorDeclarado | undefined, funcao: FuncaoDoRegistro, indice: number): string {
+  if (p?.rotulo) return p.rotulo
   if (funcao === 'stt') return indice === 0 ? 'stt-gerenciado' : 'stt-reserva'
   return indice === 0 ? 'llm-primario' : 'llm-reserva'
 }
 
-/**
- * As pernas de UMA função, na ordem do registro, com o segredo lido do ambiente. Provedor sem
- * chave (ou sem conta) no ambiente não vira perna; Gemini nunca vira perna, nem no legado.
- */
-export function pernasDaFuncao(
-  funcao: FuncaoDoRegistro | 'corretor',
-  opcoes: { modelosGrandes?: boolean } = {},
-  env: NodeJS.ProcessEnv = process.env,
-): Provedor[] {
-  const f: FuncaoDoRegistro = funcao === 'corretor' ? 'tutor' : funcao
-  const pernas: Provedor[] = []
+/** Uma perna possível da função, antes do nível: de que provedor veio e que níveis atende. */
+interface Candidata {
+  provedor: ProvedorDeclarado
+  modelo: ModeloDeclarado
+  perna: Omit<Provedor, 'rotulo'>
+}
+
+/** Todas as pernas da função, na ordem do registro, com o `grande` do legado já aplicado. */
+function candidatasDaFuncao(f: FuncaoDoRegistro, modelosGrandes: boolean, env: NodeJS.ProcessEnv): Candidata[] {
+  const candidatas: Candidata[] = []
   for (const p of registroAtivo(env).provedores) {
     const apiKey = env[p.chave]?.trim()
     if (!apiKey) continue
@@ -592,47 +631,106 @@ export function pernasDaFuncao(
     if (!base || ehGemini(base)) continue
     const daFuncao = p.modelos.filter((m) => m.funcoes.includes(f) && !ehGemini(undefined, m.id))
     const grandes = daFuncao.filter((m) => m.grande)
-    const escolhidos = opcoes.modelosGrandes && grandes.length ? grandes : daFuncao.filter((m) => !m.grande)
+    const escolhidos = modelosGrandes && grandes.length ? grandes : daFuncao.filter((m) => !m.grande)
     for (const m of escolhidos) {
-      pernas.push({
-        rotulo: rotuloDaPerna(p, f, pernas.length),
-        base,
-        apiKey,
-        model: m.id,
-        fornecedor: p.id,
-        formato: p.formato,
-        ...(m.preco ? { preco: m.preco } : {}),
-        ...(p.roteamento ? { roteamento: p.roteamento } : {}),
-        ...(m.limites || p.limites ? { limites: m.limites ?? p.limites } : {}),
+      candidatas.push({
+        provedor: p,
+        modelo: m,
+        perna: {
+          base,
+          apiKey,
+          model: m.id,
+          fornecedor: p.id,
+          formato: p.formato,
+          ...(m.preco ? { preco: m.preco } : {}),
+          ...(p.roteamento ? { roteamento: p.roteamento } : {}),
+          /* B4: os limites do MODELO são do balde dele; os do PROVEDOR, da conta inteira — um balde
+             só para todos os modelos dele (`limitesDaConta`), senão dois modelos somariam o dobro. */
+          ...(m.limites ? { limites: m.limites } : p.limites ? { limites: p.limites, limitesDaConta: true } : {}),
+          ...(m.niveis ? { niveis: m.niveis } : {}),
+        },
       })
     }
   }
-  return pernas
+  return candidatas
 }
 
-/** O STT gerenciado que o `sttProxy` sabe chamar HOJE: a primeira perna `openai` (multipart). */
+/**
+ * As pernas de UMA função, com o segredo lido do ambiente. Provedor sem chave (ou sem conta) no
+ * ambiente não vira perna; Gemini nunca vira perna, nem no legado.
+ *
+ * A ORDEM (B3): os níveis na ordem da cadeia do pedido (`niveisAtendidos`: nuance → rápida) e, dentro
+ * de cada nível, a ordem do registro. Sem `nivel`, a rápida — o padrão seguro: quem não diz o nível
+ * recebe o barato. No legado nenhum modelo declara nível, então todo nível dá a mesma cascata de
+ * antes. O STT não tem nível: vale a ordem do registro (a cascata do STT reordena pelo custo, B6).
+ */
+export function pernasDaFuncao(
+  funcao: FuncaoDoRegistro | 'corretor',
+  opcoes: { modelosGrandes?: boolean; nivel?: NivelDaTraducao } = {},
+  env: NodeJS.ProcessEnv = process.env,
+): Provedor[] {
+  const f: FuncaoDoRegistro = funcao === 'corretor' ? 'tutor' : funcao
+  const candidatas = candidatasDaFuncao(f, opcoes.modelosGrandes === true, env)
+  const ordem: Candidata[] = []
+  if (f === 'stt') ordem.push(...candidatas)
+  else {
+    for (const nivel of niveisAtendidos(opcoes.nivel ?? 'rapida')) {
+      for (const c of candidatas) {
+        if ((c.modelo.niveis ?? ['rapida']).includes(nivel) && !ordem.includes(c)) ordem.push(c)
+      }
+    }
+  }
+  /* O papel de cada perna: o fixo do legado ou a POSIÇÃO na cascata do nível — o primeiro é o primário. */
+  return ordem.map((c, i) => ({ rotulo: rotuloDaPerna(c.provedor, f, i), ...c.perna }))
+}
+
+/** Segmento de caminho de modelo aceitável numa URL: nada de vazio, `.`, `..` nem caractere de fora. */
+const SEGMENTO_DE_MODELO = /^[A-Za-z0-9@._:+-]+$/
+
+/**
+ * O ENDPOINT DE TRANSCRIÇÃO de uma perna de STT (B6), ou `null` quando o proxy não sabe chamá-la:
+ *
+ *   - `openai`: `<base>/audio/transcriptions`, multipart — Groq, DeepInfra, OpenAI;
+ *   - `cloudflare`: a rota NATIVA do Workers AI, `…/ai/run/<modelo>` (o endpoint OpenAI-compatible
+ *     dela não tem `/audio/transcriptions`), derivada da base da API (`…/accounts/<conta>/ai/v1`) ou
+ *     do AI Gateway (`…/<gateway>/workers-ai/v1` → `…/workers-ai/<modelo>`). O modelo vai no CAMINHO,
+ *     então cada segmento dele é conferido: `@cf/../../x` subiria de rota.
+ */
+export function endpointDaTranscricao(p: Pick<Provedor, 'base' | 'model' | 'formato'>): string | null {
+  const base = semBarra(p.base)
+  if ((p.formato ?? 'openai') === 'openai') return `${base}/audio/transcriptions`
+  const segmentos = p.model.split('/')
+  if (!segmentos.every((s) => SEGMENTO_DE_MODELO.test(s) && s !== '.' && s !== '..')) return null
+  if (/\/ai\/v1$/.test(base)) return `${base.replace(/\/v1$/, '')}/run/${p.model}`
+  if (/\/workers-ai\/v1$/.test(base)) return `${base.replace(/\/v1$/, '')}/${p.model}`
+  return null
+}
+
+/** A perna de STT que o `sttProxy` sabe chamar — a primeira (na ordem do registro) com endpoint. */
 export interface SttGerenciado {
   secret: string
   baseUrl: string
   model: string
   fornecedor: string
+  formato: FormatoDeProvedor
   preco?: PrecoDeModelo
 }
 
 /**
  * O STT GERENCIADO, PELO REGISTRO — a fonte que `GET /api/ai/stt/available` e a porta da
  * transcrição consultam (B0: eram duas leituras, e discordavam). No legado é exatamente o
- * `sttGerenciadoDoEnv`. Perna no formato `cloudflare` (base64) fica de fora até o B6 trazer a
- * cascata do STT; anunciar uma perna que o proxy não sabe chamar seria o 200/501 de novo.
+ * `sttGerenciadoDoEnv`. Desde o B6 a porta percorre TODAS as pernas (`cascataDeStt.ts`), e a
+ * Cloudflare (base64) entra: a pergunta "há STT de nuvem?" é "há perna com endpoint?".
  */
 export function sttGerenciado(env: NodeJS.ProcessEnv = process.env): SttGerenciado | null {
-  const perna = pernasDaFuncao('stt', {}, env).find((p) => p.formato === 'openai')
+  const perna = pernasDaFuncao('stt', {}, env).find((p) => endpointDaTranscricao(p) !== null)
   if (!perna?.apiKey) return null
   return {
     secret: perna.apiKey,
     baseUrl: perna.base,
     model: perna.model,
     fornecedor: perna.fornecedor ?? fornecedorDoHost(perna.base),
+    formato: perna.formato ?? 'openai',
     ...(perna.preco ? { preco: perna.preco } : {}),
   }
 }

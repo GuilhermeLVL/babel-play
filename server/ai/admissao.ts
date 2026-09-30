@@ -20,6 +20,15 @@
  *      plano de cima nunca encontra o bucket vazio por causa de quem paga menos.
  *   4. O 429 DO PROVEDOR ALIMENTA O BUCKET: zera o saldo e bloqueia até o `Retry-After` dele. O
  *      provedor sabe mais do que o nosso contador (outra réplica, outro app na mesma organização).
+ *   5. OS LIMITES SÃO OS DO REGISTRO (B4 da Fase B, 29/09/2026). As `IA_ADMISSAO_*` são os da camada
+ *      da Groq, e valiam para QUALQUER provedor: com a DeepInfra (muito mais que 30 por minuto) o
+ *      balde recusaria à toa; com uma conta nova do Workers AI, deixaria passar até o 429. Agora a
+ *      perna leva os `limites` que o registro declara (`registroDeProvedores.ts`): os do MODELO valem
+ *      para o balde dele; os do PROVEDOR (sem os do modelo) para UM balde de todos os modelos dele
+ *      naquela função — o teto é da conta, e dois baldes cheios somariam o dobro; sem nenhum, as
+ *      `IA_ADMISSAO_*` de sempre (o legado inteiro). Dimensão declarada ausente é SEM TETO nela: o
+ *      operador escreveu o que sabe, e herdar o número da Groq seria inventar. O `tpm` (tokens por
+ *      minuto), que a admissão não tinha, é um balde de tokens ao lado do de pedidos.
  *
  * Tudo é consultado ANTES de reservar a cota do usuário e ANTES de chamar o provedor. Recusa é 429
  * `nuvem_ocupada` com `Retry-After` em segundos.
@@ -31,11 +40,12 @@
 import type { Response } from 'express'
 
 import { contarAdmissaoRecusada, registrarLeitorDeSaldo } from '../http/metricas'
-import { configDeAdmissao, type LimitesDeModelo } from '../lib/config'
+import { configDeAdmissao } from '../lib/config'
+import type { LimitesDeclarados } from './registroDeProvedores'
 
 export type TipoDeIa = 'stt' | 'llm'
 export type PlanoDeAdmissao = 'pro' | 'essencial' | 'convidado' | 'alivio'
-export type MotivoDeRecusa = 'minuto' | 'dia' | 'tokens_dia' | 'provedor_limitou' | 'em_voo'
+export type MotivoDeRecusa = 'minuto' | 'tokens_minuto' | 'dia' | 'tokens_dia' | 'provedor_limitou' | 'em_voo'
 
 export interface Recusa {
   motivo: MotivoDeRecusa
@@ -70,12 +80,34 @@ export function pisoDoPlano(plano: PlanoDeAdmissao, reservaPro: number): number 
   return Math.max(0.5, reservaPro)
 }
 
+/** Os limites efetivos de UM balde. `0` numa dimensão = sem teto nela. */
+interface LimitesDoBalde {
+  rpm: number
+  tpm: number
+  rpd: number
+  tpd: number
+}
+
+/**
+ * DE QUEM É O BALDE: provedor, modelo e, desde o B4, os limites que o registro declarou para a perna
+ * e se eles são da CONTA no provedor (`compartilhado`: um balde só para todos os modelos dele).
+ */
+export interface AlvoDoBalde {
+  limites?: LimitesDeclarados
+  compartilhado?: boolean
+}
+
 interface Balde {
   tipo: TipoDeIa
   provedor: string
   modelo: string
+  lim: LimitesDoBalde
+  /** Os limites vieram do registro? Então quem pergunta sem eles (o gauge, um repique) não os troca pelos do env. */
+  declarado: boolean
   /** Pedidos disponíveis no minuto (fracionário: o reabastecimento é contínuo). */
   saldo: number
+  /** Tokens disponíveis no minuto (`tpm`); pode ficar negativo depois de um pedido maior que a estimativa. */
+  saldoDeTokens: number
   atualizadoEm: number
   /** Dia UTC dos contadores diários. */
   dia: string
@@ -90,22 +122,42 @@ const emVoo = new Map<string, number>()
 
 const diaUtc = (agora: number) => new Date(agora).toISOString().slice(0, 10)
 
-function limitesDe(tipo: TipoDeIa): LimitesDeModelo {
+/**
+ * Os limites do balde: os DECLARADOS na perna, dimensão a dimensão (ausente = sem teto), ou, sem
+ * declaração nenhuma, as `IA_ADMISSAO_*` — o comportamento de sempre, que é o do legado inteiro.
+ */
+function limitesDe(tipo: TipoDeIa, declarados?: LimitesDeclarados): LimitesDoBalde {
+  if (declarados) {
+    return {
+      rpm: declarados.rpm ?? 0,
+      tpm: tipo === 'llm' ? (declarados.tpm ?? 0) : 0,
+      rpd: declarados.rpd ?? 0,
+      tpd: tipo === 'llm' ? (declarados.tpd ?? 0) : 0,
+    }
+  }
   const c = configDeAdmissao()
-  return tipo === 'stt' ? c.stt : c.llm
+  const l = tipo === 'stt' ? c.stt : c.llm
+  return { rpm: l.rpm, tpm: 0, rpd: l.rpd, tpd: l.tpd }
 }
 
+/** A chave do balde: por modelo, ou `*` quando os limites são da conta no provedor. */
+const chaveDoBalde = (tipo: TipoDeIa, provedor: string, modelo: string, alvo: AlvoDoBalde) =>
+  `${tipo}·${provedor}·${alvo.compartilhado && alvo.limites ? '*' : modelo}`
+
 /** O balde do par provedor + modelo, já reabastecido até `agora` e com o dia virado. */
-function baldeDe(tipo: TipoDeIa, provedor: string, modelo: string, agora: number): Balde {
-  const chave = `${tipo}·${provedor}·${modelo}`
-  const lim = limitesDe(tipo)
+function baldeDe(tipo: TipoDeIa, provedor: string, modelo: string, agora: number, alvo: AlvoDoBalde = {}): Balde {
+  const chave = chaveDoBalde(tipo, provedor, modelo, alvo)
+  const lim = limitesDe(tipo, alvo.limites)
   let b = baldes.get(chave)
   if (!b) {
     b = {
       tipo,
       provedor,
-      modelo,
+      modelo: alvo.compartilhado && alvo.limites ? '*' : modelo,
+      lim,
+      declarado: Boolean(alvo.limites),
       saldo: lim.rpm,
+      saldoDeTokens: lim.tpm,
       atualizadoEm: agora,
       dia: diaUtc(agora),
       pedidosHoje: 0,
@@ -115,10 +167,22 @@ function baldeDe(tipo: TipoDeIa, provedor: string, modelo: string, agora: number
     baldes.set(chave, b)
     return b
   }
-  if (lim.rpm > 0) {
-    const decorrido = Math.max(0, agora - b.atualizadoEm)
-    b.saldo = Math.min(lim.rpm, b.saldo + (decorrido * lim.rpm) / 60_000)
+  /* Os limites valem os de AGORA (o registro ou o env podem ter mudado) — menos quando quem pergunta
+     não traz os declarados de um balde que os tem: aí os dele continuam. */
+  if (alvo.limites || !b.declarado) {
+    b.lim = lim
+    b.declarado = Boolean(alvo.limites)
   }
+  reabastecer(b, agora)
+  return b
+}
+
+/** Reabastece o minuto até `agora` (contínuo, sem passar do teto) e vira o dia UTC. */
+function reabastecer(b: Balde, agora: number): void {
+  const { rpm, tpm } = b.lim
+  const decorrido = Math.max(0, agora - b.atualizadoEm)
+  if (rpm > 0) b.saldo = Math.min(rpm, b.saldo + (decorrido * rpm) / 60_000)
+  if (tpm > 0) b.saldoDeTokens = Math.min(tpm, b.saldoDeTokens + (decorrido * tpm) / 60_000)
   b.atualizadoEm = agora
   const hoje = diaUtc(agora)
   if (b.dia !== hoje) {
@@ -126,7 +190,6 @@ function baldeDe(tipo: TipoDeIa, provedor: string, modelo: string, agora: number
     b.pedidosHoje = 0
     b.tokensHoje = 0
   }
-  return b
 }
 
 /** Segundos até a meia-noite UTC — quando os tetos diários da Groq voltam. */
@@ -151,22 +214,25 @@ export class TicketDeBalde {
   devolver(): void {
     if (this.devolvido) return
     this.devolvido = true
-    const lim = limitesDe(this.balde.tipo)
+    const lim = this.balde.lim
     if (lim.rpm > 0) this.balde.saldo = Math.min(lim.rpm, this.balde.saldo + 1)
+    if (lim.tpm > 0) this.balde.saldoDeTokens = Math.min(lim.tpm, this.balde.saldoDeTokens + this.tokens)
     this.balde.pedidosHoje = Math.max(0, this.balde.pedidosHoje - 1)
     this.balde.tokensHoje = Math.max(0, this.balde.tokensHoje - this.tokens)
     this.tokens = 0
   }
 
-  /** O provedor respondeu: os tokens do dia passam da estimativa para o uso REAL. */
+  /** O provedor respondeu: os tokens do dia (e do minuto) passam da estimativa para o uso REAL. */
   acertarTokens(reais: number): void {
     if (this.devolvido || !Number.isFinite(reais) || reais < 0) return
     this.balde.tokensHoje = Math.max(0, this.balde.tokensHoje + reais - this.tokens)
+    const lim = this.balde.lim
+    if (lim.tpm > 0) this.balde.saldoDeTokens = Math.min(lim.tpm, this.balde.saldoDeTokens + this.tokens - reais)
     this.tokens = reais
   }
 }
 
-interface PedidoDeAdmissao {
+interface PedidoDeAdmissao extends AlvoDoBalde {
   tipo: TipoDeIa
   provedor: string
   modelo: string
@@ -187,10 +253,10 @@ export function admitirNoBalde(
 ): { ok: true; ticket: TicketDeBalde } | { ok: false; recusa: Recusa } {
   const agora = p.agora ?? Date.now()
   const cfg = configDeAdmissao()
-  const lim = p.tipo === 'stt' ? cfg.stt : cfg.llm
   const piso = pisoDoPlano(p.plano, cfg.reservaPro)
   const tokens = Math.max(0, Math.round(p.tokens ?? 0))
-  const b = baldeDe(p.tipo, p.provedor, p.modelo, agora)
+  const b = baldeDe(p.tipo, p.provedor, p.modelo, agora, p)
+  const lim = b.lim
 
   const recusar = (motivo: MotivoDeRecusa, retryAfterS: number) => {
     if (!p.silenciosa) contarAdmissaoRecusada(motivo, p.plano)
@@ -205,15 +271,47 @@ export function admitirNoBalde(
       return recusar('minuto', ((intocavel + 1 - b.saldo) / lim.rpm) * 60)
     }
   }
+  if (lim.tpm > 0 && tokens > 0) {
+    /* O MESMO LIMIAR, em tokens por minuto. Um pedido maior que a parte do plano conta como a parte
+       inteira — senão ele nunca passaria, nem com o balde cheio; o excesso fica devendo (saldo
+       negativo) e segura os próximos até reabastecer. */
+    const intocavel = lim.tpm * piso
+    const precisa = Math.min(tokens, lim.tpm - intocavel)
+    if (b.saldoDeTokens - precisa < intocavel - 1e-9) {
+      return recusar('tokens_minuto', ((intocavel + precisa - b.saldoDeTokens) / lim.tpm) * 60)
+    }
+  }
   if (lim.rpd > 0 && b.pedidosHoje + 1 > lim.rpd * (1 - piso)) return recusar('dia', segundosAteVirarODia(agora))
   if (lim.tpd > 0 && tokens > 0 && b.tokensHoje + tokens > lim.tpd * (1 - piso)) {
     return recusar('tokens_dia', segundosAteVirarODia(agora))
   }
 
   if (lim.rpm > 0) b.saldo -= 1
+  if (lim.tpm > 0) b.saldoDeTokens -= tokens
   b.pedidosHoje += 1
   b.tokensHoje += tokens
   return { ok: true, ticket: new TicketDeBalde(b, tokens) }
+}
+
+/**
+ * QUANTO SOBRA NO BALDE, de 0 a 1 — a "demanda" da política de custo (`politicaDeCusto.ts`, B4): a
+ * menor das dimensões com teto (pedidos e tokens do minuto, pedidos e tokens do dia). Fechado pelo
+ * 429 do provedor, zero; sem teto nenhum, 1. Só LÊ: não consome nem conta recusa.
+ */
+export function fracaoDoBalde(
+  p: AlvoDoBalde & { tipo: TipoDeIa; provedor: string; modelo: string; agora?: number },
+): number {
+  const agora = p.agora ?? Date.now()
+  const b = baldeDe(p.tipo, p.provedor, p.modelo, agora, p)
+  if (agora < b.bloqueadoAte) return 0
+  const { rpm, tpm, rpd, tpd } = b.lim
+  const fracoes = [
+    rpm > 0 ? b.saldo / rpm : 1,
+    tpm > 0 ? b.saldoDeTokens / tpm : 1,
+    rpd > 0 ? 1 - b.pedidosHoje / rpd : 1,
+    tpd > 0 ? 1 - b.tokensHoje / tpd : 1,
+  ]
+  return Math.max(0, Math.min(1, ...fracoes))
 }
 
 /**
@@ -283,11 +381,13 @@ export function registrarLimiteNaAdmissao(
   modelo: string,
   retryAfterS?: number,
   agora = Date.now(),
+  alvo: AlvoDoBalde = {},
 ): number {
-  const b = baldeDe(tipo, provedor, modelo, agora)
-  const lim = limitesDe(tipo)
+  const b = baldeDe(tipo, provedor, modelo, agora, alvo)
+  const lim = b.lim
   const espera = retryAfterS ?? (lim.rpm > 0 ? Math.ceil(60 / lim.rpm) : 5)
   b.saldo = 0
+  if (lim.tpm > 0) b.saldoDeTokens = Math.min(b.saldoDeTokens, 0)
   b.bloqueadoAte = Math.max(b.bloqueadoAte, agora + espera * 1000)
   return Math.max(1, espera)
 }
@@ -309,8 +409,8 @@ export function responderNuvemOcupada(res: Response, recusa: Recusa): void {
 /** O saldo atual de cada balde (reabastecido até agora) — para o gauge de `/metrics`. */
 export function saldosDaAdmissao(agora = Date.now()): Array<{ provedor: string; modelo: string; saldo: number }> {
   return [...baldes.values()].map((b) => {
-    const atual = baldeDe(b.tipo, b.provedor, b.modelo, agora)
-    return { provedor: atual.provedor, modelo: atual.modelo, saldo: Math.floor(atual.saldo * 100) / 100 }
+    reabastecer(b, agora)
+    return { provedor: b.provedor, modelo: b.modelo, saldo: Math.floor(b.saldo * 100) / 100 }
   })
 }
 

@@ -272,7 +272,7 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
     paraQue:
-      'conta da Cloudflare do Workers AI, lida quando um provedor de IA_PROVEDORES declara "conta": "CLOUDFLARE_ACCOUNT_ID" — entra na base (/accounts/<conta>/ai/v1). Ausente, a perna não existe',
+      'conta da Cloudflare do Workers AI, lida quando um provedor de IA_PROVEDORES declara "conta": "CLOUDFLARE_ACCOUNT_ID" — entra na base (/accounts/<conta>/ai/v1; o STT usa a rota nativa /ai/run/<modelo>, com o áudio em base64 — B6). Ausente, a perna não existe',
   },
   {
     nome: 'CLOUDFLARE_API_TOKEN',
@@ -405,7 +405,7 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
     paraQue:
-      'admissão de IA (ADR 0007): teto de pedidos POR DIA a cada modelo de LLM da conta do app (server/ai/admissao.ts). Padrão 1000, o da camada atual da Groq para gpt-oss-120b. 0 = sem teto',
+      'admissão de IA (ADR 0007): teto de pedidos POR DIA a cada modelo de LLM da conta do app (server/ai/admissao.ts). Padrão 1000, o da camada atual da Groq para gpt-oss-120b. 0 = sem teto. Vale para a perna SEM "limites" no IA_PROVEDORES (o legado inteiro); com eles, os declarados (B4) — e isso vale para todas as IA_ADMISSAO_* de pedidos e tokens',
   },
   {
     nome: 'IA_ADMISSAO_LLM_RPM',
@@ -459,7 +459,7 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
     paraQue:
-      'registro DECLARATIVO dos provedores de IA (JSON sem segredo, server/ai/registroDeProvedores.ts): formato, retenção, limites, modelos por função com preço e o NOME da variável da chave. A ordem é a da cascata. Gemini é recusado; OpenRouter exige roteamento com zdr e sem o Google; em produção todo provedor declara retencao "zdr" (senão o boot aborta). Ausente: o registro legado, derivado de LLM_*/GROQ_*/LLM_RESERVA_*/OPENROUTER_API_KEY/STT_*, com o comportamento de sempre',
+      'registro DECLARATIVO dos provedores de IA (JSON sem segredo, server/ai/registroDeProvedores.ts): formato, retenção, limites, modelos por função com preço, os NÍVEIS de cada modelo de tradução/tutor ("niveis": rapida/nuance/polimento — a nuance é de quem tem traducaoNuance, B3) e o NOME da variável da chave. A ordem é a da cascata. Gemini é recusado; OpenRouter exige roteamento com zdr e sem o Google; em produção todo provedor declara retencao "zdr" (senão o boot aborta). Ausente: o registro legado, derivado de LLM_*/GROQ_*/LLM_RESERVA_*/OPENROUTER_API_KEY/STT_*, com o comportamento de sempre',
   },
   {
     nome: 'IA_PROVEDORES_ARQUIVO',
@@ -530,7 +530,7 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
     paraQue:
-      'modelo entregue a quem tem o entitlement `largerModels` (planos pro e selfhost). Ausente, todo plano recebe o mesmo modelo de `LLM_MODEL` — que era o comportamento antes da Fase 4, quando `largerModels` nao era lido por linha nenhuma do servidor',
+      'modelo entregue a quem tem o entitlement `largerModels` (planos pro e selfhost). Ausente, todo plano recebe o mesmo modelo de `LLM_MODEL` — que era o comportamento antes da Fase 4, quando `largerModels` nao era lido por linha nenhuma do servidor. Só no registro LEGADO (sem IA_PROVEDORES): no declarado, o modelo de quem paga é o que declara "niveis": ["nuance"] (B3)',
   },
   {
     nome: 'LLM_RESERVA_API_KEY',

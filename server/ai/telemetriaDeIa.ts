@@ -20,6 +20,7 @@
  */
 import type { Request } from 'express'
 
+import type { NivelDaTraducao } from '../../src/core/nivelDeTraducao'
 import { contarLimiteDoProvedor } from '../http/metricas'
 import type { UserId } from '../lib/authContext'
 import { getPlanForUser } from '../lib/entitlements'
@@ -50,6 +51,10 @@ export interface AnotacoesDoRastro {
   byok?: boolean
   /** Segmentos que o filtro de qualidade do STT descartou (sem fala + repetição + alucinação). */
   segmentosDescartados?: number
+  /** O nível da tradução/tutor que o plano recebeu (B3): `rapida`, `nuance`, `polimento`. */
+  nivel?: NivelDaTraducao
+  /** A política de custo começou no degrau mais barato (B4): `orcamento_70` ou `orcamento_90`. */
+  degradacao?: 'orcamento_70' | 'orcamento_90'
 }
 
 /** O id da sessão de captura que o cliente PODE mandar. Formato fechado; fora dele, ignorado. */
@@ -225,6 +230,8 @@ export function abrirRastro(req: Request, funcao: FuncaoTelemetrada): RastroDeIa
             menor,
             byok: anotacoes.byok,
             segmentosDescartados: anotacoes.segmentosDescartados,
+            nivel: anotacoes.nivel,
+            degradacao: anotacoes.degradacao,
             custoUsd: somaDeCusto(geracoes),
           }
           cliente.enviar({

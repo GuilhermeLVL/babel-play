@@ -78,7 +78,9 @@ describe('todo fetch para URL escolhida pelo usuário usa o despachante', () => 
   /* Estrutural, e de propósito: as rotas BYOK têm dezenas de testes que trocam o `fetch` global
      por um dublê, e um dublê não conecta em nada. O que se trava aqui é a LIGAÇÃO — cada guarda de
      nome no arquivo tem o seu fetch com o despachante ao lado. */
-  for (const arquivo of ['server/ai/proxy.ts', 'server/ai/sttProxy.ts', 'server/import/web.ts']) {
+  /* Desde o B6 da Fase B o `fetch` do STT (BYOK e chave do DONO) mora na cascata: `cascataDeStt.ts`
+     guarda o destino de cada perna e chama logo depois. O `sttProxy.ts` fica sem `fetch` nenhum. */
+  for (const arquivo of ['server/ai/proxy.ts', 'server/ai/cascataDeStt.ts', 'server/import/web.ts']) {
     it(arquivo, () => {
       const fonte = readFileSync(arquivo, 'utf8')
       const guardas = fonte.match(/await assertPublicUrl\(/g)?.length ?? 0
@@ -92,4 +94,8 @@ describe('todo fetch para URL escolhida pelo usuário usa o despachante', () => 
       expect(manuais, 'fetch para URL do usuário seguindo redirect').toBeGreaterThanOrEqual(guardas)
     })
   }
+
+  it('server/ai/sttProxy.ts não chama provedor por conta própria (a cascata do STT chama)', () => {
+    expect(readFileSync('server/ai/sttProxy.ts', 'utf8')).not.toMatch(/\bfetch\(/)
+  })
 })

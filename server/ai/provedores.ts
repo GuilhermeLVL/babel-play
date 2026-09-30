@@ -19,6 +19,7 @@
  * (`tests/integration/registro-de-provedores.test.ts`) prende que, sem `IA_PROVEDORES`, elas
  * devolvem exatamente as pernas de antes.
  */
+import type { NivelDaTraducao } from '../../src/core/nivelDeTraducao'
 import type { FuncaoDeIa } from './funcoesDeIa'
 import { funcoesSemReserva, pernasDaFuncao, type Provedor } from './registroDeProvedores'
 
@@ -37,16 +38,26 @@ export const MODELO_OLLAMA_PADRAO = 'llama3.2'
  * linha do servidor o lia**. Todo plano recebia exatamente o mesmo modelo.
  *
  * `LLM_MODEL_GRANDE` AUSENTE MANTEM O COMPORTAMENTO DE HOJE — todo mundo no mesmo modelo. No
- * registro, o modelo grande é o `grande: true` de um provedor (o legado monta um a partir da
- * variável), e ele substitui o comum DAQUELE provedor para quem tem o entitlement. A reserva não
- * segue: o modelo dela é o que o operador configurou naquele catálogo, e trocar por um nome de outro
- * catálogo produziria `model_not_found` exatamente quando a reserva precisa funcionar.
+ * registro legado, o modelo grande é o `grande: true` que ele monta a partir da variável, e ele
+ * substitui o comum DAQUELE provedor para quem tem o entitlement. A reserva não segue: o modelo dela
+ * é o que o operador configurou naquele catálogo, e trocar por um nome de outro catálogo produziria
+ * `model_not_found` exatamente quando a reserva precisa funcionar.
+ *
+ * DESDE O B3 DA FASE B o eixo de quem paga é o NÍVEL (`src/core/nivelDeTraducao.ts`): no registro
+ * declarado o modelo melhor é o que declara `niveis: ["nuance"]` (o `grande` declarado virou sinônimo
+ * disso), e quem o recebe é quem tem `traducaoNuance`. O `modelosGrandes` fica só para o legado.
  */
 export interface OpcoesDeProvedor {
-  /** `largerModels` do plano, resolvido NO SERVIDOR (`getEntitlementsForUser`). */
+  /** `largerModels` do plano, resolvido NO SERVIDOR (`getEntitlementsForUser`). Só o legado o lê. */
   modelosGrandes?: boolean
   /** A função que vai usar a cascata. Padrão: `traducao`. O `corretor` usa os modelos do `tutor`. */
   funcao?: FuncaoDeIa
+  /**
+   * O NÍVEL (B3): de quais modelos a cascata começa. Ausente = `rapida`, o barato. Quem chama com o
+   * plano de alguém usa `cascataDoPlano` (`server/ai/niveis.ts`), que resolve os dois — o nível pela
+   * capacidade `traducaoNuance` e o `modelosGrandes` pelo `largerModels` — num lugar só.
+   */
+  nivel?: NivelDaTraducao
 }
 
 /** O LLM de nuvem principal. `null` quando não há chave — quem chama decide o que fazer. */

@@ -22,6 +22,8 @@ export interface Entitlements {
   managedCloudStt: boolean
   managedCloudLlm: boolean
   largerModels: boolean
+  /** O nível `nuance` da tradução e do tutor (B3 da Fase B) — ver `src/core/nivelDeTraducao.ts`. */
+  traducaoNuance: boolean
 }
 
 /* O guard deriva da matriz. A lista duplicada que vivia aqui era o pior dos cinco pontos: uma

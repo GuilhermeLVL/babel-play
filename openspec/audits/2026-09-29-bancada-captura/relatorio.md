@@ -163,6 +163,7 @@ Contra os aceites da tabela da Fase A:
    - Descer no último final de uma sessão é, além disso, uma descida que ninguém aproveita.
    - **Recomendação:** investigar antes de dar o A6 por fechado. A bancada mostra o caso: `regulador.trocasDeModelo` no `resultado.json` e a CPU/memória da rodada.
 4. **1ª legenda no perfil leve: 2,3 → 5,0 s.** Com o A6, o "Modo desempenho" vem ligado de fábrica no perfil leve e não há parciais. A primeira coisa na tela passa a ser o final da fala (no fim da voz + ~1,3 s). **Decisão do dono:** aceitar a troca (menos CPU e menos frames longos) ou manter um parcial espaçado no leve.
+   - **Medido no A6b** (`a6b-primeira-legenda.md`): o modo automático passou a guardar um parcial por fala, com 1,5 s dela. No fraco, a 1ª legenda ficou em 2,0 s, com frames longos e CPU iguais aos de sem parcial. O modo que a pessoa liga continua sem parcial.
 
 ## Fora do escopo, e limites
 

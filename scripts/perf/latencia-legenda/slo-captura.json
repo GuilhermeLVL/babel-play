@@ -1,0 +1,68 @@
+{
+  "versao": 1,
+  "documento": "openspec/audits/2026-09-29-bancada-captura/relatorio.md",
+  "comentario": "Linha de base da bancada de desempenho da captura (A0). Cada ambiente tem a sua: a base só vale no mesmo tipo de máquina. Os números de cada perfil são a mediana de N rodadas (RTF: p50/p95 das falas somadas). Tolerâncias: ver o relatório.",
+  "metricas": {
+    "framesLongos.n50": {
+      "rotulo": "frames > 50 ms na sessão",
+      "sentido": "menor",
+      "toleranciaPct": 30,
+      "folgaAbs": 3
+    },
+    "framesLongos.n100": {
+      "rotulo": "frames > 100 ms na sessão",
+      "sentido": "menor",
+      "toleranciaPct": 30,
+      "folgaAbs": 2
+    },
+    "framesLongos.somaMs": {
+      "rotulo": "soma dos frames longos (ms)",
+      "sentido": "menor",
+      "toleranciaPct": 30,
+      "folgaAbs": 300
+    },
+    "primeiraLegendaMs": {
+      "rotulo": "início da 1ª fala → 1º texto (ms)",
+      "sentido": "menor",
+      "toleranciaPct": 25,
+      "folgaAbs": 300
+    },
+    "rtf.p50": {
+      "rotulo": "RTF do STT local, p50",
+      "sentido": "menor",
+      "toleranciaPct": 20,
+      "folgaAbs": 0.02
+    },
+    "rtf.p95": {
+      "rotulo": "RTF do STT local, p95",
+      "sentido": "menor",
+      "toleranciaPct": 25,
+      "folgaAbs": 0.03
+    },
+    "memoriaPicoMb": {
+      "rotulo": "memória de pico do processo da aba (MB)",
+      "sentido": "menor",
+      "toleranciaPct": 15,
+      "folgaAbs": 30
+    },
+    "cpuSilencio.processoPct": {
+      "rotulo": "CPU da aba no silêncio (% de um núcleo)",
+      "sentido": "menor",
+      "toleranciaPct": 30,
+      "folgaAbs": 3
+    },
+    "rendersPorS.silencio": {
+      "rotulo": "renders/s no silêncio",
+      "sentido": "menor",
+      "toleranciaPct": 50,
+      "folgaAbs": 2
+    },
+    "rendersPorS.fala": {
+      "rotulo": "renders/s com fala",
+      "sentido": "menor",
+      "toleranciaPct": 30,
+      "folgaAbs": 10
+    }
+  },
+  "ambientes": {}
+}

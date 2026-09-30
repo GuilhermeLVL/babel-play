@@ -32,12 +32,29 @@ const norm = (s: string) =>
     .replace(/[^\p{L}\p{N} ]/gu, ' ')
     .replace(/\s+/g, ' ')
     .trim()
+const REGISTROS: Registro[] = Object.values(TRILHA.niveis).flat()
 const POR_TRADUCAO = new Map<string, string[]>()
-for (const [palavra, traducao] of Object.values(TRILHA.niveis).flat()) {
+for (const [palavra, traducao] of REGISTROS) {
   const k = norm(traducao)
   POR_TRADUCAO.set(k, [...(POR_TRADUCAO.get(k) ?? []), palavra])
 }
-const palavrasDe = (pista: string) => (POR_TRADUCAO.get(norm(pista)) ?? []).map((p) => p.toLowerCase())
+/* A PISTA DA CARTA NEM SEMPRE É A TRADUÇÃO. Quando a tradução entrega a resposta ("depender" traz
+   "depend"), o jogo mostra a tradução mascarada ("———") ou, se sobrar só a lacuna, a frase de exemplo
+   com lacuna ("Children _____ on their parents.") — `promptFor` em `core/minigames/itemSource.ts`.
+   Na Trilha inglesa são duas palavras (uma do A2, uma do B1); quando uma delas saía no sorteio, o
+   teste achava 7 de 8 pares e a rodada de 3 estrelas não pode errar par. Aqui a lacuna vira curinga
+   e a pista casa com a tradução ou a frase da Trilha. */
+const LACUNA = /_{3,}|—{2,}/
+function comLacuna(pista: string): string[] {
+  if (!LACUNA.test(pista)) return []
+  const partes = pista.split(LACUNA).map((p) => p.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+  const molde = new RegExp(`^${partes.join("\\s*[\\p{L}\\p{N}'’-]+\\s*")}$`, 'iu')
+  return REGISTROS.filter(([, traducao, frase]) => molde.test(traducao.trim()) || molde.test((frase ?? '').trim())).map(
+    ([palavra]) => palavra,
+  )
+}
+const palavrasDe = (pista: string) =>
+  [...(POR_TRADUCAO.get(norm(pista)) ?? []), ...comLacuna(pista)].map((p) => p.toLowerCase())
 
 const ABAS = [
   ['colecao', /Coleção/],
@@ -131,7 +148,10 @@ test('Memória com 3 estrelas: maestria sobe, baú com as chances, Seeds do resu
   await entrar(page, '/jogar')
   await page.getByRole('radio', { name: /Trilha/ }).click()
   await page.getByRole('button', { name: /Usar estas palavras/ }).click()
-  const carta = page.locator('#grade-de-jogos').getByRole('button', { name: /^Jogar: Memória/ }).first()
+  const carta = page
+    .locator('#grade-de-jogos')
+    .getByRole('button', { name: /^Jogar: Memória/ })
+    .first()
   await expect(carta).toBeEnabled({ timeout: 15_000 })
   await carta.scrollIntoViewIfNeeded()
   await carta.click()
@@ -163,7 +183,12 @@ test('Memória com 3 estrelas: maestria sobe, baú com as chances, Seeds do resu
     const dialogo = page.getByRole('dialog')
     const resgatar = dialogo.getByRole('button', { name: /^Resgatar e continuar$/ }).first()
     if (await resgatar.isVisible().catch(() => false)) {
-      if (await dialogo.locator('[data-chances-do-bau]').isVisible().catch(() => false)) {
+      if (
+        await dialogo
+          .locator('[data-chances-do-bau]')
+          .isVisible()
+          .catch(() => false)
+      ) {
         await expect(dialogo.locator('[data-chances-do-bau]')).toContainText(/Chances: \d+% comum · \d+% raro/)
         viuChances = true
       }

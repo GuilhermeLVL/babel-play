@@ -213,4 +213,34 @@ describe('parciais sob demanda do pipeline', () => {
       vi.useRealTimers()
     }
   })
+
+  /* O PARCIAL ÚNICO do modo desempenho automático (A6b): o pipeline pede 1,5 s de fala para o 1º e
+     espaçamento infinito para os outros. Com 0,6 s, o Moonshine devolveu "" ou ". So." na bancada. */
+  it('`primeiroParcialComMs` 1500 e `intervaloDosParciais` infinito: um parcial só, com 1,5 s de fala', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'setTimeout', 'clearTimeout', 'performance'] })
+    try {
+      const parciais: number[] = []
+      const cap = await startMicCapture(undefined, {
+        onUtterance: vi.fn(),
+        onPartialAudio: (pcm: Float32Array) => parciais.push(pcm.length),
+        primeiroParcialComMs: () => 1_500,
+        intervaloDosParciais: () => Infinity,
+      } as never)
+      await alimentar([...silencio(3), ...fala(8)]) // 7 quadros: o parcial de sempre sairia aqui
+      await vi.advanceTimersByTimeAsync(200)
+      expect(parciais).toHaveLength(0)
+      await alimentar(fala(8)) // 15 quadros: 1,44 s
+      await vi.advanceTimersByTimeAsync(200)
+      expect(parciais).toHaveLength(0)
+      await alimentar(fala(1)) // 16 quadros: 1,54 s
+      await vi.advanceTimersByTimeAsync(200)
+      expect(parciais).toEqual([16 * QUADRO])
+      await alimentar(fala(20))
+      await vi.advanceTimersByTimeAsync(3_000)
+      expect(parciais).toHaveLength(1) // nenhum outro até o fim da fala
+      await cap.stop()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
 })

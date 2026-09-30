@@ -108,4 +108,6 @@ export interface HandlersDaFonte {
   querParcial?: () => boolean;
   /** Espaçamento entre parciais (ms) que o pipeline pede à captura. */
   intervaloDosParciais?: () => number;
+  /** Quanto de fala (ms) o primeiro parcial de cada fala espera (ver `SystemAudioCallbacks`). */
+  primeiroParcialComMs?: () => number;
 }

@@ -292,6 +292,11 @@ export interface SystemAudioCallbacks {
   querParcial?: () => boolean;
   /** Espaçamento entre parciais (ms). Sem o callback, `PARTIAL_INTERVAL_MS`; o aparelho leve pede mais. */
   intervaloDosParciais?: () => number;
+  /**
+   * Quanto de fala (ms) o PRIMEIRO parcial de cada fala espera. Sem o callback (ou abaixo do mínimo da
+   * captura, 0,6 s), o de sempre.
+   */
+  primeiroParcialComMs?: () => number;
   onMisfire?: (seq: number) => void;
   onError?: (err: Error) => void;
   onStatus?: (msg: string) => void;
@@ -608,14 +613,19 @@ async function startCaptureFromStream(
   /* O PRIMEIRO PARCIAL SAI ASSIM QUE HÁ 0,6 s DE FALA, e não no próximo tique de 1,1 s. Medido na
      auditoria de latência (2026-09-26): o 1º texto aparecia 2,6 s depois do início da fala — o tique
      de 1,1 s, mais os 0,6 s de áudio novo, mais o decode. O relógio agora olha a cada 200 ms; o
-     espaçamento ENTRE parciais continua 1,1 s (o custo por fala não muda). */
+     espaçamento ENTRE parciais continua 1,1 s (o custo por fala não muda).
+     Quando há um parcial SÓ por fala (o modo desempenho automático, A6b), o pipeline pede que ele
+     espere mais (`primeiroParcialComMs`, 1,5 s): com 0,6 s o Moonshine devolveu "" ou ". So.". */
   let ultimoParcialTs = 0;
   const partialTimer: any = setInterval(() => {
     if (!speaking || !cb.onPartialAudio) return;
     // O final especulativo desta fala já está no worker: um parcial agora só o atrasaria.
     if (especulacao?.seq === currentSeq) return;
-    if (accumSamples - lastPartialSamples < PARTIAL_MIN_NEW_SAMPLES) return;
     const primeiro = lastPartialSamples === 0;
+    const minimo = primeiro
+      ? Math.max(PARTIAL_MIN_NEW_SAMPLES, ((cb.primeiroParcialComMs?.() ?? 0) * 16000) / 1000)
+      : PARTIAL_MIN_NEW_SAMPLES;
+    if (accumSamples - lastPartialSamples < minimo) return;
     const intervalo = cb.intervaloDosParciais?.() ?? PARTIAL_INTERVAL_MS;
     if (!primeiro && performance.now() - ultimoParcialTs < intervalo) return;
     /* WORKERS QUE DESCANSAM ("Grátis sem travar", A5): o pipeline ia descartar este parcial (modo

@@ -288,6 +288,7 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
         // Perguntado ANTES de a captura copiar o áudio: fora do pipeline o parcial nem se monta.
         querParcial: () => rota === 'pipeline' && (sysHandlers.querParcial?.() ?? true),
         intervaloDosParciais: sysHandlers.intervaloDosParciais,
+        primeiroParcialComMs: sysHandlers.primeiroParcialComMs,
         onFinalEspeculativo: (pcm: Float32Array, sr: number, seq: number) =>
           rota === 'pipeline' ? sysHandlers.onFinalEspeculativo(pcm, sr, seq) : null,
         onMisfire: (seq: number) => {
@@ -414,6 +415,7 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
           onPartialAudio: micHandlers.onPartialAudio,
           querParcial: micHandlers.querParcial,
           intervaloDosParciais: micHandlers.intervaloDosParciais,
+          primeiroParcialComMs: micHandlers.primeiroParcialComMs,
           onFinalEspeculativo: micHandlers.onFinalEspeculativo,
           onMisfire: (seq) => micHandlers.onMisfire(seq),
           onLevel: pushLevel,

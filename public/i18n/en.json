@@ -1545,5 +1545,9 @@
   "Polimento pausado: {feitos} de {total} blocos.": "Polishing paused: {feitos} of {total} blocks.",
   "{feitos} de {total} blocos polidos.": "{feitos} of {total} blocks polished.",
   "Revise a tradução da sessão inteira com o contexto da conversa. A original continua guardada.": "Revise the whole session translation with the context of the conversation. The original stays saved.",
-  "Retomar o polimento": "Resume polishing"
+  "Retomar o polimento": "Resume polishing",
+  "Não encontramos esta sessão": "We couldn't find this session",
+  "Ir para a Biblioteca": "Go to the Library",
+  "Capture uma aula, um vídeo ou uma conversa, e a análise aparece aqui.": "Capture a class, a video or a conversation, and the analysis shows up here.",
+  "Ela pode ter sido apagada, ou ser de outra conta. As suas sessões estão na Biblioteca.": "It may have been deleted, or belong to another account. Your sessions are in the Library."
 }

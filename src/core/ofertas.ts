@@ -23,6 +23,7 @@ export const MOMENTOS_DE_OFERTA = [
   'fim_de_sessao',
   'convidado_para_conta',
   'cota_proxima',
+  'fim_do_teste',
 ] as const;
 export type MomentoDeOferta = (typeof MOMENTOS_DE_OFERTA)[number];
 
@@ -31,11 +32,12 @@ export type ComponenteDeOferta = (typeof COMPONENTES_DE_OFERTA)[number];
 
 /**
  * OS MOMENTOS FUNCIONAIS — avisos que INFORMAM um fato da conta (a cota acabou, a cota está
- * acabando), e não vendem. Valem com a flag `oferta_planos` DESLIGADA (com os textos embutidos em
- * `GATILHOS_FUNCIONAIS`) e não entram no teto global de ofertas promocionais — só no teto de
- * frequência do próprio gatilho. Todos os outros momentos são PROMOCIONAIS: só com a flag ligada.
+ * acabando, o teste de 14 dias do Premium termina em 3 dias ou hoje), e não vendem. Valem com a flag
+ * `oferta_planos` DESLIGADA (com os textos embutidos em `GATILHOS_FUNCIONAIS`) e não entram no teto
+ * global de ofertas promocionais — só no teto de frequência do próprio gatilho. Todos os outros
+ * momentos são PROMOCIONAIS: só com a flag ligada.
  */
-export const MOMENTOS_FUNCIONAIS: readonly MomentoDeOferta[] = ['fim_de_cota', 'cota_proxima'];
+export const MOMENTOS_FUNCIONAIS: readonly MomentoDeOferta[] = ['fim_de_cota', 'cota_proxima', 'fim_do_teste'];
 
 export function momentoFuncional(m: MomentoDeOferta): boolean {
   return MOMENTOS_FUNCIONAIS.includes(m);
@@ -61,6 +63,11 @@ export interface GatilhoDeOferta {
    * Opcional: sem ele, `padrao` (gatilho da flag) ou `embutida` (aviso funcional do código).
    */
   variante?: string;
+  /**
+   * A ETAPA do momento, para o que acontece em mais de um dia — o fim do teste em D-3 (`d3`) e em D0
+   * (`d0`). Só os gatilhos embutidos a usam; sem ela, o gatilho vale em qualquer etapa.
+   */
+  fase?: string;
 }
 
 export interface ConfigDeOfertas {
@@ -115,6 +122,35 @@ export const GATILHOS_FUNCIONAIS: readonly GatilhoDeOferta[] = Object.freeze([
     maxPorSemana: 2,
     intervaloMinHoras: 24,
     planos: ['convidado', 'free', 'premium'],
+  },
+  /* O FIM DO TESTE DE 14 DIAS (C6): quem testa tem o Premium nos entitlements (`premium`), e só quem
+     testa recebe o momento (o host o dispara pelo `teste` de `/api/me/entitlements`). Informativo: diz
+     quando acaba e que NADA é cobrado — o teste nunca cobra sozinho. Uma vez em cada fase. */
+  {
+    id: 'funcional_fim_do_teste_d3',
+    momento: 'fim_do_teste',
+    fase: 'd3',
+    componente: 'banner',
+    titulo: 'Seu teste do Premium termina em 3 dias',
+    texto: 'Depois dele a conta volta ao Grátis sozinha e nada é cobrado. A legenda no aparelho continua sem limite.',
+    cta: 'Ver planos',
+    maxPorDia: 1,
+    maxPorSemana: 1,
+    intervaloMinHoras: 24,
+    planos: ['premium'],
+  },
+  {
+    id: 'funcional_fim_do_teste_d0',
+    momento: 'fim_do_teste',
+    fase: 'd0',
+    componente: 'banner',
+    titulo: 'Seu teste do Premium termina hoje',
+    texto: 'Hoje a conta volta ao Grátis, sem cobrança nenhuma. A legenda no aparelho continua sem limite.',
+    cta: 'Ver planos',
+    maxPorDia: 1,
+    maxPorSemana: 1,
+    intervaloMinHoras: 24,
+    planos: ['premium'],
   },
 ] satisfies GatilhoDeOferta[]);
 

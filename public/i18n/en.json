@@ -1220,5 +1220,19 @@
   "Assinar e pagar em {n}x de {parcela}": "Subscribe and pay in {n} installments of {parcela}",
   "Por mês no cartão": "Per month on the card",
   "Ao assinar, você autoriza a cobrança de {preco} por ano, renovada todo ano até você cancelar. Depois dos 7 dias, cancelar para a renovação e o acesso vale até o fim do ano pago, sem reembolso proporcional.": "By subscribing, you authorize a charge of {preco} per year, renewed every year until you cancel. After the first 7 days, canceling stops the renewal and access lasts until the end of the paid year, with no prorated refund.",
-  "Ao assinar, você autoriza {n} parcelas no cartão, no total de {total}, sem renovação automática. Depois dos 7 dias, cancelar não interrompe as parcelas: o acesso vale até o fim do ano pago, sem reembolso proporcional.": "By subscribing, you authorize {n} card installments, {total} in total, with no automatic renewal. After the first 7 days, canceling does not stop the installments: access lasts until the end of the paid year, with no prorated refund."
+  "Ao assinar, você autoriza {n} parcelas no cartão, no total de {total}, sem renovação automática. Depois dos 7 dias, cancelar não interrompe as parcelas: o acesso vale até o fim do ano pago, sem reembolso proporcional.": "By subscribing, you authorize {n} card installments, {total} in total, with no automatic renewal. After the first 7 days, canceling does not stop the installments: access lasts until the end of the paid year, with no prorated refund.",
+  "Não consegui começar o teste agora. Tente de novo.": "I couldn't start the trial right now. Try again.",
+  "Pronto: o Premium vale até {data}. No fim a conta volta ao Grátis sozinha, e nada é cobrado.": "Done: Premium is yours until {data}. At the end the account goes back to Free on its own, and nothing is charged.",
+  "Seu teste do Premium vale até {data}. No fim, nada é cobrado.": "Your Premium trial lasts until {data}. Nothing is charged at the end.",
+  "Quer testar o Premium? Peça ao seu responsável: pela conta dele, vinculada à sua, ele ativa o teste de {dias} dias para você.": "Want to try Premium? Ask your parent or guardian: from their account, linked to yours, they can start the {dias}-day trial for you.",
+  "Teste o Premium na conta de {nome} por {dias} dias, sem cartão. No fim ela volta ao Grátis: nada é cobrado.": "Try Premium on {nome}'s account for {dias} days, no card needed. At the end it goes back to Free: nothing is charged.",
+  "quem está vinculado a você": "the account linked to you",
+  "Ou teste o Premium por {dias} dias, sem cartão. No fim a conta volta ao Grátis sozinha: nada é cobrado.": "Or try Premium for {dias} days, no card needed. At the end the account goes back to Free on its own: nothing is charged.",
+  "Ativar o teste de {dias} dias para {nome}": "Start the {dias}-day trial for {nome}",
+  "a conta vinculada": "the linked account",
+  "Testar {dias} dias grátis": "Try {dias} days free",
+  "Seu teste do Premium termina em 3 dias": "Your Premium trial ends in 3 days",
+  "Depois dele a conta volta ao Grátis sozinha e nada é cobrado. A legenda no aparelho continua sem limite.": "After it, the account goes back to Free on its own and nothing is charged. On-device captions stay unlimited.",
+  "Seu teste do Premium termina hoje": "Your Premium trial ends today",
+  "Hoje a conta volta ao Grátis, sem cobrança nenhuma. A legenda no aparelho continua sem limite.": "Today the account goes back to Free, with no charge at all. On-device captions stay unlimited."
 }

@@ -59,7 +59,25 @@ export interface StatusDeBilling {
    * atraso, até quando o acesso vale.
    */
   proximaCobranca?: string;
+  /** O teste de 14 dias do Premium desta conta (C6). Ausente em servidor anterior. */
+  teste?: SituacaoDoTeste;
 }
+
+/** Por que a conta não pode começar o teste (o servidor decide; a tela só explica). */
+export type MotivoSemTeste =
+  | 'selfhost'
+  | 'convidado'
+  | 'idade_nao_informada'
+  | 'perfil_protegido'
+  | 'ja_assinante'
+  | 'sem_email'
+  | 'marca_usada';
+
+/** O teste de 14 dias como o servidor o vê — `GET /api/billing/status` → `teste`. */
+export type SituacaoDoTeste =
+  | { estado: 'disponivel'; dias: number }
+  | { estado: 'ativo' | 'usado'; dias: number; iniciadoEm: number; terminaEm: number }
+  | { estado: 'indisponivel'; dias: number; motivo: MotivoSemTeste };
 
 export interface Fatura {
   id: string;
@@ -256,6 +274,32 @@ export async function iniciarAssinatura(dados: {
     return { link: corpo.linkDePagamento ?? null };
   } catch {
     return { link: null, erro: 'não consegui falar com o servidor.' };
+  }
+}
+
+/**
+ * COMEÇA O TESTE DE 14 DIAS — um toque, sem cartão (C6). Não pede nome, CPF nem cartão: nada é
+ * cobrado, nem no fim. `paraUsuario` = o responsável ativando para o menor vinculado. Quem concede é
+ * o servidor; a tela recarrega os entitlements depois.
+ */
+export async function iniciarTeste(
+  paraUsuario?: string,
+): Promise<{ terminaEm: number | null; erro?: string; codigo?: string }> {
+  try {
+    const r = await apiFetch('/api/billing/teste', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(paraUsuario ? { paraUsuario } : {}),
+    });
+    const corpo = (await r.json().catch(() => ({}))) as {
+      teste?: { terminaEm?: number };
+      error?: string;
+      code?: string;
+    };
+    if (!r.ok) return { terminaEm: null, erro: corpo.error ?? `falha (HTTP ${r.status})`, codigo: corpo.code };
+    return { terminaEm: typeof corpo.teste?.terminaEm === 'number' ? corpo.teste.terminaEm : null };
+  } catch {
+    return { terminaEm: null, erro: 'não consegui falar com o servidor.' };
   }
 }
 

@@ -5,6 +5,7 @@ import {
   Check,
   CircleAlert,
   CreditCard,
+  Hourglass,
   LoaderCircle,
   Lock,
   LogIn,
@@ -21,16 +22,19 @@ import {
   carregarStatusDeBilling,
   cobrancaDaForma,
   type Conta,
+  dataCurta,
   definirBeneficiario,
   type FormaDeAssinar,
   FORMAS_DE_ASSINAR,
   iniciarAssinatura,
+  iniciarTeste,
   lerBeneficiario,
   parcelasDoAnual,
   type PlanoPago,
   PLANOS_PAGOS,
   precoAnual,
   precoMensal,
+  type SituacaoDoTeste,
   type StatusDeBilling,
   temAssinatura,
 } from '../../../lib/assinatura';
@@ -119,6 +123,106 @@ function textosDaForma(plano: PlanoPago, f: FormaDeAssinar) {
     linha: [t('1 ano em {n} parcelas', { n: quantidade }), total] as const,
     pagar: t('Assinar e pagar em {n}x de {parcela}', { n: quantidade, parcela: brl(padrao) }),
   };
+}
+
+/**
+ * O TESTE DE 14 DIAS, COM UM TOQUE (C6) — sem nome, CPF nem cartão: nada é cobrado, nem no fim. Só
+ * aparece quando o SERVIDOR diz que dá (`teste.estado: 'disponivel'`), ou quando o responsável escolheu
+ * o menor vinculado (ele ativa por ele; o servidor confere o vínculo). O perfil protegido recebe o
+ * caminho do responsável, não o botão. A tela de Planos nova (C7) dá o destaque; aqui é o mínimo.
+ */
+function TesteDoPremium({ teste, beneficiario }: { teste?: SituacaoDoTeste; beneficiario: Beneficiario | null }) {
+  const [ocupado, setOcupado] = useState(false);
+  const [feito, setFeito] = useState<number | null>(null);
+  const [erro, setErro] = useState('');
+  if (!teste) return null;
+  const dias = teste.dias;
+
+  const comecar = async () => {
+    setOcupado(true);
+    setErro('');
+    const r = await iniciarTeste(beneficiario?.id);
+    setOcupado(false);
+    if (r.terminaEm === null) {
+      setErro(r.erro ?? t('Não consegui começar o teste agora. Tente de novo.'));
+      return;
+    }
+    setFeito(r.terminaEm);
+    await carregarEntitlements();
+  };
+
+  if (feito !== null)
+    return (
+      <p className="aviso-info" role="status" style={{ marginBottom: 12 }}>
+        <Hourglass aria-hidden />
+        <span>
+          {t('Pronto: o Premium vale até {data}. No fim a conta volta ao Grátis sozinha, e nada é cobrado.', {
+            data: dataCurta(feito),
+          })}
+        </span>
+      </p>
+    );
+
+  if (!beneficiario && teste.estado === 'ativo')
+    return (
+      <p className="aviso-info" style={{ marginBottom: 12 }}>
+        <Hourglass aria-hidden />
+        <span>
+          {t('Seu teste do Premium vale até {data}. No fim, nada é cobrado.', { data: dataCurta(teste.terminaEm) })}
+        </span>
+      </p>
+    );
+
+  if (!beneficiario && teste.estado === 'indisponivel' && teste.motivo === 'perfil_protegido')
+    return (
+      <p className="aviso-info" style={{ marginBottom: 12 }}>
+        <UserRound aria-hidden />
+        <span>
+          {t(
+            'Quer testar o Premium? Peça ao seu responsável: pela conta dele, vinculada à sua, ele ativa o teste de {dias} dias para você.',
+            { dias },
+          )}
+        </span>
+      </p>
+    );
+
+  if (!beneficiario && teste.estado !== 'disponivel') return null;
+
+  return (
+    <div className="aviso-info" style={{ marginBottom: 12, flexWrap: 'wrap' }}>
+      <Hourglass aria-hidden />
+      <span style={{ flex: 1, minWidth: 200 }}>
+        {beneficiario
+          ? t(
+              'Teste o Premium na conta de {nome} por {dias} dias, sem cartão. No fim ela volta ao Grátis: nada é cobrado.',
+              {
+                nome: beneficiario.nome ?? t('quem está vinculado a você'),
+                dias,
+              },
+            )
+          : t(
+              'Ou teste o Premium por {dias} dias, sem cartão. No fim a conta volta ao Grátis sozinha: nada é cobrado.',
+              {
+                dias,
+              },
+            )}
+        {erro && (
+          <small className="erro" role="alert" style={{ display: 'block', marginTop: 6 }}>
+            <CircleAlert aria-hidden /> {erro}
+          </small>
+        )}
+      </span>
+      <button type="button" className="btn btn-outline" onClick={() => void comecar()} disabled={ocupado}>
+        {ocupado ? <LoaderCircle className="gira" aria-hidden /> : <Hourglass aria-hidden />}{' '}
+        {beneficiario
+          ? t('Ativar o teste de {dias} dias para {nome}', {
+              dias,
+              nome: beneficiario.nome ?? t('a conta vinculada'),
+            })
+          : t('Testar {dias} dias grátis', { dias })}
+      </button>
+    </div>
+  );
 }
 
 function validar(c: Record<Campo, string>): Partial<Record<Campo, string>> {
@@ -348,6 +452,7 @@ export default function Checkout({
 
   const passo1 = (
     <section className="cartao p6">
+      <TesteDoPremium teste={status?.teste} beneficiario={beneficiario} />
       <fieldset className="escolha">
         <legend className="label-mono">Plano</legend>
         <div className="opcoes">

@@ -79,6 +79,7 @@ import { settingsRouter } from '../routes/settings'
 import { tutorRouter } from '../routes/tutor'
 import { vocabRouter } from '../routes/vocab'
 import { diretivasDeCsp } from './csp'
+import { isolamentoDeOrigem } from './isolamento'
 import { jsonAntesDoAuth, jsonDepoisDoAuth, ROTAS_DE_CORPO_GRANDE } from './limitesDeCorpo'
 import { handlerDeMetricas, middlewareDeMetricas } from './metricas'
 import { exigirOrigem } from './origemProtegida'
@@ -244,7 +245,8 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
            em `server/http/csp.ts`. */
         directives: { ...diretivasDeCsp() },
       },
-      crossOriginEmbedderPolicy: false, // COEP é opt-in via CROSS_ORIGIN_ISOLATION (abaixo)
+      // COEP (e o DIP) saem de `isolamentoDeOrigem`, abaixo, que tem modo próprio (CROSS_ORIGIN_ISOLATION).
+      crossOriginEmbedderPolicy: false,
     }),
   )
 
@@ -298,17 +300,16 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
      `tests/integration/rate-limit-escrita.test.ts` lê a forma `const writeLimiter = rateLimit({`. */
   marcarVerbos(writeLimiter, 'escrita')
 
-  // Cross-origin isolation (opt-in via CROSS_ORIGIN_ISOLATION=1). Habilita SharedArrayBuffer →
-  // WASM multithread do Whisper/opus-mt (decode local mais rápido) e um contexto de cache estável.
-  // DESLIGADO por padrão: COEP pode bloquear recursos cross-origin (imagens de hover) e o embed em
-  // iframe (AI Studio). Ligue em deploy no domínio próprio, onde os pesos são same-origin (self-host).
-  if (process.env.CROSS_ORIGIN_ISOLATION === '1') {
-    app.use((_req, res, next) => {
-      res.setHeader('Cross-Origin-Opener-Policy', 'same-origin')
-      res.setHeader('Cross-Origin-Embedder-Policy', 'credentialless')
-      next()
-    })
-  }
+  /* ISOLAMENTO DE ORIGEM, LIGADO DE FÁBRICA (A8). Dá `SharedArrayBuffer` e, com ele, as threads do
+     WASM do Whisper/opus-mt — sem isto o orçamento do A3 põe todo motor em 1 thread. Era opt-in
+     (`CROSS_ORIGIN_ISOLATION=1`) por dois motivos que não valem mais: as imagens de hover carregam sob
+     COEP `credentialless` (chegam sem cookie), e o embed em iframe do AI Studio é legado — a CSP já
+     traz `frame-ancestors 'self'`. `0` desliga; `dip` isola só pelo Document-Isolation-Policy. Os
+     modos, o suporte de cada navegador e o que foi verificado estão em `server/http/isolamento.ts`.
+     AQUI, e não no bootstrap: o que isola é o cabeçalho do documento e dos scripts de worker, que o
+     Vite e o estático servem DEPOIS desta montagem. */
+  const isolamento = isolamentoDeOrigem()
+  if (isolamento) app.use(isolamento)
 
   // Health check (Fase 0) — status do servidor + conectividade do banco. Fica PÚBLICO:
   // registrado ANTES do authMiddleware, então nunca exige token (útil para probes de deploy).

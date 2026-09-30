@@ -10,6 +10,12 @@ import { avaliarTrechoStt, razaoDeCompressaoAproximada } from '@core/harness/por
 import type { Dispatch, RefObject, SetStateAction } from 'react';
 
 import type { ModelPrepState } from '../../components/ModelPrepPanel';
+import {
+  aparelhoPedeAlivio,
+  gpuRealDaRota,
+  type MotivoDaOfertaDeAlivio,
+  type SinaisDoAparelhoParaAlivio,
+} from '../../core/nuvemDeAlivio';
 import { apiFetch } from '../../data/api';
 import { getActiveProfile, getProviderMode } from '../../gateway/activeProfile';
 import { temAdaptadorWebGpu } from '../../gateway/adaptadorWebGpu';
@@ -28,6 +34,7 @@ import { getEntitlements } from '../entitlements';
 import { t } from '../i18n';
 import { detectLanguage } from '../langDetect';
 import { baseLang, langLabel } from '../languages';
+import { cabecalhoDoAlivio } from '../nuvemDeAlivio/estado';
 import { PerfilAdaptativoDeIdioma, pesoDaDeteccao } from '../perfilDeIdioma';
 import { SpeakerClusterer } from '../speakerCluster';
 import { embedUtterance } from '../speakerId';
@@ -153,6 +160,12 @@ export interface DepsDoPipelineDeFala {
   reguladorRef?: RefObject<ReguladorDaCaptura>;
   /** A captura do sistema/aba está aberta (aba escondida = "só ouvir", não pausa). */
   sistemaAtivo?: () => boolean;
+  /* --- nuvem de alívio do Grátis (A10) --- */
+  /**
+   * O aparelho não está dando conta (ou nem deve dar): a tela decide se mostra "Usar a nuvem grátis
+   * (restam X)" e devolve `true` quando mostrou. Sem ela (ou com `false`), o aviso de sempre.
+   */
+  pedirNuvemDeAlivio?: (motivo: MotivoDaOfertaDeAlivio, aparelho: SinaisDoAparelhoParaAlivio) => Promise<boolean>;
 }
 
 export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
@@ -201,6 +214,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     contextoDoSttRef,
     reguladorRef,
     sistemaAtivo,
+    pedirNuvemDeAlivio,
   } = deps;
 
   /* UM SETSTATE POR QUADRO ("Grátis sem travar", A1; ver `agendarNoQuadro.ts`). O que chega em
@@ -240,10 +254,20 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     },
     oferecerNativoOuNuvem: () => {
       clog('regulador: fim da escada local, oferecendo nativo/nuvem');
-      setFeedbackMsg(
-        'O aparelho não está acompanhando a fala nem com o modelo menor. Para a legenda chegar a tempo, use o Chrome no computador ou autorize a transcrição em nuvem em Ajustes, Privacidade.',
-      );
-      setTimeout(() => setFeedbackMsg(''), 10000);
+      const avisoDeSempre = () => {
+        setFeedbackMsg(
+          'O aparelho não está acompanhando a fala nem com o modelo menor. Para a legenda chegar a tempo, use o Chrome no computador ou autorize a transcrição em nuvem em Ajustes, Privacidade.',
+        );
+        setTimeout(() => setFeedbackMsg(''), 10000);
+      };
+      /* A NUVEM DE ALÍVIO (A10): no Grátis, o chão da escada é exatamente o caso dela. A tela pergunta
+         ao servidor se há franquia; sem ela (ou fora do Grátis), o aviso de sempre. */
+      if (!pedirNuvemDeAlivio) return avisoDeSempre();
+      void pedirNuvemDeAlivio('travamento', { leve: aparelhoLeve(), travamento: true, gpuReal: null })
+        .then((mostrou) => {
+          if (!mostrou) avisoDeSempre();
+        })
+        .catch(avisoDeSempre);
     },
   };
 
@@ -981,7 +1005,9 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
         console.warn('[captura] sonda do aparelho indisponível; rota sem ela', erro);
         return null;
       });
-    const cloudAvailable = await apiFetch('/api/ai/stt/available')
+    /* Com a nuvem de alívio ACEITA (A10), a pergunta leva o cabeçalho dela: o servidor responde pela
+       franquia da conta Grátis (flag, responsável, pool), o mesmo veredicto que a transcrição vai ouvir. */
+    const cloudAvailable = await apiFetch('/api/ai/stt/available', { headers: cabecalhoDoAlivio() })
       .then((r) => r.ok)
       .catch(() => false);
     /* O MIC VAI AO WHISPER? Não é mais só a escolha do seletor: sem consentimento (ou no perfil
@@ -1041,7 +1067,25 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     /** Para o regulador: onde o modelo roda e para onde ele pode trocar (`trocar-backend`). */
     const backend: 'wasm' | 'webgpu' = route.device ?? (hasWebGpu ? 'webgpu' : 'wasm');
     const outro = outroBackend(route, dispositivo, hasWebGpu);
-    return { listenLang, myLang, route, perfil, mtDe, mtPara, soIngles, micVaiAoWhisper, backend, outro };
+    /** O que a nuvem de alívio (A10) precisa saber do aparelho nesta rota. */
+    const sinaisDoAlivio: SinaisDoAparelhoParaAlivio = {
+      leve: perfil.leve,
+      travamento: false,
+      gpuReal: gpuRealDaRota(hasWebGpu, dispositivo.adaptadorReal),
+    };
+    return {
+      listenLang,
+      myLang,
+      route,
+      perfil,
+      mtDe,
+      mtPara,
+      soIngles,
+      micVaiAoWhisper,
+      backend,
+      outro,
+      sinaisDoAlivio,
+    };
   };
 
   /**
@@ -1103,7 +1147,8 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
   };
 
   const prepareModelsInterno = async (opcoes: OpcoesDaPreparacao) => {
-    const { route, perfil, mtDe, mtPara, soIngles, micVaiAoWhisper, backend, outro } = await rotaDaCaptura();
+    const { route, perfil, mtDe, mtPara, soIngles, micVaiAoWhisper, backend, outro, sinaisDoAlivio } =
+      await rotaDaCaptura();
     /* Sessão nova: o regulador começa no máximo, com a escada do modelo desta rota — o backend e o
        dtype dizem se o português pode descer ao tiny (só híbrido, só na GPU), e o manifesto diz que
        degrau já está no aparelho (o Moonshine é sempre q8). */
@@ -1133,6 +1178,12 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       '| aparelho:',
       perfil.tipo,
     );
+    /* A NUVEM DE ALÍVIO (A10): a rota ficou no aparelho, e ele é fraco de saída (perfil leve, sem GPU
+       real). A tela pergunta ao servidor se há franquia e, se houver, oferece "Usar a nuvem grátis" —
+       a preparação local segue enquanto isso, e vira a reserva se a pessoa aceitar. */
+    if (!route.preferCloud && pedirNuvemDeAlivio && aparelhoPedeAlivio(sinaisDoAlivio)) {
+      void pedirNuvemDeAlivio('aparelho', sinaisDoAlivio).catch(() => undefined);
+    }
     /** STT e tradutor UM DE CADA VEZ, fora do desktop com GPU e ≥ 8 GB (`memoriaDosModelos.ts`). */
     const umDeCadaVez = umModeloDeCadaVez(perfil);
 
@@ -1284,7 +1335,12 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
         const pronto = p >= 1;
         prepNoQuadro((s) => {
           const base = s ?? { whisper: null, mt: 0, fromCache: false, error: null, done: false };
-          return { ...base, mt: pronto ? 1 : p, mtBytes: bytes ?? base.mtBytes, done: base.whisper === null ? pronto : base.done };
+          return {
+            ...base,
+            mt: pronto ? 1 : p,
+            mtBytes: bytes ?? base.mtBytes,
+            done: base.whisper === null ? pronto : base.done,
+          };
         });
         if (pronto) {
           retraduzirDegradados();
@@ -1294,5 +1350,32 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       .catch((e: unknown) => clog('tradutor da fala indisponível (a cascata segue):', String(e)));
   };
 
-  return { sysHandlers, micHandlers, prepareModels, preaquecerModelos, decidirMotorDoSistema, prepararTradutorDaFala };
+  /**
+   * A PESSOA ACEITOU A NUVEM GRÁTIS (A10): a rota é refeita — agora o `/api/ai/stt/available` leva o
+   * cabeçalho do alívio — e, se a nuvem responder, a transcrição vai a ela primeiro, com o modelo local
+   * que já está carregado (ou carregando) como reserva: nada é trocado nem baixado de novo, e a sessão
+   * em curso não para. Se o servidor recusar, nada muda e a legenda segue no aparelho. Devolve se ligou.
+   */
+  const ligarNuvemDeAlivio = async (): Promise<boolean> => {
+    const { route } = await rotaDaCaptura();
+    if (!route.preferCloud) return false;
+    gateway.stt.setRoute({ preferCloud: true });
+    setSttRouteLabel(t('nuvem grátis · reserva no aparelho'));
+    clog('nuvem de alívio ligada: a transcrição vai à nuvem primeiro, o modelo local fica de reserva');
+    if (!modelReadyRef.current) {
+      modelReadyRef.current = true;
+      flushPendingUtterances();
+    }
+    return true;
+  };
+
+  return {
+    sysHandlers,
+    micHandlers,
+    prepareModels,
+    preaquecerModelos,
+    decidirMotorDoSistema,
+    prepararTradutorDaFala,
+    ligarNuvemDeAlivio,
+  };
 }

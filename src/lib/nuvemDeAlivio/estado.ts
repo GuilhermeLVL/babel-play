@@ -20,11 +20,6 @@ const CHAVE_DA_SESSAO = 'babel.alivio.aceito';
 let aceito: boolean | null = null;
 let dispensado = false;
 let recusa: string | null = null;
-const ouvintes = new Set<() => void>();
-
-function avisar(): void {
-  for (const fn of ouvintes) fn();
-}
 
 function lerAceite(): boolean {
   try {
@@ -50,13 +45,11 @@ export function aceitarAlivio(): void {
   } catch {
     /* sem storage: o aceite vale só enquanto a página estiver aberta */
   }
-  avisar();
 }
 
 /** Tocou "Agora não": a oferta não volta nesta aba. */
 export function dispensarAlivio(): void {
   dispensado = true;
-  avisar();
 }
 
 export function alivioDispensado(): boolean {
@@ -80,19 +73,12 @@ export function registrarRecusaDoAlivio(status: number, corpo: unknown): boolean
   const doAlivio = ehRecusaDoAlivio(c.code) || (status === 402 && c.detalhes?.escopo === 'alivio');
   if (!doAlivio) return false;
   recusa = typeof c.code === 'string' ? c.code : 'recusado';
-  avisar();
   return true;
 }
 
 /** O último motivo com que o servidor recusou o alívio nesta aba (`null` = nenhum). */
 export function recusaDoAlivio(): string | null {
   return recusa;
-}
-
-/** Para `useSyncExternalStore` e para quem precisa saber que o aceite mudou. */
-export function assinarAlivio(cb: () => void): () => void {
-  ouvintes.add(cb);
-  return () => ouvintes.delete(cb);
 }
 
 /** Só para os testes: esquece o estado (e o aceite da aba, salvo `manterSessao`). */

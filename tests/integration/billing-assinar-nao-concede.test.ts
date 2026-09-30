@@ -36,7 +36,7 @@ describe('GAP-001 — iniciar assinatura não concede o plano', () => {
   it('assinatura trialing (o que /assinar grava) NÃO concede o plano', async () => {
     const u = asUserId('u-trialing-novo')
     // Exatamente o que POST /api/billing/assinar grava para um usuário novo:
-    await subs.upsert(u, { plan: 'pro', status: 'trialing', provider: 'asaas', providerSubscriptionId: 'sub_x' })
+    await subs.upsert(u, { plan: 'premium', status: 'trialing', provider: 'asaas', providerSubscriptionId: 'sub_x' })
     expect(await ent.getPlanForUser(u), 'trialing = checkout iniciado, não pago → sem plano').toBe('free')
     const e = await ent.getEntitlementsForUser(u)
     expect(e.managedCloudLlm).toBe(false)
@@ -44,27 +44,26 @@ describe('GAP-001 — iniciar assinatura não concede o plano', () => {
 
   it('pagamento confirmado (status active) concede', async () => {
     const u = asUserId('u-pago')
-    await subs.upsert(u, { plan: 'pro', status: 'active' })
-    expect(await ent.getPlanForUser(u)).toBe('pro')
+    await subs.upsert(u, { plan: 'premium', status: 'active' })
+    expect(await ent.getPlanForUser(u)).toBe('premium')
   })
 
   it('past_due dentro da graça mantém; expirada cai para free', async () => {
     const uGraca = asUserId('u-graca-2')
-    await subs.upsert(uGraca, { plan: 'pro', status: 'past_due', currentPeriodEnd: Date.now() + 60_000 })
-    expect(await ent.getPlanForUser(uGraca)).toBe('pro')
+    await subs.upsert(uGraca, { plan: 'premium', status: 'past_due', currentPeriodEnd: Date.now() + 60_000 })
+    expect(await ent.getPlanForUser(uGraca)).toBe('premium')
     const uExp = asUserId('u-exp-2')
-    await subs.upsert(uExp, { plan: 'pro', status: 'past_due', currentPeriodEnd: Date.now() - 60_000 })
+    await subs.upsert(uExp, { plan: 'premium', status: 'past_due', currentPeriodEnd: Date.now() - 60_000 })
     expect(await ent.getPlanForUser(uExp)).toBe('free')
   })
 
-  it('upgrade não pago não vale: assinante essencial ativo cujo plano vira trialing-pro continua essencial-equivalente-a-free-do-pro', async () => {
-    // Simula o efeito CORRETO: a promoção para pro só existe quando o webhook grava active.
-    // Enquanto o novo plano está só como intenção (trialing), o direito ao pro não existe.
+  it('o nome antigo ativo vale Premium; a mesma linha em trialing não concede nada', async () => {
+    // Matriz v2: a linha de antes da 0041 (`essencial`) ativa é o Premium — e a leitura tolerante
+    // não abre a porta do GAP-001: em `trialing` (checkout iniciado, não pago) continua sem plano.
     const u = asUserId('u-upgrade')
     await subs.upsert(u, { plan: 'essencial', status: 'active' })
-    expect(await ent.getPlanForUser(u)).toBe('essencial')
-    // Intenção de upgrade registrada como trialing NÃO concede o pro:
+    expect(await ent.getPlanForUser(u)).toBe('premium')
     await subs.upsert(u, { plan: 'pro', status: 'trialing' })
-    expect(await ent.getPlanForUser(u), 'intenção de upgrade não paga não concede pro').toBe('free')
+    expect(await ent.getPlanForUser(u), 'intenção não paga não concede, com nome antigo ou novo').toBe('free')
   })
 })

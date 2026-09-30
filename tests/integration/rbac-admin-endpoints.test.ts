@@ -91,9 +91,10 @@ describe('SaaS Fatia 2 — endpoints admin cross-tenant', () => {
   })
 
   it('admin muda o plano de outro dono (subscriptions)', async () => {
+    // O nome antigo de um script de operação vira o atual (matriz v2): conceder "pro" é conceder o Premium.
     const r = await call(ADMIN, 'PATCH', '/api/admin/users/alice/plan', { plan: 'pro' })
     expect(r.status).toBe(200)
-    expect(r.body.plan).toBe('pro')
+    expect(r.body.plan).toBe('premium')
   })
 
   it('anti-self-lockout: admin não remove o próprio acesso (400)', async () => {

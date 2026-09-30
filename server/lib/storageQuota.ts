@@ -39,7 +39,7 @@ function envMb(nome: string, padrao: number): number {
   return Number.isFinite(n) && n > 0 ? n : padrao
 }
 
-/** Teto em BYTES por plano — default da MATRIZ, override por env (`PRO_STORAGE_MB`, `ESSENCIAL_STORAGE_MB`…). */
+/** Teto em BYTES por plano — default da MATRIZ, override por env (`PREMIUM_STORAGE_MB`, `FREE_STORAGE_MB`…). */
 export function capDeArmazenamento(plan: PlanoEfetivo): number {
   const padraoMb = definicaoDoPlano(plan).quotas.armazenamentoMb
   if (padraoMb === null) return Infinity

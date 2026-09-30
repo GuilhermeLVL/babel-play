@@ -38,13 +38,13 @@ afterAll(async () => {
 })
 
 describe('GAP-011 — o webhook confere o pagamento na API do Asaas', () => {
-  it('vale o VALOR REAL da API, não o do payload (payload mente 19,90; Asaas diz 39,90 → pro)', async () => {
+  it('vale o VALOR REAL da API, não o do payload (payload diz 19,90 — um mês; Asaas diz 179 — o ano)', async () => {
     const u = asUserId('u-ver')
-    await subs.upsert(u, { plan: 'pro', status: 'trialing', provider: 'asaas', providerSubscriptionId: 'sub_1' })
+    await subs.upsert(u, { plan: 'premium', status: 'trialing', provider: 'asaas', providerSubscriptionId: 'sub_1' })
     const verificar = async () => ({
       id: 'pay_ver',
       status: 'CONFIRMED',
-      value: 39.9,
+      value: 179,
       subscription: 'sub_1',
       externalReference: 'u-ver',
     })
@@ -52,12 +52,13 @@ describe('GAP-011 — o webhook confere o pagamento na API do Asaas', () => {
     expect(r.estado).toBe('aplicado')
     const s = await subs.getActive(u)
     expect(s.status).toBe('active')
-    expect(s.plan, 'o valor autoritativo (39,90) decide o plano, não o payload (19,90)').toBe('pro')
+    expect(s.plan).toBe('premium')
+    expect(s.ciclo, 'o valor autoritativo (179) decide o ciclo, não o payload (19,90)').toBe('anual')
   })
 
   it('payload forja CONFIRMED, mas o Asaas diz PENDING → não aplica, não concede', async () => {
     const u = asUserId('u-ver')
-    await subs.upsert(u, { plan: 'pro', status: 'trialing', provider: 'asaas', providerSubscriptionId: 'sub_1' })
+    await subs.upsert(u, { plan: 'premium', status: 'trialing', provider: 'asaas', providerSubscriptionId: 'sub_1' })
     const verificar = async () => ({
       id: 'pay_ver',
       status: 'PENDING',
@@ -91,6 +92,7 @@ describe('GAP-011 — o webhook confere o pagamento na API do Asaas', () => {
       undefined,
     )
     expect(r.estado).toBe('aplicado')
-    expect((await subs.getActive(u)).plan).toBe('essencial')
+    // A intenção era o nome antigo (`essencial`, antes da 0041): o pagamento de 19,90 concede o Premium.
+    expect((await subs.getActive(u)).plan).toBe('premium')
   })
 })

@@ -19,14 +19,14 @@
  */
 import { type Request, type Response, Router } from 'express'
 
-import { PLANOS_DA_FLAG } from '../../src/core/flags'
+import { planoDaFlag } from '../../src/core/flags'
 import {
   COMPONENTES_DE_OFERTA,
   EVENTOS_DE_OFERTA,
   FORMATO_DA_VARIANTE,
   FORMATO_DO_ID_DE_GATILHO,
   IDS_FUNCIONAIS,
-  PLANOS_SUGERIDOS,
+  planoSugeridoDe,
   type RegistroDeOferta,
   SEM_OFERTA,
 } from '../../src/core/ofertas'
@@ -62,15 +62,18 @@ export function validarLoteDeOfertas(corpo: unknown, conhecidos: RotulosConhecid
     const e = bruto as Record<string, unknown>
     if (!incluso(EVENTOS_DE_OFERTA, e.evento)) return null
     if (!incluso(COMPONENTES, e.componente)) return null
-    if (!incluso(PLANOS_DA_FLAG, e.plano_atual)) return null
-    if (!incluso(PLANOS_SUGERIDOS, e.plano_sugerido)) return null
+    /* Os planos passam pela leitura tolerante (matriz v2): uma aba aberta com o bundle anterior manda
+       `essencial`/`pro`, e o evento dela conta como Premium em vez de derrubar o lote inteiro em 400. */
+    const planoAtual = planoDaFlag(e.plano_atual)
+    const planoSugerido = planoSugeridoDe(e.plano_sugerido)
+    if (!planoAtual || !planoSugerido) return null
     if (typeof e.gatilho !== 'string' || !FORMATO_DO_ID_DE_GATILHO.test(e.gatilho)) return null
     if (typeof e.variante !== 'string' || !FORMATO_DA_VARIANTE.test(e.variante)) return null
     saida.push({
       evento: e.evento as RegistroDeOferta['evento'],
       componente: e.componente as RegistroDeOferta['componente'],
-      plano_atual: e.plano_atual as RegistroDeOferta['plano_atual'],
-      plano_sugerido: e.plano_sugerido as RegistroDeOferta['plano_sugerido'],
+      plano_atual: planoAtual,
+      plano_sugerido: planoSugerido,
       gatilho: conhecidos.gatilhos.has(e.gatilho) ? e.gatilho : ROTULO_DESCONHECIDO,
       variante: conhecidos.variantes.has(e.variante) ? e.variante : ROTULO_DESCONHECIDO,
     })

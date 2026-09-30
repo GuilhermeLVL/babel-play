@@ -14,10 +14,12 @@
  *      dispara falas em paralelo não pode esvaziar o bucket de todo mundo sozinha.
  *   2. TOKEN BUCKET POR PROVEDOR E MODELO — capacidade = pedidos por minuto, reabastecido de forma
  *      contínua; ao lado, os tetos DIÁRIOS de pedidos e de tokens (UTC, como a Groq conta).
- *   3. PRIORIDADE POR PLANO, como LIMIAR sobre o saldo: o Pro alcança o bucket inteiro; o Essencial
- *      para quando sobra a reserva do Pro (20% por padrão); o convidado para na metade; a nuvem de
- *      alívio do Grátis (A10) só usa os 20% de cima — os 80% são de quem paga. Assim o pagante do
- *      plano de cima nunca encontra o bucket vazio por causa de quem paga menos.
+ *   3. PRIORIDADE POR PLANO, como LIMIAR sobre o saldo: o Premium (e o self-host) alcança o bucket
+ *      inteiro; quem não paga — convidado, Grátis sem alívio e, no C6, o TESTE do Premium — para na
+ *      metade (ou antes, se a reserva dos pagantes passar disso); a nuvem de alívio do Grátis (A10)
+ *      só usa os 20% de cima — os 80% são de quem paga. Assim quem paga nunca encontra o bucket vazio
+ *      por causa de quem não paga. (Matriz v2, ADR 0011: com um plano pago só, a faixa do meio que
+ *      o Essencial ocupava deixou de existir.)
  *   4. O 429 DO PROVEDOR ALIMENTA O BUCKET: zera o saldo e bloqueia até o `Retry-After` dele. O
  *      provedor sabe mais do que o nosso contador (outra réplica, outro app na mesma organização).
  *
@@ -30,11 +32,12 @@
  */
 import type { Response } from 'express'
 
+import { normalizarPlano } from '../../src/core/planos'
 import { contarAdmissaoRecusada, registrarLeitorDeSaldo } from '../http/metricas'
 import { configDeAdmissao, type LimitesDeModelo } from '../lib/config'
 
 export type TipoDeIa = 'stt' | 'llm'
-export type PlanoDeAdmissao = 'pro' | 'essencial' | 'convidado' | 'alivio'
+export type PlanoDeAdmissao = 'premium' | 'gratis' | 'alivio'
 export type MotivoDeRecusa = 'minuto' | 'dia' | 'tokens_dia' | 'provedor_limitou' | 'em_voo'
 
 export interface Recusa {
@@ -51,23 +54,30 @@ export interface Recusa {
 export const PISO_DO_ALIVIO = 0.8
 
 /**
- * O plano da assinatura vira uma das faixas de prioridade. `selfhost` é Pro: a chave é do próprio
+ * O plano da assinatura vira uma das faixas de prioridade. `selfhost` é Premium: a chave é do próprio
  * dono. A requisição da nuvem de alívio (A10: conta Grátis, oferta aceita, franquia conferida na porta)
- * é `alivio`. Todo o resto (free sem alívio, anônimo/convidado) é `convidado` — o seguro.
+ * é `alivio`. O TESTE de 14 dias do Premium (C6) tem os entitlements do Premium mas entra como
+ * `gratis`: ele ainda não paga, e a capacidade de quem paga não pode encolher por causa de uma
+ * campanha de teste. Todo o resto (free sem alívio, anônimo/convidado) é `gratis` — o seguro.
+ * O nome antigo (`pro`/`essencial`) é lido como Premium, como em toda fronteira.
  */
-export function planoDeAdmissao(plan: string | undefined, alivio = false): PlanoDeAdmissao {
+export function planoDeAdmissao(plan: string | undefined, alivio = false, teste = false): PlanoDeAdmissao {
   if (alivio) return 'alivio'
-  if (plan === 'pro' || plan === 'selfhost') return 'pro'
-  if (plan === 'essencial') return 'essencial'
-  return 'convidado'
+  if (teste) return 'gratis'
+  const plano = normalizarPlano(plan)
+  if (plano === 'premium' || plano === 'selfhost') return 'premium'
+  return 'gratis'
 }
 
-/** A fração do limite que o plano NÃO alcança. */
-export function pisoDoPlano(plano: PlanoDeAdmissao, reservaPro: number): number {
-  if (plano === 'pro') return 0
-  if (plano === 'essencial') return reservaPro
-  if (plano === 'alivio') return Math.max(PISO_DO_ALIVIO, reservaPro)
-  return Math.max(0.5, reservaPro)
+/**
+ * A fração do limite que o plano NÃO alcança. `reservaDosPagantes` é a fração do saldo que só quem
+ * paga alcança (`IA_ADMISSAO_RESERVA_PRO`, 0,2 por padrão): ela só pesa quando passa do piso de
+ * cada faixa gratuita (metade do balde; 80% no alívio).
+ */
+export function pisoDoPlano(plano: PlanoDeAdmissao, reservaDosPagantes: number): number {
+  if (plano === 'premium') return 0
+  if (plano === 'alivio') return Math.max(PISO_DO_ALIVIO, reservaDosPagantes)
+  return Math.max(0.5, reservaDosPagantes)
 }
 
 interface Balde {
@@ -188,7 +198,7 @@ export function admitirNoBalde(
   const agora = p.agora ?? Date.now()
   const cfg = configDeAdmissao()
   const lim = p.tipo === 'stt' ? cfg.stt : cfg.llm
-  const piso = pisoDoPlano(p.plano, cfg.reservaPro)
+  const piso = pisoDoPlano(p.plano, cfg.reservaDosPagantes)
   const tokens = Math.max(0, Math.round(p.tokens ?? 0))
   const b = baldeDe(p.tipo, p.provedor, p.modelo, agora)
 

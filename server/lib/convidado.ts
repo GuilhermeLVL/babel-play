@@ -38,7 +38,7 @@ import { createHmac } from 'node:crypto'
 import type { NextFunction, Request, Response } from 'express'
 import { ipKeyGenerator } from 'express-rate-limit'
 
-import { LIMITES_DO_CONVIDADO, PLAN_MATRIX, type PlanoEfetivo } from '../../src/core/planos'
+import { LIMITES_DO_CONVIDADO, normalizarPlano, PLAN_MATRIX, type PlanoEfetivo } from '../../src/core/planos'
 import { convidadosRepo } from '../db/repositories/convidados'
 import { gastoDeIaRepo } from '../db/repositories/gastoDeIa'
 import { subscriptionsRepo } from '../db/repositories/subscriptions'
@@ -115,9 +115,15 @@ async function receitaLiquidaDoMesUsd(agora: number): Promise<number> {
   if (receitaEmCache && receitaEmCache.ate > agora) return receitaEmCache.valor
   const porPlano = await subscriptionsRepo.contarAtivasPorPlano()
   let brl = 0
-  for (const { plan, n } of porPlano) {
-    const preco = (PLAN_MATRIX as Record<string, { precoMensalBrl: number | null } | undefined>)[plan]?.precoMensalBrl
-    if (preco) brl += n * Math.max(0, preco * (1 - IMPOSTO) - TAXA_FIXA_BRL)
+  for (const { plan, ciclo, n } of porPlano) {
+    /* Nome antigo conta como o atual (matriz v2): o Pro antigo que ainda paga R$ 39,90 entra pelo
+       preço do Premium — o pool erra para MENOS, que é o lado seguro de um orçamento gratuito. */
+    const plano = normalizarPlano(plan)
+    if (!plano) continue
+    const { precoMensalBrl, precoAnualBrl } = PLAN_MATRIX[plano]
+    /* O anual rende por mês a 12ª parte do ano líquido — uma taxa fixa por ano, não por mês. */
+    if (ciclo === 'anual' && precoAnualBrl) brl += (n * Math.max(0, precoAnualBrl * (1 - IMPOSTO) - TAXA_FIXA_BRL)) / 12
+    else if (precoMensalBrl) brl += n * Math.max(0, precoMensalBrl * (1 - IMPOSTO) - TAXA_FIXA_BRL)
   }
   const valor = brl / CAMBIO_BRL_POR_USD
   receitaEmCache = { valor, ate: agora + 10 * 60_000 }

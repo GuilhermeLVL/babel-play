@@ -94,9 +94,9 @@ describe('a cascata de tradução repassa o plano ao primário', () => {
 })
 
 describe('a matriz de planos, que é quem alimenta a decisão', () => {
-  it('os planos que prometem largerModels são pro e selfhost, e só eles', () => {
+  it('os planos que prometem largerModels são premium e selfhost, e só eles', () => {
     const comModeloGrande = Object.keys(PLAN_MATRIX).filter((p) => getEntitlements(p as never).largerModels)
-    expect(comModeloGrande.sort()).toEqual(['pro', 'selfhost'])
+    expect(comModeloGrande.sort()).toEqual(['premium', 'selfhost'])
   })
 
   it('quem não tem managedCloudLlm também não tem largerModels', () => {

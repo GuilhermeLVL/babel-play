@@ -21,7 +21,7 @@ afterAll(async () => {
 })
 afterEach(() => {
   delete process.env.AUTH_REQUIRED
-  delete process.env.PRO_MONTHLY_MANAGED_CALLS
+  delete process.env.PREMIUM_MONTHLY_MANAGED_CALLS
   // '' e não `delete`: o dotenv devolveria a variável do .env de quem roda.
   process.env.GROQ_API_KEY = ''
   process.env.GROQ_BASE_URL = ''
@@ -45,13 +45,13 @@ function fakeRes() {
 describe('quota enforcement (STT gerenciado)', () => {
   it('pro NO TETO → 402 quota_exceeded, sem tocar upstream', async () => {
     process.env.AUTH_REQUIRED = '1'
-    process.env.PRO_MONTHLY_MANAGED_CALLS = '1'
+    process.env.PREMIUM_MONTHLY_MANAGED_CALLS = '1'
     /* ADR 0007: a configuração (501) é conferida ANTES da cota, na porta do STT — sem chave o caso
        responderia 501 e nunca chegaria ao 402 que ele encena. */
     process.env.GROQ_API_KEY = 'chave-qe'
     process.env.GROQ_BASE_URL = 'http://203.0.113.20/v1'
     const u = asUserId('qe-pro')
-    await subs.upsert(u, { plan: 'pro', status: 'active' })
+    await subs.upsert(u, { plan: 'premium', status: 'active' })
     await quota.reserveManagedCall(u) // 1/1 → estourado
     const fetchSpy = vi.spyOn(globalThis, 'fetch')
     // WAV PCM de verdade: desde o P0-2 o caminho pago recusa (415) o que não sabe medir.

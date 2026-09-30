@@ -57,7 +57,7 @@ afterEach(async () => {
   await esvaziar()
 })
 
-async function comPlano(id: string, plan: 'pro' | 'essencial') {
+async function comPlano(id: string, plan: 'premium') {
   const u = asUserId(id)
   await subs.upsert(u, { plan, status: 'active' })
   return u
@@ -66,7 +66,7 @@ async function comPlano(id: string, plan: 'pro' | 'essencial') {
 describe('cache de tradução na rota', () => {
   it('a mesma frase (normalizada) paga UMA vez; a segunda sai do cache sem gastar cota', async () => {
     process.env.GROQ_API_KEY = 'chave'
-    const u = await comPlano('cache-1', 'pro')
+    const u = await comPlano('cache-1', 'premium')
     let chamadas = 0
     vi.stubGlobal('fetch', async () => (chamadas++, respostaOk('Obrigado.')))
 
@@ -84,7 +84,7 @@ describe('cache de tradução na rota', () => {
 
   it('outro idioma de destino ou outra natureza (fala x texto) não reaproveita', async () => {
     process.env.GROQ_API_KEY = 'chave'
-    const u = await comPlano('cache-2', 'pro')
+    const u = await comPlano('cache-2', 'premium')
     let chamadas = 0
     vi.stubGlobal('fetch', async () => (chamadas++, respostaOk('x')))
     await mtTranslateProxy({ userId: u, body: { text: 'hello', tgt: 'pt' }, requestId: 'r' }, mockRes())
@@ -93,15 +93,17 @@ describe('cache de tradução na rota', () => {
     expect(chamadas).toBe(3)
   })
 
-  it('outro MODELO não reaproveita: o Pro com modelo maior não recebe a tradução do menor', async () => {
+  /* Matriz v2: com um plano pago só, quem troca o modelo é o OPERADOR (`LLM_MODEL_GRANDE`), e não
+     mais a diferença entre dois planos — e a tradução feita pelo modelo de antes não pode sair do
+     cache como se fosse do modelo novo. */
+  it('outro MODELO não reaproveita: ligar o modelo maior não serve a tradução do menor', async () => {
     process.env.GROQ_API_KEY = 'chave'
-    process.env.LLM_MODEL_GRANDE = 'modelo-grande'
-    const essencial = await comPlano('cache-ess', 'essencial')
-    const pro = await comPlano('cache-pro', 'pro')
+    const u = await comPlano('cache-premium', 'premium')
     const modelos: string[] = []
     vi.stubGlobal('fetch', async (_u: any, init: any) => (modelos.push(JSON.parse(init.body).model), respostaOk('y')))
-    await mtTranslateProxy({ userId: essencial, body: { text: 'good night', tgt: 'pt' }, requestId: 'r' }, mockRes())
-    await mtTranslateProxy({ userId: pro, body: { text: 'good night', tgt: 'pt' }, requestId: 'r' }, mockRes())
+    await mtTranslateProxy({ userId: u, body: { text: 'good night', tgt: 'pt' }, requestId: 'r' }, mockRes())
+    process.env.LLM_MODEL_GRANDE = 'modelo-grande'
+    await mtTranslateProxy({ userId: u, body: { text: 'good night', tgt: 'pt' }, requestId: 'r' }, mockRes())
     expect(modelos).toHaveLength(2)
     expect(modelos[1]).toBe('modelo-grande')
   })

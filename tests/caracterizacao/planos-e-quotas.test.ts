@@ -111,31 +111,44 @@ describe('planos e quotas (modo publico)', () => {
     expect((await (await s.get('/api/me/uso', tokenB)).json()).plano).toBe('free')
   })
 
-  it('assinatura pro ativa em `subscriptions` muda os entitlements e o uso', async () => {
+  it('assinatura premium ativa em `subscriptions` muda os entitlements e o uso', async () => {
     const { subscriptionsRepo } = await s.load('../../server/db/repositories/subscriptions')
     const { asUserId } = await s.load('../../server/lib/authContext')
     await subscriptionsRepo.upsert(asUserId(A), {
-      plan: 'pro',
+      plan: 'premium',
       status: 'active',
       currentPeriodEnd: Date.now() + 30 * 86_400_000,
     })
 
     const ent = await (await s.get('/api/me/entitlements', tokenA)).json()
     expect(ent).toMatchObject({
-      plan: 'pro',
+      plan: 'premium',
       managedCloudLlm: true,
       managedCloudStt: true,
       // Fase 2 do lançamento: YouTube só no self-host (no hospedado a rota responde 403).
       youtubeImport: false,
       largerModels: true,
+      // Matriz v2: os entitlements novos chegam ao cliente pela mesma rota.
+      traducaoNuance: true,
+      vozNatural: true,
     })
-    expect(ent.armazenamento.teto).toBe(PLAN_MATRIX.pro.quotas.armazenamentoMb! * 1024 * 1024)
+    expect(ent.armazenamento.teto).toBe(PLAN_MATRIX.premium.quotas.armazenamentoMb! * 1024 * 1024)
 
     const uso = await (await s.get('/api/me/uso', tokenA)).json()
-    expect(uso).toMatchObject({ plano: 'pro', chamadas: { usado: 0, teto: PLAN_MATRIX.pro.quotas.chamadasMes } })
+    expect(uso).toMatchObject({
+      plano: 'premium',
+      chamadas: { usado: 0, teto: PLAN_MATRIX.premium.quotas.chamadasMes },
+    })
   })
 
-  it('pro: GET /api/ai/stt/available continua 501 sem chave no servidor', async () => {
+  it('matriz v2: a linha ANTIGA (pro) ainda no banco é lida como premium', async () => {
+    const { client } = await s.load('../../server/db/db')
+    await client.execute({ sql: "UPDATE subscriptions SET plan = 'pro' WHERE user_id = ?", args: [A] })
+    expect((await (await s.get('/api/me/entitlements', tokenA)).json()).plan).toBe('premium')
+    await client.execute({ sql: "UPDATE subscriptions SET plan = 'premium' WHERE user_id = ?", args: [A] })
+  })
+
+  it('premium: GET /api/ai/stt/available continua 501 sem chave no servidor', async () => {
     // caracterizacao: comportamento atual — sem LLM_API_KEY/GROQ_API_KEY/STT_API_KEY o plano nao
     // importa; a resposta e a mesma do free (501, available=false)
     const r = await s.get('/api/ai/stt/available', tokenA)
@@ -143,7 +156,7 @@ describe('planos e quotas (modo publico)', () => {
     expect(await r.json()).toEqual({ available: false })
   })
 
-  it('pro sem provedor configurado: POST /api/ai/mt e 501, e nao consome quota', async () => {
+  it('premium sem provedor configurado: POST /api/ai/mt e 501, e nao consome quota', async () => {
     const r = await s.post('/api/ai/mt', CORPO_MT, tokenA)
     expect(r.status).toBe(501)
     expect(await r.clone().json()).toEqual({
@@ -159,8 +172,8 @@ describe('planos e quotas (modo publico)', () => {
     const { asUserId } = await s.load('../../server/lib/authContext')
     const U = asUserId(A)
     const janela = new Date().toISOString().slice(0, 7)
-    const cap = capForPlan('pro')
-    expect(cap).toBe(PLAN_MATRIX.pro.quotas.chamadasMes)
+    const cap = capForPlan('premium')
+    expect(cap).toBe(PLAN_MATRIX.premium.quotas.chamadasMes)
 
     expect(await reserveManagedCall(U)).toBe(true)
     expect((await (await s.get('/api/me/uso', tokenA)).json()).chamadas.usado).toBe(1)
@@ -190,10 +203,10 @@ describe('planos e quotas (modo publico)', () => {
     const { subscriptionsRepo } = await s.load('../../server/db/repositories/subscriptions')
     const { asUserId } = await s.load('../../server/lib/authContext')
     await subscriptionsRepo.upsert(asUserId(A), { status: 'past_due', currentPeriodEnd: Date.now() + 86_400_000 })
-    expect((await (await s.get('/api/me/entitlements', tokenA)).json()).plan).toBe('pro')
+    expect((await (await s.get('/api/me/entitlements', tokenA)).json()).plan).toBe('premium')
     // Fase 3 do lancamento (Decreto 11.034/2022): cancelar para a renovacao, o pago continua valendo.
     await subscriptionsRepo.upsert(asUserId(A), { status: 'canceled' })
-    expect((await (await s.get('/api/me/entitlements', tokenA)).json()).plan).toBe('pro')
+    expect((await (await s.get('/api/me/entitlements', tokenA)).json()).plan).toBe('premium')
     await subscriptionsRepo.upsert(asUserId(A), { status: 'canceled', currentPeriodEnd: Date.now() - 1000 })
     expect((await (await s.get('/api/me/entitlements', tokenA)).json()).plan).toBe('free')
   })

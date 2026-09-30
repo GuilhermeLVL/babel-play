@@ -698,19 +698,27 @@ export const userInterests = sqliteTable(
 /**
  * SaaS Fatia 1 — ASSINATURA (o "que você pagou"), eixo SEPARADO do `role`. Fonte da verdade do plano
  * server-side (o billing escreve aqui via webhook — Fatia 6). Uma assinatura por usuário.
+ *
+ * MATRIZ V2 (migração 0041, ADR 0011): `plan` é `free | premium | selfhost` — linha antiga com
+ * `essencial`/`pro` é LIDA como `premium` (`normalizarPlano`) — e a assinatura diz o CICLO (mensal ou
+ * anual) e o MEIO do Asaas que cobra (assinatura recorrente, parcelamento do 12x ou Pix Automático),
+ * com o id do parcelamento quando é ele (C5).
  */
 export const subscriptions = sqliteTable(
   'subscriptions',
   {
     id: text('id').primaryKey(),
     ...meta,
-    plan: text('plan').notNull().default('free'), // 'free' | 'pro' | 'selfhost'
+    plan: text('plan').notNull().default('free'), // 'free' | 'premium' | 'selfhost' (PlanoDeAssinatura)
     status: text('status').notNull().default('active'), // 'trialing'|'active'|'past_due'|'canceled'
     currentPeriodEnd: integer('current_period_end'),
     cancelAtPeriodEnd: integer('cancel_at_period_end'), // 0/1
-    provider: text('provider'), // 'stripe' | 'lemonsqueezy' | null
+    provider: text('provider'), // 'asaas' | null (concedida pelo admin)
     providerCustomerId: text('provider_customer_id'),
     providerSubscriptionId: text('provider_subscription_id'),
+    ciclo: text('ciclo').notNull().default('mensal'), // CicloDeCobranca: 'mensal' | 'anual'
+    meio: text('meio'), // MeioDeCobranca: 'assinatura' | 'parcelamento' | 'pix_automatico'; null = sem cobrança
+    providerInstallmentId: text('provider_installment_id'), // o parcelamento do Asaas (12x), quando é ele
   },
   (t) => [unique('uq_subscriptions_user').on(t.userId)],
 )
@@ -772,8 +780,8 @@ export const usageCounters = sqliteTable(
   {
     id: text('id').primaryKey(),
     ...meta,
-    metric: text('metric').notNull(), // 'stt_seconds' | 'llm_tokens' | 'youtube_imports'
-    window: text('window').notNull(), // 'YYYY-MM'
+    metric: text('metric').notNull(), // 'stt_seconds' | 'llm_tokens' | 'stt_seconds_dia' | 'llm_tokens_dia' | …
+    window: text('window').notNull(), // 'YYYY-MM' (o mês) ou 'YYYY-MM-DD' (o dia local do uso justo)
     count: integer('count').notNull().default(0),
   },
   (t) => [
@@ -1072,8 +1080,5 @@ export const cacheDeTraducaoPersistente = sqliteTable(
     usadoEm: integer('usado_em').notNull(),
     acertos: integer('acertos').notNull().default(0),
   },
-  (t) => [
-    index('idx_cache_de_traducao_criado').on(t.criadoEm),
-    index('idx_cache_de_traducao_usado').on(t.usadoEm),
-  ],
+  (t) => [index('idx_cache_de_traducao_criado').on(t.criadoEm), index('idx_cache_de_traducao_usado').on(t.usadoEm)],
 )

@@ -5,29 +5,22 @@
  *
  * Fonte do plano (ordem): (1) `subscriptions` (fonte da verdade; o billing escreve aqui); (2) default por
  * MODO — público → 'free' (conta nova sem assinatura), local/self-host → 'selfhost'. NÃO honramos
- * `settings.ui.plan` (gravável pelo cliente = escalada A01); para conceder 'pro' sem billing, use a rota admin.
+ * `settings.ui.plan` (gravável pelo cliente = escalada A01); para conceder 'premium' sem billing, use a rota admin.
  *
  * Sem `Date.now()` proibido aqui — é módulo Node normal (não script de workflow).
  */
-import { definicaoDoPlano, ehPlanoDeAssinatura, type PlanoEfetivo } from '../../src/core/planos'
+import { definicaoDoPlano, type EntitlementsDoPlano, normalizarPlano, type PlanoEfetivo } from '../../src/core/planos'
 import { type Subscription, subscriptionsRepo } from '../db/repositories/subscriptions'
 import { authRequired } from './auth'
 import type { UserId } from './authContext'
 import { ehConvidadoNoContexto, memoDoRequest } from './contextoDeConvidado'
 import { log } from './logger'
 
-export interface Entitlements {
+/* O shape é o da MATRIZ, mais o plano: um entitlement novo (`traducaoNuance`, `vozNatural` na matriz
+   v2) chega ao servidor, ao `/api/me/entitlements` e ao `hasEntitlement` sem mais uma lista à mão. */
+export interface Entitlements extends EntitlementsDoPlano {
   plan: PlanoEfetivo
-  youtubeImport: boolean
-  managedCloudStt: boolean
-  managedCloudLlm: boolean
-  largerModels: boolean
 }
-
-/* O guard deriva da matriz. A lista duplicada que vivia aqui era o pior dos cinco pontos: uma
-   assinatura `essencial` VÁLIDA teria caído para `free` em silêncio se alguém esquecesse esta
-   linha ao adicionar o plano. */
-const isPlan = ehPlanoDeAssinatura
 
 /**
  * A assinatura CONCEDE o plano? Só com LASTRO de pagamento: `active` (webhook confirmou) sempre, e
@@ -64,11 +57,15 @@ export async function getPlanForUser(userId: UserId): Promise<PlanoEfetivo> {
   //    mesmo request perguntam o plano, e a mesma linha era lida 3x por STT/MT.
   const sub = await memoDoRequest(userId, 'assinatura', () => subscriptionsRepo.getActive(userId))
   if (sub) {
-    if (subConcede(sub) && isPlan(sub.plan)) return sub.plan
+    /* O NOME ANTIGO É LIDO COMO O ATUAL (matriz v2, ADR 0011): uma linha `essencial`/`pro` que a
+       migração 0041 não reescreveu — ou que um processo velho gravou durante o deploy — é
+       `premium`, e o assinante antigo não perde o acesso por causa de um nome. */
+    const plano = normalizarPlano(sub.plan)
+    if (subConcede(sub) && plano) return plano
     /* Plano fora da matriz degrada para `free` — o seguro — mas agora DEIXA RASTRO. Antes a
        degradação era silenciosa: uma linha corrompida no banco viraria "usuário free" sem que
        ninguém jamais soubesse o porquê. */
-    if (!isPlan(sub.plan)) {
+    if (!plano) {
       log('warn', { event: 'plano_desconhecido', error: String(sub.plan).slice(0, 40) })
       return 'free'
     }
@@ -77,16 +74,16 @@ export async function getPlanForUser(userId: UserId): Promise<PlanoEfetivo> {
 
   // 2) Público sem assinatura → free. NÃO honramos settings.ui.plan: é gravável pelo cliente
   //    (PUT /api/settings) e concedê-lo seria escalada de privilégio/gasto (OWASP A01). Para conceder
-  //    'pro' sem billing, use a rota admin (semeia subscriptions).
+  //    'premium' sem billing, use a rota admin (semeia subscriptions).
   return 'free'
 }
 
 /**
  * Deriva os entitlements de um plano — LENDO A MATRIZ, não um booleano.
  *
- * A versão anterior era `const paid = pro || selfhost` ligando as 4 flags de uma vez. O plano
- * Essencial quebra essa simetria de propósito: tradução de nuvem SIM, STT de nuvem NÃO — é o que
- * o torna barato. Um booleano único não consegue expressar isso.
+ * A versão anterior era `const paid = pro || selfhost` ligando as 4 flags de uma vez. Cada plano
+ * declara cada entitlement na matriz — um booleano único não consegue expressar, por exemplo, a
+ * nuvem do convidado sem a Tradução Nuance do Premium.
  */
 export function getEntitlements(plan: PlanoEfetivo): Entitlements {
   const def = definicaoDoPlano(plan)

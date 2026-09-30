@@ -288,6 +288,13 @@
       "when": 1790730000000,
       "tag": "0040_flag_nuvem_gratuita_alivio",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "6",
+      "when": 1790740000000,
+      "tag": "0041_planos_v2",
+      "breakpoints": true
     }
   ]
 }

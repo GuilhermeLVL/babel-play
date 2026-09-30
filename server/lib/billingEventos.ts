@@ -14,12 +14,22 @@
  */
 import { z } from 'zod'
 
-import { ehPlanoDeAssinatura, PLAN_MATRIX, type PlanoDeAssinatura, planoPeloPreco } from '../../src/core/planos'
+import {
+  type CicloDeCobranca,
+  ehPlanoPago,
+  normalizarPlano,
+  type PlanoDeAssinatura,
+  planoPeloPagamento,
+} from '../../src/core/planos'
 import { creditsRepo } from '../db/repositories/credits'
 import { subscriptionsRepo } from '../db/repositories/subscriptions'
 import { asaasConfigurado, buscarPagamento, estornarCobranca, type PagamentoAsaas } from './asaas'
 import { asUserId } from './authContext'
 import { log } from './logger'
+
+/** O período que um pagamento confirmado concede: o ciclo mais cinco dias para a próxima cobrança compensar. */
+export const DIAS_DO_PERIODO_MENSAL = 35
+export const DIAS_DO_PERIODO_ANUAL = 370
 
 /** GAP-011: confere um pagamento contra a fonte autoritativa (a API do Asaas). Injetável p/ teste. */
 export type VerificadorDePagamento = (id: string) => Promise<PagamentoAsaas | null>
@@ -143,11 +153,16 @@ export async function aplicarEvento(
       }
 
       const atual = await subscriptionsRepo.getActive(userIdEfetivo)
-      const planoPago = planoPeloPreco(vValor)
-      const planoDaIntencao: PlanoDeAssinatura =
-        atual && ehPlanoDeAssinatura(atual.plan) && PLAN_MATRIX[atual.plan].precoMensalBrl !== null
-          ? atual.plan
-          : 'essencial'
+      /* O PLANO E O CICLO SAEM DO VALOR (matriz v2): R$ 19,90 é o Premium mensal, R$ 179 o anual, e
+         os preços antigos (Essencial R$ 19,90, Pro R$ 39,90) continuam pagando o Premium mensal — a
+         assinatura recorrente de antes não perde o plano no mês seguinte. O ramo do parcelamento
+         (`parcelas`, a parcela do 12x) é do C5. */
+      const pago = planoPeloPagamento(vValor)
+      const planoPago = pago?.plano ?? null
+      /* A intenção gravada pode ter nome antigo (linha de antes da 0041): lida como o atual. */
+      const planoGravado = atual ? normalizarPlano(atual.plan) : null
+      const planoDaIntencao: PlanoDeAssinatura = planoGravado && ehPlanoPago(planoGravado) ? planoGravado : 'premium'
+      const cicloDaIntencao: CicloDeCobranca = atual?.ciclo === 'anual' ? 'anual' : 'mensal'
 
       /**
        * A ASSINATURA QUE PAGOU TEM DE SER A QUE ESTÁ REGISTRADA — `POST /api/billing/assinar`
@@ -171,20 +186,24 @@ export async function aplicarEvento(
        * uma escalada por uma negação de serviço a quem pagou.
        */
       const plano: PlanoDeAssinatura = planoPago ?? planoDaIntencao
-      if (planoPago && planoPago !== planoDaIntencao) {
-        const nota = `plano-divergente: pago ${planoPago} (R$ ${vValor}), intenção ${planoDaIntencao} — vale o pago`
+      const ciclo: CicloDeCobranca = pago?.ciclo ?? cicloDaIntencao
+      if (pago && (pago.plano !== planoDaIntencao || pago.ciclo !== cicloDaIntencao)) {
+        const nota = `plano-divergente: pago ${pago.plano} ${pago.ciclo} (R$ ${vValor}), intenção ${planoDaIntencao} ${cicloDaIntencao} — vale o pago`
         log('warn', { event: 'billing_plano_divergente', error: nota, requestId })
         motivo = motivo ? `${motivo}; ${nota}` : nota
       }
 
-      /* A validade sai do VENCIMENTO da parcela paga quando ele vem, com cinco dias de folga
-         para a próxima cobrança compensar. Sem `dueDate`, o mês redondo de antes. */
+      /* A validade sai do VENCIMENTO da parcela paga quando ele vem, com cinco dias de folga para a
+         próxima cobrança compensar: um mês e cinco dias no mensal, um ano e cinco dias no anual pago
+         inteiro. Sem `dueDate`, conta de hoje. (O 12x, que paga o ano em parcelas, é do C5.) */
       const vencimento = vVenc ? Date.parse(`${vVenc}T12:00:00Z`) : NaN
       const base = Number.isFinite(vencimento) ? vencimento : Date.now()
+      const dias = ciclo === 'anual' ? DIAS_DO_PERIODO_ANUAL : DIAS_DO_PERIODO_MENSAL
       await subscriptionsRepo.upsert(userIdEfetivo, {
         plan: plano,
         status: 'active',
-        currentPeriodEnd: base + 35 * 86_400_000,
+        ciclo,
+        currentPeriodEnd: base + dias * 86_400_000,
         cancelAtPeriodEnd: 0,
       })
       return { estado: 'aplicado', motivo }

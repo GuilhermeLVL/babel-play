@@ -438,7 +438,7 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
     paraQue:
-      'admissão de IA: fração do saldo de cada modelo reservada SÓ ao Pro (0 a 0,9). Padrão 0,2 — o Essencial usa até 80%; convidado, até 50% (ou menos, se a reserva passar disso)',
+      'admissão de IA: fração do saldo de cada modelo reservada SÓ a quem paga (o Premium; o nome da variável é de antes da matriz v2) (0 a 0,9). Padrão 0,2 — quem não paga (convidado, Grátis, teste) usa até 50%, e o alívio do Grátis até 20% (ou menos, se a reserva passar disso)',
   },
   {
     nome: 'IA_ADMISSAO_STT_RPD',
@@ -1117,8 +1117,9 @@ export interface LimitesDeModelo {
 export interface ConfigDeAdmissao {
   stt: LimitesDeModelo
   llm: LimitesDeModelo
-  /** fração do saldo que só o Pro alcança */
-  reservaPro: number
+  /** fração do saldo que só quem PAGA alcança (`IA_ADMISSAO_RESERVA_PRO`; o nome da env é de antes
+   da matriz v2 e fica — renomear variável de operação apagaria em silêncio um valor já configurado) */
+  reservaDosPagantes: number
   emVooStt: number
   emVooLlm: number
 }
@@ -1139,7 +1140,7 @@ function inteiroNaoNegativo(bruto: string | undefined, padrao: number): number {
  */
 export function configDeAdmissao(env: NodeJS.ProcessEnv = process.env): ConfigDeAdmissao {
   const reservaBruta = Number(env.IA_ADMISSAO_RESERVA_PRO?.trim().replace(',', '.'))
-  const reservaPro =
+  const reservaDosPagantes =
     env.IA_ADMISSAO_RESERVA_PRO?.trim() && Number.isFinite(reservaBruta) && reservaBruta >= 0 && reservaBruta <= 0.9
       ? reservaBruta
       : 0.2
@@ -1154,7 +1155,7 @@ export function configDeAdmissao(env: NodeJS.ProcessEnv = process.env): ConfigDe
       rpd: inteiroNaoNegativo(env.IA_ADMISSAO_LLM_RPD, 1000),
       tpd: inteiroNaoNegativo(env.IA_ADMISSAO_LLM_TPD, 200_000),
     },
-    reservaPro,
+    reservaDosPagantes,
     /* Piso 1: `0` em voo recusaria toda chamada, e quem quer desligar a nuvem tem `AI_ENABLED=0`. */
     emVooStt: Math.max(1, inteiroNaoNegativo(env.IA_EM_VOO_STT, 1)),
     emVooLlm: Math.max(1, inteiroNaoNegativo(env.IA_EM_VOO_LLM, 2)),

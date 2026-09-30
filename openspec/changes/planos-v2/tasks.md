@@ -21,12 +21,12 @@
 
 ## C2 — Servidor + migração 0041
 
-- [ ] 2.1 `subscriptions.ciclo`, `meio`, `provider_installment_id`; `essencial`/`pro` → `premium` em
+- [x] 2.1 `subscriptions.ciclo`, `meio`, `provider_installment_id`; `essencial`/`pro` → `premium` em
       `subscriptions`, `flags.regras` e `flags.payload`
-- [ ] 2.2 Leitura tolerante: `getPlanForUser`, regras de flag, rota admin
-- [ ] 2.3 Admissão `premium | gratis | alivio` (o teste do C6 entra como `gratis`)
-- [ ] 2.4 Métricas, webhook (`planoPeloPagamento`, ciclo e período), `/status` e `/faturas` com o ciclo
-- [ ] 2.5 Assinatura antiga continua valendo (webhook de R$ 19,90 ou R$ 39,90 → Premium)
+- [x] 2.2 Leitura tolerante: `getPlanForUser`, regras de flag, rota admin
+- [x] 2.3 Admissão `premium | gratis | alivio` (o teste do C6 entra como `gratis`)
+- [x] 2.4 Métricas, webhook (`planoPeloPagamento`, ciclo e período), `/status` e `/faturas` com o ciclo
+- [x] 2.5 Assinatura antiga continua valendo (webhook de R$ 19,90 ou R$ 39,90 → Premium)
 
 ## C3 — Cliente
 

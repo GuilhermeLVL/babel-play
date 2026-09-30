@@ -122,7 +122,7 @@ describe('GET /api/billing/faturas', () => {
       {
         id: 'pay_2',
         data: '2026-09-21',
-        descricao: 'Pro · mensal',
+        descricao: 'Premium · mensal',
         valor: 19.9,
         metodo: 'pix',
         status: 'paga',
@@ -132,7 +132,7 @@ describe('GET /api/billing/faturas', () => {
       {
         id: 'pay_1',
         data: '2026-08-22',
-        descricao: 'Pro · mensal',
+        descricao: 'Premium · mensal',
         valor: 19.9,
         metodo: null,
         status: 'falhou',
@@ -142,7 +142,7 @@ describe('GET /api/billing/faturas', () => {
       {
         id: 'pay_0',
         data: '2026-07-22',
-        descricao: 'Pro · mensal',
+        descricao: 'Premium · mensal',
         valor: 19.9,
         metodo: 'cartao',
         status: 'estornada',
@@ -152,7 +152,7 @@ describe('GET /api/billing/faturas', () => {
       {
         id: 'pay_z',
         data: '2026-10-22',
-        descricao: 'Pro · mensal',
+        descricao: 'Premium · mensal',
         valor: 19.9,
         metodo: 'boleto',
         status: 'pendente',

@@ -81,12 +81,12 @@ function tetoComEnv(padrao: number | null, envNome: string): number {
   return padrao === null ? Infinity : padrao
 }
 
-/** Env de quota por plano: `PRO_MONTHLY_MANAGED_CALLS`, `ESSENCIAL_MONTHLY_MANAGED_CALLS`… */
+/** Env de quota por plano: `PREMIUM_MONTHLY_MANAGED_CALLS`, `FREE_STORAGE_MB`… (geradas da matriz, `config.ts`). */
 const envDoPlano = (plan: PlanoEfetivo, sufixo: string): string => `${plan.toUpperCase()}_${sufixo}`
 
 /**
- * Teto mensal de CHAMADAS gerenciadas. O default vem da matriz (`src/core/planos.ts`: 20.000 no
- * Essencial, 26.000 no Pro, ∞ no selfhost, 0 no free — que já é barrado antes, pelo entitlement), e
+ * Teto mensal de CHAMADAS gerenciadas. O default vem da matriz (`src/core/planos.ts`: 50.000 no
+ * Premium, ∞ no selfhost, 0 no free — que já é barrado antes, pelo entitlement), e
  * `<PLANO>_MONTHLY_MANAGED_CALLS` sobrepõe.
  *
  * O DEFAULT ERA 1.000, E ISSO ENTREGAVA ~50 MINUTOS DE CONVERSA POR MÊS. Três rotas dividem este
@@ -147,9 +147,9 @@ export async function refundManagedCall(userId: UserId, modo: ModoDaCota = 'plan
 
 /**
  * Teto MENSAL DE SEGUNDOS de áudio no STT gerenciado. O default vem da matriz (`src/core/planos.ts`:
- * 54.000 s = 15 h no Essencial, 72.000 s = 20 h no Pro, ∞ no selfhost, 0 no free — barrado antes,
- * pelo entitlement), e `<PLANO>_MONTHLY_STT_SECONDS` sobrepõe. Os segundos contados são os REAIS da
- * fala (`segundosDeAudioDoUsuario`): 15 h no plano são 15 h de áudio transcrito.
+ * 144.000 s = 40 h no Premium — o empate de custo na pilha atual, até o B7 —, ∞ no selfhost, 0 no
+ * free — barrado antes, pelo entitlement), e `<PLANO>_MONTHLY_STT_SECONDS` sobrepõe. Os segundos
+ * contados são os REAIS da fala (`segundosDeAudioDoUsuario`): 40 h no plano são 40 h de áudio transcrito.
  *
  * POR QUE ESTE TETO EXISTE, ao lado do de chamadas. O de chamadas é fair-use; este é o de DINHEIRO.
  * A Groq cobra STT por hora de áudio, então o gasto de um usuário depende de quanto tempo ele fala,
@@ -157,8 +157,8 @@ export async function refundManagedCall(userId: UserId, modo: ModoDaCota = 'plan
  * ordens de grandeza mais que o assinante típico — e o contador de chamadas nem pisca.
  *
  * O CUSTO DO DONO é maior que o número da cota, e isso é deliberado: com falas de ~6 s o provedor
- * fatura ~10/6 dos segundos contados aqui (mínimo de 10 s por requisição). No pior caso as 15 h do
- * Essencial custam ~25 h faturadas (~US$ 1,00/mês a US$ 0,04/h) — dentro da margem do plano. O teto
+ * fatura ~10/6 dos segundos contados aqui (mínimo de 10 s por requisição); com o VAD de 800 ms a
+ * bancada mediu 1,08× (`FATOR_FATURADO_DO_STT`), e é esse o número da conta da matriz. O teto
  * que protege a FATURA como um todo é o orçamento global (`orcamentoDeIa.ts`), que conta os
  * segundos faturados.
  */

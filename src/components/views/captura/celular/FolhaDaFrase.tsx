@@ -6,6 +6,24 @@ import { toast } from '../../../Toast';
 import FolhaDeBaixo from './FolhaDeBaixo';
 
 const SombraDaFala = lazy(() => import('../../analise/SombraDaFala'));
+/* A Tradução Nuance da frase (D4): "Outras formas" e Formal/Informal chegam por `lazy()`. */
+const NuanceDaFrase = lazy(() => import('../nuance/NuanceDaFrase'));
+
+/** O que a folha precisa para a Tradução Nuance da frase (D4 da Fase D). */
+export interface NuanceNaFolhaDaFrase {
+  /** A pessoa tem a Tradução Nuance (`traducaoNuance`); sem ela, os botões vêm com cadeado. */
+  disponivel: boolean;
+  /** O idioma da tradução (o "outro" idioma do par). */
+  destino: string;
+  /** As falas anteriores (≤ 3). */
+  contexto?: ReadonlyArray<string>;
+  /** Fala do microfone (o prompt do intérprete). */
+  falada?: boolean;
+  /** O convite ao Premium — ausente no perfil protegido. */
+  aoConhecer?: () => void;
+  /** A pessoa escolheu uma forma: quem chama troca a tradução da fala. */
+  aoEscolher: (traducao: string) => void;
+}
 
 /** A fala tocada, no que a folha precisa. */
 export interface FalaTocada {
@@ -48,6 +66,7 @@ export default function FolhaDaFrase({
   ehNova,
   aoPraticar,
   aoFechar,
+  nuance,
 }: {
   fala: FalaTocada;
   aoOuvir: (texto: string, lang: string, lenta: boolean) => void;
@@ -55,6 +74,8 @@ export default function FolhaDaFrase({
   ehNova?: (palavra: string) => boolean;
   aoPraticar?: () => void;
   aoFechar: () => void;
+  /** A Tradução Nuance da frase (D4). Ausente = a folha de sempre. */
+  nuance?: NuanceNaFolhaDaFrase;
 }) {
   const [praticando, setPraticando] = useState(false);
   const palavras = palavrasDaFrase(fala.texto);
@@ -99,7 +120,24 @@ export default function FolhaDaFrase({
       </div>
       {praticando && (
         <Suspense fallback={null}>
-          <SombraDaFala texto={fala.texto} idioma={fala.lang} aoOuvirOriginal={() => aoOuvir(fala.texto, fala.lang, false)} />
+          <SombraDaFala
+            texto={fala.texto}
+            idioma={fala.lang}
+            aoOuvirOriginal={() => aoOuvir(fala.texto, fala.lang, false)}
+          />
+        </Suspense>
+      )}
+      {nuance && (
+        <Suspense fallback={null}>
+          <NuanceDaFrase
+            fala={fala}
+            destino={nuance.destino}
+            contexto={nuance.contexto}
+            falada={nuance.falada}
+            disponivel={nuance.disponivel}
+            aoConhecer={nuance.aoConhecer}
+            aoEscolher={nuance.aoEscolher}
+          />
         </Suspense>
       )}
       {palavras.length > 0 && (

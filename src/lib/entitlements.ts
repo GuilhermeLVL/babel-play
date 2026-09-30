@@ -34,7 +34,10 @@ export interface Entitlements {
   managedCloudLlm: boolean;
   /** Modelos locais maiores (whisper-base+) — mais download/latência, mais precisão. */
   largerModels: boolean;
-  /** A Tradução Nuance (matriz v2): o nível `nuance` da tradução de nuvem. */
+  /**
+   * A Tradução Nuance (Fase D): outras formas, formal/informal, variantes e glossário. A tela só PINTA
+   * (com cadeado sem ela); quem decide é o servidor, pelo mesmo campo — nunca pelo nome do plano.
+   */
   traducaoNuance: boolean;
   /** A voz natural da nuvem no modo intérprete (matriz v2); sem ela, a voz do aparelho. */
   vozNatural: boolean;

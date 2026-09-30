@@ -5,11 +5,13 @@
  */
 import { raw, Router } from 'express'
 
+import { alternativasProxy } from '../ai/alternativas'
 import { mtTranslateProxy } from '../ai/mtProxy'
 import { llmChatProxy, providerTest } from '../ai/proxy'
 // F14-02: a leitura de env sai do handler. B1 (Fase B): a pergunta é do registro de provedores, a
 // MESMA que a porta da transcrição faz — as duas discordavam (B0).
 import { sttDeNuvemConfigurado } from '../ai/registroDeProvedores'
+import { apagarDoGlossario, gravarNoGlossario, listarGlossario } from '../ai/rotasDoGlossario'
 import { portaDoStt, sttTranscribeProxy } from '../ai/sttProxy'
 import { credentialsRepo } from '../db/repositories/credentials'
 import { getPlanForUser, hasEntitlement } from '../lib/entitlements'
@@ -34,6 +36,14 @@ aiRouter.post(
 )
 // Tradução via LLM (Groq) — 501 sem chave; sustenta a cadeia de MT e o modo multi-idioma.
 aiRouter.post('/mt', mtTranslateProxy)
+/* "Outras formas" ao tocar numa frase (D4 da Fase D): até 3 opções e uma nota, só com a Tradução
+   Nuance (402 `exige_nuance` pelo entitlement), com a cota, a admissão e o custo das outras funções. */
+aiRouter.post('/mt/alternativas', alternativasProxy)
+/* O GLOSSÁRIO PESSOAL da Tradução Nuance (D3 da Fase D): ler e apagar em qualquer plano (é dado da
+   pessoa), gravar só com `traducaoNuance` (`server/ai/rotasDoGlossario.ts`). */
+aiRouter.get('/glossario', listarGlossario)
+aiRouter.post('/glossario', gravarNoGlossario)
+aiRouter.delete('/glossario/:id', apagarDoGlossario)
 /*
  * O roteador de STT pergunta se a nuvem está disponível SEM gastar chamada de API — e a resposta
  * é POR USUÁRIO, não só por configuração.

@@ -602,6 +602,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     criticidade: 'degrada-capacidade',
     paraQue: 'production liga CSP, exige auth por padrão e muda o pipeline do Vite',
   },
+  {
+    nome: 'NUANCE_AO_VIVO',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      '1 liga a Tradução Nuance também na legenda AO VIVO para quem tem o entitlement traducaoNuance (server/ai/niveis.ts, D1 da Fase D). Ausente: a legenda ao vivo usa o modelo rápido e a nuance entra só quando a pessoa toca numa frase (o cliente pede nivel "nuance") — o padrão do dono, porque é a legenda ao vivo que roda o tempo todo',
+  },
   { nome: 'OLLAMA_MODEL', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'modelo do Ollama local' },
   {
     nome: 'OLLAMA_URL',

@@ -206,6 +206,25 @@ describe('IDOR — usuario B contra os recursos de A', () => {
       return lista.some((c) => c.id === id)
     }
 
+    /* Uma entrada do glossário de A (D3 da Fase D), direto no repositório: a gravação pela rota exige
+       a Tradução Nuance, e A é Grátis aqui. O marcador vai na TRADUÇÃO, o campo que volta no corpo. */
+    const { glossarioRepo } = await s.load('../../server/db/repositories/glossario')
+    let contadorDeGlossario = 0
+    const novaEntradaDoGlossario = async (): Promise<string> => {
+      const n = ++contadorDeGlossario
+      const r = await glossarioRepo.gravar(
+        A,
+        { origem: 'en', destino: 'pt', termo: `termo ${n}`, termoNorm: `termo ${n}`, traducao: `traducao ${MARCADOR}` },
+        500,
+      )
+      if (!r.ok) throw new Error('semeadura do glossário falhou')
+      return r.entrada.id
+    }
+    const entradaDoGlossarioExiste = (id: string) => async () => {
+      const r = (await (await s.get('/api/ai/glossario', ta)).json()) as { entradas: Array<{ id: string }> }
+      return r.entradas.some((e) => e.id === id)
+    }
+
     semeaduras = {
       'GET /api/sessions/:id': async () => {
         const { id } = await novaSessao()
@@ -357,6 +376,10 @@ describe('IDOR — usuario B contra os recursos de A', () => {
       'DELETE /api/ai/credentials/:id': async () => {
         const id = await novaCredencial()
         return { caminho: `/api/ai/credentials/${id}`, aindaExiste: credencialExiste(id) }
+      },
+      'DELETE /api/ai/glossario/:id': async () => {
+        const id = await novaEntradaDoGlossario()
+        return { caminho: `/api/ai/glossario/${id}`, aindaExiste: entradaDoGlossarioExiste(id) }
       },
     }
     /* Migração do banco efêmero + provisionamento das duas contas passam dos 10 s de default. */

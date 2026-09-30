@@ -3,6 +3,7 @@ import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { alivioAceito, cabecalhoDoAlivio, registrarRecusaDoAlivio } from '../../lib/nuvemDeAlivio/estado';
 import { sinalizarRecusaDaNuvem } from '../../lib/ofertas/eventos';
 import { registrarRecusaDoUsoJusto } from '../../lib/usoJustoDoDia';
+import { nuanceDasPreferencias } from '../../lib/traducao/preferenciasDaNuance';
 import type { MtResult, TranslationProvider } from '../capabilities';
 import { PAUSA_MAXIMA_MS, PausaDaNuvem } from '../pausaDaNuvem';
 
@@ -54,6 +55,9 @@ export class ServerLlmMt implements TranslationProvider {
         tgt,
         contexto: opts?.contexto?.slice(-3),
         falada: opts?.falada === true,
+        /* A TRADUÇÃO NUANCE (D2/D6): o registro padrão e a variante dos Ajustes, só fora do padrão e
+           só para quem tem a capacidade. Sem `nivel`: a legenda ao vivo fica na rápida (D1). */
+        ...nuanceDasPreferencias(tgt),
       }),
       signal: opts?.signal,
     });

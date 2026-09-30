@@ -24,6 +24,10 @@
  *               do raciocínio — o JSON em si tem ~30 tokens.
  *   traducao    4.000 caracteres: um parágrafo de leitura; legenda ao vivo tem ~100. 1.200 de
  *               saída, o teto que a bancada de tradução validou (`mtProxy.ts`).
+ *   alternativas 500 caracteres: UMA frase tocada na conversa (D4 da Fase D, "Outras formas"),
+ *               mais a tradução atual. 900 de saída: três opções da frase + a nota em JSON (~150
+ *               tokens) mais a folga do raciocínio. Temperatura 0,5: o pedido é justamente variar.
+ *               Pior caso: ~600 tokens de entrada + 900 de saída ≈ US$ 0,0006 no gpt-oss-120b.
  *
  * O teto ABSOLUTO continua em `llmClient.ts` (`MAX_PROMPT_CHARS`): é a rede de segurança para
  * qualquer caminho que um dia chame o provedor sem passar por aqui.
@@ -31,7 +35,7 @@
 import { TETO_DE_ENTRADA_DO_TUTOR } from '../../src/lib/ichat/contencao'
 import type { AgeProfileType } from '../../src/lib/profile'
 
-export type FuncaoDeIa = 'tutor' | 'corretor' | 'traducao'
+export type FuncaoDeIa = 'tutor' | 'corretor' | 'traducao' | 'alternativas'
 
 interface DefinicaoDeFuncao {
   /** Caracteres de conteúdo do cliente aceitos (o `system` é nosso e não conta). */
@@ -45,6 +49,7 @@ export const FUNCOES_DE_IA: Readonly<Record<FuncaoDeIa, DefinicaoDeFuncao>> = {
   tutor: { tetoEntrada: TETO_DE_ENTRADA_DO_TUTOR, maxTokens: 900, temperatura: 0.4 },
   corretor: { tetoEntrada: 1_000, maxTokens: 400, temperatura: 0 },
   traducao: { tetoEntrada: 4_000, maxTokens: 1_200, temperatura: 0 },
+  alternativas: { tetoEntrada: 500, maxTokens: 900, temperatura: 0.5 },
 }
 
 /**

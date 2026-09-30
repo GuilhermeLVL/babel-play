@@ -136,6 +136,7 @@ import { DominantLangTracker } from '../../lib/convoLang';
 import { classificarDispositivo, dispositivoDaRota, lerSinaisDoDispositivo } from '../../lib/dispositivo/perfil';
 import { useSondaGuardada } from '../../lib/dispositivo/useSondaGuardada';
 import { edicaoEstatica } from '../../lib/edicaoEstatica';
+import { getEntitlements } from '../../lib/entitlements';
 import { marcarOcupacaoDaCaptura } from '../../lib/filaDeRecompensas';
 import { t } from '../../lib/i18n';
 import { estaAnonimo } from '../../lib/identidade';
@@ -155,6 +156,7 @@ import { OrdemDasTraducoes } from '../../lib/ordemDaTraducao';
 import { usePalavrasAprendidas } from '../../lib/palavrasAprendidas';
 import { destinoDaTraducao, PerfilAdaptativoDeIdioma } from '../../lib/perfilDeIdioma';
 import { coreOnly } from '../../lib/profile';
+import { perfilProtegido } from '../../lib/protecaoDoMenor';
 import { play } from '../../lib/soundFx';
 // Identificação automática de voz (diarização leve): embedding WeSpeaker por enunciado
 // (worker WASM, 6,7MB) + agrupamento online → "Pessoa 1/2/3" com cor própria.
@@ -183,7 +185,7 @@ import AvisoDoTradutorLocal from './captura/AvisoDoTradutorLocal';
 import CapturaNaoSalva from './captura/CapturaNaoSalva';
 import CapturaNoCelular from './captura/celular/CapturaNoCelular';
 import FolhaDaFrase, { type FalaTocada } from './captura/celular/FolhaDaFrase';
-import FolhaDaPalavra from './captura/celular/FolhaDaPalavra';
+import FolhaDaPalavra, { type NuanceNaFolhaDaPalavra } from './captura/celular/FolhaDaPalavra';
 import FolhaDeOpcoes from './captura/celular/FolhaDeOpcoes';
 // Subcomponentes locais da captura (um arquivo por componente, em `views/captura/`).
 import EncerrarSessao from './captura/EncerrarSessao';
@@ -2596,6 +2598,25 @@ export default function LiveCapture({
   const examinarNoCelular = useFuncaoEstavel((w: VocabWord, lang: string, frase: string) => {
     setPalavraTocada({ palavra: w.word, frase, lang, daFrase: null });
   });
+  /* A TRADUÇÃO NUANCE NAS FOLHAS (Fase D). O destino de uma fala é o "outro" idioma do par — o seu,
+     quando ela é do idioma que você estuda (a mesma regra do fichamento, `palavraDaFala.ts`). O
+     convite ao Premium é promocional: o perfil protegido não o recebe (vê o cadeado e o texto). A
+     tela só PINTA pelo entitlement; quem decide é o servidor, pelo mesmo campo. */
+  const destinoDaFala = (lang: string): string => {
+    const { mine, studying } = langConfigRef.current;
+    return baseLang(lang) === baseLang(mine) ? studying : mine;
+  };
+  const conhecerOPremium = perfilProtegido()
+    ? undefined
+    : () => {
+        fecharFolhasDoCelular();
+        onChangeView?.('planos');
+      };
+  const nuanceDaPalavra = (lang: string): NuanceNaFolhaDaPalavra => ({
+    disponivel: getEntitlements().traducaoNuance,
+    destino: destinoDaFala(lang),
+    aoConhecer: conhecerOPremium,
+  });
   const acoesDaFalaNoCelular = useCallback(
     (segment: { id: string; originalText: string; translatedText: string }, lang: string) => (
       <div className="cel-acoes-da-fala">
@@ -2806,6 +2827,7 @@ export default function LiveCapture({
           aoPraticar={praticarNoCelular}
           aoVoltar={palavraTocada.daFrase ? () => setPalavraTocada(null) : undefined}
           aoFechar={fecharFolhasDoCelular}
+          nuance={nuanceDaPalavra(palavraTocada.lang)}
         />
       )}
       {opcoesAbertas && (

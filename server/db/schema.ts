@@ -1072,8 +1072,34 @@ export const cacheDeTraducaoPersistente = sqliteTable(
     usadoEm: integer('usado_em').notNull(),
     acertos: integer('acertos').notNull().default(0),
   },
-  (t) => [
-    index('idx_cache_de_traducao_criado').on(t.criadoEm),
-    index('idx_cache_de_traducao_usado').on(t.usadoEm),
-  ],
+  (t) => [index('idx_cache_de_traducao_criado').on(t.criadoEm), index('idx_cache_de_traducao_usado').on(t.usadoEm)],
+)
+
+/**
+ * O GLOSSÁRIO PESSOAL DA TRADUÇÃO NUANCE (D3 da Fase D, migração 0042) — `server/ai/glossario.ts`.
+ *
+ * "Sempre traduzir assim": a pessoa fixa a tradução de uma palavra salva (a folha da palavra) ou de
+ * uma frase (a escolha entre as "Outras formas"), e o servidor injeta no prompt as entradas que
+ * aparecem no texto — no máximo 12 por pedido, como DADO delimitado. Até 500 por pessoa.
+ *
+ * `origem`/`destino` são o IDIOMA base (`en`, `pt`), sem a variante: o termo inglês que a pessoa
+ * fixou em português vale para pt-BR e pt-PT. `termo_norm` (NFC, minúsculas, espaços colapsados) é a
+ * chave do UNIQUE — "Deadline" e "deadline" são a mesma entrada. É dado do titular: entra em
+ * `TABELAS_DO_TITULAR` (exportação e exclusão), e o resultado de uma tradução com glossário NUNCA
+ * vai para o cache compartilhado (`cache_de_traducao`), que é de todos.
+ */
+export const glossario = sqliteTable(
+  'glossario',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull(),
+    origem: text('origem').notNull(),
+    destino: text('destino').notNull(),
+    termo: text('termo').notNull(),
+    termoNorm: text('termo_norm').notNull(),
+    traducao: text('traducao').notNull(),
+    criadoEm: integer('criado_em').notNull(),
+    atualizadoEm: integer('atualizado_em').notNull(),
+  },
+  (t) => [uniqueIndex('uq_glossario_termo').on(t.userId, t.origem, t.destino, t.termoNorm)],
 )

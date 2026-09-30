@@ -25,6 +25,7 @@ import { planoDeAdmissao, responderNuvemOcupada } from './admissao'
 import { cabeNoCache, type ConsultaDeTraducao, guardarTraducao, lerTraducao } from './cacheDeTraducao'
 import { type AdmissaoDaCascata, admitirCascata, encerrarAdmissao, percorrerCascata } from './cascata'
 import { FUNCOES_DE_IA, maxTokensDaTraducao } from './funcoesDeIa'
+import { glossarioDoPedido } from './glossario'
 import { type MensagemDeChat, tamanhoDoPrompt } from './llmClient'
 import { cascataDaTraducao } from './niveis'
 import { aplicarNuance } from './nuanceDaTraducao'
@@ -105,7 +106,7 @@ const bodySchema = z
 function mensagensDeTextoEscrito(text: string, tgt: string, src?: string, opcoes?: OpcoesDaNuance): MensagemDeChat[] {
   return [
     { role: 'system', content: systemTextoEscrito(tgt, src, opcoes) },
-    { role: 'user', content: userTextoEscrito(text) },
+    { role: 'user', content: userTextoEscrito(text, opcoes) },
   ]
 }
 
@@ -193,7 +194,18 @@ async function traduzir(req: Request, res: Response, rastro: RastroDeIa): Promis
   /* O REGISTRO E A VARIANTE (D2): só para quem tem `traducaoNuance`; o resto recebe o prompt de
      sempre, e por isso a chave de sempre (`nuanceDaTraducao.ts`). */
   const nuance = aplicarNuance({ tgt, src, registro, variante }, planoDoUsuario)
-  const opcoesDaNuance: OpcoesDaNuance = nuance.registro ? { registro: nuance.registro } : {}
+  /* O GLOSSÁRIO PESSOAL (D3, `glossario.ts`): as entradas que aparecem no texto, no máximo 12, só
+     para quem tem `traducaoNuance` — o Grátis nem faz a leitura. */
+  const glossario = planoDoUsuario.traducaoNuance ? await glossarioDoPedido(req.userId, { texto: text, src, tgt }) : []
+  if (glossario.length) rastro.anotar({ glossario: glossario.length })
+  const opcoesDaNuance: OpcoesDaNuance = {
+    ...(nuance.registro ? { registro: nuance.registro } : {}),
+    ...(glossario.length ? { glossario } : {}),
+  }
+  /* COM GLOSSÁRIO, NADA DE CACHE — nem ler, nem gravar. O L1 e o L2 são COMPARTILHADOS (a chave não
+     tem dono): gravar serviria a escolha desta pessoa a quem diz a mesma frase; ler serviria a ela a
+     tradução sem a escolha dela. A frase com termo do glossário vai sempre ao provedor. */
+  const usaCache = glossario.length === 0
 
   /* CACHE ANTES DE TUDO QUE CUSTA (cacheDeTraducao.ts): a mesma frase, no mesmo par, pelo mesmo
      modelo, não vai ao provedor de novo — nem gasta cota do usuário, porque não custa nada a ninguém.
@@ -213,16 +225,16 @@ async function traduzir(req: Request, res: Response, rastro: RastroDeIa): Promis
     versaoDoPrompt: VERSAO_DO_PROMPT,
     ...(nuance.chave ? { registro: nuance.chave } : {}),
   }
-  const cacheavel = cabeNoCache(text)
-  const leitura = await lerTraducao(consulta)
-  if (leitura.l1) contarNivelDoCacheDeTraducao('l1', leitura.l1 === 'acerto')
-  if (leitura.l2) contarNivelDoCacheDeTraducao('l2', leitura.l2 === 'acerto')
-  if (cacheavel) contarCacheDeTraducao(leitura.guardada !== null)
-  const guardada = leitura.guardada
+  const cacheavel = usaCache && cabeNoCache(text)
+  const leitura = usaCache ? await lerTraducao(consulta) : null
+  if (leitura?.l1) contarNivelDoCacheDeTraducao('l1', leitura.l1 === 'acerto')
+  if (leitura?.l2) contarNivelDoCacheDeTraducao('l2', leitura.l2 === 'acerto')
+  if (cacheavel) contarCacheDeTraducao(leitura?.guardada != null)
+  const guardada = leitura?.guardada
   if (guardada) {
     rastro.anotar({ cacheHit: true })
     log('info', {
-      event: leitura.nivel === 'l2' ? 'mt_cache_hit_l2' : 'mt_cache_hit',
+      event: leitura?.nivel === 'l2' ? 'mt_cache_hit_l2' : 'mt_cache_hit',
       route: '/api/ai/mt',
       status: 200,
       requestId: req.requestId,
@@ -245,7 +257,7 @@ async function traduzir(req: Request, res: Response, rastro: RastroDeIa): Promis
   const messages: MensagemDeChat[] = falada
     ? [
         { role: 'system', content: systemComunicativo(nuance.tgt, nuance.src, opcoesDaNuance) },
-        { role: 'user', content: userComunicativo(text, contexto) },
+        { role: 'user', content: userComunicativo(text, contexto, opcoesDaNuance) },
       ]
     : mensagensDeTextoEscrito(text, nuance.tgt, nuance.src, opcoesDaNuance)
 
@@ -287,6 +299,7 @@ async function traduzir(req: Request, res: Response, rastro: RastroDeIa): Promis
       estimativa,
       falada,
       consulta,
+      usaCache,
       admissao: admitida.admissao,
       gratuita,
       planoDaAssinatura: planoDoUsuario.plan,
@@ -311,6 +324,8 @@ async function traduzirAdmitido(
     estimativa: number
     falada: boolean | undefined
     consulta: ConsultaDeTraducao
+    /** `false` com glossário (D3): a tradução é desta pessoa e não vai ao cache compartilhado. */
+    usaCache: boolean
     admissao: AdmissaoDaCascata
     gratuita: PortaGratuita
     /** O plano da assinatura — rótulo do custo por plano (`ia_custo_usd_total{plano}`). */
@@ -406,7 +421,8 @@ async function traduzirAdmitido(
        pagante recebia a do barato como se fosse a da nuance. Agora ela vai para a chave de quem a
        escreveu: serve a quem PLANEJA aquele modelo (o Grátis, se é o barato), e o pagante volta a
        tentar a nuance no próximo pedido. */
-    await guardarTraducao({ ...consulta, modelo: entregue.model }, { texto: entregue.texto, modelo: entregue.model })
+    if (p.usaCache)
+      await guardarTraducao({ ...consulta, modelo: entregue.model }, { texto: entregue.texto, modelo: entregue.model })
   } catch (err) {
     res.status(502).json({ error: `falha na tradução por LLM: ${erroDeRota(err, { event: 'mt_route_error' })}` })
   } finally {

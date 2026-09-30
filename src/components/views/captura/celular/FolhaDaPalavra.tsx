@@ -6,6 +6,18 @@ import { t } from '../../../../lib/i18n';
 import FolhaDeBaixo from './FolhaDeBaixo';
 
 const SombraDaFala = lazy(() => import('../../analise/SombraDaFala'));
+/* A Tradução Nuance (D3): "Sempre traduzir assim" chega por `lazy()` — a UI nova não entra no JS inicial. */
+const NuanceDaPalavra = lazy(() => import('../nuance/NuanceDaPalavra'));
+
+/** O que a folha precisa para o "Sempre traduzir assim" (o glossário pessoal, D3 da Fase D). */
+export interface NuanceNaFolhaDaPalavra {
+  /** A pessoa tem a Tradução Nuance (`traducaoNuance`); sem ela, o botão vem com cadeado. */
+  disponivel: boolean;
+  /** O idioma da tradução que se fixa. */
+  destino: string;
+  /** O convite ao Premium — ausente no perfil protegido (oferta promocional, nunca a menor). */
+  aoConhecer?: () => void;
+}
 
 /** Sem resposta nisto (MT fora, rede lenta), a folha diz "sem tradução" em vez de esperar para sempre. */
 const PACIENCIA_MS = 8000;
@@ -29,6 +41,7 @@ export default function FolhaDaPalavra({
   aoVoltar,
   aoPraticar,
   aoFechar,
+  nuance,
 }: {
   palavra: string;
   frase: string;
@@ -41,6 +54,8 @@ export default function FolhaDaPalavra({
   /** A prática vai abrir o microfone: quem chama emudece a captura antes (ver `FolhaDaFrase`). */
   aoPraticar?: () => void;
   aoFechar: () => void;
+  /** "Sempre traduzir assim" (D3). Ausente = a folha de sempre, sem o glossário. */
+  nuance?: NuanceNaFolhaDaPalavra;
 }) {
   const [glosa, setGlosa] = useState<string | null>(null);
   const [verbete, setVerbete] = useState<DictionaryResult | null>(null);
@@ -83,7 +98,12 @@ export default function FolhaDaPalavra({
   };
 
   return (
-    <FolhaDeBaixo titulo={t('Palavra: {palavra}', { palavra })} tituloVisivel={false} aoFechar={aoFechar} classe="folha-da-palavra">
+    <FolhaDeBaixo
+      titulo={t('Palavra: {palavra}', { palavra })}
+      tituloVisivel={false}
+      aoFechar={aoFechar}
+      classe="folha-da-palavra"
+    >
       {aoVoltar && (
         <button type="button" className="folha-voltar" onClick={aoVoltar}>
           <ArrowLeft aria-hidden /> {t('Voltar à frase')}
@@ -125,7 +145,10 @@ export default function FolhaDaPalavra({
         </p>
       )}
       <div className="folha-grade">
-        <button type="button" className="folha-acao" aria-pressed={praticando}
+        <button
+          type="button"
+          className="folha-acao"
+          aria-pressed={praticando}
           onClick={() => {
             if (!praticando) aoPraticar?.();
             setPraticando((v) => !v);
@@ -141,6 +164,18 @@ export default function FolhaDaPalavra({
         <p className="folha-status" role="status">
           {status}
         </p>
+      )}
+      {nuance && (
+        <Suspense fallback={null}>
+          <NuanceDaPalavra
+            palavra={palavra}
+            lang={lang}
+            glosa={glosa}
+            destino={nuance.destino}
+            disponivel={nuance.disponivel}
+            aoConhecer={nuance.aoConhecer}
+          />
+        </Suspense>
       )}
       {praticando && (
         <Suspense fallback={null}>

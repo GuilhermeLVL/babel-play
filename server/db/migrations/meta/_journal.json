@@ -288,6 +288,13 @@
       "when": 1790730000000,
       "tag": "0040_flag_nuvem_gratuita_alivio",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "6",
+      "when": 1790750000000,
+      "tag": "0042_glossario",
+      "breakpoints": true
     }
   ]
 }

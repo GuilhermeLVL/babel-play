@@ -40,7 +40,7 @@ import { salDoPseudonimo } from '../lib/pseudonimoDeUsuario'
 import { fornecedorDaBase } from './registroDeProvedores'
 
 /** A função de produto que a requisição serve — a dimensão "feature" do painel. */
-export type FuncaoTelemetrada = 'stt' | 'mt-fala' | 'mt-texto' | 'tutor' | 'corretor' | 'byok-chat'
+export type FuncaoTelemetrada = 'stt' | 'mt-fala' | 'mt-texto' | 'mt-alternativas' | 'tutor' | 'corretor' | 'byok-chat'
 
 /** Os metadados de RASTRO que as rotas podem anotar. Lista fechada: nada de texto livre. */
 export interface AnotacoesDoRastro {
@@ -55,6 +55,8 @@ export interface AnotacoesDoRastro {
   nivel?: NivelDaTraducao
   /** A política de custo começou no degrau mais barato (B4): `orcamento_70` ou `orcamento_90`. */
   degradacao?: 'orcamento_70' | 'orcamento_90'
+  /** Quantas entradas do glossário pessoal foram ao pedido (D3 da Fase D) — o número, nunca o texto. */
+  glossario?: number
 }
 
 /** O id da sessão de captura que o cliente PODE mandar. Formato fechado; fora dele, ignorado. */
@@ -232,6 +234,7 @@ export function abrirRastro(req: Request, funcao: FuncaoTelemetrada): RastroDeIa
             segmentosDescartados: anotacoes.segmentosDescartados,
             nivel: anotacoes.nivel,
             degradacao: anotacoes.degradacao,
+            glossario: anotacoes.glossario,
             custoUsd: somaDeCusto(geracoes),
           }
           cliente.enviar({

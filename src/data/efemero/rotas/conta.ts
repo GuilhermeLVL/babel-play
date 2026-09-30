@@ -13,6 +13,7 @@ import { json } from '../nucleo';
 export async function entitlementsAnonimos(): Promise<Response> {
   return json({
     plan: 'anonimo', youtubeImport: false, managedCloudStt: false, managedCloudLlm: false, largerModels: false,
+    traducaoNuance: false,
     armazenamento: { usados: 0, teto: 0 },
   });
 }

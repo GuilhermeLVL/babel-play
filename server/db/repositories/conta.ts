@@ -24,6 +24,7 @@ import {
   creditSpends,
   estadoDaConta,
   exerciseResults,
+  glossario,
   idadesDeclaradas,
   presencas,
   providerCredentials,
@@ -100,6 +101,9 @@ const TABELAS_DO_TITULAR: ReadonlyArray<readonly [string, any]> = [
   ['convidados', convidados],
   /* Revisão de 27/09 das recompensas v2: o fuso gravado e o aviso do reembolso (migração 0037). */
   ['estadoDaConta', estadoDaConta],
+  /* D3 da Fase D: o glossário pessoal da Tradução Nuance (migração 0042) — as traduções que a pessoa
+     fixou. Sem FOREIGN KEY para ninguém: a posição na lista não importa. */
+  ['glossario', glossario],
 ]
 
 /** Os nomes, para o teste de invariante e para quem precise listar sem tocar nas tabelas. */

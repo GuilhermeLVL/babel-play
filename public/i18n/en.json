@@ -1202,5 +1202,17 @@
   "Usar a nuvem grátis (restam {tempo})": "Use the free cloud ({tempo} left)",
   "Nuvem grátis ligada nesta sessão": "Free cloud on for this session",
   "A nuvem grátis não respondeu agora; a legenda segue no aparelho.": "The free cloud did not respond right now; captions continue on the device.",
-  "nuvem grátis · reserva no aparelho": "free cloud · device as backup"
+  "nuvem grátis · reserva no aparelho": "free cloud · device as backup",
+  "Sua legenda já usa a Tradução rápida ao vivo, sem esperar.": "Your captions already use Fast live translation, with no waiting.",
+  "Conhecer o Premium": "Explore Premium",
+  "Seu glossário chegou a 500 entradas. Apague alguma em Ajustes para fixar outra.": "Your glossary has reached 500 entries. Delete one in Settings to pin another.",
+  "O glossário faz parte da Tradução Nuance.": "The glossary is part of Nuance Translation.",
+  "Entre na sua conta para guardar o glossário.": "Sign in to keep your glossary.",
+  "Não deu para fixar esta tradução. Confira o texto.": "Couldn't pin this translation. Check the text.",
+  "Não deu para fixar agora. Tente de novo em instantes.": "Couldn't pin it right now. Try again in a moment.",
+  "Pronto: \"{termo}\" vai sair sempre como \"{traducao}\".": "Done: \"{termo}\" will always come out as \"{traducao}\".",
+  "Traduzir sempre como": "Always translate as",
+  "Fixar no glossário": "Pin to glossary",
+  "Sempre traduzir assim": "Always translate this way",
+  "Com a Tradução Nuance do Premium, você fixa a sua tradução e ela vale em toda legenda.": "With Premium's Nuance Translation, you pin your translation and it applies to every caption."
 }

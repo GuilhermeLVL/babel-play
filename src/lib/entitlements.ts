@@ -34,6 +34,11 @@ export interface Entitlements {
   managedCloudLlm: boolean;
   /** Modelos locais maiores (whisper-base+) — mais download/latência, mais precisão. */
   largerModels: boolean;
+  /**
+   * A Tradução Nuance (Fase D): outras formas, formal/informal, variantes e glossário. A tela só PINTA
+   * (com cadeado sem ela); quem decide é o servidor, pelo mesmo campo — nunca pelo nome do plano.
+   */
+  traducaoNuance: boolean;
   /** Disco usado/teto em bytes; `teto: null` = sem teto; `null` inteiro = desconhecido. */
   armazenamento: { usados: number; teto: number | null } | null;
 }
@@ -47,6 +52,7 @@ const FECHADO: Entitlements = Object.freeze({
   managedCloudStt: false,
   managedCloudLlm: false,
   largerModels: false,
+  traducaoNuance: false,
   armazenamento: null,
 });
 const SELFHOST: Entitlements = Object.freeze({
@@ -55,6 +61,7 @@ const SELFHOST: Entitlements = Object.freeze({
   managedCloudStt: true,
   managedCloudLlm: true,
   largerModels: true,
+  traducaoNuance: true,
   armazenamento: null,
 });
 
@@ -69,6 +76,7 @@ const EDICAO_ESTATICA: Entitlements = Object.freeze({
   managedCloudStt: false,
   managedCloudLlm: false,
   largerModels: false,
+  traducaoNuance: false,
   armazenamento: { usados: 0, teto: 0 },
 });
 
@@ -100,6 +108,7 @@ function normalizar(v: unknown): Entitlements | null {
     managedCloudStt: bool('managedCloudStt'),
     managedCloudLlm: bool('managedCloudLlm'),
     largerModels: bool('largerModels'),
+    traducaoNuance: bool('traducaoNuance'),
     armazenamento,
   };
 }

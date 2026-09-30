@@ -56,9 +56,9 @@ export function recusaDeErro(
 }
 
 /**
- * 429 `nuvem_ocupada` (ADR 0007): a admissão, ou o provedor, disse "agora não". O mesmo corpo de
- * `responderNuvemOcupada` (`admissao.ts`), que o tutor ainda usa — `tests/integration/nucleo-de-ia.test.ts`
- * confere que os dois não se separam.
+ * 429 `nuvem_ocupada` (ADR 0007): a admissão, ou o provedor, disse "agora não". O corpo é o que o
+ * `responderNuvemOcupada` de antes da Fase F respondia — `tests/integration/nucleo-de-ia.test.ts` o
+ * confere literal, cabeçalho incluído.
  */
 export function recusaNuvemOcupada(recusa: Recusa): RecusaDeIa {
   return recusar(

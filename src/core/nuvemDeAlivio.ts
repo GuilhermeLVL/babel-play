@@ -61,6 +61,9 @@ export const RESTANTE_MINIMO_PARA_OFERECER_S = 60;
 
 // ───────────────────────────── o aparelho ─────────────────────────────
 
+/** Por que a oferta apareceu: o aparelho é fraco de saída, ou o regulador viu que ele não acompanha. */
+export type MotivoDaOfertaDeAlivio = 'aparelho' | 'travamento';
+
 /** O que o cliente sabe do aparelho NESTA captura. */
 export interface SinaisDoAparelhoParaAlivio {
   /** Perfil leve (`lib/dispositivo/perfil.ts`: Quest, celular fraco, desktop de 2 núcleos ou 2 GB). */
@@ -72,6 +75,15 @@ export interface SinaisDoAparelhoParaAlivio {
    * `null` = ainda não se sabe (a sonda roda no ocioso).
    */
   gpuReal: boolean | null;
+}
+
+/**
+ * Há GPU de verdade para a rota? Sem adaptador WebGPU, ou com a sonda dizendo que o adaptador é o de
+ * SOFTWARE, não; com a sonda dizendo que é real, sim; sem sonda guardada, não se sabe (`null`).
+ */
+export function gpuRealDaRota(temAdaptador: boolean, adaptadorReal: boolean | undefined): boolean | null {
+  if (!temAdaptador || adaptadorReal === false) return false;
+  return adaptadorReal === true ? true : null;
 }
 
 /**

@@ -17,6 +17,7 @@ import {
   aparelhoPedeAlivio,
   deveOferecerAlivio,
   FRACAO_DO_ALIVIO_NO_ORCAMENTO,
+  gpuRealDaRota,
   poolDoAlivioUsd,
   reservaDosPagantesAtingida,
   segundosRestantesDoAlivio,
@@ -53,6 +54,13 @@ describe('quem precisa do alívio', () => {
     expect(aparelhoPedeAlivio({ leve: false, travamento: true, gpuReal: true })).toBe(true)
     expect(aparelhoPedeAlivio({ leve: false, travamento: false, gpuReal: false })).toBe(true)
     expect(aparelhoPedeAlivio({ leve: false, travamento: false, gpuReal: true })).toBe(false)
+  })
+
+  it('GPU real: sem adaptador ou adaptador de software não é; sonda real é; sem sonda, não se sabe', () => {
+    expect(gpuRealDaRota(false, true)).toBe(false)
+    expect(gpuRealDaRota(true, false)).toBe(false)
+    expect(gpuRealDaRota(true, true)).toBe(true)
+    expect(gpuRealDaRota(true, undefined)).toBeNull()
   })
 
   it('GPU desconhecida (sonda ainda não rodou) não conta como "sem GPU": na dúvida, não oferece', () => {

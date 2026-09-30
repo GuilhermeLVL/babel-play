@@ -194,5 +194,12 @@
   "O tradutor no aparelho precisa de cerca de {mb} MB.": "يحتاج المترجم على الجهاز إلى حوالي {mb} ميغابايت.",
   "O tradutor deste aparelho não carregou (pouca memória ou navegador sem suporte). As falas seguem sem tradução.": "لم يتم تحميل مترجم هذا الجهاز (ذاكرة قليلة أو متصفح غير مدعوم). ستبقى العبارات بدون ترجمة.",
   "Dá para traduzir pela internet com o MyMemory: o texto das falas sai do aparelho.": "يمكن الترجمة عبر الإنترنت باستخدام MyMemory: سيغادر نص العبارات الجهاز.",
-  "Traduzir pela internet": "الترجمة عبر الإنترنت"
+  "Traduzir pela internet": "الترجمة عبر الإنترنت",
+  "O aparelho não está dando conta da legenda.": "هذا الجهاز لا يواكب الترجمة المصاحبة.",
+  "Este aparelho pode ficar lento com a legenda feita nele.": "قد يصبح هذا الجهاز بطيئًا إذا أنشأ الترجمة المصاحبة بنفسه.",
+  "Com a nuvem grátis, o áudio das falas é transcrito no servidor e o aparelho fica leve.": "مع السحابة المجانية، يُفرَّغ صوت العبارات على الخادم ويبقى الجهاز خفيفًا.",
+  "Usar a nuvem grátis (restam {tempo})": "استخدام السحابة المجانية (متبقٍ {tempo})",
+  "Nuvem grátis ligada nesta sessão": "السحابة المجانية مفعّلة في هذه الجلسة",
+  "A nuvem grátis não respondeu agora; a legenda segue no aparelho.": "لم تستجب السحابة المجانية الآن؛ تستمر الترجمة المصاحبة على الجهاز.",
+  "nuvem grátis · reserva no aparelho": "سحابة مجانية · احتياطي على الجهاز"
 }

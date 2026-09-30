@@ -2346,6 +2346,7 @@ export default function LiveCapture({
             // O tamanho do DTYPE que a rota pede (q8 no celular/Quest: 80 MB em vez de 209 no base).
             mbEstimado: tamanhoDoDownloadMb(id, rota.dtype) ?? undefined,
             medido: !!MODEL_DOWNLOAD_MEDIDO[id],
+            transcricao: true,
           }
         : {
             id,
@@ -2471,6 +2472,16 @@ export default function LiveCapture({
     (isRecording
       ? sistemaNoNavegador
       : transcricaoNoNavegadorAntesDeGravar({ ...condicoesDaOferta, comIdiomaEscolhido }));
+  /* O DIÁLOGO "MODELO NO DISPOSITIVO" também: sem o som do computador (celular), o "Rápido" do
+     microfone é o reconhecedor do navegador e o Whisper não baixa — ele não entra na lista. */
+  const semSomDoComputador = !perfilDoAparelho.capturaDoSistema || perfilDoAparelho.tipo.startsWith('celular');
+  const micPeloNavegador =
+    micEnabled &&
+    webSpeechSupported &&
+    micEngine === 'browser' &&
+    escolhaDoMic === 'rapido' &&
+    getActiveProfile().id !== 'local-private';
+  const transcricaoSoNoNavegador = transcricaoNoNavegador || (semSomDoComputador && micPeloNavegador);
   const ofertaSemBaixar = oferecerLegendaSemBaixar({ ...condicoesDaOferta, comIdiomaEscolhido }) && (
     <Suspense fallback={null}>
       <LegendaSemBaixar
@@ -3931,6 +3942,7 @@ export default function LiveCapture({
           rota={sttRouteLabel}
           modelos={modelosDaCaptura}
           nuvem={getProviderMode() === 'cloud'}
+          transcricaoNoNavegador={transcricaoSoNoNavegador}
           aoFechar={() => setModeloAberto(false)}
         />
       )}

@@ -44,6 +44,7 @@ import {
   segundosRestantesDoAlivio,
 } from '../../src/core/nuvemDeAlivio'
 import { FATOR_FATURADO_DO_STT, FRANQUIA_DE_ALIVIO } from '../../src/core/planos'
+import { custoEfetivoDaPerna, ordenarPorCustoEfetivo, pernasDoStt } from '../ai/cascataDeStt'
 import { gastoDeIaRepo } from '../db/repositories/gastoDeIa'
 import { usageCountersRepo } from '../db/repositories/usageCounters'
 import { asUserId, type UserId } from './authContext'
@@ -51,7 +52,7 @@ import { modeloDoSttGerenciado, parametrosDoAlivio } from './config'
 import { flagLigada } from './flags'
 import { estadoDeProtecao } from './idade'
 import { log } from './logger'
-import { custoDeStt, tetoDoDiaUsd, tetoDoMesUsd } from './orcamentoDeIa'
+import { custoDeStt, minimoFaturadoDoStt, tetoDoDiaUsd, tetoDoMesUsd } from './orcamentoDeIa'
 import { responderErro } from './respostaDeErro'
 import { currentWindow, METRIC_ALIVIO_STT_SEGUNDOS, METRIC_ALIVIO_TOKENS } from './usageQuota'
 
@@ -75,9 +76,23 @@ export function pedeAlivio(req: Request): boolean {
   return valor === '1'
 }
 
-/** O custo FATURADO de um segundo real de fala no STT gerenciado — converte o dólar que sobra em tempo. */
-function custoPorSegundoDeFala(): number {
-  return (custoDeStt(modeloDoSttGerenciado(), 3600) * FATOR_FATURADO_DO_STT) / 3600
+/** A duração de uma fala típica (s): é por ela que a cascata do STT escolhe a perna mais barata. */
+const SEGUNDOS_DE_UMA_FALA = 6
+
+/**
+ * O custo FATURADO de um segundo real de fala no STT gerenciado — converte o dólar que sobra em tempo
+ * (o "restam X" da oferta). O preço é o da perna que a cascata do STT (B6) chama PRIMEIRO para uma
+ * fala típica (`ordenarPorCustoEfetivo`), e não o do `STT_MODEL` legado: com o registro
+ * (`IA_PROVEDORES`) as pernas e os preços são outros. O fator do faturado (o mínimo de 10 s por pedido,
+ * medido na bancada) só vale para a perna com mínimo; quem cobra por segundo fatura o que foi falado.
+ * Sem perna com chave, o legado de antes.
+ */
+export function custoPorSegundoDoAlivio(env: NodeJS.ProcessEnv = process.env): number {
+  const perna = ordenarPorCustoEfetivo(pernasDoStt(env), SEGUNDOS_DE_UMA_FALA)[0]
+  if (!perna) return (custoDeStt(modeloDoSttGerenciado(env), 3600) * FATOR_FATURADO_DO_STT) / 3600
+  const quem = { fornecedor: perna.fornecedor, preco: perna.preco }
+  const fator = minimoFaturadoDoStt(perna.model, quem) > 0 ? FATOR_FATURADO_DO_STT : 1
+  return (custoEfetivoDaPerna(perna, 3600) * fator) / 3600
 }
 
 /** O pool do dia agora, com o orçamento do operador. */
@@ -170,7 +185,7 @@ export async function avaliarAlivio(req: Request, agora = Date.now()): Promise<V
   const restanteSegundos = segundosRestantesDoAlivio({
     sttUsados,
     gastoUsd: gastoDaConta / 1_000_000,
-    custoPorSegundoUsd: custoPorSegundoDeFala(),
+    custoPorSegundoUsd: custoPorSegundoDoAlivio(),
     franquia: { sttSegundosMes: FRANQUIA_DE_ALIVIO.sttSegundosMes, tetoUsdMes },
   })
 

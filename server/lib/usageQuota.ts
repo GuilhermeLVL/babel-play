@@ -72,6 +72,56 @@ export const METRIC_LLM_TOKENS_DIA = 'llm_tokens_dia'
 export const METRIC_TTS_CARACTERES = 'tts_chars'
 export const METRIC_TTS_CARACTERES_DIA = 'tts_chars_dia'
 
+/* ─────────────────────── a poda das janelas diárias (C9, item 9.3) ─────────────────────── */
+
+/** As métricas do uso justo do DIA: as únicas com janela `AAAA-MM-DD`. */
+export const METRICAS_DO_DIA = [METRIC_STT_SEGUNDOS_DIA, METRIC_LLM_TOKENS_DIA, METRIC_TTS_CARACTERES_DIA] as const
+
+/**
+ * Quantos dias de janela diária ficam: hoje, ontem e anteontem no relógio UTC. A janela é o dia LOCAL
+ * da pessoa (de −12 a +14 horas do UTC), e o estorno de uma reserva volta para o dia em que ela caiu
+ * — que pode ter virado ontem durante a fala. Três dias cobrem os dois com folga.
+ */
+export const DIAS_DAS_JANELAS_DIARIAS = 3
+
+const DIA_MS = 86_400_000
+
+/**
+ * Apaga as janelas diárias com mais de `DIAS_DAS_JANELAS_DIARIAS` dias. Sem isto, o uso justo ganha
+ * uma linha por pessoa ativa, por métrica, a cada dia, para sempre — e nenhuma é lida depois que o dia
+ * passa. As janelas do MÊS (`AAAA-MM`) e as outras métricas não são tocadas: a poda filtra pela métrica.
+ */
+export async function podarJanelasDiarias(agora = Date.now()): Promise<void> {
+  const corte = new Date(agora - (DIAS_DAS_JANELAS_DIARIAS - 1) * DIA_MS).toISOString().slice(0, 10)
+  for (const metrica of METRICAS_DO_DIA) await usageCountersRepo.prune(metrica, corte)
+}
+
+/**
+ * Liga a poda diária — o mesmo padrão da limpeza de convidados e da poda das marcas do teste: no
+ * processo que prepara os dados, temporizador com `unref()`, primeira passada minutos depois do boot.
+ * Devolve como desligar.
+ */
+export function agendarPodaDasJanelasDiarias(o: { atrasoInicialMs?: number; intervaloMs?: number } = {}): () => void {
+  let relogio: NodeJS.Timeout | undefined
+  const rodar = async () => {
+    try {
+      await podarJanelasDiarias()
+    } catch (err) {
+      log('error', { event: 'uso_justo_poda_erro', error: String((err as Error)?.message || err).slice(0, 160) })
+    }
+  }
+  const armar = (ms: number) => {
+    relogio = setTimeout(() => {
+      void rodar().finally(() => armar(o.intervaloMs ?? DIA_MS))
+    }, ms)
+    relogio.unref?.()
+  }
+  armar(o.atrasoInicialMs ?? 17 * 60_000)
+  return () => {
+    if (relogio) clearTimeout(relogio)
+  }
+}
+
 /** Qual teto recusou: o do MÊS (402 `quota_exceeded`) ou o do DIA (429 `uso_justo_do_dia`). */
 export type RecusaDaCota = 'mes' | 'dia'
 

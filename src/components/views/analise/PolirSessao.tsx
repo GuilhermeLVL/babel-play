@@ -67,25 +67,37 @@ export default function PolirSessao({
   const contagem = useMemo(() => contarPolimento(utterances), [utterances]);
   const [fase, setFase] = useState<Fase>({ f: 'parado' });
   const [convite, setConvite] = useState(false);
-  const controle = useRef<AbortController | null>(null);
+  /* DOIS SINAIS. `fila` para a fila: cancelar deixa o bloco em curso terminar (ele já foi ao provedor
+     e foi pago) e não pede o próximo. `tela` corta também a espera do bloco: é quem sai da tela (ou
+     troca de sessão — quem monta usa a sessão como `key`); o servidor grava o bloco assim mesmo, e
+     pedi-lo de novo não é cobrado. Criado no efeito, e não no `useRef`, para a montagem dupla do
+     modo estrito não deixar um sinal já abortado. */
+  const fila = useRef<AbortController | null>(null);
+  const tela = useRef<AbortController | null>(null);
+  useEffect(() => {
+    const t = new AbortController();
+    tela.current = t;
+    return () => {
+      t.abort();
+      fila.current?.abort();
+    };
+  }, []);
   /* As falas mais recentes para a fila (retomar lê o que a tela já aplicou). */
   const falas = useRef(utterances);
   falas.current = utterances;
-  /* Saiu da tela (ou trocou de sessão — quem monta usa a sessão como `key`): a fila para. O bloco que
-     já foi ao provedor o servidor grava, e ele não é cobrado de novo na próxima vez. */
-  useEffect(() => () => controle.current?.abort(), []);
 
   if (contagem.linhasPolidaveis === 0) return null;
 
   const polir = async () => {
+    if (fila.current) return; // um clique duplo não abre duas filas
     const ctl = new AbortController();
-    controle.current = ctl;
+    fila.current = ctl;
     let mostrou = false;
     const { polirBloco } = await import('../../../data/apiDaNuance');
     const nuance = nuanceDoPolimentoDasPreferencias();
     const fim = await polirSessao({
       utterances: falas.current,
-      pedirBloco: (bloco) => polirBloco({ sessionId, bloco, ...nuance }, ctl.signal),
+      pedirBloco: (bloco) => polirBloco({ sessionId, bloco, ...nuance }, tela.current?.signal),
       aoPolir: (polidas) => {
         aoPolir(polidas);
         if (!mostrou && polidas.length) {
@@ -101,7 +113,7 @@ export default function PolirSessao({
         ),
       sinal: ctl.signal,
     });
-    controle.current = null;
+    fila.current = null;
     setFase(
       fim.fim === 'erro'
         ? { f: 'erro', motivo: fim.motivo }
@@ -112,7 +124,7 @@ export default function PolirSessao({
   };
 
   const cancelar = () => {
-    controle.current?.abort();
+    fila.current?.abort();
     setFase((f) => (f.f === 'polindo' ? { ...f, cancelando: true } : f));
   };
 

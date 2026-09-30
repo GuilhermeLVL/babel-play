@@ -1586,5 +1586,8 @@
   "Seções do perfil": "Profile sections",
   "Você": "You",
   "Progresso": "Progress",
-  "Seus dados": "Your data"
+  "Seus dados": "Your data",
+  "Transcrição pelo reconhecimento do navegador": "Transcription by the browser's recognizer",
+  "Nada a baixar: o próprio navegador transcreve.": "Nothing to download: the browser itself transcribes.",
+  "pronto": "ready"
 }

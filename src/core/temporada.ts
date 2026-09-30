@@ -2,7 +2,7 @@ import { MOLDURAS_DA_T1, TITULOS_DA_T1 } from './catalogoTemporada';
 import type { LinhasDoHistorico } from './learning/historicoDeXp';
 import { sessaoRendeXp, xpDeEventos } from './learning/xp';
 import { CATALOGO_DA_LOJA } from './loja';
-import type { PlanoEfetivo } from './planos';
+import { ehPlanoPago, type PlanoEfetivo } from './planos';
 import type { ItemDaLoja } from './tiposDaLoja';
 
 /**
@@ -218,11 +218,12 @@ export function itemDoCreditoDaTemporada(creditoId: string): ItemDaLoja | null {
 }
 
 /**
- * Assinante, para a temporada, é quem tem um plano PAGO concedido pelo servidor. `selfhost` não é
- * assinatura (não há cobrança), e `convidado`/`free` não pagam.
+ * Assinante, para a temporada, é quem tem um plano PAGO concedido pelo servidor — a matriz diz qual
+ * (`ehPlanoPago`; hoje, o Premium). `selfhost` não é assinatura (não há cobrança), e
+ * `convidado`/`free` não pagam.
  */
 export function ehAssinanteDaTemporada(plano: PlanoEfetivo): boolean {
-  return plano === 'essencial' || plano === 'pro';
+  return ehPlanoPago(plano);
 }
 
 /* ── A VOLTA À LOJA ────────────────────────────────────────────────────────────────────────── */

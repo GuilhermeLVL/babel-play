@@ -81,15 +81,28 @@ export interface VariavelDeclarada {
  * `storageQuota.ts` e `usageQuota.ts` montam o nome em tempo de execucao
  * (`${plan.toUpperCase()}_STORAGE_MB`), e leitura montada e invisivel ao grep, ao inventario e a
  * regra `env-fora-de-config`. A lista trazia so `ESSENCIAL_*` e `PRO_*` escritas a mao — mas o
- * codigo aceita os QUATRO planos, entao quem definisse `FREE_STORAGE_MB` teria o valor honrado
+ * codigo aceita todos os planos, entao quem definisse `FREE_STORAGE_MB` teria o valor honrado
  * sem que ele constasse em lugar nenhum. Gerando a partir de `PLAN_MATRIX`, um plano novo declara
- * as suas tres variaveis no mesmo commit em que nasce.
+ * as suas variaveis no mesmo commit em que nasce.
+ *
+ * MATRIZ V2 (ADR 0011): com o Essencial e o Pro fora da matriz, as `ESSENCIAL_*`/`PRO_*` deixam de
+ * ser lidas — quem as tinha no deploy passa o valor para a `PREMIUM_*` correspondente. Nao ha leitura
+ * de compatibilidade de proposito: o teto do Premium e outro numero (40 h, o empate de custo), e
+ * herdar em silencio as 15 h do Essencial ou as 20 h do Pro seria vender "sem limite no dia a dia"
+ * com o teto de um plano que nao existe mais.
  */
 const SUFIXOS_POR_PLANO: ReadonlyArray<{ sufixo: string; paraQue: string }> = [
   { sufixo: 'STORAGE_MB', paraQue: 'teto de armazenamento do plano, em MB (override da PLAN_MATRIX)' },
   { sufixo: 'MONTHLY_MANAGED_CALLS', paraQue: 'cota mensal de chamadas gerenciadas do plano (default da PLAN_MATRIX)' },
   { sufixo: 'MONTHLY_STT_SECONDS', paraQue: 'teto mensal de segundos de STT do plano' },
   { sufixo: 'MONTHLY_LLM_TOKENS', paraQue: 'teto mensal de tokens (entrada + saída) do LLM de nuvem do plano' },
+  /* O USO JUSTO DO DIA (matriz v2, ADR 0011): o teto por dia LOCAL da pessoa. Só vale para plano com
+     teto diário na matriz (hoje, o Premium); nos outros o dia não é contado e a variável não tem efeito. */
+  {
+    sufixo: 'DAILY_STT_SECONDS',
+    paraQue: 'teto DIÁRIO (dia local) de segundos de STT de nuvem do plano — o uso justo',
+  },
+  { sufixo: 'DAILY_LLM_TOKENS', paraQue: 'teto DIÁRIO (dia local) de tokens do LLM de nuvem do plano — o uso justo' },
 ]
 
 /* O `convidado` (Fase 7) não está na matriz de assinatura, mas as cotas dele passam pelas MESMAS

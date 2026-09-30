@@ -12,12 +12,12 @@
 
 ## C1 — Matriz v2 (`src/core/planos.ts`)
 
-- [ ] 1.1 `free | premium | selfhost`, `PLANOS_LEGADOS`, `normalizarPlano()`
-- [ ] 1.2 `precoAnualBrl: 179`, `CicloDeCobranca`, `MeioDeCobranca`, `PARCELAS_DO_ANUAL`
-- [ ] 1.3 Cotas diárias (`sttSegundosDia: 7200`, `tokensDia`) e o teto mensal de 40 h com a conta no topo
-- [ ] 1.4 Entitlements `traducaoNuance` e `vozNatural`
-- [ ] 1.5 `planoPeloPagamento(valor, { parcelas })` → `{ plano, ciclo }` (preços antigos → Premium mensal)
-- [ ] 1.6 `VARIAVEIS_POR_PLANO` → `PREMIUM_*`, com `*_DAILY_STT_SECONDS` e `*_DAILY_LLM_TOKENS`
+- [x] 1.1 `free | premium | selfhost`, `PLANOS_LEGADOS`, `normalizarPlano()`
+- [x] 1.2 `precoAnualBrl: 179`, `CicloDeCobranca`, `MeioDeCobranca`, `PARCELAS_DO_ANUAL`
+- [x] 1.3 Cotas diárias (`sttSegundosDia: 7200`, `tokensDia`) e o teto mensal de 40 h com a conta no topo
+- [x] 1.4 Entitlements `traducaoNuance` e `vozNatural`
+- [x] 1.5 `planoPeloPagamento(valor, { parcelas })` → `{ plano, ciclo }` (preços antigos → Premium mensal)
+- [x] 1.6 `VARIAVEIS_POR_PLANO` → `PREMIUM_*`, com `*_DAILY_STT_SECONDS` e `*_DAILY_LLM_TOKENS`
 
 ## C2 — Servidor + migração 0041
 

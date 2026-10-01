@@ -1,4 +1,16 @@
-import { BookOpen, FileAudio, FileText, Mic, Moon, Plus, Sun, Target, UserRound, Youtube } from 'lucide-react';
+import {
+  BookOpen,
+  FileAudio,
+  FileText,
+  Languages,
+  Mic,
+  Moon,
+  Plus,
+  Sun,
+  Target,
+  UserRound,
+  Youtube,
+} from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 import { fetchDeck } from '../data/api';
@@ -134,9 +146,19 @@ export default function BuscaGlobal({
       icon: <Mic />,
       run: () => aoNavegar('capture'),
     };
+    const interprete: Command = {
+      id: 'acao:interprete',
+      grupo: 'Ações',
+      label: 'Abrir o intérprete',
+      hint: 'conversa frente a frente, em dois idiomas',
+      icon: <Languages />,
+      keywords: 'interprete intérprete traduzir conversa tradutor',
+      run: () => aoNavegar('interprete'),
+    };
     const acoes: Command[] = [
       revisar,
       capturar,
+      interprete,
       /* Edição estática: importar é trabalho do servidor, que ela não tem. */
       ...(edicaoEstatica()
         ? []

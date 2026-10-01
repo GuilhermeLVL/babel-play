@@ -12,7 +12,13 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import { type EstadoDeRota, estadoParaUrl, normalizarAbaDaLoja, normalizarAbaDaLojaV2, urlParaEstado } from '../src/lib/rotas'
+import {
+  type EstadoDeRota,
+  estadoParaUrl,
+  normalizarAbaDaLoja,
+  normalizarAbaDaLojaV2,
+  urlParaEstado,
+} from '../src/lib/rotas'
 
 const ida = (e: EstadoDeRota) => urlParaEstado(estadoParaUrl(e))
 
@@ -27,6 +33,12 @@ describe('estadoParaUrl', () => {
     expect(estadoParaUrl({ view: 'library' })).toBe('/biblioteca')
     expect(estadoParaUrl({ view: 'metrics' })).toBe('/vocabulario')
     expect(estadoParaUrl({ view: 'settings' })).toBe('/ajustes')
+  })
+
+  it('o Intérprete tem endereço próprio, e a ida-e-volta o devolve', () => {
+    expect(estadoParaUrl({ view: 'interprete' })).toBe('/interprete')
+    expect(urlParaEstado('/interprete')).toEqual({ view: 'interprete' })
+    expect(ida({ view: 'interprete' })).toEqual({ view: 'interprete' })
   })
 
   it('a sessão carrega o id — é o que torna a tela compartilhável', () => {

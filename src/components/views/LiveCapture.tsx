@@ -95,7 +95,7 @@ import type { PonteDoInterprete } from '../../lib/captura/controleDoInterprete';
 import { useFuncaoEstavel, useTextoDaConversa } from '../../lib/captura/conversaEstavel';
 import { assinarSalvamento, capturaEmRisco, lerSalvamento } from '../../lib/captura/estadoDoSalvamento';
 import { criarFontesDeAudio } from '../../lib/captura/fontesDeAudio';
-import { type PassoDoInicio, planejarInicio } from '../../lib/captura/inicioDaCaptura';
+import { type EntradaDoInicio, type PassoDoInicio, planejarInicio } from '../../lib/captura/inicioDaCaptura';
 import {
   desktopFraco,
   oferecerLegendaSemBaixar,
@@ -110,9 +110,11 @@ import { preparoConcluido } from '../../lib/captura/pacotesNativos';
 import { criarPalavraDaFala } from '../../lib/captura/palavraDaFala';
 // Pipeline de fala: VAD → STT → diarização → emissão, e a preparação dos modelos locais.
 import { criarPipelineDeFala, type EnunciadoPendente } from '../../lib/captura/pipelineDeFala';
+import { resumoDoPreparo } from '../../lib/captura/preparoDoInterprete';
 import { lerRascunhos } from '../../lib/captura/rascunhoDaCaptura';
 import { criarReguladorDaCaptura, type ReguladorDaCaptura } from '../../lib/captura/reguladorDaCaptura';
 import { criarSalvarSessao, type EstadoDaIdentificacaoDeVoz } from '../../lib/captura/salvarSessao';
+import { linhasDoPreparo } from '../../lib/captura/situacaoDoInterprete';
 // Produtor ÚNICO de palavra/cartão: o idioma vem da FRASE de onde a palavra saiu e a direção da
 // tradução é decidida pelo idioma DA PALAVRA (não pelo par da sessão).
 import { telaAcesaSuportada, usePreferenciaDeTelaAcesa, useTelaAcesa } from '../../lib/captura/telaAcesa';
@@ -213,6 +215,7 @@ const OfertaDaNuvemDeAlivio = lazyComRecarga(() => import('./captura/OfertaDaNuv
 const NuanceDaFrase = lazyComRecarga(() => import('./captura/nuance/NuanceDaFrase'));
 /* O MODO INTÉRPRETE (E3 da Fase E): a tela, o controle e a fila de voz chegam só quando alguém entra nele. */
 const ModoInterprete = lazyComRecarga(() => import('./captura/interprete/ModoInterprete'));
+const TelaDoInterprete = lazyComRecarga(() => import('./captura/interprete/TelaDoInterprete'));
 
 export default function LiveCapture({
   onSave,
@@ -223,6 +226,7 @@ export default function LiveCapture({
   onChangeView,
   onEntrar,
   ageProfile = 'pro',
+  telaDoInterprete = false,
 }: {
   onSave: (recording: Recording, shouldRedirect?: boolean) => void;
   onTranscriptChange?: (text: string) => void;
@@ -235,6 +239,11 @@ export default function LiveCapture({
   /** Navegação entre telas (ex.: "praticar esta frase" a partir da captura ao vivo). */
   onChangeView?: (view: string, data?: any) => void;
   ageProfile?: 'kids' | 'pro' | 'senior';
+  /**
+   * A tela própria do Intérprete (o item do menu): no lugar do espaço de gravação, a escolha dos idiomas,
+   * o preparo e o "Começar conversa". A conversa em si é a mesma tela dividida (`ModoInterprete`), por cima.
+   */
+  telaDoInterprete?: boolean;
 }) {
   const [showOverlay, setShowOverlay] = useState(false);
   /* AVISOS DA TELA pelo toast global do app (o `.toast` do protótipo). A captura tinha um balão
@@ -740,6 +749,8 @@ export default function LiveCapture({
      "Continuar gravando" devolve a tela. A ponte liga o pipeline, as fontes e a tradução ao controle
      da tela aberta; sem tela, ela é `null` e nada muda. */
   const [interpreteAberto, setInterpreteAberto] = useState(false);
+  /** O que deu errado no microfone do intérprete, dito DENTRO da tela dele (a captura fica por baixo). */
+  const [avisoDoInterprete, setAvisoDoInterprete] = useState<string | null>(null);
   const sessaoDoInterpreteRef = useRef(false);
   const ponteDoInterpreteRef = useRef<PonteDoInterprete | null>(null);
   const registrarPonteDoInterprete = useCallback((p: PonteDoInterprete | null) => {
@@ -1396,18 +1407,25 @@ export default function LiveCapture({
       setMicAbrindo,
       /* O INÍCIO DE VERDADE: o relógio e o "Ouvindo…" ligam quando a primeira fonte abre, não no toque. */
       aoAbrirFonte: () => {
+        setAvisoDoInterprete(null);
         if (!isRecordingRef.current) return;
         setAbrindoCaptura(false);
         setIsRecording(true);
       },
-      aoFalharMicrofone: (erro, { motorRapido }) =>
-        setFalhaDoMic(
-          ajudaDoMic(
-            classificarFalhaDoMic(erro),
-            plataformaDoNavegador(navigator.userAgent, navigator.maxTouchPoints ?? 0),
-            { motorRapido },
-          ),
-        ),
+      aoFalharMicrofone: (erro, { motorRapido }) => {
+        const ajuda = ajudaDoMic(
+          classificarFalhaDoMic(erro),
+          plataformaDoNavegador(navigator.userAgent, navigator.maxTouchPoints ?? 0),
+          { motorRapido },
+        );
+        setFalhaDoMic(ajuda);
+        /* No intérprete o erro também é dito DENTRO da tela, e o lado que ouvia volta a "Falar". */
+        const ponte = ponteDoInterpreteRef.current;
+        if (ponte) {
+          setAvisoDoInterprete(ajuda.titulo);
+          ponte.microfoneFalhou(erro);
+        }
+      },
       // Sem áudio do sistema (celular, Quest): nada de segundo getUserMedia ao lado da Web Speech.
       semMedidorParalelo: !perfilDoAparelho.capturaDoSistema || perfilDoAparelho.tipo.startsWith('celular'),
       finalNaNuvem: () => gateway.stt.finalNaNuvem(),
@@ -2447,11 +2465,17 @@ export default function LiveCapture({
       dispositivo: dispositivoDaRota(perfilDoAparelho, sondaGuardada),
     });
     const [mtDe, mtPara] = captureScenario === 'mic' ? [meu, ouvir] : [ouvir, meu];
-    const tradutores = expectedModelIds(mtDe, mtPara, rota.localModel).filter((id) => id !== rota.localModel);
+    const semOStt = (de: string, para: string) =>
+      expectedModelIds(de, para, rota.localModel).filter((id) => id !== rota.localModel);
+    const tradutores = semOStt(mtDe, mtPara);
+    // O intérprete fala nos DOIS sentidos: o tradutor do outro lado também baixa (sem repetir o que o par já traz).
+    const doOutroLado = semOStt(mtPara, mtDe).filter((id) => !tradutores.includes(id));
+    const comTamanho = (ids: string[]) => ids.map((id) => ({ id, mb: tamanhoDoDownloadMb(id) ?? 0 }));
     return {
       stt: rota.localModel,
       mbStt: tamanhoDoDownloadMb(rota.localModel, rota.dtype) ?? 0,
-      tradutores: tradutores.map((id) => ({ id, mb: tamanhoDoDownloadMb(id) ?? 0 })),
+      tradutores: comTamanho(tradutores),
+      tradutoresDoInterprete: comTamanho([...tradutores, ...doOutroLado]),
       par: [mtDe, mtPara] as const,
     };
   }, [
@@ -2467,8 +2491,10 @@ export default function LiveCapture({
     captureScenario,
   ]);
   const preparoDoInicio = usePreparoDoInicio({
-    modelos: [pecasDoInicio.stt, ...pecasDoInicio.tradutores.map((m) => m.id)],
+    modelos: [pecasDoInicio.stt, ...pecasDoInicio.tradutoresDoInterprete.map((m) => m.id)],
     langDoMic: sourceLang,
+    /* O intérprete ouve os dois idiomas: a sonda do navegador também pergunta pelo da outra pessoa. */
+    outroLangDoMic: targetLang,
     sondarMic: webSpeechSupported && micEngine === 'browser',
     gravando: isRecording,
     parDoTradutor: pecasDoInicio.par,
@@ -2524,18 +2550,20 @@ export default function LiveCapture({
     </Suspense>
   );
   /** `fontes`: as do intérprete (só o microfone) em vez das da captura. */
-  const planoDoInicio = (
+  const entradaDoInicio = (
     escolha: EscolhaDoMic | null,
     fontes: { micEnabled: boolean; systemEnabled: boolean } = { micEnabled, systemEnabled },
-  ): PassoDoInicio => {
+    /** O intérprete ouve os dois idiomas e traduz nos dois sentidos: a folha conta os dois lados. */
+    interprete = false,
+  ): EntradaDoInicio => {
     const completos = preparoDoInicio.completos;
     const falta = (id: string, mb: number) => (completos?.has(id) ? 0 : mb);
-    return planejarInicio({
+    return {
       ...fontes,
       motor: {
         preferido: micEngine,
         webSpeechSuportado: webSpeechSupported,
-        noAparelho: preparoDoInicio.noAparelho,
+        noAparelho: interprete ? preparoDoInicio.noAparelhoNosDois : preparoDoInicio.noAparelho,
         bipaAoReligar: webSpeechBipaAoReligar(),
         consentiuNavegador: escolha === 'rapido',
         rapidoPermitido: rapidoDoMicPermitido(),
@@ -2546,14 +2574,22 @@ export default function LiveCapture({
       mbStt: falta(pecasDoInicio.stt, pecasDoInicio.mbStt),
       /* O tradutor entra no download de TODA escolha (o Rápido também traduz): a folha diz o tamanho —
          menos quando o navegador já traduz o par no aparelho (aí o nosso não baixa). */
-      mbTradutor: preparoDoInicio.tradutorNativo
+      mbTradutor: (interprete ? preparoDoInicio.tradutorNativoNosDois : preparoDoInicio.tradutorNativo)
         ? 0
-        : pecasDoInicio.tradutores.reduce((s, m) => s + falta(m.id, m.mb), 0),
+        : (interprete ? pecasDoInicio.tradutoresDoInterprete : pecasDoInicio.tradutores).reduce(
+            (s, m) => s + falta(m.id, m.mb),
+            0,
+          ),
       limiteDeDownloadMb: perfilDoAparelho.confirmarDownloadAcimaDeMb,
       downloadJaConfirmado: downloadConfirmadoRef.current,
       modoNuvem: getProviderMode() === 'cloud',
-    });
+    };
   };
+  const planoDoInicio = (
+    escolha: EscolhaDoMic | null,
+    fontes?: { micEnabled: boolean; systemEnabled: boolean },
+    interprete = false,
+  ): PassoDoInicio => planejarInicio(entradaDoInicio(escolha, fontes, interprete));
   /** O que a folha do início começa quando a pessoa confirma: a captura ou o intérprete. */
   const acaoDoInicioRef = useRef<'captura' | 'interprete'>('captura');
   /** Começa AGORA — sempre de dentro de um toque (Iniciar, a folha, a ajuda do microfone). */
@@ -2584,11 +2620,18 @@ export default function LiveCapture({
   const abrirOInterprete = () => {
     acaoDoInicioRef.current = 'captura';
     sessaoDoInterpreteRef.current = true;
+    /* O cenário vale já, e não só depois do render: o preparo abaixo lê o cenário para saber que a
+       conversa vai nos dois sentidos. */
+    captureScenarioRef.current = 'interprete';
     setFalhaDoMic(null);
+    setAvisoDoInterprete(null);
     if (!micEnabled) marcarMicrofone(true);
     setInterpreteAberto(true);
     handleStartOrResume();
     if (isRecordingRef.current) setIsRecording(true);
+    /* O tradutor dos DOIS sentidos já, dentro do toque (o do navegador pede o gesto): a primeira fala
+       do outro lado não espera um download no meio da conversa. O progresso vai à faixa do meio. */
+    prepararTradutorDaFala({ nosDoisSentidos: true });
   };
   /** O par do intérprete: dois idiomas diferentes. Com "Detectar", vale o idioma que está por baixo
       dele: no intérprete cada lado DECLARA o seu, e o microfone abre nele. */
@@ -2598,13 +2641,51 @@ export default function LiveCapture({
     if (abrindoCaptura || isRecordingRef.current || !interpretePossivel) return;
     if (tetoAtingido && !resumeId) return avisarTeto();
     acaoDoInicioRef.current = 'interprete';
-    const passo = planoDoInicio(escolhaDoMic, { micEnabled: true, systemEnabled: false });
+    const passo = planoDoInicio(escolhaDoMic, { micEnabled: true, systemEnabled: false }, true);
     if (passo.tipo === 'folha') {
       setFolhaDoInicio(passo);
       return;
     }
     abrirOInterprete();
   };
+  /* A TELA PRÓPRIA DO INTÉRPRETE (o item do menu): os dois lados do par com os rótulos da conversa — "Eu
+     falo" e "A outra pessoa fala", sem "Detectar" (cada lado DECLARA o seu idioma e o microfone abre nele).
+     Escolher aqui desliga o "Detectar" que estivesse ligado, para a tela dizer só o que vale. */
+  const ladosDoInterprete: [Lado, Lado] = [
+    {
+      rotulo: t('Eu falo'),
+      codigo: sourceLang,
+      auto: false,
+      aceitaAuto: false,
+      aoEscolher: escolherIdioma('fonte', setAutoDetectMyLang),
+    },
+    {
+      rotulo: t('A outra pessoa fala'),
+      codigo: targetLang,
+      auto: false,
+      aceitaAuto: false,
+      aoEscolher: escolherIdioma('alvo', setAutoDetectLang),
+    },
+  ];
+  const trocarIdiomasDoInterprete = () => {
+    langTouchedRef.current = true;
+    const fonte = sourceLang;
+    setSourceLang(targetLang);
+    setTargetLang(fonte);
+  };
+  /** O preparo dos dois lados, como a tela do intérprete o mostra antes de começar. */
+  const linhasDoInterprete = telaDoInterprete
+    ? (() => {
+        const e = entradaDoInicio(escolhaDoMic, { micEnabled: true, systemEnabled: false }, true);
+        return linhasDoPreparo({
+          motor: e.motor,
+          mbStt: e.mbStt,
+          mbTradutor: e.mbTradutor,
+          tradutorNativoNosDois: preparoDoInicio.tradutorNativoNosDois,
+          modoNuvem: e.modoNuvem,
+        });
+      })()
+    : [];
   /** Sair da tela: o Encerrar de sempre (salvar ou descartar), ou nada, se ninguém falou. */
   const sairDoInterprete = () => {
     setInterpreteAberto(false);
@@ -3531,7 +3612,22 @@ export default function LiveCapture({
       )}
 
       {/* --- DASHBOARD WRAPPER (no celular, a tela dele: `telaDoCelular`) --- */}
-      {noCelular ? (
+      {telaDoInterprete ? (
+        <div className="rolagem flex-1">
+          <Suspense fallback={null}>
+            <TelaDoInterprete
+              meu={sourceLang}
+              outro={targetLang}
+              linhas={linhasDoInterprete}
+              possivel={interpretePossivel}
+              abrindo={abrindoCaptura}
+              aoMudarIdiomas={() => setIdiomasAbertos(true)}
+              aoTrocar={trocarIdiomasDoInterprete}
+              aoComecar={entrarNoInterprete}
+            />
+          </Suspense>
+        </div>
+      ) : noCelular ? (
         telaDoCelular
       ) : (
         <div className="flex-1 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden relative">
@@ -4016,14 +4112,25 @@ export default function LiveCapture({
       {idiomasAbertos && (
         <IdiomasDaSessao
           sub={
-            captureScenario === 'conversation'
-              ? 'Com o microfone ligado, a conversa tem dois lados.'
-              : captureScenario === 'mic'
-                ? 'Só o microfone: a sua fala entra, a tradução sai.'
-                : 'Só o som do computador: um idioma entra, outro sai.'
+            telaDoInterprete
+              ? t('Cada pessoa fala no seu idioma.')
+              : captureScenario === 'conversation'
+                ? 'Com o microfone ligado, a conversa tem dois lados.'
+                : captureScenario === 'mic'
+                  ? 'Só o microfone: a sua fala entra, a tradução sai.'
+                  : 'Só o som do computador: um idioma entra, outro sai.'
           }
-          lados={ladosDoPar}
-          resumo={resumoDaDirecao()}
+          lados={telaDoInterprete ? ladosDoInterprete : ladosDoPar}
+          resumo={
+            telaDoInterprete ? (
+              <>
+                {t('Eu falo')} <b>{langLabel(sourceLang)}</b> · {t('A outra pessoa fala')}{' '}
+                <b>{langLabel(targetLang)}</b>. {t('A tradução é lida em voz alta para quem ouve.')}
+              </>
+            ) : (
+              resumoDaDirecao()
+            )
+          }
           avisos={avisosDoPar}
           aoFechar={() => setIdiomasAbertos(false)}
         />
@@ -4349,6 +4456,8 @@ export default function LiveCapture({
             velocidade={ttsSpeed}
             layout={noCelular ? 'celular' : 'computador'}
             abrindo={micAbrindo}
+            aviso={avisoDoInterprete}
+            preparo={resumoDoPreparo(modelPrep)}
             aoSair={sairDoInterprete}
           />
         </Suspense>

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { codigoDoTradutor } from '../../gateway/adapters/chromeTranslator';
 import { modeloDisponivel } from '../../gateway/modelManifest';
 import type { Disponibilidade } from '../dispositivo/sonda';
+import { disponibilidadeParaTodos } from './motorDoMicrofone';
 
 /**
  * O QUE O TOQUE EM INICIAR PRECISA SABER, medido QUANDO A TELA ABRE — e não dentro do clique.
@@ -18,6 +19,10 @@ import type { Disponibilidade } from '../dispositivo/sonda';
  *   · `permissao`: o estado da permissão do microfone ('granted' dispensa o "Permita o microfone");
  *   · `tradutorNativo`: o navegador já traduz o par NO APARELHO (`Translator.availability` =
  *     'available') — o nosso tradutor não baixa, e a folha não conta os MB dele.
+ *   · O MODO INTÉRPRETE fala nos DOIS sentidos e ouve os DOIS idiomas: `tradutorNativoNosDois` (os
+ *     dois sentidos do par) e `noAparelhoNosDois` (o pior dos dois idiomas do microfone, com
+ *     `outroLangDoMic`) dizem o que o intérprete baixaria; o aviso de download deixou de contar só a
+ *     metade da conversa.
  * Até chegar, `completos` é `null` e o plano conta tudo como a baixar (errar para o lado de avisar).
  */
 export interface PreparoDoInicio {
@@ -26,6 +31,10 @@ export interface PreparoDoInicio {
   podeInstalarPacote: boolean;
   permissao: PermissionState | null;
   tradutorNativo: boolean;
+  /** O navegador traduz o par nos DOIS sentidos (o intérprete). */
+  tradutorNativoNosDois: boolean;
+  /** O reconhecimento no aparelho para os dois idiomas do microfone: vale o pior (o intérprete). */
+  noAparelhoNosDois: Disponibilidade | null;
 }
 
 type ComInstalar = { install?: unknown };
@@ -39,25 +48,36 @@ export function usePreparoDoInicio(o: {
   gravando: boolean;
   /** O par do tradutor da captura (de, para). Ausente = não sonda o tradutor do navegador. */
   parDoTradutor?: readonly [string, string];
+  /** O idioma da OUTRA pessoa no intérprete (BCP-47): o microfone ouve os dois. */
+  outroLangDoMic?: string;
 }): PreparoDoInicio {
   const [completos, setCompletos] = useState<ReadonlySet<string> | null>(null);
   const [noAparelho, setNoAparelho] = useState<Disponibilidade | null>(null);
+  const [noAparelhoDoOutro, setNoAparelhoDoOutro] = useState<Disponibilidade | null>(null);
   const [permissao, setPermissao] = useState<PermissionState | null>(null);
   const chave = o.modelos.join('|');
   const [tradutorNativo, setTradutorNativo] = useState(false);
+  const [tradutorNativoInverso, setTradutorNativoInverso] = useState(false);
   const [deTradutor, paraTradutor] = o.parDoTradutor ?? ['', ''];
 
   useEffect(() => {
     setTradutorNativo(false);
+    setTradutorNativoInverso(false);
     const api = (globalThis as { Translator?: { availability?: (x: unknown) => Promise<string> } }).Translator;
     if (!deTradutor || !paraTradutor || typeof api?.availability !== 'function') return;
     const s = codigoDoTradutor(deTradutor);
     const t = codigoDoTradutor(paraTradutor);
     if (s === t) return;
     let vivo = true;
+    const pronto = (d: string) => d === 'available' || d === 'readily';
     void api
       .availability({ sourceLanguage: s, targetLanguage: t })
-      .then((d) => vivo && setTradutorNativo(d === 'available' || d === 'readily'))
+      .then((d) => vivo && setTradutorNativo(pronto(d)))
+      .catch(() => {});
+    // O sentido contrário (a fala do outro lado, no intérprete).
+    void api
+      .availability({ sourceLanguage: t, targetLanguage: s })
+      .then((d) => vivo && setTradutorNativoInverso(pronto(d)))
       .catch(() => {});
     return () => {
       vivo = false;
@@ -85,6 +105,7 @@ export function usePreparoDoInicio(o: {
   useEffect(() => {
     if (!o.sondarMic) {
       setNoAparelho(null);
+      setNoAparelhoDoOutro(null);
       return;
     }
     let vivo = true;
@@ -92,10 +113,16 @@ export function usePreparoDoInicio(o: {
       .then((m) => m.disponibilidadeDoSttNoAparelho(o.langDoMic))
       .then((d) => vivo && setNoAparelho(d))
       .catch(() => vivo && setNoAparelho(null));
+    if (o.outroLangDoMic) {
+      void import('../dispositivo/sonda')
+        .then((m) => m.disponibilidadeDoSttNoAparelho(o.outroLangDoMic!))
+        .then((d) => vivo && setNoAparelhoDoOutro(d))
+        .catch(() => vivo && setNoAparelhoDoOutro(null));
+    } else setNoAparelhoDoOutro(null);
     return () => {
       vivo = false;
     };
-  }, [o.langDoMic, o.sondarMic]);
+  }, [o.langDoMic, o.outroLangDoMic, o.sondarMic]);
 
   useEffect(() => {
     let status: PermissionStatus | null = null;
@@ -121,5 +148,13 @@ export function usePreparoDoInicio(o: {
 
   const g = globalThis as { SpeechRecognition?: ComInstalar; webkitSpeechRecognition?: ComInstalar };
   const podeInstalarPacote = typeof (g.SpeechRecognition ?? g.webkitSpeechRecognition)?.install === 'function';
-  return { completos, noAparelho, podeInstalarPacote, permissao, tradutorNativo };
+  return {
+    completos,
+    noAparelho,
+    podeInstalarPacote,
+    permissao,
+    tradutorNativo,
+    tradutorNativoNosDois: tradutorNativo && tradutorNativoInverso,
+    noAparelhoNosDois: o.outroLangDoMic ? disponibilidadeParaTodos([noAparelho, noAparelhoDoOutro]) : noAparelho,
+  };
 }

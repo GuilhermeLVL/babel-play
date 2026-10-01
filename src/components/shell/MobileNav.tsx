@@ -13,14 +13,14 @@ interface MobileNavProps {
 
 /**
  * Dock inferior do celular — marcação do protótipo aprovado (`.dock` + `.folha`): os cinco
- * destinos principais e "Mais", que abre a folha com os secundários (Personalizar, Sobre, Planos,
- * Ajustes) e o perfil. Todo destino continua com porta no celular — a auditoria F9 achou uma tela
+ * destinos principais e "Mais", que abre a folha com os secundários (Biblioteca, Personalizar, Sobre,
+ * Planos, Ajustes) e o perfil. A Biblioteca cedeu o lugar ao Intérprete (`noCelular: 'mais'`). Todo destino continua com porta no celular — a auditoria F9 achou uma tela
  * sem porta quando os secundários simplesmente sumiam; aqui eles estão a um toque, na folha.
  */
 export default function MobileNav({ activeView, onChangeView, ageProfile }: MobileNavProps) {
   const [maisAberto, setMaisAberto] = useState(false);
-  const principais = NAV_ITEMS.filter((i) => !i.secondary);
-  const secundarios = NAV_ITEMS.filter((i) => i.secondary);
+  const principais = NAV_ITEMS.filter((i) => !i.secondary && i.noCelular !== 'mais');
+  const secundarios = NAV_ITEMS.filter((i) => i.secondary || i.noCelular === 'mais');
   const secundarioAtivo =
     secundarios.some((i) => i.id === activeView) || activeView === 'profile' || activeView === 'ajuda';
 

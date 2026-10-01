@@ -1,9 +1,20 @@
-import { ArrowLeftRight, ChevronDown, Languages, Loader2, Mic, Smartphone, Volume2 } from 'lucide-react';
+import {
+  ArrowLeftRight,
+  AudioLines,
+  ChevronDown,
+  Languages,
+  Loader2,
+  Lock,
+  Mic,
+  Smartphone,
+  Volume2,
+} from 'lucide-react';
 
 import { t } from '../../../../lib/i18n';
 import { langLabel } from '../../../../lib/languages';
 import { LangFlag } from '../../../LangFlag';
 import { CabecalhoDeTela, IconeEmBloco } from '../../../ui';
+import type { AutomaticoNoPlano } from './ModoInterprete';
 
 /**
  * A TELA DO INTÉRPRETE NO MENU (pedido do dono, 30/09: no cabeçalho da captura, o botão passava
@@ -20,6 +31,8 @@ export default function PaginaDoInterprete({
   possivel,
   abrindo,
   aviso,
+  automatico = 'oculto',
+  aoConhecerOPremium,
   aoComecar,
   aoEscolherIdiomas,
   aoInverter,
@@ -31,6 +44,10 @@ export default function PaginaDoInterprete({
   abrindo: boolean;
   /** O preparo dos dois lados (o tradutor do outro sentido baixando), uma linha. */
   aviso: string | null;
+  /** O modo automático nesta conta: o padrão de quem o tem; com cadeado para quem não tem. */
+  automatico?: AutomaticoNoPlano;
+  /** Abre os Planos (ausente no perfil protegido: nada de oferta). */
+  aoConhecerOPremium?: () => void;
   aoComecar: () => void;
   aoEscolherIdiomas: () => void;
   aoInverter: () => void;
@@ -47,7 +64,12 @@ export default function PaginaDoInterprete({
   const passos = [
     { icone: Languages, texto: t('Escolha o seu idioma e o da outra pessoa') },
     { icone: Smartphone, texto: t('Toque em Começar e deixe o aparelho entre vocês') },
-    { icone: Volume2, texto: t('Cada um toca a sua metade e fala: a tradução é lida em voz alta para o outro') },
+    automatico === 'disponivel'
+      ? {
+          icone: AudioLines,
+          texto: t('Toque em Ouvir e conversem: o app reconhece quem fala e lê a tradução em voz alta'),
+        }
+      : { icone: Volume2, texto: t('Cada um toca a sua metade e fala: a tradução é lida em voz alta para o outro') },
   ];
 
   return (
@@ -94,6 +116,27 @@ export default function PaginaDoInterprete({
             ? t('Escolha dois idiomas diferentes: um para você, outro para a outra pessoa.')
             : (aviso ?? t('A tradução dos dois lados fica pronta no aparelho antes da primeira frase.'))}
         </p>
+        {automatico === 'disponivel' && (
+          <p className="mut orientacao-da-captura" style={{ fontSize: 12.5 }} data-testid="modo-da-pagina">
+            <AudioLines aria-hidden className="inline-block w-3.5 h-3.5 align-[-2px]" />{' '}
+            {t(
+              'Modo automático: o app reconhece sozinho quem fala qual idioma. Dá para trocar para o toque na conversa.',
+            )}
+          </p>
+        )}
+        {automatico === 'premium' && (
+          <p className="mut orientacao-da-captura" style={{ fontSize: 12.5 }} data-testid="modo-da-pagina">
+            <Lock aria-hidden className="inline-block w-3.5 h-3.5 align-[-2px]" />{' '}
+            {t(
+              'No Premium, o modo automático reconhece sozinho quem fala qual idioma. Aqui, cada um toca a sua metade.',
+            )}{' '}
+            {aoConhecerOPremium && (
+              <button type="button" className="link" onClick={aoConhecerOPremium}>
+                {t('Conhecer o Premium')}
+              </button>
+            )}
+          </p>
+        )}
       </section>
       <section className="cartao" aria-label={t('Como funciona')}>
         <div className="vazio">

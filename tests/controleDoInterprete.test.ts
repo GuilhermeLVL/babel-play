@@ -241,3 +241,95 @@ describe('os idiomas da conversa, para o motor do microfone', () => {
     expect(m.controle.idiomasDaConversa()).toEqual(['pt-BR', 'en-US'])
   })
 })
+
+/* ───────────────────────────── o modo automático (E7) ───────────────────────────── */
+
+describe('automático: o controle ouve a conversa sem ninguém tocar em lado', () => {
+  const pistas = (idiomaDoMotor: string, extra: Record<string, unknown> = {}) => ({
+    idiomaDoMotor,
+    idiomaDoTexto: '',
+    audioMs: 3000,
+    ...extra,
+  })
+
+  it('"ouvir" destrava a voz, abre o microfone sem direção e marca o automático', () => {
+    const m = montar()
+    m.controle.ouvir()
+    expect(m.destravar).toHaveBeenCalledTimes(1)
+    expect(m.abrir).toHaveBeenCalledTimes(1)
+    expect(m.controle.direcao()).toBeNull()
+    expect(m.controle.automatico()).toBe(true)
+    expect(m.controle.estado()).toMatchObject({ fase: 'ouvindo', automatico: true })
+  })
+
+  it('o ciclo: o fim da fala (sem lado) fecha o microfone; o idioma medido diz o lado e a voz; o fim da voz reabre', () => {
+    const m = montar()
+    m.controle.ouvir()
+    m.controle.aoFimDaFala({ segId: 'a', source: 'mic' })
+    expect(m.fechar).toHaveBeenCalledTimes(1)
+    expect(m.controle.estado().fase).toBe('traduzindo')
+
+    const d = m.controle.ladoDaFala('a', pistas('en'))
+    expect(d).toMatchObject({ lado: 'outro', de: 'en', para: 'pt' })
+
+    m.controle.aoTraduzirFinal({ ...traduzida('a', 'bom dia'), de: 'en', para: 'pt' })
+    expect(m.voz.falas[0].opts.lang).toBe('pt-BR')
+    expect(m.controle.estado().falando).toMatchObject({ id: 'a', lado: 'outro' })
+
+    m.voz.terminar()
+    expect(m.controle.estado()).toMatchObject({ fase: 'ouvindo', automatico: true })
+    expect(m.abrir).toHaveBeenCalledTimes(2)
+  })
+
+  it('a minha fala é lida no idioma do outro', () => {
+    const m = montar()
+    m.controle.ouvir()
+    m.controle.aoFimDaFala({ segId: 'b', source: 'mic' })
+    m.controle.ladoDaFala('b', pistas('pt'))
+    m.controle.aoTraduzirFinal(traduzida('b', 'good morning'))
+    expect(m.voz.falas[0].opts.lang).toBe('en-US')
+    expect(m.controle.estado().falando).toMatchObject({ lado: 'meu' })
+  })
+
+  it('um terceiro idioma: a outra pessoa fala espanhol, e a minha resposta é lida em espanhol', () => {
+    const m = montar()
+    m.controle.ouvir()
+    m.controle.aoFimDaFala({ segId: 'c', source: 'mic' })
+    expect(m.controle.ladoDaFala('c', pistas('es', { idiomaDoTexto: 'es' }))).toMatchObject({
+      lado: 'outro',
+      de: 'es',
+      para: 'pt',
+      terceiro: true,
+    })
+    m.controle.aoTraduzirFinal({ ...traduzida('c', 'bom dia'), de: 'es', para: 'pt' })
+    m.voz.terminar()
+
+    m.controle.aoFimDaFala({ segId: 'd', source: 'mic' })
+    expect(m.controle.ladoDaFala('d', pistas('pt'))).toMatchObject({ lado: 'meu', para: 'es' })
+    m.controle.aoTraduzirFinal({ ...traduzida('d', 'buenos días'), de: 'pt', para: 'es' })
+    expect(String(m.voz.falas[1].opts.lang).toLowerCase().startsWith('es')).toBe(true)
+  })
+
+  it('"parar" fecha o microfone e o fim da voz não o reabre', () => {
+    const m = montar()
+    m.controle.ouvir()
+    m.controle.parar()
+    expect(m.controle.estado()).toMatchObject({ fase: 'parado', automatico: false })
+    expect(m.fechar).toHaveBeenCalled()
+    expect(m.abrir).toHaveBeenCalledTimes(1)
+  })
+
+  it('a falha tardia do microfone no automático desliga a escuta (em vez de reabrir em laço)', () => {
+    const m = montar()
+    m.controle.ouvir()
+    m.controle.microfoneFalhou()
+    expect(m.controle.estado()).toMatchObject({ fase: 'parado', automatico: false })
+  })
+
+  it('fora do automático, o fim da fala sem lado continua ignorado', () => {
+    const m = montar()
+    m.controle.aoFimDaFala({ segId: 'z', source: 'mic' })
+    expect(m.controle.estado().fase).toBe('parado')
+    expect(m.controle.automatico()).toBe(false)
+  })
+})

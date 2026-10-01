@@ -111,6 +111,20 @@ async function falsos(page: Page) {
   })
 }
 
+/**
+ * O MODO POR TOQUE como a última escolha da pessoa. No servidor do e2e (self-host) o automático está no
+ * plano e é o padrão; os testes dos dois lados tocados começam por aqui.
+ */
+async function porToque(page: Page) {
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem('babel.interprete.modo', 'toque')
+    } catch {
+      /* sem armazenamento: o teste falha adiante, no botão que não aparece */
+    }
+  })
+}
+
 /** A escolha do microfone volta a "nunca respondeu" nesta página, e nada é gravado no banco. */
 async function semEscolhaGuardada(page: Page) {
   let ultimo: Record<string, unknown> = {}
@@ -187,6 +201,7 @@ test.describe('Modo intérprete no celular (Pixel 7, voz do aparelho)', () => {
     test.slow()
     await semCapturaDeTela(page)
     await falsos(page)
+    await porToque(page)
     await abrirCaptura(page)
     await entrar(page)
 
@@ -238,6 +253,7 @@ test.describe('Modo intérprete no celular (Pixel 7, voz do aparelho)', () => {
     test.slow()
     await semCapturaDeTela(page)
     await falsos(page)
+    await porToque(page)
     await semEscolhaGuardada(page)
     await page.route(/huggingface\.co|\.hf\.co/, (r) => r.abort())
     await page.route(/\/modelos\/bergamot\/|bergamot-translator-worker/, (r) => r.abort())
@@ -304,6 +320,8 @@ test.describe('Modo intérprete no computador (Premium, voz natural)', () => {
   test('duas colunas, atalhos, a voz natural lê a tradução e a meta do tempo até a voz', async ({ page }) => {
     test.slow()
     await falsos(page)
+    // Os atalhos 1 e 2 são do modo por toque (no automático, o 1 liga a escuta e o 2 não faz nada).
+    await porToque(page)
     // O Premium com a voz natural ligada, e a rota da voz simulada.
     await page.route('**/api/me/entitlements', (r) =>
       r.fulfill({
@@ -376,4 +394,35 @@ test.describe('Modo intérprete no computador (Premium, voz natural)', () => {
     await expect(encerrar).toBeVisible({ timeout: 5_000 })
     await clicarRobusto(page, encerrar.getByRole('button', { name: /Descartar/ }).first())
   })
+})
+
+/* O AUTOMÁTICO (E7). O que o navegador prova aqui é a TELA: o padrão de quem o tem no plano, o botão
+   único e a troca para o toque. A conversa em si (o idioma medido pelo áudio, a metade certa, a voz de
+   quem ouve, o microfone reabrindo) está em `tests/interprete-automatico-integracao.test.ts`, com o
+   pipeline e o controle de verdade: no runner não há microfone nem modelo de fala. */
+test.describe('Modo intérprete: automático', () => {
+  test.beforeEach(() => {
+    test.skip(test.info().project.name !== 'desktop-1280', 'uma vez, no projeto de desktop')
+  })
+
+  test('com o automático no plano, a conversa abre nele; o botão do modo volta ao toque', async ({ page }) => {
+    await falsos(page)
+    await abrirCaptura(page)
+    await entrar(page)
+
+    await expect(fase(page)).toHaveAttribute('data-modo', 'automatico')
+    await expect(page.getByRole('button', { name: 'Ouvir a conversa' })).toBeVisible()
+    await expect(page.getByRole('button', { name: /Falar em/ })).toHaveCount(0)
+    await foto(page, 'automatico-1-pronto')
+
+    await clicarRobusto(page, page.getByTestId('modo-automatico'))
+    await expect(fase(page)).toHaveAttribute('data-modo', 'toque')
+    await expect(page.getByRole('button', { name: /Falar em English/ })).toBeVisible()
+    await expect(page.getByRole('button', { name: /Falar em Português/ })).toBeVisible()
+
+    await page.keyboard.press('Escape')
+    await expect(fase(page)).toHaveCount(0)
+  })
+  /* O Grátis (o botão com cadeado, que diz de que plano é) não tem como ser simulado aqui: no servidor
+     do e2e o plano é o do self-host, decidido no cliente sem ir à rota. Está em `modoInterprete.test.tsx`. */
 })

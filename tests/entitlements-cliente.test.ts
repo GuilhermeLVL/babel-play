@@ -36,6 +36,7 @@ describe('entitlements do cliente', () => {
     expect(e.managedCloudLlm).toBe(false)
     expect(e.traducaoNuance).toBe(false)
     expect(e.vozNatural).toBe(false)
+    expect(e.interpreteAutomatico).toBe(false)
   })
 
   it('o que o servidor responde vira o que a tela mostra, e quem está aberto é avisado', async () => {
@@ -50,6 +51,7 @@ describe('entitlements do cliente', () => {
           largerModels: true,
           traducaoNuance: true,
           vozNatural: true,
+          interpreteAutomatico: true,
           armazenamento: { usados: 1024, teto: 5_000_000_000 },
         }),
       ),
@@ -61,6 +63,7 @@ describe('entitlements do cliente', () => {
     expect(e.plan).toBe('premium')
     expect(e.traducaoNuance).toBe(true)
     expect(e.vozNatural).toBe(true)
+    expect(e.interpreteAutomatico).toBe(true)
     expect(getEntitlements().youtubeImport).toBe(true)
     expect(getEntitlements().armazenamento).toEqual({ usados: 1024, teto: 5_000_000_000 })
     expect(avisos).toHaveBeenCalledTimes(1)

@@ -1,6 +1,6 @@
 import '../../../../styles/modoInterprete.css';
 
-import { ArrowUpDown, Loader2, Mic, RotateCcw, Square, Volume2, VolumeX, X } from 'lucide-react';
+import { ArrowUpDown, AudioLines, Loader2, Lock, Mic, RotateCcw, Square, Volume2, VolumeX, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 import {
@@ -24,6 +24,32 @@ const ESTADO_DA_TELA: EstadoDoControle = { ...ESTADO_INICIAL, falando: null };
 
 const outro = (lado: LadoDoInterprete): LadoDoInterprete => (lado === 'meu' ? 'outro' : 'meu');
 
+/** Como a conversa anda: o app ouve e reconhece quem fala (automático), ou cada um toca a sua metade. */
+export type ModoDaConversa = 'automatico' | 'toque';
+/**
+ * O automático NESTA conta: `disponivel` (o plano o tem), `premium` (não tem: o botão aparece com
+ * cadeado e diz de que plano é) ou `oculto` (o site sem servidor, o perfil protegido: nem aparece).
+ */
+export type AutomaticoNoPlano = 'disponivel' | 'premium' | 'oculto';
+
+/* A última escolha da pessoa, neste aparelho. Conveniência: sem armazenamento, vale o padrão. */
+const CHAVE_DO_MODO = 'babel.interprete.modo';
+function modoGuardado(): ModoDaConversa | null {
+  try {
+    const v = localStorage.getItem(CHAVE_DO_MODO);
+    return v === 'automatico' || v === 'toque' ? v : null;
+  } catch {
+    return null;
+  }
+}
+function guardarModo(modo: ModoDaConversa) {
+  try {
+    localStorage.setItem(CHAVE_DO_MODO, modo);
+  } catch {
+    /* sem armazenamento: a escolha vale só nesta tela */
+  }
+}
+
 /** A última fala de um lado (a que a metade do OUTRO mostra traduzida). */
 function ultimaDoLado(falas: ReadonlyArray<FalaDoInterprete>, lado: LadoDoInterprete, parcial: boolean) {
   for (let i = falas.length - 1; i >= 0; i--) {
@@ -45,6 +71,11 @@ function ultimaDoLado(falas: ReadonlyArray<FalaDoInterprete>, lado: LadoDoInterp
  *  · FALANDO: a metade de quem ouve mostra "Repetir" e "Parar voz".
  *  · COMPUTADOR: duas colunas lado a lado, com atalhos de teclado (1 e 2 falam, R repete, P para a
  *    voz, Esc sai).
+ *  · AUTOMÁTICO (E7, o padrão de quem o tem no plano): ninguém toca em lado. Um botão só, "Ouvir a
+ *    conversa", na metade de quem segura o aparelho; o app reconhece o idioma de cada fala, mostra a
+ *    tradução na metade de quem ouve, lê em voz alta e volta a ouvir. O botão "Automático" da faixa
+ *    do meio alterna com o modo por toque (para a rua barulhenta); sem ele no plano, aparece com
+ *    cadeado e diz de que plano é.
  *
  * O estado e os efeitos são do `controleDoInterprete.ts`. A captura (`LiveCapture`) abre a sessão,
  * repassa as falas e liga a ponte (`registrarPonte`): o pipeline e as fontes leem a direção do
@@ -60,6 +91,7 @@ export default function ModoInterprete({
   layout,
   abrindo,
   aviso,
+  automatico = 'oculto',
   aoSair,
   aoFalharMicrofone,
 }: {
@@ -78,6 +110,8 @@ export default function ModoInterprete({
    * tela do intérprete a cobre inteira, então a linha aparece aqui, na faixa do meio.
    */
   aviso?: string | null;
+  /** O modo automático nesta conta (o entitlement `interpreteAutomatico`). Ausente = não aparece. */
+  automatico?: AutomaticoNoPlano;
   aoSair: () => void;
   aoFalharMicrofone?: (erro: unknown) => void;
 }) {
@@ -124,6 +158,42 @@ export default function ModoInterprete({
     };
   }, [vozNaturalDisponivel, registrarPonte]);
   const atual = estado;
+
+  /* O MODO. Quem tem o automático começa nele (decisão do dono), a menos que tenha escolhido o toque
+     da última vez. Sem ele no plano, é sempre por toque. */
+  const [modo, setModo] = useState<ModoDaConversa>(() =>
+    automatico === 'disponivel' ? (modoGuardado() ?? 'automatico') : 'toque',
+  );
+  useEffect(() => {
+    if (automatico !== 'disponivel') setModo('toque');
+  }, [automatico]);
+  /** O aviso da própria tela (o cadeado do automático), por alguns segundos. */
+  const [avisoDaTela, setAvisoDaTela] = useState<string | null>(null);
+  useEffect(() => {
+    if (!avisoDaTela) return;
+    const relogio = setTimeout(() => setAvisoDaTela(null), 7000);
+    return () => clearTimeout(relogio);
+  }, [avisoDaTela]);
+  const trocarModo = () => {
+    if (automatico !== 'disponivel') {
+      setAvisoDaTela(t('O modo automático faz parte do Premium: o app reconhece sozinho quem fala qual idioma.'));
+      return;
+    }
+    /* Trocar no meio da conversa fecha o microfone e cala a voz: o modo novo começa do zero. */
+    if (controleRef.current && controleRef.current.estado().fase !== 'parado') controleRef.current.parar();
+    const novo: ModoDaConversa = modo === 'automatico' ? 'toque' : 'automatico';
+    setModo(novo);
+    guardarModo(novo);
+  };
+  const noAutomatico = modo === 'automatico';
+  /** "Ouvir a conversa" / "Parar": o botão único do automático. */
+  const alternarEscuta = () => {
+    const c = controleRef.current;
+    if (!c) return;
+    if (c.estado().automatico) c.parar();
+    else c.ouvir();
+  };
+
   const controle = {
     tocar: (lado: LadoDoInterprete) => controleRef.current?.tocar(lado),
     repetir: () => controleRef.current?.repetir(),
@@ -140,6 +210,10 @@ export default function ModoInterprete({
   /* OS ATALHOS do computador. No celular não há teclado a ouvir. */
   const sairRef = useRef(sair);
   sairRef.current = sair;
+  const noAutomaticoRef = useRef(noAutomatico);
+  noAutomaticoRef.current = noAutomatico;
+  const alternarEscutaRef = useRef(alternarEscuta);
+  alternarEscutaRef.current = alternarEscuta;
   useEffect(() => {
     if (layout !== 'computador') return;
     const aoTeclar = (e: KeyboardEvent) => {
@@ -147,9 +221,14 @@ export default function ModoInterprete({
       const alvo = e.target as HTMLElement | null;
       if (alvo && (alvo.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(alvo.tagName))) return;
       const tecla = e.key.toLowerCase();
-      if (tecla === '1') controle.tocar('meu');
-      else if (tecla === '2') controle.tocar('outro');
-      else if (tecla === 'r') controle.repetir();
+      /* No automático não há lados a tocar: o 1 liga e desliga a escuta, e o 2 não faz nada. */
+      if (tecla === '1') {
+        if (noAutomaticoRef.current) alternarEscutaRef.current();
+        else controle.tocar('meu');
+      } else if (tecla === '2') {
+        if (noAutomaticoRef.current) return;
+        controle.tocar('outro');
+      } else if (tecla === 'r') controle.repetir();
       else if (tecla === 'p') controle.pararVoz();
       else if (tecla === 'escape') sairRef.current();
       else return;
@@ -167,8 +246,11 @@ export default function ModoInterprete({
     const direcao = direcaoDoLado(lado, idiomas, atual.trocados);
     const nome = langLabel(direcao.fala);
     const doOutro = ultimaDoLado(falas, outro(lado), false);
-    const ouvindo = atual.fase === 'ouvindo' && atual.lado === lado;
-    const traduzindo = atual.fase === 'traduzindo' && atual.lado === lado;
+    /* No automático a escuta não é de um lado: as duas metades dizem o mesmo, cada uma virada para
+       quem a lê. */
+    const escutando = atual.automatico && atual.fase === 'ouvindo';
+    const ouvindo = !atual.automatico && atual.fase === 'ouvindo' && atual.lado === lado;
+    const traduzindo = atual.fase === 'traduzindo' && (atual.automatico || atual.lado === lado);
     const vozParaMim = !!atual.falando && atual.falando.lado === outro(lado);
     const minhaAoVivo = ouvindo ? ultimaDoLado(falas, lado, true) : undefined;
     const atalho = lado === 'meu' ? '1' : '2';
@@ -177,7 +259,7 @@ export default function ModoInterprete({
         className="int-metade"
         data-lado={lado}
         data-virada={!computador && lado === 'outro' ? true : undefined}
-        data-ouvindo={ouvindo || undefined}
+        data-ouvindo={ouvindo || escutando || undefined}
         aria-label={t('Lado de quem fala {idioma}', { idioma: nome })}
         data-testid={`interprete-${lado}`}
       >
@@ -198,15 +280,19 @@ export default function ModoInterprete({
             </>
           ) : (
             <p className="int-dica">
-              {t('Toque em Falar e fale. A tradução aparece do outro lado e é lida em voz alta.')}
+              {noAutomatico
+                ? t('Toque em Ouvir e conversem. O app reconhece quem fala qual idioma e lê a tradução em voz alta.')
+                : t('Toque em Falar e fale. A tradução aparece do outro lado e é lida em voz alta.')}
             </p>
           )}
         </div>
         <p className="int-status" role="status">
-          {ouvindo
+          {ouvindo || escutando
             ? abrindo
               ? t('Abrindo o microfone…')
-              : t('Ouvindo…')
+              : escutando
+                ? t('Ouvindo a conversa…')
+                : t('Ouvindo…')
             : traduzindo
               ? t('Traduzindo…')
               : vozParaMim
@@ -226,27 +312,55 @@ export default function ModoInterprete({
               {computador && <kbd>R</kbd>}
             </button>
           )}
-          <button
-            type="button"
-            className="int-falar"
-            data-ouvindo={ouvindo || undefined}
-            onClick={() => controle.tocar(lado)}
-            aria-pressed={ouvindo}
-            aria-label={ouvindo ? t('Parar de ouvir') : t('Falar em {idioma}', { idioma: nome })}
-            data-sfx="none"
-          >
-            {ouvindo ? (
-              abrindo ? (
-                <Loader2 aria-hidden className="animate-spin" />
+          {noAutomatico ? (
+            /* O botão único do automático fica na metade de quem segura o aparelho; a outra pessoa só fala. */
+            lado === 'meu' && (
+              <button
+                type="button"
+                className="int-falar"
+                data-ouvindo={escutando || undefined}
+                onClick={alternarEscuta}
+                aria-pressed={atual.automatico}
+                aria-label={atual.automatico ? t('Parar de ouvir a conversa') : t('Ouvir a conversa')}
+                data-sfx="none"
+                data-testid="ouvir-a-conversa"
+              >
+                {atual.automatico ? (
+                  escutando && abrindo ? (
+                    <Loader2 aria-hidden className="animate-spin" />
+                  ) : (
+                    <Square aria-hidden />
+                  )
+                ) : (
+                  <AudioLines aria-hidden />
+                )}
+                <span aria-hidden>{atual.automatico ? t('Parar') : t('Ouvir')}</span>
+                {computador && <kbd aria-hidden>1</kbd>}
+              </button>
+            )
+          ) : (
+            <button
+              type="button"
+              className="int-falar"
+              data-ouvindo={ouvindo || undefined}
+              onClick={() => controle.tocar(lado)}
+              aria-pressed={ouvindo}
+              aria-label={ouvindo ? t('Parar de ouvir') : t('Falar em {idioma}', { idioma: nome })}
+              data-sfx="none"
+            >
+              {ouvindo ? (
+                abrindo ? (
+                  <Loader2 aria-hidden className="animate-spin" />
+                ) : (
+                  <Square aria-hidden />
+                )
               ) : (
-                <Square aria-hidden />
-              )
-            ) : (
-              <Mic aria-hidden />
-            )}
-            <span aria-hidden>{ouvindo ? t('Parar') : t('Falar')}</span>
-            {computador && <kbd aria-hidden>{atalho}</kbd>}
-          </button>
+                <Mic aria-hidden />
+              )}
+              <span aria-hidden>{ouvindo ? t('Parar') : t('Falar')}</span>
+              {computador && <kbd aria-hidden>{atalho}</kbd>}
+            </button>
+          )}
           {vozParaMim && (
             <button type="button" className="int-ib" onClick={() => controle.pararVoz()} aria-label={t('Parar a voz')}>
               <VolumeX aria-hidden />
@@ -268,24 +382,46 @@ export default function ModoInterprete({
       aria-label={t('Modo intérprete')}
       data-testid="modo-interprete"
       data-fase={atual.fase}
+      data-modo={modo}
     >
       {computador ? metade('meu') : metade('outro')}
-      <div className="int-faixa">
-        <button
-          type="button"
-          className="int-ib peq"
-          onClick={() => controle.trocarLados()}
-          aria-label={t('Trocar os lados')}
-        >
-          <ArrowUpDown aria-hidden />
-        </button>
+      <div className="int-faixa" data-com-modo={automatico !== 'oculto' || undefined}>
+        <div className="int-esq">
+          <button
+            type="button"
+            className="int-ib peq"
+            onClick={() => controle.trocarLados()}
+            aria-label={t('Trocar os lados')}
+          >
+            <ArrowUpDown aria-hidden />
+          </button>
+          {automatico !== 'oculto' && (
+            <button
+              type="button"
+              className="int-modo"
+              onClick={trocarModo}
+              aria-pressed={noAutomatico}
+              aria-label={t('Modo automático: o app reconhece quem fala qual idioma')}
+              data-bloqueado={automatico === 'premium' || undefined}
+              data-testid="modo-automatico"
+            >
+              {automatico === 'premium' ? <Lock aria-hidden /> : <AudioLines aria-hidden />}
+              <span aria-hidden>{t('Automático')}</span>
+            </button>
+          )}
+        </div>
         <div className="int-centro">
-          <span className="int-voz" data-natural={vozNatural || undefined} data-testid="voz-em-uso">
+          <span
+            className="int-voz"
+            data-natural={vozNatural || undefined}
+            data-testid="voz-em-uso"
+            title={vozNatural ? t('Voz natural · Premium') : t('Voz do aparelho')}
+          >
             <Volume2 aria-hidden />
-            {vozNatural ? t('Voz natural · Premium') : t('Voz do aparelho')}
+            <span className="int-voz-txt">{vozNatural ? t('Voz natural · Premium') : t('Voz do aparelho')}</span>
           </span>
           <span className="int-aviso" role="status" data-testid="aviso-do-interprete">
-            {aviso ?? ''}
+            {avisoDaTela ?? aviso ?? ''}
           </span>
         </div>
         <button type="button" className="int-ib peq" onClick={sair} aria-label={t('Sair do modo intérprete')}>

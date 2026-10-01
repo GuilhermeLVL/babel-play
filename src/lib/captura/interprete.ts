@@ -48,11 +48,21 @@ export interface EstadoDoInterprete {
   pendentes: readonly string[];
   /** Os idiomas trocaram de metade ("trocar os lados"). */
   trocados: boolean;
+  /**
+   * O MODO AUTOMÁTICO está ouvindo a conversa (E7): ninguém toca em lado, o idioma de cada fala é
+   * medido pelo áudio (`interpreteAutomatico.ts`), e o microfone REABRE sozinho depois de cada
+   * tradução lida. Fora dele (`false`), o ciclo termina em "parado" e espera o toque.
+   */
+  automatico: boolean;
 }
 
 export type EventoDoInterprete =
   /** Alguém tocou o botão de falar da sua metade. */
   | { tipo: 'tocar'; lado: LadoDoInterprete }
+  /** "Ouvir a conversa": liga o automático (o microfone abre sem lado). */
+  | { tipo: 'ouvir' }
+  /** "Parar" do automático: fecha o microfone, cala a voz e não reabre. */
+  | { tipo: 'parar' }
   /** O microfone ouviu o fim da fala (o VAD fechou, ou a Web Speech comprometeu o final). */
   | { tipo: 'fimDaFala'; segId: string }
   /** A tradução do final chegou (`aoTraduzirFinal`, resultado `traduzida`). */
@@ -67,8 +77,8 @@ export type EventoDoInterprete =
   | { tipo: 'sair' };
 
 export type EfeitoDoInterprete =
-  /** Abrir (ou reabrir, noutro idioma) o microfone na direção do lado. */
-  | { tipo: 'abrirMicrofone'; direcao: DirecaoDaFala }
+  /** Abrir (ou reabrir, noutro idioma) o microfone na direção do lado; `null` = o automático (sem lado). */
+  | { tipo: 'abrirMicrofone'; direcao: DirecaoDaFala | null }
   | { tipo: 'fecharMicrofone' }
   /** Barge-in: `fila.interromper()`. */
   | { tipo: 'interromperVoz' }
@@ -95,6 +105,7 @@ export const ESTADO_INICIAL: EstadoDoInterprete = Object.freeze({
   lado: null,
   pendentes: Object.freeze([]) as readonly string[],
   trocados: false,
+  automatico: false,
 });
 
 /** O BCP-47 que o reconhecedor recebe: `pt` → `pt-BR`; código com região fica como veio. */
@@ -119,8 +130,12 @@ export function idiomasDaConversa(idiomas: IdiomasDoInterprete): string[] {
   return [bcp47(idiomas.meu), bcp47(idiomas.outro)];
 }
 
-/** A direção do microfone AGORA: a do lado ativo, ou a do último que falou; `null` antes da primeira fala. */
+/**
+ * A direção do microfone AGORA: a do lado ativo, ou a do último que falou; `null` antes da primeira
+ * fala — e no automático, onde o idioma não vem do lado: é medido em cada fala.
+ */
 export function direcaoAtual(estado: EstadoDoInterprete, idiomas: IdiomasDoInterprete): DirecaoDaFala | null {
+  if (estado.automatico) return null;
   return estado.lado ? direcaoDoLado(estado.lado, idiomas, estado.trocados) : null;
 }
 
@@ -142,23 +157,35 @@ export function transicao(
   idiomas: IdiomasDoInterprete,
 ): Transicao {
   const nada: Transicao = { estado, efeitos: [] };
+  /* Tocar um lado é sempre o modo por toque: sai do automático. */
   const ouvir = (lado: LadoDoInterprete, antes: EfeitoDoInterprete[] = []): Transicao => ({
-    estado: { ...estado, fase: 'ouvindo', lado, pendentes: [] },
+    estado: { ...estado, fase: 'ouvindo', lado, pendentes: [], automatico: false },
     efeitos: [...antes, { tipo: 'abrirMicrofone', direcao: direcaoDoLado(lado, idiomas, estado.trocados) }],
+  });
+  /** O automático (re)abre o microfone sem lado: o idioma de cada fala é medido. */
+  const ouvirTudo = (antes: EfeitoDoInterprete[] = []): Transicao => ({
+    estado: { ...estado, fase: 'ouvindo', lado: null, pendentes: [], automatico: true },
+    efeitos: [...antes, { tipo: 'abrirMicrofone', direcao: null }],
   });
 
   switch (evento.tipo) {
     case 'sair':
+    case 'parar':
       return {
-        estado: { ...estado, fase: 'parado', pendentes: [] },
+        estado: { ...estado, fase: 'parado', pendentes: [], automatico: false },
         efeitos: [{ tipo: 'fecharMicrofone' }, { tipo: 'pararVoz' }],
       };
 
     case 'trocarLados':
       return {
-        estado: { ...estado, fase: 'parado', pendentes: [], trocados: !estado.trocados },
+        estado: { ...estado, fase: 'parado', pendentes: [], trocados: !estado.trocados, automatico: false },
         efeitos: estado.fase === 'parado' ? [] : [{ tipo: 'fecharMicrofone' }, { tipo: 'pararVoz' }],
       };
+
+    case 'ouvir':
+      /* Já ouvindo no automático: nada a fazer. No meio da voz (ou da tradução): corta a voz antes. */
+      if (estado.automatico && estado.fase === 'ouvindo') return nada;
+      return ouvirTudo(estado.fase === 'traduzindo' || estado.fase === 'falando' ? [{ tipo: 'interromperVoz' }] : []);
 
     case 'tocar':
       if (estado.fase === 'parado') return ouvir(evento.lado);
@@ -193,21 +220,35 @@ export function transicao(
     case 'semTraducao': {
       if (!estado.pendentes.includes(evento.segId)) return nada;
       const pendentes = sem(estado.pendentes, evento.segId);
-      const fase = estado.fase === 'traduzindo' && pendentes.length === 0 ? 'parado' : estado.fase;
-      return { estado: { ...estado, fase, pendentes }, efeitos: [] };
+      const acabou = estado.fase === 'traduzindo' && pendentes.length === 0;
+      /* Nada a ler deste turno: o automático volta a ouvir; o toque, a esperar o toque. */
+      if (acabou && estado.automatico) return ouvirTudo();
+      return { estado: { ...estado, fase: acabou ? 'parado' : estado.fase, pendentes }, efeitos: [] };
     }
 
     case 'fimDaVoz':
       if (estado.fase !== 'falando') return nada;
-      return { estado: { ...estado, fase: estado.pendentes.length ? 'traduzindo' : 'parado' }, efeitos: [] };
+      if (estado.pendentes.length) return { estado: { ...estado, fase: 'traduzindo' }, efeitos: [] };
+      /* A voz acabou: no automático o microfone reabre sozinho (a cauda do eco é do guarda, `isTtsActive`). */
+      if (estado.automatico) return ouvirTudo();
+      return { estado: { ...estado, fase: 'parado' }, efeitos: [] };
 
     case 'repetir':
-      /* Com o microfone aberto, a voz seria o eco da própria tradução — e cortaria quem fala. */
-      if (estado.fase === 'ouvindo') return nada;
+      if (estado.fase === 'ouvindo') {
+        /* Com o microfone aberto, a voz seria o eco da própria tradução — e cortaria quem fala. No
+           automático o microfone fecha, a voz lê de novo, e o fim da voz o reabre. */
+        if (!estado.automatico) return nada;
+        return {
+          estado: { ...estado, fase: 'falando' },
+          efeitos: [{ tipo: 'fecharMicrofone' }, { tipo: 'repetirVoz' }],
+        };
+      }
       return { estado: { ...estado, fase: 'falando' }, efeitos: [{ tipo: 'repetirVoz' }] };
 
     case 'pararVoz':
       if (estado.fase === 'ouvindo') return { estado, efeitos: [{ tipo: 'pararVoz' }] };
+      /* No automático, calar a leitura devolve a vez à conversa. */
+      if (estado.automatico) return ouvirTudo([{ tipo: 'pararVoz' }]);
       return { estado: { ...estado, fase: 'parado', pendentes: [] }, efeitos: [{ tipo: 'pararVoz' }] };
   }
 }

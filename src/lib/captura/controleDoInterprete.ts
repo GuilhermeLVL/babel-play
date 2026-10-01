@@ -28,6 +28,13 @@ import {
   idiomasDaConversa,
   type IdiomasDoInterprete,
 } from './interprete';
+import {
+  decidirLadoDaFala,
+  type DecisaoDoLado,
+  ESTADO_DO_AUTOMATICO,
+  type EstadoDoAutomatico,
+  type PistasDoIdioma,
+} from './interpreteAutomatico';
 import type { DirecaoDaFala, FimDaFala, LadoDoInterprete } from './tiposDaFala';
 import type { TraducaoFinal } from './traducaoDaFala';
 
@@ -57,6 +64,18 @@ export interface OpcoesDoControle {
 
 export interface ControleDoInterprete {
   tocar(lado: LadoDoInterprete): void;
+  /** MODO AUTOMÁTICO: "Ouvir a conversa". O microfone abre sem lado e reabre depois de cada tradução lida. */
+  ouvir(): void;
+  /** MODO AUTOMÁTICO: para de ouvir (o microfone fecha e não reabre). */
+  parar(): void;
+  /** O automático está ouvindo a conversa (o pipeline mede o idioma em vez de usar a dica do lado). */
+  automatico(): boolean;
+  /**
+   * MODO AUTOMÁTICO: o final de uma fala chegou com o idioma medido — de que lado ela veio e para
+   * qual idioma traduzir (`interpreteAutomatico.ts`). O controle guarda a resposta: é ela que diz em
+   * que voz a tradução é lida e em que metade a fala aparece.
+   */
+  ladoDaFala(segId: string, pistas: PistasDoIdioma): DecisaoDoLado;
   /** O microfone ouviu o fim de uma fala (`aoFimDaFala` do pipeline e das fontes). */
   aoFimDaFala(fim: FimDaFala): void;
   /** A tradução de um final chegou (`aoTraduzirFinal` da tradução da fala). */
@@ -81,7 +100,7 @@ export interface ControleDoInterprete {
 /** O que a captura (`LiveCapture`) repassa ao intérprete aberto: a direção e os avisos do pipeline. */
 export type PonteDoInterprete = Pick<
   ControleDoInterprete,
-  'direcao' | 'aoFimDaFala' | 'aoTraduzirFinal' | 'idiomasDaConversa' | 'microfoneFalhou'
+  'direcao' | 'aoFimDaFala' | 'aoTraduzirFinal' | 'idiomasDaConversa' | 'microfoneFalhou' | 'automatico' | 'ladoDaFala'
 >;
 
 const relogioPadrao = (): number => (typeof performance !== 'undefined' ? performance.now() : Date.now());
@@ -91,8 +110,11 @@ export function criarControleDoInterprete(o: OpcoesDoControle): ControleDoInterp
   const agora = o.agora ?? relogioPadrao;
   const registrarTempo = o.registrarTempo ?? ((ms: number, motor: string) => tempoAteAVoz.registrar(ms, motor));
 
-  /** Por fala: quando ela terminou e de que lado veio. */
-  const fins = new Map<string, { em: number; lado: LadoDoInterprete }>();
+  /** Por fala: quando ela terminou e de que lado veio (`null` no automático, até o idioma ser medido). */
+  const fins = new Map<string, { em: number; lado: LadoDoInterprete | null }>();
+  /** AUTOMÁTICO: o que o idioma medido decidiu, por fala, e o estado da conversa (quem falou por último). */
+  const decisoes = new Map<string, DecisaoDoLado>();
+  let conversa: EstadoDoAutomatico = ESTADO_DO_AUTOMATICO;
   /** Traduções que chegaram antes do fim da fala (ou à espera de serem lidas). */
   const traducoes = new Map<string, TraducaoFinal>();
   let desligado = false;
@@ -121,24 +143,33 @@ export function criarControleDoInterprete(o: OpcoesDoControle): ControleDoInterp
     const t = traducoes.get(segId);
     traducoes.delete(segId);
     const fim = fins.get(segId);
-    const lado = fim?.lado ?? maquina.estado().lado ?? 'meu';
-    const ouvinte = direcaoDoLado(outroLado(lado), o.idiomas(), maquina.estado().trocados);
+    /* No automático, o lado e a voz vêm do idioma medido (um terceiro idioma é lido na voz dele). */
+    const decisao = decisoes.get(segId);
+    decisoes.delete(segId);
+    const lado = decisao?.lado ?? fim?.lado ?? maquina.estado().lado ?? 'meu';
+    const lang = decisao?.fala ?? direcaoDoLado(outroLado(lado), o.idiomas(), maquina.estado().trocados).fala;
     const entrou =
       !!t?.traducao &&
-      fila.enfileirar({ id: segId, texto: t.traducao, lang: ouvinte.fala, lado, ...(fim ? { criadoEm: fim.em } : {}) });
+      fila.enfileirar({ id: segId, texto: t.traducao, lang, lado, ...(fim ? { criadoEm: fim.em } : {}) });
     if (!entrou && !fila.ocupada()) depois(() => maquina.enviar({ tipo: 'fimDaVoz' }));
   };
 
   const executar = (e: EfeitoDoInterprete) => {
     switch (e.tipo) {
       case 'abrirMicrofone': {
-        const lado = e.direcao.lado;
+        const lado = e.direcao?.lado ?? null;
         const falhou = (erro: unknown) => {
           if (desligado) return;
           o.aoFalharMicrofone?.(erro);
           const agoraEstado = maquina.estado();
-          /* O mesmo lado de novo é o "terminei" da máquina: volta a parado e fecha o que abriu. */
-          if (agoraEstado.fase === 'ouvindo' && agoraEstado.lado === lado) maquina.enviar({ tipo: 'tocar', lado });
+          if (agoraEstado.fase !== 'ouvindo') return;
+          /* No automático, sem microfone não há o que ouvir: desliga (reabrir sozinho seria um laço). */
+          if (agoraEstado.automatico) maquina.enviar({ tipo: 'parar' });
+          /* O mesmo lado de novo é o "terminei" da máquina: volta a parado e fecha o que abriu. */ else if (
+            lado &&
+            agoraEstado.lado === lado
+          )
+            maquina.enviar({ tipo: 'tocar', lado });
         };
         /* Na hora, DENTRO do toque: a Web Speech e o `getUserMedia` do iPhone pedem o gesto. */
         try {
@@ -180,21 +211,49 @@ export function criarControleDoInterprete(o: OpcoesDoControle): ControleDoInterp
     if (pendente) maquina.enviar({ tipo: 'semTraducao', segId: final.segId });
   };
 
+  const destravar = () => {
+    try {
+      o.destravarVoz?.();
+    } catch {
+      /* sem destravar: a voz do aparelho é a reserva */
+    }
+  };
+
   return {
     tocar(lado) {
       if (desligado) return;
-      try {
-        o.destravarVoz?.();
-      } catch {
-        /* sem destravar: a voz do aparelho é a reserva */
-      }
+      destravar();
       maquina.enviar({ tipo: 'tocar', lado });
+    },
+    ouvir() {
+      if (desligado) return;
+      destravar();
+      conversa = ESTADO_DO_AUTOMATICO;
+      maquina.enviar({ tipo: 'ouvir' });
+    },
+    parar: () => void (desligado || maquina.enviar({ tipo: 'parar' })),
+    automatico: () => maquina.estado().automatico,
+    ladoDaFala(segId, pistas) {
+      const m = maquina.estado();
+      const idiomas = o.idiomas();
+      /* Com os lados trocados, a metade de baixo fala o idioma do outro. */
+      const decisao = decidirLadoDaFala(
+        pistas,
+        m.trocados ? { meu: idiomas.outro, outro: idiomas.meu } : idiomas,
+        conversa,
+      );
+      conversa = decisao.estado;
+      decisoes.set(segId, decisao);
+      const fim = fins.get(segId);
+      if (fim) fim.lado = decisao.lado;
+      return decisao;
     },
     aoFimDaFala(fim) {
       if (desligado || fim.source !== 'mic') return;
       const lado = fim.lado ?? maquina.estado().lado;
-      if (!lado) return;
-      if (!fins.has(fim.segId)) fins.set(fim.segId, { em: agora(), lado });
+      /* Sem lado só no automático: o idioma medido o dirá (`ladoDaFala`), antes de a tradução chegar. */
+      if (!lado && !maquina.estado().automatico) return;
+      if (!fins.has(fim.segId)) fins.set(fim.segId, { em: agora(), lado: lado ?? null });
       maquina.enviar({ tipo: 'fimDaFala', segId: fim.segId });
       /* A tradução já tinha chegado (cache): entrega agora, na ordem que a máquina espera. */
       const chegou = traducoes.get(fim.segId);
@@ -210,6 +269,7 @@ export function criarControleDoInterprete(o: OpcoesDoControle): ControleDoInterp
       desligado = true;
       fila.destruir();
       fins.clear();
+      decisoes.clear();
       traducoes.clear();
       falando = null;
     },
@@ -218,8 +278,13 @@ export function criarControleDoInterprete(o: OpcoesDoControle): ControleDoInterp
     microfoneFalhou() {
       if (desligado) return;
       const agoraEstado = maquina.estado();
-      /* O mesmo lado de novo é o "terminei" da máquina: volta a parado e fecha o que abriu. */
-      if (agoraEstado.fase === 'ouvindo' && agoraEstado.lado) maquina.enviar({ tipo: 'tocar', lado: agoraEstado.lado });
+      if (agoraEstado.fase !== 'ouvindo') return;
+      /* No automático, a escuta desliga (reabrir sozinho bateria na mesma falha, em laço). */
+      if (agoraEstado.automatico) maquina.enviar({ tipo: 'parar' });
+      /* O mesmo lado de novo é o "terminei" da máquina: volta a parado e fecha o que abriu. */ else if (
+        agoraEstado.lado
+      )
+        maquina.enviar({ tipo: 'tocar', lado: agoraEstado.lado });
     },
     estado,
   };

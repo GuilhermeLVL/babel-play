@@ -131,6 +131,7 @@ describe('planos e quotas (modo publico)', () => {
       // Matriz v2: os entitlements novos chegam ao cliente pela mesma rota.
       traducaoNuance: true,
       vozNatural: true,
+      interpreteAutomatico: true,
     })
     expect(ent.armazenamento.teto).toBe(PLAN_MATRIX.premium.quotas.armazenamentoMb! * 1024 * 1024)
 

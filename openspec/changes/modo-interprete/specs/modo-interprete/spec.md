@@ -263,3 +263,42 @@ Biblioteca SHALL continuar no grupo principal. Sair do intérprete aberto por es
 
 - **WHEN** a pessoa toca "Intérprete" na barra de baixo e depois "Começar conversa"
 - **THEN** a tela frente a frente abre, e ao sair ela volta à tela de começar a conversa
+
+### Requirement: O modo automático
+
+O intérprete SHALL ter um modo automático, em que ninguém toca em lado: o microfone fica aberto, o idioma
+de cada fala SHALL ser medido pelo áudio, e esse idioma SHALL dizer de que metade a fala veio e para qual
+idioma traduzir. A tradução SHALL ser lida na voz de quem ouve, e o microfone SHALL fechar durante a
+leitura e reabrir sozinho depois dela. O modo SHALL depender do entitlement `interpreteAutomatico`, e nunca
+do nome do plano. Quem o tem SHALL começar nele; a escolha entre automático e por toque SHALL ser lembrada
+no aparelho. Sem o entitlement, o botão SHALL aparecer com cadeado e dizer de que plano é, sem ligar nada;
+no site sem servidor e no perfil protegido ele MUST NOT aparecer.
+
+O microfone do automático SHALL ser o Whisper (a nuvem para quem a tem; o do aparelho de reserva), porque
+a Web Speech não detecta idioma. No automático MUST NOT haver parciais.
+
+Um idioma fora dos dois da conversa SHALL contar como terceiro idioma só com evidência forte: o motor e o
+detector de texto de acordo, ou fala longa com o motor confiante. Sem evidência do idioma, a fala SHALL
+ir para quem não falou por último.
+
+#### Scenario: A outra pessoa fala
+
+- **WHEN** o automático ouve uma fala cujo idioma medido é o da outra pessoa
+- **THEN** a fala aparece na metade dela, é traduzida para o idioma do dono do aparelho e lida nesse
+  idioma, e o microfone reabre quando a voz acaba
+
+#### Scenario: Um terceiro idioma
+
+- **WHEN** a outra pessoa fala um idioma que não é nenhum dos dois, com o motor e o texto de acordo
+- **THEN** a fala é traduzida para o idioma do dono do aparelho, e a resposta dele é traduzida e lida
+  nesse terceiro idioma, até a outra pessoa voltar ao idioma combinado
+
+#### Scenario: Fala curta e ambígua
+
+- **WHEN** o motor mede um idioma vizinho numa fala curta e o detector de texto não confirma
+- **THEN** a fala não vira terceiro idioma: vai para quem não falou por último
+
+#### Scenario: Sem o entitlement
+
+- **WHEN** uma pessoa do Grátis toca o botão do automático
+- **THEN** a tela diz que o modo faz parte do Premium e a conversa continua por toque

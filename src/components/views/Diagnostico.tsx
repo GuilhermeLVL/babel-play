@@ -4,6 +4,7 @@ import {
   Cpu,
   Gauge,
   KeyRound,
+  LayoutPanelTop,
   Loader2,
   Mic,
   MonitorUp,
@@ -29,6 +30,7 @@ import {
   veredictoDoModelo,
   vigiarQuadros,
 } from '../../lib/dispositivo/diagnostico';
+import { definirTelaNovaDoQuest, telaNovaDoQuest } from '../../lib/dispositivo/telaNovaDoQuest';
 import { t } from '../../lib/i18n';
 import { cabecalhoDoDono, CHAVE_DO_DONO_NO_APARELHO, ENDPOINT_DA_NUVEM_DO_QUEST } from '../../lib/nuvemDoQuest';
 import { CabecalhoDeTela, Tela, TituloDeSecao } from '../ui';
@@ -258,6 +260,42 @@ function lerUltimaCaptura(): UltimaCaptura | null {
 const nomeDoMotor = (id: string): string =>
   id === 'groq-whisper' ? t('Nuvem') : id === 'whisper-local' ? t('Neste aparelho') : id;
 
+interface ResultadoDaVibracao {
+  /** `navigator.vibrate` existe e aceitou o pedido. */
+  vibrate: boolean | null;
+  /** Controles que o navegador expõe à página (Gamepad API) e se têm motor de vibração. */
+  controles: { id: string; temMotor: boolean; vibrou: boolean }[];
+}
+
+/** Tenta vibrar por todos os caminhos que uma página 2D tem. Precisa de um toque (ativação). */
+async function testarVibracao(): Promise<ResultadoDaVibracao> {
+  const r: ResultadoDaVibracao = { vibrate: null, controles: [] };
+  try {
+    r.vibrate = typeof navigator.vibrate === 'function' ? navigator.vibrate([60, 40, 60]) : null;
+  } catch {
+    r.vibrate = false;
+  }
+  try {
+    for (const c of navigator.getGamepads?.() ?? []) {
+      if (!c) continue;
+      const motor = (
+        c as Gamepad & { vibrationActuator?: { playEffect?: (tipo: string, o: object) => Promise<unknown> } }
+      ).vibrationActuator;
+      let vibrou = false;
+      if (motor?.playEffect) {
+        vibrou = await motor
+          .playEffect('dual-rumble', { duration: 120, strongMagnitude: 0.6, weakMagnitude: 0.6 })
+          .then(() => true)
+          .catch(() => false);
+      }
+      r.controles.push({ id: c.id, temMotor: !!motor, vibrou });
+    }
+  } catch {
+    /* sem Gamepad API */
+  }
+  return r;
+}
+
 const simNao = (v: boolean) => (v ? t('sim') : t('não'));
 
 function Linha({ rotulo, valor, id }: { rotulo: string; valor: React.ReactNode; id?: string }) {
@@ -280,6 +318,8 @@ export default function Diagnostico() {
   const [modelos, setModelos] = useState<ResultadoDoModelo[]>([]);
   const [nuvem, setNuvem] = useState<ResultadoDaNuvem | null>(null);
   const [ultima] = useState<UltimaCaptura | null>(lerUltimaCaptura);
+  const [telaNova, setTelaNova] = useState(telaNovaDoQuest);
+  const [vibracao, setVibracao] = useState<ResultadoDaVibracao | null>(null);
   const [chaveDeDono, setChaveDeDono] = useState(() => {
     try {
       return localStorage.getItem(CHAVE_DO_DONO_NO_APARELHO) ?? '';
@@ -303,8 +343,13 @@ export default function Diagnostico() {
   }, []);
 
   const relatorio = useMemo(
-    () => JSON.stringify({ sinais, microfone, compartilhamento, benchmark, modelos, nuvem, ultima }, null, 1),
-    [sinais, microfone, compartilhamento, benchmark, modelos, nuvem, ultima],
+    () =>
+      JSON.stringify(
+        { sinais, microfone, compartilhamento, benchmark, modelos, nuvem, ultima, vibracao, telaNova },
+        null,
+        1,
+      ),
+    [sinais, microfone, compartilhamento, benchmark, modelos, nuvem, ultima, vibracao, telaNova],
   );
 
   const rodar = async (qual: NonNullable<typeof ocupado>, tarefa: () => Promise<void>) => {
@@ -642,6 +687,57 @@ export default function Diagnostico() {
                 })}
               />
             </>
+          )}
+        </div>
+      </section>
+
+      <section className="secao" data-testid="diagnostico-tela-nova">
+        <TituloDeSecao
+          icone={LayoutPanelTop}
+          titulo="Telas novas do headset"
+          desc="As telas redesenhadas para o Meta Quest. Se alguma sair errada, desligue aqui e a de antes volta."
+        />
+        <div className="cartao p5">
+          <div className="linha" style={{ gap: 10, flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className={telaNova ? 'btn btn-solid' : 'btn btn-outline'}
+              aria-pressed={telaNova}
+              onClick={() => {
+                definirTelaNovaDoQuest(!telaNova);
+                setTelaNova(!telaNova);
+              }}
+            >
+              {telaNova ? 'Telas novas: ligadas' : 'Telas novas: desligadas'}
+            </button>
+            <button type="button" className="btn btn-outline" onClick={() => void testarVibracao().then(setVibracao)}>
+              Testar a vibração do controle
+            </button>
+          </div>
+          {vibracao && (
+            <div style={{ marginTop: 12 }} data-testid="diagnostico-vibracao">
+              <Linha
+                rotulo={t('Vibração pelo navegador')}
+                valor={vibracao.vibrate == null ? t('não existe aqui') : simNao(vibracao.vibrate)}
+              />
+              <Linha
+                rotulo={t('Controles que a página enxerga')}
+                valor={
+                  vibracao.controles.length
+                    ? vibracao.controles
+                        .map(
+                          (c) =>
+                            `${c.id.slice(0, 28)}: ${c.vibrou ? t('vibrou') : c.temMotor ? t('tem motor, não vibrou') : t('sem motor')}`,
+                        )
+                        .join(' · ')
+                    : t('nenhum')
+                }
+              />
+              <p className="mut" style={{ fontSize: 13, marginTop: 8 }}>
+                Você sentiu o controle vibrar? Me diga junto com o resultado: o navegador pode aceitar o pedido sem o
+                controle se mexer.
+              </p>
+            </div>
           )}
         </div>
       </section>

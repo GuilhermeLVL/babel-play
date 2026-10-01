@@ -140,6 +140,12 @@ import { cenarioDasFontes, type CenarioDeCaptura } from '../../lib/cenarioDeCapt
 import { consentiuNuvem, rapidoDoMicPermitido, useEscolhaDoMic } from '../../lib/consentimentoDeNuvem';
 import { DominantLangTracker } from '../../lib/convoLang';
 import { classificarDispositivo, dispositivoDaRota, lerSinaisDoDispositivo } from '../../lib/dispositivo/perfil';
+import {
+  ESCALAS_DA_LEGENDA,
+  lerEscalaDaLegenda,
+  mudarEscalaDaLegenda,
+  telaNovaDoQuest,
+} from '../../lib/dispositivo/telaNovaDoQuest';
 import { useSondaGuardada } from '../../lib/dispositivo/useSondaGuardada';
 import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { getEntitlements } from '../../lib/entitlements';
@@ -207,6 +213,7 @@ import ModeloNoDispositivo, { type ModeloDaCaptura } from './captura/ModeloNoDis
 import ModoDesempenho from './captura/ModoDesempenho';
 import NuvemDoQuest from './captura/NuvemDoQuest';
 import OndasDoNivel from './captura/OndasDoNivel';
+import LegendaAoVivoDoQuest from './captura/quest/LegendaAoVivoDoQuest';
 import TranscriptVisualSettings, { TEMA } from './captura/TranscriptVisualSettings';
 import { CampoLinha, Interruptor, Segmentos } from './vocab/Dialogo';
 
@@ -2778,6 +2785,11 @@ export default function LiveCapture({
      computador com painéis e ajustes de Windows. O que muda ali vai por `aparelho` e `fonte`. */
   const noQuest = perfilDoAparelho.tipo === 'quest';
   const capturaEnxuta = noCelular || noQuest;
+  /* A TELA AO VIVO NOVA DO QUEST (maquete de 01/10/2026): duas falas grandes e a faixa de controles.
+     Atrás da chave de `/diagnostico` (`telaNovaDoQuest`): desligada, volta a gravação de antes. */
+  const [telaNova] = useState(telaNovaDoQuest);
+  const aoVivoNoQuest = noQuest && telaNova;
+  const [escalaDaLegenda, setEscalaDaLegenda] = useState(lerEscalaDaLegenda);
   const escolherFonteDoQuest = (fonte: FonteDoQuest) => {
     setFonteDoQuest(fonte);
     setMicEnabled(fonte !== 'headset');
@@ -2959,6 +2971,16 @@ export default function LiveCapture({
         micAbrindo={micAbrindo}
         aoAlternarMic={alternarMicrofone}
         semFlutuante={noQuest}
+        faixaDoQuest={
+          aoVivoNoQuest
+            ? {
+                menor: () => setEscalaDaLegenda((e) => mudarEscalaDaLegenda(e, -1)),
+                maior: () => setEscalaDaLegenda((e) => mudarEscalaDaLegenda(e, 1)),
+                noMinimo: escalaDaLegenda <= ESCALAS_DA_LEGENDA[0],
+                noMaximo: escalaDaLegenda >= ESCALAS_DA_LEGENDA[ESCALAS_DA_LEGENDA.length - 1],
+              }
+            : undefined
+        }
         flutuante={{
           ativo: showOverlay,
           alternar: () => {
@@ -3000,43 +3022,57 @@ export default function LiveCapture({
           </>
         }
         conversa={
-          <>
-            {showJumpTranscript && (
-              <button type="button" className="cel-novas" onClick={() => jumpToCurrent('transcript')}>
-                <ArrowDown aria-hidden /> {t('Ir para a fala atual')}
-              </button>
-            )}
-            <div ref={transcriptScrollRef} onScroll={handleTranscriptScroll} className="cel-rolagem" aria-live="polite">
-              {isRecording && modelPrep && !preparoConcluido(modelPrep) && (
-                <div className="mb-3">
-                  <ModelPrepPanel state={modelPrep} onRetry={prepareModels} />
-                </div>
+          aoVivoNoQuest && isRecording ? (
+            <LegendaAoVivoDoQuest
+              falas={speechSegments}
+              escala={escalaDaLegenda}
+              idiomaPadrao={captureScenario === 'mic' ? sourceLang : targetLang}
+              aoTocar={tocarFala}
+            />
+          ) : (
+            <>
+              {showJumpTranscript && (
+                <button type="button" className="cel-novas" onClick={() => jumpToCurrent('transcript')}>
+                  <ArrowDown aria-hidden /> {t('Ir para a fala atual')}
+                </button>
               )}
-              <ChatTranscript
-                segments={speechSegments}
-                speakers={speakerProfiles}
-                scenario={captureScenario}
-                tsSettings={tsSettings}
-                ageProfile={ageProfile}
-                sourceLang={sourceLang}
-                targetLang={targetLang}
-                observedLang={idiomaObservado}
-                isRecording={isRecording}
-                escuro
-                selectedWord={palavraTocada?.palavra ?? null}
-                addedWords={addedWords}
-                aprendidas={aprendidas}
-                onExamineWord={examinarNoCelular}
-                onSpeakWord={ouvirNaConversa}
-                onRevelarTraducao={revelarNaConversa}
-                conhecidas={conhecidas}
-                progressoDoTradutor={modelPrep?.mt ?? null}
-                aoTocarFala={tocarFala}
-                falaEmFoco={falaEmFoco}
-                acoesDaFala={acoesDaFalaNoCelular}
-              />
-            </div>
-          </>
+              <div
+                ref={transcriptScrollRef}
+                onScroll={handleTranscriptScroll}
+                className="cel-rolagem"
+                aria-live="polite"
+              >
+                {isRecording && modelPrep && !preparoConcluido(modelPrep) && (
+                  <div className="mb-3">
+                    <ModelPrepPanel state={modelPrep} onRetry={prepareModels} />
+                  </div>
+                )}
+                <ChatTranscript
+                  segments={speechSegments}
+                  speakers={speakerProfiles}
+                  scenario={captureScenario}
+                  tsSettings={tsSettings}
+                  ageProfile={ageProfile}
+                  sourceLang={sourceLang}
+                  targetLang={targetLang}
+                  observedLang={idiomaObservado}
+                  isRecording={isRecording}
+                  escuro
+                  selectedWord={palavraTocada?.palavra ?? null}
+                  addedWords={addedWords}
+                  aprendidas={aprendidas}
+                  onExamineWord={examinarNoCelular}
+                  onSpeakWord={ouvirNaConversa}
+                  onRevelarTraducao={revelarNaConversa}
+                  conhecidas={conhecidas}
+                  progressoDoTradutor={modelPrep?.mt ?? null}
+                  aoTocarFala={tocarFala}
+                  falaEmFoco={falaEmFoco}
+                  acoesDaFala={acoesDaFalaNoCelular}
+                />
+              </div>
+            </>
+          )
         }
         rodape={
           !isRecording &&

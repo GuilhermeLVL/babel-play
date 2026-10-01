@@ -1707,5 +1707,17 @@
   "Diagnóstico do aparelho": "Device diagnostics",
   "Toque no botão": "Tap the button",
   "Se o microfone não captar nada, veja se ele não está desligado nas configurações do Quest.": "If the microphone picks up nothing, check that it is not turned off in the Quest settings.",
-  "Os dois": "Both"
+  "Os dois": "Both",
+  "Ouvindo… a legenda aparece aqui.": "Listening… the captions show up here.",
+  "Controles da captura": "Capture controls",
+  "Encerrar": "Finish",
+  "Diminuir a legenda": "Smaller captions",
+  "Aumentar a legenda": "Bigger captions",
+  "Vibração pelo navegador": "Vibration through the browser",
+  "não existe aqui": "not available here",
+  "Controles que a página enxerga": "Controllers the page can see",
+  "vibrou": "vibrated",
+  "tem motor, não vibrou": "has a motor, did not vibrate",
+  "sem motor": "no motor",
+  "nenhum": "none"
 }

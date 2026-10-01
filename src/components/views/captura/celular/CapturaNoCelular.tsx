@@ -49,6 +49,7 @@ export default function CapturaNoCelular({
   fonte,
   micFixo = false,
   semFlutuante = false,
+  faixaDoQuest,
   gravando,
   abrindo,
   retomar,
@@ -87,6 +88,11 @@ export default function CapturaNoCelular({
   micFixo?: boolean;
   /** Sem o botão "Flutuante" (onde não há janela flutuante de verdade). */
   semFlutuante?: boolean;
+  /**
+   * A tela ao vivo do Quest (maquete de 01/10/2026): a legenda ocupa a tela e os controles ficam numa
+   * faixa única embaixo. Presente = usa a tela nova; ausente = a gravação de sempre.
+   */
+  faixaDoQuest?: { menor: () => void; maior: () => void; noMinimo: boolean; noMaximo: boolean };
   gravando: boolean;
   abrindo: boolean;
   /** Há uma sessão salva a continuar (o botão diz "Continuar"). */
@@ -142,6 +148,65 @@ export default function CapturaNoCelular({
       <span aria-hidden>{t('Flutuante')}</span>
     </div>
   );
+
+  if (gravando && faixaDoQuest) {
+    return (
+      <div className="cel cel-gravando quest-vivo" data-testid="captura-no-celular">
+        {avisos}
+        <div className="cel-conversa">{conversa}</div>
+        <div className="q-faixa" role="toolbar" aria-label={t('Controles da captura')}>
+          <span className="q-tempo" aria-label={t('Gravando há {tempo}', { tempo })}>
+            <span className="cel-ponto" aria-hidden />
+            <span className="tn">{tempo}</span>
+          </span>
+          <button type="button" className="q-ctl pri" onClick={aoParar} data-sfx="none" data-testid="encerrar-no-quest">
+            <i aria-hidden className="q-quadrado" /> {t('Encerrar')}
+          </button>
+          {!micFixo && (
+            <button
+              type="button"
+              className="q-ctl"
+              role="switch"
+              aria-checked={micLigado}
+              aria-label={micLigado ? t('Microfone ativo') : t('Microfone mudo')}
+              disabled={micAbrindo}
+              onClick={() => aoAlternarMic(!micLigado)}
+            >
+              {micAbrindo ? (
+                <Loader2 aria-hidden className="animate-spin" />
+              ) : micLigado ? (
+                <Mic aria-hidden />
+              ) : (
+                <MicOff aria-hidden />
+              )}
+            </button>
+          )}
+          <span className="q-espaco" />
+          <button
+            type="button"
+            className="q-ctl"
+            onClick={faixaDoQuest.menor}
+            disabled={faixaDoQuest.noMinimo}
+            aria-label={t('Diminuir a legenda')}
+          >
+            A−
+          </button>
+          <button
+            type="button"
+            className="q-ctl"
+            onClick={faixaDoQuest.maior}
+            disabled={faixaDoQuest.noMaximo}
+            aria-label={t('Aumentar a legenda')}
+          >
+            A+
+          </button>
+          <button type="button" className="q-ctl" onClick={aoAbrirIdiomas} aria-label={t('Idiomas da sessão')}>
+            {parCurto}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (gravando) {
     return (

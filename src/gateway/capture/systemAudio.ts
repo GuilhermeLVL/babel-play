@@ -88,6 +88,12 @@ export const MAX_SPEECH_MS_SEM_PARCIAL = 4000;
 export interface OpcoesDeCaptura {
   maxSpeechMs?: () => number;
   /**
+   * Silêncio que fecha a fala (padrão `REDENCAO_MS`, 800). No Quest, 500: lá não há parcial, e esses
+   * 300 ms são espera pura antes de cada legenda; quem transcreve é o modelo grande da nuvem, que
+   * aguenta o trecho mais curto.
+   */
+  redencaoMs?: number;
+  /**
    * O contexto criado e retomado NO CLIQUE (`lib/captura/contextoDoClique.ts`). Com ele, o VAD e a
    * sonda de nível não criam contexto nenhum — no iPhone, um criado depois dos `await` pode ficar
    * 'suspended' e a captura não recebe um quadro. A captura passa a ser a dona: o `stop` o fecha.
@@ -461,7 +467,7 @@ async function startCaptureFromStream(
   const espelho = new EspelhoDoVad({
     positiveSpeechThreshold: LIMIAR_DE_FALA,
     negativeSpeechThreshold: LIMIAR_DE_SILENCIO,
-    redemptionMs: REDENCAO_MS,
+    redemptionMs: opcoes.redencaoMs ?? REDENCAO_MS,
     preSpeechPadMs: PRE_FALA_MS,
     especulativoMs: ESPECULATIVO_MS,
   });
@@ -538,7 +544,7 @@ async function startCaptureFromStream(
          fragmento) e o STT de nuvem, que cobra no mínimo 10 s por requisição, passa de 2,06× para
          1,08× o tempo real de fala — metade do custo. O preço é a legenda FINAL chegar ~0,35 s
          depois; a parcial continua saindo durante a fala. 1200 ms não melhora mais nada. */
-      redemptionMs: REDENCAO_MS,
+      redemptionMs: opcoes.redencaoMs ?? REDENCAO_MS,
       preSpeechPadMs: PRE_FALA_MS, // prepende 0,3s → não corta o INÍCIO das sentenças
       minSpeechMs: 400, // descarta ruídos < 0,4s (era 250: ruído curto virava frase inventada)
       onSpeechStart: () => {

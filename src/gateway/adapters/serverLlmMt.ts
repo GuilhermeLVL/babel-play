@@ -1,6 +1,12 @@
 import { apiFetch } from '../../data/api';
 import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { alivioAceito, cabecalhoDoAlivio, registrarRecusaDoAlivio } from '../../lib/nuvemDeAlivio/estado';
+import {
+  cabecalhoDoDono,
+  ENDPOINT_DA_TRADUCAO_DO_QUEST,
+  nuvemDoQuestAtiva,
+  pegarTraducaoPronta,
+} from '../../lib/nuvemDoQuest';
 import { sinalizarRecusaDaNuvem } from '../../lib/ofertas/eventos';
 import { nuanceDasPreferencias } from '../../lib/traducao/preferenciasDaNuance';
 import { registrarRecusaDoUsoJusto } from '../../lib/usoJustoDoDia';
@@ -32,7 +38,8 @@ export class ServerLlmMt implements TranslationProvider {
   supports(src: string | null, tgt: string): boolean {
     void src; // origem é opcional (o LLM detecta)
     // Edição estática: não há servidor com LLM — a cadeia cai no motor local sem tentar.
-    if (edicaoEstatica()) return false;
+    // …menos na nuvem do site (aparelho fraco com a nuvem ligada, `nuvemDoQuest.ts`).
+    if (edicaoEstatica() && !nuvemDoQuestAtiva()) return false;
     // Em pausa, "não suporto": a cadeia cai no motor local NA HORA, sem ida ao servidor.
     return !this.unavailable && !this.pausa.pausada && !!tgt && tgt !== src;
   }
@@ -45,6 +52,28 @@ export class ServerLlmMt implements TranslationProvider {
   ): Promise<MtResult> {
     // Pelo funil: sem conta o servidor em memória responde 501 (a nuvem gerenciada exige conta) e
     // este adaptador se marca indisponível — a tradução cai para o caminho local, como deve.
+    /* A NUVEM DO SITE: a tradução normalmente já veio com a transcrição (`pegarTraducaoPronta`); o que
+       sobra vai à função `/quest/mt`. Sem LLM: é o m2m100 do Workers AI. */
+    if (nuvemDoQuestAtiva()) {
+      const pronta = pegarTraducaoPronta(text, tgt);
+      if (pronta) return { text: pronta, engine: this.id };
+      const resposta = await fetch(ENDPOINT_DA_TRADUCAO_DO_QUEST, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...cabecalhoDoDono() },
+        body: JSON.stringify({ text, src: src || undefined, tgt }),
+        signal: opts?.signal,
+      });
+      if (!resposta.ok) {
+        this.pausa.falha(resposta.status, resposta.headers?.get?.('retry-after'));
+        throw Object.assign(new Error(`tradução da nuvem do site indisponível (HTTP ${resposta.status})`), {
+          status: resposta.status,
+        });
+      }
+      const dados = (await resposta.json()) as { text?: string };
+      if (!dados.text) throw new Error('a nuvem do site devolveu tradução vazia');
+      this.pausa.sucesso();
+      return { text: dados.text, engine: this.id };
+    }
     const res = await apiFetch('/api/ai/mt', {
       method: 'POST',
       /* A NUVEM DE ALÍVIO (A10): o cabeçalho só vai depois do "Usar a nuvem grátis". */

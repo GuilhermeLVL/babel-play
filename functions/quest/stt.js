@@ -34,14 +34,14 @@ const TETO_GLOBAL_S = 200 * 60;
 const BLOCO_S = 60;
 const DOIS_DIAS_S = 2 * 24 * 60 * 60;
 
-const json = (corpo, status = 200, cabecalhos = {}) =>
+export const json = (corpo, status = 200, cabecalhos = {}) =>
   new Response(JSON.stringify(corpo), {
     status,
     headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...cabecalhos },
   });
 
 /** Só o próprio site chama: sem `Origin` igual ao host, recusa (não é API pública). */
-function mesmaOrigem(request) {
+export function mesmaOrigem(request) {
   const origem = request.headers.get('origin');
   if (!origem) return false;
   try {
@@ -114,7 +114,7 @@ function ehODono(request, env) {
 }
 
 /** O estado das cotas deste visitante, hoje. Sem KV configurado, a nuvem fica FECHADA. */
-async function cotas(request, env) {
+export async function cotas(request, env) {
   const dia = hoje();
   const chaveIp = await chaveDoVisitante(request, dia);
   const chaveTotal = `total:${dia}`;
@@ -133,11 +133,63 @@ async function cotas(request, env) {
   };
 }
 
-function recusaPorCota(c) {
+export function recusaPorCota(c) {
   const espera = String(segundosAteVirarODia());
   if (c.usadoTotal >= TETO_GLOBAL_S) return json({ code: 'cota_do_site', restante: 0 }, 429, { 'retry-after': espera });
   if (c.usadoIp >= COTA_POR_IP_S) return json({ code: 'cota_do_dia', restante: 0 }, 429, { 'retry-after': espera });
   return null;
+}
+
+const TRADUTOR = '@cf/meta/m2m100-1.2b';
+/** O m2m100 do Workers AI pede o nome do idioma em inglês. */
+const NOME_DO_IDIOMA = {
+  pt: 'portuguese',
+  en: 'english',
+  es: 'spanish',
+  fr: 'french',
+  de: 'german',
+  it: 'italian',
+  ja: 'japanese',
+  ko: 'korean',
+  zh: 'chinese',
+  ru: 'russian',
+  ar: 'arabic',
+  hi: 'hindi',
+  nl: 'dutch',
+  pl: 'polish',
+  tr: 'turkish',
+  sv: 'swedish',
+  uk: 'ukrainian',
+  he: 'hebrew',
+  id: 'indonesian',
+  vi: 'vietnamese',
+  th: 'thai',
+  el: 'greek',
+  cs: 'czech',
+  ro: 'romanian',
+  hu: 'hungarian',
+  fi: 'finnish',
+  da: 'danish',
+  no: 'norwegian',
+  ca: 'catalan',
+};
+const base = (codigo) =>
+  String(codigo || '')
+    .toLowerCase()
+    .split('-')[0];
+
+/** Traduz `texto` de `de` para `para` (códigos ISO). `null` se não deu: o aparelho traduz sozinho. */
+export async function traduzir(env, texto, de, para) {
+  const origem = NOME_DO_IDIOMA[base(de)];
+  const destino = NOME_DO_IDIOMA[base(para)];
+  if (!origem || !destino || origem === destino) return null;
+  try {
+    const r = await env.AI.run(TRADUTOR, { text: texto, source_lang: origem, target_lang: destino });
+    const traducao = String(r?.translated_text ?? '').trim();
+    return traducao || null;
+  } catch {
+    return null;
+  }
 }
 
 /** A nuvem existe e este visitante ainda tem cota? (o cliente pergunta antes de escolher a rota). */
@@ -181,10 +233,19 @@ export async function onRequestPost({ request, env }) {
       c.dono ? null : somar(env.LIMITES, c.chaveIp, c.usadoIp, segundos),
       somar(env.LIMITES, c.chaveTotal, c.usadoTotal, segundos),
     ]);
+    const texto = String(r?.text ?? r?.transcription_info?.text ?? '').trim();
+    const idiomaDaFala = String(r?.transcription_info?.language ?? r?.language ?? '') || idioma;
+    const ms = Date.now() - inicio;
+    /* A TRADUÇÃO NA MESMA VIAGEM (`x-traduzir-para`): o aparelho fraco não paga o tradutor local, e a
+       legenda traduzida chega junto com a transcrição, sem uma segunda ida à rede. */
+    const para = base(request.headers.get('x-traduzir-para'));
+    const inicioDaTraducao = Date.now();
+    const translation = texto && para ? await traduzir(env, texto, idiomaDaFala, para) : null;
     return json({
-      text: String(r?.text ?? r?.transcription_info?.text ?? '').trim(),
-      language: String(r?.transcription_info?.language ?? r?.language ?? ''),
-      ms: Date.now() - inicio,
+      text: texto,
+      language: idiomaDaFala,
+      ms,
+      ...(translation ? { translation, msTraducao: Date.now() - inicioDaTraducao } : {}),
       segundos: Math.round(segundos * 10) / 10,
       restante: c.dono ? c.restante : Math.max(0, c.restante - Math.round(segundos)),
     });

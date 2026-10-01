@@ -747,6 +747,8 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
         gateway.stt.transcribePcm(pcm, sr, {
           languageHint: hint,
           prompt,
+          // A nuvem do site devolve a tradução na mesma viagem (o aparelho fraco não traduz sozinho).
+          traduzirPara: to || undefined,
           // STREAMING: mostra os tokens do decode final crescendo no balão em tempo real — um
           // setState por quadro, não um por token (ver `falasNoQuadro`); o final vem por `agora`.
           onUpdate: (streamed) => {

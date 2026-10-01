@@ -6,7 +6,12 @@
 import { apiFetch } from '../../data/api';
 import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { cabecalhoDoAlivio, registrarRecusaDoAlivio } from '../../lib/nuvemDeAlivio/estado';
-import { cabecalhoDoDono, ENDPOINT_DA_NUVEM_DO_QUEST, nuvemDoQuestAtiva } from '../../lib/nuvemDoQuest';
+import {
+  cabecalhoDoDono,
+  ENDPOINT_DA_NUVEM_DO_QUEST,
+  guardarTraducaoPronta,
+  nuvemDoQuestAtiva,
+} from '../../lib/nuvemDoQuest';
 import { sinalizarRecusaLida } from '../../lib/ofertas/eventos';
 import { registrarRecusaDoUsoJusto } from '../../lib/usoJustoDoDia';
 import { filtrarAlucinacao } from '../alucinacao';
@@ -56,7 +61,7 @@ export class GroqWhisperStt implements SttProvider {
   async transcribePcm(
     pcm: Float32Array,
     sampleRate: number,
-    opts?: { languageHint?: string; signal?: AbortSignal; prompt?: string },
+    opts?: { languageHint?: string; signal?: AbortSignal; prompt?: string; traduzirPara?: string },
   ): Promise<SttFinal> {
     /* OGG OPUS (~24 kbps) quando o navegador codifica; WAV de 16 bits quando não (`opusDoStt.ts`).
        ~10× menos dados por fala, mesma transcrição (bancada 2026-09). A duração cobrada é medida
@@ -96,7 +101,14 @@ export class GroqWhisperStt implements SttProvider {
     try {
       const pedido = {
         method: 'POST',
-        headers: noQuest ? { ...headers, ...cabecalhoDoDono() } : headers,
+        headers: noQuest
+          ? {
+              ...headers,
+              ...cabecalhoDoDono(),
+              // A tradução volta na mesma viagem (`functions/quest/stt.js`).
+              ...(opts?.traduzirPara ? { 'x-traduzir-para': opts.traduzirPara } : {}),
+            }
+          : headers,
         body: audio.corpo,
         signal: opts?.signal,
       };
@@ -149,12 +161,15 @@ export class GroqWhisperStt implements SttProvider {
 
        A dica do usuário NÃO entra aqui. `language` significa "o que o motor identificou", e
        ecoar a dica de volta faria o chamador tomar a própria pergunta por resposta. */
-    const json = (await res.json()) as { text?: string; language?: string };
+    const json = (await res.json()) as { text?: string; language?: string; translation?: string };
     /* O MESMO filtro de alucinação do worker local, aplicado aqui também. O servidor já filtra a
        saída da nuvem com esta função; reaplicar é inócuo (o filtro é idempotente) e é o único jeito
        de o cliente SABER que houve descarte e contá-lo na telemetria. */
     const bruto = (json.text ?? '').trim();
     const text = filtrarAlucinacao(bruto, pcm.length / sampleRate, opts?.languageHint || json.language);
+    // A tradução que veio junto fica à espera do tradutor (`ServerLlmMt`), que a pega sem ir à rede.
+    if (text && json.translation && opts?.traduzirPara)
+      guardarTraducaoPronta(text, opts.traduzirPara, json.translation);
     return {
       text,
       language: json.language || undefined,

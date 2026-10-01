@@ -227,6 +227,7 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
   /** Sem parciais na tela (Quest) ou na nuvem do site: o corte curto é o que faz o texto aparecer. */
   const semParcial = (): boolean => perfilDoDispositivo().tipo === 'quest' || nuvemDoQuestAtiva();
   const opcoesDeCaptura: OpcoesDeCaptura = {
+    ...(perfilDoDispositivo().tipo === 'quest' ? { redencaoMs: 500 } : {}),
     maxSpeechMs: () =>
       semParcial() ? MAX_SPEECH_MS_SEM_PARCIAL : finalNaNuvem?.() ? MAX_SPEECH_MS_NUVEM : MAX_SPEECH_MS_LOCAL,
   };

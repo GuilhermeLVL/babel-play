@@ -13,6 +13,7 @@ import { avaliarTraducaoLocal } from '@core/harness/portasDeQualidade';
 import { bindingExigeConsentimento } from '@core/harness/registroDeMotores';
 
 import { detectLanguage } from '../lib/langDetect';
+import { nuvemDoQuestAtiva } from '../lib/nuvemDoQuest';
 import { explicarRejeicao, precisaConferir, validarTraducao } from '../lib/validaTraducao';
 import { BergamotLocal, TradutorLocalComBergamot } from './adapters/bergamotLocal';
 import { ChromeTranslatorMt, codigoDoTradutor, type EstadoDoTradutorNativo } from './adapters/chromeTranslator';
@@ -302,7 +303,9 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
             }
             return null;
           };
-          if (!parcial && (opts?.falada || opts?.nuvemPrimeiro)) {
+          /* …e na nuvem do site (aparelho fraco, `nuvemDoQuest.ts`): o tradutor local é a etapa mais
+             lenta ali, e a tradução já veio junto com a transcrição. */
+          if (!parcial && (opts?.falada || opts?.nuvemPrimeiro || nuvemDoQuestAtiva())) {
             const r = await tentarNuvem();
             if (r) return r;
           }
@@ -724,7 +727,13 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
       async transcribePcm(
         pcm: Float32Array,
         sampleRate: number,
-        opts?: { languageHint?: string; signal?: AbortSignal; onUpdate?: (text: string) => void; prompt?: string },
+        opts?: {
+          languageHint?: string;
+          signal?: AbortSignal;
+          onUpdate?: (text: string) => void;
+          prompt?: string;
+          traduzirPara?: string;
+        },
       ): Promise<SttFinal> {
         let lastErr: Error | null = null;
         let bindings = [...(core.getProfile().bindings.stt ?? [])];

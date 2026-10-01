@@ -45,3 +45,28 @@ export function cabecalhoDoDono(): Record<string, string> {
     return {};
   }
 }
+
+/** A tradução de nuvem do site (`functions/quest/mt.js`), para o que não veio junto com a transcrição. */
+export const ENDPOINT_DA_TRADUCAO_DO_QUEST = '/quest/mt';
+
+/**
+ * AS TRADUÇÕES QUE JÁ VIERAM COM A TRANSCRIÇÃO. A função `/quest/stt` devolve o texto e a tradução na
+ * mesma viagem; o adaptador de STT guarda aqui e o de tradução pega, sem segunda ida à rede. Só as
+ * últimas (uma fala é traduzida logo depois de transcrita).
+ */
+const prontas = new Map<string, string>();
+const chaveDaTraducao = (texto: string, para: string): string => `${para.toLowerCase().split('-')[0]}|${texto.trim()}`;
+
+export function guardarTraducaoPronta(texto: string, para: string, traducao: string): void {
+  if (!texto.trim() || !traducao.trim()) return;
+  prontas.set(chaveDaTraducao(texto, para), traducao.trim());
+  if (prontas.size > 40) prontas.delete(prontas.keys().next().value as string);
+}
+
+/** A tradução que veio com a transcrição; `null` se não veio. Consumida uma vez. */
+export function pegarTraducaoPronta(texto: string, para: string): string | null {
+  const chave = chaveDaTraducao(texto, para);
+  const t = prontas.get(chave) ?? null;
+  if (t) prontas.delete(chave);
+  return t;
+}

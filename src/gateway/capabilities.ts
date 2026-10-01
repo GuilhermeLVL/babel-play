@@ -174,6 +174,8 @@ export interface SttProvider extends AdapterMeta {
       onUpdate?: (text: string) => void;
       /** Contexto (última final da mesma fonte, mesmo idioma). Só a nuvem usa; ver `promptDeStt.ts`. */
       prompt?: string;
+      /** Idioma para o qual a fala será traduzida: a nuvem do site devolve a tradução junto. */
+      traduzirPara?: string;
     },
   ): Promise<SttFinal>;
   /**

@@ -15,9 +15,13 @@ import { lerPreferencias } from './preferencias';
 /** A função do Pages. Fora de `/api`: lá a edição estática responde em memória, sem rede. */
 export const ENDPOINT_DA_NUVEM_DO_QUEST = '/quest/stt';
 
-/** Este aparelho PODE usar a nuvem do Quest (é o Quest, no site estático)? */
+/**
+ * Este aparelho PODE usar a nuvem do site estático? Todo aparelho LEVE (`perfil.ts`: Quest, celular
+ * fraco, desktop de 2 núcleos ou 2 GB) — os que não acompanham a fala com o modelo local. O nome ficou
+ * do Quest, onde ela nasceu. A cota é do servidor: 15 min por dia por endereço de rede.
+ */
 export function nuvemDoQuestExiste(): boolean {
-  return edicaoEstatica() && perfilDoDispositivo().tipo === 'quest';
+  return edicaoEstatica() && perfilDoDispositivo().leve;
 }
 
 /** A nuvem do Quest está LIGADA: existe aqui e a pessoa consentiu. Lida a cada chamada. */

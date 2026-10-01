@@ -2960,6 +2960,7 @@ export default function LiveCapture({
         avisos={
           <>
             <AvisoDeNuvemSemConsentimento />
+            {nuvemDoQuestExiste() && <NuvemDoQuest gravando={isRecording} />}
             {faixaDaNuvemDeAlivio}
             {tradutorLocalFalhou && (
               <AvisoDoTradutorLocal

@@ -1,9 +1,15 @@
 # Cloudflare Pages — edição estática (`npm run build:estatica` → `dist/`).
-# Existe por causa da função `functions/quest/stt.js` (a transcrição de nuvem do Meta Quest), que
-# precisa do Workers AI. Publicar: `npx wrangler pages deploy dist --project-name babel-play --branch main`.
+# Existe por causa da função `functions/quest/stt.js` (a transcrição de nuvem dos aparelhos fracos), que
+# precisa do Workers AI e do contador de cotas. Publicar:
+#   npx wrangler pages deploy dist --project-name babel-play --branch main
 name = "babel-play"
 pages_build_output_dir = "dist"
 compatibility_date = "2026-09-01"
 
 [ai]
 binding = "AI"
+
+# As cotas do dia (por visitante e global). Só números: nada do áudio nem do texto.
+[[kv_namespaces]]
+binding = "LIMITES"
+id = "54e9b59ad567425b99ecbdb2a110be00"

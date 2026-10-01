@@ -374,7 +374,9 @@ export function routeStt(input: SttRouteInput): SttRoute {
          no lugar dos 4,9% do large-v3-turbo (bancada 2026-09). O Moonshine continua como RESERVA —
          menor e melhor em inglês que o Whisper base (67 MB, ou 32 no celular fraco) — e continua o
          motor de quem não tem nuvem. */
-      if (isEnglish && cloudAllowed)
+      /* …menos na nuvem do site estático (`nuvemDoQuest.ts`): a cota ali é de 15 min por dia, e o
+         Moonshine acompanha a fala até no Quest (fator 0,2, medido). O inglês fica no aparelho. */
+      if (isEnglish && cloudAllowed && !nuvemDoQuestAtiva())
         return {
           localModel: moonshineAuto,
           dtype: 'q8',

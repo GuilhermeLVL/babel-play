@@ -6,7 +6,7 @@
 import { apiFetch } from '../../data/api';
 import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { cabecalhoDoAlivio, registrarRecusaDoAlivio } from '../../lib/nuvemDeAlivio/estado';
-import { ENDPOINT_DA_NUVEM_DO_QUEST, nuvemDoQuestAtiva } from '../../lib/nuvemDoQuest';
+import { cabecalhoDoDono, ENDPOINT_DA_NUVEM_DO_QUEST, nuvemDoQuestAtiva } from '../../lib/nuvemDoQuest';
 import { sinalizarRecusaLida } from '../../lib/ofertas/eventos';
 import { registrarRecusaDoUsoJusto } from '../../lib/usoJustoDoDia';
 import { filtrarAlucinacao } from '../alucinacao';
@@ -94,7 +94,12 @@ export class GroqWhisperStt implements SttProvider {
     // a STT de nuvem respondia 401 com login — e, sem conta, responde 501 sem tocar a rede.
     let res: Response;
     try {
-      const pedido = { method: 'POST', headers, body: audio.corpo, signal: opts?.signal };
+      const pedido = {
+        method: 'POST',
+        headers: noQuest ? { ...headers, ...cabecalhoDoDono() } : headers,
+        body: audio.corpo,
+        signal: opts?.signal,
+      };
       // No Quest (site estático) é `fetch` direto à função do Pages: o `apiFetch` ali responde em memória.
       res = noQuest ? await fetch(ENDPOINT_DA_NUVEM_DO_QUEST, pedido) : await apiFetch(this.endpoint, pedido);
     } catch (e) {

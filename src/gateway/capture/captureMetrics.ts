@@ -32,10 +32,33 @@ export interface UtteranceMetric {
   queueDepth?: number;
   /** Algum parcial foi PULADO por worker ocupado (sinal de saturação). */
   saturated?: boolean;
+  /** O motor que fez o decode final (`groq-whisper` = nuvem; `whisper-local` = aparelho). */
+  engine?: string;
   text?: string;
 }
 
 const RING_MAX = 200;
+
+/** O adaptador de nuvem do STT (`groqWhisper.ts`): o único que custa por minuto. */
+export const MOTOR_DA_NUVEM = 'groq-whisper';
+/**
+ * Preço de tabela do minuto de fala na nuvem (Whisper large-v3-turbo: US$ 0,0005 no Workers AI,
+ * US$ 0,00067 na Groq). É ESTIMATIVA para o medidor da sessão; o custo real é o do provedor.
+ */
+export const PRECO_DA_NUVEM_USD_POR_MIN = 0.0005;
+/** Onde o resumo da última captura fica guardado (só números), para o `/diagnostico` mostrar. */
+export const CHAVE_DA_ULTIMA_CAPTURA = 'babel.ultimaCaptura';
+
+/** Guarda o resumo da sessão que acabou. Sem armazenamento (modo privado), segue sem guardar. */
+export function guardarUltimaCaptura(duracaoS: number): void {
+  try {
+    const resumo = capMetrics.summary();
+    if (!resumo.count) return;
+    localStorage.setItem(CHAVE_DA_ULTIMA_CAPTURA, JSON.stringify({ quando: Date.now(), duracaoS, ...resumo }));
+  } catch {
+    /* sem armazenamento */
+  }
+}
 
 // Enunciados em andamento (ainda sem final), por seq.
 const inflight = new Map<number, UtteranceMetric>();
@@ -131,6 +154,7 @@ export const capMetrics = {
     m.queueDepth = info.queueDepth;
     m.text = info.text;
     m.audioMs = info.audioMs;
+    m.engine = info.engine;
     inflight.delete(seq);
     pushRing(m);
     // Telemetria: os MESMOS números do `summary()`, amostra a amostra. O texto fica no ring (aba).
@@ -241,6 +265,21 @@ export const capMetrics = {
     };
     const mt = mtSamples.map((s) => s.ms);
 
+    /* POR MOTOR: quanto de fala cada um transcreveu e em quanto tempo — é daqui que sai o custo da
+       sessão (só a nuvem custa) e a comparação nuvem × aparelho no MESMO aparelho. */
+    const porMotor: Record<string, { falas: number; minutosDeFala: number; finalMs: { p50: number; p95: number } }> =
+      {};
+    for (const nome of new Set(done.map((m) => m.engine ?? 'desconhecido'))) {
+      const dele = done.filter((m) => (m.engine ?? 'desconhecido') === nome);
+      const lat = dele.filter((m) => m.tSpeechEnd !== undefined).map((m) => m.tFinalDone! - m.tSpeechEnd!);
+      porMotor[nome] = {
+        falas: dele.length,
+        minutosDeFala: Math.round((dele.reduce((s, m) => s + (m.audioMs ?? 0), 0) / 60000) * 100) / 100,
+        finalMs: { p50: pct(lat, 50), p95: pct(lat, 95) },
+      };
+    }
+    const minutosNaNuvem = porMotor[MOTOR_DA_NUVEM]?.minutosDeFala ?? 0;
+
     const seqs = done.map((m) => m.seq);
     const inOrder = seqs.every((s, i) => i === 0 || s > seqs[i - 1]);
     return {
@@ -254,6 +293,11 @@ export const capMetrics = {
       saturatedCount: done.filter((m) => m.saturated).length,
       partialsShown: done.filter((m) => m.partialCount > 0).length,
       renderedInSeqOrder: inOrder,
+      porMotor,
+      nuvem: {
+        minutos: minutosNaNuvem,
+        custoUsd: Math.round(minutosNaNuvem * PRECO_DA_NUVEM_USD_POR_MIN * 10000) / 10000,
+      },
       escaladas: { ...escaladas },
       mtPuladas: { ...mtPuladas },
     };

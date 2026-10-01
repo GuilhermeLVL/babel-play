@@ -2,7 +2,7 @@ import { Cloud, CloudOff } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { useConsentimentoDeNuvem } from '../../../lib/consentimentoDeNuvem';
-import { ENDPOINT_DA_NUVEM_DO_QUEST } from '../../../lib/nuvemDoQuest';
+import { cabecalhoDoDono, ENDPOINT_DA_NUVEM_DO_QUEST } from '../../../lib/nuvemDoQuest';
 import { mudarConsentimento } from '../../../lib/preferencias';
 
 /**
@@ -22,7 +22,7 @@ export default function NuvemDoQuest({ gravando }: { gravando: boolean }) {
   useEffect(() => {
     if (!consentiu || gravando) return;
     let vivo = true;
-    fetch(ENDPOINT_DA_NUVEM_DO_QUEST)
+    fetch(ENDPOINT_DA_NUVEM_DO_QUEST, { headers: cabecalhoDoDono() })
       .then(async (r) => {
         const corpo = (await r.json().catch(() => ({}))) as { restante?: number };
         if (vivo) setRestam(r.ok ? Math.floor((corpo.restante ?? 0) / 60) : 0);

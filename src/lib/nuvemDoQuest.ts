@@ -28,3 +28,20 @@ export function nuvemDoQuestExiste(): boolean {
 export function nuvemDoQuestAtiva(): boolean {
   return nuvemDoQuestExiste() && lerPreferencias().consentimentos.nuvem === true;
 }
+
+/** Onde a chave de dono fica neste navegador (digitada em `/diagnostico`). */
+export const CHAVE_DO_DONO_NO_APARELHO = 'babel.chaveDoDono';
+
+/**
+ * O cabeçalho da CHAVE DE DONO: quem a tem não cai na cota por visitante (o dono testando no próprio
+ * aparelho). O servidor compara com o segredo `CHAVE_DO_DONO` do Pages; o teto global continua valendo.
+ * Sem chave guardada, cabeçalho nenhum.
+ */
+export function cabecalhoDoDono(): Record<string, string> {
+  try {
+    const chave = localStorage.getItem(CHAVE_DO_DONO_NO_APARELHO)?.trim();
+    return chave ? { 'x-chave-do-dono': chave } : {};
+  } catch {
+    return {};
+  }
+}

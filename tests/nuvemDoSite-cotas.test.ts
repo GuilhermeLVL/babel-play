@@ -121,6 +121,28 @@ describe('POST /quest/stt', () => {
   })
 })
 
+describe('chave de dono', () => {
+  const SEGREDO = 'segredo-de-teste-com-32-caracteres'
+
+  it('com a chave certa, a cota por visitante não vale; o teto global continua valendo', async () => {
+    const chaveIp = await chaveDoVisitante(pedido(wav(1)), dia)
+    const env = { AI: ia(), LIMITES: kvFalso({ [chaveIp]: String(15 * 60) }), CHAVE_DO_DONO: SEGREDO }
+    const dono = await onRequestPost({ request: pedido(wav(6), { 'x-chave-do-dono': SEGREDO }), env })
+    expect(dono.status).toBe(200)
+    expect((await onRequestPost({ request: pedido(wav(6), { 'x-chave-do-dono': 'errada' }), env })).status).toBe(429)
+    const noTeto = { ...env, LIMITES: kvFalso({ [`total:${dia}`]: String(200 * 60) }) }
+    expect((await onRequestPost({ request: pedido(wav(6), { 'x-chave-do-dono': SEGREDO }), env: noTeto })).status).toBe(
+      429,
+    )
+  })
+
+  it('sem o segredo configurado no servidor, ninguém é dono', async () => {
+    const chaveIp = await chaveDoVisitante(pedido(wav(1)), dia)
+    const env = { AI: ia(), LIMITES: kvFalso({ [chaveIp]: String(15 * 60) }) }
+    expect((await onRequestPost({ request: pedido(wav(6), { 'x-chave-do-dono': '' }), env })).status).toBe(429)
+  })
+})
+
 describe('GET /quest/stt', () => {
   it('com cota: 200 e os segundos que restam; no teto: 429', async () => {
     const env = { AI: ia(), LIMITES: kvFalso() }

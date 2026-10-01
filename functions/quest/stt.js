@@ -99,6 +99,20 @@ async function somar(kv, chave, atual, segundos, sorteio = Math.random) {
   if (blocos > 0) await kv.put(chave, String(atual + blocos * BLOCO_S), { expirationTtl: DOIS_DIAS_S });
 }
 
+/**
+ * A CHAVE DE DONO: o cabeçalho `x-chave-do-dono` igual ao segredo `CHAVE_DO_DONO` do Pages tira o
+ * pedido da cota POR VISITANTE (o dono testando no próprio aparelho). O teto global continua valendo.
+ * Sem o segredo configurado (ou curto demais), ninguém é dono.
+ */
+function ehODono(request, env) {
+  const segredo = String(env.CHAVE_DO_DONO || '');
+  const dada = request.headers.get('x-chave-do-dono') || '';
+  if (segredo.length < 16 || dada.length !== segredo.length) return false;
+  let diferenca = 0;
+  for (let i = 0; i < segredo.length; i++) diferenca |= segredo.charCodeAt(i) ^ dada.charCodeAt(i);
+  return diferenca === 0;
+}
+
 /** O estado das cotas deste visitante, hoje. Sem KV configurado, a nuvem fica FECHADA. */
 async function cotas(request, env) {
   const dia = hoje();
@@ -108,7 +122,15 @@ async function cotas(request, env) {
     lerSegundos(env.LIMITES, chaveIp),
     lerSegundos(env.LIMITES, chaveTotal),
   ]);
-  return { chaveIp, chaveTotal, usadoIp, usadoTotal, restante: Math.max(0, COTA_POR_IP_S - usadoIp) };
+  const dono = ehODono(request, env);
+  return {
+    chaveIp,
+    chaveTotal,
+    usadoIp: dono ? 0 : usadoIp,
+    usadoTotal,
+    dono,
+    restante: dono ? COTA_POR_IP_S : Math.max(0, COTA_POR_IP_S - usadoIp),
+  };
 }
 
 function recusaPorCota(c) {
@@ -156,7 +178,7 @@ export async function onRequestPost({ request, env }) {
     });
     // Só conta o que foi transcrito de verdade.
     await Promise.all([
-      somar(env.LIMITES, c.chaveIp, c.usadoIp, segundos),
+      c.dono ? null : somar(env.LIMITES, c.chaveIp, c.usadoIp, segundos),
       somar(env.LIMITES, c.chaveTotal, c.usadoTotal, segundos),
     ]);
     return json({
@@ -164,7 +186,7 @@ export async function onRequestPost({ request, env }) {
       language: String(r?.transcription_info?.language ?? r?.language ?? ''),
       ms: Date.now() - inicio,
       segundos: Math.round(segundos * 10) / 10,
-      restante: Math.max(0, c.restante - Math.round(segundos)),
+      restante: c.dono ? c.restante : Math.max(0, c.restante - Math.round(segundos)),
     });
   } catch (erro) {
     const mensagem = String(erro?.message ?? erro).slice(0, 200);

@@ -1683,5 +1683,17 @@
   "Enviando à nuvem…": "Sending to the cloud…",
   "Nuvem: 11 s de fala": "Cloud: 11 s of speech",
   "falhou: {erro}": "failed: {erro}",
-  "{total} ms no total, {servidor} ms na transcrição": "{total} ms in total, {servidor} ms transcribing"
+  "{total} ms no total, {servidor} ms na transcrição": "{total} ms in total, {servidor} ms transcribing",
+  "Nuvem": "Cloud",
+  "Neste aparelho": "On this device",
+  "Quando e quanto durou": "When and how long",
+  "Do fim da fala ao texto": "From end of speech to text",
+  "{p50} ms na metade das falas, {p95} ms nas piores": "{p50} ms for half the utterances, {p95} ms for the worst",
+  "Transcrição: {motor}": "Transcription: {motor}",
+  "{falas} falas, {min} min de fala, {p50} ms": "{falas} utterances, {min} min of speech, {p50} ms",
+  "{p50} ms na metade, {p95} ms nas piores": "{p50} ms for half, {p95} ms for the worst",
+  "Maior fila de falas esperando": "Longest queue of waiting utterances",
+  "Nuvem usada": "Cloud used",
+  "{min} min de fala, cerca de US$ {usd}": "{min} min of speech, about US$ {usd}",
+  "Chave de dono": "Owner key"
 }

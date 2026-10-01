@@ -1,7 +1,20 @@
-import { Activity, ClipboardCopy, Cpu, Gauge, Loader2, Mic, MonitorUp, Stethoscope, TriangleAlert } from 'lucide-react';
+import {
+  Activity,
+  ClipboardCopy,
+  Cpu,
+  Gauge,
+  KeyRound,
+  Loader2,
+  Mic,
+  MonitorUp,
+  Stethoscope,
+  Timer,
+  TriangleAlert,
+} from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { encodeWav } from '../../gateway/audio/wav';
+import { CHAVE_DA_ULTIMA_CAPTURA } from '../../gateway/capture/captureMetrics';
 import { medirBenchmark, type PontuacaoDoBenchmark } from '../../lib/dispositivo/benchmark';
 import {
   coletarSinaisDoDiagnostico,
@@ -17,7 +30,7 @@ import {
   vigiarQuadros,
 } from '../../lib/dispositivo/diagnostico';
 import { t } from '../../lib/i18n';
-import { ENDPOINT_DA_NUVEM_DO_QUEST } from '../../lib/nuvemDoQuest';
+import { cabecalhoDoDono, CHAVE_DO_DONO_NO_APARELHO, ENDPOINT_DA_NUVEM_DO_QUEST } from '../../lib/nuvemDoQuest';
 import { CabecalhoDeTela, Tela, TituloDeSecao } from '../ui';
 
 /**
@@ -204,7 +217,7 @@ async function medirNuvem(pcm: Float32Array): Promise<ResultadoDaNuvem> {
     const t0 = performance.now();
     const res = await fetch(ENDPOINT_DA_NUVEM_DO_QUEST, {
       method: 'POST',
-      headers: { 'Content-Type': 'audio/wav', 'x-language': 'en' },
+      headers: { 'Content-Type': 'audio/wav', 'x-language': 'en', ...cabecalhoDoDono() },
       body: encodeWav(pcm, 16000),
     });
     r.status = res.status;
@@ -218,6 +231,32 @@ async function medirNuvem(pcm: Float32Array): Promise<ResultadoDaNuvem> {
   }
   return r;
 }
+
+/** O resumo da última captura (`guardarUltimaCaptura`): só números. */
+interface UltimaCaptura {
+  quando: number;
+  duracaoS: number;
+  count: number;
+  finalLatencyMs: { p50: number; p95: number };
+  rtf: { p50: number; p95: number };
+  mtLatencyMs: { p50: number; p95: number; engines: string[] } | null;
+  maxQueueDepth: number;
+  porMotor: Record<string, { falas: number; minutosDeFala: number; finalMs: { p50: number; p95: number } }>;
+  nuvem: { minutos: number; custoUsd: number };
+}
+
+function lerUltimaCaptura(): UltimaCaptura | null {
+  try {
+    const bruto = localStorage.getItem(CHAVE_DA_ULTIMA_CAPTURA);
+    return bruto ? (JSON.parse(bruto) as UltimaCaptura) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** O nome do motor como a pessoa entende. */
+const nomeDoMotor = (id: string): string =>
+  id === 'groq-whisper' ? t('Nuvem') : id === 'whisper-local' ? t('Neste aparelho') : id;
 
 const simNao = (v: boolean) => (v ? t('sim') : t('não'));
 
@@ -240,6 +279,14 @@ export default function Diagnostico() {
   const [benchmark, setBenchmark] = useState<PontuacaoDoBenchmark | null>(null);
   const [modelos, setModelos] = useState<ResultadoDoModelo[]>([]);
   const [nuvem, setNuvem] = useState<ResultadoDaNuvem | null>(null);
+  const [ultima] = useState<UltimaCaptura | null>(lerUltimaCaptura);
+  const [chaveDeDono, setChaveDeDono] = useState(() => {
+    try {
+      return localStorage.getItem(CHAVE_DO_DONO_NO_APARELHO) ?? '';
+    } catch {
+      return '';
+    }
+  });
   const [ocupado, setOcupado] = useState<null | 'microfone' | 'tela' | 'modelos' | 'gpu' | 'nuvem'>(null);
   const [andamento, setAndamento] = useState('');
   const [erroDosModelos, setErroDosModelos] = useState('');
@@ -256,8 +303,8 @@ export default function Diagnostico() {
   }, []);
 
   const relatorio = useMemo(
-    () => JSON.stringify({ sinais, microfone, compartilhamento, benchmark, modelos, nuvem }, null, 1),
-    [sinais, microfone, compartilhamento, benchmark, modelos, nuvem],
+    () => JSON.stringify({ sinais, microfone, compartilhamento, benchmark, modelos, nuvem, ultima }, null, 1),
+    [sinais, microfone, compartilhamento, benchmark, modelos, nuvem, ultima],
   );
 
   const rodar = async (qual: NonNullable<typeof ocupado>, tarefa: () => Promise<void>) => {
@@ -539,6 +586,90 @@ export default function Diagnostico() {
               ))}
             </ul>
           )}
+        </div>
+      </section>
+
+      <section className="secao" data-testid="diagnostico-ultima-captura">
+        <TituloDeSecao
+          icone={Timer}
+          titulo="Última captura"
+          desc="Onde o tempo foi gasto na última gravação deste aparelho, e quanto ela usou da nuvem."
+        />
+        <div className="cartao p5">
+          {!ultima ? (
+            <p className="mut">Nenhuma captura medida ainda neste aparelho. Grave algo em Capturar e volte aqui.</p>
+          ) : (
+            <>
+              <Linha
+                rotulo={t('Quando e quanto durou')}
+                valor={`${new Date(ultima.quando).toLocaleString()} · ${Math.round(ultima.duracaoS / 60)} min · ${ultima.count} ${t('falas')}`}
+              />
+              <Linha
+                rotulo={t('Do fim da fala ao texto')}
+                valor={t('{p50} ms na metade das falas, {p95} ms nas piores', {
+                  p50: ultima.finalLatencyMs.p50,
+                  p95: ultima.finalLatencyMs.p95,
+                })}
+              />
+              {Object.entries(ultima.porMotor).map(([motor, m]) => (
+                <Linha
+                  key={motor}
+                  rotulo={t('Transcrição: {motor}', { motor: nomeDoMotor(motor) })}
+                  valor={t('{falas} falas, {min} min de fala, {p50} ms', {
+                    falas: m.falas,
+                    min: m.minutosDeFala,
+                    p50: m.finalMs.p50,
+                  })}
+                />
+              ))}
+              <Linha
+                rotulo={t('Tradução')}
+                valor={
+                  ultima.mtLatencyMs
+                    ? t('{p50} ms na metade, {p95} ms nas piores', {
+                        p50: ultima.mtLatencyMs.p50,
+                        p95: ultima.mtLatencyMs.p95,
+                      })
+                    : '—'
+                }
+              />
+              <Linha rotulo={t('Maior fila de falas esperando')} valor={ultima.maxQueueDepth} />
+              <Linha
+                rotulo={t('Nuvem usada')}
+                valor={t('{min} min de fala, cerca de US$ {usd}', {
+                  min: ultima.nuvem.minutos,
+                  usd: ultima.nuvem.custoUsd.toFixed(4),
+                })}
+              />
+            </>
+          )}
+        </div>
+      </section>
+
+      <section className="secao">
+        <TituloDeSecao
+          icone={KeyRound}
+          titulo="Chave de dono"
+          desc="Só para quem mantém o site: com a chave certa, este aparelho não cai na cota diária da nuvem."
+        />
+        <div className="cartao p5">
+          <input
+            className="campo"
+            type="password"
+            autoComplete="off"
+            aria-label={t('Chave de dono')}
+            value={chaveDeDono}
+            onChange={(e) => {
+              const v = e.target.value;
+              setChaveDeDono(v);
+              try {
+                if (v.trim()) localStorage.setItem(CHAVE_DO_DONO_NO_APARELHO, v.trim());
+                else localStorage.removeItem(CHAVE_DO_DONO_NO_APARELHO);
+              } catch {
+                /* sem armazenamento */
+              }
+            }}
+          />
         </div>
       </section>
 

@@ -11,7 +11,7 @@ import type { Dispatch, RefObject, SetStateAction } from 'react';
 import type { ModelPrepState } from '../../components/ModelPrepPanel';
 import type { NewUtterancePayload } from '../../data/api';
 import type { SttSession } from '../../gateway/capabilities';
-import { capMetrics } from '../../gateway/capture/captureMetrics';
+import { capMetrics, guardarUltimaCaptura } from '../../gateway/capture/captureMetrics';
 import type { AudioCapture } from '../../gateway/capture/systemAudio';
 import { iniciarTelemetriaDeCaptura, pararTelemetriaDeCaptura } from '../../gateway/capture/telemetriaDeCaptura';
 import type { ContextoDoStt } from '../../gateway/promptDeStt';
@@ -412,6 +412,7 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
     seqToSegmentRef.current.clear();
     lastPartialTextRef.current.clear();
     clog('métricas da sessão:', capMetrics.summary());
+    guardarUltimaCaptura(duracaoS); // o medidor da sessão, para o /diagnostico
     pararTelemetriaDeCaptura(); // o último lote, antes que um START novo zere o acumulador
     fecharSessaoDeCaptura();
 

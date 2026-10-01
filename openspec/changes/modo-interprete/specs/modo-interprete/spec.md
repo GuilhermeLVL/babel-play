@@ -224,3 +224,40 @@ com `/api/ai/tts` simulado.
 
 - **WHEN** o e2e do computador fala dos dois lados com a voz natural simulada
 - **THEN** `window.__ttsInicio()` traz 2 amostras do motor `voz-da-nuvem`, com p50 ≤ 2.500 ms
+
+### Requirement: O intérprete tem lugar no menu e tela própria
+
+O app SHALL ter o item "Intérprete" no menu, logo abaixo de "Capturar", com endereço próprio (`/interprete`).
+Na dock do celular, que tem cinco lugares, o item SHALL entrar e a Biblioteca SHALL ir para a folha "Mais".
+A tela SHALL mostrar os dois idiomas ("Eu falo" e "A outra pessoa fala", com trocar de lugar), o preparo dos
+dois lados (a voz e a tradução) e o botão "Começar conversa". Com os dois idiomas iguais, o botão MUST NOT
+começar, e a tela SHALL dizer o que fazer. O botão do cabeçalho da Captura SHALL continuar.
+
+#### Scenario: Pelo menu
+
+- **WHEN** a pessoa toca "Intérprete" na barra de baixo do celular e depois "Começar conversa"
+- **THEN** a tela dividida abre, depois da folha do início se houver o que decidir
+
+#### Scenario: Idiomas iguais
+
+- **WHEN** os dois idiomas escolhidos são o mesmo
+- **THEN** "Começar conversa" fica desligado, e a tela pede dois idiomas diferentes
+
+### Requirement: Os dois lados funcionam, qualquer um que comece
+
+O microfone do intérprete SHALL ser decidido pelos dois idiomas da conversa. O reconhecimento do navegador
+no aparelho SHALL valer só se o navegador o tem nos dois idiomas; senão, a nuvem consentida ou o modelo do
+app SHALL atender os dois lados. O tradutor SHALL ser preparado nos dois sentidos antes da primeira fala do
+outro lado, e o progresso SHALL aparecer na tela do intérprete. Um microfone que falha SHALL avisar dentro da
+tela do intérprete, devolver o lado a "Falar" e MUST NOT encerrar a gravação.
+
+#### Scenario: O inglês sem pacote no aparelho
+
+- **WHEN** o navegador tem o pacote de voz do português, mas não o do inglês, e a pessoa toca o lado do inglês
+- **THEN** o reconhecimento do navegador no aparelho não abre em nenhum lado, e o modelo do app (ou a nuvem
+  consentida) atende os dois
+
+#### Scenario: O outro lado fala primeiro
+
+- **WHEN** a conversa começa pelo lado do inglês e depois alterna para o português, duas vezes
+- **THEN** cada fala é traduzida para o idioma do outro lado e lida nele, sem esperar download no meio

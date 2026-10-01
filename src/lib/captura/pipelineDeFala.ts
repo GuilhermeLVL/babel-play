@@ -1433,25 +1433,45 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     const de = baseLang(sourceLangRef.current || '');
     const para = baseLang(targetLangRef.current || '');
     if (!de || !para || de === para || getProviderMode() === 'cloud') return;
-    clog('tradutor da fala (Rápido): carregando', `${de}→${para}`);
-    void gateway.mt
-      .preload(de, para, (p, _l, bytes) => {
-        const pronto = p >= 1;
-        prepNoQuadro((s) => {
-          const base = s ?? { whisper: null, mt: 0, fromCache: false, error: null, done: false };
-          return {
-            ...base,
-            mt: pronto ? 1 : p,
-            mtBytes: bytes ?? base.mtBytes,
-            done: base.whisper === null ? pronto : base.done,
-          };
-        });
-        if (pronto) {
-          retraduzirDegradados();
-          setTimeout(() => setModelPrep((s) => (s && preparoConcluido(s) ? null : s)), 1800);
+    /* NO INTÉRPRETE, OS DOIS SENTIDOS: a fala do outro lado volta traduzida para o seu idioma, e sem a
+       volta pronta a primeira frase dele esperava o download do tradutor em silêncio ("tocando o outro
+       lado e falando, não aconteceu nada", relato do dono, 30/09). Um de cada vez (memória), a ida
+       primeiro; a barra de preparo mostra os dois como um só. */
+    const pares: Array<[string, string]> =
+      captureScenarioRef.current === 'interprete'
+        ? [
+            [de, para],
+            [para, de],
+          ]
+        : [[de, para]];
+    const preparar = async () => {
+      for (let i = 0; i < pares.length; i++) {
+        const [a, b] = pares[i];
+        clog('tradutor da fala: carregando', `${a}→${b}`);
+        try {
+          await gateway.mt.preload(a, b, (p, _l, bytes) => {
+            const total = (i + Math.min(1, p)) / pares.length;
+            const pronto = total >= 1;
+            prepNoQuadro((s) => {
+              const base = s ?? { whisper: null, mt: 0, fromCache: false, error: null, done: false };
+              return {
+                ...base,
+                mt: pronto ? 1 : total,
+                mtBytes: bytes ?? base.mtBytes,
+                done: base.whisper === null ? pronto : base.done,
+              };
+            });
+            if (pronto) {
+              retraduzirDegradados();
+              setTimeout(() => setModelPrep((s) => (s && preparoConcluido(s) ? null : s)), 1800);
+            }
+          });
+        } catch (e: unknown) {
+          clog('tradutor da fala indisponível (a cascata segue):', `${a}→${b}`, String(e));
         }
-      })
-      .catch((e: unknown) => clog('tradutor da fala indisponível (a cascata segue):', String(e)));
+      }
+    };
+    void preparar();
   };
 
   /**

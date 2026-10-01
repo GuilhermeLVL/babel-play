@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 
 import { t } from '../../lib/i18n';
 import type { ViewType } from '../../types';
-import { type AgeProfileType, NAV_ITEMS, navLabel } from './navItems';
+import { type AgeProfileType, itensDaDock, itensDaFolhaMais, navLabel } from './navItems';
 
 interface MobileNavProps {
   activeView: ViewType;
@@ -13,14 +13,14 @@ interface MobileNavProps {
 
 /**
  * Dock inferior do celular — marcação do protótipo aprovado (`.dock` + `.folha`): os cinco
- * destinos principais e "Mais", que abre a folha com os secundários (Personalizar, Sobre, Planos,
- * Ajustes) e o perfil. Todo destino continua com porta no celular — a auditoria F9 achou uma tela
+ * destinos principais e "Mais", que abre a folha com os secundários (a Biblioteca, que cedeu o lugar
+ * ao Intérprete, Personalizar, Sobre, Planos, Ajustes) e o perfil. Todo destino continua com porta no celular — a auditoria F9 achou uma tela
  * sem porta quando os secundários simplesmente sumiam; aqui eles estão a um toque, na folha.
  */
 export default function MobileNav({ activeView, onChangeView, ageProfile }: MobileNavProps) {
   const [maisAberto, setMaisAberto] = useState(false);
-  const principais = NAV_ITEMS.filter((i) => !i.secondary);
-  const secundarios = NAV_ITEMS.filter((i) => i.secondary);
+  const principais = itensDaDock();
+  const secundarios = itensDaFolhaMais();
   const secundarioAtivo =
     secundarios.some((i) => i.id === activeView) || activeView === 'profile' || activeView === 'ajuda';
 

@@ -171,6 +171,8 @@ export type SchedulerType = 'fsrs' | 'leitner';
 export type ViewType =
   | 'hub'
   | 'capture'
+  /** O modo intérprete com porta própria: a mesma captura, aberta na tela de começar a conversa. */
+  | 'interprete'
   | 'study'
   | 'play'
   | 'library'

@@ -141,6 +141,12 @@ export interface DepsDasFontesDeAudio {
   direcaoDoMicrofone?: () => DirecaoDaFala | null;
   /** A Web Speech comprometeu o final de uma fala: o intérprete fecha o microfone aqui. */
   aoFimDaFala?: (fim: FimDaFala) => void;
+  /**
+   * OS IDIOMAS DA CONVERSA (os dois lados do intérprete, em BCP-47). O motor do microfone é decidido
+   * para TODOS eles: "no aparelho" só quando o navegador reconhece cada um, e o pacote a baixar é
+   * pedido para todos no mesmo toque. `null`/ausente = só o "Eu falo" da captura.
+   */
+  idiomasDaConversa?: () => readonly string[] | null;
 }
 
 /**
@@ -157,9 +163,16 @@ let avisouMicSemNuvem = false;
  * chave é o `webSpeechRef`, que é o mesmo entre os renders; a fábrica não é). É o que deixa o
  * intérprete REABRIR a Web Speech no idioma de outro lado sem perguntar de novo "Rápido ou Privado?"
  * — no aparelho continua no aparelho, na nuvem continua na nuvem.
+ *
+ * O "no aparelho" vale só para os idiomas para os quais foi decidido (`idiomas`): o pacote de voz do
+ * Chrome é por idioma. Abrir o lado de um idioma que a decisão não cobriu decide de novo.
  */
 const sessoesDaWebSpeech = new WeakMap<SttSession, { noAparelho: boolean; idioma: string }>();
-const modoDaWebSpeech = new WeakMap<object, { noAparelho: boolean }>();
+const modoDaWebSpeech = new WeakMap<object, { noAparelho: boolean; idiomas: readonly string[] }>();
+
+/** O modo guardado serve a estes idiomas? A nuvem ouve qualquer um; o aparelho, só os que conferiu. */
+const modoCobre = (modo: { noAparelho: boolean; idiomas: readonly string[] }, idiomas: readonly string[]) =>
+  !modo.noAparelho || idiomas.every((l) => modo.idiomas.includes(l));
 
 export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
   const {
@@ -510,7 +523,7 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
   // SO) — para isso, o usuário troca para o motor Whisper. Sem streaming de PCM: partials/finais.
   // `noAparelho`: reconhecimento LOCAL (`processLocally`); devolve false se o navegador não o tem —
   // quem chama cai no Whisper em vez de mandar o áudio ao Google (ver `motorDoMicrofone.ts`).
-  const startWebSpeechMic = (noAparelho = false): boolean => {
+  const startWebSpeechMic = (noAparelho = false, idiomasDecididos?: readonly string[]): boolean => {
     // A Web Speech abre o microfone sozinha: o contexto do clique não tem uso aqui.
     descartarContextoDoClique();
     const speakerId = 'user';
@@ -579,6 +592,10 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
           setFeedbackMsg((erro as Error).message);
           setTimeout(() => setFeedbackMsg(''), 7000);
         }
+        /* No INTÉRPRETE o microfone abre e fecha a cada fala: a falha é deste toque, não da sessão. A
+           conversa segue, o lado volta a "parado" e a pessoa pode tocar de novo (ou trocar de motor na
+           ajuda). Encerrar a gravação aqui deixava os dois lados mudos até sair e entrar de novo. */
+        if (direcao) return;
         if (!systemEnabled) {
           setIsRecording(false);
           isRecordingRef.current = false;
@@ -622,7 +639,7 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
       if (acabou) return true; // falhou no próprio `start()`: a ajuda já está na tela
       webSpeechRef.current = sessao;
       sessoesDaWebSpeech.set(sessao, { noAparelho, idioma: idiomaDaFala });
-      modoDaWebSpeech.set(webSpeechRef, { noAparelho });
+      modoDaWebSpeech.set(webSpeechRef, { noAparelho, idiomas: idiomasDecididos ?? [idiomaDaFala] });
       prazo.id = setTimeout(() => {
         if (!abriu)
           falhou(
@@ -660,6 +677,10 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
      de o mic abrir. Sempre a partir de um clique (Iniciar, desmutar, retomar) — é o que permite pedir
      a instalação do pacote do idioma. */
   const startMic = async (): Promise<void> => {
+    /* No intérprete, os DOIS idiomas: um lado cujo idioma o aparelho não reconhece não pode herdar o
+       "no aparelho" do outro. */
+    const conversa = deps.idiomasDaConversa?.();
+    const idiomas = conversa?.length ? conversa : [sourceLangRef.current];
     const decisao = await resolverMotorDoMic({
       preferido: micEngine,
       webSpeechSuportado: webSpeechSupported,
@@ -669,6 +690,7 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
       perguntar: deps.perguntarEscolhaDoMic,
       perfilId: perfilId(),
       lang: sourceLangRef.current,
+      langs: idiomas,
       /* Pacote de voz do navegador sendo instalado (o degrau seria o nosso Whisper): a linha dele
          na barra de preparo, como o Translator (`pacotesNativos.ts`). */
       aoInstalar: criarProgressoDosPacotesNativos({ setModelPrep, ativo: () => isRecordingRef.current, clog }).voz,
@@ -679,7 +701,7 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
       `(${decisao.motivo})`,
       decisao.instalarNoAparelho ? '| pacote local pedido' : '',
     );
-    if (decisao.motor === 'web-speech-local' && startWebSpeechMic(true)) return;
+    if (decisao.motor === 'web-speech-local' && startWebSpeechMic(true, idiomas)) return;
     if (decisao.motor === 'web-speech-nuvem') {
       startWebSpeechMic(false);
       return;
@@ -792,8 +814,12 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
       clog('intérprete: Web Speech reinicia no idioma do lado', direcao?.fala ?? '?');
       encerrarWebSpeechDoMic();
     }
-    const modo = daAberta ?? modoDaWebSpeech.get(webSpeechRef);
-    if (modo && startWebSpeechMic(modo.noAparelho)) return;
+    /* O modo guardado só serve se cobre os idiomas da conversa: a decisão tomada na captura de sempre
+       (só o "Eu falo") não sabe se o aparelho reconhece o idioma do outro lado — aí decide de novo. */
+    const guardado = modoDaWebSpeech.get(webSpeechRef);
+    const conversa = deps.idiomasDaConversa?.() ?? [];
+    const modo = guardado && modoCobre(guardado, conversa) ? guardado : undefined;
+    if (modo && startWebSpeechMic(modo.noAparelho, modo.idiomas)) return;
     await startMic();
   };
 

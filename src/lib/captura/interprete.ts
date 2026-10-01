@@ -111,6 +111,14 @@ export function direcaoDoLado(lado: LadoDoInterprete, idiomas: IdiomasDoInterpre
   return { lado, fala: bcp47(fala), de: baseLang(fala), para: baseLang(ouve) };
 }
 
+/**
+ * Os dois idiomas da conversa como o reconhecedor os recebe (BCP-47), na ordem meu → outro: os mesmos
+ * `fala` que `direcaoDoLado` dá a cada lado. É para eles que o motor do microfone é decidido.
+ */
+export function idiomasDaConversa(idiomas: IdiomasDoInterprete): string[] {
+  return [bcp47(idiomas.meu), bcp47(idiomas.outro)];
+}
+
 /** A direção do microfone AGORA: a do lado ativo, ou a do último que falou; `null` antes da primeira fala. */
 export function direcaoAtual(estado: EstadoDoInterprete, idiomas: IdiomasDoInterprete): DirecaoDaFala | null {
   return estado.lado ? direcaoDoLado(estado.lado, idiomas, estado.trocados) : null;

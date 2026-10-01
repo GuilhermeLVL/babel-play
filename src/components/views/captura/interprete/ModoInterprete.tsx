@@ -59,6 +59,7 @@ export default function ModoInterprete({
   velocidade,
   layout,
   abrindo,
+  aviso,
   aoSair,
   aoFalharMicrofone,
 }: {
@@ -72,6 +73,11 @@ export default function ModoInterprete({
   layout: 'celular' | 'computador';
   /** O microfone está abrindo (a permissão, o modelo): o botão de quem fala mostra a espera. */
   abrindo?: boolean;
+  /**
+   * O que a captura diria por baixo (o tradutor do outro sentido baixando, um aviso do microfone): a
+   * tela do intérprete a cobre inteira, então a linha aparece aqui, na faixa do meio.
+   */
+  aviso?: string | null;
   aoSair: () => void;
   aoFalharMicrofone?: (erro: unknown) => void;
 }) {
@@ -273,10 +279,15 @@ export default function ModoInterprete({
         >
           <ArrowUpDown aria-hidden />
         </button>
-        <span className="int-voz" data-natural={vozNatural || undefined} data-testid="voz-em-uso">
-          <Volume2 aria-hidden />
-          {vozNatural ? t('Voz natural · Premium') : t('Voz do aparelho')}
-        </span>
+        <div className="int-centro">
+          <span className="int-voz" data-natural={vozNatural || undefined} data-testid="voz-em-uso">
+            <Volume2 aria-hidden />
+            {vozNatural ? t('Voz natural · Premium') : t('Voz do aparelho')}
+          </span>
+          <span className="int-aviso" role="status" data-testid="aviso-do-interprete">
+            {aviso ?? ''}
+          </span>
+        </div>
         <button type="button" className="int-ib peq" onClick={sair} aria-label={t('Sair do modo intérprete')}>
           <X aria-hidden />
         </button>

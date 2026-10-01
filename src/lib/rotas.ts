@@ -22,6 +22,7 @@
 export type ViewDeRota =
   | 'hub'
   | 'capture'
+  | 'interprete'
   | 'play'
   | 'library'
   | 'analysis'
@@ -79,6 +80,7 @@ const ehSubTelaDePlanos = (s: string | undefined): s is SubTelaDePlanos =>
 const SEGMENTO: Record<Exclude<ViewDeRota, 'analysis'>, string> = {
   hub: '',
   capture: 'capturar',
+  interprete: 'interprete',
   play: 'jogar',
   library: 'biblioteca',
   metrics: 'vocabulario',

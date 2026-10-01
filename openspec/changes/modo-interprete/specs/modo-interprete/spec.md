@@ -224,3 +224,42 @@ com `/api/ai/tts` simulado.
 
 - **WHEN** o e2e do computador fala dos dois lados com a voz natural simulada
 - **THEN** `window.__ttsInicio()` traz 2 amostras do motor `voz-da-nuvem`, com p50 ≤ 2.500 ms
+
+### Requirement: Os dois lados da conversa funcionam
+
+O motor do microfone do intérprete SHALL ser decidido para os DOIS idiomas da conversa, e não só para o
+"Eu falo" da captura. O reconhecimento no aparelho (`processLocally`) SHALL valer só quando o navegador
+reconhece os dois idiomas. O pacote de voz a baixar SHALL ser pedido para os dois no mesmo toque. Sem o
+pacote de um deles, o intérprete SHALL usar a Web Speech na nuvem quando o "Rápido" foi consentido, e o
+Whisper do app nos dois lados quando não foi. O tradutor SHALL ser preparado nos dois sentidos ao abrir o
+intérprete. A falha do microfone no meio da conversa MUST NOT encerrar a sessão: o lado SHALL voltar a
+"parado" e aceitar um novo toque.
+
+#### Scenario: O idioma do outro sem pacote no aparelho
+
+- **WHEN** o navegador reconhece o português no aparelho, não tem o pacote do inglês, e o lado do inglês é
+  tocado
+- **THEN** o microfone não abre "no aparelho" em inglês: abre na nuvem (com o "Rápido") ou no Whisper
+
+#### Scenario: A primeira fala do outro lado
+
+- **WHEN** o intérprete abre com português e inglês
+- **THEN** o tradutor de português para inglês e o de inglês para português começam a carregar antes da
+  primeira fala, e o progresso aparece na faixa do meio
+
+#### Scenario: O reconhecedor recusa
+
+- **WHEN** o reconhecedor falha depois do toque
+- **THEN** a ajuda do microfone aparece, o lado volta a "parado" e a conversa continua aberta
+
+### Requirement: O intérprete tem porta própria
+
+O intérprete SHALL ter um item no menu, logo depois de Capturar, com o endereço `/interprete` e uma tela de
+começar a conversa: os dois idiomas, o botão de começar e o preparo dos dois lados. Na barra de baixo do
+celular ele SHALL ocupar o lugar da Biblioteca, que SHALL ir para a folha "Mais". No menu lateral a
+Biblioteca SHALL continuar no grupo principal. Sair do intérprete aberto por essa tela SHALL voltar a ela.
+
+#### Scenario: Pelo menu do celular
+
+- **WHEN** a pessoa toca "Intérprete" na barra de baixo e depois "Começar conversa"
+- **THEN** a tela frente a frente abre, e ao sair ela volta à tela de começar a conversa

@@ -25,6 +25,7 @@ import {
   direcaoDoLado,
   type EfeitoDoInterprete,
   type EstadoDoInterprete,
+  idiomasDaConversa,
   type IdiomasDoInterprete,
 } from './interprete';
 import type { DirecaoDaFala, FimDaFala, LadoDoInterprete } from './tiposDaFala';
@@ -67,11 +68,21 @@ export interface ControleDoInterprete {
   sair(): void;
   /** A direção do microfone agora (`direcaoDoMicrofone` do pipeline e das fontes). */
   direcao(): DirecaoDaFala | null;
+  /** Os dois idiomas da conversa em BCP-47 (`idiomasDaConversa` das fontes: o motor serve aos dois). */
+  idiomasDaConversa(): string[];
+  /**
+   * O microfone falhou DEPOIS do toque (o reconhecedor recusou o idioma, o áudio não abriu): quem ouvia
+   * volta a "parado", e a pessoa pode tocar de novo. A falha dentro do toque já faz isto sozinha.
+   */
+  microfoneFalhou(): void;
   estado(): EstadoDoControle;
 }
 
 /** O que a captura (`LiveCapture`) repassa ao intérprete aberto: a direção e os avisos do pipeline. */
-export type PonteDoInterprete = Pick<ControleDoInterprete, 'direcao' | 'aoFimDaFala' | 'aoTraduzirFinal'>;
+export type PonteDoInterprete = Pick<
+  ControleDoInterprete,
+  'direcao' | 'aoFimDaFala' | 'aoTraduzirFinal' | 'idiomasDaConversa' | 'microfoneFalhou'
+>;
 
 const relogioPadrao = (): number => (typeof performance !== 'undefined' ? performance.now() : Date.now());
 const outroLado = (lado: LadoDoInterprete): LadoDoInterprete => (lado === 'meu' ? 'outro' : 'meu');
@@ -203,6 +214,13 @@ export function criarControleDoInterprete(o: OpcoesDoControle): ControleDoInterp
       falando = null;
     },
     direcao: () => maquina.direcao(),
+    idiomasDaConversa: () => idiomasDaConversa(o.idiomas()),
+    microfoneFalhou() {
+      if (desligado) return;
+      const agoraEstado = maquina.estado();
+      /* O mesmo lado de novo é o "terminei" da máquina: volta a parado e fecha o que abriu. */
+      if (agoraEstado.fase === 'ouvindo' && agoraEstado.lado) maquina.enviar({ tipo: 'tocar', lado: agoraEstado.lado });
+    },
     estado,
   };
 }

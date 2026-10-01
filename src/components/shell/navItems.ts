@@ -4,6 +4,7 @@ import {
   CreditCard,
   Gamepad2,
   Heart,
+  Languages,
   LayoutDashboard,
   Library,
   type LucideIcon,
@@ -41,6 +42,11 @@ export interface NavItemDef {
   labels: Record<AgeProfileType, string>;
   /** Fora do top-5 do celular: cabe no rail e na barra, não na dock inferior. */
   secondary?: boolean;
+  /**
+   * No grupo PRINCIPAL do menu lateral, mas fora da barra de baixo do celular (vai para a folha
+   * "Mais"): a barra tem cinco lugares e o destino cedeu o seu a outro mais usado na rua.
+   */
+  foraDaDock?: boolean;
 }
 
 const TODOS_OS_ITENS: NavItemDef[] = [
@@ -57,6 +63,15 @@ const TODOS_OS_ITENS: NavItemDef[] = [
     labels: { kids: 'Gravar', pro: 'Capturar', senior: 'Gravar Áudio' },
   },
   {
+    /* O INTÉRPRETE COM PORTA PRÓPRIA (pedido do dono, 30/09): no cabeçalho da captura ele passava
+       despercebido. É a conversa frente a frente, na rua, com o celular entre as duas pessoas. Logo
+       depois de Capturar, porque é a mesma captura, aberta na tela de começar a conversa. */
+    id: 'interprete',
+    icon: Languages,
+    short: 'Intérprete',
+    labels: { kids: 'Intérprete', pro: 'Intérprete', senior: 'Intérprete de conversa' },
+  },
+  {
     // Logo depois de Capturar: é a sequência real de uso — grava, e joga com o que gravou.
     id: 'play',
     icon: Gamepad2,
@@ -68,6 +83,8 @@ const TODOS_OS_ITENS: NavItemDef[] = [
     icon: Library,
     short: 'Biblioteca',
     labels: { kids: 'Biblioteca', pro: 'Biblioteca', senior: 'Minhas Mídias' },
+    // Cedeu o lugar da barra do celular ao Intérprete (decisão do dono, 30/09); no menu lateral fica.
+    foraDaDock: true,
   },
   /* 'analysis' SAIU do menu de topo (decisão do dono, 31/08): uma aula/sessão sempre vive
      DENTRO de uma mídia capturada — o caminho é Biblioteca → mídia → aula. A rota continua
@@ -157,3 +174,9 @@ export const NAV_ITEMS: NavItemDef[] = edicaoEstatica()
        ali seria um destino sem saída. Some do menu; o resto é o mesmo. */
     TODOS_OS_ITENS.filter((i) => i.id !== 'planos')
   : TODOS_OS_ITENS;
+
+/** A barra de baixo do celular: os destinos principais que não cederam o lugar (`foraDaDock`). */
+export const itensDaDock = (): NavItemDef[] => NAV_ITEMS.filter((i) => !i.secondary && !i.foraDaDock);
+
+/** A folha "Mais" do celular: quem cedeu o lugar na barra, e depois os secundários, na ordem do menu. */
+export const itensDaFolhaMais = (): NavItemDef[] => NAV_ITEMS.filter((i) => i.secondary || i.foraDaDock);

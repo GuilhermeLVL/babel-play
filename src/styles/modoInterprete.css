@@ -181,6 +181,24 @@
   border-block: 1px solid var(--int-linha);
   background: color-mix(in srgb, #000 18%, var(--int-escuro));
 }
+.int-centro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+/* O preparo e os avisos da captura, que a tela do intérprete cobre: uma linha, só quando há. */
+.int-aviso {
+  max-width: 100%;
+  font: 700 11.5px var(--font-body);
+  color: var(--int-mut);
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.int-aviso:empty {
+  display: none;
+}
 .int-voz {
   display: inline-flex;
   align-items: center;

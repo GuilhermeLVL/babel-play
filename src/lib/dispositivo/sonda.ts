@@ -130,9 +130,13 @@ const disponibilidade = (v: unknown): Disponibilidade | null =>
 
 type ComDisponivel = { available?: (o: { langs: string[]; processLocally: boolean }) => unknown };
 
-/** `SpeechRecognition.available({langs:[lang], processLocally:true})` quando o método estático existe. */
+/**
+ * `SpeechRecognition.available({langs, processLocally:true})` quando o método estático existe. Com
+ * VÁRIOS idiomas (os dois lados do intérprete), a resposta é a do conjunto: 'available' só quando o
+ * aparelho reconhece todos.
+ */
 export async function disponibilidadeDoSttNoAparelho(
-  lang: string,
+  lang: string | readonly string[],
   escopo: unknown = globalThis,
   prazoMs = PRAZO_DA_PERGUNTA_MS,
 ): Promise<Disponibilidade | null> {
@@ -149,7 +153,8 @@ export async function disponibilidadeDoSttNoAparelho(
   if (e.navigator?.webdriver === true) return null;
   const SR = e.SpeechRecognition ?? e.webkitSpeechRecognition;
   if (typeof SR?.available !== 'function') return null;
-  return disponibilidade(await comPrazo(() => SR.available!({ langs: [lang], processLocally: true }), prazoMs));
+  const langs = typeof lang === 'string' ? [lang] : [...lang];
+  return disponibilidade(await comPrazo(() => SR.available!({ langs, processLocally: true }), prazoMs));
 }
 
 async function estimativaDoArmazenamento(nav: NavegadorDaSonda, prazoMs: number) {

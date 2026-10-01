@@ -213,3 +213,31 @@ describe('criarControleDoInterprete', () => {
     expect(controle.estado().fase).toBe('parado')
   })
 })
+
+describe('a falha que chega DEPOIS do toque (o reconhecedor recusou o idioma)', () => {
+  it('devolve a conversa a "parado", fecha o microfone e deixa tocar de novo', () => {
+    const m = montar()
+    m.controle.tocar('outro')
+    expect(m.controle.estado().fase).toBe('ouvindo')
+    m.controle.microfoneFalhou()
+    expect(m.controle.estado().fase).toBe('parado')
+    expect(m.fechar).toHaveBeenCalled()
+    m.controle.tocar('outro')
+    expect(m.controle.estado().fase).toBe('ouvindo')
+    expect(m.abrir).toHaveBeenCalledTimes(2)
+  })
+
+  it('fora de "ouvindo" (a voz já lê a tradução) não mexe em nada', () => {
+    const m = montar()
+    m.controle.microfoneFalhou()
+    expect(m.controle.estado().fase).toBe('parado')
+    expect(m.fechar).not.toHaveBeenCalled()
+  })
+})
+
+describe('os idiomas da conversa, para o motor do microfone', () => {
+  it('são os dois lados em BCP-47, na ordem meu → outro', () => {
+    const m = montar({ idiomas: () => ({ meu: 'pt', outro: 'en-US' }) })
+    expect(m.controle.idiomasDaConversa()).toEqual(['pt-BR', 'en-US'])
+  })
+})

@@ -128,6 +128,30 @@
     natural lê as duas traduções; a métrica fica em `p50 ≤ 2_500` ms. O PR relata 126 ms no p50, com a
     nuvem simulada.
 
+## E8: os dois lados e a porta própria (relato do dono, 30/09)
+
+O dono testou em produção: o português funcionou; tocando o outro lado e falando inglês, nada aconteceu.
+
+- [x] 8.1 O motor do microfone decidido para os dois idiomas (`idiomasDaConversa`): `sonda.ts`,
+      `motorDoMicrofone.ts` (`langs`), `fontesDeAudio.ts` (o modo guardado só vale para os idiomas que
+      conferiu). Teste: `tests/interprete-dois-lados.test.ts`.
+- [x] 8.2 O tradutor nos dois sentidos ao abrir (`prepararTradutorDaFala`, `abrirOInterprete`), e a folha
+      do início conta a ida e a volta.
+- [x] 8.3 A falha tardia do microfone não encerra a sessão; o lado volta a "parado"
+      (`microfoneFalhou`). Teste: `tests/controleDoInterprete.test.ts`.
+- [x] 8.4 O preparo na faixa do meio (`avisoDoPreparo.ts`). Teste: `tests/avisoDoPreparo.test.ts`.
+- [x] 8.5 O item "Intérprete" no menu, `/interprete` e a tela `PaginaDoInterprete`; na barra do celular,
+      no lugar da Biblioteca. Testes: `tests/navDoInterprete.test.ts` e o e2e "pelo menu".
+- [ ] 8.6 Conferir no aparelho do dono (Chrome com e sem o pacote de voz do inglês). O e2e não cobre: sob
+      automação a sonda não pergunta ao navegador.
+
+## E7: modo Automático (decisão do dono, 30/09: só no Premium, e é o padrão dele)
+
+- [ ] 7.1 O idioma de cada fala medido pelo áudio, entre os idiomas da conversa; a fala vai para a metade
+      de quem falou e é lida para o outro. Sem tocar em lado.
+- [ ] 7.2 Um terceiro idioma é traduzido para o idioma do dono do aparelho.
+- [ ] 7.3 No Grátis, o modo por toque; o Automático aparece com o convite do teste.
+
 ## Antes de ligar a flag `voz_natural` (pendente, decisão do dono)
 
 - [ ] P.1 Decidir as cotas da voz do Premium. Hoje são 600.000 caracteres por mês e 60.000 por dia,

@@ -151,8 +151,8 @@ async function abrirCaptura(page: Page) {
 }
 
 /** Entra no intérprete; a folha "Rápido ou Privado?" vem antes, como no Iniciar. */
-async function entrar(page: Page) {
-  await clicarRobusto(page, page.getByTestId('entrar-no-interprete'))
+async function entrar(page: Page, botao = 'entrar-no-interprete') {
+  await clicarRobusto(page, page.getByTestId(botao))
   const folha = page.getByRole('dialog', { name: 'Como transcrever a sua voz?' })
   if (await folha.isVisible({ timeout: 3_000 }).catch(() => false)) {
     await clicarRobusto(page, folha.getByRole('button', { name: /Rápido/ }).first())
@@ -229,6 +229,48 @@ test.describe('Modo intérprete no celular (Pixel 7, voz do aparelho)', () => {
     const encerrar = page.getByRole('dialog').filter({ hasText: /Descartar/ })
     await expect(encerrar).toBeVisible({ timeout: 5_000 })
     await clicarRobusto(page, encerrar.getByRole('button', { name: /Descartar/ }).first())
+  })
+
+  /* O RELATO DO DONO (30/09): "em português traduziu; tocando o outro lado e falando em inglês, não
+     aconteceu nada". Aqui a conversa começa pelo OUTRO lado e alterna duas vezes — e a porta é a do
+     menu, a tela própria do Intérprete (na barra de baixo, no lugar da Biblioteca). */
+  test('pelo menu: o outro lado fala primeiro, e os dois lados se alternam', async ({ page }) => {
+    test.slow()
+    await semCapturaDeTela(page)
+    await falsos(page)
+    await semEscolhaGuardada(page)
+    await page.route(/huggingface\.co|\.hf\.co/, (r) => r.abort())
+    await page.route(/\/modelos\/bergamot\/|bergamot-translator-worker/, (r) => r.abort())
+    await page.goto('/')
+    await expect(page.getByRole('main')).toBeVisible()
+    await fecharSobreposicoes(page)
+
+    await clicarRobusto(page, page.locator('[data-shell="dock"]').getByRole('button', { name: 'Intérprete' }))
+    await expect(page).toHaveURL(/\/interprete$/)
+    await expect(page.getByTestId('pagina-do-interprete')).toBeVisible()
+    await entrar(page, 'comecar-conversa')
+
+    const ingles = { texto: '[trad] good morning everyone', lang: 'pt-BR' }
+    const portugues = { texto: '[trad] bom dia a todos', lang: 'en-US' }
+    for (let volta = 0; volta < 2; volta++) {
+      await clicarRobusto(page, page.getByRole('button', { name: /Falar em English/ }))
+      await expect(page.getByTestId('interprete-meu').getByText(ingles.texto)).toBeVisible({ timeout: 10_000 })
+      await expect.poll(() => lidas(page), { timeout: 5_000 }).toHaveLength(volta * 2 + 1)
+      expect((await lidas(page)).at(-1)).toEqual(ingles)
+      await expect(fase(page)).toHaveAttribute('data-fase', 'parado', { timeout: 5_000 })
+
+      await clicarRobusto(page, page.getByRole('button', { name: /Falar em Português/ }))
+      await expect.poll(() => lidas(page), { timeout: 10_000 }).toHaveLength(volta * 2 + 2)
+      expect((await lidas(page)).at(-1)).toEqual(portugues)
+      await expect(fase(page)).toHaveAttribute('data-fase', 'parado', { timeout: 5_000 })
+    }
+
+    // Sair e descartar volta à tela de começar a conversa, e não à Captura.
+    await clicarRobusto(page, page.getByRole('button', { name: 'Sair do modo intérprete' }))
+    const encerrar = page.getByRole('dialog').filter({ hasText: /Descartar/ })
+    await expect(encerrar).toBeVisible({ timeout: 5_000 })
+    await clicarRobusto(page, encerrar.getByRole('button', { name: /Descartar/ }).first())
+    await expect(page.getByTestId('pagina-do-interprete')).toBeVisible()
   })
 })
 

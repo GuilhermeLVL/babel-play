@@ -6,6 +6,19 @@ que a pesquisa NÃO fechou") ou a um número da auditoria `openspec/audits/2026-
 
 Tempo total: uns 30 minutos. Ao final você cola um bloco JSON no chat (seção 6).
 
+## 0. O caminho curto: a página de diagnóstico (sem cabo)
+
+Desde 01/10/2026 o app tem `/diagnostico` (no Quest: **Capturar → "Diagnóstico do aparelho"**, ou o
+endereço direto). Ela roda no próprio navegador do headset e responde quase tudo das seções 3 e 4:
+
+1. **Este aparelho**: núcleos, memória, placa de vídeo, Web Speech, tradutor, compartilhar tela.
+2. **Microfone**: com um vídeo tocando no alto-falante, o nível com e sem o tratamento de voz.
+3. **Compartilhamento de tela**: se o som vem junto, se continua sem a imagem e quanto a tela trava.
+4. **Velocidade da transcrição**: o fator de tempo real de cada modelo e as travadas da tela.
+
+Ao final, **Copiar o resultado** (JSON) ou um print da página. As seções abaixo (adb, DevTools remoto)
+ficam para o que a página não mede: memória de pico com o modelo carregado e o perfil de desempenho.
+
 ## 1. Preparar (uma vez)
 
 1. No app Meta Horizon do celular: **Dispositivos → o seu Quest → Configurações do headset → Modo

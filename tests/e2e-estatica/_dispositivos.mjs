@@ -5,9 +5,12 @@
  * --dispositivo`. O que se emula e o que NÃO se emula (limites honestos):
  *
  *  - quest    viewport 1280×720, UA do Meta Quest Browser em modo desktop (X11/Linux + OculusBrowser,
- *             browser-specs da Meta), sem `getDisplayMedia`, sem WebGPU (`navigator.gpu` ausente: em
- *             página 2D não é confirmado), `navigator.xr` presente, sem toque, 6 núcleos (XR2 Gen 2),
- *             `deviceMemory` 8, CPU 4× mais lenta (CDP `Emulation.setCPUThrottlingRate`).
+ *             browser-specs da Meta), COM `getDisplayMedia` (o Browser 36.5, de 14/01/2025, liberou o
+ *             compartilhamento de tela em todos os sites; até 01/10/2026 esta emulação o tirava, e o
+ *             caminho que o headset de verdade seguia nunca foi testado), sem WebGPU (`navigator.gpu`
+ *             ausente: o que o adaptador entrega ali ainda não foi medido), `navigator.xr` presente,
+ *             sem toque, 6 núcleos (XR2 Gen 2), `deviceMemory` 8, CPU 4× mais lenta (CDP
+ *             `Emulation.setCPUThrottlingRate`).
  *  - pixel7   descritor `Pixel 7` do Playwright (UA Android, toque, 412×839), sem `getDisplayMedia`
  *             (o Chrome Android não tem), `deviceMemory` 8, CPU 2× mais lenta.
  *  - iphone14 descritor `iPhone 14` do Playwright MAS no Chromium (não há WebKit instalado aqui):
@@ -34,7 +37,7 @@ export const DISPOSITIVOS = {
     },
     cpu: 4,
     sinais: {
-      semTela: true,
+      semTela: false,
       semGpu: true,
       xr: true,
       nucleos: 6,

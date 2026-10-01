@@ -164,6 +164,7 @@ import { usePalavrasAprendidas } from '../../lib/palavrasAprendidas';
 import { destinoDaTraducao, PerfilAdaptativoDeIdioma } from '../../lib/perfilDeIdioma';
 import { coreOnly } from '../../lib/profile';
 import { perfilProtegido } from '../../lib/protecaoDoMenor';
+import { navegarPara } from '../../lib/rotas';
 import { play } from '../../lib/soundFx';
 // Identificação automática de voz (diarização leve): embedding WeSpeaker por enunciado
 // (worker WASM, 6,7MB) + agrupamento online → "Pessoa 1/2/3" com cor própria.
@@ -621,10 +622,11 @@ export default function LiveCapture({
   // lado. Vir só com o mic marcado obrigava o usuário a descobrir e ligar o sistema toda vez (atrito
   // desnecessário). Quem quiser só uma das fontes desmarca a outra com um clique no hero card.
   // Padrão casa com o cenário inicial 'media' (assistir mídia): só o sistema ligado.
-  /* SEM getDisplayMedia (Quest, Android, iOS) o microfone é a ÚNICA fonte possível: ele já nasce
-     ligado, senão o "Iniciar" nasceria desabilitado sem motivo aparente. Clicar em Iniciar continua
-     sendo o gesto deliberado que abre o microfone. */
-  const [micEnabled, setMicEnabled] = useState(() => !lerSinaisDoDispositivo(false).capturaDeTela);
+  /* SEM áudio do sistema (Android, iOS; e o Quest, que tem getDisplayMedia mas não o usa — `perfil.ts`)
+     o microfone é a ÚNICA fonte: ele já nasce ligado, senão o "Iniciar" nasceria desabilitado sem motivo
+     aparente. Clicar em Iniciar continua sendo o gesto deliberado que abre o microfone. Pelo PERFIL, e
+     não pela API: no Quest de verdade a API existe, e o microfone nascia desligado. */
+  const [micEnabled, setMicEnabled] = useState(() => !perfilDoAparelho.capturaDoSistema);
   /** Ligou o mic no meio da sessão e o navegador ainda está perguntando pela permissão. */
   const [micAbrindo, setMicAbrindo] = useState(false);
   /**
@@ -2398,6 +2400,7 @@ export default function LiveCapture({
     const rota = routeStt({
       contentLang: ouvir,
       micLang: micEnabled && micEngine === 'whisper' ? meu : '',
+      soMicrofone: captureScenario === 'mic',
       autoDetect: autoDetectLang || autoDetectMyLang,
       quality: sttQuality,
       hasWebGpu: temGpu,
@@ -2465,6 +2468,7 @@ export default function LiveCapture({
     const rota = routeStt({
       contentLang: baseLang(targetLang),
       micLang: baseLang(sourceLang),
+      soMicrofone: captureScenario === 'mic',
       autoDetect: autoDetectLang || autoDetectMyLang,
       quality: sttQuality,
       hasWebGpu: temGpu,
@@ -2473,7 +2477,17 @@ export default function LiveCapture({
       dispositivo: dispositivoDaRota(perfilDoAparelho, sondaGuardada),
     });
     return tamanhoDoDownloadMb(rota.localModel, rota.dtype);
-  }, [targetLang, sourceLang, autoDetectLang, autoDetectMyLang, sttQuality, temGpu, perfilDoAparelho, sondaGuardada]);
+  }, [
+    targetLang,
+    sourceLang,
+    autoDetectLang,
+    autoDetectMyLang,
+    sttQuality,
+    temGpu,
+    perfilDoAparelho,
+    sondaGuardada,
+    captureScenario,
+  ]);
 
   /* A FOLHA DO INÍCIO (`inicioDaCaptura.ts`) — o que o toque em Iniciar precisa saber, pronto desde
      que a tela abriu (`usePreparoDoInicio`): o clique não espera cache nem sonda nenhuma. As peças
@@ -2484,6 +2498,7 @@ export default function LiveCapture({
     const rota = routeStt({
       contentLang: ouvir,
       micLang: micEnabled ? meu : '',
+      soMicrofone: captureScenario === 'mic',
       autoDetect: autoDetectLang || autoDetectMyLang,
       quality: sttQuality,
       hasWebGpu: temGpu,
@@ -3190,9 +3205,13 @@ export default function LiveCapture({
                 <p className="aviso-info">
                   <TriangleAlert aria-hidden />
                   <span>
-                    {t(
-                      'Este navegador não oferece captura do som do sistema (a função getDisplayMedia não existe no Android, no iPhone nem no Meta Quest). A captura usa só o microfone.',
-                    )}
+                    {perfilDoAparelho.tipo === 'quest'
+                      ? t(
+                          'No Meta Quest a captura usa só o microfone: compartilhar a tela do headset para pegar o som pesa demais no aparelho.',
+                        )
+                      : t(
+                          'Este navegador não oferece captura do som do sistema (a função getDisplayMedia não existe no Android nem no iPhone). A captura usa só o microfone.',
+                        )}
                   </span>
                 </p>
               ) : (
@@ -3843,7 +3862,7 @@ export default function LiveCapture({
                           <span>
                             {perfilDoAparelho.tipo === 'quest'
                               ? t(
-                                  'O navegador do Meta Quest não capta o som do sistema: a legenda vem do microfone do headset. Deixe o vídeo tocar no alto-falante do próprio headset (o microfone capta) ou use a captura para conversar.',
+                                  'No Meta Quest a legenda vem do microfone do headset: é o caminho leve. Deixe o vídeo tocar no alto-falante do próprio headset (o microfone capta) ou use a captura para conversar.',
                                 )
                               : perfilDoAparelho.tipo.startsWith('celular')
                                 ? /* O que FAZER, e não só o que falta (relato do dono, 2026-09-28): o
@@ -3855,6 +3874,23 @@ export default function LiveCapture({
                                 : t(
                                     'O navegador deste aparelho não capta o som do sistema: a legenda vem do microfone. Deixe o vídeo tocar no alto-falante, perto do microfone, ou use a captura para conversar.',
                                   )}
+                            {/* O diagnóstico mede NO headset o que a emulação não mede (`Diagnostico.tsx`). */}
+                            {perfilDoAparelho.tipo === 'quest' && (
+                              <>
+                                {' '}
+                                <a
+                                  className="link"
+                                  href="/diagnostico"
+                                  data-testid="abrir-diagnostico"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    navegarPara({ view: 'diagnostico' });
+                                  }}
+                                >
+                                  Diagnóstico do aparelho
+                                </a>
+                              </>
+                            )}
                           </span>
                         </p>
                       )}

@@ -21,6 +21,7 @@ const Planos = lazyComRecarga(() => import('./components/views/Planos'));
 const Sobre = lazyComRecarga(() => import('./components/views/Sobre'));
 const Estatisticas = lazyComRecarga(() => import('./components/views/Estatisticas'));
 const Ajuda = lazyComRecarga(() => import('./components/views/Ajuda'));
+const Diagnostico = lazyComRecarga(() => import('./components/views/Diagnostico'));
 const NaoEncontrado = lazyComRecarga(() => import('./components/views/NaoEncontrado'));
 const Loja = lazyComRecarga(() => import('./components/views/Loja'));
 /* O modal de resgate: só quando há recompensa na fila (a fila em si mora em `lib/filaDeRecompensas`).
@@ -654,6 +655,7 @@ export default function App() {
               <Estatisticas metrics={metrics} onChangeView={(v) => navigateTo(v as ViewType)} />
             )}
             {activeView === 'ajuda' && <Ajuda />}
+            {activeView === 'diagnostico' && <Diagnostico />}
             {activeView === 'naoencontrado' && (
               <NaoEncontrado onChangeView={(v) => navigateTo(v as ViewType)} onBuscar={() => setBuscaAberta(true)} />
             )}

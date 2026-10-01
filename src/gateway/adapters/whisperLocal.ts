@@ -437,13 +437,14 @@ export class WhisperLocalStt implements SttProvider {
     this.loadedDtype = this.dtype;
     this.deviceDaCarga = ehMoonshine(this.model) ? 'wasm' : device;
     /* Threads do WASM pelo ORÇAMENTO GLOBAL (`orcamentoDeThreads.ts`): o que sobra depois da thread
-       principal, do tradutor e da voz — 1 sem isolamento (sem SharedArrayBuffer), até 2 no modo leve.
-       O `perfil.threadsWasm` fica para o diagnóstico: ele não sabe dos outros motores. */
+       principal, do tradutor e da voz — 1 sem isolamento (sem SharedArrayBuffer) e no Quest, até 2 no
+       modo leve. O `perfil.threadsWasm` fica para o diagnóstico: ele não sabe dos outros motores. */
     const perfil = perfilDoDispositivo();
     const threads = distribuirThreads({
       nucleos: perfil.sinais.nucleos,
       isolado: perfil.sinais.isolado,
       leve: perfil.leve,
+      quest: perfil.tipo === 'quest',
     }).whisper;
     this.worker.postMessage({ type: 'load', model: this.model, dtype: this.dtype, device, threads });
 

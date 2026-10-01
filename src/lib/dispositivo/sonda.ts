@@ -439,14 +439,27 @@ export function benchmarkValido(b: PontuacaoDoBenchmark | null, agora: number): 
   return idade >= 0 && idade < TRINTA_DIAS_MS;
 }
 
+export interface OpcoesDaSonda {
+  /**
+   * Só as perguntas, sem o microbenchmark (CPU + GPU, segundos de carga). No Quest ele rodava junto com
+   * a carga do modelo, nos ~3 núcleos que o headset dá ao app; lá quem mede é a página de diagnóstico,
+   * a pedido. Um benchmark já guardado continua valendo.
+   */
+  semBenchmark?: boolean;
+}
+
 /**
  * A sonda + o benchmark se faltar, gravados. O benchmark roda só quando o guardado venceu, e pode
  * ser cancelado pelo `sinal` (a captura precisa da GPU inteira para o modelo).
  */
-export async function sondarEMedir(dep: DependenciasDaSonda = {}, sinal?: AbortSignal): Promise<SondaDoAparelho> {
+export async function sondarEMedir(
+  dep: DependenciasDaSonda = {},
+  sinal?: AbortSignal,
+  opcoes: OpcoesDaSonda = {},
+): Promise<SondaDoAparelho> {
   const d = resolverDependencias(dep);
   const sonda = await obterSondaDoAparelho(dep);
-  if (benchmarkValido(sonda.benchmark, d.agora()) || sinal?.aborted) return sonda;
+  if (benchmarkValido(sonda.benchmark, d.agora()) || sinal?.aborted || opcoes.semBenchmark) return sonda;
   const benchmark = await d.medirBenchmark(sinal).catch((erro: unknown) => {
     console.warn('[sonda] benchmark falhou; o aparelho fica sem pontuação até a próxima', erro);
     return null;
@@ -471,14 +484,17 @@ let emAndamento: Promise<SondaDoAparelho | null> | null = null;
  * recebem a mesma promessa. Nunca rejeita. Chamada do início da captura (`pipelineDeFala.ts`), por
  * `import()` — nunca na abertura do site.
  */
-export function agendarSondaDoAparelho(sinal?: AbortSignal): Promise<SondaDoAparelho | null> {
+export function agendarSondaDoAparelho(
+  sinal?: AbortSignal,
+  opcoes: OpcoesDaSonda = {},
+): Promise<SondaDoAparelho | null> {
   if (emAndamento) return emAndamento;
   emAndamento = new Promise<void>((resolve) => {
     const g = globalThis as { requestIdleCallback?: (f: () => void, o?: { timeout: number }) => unknown };
     if (typeof g.requestIdleCallback === 'function') g.requestIdleCallback(() => resolve(), { timeout: 5000 });
     else setTimeout(resolve, 1000);
   })
-    .then(() => sondarEMedir({}, sinal))
+    .then(() => sondarEMedir({}, sinal, opcoes))
     .catch((erro: unknown) => {
       console.warn('[sonda] a sonda do aparelho falhou; o roteamento segue sem ela', erro);
       return null;

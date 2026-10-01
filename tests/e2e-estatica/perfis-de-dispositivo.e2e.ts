@@ -56,6 +56,18 @@ for (const [nome, d] of Object.entries(DISPOSITIVOS)) {
       } catch {
         /* storage bloqueado */
       }
+      /* O Quest TEM getDisplayMedia, e o app não pode chamá-lo: compartilhar a visão do headset era o
+         que travava o aparelho inteiro. Conta as chamadas (onde a API existe). */
+      const w = window as unknown as { __chamadasDeTela: number }
+      w.__chamadasDeTela = 0
+      const md = navigator.mediaDevices as MediaDevices | undefined
+      if (md && typeof md.getDisplayMedia === 'function') {
+        const original = md.getDisplayMedia.bind(md)
+        md.getDisplayMedia = (...a: Parameters<MediaDevices['getDisplayMedia']>) => {
+          w.__chamadasDeTela += 1
+          return original(...a)
+        }
+      }
     })
     await aplicarCpu(page, d.cpu)
     // Desde o primeiro carregamento: nem a tela aberta pode puxar modelo.
@@ -107,7 +119,9 @@ for (const [nome, d] of Object.entries(DISPOSITIVOS)) {
     // 5. Os ajustes da captura não oferecem rota de áudio do sistema, e dizem por quê.
     const ajustes = await abrirAjustesDaCaptura(page)
     await expect(ajustes.getByRole('radiogroup', { name: 'Como capturar o áudio do sistema' })).toHaveCount(0)
-    await expect(ajustes.getByText(/getDisplayMedia não existe/)).toBeVisible()
+    await expect(
+      ajustes.getByText(tipo === 'quest' ? /No Meta Quest a captura usa só o microfone/ : /getDisplayMedia não existe/),
+    ).toBeVisible()
     await page.screenshot({ path: path.join(PASTA, `${nome}-ajustes.png`) })
     await page.keyboard.press('Escape')
     await expect(ajustes).toBeHidden()
@@ -145,6 +159,10 @@ for (const [nome, d] of Object.entries(DISPOSITIVOS)) {
     await expect(aviso).toBeHidden()
     await page.waitForTimeout(1000)
     expect(bytesDeModelo, 'baixou modelo antes do sim').toEqual([])
+    expect(
+      await page.evaluate(() => (window as unknown as { __chamadasDeTela: number }).__chamadasDeTela),
+      'pediu o compartilhamento de tela num aparelho que só usa o microfone',
+    ).toBe(0)
 
     info.annotations.push({ type: 'dispositivo', description: `${nome}: ${tipo} · ${anunciado} · ${textoDoAviso}` })
     console.log(`[${nome}] tipo=${tipo} | modelo="${anunciado}" | folha=${totalDaFolha} MB | aviso="${textoDoAviso}"`)

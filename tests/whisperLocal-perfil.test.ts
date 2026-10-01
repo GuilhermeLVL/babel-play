@@ -89,12 +89,14 @@ describe('WhisperLocalStt × perfil do dispositivo', () => {
     expect(cargas()[0].threads).toBe(3)
   })
 
-  it('modo leve (Quest de 8 núcleos, isolado): no máximo 2 threads', async () => {
+  /* O Quest dá ao app ~3 núcleos em clock reduzido, e o headset usa os mesmos: 1 thread, diga o chip
+     quantos núcleos disser (`orcamentoDeThreads.ts`). Eram 2, e o headset inteiro travava. */
+  it('Quest (8 núcleos anunciados, isolado): 1 thread', async () => {
     navegador({ userAgent: 'Mozilla/5.0 (X11; Linux x86_64; Quest 3) OculusBrowser/40.0' })
     vi.stubGlobal('crossOriginIsolated', true)
     const stt = new WhisperLocalStt()
     await stt.preload()
-    expect(cargas()[0].threads).toBe(2)
+    expect(cargas()[0].threads).toBe(1)
   })
 
   it('trocar só o dtype (híbrido → q8) recria o worker', async () => {

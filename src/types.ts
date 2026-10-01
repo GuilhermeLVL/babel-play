@@ -186,4 +186,6 @@ export type ViewType =
   | 'planos'
   | 'estatisticas'
   | 'ajuda'
+  /** O diagnóstico do aparelho (`/diagnostico`): o que o navegador entrega, medido nele. */
+  | 'diagnostico'
   | 'naoencontrado';

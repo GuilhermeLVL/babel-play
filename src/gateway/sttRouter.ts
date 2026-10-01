@@ -50,6 +50,12 @@ export interface SttRouteInput {
    */
   micLang?: string;
   /**
+   * A captura é SÓ o microfone (cenário `mic`: Quest, celular, ou o desktop praticando a própria voz).
+   * Aí `contentLang` — o idioma de destino — não é decodificado por ninguém, e quem decide se o modelo
+   * pode ser o de inglês é `micLang` sozinho.
+   */
+  soMicrofone?: boolean;
+  /**
    * O perfil do aparelho (`lib/dispositivo/perfil.ts`). Ausente = comportamento de desktop de antes
    * (quem ainda não mede o aparelho continua igual).
    */
@@ -278,7 +284,9 @@ export function routeStt(input: SttRouteInput): SttRoute {
   // Edição estática (Pages, sem servidor): a nuvem não existe, diga o que disser a sondagem.
   const cloudAllowed = cloudAvailable && profileId !== 'local-private' && !edicaoEstatica();
   // "Inglês" só quando TODAS as fontes ativas são inglês: o modelo é um só para sistema e mic.
-  const isEnglish = !autoDetect && lang === 'en' && (!micLang || micLang === 'en');
+  // Só o microfone, e ele vai ao modelo: o idioma da fala decide sozinho (ver `soMicrofone`).
+  const isEnglish =
+    !autoDetect && (input.soMicrofone && micLang ? micLang === 'en' : lang === 'en' && (!micLang || micLang === 'en'));
 
   /* O APARELHO. Fora do desktop (Quest e celular) o Whisper vai em q8 no WASM: na bancada FLEURS pt
      o base q8 empata com o híbrido (18,9% contra 18,2%) e baixa 80 MB em vez de 209 — e a memória da
@@ -303,9 +311,12 @@ export function routeStt(input: SttRouteInput): SttRoute {
   const bestLocal = podeSmall ? WHISPER_MODELS.small : WHISPER_MODELS.base;
   const nomeCurto = (m: string) => m.split('-').pop();
   const sufixo = gpuMovel ? ' · GPU' : q8 ? ' q8' : '';
-  /** Moonshine do "auto" em inglês: o tiny no celular fraco ou com economia de dados. */
+  /** Moonshine do "auto" em inglês: o tiny no celular fraco, no Quest (~3 núcleos em clock reduzido
+      para o app) ou com economia de dados. */
   const moonshineAuto =
-    dispositivo?.tipo === 'celular-fraco' || economia ? MOONSHINE_MODELS.tiny : MOONSHINE_MODELS.base;
+    dispositivo?.tipo === 'celular-fraco' || dispositivo?.tipo === 'quest' || economia
+      ? MOONSHINE_MODELS.tiny
+      : MOONSHINE_MODELS.base;
   const moonshine = (modelo: string, label: string): SttRoute => ({
     localModel: modelo,
     preferCloud: false,

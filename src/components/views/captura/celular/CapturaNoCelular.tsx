@@ -21,6 +21,9 @@ import type { ReactNode } from 'react';
 
 import { t } from '../../../../lib/i18n';
 
+/** De onde vem o som no Quest: o som do headset, o microfone, ou os dois. */
+export type FonteDoQuest = 'headset' | 'mic' | 'ambos';
+
 export interface LadoDoPar {
   rotulo: string;
   nome: ReactNode;
@@ -79,7 +82,7 @@ export default function CapturaNoCelular({
    */
   aparelho?: 'celular' | 'quest';
   /** A escolha da fonte no Quest (ausente no celular, onde só há o microfone, e durante a gravação). */
-  fonte?: { atual: 'headset' | 'mic'; escolher: (f: 'headset' | 'mic') => void };
+  fonte?: { atual: FonteDoQuest; escolher: (f: FonteDoQuest) => void };
   /** Sem o botão de mudo na gravação: no Quest a fonte é escolhida antes e não muda no meio. */
   micFixo?: boolean;
   /** Sem o botão "Flutuante" (onde não há janela flutuante de verdade). */
@@ -242,6 +245,9 @@ export default function CapturaNoCelular({
           <button type="button" aria-pressed={fonte.atual === 'mic'} onClick={() => fonte.escolher('mic')}>
             <Mic aria-hidden /> {t('Microfone')}
           </button>
+          <button type="button" aria-pressed={fonte.atual === 'ambos'} onClick={() => fonte.escolher('ambos')}>
+            {t('Os dois')}
+          </button>
         </div>
       )}
 
@@ -288,7 +294,7 @@ export default function CapturaNoCelular({
             </div>
             <p className="cel-aviso" data-testid="aviso-sem-audio-do-sistema">
               {noQuest
-                ? t('No headset é uma fonte de cada vez: com o som do headset, o microfone fica mudo.')
+                ? t('Se o microfone não captar nada, veja se ele não está desligado nas configurações do Quest.')
                 : t('No celular, o som de outros apps não entra: a legenda vem do microfone.')}
               {noQuest && (
                 <>

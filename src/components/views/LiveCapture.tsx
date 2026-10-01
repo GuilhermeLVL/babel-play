@@ -193,6 +193,7 @@ import VocabularyPanel from '../VocabularyPanel';
 import AjudaDoMicrofone from './captura/AjudaDoMicrofone';
 import AvisoDoTradutorLocal from './captura/AvisoDoTradutorLocal';
 import CapturaNaoSalva from './captura/CapturaNaoSalva';
+import type { FonteDoQuest } from './captura/celular/CapturaNoCelular';
 import CapturaNoCelular from './captura/celular/CapturaNoCelular';
 import FolhaDaFrase, { type FalaTocada, type NuanceNaFolhaDaFrase } from './captura/celular/FolhaDaFrase';
 import FolhaDaPalavra, { type NuanceNaFolhaDaPalavra } from './captura/celular/FolhaDaPalavra';
@@ -692,10 +693,9 @@ export default function LiveCapture({
    * Anotado como `boolean` de propósito: sem isso o TypeScript estreita para o literal `true` e
    * passa a tratar esses ramos de erro como inalcançáveis.
    */
-  /* NO QUEST É UMA FONTE DE CADA VEZ: o sistema emudece o microfone durante o compartilhamento
-     (medido em 01/10/2026; a Meta chama de comportamento esperado). "Som do headset" compartilha a
-     visão com o áudio; "Microfone" capta a voz, sem compartilhar nada. */
-  const [fonteDoQuest, setFonteDoQuest] = useState<'headset' | 'mic'>('headset');
+  /* A FONTE NO QUEST: "Som do headset" compartilha a visão com o áudio; "Microfone" capta a voz, sem
+     compartilhar nada; "Os dois" faz as duas coisas (conversa sobre um vídeo, aula com perguntas). */
+  const [fonteDoQuest, setFonteDoQuest] = useState<FonteDoQuest>('headset');
   const systemEnabled: boolean =
     perfilDoAparelho.capturaDoSistema && !(perfilDoAparelho.tipo === 'quest' && fonteDoQuest === 'mic');
   // COMO capturar o áudio do sistema: 'display' = compartilhar aba/tela (getDisplayMedia; zero
@@ -2778,10 +2778,10 @@ export default function LiveCapture({
      computador com painéis e ajustes de Windows. O que muda ali vai por `aparelho` e `fonte`. */
   const noQuest = perfilDoAparelho.tipo === 'quest';
   const capturaEnxuta = noCelular || noQuest;
-  const escolherFonteDoQuest = (fonte: 'headset' | 'mic') => {
+  const escolherFonteDoQuest = (fonte: FonteDoQuest) => {
     setFonteDoQuest(fonte);
-    setMicEnabled(fonte === 'mic');
-    setCaptureScenario(cenarioDasFontes(fonte === 'mic', fonte === 'headset'));
+    setMicEnabled(fonte !== 'headset');
+    setCaptureScenario(cenarioDasFontes(fonte !== 'headset', fonte !== 'mic'));
   };
   const [telaAcesaLigada, setTelaAcesaLigada] = usePreferenciaDeTelaAcesa();
   useTelaAcesa(noCelular && isRecording && telaAcesaLigada);
@@ -2952,7 +2952,7 @@ export default function LiveCapture({
         }
         aparelho={noQuest ? 'quest' : 'celular'}
         fonte={noQuest && !isRecording ? { atual: fonteDoQuest, escolher: escolherFonteDoQuest } : undefined}
-        micFixo={noQuest}
+        micFixo={noQuest && fonteDoQuest === 'headset'}
         modo={noQuest ? null : modoDoMic}
         aoTrocarModo={podeTrocarModo ? () => setTrocandoModo(true) : undefined}
         micLigado={micEnabled}

@@ -16,6 +16,7 @@ import {
   type EspeculacaoDoFinal,
   MAX_SPEECH_MS_LOCAL,
   MAX_SPEECH_MS_NUVEM,
+  MAX_SPEECH_MS_SEM_PARCIAL,
   type OpcoesDeCaptura,
   startMicCapture,
   startServerLoopbackCapture,
@@ -28,7 +29,9 @@ import {
   escolhaDoMicGuardada,
   rapidoDoMicPermitido,
 } from '../consentimentoDeNuvem';
+import { perfilDoDispositivo } from '../dispositivo/perfil';
 import { t } from '../i18n';
+import { nuvemDoQuestAtiva } from '../nuvemDoQuest';
 import { isTtsActive } from '../tts';
 import { abrirContextoDoClique, descartarContextoDoClique, tomarContextoDoClique } from './contextoDoClique';
 import { type EscolhaDoMic, resolverMotorDoMic } from './motorDoMicrofone';
@@ -221,8 +224,11 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
   /* O teto do corte forçado acompanha o motor FINAL: 12 s na nuvem (cobrança mínima de 10 s por
      pedido; frase inteira transcreve melhor), 6 s no Whisper local. Função, não número: a rota só é
      conhecida depois que a captura abriu (ver `prepareModels`). */
+  /** Sem parciais na tela (Quest) ou na nuvem do site: o corte curto é o que faz o texto aparecer. */
+  const semParcial = (): boolean => perfilDoDispositivo().tipo === 'quest' || nuvemDoQuestAtiva();
   const opcoesDeCaptura: OpcoesDeCaptura = {
-    maxSpeechMs: () => (finalNaNuvem?.() ? MAX_SPEECH_MS_NUVEM : MAX_SPEECH_MS_LOCAL),
+    maxSpeechMs: () =>
+      semParcial() ? MAX_SPEECH_MS_SEM_PARCIAL : finalNaNuvem?.() ? MAX_SPEECH_MS_NUVEM : MAX_SPEECH_MS_LOCAL,
   };
 
   // Inicia a captura do áudio do sistema/aba: pede a fonte (gesto do usuário) e prepara o modelo.

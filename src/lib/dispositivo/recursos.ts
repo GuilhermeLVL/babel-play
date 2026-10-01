@@ -21,7 +21,10 @@ export interface RecursosDoAparelho {
   janelaFlutuante: boolean;
   /** O som do sistema entra (compartilhamento de tela). */
   somDoSistema: boolean;
-  /** Microfone e som do sistema AO MESMO TEMPO. No Quest o sistema emudece o microfone. */
+  /**
+   * Microfone e som do sistema AO MESMO TEMPO. No Quest também: o silêncio medido em 01/10/2026 era o
+   * microfone desligado nas configurações do headset do dono, não o compartilhamento.
+   */
   micJuntoComOSistema: boolean;
   /** Há teclado físico por perto: atalhos fazem sentido. */
   tecladoFisico: boolean;
@@ -43,7 +46,7 @@ export function recursosDoAparelho(
     reconhecimentoDoNavegador: !quest && !!(g.SpeechRecognition || g.webkitSpeechRecognition),
     janelaFlutuante: 'documentPictureInPicture' in g,
     somDoSistema: perfil.capturaDoSistema,
-    micJuntoComOSistema: perfil.capturaDoSistema && !quest,
+    micJuntoComOSistema: perfil.capturaDoSistema,
     tecladoFisico: !quest && !celular,
     capturaEnxuta: quest || celular,
   };

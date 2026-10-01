@@ -68,6 +68,14 @@ export { TAXA_DE_BITS_DA_GRAVACAO };
  */
 export const MAX_SPEECH_MS_LOCAL = 6000;
 export const MAX_SPEECH_MS_NUVEM = 12_000;
+/**
+ * QUEST E NUVEM DO SITE (4 s). Lá não há parcial (cada parcial seria um decode a mais em 3 núcleos), e
+ * com o teto de 12 s um vídeo sem pausas só mostrava texto 12 s depois, mais a ida à nuvem (relato do
+ * dono, 01/10/2026). A nuvem do site (Workers AI) cobra por minuto de áudio, sem o mínimo de 10 s da
+ * Groq: fatiar em 4 s não custa mais. O contexto da fala anterior vai junto no pedido, o que segura a
+ * qualidade nos cortes.
+ */
+export const MAX_SPEECH_MS_SEM_PARCIAL = 4000;
 
 /**
  * Opções da captura que dependem do RESTO do app (hoje: da rota de STT).

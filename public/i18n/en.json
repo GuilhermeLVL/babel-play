@@ -1703,8 +1703,9 @@
   "no vídeo, no jogo ou na aula, em outra janela do headset.": "on the video, game or class, in another headset window.",
   "e aceite compartilhar a visão do headset: é assim que o som entra.": "and accept sharing the headset view: that is how the sound gets in.",
   "para guardar palavras e ver a tradução.": "to save words and see the translation.",
-  "No headset é uma fonte de cada vez: com o som do headset, o microfone fica mudo.": "On the headset it is one source at a time: with the headset sound, the microphone is muted.",
   "Abrindo o som do headset…": "Opening the headset sound…",
   "Diagnóstico do aparelho": "Device diagnostics",
-  "Toque no botão": "Tap the button"
+  "Toque no botão": "Tap the button",
+  "Se o microfone não captar nada, veja se ele não está desligado nas configurações do Quest.": "If the microphone picks up nothing, check that it is not turned off in the Quest settings.",
+  "Os dois": "Both"
 }

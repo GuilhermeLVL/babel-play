@@ -256,3 +256,96 @@ describe('criarInterprete', () => {
     expect(aoMudar).toHaveBeenCalledTimes(1)
   })
 })
+
+/* ───────────────────────────── o modo automático (E7) ───────────────────────────── */
+
+describe('automático: a conversa anda sem ninguém tocar em lado', () => {
+  const ABRIR = { tipo: 'abrirMicrofone', direcao: null }
+
+  it('"ouvir" abre o microfone sem lado, e a direção do microfone é nenhuma (o idioma é medido)', () => {
+    const { estado, efeitos } = rodar([{ tipo: 'ouvir' }])
+    expect(estado).toMatchObject({ fase: 'ouvindo', lado: null, automatico: true })
+    expect(efeitos).toEqual([ABRIR])
+    expect(direcaoAtual(estado, IDIOMAS)).toBeNull()
+  })
+
+  it('o ciclo: a fala acaba, é traduzida, é lida, e o microfone REABRE sozinho', () => {
+    const { estado, efeitos } = rodar([
+      { tipo: 'ouvir' },
+      { tipo: 'fimDaFala', segId: 'a' },
+      { tipo: 'traduziu', segId: 'a' },
+      { tipo: 'fimDaVoz' },
+    ])
+    expect(estado).toMatchObject({ fase: 'ouvindo', automatico: true, pendentes: [] })
+    expect(efeitos).toEqual([ABRIR, { tipo: 'fecharMicrofone' }, { tipo: 'falar', segId: 'a' }, ABRIR])
+  })
+
+  it('sem tradução a ler (mesmo idioma, falhou), volta a ouvir em vez de parar', () => {
+    const { estado, efeitos } = rodar([
+      { tipo: 'ouvir' },
+      { tipo: 'fimDaFala', segId: 'a' },
+      { tipo: 'semTraducao', segId: 'a' },
+    ])
+    expect(estado.fase).toBe('ouvindo')
+    expect(efeitos.at(-1)).toEqual(ABRIR)
+  })
+
+  it('"Parar voz" cala a leitura e volta a ouvir', () => {
+    const { estado, efeitos } = rodar([
+      { tipo: 'ouvir' },
+      { tipo: 'fimDaFala', segId: 'a' },
+      { tipo: 'traduziu', segId: 'a' },
+      { tipo: 'pararVoz' },
+    ])
+    expect(estado).toMatchObject({ fase: 'ouvindo', automatico: true })
+    expect(efeitos.slice(-2)).toEqual([{ tipo: 'pararVoz' }, ABRIR])
+  })
+
+  it('"Repetir" enquanto ouve fecha o microfone, lê de novo e volta a ouvir no fim da voz', () => {
+    const r = rodar([{ tipo: 'ouvir' }, { tipo: 'repetir' }])
+    expect(r.estado).toMatchObject({ fase: 'falando', automatico: true })
+    expect(r.efeitos.slice(-2)).toEqual([{ tipo: 'fecharMicrofone' }, { tipo: 'repetirVoz' }])
+    expect(rodar([{ tipo: 'fimDaVoz' }], r.estado).estado.fase).toBe('ouvindo')
+  })
+
+  it('"parar" encerra a escuta: microfone fechado, voz calada, nada reabre', () => {
+    const { estado, efeitos } = rodar([{ tipo: 'ouvir' }, { tipo: 'parar' }])
+    expect(estado).toMatchObject({ fase: 'parado', automatico: false })
+    expect(efeitos.slice(-2)).toEqual([{ tipo: 'fecharMicrofone' }, { tipo: 'pararVoz' }])
+    expect(rodar([{ tipo: 'fimDaVoz' }], estado).estado.fase).toBe('parado')
+  })
+
+  it('tocar um lado sai do automático: é o modo por toque, com a direção do lado', () => {
+    const { estado, efeitos } = rodar([{ tipo: 'ouvir' }, { tipo: 'tocar', lado: 'outro' }])
+    expect(estado).toMatchObject({ fase: 'ouvindo', lado: 'outro', automatico: false })
+    expect(efeitos.at(-1)).toEqual({ tipo: 'abrirMicrofone', direcao: direcaoDoLado('outro', IDIOMAS) })
+  })
+
+  it('"ouvir" no meio da voz corta a voz antes de abrir o microfone', () => {
+    const { efeitos } = rodar([
+      { tipo: 'tocar', lado: 'meu' },
+      { tipo: 'fimDaFala', segId: 'a' },
+      { tipo: 'traduziu', segId: 'a' },
+      { tipo: 'ouvir' },
+    ])
+    expect(efeitos.slice(-2)).toEqual([{ tipo: 'interromperVoz' }, ABRIR])
+  })
+
+  it('sair e trocar os lados desligam o automático', () => {
+    expect(rodar([{ tipo: 'ouvir' }, { tipo: 'sair' }]).estado.automatico).toBe(false)
+    expect(rodar([{ tipo: 'ouvir' }, { tipo: 'trocarLados' }]).estado).toMatchObject({
+      automatico: false,
+      fase: 'parado',
+    })
+  })
+
+  it('o modo por toque continua igual: no fim da voz, parado', () => {
+    const { estado } = rodar([
+      { tipo: 'tocar', lado: 'meu' },
+      { tipo: 'fimDaFala', segId: 'a' },
+      { tipo: 'traduziu', segId: 'a' },
+      { tipo: 'fimDaVoz' },
+    ])
+    expect(estado).toMatchObject({ fase: 'parado', automatico: false })
+  })
+})

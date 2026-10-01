@@ -56,8 +56,18 @@ function falasFalsas() {
   return { set, ler: () => estado }
 }
 
-function montarPipeline(o: { cenario?: string; lado: { current: LadoDoInterprete } }) {
-  const transcribePcm = vi.fn(async () => ({ text: 'Where is the station?', engine: 'whisper-local' }))
+function montarPipeline(o: {
+  cenario?: string
+  lado: { current: LadoDoInterprete }
+  /** O que o motor devolve no final (o idioma medido, no automático). */
+  resultado?: Record<string, unknown>
+  extra?: Record<string, unknown>
+}) {
+  const transcribePcm = vi.fn(async () => ({
+    text: 'Where is the station?',
+    engine: 'whisper-local',
+    ...o.resultado,
+  }))
   const transcribePartial = vi.fn(async () => ({ text: 'Where is' }))
   const translateSegment = vi.fn()
   const aoFimDaFala = vi.fn()
@@ -118,6 +128,7 @@ function montarPipeline(o: { cenario?: string; lado: { current: LadoDoInterprete
     sistemaAtivo: () => false,
     direcaoDoMicrofone: (): DirecaoDaFala => direcaoDoLado(o.lado.current, IDIOMAS),
     aoFimDaFala,
+    ...o.extra,
   }
   const p = criarPipelineDeFala(deps as never)
   return { p, transcribePcm, transcribePartial, translateSegment, aoFimDaFala, falas }
@@ -190,6 +201,71 @@ describe('pipeline: a direção vem do lado', () => {
     expect(m.translateSegment).toHaveBeenCalledWith(expect.any(String), expect.any(String), 'pt', 'en', {
       falada: true,
     })
+  })
+})
+
+/* ───────────────────────────── o automático: o idioma é MEDIDO, não vem do lado ───────────────────────────── */
+
+describe('pipeline: no automático, o idioma medido diz o lado', () => {
+  const automatico = (ladoDaFala: ReturnType<typeof vi.fn>, resultado: Record<string, unknown>) =>
+    montarPipeline({
+      lado: ref<LadoDoInterprete>('meu'),
+      resultado,
+      extra: { direcaoDoMicrofone: () => null, interpreteAutomatico: () => true, ladoDaFalaAutomatica: ladoDaFala },
+    })
+
+  it('o final é pedido SEM dica de idioma, e a fala começa sem lado', async () => {
+    const ladoDaFala = vi.fn(() => ({ lado: 'outro', de: 'en', para: 'pt' }))
+    const m = automatico(ladoDaFala, { language: 'en' })
+    m.p.micHandlers.onSpeechStart(1)
+    expect(m.falas.ler()[0].lado).toBeUndefined()
+    m.p.micHandlers.onUtterance(PCM, 16000, 1)
+    expect(m.aoFimDaFala).toHaveBeenCalledWith({ segId: `mic-${MIC + 1}`, source: 'mic' })
+    await esperar()
+    expect(m.transcribePcm).toHaveBeenCalledWith(PCM, 16000, expect.objectContaining({ languageHint: '' }))
+  })
+
+  it('o idioma que o motor mediu vai à decisão; a fala ganha o lado e o idioma, e a tradução, a direção', async () => {
+    const ladoDaFala = vi.fn(() => ({ lado: 'outro', de: 'en', para: 'pt' }))
+    const m = automatico(ladoDaFala, { language: 'en', confiancaDoIdioma: 0.9 })
+    m.p.micHandlers.onSpeechStart(1)
+    m.p.micHandlers.onUtterance(PCM, 16000, 1)
+    await esperar()
+    await esperar()
+    expect(ladoDaFala).toHaveBeenCalledWith(
+      `mic-${MIC + 1}`,
+      expect.objectContaining({ idiomaDoMotor: 'en', confianca: 0.9, audioMs: 1000 }),
+    )
+    expect(m.falas.ler()[0]).toMatchObject({ lado: 'outro', lang: 'en', isPartial: false })
+    expect(m.translateSegment).toHaveBeenCalledWith(`mic-${MIC + 1}`, 'Where is the station?', 'en', 'pt', {
+      falada: true,
+    })
+  })
+
+  it('a minha fala (português medido) vai para o inglês', async () => {
+    const ladoDaFala = vi.fn(() => ({ lado: 'meu', de: 'pt', para: 'en' }))
+    const m = automatico(ladoDaFala, { text: 'Onde fica a estação?', language: 'pt' })
+    m.p.micHandlers.onSpeechStart(1)
+    m.p.micHandlers.onUtterance(PCM, 16000, 1)
+    await esperar()
+    await esperar()
+    expect(m.falas.ler()[0]).toMatchObject({ lado: 'meu', lang: 'pt' })
+    expect(m.translateSegment).toHaveBeenCalledWith(expect.any(String), 'Onde fica a estação?', 'pt', 'en', {
+      falada: true,
+    })
+  })
+
+  it('no automático não há parciais: o idioma só é conhecido no final', () => {
+    const m = automatico(vi.fn(), {})
+    expect(m.p.micHandlers.querParcial()).toBe(false)
+  })
+
+  it('fora do automático (por toque), nada muda: a dica é a do lado', async () => {
+    const m = montarPipeline({ lado: ref<LadoDoInterprete>('outro'), extra: { interpreteAutomatico: () => false } })
+    m.p.micHandlers.onSpeechStart(1)
+    m.p.micHandlers.onUtterance(PCM, 16000, 1)
+    await esperar()
+    expect(m.transcribePcm).toHaveBeenCalledWith(PCM, 16000, expect.objectContaining({ languageHint: 'en' }))
   })
 })
 

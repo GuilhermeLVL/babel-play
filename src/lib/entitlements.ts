@@ -41,6 +41,8 @@ export interface Entitlements {
   traducaoNuance: boolean;
   /** A voz natural da nuvem no modo intérprete (matriz v2); sem ela, a voz do aparelho. */
   vozNatural: boolean;
+  /** O modo automático do intérprete (o idioma de cada fala medido pelo áudio); sem ele, por toque. */
+  interpreteAutomatico: boolean;
   /** Disco usado/teto em bytes; `teto: null` = sem teto; `null` inteiro = desconhecido. */
   armazenamento: { usados: number; teto: number | null } | null;
   /**
@@ -62,6 +64,7 @@ const FECHADO: Entitlements = Object.freeze({
   largerModels: false,
   traducaoNuance: false,
   vozNatural: false,
+  interpreteAutomatico: false,
   armazenamento: null,
 });
 const SELFHOST: Entitlements = Object.freeze({
@@ -72,6 +75,7 @@ const SELFHOST: Entitlements = Object.freeze({
   largerModels: true,
   traducaoNuance: true,
   vozNatural: true,
+  interpreteAutomatico: true,
   armazenamento: null,
 });
 
@@ -88,6 +92,7 @@ const EDICAO_ESTATICA: Entitlements = Object.freeze({
   largerModels: false,
   traducaoNuance: false,
   vozNatural: false,
+  interpreteAutomatico: false,
   armazenamento: { usados: 0, teto: 0 },
 });
 
@@ -129,6 +134,7 @@ function normalizar(v: unknown): Entitlements | null {
     largerModels: bool('largerModels'),
     traducaoNuance: bool('traducaoNuance'),
     vozNatural: bool('vozNatural'),
+    interpreteAutomatico: bool('interpreteAutomatico'),
     armazenamento,
     teste,
   };

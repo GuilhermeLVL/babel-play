@@ -214,6 +214,8 @@ const OfertaDaNuvemDeAlivio = lazyComRecarga(() => import('./captura/OfertaDaNuv
 /* A Tradução Nuance da fala no computador (D4 da Fase D): o menu do balão abre um diálogo com ela. */
 const NuanceDaFrase = lazyComRecarga(() => import('./captura/nuance/NuanceDaFrase'));
 /* O MODO INTÉRPRETE (E3 da Fase E): a tela, o controle e a fila de voz chegam só quando alguém entra nele. */
+import type { AutomaticoNoPlano } from './captura/interprete/ModoInterprete';
+
 const ModoInterprete = lazyComRecarga(() => import('./captura/interprete/ModoInterprete'));
 const PaginaDoInterprete = lazyComRecarga(() => import('./captura/interprete/PaginaDoInterprete'));
 
@@ -1329,6 +1331,9 @@ export default function LiveCapture({
     pedirNuvemDeAlivio,
     direcaoDoMicrofone: () => ponteDoInterpreteRef.current?.direcao() ?? null,
     aoFimDaFala: (fim) => ponteDoInterpreteRef.current?.aoFimDaFala(fim),
+    /* O AUTOMÁTICO do intérprete: sem lado tocado, o final vem sem dica e o idioma medido diz o lado. */
+    interpreteAutomatico: () => ponteDoInterpreteRef.current?.automatico() ?? false,
+    ladoDaFalaAutomatica: (segId, pistas) => ponteDoInterpreteRef.current?.ladoDaFala(segId, pistas) ?? null,
   });
 
   /* A faixa da nuvem de alívio, a mesma no celular e no desktop. Aceita, a rota passa à nuvem na hora
@@ -1435,6 +1440,8 @@ export default function LiveCapture({
         captureScenarioRef.current === 'interprete'
           ? idiomasDaConversa({ meu: sourceLangRef.current, outro: targetLangRef.current })
           : null,
+      /* No automático o microfone vai ao Whisper, que mede o idioma (a Web Speech não detecta). */
+      interpreteAutomatico: () => ponteDoInterpreteRef.current?.automatico() ?? false,
     });
 
   // Harness OFFLINE de teste (dev): injeta um PCM conhecido pelo MESMO caminho do sistema
@@ -2782,6 +2789,14 @@ export default function LiveCapture({
         fecharFolhasDoCelular();
         onChangeView?.('planos');
       };
+  /* O MODO AUTOMÁTICO DO INTÉRPRETE NESTA CONTA (decisão do dono, 30/09: só no Premium). Quem o tem
+     começa nele; quem não tem vê o botão com cadeado — menos no site sem servidor (não há plano a
+     assinar) e no perfil protegido (só o que é funcional, nada de oferta). */
+  const automaticoDoInterprete: AutomaticoNoPlano = getEntitlements().interpreteAutomatico
+    ? 'disponivel'
+    : edicaoEstatica() || perfilProtegido()
+      ? 'oculto'
+      : 'premium';
   const nuanceDaPalavra = (lang: string): NuanceNaFolhaDaPalavra => ({
     disponivel: getEntitlements().traducaoNuance,
     destino: destinoDaFala(lang),
@@ -3597,6 +3612,8 @@ export default function LiveCapture({
               possivel={interpretePossivel}
               abrindo={abrindoCaptura}
               aviso={avisoDoPreparo(modelPrep)}
+              automatico={automaticoDoInterprete}
+              aoConhecerOPremium={conhecerOPremium}
               aoComecar={entrarNoInterprete}
               aoEscolherIdiomas={() => setIdiomasAbertos(true)}
               aoInverter={() => {
@@ -4436,6 +4453,7 @@ export default function LiveCapture({
             layout={noCelular ? 'celular' : 'computador'}
             abrindo={micAbrindo}
             aviso={avisoDoPreparo(modelPrep)}
+            automatico={automaticoDoInterprete}
             aoSair={sairDoInterprete}
           />
         </Suspense>

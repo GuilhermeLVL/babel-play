@@ -100,6 +100,12 @@ export interface EntitlementsDoPlano {
   traducaoNuance: boolean;
   /** A VOZ NATURAL da nuvem no modo intérprete (Fase E); sem ela, a voz do aparelho. */
   vozNatural: boolean;
+  /**
+   * O MODO AUTOMÁTICO do intérprete (E7; decisão do dono, 30/09: só no Premium): ninguém toca em lado,
+   * o idioma de cada fala é medido pelo áudio. Precisa do Whisper (a Web Speech não detecta idioma), e
+   * no Grátis isso seria um download no aparelho — lá fica o modo por toque.
+   */
+  interpreteAutomatico: boolean;
 }
 
 export interface QuotasDoPlano {
@@ -148,6 +154,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       largerModels: false,
       traducaoNuance: false,
       vozNatural: false,
+      interpreteAutomatico: false,
     },
     /* Chamadas 0: o free já é barrado antes, pelo entitlement — o teto só reafirma. A nuvem de
        aparelho fraco do Grátis NÃO é esta quota: é a `FRANQUIA_DE_ALIVIO`, com contadores próprios. */
@@ -177,6 +184,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       largerModels: true,
       traducaoNuance: true,
       vozNatural: true,
+      interpreteAutomatico: true,
     },
     /* 5 GB: o maior dos dois planos antigos — ninguém do Pro perde espaço. A conta de cada número
        está no topo do arquivo. */
@@ -211,6 +219,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       largerModels: true,
       traducaoNuance: true,
       vozNatural: true,
+      interpreteAutomatico: true,
     },
     quotas: {
       chamadasMes: null,
@@ -257,6 +266,7 @@ export const PLANO_CONVIDADO: DefinicaoDePlano = {
     largerModels: false,
     traducaoNuance: false,
     vozNatural: false,
+    interpreteAutomatico: false,
   },
   /* Armazenamento 0: o convidado guarda tudo no aparelho; o servidor recusa escrita (`exige_conta`).
      Chamadas: 600 s ÷ 6 s × 2 (transcrever + traduzir) = 200, mais as 5 do tutor, com folga. Sem teto

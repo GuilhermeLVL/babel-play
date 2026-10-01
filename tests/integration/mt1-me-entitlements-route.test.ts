@@ -58,6 +58,7 @@ describe('SaaS Fatia 1a — GET /api/me/entitlements', () => {
       managedCloudLlm: true,
       traducaoNuance: true,
       vozNatural: true,
+      interpreteAutomatico: true,
     })
   })
 

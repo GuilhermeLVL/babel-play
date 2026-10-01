@@ -13,7 +13,7 @@ import { json } from '../nucleo';
 export async function entitlementsAnonimos(): Promise<Response> {
   return json({
     plan: 'anonimo', youtubeImport: false, managedCloudStt: false, managedCloudLlm: false, largerModels: false,
-    traducaoNuance: false, vozNatural: false,
+    traducaoNuance: false, vozNatural: false, interpreteAutomatico: false,
     // Sem conta não há teste do Premium (C6): a mesma forma do servidor, com o campo vazio.
     teste: null,
     armazenamento: { usados: 0, teto: 0 },

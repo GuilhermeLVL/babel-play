@@ -5,6 +5,7 @@
       "teto": "number",
       "usados": "number"
     },
+    "interpreteAutomatico": "boolean",
     "largerModels": "boolean",
     "managedCloudLlm": "boolean",
     "managedCloudStt": "boolean",

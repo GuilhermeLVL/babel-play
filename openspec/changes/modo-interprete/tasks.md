@@ -147,10 +147,28 @@ O dono testou em produção: o português funcionou; tocando o outro lado e fala
 
 ## E7: modo Automático (decisão do dono, 30/09: só no Premium, e é o padrão dele)
 
-- [ ] 7.1 O idioma de cada fala medido pelo áudio, entre os idiomas da conversa; a fala vai para a metade
-      de quem falou e é lida para o outro. Sem tocar em lado.
-- [ ] 7.2 Um terceiro idioma é traduzido para o idioma do dono do aparelho.
-- [ ] 7.3 No Grátis, o modo por toque; o Automático aparece com o convite do teste.
+- [x] 7.1 A regra pura (`src/lib/captura/interpreteAutomatico.ts`): o idioma medido pelo motor, o do
+      detector de texto quando o do motor não é um dos dois, o terceiro idioma só com evidência forte, e
+      a alternância quando não há evidência. Teste: `tests/interpreteAutomatico.test.ts`.
+- [x] 7.2 A máquina (`interprete.ts`): `ouvir`/`parar`, o microfone sem lado, e o ciclo que reabre o
+      microfone depois da voz. Teste: `tests/interprete.test.ts`.
+- [x] 7.3 O controle (`controleDoInterprete.ts`): `ouvir`, `parar`, `automatico`, `ladoDaFala`; a voz de
+      quem ouve vem da decisão (um terceiro idioma é lido na língua dele). Teste:
+      `tests/controleDoInterprete.test.ts`.
+- [x] 7.4 O pipeline pede o final sem dica e leva o idioma medido à decisão; sem parciais no automático
+      (`pipelineDeFala.ts`). As fontes abrem o Whisper mesmo com o "Rápido" (`fontesDeAudio.ts`).
+      Testes: `tests/interprete-direcao.test.ts`, `tests/interprete-dois-lados.test.ts`.
+- [x] 7.5 A conversa inteira, pipeline e controle de verdade:
+      `tests/interprete-automatico-integracao.test.ts`.
+- [x] 7.6 O entitlement `interpreteAutomatico` (Premium e self-host; não o Grátis nem o convidado), na
+      matriz, no cliente e no servidor em memória da edição estática.
+- [x] 7.7 A tela: o botão único "Ouvir a conversa", o botão "Automático" da faixa do meio (com cadeado e
+      "faz parte do Premium" para quem não tem; oculto no site sem servidor e no perfil protegido), e a
+      escolha lembrada no aparelho. Testes: `tests/modoInterprete.test.tsx` e o e2e "automático".
+- [ ] 7.8 Conferir com áudio de verdade (o dono, no Premium ou no teste de 14 dias): a detecção do
+      Whisper da nuvem em falas curtas, o eco da voz com o microfone reaberto, e a rua barulhenta.
+- [ ] 7.9 Depois: a folha "Rápido ou Privado?" não perguntar quando a conversa começa no automático (a
+      resposta só vale para o modo por toque).
 
 ## Antes de ligar a flag `voz_natural` (pendente, decisão do dono)
 

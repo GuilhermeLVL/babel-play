@@ -41,6 +41,7 @@ import { embedUtterance } from '../speakerId';
 import { isTtsActive } from '../tts';
 import { classificarVazamento, type Intervalo } from '../vazamento';
 import { setterNoQuadro } from './agendarNoQuadro';
+import type { PistasDoIdioma } from './interpreteAutomatico';
 import { umModeloDeCadaVez } from './memoriaDosModelos';
 import { disponibilidadeDaSondaParaIdioma, escolherMotorDoMic, webSpeechBipaAoReligar } from './motorDoMicrofone';
 import { preparoConcluido, semPacotePendente } from './pacotesNativos';
@@ -53,6 +54,7 @@ import {
   type FimDaFala,
   formatTime,
   type GatewayDaCaptura,
+  type LadoDoInterprete,
   type SpeakerProfile,
   type SpeechSegment,
   wordsFromText,
@@ -201,6 +203,16 @@ export interface DepsDoPipelineDeFala {
   direcaoDoMicrofone?: () => DirecaoDaFala | null;
   /** O microfone ouviu o fim de uma fala (o VAD fechou): o intérprete fecha o microfone aqui. */
   aoFimDaFala?: (fim: FimDaFala) => void;
+  /**
+   * O MODO AUTOMÁTICO do intérprete está ouvindo (E7): ninguém tocou em lado. O final é pedido SEM
+   * dica — o motor mede o idioma no áudio — e `ladoDaFalaAutomatica` diz de que lado a fala veio e
+   * para qual idioma traduzir (`interpreteAutomatico.ts`; o estado da conversa é do controle).
+   */
+  interpreteAutomatico?: () => boolean;
+  ladoDaFalaAutomatica?: (
+    segId: string,
+    pistas: PistasDoIdioma,
+  ) => { lado: LadoDoInterprete; de: string; para: string } | null;
 }
 
 export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
@@ -253,6 +265,8 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     pedirNuvemDeAlivio,
     direcaoDoMicrofone,
     aoFimDaFala,
+    interpreteAutomatico,
+    ladoDaFalaAutomatica,
   } = deps;
 
   /* UM SETSTATE POR QUADRO ("Grátis sem travar", A1; ver `agendarNoQuadro.ts`). O que chega em
@@ -333,10 +347,15 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       if (isSys || captureScenarioRef.current !== 'interprete') return null;
       return (seq !== undefined ? direcoesPorSeq.get(seq) : undefined) ?? direcaoDoMicrofone?.() ?? null;
     };
+    /** O automático do intérprete vale para esta fonte agora? (Só o microfone, e só sem lado tocado.) */
+    const automaticoDoInterprete = (): boolean =>
+      !isSys && captureScenarioRef.current === 'interprete' && !!interpreteAutomatico?.();
     const langs = (seq?: number) => {
       /* MODO INTÉRPRETE: as duas pessoas falam no mesmo microfone; o idioma é o do LADO tocado. */
       const doLado = direcaoDoLado(seq);
       if (doLado) return { hint: doLado.de, from: doLado.de, to: doLado.para };
+      /* AUTOMÁTICO: sem lado e sem dica — o motor MEDE o idioma, e o final decide a direção. */
+      if (automaticoDoInterprete()) return { hint: '', from: '', to: '' };
       // MULTI-IDIOMA: hint vazio → Whisper detecta o idioma da fala; origem vazia → o
       // Tradutor IA do servidor detecta e traduz para o alvo. Sistema traduz para o idioma
       // do usuário; mic traduz para o idioma de estudo (mesmo alvo do modo fixo).
@@ -447,6 +466,9 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       // O modo que a PESSOA ligou: "legenda só no fim de cada frase", nenhum parcial.
       if (perfModeRef.current && !perfModeAutomatico()) return false;
       if (!reservaLocal.parciaisLocais) return false; // celular/Quest na nuvem: o local é só reserva
+      /* Automático do intérprete: o idioma só é conhecido no final; um parcial sem dica custaria uma
+         detecção por trecho e mostraria texto na metade errada. */
+      if (automaticoDoInterprete()) return false;
       // Regulador: o aparelho não acompanha (parciais cortados) ou a aba do mic está escondida.
       if (reguladorRef?.current.parciaisCortados) return false;
       if (!isSys && reguladorRef?.current.parciaisDoMicPausados) return false;
@@ -603,6 +625,8 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
          em diante a direção vai nas variáveis deste final. */
       const doLado = direcaoDoLado(seq);
       const idiomasDaFala = langs(seq);
+      /* Esta fala é do automático: o lado e a direção saem do idioma medido, no final. */
+      const falaAutomatica = !doLado && automaticoDoInterprete() && !!ladoDaFalaAutomatica;
       direcoesPorSeq.delete(seq);
       capMetrics.speechEnd(seq);
       // Daqui até o resultado do final, nenhum parcial desta fala decodifica nem traduz.
@@ -929,6 +953,44 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
             return true;
           };
 
+          if (falaAutomatica && ladoDaFalaAutomatica) {
+            /* AUTOMÁTICO DO INTÉRPRETE: o idioma medido diz o lado. O detector de TEXTO só entra quando
+               o do motor não é um dos dois da conversa (fala curta: o Whisper troca idiomas vizinhos). */
+            const doPar = [baseLang(sourceLangRef.current), baseLang(targetLangRef.current)];
+            void (async () => {
+              let idiomaDoTexto = '';
+              if (!idiomaDoMotor || !doPar.includes(idiomaDoMotor)) {
+                try {
+                  idiomaDoTexto = baseLang((await detectLanguage(clean))?.lang || '');
+                } catch {
+                  /* '' = o detector não soube */
+                }
+              }
+              const d = ladoDaFalaAutomatica(uttId, {
+                idiomaDoMotor,
+                ...(confiancaDoIdioma !== undefined ? { confianca: confiancaDoIdioma } : {}),
+                idiomaDoTexto,
+                audioMs,
+              });
+              if (!d) return;
+              clog('intérprete automático: fala', seq, 'em', d.de, '→ lado', d.lado, ', traduz para', d.para);
+              setSpeechSegments((prev) =>
+                prev.map((s) =>
+                  s.id === uttId
+                    ? {
+                        ...s,
+                        lado: d.lado,
+                        lang: d.de,
+                        words: wordsFromText(clean, d.de),
+                        translatedText: marcadorDeTraducao(d.de, d.para),
+                      }
+                    : s,
+                ),
+              );
+              translateSegment(uttId, clean, d.de, d.para, { falada: true });
+            })();
+            return;
+          }
           if (from) {
             // Idioma FIXO: não há o que observar nem por que esperar.
             if (!isSys && captureScenarioRef.current === 'conversation') {

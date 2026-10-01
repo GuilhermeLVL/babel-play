@@ -36,10 +36,17 @@ import type { PonteDoInterprete } from '../src/lib/captura/controleDoInterprete'
 
 beforeEach(() => {
   voz.falas.length = 0
+  localStorage.clear()
 })
 afterEach(() => cleanup())
 
-function montar(o: { layout?: 'celular' | 'computador'; falas?: FalaDoInterprete[] } = {}) {
+function montar(
+  o: {
+    layout?: 'celular' | 'computador'
+    falas?: FalaDoInterprete[]
+    automatico?: 'disponivel' | 'premium' | 'oculto'
+  } = {},
+) {
   const abrir = vi.fn()
   const fechar = vi.fn()
   const aoSair = vi.fn()
@@ -54,6 +61,7 @@ function montar(o: { layout?: 'celular' | 'computador'; falas?: FalaDoInterprete
     vozNaturalDisponivel: false,
     layout: o.layout ?? ('celular' as const),
     aoSair,
+    ...(o.automatico ? { automatico: o.automatico } : {}),
   }
   const r = render(<ModoInterprete {...props} falas={o.falas ?? []} />)
   const trocarFalas = (falas: FalaDoInterprete[]) => r.rerender(<ModoInterprete {...props} falas={falas} />)
@@ -129,5 +137,93 @@ describe('ModoInterprete', () => {
     expect(ponte.atual!.direcao()).toMatchObject({ lado: 'meu' })
     fireEvent.keyDown(window, { key: 'Escape' })
     expect(aoSair).toHaveBeenCalledTimes(1)
+  })
+})
+
+/* ───────────────────────────── o modo automático (E7) ───────────────────────────── */
+
+describe('ModoInterprete: automático', () => {
+  const traducao = (segId: string, texto: string, de: string, para: string) => ({
+    segId,
+    original: 'x',
+    resultado: 'traduzida' as const,
+    traducao: texto,
+    de,
+    para,
+    aproximada: false,
+    falada: true,
+  })
+
+  it('com o automático no plano, ele já vem escolhido: um botão "Ouvir a conversa", nenhum "Falar" por lado', () => {
+    montar({ automatico: 'disponivel' })
+    expect(screen.getByTestId('modo-interprete').getAttribute('data-modo')).toBe('automatico')
+    expect(screen.getByRole('button', { name: 'Ouvir a conversa' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /Falar em/ })).toBeNull()
+    expect(screen.getByRole('button', { name: /Modo automático/ }).getAttribute('aria-pressed')).toBe('true')
+  })
+
+  it('"Ouvir a conversa" abre o microfone sem lado; o botão vira "Parar de ouvir a conversa"', () => {
+    const { abrir, ponte } = montar({ automatico: 'disponivel' })
+    fireEvent.click(screen.getByRole('button', { name: 'Ouvir a conversa' }))
+    expect(abrir).toHaveBeenCalledTimes(1)
+    expect(ponte.atual!.automatico()).toBe(true)
+    expect(ponte.atual!.direcao()).toBeNull()
+    expect(screen.getByRole('button', { name: 'Parar de ouvir a conversa' })).toBeTruthy()
+  })
+
+  it('a fala do outro (inglês medido) aparece traduzida na MINHA metade, é lida em português, e o microfone reabre', () => {
+    const { abrir, ponte, trocarFalas } = montar({ automatico: 'disponivel' })
+    fireEvent.click(screen.getByRole('button', { name: 'Ouvir a conversa' }))
+    act(() => ponte.atual!.aoFimDaFala({ segId: 'a1', source: 'mic' }))
+    act(() => void ponte.atual!.ladoDaFala('a1', { idiomaDoMotor: 'en', idiomaDoTexto: '', audioMs: 2500 }))
+    trocarFalas([{ id: 'a1', originalText: 'good morning', translatedText: 'bom dia', lado: 'outro' }])
+    act(() => ponte.atual!.aoTraduzirFinal(traducao('a1', 'bom dia', 'en', 'pt')))
+    expect(screen.getByTestId('interprete-meu').textContent).toContain('bom dia')
+    expect(voz.falas).toEqual([expect.objectContaining({ texto: 'bom dia', lang: 'pt-BR' })])
+    act(() => voz.falas[0].fim?.())
+    expect(screen.getByTestId('modo-interprete').getAttribute('data-fase')).toBe('ouvindo')
+    expect(abrir).toHaveBeenCalledTimes(2)
+  })
+
+  it('"Por toque" volta aos dois botões de Falar, e a escolha é lembrada', () => {
+    const { unmount } = montar({ automatico: 'disponivel' })
+    fireEvent.click(screen.getByRole('button', { name: /Modo automático/ }))
+    expect(screen.getByTestId('modo-interprete').getAttribute('data-modo')).toBe('toque')
+    expect(screen.getByRole('button', { name: /Falar em English/i })).toBeTruthy()
+    unmount()
+    montar({ automatico: 'disponivel' })
+    expect(screen.getByTestId('modo-interprete').getAttribute('data-modo')).toBe('toque')
+  })
+
+  it('trocar de modo no meio da escuta fecha o microfone', () => {
+    const { fechar } = montar({ automatico: 'disponivel' })
+    fireEvent.click(screen.getByRole('button', { name: 'Ouvir a conversa' }))
+    fireEvent.click(screen.getByRole('button', { name: /Modo automático/ }))
+    expect(fechar).toHaveBeenCalled()
+    expect(screen.getByTestId('modo-interprete').getAttribute('data-fase')).toBe('parado')
+  })
+
+  it('sem o automático no plano (Grátis): o modo é por toque, e o botão diz que é do Premium sem ligar nada', () => {
+    const { abrir } = montar({ automatico: 'premium' })
+    expect(screen.getByTestId('modo-interprete').getAttribute('data-modo')).toBe('toque')
+    fireEvent.click(screen.getByRole('button', { name: /Modo automático/ }))
+    expect(screen.getByTestId('modo-interprete').getAttribute('data-modo')).toBe('toque')
+    expect(screen.getByTestId('aviso-do-interprete').textContent).toMatch(/Premium/)
+    expect(abrir).not.toHaveBeenCalled()
+  })
+
+  it('no site sem servidor (oculto) o botão do automático nem aparece', () => {
+    montar({ automatico: 'oculto' })
+    expect(screen.queryByRole('button', { name: /Modo automático/ })).toBeNull()
+    expect(screen.getByRole('button', { name: /Falar em English/i })).toBeTruthy()
+  })
+
+  it('computador: a tecla 1 liga e desliga a escuta', () => {
+    const { abrir, fechar } = montar({ layout: 'computador', automatico: 'disponivel' })
+    fireEvent.keyDown(window, { key: '1' })
+    expect(abrir).toHaveBeenCalledTimes(1)
+    fireEvent.keyDown(window, { key: '1' })
+    expect(fechar).toHaveBeenCalled()
+    expect(screen.getByTestId('modo-interprete').getAttribute('data-fase')).toBe('parado')
   })
 })

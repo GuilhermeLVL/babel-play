@@ -88,6 +88,14 @@ describe('a matriz v2', () => {
     expect(getEntitlements('selfhost').vozNatural).toBe(true)
   })
 
+  /* Decisão do dono (30/09): o modo automático do intérprete é do Premium. No Grátis ele pediria o
+     download do modelo de voz no aparelho; lá fica o modo por toque. */
+  it('o modo automático do intérprete é do Premium (e do self-host), não do Grátis nem do convidado', () => {
+    expect(getEntitlements('premium').interpreteAutomatico).toBe(true)
+    expect(getEntitlements('selfhost').interpreteAutomatico).toBe(true)
+    expect(getEntitlements('free').interpreteAutomatico).toBe(false)
+  })
+
   it('o teto mensal é o empate de custo: 40 h (144.000 s), e a env sobrepõe', () => {
     expect(capSegundosParaPlano('premium')).toBe(144_000)
     process.env.PREMIUM_MONTHLY_STT_SECONDS = '216000'

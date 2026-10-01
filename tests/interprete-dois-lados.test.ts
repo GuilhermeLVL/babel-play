@@ -311,3 +311,50 @@ describe('intérprete: o tradutor dos dois sentidos', () => {
     expect(m.preload.mock.calls.map((c) => `${c[0]}→${c[1]}`)).toEqual(['pt→en'])
   })
 })
+
+/* ─────────────────────── o automático: o microfone vai ao motor que MEDE o idioma ─────────────────────── */
+
+describe('intérprete automático: o microfone é o Whisper, mesmo com o "Rápido" escolhido', () => {
+  beforeEach(() => {
+    ReconhecedorFalso.todos = []
+    ReconhecedorFalso.noAparelho = { 'pt-BR': 'available', 'en-US': 'available' }
+    captura.abriuWhisper = 0
+    vi.stubGlobal('SpeechRecognition', ReconhecedorFalso)
+    Object.defineProperty(window, 'SpeechRecognition', { configurable: true, value: ReconhecedorFalso })
+  })
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('a Web Speech não sabe detectar idioma: nenhum reconhecedor do navegador abre', async () => {
+    const lado = ref<LadoDoInterprete>('meu')
+    const m = montarFontes(lado, { direcaoDoMicrofone: () => null, interpreteAutomatico: () => true })
+    await m.fontes.abrirMicrofoneNoLado()
+    expect(ReconhecedorFalso.todos).toHaveLength(0)
+    expect(captura.abriuWhisper).toBe(1)
+  })
+
+  it('reabrir depois de cada fala só tira o mudo (uma captura para a conversa inteira)', async () => {
+    const lado = ref<LadoDoInterprete>('meu')
+    const m = montarFontes(lado, { direcaoDoMicrofone: () => null, interpreteAutomatico: () => true })
+    await m.fontes.abrirMicrofoneNoLado()
+    m.fontes.fecharMicrofoneDoLado()
+    await m.fontes.abrirMicrofoneNoLado()
+    expect(captura.abriuWhisper).toBe(1)
+    const mic = m.d.micCaptureRef.current as unknown as { setMuted: ReturnType<typeof vi.fn> }
+    expect(mic.setMuted).toHaveBeenLastCalledWith(false)
+  })
+
+  it('vindo do modo por toque com a Web Speech aberta: ela fecha, e o Whisper assume', async () => {
+    const lado = ref<LadoDoInterprete>('meu')
+    let automatico = false
+    const m = montarFontes(lado, { interpreteAutomatico: () => automatico })
+    await m.fontes.abrirMicrofoneNoLado()
+    expect(ReconhecedorFalso.todos).toHaveLength(1)
+    automatico = true
+    await m.fontes.abrirMicrofoneNoLado()
+    expect(ReconhecedorFalso.todos[0].parou).toBe(true)
+    expect(m.d.webSpeechRef.current).toBeNull()
+    expect(captura.abriuWhisper).toBe(1)
+  })
+})

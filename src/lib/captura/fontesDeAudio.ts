@@ -147,6 +147,8 @@ export interface DepsDasFontesDeAudio {
    * pedido para todos no mesmo toque. `null`/ausente = só o "Eu falo" da captura.
    */
   idiomasDaConversa?: () => readonly string[] | null;
+  /** O modo automático do intérprete está ouvindo: o microfone é o Whisper, que mede o idioma. */
+  interpreteAutomatico?: () => boolean;
 }
 
 /**
@@ -804,6 +806,15 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
   const abrirMicrofoneNoLado = async (): Promise<void> => {
     if (micCaptureRef.current) {
       micCaptureRef.current.setMuted(false);
+      return;
+    }
+    /* O AUTOMÁTICO PRECISA MEDIR O IDIOMA de cada fala, e a Web Speech não sabe: ela ouve num idioma
+       só. O microfone vai ao Whisper (a nuvem primeiro, para quem a tem no plano; o do aparelho de
+       reserva), mesmo com o "Rápido" escolhido. Uma captura só para a conversa: reabrir é tirar o mudo. */
+    if (deps.interpreteAutomatico?.()) {
+      if (webSpeechRef.current) clog('intérprete automático: a Web Speech fecha, o Whisper assume (mede o idioma)');
+      encerrarWebSpeechDoMic();
+      await handleStartMicCapture();
       return;
     }
     const direcao = deps.direcaoDoMicrofone?.() ?? null;

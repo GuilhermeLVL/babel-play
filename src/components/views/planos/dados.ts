@@ -130,6 +130,7 @@ export const PLANOS: Plano[] = [
         vars: USO_JUSTO('premium'),
       },
       { icone: Bot, texto: 'Tutor de IA (iChat) sobre o seu material' },
+      { icone: Languages, texto: 'Intérprete automático: reconhece sozinho quem fala qual idioma' },
       { icone: AudioLines, texto: 'Voz natural no modo intérprete (em breve)' },
       { icone: HardDrive, texto: '{espaco} para sessões', vars: { espaco: armazenamentoEmTexto('premium') } },
     ],

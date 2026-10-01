@@ -1636,5 +1636,15 @@
   "Toque em Começar e deixe o aparelho entre vocês": "Tap Start and place the device between you",
   "Três passos e pronto:": "Three steps and you are set:",
   "Uma conversa, dois idiomas": "One conversation, two languages",
-  "Você fala {meu} e ouve a outra pessoa em {meu}; ela fala {outro} e ouve você em {outro}.": "You speak {meu} and hear the other person in {meu}; they speak {outro} and hear you in {outro}."
+  "Você fala {meu} e ouve a outra pessoa em {meu}; ela fala {outro} e ouve você em {outro}.": "You speak {meu} and hear the other person in {meu}; they speak {outro} and hear you in {outro}.",
+  "Modo automático: o app reconhece quem fala qual idioma": "Automatic mode: the app recognizes who speaks which language",
+  "Modo automático: o app reconhece sozinho quem fala qual idioma. Dá para trocar para o toque na conversa.": "Automatic mode: the app recognizes on its own who speaks which language. You can switch to tap mode during the conversation.",
+  "No Premium, o modo automático reconhece sozinho quem fala qual idioma. Aqui, cada um toca a sua metade.": "With Premium, automatic mode recognizes on its own who speaks which language. Here, each person taps their half.",
+  "O modo automático faz parte do Premium: o app reconhece sozinho quem fala qual idioma.": "Automatic mode is part of Premium: the app recognizes on its own who speaks which language.",
+  "Ouvindo a conversa…": "Listening to the conversation…",
+  "Ouvir a conversa": "Listen to the conversation",
+  "Parar de ouvir a conversa": "Stop listening to the conversation",
+  "Toque em Ouvir e conversem. O app reconhece quem fala qual idioma e lê a tradução em voz alta.": "Tap Listen and talk. The app recognizes who speaks which language and reads the translation aloud.",
+  "Toque em Ouvir e conversem: o app reconhece quem fala e lê a tradução em voz alta": "Tap Listen and talk: the app recognizes who is speaking and reads the translation aloud",
+  "Intérprete automático: reconhece sozinho quem fala qual idioma": "Automatic interpreter: recognizes on its own who speaks which language"
 }

@@ -106,7 +106,8 @@ export function escolherMotorDoMic(entrada: EntradaDoMotorDoMic): DecisaoDoMotor
   const e = { ...entrada, noAparelho: noAparelhoQueConta(entrada) };
   if (!e.webSpeechSuportado) return { motor: 'whisper', motivo: 'sem-web-speech', instalarNoAparelho: false };
   if (e.preferido === 'whisper') return { motor: 'whisper', motivo: 'escolha-whisper', instalarNoAparelho: false };
-  if (e.noAparelho === 'available') return { motor: 'web-speech-local', motivo: 'no-aparelho', instalarNoAparelho: false };
+  if (e.noAparelho === 'available')
+    return { motor: 'web-speech-local', motivo: 'no-aparelho', instalarNoAparelho: false };
   const instalarNoAparelho = e.noAparelho === 'downloadable';
   if (e.perfilId === PERFIL_PRIVADO) return { motor: 'whisper', motivo: 'perfil-privado', instalarNoAparelho };
   if (!e.rapidoPermitido) return { motor: 'whisper', motivo: 'perfil-protegido', instalarNoAparelho };
@@ -155,6 +156,20 @@ export function disponibilidadeDaSondaParaIdioma(
   return null;
 }
 
+/**
+ * A resposta do navegador valendo para VÁRIOS idiomas de uma vez (o modo intérprete ouve em dois): o
+ * reconhecimento no aparelho só serve se serve a TODOS. A pior resposta decide — um idioma sem pacote
+ * e sem como baixar derruba o local; um a baixar pede a instalação; sem resposta de algum, sem resposta.
+ */
+export function disponibilidadeParaTodos(respostas: ReadonlyArray<Disponibilidade | null>): Disponibilidade | null {
+  if (respostas.length === 0) return null;
+  if (respostas.includes('unavailable')) return 'unavailable';
+  if (respostas.includes(null)) return null;
+  if (respostas.includes('downloadable')) return 'downloadable';
+  if (respostas.includes('downloading')) return 'downloading';
+  return 'available';
+}
+
 type ComInstalar = { install?: (o: { langs: string[]; processLocally: boolean }) => unknown };
 
 /** O que a tela mostra do pacote de voz do navegador (sem porcentagem: `install()` não informa). */
@@ -183,6 +198,12 @@ export const PRAZO_DA_INSTALACAO_MS = 180_000;
 export async function resolverMotorDoMic(
   e: Omit<EntradaDoMotorDoMic, 'noAparelho'> & {
     lang: string;
+    /**
+     * Os idiomas que o microfone vai ouvir NESTA sessão, quando são mais de um (o modo intérprete: o
+     * seu e o da outra pessoa). O reconhecimento no aparelho só vale se serve a todos; os pacotes
+     * que faltam são instalados juntos. Ausente = só o `lang`.
+     */
+    idiomas?: string[];
     escopo?: unknown;
     escolha?: EscolhaDoMic | null;
     perguntar?: (contexto: { pacoteDoNavegador: boolean }) => Promise<EscolhaDoMic | null>;
@@ -192,11 +213,14 @@ export async function resolverMotorDoMic(
 ): Promise<DecisaoDoMotorDoMic> {
   const escopo = e.escopo ?? globalThis;
   const bipaAoReligar = e.bipaAoReligar ?? webSpeechBipaAoReligar(escopo);
+  const idiomas = e.idiomas?.length ? e.idiomas : [e.lang];
   let noAparelho: Disponibilidade | null = null;
+  let porIdioma: Array<Disponibilidade | null> = [];
   if (e.webSpeechSuportado && e.preferido === 'browser' && !bipaAoReligar) {
     try {
       const { disponibilidadeDoSttNoAparelho } = await import('../dispositivo/sonda');
-      noAparelho = await disponibilidadeDoSttNoAparelho(e.lang, escopo);
+      porIdioma = await Promise.all(idiomas.map((l) => disponibilidadeDoSttNoAparelho(l, escopo)));
+      noAparelho = disponibilidadeParaTodos(porIdioma);
     } catch {
       noAparelho = null; // sem sonda: segue pelo consentimento
     }
@@ -205,7 +229,11 @@ export async function resolverMotorDoMic(
   const SR = s.SpeechRecognition ?? s.webkitSpeechRecognition;
   const podeInstalar = typeof SR?.install === 'function';
   let consentiuNavegador = e.consentiuNavegador;
-  if (e.perguntar && e.escolha !== undefined && precisaPerguntarMotorDoMic({ ...e, bipaAoReligar, noAparelho, escolha: e.escolha })) {
+  if (
+    e.perguntar &&
+    e.escolha !== undefined &&
+    precisaPerguntarMotorDoMic({ ...e, bipaAoReligar, noAparelho, escolha: e.escolha })
+  ) {
     const resposta = await e
       .perguntar({ pacoteDoNavegador: noAparelho === 'downloadable' && podeInstalar })
       .catch(() => null);
@@ -215,10 +243,17 @@ export async function resolverMotorDoMic(
   if (!decisao.instalarNoAparelho || !podeInstalar) return decisao;
   /* `install` que lança síncrono vira rejeição aqui; sem ativação, sem rede, idioma recusado: a
      próxima sessão pergunta de novo. Só `true` conta como instalado. */
+  const aInstalar = idiomas.filter((_, i) => porIdioma[i] === 'downloadable');
   const instalacao = Promise.resolve()
-    .then(() => SR!.install!({ langs: [e.lang], processLocally: true }))
+    .then(() =>
+      /* Todos no mesmo instante: o `install()` pede o gesto do toque, que não dura para um segundo pedido
+         feito depois de o primeiro pacote baixar. */
+      Promise.all(
+        (aInstalar.length ? aInstalar : [e.lang]).map((l) => SR!.install!({ langs: [l], processLocally: true })),
+      ),
+    )
     .then(
-      (r) => r === true,
+      (r) => r.every((x) => x === true),
       () => false,
     );
   if (decisao.motor !== 'whisper') {

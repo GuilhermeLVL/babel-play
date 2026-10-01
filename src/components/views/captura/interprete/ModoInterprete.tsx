@@ -1,6 +1,6 @@
 import '../../../../styles/modoInterprete.css';
 
-import { ArrowUpDown, Loader2, Mic, RotateCcw, Square, Volume2, VolumeX, X } from 'lucide-react';
+import { AlertTriangle, ArrowUpDown, Loader2, Mic, RotateCcw, Square, Volume2, VolumeX, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 import {
@@ -10,6 +10,7 @@ import {
   type PonteDoInterprete,
 } from '../../../../lib/captura/controleDoInterprete';
 import { direcaoDoLado, ESTADO_INICIAL, type IdiomasDoInterprete } from '../../../../lib/captura/interprete';
+import type { ResumoDoPreparo } from '../../../../lib/captura/preparoDoInterprete';
 import type { LadoDoInterprete, SpeechSegment } from '../../../../lib/captura/tiposDaFala';
 import { t } from '../../../../lib/i18n';
 import { langLabel } from '../../../../lib/languages';
@@ -59,6 +60,8 @@ export default function ModoInterprete({
   velocidade,
   layout,
   abrindo,
+  aviso,
+  preparo,
   aoSair,
   aoFalharMicrofone,
 }: {
@@ -72,6 +75,10 @@ export default function ModoInterprete({
   layout: 'celular' | 'computador';
   /** O microfone está abrindo (a permissão, o modelo): o botão de quem fala mostra a espera. */
   abrindo?: boolean;
+  /** O que deu errado (o microfone, o idioma), dito AQUI: a captura que o mostrava fica por baixo da tela. */
+  aviso?: string | null;
+  /** O preparo dos dois lados (voz e tradução nos dois sentidos), na faixa do meio. */
+  preparo?: ResumoDoPreparo | null;
   aoSair: () => void;
   aoFalharMicrofone?: (erro: unknown) => void;
 }) {
@@ -280,6 +287,23 @@ export default function ModoInterprete({
         <button type="button" className="int-ib peq" onClick={sair} aria-label={t('Sair do modo intérprete')}>
           <X aria-hidden />
         </button>
+        {(preparo || aviso) && (
+          <div className="int-notas">
+            {preparo && (
+              <p className="int-nota" role="status" data-testid="preparo-do-interprete">
+                <Loader2 aria-hidden className="animate-spin" />
+                <span>{preparo.texto}</span>
+                {preparo.pct !== null && <span className="tabular-nums">{preparo.pct}%</span>}
+              </p>
+            )}
+            {aviso && (
+              <p className="int-nota" data-aviso role="alert" data-testid="aviso-do-interprete">
+                <AlertTriangle aria-hidden />
+                <span>{aviso}</span>
+              </p>
+            )}
+          </div>
+        )}
       </div>
       {computador ? metade('outro') : metade('meu')}
     </div>

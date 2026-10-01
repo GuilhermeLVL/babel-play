@@ -67,11 +67,20 @@ export interface ControleDoInterprete {
   sair(): void;
   /** A direção do microfone agora (`direcaoDoMicrofone` do pipeline e das fontes). */
   direcao(): DirecaoDaFala | null;
+  /**
+   * O microfone falhou DEPOIS de abrir (o reconhecedor do navegador recusou o idioma, o serviço caiu):
+   * quem avisa é a captura (`aoFalharMicrofone` das fontes). Avisa a tela e, se o lado ainda ouvia,
+   * devolve a conversa a "parado" — a pessoa toca de novo, ou no outro lado.
+   */
+  microfoneFalhou(erro: unknown): void;
   estado(): EstadoDoControle;
 }
 
 /** O que a captura (`LiveCapture`) repassa ao intérprete aberto: a direção e os avisos do pipeline. */
-export type PonteDoInterprete = Pick<ControleDoInterprete, 'direcao' | 'aoFimDaFala' | 'aoTraduzirFinal'>;
+export type PonteDoInterprete = Pick<
+  ControleDoInterprete,
+  'direcao' | 'aoFimDaFala' | 'aoTraduzirFinal' | 'microfoneFalhou'
+>;
 
 const relogioPadrao = (): number => (typeof performance !== 'undefined' ? performance.now() : Date.now());
 const outroLado = (lado: LadoDoInterprete): LadoDoInterprete => (lado === 'meu' ? 'outro' : 'meu');
@@ -118,17 +127,20 @@ export function criarControleDoInterprete(o: OpcoesDoControle): ControleDoInterp
     if (!entrou && !fila.ocupada()) depois(() => maquina.enviar({ tipo: 'fimDaVoz' }));
   };
 
+  /** O microfone falhou: avisa a tela e, se ainda ouvia, "terminei" — volta a parado e fecha o que abriu. */
+  const microfoneFalhou = (erro: unknown, lado?: LadoDoInterprete) => {
+    if (desligado) return;
+    o.aoFalharMicrofone?.(erro);
+    const agoraEstado = maquina.estado();
+    if (agoraEstado.fase === 'ouvindo' && agoraEstado.lado && (!lado || agoraEstado.lado === lado))
+      maquina.enviar({ tipo: 'tocar', lado: agoraEstado.lado });
+  };
+
   const executar = (e: EfeitoDoInterprete) => {
     switch (e.tipo) {
       case 'abrirMicrofone': {
         const lado = e.direcao.lado;
-        const falhou = (erro: unknown) => {
-          if (desligado) return;
-          o.aoFalharMicrofone?.(erro);
-          const agoraEstado = maquina.estado();
-          /* O mesmo lado de novo é o "terminei" da máquina: volta a parado e fecha o que abriu. */
-          if (agoraEstado.fase === 'ouvindo' && agoraEstado.lado === lado) maquina.enviar({ tipo: 'tocar', lado });
-        };
+        const falhou = (erro: unknown) => microfoneFalhou(erro, lado);
         /* Na hora, DENTRO do toque: a Web Speech e o `getUserMedia` do iPhone pedem o gesto. */
         try {
           void Promise.resolve(o.microfone.abrir()).catch(falhou);
@@ -203,6 +215,7 @@ export function criarControleDoInterprete(o: OpcoesDoControle): ControleDoInterp
       falando = null;
     },
     direcao: () => maquina.direcao(),
+    microfoneFalhou: (erro) => microfoneFalhou(erro),
     estado,
   };
 }

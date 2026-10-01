@@ -39,13 +39,31 @@ function rodar(eventos: EventoDoInterprete[], inicial: EstadoDoInterprete = ESTA
 
 describe('direcaoDoLado', () => {
   it('meu lado fala o meu idioma e traduz para o do outro; o outro, o contrário', () => {
-    expect(direcaoDoLado('meu', IDIOMAS)).toEqual({ lado: 'meu', fala: 'pt-BR', de: 'pt', para: 'en' })
-    expect(direcaoDoLado('outro', IDIOMAS)).toEqual({ lado: 'outro', fala: 'en-US', de: 'en', para: 'pt' })
+    expect(direcaoDoLado('meu', IDIOMAS)).toEqual({ lado: 'meu', fala: 'pt-BR', de: 'pt', para: 'en', ouve: 'en-US' })
+    expect(direcaoDoLado('outro', IDIOMAS)).toEqual({
+      lado: 'outro',
+      fala: 'en-US',
+      de: 'en',
+      para: 'pt',
+      ouve: 'pt-BR',
+    })
   })
 
   it('com os lados trocados, os idiomas mudam de metade', () => {
-    expect(direcaoDoLado('meu', IDIOMAS, true)).toEqual({ lado: 'meu', fala: 'en-US', de: 'en', para: 'pt' })
-    expect(direcaoDoLado('outro', IDIOMAS, true)).toEqual({ lado: 'outro', fala: 'pt-BR', de: 'pt', para: 'en' })
+    expect(direcaoDoLado('meu', IDIOMAS, true)).toEqual({
+      lado: 'meu',
+      fala: 'en-US',
+      de: 'en',
+      para: 'pt',
+      ouve: 'pt-BR',
+    })
+    expect(direcaoDoLado('outro', IDIOMAS, true)).toEqual({
+      lado: 'outro',
+      fala: 'pt-BR',
+      de: 'pt',
+      para: 'en',
+      ouve: 'en-US',
+    })
   })
 
   it('idioma só com a base vira BCP-47 para o reconhecedor', () => {
@@ -58,7 +76,7 @@ describe('o ciclo de uma fala', () => {
     const tocar = transicao(ESTADO_INICIAL, { tipo: 'tocar', lado: 'outro' }, IDIOMAS)
     expect(tocar.estado).toMatchObject({ fase: 'ouvindo', lado: 'outro' })
     expect(tocar.efeitos).toEqual([
-      { tipo: 'abrirMicrofone', direcao: { lado: 'outro', fala: 'en-US', de: 'en', para: 'pt' } },
+      { tipo: 'abrirMicrofone', direcao: { lado: 'outro', fala: 'en-US', de: 'en', para: 'pt', ouve: 'pt-BR' } },
     ])
 
     const fim = transicao(tocar.estado, { tipo: 'fimDaFala', segId: 'mic-1' }, IDIOMAS)
@@ -130,7 +148,7 @@ describe('barge-in e troca de lado', () => {
     expect(estado).toMatchObject({ fase: 'ouvindo', lado: 'meu', pendentes: [] })
     expect(efeitos.slice(-2)).toEqual([
       { tipo: 'interromperVoz' },
-      { tipo: 'abrirMicrofone', direcao: { lado: 'meu', fala: 'pt-BR', de: 'pt', para: 'en' } },
+      { tipo: 'abrirMicrofone', direcao: { lado: 'meu', fala: 'pt-BR', de: 'pt', para: 'en', ouve: 'en-US' } },
     ])
   })
 
@@ -142,7 +160,7 @@ describe('barge-in e troca de lado', () => {
     expect(estado).toMatchObject({ fase: 'ouvindo', lado: 'outro' })
     expect(efeitos.at(-1)).toEqual({
       tipo: 'abrirMicrofone',
-      direcao: { lado: 'outro', fala: 'en-US', de: 'en', para: 'pt' },
+      direcao: { lado: 'outro', fala: 'en-US', de: 'en', para: 'pt', ouve: 'pt-BR' },
     })
   })
 
@@ -201,7 +219,7 @@ describe('Repetir, Parar voz, trocar os lados e sair', () => {
     expect(r.efeitos).toEqual([{ tipo: 'fecharMicrofone' }, { tipo: 'pararVoz' }])
     const tocar = transicao(r.estado, { tipo: 'tocar', lado: 'meu' }, IDIOMAS)
     expect(tocar.efeitos).toEqual([
-      { tipo: 'abrirMicrofone', direcao: { lado: 'meu', fala: 'en-US', de: 'en', para: 'pt' } },
+      { tipo: 'abrirMicrofone', direcao: { lado: 'meu', fala: 'en-US', de: 'en', para: 'pt', ouve: 'pt-BR' } },
     ])
   })
 

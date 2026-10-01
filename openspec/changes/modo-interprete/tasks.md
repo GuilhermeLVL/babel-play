@@ -2,10 +2,12 @@
 >
 > - E1, E2, E4 e E5 estão na `main`. Entraram pelo merge `b563485` (`feat/e-interprete-motor`) dentro de
 >   `cd0aa88` (`perf/gratis-leve`).
-> - E3 e E6 estão no PR #47 (`claude/magical-curie-7zdnfs`), aberto e não mesclado.
+> - E3 e E6 entraram na `main` pelo PR #47 (merge `52333e1`, `claude/magical-curie-7zdnfs`).
+> - E7 (o item no menu, a tela própria e os dois idiomas) está na branch `claude/magical-curie-7zdnfs`, a
+>   partir da `main` em `2469883`, com PR aberto e ainda não mesclado.
 >
-> `[x]` = na `main`, com o commit principal e o teste. `[ ]` com "(PR #47, aguardando merge)" = escrito,
-> mas fora da `main`. `[ ]` sem nota = pendente.
+> `[x]` = na `main`, com o commit principal e o teste. `[ ]` com "(PR aberto)" = escrito, mas fora da
+> `main`. `[ ]` sem nota = pendente.
 
 ## E1: fila de fala e guarda de eco
 
@@ -40,35 +42,35 @@
 
 ## E3: a tela
 
-- [ ] 3.1 `scenario` no `meta` da sessão (PR #47, aguardando merge) (`03ff425`; teste:
+- [x] 3.1 `scenario` no `meta` da sessão (`03ff425`; teste:
       `tests/cenarioDaSessao.test.ts`).
   - `PATCH /api/sessions/:id/meta` aceita só os cenários conhecidos, no Express e no servidor sem conta.
   - `sessionToRecording` lê o `cenario`.
-- [ ] 3.2 `src/lib/captura/controleDoInterprete.ts` (PR #47, aguardando merge) (`bb1acf4`; teste:
+- [x] 3.2 `src/lib/captura/controleDoInterprete.ts` (`bb1acf4`; teste:
       `tests/controleDoInterprete.test.ts`).
   - O toque destrava a voz e abre o microfone dentro do gesto.
   - A tradução que chega antes do fim da fala espera o `fimDaFala`.
   - A voz sai no idioma de quem ouve.
   - A fila vazia vira `fimDaVoz`.
   - O microfone que falha ao abrir volta a `parado`.
-- [ ] 3.3 A tela `ModoInterprete.tsx` e `modoInterprete.css` (PR #47, aguardando merge) (`e563dad`; teste:
+- [x] 3.3 A tela `ModoInterprete.tsx` e `modoInterprete.css` (`e563dad`; teste:
       `tests/modoInterprete.test.tsx`).
   - No celular, a metade do outro fica virada 180° (`data-virada`).
   - No computador, a tela tem duas colunas e os atalhos `1`, `2`, `R`, `P` e `Esc`.
   - O controle é criado no efeito.
-- [ ] 3.4 A sessão do intérprete (PR #47, aguardando merge) (`f29250c`; testes:
+- [x] 3.4 A sessão do intérprete (`f29250c`; testes:
       `tests/salvarSessaoInterprete.test.ts` e uma asserção nova em `tests/interprete-direcao.test.ts`).
   - O microfone só abre no toque. O som do computador e a identificação de voz ficam de fora.
   - "Continuar gravando" não reabre o microfone.
   - Cada lado é salvo no idioma dele.
-- [ ] 3.5 As entradas (PR #47, aguardando merge) (`c9b4fe2`; sem teste unitário próprio, coberto pelo e2e
+- [x] 3.5 As entradas (`c9b4fe2`; sem teste unitário próprio, coberto pelo e2e
       `3e6c9ad`).
   - Um botão "Intérprete" na `CapturaNoCelular` e no cabeçalho da captura do computador. Ele passa pela
     folha do início.
   - A tradução é sempre automática no intérprete.
   - A voz natural só vale com `vozNatural` e a flag `voz_natural` ligada.
   - Sair abre o Encerrar, e "Continuar gravando" devolve a tela.
-- [ ] 3.6 "Ouvir tradução" na `FolhaDaFrase`, no idioma da tradução (PR #47, aguardando merge) (`d63514b`;
+- [x] 3.6 "Ouvir tradução" na `FolhaDaFrase`, no idioma da tradução (`d63514b`;
       teste: `tests/folhaDaFraseOuvirTraducao.test.tsx`).
 
 ## E4: `POST /api/ai/tts`
@@ -121,12 +123,48 @@
 
 ## E6: e2e
 
-- [ ] 6.1 `tests/e2e/modo-interprete.e2e.ts` (PR #47, aguardando merge) (`3e6c9ad`).
+- [x] 6.1 `tests/e2e/modo-interprete.e2e.ts` (`3e6c9ad`).
   - Celular (Pixel 7, projeto `mobile-375`, Grátis, voz do aparelho): cada lado ouve a tradução no seu
     idioma, e sair abre o Encerrar.
   - Computador (projeto `desktop-1280`, Premium, `/api/ai/tts` simulado): duas colunas e atalhos; a voz
     natural lê as duas traduções; a métrica fica em `p50 ≤ 2_500` ms. O PR relata 126 ms no p50, com a
     nuvem simulada.
+
+## E7: o item no menu, a tela própria e os dois idiomas (PR aberto)
+
+Relato do dono no celular (2026-09-30): ele não achava como chegar ao modo, e o lado do inglês não
+respondia. Duas causas lidas no código: o reconhecedor era conferido só no idioma de quem abria o
+microfone, e a tradução era preparada só num sentido. Os avisos de erro e o preparo moravam na tela de
+Captura, que fica por baixo do intérprete.
+
+- [x] 7.1 A decisão do motor cobre os dois idiomas (`5d3cfc4`; testes: bloco "com mais de um idioma" de
+      `tests/motorDoMicrofone.test.ts` e bloco "o microfone do intérprete cobre os dois idiomas" de
+      `tests/interprete-direcao.test.ts`).
+  - `resolverMotorDoMic` aceita `idiomas`. O reconhecimento no aparelho só vale se serve a todos (vale o
+    pior). Os pacotes que faltam são instalados juntos, no mesmo gesto.
+  - A direção do lado ganha `ouve`, o idioma do outro lado.
+  - As fontes guardam os idiomas conferidos; o local não reabre num idioma fora deles.
+  - A falha do reconhecedor dentro do intérprete não encerra a gravação (`microfoneFalhou` no controle).
+- [x] 7.2 O tradutor dos dois sentidos (`206efd2`; testes: `tests/pipelineDeFala-latencia.test.ts` e
+      `tests/pipelineDeFala-alivio.test.ts`).
+  - `prepararTradutorDaFala({ nosDoisSentidos })`: um sentido depois do outro, a barra soma os dois, um
+    sentido que falha não impede o outro.
+  - No caminho do Whisper, o sentido do outro lado vem logo depois do primeiro.
+- [x] 7.3 O preparo e os avisos dentro da tela (`fe227d2`; testes: `tests/modoInterprete.test.tsx` e
+      `tests/preparoDoInterprete.test.ts`).
+  - A faixa do meio mostra uma frase de preparo (voz, modelo, tradução) e o aviso de erro.
+- [x] 7.4 O item "Intérprete" no menu e a tela própria (`e656ef1`; testes: `tests/rotas.test.ts`,
+      `tests/menuDoInterprete.test.tsx`, `tests/telaDoInterprete.test.tsx`,
+      `tests/situacaoDoInterprete.test.ts`, `tests/usePreparoDoInicio-tradutorNativo.test.tsx` e o e2e).
+  - Endereço `/interprete`, logo abaixo de "Capturar". Na dock do celular entra no lugar da Biblioteca,
+    que vai para o "Mais".
+  - A tela mostra os dois idiomas, o preparo dos dois lados e o botão "Começar conversa", que passa pela
+    folha do início. O aviso de download conta os dois sentidos e os dois idiomas da voz.
+  - e2e (`tests/e2e/modo-interprete.e2e.ts`): entra pelo menu, começa pelo lado do inglês e alterna os dois
+    lados duas vezes.
+- [ ] 7.5 O modo Automático (sem tocar em lado nenhum; Premium, com servidor). **Pendente, segunda parte.**
+  - O reconhecimento de voz do navegador não descobre o idioma sozinho. No Grátis, o Automático precisaria
+    do modelo de voz do app baixado no aparelho; no Premium, a nuvem faria isso.
 
 ## Antes de ligar a flag `voz_natural` (pendente, decisão do dono)
 

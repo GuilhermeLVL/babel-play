@@ -44,6 +44,8 @@ function nomeTela(view: ViewType): string {
       return 'Início';
     case 'capture':
       return 'Captura ao vivo';
+    case 'interprete':
+      return 'Intérprete (conversa frente a frente)';
     case 'library':
       return 'Biblioteca';
     case 'analysis':

@@ -354,3 +354,119 @@ describe('fontes: a Web Speech abre e reinicia no idioma do lado', () => {
     expect(ReconhecedorFalso.todos).toHaveLength(0)
   })
 })
+
+/* ─────────────── os DOIS idiomas: o lado do inglês não respondia (relato do dono, 2026-09-30) ─────────────── */
+
+/**
+ * O Chrome de quem relatou tinha o pacote de voz do português e NÃO o do inglês. A decisão do motor
+ * olhava só o idioma de quem abre o microfone: o lado do inglês reabria o reconhecedor LOCAL em
+ * en-US sem conferir, o navegador recusava (`language-not-supported`) e a fala se perdia. A decisão
+ * agora cobre os DOIS idiomas, e uma falha do microfone no intérprete não encerra a sessão.
+ */
+class ReconhecedorComPacotes extends ReconhecedorFalso {
+  processLocally = false // o navegador que reconhece no aparelho tem a propriedade
+  static pacotes: Record<string, string> = {}
+  static perguntados: string[] = []
+  static async available({ langs }: { langs: string[] }) {
+    ReconhecedorComPacotes.perguntados.push(langs[0])
+    return ReconhecedorComPacotes.pacotes[langs[0]] ?? 'unavailable'
+  }
+  static async install() {
+    return true
+  }
+}
+
+describe('fontes: o microfone do intérprete cobre os dois idiomas', () => {
+  beforeEach(() => {
+    ReconhecedorFalso.todos = []
+    ReconhecedorComPacotes.perguntados = []
+    captura.cbDoMic = null
+    vi.stubGlobal('SpeechRecognition', ReconhecedorComPacotes)
+    Object.defineProperty(window, 'SpeechRecognition', { configurable: true, value: ReconhecedorComPacotes })
+  })
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  const privado = { consentiuNavegador: () => false, escolhaDoMic: () => 'privado' as const }
+
+  it('o pacote do inglês faltando: o reconhecimento local NÃO abre nos dois lados; o modelo do app atende', async () => {
+    ReconhecedorComPacotes.pacotes = { 'pt-BR': 'available', 'en-US': 'unavailable' }
+    const lado = ref<LadoDoInterprete>('meu')
+    const m = montarFontes(lado, privado)
+    await m.fontes.abrirMicrofoneNoLado()
+    // Perguntou pelos DOIS idiomas, e nenhum reconhecedor do navegador foi aberto.
+    expect(ReconhecedorComPacotes.perguntados.sort()).toEqual(['en-US', 'pt-BR'])
+    expect(ReconhecedorFalso.todos).toHaveLength(0)
+    expect(m.d.micCaptureRef.current).not.toBeNull()
+    // O lado do inglês só tira o mudo: o modelo recebe a dica do idioma a cada fala.
+    const mic = m.d.micCaptureRef.current as unknown as { setMuted: ReturnType<typeof vi.fn> }
+    m.fontes.fecharMicrofoneDoLado()
+    lado.current = 'outro'
+    await m.fontes.abrirMicrofoneNoLado()
+    expect(mic.setMuted).toHaveBeenLastCalledWith(false)
+    expect(ReconhecedorFalso.todos).toHaveLength(0)
+  })
+
+  it('os dois pacotes no aparelho: o reconhecimento local abre em cada lado, no idioma dele', async () => {
+    ReconhecedorComPacotes.pacotes = { 'pt-BR': 'available', 'en-US': 'available' }
+    const lado = ref<LadoDoInterprete>('outro')
+    const m = montarFontes(lado, privado)
+    await m.fontes.abrirMicrofoneNoLado()
+    expect(ReconhecedorFalso.todos.map((r) => r.lang)).toEqual(['en-US'])
+    lado.current = 'meu'
+    await m.fontes.abrirMicrofoneNoLado()
+    expect(ReconhecedorFalso.todos.map((r) => r.lang)).toEqual(['en-US', 'pt-BR'])
+  })
+
+  it('uma decisão que cobria só um idioma não é reaproveitada no outro lado: decide de novo', async () => {
+    ReconhecedorComPacotes.pacotes = { 'pt-BR': 'available', 'en-US': 'unavailable' }
+    const lado = ref<LadoDoInterprete>('meu')
+    // Uma direção sem o idioma de quem ouve (como a de antes): a decisão cobre só o português.
+    const m = montarFontes(lado, {
+      ...privado,
+      direcaoDoMicrofone: () => {
+        const { ouve: _ouve, ...antiga } = direcaoDoLado(lado.current, IDIOMAS)
+        return antiga
+      },
+    })
+    await m.fontes.abrirMicrofoneNoLado()
+    expect(ReconhecedorFalso.todos.map((r) => r.lang)).toEqual(['pt-BR'])
+    lado.current = 'outro'
+    await m.fontes.abrirMicrofoneNoLado()
+    // O inglês não está coberto: nada de abrir o local em en-US; o modelo do app assume.
+    expect(ReconhecedorFalso.todos.map((r) => r.lang)).toEqual(['pt-BR'])
+    expect(ReconhecedorFalso.todos[0].parou).toBe(true)
+    expect(m.d.micCaptureRef.current).not.toBeNull()
+  })
+
+  it('o reconhecedor que falha dentro do intérprete avisa a tela e NÃO encerra a gravação', async () => {
+    ReconhecedorComPacotes.pacotes = {}
+    const lado = ref<LadoDoInterprete>('outro')
+    const aoFalharMicrofone = vi.fn()
+    const m = montarFontes(lado, { aoFalharMicrofone })
+    await m.fontes.abrirMicrofoneNoLado() // 'rapido' consentido: a Web Speech na nuvem
+    ReconhecedorFalso.todos[0].onerror?.({ error: 'language-not-supported' })
+    expect(aoFalharMicrofone).toHaveBeenCalledTimes(1)
+    expect(aoFalharMicrofone.mock.calls[0][0]).toMatchObject({ codigo: 'language-not-supported' })
+    expect(m.d.setIsRecording).not.toHaveBeenCalledWith(false)
+    expect(m.d.isRecordingRef.current).toBe(true)
+  })
+
+  it('o áudio abriu no intérprete: o tradutor dos DOIS sentidos começa a carregar', async () => {
+    ReconhecedorComPacotes.pacotes = { 'pt-BR': 'available', 'en-US': 'available' }
+    const prepararTradutorDaFala = vi.fn()
+    const m = montarFontes(ref<LadoDoInterprete>('meu'), { ...privado, prepararTradutorDaFala })
+    await m.fontes.abrirMicrofoneNoLado()
+    ReconhecedorFalso.todos[0].onaudiostart?.()
+    expect(prepararTradutorDaFala).toHaveBeenCalledWith({ nosDoisSentidos: true })
+  })
+
+  it('fora do intérprete, a falha do reconhecedor segue encerrando a gravação (como sempre)', async () => {
+    ReconhecedorComPacotes.pacotes = {}
+    const m = montarFontes(ref<LadoDoInterprete>('meu'), { direcaoDoMicrofone: () => null, aoFalharMicrofone: vi.fn() })
+    await m.fontes.startMic()
+    ReconhecedorFalso.todos[0].onerror?.({ error: 'language-not-supported' })
+    expect(m.d.setIsRecording).toHaveBeenCalledWith(false)
+  })
+})

@@ -102,7 +102,7 @@ function montar(extra: Record<string, unknown> = {}) {
     ...extra,
   }
   const p = criarPipelineDeFala(deps as never)
-  return { p, setRoute, setFeedbackMsg, setSttRouteLabel }
+  return { p, setRoute, setFeedbackMsg, setSttRouteLabel, gateway: deps.gateway }
 }
 
 beforeEach(() => {
@@ -152,6 +152,29 @@ describe('a preparação no aparelho fraco', () => {
   it('com o áudio da aba no reconhecedor do navegador, não oferece (não há o que aliviar)', async () => {
     const pedir = await preparar({ sistemaNoNavegador: true })
     expect(pedir).not.toHaveBeenCalled()
+  })
+})
+
+describe('a preparação no modo intérprete (Whisper)', () => {
+  it('carrega o tradutor dos DOIS sentidos: a primeira fala do outro lado não espera download', async () => {
+    const preload = vi.fn(async () => {})
+    // O gateway falso do `montar` não tem tradutor: põe um que só conta os pares.
+    const m = montar({ micEnabled: false, captureScenarioRef: ref('interprete') })
+    ;(m.gateway as unknown as { mt: unknown }).mt = { preload }
+    await m.p.prepareModels({} as never).catch(() => undefined)
+    await vi.waitFor(() => expect(preload).toHaveBeenCalledTimes(2))
+    const pares = (preload.mock.calls as unknown as Array<[string, string]>).map(([de, para]) => `${de}>${para}`).sort()
+    expect(pares).toEqual(['es>pt', 'pt>es'])
+  })
+
+  it('fora do intérprete, só o sentido de sempre', async () => {
+    const preload = vi.fn(async () => {})
+    const m = montar({ micEnabled: false })
+    ;(m.gateway as unknown as { mt: unknown }).mt = { preload }
+    await m.p.prepareModels({} as never).catch(() => undefined)
+    await vi.waitFor(() => expect(preload).toHaveBeenCalledTimes(1))
+    await esperar()
+    expect(preload).toHaveBeenCalledTimes(1)
   })
 })
 

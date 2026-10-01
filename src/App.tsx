@@ -517,7 +517,10 @@ export default function App() {
               serem cortados pelo `overflow` de nenhum container de jogo. */}
           <FloatingScoreLayer />
           {/* O salvamento da captura continua fora da tela: o selo diz isso a quem saiu dela. */}
-          <IndicadorDeSalvamento naCaptura={activeView === 'capture'} aoVerCaptura={() => navigateTo('capture')} />
+          <IndicadorDeSalvamento
+            naCaptura={activeView === 'capture' || activeView === 'interprete'}
+            aoVerCaptura={() => navigateTo('capture')}
+          />
           <LayoutEditorToolbar />
           {protecao?.restrita && activeView === 'hub' && (
             <Suspense fallback={null}>
@@ -552,8 +555,12 @@ export default function App() {
                 missoes={missoes}
               />
             )}
-            {activeView === 'capture' && (
+            {/* O Intérprete é a mesma captura com a tela própria dele; `key` separa as duas (sem ela, trocar
+                de uma para a outra no menu manteria a gravação da primeira por baixo da segunda). */}
+            {(activeView === 'capture' || activeView === 'interprete') && (
               <LiveCapture
+                key={activeView}
+                telaDoInterprete={activeView === 'interprete'}
                 onSave={handleSaveRecording}
                 onTranscriptChange={setLiveTranscription}
                 resumingRecordingId={resumingRecordingId}

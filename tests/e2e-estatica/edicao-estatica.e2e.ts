@@ -153,7 +153,7 @@ test('edição estática: uma rodada inteira sem microfone, gravada no navegador
   // Onda 0 (recompensas v2): o Duelo termina no fim comum de todos os jogos.
   const fim = page.getByText(/Rodada concluída/).first()
   const controles =
-    /^(Pausar|Recomeçar|Cortar duas.*|Jogar|Início|Capturar|Biblioteca|Vocabulário|Estatísticas|Personalizar|Sobre|Ajustes|)$/
+    /^(Pausar|Recomeçar|Cortar duas.*|Jogar|Início|Capturar|Intérprete|Biblioteca|Vocabulário|Estatísticas|Personalizar|Sobre|Ajustes|)$/
   for (let i = 0; i < 120 && !(await fim.isVisible().catch(() => false)); i++) {
     const opcoes = page.getByRole('main').getByRole('button')
     const textos = await opcoes.allInnerTexts()

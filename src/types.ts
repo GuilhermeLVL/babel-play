@@ -171,6 +171,7 @@ export type SchedulerType = 'fsrs' | 'leitner';
 export type ViewType =
   | 'hub'
   | 'capture'
+  | 'interprete'
   | 'study'
   | 'play'
   | 'library'

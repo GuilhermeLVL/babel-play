@@ -115,7 +115,7 @@ export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
       // `capture` com `resumeId` retoma uma sessão existente (Biblioteca → "Retomar
       // Captura"). Sem o id, é uma captura nova — limpar, senão a próxima gravação
       // sobrescreveria a sessão retomada anteriormente.
-      if (view === 'capture') {
+      if (view === 'capture' || view === 'interprete') {
         setResumingRecordingId(data?.resumeId ?? null);
       }
       if (view === 'analysis') {

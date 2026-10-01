@@ -4,6 +4,7 @@ import {
   CreditCard,
   Gamepad2,
   Heart,
+  Languages,
   LayoutDashboard,
   Library,
   type LucideIcon,
@@ -41,6 +42,11 @@ export interface NavItemDef {
   labels: Record<AgeProfileType, string>;
   /** Fora do top-5 do celular: cabe no rail e na barra, não na dock inferior. */
   secondary?: boolean;
+  /**
+   * Só no celular: a dock tem cinco lugares, e este destino vai para a folha "Mais" (no rail do
+   * computador continua entre os principais). Não perde a porta: a Biblioteca segue a um toque.
+   */
+  noCelular?: 'mais';
 }
 
 const TODOS_OS_ITENS: NavItemDef[] = [
@@ -57,6 +63,15 @@ const TODOS_OS_ITENS: NavItemDef[] = [
     labels: { kids: 'Gravar', pro: 'Capturar', senior: 'Gravar Áudio' },
   },
   {
+    /* O INTÉRPRETE tem tela própria (relato do dono no celular, 2026-09-30: ele não achava como
+       chegar ao modo): logo abaixo de Capturar, que é de onde ele nasceu. Duas pessoas, dois idiomas,
+       um aparelho no meio da mesa. */
+    id: 'interprete',
+    icon: Languages,
+    short: 'Intérprete',
+    labels: { kids: 'Intérprete', pro: 'Intérprete', senior: 'Intérprete' },
+  },
+  {
     // Logo depois de Capturar: é a sequência real de uso — grava, e joga com o que gravou.
     id: 'play',
     icon: Gamepad2,
@@ -68,6 +83,7 @@ const TODOS_OS_ITENS: NavItemDef[] = [
     icon: Library,
     short: 'Biblioteca',
     labels: { kids: 'Biblioteca', pro: 'Biblioteca', senior: 'Minhas Mídias' },
+    noCelular: 'mais',
   },
   /* 'analysis' SAIU do menu de topo (decisão do dono, 31/08): uma aula/sessão sempre vive
      DENTRO de uma mídia capturada — o caminho é Biblioteca → mídia → aula. A rota continua

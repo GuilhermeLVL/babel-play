@@ -39,7 +39,14 @@ beforeEach(() => {
 })
 afterEach(() => cleanup())
 
-function montar(o: { layout?: 'celular' | 'computador'; falas?: FalaDoInterprete[] } = {}) {
+function montar(
+  o: {
+    layout?: 'celular' | 'computador'
+    falas?: FalaDoInterprete[]
+    aviso?: string | null
+    preparo?: { texto: string; pct: number | null } | null
+  } = {},
+) {
   const abrir = vi.fn()
   const fechar = vi.fn()
   const aoSair = vi.fn()
@@ -54,6 +61,8 @@ function montar(o: { layout?: 'celular' | 'computador'; falas?: FalaDoInterprete
     vozNaturalDisponivel: false,
     layout: o.layout ?? ('celular' as const),
     aoSair,
+    aviso: o.aviso,
+    preparo: o.preparo,
   }
   const r = render(<ModoInterprete {...props} falas={o.falas ?? []} />)
   const trocarFalas = (falas: FalaDoInterprete[]) => r.rerender(<ModoInterprete {...props} falas={falas} />)
@@ -129,5 +138,45 @@ describe('ModoInterprete', () => {
     expect(ponte.atual!.direcao()).toMatchObject({ lado: 'meu' })
     fireEvent.keyDown(window, { key: 'Escape' })
     expect(aoSair).toHaveBeenCalledTimes(1)
+  })
+  /* Os avisos de erro e o preparo dos dois lados moravam na tela de Captura, por baixo do intérprete:
+     quem falava no inglês não via nada acontecer (relato do dono no celular, 2026-09-30). */
+  it('o aviso de erro aparece DENTRO da tela, na faixa do meio', () => {
+    montar({ aviso: 'O navegador não reconhece English neste aparelho.' })
+    const aviso = screen.getByRole('alert')
+    expect(aviso.textContent).toContain('O navegador não reconhece English')
+    expect(screen.getByTestId('modo-interprete').contains(aviso)).toBe(true)
+  })
+
+  it('sem aviso, nenhum alerta', () => {
+    montar()
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  it('o preparo dos dois lados aparece na faixa, com a porcentagem quando há', () => {
+    montar({ preparo: { texto: 'Preparando a tradução…', pct: 25 } })
+    const preparo = screen.getByTestId('preparo-do-interprete')
+    expect(preparo.textContent).toContain('Preparando a tradução…')
+    expect(preparo.textContent).toContain('25%')
+    expect(preparo.getAttribute('role')).toBe('status')
+  })
+
+  it('o preparo sem porcentagem (o pacote do navegador) não inventa número', () => {
+    montar({ preparo: { texto: 'Preparando o reconhecimento de voz…', pct: null } })
+    expect(screen.getByTestId('preparo-do-interprete').textContent).not.toContain('%')
+  })
+
+  it('sem preparo, a faixa não mostra nada', () => {
+    montar()
+    expect(screen.queryByTestId('preparo-do-interprete')).toBeNull()
+  })
+
+  it('um microfone que falha depois de abrir devolve a metade a "Falar" (a ponte avisa o controle)', () => {
+    const { ponte } = montar()
+    fireEvent.click(screen.getByRole('button', { name: /Falar em English/i }))
+    expect(screen.getByRole('button', { name: 'Parar de ouvir' })).toBeTruthy()
+    act(() => ponte.atual!.microfoneFalhou(new Error('idioma')))
+    expect(screen.getByTestId('modo-interprete').getAttribute('data-fase')).toBe('parado')
+    expect(screen.getByRole('button', { name: /Falar em English/i })).toBeTruthy()
   })
 })

@@ -108,7 +108,7 @@ export function direcaoDoLado(lado: LadoDoInterprete, idiomas: IdiomasDoInterpre
   const doMeuLado = (lado === 'meu') !== trocados;
   const fala = doMeuLado ? idiomas.meu : idiomas.outro;
   const ouve = doMeuLado ? idiomas.outro : idiomas.meu;
-  return { lado, fala: bcp47(fala), de: baseLang(fala), para: baseLang(ouve) };
+  return { lado, fala: bcp47(fala), de: baseLang(fala), para: baseLang(ouve), ouve: bcp47(ouve) };
 }
 
 /** A direção do microfone AGORA: a do lado ativo, ou a do último que falou; `null` antes da primeira fala. */

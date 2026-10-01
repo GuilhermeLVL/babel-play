@@ -243,7 +243,13 @@ describe('resolverMotorDoMic — pergunta ao navegador e instala só quando pedi
 
   it('a pergunta "Rápido ou Privado?" sabe quando o Privado é o pacote do navegador', async () => {
     const perguntar = vi.fn(async () => 'privado' as const)
-    await resolverMotorDoMic({ ...BASE, lang: 'pt-BR', escopo: escopo('downloadable').escopo, escolha: null, perguntar })
+    await resolverMotorDoMic({
+      ...BASE,
+      lang: 'pt-BR',
+      escopo: escopo('downloadable').escopo,
+      escolha: null,
+      perguntar,
+    })
     expect(perguntar).toHaveBeenCalledWith({ pacoteDoNavegador: true })
     perguntar.mockClear()
     await resolverMotorDoMic({ ...BASE, lang: 'pt-BR', escopo: escopo('unavailable').escopo, escolha: null, perguntar })
@@ -340,5 +346,85 @@ describe('Android: o reconhecimento do navegador apita a cada religada', () => {
     const d = await resolverMotorDoMic({ ...BASE, lang: 'pt-BR', escopo })
     expect(d.motor).toBe('whisper')
     expect(install).not.toHaveBeenCalled()
+  })
+})
+
+/**
+ * O MODO INTÉRPRETE OUVE EM DOIS IDIOMAS (relato do dono no celular, 2026-09-30: o lado do inglês não
+ * respondia). A decisão olhava só o idioma de quem abriu o microfone: com o pacote do português no
+ * aparelho, o lado do inglês abria o reconhecedor LOCAL sem conferir se o pacote do inglês existia, e
+ * o navegador recusava. Agora a decisão cobre os dois: o reconhecimento no aparelho só vale se serve
+ * aos dois idiomas; senão, o degrau seguinte (a nuvem consentida ou o Whisper) atende os dois lados.
+ */
+describe('resolverMotorDoMic com mais de um idioma (modo intérprete)', () => {
+  function escopoPorIdioma(porIdioma: Record<string, string>) {
+    const install = vi.fn(async () => true)
+    const available = vi.fn(async ({ langs }: { langs: string[] }) => porIdioma[langs[0]] ?? 'unavailable')
+    return { escopo: { SpeechRecognition: { available, install } }, install, available }
+  }
+
+  it('pergunta pelos DOIS idiomas, com processLocally', async () => {
+    const e = escopoPorIdioma({ 'pt-BR': 'available', 'en-US': 'available' })
+    const d = await resolverMotorDoMic({ ...BASE, lang: 'pt-BR', idiomas: ['pt-BR', 'en-US'], escopo: e.escopo })
+    expect(d.motor).toBe('web-speech-local')
+    expect(e.available).toHaveBeenCalledWith({ langs: ['pt-BR'], processLocally: true })
+    expect(e.available).toHaveBeenCalledWith({ langs: ['en-US'], processLocally: true })
+  })
+
+  it('o pacote do inglês faltando: o local NÃO serve; sem consentimento, é o Whisper (os dois lados)', async () => {
+    const e = escopoPorIdioma({ 'pt-BR': 'available', 'en-US': 'unavailable' })
+    const d = await resolverMotorDoMic({ ...BASE, lang: 'pt-BR', idiomas: ['pt-BR', 'en-US'], escopo: e.escopo })
+    expect(d.motor).toBe('whisper')
+    expect(e.install).not.toHaveBeenCalled()
+  })
+
+  it('o pacote do inglês faltando e o "Rápido" consentido: a nuvem atende os dois lados', async () => {
+    const e = escopoPorIdioma({ 'pt-BR': 'available', 'en-US': 'unavailable' })
+    const d = await resolverMotorDoMic({
+      ...BASE,
+      lang: 'pt-BR',
+      idiomas: ['pt-BR', 'en-US'],
+      consentiuNavegador: true,
+      escopo: e.escopo,
+    })
+    expect(d.motor).toBe('web-speech-nuvem')
+  })
+
+  it("um dos pacotes a baixar: instala SÓ o que falta ('downloadable') e usa o local nos dois", async () => {
+    const e = escopoPorIdioma({ 'pt-BR': 'available', 'en-US': 'downloadable' })
+    const estados: string[] = []
+    const d = await resolverMotorDoMic({
+      ...BASE,
+      lang: 'pt-BR',
+      idiomas: ['pt-BR', 'en-US'],
+      escopo: e.escopo,
+      aoInstalar: (s) => estados.push(s),
+    })
+    expect(e.install).toHaveBeenCalledTimes(1)
+    expect(e.install).toHaveBeenCalledWith({ langs: ['en-US'], processLocally: true })
+    expect(d).toMatchObject({ motor: 'web-speech-local', motivo: 'instalado-no-aparelho' })
+    expect(estados).toEqual(['baixando', 'pronto'])
+  })
+
+  it('um pacote que não instala: o Whisper atende os dois lados, e a falha é avisada uma vez', async () => {
+    const e = escopoPorIdioma({ 'pt-BR': 'downloadable', 'en-US': 'downloadable' })
+    e.install.mockImplementationOnce(async () => true).mockImplementationOnce(async () => false)
+    const estados: string[] = []
+    const d = await resolverMotorDoMic({
+      ...BASE,
+      lang: 'pt-BR',
+      idiomas: ['pt-BR', 'en-US'],
+      escopo: e.escopo,
+      aoInstalar: (s) => estados.push(s),
+    })
+    expect(d.motor).toBe('whisper')
+    expect(estados).toEqual(['baixando', 'falhou'])
+  })
+
+  it('sem `idiomas`, vale só o `lang` (a captura de sempre não muda)', async () => {
+    const e = escopoPorIdioma({ 'pt-BR': 'available', 'en-US': 'unavailable' })
+    const d = await resolverMotorDoMic({ ...BASE, lang: 'pt-BR', escopo: e.escopo })
+    expect(d.motor).toBe('web-speech-local')
+    expect(e.available).toHaveBeenCalledTimes(1)
   })
 })

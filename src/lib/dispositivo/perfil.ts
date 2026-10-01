@@ -13,8 +13,11 @@
  * não, pelo BCD (dado espelhado do Chrome Android, nunca testado no headset), e `capturaDoSistema`
  * era só "a API existe": no aparelho de verdade o app pedia o compartilhamento da visão do headset e
  * nascia com o microfone desligado, enquanto a emulação (sem a API) seguia o caminho do microfone.
- * Compartilhar a tela ali é capturar a visão inteira para jogar os quadros fora, em cima do Whisper
- * local. Por isso `capturaDoSistema` é decisão do PERFIL: no Quest, nunca.
+ *
+ * MEDIDO NO QUEST 3 (01/10/2026, `/diagnostico`, Browser 152): o compartilhamento traz o som do headset
+ * (-19 dB), custa 1 quadro longo (97 ms) e o áudio MORRE se a faixa de vídeo parar; o microfone, no
+ * mesmo teste, entregou silêncio. O que travava o headset era a CPU (3 núcleos: Whisper base em 1 thread
+ * tem fator 1,42), não o compartilhamento. Então o Quest usa o áudio do sistema, como o computador.
  *
  * Cinco perfis (matriz da pesquisa, `docs/pesquisa/2026-09-auditoria-seguranca-performance-dispositivos.md` §5):
  *
@@ -78,10 +81,7 @@ export interface PerfilDoDispositivo {
   threadsWasm: number;
   /** O Whisper small (589 MB, só tempo real com GPU) pode ser escolhido. Só desktop com GPU. */
   permiteSmall: boolean;
-  /**
-   * A captura usa o áudio do sistema/aba (getDisplayMedia). Decisão do perfil, não só "a API existe":
-   * o Quest tem a API e fica sem ela (ver o cabeçalho) — ali a fonte é o microfone.
-   */
+  /** A captura usa o áudio do sistema/aba (getDisplayMedia): no computador e no Quest. */
   capturaDoSistema: boolean;
   /**
    * Pedir confirmação antes de baixar modelos acima deste total (MB). `null` = não pedir;
@@ -195,7 +195,6 @@ export function classificarDispositivo(s: SinaisDoDispositivo): PerfilDoDisposit
   if (redeLenta) motivos.push(`rede ${s.tipoDeRede}`);
   const confirmarDownloadAcimaDeMb =
     s.economiaDeDados || redeLenta ? 0 : tipo === 'quest' || tipo.startsWith('celular') ? 100 : null;
-  if (tipo === 'quest' && s.capturaDeTela) motivos.push('getDisplayMedia existe, mas no Quest a fonte é o microfone');
 
   return {
     tipo,
@@ -203,7 +202,7 @@ export function classificarDispositivo(s: SinaisDoDispositivo): PerfilDoDisposit
     poucaMemoria,
     threadsWasm,
     permiteSmall: tipo === 'desktop-com-gpu',
-    capturaDoSistema: s.capturaDeTela && tipo !== 'quest',
+    capturaDoSistema: s.capturaDeTela,
     confirmarDownloadAcimaDeMb,
     alvoMinimoPx: tipo === 'quest' ? 56 : 48,
     motivos,

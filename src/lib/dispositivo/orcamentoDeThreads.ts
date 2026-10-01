@@ -66,7 +66,9 @@ export function tetoDeThreads(nucleos: number | null): number {
 }
 
 export function distribuirThreads({ nucleos, isolado, leve, quest }: EntradaDoOrcamento): OrcamentoDeThreads {
-  if (!isolado || quest) return { whisper: 1, mt: 1, vad: 1, voz: 1 };
+  if (!isolado) return { whisper: 1, mt: 1, vad: 1, voz: 1 };
+  /* Quest 3 medido (01/10/2026): 3 núcleos; Whisper base q8 com fator 1,42 em 1 thread e 0,81 em 2. */
+  if (quest) return { whisper: 2, mt: 1, vad: 1, voz: 1 };
   const n = nucleosDe(nucleos);
   const mt = n >= 8 ? 2 : 1;
   const teto = leve ? TETO_DO_WHISPER_LEVE : TETO_DO_WHISPER;

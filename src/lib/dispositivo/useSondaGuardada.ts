@@ -12,6 +12,7 @@
  */
 import { useEffect, useState } from 'react';
 
+import { perfilDoDispositivo } from './perfil';
 import type { SondaDoAparelho } from './sonda';
 
 export function useSondaGuardada(): SondaDoAparelho | null {
@@ -19,7 +20,14 @@ export function useSondaGuardada(): SondaDoAparelho | null {
   useEffect(() => {
     let vivo = true;
     import('./sonda')
-      .then((m) => m.sondaGuardada())
+      .then(async (m) => {
+        const guardada = await m.sondaGuardada();
+        /* QUEST: a GPU (Adreno 7xx) faz ~88x a conta da CPU (medido em 01/10/2026: 49,5 contra 0,56), e
+           o Whisper só vai a ela com o microbenchmark guardado (`usarGpuNoAparelho`). No início da
+           captura ele não roda mais lá (`semBenchmark`); roda aqui, no ocioso da tela, antes do Iniciar. */
+        if (guardada?.benchmark || perfilDoDispositivo().tipo !== 'quest') return guardada;
+        return (await m.agendarSondaDoAparelho()) ?? guardada;
+      })
       .then(
         (s) => {
           if (vivo) setSonda(s);

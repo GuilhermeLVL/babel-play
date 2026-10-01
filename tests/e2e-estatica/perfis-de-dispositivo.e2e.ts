@@ -43,6 +43,8 @@ async function abrirCaptura(page: Page) {
 for (const [nome, d] of Object.entries(DISPOSITIVOS)) {
   test(`${nome}: perfil, modelo, captura só por microfone e aviso de download`, async ({ browser }, info) => {
     test.skip(info.project.name !== 'desktop-1280', 'cada teste monta o contexto do próprio aparelho')
+    // Desde a medida no Quest 3 (01/10/2026) o headset usa o áudio do sistema: este roteiro é só do microfone.
+    test.skip(nome === 'quest', 'o Quest usa o compartilhamento (som do headset), não só o microfone')
     mkdirSync(PASTA, { recursive: true })
     const ctx = await browser.newContext({ ...d.contexto, baseURL: info.project.use.baseURL })
     const page = await ctx.newPage()

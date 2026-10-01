@@ -31,9 +31,9 @@ describe('distribuirThreads', () => {
      dava 2 threads ao Whisper e até 2 ao tradutor — mais a thread principal (interface e VAD) e a voz:
      5 a 6 threads ocupadas, e o headset inteiro travava. No Quest, uma thread por motor. */
   it.each([
-    [6, 1, 1],
-    [8, 1, 1],
-    [4, 1, 1],
+    [3, 2, 1],
+    [6, 2, 1],
+    [8, 2, 1],
   ])('Quest com %i núcleos anunciados → whisper %i, mt %i', (nucleos, whisper, mt) => {
     expect(distribuirThreads({ nucleos, isolado: true, leve: true, quest: true })).toEqual({
       whisper,

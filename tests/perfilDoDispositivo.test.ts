@@ -86,7 +86,8 @@ describe('classificarDispositivo — os cinco perfis', () => {
   /* O Quest de verdade TEM getDisplayMedia (Browser 36.5, 14/01/2025). Com `capturaDoSistema` igual a
      "a API existe", o headset seguia o caminho do computador: pedia o compartilhamento da visão inteira
      e nascia com o microfone desligado (relato do dono, 01/10/2026: o Quest inteiro trava ao iniciar). */
-  it('Quest COM getDisplayMedia: continua quest, e a captura é só pelo microfone', () => {
+  /* Medido no Quest 3 (01/10): o compartilhamento traz o som e custa pouco; quem travava era a CPU. */
+  it('Quest COM getDisplayMedia: continua quest, e a captura usa o áudio do sistema', () => {
     const p = classificarDispositivo({
       ...desktop,
       userAgent: UA_QUEST,
@@ -96,9 +97,8 @@ describe('classificarDispositivo — os cinco perfis', () => {
       nucleos: 6,
     })
     expect(p.tipo).toBe('quest')
-    expect(p.capturaDoSistema).toBe(false)
+    expect(p.capturaDoSistema).toBe(true)
     expect(p.leve).toBe(true)
-    expect(p.motivos.join(' ')).toMatch(/no Quest a fonte é o microfone/)
   })
 
   it('Quest por CAPACIDADE, sem o UA revelar: XR + sem getDisplayMedia + sem toque', () => {

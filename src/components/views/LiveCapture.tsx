@@ -3853,6 +3853,23 @@ export default function LiveCapture({
                         <p className="mut orientacao-da-captura" style={{ fontSize: 12.5, marginTop: 6 }}>
                           O som do computador entra sozinho. Dê play no vídeo, aula ou chamada e clique em Iniciar. A
                           legenda bilíngue aparece aqui e nas Legendas flutuantes.
+                          {perfilDoAparelho.tipo === 'quest' && (
+                            <>
+                              {' '}
+                              No Meta Quest, ao iniciar, compartilhe a visão do headset: o som vem junto.{' '}
+                              <a
+                                className="link"
+                                href="/diagnostico"
+                                data-testid="abrir-diagnostico"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  navegarPara({ view: 'diagnostico' });
+                                }}
+                              >
+                                Diagnóstico do aparelho
+                              </a>
+                            </>
+                          )}
                         </p>
                       ) : (
                         /* SEM getDisplayMedia (Quest, Android, iOS): nenhum botão de "áudio do sistema"
@@ -3874,23 +3891,6 @@ export default function LiveCapture({
                                 : t(
                                     'O navegador deste aparelho não capta o som do sistema: a legenda vem do microfone. Deixe o vídeo tocar no alto-falante, perto do microfone, ou use a captura para conversar.',
                                   )}
-                            {/* O diagnóstico mede NO headset o que a emulação não mede (`Diagnostico.tsx`). */}
-                            {perfilDoAparelho.tipo === 'quest' && (
-                              <>
-                                {' '}
-                                <a
-                                  className="link"
-                                  href="/diagnostico"
-                                  data-testid="abrir-diagnostico"
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    navegarPara({ view: 'diagnostico' });
-                                  }}
-                                >
-                                  Diagnóstico do aparelho
-                                </a>
-                              </>
-                            )}
                           </span>
                         </p>
                       )}

@@ -319,6 +319,72 @@ describe('o tradutor da fala do Rápido (não há modelo de transcrição a espe
     p.prepararTradutorDaFala()
     expect(preload).not.toHaveBeenCalled()
   })
+
+  /* O MODO INTÉRPRETE (relato do dono no celular, 2026-09-30): só o sentido pt→en era preparado, e a
+     primeira fala em inglês disparava o download do en→pt sem aviso — parecia que nada acontecia. */
+  it('no intérprete, prepara os DOIS sentidos, um depois do outro, com a barra somando os dois', async () => {
+    const resolvers: Array<() => void> = []
+    const progressos: Array<(p: number, l?: string, b?: { loaded: number; total: number }) => void> = []
+    const preload = vi.fn(
+      (_de: string, _para: string, cb?: (typeof progressos)[number]) =>
+        new Promise<void>((resolver) => {
+          progressos.push(cb!)
+          resolvers.push(resolver)
+        }),
+    )
+    const { p, deps } = montar()
+    ;(deps.gateway as unknown as { mt: unknown }).mt = { preload }
+    p.prepararTradutorDaFala({ nosDoisSentidos: true })
+    expect(preload).toHaveBeenCalledTimes(1)
+    expect(preload).toHaveBeenNthCalledWith(1, 'pt', 'en', expect.any(Function))
+    // A primeira metade da barra é o pt→en.
+    progressos[0](0.5, 'baixando', { loaded: 50, total: 100 })
+    await quadro()
+    const ultimo = () => {
+      const chamadas = (deps.setModelPrep as ReturnType<typeof vi.fn>).mock.calls
+      return (chamadas.at(-1)![0] as (s: unknown) => unknown)(null)
+    }
+    expect(ultimo()).toMatchObject({ mt: 0.25, done: false })
+    // O pt→en pronto: só agora o en→pt começa, e a barra segue de 50%.
+    progressos[0](1)
+    resolvers[0]()
+    await esperar()
+    expect(preload).toHaveBeenCalledTimes(2)
+    expect(preload).toHaveBeenNthCalledWith(2, 'en', 'pt', expect.any(Function))
+    progressos[1](0.5, 'baixando', { loaded: 50, total: 100 })
+    await quadro()
+    expect(ultimo()).toMatchObject({ mt: 0.75 })
+    // Cada sentido pronto traduz as falas que ficaram sem tradução; a barra só fecha com os dois.
+    expect(deps.retraduzirDegradados).toHaveBeenCalledTimes(1)
+    progressos[1](1)
+    resolvers[1]()
+    await esperar()
+    await quadro()
+    expect(ultimo()).toMatchObject({ mt: 1 })
+    expect(deps.retraduzirDegradados).toHaveBeenCalledTimes(2)
+  })
+
+  it('no intérprete, o primeiro sentido que falha não impede o segundo', async () => {
+    const preload = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('sem rede'))
+      .mockImplementationOnce(async () => {})
+    const { p, deps } = montar()
+    ;(deps.gateway as unknown as { mt: unknown }).mt = { preload }
+    p.prepararTradutorDaFala({ nosDoisSentidos: true })
+    await esperar()
+    await esperar()
+    expect(preload).toHaveBeenCalledTimes(2)
+    expect(preload).toHaveBeenNthCalledWith(2, 'en', 'pt', expect.any(Function))
+  })
+
+  it('fora do intérprete, só o sentido da sua fala (a captura de sempre não muda)', () => {
+    const preload = vi.fn(() => new Promise<void>(() => {}))
+    const { p, deps } = montar()
+    ;(deps.gateway as unknown as { mt: unknown }).mt = { preload }
+    p.prepararTradutorDaFala()
+    expect(preload).toHaveBeenCalledTimes(1)
+  })
 })
 
 /**

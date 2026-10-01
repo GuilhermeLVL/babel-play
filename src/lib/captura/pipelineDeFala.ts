@@ -1382,16 +1382,27 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     try {
       // Tradutor local (best-effort; direção "ouço → meu idioma"). Emite barra própria.
       const iniciarTradutor = () =>
-        gateway.mt.preload(mtDe, mtPara, (p, _l, bytes) => {
-          prepNoQuadro((s) => (s ? { ...s, mt: p >= 1 ? 1 : p, mtBytes: bytes ?? s.mtBytes } : s));
-          if (p >= 1) {
-            /* O tradutor local (113 MB) fica pronto DEPOIS do Whisper. Tudo que foi falado nesse
-               intervalo já tinha degradado para "(texto original)" e ficava assim para sempre,
-               medido no teste do dono (2026-08-26): legenda certa, tradução nenhuma. Retraduz. */
-            retraduzirDegradados();
-            setTimeout(() => setModelPrep((s) => (s?.done && semPacotePendente(s) ? null : s)), 1800);
-          }
-        });
+        gateway.mt
+          .preload(mtDe, mtPara, (p, _l, bytes) => {
+            prepNoQuadro((s) => (s ? { ...s, mt: p >= 1 ? 1 : p, mtBytes: bytes ?? s.mtBytes } : s));
+            if (p >= 1) {
+              /* O tradutor local (113 MB) fica pronto DEPOIS do Whisper. Tudo que foi falado nesse
+                 intervalo já tinha degradado para "(texto original)" e ficava assim para sempre,
+                 medido no teste do dono (2026-08-26): legenda certa, tradução nenhuma. Retraduz. */
+              retraduzirDegradados();
+              setTimeout(() => setModelPrep((s) => (s?.done && semPacotePendente(s) ? null : s)), 1800);
+            }
+          })
+          .then(() => {
+            /* O MODO INTÉRPRETE fala nos dois sentidos: o do outro lado vem logo depois, para a primeira
+               fala dele não esperar um download no meio da conversa (relato do dono, 2026-09-30). */
+            if (captureScenarioRef.current !== 'interprete' || mtDe === mtPara) return;
+            clog('tradutor do outro lado (intérprete): carregando', `${mtPara}→${mtDe}`);
+            return gateway.mt
+              .preload(mtPara, mtDe)
+              .then(() => retraduzirDegradados())
+              .catch((e: unknown) => clog('tradutor do outro lado indisponível (a cascata segue):', String(e)));
+          });
       // Aparelho com pouca memória: o tradutor só começa DEPOIS do Whisper pronto (pico menor).
       if (!umDeCadaVez) iniciarTradutor();
       // Whisper (obrigatório para transcrever o áudio do sistema/aba).
@@ -1429,29 +1440,47 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
    * navegador, quando cobre o par, dispensa-o (`mt.preload` decide) — e aí nenhuma barra aparece,
    * porque o painel só nasce com o primeiro progresso. No 100%, as falas pendentes são traduzidas.
    */
-  const prepararTradutorDaFala = () => {
+  const prepararTradutorDaFala = (o: { nosDoisSentidos?: boolean } = {}) => {
     const de = baseLang(sourceLangRef.current || '');
     const para = baseLang(targetLangRef.current || '');
     if (!de || !para || de === para || getProviderMode() === 'cloud') return;
-    clog('tradutor da fala (Rápido): carregando', `${de}→${para}`);
-    void gateway.mt
-      .preload(de, para, (p, _l, bytes) => {
-        const pronto = p >= 1;
-        prepNoQuadro((s) => {
-          const base = s ?? { whisper: null, mt: 0, fromCache: false, error: null, done: false };
-          return {
-            ...base,
-            mt: pronto ? 1 : p,
-            mtBytes: bytes ?? base.mtBytes,
-            done: base.whisper === null ? pronto : base.done,
-          };
-        });
-        if (pronto) {
-          retraduzirDegradados();
-          setTimeout(() => setModelPrep((s) => (s && preparoConcluido(s) ? null : s)), 1800);
-        }
-      })
-      .catch((e: unknown) => clog('tradutor da fala indisponível (a cascata segue):', String(e)));
+    /* O MODO INTÉRPRETE fala nos DOIS sentidos: a primeira fala do outro lado disparava o download do
+       en→pt no meio da conversa, sem nada na tela (relato do dono no celular, 2026-09-30). Os dois vêm
+       na fila, um depois do outro (a memória do aparelho não pede dois de uma vez), e a barra soma os
+       dois: a primeira metade é o sentido da sua fala, a segunda o da fala do outro. */
+    const sentidos: Array<[string, string]> = o.nosDoisSentidos
+      ? [
+          [de, para],
+          [para, de],
+        ]
+      : [[de, para]];
+    const carregar = (i: number): Promise<void> => {
+      const [origem, destino] = sentidos[i];
+      clog('tradutor da fala: carregando', `${origem}→${destino}`);
+      const ultimo = i === sentidos.length - 1;
+      return gateway.mt
+        .preload(origem, destino, (p, _l, bytes) => {
+          const pronto = p >= 1;
+          const total = (i + p) / sentidos.length;
+          prepNoQuadro((s) => {
+            const base = s ?? { whisper: null, mt: 0, fromCache: false, error: null, done: false };
+            const fechou = pronto && ultimo;
+            return {
+              ...base,
+              mt: fechou ? 1 : Math.min(total, 0.999),
+              mtBytes: bytes ?? base.mtBytes,
+              done: base.whisper === null ? fechou : base.done,
+            };
+          });
+          if (pronto) {
+            retraduzirDegradados();
+            if (ultimo) setTimeout(() => setModelPrep((s) => (s && preparoConcluido(s) ? null : s)), 1800);
+          }
+        })
+        .catch((e: unknown) => clog('tradutor da fala indisponível (a cascata segue):', String(e)))
+        .then(() => (i + 1 < sentidos.length ? carregar(i + 1) : undefined));
+    };
+    void carregar(0);
   };
 
   /**

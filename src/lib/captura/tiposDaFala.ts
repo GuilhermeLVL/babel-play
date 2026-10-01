@@ -113,6 +113,11 @@ export interface DirecaoDaFala {
   de: string;
   /** ISO-639-1 da tradução — o idioma de quem ouve. */
   para: string;
+  /**
+   * BCP-47 de quem OUVE — o idioma do outro lado. O microfone do intérprete atende os dois lados: a
+   * decisão do motor (`resolverMotorDoMic`) precisa cobrir os dois idiomas antes do primeiro toque.
+   */
+  ouve: string;
 }
 
 /** Uma fala terminou no microfone (o VAD fechou, ou a Web Speech comprometeu o final). */

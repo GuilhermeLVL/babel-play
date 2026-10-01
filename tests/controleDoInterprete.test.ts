@@ -88,7 +88,7 @@ describe('criarControleDoInterprete', () => {
     controle.tocar('outro')
     expect(destravar).toHaveBeenCalledTimes(1)
     expect(abrir).toHaveBeenCalledTimes(1)
-    expect(controle.direcao()).toEqual({ lado: 'outro', fala: 'en-US', de: 'en', para: 'pt' })
+    expect(controle.direcao()).toEqual({ lado: 'outro', fala: 'en-US', de: 'en', para: 'pt', ouve: 'pt-BR' })
     expect(controle.estado().fase).toBe('ouvindo')
   })
 
@@ -210,6 +210,34 @@ describe('criarControleDoInterprete', () => {
     controle.tocar('meu')
     await vi.runAllTimersAsync()
     expect(aoFalhar).toHaveBeenCalledTimes(1)
+    expect(controle.estado().fase).toBe('parado')
+  })
+  /* O reconhecedor do navegador falha DEPOIS de abrir (o pacote do idioma não serve, o serviço recusa):
+     quem avisa é a captura, e a tela volta a "parado" em vez de ficar em "Ouvindo…" para sempre. */
+  it('o microfone que falha DEPOIS de abrir (avisado pela captura) volta a parado e fecha o que abriu', () => {
+    const aoFalhar = vi.fn()
+    const { controle, fechar } = montar({ aoFalharMicrofone: aoFalhar })
+    controle.tocar('outro')
+    expect(controle.estado().fase).toBe('ouvindo')
+    const erro = Object.assign(new Error('idioma'), { codigo: 'language-not-supported' })
+    controle.microfoneFalhou(erro)
+    expect(aoFalhar).toHaveBeenCalledWith(erro)
+    expect(controle.estado().fase).toBe('parado')
+    expect(fechar).toHaveBeenCalled()
+    // Tocar de novo (no mesmo ou no outro lado) abre outra vez.
+    controle.tocar('meu')
+    expect(controle.estado()).toMatchObject({ fase: 'ouvindo', lado: 'meu' })
+  })
+
+  it('a falha do microfone fora de "ouvindo" (a voz lendo, a fala traduzindo) não mexe na conversa', () => {
+    const { controle, voz } = montar()
+    controle.tocar('meu')
+    controle.aoFimDaFala({ segId: 'f1', source: 'mic', lado: 'meu' })
+    controle.aoTraduzirFinal(traduzida('f1', 'hello'))
+    expect(controle.estado().fase).toBe('falando')
+    controle.microfoneFalhou(new Error('tardio'))
+    expect(controle.estado().fase).toBe('falando')
+    voz.terminar()
     expect(controle.estado().fase).toBe('parado')
   })
 })

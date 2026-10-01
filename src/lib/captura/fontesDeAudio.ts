@@ -132,7 +132,7 @@ export interface DepsDasFontesDeAudio {
    * O tradutor da SUA fala no "Rápido" (`pipelineDeFala.prepararTradutorDaFala`): começa a carregar
    * quando o microfone abre, e não no primeiro final (relato do dono no celular, 2026-09-29).
    */
-  prepararTradutorDaFala?: () => void;
+  prepararTradutorDaFala?: (o?: { nosDoisSentidos?: boolean }) => void;
   /* --- modo intérprete (Fase E) --- */
   /**
    * A direção do microfone pelo lado tocado (`interprete.ts`, `direcaoAtual`): a Web Speech abre no
@@ -153,13 +153,24 @@ export const PRAZO_DO_AUDIO_DA_WEB_SPEECH_MS = 20_000;
 let avisouMicSemNuvem = false;
 
 /**
+ * O que uma sessão da Web Speech do microfone sabe de si. `idiomas`: no reconhecimento NO APARELHO, os
+ * idiomas que a decisão do motor conferiu (o pacote de cada um existe); a nuvem atende qualquer um e
+ * não os guarda. É o que impede o intérprete de reabrir o reconhecedor local num idioma sem pacote.
+ */
+interface ModoDaWebSpeech {
+  noAparelho: boolean;
+  idioma: string;
+  idiomas?: string[];
+}
+
+/**
  * O MODO E O IDIOMA de cada sessão da Web Speech do microfone, e o modo da última de cada tela (a
  * chave é o `webSpeechRef`, que é o mesmo entre os renders; a fábrica não é). É o que deixa o
  * intérprete REABRIR a Web Speech no idioma de outro lado sem perguntar de novo "Rápido ou Privado?"
  * — no aparelho continua no aparelho, na nuvem continua na nuvem.
  */
-const sessoesDaWebSpeech = new WeakMap<SttSession, { noAparelho: boolean; idioma: string }>();
-const modoDaWebSpeech = new WeakMap<object, { noAparelho: boolean }>();
+const sessoesDaWebSpeech = new WeakMap<SttSession, ModoDaWebSpeech>();
+const modoDaWebSpeech = new WeakMap<object, Pick<ModoDaWebSpeech, 'noAparelho' | 'idiomas'>>();
 
 export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
   const {
@@ -510,7 +521,7 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
   // SO) — para isso, o usuário troca para o motor Whisper. Sem streaming de PCM: partials/finais.
   // `noAparelho`: reconhecimento LOCAL (`processLocally`); devolve false se o navegador não o tem —
   // quem chama cai no Whisper em vez de mandar o áudio ao Google (ver `motorDoMicrofone.ts`).
-  const startWebSpeechMic = (noAparelho = false): boolean => {
+  const startWebSpeechMic = (noAparelho = false, idiomasConferidos?: string[]): boolean => {
     // A Web Speech abre o microfone sozinha: o contexto do clique não tem uso aqui.
     descartarContextoDoClique();
     const speakerId = 'user';
@@ -579,7 +590,9 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
           setFeedbackMsg((erro as Error).message);
           setTimeout(() => setFeedbackMsg(''), 7000);
         }
-        if (!systemEnabled) {
+        /* No intérprete a sessão é a conversa: um lado que não abriu devolve a tela a "parado" (quem a
+           avisa é o `aoFalharMicrofone`), e a pessoa toca de novo ou no outro lado. */
+        if (!systemEnabled && !direcao) {
           setIsRecording(false);
           isRecordingRef.current = false;
         }
@@ -605,8 +618,9 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
           deps.aoAbrirFonte?.('mic');
           if (!deps.semMedidorParalelo) void startMeter(); // waveform real (a Web Speech não fornece nível)
           // O tradutor já, sem esperar a primeira legenda. Com o sistema, quem o prepara é `prepareModels`.
-          if (!systemEnabled) deps.prepararTradutorDaFala?.();
-          if (!systemEnabled) {
+          if (!systemEnabled) deps.prepararTradutorDaFala?.({ nosDoisSentidos: !!direcao });
+          // No intérprete o botão já diz "Ouvindo…": o aviso por cima só atrapalharia.
+          if (!systemEnabled && !direcao) {
             setFeedbackMsg('Microfone (navegador) ativo, transcrição instantânea. Fale à vontade.');
             setTimeout(() => setFeedbackMsg(''), 3000);
           }
@@ -621,8 +635,9 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
       });
       if (acabou) return true; // falhou no próprio `start()`: a ajuda já está na tela
       webSpeechRef.current = sessao;
-      sessoesDaWebSpeech.set(sessao, { noAparelho, idioma: idiomaDaFala });
-      modoDaWebSpeech.set(webSpeechRef, { noAparelho });
+      const conferidos = noAparelho ? { idiomas: idiomasConferidos ?? [idiomaDaFala] } : {};
+      sessoesDaWebSpeech.set(sessao, { noAparelho, idioma: idiomaDaFala, ...conferidos });
+      modoDaWebSpeech.set(webSpeechRef, { noAparelho, ...conferidos });
       prazo.id = setTimeout(() => {
         if (!abriu)
           falhou(
@@ -660,6 +675,11 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
      de o mic abrir. Sempre a partir de um clique (Iniciar, desmutar, retomar) — é o que permite pedir
      a instalação do pacote do idioma. */
   const startMic = async (): Promise<void> => {
+    /* MODO INTÉRPRETE: o microfone atende os DOIS lados, então a decisão cobre os dois idiomas — o
+       reconhecimento no aparelho só vale se o navegador tem o pacote de cada um. Antes, só o idioma de
+       quem abria era conferido, e o outro lado abria o local sem pacote e o navegador recusava. */
+    const direcao = deps.direcaoDoMicrofone?.() ?? null;
+    const idiomas = direcao ? [...new Set([direcao.fala, ...(direcao.ouve ? [direcao.ouve] : [])])] : undefined;
     const decisao = await resolverMotorDoMic({
       preferido: micEngine,
       webSpeechSuportado: webSpeechSupported,
@@ -668,7 +688,8 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
       escolha: escolhaDoMic(),
       perguntar: deps.perguntarEscolhaDoMic,
       perfilId: perfilId(),
-      lang: sourceLangRef.current,
+      lang: direcao?.fala ?? sourceLangRef.current,
+      ...(idiomas ? { idiomas } : {}),
       /* Pacote de voz do navegador sendo instalado (o degrau seria o nosso Whisper): a linha dele
          na barra de preparo, como o Translator (`pacotesNativos.ts`). */
       aoInstalar: criarProgressoDosPacotesNativos({ setModelPrep, ativo: () => isRecordingRef.current, clog }).voz,
@@ -679,7 +700,7 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
       `(${decisao.motivo})`,
       decisao.instalarNoAparelho ? '| pacote local pedido' : '',
     );
-    if (decisao.motor === 'web-speech-local' && startWebSpeechMic(true)) return;
+    if (decisao.motor === 'web-speech-local' && startWebSpeechMic(true, idiomas)) return;
     if (decisao.motor === 'web-speech-nuvem') {
       startWebSpeechMic(false);
       return;
@@ -793,7 +814,10 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
       encerrarWebSpeechDoMic();
     }
     const modo = daAberta ?? modoDaWebSpeech.get(webSpeechRef);
-    if (modo && startWebSpeechMic(modo.noAparelho)) return;
+    /* O local só reabre num idioma que a decisão conferiu; fora dele, decide de novo (o modelo do app
+       ou a nuvem consentida atendem o lado que o navegador não cobre). */
+    const cobre = !!modo && (!modo.noAparelho || !direcao || !modo.idiomas || modo.idiomas.includes(direcao.fala));
+    if (modo && cobre && startWebSpeechMic(modo.noAparelho, modo.idiomas)) return;
     await startMic();
   };
 

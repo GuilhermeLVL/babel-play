@@ -59,6 +59,10 @@ test('Quest: o aviso da captura leva ao diagnóstico, que se reconhece como ques
   const pular = page.getByRole('button', { name: 'Pular apresentação' })
   if (await pular.isVisible().catch(() => false)) await pular.click()
 
+  // O Quest usa a captura enxuta, com a escolha da fonte (som do headset ou microfone).
+  await expect(page.getByTestId('captura-no-celular')).toBeVisible()
+  await expect(page.getByTestId('fonte-do-quest')).toBeVisible()
+  await page.screenshot({ path: 'test-results/quest-capturar.png' })
   await page.getByTestId('abrir-diagnostico').click()
   await expect(page).toHaveURL(/\/diagnostico$/)
   await expect(page.getByTestId('diagnostico-perfil')).toContainText('quest')

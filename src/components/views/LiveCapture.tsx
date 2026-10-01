@@ -692,7 +692,12 @@ export default function LiveCapture({
    * Anotado como `boolean` de propósito: sem isso o TypeScript estreita para o literal `true` e
    * passa a tratar esses ramos de erro como inalcançáveis.
    */
-  const systemEnabled: boolean = perfilDoAparelho.capturaDoSistema;
+  /* NO QUEST É UMA FONTE DE CADA VEZ: o sistema emudece o microfone durante o compartilhamento
+     (medido em 01/10/2026; a Meta chama de comportamento esperado). "Som do headset" compartilha a
+     visão com o áudio; "Microfone" capta a voz, sem compartilhar nada. */
+  const [fonteDoQuest, setFonteDoQuest] = useState<'headset' | 'mic'>('headset');
+  const systemEnabled: boolean =
+    perfilDoAparelho.capturaDoSistema && !(perfilDoAparelho.tipo === 'quest' && fonteDoQuest === 'mic');
   // COMO capturar o áudio do sistema: 'display' = compartilhar aba/tela (getDisplayMedia; zero
   // setup, mas o áudio de TELA sofre a limitação NotReadableError no Windows) ou 'loopback' =
   // dispositivo de entrada de loopback (Stereo Mix / VB-Cable via getUserMedia; à prova de falhas,
@@ -2769,6 +2774,15 @@ export default function LiveCapture({
      O estado e os efeitos são os mesmos; muda a apresentação (`CapturaNoCelular`) e o que o toque
      faz — o balão abre a folha da frase, a palavra abre a folha da palavra. */
   const noCelular = perfilDoAparelho.tipo.startsWith('celular');
+  /* O QUEST USA A MESMA CAPTURA ENXUTA do celular (poucos controles grandes), no lugar da tela do
+     computador com painéis e ajustes de Windows. O que muda ali vai por `aparelho` e `fonte`. */
+  const noQuest = perfilDoAparelho.tipo === 'quest';
+  const capturaEnxuta = noCelular || noQuest;
+  const escolherFonteDoQuest = (fonte: 'headset' | 'mic') => {
+    setFonteDoQuest(fonte);
+    setMicEnabled(fonte === 'mic');
+    setCaptureScenario(cenarioDasFontes(fonte === 'mic', fonte === 'headset'));
+  };
   const [telaAcesaLigada, setTelaAcesaLigada] = usePreferenciaDeTelaAcesa();
   useTelaAcesa(noCelular && isRecording && telaAcesaLigada);
   useEffect(() => {
@@ -2936,11 +2950,15 @@ export default function LiveCapture({
             {siglaDoLado(false, parResumido.para)}
           </>
         }
-        modo={modoDoMic}
+        aparelho={noQuest ? 'quest' : 'celular'}
+        fonte={noQuest && !isRecording ? { atual: fonteDoQuest, escolher: escolherFonteDoQuest } : undefined}
+        micFixo={noQuest}
+        modo={noQuest ? null : modoDoMic}
         aoTrocarModo={podeTrocarModo ? () => setTrocandoModo(true) : undefined}
         micLigado={micEnabled}
         micAbrindo={micAbrindo}
         aoAlternarMic={alternarMicrofone}
+        semFlutuante={noQuest}
         flutuante={{
           ativo: showOverlay,
           alternar: () => {
@@ -3201,7 +3219,7 @@ export default function LiveCapture({
                 <MonitorSpeaker aria-hidden /> Áudio do sistema
               </h3>
               <p className="mut aj">Como o som do computador chega até o app.</p>
-              {!systemEnabled ? (
+              {!systemEnabled || perfilDoAparelho.tipo === 'quest' ? (
                 /* Sem getDisplayMedia não há rota nenhuma para escolher: nem aba/tela, nem loopback
                    (Stereo Mix/VB-Cable são do Windows), nem o servidor local. Explica em vez de oferecer
                    três opções que falhariam. */
@@ -3210,7 +3228,7 @@ export default function LiveCapture({
                   <span>
                     {perfilDoAparelho.tipo === 'quest'
                       ? t(
-                          'No Meta Quest a captura usa só o microfone: compartilhar a tela do headset para pegar o som pesa demais no aparelho.',
+                          'No Meta Quest o som entra pelo compartilhamento da visão do headset ou pelo microfone, um de cada vez. A escolha fica na tela de captura.',
                         )
                       : t(
                           'Este navegador não oferece captura do som do sistema (a função getDisplayMedia não existe no Android nem no iPhone). A captura usa só o microfone.',
@@ -3647,7 +3665,7 @@ export default function LiveCapture({
             />
           </Suspense>
         </div>
-      ) : noCelular ? (
+      ) : capturaEnxuta ? (
         telaDoCelular
       ) : (
         <div className="flex-1 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden relative">
@@ -4491,7 +4509,7 @@ export default function LiveCapture({
             registrarPonte={registrarPonteDoInterprete}
             vozNaturalDisponivel={getEntitlements().vozNatural && flagLigada(FLAG_VOZ_NATURAL)}
             velocidade={ttsSpeed}
-            layout={noCelular ? 'celular' : 'computador'}
+            layout={capturaEnxuta ? 'celular' : 'computador'}
             abrindo={micAbrindo}
             aviso={avisoDoPreparo(modelPrep)}
             automatico={automaticoDoInterprete}

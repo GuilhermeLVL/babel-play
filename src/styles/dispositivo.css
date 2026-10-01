@@ -74,3 +74,29 @@ html[data-modo-leve='true'] .leg-flut {
   backdrop-filter: none;
   background: rgba(16, 14, 12, 0.97);
 }
+
+/* O QUE O APARELHO NÃO TEM NÃO APARECE (`lib/dispositivo/recursos.ts`, marcado no <html>). Um botão
+   "Ouvir" num headset sem voz de leitura, ou a lista de atalhos onde não há teclado, só frustra. */
+html[data-sem-voz='true'] [data-precisa='voz'],
+html[data-sem-teclado='true'] [data-precisa='teclado'] {
+  display: none !important;
+}
+html[data-dispositivo='quest'] .leg-ajuda {
+  display: none;
+}
+
+/* QUEST: o alvo de 56 px (ponteiro de laser, Eyes Best Practices da Meta) vale no app inteiro, não só
+   na captura — menu, jogos, folhas e diálogos ficavam com 34 a 40 px. */
+html[data-dispositivo='quest'] :is(.btn, .folha-acao, .cel-ib, .cel-chip) {
+  min-height: var(--alvo-min);
+}
+html[data-dispositivo='quest'] nav :is(a, button) {
+  min-height: var(--alvo-min);
+}
+/* A captura enxuta (a do celular) numa janela larga de headset: uma coluna centrada, texto maior. */
+html[data-dispositivo='quest'] .cel {
+  width: 100%;
+  max-width: 820px;
+  margin-inline: auto;
+  font-size: 17px;
+}

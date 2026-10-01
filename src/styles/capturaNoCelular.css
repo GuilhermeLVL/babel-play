@@ -803,3 +803,33 @@ body.captura-ao-vivo .folha:not(.on) {
 body:has(.cel) .fab {
   display: none;
 }
+
+/* A FONTE DO SOM no Quest: som do headset OU microfone (o sistema emudece o microfone durante o
+   compartilhamento, então é um de cada vez). O mesmo cartão do par de idiomas. */
+.cel-fonte {
+  margin: 10px 16px 0;
+  display: flex;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+}
+.cel-fonte button {
+  flex: 1;
+  min-height: var(--alvo-min, 52px);
+  border: 0;
+  border-radius: 11px;
+  background: none;
+  color: var(--ink-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 15px;
+}
+.cel-fonte button[aria-pressed='true'] {
+  background: var(--accent-soft, color-mix(in srgb, var(--accent) 14%, var(--surface)));
+  color: var(--ink);
+}

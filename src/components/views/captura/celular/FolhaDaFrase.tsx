@@ -104,10 +104,10 @@ export default function FolhaDaFrase({
         </p>
       )}
       <div className="folha-grade">
-        <button type="button" className="folha-acao pri" onClick={() => aoOuvir(fala.texto, fala.lang, false)}>
+        <button type="button" data-precisa="voz" className="folha-acao pri" onClick={() => aoOuvir(fala.texto, fala.lang, false)}>
           <Volume2 aria-hidden /> {t('Ouvir')}
         </button>
-        <button type="button" className="folha-acao" onClick={() => aoOuvir(fala.texto, fala.lang, true)}>
+        <button type="button" data-precisa="voz" className="folha-acao" onClick={() => aoOuvir(fala.texto, fala.lang, true)}>
           <Snail aria-hidden /> {t('Ouvir devagar')}
         </button>
         {temTraducao && fala.langDaTraducao && (

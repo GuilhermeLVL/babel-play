@@ -34,6 +34,7 @@
  *   · `reduzirEfeitos()` — O SINAL ÚNICO do "modo leve" para as telas e jogos (ver abaixo).
  */
 import { temAdaptadorWebGpu, webGpuProvavel } from '../../gateway/adaptadorWebGpu';
+import { recursosDoAparelho } from './recursos';
 import type { SondaDoAparelho } from './sonda';
 
 export type TipoDeDispositivo = 'quest' | 'celular-fraco' | 'celular-bom' | 'desktop-sem-gpu' | 'desktop-com-gpu';
@@ -344,6 +345,11 @@ export function marcarDispositivoNoDocumento(raiz?: { dataset: DOMStringMap }): 
   if (el) {
     el.dataset.dispositivo = p.tipo;
     el.dataset.modoLeve = String(reduzirEfeitos(p.sinais));
+    /* O que o aparelho NÃO tem (`recursos.ts`): o CSS esconde o que dependeria disso
+       (`[data-precisa='voz']`, `[data-precisa='teclado']` em `styles/dispositivo.css`). */
+    const r = recursosDoAparelho(p);
+    el.dataset.semVoz = String(!r.vozDeLeitura);
+    el.dataset.semTeclado = String(!r.tecladoFisico);
     /* A leitura síncrona conta a API WebGPU como GPU; quando o `requestAdapter()` responder (a mesma
        pergunta em cache, sem custo extra), o TIPO é corrigido (ex.: celular sem adaptador → fraco).
        O modo leve não muda aqui: depois do primeiro render quem manda nele é o interruptor de Ajustes. */

@@ -1646,7 +1646,6 @@
   "Toque em Ouvir e conversem: o app reconhece quem fala e lê a tradução em voz alta": "Tap Listen and talk: the app recognizes who is speaking and reads the translation aloud",
   "Intérprete automático: reconhece sozinho quem fala qual idioma": "Automatic interpreter: recognizes on its own who speaks which language",
   "No Meta Quest a legenda vem do microfone do headset: é o caminho leve. Deixe o vídeo tocar no alto-falante do próprio headset (o microfone capta) ou use a captura para conversar.": "On the Meta Quest the captions come from the headset microphone: it is the light path. Let the video play on the headset speakers (the microphone picks it up) or use the capture to talk.",
-  "No Meta Quest a captura usa só o microfone: compartilhar a tela do headset para pegar o som pesa demais no aparelho.": "On the Meta Quest the capture uses only the microphone: sharing the headset screen to get the sound is too heavy for the device.",
   "Este navegador não oferece captura do som do sistema (a função getDisplayMedia não existe no Android nem no iPhone). A captura usa só o microfone.": "This browser does not offer system audio capture (the getDisplayMedia function does not exist on Android or iPhone). The capture uses only the microphone.",
   "sim": "yes",
   "não": "no",
@@ -1695,5 +1694,17 @@
   "Maior fila de falas esperando": "Longest queue of waiting utterances",
   "Nuvem usada": "Cloud used",
   "{min} min de fala, cerca de US$ {usd}": "{min} min of speech, about US$ {usd}",
-  "Chave de dono": "Owner key"
+  "Chave de dono": "Owner key",
+  "No Meta Quest o som entra pelo compartilhamento da visão do headset ou pelo microfone, um de cada vez. A escolha fica na tela de captura.": "On the Meta Quest the sound comes from sharing the headset view or from the microphone, one at a time. Choose on the capture screen.",
+  "Legenda ao vivo no headset": "Live captions on the headset",
+  "De onde vem o som": "Where the sound comes from",
+  "Som do headset": "Headset sound",
+  "Microfone": "Microphone",
+  "no vídeo, no jogo ou na aula, em outra janela do headset.": "on the video, game or class, in another headset window.",
+  "e aceite compartilhar a visão do headset: é assim que o som entra.": "and accept sharing the headset view: that is how the sound gets in.",
+  "para guardar palavras e ver a tradução.": "to save words and see the translation.",
+  "No headset é uma fonte de cada vez: com o som do headset, o microfone fica mudo.": "On the headset it is one source at a time: with the headset sound, the microphone is muted.",
+  "Abrindo o som do headset…": "Opening the headset sound…",
+  "Diagnóstico do aparelho": "Device diagnostics",
+  "Toque no botão": "Tap the button"
 }

@@ -5,6 +5,7 @@ import {
   CircleHelp,
   Cpu,
   Hand,
+  Headphones,
   Languages,
   Loader2,
   Mic,
@@ -41,6 +42,10 @@ export interface LadoDoPar {
  * mesmo `handleStopRecording`); a conversa e os avisos chegam prontos.
  */
 export default function CapturaNoCelular({
+  aparelho = 'celular',
+  fonte,
+  micFixo = false,
+  semFlutuante = false,
   gravando,
   abrindo,
   retomar,
@@ -68,6 +73,17 @@ export default function CapturaNoCelular({
   avisos,
   rodape,
 }: {
+  /**
+   * O aparelho desta captura enxuta. `quest`: a mesma tela, com os textos do headset — a fonte é o som
+   * do headset (compartilhando a visão) OU o microfone, um de cada vez.
+   */
+  aparelho?: 'celular' | 'quest';
+  /** A escolha da fonte no Quest (ausente no celular, onde só há o microfone, e durante a gravação). */
+  fonte?: { atual: 'headset' | 'mic'; escolher: (f: 'headset' | 'mic') => void };
+  /** Sem o botão de mudo na gravação: no Quest a fonte é escolhida antes e não muda no meio. */
+  micFixo?: boolean;
+  /** Sem o botão "Flutuante" (onde não há janela flutuante de verdade). */
+  semFlutuante?: boolean;
   gravando: boolean;
   abrindo: boolean;
   /** Há uma sessão salva a continuar (o botão diz "Continuar"). */
@@ -103,7 +119,11 @@ export default function CapturaNoCelular({
   avisos?: ReactNode;
   rodape?: ReactNode;
 }) {
-  const botaoFlutuante = (
+  const noQuest = aparelho === 'quest';
+  const peloHeadset = noQuest && fonte?.atual !== 'mic';
+  const botaoFlutuante = semFlutuante ? (
+    <div className="cel-lat" aria-hidden />
+  ) : (
     <div className="cel-lat">
       <button
         type="button"
@@ -139,7 +159,7 @@ export default function CapturaNoCelular({
         {avisos}
         <div className="cel-conversa">{conversa}</div>
         <div className="cel-doca escura">
-          <div className="cel-lat">
+          <div className="cel-lat" hidden={micFixo} aria-hidden={micFixo || undefined}>
             <button
               type="button"
               className="cel-ib"
@@ -174,7 +194,7 @@ export default function CapturaNoCelular({
       <div className="cel-topo">
         <div style={{ flex: 1, minWidth: 0 }}>
           <p className="cel-sobrancelha">
-            <Cpu aria-hidden /> {t('Transcrição no aparelho')}
+            <Cpu aria-hidden /> {noQuest ? t('Legenda ao vivo no headset') : t('Transcrição no aparelho')}
           </p>
           <h1 className="cel-titulo">{t('Capturar')}</h1>
         </div>
@@ -214,6 +234,17 @@ export default function CapturaNoCelular({
         </button>
       </div>
 
+      {fonte && (
+        <div className="cel-fonte" role="group" aria-label={t('De onde vem o som')} data-testid="fonte-do-quest">
+          <button type="button" aria-pressed={fonte.atual === 'headset'} onClick={() => fonte.escolher('headset')}>
+            <Headphones aria-hidden /> {t('Som do headset')}
+          </button>
+          <button type="button" aria-pressed={fonte.atual === 'mic'} onClick={() => fonte.escolher('mic')}>
+            <Mic aria-hidden /> {t('Microfone')}
+          </button>
+        </div>
+      )}
+
       {avisos}
 
       <div className="cel-meio">
@@ -227,7 +258,10 @@ export default function CapturaNoCelular({
                 <Play />
               </span>
               <p>
-                <b>{t('Dê play')}</b> {t('no vídeo ou na aula, ou peça para a pessoa falar perto do celular.')}
+                <b>{t('Dê play')}</b>{' '}
+                {noQuest
+                  ? t('no vídeo, no jogo ou na aula, em outra janela do headset.')
+                  : t('no vídeo ou na aula, ou peça para a pessoa falar perto do celular.')}
               </p>
             </div>
             <div className="cel-passo">
@@ -235,7 +269,10 @@ export default function CapturaNoCelular({
                 <Mic />
               </span>
               <p>
-                <b>{t('Toque no microfone')}</b> {t('aqui embaixo. A legenda aparece em segundos.')}
+                <b>{noQuest ? t('Toque no botão') : t('Toque no microfone')}</b>{' '}
+                {peloHeadset
+                  ? t('e aceite compartilhar a visão do headset: é assim que o som entra.')
+                  : t('aqui embaixo. A legenda aparece em segundos.')}
               </p>
             </div>
             <div className="cel-passo">
@@ -243,11 +280,24 @@ export default function CapturaNoCelular({
                 <Hand />
               </span>
               <p>
-                <b>{t('Toque numa frase')}</b> {t('para ouvir de novo, devagar, ou guardar palavras.')}
+                <b>{t('Toque numa frase')}</b>{' '}
+                {noQuest
+                  ? t('para guardar palavras e ver a tradução.')
+                  : t('para ouvir de novo, devagar, ou guardar palavras.')}
               </p>
             </div>
             <p className="cel-aviso" data-testid="aviso-sem-audio-do-sistema">
-              {t('No celular, o som de outros apps não entra: a legenda vem do microfone.')}
+              {noQuest
+                ? t('No headset é uma fonte de cada vez: com o som do headset, o microfone fica mudo.')
+                : t('No celular, o som de outros apps não entra: a legenda vem do microfone.')}
+              {noQuest && (
+                <>
+                  {' '}
+                  <a className="link" href="/diagnostico" data-testid="abrir-diagnostico">
+                    {t('Diagnóstico do aparelho')}
+                  </a>
+                </>
+              )}
             </p>
             {modo && (
               <div className="cel-modo">
@@ -283,10 +333,22 @@ export default function CapturaNoCelular({
             disabled={!podeIniciar || abrindo}
             aria-label={retomar ? t('Continuar captura') : t('Iniciar captura')}
           >
-            {abrindo ? <Loader2 aria-hidden className="animate-spin" /> : <Mic aria-hidden />}
+            {abrindo ? (
+              <Loader2 aria-hidden className="animate-spin" />
+            ) : peloHeadset ? (
+              <Headphones aria-hidden />
+            ) : (
+              <Mic aria-hidden />
+            )}
           </button>
           <span className="cel-rotulo-mic" aria-hidden>
-            {abrindo ? t('Abrindo o microfone…') : retomar ? t('Toque para continuar') : t('Toque para ouvir')}
+            {abrindo
+              ? peloHeadset
+                ? t('Abrindo o som do headset…')
+                : t('Abrindo o microfone…')
+              : retomar
+                ? t('Toque para continuar')
+                : t('Toque para ouvir')}
           </span>
         </div>
         {botaoFlutuante}

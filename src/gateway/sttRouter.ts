@@ -23,6 +23,7 @@
 
 import type { TipoDeDispositivo } from '../lib/dispositivo/perfil';
 import { edicaoEstatica } from '../lib/edicaoEstatica';
+import { nuvemDoQuestAtiva } from '../lib/nuvemDoQuest';
 import { mbDoDownload, parDoId } from './adapters/bergamotModelo';
 
 export type SttQuality = 'auto' | 'fast' | 'accurate' | 'cloud';
@@ -282,7 +283,9 @@ export function routeStt(input: SttRouteInput): SttRoute {
   const lang = (input.contentLang || '').toLowerCase().split('-')[0];
   const micLang = (input.micLang || '').toLowerCase().split('-')[0];
   // Edição estática (Pages, sem servidor): a nuvem não existe, diga o que disser a sondagem.
-  const cloudAllowed = cloudAvailable && profileId !== 'local-private' && !edicaoEstatica();
+  // …a não ser a do Quest (`nuvemDoQuest.ts`), ligada pelo consentimento de nuvem.
+  const cloudAllowed =
+    cloudAvailable && profileId !== 'local-private' && (!edicaoEstatica() || nuvemDoQuestAtiva());
   // "Inglês" só quando TODAS as fontes ativas são inglês: o modelo é um só para sistema e mic.
   // Só o microfone, e ele vai ao modelo: o idioma da fala decide sozinho (ver `soMicrofone`).
   const isEnglish =

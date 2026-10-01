@@ -1679,5 +1679,9 @@
   "pior": "worst",
   "No processador: baixa cerca de {mb} MB na primeira vez e leva de 1 a 3 minutos. Na placa de vídeo: mais {gpu} MB, e num aparelho fraco a página pode fechar sozinha; faça por último.": "On the processor: downloads about {mb} MB the first time and takes 1 to 3 minutes. On the graphics card: {gpu} MB more, and on a weak device the page may close by itself; do it last.",
   "Conta bruta: processador × placa de vídeo": "Raw math: processor × graphics card",
-  "Resultado do diagnóstico": "Diagnostic result"
+  "Resultado do diagnóstico": "Diagnostic result",
+  "Enviando à nuvem…": "Sending to the cloud…",
+  "Nuvem: 11 s de fala": "Cloud: 11 s of speech",
+  "falhou: {erro}": "failed: {erro}",
+  "{total} ms no total, {servidor} ms na transcrição": "{total} ms in total, {servidor} ms transcribing"
 }

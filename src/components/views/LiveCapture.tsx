@@ -159,6 +159,7 @@ import {
 import { baseLang, langLabel, langLabelNaUI, mtCoverage, toBcp47 } from '../../lib/languages';
 import { lazyComRecarga } from '../../lib/lazyComRecarga';
 import { setNavGuard } from '../../lib/navGuard';
+import { nuvemDoQuestExiste } from '../../lib/nuvemDoQuest';
 import { OrdemDasTraducoes } from '../../lib/ordemDaTraducao';
 import { usePalavrasAprendidas } from '../../lib/palavrasAprendidas';
 import { destinoDaTraducao, PerfilAdaptativoDeIdioma } from '../../lib/perfilDeIdioma';
@@ -203,6 +204,7 @@ import IdiomasDaSessao, { type Lado } from './captura/IdiomasDaSessao';
 import LegendasFlutuantes, { type LegendaAoVivo } from './captura/LegendasFlutuantes';
 import ModeloNoDispositivo, { type ModeloDaCaptura } from './captura/ModeloNoDispositivo';
 import ModoDesempenho from './captura/ModoDesempenho';
+import NuvemDoQuest from './captura/NuvemDoQuest';
 import OndasDoNivel from './captura/OndasDoNivel';
 import TranscriptVisualSettings, { TEMA } from './captura/TranscriptVisualSettings';
 import { CampoLinha, Interruptor, Segmentos } from './vocab/Dialogo';
@@ -3894,6 +3896,8 @@ export default function LiveCapture({
                           </span>
                         </p>
                       )}
+
+                      {nuvemDoQuestExiste() && <NuvemDoQuest gravando={isRecording} />}
 
                       {/* Linha 5 — preparo dos modelos locais (progresso transitório; não é configuração).
                       Gravando, o progresso aparece na conversa (abaixo), onde a pessoa olha: mostrar

@@ -6,10 +6,12 @@
 import { apiFetch } from '../../data/api';
 import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { cabecalhoDoAlivio, registrarRecusaDoAlivio } from '../../lib/nuvemDeAlivio/estado';
+import { ENDPOINT_DA_NUVEM_DO_QUEST, nuvemDoQuestAtiva } from '../../lib/nuvemDoQuest';
 import { sinalizarRecusaLida } from '../../lib/ofertas/eventos';
 import { registrarRecusaDoUsoJusto } from '../../lib/usoJustoDoDia';
 import { filtrarAlucinacao } from '../alucinacao';
 import { audioParaStt } from '../audio/opusDoStt';
+import { encodeWav } from '../audio/wav';
 import type { SttFinal, SttProvider } from '../capabilities';
 import { avisarFalhaDaNuvemDoStt } from '../falhaDaNuvemDoStt';
 import { esperaDoRetryAfter, PAUSA_MAXIMA_MS, PausaDaNuvem } from '../pausaDaNuvem';
@@ -42,7 +44,8 @@ export class GroqWhisperStt implements SttProvider {
 
   isAvailable(): boolean {
     // Edição estática: não há servidor com a chave — a cadeia vai direto ao Whisper local.
-    if (edicaoEstatica()) return false;
+    // …menos no Quest com a nuvem ligada: lá a função do próprio site transcreve (`nuvemDoQuest.ts`).
+    if (edicaoEstatica() && !nuvemDoQuestAtiva()) return false;
     return typeof fetch !== 'undefined' && !this.pausa.pausada;
   }
 
@@ -58,7 +61,12 @@ export class GroqWhisperStt implements SttProvider {
     /* OGG OPUS (~24 kbps) quando o navegador codifica; WAV de 16 bits quando não (`opusDoStt.ts`).
        ~10× menos dados por fala, mesma transcrição (bancada 2026-09). A duração cobrada é medida
        no servidor, pelo contêiner — este cabeçalho só rotula o corpo. */
-    const audio = await audioParaStt(pcm, sampleRate);
+    /* NO QUEST, WAV: codificar Opus custaria CPU nos 3 núcleos do headset, e uma fala de 12 s em WAV
+       são ~380 KB no Wi-Fi. */
+    const noQuest = nuvemDoQuestAtiva();
+    const audio = noQuest
+      ? { corpo: encodeWav(pcm, sampleRate), tipo: 'audio/wav' as const }
+      : await audioParaStt(pcm, sampleRate);
 
     const headers: Record<string, string> = {
       'Content-Type': audio.tipo,
@@ -86,12 +94,9 @@ export class GroqWhisperStt implements SttProvider {
     // a STT de nuvem respondia 401 com login — e, sem conta, responde 501 sem tocar a rede.
     let res: Response;
     try {
-      res = await apiFetch(this.endpoint, {
-        method: 'POST',
-        headers,
-        body: audio.corpo,
-        signal: opts?.signal,
-      });
+      const pedido = { method: 'POST', headers, body: audio.corpo, signal: opts?.signal };
+      // No Quest (site estático) é `fetch` direto à função do Pages: o `apiFetch` ali responde em memória.
+      res = noQuest ? await fetch(ENDPOINT_DA_NUVEM_DO_QUEST, pedido) : await apiFetch(this.endpoint, pedido);
     } catch (e) {
       // Rede caída também é falha da nuvem (acorda a reserva preguiçosa); cancelamento não é.
       if ((e as Error)?.name !== 'AbortError') avisarFalhaDaNuvemDoStt();

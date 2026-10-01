@@ -1,6 +1,7 @@
 import { Activity, ClipboardCopy, Cpu, Gauge, Loader2, Mic, MonitorUp, Stethoscope, TriangleAlert } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
+import { encodeWav } from '../../gateway/audio/wav';
 import { medirBenchmark, type PontuacaoDoBenchmark } from '../../lib/dispositivo/benchmark';
 import {
   coletarSinaisDoDiagnostico,
@@ -16,6 +17,7 @@ import {
   vigiarQuadros,
 } from '../../lib/dispositivo/diagnostico';
 import { t } from '../../lib/i18n';
+import { ENDPOINT_DA_NUVEM_DO_QUEST } from '../../lib/nuvemDoQuest';
 import { CabecalhoDeTela, Tela, TituloDeSecao } from '../ui';
 
 /**
@@ -185,6 +187,38 @@ async function carregarTrechoDeFala(): Promise<Float32Array> {
   }
 }
 
+interface ResultadoDaNuvem {
+  /** Ida e volta, do envio ao texto (ms). */
+  totalMs: number | null;
+  /** Só a transcrição, medida na função (ms). */
+  servidorMs: number | null;
+  status: number | null;
+  texto: string;
+  erro: string | null;
+}
+
+/** Manda o trecho de fala à função do site e mede a ida e volta. */
+async function medirNuvem(pcm: Float32Array): Promise<ResultadoDaNuvem> {
+  const r: ResultadoDaNuvem = { totalMs: null, servidorMs: null, status: null, texto: '', erro: null };
+  try {
+    const t0 = performance.now();
+    const res = await fetch(ENDPOINT_DA_NUVEM_DO_QUEST, {
+      method: 'POST',
+      headers: { 'Content-Type': 'audio/wav', 'x-language': 'en' },
+      body: encodeWav(pcm, 16000),
+    });
+    r.status = res.status;
+    const corpo = (await res.json().catch(() => ({}))) as { text?: string; ms?: number; code?: string; erro?: string };
+    r.totalMs = Math.round(performance.now() - t0);
+    r.servidorMs = typeof corpo.ms === 'number' ? corpo.ms : null;
+    r.texto = corpo.text ?? '';
+    if (!res.ok) r.erro = [corpo.code, corpo.erro].filter(Boolean).join(': ') || `HTTP ${res.status}`;
+  } catch (e) {
+    r.erro = erroEmTexto(e);
+  }
+  return r;
+}
+
 const simNao = (v: boolean) => (v ? t('sim') : t('não'));
 
 function Linha({ rotulo, valor, id }: { rotulo: string; valor: React.ReactNode; id?: string }) {
@@ -205,7 +239,8 @@ export default function Diagnostico() {
   const [compartilhamento, setCompartilhamento] = useState<ResultadoDoCompartilhamento | null>(null);
   const [benchmark, setBenchmark] = useState<PontuacaoDoBenchmark | null>(null);
   const [modelos, setModelos] = useState<ResultadoDoModelo[]>([]);
-  const [ocupado, setOcupado] = useState<null | 'microfone' | 'tela' | 'modelos' | 'gpu'>(null);
+  const [nuvem, setNuvem] = useState<ResultadoDaNuvem | null>(null);
+  const [ocupado, setOcupado] = useState<null | 'microfone' | 'tela' | 'modelos' | 'gpu' | 'nuvem'>(null);
   const [andamento, setAndamento] = useState('');
   const [erroDosModelos, setErroDosModelos] = useState('');
   const [copiado, setCopiado] = useState(false);
@@ -221,8 +256,8 @@ export default function Diagnostico() {
   }, []);
 
   const relatorio = useMemo(
-    () => JSON.stringify({ sinais, microfone, compartilhamento, benchmark, modelos }, null, 1),
-    [sinais, microfone, compartilhamento, benchmark, modelos],
+    () => JSON.stringify({ sinais, microfone, compartilhamento, benchmark, modelos, nuvem }, null, 1),
+    [sinais, microfone, compartilhamento, benchmark, modelos, nuvem],
   );
 
   const rodar = async (qual: NonNullable<typeof ocupado>, tarefa: () => Promise<void>) => {
@@ -435,6 +470,27 @@ export default function Diagnostico() {
               {ocupado === 'gpu' ? <Loader2 aria-hidden className="animate-spin" /> : <Cpu aria-hidden />}
               {ocupado === 'gpu' ? 'Medindo…' : 'Medir na placa de vídeo'}
             </button>
+            <button
+              type="button"
+              className="btn btn-outline"
+              disabled={!!ocupado}
+              onClick={() =>
+                rodar('nuvem', async () => {
+                  setErroDosModelos('');
+                  try {
+                    setAndamento(t('Baixando o trecho de fala do teste…'));
+                    trechoRef.current ??= await carregarTrechoDeFala();
+                    setAndamento(t('Enviando à nuvem…'));
+                    setNuvem(await medirNuvem(trechoRef.current));
+                  } catch (e) {
+                    setErroDosModelos(erroEmTexto(e));
+                  }
+                })
+              }
+            >
+              {ocupado === 'nuvem' ? <Loader2 aria-hidden className="animate-spin" /> : <Activity aria-hidden />}
+              {ocupado === 'nuvem' ? 'Medindo…' : 'Medir na nuvem'}
+            </button>
           </div>
           <p className="mut" style={{ fontSize: 13, marginTop: 8 }}>
             {t(
@@ -458,6 +514,21 @@ export default function Diagnostico() {
               rotulo={t('Conta bruta: processador × placa de vídeo')}
               valor={`${benchmark.pontuacaoWasm ?? '—'} × ${benchmark.pontuacaoWebgpu ?? '—'}`}
             />
+          )}
+          {nuvem && (
+            <div data-testid="diagnostico-nuvem">
+              <Linha
+                rotulo={t('Nuvem: 11 s de fala')}
+                valor={
+                  nuvem.erro
+                    ? t('falhou: {erro}', { erro: nuvem.erro })
+                    : t('{total} ms no total, {servidor} ms na transcrição', {
+                        total: nuvem.totalMs ?? '—',
+                        servidor: nuvem.servidorMs ?? '—',
+                      })
+                }
+              />
+            </div>
           )}
           {modelos.length > 0 && (
             <ul style={{ marginTop: 10, listStyle: 'none', padding: 0 }} data-testid="diagnostico-modelos">

@@ -35,6 +35,7 @@ import { t } from '../i18n';
 import { detectLanguage } from '../langDetect';
 import { baseLang, langLabel } from '../languages';
 import { cabecalhoDoAlivio } from '../nuvemDeAlivio/estado';
+import { ENDPOINT_DA_NUVEM_DO_QUEST, nuvemDoQuestAtiva } from '../nuvemDoQuest';
 import { PerfilAdaptativoDeIdioma, pesoDaDeteccao } from '../perfilDeIdioma';
 import { SpeakerClusterer } from '../speakerCluster';
 import { embedUtterance } from '../speakerId';
@@ -1153,7 +1154,12 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       });
     /* Com a nuvem de alívio ACEITA (A10), a pergunta leva o cabeçalho dela: o servidor responde pela
        franquia da conta Grátis (flag, responsável, pool), o mesmo veredicto que a transcrição vai ouvir. */
-    const cloudAvailable = await apiFetch('/api/ai/stt/available', { headers: cabecalhoDoAlivio() })
+    /* No Quest (site estático) a nuvem é a função do próprio site, e só com o consentimento dado. */
+    const cloudAvailable = await (
+      nuvemDoQuestAtiva()
+        ? fetch(ENDPOINT_DA_NUVEM_DO_QUEST)
+        : apiFetch('/api/ai/stt/available', { headers: cabecalhoDoAlivio() })
+    )
       .then((r) => r.ok)
       .catch(() => false);
     /* O MIC VAI AO WHISPER? Não é mais só a escolha do seletor: sem consentimento (ou no perfil

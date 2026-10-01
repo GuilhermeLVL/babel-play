@@ -1,0 +1,9 @@
+# Cloudflare Pages — edição estática (`npm run build:estatica` → `dist/`).
+# Existe por causa da função `functions/quest/stt.js` (a transcrição de nuvem do Meta Quest), que
+# precisa do Workers AI. Publicar: `npx wrangler pages deploy dist --project-name babel-play --branch main`.
+name = "babel-play"
+pages_build_output_dir = "dist"
+compatibility_date = "2026-09-01"
+
+[ai]
+binding = "AI"

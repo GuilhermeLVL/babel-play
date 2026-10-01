@@ -13,13 +13,20 @@
  * ali, com 1 thread — ver `ortDoVadNumaThread`). Descontados o tradutor e a voz, o resto vai ao
  * Whisper, que é quem decide se a legenda acompanha a fala:
  *
- *   whisper = clamp(núcleos − 3, 1, 4)   (teto 2 no modo leve: Quest, celular fraco, desktop modesto)
+ *   whisper = clamp(núcleos − 3, 1, 4)   (teto 2 no modo leve: celular fraco, desktop modesto)
  *   mt      = 2 com 8 núcleos ou mais, senão 1
  *   vad     = 1 (thread principal)        voz = 1 (o worker do WeSpeaker já usava 1)
  *
  * Com 4 núcleos ou mais a soma cabe no teto; abaixo disso cada motor já está no mínimo (1) e não há
  * o que tirar. Sem `crossOriginIsolated` não há SharedArrayBuffer e o WASM roda em 1 thread de
  * qualquer jeito: tudo 1.
+ *
+ * NO QUEST, UMA THREAD POR MOTOR. `hardwareConcurrency` conta os núcleos do chip (6 no XR2 Gen 2, 8 no
+ * Gen 1), mas a Meta dá a um app ~3 deles em clock reduzido ("from three CPU cores to two", doc do
+ * boost; níveis de CPU de 1,5 a 1,9 GHz), e o rastreamento e o compositor do headset usam os mesmos. A
+ * conta de cima dava 2 threads ao Whisper e até 2 ao tradutor: com a thread principal e a voz, 5 a 6
+ * threads ocupadas, e o headset inteiro travava ao iniciar a captura (relato do dono, 01/10/2026).
+ * Fontes em `docs/pesquisa/2026-10-quest-navegador-e-hardware.md`.
  *
  * Pura e FORA de `perfil.ts` de propósito: o perfil entra no JS inicial (marca o `<html>` antes do
  * primeiro render); isto só interessa a quem carrega modelo.
@@ -32,6 +39,8 @@ export interface EntradaDoOrcamento {
   isolado: boolean;
   /** O modo leve do perfil (`PerfilDoDispositivo.leve`). */
   leve: boolean;
+  /** O perfil é o Quest (`PerfilDoDispositivo.tipo`): uma thread por motor, diga o chip o que disser. */
+  quest?: boolean;
 }
 
 export interface OrcamentoDeThreads {
@@ -56,8 +65,8 @@ export function tetoDeThreads(nucleos: number | null): number {
   return Math.max(1, nucleosDe(nucleos) - 1);
 }
 
-export function distribuirThreads({ nucleos, isolado, leve }: EntradaDoOrcamento): OrcamentoDeThreads {
-  if (!isolado) return { whisper: 1, mt: 1, vad: 1, voz: 1 };
+export function distribuirThreads({ nucleos, isolado, leve, quest }: EntradaDoOrcamento): OrcamentoDeThreads {
+  if (!isolado || quest) return { whisper: 1, mt: 1, vad: 1, voz: 1 };
   const n = nucleosDe(nucleos);
   const mt = n >= 8 ? 2 : 1;
   const teto = leve ? TETO_DO_WHISPER_LEVE : TETO_DO_WHISPER;

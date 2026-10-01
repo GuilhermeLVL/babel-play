@@ -447,6 +447,25 @@ describe('sondarEMedir (benchmark preguiçoso) e sondaGuardada', () => {
     expect(s.benchmark).toBeNull()
   })
 
+  /* No Quest o microbenchmark (CPU + GPU) rodava junto com a carga do modelo, no início da captura, nos
+     ~3 núcleos que o headset dá ao app. Lá a sonda vai sem ele; quem mede é a página de diagnóstico. */
+  it('`semBenchmark`: a sonda é feita e guardada, e o benchmark não roda', async () => {
+    const armazem = armazemFalso()
+    const medir = vi.fn(async () => bench)
+    const s = await sondarEMedir(dep({ armazem, medirBenchmark: medir }), undefined, { semBenchmark: true })
+    expect(medir).not.toHaveBeenCalled()
+    expect(s.benchmark).toBeNull()
+    expect(s.sinais.webGpu).toEqual(GPU)
+    expect(await sondaGuardada(dep({ armazem }))).toEqual(s)
+  })
+
+  it('`semBenchmark` não apaga um benchmark já guardado (medido antes, na página de diagnóstico)', async () => {
+    const armazem = armazemFalso()
+    await sondarEMedir(dep({ armazem, medirBenchmark: async () => bench }))
+    const s = await sondarEMedir(dep({ armazem, medirBenchmark: vi.fn() }), undefined, { semBenchmark: true })
+    expect(s.benchmark).toEqual(bench)
+  })
+
   it('benchmark que rejeita: sonda sem pontuação, sem lançar', async () => {
     const s = await sondarEMedir(dep({ medirBenchmark: async () => Promise.reject(new Error('x')) }))
     expect(s.benchmark).toBeNull()

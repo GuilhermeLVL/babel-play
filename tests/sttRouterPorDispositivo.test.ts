@@ -96,9 +96,14 @@ describe('inglês por perfil', () => {
     expect(r.localModel).toBe(MOONSHINE_MODELS.tiny)
   })
 
-  it('Quest e celular bom: moonshine-base (67 MB)', () => {
-    expect(routeStt({ ...base, contentLang: 'en', dispositivo: quest }).localModel).toBe(MOONSHINE_MODELS.base)
+  it('celular bom: moonshine-base (67 MB)', () => {
     expect(routeStt({ ...base, contentLang: 'en', dispositivo: celularBom }).localModel).toBe(MOONSHINE_MODELS.base)
+  })
+
+  /* O Quest dá ao app ~3 núcleos em clock reduzido (doc da Meta): o tiny (27 M de parâmetros, 15,5% de
+     WER na bancada) custa menos da metade do base (61 M, 13,5%) e é o que cabe sem travar o headset. */
+  it('Quest: moonshine-tiny (32 MB)', () => {
+    expect(routeStt({ ...base, contentLang: 'en', dispositivo: quest }).localModel).toBe(MOONSHINE_MODELS.tiny)
   })
 
   it('moonshine é sempre q8', () => {
@@ -112,11 +117,54 @@ describe('inglês por perfil', () => {
       localModel: MOONSHINE_MODELS.tiny,
       dtype: 'q8',
     })
-    for (const dispositivo of [quest, celularBom, desktopGpu, desktopSemGpu])
+    expect(routeStt({ ...nuvem, dispositivo: quest })).toMatchObject({
+      preferCloud: true,
+      localModel: MOONSHINE_MODELS.tiny,
+    })
+    for (const dispositivo of [celularBom, desktopGpu, desktopSemGpu])
       expect(routeStt({ ...nuvem, dispositivo })).toMatchObject({
         preferCloud: true,
         localModel: MOONSHINE_MODELS.base,
       })
+  })
+})
+
+/* SÓ MICROFONE: O IDIOMA QUE DECIDE O MODELO É O DA FALA. Sem áudio do sistema (Quest, celular) o único
+   áudio decodificado é o do microfone. A rota olhava também o idioma de DESTINO ("Traduzir para"), que
+   nesse cenário ninguém decodifica: um vídeo em inglês legendado para português (fala `en`, destino
+   `pt`) caía no Whisper base, que preenche 30 s a cada fala, em vez do Moonshine. */
+describe('só microfone: o modelo segue o idioma da fala', () => {
+  const soMic = { ...base, soMicrofone: true }
+
+  it('fala em inglês, destino português: moonshine (tiny no Quest e no celular fraco, base no celular bom)', () => {
+    const en = { ...soMic, contentLang: 'pt', micLang: 'en' }
+    expect(routeStt({ ...en, dispositivo: quest }).localModel).toBe(MOONSHINE_MODELS.tiny)
+    expect(routeStt({ ...en, dispositivo: celularFraco }).localModel).toBe(MOONSHINE_MODELS.tiny)
+    expect(routeStt({ ...en, dispositivo: celularBom }).localModel).toBe(MOONSHINE_MODELS.base)
+  })
+
+  it('fala em português, destino inglês: Whisper base q8 (o moonshine só decodifica inglês)', () => {
+    const r = routeStt({ ...soMic, contentLang: 'en', micLang: 'pt', dispositivo: quest })
+    expect(r).toMatchObject({ localModel: WHISPER_MODELS.base, dtype: 'q8', device: 'wasm' })
+  })
+
+  it('detecção automática do idioma: Whisper, mesmo com a fala marcada como inglês', () => {
+    const r = routeStt({ ...soMic, contentLang: 'pt', micLang: 'en', autoDetect: true, dispositivo: quest })
+    expect(r.localModel).toBe(WHISPER_MODELS.base)
+  })
+
+  it('microfone no reconhecedor do navegador (sem `micLang`): a regra de sempre, pelo destino', () => {
+    expect(routeStt({ ...soMic, contentLang: 'en', micLang: '', dispositivo: celularBom }).localModel).toBe(
+      MOONSHINE_MODELS.base,
+    )
+    expect(routeStt({ ...soMic, contentLang: 'pt', micLang: '', dispositivo: celularBom }).localModel).toBe(
+      WHISPER_MODELS.base,
+    )
+  })
+
+  it('com as duas fontes (sem `soMicrofone`) nada muda: destino português segura o Whisper', () => {
+    const r = routeStt({ ...base, contentLang: 'pt', micLang: 'en', dispositivo: quest })
+    expect(r.localModel).toBe(WHISPER_MODELS.base)
   })
 })
 

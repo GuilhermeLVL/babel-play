@@ -26,6 +26,23 @@ describe('distribuirThreads', () => {
     expect(distribuirThreads({ nucleos, isolado, leve })).toEqual({ whisper, mt, vad: 1, voz: 1 })
   })
 
+  /* O QUEST DÁ AO APP ~3 NÚCLEOS EM CLOCK REDUZIDO (doc da Meta, CPU levels e boost), e o rastreamento
+     e o compositor do headset disputam os mesmos. Com 6 ou 8 núcleos anunciados o orçamento de "leve"
+     dava 2 threads ao Whisper e até 2 ao tradutor — mais a thread principal (interface e VAD) e a voz:
+     5 a 6 threads ocupadas, e o headset inteiro travava. No Quest, uma thread por motor. */
+  it.each([
+    [6, 1, 1],
+    [8, 1, 1],
+    [4, 1, 1],
+  ])('Quest com %i núcleos anunciados → whisper %i, mt %i', (nucleos, whisper, mt) => {
+    expect(distribuirThreads({ nucleos, isolado: true, leve: true, quest: true })).toEqual({
+      whisper,
+      mt,
+      vad: 1,
+      voz: 1,
+    })
+  })
+
   it('sem crossOriginIsolated (sem SharedArrayBuffer): tudo em 1 thread, em qualquer aparelho', () => {
     for (const nucleos of [1, 2, 4, 8, 16])
       for (const leve of [false, true])

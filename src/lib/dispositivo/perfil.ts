@@ -4,13 +4,21 @@
  * Por que não pelo User-Agent: o Meta Quest Browser, no modo padrão (desktop), anuncia
  * `X11; Linux x86_64; Quest 3` e ignora `<meta viewport>`, e a própria Meta manda não usar o UA para
  * detectar recurso (https://developers.meta.com/horizon/documentation/web/browser-specs/, 2026-07-21).
- * Uma regra "é celular?" por UA ou por `pointer: coarse` o trataria como desktop — e ofereceria o
- * áudio do sistema, que ali não existe (`getDisplayMedia` não existe no Chrome Android nem no Quest,
- * BCD). O UA só entra como PISTA quando revela `OculusBrowser`/`Quest`, e fica registrado nos motivos.
+ * Uma regra "é celular?" por UA ou por `pointer: coarse` o trataria como desktop — e mandaria o
+ * headset pelo caminho do computador. O UA só entra como PISTA quando revela `OculusBrowser`/`Quest`,
+ * e fica registrado nos motivos.
+ *
+ * O QUEST TEM `getDisplayMedia` (Browser 36.5, 14/01/2025: "Screen sharing is now available on all
+ * websites"; `docs/pesquisa/2026-10-quest-navegador-e-hardware.md`). A pesquisa de setembro supôs que
+ * não, pelo BCD (dado espelhado do Chrome Android, nunca testado no headset), e `capturaDoSistema`
+ * era só "a API existe": no aparelho de verdade o app pedia o compartilhamento da visão do headset e
+ * nascia com o microfone desligado, enquanto a emulação (sem a API) seguia o caminho do microfone.
+ * Compartilhar a tela ali é capturar a visão inteira para jogar os quadros fora, em cima do Whisper
+ * local. Por isso `capturaDoSistema` é decisão do PERFIL: no Quest, nunca.
  *
  * Cinco perfis (matriz da pesquisa, `docs/pesquisa/2026-09-auditoria-seguranca-performance-dispositivos.md` §5):
  *
- *   quest            XR + sem getDisplayMedia + sem toque (ou UA OculusBrowser)
+ *   quest            UA OculusBrowser/Quest (ou XR + sem getDisplayMedia + sem toque)
  *   celular-fraco    móvel sem adaptador WebGPU, ou `deviceMemory` ≤ 2 (iOS sem deviceMemory e sem
  *                    WebGPU conta como fraco até provar o contrário)
  *   celular-bom      móvel com adaptador WebGPU e `deviceMemory` ≥ 4 (ou ausente, iOS 26)
@@ -70,7 +78,10 @@ export interface PerfilDoDispositivo {
   threadsWasm: number;
   /** O Whisper small (589 MB, só tempo real com GPU) pode ser escolhido. Só desktop com GPU. */
   permiteSmall: boolean;
-  /** O navegador oferece captura do áudio do sistema/aba (getDisplayMedia). */
+  /**
+   * A captura usa o áudio do sistema/aba (getDisplayMedia). Decisão do perfil, não só "a API existe":
+   * o Quest tem a API e fica sem ela (ver o cabeçalho) — ali a fonte é o microfone.
+   */
   capturaDoSistema: boolean;
   /**
    * Pedir confirmação antes de baixar modelos acima deste total (MB). `null` = não pedir;
@@ -184,6 +195,7 @@ export function classificarDispositivo(s: SinaisDoDispositivo): PerfilDoDisposit
   if (redeLenta) motivos.push(`rede ${s.tipoDeRede}`);
   const confirmarDownloadAcimaDeMb =
     s.economiaDeDados || redeLenta ? 0 : tipo === 'quest' || tipo.startsWith('celular') ? 100 : null;
+  if (tipo === 'quest' && s.capturaDeTela) motivos.push('getDisplayMedia existe, mas no Quest a fonte é o microfone');
 
   return {
     tipo,
@@ -191,7 +203,7 @@ export function classificarDispositivo(s: SinaisDoDispositivo): PerfilDoDisposit
     poucaMemoria,
     threadsWasm,
     permiteSmall: tipo === 'desktop-com-gpu',
-    capturaDoSistema: s.capturaDeTela,
+    capturaDoSistema: s.capturaDeTela && tipo !== 'quest',
     confirmarDownloadAcimaDeMb,
     alvoMinimoPx: tipo === 'quest' ? 56 : 48,
     motivos,

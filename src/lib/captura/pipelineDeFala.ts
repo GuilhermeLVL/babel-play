@@ -284,6 +284,10 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
      cada parcial e a cada final especulativo. */
   let leve: boolean | undefined;
   const aparelhoLeve = (): boolean => (leve ??= perfilDoDispositivo().leve);
+  /* É o Quest? Lá não sai parcial nenhum: cada parcial é um decode inteiro a mais do Whisper, numa
+     thread só (`orcamentoDeThreads.ts`), e o final é quem a pessoa espera. */
+  let quest: boolean | undefined;
+  const noQuest = (): boolean => (quest ??= perfilDoDispositivo().tipo === 'quest');
 
   /** Os efeitos das ações do regulador, com o gateway/setters deste render. */
   const efeitosDoRegulador: EfeitosDoRegulador = {
@@ -465,6 +469,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     const querParcial = (): boolean => {
       // O modo que a PESSOA ligou: "legenda só no fim de cada frase", nenhum parcial.
       if (perfModeRef.current && !perfModeAutomatico()) return false;
+      if (noQuest()) return false; // nem o parcial único do automático: ver `noQuest`
       if (!reservaLocal.parciaisLocais) return false; // celular/Quest na nuvem: o local é só reserva
       /* Automático do intérprete: o idioma só é conhecido no final; um parcial sem dica custaria uma
          detecção por trecho e mostraria texto na metade errada. */
@@ -1137,7 +1142,9 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     const sonda = await import('../dispositivo/sonda')
       .then((m) => {
         modSonda = m;
-        void m.agendarSondaDoAparelho();
+        /* No Quest, sem o microbenchmark: ele disputaria os ~3 núcleos do app com a carga do modelo
+           (`OpcoesDaSonda.semBenchmark`). Lá quem mede é a página de diagnóstico, a pedido. */
+        void m.agendarSondaDoAparelho(undefined, { semBenchmark: perfil.tipo === 'quest' });
         return m.sondaGuardada();
       })
       .catch((erro: unknown) => {
@@ -1174,6 +1181,8 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       contentLang: listenLang,
       // O mesmo modelo decodifica o MIC: se você fala PT enquanto ouve EN, o moonshine (só inglês) não serve.
       micLang: micVaiAoWhisper ? myLang : '',
+      // Sem áudio do sistema, o único áudio decodificado é o do microfone: o idioma dele decide.
+      soMicrofone: captureScenarioRef.current === 'mic',
       autoDetect,
       quality: getSttQuality(),
       /* O ADAPTADOR, não a API: `navigator.gpu` existe no headless sem GPU nenhuma, e o small no

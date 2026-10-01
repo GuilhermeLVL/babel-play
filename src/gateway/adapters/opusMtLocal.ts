@@ -101,6 +101,7 @@ export class OpusMtLocal implements TranslationProvider {
       nucleos: perfil.sinais.nucleos,
       isolado: perfil.sinais.isolado,
       leve: perfil.leve,
+      quest: perfil.tipo === 'quest',
     }).mt;
     this.worker = new Worker(new URL('./mtWorker.ts', import.meta.url), { type: 'module' });
     this.worker.onmessage = (msg: MessageEvent) => {

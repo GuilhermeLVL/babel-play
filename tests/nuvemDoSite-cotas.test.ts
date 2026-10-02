@@ -5,10 +5,16 @@
  * um KV e um Workers AI falsos: a cota por IP, o teto global, o formato e a duração por pedido, a
  * origem, e que só o que foi transcrito é contado.
  */
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { onRequestPost as traduzirTexto } from '../functions/quest/mt.js'
-import { chaveDoVisitante, onRequestGet, onRequestPost, segundosDoWav } from '../functions/quest/stt.js'
+import {
+  _reiniciarMemoriaDaCota,
+  chaveDoVisitante,
+  onRequestGet,
+  onRequestPost,
+  segundosDoWav,
+} from '../functions/quest/stt.js'
 
 /** Um WAV PCM 16 kHz mono de 16 bits com `segundos` de silêncio. */
 function wav(segundos: number): Uint8Array {
@@ -38,7 +44,23 @@ const pedido = (corpo: Uint8Array, cabecalhos: Record<string, string> = {}) =>
     body: corpo,
   })
 const ia = () => ({ run: vi.fn(async () => ({ text: ' olá mundo ', transcription_info: { language: 'pt' } })) })
+/** Uma IA que demora: os pedidos simultâneos ficam em curso ao mesmo tempo. */
+const iaLenta = (ms = 15) => ({
+  run: vi.fn(async () => {
+    await new Promise((r) => setTimeout(r, ms))
+    return { text: 'olá', transcription_info: { language: 'pt' } }
+  }),
+})
 const dia = new Date().toISOString().slice(0, 10)
+const consulta = (cabecalhos: Record<string, string> = {}) =>
+  new Request(`${ORIGEM}/quest/stt`, { headers: { 'cf-connecting-ip': '203.0.113.7', ...cabecalhos } })
+const codigo = async (r: Response) => ((await r.json()) as { code?: string }).code
+const restanteDe = async (env: unknown) =>
+  ((await (await onRequestGet({ request: consulta(), env })).json()) as { restante: number }).restante
+
+/* A contagem vive também na memória do isolate (reservas, ritmo por minuto): cada teste começa limpo. */
+beforeEach(() => _reiniciarMemoriaDaCota())
+afterEach(() => vi.useRealTimers())
 
 describe('segundosDoWav', () => {
   it('lê a duração pelo cabeçalho; o que não é WAV dá null', () => {
@@ -54,8 +76,11 @@ describe('POST /quest/stt', () => {
     const r = await onRequestPost({ request: pedido(wav(6)), env })
     expect(r.status).toBe(200)
     expect(await r.json()).toMatchObject({ text: 'olá mundo', language: 'pt', segundos: 6 })
+    // Mais onze falas: o visitante, o dia e a hora passam de um bloco e vão ao KV.
+    for (let i = 0; i < 11; i++) await onRequestPost({ request: pedido(wav(6)), env })
+    expect(env.LIMITES.dados.size).toBe(3)
     for (const [k, v] of env.LIMITES.dados) {
-      expect(k).toMatch(/^(ip|total):/)
+      expect(k).toMatch(/^(ip|total|hora):/)
       expect(k).not.toContain('203.0.113.7') // o IP nunca vira chave
       expect(Number(v)).toBeGreaterThan(0)
     }
@@ -110,15 +135,15 @@ describe('POST /quest/stt', () => {
     expect(r.status).toBe(501)
   })
 
-  it('a contagem em blocos tem o valor esperado certo: ~600 s para 100 falas de 6 s', async () => {
+  it('a contagem é EXATA e grava em blocos: 100 falas de 6 s são 600 s, em ~1 escrita por minuto de fala', async () => {
     const env = { AI: ia(), LIMITES: kvFalso() }
     for (let i = 0; i < 100; i++) {
       // Um IP por fala: aqui interessa só o total global.
       await onRequestPost({ request: pedido(wav(6), { 'cf-connecting-ip': `10.0.0.${i}` }), env })
     }
-    const total = Number(env.LIMITES.dados.get(`total:${dia}`) ?? 0)
-    expect(total).toBeGreaterThan(200)
-    expect(total).toBeLessThan(1100)
+    expect(Number(env.LIMITES.dados.get(`total:${dia}`))).toBe(600)
+    // 10 blocos no total do dia e 10 no da hora; nenhum visitante chegou a um bloco.
+    expect(env.LIMITES.put.mock.calls.length).toBeLessThanOrEqual(20)
   })
 })
 
@@ -220,5 +245,270 @@ describe('GET /quest/stt', () => {
     expect(await livre.json()).toMatchObject({ ok: true, restante: 900, cota: 900 })
     const cheio = { AI: ia(), LIMITES: kvFalso({ [`total:${dia}`]: String(200 * 60) }) }
     expect((await onRequestGet({ request: new Request(`${ORIGEM}/quest/stt`), env: cheio })).status).toBe(429)
+  })
+})
+
+describe('a tradução avulsa custa cota (furo 1)', () => {
+  const tradutor = () => ({ run: vi.fn(async () => ({ translated_text: 'b'.repeat(300) })) })
+  const texto = (corpo: unknown) =>
+    new Request(`${ORIGEM}/quest/mt`, {
+      method: 'POST',
+      headers: { origin: ORIGEM, 'cf-connecting-ip': '203.0.113.7', 'content-type': 'application/json' },
+      body: JSON.stringify(corpo),
+    })
+
+  it('soma no visitante e no total, na proporção dos caracteres (entrada + saída)', async () => {
+    const env = { AI: tradutor(), LIMITES: kvFalso() }
+    const r = await traduzirTexto({ request: texto({ text: 'a'.repeat(300), src: 'en', tgt: 'pt' }), env })
+    expect(r.status).toBe(200)
+    // 600 caracteres entre ida e volta = 10 s de cota.
+    expect(await restanteDe(env)).toBe(890)
+  })
+
+  it('um texto de duas letras custa o mínimo de um pedido, nunca zero', async () => {
+    const env = { AI: { run: vi.fn(async () => ({ translated_text: 'oi' })) }, LIMITES: kvFalso() }
+    for (let i = 0; i < 4; i++) await traduzirTexto({ request: texto({ text: 'hi', src: 'en', tgt: 'pt' }), env })
+    expect(await restanteDe(env)).toBe(898)
+  })
+
+  it('a cota do dia fecha a tradução: quem só traduz também esgota', async () => {
+    const chaveIp = await chaveDoVisitante(pedido(wav(1)), dia)
+    const env = { AI: tradutor(), LIMITES: kvFalso({ [chaveIp]: String(15 * 60 - 5) }) }
+    const corpo = { text: 'a'.repeat(300), src: 'en', tgt: 'pt' }
+    expect((await traduzirTexto({ request: texto(corpo), env })).status).toBe(200)
+    const depois = await traduzirTexto({ request: texto(corpo), env })
+    expect(depois.status).toBe(429)
+    expect(await codigo(depois)).toBe('cota_do_dia')
+    expect(env.AI.run).toHaveBeenCalledTimes(1)
+  })
+
+  it('o tradutor falhou: nada é cobrado', async () => {
+    const env = { AI: { run: vi.fn(async () => Promise.reject(new Error('boom'))) }, LIMITES: kvFalso() }
+    const r = await traduzirTexto({ request: texto({ text: 'a'.repeat(300), src: 'en', tgt: 'pt' }), env })
+    expect(r.status).toBe(502)
+    expect(await restanteDe(env)).toBe(900)
+  })
+})
+
+describe('rajada simultânea (furo 2): a reserva vem ANTES do modelo', () => {
+  it('pedidos ao mesmo tempo não passam do que resta ao visitante', async () => {
+    const chaveIp = await chaveDoVisitante(pedido(wav(1)), dia)
+    const env = { AI: iaLenta(), LIMITES: kvFalso({ [chaveIp]: String(15 * 60 - 10) }) }
+    const respostas = await Promise.all(
+      Array.from({ length: 4 }, () => onRequestPost({ request: pedido(wav(6)), env })),
+    )
+    // Restavam 10 s: a primeira leva 6, a segunda leva o resto, as outras não chegam ao modelo.
+    expect(respostas.map((r) => r.status).sort()).toEqual([200, 200, 429, 429])
+    expect(env.AI.run).toHaveBeenCalledTimes(2)
+  })
+
+  it('endereços diferentes ao mesmo tempo não passam do teto global', async () => {
+    const env = { AI: iaLenta(), LIMITES: kvFalso({ [`total:${dia}`]: String(200 * 60 - 10) }) }
+    const respostas = await Promise.all(
+      Array.from({ length: 10 }, (_, i) =>
+        onRequestPost({ request: pedido(wav(6), { 'cf-connecting-ip': `10.1.0.${i}` }), env }),
+      ),
+    )
+    expect(respostas.filter((r) => r.status === 200)).toHaveLength(2)
+    expect(env.AI.run).toHaveBeenCalledTimes(2)
+  })
+
+  it('mais de quatro pedidos em curso do mesmo visitante: 429 `devagar`, sem tocar na IA', async () => {
+    const env = { AI: iaLenta(), LIMITES: kvFalso() }
+    const respostas = await Promise.all(
+      Array.from({ length: 7 }, () => onRequestPost({ request: pedido(wav(2)), env })),
+    )
+    const recusadas = respostas.filter((r) => r.status === 429)
+    expect(recusadas).toHaveLength(3)
+    for (const r of recusadas) {
+      expect(Number(r.headers.get('retry-after'))).toBeGreaterThanOrEqual(1)
+      expect(await codigo(r)).toBe('devagar')
+    }
+    expect(env.AI.run).toHaveBeenCalledTimes(4)
+    // Terminaram: a vaga volta.
+    expect((await onRequestPost({ request: pedido(wav(2)), env })).status).toBe(200)
+  })
+
+  it('o bloco é gravado no KV antes de o modelo rodar', async () => {
+    const kv = kvFalso()
+    const vistos: (string | undefined)[] = []
+    const env = {
+      AI: {
+        run: vi.fn(async () => {
+          vistos.push(kv.dados.get(`total:${dia}`))
+          return { text: 'olá' }
+        }),
+      },
+      LIMITES: kv,
+    }
+    for (let i = 0; i < 4; i++) await onRequestPost({ request: pedido(wav(16)), env })
+    expect(vistos).toEqual([undefined, undefined, undefined, '64'])
+  })
+
+  it('o modelo falhou depois da reserva: o visitante recebe de volta', async () => {
+    const run = vi.fn(async () => ({ text: 'olá' }))
+    const env = { AI: { run }, LIMITES: kvFalso() }
+    for (let i = 0; i < 3; i++) await onRequestPost({ request: pedido(wav(16)), env })
+    run.mockRejectedValueOnce(new Error('boom'))
+    expect((await onRequestPost({ request: pedido(wav(16)), env })).status).toBe(502)
+    expect(await restanteDe(env)).toBe(900 - 48)
+  })
+
+  it('o KV parou de aceitar escrita: a nuvem FECHA em vez de seguir sem contar', async () => {
+    const kv = kvFalso()
+    kv.put.mockImplementation(async () => Promise.reject(new Error('KV PUT failed: 429 Too Many Requests')))
+    const env = { AI: ia(), LIMITES: kv }
+    const status: number[] = []
+    let ultima: Response | null = null
+    for (let i = 0; i < 9; i++) {
+      ultima = await onRequestPost({ request: pedido(wav(16), { 'cf-connecting-ip': `10.2.0.${i}` }), env })
+      status.push(ultima.status)
+    }
+    // 7 × 16 s = 112 s sem gravar ainda passam; a oitava fala levaria a 128 s sem registro.
+    expect(status).toEqual([200, 200, 200, 200, 200, 200, 200, 429, 429])
+    expect(await codigo(ultima!)).toBe('nuvem_ocupada')
+    expect(env.AI.run).toHaveBeenCalledTimes(7)
+  })
+
+  it('leitura velha do KV não faz a conta andar para trás', async () => {
+    const kv = kvFalso()
+    const env = { AI: ia(), LIMITES: kv }
+    for (let i = 0; i < 4; i++) await onRequestPost({ request: pedido(wav(16)), env })
+    kv.dados.clear() // outra borda ainda devolve o valor de antes
+    expect(await restanteDe(env)).toBe(900 - 64)
+  })
+})
+
+describe('limite por minuto (furo 3)', () => {
+  const agora = new Date('2026-10-02T15:20:00Z').getTime()
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(agora)
+  })
+
+  it('a fala de um minuto tem teto: 429 `devagar` com a espera, e NÃO é a cota do dia', async () => {
+    const env = { AI: ia(), LIMITES: kvFalso() }
+    for (let i = 0; i < 7; i++) {
+      vi.setSystemTime(agora + i * 1000)
+      expect((await onRequestPost({ request: pedido(wav(16)), env })).status).toBe(200)
+    }
+    vi.setSystemTime(agora + 10_000)
+    const r = await onRequestPost({ request: pedido(wav(16)), env })
+    expect(r.status).toBe(429)
+    const espera = Number(r.headers.get('retry-after'))
+    expect(espera).toBeGreaterThanOrEqual(1)
+    expect(espera).toBeLessThanOrEqual(60)
+    expect(await codigo(r)).toBe('devagar')
+    expect(env.AI.run).toHaveBeenCalledTimes(7)
+    // A cota do dia continua lá, e outro endereço não é afetado.
+    expect((await onRequestGet({ request: consulta(), env })).status).toBe(200)
+    expect(
+      (await onRequestPost({ request: pedido(wav(16), { 'cf-connecting-ip': '198.51.100.9' }), env })).status,
+    ).toBe(200)
+    // Passada a espera dita, o mesmo pedido entra.
+    vi.setSystemTime(agora + 10_000 + espera * 1000)
+    expect((await onRequestPost({ request: pedido(wav(16)), env })).status).toBe(200)
+  })
+
+  it('pedidos por minuto têm teto, por menores que sejam', async () => {
+    const env = { AI: ia(), LIMITES: kvFalso() }
+    let ultimo: Response | null = null
+    for (let i = 0; i < 61; i++) {
+      vi.setSystemTime(agora + i * 100)
+      ultimo = await onRequestPost({ request: pedido(wav(0.5)), env })
+    }
+    expect(ultimo!.status).toBe(429)
+    expect(await codigo(ultimo!)).toBe('devagar')
+    expect(env.AI.run).toHaveBeenCalledTimes(60)
+    vi.setSystemTime(agora + 61_000)
+    expect((await onRequestPost({ request: pedido(wav(0.5)), env })).status).toBe(200)
+  })
+
+  it('pedido inválido também conta no ritmo: lixo em rajada é barrado antes de ler o KV', async () => {
+    const kv = kvFalso()
+    const ler = vi.spyOn(kv, 'get')
+    const env = { AI: ia(), LIMITES: kv }
+    for (let i = 0; i < 60; i++) await onRequestPost({ request: pedido(new Uint8Array(100)), env })
+    const r = await onRequestPost({ request: pedido(wav(2)), env })
+    expect(await codigo(r)).toBe('devagar')
+    expect(ler).not.toHaveBeenCalled()
+  })
+
+  it('a chave de dono não cai no limite por minuto do visitante', async () => {
+    const SEGREDO = 'segredo-de-teste-com-32-caracteres'
+    const env = { AI: ia(), LIMITES: kvFalso(), CHAVE_DO_DONO: SEGREDO }
+    for (let i = 0; i < 10; i++) {
+      const r = await onRequestPost({ request: pedido(wav(16), { 'x-chave-do-dono': SEGREDO }), env })
+      expect(r.status).toBe(200)
+    }
+  })
+
+  it('freio global da hora: 429 `nuvem_ocupada` (volta sozinha), e o GET não diz que o dia acabou', async () => {
+    const env = { AI: ia(), LIMITES: kvFalso({ 'hora:2026-10-02T15': String(60 * 60) }) }
+    const r = await onRequestPost({ request: pedido(wav(6)), env })
+    expect(r.status).toBe(429)
+    expect(Number(r.headers.get('retry-after'))).toBe(40 * 60)
+    expect(await r.json()).toMatchObject({ code: 'nuvem_ocupada', motivo: 'teto_da_hora' })
+    expect(env.AI.run).not.toHaveBeenCalled()
+    expect((await onRequestGet({ request: consulta(), env })).status).toBe(200)
+    // Virou a hora: a nuvem volta.
+    vi.setSystemTime(new Date('2026-10-02T16:00:01Z'))
+    expect((await onRequestPost({ request: pedido(wav(6)), env })).status).toBe(200)
+  })
+
+  it('o GET também tem ritmo: consulta em rajada leva `devagar`', async () => {
+    const env = { AI: ia(), LIMITES: kvFalso() }
+    let ultimo: Response | null = null
+    for (let i = 0; i < 31; i++) ultimo = await onRequestGet({ request: consulta(), env })
+    expect(ultimo!.status).toBe(429)
+    expect(await codigo(ultimo!)).toBe('devagar')
+  })
+})
+
+describe('origem (furo 4): barra outro SITE no navegador, não é controle de abuso', () => {
+  it('POST com `Sec-Fetch-Site` de outro site é recusado mesmo com `Origin` igual', async () => {
+    const env = { AI: ia(), LIMITES: kvFalso() }
+    const r = await onRequestPost({ request: pedido(wav(3), { 'sec-fetch-site': 'cross-site' }), env })
+    expect(r.status).toBe(403)
+    expect((await onRequestPost({ request: pedido(wav(3), { 'sec-fetch-site': 'same-origin' }), env })).status).toBe(
+      200,
+    )
+  })
+
+  it('GET de outro site (por `Sec-Fetch-Site` ou por `Origin`) não vê o estado da cota', async () => {
+    const env = { AI: ia(), LIMITES: kvFalso() }
+    for (const cabecalhos of [
+      { 'sec-fetch-site': 'cross-site' },
+      { 'sec-fetch-site': 'same-site' },
+      { origin: 'https://outro.site' },
+    ]) {
+      const r = await onRequestGet({ request: consulta(cabecalhos), env })
+      expect(r.status).toBe(403)
+      expect(await r.json()).toEqual({ code: 'origem' })
+    }
+  })
+
+  it('GET do próprio site passa: `Sec-Fetch-Site: same-origin`, `Origin` igual, ou nenhum dos dois', async () => {
+    const env = { AI: ia(), LIMITES: kvFalso() }
+    for (const cabecalhos of [{ 'sec-fetch-site': 'same-origin' }, { origin: ORIGEM }, {}]) {
+      expect((await onRequestGet({ request: consulta(cabecalhos), env })).status).toBe(200)
+    }
+  })
+})
+
+describe('chave do visitante', () => {
+  const com = (ip: string) => new Request(`${ORIGEM}/quest/stt`, { headers: { 'cf-connecting-ip': ip } })
+
+  it('IPv6: a chave é a do prefixo /64 (trocar o sufixo não dá cota nova)', async () => {
+    const a = await chaveDoVisitante(com('2001:db8:aa:bb:1111:2222:3333:4444'), dia)
+    const b = await chaveDoVisitante(com('2001:db8:aa:bb::9'), dia)
+    const outra = await chaveDoVisitante(com('2001:db8:aa:cc::9'), dia)
+    expect(a).toBe(b)
+    expect(a).not.toBe(outra)
+    expect(a).not.toContain('2001')
+  })
+
+  it('IPv4: cada endereço tem a sua', async () => {
+    expect(await chaveDoVisitante(com('203.0.113.7'), dia)).not.toBe(await chaveDoVisitante(com('203.0.113.8'), dia))
   })
 })

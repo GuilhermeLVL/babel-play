@@ -240,7 +240,8 @@ export async function offlineTranscribe(blob: Blob, opts: OfflineOptions = {}): 
         r = await nuvem.transcribePcm(juntarAudioDoPacote(p), 16000, { languageHint, prompt });
       } catch (e) {
         const { status, code, retryAfterMs } = (e ?? {}) as { status?: number; code?: string; retryAfterMs?: number };
-        if (status === 429 && code === 'nuvem_ocupada') {
+        // `devagar` é o freio por minuto da nuvem do site: também é "espere e volte", não o fim da nuvem.
+        if (status === 429 && (code === 'nuvem_ocupada' || code === 'devagar')) {
           nuvemCheiaAte = Date.now() + (retryAfterMs && retryAfterMs > 0 ? retryAfterMs : ESPERA_DA_NUVEM_CHEIA_MS);
         } else if (typeof status === 'number' && RECUSA_DEFINITIVA.has(status)) nuvemAtiva = false;
       }

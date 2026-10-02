@@ -5,9 +5,9 @@
  * KV e um Workers AI falsos: que idioma tem voz, a origem, o teto de texto, as cotas, o que é contado, e
  * que o português só entra com o segredo do provedor.
  */
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { chaveDoVisitante } from '../functions/quest/stt.js'
+import { _reiniciarMemoriaDaCota, chaveDoVisitante } from '../functions/quest/stt.js'
 import { bytesDoAudio, idiomasComVoz, onRequestGet, onRequestPost } from '../functions/quest/tts.js'
 
 function kvFalso(inicial: Record<string, string> = {}) {
@@ -31,6 +31,8 @@ const ia = () => ({ run: vi.fn(async () => ({ audio: btoa('mp3-de-teste') })) })
 const dia = new Date().toISOString().slice(0, 10)
 const CHAVE = 'chave-de-teste-com-mais-de-16'
 
+/* A contagem vive também na memória do isolate (reservas, ritmo por minuto): cada teste começa limpo. */
+beforeEach(() => _reiniciarMemoriaDaCota())
 afterEach(() => vi.unstubAllGlobals())
 
 describe('bytesDoAudio', () => {
@@ -52,7 +54,48 @@ describe('POST /quest/tts', () => {
     expect(r.headers.get('cache-control')).toBe('no-store')
     expect(new TextDecoder().decode(await r.arrayBuffer())).toBe('mp3-de-teste')
     expect(env.AI.run).toHaveBeenCalledWith('@cf/myshell-ai/melotts', { prompt: 'Good morning', lang: 'en' })
-    for (const [k] of env.LIMITES.dados) expect(k).toMatch(/^(ip|total):/)
+    for (const [k] of env.LIMITES.dados) expect(k).toMatch(/^(ip|total|hora):/)
+  })
+
+  it('a voz gasta a cota na proporção do texto, reservada ANTES do modelo e devolvida se ele falhar', async () => {
+    const run = vi.fn(async () => ({ audio: btoa('mp3') }))
+    const env = { AI: { run }, LIMITES: kvFalso() }
+    const consulta = () => new Request(`${ORIGEM}/quest/tts`, { headers: { 'cf-connecting-ip': '203.0.113.7' } })
+    const restante = async () =>
+      ((await (await onRequestGet({ request: consulta(), env })).json()) as { restante: number }).restante
+    // 600 caracteres a 15 por segundo são 40 s de voz; a voz pesa 0,4: 16 s de cota.
+    await onRequestPost({ request: pedido({ texto: 'a'.repeat(600), idioma: 'en' }), env })
+    expect(await restante()).toBe(900 - 16)
+    run.mockRejectedValueOnce(new Error('boom'))
+    await onRequestPost({ request: pedido({ texto: 'a'.repeat(600), idioma: 'en' }), env })
+    expect(await restante()).toBe(900 - 16)
+  })
+
+  it('leituras ao mesmo tempo não passam do que resta ao visitante', async () => {
+    const chaveIp = await chaveDoVisitante(pedido({}), dia)
+    const run = vi.fn(async () => {
+      await new Promise((r) => setTimeout(r, 15))
+      return { audio: btoa('mp3') }
+    })
+    const env = { AI: { run }, LIMITES: kvFalso({ [chaveIp]: String(15 * 60 - 10) }) }
+    const respostas = await Promise.all(
+      Array.from({ length: 4 }, () =>
+        onRequestPost({ request: pedido({ texto: 'a'.repeat(600), idioma: 'en' }), env }),
+      ),
+    )
+    // Restavam 10 s e cada leitura custa 16: só a primeira chega ao modelo.
+    expect(respostas.map((r) => r.status).sort()).toEqual([200, 429, 429, 429])
+    expect(run).toHaveBeenCalledTimes(1)
+  })
+
+  it('pedidos demais num minuto: 429 `devagar` com a espera, sem tocar na IA', async () => {
+    const env = { AI: ia(), LIMITES: kvFalso() }
+    let ultimo: Response | null = null
+    for (let i = 0; i < 61; i++) ultimo = await onRequestPost({ request: pedido({ texto: 'hi', idioma: 'en' }), env })
+    expect(ultimo!.status).toBe(429)
+    expect(Number(ultimo!.headers.get('retry-after'))).toBeGreaterThanOrEqual(1)
+    expect(await ultimo!.json()).toMatchObject({ code: 'devagar' })
+    expect(env.AI.run).toHaveBeenCalledTimes(60)
   })
 
   it('japonês: tenta o código do modelo e, se falhar, o ISO', async () => {
@@ -137,5 +180,11 @@ describe('GET /quest/tts', () => {
     const env = { AI: ia(), LIMITES: kvFalso() }
     const r = await onRequestGet({ request: new Request(`${ORIGEM}/quest/tts`), env })
     expect(await r.json()).toMatchObject({ ok: true, idiomas: ['en', 'es', 'fr', 'ja', 'ko', 'zh'] })
+  })
+
+  it('pedido por outro site no navegador: 403', async () => {
+    const env = { AI: ia(), LIMITES: kvFalso() }
+    const deFora = new Request(`${ORIGEM}/quest/tts`, { headers: { 'sec-fetch-site': 'cross-site' } })
+    expect((await onRequestGet({ request: deFora, env })).status).toBe(403)
   })
 })

@@ -16,12 +16,13 @@
  *     tradução em texto. ANTES DE CRIAR O SEGREDO: conferir a retenção no contrato da DeepInfra
  *     (`docs/lgpd/operadores.md`) e citar a voz na política de privacidade.
  *
- * A mesma blindagem da transcrição (`stt.js`): só a própria origem, cota do visitante e teto global,
- * texto de no máximo `MAX_CARACTERES`. A voz soma pouco na cota (`PESO_DA_VOZ`): custa uma fração do
- * que custa transcrever o mesmo tempo de áudio. Nada do texto nem do áudio é gravado, e nenhum pedido
- * leva áudio de referência (sem clonagem de voz).
+ * A mesma blindagem da transcrição (`stt.js`): só a própria origem, o ritmo por minuto, a cota do
+ * visitante, o teto global e o freio da hora, e texto de no máximo `MAX_CARACTERES`. A voz soma pouco
+ * na cota (`PESO_DA_VOZ`): custa uma fração do que custa transcrever o mesmo tempo de áudio. O custo é
+ * RESERVADO antes de chamar o modelo e devolvido se ele falhar. Nada do texto nem do áudio é gravado,
+ * e nenhum pedido leva áudio de referência (sem clonagem de voz).
  */
-import { cotas, json, mesmaOrigem, recusaPorCota, somar } from './stt.js';
+import { consultar, entrar, falhaDoModelo, json, mesmaOrigem } from './stt.js';
 
 const MAX_CARACTERES = 600;
 const MELO = '@cf/myshell-ai/melotts';
@@ -152,56 +153,52 @@ async function pelaDeepInfra(env, texto, idioma, buscar = fetch) {
 /** Os idiomas com voz aqui e o que resta da cota (o cliente decide o que promete na tela). */
 export async function onRequestGet({ request, env }) {
   if (!env.AI || !env.LIMITES) return json({ code: 'sem_nuvem' }, 501);
-  const c = await cotas(request, env);
-  return recusaPorCota(c) ?? json({ ok: true, idiomas: idiomasComVoz(env), restante: c.restante });
+  const c = await consultar(request, env);
+  return c.recusa ?? json({ ok: true, idiomas: idiomasComVoz(env), restante: c.restante });
 }
 
 export async function onRequestPost({ request, env }) {
   if (!env.AI || !env.LIMITES) return json({ code: 'sem_nuvem' }, 501);
   if (!mesmaOrigem(request)) return json({ code: 'origem' }, 403);
-  let corpo;
+  const vez = await entrar(request, env);
+  if (vez.recusa) return vez.recusa;
   try {
-    corpo = await request.json();
-  } catch {
-    return json({ code: 'formato' }, 400);
-  }
-  const texto = String(corpo?.texto ?? '').trim();
-  const idioma = base(corpo?.idioma);
-  if (!texto || !idioma) return json({ code: 'formato' }, 400);
-  if (texto.length > MAX_CARACTERES) return json({ code: 'longo_demais' }, 413);
+    let corpo;
+    try {
+      corpo = await request.json();
+    } catch {
+      return json({ code: 'formato' }, 400);
+    }
+    const texto = String(corpo?.texto ?? '').trim();
+    const idioma = base(corpo?.idioma);
+    if (!texto || !idioma) return json({ code: 'formato' }, 400);
+    if (texto.length > MAX_CARACTERES) return json({ code: 'longo_demais' }, 413);
 
-  const daCloudflare = idioma in IDIOMAS_DO_MELO;
-  const daDeepInfra = !daCloudflare && temChaveDaDeepInfra(env) && IDIOMAS_DO_CHATTERBOX.includes(idioma);
-  if (!daCloudflare && !daDeepInfra) return json({ code: 'idioma_sem_voz', idioma }, 422);
+    const daCloudflare = idioma in IDIOMAS_DO_MELO;
+    const daDeepInfra = !daCloudflare && temChaveDaDeepInfra(env) && IDIOMAS_DO_CHATTERBOX.includes(idioma);
+    if (!daCloudflare && !daDeepInfra) return json({ code: 'idioma_sem_voz', idioma }, 422);
 
-  const c = await cotas(request, env);
-  const recusa = recusaPorCota(c);
-  if (recusa) return recusa;
+    const recusa = await vez.reservar((texto.length / CARACTERES_POR_SEGUNDO) * PESO_DA_VOZ);
+    if (recusa) return recusa;
 
-  try {
-    const audio = daCloudflare ? await pelaCloudflare(env, texto, idioma) : await pelaDeepInfra(env, texto, idioma);
-    if (audio.bytes.length > TETO_DE_BYTES) return json({ code: 'falha_da_nuvem' }, 502);
-    const segundos = (texto.length / CARACTERES_POR_SEGUNDO) * PESO_DA_VOZ;
-    await Promise.all([
-      c.dono ? null : somar(env.LIMITES, c.chaveIp, c.usadoIp, segundos),
-      somar(env.LIMITES, c.chaveTotal, c.usadoTotal, segundos),
-    ]);
-    return new Response(audio.bytes, {
-      status: 200,
-      headers: {
-        'content-type': audio.tipo,
-        'cache-control': 'no-store',
-        'x-content-type-options': 'nosniff',
-        'x-voz-modelo': audio.modelo,
-      },
-    });
-  } catch (erro) {
-    const mensagem = String(erro?.message ?? erro).slice(0, 200);
-    const ocupada = /limit|quota|capacity|allocation|neurons|429|3036|3040/i.test(mensagem);
-    return json(
-      { code: ocupada ? 'nuvem_ocupada' : 'falha_da_nuvem', erro: mensagem },
-      ocupada ? 429 : 502,
-      ocupada ? { 'retry-after': '600' } : {},
-    );
+    try {
+      const audio = daCloudflare ? await pelaCloudflare(env, texto, idioma) : await pelaDeepInfra(env, texto, idioma);
+      if (audio.bytes.length > TETO_DE_BYTES) return json({ code: 'falha_da_nuvem' }, 502);
+      return new Response(audio.bytes, {
+        status: 200,
+        headers: {
+          'content-type': audio.tipo,
+          'cache-control': 'no-store',
+          'x-content-type-options': 'nosniff',
+          'x-voz-modelo': audio.modelo,
+        },
+      });
+    } catch (erro) {
+      // Só conta o que virou áudio.
+      vez.devolver();
+      return falhaDoModelo(erro);
+    }
+  } finally {
+    vez.sair();
   }
 }

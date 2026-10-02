@@ -5,11 +5,47 @@
 # do Hugging Face Hub por fetch com CORS, e `require-corp` exigiria CORP em cada resposta deles.
 # Se algum recurso externo parar de carregar sob COEP, a saída é remover estas duas linhas —
 # o app funciona sem elas, só mais lento.
+#
+# PERMISSIONS-POLICY. O app usa o microfone e a captura de tela/aba (o áudio do sistema), sempre na
+# própria origem: ficam ditos. O que ele NÃO usa fica desligado, para um script injetado não ter o
+# que pedir. Só nomes que o Chromium conhece: nome desconhecido vira erro no console, e a suíte da
+# edição estática falha com erro no console. O que não está na lista segue o padrão do navegador
+# (tela acesa, área de transferência, controle do headset, WebXR, isolamento de origem: tudo `self`).
+#
+# CSP EM MODO RELATO (`Content-Security-Policy-Report-Only`). NÃO BLOQUEIA NADA: o navegador só
+# escreve no console o que a política bloquearia. É a de `server/http/csp.ts` (a da edição com
+# servidor, que já roda valendo) sem o que a edição estática não tem: Supabase, Sentry, bucket R2
+# dos modelos e Turnstile, que lá entram por variável de ambiente e aqui saem vazias do build
+# (`scripts/build-estatica.mjs`). As funções `/quest/*` são a própria origem (`'self'`). De onde vem
+# cada origem:
+#   script-src   'wasm-unsafe-eval' (ONNX Runtime, Bergamot) e blob: (o ONNX Runtime importa o próprio
+#                módulo por blob) — csp.ts
+#   worker-src   blob: — csp.ts (os workers do app são arquivos de /assets)
+#   connect-src  huggingface.co, *.huggingface.co, *.hf.co  pesos do Whisper/opus-mt/WeSpeaker e a
+#                                                consulta de versão (src/gateway/modelManifest.ts)
+#                cdn.jsdelivr.net                o runtime WASM do ONNX que o transformers.js baixa
+#                *.wiktionary.org                o dicionário (src/lib/dictionary.ts)
+#                api.openverse.org               a busca de imagem (src/data/rotas/imagens.ts)
+#                api.mymemory.translated.net     a tradução de reserva (src/gateway/adapters/mymemory.ts)
+#                localhost:11434, 127.0.0.1:11434  o Ollama local de quem o tem (src/gateway/profiles.ts)
+#   img-src      https: — a capa escolhida no Openverse fica com a URL original, de qualquer acervo
+#   style-src    fonts.googleapis.com, font-src fonts.gstatic.com — a folha de fontes do index.html;
+#                'unsafe-inline' pelos estilos em linha do React e de termos/privacidade
+# PARA FAZER VALER: publicar assim, usar o site (captura, tradução, jogos, dicionário, o Quest) com
+# o console aberto e, sem nenhum aviso "[Report Only]", trocar o nome do cabeçalho para
+# `Content-Security-Policy`. Se o build passar a ter `VITE_SENTRY_DSN`, `VITE_SELF_HOST_MODELS=<url>`
+# ou `VITE_BERGAMOT_MODELOS_URL`, a origem de cada um entra em connect-src antes disso.
 /*
   Cross-Origin-Opener-Policy: same-origin
   Cross-Origin-Embedder-Policy: credentialless
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: microphone=(self), display-capture=(self), camera=(), geolocation=(), payment=(), usb=(), midi=()
+  Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' 'wasm-unsafe-eval' blob:; worker-src 'self' blob:; connect-src 'self' blob: data: https://huggingface.co https://*.huggingface.co https://*.hf.co https://cdn.jsdelivr.net https://*.wiktionary.org https://api.openverse.org https://api.mymemory.translated.net http://localhost:11434 http://127.0.0.1:11434; img-src 'self' https: data: blob:; media-src 'self' blob: data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; object-src 'none'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'
+
+# Página avulsa de diagnóstico de áudio, com o script em linha: fica fora do relato da CSP.
+/diagnostico-audio.html
+  ! Content-Security-Policy-Report-Only
 
 /ort-wasm-*
   Cache-Control: public, max-age=31536000, immutable

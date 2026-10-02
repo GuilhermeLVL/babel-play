@@ -107,6 +107,46 @@ html[data-quest-novo='true'][data-theme='babel']:not(.dark) {
   font: 700 14px/1 var(--font-mono, monospace);
   color: var(--ink-muted);
 }
+/* JANELA BAIXA: o trilho rola, mas "Mais" (e a busca) ficam presos ao pé, sempre à vista. Sem isto,
+   numa janela de 560 px de altura o "Mais" ficava abaixo da dobra e metade do app sumia com ele. */
+.q-item:is(.q-mais-botao, .q-busca-botao) {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  background: var(--surface);
+  box-shadow:
+    0 -8px 0 var(--surface),
+    0 16px 0 var(--surface);
+}
+.q-item.q-busca-botao {
+  bottom: 72px;
+}
+.q-item:is(.q-mais-botao, .q-busca-botao):hover {
+  background: color-mix(in srgb, var(--q-acento) 10%, var(--surface));
+}
+.q-item.q-mais-botao:is([aria-current='page'], [aria-expanded='true']) {
+  background: color-mix(in srgb, var(--q-suave) 100%, var(--surface));
+}
+/* E antes de rolar ele aperta: destinos mais baixos, menos vão, logo menor. */
+@media (max-height: 640px) and (min-width: 721px) {
+  .q-trilho {
+    gap: 4px;
+    padding: 10px 0;
+  }
+  .q-trilho .q-logo {
+    width: 36px;
+    height: 36px;
+    margin-bottom: 2px;
+  }
+  .q-item {
+    min-height: 54px;
+    padding-block: 3px;
+    gap: 2px;
+  }
+  .q-item.q-busca-botao {
+    bottom: 58px;
+  }
+}
 /* Ao vivo, a legenda fica com a tela inteira: o trilho some e volta ao encerrar. */
 html[data-quest-novo='true']:has(.quest-vivo) .q-trilho {
   display: none;
@@ -318,10 +358,21 @@ button.q-chip:active {
 .q-grade.g4 {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
+/* A grade que ocupa a sobra (os três caminhos do Início): os cartões crescem até 380 px, mas a grade
+   NUNCA fica mais baixa que o conteúdo. Era `min-height: 0` com `max-height` na grade: em janela baixa
+   ou estreita (duas fileiras, texto quebrando) ela encolhia e os cartões passavam por cima do bloco de
+   baixo. O teto fica nos cartões, e o mínimo da grade é o automático (a altura do conteúdo). */
 .q-cresce {
   flex: 1;
-  min-height: 0;
-  max-height: 380px;
+}
+.q-cresce > * {
+  max-height: var(--q-cresce-max, 380px);
+}
+/* Três caminhos em três colunas até a janela estreita: duas colunas deixavam um sozinho na fileira. */
+@media (min-width: 721px) {
+  .q-grade.g3.q-cresce {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 /* O cartão que é um alvo inteiro (um caminho, um jogo, um destino). */
@@ -707,8 +758,10 @@ html[data-quest-novo='true'] :is(.quest-pronto, .q-palco) :is(.aviso-info, .avis
   gap: 12px;
   align-items: center;
 }
+/* Ocupa a sobra, sem nunca ficar mais baixo que o conteúdo (base `auto`, sem encolher): com `flex: 1`
+   e `min-height` fixo, a janela baixa espremia os passos para fora da caixa. */
 .q-meio {
-  flex: 1;
+  flex: 1 0 auto;
   min-height: 190px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -1474,12 +1527,17 @@ html[data-quest-novo='true'] :is(.folha-acao, .folha-palavras button):focus-visi
   .q-item.q-mais-botao,
   .q-item.q-busca-botao {
     margin-top: 0;
+    position: relative;
+    bottom: auto;
+    box-shadow: none;
   }
   .q-palco {
     padding: 18px 16px;
   }
   .q-cresce {
     flex: none;
+  }
+  .q-cresce > * {
     max-height: none;
   }
   .q-cab :is(h1, h2) {
@@ -1543,7 +1601,7 @@ html[data-quest-novo='true'][data-dispositivo^='desktop'] .q-palco {
 }
 @media (min-height: 800px) {
   html[data-quest-novo='true'][data-dispositivo^='desktop'] .q-cresce {
-    max-height: min(46vh, 480px);
+    --q-cresce-max: min(46vh, 480px);
   }
 }
 

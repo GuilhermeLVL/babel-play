@@ -1,3 +1,5 @@
+import '../../styles/questVocabulario.css';
+
 import { computeTextStats, detectarVozPassiva, estimativaDeMinutos, FILTRO_PADRAO, rotuloDeDuracao } from '@core';
 import {
   Activity,
@@ -10,6 +12,7 @@ import {
   Download,
   Eye,
   Gamepad2,
+  Languages,
   LayoutGrid,
   MessageSquareWarning,
   Mic,
@@ -34,8 +37,9 @@ import {
   type UtteranceRow,
 } from '../../data/api';
 import { ficharPalavraDoAnalista } from '../../lib/adicionarAoDeck';
+import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { gravarFiltro } from '../../lib/filtroDaPratica';
-import { numero } from '../../lib/i18n';
+import { numero, t, tp } from '../../lib/i18n';
 import { baseLang, langLabelNaUI } from '../../lib/languages';
 import { copyDoPerfil, coreOnly } from '../../lib/profile';
 import type { ExerciseId, PracticeSeed } from '../../lib/sentences';
@@ -50,6 +54,7 @@ import AdicionarPalavra from './vocab/AdicionarPalavra';
 import CatalogoDePalavras, { type FiltroDoCatalogo } from './vocab/CatalogoDePalavras';
 import ExportarVocabulario from './vocab/ExportarVocabulario';
 import GavetaDaPalavra from './vocab/GavetaDaPalavra';
+import VocabularioDoQuest, { type AbaDoQuest } from './vocab/quest/VocabularioDoQuest';
 
 // --- HELPERS ---
 
@@ -150,6 +155,9 @@ export default function Metrics({
      painel de analytics — retenção, WPM, CEFR, complexidade — e o acervo, que é o que o nome
      promete, ficava enterrado lá embaixo. A análise inteira continua existindo, uma aba ao lado. */
   const [mainTab, setMainTab] = useState<'palavras' | 'dashboard' | 'lexical' | 'fluency'>('palavras');
+  /* No Meta Quest com as telas novas, a mesma tela em outro arranjo (`vocab/quest/VocabularioDoQuest`):
+     o baralho, as métricas, o catálogo, a gaveta da palavra e os diálogos são os daqui. */
+  const questNovo = useQuestNovo();
   // Revela as abas densas em Kids/Sênior. Uma vez aberto, fica: quem procurou já sabe onde está.
   const [showAllTabs, setShowAllTabs] = useState<boolean>(false);
 
@@ -524,30 +532,144 @@ export default function Metrics({
     />
   );
 
+  const dialogos = (
+    <>
+      {adicionando && (
+        <AdicionarPalavra
+          cartoes={vocabCards}
+          langCfg={langCfg}
+          traduzir={exame.traduzir}
+          aoFechar={() => setAdicionando(false)}
+          aoAdicionar={(criados) => {
+            setVocabCards((prev) => [...prev, ...criados]);
+            setVersaoDoCatalogo((v) => v + 1);
+          }}
+        />
+      )}
+      {exportando && (
+        <ExportarVocabulario
+          cartoes={vocabCards}
+          metrics={metrics}
+          idioma={baseLang(langCfg.studying)}
+          filtro={filtroDoCatalogo}
+          aoFechar={() => setExportando(false)}
+        />
+      )}
+    </>
+  );
+  const abrirPalavra = (id: string) => {
+    const c = vocabCards.find((x) => x.id === id);
+    if (!c) return;
+    setCartaoAberto(c);
+    void examineWord(c.word, c.sentence);
+  };
+  const gaveta = cartaoAberto && (
+    <GavetaDaPalavra
+      key={cartaoAberto.id}
+      cartao={cartaoAberto}
+      palavra={selectedExamWord}
+      gravacoes={recordings}
+      velocidade={ttsSpeed}
+      aoTrocarVelocidade={setTtsSpeed}
+      aoFalar={speakWord}
+      aoFechar={() => {
+        setCartaoAberto(null);
+        setSelectedExamWord(null);
+      }}
+      aoMudar={(novo) => {
+        setVocabCards((prev) => prev.map((c) => (c.id === novo.id ? novo : c)));
+        setCartaoAberto(novo);
+        setVersaoDoCatalogo((v) => v + 1);
+      }}
+      aoExcluir={excluirCartao}
+      aoExercitar={(c) => void handlePracticeWord({ word: c.word, translation: c.translation }, 'memory')}
+      aoRevisar={() => onChangeView?.('study')}
+    />
+  );
+  const rotuloDeExportar =
+    ageProfile === 'kids' ? 'Baixar Palavras' : ageProfile === 'senior' ? 'Exportar Meu Caderno' : 'Exportar';
+
+  if (questNovo) {
+    const abasDeAnalise: AbaDoQuest[] = [
+      { id: 'dashboard', rotulo: copyDoPerfil('metricsTab.dashboard', ageProfile), Icone: LayoutGrid },
+      { id: 'lexical', rotulo: copyDoPerfil('metricsTab.lexical', ageProfile), Icone: Brain },
+      { id: 'fluency', rotulo: copyDoPerfil('metricsTab.fluency', ageProfile), Icone: Mic },
+    ];
+    const abasDoQuest: AbaDoQuest[] = [
+      { id: 'palavras', rotulo: ageProfile === 'kids' ? 'Minhas cartas' : 'Minhas palavras', Icone: BookOpen },
+      ...(mostrarMais ? [] : abasDeAnalise),
+    ];
+    return (
+      <VocabularioDoQuest
+        titulo={titulo}
+        sub={sub}
+        infantil={ageProfile === 'kids'}
+        abas={abasDoQuest}
+        aba={mainTab}
+        aoTrocarAba={setMainTab}
+        aoMostrarMais={mostrarMais ? () => setShowAllTabs(true) : undefined}
+        rotuloDeExportar={rotuloDeExportar}
+        aoAdicionar={() => setAdicionando(true)}
+        aoAnki={() => setNoAnki(true)}
+        aoExportar={() => setExportando(true)}
+        metrics={metrics}
+        duracaoDaRevisao={metrics ? rotuloDeDuracao(estimativaDeMinutos(metrics.dueToday, temposMedidos)) : ''}
+        proximaRodada={proximaRodada}
+        fases={fasesDoBaralho}
+        deckCarregado={deckCarregado}
+        catalogo={
+          <CatalogoDePalavras
+            key={versaoDoCatalogo}
+            cartoes={vocabCards}
+            aoMudarFiltro={setFiltroDoCatalogo}
+            aoAbrirPalavra={abrirPalavra}
+            rodape={
+              semVerso > 0 && (
+                <div className="q-aviso qv-sem-verso" role="note">
+                  <span>
+                    <b>
+                      {tp(semVerso, '{n} palavra está sem tradução.', '{n} palavras estão sem tradução.', {
+                        n: numero(semVerso),
+                      })}
+                    </b>{' '}
+                    {t(
+                      'Isso acontece quando o idioma que você aprende e o seu idioma são o mesmo: não há o que traduzir, e o cartão fica sem verso.',
+                    )}
+                  </span>
+                  <button type="button" className="q-ctl" onClick={() => onChangeView?.('settings')}>
+                    <Languages aria-hidden /> {t('Conferir os dois idiomas')}
+                  </button>
+                </div>
+              )
+            }
+          />
+        }
+        aoRevisar={() => onChangeView?.('study')}
+        aoJogar={() => onChangeView?.('play')}
+        aoCapturar={() => onChangeView?.('capture')}
+        revisoesPorDia={revisoesPorDia}
+        minutosHoje={minutosHoje}
+        totalDePalavras={vocabCards.length}
+        niveis={levelDist}
+        totalDeNiveis={levelTotal}
+        temNivelReal={temNivelReal}
+        coresDosNiveis={levelColors}
+        capturas={recordings.length}
+        nomeDoIdioma={nomeDoIdiomaEstudado}
+        corpus={corpusDoAlvo}
+        textStats={textStats}
+        vozPassiva={vozPassiva}
+      >
+        {dialogos}
+        {gaveta}
+      </VocabularioDoQuest>
+    );
+  }
+
   return (
     <div className="flex-1 flex flex-col lg:flex-row h-full min-h-0">
       <div className="flex-1 min-w-0 flex flex-col h-full min-h-0 relative">
-        {adicionando && (
-          <AdicionarPalavra
-            cartoes={vocabCards}
-            langCfg={langCfg}
-            traduzir={exame.traduzir}
-            aoFechar={() => setAdicionando(false)}
-            aoAdicionar={(criados) => {
-              setVocabCards((prev) => [...prev, ...criados]);
-              setVersaoDoCatalogo((v) => v + 1);
-            }}
-          />
-        )}
-        {exportando && (
-          <ExportarVocabulario
-            cartoes={vocabCards}
-            metrics={metrics}
-            idioma={baseLang(langCfg.studying)}
-            filtro={filtroDoCatalogo}
-            aoFechar={() => setExportando(false)}
-          />
-        )}
+        {dialogos}
 
         <Tela largura="larga">
           <CabecalhoDeTela
@@ -565,12 +687,7 @@ export default function Metrics({
                 </button>
                 {/* O antigo "Exportar relatório" (o .txt de progresso) é um dos formatos do diálogo. */}
                 <button type="button" className="btn btn-solid" onClick={() => setExportando(true)}>
-                  <Download aria-hidden />{' '}
-                  {ageProfile === 'kids'
-                    ? 'Baixar Palavras'
-                    : ageProfile === 'senior'
-                      ? 'Exportar Meu Caderno'
-                      : 'Exportar'}
+                  <Download aria-hidden /> {rotuloDeExportar}
                 </button>
               </>
             }
@@ -655,12 +772,7 @@ export default function Metrics({
               key={versaoDoCatalogo}
               cartoes={vocabCards}
               aoMudarFiltro={setFiltroDoCatalogo}
-              aoAbrirPalavra={(id) => {
-                const c = vocabCards.find((x) => x.id === id);
-                if (!c) return;
-                setCartaoAberto(c);
-                void examineWord(c.word, c.sentence);
-              }}
+              aoAbrirPalavra={abrirPalavra}
               rodape={
                 semVerso > 0 && (
                   <p className="mut" style={{ fontSize: 12.5, marginTop: 12, color: 'var(--warn-ink)' }}>
@@ -1091,29 +1203,7 @@ export default function Metrics({
         </Tela>
       </div>
 
-      {cartaoAberto && (
-        <GavetaDaPalavra
-          key={cartaoAberto.id}
-          cartao={cartaoAberto}
-          palavra={selectedExamWord}
-          gravacoes={recordings}
-          velocidade={ttsSpeed}
-          aoTrocarVelocidade={setTtsSpeed}
-          aoFalar={speakWord}
-          aoFechar={() => {
-            setCartaoAberto(null);
-            setSelectedExamWord(null);
-          }}
-          aoMudar={(novo) => {
-            setVocabCards((prev) => prev.map((c) => (c.id === novo.id ? novo : c)));
-            setCartaoAberto(novo);
-            setVersaoDoCatalogo((v) => v + 1);
-          }}
-          aoExcluir={excluirCartao}
-          aoExercitar={(c) => void handlePracticeWord({ word: c.word, translation: c.translation }, 'memory')}
-          aoRevisar={() => onChangeView?.('study')}
-        />
-      )}
+      {gaveta}
     </div>
   );
 }

@@ -13,6 +13,7 @@
  *  - Editar (tradução, frase, nível), Suspender/Reativar e Excluir (dois cliques).
  */
 import '../../../styles/cartoes.css';
+import '../../../styles/questVocabulario.css';
 
 import {
   BookMarked,
@@ -42,8 +43,10 @@ import {
   updateCard,
 } from '../../../data/api';
 import { type DictionaryResult, forvoUrl, lookup, wiktionaryUrl } from '../../../lib/dictionary';
+import { useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
 import { baseLang, langLabelNaUI } from '../../../lib/languages';
 import { classesDaPalavra } from '../../../lib/pelesDeCartao';
+import { haVozPara } from '../../../lib/voz/haVoz';
 import type { Recording, VocabCard, VocabWord } from '../../../types';
 import { toast } from '../../Toast';
 import { DialogoBase, IconeEmBloco } from '../../ui';
@@ -131,6 +134,11 @@ export default function GavetaDaPalavra({
   const [nv, setNv] = useState(cartao.cefrLevel ?? '');
 
   const lang = baseLang(cartao.srcLang || palavra?.lang || '');
+  /* NO META QUEST a gaveta é um painel no CENTRO (`questVocabulario.css`: nada desliza pela lateral), com
+     o conteúdo em duas colunas. E a voz: o headset não tem voz própria, só a do site, em alguns idiomas;
+     o botão de ouvir (e a velocidade dele) aparece quando há voz para o idioma DESTA palavra. */
+  const questNovo = useQuestNovo();
+  const temVoz = haVozPara(lang);
   const traducao = cartao.translation || palavra?.translation || '';
   const motor = !cartao.translation && palavra?.mtEngine ? MOTORES[palavra.mtEngine] : undefined;
   const doDicionario = !cartao.translation && DE_DICIONARIO.has(palavra?.mtEngine ?? '');
@@ -235,18 +243,25 @@ export default function GavetaDaPalavra({
       </div>
       <div className="gav-corpo pilha-g">
         <div className="linha" style={{ gap: 8, flexWrap: 'wrap' }}>
-          <button type="button" className="btn btn-outline peq" data-precisa="voz" onClick={() => aoFalar(cartao.word)}>
+          <button
+            type="button"
+            className="btn btn-outline peq"
+            data-precisa={temVoz ? undefined : 'voz'}
+            onClick={() => aoFalar(cartao.word)}
+          >
             <Volume2 aria-hidden /> Ouvir
           </button>
-          <Segmentos
-            atual={String(velocidade)}
-            opcoes={[
-              ['0.75', '0,75×'],
-              ['1', '1×'],
-            ]}
-            aoTrocar={(v) => aoTrocarVelocidade(Number(v))}
-            rotulo="Velocidade da pronúncia"
-          />
+          {(!questNovo || temVoz) && (
+            <Segmentos
+              atual={String(velocidade)}
+              opcoes={[
+                ['0.75', '0,75×'],
+                ['1', '1×'],
+              ]}
+              aoTrocar={(v) => aoTrocarVelocidade(Number(v))}
+              rotulo="Velocidade da pronúncia"
+            />
+          )}
           {lang && (
             <>
               <a className="link" href={wiktionaryUrl(cartao.word, lang)} target="_blank" rel="noreferrer">
@@ -265,7 +280,15 @@ export default function GavetaDaPalavra({
               <label className="rot" htmlFor="pw-t">
                 Tradução
               </label>
-              <input className="campo" id="pw-t" value={t} required onChange={(e) => setT(e.target.value)} autoFocus />
+              {/* No headset o campo não pega o foco sozinho: o teclado do sistema cobriria o painel ao abrir. */}
+              <input
+                className="campo"
+                id="pw-t"
+                value={t}
+                required
+                onChange={(e) => setT(e.target.value)}
+                autoFocus={!questNovo}
+              />
             </div>
             <div>
               <label className="rot" htmlFor="pw-ex">

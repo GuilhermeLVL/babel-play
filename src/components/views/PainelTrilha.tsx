@@ -16,7 +16,7 @@ import React, { useMemo, useState } from 'react';
 
 import { rotuloDaEtapa } from '../../core/learning/trilha';
 import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
-import { numero, t } from '../../lib/i18n';
+import { numero, t, tp } from '../../lib/i18n';
 import { langLabelNaUI } from '../../lib/languages';
 import type { AgeProfileType } from '../../lib/profile';
 import type { VocabCard } from '../../types';
@@ -110,6 +110,7 @@ export default function PainelTrilha({
      barra de cada um, o caminho dentro do nível e a procedência. Os números são os calculados acima. */
   const questNovo = useQuestNovo();
   const [aberto, setAberto] = useState(false);
+  const [etapasAbertas, setEtapasAbertas] = useState(false);
   if (questNovo) {
     const doRecorte = (n: CefrLevel) => (porFrequencia ? t('da faixa {n}', { n: rotulo(n) }) : t('do {n}', { n }));
     return (
@@ -219,6 +220,51 @@ export default function PainelTrilha({
                     />
                   ))}
                 </ol>
+                {/* O nome de cada etapa e quanto dela já está no caderno: no computador é a dica de cada
+                    traço ao parar o ponteiro; aqui é uma lista que abre no lugar. */}
+                <div className="q-acoes">
+                  <button
+                    type="button"
+                    className="q-chip"
+                    aria-expanded={etapasAbertas}
+                    onClick={() => setEtapasAbertas((v) => !v)}
+                  >
+                    {etapasAbertas ? <ChevronUp aria-hidden /> : <ChevronDown aria-hidden />}
+                    {etapasAbertas ? t('Esconder as etapas') : tp(etapas.length, 'Ver a etapa', 'Ver as {n} etapas')}
+                  </button>
+                </div>
+                {etapasAbertas && (
+                  <div className="q-tabela-caixa" tabIndex={0} role="region" aria-label={t('Etapas do nível')}>
+                    <table className="q-tabela">
+                      <thead>
+                        <tr>
+                          <th>{t('Etapa')}</th>
+                          <th>{t('No seu caderno')}</th>
+                          <th>{t('Estado')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {etapas.map((p) => (
+                          <tr key={p.etapa.id} data-etapa={p.estado}>
+                            <td className="qj-item">
+                              <b>{p.etapa.nome}</b>
+                              {p.etapa.subtitulo && <small>{p.etapa.subtitulo}</small>}
+                            </td>
+                            <td>{t('{ja} de {total}', { ja: numero(p.jaTem), total: numero(p.total) })}</td>
+                            <td>
+                              <span
+                                className="q-tag"
+                                data-tom={p.estado === 'feita' ? 'bom' : p.estado === 'atual' ? 'acento' : 'neu'}
+                              >
+                                {p.estado === 'feita' ? t('feita') : p.estado === 'atual' ? t('atual') : t('a fazer')}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             )}
 

@@ -3,14 +3,36 @@
  * acessível por teclado (tab + enter/space), com aria-label dinâmico. O input ganha `pe-11` para o
  * ícone não sobrepor o texto nem interferir no caret.
  */
+import '../../styles/questEntrada.css';
+
 import { Eye, EyeOff } from 'lucide-react';
 import React, { useState } from 'react';
 
+import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { t } from '../../lib/i18n';
 
 export default function PasswordField(props: React.InputHTMLAttributes<HTMLInputElement>) {
   const [mostrar, setMostrar] = useState(false);
+  const questNovo = useQuestNovo();
   const { className, type: _t, ...rest } = props;
+
+  /* QUEST: o campo de 60 px e o olho de 56, dentro dele (`.qen-senha` em `questEntrada.css`). */
+  if (questNovo)
+    return (
+      <div className="qen-senha">
+        <input {...rest} type={mostrar ? 'text' : 'password'} className={className} />
+        <button
+          type="button"
+          className="qen-olho"
+          onClick={() => setMostrar((s) => !s)}
+          aria-label={mostrar ? t('Ocultar senha') : t('Mostrar senha')}
+          aria-pressed={mostrar}
+        >
+          {mostrar ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+        </button>
+      </div>
+    );
+
   return (
     <div className="relative">
       <input {...rest} type={mostrar ? 'text' : 'password'} className={`field-input pe-11 ${className ?? ''}`} />

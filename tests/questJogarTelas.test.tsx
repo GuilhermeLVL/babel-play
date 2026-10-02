@@ -173,6 +173,8 @@ describe('a sala de escolha no Quest', () => {
     expect((within(sala).getByRole('radio', { name: /Trilha/ }) as HTMLButtonElement).disabled).toBe(true)
     expect(sala.textContent).toContain('ainda não existe trilha em')
     expect(sala.textContent).toContain('o ranking de difíceis ainda não tem material')
+    // O que a contagem de cada idioma quer dizer, escrito.
+    expect(sala.textContent).toMatch(/621 prontas para jogo de par, de 1\.151 no idioma/)
     expect(principais(sala)).toEqual(['Usar estas palavras'])
     fireEvent.click(within(sala).getByRole('button', { name: 'Usar estas palavras' }))
     expect(aoConfirmar).toHaveBeenCalledWith(
@@ -304,6 +306,9 @@ describe('a antessala no Quest', () => {
     fireEvent.click(within(porque).getByRole('button', { name: 'Ver os 2 itens' }))
     expect(within(porque).getByText('gato')).toBeTruthy()
     expect(within(porque).getByText('você errou')).toBeTruthy()
+    // O porquê de cada selo vem escrito (no computador é a dica ao parar o ponteiro).
+    expect(porque.textContent).toContain('1 erro(s) em 2 tentativa(s)')
+    expect(porque.textContent).toContain('Passou da hora de revisar')
     fireEvent.click(within(porque).getByRole('button', { name: /Como funciona a repetição/ }))
     expect(porque.textContent).toContain('Cada rodada garante pelo menos 30% de itens novos')
   })
@@ -315,6 +320,9 @@ describe('a antessala no Quest', () => {
     expect(t.onJogarFase).toHaveBeenCalledWith(['a', 'b'])
     expect((within(fases).getByRole('button', { name: 'Repetir a fase 1' }) as HTMLButtonElement).disabled).toBe(true)
     expect(fases.textContent).toContain('Esta rodada antiga não guardou as palavras')
+    // O acerto de cada fase é texto à vista, não só o nome acessível das estrelas.
+    expect(fases.textContent).toContain('100% de acerto')
+    expect(fases.textContent).toContain('50% de acerto')
   })
 
   it('o progresso neste jogo aparece quando há histórico', async () => {
@@ -474,8 +482,17 @@ describe('"Como se joga" no Quest', () => {
   })
 })
 
-describe('o tour guiado no Quest', () => {
-  it('avança por botão (não há teclado) e pode ser pulado', () => {
+describe('o que muda de jeito no headset é dito do jeito do headset', () => {
+  it('"Como se joga" do Caça-palavras fala em tocar nas duas pontas, não em arrastar', () => {
+    render(
+      <ComoSeJoga jogo="wordsearch" titulo="Caça-palavras" ageProfile="pro" onJogar={() => {}} onFechar={() => {}} />,
+    )
+    const passos = screen.getByRole('dialog').querySelector('.q-passos')?.textContent ?? ''
+    expect(passos).toContain('toque na primeira letra dela no quadro, depois na última')
+    expect(passos).not.toMatch(/arraste/i)
+  })
+
+  it('o tour usa a frase do headset quando o passo tem uma', () => {
     const medida = vi
       .spyOn(Element.prototype, 'getBoundingClientRect')
       .mockReturnValue({
@@ -489,6 +506,45 @@ describe('o tour guiado no Quest', () => {
         y: 100,
         toJSON: () => ({}),
       })
+    try {
+      render(
+        <>
+          <div data-tour="grade">grade</div>
+          <TourGuiado
+            titulo="Caça-palavras"
+            onFim={() => {}}
+            passos={[
+              {
+                alvo: '[data-tour="grade"]',
+                texto: 'Arraste sobre as letras para marcar.',
+                textoNoQuest: 'Toque na primeira letra da palavra e depois na última.',
+                gesto: 'arraste',
+              },
+            ]}
+          />
+        </>,
+      )
+      expect(screen.getByText('Toque na primeira letra da palavra e depois na última.')).toBeTruthy()
+      expect(screen.queryByText(/Arraste/)).toBeNull()
+    } finally {
+      medida.mockRestore()
+    }
+  })
+})
+
+describe('o tour guiado no Quest', () => {
+  it('avança por botão (não há teclado) e pode ser pulado', () => {
+    const medida = vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
+      top: 100,
+      left: 100,
+      width: 200,
+      height: 60,
+      right: 300,
+      bottom: 160,
+      x: 100,
+      y: 100,
+      toJSON: () => ({}),
+    })
     try {
       const onFim = vi.fn()
       render(
@@ -723,6 +779,13 @@ describe('o painel da trilha no Quest', () => {
     fireEvent.click(niveis[1])
     expect(onEscolherNivel).toHaveBeenCalledWith('A2')
     expect(screen.getByText(/Nível e tradução vêm de listas públicas curadas/)).toBeTruthy()
+
+    // As etapas com nome e quanto de cada uma já está no caderno (no computador, a dica de cada traço).
+    fireEvent.click(botao(/Ver a etapa|Ver as \d+ etapas/))
+    const etapas = screen.getByRole('region', { name: 'Etapas do nível' })
+    expect(etapas.textContent).toContain('No seu caderno')
+    expect(etapas.textContent).toContain('0 de 3')
+    expect(etapas.textContent).toContain('atual')
   })
 
   it('sem tradução para o idioma da pessoa, o aviso aparece ao abrir', () => {

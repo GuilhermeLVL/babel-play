@@ -163,6 +163,32 @@ html[data-quest-novo='true'] .palco-jogo .ajuda-jogo .n {
   height: 26px;
   font-size: 14px;
 }
+/* O "?" das ajudas e a lista que ele abre: o que cada ajuda faz e o que custa, escrito (no computador
+   isso mora na dica ao parar o ponteiro, que o headset não tem). */
+html[data-quest-novo='true'] .palco-jogo .ajuda-jogo[data-ajudas='porque'] {
+  min-width: 60px;
+  padding: 0;
+}
+html[data-quest-novo='true'] .palco-jogo .ajuda-jogo[data-ajudas='porque'][aria-expanded='true'] {
+  border-color: var(--q-acento);
+  background: var(--q-suave);
+}
+html[data-quest-novo='true'] .palco-jogo .qj-ajudas-notas {
+  margin: -4px 0 14px;
+  padding: 12px 18px;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+  border: 1.5px solid var(--border-subtle);
+  border-radius: 16px;
+  background: var(--surface);
+  font: 600 16px/1.4 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+html[data-quest-novo='true'] .palco-jogo .qj-ajudas-notas b {
+  color: var(--ink);
+  font-weight: 800;
+}
 
 /* ── TODO BOTÃO DO TABULEIRO: alvo de 48 px e o mesmo toque ───────────────────────────────────── */
 html[data-quest-novo='true'] .palco-jogo button {

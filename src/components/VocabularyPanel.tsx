@@ -1,4 +1,17 @@
-import { Check, ExternalLink, Loader2, Plus, SlidersHorizontal, Sparkles, Volume2, X, Zap } from 'lucide-react';
+import {
+  BookOpen,
+  Check,
+  ExternalLink,
+  ImageOff,
+  Loader2,
+  Plus,
+  SlidersHorizontal,
+  Sparkles,
+  Target,
+  Volume2,
+  X,
+  Zap,
+} from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 import { type DictionaryResult, forvoUrl, lookup, wiktionaryUrl } from '../lib/dictionary';
@@ -9,6 +22,7 @@ import type { ExerciseId } from '../lib/sentences';
 import type { VocabWord } from '../types';
 import EditablePanel from './EditablePanel';
 import Provenance from './Provenance';
+import { Dialogo } from './ui';
 
 /** Rótulos amigáveis dos motores de tradução — o usuário não deve ler ids técnicos crus. */
 const MT_ENGINE_LABELS: Record<string, string> = {
@@ -82,7 +96,23 @@ export interface VocabularyPanelProps {
    * tinha motor — indistinguível de lentidão. `undefined`/`null` = ainda traduzindo (ou já traduziu).
    */
   mtNote?: string | null;
+  /**
+   * A FOLHA DA PALAVRA (o desenho do headset): o mesmo conteúdo num diálogo no centro, com alvos de
+   * 56 px, no lugar da coluna lateral e do cartão que abria por hover. Quem a usa passa também o que
+   * o cartão de hover mostrava (`imagem`) e diz se há voz para o idioma (`podeOuvir`).
+   */
+  emFolha?: boolean;
+  /** Só na folha: a imagem associada (o que o hover mostrava). Ausente = esta tela não busca imagem. */
+  imagem?: { url: string | null; carregando: boolean };
+  /** Só na folha: há voz de leitura para o idioma da palavra? `false` troca o "Ouvir" pelo motivo. */
+  podeOuvir?: boolean;
+  /** Só na folha: as velocidades do áudio (a Análise oferece 0,5× e 1×; a Leitura, 0,75× e 1×). */
+  velocidades?: readonly number[];
+  /** Só na folha: o nível CEFR do cartão, quando a palavra já está no caderno. */
+  nivel?: string;
 }
+
+const VELOCIDADES_PADRAO: readonly number[] = [0.75, 1];
 
 export default function VocabularyPanel({
   viewKey,
@@ -95,6 +125,11 @@ export default function VocabularyPanel({
   setTtsSpeed,
   onPractice,
   mtNote,
+  emFolha = false,
+  imagem,
+  podeOuvir = true,
+  velocidades = VELOCIDADES_PADRAO,
+  nivel,
 }: VocabularyPanelProps) {
   /**
    * VERBETE REAL (Wiktionary). Três estados distintos — e a UI diz qual é:
@@ -139,6 +174,228 @@ export default function VocabularyPanel({
   const found = entry?.status === 'found' ? entry.entry : null;
   // A fonética do verbete tem procedência; a de `word.phonetics` (quando existe) vem do card salvo.
   const ipa = found?.ipa ?? word.phonetics;
+
+  if (emFolha) {
+    const deDicionario = DE_DICIONARIO.has(word.mtEngine ?? '');
+    const cefr = nivel ?? word.cefr;
+    return (
+      <Dialogo
+        icone={BookOpen}
+        titulo={word.word}
+        sub={[word.lang ? langLabel(word.lang) : '', cefr, ipa].filter(Boolean).join(' · ') || undefined}
+        aoFechar={onClose}
+      >
+        <div className="dlg-corpo qs-miolo qp" data-testid="folha-da-palavra">
+          {imagem && (
+            <div className="qp-imagem">
+              {imagem.url ? (
+                <img src={imagem.url} alt={word.word} referrerPolicy="no-referrer" />
+              ) : imagem.carregando ? (
+                <span role="status">
+                  <Loader2 className="animate-spin" aria-hidden /> {t('Buscando imagem…')}
+                </span>
+              ) : (
+                <span>
+                  <ImageOff aria-hidden /> {t('Sem imagem')}
+                </span>
+              )}
+            </div>
+          )}
+          <div className="qp-texto">
+            <section className="qp-bloco">
+              <span className="q-rotulo">{deDicionario ? t('Tradução do dicionário') : t('Tradução automática')}</span>
+              {word.translation ? (
+                <p className="qp-traducao">{word.translation}</p>
+              ) : mtNote ? (
+                <p className="qp-nota">{mtNote}</p>
+              ) : (
+                <p className="qp-espera" role="status">
+                  <Loader2 className="animate-spin" aria-hidden /> {t('traduzindo…')}
+                </p>
+              )}
+              {word.translation && (
+                <Provenance
+                  className="qp-procedencia"
+                  kind={deDicionario ? 'source' : 'computed'}
+                  origin={t(MT_ENGINE_LABELS[word.mtEngine ?? ''] ?? word.mtEngine ?? 'guardada no seu caderno')}
+                  method={deDicionario ? t('glosa de dicionário') : t('tradução automática')}
+                  limits={
+                    deDicionario
+                      ? t(
+                          'Tradução curta de dicionário (Wikcionário e Wikidata), sem inteligência artificial. Ela dá o sentido mais comum da palavra; para os outros sentidos, use o verbete abaixo.',
+                        )
+                      : t(
+                          'Tradução de máquina, palavra fora de contexto. Ela erra em gírias, termos técnicos e palavras com vários sentidos. Para a acepção exata, use o verbete abaixo.',
+                        )
+                  }
+                />
+              )}
+            </section>
+
+            {(ipa || found) && (
+              <section className="qp-bloco" data-testid="fonetica-da-palavra">
+                <span className="q-rotulo">{t('Fonética')}</span>
+                {ipa ? (
+                  <div className="q-acoes">
+                    <span className="qp-ipa">{ipa}</span>
+                    {found?.ipaSource && (
+                      <a className="q-chip" href={found.ipaSource.url} target="_blank" rel="noopener noreferrer">
+                        {t('Fonética do {wiki}', { wiki: found.ipaSource.wiki })} <ExternalLink aria-hidden />
+                      </a>
+                    )}
+                  </div>
+                ) : (
+                  <p className="qp-apoio">{t('O verbete não traz transcrição fonética.')}</p>
+                )}
+              </section>
+            )}
+
+            {podeOuvir ? (
+              <div className="q-acoes">
+                <button type="button" className="q-ctl" onClick={() => onSpeak(word.word)}>
+                  <Volume2 aria-hidden /> {t('Ouvir')}
+                </button>
+                <div className="q-abas q-seg" role="group" aria-label={t('Velocidade do áudio')}>
+                  {velocidades.map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      className="q-aba"
+                      aria-pressed={ttsSpeed === v}
+                      onClick={() => setTtsSpeed(v)}
+                    >
+                      {String(v).replace('.', ',')}×
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <p className="qp-nota" data-testid="palavra-sem-voz">
+                {word.lang
+                  ? t('Sem voz de leitura para {idioma} neste aparelho.', { idioma: langLabel(word.lang) })
+                  : t('Sem voz de leitura para esta palavra neste aparelho.')}
+              </p>
+            )}
+
+            <section className="qp-bloco">
+              <span className="q-rotulo">{t('Dicionário')}</span>
+              {!word.lang && (
+                <p className="qp-apoio">
+                  {t('Não sabemos em que idioma esta palavra está, então não há verbete para consultar.')}
+                </p>
+              )}
+              {word.lang && !entry && (
+                <p className="qp-espera" role="status">
+                  <Loader2 className="animate-spin" aria-hidden /> {t('Consultando o Wiktionary…')}
+                </p>
+              )}
+              {found && (
+                <>
+                  {found.glossLang !== baseLang(idiomaDaInterface()) && (
+                    <p className="qp-nota">
+                      {t('Não há verbete em {idioma} para esta palavra. A definição abaixo está escrita em {outro}.', {
+                        idioma: langLabelNaUI(idiomaDaInterface()),
+                        outro: langLabelNaUI(found.glossLang),
+                      })}
+                    </p>
+                  )}
+                  <ul className="qp-sentidos">
+                    {found.senses.slice(0, 3).map((s, i) => (
+                      <li key={i}>
+                        {s.partOfSpeech && <span className="q-tag">{s.partOfSpeech}</span>}
+                        <p>{s.definition}</p>
+                        {s.examples[0] && <p className="qp-exemplo">“{s.examples[0]}”</p>}
+                      </li>
+                    ))}
+                  </ul>
+                  <Provenance
+                    className="qp-procedencia"
+                    kind="source"
+                    origin={`${found.source.wiki} · ${found.source.license}`}
+                    method={t('verbete em {idioma}, definido em {outro}', {
+                      idioma: langLabel(found.lang),
+                      outro: langLabel(found.glossLang),
+                    })}
+                    url={found.source.url}
+                    limits={t(
+                      'Conteúdo escrito e revisado pela comunidade do Wiktionary. É citável e você pode conferir no link, mas, como toda obra colaborativa, um verbete pode estar incompleto ou desatualizado.',
+                    )}
+                  />
+                </>
+              )}
+              {entry?.status === 'not-found' && (
+                <p className="qp-apoio">
+                  {word.lang
+                    ? t(
+                        'O Wiktionary não tem verbete para esta palavra em {idioma}. Não vamos inventar uma definição.',
+                        { idioma: langLabel(word.lang) },
+                      )
+                    : t(
+                        'O Wiktionary não tem verbete para esta palavra neste idioma. Não vamos inventar uma definição.',
+                      )}
+                </p>
+              )}
+              {entry?.status === 'error' && <p className="qp-nota">{entry.message}</p>}
+              {word.lang && (
+                <div className="q-acoes">
+                  <a
+                    className="q-chip"
+                    href={entry?.status === 'not-found' ? entry.sourceUrl : wiktionaryUrl(word.word)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Wiktionary <ExternalLink aria-hidden />
+                  </a>
+                  <a className="q-chip" href={forvoUrl(word.word, word.lang)} target="_blank" rel="noopener noreferrer">
+                    {t('Forvo (voz humana)')} <ExternalLink aria-hidden />
+                  </a>
+                </div>
+              )}
+            </section>
+
+            {word.explanation && (
+              <section className="qp-bloco">
+                <span className="q-rotulo">{t('Explicação linguística')}</span>
+                <p className="qp-apoio">{word.explanation}</p>
+              </section>
+            )}
+            {word.example && (
+              <section className="qp-bloco">
+                <span className="q-rotulo">{t('Exemplo prático')}</span>
+                <p className="qp-exemplo">“{word.example}”</p>
+              </section>
+            )}
+          </div>
+        </div>
+        <div className="dlg-pe qp-pe">
+          {isAdded ? (
+            <span className="q-chip qp-no-deck" role="status">
+              <Check aria-hidden /> {t('Já está no Deck')}
+            </span>
+          ) : (
+            <button type="button" className="q-ctl pri" onClick={() => onAddToDeck(word)}>
+              <Plus aria-hidden /> {t('Adicionar ao Deck')}
+            </button>
+          )}
+          {onPractice && (
+            <>
+              <button type="button" className="q-ctl" onClick={() => onPractice(word, 'review')}>
+                <Target aria-hidden /> {t('Revisar agora')}
+              </button>
+              <button type="button" className="q-ctl" onClick={() => onPractice(word, 'blitz')}>
+                <Zap aria-hidden /> {t('Duelo com esta palavra')}
+              </button>
+              <small className="qp-o-que-fazem">
+                {t(
+                  '"Revisar agora" adiciona a palavra ao deck, se preciso, e abre a revisão. O Duelo abre o Duelo relâmpago começando por ela.',
+                )}
+              </small>
+            </>
+          )}
+        </div>
+      </Dialogo>
+    );
+  }
 
   return (
     <EditablePanel

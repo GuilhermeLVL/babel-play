@@ -1,11 +1,15 @@
+import '../../styles/questConta.css';
+
 import { ShieldCheck, TrendingUp, User, UserRound } from 'lucide-react';
 import { useState } from 'react';
 
+import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { t } from '../../lib/i18n';
 import type { AgeProfileType } from '../../lib/profile';
 import type { DerivedProgress } from '../../lib/progress';
 import MolduraETitulo from '../perfil/MolduraETitulo';
 import { Abas, CabecalhoDeTela, PainelDeAba, Tela } from '../ui';
+import AbasDoQuest from './ajustes/quest/AbasDoQuest';
 import AbaDados from './perfil/AbaDados';
 import AbaProgresso from './perfil/AbaProgresso';
 import AbaVoce from './perfil/AbaVoce';
@@ -30,6 +34,48 @@ interface PerfilProps {
 
 export default function Perfil({ progress, ageProfile }: PerfilProps) {
   const [aba, setAba] = useState('voce');
+  const questNovo = useQuestNovo();
+
+  /* QUEST: as mesmas três abas, na mesma ordem, no desenho do headset. Cada aba (`perfil/*`) tem o
+     próprio ramo do Quest, com o mesmo estado: aqui só mudam o cabeçalho e as abas. */
+  if (questNovo)
+    return (
+      <div className="q-palco qc" data-testid="perfil-do-quest">
+        <header className="q-cab">
+          <div>
+            <p className="q-sobre">{t('Sua conta')}</p>
+            <h1>{t('Seu perfil')}</h1>
+            <p className="qc-sub">
+              {aba === 'voce'
+                ? t('Como o app te chama, o que você quer alcançar e onde está em cada idioma.')
+                : t('Os seus dados, o que você já conquistou e onde você está no idioma.')}
+            </p>
+          </div>
+          <MolduraETitulo nivel={progress.available ? progress.level : 1} tamanho={56} />
+        </header>
+
+        <AbasDoQuest
+          rotuloDoGrupo={t('Seções do perfil')}
+          ativo={aba}
+          aoTrocar={setAba}
+          itens={[
+            { id: 'voce', rotulo: t('Você'), icone: <User aria-hidden /> },
+            { id: 'progresso', rotulo: t('Progresso'), icone: <TrendingUp aria-hidden /> },
+            { id: 'dados', rotulo: t('Seus dados'), icone: <ShieldCheck aria-hidden /> },
+          ]}
+        />
+
+        <PainelDeAba id="voce" ativo={aba} className="qc-painel">
+          <AbaVoce />
+        </PainelDeAba>
+        <PainelDeAba id="progresso" ativo={aba} className="qc-painel">
+          <AbaProgresso progress={progress} ageProfile={ageProfile} />
+        </PainelDeAba>
+        <PainelDeAba id="dados" ativo={aba} className="qc-painel">
+          <AbaDados />
+        </PainelDeAba>
+      </div>
+    );
 
   return (
     <Tela largura="estreita">

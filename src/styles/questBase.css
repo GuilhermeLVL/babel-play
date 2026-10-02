@@ -582,6 +582,18 @@ html[data-quest-novo='true']
   font-size: max(15px, 1em);
 }
 
+/* As peças de diálogo que têm o tamanho na CLASSE (o piso acima só pega tamanho escrito no elemento). */
+html[data-quest-novo='true'] dialog :is(.rot, .erro-campo, .proveniencia, .sentidos, .aviso-curto, .aviso-caps) {
+  font-size: 15px;
+  line-height: 1.4;
+}
+html[data-quest-novo='true'] dialog .op-linha b {
+  font-size: 17px;
+}
+html[data-quest-novo='true'] dialog .form-l {
+  gap: 8px;
+}
+
 /* ── DIÁLOGOS (`<dialog>` nativo de `ui/Dialogo.tsx`) ─────────────────────────────────────────────
    No centro, largos, com o fechar de 56 px. Nada desliza pela lateral. */
 html[data-quest-novo='true'] dialog:not(.q-mais) {

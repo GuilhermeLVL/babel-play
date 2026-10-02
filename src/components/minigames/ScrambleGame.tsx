@@ -191,6 +191,7 @@ export default function ScrambleGame({ rodadas, ageProfile, onFinish }: Scramble
               disabled={conferido === 'certo' || !ativo}
               onClick={(e) => pedirDica(e.currentTarget)}
               title="Dica: encaixar a próxima palavra"
+              custo={t('limita a nota a "difícil"')}
             />
           </>
         }

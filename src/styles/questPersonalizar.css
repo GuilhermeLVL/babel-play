@@ -320,7 +320,10 @@ html[data-quest-novo='true'] .qp-passe [id^='temporada-nivel-'] > button:focus-v
 html[data-quest-novo='true'] .qp-passe .opacity-40 {
   opacity: 0.62;
 }
+/* A coluna que nomeia as fileiras (Grátis, Assinante) some abaixo de 640 px na tela de sempre; a janela do
+   Quest encolhe até 500 px, e lá o nome da fileira não pode sumir. */
 html[data-quest-novo='true'] .qp-passe .qp-fileiras {
+  display: flex !important;
   width: 128px;
   padding-top: 46px; /* a altura do número do nível (36) e o vão (10) */
 }
@@ -502,6 +505,9 @@ html[data-quest-novo='true'] dialog.qp-editor .dlg-pe .link {
   }
   html[data-quest-novo='true'] .qp-passe [id^='temporada-nivel-'] {
     width: 160px;
+  }
+  html[data-quest-novo='true'] .qp-passe .qp-fileiras {
+    width: 104px;
   }
   html[data-quest-novo='true'] dialog.qp-editor .g-cores {
     grid-template-columns: minmax(0, 1fr);

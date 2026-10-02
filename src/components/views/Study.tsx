@@ -1,5 +1,5 @@
 import '../../styles/cartoes.css';
-import '../../styles/questBiblioteca.css';
+import '../../styles/questRevisao.css';
 
 import { countDue, ganhoDaNota, ganhoDaRevisao, type Grade, isDueNow, makeFsrs5 } from '@core';
 import {
@@ -32,7 +32,7 @@ import {
 } from '../../data/api';
 import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { ActiveProductionExercise, similarityPercentage, stabilityThreshold } from '../../lib/exercicios';
-import { t } from '../../lib/i18n';
+import { t, tp } from '../../lib/i18n';
 import { ganho } from '../../lib/juice';
 import { classesDaPalavra } from '../../lib/pelesDeCartao';
 import { type AgeProfileType, copyDoPerfil, showsPowerUserAffordances } from '../../lib/profile';
@@ -40,12 +40,22 @@ import { recompensasV2Ligadas } from '../../lib/recompensasV2';
 import type { PracticeSeed, Sentence } from '../../lib/sentences';
 import { speak as ttsSpeak } from '../../lib/tts';
 import { useExameDePalavra } from '../../lib/useExameDePalavra';
+import { haVozPara } from '../../lib/voz/haVoz';
 import { ExerciseKind, Recording, SchedulerType, VocabCard } from '../../types';
 import CommandPalette, { useCommandPalette } from '../CommandPalette';
 import FraseComLacuna from '../FraseComLacuna';
 import ResumoDaPratica from '../progress/ResumoDaPratica';
 import { toast } from '../Toast';
 import { CabecalhoDeTela, fecharDialogoDe, IconeEmBloco, Tela } from '../ui';
+import {
+  BaralhoVazioNoQuest,
+  EsperaDaRevisaoNoQuest,
+  FimDaRodadaNoQuest,
+  ForaDaRodadaNoQuest,
+  type NotaDoQuest,
+  OpcoesDaRevisaoNoQuest,
+  RodadaDoQuest,
+} from './revisao/quest/RevisaoDoQuest';
 import Dialogo, { CampoLinha, Interruptor, Segmentos } from './vocab/Dialogo';
 import GavetaDaPalavra from './vocab/GavetaDaPalavra';
 
@@ -161,7 +171,8 @@ export default function Study({
   onSeedConsumed,
   ageProfile = 'pro',
 }: StudyProps = {}) {
-  /** Quest com as telas novas (maquete de 01/10/2026, tela 8): o mesmo cartão, só que lido de longe. */
+  /** Quest com as telas novas (maquete de 01/10/2026, tela 8): a mesma revisão, no desenho do headset
+      (`revisao/quest/RevisaoDoQuest.tsx`). O estado, a fila e as notas são os daqui. */
   const questNovo = useQuestNovo();
   const [vocabCards, setVocabCards] = useState<VocabCard[]>([]);
   /**
@@ -612,40 +623,68 @@ export default function Study({
     />
   );
 
+  const valoresDaRevisao: ValoresDaRevisao = {
+    novas: novasPorDia,
+    revisoes: revisoesPorDia,
+    ordem,
+    tipo,
+    ouvir: ouvirAoMostrar,
+    retencao,
+  };
+  const trocarOpcoes = (v: Partial<ValoresDaRevisao>) => {
+    if (v.novas !== undefined) {
+      setNovasPorDia(v.novas);
+      gravarPreferencia(CHAVE_NOVAS, String(v.novas));
+    }
+    if (v.revisoes !== undefined) {
+      setRevisoesPorDia(v.revisoes);
+      gravarPreferencia(CHAVE_REVISOES, String(v.revisoes));
+    }
+    if (v.ordem !== undefined) {
+      setOrdem(v.ordem);
+      gravarPreferencia(CHAVE_ORDEM, v.ordem);
+    }
+    if (v.tipo !== undefined) {
+      setTipo(v.tipo);
+      gravarPreferencia(CHAVE_TIPO, v.tipo);
+    }
+    if (v.ouvir !== undefined) {
+      setOuvirAoMostrar(v.ouvir);
+      gravarPreferencia(CHAVE_OUVIR, String(v.ouvir));
+    }
+    if (v.retencao !== undefined) {
+      setRetencao(v.retencao);
+      gravarPreferencia(CHAVE_RETENCAO, String(v.retencao));
+    }
+  };
+
+  /* PRODUÇÃO ATIVA NO QUEST: o mesmo exercício da paleta de comandos, com um botão (não há teclado). */
+  const producaoNoQuest = {
+    rotulo: EXERCISES[1].label,
+    dica: EXERCISES[1].hint,
+    bloqueio: EXERCISES[1].disabledReason,
+    aoComecar: startActiveProductionSession,
+  };
+
   const dialogos = (
     <>
-      {opcoesAbertas && (
-        <OpcoesDaRevisao
-          valores={{ novas: novasPorDia, revisoes: revisoesPorDia, ordem, tipo, ouvir: ouvirAoMostrar, retencao }}
-          aoTrocar={(v) => {
-            if (v.novas !== undefined) {
-              setNovasPorDia(v.novas);
-              gravarPreferencia(CHAVE_NOVAS, String(v.novas));
-            }
-            if (v.revisoes !== undefined) {
-              setRevisoesPorDia(v.revisoes);
-              gravarPreferencia(CHAVE_REVISOES, String(v.revisoes));
-            }
-            if (v.ordem !== undefined) {
-              setOrdem(v.ordem);
-              gravarPreferencia(CHAVE_ORDEM, v.ordem);
-            }
-            if (v.tipo !== undefined) {
-              setTipo(v.tipo);
-              gravarPreferencia(CHAVE_TIPO, v.tipo);
-            }
-            if (v.ouvir !== undefined) {
-              setOuvirAoMostrar(v.ouvir);
-              gravarPreferencia(CHAVE_OUVIR, String(v.ouvir));
-            }
-            if (v.retencao !== undefined) {
-              setRetencao(v.retencao);
-              gravarPreferencia(CHAVE_RETENCAO, String(v.retencao));
-            }
-          }}
-          aoFechar={() => setOpcoesAbertas(false)}
-        />
-      )}
+      {opcoesAbertas &&
+        (questNovo ? (
+          <OpcoesDaRevisaoNoQuest
+            valores={valoresDaRevisao}
+            padrao={PADRAO}
+            temVoz={haVozPara(studyLang)}
+            producao={producaoNoQuest}
+            aoTrocar={trocarOpcoes}
+            aoFechar={() => setOpcoesAbertas(false)}
+          />
+        ) : (
+          <OpcoesDaRevisao
+            valores={valoresDaRevisao}
+            aoTrocar={trocarOpcoes}
+            aoFechar={() => setOpcoesAbertas(false)}
+          />
+        ))}
       {editando && (
         <GavetaDaPalavra
           key={editando.id}
@@ -672,6 +711,7 @@ export default function Study({
 
   // ── Carregando ─────────────────────────────────────────────────────────────
   if (!deckLoaded) {
+    if (questNovo) return <EsperaDaRevisaoNoQuest titulo={tituloDaRevisao} aoVoltar={voltarAoVocabulario} />;
     return (
       <Tela largura="larga">
         <CabecalhoDeTela
@@ -689,6 +729,17 @@ export default function Study({
 
   // ── Baralho vazio: o estado que ensina de onde as palavras vêm ─────────────
   if (deckSize === 0) {
+    if (questNovo)
+      return (
+        <BaralhoVazioNoQuest
+          titulo={tituloDaRevisao}
+          motivo={copyDoPerfil('block.emptyDeck', ageProfile)}
+          aoVoltar={voltarAoVocabulario}
+          aoCapturar={onChangeView ? () => onChangeView('capture') : undefined}
+        >
+          {paleta}
+        </BaralhoVazioNoQuest>
+      );
     return (
       <Tela largura="larga">
         <CabecalhoDeTela
@@ -740,6 +791,38 @@ export default function Study({
       const quando = d < amanha.getTime() ? 'ainda hoje' : dias <= 1 ? 'amanhã' : `em ${dias} dias`;
       return { quando, n: dues.filter((x) => x < fimDoDia.getTime()).length };
     })();
+    if (questNovo)
+      return (
+        <FimDaRodadaNoQuest
+          feitoEm={tp(feitas, 'A palavra foi revisada.', 'As {n} palavras foram revisadas.')}
+          proximo={
+            dueCount > 0
+              ? tp(dueCount, 'Ainda vence {n} palavra agora.', 'Ainda vencem {n} palavras agora.')
+              : proxima
+                ? tp(
+                    proxima.n,
+                    'A próxima abre {quando} com {n} palavra.',
+                    'A próxima abre {quando} com {n} palavras.',
+                    { quando: proxima.quando },
+                  )
+                : t('Nada mais vence agora.')
+          }
+          revisoes={feitas}
+          acerto={feitas ? `${Math.round((acertos / feitas) * 100)}%` : '—'}
+          tempo={seg ? `${Math.floor(seg / 60)}:${String(seg % 60).padStart(2, '0')}` : '—'}
+          xp={xp}
+          seeds={v2 ? creditado.seeds : null}
+          resumo={v2 ? <ResumoDaPratica /> : undefined}
+          podeDesfazer={historico.length > 0}
+          aoDesfazer={() => void desfazer()}
+          aoJogar={() => onChangeView?.('play')}
+          aoEstatisticas={() => onChangeView?.('estatisticas')}
+          aoInicio={() => onChangeView?.('hub')}
+          aoVoltar={voltarAoVocabulario}
+        >
+          {paleta}
+        </FimDaRodadaNoQuest>
+      );
     return (
       <Tela largura="larga">
         <CabecalhoDeTela
@@ -806,6 +889,26 @@ export default function Study({
 
   // ── Fora de uma rodada (encerrada sem sair da tela) ────────────────────────
   if (!reviewing || !currentCard) {
+    if (questNovo)
+      return (
+        <ForaDaRodadaNoQuest
+          titulo={tituloDaRevisao}
+          quantas={dueCount || deckSize}
+          chamada={
+            dueCount > 0
+              ? copyDoPerfil('now.due.title', ageProfile, { n: dueCount })
+              : copyDoPerfil('now.clear.title', ageProfile)
+          }
+          explicacao={copyDoPerfil('now.due.sub', ageProfile, { sched: scheduler === 'fsrs' ? 'FSRS-5' : 'Leitner' })}
+          producao={producaoNoQuest}
+          aoComecar={startReviewSession}
+          aoOpcoes={() => setOpcoesAbertas(true)}
+          aoVoltar={voltarAoVocabulario}
+        >
+          {dialogos}
+          {paleta}
+        </ForaDaRodadaNoQuest>
+      );
     return (
       <Tela largura="larga">
         <CabecalhoDeTela
@@ -883,17 +986,117 @@ export default function Study({
     </div>
   );
 
-  /* A frase só diz de onde veio quando a palavra saiu DESTA sessão gravada (maquete do Quest). */
-  const origemDaFrase =
-    questNovo && recording && currentCard.sourceSessionId === recording.id ? (
-      <span className="rev-origem"> · {recording.title}</span>
-    ) : null;
+  const encerrar = () => {
+    setReviewing(false);
+    setEncerrada(true);
+    if (onChangeView) voltarAoVocabulario();
+  };
+  /** Múltipla escolha: marca a alternativa e grava o resultado do exercício. */
+  const escolherAlternativa = (option: string) => {
+    const isCorrect = option.toLowerCase() === currentCard.word.toLowerCase();
+    setTypingCorrect(isCorrect);
+    setTypingAttempt(option);
+    setTypingVerified(true);
+    // Persiste o resultado do exercício (best-effort) → alimenta métricas.
+    void salvarRodada({
+      roundId: `study-mc-${currentCard.id}-${Date.now()}`,
+      exerciseKind: 'multiple-choice',
+      origem: 'estudo',
+      sessionId: currentCard.sourceSessionId,
+      score: isCorrect ? 1 : 0,
+      itens: [{ cardId: currentCard.id, correct: isCorrect ? 1 : 0, kind: 'drill' }],
+    });
+  };
+  /* HÁ VOZ PARA ESTA PALAVRA, AQUI? O idioma é o do cartão (o mesmo que `playWordTTS` usa). No Quest
+     a voz é a do site, e só em alguns idiomas: o botão de ouvir aparece quando ela existe. */
+  const temVoz = haVozPara(langPairOf(currentCard).src || studyLang);
+  const producaoAtiva = (
+    <ActiveProductionExercise
+      card={currentCard}
+      llmValidationEnabled={llmValidation}
+      playTTS={playWordTTS}
+      temVoz={temVoz}
+      onVerify={(res: any) => {
+        (currentCard as any)._lastResult = res;
+      }}
+      onNext={() => {
+        const res = (currentCard as any)._lastResult || { correct: false };
+        if (scheduler === 'fsrs') void handleFsrsFeedback(currentCard.id, res.correct ? 3 : 1, 'active-production');
+        else handleLeitnerFeedback(currentCard.id, res.correct, 'active-production');
+      }}
+    />
+  );
+
+  if (questNovo) {
+    const notasDoQuest: NotaDoQuest[] =
+      scheduler === 'fsrs'
+        ? notas.map(([nota, classe, rotulo]) => ({
+            id: String(nota),
+            classe,
+            rotulo: t(rotulo),
+            detalhe: intervaloDaNota(currentCard, nota, agora, retencao),
+            aoDar: (origem: Element) => void handleFsrsFeedback(currentCard.id, nota, undefined, origem),
+          }))
+        : [
+            {
+              id: 'errei',
+              classe: 'e',
+              rotulo: t('Errei'),
+              detalhe: t('volta à caixa 1'),
+              aoDar: () => handleLeitnerFeedback(currentCard.id, false),
+            },
+            {
+              id: 'acertei',
+              classe: 'b',
+              rotulo: t('Acertei'),
+              detalhe: t('avança a caixa'),
+              aoDar: () => handleLeitnerFeedback(currentCard.id, true),
+            },
+          ];
+    return (
+      <RodadaDoQuest
+        titulo={isActiveProductionOnly ? copyDoPerfil('ex.active_production', ageProfile) : tituloDaRevisao}
+        rotulo={isActiveProductionOnly ? t('Produção ativa') : t('Revisão de hoje')}
+        indice={currentReviewIndex}
+        total={reviewCards.length}
+        cartao={currentCard}
+        selo={seloDoCartao(currentCard)}
+        pele={classesDaPalavra(currentCard)}
+        /* A frase só diz de onde veio quando a palavra saiu DESTA sessão gravada (maquete do Quest). */
+        origemDaFrase={recording && currentCard.sourceSessionId === recording.id ? recording.title : undefined}
+        formato={format}
+        notas={notasDoQuest}
+        mostrandoResposta={showAnswer}
+        aoMostrarResposta={mostrarResposta}
+        tentativa={typingAttempt}
+        aoDigitar={setTypingAttempt}
+        verificado={typingVerified}
+        certo={typingCorrect}
+        aoVerificar={verificarDigitacao}
+        alternativas={alternativas}
+        aoEscolher={escolherAlternativa}
+        aoAvancar={(origem) => avancar(format === 'mc' ? 'mc' : 'typing', origem)}
+        producao={producaoAtiva}
+        podeDesfazer={historico.length > 0}
+        aoDesfazer={() => void desfazer()}
+        aoOuvir={temVoz ? () => playWordTTS(currentCard.word) : undefined}
+        aoEditar={() => setEditando(currentCard)}
+        aoSuspender={() => void suspender(currentCard)}
+        aoOpcoes={() => setOpcoesAbertas(true)}
+        aoEncerrar={encerrar}
+        aoVoltar={voltarAoVocabulario}
+      >
+        {dialogos}
+        {paleta}
+      </RodadaDoQuest>
+    );
+  }
 
   return (
     <Tela largura="larga" className="rev-rodada">
       <CabecalhoDeTela
         voltar={{ rotulo: 'Vocabulário', aoClicar: voltarAoVocabulario }}
-        sobrancelha={questNovo ? t('Revisão de hoje') : `Revisão · ${currentReviewIndex + 1} de ${reviewCards.length}`}
+        sobrancelha={`Revisão · ${currentReviewIndex + 1} de ${reviewCards.length}`}
         icone={Target}
         titulo={isActiveProductionOnly ? copyDoPerfil('ex.active_production', ageProfile) : tituloDaRevisao}
         sub="Tente lembrar a tradução antes de mostrar a resposta. Depois diga o quanto foi fácil."
@@ -907,15 +1110,7 @@ export default function Study({
             >
               <Settings2 aria-hidden />
             </button>
-            <button
-              type="button"
-              className="btn btn-outline peq"
-              onClick={() => {
-                setReviewing(false);
-                setEncerrada(true);
-                if (onChangeView) voltarAoVocabulario();
-              }}
-            >
+            <button type="button" className="btn btn-outline peq" onClick={encerrar}>
               <X aria-hidden /> Encerrar
             </button>
             <div
@@ -929,11 +1124,6 @@ export default function Study({
             >
               <span style={{ width: `${(currentReviewIndex / reviewCards.length) * 100}%` }} />
             </div>
-            {questNovo && (
-              <span className="rev-conta">
-                {currentReviewIndex + 1} / {reviewCards.length}
-              </span>
-            )}
           </>
         }
       />
@@ -944,32 +1134,13 @@ export default function Study({
         <span className="badge neu">{seloDoCartao(currentCard)}</span>
 
         {format === 'active-production' ? (
-          <div style={{ marginTop: 14, textAlign: 'left' }}>
-            <ActiveProductionExercise
-              card={currentCard}
-              llmValidationEnabled={llmValidation}
-              playTTS={playWordTTS}
-              onVerify={(res: any) => {
-                (currentCard as any)._lastResult = res;
-              }}
-              onNext={() => {
-                const res = (currentCard as any)._lastResult || { correct: false };
-                if (scheduler === 'fsrs')
-                  void handleFsrsFeedback(currentCard.id, res.correct ? 3 : 1, 'active-production');
-                else handleLeitnerFeedback(currentCard.id, res.correct, 'active-production');
-              }}
-            />
-          </div>
+          <div style={{ marginTop: 14, textAlign: 'left' }}>{producaoAtiva}</div>
         ) : format === 'typing' ? (
           <>
             <div className="termo" style={{ marginTop: 14 }}>
               {currentCard.word}
             </div>
-            {currentCard.sentence && (
-              <p className="exemplo">
-                “{currentCard.sentence}”{origemDaFrase}
-              </p>
-            )}
+            {currentCard.sentence && <p className="exemplo">“{currentCard.sentence}”</p>}
             {!typingVerified ? (
               <div className="resp" style={{ border: 0, paddingTop: 0 }}>
                 <label className="sr" htmlFor="rev-digitar">
@@ -1019,25 +1190,7 @@ export default function Study({
             {!typingVerified ? (
               <div className="fsrs" role="group" aria-label="Qual palavra completa a frase">
                 {alternativas.map((option, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => {
-                      const isCorrect = option.toLowerCase() === currentCard.word.toLowerCase();
-                      setTypingCorrect(isCorrect);
-                      setTypingAttempt(option);
-                      setTypingVerified(true);
-                      // Persiste o resultado do exercício (best-effort) → alimenta métricas.
-                      void salvarRodada({
-                        roundId: `study-mc-${currentCard.id}-${Date.now()}`,
-                        exerciseKind: 'multiple-choice',
-                        origem: 'estudo',
-                        sessionId: currentCard.sourceSessionId,
-                        score: isCorrect ? 1 : 0,
-                        itens: [{ cardId: currentCard.id, correct: isCorrect ? 1 : 0, kind: 'drill' }],
-                      });
-                    }}
-                  >
+                  <button key={idx} type="button" onClick={() => escolherAlternativa(option)}>
                     {option}
                   </button>
                 ))}
@@ -1061,11 +1214,7 @@ export default function Study({
             <div className="termo" style={{ marginTop: 14 }}>
               {currentCard.word}
             </div>
-            {currentCard.sentence && (
-              <p className="exemplo">
-                “{currentCard.sentence}”{origemDaFrase}
-              </p>
-            )}
+            {currentCard.sentence && <p className="exemplo">“{currentCard.sentence}”</p>}
             {showAnswer ? (
               <div className="resp">
                 <b>{currentCard.translation || '—'}</b>
@@ -1126,7 +1275,7 @@ export default function Study({
         <button
           type="button"
           className="btn btn-outline peq"
-          data-precisa="voz"
+          data-precisa={temVoz ? undefined : 'voz'}
           onClick={() => playWordTTS(currentCard.word)}
         >
           <Volume2 aria-hidden /> Ouvir

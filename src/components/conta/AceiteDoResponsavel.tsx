@@ -1,10 +1,14 @@
-import { ArrowRight, CircleAlert, CreditCard, HeartHandshake, ShieldCheck, X } from 'lucide-react';
+import { ArrowRight, CircleAlert, CreditCard, HeartHandshake, LoaderCircle, ShieldCheck, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { aceitarConvite, type ConviteParaAceitar, ehFalha, verConvite } from '../../data/rotas/idade';
 import { definirBeneficiario } from '../../lib/assinatura';
 import { esquecerTokenDoConvite } from '../../lib/conviteNaUrl';
+import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
+import { t } from '../../lib/i18n';
 import { navegarPara } from '../../lib/rotas';
+import { T } from '../../lib/T';
+import CascaDeEntradaDoQuest from '../auth/quest/CascaDeEntradaDoQuest';
 import { IconeEmBloco } from '../ui';
 
 /**
@@ -37,6 +41,7 @@ export default function AceiteDoResponsavel({ token, aoSair }: { token: string; 
   const [consinto, setConsinto] = useState(false);
   const [ocupado, setOcupado] = useState(false);
   const [aceito, setAceito] = useState<{ nome: string | null; id: string } | null>(null);
+  const questNovo = useQuestNovo();
 
   useEffect(() => {
     let vivo = true;
@@ -87,6 +92,116 @@ export default function AceiteDoResponsavel({ token, aoSair }: { token: string; 
   };
 
   const quem = convite?.nomeDoMenor ?? aceito?.nome ?? 'a pessoa que convidou você';
+
+  /* QUEST: o mesmo pedido, o mesmo texto de consentimento e as mesmas confirmações, num cartão ao
+     centro. O texto aparece INTEIRO, como na tela de sempre (LGPD, art. 14: ninguém marca a
+     confirmação sem ter o texto todo à frente); quem rola é a tela, e as confirmações vêm depois dele,
+     cada uma numa linha de 60 px. */
+  if (questNovo)
+    return (
+      <CascaDeEntradaDoQuest semMarca testId="aceite-do-quest">
+        <header className="qen-cab">
+          <span className="qen-ic" aria-hidden>
+            <HeartHandshake />
+          </span>
+          <div>
+            <h1>{aceito ? t('Conta vinculada') : t('Pedido de vínculo de responsável')}</h1>
+            <p>
+              {aceito
+                ? t('A conta de {quem} agora está ligada à sua.', { quem })
+                : t('{quem} pediu para você ser o responsável pela conta no Babel Play.', { quem })}
+            </p>
+          </div>
+          <button type="button" className="qen-fechar" aria-label={t('Fechar')} onClick={sair}>
+            <X aria-hidden />
+          </button>
+        </header>
+
+        {aceito ? (
+          <>
+            <p className="qen-aviso">
+              <ShieldCheck aria-hidden />
+              <span>
+                {t(
+                  'A conta segue no perfil protegido e os dados de estudo passam a sincronizar pela nuvem. Compras e assinaturas para ela só podem ser feitas por você.',
+                )}
+              </span>
+            </p>
+            <div className="qen-acoes">
+              <button type="button" className="qen-botao" onClick={sair}>
+                {t('Voltar ao app')}
+              </button>
+              <button type="button" className="qen-botao pri" onClick={assinarPorEle}>
+                <CreditCard aria-hidden /> {t('Assinar um plano para {nome}', { nome: aceito.nome ?? t('essa conta') })}
+              </button>
+            </div>
+          </>
+        ) : convite ? (
+          <form className="qen-form" onSubmit={(e) => void aceitar(e)}>
+            <div className="qen-campo">
+              <span className="qen-sobre" style={{ margin: 0 }}>
+                {t('O que você está aceitando')}
+              </span>
+              <p className="qen-texto" data-testid="texto-do-consentimento">
+                {convite.textoDoConsentimento}
+              </p>
+            </div>
+            <div className="qen-campo">
+              <label htmlFor="nome-responsavel">{t('Seu nome completo')}</label>
+              <input id="nome-responsavel" autoComplete="name" value={nome} onChange={(e) => setNome(e.target.value)} />
+            </div>
+            <label className="qen-check">
+              <input type="checkbox" checked={declaro} onChange={(e) => setDeclaro(e.target.checked)} />
+              <span>
+                {t('Declaro que sou pai, mãe ou responsável legal por {quem} e que tenho 18 anos ou mais.', { quem })}
+              </span>
+            </label>
+            {convite.exigeConsentimentoEspecifico && (
+              <label className="qen-check forte">
+                <input type="checkbox" checked={consinto} onChange={(e) => setConsinto(e.target.checked)} />
+                <span>
+                  <T
+                    txt="<b>Autorizo, de forma específica,</b> o tratamento dos dados de {quem}, que tem menos de 12 anos, nos termos do texto acima (LGPD, art. 14, § 1º)."
+                    val={{ quem }}
+                  />
+                </span>
+              </label>
+            )}
+            {erro && (
+              <p className="qen-erro" role="alert">
+                <CircleAlert aria-hidden />
+                <span>{erro}</span>
+              </p>
+            )}
+            <div className="qen-acoes">
+              <button type="button" className="qen-botao" onClick={sair}>
+                {t('Agora não')}
+              </button>
+              <button type="submit" className="qen-botao pri" disabled={ocupado}>
+                {ocupado ? t('Registrando…') : t('Aceitar e vincular')} <ArrowRight aria-hidden />
+              </button>
+            </div>
+          </form>
+        ) : erro ? (
+          <>
+            <p className="qen-erro" role="alert">
+              <CircleAlert aria-hidden />
+              <span>{erro}</span>
+            </p>
+            <div className="qen-acoes">
+              <button type="button" className="qen-botao pri" onClick={sair}>
+                {t('Voltar ao app')}
+              </button>
+            </div>
+          </>
+        ) : (
+          <div className="qen-espera" role="status">
+            <LoaderCircle aria-hidden />
+            {t('Carregando o convite…')}
+          </div>
+        )}
+      </CascaDeEntradaDoQuest>
+    );
 
   return (
     <div

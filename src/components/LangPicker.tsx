@@ -229,6 +229,8 @@ export default function LangPicker({
           busca={query}
           aoBuscar={setQuery}
           opcoes={options}
+          indiceAtivo={activeIdx}
+          aoTeclar={onKeyDown}
           aoEscolher={choose}
           className={className}
         />

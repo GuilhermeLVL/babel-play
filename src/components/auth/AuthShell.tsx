@@ -5,8 +5,10 @@
  */
 import React from 'react';
 
+import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { t } from '../../lib/i18n';
 import { T } from '../../lib/T';
+import CascaDeEntradaDoQuest from './quest/CascaDeEntradaDoQuest';
 
 /** `subtitle` chega JÁ TRADUZIDO: quem monta a casca é quem sabe a frase. */
 export interface AuthHero {
@@ -15,6 +17,10 @@ export interface AuthHero {
 }
 
 export default function AuthShell({ children, hero }: { children: React.ReactNode; hero?: AuthHero }) {
+  const questNovo = useQuestNovo();
+  /* QUEST: a mesma divisão (marca e formulário), nas medidas do headset (`CascaDeEntradaDoQuest`). */
+  if (questNovo) return <CascaDeEntradaDoQuest hero={hero}>{children}</CascaDeEntradaDoQuest>;
+
   return (
     <div className="flex min-h-screen w-full bg-canvas">
       {/* Painel-marca — a "assinatura" da porta de entrada. Escondido no mobile. */}

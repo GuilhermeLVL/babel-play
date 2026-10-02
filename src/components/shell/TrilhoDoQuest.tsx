@@ -11,6 +11,8 @@ import {
   Ellipsis,
   HardDrive,
   LifeBuoy,
+  LogIn,
+  LogOut,
   Moon,
   Search,
   Settings,
@@ -24,6 +26,8 @@ import {
 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
+import { tetoAnonimoDa } from '../../core/tetoAnonimo';
+import * as auth from '../../lib/auth';
 import { instalarRespostaAoApontar } from '../../lib/dispositivo/respostaAoApontar';
 import {
   guardarVibracaoDoQuest,
@@ -32,8 +36,12 @@ import {
   VIBRACOES_DO_QUEST,
 } from '../../lib/dispositivo/telaNovaDoQuest';
 import { edicaoEstatica } from '../../lib/edicaoEstatica';
+import { useFlag } from '../../lib/flags';
 import { t } from '../../lib/i18n';
+import { aoMudarIdentidade, estaAnonimo } from '../../lib/identidade';
 import { marcarLida, marcarTodasLidas, naoLidas, quando } from '../../lib/notificacoes';
+import { authRequired } from '../../lib/supabase';
+import { usePerfil } from '../../lib/usePerfil';
 import type { ViewType } from '../../types';
 import { useListaDeNotificacoes } from './CentralDeNotificacoes';
 import { type AgeProfileType, NAV_ITEMS, navLabel } from './navItems';
@@ -53,6 +61,8 @@ interface TrilhoDoQuestProps {
   onChangeView: (view: ViewType, dado?: Record<string, string>) => void;
   /** Abre a busca global (o trilho não tem o cabeçalho que a trazia). Ausente = sem o botão. */
   aoBuscar?: () => void;
+  /** Abre a porta de login (só existe onde há login e a pessoa está sem conta). */
+  aoEntrar?: () => void;
   ageProfile: AgeProfileType;
   /** Quem está sem conta: o que exige conta sai do trilho e fica em "Mais". */
   semConta?: boolean;
@@ -84,6 +94,7 @@ export default function TrilhoDoQuest({
   activeView,
   onChangeView,
   aoBuscar,
+  aoEntrar,
   ageProfile,
   semConta = false,
   darkMode,
@@ -96,6 +107,24 @@ export default function TrilhoDoQuest({
   const avisos = useListaDeNotificacoes();
   const novos = naoLidas(avisos);
   const vibracao = useVibracaoDoQuest();
+  /* QUEM EU SOU: o que o menu da conta de sempre dizia (`MenuDaConta.tsx`): nome e e-mail, ou o estado
+     real quando não há e-mail, e o aviso do convidado com os tetos. */
+  const { perfil } = usePerfil();
+  const [anonimo, setAnonimo] = useState(estaAnonimo);
+  useEffect(() => aoMudarIdentidade(() => setAnonimo(estaAnonimo())), []);
+  const convidado = useFlag('modo_convidado') && anonimo;
+  const semServidor = edicaoEstatica();
+  const nome = perfil?.displayName?.trim() || null;
+  const email = perfil?.email?.trim() || null;
+  const estadoDaConta = semServidor
+    ? t('edição de demonstração · dados só neste navegador')
+    : convidado
+      ? t('Você está usando como convidado')
+      : anonimo
+        ? t('sem conta · dados só neste navegador')
+        : authRequired
+          ? t('sessão ativa')
+          : t('conta local');
   /* A resposta ao apontar (pulso no controle, brilho que segue o ponteiro) vive enquanto o trilho
      vive: só no Quest com as telas novas, e sai junto se a chave for desligada em `/diagnostico`. */
   useEffect(() => instalarRespostaAoApontar(), []);
@@ -303,12 +332,50 @@ export default function TrilhoDoQuest({
                 {ROTULO_DA_VIBRACAO[vibracao]()}
               </button>
             </div>
-            {edicaoEstatica() && (
+            <div className="q-conta-do-mais" data-testid="conta-no-quest">
               <p className="q-rodape-do-mais">
                 <HardDrive aria-hidden />
-                {t('edição de demonstração · dados só neste navegador')}
+                <span>
+                  {nome && <b>{nome} · </b>}
+                  {email ?? estadoDaConta}
+                  {convidado && (
+                    <>
+                      {' · '}
+                      {t(
+                        'Fica só neste aparelho, até {sessoes} gravações e {palavras} palavras. Loja, ranking, importação e sincronização pedem conta.',
+                        tetoAnonimoDa({ edicaoEstatica: semServidor }),
+                      )}
+                    </>
+                  )}
+                </span>
               </p>
-            )}
+              {!semServidor && anonimo && aoEntrar && (
+                <button
+                  type="button"
+                  className="q-ctl"
+                  onClick={() => {
+                    setMaisAberto(false);
+                    aoEntrar();
+                  }}
+                >
+                  <LogIn aria-hidden />
+                  {t('Entrar ou criar conta')}
+                </button>
+              )}
+              {authRequired && !anonimo && (
+                <button
+                  type="button"
+                  className="q-ctl"
+                  onClick={() => {
+                    setMaisAberto(false);
+                    void auth.signOut();
+                  }}
+                >
+                  <LogOut aria-hidden />
+                  {t('Sair')}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}

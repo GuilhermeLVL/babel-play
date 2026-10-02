@@ -250,6 +250,11 @@ export default function SalaDeEscolha({
                     id: i.lang,
                     rotulo: langLabelNaUI(i.lang),
                     contagem: i.jogaveis,
+                    /* O que o número quer dizer: no computador é a dica ao parar o ponteiro. */
+                    dica: t('{prontas} prontas para jogo de par, de {total} no idioma', {
+                      prontas: numero(i.jogaveis),
+                      total: numero(i.total),
+                    }),
                     motivoBloqueio:
                       i.jogaveis === 0
                         ? t(

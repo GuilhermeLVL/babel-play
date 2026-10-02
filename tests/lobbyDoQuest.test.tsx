@@ -64,16 +64,39 @@ const montar = (jogos = comGravacao, extra: Partial<React.ComponentProps<typeof 
 afterEach(cleanup)
 
 describe('LobbyDoQuest', () => {
-  it('na frente o que se joga apontando, depois o áudio da sessão, o teclado por último e os que não abrem no fim', () => {
+  it('sem preferência do usuário: o que se joga apontando, depois o áudio, o teclado e, no fim, o que não abre', () => {
     const { cartoes } = montar()
-    expect(cartoes.map((c) => c.dataset.jogo)).toEqual(['memory', 'blitz', 'escuta', 'ditado', 'karaoke', 'wordsearch'])
+    expect(cartoes.map((c) => c.dataset.jogo)).toEqual(['memory', 'blitz', 'karaoke', 'escuta', 'ditado', 'wordsearch'])
     expect(cartoes.map((c) => c.querySelector('.q-tag')?.textContent)).toEqual([
       'Apontar',
       'Apontar',
+      'Sem nota de voz',
       'Áudio da sessão',
       'Pede teclado',
-      'Pede nota de voz',
       'Falta material',
+    ])
+  })
+
+  it('os favoritos vêm primeiro na grade inteira, e a ordem do usuário vale acima dos grupos', () => {
+    // O Ditado é do grupo do teclado (o último): favorito, sobe para o começo da grade.
+    const comFavorito = montar(comGravacao, { favoritos: ['ditado'] })
+    expect(comFavorito.cartoes.map((c) => c.dataset.jogo)).toEqual([
+      'ditado',
+      'memory',
+      'blitz',
+      'karaoke',
+      'escuta',
+      'wordsearch',
+    ])
+    cleanup()
+    const comOrdem = montar(comGravacao, { favoritos: ['ditado'], ordemEscolhida: ['escuta', 'blitz'] })
+    expect(comOrdem.cartoes.map((c) => c.dataset.jogo)).toEqual([
+      'ditado',
+      'escuta',
+      'blitz',
+      'memory',
+      'karaoke',
+      'wordsearch',
     ])
   })
 
@@ -85,15 +108,26 @@ describe('LobbyDoQuest', () => {
   })
 
   it('quem não abre no headset fica apagado, desligado e com o motivo escrito', () => {
-    const { cartao } = montar()
+    // Karaokê sem gravação e sem voz de leitura: não há som nenhum para repetir.
+    const { cartao } = montar([...comGravacao.filter((j) => j.id !== 'karaoke'), jogo('karaoke')])
     const karaoke = cartao('karaoke')
     expect(karaoke.disabled).toBe(true)
     expect(karaoke.className).toContain('apagado')
-    expect(karaoke.textContent).toContain('O headset não avalia a pronúncia.')
+    expect(karaoke.textContent).toContain('não há o que ouvir e repetir')
 
     const semMaterial = cartao('wordsearch')
     expect(semMaterial.disabled).toBe(true)
     expect(semMaterial.textContent).toContain('faltam 2 palavras')
+  })
+
+  it('o Karaokê com som abre: o headset não dá nota, e o cartão avisa', () => {
+    const { cartao, aoJogar } = montar()
+    const karaoke = cartao('karaoke')
+    expect(karaoke.disabled).toBe(false)
+    expect(karaoke.querySelector('.q-tag')?.textContent).toBe('Sem nota de voz')
+    expect(karaoke.textContent).toContain('ouça, repita em voz alta e siga')
+    fireEvent.click(karaoke)
+    expect(aoJogar.mock.calls[0][0].id).toBe('karaoke')
   })
 
   it('pede digitação: continua jogável, com o aviso de que é melhor em outro aparelho', () => {
@@ -104,12 +138,14 @@ describe('LobbyDoQuest', () => {
     expect(ditado.textContent).toContain('Melhor no computador ou no celular.')
   })
 
-  it('sem gravação, o jogo de escuta dependeria da voz de leitura, que o headset não tem', () => {
-    // Na trilha, `estadoDoJogo` troca a fala gravada pela palavra do baralho falada por TTS.
-    const { cartao } = montar([jogo('memory'), jogo('escuta', { fonte: 'baralho' })], { naTrilha: true })
-    const escuta = cartao('escuta')
-    expect(escuta.disabled).toBe(true)
-    expect(escuta.querySelector('.q-tag')?.textContent).toBe('Pede voz de leitura')
+  it('sem gravação e sem voz de leitura, Escuta e Ditado abrem pela tradução, e o cartão diz isso', () => {
+    // Na trilha, `estadoDoJogo` troca a fala gravada pela palavra do baralho; sem voz, o jogo a escreve.
+    const { cartao } = montar([jogo('memory'), jogo('escuta'), jogo('ditado')], { naTrilha: true })
+    for (const id of ['escuta', 'ditado'] as const) {
+      expect(cartao(id).disabled).toBe(false)
+      expect(cartao(id).querySelector('.q-tag')?.textContent).toBe('Pela tradução')
+      expect(cartao(id).textContent).toContain('a pergunta vem escrita, pela tradução')
+    }
   })
 
   it('num aparelho com voz, reconhecimento e teclado nada fica apagado por causa do aparelho', () => {
@@ -122,7 +158,7 @@ describe('LobbyDoQuest', () => {
   it('o clique abre o jogo pelo mesmo caminho de sempre; o apagado não é um alvo', () => {
     const { cartao, aoJogar } = montar()
     fireEvent.click(cartao('memory'))
-    fireEvent.click(cartao('karaoke'))
+    fireEvent.click(cartao('wordsearch'))
     expect(aoJogar).toHaveBeenCalledTimes(1)
     expect(aoJogar.mock.calls[0][0].id).toBe('memory')
   })
@@ -138,12 +174,53 @@ describe('LobbyDoQuest', () => {
     expect(screen.queryByRole('dialog')).toBeNull()
   })
 
-  it('o aviso traz, no máximo, uma ação', () => {
+  it('o aviso curto traz o que houve e a saída', () => {
     const aoAgir = vi.fn()
     montar(comGravacao, { aviso: { texto: 'Você ainda não salvou palavras', acao: 'Capturar uma sessão', aoAgir } })
     expect(screen.getByRole('status').textContent).toContain('Você ainda não salvou palavras')
     fireEvent.click(screen.getByRole('button', { name: 'Capturar uma sessão' }))
     expect(aoAgir).toHaveBeenCalledTimes(1)
+  })
+
+  it('acervo pequeno: diz quanto há e quanto falta, e oferece escolher o que praticar E capturar', () => {
+    const escolher = vi.fn()
+    const capturar = vi.fn()
+    montar(comGravacao, {
+      aviso: {
+        texto: 'Você ainda não tem palavras suas para jogar. Dá para jogar com as da trilha.',
+        detalhe: 'Você tem 2 e precisa de 4 para a primeira rodada.',
+        acoes: [
+          { rotulo: 'Escolher o que praticar', aoAgir: escolher },
+          { rotulo: 'Capturar uma sessão', aoAgir: capturar },
+        ],
+      },
+    })
+    const aviso = screen.getByRole('status')
+    expect(aviso.textContent).toContain('Você tem 2 e precisa de 4 para a primeira rodada.')
+    fireEvent.click(within(aviso).getByRole('button', { name: 'Escolher o que praticar' }))
+    fireEvent.click(within(aviso).getByRole('button', { name: 'Capturar uma sessão' }))
+    expect(escolher).toHaveBeenCalledTimes(1)
+    expect(capturar).toHaveBeenCalledTimes(1)
+  })
+
+  it('baralho que não carregou: o motivo e as duas saídas, tentar de novo e capturar', () => {
+    const tentar = vi.fn()
+    const capturar = vi.fn()
+    montar([], {
+      aviso: {
+        texto: 'Não consegui carregar o seu baralho: sem rede',
+        acoes: [
+          { rotulo: 'Tentar de novo', aoAgir: tentar },
+          { rotulo: 'Capturar uma sessão', aoAgir: capturar },
+        ],
+      },
+    })
+    const aviso = screen.getByRole('status')
+    expect(aviso.textContent).toContain('sem rede')
+    fireEvent.click(within(aviso).getByRole('button', { name: 'Tentar de novo' }))
+    fireEvent.click(within(aviso).getByRole('button', { name: 'Capturar uma sessão' }))
+    expect(tentar).toHaveBeenCalledTimes(1)
+    expect(capturar).toHaveBeenCalledTimes(1)
   })
 })
 
@@ -200,7 +277,13 @@ describe('LobbyDoQuest completo', () => {
       diagnostico: {
         ligado: false,
         aoTrocar: acoes.aoTrocarDiagnostico,
-        itens: [{ icone: Target, texto: '32 no idioma' }],
+        itens: [
+          {
+            icone: Target,
+            texto: '32 no idioma',
+            explicacao: '32 palavras do idioma escolhido passaram na régua de qualidade.',
+          },
+        ],
       },
       portaDoJogo: (j) =>
         j.id === 'wordsearch' ? { rotulo: 'Jogar com a trilha', aoAbrir: acoes.aoAbrirPorta } : null,
@@ -298,30 +381,37 @@ describe('LobbyDoQuest completo', () => {
     expect(cartao('memory').querySelector('.qj-favorito')).toBeNull()
 
     fireEvent.click(screen.getByRole('button', { name: /Favoritos e ordem/ }))
+    // O painel lista os jogos como a grade os mostra: o favorito na frente, o que não abre no fim.
+    const naGrade = ['blitz', 'memory', 'karaoke', 'escuta', 'ditado', 'wordsearch']
     const linhas = [...screen.getByRole('dialog').querySelectorAll<HTMLElement>('[data-ordem]')]
-    expect(linhas.map((l) => l.dataset.ordem)).toEqual(comGravacao.map((j) => j.id))
+    expect(linhas.map((l) => l.dataset.ordem)).toEqual(naGrade)
 
-    const memoria = within(linhas[3])
-    fireEvent.click(memoria.getByRole('button', { name: /^Favoritar/ }))
-    expect(acoes.aoFavoritar.mock.calls[0][0].id).toBe('memory')
-    fireEvent.click(memoria.getByRole('button', { name: /^Mover para antes/ }))
-    fireEvent.click(memoria.getByRole('button', { name: /^Mover para depois/ }))
-    expect(acoes.aoMover.mock.calls.map(([j, d]) => [j.id, d])).toEqual([
-      ['memory', -1],
-      ['memory', 1],
+    const escuta = within(linhas[3])
+    fireEvent.click(escuta.getByRole('button', { name: /^Favoritar/ }))
+    expect(acoes.aoFavoritar.mock.calls[0][0].id).toBe('escuta')
+    fireEvent.click(escuta.getByRole('button', { name: /^Mover para antes/ }))
+    fireEvent.click(escuta.getByRole('button', { name: /^Mover para depois/ }))
+    // A seta entrega a lista como o painel a mostra: troca-se com o vizinho que se vê.
+    expect(acoes.aoMover.mock.calls.map(([j, d, visiveis]) => [j.id, d, visiveis])).toEqual([
+      ['escuta', -1, naGrade],
+      ['escuta', 1, naGrade],
     ])
-    fireEvent.click(memoria.getByRole('button', { name: /^Como se joga/ }))
-    expect(acoes.aoComoSeJoga.mock.calls[0][0].id).toBe('memory')
+    fireEvent.click(escuta.getByRole('button', { name: /^Como se joga/ }))
+    expect(acoes.aoComoSeJoga.mock.calls[0][0].id).toBe('escuta')
 
-    // Nas pontas, mover para fora da lista não é um alvo.
-    expect((within(linhas[0]).getByRole('button', { name: /^Mover para antes/ }) as HTMLButtonElement).disabled).toBe(
-      true,
-    )
+    // Nas pontas do grupo (favoritos entre si, o resto entre si), mover para fora não é um alvo.
+    const desligado = (linha: HTMLElement, nome: RegExp) =>
+      (within(linha).getByRole('button', { name: nome }) as HTMLButtonElement).disabled
+    expect(desligado(linhas[0], /^Mover para antes/)).toBe(true)
+    expect(desligado(linhas[0], /^Mover para depois/)).toBe(true)
+    expect(desligado(linhas[1], /^Mover para antes/)).toBe(true)
+    expect(desligado(linhas[5], /^Mover para depois/)).toBe(true)
     expect(
-      within(linhas[5])
+      within(linhas[0])
         .getByRole('button', { name: /^Tirar dos favoritos/ })
         .getAttribute('aria-pressed'),
     ).toBe('true')
+    expect(linhas[5].textContent).toContain('Não abre agora')
   })
 
   it('jogo que abre mostra a conta da rodada; o bloqueado, a saída logo abaixo', () => {
@@ -342,6 +432,8 @@ describe('LobbyDoQuest completo', () => {
     cleanup()
     montar(comGravacao, { ...extra, diagnostico: { ...extra.diagnostico!, ligado: true } })
     expect(screen.getByText('32 no idioma')).toBeTruthy()
+    // O que o número quer dizer vem escrito (na tela de sempre é a dica ao parar o ponteiro).
+    expect(screen.getByText('32 palavras do idioma escolhido passaram na régua de qualidade.')).toBeTruthy()
   })
 
   it('filtro sem nenhum jogo: diz o que houve em vez de uma grade vazia', () => {

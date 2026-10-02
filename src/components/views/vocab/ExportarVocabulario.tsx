@@ -16,6 +16,7 @@ import { Download, Info } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 
 import { type AppMetrics, exportarApkg } from '../../../data/api';
+import { useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
 import { langLabelNaUI } from '../../../lib/languages';
 import { baixarRelatorio } from '../../../lib/relatorioDeProgresso';
 import type { VocabCard } from '../../../types';
@@ -62,6 +63,8 @@ export default function ExportarVocabulario({
   const [escopo, setEscopo] = useState<Escopo>('todas');
   const [frase, setFrase] = useState(true);
   const [enviando, setEnviando] = useState(false);
+  /* No Meta Quest o diálogo é o mesmo; `qv-dlg` liga o acabamento dos formatos e da prévia. */
+  const questNovo = useQuestNovo();
 
   const noBaralho = useMemo(() => cartoes.filter((c) => c.inDeck), [cartoes]);
   const paraRevisar = useMemo(() => noBaralho.filter((c) => isDueNow(c)), [noBaralho]);
@@ -140,7 +143,7 @@ export default function ExportarVocabulario({
       sub="Leve o seu caderno para o Anki, uma planilha ou um relatório."
       aoFechar={aoFechar}
     >
-      <div className="dlg-corpo pilha rola-dlg">
+      <div className={`dlg-corpo pilha rola-dlg${questNovo ? ' qv-dlg' : ''}`}>
         <div>
           <span className="label-mono">Formato</span>
           <div className="g-formatos" role="radiogroup" aria-label="Formato">

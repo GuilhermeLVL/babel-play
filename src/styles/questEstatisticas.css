@@ -184,3 +184,55 @@ html[data-quest-novo='true'] .qe-medida p {
     flex-wrap: wrap;
   }
 }
+
+/* ── UM POR VEZ NA TELA, TODOS NA IMPRESSÃO ───────────────────────────────────────────────────────
+   Os sete painéis ficam montados; na tela só o da aba aparece (`hidden`). `.q-cartao` é uma grade, e por
+   isso o `hidden` precisa ser dito aqui. */
+@media not print {
+  html[data-quest-novo='true'] .qe .qe-painel[hidden] {
+    display: none;
+  }
+}
+@media print {
+  /* A casca do app tem altura fixa e rola por dentro: na impressão, a página cresce com o conteúdo. */
+  html[data-quest-novo='true']:has(.qe),
+  html[data-quest-novo='true']:has(.qe) body,
+  html[data-quest-novo='true'] body :has(.qe),
+  html[data-quest-novo='true'] .q-palco.qe {
+    display: block !important;
+    position: static !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  html[data-quest-novo='true'] .q-palco.qe {
+    padding: 0;
+    animation: none;
+  }
+  html[data-quest-novo='true'] .q-palco.qe > * + * {
+    margin-top: 16px;
+  }
+  /* Os seis gráficos e a meta, em sequência, cada um inteiro na sua página ou trecho. */
+  html[data-quest-novo='true'] .qe .qe-painel,
+  html[data-quest-novo='true'] .qe .qe-painel[hidden] {
+    display: grid !important;
+    break-inside: avoid;
+  }
+  /* O que é navegação ou botão não vai para o papel. */
+  html[data-quest-novo='true']:has(.qe) .q-trilho,
+  html[data-quest-novo='true'] .qe .qe-abas,
+  html[data-quest-novo='true'] .qe .q-cab .q-abas,
+  html[data-quest-novo='true'] .qe .q-ctl,
+  html[data-quest-novo='true'] .qe [data-testid='sem-estudo'] {
+    display: none !important;
+  }
+  /* A tabela aberta sai inteira, sem a caixa que rola. */
+  html[data-quest-novo='true'] .qe-tabela {
+    max-height: none;
+    overflow: visible;
+  }
+  html[data-quest-novo='true'] .qe-kpis {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}

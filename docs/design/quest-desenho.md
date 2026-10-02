@@ -103,9 +103,34 @@ Use elemento de verdade (`<button>`), nunca `<div onClick>`. Alvo desabilitado l
   não aparecem (`data-precisa="teclado"`).
 - Reconhecimento de voz do navegador: não existe no Quest (`recursosDoAparelho().reconhecimentoDoNavegador`).
 
+## Onde cada tela mora
+
+| Área | Componentes do headset | CSS |
+| --- | --- | --- |
+| Casca e Início | `shell/TrilhoDoQuest.tsx`, `views/quest/InicioDoQuest.tsx` | `quest.css`, `questBase.css` |
+| Captura e Intérprete | `views/captura/quest/*`, `captura/interprete/*` | `capturaNoCelular.css`, `modoInterprete.css` |
+| Jogar | `views/play/quest/*`, ramos em `Play.tsx`, `minigames/*` | `questJogar.css`, `questJogarTelas.css`, `questJogos.css` |
+| Biblioteca | `views/biblioteca/quest/*` | `questBiblioteca.css` |
+| Sessão e Leitura | `views/analise/quest/*`, ramo em `Reading.tsx` | `questSessao.css`, `questLeitura.css` |
+| Revisão e Vocabulário | `views/revisao/quest/*`, `views/vocab/quest/*` | `questRevisao.css`, `questVocabulario.css` |
+| Estatísticas e Personalizar | `views/estatisticas/quest/*`, `views/personalizar/quest/*` | `questEstatisticas.css`, `questPersonalizar.css` |
+| Ajustes, Sobre, Ajuda, Diagnóstico, 404 | `views/ajustes/quest/*`, `views/sobre/quest/*`, `views/ajuda/quest/*` | `questAjustes.css`, `questInstitucional.css` |
+| Conta, Planos, Login | `conta/quest/*`, `auth/quest/*`, `ofertas/quest/*`, ramos em `planos/*` e `perfil/*` | `questConta.css`, `questEntrada.css` |
+
+Duas lições da segunda rodada:
+
+- **Nome de classe curto colide.** A raiz da revisão se chamou `.qr` e herdou o desenho de um QR code de
+  `prototipo.css` (150 px, fundo branco). Classe de raiz nova leva nome por extenso (`.q-revisao`) e um
+  teste confere que ela não existe nas folhas de sempre.
+- **Teste de componente não vê layout.** A mesma tela passava em todos os testes e saía espremida no
+  app. Toda tela nova é fotografada no build, inclusive as que dependem de conta
+  (`test-results/ver-quest-conta.mjs`, sobre um build só de fotos).
+
 ## Conferir
 
 - `rtk proxy npx tsc --noEmit -p .` sem erro.
 - Teste de componente em `tests/quest<Area>.test.tsx` (molde: `tests/questCasca.test.tsx`): a tela nova
   monta, e cada função da tabela está alcançável.
-- Fotos no Quest emulado: `test-results/ver-quest-telas.mjs` (1280 × 670 e 500 × 495).
+- Fotos no Quest emulado (1280 × 670 e 500 × 495), no build: `test-results/ver-quest-rotas.mjs` (qualquer
+  rota), `ver-quest-jogar.mjs` (o Jogar e cada jogo), `ver-quest-conta.mjs` (as telas com conta) e
+  `ver-voz.mjs` (a voz do intérprete de ponta a ponta).

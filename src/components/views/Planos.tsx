@@ -1,3 +1,5 @@
+import '../../styles/questConta.css';
+
 import {
   ArrowRight,
   Check,
@@ -18,6 +20,7 @@ import {
   Star,
   Table2,
   Target,
+  TriangleAlert,
   UserRound,
 } from 'lucide-react';
 import { type CSSProperties, useCallback, useEffect, useRef, useState } from 'react';
@@ -45,6 +48,7 @@ import {
   type StatusDeBilling,
   temAssinatura,
 } from '../../lib/assinatura';
+import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { carregarEntitlements, getEntitlements, onPlanChange, PLAN_LABELS } from '../../lib/entitlements';
 import { numero, t } from '../../lib/i18n';
 import { consumirDestaqueEmPlanos } from '../../lib/ofertas/destaque';
@@ -60,6 +64,7 @@ import {
 import { carregarUso, duracaoLegivel, fracao, type UsoDoMes } from '../../lib/uso';
 import { toast } from '../Toast';
 import { Abas, CabecalhoDeTela, IconeEmBloco, PainelDeAba, Tela, TituloDeSecao } from '../ui';
+import AbasDoQuest from './ajustes/quest/AbasDoQuest';
 import Assinado from './planos/Assinado';
 import Cancelar from './planos/Cancelar';
 import Checkout from './planos/Checkout';
@@ -291,6 +296,7 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
      ou direto no consumo do mês (`lib/ofertas/destaque.ts`). O pedido é lido ao montar e quando o
      menu leva a Planos com a tela já aberta (o mesmo evento da sub-tela). */
   const [sugerido, setSugerido] = useState<'premium' | null>(null);
+  const questNovo = useQuestNovo();
   useEffect(() => {
     const ler = () => {
       const p = consumirDestaqueEmPlanos();
@@ -724,6 +730,387 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
     : [];
 
   const selfhost = conta.estado === 'selfhost';
+
+  /* ── QUEST ─────────────────────────────────────────────────────────────────────────────────────
+     As mesmas três abas e tudo o que cada uma tem, no desenho do headset. Só marcação: o botão de cada
+     cartão (`cta`), o preço (`preco`), o comparativo, as perguntas e os contadores são os de cima. UM
+     botão principal na tela (o do cartão em destaque); os outros são de contorno. */
+  if (questNovo) {
+    const cartaoDoQuest = (p: Plano) => {
+      const atual = assina && p.id === conta.plano;
+      const testando = emTeste && p.id === 'premium';
+      const Icone = p.icone;
+      const c = cta(p);
+      const pr = preco(p);
+      const IconeDaAcao = c.ocupado ? LoaderCircle : c.icone;
+      const sugeridoAqui = sugerido === p.id && !atual;
+      return (
+        <article
+          key={p.id}
+          data-plano={p.id}
+          className={`q-cartao qc-plano${p.destaque ? ' qc-destaque' : ''}${sugeridoAqui ? ' qc-sugerido' : ''}`}
+          aria-label={p.nome}
+        >
+          <div className="qc-plano-topo">
+            <span className="q-ic">
+              <Icone aria-hidden />
+            </span>
+            <div>
+              <h2>{p.nome}</h2>
+              <p>{t(p.tag)}</p>
+            </div>
+            <div className="qc-selos">
+              {p.destaque && (
+                <span className="q-tag">
+                  <Star aria-hidden /> {t('Recomendado')}
+                </span>
+              )}
+              {sugeridoAqui && !testando && (
+                <span className="q-tag">
+                  <Target aria-hidden /> {t('Sugerido para você')}
+                </span>
+              )}
+              {atual && (
+                <span className="q-tag qc-bom">
+                  <Check aria-hidden /> {t('Seu plano')}
+                </span>
+              )}
+              {testando && (
+                <span className="q-tag qc-bom">
+                  <Hourglass aria-hidden /> {t('Em teste')}
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="qc-preco">
+            <span className="qc-moeda">R$</span>
+            <b>{pr.valor}</b>
+            <span className="qc-per">{pr.per}</span>
+          </div>
+          <p className="qc-nota">{pr.cobranca}</p>
+          <p className="q-texto">{t(p.para)}</p>
+          {testeFeito !== null && p.id === 'premium' ? (
+            <p className="qc-ok" role="status">
+              <Hourglass aria-hidden />
+              <span>
+                {t('Pronto: o Premium vale até {data}. No fim a conta volta ao Grátis sozinha, e nada é cobrado.', {
+                  data: dataCurta(testeFeito),
+                })}
+              </span>
+            </p>
+          ) : (
+            <button
+              type="button"
+              className={`q-ctl bloco${c.solido ? ' pri' : ''}`}
+              disabled={c.off || c.ocupado}
+              onClick={c.acao}
+            >
+              {IconeDaAcao && <IconeDaAcao className={c.ocupado ? 'qc-gira' : undefined} aria-hidden />}
+              {c.rot}
+              {c.solido && !IconeDaAcao && <ArrowRight aria-hidden />}
+            </button>
+          )}
+          {c.secundario && (
+            <button type="button" className="q-ctl bloco" onClick={c.secundario.acao}>
+              {c.secundario.rot}
+            </button>
+          )}
+          {c.nota && (
+            <p className="qc-nota">
+              {menor && p.id === 'premium' && <UserRound aria-hidden />}
+              {c.nota}
+            </p>
+          )}
+          {testeErro && p.id === 'premium' && (
+            <p className="qc-erro" role="alert">
+              <TriangleAlert aria-hidden />
+              <span>{testeErro}</span>
+            </p>
+          )}
+          <div className="qc-inclui">
+            <span className="q-rotulo">
+              {p.base ? t('Tudo do {plano}, e:', { plano: p.base }) : t('O que você tem')}
+            </span>
+            <ul className="qc-lista qc-neutra">
+              {p.itens.map((item) => {
+                const I = item.icone;
+                const nota = notaDoItem(item);
+                return (
+                  <li key={item.texto}>
+                    <I aria-hidden />
+                    <span>
+                      {textoDoItem(item)}
+                      {/* A nota do uso justo AO LADO do "sem limite", no mesmo item (CDC). */}
+                      {nota && <small>{nota}</small>}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </article>
+      );
+    };
+
+    return (
+      <div className="q-palco qc" data-testid="planos-do-quest">
+        <header className="q-cab">
+          <div>
+            <p className="q-sobre">{t('Assinatura')}</p>
+            <h1>{t('Planos')}</h1>
+            <p className="qc-sub">{t('O que cada plano inclui, a sua assinatura e o consumo do mês.')}</p>
+          </div>
+        </header>
+
+        <AbasDoQuest
+          itens={[
+            { id: 'planos', rotulo: t('Planos'), icone: <ListChecks aria-hidden /> },
+            ...(assina ? [{ id: 'assinatura', rotulo: t('Sua assinatura'), icone: <Receipt aria-hidden /> }] : []),
+            { id: 'consumo', rotulo: t('Consumo do mês'), icone: <Gauge aria-hidden /> },
+          ]}
+          ativo={aba}
+          aoTrocar={trocarAba}
+          rotuloDoGrupo={t('Seções de Planos')}
+        />
+
+        <PainelDeAba id="planos" ativo={aba} className="qc-painel">
+          <FaixaDaConta
+            conta={conta}
+            rotuloGratis={meuPlano === 'anonimo' ? t(PLAN_LABELS[meuPlano]) : t('Grátis')}
+            aoGerenciar={() => irSub('assinatura')}
+            aoAtualizarPagamento={() => setDialogo('pagamento')}
+            aoReativar={reativar}
+          />
+
+          <div className="qc-produto">
+            <h2>{t(TITULO_DA_TELA)}</h2>
+            <p>
+              {t(
+                'Do microfone ou do som do computador, a legenda aparece nos dois idiomas enquanto você ouve. Estudar e jogar é igual nos dois planos.',
+              )}
+            </p>
+            {!selfhost && (
+              <div className="q-abas q-seg qc-quebra" role="radiogroup" aria-label={t('Período de cobrança')}>
+                <button
+                  type="button"
+                  className="q-aba"
+                  role="radio"
+                  aria-checked={!anual}
+                  onClick={() => trocarPeriodo('mensal')}
+                >
+                  {t('Mensal')}
+                </button>
+                <button
+                  type="button"
+                  className="q-aba"
+                  role="radio"
+                  aria-checked={anual}
+                  onClick={() => trocarPeriodo('anual')}
+                >
+                  {t('Anual')}{' '}
+                  <span className="q-tag qc-bom">{t('equivale a {n} meses grátis', { n: economia.meses })}</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="qc-planos">{PLANOS.map(cartaoDoQuest)}</div>
+          <p className="qc-garantia">
+            <ShieldCheck aria-hidden />
+            {t('Pagamento seguro · 7 dias para desistir com reembolso · cancele quando quiser')}
+          </p>
+
+          <section className="q-secao">
+            <header>
+              <div>
+                <h2>{t('Comparar em detalhe')}</h2>
+                <p>{t('Tudo o que cada plano inclui, lado a lado.')}</p>
+              </div>
+            </header>
+            <div className="q-tabela-caixa" role="region" aria-label={t('Comparação completa')} tabIndex={0}>
+              <table className="q-tabela qc-compara">
+                <thead>
+                  <tr>
+                    <th scope="col">
+                      <span className="sr">{t('Recurso')}</span>
+                    </th>
+                    {PLANOS.map((p) => {
+                      const I = p.icone;
+                      return (
+                        <th key={p.id} scope="col" className={p.destaque ? 'qc-coluna-destaque' : undefined}>
+                          <span>
+                            <I aria-hidden />
+                            {p.nome}
+                          </span>
+                          <small>
+                            {p.id === 'gratis'
+                              ? brl(0)
+                              : anual
+                                ? t('{preco}/ano', { preco: brl(precoAnual('premium')) })
+                                : t('{preco}/mês', { preco: brl(precoMensal('premium')) })}
+                          </small>
+                        </th>
+                      );
+                    })}
+                  </tr>
+                </thead>
+                {comparativo().map(([grupo, linhas]) => (
+                  <tbody key={grupo}>
+                    <tr className="qc-grupo-da-tabela">
+                      <th colSpan={PLANOS.length + 1} scope="colgroup">
+                        {grupo}
+                      </th>
+                    </tr>
+                    {linhas.map(([rotulo, valores, nota]) => (
+                      <tr key={rotulo}>
+                        <th scope="row">
+                          {rotulo}
+                          {nota && <small>{nota}</small>}
+                        </th>
+                        {valores.map((x, k) => (
+                          <td key={k} className={PLANOS[k].destaque ? 'qc-coluna-destaque' : undefined}>
+                            {x === 'ok' ? (
+                              <>
+                                <Check aria-hidden />
+                                <span className="sr">{t('Incluído')}</span>
+                              </>
+                            ) : x === 'nao' ? (
+                              <>
+                                <span className="qc-nao" aria-hidden>
+                                  —
+                                </span>
+                                <span className="sr">{t('Não incluído')}</span>
+                              </>
+                            ) : (
+                              <b>{x}</b>
+                            )}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                ))}
+              </table>
+            </div>
+          </section>
+
+          <section className="q-secao">
+            <header>
+              <div>
+                <h2>{t('Perguntas frequentes')}</h2>
+              </div>
+            </header>
+            <div className="qc-pilha">
+              {perguntas().map(([q, r], i) => (
+                <details key={q} className="qc-faq" open={i === 0}>
+                  <summary>
+                    <span>{q}</span>
+                    <ChevronDown aria-hidden />
+                  </summary>
+                  <p>{r}</p>
+                </details>
+              ))}
+            </div>
+          </section>
+        </PainelDeAba>
+
+        <PainelDeAba id="assinatura" ativo={aba} className="qc-painel">
+          <SuaAssinatura
+            conta={conta}
+            faturas={faturas}
+            carregandoFaturas={carregandoFaturas}
+            abrir={setDialogo}
+            aoCancelar={() => irSub('cancelar')}
+            aoTentarDeNovo={(f) => window.open(f.link!, '_blank', 'noopener')}
+            aoReativar={reativar}
+          />
+        </PainelDeAba>
+
+        <PainelDeAba id="consumo" ativo={aba} className="qc-painel">
+          {carregando ? (
+            <>
+              <div className="qc-espera" role="status">
+                <LoaderCircle aria-hidden />
+                <span>
+                  {t('Carregando…')} {t('Buscando os contadores deste mês no servidor.')}
+                </span>
+              </div>
+              <div className="q-grade g2" aria-hidden>
+                <div className="q-esqueleto" style={{ minHeight: 150 }} />
+                <div className="q-esqueleto" style={{ minHeight: 150 }} />
+              </div>
+            </>
+          ) : !uso ? (
+            <div className="q-vazio" role="status">
+              <span className="q-ic">
+                <Gauge aria-hidden />
+              </span>
+              <h3>{t('Consumo indisponível')}</h3>
+              <p>
+                {t(
+                  'Não consegui falar com o servidor agora. Isto NÃO significa consumo zero — significa que não sei o número.',
+                )}
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="q-grade g2">
+                {consumo.map(([I, titulo, valor, f, unidade]) => (
+                  <div key={titulo} className="q-cartao qc-consumo">
+                    <div className="qc-consumo-titulo">
+                      <span className="q-ic">
+                        <I aria-hidden />
+                      </span>
+                      <h3>{t(titulo)}</h3>
+                    </div>
+                    <div className="qc-consumo-valor">
+                      <b>{valor}</b>
+                      <span>
+                        {unidade} · {f === null ? t('sem limite') : t('do limite do plano')}
+                      </span>
+                    </div>
+                    {/* Sem teto NÃO vira barra vazia: uma barra a 0 pareceria "nada usado". */}
+                    {f !== null && (
+                      <div
+                        className="q-barra"
+                        role="progressbar"
+                        aria-valuenow={Math.round(f * 100)}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-label={t(titulo)}
+                        aria-valuetext={`${valor} ${unidade}`}
+                      >
+                        <span style={{ width: `${Math.max(0, Math.min(1, f)) * 100}%` }} />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <div className="q-cartao fundo qc-janela">
+                <span className="q-ic">{semTeto ? <Infinito aria-hidden /> : <Gauge aria-hidden />}</span>
+                <div>
+                  <h3>{semTeto ? t('No self-host não há cota') : t('Janela {janela}', { janela: uso.janela })}</h3>
+                  <p>
+                    {semTeto
+                      ? t(
+                          'Os números acima são só para você acompanhar; o custo da IA de nuvem é seu, pela sua própria chave. Os limites valem nos planos em nuvem.',
+                        )
+                      : t(
+                          'Zera na virada do mês. Transcrição, tradução e tutor dividem o limite de chamadas: cada fala transcrita e traduzida usa duas. Tradução e tutor também dividem o limite de tokens. A cota de transcrição conta os segundos reais de fala.',
+                        )}
+                  </p>
+                  {uso.iaDeNuvem && !uso.iaDeNuvem.disponivel && uso.iaDeNuvem.mensagem && (
+                    <p role="status">{uso.iaDeNuvem.mensagem}</p>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+        </PainelDeAba>
+        {dialogos}
+      </div>
+    );
+  }
 
   return (
     <Tela largura="larga">

@@ -1,0 +1,1537 @@
+/*
+ * A CONTA NO META QUEST (segunda rodada do headset, 02/10/2026): Perfil, Planos (com o checkout, a
+ * confirmação, a assinatura e o cancelamento) e os avisos de conta que aparecem com o app aberto.
+ *
+ * As peças comuns (`.q-palco`, `.q-cab`, `.q-abas`, `.q-secao`, `.q-cartao`, `.q-ajuste`, `.q-campo`,
+ * `.q-ctl`, `.q-linha`, `.q-num`, `.q-barra`, `.q-vazio`…) e os tokens (`--q-acento`, `--q-suave`,
+ * `--q-toque`, `--q-cor`) moram em `quest.css`; aqui fica só o que é desta área, com o prefixo `.qc-`.
+ * As telas de ANTES da casca (entrar, redefinir a senha, idade…) têm arquivo próprio,
+ * `questEntrada.css`, porque montam sem `quest.css`.
+ *
+ * As mesmas regras: só tokens do tema, alvo ≥ 56 px (o principal ≥ 60), corpo de 17 a 18 px e nada
+ * abaixo de 14, sem itálico, movimento curto e no lugar. Onde uma regra daqui ajusta uma peça de
+ * `quest.css`, ela leva uma classe a mais: a ordem em que os arquivos chegam não decide nada.
+ */
+
+/* ── A TELA: subtítulo, painel da aba, pilhas ─────────────────────────────────────────────────── */
+.qc-sub {
+  margin: 8px 0 0;
+  max-width: 64ch;
+  font: 600 17px/1.4 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+.qc-painel {
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+  min-width: 0;
+}
+.qc-painel:focus-visible {
+  outline: 3px solid var(--q-acento);
+  outline-offset: 6px;
+  border-radius: 12px;
+}
+.qc-pilha {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.qc-nota {
+  margin: 0;
+  font: 600 15px/1.45 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+.qc-nota svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  vertical-align: -4px;
+  margin-right: 6px;
+}
+.qc-nota a,
+.qc-legal a {
+  display: inline-block;
+  padding-block: 4px;
+  color: var(--accent-ink, var(--q-acento));
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-thickness: 2px;
+}
+.qc a.q-ctl {
+  text-decoration: none;
+}
+.qc h3 {
+  margin: 0;
+  font: 800 19px/1.25 var(--font-display, inherit);
+}
+
+/* Estados dentro de um bloco: espera, erro, feito. */
+.qc-espera {
+  min-height: 72px;
+  padding: 12px 18px;
+  border-radius: 18px;
+  background: var(--surface-sunken);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font: 700 17px/1.35 var(--font-body, inherit);
+  color: var(--ink);
+}
+.qc-espera svg,
+.qc-gira {
+  animation: qc-gira 1s linear infinite;
+}
+.qc-espera svg {
+  width: 24px;
+  height: 24px;
+  flex: none;
+}
+@keyframes qc-gira {
+  to {
+    transform: rotate(360deg);
+  }
+}
+:is(.qc-erro, .qc-ok) {
+  margin: 0;
+  padding: 14px 18px;
+  border-radius: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font: 700 17px/1.4 var(--font-body, inherit);
+  color: var(--ink);
+}
+:is(.qc-erro, .qc-ok) > svg {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  margin-top: 1px;
+}
+:is(.qc-erro, .qc-ok) > span {
+  flex: 1;
+  min-width: 0;
+}
+.qc-erro {
+  background: color-mix(in srgb, var(--error) 16%, var(--surface));
+}
+.qc-erro > svg {
+  color: var(--error-ink, var(--error));
+}
+.qc-ok {
+  background: color-mix(in srgb, var(--good) 18%, var(--surface));
+}
+.qc-ok > svg {
+  color: var(--good-ink, var(--good));
+}
+.qc-erro-miudo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font: 700 15px/1.35 var(--font-body, inherit);
+  color: var(--error-ink, var(--error));
+}
+.qc-erro-miudo svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+.q-aviso.qc-alerta {
+  background: color-mix(in srgb, var(--warn) 22%, var(--surface));
+}
+/* O ícone solto na frente de um aviso não estica (em `quest.css` o primeiro filho cresce). */
+.q-aviso > svg:first-child {
+  width: 24px;
+  height: 24px;
+  flex: none;
+}
+.qc .q-cab > .q-ctl.q-voltar {
+  background: var(--surface);
+  border-color: var(--border-subtle);
+}
+.qc .q-cab > .q-voltar + div {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+.qc .q-aviso {
+  font-weight: 600;
+  flex-wrap: wrap;
+}
+.qc .q-aviso > span {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+/* Etiquetas com ícone e com tom. */
+:is(.qc, .qc-caixa, .qc-oferta, .qc-topo) .q-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  white-space: nowrap;
+}
+:is(.qc, .qc-caixa, .qc-oferta, .qc-topo) .q-tag svg {
+  width: 16px;
+  height: 16px;
+}
+.q-tag.qc-bom {
+  background: color-mix(in srgb, var(--good) 22%, var(--surface));
+}
+.q-tag.qc-atencao {
+  background: color-mix(in srgb, var(--warn) 26%, var(--surface));
+}
+.q-tag.qc-livre {
+  text-transform: none;
+  letter-spacing: 0;
+  font: 700 15px/1.2 var(--font-body, inherit);
+  white-space: normal;
+}
+
+/* Pares de nome e valor (o resumo da assinatura, a confirmação do cancelamento). */
+.qc-dados {
+  margin: 0;
+  display: grid;
+}
+.qc-dados > div {
+  min-height: 56px;
+  padding: 10px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-top: 1.5px solid var(--border-subtle);
+}
+.qc-dados > div:first-child {
+  border-top: 0;
+}
+.qc-dados dt {
+  font: 700 14px/1.3 var(--font-mono, monospace);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+.qc-dados dd {
+  margin: 0;
+  text-align: right;
+  font: 800 18px/1.3 var(--font-display, inherit);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.qc-dados > div.qc-total dt {
+  color: var(--ink);
+}
+.qc-dados > div.qc-total dd {
+  font-size: 26px;
+  font-weight: 900;
+}
+
+/* Lista com ícone na frente (o que o plano inclui, o que muda ao cancelar). */
+.qc-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+  font: 600 17px/1.4 var(--font-body, inherit);
+}
+.qc-lista > li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.qc-lista > li > svg {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  margin-top: 1px;
+  color: var(--good-ink, var(--good));
+}
+.qc-lista.qc-neutra > li > svg {
+  color: var(--ink-muted);
+}
+.qc-lista.qc-perde > li > svg {
+  color: var(--error-ink, var(--error));
+}
+.qc-lista small {
+  display: block;
+  margin-top: 3px;
+  font: 600 15px/1.35 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+
+/* O campo com `<label for>` (o rótulo fora do campo: o nome acessível é só o rótulo). */
+.qc .q-campo > label {
+  font: 700 14px/1.2 var(--font-mono, monospace);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+.qc .q-campo small.qc-campo-erro {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--error-ink, var(--error));
+  font-weight: 700;
+}
+.qc .q-campo small.qc-campo-erro svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+.qc .q-campo input[aria-invalid='true'] {
+  border-color: var(--error);
+}
+.qc .q-cartao .q-campo :is(input, select, textarea) {
+  background: var(--canvas);
+}
+
+/* Um ajuste com ícone na frente: o ícone não estica. */
+.q-ajuste.qc-com-icone > .q-ic {
+  flex: none;
+}
+.q-ajuste.qc-com-icone > div {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+.qc .q-ajuste > .q-abas {
+  flex: none;
+  max-width: 100%;
+}
+.qc .q-ajuste b.qc-valor {
+  flex: none;
+  font: 800 19px/1.2 var(--font-display, inherit);
+  font-variant-numeric: tabular-nums;
+}
+.q-ajuste.qc-perigo {
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--error) 45%, var(--border-subtle));
+}
+/* Escolha entre poucos que QUEBRA de linha (rolar para o lado com o raio é ruim). */
+.q-abas.qc-quebra {
+  flex-wrap: wrap;
+  overflow: visible;
+  border-radius: 28px;
+}
+.qc .q-secao > .q-abas {
+  justify-self: start;
+}
+/* Um grupo de rádio usa `aria-checked`: a escolhida tem a mesma cara das abas. */
+.qc .q-aba[aria-checked='true'] {
+  background: var(--q-suave);
+  border-color: var(--q-acento);
+  color: var(--ink);
+}
+.qc .q-aba:disabled {
+  opacity: 0.45;
+  cursor: default;
+  transform: none;
+}
+.qc .q-aba:disabled:hover {
+  border-color: var(--border-subtle);
+  color: var(--ink-muted);
+}
+.qc .q-aba .q-tag {
+  padding: 5px 9px;
+}
+/* Pílulas soltas, cada uma com o seu contorno (os interesses). */
+.qc-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.qc-chips .q-aba:not([aria-pressed='true']) {
+  background: var(--canvas);
+  border-color: var(--border-subtle);
+}
+.qc-grupo {
+  display: grid;
+  gap: 10px;
+}
+
+/* ── PERFIL ───────────────────────────────────────────────────────────────────────────────────── */
+.q-cartao.qc-identidade {
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 26px;
+  align-items: start;
+}
+.qc-foto {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  min-width: 180px;
+}
+.qc-foto img,
+.qc-inicial {
+  width: 128px;
+  height: 128px;
+  border-radius: 50%;
+}
+.qc-foto img {
+  object-fit: cover;
+  border: 3px solid var(--q-acento);
+}
+.qc-inicial {
+  display: grid;
+  place-items: center;
+  background: var(--q-suave);
+  border: 3px solid var(--q-acento);
+  color: var(--ink);
+  font: 900 48px/1 var(--font-display, inherit);
+}
+/* O botão de enviar foto é um `<label>`: o foco do campo escondido aparece nele. */
+.qc-arquivo:focus-within {
+  outline: 3px solid var(--q-acento);
+  outline-offset: 3px;
+}
+.qc-campos {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+/* A barra de salvar: fica à vista enquanto a aba rola. Quem gruda é o pé (filho direto do painel, que
+   é alto); a barra dentro dele não teria por onde correr. Um anel da cor do fundo cobre o que passa
+   por trás. */
+.qc-salvar-pe {
+  position: sticky;
+  bottom: 12px;
+  z-index: 2;
+}
+.qc-salvar-pe:empty {
+  display: none;
+}
+.q-faixa.qc-salvar {
+  margin: 0;
+  box-shadow: 0 0 0 12px var(--canvas);
+  padding: 8px 10px 8px 22px;
+  flex-wrap: wrap;
+  border-radius: 34px;
+  border-color: var(--q-acento);
+}
+.qc-salvar > span {
+  flex: 1 1 200px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font: 700 17px/1.3 var(--font-body, inherit);
+}
+.qc-salvar > span svg {
+  width: 20px;
+  height: 20px;
+  flex: none;
+}
+.qc-salvar.qc-falhou {
+  border-color: var(--error);
+}
+.qc-grafico {
+  height: 260px;
+}
+.qc-marcos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.qc-fluencia-topo {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+}
+.qc-fluencia-topo > b {
+  font: 900 26px/1.1 var(--font-display, inherit);
+}
+.qc-faixas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.qc-faixas > li {
+  min-height: 48px;
+  display: grid;
+  grid-template-columns: 44px minmax(80px, 1fr) 64px minmax(0, 190px);
+  align-items: center;
+  gap: 14px;
+  font: 600 15px/1.3 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+.qc-faixas b {
+  font: 900 18px/1 var(--font-display, inherit);
+  color: var(--ink-muted);
+}
+.qc-faixas li.qc-sustenta b {
+  color: var(--good-ink, var(--good));
+}
+.qc-faixas .qc-pct {
+  text-align: right;
+  font: 700 16px/1 var(--font-mono, monospace);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.q-barra.qc-tom-bom > span {
+  background: var(--good);
+}
+.q-barra.qc-tom-atencao > span {
+  background: var(--warn);
+}
+.qc-rodape {
+  display: grid;
+  gap: 6px;
+  padding-top: 14px;
+  border-top: 1.5px solid var(--border-subtle);
+}
+
+/* ── PLANOS: a conta agora, o produto, os cartões ─────────────────────────────────────────────── */
+.q-cartao.qc-agora {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.qc-agora > div {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+.qc-agora h2 {
+  margin: 6px 0 4px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  font: 900 24px/1.15 var(--font-display, inherit);
+}
+.qc-agora p {
+  margin: 0;
+  font: 600 17px/1.4 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+.qc-agora.qc-alerta {
+  border-color: var(--warn);
+  background: color-mix(in srgb, var(--warn) 12%, var(--surface));
+}
+.qc-produto {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  text-align: center;
+}
+.qc-produto h2 {
+  margin: 0;
+  max-width: 30ch;
+  font: 900 28px/1.15 var(--font-display, inherit);
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+.qc-produto p {
+  margin: 0;
+  max-width: 62ch;
+  font: 600 17px/1.45 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+.qc-planos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+.q-cartao.qc-plano {
+  gap: 16px;
+  padding: 24px;
+}
+.qc-plano.qc-destaque {
+  border: 2px solid var(--q-acento);
+  background: color-mix(in srgb, var(--q-acento) 7%, var(--surface));
+}
+.qc-plano.qc-sugerido {
+  outline: 3px solid var(--q-acento);
+  outline-offset: 4px;
+}
+.qc-plano-topo {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+.qc-plano-topo > div:not(.qc-selos) {
+  flex: 1 1 160px;
+  min-width: 0;
+}
+.qc-plano-topo h2 {
+  margin: 0;
+  font: 900 26px/1.1 var(--font-display, inherit);
+}
+.qc-plano-topo p {
+  margin: 4px 0 0;
+  font: 700 16px/1.3 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+.qc-selos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.qc-preco {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.qc-preco .qc-moeda {
+  font: 800 20px/1 var(--font-display, inherit);
+  color: var(--ink-muted);
+}
+.qc-preco b {
+  font: 900 48px/1 var(--font-display, inherit);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.qc-preco .qc-per {
+  font: 700 17px/1 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+.qc-plano .qc-nota b {
+  color: var(--good-ink, var(--good));
+}
+.qc-plano .q-texto {
+  font-size: 17px;
+}
+/* O botão que só informa ("Seu plano", "Vendas reabrem em breve"): legível, e não é um alvo. */
+.qc-plano .q-ctl:disabled {
+  opacity: 0.75;
+  border-style: dashed;
+  border-color: var(--border-subtle);
+  white-space: normal;
+  text-align: center;
+  line-height: 1.25;
+}
+.qc-plano .q-ctl {
+  min-height: 64px;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.2;
+}
+.qc-inclui {
+  display: grid;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1.5px solid var(--border-subtle);
+}
+.qc-garantia {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+  font: 700 16px/1.4 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+.qc-garantia svg {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  color: var(--good-ink, var(--good));
+}
+
+/* A comparação: a primeira coluna diz o recurso; as outras, um plano cada. */
+.q-tabela.qc-compara :is(th, td):not(:first-child) {
+  width: 210px;
+  text-align: center;
+}
+.q-tabela.qc-compara thead th {
+  white-space: normal;
+  vertical-align: bottom;
+}
+.q-tabela.qc-compara thead th > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font: 800 18px/1.2 var(--font-display, inherit);
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink);
+}
+.q-tabela.qc-compara thead th svg {
+  width: 20px;
+  height: 20px;
+}
+.q-tabela.qc-compara thead th small {
+  display: block;
+  margin-top: 6px;
+  font: 700 14px/1 var(--font-mono, monospace);
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+.q-tabela.qc-compara tr.qc-grupo-da-tabela th {
+  padding: 18px 18px 10px;
+  border-top: 1.5px solid var(--border-subtle);
+  color: var(--accent-ink, var(--q-acento));
+}
+.q-tabela.qc-compara tbody tr:not(.qc-grupo-da-tabela) th {
+  padding: 14px 18px;
+  border-top: 1.5px solid var(--border-subtle);
+  font: 700 17px/1.35 var(--font-body, inherit);
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink);
+  white-space: normal;
+}
+.q-tabela.qc-compara tbody th small {
+  display: block;
+  margin-top: 4px;
+  font: 600 15px/1.35 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+.q-tabela.qc-compara td svg {
+  width: 24px;
+  height: 24px;
+  color: var(--good-ink, var(--good));
+}
+.q-tabela.qc-compara td .qc-nao {
+  color: var(--ink-muted);
+  font-weight: 800;
+}
+.q-tabela.qc-compara :is(th, td).qc-coluna-destaque {
+  background: color-mix(in srgb, var(--q-acento) 7%, transparent);
+}
+
+/* Perguntas: cada resumo é um alvo de 64 px; a resposta abre embaixo. */
+.qc-faq {
+  border: 1.5px solid var(--border-subtle);
+  border-radius: 18px;
+  background: var(--surface);
+}
+.qc-faq > summary {
+  min-height: 64px;
+  padding: 10px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-radius: 16px;
+  font: 800 18px/1.3 var(--font-display, inherit);
+  color: var(--ink);
+  cursor: pointer;
+  list-style: none;
+  transition: background-color var(--q-cor);
+}
+.qc-faq > summary::-webkit-details-marker {
+  display: none;
+}
+.qc-faq > summary > span {
+  flex: 1;
+  min-width: 0;
+}
+.qc-faq > summary svg {
+  width: 24px;
+  height: 24px;
+  flex: none;
+  color: var(--ink-muted);
+  transition: transform var(--q-toque);
+}
+.qc-faq[open] > summary svg {
+  transform: rotate(180deg);
+}
+.qc-faq > summary:hover {
+  background: color-mix(in srgb, var(--q-acento) 10%, transparent);
+}
+.qc-faq > summary:focus-visible {
+  outline: 3px solid var(--q-acento);
+  outline-offset: 3px;
+}
+.qc-faq > p {
+  margin: 0;
+  padding: 2px 18px 18px;
+  max-width: 78ch;
+  font: 600 17px/1.5 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+
+/* Consumo do mês. */
+.q-cartao.qc-consumo {
+  gap: 12px;
+}
+.qc-consumo-titulo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.qc-consumo-titulo > svg {
+  width: 26px;
+  height: 26px;
+  flex: none;
+}
+.qc-consumo-valor {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  font: 600 16px/1.3 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+.qc-consumo-valor b {
+  font: 900 33px/1 var(--font-display, inherit);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.q-cartao.qc-janela {
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 16px;
+  align-items: start;
+}
+.qc-janela p {
+  margin: 6px 0 0;
+  max-width: 78ch;
+  font: 600 17px/1.45 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+.qc-janela p[role='status'] {
+  color: var(--ink);
+  font-weight: 800;
+}
+
+/* Sua assinatura: as faturas, uma por linha. */
+.qc-faturas > li.q-ajuste > .q-tag,
+.qc-faturas > li.q-ajuste > .q-ctl {
+  flex: none;
+}
+
+/* ── CHECKOUT E CANCELAMENTO: etapas, escolhas, resumo ────────────────────────────────────────── */
+.qc-etapas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.qc-etapas > li {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font: 700 17px/1.2 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+.qc-etapas > li > span {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--border-subtle);
+  background: var(--surface);
+  font: 800 16px/1 var(--font-mono, monospace);
+}
+.qc-etapas > li > span svg {
+  width: 20px;
+  height: 20px;
+}
+.qc-etapas > li.qc-atual {
+  color: var(--ink);
+}
+.qc-etapas > li.qc-atual > span {
+  border-color: transparent;
+  background: var(--q-acento);
+  color: var(--q-sobre-acento);
+}
+.qc-etapas > li.qc-feita > span {
+  border-color: var(--good);
+  color: var(--good-ink, var(--good));
+}
+.qc-etapas > li.qc-traco {
+  width: 40px;
+  height: 2px;
+  flex: none;
+  border-radius: 2px;
+  background: var(--border-subtle);
+}
+.qc-checkout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
+  gap: 20px;
+  align-items: start;
+}
+.qc-checkout > .q-cartao {
+  gap: 18px;
+}
+.qc-titulo-do-passo {
+  margin: 0;
+  font: 800 22px/1.2 var(--font-display, inherit);
+  text-wrap: balance;
+}
+/* Uma linha ou um ajuste DENTRO de um cartão: desce um tom para não sumir na superfície. */
+:is(.q-ajuste, .q-linha, .q-tabela-caixa).qc-no-cartao {
+  background: var(--canvas);
+}
+.qc-escolha {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+  display: grid;
+  gap: 12px;
+}
+.qc-escolha > legend {
+  padding: 0;
+  margin-bottom: 12px;
+  font: 700 14px/1 var(--font-mono, monospace);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+.qc-escolha > legend h2 {
+  margin: 0 0 6px;
+  font: 800 22px/1.2 var(--font-display, inherit);
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink);
+}
+.qc-escolha > legend span {
+  font: 600 16px/1.4 var(--font-body, inherit);
+  letter-spacing: 0;
+  text-transform: none;
+}
+.qc-opcoes {
+  display: grid;
+  gap: 10px;
+}
+.qc-opcoes.qc-duas {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+/* Uma escolha: o cartão inteiro é o alvo, e a bolinha diz qual está marcada. */
+.qc-opcao {
+  min-height: 64px;
+  width: 100%;
+  padding: 14px 18px;
+  border: 2px solid var(--border-subtle);
+  border-radius: 18px;
+  background: var(--canvas);
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    transform var(--q-toque),
+    border-color var(--q-cor),
+    background-color var(--q-cor),
+    box-shadow var(--q-cor);
+}
+.qc-opcao > span:not(.qc-bolinha):not(.q-ic):not(.qc-valor) {
+  flex: 1;
+  min-width: 0;
+}
+.qc-opcao b {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font: 800 18px/1.25 var(--font-display, inherit);
+}
+.qc-opcao small {
+  display: block;
+  margin-top: 4px;
+  font: 600 15px/1.4 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+.qc-opcao > .qc-valor {
+  flex: none;
+  text-align: right;
+  font: 900 20px/1.1 var(--font-display, inherit);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.qc-opcao > .qc-valor small {
+  display: inline;
+  margin: 0 0 0 2px;
+  font-size: 15px;
+}
+.qc-bolinha {
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: 50%;
+  border: 2px solid var(--border-strong, var(--ink-muted));
+  display: grid;
+  place-items: center;
+}
+.qc-opcao[aria-pressed='true'] {
+  border-color: var(--q-acento);
+  background: var(--q-suave);
+}
+.qc-opcao[aria-pressed='true'] .qc-bolinha {
+  border-color: var(--q-acento);
+}
+.qc-opcao[aria-pressed='true'] .qc-bolinha::after {
+  content: '';
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--q-acento);
+}
+.qc-opcao:hover {
+  border-color: var(--q-acento);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--q-acento) 26%, transparent);
+  transform: scale(1.01);
+}
+.qc-opcao:active {
+  transform: scale(0.985);
+}
+.qc-opcao:focus-visible {
+  outline: 3px solid var(--q-acento);
+  outline-offset: 3px;
+}
+.qc-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.qc-form > .qc-inteiro {
+  grid-column: 1 / -1;
+}
+/* O pé de um passo: voltar de um lado, seguir do outro. */
+.qc-pe {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.qc-pe > .q-espaco {
+  flex: 1 1 0;
+}
+.qc-pe > .q-ctl:not(.pri) {
+  background: var(--canvas);
+  border-color: var(--border-subtle);
+}
+.qc-pe > .q-ctl:not(.pri):hover {
+  border-color: var(--q-acento);
+}
+.qc-pe > .q-ctl.perigo:hover {
+  border-color: var(--error, #b3261e);
+}
+.qc-legal {
+  margin: 0;
+  max-width: 82ch;
+  font: 600 15px/1.5 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+.qc-legal b {
+  color: var(--ink);
+}
+.q-cartao.qc-resumo {
+  position: sticky;
+  top: 0;
+  gap: 14px;
+}
+.qc-resumo-plano {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.qc-resumo-plano b {
+  display: block;
+  font: 800 19px/1.2 var(--font-display, inherit);
+}
+.qc-resumo-plano small {
+  display: block;
+  margin-top: 3px;
+  font: 600 15px/1.3 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+.qc-duas-colunas {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.qc-duas-colunas > .q-cartao {
+  background: var(--canvas);
+}
+
+/* O fim de um caminho (assinado, cancelado, reembolso pedido): ao centro, com um selo. */
+.q-cartao.qc-sucesso {
+  justify-items: center;
+  text-align: center;
+  gap: 16px;
+  padding: 32px 24px;
+}
+.qc-sucesso h1,
+.qc-sucesso h2 {
+  margin: 0;
+  font: 900 32px/1.1 var(--font-display, inherit);
+  text-wrap: balance;
+}
+.qc-sucesso > p {
+  margin: 0;
+  max-width: 56ch;
+  font: 600 18px/1.45 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+.qc-sucesso > p b {
+  color: var(--ink);
+}
+.qc-sucesso .qc-lista {
+  text-align: left;
+}
+.qc-sucesso .qc-dados {
+  width: min(560px, 100%);
+}
+.qc-sucesso .q-acoes {
+  justify-content: center;
+}
+.qc-sucesso .q-acoes > .q-ctl:not(.pri) {
+  background: var(--canvas);
+  border-color: var(--border-subtle);
+}
+.qc-selo {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--good) 24%, var(--surface));
+  color: var(--good-ink, var(--good));
+}
+.qc-selo svg {
+  width: 40px;
+  height: 40px;
+}
+.qc-selo.qc-neutro {
+  background: var(--surface-sunken);
+  color: var(--ink-muted);
+}
+.qc-selo.qc-esperando svg {
+  animation: qc-gira 1.2s linear infinite;
+}
+
+/* ── AVISOS DE CONTA COM O APP ABERTO ─────────────────────────────────────────────────────────── */
+/* No alto da tela, antes do palco: a mesma margem lateral do palco. */
+.qc-topo {
+  margin: 16px clamp(18px, 2.6vw, 34px) 0;
+  flex: none;
+}
+.q-aviso.qc-topo,
+.q-aviso.qc-convite {
+  flex-wrap: wrap;
+  align-items: center;
+  font-weight: 600;
+}
+:is(.q-aviso.qc-topo, .q-aviso.qc-convite) > div:first-of-type {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+:is(.q-aviso.qc-topo, .q-aviso.qc-convite) b {
+  display: block;
+  font: 800 19px/1.25 var(--font-display, inherit);
+}
+:is(.q-aviso.qc-topo, .q-aviso.qc-convite) small {
+  display: block;
+  margin-top: 4px;
+  font: 600 16px/1.4 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+.qc-fechar {
+  width: 56px;
+  min-width: 56px;
+  height: 56px;
+  flex: none;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition:
+    transform var(--q-toque),
+    border-color var(--q-cor);
+}
+.qc-fechar svg {
+  width: 22px;
+  height: 22px;
+}
+.qc-fechar:hover {
+  border-color: var(--q-acento);
+  transform: scale(1.06);
+}
+.qc-fechar:active {
+  transform: scale(0.95);
+}
+.qc-fechar:focus-visible {
+  outline: 3px solid var(--q-acento);
+  outline-offset: 3px;
+}
+.q-cartao.qc-topo {
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 16px;
+  align-items: start;
+}
+.qc-topo h2 {
+  margin: 0;
+  font: 800 22px/1.2 var(--font-display, inherit);
+}
+.qc-topo-corpo {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+.qc-topo-corpo > p {
+  margin: 0;
+  max-width: 74ch;
+  font: 600 17px/1.45 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+.qc-topo-corpo > p b {
+  color: var(--ink);
+}
+.qc-convidar {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.qc-convidar > .q-campo {
+  flex: 1 1 280px;
+}
+.qc-convidar > .q-campo > label {
+  font: 700 14px/1.2 var(--font-mono, monospace);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+.qc-convidar .q-campo input {
+  background: var(--canvas);
+}
+
+/* A oferta que não bloqueia: embaixo, ao centro, por cima da tela. */
+.qc-oferta {
+  position: fixed;
+  left: 50%;
+  bottom: calc(20px + var(--shell-inset-bottom, 0px));
+  z-index: var(--z-pop, 40);
+  width: min(680px, calc(100vw - 32px));
+  transform: translateX(-50%);
+  padding: 18px;
+  border: 2px solid var(--q-acento);
+  border-radius: 24px;
+  background: var(--surface);
+  color: var(--ink);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 14px 16px;
+  align-items: start;
+  animation: q-surgir 180ms ease;
+}
+.qc-oferta.qc-alerta {
+  border-color: var(--warn);
+}
+.qc-oferta.qc-alerta > .q-ic {
+  background: color-mix(in srgb, var(--warn) 26%, var(--surface));
+}
+.qc-oferta-texto {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  min-width: 0;
+}
+.qc-oferta-texto b {
+  font: 800 20px/1.2 var(--font-display, inherit);
+}
+.qc-oferta-texto p {
+  margin: 0;
+  font: 600 17px/1.4 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+.qc-oferta .q-acoes {
+  grid-column: 1 / -1;
+}
+.qc-oferta .qc-fechar,
+.qc-oferta .q-acoes > .q-ctl:not(.pri) {
+  background: var(--canvas);
+}
+
+/* O aviso que interrompe (precisa de conta, guardar na conta): no centro, sobre um fundo escuro. */
+.qc-fundo {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-toast, 70);
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: color-mix(in srgb, #000 55%, transparent);
+  animation: q-surgir 180ms ease;
+}
+.qc-caixa {
+  width: min(640px, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  padding: 24px;
+  border: 1.5px solid var(--border-subtle);
+  border-radius: 24px;
+  background: var(--canvas);
+  color: var(--ink);
+  display: grid;
+  gap: 18px;
+}
+.qc-caixa::-webkit-scrollbar {
+  width: 14px;
+}
+.qc-caixa::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background: color-mix(in srgb, var(--ink) 34%, transparent);
+  background-clip: padding-box;
+}
+.qc-caixa-cab {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+.qc-caixa-cab > div {
+  flex: 1;
+  min-width: 0;
+}
+.qc-caixa h2 {
+  margin: 0;
+  font: 900 26px/1.15 var(--font-display, inherit);
+  text-wrap: balance;
+}
+.qc-caixa-cab p,
+.qc-caixa-texto {
+  margin: 8px 0 0;
+  font: 600 18px/1.45 var(--font-body, inherit);
+  color: var(--ink);
+}
+.qc-caixa-texto p {
+  margin: 0 0 8px;
+}
+.qc-caixa-texto p:last-child {
+  margin-bottom: 0;
+}
+.qc-caixa .qc-atencao-texto {
+  color: var(--warn-ink, var(--warn));
+  font-weight: 700;
+}
+.qc-caixa .qc-erro-texto {
+  color: var(--error-ink, var(--error));
+  font-weight: 700;
+}
+.qc-caixa-acoes {
+  display: grid;
+  gap: 10px;
+}
+.qc-caixa-acoes > .q-ctl:not(.pri) {
+  background: var(--surface);
+  border-color: var(--border-subtle);
+}
+.qc-caixa-acoes > .q-ctl:not(.pri):hover {
+  border-color: var(--q-acento);
+}
+.qc-caixa .q-barra {
+  background: var(--surface);
+}
+
+/* ── OS DIÁLOGOS DA ASSINATURA (`ui/Dialogo`) ─────────────────────────────────────────────────────
+   `questBase.css` já dá as medidas a `.btn` e ao próprio `<dialog>`. Falta o que estes diálogos
+   escrevem em classe própria e ficava abaixo do piso do texto. */
+html[data-quest-novo='true'] dialog .nota-seg {
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 15px;
+  line-height: 1.45;
+}
+html[data-quest-novo='true'] dialog .nota-seg svg {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  margin-top: 1px;
+}
+html[data-quest-novo='true'] dialog .linhas-preco div {
+  font-size: 17px;
+}
+html[data-quest-novo='true'] dialog .linhas-preco .total {
+  font-size: 19px;
+  border-top-width: 1.5px;
+}
+html[data-quest-novo='true'] dialog .linhas-preco .total dd {
+  font-size: 26px;
+}
+html[data-quest-novo='true'] dialog .dlg-corpo ol {
+  font-size: 17px;
+  line-height: 1.45;
+}
+
+/* ── JANELA ESTREITA (500 × 495) ──────────────────────────────────────────────────────────────── */
+@media (max-width: 980px) {
+  .qc-checkout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .q-cartao.qc-resumo {
+    position: static;
+    order: -1;
+  }
+}
+@media (max-width: 720px) {
+  .qc-painel {
+    gap: 22px;
+  }
+  .q-cartao.qc-identidade,
+  .q-cartao.qc-janela,
+  .q-cartao.qc-topo,
+  .qc-form,
+  .qc-duas-colunas,
+  .qc-opcoes.qc-duas {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .qc-foto {
+    grid-template-columns: auto 1fr;
+    justify-items: start;
+    align-items: center;
+    min-width: 0;
+  }
+  .qc-foto img,
+  .qc-inicial {
+    width: 96px;
+    height: 96px;
+    grid-row: span 2;
+  }
+  .qc-inicial {
+    font-size: 36px;
+  }
+  .qc-planos {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .q-cartao.qc-plano {
+    padding: 18px;
+  }
+  .qc-preco b {
+    font-size: 40px;
+  }
+  .qc-produto h2 {
+    font-size: 23px;
+  }
+  .qc-agora h2 {
+    font-size: 21px;
+  }
+  .q-tabela.qc-compara :is(th, td):not(:first-child) {
+    width: 104px;
+    padding-inline: 8px;
+  }
+  .q-tabela.qc-compara thead th svg {
+    display: none;
+  }
+  .q-tabela.qc-compara thead th > span {
+    font-size: 16px;
+  }
+  .q-tabela.qc-compara tbody tr:not(.qc-grupo-da-tabela) th {
+    padding: 12px;
+    font-size: 16px;
+  }
+  .qc-faixas > li {
+    grid-template-columns: 40px minmax(60px, 1fr) 56px;
+  }
+  .qc-faixas > li > .qc-base {
+    grid-column: 2 / -1;
+  }
+  .qc-etapas > li.qc-traco {
+    width: 16px;
+  }
+  .qc-etapas {
+    gap: 8px;
+  }
+  .qc-etapas > li {
+    font-size: 16px;
+    gap: 8px;
+  }
+  .qc-etapas > li > span {
+    width: 34px;
+    height: 34px;
+  }
+  .qc-opcao {
+    flex-wrap: wrap;
+  }
+  .qc-opcao > .qc-valor {
+    flex: 1 1 100%;
+    text-align: left;
+    padding-left: 40px;
+  }
+  .qc-pe > .q-ctl {
+    flex: 1 1 100%;
+  }
+  .qc-pe > .q-espaco {
+    display: none;
+  }
+  .qc-sucesso h1,
+  .qc-sucesso h2 {
+    font-size: 26px;
+  }
+  .q-faixa.qc-salvar {
+    padding: 10px;
+    border-radius: 24px;
+  }
+  .qc-salvar > span {
+    flex-basis: 100%;
+    padding-inline: 8px;
+  }
+  .qc-salvar > .q-ctl {
+    flex: 1 1 0;
+  }
+  .qc-topo {
+    margin: 12px 16px 0;
+  }
+  /* O trilho deita embaixo (≈ 76 px): a oferta sobe para não ficar atrás dele. */
+  .qc-oferta {
+    bottom: 88px;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .qc-oferta > .q-ic {
+    display: none;
+  }
+  .qc-oferta .q-acoes > .q-ctl {
+    flex: 1 1 100%;
+  }
+  .qc-fundo {
+    padding: 12px;
+  }
+  .qc-caixa {
+    padding: 18px;
+  }
+  .qc-caixa h2 {
+    font-size: 22px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qc-opcao,
+  .qc-fechar,
+  .qc-faq > summary,
+  .qc-faq > summary svg {
+    transition: none;
+  }
+  .qc-opcao:hover,
+  .qc-opcao:active,
+  .qc-fechar:hover,
+  .qc-fechar:active {
+    transform: none;
+  }
+  .qc-espera svg,
+  .qc-gira,
+  .qc-selo.qc-esperando svg {
+    animation: none;
+  }
+  .qc-oferta,
+  .qc-fundo {
+    animation: none;
+  }
+}

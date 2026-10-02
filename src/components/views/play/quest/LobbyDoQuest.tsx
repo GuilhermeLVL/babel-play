@@ -21,12 +21,13 @@ import {
   Trophy,
   Zap,
 } from 'lucide-react';
-import React, { type ReactNode, useMemo, useState } from 'react';
+import React, { type ReactNode, useEffect, useMemo, useState } from 'react';
 
 import { perfilDoDispositivo } from '../../../../lib/dispositivo/perfil';
 import { type RecursosDoAparelho, recursosDoAparelho } from '../../../../lib/dispositivo/recursos';
 import { numero, t, tp } from '../../../../lib/i18n';
 import type { AgeProfileType } from '../../../../lib/profile';
+import { aoMudarIdiomasDaVozDoQuest } from '../../../../lib/voz/vozDoQuest';
 import { FAMILIAS, tomDoJogo } from '../../../minigames/ArteDosJogos';
 import { descricaoDoJogo, type JogoUI, tituloDoJogo } from '../jogos';
 import { type JogoParaOQuest, type TileDoQuest, tilesDoQuest, type VozParaOQuest } from './jogosNoQuest';
@@ -66,8 +67,11 @@ interface LobbyDoQuestProps<J extends JogoDoLobby> {
   aoTrocarFonte?: () => void;
   /** Mostra a tela de sempre nesta visita (fica em Opções: o lobby do headset já traz tudo). */
   aoVerTelaCompleta: () => void;
-  /** Um aviso curto com, no máximo, uma ação (acervo pequeno demais, baralho que não carregou). */
-  aviso?: { texto: string; acao?: string; aoAgir?: () => void };
+  /**
+   * Um aviso com o que houve, o detalhe (quanto falta) e as saídas: acervo pequeno demais, baralho que
+   * não carregou. `acao`/`aoAgir` é a forma curta de uma saída só.
+   */
+  aviso?: AvisoDoLobby;
   /** O que o aparelho tem. Só os testes passam: a tela lê do perfil. */
   recursos?: Pick<RecursosDoAparelho, 'vozDeLeitura' | 'reconhecimentoDoNavegador' | 'tecladoFisico'>;
   /** A voz de leitura para o idioma do baralho (`fonte.lang`): decide se os jogos falados abrem. */
@@ -94,9 +98,13 @@ interface LobbyDoQuestProps<J extends JogoDoLobby> {
   /** "Prévia antes de começar": desligada, o clique começa a rodada direto. */
   previa?: boolean;
   aoTrocarPrevia?: (ligada: boolean) => void;
-  /** Organizar: todos os jogos na ordem do usuário e o passo que move um deles. */
+  /**
+   * Organizar: todos os jogos, a ordem que a pessoa já escolheu (`OrdemDosJogos.ordem`) e o passo que
+   * move um deles. `visiveis` é a lista como o painel a mostra: a seta troca com o vizinho que se vê.
+   */
   ordem?: readonly J[];
-  aoMover?: (jogo: J, direcao: -1 | 1) => void;
+  ordemEscolhida?: readonly string[];
+  aoMover?: (jogo: J, direcao: -1 | 1, visiveis: string[]) => void;
   /** A sugestão para hoje e o "Outra sugestão". */
   sugestao?: SugestaoDoLobby<J> | null;
   aoOutraSugestao?: () => void;
@@ -105,13 +113,26 @@ interface LobbyDoQuestProps<J extends JogoDoLobby> {
   /** Curadoria: só quando a fonte inclui um baralho de fora; `n` é o que ficou de fora. */
   curadoria?: { n: number; aoAbrir: () => void };
   /** Diagnóstico do material: o interruptor e os números que ele mostra. */
-  diagnostico?: { ligado: boolean; aoTrocar: () => void; itens: ReadonlyArray<{ icone: LucideIcon; texto: string }> };
+  diagnostico?: {
+    ligado: boolean;
+    aoTrocar: () => void;
+    /** `explicacao`: o que o número quer dizer (na tela de sempre mora na dica ao parar o ponteiro). */
+    itens: ReadonlyArray<{ icone: LucideIcon; texto: string; explicacao?: string }>;
+  };
   /** A saída de um jogo bloqueado ("Jogar em inglês", "Escolher gravação"), quando existe. */
   portaDoJogo?: (jogo: J) => { rotulo: string; aoAbrir: () => void } | null;
   /** O placar da corrente que acabou de encerrar (sair no meio não o apaga em silêncio). */
   correnteEncerrada?: { rodadas: number; pontos: number; precisao: number } | null;
   /** O painel da trilha (`PainelTrilha`, já no desenho do headset), quando a fonte é a trilha. */
   trilha?: ReactNode;
+}
+
+export interface AvisoDoLobby {
+  texto: string;
+  detalhe?: string;
+  acao?: string;
+  aoAgir?: () => void;
+  acoes?: ReadonlyArray<{ rotulo: string; aoAgir: () => void }>;
 }
 
 const HABILIDADES: ReadonlyArray<{ id: HabilidadeDoLobby; rotulo: string }> = [
@@ -123,9 +144,10 @@ const HABILIDADES: ReadonlyArray<{ id: HabilidadeDoLobby; rotulo: string }> = [
 
 /**
  * JOGAR NO META QUEST (maquete de 01/10/2026, tela 5, completa na segunda rodada): uma grade de
- * cartões grandes, com a etiqueta dizendo COMO se joga antes de entrar. Na frente, o que funciona
- * apontando; depois o que usa o áudio da sessão; por último o que pede digitação. O que o headset
- * não consegue abrir aparece apagado, com o motivo, em vez de falhar depois do clique.
+ * cartões grandes, com a etiqueta dizendo COMO se joga antes de entrar. Na frente, os favoritos e a
+ * ordem que a pessoa montou; no que ela nunca ordenou, primeiro o que funciona apontando, depois o
+ * que usa áudio e por último o que pede digitação. O que o headset não consegue abrir aparece
+ * apagado, no fim, com o motivo, em vez de falhar depois do clique.
  *
  * NENHUMA FUNÇÃO DO LOBBY DE SEMPRE FICA DE FORA: partida rápida no alto, as abas, a sugestão para
  * hoje, a saída de cada jogo bloqueado embaixo do cartão dele, e três painéis que abrem no centro:
@@ -164,6 +186,7 @@ export default function LobbyDoQuest<J extends JogoDoLobby>({
   previa,
   aoTrocarPrevia,
   ordem,
+  ordemEscolhida,
   aoMover,
   sugestao,
   aoOutraSugestao,
@@ -179,7 +202,19 @@ export default function LobbyDoQuest<J extends JogoDoLobby>({
   const [painel, setPainel] = useState<null | 'filtros' | 'opcoes' | 'ordem'>(null);
   const [porQueAberto, setPorQueAberto] = useState(false);
 
-  const tiles = tilesDoQuest(jogos, doAparelho, notaDoBloqueio, voz);
+  /* A lista de idiomas da voz do site chega depois (um GET): os cartões que dependem dela se refazem. */
+  const [, refazer] = useState(0);
+  useEffect(() => aoMudarIdiomasDaVozDoQuest(() => refazer((n) => n + 1)), []);
+
+  /* A ordem é a do usuário: os favoritos na frente e a ordem escolhida valem na grade inteira. */
+  const preferencia = { fixados: favoritos, ordem: ordemEscolhida };
+  const tiles = tilesDoQuest(jogos, doAparelho, notaDoBloqueio, voz, preferencia);
+  /* "Favoritos e ordem" lista TODOS os jogos como a grade os mostra sem filtro. */
+  const naOrdemDaGrade = ordem ? tilesDoQuest(ordem, doAparelho, notaDoBloqueio, voz, preferencia) : [];
+  const idsNaOrdemDaGrade = naOrdemDaGrade.map((tile) => tile.jogo.id as string);
+  const saidasDoAviso = aviso
+    ? (aviso.acoes ?? (aviso.acao && aviso.aoAgir ? [{ rotulo: aviso.acao, aoAgir: aviso.aoAgir }] : []))
+    : [];
   const abrem = tiles.filter((tile) => tile.grupo !== 'material');
   const semMaterial = tiles.filter((tile) => tile.grupo === 'material');
   /* O nome do idioma vem em minúscula (`langLabelNaUI`); abrindo a linha, ganha a maiúscula. */
@@ -306,12 +341,15 @@ export default function LobbyDoQuest<J extends JogoDoLobby>({
 
       {aviso && (
         <div className="q-aviso" role="status">
-          <span>{aviso.texto}</span>
-          {aviso.acao && aviso.aoAgir && (
-            <button type="button" className="q-ctl" onClick={aviso.aoAgir}>
-              {aviso.acao}
+          <span>
+            {aviso.texto}
+            {aviso.detalhe && <small className="qj-aviso-detalhe">{aviso.detalhe}</small>}
+          </span>
+          {saidasDoAviso.map((saida) => (
+            <button key={saida.rotulo} type="button" className="q-ctl" onClick={saida.aoAgir}>
+              {saida.rotulo}
             </button>
-          )}
+          ))}
         </div>
       )}
 
@@ -328,14 +366,17 @@ export default function LobbyDoQuest<J extends JogoDoLobby>({
       )}
 
       {diagnostico?.ligado && (
-        <div className="qj-chips" role="status" aria-label={t('Diagnóstico do material')}>
-          {diagnostico.itens.map(({ icone: Icone, texto }) => (
-            <span key={texto} className="q-chip">
+        <ul className="qj-diag" role="status" aria-label={t('Diagnóstico do material')}>
+          {diagnostico.itens.map(({ icone: Icone, texto, explicacao }) => (
+            <li key={texto}>
               <Icone aria-hidden />
-              {texto}
-            </span>
+              <span>
+                <b>{texto}</b>
+                {explicacao && <small>{explicacao}</small>}
+              </span>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
 
       {trilha}
@@ -609,14 +650,26 @@ export default function LobbyDoQuest<J extends JogoDoLobby>({
           }
         >
           <ol className="qj-ordem">
-            {ordem.map((jogo, i) => {
+            {naOrdemDaGrade.map(({ jogo, apagado }) => {
               const titulo = tituloDoJogo(jogo, ageProfile);
               const fixado = favoritos.includes(jogo.id);
+              /* A seta move DENTRO do grupo (favoritos entre si, o resto entre si), como em `mover`. */
+              const doGrupo = idsNaOrdemDaGrade.filter((id) => favoritos.includes(id) === fixado);
+              const i = doGrupo.indexOf(jogo.id);
               return (
                 <li key={jogo.chave} className="q-ajuste" data-ordem={jogo.id}>
                   <div>
                     <b>{titulo}</b>
-                    {fixado && <small>{t('Favorito: fica no topo')}</small>}
+                    {(fixado || apagado) && (
+                      <small>
+                        {[
+                          fixado ? t('Favorito: fica no topo') : null,
+                          apagado ? t('Não abre agora: fica no fim da grade') : null,
+                        ]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </small>
+                    )}
                   </div>
                   <span className="q-acoes">
                     {aoComoSeJoga && (
@@ -637,16 +690,16 @@ export default function LobbyDoQuest<J extends JogoDoLobby>({
                           className="q-ctl"
                           disabled={i === 0}
                           aria-label={`${t('Mover para antes')}: ${titulo}`}
-                          onClick={() => aoMover(jogo, -1)}
+                          onClick={() => aoMover(jogo, -1, idsNaOrdemDaGrade)}
                         >
                           <ArrowUp aria-hidden />
                         </button>
                         <button
                           type="button"
                           className="q-ctl"
-                          disabled={i === ordem.length - 1}
+                          disabled={i === doGrupo.length - 1}
                           aria-label={`${t('Mover para depois')}: ${titulo}`}
-                          onClick={() => aoMover(jogo, 1)}
+                          onClick={() => aoMover(jogo, 1, idsNaOrdemDaGrade)}
                         >
                           <ArrowDown aria-hidden />
                         </button>

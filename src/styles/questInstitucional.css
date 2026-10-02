@@ -3,7 +3,7 @@
  *
  * As peças comuns (`.q-palco`, `.q-cab`, `.q-abas`, `.q-secao`, `.q-cartao`, `.q-tile`, `.q-linha`,
  * `.q-ajuste`, `.q-campo`, `.q-vazio`, `.q-faixa`, `.q-ctl`…) e os tokens moram em `quest.css`; aqui
- * fica só o que é destas telas: a lista de medidas (`.q-dados`), o cartão de quem faz o app, a faixa
+ * fica só o que é destas telas: a lista de medidas (`.q-medidas`), o cartão de quem faz o app, a faixa
  * fixa do diagnóstico e os três diálogos de leitura (guia rápido, atalhos, política e termos).
  *
  * As mesmas regras: só tokens do tema, alvo ≥ 56 px (o principal ≥ 60), corpo de 17 a 18 px e nada
@@ -94,7 +94,7 @@
 }
 
 /* Uma lista de medidas: o que é à esquerda, o valor em destaque à direita. */
-.q-dados {
+.q-medidas {
   margin: 0;
   display: grid;
   border: 1.5px solid var(--border-subtle);
@@ -102,13 +102,13 @@
   background: var(--surface);
   overflow: hidden;
 }
-.q-dados.duas {
+.q-medidas.duas {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
-.q-cartao .q-dados {
+.q-cartao .q-medidas {
   background: var(--canvas);
 }
-.q-dado {
+.q-medida {
   min-height: 56px;
   margin-bottom: -1.5px;
   padding: 10px 18px;
@@ -119,14 +119,14 @@
   gap: 4px 16px;
   border-bottom: 1.5px solid var(--border-subtle);
 }
-.q-dados.duas .q-dado:nth-child(odd) {
+.q-medidas.duas .q-medida:nth-child(odd) {
   border-right: 1.5px solid var(--border-subtle);
 }
-.q-dado dt {
+.q-medida dt {
   font: 600 16px/1.3 var(--font-body, inherit);
   color: var(--ink-muted);
 }
-.q-dado dd {
+.q-medida dd {
   flex: 1 1 180px;
   margin: 0;
   font: 800 17px/1.3 var(--font-display, inherit);
@@ -317,6 +317,32 @@ textarea.q-campo.q-diag-json {
   font: 500 14px/1.5 var(--font-mono, monospace);
 }
 
+/* ── QUEST COM AS TELAS NOVAS DESLIGADAS: o aviso de religar, no topo do diagnóstico de sempre ─────
+   Nesse estado o CSS do headset (`quest.css`, `questBase.css`) não está na página: o aviso e o botão
+   "Ligar de novo" levam aqui as medidas do headset (alvo de 56 px, texto de 16 px ou mais). Só o Quest
+   renderiza este aviso, e a regra ainda é presa ao aparelho. */
+html[data-dispositivo='quest'] .aviso-info.religar-telas-novas {
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 14px 18px;
+  font-size: 17px;
+  line-height: 1.4;
+  color: var(--ink);
+}
+html[data-dispositivo='quest'] .aviso-info.religar-telas-novas > svg {
+  width: 22px;
+  height: 22px;
+  flex: none;
+}
+html[data-dispositivo='quest'] .aviso-info.religar-telas-novas .btn {
+  min-height: 56px;
+  min-width: 56px;
+  padding: 0 22px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
 /* ── OS DIÁLOGOS DE LEITURA (guia rápido, atalhos, política e termos) ─────────────────────────────
    `questBase.css` já dá as medidas ao `<dialog>`, aos botões e aos cartões. Falta só o texto que
    estes três escrevem em classe própria e ficava abaixo do piso do headset. */
@@ -379,13 +405,13 @@ html[data-quest-novo='true'] dialog .rola-dlg {
   .q-inst-painel {
     gap: 18px;
   }
-  .q-dados.duas {
+  .q-medidas.duas {
     grid-template-columns: minmax(0, 1fr);
   }
-  .q-dados.duas .q-dado:nth-child(odd) {
+  .q-medidas.duas .q-medida:nth-child(odd) {
     border-right: 0;
   }
-  .q-dado {
+  .q-medida {
     padding: 10px 14px;
   }
   .q-cartao.q-sobre-heroi {

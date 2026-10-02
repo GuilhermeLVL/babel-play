@@ -43,6 +43,11 @@ export interface ConteudoComoSeJoga {
   treina: string;
   /** Passos concretos. A pessoa deve conseguir jogar só lendo isto. */
   passos: string[];
+  /**
+   * Os passos no Meta Quest, quando o jeito de jogar muda ali (sem arrasto, sem nota de voz). Ausente:
+   * valem os de sempre.
+   */
+  passosNoQuest?: string[];
   /** O que a nota mede — de verdade. */
   avaliacao: string;
   /** O que este jogo NÃO garante. Nunca vazio. */
@@ -80,6 +85,11 @@ export const COMO_SE_JOGA: Record<MinigameId, ConteudoComoSeJoga> = {
       'Leia a pista na lista ao lado, ela é a tradução, nunca a palavra.',
       'Lembre qual é a palavra e arraste sobre as letras no quadro.',
       'O traço pode ir em qualquer direção, inclusive na diagonal.',
+    ],
+    passosNoQuest: [
+      'Toque numa pista da lista: ela é a tradução, nunca a palavra.',
+      'Lembre qual é a palavra e toque na primeira letra dela no quadro, depois na última.',
+      'A palavra pode estar em qualquer direção, inclusive na diagonal.',
     ],
     avaliacao:
       'Achar sem ajuda vale "bom". Errar o traço não conta como erro de memória, isso é mira, e mira não estraga a sua revisão.',
@@ -135,6 +145,11 @@ export const COMO_SE_JOGA: Record<MinigameId, ConteudoComoSeJoga> = {
       'Ouça a frase, as palavras acendem no ritmo do áudio de verdade.',
       'Toque em Falar e repita.',
       'A nota compara o que o reconhecedor entendeu com o que estava escrito.',
+    ],
+    passosNoQuest: [
+      'Ouça a frase, as palavras acendem no ritmo do áudio de verdade.',
+      'Repita em voz alta, quantas vezes quiser.',
+      'O headset não dá nota de pronúncia: siga para a próxima quando estiver satisfeito.',
     ],
     avaliacao:
       'A nota é de SEMELHANÇA DE TEXTO, não de fonemas: o reconhecedor transcreve o que você falou e comparamos as palavras.',
@@ -347,7 +362,7 @@ export default function ComoSeJoga({ jogo, titulo, ageProfile, onJogar, onFechar
         <section className="q-secao">
           <p className="q-rotulo">{t('Como jogar')}</p>
           <ol className="q-passos">
-            {conteudo.passos.map((p, i) => (
+            {(conteudo.passosNoQuest ?? conteudo.passos).map((p, i) => (
               <li key={i}>
                 <span aria-hidden>{i + 1}</span>
                 <span>{t(p)}</span>

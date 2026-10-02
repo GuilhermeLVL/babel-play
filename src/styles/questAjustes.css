@@ -241,6 +241,10 @@
   outline: 3px solid var(--q-acento);
   outline-offset: 2px;
 }
+/* A opção destacada pelo teclado (setas na busca): é a que o Enter escolhe. */
+.q-opcao[data-active='true'] {
+  border-color: var(--q-acento);
+}
 .q-opcao[aria-selected='true'] {
   background: var(--q-suave);
   border-color: var(--q-acento);

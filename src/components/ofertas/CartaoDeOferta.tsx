@@ -1,8 +1,12 @@
 import type { LucideIcon } from 'lucide-react';
 import { X } from 'lucide-react';
-import { useEffect, useId, useRef } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 
+import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { t } from '../../lib/i18n';
+import { usePedacoDoQuest } from '../conta/quest/usePedacoDoQuest';
+
+const carregarCartaoDoQuest = () => import('./quest/CartaoDeOfertaDoQuest');
 
 /**
  * O CARTÃO DE OFERTA — o banner discreto (não modal) e o aviso de cota.
@@ -46,9 +50,15 @@ export default function CartaoDeOferta({
   const idTitulo = useId();
   const ref = useRef<HTMLElement>(null);
   const alerta = tom === 'alerta';
+  const questNovo = useQuestNovo();
+  /* No Quest o cartão chega sob demanda: o Esc só se liga quando o elemento existe. Se o arquivo não
+     chegar, vale o cartão de sempre: uma oferta que aparece sozinha NUNCA recarrega a página (pode
+     haver uma captura em andamento). */
+  const doQuest = usePedacoDoQuest(carregarCartaoDoQuest, questNovo);
+  const [montado, setMontado] = useState<HTMLElement | null>(null);
 
   useEffect(() => {
-    const el = ref.current;
+    const el = ref.current ?? montado;
     if (!el) return;
     const aoTeclar = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -58,7 +68,29 @@ export default function CartaoDeOferta({
     };
     el.addEventListener('keydown', aoTeclar);
     return () => el.removeEventListener('keydown', aoTeclar);
-  }, [aoDispensar]);
+  }, [aoDispensar, montado, doQuest.falhou]);
+
+  /* QUEST: o mesmo cartão, com as mesmas três saídas, nas medidas do headset. O arquivo desce só no
+     Quest (o host das ofertas mora no pacote inicial; o CSS do headset fica fora dele). */
+  if (questNovo && doQuest.Componente) {
+    const CartaoDeOfertaDoQuest = doQuest.Componente;
+    return (
+      <CartaoDeOfertaDoQuest
+        aoMontar={setMontado}
+        tom={tom}
+        icone={Icone}
+        titulo={titulo}
+        texto={texto}
+        cta={cta}
+        selo={selo}
+        aoAgir={aoAgir}
+        aoDispensar={aoDispensar}
+        aoNaoMostrar={aoNaoMostrar}
+      />
+    );
+  }
+  /* A oferta não bloqueia nada: enquanto o desenho do headset não chega, ela só espera. */
+  if (questNovo && !doQuest.falhou) return null;
 
   return (
     <section

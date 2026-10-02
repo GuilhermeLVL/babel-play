@@ -27,7 +27,8 @@ import { vozDoQuestAtiva } from '../../../../lib/voz/vozDoQuest';
  *  · `teclado`: a pessoa ESCREVE num campo. Ditado e Tênis têm `<input>`, a Frase maluca tem
  *    `<textarea>`: o teclado do sistema sobe quando o campo ganha foco.
  *  · `fala`: o Karaokê dá nota com `SpeechRecognition` (`KaraokeGame.tsx`, `gravar`); o navegador do
- *    headset não o tem, e o jogo diz isso em vez de abrir.
+ *    headset não o tem. Havendo som, o jogo abre SEM nota ("ouça, repita em voz alta e siga"), e o
+ *    cartão avisa; só fica apagado quando não há som nenhum para repetir.
  * `Record` exaustivo: jogo novo não compila até dizer como se joga.
  */
 const ENTRADA: Record<MinigameId, 'apontar' | 'teclado-na-tela' | 'teclado' | 'fala'> = {
@@ -97,8 +98,20 @@ const dependeDeVozSintetizada = (j: JogoParaOQuest): boolean =>
   !!MINIGAMES[j.id].aceitaPalavraFalada && (j.estado.motivo === 'sem-voz' || j.estado.fonte === 'baralho');
 
 /**
- * Cada jogo vira um cartão com etiqueta, e a lista sai ordenada por grupo. Dentro do grupo vale a
- * ordem de entrada, que é a do usuário (`lib/ordemDosJogos`).
+ * A preferência de ordem do usuário (`lib/ordemDosJogos`): os fixados (a estrela) e a ordem que a
+ * pessoa montou em "Favoritos e ordem".
+ */
+export interface OrdemParaOQuest {
+  fixados?: readonly string[];
+  ordem?: readonly string[];
+}
+
+/**
+ * Cada jogo vira um cartão com etiqueta. A ORDEM É DO USUÁRIO: os favoritos que abrem vêm primeiro na
+ * grade inteira (na ordem em que foram fixados), depois os jogos que a pessoa ordenou, na ordem dela.
+ * O grupo ("o que se joga apontando vem na frente") só desempata o que a pessoa nunca ordenou, e por
+ * último vale a ordem de entrada. O que não abre aqui fica sempre no fim: primeiro o que o aparelho
+ * não atende, depois o que espera material.
  */
 export function tilesDoQuest<J extends JogoParaOQuest>(
   jogos: readonly J[],
@@ -107,38 +120,70 @@ export function tilesDoQuest<J extends JogoParaOQuest>(
   notaDoBloqueio: (jogo: J) => string,
   /** A voz de leitura para o idioma do baralho. Omitida: a do aparelho e a do site, sem idioma. */
   voz: VozParaOQuest = {},
+  /** A preferência do usuário. Omitida: só os grupos e a ordem de entrada. */
+  ordem: OrdemParaOQuest = {},
 ): TileDoQuest<J>[] {
   /* HÁ VOZ PARA O BARALHO? A do aparelho lê o que tiver instalado; a do site, os idiomas dela. */
   const haVoz =
     recursos.vozDeLeitura ||
     (voz.idioma ? (voz.haVozPara ?? haVozPara)(voz.idioma) : (voz.haAlgumaVoz ?? vozDoQuestAtiva)());
+  const nomeDoIdioma = voz.idioma ? langLabelNaUI(voz.idioma) : '';
   const classificar = (jogo: J): TileDoQuest<J> => {
     const entrada = ENTRADA[jogo.id];
-    if (entrada === 'fala' && !recursos.reconhecimentoDoNavegador)
-      return {
-        jogo,
-        grupo: 'aparelho',
-        tag: t('Pede nota de voz'),
-        apagado: true,
-        nota: t('O headset não avalia a pronúncia.'),
-      };
-    if (dependeDeVozSintetizada(jogo) && (!haVoz || jogo.estado.motivo === 'sem-voz'))
+    /* O som deste jogo, neste recorte, viria só da voz de leitura, e não há voz para o idioma. */
+    const semSom = dependeDeVozSintetizada(jogo) && (!haVoz || jogo.estado.motivo === 'sem-voz');
+    /* KARAOKÊ sem reconhecimento de fala: sem som nenhum não há o que repetir, e o cartão fica apagado.
+       Com som (o clipe da sessão ou a voz de leitura) ele ABRE, mais abaixo, no modo "ouça, repita em
+       voz alta e siga" (`KaraokeGame.tsx`, `semNotaAqui`), com a etiqueta dizendo que não há nota. */
+    if (entrada === 'fala' && semSom)
       return {
         jogo,
         grupo: 'aparelho',
         tag: t('Pede voz de leitura'),
         apagado: true,
-        nota: voz.idioma
-          ? t(
-              'Sem gravação, quem fala é a voz de leitura, e aqui não há voz em {idioma}. Escolha uma gravação com áudio.',
-              {
-                idioma: langLabelNaUI(voz.idioma),
-              },
-            )
-          : t('Sem gravação, quem fala é a voz de leitura, e este aparelho não tem. Escolha uma gravação com áudio.'),
+        nota: nomeDoIdioma
+          ? t('Sem gravação e sem voz de leitura em {idioma}, não há o que ouvir e repetir.', { idioma: nomeDoIdioma })
+          : t('Sem gravação e sem voz de leitura, não há o que ouvir e repetir.'),
       };
+    /* O material não fecha a rodada. "Sem voz" só chega aqui quando o gate de `estadoDoJogo` não
+       conhece a alternativa escrita dos jogos (no Quest, `Play.tsx` diz a ele que ela existe). */
     if (!jogo.estado.ok)
-      return { jogo, grupo: 'material', tag: t('Falta material'), apagado: true, nota: notaDoBloqueio(jogo) };
+      return jogo.estado.motivo === 'sem-voz'
+        ? {
+            jogo,
+            grupo: 'aparelho',
+            tag: t('Pede voz de leitura'),
+            apagado: true,
+            nota: nomeDoIdioma
+              ? t(
+                  'Sem gravação, quem fala é a voz de leitura, e aqui não há voz em {idioma}. Escolha uma gravação com áudio.',
+                  { idioma: nomeDoIdioma },
+                )
+              : t(
+                  'Sem gravação, quem fala é a voz de leitura, e este aparelho não tem. Escolha uma gravação com áudio.',
+                ),
+          }
+        : { jogo, grupo: 'material', tag: t('Falta material'), apagado: true, nota: notaDoBloqueio(jogo) };
+    if (entrada === 'fala' && !recursos.reconhecimentoDoNavegador)
+      return {
+        jogo,
+        grupo: 'audio',
+        tag: t('Sem nota de voz'),
+        apagado: false,
+        nota: t('O headset não dá nota de pronúncia: ouça, repita em voz alta e siga.'),
+      };
+    /* ESCUTA E DITADO sem voz para o idioma: os dois jogos têm a alternativa escrita (o ramo `!temSom`
+       mostra a tradução no lugar do som), então abrem, e o cartão diz como a pergunta vem. */
+    if (semSom)
+      return {
+        jogo,
+        grupo: entrada === 'teclado' && !recursos.tecladoFisico ? 'teclado' : 'audio',
+        tag: t('Pela tradução'),
+        apagado: false,
+        nota: nomeDoIdioma
+          ? t('Aqui não há voz em {idioma}: a pergunta vem escrita, pela tradução.', { idioma: nomeDoIdioma })
+          : t('Este aparelho não tem voz de leitura: a pergunta vem escrita, pela tradução.'),
+      };
     if (entrada === 'teclado' && !recursos.tecladoFisico)
       return {
         jogo,
@@ -159,8 +204,43 @@ export function tilesDoQuest<J extends JogoParaOQuest>(
       entrada === 'teclado-na-tela' ? t('Teclado na tela') : entrada === 'teclado' ? t('Digitar') : t('Apontar');
     return { jogo, grupo: 'apontar', tag, apagado: false };
   };
-  const tiles = jogos.map(classificar);
-  return ORDEM_DOS_GRUPOS.flatMap((grupo) => tiles.filter((tile) => tile.grupo === grupo));
+  const fixados = ordem.fixados ?? [];
+  const escolhida = ordem.ordem ?? [];
+  /* A posição de cada cartão: quatro critérios, do que mais manda ao que só desempata. */
+  const posicao = (tile: TileDoQuest<J>, entrada: number): [number, number, number, number] => {
+    const grupo = ORDEM_DOS_GRUPOS.indexOf(tile.grupo);
+    if (tile.apagado) return [2, grupo, entrada, 0];
+    const fixado = fixados.indexOf(tile.jogo.id);
+    if (fixado >= 0) return [0, fixado, grupo, entrada];
+    const naOrdem = escolhida.indexOf(tile.jogo.id);
+    return [1, naOrdem >= 0 ? naOrdem : escolhida.length, grupo, entrada];
+  };
+  return jogos
+    .map((jogo, entrada) => {
+      const tile = classificar(jogo);
+      return { tile, posicao: posicao(tile, entrada) };
+    })
+    .sort((a, b) => {
+      for (let i = 0; i < 4; i++) if (a.posicao[i] !== b.posicao[i]) return a.posicao[i] - b.posicao[i];
+      return 0;
+    })
+    .map(({ tile }) => tile);
+}
+
+/**
+ * Os jogos que o lobby do headset deixa ABRIR, neste recorte: é entre eles que a partida rápida
+ * sorteia e que a sugestão do dia escolhe (um jogo apagado no lobby não pode ser o sorteado).
+ */
+export function jogosQueAbremNoQuest<J extends JogoParaOQuest>(
+  jogos: readonly J[],
+  recursos: Pick<RecursosDoAparelho, 'vozDeLeitura' | 'reconhecimentoDoNavegador' | 'tecladoFisico'>,
+  voz: VozParaOQuest = {},
+): Set<MinigameId> {
+  return new Set(
+    tilesDoQuest(jogos, recursos, () => '', voz)
+      .filter((tile) => !tile.apagado)
+      .map((tile) => tile.jogo.id),
+  );
 }
 
 /** No headset a Memória joga com no máximo 6 pares: doze cartas grandes numa grade 4 × 3, sem rolar. */

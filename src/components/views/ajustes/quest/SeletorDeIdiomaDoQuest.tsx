@@ -1,6 +1,7 @@
 import '../../../../styles/questAjustes.css';
 
 import { Check, ChevronDown, Languages, Sparkles } from 'lucide-react';
+import { type KeyboardEvent, useEffect, useRef } from 'react';
 
 import { t } from '../../../../lib/i18n';
 import { LangFlag } from '../../../LangFlag';
@@ -21,7 +22,9 @@ export interface OpcaoDeIdioma {
  * Aqui o gatilho é um alvo de 60 px e a lista abre num diálogo no centro, em colunas de alvos de
  * 60 px; a busca está lá, e o teclado só sobe quando a pessoa a toca.
  *
- * Só apresentação: o estado (aberto, busca, opções filtradas, escolha) é o de `LangPicker`.
+ * Só apresentação: o estado (aberto, busca, opções filtradas, escolha) é o de `LangPicker`, e o
+ * teclado também: na busca, setas, Home e End andam pela lista e Enter escolhe a opção destacada. Cada
+ * opção é um botão de verdade (Tab e Enter funcionam nela).
  */
 export default function SeletorDeIdiomaDoQuest({
   id,
@@ -38,6 +41,8 @@ export default function SeletorDeIdiomaDoQuest({
   busca,
   aoBuscar,
   opcoes,
+  indiceAtivo,
+  aoTeclar,
   aoEscolher,
   className = '',
 }: {
@@ -55,10 +60,21 @@ export default function SeletorDeIdiomaDoQuest({
   busca: string;
   aoBuscar: (texto: string) => void;
   opcoes: readonly OpcaoDeIdioma[];
+  /** A opção destacada pelo teclado (a que o Enter da busca escolhe). */
+  indiceAtivo: number;
+  /** O teclado do `LangPicker`: setas, Home/End, Enter e Esc. */
+  aoTeclar: (e: KeyboardEvent) => void;
   aoEscolher: (opcao: OpcaoDeIdioma) => void;
   className?: string;
 }) {
   const titulo = ariaLabel || t('Escolher o idioma');
+  const idDaLista = `${id || 'lang'}-lista-do-quest`;
+  const listaRef = useRef<HTMLDivElement>(null);
+  // A opção destacada pelo teclado fica à vista.
+  useEffect(() => {
+    if (!aberto) return;
+    listaRef.current?.querySelector<HTMLElement>('[data-active="true"]')?.scrollIntoView?.({ block: 'nearest' });
+  }, [indiceAtivo, aberto]);
   return (
     <>
       <button
@@ -86,6 +102,9 @@ export default function SeletorDeIdiomaDoQuest({
                 type="search"
                 value={busca}
                 onChange={(e) => aoBuscar(e.target.value)}
+                onKeyDown={aoTeclar}
+                aria-controls={idDaLista}
+                aria-activedescendant={opcoes[indiceAtivo] ? `${idDaLista}-${opcoes[indiceAtivo].key}` : undefined}
                 placeholder={t('Ex.: japonês, english, fr')}
                 autoComplete="off"
               />
@@ -95,14 +114,16 @@ export default function SeletorDeIdiomaDoQuest({
                 {t('Nenhum idioma encontrado.')}
               </p>
             ) : (
-              <div className="q-seletor-lista" role="listbox" aria-label={titulo}>
-                {opcoes.map((o) => {
+              <div ref={listaRef} id={idDaLista} className="q-seletor-lista" role="listbox" aria-label={titulo}>
+                {opcoes.map((o, i) => {
                   const escolhida = o.key === chaveEscolhida;
                   return (
                     <button
                       key={o.key}
                       type="button"
                       role="option"
+                      id={`${idDaLista}-${o.key}`}
+                      data-active={i === indiceAtivo}
                       className="q-opcao"
                       aria-selected={escolhida}
                       onClick={(e) => {

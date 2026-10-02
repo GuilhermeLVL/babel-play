@@ -37,14 +37,14 @@ import {
   vigiarQuadros,
 } from '../../lib/dispositivo/diagnostico';
 import { perfilDoDispositivo } from '../../lib/dispositivo/perfil';
-import type { ProvaDeVibracao } from '../../lib/dispositivo/respostaAoApontar';
+import { type ProvaDetalhadaDeVibracao, provarVibracaoEmDetalhe } from '../../lib/dispositivo/respostaAoApontar';
 import { definirTelaNovaDoQuest, telaNovaDoQuest, useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { t } from '../../lib/i18n';
 import { irPara } from '../../lib/irPara';
 import { cabecalhoDoDono, CHAVE_DO_DONO_NO_APARELHO, ENDPOINT_DA_NUVEM_DO_QUEST } from '../../lib/nuvemDoQuest';
 import { CabecalhoDeTela, Tela, TituloDeSecao } from '../ui';
 import AbasDoQuest from './ajustes/quest/AbasDoQuest';
-import { type NivelDaProva, provarComSom, textoDaProva, tocarSomDoApontar } from './ajustes/quest/vibracao';
+import { type NivelDaProva, textoDaProva, tocarSomDoApontar } from './ajustes/quest/vibracao';
 
 /**
  * DIAGNÓSTICO DO APARELHO (`/diagnostico`) — o que ESTE aparelho entrega, medido nele mesmo.
@@ -272,48 +272,66 @@ const nomeDoMotor = (id: string): string =>
   id === 'groq-whisper' ? t('Nuvem') : id === 'whisper-local' ? t('Neste aparelho') : id;
 
 /**
- * O resultado de um teste de vibração: o que `provarVibracao` devolveu (`respostaAoApontar.ts`, o mesmo
- * pulso que o app usa ao apontar) e, por controle, se a página o enxerga com motor.
+ * O resultado de um teste de vibração, como o JSON de "Copiar o resultado" sempre trouxe: o que o
+ * `navigator.vibrate` respondeu (o caminho do celular) e, por controle, se tem motor e se o pedido foi
+ * aceito. Vem de `provarVibracaoEmDetalhe` (`respostaAoApontar.ts`), que tenta os dois caminhos.
  */
-interface ResultadoDaVibracao extends ProvaDeVibracao {
+interface ResultadoDaVibracao extends ProvaDetalhadaDeVibracao {
   /** O que foi testado: um pulso suave, um forte, ou o som que o app toca no lugar do pulso. */
   teste: NivelDaProva | 'som';
-  /** Controles que o navegador expõe à página (Gamepad API) e se têm motor de vibração. */
-  lista: { id: string; temMotor: boolean }[];
 }
 
 /** Os controles que a página enxerga agora. Só lê: não pede pulso nenhum. */
-function controlesAVista(): ResultadoDaVibracao['lista'] {
+function controlesAVista(): ResultadoDaVibracao['controles'] {
   try {
     return [...(navigator.getGamepads?.() ?? [])]
       .filter((c): c is Gamepad => !!c)
       .map((c) => ({
         id: c.id,
         temMotor: !!c.vibrationActuator || !!(c as Gamepad & { hapticActuators?: unknown[] }).hapticActuators?.length,
+        vibrou: false,
       }));
   } catch {
     return [];
   }
 }
 
+const algoVibrou = (v: ProvaDetalhadaDeVibracao): boolean => v.vibrate === true || v.controles.some((c) => c.vibrou);
+
 /** Um teste de vibração (precisa de um toque: o navegador só vibra com ativação da pessoa). */
-function testarVibracao(teste: ResultadoDaVibracao['teste']): ResultadoDaVibracao {
-  const lista = controlesAVista();
+async function testarVibracao(teste: ResultadoDaVibracao['teste']): Promise<ResultadoDaVibracao> {
   if (teste === 'som') {
     tocarSomDoApontar();
-    return { teste, lista, controles: lista.length, comMotor: lista.filter((c) => c.temMotor).length, pediu: false };
+    return { teste, vibrate: null, controles: controlesAVista() };
   }
-  return { teste, lista, ...provarComSom(teste) };
+  const prova = await provarVibracaoEmDetalhe(teste);
+  // Nada aceitou o pedido: toca o som que o app usa no lugar, como ao apontar.
+  if (!algoVibrou(prova)) tocarSomDoApontar();
+  return { teste, ...prova };
 }
 
 const resultadoDaVibracaoEmTexto = (v: ResultadoDaVibracao): string =>
   v.teste === 'som'
     ? t('Tocou o som que o app usa no lugar da vibração. Com os sons do app desligados, ele não toca.')
-    : textoDaProva(v);
+    : v.vibrate === true
+      ? t('O navegador aceitou o pedido de vibração do aparelho.')
+      : textoDaProva({
+          controles: v.controles.length,
+          comMotor: v.controles.filter((c) => c.temMotor).length,
+          pediu: v.controles.some((c) => c.vibrou),
+        });
+
+const vibrateEmTexto = (v: ResultadoDaVibracao): string =>
+  v.vibrate == null ? t('não existe aqui') : simNao(v.vibrate);
 
 const controlesEmTexto = (v: ResultadoDaVibracao): string =>
-  v.lista.length
-    ? v.lista.map((c) => `${c.id.slice(0, 28)}: ${c.temMotor ? t('com motor') : t('sem motor')}`).join(' · ')
+  v.controles.length
+    ? v.controles
+        .map(
+          (c) =>
+            `${c.id.slice(0, 28)}: ${c.vibrou ? t('vibrou') : c.temMotor ? t('tem motor, não vibrou') : t('sem motor')}`,
+        )
+        .join(' · ')
     : t('nenhum');
 
 const ROTULO_DO_VEREDICTO: Record<ReturnType<typeof veredictoDoModelo>, string> = {
@@ -325,10 +343,10 @@ const ROTULO_DO_VEREDICTO: Record<ReturnType<typeof veredictoDoModelo>, string> 
 
 const simNao = (v: boolean) => (v ? t('sim') : t('não'));
 
-/** Uma medida no desenho do headset: o que é, e o valor em destaque (`.q-dados` > `.q-dado`). */
+/** Uma medida no desenho do headset: o que é, e o valor em destaque (`.q-medidas` > `.q-medida`). */
 function Dado({ rotulo, valor, id }: { rotulo: string; valor: React.ReactNode; id?: string }) {
   return (
-    <div className="q-dado" data-testid={id}>
+    <div className="q-medida" data-testid={id}>
       <dt>{rotulo}</dt>
       <dd>{valor}</dd>
     </div>
@@ -372,6 +390,8 @@ export default function Diagnostico() {
   const [andamento, setAndamento] = useState('');
   const [erroDosModelos, setErroDosModelos] = useState('');
   const [copiado, setCopiado] = useState(false);
+  /** No Quest: a área de transferência recusou, e o texto ficou selecionado para copiar à mão. */
+  const [copiaFalhou, setCopiaFalhou] = useState(false);
   const trechoRef = useRef<Float32Array | null>(null);
   const caixaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -430,7 +450,16 @@ export default function Diagnostico() {
   const copiar = async () => {
     try {
       await navigator.clipboard.writeText(relatorio);
+      setCopiaFalhou(false);
     } catch {
+      /* QUEST: o texto mora na aba Resultado, e texto num painel escondido não se seleciona nem se
+         copia. Abre a aba, seleciona (no efeito abaixo, depois de o painel aparecer) e diz a verdade:
+         nada de "Copiado". */
+      if (questNovo) {
+        setAba('resultado');
+        setCopiaFalhou(true);
+        return;
+      }
       // Sem a API da área de transferência: seleciona o texto para a pessoa copiar à mão.
       caixaRef.current?.select();
       document.execCommand?.('copy');
@@ -438,6 +467,12 @@ export default function Diagnostico() {
     setCopiado(true);
     setTimeout(() => setCopiado(false), 2500);
   };
+  useEffect(() => {
+    if (!copiaFalhou || aba !== 'resultado') return;
+    caixaRef.current?.focus();
+    caixaRef.current?.select();
+  }, [copiaFalhou, aba]);
+  const provar = (teste: ResultadoDaVibracao['teste']) => void testarVibracao(teste).then(setVibracao);
 
   const mbDaCpu = [...new Map(MODELOS_DA_CPU.map((m) => [m.modelo, m.mb])).values()].reduce((a, b) => a + b, 0);
   const s = sinais;
@@ -534,7 +569,7 @@ export default function Diagnostico() {
                 ))}
               </div>
             ) : (
-              <dl className="q-dados duas">
+              <dl className="q-medidas duas">
                 <Dado rotulo={t('Navegador')} valor={navegadorEmTexto} />
                 <Dado rotulo={t('Como o app classificou')} valor={s.perfilDoApp.tipo ?? '—'} id="diagnostico-perfil" />
                 <Dado rotulo={t('Núcleos que o navegador vê')} valor={s.nucleos ?? '—'} />
@@ -580,7 +615,7 @@ export default function Diagnostico() {
                       </span>
                     </p>
                   )}
-                  <dl className="q-dados">
+                  <dl className="q-medidas">
                     <Dado rotulo={t('Com tratamento de voz')} valor={nivelEmTexto(microfone.comProcessamento)} />
                     <Dado rotulo={t('Sem tratamento de voz')} valor={nivelEmTexto(microfone.semProcessamento)} />
                   </dl>
@@ -623,7 +658,7 @@ export default function Diagnostico() {
                       </span>
                     </p>
                   )}
-                  <dl className="q-dados">
+                  <dl className="q-medidas">
                     <Dado rotulo={t('O que foi compartilhado')} valor={compartilhamento.superficie ?? '—'} />
                     <Dado rotulo={t('Veio som junto')} valor={simNao(compartilhamento.temAudio)} />
                     <Dado rotulo={t('Nível do som')} valor={nivelEmTexto(compartilhamento.nivelComVideo)} />
@@ -688,7 +723,7 @@ export default function Diagnostico() {
               </p>
             )}
             {(benchmark || nuvem) && (
-              <dl className="q-dados">
+              <dl className="q-medidas">
                 {benchmark && (
                   <Dado
                     rotulo={t('Conta bruta: processador × placa de vídeo')}
@@ -748,7 +783,7 @@ export default function Diagnostico() {
                 </button>
               </div>
             ) : (
-              <dl className="q-dados">
+              <dl className="q-medidas">
                 <Dado
                   rotulo={t('Quando e quanto durou')}
                   valor={`${new Date(ultima.quando).toLocaleString()} · ${Math.round(ultima.duracaoS / 60)} min · ${ultima.count} ${t('falas')}`}
@@ -832,21 +867,24 @@ export default function Diagnostico() {
                   </small>
                 </div>
                 <div className="q-acoes" role="group" aria-label={t('Testar a vibração do controle')}>
-                  <button type="button" className="q-ctl" onClick={() => setVibracao(testarVibracao('suave'))}>
+                  <button type="button" className="q-ctl" onClick={() => provar('suave')}>
                     <Vibrate aria-hidden /> {t('Suave')}
                   </button>
-                  <button type="button" className="q-ctl" onClick={() => setVibracao(testarVibracao('forte'))}>
+                  <button type="button" className="q-ctl" onClick={() => provar('forte')}>
                     <Vibrate aria-hidden /> {t('Forte')}
                   </button>
-                  <button type="button" className="q-ctl" onClick={() => setVibracao(testarVibracao('som'))}>
+                  <button type="button" className="q-ctl" onClick={() => provar('som')}>
                     <Volume2 aria-hidden /> {t('Som no lugar')}
                   </button>
                 </div>
               </div>
               {vibracao && (
                 <div className="q-cartao fundo" data-testid="diagnostico-vibracao">
-                  <dl className="q-dados">
+                  <dl className="q-medidas">
                     <Dado rotulo={t('Resultado')} valor={resultadoDaVibracaoEmTexto(vibracao)} />
+                    {vibracao.teste !== 'som' && (
+                      <Dado rotulo={t('Vibração pelo navegador')} valor={vibrateEmTexto(vibracao)} />
+                    )}
                     <Dado rotulo={t('Controles que a página enxerga')} valor={controlesEmTexto(vibracao)} />
                   </dl>
                   <p className="q-inst-nota">
@@ -895,6 +933,14 @@ export default function Diagnostico() {
                 <p>{t('Copie e cole onde pediram, ou tire um print desta página.')}</p>
               </div>
             </header>
+            {copiaFalhou && (
+              <p className="q-aviso q-inst-alerta" role="alert" data-testid="copia-a-mao">
+                <span>
+                  <TriangleAlert aria-hidden />{' '}
+                  {t('Não deu para copiar sozinho: o texto está selecionado, copie pelo menu do navegador.')}
+                </span>
+              </p>
+            )}
             <textarea
               ref={caixaRef}
               className="q-campo q-diag-json"
@@ -934,7 +980,12 @@ export default function Diagnostico() {
       {/* NO QUEST COM AS TELAS NOVAS DESLIGADAS: é por esta página que elas voltam, e o botão fica lá
           embaixo. Um aviso no topo, com o caminho de volta, e só nesse caso. */}
       {noQuest && !telaNova && (
-        <div className="aviso-info" role="status" data-testid="religar-telas-novas" style={{ marginBottom: 20 }}>
+        <div
+          className="aviso-info religar-telas-novas"
+          role="status"
+          data-testid="religar-telas-novas"
+          style={{ marginBottom: 20 }}
+        >
           <LayoutPanelTop aria-hidden />
           <span style={{ flex: 1 }}>
             {t('As telas novas do headset estão desligadas: você está vendo as de antes.')}
@@ -1214,19 +1265,22 @@ export default function Diagnostico() {
             aria-label={t('Testar a vibração do controle')}
             style={{ gap: 10, flexWrap: 'wrap', marginTop: 8 }}
           >
-            <button type="button" className="btn btn-outline" onClick={() => setVibracao(testarVibracao('suave'))}>
+            <button type="button" className="btn btn-outline" onClick={() => provar('suave')}>
               <Vibrate aria-hidden /> {t('Suave')}
             </button>
-            <button type="button" className="btn btn-outline" onClick={() => setVibracao(testarVibracao('forte'))}>
+            <button type="button" className="btn btn-outline" onClick={() => provar('forte')}>
               <Vibrate aria-hidden /> {t('Forte')}
             </button>
-            <button type="button" className="btn btn-outline" onClick={() => setVibracao(testarVibracao('som'))}>
+            <button type="button" className="btn btn-outline" onClick={() => provar('som')}>
               <Volume2 aria-hidden /> {t('Som no lugar')}
             </button>
           </div>
           {vibracao && (
             <div style={{ marginTop: 12 }} data-testid="diagnostico-vibracao">
               <Linha rotulo={t('Resultado')} valor={resultadoDaVibracaoEmTexto(vibracao)} />
+              {vibracao.teste !== 'som' && (
+                <Linha rotulo={t('Vibração pelo navegador')} valor={vibrateEmTexto(vibracao)} />
+              )}
               <Linha rotulo={t('Controles que a página enxerga')} valor={controlesEmTexto(vibracao)} />
               <p className="mut" style={{ fontSize: 13, marginTop: 8 }}>
                 Você sentiu o controle vibrar? Me diga junto com o resultado: o navegador pode aceitar o pedido sem o

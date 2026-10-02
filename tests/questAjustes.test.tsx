@@ -330,6 +330,30 @@ describe('O seletor de idioma', () => {
     expect(aoEscolher).toHaveBeenCalledWith({ auto: true })
   })
 
+  it('no Quest: o teclado do seletor de sempre vale na busca (setas, Home/End e Enter)', async () => {
+    const aoEscolher = vi.fn()
+    render(<LangPicker value="en-US" ariaLabel="Idioma do conteúdo" onPick={aoEscolher} />)
+    fireEvent.click(await screen.findByRole('button', { name: /^Idioma do conteúdo:/ }))
+    const busca = screen.getByRole('searchbox')
+    const opcoes = screen.getAllByRole('option')
+    const destacada = () => screen.getAllByRole('option').findIndex((o) => o.getAttribute('data-active') === 'true')
+    // Uma opção destacada por vez (a que o Enter escolhe).
+    expect(screen.getAllByRole('option').filter((o) => o.getAttribute('data-active') === 'true')).toHaveLength(1)
+
+    fireEvent.keyDown(busca, { key: 'Home' })
+    expect(destacada()).toBe(0)
+    fireEvent.keyDown(busca, { key: 'ArrowDown' })
+    expect(destacada()).toBe(1)
+    expect(busca.getAttribute('aria-activedescendant')).toBe(opcoes[1].id)
+    fireEvent.keyDown(busca, { key: 'End' })
+    expect(destacada()).toBe(opcoes.length - 1)
+    fireEvent.keyDown(busca, { key: 'ArrowUp' })
+    fireEvent.keyDown(busca, { key: 'Enter' })
+    expect(aoEscolher).toHaveBeenCalledTimes(1)
+    expect(aoEscolher.mock.calls[0][0]).toMatchObject({ auto: false })
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
   it('fora do Quest: a lista de sempre, colada no gatilho', () => {
     quest.ligado = false
     const { container } = render(<LangPicker value="en-US" ariaLabel="Idioma do conteúdo" onPick={() => {}} />)

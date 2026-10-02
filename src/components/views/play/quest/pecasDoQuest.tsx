@@ -53,6 +53,8 @@ export interface OpcaoDoQuest {
   icone?: ReactNode;
   /** Por que a opção não pode ser escolhida. No headset não há hover: o motivo é ESCRITO abaixo. */
   motivoBloqueio?: string;
+  /** O que a contagem quer dizer ("621 prontas, de 1.151 no idioma"): também escrito abaixo. */
+  dica?: string;
 }
 
 /**
@@ -79,7 +81,16 @@ export function OpcoesDoQuest({
   /** Falso onde a contagem zero na própria pílula já é o motivo (os filtros do mapa). */
   motivos?: boolean;
 }) {
-  const travadas = motivos ? opcoes.filter((o) => o.motivoBloqueio && !valor.includes(o.id)) : [];
+  /* As notas do grupo: o motivo de cada opção travada e a dica de cada opção que tem uma. */
+  const notas = motivos
+    ? opcoes
+        .map((o) => ({
+          id: o.id,
+          rotulo: o.rotulo,
+          texto: o.motivoBloqueio && !valor.includes(o.id) ? o.motivoBloqueio : o.dica,
+        }))
+        .filter((n) => !!n.texto)
+    : [];
   return (
     <div className="qj-escolha">
       <div className="q-abas qj-opcoes" role={exclusiva ? 'radiogroup' : 'group'} aria-label={rotulo}>
@@ -101,11 +112,11 @@ export function OpcoesDoQuest({
           );
         })}
       </div>
-      {travadas.length > 0 && (
+      {notas.length > 0 && (
         <ul className="qj-motivos">
-          {travadas.map((o) => (
-            <li key={o.id}>
-              <b>{o.rotulo}:</b> {o.motivoBloqueio}
+          {notas.map((n) => (
+            <li key={n.id}>
+              <b>{n.rotulo}:</b> {n.texto}
             </li>
           ))}
         </ul>

@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2, Sparkles, Volume2, XCircle } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Check, CheckCircle2, Sparkles, Volume2, XCircle } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
 import { AiBadge } from '../../components/Provenance';
@@ -6,6 +6,9 @@ import { buildGateway } from '../../gateway';
 import { getActiveProfile } from '../../gateway/activeProfile';
 import { VocabCard } from '../../types';
 import { consentiuNuvem } from '../consentimentoDeNuvem';
+import { useQuestNovo } from '../dispositivo/telaNovaDoQuest';
+import { t } from '../i18n';
+import { haVozPara } from '../voz/haVoz';
 import { buildCorretorUser, CORRETOR_SYSTEM, respostaEhPlausivel } from './corretorPrompt';
 import { diffWords, similarityPercentage } from './diff';
 
@@ -66,6 +69,11 @@ interface ActiveProductionProps {
   onNext: () => void;
   llmValidationEnabled?: boolean;
   playTTS?: (word: string) => void;
+  /**
+   * Há voz para o idioma desta palavra, neste aparelho? Quem monta o exercício sabe o idioma real do
+   * cartão (com o do baralho como reserva); sem a resposta, vale o idioma gravado no cartão.
+   */
+  temVoz?: boolean;
 }
 
 export function ActiveProductionExercise({
@@ -74,7 +82,11 @@ export function ActiveProductionExercise({
   onNext,
   llmValidationEnabled = false,
   playTTS,
+  temVoz,
 }: ActiveProductionProps) {
+  /** Quest com as telas novas: o mesmo exercício, no desenho do headset (ver o ramo antes do `return`). */
+  const questNovo = useQuestNovo();
+  const podeOuvir = temVoz ?? haVozPara(card.srcLang ?? '');
   const [attempt, setAttempt] = useState('');
   const [isVerified, setIsVerified] = useState(false);
   const [correct, setCorrect] = useState(false);
@@ -251,6 +263,187 @@ export function ActiveProductionExercise({
     );
   };
 
+  /* NO META QUEST: o mesmo exercício dentro do cartão da revisão (`RevisaoDoQuest.tsx`), sem um cartão
+     dentro do outro. O campo não pega o foco sozinho: o teclado do sistema sobe quando a pessoa toca nele. */
+  if (questNovo) {
+    const pedacos = card.sentence ? card.sentence.split(new RegExp(`(${escapeRegExp(card.word)})`, 'gi')) : [];
+    const ehAlvo = (pedaco: string) => pedaco.toLowerCase() === card.word.toLowerCase();
+    return (
+      <div className="qr-producao" data-testid="producao-no-quest">
+        {card.sourceSessionTitle && <span className="q-tag off">{card.sourceSessionTitle}</span>}
+        <span className="q-rotulo">{t('Escreva a palavra que completa a frase')}</span>
+        <p className="qr-frase ap-prompt">
+          {card.sentence ? (
+            pedacos.map((pedaco, i) =>
+              ehAlvo(pedaco) ? (
+                <span key={i} className="qr-vao ap-blank">
+                  ___
+                </span>
+              ) : (
+                <span key={i}>{pedaco}</span>
+              ),
+            )
+          ) : (
+            <span className="qr-vao ap-blank">___</span>
+          )}
+        </p>
+        <p className="q-texto">
+          {t('Definição')}: <b>{card.translation}</b>
+          {card.explanation ? `, ${card.explanation}` : ''}
+        </p>
+
+        {!isVerified ? (
+          <>
+            <label className="q-campo">
+              <span>{t('Sua resposta')}</span>
+              <input
+                type="text"
+                className="ap-input"
+                autoComplete="off"
+                autoCapitalize="off"
+                value={attempt}
+                placeholder={t('Toque para escrever')}
+                onChange={(e) => setAttempt(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleVerifyLocal();
+                }}
+              />
+            </label>
+            <div className="q-acoes">
+              <button
+                type="button"
+                className="q-ctl pri qr-principal"
+                disabled={!attempt.trim()}
+                onClick={handleVerifyLocal}
+              >
+                <Check aria-hidden /> {t('Verificar resposta')}
+              </button>
+              {llmValidationEnabled && (
+                <button
+                  type="button"
+                  className="q-ctl"
+                  disabled={!attempt.trim() || isLoadingLlm}
+                  onClick={() => void handleVerifyLlm()}
+                >
+                  <Sparkles aria-hidden /> {isLoadingLlm ? t('Consultando o modelo…') : t('Verificar com IA')}
+                </button>
+              )}
+            </div>
+            {llmError && (
+              <div className="q-aviso" role="alert">
+                <span>{llmError}</span>
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            <p
+              className={`qr-veredito ${correct ? (partial ? 'parcial ap-result-partial' : 'certo ap-result-correct') : 'errado ap-result-error'}`}
+              role="status"
+            >
+              {correct ? (
+                partial ? (
+                  <AlertTriangle aria-hidden />
+                ) : (
+                  <CheckCircle2 aria-hidden />
+                )
+              ) : (
+                <XCircle aria-hidden />
+              )}
+              <span>
+                {correct
+                  ? partial
+                    ? t('Acerto parcial ({n}% de similaridade)', { n: (similarity * 100).toFixed(0) })
+                    : t('Resposta correta!')
+                  : t('Resposta incorreta')}
+              </span>
+            </p>
+            {correct && partial && (
+              <div className="qr-diff" aria-label={t('Diferenças entre a sua resposta e a palavra')}>
+                {diffWords(card.word, attempt).map((parte, i) => (
+                  <span
+                    key={i}
+                    className={parte.type === 'match' ? 'igual' : parte.type === 'added' ? 'sobra' : 'falta'}
+                  >
+                    {parte.value}
+                  </span>
+                ))}
+              </div>
+            )}
+            {correct && partial && (
+              <p className="q-texto">{t('Riscado: sobrou na sua resposta. Sublinhado: faltou.')}</p>
+            )}
+            <p className="q-texto">
+              {correct ? (
+                partial ? (
+                  <>
+                    {t('Forma correta')}: <b>{card.word}</b>
+                  </>
+                ) : (
+                  <>
+                    {t('Sua resposta bateu com')} <b>{card.word}</b>
+                  </>
+                )
+              ) : (
+                <>
+                  {t('Você escreveu')}: <b>{attempt}</b>. {t('A resposta correta era')}: <b>{card.word}</b>
+                </>
+              )}
+            </p>
+            {/* A procedência do veredito, só depois de existir um. */}
+            <span className="qr-proveniencia ap-validation-label">
+              {validationSource === 'deterministic' ? (
+                <>
+                  <Check aria-hidden /> {t('Verificado localmente')}
+                </>
+              ) : (
+                <>
+                  <Sparkles aria-hidden /> {t('Verificado pela IA (pode errar)')}
+                </>
+              )}
+            </span>
+            {validationSource === 'probabilistic' && (
+              <div className="q-cartao fundo">
+                <span className="q-rotulo">{t('Por que a IA decidiu assim')}</span>
+                <p>{llmReason || t('O modelo não explicou o veredito.')}</p>
+                <AiBadge />
+                <p>{t('Conteúdo gerado por um modelo de linguagem. Pode conter erros, confira antes de decorar.')}</p>
+              </div>
+            )}
+            <div className="q-cartao fundo">
+              <span className="q-rotulo">{t('Frase completa')}</span>
+              <p>
+                {card.sentence ? (
+                  pedacos.map((pedaco, i) =>
+                    ehAlvo(pedaco) ? (
+                      <strong key={i} className="qr-alvo">
+                        {pedaco}
+                      </strong>
+                    ) : (
+                      <span key={i}>{pedaco}</span>
+                    ),
+                  )
+                ) : (
+                  <strong className="qr-alvo">{card.word}</strong>
+                )}
+              </p>
+            </div>
+            <div className="q-acoes">
+              {playTTS && podeOuvir && (
+                <button type="button" className="q-ctl" onClick={() => playTTS(card.sentence || card.word)}>
+                  <Volume2 aria-hidden /> {t('Ouvir a frase completa')}
+                </button>
+              )}
+              <button type="button" className="q-ctl pri qr-principal" onClick={onNext}>
+                {t('Próximo exercício')} <ArrowRight aria-hidden />
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 w-full animate-in fade-in duration-300">
       <div className="card-panel p-8 md:p-12 text-center bg-surface border-2 border-border-subtle min-h-[260px] flex flex-col justify-center items-center relative overflow-hidden shadow-md rounded-2xl">
@@ -420,7 +613,7 @@ export function ActiveProductionExercise({
             <div className="flex gap-3 justify-center">
               {playTTS && (
                 <button
-                  data-precisa="voz"
+                  data-precisa={podeOuvir ? undefined : 'voz'}
                   onClick={() => playTTS(card.sentence || card.word)}
                   className="btn-outline flex items-center gap-1.5 py-2 px-4 rounded-xl text-xs font-bold cursor-pointer"
                 >

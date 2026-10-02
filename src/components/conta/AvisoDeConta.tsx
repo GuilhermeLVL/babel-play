@@ -2,10 +2,14 @@ import type { AppMetrics } from '@core';
 import { CloudOff, X } from 'lucide-react';
 import { useState } from 'react';
 
+import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { edicaoEstatica, urlDoAppCompleto } from '../../lib/edicaoEstatica';
 import { t } from '../../lib/i18n';
 import { estaAnonimo } from '../../lib/identidade';
 import { avisoPendente, marcarVisto } from '../../lib/marcosDeConta';
+import { usePedacoDoQuest } from './quest/usePedacoDoQuest';
+
+const carregarFaixaDoQuest = () => import('./quest/FaixaDeAvisoDoQuest');
 
 /**
  * O AVISO POR MARCO DE USO — pedir a conta quando a pessoa TEM ALGO A PERDER.
@@ -24,6 +28,9 @@ import { avisoPendente, marcarVisto } from '../../lib/marcosDeConta';
  */
 export default function AvisoDeConta({ metrics, onEntrar }: { metrics: AppMetrics | null; onEntrar: () => void }) {
   const [dispensado, setDispensado] = useState(false);
+  const questNovo = useQuestNovo();
+  /* Se o desenho do headset não chegar, vale o cartão de sempre (um aviso nunca recarrega a página). */
+  const doQuest = usePedacoDoQuest(carregarFaixaDoQuest, questNovo);
 
   const aviso = avisoPendente({
     sessoes: metrics?.sessions ?? 0,
@@ -38,6 +45,36 @@ export default function AvisoDeConta({ metrics, onEntrar }: { metrics: AppMetric
     marcarVisto(aviso.marco);
     setDispensado(true);
   };
+
+  /* QUEST: o mesmo aviso e as mesmas saídas, numa faixa do headset (`FaixaDeAvisoDoQuest`). */
+  if (questNovo && doQuest.Componente) {
+    const FaixaDeAvisoDoQuest = doQuest.Componente;
+    return (
+      <FaixaDeAvisoDoQuest
+        icone={CloudOff}
+        titulo={t(aviso.titulo)}
+        texto={t(aviso.texto)}
+        testId="aviso-de-conta"
+        acoes={
+          edicaoEstatica()
+            ? [
+                ...(appCompleto
+                  ? [{ rotulo: t('Criar conta na versão completa'), href: appCompleto, principal: true }]
+                  : []),
+                { rotulo: t('Entendi'), aoClicar: dispensar },
+              ]
+            : [
+                { rotulo: t('Criar conta ou entrar'), aoClicar: onEntrar, principal: true },
+                { rotulo: t('Agora não'), aoClicar: dispensar },
+              ]
+        }
+        aoDispensar={dispensar}
+        rotuloDeDispensar={t('Dispensar aviso')}
+      />
+    );
+  }
+  /* O aviso não bloqueia nada: enquanto o desenho do headset não chega, ele só espera. */
+  if (questNovo && !doQuest.falhou) return null;
 
   return (
     <section

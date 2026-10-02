@@ -34,8 +34,8 @@ O que conferir com o headset na cabeça, e contar no chat:
    nuvem e quantas no headset.
 4. **Jogar**: a grade com as etiquetas ("Apontar", "Pede teclado"), a Memória com 12 cartas sem rolar,
    as respostas de um jogo de escolha.
-5. **Vibração**: em Diagnóstico, "Testar a vibração do controle". Diga o que a página mostrou **e** se
-   o controle se mexeu.
+5. **Vibração**: em Diagnóstico, aba Headset, "Vibração do controle": os botões Suave e Forte. Diga o
+   que a página mostrou **e** se o controle se mexeu em cada um.
 
 A emulação (Chromium com o perfil do Quest, a 1280 × 670 e 500 × 495) confere medidas
 e rolagem, mas não a legibilidade a um metro de distância: essa só o aparelho responde.

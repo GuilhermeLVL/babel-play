@@ -505,7 +505,10 @@ export default function App() {
           <Suspense fallback={null}>
             <TrilhoDoQuest
               activeView={viewDoMenu}
-              onChangeView={navigateTo}
+              /* O mesmo caminho do cabeçalho de sempre: é ele que abre Ajustes na aba pedida (o botão
+                 "Preferências de notificação" do painel Mais caía em Idiomas). */
+              onChangeView={irPeloShell}
+              aoEntrar={authRequired && anonimo ? () => setPedindoLogin(true) : undefined}
               aoBuscar={() => setBuscaAberta(true)}
               ageProfile={ageProfile}
               semConta={anonimo}
@@ -585,6 +588,7 @@ export default function App() {
                 metrics={metrics}
                 missoes={missoes}
                 semConta={anonimo}
+                ageProfile={ageProfile}
               />
             )}
             {activeView === 'hub' && !questNovo && (

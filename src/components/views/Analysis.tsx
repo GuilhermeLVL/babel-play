@@ -37,7 +37,7 @@ import { usePopoverDePalavra } from '../../lib/popoverDePalavra';
 import { copyDoPerfil } from '../../lib/profile';
 import type { PracticeSeed, Sentence } from '../../lib/sentences';
 import { toSentences } from '../../lib/sentences';
-import { speak as ttsSpeak } from '../../lib/tts';
+import { cancelSpeech, speak as ttsSpeak } from '../../lib/tts';
 import type { WordOrigin } from '../../lib/vocabWord';
 import { tokenizarTexto } from '../../lib/vocabWord';
 import type { VocabWord } from '../../types';
@@ -73,19 +73,25 @@ import { criarPalavraDaAnalise, useCacheDeHover } from '../../lib/analise/palavr
 import { formatSeconds, usePlayerDaSessao } from '../../lib/analise/playerDaSessao';
 import { useAudioDaSessao } from '../../lib/audioDaSessao';
 import { consentiuNuvem } from '../../lib/consentimentoDeNuvem';
+import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { getEntitlements } from '../../lib/entitlements';
-import { numero } from '../../lib/i18n';
+import { numero, t } from '../../lib/i18n';
 import type { DerivedProgress } from '../../lib/progress';
 import { perfilProtegido } from '../../lib/protecaoDoMenor';
 import { TranscriptSettings } from '../../lib/transcriptUtils';
+import { aparelhoTemVoz, haVozPara } from '../../lib/voz/haVoz';
 import AvisoDeNuvemSemConsentimento from '../AvisoDeNuvemSemConsentimento';
 import EditablePanel from '../EditablePanel';
 import { toast } from '../Toast';
 import { Abas, CabecalhoDeTela, TituloDeSecao } from '../ui';
+import VocabularyPanel from '../VocabularyPanel';
 import AnalistaDaSessao from './analise/AnalistaDaSessao';
 import ExportarSessao from './analise/ExportarSessao';
 import PlayerInterativo from './analise/PlayerInterativo';
 import type { VersaoDaTraducao } from './analise/PolirSessao';
+import SessaoDoQuest from './analise/quest/SessaoDoQuest';
+import TranscricaoDoQuest, { type AjusteDeExibicao } from './analise/quest/TranscricaoDoQuest';
+import VisaoGeralDoQuest, { type LadrilhoDaSessao } from './analise/quest/VisaoGeralDoQuest';
 import SombraDaFala from './analise/SombraDaFala';
 
 /** Selo de PROCEDÊNCIA da transcrição (honestidade): de onde vieram as falas desta sessão. */
@@ -147,6 +153,8 @@ export default function Analysis({
   progress: DerivedProgress;
   metrics: AppMetrics | null;
 }) {
+  /* META QUEST com as telas novas: o mesmo estado, outro desenho (o ramo fica no fim, antes do `return`). */
+  const questNovo = useQuestNovo();
   /* `selectedWord` foi removido junto com o overlay de pronúncia inalcançável que ele guardava. */
   const [showExportModal, setShowExportModal] = useState<boolean>(false);
   const currentTab = subTab === 'study' ? 'practice' : subTab;
@@ -220,24 +228,31 @@ export default function Analysis({
   const [realUtterances, setRealUtterances] = useState<any[]>([]);
   // Idiomas REAIS da sessão (linha `sessions`): fallback quando a fala não traz o seu.
   const [sessionLangs, setSessionLangs] = useState<{ src: string; tgt: string } | null>(null);
+  /* Em que pé está o pedido da transcrição. Quem lê é a tela do Quest (espera, vazio e erro com
+     "Tentar de novo", que repete o pedido por `tentativaDaTranscricao`); a de sempre não mudou. */
+  const [estadoDaTranscricao, setEstadoDaTranscricao] = useState<'carregando' | 'pronta' | 'erro'>('carregando');
+  const [tentativaDaTranscricao, setTentativaDaTranscricao] = useState(0);
   React.useEffect(() => {
     let alive = true;
+    setEstadoDaTranscricao('carregando');
     fetchSessionTranscript(recording.id)
       .then((r) => {
         if (!alive) return;
         setRealUtterances(r.utterances || []);
         setSessionLangs({ src: r.session?.sourceLang ?? '', tgt: r.session?.targetLang ?? '' });
+        setEstadoDaTranscricao('pronta');
       })
       .catch(() => {
         if (alive) {
           setRealUtterances([]);
           setSessionLangs(null);
+          setEstadoDaTranscricao('erro');
         }
       });
     return () => {
       alive = false;
     };
-  }, [recording.id]);
+  }, [recording.id, tentativaDaTranscricao]);
 
   /* A TRADUÇÃO POLIDA (D5 da Fase D): mora ao lado da original em cada fala (`traducaoPolida`), e a
      tela mostra uma ou outra — a original nunca é trocada. A escolha vale para a sessão em que foi
@@ -337,7 +352,15 @@ export default function Analysis({
    * Saiu inteira para `lib/analise/playerDaSessao.ts`, no mesmo bloco contíguo e na mesma ordem de
    * hooks em que estava aqui — o estado continua morando nesta tela e entra por parâmetro.
    */
+  /* O Quest não tem voz de leitura própria: ali a narração de uma sessão SEM áudio gravado vai pelo
+     motor do app (`speak()`, que leva à voz do site), e "ouvir a partir desta fala" segue narrando,
+     como na tela de sempre. Com voz no aparelho (computador, celular), nada muda. */
+  const narradorDoQuest = React.useMemo(
+    () => (questNovo && !aparelhoTemVoz() ? { falar: ttsSpeak, calar: cancelSpeech, podeFalar: haVozPara } : null),
+    [questNovo],
+  );
   const { seekTo, playFrom } = usePlayerDaSessao({
+    narrador: narradorDoQuest,
     parsedSentences,
     hasRealAudio,
     audioSrc,
@@ -474,10 +497,9 @@ export default function Analysis({
   const microAtual = microPalavra ?? palavrasDoMicro[0] ?? '';
   const ocorrenciasDoMicro = React.useMemo(() => {
     if (!microAtual) return [];
-    const alvo = microAtual.replace(
-      /[.*+?^${}()|[\]\\]/g,
-      '\\  // Dados reais do hover: imagem (Openverse), tradução (gateway) e frase de contexto, com cache',
-    );
+    /* O escape de sempre para pôr um texto dentro de uma expressão regular. O segundo argumento tinha
+       virado um comentário colado por engano: uma palavra com `+`, `.` ou `(` derrubava a tela. */
+    const alvo = microAtual.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const re = new RegExp(`(^|[^\\p{L}])${alvo}(?=$|[^\\p{L}])`, 'iu');
     return parsedSentences.filter((f) => re.test(f.original));
   }, [microAtual, parsedSentences]);
@@ -510,22 +532,23 @@ export default function Analysis({
    * registra, item a item, por que NÃO compartilha código com `lib/captura/palavraDaFala.ts`, que
    * é o equivalente do outro lado (as quatro funções homônimas divergem no comportamento).
    */
-  const { examineWord, handleAddWordToDeck, handlePracticeWord, speakWord, playWordTTS } = criarPalavraDaAnalise({
-    gateway,
-    originOfWord,
-    vocabCards,
-    setVocabCards,
-    addedWords,
-    setAddedWords,
-    setSelectedExamWord,
-    setExamMtNote,
-    selectedExamWordLang: selectedExamWord?.lang,
-    ttsSpeed,
-    ttsLang,
-    recordingId: recording.id,
-    recordingTitle: recording.title,
-    onChangeView,
-  });
+  const { examineWord, handleAddWordToDeck, isWordAdded, handlePracticeWord, speakWord, playWordTTS } =
+    criarPalavraDaAnalise({
+      gateway,
+      originOfWord,
+      vocabCards,
+      setVocabCards,
+      addedWords,
+      setAddedWords,
+      setSelectedExamWord,
+      setExamMtNote,
+      selectedExamWordLang: selectedExamWord?.lang,
+      ttsSpeed,
+      ttsLang,
+      recordingId: recording.id,
+      recordingTitle: recording.title,
+      onChangeView,
+    });
 
   const handleMouseEnter = (e: React.MouseEvent<HTMLSpanElement>, cleanWord: string) => {
     popover.cancelarFechamento();
@@ -592,48 +615,57 @@ export default function Analysis({
       </div>
     </div>
   );
+  /* Os cinco ajustes como DADOS: a tela de sempre os desenha em controles segmentados, e a do Quest,
+     um por linha num diálogo. As opções e o que cada uma grava existem uma vez só. */
+  const ajustesDeExibicao: AjusteDeExibicao[] = [
+    {
+      rotulo: 'Ordem',
+      opcoes: [
+        ['original-first', 'Original primeiro'],
+        ['translated-first', 'Tradução primeiro'],
+      ],
+      atual: tsSettings.displayOrder,
+      aoEscolher: (v) => updateSetting('displayOrder', v as typeof tsSettings.displayOrder),
+    },
+    {
+      rotulo: 'Original',
+      opcoes: [
+        ['mostrar', 'Mostrar'],
+        ['ocultar', 'Ocultar'],
+      ],
+      atual: tsSettings.hideOriginal ? 'ocultar' : 'mostrar',
+      aoEscolher: (v) => updateSetting('hideOriginal', v === 'ocultar'),
+    },
+    {
+      rotulo: 'Tamanho',
+      opcoes: TAMANHOS.map(([v, , r]) => [v, r] as const),
+      atual: tamanhoAtual,
+      aoEscolher: (v) => updateSetting('fontSize', v as typeof tsSettings.fontSize),
+    },
+    {
+      rotulo: 'Fonte',
+      opcoes: [
+        ['sans', 'Sans'],
+        ['serif', 'Serif'],
+        ['mono', 'Mono'],
+      ],
+      atual: tsSettings.fontFamily,
+      aoEscolher: (v) => updateSetting('fontFamily', v as typeof tsSettings.fontFamily),
+    },
+    {
+      rotulo: 'Tema do texto',
+      opcoes: TEMAS.map(([v, , r]) => [v, r] as const),
+      atual: tsSettings.textColor,
+      aoEscolher: (v) => updateSetting('textColor', v as typeof tsSettings.textColor),
+    },
+  ];
   const painelDeExibicao = (
     <div className="exib entra">
-      {segmento(
-        'Ordem',
-        [
-          ['original-first', 'Original primeiro'],
-          ['translated-first', 'Tradução primeiro'],
-        ],
-        tsSettings.displayOrder,
-        (v) => updateSetting('displayOrder', v as typeof tsSettings.displayOrder),
-      )}
-      {segmento(
-        'Original',
-        [
-          ['mostrar', 'Mostrar'],
-          ['ocultar', 'Ocultar'],
-        ],
-        tsSettings.hideOriginal ? 'ocultar' : 'mostrar',
-        (v) => updateSetting('hideOriginal', v === 'ocultar'),
-      )}
-      {segmento(
-        'Tamanho',
-        TAMANHOS.map(([v, , r]) => [v, r]),
-        tamanhoAtual,
-        (v) => updateSetting('fontSize', v as typeof tsSettings.fontSize),
-      )}
-      {segmento(
-        'Fonte',
-        [
-          ['sans', 'Sans'],
-          ['serif', 'Serif'],
-          ['mono', 'Mono'],
-        ],
-        tsSettings.fontFamily,
-        (v) => updateSetting('fontFamily', v as typeof tsSettings.fontFamily),
-      )}
-      {segmento(
-        'Tema do texto',
-        TEMAS.map(([v, , r]) => [v, r]),
-        tsSettings.textColor,
-        (v) => updateSetting('textColor', v as typeof tsSettings.textColor),
-      )}
+      {ajustesDeExibicao.map((a) => (
+        <React.Fragment key={a.rotulo}>
+          {segmento(a.rotulo, a.opcoes as [string, string][], a.atual, a.aoEscolher)}
+        </React.Fragment>
+      ))}
     </div>
   );
   /** As palavras que ESTA gravação pôs no caderno (o deck inteiro vem do backend). */
@@ -676,6 +708,75 @@ export default function Analysis({
     },
   ];
 
+  /* Os ladrilhos do Painel (Visão geral) como DADOS: a tela de sempre e a do Quest mostram os mesmos. */
+  const ladrilhosDoPainel = [
+    ['words_read', 'Palavras', stats.wordCount > 0 ? numero(stats.wordCount) : '—', 'na transcrição inteira', ''],
+    [
+      'study_time',
+      'Minutos de leitura',
+      stats.wordCount > 0 ? numero(Math.max(1, Math.round(stats.wordCount / 250))) : '—',
+      'no ritmo médio de leitura',
+      '',
+    ],
+    [
+      'flesch',
+      'Facilidade de leitura',
+      stats.readingEase != null ? numero(Math.round(stats.readingEase)) : '—',
+      stats.readingEase != null
+        ? `de 100: texto ${stats.readingEase >= 70 ? 'fácil' : stats.readingEase >= 50 ? 'médio' : 'difícil'}`
+        : stats.syllableCount == null
+          ? `sem régua de legibilidade para ${langLabel(stats.idioma)}`
+          : 'precisa de mais texto',
+      'acc',
+    ],
+    [
+      'density',
+      'Densidade lexical',
+      stats.lexicalDensityPct != null ? `${Math.round(stats.lexicalDensityPct)}%` : '—',
+      stats.lexicalDensityPct != null
+        ? 'palavras de conteúdo'
+        : `sem lista de stopwords para ${langLabel(stats.idioma)}`,
+      '',
+    ],
+    ['jargons', 'Palavras únicas', stats.wordCount > 0 ? numero(stats.uniqueWords) : '—', 'sem repetir', 'good'],
+    ...(recording.type === 'document'
+      ? []
+      : [
+          [
+            'ppm',
+            'Palavras por minuto',
+            realWpm != null ? String(realWpm) : '—',
+            realWpm != null ? 'ritmo da fala' : 'requer timing das falas',
+            'acc',
+          ],
+          [
+            'fillers',
+            'Vícios de linguagem',
+            realVicios.palavras > 0 ? String(realVicios.total) : '—',
+            realVicios.palavras > 0 ? '“tipo”, “né”, “uh”' : 'requer fala em português ou inglês',
+            '',
+          ],
+        ]),
+    [
+      'lexical_richness',
+      'Riqueza (TTR)',
+      stats.wordCount > 0 ? `${Math.round(stats.typeTokenRatio * 100)}%` : '—',
+      'variedade do vocabulário',
+      '',
+    ],
+    ...(recording.type === 'document'
+      ? []
+      : [
+          [
+            'long_pauses',
+            'Pausas longas',
+            realLongPauses != null ? String(realLongPauses) : '—',
+            realLongPauses != null ? 'acima de 3 segundos' : 'requer timing das falas',
+            'warn',
+          ],
+        ]),
+  ] as [string, string, string, string, string][];
+
   /* `/revisar` é uma tela própria no protótipo (`T.revisao`): cabeçalho "Revisão · 1 de N" e o
      cartão, sem o cabeçalho e as abas da sessão por cima (eram dois h1 na mesma página). A `key`
      pelo id da sessão remonta a fila ao trocar de sessão — ver o comentário na aba Jogos. */
@@ -690,6 +791,289 @@ export default function Analysis({
         onSeedConsumed={onSeedConsumed}
         ageProfile={ageProfile}
       />
+    );
+  }
+
+  /* O QUE AS DUAS TELAS (a de sempre e a do Quest) MONTAM IGUAL: definido uma vez, usado nos dois ramos. */
+  const trocarDeSessao = (id: string) => {
+    const alvo = allRecordings.find((r) => r.id === id);
+    onChangeView('analysis', { id });
+    if (alvo) toast.info(`Sessão trocada: ${alvo.title}`);
+  };
+  const propsDoPlayer = {
+    recording,
+    ageProfile,
+    parsedSentences,
+    totalDurationSeconds,
+    hasRealAudio,
+    audioSrc,
+    audioRef,
+    audioDuration,
+    setAudioDuration,
+    peaks,
+    isPlaying,
+    setIsPlaying,
+    currentTime,
+    setCurrentTime,
+    playbackSpeed,
+    setPlaybackSpeed,
+    autoSlowEnabled,
+    setAutoSlowEnabled,
+    loopMode,
+    setLoopMode,
+    activeSentenceIndex,
+    seekTo,
+  };
+  const polirASessao = (
+    <Suspense fallback={null}>
+      <PolirSessao
+        key={recording.id}
+        sessionId={recording.id}
+        utterances={realUtterances as UtteranceRow[]}
+        disponivel={getEntitlements().traducaoNuance}
+        versao={versaoDaTraducao}
+        aoTrocarVersao={(v) => setVersaoEscolhida({ id: recording.id, v })}
+        aoPolir={aplicarPolidas}
+        aoConhecer={perfilProtegido() ? undefined : () => onChangeView('planos')}
+      />
+    </Suspense>
+  );
+  const lobbyDosJogos = (
+    <PlayLobby
+      embutido
+      onChangeView={onChangeView}
+      ageProfile={ageProfile}
+      progress={progress}
+      metrics={metrics}
+      recording={recording}
+      seed={practiceSeed}
+      aoContarProntos={contarProntos}
+    />
+  );
+  const dialogoDeExportar = showExportModal && (
+    <ExportarSessao
+      recording={recording}
+      vocabCards={palavrasDaSessao}
+      stats={stats}
+      ritmo={{
+        ppm: realWpm,
+        pausasLongas: realLongPauses,
+        vicios: realVicios.palavras > 0 ? realVicios.total : null,
+      }}
+      aoFechar={() => setShowExportModal(false)}
+    />
+  );
+
+  /* ── META QUEST (as telas novas, `docs/design/quest-desenho.md`) ────────────────────────────────
+     O mesmo estado e as mesmas ações, no desenho do headset: cabeçalho e abas em `SessaoDoQuest`, a
+     transcrição como lista de falas com "Ouvir" e "Opções" (`TranscricaoDoQuest`), os números em
+     `VisaoGeralDoQuest`. Nada abre por hover nem por duplo clique: a palavra abre a folha dela no
+     centro (o `VocabularyPanel` em folha, com a imagem e o contexto que o cartão de hover mostrava),
+     e corrigir uma fala é o "Editar" das opções dela. */
+  if (questNovo) {
+    const documento = recording.type === 'document';
+    /* OUVIR UMA FALA. Onde há player, "Ouvir" SEGUE dali, como o clique na fala da tela de sempre: o
+       áudio gravado toca a partir dela ou, na sessão sem áudio, a narração continua dela em diante.
+       Documento (sem player) e áudio gravado que não veio leem só aquela fala, pela voz do idioma
+       dela; sem voz para o idioma, o "Ouvir" não aparece e as opções da fala dizem o motivo. */
+    type Fala = (typeof parsedSentences)[number];
+    const audioGravado = hasRealAudio && !audioDaSessao.erro;
+    const ouvirSegue = audioGravado || (!documento && !hasRealAudio);
+    const haVozParaAFala = (f: Fala) => haVozPara(f.lang || ttsLang);
+    const podeOuvirFala = (f: Fala) => audioGravado || haVozParaAFala(f);
+    const ouvirFala = (f: Fala) => {
+      if (ouvirSegue) playFrom(f.startTime);
+      else ttsSpeak(f.original, { lang: f.lang || ttsLang, rate: 0.9 });
+    };
+    /* A PALAVRA: `popover.setPalavra` liga a busca da imagem e do contexto (o mesmo cache do cartão de
+       hover), e `examineWord` monta a tradução. As duas coisas aparecem juntas, na folha. */
+    const abrirPalavra = (palavra: string, frase: string) => {
+      popover.setPalavra(palavra);
+      void examineWord(palavra, frase);
+    };
+    const fecharPalavra = () => {
+      setSelectedExamWord(null);
+      setExamMtNote(null);
+      popover.setPalavra(null);
+    };
+    const doCartao = hoverData && selectedExamWord && hoverData.word === selectedExamWord.word ? hoverData : null;
+    const idiomaDaPalavra = selectedExamWord
+      ? selectedExamWord.lang ||
+        doCartao?.lang ||
+        originOfWord(selectedExamWord.word, selectedExamWord.example).declaredLang ||
+        ttsLang
+      : '';
+
+    return (
+      <SessaoDoQuest
+        gravacao={recording}
+        gravacoes={allRecordings}
+        abas={abasDaSessao}
+        abaAtiva={currentTab}
+        aoTrocarAba={(id) => onSubTabChange(id)}
+        aoVoltar={() => onChangeView('library')}
+        aoTrocarSessao={trocarDeSessao}
+        aoExportar={() => setShowExportModal(true)}
+        aviso={<AvisoDeNuvemSemConsentimento />}
+      >
+        {currentTab === 'transcript' && (
+          <TranscricaoDoQuest
+            falas={parsedSentences}
+            estado={estadoDaTranscricao}
+            aoTentarDeNovo={() => setTentativaDaTranscricao((n) => n + 1)}
+            documento={documento}
+            indiceAtivo={activeSentenceIndex}
+            classes={classesDoTranscrito}
+            traducaoPrimeiro={tsSettings.displayOrder === 'translated-first'}
+            ocultarOriginal={tsSettings.hideOriginal}
+            traducaoDe={(f) => {
+              const polida = versaoDaTraducao === 'polida' && f.id ? polidaDaFala.get(f.id) : undefined;
+              return { texto: polida ?? f.translation, polida: !!polida };
+            }}
+            procedencia={procedencia}
+            polir={polirASessao}
+            player={
+              documento ? null : (
+                <PlayerInterativo
+                  {...propsDoPlayer}
+                  carregandoAudio={audioDaSessao.carregando}
+                  erroDoAudio={audioDaSessao.erro}
+                  haVozParaNarrar={parsedSentences.length === 0 || parsedSentences.some(haVozParaAFala)}
+                />
+              )
+            }
+            palavras={palavrasDaSessao}
+            estaNoDeck={(clean) => vocabCards.some((c) => c.word.toLowerCase() === clean && c.inDeck)}
+            podeOuvir={podeOuvirFala}
+            aoOuvir={ouvirFala}
+            ouvirSegue={ouvirSegue}
+            aoAbrirPalavra={abrirPalavra}
+            edicao={{
+              id: editingUttId,
+              origem: editSource,
+              destino: editTarget,
+              aoMudarOrigem: setEditSource,
+              aoMudarDestino: setEditTarget,
+              salvando: editSaving,
+              erro: editError,
+              iniciar: startEditUtt,
+              cancelar: cancelEditUtt,
+              salvar: (id) => void saveEditUtt(id),
+            }}
+            sombraDe={shadowingSentenceIndex}
+            aoAlternarSombra={setShadowingSentenceIndex}
+            idiomaDe={langOfSentence}
+            ajustes={ajustesDeExibicao}
+          />
+        )}
+
+        {currentTab === 'reading' && <Reading recording={recording} onChangeView={onChangeView} />}
+
+        {currentTab === 'practice' && (
+          <div className="qs-jogos">
+            {/* "Revisar as palavras desta sessão": só quando esta gravação já pôs palavras no caderno. */}
+            {palavrasDaSessao.length > 0 && (
+              <section className="q-aviso qs-revisar" aria-label={t('Revisar as palavras desta sessão')}>
+                <span>
+                  <b>
+                    {t('Revisar as palavras desta sessão')} <span className="qs-n">{palavrasDaSessao.length}</span>
+                  </b>
+                  <small>
+                    {palavrasDaSessao
+                      .slice(0, 6)
+                      .map((c) => c.word)
+                      .join(', ')}
+                    {palavrasDaSessao.length > 6 ? '…' : ''} · {t('rodada curta')}
+                  </small>
+                </span>
+                <button type="button" className="q-ctl" onClick={() => onSubTabChange('study')}>
+                  <Target aria-hidden /> {t('Revisar agora')}
+                </button>
+              </section>
+            )}
+            <Suspense
+              fallback={
+                <div className="q-grade g3" aria-busy="true" aria-label={t('Carregando os jogos')}>
+                  <div className="q-esqueleto qs-esqueleto" />
+                  <div className="q-esqueleto qs-esqueleto" />
+                  <div className="q-esqueleto qs-esqueleto" />
+                </div>
+              }
+            >
+              {lobbyDosJogos}
+            </Suspense>
+          </div>
+        )}
+
+        {currentTab === 'overview' && (
+          <VisaoGeralDoQuest
+            documento={documento}
+            secao={overviewSubTab}
+            aoTrocarSecao={setOverviewSubTab}
+            ladrilhos={ladrilhosDoPainel.map(
+              ([id, rotulo, valor, dica, tom]): LadrilhoDaSessao => ({ id, rotulo, valor, dica, tom }),
+            )}
+            palavrasChave={topKeywords}
+            aoEscolherPalavraChave={(kw) => {
+              setMicroPalavra(kw.toLowerCase());
+              setOverviewSubTab('lexical');
+            }}
+            topologia={{
+              unicas: stats.wordCount > 0 ? numero(stats.uniqueWords) : '—',
+              noCaderno: numero(palavrasDaSessao.length),
+              frase:
+                stats.wordCount > 0
+                  ? t(
+                      '{n} das {total} palavras únicas já estão no seu vocabulário. Toque numa palavra do texto para guardar outras.',
+                      { n: numero(palavrasDaSessao.length), total: numero(stats.uniqueWords) },
+                    )
+                  : t('Sem transcrição ainda: as contas aparecem quando houver texto.'),
+            }}
+            micro={{
+              palavras: palavrasDoMicro,
+              atual: microAtual,
+              aoEscolher: setMicroPalavra,
+              ocorrencias: ocorrenciasDoMicro,
+              podeOuvir: podeOuvirFala,
+              aoOuvir: (f) => {
+                // Onde há player, o trecho toca na aba da transcrição (é lá que ele está).
+                if (ouvirSegue) onSubTabChange('transcript');
+                ouvirFala(f);
+              },
+            }}
+            fluencia={{
+              silencio: realSilencio != null ? `${Math.round(realSilencio.ms / 1000)} s` : '—',
+              vicios: realVicios.palavras > 0 ? numero(realVicios.total) : '—',
+              pausas: realLongPauses != null ? numero(realLongPauses) : '—',
+              ritmo: ritmoPorFalante,
+            }}
+          />
+        )}
+
+        {selectedExamWord && (
+          <VocabularyPanel
+            emFolha
+            viewKey="analysis"
+            word={selectedExamWord}
+            mtNote={examMtNote}
+            onClose={fecharPalavra}
+            onSpeak={(w) => speakWord(w, idiomaDaPalavra || undefined)}
+            onAddToDeck={(w) => void handleAddWordToDeck(w)}
+            isAdded={isWordAdded(selectedExamWord)}
+            ttsSpeed={ttsSpeed}
+            setTtsSpeed={setTtsSpeed}
+            velocidades={[0.5, 1]}
+            onPractice={(w, exercicio) => void handlePracticeWord(w, exercicio)}
+            imagem={{
+              url: doCartao?.image ? doCartao.image.url || doCartao.image.thumbnail || null : null,
+              carregando: !doCartao || doCartao.loading,
+            }}
+            podeOuvir={!!idiomaDaPalavra && haVozPara(idiomaDaPalavra)}
+            nivel={vocabCards.find((c) => c.word.toLowerCase() === selectedExamWord.word.toLowerCase())?.cefrLevel}
+          />
+        )}
+        {dialogoDeExportar}
+      </SessaoDoQuest>
     );
   }
 
@@ -712,11 +1096,7 @@ export default function Analysis({
                 className="campo"
                 style={{ width: 'auto', minWidth: 200 }}
                 value={recording.id}
-                onChange={(e) => {
-                  const alvo = allRecordings.find((r) => r.id === e.target.value);
-                  onChangeView('analysis', { id: e.target.value });
-                  if (alvo) toast.info(`Sessão trocada: ${alvo.title}`);
-                }}
+                onChange={(e) => trocarDeSessao(e.target.value)}
               >
                 {allRecordings.map((r) => (
                   <option key={r.id} value={r.id}>
@@ -782,87 +1162,7 @@ export default function Analysis({
                 {overviewSubTab === 'dashboard' && (
                   <>
                     <div className="ladrilhos">
-                      {(
-                        [
-                          [
-                            'words_read',
-                            'Palavras',
-                            stats.wordCount > 0 ? numero(stats.wordCount) : '—',
-                            'na transcrição inteira',
-                            '',
-                          ],
-                          [
-                            'study_time',
-                            'Minutos de leitura',
-                            stats.wordCount > 0 ? numero(Math.max(1, Math.round(stats.wordCount / 250))) : '—',
-                            'no ritmo médio de leitura',
-                            '',
-                          ],
-                          [
-                            'flesch',
-                            'Facilidade de leitura',
-                            stats.readingEase != null ? numero(Math.round(stats.readingEase)) : '—',
-                            stats.readingEase != null
-                              ? `de 100: texto ${stats.readingEase >= 70 ? 'fácil' : stats.readingEase >= 50 ? 'médio' : 'difícil'}`
-                              : stats.syllableCount == null
-                                ? `sem régua de legibilidade para ${langLabel(stats.idioma)}`
-                                : 'precisa de mais texto',
-                            'acc',
-                          ],
-                          [
-                            'density',
-                            'Densidade lexical',
-                            stats.lexicalDensityPct != null ? `${Math.round(stats.lexicalDensityPct)}%` : '—',
-                            stats.lexicalDensityPct != null
-                              ? 'palavras de conteúdo'
-                              : `sem lista de stopwords para ${langLabel(stats.idioma)}`,
-                            '',
-                          ],
-                          [
-                            'jargons',
-                            'Palavras únicas',
-                            stats.wordCount > 0 ? numero(stats.uniqueWords) : '—',
-                            'sem repetir',
-                            'good',
-                          ],
-                          ...(recording.type === 'document'
-                            ? []
-                            : [
-                                [
-                                  'ppm',
-                                  'Palavras por minuto',
-                                  realWpm != null ? String(realWpm) : '—',
-                                  realWpm != null ? 'ritmo da fala' : 'requer timing das falas',
-                                  'acc',
-                                ],
-                                [
-                                  'fillers',
-                                  'Vícios de linguagem',
-                                  realVicios.palavras > 0 ? String(realVicios.total) : '—',
-                                  realVicios.palavras > 0 ? '“tipo”, “né”, “uh”' : 'requer fala em português ou inglês',
-                                  '',
-                                ],
-                              ]),
-                          [
-                            'lexical_richness',
-                            'Riqueza (TTR)',
-                            stats.wordCount > 0 ? `${Math.round(stats.typeTokenRatio * 100)}%` : '—',
-                            'variedade do vocabulário',
-                            '',
-                          ],
-                          ...(recording.type === 'document'
-                            ? []
-                            : [
-                                [
-                                  'long_pauses',
-                                  'Pausas longas',
-                                  realLongPauses != null ? String(realLongPauses) : '—',
-                                  realLongPauses != null ? 'acima de 3 segundos' : 'requer timing das falas',
-                                  'warn',
-                                ],
-                              ]),
-                        ] as [string, string, string, string, string][]
-                      ).map(([id, rotulo, valor, dica, tom]) => (
+                      {ladrilhosDoPainel.map(([id, rotulo, valor, dica, tom]) => (
                         <div key={id} className="cartao ladrilho" title={dica}>
                           <span className="label-mono">{rotulo}</span>
                           <span className={`v ${tom}`}>{valor}</span>
@@ -1030,28 +1330,7 @@ export default function Analysis({
                 com a transcrição (cada fala com ouvir, praticar a pronúncia e corrigir) e, ao lado,
                 as palavras desta sessão — ou o Analista, quando uma palavra está aberta. */}
             <PlayerInterativo
-              recording={recording}
-              ageProfile={ageProfile}
-              parsedSentences={parsedSentences}
-              totalDurationSeconds={totalDurationSeconds}
-              hasRealAudio={hasRealAudio}
-              audioSrc={audioSrc}
-              audioRef={audioRef}
-              audioDuration={audioDuration}
-              setAudioDuration={setAudioDuration}
-              peaks={peaks}
-              isPlaying={isPlaying}
-              setIsPlaying={setIsPlaying}
-              currentTime={currentTime}
-              setCurrentTime={setCurrentTime}
-              playbackSpeed={playbackSpeed}
-              setPlaybackSpeed={setPlaybackSpeed}
-              autoSlowEnabled={autoSlowEnabled}
-              setAutoSlowEnabled={setAutoSlowEnabled}
-              loopMode={loopMode}
-              setLoopMode={setLoopMode}
-              activeSentenceIndex={activeSentenceIndex}
-              seekTo={seekTo}
+              {...propsDoPlayer}
               mostrarExib={showSettings}
               aoAlternarExib={() => setShowSettings(!showSettings)}
               exib={painelDeExibicao}
@@ -1095,18 +1374,7 @@ export default function Analysis({
                       </span>
                     )}
                   </div>
-                  <Suspense fallback={null}>
-                    <PolirSessao
-                      key={recording.id}
-                      sessionId={recording.id}
-                      utterances={realUtterances as UtteranceRow[]}
-                      disponivel={getEntitlements().traducaoNuance}
-                      versao={versaoDaTraducao}
-                      aoTrocarVersao={(v) => setVersaoEscolhida({ id: recording.id, v })}
-                      aoPolir={aplicarPolidas}
-                      aoConhecer={perfilProtegido() ? undefined : () => onChangeView('planos')}
-                    />
-                  </Suspense>
+                  {polirASessao}
                   {parsedSentences.map((sentence, sIdx) => {
                     const propsDosTokens = {
                       tokens: tokenizarTexto(sentence.original),
@@ -1403,16 +1671,7 @@ export default function Analysis({
                     </div>
                   }
                 >
-                  <PlayLobby
-                    embutido
-                    onChangeView={onChangeView}
-                    ageProfile={ageProfile}
-                    progress={progress}
-                    metrics={metrics}
-                    recording={recording}
-                    seed={practiceSeed}
-                    aoContarProntos={contarProntos}
-                  />
+                  {lobbyDosJogos}
                 </Suspense>
               </>
             }
@@ -1514,19 +1773,7 @@ export default function Analysis({
       )}
 
       {/* Exportar dados da sessão: o diálogo do protótipo (`dialogoExportarSessao`). */}
-      {showExportModal && (
-        <ExportarSessao
-          recording={recording}
-          vocabCards={palavrasDaSessao}
-          stats={stats}
-          ritmo={{
-            ppm: realWpm,
-            pausasLongas: realLongPauses,
-            vicios: realVicios.palavras > 0 ? realVicios.total : null,
-          }}
-          aoFechar={() => setShowExportModal(false)}
-        />
-      )}
+      {dialogoDeExportar}
     </div>
   );
 }

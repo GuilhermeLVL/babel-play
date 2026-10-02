@@ -2,7 +2,12 @@ import { CakeSlice, CircleAlert, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
 
 import { declararNascimento, ehFalha } from '../../data/rotas/idade';
+import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
+import { t } from '../../lib/i18n';
 import { IconeEmBloco } from '../ui';
+import { usePedacoDoQuest } from './quest/usePedacoDoQuest';
+
+const carregarIdadeDoQuest = () => import('./quest/IdadeDoQuest');
 
 /**
  * A DATA DE NASCIMENTO — perguntada uma vez, no primeiro acesso com conta (e na próxima entrada das
@@ -18,6 +23,10 @@ export default function PerguntaDeIdade({ aoConcluir }: { aoConcluir: () => void
   const [data, setData] = useState('');
   const [erro, setErro] = useState('');
   const [ocupado, setOcupado] = useState(false);
+  const questNovo = useQuestNovo();
+  /* Se o desenho do headset não chegar, vale o de sempre: esta tela bloqueia o app, e não pode
+     depender de um arquivo a mais nem recarregar a página. */
+  const doQuest = usePedacoDoQuest(carregarIdadeDoQuest, questNovo);
   const hoje = new Date().toISOString().slice(0, 10);
 
   const enviar = async (e: React.FormEvent) => {
@@ -43,6 +52,32 @@ export default function PerguntaDeIdade({ aoConcluir }: { aoConcluir: () => void
     }
     aoConcluir();
   };
+
+  /* QUEST: a mesma pergunta nas medidas do headset. O arquivo desce só no Quest (esta tela mora no
+     pacote inicial do app; o CSS do headset fica fora dele). */
+  if (questNovo && doQuest.Componente) {
+    const IdadeDoQuest = doQuest.Componente;
+    return (
+      <IdadeDoQuest
+        data={data}
+        aoMudarData={setData}
+        hoje={hoje}
+        erro={erro}
+        ocupado={ocupado}
+        aoEnviar={(e) => void enviar(e)}
+      />
+    );
+  }
+  /* Enquanto o arquivo não chega, uma espera visível (a mesma do App); se não chegar, a tela de sempre. */
+  if (questNovo && !doQuest.falhou)
+    return (
+      <div
+        className="flex h-tela w-full items-center justify-center bg-canvas text-base font-bold text-ink"
+        role="status"
+      >
+        {t('Carregando…')}
+      </div>
+    );
 
   return (
     <div

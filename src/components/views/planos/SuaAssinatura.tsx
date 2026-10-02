@@ -4,9 +4,11 @@ import {
   CirclePause,
   CreditCard,
   FileText,
+  LoaderCircle,
   type LucideIcon,
   Receipt,
   RotateCcw,
+  TriangleAlert,
   X,
 } from 'lucide-react';
 
@@ -23,6 +25,7 @@ import {
   ROTULO_DO_METODO,
   rotuloDaForma,
 } from '../../../lib/assinatura';
+import { useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
 import { t } from '../../../lib/i18n';
 import { IconeEmBloco, TituloDeSecao } from '../../ui';
 import { PLANO_ICO, PLANO_NOME } from './dados';
@@ -51,6 +54,14 @@ const STATUS: Record<Fatura['status'], [string, string]> = {
   estornada: ['rare', 'Estornada'],
 };
 
+/** O tom da etiqueta de cada estado no headset (`.q-tag` em `questConta.css`). */
+const TOM_DO_QUEST: Record<Fatura['status'], string> = {
+  paga: 'qc-bom',
+  falhou: 'qc-atencao',
+  pendente: 'off',
+  estornada: 'off',
+};
+
 /** O meio da última fatura paga — é o que a pessoa usou. Sem fatura paga, os meios aceitos. */
 export function metodoAtual(faturas: Fatura[] | null): string {
   const paga = faturas?.find((f) => f.status === 'paga' && f.metodo);
@@ -74,6 +85,7 @@ export default function SuaAssinatura({
   aoTentarDeNovo: (f: Fatura) => void;
   aoReativar: () => void;
 }) {
+  const questNovo = useQuestNovo();
   const e = conta.estado;
   const plano = conta.plano ?? 'premium';
   const p = PLANO_NOME[plano];
@@ -132,6 +144,154 @@ export default function SuaAssinatura({
       e !== 'cancelada' && forma !== 'anual_12x' && forma !== 'concedido',
     ],
   ];
+
+  /* QUEST: o resumo, as ações como linhas-alvo, as faturas uma por linha (a tabela de seis colunas não
+     cabe na janela estreita) e a zona de cancelar separada no fim. Os mesmos diálogos e a mesma rota. */
+  if (questNovo) {
+    const IconeDoPlano = PLANO_ICO[plano];
+    return (
+      <>
+        {(e === 'falhou' || e === 'cancelada') && (
+          <FaixaDaConta
+            conta={conta}
+            naAssinatura
+            aoGerenciar={() => {}}
+            aoAtualizarPagamento={() => abrir('pagamento')}
+            aoReativar={aoReativar}
+          />
+        )}
+        <div className="q-grade g2">
+          <section className="q-cartao" aria-label={t('Resumo da assinatura')}>
+            <div className="qc-plano-topo">
+              <span className="q-ic">
+                <IconeDoPlano aria-hidden />
+              </span>
+              <div>
+                <span className="q-rotulo">{t('Plano')}</span>
+                <h2>{`${p} · ${rotuloDaForma(forma)}`}</h2>
+              </div>
+            </div>
+            <dl className="qc-dados">
+              <div>
+                <dt>{t('Valor')}</dt>
+                <dd>{valor}</dd>
+              </div>
+              <div>
+                <dt>
+                  {e === 'ativa' && conta.proximaCobranca
+                    ? forma === 'anual'
+                      ? t('Renova em')
+                      : t('Próxima cobrança')
+                    : t('Acesso até')}
+                </dt>
+                <dd>{dataCurta(e === 'ativa' && conta.proximaCobranca ? conta.proximaCobranca : conta.valeAte)}</dd>
+              </div>
+              <div>
+                <dt>{t('Pagamento')}</dt>
+                <dd>{forma === 'anual_12x' ? t('Cartão, sem renovação automática') : metodoAtual(faturas)}</dd>
+              </div>
+              <div>
+                <dt>{t('Assinante desde')}</dt>
+                <dd>{dataCurta(desde)}</dd>
+              </div>
+            </dl>
+          </section>
+          <section className="q-lista" aria-label={t('O que dá para mudar')} style={{ alignContent: 'start' }}>
+            {acoes
+              .filter((a) => a[4])
+              .map(([I, titulo, d, k]) => (
+                <button key={titulo} type="button" className="q-linha" onClick={() => abrir(k)}>
+                  <span className="q-ic">
+                    <I aria-hidden />
+                  </span>
+                  <span>
+                    <b>{titulo}</b>
+                    <small>{d}</small>
+                  </span>
+                  <span className="q-fim">
+                    <ChevronRight aria-hidden style={{ width: 22, height: 22 }} />
+                  </span>
+                </button>
+              ))}
+          </section>
+        </div>
+
+        <section className="q-secao">
+          <header>
+            <div>
+              <h2>{t('Faturas')}</h2>
+              <p>{t('Recibo de cada cobrança. O processador de pagamento avisa também por e-mail.')}</p>
+            </div>
+          </header>
+          {faturas === null || faturas.length === 0 ? (
+            carregandoFaturas ? (
+              <div className="qc-espera" role="status">
+                <LoaderCircle aria-hidden /> {t('Carregando as faturas…')}
+              </div>
+            ) : faturas === null ? (
+              <p className="qc-erro" role="status">
+                <TriangleAlert aria-hidden />
+                <span>{t('Não consegui buscar as faturas agora. Isto não significa que não haja cobranças.')}</span>
+              </p>
+            ) : (
+              <div className="q-cartao fundo">
+                <p className="q-texto">{t('Nenhuma cobrança ainda.')}</p>
+              </div>
+            )
+          ) : (
+            <ul className="qc-pilha qc-faturas" aria-label={t('Faturas')}>
+              {faturas.map((f) => (
+                <li key={f.id} className="q-ajuste">
+                  <div>
+                    <b>{f.descricao}</b>
+                    <small>
+                      {dataCurta(f.data)} · {f.metodo ? ROTULO_DO_METODO[f.metodo] : '—'}
+                    </small>
+                  </div>
+                  <b className="qc-valor">{brl(f.valor)}</b>
+                  <span className={`q-tag ${TOM_DO_QUEST[f.status]}`}>{STATUS[f.status][1]}</span>
+                  {f.status === 'falhou' && f.link ? (
+                    <button type="button" className="q-ctl pri" onClick={() => aoTentarDeNovo(f)}>
+                      <RotateCcw aria-hidden /> {t('Tentar de novo')}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="q-ctl"
+                      aria-label={t('Recibo de {data}', { data: dataCurta(f.data) })}
+                      onClick={() => abrir({ fatura: f })}
+                    >
+                      <FileText aria-hidden /> {t('Recibo')}
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        {e !== 'cancelada' && (
+          <section className="q-ajuste qc-perigo">
+            <div>
+              <b>{t('Cancelar assinatura')}</b>
+              <small>
+                {conta.valeAte
+                  ? t('Você mantém o {plano} até {data} e seus dados continuam salvos.', {
+                      plano: p,
+                      data: dataCurta(conta.valeAte),
+                    })
+                  : t('Você mantém o {plano} até o fim do período pago e seus dados continuam salvos.', { plano: p })}
+                {forma === 'anual_12x' ? ` ${t('Depois dos 7 dias, as parcelas que faltam seguem no cartão.')}` : ''}
+              </small>
+            </div>
+            <button type="button" className="q-ctl perigo" onClick={aoCancelar}>
+              <X aria-hidden /> {t('Cancelar assinatura')}
+            </button>
+          </section>
+        )}
+      </>
+    );
+  }
 
   return (
     <>

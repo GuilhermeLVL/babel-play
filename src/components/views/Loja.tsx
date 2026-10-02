@@ -47,7 +47,7 @@ import CartaoDeConvite from '../conta/CartaoDeConvite';
 import MiniaturaDoItem from '../MiniaturaDoItem';
 import { toast } from '../Toast';
 import { Abas, CabecalhoDeTela, type ItemDeAba, PainelDeAba, Tela, TituloDeSecao } from '../ui';
-import Conquistas from './Conquistas';
+import Conquistas, { type ParteDosDesafios } from './Conquistas';
 import CabecalhoDeTemporada from './loja/CabecalhoDeTemporada';
 import ComprarCreditos from './loja/ComprarCreditos';
 import type { LojaProps } from './loja/propsDaLoja';
@@ -121,6 +121,21 @@ function LojaClassica({
     setAbaInterna(a);
     aoTrocarDeAba?.(a);
   };
+  /**
+   * NO HEADSET cada parte de Desafios é uma aba, e cada aba tem endereço: `/loja/desafios`,
+   * `/loja/temporada` e `/loja/loja` (nomes que `lib/rotas` já aceita e que, na tela clássica, resolvem
+   * para a área Desafios). Recarregar volta à mesma aba, pelo `secaoPedida` da abertura.
+   */
+  const abrirNoQuest = (secao: SecaoDeDesafios) => {
+    setSecaoQ(secao);
+    setAbaInterna('conquistas');
+    aoTrocarDeAba?.(secao === 'passe' ? 'temporada' : secao === 'loja' ? 'loja' : 'conquistas');
+  };
+  /** A parte de Desafios que um atalho pediu (só o headset usa: lá "Como ganhar" é uma parte à parte). */
+  const [parteDosDesafios, setParteDosDesafios] = useState<{ parte: ParteDosDesafios; n: number }>({
+    parte: 'conquistas',
+    n: 0,
+  });
   const [filtro, setFiltro] = useState<(typeof FILTROS)[number]['id']>('tudo');
   const [comprando, setComprando] = useState<string | null>(null);
   const [, force] = useState(0);
@@ -210,11 +225,14 @@ function LojaClassica({
    * continua existindo — como âncora. Sem o `scrollIntoView` o botão trocaria a aba e deixaria a
    * pessoa no topo, com a seção certa fora da tela.
    */
-  const irParaSecao = (secao: SecaoDeDesafios) => {
+  const irParaSecao = (secao: SecaoDeDesafios, parte: ParteDosDesafios = 'conquistas') => {
+    // No headset a seção é uma aba (e "Como ganhar", uma parte dela): não há para onde rolar.
+    if (questNovo) {
+      setParteDosDesafios((p) => ({ parte, n: p.n + 1 }));
+      abrirNoQuest(secao);
+      return;
+    }
     setAba('conquistas');
-    setSecaoQ(secao);
-    // No headset a seção é uma aba: não há para onde rolar.
-    if (questNovo) return;
     /* Um quadro depois: a aba precisa montar antes de haver elemento para rolar até. */
     requestAnimationFrame(() => {
       document.getElementById(`secao-${secao}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -415,7 +433,7 @@ function LojaClassica({
 
   const secaoDesafios = (
     <div id="secao-desafios" style={{ scrollMarginTop: 16 }}>
-      <Conquistas progress={progress} ctx={ctxConquistas} />
+      <Conquistas progress={progress} ctx={ctxConquistas} parteNoQuest={parteDosDesafios} />
     </div>
   );
 
@@ -607,7 +625,7 @@ function LojaClassica({
           .map((r) => `${r.seeds} ${r.unidade}`)
           .join(' · ')}
         .{' '}
-        <button type="button" className="link" onClick={() => irParaSecao('desafios')}>
+        <button type="button" className="link" onClick={() => irParaSecao('desafios', 'ganhar')}>
           Ver todas as regras
         </button>
         . Seeds não se compram com dinheiro: só estudando.
@@ -664,8 +682,9 @@ function LojaClassica({
         ativa={ativa}
         aoTrocar={(id) => {
           if (id === 'personalizar') return setAba('personalizar');
-          setSecaoQ(secaoPedida(id));
-          setAba('conquistas');
+          // Tocar na aba abre Desafios nas conquistas; só o atalho "Ver todas as regras" pede outra parte.
+          setParteDosDesafios((p) => ({ parte: 'conquistas', n: p.n + 1 }));
+          abrirNoQuest(secaoPedida(id));
         }}
       >
         {ativa !== 'personalizar' && semConta ? convite : miolo[ativa]}

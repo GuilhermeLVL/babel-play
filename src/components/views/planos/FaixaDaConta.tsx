@@ -22,6 +22,7 @@ import {
   precoMensal,
   rotuloDaForma,
 } from '../../../lib/assinatura';
+import { useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
 import { t } from '../../../lib/i18n';
 import { faseDoFimDoTeste } from '../../../lib/ofertas/fimDoTeste';
 import { navegarPara } from '../../../lib/rotas';
@@ -66,11 +67,17 @@ export default function FaixaDaConta({
   const comCiclo = `${p} · ${rotuloDaForma(forma)}`;
   const ate = dataCurta(conta.valeAte);
   const IconePago = PLANO_ICO[plano];
+  const questNovo = useQuestNovo();
+  /* QUEST: os mesmos selos e os mesmos botoes, com as pecas do headset (so a classe muda). */
+  const classeDoSelo = (tom: 'ok' | 'warn' | 'neu') =>
+    questNovo ? `q-tag ${tom === 'ok' ? 'qc-bom' : tom === 'warn' ? 'qc-atencao' : 'off'}` : `badge ${tom}`;
+  const botaoDeContorno = questNovo ? 'q-ctl' : 'btn btn-outline';
+  const botaoSolido = questNovo ? 'q-ctl pri' : 'btn btn-solid';
 
   let icone = Cpu;
   let tom: TomDoIcone = 'accent';
   let titulo: ReactNode = rotuloGratis;
-  let selo: ReactNode = <span className="badge neu">{t('Plano atual')}</span>;
+  let selo: ReactNode = <span className={classeDoSelo('neu')}>{t('Plano atual')}</span>;
   let texto: ReactNode = t('Tudo roda no seu aparelho. Assine para usar a IA de nuvem e estudar em qualquer lugar.');
   let acao: ReactNode = null;
 
@@ -99,13 +106,13 @@ export default function FaixaDaConta({
     tom = 'good';
     titulo = 'Self-host';
     selo = (
-      <span className="badge ok">
+      <span className={classeDoSelo('ok')}>
         <Check aria-hidden /> {t('Tudo liberado')}
       </span>
     );
     texto = t('O app roda no seu computador: nada de cota, nada de cobrança. Os planos abaixo são para usar na nuvem.');
     acao = (
-      <button type="button" className="btn btn-outline" onClick={() => navegarPara({ view: 'settings' })}>
+      <button type="button" className={botaoDeContorno} onClick={() => navegarPara({ view: 'settings' })}>
         <Settings aria-hidden /> {t('Onde as contas rodam')}
       </button>
     );
@@ -113,7 +120,7 @@ export default function FaixaDaConta({
     icone = Hourglass;
     titulo = t('{plano} · teste', { plano: PLANO_NOME.premium });
     selo = (
-      <span className="badge ok">
+      <span className={classeDoSelo('ok')}>
         <Hourglass aria-hidden /> {t('Teste grátis')}
       </span>
     );
@@ -136,14 +143,14 @@ export default function FaixaDaConta({
     icone = IconePago;
     titulo = comCiclo;
     selo = (
-      <span className="badge ok">
+      <span className={classeDoSelo('ok')}>
         <Check aria-hidden /> {t('Ativa')}
       </span>
     );
     /* A data da cobrança é a do Asaas (`proximaCobranca`), não `valeAte` (que soma a graça). */
     texto = cobrancaDaForma();
     acao = naAssinatura ? null : (
-      <button type="button" className="btn btn-outline" onClick={aoGerenciar}>
+      <button type="button" className={botaoDeContorno} onClick={aoGerenciar}>
         <Settings2 aria-hidden /> {t('Gerenciar')}
       </button>
     );
@@ -152,7 +159,7 @@ export default function FaixaDaConta({
     tom = 'warn';
     titulo = comCiclo;
     selo = (
-      <span className="badge warn">
+      <span className={classeDoSelo('warn')}>
         <TriangleAlert aria-hidden /> {t('Pagamento pendente')}
       </span>
     );
@@ -175,14 +182,14 @@ export default function FaixaDaConta({
       `${oQue} ${t('Pague a fatura em aberto para não perder o {plano}.', { plano: p })}`
     );
     acao = (
-      <button type="button" className="btn btn-solid" onClick={aoAtualizarPagamento}>
+      <button type="button" className={botaoSolido} onClick={aoAtualizarPagamento}>
         <CreditCard aria-hidden /> {t('Atualizar pagamento')}
       </button>
     );
   } else if (estado === 'cancelada') {
     icone = CalendarX;
     titulo = comCiclo;
-    selo = <span className="badge neu">{t('Cancelada')}</span>;
+    selo = <span className={classeDoSelo('neu')}>{t('Cancelada')}</span>;
     texto =
       forma === 'anual_12x' ? (
         <T
@@ -196,9 +203,31 @@ export default function FaixaDaConta({
         />
       );
     acao = (
-      <button type="button" className="btn btn-solid" onClick={aoReativar}>
+      <button type="button" className={botaoSolido} onClick={aoReativar}>
         <RotateCcw aria-hidden /> {t('Reativar')}
       </button>
+    );
+  }
+
+  if (questNovo) {
+    const Icone = icone;
+    return (
+      <section
+        className={`q-cartao qc-agora${estado === 'falhou' ? ' qc-alerta' : ''}`}
+        aria-label={t('Seu plano agora')}
+      >
+        <span className="q-ic">
+          <Icone aria-hidden />
+        </span>
+        <div>
+          <span className="q-rotulo">{t('Seu plano agora')}</span>
+          <h2>
+            {titulo} {selo}
+          </h2>
+          <p>{texto}</p>
+        </div>
+        {acao}
+      </section>
     );
   }
 

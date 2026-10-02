@@ -82,6 +82,61 @@ export function provarVibracao(nivel: Exclude<VibracaoDoQuest, 'desligada'>): Pr
   return { controles: todos.length, comMotor: comMotor.length, pediu };
 }
 
+/** O relato de um controle no teste de `/diagnostico` (o que o JSON copiado sempre trouxe). */
+export interface ControleNaProva {
+  id: string;
+  temMotor: boolean;
+  /** O navegador ACEITOU o pedido de vibração (a promessa resolveu). Não diz se o controle tremeu. */
+  vibrou: boolean;
+}
+
+export interface ProvaDetalhadaDeVibracao {
+  /** `navigator.vibrate` (o caminho do celular): `null` se a função não existe, `false` se recusou. */
+  vibrate: boolean | null;
+  controles: ControleNaProva[];
+}
+
+/**
+ * A PROVA COMPLETA, para o diagnóstico: tenta os dois caminhos de vibração e espera a resposta de cada
+ * controle. É o que o teste fazia antes de ganhar as intensidades; o JSON de "Copiar o resultado" depende
+ * destes campos, e o celular Android só vibra pelo `navigator.vibrate`.
+ */
+export async function provarVibracaoEmDetalhe(
+  nivel: Exclude<VibracaoDoQuest, 'desligada'>,
+): Promise<ProvaDetalhadaDeVibracao> {
+  const [intensidade, ms] = PULSOS[nivel].clicar;
+  let vibrate: boolean | null = null;
+  if (typeof navigator.vibrate === 'function') {
+    try {
+      vibrate = navigator.vibrate(nivel === 'forte' ? [90, 50, 90] : [50, 40, 50]);
+    } catch {
+      vibrate = false;
+    }
+  }
+  const lista = await Promise.all(
+    controles().map(async (c): Promise<ControleNaProva> => {
+      const relato = { id: c.id || `controle ${c.index}`, temMotor: temMotor(c), vibrou: false };
+      try {
+        if (c.vibrationActuator?.playEffect) {
+          await c.vibrationActuator.playEffect('dual-rumble', {
+            duration: ms * 3,
+            strongMagnitude: intensidade,
+            weakMagnitude: intensidade,
+          });
+          relato.vibrou = true;
+        } else if (c.hapticActuators?.[0]?.pulse) {
+          await c.hapticActuators[0].pulse(intensidade, ms * 3);
+          relato.vibrou = true;
+        }
+      } catch {
+        /* o motor recusou */
+      }
+      return relato;
+    }),
+  );
+  return { vibrate, controles: lista };
+}
+
 /** O alvo acionável sob o ponteiro; `null` em texto, fundo ou alvo desabilitado. */
 export function alvoSobOPonteiro(origem: EventTarget | null): HTMLElement | null {
   if (!(origem instanceof Element)) return null;

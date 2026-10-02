@@ -216,6 +216,8 @@ describe('Personalizar no Quest · recompensas v2', () => {
     expect(setMenuPosition).not.toHaveBeenCalled()
 
     fireEvent.click(screen.getByRole('button', { name: /Leitura ampliada/ }))
+    // A posição escolhida em outro aparelho ("No topo") não é apagada por abrir nem por mexer na tela.
+    expect(setMenuPosition).not.toHaveBeenCalled()
     expect(setAgeProfile).toHaveBeenCalledWith('senior')
     expect(screen.getByRole('button', { name: /Produtividade/ }).getAttribute('aria-pressed')).toBe('true')
   })
@@ -300,6 +302,52 @@ describe('Personalizar no Quest · tela clássica', () => {
     expect(aba(/Loja/).getAttribute('aria-selected')).toBe('true')
     fireEvent.click(screen.getByRole('button', { name: 'Ver todas as regras' }))
     expect(aba(/Desafios/).getAttribute('aria-selected')).toBe('true')
+  })
+
+  it('"Ver todas as regras" abre Desafios na parte "Como ganhar", que é onde as regras estão', () => {
+    const { aba } = montar('loja')
+    fireEvent.click(screen.getByRole('button', { name: 'Ver todas as regras' }))
+    const partes = screen.getByRole('group', { name: 'Partes dos desafios' })
+    expect(
+      within(partes)
+        .getByRole('button', { name: /Como ganhar/ })
+        .getAttribute('aria-pressed'),
+    ).toBe('true')
+    expect(screen.getByText('Como ganhar Seeds e XP')).toBeTruthy()
+
+    // Voltar à aba pelo toque abre nas conquistas, como sempre.
+    fireEvent.click(aba(/Meu visual/))
+    fireEvent.click(aba(/Desafios/))
+    expect(
+      within(screen.getByRole('group', { name: 'Partes dos desafios' }))
+        .getByRole('button', { name: /Conquistas/ })
+        .getAttribute('aria-pressed'),
+    ).toBe('true')
+  })
+
+  it('cada aba tem endereço: Temporada e Loja não gravam o mesmo nome, e recarregar volta à mesma aba', () => {
+    const { aba, aoTrocarDeAba } = montar()
+    fireEvent.click(aba(/Temporada/))
+    expect(aoTrocarDeAba).toHaveBeenLastCalledWith('temporada')
+    fireEvent.click(aba(/Loja/))
+    expect(aoTrocarDeAba).toHaveBeenLastCalledWith('loja')
+    fireEvent.click(aba(/Desafios/))
+    expect(aoTrocarDeAba).toHaveBeenLastCalledWith('conquistas')
+    // Os atalhos internos gravam o mesmo endereço da aba.
+    fireEvent.click(aba(/Meu visual/))
+    fireEvent.click(screen.getByRole('button', { name: /Ir à Loja/ }))
+    expect(aoTrocarDeAba).toHaveBeenLastCalledWith('loja')
+
+    // O que o App devolve depois de recarregar (`/loja/temporada`, `/loja/loja`).
+    cleanup()
+    expect(
+      montar('temporada')
+        .aba(/Temporada/)
+        .getAttribute('aria-selected'),
+    ).toBe('true')
+    cleanup()
+    expect(montar('loja').aba(/Loja/).getAttribute('aria-selected')).toBe('true')
+    expect(document.getElementById('secao-loja')).toBeTruthy()
   })
 
   it('o endereço antigo `/loja/passe` abre direto na Temporada', () => {

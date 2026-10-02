@@ -150,6 +150,23 @@ html[data-quest-novo='true']:has(.quest-vivo) .q-trilho {
   flex-wrap: wrap;
   border-radius: 24px;
 }
+.q-conta-do-mais {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.q-conta-do-mais > .q-rodape-do-mais {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+.q-conta-do-mais .q-ctl {
+  background: var(--surface);
+  border-color: var(--border-subtle);
+}
+.q-rodape-do-mais b {
+  color: var(--ink);
+}
 .q-rodape-do-mais {
   margin: 0;
   display: flex;
@@ -806,6 +823,78 @@ html[data-quest-novo='true'] .folha-palavras button {
   min-height: 56px;
   padding-inline: 18px;
   font-size: 18px;
+}
+
+/* ── O QUE AS FRENTES PEDIRAM COMO PEÇA GERAL (02/10/2026) ───────────────────────────────────────
+   Estados e variações que cada tela vinha repetindo no próprio arquivo. */
+/* Com o voltar antes do título, é o TÍTULO que cresce (as ações vão para a direita). */
+.q-cab > .q-voltar:first-child {
+  flex: none;
+}
+.q-cab > .q-voltar:first-child + * {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+a.q-chip {
+  min-height: 56px;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    transform var(--q-toque),
+    border-color var(--q-cor);
+}
+a.q-chip:hover {
+  border-color: var(--q-acento);
+  transform: scale(1.04);
+}
+a.q-chip:focus-visible {
+  outline: 3px solid var(--q-acento);
+  outline-offset: 3px;
+}
+button.q-chip[aria-pressed='true'] {
+  background: var(--q-suave);
+  border-color: var(--q-acento);
+}
+.q-aba[aria-checked='true'] {
+  background: var(--q-suave);
+  border-color: var(--q-acento);
+  color: var(--ink);
+}
+.q-aba:disabled,
+.q-aba[aria-disabled='true'] {
+  opacity: 0.5;
+  border-style: dashed;
+  border-color: var(--border-subtle);
+  cursor: default;
+  transform: none;
+}
+.q-tile:is([aria-pressed='true'], [aria-checked='true'], [aria-current='page']):not(.pri) {
+  background: var(--q-suave);
+  border-color: var(--q-acento);
+}
+/* Lista de rótulo e valor (o que o aparelho tem, os dados de uma conta). */
+.q-dados {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  gap: 10px 18px;
+  margin: 0;
+  font: 600 17px/1.35 var(--font-body, inherit);
+}
+.q-dados dt {
+  color: var(--ink-muted);
+}
+.q-dados dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-weight: 700;
+}
+/* A faixa de controles presa ao pé de uma tela que rola (o player da sessão, o narrador). */
+.q-faixa.q-no-pe {
+  position: sticky;
+  bottom: 12px;
+  z-index: 2;
+  box-shadow: 0 0 0 12px var(--canvas);
 }
 
 /* ── PEÇAS DE TELA (01/10/2026, a segunda rodada: todas as telas no desenho do headset) ───────────

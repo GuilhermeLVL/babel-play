@@ -1,11 +1,13 @@
 import type { ItemOutcome, MinigameId } from '@core';
 import { pontuarRodada } from '@core';
-import { Flame, type LucideIcon } from 'lucide-react';
-import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
+import { CircleHelp, Flame, type LucideIcon } from 'lucide-react';
+import { createContext, type ReactNode, useCallback, useContext, useEffect, useId, useRef, useState } from 'react';
 
 import { SEQUENCIA_FEVER } from '../../../core/minigames/blitzRegras';
 import { multiplicador } from '../../../core/minigames/grade';
 import { celebrar } from '../../../lib/comemoracao';
+import { useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
+import { t } from '../../../lib/i18n';
 import { contarAte, tremor } from '../../../lib/juice';
 import { useRodada } from './CascaDaRodada';
 
@@ -34,6 +36,15 @@ function rotuloDaSequencia(seq: number, comFever: boolean): string {
           ? 'combo'
           : 'sequência';
 }
+
+/**
+ * O QUE CADA AJUDA FAZ, POR ESCRITO (Meta Quest). No computador o efeito e o preço de uma ajuda moram
+ * na dica que aparece ao parar o ponteiro (`title`); no headset não há hover. Cada `BotaoDeAjuda` conta
+ * ao placar o que faz, e o placar ganha um "?" que abre a lista. Fora do headset o registro é `null` e
+ * nada muda.
+ */
+type RegistroDeAjuda = (id: string, ajuda: { rotulo: string; nota: string } | null) => void;
+const AjudasDoPlacar = createContext<RegistroDeAjuda | null>(null);
 
 interface HudDaRodadaProps {
   pontos: number;
@@ -99,9 +110,28 @@ export default function HudDaRodada({
     else if (mult !== antes) tremor(comboRef.current, 3);
   }, [mult]);
 
+  /* META QUEST: as ajudas se apresentam aqui, e o "?" abre o que cada uma faz e o que custa. */
+  const questNovo = useQuestNovo();
+  const [notasDasAjudas, setNotasDasAjudas] = useState<Record<string, { rotulo: string; nota: string }>>({});
+  const [ajudasExplicadas, setAjudasExplicadas] = useState(false);
+  const registrarAjuda = useCallback<RegistroDeAjuda>((id, ajuda) => {
+    setNotasDasAjudas((antes) => {
+      const atual = antes[id];
+      if (!ajuda) {
+        if (!atual) return antes;
+        const semEla = { ...antes };
+        delete semEla[id];
+        return semEla;
+      }
+      if (atual && atual.rotulo === ajuda.rotulo && atual.nota === ajuda.nota) return antes;
+      return { ...antes, [id]: ajuda };
+    });
+  }, []);
+  const ajudasComNota = Object.entries(notasDasAjudas);
+
   const pct = Math.round(Math.max(0, Math.min(1, progresso)) * 100);
   const comTempo = tempo !== undefined;
-  return (
+  const linhaDoPlacar = (
     <div className="hud" role="group" aria-label="Placar da rodada" data-tour={tour}>
       <div className="hud-bloco">
         <small>Pontos</small>
@@ -128,7 +158,21 @@ export default function HudDaRodada({
           <span style={{ width: `${pct}%` }} />
         </div>
       </div>
-      <div className="hud-ajudas">{ajudas}</div>
+      <div className="hud-ajudas">
+        <AjudasDoPlacar.Provider value={questNovo ? registrarAjuda : null}>{ajudas}</AjudasDoPlacar.Provider>
+        {questNovo && ajudasComNota.length > 0 && (
+          <button
+            type="button"
+            className="btn btn-outline peq ajuda-jogo"
+            aria-expanded={ajudasExplicadas}
+            aria-label={t('O que cada ajuda faz')}
+            data-ajudas="porque"
+            onClick={() => setAjudasExplicadas((v) => !v)}
+          >
+            <CircleHelp aria-hidden />
+          </button>
+        )}
+      </div>
       <span
         ref={comboRef}
         className={`combo ${mult > 1 ? 'quente' : ''}`}
@@ -141,6 +185,21 @@ export default function HudDaRodada({
         <em>{sequencia ? `${sequencia} ${rotuloDaSequencia(sequencia, comFever)}` : ''}</em>
       </span>
     </div>
+  );
+  if (!questNovo) return linhaDoPlacar;
+  return (
+    <>
+      {linhaDoPlacar}
+      {ajudasExplicadas && ajudasComNota.length > 0 && (
+        <ul className="qj-ajudas-notas" aria-label={t('O que cada ajuda faz')}>
+          {ajudasComNota.map(([id, ajuda]) => (
+            <li key={id}>
+              <b>{ajuda.rotulo}:</b> {ajuda.nota}
+            </li>
+          ))}
+        </ul>
+      )}
+    </>
   );
 }
 
@@ -177,6 +236,7 @@ export function BotaoDeAjuda({
   disabled,
   onClick,
   title,
+  custo,
   ...resto
 }: {
   icone: LucideIcon;
@@ -185,8 +245,19 @@ export function BotaoDeAjuda({
   disabled?: boolean;
   onClick: (e: React.MouseEvent<HTMLButtonElement>) => void;
   title?: string;
+  /** O preço da ajuda ("limita a nota"), quando o `title` não o diz. Só o headset o escreve. */
+  custo?: string;
   'data-tour'?: string;
 }) {
+  /* No headset o efeito e o preço vão para a lista do "?" do placar (não há hover para o `title`). */
+  const registrar = useContext(AjudasDoPlacar);
+  const id = useId();
+  const nota = [title && title !== rotulo ? title : null, custo].filter(Boolean).join(' · ');
+  useEffect(() => {
+    if (!registrar || !nota) return;
+    registrar(id, { rotulo, nota });
+    return () => registrar(id, null);
+  }, [registrar, id, rotulo, nota]);
   return (
     <button
       type="button"

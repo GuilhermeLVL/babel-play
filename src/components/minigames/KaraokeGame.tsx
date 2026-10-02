@@ -81,8 +81,9 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish }: K
   const palavras = fala ? palavrasDaFrase(fala.texto, fala.lang) : [];
 
   /* NO QUEST o navegador não reconhece fala: o jogo não dá nota ali, e diz isso no lugar do botão de
-     falar (o lobby já o mostra apagado; por aqui só chega quem veio da tela completa). O som é o clipe
-     da gravação ou a voz do site, quando ela lê o idioma da fala. */
+     falar. O Karaokê ABRE no headset sempre que há som (o clipe da gravação ou a voz do site, quando ela
+     lê o idioma da fala), no modo "ouça, repita em voz alta e siga"; o cartão do lobby leva a etiqueta
+     "Sem nota de voz" (`jogosNoQuest.ts`) e só fica apagado quando não há som nenhum para repetir. */
   const questNovo = useQuestNovo();
   const semNotaAqui = useMemo(
     () => questNovo && !recursosDoAparelho(perfilDoDispositivo()).reconhecimentoDoNavegador,
@@ -380,7 +381,7 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish }: K
 
         {/* O motivo, dito no lugar do botão: nota de pronúncia inventada seria pior que nenhuma. */}
         {semNotaAqui && (
-          <p className="qj-sem-voz" role="note" data-testid="karaoke-sem-nota">
+          <p className="qj-sem-voz" role="note" data-testid="karaoke-sem-nota" data-tour="falar">
             <MicOff aria-hidden />
             <span>
               {t('O headset não avalia a pronúncia.')}{' '}

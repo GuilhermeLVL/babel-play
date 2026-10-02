@@ -146,6 +146,8 @@ import {
 import { listarBaralhosAnki } from '../../data/apiAnki';
 import { carregarTrilha, indiceDaTrilha, precarregarNiveis, trilhaEmCache } from '../../data/trilha/carregar';
 import { useAudioDaSessao } from '../../lib/audioDaSessao';
+import { perfilDoDispositivo } from '../../lib/dispositivo/perfil';
+import { recursosDoAparelho } from '../../lib/dispositivo/recursos';
 import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { type DetalheDoDrop, EVENTO_DROP_GANHO } from '../../lib/filaDeRecompensas';
@@ -225,7 +227,7 @@ import MapaDoConteudo from './MapaDoConteudo';
 import PainelTrilha from './PainelTrilha';
 import { IconePixel } from './play/IconesPixel';
 import { descricaoDoJogo, JOGOS, type JogoUI, tituloDoJogo } from './play/jogos';
-import { rodadaParaOQuest } from './play/quest/jogosNoQuest';
+import { jogosQueAbremNoQuest, rodadaParaOQuest } from './play/quest/jogosNoQuest';
 import LobbyDoQuest from './play/quest/LobbyDoQuest';
 import Recordes from './play/Recordes';
 import { TELA_DO_JOGO } from './play/telaDoJogo';
@@ -851,7 +853,7 @@ export default function Play({
       frasesDaTrilha: frasesTrilha,
       frasesDoAcervo: frasesDoAcervoAtual,
       comTrilha,
-      temVoz,
+      temVoz: temVozOuEscrita,
       /* A tela conhece a URL do blob; o núcleo só precisa saber SE há áudio. */
       temAudio: !!audioParaJogos,
       porPalavra,
@@ -1362,6 +1364,19 @@ export default function Play({
     };
     // setFonte é useCallback estável; entra na lista só para o linter dizer a verdade.
   }, [setFonte]);
+
+  /**
+   * "Tentar de novo" (o aviso do lobby do headset quando o baralho não carregou): só o baralho, que é o
+   * que falhou. Sem erro e sem baralho a tela volta à espera, e sai dela com a resposta.
+   */
+  const recarregarBaralho = async () => {
+    setErro(null);
+    try {
+      setDeck((await fetchDeck()).filter((c) => c.inDeck));
+    } catch (e) {
+      setErro((e as Error).message);
+    }
+  };
 
   /**
    * A FONTE VOLTA COMO ESTAVA — uma vez só, e nunca dentro de uma sessão.
@@ -2153,13 +2168,19 @@ export default function Play({
        jogos de ouvir abriam mudos. */
     const avaliar = () =>
       setTemVoz(
-        aparelhoTemVoz()
-          ? isTtsSupported() && (!vozesCarregadas() || hasVoiceFor(fonte.lang))
-          : haVozPara(fonte.lang),
+        aparelhoTemVoz() ? isTtsSupported() && (!vozesCarregadas() || hasVoiceFor(fonte.lang)) : haVozPara(fonte.lang),
       );
     avaliar();
     return aoMudarVozes(avaliar);
   }, [fonte.lang]);
+  /**
+   * META QUEST: sem voz para o idioma, os jogos de ouvir NÃO ficam mudos, eles mudam de forma. Escuta e
+   * Ditado mostram a tradução no lugar do som (o ramo `!temSom` de cada um) e o Karaokê diz o que fazer.
+   * Por isso, no headset, o gate e o montador da rodada recebem "há como apresentar a palavra": quem
+   * decide o que abre e com que etiqueta é o lobby do headset (`jogosNoQuest.ts`), que apaga só o que de
+   * fato não dá para jogar. Fora do headset a pergunta continua sendo "há voz?", como sempre.
+   */
+  const temVozOuEscrita = questNovo || temVoz;
 
   /**
    * O áudio da gravação, baixado COM AUTENTICAÇÃO.
@@ -2197,7 +2218,7 @@ export default function Play({
       frasesDaTrilha: comTrilha ? frasesTrilha : undefined,
       temAudio: !!audioSessao,
       audioPronto: !!audioParaJogos,
-      temVoz,
+      temVoz: temVozOuEscrita,
       fonteId: fonte.id,
       lang: fonte.lang,
     });
@@ -2212,7 +2233,7 @@ export default function Play({
     audioParaJogos,
     fonte.lang,
     fonte.id,
-    temVoz,
+    temVozOuEscrita,
   ]);
 
   /**
@@ -2357,13 +2378,31 @@ export default function Play({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jogoPendente, importando, vendoBaralhos, composicao, filtro, listaDeJogos]);
 
+  /**
+   * META QUEST: os jogos que o lobby do headset deixa abrir (`jogosNoQuest.ts`). A partida rápida e a
+   * sugestão do dia escolhem só entre eles: `estado.ok` fala do MATERIAL, e sortear um jogo que o lobby
+   * mostra apagado (o Karaokê sem som nenhum, por exemplo) abriria uma rodada que não se joga ali.
+   * `null` fora do headset: lá vale só o material, como sempre.
+   */
+  const abremNoHeadset = useMemo(
+    () =>
+      questNovo
+        ? jogosQueAbremNoQuest(listaDeJogos, recursosDoAparelho(perfilDoDispositivo()), {
+            idioma: fonte.lang || undefined,
+          })
+        : null,
+    /* `temVoz` muda quando a lista de vozes chega: é o sinal para refazer a pergunta. */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [questNovo, listaDeJogos, fonte.lang, temVoz],
+  );
+
   const partidaRapida = useCallback(() => {
     play('select');
 
     /* SORTEIO SO ENTRE JOGOS QUE REGISTRAM. Os nove culturais entravam aqui, entao metade das
        partidas rapidas caia numa rodada que nao gravava nada — e a pessoa que apertou "Partida
        Rapida" duas vezes seguidas podia jogar dez minutos sem um item no historico. */
-    const liberados = listaDeJogos.filter((j) => j.estado.ok);
+    const liberados = listaDeJogos.filter((j) => j.estado.ok && (!abremNoHeadset || abremNoHeadset.has(j.id)));
     if (liberados.length === 0) {
       toast.warn(t('Nenhum jogo disponível no momento'));
       return;
@@ -2377,7 +2416,7 @@ export default function Play({
        que é a razão de ele existir. Ela é chamada no momento do clique e lê o estado daquele
        momento; não há captura antiga a corrigir. */
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [listaDeJogos, ageProfile]);
+  }, [listaDeJogos, ageProfile, abremNoHeadset]);
 
   const buscaNormalizada = buscaJogos.trim().toLowerCase();
 
@@ -2392,7 +2431,9 @@ export default function Play({
         return r ? t(r) : '';
       })();
   const sugestao = useMemo(() => {
-    const prontosPorRendimento = agruparJogos(listaDeJogos.map((j) => j.estado)).prontos;
+    const prontosPorRendimento = agruparJogos(listaDeJogos.map((j) => j.estado)).prontos.filter(
+      (p) => !abremNoHeadset || abremNoHeadset.has(p.id),
+    );
     if (!prontosPorRendimento.length) return null;
     const alvo = prontosPorRendimento[indiceDaSugestao % prontosPorRendimento.length];
     const jogo = listaDeJogos.find((j) => j.id === alvo.id);
@@ -2428,6 +2469,7 @@ export default function Play({
     acervoDaFonte.length,
     ageProfile,
     nomeCurtoDaFonte,
+    abremNoHeadset,
   ]);
 
   const jogosClassicosFiltrados = useMemo(() => {
@@ -3693,7 +3735,9 @@ export default function Play({
           previa={!pularSempre}
           aoTrocarPrevia={(ligada) => mudarPularSempre(!ligada)}
           ordem={ordenados}
-          aoMover={(j, direcao) => mexerNaOrdem(mover(ordem, idsVisiveis, j.id, direcao))}
+          ordemEscolhida={ordem.ordem}
+          /* A seta troca com o vizinho que o PAINEL mostra (a ordem da grade do headset). */
+          aoMover={(j, direcao, visiveis) => mexerNaOrdem(mover(ordem, visiveis, j.id, direcao))}
           sugestao={semAcervo ? null : sugestao}
           aoOutraSugestao={() => setIndiceDaSugestao((n) => n + 1)}
           aoVerRecordes={() => setVerRecordes(true)}
@@ -3702,14 +3746,39 @@ export default function Play({
           diagnostico={{
             ligado: detalhes,
             aoTrocar: alternarDetalhes,
+            /* As explicações são as do `title` da tela de sempre: no headset não há hover, ficam escritas. */
             itens: [
-              { icone: Check, texto: t('{n} no idioma', { n: numero(contagem.total) }) },
-              { icone: Languages, texto: t('{n} com tradução', { n: numero(pistas.comTraducao.length) }) },
-              { icone: Quote, texto: t('{n} só com frase', { n: numero(pistas.soComFrase.length) }) },
+              {
+                icone: Check,
+                texto: t('{n} no idioma', { n: numero(contagem.total) }),
+                explicacao: t('{n} palavras do idioma escolhido passaram na régua de qualidade.', {
+                  n: contagem.total,
+                }),
+              },
+              {
+                icone: Languages,
+                texto: t('{n} com tradução', { n: numero(pistas.comTraducao.length) }),
+                explicacao: t('Jogos de par precisam de tradução.'),
+              },
+              {
+                icone: Quote,
+                texto: t('{n} só com frase', { n: numero(pistas.soComFrase.length) }),
+                explicacao: t('Sem tradução, mas com frase real.'),
+              },
               ...(coreOnly(ageProfile)
                 ? []
-                : [{ icone: Globe, texto: t('{n} em outro idioma', { n: numero(triagem.outroIdioma.length) }) }]),
-              { icone: Filter, texto: t('{n} fora do recorte', { n: numero(triagem.fora.length) }) },
+                : [
+                    {
+                      icone: Globe,
+                      texto: t('{n} em outro idioma', { n: numero(triagem.outroIdioma.length) }),
+                      explicacao: t('Existem e prestam, mas são de outro idioma'),
+                    },
+                  ]),
+              {
+                icone: Filter,
+                texto: t('{n} fora do recorte', { n: numero(triagem.fora.length) }),
+                explicacao: resumoDosPulados(triagem.fora) || undefined,
+              },
               { icone: CircleDashed, texto: t('{n} nunca caíram', { n: numero(nuncaCairam) }) },
             ],
           }}
@@ -3731,27 +3800,37 @@ export default function Play({
               />
             ) : undefined
           }
-          aviso={
-            erro
-              ? { texto: t('Não consegui carregar o seu baralho: {erro}', { erro }) }
-              : semAcervo && fontesOferecidas.length > 1
-                ? /* Há outra fonte pronta (a trilha do idioma): a saída é escolher, e não ir gravar. */
-                  {
-                    texto: t('Você ainda não tem palavras suas para jogar. Dá para jogar com as da trilha.'),
-                    acao: t('Escolher o que praticar'),
-                    aoAgir: () => setSalaAberta(true),
-                  }
-                : semAcervo
-                  ? {
-                      texto:
-                        tamanhoDoBaralho === 0
-                          ? t('Você ainda não salvou palavras')
-                          : t('Faltam {n} palavras', { n: menorMinimo - tamanhoDoBaralho }),
-                      acao: ageProfile === 'kids' ? t('Gravar alguma coisa') : t('Capturar uma sessão'),
-                      aoAgir: () => onChangeView('capture'),
-                    }
-                  : undefined
-          }
+          aviso={(() => {
+            const capturar = {
+              rotulo: ageProfile === 'kids' ? t('Gravar alguma coisa') : t('Capturar uma sessão'),
+              aoAgir: () => onChangeView('capture'),
+            };
+            /* O baralho não carregou: o motivo, e as duas saídas (tentar de novo ou ir capturar). */
+            if (erro)
+              return {
+                texto: t('Não consegui carregar o seu baralho: {erro}', { erro }),
+                acoes: [{ rotulo: t('Tentar de novo'), aoAgir: () => void recarregarBaralho() }, capturar],
+              };
+            if (!semAcervo) return undefined;
+            /* Acervo pequeno demais: quanto há e quanto falta, como na tela de sempre, e capturar. Havendo
+               outra fonte pronta (a trilha do idioma), escolher o que praticar vem na frente. */
+            return {
+              texto:
+                fontesOferecidas.length > 1
+                  ? t('Você ainda não tem palavras suas para jogar. Dá para jogar com as da trilha.')
+                  : tamanhoDoBaralho === 0
+                    ? t('Você ainda não salvou palavras')
+                    : t('Faltam {n} palavras', { n: menorMinimo - tamanhoDoBaralho }),
+              detalhe: t(
+                'Os jogos usam as palavras que você guarda das suas gravações, nada de lista pronta. Você tem {tem} e precisa de {precisa} para a primeira rodada.',
+                { tem: tamanhoDoBaralho, precisa: menorMinimo },
+              ),
+              acoes:
+                fontesOferecidas.length > 1
+                  ? [{ rotulo: t('Escolher o que praticar'), aoAgir: () => setSalaAberta(true) }, capturar]
+                  : [capturar],
+            };
+          })()}
         />
       </>
     );

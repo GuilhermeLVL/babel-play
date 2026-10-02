@@ -27,6 +27,21 @@ export function formatSeconds(secs: number): string {
   return `${m}:${pad(s)}`;
 }
 
+/**
+ * A NARRAÇÃO PELO MOTOR DO APP (`speak()` de `lib/tts`), para o aparelho sem voz própria (o Quest): ali
+ * a `speechSynthesis` existe e não fala, e quem lê é a voz do site. A tela entrega o motor; este módulo
+ * continua sem saber de aparelho nenhum.
+ */
+export interface NarradorDoPlayer {
+  falar: (
+    texto: string,
+    opcoes: { lang: string; rate?: number; onStart?: () => void; onEnd?: () => void; onError?: () => void },
+  ) => void;
+  calar: () => void;
+  /** Há voz para este idioma? Fala sem voz é pulada, nunca lida com a voz de outro idioma. */
+  podeFalar: (lang: string) => boolean;
+}
+
 /** Tudo que o player precisa da tela — por parâmetro, sem contexto novo. */
 export interface DepsDoPlayerDaSessao {
   parsedSentences: FalaDaAnalise[];
@@ -57,6 +72,8 @@ export interface DepsDoPlayerDaSessao {
   setAudioDuration: Dispatch<SetStateAction<number>>;
   setPeaks: Dispatch<SetStateAction<number[]>>;
   setShadowingSentenceIndex: Dispatch<SetStateAction<number | null>>;
+  /** Presente = a narração sem áudio gravado vai por este motor, e não pela `speechSynthesis`. */
+  narrador?: NarradorDoPlayer | null;
 }
 
 export function usePlayerDaSessao(deps: DepsDoPlayerDaSessao) {
@@ -83,7 +100,12 @@ export function usePlayerDaSessao(deps: DepsDoPlayerDaSessao) {
     setAudioDuration,
     setPeaks,
     setShadowingSentenceIndex,
+    narrador = null,
   } = deps;
+  // O motor mais recente, sem re-disparar a narração a cada render da tela.
+  const narradorRef = React.useRef(narrador);
+  narradorRef.current = narrador;
+  const narraPeloMotor = !!narrador;
 
   // Mantém um ref do índice ativo para a narração TTS retomar do ponto certo sem re-disparar o efeito.
   React.useEffect(() => {
@@ -155,6 +177,50 @@ export function usePlayerDaSessao(deps: DepsDoPlayerDaSessao) {
       return;
     }
 
+    /* SEM VOZ NO APARELHO: a mesma narração, fala a fala, pelo motor que a tela entregou. O motor não
+       avisa o avanço dentro da fala (`onboundary`), então o relógio anda de fala em fala. */
+    if (narraPeloMotor) {
+      const motor = narradorRef.current;
+      if (!motor) return;
+      if (!isPlaying) {
+        motor.calar();
+        return;
+      }
+      if (parsedSentences.length === 0) return;
+      let cancelada = false;
+      const falarDe = (i: number) => {
+        if (cancelada) return;
+        if (i >= parsedSentences.length) {
+          setIsPlaying(false);
+          return;
+        }
+        const s = parsedSentences[i];
+        const texto = s.original || s.translation || '';
+        const lang = s.lang || ttsLang;
+        if (!texto || !motor.podeFalar(lang)) {
+          falarDe(i + 1);
+          return;
+        }
+        setActiveSentenceIndex(i);
+        setCurrentTime(s.startTime);
+        motor.falar(texto, {
+          lang,
+          rate: playbackSpeed,
+          onEnd: () => {
+            if (!cancelada) falarDe(loopMode ? i : i + 1);
+          },
+          onError: () => {
+            if (!cancelada) setIsPlaying(false);
+          },
+        });
+      };
+      falarDe(Math.max(0, activeSentenceIndexRef.current));
+      return () => {
+        cancelada = true;
+        motor.calar();
+      };
+    }
+
     if (!isPlaying) {
       if ('speechSynthesis' in window) window.speechSynthesis.cancel();
       return;
@@ -218,6 +284,7 @@ export function usePlayerDaSessao(deps: DepsDoPlayerDaSessao) {
   }, [
     isPlaying,
     hasRealAudio,
+    narraPeloMotor,
     playbackSpeed,
     loopMode,
     parsedSentences,

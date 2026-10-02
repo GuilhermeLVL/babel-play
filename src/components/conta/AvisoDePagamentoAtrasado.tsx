@@ -3,11 +3,13 @@ import { useEffect, useState } from 'react';
 
 import { PLAN_MATRIX } from '../../core/planos';
 import { carregarStatusDeBilling, estadoDaConta, type StatusDeBilling } from '../../lib/assinatura';
+import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { getEntitlements, onPlanChange } from '../../lib/entitlements';
 import { t } from '../../lib/i18n';
 import { aoMudarIdentidade, estadoDeIdentidade } from '../../lib/identidade';
 import { navegarPara } from '../../lib/rotas';
+import FaixaDeAvisoDoQuest from './quest/FaixaDeAvisoDoQuest';
 
 /**
  * O PAGAMENTO ATRASADO NÃO PODE SER SURPRESA (funil de 29/09).
@@ -38,6 +40,7 @@ function dispensadoNestaSessao(): boolean {
 export default function AvisoDePagamentoAtrasado() {
   const [status, setStatus] = useState<StatusDeBilling | null>(null);
   const [dispensado, setDispensado] = useState(dispensadoNestaSessao);
+  const questNovo = useQuestNovo();
 
   useEffect(() => {
     if (edicaoEstatica()) return;
@@ -73,6 +76,29 @@ export default function AvisoDePagamentoAtrasado() {
     }
     setDispensado(true);
   };
+
+  /* QUEST: a mesma frase e as mesmas duas saídas (ver a assinatura, dispensar), acima do palco. */
+  if (questNovo)
+    return (
+      <FaixaDeAvisoDoQuest
+        icone={CreditCard}
+        tom="alerta"
+        noTopo
+        testId="aviso-de-pagamento-atrasado"
+        texto={t(
+          'Não conseguimos confirmar o pagamento da sua assinatura. Pague a fatura para continuar com o {plano}.',
+          { plano: PLAN_MATRIX[conta.plano].rotulo },
+        )}
+        acoes={[
+          {
+            rotulo: t('Ver minha assinatura'),
+            aoClicar: () => navegarPara({ view: 'planos', planosTela: 'assinatura' }),
+          },
+        ]}
+        aoDispensar={dispensar}
+        rotuloDeDispensar={t('Dispensar aviso')}
+      />
+    );
 
   return (
     <div

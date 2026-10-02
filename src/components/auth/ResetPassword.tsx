@@ -4,13 +4,16 @@
  * nova senha (com confirmação) → `auth.updatePassword` → `onDone()` (a sessão já é válida, o App entra).
  * Mesmo AuthShell/PasswordField do login → herda o design system, o caret (F1) e o olho (F4).
  */
+import { CircleAlert, CircleCheck, LoaderCircle } from 'lucide-react';
 import React, { useState } from 'react';
 
 import * as auth from '../../lib/auth';
+import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { t } from '../../lib/i18n';
 import { T } from '../../lib/T';
 import AuthShell from './AuthShell';
 import PasswordField from './PasswordField';
+import CascaDeEntradaDoQuest from './quest/CascaDeEntradaDoQuest';
 
 export default function ResetPassword({ onDone }: { onDone: () => void }) {
   const [senha, setSenha] = useState('');
@@ -18,6 +21,7 @@ export default function ResetPassword({ onDone }: { onDone: () => void }) {
   const [erro, setErro] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(false);
+  const questNovo = useQuestNovo();
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -41,6 +45,68 @@ export default function ResetPassword({ onDone }: { onDone: () => void }) {
     setAviso(t('Senha redefinida! Entrando…'));
     onDone(); // a sessão de recuperação já é válida → o App carrega logado
   }
+
+  /* QUEST: os mesmos dois campos, o erro e o aviso, nas medidas do headset (`questEntrada.css`). */
+  if (questNovo)
+    return (
+      <CascaDeEntradaDoQuest
+        hero={{ title: <T txt="Quase<br>lá." />, subtitle: t('Escolha uma nova senha e você já entra direto.') }}
+        testId="redefinir-senha-do-quest"
+      >
+        <header className="qen-cab">
+          <div>
+            <p className="qen-sobre">{t('Sua conta')}</p>
+            <h1>{t('Definir nova senha')}</h1>
+            <p>{t('Digite e confirme a nova senha da sua conta.')}</p>
+          </div>
+        </header>
+
+        <form onSubmit={submit} className="qen-form">
+          <div className="qen-campo">
+            <label htmlFor="reset-senha">{t('Nova senha')}</label>
+            <PasswordField
+              id="reset-senha"
+              required
+              minLength={auth.SENHA_MINIMA}
+              autoComplete="new-password"
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+              placeholder={t('mínimo {n} caracteres', { n: auth.SENHA_MINIMA })}
+            />
+          </div>
+          <div className="qen-campo">
+            <label htmlFor="reset-confirma">{t('Confirmar senha')}</label>
+            <PasswordField
+              id="reset-confirma"
+              required
+              minLength={auth.SENHA_MINIMA}
+              autoComplete="new-password"
+              value={confirma}
+              onChange={(e) => setConfirma(e.target.value)}
+              placeholder={t('repita a senha')}
+            />
+          </div>
+
+          {erro && (
+            <p className="qen-erro" role="alert">
+              <CircleAlert aria-hidden />
+              <span>{erro}</span>
+            </p>
+          )}
+          {aviso && (
+            <p className="qen-ok" role="status">
+              <CircleCheck aria-hidden />
+              <span>{aviso}</span>
+            </p>
+          )}
+
+          <button type="submit" disabled={carregando} className="qen-botao pri">
+            {carregando && <LoaderCircle className="qen-gira" aria-hidden />}
+            {carregando ? t('Aguarde…') : t('Redefinir senha')}
+          </button>
+        </form>
+      </CascaDeEntradaDoQuest>
+    );
 
   return (
     <AuthShell

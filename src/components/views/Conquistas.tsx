@@ -28,7 +28,7 @@ import {
   TrendingUp,
   Trophy,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { conquistasDesbloqueadas, dataDaConquista } from '../../lib/conquistasPosse';
 import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
@@ -51,9 +51,18 @@ import { IconeEmBloco, TituloDeSecao, type TomDoIcone } from '../ui';
  * vão TODAS as do core, com o progresso real, agrupadas pelos QUATRO PILARES (recompensas v2, spec
  * 9) com a contagem "feitas/total" de cada um. A secreta mostra só a dica até ser feita.
  */
+/** As três partes da tela no headset (na tela de sempre são três seções da mesma página). */
+export type ParteDosDesafios = 'conquistas' | 'ganhar' | 'nivel';
+
 interface ConquistasProps {
   progress: DerivedProgress;
   ctx: ContextoDeConquistas | null;
+  /**
+   * NO HEADSET: a parte que um atalho pediu ("Ver todas as regras" pede `ganhar`). O `n` muda a cada
+   * pedido, para o mesmo pedido feito duas vezes voltar a valer. Na tela de sempre não tem efeito: lá o
+   * atalho rola a página.
+   */
+  parteNoQuest?: { parte: ParteDosDesafios; n: number };
 }
 
 /* O degrau da série, na cor do badge: bronze neutro, prata raro, ouro de destaque. */
@@ -83,11 +92,14 @@ function dataCurta(ts: number): string {
   return data(new Date(ts), { day: '2-digit', month: 'short' });
 }
 
-export default function Conquistas({ progress, ctx }: ConquistasProps) {
+export default function Conquistas({ progress, ctx, parteNoQuest }: ConquistasProps) {
   /* No Meta Quest (telas novas): uma parte por vez (conquistas, como ganhar, como subir), e as conquistas
      filtradas por pilar, no lugar da página comprida. O conteúdo de cada parte é o mesmo. */
   const questNovo = useQuestNovo();
-  const [parteQ, setParteQ] = useState<'conquistas' | 'ganhar' | 'nivel'>('conquistas');
+  const [parteQ, setParteQ] = useState<ParteDosDesafios>(parteNoQuest?.parte ?? 'conquistas');
+  useEffect(() => {
+    if (parteNoQuest) setParteQ(parteNoQuest.parte);
+  }, [parteNoQuest]);
   const [pilarQ, setPilarQ] = useState<string>('todos');
   const feitas = conquistasDesbloqueadas();
   const lista: ProgressoDeConquista[] = useMemo(() => {

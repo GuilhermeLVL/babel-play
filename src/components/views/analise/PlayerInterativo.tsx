@@ -9,11 +9,23 @@
  * aqui por props, explícito. A máquina de reprodução (seek, motor de áudio/TTS, waveform) está em
  * `lib/analise/playerDaSessao.ts`.
  */
-import { Pause, Play, Repeat, RotateCcw, SlidersHorizontal, Snail } from 'lucide-react';
-import type { Dispatch, ReactNode, RefObject, SetStateAction } from 'react';
+import {
+  AlertTriangle,
+  CircleHelp,
+  Loader2,
+  Pause,
+  Play,
+  Repeat,
+  RotateCcw,
+  SlidersHorizontal,
+  Snail,
+} from 'lucide-react';
+import { type Dispatch, type ReactNode, type RefObject, type SetStateAction, useState } from 'react';
 
 import { formatSeconds } from '../../../lib/analise/playerDaSessao';
 import type { FalaDaAnalise } from '../../../lib/analise/tiposDaAnalise';
+import { useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
+import { t } from '../../../lib/i18n';
 import { mediaErrorMessage } from '../../../lib/mediaErrors';
 import { Recording } from '../../../types';
 import { toast } from '../../Toast';
@@ -48,6 +60,15 @@ export interface PropsDoPlayerInterativo {
   mostrarExib?: boolean;
   aoAlternarExib?: () => void;
   exib?: ReactNode;
+  /** O áudio gravado ainda está sendo baixado (só a faixa do Quest mostra a espera). */
+  carregandoAudio?: boolean;
+  /** O áudio gravado não veio: a mensagem do motivo (só a faixa do Quest a mostra). */
+  erroDoAudio?: string | null;
+  /**
+   * Sessão sem áudio gravado: há voz de leitura para narrar alguma fala? `false` (o Quest sem a voz
+   * do site, ou num idioma que ela não lê) troca a faixa pelo motivo. Só o ramo do Quest olha.
+   */
+  haVozParaNarrar?: boolean;
 }
 
 export default function PlayerInterativo(props: PropsDoPlayerInterativo) {
@@ -75,7 +96,14 @@ export default function PlayerInterativo(props: PropsDoPlayerInterativo) {
     mostrarExib = false,
     aoAlternarExib,
     exib,
+    carregandoAudio = false,
+    erroDoAudio = null,
+    haVozParaNarrar = true,
   } = props;
+  const questNovo = useQuestNovo();
+  /* Só no Quest: "O que fazem Slow-Mo e Loop". Na tela de sempre isso é a dica do ponteiro (`title`),
+     que no headset não existe. */
+  const [ajudaAberta, setAjudaAberta] = useState(false);
 
   if (recording.type === 'document') return null;
 
@@ -88,47 +116,198 @@ export default function PlayerInterativo(props: PropsDoPlayerInterativo) {
        tempo e quem está falando, a velocidade, e embaixo Slow-Mo, loop, reiniciar e "Ajustar exibição".
        O áudio REAL continua sendo a fonte do tempo; sem áudio, o relógio avança pela legenda. */
   const pct = totalDurationSeconds > 0 ? Math.min(100, (currentTime / totalDurationSeconds) * 100) : 0;
+  const audio = hasRealAudio && (
+    <audio
+      ref={audioRef}
+      src={audioSrc ?? undefined}
+      preload="metadata"
+      onError={(e) => {
+        /* MediaError code 4 também dispara com src VAZIO (blob ainda carregando) e com blob
+             revogado (StrictMode desmonta/remonta): sem src, não há o que reportar. */
+        const el = e.currentTarget;
+        if (!el.currentSrc && !el.src) return;
+        toast.error(mediaErrorMessage(el));
+      }}
+      onLoadedMetadata={(e) => {
+        const d = e.currentTarget.duration;
+        if (isFinite(d) && d > 0) setAudioDuration(d);
+      }}
+      onTimeUpdate={(e) => {
+        const a = e.currentTarget;
+        setCurrentTime(a.currentTime);
+        if (loopMode && activeSentenceIndex !== -1 && activeSentenceIndex < parsedSentences.length) {
+          const start = parsedSentences[activeSentenceIndex].startTime;
+          const nextStart =
+            activeSentenceIndex < parsedSentences.length - 1
+              ? parsedSentences[activeSentenceIndex + 1].startTime
+              : audioDuration || start + 25;
+          if (a.currentTime >= nextStart) {
+            try {
+              a.currentTime = start;
+            } catch {
+              /* noop */
+            }
+          }
+        }
+      }}
+      onEnded={() => setIsPlaying(false)}
+      className="hidden"
+    />
+  );
+
+  /* META QUEST (as telas novas): a faixa de controles do pé da tela, a mesma peça da legenda ao vivo e
+     da Biblioteca. Um único botão principal (tocar), a posição com o tempo e quem fala, e as três
+     velocidades, o Slow-Mo, o loop e o reiniciar como alvos de 60 px. "Ajustar exibição" fica na
+     barra acima das falas (vale também para documento, que não tem player). */
+  if (questNovo) {
+    /* Sem áudio gravado o player NARRA o texto (no Quest, pela voz do site). Sem voz para nenhuma
+       fala, em vez de um botão que não toca a faixa diz o motivo. */
+    if (!hasRealAudio && !haVozParaNarrar) {
+      return (
+        <section className="q-aviso qs-player-sem-voz" aria-label={t('Player')} role="note">
+          <span>
+            {t(
+              'Esta sessão não tem áudio gravado, e não há voz de leitura neste aparelho para o idioma dela. A voz do site lê inglês, espanhol, francês, chinês, japonês e coreano, com a IA de nuvem ligada em Ajustes.',
+            )}
+          </span>
+        </section>
+      );
+    }
+    const esperando = hasRealAudio && (carregandoAudio || (!audioSrc && !erroDoAudio));
+    const falhou = hasRealAudio && !!erroDoAudio;
+    return (
+      <section className="qs-player" aria-label={t('Player')}>
+        {audio}
+        {ajudaAberta && (
+          <dl className="qs-ajuda-do-player" id="ajuda-do-player">
+            <div>
+              <dt>
+                <Snail aria-hidden /> {t('Smart Slow-Mo')}
+              </dt>
+              <dd>{t('Diminui a velocidade nos trechos com vocabulário difícil.')}</dd>
+            </div>
+            <div>
+              <dt>
+                <Repeat aria-hidden /> {t('Modo loop')}
+              </dt>
+              <dd>{t('Repete o trecho ativo, bom para fixar pronúncia.')}</dd>
+            </div>
+            {!hasRealAudio && (
+              <div>
+                <dt>
+                  <Play aria-hidden /> {t('Sem áudio gravado')}
+                </dt>
+                <dd>{t('O player narra o texto com a voz de leitura, uma fala por vez.')}</dd>
+              </div>
+            )}
+          </dl>
+        )}
+        <div className="q-faixa qs-faixa-do-player">
+          <button
+            type="button"
+            className="q-ctl pri"
+            onClick={() => setIsPlaying(!isPlaying)}
+            disabled={esperando || falhou}
+            aria-label={isPlaying ? t('Pausar') : t('Tocar')}
+          >
+            {esperando ? (
+              <Loader2 className="animate-spin" aria-hidden />
+            ) : isPlaying ? (
+              <Pause aria-hidden />
+            ) : (
+              <Play aria-hidden />
+            )}
+          </button>
+          <div className="qs-trilho">
+            <input
+              id="analysis-seekbar"
+              name="analysis-seekbar"
+              type="range"
+              className="qs-posicao"
+              min={0}
+              max={totalDurationSeconds}
+              step={0.5}
+              value={currentTime}
+              disabled={esperando || falhou}
+              onChange={(e) => seekTo(Number(e.target.value))}
+              aria-label={t('Posição na gravação')}
+              aria-valuetext={t('{atual} de {total}', {
+                atual: formatSeconds(currentTime),
+                total: formatSeconds(totalDurationSeconds),
+              })}
+              style={{ ['--p' as string]: `${pct}%` }}
+            />
+            <div className="qs-relogio">
+              <span>{formatSeconds(currentTime)}</span>
+              <span className="qs-falando" role="status">
+                {falhou ? (
+                  <>
+                    <AlertTriangle aria-hidden /> {t('Não deu para carregar o áudio desta sessão.')}
+                  </>
+                ) : esperando ? (
+                  t('Carregando o áudio…')
+                ) : activeSentence ? (
+                  t('{quem} falando', { quem: activeSentence.speaker })
+                ) : (
+                  ''
+                )}
+              </span>
+              <span>{recording.durationStr}</span>
+            </div>
+          </div>
+          <div className="q-abas q-seg" role="group" aria-label={t('Velocidade')}>
+            {[0.75, 1, 1.25].map((sp) => (
+              <button
+                key={sp}
+                type="button"
+                className="q-aba"
+                aria-pressed={playbackSpeed === sp}
+                onClick={() => setPlaybackSpeed(sp)}
+              >
+                {String(sp).replace('.', ',')}×
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            className="q-ctl"
+            aria-pressed={autoSlowEnabled}
+            aria-label={t('Smart Slow-Mo: diminui a velocidade nos trechos com vocabulário difícil')}
+            onClick={() => setAutoSlowEnabled(!autoSlowEnabled)}
+          >
+            <Snail aria-hidden /> <span className="qs-rotulo-do-ctl">{t('Slow-Mo')}</span>
+          </button>
+          <button
+            type="button"
+            className="q-ctl"
+            aria-pressed={loopMode}
+            aria-label={t('Modo loop: repete o trecho ativo')}
+            onClick={() => setLoopMode(!loopMode)}
+          >
+            <Repeat aria-hidden /> <span className="qs-rotulo-do-ctl">{t('Loop')}</span>
+          </button>
+          <button type="button" className="q-ctl" aria-label={t('Reiniciar')} onClick={() => seekTo(0)}>
+            <RotateCcw aria-hidden />
+          </button>
+          <button
+            type="button"
+            className="q-ctl"
+            aria-label={t('O que fazem Slow-Mo e Loop')}
+            aria-expanded={ajudaAberta}
+            aria-controls="ajuda-do-player"
+            onClick={() => setAjudaAberta((v) => !v)}
+          >
+            <CircleHelp aria-hidden />
+          </button>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <>
       <section className="cartao p5 player" aria-label="Player">
-        {hasRealAudio && (
-          <audio
-            ref={audioRef}
-            src={audioSrc ?? undefined}
-            preload="metadata"
-            onError={(e) => {
-              /* MediaError code 4 também dispara com src VAZIO (blob ainda carregando) e com blob
-                 revogado (StrictMode desmonta/remonta): sem src, não há o que reportar. */
-              const el = e.currentTarget;
-              if (!el.currentSrc && !el.src) return;
-              toast.error(mediaErrorMessage(el));
-            }}
-            onLoadedMetadata={(e) => {
-              const d = e.currentTarget.duration;
-              if (isFinite(d) && d > 0) setAudioDuration(d);
-            }}
-            onTimeUpdate={(e) => {
-              const a = e.currentTarget;
-              setCurrentTime(a.currentTime);
-              if (loopMode && activeSentenceIndex !== -1 && activeSentenceIndex < parsedSentences.length) {
-                const start = parsedSentences[activeSentenceIndex].startTime;
-                const nextStart =
-                  activeSentenceIndex < parsedSentences.length - 1
-                    ? parsedSentences[activeSentenceIndex + 1].startTime
-                    : audioDuration || start + 25;
-                if (a.currentTime >= nextStart) {
-                  try {
-                    a.currentTime = start;
-                  } catch {
-                    /* noop */
-                  }
-                }
-              }
-            }}
-            onEnded={() => setIsPlaying(false)}
-            className="hidden"
-          />
-        )}
+        {audio}
         <div className="linha" style={{ gap: 14, flexWrap: 'wrap' }}>
           <button
             type="button"

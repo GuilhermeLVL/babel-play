@@ -1,0 +1,606 @@
+/*
+ * A REVISÃO NO META QUEST (maquete aprovada pelo dono em 01/10/2026, tela 8; segunda rodada: todos os
+ * estados e os quatro formatos de cartão no mesmo desenho).
+ *
+ * Só vale com `<html data-quest-novo="true">`. As peças comuns (`.q-palco`, `.q-cab`, `.q-barra`,
+ * `.q-ctl`, `.q-faixa`, `.q-vazio`, `.q-num`, `.q-ajuste`…) moram em `quest.css`; aqui fica só o que é
+ * desta tela: o topo de uma linha (progresso, opções, encerrar), o cartão grande do miolo, as notas em
+ * alvos de 76 px, os formatos Digitar, Escolher e Produção ativa, o fim da rodada e as opções.
+ *
+ * O cartão guarda as classes de sempre (`.flash`, `.termo`, `.exemplo`, `.resp`, `.fsrs`): a pele de
+ * cartão equipada e o "+N XP" que sobe do botão da nota continuam achando o que procuram.
+ */
+
+/* A RAIZ. A revisão é montada direto dentro do <main> do app (coluna flex): ocupa a largura toda, sem
+   margem automática (que encolheria o item ao conteúdo), e o fundo é o da tela.
+   ATENÇÃO AO NOME: a raiz é `q-revisao`. A classe `qr` já existe em `prototipo.css` (o desenho de um QR
+   code: 150 px, fundo branco) e esmagava a tela inteira numa coluna de 150 px. */
+html[data-quest-novo='true'] .q-palco.q-revisao {
+  flex: 1 1 auto;
+  align-self: stretch;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  margin: 0;
+  background: var(--canvas);
+}
+/* A instrução da rodada, numa linha, entre o topo e o cartão. */
+html[data-quest-novo='true'] .q-revisao .qr-dica {
+  max-width: none;
+  margin: -8px 0;
+  font: 600 16px/1.35 var(--font-body, inherit);
+  color: var(--ink-muted);
+  text-align: center;
+}
+/* Produção ativa: o segundo caminho da tela, com o motivo escrito quando ainda não abre. */
+html[data-quest-novo='true'] .qr-segundo {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+html[data-quest-novo='true'] .qr-segundo small {
+  max-width: 44ch;
+  font: 600 15px/1.35 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+html[data-quest-novo='true'] .qr-segundo .q-ctl {
+  background: var(--surface);
+  border-color: var(--border-subtle);
+}
+
+/* O cabeçalho das telas que não são a rodada: o voltar tem largura fixa, e é o título que estica. */
+html[data-quest-novo='true'] .q-revisao .q-cab > .q-voltar + div {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+/* ── O TOPO: voltar, rótulo, barra, "10 / 18" e, no fim, opções e encerrar ───────────────────────── */
+html[data-quest-novo='true'] .qr-topo {
+  flex-wrap: nowrap;
+  gap: 12px;
+}
+html[data-quest-novo='true'] .qr-progresso {
+  flex: 1 1 260px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+html[data-quest-novo='true'] .qr-progresso .q-rotulo {
+  flex: none;
+  white-space: nowrap;
+}
+html[data-quest-novo='true'] .qr-progresso .q-barra {
+  flex: 1;
+  min-width: 80px;
+  height: 13px;
+}
+html[data-quest-novo='true'] .qr-conta {
+  flex: none;
+  font: 600 17px/1 var(--font-mono, monospace);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--ink);
+}
+
+/* ── O CARTÃO ocupa o miolo ───────────────────────────────────────────────────────────────────── */
+html[data-quest-novo='true'] .q-revisao .qr-cartao {
+  flex: 1 0 auto;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 26px 26px 22px;
+  border-radius: 23px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  text-align: center;
+}
+html[data-quest-novo='true'] .q-revisao .qr-cartao > :is(.resp, .qr-producao) {
+  align-self: stretch;
+}
+html[data-quest-novo='true'] .q-revisao .qr-selo {
+  margin-bottom: 14px;
+}
+html[data-quest-novo='true'] .q-revisao .flash .termo {
+  font: 900 46px/1.05 var(--font-display, inherit);
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+html[data-quest-novo='true'] .q-revisao .flash .exemplo {
+  max-width: 36em;
+  margin: 12px 0 0;
+  font: 600 18px/1.4 var(--font-body, inherit);
+  color: var(--ink-muted);
+  text-wrap: pretty;
+}
+html[data-quest-novo='true'] .q-revisao .flash .resp {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1.5px solid var(--border-subtle);
+  display: grid;
+  justify-items: center;
+  gap: 0;
+}
+html[data-quest-novo='true'] .q-revisao .flash .resp.qr-sem-linha {
+  border-top: 0;
+  padding-top: 0;
+}
+html[data-quest-novo='true'] .q-revisao .flash .resp > b {
+  font: 800 26px/1.2 var(--font-display, inherit);
+  text-wrap: balance;
+}
+html[data-quest-novo='true'] .q-revisao .flash .resp > p {
+  margin: 8px 0 0;
+  max-width: 40em;
+  font: 600 18px/1.4 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+/* O botão principal do cartão: o maior alvo da tela. */
+html[data-quest-novo='true'] .q-revisao .qr-principal {
+  min-height: 64px;
+  min-width: 280px;
+  padding: 0 28px;
+  font-size: 18px;
+}
+
+/* ── AS NOTAS: uma fileira de alvos grandes, com o mesmo toque dos controles da faixa ─────────────── */
+html[data-quest-novo='true'] .q-revisao .fsrs {
+  display: grid;
+  grid-template-columns: repeat(var(--n, 4), minmax(0, 1fr));
+  justify-self: stretch;
+  gap: 12px;
+  margin-top: 22px;
+}
+html[data-quest-novo='true'] .q-revisao .fsrs button {
+  min-height: 76px;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1.5px solid var(--border-subtle);
+  border-radius: 17px;
+  background: var(--surface);
+  box-shadow: none;
+  font: 800 19px/1.1 var(--font-display, inherit);
+  cursor: pointer;
+  transition:
+    transform var(--q-toque),
+    background-color var(--q-cor),
+    border-color var(--q-cor);
+}
+html[data-quest-novo='true'] .q-revisao .fsrs button small {
+  font: 600 14px/1 var(--font-mono, monospace);
+  color: var(--ink-muted);
+}
+html[data-quest-novo='true'] .q-revisao .fsrs button:hover {
+  transform: scale(1.03);
+  box-shadow: none;
+  border-color: var(--q-acento);
+  background: color-mix(in srgb, var(--q-acento) 8%, var(--surface));
+}
+html[data-quest-novo='true'] .q-revisao .fsrs button:focus-visible {
+  outline: 3px solid var(--q-acento);
+  outline-offset: 3px;
+}
+html[data-quest-novo='true'] .q-revisao .fsrs button:active {
+  transform: scale(0.96);
+  background: color-mix(in srgb, var(--q-acento) 26%, var(--surface));
+}
+/* "Bom" é a nota de quem lembrou: a única destacada, como na maquete. */
+html[data-quest-novo='true'] .q-revisao .fsrs button.b {
+  background: var(--q-suave);
+  border-color: var(--q-acento);
+}
+
+/* ── DIGITAR: o campo grande (o teclado do sistema sobe no foco) e o botão de verificar ───────────── */
+html[data-quest-novo='true'] .q-revisao .qr-digitar {
+  margin-top: 20px;
+  gap: 14px;
+}
+html[data-quest-novo='true'] .q-revisao .qr-digitar .q-campo {
+  width: min(520px, 100%);
+  text-align: left;
+}
+html[data-quest-novo='true'] .q-revisao .qr-digitar input {
+  min-height: 64px;
+  text-align: center;
+  font-size: 22px;
+  background: var(--canvas);
+}
+
+/* ── ESCOLHER: quatro alternativas, dois por linha ────────────────────────────────────────────── */
+html[data-quest-novo='true'] .q-revisao .qr-lacuna {
+  max-width: 40em;
+  font: 700 22px/1.5 var(--font-body, inherit);
+  text-wrap: pretty;
+}
+html[data-quest-novo='true'] .q-revisao .qr-lacuna > div {
+  margin: 0;
+  padding: 0;
+  font: inherit;
+}
+html[data-quest-novo='true'] .q-revisao .qr-opcoes {
+  align-self: stretch;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 22px;
+}
+html[data-quest-novo='true'] .q-revisao .qr-opcao {
+  min-height: 72px;
+  padding: 10px 18px;
+  border: 1.5px solid var(--border-subtle);
+  border-radius: 17px;
+  background: var(--surface);
+  color: var(--ink);
+  font: 800 20px/1.2 var(--font-display, inherit);
+  overflow-wrap: anywhere;
+  cursor: pointer;
+  transition:
+    transform var(--q-toque),
+    background-color var(--q-cor),
+    border-color var(--q-cor);
+}
+html[data-quest-novo='true'] .q-revisao .qr-opcao:hover {
+  transform: scale(1.02);
+  border-color: var(--q-acento);
+  background: color-mix(in srgb, var(--q-acento) 8%, var(--surface));
+}
+html[data-quest-novo='true'] .q-revisao .qr-opcao:focus-visible {
+  outline: 3px solid var(--q-acento);
+  outline-offset: 3px;
+}
+html[data-quest-novo='true'] .q-revisao .qr-opcao:active {
+  transform: scale(0.97);
+  background: color-mix(in srgb, var(--q-acento) 26%, var(--surface));
+}
+
+/* ── O RESULTADO (Digitar, Escolher, Produção ativa): certo ou errado dito por ícone, cor e texto ── */
+html[data-quest-novo='true'] .q-revisao .qr-veredito {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 0;
+  max-width: 44em;
+  font: 800 20px/1.35 var(--font-body, inherit);
+  color: var(--ink);
+  text-wrap: balance;
+}
+html[data-quest-novo='true'] .q-revisao .qr-veredito svg {
+  width: 26px;
+  height: 26px;
+  flex: none;
+}
+html[data-quest-novo='true'] .q-revisao .qr-veredito.certo svg {
+  color: var(--good);
+}
+html[data-quest-novo='true'] .q-revisao .qr-veredito.parcial svg {
+  color: var(--warn);
+}
+html[data-quest-novo='true'] .q-revisao .qr-veredito.errado svg {
+  color: var(--error);
+}
+html[data-quest-novo='true'] .q-revisao .qr-resultado {
+  gap: 16px;
+}
+html[data-quest-novo='true'] .q-revisao .qr-resultado > p:not(.qr-veredito) {
+  margin: 0;
+}
+
+/* ── PRODUÇÃO ATIVA: a frase com a lacuna, a definição, o campo e a conferência ───────────────── */
+html[data-quest-novo='true'] .qr-producao {
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+  text-align: center;
+}
+html[data-quest-novo='true'] .qr-producao .q-rotulo {
+  line-height: 1.3;
+}
+html[data-quest-novo='true'] .qr-producao .qr-frase {
+  margin: 0;
+  max-width: 40em;
+  font: 700 22px/1.5 var(--font-body, inherit);
+  text-wrap: pretty;
+}
+html[data-quest-novo='true'] .qr-producao .qr-vao {
+  display: inline-block;
+  min-width: 3.4em;
+  margin: 0 4px;
+  padding: 0 10px;
+  border-bottom: 3px dashed var(--q-acento);
+  border-radius: 8px 8px 0 0;
+  background: var(--q-suave);
+  color: var(--ink);
+  font-family: var(--font-mono, monospace);
+}
+html[data-quest-novo='true'] .qr-producao .qr-alvo {
+  color: var(--accent-ink, var(--q-acento));
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-thickness: 2px;
+}
+html[data-quest-novo='true'] .qr-producao .q-texto {
+  max-width: 44em;
+  color: var(--ink-muted);
+}
+html[data-quest-novo='true'] .qr-producao .q-texto b {
+  color: var(--ink);
+}
+html[data-quest-novo='true'] .qr-producao .q-campo {
+  width: min(520px, 100%);
+  text-align: left;
+}
+html[data-quest-novo='true'] .qr-producao .q-campo input {
+  min-height: 64px;
+  text-align: center;
+  font-size: 22px;
+  background: var(--canvas);
+}
+html[data-quest-novo='true'] .qr-producao .q-acoes {
+  justify-content: center;
+}
+html[data-quest-novo='true'] .qr-producao .q-cartao {
+  justify-self: stretch;
+  gap: 8px;
+  padding: 16px 18px;
+  text-align: left;
+}
+html[data-quest-novo='true'] .qr-producao .q-cartao p {
+  margin: 0;
+  font: 600 17px/1.45 var(--font-body, inherit);
+}
+html[data-quest-novo='true'] .qr-diff {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2px;
+  font: 800 22px/1.2 var(--font-mono, monospace);
+}
+html[data-quest-novo='true'] .qr-diff .igual {
+  color: var(--good-ink, var(--good));
+}
+html[data-quest-novo='true'] .qr-diff .sobra {
+  color: var(--error-ink, var(--error));
+  text-decoration: line-through;
+}
+html[data-quest-novo='true'] .qr-diff .falta {
+  color: var(--warn-ink, var(--warn));
+  text-decoration: underline dotted;
+  text-underline-offset: 4px;
+}
+html[data-quest-novo='true'] .qr-proveniencia {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font: 700 14px/1.2 var(--font-mono, monospace);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+html[data-quest-novo='true'] .qr-proveniencia svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* ── A FAIXA DE AÇÕES DO CARTÃO E DO FIM DA RODADA ────────────────────────────────────────────── */
+html[data-quest-novo='true'] .q-revisao .q-faixa {
+  flex: none;
+}
+@media (max-width: 1020px) {
+  html[data-quest-novo='true'] .q-revisao .q-faixa {
+    flex-wrap: wrap;
+    border-radius: 28px;
+  }
+}
+
+/* ── FORA DA RODADA: quantas esperam, e o único passo para começar ────────────────────────────── */
+html[data-quest-novo='true'] .qr-contagem {
+  min-width: 92px;
+  height: 92px;
+  padding: 0 18px;
+  border-radius: 28px;
+  display: grid;
+  place-items: center;
+  background: var(--q-suave);
+  color: var(--ink);
+  font: 900 40px/1 var(--font-display, inherit);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── FIM DA RODADA: o que foi feito, em números, e para onde ir ───────────────────────────────── */
+html[data-quest-novo='true'] .qr-fecho {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 18px;
+}
+html[data-quest-novo='true'] .qr-fecho .q-ic {
+  width: 64px;
+  height: 64px;
+  border-radius: 20px;
+}
+html[data-quest-novo='true'] .qr-fecho .q-ic svg {
+  width: 30px;
+  height: 30px;
+}
+html[data-quest-novo='true'] .qr-fecho h2 {
+  margin: 0;
+  font: 900 24px/1.15 var(--font-display, inherit);
+  text-wrap: balance;
+}
+html[data-quest-novo='true'] .qr-fecho p {
+  margin: 6px 0 0;
+  font: 600 18px/1.4 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+html[data-quest-novo='true'] .qr-numeros {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 16px;
+}
+html[data-quest-novo='true'] .qr-numeros .q-num b.bom {
+  color: var(--good-ink, var(--good));
+}
+html[data-quest-novo='true'] .qr-numeros .q-num b.acento {
+  color: var(--accent-ink, var(--q-acento));
+}
+html[data-quest-novo='true'] .qr-numeros .q-num .q-rotulo {
+  color: var(--ink-muted);
+}
+/* O resumo das missões e da ofensiva (`ResumoDaPratica`) vem com a margem de quem mora num cartão. */
+html[data-quest-novo='true'] .q-revisao [data-testid='resumo-da-pratica'] {
+  margin-top: 0 !important;
+}
+
+/* ── A ESPERA: a forma do cartão e da faixa que vão chegar ────────────────────────────────────── */
+html[data-quest-novo='true'] .qr-espera {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+html[data-quest-novo='true'] .qr-espera .q-esqueleto:first-child {
+  flex: 1;
+  min-height: 260px;
+  border-radius: 23px;
+}
+html[data-quest-novo='true'] .qr-espera .q-esqueleto:last-child {
+  min-height: 78px;
+  border-radius: 999px;
+}
+
+/* ── OPÇÕES DA REVISÃO (diálogo no centro): um ajuste por linha ───────────────────────────────── */
+html[data-quest-novo='true'] .qr-opcoes-dlg {
+  display: grid;
+  gap: 12px;
+  max-height: min(62vh, 640px);
+  overflow-y: auto;
+}
+html[data-quest-novo='true'] .qr-opcoes-dlg .q-ajuste {
+  background: var(--canvas);
+}
+html[data-quest-novo='true'] .qr-opcoes-dlg .q-ajuste > .q-ctl {
+  flex: none;
+  background: var(--surface);
+  border-color: var(--border-subtle);
+}
+html[data-quest-novo='true'] .qr-passo {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+html[data-quest-novo='true'] .qr-passo .q-ctl {
+  min-width: 56px;
+  min-height: 56px;
+  padding: 0;
+  background: var(--surface);
+  border-color: var(--border-subtle);
+}
+html[data-quest-novo='true'] .qr-passo input[type='number'] {
+  width: 96px;
+  min-height: 56px;
+  padding: 0 8px;
+  border: 1.5px solid var(--border-subtle);
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--ink);
+  font: 800 20px/1 var(--font-display, inherit);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+html[data-quest-novo='true'] .qr-passo input[type='number']::-webkit-inner-spin-button,
+html[data-quest-novo='true'] .qr-passo input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+html[data-quest-novo='true'] .qr-passo input[type='range'] {
+  width: min(240px, 34vw);
+}
+html[data-quest-novo='true'] .qr-opcoes-dlg .q-abas {
+  background: var(--surface);
+}
+
+/* ── AS PEÇAS DE SEMPRE QUE OUTRAS TELAS AINDA USAM (a faixa "Prontas para revisar" da sessão) ──── */
+html[data-quest-novo='true'] :is(.fim-rev, .faixa-rev) .btn {
+  min-height: 60px;
+  padding: 0 22px;
+  font-size: 17px;
+}
+html[data-quest-novo='true'] :is(.fim-rev, .faixa-rev) .btn svg {
+  width: 20px;
+  height: 20px;
+}
+html[data-quest-novo='true'] .faixa-rev h2 {
+  font-size: 20px !important; /* 17 px vêm escritos no elemento */
+}
+html[data-quest-novo='true'] .faixa-rev p {
+  font-size: 16px !important; /* 13 px vêm escritos no elemento */
+}
+
+/* ── JANELA ESTREITA (500 × 495): o progresso desce para a segunda linha, as notas em 2 × 2 ───── */
+@media (max-width: 720px) {
+  html[data-quest-novo='true'] .qr-topo {
+    flex-wrap: wrap;
+  }
+  html[data-quest-novo='true'] .qr-topo .qr-progresso {
+    order: 5;
+    flex-basis: 100%;
+  }
+  html[data-quest-novo='true'] .qr-topo .qr-botao-opcoes {
+    margin-left: auto;
+  }
+  html[data-quest-novo='true'] .q-revisao .qr-cartao {
+    padding: 20px 16px 18px;
+  }
+  html[data-quest-novo='true'] .q-revisao .flash .termo {
+    font-size: 36px;
+  }
+  html[data-quest-novo='true'] .q-revisao .fsrs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  html[data-quest-novo='true'] .q-revisao .qr-opcoes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  html[data-quest-novo='true'] .q-revisao .qr-principal {
+    min-width: 0;
+    width: 100%;
+  }
+  html[data-quest-novo='true'] .q-revisao .q-faixa .q-espaco {
+    display: none;
+  }
+  html[data-quest-novo='true'] .q-revisao .q-faixa .q-ctl {
+    flex: 1 1 auto;
+  }
+  html[data-quest-novo='true'] .qr-fecho {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: start;
+  }
+  html[data-quest-novo='true'] .qr-numeros {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  html[data-quest-novo='true'] .qr-passo input[type='range'] {
+    width: 150px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-quest-novo='true'] .q-revisao :is(.fsrs button, .qr-opcao, .q-barra span) {
+    transition: none;
+    animation: none;
+  }
+  html[data-quest-novo='true'] .q-revisao :is(.fsrs button, .qr-opcao):hover {
+    transform: none;
+  }
+}

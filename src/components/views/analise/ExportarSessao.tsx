@@ -3,6 +3,7 @@ import { ChartColumn, Download, FileAudio, Layers, Lock, type LucideIcon, Video 
 import { apiFetch, exportarApkg } from '../../../data/api';
 import type { useMetricasDaSessao } from '../../../lib/analise/metricasDaSessao';
 import { caminhoDoAudio } from '../../../lib/audioDaSessao';
+import { useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
 import { data } from '../../../lib/i18n';
 import type { Recording } from '../../../types';
 import { toast } from '../../Toast';
@@ -62,6 +63,29 @@ function Opcao({
   /** O aviso do protótipo ao clicar numa opção bloqueada. */
   aoTravado?: () => void;
 }) {
+  const questNovo = useQuestNovo();
+  /* META QUEST: a mesma opção como uma linha de lista (alvo de 72 px). A bloqueada continua na
+     lista, tracejada e com cadeado, e o toque diz o motivo. */
+  if (questNovo) {
+    const Icone = icone;
+    return (
+      <button
+        type="button"
+        className={`q-linha ${trava ? 'qs-travada' : ''}`}
+        aria-disabled={trava || undefined}
+        onClick={(e) => (trava ? aoTravado?.() : aoEscolher?.(e.currentTarget))}
+      >
+        <span className="q-ic">
+          <Icone aria-hidden />
+        </span>
+        <span>
+          <b>{titulo}</b>
+          <small>{desc}</small>
+        </span>
+        <span className="q-fim">{trava ? <Lock aria-hidden /> : <Download aria-hidden />}</span>
+      </button>
+    );
+  }
   return (
     <button
       type="button"
@@ -166,6 +190,7 @@ export default function ExportarSessao({
   };
 
   const temAudio = !!recording.audioUrl;
+  const questNovo = useQuestNovo();
   const n = vocabCards.length;
 
   return (
@@ -176,7 +201,7 @@ export default function ExportarSessao({
       largura=""
       aoFechar={aoFechar}
     >
-      <div className="dlg-corpo pilha">
+      <div className={questNovo ? 'dlg-corpo qs-miolo q-lista' : 'dlg-corpo pilha'}>
         <Opcao
           icone={FileAudio}
           titulo="Áudio da sessão"

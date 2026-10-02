@@ -131,7 +131,7 @@ export default function EstatisticasDoQuest({
   const [aba, setAba] = useState<string | null>(null);
   const [comoTabela, setComoTabela] = useState<Record<string, boolean>>({});
   const [exportando, setExportando] = useState(false);
-  const painel: PainelDoQuest | undefined = paineis.find((p) => p.id === aba) ?? paineis[0];
+  const ativo: PainelDoQuest | undefined = paineis.find((p) => p.id === aba) ?? paineis[0];
 
   return (
     <div className="q-palco qe" data-testid="estatisticas-no-quest">
@@ -158,7 +158,7 @@ export default function EstatisticasDoQuest({
         </button>
       </header>
 
-      {carregando || !painel ? (
+      {carregando || !ativo ? (
         <div role="status" aria-label={t('Carregando as estatísticas')} className="qe-espera">
           <div className="qe-kpis">
             {Array.from({ length: 5 }, (_, i) => (
@@ -199,8 +199,8 @@ export default function EstatisticasDoQuest({
                 type="button"
                 role="tab"
                 id={`qe-aba-${p.id}`}
-                aria-selected={p.id === painel.id}
-                aria-controls="qe-painel"
+                aria-selected={p.id === ativo.id}
+                aria-controls={`qe-painel-${p.id}`}
                 className="q-aba"
                 onClick={() => setAba(p.id)}
               >
@@ -209,74 +209,80 @@ export default function EstatisticasDoQuest({
             ))}
           </div>
 
-          <div
-            className="q-cartao qe-painel"
-            role="tabpanel"
-            id="qe-painel"
-            aria-labelledby={`qe-aba-${painel.id}`}
-            data-painel={painel.id}
-          >
-            {painel.conteudo ?? (
-              <>
-                <div className="q-secao">
-                  <header>
-                    <div>
-                      <h2>{painel.titulo}</h2>
-                      {painel.desc && <p>{painel.desc}</p>}
-                    </div>
-                    <button
-                      type="button"
-                      className="q-ctl"
-                      aria-pressed={!!comoTabela[painel.id]}
-                      onClick={() => setComoTabela((v) => ({ ...v, [painel.id]: !v[painel.id] }))}
-                    >
-                      {comoTabela[painel.id] ? <ChartColumn aria-hidden /> : <Table2 aria-hidden />}
-                      {comoTabela[painel.id] ? t('Ver gráfico') : t('Ver como tabela')}
-                    </button>
-                  </header>
-                </div>
-                {comoTabela[painel.id] ? (
-                  <div className="q-tabela-caixa qe-tabela" tabIndex={0}>
-                    <table className="q-tabela">
-                      <thead>
-                        <tr>
-                          {(painel.cab ?? []).map((c) => (
-                            <th key={c}>{c}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(painel.linhas ?? []).map((l, i) => (
-                          <tr key={i}>
-                            {l.map((c, j) => (
-                              <td key={j}>{c}</td>
+          {/* TODOS os painéis ficam montados e só o da aba aparece: na impressão (`@media print` em
+              `questEstatisticas.css`) saem os seis gráficos e a meta, em sequência, como na tela de sempre. */}
+          {paineis.map((p) => (
+            <div
+              className="q-cartao qe-painel"
+              role="tabpanel"
+              key={p.id}
+              id={`qe-painel-${p.id}`}
+              aria-labelledby={`qe-aba-${p.id}`}
+              data-painel={p.id}
+              hidden={p.id !== ativo.id}
+            >
+              {p.conteudo ?? (
+                <>
+                  <div className="q-secao">
+                    <header>
+                      <div>
+                        <h2>{p.titulo}</h2>
+                        {p.desc && <p>{p.desc}</p>}
+                      </div>
+                      <button
+                        type="button"
+                        className="q-ctl"
+                        aria-pressed={!!comoTabela[p.id]}
+                        onClick={() => setComoTabela((v) => ({ ...v, [p.id]: !v[p.id] }))}
+                      >
+                        {comoTabela[p.id] ? <ChartColumn aria-hidden /> : <Table2 aria-hidden />}
+                        {comoTabela[p.id] ? t('Ver gráfico') : t('Ver como tabela')}
+                      </button>
+                    </header>
+                  </div>
+                  {comoTabela[p.id] ? (
+                    <div className="q-tabela-caixa qe-tabela" tabIndex={0}>
+                      <table className="q-tabela">
+                        <thead>
+                          <tr>
+                            {(p.cab ?? []).map((c) => (
+                              <th key={c}>{c}</th>
                             ))}
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                    {!painel.linhas?.length && (
-                      <p className="q-texto qe-sem-linhas">{painel.vazio ?? t('Sem dados no período.')}</p>
-                    )}
-                  </div>
-                ) : painel.vazio ? (
-                  <p className="q-texto qe-vazio">{painel.vazio}</p>
-                ) : (
-                  <Medido key={painel.id}>{(largura) => painel.grafico?.(largura)}</Medido>
-                )}
-                {painel.nota && (
-                  <div className="q-aviso" role="note">
-                    <span>{painel.nota}</span>
-                    {painel.acao && (
-                      <button type="button" className="q-ctl" onClick={painel.acao.aoTocar}>
-                        <Gamepad2 aria-hidden /> {painel.acao.rotulo}
-                      </button>
-                    )}
-                  </div>
-                )}
-              </>
-            )}
-          </div>
+                        </thead>
+                        <tbody>
+                          {(p.linhas ?? []).map((l, i) => (
+                            <tr key={i}>
+                              {l.map((c, j) => (
+                                <td key={j}>{c}</td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      {!p.linhas?.length && (
+                        <p className="q-texto qe-sem-linhas">{p.vazio ?? t('Sem dados no período.')}</p>
+                      )}
+                    </div>
+                  ) : p.vazio ? (
+                    <p className="q-texto qe-vazio">{p.vazio}</p>
+                  ) : (
+                    <Medido key={p.id}>{(largura) => p.grafico?.(largura)}</Medido>
+                  )}
+                  {p.nota && (
+                    <div className="q-aviso" role="note">
+                      <span>{p.nota}</span>
+                      {p.acao && (
+                        <button type="button" className="q-ctl" onClick={p.acao.aoTocar}>
+                          <Gamepad2 aria-hidden /> {p.acao.rotulo}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          ))}
         </>
       )}
 
@@ -322,7 +328,9 @@ export default function EstatisticasDoQuest({
                 <span>
                   <b>{t('Imprimir ou salvar em PDF')}</b>
                   <small>
-                    {t('Abre a impressão do navegador com o gráfico aberto. Se o headset não imprimir, use o CSV.')}
+                    {t(
+                      'Abre a impressão do navegador com todos os gráficos e a meta. Se o headset não imprimir, use o CSV.',
+                    )}
                   </small>
                 </span>
               </button>

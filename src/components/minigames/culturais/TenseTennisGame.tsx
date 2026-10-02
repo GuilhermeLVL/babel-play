@@ -32,6 +32,8 @@ interface TenseTennisGameProps {
 
 /** Segundos da PRIMEIRA devolução, por perfil. */
 const SAQUE: Record<AgeProfileType, number> = { kids: 8, pro: 6, senior: 9 };
+/** No Meta Quest o saque vale três vezes mais: lá se digita apontando no teclado do sistema. */
+const SAQUE_NO_QUEST = 3;
 /** O rali encurta um segundo por devolução certa, mas nunca abaixo da metade do saque. */
 function segundosDaJogada(base: number, rali: number): number {
   return Math.max(Math.ceil(base / 2), base - rali);
@@ -42,7 +44,13 @@ export default function TenseTennisGame({ items, ageProfile, onFinish, onExit }:
   const { ativo } = useRodada();
   const [placar, recontar] = usePlacarDaRodada('tenis');
   const suficiente = items.length >= MINIGAMES.tenis.minItems;
-  const base = SAQUE[ageProfile];
+  /* NO QUEST quem escreve é o teclado do sistema, que sobe quando a pessoa toca no campo. O campo não
+     é desligado entre uma bola e outra: desligá-lo tiraria o foco e fecharia o teclado a cada jogada. */
+  const questNovo = useQuestNovo();
+  /* O RELÓGIO NO HEADSET: apontar letra por letra com o controle leva várias vezes o tempo de um teclado
+     físico, e os 6 s do saque não dariam nem para a primeira palavra. O saque triplica ali (18 s no
+     perfil padrão, com piso de 9 s no rali); a regra do rali, que encurta a cada devolução, é a mesma. */
+  const base = SAQUE[ageProfile] * (questNovo ? SAQUE_NO_QUEST : 1);
 
   const [indice, setIndice] = useState(0);
   const [rali, setRali] = useState(0);
@@ -55,9 +63,6 @@ export default function TenseTennisGame({ items, ageProfile, onFinish, onExit }:
   /** O que a tela diz da devolução: "Fora! Era…", "Certo! Com acento…", "Também vale…". */
   const [aviso, setAviso] = useState<{ tom: 'erro' | 'certo'; rotulo: string; resposta: string } | null>(null);
   const [acabou, setAcabou] = useState(false);
-  /* NO QUEST quem escreve é o teclado do sistema, que sobe quando a pessoa toca no campo. O campo não
-     é desligado entre uma bola e outra: desligá-lo tiraria o foco e fecharia o teclado a cada jogada. */
-  const questNovo = useQuestNovo();
 
   const outcomesRef = useRef<ItemOutcome[]>([]);
   const inicioRodadaRef = useRef(Date.now());

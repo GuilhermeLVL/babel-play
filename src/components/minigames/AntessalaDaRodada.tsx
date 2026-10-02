@@ -728,10 +728,12 @@ export default function AntessalaDaRodada({
                                   {apoio && <small>{apoio}</small>}
                                 </td>
                                 <td>{quando ? t(quando) : t('nunca caiu')}</td>
-                                <td>
+                                <td className="qj-item">
                                   <span className="q-tag" data-tom={selo.tom}>
                                     {t(selo.texto)}
                                   </span>
+                                  {/* O porquê do selo (no computador é a dica ao parar o ponteiro). */}
+                                  {selo.title && <small>{selo.title}</small>}
                                 </td>
                               </tr>
                             );
@@ -828,12 +830,17 @@ export default function AntessalaDaRodada({
                           <td>
                             <b>{f.pontos ? formatar(f.pontos) : '—'}</b>
                           </td>
-                          <td
-                            className="qj-estrelas"
-                            aria-label={t('{n} de 3 estrelas ({pct}% de acerto)', { n: f.estrelas, pct: f.precisao })}
-                          >
-                            {'★'.repeat(f.estrelas)}
-                            <span aria-hidden>{'★'.repeat(3 - f.estrelas)}</span>
+                          <td className="qj-item">
+                            <span
+                              className="qj-estrelas"
+                              role="img"
+                              aria-label={t('{n} de 3 estrelas', { n: f.estrelas })}
+                            >
+                              {'★'.repeat(f.estrelas)}
+                              <span aria-hidden>{'★'.repeat(3 - f.estrelas)}</span>
+                            </span>
+                            {/* O acerto da fase, escrito (no computador é a dica ao parar o ponteiro). */}
+                            <small>{t('{n}% de acerto', { n: f.precisao })}</small>
                           </td>
                           <td>{quando ? t(quando) : '—'}</td>
                           <td className="qj-item">

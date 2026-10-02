@@ -143,6 +143,30 @@ describe('Estatísticas no Quest', () => {
     expect(container.querySelectorAll('.qe-grafico .g-cel')).toHaveLength(84)
   })
 
+  it('na tela aparece um painel; os outros seis ficam montados e escondidos, para a impressão trazer todos', async () => {
+    const { container, aba } = await montar()
+    const paineis = [...container.querySelectorAll<HTMLElement>('.qe-painel')]
+    expect(paineis.map((p) => p.dataset.painel)).toEqual([
+      'minutos',
+      'vocab',
+      'calendario',
+      'previsao',
+      'jogos',
+      'niveis',
+      'meta',
+    ])
+    expect(paineis.filter((p) => !p.hidden).map((p) => p.dataset.painel)).toEqual(['minutos'])
+    // Os escondidos têm o conteúdo inteiro (é ele que o `@media print` mostra em sequência).
+    expect(container.querySelector('[data-painel="calendario"]')?.querySelectorAll('.g-cel')).toHaveLength(84)
+    expect(container.querySelector('[data-painel="jogos"]')?.textContent).toContain('Soletrar (Termo)')
+    expect(container.querySelector('[data-painel="meta"] .qe-medida')).toBeTruthy()
+    for (const p of paineis)
+      expect(document.getElementById(`qe-aba-${p.dataset.painel}`)?.getAttribute('aria-controls')).toBe(p.id)
+
+    fireEvent.click(aba(/^Jogos$/))
+    expect(paineis.filter((p) => !p.hidden).map((p) => p.dataset.painel)).toEqual(['jogos'])
+  })
+
   it('"Praticar agora" mora no gráfico de jogos, junto do jogo mais fraco', async () => {
     const { aba, painel, ir } = await montar()
     fireEvent.click(aba(/^Jogos$/))
@@ -186,6 +210,7 @@ describe('Estatísticas no Quest', () => {
       expect(screen.queryByRole('dialog')).toBeNull()
 
       fireEvent.click(screen.getByRole('button', { name: /Exportar/ }))
+      expect(screen.getByRole('dialog').textContent).toContain('todos os gráficos e a meta')
       fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /Imprimir ou salvar em PDF/ }))
       vi.advanceTimersByTime(60)
       expect(imprimir).toHaveBeenCalledTimes(1)

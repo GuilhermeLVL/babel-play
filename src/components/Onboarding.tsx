@@ -1,3 +1,8 @@
+/* A apresentação aparece ANTES da casca (com conta) e o CSS do headset chega com o trilho, que ainda
+   não existe: ela traz as duas folhas consigo. Só agem com `<html data-quest-novo="true">`. */
+import '../styles/quest.css';
+import '../styles/questBase.css';
+
 import {
   ArrowRight,
   AudioLines,

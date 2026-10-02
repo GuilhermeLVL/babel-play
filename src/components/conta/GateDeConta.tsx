@@ -8,8 +8,12 @@
 import { Lock, X } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 
+import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { t } from '../../lib/i18n';
+import { usePedacoDoQuest } from './quest/usePedacoDoQuest';
+
+const carregarGateDoQuest = () => import('./quest/GateDeContaDoQuest');
 
 interface GateDeContaProps {
   aberto: boolean;
@@ -21,6 +25,10 @@ interface GateDeContaProps {
 
 export default function GateDeConta({ aberto, motivo, onFechar, onEntrar }: GateDeContaProps) {
   const primeiro = useRef<HTMLButtonElement | null>(null);
+  const questNovo = useQuestNovo();
+  /* O desenho do headset desce com o app (não só quando o aviso abre), para já estar lá no toque. Se
+     não chegar, vale o desenho de sempre: este aviso nunca recarrega a página. */
+  const doQuest = usePedacoDoQuest(carregarGateDoQuest, questNovo);
 
   useEffect(() => {
     if (!aberto) return;
@@ -30,12 +38,28 @@ export default function GateDeConta({ aberto, motivo, onFechar, onEntrar }: Gate
     };
     document.addEventListener('keydown', escape);
     return () => document.removeEventListener('keydown', escape);
-  }, [aberto, onFechar]);
+  }, [aberto, onFechar, doQuest.falhou]);
 
   if (!aberto) return null;
   /* Edição estática: o mesmo modal, com a verdade dela — não há conta; o recurso está na versão
      completa. Uma saída só, fechar. */
   const semServidor = edicaoEstatica();
+
+  /* QUEST: o mesmo aviso, no centro e com alvos de 60 px. O arquivo desce só no Quest (este
+     componente mora no pacote inicial; o CSS do headset fica fora dele). O Esc continua aqui. Enquanto
+     o arquivo não chega, uma espera visível (o toque teve resposta); se não chegar, o aviso de sempre. */
+  if (questNovo && doQuest.Componente) {
+    const GateDeContaDoQuest = doQuest.Componente;
+    return <GateDeContaDoQuest motivo={motivo} semServidor={semServidor} onFechar={onFechar} onEntrar={onEntrar} />;
+  }
+  if (questNovo && !doQuest.falhou)
+    return (
+      <div className="fixed inset-0 z-[70] flex items-center justify-center bg-ink/40 p-4" onClick={onFechar}>
+        <p role="status" className="card-panel bg-surface px-6 py-5 text-base font-bold text-ink">
+          {t('Carregando…')}
+        </p>
+      </div>
+    );
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-ink/40 p-4" onClick={onFechar}>

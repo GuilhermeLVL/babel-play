@@ -1,4 +1,5 @@
 import {
+  Activity,
   ChartColumn,
   CreditCard,
   HardDrive,
@@ -13,6 +14,7 @@ import { createPortal } from 'react-dom';
 
 import { tetoAnonimoDa } from '../../core/tetoAnonimo';
 import * as auth from '../../lib/auth';
+import { perfilDoDispositivo } from '../../lib/dispositivo/perfil';
 import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { useFlag } from '../../lib/flags';
 import { useFotoDoPerfil } from '../../lib/fotoDoPerfil';
@@ -161,6 +163,9 @@ export default function MenuDaConta({ onIr }: MenuDaContaProps) {
             {item('settings', SettingsIcon, t('Ajustes'))}
             {!semServidor && item('planos', CreditCard, t('Planos'))}
             {item('ajuda', LifeBuoy, t('Ajuda e suporte'))}
+            {/* No headset com as telas novas DESLIGADAS, este menu é o único caminho de volta à chave
+                (ela mora em `/diagnostico`, que só o painel "Mais" do desenho novo listava). */}
+            {perfilDoDispositivo().tipo === 'quest' && item('diagnostico', Activity, t('Diagnóstico do aparelho'))}
             {authRequired && !anonimo && (
               <>
                 <div className="sep-menu" />

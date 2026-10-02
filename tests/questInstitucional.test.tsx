@@ -200,22 +200,48 @@ describe('Diagnóstico no Quest', () => {
     expect(JSON.parse(escrever.mock.calls[0][0] as string).vibracao).toBeNull()
   })
 
-  it('headset: a chave das telas novas, a vibração em três botões e a chave de dono', () => {
+  it('copiar quando a área de transferência falha: abre o Resultado, seleciona o texto e não diz "Copiado"', async () => {
+    const { container } = render(<Diagnostico />)
+    Object.assign(navigator, {
+      clipboard: {
+        writeText: vi.fn(async () => {
+          throw new Error('negado')
+        }),
+      },
+    })
+    const copiar = container.querySelector('.q-ctl.pri') as HTMLButtonElement
+    fireEvent.click(copiar)
+    expect((await screen.findByTestId('copia-a-mao')).textContent).toMatch(/Não deu para copiar sozinho/)
+    expect(aba('Resultado').getAttribute('aria-selected')).toBe('true')
+    expect((container.querySelector('#painel-resultado') as HTMLElement).hidden).toBe(false)
+    const caixa = screen.getByTestId('diagnostico-json') as HTMLTextAreaElement
+    await waitFor(() => expect(document.activeElement).toBe(caixa))
+    expect(caixa.selectionStart).toBe(0)
+    expect(caixa.selectionEnd).toBe(caixa.value.length)
+    expect(copiar.textContent).not.toContain('Copiado')
+    expect(copiar.textContent).toContain('Copiar o resultado')
+  })
+
+  it('headset: a chave das telas novas, a vibração em três botões e a chave de dono', async () => {
     render(<Diagnostico />)
     fireEvent.click(aba('Headset'))
 
     const grupo = within(screen.getByRole('group', { name: 'Testar a vibração do controle' }))
     fireEvent.click(grupo.getByRole('button', { name: 'Forte' }))
-    const resultado = screen.getByTestId('diagnostico-vibracao')
+    const resultado = await screen.findByTestId('diagnostico-vibracao')
     expect(resultado.textContent).toMatch(/Nenhum controle à vista/)
+    // O jsdom não tem `navigator.vibrate` nem Gamepad API: as duas linhas dizem isso.
+    expect(resultado.textContent).toMatch(/Vibração pelo navegador.*não existe aqui/)
     expect(resultado.textContent).toContain('nenhum')
-    // Sem motor, o app toca o som no lugar: o teste toca o mesmo som.
+    // Nada vibrou: o teste toca o som que o app usa no lugar.
     expect(som.play).toHaveBeenCalledWith('apontar')
-    fireEvent.click(grupo.getByRole('button', { name: 'Suave' }))
+    let json = JSON.parse((screen.getByTestId('diagnostico-json') as HTMLTextAreaElement).value)
+    expect(json.vibracao).toEqual({ teste: 'forte', vibrate: null, controles: [] })
+
     fireEvent.click(grupo.getByRole('button', { name: 'Som no lugar' }))
-    expect(resultado.textContent).toMatch(/Tocou o som que o app usa no lugar/)
-    const json = JSON.parse((screen.getByTestId('diagnostico-json') as HTMLTextAreaElement).value)
-    expect(json.vibracao).toMatchObject({ teste: 'som', controles: 0, comMotor: 0, pediu: false, lista: [] })
+    await waitFor(() => expect(resultado.textContent).toMatch(/Tocou o som que o app usa no lugar/))
+    json = JSON.parse((screen.getByTestId('diagnostico-json') as HTMLTextAreaElement).value)
+    expect(json.vibracao).toEqual({ teste: 'som', vibrate: null, controles: [] })
 
     fireEvent.change(screen.getByLabelText('Chave de dono'), { target: { value: ' segredo ' } })
     expect(localStorage.getItem('babel.chaveDoDono')).toBe('segredo')
@@ -227,7 +253,42 @@ describe('Diagnóstico no Quest', () => {
     expect(screen.getByRole('button', { name: 'Telas novas: desligadas' }).getAttribute('aria-pressed')).toBe('false')
   })
 
-  it('chave DESLIGADA no Quest: a tela de sempre, com o caminho de volta no topo', () => {
+  it('vibração: os DOIS caminhos (navigator.vibrate e o motor do controle) e o relato por controle no JSON', async () => {
+    const vibrate = vi.fn(() => true)
+    const playEffect = vi.fn(async () => 'complete')
+    const controles = [
+      { id: 'Oculus Touch (Right)', index: 0, buttons: [], vibrationActuator: { playEffect } },
+      { id: 'Controle sem motor', index: 1, buttons: [] },
+    ]
+    Object.assign(navigator, { vibrate, getGamepads: () => controles })
+    try {
+      render(<Diagnostico />)
+      fireEvent.click(aba('Headset'))
+      const grupo = within(screen.getByRole('group', { name: 'Testar a vibração do controle' }))
+      fireEvent.click(grupo.getByRole('button', { name: 'Suave' }))
+      const resultado = await screen.findByTestId('diagnostico-vibracao')
+      expect(vibrate).toHaveBeenCalledTimes(1)
+      expect(playEffect).toHaveBeenCalledTimes(1)
+      expect(resultado.textContent).toMatch(/Vibração pelo navegador.*sim/)
+      expect(resultado.textContent).toContain('Oculus Touch (Right): vibrou')
+      expect(resultado.textContent).toContain('Controle sem motor: sem motor')
+      // Vibrou: o som que entra no lugar não toca.
+      expect(som.play).not.toHaveBeenCalled()
+      const json = JSON.parse((screen.getByTestId('diagnostico-json') as HTMLTextAreaElement).value)
+      expect(json.vibracao).toEqual({
+        teste: 'suave',
+        vibrate: true,
+        controles: [
+          { id: 'Oculus Touch (Right)', temMotor: true, vibrou: true },
+          { id: 'Controle sem motor', temMotor: false, vibrou: false },
+        ],
+      })
+    } finally {
+      Object.assign(navigator, { vibrate: undefined, getGamepads: undefined })
+    }
+  })
+
+  it('chave DESLIGADA no Quest: a tela de sempre, com o caminho de volta no topo', async () => {
     quest.ligado = false
     localStorage.setItem('babel.quest.telaNova', 'nao')
     const { container } = render(<Diagnostico />)
@@ -235,13 +296,24 @@ describe('Diagnóstico no Quest', () => {
     expect(container.querySelector('.tela')).not.toBeNull()
     expect(screen.getByRole('button', { name: 'Telas novas: desligadas' })).toBeTruthy()
 
-    fireEvent.click(within(screen.getByTestId('religar-telas-novas')).getByRole('button', { name: 'Ligar de novo' }))
+    const aviso = screen.getByTestId('religar-telas-novas')
+    expect(aviso.className).toContain('religar-telas-novas')
+    fireEvent.click(within(aviso).getByRole('button', { name: 'Ligar de novo' }))
     expect(localStorage.getItem('babel.quest.telaNova')).toBeNull()
     expect(screen.queryByTestId('religar-telas-novas')).toBeNull()
-    // A vibração tem os mesmos três botões na tela de sempre.
-    const grupo = within(screen.getByRole('group', { name: 'Testar a vibração do controle' }))
-    fireEvent.click(grupo.getByRole('button', { name: 'Suave' }))
-    expect(screen.getByTestId('diagnostico-vibracao').textContent).toMatch(/Nenhum controle à vista/)
+    // A vibração tem os mesmos três botões na tela de sempre, e chama o caminho do celular.
+    const vibrate = vi.fn(() => true)
+    Object.assign(navigator, { vibrate })
+    try {
+      const grupo = within(screen.getByRole('group', { name: 'Testar a vibração do controle' }))
+      fireEvent.click(grupo.getByRole('button', { name: 'Suave' }))
+      const resultado = await screen.findByTestId('diagnostico-vibracao')
+      expect(vibrate).toHaveBeenCalledTimes(1)
+      expect(resultado.textContent).toMatch(/Vibração pelo navegador.*sim/)
+      expect(resultado.textContent).toMatch(/Controles que a página enxerga.*nenhum/)
+    } finally {
+      Object.assign(navigator, { vibrate: undefined })
+    }
   })
 
   it('no computador, nada de aviso de religar', () => {

@@ -851,6 +851,7 @@ export default function TermoGame({ rodadas, ageProfile, onFinish }: TermoGamePr
               disabled={fimDoGrupo}
               onClick={(e) => pedirDica(e.currentTarget)}
               title="Revelar uma letra da palavra"
+              custo={t('limita a nota a "difícil" só naquele tabuleiro')}
             />
             <BotaoDeAjuda
               icone={WandSparkles}
@@ -859,6 +860,7 @@ export default function TermoGame({ rodadas, ageProfile, onFinish }: TermoGamePr
               disabled={fimDoGrupo}
               onClick={(e) => usarLetrasCertas(e.currentTarget)}
               title="Preencher as letras que você já descobriu"
+              custo={t('de graça')}
             />
           </>
         }

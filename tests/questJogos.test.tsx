@@ -55,7 +55,7 @@ vi.mock('../src/lib/tts', async (original) => ({
   cancelSpeech: vi.fn(),
 }))
 
-const { tilesDoQuest } = await import('../src/components/views/play/quest/jogosNoQuest')
+const { jogosQueAbremNoQuest, tilesDoQuest } = await import('../src/components/views/play/quest/jogosNoQuest')
 const { default: WordSearchGame } = await import('../src/components/minigames/WordSearchGame')
 const { default: TermoGame } = await import('../src/components/minigames/TermoGame')
 const { default: EscutaGame } = await import('../src/components/minigames/EscutaGame')
@@ -119,17 +119,31 @@ describe('tilesDoQuest: a voz do idioma do baralho', () => {
     expect(t).toMatchObject({ apagado: false, grupo: 'audio', tag: 'Voz de leitura' })
   })
 
-  it('e fica apagada, com o idioma no motivo, quando a voz não o lê', () => {
-    const t = tile('escuta', { idioma: 'de', haVozPara: leIngles })
+  it('sem voz para o idioma, Escuta e Ditado ABREM pela tradução, e o cartão diz isso', () => {
+    // Os dois jogos têm a alternativa escrita (o ramo `!temSom`): apagar o cartão escondia um jogo jogável.
+    const escuta = tile('escuta', { idioma: 'de', haVozPara: leIngles })
+    expect(escuta).toMatchObject({ apagado: false, grupo: 'audio', tag: 'Pela tradução' })
+    expect(escuta.nota).toMatch(/alemão/i)
+    expect(escuta.nota).toMatch(/a pergunta vem escrita/)
+    // O Ditado continua pedindo o teclado do sistema: fica no grupo de quem digita.
+    expect(tile('ditado', { idioma: 'de', haVozPara: leIngles })).toMatchObject({
+      apagado: false,
+      grupo: 'teclado',
+      tag: 'Pela tradução',
+    })
+  })
+
+  it('quando o gate do material diz "sem voz" (não conhece a alternativa escrita), o cartão não abre', () => {
+    const t = tile('escuta', { idioma: 'de', haVozPara: leIngles }, { ok: false, motivo: 'sem-voz', disponiveis: 0 })
     expect(t).toMatchObject({ apagado: true, grupo: 'aparelho', tag: 'Pede voz de leitura' })
     expect(t.nota).toMatch(/alemão/i)
   })
 
   it('sem saber o idioma, vale "há alguma voz aqui": o jogo confere fala a fala', () => {
-    expect(tile('escuta', { haAlgumaVoz: () => true }).apagado).toBe(false)
-    expect(tile('escuta', { haAlgumaVoz: () => false }).apagado).toBe(true)
-    // Sem o quarto parâmetro (como o lobby chama hoje), nada de voz no jsdom: continua apagada.
-    expect(tile('escuta').apagado).toBe(true)
+    expect(tile('escuta', { haAlgumaVoz: () => true }).tag).toBe('Voz de leitura')
+    expect(tile('escuta', { haAlgumaVoz: () => false }).tag).toBe('Pela tradução')
+    // Sem o quarto parâmetro, nada de voz no jsdom: abre pela tradução.
+    expect(tile('escuta')).toMatchObject({ apagado: false, tag: 'Pela tradução' })
   })
 
   it('com a gravação, a voz não entra na conta', () => {
@@ -139,9 +153,21 @@ describe('tilesDoQuest: a voz do idioma do baralho', () => {
     })
   })
 
-  it('o Karaokê continua apagado, com o motivo, mesmo com voz: o headset não reconhece fala', () => {
-    const t = tile('karaoke', { idioma: 'en', haVozPara: leIngles }, { fonte: 'falas' })
-    expect(t).toMatchObject({ apagado: true, tag: 'Pede nota de voz', nota: 'O headset não avalia a pronúncia.' })
+  it('o Karaokê ABRE quando há som (o clipe ou a voz), avisando que não há nota de voz', () => {
+    // O jogo tem o modo "ouça, repita em voz alta e siga" (`semNotaAqui`): só não há nota.
+    const comClipe = tile('karaoke', { idioma: 'de', haVozPara: leIngles }, { fonte: 'falas' })
+    expect(comClipe).toMatchObject({ apagado: false, grupo: 'audio', tag: 'Sem nota de voz' })
+    expect(comClipe.nota).toMatch(/não dá nota de pronúncia/)
+    expect(tile('karaoke', { idioma: 'en', haVozPara: leIngles })).toMatchObject({
+      apagado: false,
+      tag: 'Sem nota de voz',
+    })
+  })
+
+  it('e só fica apagado sem som nenhum: sem gravação e sem voz para o idioma', () => {
+    const t = tile('karaoke', { idioma: 'de', haVozPara: leIngles })
+    expect(t).toMatchObject({ apagado: true, grupo: 'aparelho', tag: 'Pede voz de leitura' })
+    expect(t.nota).toMatch(/alemão/i)
   })
 
   it('o Termo joga-se apontando (teclado na tela); os de campo pedem o teclado do sistema e abrem', () => {
@@ -149,6 +175,64 @@ describe('tilesDoQuest: a voz do idioma do baralho', () => {
     expect(tile('tenis')).toMatchObject({ apagado: false, grupo: 'teclado', tag: 'Pede teclado' })
     expect(tile('cadavre')).toMatchObject({ apagado: false, grupo: 'teclado' })
     expect(tile('choseong')).toMatchObject({ apagado: false, grupo: 'apontar', tag: 'Apontar' })
+  })
+
+  describe('a ordem é a do usuário', () => {
+    // A entrada já vem na ordem de `aplicarOrdem`; aqui o que se confere é a grade do headset.
+    const jogos = [
+      jogo('tenis'), // teclado
+      jogo('escuta', { fonte: 'falas' }), // áudio
+      jogo('memory'), // apontar
+      jogo('blitz'), // apontar
+      jogo('wordsearch', { ok: false, faltam: 2 }), // falta material
+      jogo('karaoke'), // sem som nenhum: apagado
+    ]
+    const ids = (ordem?: Parameters<typeof tilesDoQuest>[4]) =>
+      tilesDoQuest(jogos, QUEST, () => 'falta material', { idioma: 'de', haVozPara: leIngles }, ordem).map(
+        (t) => t.jogo.id,
+      )
+
+    it('sem preferência, os grupos desempatam: apontar, áudio, teclado, e no fim o que não abre', () => {
+      expect(ids()).toEqual(['memory', 'blitz', 'escuta', 'tenis', 'karaoke', 'wordsearch'])
+    })
+
+    it('o favorito sobe para o começo da grade inteira, mesmo sendo do grupo do teclado', () => {
+      expect(ids({ fixados: ['tenis'] })).toEqual(['tenis', 'memory', 'blitz', 'escuta', 'karaoke', 'wordsearch'])
+      // Dois favoritos: na ordem em que foram fixados.
+      expect(ids({ fixados: ['escuta', 'tenis'] }).slice(0, 2)).toEqual(['escuta', 'tenis'])
+    })
+
+    it('a ordem que a pessoa montou vale acima dos grupos; o que ela não ordenou vem depois', () => {
+      expect(ids({ ordem: ['tenis', 'blitz'] })).toEqual([
+        'tenis',
+        'blitz',
+        'memory',
+        'escuta',
+        'karaoke',
+        'wordsearch',
+      ])
+    })
+
+    it('favorito que não abre aqui não fura a fila: o apagado fica sempre no fim', () => {
+      expect(ids({ fixados: ['karaoke', 'blitz'] })).toEqual([
+        'blitz',
+        'memory',
+        'escuta',
+        'tenis',
+        'karaoke',
+        'wordsearch',
+      ])
+    })
+  })
+
+  it('os jogos que abrem no headset: é entre eles que a partida rápida sorteia e a sugestão escolhe', () => {
+    const abrem = jogosQueAbremNoQuest(
+      [jogo('memory'), jogo('karaoke'), jogo('escuta'), jogo('wordsearch', { ok: false, faltam: 2 })],
+      QUEST,
+      { idioma: 'de', haVozPara: leIngles },
+    )
+    // Karaokê sem som nenhum e Caça-palavras sem material ficam de fora; a Escuta abre pela tradução.
+    expect([...abrem].sort()).toEqual(['escuta', 'memory'])
   })
 })
 
@@ -422,6 +506,34 @@ describe('campos e peças no Quest', () => {
     expect(campo.disabled).toBe(false)
     avancar(600)
     expect(document.querySelector('[data-tour="bola"] p')?.textContent).toBe('cachorro')
+  })
+
+  it('Tênis: o saque dura três vezes mais no headset (digita-se apontando no teclado do sistema)', () => {
+    render(<TenseTennisGame items={ITENS} ageProfile="pro" onFinish={nada} onExit={nada} />)
+    expect(document.querySelector('[data-tour="relogio"]')?.textContent).toBe('18 s')
+    cleanup()
+    aparelho.quest = false
+    render(<TenseTennisGame items={ITENS} ageProfile="pro" onFinish={nada} onExit={nada} />)
+    expect(document.querySelector('[data-tour="relogio"]')?.textContent).toBe('6 s')
+  })
+
+  it('as ajudas do placar dizem o que fazem e o que custam num "?" (no headset não há dica ao parar o ponteiro)', () => {
+    const rodadas: RodadaDitado[] = [
+      {
+        fala: { id: 'd1', text: 'Wo ist der Bahnhof', lang: 'de', translation: 'Onde fica a estação' } as never,
+        palavras: 4,
+      },
+    ]
+    render(<DitadoGame rodadas={rodadas} audioUrl="" ageProfile="pro" onFinish={nada} onExit={nada} />)
+    expect(document.querySelector('.qj-ajudas-notas')).toBeNull()
+    fireEvent.click(botao('O que cada ajuda faz')!)
+    expect(document.querySelector('.qj-ajudas-notas')?.textContent).toMatch(
+      /Revelar a próxima palavra \(conta como dica\)/,
+    )
+    cleanup()
+    aparelho.quest = false
+    render(<DitadoGame rodadas={rodadas} audioUrl="" ageProfile="pro" onFinish={nada} onExit={nada} />)
+    expect(botao('O que cada ajuda faz')).toBeNull()
   })
 
   it('Tênis fora do Quest: o campo desliga enquanto a devolução é conferida, como sempre', () => {

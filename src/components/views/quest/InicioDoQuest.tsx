@@ -12,21 +12,30 @@ import {
   Layers,
   ListChecks,
   Mic,
+  Snowflake,
   Sprout,
+  Upload,
   Youtube,
 } from 'lucide-react';
-import React from 'react';
+import React, { useState } from 'react';
 
 import type { AppMetrics } from '../../../data/api';
+import { edicaoEstatica } from '../../../lib/edicaoEstatica';
+import { proximaRecompensa } from '../../../lib/galeria/progressao';
 import { numero, t, tp } from '../../../lib/i18n';
+import type { AgeProfileType } from '../../../lib/profile';
 import type { DerivedProgress } from '../../../lib/progress';
+import { perfilProtegido } from '../../../lib/protecaoDoMenor';
 import type { Recording } from '../../../types';
+import CardDePlanos from '../../CardDePlanos';
+import AvisoDeConta from '../../conta/AvisoDeConta';
 import { ICONE_DA_MISSAO, rotuloDaMissao } from '../../progress/MissoesDoDia';
 
 /** Uma sessão de revisão, não a fila inteira (a mesma conta do Início de sempre, `Hub.tsx`). */
 const TAMANHO_DA_SESSAO = 20;
-/** Quantas sessões recentes cabem sem virar a Biblioteca. */
-const RECENTES = 3;
+/** Quantas sessões recentes cabem sem virar a Biblioteca (as mesmas seis do Início de sempre). */
+const RECENTES = 6;
+type TipoDeSessao = 'all' | Recording['type'];
 
 interface InicioDoQuestProps {
   onChangeView: (view: string, data?: { id?: string }) => void;
@@ -40,6 +49,8 @@ interface InicioDoQuestProps {
    * precisa de conta". O Início não os oferece: o segundo caminho vira o Intérprete, que funciona.
    */
   semConta?: boolean;
+  /** O perfil de exibição (kids, pro, sênior): muda a linguagem do cabeçalho, como no Início de sempre. */
+  ageProfile?: AgeProfileType;
 }
 
 const saudacao = (hora: number): string =>
@@ -65,9 +76,27 @@ export default function InicioDoQuest({
   metrics,
   missoes = null,
   semConta = false,
+  ageProfile = 'pro',
 }: InicioDoQuestProps) {
   const vencidas = Math.min(metrics?.dueToday ?? 0, TAMANHO_DA_SESSAO);
-  const recentes = semConta ? [] : recordings.slice(0, RECENTES);
+  const [tipo, setTipo] = useState<TipoDeSessao>('all');
+  const sessoes = semConta ? [] : recordings;
+  const recentes = sessoes.filter((r) => tipo === 'all' || r.type === tipo).slice(0, RECENTES);
+  const quantas = (qual: TipoDeSessao) =>
+    qual === 'all' ? sessoes.length : sessoes.filter((r) => r.type === qual).length;
+  /* A frase da ofensiva e a próxima recompensa: as mesmas da faixa de progresso de sempre. */
+  const simples = ageProfile === 'senior';
+  const proxima = simples ? null : proximaRecompensa(progress.level);
+  const fraseDaOfensiva = progress.practicedToday
+    ? tp(progress.streakDays, 'Você revisou hoje, ofensiva de {n} dia.', 'Você revisou hoje, ofensiva de {n} dias.')
+    : progress.streakDays > 0
+      ? tp(
+          progress.streakDays,
+          'Uma revisão ou rodada hoje mantém a ofensiva de {n} dia.',
+          'Uma revisão ou rodada hoje mantém a ofensiva de {n} dias.',
+        )
+      : t('Uma revisão hoje começa a sua ofensiva.');
+  const congelamentos = missoes && !perfilProtegido() ? missoes.congelamentos : 0;
   const listaDeMissoes = missoes?.missoes ?? [];
   const feitas = listaDeMissoes.filter((m) => m.atual >= m.alvo).length;
 
@@ -76,7 +105,13 @@ export default function InicioDoQuest({
       <div className="q-cab">
         <div>
           <p className="q-sobre">{saudacao(new Date().getHours())}</p>
-          <h1>{t('O que vamos fazer?')}</h1>
+          <h1>
+            {ageProfile === 'kids'
+              ? t('Pronto para os desafios?')
+              : ageProfile === 'senior'
+                ? t('Bem-vindo ao Babel Play')
+                : t('O que vamos fazer?')}
+          </h1>
         </div>
         {progress.available && progress.streakDays > 0 && (
           <span className="q-chip">
@@ -140,7 +175,9 @@ export default function InicioDoQuest({
         </button>
       </div>
 
-      {/* O PROGRESSO numa linha só: nível, XP até o próximo e Seeds. Toca, abre as Estatísticas. */}
+      {/* O PROGRESSO numa linha só: nível, XP até o próximo e Seeds. Toca, abre as Estatísticas.
+          Enquanto as métricas não chegam, a forma da linha (nunca um "Nível 1 · 0 XP" falso). */}
+      {!progress.available && <div className="q-esqueleto" style={{ minHeight: 92 }} aria-hidden />}
       {progress.available && (
         <button
           type="button"
@@ -170,10 +207,14 @@ export default function InicioDoQuest({
               <span style={{ width: `${Math.max(0, Math.min(100, progress.levelPct))}%` }} />
             </span>
             <small>
-              {t('{atual} de {alvo} XP para o próximo nível', {
-                atual: numero(progress.xpIntoLevel),
-                alvo: numero(progress.xpForLevel),
-              })}
+              {fraseDaOfensiva} {t('Faltam {n} XP', { n: progress.xpForLevel - progress.xpIntoLevel })}
+              {proxima && (
+                <>
+                  {' · '}
+                  {t('próximo:')}{' '}
+                  <b style={{ display: 'inline', font: 'inherit', fontWeight: 800 }}>{proxima.destaque.nome}</b>
+                </>
+              )}
             </small>
           </span>
           <span className="q-chip" style={{ flex: 'none' }}>
@@ -233,11 +274,47 @@ export default function InicioDoQuest({
               );
             })}
           </div>
+          {congelamentos > 0 && (
+            <p className="q-rodape-do-mais">
+              <Snowflake aria-hidden />
+              {tp(
+                congelamentos,
+                '{n} congelamento guardado: um dia sem prática não quebra a ofensiva.',
+                '{n} congelamentos guardados: um dia sem prática não quebra a ofensiva.',
+              )}
+            </p>
+          )}
         </section>
       )}
 
-      {/* AS SESSÕES RECENTES: as três últimas a um toque; o resto, na Biblioteca. */}
-      {recentes.length > 0 && (
+      {/* O AVISO POR MARCO DE USO (sem conta, com motivo concreto) e o convite aos planos: os mesmos
+          componentes do Início de sempre, com as regras deles (quando aparecem, quando somem). */}
+      <AvisoDeConta metrics={metrics} onEntrar={() => onChangeView('login')} />
+      {!edicaoEstatica() && <CardDePlanos onVerPlanos={() => onChangeView('planos')} />}
+
+      {/* AS SESSÕES RECENTES: as seis últimas, com o filtro por tipo; o resto, na Biblioteca. */}
+      {!semConta && sessoes.length === 0 && (
+        <section className="q-secao" aria-label={t('Sessões recentes')} data-testid="recentes-no-inicio">
+          <div className="q-vazio" style={{ minHeight: 200 }}>
+            <span className="q-ic">
+              <Headphones aria-hidden />
+            </span>
+            <h2>{t('Nenhuma sessão ainda')}</h2>
+            <p>{t('Capture sua primeira sessão ou importe uma mídia pela Biblioteca, ela aparecerá aqui.')}</p>
+            <div className="q-acoes" style={{ justifyContent: 'center' }}>
+              <button type="button" className="q-ctl pri" onClick={() => onChangeView('capture')}>
+                <Mic aria-hidden /> {t('Nova captura')}
+              </button>
+              {!edicaoEstatica() && (
+                <button type="button" className="q-ctl" onClick={() => onChangeView('library')}>
+                  <Upload aria-hidden /> {t('Importar mídia')}
+                </button>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+      {sessoes.length > 0 && (
         <section className="q-secao" aria-label={t('Sessões recentes')} data-testid="recentes-no-inicio">
           <header>
             <div>
@@ -247,6 +324,33 @@ export default function InicioDoQuest({
               {t('Ver biblioteca completa')}
             </button>
           </header>
+          <div className="q-abas q-seg" role="group" aria-label={t('Tipo de mídia')}>
+            {(
+              [
+                ['all', t('Tudo')],
+                ['video', 'YouTube'],
+                ['audio', t('Áudio')],
+                ['document', t('Documentos')],
+              ] as const
+            ).map(([id, rotulo]) => (
+              <button key={id} type="button" className="q-aba" aria-pressed={tipo === id} onClick={() => setTipo(id)}>
+                {rotulo}
+                <span className="n">{quantas(id)}</span>
+              </button>
+            ))}
+          </div>
+          {recentes.length === 0 && (
+            <div className="q-aviso">
+              <span>
+                {t(
+                  'Nenhuma sessão salva com este tipo de arquivo. Escolha outra categoria ou capture uma nova sessão.',
+                )}
+              </span>
+              <button type="button" className="q-ctl" onClick={() => setTipo('all')}>
+                {t('Ver todas as categorias')}
+              </button>
+            </div>
+          )}
           <div className="q-lista">
             {recentes.map((rec, i) => {
               const Icone = iconeDaSessao(rec.type);
@@ -261,8 +365,9 @@ export default function InicioDoQuest({
                     <Icone aria-hidden />
                   </span>
                   <span>
-                    <b>{i === 0 ? t('Continuar: {titulo}', { titulo: rec.title }) : rec.title}</b>
+                    <b>{i === 0 && tipo === 'all' ? t('Continuar: {titulo}', { titulo: rec.title }) : rec.title}</b>
                     <small>
+                      {rec.type === 'video' ? 'YouTube' : rec.type === 'document' ? t('Documento') : t('Áudio')} ·{' '}
                       {rec.date}
                       {rec.durationStr ? ` · ${rec.durationStr}` : ''}
                       {rec.status !== 'Processado' ? ` · ${t('processando')}` : ''}

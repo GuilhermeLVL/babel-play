@@ -1,0 +1,278 @@
+/*
+ * A LEITURA NO META QUEST (a rodada "todas as telas no desenho do headset", 02/10/2026).
+ *
+ * Só vale com `<html data-quest-novo="true">`. As peças comuns moram em `quest.css`, os diálogos em
+ * `questBase.css`, e as folhas que a Leitura divide com a Transcrição (o texto grande da frase, as
+ * palavras como botões, a folha da palavra, um ajuste por linha) em `questSessao.css`. Aqui fica só o
+ * que é da Leitura: o texto como lista de frases, o desenho livre por cima, a faixa do narrador, a
+ * lista "Estudos & notas" e o gravador do comentário em áudio.
+ */
+
+html[data-quest-novo='true'] .ql {
+  flex: 1 0 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+html[data-quest-novo='true'] .ql-barra .q-espaco {
+  flex: 1;
+}
+html[data-quest-novo='true'] .ql-desenho .q-ctl {
+  background: var(--surface);
+  border-color: var(--border-subtle);
+}
+
+/* ── O TEXTO: cada frase é um alvo inteiro; o toque abre as opções dela ───────────────────────── */
+html[data-quest-novo='true'] .ql-texto {
+  position: relative;
+  display: block;
+  padding: 10px;
+}
+html[data-quest-novo='true'] .ql-frases {
+  display: grid;
+  gap: 4px;
+}
+/* "Coluna": a medida de leitura confortável, centralizada. "Largura total" ocupa o cartão. */
+html[data-quest-novo='true'] .ql-texto.coluna .ql-frases {
+  max-width: 880px;
+  margin-inline: auto;
+}
+html[data-quest-novo='true'] .ql-frase {
+  width: 100%;
+  min-height: 64px;
+  padding: 12px 16px;
+  border: 2px solid transparent;
+  border-radius: 16px;
+  background: none;
+  color: var(--ink);
+  display: grid;
+  gap: 6px;
+  align-content: center;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    transform var(--q-toque),
+    border-color var(--q-cor),
+    background-color var(--q-cor);
+}
+html[data-quest-novo='true'] .ql-frase:hover {
+  border-color: var(--q-acento);
+  background: color-mix(in srgb, var(--q-acento) 9%, transparent);
+}
+html[data-quest-novo='true'] .ql-frase:active {
+  transform: scale(0.99);
+}
+html[data-quest-novo='true'] .ql-frase:focus-visible {
+  outline: 3px solid var(--q-acento);
+  outline-offset: 2px;
+}
+html[data-quest-novo='true'] .ql-o {
+  font: 600 21px/1.5 var(--font-body, inherit);
+  text-wrap: pretty;
+}
+html[data-quest-novo='true'] .ql-t {
+  font: 600 17px/1.45 var(--font-body, inherit);
+  color: var(--ink-muted);
+  text-wrap: pretty;
+}
+html[data-quest-novo='true'] .ql-frase .q-tag {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface);
+}
+html[data-quest-novo='true'] :is(.ql-frase, .ql-nota) .q-tag svg {
+  width: 15px;
+  height: 15px;
+}
+/* Lado a lado: o original à esquerda, a tradução à direita, na mesma linha. */
+html[data-quest-novo='true'] .ql-texto.lado-a-lado .ql-frase {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: 24px;
+  align-items: start;
+}
+html[data-quest-novo='true'] .ql-texto.lado-a-lado .ql-frase .q-tag {
+  grid-column: 1 / -1;
+}
+/* A frase que o narrador está lendo: o fundo E a borda do acento. */
+html[data-quest-novo='true'] .ql-frase.narrando {
+  background: var(--q-suave);
+  border-color: var(--q-acento);
+}
+/* A anotação semântica colore a frase, como na tela de sempre; o selo diz o tipo por escrito. */
+html[data-quest-novo='true'] .ql-frase.nota-vocab:not(.narrando) {
+  background: var(--accent-soft);
+}
+html[data-quest-novo='true'] .ql-frase.nota-gram:not(.narrando) {
+  background: var(--rare-soft, var(--surface-sunken));
+}
+html[data-quest-novo='true'] .ql-frase.nota-expr:not(.narrando) {
+  background: var(--good-soft, var(--surface-sunken));
+}
+html[data-quest-novo='true'] .ql-frase.nota-duvida:not(.narrando) {
+  background: var(--warn-soft, var(--surface-sunken));
+}
+html[data-quest-novo='true'] .ql-frase.nota-audio {
+  box-shadow: inset 0 -3px 0 var(--q-acento);
+}
+
+/* O DESENHO LIVRE: a tela por cima do texto recebe o raio só com o modo ligado. */
+html[data-quest-novo='true'] .ql-tela-de-desenho {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+  cursor: crosshair;
+  touch-action: none;
+}
+html[data-quest-novo='true'] .ql-texto.desenhando {
+  outline: 3px dashed color-mix(in srgb, var(--q-acento) 55%, transparent);
+  outline-offset: -7px;
+}
+
+/* ── A NARRAÇÃO: a faixa presa ao pé, como o player da transcrição ────────────────────────────── */
+html[data-quest-novo='true'] .ql-narrador {
+  position: sticky;
+  bottom: 12px;
+  z-index: 3;
+  margin: auto 0 0;
+  box-shadow: 0 0 0 12px var(--canvas);
+}
+html[data-quest-novo='true'] .ql-onde {
+  min-width: 0;
+  white-space: normal;
+  line-height: 1.25;
+}
+
+/* ── ESTUDOS & NOTAS (diálogo) ────────────────────────────────────────────────────────────────── */
+html[data-quest-novo='true'] .ql-notas {
+  display: grid;
+  gap: 12px;
+}
+html[data-quest-novo='true'] .ql-nota {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  padding: 14px 16px;
+  background: var(--canvas);
+}
+html[data-quest-novo='true'] .ql-nota-texto {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+html[data-quest-novo='true'] .ql-nota-texto .q-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+html[data-quest-novo='true'] .ql-nota-texto p {
+  margin: 0;
+  font: 600 17px/1.4 var(--font-body, inherit);
+}
+html[data-quest-novo='true'] .ql-nota .q-ctl {
+  background: var(--surface);
+}
+
+/* ── VOZ, IDIOMA E TOM (diálogo) ──────────────────────────────────────────────────────────────── */
+html[data-quest-novo='true'] select.ql-voz {
+  flex: 1 1 260px;
+  width: auto;
+}
+html[data-quest-novo='true'] .ql-tom {
+  flex: 0 1 260px;
+  accent-color: var(--q-acento);
+}
+
+/* ── GRAVAR COMENTÁRIO EM ÁUDIO (diálogo) ─────────────────────────────────────────────────────── */
+html[data-quest-novo='true'] .ql-gravador {
+  min-height: 132px;
+  padding: 20px;
+  border-radius: 18px;
+  background: var(--surface-sunken);
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 12px;
+  text-align: center;
+  font: 600 17px/1.4 var(--font-body, inherit);
+}
+html[data-quest-novo='true'] .ql-gravador b {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font: 800 19px/1.2 var(--font-display, inherit);
+}
+html[data-quest-novo='true'] .ql-gravador b svg {
+  width: 22px;
+  height: 22px;
+  color: var(--good-ink, var(--good));
+}
+html[data-quest-novo='true'] .ql-ondas {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 36px;
+}
+html[data-quest-novo='true'] .ql-ondas i {
+  width: 5px;
+  height: 30%;
+  border-radius: 3px;
+  background: var(--q-acento);
+  animation: ql-onda 0.9s ease-in-out infinite alternate;
+}
+html[data-quest-novo='true'] .ql-ondas i:nth-child(2) {
+  animation-delay: 0.2s;
+}
+html[data-quest-novo='true'] .ql-ondas i:nth-child(3) {
+  animation-delay: 0.4s;
+}
+html[data-quest-novo='true'] .ql-ondas i:nth-child(4) {
+  animation-delay: 0.1s;
+}
+@keyframes ql-onda {
+  to {
+    height: 100%;
+  }
+}
+
+/* ── JANELA MÉDIA E ESTREITA ──────────────────────────────────────────────────────────────────── */
+@media (max-width: 1020px) {
+  html[data-quest-novo='true'] .ql-narrador {
+    flex-wrap: wrap;
+    border-radius: 28px;
+  }
+}
+@media (max-width: 720px) {
+  html[data-quest-novo='true'] .ql-barra .q-espaco,
+  html[data-quest-novo='true'] .ql-narrador .q-espaco {
+    display: none;
+  }
+  html[data-quest-novo='true'] .ql-o {
+    font-size: 19px;
+  }
+  html[data-quest-novo='true'] .ql-frase {
+    padding: 10px 12px;
+  }
+  html[data-quest-novo='true'] .ql-texto.lado-a-lado .ql-frase {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  html[data-quest-novo='true'] .ql-nota {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-quest-novo='true'] .ql-frase {
+    transition: none;
+  }
+  html[data-quest-novo='true'] .ql-frase:active {
+    transform: none;
+  }
+  html[data-quest-novo='true'] .ql-ondas i {
+    animation: none;
+    height: 60%;
+  }
+}

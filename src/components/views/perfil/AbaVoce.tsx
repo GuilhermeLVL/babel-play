@@ -1,9 +1,11 @@
 import { INTERESSES, MAX_INTERESSES } from '@core';
-import { Camera, Check, CircleDot, GraduationCap, Heart, Loader2, Target } from 'lucide-react';
+import { Camera, Check, CircleDot, GraduationCap, Heart, Loader2, Target, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { fetchDeck } from '../../../data/api';
+import { useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
 import { gravarFoto, reduzirFoto, useFotoDoPerfil } from '../../../lib/fotoDoPerfil';
+import { t } from '../../../lib/i18n';
 import { fetchLangConfig } from '../../../lib/langConfig';
 import { baseLang, langLabelNaUI } from '../../../lib/languages';
 import { type Cefr, NIVEIS_CEFR, NOME_DO_NIVEL, salvarPreferencias, usePreferencias } from '../../../lib/preferencias';
@@ -74,6 +76,7 @@ export default function AbaVoce() {
   const { perfil, carregando } = usePerfil();
   const prefs = usePreferencias();
   const fotoSalva = useFotoDoPerfil(perfil?.id);
+  const questNovo = useQuestNovo();
 
   const [nome, setNome] = useState('');
   const [bio, setBio] = useState('');
@@ -176,6 +179,14 @@ export default function AbaVoce() {
     await salvarPerfil({ interests: proximos });
   }
 
+  if (carregando && questNovo) {
+    return (
+      <div className="q-carregando" role="status">
+        <Loader2 className="qc-gira" aria-hidden />
+        {t('Carregando o seu perfil…')}
+      </div>
+    );
+  }
   if (carregando) {
     return (
       <div className="cartao p6 linha" style={{ gap: 8, justifyContent: 'center' }}>
@@ -186,6 +197,217 @@ export default function AbaVoce() {
   }
 
   const inicial = ((nome || perfil?.displayName || '?').trim()[0] ?? '?').toUpperCase();
+
+  /* QUEST: os mesmos campos, na mesma ordem, um por linha e com 60 px. A meta e o nível são escolhas
+     entre poucos; os interesses, pílulas que ligam e desligam; e a barra de salvar fica à vista
+     enquanto a aba rola. O estado e a gravação são os de cima. */
+  if (questNovo) {
+    const noTeto = marcados.length >= MAX_INTERESSES;
+    return (
+      <>
+        <section className="q-cartao qc-identidade" aria-label={t('Quem é você')}>
+          <div className="qc-foto">
+            {foto ? (
+              <img src={foto} alt={t('Sua foto de perfil')} />
+            ) : (
+              <span className="qc-inicial" aria-hidden>
+                {inicial}
+              </span>
+            )}
+            <label className="q-ctl qc-arquivo">
+              <Camera aria-hidden /> {foto ? t('Trocar') : t('Enviar foto')}
+              <input
+                type="file"
+                accept="image/*"
+                className="sr"
+                onChange={(e) => {
+                  void escolherFoto(e.target.files?.[0]);
+                  e.target.value = '';
+                }}
+              />
+            </label>
+            {foto && (
+              <button type="button" className="q-ctl" onClick={() => setFoto(null)}>
+                <Trash2 aria-hidden /> {t('Remover')}
+              </button>
+            )}
+          </div>
+          <div className="qc-campos">
+            <div className="q-campo">
+              <label htmlFor="pf-nome">{t('Como você quer ser chamado')}</label>
+              <input
+                id="pf-nome"
+                value={nome}
+                onChange={(e) => setNome(e.target.value)}
+                maxLength={60}
+                placeholder={t('Seu nome')}
+                autoComplete="nickname"
+              />
+            </div>
+            <div className="q-campo">
+              <label htmlFor="pf-meta">{t('O que você quer alcançar')}</label>
+              <input
+                id="pf-meta"
+                value={goal}
+                onChange={(e) => setGoal(e.target.value)}
+                maxLength={120}
+                placeholder={t('Ex.: acompanhar reuniões em inglês')}
+              />
+            </div>
+            <div className="q-campo">
+              <label htmlFor="pf-bio">{t('Sobre você')}</label>
+              <textarea id="pf-bio" value={bio} onChange={(e) => setBio(e.target.value)} maxLength={280} />
+              <small>{t('{n} de {max} caracteres', { n: bio.length, max: 280 })}</small>
+            </div>
+          </div>
+        </section>
+
+        <section className="q-secao">
+          <header>
+            <div>
+              <h2>{t('Meta diária')}</h2>
+              <p>{t('Quanto tempo por dia você quer estudar. Guia o lembrete e as estatísticas.')}</p>
+            </div>
+          </header>
+          <div className="q-abas q-seg qc-quebra" role="group" aria-label={t('Meta diária')}>
+            {METAS.map(([m, rot]) => (
+              <button
+                key={m}
+                type="button"
+                className="q-aba"
+                aria-pressed={metaMin === m}
+                onClick={() => setMetaMin(m)}
+              >
+                {m} min{rot}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="q-secao">
+          <header>
+            <div>
+              <h2>{t('Seu nível em cada idioma')}</h2>
+              <p>{t('Autoavaliação. Calibra o conteúdo da trilha e dos jogos; o app também ajusta sozinho.')}</p>
+            </div>
+          </header>
+          <div className="qc-pilha">
+            {idiomas.map((l) => {
+              const r = nomeDoIdioma(l);
+              return (
+                <div key={l} className="q-ajuste">
+                  <div>
+                    <b style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <LangFlag code={l} className="w-6 h-4" />
+                      {r}
+                    </b>
+                    <small>{NOME_DO_NIVEL[nivelDe(l)]}</small>
+                  </div>
+                  <div
+                    className="q-abas q-seg qc-quebra"
+                    role="radiogroup"
+                    aria-label={t('Nível em {idioma}', { idioma: r })}
+                  >
+                    {NIVEIS_CEFR.map((n) => (
+                      <button
+                        key={n}
+                        type="button"
+                        className="q-aba"
+                        role="radio"
+                        aria-checked={nivelDe(l) === n}
+                        onClick={() => setNiveis((x) => ({ ...x, [l]: n }))}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className="q-secao">
+          <header>
+            <div>
+              <h2>{t('Do que você gosta')}</h2>
+              <p>
+                {t('Guia o que vale importar e que exemplos aparecem nos jogos. Escolha até {n}.', {
+                  n: MAX_INTERESSES,
+                })}
+              </p>
+            </div>
+            <span className="q-chip" role="status">
+              <Heart aria-hidden />
+              {t('{n} de {max} escolhidos', { n: marcados.length, max: MAX_INTERESSES })}
+            </span>
+          </header>
+          <div className="q-cartao">
+            {GRUPOS.map(([grupo, rotulo]) => (
+              <div key={grupo} className="qc-grupo">
+                <span className="q-rotulo">{t(rotulo)}</span>
+                <div className="qc-chips" role="group" aria-label={t(rotulo)}>
+                  {INTERESSES.filter(
+                    (i) => i.grupo === grupo && (DO_PROTOTIPO.has(i.slug) || marcados.includes(i.slug)),
+                  ).map((i) => {
+                    const ativo = marcados.includes(i.slug);
+                    return (
+                      <button
+                        key={i.slug}
+                        type="button"
+                        className="q-aba"
+                        onClick={() => void alternarInteresse(i.slug)}
+                        disabled={!ativo && noTeto}
+                        aria-pressed={ativo}
+                      >
+                        {ROTULO_DO_PROTOTIPO[i.slug] ?? i.rotulo}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+            {/* Sem hover no headset: o motivo do bloqueio vai escrito, não num `title`. */}
+            <p className="qc-nota">
+              {noTeto
+                ? t('Você já escolheu {n}. Desmarque um para trocar.', { n: MAX_INTERESSES })
+                : t('Salvo assim que você marca.')}
+            </p>
+          </div>
+        </section>
+
+        <div className="qc-salvar-pe" role="status" aria-live="polite">
+          {sujo || estado === 'erro' ? (
+            <div className={`q-faixa qc-salvar${estado === 'erro' ? ' qc-falhou' : ''}`}>
+              <span>
+                <CircleDot aria-hidden />
+                {estado === 'erro'
+                  ? t('Não consegui salvar. Verifique a conexão e tente de novo.')
+                  : t('Alterações não salvas')}
+              </span>
+              <button type="button" className="q-ctl" onClick={descartar}>
+                {t('Descartar')}
+              </button>
+              <button
+                type="button"
+                className="q-ctl pri"
+                onClick={() => void salvar()}
+                disabled={estado === 'salvando'}
+              >
+                {estado === 'salvando' ? <Loader2 className="qc-gira" aria-hidden /> : <Check aria-hidden />}{' '}
+                {t('Salvar')}
+              </button>
+            </div>
+          ) : salvoEm ? (
+            <p className="qc-ok">
+              <Check aria-hidden />
+              <span>{t('Salvo agora')}</span>
+            </p>
+          ) : null}
+        </div>
+      </>
+    );
+  }
 
   return (
     <>

@@ -144,6 +144,157 @@ describe('InicioDoQuest sem conta', () => {
   })
 })
 
+describe('o que a primeira versão da casca tinha deixado de fora (auditoria de 02/10/2026)', () => {
+  const progresso = {
+    ...EMPTY_PROGRESS,
+    available: true,
+    level: 4,
+    xp: 320,
+    xpIntoLevel: 20,
+    xpForLevel: 100,
+    levelPct: 20,
+    seeds: 45,
+  }
+  const sessao = (id: string, title: string, type: Recording['type']): Recording => ({ ...gravacao(id, title), type })
+
+  it('Início: sem métricas, a forma da linha; com elas, nível, XP, Seeds e a frase da ofensiva, levando às Estatísticas', () => {
+    const ir = vi.fn()
+    const { container, rerender } = render(
+      <InicioDoQuest onChangeView={ir} recordings={[]} progress={EMPTY_PROGRESS} metrics={null} />,
+    )
+    expect(container.querySelector('.q-esqueleto')).not.toBeNull()
+    expect(screen.queryByTestId('progresso-no-inicio')).toBeNull()
+    rerender(
+      <InicioDoQuest onChangeView={ir} recordings={[]} progress={progresso} metrics={{ dueToday: 0 } as AppMetrics} />,
+    )
+    const linha = screen.getByTestId('progresso-no-inicio')
+    expect(linha.textContent).toContain('Nível 4')
+    expect(linha.textContent).toContain('45 Seeds')
+    expect(linha.textContent).toContain('Uma revisão hoje começa a sua ofensiva.')
+    expect(linha.textContent).toContain('Faltam 80 XP')
+    fireEvent.click(linha)
+    expect(ir).toHaveBeenLastCalledWith('estatisticas')
+  })
+
+  it('Início: as sessões recentes têm o filtro por tipo, com contagem, e o vazio da categoria', () => {
+    const ir = vi.fn()
+    render(
+      <InicioDoQuest
+        onChangeView={ir}
+        recordings={[sessao('a', 'Aula 7', 'audio'), sessao('b', 'Vídeo do canal', 'video')]}
+        progress={progresso}
+        metrics={{ dueToday: 0 } as AppMetrics}
+      />,
+    )
+    const recentes = screen.getByTestId('recentes-no-inicio')
+    expect(recentes.querySelectorAll('.q-linha')).toHaveLength(2)
+    fireEvent.click(screen.getByRole('button', { name: /^YouTube/ }))
+    expect(recentes.querySelectorAll('.q-linha')).toHaveLength(1)
+    expect(recentes.textContent).toContain('Vídeo do canal')
+    fireEvent.click(screen.getByRole('button', { name: /^Documentos/ }))
+    expect(recentes.querySelectorAll('.q-linha')).toHaveLength(0)
+    fireEvent.click(screen.getByRole('button', { name: 'Ver todas as categorias' }))
+    expect(recentes.querySelectorAll('.q-linha')).toHaveLength(2)
+  })
+
+  it('Início: com conta e nenhuma sessão, o vazio leva a capturar', () => {
+    const ir = vi.fn()
+    render(
+      <InicioDoQuest onChangeView={ir} recordings={[]} progress={progresso} metrics={{ dueToday: 0 } as AppMetrics} />,
+    )
+    expect(screen.getByText('Nenhuma sessão ainda')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: /Nova captura/ }))
+    expect(ir).toHaveBeenLastCalledWith('capture')
+  })
+
+  it('Início: as missões do dia com o progresso do servidor e os congelamentos guardados', () => {
+    render(
+      <InicioDoQuest
+        onChangeView={() => {}}
+        recordings={[]}
+        progress={progresso}
+        metrics={{ dueToday: 0 } as AppMetrics}
+        missoes={
+          {
+            missoes: [{ id: 'm1', tipo: 'revisar', alvo: 20, atual: 5 }],
+            recompensa: { seeds: 15, xp: 20 },
+            metaConcluida: false,
+            congelamentos: 2,
+          } as never
+        }
+      />,
+    )
+    const missoes = screen.getByTestId('missoes-no-inicio')
+    expect(missoes.textContent).toContain('Revise 20 palavras')
+    expect(missoes.textContent).toContain('5/20')
+    expect(missoes.textContent).toContain('2 congelamentos guardados')
+  })
+
+  it('Início: o cabeçalho fala a língua do perfil (kids, sênior)', () => {
+    const { rerender } = render(
+      <InicioDoQuest onChangeView={() => {}} recordings={[]} progress={progresso} metrics={null} ageProfile="kids" />,
+    )
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Pronto para os desafios?')
+    rerender(
+      <InicioDoQuest onChangeView={() => {}} recordings={[]} progress={progresso} metrics={null} ageProfile="senior" />,
+    )
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Bem-vindo ao Babel Play')
+  })
+
+  const trilho = (extra: Record<string, unknown> = {}) => {
+    const ir = vi.fn()
+    render(
+      <TrilhoDoQuest
+        activeView="hub"
+        onChangeView={ir}
+        ageProfile="pro"
+        darkMode={false}
+        toggleDarkMode={() => {}}
+        soundEnabled
+        toggleSound={() => {}}
+        {...extra}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: /Mais/ }))
+    return ir
+  }
+
+  it('painel Mais: a busca abre a busca global e fecha o painel', () => {
+    const aoBuscar = vi.fn()
+    trilho({ aoBuscar })
+    fireEvent.click(screen.getByRole('button', { name: 'Buscar' }))
+    expect(aoBuscar).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('painel Mais: a aba Avisos, vazia, e "Preferências de notificação" pede a aba certa de Ajustes', () => {
+    const ir = trilho()
+    fireEvent.click(screen.getByRole('tab', { name: /Avisos/ }))
+    expect(screen.getByTestId('avisos-no-quest').textContent).toContain('Nada por aqui')
+    fireEvent.click(screen.getByRole('button', { name: /Preferências de notificação/ }))
+    expect(ir).toHaveBeenLastCalledWith('settings', { aba: 'notificacoes' })
+  })
+
+  it('painel Mais: a vibração ao apontar roda entre forte, desligada e suave, e fica guardada', () => {
+    trilho()
+    const botao = screen.getByTestId('vibracao-do-quest')
+    expect(botao.textContent).toContain('forte')
+    fireEvent.click(botao)
+    expect(botao.textContent).toContain('desligada')
+    fireEvent.click(botao)
+    expect(botao.textContent).toContain('suave')
+    expect(localStorage.getItem('babel.quest.vibracao')).toBe('suave')
+  })
+
+  it('painel Mais: diz quem eu sou (o estado da conta) e, onde há login, oferece entrar', () => {
+    const aoEntrar = vi.fn()
+    trilho({ aoEntrar })
+    expect(screen.getByTestId('conta-no-quest').textContent).toMatch(
+      /conta local|sem conta|sessão ativa|edição de demonstração/,
+    )
+  })
+})
+
 describe('EncerrarNoQuest', () => {
   it('salvar é o botão principal; descartar pede confirmação na mesma tela', () => {
     const aoSalvar = vi.fn()

@@ -1,0 +1,721 @@
+/*
+ * O VOCABULÁRIO NO META QUEST (segunda rodada do desenho do headset, 01/10/2026).
+ *
+ * Só vale com `<html data-quest-novo="true">`. As peças comuns (`.q-palco`, `.q-cab`, `.q-abas`, `.q-num`,
+ * `.q-cartao`, `.q-tabela`, `.q-aviso`, `.q-vazio`…) moram em `quest.css`, e as medidas das peças de sempre
+ * (`.btn`, `.campo`, `.seg`, `<dialog>`…) em `questBase.css`. Aqui fica só o que é desta área:
+ *   1. a tela Vocabulário (`.qv`): o convite da revisão, o catálogo, os gráficos das abas de análise;
+ *   2. a palavra aberta (`dialog.gaveta`): no headset, um painel no CENTRO, em duas colunas;
+ *   3. os diálogos "Adicionar palavra" e "Exportar" (`.qv-dlg`);
+ *   4. a tela dos baralhos do Anki (`.qv-anki`).
+ */
+
+/* ── 1. A TELA ────────────────────────────────────────────────────────────────────────────────── */
+html[data-quest-novo='true'] .qv-tablist {
+  display: contents;
+}
+html[data-quest-novo='true'] .qv-painel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+html[data-quest-novo='true'] .qv-painel:focus-visible {
+  outline: none;
+}
+html[data-quest-novo='true'] .qv .q-cab h1 svg {
+  width: 28px;
+  height: 28px;
+  vertical-align: -3px;
+}
+/* O ícone que acompanha um título de cartão. */
+html[data-quest-novo='true'] .qv-no-titulo {
+  display: inline;
+  width: 22px;
+  height: 22px;
+  margin-right: 4px;
+  vertical-align: -3px;
+  color: var(--ink-muted);
+}
+html[data-quest-novo='true'] .qv .q-num .q-rotulo {
+  color: var(--ink-muted);
+  line-height: 1.2;
+}
+html[data-quest-novo='true'] .qv .q-num b.acento {
+  color: var(--accent-ink, var(--q-acento));
+}
+html[data-quest-novo='true'] .qv .q-num b.aviso {
+  color: var(--warn-ink, var(--warn));
+}
+html[data-quest-novo='true'] .qv .q-num b.bom {
+  color: var(--good-ink, var(--good));
+}
+
+/* A frase que explica a tela, logo abaixo do título. */
+html[data-quest-novo='true'] .qv-sub {
+  max-width: 72ch;
+  margin-top: -8px;
+  color: var(--ink-muted);
+}
+/* O que no computador é dica ao passar o ponteiro, escrito. */
+html[data-quest-novo='true'] .qv-nota {
+  margin: 0;
+  font: 600 15px/1.4 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+html[data-quest-novo='true'] .qv-fonte {
+  display: block;
+  margin-top: 4px;
+  font: 600 14px/1.2 var(--font-body, inherit);
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+html[data-quest-novo='true'] .qv-quantas {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+html[data-quest-novo='true'] .qv-notas-do-baralho {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+  font: 600 15px/1.4 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+
+/* O convite da revisão: quantas esperam, quanto leva, e o único botão principal da tela. */
+html[data-quest-novo='true'] .qv-convite {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+  border-color: color-mix(in srgb, var(--q-acento) 45%, var(--border-subtle));
+}
+html[data-quest-novo='true'] .qv-contagem {
+  min-width: 72px;
+  height: 72px;
+  padding: 0 14px;
+  border-radius: 22px;
+  display: grid;
+  place-items: center;
+  background: var(--q-suave);
+  color: var(--ink);
+  font: 900 30px/1 var(--font-display, inherit);
+  font-variant-numeric: tabular-nums;
+}
+html[data-quest-novo='true'] .qv-convite h2 {
+  margin: 0;
+  font: 800 22px/1.2 var(--font-display, inherit);
+}
+html[data-quest-novo='true'] .qv-convite p {
+  margin: 4px 0 0;
+  font: 600 16px/1.4 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+html[data-quest-novo='true'] .qv-aviso-texto {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+html[data-quest-novo='true'] .qv-aviso-texto svg {
+  width: 24px;
+  height: 24px;
+  flex: none;
+}
+html[data-quest-novo='true'] .qv .q-aviso {
+  font-weight: 600;
+}
+html[data-quest-novo='true'] .qv .q-aviso b {
+  font-weight: 800;
+}
+
+/* ── O CATÁLOGO: busca e ordem numa linha, os filtros atrás de "Filtros", a tabela de linhas altas ── */
+html[data-quest-novo='true'] .qv-busca {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+html[data-quest-novo='true'] .qv-campo-busca {
+  flex: 1 1 320px;
+  position: relative;
+}
+html[data-quest-novo='true'] .qv-campo-busca svg {
+  position: absolute;
+  left: 18px;
+  top: 50%;
+  width: 22px;
+  height: 22px;
+  transform: translateY(-50%);
+  color: var(--ink-muted);
+  pointer-events: none;
+}
+html[data-quest-novo='true'] .qv-campo-busca input {
+  padding-left: 52px;
+}
+html[data-quest-novo='true'] .qv-ordem {
+  flex: 0 1 260px;
+}
+html[data-quest-novo='true'] .qv-filtros {
+  gap: 16px;
+}
+html[data-quest-novo='true'] .qv-grupo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+html[data-quest-novo='true'] .qv-grupo .q-rotulo {
+  flex: none;
+  min-width: 76px;
+}
+html[data-quest-novo='true'] .qv-grupo .q-aba {
+  background: var(--canvas);
+  border-color: var(--border-subtle);
+  color: var(--ink);
+}
+html[data-quest-novo='true'] .qv-grupo .q-aba[aria-pressed='true'] {
+  background: var(--q-suave);
+  border-color: var(--q-acento);
+}
+html[data-quest-novo='true'] .qv-grupo .q-aba:disabled {
+  opacity: 0.45;
+  cursor: default;
+  transform: none;
+  border-color: var(--border-subtle);
+}
+html[data-quest-novo='true'] .qv-catalogo > header .q-tag {
+  background: var(--q-acento);
+  color: var(--q-sobre-acento);
+}
+html[data-quest-novo='true'] .qv-tabela td {
+  padding-block: 10px;
+  height: 64px;
+}
+html[data-quest-novo='true'] .qv-palavra {
+  min-height: 56px;
+  min-width: 56px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--ink);
+  font: 800 19px/1.2 var(--font-display, inherit);
+  text-align: left;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+html[data-quest-novo='true'] .qv-palavra:focus-visible {
+  outline: 3px solid var(--q-acento);
+  outline-offset: 3px;
+}
+html[data-quest-novo='true'] .qv-tabela tr.clicavel:active {
+  background: color-mix(in srgb, var(--q-acento) 22%, transparent);
+}
+html[data-quest-novo='true'] .qv-apagado {
+  color: var(--ink-muted);
+}
+html[data-quest-novo='true'] .qv-tabela .q-tag {
+  display: inline-block;
+  white-space: nowrap;
+}
+html[data-quest-novo='true'] .qv-estado.acc {
+  background: var(--q-suave);
+}
+html[data-quest-novo='true'] .qv-estado.ok {
+  background: color-mix(in srgb, var(--good) 20%, var(--surface));
+}
+html[data-quest-novo='true'] .qv-estado.neu {
+  background: var(--surface-sunken);
+  color: var(--ink-muted);
+}
+html[data-quest-novo='true'] .qv-espera {
+  display: grid;
+  gap: 10px;
+}
+html[data-quest-novo='true'] .qv-espera .q-esqueleto {
+  min-height: 62px;
+}
+html[data-quest-novo='true'] .qv-mais {
+  justify-content: center;
+}
+/* A nota de início da contagem (`NotaDeContagem`) vem com as medidas do computador. */
+html[data-quest-novo='true'] .qv-catalogo > .rounded-xl {
+  padding: 14px 18px;
+  border-width: 1.5px;
+  border-radius: 18px;
+  gap: 12px;
+}
+html[data-quest-novo='true'] .qv-catalogo > .rounded-xl svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* ── VISÃO GERAL: as revisões dos últimos 7 dias, com o número escrito em cima de cada barra ────── */
+html[data-quest-novo='true'] .qv-barras {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  height: 220px;
+}
+html[data-quest-novo='true'] .qv-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+html[data-quest-novo='true'] .qv-col b {
+  font: 800 17px/1 var(--font-mono, monospace);
+  font-variant-numeric: tabular-nums;
+}
+html[data-quest-novo='true'] .qv-barra {
+  width: 100%;
+  max-width: 72px;
+  min-height: 4px;
+  border-radius: 12px 12px 4px 4px;
+  background: linear-gradient(180deg, var(--q-acento-2), var(--q-acento));
+}
+html[data-quest-novo='true'] .qv-barra.hoje {
+  background: var(--ink);
+}
+html[data-quest-novo='true'] .qv-col small {
+  font: 700 14px/1 var(--font-mono, monospace);
+  color: var(--ink-muted);
+}
+
+/* ── INTELIGÊNCIA LEXICAL: a rosca dos níveis com a legenda ao lado ───────────────────────────── */
+html[data-quest-novo='true'] .qv-rosca {
+  display: grid;
+  grid-template-columns: minmax(0, 300px) minmax(0, 1fr);
+  align-items: center;
+  gap: 28px;
+}
+html[data-quest-novo='true'] .qv-rosca-desenho {
+  height: 240px;
+  min-width: 0;
+}
+html[data-quest-novo='true'] .qv-legenda {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+html[data-quest-novo='true'] .qv-legenda li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 40px;
+  padding: 0 4px;
+  border-bottom: 1.5px solid var(--border-subtle);
+  font: 700 18px/1.2 var(--font-body, inherit);
+}
+html[data-quest-novo='true'] .qv-legenda li:last-child {
+  border-bottom: 0;
+}
+html[data-quest-novo='true'] .qv-legenda i {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  flex: none;
+}
+html[data-quest-novo='true'] .qv-legenda span {
+  flex: 1;
+}
+html[data-quest-novo='true'] .qv-legenda b {
+  font: 700 16px/1 var(--font-mono, monospace);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-muted);
+}
+
+/* ── FLUÊNCIA: um número grande por cartão, e a régua do ritmo ────────────────────────────────── */
+html[data-quest-novo='true'] .qv-grande {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+}
+html[data-quest-novo='true'] .qv-grande b {
+  font: 900 48px/1 var(--font-display, inherit);
+  font-variant-numeric: tabular-nums;
+}
+html[data-quest-novo='true'] .qv-grande span {
+  font: 600 17px/1.3 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+html[data-quest-novo='true'] .qv-zonas {
+  position: relative;
+  display: flex;
+  height: 14px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--surface-sunken);
+}
+html[data-quest-novo='true'] .qv-zonas span.lento {
+  flex: 30;
+  background: color-mix(in srgb, var(--rare, var(--ink-muted)) 30%, transparent);
+}
+html[data-quest-novo='true'] .qv-zonas span.bom {
+  flex: 40;
+  background: color-mix(in srgb, var(--good) 34%, transparent);
+}
+html[data-quest-novo='true'] .qv-zonas span.rapido {
+  flex: 30;
+  background: color-mix(in srgb, var(--warn) 34%, transparent);
+}
+html[data-quest-novo='true'] .qv-zonas i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  margin-left: -4px;
+  border-radius: 999px;
+  background: var(--ink);
+}
+html[data-quest-novo='true'] .qv-zonas-rotulos {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font: 700 14px/1.2 var(--font-mono, monospace);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+html[data-quest-novo='true'] .qv-exemplos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+html[data-quest-novo='true'] .qv-exemplos .q-tag {
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* ── 2. A PALAVRA ABERTA: um painel no centro (nada desliza pela lateral), em duas colunas ────── */
+html[data-quest-novo='true'] dialog.gaveta.gaveta {
+  margin: auto;
+  width: min(1060px, calc(100vw - 48px));
+  max-width: none;
+  height: auto;
+  max-height: calc(100vh - 48px);
+  border: 1.5px solid var(--border-subtle);
+  border-radius: 24px;
+}
+html[data-quest-novo='true'] dialog.gaveta.gaveta[open] {
+  animation: q-surgir 180ms ease;
+}
+html[data-quest-novo='true'] dialog.gaveta .gav-corpo {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  align-content: start;
+  gap: 20px 24px;
+  padding: 20px 24px;
+}
+html[data-quest-novo='true'] dialog.gaveta .gav-corpo > * {
+  grid-column: 1;
+  min-width: 0;
+  margin-top: 0;
+}
+/* A fileira de ouvir, velocidade e dicionários ocupa a largura toda. */
+html[data-quest-novo='true'] dialog.gaveta .gav-corpo > :first-child {
+  grid-column: 1 / -1;
+  gap: 12px !important; /* 8 px vêm escritos no elemento */
+}
+/* "Na sua memória" fica na coluna da direita, ao lado da tradução e do dicionário. */
+html[data-quest-novo='true'] dialog.gaveta .gav-corpo > section.cartao:last-child {
+  grid-column: 2;
+  grid-row: 2 / span 3;
+  align-self: start;
+}
+html[data-quest-novo='true'] dialog.gaveta .sentidos {
+  gap: 8px;
+  padding-left: 24px;
+  font-size: 17px;
+  line-height: 1.4;
+}
+html[data-quest-novo='true'] dialog.gaveta .sentidos i {
+  font-style: normal;
+  font-weight: 700;
+}
+html[data-quest-novo='true'] dialog.gaveta .exemplo-gav {
+  padding: 14px 16px;
+  font-size: 17px;
+  line-height: 1.4;
+}
+html[data-quest-novo='true'] dialog.gaveta .exemplo-gav svg {
+  width: 18px;
+  height: 18px;
+}
+html[data-quest-novo='true'] dialog.gaveta .proveniencia {
+  gap: 8px;
+  font-size: 15px;
+  line-height: 1.3;
+}
+html[data-quest-novo='true'] dialog.gaveta .proveniencia svg {
+  width: 18px;
+  height: 18px;
+}
+html[data-quest-novo='true'] dialog.gaveta .memoria-g {
+  gap: 14px 18px;
+}
+html[data-quest-novo='true'] dialog.gaveta .memoria-g b {
+  display: block;
+  margin-top: 2px;
+  font-size: 20px;
+}
+html[data-quest-novo='true'] dialog.gaveta .rot {
+  margin-bottom: 8px;
+  font: 700 14px/1 var(--font-mono, monospace);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+html[data-quest-novo='true'] dialog.gaveta textarea.campo {
+  min-height: 96px;
+  padding: 14px 18px !important; /* 10 e 14 px vêm escritos no elemento */
+}
+html[data-quest-novo='true'] dialog.gaveta .gav-pe {
+  gap: 12px;
+  padding: 16px 24px 22px;
+  border-top-width: 1.5px;
+  background: none;
+}
+html[data-quest-novo='true'] dialog.gaveta .gav-pe .btn {
+  flex: 0 1 auto;
+}
+html[data-quest-novo='true'] dialog.gaveta .btn.perigo {
+  color: var(--error, #b3261e);
+}
+html[data-quest-novo='true'] dialog.gaveta .btn.perigo.perigo-solid {
+  background: var(--error, #b3261e);
+  border-color: var(--error, #b3261e);
+  color: #fff;
+}
+
+/* ── 3. ADICIONAR PALAVRA E EXPORTAR ──────────────────────────────────────────────────────────── */
+html[data-quest-novo='true'] dialog .qv-dlg .rot {
+  margin-bottom: 8px;
+  font: 700 14px/1 var(--font-mono, monospace);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+html[data-quest-novo='true'] dialog .qv-dlg .rot .mut {
+  text-transform: none;
+  letter-spacing: 0;
+}
+html[data-quest-novo='true'] dialog .qv-dlg .erro-campo {
+  margin-top: 6px;
+  font-size: 15px;
+  font-weight: 700;
+}
+html[data-quest-novo='true'] dialog .qv-dlg.pilha > * + * {
+  margin-top: 16px;
+}
+html[data-quest-novo='true'] dialog .qv-dlg .g-formatos {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 10px;
+}
+html[data-quest-novo='true'] dialog .qv-dlg .formato {
+  min-height: 84px;
+  padding: 14px 18px;
+  gap: 6px;
+  align-content: center;
+  transition:
+    transform var(--q-toque),
+    border-color var(--q-cor),
+    background-color var(--q-cor);
+}
+html[data-quest-novo='true'] dialog .qv-dlg .formato b {
+  font: 800 18px/1.2 var(--font-display, inherit);
+}
+html[data-quest-novo='true'] dialog .qv-dlg .formato code {
+  font-size: 14px;
+}
+html[data-quest-novo='true'] dialog .qv-dlg .formato:hover {
+  border-color: var(--q-acento);
+}
+html[data-quest-novo='true'] dialog .qv-dlg .formato:active {
+  transform: scale(0.98);
+}
+html[data-quest-novo='true'] dialog .qv-dlg .formato[aria-checked='true'] {
+  border-color: var(--q-acento);
+  background: var(--q-suave);
+  box-shadow: none;
+}
+html[data-quest-novo='true'] dialog .qv-dlg .seg {
+  margin-top: 10px;
+  flex-wrap: wrap;
+  border-radius: 28px;
+}
+html[data-quest-novo='true'] dialog .qv-dlg .op-linha {
+  gap: 16px;
+  padding: 14px 0;
+}
+html[data-quest-novo='true'] dialog .qv-dlg .op-linha b {
+  font: 800 18px/1.25 var(--font-display, inherit);
+}
+html[data-quest-novo='true'] dialog .qv-dlg .cartao-anki {
+  margin-top: 10px;
+  border-width: 1.5px;
+  border-radius: 18px;
+  font-size: 17px;
+}
+html[data-quest-novo='true'] dialog .qv-dlg .cartao-anki .frente {
+  padding: 20px;
+  font-size: 22px;
+}
+html[data-quest-novo='true'] dialog .qv-dlg .cartao-anki .verso {
+  gap: 6px;
+  padding: 16px 18px;
+  border-left-width: 1.5px;
+}
+html[data-quest-novo='true'] dialog .qv-dlg .cartao-anki i {
+  font-size: 16px;
+  font-style: normal;
+}
+
+/* ── 4. BARALHOS DO ANKI ──────────────────────────────────────────────────────────────────────── */
+html[data-quest-novo='true'] .qv-anki .soltar.grande {
+  min-height: 210px;
+  gap: 12px;
+  border-radius: 20px;
+  font-size: 19px;
+}
+html[data-quest-novo='true'] .qv-anki .soltar.grande .ib {
+  width: 64px;
+  height: 64px;
+  border-radius: 20px;
+}
+html[data-quest-novo='true'] .qv-anki .soltar:hover {
+  border-color: var(--q-acento);
+}
+html[data-quest-novo='true'] .qv-anki :is(.cartao, .baralho) h3 {
+  font-size: 20px !important; /* 16 e 17 px vêm escritos no elemento */
+}
+html[data-quest-novo='true'] .qv-anki .mapear {
+  gap: 12px;
+  margin-top: 10px;
+}
+html[data-quest-novo='true'] .qv-anki .mapear span {
+  gap: 8px;
+  padding: 10px 14px;
+  border-width: 1.5px;
+  border-radius: 14px;
+  font-size: 16px;
+}
+html[data-quest-novo='true'] .qv-anki .mapear svg {
+  width: 18px;
+  height: 18px;
+}
+html[data-quest-novo='true'] .qv-anki .amostra {
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px 20px;
+  margin-top: 10px;
+  font-size: 17px;
+}
+html[data-quest-novo='true'] .qv-anki .previa-txt {
+  padding: 14px 16px;
+  border-radius: 14px;
+  font-size: 15px;
+}
+html[data-quest-novo='true'] .qv-anki .det summary {
+  min-height: 56px;
+  font-size: 17px;
+}
+html[data-quest-novo='true'] .qv-anki .det ul {
+  font-size: 16px !important; /* 13 px vêm escritos no elemento */
+}
+html[data-quest-novo='true'] .qv-anki .lista-mapa li {
+  padding: 14px 4px;
+  font-size: 17px;
+}
+html[data-quest-novo='true'] .qv-anki .lista-mapa li small {
+  font-size: 15px;
+}
+html[data-quest-novo='true'] .qv-anki .notas-baralho .busca {
+  max-width: 360px !important; /* 240 px vêm escritos no elemento */
+}
+html[data-quest-novo='true'] .qv-anki .ondas {
+  height: 36px;
+}
+
+/* ── JANELA MÉDIA E ESTREITA ──────────────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  html[data-quest-novo='true'] dialog.gaveta .gav-corpo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  html[data-quest-novo='true'] dialog.gaveta .gav-corpo > section.cartao:last-child {
+    grid-column: 1;
+    grid-row: auto;
+  }
+}
+@media (max-width: 720px) {
+  /* As abas quebram de linha em vez de rolar para o lado: todas à vista. */
+  html[data-quest-novo='true'] .qv-abas {
+    flex-wrap: wrap;
+    overflow: visible;
+    border-radius: 30px;
+  }
+  html[data-quest-novo='true'] .qv .q-cab > .q-ctl {
+    flex: 1 1 auto;
+  }
+  html[data-quest-novo='true'] .qv-convite {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  html[data-quest-novo='true'] .qv-convite .q-ctl {
+    grid-column: 1 / -1;
+  }
+  html[data-quest-novo='true'] .qv .q-aviso {
+    flex-wrap: wrap;
+  }
+  html[data-quest-novo='true'] .qv .q-grade.g4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  html[data-quest-novo='true'] .qv-ordem {
+    flex: 1 1 100%;
+  }
+  /* Como no celular: nível e origem saem da tabela (continuam na palavra aberta e nos filtros). */
+  html[data-quest-novo='true'] .qv-tabela .qv-extra {
+    display: none;
+  }
+  html[data-quest-novo='true'] .qv-tabela :is(th, td) {
+    padding-inline: 12px;
+  }
+  html[data-quest-novo='true'] .qv-barras {
+    gap: 8px;
+    height: 190px;
+  }
+  html[data-quest-novo='true'] .qv-rosca {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  html[data-quest-novo='true'] .qv-grande b {
+    font-size: 40px;
+  }
+  html[data-quest-novo='true'] dialog.gaveta.gaveta {
+    width: calc(100vw - 20px);
+    max-height: calc(100vh - 20px);
+  }
+  html[data-quest-novo='true'] dialog.gaveta .gav-pe .btn {
+    flex: 1 1 auto;
+  }
+  html[data-quest-novo='true'] dialog .qv-dlg .g-formatos {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-quest-novo='true'] dialog.gaveta.gaveta[open] {
+    animation: none;
+  }
+  html[data-quest-novo='true'] dialog .qv-dlg .formato {
+    transition: none;
+  }
+}

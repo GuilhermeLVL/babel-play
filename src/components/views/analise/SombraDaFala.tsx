@@ -11,7 +11,11 @@ import { scorePronunciation } from '@core';
 import { Headphones, Mic, RotateCcw, Square, Volume2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
-import { speechErrorMessage } from '../../../lib/mediaErrors';
+import { perfilDoDispositivo } from '../../../lib/dispositivo/perfil';
+import { recursosDoAparelho } from '../../../lib/dispositivo/recursos';
+import { useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
+import { t } from '../../../lib/i18n';
+import { micErrorMessage, speechErrorMessage } from '../../../lib/mediaErrors';
 import { toast } from '../../Toast';
 
 type Etapa = 'pronto' | 'gravando' | 'analisando' | 'nota';
@@ -24,8 +28,10 @@ export default function SombraDaFala({
   texto: string;
   /** Idioma REAL da fala (BCP-47), para o reconhecimento escutar a língua certa. */
   idioma: string;
-  aoOuvirOriginal: () => void;
+  /** Ausente = não há como ouvir o original aqui (sem áudio gravado e sem voz para o idioma). */
+  aoOuvirOriginal?: () => void;
 }) {
+  const questNovo = useQuestNovo();
   const [etapa, setEtapa] = useState<Etapa>('pronto');
   const [nota, setNota] = useState<{ n: number; texto: string } | null>(null);
   const [minhaGravacao, setMinhaGravacao] = useState<string | null>(null);
@@ -50,6 +56,30 @@ export default function SombraDaFala({
     [minhaGravacao],
   );
 
+  /**
+   * Liga o `MediaRecorder` no microfone: é ele que guarda o áudio de "Ouvir minha gravação". Não
+   * depende do reconhecimento de fala. Devolve o motivo quando o microfone não abre.
+   */
+  const ligarGravador = async (aoParar?: () => void): Promise<unknown> => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const rec = new MediaRecorder(stream);
+      const pedacos: Blob[] = [];
+      rec.ondataavailable = (e) => e.data.size && pedacos.push(e.data);
+      rec.onstop = () => {
+        stream.getTracks().forEach((t) => t.stop());
+        if (pedacos.length) setMinhaGravacao(URL.createObjectURL(new Blob(pedacos, { type: rec.mimeType })));
+        aoParar?.();
+      };
+      rec.start();
+      gravador.current = rec;
+      return null;
+    } catch (erro) {
+      gravador.current = null;
+      return erro ?? new Error('microfone indisponível');
+    }
+  };
+
   const gravar = async () => {
     const SR =
       (window as unknown as { SpeechRecognition?: new () => any; webkitSpeechRecognition?: new () => any })
@@ -59,21 +89,9 @@ export default function SombraDaFala({
       toast.warn('O reconhecimento de fala não existe neste navegador: use o Chrome ou o Edge para a nota.');
       return;
     }
-    // O áudio de verdade, para "Ouvir minha gravação".
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const rec = new MediaRecorder(stream);
-      const pedacos: Blob[] = [];
-      rec.ondataavailable = (e) => e.data.size && pedacos.push(e.data);
-      rec.onstop = () => {
-        stream.getTracks().forEach((t) => t.stop());
-        if (pedacos.length) setMinhaGravacao(URL.createObjectURL(new Blob(pedacos, { type: rec.mimeType })));
-      };
-      rec.start();
-      gravador.current = rec;
-    } catch {
-      gravador.current = null; // sem a gravação, a nota ainda vale; só o "ouvir" fica indisponível
-    }
+    // O áudio de verdade, para "Ouvir minha gravação". Sem a gravação, a nota ainda vale; só o
+    // "ouvir" fica indisponível.
+    await ligarGravador();
     const r = new SR();
     r.lang = idioma;
     r.interimResults = false;
@@ -117,6 +135,73 @@ export default function SombraDaFala({
   const ouvirMinha = () => {
     if (minhaGravacao) void new Audio(minhaGravacao).play();
   };
+
+  /* META QUEST: a NOTA compara a frase com o que o reconhecimento de fala do NAVEGADOR ouviu, e o
+     navegador do Quest não tem reconhecimento. Gravar a própria voz e ouvir a gravação não dependem
+     dele (é o `MediaRecorder`): ficam. Só a nota de 0 a 100 fica de fora, com o motivo dito. */
+  if (questNovo && !recursosDoAparelho(perfilDoDispositivo()).reconhecimentoDoNavegador) {
+    const gravarSemNota = async () => {
+      setMinhaGravacao(null);
+      const erro = await ligarGravador(() => setEtapa('nota'));
+      if (erro) toast.error(micErrorMessage(erro), { detail: erro });
+      else setEtapa('gravando');
+    };
+    const pararSemNota = () => {
+      if (gravador.current?.state === 'recording') gravador.current.stop();
+    };
+    const ouvirOriginal = aoOuvirOriginal && (
+      <button type="button" className="q-ctl" onClick={aoOuvirOriginal}>
+        <Volume2 aria-hidden /> {t('Ouvir original')}
+      </button>
+    );
+    return (
+      <div className="qs-sombra" data-testid="sombra-sem-reconhecimento" aria-live="polite">
+        <span className="q-rotulo">{t('Prática de pronúncia (shadowing)')}</span>
+        {etapa === 'gravando' ? (
+          <div className="q-acoes">
+            <span className="qs-gravando" role="status">
+              <span className="qs-ponto-gravando" aria-hidden /> {t('Gravando: fale a frase agora.')}
+            </span>
+            <button type="button" className="q-ctl" onClick={pararSemNota}>
+              <Square aria-hidden /> {t('Parar')}
+            </button>
+          </div>
+        ) : etapa === 'nota' ? (
+          <>
+            <p className="q-texto">
+              {minhaGravacao
+                ? t('Gravação pronta. Ouça o original e depois a sua voz, e compare.')
+                : t('A gravação saiu vazia. Tente de novo.')}
+            </p>
+            <div className="q-acoes">
+              {ouvirOriginal}
+              <button type="button" className="q-ctl" disabled={!minhaGravacao} onClick={ouvirMinha}>
+                <Headphones aria-hidden /> {t('Ouvir minha gravação')}
+              </button>
+              <button type="button" className="q-ctl" onClick={() => void gravarSemNota()}>
+                <RotateCcw aria-hidden /> {t('Tentar de novo')}
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="q-texto">{t('Ouça a fala e repita no mesmo ritmo.')}</p>
+            <div className="q-acoes">
+              {ouvirOriginal}
+              <button type="button" className="q-ctl" onClick={() => void gravarSemNota()}>
+                <Mic aria-hidden /> {t('Gravar a minha voz')}
+              </button>
+            </div>
+          </>
+        )}
+        <p className="qs-apoio" data-testid="nota-indisponivel">
+          {t(
+            'A nota de 0 a 100 não está disponível no Quest: ela usa o reconhecimento de fala do navegador, que o headset não tem. Para receber a nota, abra esta sessão no computador ou no celular.',
+          )}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="sombra entra" aria-live="polite" onClick={(e) => e.stopPropagation()}>

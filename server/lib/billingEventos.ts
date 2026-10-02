@@ -24,7 +24,15 @@ import {
 } from '../../src/core/planos'
 import { creditsRepo } from '../db/repositories/credits'
 import { type Subscription, subscriptionsRepo } from '../db/repositories/subscriptions'
-import { asaasConfigurado, buscarPagamento, estornarCobranca, estornarParcelamento, type PagamentoAsaas } from './asaas'
+import {
+  asaasConfigurado,
+  type AssinaturaDetalhadaAsaas,
+  buscarPagamento,
+  conferirAssinatura,
+  estornarCobranca,
+  estornarParcelamento,
+  type PagamentoAsaas,
+} from './asaas'
 import { asUserId, type UserId } from './authContext'
 import { log } from './logger'
 
@@ -88,8 +96,27 @@ function periodoQueVale(
 
 /** GAP-011: confere um pagamento contra a fonte autoritativa (a API do Asaas). Injetável p/ teste. */
 export type VerificadorDePagamento = (id: string) => Promise<PagamentoAsaas | null>
+/** O par dele para os eventos de ASSINATURA (`SUBSCRIPTION_DELETED`/`_INACTIVATED`). `null` = 404. */
+export type VerificadorDeAssinatura = (id: string) => Promise<AssinaturaDetalhadaAsaas | null>
 
-export const eventoSchema = z
+/**
+ * `null` É AUSÊNCIA. A API do Asaas devolve os campos vazios como `null` (`"paymentDate": null`,
+ * `"installmentNumber": null`), e o `.optional()` do zod recusa `null`: um pagamento confirmado que
+ * trouxesse `"subscription": null` cairia em "corpo fora da forma", responderia 200 e sumiria SEM
+ * nem ser registrado. Os nulos saem antes da validação, no evento e nos dois objetos que lemos.
+ */
+function semNulos(v: unknown): unknown {
+  if (typeof v !== 'object' || v === null || Array.isArray(v)) return v
+  const limpar = (o: Record<string, unknown>) => Object.fromEntries(Object.entries(o).filter(([, x]) => x !== null))
+  const ev = limpar(v as Record<string, unknown>)
+  for (const parte of ['payment', 'subscription']) {
+    const x = ev[parte]
+    if (typeof x === 'object' && x !== null && !Array.isArray(x)) ev[parte] = limpar(x as Record<string, unknown>)
+  }
+  return ev
+}
+
+const formaDoEvento = z
   .object({
     id: z.string().min(4).max(80),
     event: z.string().min(3).max(60),
@@ -119,7 +146,9 @@ export const eventoSchema = z
   })
   .passthrough()
 
-export type EventoAsaas = z.infer<typeof eventoSchema>
+export const eventoSchema = z.preprocess(semNulos, formaDoEvento)
+
+export type EventoAsaas = z.infer<typeof formaDoEvento>
 export type EstadoDoEvento = 'aplicado' | 'nao-aplicado' | 'ignorado'
 
 export interface ResultadoDoEvento {
@@ -151,6 +180,9 @@ export async function aplicarEvento(
      aplicados quando quem chama é o próprio servidor — a rota admin de reprocessamento. O webhook
      chama com `false`: um token vazado não pode disparar estornos. */
   interno = false,
+  /* O conferidor dos eventos de ASSINATURA, com o mesmo padrão do de pagamento. É o último parâmetro
+     para não mudar a chamada de quem já passava os outros. */
+  verificarAssinatura: VerificadorDeAssinatura | undefined = asaasConfigurado() ? conferirAssinatura : undefined,
 ): Promise<ResultadoDoEvento> {
   if (ev.event.startsWith('ESTORNO_') && !interno) {
     log('warn', { event: 'billing_evento_interno_no_webhook', error: ev.event, requestId })
@@ -296,22 +328,84 @@ export async function aplicarEvento(
       })
       return { estado: 'aplicado', motivo }
     }
-    case 'PAYMENT_OVERDUE':
-      // A graça de `subConcede` mantém o acesso até `currentPeriodEnd`; o Asaas cobra o pagador.
-      await subscriptionsRepo.upsert(userId, { status: 'past_due' })
-      return { estado: 'aplicado', motivo: null }
-    case 'PAYMENT_REFUNDED':
-      /* Estorno de compra avulsa: a compra deixa de conceder crédito (evento inverso). A parcela do
-         12x também não tem `subscription` — mas tem `installment`, e o estorno dela é do PLANO. */
-      if (!ev.payment?.subscription && !ev.payment?.installment && ev.payment?.id) {
-        await creditsRepo.cancelarCompra(ev.payment.id)
-        return { estado: 'aplicado', motivo: null }
+    /**
+     * DAQUI PARA BAIXO, OS EVENTOS QUE TIRAM ALGUMA COISA DE ALGUÉM — e por isso nenhum deles vale só
+     * pelo payload quando há API para perguntar (auditoria de cobrança de 02/10/2026). O GAP-011
+     * fechou a CONCESSÃO forjada; o atraso, o estorno e a assinatura removida continuavam aplicados
+     * com o que o corpo dizia, e um token de webhook vazado derrubava o plano de qualquer conta com
+     * um POST. A regra é a mesma do pagamento confirmado: a API confirma, ou o evento fica
+     * `nao-aplicado` (fila do admin) e nada cai; API fora do ar sobe como exceção → 500 → o Asaas
+     * reentrega.
+     */
+    case 'PAYMENT_OVERDUE': {
+      const p = await conferirPagamento(ev, userId, verificar, STATUS_DE_ATRASO, STATUS_DE_PAGO)
+      if ('estado' in p) return p
+      /* Cobrança AVULSA vencida é checkout de créditos abandonado (vence em 3 dias): não é parcela do
+         plano, e marcar `past_due` por causa dela punha o assinante em dia em "pagamento atrasado". */
+      if (!p.assinatura && !p.parcelamento) {
+        return { estado: 'ignorado', motivo: `cobrança avulsa ${p.id ?? '?'} vencida: não é parcela do plano` }
       }
-      /* Estorno de parcela: o dinheiro voltou, então não há período pago — o acesso termina AGORA.
-         Sem zerar `currentPeriodEnd`, o "cancelado mantém até o fim do período" (entitlements)
-         deixaria quem foi reembolsado com o mês de graça. */
-      await subscriptionsRepo.upsert(userId, { status: 'canceled', currentPeriodEnd: Date.now(), cancelAtPeriodEnd: 0 })
+      const atual = await subscriptionsRepo.getActive(p.userId)
+      if (!atual) return { estado: 'ignorado', motivo: 'atraso sem assinatura registrada: nada a marcar' }
+      const divergencia = divergenciaDaLinha(atual, p)
+      if (divergencia) return { estado: 'nao-aplicado', motivo: `atraso não aplicado — ${divergencia}` }
+      // A graça de `subConcede` mantém o acesso até `currentPeriodEnd`; o Asaas cobra o pagador.
+      await subscriptionsRepo.upsert(p.userId, { status: 'past_due' })
       return { estado: 'aplicado', motivo: null }
+    }
+    case 'PAYMENT_REFUNDED':
+      return aplicarDinheiroDevolvido(ev, userId, verificar, STATUS_DE_ESTORNO, 'estorno')
+    /**
+     * CHARGEBACK — o titular do cartão contestou a compra na operadora. `REQUESTED` = o dinheiro foi
+     * retido e está em disputa; `DISPUTE` = nós contestamos, e ele segue retido. Nos dois o efeito é
+     * o do estorno: não há período pago, o acesso termina agora (e a compra de créditos deixa de
+     * conceder). Antes caíam no `default`: quem contestava ficava com o ano de acesso E com o
+     * dinheiro de volta. Se a disputa for perdida, o Asaas manda `PAYMENT_REFUNDED` — o mesmo
+     * efeito, de novo, sem dano.
+     */
+    case 'PAYMENT_CHARGEBACK_REQUESTED':
+    case 'PAYMENT_CHARGEBACK_DISPUTE':
+      return aplicarDinheiroDevolvido(ev, userId, verificar, STATUS_DE_CHARGEBACK, 'chargeback')
+    case 'PAYMENT_AWAITING_CHARGEBACK_REVERSAL':
+      /* A disputa foi ganha por NÓS e o dinheiro está voltando: este evento não derruba nada. Também
+         não DEVOLVE o acesso sozinho — ele foi cortado quando o chargeback chegou, e reativar a conta
+         de quem contestou é decisão de gente (rota admin de assinatura). Fica auditado e no log. */
+      log('warn', { event: 'billing_chargeback_revertido', error: `${ev.payment?.id ?? '?'}`, requestId })
+      return {
+        estado: 'ignorado',
+        motivo: `chargeback revertido a nosso favor (pagamento ${ev.payment?.id ?? '?'}): nada a derrubar; o acesso cortado na disputa não volta sozinho`,
+      }
+    case 'PAYMENT_DELETED': {
+      /* A cobrança foi REMOVIDA no Asaas (pelo painel, ou junto com a assinatura/parcelamento).
+         - Compra de créditos: a compra deixa de conceder — pendente, ela nunca mais poderá ser paga.
+         - Fatura de assinatura ou parcela: o plano NÃO se decide por aqui. Uma fatura em aberto
+           removida nunca concedeu nada; o que encerra o plano é o evento da assinatura (ou o estorno,
+           se ela estava paga). Fica `ignorado` com o porquê, e não mais "evento-nao-tratado". */
+      const id = ev.payment?.id
+      let avulsa = !ev.payment?.subscription && !ev.payment?.installment
+      if (verificar) {
+        if (!id) {
+          return { estado: 'nao-aplicado', motivo: 'cobrança removida sem id de pagamento para conferir no Asaas' }
+        }
+        const real = await verificar(id)
+        // 404 também confirma: a cobrança não existe lá. Existindo, tem de estar marcada como removida.
+        if (real && !real.deleted) {
+          return {
+            estado: 'nao-aplicado',
+            motivo: `pagamento ${id} não está removido no Asaas (status ${real.status}) — evento não confere`,
+          }
+        }
+        if (real) avulsa = !real.subscription && !real.installment
+      }
+      if (!avulsa || !id) {
+        return {
+          estado: 'ignorado',
+          motivo: 'cobrança de assinatura/parcelamento removida: o plano segue os eventos da assinatura e do pagamento',
+        }
+      }
+      await creditsRepo.cancelarCompra(id)
+      return { estado: 'aplicado', motivo: null }
+    }
     case 'ESTORNO_ARREPENDIMENTO': {
       /* REAPLICAÇÃO de um arrependimento cujo estorno o Asaas recusou (fila do admin). Tenta o
          estorno de novo; falhando outra vez, continua pendente com o motivo novo. O do 12x estorna o
@@ -329,13 +423,177 @@ export async function aplicarEvento(
       await subscriptionsRepo.upsert(userId, { status: 'canceled', currentPeriodEnd: Date.now(), cancelAtPeriodEnd: 0 })
       return { estado: 'aplicado', motivo: 'estorno reprocessado' }
     }
+    /**
+     * A ASSINATURA DEIXOU DE RENOVAR — removida (`DELETED`) ou inativada (`INACTIVATED`, que caía no
+     * `default`). O efeito é o do botão Cancelar fora dos 7 dias: `canceled` SEM mexer no
+     * `currentPeriodEnd`, então o que já foi pago vale até o fim (entitlements.subConcede).
+     *
+     * A CONFERÊNCIA, nesta ordem:
+     *  1. É A ASSINATURA REGISTRADA? Quem prova de quem ela é somos nós (`providerSubscriptionId`,
+     *     gravado por `/assinar`), não o `externalReference` do corpo. A remoção de uma assinatura
+     *     ANTIGA da mesma conta não cancela a atual (nem o 12x): é `ignorado`, com o porquê.
+     *  2. ELA PAROU MESMO? A API tem de dizer removida, inativa/expirada — ou 404, que para o id que
+     *     NÓS registramos só pode ser "não existe mais". Se ela segue ativa lá, o evento não confere:
+     *     `nao-aplicado`, e ninguém perde a renovação.
+     */
     case 'SUBSCRIPTION_DELETED':
+    case 'SUBSCRIPTION_INACTIVATED': {
+      const subId = ev.subscription?.id
+      const atual = await subscriptionsRepo.getActive(userId)
+      if (!atual) {
+        return { estado: 'ignorado', motivo: 'assinatura encerrada no Asaas sem assinatura registrada aqui' }
+      }
+      const registrada = Boolean(subId && atual.providerSubscriptionId === subId)
+      if (!registrada && (atual.providerSubscriptionId || atual.providerInstallmentId)) {
+        const aRegistrada = atual.providerSubscriptionId ?? `parcelamento ${atual.providerInstallmentId}`
+        return {
+          estado: 'ignorado',
+          motivo: `assinatura ${subId ?? '?'} encerrada no Asaas não é a registrada (${aRegistrada}): a atual segue como está`,
+        }
+      }
+      if (verificarAssinatura) {
+        if (!subId) return { estado: 'nao-aplicado', motivo: 'evento de assinatura sem id para conferir no Asaas' }
+        const real = await verificarAssinatura(subId)
+        if (!real) {
+          /* 404. Para a assinatura registrada, confirma. Para uma linha SEM id do provedor (plano
+             concedido pelo admin), não prova nada — qualquer id inventado dá 404. */
+          if (!registrada) {
+            return {
+              estado: 'nao-aplicado',
+              motivo: `assinatura ${subId} não encontrada no Asaas (evento não confere)`,
+            }
+          }
+        } else {
+          if (real.externalReference ? real.externalReference !== String(userId) : !registrada) {
+            return {
+              estado: 'nao-aplicado',
+              motivo: `assinatura ${subId} não pertence a esta conta no Asaas (evento não confere)`,
+            }
+          }
+          const parou = real.deleted === true || real.status === 'INACTIVE' || real.status === 'EXPIRED'
+          if (!parou) {
+            return {
+              estado: 'nao-aplicado',
+              motivo: `assinatura ${subId} segue ${real.status ?? 'de pé'} no Asaas (não removida nem inativa)`,
+            }
+          }
+        }
+      }
       await subscriptionsRepo.upsert(userId, { status: 'canceled' })
       return { estado: 'aplicado', motivo: null }
+    }
     default:
       // Evento que não tratamos: auditado pela tabela, sem efeito — nunca pendente.
       return { estado: 'ignorado', motivo: `evento-nao-tratado: ${ev.event}` }
   }
+}
+
+/* Os status da API que CONFIRMAM cada evento (docs.asaas.com, status de cobrança). */
+const STATUS_DE_PAGO = new Set(['CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH'])
+const STATUS_DE_ATRASO = new Set(['OVERDUE'])
+const STATUS_DE_ESTORNO = new Set(['REFUNDED'])
+/* `AWAITING_CHARGEBACK_REVERSAL` fica FORA de propósito: é a disputa já ganha por nós. Um
+   `CHARGEBACK_REQUESTED` reprocessado depois disso não pode derrubar ninguém. `REFUNDED` entra: é a
+   disputa perdida, e o dinheiro voltou do mesmo jeito. */
+const STATUS_DE_CHARGEBACK = new Set(['CHARGEBACK_REQUESTED', 'CHARGEBACK_DISPUTE', 'REFUNDED'])
+
+/** O pagamento do evento, já trocado pelo que a API diz dele quando há verificador. */
+interface PagamentoConferido {
+  id: string | undefined
+  assinatura: string | undefined
+  parcelamento: string | undefined
+  /** O dono: o `externalReference` da API quando ela o traz; senão, o do payload. */
+  userId: UserId
+}
+
+/**
+ * CONFERE NA API o pagamento de um evento que TIRA alguma coisa. Devolve o pagamento como a API o
+ * conhece — assinatura, parcelamento e DONO saem dela, não do corpo — ou o resultado que encerra o
+ * evento sem efeito:
+ *  - sem id, inexistente lá, ou com um status que não é o que o evento afirma → `nao-aplicado`;
+ *  - com um status de `inofensivos` → `ignorado` (o atraso que chegou depois de a fatura ser paga
+ *    não é fraude nem pendência: é ordem de entrega).
+ * Sem verificador (self-host, webhook sem `ASAAS_API_KEY`) vale o payload, como sempre valeu.
+ */
+async function conferirPagamento(
+  ev: EventoAsaas,
+  userId: UserId,
+  verificar: VerificadorDePagamento | undefined,
+  confirmam: ReadonlySet<string>,
+  inofensivos?: ReadonlySet<string>,
+): Promise<PagamentoConferido | ResultadoDoEvento> {
+  const id = ev.payment?.id
+  if (!verificar) {
+    return { id, assinatura: ev.payment?.subscription, parcelamento: ev.payment?.installment, userId }
+  }
+  if (!id) return { estado: 'nao-aplicado', motivo: `${ev.event} sem id de pagamento para conferir no Asaas` }
+  const real = await verificar(id)
+  if (!real) return { estado: 'nao-aplicado', motivo: `pagamento ${id} não encontrado no Asaas (evento não confere)` }
+  if (!confirmam.has(real.status)) {
+    if (inofensivos?.has(real.status)) {
+      return { estado: 'ignorado', motivo: `pagamento ${id} já está ${real.status} no Asaas: ${ev.event} superado` }
+    }
+    return {
+      estado: 'nao-aplicado',
+      motivo: `pagamento ${id} com status ${real.status} no Asaas (${ev.event} não confere)`,
+    }
+  }
+  return {
+    id,
+    assinatura: real.subscription || undefined,
+    parcelamento: real.installment || undefined,
+    userId: real.externalReference ? asUserId(real.externalReference) : userId,
+  }
+}
+
+/**
+ * O pagamento é do fluxo que a linha REGISTRA? Uma linha com id do provedor só é derrubada por um
+ * pagamento da assinatura ou do parcelamento que ela guarda: o estorno (ou o atraso) de uma
+ * assinatura ANTIGA da mesma conta não pode levar o plano atual junto. Linha sem id nenhum (plano
+ * concedido pelo admin, ou de antes de os ids existirem) não tem com o que comparar e segue a regra
+ * antiga. Devolve o motivo da divergência, ou `null` quando confere.
+ */
+function divergenciaDaLinha(atual: Subscription, p: PagamentoConferido): string | null {
+  if (!atual.providerSubscriptionId && !atual.providerInstallmentId) return null
+  if (p.assinatura && p.assinatura === atual.providerSubscriptionId) return null
+  if (p.parcelamento && p.parcelamento === atual.providerInstallmentId) return null
+  const pago = p.assinatura ? `assinatura ${p.assinatura}` : `parcelamento ${p.parcelamento}`
+  const registrado = [
+    atual.providerSubscriptionId ? `assinatura ${atual.providerSubscriptionId}` : '',
+    atual.providerInstallmentId ? `parcelamento ${atual.providerInstallmentId}` : '',
+  ]
+    .filter(Boolean)
+    .join(' / ')
+  return `cobrança-divergente: pagamento ${p.id ?? '?'} é de ${pago}, registrado ${registrado}`
+}
+
+/**
+ * O DINHEIRO VOLTOU (estorno) OU ESTÁ RETIDO (chargeback) — o efeito é um só.
+ *  - Compra avulsa: a compra deixa de conceder crédito (evento inverso). A parcela do 12x também
+ *    não tem `subscription` — mas tem `installment`, e o estorno dela é do PLANO.
+ *  - Parcela de assinatura ou do 12x: não há período pago, então o acesso termina AGORA. Sem zerar
+ *    `currentPeriodEnd`, o "cancelado mantém até o fim do período" (entitlements) deixaria quem foi
+ *    reembolsado com o mês de graça.
+ */
+async function aplicarDinheiroDevolvido(
+  ev: EventoAsaas,
+  userId: UserId,
+  verificar: VerificadorDePagamento | undefined,
+  confirmam: ReadonlySet<string>,
+  oQue: 'estorno' | 'chargeback',
+): Promise<ResultadoDoEvento> {
+  const p = await conferirPagamento(ev, userId, verificar, confirmam)
+  if ('estado' in p) return p
+  if (!p.assinatura && !p.parcelamento && p.id) {
+    await creditsRepo.cancelarCompra(p.id)
+    return { estado: 'aplicado', motivo: null }
+  }
+  const atual = await subscriptionsRepo.getActive(p.userId)
+  if (!atual) return { estado: 'ignorado', motivo: `${oQue} sem assinatura registrada: nada a revogar` }
+  const divergencia = divergenciaDaLinha(atual, p)
+  if (divergencia) return { estado: 'nao-aplicado', motivo: `${oQue} não aplicado — ${divergencia}` }
+  await subscriptionsRepo.upsert(p.userId, { status: 'canceled', currentPeriodEnd: Date.now(), cancelAtPeriodEnd: 0 })
+  return { estado: 'aplicado', motivo: null }
 }
 
 /**

@@ -780,11 +780,17 @@ export const billingEvents = sqliteTable('billing_events', {
    * confirmado cuja assinatura divergia da registrada, ou um avulso que não casava com compra
    * nenhuma, caía num `break` e respondia 200: o Asaas não reentrega e o pagante ficava sem o
    * plano, sem trilha para reprocessar. Agora todo evento termina `aplicado` ou `nao-aplicado`
-   * com `motivo`, e o payload bruto fica guardado para um administrador reaplicar.
+   * com `motivo`, e o payload fica guardado para um administrador reaplicar.
    */
-  estado: text('estado').notNull().default('aplicado'), // 'aplicado' | 'nao-aplicado'
+  estado: text('estado').notNull().default('aplicado'), // 'aplicado' | 'nao-aplicado' | 'ignorado'
   motivo: text('motivo'),
-  payload: text('payload'), // JSON do evento como chegou
+  /**
+   * O JSON do evento REDUZIDO aos campos que a reaplicação usa — ids, evento, valor, status e datas
+   * (GAP-017 / S26-13). O corpo do Asaas traz dado pessoal do pagador (nome, CPF, cartão, link da
+   * fatura), e ele ficava aqui cru e sem prazo. A lista de campos permitidos está em
+   * `repositories/billingEvents.ts` (`reduzirPayload`); a migração 0047 limpou as linhas antigas.
+   */
+  payload: text('payload'),
 })
 
 export const usageCounters = sqliteTable(

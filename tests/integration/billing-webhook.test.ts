@@ -356,6 +356,44 @@ describe('o ciclo de vida do plano', () => {
     expect((await subs.getActive(u)).status).toBe('canceled')
   })
 
+  /**
+   * `null` É AUSÊNCIA (auditoria de cobrança de 02/10/2026). A API do Asaas devolve campo vazio como
+   * `null`, e o `.optional()` do zod recusa `null`: o pagamento confirmado caía em "corpo fora da
+   * forma", respondia 200 e sumia sem nem ser registrado em `billing_events`.
+   */
+  it('pagamento confirmado com campos `null` (como o Asaas manda os vazios) é aplicado, não descartado', async () => {
+    const u = asUserId('u-nulos')
+    await subs.upsert(u, {
+      plan: 'premium',
+      status: 'trialing',
+      provider: 'asaas',
+      providerSubscriptionId: 'sub_nulos',
+    })
+    const res = mockRes()
+    await handler()(
+      req({
+        id: 'evt_nulos',
+        event: 'PAYMENT_CONFIRMED',
+        payment: {
+          id: 'pay_nulos',
+          subscription: 'sub_nulos',
+          installment: null,
+          installmentNumber: null,
+          externalReference: 'u-nulos',
+          value: 19.9,
+          dueDate: '2026-10-01',
+          paymentDate: null,
+        },
+        subscription: null,
+      }),
+      res,
+    )
+    expect(res.statusCode).toBe(200)
+    expect(res.body.estado).toBe('aplicado')
+    expect((await subs.getActive(u)).status).toBe('active')
+    expect((await eventos.ler('evt_nulos')).estado).toBe('aplicado')
+  })
+
   it('evento sem externalReference é auditado e não tem efeito', async () => {
     const res = mockRes()
     await handler()(req({ id: 'evt_s1', event: 'PAYMENT_CONFIRMED', payment: { id: 'pay_x' } }), res)

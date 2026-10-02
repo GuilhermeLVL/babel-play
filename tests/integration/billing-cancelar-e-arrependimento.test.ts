@@ -231,15 +231,25 @@ describe('estorno de assinatura avisado pelo Asaas', () => {
   it('PAYMENT_REFUNDED de parcela revoga o período pago na hora', async () => {
     await assinante('u-refund-wh', 'sub_rw')
     const { aplicarEvento } = (await h.load('../../server/lib/billingEventos')) as any
-    await aplicarEvento(
+    /* O estorno é CONFERIDO na API antes de revogar (auditoria de cobrança de 02/10/2026); aqui a
+       API é um stub, como em `billing-webhook-verifica-asaas.test.ts`. */
+    const verificar = async () => ({
+      id: 'pay_rw',
+      status: 'REFUNDED',
+      value: 19.9,
+      subscription: 'sub_rw',
+      externalReference: 'u-refund-wh',
+    })
+    const r = await aplicarEvento(
       {
         id: 'evt_rw',
         event: 'PAYMENT_REFUNDED',
         payment: { id: 'pay_rw', subscription: 'sub_rw', externalReference: 'u-refund-wh' },
       },
       'req',
-      undefined,
+      verificar,
     )
+    expect(r.estado).toBe('aplicado')
     expect(await ent.getPlanForUser(asUserId('u-refund-wh'))).toBe('free')
   })
 })

@@ -28,7 +28,9 @@
  *  - o 12x é um PARCELAMENTO no cartão: em 7 dias estorna o parcelamento INTEIRO numa chamada só
  *    (marca `arrependimento:parcelamento:<id>`) e remove o que ainda estiver pendente; depois, não
  *    há renovação a parar (o 12x acaba na 12ª parcela) — cancelar só registra que a pessoa não quer
- *    mais, o ano pago vale até o fim e as parcelas seguem no cartão, sem reembolso proporcional.
+ *    mais, o ano pago vale até o fim e as parcelas seguem no cartão, sem reembolso proporcional;
+ *  - o 12x que NUNCA FOI PAGO (checkout aberto e abandonado) tem a fatura removida no Asaas: sem
+ *    isso ela continuava pagável depois do cancelamento — e depois da exclusão da conta.
  */
 import { billingEventsRepo } from '../db/repositories/billingEvents'
 import { type Subscription, subscriptionsRepo } from '../db/repositories/subscriptions'
@@ -213,6 +215,15 @@ async function encerrarParcelamento(
         ...(r.estornado ? {} : { prazoManualDias: PRAZO_DO_REEMBOLSO_MANUAL_DIAS }),
       },
     }
+  }
+
+  /* NADA PAGO e fatura ainda em aberto: é o checkout do 12x que a pessoa abriu e não concluiu. A
+     fatura é REMOVIDA — senão ela continua pagável no Asaas depois de a pessoa cancelar (ou apagar a
+     conta), e o pagamento cairia numa conta que já disse que não quer, ou que nem existe mais.
+     Diferente da limpeza do arrependimento acima, aqui a falha SOBE: é o único efeito deste caminho
+     no provedor, e quem chama (Cancelar, Excluir a conta) não pode confirmar o que não aconteceu. */
+  if (!primeira && parcelas.some((c) => c.status === 'PENDING' || c.status === 'OVERDUE')) {
+    await removerParcelamento(parcelamentoId)
   }
 
   /* Depois dos 7 dias: nada a cancelar no Asaas — o parcelamento não renova, e as parcelas são do

@@ -305,11 +305,32 @@ export interface AssinaturaDetalhadaAsaas {
   id: string
   /** O próximo vencimento: até lá o mês pago vale. `YYYY-MM-DD`. */
   nextDueDate?: string
+  /** `ACTIVE`, `INACTIVE` ou `EXPIRED`. */
   status?: string
+  /** Removida (o Asaas não apaga o registro: marca). É o que confirma um `SUBSCRIPTION_DELETED`. */
+  deleted?: boolean
+  /** O NOSSO userId, gravado ao criar — é o que prova de quem a assinatura é. */
+  externalReference?: string
 }
 
 export async function buscarAssinatura(assinaturaId: string): Promise<AssinaturaDetalhadaAsaas> {
   return chamar<AssinaturaDetalhadaAsaas>(`/subscriptions/${encodeURIComponent(assinaturaId)}`)
+}
+
+/**
+ * A assinatura para o webhook CONFERIR um `SUBSCRIPTION_DELETED`/`SUBSCRIPTION_INACTIVATED` antes de
+ * parar a renovação de alguém (o par de `buscarPagamento`, e pelo mesmo motivo: o payload chega
+ * autenticado só por um token estático). 404 → `null`: a assinatura não existe (mais) no Asaas —
+ * quem chama decide o que isso prova. Erro real (rede/5xx) sobe, o webhook responde 500 e o Asaas
+ * reentrega.
+ */
+export async function conferirAssinatura(assinaturaId: string): Promise<AssinaturaDetalhadaAsaas | null> {
+  try {
+    return await buscarAssinatura(assinaturaId)
+  } catch (err) {
+    if (String(err).includes('HTTP 404')) return null
+    throw err
+  }
 }
 
 /**
@@ -343,6 +364,8 @@ export interface PagamentoAsaas {
   installmentNumber?: number
   /** `CREDIT_CARD`, `PIX`, `BOLETO`… — o 12x só concede o ano no cartão. */
   billingType?: string
+  /** Cobrança REMOVIDA (o Asaas marca, não apaga). É o que confirma um `PAYMENT_DELETED`. */
+  deleted?: boolean
 }
 
 /**

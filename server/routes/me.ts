@@ -292,10 +292,16 @@ meRouter.delete('/', async (req, res) => {
   /* A COBRANÇA ANTES DOS DADOS (Fase 3 do lançamento). Apagar a conta deixava o Asaas cobrando todo
      mês — e, sem a linha em `subscriptions`, nem o suporte saberia de quem era o cartão. Cancela
      PRIMEIRO pelo mesmo caminho do botão Cancelar (inclusive o arrependimento, se couber); se o
-     Asaas não confirmar, NADA é apagado e o titular é avisado para tentar de novo. */
+     Asaas não confirmar, NADA é apagado e o titular é avisado para tentar de novo.
+
+     O ANUAL EM 12x TAMBÉM (auditoria de cobrança de 02/10/2026): ele é um PARCELAMENTO, então
+     `providerSubscriptionId` é nulo e o id fica em `providerInstallmentId`. A condição olhava só o
+     primeiro, e quem tinha o 12x apagava a conta sem passar por `encerrarAssinatura` — perdia o
+     estorno do arrependimento dentro dos 7 dias, e a fatura em aberto de um checkout não pago
+     continuava pagável no Asaas. Qualquer um dos dois ids é cobrança no provedor. */
   let assinatura: { cancelada: boolean; arrependimento?: unknown } = { cancelada: false }
   const sub = await subscriptionsRepo.getActive(req.userId)
-  if (sub?.providerSubscriptionId) {
+  if (sub?.providerSubscriptionId || sub?.providerInstallmentId) {
     if (!asaasConfigurado()) {
       res.status(503).json({
         error:
@@ -306,7 +312,8 @@ meRouter.delete('/', async (req, res) => {
     }
     try {
       const r = await encerrarAssinatura(req.userId, { requestId: req.requestId })
-      assinatura = { cancelada: true, ...(r.arrependimento ? { arrependimento: r.arrependimento } : {}) }
+      // `semAssinatura` = a linha tinha um id, mas não um fluxo que se encerre lá: nada foi cancelado.
+      assinatura = { cancelada: !r.semAssinatura, ...(r.arrependimento ? { arrependimento: r.arrependimento } : {}) }
     } catch (err) {
       res.status(502).json({
         error: `não consegui cancelar a sua assinatura no provedor de pagamento, então nada foi apagado — tente de novo em alguns minutos (${erroDeRota(err, { event: 'me_excluir_cancelamento_falhou', requestId: req.requestId })})`,

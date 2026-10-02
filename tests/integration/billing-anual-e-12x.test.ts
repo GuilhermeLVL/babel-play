@@ -398,8 +398,22 @@ describe('webhook — o ramo do parcelamento', () => {
 
   it('estorno de uma parcela revoga o ano na hora (não é estorno de créditos)', async () => {
     const u = asUserId('u-wh-12x')
-    asaasSimulado()
-    await aplicarEvento(
+    /* O estorno é CONFERIDO na API antes de revogar (auditoria de cobrança de 02/10/2026): sem o
+       pagamento `REFUNDED` do lado de lá, o evento ficaria `nao-aplicado` e o ano continuaria. */
+    asaasSimulado({
+      pagamentos: {
+        ins_w_p1: {
+          id: 'ins_w_p1',
+          status: 'REFUNDED',
+          value: 14.91,
+          installment: 'ins_w',
+          installmentNumber: 1,
+          billingType: 'CREDIT_CARD',
+          externalReference: 'u-wh-12x',
+        },
+      },
+    })
+    const r = await aplicarEvento(
       {
         id: 'evt_12x_ref',
         event: 'PAYMENT_REFUNDED',
@@ -408,6 +422,7 @@ describe('webhook — o ramo do parcelamento', () => {
       'req',
       undefined,
     )
+    expect(r.estado).toBe('aplicado')
     expect(await ent.getPlanForUser(u)).toBe('free')
   })
 })

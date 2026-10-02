@@ -45,7 +45,9 @@ import { checkoutLigado } from '../lib/config'
 import { encerrarAssinatura } from '../lib/encerramentoDeAssinatura'
 import { erroDeRota } from '../lib/erroDeRota'
 import { ehAdultoDeclarado } from '../lib/idade'
+import { criarLimitadorDeFalhas } from '../lib/limitadorDeFalhas'
 import { log } from '../lib/logger'
+import { METRIC_RATELIMIT_AUTH } from '../lib/rateLimitStore'
 import { responderErro } from '../lib/respostaDeErro'
 import {
   DURACAO_DO_TESTE_MS,
@@ -718,6 +720,35 @@ function tokenConfere(recebido: string | undefined, esperado: string): boolean {
 }
 
 export const asaasWebhookRouter = Router()
+
+/**
+ * O 401 DO WEBHOOK CONTA COMO FALHA DE AUTENTICAÇÃO (S26-12, auditoria de segurança de 26/09/2026).
+ *
+ * Este router é montado ANTES do `authMiddleware` (o Asaas não tem JWT de ninguém) e, por isso,
+ * antes também do limitador de falhas do `/api` em `server/http/app.ts`. Quem tentasse adivinhar o
+ * `asaas-access-token` só encontrava o teto de escrita por IP (120 por minuto): cento e setenta mil
+ * palpites por dia, por IP, sem nunca ser barrado por ERRAR.
+ *
+ * O limitador mora AQUI, no próprio router, e não na ordem de montagem do `app.ts`: assim ele
+ * acompanha o webhook para onde quer que ele seja montado. É o MESMO balde das falhas de auth
+ * (`METRIC_RATELIMIT_AUTH`, 30 por 15 minutos, por IP — sem usuário resolvido, `chaveDoRequest` cai
+ * no IP): errar o token do webhook e errar o JWT são a mesma coisa vista do mesmo IP, e um balde só
+ * não dá 30 palpites em cada porta. Só soma quando a resposta é 401; o Asaas, com o token certo,
+ * nunca escreve nada aqui. Só em modo público, como o limitador do `/api` — e vem ANTES do `json`,
+ * para o IP barrado não custar nem a leitura do corpo.
+ *
+ * O 429 é seguro para o Asaas pelo mesmo motivo do teto de escrita: ele reentrega o que não recebeu
+ * 200, e a idempotência por id garante que a reentrega não duplica.
+ */
+const limitadorDeTokenErrado = criarLimitadorDeFalhas({
+  metric: METRIC_RATELIMIT_AUTH,
+  janelaMs: 15 * 60_000,
+  teto: 30,
+  falhou: (_req, res) => res.statusCode === 401,
+  code: 'muitas_falhas_de_autenticacao',
+  mensagem: 'muitas tentativas de autenticação falharam; tente de novo mais tarde',
+})
+asaasWebhookRouter.use((req, res, next) => (authRequired() ? limitadorDeTokenErrado(req, res, next) : next()))
 asaasWebhookRouter.use(json({ limit: '100kb' }))
 
 asaasWebhookRouter.post('/', async (req, res) => {
@@ -744,8 +775,10 @@ asaasWebhookRouter.post('/', async (req, res) => {
   const referencia = referenciaDoEvento(ev)
   const providerRef = providerRefDoEvento(ev)
 
-  // Idempotência ANTES de qualquer efeito: decidir e marcar são a mesma instrução. O payload
-  // bruto vai junto: é ele que um administrador reaplica se o evento terminar `nao-aplicado`.
+  // Idempotência ANTES de qualquer efeito: decidir e marcar são a mesma instrução. O payload vai
+  // junto: é ele que um administrador reaplica se o evento terminar `nao-aplicado`. Vai o corpo
+  // como chegou (o `ev` validado perde `status` e as datas, que o schema não declara), e é o
+  // REPOSITÓRIO que guarda só os campos permitidos (GAP-017) — nome, CPF e cartão do pagador não ficam.
   const novo = await billingEventsRepo.marcarSeNovo(ev.id, 'asaas', ev.event, referencia, providerRef, req.body)
   if (!novo) {
     res.status(200).json({ ok: true, repetido: true })

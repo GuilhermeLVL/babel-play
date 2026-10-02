@@ -72,7 +72,9 @@ container mais o `AUTH_REQUIRED=1`, não o bind.
 - [ ] **Backup do SQLite.** Em WAL há três arquivos (`.db`, `.db-wal`, `.db-shm`) — copiar só o
       `.db` com o app rodando dá backup **corrompido**. Use o Litestream + snapshot diário (§Backup)
       ou, à mão, `node scripts/backup.mjs` (que faz `VACUUM INTO` e confere).
-- [ ] **Tetos por plano** (`PRO_*`/`ESSENCIAL_*`, defaults em `src/core/planos.ts`) coerentes com o
+- [ ] **Tetos por plano** (`PREMIUM_*` — `PREMIUM_MONTHLY_STT_SECONDS`, `PREMIUM_DAILY_STT_SECONDS` e as
+      demais do inventário em `server/lib/config.ts`; defaults em `src/core/planos.ts`. As antigas
+      `PRO_*`/`ESSENCIAL_*` NÃO são mais lidas: passe o valor para a `PREMIUM_*` correspondente) coerentes com o
       que você aceita gastar. A reserva é atômica (20 requisições simultâneas contra teto 5 aceitam
       5, não 20), mas o teto é seu.
 - [ ] **`/api/health` no monitor externo.** Ele reporta banco **e** boot: um passo de migração

@@ -1,5 +1,7 @@
 # Roadmap de distribuição pública — Babel Play
 
+> **Documento histórico, superado em 2026-10-02 por [`docs/LANCAMENTO.md`](LANCAMENTO.md) e [`docs/ESTADO-DO-LANCAMENTO.md`](ESTADO-DO-LANCAMENTO.md).** O plano "Pro (R$ 15–25/mês)" e a infraestrutura de 24/07/2026 não valem mais (ADR 0011; Fly.io GRU). Fica como registro; não use os planos, preços ou a infraestrutura descritos aqui.
+
 > Plano faseado para levar o app de "roda na minha máquina" a um produto público, seguro e de custo ~zero no tier gratuito, mantido por um dev independente. Escrito em 2026-07-24; custos e limites verificados nessa data.
 
 ## Princípio de arquitetura que torna isso viável

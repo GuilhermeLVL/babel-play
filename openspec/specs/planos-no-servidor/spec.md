@@ -13,7 +13,7 @@ entitlement `largerModels`, resolvido no servidor.
 
 #### Scenario: Usuario sem o entitlement
 
-- **WHEN** um usuario de plano free ou essencial usa a IA gerenciada
+- **WHEN** um usuario de plano free usa a IA gerenciada
 - **THEN** o modelo escolhido e o de `LLM_MODEL`, nunca o de `LLM_MODEL_GRANDE`
 
 #### Scenario: Variavel nao configurada

@@ -20,20 +20,30 @@ comprometida é o app inteiro comprometido.
 
 ## Custo mensal
 
-| peça                                                                         | plano                                    | custo estimado                                                      |
-| ---------------------------------------------------------------------------- | ---------------------------------------- | ------------------------------------------------------------------- |
-| Fly.io — máquina shared-cpu-1x 1 GB sempre ligada, GRU                       | pago por uso                             | ~US$ 5,70                                                           |
-| Fly.io — volume 3 GB + snapshots do volume                                   | pago por uso                             | ~US$ 0,60                                                           |
-| Fly.io — IPv4 dedicado (opcional; o compartilhado basta atrás do Cloudflare) | —                                        | US$ 0 (ou US$ 2)                                                    |
-| Supabase Pro (projeto em sa-east-1, sem pausa, backup do Auth)               | Pro                                      | US$ 25                                                              |
-| Cloudflare — DNS, WAF gerenciado básico, 1 regra de rate limit, HTTPS        | Free                                     | US$ 0                                                               |
-| Cloudflare R2 — áudios, pesos dos modelos, réplica e snapshots (≈ 5–15 GB)   | pago por uso (10 GB grátis, egress zero) | ~US$ 0–0,30                                                         |
-| Resend — e-mails de login (3.000/mês grátis)                                 | Free                                     | US$ 0                                                               |
-| Sentry — erros (5 mil eventos/mês)                                           | Developer                                | US$ 0                                                               |
-| UptimeRobot — monitor HTTP + heartbeat + página de status                    | Free                                     | US$ 0                                                               |
-| Domínio `.com.br` (Registro.br, R$ 40/ano)                                   | —                                        | ~R$ 3,33                                                            |
-| Groq + OpenRouter                                                            | pré-pago / teto no painel                | **variável, com teto** (ver `AI_BUDGET_USD_MONTH`)                  |
-| **Fixo**                                                                     |                                          | **≈ US$ 31–34 + R$ 3,33 ≈ R$ 180–215/mês** (câmbio de R$ 5,60–6,20) |
+| peça                                                                         | plano                                    | custo estimado                                     |
+| ---------------------------------------------------------------------------- | ---------------------------------------- | -------------------------------------------------- |
+| Fly.io — máquina shared-cpu-1x 1 GB sempre ligada, GRU                       | pago por uso                             | ~US$ 10,81 ¹                                       |
+| Fly.io — volume 3 GB + snapshots do volume                                   | pago por uso                             | ~US$ 0,45 ¹                                        |
+| Fly.io — IPv4 dedicado (opcional; o compartilhado basta atrás do Cloudflare) | —                                        | US$ 0 (ou US$ 2)                                   |
+| Supabase Pro (projeto em sa-east-1, sem pausa, backup do Auth)               | Pro                                      | US$ 25                                             |
+| Cloudflare — DNS, WAF gerenciado básico, 1 regra de rate limit, HTTPS        | Free                                     | US$ 0                                              |
+| Cloudflare R2 — áudios, pesos dos modelos, réplica e snapshots (≈ 5–15 GB)   | pago por uso (10 GB grátis, egress zero) | ~US$ 0–0,30                                        |
+| Resend — e-mails de login (3.000/mês grátis)                                 | Free                                     | US$ 0                                              |
+| Sentry — erros (5 mil eventos/mês)                                           | Developer                                | US$ 0                                              |
+| UptimeRobot — monitor HTTP + heartbeat + página de status                    | Free                                     | US$ 0                                              |
+| Domínio `.com.br` (Registro.br, R$ 40/ano)                                   | —                                        | ~R$ 3,33                                           |
+| Groq + OpenRouter                                                            | pré-pago / teto no painel                | **variável, com teto** (ver `AI_BUDGET_USD_MONTH`) |
+| **Fixo**                                                                     |                                          | **≈ US$ 36,30 + R$ 3,33 ≈ R$ 199/mês** ¹           |
+
+¹ **Esta tabela é a fonte do custo fixo nos docs**; os números do Fly e o total saem de
+`node scripts/custo/modelo.mjs` (premissas em `P`), explicados em
+[`fase3-custo.md`](../openspec/audits/2026-09-25-prontidao/fase3-custo.md) (achado 3 e §Premissas): tabela do Fly
+que vale desde 01/10/2026, com o multiplicador de São Paulo (× 1,615) sobre a máquina e a RAM — premissa do
+modelo, a conferir na primeira fatura; volume a US$ 0,15/GB (snapshots dentro dos 10 GB grátis); câmbio PTAX de
+25/09/2026 (R$ 5,20) + IOF de 3,5 %. Os US$ 5,70 que estavam aqui eram o preço antigo de Ashburn. O total **não
+inclui o Langfuse**: ligado sem amostragem, o modelo soma ~US$ 29/mês já com 10 cadastrados
+([tabelas da matriz v2](../openspec/changes/planos-v2/custo/custo-v2-tabelas.md), T3). `docs/escala.md` aponta
+para cá.
 
 O Asaas não tem mensalidade: cobra por transação (cartão ~R$ 0,49 + 1,99 % a 2,99 %; Pix ~R$ 0,99).
 
@@ -193,7 +203,10 @@ supõe 10 s). 429, 5xx e timeout passam para o próximo, e o disjuntor é por pr
 (Workers AI → Privacy) antes de declarar `"retencao": "zdr"`.
 
 Decida o **orçamento global** `AI_BUDGET_USD_MONTH` (soma do que aceita gastar nos dois; sem ela o
-app usa US$ 20). O servidor estima o gasto de cada chamada (`server/lib/orcamentoDeIa.ts`) pelo
+app usa US$ 20). São três números diferentes de propósito: **US$ 20** é o padrão do código quando a
+variável não existe (`ORCAMENTO_PADRAO_USD`, `server/lib/config.ts`); **US$ 30** e **US$ 10** são os
+limites sugeridos no painel de cada provedor (Groq e OpenRouter, acima); e **US$ 40** — a soma dos dois —
+é o valor sugerido para a variável no passo 8 e no `.env.production.example`. O servidor estima o gasto de cada chamada (`server/lib/orcamentoDeIa.ts`) pelo
 preço do **provedor que de fato respondeu** — com o primário em 429, o da reserva —, com os tokens do
 cache de prompt mais baratos e o mínimo faturado do STT de cada provedor; o `/metrics` mostra o custo
 e a latência por `fornecedor` e `modelo` (`ia_provedor_custo_usd_total`, `ia_provedor_latencia_ms`). A 80 %

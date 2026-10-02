@@ -9,8 +9,8 @@ que preço.
 
 #### Scenario: Usuário grátis no Hub
 - **WHEN** um usuário `free` abre o Início
-- **THEN** um card visível informa "planos a partir de R$ 9,90/mês" com caminho para a tela
-  Planos
+- **THEN** um card visível informa "Planos a partir de R$ 19,90/mês" — o menor preço mensal da matriz
+  (`menorPrecoDeAssinatura`, hoje o do Premium), nunca escrito à mão — com caminho para a tela Planos
 
 #### Scenario: Assinante não vê anúncio
 - **WHEN** um usuário com assinatura ativa (ou self-host) navega pelo app

@@ -1,5 +1,7 @@
 # Lançamento do Babel Play — indie, build in public, custo zero
 
+> **Documento histórico, superado em 2026-10-02 por [`docs/LANCAMENTO.md`](LANCAMENTO.md) e [`docs/ESTADO-DO-LANCAMENTO.md`](ESTADO-DO-LANCAMENTO.md).** A trilha "custo zero, plano pelo admin" deu lugar ao lançamento com cobrança (Asaas) no Fly.io. Fica como registro; não use os planos, preços ou a infraestrutura descritos aqui.
+
 **Decisão (2026-08-25):** lançar como *pessoa que constrói e mostra*, não como startup pedindo
 programa. Reconhecimento e público vêm de publicar o produto, o código e a história técnica —
 com honestidade e medição. Programas de startup (incubadora, créditos, editais) ficam

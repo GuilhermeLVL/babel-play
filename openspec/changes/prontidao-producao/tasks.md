@@ -12,18 +12,25 @@
 - [x] Isolamento: simultaneidade por usuário, corpos em streaming, limites
 - [x] Correções 1–5 e 7 aplicadas e medidas (fase2-escala.md §7)
 - [x] Item 6: rotas caras (vocab, profile, gastar)
-- [ ] Fila durável da importação na nuvem
+- [ ] Fila durável da importação na nuvem — continua aberta (RELATORIO-FINAL §2, "Ficaram abertos"; ADR 0007)
 - [x] GATE: aprovado em 25/09
 
 ## Fase 3 — Custo
 
-- [ ] Modelo de custo por plano e patamar, com premissas
+- [x] Modelo de custo por plano e patamar, com premissas — `scripts/custo/modelo.mjs` (premissas em `P`),
+      `openspec/audits/2026-09-25-prontidao/fase3-custo.md`, `.csv` e `-tabelas.md` (conferido em 02/10; a matriz
+      v2 regerou as tabelas em `openspec/changes/planos-v2/custo/`)
 - [x] Feita e integrada (dono autorizou seguir sem gates em 25/09); ver RELATORIO-FINAL.md
 
 ## Fase 4 — Performance e carga
 
-- [ ] Suíte k6 com auth e IA simulada; rodar 10/100/1.000
-- [ ] Lighthouse + budget; SLOs
+- [x] Suíte k6 com auth e IA simulada; rodar 10/100/1.000 — entregue em Node, NÃO em k6:
+      `scripts/perf/suite/rodar.mjs` (`--vus=10,100,1000`, JWT de verdade, `provedor-falso.mjs` no lugar da IA),
+      resultados em `fase4-carga.md` §2; o k6 que existe (`scripts/perf/carga.k6.js`) é o perfil antigo do
+      saneamento (conferido em 02/10)
+- [x] Lighthouse + budget; SLOs — `.github/workflows/lighthouse.yml` (manual) + `scripts/perf/frontend.mjs`;
+      orçamento do bundle em `scripts/perf/orcamento-bundle.mjs` (job `carga` do CI); SLOs em
+      `scripts/perf/suite/slo.json` e `docs/slo.md` (conferido em 02/10)
 - [x] Feita e integrada (dono autorizou seguir sem gates em 25/09); ver RELATORIO-FINAL.md
 
 ## Fase 5 — Observabilidade e autoscaling

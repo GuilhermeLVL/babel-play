@@ -39,23 +39,32 @@ Postgres** — escalar horizontalmente com SQLite não é um passo, é um defeit
 
 | Passo                                  | Máquina                                                                | Custo/mês (tabela do Fly, set/2026)¹ | Dispara quando (qualquer um, sustentado no pico)                                                                                                                                                                       | Métrica / alerta                                                                                                     |
 | -------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| **0 — hoje**                           | `shared-cpu-1x`, 1 GB, 1 máquina, SQLite no volume                     | ~US$ 5,91 + volume (US$ 0,15/GB)     | —                                                                                                                                                                                                                      | —                                                                                                                    |
+| **0 — hoje**                           | `shared-cpu-1x`, 1 GB, 1 máquina, SQLite no volume                     | ver `LANCAMENTO.md` (Custo mensal)²  | —                                                                                                                                                                                                                      | —                                                                                                                    |
 | **1 — CPU dedicada**                   | `performance-1x`, 2 GB                                                 | ~US$ 32,19                           | CPU estrangulada > 0 por **30 min** no pico; **ou** CPU do Node > **70 % da base** (0,044 núcleo) por 1 h; **ou** p95 fora da IA > 1 s com a CPU estrangulada; **ou** ~150 cadastrados ativos                          | `fly_instance_cpu_throttle`, `rate(process_cpu_seconds_total)`, `BabelEscalaCpuEstrangulada`, `BabelLatenciaP95Alta` |
 | **2 — mais memória**                   | `performance-1x`, 4 GB (ou `shared-cpu-1x` 2 GB se a CPU ainda couber) | +~US$ 5 por GB                       | RSS > **80 %** da VM por 10 min; **ou** `uploads_grandes_em_voo` no teto com recusas `processo` diárias (aí subir memória **e depois** `UPLOADS_GRANDES_POR_PROCESSO`); **ou** OOM (`fly_instance_exit_oom = 1`)       | `process_resident_memory_bytes`, `BabelMemoriaAlta`, `BabelUploadsNoTeto`                                            |
 | **3 — mais CPU numa máquina**          | `performance-2x`, 4 GB (+ `CLUSTER_WORKERS=2`)                         | ~US$ 64,39                           | CPU do Node > **60 %** de 1 núcleo sustentada já no `performance-1x` (o gatilho de CPU do ADR 0006) **e** escritas ainda abaixo de 35/s                                                                                | `rate(process_cpu_seconds_total) > 0.6`                                                                              |
 | **4 — Postgres + réplicas** (ADR 0006) | Postgres do Supabase Pro + 2 máquinas                                  | Supabase Pro já no plano + 2× a VM   | **o primeiro** de: escritas > **50/s** no pico (alerta a 35/s); banco > **5 GB** (alerta a 3,5 GB); necessidade de 2ª máquina (alta disponibilidade, ou CPU > 60 % já no passo 3); **1.000 cadastrados ativos no mês** | `rate(db_escritas_total)`, `db_tamanho_bytes`, `BabelEscalaEscritasSQLite`, `BabelEscalaBancoGrande`                 |
 
-¹ Preços-base da [tabela do Fly](https://fly.io/docs/about/pricing/) consultada em 25/09/2026; a região `gru`
-pode custar mais — confira em `fly platform vm-sizes` e no painel de faturamento antes de subir.
+¹ Preços-base (Ashburn) da [tabela do Fly](https://fly.io/docs/about/pricing/) consultada em 25/09/2026, bons
+para COMPARAR os passos entre si. Em `gru` e com a tabela que vale desde 01/10/2026 eles são maiores (× 1,615
+no modelo de custo: o `performance-1x` de 2 GB sai por ~US$ 53,31) — confira em `fly platform vm-sizes` e no
+painel de faturamento antes de subir.
 
-**IA não é CPU nem banco.** Os sinais de IA escalam o **provedor**, não a máquina:
+² O custo do passo 0 (a máquina de hoje e o fixo do lançamento) tem UMA fonte: a tabela "Custo mensal" de
+[`docs/LANCAMENTO.md`](LANCAMENTO.md), tirada de `scripts/custo/modelo.mjs`. Os ~US$ 5,91 que estavam aqui eram
+o preço-base de Ashburn.
 
-| Sinal                                                         | Ação                                                                                                  | Métrica / alerta                                                    |
-| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| 429 do provedor crescendo (> 5 em 10 min, recorrente no pico) | subir o tier do Groq (Developer) — pendência do dono no ADR 0008 — e os limites `IA_ADMISSAO_*` junto | `ia_provedor_limite_total`, `BabelProvedorIaLimitando`              |
-| Recusas de admissão `minuto`/`dia` para o plano **pro**       | idem: o balde é o limite da conta                                                                     | `ia_admissao_recusada_total{plano="pro"}`, `BabelAdmissaoRecusando` |
-| Recusas só de `essencial`/`convidado`                         | nada: é a reserva do Pro funcionando                                                                  | idem                                                                |
-| Gasto diário perto do teto todo dia                           | rever preço/cota do plano antes de subir `AI_BUDGET_USD_DAY`                                          | `ia_gasto_usd`, `ia_custo_usd_total{plano}`                         |
+**IA não é CPU nem banco.** Os sinais de IA escalam o **provedor**, não a máquina. O rótulo `plano` das
+métricas de admissão é a FAIXA de prioridade de `server/ai/admissao.ts` — `premium`, `gratis` (Grátis,
+convidado e o teste de 14 dias) ou `alivio` —, não o nome do plano; até 29/09/2026 eram `pro`/`essencial`
+(matriz v2, ADR 0011):
+
+| Sinal                                                         | Ação                                                                                                  | Métrica / alerta                                                        |
+| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| 429 do provedor crescendo (> 5 em 10 min, recorrente no pico) | subir o tier do Groq (Developer) — pendência do dono no ADR 0008 — e os limites `IA_ADMISSAO_*` junto | `ia_provedor_limite_total`, `BabelProvedorIaLimitando`                  |
+| Recusas de admissão `minuto`/`dia` na faixa **premium**       | idem: o balde é o limite da conta                                                                     | `ia_admissao_recusada_total{plano="premium"}`, `BabelAdmissaoRecusando` |
+| Recusas só de `gratis`/`alivio`                               | nada: é a reserva de quem paga funcionando                                                            | idem                                                                    |
+| Gasto diário perto do teto todo dia                           | rever preço/cota do plano antes de subir `AI_BUDGET_USD_DAY`                                          | `ia_gasto_usd`, `ia_custo_usd_total{plano}`                             |
 
 ## Como escalar gastando pouco
 
@@ -75,7 +84,7 @@ próximo `fly deploy` volta ao tamanho antigo — e ajuste o limiar do `BabelMem
 
 Regras que economizam sem risco:
 
-- **Vertical antes de horizontal.** Um `performance-1x` (~US$ 32) aguenta ~16× a CPU sustentada do
+- **Vertical antes de horizontal.** Um `performance-1x` (~US$ 32 no preço-base; ver a nota ¹) aguenta ~16× a CPU sustentada do
   `shared-cpu-1x`; duas máquinas com SQLite não aguentam nada (dois bancos divergentes).
 - **Suba por sinal sustentado, não por pico isolado.** Os alertas de planejamento pedem 30 min–1 h de
   sinal; um pico de 5 min é o que o saldo de rajada do `shared-cpu` existe para absorver.

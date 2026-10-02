@@ -38,7 +38,7 @@ request** reaches the server — that is measured, not promised (see [Measured, 
 | <img src="docs/img/jogar.png" alt="Play" width="420"> | **Play** — nine short games built from *your* vocabulary (memory, word search, spelling, blitz duel…), with a CEFR track from real word lists. What you get right here counts in the review. |
 | <img src="docs/img/sem-conta.png" alt="No-account mode" width="420"> | **No account needed** — the whole local pipeline works without signing up; screens that persist data show an invitation instead of a wall, and what you did in the browser migrates to the account, once, when you sign up. |
 
-**Accounts are optional.** Without one, data lives in IndexedDB; sign up later and it migrates once, idempotently. With one, plans are decided by the server (free: everything local/BYOK; pro: managed cloud AI).
+**Accounts are optional.** Without one, data lives in IndexedDB; sign up later and it migrates once, idempotently. With one, plans are decided by the server (Free: everything local/BYOK; Premium: managed cloud AI).
 
 ## How it works
 
@@ -93,7 +93,7 @@ flowchart TB
     F -->|"identity = anonymous"| E["In-memory server over IndexedDB<br/><small>src/data/efemero · same response shapes</small>"]:::c
     F -->|"identity = account | self-host"| API["Express API<br/><small>Supabase JWT · per-user isolation · rate limits · Zod</small>"]:::c
     API --> DB[("libsql / SQLite<br/><small>Turso-ready</small>")]:::c
-    API --> PLAN["Plan &amp; role decided <b>only</b> here<br/><small>free · pro · self-host — user · admin · support</small>"]:::s
+    API --> PLAN["Plan &amp; role decided <b>only</b> here<br/><small>free · premium · self-host — user · admin · support</small>"]:::s
 ```
 
 - **One HTTP funnel.** Every call goes through `apiFetch`. Without an account it is answered by an in-memory server with the same response shapes as the real one — the UI cannot tell the difference. An ast-grep rule forbids `fetch('/api/…')` anywhere else.
@@ -127,7 +127,7 @@ Everything below comes from scripts in the repo; numbers are from a 2026-08 run.
 - Screen-share audio on Windows can raise `NotReadableError`; use tab share or the loopback route.
 - Game rounds played without an account are not migrated to the account (sessions, audio and cards are).
 - Single-writer database: fine for a beta, not for scale.
-- No billing yet — plans are set by an admin.
+- Sales are not open yet: billing (Asaas — Free + Premium, the paid plan is granted by the payment webhook) is implemented and tested, but the production server is not live. See the [launch status](docs/ESTADO-DO-LANCAMENTO.md) (Portuguese).
 
 ## Verify
 
@@ -137,7 +137,7 @@ npm run typecheck && npm run typecheck:core && npm run lint && npm test && npm r
 
 ## Docs
 
-[Architecture](docs/arquitetura.md) · [Deploy](docs/deploy.md) · [Regression checklist](docs/testes-regressao.md) · [Audit methodology](docs/metodologia-de-auditoria.md) · [Launch plan](docs/lancamento-2026-09.md)
+[Architecture](docs/arquitetura.md) · [Deploy](docs/deploy.md) · [Regression checklist](docs/testes-regressao.md) · [Audit methodology](docs/metodologia-de-auditoria.md) · [Launch plan](docs/LANCAMENTO.md) · [Launch status](docs/ESTADO-DO-LANCAMENTO.md)
 
 ## Contributing · Security · License
 

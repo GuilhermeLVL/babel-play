@@ -36,7 +36,7 @@ Elige **Continuar sin cuenta**: todo el pipeline corre localmente y **ni una sol
 | <img src="docs/img/jogar.png" alt="Jugar" width="420"> | **Jugar** — nueve juegos cortos construidos con *tu* vocabulario (memoria, sopa de letras, deletreo, duelo relámpago…), con una ruta CEFR basada en listas reales. Lo que aciertas aquí cuenta en el repaso. |
 | <img src="docs/img/sem-conta.png" alt="Modo sin cuenta" width="420"> | **Sin cuenta** — todo el pipeline local funciona sin registrarse; las pantallas que persisten datos muestran una invitación en vez de un muro, y lo hecho en el navegador migra a la cuenta, una sola vez, al registrarte. |
 
-**La cuenta es opcional.** Sin ella, los datos viven en IndexedDB; al registrarte, migran una sola vez, de forma idempotente. Con cuenta, el plan lo decide el servidor (free: todo local/BYOK; pro: IA en la nube gestionada).
+**La cuenta es opcional.** Sin ella, los datos viven en IndexedDB; al registrarte, migran una sola vez, de forma idempotente. Con cuenta, el plan lo decide el servidor (Gratis: todo local/BYOK; Premium: IA en la nube gestionada).
 
 ## Cómo funciona
 
@@ -99,7 +99,7 @@ Detalles en [docs/arquitetura.md](docs/arquitetura.md).
 - El audio de pantalla compartida en Windows puede dar `NotReadableError`; usa pestaña o loopback.
 - Las rondas jugadas sin cuenta no migran (sesiones, audio y tarjetas sí).
 - Base de datos de un solo escritor: sirve para una beta, no para escalar.
-- Sin cobro todavía — el plan lo define un admin.
+- La venta aún no está abierta: el cobro (Asaas — Gratis + Premium, el plan de pago lo concede el webhook de pago) está implementado y probado, pero el servidor de producción todavía no está en línea.
 
 ## Verificar
 

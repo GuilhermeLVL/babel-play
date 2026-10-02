@@ -1,5 +1,7 @@
 # Handoff — próxima sessão (contexto zerado)
 
+> **Documento histórico, superado em 2026-10-02 por [`docs/ESTADO-DO-LANCAMENTO.md`](ESTADO-DO-LANCAMENTO.md).** O prompt abaixo descreve o repositório e os planos de 31/08/2026. Fica como registro; não use os planos, preços ou a infraestrutura descritos aqui.
+
 Escrito em 2026-08-31, no fim de uma sessão longa. **Cole o bloco "PROMPT" abaixo** numa conversa
 nova aberta DENTRO deste repositório (`babel-play-lab`) e o trabalho continua de onde parou.
 

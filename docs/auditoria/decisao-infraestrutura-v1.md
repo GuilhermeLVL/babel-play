@@ -1,5 +1,7 @@
 # Decisão de infraestrutura — pagamento, banco e IA
 
+> **Documento histórico, superado em 2026-10-02 por [`docs/LANCAMENTO.md`](../LANCAMENTO.md) e [`docs/ESTADO-DO-LANCAMENTO.md`](../ESTADO-DO-LANCAMENTO.md).** As escolhas de pagamento, banco e IA de 30/08/2026 foram decididas depois (Asaas; SQLite + Litestream no Fly.io; Groq + OpenRouter). Fica como registro; não use os planos, preços ou a infraestrutura descritos aqui.
+
 Documento para **decidir**, não para medir. Preços verificados em 2026-08-30. O que você precisa
 escolher está em três tabelas; o resto é contexto e recomendação.
 

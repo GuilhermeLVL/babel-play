@@ -1,5 +1,7 @@
 # Marco 1 — Autenticação (Supabase) + isolamento multi-tenant
 
+> **Documento histórico, superado em 2026-10-02 por [`docs/arquitetura.md`](arquitetura.md), [`docs/deploy.md`](deploy.md) e [`docs/ESTADO-DO-LANCAMENTO.md`](ESTADO-DO-LANCAMENTO.md).** Hospedagem e cobrança, que aqui "ficam para os próximos marcos", já existem. Fica como registro; não use os planos, preços ou a infraestrutura descritos aqui.
+
 Primeiro marco do caminho para SaaS público. **O motor de identidade + isolamento por usuário,
 construído e testado 100% em localhost, sem hospedar nada.** Os dados continuam no SQLite local;
 o Supabase entra só como provedor de login (JWT). Migração para Postgres/Turso, RLS, hospedagem e

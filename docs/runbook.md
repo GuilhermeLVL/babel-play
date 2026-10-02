@@ -588,10 +588,10 @@ alerta apagado; se a regra está errada, corrija o `regras.yml` (com teste) em v
 
 - **Significa:** o próprio servidor está recusando chamadas de IA (429 `nuvem_ocupada`) antes de
   gastar o limite do provedor (ADR 0007).
-- **Primeira ação:** painel "Admissão: recusas por minuto". `minuto`/`dia` com plano `pro` = o limite
-  do provedor é pequeno demais, suba o tier. Só `essencial`/`convidado` = a reserva do Pro trabalhando
+- **Primeira ação:** painel "Admissão: recusas por minuto". `minuto`/`dia` na faixa `premium` = o limite
+  do provedor é pequeno demais, suba o tier. Só `gratis`/`alivio` = a reserva de quem paga trabalhando
   (normal no pico). `em_voo` alto = um cliente mandando em paralelo.
-- **Silenciar:** se for só `convidado` num evento previsto, pela duração do evento.
+- **Silenciar:** se for só `gratis` (é onde o convidado entra) num evento previsto, pela duração do evento.
 
 <a id="alerta-disjuntor"></a>
 

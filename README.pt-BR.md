@@ -38,7 +38,7 @@ chega ao servidor — isso é medido, não prometido (veja [Medido, não prometi
 | <img src="docs/img/jogar.png" alt="Jogar" width="420"> | **Jogar** — nove jogos curtos feitos com o *seu* vocabulário (memória, caça-palavras, soletrar, duelo relâmpago…), com trilha CEFR a partir de listas reais. O que você acerta aqui conta na revisão. |
 | <img src="docs/img/sem-conta.png" alt="Modo sem conta" width="420"> | **Sem conta** — o pipeline local inteiro funciona sem cadastro; as telas que persistem dados mostram um convite em vez de um muro, e o que você fez no navegador sobe para a conta, uma vez, quando você entra. |
 
-**Conta é opcional.** Sem ela, os dados ficam no IndexedDB; ao criar conta, sobem uma vez, de forma idempotente. Com ela, o plano é decidido pelo servidor (free: tudo local/BYOK; pro: IA de nuvem gerenciada).
+**Conta é opcional.** Sem ela, os dados ficam no IndexedDB; ao criar conta, sobem uma vez, de forma idempotente. Com ela, o plano é decidido pelo servidor (Grátis: tudo local/BYOK; Premium: IA de nuvem gerenciada).
 
 ## Como funciona
 
@@ -93,7 +93,7 @@ flowchart TB
     F -->|"identidade = anônimo"| E["Servidor em memória sobre IndexedDB<br/><small>src/data/efemero · mesmas formas de resposta</small>"]:::c
     F -->|"identidade = conta | self-host"| API["API Express<br/><small>JWT Supabase · isolamento por usuário · rate limit · Zod</small>"]:::c
     API --> DB[("libsql / SQLite<br/><small>pronto para Turso</small>")]:::c
-    API --> PLAN["Plano e papel decididos <b>só</b> aqui<br/><small>free · pro · self-host — user · admin · support</small>"]:::s
+    API --> PLAN["Plano e papel decididos <b>só</b> aqui<br/><small>free · premium · self-host — user · admin · support</small>"]:::s
 ```
 
 - **Um funil HTTP.** Toda chamada passa por `apiFetch`. Sem conta, quem responde é um servidor em memória com as mesmas formas do servidor real — a UI não sabe a diferença. Uma regra ast-grep proíbe `fetch('/api/…')` em qualquer outro lugar.
@@ -127,7 +127,7 @@ Tudo abaixo vem de scripts do repositório; números de uma execução de 2026-0
 - Áudio de compartilhamento de tela no Windows pode dar `NotReadableError`; use aba ou loopback.
 - Rodadas jogadas sem conta não migram para a conta (sessões, áudio e cartões migram).
 - Banco de escritor único: serve para beta, não para escala.
-- Sem cobrança ainda — o plano é definido pelo admin.
+- A venda ainda não está aberta: a cobrança (Asaas — Grátis + Premium, o plano pago é concedido pelo webhook de pagamento) está implementada e testada, mas o servidor de produção ainda não foi ao ar. Ver o [estado do lançamento](docs/ESTADO-DO-LANCAMENTO.md).
 
 ## Verificar
 
@@ -137,7 +137,7 @@ npm run typecheck && npm run typecheck:core && npm run lint && npm test && npm r
 
 ## Docs
 
-[Arquitetura](docs/arquitetura.md) · [Deploy](docs/deploy.md) · [Roteiro de regressão](docs/testes-regressao.md) · [Metodologia de auditoria](docs/metodologia-de-auditoria.md) · [Plano de lançamento](docs/lancamento-2026-09.md)
+[Arquitetura](docs/arquitetura.md) · [Deploy](docs/deploy.md) · [Roteiro de regressão](docs/testes-regressao.md) · [Metodologia de auditoria](docs/metodologia-de-auditoria.md) · [Plano de lançamento](docs/LANCAMENTO.md) · [Estado do lançamento](docs/ESTADO-DO-LANCAMENTO.md)
 
 ## Contribuir · Segurança · Licença
 

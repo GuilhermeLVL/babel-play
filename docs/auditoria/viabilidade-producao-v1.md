@@ -1,5 +1,7 @@
 # Viabilidade de produção — quanto custa um usuário, e o que falta para cobrar
 
+> **Documento histórico, superado em 2026-10-02 por [`docs/monetizacao.md`](../monetizacao.md) §3, [`docs/LANCAMENTO.md`](../LANCAMENTO.md) e [`docs/ESTADO-DO-LANCAMENTO.md`](../ESTADO-DO-LANCAMENTO.md).** A conta de custo vigente é a de `scripts/custo/modelo.mjs`. Fica como registro; não use os planos, preços ou a infraestrutura descritos aqui.
+
 Estudo para a decisão de lançar **completo** (conta, planos, cobrança) ou **limitado** (grátis,
 sem conta). Todos os preços foram verificados na fonte em 2026-08-30, e todo consumo foi **medido**,
 não estimado por analogia.

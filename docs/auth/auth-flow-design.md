@@ -1,5 +1,7 @@
 # Fluxo de autenticação + primeira experiência do usuário (desenho)
 
+> **Documento histórico, superado em 2026-10-02 por [`docs/arquitetura.md`](../arquitetura.md) e [`docs/ESTADO-DO-LANCAMENTO.md`](../ESTADO-DO-LANCAMENTO.md).** É um desenho anterior à implementação (cita sessão em cookie httpOnly, que o servidor não usa, e o login com Facebook, que saiu do lançamento). Fica como registro; não use os planos, preços ou a infraestrutura descritos aqui.
+
 > Desenho para revisão ANTES da implementação. Objetivo duplo: (1) primeira experiência clara
 > (criar conta, entrar com Google/Facebook/e-mail+senha, recuperar senha, 2FA opcional); (2) um
 > mapa que facilite ler o fluxo e caçar vulnerabilidades. Ancora em **OWASP ASVS** (V2 auth, V3

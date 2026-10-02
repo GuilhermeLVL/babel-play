@@ -1,5 +1,7 @@
 # Evidências de compliance LGPD — estado em 2026-09-13
 
+> **Documento histórico, superado em 2026-10-02 por [`docs/lgpd/operadores.md`](../../../docs/lgpd/operadores.md), [`docs/lgpd/ropa.csv`](../../../docs/lgpd/ropa.csv) e [`docs/ESTADO-DO-LANCAMENTO.md`](../../../docs/ESTADO-DO-LANCAMENTO.md).** O "público 18+ decidido" foi revertido: o app é para todas as idades, com perfil protegido para menores (`public/privacidade.html`). Fica como registro; não use os planos, preços ou a infraestrutura descritos aqui.
+
 Público-alvo decidido: **18+** (age gate declaratório, sem consentimento parental).
 
 ## O que já está pronto e verificado

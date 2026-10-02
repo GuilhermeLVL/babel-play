@@ -1,5 +1,7 @@
 # Próximos passos — Babel Play
 
+> **Documento histórico, superado em 2026-10-02 por [`docs/ESTADO-DO-LANCAMENTO.md`](ESTADO-DO-LANCAMENTO.md) e [`docs/LANCAMENTO.md`](LANCAMENTO.md).** Os planos "Essencial R$ 9,90 / Pro R$ 19,90" deram lugar a Grátis + Premium (ADR 0011). Fica como registro; não use os planos, preços ou a infraestrutura descritos aqui.
+
 Documento vivo. Existe para você **não reconstruir contexto** ao voltar cansado: o que está pronto,
 o que falta, e em que ordem. Atualizado em 2026-08-31 (pós E1–E5).
 

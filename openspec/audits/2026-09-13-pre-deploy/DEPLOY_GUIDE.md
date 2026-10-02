@@ -1,5 +1,7 @@
 # Guia de deploy — Fly.io (1 container + volume)
 
+> **Documento histórico, superado em 2026-10-02 por [`docs/LANCAMENTO.md`](../../../docs/LANCAMENTO.md) e [`docs/deploy.md`](../../../docs/deploy.md).** O passo a passo do Fly.io que vale é o do `LANCAMENTO.md`. Fica como registro; não use os planos, preços ou a infraestrutura descritos aqui.
+
 **Status: NÃO executado.** Este guia prepara o deploy; nenhuma conta foi criada e nada foi
 publicado. O dono aprova antes de rodar.
 

@@ -5,6 +5,11 @@ pagamento da sua assinatura", `src/components/conta/AvisoDePagamentoAtrasado.tsx
 abre o app vê. O e-mail do próprio Asaas cobre quem não abre. O app **não** manda esses e-mails:
 eles são configurados no painel do Asaas, pelo dono da conta.
 
+> **Decisão pendente do dono (registrada em 02/10/2026).** Este guia ensina a LIGAR os e-mails do Asaas; o
+> checklist de operadores ([`docs/lgpd/operadores.md`](lgpd/operadores.md), linha do Asaas) pede para deixá-los
+> DESLIGADOS "se o app já avisa". As duas orientações se contradizem e nenhuma foi escolhida ainda — não siga
+> este passo a passo antes de o dono decidir (ver [`docs/ESTADO-DO-LANCAMENTO.md`](ESTADO-DO-LANCAMENTO.md)).
+
 > Os nomes de menu abaixo são os que o Asaas costuma usar, mas o painel muda de tempos em tempos.
 > Se um nome não bater, procure pela palavra **"Notificações"** (no menu da conta, nas
 > configurações da conta ou dentro do cadastro de um cliente) ou use a busca/ajuda do painel. Na

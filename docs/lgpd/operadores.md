@@ -57,15 +57,24 @@ leva só texto, modelo, formato e idioma.
 
 ## O que a política de privacidade precisa refletir
 
-`public/privacidade.html` (última atualização 13/09) ainda cita o **Google Gemini** como provedor do
-tutor e **não** cita Fly.io, Cloudflare/R2, OpenRouter, Resend, Sentry nem o Google Fonts — e fala
-em "maiores de 18 anos", o que mudou com a decisão de abrir o app a menores. A atualização está com
-a frente de Termos/idade (Fase 3/4); esta tabela é a lista do que ela precisa nomear.
+`public/privacidade.html` (versão para revisão jurídica de 30/09/2026, conferida em 02/10/2026) **já não
+cita o Gemini** nem fala em "maiores de 18 anos": descreve o perfil protegido dos menores de 18, o vínculo
+com o responsável abaixo de 16 e o consentimento específico abaixo de 12, e nomeia Supabase, Groq,
+OpenRouter (reserva, retenção zero), Asaas e Langfuse. **Ainda não nomeia** Fly.io, Cloudflare/R2, Resend,
+Sentry, Google Fonts nem a DeepInfra/Workers AI (voz) — é o que falta ela ganhar, a partir desta tabela.
 
 **Langfuse (25/09/2026):** a política ganhou a seção de telemetria técnica pseudonimizada e a nota
 sobre o reconhecimento de voz do navegador (Web Speech). Pseudônimo não é anonimização (LGPD art.
 13, §4º e art. 12, §2º): o dado continua pessoal para nós, que temos o sal — por isso o Langfuse
 entra como operador, com DPA, e não como "dado anônimo fora da LGPD".
+
+## Decisão pendente do dono: os e-mails de cobrança do Asaas
+
+A linha do Asaas na tabela acima pede as **notificações por e-mail ao cliente DESLIGADAS** "se o app já
+avisa" (menos um tratamento de e-mail por um terceiro); [`docs/asaas-notificacoes.md`](../asaas-notificacoes.md)
+ensina a **LIGAR** as mesmas notificações, porque a faixa de atraso do app só alcança quem abre o app. As duas
+orientações se contradizem e **nenhuma foi escolhida ainda** — é decisão do dono (registrada em 02/10/2026 em
+[`docs/ESTADO-DO-LANCAMENTO.md`](../ESTADO-DO-LANCAMENTO.md)). Até lá, não marque a linha do Asaas como feita.
 
 ## Encarregado (DPO)
 

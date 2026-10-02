@@ -1,8 +1,10 @@
 # ADR 0011 — Vender um plano pago só (Premium), com uso justo diário, e o anual pelos dois fluxos do Asaas
 
 - **Data:** 2026-09-29
-- **Estado:** proposto
+- **Estado:** aceito (2026-10-02)
 - **Change OpenSpec:** `planos-v2`
+- **Confirmação do dono (2026-10-02):** o lançamento sai com Grátis + Premium; um terceiro nível "Ao vivo"
+  (streaming) fica para depois do lançamento.
 
 > Número 0011, e não 0010: o plano aprovado (`functional-doodling-crane`, B7) reserva o ADR 0010 para a troca de
 > provedores de IA com o custo medido.

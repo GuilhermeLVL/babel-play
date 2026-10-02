@@ -36,7 +36,7 @@ Choisissez **Continuer sans compte** : tout le pipeline tourne en local et **pas
 | <img src="docs/img/jogar.png" alt="Jouer" width="420"> | **Jouer** — neuf jeux courts construits à partir de *votre* vocabulaire (mémoire, mots mêlés, orthographe, duel éclair…), avec un parcours CECR issu de listes réelles. Ce que vous réussissez ici compte dans la révision. |
 | <img src="docs/img/sem-conta.png" alt="Mode sans compte" width="420"> | **Sans compte** — tout le pipeline local fonctionne sans inscription ; les écrans qui persistent des données affichent une invitation plutôt qu'un mur, et ce que vous avez fait dans le navigateur migre vers le compte, une seule fois, à l'inscription. |
 
-**Le compte est facultatif.** Sans compte, les données vivent dans IndexedDB ; à l'inscription, elles migrent une seule fois, de façon idempotente. Avec un compte, le plan est décidé par le serveur (free : tout en local/BYOK ; pro : IA cloud gérée).
+**Le compte est facultatif.** Sans compte, les données vivent dans IndexedDB ; à l'inscription, elles migrent une seule fois, de façon idempotente. Avec un compte, le plan est décidé par le serveur (Gratuit : tout en local/BYOK ; Premium : IA cloud gérée).
 
 ## Comment ça marche
 
@@ -99,7 +99,7 @@ Détails dans [docs/arquitetura.md](docs/arquitetura.md).
 - L'audio du partage d'écran sous Windows peut lever `NotReadableError` ; utilisez l'onglet ou le loopback.
 - Les parties jouées sans compte ne migrent pas (sessions, audio et cartes, si).
 - Base de données à écrivain unique : suffisante pour une bêta, pas pour l'échelle.
-- Pas encore de facturation — le plan est défini par un admin.
+- La vente n'est pas encore ouverte : la facturation (Asaas — Gratuit + Premium, le plan payant est accordé par le webhook de paiement) est implémentée et testée, mais le serveur de production n'est pas encore en ligne.
 
 ## Vérifier
 

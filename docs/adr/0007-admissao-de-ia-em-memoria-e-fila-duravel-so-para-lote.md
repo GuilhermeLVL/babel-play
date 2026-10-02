@@ -4,6 +4,11 @@
 - **Estado:** proposto
 - **Change OpenSpec:** `prontidao-producao`
 
+> **Nota de 2026-10-02 (matriz v2, [ADR 0011](0011-um-plano-pago-com-uso-justo-diario.md)):** onde este ADR diz
+> "Pro, depois Essencial, depois convidado", leia as faixas de hoje em `server/ai/admissao.ts`: `premium` (quem
+> paga e o self-host), depois `gratis` (Grátis, convidado e o teste de 14 dias), e `alivio` (a nuvem de alívio do
+> Grátis, que não alcança os 80 % de baixo do balde). A decisão não mudou; a fila durável do lote continua aberta.
+
 ## Contexto
 
 Toda chamada de IA é síncrona dentro do request, sem fila (`server/ai/sttProxy.ts`, `mtProxy.ts`). A conta Groq

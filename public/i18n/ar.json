@@ -296,5 +296,11 @@
   "Se existir uma conta com esse e-mail, enviamos um link de recuperação.": "إذا كان هناك حساب بهذا البريد الإلكتروني، فقد أرسلنا رابط الاستعادة.",
   "A senha precisa ter pelo menos {n} caracteres.": "يجب أن تتكون كلمة المرور من {n} أحرف على الأقل.",
   "Essa senha já apareceu em vazamentos de dados conhecidos. Escolha outra, só sua.": "ظهرت كلمة المرور هذه في تسريبات بيانات معروفة. اختر غيرها، خاصة بك وحدك.",
-  "Senha fraca: use pelo menos {n} caracteres, misturando letras e números.": "كلمة مرور ضعيفة: استخدم {n} أحرف على الأقل، مع خلط الحروف والأرقام."
+  "Senha fraca: use pelo menos {n} caracteres, misturando letras e números.": "كلمة مرور ضعيفة: استخدم {n} أحرف على الأقل، مع خلط الحروف والأرقام.",
+  "Verificação de segurança": "التحقق الأمني",
+  "Conclua a verificação de segurança para continuar.": "أكمل التحقق الأمني للمتابعة.",
+  "A verificação de segurança não foi aceita. Refaça a verificação e tente de novo.": "لم يُقبل التحقق الأمني. أعد التحقق ثم حاول مرة أخرى.",
+  "A verificação de segurança expirou. Refaça para continuar.": "انتهت صلاحية التحقق الأمني. أعده للمتابعة.",
+  "A verificação de segurança falhou. Tente de novo.": "فشل التحقق الأمني. حاول مرة أخرى.",
+  "Não foi possível carregar a verificação de segurança. Confira a conexão, desative bloqueadores e tente de novo.": "تعذّر تحميل التحقق الأمني. تحقق من الاتصال وأوقف أدوات الحظر ثم حاول مرة أخرى."
 }

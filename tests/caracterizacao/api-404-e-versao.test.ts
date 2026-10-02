@@ -45,6 +45,17 @@ describe('404 JSON em /api/*', () => {
     expect(((await r.json()) as { code: string }).code).toBe('rota_inexistente')
   })
 
+  /* O alias `/api/gemini` → tutor existia para o cliente em cache de antes da Fase 2 do lançamento.
+     O dono proíbe o Gemini e nenhum cliente o chama mais: o nome saiu da API, e quem ainda o usar
+     recebe o mesmo 404 de qualquer rota removida. O tutor continua em `/api/tutor`. */
+  it('o alias /api/gemini saiu: 404 no envelope, e o tutor segue em /api/tutor', async () => {
+    const r = await s.post('/api/gemini/chat', { messages: [{ role: 'user', content: 'oi' }] })
+    expect(r.status).toBe(404)
+    expect(((await r.json()) as { code: string }).code).toBe('rota_inexistente')
+    const tutor = await s.post('/api/tutor/chat', {})
+    expect(tutor.status).not.toBe(404)
+  })
+
   it('rota que existe continua respondendo (o 404 é o último da API, não o primeiro)', async () => {
     expect((await s.get('/api/health')).status).toBe(200)
     expect((await s.get('/api/me')).status).toBe(200)

@@ -94,7 +94,6 @@ export const ROUTERS_PRIVADOS: Array<[string, string, string]> = [
   ['/api/audio', '../../server/audio/loopback', 'audioRouter'],
   /* Ultimo a ser montado, como no `app.ts`: a rota de chat saiu do `server.ts` na Fase 3. */
   ['/api/tutor', '../../server/routes/tutor', 'tutorRouter'],
-  ['/api/gemini', '../../server/routes/tutor', 'tutorRouter'],
 ]
 
 const salvo: Record<string, string | undefined> = {}

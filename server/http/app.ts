@@ -461,7 +461,7 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
   app.use('/api', exigirAal2SeTiver2fa())
 
   // Rate-limit por tenant — DEPOIS do auth, para a chave ser o usuário e não o IP.
-  app.use(['/api/ai', '/api/import', '/api/tutor', '/api/gemini'], expensiveLimiter)
+  app.use(['/api/ai', '/api/import', '/api/tutor'], expensiveLimiter)
 
   /* MENOR DE 16 SEM RESPONSÁVEL FICA SEM NUVEM (Fase 4 — ECA Digital art. 24, LGPD art. 14): as
      rotas que guardam ou processam dados na nuvem respondem 403 `responsavel_pendente` até o
@@ -479,7 +479,6 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
       '/api/settings',
       '/api/images',
       '/api/tutor',
-      '/api/gemini',
     ],
     exigirContaLiberada,
   )
@@ -576,12 +575,10 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
     app.use('/api/audio', capturarAssincrono(audioRouter))
   }
 
-  // Tutor (cascata Groq → OpenRouter; Ollama só no self-host). `/api/gemini` é ALIAS TEMPORÁRIO:
-  // o cliente em cache de antes da Fase 2 do lançamento ainda chama `/api/gemini/chat`, e o corpo
-  // antigo (com `systemInstruction`) é aceito — o system dele é descartado. Remover o alias quando
-  // o service worker/cache do cliente antigo tiver expirado.
+  // Tutor (cascata Groq → OpenRouter; Ollama só no self-host). O alias antigo da rota (o nome do
+  // provedor que saiu na Fase 2 do lançamento) foi removido: nenhum cliente o chama mais, e quem
+  // chamar recebe o 404 da API logo abaixo.
   app.use('/api/tutor', capturarAssincrono(tutorRouter))
-  app.use('/api/gemini', capturarAssincrono(tutorRouter))
 
   /* 404 DA API — o ÚLTIMO de `/api`, e antes do fallback da SPA (P0-7a). Em produção o `montarSpa`
      termina num `app.get('*')` que devolve o `index.html` com 200 para qualquer caminho: sem este

@@ -287,5 +287,11 @@
   "Se existir uma conta com esse e-mail, enviamos um link de recuperação.": "Si existe una cuenta con ese correo, enviamos un enlace de recuperación.",
   "A senha precisa ter pelo menos {n} caracteres.": "La contraseña debe tener al menos {n} caracteres.",
   "Essa senha já apareceu em vazamentos de dados conhecidos. Escolha outra, só sua.": "Esta contraseña ya apareció en filtraciones de datos conocidas. Elige otra, solo tuya.",
-  "Senha fraca: use pelo menos {n} caracteres, misturando letras e números.": "Contraseña débil: usa al menos {n} caracteres, mezclando letras y números."
+  "Senha fraca: use pelo menos {n} caracteres, misturando letras e números.": "Contraseña débil: usa al menos {n} caracteres, mezclando letras y números.",
+  "Verificação de segurança": "Verificación de seguridad",
+  "Conclua a verificação de segurança para continuar.": "Completa la verificación de seguridad para continuar.",
+  "A verificação de segurança não foi aceita. Refaça a verificação e tente de novo.": "La verificación de seguridad no fue aceptada. Repite la verificación e inténtalo de nuevo.",
+  "A verificação de segurança expirou. Refaça para continuar.": "La verificación de seguridad caducó. Repítela para continuar.",
+  "A verificação de segurança falhou. Tente de novo.": "La verificación de seguridad falló. Inténtalo de nuevo.",
+  "Não foi possível carregar a verificação de segurança. Confira a conexão, desative bloqueadores e tente de novo.": "No se pudo cargar la verificación de seguridad. Revisa tu conexión, desactiva los bloqueadores e inténtalo de nuevo."
 }

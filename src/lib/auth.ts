@@ -22,6 +22,12 @@ export interface AuthResult {
   message?: string;
   /** Cadastro sem sessão → precisa confirmar o e-mail antes de entrar. */
   needsEmailConfirm?: boolean;
+  /**
+   * O código do erro do Supabase ao ENTRAR — só para a porta (`Login.tsx`) reconhecer
+   * `captcha_failed`, trocar a mensagem genérica e reiniciar o widget. A frase do captcha mora lá,
+   * no pedaço carregado sob demanda: este arquivo entra no pacote inicial, e cada byte aqui conta.
+   */
+  code?: string;
 }
 
 /* AS MENSAGENS SÃO A CHAVE DO CATÁLOGO (o português, ver `lib/i18n.ts`) e passam por `t()` NA HORA
@@ -36,6 +42,17 @@ const RESET_SENT = 'Se existir uma conta com esse e-mail, enviamos um link de re
 const CODIGO_INVALIDO = 'Código inválido. Tente de novo.';
 
 const naoConfigurado = () => ({ ok: false, message: t(NOT_CONFIGURED) });
+
+/**
+ * CAPTCHA (Cloudflare Turnstile). Com a proteção ligada no painel do Supabase, é o servidor DELE que
+ * confere a resposta do desafio; o cliente só a manda em `options.captchaToken` ao entrar, criar
+ * conta e recuperar senha. Quem tem a resposta é a porta (`Login.tsx`), e ela a passa já neste
+ * formato; sem captcha (build sem `VITE_TURNSTILE_SITE_KEY`) não passa nada, e o pedido que sai
+ * pela rede é o mesmo de antes.
+ */
+export interface OpcoesDeCaptcha {
+  captchaToken?: string;
+}
 
 /**
  * O MÍNIMO DA SENHA é o do Supabase de produção (docs/LANCAMENTO.md, passo 3: 8 caracteres, com a
@@ -77,10 +94,10 @@ function retornoDaConfirmacao(): string | undefined {
 }
 
 /** E-mail + senha. Erro → mensagem genérica (anti-enumeração). */
-export async function signInEmail(email: string, password: string): Promise<AuthResult> {
+export async function signInEmail(email: string, password: string, options?: OpcoesDeCaptcha): Promise<AuthResult> {
   if (!supabase) return naoConfigurado();
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
-  return error ? { ok: false, message: t(INVALID_CREDS) } : { ok: true };
+  const { error } = await supabase.auth.signInWithPassword({ email, password, options });
+  return error ? { ok: false, message: t(INVALID_CREDS), code: error.code } : { ok: true };
 }
 
 /**
@@ -106,7 +123,7 @@ async function sessaoAnonimaAtiva(): Promise<boolean> {
  * aqui; a tela avisa que ela é definida depois da confirmação (em Ajustes → Conta, ou pelo "esqueci a
  * senha"). Guardar a senha no aparelho até lá seria pior do que pedir de novo.
  */
-export async function signUpEmail(email: string, password: string): Promise<AuthResult> {
+export async function signUpEmail(email: string, password: string, options?: OpcoesDeCaptcha): Promise<AuthResult> {
   if (!supabase) return naoConfigurado();
   const emailRedirectTo = retornoDaConfirmacao();
   if (await sessaoAnonimaAtiva()) {
@@ -114,11 +131,8 @@ export async function signUpEmail(email: string, password: string): Promise<Auth
     if (error) return { ok: false, message: error.message };
     return { ok: true, needsEmailConfirm: true, message: t(CONVIDADO_CONFIRMA_EMAIL) };
   }
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    ...(emailRedirectTo ? { options: { emailRedirectTo } } : {}),
-  });
+  const { data, error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo, ...options } });
+  // Captcha recusado: a mensagem do Supabase passa como veio, e a porta a reconhece pela palavra.
   if (error) return { ok: false, message: mensagemDoErroDeSenha(error) };
   if (!data.session) return { ok: true, needsEmailConfirm: true };
   return { ok: true };
@@ -146,15 +160,25 @@ export async function signInWithProvider(provider: AuthProvider, redirectTo?: st
     : { ok: true };
 }
 
-/** Recuperação de senha. SEMPRE devolve ok+genérico (não revela se o e-mail existe). */
-export async function sendPasswordReset(email: string, redirectTo?: string): Promise<AuthResult> {
+/**
+ * Recuperação de senha. SEMPRE devolve ok+genérico (não revela se o e-mail existe) — menos quando
+ * o CAPTCHA é recusado: aí nada foi enviado para ninguém, a recusa não diz nada sobre o e-mail, e
+ * responder "enviamos um link" seria mentira. É o ÚNICO caso de `ok: false` aqui, e nenhum código
+ * de erro sai desta função.
+ */
+export async function sendPasswordReset(
+  email: string,
+  redirectTo?: string,
+  options?: OpcoesDeCaptcha,
+): Promise<AuthResult> {
   if (!supabase) return naoConfigurado();
+  let code: string | undefined;
   try {
-    await supabase.auth.resetPasswordForEmail(email, redirectTo ? { redirectTo } : undefined);
+    code = (await supabase.auth.resetPasswordForEmail(email, { redirectTo, ...options })).error?.code;
   } catch {
     /* silencioso de propósito: anti-enumeração */
   }
-  return { ok: true, message: t(RESET_SENT) };
+  return { ok: code !== 'captcha_failed', message: t(RESET_SENT) };
 }
 
 /** Define a nova senha (a partir do link de recuperação, ou em Conta). */

@@ -14,6 +14,10 @@
  *   node dist-server/operacao.cjs flags listar | ligar <chave> | desligar <chave> | definir <chave> '<json>'
  *       As feature flags (Fase 6b) — ver `server/operacao/flags.ts` e `docs/flags.md`.
  *
+ *   node dist-server/operacao.cjs conta listar | papel <e-mail-ou-id> <admin|support|user> | plano <e-mail-ou-id> <free|premium>
+ *       Papel e plano de uma conta EXISTENTE — é por aqui que nasce o primeiro admin (a rota
+ *       `/api/admin` exige um). Ver `server/operacao/contas.ts`.
+ *
  *   node dist-server/operacao.cjs reparar-idiomas [--aplicar]
  *       Reetiqueta o idioma de falas, sessões e cartões gravados errado (ver `reparoDeIdioma.ts`).
  *       Sem `--aplicar` só mostra o plano.
@@ -48,6 +52,11 @@ async function principal(): Promise<number> {
     // Import dinâmico: só este comando precisa do banco da aplicação (e do `DATABASE_URL`).
     const { comandoDeFlags } = await import('./flags')
     return comandoDeFlags(process.argv.slice(3))
+  }
+  if (comando === 'conta') {
+    // Import dinâmico, como `flags`: só este comando precisa do banco da aplicação.
+    const { comandoDeContas } = await import('./contas')
+    return comandoDeContas(process.argv.slice(3))
   }
   if (comando === 'reparar-idiomas') {
     // Import dinâmico, como `flags`: só este comando precisa do banco da aplicação.
@@ -98,7 +107,7 @@ async function principal(): Promise<number> {
 
 function uso(): number {
   console.error(
-    'uso: operacao.cjs snapshot | restaurar-snapshot --dia=AAAA-MM-DD --destino=<arquivo novo> | verificar --arquivo=<banco> | flags listar|ligar|desligar|definir | reparar-idiomas [--aplicar]',
+    'uso: operacao.cjs snapshot | restaurar-snapshot --dia=AAAA-MM-DD --destino=<arquivo novo> | verificar --arquivo=<banco> | flags listar|ligar|desligar|definir | conta listar|papel|plano | reparar-idiomas [--aplicar]',
   )
   return 2
 }

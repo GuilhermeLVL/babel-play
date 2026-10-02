@@ -108,7 +108,7 @@ COPY package.json package-lock.json ./
 # da imagem: onnxruntime-node 513M, @ricky0123 (VAD) 138M, onnxruntime-web 130M,
 # tesseract.js-core 44M, lucide-react 44M, country-flag-icons 22M.
 #
-# O bundle do servidor exige, de fato: @google/genai @libsql/client @mozilla/readability
+# O bundle do servidor exige, de fato: @libsql/client @mozilla/readability
 # dotenv drizzle-orm express express-rate-limit helmet jose jsdom jszip mammoth zod
 # (estáticos) + pdfjs-dist (dinâmico, import de documento). Nenhum dos removidos aparece
 # nessa lista — e o boot do container é o teste: sem eles, ele sobe saudável.

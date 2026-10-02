@@ -5,19 +5,30 @@
  * genéricas por segurança). Após entrar, o `onAuthStateChange` no App troca a tela sozinho.
  */
 import { CircleAlert, CircleCheck, Info, LoaderCircle, TriangleAlert } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 
 import { lerAbertura } from '../data/rotas/idade';
 import * as auth from '../lib/auth';
 import { useQuestNovo } from '../lib/dispositivo/telaNovaDoQuest';
 import { t } from '../lib/i18n';
+import { lazyComRecarga } from '../lib/lazyComRecarga';
 import { supabase } from '../lib/supabase';
 import { T } from '../lib/T';
+import { chaveDoTurnstile } from '../lib/turnstile';
 import AuthShell from './auth/AuthShell';
 import PasswordField from './auth/PasswordField';
 import CascaDeEntradaDoQuest from './auth/quest/CascaDeEntradaDoQuest';
 
+/* O widget do captcha só é baixado quando a porta abre num build com `VITE_TURNSTILE_SITE_KEY`. */
+const CaptchaDaPorta = lazyComRecarga(() => import('./auth/CaptchaDaPorta'));
+
 type Mode = 'login' | 'signup' | 'forgot';
+
+/* As frases do captcha moram aqui (a porta é carregada sob demanda), não em `lib/auth.ts`. */
+const CAPTCHA_PENDENTE = 'Conclua a verificação de segurança para continuar.';
+/** O código com que o Supabase recusa a resposta do desafio (vencida, repetida ou ausente). */
+const CAPTCHA_FALHOU = 'captcha_failed';
+const CAPTCHA_RECUSADO = 'A verificação de segurança não foi aceita. Refaça a verificação e tente de novo.';
 
 /* As tabelas guardam a CHAVE (o português); quem traduz é o ponto de uso, `t(TITULO[modo])` —
    traduzir aqui, na carga do módulo, prenderia a frase ao idioma daquele instante. */
@@ -71,6 +82,11 @@ export default function Login({ onContinuarSemConta }: LoginProps = {}) {
   }, []);
 
   const configurado = !!supabase;
+  /* CAPTCHA (Turnstile): só existe com a chave pública no build. A resposta do desafio vale para UM
+     envio — depois dele `rodadaDoCaptcha` muda e o widget recomeça. Quem confere é o Supabase. */
+  const chaveDoCaptcha = configurado ? chaveDoTurnstile() : null;
+  const [respostaDoCaptcha, setRespostaDoCaptcha] = useState<string | null>(null);
+  const [rodadaDoCaptcha, setRodadaDoCaptcha] = useState(0);
   const redirectTo = typeof window !== 'undefined' ? `${window.location.origin}/auth/callback` : undefined;
 
   function trocaModo(m: Mode) {
@@ -95,10 +111,20 @@ export default function Login({ onContinuarSemConta }: LoginProps = {}) {
     setErro(null);
     setAviso(null);
     setCarregando(true);
+    /* Sem captcha as chamadas saem com os MESMOS argumentos de sempre: a resposta só entra, como
+       último argumento, quando existe. */
+    const comCaptcha: [] | [auth.OpcoesDeCaptcha] =
+      chaveDoCaptcha && respostaDoCaptcha ? [{ captchaToken: respostaDoCaptcha }] : [];
+    let gastouOCaptcha = false;
     try {
+      if (chaveDoCaptcha && !comCaptcha.length) {
+        setErro(t(CAPTCHA_PENDENTE));
+        return;
+      }
       if (modo === 'login') {
-        const r = await auth.signInEmail(email, senha);
-        if (!r.ok) setErro(r.message ?? t('Falha ao entrar.'));
+        gastouOCaptcha = true;
+        const r = await auth.signInEmail(email, senha, ...comCaptcha);
+        if (!r.ok) setErro(r.code === CAPTCHA_FALHOU ? t(CAPTCHA_RECUSADO) : (r.message ?? t('Falha ao entrar.')));
       } else if (modo === 'signup') {
         // O mínimo do Supabase de produção, conferido aqui: o `minLength` do campo não segura um
         // envio programático, e o erro do servidor chegaria em inglês.
@@ -106,18 +132,40 @@ export default function Login({ onContinuarSemConta }: LoginProps = {}) {
           setErro(t(auth.SENHA_CURTA, { n: auth.SENHA_MINIMA }));
           return;
         }
-        const r = await auth.signUpEmail(email, senha);
-        if (!r.ok) setErro(r.message ?? t('Falha ao criar conta.'));
+        gastouOCaptcha = true;
+        const r = await auth.signUpEmail(email, senha, ...comCaptcha);
+        // No cadastro o erro do Supabase passa como veio (`auth.ts`): a recusa do captcha se reconhece pela palavra.
+        if (!r.ok)
+          setErro(/captcha/i.test(r.message ?? '') ? t(CAPTCHA_RECUSADO) : (r.message ?? t('Falha ao criar conta.')));
         else if (r.needsEmailConfirm)
           setAviso(r.message ?? t('Conta criada! Confirme pelo link enviado ao seu e-mail para entrar.'));
       } else {
-        const r = await auth.sendPasswordReset(email, redirectTo);
-        setAviso(r.message ?? t('Se existir uma conta, enviamos um link.'));
+        gastouOCaptcha = true;
+        const r = await auth.sendPasswordReset(email, redirectTo, ...comCaptcha);
+        // A recuperação só devolve `ok: false` quando o captcha foi recusado (nada foi enviado).
+        if (!r.ok && chaveDoCaptcha) setErro(t(CAPTCHA_RECUSADO));
+        else setAviso(r.message ?? t('Se existir uma conta, enviamos um link.'));
       }
     } finally {
       setCarregando(false);
+      if (gastouOCaptcha && chaveDoCaptcha) {
+        setRespostaDoCaptcha(null);
+        setRodadaDoCaptcha((n) => n + 1);
+      }
     }
   }
+
+  /* O mesmo widget nos três modos e nos dois desenhos; o espaço fica reservado enquanto ele chega. */
+  const widgetDoCaptcha = chaveDoCaptcha ? (
+    <Suspense fallback={<div className="min-h-[65px]" />}>
+      <CaptchaDaPorta
+        sitekey={chaveDoCaptcha}
+        rodada={rodadaDoCaptcha}
+        onToken={setRespostaDoCaptcha}
+        quest={questNovo}
+      />
+    </Suspense>
+  ) : null;
 
   const heroRecuperar = {
     // A quebra de linha mora na frase: em outro idioma ela cai onde o tradutor puser o `<br>`.
@@ -219,6 +267,8 @@ export default function Login({ onContinuarSemConta }: LoginProps = {}) {
               />
             </div>
           )}
+
+          {widgetDoCaptcha}
 
           {erro && (
             <p className="qen-erro" role="alert">
@@ -362,6 +412,8 @@ export default function Login({ onContinuarSemConta }: LoginProps = {}) {
             />
           </div>
         )}
+
+        {widgetDoCaptcha}
 
         {erro && (
           <p className="text-sm text-error-ink" role="alert">

@@ -3332,5 +3332,11 @@
   "Buscar gravação, palavra ou tela (Ctrl+K)": "Search recordings, words or screens (Ctrl+K)",
   "Use o botão de claro/escuro na barra de controles.": "Use the light/dark button in the control bar.",
   "Reduzir": "Reduce",
-  "Ver prévia": "Preview"
+  "Ver prévia": "Preview",
+  "Verificação de segurança": "Security check",
+  "Conclua a verificação de segurança para continuar.": "Complete the security check to continue.",
+  "A verificação de segurança não foi aceita. Refaça a verificação e tente de novo.": "The security check was not accepted. Redo the check and try again.",
+  "A verificação de segurança expirou. Refaça para continuar.": "The security check expired. Redo it to continue.",
+  "A verificação de segurança falhou. Tente de novo.": "The security check failed. Try again.",
+  "Não foi possível carregar a verificação de segurança. Confira a conexão, desative bloqueadores e tente de novo.": "Could not load the security check. Check your connection, turn off blockers and try again."
 }

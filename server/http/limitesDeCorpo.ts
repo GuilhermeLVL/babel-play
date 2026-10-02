@@ -30,8 +30,7 @@ export const LIMITE_GRANDE = '5mb'
  * - `/api/sessions`: `POST /` e `PUT /:id/utterances` levam até 5.000 falas (`validation.ts`).
  * - `/api/vocab/bulk-add`: até 500 cartões com frase de exemplo.
  * - `/api/import/anki/export`: até 5.000 cartões para montar o `.apkg`.
- * - `/api/ai`, `/api/tutor` e `/api/gemini` (alias temporário do tutor): prompts de tradução e do
- *   tutor com contexto da sessão.
+ * - `/api/ai` e `/api/tutor`: prompts de tradução e do tutor com contexto da sessão.
  */
 export const ROTAS_DE_CORPO_GRANDE: readonly string[] = [
   '/api/sessions',
@@ -39,7 +38,6 @@ export const ROTAS_DE_CORPO_GRANDE: readonly string[] = [
   '/api/import/anki/export',
   '/api/ai',
   '/api/tutor',
-  '/api/gemini',
 ]
 
 /** Teto das rotas de `ROTAS_DE_CORPO_MINIMO`. */

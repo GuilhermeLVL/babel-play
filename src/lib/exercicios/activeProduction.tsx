@@ -420,6 +420,7 @@ export function ActiveProductionExercise({
             <div className="flex gap-3 justify-center">
               {playTTS && (
                 <button
+                  data-precisa="voz"
                   onClick={() => playTTS(card.sentence || card.word)}
                   className="btn-outline flex items-center gap-1.5 py-2 px-4 rounded-xl text-xs font-bold cursor-pointer"
                 >

@@ -19,6 +19,27 @@ endereço direto). Ela roda no próprio navegador do headset e responde quase tu
 Ao final, **Copiar o resultado** (JSON) ou um print da página. As seções abaixo (adb, DevTools remoto)
 ficam para o que a página não mede: memória de pico com o modelo carregado e o perfil de desempenho.
 
+## 0.1. As telas novas do headset (maquete de 01/10/2026)
+
+As telas redesenhadas só existem no perfil `quest` e atrás de uma chave: **Mais → Diagnóstico do
+aparelho → "Telas novas: ligadas"**. Desligar devolve na hora o menu e as telas de antes.
+
+O que conferir com o headset na cabeça, e contar no chat:
+
+1. **Trilho de ícones** (Início, Capturar, Intérprete, Jogar, Mais): dá para ler os rótulos? Os alvos
+   são fáceis de acertar com o laser?
+2. **Capturar**: o botão Começar, a escolha da fonte e, ao vivo, as duas falas e a faixa (Encerrar, A−,
+   A+). Estreite a janela até o mínimo: deve sobrar só a fala atual, o tempo, A+ e Encerrar.
+3. **Encerrar e resumo**: Salvar não pede título nem capa; o resumo mostra quantas falas foram pela
+   nuvem e quantas no headset.
+4. **Jogar**: a grade com as etiquetas ("Apontar", "Pede teclado"), a Memória com 12 cartas sem rolar,
+   as respostas de um jogo de escolha.
+5. **Vibração**: em Diagnóstico, "Testar a vibração do controle". Diga o que a página mostrou **e** se
+   o controle se mexeu.
+
+A emulação (Chromium com o perfil do Quest, a 1280 × 670 e 500 × 495) confere medidas
+e rolagem, mas não a legibilidade a um metro de distância: essa só o aparelho responde.
+
 ## 1. Preparar (uma vez)
 
 1. No app Meta Horizon do celular: **Dispositivos → o seu Quest → Configurações do headset → Modo

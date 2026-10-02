@@ -10,6 +10,7 @@ import {
   cabecalhoDoDono,
   ENDPOINT_DA_NUVEM_DO_QUEST,
   guardarTraducaoPronta,
+  marcarCotaDaNuvemDoQuest,
   nuvemDoQuestAtiva,
 } from '../../lib/nuvemDoQuest';
 import { sinalizarRecusaLida } from '../../lib/ofertas/eventos';
@@ -140,6 +141,9 @@ export class GroqWhisperStt implements SttProvider {
       /* O SERVIDOR RECUSOU O ALÍVIO (flag, responsável, pool, franquia): a nuvem pausa pelo teto — o
          aparelho segue sem uma ida ao servidor por fala para ouvir a mesma recusa. */
       if (registrarRecusaDoAlivio(res.status, corpo)) this.pausa.pausar(PAUSA_MAXIMA_MS);
+      // A cota do dia da nuvem do site acabou: a tela ao vivo avisa (a legenda segue no aparelho).
+      if (noQuest && res.status === 429 && (code === 'cota_do_dia' || code === 'cota_do_site'))
+        marcarCotaDaNuvemDoQuest(true);
       /* O USO JUSTO DO DIA ACABOU (429 `uso_justo_do_dia`, matriz v2): a pausa acima já vale (todo 429
          pausa pelo `Retry-After`, com o teto que reavalia); aqui só sai o aviso funcional, uma vez por
          dia. Nenhuma oferta: o 429 não é momento de venda (`momentoDaRecusa`). */
@@ -154,6 +158,7 @@ export class GroqWhisperStt implements SttProvider {
       });
     }
     this.pausa.sucesso();
+    if (noQuest) marcarCotaDaNuvemDoQuest(false);
 
     /* `language` vem do DECODE, não de um palpite sobre o texto: o Whisper identifica o idioma a
        partir do áudio. O servidor pede `verbose_json` e normaliza para ISO-639-1 (ver

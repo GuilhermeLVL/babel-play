@@ -34,6 +34,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { createSession, deleteSession, fetchSessions, patchSessionMeta, updateSession } from '../../data/api';
+import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { getEntitlements, onPlanChange } from '../../lib/entitlements';
 import { numero } from '../../lib/i18n';
 import {
@@ -51,6 +52,7 @@ import { toast } from '../Toast';
 import { Abas, CabecalhoDeTela, IconeEmBloco, TituloDeSecao } from '../ui';
 import EditarSessao from './biblioteca/EditarSessao';
 import ExportarTranscricao from './biblioteca/ExportarTranscricao';
+import BibliotecaDoQuest from './biblioteca/quest/BibliotecaDoQuest';
 
 type FaixaDeTamanho = 'all' | 'short' | 'medium' | 'long';
 type Situacao = 'todos' | 'pronto' | 'processando';
@@ -129,6 +131,9 @@ interface LibraryProps {
 }
 
 export default function Library({ onChangeView, recordings, onRecordingsChange, ageProfile = 'pro' }: LibraryProps) {
+  // No Quest (telas novas ligadas) a lista é paginada; "Tela completa" devolve esta tela, nesta visita.
+  const questNovo = useQuestNovo();
+  const [telaCompleta, setTelaCompleta] = useState(false);
   const [showImport, setShowImport] = useState(false);
   // Entitlements do plano ativo (self-host = tudo liberado). Reage à troca em Configurações.
   const [entitlements, setEntitlements] = useState(() => getEntitlements());
@@ -380,6 +385,23 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
   const escolherArquivo = (f: File | undefined | null) => {
     if (f) setImportArquivo(f);
   };
+
+  /* QUEST (maquete de 01/10/2026, tela 9): páginas de linhas grandes e as ações da gravação
+     selecionada na faixa. Importar, renomear, excluir e filtrar continuam abaixo, em "Tela completa". */
+  if (questNovo && !telaCompleta) {
+    return (
+      <BibliotecaDoQuest
+        gravacoes={sortedRecordings}
+        ordem={ordem}
+        aoTrocarOrdem={setOrdem}
+        aoAbrir={(rec) => onChangeView('analysis', { id: rec.id })}
+        aoJogar={(rec) => onChangeView('play', { id: rec.id })}
+        aoRevisar={(rec) => onChangeView('study', { id: rec.id })}
+        aoCapturar={() => onChangeView('capture')}
+        aoTelaCompleta={() => setTelaCompleta(true)}
+      />
+    );
+  }
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">

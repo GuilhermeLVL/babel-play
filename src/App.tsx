@@ -24,6 +24,9 @@ const Ajuda = lazyComRecarga(() => import('./components/views/Ajuda'));
 const Diagnostico = lazyComRecarga(() => import('./components/views/Diagnostico'));
 const NaoEncontrado = lazyComRecarga(() => import('./components/views/NaoEncontrado'));
 const Loja = lazyComRecarga(() => import('./components/views/Loja'));
+// As telas do Meta Quest: só o headset as baixa.
+const TrilhoDoQuest = lazyComRecarga(() => import('./components/shell/TrilhoDoQuest'));
+const InicioDoQuest = lazyComRecarga(() => import('./components/views/quest/InicioDoQuest'));
 /* O modal de resgate: só quando há recompensa na fila (a fila em si mora em `lib/filaDeRecompensas`).
    O chunk é PEDIDO NO ARRANQUE (efeito abaixo), fora do JS inicial: sob demanda pura, o download só
    começava quando a fila enchia, e o modal abria atrasado pelo tempo do chunk — já com a pessoa
@@ -65,6 +68,7 @@ import Toaster from './components/Toast';
 import Vazio from './components/ui/Vazio';
 import { carregarProtecao, fetchSessions } from './data/api';
 import { lerTokenDoConvite } from './lib/conviteNaUrl';
+import { useQuestNovo } from './lib/dispositivo/telaNovaDoQuest';
 import { edicaoEstatica } from './lib/edicaoEstatica';
 import { carregarEntitlements } from './lib/entitlements';
 import { useAparencia, useHidratacaoDeAjustes } from './lib/estado/useAparencia';
@@ -101,6 +105,9 @@ export default function App() {
   useIdiomaDaInterfaceEscolhido();
 
   const [activeView, setActiveView] = useState<ViewType>('hub');
+  /* As telas do Meta Quest (maquete de 01/10/2026): trilho de ícones no lugar do menu, e o Início de
+     três caminhos. Só no Quest e com a chave de `/diagnostico` ligada; desligada, volta tudo de antes. */
+  const questNovo = useQuestNovo();
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [selectedRecordingId, setSelectedRecordingId] = useState<string | null>(null);
   const [resumingRecordingId, setResumingRecordingId] = useState<string | null>(null);
@@ -487,10 +494,29 @@ export default function App() {
     // overflow-hidden cortava o rodape, a "faixa cinza" que escondia conteudo na Captura.
     <div data-raiz-do-app className="@container/app flex flex-col h-tela w-full bg-canvas overflow-hidden relative">
       {/* Barra do topo: a de desktop quando a preferência é "topo"; senão, só a do celular. */}
-      {menuPosition === 'top' ? shell : <MobileTopBar progress={progress} controls={mobileControls} />}
+      {questNovo ? null : menuPosition === 'top' ? (
+        shell
+      ) : (
+        <MobileTopBar progress={progress} controls={mobileControls} />
+      )}
 
-      <div className="flex-1 flex min-h-0 w-full">
-        {menuPosition === 'left' && shell}
+      <div className={`flex-1 flex min-h-0 w-full${questNovo ? ' q-casca' : ''}`}>
+        {questNovo ? (
+          <Suspense fallback={null}>
+            <TrilhoDoQuest
+              activeView={viewDoMenu}
+              onChangeView={navigateTo}
+              ageProfile={ageProfile}
+              semConta={anonimo}
+              darkMode={darkMode}
+              toggleDarkMode={toggleDarkMode}
+              soundEnabled={soundEnabled}
+              toggleSound={toggleSound}
+            />
+          </Suspense>
+        ) : (
+          menuPosition === 'left' && shell
+        )}
 
         <main
           className={`@container/conteudo flex-1 min-w-0 flex flex-col h-full relative overflow-hidden bg-canvas age-${ageProfile}`}
@@ -546,7 +572,16 @@ export default function App() {
                 onVoltar={() => setActiveView('hub')}
               />
             )}
-            {activeView === 'hub' && (
+            {activeView === 'hub' && questNovo && (
+              <InicioDoQuest
+                onChangeView={navigateTo}
+                recordings={recordings}
+                progress={progress}
+                metrics={metrics}
+                semConta={anonimo}
+              />
+            )}
+            {activeView === 'hub' && !questNovo && (
               <Hub
                 onChangeView={navigateTo}
                 recordings={recordings}
@@ -801,14 +836,14 @@ export default function App() {
         </Suspense>
 
         {/* O rail da direita fica DEPOIS do chat acoplado, para encostar de fato na borda da tela. */}
-        {menuPosition === 'right' && shell}
+        {!questNovo && menuPosition === 'right' && shell}
       </div>
 
-      {menuPosition === 'bottom' && shell}
+      {!questNovo && menuPosition === 'bottom' && shell}
 
       {/* Dock do celular — sempre presente abaixo de `md`, seja qual for a posição escolhida
           para a tela grande. Sem ela a app ficava literalmente sem navegação no telefone. */}
-      <MobileNav activeView={viewDoMenu} onChangeView={navigateTo} ageProfile={ageProfile} />
+      {!questNovo && <MobileNav activeView={viewDoMenu} onChangeView={navigateTo} ageProfile={ageProfile} />}
 
       {/* Busca global (Ctrl/⌘+K). Renderizada AQUI, na raiz, e não dentro do shell: as quatro
           posições de menu montam shells diferentes, e um diálogo que muda de dono conforme a

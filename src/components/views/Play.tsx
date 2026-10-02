@@ -146,6 +146,7 @@ import {
 import { listarBaralhosAnki } from '../../data/apiAnki';
 import { carregarTrilha, indiceDaTrilha, precarregarNiveis, trilhaEmCache } from '../../data/trilha/carregar';
 import { useAudioDaSessao } from '../../lib/audioDaSessao';
+import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { type DetalheDoDrop, EVENTO_DROP_GANHO } from '../../lib/filaDeRecompensas';
 import { filtroDaQuery, gravarFiltro, lerFiltroGuardado, queryDoFiltro } from '../../lib/filtroDaPratica';
@@ -223,6 +224,8 @@ import MapaDoConteudo from './MapaDoConteudo';
 import PainelTrilha from './PainelTrilha';
 import { IconePixel } from './play/IconesPixel';
 import { descricaoDoJogo, JOGOS, type JogoUI, tituloDoJogo } from './play/jogos';
+import { rodadaParaOQuest } from './play/quest/jogosNoQuest';
+import LobbyDoQuest from './play/quest/LobbyDoQuest';
 import Recordes from './play/Recordes';
 import { TELA_DO_JOGO } from './play/telaDoJogo';
 
@@ -431,6 +434,10 @@ export default function Play({
   /* A gaveta do seletor nasce FECHADA: quem chega quer jogar, não configurar. Ela é a resposta
      ao «Trocar», e o resumo acima dela já diz o que está valendo sem precisar abrir nada. */
   const [seletorAberto, setSeletorAberto] = useState(false);
+  /* META QUEST com as telas novas ligadas: o lobby vira a grade de `play/quest/LobbyDoQuest` e a
+     Memória joga com menos pares. "Tela completa" devolve o lobby de sempre só nesta visita. */
+  const questNovo = useQuestNovo();
+  const [lobbyCompletoNoQuest, setLobbyCompletoNoQuest] = useState(false);
   /** "O que cada idioma tem", dentro da gaveta: a tabela abre e fecha no próprio botão. */
   const [verCobertura, setVerCobertura] = useState(false);
   const fonte = useMemo<FonteDeItens>(() => ({ ...fonteDominante(filtro), lang: filtro.idiomas[0] ?? '' }), [filtro]);
@@ -854,7 +861,9 @@ export default function Play({
       evitarTambem,
     });
     if (!montada) return null;
-    return { jogo: montada.jogo, previa: montada.previa, aplicar: () => aplicarMaterial(montada.material) };
+    /* No headset a Memória fica em 6 pares (grade 4 × 3 sem rolar); a prévia encolhe junto. */
+    const { jogo: jogoMontado, previa, material } = questNovo ? rodadaParaOQuest(montada) : montada;
+    return { jogo: jogoMontado, previa, aplicar: () => aplicarMaterial(material) };
   };
 
   /**
@@ -3426,17 +3435,12 @@ export default function Play({
   /* A CARTA DO JOGO — marcação do protótipo aprovado (`cardJogo`): arte em pixel na grade com o
      ponto da família, estrela (fixar no topo) e "como se joga"; título, descrição e o pé com
      "Jogar" e a conta desta rodada. Presa, a carta é tracejada e o pé diz o que falta. */
-  const cartaDoJogo = (j: (typeof jogosClassicosFiltrados)[number]) => {
+  /* O PÉ DA CARTA: a conta da rodada quando o jogo abre, ou o que falta quando não abre. Fora de
+     `cartaDoJogo` porque o lobby do Quest diz o mesmo motivo com as mesmas palavras. */
+  const notaDoJogo = (j: (typeof jogosClassicosFiltrados)[number]) => {
     const liberado = j.estado.ok;
-    const fixado = ordem.fixados.includes(j.id);
-    const titulo = tituloDoJogo(j, ageProfile);
-    const jogar = () => {
-      play('select');
-      pedirParaJogar(j);
-    };
-    const porta = liberado ? null : comoDesbloquear(j.estado, contextoDoDesbloqueio);
     const unidade = (n: number) => (j.estado.fonte === 'falas' ? tp(n, 'fala', 'falas') : tp(n, 'palavra', 'palavras'));
-    const nota = (() => {
+    return (() => {
       if (liberado) {
         const total = ('pool' in j.estado ? j.estado.pool : undefined) ?? j.estado.disponiveis;
         const naRodada = j.estado.tamanhoDaRodada;
@@ -3472,6 +3476,17 @@ export default function Play({
         ? t('{falta} para abrir', { falta })
         : t('{falta} · precisa de {precisa}', { falta, precisa });
     })();
+  };
+  const cartaDoJogo = (j: (typeof jogosClassicosFiltrados)[number]) => {
+    const liberado = j.estado.ok;
+    const fixado = ordem.fixados.includes(j.id);
+    const titulo = tituloDoJogo(j, ageProfile);
+    const jogar = () => {
+      play('select');
+      pedirParaJogar(j);
+    };
+    const porta = liberado ? null : comoDesbloquear(j.estado, contextoDoDesbloqueio);
+    const nota = notaDoJogo(j);
     return (
       <article
         key={j.chave}
@@ -3571,6 +3586,53 @@ export default function Play({
       </article>
     );
   };
+
+  /* META QUEST (maquete de 01/10/2026, tela 5): a grade de cartões grandes no lugar do lobby. A
+     escolha da fonte continua sendo a sala de sempre (o chip a abre) e "Tela completa" devolve este
+     lobby inteiro. Dentro de uma sessão (`embutido`) nada muda. */
+  if (questNovo && !embutido && !lobbyCompletoNoQuest) {
+    const semAcervo = tamanhoDoBaralho < menorMinimo && fonte.id !== 'trilha';
+    return (
+      <>
+        {sala}
+        <LobbyDoQuest
+          jogos={listaDeJogos}
+          ageProfile={ageProfile}
+          naTrilha={fonte.id === 'trilha'}
+          palavras={acervoDaFonte.length}
+          fonte={[fonte.lang ? langLabelNaUI(fonte.lang) : '', nomeCurtoDaFonte].filter(Boolean).join(' · ')}
+          notaDoBloqueio={notaDoJogo}
+          aoJogar={(j) => {
+            play('select');
+            pedirParaJogar(j);
+          }}
+          aoTrocarFonte={fontesOferecidas.length > 1 ? () => setSalaAberta(true) : undefined}
+          aoVerTelaCompleta={() => setLobbyCompletoNoQuest(true)}
+          aviso={
+            erro
+              ? { texto: t('Não consegui carregar o seu baralho: {erro}', { erro }) }
+              : semAcervo && fontesOferecidas.length > 1
+                ? /* Há outra fonte pronta (a trilha do idioma): a saída é escolher, e não ir gravar. */
+                  {
+                    texto: t('Você ainda não tem palavras suas para jogar. Dá para jogar com as da trilha.'),
+                    acao: t('Escolher o que praticar'),
+                    aoAgir: () => setSalaAberta(true),
+                  }
+                : semAcervo
+                  ? {
+                      texto:
+                        tamanhoDoBaralho === 0
+                          ? t('Você ainda não salvou palavras')
+                          : t('Faltam {n} palavras', { n: menorMinimo - tamanhoDoBaralho }),
+                      acao: ageProfile === 'kids' ? t('Gravar alguma coisa') : t('Capturar uma sessão'),
+                      aoAgir: () => onChangeView('capture'),
+                    }
+                  : undefined
+          }
+        />
+      </>
+    );
+  }
 
   /* `pb-28`: o botão flutuante do tutor fica no canto inferior direito, fixo, e cobria a última
      carta da grade, medido. A folga devolve a carta ao alcance do clique.

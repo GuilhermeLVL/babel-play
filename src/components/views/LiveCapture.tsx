@@ -52,7 +52,7 @@ import { getActiveProfile, getProviderMode } from '../../gateway/activeProfile';
 import { temAdaptadorWebGpu, webGpuProvavel } from '../../gateway/adaptadorWebGpu';
 import { ID_DO_BERGAMOT_PT_EN } from '../../gateway/adapters/bergamotModelo';
 import type { SttSession } from '../../gateway/capabilities';
-import { capMetrics } from '../../gateway/capture/captureMetrics';
+import { capMetrics, MOTOR_DA_NUVEM } from '../../gateway/capture/captureMetrics';
 import {
   type AudioCapture,
   audioDaTelaFalhouNesteAparelho,
@@ -140,6 +140,7 @@ import { cenarioDasFontes, type CenarioDeCaptura } from '../../lib/cenarioDeCapt
 import { consentiuNuvem, rapidoDoMicPermitido, useEscolhaDoMic } from '../../lib/consentimentoDeNuvem';
 import { DominantLangTracker } from '../../lib/convoLang';
 import { classificarDispositivo, dispositivoDaRota, lerSinaisDoDispositivo } from '../../lib/dispositivo/perfil';
+import { recursosDoAparelho } from '../../lib/dispositivo/recursos';
 import {
   ESCALAS_DA_LEGENDA,
   lerEscalaDaLegenda,
@@ -213,7 +214,9 @@ import ModeloNoDispositivo, { type ModeloDaCaptura } from './captura/ModeloNoDis
 import ModoDesempenho from './captura/ModoDesempenho';
 import NuvemDoQuest from './captura/NuvemDoQuest';
 import OndasDoNivel from './captura/OndasDoNivel';
+import EncerrarNoQuest from './captura/quest/EncerrarNoQuest';
 import LegendaAoVivoDoQuest from './captura/quest/LegendaAoVivoDoQuest';
+import ResumoDaSessaoNoQuest from './captura/quest/ResumoDaSessaoNoQuest';
 import TranscriptVisualSettings, { TEMA } from './captura/TranscriptVisualSettings';
 import { CampoLinha, Interruptor, Segmentos } from './vocab/Dialogo';
 
@@ -2789,6 +2792,8 @@ export default function LiveCapture({
      Atrás da chave de `/diagnostico` (`telaNovaDoQuest`): desligada, volta a gravação de antes. */
   const [telaNova] = useState(telaNovaDoQuest);
   const aoVivoNoQuest = noQuest && telaNova;
+  /** Sem `speechSynthesis` (o Quest): a conversa do intérprete é só em texto, e a tela diz isso. */
+  const semVozDeLeitura = !recursosDoAparelho(perfilDoAparelho).vozDeLeitura;
   const [escalaDaLegenda, setEscalaDaLegenda] = useState(lerEscalaDaLegenda);
   const escolherFonteDoQuest = (fonte: FonteDoQuest) => {
     setFonteDoQuest(fonte);
@@ -2945,7 +2950,35 @@ export default function LiveCapture({
         };
   const siglaDoLado = (auto: boolean, code: string) => (auto ? t('Auto') : baseLang(code).toUpperCase());
 
-  const telaDoCelular = (
+  /* O RESUMO AO ENCERRAR NO QUEST: a sessão salva vira três números e uma faixa de saídas, no lugar de
+     abrir a Análise. Os números por motor vêm do medidor da captura (`capMetrics`), que só zera no
+     próximo início. */
+  const resumoNoQuest = (() => {
+    if (!aoVivoNoQuest || isRecording || !sessaoSalva || speechSegments.length === 0) return null;
+    const porMotor = capMetrics.summary().porMotor;
+    const naNuvem = porMotor[MOTOR_DA_NUVEM]?.falas ?? 0;
+    const total = Object.values(porMotor).reduce((s, m) => s + m.falas, 0);
+    return (
+      <ResumoDaSessaoNoQuest
+        minutos={Math.max(1, Math.round(timer / 60))}
+        falas={speechSegments.length}
+        palavras={sessaoSalva.palavras}
+        falasNaNuvem={naNuvem}
+        falasNoAparelho={Math.max(0, total - naNuvem)}
+        semConta={estaAnonimo()}
+        aoRevisar={() => onChangeView?.('study', { id: sessaoSalva.id })}
+        aoJogar={() => onChangeView?.('play', { id: sessaoSalva.id })}
+        aoAbrir={() => onChangeView?.('analysis', { id: sessaoSalva.id })}
+        aoNovaCaptura={() => {
+          setSessaoSalva(null);
+          setSpeechSegments([]);
+          setTimer(0);
+        }}
+      />
+    );
+  })();
+
+  const telaDoCelular = resumoNoQuest ?? (
     <>
       <CapturaNoCelular
         gravando={isRecording}
@@ -3000,7 +3033,7 @@ export default function LiveCapture({
         avisos={
           <>
             <AvisoDeNuvemSemConsentimento />
-            {nuvemDoQuestExiste() && <NuvemDoQuest gravando={isRecording} />}
+            {nuvemDoQuestExiste() && <NuvemDoQuest gravando={isRecording} aoVivo={aoVivoNoQuest} />}
             {faixaDaNuvemDeAlivio}
             {tradutorLocalFalhou && (
               <AvisoDoTradutorLocal
@@ -3681,7 +3714,7 @@ export default function LiveCapture({
       {/* --- DASHBOARD WRAPPER (no celular, a tela dele: `telaDoCelular`; pelo menu Intérprete, a
           tela de começar a conversa) --- */}
       {entrada === 'interprete' ? (
-        <div className="rolagem flex-1">
+        <div className={aoVivoNoQuest ? 'flex-1 flex flex-col min-h-0' : 'rolagem flex-1'}>
           <Suspense fallback={null}>
             <PaginaDoInterprete
               idiomas={{ meu: sourceLang, outro: targetLang }}
@@ -3689,6 +3722,8 @@ export default function LiveCapture({
               abrindo={abrindoCaptura}
               aviso={avisoDoPreparo(modelPrep)}
               automatico={automaticoDoInterprete}
+              noQuest={aoVivoNoQuest}
+              semVoz={semVozDeLeitura}
               aoConhecerOPremium={conhecerOPremium}
               aoComecar={entrarNoInterprete}
               aoEscolherIdiomas={() => setIdiomasAbertos(true)}
@@ -4545,7 +4580,8 @@ export default function LiveCapture({
             registrarPonte={registrarPonteDoInterprete}
             vozNaturalDisponivel={getEntitlements().vozNatural && flagLigada(FLAG_VOZ_NATURAL)}
             velocidade={ttsSpeed}
-            layout={capturaEnxuta ? 'celular' : 'computador'}
+            layout={aoVivoNoQuest ? 'quest' : capturaEnxuta ? 'celular' : 'computador'}
+            semVoz={semVozDeLeitura}
             abrindo={micAbrindo}
             aviso={avisoDoPreparo(modelPrep)}
             automatico={automaticoDoInterprete}
@@ -4623,7 +4659,16 @@ export default function LiveCapture({
 
       {/* --- ENCERRAR A SESSÃO: o `dialogoEncerrar()` do protótipo (C8) --- */}
       <input type="file" ref={coverFileRef} onChange={handleCoverUpload} accept="image/*" className="hidden" />
-      {showSaveModal && (
+      {showSaveModal && aoVivoNoQuest && (
+        <EncerrarNoQuest
+          nFalas={speechSegments.length}
+          resumo={`${speechSegments.length} ${speechSegments.length === 1 ? 'fala' : 'falas'} · ${formatTime(timer)}`}
+          aoContinuar={continuarGravando}
+          aoSalvar={() => void handleFinalizeSave(false)}
+          aoDescartar={descartarCaptura}
+        />
+      )}
+      {showSaveModal && !aoVivoNoQuest && (
         <EncerrarSessao
           nFalas={speechSegments.length}
           resumo={`${speechSegments.length} ${speechSegments.length === 1 ? 'fala' : 'falas'} · ${formatTime(timer)}`}

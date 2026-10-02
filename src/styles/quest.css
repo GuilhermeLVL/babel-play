@@ -1,0 +1,808 @@
+/*
+ * AS TELAS DO META QUEST (maquete aprovada pelo dono em 01/10/2026).
+ *
+ * Tudo aqui só vale com `<html data-quest-novo="true">`: o aparelho é um Quest E a chave das telas
+ * novas está ligada (`lib/dispositivo/telaNovaDoQuest.ts`, botão em `/diagnostico`). Computador e
+ * celular nunca passam por este arquivo.
+ *
+ * Só TOKENS do tema (`--canvas`, `--surface`, `--ink`, `--accent`…): os temas e o claro/escuro
+ * continuam mandando nas cores. As medidas vêm das diretrizes da Meta para web 2D:
+ *   · alvo ≥ 48 px, o principal ≥ 60 px, e 8 px ou mais entre alvos;
+ *   · texto de corpo ≥ 18 px, nada abaixo de 14 px, sem peso fino nem itálico;
+ *   · fundo claro até #DADADA (o creme do tema padrão desce um tom dentro do headset);
+ *   · nenhuma função depende de hover: selecionado e foco são visíveis sem o ponteiro.
+ * Movimento: curto (120 a 180 ms), no lugar, e nenhum com `prefers-reduced-motion`.
+ */
+
+html[data-quest-novo='true'] {
+  --q-acento: var(--accent);
+  --q-acento-2: color-mix(in srgb, var(--accent) 82%, #fff);
+  --q-sobre-acento: var(--accent-contrast, #fff);
+  --q-suave: var(--accent-soft);
+  --q-toque: 120ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  --q-cor: 160ms ease;
+}
+/* O tema padrão no claro: o creme (#E6E2D6) passa do limite de brilho da Meta para fundo. */
+html[data-quest-novo='true'][data-theme='babel']:not(.dark) {
+  --canvas: #d9d5c8;
+  --surface: #edeae0;
+  --surface-hover: #e3dfd3;
+}
+
+/* ── A CASCA: trilho de ícones no lugar do menu de 220 px ─────────────────────────────────────── */
+.q-trilho {
+  flex: none;
+  width: 96px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 0;
+  background: var(--surface);
+  border-right: 1.5px solid var(--border-subtle);
+  overflow-y: auto;
+}
+.q-trilho .q-logo {
+  width: 44px;
+  height: 44px;
+  margin-bottom: 8px;
+  flex: none;
+}
+.q-item {
+  width: 80px;
+  min-height: 64px;
+  padding: 6px 2px;
+  border: 2px solid transparent;
+  border-radius: 16px;
+  background: none;
+  color: var(--ink-muted);
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 4px;
+  font: 700 14px/1.1 var(--font-body, inherit);
+  cursor: pointer;
+  transition:
+    transform var(--q-toque),
+    background-color var(--q-cor),
+    border-color var(--q-cor);
+}
+.q-item svg {
+  width: 24px;
+  height: 24px;
+}
+.q-item:hover {
+  border-color: var(--q-acento);
+  color: var(--ink);
+}
+.q-item:focus-visible {
+  outline: 3px solid var(--q-acento);
+  outline-offset: 2px;
+}
+.q-item:active {
+  transform: scale(0.96);
+}
+.q-item[aria-current='page'],
+.q-item[aria-expanded='true'] {
+  background: var(--q-suave);
+  border-color: var(--q-acento);
+  color: var(--ink);
+}
+.q-item.q-mais-botao {
+  margin-top: auto;
+}
+/* Ao vivo, a legenda fica com a tela inteira: o trilho some e volta ao encerrar. */
+html[data-quest-novo='true']:has(.quest-vivo) .q-trilho {
+  display: none;
+}
+
+/* "Mais": os destinos que não cabem no trilho, num painel no centro (nada desliza pela lateral). */
+.q-mais-fundo {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-sheet, 50);
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: color-mix(in srgb, #000 55%, transparent);
+  animation: q-surgir 180ms ease;
+}
+.q-mais {
+  width: min(880px, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 24px;
+  border-radius: 24px;
+  background: var(--canvas);
+  color: var(--ink);
+  border: 1.5px solid var(--border-subtle);
+}
+.q-mais .q-cab h2 {
+  font: 900 26px/1 var(--font-display, inherit);
+}
+
+/* ── O PALCO: o miolo de cada tela ────────────────────────────────────────────────────────────── */
+.q-palco {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 26px clamp(18px, 2.6vw, 34px);
+  overflow-y: auto;
+  color: var(--ink);
+  animation: q-surgir 180ms ease;
+}
+@keyframes q-surgir {
+  from {
+    opacity: 0;
+  }
+}
+.q-cab {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.q-cab > :first-child {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+.q-cab :is(h1, h2) {
+  margin: 0;
+  font: 900 32px/1.05 var(--font-display, inherit);
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+.q-sobre {
+  margin: 0 0 6px;
+  font: 700 14px/1 var(--font-mono, monospace);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-ink, var(--q-acento));
+}
+.q-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 18px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1.5px solid var(--border-subtle);
+  color: var(--ink);
+  font: 700 16px/1 var(--font-body, inherit);
+  white-space: nowrap;
+}
+button.q-chip {
+  min-height: 56px;
+  cursor: pointer;
+  transition:
+    transform var(--q-toque),
+    border-color var(--q-cor);
+}
+button.q-chip:hover {
+  border-color: var(--q-acento);
+}
+button.q-chip:focus-visible {
+  outline: 3px solid var(--q-acento);
+  outline-offset: 3px;
+}
+button.q-chip:active {
+  transform: scale(0.96);
+}
+.q-chip svg {
+  width: 20px;
+  height: 20px;
+}
+.q-chip i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--good, #3f9b56);
+}
+.q-rotulo {
+  font: 700 14px/1 var(--font-mono, monospace);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+/* Grades: tudo cabe sem rolar na janela padrão (1280 × 670); estreitou, perde colunas. */
+.q-grade {
+  display: grid;
+  gap: 16px;
+}
+.q-grade.g2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.q-grade.g3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.q-grade.g4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.q-cresce {
+  flex: 1;
+  min-height: 0;
+  max-height: 380px;
+}
+
+/* O cartão que é um alvo inteiro (um caminho, um jogo, um destino). */
+.q-tile {
+  min-width: 0;
+  min-height: 60px;
+  padding: 20px;
+  border: 1.5px solid var(--border-subtle);
+  border-radius: 20px;
+  background: var(--surface);
+  color: var(--ink);
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  justify-items: start;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    transform var(--q-toque),
+    background-color var(--q-cor),
+    border-color var(--q-cor),
+    box-shadow var(--q-cor);
+}
+.q-tile b {
+  font: 800 20px/1.15 var(--font-display, inherit);
+}
+.q-tile .q-d {
+  font: 600 16px/1.35 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+.q-tile:hover {
+  border-color: var(--q-acento);
+  background: color-mix(in srgb, var(--q-acento) 8%, var(--surface));
+}
+.q-tile:focus-visible {
+  outline: 3px solid var(--q-acento);
+  outline-offset: 3px;
+}
+.q-tile:active {
+  transform: scale(0.98);
+}
+.q-tile.pri {
+  border-color: transparent;
+  background: linear-gradient(160deg, var(--q-acento-2), var(--q-acento));
+  color: var(--q-sobre-acento);
+}
+.q-tile.pri .q-d {
+  color: inherit;
+  opacity: 0.92;
+}
+.q-tile.pri:hover {
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--q-acento) 35%, transparent);
+}
+/* Indisponível neste aparelho: aparece, diz o motivo, e não é um alvo. */
+.q-tile.apagado,
+.q-tile:disabled {
+  opacity: 0.62;
+  border-style: dashed;
+  cursor: default;
+  transform: none;
+}
+.q-tile.apagado:hover,
+.q-tile:disabled:hover {
+  border-color: var(--border-subtle);
+  background: var(--surface);
+}
+.q-tile.em-linha {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  align-content: center;
+  gap: 14px;
+  padding: 12px 16px;
+}
+.q-ic {
+  width: 46px;
+  height: 46px;
+  border-radius: 13px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  background: var(--q-suave);
+  color: var(--ink);
+}
+.q-ic svg {
+  width: 24px;
+  height: 24px;
+}
+.q-tile.pri .q-ic {
+  background: color-mix(in srgb, var(--q-sobre-acento) 22%, transparent);
+  color: inherit;
+}
+.q-tag {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--q-suave);
+  color: var(--ink);
+  font: 700 14px/1 var(--font-mono, monospace);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.q-tag.off {
+  background: var(--surface-sunken);
+  color: var(--ink-muted);
+}
+
+/* Linha de lista: cada item é um alvo de 72 px. */
+.q-lista {
+  display: grid;
+  gap: 12px;
+}
+.q-linha {
+  min-height: 72px;
+  width: 100%;
+  padding: 10px 18px;
+  border: 1.5px solid var(--border-subtle);
+  border-radius: 18px;
+  background: var(--surface);
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    transform var(--q-toque),
+    background-color var(--q-cor),
+    border-color var(--q-cor);
+}
+.q-linha > :not(.q-ic):not(.q-fim) {
+  min-width: 0;
+  flex: 1;
+}
+.q-linha b {
+  display: block;
+  font: 800 19px/1.2 var(--font-display, inherit);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.q-linha small {
+  display: block;
+  margin-top: 3px;
+  font: 600 15px/1.3 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+.q-fim {
+  margin-left: auto;
+  flex: none;
+  font: 700 14px/1 var(--font-mono, monospace);
+  color: var(--ink-muted);
+}
+.q-linha:hover {
+  border-color: var(--q-acento);
+}
+.q-linha:focus-visible {
+  outline: 3px solid var(--q-acento);
+  outline-offset: 3px;
+}
+.q-linha:active {
+  transform: scale(0.99);
+}
+.q-linha[aria-pressed='true'],
+.q-linha[aria-selected='true'] {
+  background: var(--q-suave);
+  border-color: var(--q-acento);
+}
+
+/* Aviso que não interrompe: uma faixa fina, com no máximo uma ação. */
+.q-aviso {
+  padding: 12px 18px;
+  border-radius: 18px;
+  background: var(--q-suave);
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font: 700 17px/1.3 var(--font-body, inherit);
+}
+.q-aviso > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+.q-aviso .q-ctl {
+  background: var(--surface);
+}
+
+.q-texto {
+  margin: 0;
+  font: 600 18px/1.45 var(--font-body, inherit);
+  color: var(--ink);
+  max-width: 60ch;
+}
+
+/* Números do resumo. */
+.q-num {
+  padding: 18px;
+  border: 1.5px solid var(--border-subtle);
+  border-radius: 18px;
+  background: var(--surface);
+  display: grid;
+  gap: 6px;
+}
+.q-num b {
+  font: 900 33px/1 var(--font-display, inherit);
+  font-variant-numeric: tabular-nums;
+}
+.q-num span {
+  font: 600 15px/1.3 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+
+/* ── A FAIXA DE CONTROLES: uma por tela, um único botão principal ─────────────────────────────── */
+.q-faixa {
+  margin: 0 clamp(14px, 2vw, 28px) 18px;
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1.5px solid var(--border-subtle);
+}
+.q-palco > .q-faixa {
+  margin: auto 0 0;
+}
+.q-espaco {
+  flex: 1;
+}
+.q-tempo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px;
+  font: 600 17px/1 var(--font-mono, monospace);
+  font-variant-numeric: tabular-nums;
+}
+.q-ctl {
+  min-width: 60px;
+  min-height: 60px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background: var(--canvas);
+  color: var(--ink);
+  font: 700 17px/1 var(--font-body, inherit);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    transform 120ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    background-color 160ms ease,
+    border-color 160ms ease;
+}
+.q-ctl svg {
+  width: 22px;
+  height: 22px;
+}
+.q-ctl:hover {
+  border-color: var(--q-acento, var(--accent));
+  background: color-mix(in srgb, var(--q-acento, var(--accent)) 14%, var(--canvas));
+}
+.q-ctl:focus-visible {
+  outline: 3px solid var(--q-acento, var(--accent));
+  outline-offset: 3px;
+}
+.q-ctl:active {
+  transform: scale(0.96);
+  background: color-mix(in srgb, var(--q-acento, var(--accent)) 26%, var(--canvas));
+}
+.q-ctl:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.q-ctl[aria-checked='false'],
+.q-ctl[aria-pressed='true'] {
+  border-color: var(--q-acento, var(--accent));
+}
+.q-ctl[aria-pressed='true'] {
+  background: var(--q-suave, var(--accent-soft));
+}
+.q-ctl.pri {
+  padding: 0 26px;
+  background: linear-gradient(160deg, var(--q-acento-2, var(--accent)), var(--q-acento, var(--accent)));
+  color: var(--q-sobre-acento, #fff);
+}
+.q-ctl.pri:hover {
+  background: linear-gradient(160deg, var(--q-acento-2, var(--accent)), var(--q-acento, var(--accent)));
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--q-acento, var(--accent)) 35%, transparent);
+}
+.q-quadrado {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  background: currentColor;
+}
+
+/* ── CAPTURAR, ANTES DE COMEÇAR: uma decisão por linha e um único botão principal ─────────────── */
+html[data-quest-novo='true'] .cel.quest-pronto {
+  max-width: none;
+  gap: 18px;
+  padding: 26px clamp(18px, 2.6vw, 34px) 22px;
+  font-size: 18px;
+  overflow-y: auto;
+}
+.q-linha2 {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+}
+.quest-pronto :is(.cel-par, .cel-fonte) {
+  margin: 0;
+  padding: 7px;
+  border-radius: 20px;
+  border-width: 1.5px;
+  box-shadow: none;
+}
+.quest-pronto .cel-lado {
+  min-height: 60px;
+  padding: 0 16px;
+  border-radius: 14px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition:
+    transform var(--q-toque),
+    border-color var(--q-cor);
+}
+.quest-pronto .cel-lado:hover {
+  border-color: var(--q-acento);
+}
+.quest-pronto .cel-lado:active {
+  transform: scale(0.97);
+}
+.quest-pronto .cel-lado small {
+  font-size: 14px;
+}
+.quest-pronto .cel-lado b {
+  font: 800 19px/1.2 var(--font-display, inherit);
+}
+.quest-pronto .cel-troca {
+  width: 60px;
+  height: 60px;
+  border-radius: 14px;
+}
+.quest-pronto .cel-fonte button {
+  min-height: 60px;
+  font-size: 17px;
+  border-radius: 14px;
+}
+.quest-pronto .cel-fonte button[aria-pressed='true'] {
+  box-shadow: inset 0 0 0 2px var(--q-acento);
+}
+html[data-quest-novo='true'] .quest-pronto :is(.aviso-info, .aviso-simples) {
+  margin: 0 !important;
+  font-size: 16px;
+  line-height: 1.4;
+}
+html[data-quest-novo='true'] .quest-pronto :is(.aviso-info, .aviso-simples) .btn {
+  min-height: 56px;
+  padding-inline: 20px;
+  font-size: 16px;
+}
+/* Um par (você fala / a outra pessoa fala) com a troca no meio. */
+.q-par {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+}
+.q-meio {
+  flex: 1;
+  min-height: 190px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 26px;
+  align-items: center;
+  padding: 22px 30px;
+  border-radius: 24px;
+  background: var(--surface-sunken);
+}
+.q-meio > .cel-conversa {
+  align-self: stretch;
+  min-height: 0;
+  overflow: hidden;
+}
+.q-passos {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.q-passos li {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font: 600 18px/1.3 var(--font-body, inherit);
+}
+.q-passos li > span:first-child {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: var(--q-suave);
+  font: 800 16px/1 var(--font-mono, monospace);
+}
+.q-passos .q-nota {
+  font-size: 16px;
+  color: var(--ink-muted);
+}
+.q-passos .q-nota > span:first-child {
+  background: none;
+  color: var(--ink-muted);
+}
+.q-passos .q-nota svg {
+  width: 22px;
+  height: 22px;
+}
+.q-grande {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  min-width: 190px;
+}
+.q-grande > b {
+  font: 800 18px/1.2 var(--font-display, inherit);
+  text-align: center;
+}
+.q-botao {
+  width: 120px;
+  height: 120px;
+  border: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  color: var(--q-sobre-acento);
+  background: linear-gradient(160deg, var(--q-acento-2), var(--q-acento));
+  box-shadow: 0 12px 26px color-mix(in srgb, var(--q-acento) 35%, transparent);
+  transition:
+    transform var(--q-toque),
+    box-shadow var(--q-cor);
+}
+.q-botao svg {
+  width: 44px;
+  height: 44px;
+}
+.q-botao:hover {
+  box-shadow:
+    0 0 0 5px color-mix(in srgb, var(--q-acento) 35%, transparent),
+    0 12px 26px color-mix(in srgb, var(--q-acento) 35%, transparent);
+}
+.q-botao:focus-visible {
+  outline: 3px solid var(--q-acento);
+  outline-offset: 5px;
+}
+.q-botao:active {
+  transform: scale(0.96);
+}
+.q-botao:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* ── ACABAMENTO NO APP INTEIRO (as telas que ainda não foram redesenhadas) ─────────────────────
+   O mesmo toque em todo botão: encolhe e volta, e o foco pelo teclado ou pelo controle é visível. */
+html[data-quest-novo='true'] :is(.btn, .cartao.clicavel) {
+  transition:
+    transform var(--q-toque),
+    background-color var(--q-cor),
+    border-color var(--q-cor),
+    box-shadow var(--q-cor);
+}
+html[data-quest-novo='true'] :is(.btn, .cartao.clicavel):active {
+  transform: scale(0.97);
+}
+html[data-quest-novo='true'] :is(.btn, .cartao.clicavel, .link):focus-visible {
+  outline: 3px solid var(--q-acento);
+  outline-offset: 3px;
+}
+
+/* Os diálogos e folhas que ainda têm o desenho do computador (a sala "O que você vai praticar", as
+   folhas da frase e da palavra, os diálogos de Ajustes): alvos e rótulos no mínimo do headset. O
+   intérprete e o painel "Mais" já nascem nas medidas certas e ficam de fora. */
+html[data-quest-novo='true'] [role='dialog']:not(.int):not(.q-mais) :is(button, a[href], select, .pill) {
+  min-height: 56px;
+  min-width: 56px;
+  font-size: max(16px, 1em);
+}
+html[data-quest-novo='true'] [role='dialog']:not(.int):not(.q-mais) :is(.label-mono, small, .mut) {
+  font-size: max(14px, 1em);
+}
+
+/* ── JANELA ESTREITA (o Quest deixa encolher até 500 × 495): para deixar ao lado de um jogo ───── */
+@media (max-width: 720px) {
+  .q-casca {
+    flex-direction: column-reverse;
+  }
+  .q-trilho {
+    width: 100%;
+    flex-direction: row;
+    justify-content: space-around;
+    gap: 4px;
+    padding: 6px 8px;
+    border-right: 0;
+    border-top: 1.5px solid var(--border-subtle);
+    overflow: visible;
+  }
+  .q-trilho .q-logo,
+  .q-item > span {
+    display: none;
+  }
+  .q-item {
+    width: 60px;
+    min-height: 60px;
+  }
+  .q-item.q-mais-botao {
+    margin-top: 0;
+  }
+  .q-palco {
+    padding: 18px 16px;
+  }
+  .q-cresce {
+    flex: none;
+    max-height: none;
+  }
+  .q-cab :is(h1, h2) {
+    font-size: 26px;
+  }
+  .q-grade:is(.g2, .g3, .g4),
+  .q-par,
+  .q-linha2 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .q-meio {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 18px;
+  }
+  /* Compacto ao vivo: só a fala atual e dois controles (tempo, A+ e Encerrar). */
+  .quest-vivo .q-fala.antiga,
+  .quest-vivo .q-faixa .q-ctl:not(.pri):not(.q-fica) {
+    display: none;
+  }
+  .quest-vivo .q-leg {
+    padding: 18px 20px 12px;
+  }
+  .quest-vivo .q-faixa {
+    margin: 0 12px 12px;
+  }
+}
+@media (min-width: 721px) and (max-width: 1020px) {
+  .q-grade:is(.g3, .g4) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .q-palco,
+  .q-mais-fundo {
+    animation: none;
+  }
+  .q-item,
+  .q-tile,
+  .q-linha,
+  .q-ctl,
+  .q-botao,
+  button.q-chip,
+  .quest-pronto .cel-lado,
+  html[data-quest-novo='true'] :is(.btn, .cartao.clicavel) {
+    transition: none;
+  }
+}

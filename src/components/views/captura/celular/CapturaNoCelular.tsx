@@ -193,7 +193,7 @@ export default function CapturaNoCelular({
           </button>
           <button
             type="button"
-            className="q-ctl"
+            className="q-ctl q-fica"
             onClick={faixaDoQuest.maior}
             disabled={faixaDoQuest.noMaximo}
             aria-label={t('Aumentar a legenda')}
@@ -257,6 +257,131 @@ export default function CapturaNoCelular({
     );
   }
 
+  const parDeIdiomas = (
+    <div className="cel-par">
+      <button type="button" className="cel-lado" onClick={aoAbrirIdiomas}>
+        <small>{lados[0].rotulo}</small>
+        <b>{lados[0].nome}</b>
+      </button>
+      {aoTrocarLados ? (
+        <button type="button" className="cel-troca" onClick={aoTrocarLados} aria-label={t('Trocar os idiomas')}>
+          <ArrowLeftRight aria-hidden />
+        </button>
+      ) : (
+        <span className="cel-troca" aria-hidden>
+          <ArrowLeftRight />
+        </span>
+      )}
+      <button type="button" className="cel-lado fim" onClick={aoAbrirIdiomas}>
+        <small>{lados[1].rotulo}</small>
+        <b>{lados[1].nome}</b>
+      </button>
+    </div>
+  );
+  const escolhaDaFonte = fonte && (
+    <div className="cel-fonte" role="group" aria-label={t('De onde vem o som')} data-testid="fonte-do-quest">
+      <button type="button" aria-pressed={fonte.atual === 'headset'} onClick={() => fonte.escolher('headset')}>
+        <Headphones aria-hidden /> {t('Som do headset')}
+      </button>
+      <button type="button" aria-pressed={fonte.atual === 'mic'} onClick={() => fonte.escolher('mic')}>
+        <Mic aria-hidden /> {t('Microfone')}
+      </button>
+      <button type="button" aria-pressed={fonte.atual === 'ambos'} onClick={() => fonte.escolher('ambos')}>
+        {t('Os dois')}
+      </button>
+    </div>
+  );
+
+  /* O QUEST, ANTES DE COMEÇAR (maquete de 01/10/2026): uma decisão por linha (idiomas e fonte lado a
+     lado), os três passos, e UM botão principal de 120 px. Opções, ajuda e intérprete ficam no
+     cabeçalho, como controles comuns. Os mesmos dados e as mesmas ações da tela de baixo. */
+  if (noQuest && faixaDoQuest) {
+    return (
+      <div className="cel quest-pronto" data-testid="captura-no-celular">
+        <div className="q-cab">
+          <div>
+            <p className="q-sobre">{t('Legenda ao vivo')}</p>
+            <h1>{t('Capturar')}</h1>
+          </div>
+          {aoAbrirInterprete && (
+            <button type="button" className="q-chip" onClick={aoAbrirInterprete} data-testid="entrar-no-interprete">
+              <Languages aria-hidden /> {t('Intérprete')}
+            </button>
+          )}
+          <button type="button" className="q-chip" onClick={aoAbrirOpcoes}>
+            <SlidersHorizontal aria-hidden /> {t('Opções')}
+          </button>
+          <button type="button" className="q-chip" onClick={aoAbrirAjuda} aria-label={t('Ajuda')}>
+            <CircleHelp aria-hidden />
+          </button>
+        </div>
+
+        <div className="q-linha2">
+          {parDeIdiomas}
+          {escolhaDaFonte}
+        </div>
+
+        {avisos}
+
+        <div className="q-meio">
+          {temFalas ? (
+            <div className="cel-conversa cartao-escuro">{conversa}</div>
+          ) : (
+            <ol className="q-passos" aria-label={t('Como começar')}>
+              <li>
+                <span aria-hidden>1</span>
+                {t('Dê play no vídeo, no jogo ou na aula, em outra janela.')}
+              </li>
+              <li>
+                <span aria-hidden>2</span>
+                {peloHeadset
+                  ? t('Toque em Começar e compartilhe a visão do headset: é assim que o som entra.')
+                  : t('Toque em Começar e permita o microfone.')}
+              </li>
+              <li>
+                <span aria-hidden>3</span>
+                {t('Toque numa frase para guardar palavras.')}
+              </li>
+              <li className="q-nota" data-testid="aviso-sem-audio-do-sistema">
+                <span aria-hidden>
+                  <CircleHelp />
+                </span>
+                <span>
+                  {t('Se o microfone não captar nada, veja se ele não está desligado nas configurações do Quest.')}{' '}
+                  <a className="link" href="/diagnostico" data-testid="abrir-diagnostico">
+                    {t('Diagnóstico do aparelho')}
+                  </a>
+                </span>
+              </li>
+            </ol>
+          )}
+          <div className="q-grande">
+            <button
+              type="button"
+              className="q-botao"
+              onClick={aoIniciar}
+              disabled={!podeIniciar || abrindo}
+              aria-label={retomar ? t('Continuar captura') : t('Iniciar captura')}
+              data-testid="comecar-no-quest"
+            >
+              {abrindo ? <Loader2 aria-hidden className="animate-spin" /> : <Play aria-hidden />}
+            </button>
+            <b aria-hidden>
+              {abrindo
+                ? peloHeadset
+                  ? t('Abrindo o som do headset…')
+                  : t('Abrindo o microfone…')
+                : retomar
+                  ? t('Continuar')
+                  : t('Começar')}
+            </b>
+            {rodape}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="cel" data-testid="captura-no-celular">
       <div className="cel-topo">
@@ -282,39 +407,9 @@ export default function CapturaNoCelular({
         </button>
       </div>
 
-      <div className="cel-par">
-        <button type="button" className="cel-lado" onClick={aoAbrirIdiomas}>
-          <small>{lados[0].rotulo}</small>
-          <b>{lados[0].nome}</b>
-        </button>
-        {aoTrocarLados ? (
-          <button type="button" className="cel-troca" onClick={aoTrocarLados} aria-label={t('Trocar os idiomas')}>
-            <ArrowLeftRight aria-hidden />
-          </button>
-        ) : (
-          <span className="cel-troca" aria-hidden>
-            <ArrowLeftRight />
-          </span>
-        )}
-        <button type="button" className="cel-lado fim" onClick={aoAbrirIdiomas}>
-          <small>{lados[1].rotulo}</small>
-          <b>{lados[1].nome}</b>
-        </button>
-      </div>
+      {parDeIdiomas}
 
-      {fonte && (
-        <div className="cel-fonte" role="group" aria-label={t('De onde vem o som')} data-testid="fonte-do-quest">
-          <button type="button" aria-pressed={fonte.atual === 'headset'} onClick={() => fonte.escolher('headset')}>
-            <Headphones aria-hidden /> {t('Som do headset')}
-          </button>
-          <button type="button" aria-pressed={fonte.atual === 'mic'} onClick={() => fonte.escolher('mic')}>
-            <Mic aria-hidden /> {t('Microfone')}
-          </button>
-          <button type="button" aria-pressed={fonte.atual === 'ambos'} onClick={() => fonte.escolher('ambos')}>
-            {t('Os dois')}
-          </button>
-        </div>
-      )}
+      {escolhaDaFonte}
 
       {avisos}
 

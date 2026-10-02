@@ -1,8 +1,14 @@
 import { Cloud, CloudOff } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 
 import { useConsentimentoDeNuvem } from '../../../lib/consentimentoDeNuvem';
-import { cabecalhoDoDono, ENDPOINT_DA_NUVEM_DO_QUEST } from '../../../lib/nuvemDoQuest';
+import { t } from '../../../lib/i18n';
+import {
+  aoMudarCotaDaNuvemDoQuest,
+  cabecalhoDoDono,
+  cotaDaNuvemDoQuestAcabou,
+  ENDPOINT_DA_NUVEM_DO_QUEST,
+} from '../../../lib/nuvemDoQuest';
 import { mudarConsentimento } from '../../../lib/preferencias';
 
 /**
@@ -13,9 +19,26 @@ import { mudarConsentimento } from '../../../lib/preferencias';
  * o que sai do aparelho, para onde, e que nada é guardado. O interruptor é o consentimento de nuvem de
  * sempre (registro datado em Ajustes). A cota é do servidor (15 min por dia por endereço de rede) e
  * aparece aqui: teto visível, nunca escondido. Acabou, a legenda continua no aparelho.
+ *
+ * `aoVivo` (a tela ao vivo do Quest): durante a gravação o cartão não aparece, para a legenda ficar com
+ * a tela. Se a cota acabar no meio, entra uma faixa fina, sem botão, que some sozinha: nada cobre a
+ * legenda e a captura não para.
  */
-export default function NuvemDoQuest({ gravando }: { gravando: boolean }) {
+const TEMPO_DA_FAIXA_MS = 12_000;
+
+export default function NuvemDoQuest({ gravando, aoVivo = false }: { gravando: boolean; aoVivo?: boolean }) {
   const { consentiu, autorizar } = useConsentimentoDeNuvem();
+  const cotaAcabou = useSyncExternalStore(aoMudarCotaDaNuvemDoQuest, cotaDaNuvemDoQuestAcabou, () => false);
+  const [faixaVisivel, setFaixaVisivel] = useState(false);
+  useEffect(() => {
+    if (!cotaAcabou || !gravando) {
+      setFaixaVisivel(false);
+      return;
+    }
+    setFaixaVisivel(true);
+    const id = window.setTimeout(() => setFaixaVisivel(false), TEMPO_DA_FAIXA_MS);
+    return () => window.clearTimeout(id);
+  }, [cotaAcabou, gravando]);
   /** Minutos que restam hoje; `null` = ainda não sabe; `0` = acabou (ou a nuvem recusou). */
   const [restam, setRestam] = useState<number | null>(null);
 
@@ -32,6 +55,14 @@ export default function NuvemDoQuest({ gravando }: { gravando: boolean }) {
       vivo = false;
     };
   }, [consentiu, gravando]);
+
+  if (aoVivo && gravando) {
+    return faixaVisivel ? (
+      <div className="q-aviso" role="status" data-testid="cota-da-nuvem-acabou">
+        <span>{t('A nuvem de hoje acabou. A legenda segue feita no headset, um pouco mais lenta.')}</span>
+      </div>
+    ) : null;
+  }
 
   return (
     <div className="aviso-info" data-testid="nuvem-do-quest" style={{ marginTop: 8, alignItems: 'center' }}>

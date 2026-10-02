@@ -235,7 +235,7 @@ export default function GavetaDaPalavra({
       </div>
       <div className="gav-corpo pilha-g">
         <div className="linha" style={{ gap: 8, flexWrap: 'wrap' }}>
-          <button type="button" className="btn btn-outline peq" onClick={() => aoFalar(cartao.word)}>
+          <button type="button" className="btn btn-outline peq" data-precisa="voz" onClick={() => aoFalar(cartao.word)}>
             <Volume2 aria-hidden /> Ouvir
           </button>
           <Segmentos

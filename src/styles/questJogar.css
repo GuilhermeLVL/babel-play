@@ -1,0 +1,475 @@
+/*
+ * JOGAR NO META QUEST: por dentro dos jogos (maquete de 01/10/2026, telas 6, 7 e 13).
+ *
+ * O lobby usa as peças de `quest.css` (`.q-palco`, `.q-tile`…) e não precisa de regra própria. Aqui
+ * fica o que acontece DEPOIS do clique: a casca da rodada, o placar e os tabuleiros. Tudo é só
+ * apresentação por cima da marcação que os jogos já têm; nenhuma regra de jogo mora aqui.
+ *
+ * Toda regra começa em `html[data-quest-novo='true']`: computador, celular e o Quest com a chave
+ * desligada nunca passam por este arquivo.
+ *
+ * As medidas (diretrizes da Meta para web 2D, as mesmas de `quest.css`):
+ *   · resposta e carta: o alvo principal, com 100 px de altura ou mais;
+ *   · saída, pausa e ajudas: 60 px; qualquer outro botão do tabuleiro: 48 px ou mais;
+ *   · texto de leitura com 18 px ou mais, nada abaixo de 14 px;
+ *   · o toque responde como `.q-ctl`: encolhe em 120 ms, a cor troca em 160 ms, foco de 3 px;
+ *   · certo e errado têm cor E ícone (o Quest desenha o próprio realce do ponteiro: hover não conta).
+ */
+
+html[data-quest-novo='true'] {
+  --qj-toque: transform var(--q-toque), background-color var(--q-cor), border-color var(--q-cor),
+    box-shadow var(--q-cor), opacity var(--q-cor);
+  /* Os dois ícones de linha do retorno (os mesmos traços de `Check` e `X` da lucide), como máscara:
+     pintam com a cor do texto do botão, em qualquer tema. */
+  --qj-certo: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
+  --qj-errado: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 6 6 18M6 6l12 12'/%3E%3C/svg%3E");
+}
+
+/* ── O LOBBY: dezoito cartões, então cada um é um pouco mais enxuto que o `.q-tile` padrão ────── */
+html[data-quest-novo='true'] .quest-jogar .q-tile {
+  padding: 16px 18px;
+  gap: 8px;
+}
+/* A descrição do jogo fica em duas linhas; o motivo de quem não abre aparece inteiro. */
+html[data-quest-novo='true'] .quest-jogar .q-tile:not(:disabled) .q-d {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+/* ── A CASCA DA RODADA: a tela inteira é do jogo ──────────────────────────────────────────────── */
+/* O trilho sai enquanto a rodada está na tela, como na legenda ao vivo: jogo não divide atenção. */
+html[data-quest-novo='true']:has(.palco-jogo) .q-trilho {
+  display: none;
+}
+html[data-quest-novo='true'] .tela:has(.palco-jogo) {
+  max-width: none;
+  padding: 16px clamp(16px, 2.2vw, 28px) 20px;
+}
+/* Uma linha só no alto: a saída, o nome do jogo e a pausa. */
+html[data-quest-novo='true'] .tela:has(.palco-jogo) .cab {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+html[data-quest-novo='true'] .tela:has(.palco-jogo) .cab-linha {
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  flex-wrap: nowrap;
+}
+html[data-quest-novo='true'] .tela:has(.palco-jogo) .cab-texto {
+  flex: 1 1 auto;
+}
+html[data-quest-novo='true'] .tela:has(.palco-jogo) .sobrancelha {
+  font-size: 14px;
+  letter-spacing: 0.08em;
+}
+html[data-quest-novo='true'] .tela:has(.palco-jogo) .cab h1 {
+  margin: 4px 0 0;
+  font-size: 26px;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* A ÚNICA SAÍDA, com 60 px. Ela pergunta antes de sair (a confirmação já existe na casca). */
+html[data-quest-novo='true'] .tela:has(.palco-jogo) .voltar {
+  flex: none;
+  min-width: 60px;
+  min-height: 60px;
+  margin: 0;
+  padding: 0 20px;
+  gap: 8px;
+  border: 2px solid var(--border-subtle);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font: 700 17px/1 var(--font-body, inherit);
+  cursor: pointer;
+  transition: var(--qj-toque);
+}
+html[data-quest-novo='true'] .tela:has(.palco-jogo) .voltar svg {
+  width: 22px;
+  height: 22px;
+}
+html[data-quest-novo='true'] .tela:has(.palco-jogo) .cab-acoes .btn {
+  min-height: 60px;
+  padding: 0 20px;
+  border-radius: 999px;
+  font-size: 17px;
+}
+html[data-quest-novo='true'] .tela:has(.palco-jogo) .cab-acoes .btn svg {
+  width: 22px;
+  height: 22px;
+}
+/* Recomeçar continua a um toque, dentro da pausa: no alto ficaria um alvo a mais ao lado da saída. */
+html[data-quest-novo='true'] .tela:has(.palco-jogo) .cab-acoes [data-acao='recomecar'] {
+  display: none;
+}
+html[data-quest-novo='true'] .palco-jogo {
+  padding: 16px 22px 18px;
+}
+
+/* ── O PLACAR: o progresso no alto ────────────────────────────────────────────────────────────── */
+html[data-quest-novo='true'] .hud {
+  gap: 16px;
+  margin-bottom: 14px;
+}
+html[data-quest-novo='true'] .hud-bloco small {
+  font-size: 14px;
+  letter-spacing: 0.08em;
+}
+html[data-quest-novo='true'] .hud-bloco b {
+  font-size: 26px;
+}
+/* O rótulo ("2 de 6 pares") e o relógio têm o tamanho escrito na própria marcação (12 px). */
+html[data-quest-novo='true'] .hud .entre {
+  margin-bottom: 8px !important;
+  font-size: 16px !important;
+}
+html[data-quest-novo='true'] .hud-progresso {
+  height: 14px;
+}
+html[data-quest-novo='true'] .combo {
+  align-items: center;
+  min-height: 48px;
+  padding: 6px 14px;
+  font-size: 24px;
+}
+html[data-quest-novo='true'] .combo small {
+  font-size: 14px;
+}
+html[data-quest-novo='true'] .combo em {
+  max-width: 120px;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+}
+html[data-quest-novo='true'] .palco-jogo .ajuda-jogo {
+  min-height: 60px;
+  padding: 0 18px;
+  border-radius: 999px;
+  font-size: 17px;
+}
+html[data-quest-novo='true'] .palco-jogo .ajuda-jogo svg {
+  width: 22px;
+  height: 22px;
+}
+html[data-quest-novo='true'] .palco-jogo .ajuda-jogo .n {
+  min-width: 26px;
+  height: 26px;
+  font-size: 14px;
+}
+
+/* ── TODO BOTÃO DO TABULEIRO: alvo de 48 px e o mesmo toque ───────────────────────────────────── */
+html[data-quest-novo='true'] .palco-jogo button {
+  min-width: 48px;
+  min-height: 48px;
+  transition: var(--qj-toque);
+}
+/* Nada sai de baixo do ponteiro: os botões dos jogos subiam 2 a 4 px no hover. */
+html[data-quest-novo='true'] .palco-jogo button:not(:disabled):hover {
+  transform: none;
+  translate: none;
+}
+/* A borda acende no hover, menos na carta da Memória (o verso é a cor do tema) e em quem já está
+   pintado de certo ou de errado: o ponteiro fica em cima da resposta logo depois do clique. */
+html[data-quest-novo='true']
+  .palco-jogo
+  button:not(:disabled):not(.carta):not([class~='border-good']):not([class~='border-error']):hover {
+  border-color: var(--q-acento);
+}
+html[data-quest-novo='true']
+  :is(.palco-jogo button, .tela:has(.palco-jogo) :is(.voltar, .cab-acoes .btn)):focus-visible {
+  outline: 3px solid var(--q-acento);
+  outline-offset: 3px;
+}
+html[data-quest-novo='true'] .tela:has(.palco-jogo) .voltar:hover {
+  border-color: var(--q-acento);
+  background: color-mix(in srgb, var(--q-acento) 14%, var(--surface));
+}
+html[data-quest-novo='true'] .tela:has(.palco-jogo) .voltar:active {
+  transform: scale(0.96);
+}
+html[data-quest-novo='true'] .palco-jogo button:not(:disabled):active {
+  transform: scale(0.97);
+  translate: none;
+}
+html[data-quest-novo='true'] .palco-jogo :is(input, textarea) {
+  min-height: 56px;
+  font-size: 20px;
+}
+/* O caça-palavras escreve a medida de cada letra na marcação (41 px nesta janela): vale o piso. */
+html[data-quest-novo='true'] .palco-jogo [data-celula] {
+  font-size: 20px !important;
+}
+
+/* ── O TEXTO: 18 px para ler, nada abaixo de 14 px ────────────────────────────────────────────── */
+html[data-quest-novo='true']
+  .palco-jogo
+  :is(
+    [class~='text-[10px]'],
+    [class~='text-[11px]'],
+    [class~='text-[12px]'],
+    [class~='text-[13px]'],
+    [class~='text-xs'],
+    .label-mono
+  ) {
+  font-size: 15px;
+  line-height: 1.35;
+}
+html[data-quest-novo='true']
+  .palco-jogo
+  :is(
+    [class~='text-sm'],
+    [class~='text-base'],
+    [class~='text-[14px]'],
+    [class~='text-[15px]'],
+    [class~='text-[16px]'],
+    [class~='text-[17px]']
+  ) {
+  font-size: 18px;
+  line-height: 1.4;
+}
+/* As colunas estreitas do computador (576 a 896 px) soltam: no headset o tabuleiro usa a janela. */
+html[data-quest-novo='true'] .palco-jogo > [class*='max-w-'],
+html[data-quest-novo='true'] .palco-jogo > div > [class*='max-w-'] {
+  max-width: 1040px;
+}
+
+/* ── JOGO DE ESCOLHA (tela 6): a pergunta grande no centro e as respostas enormes ─────────────── */
+html[data-quest-novo='true'] .palco-jogo [data-tour='pergunta'] {
+  font-size: 40px;
+  line-height: 1.08;
+  text-align: center;
+}
+/* Enunciado longo (o Duelo já o marca com a classe menor): grande, mas cabendo em quatro linhas. */
+html[data-quest-novo='true'] .palco-jogo [data-tour='pergunta'][class~='text-xl'] {
+  font-size: 26px;
+  line-height: 1.2;
+}
+html[data-quest-novo='true'] .palco-jogo :is([data-tour='pista'], [data-tour='enigma']) {
+  font-size: 28px;
+  line-height: 1.2;
+  text-align: center;
+}
+html[data-quest-novo='true'] .palco-jogo :is([data-tour='alternativas'], [data-tour='opcoes'], [data-tour='cartas']) {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  width: 100%;
+}
+/* A Corrente tem três opções e a Karuta, até oito cartas: uma fileira, ou duas, sem rolar. */
+html[data-quest-novo='true'] .palco-jogo [data-tour='opcoes'] {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+html[data-quest-novo='true'] .palco-jogo [data-tour='cartas'] {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+html[data-quest-novo='true']
+  .palco-jogo
+  :is([data-tour='alternativas'], [data-tour='opcoes'], [data-tour='cartas'])
+  > button {
+  min-height: 100px;
+  aspect-ratio: auto;
+  padding: 12px 20px;
+  border-width: 2px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font: 800 22px/1.2 var(--font-display, inherit);
+  text-align: center;
+}
+/* CERTO E ERRADO, PELA COR E PELO ÍCONE. A cor já vinha dos jogos (verde e vermelho do tema); o
+   ícone entra aqui, ao lado do texto, pintado com a tinta do próprio botão. */
+html[data-quest-novo='true']
+  .palco-jogo
+  :is([data-tour='alternativas'], [data-tour='opcoes'], [data-tour='cartas'])
+  > button:is([class~='border-good'], [class~='border-error'])::after,
+html[data-quest-novo='true']
+  .palco-jogo
+  [data-aviso-da-jogada]:is([data-aviso-da-jogada='certo'], [data-aviso-da-jogada='erro'])::before {
+  content: '';
+  flex: none;
+  display: inline-block;
+  width: 28px;
+  height: 28px;
+  background: currentColor;
+  -webkit-mask: var(--qj-certo) center / contain no-repeat;
+  mask: var(--qj-certo) center / contain no-repeat;
+}
+html[data-quest-novo='true']
+  .palco-jogo
+  :is([data-tour='alternativas'], [data-tour='opcoes'], [data-tour='cartas'])
+  > button[class~='border-error']::after,
+html[data-quest-novo='true'] .palco-jogo [data-aviso-da-jogada='erro']::before {
+  -webkit-mask-image: var(--qj-errado);
+  mask-image: var(--qj-errado);
+}
+/* O aviso que diz qual era a resposta: texto de leitura e o ícone na frente. */
+html[data-quest-novo='true'] .palco-jogo [data-aviso-da-jogada] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  font-size: 18px;
+}
+html[data-quest-novo='true'] .palco-jogo [data-aviso-da-jogada] b {
+  font-size: 22px;
+}
+
+/* ── MEMÓRIA (tela 7): doze cartas grandes numa grade 4 × 3, sem rolar ────────────────────────── */
+/* A largura sai da ALTURA da janela: três fileiras de cartas 3:2 mais o alto da tela (casca, placar e
+   respiros, 256 px com os dois vãos) têm de caber em 100dvh. O jogo escreve 720 px na marcação. */
+html[data-quest-novo='true'] .palco-jogo .tabuleiro {
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 14px;
+  max-width: min(100%, max(560px, calc((100dvh - 256px) * 2 + 42px))) !important;
+}
+html[data-quest-novo='true'] .palco-jogo .carta {
+  position: relative;
+  aspect-ratio: 3 / 2;
+  min-height: 60px;
+  padding: 10px 14px;
+  border-radius: 18px;
+  font-size: 20px;
+  line-height: 1.15;
+  cursor: pointer;
+}
+/* Texto comprido na carta (o jogo o reduz a 11 px no computador). */
+html[data-quest-novo='true'] .palco-jogo .carta > span:not(.verso) {
+  font-size: inherit;
+}
+html[data-quest-novo='true'] .palco-jogo .carta > span[class~='text-[11px]'] {
+  font-size: 14px;
+  line-height: 1.2;
+}
+html[data-quest-novo='true'] .palco-jogo .carta .verso {
+  font-size: 34px;
+}
+/* A carta encolhe menos que um botão (é grande), e o par fechado não é mais um alvo. */
+html[data-quest-novo='true'] .palco-jogo .carta:not(:disabled):not(.par):active {
+  transform: scale(0.98);
+}
+html[data-quest-novo='true'] .palco-jogo .carta.par:not(:disabled):active {
+  transform: none;
+}
+/* Par fechado e par errado: a cor que o jogo já dá, mais o ícone no canto. */
+html[data-quest-novo='true'] .palco-jogo .carta:is(.par, .errou)::after {
+  content: '';
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  background: currentColor;
+  -webkit-mask: var(--qj-certo) center / contain no-repeat;
+  mask: var(--qj-certo) center / contain no-repeat;
+}
+html[data-quest-novo='true'] .palco-jogo .carta.errou::after {
+  -webkit-mask-image: var(--qj-errado);
+  mask-image: var(--qj-errado);
+}
+
+/* ── A PAUSA E A CONFIRMAÇÃO DE SAÍDA (o `<dialog>` da casca, irmão da tela do jogo) ──────────── */
+html[data-quest-novo='true'] .rolagem:has(.palco-jogo) ~ dialog {
+  width: min(600px, calc(100% - 32px));
+}
+html[data-quest-novo='true'] .rolagem:has(.palco-jogo) ~ dialog .btn {
+  min-height: 60px;
+  font-size: 17px;
+}
+html[data-quest-novo='true'] .rolagem:has(.palco-jogo) ~ dialog .btn svg {
+  width: 22px;
+  height: 22px;
+}
+html[data-quest-novo='true'] .rolagem:has(.palco-jogo) ~ dialog .pausa h2 {
+  font-size: 26px;
+}
+html[data-quest-novo='true'] .rolagem:has(.palco-jogo) ~ dialog .dlg-cab h2 {
+  font-size: 22px;
+}
+html[data-quest-novo='true'] .rolagem:has(.palco-jogo) ~ dialog .label-mono {
+  font-size: 14px;
+}
+/* Os textos de apoio têm 12 e 13 px escritos na marcação. */
+html[data-quest-novo='true'] .rolagem:has(.palco-jogo) ~ dialog .mut {
+  font-size: 18px !important;
+  line-height: 1.4;
+}
+html[data-quest-novo='true'] .rolagem:has(.palco-jogo) ~ dialog .op-linha b {
+  font-size: 18px;
+}
+html[data-quest-novo='true'] .rolagem:has(.palco-jogo) ~ dialog .dlg-cab .x {
+  width: 48px;
+  height: 48px;
+}
+/* O interruptor dos sons: maior, e com a área de toque passando dos 48 px. */
+html[data-quest-novo='true'] .rolagem:has(.palco-jogo) ~ dialog .interruptor {
+  width: 64px;
+  height: 36px;
+}
+html[data-quest-novo='true'] .rolagem:has(.palco-jogo) ~ dialog .interruptor::before {
+  content: '';
+  position: absolute;
+  inset: -8px -4px;
+}
+html[data-quest-novo='true'] .rolagem:has(.palco-jogo) ~ dialog .interruptor span {
+  top: 4px;
+  left: 4px;
+  width: 28px;
+  height: 28px;
+}
+html[data-quest-novo='true'] .rolagem:has(.palco-jogo) ~ dialog .interruptor.on span {
+  transform: translateX(28px);
+}
+html[data-quest-novo='true'] .rolagem:has(.palco-jogo) ~ dialog :is(.btn, .x, .interruptor):focus-visible {
+  outline: 3px solid var(--q-acento);
+  outline-offset: 3px;
+}
+
+/* ── JANELA ESTREITA (o Quest deixa encolher até 500 × 495) ───────────────────────────────────── */
+@media (max-width: 720px) {
+  html[data-quest-novo='true'] .tela:has(.palco-jogo) .cab h1 {
+    font-size: 20px;
+  }
+  html[data-quest-novo='true'] .tela:has(.palco-jogo) .voltar,
+  html[data-quest-novo='true'] .tela:has(.palco-jogo) .cab-acoes .btn {
+    padding: 0 14px;
+  }
+  html[data-quest-novo='true'] .palco-jogo {
+    padding: 12px;
+  }
+  html[data-quest-novo='true'] .palco-jogo :is([data-tour='opcoes'], [data-tour='cartas']) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  html[data-quest-novo='true'] .palco-jogo [data-tour='pergunta'] {
+    font-size: 30px;
+  }
+  /* Aqui a Memória rola: doze cartas legíveis não cabem em 495 px de altura. */
+  html[data-quest-novo='true'] .palco-jogo .tabuleiro {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    max-width: 100% !important;
+  }
+  html[data-quest-novo='true'] .palco-jogo .carta {
+    font-size: 18px;
+  }
+}
+
+/* ── SEM MOVIMENTO: quem pede menos animação recebe tudo instantâneo ──────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  html[data-quest-novo='true'] .palco-jogo :is(button, .hud-progresso span, .combo),
+  html[data-quest-novo='true'] .tela:has(.palco-jogo) :is(.voltar, .cab-acoes .btn),
+  html[data-quest-novo='true'] .rolagem:has(.palco-jogo) ~ dialog :is(.btn, .interruptor, .interruptor span) {
+    transition: none;
+  }
+  html[data-quest-novo='true'] .palco-jogo button:active,
+  html[data-quest-novo='true'] .tela:has(.palco-jogo) .voltar:active {
+    transform: none;
+  }
+}

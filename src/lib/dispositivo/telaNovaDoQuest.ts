@@ -5,7 +5,12 @@
  * `/diagnostico` sem novo deploy. Se uma tela nova sair errada no aparelho, o dono desliga e a tela de
  * antes volta na hora. Só vale no perfil `quest`; computador e celular nunca passam por aqui.
  */
+import { useSyncExternalStore } from 'react';
+
+import { perfilDoDispositivo } from './perfil';
+
 export const CHAVE_DA_TELA_NOVA_DO_QUEST = 'babel.quest.telaNova';
+const EVENTO = 'babel:quest-tela-nova';
 
 export function telaNovaDoQuest(): boolean {
   try {
@@ -22,6 +27,28 @@ export function definirTelaNovaDoQuest(ligada: boolean): void {
   } catch {
     /* sem armazenamento: vale o padrão */
   }
+  marcarQuestNovoNoDocumento();
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event(EVENTO));
+}
+
+/** As telas novas valem AQUI: o aparelho é um Quest e a chave está ligada. */
+export function questNovo(): boolean {
+  return perfilDoDispositivo().tipo === 'quest' && telaNovaDoQuest();
+}
+
+/** `<html data-quest-novo>`: é o que o CSS de `styles/quest.css` lê. Chamado no boot e a cada troca da chave. */
+export function marcarQuestNovoNoDocumento(): void {
+  if (typeof document !== 'undefined') document.documentElement.dataset.questNovo = String(questNovo());
+}
+
+const assinar = (aoMudar: () => void) => {
+  window.addEventListener(EVENTO, aoMudar);
+  return () => window.removeEventListener(EVENTO, aoMudar);
+};
+
+/** `questNovo()` para componentes: desligar a chave em `/diagnostico` devolve a tela de antes na hora. */
+export function useQuestNovo(): boolean {
+  return useSyncExternalStore(assinar, questNovo, () => false);
 }
 
 /** Os passos do tamanho da legenda ao vivo (diretriz da Meta: três ou mais, de 50% a 200%). */

@@ -46,6 +46,27 @@ export function cabecalhoDoDono(): Record<string, string> {
   }
 }
 
+/**
+ * A COTA DO DIA ACABOU no meio da captura (429 `cota_do_dia` ou `cota_do_site` da função). A legenda
+ * segue feita no aparelho; a tela ao vivo só avisa, numa faixa fina que some sozinha. Volta a `false`
+ * na primeira transcrição que a nuvem aceitar.
+ */
+let cotaAcabou = false;
+const ouvintesDaCota = new Set<() => void>();
+
+export function marcarCotaDaNuvemDoQuest(acabou: boolean): void {
+  if (cotaAcabou === acabou) return;
+  cotaAcabou = acabou;
+  for (const avisar of ouvintesDaCota) avisar();
+}
+
+export const cotaDaNuvemDoQuestAcabou = (): boolean => cotaAcabou;
+
+export function aoMudarCotaDaNuvemDoQuest(avisar: () => void): () => void {
+  ouvintesDaCota.add(avisar);
+  return () => ouvintesDaCota.delete(avisar);
+}
+
 /** A tradução de nuvem do site (`functions/quest/mt.js`), para o que não veio junto com a transcrição. */
 export const ENDPOINT_DA_TRADUCAO_DO_QUEST = '/quest/mt';
 

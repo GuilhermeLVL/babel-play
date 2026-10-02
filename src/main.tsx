@@ -21,6 +21,7 @@ import { toast } from './components/Toast';
 import { ligarAvisoDeNovaVersao } from './lib/avisoDeNovaVersao';
 import { capturarTokenDoConvite } from './lib/conviteNaUrl';
 import { marcarDispositivoNoDocumento } from './lib/dispositivo/perfil';
+import { marcarQuestNovoNoDocumento } from './lib/dispositivo/telaNovaDoQuest';
 import { instalarRelatorioDeErros } from './lib/relatorioDeErros';
 import { bootTheme } from './lib/theme';
 
@@ -33,6 +34,7 @@ capturarTokenDoConvite();
 bootTheme();
 // Perfil do aparelho por capacidade (Quest, celular, desktop): `<html data-dispositivo data-modo-leve>`.
 marcarDispositivoNoDocumento();
+marcarQuestNovoNoDocumento();
 // E4 — erro de runtime do navegador deixou de morrer no console: window.onerror e
 // unhandledrejection reportam ao diário do servidor (só erro; nenhum dado do usuário).
 instalarRelatorioDeErros();

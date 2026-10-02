@@ -165,7 +165,9 @@ export default function CascaDaRodada({
               <button type="button" className="btn btn-outline peq" aria-keyshortcuts="Escape" onClick={pausar}>
                 <Pause aria-hidden /> Pausar
               </button>
-              <button type="button" className="btn btn-outline peq" onClick={onRecomecar}>
+              {/* `data-acao`: no Quest o topo fica com a saída e a pausa; recomeçar está dentro da pausa
+                  (`styles/questJogar.css`). */}
+              <button type="button" className="btn btn-outline peq" data-acao="recomecar" onClick={onRecomecar}>
                 <RotateCcw aria-hidden /> Recomeçar
               </button>
             </>
@@ -310,7 +312,8 @@ function DialogoDePausa({
               <LogOut aria-hidden /> Sair da rodada
             </button>
           </div>
-          <p className="mut" style={{ fontSize: 12, marginTop: 12 }}>
+          {/* Onde não há teclado (headset, celular) a dica de atalho some (`styles/dispositivo.css`). */}
+          <p className="mut" data-precisa="teclado" style={{ fontSize: 12, marginTop: 12 }}>
             <kbd>Esc</kbd>
             {pausaComP && (
               <>

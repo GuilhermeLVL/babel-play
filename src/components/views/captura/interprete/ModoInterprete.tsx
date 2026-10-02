@@ -71,6 +71,9 @@ function ultimaDoLado(falas: ReadonlyArray<FalaDoInterprete>, lado: LadoDoInterp
  *  · FALANDO: a metade de quem ouve mostra "Repetir" e "Parar voz".
  *  · COMPUTADOR: duas colunas lado a lado, com atalhos de teclado (1 e 2 falam, R repete, P para a
  *    voz, Esc sai).
+ *  · QUEST (maquete de 01/10/2026): as duas colunas do computador, sem atalhos (não há teclado), com a
+ *    faixa embaixo e alvos de 60 px. Sem voz de leitura no aparelho (`semVoz`), a tela diz que a
+ *    tradução é em texto, em vez de prometer leitura em voz alta, e "Repetir" não aparece.
  *  · AUTOMÁTICO (E7, o padrão de quem o tem no plano): ninguém toca em lado. Um botão só, "Ouvir a
  *    conversa", na metade de quem segura o aparelho; o app reconhece o idioma de cada fala, mostra a
  *    tradução na metade de quem ouve, lê em voz alta e volta a ouvir. O botão "Automático" da faixa
@@ -89,6 +92,7 @@ export default function ModoInterprete({
   vozNaturalDisponivel,
   velocidade,
   layout,
+  semVoz = false,
   abrindo,
   aviso,
   automatico = 'oculto',
@@ -102,7 +106,9 @@ export default function ModoInterprete({
   /** O Premium com a voz natural (entitlement `vozNatural` e flag `voz_natural`). */
   vozNaturalDisponivel: boolean;
   velocidade?: number;
-  layout: 'celular' | 'computador';
+  layout: 'celular' | 'computador' | 'quest';
+  /** O aparelho não tem voz de leitura (`recursosDoAparelho`): a conversa é só em texto. */
+  semVoz?: boolean;
   /** O microfone está abrindo (a permissão, o modelo): o botão de quem fala mostra a espera. */
   abrindo?: boolean;
   /**
@@ -240,6 +246,8 @@ export default function ModoInterprete({
   }, [layout]);
 
   const vozNatural = !!vozRef.current && vozRef.current.motorDaUltimaFala() === 'voz-da-nuvem';
+  /** Lado a lado (computador e Quest); no celular, frente a frente com a metade de cima virada. */
+  const ladoALado = layout !== 'celular';
   const computador = layout === 'computador';
 
   const metade = (lado: LadoDoInterprete) => {
@@ -258,7 +266,7 @@ export default function ModoInterprete({
       <section
         className="int-metade"
         data-lado={lado}
-        data-virada={!computador && lado === 'outro' ? true : undefined}
+        data-virada={!ladoALado && lado === 'outro' ? true : undefined}
         data-ouvindo={ouvindo || escutando || undefined}
         aria-label={t('Lado de quem fala {idioma}', { idioma: nome })}
         data-testid={`interprete-${lado}`}
@@ -280,9 +288,13 @@ export default function ModoInterprete({
             </>
           ) : (
             <p className="int-dica">
-              {noAutomatico
-                ? t('Toque em Ouvir e conversem. O app reconhece quem fala qual idioma e lê a tradução em voz alta.')
-                : t('Toque em Falar e fale. A tradução aparece do outro lado e é lida em voz alta.')}
+              {semVoz
+                ? noAutomatico
+                  ? t('Toque em Ouvir e conversem. O app reconhece quem fala qual idioma e mostra a tradução.')
+                  : t('Toque em Falar e fale. A tradução aparece do outro lado, em texto.')
+                : noAutomatico
+                  ? t('Toque em Ouvir e conversem. O app reconhece quem fala qual idioma e lê a tradução em voz alta.')
+                  : t('Toque em Falar e fale. A tradução aparece do outro lado e é lida em voz alta.')}
             </p>
           )}
         </div>
@@ -300,7 +312,7 @@ export default function ModoInterprete({
                 : ''}
         </p>
         <div className="int-acoes">
-          {(vozParaMim || (atual.fase === 'parado' && doOutro)) && (
+          {!semVoz && (vozParaMim || (atual.fase === 'parado' && doOutro)) && (
             <button
               type="button"
               className="int-ib"
@@ -361,7 +373,7 @@ export default function ModoInterprete({
               {computador && <kbd aria-hidden>{atalho}</kbd>}
             </button>
           )}
-          {vozParaMim && (
+          {!semVoz && vozParaMim && (
             <button type="button" className="int-ib" onClick={() => controle.pararVoz()} aria-label={t('Parar a voz')}>
               <VolumeX aria-hidden />
               <span>{t('Parar voz')}</span>
@@ -384,7 +396,7 @@ export default function ModoInterprete({
       data-fase={atual.fase}
       data-modo={modo}
     >
-      {computador ? metade('meu') : metade('outro')}
+      {ladoALado ? metade('meu') : metade('outro')}
       <div className="int-faixa" data-com-modo={automatico !== 'oculto' || undefined}>
         <div className="int-esq">
           <button
@@ -415,10 +427,22 @@ export default function ModoInterprete({
             className="int-voz"
             data-natural={vozNatural || undefined}
             data-testid="voz-em-uso"
-            title={vozNatural ? t('Voz natural · Premium') : t('Voz do aparelho')}
+            title={
+              semVoz
+                ? t('Tradução em texto neste aparelho')
+                : vozNatural
+                  ? t('Voz natural · Premium')
+                  : t('Voz do aparelho')
+            }
           >
-            <Volume2 aria-hidden />
-            <span className="int-voz-txt">{vozNatural ? t('Voz natural · Premium') : t('Voz do aparelho')}</span>
+            {semVoz ? <VolumeX aria-hidden /> : <Volume2 aria-hidden />}
+            <span className="int-voz-txt">
+              {semVoz
+                ? t('Tradução em texto neste aparelho')
+                : vozNatural
+                  ? t('Voz natural · Premium')
+                  : t('Voz do aparelho')}
+            </span>
           </span>
           <span className="int-aviso" role="status" data-testid="aviso-do-interprete">
             {avisoDaTela ?? aviso ?? ''}
@@ -428,7 +452,7 @@ export default function ModoInterprete({
           <X aria-hidden />
         </button>
       </div>
-      {computador ? metade('outro') : metade('meu')}
+      {ladoALado ? metade('outro') : metade('meu')}
     </div>
   );
 }

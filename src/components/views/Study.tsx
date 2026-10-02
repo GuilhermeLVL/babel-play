@@ -1,4 +1,5 @@
 import '../../styles/cartoes.css';
+import '../../styles/questBiblioteca.css';
 
 import { countDue, ganhoDaNota, ganhoDaRevisao, type Grade, isDueNow, makeFsrs5 } from '@core';
 import {
@@ -29,7 +30,9 @@ import {
   salvarRodada,
   updateCard,
 } from '../../data/api';
+import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { ActiveProductionExercise, similarityPercentage, stabilityThreshold } from '../../lib/exercicios';
+import { t } from '../../lib/i18n';
 import { ganho } from '../../lib/juice';
 import { classesDaPalavra } from '../../lib/pelesDeCartao';
 import { type AgeProfileType, copyDoPerfil, showsPowerUserAffordances } from '../../lib/profile';
@@ -158,6 +161,8 @@ export default function Study({
   onSeedConsumed,
   ageProfile = 'pro',
 }: StudyProps = {}) {
+  /** Quest com as telas novas (maquete de 01/10/2026, tela 8): o mesmo cartão, só que lido de longe. */
+  const questNovo = useQuestNovo();
   const [vocabCards, setVocabCards] = useState<VocabCard[]>([]);
   /**
    * O deck é ASSÍNCRONO (vem do servidor). Sem esta flag, uma semente `review` chegando junto com a
@@ -289,7 +294,10 @@ export default function Study({
       // Offline/erro: não inventamos um agendamento novo. O cartão fica como está.
     }
     if (antes)
-      setHistorico((h) => [...h, { card: antes, antes: estadoDoCartao(antes), indice, xp, nota: effectiveRating, aceita }]);
+      setHistorico((h) => [
+        ...h,
+        { card: antes, antes: estadoDoCartao(antes), indice, xp, nota: effectiveRating, aceita },
+      ]);
 
     /* PELO MESMO FUNIL DOS JOGOS (auditoria de 2026-09-07, achado A53): uma revisão vira uma rodada
        de um item em `/rodada`, com `roundId` — uma porta só para o mesmo dado. */
@@ -875,11 +883,17 @@ export default function Study({
     </div>
   );
 
+  /* A frase só diz de onde veio quando a palavra saiu DESTA sessão gravada (maquete do Quest). */
+  const origemDaFrase =
+    questNovo && recording && currentCard.sourceSessionId === recording.id ? (
+      <span className="rev-origem"> · {recording.title}</span>
+    ) : null;
+
   return (
-    <Tela largura="larga">
+    <Tela largura="larga" className="rev-rodada">
       <CabecalhoDeTela
         voltar={{ rotulo: 'Vocabulário', aoClicar: voltarAoVocabulario }}
-        sobrancelha={`Revisão · ${currentReviewIndex + 1} de ${reviewCards.length}`}
+        sobrancelha={questNovo ? t('Revisão de hoje') : `Revisão · ${currentReviewIndex + 1} de ${reviewCards.length}`}
         icone={Target}
         titulo={isActiveProductionOnly ? copyDoPerfil('ex.active_production', ageProfile) : tituloDaRevisao}
         sub="Tente lembrar a tradução antes de mostrar a resposta. Depois diga o quanto foi fácil."
@@ -915,6 +929,11 @@ export default function Study({
             >
               <span style={{ width: `${(currentReviewIndex / reviewCards.length) * 100}%` }} />
             </div>
+            {questNovo && (
+              <span className="rev-conta">
+                {currentReviewIndex + 1} / {reviewCards.length}
+              </span>
+            )}
           </>
         }
       />
@@ -946,7 +965,11 @@ export default function Study({
             <div className="termo" style={{ marginTop: 14 }}>
               {currentCard.word}
             </div>
-            {currentCard.sentence && <p className="exemplo">“{currentCard.sentence}”</p>}
+            {currentCard.sentence && (
+              <p className="exemplo">
+                “{currentCard.sentence}”{origemDaFrase}
+              </p>
+            )}
             {!typingVerified ? (
               <div className="resp" style={{ border: 0, paddingTop: 0 }}>
                 <label className="sr" htmlFor="rev-digitar">
@@ -1038,7 +1061,11 @@ export default function Study({
             <div className="termo" style={{ marginTop: 14 }}>
               {currentCard.word}
             </div>
-            {currentCard.sentence && <p className="exemplo">“{currentCard.sentence}”</p>}
+            {currentCard.sentence && (
+              <p className="exemplo">
+                “{currentCard.sentence}”{origemDaFrase}
+              </p>
+            )}
             {showAnswer ? (
               <div className="resp">
                 <b>{currentCard.translation || '—'}</b>
@@ -1058,7 +1085,7 @@ export default function Study({
                       >
                         {rotulo}
                         <small>{intervaloDaNota(currentCard, nota, agora, retencao)}</small>
-                        <kbd>{nota}</kbd>
+                        <kbd data-precisa="teclado">{nota}</kbd>
                       </button>
                     ))}
                   </div>
@@ -1078,7 +1105,7 @@ export default function Study({
                 <button type="button" className="btn btn-solid" style={{ minWidth: 220 }} onClick={mostrarResposta}>
                   <Eye aria-hidden /> Mostrar resposta
                 </button>
-                <p className="mut" style={{ fontSize: 12, marginTop: 10 }}>
+                <p className="mut" style={{ fontSize: 12, marginTop: 10 }} data-precisa="teclado">
                   ou aperte <kbd>Espaço</kbd>
                 </p>
               </div>
@@ -1094,9 +1121,14 @@ export default function Study({
           disabled={!historico.length}
           onClick={() => void desfazer()}
         >
-          <Undo2 aria-hidden /> Desfazer <kbd>Z</kbd>
+          <Undo2 aria-hidden /> Desfazer <kbd data-precisa="teclado">Z</kbd>
         </button>
-        <button type="button" className="btn btn-outline peq" onClick={() => playWordTTS(currentCard.word)}>
+        <button
+          type="button"
+          className="btn btn-outline peq"
+          data-precisa="voz"
+          onClick={() => playWordTTS(currentCard.word)}
+        >
           <Volume2 aria-hidden /> Ouvir
         </button>
         <button type="button" className="btn btn-outline peq" onClick={() => setEditando(currentCard)}>

@@ -24,7 +24,8 @@ const api = vi.hoisted(() => ({
   atualizar: null as unknown as Fn,
   apagar: null as unknown as Fn,
 }))
-const aparelho = vi.hoisted(() => ({ vozes: new Set<string>(['en']) }))
+/** O aparelho do teste: o headset (o padrão desta suíte) ou o computador com o desenho novo ligado. */
+const aparelho = vi.hoisted(() => ({ vozes: new Set<string>(['en']), quest: true }))
 const anki = vi.hoisted(() => ({ baralhos: [] as unknown[] }))
 const avisos = vi.hoisted(() => ({ ok: null as unknown as Fn, aviso: null as unknown as Fn }))
 
@@ -32,6 +33,13 @@ vi.mock('../src/lib/dispositivo/telaNovaDoQuest', async (orig) => ({
   ...(await orig<typeof import('../src/lib/dispositivo/telaNovaDoQuest')>()),
   useQuestNovo: () => true,
 }))
+vi.mock('../src/lib/dispositivo/perfil', async (orig) => {
+  const m = await orig<typeof import('../src/lib/dispositivo/perfil')>()
+  return {
+    ...m,
+    perfilDoDispositivo: () => ({ ...m.perfilDoDispositivo(), tipo: aparelho.quest ? 'quest' : 'desktop-com-gpu' }),
+  }
+})
 vi.mock('../src/lib/voz/haVoz', () => ({
   haVozPara: (idioma: string) => aparelho.vozes.has((idioma || '').toLowerCase().split('-')[0]),
 }))
@@ -181,6 +189,7 @@ beforeEach(() => {
   api.erroNoCatalogo = false
   api.cursor = null
   aparelho.vozes = new Set(['en'])
+  aparelho.quest = true
   anki.baralhos = []
   api.atualizar.mockClear()
   api.apagar.mockClear()
@@ -583,5 +592,28 @@ describe('Vocabulário no Quest', () => {
     await tocar(botao(/^Mais$/))
     expect(screen.getAllByRole('tab')).toHaveLength(4)
     expect(screen.queryByRole('button', { name: /^Mais$/ })).toBeNull()
+  })
+})
+
+/* O MESMO DESENHO NO COMPUTADOR (02/10/2026): o que era limite do headset volta. */
+describe('Vocabulário no computador com o desenho novo', () => {
+  beforeEach(() => {
+    aparelho.quest = false
+  })
+
+  it('a tela é a do desenho novo, e "Trazer do Anki" convida a SOLTAR o arquivo (há mouse)', async () => {
+    const { container, palco, botao, tocar } = await montar()
+    expect(palco()).toBeTruthy()
+    await tocar(botao(/Trazer do Anki/))
+    expect(container.querySelector('.tela.qv-anki')).toBeTruthy()
+    expect(container.textContent).toContain('Solte o arquivo aqui')
+    expect(container.textContent).not.toContain('Toque para escolher o arquivo')
+  })
+
+  it('editar a palavra: o campo da tradução pega o foco sozinho', async () => {
+    const { linhas, tocar } = await montar()
+    await tocar(linhas()[0])
+    await tocar(within(screen.getByRole('dialog')).getByRole('button', { name: /^Editar$/ }))
+    expect(document.activeElement?.id).toBe('pw-t')
   })
 })

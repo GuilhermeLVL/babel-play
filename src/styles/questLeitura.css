@@ -87,6 +87,15 @@ html[data-quest-novo='true'] :is(.ql-frase, .ql-nota) .q-tag svg {
   width: 15px;
   height: 15px;
 }
+/* NO COMPUTADOR (com o mouse) cada palavra é um alvo dentro da frase: um clique abre a folha dela, como
+   na tela de sempre. No headset a classe não existe: a frase inteira é o alvo. */
+html[data-quest-novo='true'] .ql-palavra {
+  cursor: pointer;
+  transition: background-color var(--q-cor);
+}
+html[data-quest-novo='true'] .ql-palavra:hover {
+  background-color: color-mix(in srgb, var(--q-acento) 22%, transparent);
+}
 /* Lado a lado: o original à esquerda, a tradução à direita, na mesma linha. */
 html[data-quest-novo='true'] .ql-texto.lado-a-lado .ql-frase {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);

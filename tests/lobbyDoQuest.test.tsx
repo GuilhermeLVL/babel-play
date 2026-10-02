@@ -8,6 +8,13 @@ import { Target } from 'lucide-react'
 import React from 'react'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
+/** O aparelho do teste: o headset, ou o computador com o MESMO desenho (02/10/2026). */
+const aparelho = vi.hoisted(() => ({ tipo: 'quest' as 'quest' | 'desktop-com-gpu' }))
+vi.mock('../src/lib/dispositivo/perfil', async (orig) => {
+  const real = await orig<typeof import('../src/lib/dispositivo/perfil')>()
+  return { ...real, perfilDoDispositivo: () => ({ ...real.perfilDoDispositivo(), tipo: aparelho.tipo }) }
+})
+
 import { JOGOS } from '../src/components/views/play/jogos'
 import { PARES_DA_MEMORIA_NO_QUEST, rodadaParaOQuest } from '../src/components/views/play/quest/jogosNoQuest'
 import LobbyDoQuest from '../src/components/views/play/quest/LobbyDoQuest'
@@ -61,9 +68,65 @@ const montar = (jogos = comGravacao, extra: Partial<React.ComponentProps<typeof 
   return { container, cartoes, cartao, aoJogar, aoVerTelaCompleta }
 }
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  aparelho.tipo = 'quest'
+})
+
+/* ── O MESMO DESENHO NO COMPUTADOR: o que é do aparelho (a frase, o jeito de jogar) não vem junto ── */
+describe('LobbyDoQuest no computador com o desenho novo', () => {
+  /** O computador: voz do navegador, teclado físico; o reconhecimento de fala depende do navegador. */
+  const PC = { vozDeLeitura: true, reconhecimentoDoNavegador: true, tecladoFisico: true }
+  const noPc = (extra: Partial<React.ComponentProps<typeof LobbyDoQuest>> = {}) => {
+    aparelho.tipo = 'desktop-com-gpu'
+    return montar(comGravacao, { recursos: PC, voz: undefined, ...extra })
+  }
+
+  it('as etiquetas dizem "Clicar" e "Digitar"; nenhum jogo de digitar vira "Pede teclado"', () => {
+    const { cartao, container } = noPc()
+    expect(cartao('memory').querySelector('.q-tag')?.textContent).toBe('Clicar')
+    expect(cartao('ditado').querySelector('.q-tag')?.textContent).toBe('Áudio da sessão')
+    expect(cartao('karaoke').querySelector('.q-tag')?.textContent).toBe('Áudio da sessão')
+    expect(container.textContent).not.toMatch(/Pede teclado|Apontar|headset/i)
+  })
+
+  it('navegador sem reconhecimento de fala: o Karaokê abre sem nota, e o motivo é do navegador', () => {
+    const { cartao } = noPc({ recursos: { ...PC, reconhecimentoDoNavegador: false } })
+    expect(cartao('karaoke').disabled).toBe(false)
+    expect(cartao('karaoke').textContent).toContain('Este navegador não dá nota de pronúncia')
+  })
+
+  it('Opções fala em clique e no "lobby de antes", sem falar no computador como outro aparelho', () => {
+    noPc({ previa: true, aoTrocarPrevia: () => {} })
+    fireEvent.click(screen.getByRole('button', { name: 'Opções' }))
+    const opcoes = screen.getByRole('dialog').textContent ?? ''
+    expect(opcoes).toContain('o clique já começa o jogo')
+    expect(opcoes).toContain('O lobby de antes do desenho novo, só nesta visita.')
+    expect(opcoes).not.toMatch(/lobby do computador|o toque/)
+  })
+
+  it('as abas andam pelas setas do teclado, como as da tela de sempre', () => {
+    const aoTrocarCategoria = vi.fn()
+    noPc({ aoTrocarCategoria, categoria: 'todos', contagens: { todos: 6, classicos: 3, favoritos: 0 } })
+    const aba = (nome: RegExp) => screen.getByRole('tab', { name: nome })
+    fireEvent.keyDown(aba(/Todos/), { key: 'ArrowRight' })
+    expect(aoTrocarCategoria).toHaveBeenLastCalledWith('classicos')
+    fireEvent.keyDown(aba(/Todos/), { key: 'ArrowLeft' })
+    expect(aoTrocarCategoria).toHaveBeenLastCalledWith('favoritos')
+    fireEvent.keyDown(aba(/Favoritos/), { key: 'Home' })
+    expect(aoTrocarCategoria).toHaveBeenLastCalledWith('todos')
+  })
+})
 
 describe('LobbyDoQuest', () => {
+  it('no headset, Opções fala em toque e no lobby do computador', () => {
+    montar(comGravacao, { previa: true, aoTrocarPrevia: () => {} })
+    fireEvent.click(screen.getByRole('button', { name: 'Opções' }))
+    const opcoes = screen.getByRole('dialog').textContent ?? ''
+    expect(opcoes).toContain('o toque já começa o jogo')
+    expect(opcoes).toContain('O lobby do computador, só nesta visita.')
+  })
+
   it('sem preferência do usuário: o que se joga apontando, depois o áudio, o teclado e, no fim, o que não abre', () => {
     const { cartoes } = montar()
     expect(cartoes.map((c) => c.dataset.jogo)).toEqual(['memory', 'blitz', 'karaoke', 'escuta', 'ditado', 'wordsearch'])

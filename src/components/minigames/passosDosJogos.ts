@@ -103,6 +103,8 @@ export const PASSOS_DOS_JOGOS: Record<MinigameId, PassoTour[]> = {
       texto: 'Toque aqui e repita a frase em voz alta.',
       // No headset não há nota de voz: o alvo é o aviso que diz o que fazer (`KaraokeGame.tsx`).
       textoNoQuest: 'Aqui não há nota de voz: ouça, repita em voz alta e siga para a próxima.',
+      // A frase é neutra e o motivo é o reconhecimento de fala: vale também no navegador que não o tem.
+      tambemSemReconhecimento: true,
       gesto: 'clique',
     },
   ],

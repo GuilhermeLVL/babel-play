@@ -11,7 +11,7 @@ import { multiplicador, pontosDoElemento } from '../../lib/juice';
 import type { AgeProfileType } from '../../lib/profile';
 import { useRodada } from './casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda } from './casca/HudDaRodada';
-import { SemVozNoQuest, useQuestNovo, useVozNoJogo, VereditoNoQuest } from './noQuest';
+import { SemVozNoQuest, useQuestNovo, useSemTecladoFisico, useVozNoJogo, VereditoNoQuest } from './noQuest';
 
 /**
  * DITADO — ouvir e escrever o que foi dito.
@@ -64,8 +64,10 @@ export default function DitadoGame({ rodadas, audioUrl, ageProfile, onFinish }: 
 
   /* NO QUEST o som é o clipe da gravação ou, sem ela, a voz do site, que só lê alguns idiomas. Sem
      nenhum dos dois o botão de ouvir não aparece, e a fala é escrita a partir da tradução. O campo
-     também não rouba o foco: o teclado do sistema sobe quando a pessoa toca nele. */
+     também não rouba o foco: o teclado do sistema sobe quando a pessoa toca nele. No computador com o
+     desenho novo há teclado físico: o campo ganha o foco como sempre ganhou. */
   const questNovo = useQuestNovo();
+  const semTeclado = useSemTecladoFisico();
   const haVoz = useVozNoJogo(rodada?.fala.lang);
   const temSom = !!audioUrl || haVoz;
 
@@ -104,7 +106,7 @@ export default function DitadoGame({ rodadas, audioUrl, ageProfile, onFinish }: 
     if (rodada && ativo && tocouRef.current !== indice) {
       tocouRef.current = indice;
       ouvir(1);
-      if (!questNovo) entradaRef.current?.focus();
+      if (!semTeclado) entradaRef.current?.focus();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [indice, ativo]);
@@ -197,7 +199,7 @@ export default function DitadoGame({ rodadas, audioUrl, ageProfile, onFinish }: 
     setSequencia(0);
     setTexto(juntarPalavras([...escritas, alvo[jaEscritas]], lang));
     pontosDoElemento(`palavra ${jaEscritas + 1}`, el, 'neutro');
-    if (!questNovo) entradaRef.current?.focus();
+    if (!semTeclado) entradaRef.current?.focus();
   };
 
   if (!rodada) return null;
@@ -300,7 +302,8 @@ export default function DitadoGame({ rodadas, audioUrl, ageProfile, onFinish }: 
           </button>
         </div>
 
-        {questNovo && !conferido && <p data-qp="apoio">{t('Toque no campo para abrir o teclado do headset.')}</p>}
+        {/* Só onde quem escreve é o teclado do sistema: com teclado físico o campo já está com o foco. */}
+        {semTeclado && !conferido && <p data-qp="apoio">{t('Toque no campo para abrir o teclado do headset.')}</p>}
 
         {/* A CORREÇÃO PALAVRA A PALAVRA — o que o exercício antigo não fazia e que é o que ensina. */}
         {conferido && (

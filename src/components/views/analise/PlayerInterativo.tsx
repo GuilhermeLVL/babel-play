@@ -24,7 +24,7 @@ import { type Dispatch, type ReactNode, type RefObject, type SetStateAction, use
 
 import { formatSeconds } from '../../../lib/analise/playerDaSessao';
 import type { FalaDaAnalise } from '../../../lib/analise/tiposDaAnalise';
-import { useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
+import { noHeadset, useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
 import { t } from '../../../lib/i18n';
 import { mediaErrorMessage } from '../../../lib/mediaErrors';
 import { Recording } from '../../../types';
@@ -166,9 +166,14 @@ export default function PlayerInterativo(props: PropsDoPlayerInterativo) {
       return (
         <section className="q-aviso qs-player-sem-voz" aria-label={t('Player')} role="note">
           <span>
-            {t(
-              'Esta sessão não tem áudio gravado, e não há voz de leitura neste aparelho para o idioma dela. A voz do site lê inglês, espanhol, francês, chinês, japonês e coreano, com a IA de nuvem ligada em Ajustes.',
-            )}
+            {/* A voz do site é a saída do HEADSET; no computador a voz é a do sistema. */}
+            {noHeadset()
+              ? t(
+                  'Esta sessão não tem áudio gravado, e não há voz de leitura neste aparelho para o idioma dela. A voz do site lê inglês, espanhol, francês, chinês, japonês e coreano, com a IA de nuvem ligada em Ajustes.',
+                )
+              : t(
+                  'Esta sessão não tem áudio gravado, e este navegador não tem voz de leitura para o idioma dela. Instale uma voz para o idioma nas configurações do sistema (no Windows: Hora e Idioma → Voz).',
+                )}
           </span>
         </section>
       );

@@ -23,7 +23,8 @@ const api = vi.hoisted(() => ({
   atualizar: null as unknown as ReturnType<(typeof import('vitest'))['vi']['fn']>,
   rodada: null as unknown as ReturnType<(typeof import('vitest'))['vi']['fn']>,
 }))
-const aparelho = vi.hoisted(() => ({ vozes: new Set<string>(['en']) }))
+/** O aparelho do teste: o headset (o padrão desta suíte) ou o computador com o desenho novo ligado. */
+const aparelho = vi.hoisted(() => ({ vozes: new Set<string>(['en']), quest: true }))
 const avisos = vi.hoisted(() => ({
   ok: null as unknown as ReturnType<(typeof import('vitest'))['vi']['fn']>,
   erro: null as unknown as ReturnType<(typeof import('vitest'))['vi']['fn']>,
@@ -34,6 +35,13 @@ vi.mock('../src/lib/dispositivo/telaNovaDoQuest', async (orig) => ({
   ...(await orig<typeof import('../src/lib/dispositivo/telaNovaDoQuest')>()),
   useQuestNovo: () => true,
 }))
+vi.mock('../src/lib/dispositivo/perfil', async (orig) => {
+  const m = await orig<typeof import('../src/lib/dispositivo/perfil')>()
+  return {
+    ...m,
+    perfilDoDispositivo: () => ({ ...m.perfilDoDispositivo(), tipo: aparelho.quest ? 'quest' : 'desktop-com-gpu' }),
+  }
+})
 vi.mock('../src/lib/voz/haVoz', () => ({
   haVozPara: (idioma: string) => aparelho.vozes.has((idioma || '').toLowerCase().split('-')[0]),
 }))
@@ -131,6 +139,7 @@ beforeEach(() => {
   api.pendente = false
   api.deck = tres()
   aparelho.vozes = new Set(['en'])
+  aparelho.quest = true
   api.revisar.mockClear()
   api.desfazer.mockClear()
   api.atualizar.mockClear()
@@ -501,5 +510,66 @@ describe('Revisão no Quest', () => {
     await tocar(botao(/Desfazer a última/))
     expect(api.desfazer).toHaveBeenCalledTimes(1)
     expect(palco().dataset.estado).toBe('rodada')
+  })
+})
+
+/* O MESMO DESENHO NO COMPUTADOR (02/10/2026): o que era limite do headset (sem teclado físico) volta. */
+describe('Revisão no computador com o desenho novo', () => {
+  beforeEach(() => {
+    aparelho.quest = false
+  })
+
+  it('as teclas aparecem (Espaço, 1 a 4, Z) e funcionam: Espaço mostra a resposta, 3 dá "Bom", Z desfaz', async () => {
+    const { palco, container } = await montar()
+    expect(palco().dataset.estado).toBe('rodada')
+    expect(container.querySelector('.qr-atalho')?.textContent).toMatch(/ou aperte\s*Espaço/)
+    const desfazer = () =>
+      within(screen.getByRole('toolbar', { name: 'Ações do cartão' })).getByRole('button', { name: /Desfazer/ })
+    expect(desfazer().querySelector('kbd')?.textContent).toBe('Z')
+
+    fireEvent.keyDown(window, { key: ' ', code: 'Space' })
+    await act(async () => {})
+    const notas = [...container.querySelectorAll<HTMLButtonElement>('.fsrs button')]
+    expect(notas.map((n) => n.querySelector('kbd')?.textContent)).toEqual(['1', '2', '3', '4'])
+    // As teclas são dica, não conteúdo: só existem onde o CSS as mostra (`data-precisa="teclado"`).
+    expect([...container.querySelectorAll('kbd')].every((k) => k.closest('[data-precisa="teclado"]'))).toBe(true)
+
+    fireEvent.keyDown(window, { key: '3' })
+    await act(async () => {})
+    expect(api.revisar).toHaveBeenCalledWith(expect.any(String), 3, 0.9)
+    expect(container.querySelector('.qr-conta')?.textContent?.replace(/\s+/g, ' ').trim()).toBe('2 / 3')
+
+    fireEvent.keyDown(window, { key: 'z' })
+    await act(async () => {})
+    expect(api.desfazer).toHaveBeenCalledTimes(1)
+    expect(container.querySelector('.qr-conta')?.textContent?.replace(/\s+/g, ' ').trim()).toBe('1 / 3')
+  })
+
+  it('Digitar: o campo pega o foco sozinho e convida a digitar; Enter confere', async () => {
+    localStorage.setItem('revisao.tipoDeCartao', 'digitar')
+    api.deck = [cartao('c1', 'cat', 'gato')]
+    const { palco } = await montar()
+    const campo = screen.getByLabelText('Digite a tradução') as HTMLInputElement
+    expect(document.activeElement).toBe(campo)
+    expect(campo.placeholder).toBe('Digite a tradução…')
+    fireEvent.change(campo, { target: { value: 'gato' } })
+    fireEvent.keyDown(campo, { key: 'Enter' })
+    await act(async () => {})
+    expect(palco().querySelector('.qr-veredito.certo')).toBeTruthy()
+  })
+
+  it('Editar cartão: o campo da tradução pega o foco, como na tela de sempre', async () => {
+    const { botao, tocar } = await montar()
+    await tocar(botao(/Editar cartão/))
+    expect(document.activeElement?.id).toBe('pw-t')
+  })
+
+  it('fim da rodada: o desfazer mostra a tecla Z', async () => {
+    api.deck = [cartao('c1', 'cat', 'gato')]
+    const { palco, container, botao, tocar } = await montar()
+    await tocar(botao(/Mostrar resposta/))
+    await tocar(container.querySelector('.fsrs button.b') as HTMLElement)
+    expect(palco().dataset.estado).toBe('fim')
+    expect(botao(/Desfazer a última/).querySelector('kbd')?.textContent).toBe('Z')
   })
 })

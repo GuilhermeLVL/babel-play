@@ -3,7 +3,9 @@ import '../../styles/questJogarTelas.css';
 import { ArrowRight, Hand, Keyboard, MousePointerClick, X } from 'lucide-react';
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
-import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
+import { perfilDoDispositivo } from '../../lib/dispositivo/perfil';
+import { recursosDoAparelho } from '../../lib/dispositivo/recursos';
+import { noHeadset, useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { t } from '../../lib/i18n';
 
 /**
@@ -38,6 +40,11 @@ export interface PassoTour {
    * primeira letra e depois na última; não há nota de voz). O gesto animado vira o toque.
    */
   textoNoQuest?: string;
+  /**
+   * A frase do headset também vale onde o navegador não reconhece fala (o passo do Karaokê: sem nota de
+   * voz no computador com o desenho novo, o alvo é o mesmo aviso). Só faz sentido com frase neutra.
+   */
+  tambemSemReconhecimento?: boolean;
   /** O gesto a animar sobre o alvo. */
   gesto?: 'clique' | 'arraste' | 'digite';
   /** Passo que só faz sentido em algumas telas — some sem avisar quando o alvo não existe. */
@@ -150,8 +157,17 @@ export default function TourGuiado({ passos, titulo, onFim }: TourGuiadoProps) {
     Math.min(window.innerWidth - larguraCartao - 12, caixa.left + caixa.width / 2 - larguraCartao / 2),
   );
 
+  /* A FRASE DO HEADSET É DO APARELHO, não do desenho: no computador com o desenho novo o Caça-palavras
+     continua de arrasto, e vale a frase de sempre. A exceção é o passo que fala do reconhecimento de
+     fala, que também falta em alguns navegadores de computador. */
+  const fraseDoHeadset =
+    questNovo &&
+    !!passo.textoNoQuest &&
+    (noHeadset() ||
+      (!!passo.tambemSemReconhecimento && !recursosDoAparelho(perfilDoDispositivo()).reconhecimentoDoNavegador));
+  const texto = fraseDoHeadset ? (passo.textoNoQuest ?? passo.texto) : passo.texto;
   /* No headset o passo com frase própria é sempre um toque (o arrasto não existe ali). */
-  const gesto = questNovo && passo.textoNoQuest ? 'clique' : passo.gesto;
+  const gesto = fraseDoHeadset ? 'clique' : passo.gesto;
   const Gesto = gesto === 'arraste' ? Hand : gesto === 'digite' ? Keyboard : MousePointerClick;
 
   return (
@@ -194,7 +210,7 @@ export default function TourGuiado({ passos, titulo, onFim }: TourGuiadoProps) {
           style={{ top: topoCartao, left: esquerdaCartao, width: larguraCartao }}
         >
           <p className="q-rotulo">{t('Passo {n} de {total}', { n: i + 1, total: passos.length })}</p>
-          <p className="q-texto">{t(passo.textoNoQuest ?? passo.texto)}</p>
+          <p className="q-texto">{t(texto)}</p>
           <div className="qj-tour-pe">
             <button type="button" className="q-ctl" onClick={onFim}>
               {t('Pular a explicação')}

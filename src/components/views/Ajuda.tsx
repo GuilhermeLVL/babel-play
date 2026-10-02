@@ -2,6 +2,8 @@ import { BookOpen, Cpu, Github, Keyboard, LifeBuoy, Mail, MessageCircle, Mic, Se
 import React, { useEffect, useMemo, useState } from 'react';
 
 import { CRIADOR, preenchido } from '../../lib/criador';
+import { perfilDoDispositivo } from '../../lib/dispositivo/perfil';
+import { recursosDoAparelho } from '../../lib/dispositivo/recursos';
 import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import GuidePanel from '../GuidePanel';
@@ -52,6 +54,12 @@ type Status = 'verificando' | 'ok' | 'problema';
 
 export default function Ajuda() {
   const questNovo = useQuestNovo();
+  /* O APARELHO tem teclado físico? No computador com o desenho novo os atalhos existem e a tela os
+     mostra, como a de sempre; no headset a lista não ocupa a tela (fica atrás de "Ver todos"). */
+  const [temTeclado] = useState(() => recursosDoAparelho(perfilDoDispositivo()).tecladoFisico);
+  /* No desenho novo do computador o menu é o trilho, que não recolhe: o Ctrl+B do menu lateral de
+     sempre não existe ali, e a lista não promete um atalho que não faz nada. */
+  const atalhos = questNovo && temTeclado ? ATALHOS.filter(([teclas]) => teclas.join('+') !== 'Ctrl+B') : ATALHOS;
   const [guiaAberto, setGuiaAberto] = useState(false);
   const [atalhosAbertos, setAtalhosAbertos] = useState(false);
   const [busca, setBusca] = useState('');
@@ -94,7 +102,7 @@ export default function Ajuda() {
           aoFechar={() => setAtalhosAbertos(false)}
         >
           <div className="dlg-corpo">
-            {ATALHOS.map(([teclas, desc]) => (
+            {atalhos.map(([teclas, desc]) => (
               <LinhaDeAtalho key={desc} teclas={teclas} desc={desc} />
             ))}
           </div>
@@ -120,6 +128,12 @@ export default function Ajuda() {
           estado={semServidor ? null : status}
           aoAbrirGuia={() => setGuiaAberto(true)}
           aoAbrirAtalhos={() => setAtalhosAbertos(true)}
+          /* Com teclado físico, os primeiros atalhos ficam à vista, como na tela de sempre. */
+          atalhosAVista={
+            temTeclado
+              ? atalhos.slice(0, 4).map(([teclas, desc]) => <LinhaDeAtalho key={desc} teclas={teclas} desc={desc} />)
+              : undefined
+          }
         />
         {dialogos}
       </>

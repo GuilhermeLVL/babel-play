@@ -12,7 +12,7 @@ import { play } from '../../../lib/soundFx';
 import AvisoDaJogada from '../casca/AvisoDaJogada';
 import { useRodada } from '../casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from '../casca/HudDaRodada';
-import { falarNoJogo as falar, useQuestNovo } from '../noQuest';
+import { falarNoJogo as falar, useQuestNovo, useSemTecladoFisico } from '../noQuest';
 
 /**
  * TÊNIS — o rali cronometrado. A bola traz a PISTA, você devolve escrevendo a palavra, e cada
@@ -49,8 +49,11 @@ export default function TenseTennisGame({ items, ageProfile, onFinish, onExit }:
   const questNovo = useQuestNovo();
   /* O RELÓGIO NO HEADSET: apontar letra por letra com o controle leva várias vezes o tempo de um teclado
      físico, e os 6 s do saque não dariam nem para a primeira palavra. O saque triplica ali (18 s no
-     perfil padrão, com piso de 9 s no rali); a regra do rali, que encurta a cada devolução, é a mesma. */
-  const base = SAQUE[ageProfile] * (questNovo ? SAQUE_NO_QUEST : 1);
+     perfil padrão, com piso de 9 s no rali); a regra do rali, que encurta a cada devolução, é a mesma.
+     É do APARELHO, não do desenho: no computador com o desenho novo há teclado físico e o saque é o de
+     sempre. */
+  const semTeclado = useSemTecladoFisico();
+  const base = SAQUE[ageProfile] * (semTeclado ? SAQUE_NO_QUEST : 1);
 
   const [indice, setIndice] = useState(0);
   const [rali, setRali] = useState(0);
@@ -255,7 +258,7 @@ export default function TenseTennisGame({ items, ageProfile, onFinish, onExit }:
           </button>
         </div>
 
-        {questNovo && !aviso && <p data-qp="apoio">{t('Toque no campo para abrir o teclado do headset.')}</p>}
+        {semTeclado && !aviso && <p data-qp="apoio">{t('Toque no campo para abrir o teclado do headset.')}</p>}
 
         {aviso && <AvisoDaJogada tom={aviso.tom} rotulo={aviso.rotulo} resposta={aviso.resposta} lang={item?.lang} />}
       </div>

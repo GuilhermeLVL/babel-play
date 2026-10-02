@@ -10,7 +10,7 @@ import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
 import { useRodada } from '../casca/CascaDaRodada';
 import HudDaRodada, { usePlacarDaRodada } from '../casca/HudDaRodada';
-import { falarNoJogo as falar, useQuestNovo, useVozNoJogo } from '../noQuest';
+import { falarNoJogo as falar, useQuestNovo, useSemTecladoFisico, useVozNoJogo } from '../noQuest';
 
 /**
  * CADAVRE EXQUIS — quatro palavras da leva, UMA frase sua que use as quatro.
@@ -48,6 +48,7 @@ export default function CadavreExquisGame({ items, ageProfile, onFinish, onExit 
      botões de ouvir só aparecem com voz para o idioma do baralho, e a palavra que ficou de fora da
      frase ganha um ícone além da cor. */
   const questNovo = useQuestNovo();
+  const semTeclado = useSemTecladoFisico();
   const haVoz = useVozNoJogo(leva[0]?.lang);
 
   const inicioRef = useRef(Date.now());
@@ -185,7 +186,7 @@ export default function CadavreExquisGame({ items, ageProfile, onFinish, onExit 
               aria-label="Sua frase"
               className="w-full p-4 rounded-2xl border-2 border-border-subtle bg-surface text-ink text-[16px] focus:border-accent focus:outline-none"
             />
-            {questNovo && <p data-qp="apoio">{t('Toque no campo para abrir o teclado do headset.')}</p>}
+            {semTeclado && <p data-qp="apoio">{t('Toque no campo para abrir o teclado do headset.')}</p>}
             <button
               data-qp="acao-pri"
               onClick={conferir}

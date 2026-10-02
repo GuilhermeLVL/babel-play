@@ -26,10 +26,20 @@ const palco = vi.hoisted(() => ({
   salvar: null as unknown as ReturnType<(typeof import('vitest'))['vi']['fn']>,
 }))
 
+/** O aparelho do teste: o headset (o padrão desta suíte) ou o computador com o desenho novo ligado. */
+const aparelho = vi.hoisted(() => ({ quest: true }))
+
 vi.mock('../src/lib/dispositivo/telaNovaDoQuest', async (orig) => ({
   ...(await orig<typeof import('../src/lib/dispositivo/telaNovaDoQuest')>()),
   useQuestNovo: () => true,
 }))
+vi.mock('../src/lib/dispositivo/perfil', async (orig) => {
+  const m = await orig<typeof import('../src/lib/dispositivo/perfil')>()
+  return {
+    ...m,
+    perfilDoDispositivo: () => ({ ...m.perfilDoDispositivo(), tipo: aparelho.quest ? 'quest' : 'desktop-com-gpu' }),
+  }
+})
 vi.mock('../src/data/api', async (orig) => {
   palco.salvar = vi.fn(async (id: string, corpo: { sourceText: string; translatedText: string }) => ({ id, ...corpo }))
   return {
@@ -190,6 +200,7 @@ const folha = () => {
 
 let tocar: ReturnType<typeof vi.fn>
 beforeEach(() => {
+  aparelho.quest = true
   palco.falas = FALAS
   palco.cartoes = [CARTAO]
   palco.falhar = false
@@ -769,6 +780,97 @@ describe('A sessão no Quest: jogos e visão geral', () => {
     await montar({ aba: 'overview', rec: gravacao('a', { type: 'document', audioUrl: undefined }) })
     expect(screen.getAllByRole('tab').map((a) => a.textContent?.trim())).not.toContain('Fluência')
     expect(screen.getByRole('tab', { name: /Inteligência lexical/ })).toBeTruthy()
+  })
+})
+
+/* O MESMO DESENHO NO COMPUTADOR (02/10/2026): o que era limite do headset (o raio que não acerta uma
+   palavra, sem teclado físico, sem reconhecimento de fala, a voz do site) volta, dentro do desenho novo. */
+describe('A sessão no computador com o desenho novo', () => {
+  beforeEach(() => {
+    aparelho.quest = false
+  })
+
+  it('no headset as palavras do texto não são alvos soltos, e a edição não mostra atalhos', async () => {
+    aparelho.quest = true
+    const { container, falas } = await montar()
+    expect(container.querySelector('.qs-o-clicavel')).toBeNull()
+    fireEvent.click(within(falas()[0]).getByRole('button', { name: 'Opções da fala' }))
+    fireEvent.click(within(folha()).getByRole('button', { name: /Editar/ }))
+    expect(screen.queryByTestId('atalhos-da-edicao')).toBeNull()
+    const [origem] = within(screen.getByTestId('edicao-da-fala')).getAllByRole('textbox')
+    fireEvent.keyDown(origem, { key: 'Enter', ctrlKey: true })
+    await act(async () => {})
+    expect(palco.salvar).not.toHaveBeenCalled()
+  })
+
+  it('a tela é a do desenho novo, e cada palavra do texto abre a folha dela com UM clique', async () => {
+    const { container, falas } = await montar()
+    expect(container.querySelector('.q-palco.qs')).toBeTruthy()
+    const primeira = falas()[0]
+    expect(primeira.querySelector('.qs-o')?.textContent?.trim()).toBe(FALAS[0].sourceText)
+    const palavra = [...primeira.querySelectorAll<HTMLElement>('.qs-o-clicavel .w')].find((p) =>
+      p.textContent?.startsWith('improve'),
+    )!
+    fireEvent.click(palavra)
+    await act(async () => {})
+    // Só a folha da palavra: o clique nela não abre as opções da fala.
+    expect(screen.getAllByRole('dialog')).toHaveLength(1)
+    expect(within(folha()).getByRole('heading', { name: 'improve' })).toBeTruthy()
+    expect(folha().querySelector('.qp-traducao')?.textContent).toBe('tradução de improve')
+    // A palavra que já está no caderno vem com o pontilhado de sempre.
+    expect(primeira.querySelector('.qs-o-clicavel .palavra')?.textContent).toBe('retention')
+
+    fireEvent.click(within(folha()).getByRole('button', { name: 'Fechar' }))
+    // O resto da fala continua abrindo as opções (ouvir dali, praticar, editar, as palavras como botões).
+    fireEvent.click(primeira.querySelector<HTMLButtonElement>('.qs-fala-texto')!)
+    expect(screen.getByTestId('opcoes-da-fala')).toBeTruthy()
+  })
+
+  it('editar a fala: a folha diz os atalhos, e Ctrl+Enter salva', async () => {
+    const { falas } = await montar()
+    fireEvent.click(within(falas()[0]).getByRole('button', { name: 'Opções da fala' }))
+    fireEvent.click(within(folha()).getByRole('button', { name: /Editar/ }))
+    expect(screen.getByTestId('atalhos-da-edicao').textContent).toMatch(/Ctrl\s*\+\s*Enter\s*salva/)
+    const [origem] = within(screen.getByTestId('edicao-da-fala')).getAllByRole('textbox')
+    fireEvent.change(origem, { target: { value: 'We must improve retention.' } })
+    fireEvent.keyDown(origem, { key: 'Enter', ctrlKey: true })
+    await act(async () => {})
+    expect(palco.salvar).toHaveBeenCalledWith('u1', {
+      sourceText: 'We must improve retention.',
+      translatedText: FALAS[0].translatedText,
+    })
+    expect(falas()[0].querySelector('.qs-o')?.textContent?.trim()).toBe('We must improve retention.')
+  })
+
+  it('prática de pronúncia COM reconhecimento de fala: a prática com nota, e não o aviso do headset', async () => {
+    vi.stubGlobal('SpeechRecognition', class {})
+    const { falas } = await montar()
+    fireEvent.click(within(falas()[0]).getByRole('button', { name: 'Opções da fala' }))
+    fireEvent.click(within(folha()).getByRole('button', { name: /Praticar a pronúncia/ }))
+    expect(screen.queryByTestId('sombra-sem-reconhecimento')).toBeNull()
+    expect(screen.queryByTestId('nota-indisponivel')).toBeNull()
+    expect(folha().querySelector('.sombra')).toBeTruthy()
+    expect(within(folha()).getByRole('button', { name: /Gravar a minha voz/ })).toBeTruthy()
+  })
+
+  it('prática de pronúncia num navegador SEM reconhecimento: o motivo fala do navegador, não do headset', async () => {
+    const { falas } = await montar()
+    fireEvent.click(within(falas()[0]).getByRole('button', { name: 'Opções da fala' }))
+    fireEvent.click(within(folha()).getByRole('button', { name: /Praticar a pronúncia/ }))
+    const motivo = screen.getByTestId('nota-indisponivel').textContent ?? ''
+    expect(motivo).toContain('não está disponível neste navegador')
+    expect(motivo).not.toMatch(/Quest|headset/)
+    // Gravar a própria voz e ouvir a gravação continuam.
+    expect(within(screen.getByTestId('sombra-sem-reconhecimento')).getByRole('button', { name: /Gravar a minha voz/ }))
+      .toBeTruthy()
+  })
+
+  it('sem áudio gravado e sem voz: o player diz o motivo sem falar da voz do site', async () => {
+    palco.voz = false
+    const { container } = await montar({ rec: gravacao('a', { audioUrl: undefined }) })
+    const motivo = container.querySelector('.qs-player-sem-voz')?.textContent ?? ''
+    expect(motivo).toContain('este navegador não tem voz de leitura')
+    expect(motivo).not.toContain('voz do site')
   })
 })
 

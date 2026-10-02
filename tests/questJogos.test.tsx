@@ -576,6 +576,14 @@ describe('campos e peças no Quest', () => {
     expect(document.querySelector('.qj-veredito')).not.toBeNull()
   })
 
+  it('os campos de digitar dizem onde tocar para o teclado do headset subir', () => {
+    render(<TenseTennisGame items={ITENS} ageProfile="pro" onFinish={nada} onExit={nada} />)
+    expect(screen.getByText('Toque no campo para abrir o teclado do headset.')).toBeTruthy()
+    cleanup()
+    render(<CadavreExquisGame items={ITENS} ageProfile="pro" onFinish={nada} onExit={nada} />)
+    expect(screen.getByText('Toque no campo para abrir o teclado do headset.')).toBeTruthy()
+  })
+
   it('Frase maluca: o campo é do teclado do sistema, e os botões de ouvir seguem a voz', () => {
     render(<CadavreExquisGame items={ITENS} ageProfile="pro" onFinish={nada} onExit={nada} />)
     expect(document.querySelector('textarea[data-qp="campo"]')).not.toBeNull()
@@ -584,5 +592,168 @@ describe('campos e peças no Quest', () => {
     aparelho.vozes = new Set(['en'])
     render(<CadavreExquisGame items={ITENS} ageProfile="pro" onFinish={nada} onExit={nada} />)
     expect(botao('Ouvir house')).not.toBeNull()
+  })
+})
+
+/* ── O MESMO DESENHO NO COMPUTADOR (02/10/2026) ───────────────────────────────────────────────────
+   O dono quis o desenho do headset no computador. O DESENHO vem (as peças, o veredito escrito, as ajudas
+   com nome); o que era LIMITE DO APARELHO não vem: lá há mouse que arrasta, teclado físico, a voz do
+   navegador e, quando o navegador tem, o reconhecimento de fala. */
+describe('no computador com o desenho novo', () => {
+  beforeEach(() => {
+    aparelho.quest = false
+    localStorage.setItem('babel.desenhoNovo', 'sim')
+  })
+
+  it('o lobby: "Clicar" e "Digitar" no lugar de "Apontar" e "Teclado na tela", e nada de "headset"', () => {
+    const PC = { vozDeLeitura: true, reconhecimentoDoNavegador: false, tecladoFisico: true }
+    const estado = (id: MinigameId) =>
+      ({ id, ok: true, disponiveis: 8, faltam: 0, fonte: 'falas', tamanhoDaRodada: 8 }) as EstadoDoJogo
+    const tiles = tilesDoQuest(
+      (['memory', 'termo', 'tenis', 'karaoke'] as MinigameId[]).map((id) => ({ id, estado: estado(id) })),
+      PC,
+      () => '',
+      { idioma: 'en' },
+    )
+    const de = (id: MinigameId) => tiles.find((t) => t.jogo.id === id)!
+    expect(de('memory').tag).toBe('Clicar')
+    expect(de('termo').tag).toBe('Digitar')
+    expect(de('tenis')).toMatchObject({ tag: 'Digitar', grupo: 'apontar', apagado: false })
+    // Navegador sem reconhecimento de fala (Firefox): o Karaokê abre sem nota, e a frase é a do navegador.
+    expect(de('karaoke').tag).toBe('Sem nota de voz')
+    expect(de('karaoke').nota).toMatch(/Este navegador não dá nota de pronúncia/)
+    expect(tiles.map((t) => t.nota ?? '').join(' ')).not.toMatch(/headset/i)
+  })
+
+  it('Caça-palavras: o desenho novo (pistas e ajudas com nome), e o ARRASTO do mouse continua marcando', () => {
+    render(<WordSearchGame items={ITENS} ageProfile="pro" onFinish={nada} onExit={nada} />)
+    expect(document.querySelector('.qj-caca')).not.toBeNull()
+    expect(document.querySelectorAll('.qj-caca-ajudas button')).toHaveLength(4)
+    expect(document.getElementById('como-marcar')?.textContent).toMatch(/^Arraste/)
+
+    const cs = [...document.querySelectorAll<HTMLButtonElement>('[data-tour="grade"] > button')]
+    const n = Math.round(Math.sqrt(cs.length))
+    const letra = (l: number, c: number) => cs[l * n + c]?.textContent?.trim()
+    const W = 'HOUSE'
+    const DIRS = [
+      [0, 1],
+      [1, 0],
+      [1, 1],
+      [-1, 1],
+      [0, -1],
+      [-1, 0],
+      [-1, -1],
+      [1, -1],
+    ]
+    let pontas: [HTMLButtonElement, HTMLButtonElement] | null = null
+    for (let l = 0; l < n && !pontas; l++)
+      for (let c = 0; c < n && !pontas; c++)
+        for (const [dl, dc] of DIRS) {
+          let ok = true
+          for (let k = 0; k < W.length && ok; k++) {
+            const L = l + dl * k
+            const C = c + dc * k
+            if (L < 0 || C < 0 || L >= n || C >= n || letra(L, C) !== W[k]) ok = false
+          }
+          if (ok) {
+            pontas = [cs[l * n + c], cs[(l + dl * (W.length - 1)) * n + c + dc * (W.length - 1)]]
+            break
+          }
+        }
+    const [a, b] = pontas!
+    fireEvent.pointerDown(a, { pointerId: 1, pointerType: 'mouse' })
+    fireEvent.pointerEnter(b, { pointerId: 1, pointerType: 'mouse' })
+    fireEvent.pointerUp(b, { pointerId: 1, pointerType: 'mouse' })
+    expect(screen.queryAllByLabelText('encontrada')).toHaveLength(1)
+  })
+
+  it('Termo: o teclado físico escreve, as casas em digitação são alvo do mouse, e "Ouvir" é o do navegador', () => {
+    render(
+      <TermoGame
+        rodadas={[{ cardId: 'c1', palavra: 'home', resposta: 'HOME', pista: 'lar', lang: 'en' }] as RodadaTermo[]}
+        ageProfile="pro"
+        onFinish={nada}
+        onExit={nada}
+      />,
+    )
+    // O desenho continua o novo: as duas teclas do cursor estão lá.
+    expect(botao('Casa anterior')).not.toBeNull()
+    // No jsdom a casa mede 0 px: no headset ela viraria `gridcell`; no computador é botão, como sempre.
+    expect(document.querySelectorAll('.linha-termo.atual button')).toHaveLength(4)
+    fireEvent.keyDown(window, { key: 'h' })
+    expect(document.querySelector('.linha-termo.atual button')?.textContent).toBe('H')
+    fireEvent.keyDown(window, { key: 'Backspace' })
+    expect(document.querySelector('.linha-termo.atual button')?.textContent).toBe('')
+    expect(botao('Ouvir')).not.toBeNull()
+  })
+
+  it('Tênis: o saque é o de sempre (6 s), e a tela não fala em teclado do headset', () => {
+    render(<TenseTennisGame items={ITENS} ageProfile="pro" onFinish={nada} onExit={nada} />)
+    expect(document.querySelector('[data-tour="relogio"]')?.textContent).toBe('6 s')
+    expect(screen.queryByText(/headset/i)).toBeNull()
+    expect(document.activeElement).toBe(screen.getByLabelText('Sua devolução'))
+  })
+
+  it('Ditado: o campo pega o foco (há teclado), sem a frase do headset; o veredito escrito e o "?" ficam', () => {
+    const rodadas: RodadaDitado[] = [
+      {
+        fala: { id: 'd1', text: 'Good morning', lang: 'en', startMs: 0, endMs: 0, translation: 'Bom dia' } as never,
+        palavras: 2,
+      },
+    ]
+    render(<DitadoGame rodadas={rodadas} audioUrl="" ageProfile="pro" onFinish={nada} onExit={nada} />)
+    const campo = document.querySelector('[data-tour="entrada"]') as HTMLInputElement
+    expect(document.activeElement).toBe(campo)
+    expect(screen.queryByText(/headset/i)).toBeNull()
+    // Fora do headset o botão de ouvir aparece como sempre (a voz é a do navegador).
+    expect(document.querySelector('[data-tour="ouvir"]')).not.toBeNull()
+    expect(botao('O que cada ajuda faz')).not.toBeNull()
+    fireEvent.change(campo, { target: { value: 'Good morning' } })
+    fireEvent.keyDown(campo, { key: 'Enter' })
+    expect(document.querySelector('.qj-veredito')?.textContent).toMatch(/Passou/)
+  })
+
+  it('Frase maluca: sem a frase do headset, e os botões de ouvir aparecem como sempre', () => {
+    render(<CadavreExquisGame items={ITENS} ageProfile="pro" onFinish={nada} onExit={nada} />)
+    expect(screen.queryByText(/headset/i)).toBeNull()
+    expect(botao('Ouvir house')).not.toBeNull()
+  })
+
+  it('Karaokê: com reconhecimento de fala há o botão de falar e a nota, como sempre', () => {
+    const w = window as unknown as { SpeechRecognition?: unknown }
+    w.SpeechRecognition = function () {}
+    try {
+      const falas = [{ id: 'k1', texto: 'Good morning', lang: 'en', startMs: 0, endMs: 0 }]
+      render(<KaraokeGame falas={falas} audioUrl="" ageProfile="pro" onFinish={nada} onExit={nada} />)
+      expect(botao(/Falar agora/)).not.toBeNull()
+      expect(screen.queryByTestId('karaoke-sem-nota')).toBeNull()
+    } finally {
+      delete w.SpeechRecognition
+    }
+  })
+
+  it('Karaokê num navegador sem reconhecimento de fala: o motivo é do navegador, não do headset', () => {
+    const falas = [{ id: 'k1', texto: 'Good morning', lang: 'en', startMs: 0, endMs: 0 }]
+    render(<KaraokeGame falas={falas} audioUrl="" ageProfile="pro" onFinish={nada} onExit={nada} />)
+    const aviso = screen.getByTestId('karaoke-sem-nota').textContent ?? ''
+    expect(aviso).toMatch(/Este navegador não tem reconhecimento de voz/)
+    expect(aviso).not.toMatch(/headset/i)
+    expect(botao('Ouvir')).not.toBeNull()
+  })
+
+  it('Karuta: vale a regra de sempre do computador (sem voz no navegador, a pista vem escrita)', () => {
+    render(<KarutaGame items={ITENS} ageProfile="pro" onFinish={nada} onExit={nada} />)
+    // O jsdom não tem `speechSynthesis`: a pista aparece escrita, e "Ouvir de novo" continua lá, como sempre.
+    expect(document.querySelector('[data-tour="pista"]')?.textContent).toBe('casa')
+    expect(botao('Ouvir de novo')).not.toBeNull()
+  })
+
+  it('Choseong: as vogais do teclado físico escrevem', () => {
+    render(<ChoseongGame items={ITENS} ageProfile="pro" onFinish={nada} onExit={nada} />)
+    const vazias = () =>
+      [...document.querySelectorAll('[data-qp="casas"] span')].filter((s) => s.textContent === '').length
+    const antes = vazias()
+    fireEvent.keyDown(window, { key: 'o' })
+    expect(vazias()).toBe(antes - 1)
   })
 })

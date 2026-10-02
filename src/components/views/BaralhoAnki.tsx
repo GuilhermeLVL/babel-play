@@ -24,7 +24,7 @@ import {
   listarBaralhosAnki,
   type ResultadoAtivar,
 } from '../../data/apiAnki';
-import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
+import { noHeadset, useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { numero, t } from '../../lib/i18n';
 import { langLabelNaUI } from '../../lib/languages';
 import type { AgeProfileType } from '../../lib/profile';
@@ -154,7 +154,8 @@ export default function BaralhoAnki({
   const [aba, setAba] = useState<AbaDoAnki>(abaInicial);
   /* No Meta Quest a tela é a mesma (as peças de sempre já ganham as medidas do headset em
      `questBase.css`, e o acabamento desta tela está em `questVocabulario.css`). Só muda o convite da
-     área de escolher: não há o que "soltar" com o controle, o toque abre os arquivos do headset. */
+     área de escolher: não há o que "soltar" com o controle, o toque abre os arquivos do headset. Esse
+     convite é do APARELHO (`noHeadset()`): no computador com o mesmo desenho, soltar o arquivo continua. */
   const questNovo = useQuestNovo();
   /* OS BARALHOS JÁ TRAZIDOS moram aqui, e não na aba Gerenciar: a contagem da aba precisa deles
      antes de a pessoa abri-la, e trazer um arquivo novo muda a lista. */
@@ -378,7 +379,7 @@ export default function BaralhoAnki({
             }}
           >
             <IconeEmBloco icone={Upload} />
-            {questNovo ? (
+            {questNovo && noHeadset() ? (
               <span>
                 <b>{t('Toque para escolher o arquivo')}</b>
               </span>

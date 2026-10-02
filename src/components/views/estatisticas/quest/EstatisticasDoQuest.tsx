@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { type ReactNode, useLayoutEffect, useRef, useState } from 'react';
 
+import { noHeadset } from '../../../../lib/dispositivo/telaNovaDoQuest';
 import { t } from '../../../../lib/i18n';
 import { Dialogo, fecharDialogoDe } from '../../../ui';
 
@@ -328,9 +329,12 @@ export default function EstatisticasDoQuest({
                 <span>
                   <b>{t('Imprimir ou salvar em PDF')}</b>
                   <small>
-                    {t(
-                      'Abre a impressão do navegador com todos os gráficos e a meta. Se o headset não imprimir, use o CSV.',
-                    )}
+                    {/* O navegador do headset pode não imprimir; o do computador imprime. */}
+                    {noHeadset()
+                      ? t(
+                          'Abre a impressão do navegador com todos os gráficos e a meta. Se o headset não imprimir, use o CSV.',
+                        )
+                      : t('Abre a impressão do navegador com todos os gráficos e a meta.')}
                   </small>
                 </span>
               </button>

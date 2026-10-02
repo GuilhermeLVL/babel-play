@@ -44,6 +44,10 @@ import { Dialogo, fecharDialogoDe } from '../../../ui';
  *  · as ações do cartão (desfazer, ouvir, editar, suspender) ficam na faixa do pé;
  *  · os atalhos de teclado não aparecem (não há teclado físico); no formato Digitar, o teclado do
  *    sistema sobe quando o campo ganha foco, e por isso o campo NÃO pega o foco sozinho.
+ *
+ * O MESMO DESENHO NO COMPUTADOR (02/10/2026): o último item é limite do APARELHO, não do desenho. Com
+ * teclado físico (`atalhos`, que `Study.tsx` lê de `recursos.ts`) as teclas voltam a aparecer (Espaço,
+ * 1 a 4, Z: os atalhos em si nunca saíram, moram em `Study.tsx`) e o campo de digitar pega o foco.
  */
 
 /** O cabeçalho das telas que não são a rodada: voltar, sobrancelha, título e, à direita, as ações. */
@@ -199,8 +203,11 @@ export function FimDaRodadaNoQuest({
   aoEstatisticas,
   aoInicio,
   aoVoltar,
+  atalhos = false,
   children,
 }: {
+  /** Há teclado físico: a tecla do desfazer (Z) aparece no botão. */
+  atalhos?: boolean;
   /** "As 12 palavras foram revisadas." */
   feitoEm: string;
   /** "A próxima abre amanhã com 3 palavras." */
@@ -265,6 +272,7 @@ export function FimDaRodadaNoQuest({
         {/* No computador é a tecla Z; sem teclado, o desfazer da última nota ganha um botão. */}
         <button type="button" className="q-ctl" disabled={!podeDesfazer} onClick={aoDesfazer}>
           <Undo2 aria-hidden /> {t('Desfazer a última')}
+          {atalhos && <kbd data-precisa="teclado">Z</kbd>}
         </button>
       </div>
       {children}
@@ -281,6 +289,8 @@ export interface NotaDoQuest {
   rotulo: string;
   /** O intervalo que o FSRS dá a esta nota ("3,5 d"). */
   detalhe: string;
+  /** A tecla que dá esta nota no computador ("1" a "4"); só aparece onde há teclado físico. */
+  tecla?: string;
   aoDar: (origem: Element) => void;
 }
 
@@ -315,8 +325,15 @@ export function RodadaDoQuest({
   aoOpcoes,
   aoEncerrar,
   aoVoltar,
+  atalhos = false,
   children,
 }: {
+  /**
+   * Há teclado físico (o computador): as teclas aparecem (Espaço mostra a resposta, 1 a 4 dão a nota,
+   * Z desfaz) e o campo de digitar pega o foco sozinho. No headset, não: ali o foco faria o teclado
+   * do sistema subir sobre o cartão.
+   */
+  atalhos?: boolean;
   /** O título da tela (fica na página para o leitor de tela; quem olha lê o rótulo e o cartão). */
   titulo: string;
   /** "Revisão de hoje". */
@@ -433,7 +450,8 @@ export function RodadaDoQuest({
                     autoComplete="off"
                     autoCapitalize="off"
                     value={tentativa}
-                    placeholder={t('Toque para escrever')}
+                    placeholder={atalhos ? t('Digite a tradução…') : t('Toque para escrever')}
+                    autoFocus={atalhos}
                     onChange={(e) => aoDigitar(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && tentativa.trim()) aoVerificar();
@@ -504,6 +522,7 @@ export function RodadaDoQuest({
                     <button key={n.id} type="button" className={n.classe} onClick={(e) => n.aoDar(e.currentTarget)}>
                       {n.rotulo}
                       <small>{n.detalhe}</small>
+                      {atalhos && n.tecla && <kbd data-precisa="teclado">{n.tecla}</kbd>}
                     </button>
                   ))}
                 </div>
@@ -513,6 +532,11 @@ export function RodadaDoQuest({
                 <button type="button" className="q-ctl pri qr-principal" onClick={aoMostrarResposta}>
                   <Eye aria-hidden /> {t('Mostrar resposta')}
                 </button>
+                {atalhos && (
+                  <p className="qr-atalho" data-precisa="teclado">
+                    {t('ou aperte')} <kbd>{t('Espaço')}</kbd>
+                  </p>
+                )}
               </div>
             )}
           </>
@@ -522,6 +546,7 @@ export function RodadaDoQuest({
       <div className="q-faixa" role="toolbar" aria-label={t('Ações do cartão')}>
         <button type="button" className="q-ctl" disabled={!podeDesfazer} onClick={aoDesfazer}>
           <Undo2 aria-hidden /> {t('Desfazer')}
+          {atalhos && <kbd data-precisa="teclado">Z</kbd>}
         </button>
         {aoOuvir && (
           <button type="button" className="q-ctl" onClick={aoOuvir}>

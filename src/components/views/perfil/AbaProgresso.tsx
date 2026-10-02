@@ -48,7 +48,9 @@ export default function AbaProgresso({ progress }: AbaProgressoProps) {
   const [baralho, setBaralho] = useState<VocabCard[] | null>(null);
   const [carregando, setCarregando] = useState(true);
   const questNovo = useQuestNovo();
-  /* Só no headset: a curva como tabela (o número de cada dia mora na dica do gráfico, que pede hover). */
+  /* Só no desenho novo (headset e computador): a curva também como tabela. No headset é o único jeito
+     de ler o número de cada dia (a dica do gráfico pede hover); no computador a dica continua lá, e a
+     tabela serve a quem usa teclado ou leitor de tela. É DESENHO, não limite do aparelho. */
   const [comoTabela, setComoTabela] = useState(false);
 
   useEffect(() => {

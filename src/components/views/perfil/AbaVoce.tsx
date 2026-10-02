@@ -367,7 +367,8 @@ export default function AbaVoce() {
                 </div>
               </div>
             ))}
-            {/* Sem hover no headset: o motivo do bloqueio vai escrito, não num `title`. */}
+            {/* O motivo do bloqueio vai escrito, não num `title`: no headset não há hover, e no computador
+                o texto à vista serve também a quem usa teclado. */}
             <p className="qc-nota">
               {noTeto
                 ? t('Você já escolheu {n}. Desmarque um para trocar.', { n: MAX_INTERESSES })

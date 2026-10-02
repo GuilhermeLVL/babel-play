@@ -185,6 +185,24 @@ html[data-quest-novo='true'] .q-bib-cuidar > .q-ctl {
   font-size: 16px;
 }
 
+/* ── NO COMPUTADOR: a busca por título, sobre a lista (no headset ela continua em "Tela completa") ── */
+html[data-quest-novo='true'] .q-bib-busca {
+  position: relative;
+}
+html[data-quest-novo='true'] .q-bib-busca svg {
+  position: absolute;
+  left: 18px;
+  top: 50%;
+  width: 22px;
+  height: 22px;
+  transform: translateY(-50%);
+  color: var(--ink-muted);
+  pointer-events: none;
+}
+html[data-quest-novo='true'] .q-bib-busca input {
+  padding-left: 52px;
+}
+
 /* ── VAZIA: o convite ocupa o palco ────────────────────────────────────────────────────────────── */
 html[data-quest-novo='true'] .q-bib-vazia .q-acoes {
   justify-content: center;
@@ -206,6 +224,11 @@ html[data-quest-novo='true'] .q-bib-vazia .q-acoes {
     gap: 10px;
     grid-template-rows: auto;
     box-shadow: 0 0 0 12px var(--canvas);
+  }
+  /* Com a fileira "Exportar transcrição · Retomar captura" (o computador) há uma fileira a mais para
+     esconder abaixo do "Abrir": 56 px dela e 10 px do vão. */
+  html[data-quest-novo='true'] .q-bib-det.q-bib-det-mais {
+    bottom: -214px;
   }
   /* O que a linha selecionada já diz não se repete aqui. */
   html[data-quest-novo='true'] .q-bib-det :is(.q-bib-topo, .q-bib-fatos) {

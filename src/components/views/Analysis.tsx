@@ -73,7 +73,9 @@ import { criarPalavraDaAnalise, useCacheDeHover } from '../../lib/analise/palavr
 import { formatSeconds, usePlayerDaSessao } from '../../lib/analise/playerDaSessao';
 import { useAudioDaSessao } from '../../lib/audioDaSessao';
 import { consentiuNuvem } from '../../lib/consentimentoDeNuvem';
-import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
+import { perfilDoDispositivo } from '../../lib/dispositivo/perfil';
+import { recursosDoAparelho } from '../../lib/dispositivo/recursos';
+import { noHeadset, useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { getEntitlements } from '../../lib/entitlements';
 import { numero, t } from '../../lib/i18n';
 import type { DerivedProgress } from '../../lib/progress';
@@ -354,7 +356,8 @@ export default function Analysis({
    */
   /* O Quest não tem voz de leitura própria: ali a narração de uma sessão SEM áudio gravado vai pelo
      motor do app (`speak()`, que leva à voz do site), e "ouvir a partir desta fala" segue narrando,
-     como na tela de sempre. Com voz no aparelho (computador, celular), nada muda. */
+     como na tela de sempre. Com voz no aparelho (computador, celular), nada muda: quem decide é o
+     RECURSO (`aparelhoTemVoz`), e por isso o desenho novo no computador segue narrando pela voz dele. */
   const narradorDoQuest = React.useMemo(
     () => (questNovo && !aparelhoTemVoz() ? { falar: ttsSpeak, calar: cancelSpeech, podeFalar: haVozPara } : null),
     [questNovo],
@@ -964,6 +967,10 @@ export default function Analysis({
             aoAlternarSombra={setShadowingSentenceIndex}
             idiomaDe={langOfSentence}
             ajustes={ajustesDeExibicao}
+            /* DO APARELHO, não do desenho: com o mouse a palavra abre direto do texto (o raio do
+               controle não acerta uma palavra solta), e com teclado físico Ctrl+Enter salva a correção. */
+            palavrasNoTexto={!noHeadset()}
+            atalhosDeTeclado={recursosDoAparelho(perfilDoDispositivo()).tecladoFisico}
           />
         )}
 

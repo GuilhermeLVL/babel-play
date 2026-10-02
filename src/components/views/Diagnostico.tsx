@@ -530,9 +530,38 @@ export default function Diagnostico() {
       { id: 'som', rotulo: t('Som'), icone: <Mic aria-hidden /> },
       { id: 'velocidade', rotulo: t('Velocidade'), icone: <Gauge aria-hidden /> },
       { id: 'captura', rotulo: t('Última captura'), icone: <Timer aria-hidden /> },
-      { id: 'headset', rotulo: t('Headset'), icone: <LayoutPanelTop aria-hidden /> },
+      /* A aba do HEADSET (a chave das telas novas, a vibração do controle) só existe no headset. No
+         computador o desenho novo liga e desliga em Ajustes → Aparência, e não há controle para vibrar. */
+      ...(noQuest ? [{ id: 'headset', rotulo: t('Headset'), icone: <LayoutPanelTop aria-hidden /> }] : []),
       { id: 'resultado', rotulo: t('Resultado'), icone: <ClipboardCopy aria-hidden /> },
     ];
+    /* A CHAVE DE DONO vale em qualquer aparelho (é ela que tira a medida "na nuvem" da cota diária):
+       no headset mora na aba Headset, como sempre; no computador, junto da medida que ela afeta. */
+    const chaveDeDonoNoDesenhoNovo = (
+      <section className="q-secao">
+        <header>
+          <div>
+            <h2>{t('Chave de dono')}</h2>
+            <p>{t('Só para quem mantém o site: com a chave certa, este aparelho não cai na cota diária da nuvem.')}</p>
+          </div>
+        </header>
+        <label className="q-campo">
+          <span>{t('Chave de dono')}</span>
+          <input
+            type="password"
+            autoComplete="off"
+            aria-label={t('Chave de dono')}
+            value={chaveDeDono}
+            onChange={(e) => mudarChaveDeDono(e.target.value)}
+          />
+          <small>
+            {chaveDeDono.trim()
+              ? t('Guardada só neste aparelho. Apague o campo para removê-la.')
+              : t('Nenhuma chave guardada neste aparelho.')}
+          </small>
+        </label>
+      </section>
+    );
     const painel = (id: string) => ({
       role: 'tabpanel',
       id: `painel-${id}`,
@@ -760,6 +789,7 @@ export default function Diagnostico() {
               </ul>
             )}
           </section>
+          {!noQuest && chaveDeDonoNoDesenhoNovo}
         </div>
 
         {/* ── ÚLTIMA CAPTURA ── */}
@@ -830,99 +860,77 @@ export default function Diagnostico() {
           </section>
         </div>
 
-        {/* ── HEADSET: a chave das telas novas, a vibração e a chave de dono ── */}
-        <div {...painel('headset')}>
-          <section className="q-secao" data-testid="diagnostico-tela-nova">
-            <header>
-              <div>
-                <h2>{t('Telas novas do headset')}</h2>
-                <p>
-                  {t(
-                    'As telas redesenhadas para o Meta Quest. Se alguma sair errada, desligue aqui e a de antes volta.',
-                  )}
-                </p>
-              </div>
-            </header>
-            <div className="q-ajustes">
-              <div className="q-ajuste">
+        {/* ── HEADSET: a chave das telas novas, a vibração e a chave de dono. Só no headset. ── */}
+        {noQuest && (
+          <div {...painel('headset')}>
+            <section className="q-secao" data-testid="diagnostico-tela-nova">
+              <header>
                 <div>
-                  <b>{t('Telas novas')}</b>
-                  <small>
-                    {t('Desligar troca o app inteiro na hora, inclusive esta página. Para religar, volte aqui.')}
-                  </small>
-                </div>
-                <button type="button" className="q-ctl" aria-pressed={telaNova} onClick={alternarTelaNova}>
-                  {telaNova && <Check aria-hidden />}
-                  {telaNova ? t('Telas novas: ligadas') : t('Telas novas: desligadas')}
-                </button>
-              </div>
-
-              <div className="q-ajuste">
-                <div>
-                  <b>{t('Vibração do controle')}</b>
-                  <small>
+                  <h2>{t('Telas novas do headset')}</h2>
+                  <p>
                     {t(
-                      'Um pulso de prova em cada intensidade, e o som que o app toca quando o navegador não entrega o motor do controle.',
-                    )}
-                  </small>
-                </div>
-                <div className="q-acoes" role="group" aria-label={t('Testar a vibração do controle')}>
-                  <button type="button" className="q-ctl" onClick={() => provar('suave')}>
-                    <Vibrate aria-hidden /> {t('Suave')}
-                  </button>
-                  <button type="button" className="q-ctl" onClick={() => provar('forte')}>
-                    <Vibrate aria-hidden /> {t('Forte')}
-                  </button>
-                  <button type="button" className="q-ctl" onClick={() => provar('som')}>
-                    <Volume2 aria-hidden /> {t('Som no lugar')}
-                  </button>
-                </div>
-              </div>
-              {vibracao && (
-                <div className="q-cartao fundo" data-testid="diagnostico-vibracao">
-                  <dl className="q-medidas">
-                    <Dado rotulo={t('Resultado')} valor={resultadoDaVibracaoEmTexto(vibracao)} />
-                    {vibracao.teste !== 'som' && (
-                      <Dado rotulo={t('Vibração pelo navegador')} valor={vibrateEmTexto(vibracao)} />
-                    )}
-                    <Dado rotulo={t('Controles que a página enxerga')} valor={controlesEmTexto(vibracao)} />
-                  </dl>
-                  <p className="q-inst-nota">
-                    {t(
-                      'Você sentiu o controle vibrar? Me diga junto com o resultado: o navegador pode aceitar o pedido sem o controle se mexer.',
+                      'As telas redesenhadas para o Meta Quest. Se alguma sair errada, desligue aqui e a de antes volta.',
                     )}
                   </p>
                 </div>
-              )}
-            </div>
-          </section>
+              </header>
+              <div className="q-ajustes">
+                <div className="q-ajuste">
+                  <div>
+                    <b>{t('Telas novas')}</b>
+                    <small>
+                      {t('Desligar troca o app inteiro na hora, inclusive esta página. Para religar, volte aqui.')}
+                    </small>
+                  </div>
+                  <button type="button" className="q-ctl" aria-pressed={telaNova} onClick={alternarTelaNova}>
+                    {telaNova && <Check aria-hidden />}
+                    {telaNova ? t('Telas novas: ligadas') : t('Telas novas: desligadas')}
+                  </button>
+                </div>
 
-          <section className="q-secao">
-            <header>
-              <div>
-                <h2>{t('Chave de dono')}</h2>
-                <p>
-                  {t('Só para quem mantém o site: com a chave certa, este aparelho não cai na cota diária da nuvem.')}
-                </p>
+                <div className="q-ajuste">
+                  <div>
+                    <b>{t('Vibração do controle')}</b>
+                    <small>
+                      {t(
+                        'Um pulso de prova em cada intensidade, e o som que o app toca quando o navegador não entrega o motor do controle.',
+                      )}
+                    </small>
+                  </div>
+                  <div className="q-acoes" role="group" aria-label={t('Testar a vibração do controle')}>
+                    <button type="button" className="q-ctl" onClick={() => provar('suave')}>
+                      <Vibrate aria-hidden /> {t('Suave')}
+                    </button>
+                    <button type="button" className="q-ctl" onClick={() => provar('forte')}>
+                      <Vibrate aria-hidden /> {t('Forte')}
+                    </button>
+                    <button type="button" className="q-ctl" onClick={() => provar('som')}>
+                      <Volume2 aria-hidden /> {t('Som no lugar')}
+                    </button>
+                  </div>
+                </div>
+                {vibracao && (
+                  <div className="q-cartao fundo" data-testid="diagnostico-vibracao">
+                    <dl className="q-medidas">
+                      <Dado rotulo={t('Resultado')} valor={resultadoDaVibracaoEmTexto(vibracao)} />
+                      {vibracao.teste !== 'som' && (
+                        <Dado rotulo={t('Vibração pelo navegador')} valor={vibrateEmTexto(vibracao)} />
+                      )}
+                      <Dado rotulo={t('Controles que a página enxerga')} valor={controlesEmTexto(vibracao)} />
+                    </dl>
+                    <p className="q-inst-nota">
+                      {t(
+                        'Você sentiu o controle vibrar? Me diga junto com o resultado: o navegador pode aceitar o pedido sem o controle se mexer.',
+                      )}
+                    </p>
+                  </div>
+                )}
               </div>
-            </header>
-            <label className="q-campo">
-              <span>{t('Chave de dono')}</span>
-              <input
-                type="password"
-                autoComplete="off"
-                aria-label={t('Chave de dono')}
-                value={chaveDeDono}
-                onChange={(e) => mudarChaveDeDono(e.target.value)}
-              />
-              <small>
-                {chaveDeDono.trim()
-                  ? t('Guardada só neste aparelho. Apague o campo para removê-la.')
-                  : t('Nenhuma chave guardada neste aparelho.')}
-              </small>
-            </label>
-          </section>
-        </div>
+            </section>
+
+            {chaveDeDonoNoDesenhoNovo}
+          </div>
+        )}
 
         {/* ── RESULTADO: o JSON que o botão da faixa copia ── */}
         <div {...painel('resultado')}>

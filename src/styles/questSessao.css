@@ -242,6 +242,24 @@ html[data-quest-novo='true'] .qs-acoes-da-fala .q-ctl {
 html[data-quest-novo='true'] .qs-acoes-da-fala .q-ctl:hover {
   background: color-mix(in srgb, var(--q-acento) 22%, transparent);
 }
+/* NO COMPUTADOR (com o mouse) cada palavra do texto abre a folha dela com um clique, como na tela de
+   sempre: o realce diz que a palavra é um alvo dentro da fala. A do caderno segue com o pontilhado
+   (`.palavra`, de `prototipo.css`). No headset as palavras não são alvos soltos e nada disto aparece. */
+html[data-quest-novo='true'] .qs-o-clicavel :is(.w, .palavra) {
+  border-radius: 6px;
+  transition: background-color var(--q-cor);
+}
+html[data-quest-novo='true'] .qs-o-clicavel :is(.w, .palavra):hover {
+  background: color-mix(in srgb, var(--q-acento) 22%, transparent);
+}
+/* Os atalhos de teclado das folhas (só onde há teclado físico): a tecla no piso de 14 px do desenho. */
+html[data-quest-novo='true'] .qs-atalhos {
+  margin: 0;
+}
+html[data-quest-novo='true'] .qs-atalhos kbd {
+  font-size: 14px;
+  padding: 3px 8px;
+}
 
 /* O PLAYER: a faixa de controles, presa ao pé enquanto as falas rolam. O anel da cor do fundo
    esconde o texto que passa por trás dela. */

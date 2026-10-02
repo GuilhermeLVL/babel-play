@@ -358,6 +358,14 @@ html[data-quest-novo='true'] .palco-jogo .tabuleiro {
   gap: 14px;
   max-width: min(100%, max(560px, calc((100dvh - 256px) * 2 + 42px))) !important;
 }
+/* NO COMPUTADOR com o desenho novo a Memória joga com os pares de sempre (até 8: dezesseis cartas,
+   4 × 4); o corte em 6 pares é só do headset (`rodadaParaOQuest`). Com a 13ª carta na mesa, a largura
+   sai de QUATRO fileiras e três vãos na mesma altura. No Quest nunca há 13ª carta: nada muda lá. */
+@media (min-width: 721px) {
+  html[data-quest-novo='true'] .palco-jogo .tabuleiro:has(> .carta:nth-child(13)) {
+    max-width: min(100%, max(560px, calc((100dvh - 270px) * 1.5 + 42px))) !important;
+  }
+}
 html[data-quest-novo='true'] .palco-jogo .carta {
   position: relative;
   aspect-ratio: 3 / 2;

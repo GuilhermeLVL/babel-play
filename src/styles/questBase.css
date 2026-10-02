@@ -677,7 +677,7 @@ html[data-quest-novo='true'] .cmd-busca input {
   font: 600 20px/1.2 var(--font-body, inherit);
 }
 /* Sem teclado físico, as dicas de tecla não dizem nada: o rodapé e o "Esc" somem. */
-html[data-quest-novo='true'] :is(.cmd-pe, .cmd-busca kbd) {
+html[data-quest-novo='true'][data-sem-teclado='true'] :is(.cmd-pe, .cmd-busca kbd) {
   display: none;
 }
 html[data-quest-novo='true'] .cmd-lista {

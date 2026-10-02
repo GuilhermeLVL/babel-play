@@ -2,6 +2,7 @@ import '../../../../styles/questInstitucional.css';
 
 import type { LucideIcon } from 'lucide-react';
 import { Keyboard, SearchX } from 'lucide-react';
+import type { ReactNode } from 'react';
 
 import { t } from '../../../../lib/i18n';
 
@@ -32,7 +33,8 @@ const TEXTO_DO_ESTADO: Record<EstadoDoServidor, string> = {
  *
  * ATALHOS DE TECLADO: o headset não tem teclado físico, então a lista não ocupa a tela. A função não
  * some: uma linha diz o motivo e "Ver todos" abre o mesmo diálogo (com um teclado Bluetooth pareado, os
- * atalhos valem aqui também).
+ * atalhos valem aqui também). NO COMPUTADOR (o mesmo desenho, com teclado físico) os atalhos existem:
+ * `Ajuda.tsx` manda os primeiros em `atalhosAVista` e eles ficam na tela, como na de sempre.
  *
  * Só apresentação: busca, artigos filtrados, canais preenchidos e o estado vêm de `Ajuda.tsx`, que
  * continua dona do guia e do diálogo de atalhos.
@@ -45,6 +47,7 @@ export default function AjudaDoQuest({
   estado,
   aoAbrirGuia,
   aoAbrirAtalhos,
+  atalhosAVista,
 }: {
   busca: string;
   aoBuscar: (texto: string) => void;
@@ -54,6 +57,11 @@ export default function AjudaDoQuest({
   estado: EstadoDoServidor | null;
   aoAbrirGuia: () => void;
   aoAbrirAtalhos: () => void;
+  /**
+   * As linhas dos primeiros atalhos, quando o aparelho tem teclado físico (o computador). Ausente (o
+   * headset), a lista fica atrás de "Ver todos" e a linha diz o motivo.
+   */
+  atalhosAVista?: ReactNode;
 }) {
   return (
     <div className="q-palco q-inst" data-testid="ajuda-do-quest">
@@ -117,16 +125,28 @@ export default function AjudaDoQuest({
       </section>
 
       <div className="q-grade g2 q-inst-par">
-        <button type="button" className="q-linha" onClick={aoAbrirAtalhos}>
-          <span className="q-ic">
-            <Keyboard aria-hidden />
-          </span>
-          <span>
-            <b>{t('Atalhos de teclado')}</b>
-            <small>{t('O headset não tem teclado; com um teclado Bluetooth, eles valem aqui também.')}</small>
-          </span>
-          <span className="q-fim">{t('Ver todos')}</span>
-        </button>
+        {atalhosAVista ? (
+          <section className="q-cartao q-inst-atalhos" data-testid="atalhos-a-vista">
+            <h2>
+              <Keyboard aria-hidden /> {t('Atalhos de teclado')}
+            </h2>
+            <div>{atalhosAVista}</div>
+            <button type="button" className="q-ctl" onClick={aoAbrirAtalhos}>
+              {t('Ver todos')}
+            </button>
+          </section>
+        ) : (
+          <button type="button" className="q-linha" onClick={aoAbrirAtalhos}>
+            <span className="q-ic">
+              <Keyboard aria-hidden />
+            </span>
+            <span>
+              <b>{t('Atalhos de teclado')}</b>
+              <small>{t('O headset não tem teclado; com um teclado Bluetooth, eles valem aqui também.')}</small>
+            </span>
+            <span className="q-fim">{t('Ver todos')}</span>
+          </button>
+        )}
 
         <div className="q-ajuste" data-testid="contato-do-quest">
           <div>

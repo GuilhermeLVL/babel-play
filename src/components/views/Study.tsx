@@ -30,6 +30,8 @@ import {
   salvarRodada,
   updateCard,
 } from '../../data/api';
+import { perfilDoDispositivo } from '../../lib/dispositivo/perfil';
+import { recursosDoAparelho } from '../../lib/dispositivo/recursos';
 import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { ActiveProductionExercise, similarityPercentage, stabilityThreshold } from '../../lib/exercicios';
 import { t, tp } from '../../lib/i18n';
@@ -174,6 +176,9 @@ export default function Study({
   /** Quest com as telas novas (maquete de 01/10/2026, tela 8): a mesma revisão, no desenho do headset
       (`revisao/quest/RevisaoDoQuest.tsx`). O estado, a fila e as notas são os daqui. */
   const questNovo = useQuestNovo();
+  /* DO APARELHO, não do desenho: o mesmo desenho vale no computador, onde há teclado físico. As teclas
+     (Espaço, 1 a 4, Z) e o foco no campo de digitar perguntam por aqui, nunca por `questNovo`. */
+  const temTeclado = useMemo(() => recursosDoAparelho(perfilDoDispositivo()).tecladoFisico, []);
   const [vocabCards, setVocabCards] = useState<VocabCard[]>([]);
   /**
    * O deck é ASSÍNCRONO (vem do servidor). Sem esta flag, uma semente `review` chegando junto com a
@@ -658,7 +663,8 @@ export default function Study({
     }
   };
 
-  /* PRODUÇÃO ATIVA NO QUEST: o mesmo exercício da paleta de comandos, com um botão (não há teclado). */
+  /* PRODUÇÃO ATIVA NO DESENHO NOVO: o mesmo exercício da paleta de comandos, com um botão (no headset
+     não há teclado; no computador o botão soma, e a paleta continua abrindo pelo teclado). */
   const producaoNoQuest = {
     rotulo: EXERCISES[1].label,
     dica: EXERCISES[1].hint,
@@ -819,6 +825,7 @@ export default function Study({
           aoEstatisticas={() => onChangeView?.('estatisticas')}
           aoInicio={() => onChangeView?.('hub')}
           aoVoltar={voltarAoVocabulario}
+          atalhos={temTeclado}
         >
           {paleta}
         </FimDaRodadaNoQuest>
@@ -1035,6 +1042,7 @@ export default function Study({
             classe,
             rotulo: t(rotulo),
             detalhe: intervaloDaNota(currentCard, nota, agora, retencao),
+            tecla: String(nota),
             aoDar: (origem: Element) => void handleFsrsFeedback(currentCard.id, nota, undefined, origem),
           }))
         : [
@@ -1085,6 +1093,7 @@ export default function Study({
         aoOpcoes={() => setOpcoesAbertas(true)}
         aoEncerrar={encerrar}
         aoVoltar={voltarAoVocabulario}
+        atalhos={temTeclado}
       >
         {dialogos}
         {paleta}

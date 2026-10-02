@@ -16,7 +16,14 @@ prepararDialogoNoJsdom()
 const mocks = vi.hoisted(() => ({
   v2: true,
   carteira: { creditos: 500 as number | null, disponivel: true, recarregar: () => {} },
+  /** O aparelho: o headset, salvo nos casos "no computador com o desenho novo". */
+  aparelho: 'quest' as string,
 }))
+
+vi.mock('../src/lib/dispositivo/perfil', async (orig) => {
+  const real = await orig<typeof import('../src/lib/dispositivo/perfil')>()
+  return { ...real, perfilDoDispositivo: () => ({ ...real.perfilDoDispositivo(), tipo: mocks.aparelho }) }
+})
 
 vi.mock('../src/lib/dispositivo/telaNovaDoQuest', async (orig) => ({
   ...(await orig<typeof import('../src/lib/dispositivo/telaNovaDoQuest')>()),
@@ -88,6 +95,7 @@ function montar(abaInicial?: string) {
 
 beforeEach(() => {
   localStorage.clear()
+  mocks.aparelho = 'quest'
   mocks.v2 = true
   mocks.carteira = { creditos: 500, disponivel: true, recarregar: () => {} }
   vi.mocked(comprarPecaComCreditos).mockClear()
@@ -210,6 +218,7 @@ describe('Personalizar no Quest · recompensas v2', () => {
 
     const aviso = screen.getByTestId('menu-no-quest')
     expect(aviso.textContent).toContain('trilho')
+    expect(aviso.textContent).toContain('No headset')
     expect(aviso.textContent).toContain('No topo')
     expect(within(aviso).queryByRole('button')).toBeNull()
     expect(screen.queryByRole('button', { name: /À direita|Embaixo/ })).toBeNull()
@@ -220,6 +229,28 @@ describe('Personalizar no Quest · recompensas v2', () => {
     expect(setMenuPosition).not.toHaveBeenCalled()
     expect(setAgeProfile).toHaveBeenCalledWith('senior')
     expect(screen.getByRole('button', { name: /Produtividade/ }).getAttribute('aria-pressed')).toBe('true')
+  })
+
+  it('no computador com o desenho novo: nada fala em headset (o menu, o aviso da posição, apagar um perfil)', () => {
+    mocks.aparelho = 'desktop-com-gpu'
+    const { container, secao } = montar()
+    expect(container.querySelector('.q-palco.qp')).toBeTruthy()
+    expect(container.querySelectorAll('.qp-equip')[3].textContent).toContain('Trilho de ícones')
+
+    fireEvent.click(secao(/Perfis/))
+    fireEvent.change(screen.getByLabelText('Nome do perfil'), { target: { value: 'Noturno' } })
+    fireEvent.click(screen.getByRole('button', { name: /Salvar este visual/ }))
+    const cartao = () => screen.getByText('Noturno').closest('article') as HTMLElement
+    fireEvent.click(within(cartao()).getByRole('button', { name: 'Apagar' }))
+    expect(perfisSalvos()).toHaveLength(1)
+    fireEvent.click(within(cartao()).getByRole('button', { name: /Clique de novo para apagar/ }))
+    expect(perfisSalvos()).toHaveLength(0)
+
+    fireEvent.click(secao(/Acessibilidade/))
+    const aviso = screen.getByTestId('menu-no-quest')
+    expect(aviso.textContent).toContain('Neste desenho o menu é o trilho de ícones')
+    expect(aviso.textContent).toContain('No topo')
+    expect(container.textContent).not.toMatch(/headset/i)
   })
 
   it('Conquistas: uma parte por vez, e as conquistas por pilar', () => {

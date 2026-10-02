@@ -43,7 +43,7 @@ import {
   updateCard,
 } from '../../../data/api';
 import { type DictionaryResult, forvoUrl, lookup, wiktionaryUrl } from '../../../lib/dictionary';
-import { useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
+import { noHeadset, useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
 import { baseLang, langLabelNaUI } from '../../../lib/languages';
 import { classesDaPalavra } from '../../../lib/pelesDeCartao';
 import { haVozPara } from '../../../lib/voz/haVoz';
@@ -280,14 +280,15 @@ export default function GavetaDaPalavra({
               <label className="rot" htmlFor="pw-t">
                 Tradução
               </label>
-              {/* No headset o campo não pega o foco sozinho: o teclado do sistema cobriria o painel ao abrir. */}
+              {/* No headset o campo não pega o foco sozinho: o teclado do sistema cobriria o painel ao abrir.
+                  É limite do APARELHO: no computador com o mesmo desenho o campo pega o foco, como sempre. */}
               <input
                 className="campo"
                 id="pw-t"
                 value={t}
                 required
                 onChange={(e) => setT(e.target.value)}
-                autoFocus={!questNovo}
+                autoFocus={!(questNovo && noHeadset())}
               />
             </div>
             <div>

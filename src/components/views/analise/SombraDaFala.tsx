@@ -13,7 +13,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { perfilDoDispositivo } from '../../../lib/dispositivo/perfil';
 import { recursosDoAparelho } from '../../../lib/dispositivo/recursos';
-import { useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
+import { noHeadset, useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
 import { t } from '../../../lib/i18n';
 import { micErrorMessage, speechErrorMessage } from '../../../lib/mediaErrors';
 import { toast } from '../../Toast';
@@ -136,9 +136,11 @@ export default function SombraDaFala({
     if (minhaGravacao) void new Audio(minhaGravacao).play();
   };
 
-  /* META QUEST: a NOTA compara a frase com o que o reconhecimento de fala do NAVEGADOR ouviu, e o
-     navegador do Quest não tem reconhecimento. Gravar a própria voz e ouvir a gravação não dependem
-     dele (é o `MediaRecorder`): ficam. Só a nota de 0 a 100 fica de fora, com o motivo dito. */
+  /* O DESENHO NOVO SEM RECONHECIMENTO DE FALA (o Quest; no computador, um navegador que não o tem): a
+     NOTA compara a frase com o que o reconhecimento do NAVEGADOR ouviu. Gravar a própria voz e ouvir a
+     gravação não dependem dele (é o `MediaRecorder`): ficam. Só a nota de 0 a 100 fica de fora, com o
+     motivo dito. Quem decide é o RECURSO (`recursos.ts`), não o desenho: no computador com o
+     reconhecimento, a prática com nota de sempre aparece dentro da folha. */
   if (questNovo && !recursosDoAparelho(perfilDoDispositivo()).reconhecimentoDoNavegador) {
     const gravarSemNota = async () => {
       setMinhaGravacao(null);
@@ -194,10 +196,16 @@ export default function SombraDaFala({
             </div>
           </>
         )}
+        {/* O motivo é do APARELHO: no headset falta o reconhecimento; no computador, é o navegador (o
+            Firefox não o tem) e a saída é outra. */}
         <p className="qs-apoio" data-testid="nota-indisponivel">
-          {t(
-            'A nota de 0 a 100 não está disponível no Quest: ela usa o reconhecimento de fala do navegador, que o headset não tem. Para receber a nota, abra esta sessão no computador ou no celular.',
-          )}
+          {noHeadset()
+            ? t(
+                'A nota de 0 a 100 não está disponível no Quest: ela usa o reconhecimento de fala do navegador, que o headset não tem. Para receber a nota, abra esta sessão no computador ou no celular.',
+              )
+            : t(
+                'A nota de 0 a 100 não está disponível neste navegador: ela usa o reconhecimento de fala, que ele não tem. Para receber a nota, abra esta sessão no Chrome ou no Edge.',
+              )}
         </p>
       </div>
     );

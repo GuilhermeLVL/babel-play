@@ -2,8 +2,9 @@
  * AS TELAS DO META QUEST (maquete aprovada pelo dono em 01/10/2026).
  *
  * Tudo aqui só vale com `<html data-quest-novo="true">`: o aparelho é um Quest E a chave das telas
- * novas está ligada (`lib/dispositivo/telaNovaDoQuest.ts`, botão em `/diagnostico`). Computador e
- * celular nunca passam por este arquivo.
+ * novas está ligada (`lib/dispositivo/telaNovaDoQuest.ts`, botão em `/diagnostico`), ou é um
+ * computador com o "Desenho novo" ligado (02/10/2026; o que muda nele está no fim do arquivo). O
+ * celular não passa por este arquivo.
  *
  * Só TOKENS do tema (`--canvas`, `--surface`, `--ink`, `--accent`…): os temas e o claro/escuro
  * continuam mandando nas cores. As medidas vêm das diretrizes da Meta para web 2D:
@@ -94,6 +95,17 @@ html[data-quest-novo='true'][data-theme='babel']:not(.dark) {
 }
 .q-item.q-mais-botao {
   margin-top: auto;
+}
+/* Com teclado (o computador), a busca fica no pé do trilho, junto do "Mais", com o atalho escrito. */
+.q-item.q-busca-botao {
+  margin-top: auto;
+}
+.q-item.q-busca-botao + .q-mais-botao {
+  margin-top: 0;
+}
+.q-item .q-tecla {
+  font: 700 14px/1 var(--font-mono, monospace);
+  color: var(--ink-muted);
 }
 /* Ao vivo, a legenda fica com a tela inteira: o trilho some e volta ao encerrar. */
 html[data-quest-novo='true']:has(.quest-vivo) .q-trilho {
@@ -1459,7 +1471,8 @@ html[data-quest-novo='true'] :is(.folha-acao, .folha-palavras button):focus-visi
     max-width: 72px;
     min-height: 60px;
   }
-  .q-item.q-mais-botao {
+  .q-item.q-mais-botao,
+  .q-item.q-busca-botao {
     margin-top: 0;
   }
   .q-palco {
@@ -1518,6 +1531,19 @@ html[data-quest-novo='true'] :is(.folha-acao, .folha-palavras button):focus-visi
 @media (min-width: 721px) and (max-width: 1020px) {
   .q-grade:is(.g3, .g4) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ── NO COMPUTADOR (pedido do dono, 02/10/2026: o mesmo desenho fora do headset) ─────────────────
+   A janela do headset tem 1280 × 670; um monitor passa disso nos dois sentidos. Largo demais, a linha
+   de texto fica comprida e os cartões viram faixas: o miolo para em 1480 px e fica no centro. Alto
+   demais, a peça que ocupa a sobra pode crescer mais que os 380 px do headset. */
+html[data-quest-novo='true'][data-dispositivo^='desktop'] .q-palco {
+  padding-inline: max(clamp(18px, 2.6vw, 34px), calc((100% - 1480px) / 2));
+}
+@media (min-height: 800px) {
+  html[data-quest-novo='true'][data-dispositivo^='desktop'] .q-cresce {
+    max-height: min(46vh, 480px);
   }
 }
 

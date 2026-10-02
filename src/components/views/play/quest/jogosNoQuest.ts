@@ -1,8 +1,9 @@
 /**
  * OS JOGOS NO META QUEST: como cada um é jogado no headset, em que ordem aparecem, e quais não abrem.
  *
- * O que o aparelho tem entra por parâmetro, para o teste não precisar de headset. A única leitura de
- * fora é o padrão da voz (`VozParaOQuest`): quem não a informa recebe a do aparelho e a do site. NÃO
+ * O que o aparelho tem entra por parâmetro, para o teste não precisar de headset. As leituras de fora
+ * são o padrão da voz (`VozParaOQuest`): quem não a informa recebe a do aparelho e a do site; e
+ * `noHeadset()`, só para a frase não falar em headset no computador com o desenho novo. NÃO
  * decide se o jogo tem material: isso continua sendo de `@core/minigames/estadoDosJogos`, e a frase
  * do que falta continua sendo a de `Play.tsx`. Aqui só entra o que é do APARELHO.
  */
@@ -10,6 +11,7 @@ import type { EstadoDoJogo } from '../../../../core/minigames/estadoDosJogos';
 import type { RodadaMontada } from '../../../../core/minigames/rodada';
 import { type MinigameId, MINIGAMES } from '../../../../core/minigames/types';
 import type { RecursosDoAparelho } from '../../../../lib/dispositivo/recursos';
+import { noHeadset } from '../../../../lib/dispositivo/telaNovaDoQuest';
 import { t } from '../../../../lib/i18n';
 import { langLabelNaUI } from '../../../../lib/languages';
 import { haVozPara } from '../../../../lib/voz/haVoz';
@@ -170,7 +172,10 @@ export function tilesDoQuest<J extends JogoParaOQuest>(
         grupo: 'audio',
         tag: t('Sem nota de voz'),
         apagado: false,
-        nota: t('O headset não dá nota de pronúncia: ouça, repita em voz alta e siga.'),
+        /* A frase é do aparelho: no computador com o desenho novo, quem não reconhece fala é o navegador. */
+        nota: noHeadset()
+          ? t('O headset não dá nota de pronúncia: ouça, repita em voz alta e siga.')
+          : t('Este navegador não dá nota de pronúncia: ouça, repita em voz alta e siga.'),
       };
     /* ESCUTA E DITADO sem voz para o idioma: os dois jogos têm a alternativa escrita (o ramo `!temSom`
        mostra a tradução no lugar do som), então abrem, e o cartão diz como a pergunta vem. */
@@ -200,8 +205,17 @@ export function tilesDoQuest<J extends JogoParaOQuest>(
         tag: dependeDeVozSintetizada(jogo) ? t('Voz de leitura') : t('Áudio da sessão'),
         apagado: false,
       };
-    const tag =
-      entrada === 'teclado-na-tela' ? t('Teclado na tela') : entrada === 'teclado' ? t('Digitar') : t('Apontar');
+    /* COMO SE JOGA, na palavra do aparelho. Com teclado físico (o computador com o desenho novo) o Termo
+       é digitado como sempre, e o que no headset se aponta com o controle, ali se clica. */
+    const tag = recursos.tecladoFisico
+      ? entrada === 'apontar'
+        ? t('Clicar')
+        : t('Digitar')
+      : entrada === 'teclado-na-tela'
+        ? t('Teclado na tela')
+        : entrada === 'teclado'
+          ? t('Digitar')
+          : t('Apontar');
     return { jogo, grupo: 'apontar', tag, apagado: false };
   };
   const fixados = ordem.fixados ?? [];

@@ -388,6 +388,8 @@ export default function SalaDeEscolha({
                         className="q-linha"
                         aria-pressed={sessionId === g.id}
                         onClick={() => setSessionId(g.id)}
+                        /* O título inteiro ao parar o ponteiro (a linha corta com reticências). */
+                        title={g.title}
                       >
                         <span className="q-ic" aria-hidden>
                           <FileAudio />

@@ -194,6 +194,68 @@ describe('BibliotecaDoQuest', () => {
     expect(acoes.aoImportar).toHaveBeenCalledTimes(1)
   })
 
+  it('no headset (sem as props do computador): nada de busca, exportar, retomar nem duplo clique', () => {
+    const { container, linhas, acoes } = montar(seis)
+    expect(container.querySelector('.q-bib-busca')).toBeNull()
+    expect(container.querySelector('.q-bib-levar')).toBeNull()
+    expect(screen.queryByRole('button', { name: /Exportar transcrição/ })).toBeNull()
+    expect(screen.queryByRole('button', { name: /Retomar captura/ })).toBeNull()
+    fireEvent.doubleClick(linhas()[1])
+    expect(acoes.aoAbrir).not.toHaveBeenCalled()
+  })
+
+  it('no computador: "Exportar transcrição" e "Retomar captura" (só áudio) entregam a selecionada', () => {
+    const aoExportar = vi.fn()
+    const aoRetomar = vi.fn()
+    const { container, linhas, botao } = montar([gravacao('a'), gravacao('t', { type: 'document', durationStr: '-' })], {
+      aoExportar,
+      aoRetomar,
+    })
+    fireEvent.click(botao(/Exportar transcrição/))
+    fireEvent.click(botao(/Retomar captura/))
+    expect(aoExportar.mock.calls.map(([g]) => g.id)).toEqual(['a'])
+    expect(aoRetomar.mock.calls.map(([g]) => g.id)).toEqual(['a'])
+    // "Abrir" continua sendo o único botão principal.
+    expect([...container.querySelectorAll('.q-ctl.pri')].map((b) => b.textContent?.trim())).toEqual(['Abrir'])
+    expect(container.querySelector('.q-bib-det')?.classList.contains('q-bib-det-mais')).toBe(true)
+
+    // Documento não tem captura para retomar; exportar continua.
+    fireEvent.click(linhas()[1])
+    expect(screen.queryByRole('button', { name: /Retomar captura/ })).toBeNull()
+    fireEvent.click(botao(/Exportar transcrição/))
+    expect(aoExportar.mock.calls.map(([g]) => g.id)).toEqual(['a', 't'])
+  })
+
+  it('no computador: o duplo clique numa linha abre a gravação; o clique simples só seleciona', () => {
+    const { linhas, acoes, selecionadas } = montar(seis, { duploCliqueAbre: true })
+    fireEvent.click(linhas()[2])
+    expect(acoes.aoAbrir).not.toHaveBeenCalled()
+    expect(selecionadas().map((l) => l.querySelector('b')?.textContent)).toEqual(['Sessão c'])
+    fireEvent.doubleClick(linhas()[2])
+    expect(acoes.aoAbrir.mock.calls.map(([g]) => g.id)).toEqual(['c'])
+  })
+
+  it('no computador: a busca por título avisa quem filtra e volta à primeira página', () => {
+    const aoBuscar = vi.fn()
+    const { botao, titulos } = montar(seis, { busca: '', aoBuscar })
+    fireEvent.click(botao(/Próxima/))
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Buscar na biblioteca' }), { target: { value: 'sess' } })
+    expect(aoBuscar).toHaveBeenCalledWith('sess')
+    expect(titulos()[0]).toBe('Sessão a')
+  })
+
+  it('no computador: a busca que não acha nada diz isso (a biblioteca não está vazia) e limpa com um toque', () => {
+    const aoBuscar = vi.fn()
+    const { container, botao } = montar([], { busca: 'xyz', aoBuscar })
+    expect(screen.getByTestId('busca-sem-resultado').textContent).toContain('Nenhuma gravação tem “xyz” no título.')
+    expect(screen.queryByText(/Nada gravado ainda/)).toBeNull()
+    // O campo continua na tela, com o que foi digitado.
+    expect((screen.getByRole('searchbox') as HTMLInputElement).value).toBe('xyz')
+    expect(container.querySelectorAll('.q-ctl.pri')).toHaveLength(1)
+    fireEvent.click(botao(/Limpar a busca/))
+    expect(aoBuscar).toHaveBeenCalledWith('')
+  })
+
   it('biblioteca vazia: o convite ocupa o palco, com um único botão principal, que leva à captura', () => {
     const { container, acoes, botao } = montar([])
     expect(container.querySelector('.q-linha')).toBeNull()

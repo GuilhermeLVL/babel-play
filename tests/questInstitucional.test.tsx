@@ -148,6 +148,39 @@ describe('Ajuda no Quest', () => {
     const dlg = screen.getByRole('dialog', { name: 'Atalhos de teclado' })
     expect(dlg.querySelectorAll('.atalho')).toHaveLength(5)
     expect(within(screen.getByTestId('contato-do-quest')).getByRole('link', { name: 'GitHub' })).toBeTruthy()
+    // No headset a linha diz por que a lista não está na tela.
+    expect(screen.getByText(/O headset não tem teclado/)).toBeTruthy()
+  })
+
+  it('no computador com o desenho novo: os atalhos ficam à vista, como na tela de sempre, e nada fala em headset', () => {
+    quest.aparelho = 'desktop-com-gpu'
+    const { container } = render(<Ajuda />)
+    expect(container.querySelector('.q-palco.q-inst')).not.toBeNull()
+    const aVista = screen.getByTestId('atalhos-a-vista')
+    expect(aVista.querySelectorAll('.atalho')).toHaveLength(4)
+    expect(aVista.textContent).toContain('Buscar gravação, palavra ou tela')
+    expect(aVista.querySelectorAll('kbd').length).toBeGreaterThan(3)
+    // O trilho não recolhe: o Ctrl+B do menu lateral de sempre não é prometido aqui.
+    expect(container.textContent).not.toContain('Recolher ou abrir o menu lateral')
+    expect(container.textContent).not.toMatch(/headset/i)
+
+    fireEvent.click(within(aVista).getByRole('button', { name: 'Ver todos' }))
+    const dlg = screen.getByRole('dialog', { name: 'Atalhos de teclado' })
+    expect(dlg.querySelectorAll('.atalho')).toHaveLength(4)
+    expect(dlg.textContent).not.toContain('Recolher ou abrir o menu lateral')
+    // O resto da tela é o mesmo: os três artigos e o contato.
+    expect(container.querySelectorAll('.q-tile')).toHaveLength(3)
+    expect(within(screen.getByTestId('contato-do-quest')).getByRole('link', { name: 'GitHub' })).toBeTruthy()
+  })
+
+  it('no computador, a tela de sempre continua com os cinco atalhos (o menu lateral recolhe com Ctrl+B)', () => {
+    quest.ligado = false
+    quest.aparelho = 'desktop-com-gpu'
+    render(<Ajuda />)
+    fireEvent.click(screen.getByRole('button', { name: 'Ver todos' }))
+    const dlg = screen.getByRole('dialog', { name: 'Atalhos de teclado' })
+    expect(dlg.querySelectorAll('.atalho')).toHaveLength(5)
+    expect(dlg.textContent).toContain('Recolher ou abrir o menu lateral')
   })
 })
 
@@ -322,6 +355,41 @@ describe('Diagnóstico no Quest', () => {
     localStorage.setItem('babel.quest.telaNova', 'nao')
     render(<Diagnostico />)
     expect(screen.queryByTestId('religar-telas-novas')).toBeNull()
+  })
+
+  it('no computador com o desenho novo: sem a aba Headset; a chave de dono fica junto da medida na nuvem', async () => {
+    quest.aparelho = 'desktop-com-gpu'
+    const { container } = render(<Diagnostico />)
+    expect(container.querySelector('.q-palco.q-diag')).not.toBeNull()
+    expect(screen.getAllByRole('tab').map((a) => a.textContent)).toEqual([
+      'Aparelho',
+      'Som',
+      'Velocidade',
+      'Última captura',
+      'Resultado',
+    ])
+    expect(container.querySelector('#painel-headset')).toBeNull()
+    // O que é do headset não existe aqui: a chave das telas novas e a vibração do controle.
+    expect(screen.queryByRole('button', { name: /Telas novas/, hidden: true })).toBeNull()
+    expect(screen.queryByRole('group', { name: 'Testar a vibração do controle', hidden: true })).toBeNull()
+
+    // As medidas continuam, cada uma com o próprio botão, e copiar é o único principal.
+    for (const nome of [
+      'Testar o microfone',
+      'Testar o compartilhamento',
+      'Medir no processador',
+      'Medir na placa de vídeo',
+      'Medir na nuvem',
+    ])
+      expect(screen.getByRole('button', { name: nome, hidden: true })).toBeTruthy()
+    expect(container.querySelectorAll('.q-ctl.pri')).toHaveLength(1)
+
+    fireEvent.click(aba('Velocidade'))
+    const painel = container.querySelector('#painel-velocidade') as HTMLElement
+    expect(painel.hidden).toBe(false)
+    fireEvent.change(within(painel).getByLabelText('Chave de dono'), { target: { value: ' segredo ' } })
+    expect(localStorage.getItem('babel.chaveDoDono')).toBe('segredo')
+    await waitFor(() => expect(screen.getByTestId('diagnostico-perfil')).toBeTruthy())
   })
 })
 

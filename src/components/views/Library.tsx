@@ -34,7 +34,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { createSession, deleteSession, fetchSessions, patchSessionMeta, updateSession } from '../../data/api';
-import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
+import { noHeadset, useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { getEntitlements, onPlanChange } from '../../lib/entitlements';
 import { numero } from '../../lib/i18n';
 import {
@@ -415,6 +415,18 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
           aoFixar={(rec) => void togglePin(rec)}
           aoRenomear={setEditando}
           aoExcluir={handleDelete}
+          /* NO COMPUTADOR o que é pequeno vem para dentro do desenho novo: exportar a transcrição,
+             retomar a captura, a busca por título e o duplo clique que abre. No headset nada muda:
+             continuam em "Tela completa". */
+          {...(noHeadset()
+            ? {}
+            : {
+                aoExportar: setExportando,
+                aoRetomar: (rec: Recording) => onChangeView('capture', { resumeId: rec.id }),
+                busca: searchQuery,
+                aoBuscar: setSearchQuery,
+                duploCliqueAbre: true,
+              })}
         />
         {editando && (
           <EditarSessao
@@ -423,6 +435,7 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
             aoSalvar={(t, capa) => void salvarEdicao(editando, t, capa)}
           />
         )}
+        {exportando && <ExportarTranscricao rec={exportando} aoFechar={() => setExportando(null)} />}
       </>
     );
   }

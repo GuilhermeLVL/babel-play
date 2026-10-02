@@ -23,6 +23,12 @@ vi.mock('../src/lib/dispositivo/telaNovaDoQuest', async (orig) => ({
   ...(await orig<typeof import('../src/lib/dispositivo/telaNovaDoQuest')>()),
   useQuestNovo: () => true,
 }))
+/* O aparelho: o headset, salvo no caso "no computador com o desenho novo". */
+const aparelho = vi.hoisted(() => ({ tipo: 'quest' as string }))
+vi.mock('../src/lib/dispositivo/perfil', async (orig) => {
+  const real = await orig<typeof import('../src/lib/dispositivo/perfil')>()
+  return { ...real, perfilDoDispositivo: () => ({ ...real.perfilDoDispositivo(), tipo: aparelho.tipo }) }
+})
 vi.mock('../src/data/api', async (orig) => {
   api.patch = vi.fn(async () => undefined)
   return {
@@ -63,6 +69,7 @@ async function montar(metrics: AppMetrics | null = metricas) {
 
 beforeEach(() => {
   const agora = Date.now()
+  aparelho.tipo = 'quest'
   api.pendente = false
   api.resultados = [
     { createdAt: agora, ms: 12 * 60_000, correct: true, kind: 'memory' },
@@ -211,12 +218,26 @@ describe('Estatísticas no Quest', () => {
 
       fireEvent.click(screen.getByRole('button', { name: /Exportar/ }))
       expect(screen.getByRole('dialog').textContent).toContain('todos os gráficos e a meta')
+      // No headset a impressão pode não existir, e a linha avisa.
+      expect(screen.getByRole('dialog').textContent).toContain('Se o headset não imprimir, use o CSV.')
       fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /Imprimir ou salvar em PDF/ }))
       vi.advanceTimersByTime(60)
       expect(imprimir).toHaveBeenCalledTimes(1)
     } finally {
       vi.useRealTimers()
     }
+  })
+
+  it('no computador com o desenho novo: a mesma tela, e exportar não fala em headset', async () => {
+    aparelho.tipo = 'desktop-com-gpu'
+    const { container } = await montar()
+    expect(container.querySelector('.q-palco.qe')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: /Exportar/ }))
+    const dialogo = screen.getByRole('dialog')
+    expect(within(dialogo).getByRole('button', { name: /Dados em CSV/ })).toBeTruthy()
+    expect(within(dialogo).getByRole('button', { name: /Imprimir ou salvar em PDF/ })).toBeTruthy()
+    expect(dialogo.textContent).toContain('todos os gráficos e a meta')
+    expect(dialogo.textContent).not.toMatch(/headset/i)
   })
 
   it('sem estudo nenhum, a tela diz o que falta e por onde começar; os gráficos vazios explicam', async () => {

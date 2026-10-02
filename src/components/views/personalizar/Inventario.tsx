@@ -38,7 +38,7 @@ import {
 import { Fragment, type ReactNode, useMemo, useState } from 'react';
 
 import { celebrarEscolha } from '../../../lib/comemoracao';
-import { useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
+import { noHeadset, useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
 import { comprarPecaComSeeds } from '../../../lib/galeria/comprarPeca';
 import { cromaEquipado } from '../../../lib/galeria/cromas';
 import { type ContextoDeEquipar, equiparItem, equipavel } from '../../../lib/galeria/equipar';
@@ -547,7 +547,14 @@ export default function Inventario({
               }}
             >
               <Trash2 aria-hidden />{' '}
-              {questNovo ? (apagando === p.id ? t('Toque de novo para apagar') : t('Apagar')) : 'apagar'}
+              {/* O segundo passo vale nos dois aparelhos do desenho novo; só o verbo muda (toque ou clique). */}
+              {questNovo
+                ? apagando === p.id
+                  ? noHeadset()
+                    ? t('Toque de novo para apagar')
+                    : t('Clique de novo para apagar')
+                  : t('Apagar')
+                : 'apagar'}
             </button>
           </span>
         )}

@@ -147,15 +147,15 @@ import { cenarioDasFontes, type CenarioDeCaptura } from '../../lib/cenarioDeCapt
 import { consentiuNuvem, rapidoDoMicPermitido, useEscolhaDoMic } from '../../lib/consentimentoDeNuvem';
 import { DominantLangTracker } from '../../lib/convoLang';
 import { classificarDispositivo, dispositivoDaRota, lerSinaisDoDispositivo } from '../../lib/dispositivo/perfil';
-import { recursosDoAparelho } from '../../lib/dispositivo/recursos';
 import {
   ESCALAS_DA_LEGENDA,
   guardarFonteDoQuest,
   lerEscalaDaLegenda,
   lerFonteDoQuest,
   mudarEscalaDaLegenda,
-  telaNovaDoQuest,
-} from '../../lib/dispositivo/telaNovaDoQuest';
+} from '../../lib/dispositivo/preferenciasDoQuest';
+import { recursosDoAparelho } from '../../lib/dispositivo/recursos';
+import { telaNovaDoQuest } from '../../lib/dispositivo/telaNovaDoQuest';
 import { useSondaGuardada } from '../../lib/dispositivo/useSondaGuardada';
 import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { getEntitlements } from '../../lib/entitlements';

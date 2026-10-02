@@ -19,6 +19,12 @@ vi.mock('../src/lib/dispositivo/telaNovaDoQuest', async (orig) => ({
   ...(await orig<typeof import('../src/lib/dispositivo/telaNovaDoQuest')>()),
   useQuestNovo: () => true,
 }))
+/** O aparelho do teste: o headset, ou o computador com o MESMO desenho (02/10/2026). */
+const aparelho = vi.hoisted(() => ({ tipo: 'quest' as 'quest' | 'desktop-com-gpu' }))
+vi.mock('../src/lib/dispositivo/perfil', async (orig) => {
+  const real = await orig<typeof import('../src/lib/dispositivo/perfil')>()
+  return { ...real, perfilDoDispositivo: () => ({ ...real.perfilDoDispositivo(), tipo: aparelho.tipo }) }
+})
 const atualizarCartao = vi.fn(async (_id: string, _mudanca: unknown) => ({}))
 vi.mock('../src/data/api', async (orig) => ({
   ...(await orig<typeof import('../src/data/api')>()),
@@ -59,7 +65,10 @@ const { default: PainelTrilha } = await import('../src/components/views/PainelTr
 const { default: Recordes } = await import('../src/components/views/play/Recordes')
 
 beforeAll(() => prepararDialogoNoJsdom())
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => {
+  vi.clearAllMocks()
+  aparelho.tipo = 'quest'
+})
 afterEach(() => {
   cleanup()
   localStorage.clear()
@@ -851,5 +860,152 @@ describe('a pausa da rodada no Quest', () => {
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /Sair da rodada/ }))
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /Sair da rodada/ }))
     expect(acoes.onSair).toHaveBeenCalledTimes(1)
+  })
+
+  it('no headset a pausa não fala em atalho de teclado', () => {
+    montar()
+    fireEvent.click(botao(/Pausar/))
+    expect(screen.getByRole('dialog').querySelector('kbd')).toBeNull()
+  })
+})
+
+/* ── O MESMO DESENHO NO COMPUTADOR (02/10/2026): o que é do APARELHO não vem junto ──────────────── */
+describe('no computador com o desenho novo', () => {
+  beforeEach(() => {
+    aparelho.tipo = 'desktop-com-gpu'
+  })
+  const caixa = () =>
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
+      top: 100,
+      left: 100,
+      width: 200,
+      height: 60,
+      right: 300,
+      bottom: 160,
+      x: 100,
+      y: 100,
+      toJSON: () => ({}),
+    })
+
+  it('"Como se joga" do Caça-palavras fala em arrastar: lá o mouse arrasta, como sempre', () => {
+    render(
+      <ComoSeJoga jogo="wordsearch" titulo="Caça-palavras" ageProfile="pro" onJogar={() => {}} onFechar={() => {}} />,
+    )
+    const ficha = screen.getByRole('dialog')
+    expect(ficha.querySelector('.q-passos')?.textContent).toMatch(/arraste sobre as letras/)
+    expect(ficha.classList.contains('qj-como')).toBe(true) // o desenho continua o novo
+  })
+
+  it('"Como se joga" do Karaokê: com reconhecimento de fala, os passos de sempre; sem, a frase do navegador', () => {
+    const w = window as unknown as { SpeechRecognition?: unknown }
+    w.SpeechRecognition = function () {}
+    try {
+      render(<ComoSeJoga jogo="karaoke" titulo="Karaokê" ageProfile="pro" onJogar={() => {}} onFechar={() => {}} />)
+      expect(screen.getByRole('dialog').textContent).toContain('Toque em Falar e repita.')
+    } finally {
+      delete w.SpeechRecognition
+    }
+    cleanup()
+    render(<ComoSeJoga jogo="karaoke" titulo="Karaokê" ageProfile="pro" onJogar={() => {}} onFechar={() => {}} />)
+    const passos = screen.getByRole('dialog').querySelector('.q-passos')?.textContent ?? ''
+    expect(passos).toContain('Este navegador não dá nota de pronúncia')
+    expect(passos).not.toMatch(/headset/i)
+  })
+
+  it('o tour usa a frase de sempre (arrastar), no cartão do desenho novo', () => {
+    const medida = caixa()
+    try {
+      render(
+        <>
+          <div data-tour="grade">grade</div>
+          <TourGuiado
+            titulo="Caça-palavras"
+            onFim={() => {}}
+            passos={[
+              {
+                alvo: '[data-tour="grade"]',
+                texto: 'Arraste sobre as letras para marcar.',
+                textoNoQuest: 'Toque na primeira letra da palavra e depois na última.',
+                gesto: 'arraste',
+              },
+            ]}
+          />
+        </>,
+      )
+      expect(screen.getByText('Arraste sobre as letras para marcar.')).toBeTruthy()
+      expect(document.querySelector('.qj-tour')).not.toBeNull()
+    } finally {
+      medida.mockRestore()
+    }
+  })
+
+  it('o tour: o passo da nota de voz vale onde o navegador não reconhece fala', () => {
+    const medida = caixa()
+    try {
+      render(
+        <>
+          <div data-tour="falar">aviso</div>
+          <TourGuiado
+            titulo="Karaokê"
+            onFim={() => {}}
+            passos={[
+              {
+                alvo: '[data-tour="falar"]',
+                texto: 'Toque aqui e repita a frase em voz alta.',
+                textoNoQuest: 'Aqui não há nota de voz: ouça, repita em voz alta e siga para a próxima.',
+                tambemSemReconhecimento: true,
+                gesto: 'clique',
+              },
+            ]}
+          />
+        </>,
+      )
+      expect(screen.getByText(/Aqui não há nota de voz/)).toBeTruthy()
+    } finally {
+      medida.mockRestore()
+    }
+  })
+
+  it('a pausa diz o atalho de teclado (Esc ou P), que continua valendo', () => {
+    render(
+      <CascaDaRodada
+        jogo="memory"
+        titulo="Memória"
+        total={6}
+        unidade="palavras"
+        ageProfile="pro"
+        onRecomecar={() => {}}
+        onSair={() => {}}
+      >
+        <p>tabuleiro</p>
+      </CascaDaRodada>,
+    )
+    fireEvent.keyDown(window, { key: 'Escape' })
+    const pausa = screen.getByRole('dialog')
+    expect(pausa.classList.contains('qj-pausa')).toBe(true)
+    expect([...pausa.querySelectorAll('kbd')].map((k) => k.textContent)).toEqual(['Esc', 'P'])
+    fireEvent.keyDown(window, { key: 'p' })
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('a curadoria fala em clique, e o botão de lote diz o que faz ao parar o ponteiro', () => {
+    render(
+      <CuradoriaBaralho
+        triagem={{
+          usaveis: [],
+          outroIdioma: [],
+          fora: ['dog', 'cat', 'bird'].map((w, i) => ({
+            card: { id: `f${i}`, word: w, translation: '' } as VocabCard,
+            motivo: 'sem-pista' as const,
+          })),
+        }}
+        idioma="en"
+        ageProfile="pro"
+        onVoltar={() => {}}
+        onMudou={() => {}}
+      />,
+    )
+    expect(screen.getByText(/consertar em um clique/)).toBeTruthy()
+    expect(botao(/Arquivar as/).title).toBe('Tirar dos jogos as 3 palavras deste grupo (não apaga)')
   })
 })

@@ -13,6 +13,8 @@ import {
 } from 'react';
 
 import { definirJogoEmCurso } from '../../../lib/comemoracao';
+import { perfilDoDispositivo } from '../../../lib/dispositivo/perfil';
+import { recursosDoAparelho } from '../../../lib/dispositivo/recursos';
 import { useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
 import { numero, t } from '../../../lib/i18n';
 import { contagem321, entradaDeCamera } from '../../../lib/juice';
@@ -273,8 +275,10 @@ function DialogoDePausa({
 
   /* META QUEST (segunda rodada, 01/10/2026): a mesma pausa e a mesma confirmação, nas peças do headset.
      "Continuar" é o único botão principal; os sons viram um ajuste em linha com o interruptor grande; a
-     dica de atalho de teclado não aparece (o headset não tem teclado físico). */
+     dica de atalho de teclado só aparece onde há teclado físico (o headset não tem; o computador com o
+     desenho novo tem, e Esc e P continuam pausando). */
   const questNovo = useQuestNovo();
+  const comTeclado = recursosDoAparelho(perfilDoDispositivo()).tecladoFisico;
   if (questNovo) {
     return (
       <dialog ref={ref} className="m-auto qj qj-painel qj-pausa" aria-labelledby={idTitulo}>
@@ -319,6 +323,19 @@ function DialogoDePausa({
               <button type="button" className="q-ctl bloco perigo" onClick={aoPedirSair}>
                 <LogOut aria-hidden /> {t('Sair da rodada')}
               </button>
+              {/* A dica do atalho, só onde há teclado físico (o computador com o desenho novo). */}
+              {comTeclado && (
+                <p className="qj-nota" data-atalhos>
+                  <kbd>Esc</kbd>
+                  {pausaComP && (
+                    <>
+                      {' '}
+                      {t('ou')} <kbd>P</kbd>
+                    </>
+                  )}{' '}
+                  {t('pausa e continua')}
+                </p>
+              )}
             </div>
           </>
         ) : (

@@ -26,10 +26,20 @@ const palco = vi.hoisted(() => ({
   fichar: null as unknown as ReturnType<(typeof import('vitest'))['vi']['fn']>,
 }))
 
+/** O aparelho do teste: o headset (o padrão desta suíte) ou o computador com o desenho novo ligado. */
+const aparelho = vi.hoisted(() => ({ quest: true }))
+
 vi.mock('../src/lib/dispositivo/telaNovaDoQuest', async (orig) => ({
   ...(await orig<typeof import('../src/lib/dispositivo/telaNovaDoQuest')>()),
   useQuestNovo: () => true,
 }))
+vi.mock('../src/lib/dispositivo/perfil', async (orig) => {
+  const m = await orig<typeof import('../src/lib/dispositivo/perfil')>()
+  return {
+    ...m,
+    perfilDoDispositivo: () => ({ ...m.perfilDoDispositivo(), tipo: aparelho.quest ? 'quest' : 'desktop-com-gpu' }),
+  }
+})
 vi.mock('../src/data/api', async (orig) => ({
   ...(await orig<typeof import('../src/data/api')>()),
   fetchSessionTranscript: () =>
@@ -131,6 +141,7 @@ const ultimaFala = () => (palco.falar.mock.calls.at(-1) ?? []) as Parameters<Fal
 
 beforeEach(() => {
   localStorage.clear()
+  aparelho.quest = true
   palco.falas = FALAS
   palco.cartoes = []
   palco.pendente = false
@@ -432,6 +443,65 @@ describe('A leitura no Quest: a frase e a palavra', () => {
       'play',
       expect.objectContaining({ id: 's1', seed: expect.objectContaining({ word: 'flow' }) }),
     )
+  })
+})
+
+/* O MESMO DESENHO NO COMPUTADOR (02/10/2026): o que era limite do headset volta, dentro do desenho novo. */
+describe('A leitura no computador com o desenho novo', () => {
+  beforeEach(() => {
+    aparelho.quest = false
+  })
+
+  it('no headset as palavras do texto não são alvos soltos: a frase inteira abre as opções', async () => {
+    aparelho.quest = true
+    const { container, frases } = await montar()
+    expect(container.querySelector('.ql-palavra')).toBeNull()
+    expect(container.querySelector('.ql .qs-apoio')?.textContent).toContain('Toque numa frase')
+    fireEvent.click(frases()[1].querySelector('.ql-o span') as HTMLElement)
+    expect(screen.getByTestId('opcoes-da-frase')).toBeTruthy()
+  })
+
+  it('cada palavra do texto abre a folha dela com UM clique; o resto da frase abre as opções', async () => {
+    const { container, frases } = await montar()
+    expect(container.querySelector('.ql')).toBeTruthy()
+    expect(container.querySelector('.ql .qs-apoio')?.textContent).toContain('Clique numa palavra')
+    const palavra = [...frases()[1].querySelectorAll<HTMLElement>('.ql-palavra')].find((p) => p.textContent === 'flow')!
+    fireEvent.click(palavra)
+    await act(async () => {})
+    // Só a folha da palavra (pronunciada ao abrir, no idioma da frase): as opções da frase não abrem.
+    expect(screen.getAllByRole('dialog')).toHaveLength(1)
+    expect(within(folha()).getByRole('heading', { name: 'flow' })).toBeTruthy()
+    expect(palco.falar).toHaveBeenCalledWith('flow', expect.objectContaining({ lang: 'en-US' }))
+    expect(folha().querySelector('.qp-imagem img')?.getAttribute('src')).toBe('https://exemplo.test/flow.jpg')
+    fireEvent.click(within(folha()).getByRole('button', { name: 'Fechar' }))
+
+    // Palavra curta ("is") não é alvo: o clique nela é o clique na frase.
+    expect([...frases()[1].querySelectorAll('.ql-palavra')].map((p) => p.textContent)).toEqual([
+      'The',
+      'onboarding',
+      'flow',
+      'long.',
+    ])
+    fireEvent.click(frases()[1])
+    expect(screen.getByTestId('opcoes-da-frase')).toBeTruthy()
+  })
+
+  it('desenhando, as palavras deixam de ser alvos (o traço é que vale)', async () => {
+    const { container, botao } = await montar()
+    fireEvent.click(botao(/Desenho livre/))
+    expect(container.querySelector('.ql-palavra')).toBeNull()
+  })
+
+  it('"Voz, idioma e tom": a escolha de voz está lá, e a falta de voz fala do sistema, não do headset', async () => {
+    const { narrador } = await montar()
+    fireEvent.click(narrador().getByRole('button', { name: /Voz, idioma e tom/ }))
+    const ajustes = within(screen.getByTestId('ajustes-do-narrador'))
+    expect(ajustes.getByRole('combobox', { name: 'Voz' })).toBeTruthy()
+    expect(screen.getByTestId('ajustes-do-narrador').textContent).not.toContain('No Quest a voz é a do site')
+    fireEvent.click(within(ajustes.getByRole('group', { name: 'O que narrar' })).getAllByRole('button')[1])
+    const aviso = screen.getByTestId('voz-ausente').textContent ?? ''
+    expect(aviso).toMatch(/Seu sistema não tem voz instalada para .*Portugu/i)
+    expect(aviso).not.toContain('voz do site')
   })
 })
 

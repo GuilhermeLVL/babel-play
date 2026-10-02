@@ -1,11 +1,30 @@
 # O desenho do headset (Meta Quest): guia para quem monta uma tela
 
-Aprovado pelo dono em 01/10/2026. Vale só com `<html data-quest-novo="true">` (perfil `quest` e a chave
-`telaNovaDoQuest`); em componente, `useQuestNovo()` de `src/lib/dispositivo/telaNovaDoQuest.ts`. Computador
-e celular não mudam.
+Aprovado pelo dono em 01/10/2026. Vale só com `<html data-quest-novo="true">`; em componente,
+`useQuestNovo()` de `src/lib/dispositivo/telaNovaDoQuest.ts`. Isso é verdade em dois casos:
 
-O dono cogita levar este desenho aos outros aparelhos. Por isso: a tela nova não depende de nada que só
-exista no Quest além do `useQuestNovo()`, e o CSS dela usa só as peças e os tokens abaixo.
+- no **Quest**, com a chave `telaNovaDoQuest` (ligada de fábrica, botão em `/diagnostico`);
+- no **computador**, com o "Desenho novo" ligado (pedido do dono em 02/10/2026; Ajustes → Aparência, ou
+  `?desenho=novo` na URL). Desligado de fábrica enquanto as telas são conferidas no computador.
+
+O celular não muda: lá o desenho pede adaptação própria e fica para depois.
+
+## Desenho não é aparelho
+
+`useQuestNovo()` responde **como a tela é desenhada**. O que é **limite ou recurso do aparelho** pergunta
+por `noHeadset()` (mesmo arquivo) ou pelo recurso em `src/lib/dispositivo/recursos.ts`:
+
+| É do desenho (`useQuestNovo`) | É do aparelho (`noHeadset`, `recursosDoAparelho`) |
+| --- | --- |
+| o trilho, o palco, as peças `.q-*`, uma ação principal por tela | teclado físico, atalhos e as dicas deles |
+| páginas no lugar de rolagem, painéis no centro | voz de leitura própria, reconhecimento de fala, nota de pronúncia |
+| tamanhos de alvo e de texto | vibração do controle e o tique ao apontar |
+| | captura leve pela nuvem do site, relógio mais folgado de um jogo |
+| | qualquer frase que diga "headset", "controle" ou "raio" |
+
+No computador, com o desenho novo, a pessoa tem tudo o que a tela de sempre do computador oferece. Os
+ajustes de medida para monitor (miolo até 1480 px, peça que cresce mais alta) estão no fim de `quest.css`.
+Fotos no computador: `test-results/ver-desktop-rotas.mjs`.
 
 ## A regra que não se negocia: nenhuma função some
 

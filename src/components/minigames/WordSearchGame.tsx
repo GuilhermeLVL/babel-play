@@ -9,7 +9,7 @@ import { multiplicador, pontosDoElemento } from '../../lib/juice';
 import type { AgeProfileType } from '../../lib/profile';
 import { useRodada } from './casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda } from './casca/HudDaRodada';
-import { falarNoJogo as falar, useQuestNovo } from './noQuest';
+import { falarNoJogo as falar, useNoHeadset, useQuestNovo } from './noQuest';
 
 /**
  * CAÇA-PALAVRAS POR DEFINIÇÃO.
@@ -72,6 +72,9 @@ export default function WordSearchGame({ items, ageProfile, onFinish }: WordSear
    * eram ícones de 14 px em cada linha, viram quatro botões com nome que agem na pista escolhida.
    */
   const questNovo = useQuestNovo();
+  /* Os DOIS TOQUES são do aparelho (o raio do controle); a coluna das pistas com as ajudas com nome é
+     do desenho. No computador com o desenho novo o arrasto do mouse continua valendo, como sempre. */
+  const semArrasto = useNoHeadset();
   const [pistaEscolhida, setPistaEscolhida] = useState<number | null>(null);
 
   const resolvidos = achados.size + revelados.size;
@@ -352,7 +355,7 @@ export default function WordSearchGame({ items, ageProfile, onFinish }: WordSear
     <p id="como-marcar" className="text-center text-[12px] text-ink-muted mb-2" aria-live="polite" data-qp="apoio">
       {aguardandoFim
         ? t('Agora toque na última letra da palavra (ou na mesma, para desfazer).')
-        : questNovo
+        : semArrasto
           ? t('Toque na primeira letra da palavra e depois na última.')
           : t('Arraste da primeira à última letra, ou toque na primeira e depois na última.')}
     </p>
@@ -399,10 +402,10 @@ export default function WordSearchGame({ items, ageProfile, onFinish }: WordSear
               aria-pressed={inicio?.linha === l && inicio?.coluna === c ? true : undefined}
               onFocus={() => setFocoNaGrade(celula)}
               onKeyDown={(e) => aoTeclarNaCelula(e, celula)}
-              onClick={questNovo ? (e) => marcarPonta(celula, e.currentTarget) : undefined}
+              onClick={semArrasto ? (e) => marcarPonta(celula, e.currentTarget) : undefined}
               onPointerDown={(e) => {
                 // No headset não há arrasto: o toque (o `click` acima) marca as duas pontas.
-                if (questNovo) return;
+                if (semArrasto) return;
                 /* Solta a captura implícita do toque: sem isto os eventos do dedo ficam presos
                        na célula de partida e as outras nunca sabem que ele passou por elas. */
                 const alvo = e.currentTarget;
@@ -500,7 +503,8 @@ export default function WordSearchGame({ items, ageProfile, onFinish }: WordSear
                       disabled={achada || revelada}
                       onClick={() => setPistaEscolhida(i)}
                     >
-                      <span>{shortPrompt(items[i].prompt, 72)}</span>
+                      {/* A pista inteira ao parar o ponteiro, como na lista de sempre (no computador). */}
+                      <span title={items[i].prompt}>{shortPrompt(items[i].prompt, 72)}</span>
                       {(achada || revelada || raspada) && <b>{items[i].answer}</b>}
                       {achada && <Check aria-label={t('encontrada')} />}
                       {revelada && <Eye aria-label={t('revelada')} />}

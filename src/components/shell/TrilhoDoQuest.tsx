@@ -29,13 +29,16 @@ import React, { useEffect, useState } from 'react';
 
 import { tetoAnonimoDa } from '../../core/tetoAnonimo';
 import * as auth from '../../lib/auth';
-import { instalarRespostaAoApontar } from '../../lib/dispositivo/respostaAoApontar';
+import { perfilDoDispositivo } from '../../lib/dispositivo/perfil';
 import {
   guardarVibracaoDoQuest,
   useVibracaoDoQuest,
   type VibracaoDoQuest,
   VIBRACOES_DO_QUEST,
-} from '../../lib/dispositivo/telaNovaDoQuest';
+} from '../../lib/dispositivo/preferenciasDoQuest';
+import { recursosDoAparelho } from '../../lib/dispositivo/recursos';
+import { instalarRespostaAoApontar } from '../../lib/dispositivo/respostaAoApontar';
+import { noHeadset } from '../../lib/dispositivo/telaNovaDoQuest';
 import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { useFlag } from '../../lib/flags';
 import { t } from '../../lib/i18n';
@@ -91,7 +94,17 @@ interface TrilhoDoQuestProps {
  * O painel "Mais" também guarda o que o cabeçalho de sempre trazia e a primeira versão do trilho tinha
  * deixado de fora: a BUSCA, os AVISOS (o sino, com a contagem no próprio botão "Mais") e o que esta
  * edição é ("edição de demonstração", o texto do menu da conta). E a vibração do controle ao apontar.
+ *
+ * NO COMPUTADOR (o mesmo desenho fora do headset, 02/10/2026) o trilho é o mesmo, com o que é do
+ * aparelho trocado: a vibração do controle e o diagnóstico (que a casca de sempre só lista no Quest,
+ * `MenuDaConta.tsx`) não aparecem, e a busca ganha um lugar no próprio trilho, com o atalho à vista
+ * (Ctrl/⌘+K), como no rodapé do menu de sempre. Quem decide é o aparelho (`noHeadset()`,
+ * `recursosDoAparelho().tecladoFisico`), nunca a chave do desenho.
  */
+/** A tecla do atalho da busca como este teclado a escreve (⌘ no Mac, Ctrl nos outros). */
+const teclaDaBusca = (): string =>
+  typeof navigator !== 'undefined' && /Mac|iPhone|iPad/i.test(navigator.platform ?? '') ? '⌘ K' : 'Ctrl K';
+
 const ROTULO_DA_VIBRACAO: Record<VibracaoDoQuest, () => string> = {
   desligada: () => t('Vibração ao apontar: desligada'),
   suave: () => t('Vibração ao apontar: suave'),
@@ -115,6 +128,11 @@ export default function TrilhoDoQuest({
   const avisos = useListaDeNotificacoes();
   const novos = naoLidas(avisos);
   const vibracao = useVibracaoDoQuest();
+  /* O APARELHO (não muda com a página aberta): o headset tem o controle que vibra; o computador tem o
+     teclado, e com ele o atalho da busca. */
+  const [headset] = useState(noHeadset);
+  const [temTeclado] = useState(() => recursosDoAparelho(perfilDoDispositivo()).tecladoFisico);
+  const buscaNoTrilho = !!aoBuscar && temTeclado;
   /* QUEM EU SOU: o que o menu da conta de sempre dizia (`MenuDaConta.tsx`): nome e e-mail, ou o estado
      real quando não há e-mail, e o aviso do convidado com os tetos. */
   const { perfil } = usePerfil();
@@ -180,6 +198,25 @@ export default function TrilhoDoQuest({
             </button>
           );
         })}
+        {/* NO COMPUTADOR: a busca a um clique, com o atalho escrito (o rodapé do menu de sempre a trazia).
+            Ela e o "Mais" ficam juntos no pé do trilho; com a janela estreita sobra só o ícone. */}
+        {buscaNoTrilho && (
+          <button
+            type="button"
+            className="q-item q-busca-botao"
+            onClick={() => aoBuscar?.()}
+            aria-label={t('Buscar gravação, palavra ou tela (Ctrl+K)')}
+            title={t('Buscar gravação, palavra ou tela (Ctrl+K)')}
+            aria-keyshortcuts="Control+K Meta+K"
+            data-testid="busca-no-trilho"
+          >
+            <Search aria-hidden />
+            <span>{t('Buscar')}</span>
+            <span className="q-tecla" aria-hidden>
+              {teclaDaBusca()}
+            </span>
+          </button>
+        )}
         <button
           type="button"
           className="q-item q-mais-botao"
@@ -207,6 +244,8 @@ export default function TrilhoDoQuest({
                 <button
                   type="button"
                   className="q-ctl"
+                  title={temTeclado ? t('Buscar gravação, palavra ou tela (Ctrl+K)') : undefined}
+                  aria-keyshortcuts={temTeclado ? 'Control+K Meta+K' : undefined}
                   onClick={() => {
                     setMaisAberto(false);
                     aoBuscar();
@@ -338,12 +377,16 @@ export default function TrilhoDoQuest({
                   </span>
                   <b>{t('Ajuda e suporte')}</b>
                 </button>
-                <button type="button" className="q-tile em-linha" onClick={() => ir('diagnostico')}>
-                  <span className="q-ic">
-                    <Activity aria-hidden />
-                  </span>
-                  <b>{t('Diagnóstico do aparelho')}</b>
-                </button>
+                {/* Só no headset, como no menu da conta de sempre (`MenuDaConta.tsx`): é por ele que se
+                    chega à chave das telas novas. No computador a página continua em `/diagnostico`. */}
+                {headset && (
+                  <button type="button" className="q-tile em-linha" onClick={() => ir('diagnostico')}>
+                    <span className="q-ic">
+                      <Activity aria-hidden />
+                    </span>
+                    <b>{t('Diagnóstico do aparelho')}</b>
+                  </button>
+                )}
               </div>
             )}
             <div className="q-faixa q-faixa-do-mais" style={{ margin: 0 }}>
@@ -355,10 +398,13 @@ export default function TrilhoDoQuest({
                 {soundEnabled ? <Volume2 aria-hidden /> : <VolumeX aria-hidden />}
                 {soundEnabled ? t('Som dos toques: ligado') : t('Som dos toques: desligado')}
               </button>
-              <button type="button" className="q-ctl" onClick={proximaVibracao} data-testid="vibracao-do-quest">
-                {vibracao === 'desligada' ? <VibrateOff aria-hidden /> : <Vibrate aria-hidden />}
-                {ROTULO_DA_VIBRACAO[vibracao]()}
-              </button>
+              {/* A vibração é do controle do headset: com mouse não há o que vibrar. */}
+              {headset && (
+                <button type="button" className="q-ctl" onClick={proximaVibracao} data-testid="vibracao-do-quest">
+                  {vibracao === 'desligada' ? <VibrateOff aria-hidden /> : <Vibrate aria-hidden />}
+                  {ROTULO_DA_VIBRACAO[vibracao]()}
+                </button>
+              )}
             </div>
             <div className="q-conta-do-mais" data-testid="conta-no-quest">
               <p className="q-rodape-do-mais">

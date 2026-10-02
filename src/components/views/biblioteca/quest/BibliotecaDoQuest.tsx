@@ -5,6 +5,7 @@ import {
   BookOpen,
   ChevronLeft,
   ChevronRight,
+  Download,
   FileAudio,
   FileText,
   Gamepad2,
@@ -15,8 +16,10 @@ import {
   Pin,
   PinOff,
   Plus,
+  Search,
   Target,
   Trash2,
+  X,
   Youtube,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -95,6 +98,11 @@ export default function BibliotecaDoQuest({
   aoFixar,
   aoRenomear,
   aoExcluir,
+  aoExportar,
+  aoRetomar,
+  busca,
+  aoBuscar,
+  duploCliqueAbre = false,
   porPagina = GRAVACOES_POR_PAGINA,
 }: {
   /** Já na ordem em que aparecem (fixadas primeiro, como na tela de sempre). */
@@ -113,6 +121,19 @@ export default function BibliotecaDoQuest({
   aoRenomear?: (gravacao: Recording) => void;
   /** Quem recebe oferece o "Desfazer": aqui o toque já tira a gravação da lista. */
   aoExcluir?: (gravacao: Recording) => void;
+  /*
+   * O QUE O COMPUTADOR TRAZ PARA DENTRO DESTA TELA (02/10/2026). No headset estas quatro props não vêm,
+   * e as funções continuam em "Tela completa", como antes; quem decide é a `Library`, pelo aparelho.
+   */
+  /** "Exportar transcrição" da gravação selecionada (o diálogo de sempre). */
+  aoExportar?: (gravacao: Recording) => void;
+  /** "Retomar captura": só as sessões de áudio têm captura para retomar. */
+  aoRetomar?: (gravacao: Recording) => void;
+  /** A busca por título. Com `aoBuscar`, o campo aparece; `gravacoes` já chega filtrada por ela. */
+  busca?: string;
+  aoBuscar?: (texto: string) => void;
+  /** Com o mouse, o duplo clique numa linha abre a gravação (o clique simples seleciona). */
+  duploCliqueAbre?: boolean;
   porPagina?: number;
 }) {
   const [pagina, setPagina] = useState(0);
@@ -177,6 +198,46 @@ export default function BibliotecaDoQuest({
     </header>
   );
 
+  const buscando = !!busca?.trim();
+  const campoDeBusca = aoBuscar && (gravacoes.length > 0 || buscando) && (
+    <label className="q-campo q-bib-busca">
+      <span className="sr">{t('Buscar na biblioteca')}</span>
+      <Search aria-hidden />
+      <input
+        type="search"
+        autoComplete="off"
+        placeholder={t('Buscar por título')}
+        value={busca ?? ''}
+        onChange={(e) => {
+          aoBuscar(e.target.value);
+          irPara(0);
+        }}
+      />
+    </label>
+  );
+
+  // A busca não achou nada: a biblioteca NÃO está vazia, e a tela diz isso com a saída à mão.
+  if (!selecionada && buscando && aoBuscar) {
+    return (
+      <div className="q-palco q-bib">
+        {cabecalho}
+        {campoDeBusca}
+        <div className="q-vazio q-bib-vazia" data-testid="busca-sem-resultado">
+          <span className="q-ic" aria-hidden>
+            <Search />
+          </span>
+          <h2>{t('Nenhum resultado')}</h2>
+          <p>{t('Nenhuma gravação tem “{busca}” no título.', { busca: busca?.trim() ?? '' })}</p>
+          <div className="q-acoes">
+            <button type="button" className="q-ctl pri" onClick={() => aoBuscar('')}>
+              <X aria-hidden /> {t('Limpar a busca')}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!selecionada) {
     return (
       <div className="q-palco q-bib">
@@ -213,10 +274,14 @@ export default function BibliotecaDoQuest({
   ];
   // Na última página sobra lugar: o convite de capturar outra ocupa o que ficou vazio na coluna.
   const sobraLinha = atual === paginas - 1 && visiveis.length < porPagina;
+  // Retomar captura: só sessões de áudio (documento e vídeo importado não têm captura), como no menu de sempre.
+  const retomar = selecionada.type === 'audio' ? aoRetomar : undefined;
+  const fileirasAMais = aoExportar || retomar ? ' q-bib-det-mais' : '';
 
   return (
     <div className="q-palco q-bib">
       {cabecalho}
+      {campoDeBusca}
 
       {tiposPresentes.length > 1 && (
         <div className="q-abas" role="group" aria-label={t('Tipo de gravação')}>
@@ -264,6 +329,7 @@ export default function BibliotecaDoQuest({
                   className="q-linha"
                   aria-pressed={g.id === selecionada.id}
                   onClick={() => setEscolhida(g.id)}
+                  onDoubleClick={duploCliqueAbre ? () => aoAbrir(g) : undefined}
                 >
                   <span className="q-ic" aria-hidden>
                     <Icone />
@@ -312,7 +378,7 @@ export default function BibliotecaDoQuest({
           )}
         </div>
 
-        <section className="q-cartao q-bib-det" aria-label={t('Gravação selecionada')}>
+        <section className={`q-cartao q-bib-det${fileirasAMais}`} aria-label={t('Gravação selecionada')}>
           <div className="q-bib-topo">
             <span className="q-ic" aria-hidden>
               <IconeDaSelecionada />
@@ -348,6 +414,25 @@ export default function BibliotecaDoQuest({
                 <Target aria-hidden /> {t('Revisar palavras')}
               </button>
             </div>
+            {(aoExportar || retomar) && (
+              <div className="q-acoes q-bib-cuidar q-bib-levar">
+                {aoExportar && (
+                  <button
+                    type="button"
+                    className="q-ctl"
+                    aria-haspopup="dialog"
+                    onClick={() => aoExportar(selecionada)}
+                  >
+                    <Download aria-hidden /> {t('Exportar transcrição')}
+                  </button>
+                )}
+                {retomar && (
+                  <button type="button" className="q-ctl" onClick={() => retomar(selecionada)}>
+                    <Mic aria-hidden /> {t('Retomar captura')}
+                  </button>
+                )}
+              </div>
+            )}
             {(aoFixar || aoRenomear || aoExcluir) && (
               <div className="q-acoes q-bib-cuidar">
                 {aoFixar && (

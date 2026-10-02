@@ -25,6 +25,7 @@ import React, { type ReactNode, useEffect, useMemo, useState } from 'react';
 
 import { perfilDoDispositivo } from '../../../../lib/dispositivo/perfil';
 import { type RecursosDoAparelho, recursosDoAparelho } from '../../../../lib/dispositivo/recursos';
+import { noHeadset } from '../../../../lib/dispositivo/telaNovaDoQuest';
 import { numero, t, tp } from '../../../../lib/i18n';
 import type { AgeProfileType } from '../../../../lib/profile';
 import { aoMudarIdiomasDaVozDoQuest } from '../../../../lib/voz/vozDoQuest';
@@ -135,6 +136,8 @@ export interface AvisoDoLobby {
   acoes?: ReadonlyArray<{ rotulo: string; aoAgir: () => void }>;
 }
 
+const CATEGORIAS: readonly CategoriaDoLobby[] = ['todos', 'classicos', 'favoritos'];
+
 const HABILIDADES: ReadonlyArray<{ id: HabilidadeDoLobby; rotulo: string }> = [
   { id: 'todas', rotulo: 'Todas' },
   { id: 'vocab', rotulo: 'Vocabulário' },
@@ -199,6 +202,28 @@ export default function LobbyDoQuest<J extends JogoDoLobby>({
   trilha,
 }: LobbyDoQuestProps<J>) {
   const doAparelho = useMemo(() => recursos ?? recursosDoAparelho(perfilDoDispositivo()), [recursos]);
+  /* O desenho também liga no computador: a frase que fala em headset, toque ou "lobby do computador" é
+     do aparelho. */
+  const noHeadsetAqui = noHeadset();
+  /* SETAS NAS ABAS (como as `<Abas>` da tela de sempre): ←/→ andam, Home/End vão às pontas. Só faz
+     diferença onde há teclado físico. */
+  const aoTeclarNaAba = (e: React.KeyboardEvent<HTMLButtonElement>, atual: CategoriaDoLobby) => {
+    const i = CATEGORIAS.indexOf(atual);
+    const alvo =
+      e.key === 'ArrowRight'
+        ? CATEGORIAS[(i + 1) % CATEGORIAS.length]
+        : e.key === 'ArrowLeft'
+          ? CATEGORIAS[(i - 1 + CATEGORIAS.length) % CATEGORIAS.length]
+          : e.key === 'Home'
+            ? CATEGORIAS[0]
+            : e.key === 'End'
+              ? CATEGORIAS[CATEGORIAS.length - 1]
+              : null;
+    if (!alvo || !aoTrocarCategoria) return;
+    e.preventDefault();
+    aoTrocarCategoria(alvo);
+    document.getElementById(`aba-${alvo}`)?.focus();
+  };
   const [painel, setPainel] = useState<null | 'filtros' | 'opcoes' | 'ordem'>(null);
   const [porQueAberto, setPorQueAberto] = useState(false);
 
@@ -286,7 +311,13 @@ export default function LobbyDoQuest<J extends JogoDoLobby>({
           fonte && <span className="q-chip">{rotuloDaFonte}</span>
         )}
         {aoPartidaRapida && (
-          <button type="button" className="q-ctl pri" onClick={aoPartidaRapida}>
+          <button
+            type="button"
+            className="q-ctl pri"
+            onClick={aoPartidaRapida}
+            /* A mesma dica da tela de sempre, para quem para o ponteiro em cima (no computador). */
+            title={t('Sorteia um jogo aleatório dentre os disponíveis e inicia imediatamente')}
+          >
             <Zap aria-hidden />
             {t('Partida rápida')}
           </button>
@@ -311,6 +342,7 @@ export default function LobbyDoQuest<J extends JogoDoLobby>({
                 className="q-aba"
                 aria-selected={categoria === id}
                 onClick={() => aoTrocarCategoria(id)}
+                onKeyDown={(e) => aoTeclarNaAba(e, id)}
               >
                 <Icone aria-hidden />
                 {rotulo}
@@ -561,7 +593,9 @@ export default function LobbyDoQuest<J extends JogoDoLobby>({
               <div>
                 <b>{ageProfile === 'kids' ? t('Ver antes de jogar') : t('Prévia antes de começar')}</b>
                 <small>
-                  {t('Mostra o que vai cair antes de a rodada começar. Desligada, o toque já começa o jogo.')}
+                  {noHeadsetAqui
+                    ? t('Mostra o que vai cair antes de a rodada começar. Desligada, o toque já começa o jogo.')
+                    : t('Mostra o que vai cair antes de a rodada começar. Desligada, o clique já começa o jogo.')}
                 </small>
               </div>
               <InterruptorDoQuest
@@ -604,7 +638,14 @@ export default function LobbyDoQuest<J extends JogoDoLobby>({
                   }),
                   curadoria.aoAbrir,
                 ],
-                [LayoutGrid, t('Tela de sempre'), t('O lobby do computador, só nesta visita.'), aoVerTelaCompleta],
+                [
+                  LayoutGrid,
+                  t('Tela de sempre'),
+                  noHeadsetAqui
+                    ? t('O lobby do computador, só nesta visita.')
+                    : t('O lobby de antes do desenho novo, só nesta visita.'),
+                  aoVerTelaCompleta,
+                ],
               ] as Array<false | undefined | [LucideIcon, string, string, () => void]>
             )
               .filter((l): l is [LucideIcon, string, string, () => void] => !!l)

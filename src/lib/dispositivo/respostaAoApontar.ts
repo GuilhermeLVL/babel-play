@@ -16,7 +16,8 @@
  */
 import { SELETOR_DO_ACIONAVEL } from '../sfxDelegate';
 import { play } from '../soundFx';
-import { lerVibracaoDoQuest, type VibracaoDoQuest } from './telaNovaDoQuest';
+import { perfilDoDispositivo } from './perfil';
+import { lerVibracaoDoQuest, type VibracaoDoQuest } from './preferenciasDoQuest';
 
 /** Além do que soa ao clicar: os cartões-alvo, as linhas, os campos e as listas de escolha. */
 const SELETOR = `${SELETOR_DO_ACIONAVEL}, select, summary, input:not([type="hidden"]), textarea, [data-tocavel]`;
@@ -160,7 +161,11 @@ export function instalarRespostaAoApontar(): () => void {
   let maoQueAponta: number | null = null;
   let quadro = 0;
 
+  /* Com mouse a pessoa VÊ onde o ponteiro está: no computador fica só o brilho, sem pulso nem tique. */
+  const noHeadset = perfilDoDispositivo().tipo === 'quest';
+
   const pulsar = (gesto: 'apontar' | 'clicar') => {
+    if (!noHeadset) return;
     const nivel = lerVibracaoDoQuest();
     if (nivel === 'desligada') return;
     const agora = performance.now();

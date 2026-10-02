@@ -3,7 +3,7 @@ import { Archive, Check, CircleAlert, ListChecks, Loader2, PartyPopper, Pencil }
 import React, { useMemo, useState } from 'react';
 
 import { updateCard } from '../../data/api';
-import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
+import { noHeadset, useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { numero, t } from '../../lib/i18n';
 import { langLabel } from '../../lib/languages';
 import type { AgeProfileType } from '../../lib/profile';
@@ -210,9 +210,13 @@ export default function CuradoriaBaralho({ triagem, idioma, ageProfile, onVoltar
           </div>
         </div>
         <p className="qj-nota">
-          {t(
-            'Elas não entram nos jogos por um motivo que dá para consertar em um toque. Nada é apagado: arquivar só tira dos jogos.',
-          )}
+          {noHeadset()
+            ? t(
+                'Elas não entram nos jogos por um motivo que dá para consertar em um toque. Nada é apagado: arquivar só tira dos jogos.',
+              )
+            : t(
+                'Elas não entram nos jogos por um motivo que dá para consertar em um clique. Nada é apagado: arquivar só tira dos jogos.',
+              )}
         </p>
 
         <div className="q-grade g4">
@@ -267,6 +271,8 @@ export default function CuradoriaBaralho({ triagem, idioma, ageProfile, onVoltar
                     className="q-ctl"
                     onClick={() => void arquivarGrupo(motivo, itens)}
                     disabled={ocupado === `grupo:${motivo}`}
+                    /* A mesma dica da tela de sempre, para quem para o ponteiro em cima (no computador). */
+                    title={t('Tirar dos jogos as {n} palavras deste grupo (não apaga)', { n: itens.length })}
                   >
                     {ocupado === `grupo:${motivo}` ? (
                       <>

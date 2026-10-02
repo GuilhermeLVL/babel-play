@@ -17,7 +17,7 @@ import { Suspense, useEffect, useRef, useState } from 'react';
 import { fetchSettings, saveSettings } from '../../data/api';
 import { DEFAULT_PROFILE_ID } from '../../gateway/profiles';
 import type { ThemeType } from '../../lib/appearance';
-import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
+import { definirDesenhoNovoNoComputador, noComputador, useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { getEntitlements, onPlanChange } from '../../lib/entitlements';
 import { idiomasAbaixoDoPiso, t } from '../../lib/i18n';
 import { irPara } from '../../lib/irPara';
@@ -141,8 +141,11 @@ export default function Settings({
   performanceMode,
   togglePerformanceMode,
 }: SettingsProps) {
-  // No Quest (telas novas ligadas) a apresentação é `AjustesDoQuest`; o estado e a gravação são estes.
+  // No Quest (telas novas ligadas) e no computador com o "Desenho novo" ligado, a apresentação é
+  // `AjustesDoQuest`; o estado e a gravação são estes.
   const questNovo = useQuestNovo();
+  // O aparelho não muda com a página aberta: só o computador escolhe entre os dois desenhos.
+  const [computador] = useState(noComputador);
   const [langCfg, setLangCfg] = useState<LangConfig>(DEFAULT_LANG_CONFIG);
   const [activeProfileId, setActiveProfileId] = useState<string>(
     () => localStorage.getItem(PROFILE_STORAGE_KEY) ?? DEFAULT_PROFILE_ID,
@@ -422,6 +425,25 @@ export default function Settings({
                 <input type="checkbox" checked={performanceMode} onChange={togglePerformanceMode} /> {t('Ligado')}
               </label>
             </Linha>
+            {/* O DESENHO NOVO (pedido do dono, 02/10/2026): a interface do headset, no computador. Só
+                o computador escolhe; ligar troca o app inteiro na hora, e a aba Aparência do desenho
+                novo traz o mesmo interruptor para voltar. */}
+            {computador && (
+              <Linha
+                titulo={t('Desenho novo')}
+                desc={t('A interface limpa que nasceu no headset, agora no computador. Dá para voltar quando quiser.')}
+              >
+                <label className="check">
+                  <input
+                    type="checkbox"
+                    aria-label={t('Desenho novo')}
+                    checked={questNovo}
+                    onChange={(e) => definirDesenhoNovoNoComputador(e.target.checked)}
+                  />{' '}
+                  {t('Ligado')}
+                </label>
+              </Linha>
+            )}
           </div>
         </section>
       </PainelDeAba>

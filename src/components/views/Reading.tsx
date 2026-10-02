@@ -38,7 +38,7 @@ import { buildGateway } from '../../gateway';
 import { getActiveProfile } from '../../gateway/activeProfile';
 import { ficharCartao } from '../../lib/adicionarAoDeck';
 import { consentiuNuvem } from '../../lib/consentimentoDeNuvem';
-import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
+import { noHeadset, useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { t, tp } from '../../lib/i18n';
 import { useLangConfig } from '../../lib/langConfig';
 import { detectLanguage, hasNativeDetector, type LangDetection } from '../../lib/langDetect';
@@ -1192,9 +1192,11 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
 
   /* A frase como o protótipo desenha (`.frase`, com a narrada em `.narrando`): as palavras seguem
      clicáveis (ouvir, anotar, abrir o Analista) e carregam as marcações e as notas da pessoa.
-     `soMarcas` (o texto do Quest, onde a frase inteira é o alvo): as mesmas marcas por palavra (o
-     grifo, o sublinhado da nota e o do áudio), sem o clique nem o hover em cada palavra. */
-  const palavrasDaFrase = (texto: string, sIdx: number, soMarcas = false) =>
+     `soMarcas` (o texto do desenho novo, onde a frase inteira é o alvo): as mesmas marcas por palavra (o
+     grifo, o sublinhado da nota e o do áudio), sem o hover em cada palavra. `aoTocar` (só onde o
+     ponteiro acerta uma palavra solta: o computador) faz de cada palavra de conteúdo um alvo dentro da
+     frase; o clique nela não sobe para a frase. */
+  const palavrasDaFrase = (texto: string, sIdx: number, soMarcas = false, aoTocar?: (palavra: string) => void) =>
     tokenizarTexto(texto).map((token) => {
       const annotation = annotations.find((a) => a.textIndex === sIdx && a.wordIndex === token.id);
       const highlightClass = annotation?.type === 'highlight' ? annotation.color || 'bg-warn-soft' : '';
@@ -1202,12 +1204,21 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
       const hasAudio = annotations.some((a) => a.textIndex === sIdx && a.wordIndex === token.id && a.type === 'audio');
       const marcas = `${highlightClass} ${hasNote ? 'underline decoration-dashed decoration-warn decoration-2' : ''} ${hasAudio ? 'underline decoration-double decoration-rare decoration-2' : ''}`;
       if (soMarcas) {
+        const clicavel = !!aoTocar && ehPalavraDeConteudo(token.clean);
         return (
           <React.Fragment key={token.id}>
             <span
-              className={`rounded ${marcas}`}
+              className={`rounded ${marcas}${clicavel ? ' ql-palavra' : ''}`}
               data-marca={
                 annotation?.type === 'highlight' ? 'grifo' : hasNote ? 'nota' : hasAudio ? 'audio' : undefined
+              }
+              onClick={
+                clicavel
+                  ? (e) => {
+                      e.stopPropagation();
+                      aoTocar?.(token.clean);
+                    }
+                  : undefined
               }
             >
               {token.original}
@@ -1271,6 +1282,9 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
       stopVoiceRecording();
       setRecordingTarget(null);
     };
+    /* DO APARELHO, não do desenho: com o mouse a palavra abre direto do texto, com um clique, como na
+       tela de sempre. No headset o raio não acerta uma palavra solta: o caminho é o das opções da frase. */
+    const palavraNoTexto = !noHeadset();
 
     /** Uma anotação como a lista "Estudos & notas" a mostra: o selo, o texto e o áudio, se houver. */
     const linhaDaNota = (ann: Annotation) => {
@@ -1358,7 +1372,13 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
           </div>
         ) : (
           total > 0 && (
-            <p className="qs-apoio">{t('Toque numa frase para narrar a partir dela, anotar ou abrir uma palavra.')}</p>
+            <p className="qs-apoio">
+              {palavraNoTexto
+                ? t(
+                    'Clique numa palavra para abrir a folha dela, ou no resto da frase para narrar a partir dela e anotar.',
+                  )
+                : t('Toque numa frase para narrar a partir dela, anotar ou abrir uma palavra.')}
+            </p>
           )
         )}
 
@@ -1417,7 +1437,14 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
                         <IconeDaNota aria-hidden /> {TIPOS_DE_NOTA[nota.tipo].rotulo}
                       </span>
                     )}
-                    <span className="ql-o">{palavrasDaFrase(frase.original, i, true)}</span>
+                    <span className="ql-o">
+                      {palavrasDaFrase(
+                        frase.original,
+                        i,
+                        true,
+                        palavraNoTexto && !isDrawModeActive ? (palavra) => abrirPalavra(i, palavra) : undefined,
+                      )}
+                    </span>
                     {viewMode !== 'original' && frase.translation && <span className="ql-t">{frase.translation}</span>}
                   </button>
                 );
@@ -1722,7 +1749,8 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
                   </b>
                   {voiceOptions.length === 0 && (
                     <small>
-                      {narraPeloMotor
+                      {/* A frase do headset só vale NELE; no computador as vozes são as do sistema. */}
+                      {narraPeloMotor && noHeadset()
                         ? t('No Quest a voz é a do site: não há outras vozes para escolher.')
                         : t('Nenhuma voz instalada para este idioma.')}
                     </small>
@@ -1791,10 +1819,15 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
                 <div className="q-aviso" role="note" data-testid="voz-ausente">
                   <span>
                     <AlertTriangle aria-hidden />{' '}
-                    {t(
-                      'Sem voz neste aparelho para {idiomas}: essas frases não são narradas. A voz do site lê inglês, espanhol, francês, chinês, japonês e coreano, com a IA de nuvem ligada em Ajustes.',
-                      { idiomas: missingVoiceLangs.map((l) => langLabel(l)).join(', ') },
-                    )}
+                    {noHeadset()
+                      ? t(
+                          'Sem voz neste aparelho para {idiomas}: essas frases não são narradas. A voz do site lê inglês, espanhol, francês, chinês, japonês e coreano, com a IA de nuvem ligada em Ajustes.',
+                          { idiomas: missingVoiceLangs.map((l) => langLabel(l)).join(', ') },
+                        )
+                      : t(
+                          'Seu sistema não tem voz instalada para {idiomas}: essas frases não são narradas. Instale uma voz para o idioma nas configurações do sistema (no Windows: Hora e Idioma → Voz).',
+                          { idiomas: missingVoiceLangs.map((l) => langLabel(l)).join(', ') },
+                        )}
                   </span>
                 </div>
               )}

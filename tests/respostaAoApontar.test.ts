@@ -7,9 +7,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../src/lib/soundFx', () => ({ play: vi.fn() }))
+/* O pulso e o tique são do headset; no computador (desenho novo) fica só o brilho que segue o ponteiro. */
+const aparelho = vi.hoisted(() => ({ tipo: 'quest' }))
+vi.mock('../src/lib/dispositivo/perfil', async (original) => {
+  const real = await original<typeof import('../src/lib/dispositivo/perfil')>()
+  return { ...real, perfilDoDispositivo: () => ({ ...real.perfilDoDispositivo(), tipo: aparelho.tipo }) }
+})
 
 import { alvoSobOPonteiro, instalarRespostaAoApontar, provarVibracao } from '../src/lib/dispositivo/respostaAoApontar'
-import { guardarVibracaoDoQuest, lerVibracaoDoQuest } from '../src/lib/dispositivo/telaNovaDoQuest'
+import { guardarVibracaoDoQuest, lerVibracaoDoQuest } from '../src/lib/dispositivo/preferenciasDoQuest'
 import { play } from '../src/lib/soundFx'
 
 type Efeito = { duration: number; strongMagnitude: number; weakMagnitude: number }
@@ -104,6 +110,22 @@ describe('ao apontar', () => {
     passar(200)
     ponteiro('pointerover', el('a'))
     expect(playEffect).toHaveBeenCalledTimes(2)
+    expect(play).not.toHaveBeenCalled()
+  })
+
+  it('no computador (desenho novo) não pulsa nem toca: com mouse a pessoa vê o ponteiro', () => {
+    desinstalar()
+    aparelho.tipo = 'desktop-com-gpu'
+    desinstalar = instalarRespostaAoApontar()
+    aparelho.tipo = 'quest'
+    const { controle, playEffect } = controleFalso()
+    porControles([controle])
+    ponteiro('pointerover', el('a'))
+    ponteiro('pointerdown', el('a'))
+    porControles([])
+    passar(200)
+    ponteiro('pointerover', el('b'))
+    expect(playEffect).not.toHaveBeenCalled()
     expect(play).not.toHaveBeenCalled()
   })
 

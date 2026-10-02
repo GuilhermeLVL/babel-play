@@ -31,9 +31,63 @@ export function definirTelaNovaDoQuest(ligada: boolean): void {
   if (typeof window !== 'undefined') window.dispatchEvent(new Event(EVENTO));
 }
 
-/** As telas novas valem AQUI: o aparelho é um Quest e a chave está ligada. */
+/**
+ * O MESMO DESENHO NO COMPUTADOR (pedido do dono, 02/10/2026: "ficou tão bom que eu gostaria de passar
+ * essa interface para o computador também"). DESLIGADO de fábrica enquanto as telas são conferidas no
+ * computador; liga em Ajustes → Aparência, ou com `?desenho=novo` na URL (`?desenho=antigo` desliga).
+ * O celular fica para depois: lá o desenho precisa de adaptação própria.
+ */
+export const CHAVE_DO_DESENHO_NOVO_NO_COMPUTADOR = 'babel.desenhoNovo';
+
+if (typeof window !== 'undefined') {
+  try {
+    const pedido = new URLSearchParams(window.location.search).get('desenho');
+    if (pedido === 'novo') localStorage.setItem(CHAVE_DO_DESENHO_NOVO_NO_COMPUTADOR, 'sim');
+    else if (pedido === 'antigo') localStorage.removeItem(CHAVE_DO_DESENHO_NOVO_NO_COMPUTADOR);
+  } catch {
+    /* sem armazenamento: vale o padrão */
+  }
+}
+
+export function desenhoNovoNoComputador(): boolean {
+  try {
+    return localStorage.getItem(CHAVE_DO_DESENHO_NOVO_NO_COMPUTADOR) === 'sim';
+  } catch {
+    return false;
+  }
+}
+
+export function definirDesenhoNovoNoComputador(ligado: boolean): void {
+  try {
+    if (ligado) localStorage.setItem(CHAVE_DO_DESENHO_NOVO_NO_COMPUTADOR, 'sim');
+    else localStorage.removeItem(CHAVE_DO_DESENHO_NOVO_NO_COMPUTADOR);
+  } catch {
+    /* sem armazenamento: vale o padrão */
+  }
+  marcarQuestNovoNoDocumento();
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event(EVENTO));
+}
+
+/** O aparelho é um computador (e não o headset, nem um celular). */
+export const noComputador = (): boolean => perfilDoDispositivo().tipo.startsWith('desktop');
+
+/**
+ * O aparelho é o HEADSET. Tudo o que é LIMITE OU RECURSO DO APARELHO (sem teclado físico, sem voz
+ * própria, sem nota de pronúncia, o raio do controle, a vibração, o relógio mais folgado de um jogo)
+ * pergunta por aqui, ou pelo recurso em `recursos.ts`; nunca por `questNovo()`, que hoje também é
+ * verdadeiro no computador.
+ */
+export const noHeadset = (): boolean => perfilDoDispositivo().tipo === 'quest';
+
+/**
+ * As telas novas valem AQUI: no Quest com a chave ligada, ou no computador com o desenho novo ligado.
+ * O nome ficou do headset, onde o desenho nasceu; o que é DO APARELHO (captura leve, voz da nuvem,
+ * vibração) pergunta por `perfilDoDispositivo().tipo === 'quest'`, nunca por esta função.
+ */
 export function questNovo(): boolean {
-  return perfilDoDispositivo().tipo === 'quest' && telaNovaDoQuest();
+  const tipo = perfilDoDispositivo().tipo;
+  if (tipo === 'quest') return telaNovaDoQuest();
+  return tipo.startsWith('desktop') && desenhoNovoNoComputador();
 }
 
 /** `<html data-quest-novo>`: é o que o CSS de `styles/quest.css` lê. Chamado no boot e a cada troca da chave. */
@@ -51,88 +105,5 @@ export function useQuestNovo(): boolean {
   return useSyncExternalStore(assinar, questNovo, () => false);
 }
 
-/**
- * DE ONDE VEM O SOM NO QUEST. De fábrica, OS DOIS (pedido do dono em 01/10/2026: o som do headset e o
- * microfone juntos); a escolha da pessoa fica guardada neste aparelho.
- */
-export type FonteGuardadaDoQuest = 'headset' | 'mic' | 'ambos';
-export const CHAVE_DA_FONTE_DO_QUEST = 'babel.quest.fonte';
-
-export function lerFonteDoQuest(): FonteGuardadaDoQuest {
-  try {
-    const v = localStorage.getItem(CHAVE_DA_FONTE_DO_QUEST);
-    return v === 'headset' || v === 'mic' || v === 'ambos' ? v : 'ambos';
-  } catch {
-    return 'ambos';
-  }
-}
-
-export function guardarFonteDoQuest(fonte: FonteGuardadaDoQuest): void {
-  try {
-    localStorage.setItem(CHAVE_DA_FONTE_DO_QUEST, fonte);
-  } catch {
-    /* sem armazenamento: vale só nesta visita */
-  }
-}
-
-/**
- * A VIBRAÇÃO DO CONTROLE ao apontar para algo clicável (`respostaAoApontar.ts`). De fábrica, FORTE: no
- * teste do dono (01/10/2026) o pulso curto mal se sentia. Onde o navegador não entrega o motor do
- * controle, a mesma chave vale para o tique sonoro que o substitui.
- */
-export type VibracaoDoQuest = 'desligada' | 'suave' | 'forte';
-export const VIBRACOES_DO_QUEST: readonly VibracaoDoQuest[] = ['desligada', 'suave', 'forte'];
-export const CHAVE_DA_VIBRACAO_DO_QUEST = 'babel.quest.vibracao';
-const EVENTO_DA_VIBRACAO = 'babel:quest-vibracao';
-
-export function lerVibracaoDoQuest(): VibracaoDoQuest {
-  try {
-    const v = localStorage.getItem(CHAVE_DA_VIBRACAO_DO_QUEST);
-    return v === 'desligada' || v === 'suave' || v === 'forte' ? v : 'forte';
-  } catch {
-    return 'forte';
-  }
-}
-
-export function guardarVibracaoDoQuest(v: VibracaoDoQuest): void {
-  try {
-    localStorage.setItem(CHAVE_DA_VIBRACAO_DO_QUEST, v);
-  } catch {
-    /* sem armazenamento: vale só nesta visita */
-  }
-  if (typeof window !== 'undefined') window.dispatchEvent(new Event(EVENTO_DA_VIBRACAO));
-}
-
-const assinarVibracao = (aoMudar: () => void) => {
-  window.addEventListener(EVENTO_DA_VIBRACAO, aoMudar);
-  return () => window.removeEventListener(EVENTO_DA_VIBRACAO, aoMudar);
-};
-
-export function useVibracaoDoQuest(): VibracaoDoQuest {
-  return useSyncExternalStore(assinarVibracao, lerVibracaoDoQuest, () => 'forte' as const);
-}
-
-/** Os passos do tamanho da legenda ao vivo (diretriz da Meta: três ou mais, de 50% a 200%). */
-export const ESCALAS_DA_LEGENDA = [0.75, 1, 1.25, 1.5, 2] as const;
-export const CHAVE_DA_ESCALA_DA_LEGENDA = 'babel.quest.legenda';
-
-export function lerEscalaDaLegenda(): number {
-  try {
-    const v = Number(localStorage.getItem(CHAVE_DA_ESCALA_DA_LEGENDA));
-    return (ESCALAS_DA_LEGENDA as readonly number[]).includes(v) ? v : 1;
-  } catch {
-    return 1;
-  }
-}
-
-/** O passo vizinho (`+1` maior, `-1` menor), parando nas pontas; grava a escolha. */
-export function mudarEscalaDaLegenda(atual: number, passo: 1 | -1): number {
-  const i = (ESCALAS_DA_LEGENDA as readonly number[]).indexOf(atual);
-  const proximo = ESCALAS_DA_LEGENDA[Math.max(0, Math.min(ESCALAS_DA_LEGENDA.length - 1, (i < 0 ? 1 : i) + passo))];
-  try {
-    localStorage.setItem(CHAVE_DA_ESCALA_DA_LEGENDA, String(proximo));
-  } catch {
-    /* sem armazenamento: vale só nesta página */
-  }
-  return proximo;
-}
+/* A fonte do som, a vibração do controle e a escala da legenda (o que só o headset tem) moram em
+   `preferenciasDoQuest.ts`: este arquivo entra no JS inicial, e elas não precisam estar nele. */

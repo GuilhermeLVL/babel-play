@@ -179,6 +179,23 @@ html[data-quest-novo='true'] .q-revisao .fsrs button small {
   font: 600 14px/1 var(--font-mono, monospace);
   color: var(--ink-muted);
 }
+/* AS TECLAS (só onde há teclado físico: o computador). `Study.tsx` só as monta com teclado, e
+   `[data-precisa='teclado']` (`dispositivo.css`) as esconde de novo onde ele não existe. O tamanho sobe
+   dos 11 px de `prototipo.css` para o piso de 14 px deste desenho. */
+html[data-quest-novo='true'] .q-revisao kbd {
+  margin: 0;
+  padding: 3px 8px;
+  font-size: 14px;
+  line-height: 1;
+}
+html[data-quest-novo='true'] .q-revisao .flash .resp > .qr-atalho {
+  margin: 12px 0 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font: 600 15px/1.2 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
 html[data-quest-novo='true'] .q-revisao .fsrs button:hover {
   transform: scale(1.03);
   box-shadow: none;

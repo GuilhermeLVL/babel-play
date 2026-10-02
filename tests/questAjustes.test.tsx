@@ -17,10 +17,15 @@ import Settings from '../src/components/views/Settings'
 import { PADRAO, type Preferencias } from '../src/lib/preferencias'
 import { prepararDialogoNoJsdom } from './_dialogoNoJsdom'
 
-const quest = vi.hoisted(() => ({ ligado: true }))
+/* `ligado`: o desenho novo está à vista. `aparelho`: o headset, salvo nos casos "no computador". */
+const quest = vi.hoisted(() => ({ ligado: true, aparelho: 'quest' as string }))
 vi.mock('../src/lib/dispositivo/telaNovaDoQuest', async (original) => {
   const real = await original<typeof import('../src/lib/dispositivo/telaNovaDoQuest')>()
   return { ...real, useQuestNovo: () => quest.ligado }
+})
+vi.mock('../src/lib/dispositivo/perfil', async (original) => {
+  const real = await original<typeof import('../src/lib/dispositivo/perfil')>()
+  return { ...real, perfilDoDispositivo: () => ({ ...real.perfilDoDispositivo(), tipo: quest.aparelho }) }
 })
 
 const api = vi.hoisted(() => ({
@@ -98,6 +103,7 @@ const interruptor = (nome: string | RegExp) => screen.getByRole('switch', { name
 beforeAll(prepararDialogoNoJsdom)
 beforeEach(() => {
   quest.ligado = true
+  quest.aparelho = 'quest'
   prefs.atual = JSON.parse(JSON.stringify(PADRAO))
   prefs.salvar.mockReset()
   for (const f of Object.values(api)) f.mockReset()
@@ -234,6 +240,59 @@ describe('Ajustes no Quest: Aparência', () => {
     expect(localStorage.getItem('babel.quest.vibracao')).toBe('desligada')
     expect((linha.getByRole('button', { name: 'Testar' }) as HTMLButtonElement).disabled).toBe(true)
     expect(screen.getByTestId('prova-da-vibracao').textContent).toMatch(/nada vibra nem soa/)
+  })
+
+  it('no headset não há "Desenho novo": lá a chave das telas novas mora no diagnóstico', () => {
+    montar('aparencia')
+    expect(screen.queryByText('Desenho novo')).toBeNull()
+    quest.ligado = false
+    cleanup()
+    montar('aparencia')
+    expect(screen.queryByText('Desenho novo')).toBeNull()
+  })
+})
+
+describe('Ajustes no computador: o interruptor do desenho novo', () => {
+  beforeEach(() => {
+    quest.aparelho = 'desktop-com-gpu'
+  })
+
+  it('na tela de sempre, "Desenho novo" está desligado e ligar grava a escolha neste computador', () => {
+    quest.ligado = false
+    const { container } = montar('aparencia')
+    expect(container.querySelector('.tela')).not.toBeNull()
+    expect(screen.getByText(/A interface limpa que nasceu no headset, agora no computador/)).toBeTruthy()
+    const caixa = screen.getByRole('checkbox', { name: 'Desenho novo' }) as HTMLInputElement
+    expect(caixa.checked).toBe(false)
+    fireEvent.click(caixa)
+    expect(localStorage.getItem('babel.desenhoNovo')).toBe('sim')
+    expect(document.documentElement.dataset.questNovo).toBe('true')
+  })
+
+  it('no desenho novo, o mesmo ajuste é um interruptor ligado; desligar devolve a tela de sempre', () => {
+    localStorage.setItem('babel.desenhoNovo', 'sim')
+    const { container } = montar('aparencia')
+    expect(container.querySelector('.q-palco.q-aju')).not.toBeNull()
+    const linha = screen.getByTestId('desenho-novo')
+    expect(linha.className).toContain('q-ajuste')
+    expect(linha.textContent).toContain('A interface limpa que nasceu no headset, agora no computador.')
+    const chave = interruptor('Desenho novo')
+    expect(chave.className).toContain('q-interruptor')
+    expect(chave.getAttribute('aria-checked')).toBe('true')
+    fireEvent.click(chave)
+    expect(localStorage.getItem('babel.desenhoNovo')).toBeNull()
+    expect(document.documentElement.dataset.questNovo).toBe('false')
+  })
+
+  it('o que é do headset não aparece: nada de "Vibração ao apontar", e o resto da aba continua', () => {
+    const { toggleSound } = montar('aparencia')
+    expect(screen.queryByTestId('vibracao-ao-apontar')).toBeNull()
+    expect(screen.queryByText('Vibração ao apontar')).toBeNull()
+    for (const nome of ['Reduzir movimento', 'Sons', 'Modo desempenho']) expect(interruptor(nome)).toBeTruthy()
+    fireEvent.click(interruptor('Sons'))
+    expect(toggleSound).toHaveBeenCalledTimes(1)
+    expect(screen.getByRole('button', { name: 'Escuro' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Grande' })).toBeTruthy()
   })
 })
 

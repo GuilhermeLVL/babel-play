@@ -237,6 +237,19 @@
 .q-inst-par > .q-linha b {
   white-space: normal;
 }
+/* Os atalhos à vista (o computador, que tem teclado): as linhas `.atalho` de sempre, nas medidas
+   deste desenho. No headset a lista fica atrás de "Ver todos". */
+.q-inst-atalhos .atalho {
+  gap: 16px;
+  padding: 12px 0;
+  font-size: 17px;
+  line-height: 1.35;
+}
+.q-inst-atalhos .atalho kbd {
+  min-width: 36px;
+  padding: 6px 10px;
+  font-size: 15px;
+}
 
 /* ── DIAGNÓSTICO: o que está rodando e "Copiar" sempre à vista ────────────────────────────────── */
 .q-palco.q-diag {

@@ -26,7 +26,7 @@ import { play } from '../../lib/soundFx';
 import { toast } from '../Toast';
 import { useRodada } from './casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda } from './casca/HudDaRodada';
-import { falarNoJogo as falar, useQuestNovo, useVozNoJogo } from './noQuest';
+import { falarNoJogo as falar, useNoHeadset, useQuestNovo, useVozNoJogo } from './noQuest';
 
 /**
  * SOLETRAR — o jogo de escrever a palavra a partir do significado, em degraus.
@@ -102,6 +102,7 @@ export default function TermoGame({ rodadas, ageProfile, onFinish }: TermoGamePr
   const [alturaDaRaiz, setAlturaDaRaiz] = useState<number | undefined>(undefined);
   /** O headset com as telas novas, e se a janela é larga o bastante para tabuleiro e teclado lado a lado. */
   const questNovo = useQuestNovo();
+  const noHeadsetAqui = useNoHeadset();
   const [ladoALado, setLadoALado] = useState(false);
   /** Os degraus desta partida: 1 tabuleiro, depois 2, depois 4 — até onde as palavras derem. */
   const grupos = useMemo(() => montarEscada(rodadas, planoDaEscada(rodadas.length)), [rodadas]);
@@ -714,8 +715,9 @@ export default function TermoGame({ rodadas, ageProfile, onFinish }: TermoGamePr
   const totalDePalavras = grupos.reduce((s, g) => s + g.length, 0);
   const jaPassadas = grupos.slice(0, grupoIdx).reduce((s, g) => s + g.length, 0) + resolvidos.filter(Boolean).length;
 
-  /** A casa em digitação é um alvo? Fora do headset, sempre; nele, só com 48 px ou mais. */
-  const casasApontaveis = !questNovo || layout.celula >= CASA_APONTAVEL;
+  /** A casa em digitação é um alvo? Fora do headset, sempre (o mouse acerta a casa pequena, mesmo no
+   *  desenho novo); nele, só com 48 px ou mais: o raio do controle não acerta menos que isso. */
+  const casasApontaveis = !noHeadsetAqui || layout.celula >= CASA_APONTAVEL;
 
   /* A ESCADA — `.escada-termo` do protótipo: os degraus do plano, o feito em verde, o da vez
           em destaque, e o tamanho/tentativas do degrau à direita. */

@@ -3,11 +3,17 @@ import '../../../../styles/questAjustes.css';
 import { AlertTriangle, Moon, Sun, Vibrate } from 'lucide-react';
 import { Suspense, useState } from 'react';
 
-import type { ProvaDeVibracao } from '../../../../lib/dispositivo/respostaAoApontar';
 import {
   guardarVibracaoDoQuest,
   useVibracaoDoQuest,
   VIBRACOES_DO_QUEST,
+} from '../../../../lib/dispositivo/preferenciasDoQuest';
+import type { ProvaDeVibracao } from '../../../../lib/dispositivo/respostaAoApontar';
+import {
+  definirDesenhoNovoNoComputador,
+  noComputador,
+  noHeadset,
+  useQuestNovo,
 } from '../../../../lib/dispositivo/telaNovaDoQuest';
 import { idiomasAbaixoDoPiso, t } from '../../../../lib/i18n';
 import { irPara } from '../../../../lib/irPara';
@@ -40,7 +46,11 @@ const PainelDaNuance = lazyComRecarga(() => import('../PainelDaNuance'));
  * `AiEnginePanel`, `PainelDaNuance`, `LangAudit`) são as de sempre: cada uma tem o próprio ramo do
  * headset, com o mesmo estado.
  *
- * NOVO, e só aqui: "Vibração ao apontar" (o controle pulsa quando o raio chega a um alvo).
+ * NOVO, e só aqui: "Vibração ao apontar" (o controle pulsa quando o raio chega a um alvo). É do
+ * APARELHO: só o headset a mostra (`noHeadset()`).
+ *
+ * NO COMPUTADOR este desenho é uma escolha da pessoa: a aba Aparência traz "Desenho novo", o mesmo
+ * interruptor da tela de sempre, para voltar a ela quando quiser.
  */
 export default function AjustesDoQuest({
   sobrancelha,
@@ -94,6 +104,11 @@ export default function AjustesDoQuest({
 }) {
   const vibracao = useVibracaoDoQuest();
   const [prova, setProva] = useState<ProvaDeVibracao | null>(null);
+  /* O aparelho não muda com a página aberta. No computador, esta tela só existe com o desenho novo
+     ligado: é o que `useQuestNovo()` diz, e o interruptor acompanha a troca na hora. */
+  const [headset] = useState(noHeadset);
+  const [computador] = useState(noComputador);
+  const desenhoNovo = useQuestNovo();
   const emAndamento = idiomasAbaixoDoPiso();
 
   return (
@@ -291,44 +306,68 @@ export default function AjustesDoQuest({
               />
             </div>
 
-            {/* Só no headset: o pulso do controle quando o raio chega a um alvo (`respostaAoApontar.ts`). */}
-            <div className="q-ajuste" data-testid="vibracao-ao-apontar">
-              <div>
-                <b>{t('Vibração ao apontar')}</b>
-                <small>{t('O controle dá um pulso curto quando o raio chega a algo que dá para acionar.')}</small>
-                <small className="q-aju-prova" role="status" data-testid="prova-da-vibracao">
-                  {vibracao === 'desligada'
-                    ? t('Desligada: nada vibra nem soa ao apontar.')
-                    : prova
-                      ? textoDaProva(prova)
-                      : t('Toque em Testar para sentir um pulso nesta intensidade.')}
-                </small>
+            {/* Só no computador: lá o desenho novo é escolha da pessoa (no headset a chave mora em
+                `/diagnostico`). Desligar devolve a tela de sempre na hora, nesta mesma aba. */}
+            {computador && (
+              <div className="q-ajuste" data-testid="desenho-novo">
+                <div>
+                  <b>{t('Desenho novo')}</b>
+                  <small>
+                    {t('A interface limpa que nasceu no headset, agora no computador. Dá para voltar quando quiser.')}
+                  </small>
+                </div>
+                <button
+                  type="button"
+                  className="q-interruptor"
+                  role="switch"
+                  aria-checked={desenhoNovo}
+                  aria-label={t('Desenho novo')}
+                  onClick={() => definirDesenhoNovoNoComputador(!desenhoNovo)}
+                />
               </div>
-              <div className="q-abas q-seg" role="group" aria-label={t('Vibração ao apontar')}>
-                {VIBRACOES_DO_QUEST.map((nivel) => (
-                  <button
-                    key={nivel}
-                    type="button"
-                    className="q-aba"
-                    aria-pressed={vibracao === nivel}
-                    onClick={() => {
-                      guardarVibracaoDoQuest(nivel);
-                      setProva(null);
-                    }}
-                  >
-                    {rotuloDaVibracao(nivel)}
-                  </button>
-                ))}
+            )}
+
+            {/* Só no headset: o pulso do controle quando o raio chega a um alvo (`respostaAoApontar.ts`).
+                Com mouse não há controle para vibrar, e a linha não aparece. */}
+            {headset && (
+              <div className="q-ajuste" data-testid="vibracao-ao-apontar">
+                <div>
+                  <b>{t('Vibração ao apontar')}</b>
+                  <small>{t('O controle dá um pulso curto quando o raio chega a algo que dá para acionar.')}</small>
+                  <small className="q-aju-prova" role="status" data-testid="prova-da-vibracao">
+                    {vibracao === 'desligada'
+                      ? t('Desligada: nada vibra nem soa ao apontar.')
+                      : prova
+                        ? textoDaProva(prova)
+                        : t('Toque em Testar para sentir um pulso nesta intensidade.')}
+                  </small>
+                </div>
+                <div className="q-abas q-seg" role="group" aria-label={t('Vibração ao apontar')}>
+                  {VIBRACOES_DO_QUEST.map((nivel) => (
+                    <button
+                      key={nivel}
+                      type="button"
+                      className="q-aba"
+                      aria-pressed={vibracao === nivel}
+                      onClick={() => {
+                        guardarVibracaoDoQuest(nivel);
+                        setProva(null);
+                      }}
+                    >
+                      {rotuloDaVibracao(nivel)}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  className="q-ctl"
+                  disabled={vibracao === 'desligada'}
+                  onClick={() => vibracao !== 'desligada' && setProva(provarComSom(vibracao))}
+                >
+                  <Vibrate aria-hidden /> {t('Testar')}
+                </button>
               </div>
-              <button
-                type="button"
-                className="q-ctl"
-                disabled={vibracao === 'desligada'}
-                onClick={() => vibracao !== 'desligada' && setProva(provarComSom(vibracao))}
-              >
-                <Vibrate aria-hidden /> {t('Testar')}
-              </button>
-            </div>
+            )}
           </div>
         </section>
       </PainelDeAba>

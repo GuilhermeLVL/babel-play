@@ -9,14 +9,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import LegendaAoVivoDoQuest from '../src/components/views/captura/quest/LegendaAoVivoDoQuest'
 import type { SpeechSegment } from '../src/lib/captura/tiposDaFala'
 import {
-  definirTelaNovaDoQuest,
   ESCALAS_DA_LEGENDA,
   guardarFonteDoQuest,
   lerEscalaDaLegenda,
   lerFonteDoQuest,
   mudarEscalaDaLegenda,
-  telaNovaDoQuest,
-} from '../src/lib/dispositivo/telaNovaDoQuest'
+} from '../src/lib/dispositivo/preferenciasDoQuest'
+import { definirTelaNovaDoQuest, telaNovaDoQuest } from '../src/lib/dispositivo/telaNovaDoQuest'
 
 const fala = (id: string, original: string, traducao: string, lang?: string): SpeechSegment => ({
   id,

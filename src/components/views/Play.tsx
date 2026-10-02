@@ -148,7 +148,7 @@ import { carregarTrilha, indiceDaTrilha, precarregarNiveis, trilhaEmCache } from
 import { useAudioDaSessao } from '../../lib/audioDaSessao';
 import { perfilDoDispositivo } from '../../lib/dispositivo/perfil';
 import { recursosDoAparelho } from '../../lib/dispositivo/recursos';
-import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
+import { noHeadset, useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { type DetalheDoDrop, EVENTO_DROP_GANHO } from '../../lib/filaDeRecompensas';
 import { filtroDaQuery, gravarFiltro, lerFiltroGuardado, queryDoFiltro } from '../../lib/filtroDaPratica';
@@ -440,6 +440,9 @@ export default function Play({
   /* META QUEST com as telas novas ligadas: o lobby vira a grade de `play/quest/LobbyDoQuest` e a
      Memória joga com menos pares. "Tela de sempre" devolve o lobby do computador só nesta visita. */
   const questNovo = useQuestNovo();
+  /* O DESENHO também liga no computador (02/10/2026). O que é LIMITE DO APARELHO (a Memória com menos
+     pares, o jogo de ouvir que abre pela tradução por falta de voz) pergunta por aqui. */
+  const noHeadsetNovo = questNovo && noHeadset();
   const [lobbyCompletoNoQuest, setLobbyCompletoNoQuest] = useState(false);
   /** "O que cada idioma tem", dentro da gaveta: a tabela abre e fecha no próprio botão. */
   const [verCobertura, setVerCobertura] = useState(false);
@@ -864,8 +867,9 @@ export default function Play({
       evitarTambem,
     });
     if (!montada) return null;
-    /* No headset a Memória fica em 6 pares (grade 4 × 3 sem rolar); a prévia encolhe junto. */
-    const { jogo: jogoMontado, previa, material } = questNovo ? rodadaParaOQuest(montada) : montada;
+    /* No headset a Memória fica em 6 pares (grade 4 × 3 sem rolar); a prévia encolhe junto. No computador
+       com o desenho novo valem os pares de sempre (a mesa vira 4 × 4, `styles/questJogar.css`). */
+    const { jogo: jogoMontado, previa, material } = noHeadsetNovo ? rodadaParaOQuest(montada) : montada;
     return { jogo: jogoMontado, previa, aplicar: () => aplicarMaterial(material) };
   };
 
@@ -2180,7 +2184,10 @@ export default function Play({
    * decide o que abre e com que etiqueta é o lobby do headset (`jogosNoQuest.ts`), que apaga só o que de
    * fato não dá para jogar. Fora do headset a pergunta continua sendo "há voz?", como sempre.
    */
-  const temVozOuEscrita = questNovo || temVoz;
+  /* É DO APARELHO (`noHeadset`), não do desenho: no computador com o desenho novo a voz é a do navegador,
+     e sem voz no idioma o jogo de ouvir fica preso com o motivo, como na tela de sempre (aberto, tocaria
+     mudo: lá os jogos não trocam o som pela tradução). */
+  const temVozOuEscrita = noHeadsetNovo || temVoz;
 
   /**
    * O áudio da gravação, baixado COM AUTENTICAÇÃO.
@@ -3881,7 +3888,7 @@ export default function Play({
                 {/* META QUEST: quem pediu a "Tela de sempre" em Opções volta à tela do headset por aqui. */}
                 {questNovo && lobbyCompletoNoQuest && (
                   <button type="button" className="btn btn-outline" onClick={() => setLobbyCompletoNoQuest(false)}>
-                    <ChevronLeft aria-hidden /> {t('Tela do headset')}
+                    <ChevronLeft aria-hidden /> {noHeadset() ? t('Tela do headset') : t('Tela nova')}
                   </button>
                 )}
                 <button

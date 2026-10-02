@@ -1,5 +1,5 @@
+import type { VibracaoDoQuest } from '../../../../lib/dispositivo/preferenciasDoQuest';
 import { type ProvaDeVibracao, provarVibracao } from '../../../../lib/dispositivo/respostaAoApontar';
-import type { VibracaoDoQuest } from '../../../../lib/dispositivo/telaNovaDoQuest';
 import { t, tp } from '../../../../lib/i18n';
 import { play } from '../../../../lib/soundFx';
 

@@ -6,17 +6,32 @@
  */
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import React from 'react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+/* O APARELHO: o headset, salvo nos casos "no computador". O desenho novo vale nos dois; o que é do
+   aparelho (a vibração do controle, o diagnóstico no menu, o atalho da busca) pergunta por ele. */
+const aparelho = vi.hoisted(() => ({ tipo: 'quest' as string }))
+vi.mock('../src/lib/dispositivo/perfil', async (original) => {
+  const real = await original<typeof import('../src/lib/dispositivo/perfil')>()
+  return { ...real, perfilDoDispositivo: () => ({ ...real.perfilDoDispositivo(), tipo: aparelho.tipo }) }
+})
 
 import TrilhoDoQuest from '../src/components/shell/TrilhoDoQuest'
 import EncerrarNoQuest from '../src/components/views/captura/quest/EncerrarNoQuest'
 import ResumoDaSessaoNoQuest from '../src/components/views/captura/quest/ResumoDaSessaoNoQuest'
 import InicioDoQuest from '../src/components/views/quest/InicioDoQuest'
 import type { AppMetrics } from '../src/data/api'
-import { definirTelaNovaDoQuest, questNovo } from '../src/lib/dispositivo/telaNovaDoQuest'
+import {
+  definirDesenhoNovoNoComputador,
+  definirTelaNovaDoQuest,
+  questNovo,
+} from '../src/lib/dispositivo/telaNovaDoQuest'
 import { EMPTY_PROGRESS } from '../src/lib/progress'
 import type { Recording } from '../src/types'
 
+beforeEach(() => {
+  aparelho.tipo = 'quest'
+})
 afterEach(() => {
   cleanup()
   localStorage.clear()
@@ -433,9 +448,118 @@ describe('ResumoDaSessaoNoQuest', () => {
   })
 })
 
-describe('a chave vale só no Quest', () => {
-  it('fora do Quest, `questNovo()` é falso mesmo com a chave ligada', () => {
+describe('a casca no computador com o desenho novo', () => {
+  const montar = (extra: Record<string, unknown> = {}) => {
+    aparelho.tipo = 'desktop-com-gpu'
+    const ir = vi.fn()
+    const aoBuscar = vi.fn()
+    const r = render(
+      <TrilhoDoQuest
+        activeView="hub"
+        onChangeView={ir}
+        aoBuscar={aoBuscar}
+        ageProfile="pro"
+        darkMode={false}
+        toggleDarkMode={() => {}}
+        soundEnabled
+        toggleSound={() => {}}
+        {...extra}
+      />,
+    )
+    return { ir, aoBuscar, ...r }
+  }
+
+  it('os mesmos sete destinos, e a busca no próprio trilho com o atalho à vista', () => {
+    const { container, aoBuscar } = montar()
+    const itens = [...container.querySelectorAll('.q-trilho .q-item')]
+    expect(itens.map((i) => i.querySelector('span')?.textContent)).toEqual([
+      'Início',
+      'Capturar',
+      'Intérprete',
+      'Jogar',
+      'Biblioteca',
+      'Vocabulário',
+      'Estatísticas',
+      'Buscar',
+      'Mais',
+    ])
+    const busca = screen.getByTestId('busca-no-trilho')
+    expect(busca.textContent).toMatch(/Buscar(Ctrl|⌘) K/)
+    expect(busca.getAttribute('aria-keyshortcuts')).toBe('Control+K Meta+K')
+    expect(busca.getAttribute('title')).toContain('Ctrl+K')
+    fireEvent.click(busca)
+    expect(aoBuscar).toHaveBeenCalledTimes(1)
+    // Não abre o painel: a busca é um diálogo próprio.
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('painel Mais: sem a vibração do controle e sem o diagnóstico; o resto continua', () => {
+    const { ir, aoBuscar } = montar()
+    fireEvent.click(screen.getByRole('button', { name: 'Mais' }))
+    const painel = screen.getByRole('dialog')
+    expect(screen.queryByTestId('vibracao-do-quest')).toBeNull()
+    expect(painel.textContent).not.toContain('Vibração')
+    expect(painel.textContent).not.toContain('Diagnóstico do aparelho')
+    for (const destino of ['Personalizar', 'Sobre', 'Ajustes', 'Seu perfil', 'Ajuda e suporte'])
+      expect(painel.textContent).toContain(destino)
+    expect(painel.textContent).toMatch(/Tema (claro|escuro)/)
+    expect(painel.textContent).toContain('Som dos toques: ligado')
+    expect(screen.getByTestId('conta-no-quest')).toBeTruthy()
+    expect(screen.getByRole('tab', { name: /Avisos/ })).toBeTruthy()
+
+    const busca = screen.getByRole('button', { name: 'Buscar' })
+    expect(busca.getAttribute('aria-keyshortcuts')).toBe('Control+K Meta+K')
+    fireEvent.click(busca)
+    expect(aoBuscar).toHaveBeenCalledTimes(1)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mais' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Ajuda e suporte' }))
+    expect(ir).toHaveBeenLastCalledWith('ajuda')
+  })
+
+  it('sem quem abra a busca, o trilho não inventa o botão', () => {
+    montar({ aoBuscar: undefined })
+    expect(screen.queryByTestId('busca-no-trilho')).toBeNull()
+  })
+})
+
+describe('no headset, a casca não ganha nada do computador', () => {
+  it('a busca continua só no painel Mais, sem dica de tecla', () => {
+    render(
+      <TrilhoDoQuest
+        activeView="hub"
+        onChangeView={() => {}}
+        aoBuscar={() => {}}
+        ageProfile="pro"
+        darkMode={false}
+        toggleDarkMode={() => {}}
+        soundEnabled
+        toggleSound={() => {}}
+      />,
+    )
+    expect(screen.queryByTestId('busca-no-trilho')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Mais' }))
+    expect(screen.getByRole('button', { name: 'Buscar' }).hasAttribute('aria-keyshortcuts')).toBe(false)
+  })
+})
+
+describe('onde o desenho novo vale', () => {
+  it('no celular, `questNovo()` é falso mesmo com as duas chaves ligadas', () => {
+    aparelho.tipo = 'celular-bom'
     definirTelaNovaDoQuest(true)
+    definirDesenhoNovoNoComputador(true)
+    expect(questNovo()).toBe(false)
+    expect(document.documentElement.dataset.questNovo).toBe('false')
+  })
+
+  it('no computador, desligado de fábrica; liga e desliga com a escolha de Ajustes', () => {
+    aparelho.tipo = 'desktop-sem-gpu'
+    definirTelaNovaDoQuest(true)
+    expect(questNovo()).toBe(false)
+    definirDesenhoNovoNoComputador(true)
+    expect(questNovo()).toBe(true)
+    expect(document.documentElement.dataset.questNovo).toBe('true')
+    definirDesenhoNovoNoComputador(false)
     expect(questNovo()).toBe(false)
     expect(document.documentElement.dataset.questNovo).toBe('false')
   })

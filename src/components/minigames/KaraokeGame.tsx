@@ -7,6 +7,7 @@ import { palavrasDaFrase } from '../../core/minigames/palavrasDaFrase';
 import { celebrar } from '../../lib/comemoracao';
 import { perfilDoDispositivo } from '../../lib/dispositivo/perfil';
 import { recursosDoAparelho } from '../../lib/dispositivo/recursos';
+import { noHeadset } from '../../lib/dispositivo/telaNovaDoQuest';
 import { criarFalante } from '../../lib/falante';
 import { t } from '../../lib/i18n';
 import { pontosDoElemento } from '../../lib/juice';
@@ -83,7 +84,9 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish }: K
   /* NO QUEST o navegador não reconhece fala: o jogo não dá nota ali, e diz isso no lugar do botão de
      falar. O Karaokê ABRE no headset sempre que há som (o clipe da gravação ou a voz do site, quando ela
      lê o idioma da fala), no modo "ouça, repita em voz alta e siga"; o cartão do lobby leva a etiqueta
-     "Sem nota de voz" (`jogosNoQuest.ts`) e só fica apagado quando não há som nenhum para repetir. */
+     "Sem nota de voz" (`jogosNoQuest.ts`) e só fica apagado quando não há som nenhum para repetir.
+     A pergunta é ao RECURSO, não ao aparelho: no computador com o desenho novo, o navegador que reconhece
+     fala dá nota como sempre; o que não reconhece (Firefox) cai no mesmo modo, com a frase do navegador. */
   const questNovo = useQuestNovo();
   const semNotaAqui = useMemo(
     () => questNovo && !recursosDoAparelho(perfilDoDispositivo()).reconhecimentoDoNavegador,
@@ -384,7 +387,9 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish }: K
           <p className="qj-sem-voz" role="note" data-testid="karaoke-sem-nota" data-tour="falar">
             <MicOff aria-hidden />
             <span>
-              {t('O headset não avalia a pronúncia.')}{' '}
+              {noHeadset()
+                ? t('O headset não avalia a pronúncia.')
+                : t('Este navegador não tem reconhecimento de voz, então não avalia a pronúncia.')}{' '}
               {temSom
                 ? t('Ouça, repita em voz alta e siga para a próxima.')
                 : t('Leia em voz alta e siga para a próxima.')}

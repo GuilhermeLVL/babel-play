@@ -6,6 +6,8 @@ import { buildGateway } from '../../gateway';
 import { getActiveProfile } from '../../gateway/activeProfile';
 import { VocabCard } from '../../types';
 import { consentiuNuvem } from '../consentimentoDeNuvem';
+import { perfilDoDispositivo } from '../dispositivo/perfil';
+import { recursosDoAparelho } from '../dispositivo/recursos';
 import { useQuestNovo } from '../dispositivo/telaNovaDoQuest';
 import { t } from '../i18n';
 import { haVozPara } from '../voz/haVoz';
@@ -266,6 +268,7 @@ export function ActiveProductionExercise({
   /* NO META QUEST: o mesmo exercício dentro do cartão da revisão (`RevisaoDoQuest.tsx`), sem um cartão
      dentro do outro. O campo não pega o foco sozinho: o teclado do sistema sobe quando a pessoa toca nele. */
   if (questNovo) {
+    const comTeclado = recursosDoAparelho(perfilDoDispositivo()).tecladoFisico;
     const pedacos = card.sentence ? card.sentence.split(new RegExp(`(${escapeRegExp(card.word)})`, 'gi')) : [];
     const ehAlvo = (pedaco: string) => pedaco.toLowerCase() === card.word.toLowerCase();
     return (
@@ -301,8 +304,11 @@ export function ActiveProductionExercise({
                 className="ap-input"
                 autoComplete="off"
                 autoCapitalize="off"
+                /* Com teclado físico (o computador com o desenho novo) o campo pega o foco, como na
+                   tela de sempre; no headset não, para o teclado do sistema não subir sozinho. */
+                autoFocus={comTeclado}
                 value={attempt}
-                placeholder={t('Toque para escrever')}
+                placeholder={comTeclado ? t('Digite a resposta aqui...') : t('Toque para escrever')}
                 onChange={(e) => setAttempt(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') handleVerifyLocal();

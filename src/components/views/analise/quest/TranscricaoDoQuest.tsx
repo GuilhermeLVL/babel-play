@@ -12,7 +12,7 @@ import {
   SlidersHorizontal,
   Volume2,
 } from 'lucide-react';
-import { type ReactNode, useState } from 'react';
+import { type KeyboardEvent, type ReactNode, useState } from 'react';
 
 import type { FalaDaAnalise } from '../../../../lib/analise/tiposDaAnalise';
 import { t } from '../../../../lib/i18n';
@@ -92,6 +92,8 @@ export default function TranscricaoDoQuest({
   aoAlternarSombra,
   idiomaDe,
   ajustes,
+  palavrasNoTexto = false,
+  atalhosDeTeclado = false,
 }: {
   falas: readonly FalaDaAnalise[];
   /** A transcrição ainda está vindo, chegou, ou o pedido falhou. */
@@ -130,6 +132,14 @@ export default function TranscricaoDoQuest({
   aoAlternarSombra: (indice: number | null) => void;
   idiomaDe: (indice: number) => string;
   ajustes: readonly AjusteDeExibicao[];
+  /**
+   * O ponteiro acerta uma palavra no meio do texto (o computador, com o mouse): cada palavra da fala
+   * abre a folha dela com UM clique, como na tela de sempre; o resto da fala continua abrindo as
+   * opções. No headset o raio não acerta a palavra solta, e o caminho é o das opções da fala.
+   */
+  palavrasNoTexto?: boolean;
+  /** Há teclado físico: Ctrl+Enter salva a correção da fala, e a folha diz isso. */
+  atalhosDeTeclado?: boolean;
 }) {
   /** O índice (`fala.index`) da fala com as opções abertas. */
   const [aberta, setAberta] = useState<number | null>(null);
@@ -143,6 +153,12 @@ export default function TranscricaoDoQuest({
     if (editando) edicao.cancelar();
     if (sombraDe !== null) aoAlternarSombra(null);
     setAberta(null);
+  };
+  /* Ctrl+Enter (ou ⌘+Enter) salva a correção, como na tela de sempre. Só com teclado físico. */
+  const salvarPeloTeclado = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (!atalhosDeTeclado || e.key !== 'Enter' || !(e.ctrlKey || e.metaKey)) return;
+    e.preventDefault();
+    if (falaAberta?.id && !edicao.salvando) edicao.salvar(falaAberta.id);
   };
 
   const barra = (
@@ -205,11 +221,24 @@ export default function TranscricaoDoQuest({
         >
           {falas.map((fala) => {
             const traducao = traducaoDe(fala);
-            const original = !ocultarOriginal && (
-              <span className="qs-o" lang={fala.lang || undefined}>
-                {fala.original}
-              </span>
-            );
+            const original =
+              !ocultarOriginal &&
+              (palavrasNoTexto ? (
+                <span className="qs-o qs-o-clicavel" lang={fala.lang || undefined}>
+                  <TokensClicaveis
+                    tokens={tokenizarTexto(fala.original)}
+                    className="qs-o-palavras"
+                    estaNoDeck={estaNoDeck}
+                    onMouseEnter={() => {}}
+                    onMouseLeave={() => {}}
+                    onExaminar={(palavra) => aoAbrirPalavra(palavra, fala.original)}
+                  />
+                </span>
+              ) : (
+                <span className="qs-o" lang={fala.lang || undefined}>
+                  {fala.original}
+                </span>
+              ));
             const traduzida = traducao.texto && (
               <span className="qs-t" data-polida={traducao.polida ? '' : undefined}>
                 {traducao.texto}
@@ -289,6 +318,7 @@ export default function TranscricaoDoQuest({
                     data-autofocus
                     value={edicao.origem}
                     onChange={(e) => edicao.aoMudarOrigem(e.target.value)}
+                    onKeyDown={salvarPeloTeclado}
                     disabled={edicao.salvando}
                   />
                 </label>
@@ -298,9 +328,15 @@ export default function TranscricaoDoQuest({
                     name="analysis-edit-target"
                     value={edicao.destino}
                     onChange={(e) => edicao.aoMudarDestino(e.target.value)}
+                    onKeyDown={salvarPeloTeclado}
                     disabled={edicao.salvando}
                   />
                 </label>
+                {atalhosDeTeclado && (
+                  <p className="qs-apoio qs-atalhos" data-precisa="teclado" data-testid="atalhos-da-edicao">
+                    <kbd>Ctrl</kbd> + <kbd>Enter</kbd> {t('salva')} · <kbd>Esc</kbd> {t('fecha sem salvar')}
+                  </p>
+                )}
                 {edicao.erro && (
                   <p className="qs-erro" role="alert">
                     <AlertTriangle aria-hidden /> {edicao.erro}
@@ -421,9 +457,13 @@ export default function TranscricaoDoQuest({
           ) : (
             <div className="dlg-corpo qs-miolo">
               <p className="q-texto">
-                {t(
-                  'Nenhuma palavra desta sessão foi para o caderno ainda. Toque numa fala e depois numa palavra para analisá-la e guardá-la.',
-                )}
+                {palavrasNoTexto
+                  ? t(
+                      'Nenhuma palavra desta sessão foi para o caderno ainda. Clique numa palavra do texto para analisá-la e guardá-la.',
+                    )
+                  : t(
+                      'Nenhuma palavra desta sessão foi para o caderno ainda. Toque numa fala e depois numa palavra para analisá-la e guardá-la.',
+                    )}
               </p>
             </div>
           )}

@@ -3,7 +3,7 @@ import { type ReactNode, useState } from 'react';
 
 import { applyCustomColors, FONTE_OPTIONS, type FonteType, THEME_OPTIONS, type ThemeType } from '../../lib/appearance';
 import { celebrarEscolha } from '../../lib/comemoracao';
-import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
+import { noHeadset, useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { acessoAoEstilo, faltaParaOPerfil } from '../../lib/galeria/acesso';
 import { estaEquipado } from '../../lib/galeria/equipar';
 import { gravarPaletaAtiva, lerPaletaAtiva, type Paleta, paletaPorId } from '../../lib/galeria/paletas';
@@ -112,6 +112,8 @@ export default function Personalizar({
   /* No Meta Quest (telas novas) o inventário mostra uma seção por vez, e o que mora aqui embaixo (a letra
      e o perfil de exibição) entra nele como mais uma seção, com as peças do desenho do headset. */
   const questNovo = useQuestNovo();
+  /* O mesmo desenho vale no computador (02/10/2026): o que FALA do headset pergunta pelo aparelho. */
+  const [headset] = useState(noHeadset);
 
   const paletaAtiva = lerPaletaAtiva();
   const estiloDaPaleta = (id: string) => paletaPorId(id)?.estilo;
@@ -195,8 +197,9 @@ export default function Personalizar({
   /* Meus perfis primeiro: o que a pessoa montou vale mais do que o que veio de fábrica. */
   const perfis = [...perfisSalvos(), ...PRESETS];
 
-  /* ACESSIBILIDADE NO HEADSET: a letra e o perfil de exibição em linhas de 72 px. A posição do menu não
-     vira controle: no Quest o menu é o trilho, e a tela diz isso em vez de oferecer um botão sem efeito. */
+  /* ACESSIBILIDADE NO DESENHO NOVO: a letra e o perfil de exibição em linhas de 72 px. A posição do menu
+     não vira controle: neste desenho o menu é o trilho, e a tela diz isso em vez de oferecer um botão sem
+     efeito. A frase depende do aparelho: no computador não se fala em headset. */
   const acessibilidadeNoQuest = questNovo ? (
     <>
       <section className="q-secao" data-bloco="acessibilidade-e-layout">
@@ -230,10 +233,15 @@ export default function Personalizar({
       </section>
       <div className="q-aviso" role="note" data-testid="menu-no-quest">
         <span>
-          {t(
-            'No headset o menu é o trilho de ícones, sempre no mesmo lugar. A posição do menu ({posicao}) vale no computador e no celular.',
-            { posicao: POSICAO_DO_MENU[menuPosition] ?? menuPosition },
-          )}
+          {headset
+            ? t(
+                'No headset o menu é o trilho de ícones, sempre no mesmo lugar. A posição do menu ({posicao}) vale no computador e no celular.',
+                { posicao: POSICAO_DO_MENU[menuPosition] ?? menuPosition },
+              )
+            : t(
+                'Neste desenho o menu é o trilho de ícones, sempre à esquerda. A posição do menu ({posicao}) vale no desenho de sempre e no celular.',
+                { posicao: POSICAO_DO_MENU[menuPosition] ?? menuPosition },
+              )}
         </span>
       </div>
       <section className="q-secao">
@@ -300,8 +308,12 @@ export default function Personalizar({
         {
           chave: 'menu',
           rotulo: 'Menu',
-          // No headset o menu é o trilho de ícones: a posição escolhida não vale ali.
-          valor: questNovo ? t('Trilho do headset') : (POSICAO_DO_MENU[menuPosition] ?? menuPosition),
+          // No desenho novo o menu é o trilho de ícones: a posição escolhida não vale ali.
+          valor: questNovo
+            ? headset
+              ? t('Trilho do headset')
+              : t('Trilho de ícones')
+            : (POSICAO_DO_MENU[menuPosition] ?? menuPosition),
           icone: PanelLeft,
         },
       ]}

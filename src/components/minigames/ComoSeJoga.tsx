@@ -2,7 +2,9 @@ import type { MinigameId } from '@core';
 import { LifeBuoy, Play, TriangleAlert, X } from 'lucide-react';
 import { useId, useRef } from 'react';
 
-import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
+import { perfilDoDispositivo } from '../../lib/dispositivo/perfil';
+import { recursosDoAparelho } from '../../lib/dispositivo/recursos';
+import { noHeadset, useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { t } from '../../lib/i18n';
 import type { AgeProfileType } from '../../lib/profile';
 import { DialogoBase } from '../ui/Dialogo';
@@ -48,6 +50,11 @@ export interface ConteudoComoSeJoga {
    * valem os de sempre.
    */
   passosNoQuest?: string[];
+  /**
+   * Os passos onde o NAVEGADOR não reconhece fala, fora do headset (o computador com o desenho novo num
+   * navegador sem Web Speech): os mesmos do headset, sem falar em headset.
+   */
+  passosSemNotaDeVoz?: string[];
   /** O que a nota mede — de verdade. */
   avaliacao: string;
   /** O que este jogo NÃO garante. Nunca vazio. */
@@ -150,6 +157,11 @@ export const COMO_SE_JOGA: Record<MinigameId, ConteudoComoSeJoga> = {
       'Ouça a frase, as palavras acendem no ritmo do áudio de verdade.',
       'Repita em voz alta, quantas vezes quiser.',
       'O headset não dá nota de pronúncia: siga para a próxima quando estiver satisfeito.',
+    ],
+    passosSemNotaDeVoz: [
+      'Ouça a frase, as palavras acendem no ritmo do áudio de verdade.',
+      'Repita em voz alta, quantas vezes quiser.',
+      'Este navegador não dá nota de pronúncia: siga para a próxima quando estiver satisfeito.',
     ],
     avaliacao:
       'A nota é de SEMELHANÇA DE TEXTO, não de fonemas: o reconhecedor transcreve o que você falou e comparamos as palavras.',
@@ -338,6 +350,14 @@ export default function ComoSeJoga({ jogo, titulo, ageProfile, onJogar, onFechar
   /* META QUEST: a mesma ficha, no painel do headset. Os passos numerados em linhas grandes, cada
      ajuda com o preço dela numa etiqueta, e o que o jogo não mede numa faixa de aviso. */
   if (questNovo) {
+    /* OS PASSOS SÃO DO APARELHO, não do desenho: os do headset (sem arrasto, sem nota de voz) só valem
+       nele. No computador com o desenho novo valem os de sempre, salvo onde o navegador não reconhece
+       fala: aí o Karaokê também não dá nota, e os passos dizem isso sem falar em headset. */
+    const passos = noHeadset()
+      ? (conteudo.passosNoQuest ?? conteudo.passos)
+      : conteudo.passosSemNotaDeVoz && !recursosDoAparelho(perfilDoDispositivo()).reconhecimentoDoNavegador
+        ? conteudo.passosSemNotaDeVoz
+        : conteudo.passos;
     return (
       <PainelDoQuest
         sobre={t('Como se joga')}
@@ -362,7 +382,7 @@ export default function ComoSeJoga({ jogo, titulo, ageProfile, onJogar, onFechar
         <section className="q-secao">
           <p className="q-rotulo">{t('Como jogar')}</p>
           <ol className="q-passos">
-            {(conteudo.passosNoQuest ?? conteudo.passos).map((p, i) => (
+            {passos.map((p, i) => (
               <li key={i}>
                 <span aria-hidden>{i + 1}</span>
                 <span>{t(p)}</span>

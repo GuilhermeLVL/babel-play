@@ -3281,5 +3281,20 @@
   "Uma revisão ou rodada hoje mantém a ofensiva de {n} dias.": {
     "one": "One review or round today keeps your {n}-day streak.",
     "other": "One review or round today keeps your {n}-day streak."
-  }
+  },
+  "Vídeo": "Video",
+  "Texto": "Text",
+  "Importar": "Import",
+  "Sua biblioteca começa aqui": "Your library starts here",
+  "Nenhuma gravação": "No recordings",
+  "O que foi dito": "What was said",
+  "Duração": "Length",
+  "Tipo de gravação": "Recording type",
+  "Fixada": "Pinned",
+  "Capturar outra sessão": "Capture another session",
+  "O que você ouvir vira texto, palavras e jogos.": "What you hear becomes text, words and games.",
+  "Páginas da biblioteca": "Library pages",
+  "Gravação selecionada": "Selected recording",
+  "Excluir": "Delete",
+  "com motor": "with motor"
 }

@@ -2994,6 +2994,14 @@ export default function LiveCapture({
         palavras={sessaoSalva.palavras}
         falasNaNuvem={naNuvem}
         falasNoAparelho={Math.max(0, total - naNuvem)}
+        ditas={speechSegments
+          .filter((s) => !s.isPartial && s.originalText.trim())
+          .map((s) => ({
+            id: s.id,
+            original: s.originalText,
+            traducao: s.traducaoSobDemanda || s.traducaoPendente ? '' : s.translatedText,
+            minha: s.source === 'mic',
+          }))}
         semConta={estaAnonimo()}
         aoRevisar={() => onChangeView?.('study', { id: sessaoSalva.id })}
         aoJogar={() => onChangeView?.('play', { id: sessaoSalva.id })}

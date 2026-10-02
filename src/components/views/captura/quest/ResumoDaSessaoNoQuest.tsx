@@ -5,17 +5,28 @@ import { t, tp } from '../../../../lib/i18n';
 /**
  * O RESUMO AO ENCERRAR, NO META QUEST (maquete de 01/10/2026).
  *
- * No lugar de abrir a Análise (uma tela densa, de computador), a sessão salva vira três números e
- * uma faixa de saídas. O botão principal é ESTUDAR o que acabou de ser gravado; nunca comprar. Quando
- * parte da sessão foi legendada no aparelho porque a cota da nuvem acabou, a tela diz isso com o
- * número de verdade, numa linha, sem botão.
+ * No lugar de abrir a Análise (uma tela densa, de computador), a sessão salva vira três números, o
+ * que foi dito (cada fala com a tradução, para reler sem sair daqui) e uma faixa de saídas. O botão
+ * principal é ESTUDAR o que acabou de ser gravado; nunca comprar. Quando parte da sessão foi legendada
+ * no aparelho porque a cota da nuvem acabou, a tela diz isso com o número de verdade, numa linha, sem
+ * botão.
  */
+export interface FalaDoResumo {
+  id: string;
+  original: string;
+  /** Vazia quando a fala ficou sem tradução (preferência "sob demanda", ou a tradução falhou). */
+  traducao?: string;
+  /** A fala veio do microfone (a sua voz), e não do som do headset. */
+  minha?: boolean;
+}
+
 export default function ResumoDaSessaoNoQuest({
   minutos,
   falas,
   palavras,
   falasNaNuvem,
   falasNoAparelho,
+  ditas = [],
   semConta = false,
   aoRevisar,
   aoJogar,
@@ -29,6 +40,8 @@ export default function ResumoDaSessaoNoQuest({
   /** Falas transcritas pela nuvem do site e no próprio aparelho (medidor da sessão). */
   falasNaNuvem: number;
   falasNoAparelho: number;
+  /** As falas da sessão, na ordem em que foram ditas: ocupam o meio da tela, que ficava vazio. */
+  ditas?: readonly FalaDoResumo[];
   /**
    * Sem conta (e no site sem servidor), a revisão e a sessão salva abrem só o cartão "isto precisa de
    * conta": o resumo oferece o que funciona, que é jogar com a sessão que acabou de ser gravada.
@@ -76,6 +89,20 @@ export default function ResumoDaSessaoNoQuest({
             {t('A nuvem cobre 15 min por dia. O resto desta sessão foi legendado no headset, um pouco mais lento.')}
           </span>
         </div>
+      )}
+
+      {ditas.length > 0 && (
+        <section className="q-cartao q-resumo-falas" aria-label={t('O que foi dito')}>
+          <h2>{t('O que foi dito')}</h2>
+          <ol tabIndex={0}>
+            {ditas.map((fala) => (
+              <li key={fala.id} data-fonte={fala.minha ? 'mic' : 'system'}>
+                <b>{fala.original}</b>
+                {fala.traducao && <span>{fala.traducao}</span>}
+              </li>
+            ))}
+          </ol>
+        </section>
       )}
 
       {semConta ? (

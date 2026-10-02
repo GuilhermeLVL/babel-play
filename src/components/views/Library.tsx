@@ -261,7 +261,11 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
   const [importArquivo, setImportArquivo] = useState<File | null>(null);
   const youtubeTravado = !entitlements.youtubeImport;
 
+  /** O "Importar" do Quest abriu a tela de sempre só para o formulário: desistir devolve a tela do Quest. */
+  const importarDoQuest = useRef(false);
   const fecharImportar = () => {
+    if (importarDoQuest.current) setTelaCompleta(false);
+    importarDoQuest.current = false;
     setShowImport(false);
     setImportSource(null);
     setImportUrl('');
@@ -304,6 +308,8 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
     const entrada = entradaAtual();
     if (!entrada) return;
     importar(entrada, (id) => void aoConcluirImportacao(id));
+    // Importando, a pessoa fica na tela de sempre: é nela que a fila mostra o andamento.
+    importarDoQuest.current = false;
     fecharImportar();
   };
 
@@ -386,20 +392,38 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
     if (f) setImportArquivo(f);
   };
 
-  /* QUEST (maquete de 01/10/2026, tela 9): páginas de linhas grandes e as ações da gravação
-     selecionada na faixa. Importar, renomear, excluir e filtrar continuam abaixo, em "Tela completa". */
+  /* QUEST (maquete de 01/10/2026, tela 9): páginas de linhas grandes de um lado e, do outro, a
+     gravação selecionada com as ações dela (abrir, jogar, revisar, fixar, renomear, excluir). O
+     formulário de importar, os filtros finos e a exportação continuam abaixo, em "Tela completa". */
   if (questNovo && !telaCompleta) {
     return (
-      <BibliotecaDoQuest
-        gravacoes={sortedRecordings}
-        ordem={ordem}
-        aoTrocarOrdem={setOrdem}
-        aoAbrir={(rec) => onChangeView('analysis', { id: rec.id })}
-        aoJogar={(rec) => onChangeView('play', { id: rec.id })}
-        aoRevisar={(rec) => onChangeView('study', { id: rec.id })}
-        aoCapturar={() => onChangeView('capture')}
-        aoTelaCompleta={() => setTelaCompleta(true)}
-      />
+      <>
+        <BibliotecaDoQuest
+          gravacoes={sortedRecordings}
+          ordem={ordem}
+          aoTrocarOrdem={setOrdem}
+          aoAbrir={(rec) => onChangeView('analysis', { id: rec.id })}
+          aoJogar={(rec) => onChangeView('play', { id: rec.id })}
+          aoRevisar={(rec) => onChangeView('study', { id: rec.id })}
+          aoCapturar={() => onChangeView('capture')}
+          aoTelaCompleta={() => setTelaCompleta(true)}
+          aoImportar={() => {
+            importarDoQuest.current = true;
+            setTelaCompleta(true);
+            setShowImport(true);
+          }}
+          aoFixar={(rec) => void togglePin(rec)}
+          aoRenomear={setEditando}
+          aoExcluir={handleDelete}
+        />
+        {editando && (
+          <EditarSessao
+            rec={editando}
+            aoFechar={() => setEditando(null)}
+            aoSalvar={(t, capa) => void salvarEdicao(editando, t, capa)}
+          />
+        )}
+      </>
     );
   }
 

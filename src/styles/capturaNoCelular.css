@@ -1043,6 +1043,56 @@ body:has(.cel) .fab {
   }
 }
 /* A faixa de controles (`.q-faixa`, `.q-ctl`) mora em `styles/quest.css`: outras telas do headset a usam. */
+
+/* O RESUMO AO ENCERRAR: o que foi dito ocupa o meio da tela (era um vazio entre os números e a faixa).
+   O cartão cresce com a sobra e a lista rola dentro dele; a faixa de saídas continua à vista. */
+.q-palco > .q-resumo-falas {
+  flex: 1 1 0;
+  min-height: 190px;
+  grid-template-rows: auto minmax(0, 1fr);
+  align-content: stretch;
+  gap: 12px;
+  padding: 16px 12px 16px 20px;
+}
+.q-resumo-falas h2 {
+  margin: 0;
+  font: 800 20px/1.2 var(--font-display, inherit);
+}
+.q-resumo-falas ol {
+  margin: 0;
+  padding: 0 8px 0 0;
+  list-style: none;
+  min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+.q-resumo-falas ol:focus-visible {
+  outline: 3px solid var(--q-acento, var(--accent));
+  outline-offset: 3px;
+  border-radius: 14px;
+}
+.q-resumo-falas li {
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--surface-sunken);
+  display: grid;
+  gap: 4px;
+}
+.q-resumo-falas li[data-fonte='mic'] {
+  box-shadow: inset 4px 0 0 var(--q-acento, var(--accent));
+}
+.q-resumo-falas li b {
+  font: 700 18px/1.35 var(--font-body, inherit);
+  overflow-wrap: anywhere;
+}
+.q-resumo-falas li span {
+  font: 600 16px/1.35 var(--font-body, inherit);
+  color: var(--ink-muted);
+  overflow-wrap: anywhere;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .q-linha-da-fala.atual,
   .q-pontos i {

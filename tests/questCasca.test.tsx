@@ -399,6 +399,33 @@ describe('ResumoDaSessaoNoQuest', () => {
     expect(container.querySelectorAll('.q-num')).toHaveLength(2)
   })
 
+  it('o que foi dito ocupa o meio: cada fala com a tradução, e a sem tradução só com o original', () => {
+    const { container } = render(
+      <ResumoDaSessaoNoQuest
+        minutos={1}
+        falas={2}
+        palavras={3}
+        falasNaNuvem={2}
+        falasNoAparelho={0}
+        ditas={[
+          { id: 'a', original: 'Where is the station?', traducao: 'Onde fica a estação?' },
+          { id: 'b', original: 'Obrigado.', traducao: '', minha: true },
+        ]}
+        aoRevisar={() => {}}
+        aoJogar={() => {}}
+        aoAbrir={() => {}}
+        aoNovaCaptura={() => {}}
+      />,
+    )
+    const falas = [...container.querySelectorAll('.q-resumo-falas li')]
+    expect(falas.map((li) => li.textContent)).toEqual(['Where is the station?Onde fica a estação?', 'Obrigado.'])
+    expect(falas.map((li) => li.getAttribute('data-fonte'))).toEqual(['system', 'mic'])
+  })
+
+  it('sem falas para mostrar, o cartão do que foi dito não aparece', () => {
+    expect(montar(3).container.querySelector('.q-resumo-falas')).toBeNull()
+  })
+
   it('a linha da cota só aparece quando parte da sessão caiu para o aparelho', () => {
     expect(montar(3, 5, 0).container.querySelector('.q-aviso')).toBeNull()
     cleanup()

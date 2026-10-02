@@ -834,20 +834,11 @@ body:has(.cel) .fab {
   color: var(--ink);
 }
 
-/* ── QUEST AO VIVO (maquete de 01/10/2026) ──────────────────────────────────────────────────────
-   A legenda ocupa a tela, em tema escuro (menos brilho dentro do headset; a Meta pede o escuro não
-   mais escuro que #1A1A1A), e os controles ficam numa faixa única embaixo, fora da área de leitura.
-   Medidas: alvos de 60 px, texto de 18 px para cima, nada dependendo de hover. */
+/* ── QUEST AO VIVO (maquete de 01/10/2026, revista pelo dono no mesmo dia) ─────────────────────
+   O histórico da conversa ocupa a tela e os controles ficam numa faixa única embaixo. As CORES são
+   as do tema que a pessoa escolheu, no claro ou no escuro: só tokens (`--canvas`, `--surface`,
+   `--ink`, `--accent`), nenhuma paleta fixa. Medidas: alvos de 56 a 60 px, texto de 18 px para cima. */
 .cel.quest-vivo {
-  --canvas: #1c1610;
-  --surface: #2a2018;
-  --ink: #f4e6cf;
-  --ink-muted: #b3a692;
-  --border-subtle: #453a2f;
-  --q-acento: #ffa451;
-  --q-acento-2: #ff8a3d;
-  --q-sobre-acento: #23160b;
-  --q-suave: #4f3620;
   background: var(--canvas);
   color: var(--ink);
   max-width: none !important;
@@ -868,53 +859,109 @@ body:has(.cel) .fab {
   background: none;
 }
 .q-leg {
+  position: relative;
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
-  gap: 22px;
-  padding: 28px clamp(24px, 5vw, 64px) 18px;
-  overflow: hidden;
+}
+.q-historico {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 22px clamp(18px, 3vw, 44px) 14px;
+}
+/* Com poucas falas, elas ficam embaixo, perto dos controles (onde o olho já está). */
+.q-historico > :first-child {
+  margin-top: auto;
 }
 .q-espera {
   font: 600 20px/1.4 var(--font-body, inherit);
   color: var(--ink-muted);
 }
+.q-linha-da-fala {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 8px 6px 14px;
+  border-radius: 18px;
+  /* A lista longa não custa pintura: o que está fora da tela não é desenhado. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 84px;
+}
+.q-linha-da-fala.atual {
+  background: var(--surface);
+  border: 1.5px solid var(--border-subtle);
+  padding-block: 12px;
+  content-visibility: visible;
+  animation: q-entrar 500ms cubic-bezier(0.16, 1, 0.3, 1);
+}
 .q-fala {
+  flex: 1;
+  min-width: 0;
   display: grid;
-  gap: 6px;
+  gap: 4px;
   text-align: left;
   background: none;
   border: 0;
-  padding: 6px 10px;
-  margin: 0 -10px;
-  border-radius: 14px;
+  padding: 4px 6px;
+  border-radius: 12px;
   color: inherit;
   cursor: pointer;
-  animation: q-entrar 500ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 .q-fala:focus-visible {
-  outline: 3px solid var(--q-acento);
+  outline: 3px solid var(--q-acento, var(--accent));
   outline-offset: 2px;
 }
 .q-fala:active {
-  background: color-mix(in srgb, var(--q-acento) 14%, transparent);
+  background: color-mix(in srgb, var(--q-acento, var(--accent)) 14%, transparent);
 }
 .q-o {
-  font: 600 calc(19px * var(--q-escala, 1)) / 1.3 var(--font-body, inherit);
+  font: 600 calc(18px * var(--q-escala, 1)) / 1.3 var(--font-body, inherit);
   color: var(--ink-muted);
 }
 .q-t {
-  font: 800 calc(30px * var(--q-escala, 1)) / 1.2 var(--font-display, inherit);
+  font: 800 calc(28px * var(--q-escala, 1)) / 1.2 var(--font-display, inherit);
   text-wrap: balance;
 }
-.q-fala.antiga {
-  opacity: 0.5;
-  animation: none;
+/* As anteriores: menores, mas no contraste de leitura (nada de texto a meia opacidade). */
+.q-fala.antiga .q-o {
+  font-size: calc(16px * var(--q-escala, 1));
 }
 .q-fala.antiga .q-t {
-  font-size: calc(22px * var(--q-escala, 1));
+  font-size: calc(20px * var(--q-escala, 1));
+  font-weight: 700;
+}
+.q-acoes-da-fala {
+  flex: none;
+  display: flex;
+  gap: 8px;
+}
+.q-acoes-da-fala .q-ctl {
+  min-width: 56px;
+  min-height: 56px;
+  padding: 0;
+  background: var(--surface);
+  border-color: var(--border-subtle);
+}
+.q-linha-da-fala.atual .q-acoes-da-fala .q-ctl {
+  background: var(--canvas);
+}
+.q-ir-para-o-fim {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  transform: translateX(-50%);
+  background: var(--surface);
+  border-color: var(--q-acento, var(--accent));
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--ink) 22%, transparent);
+}
+.q-leg .q-ir-para-o-fim:active {
+  transform: translateX(-50%) scale(0.96);
 }
 @keyframes q-entrar {
   from {
@@ -928,7 +975,7 @@ body:has(.cel) .fab {
 }
 /* A faixa de controles (`.q-faixa`, `.q-ctl`) mora em `styles/quest.css`: outras telas do headset a usam. */
 @media (prefers-reduced-motion: reduce) {
-  .q-fala {
+  .q-linha-da-fala.atual {
     animation: none;
   }
 }

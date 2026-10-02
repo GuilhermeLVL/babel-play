@@ -11,7 +11,9 @@ import type { SpeechSegment } from '../src/lib/captura/tiposDaFala'
 import {
   definirTelaNovaDoQuest,
   ESCALAS_DA_LEGENDA,
+  guardarFonteDoQuest,
   lerEscalaDaLegenda,
+  lerFonteDoQuest,
   mudarEscalaDaLegenda,
   telaNovaDoQuest,
 } from '../src/lib/dispositivo/telaNovaDoQuest'
@@ -33,13 +35,13 @@ afterEach(() => {
 })
 
 describe('LegendaAoVivoDoQuest', () => {
-  it('mostra só as DUAS últimas falas com texto: a atual em destaque e a anterior esmaecida', () => {
+  it('mostra o HISTÓRICO inteiro (só falas com texto), com a última em destaque', () => {
     const falas = [fala('a', 'one', 'um'), fala('b', 'two', 'dois'), fala('c', '', ''), fala('d', 'three', 'três')]
     const { container } = render(<LegendaAoVivoDoQuest falas={falas} escala={1} idiomaPadrao="en" aoTocar={() => {}} />)
-    const visiveis = [...container.querySelectorAll('.q-fala')]
-    expect(visiveis.map((v) => v.querySelector('.q-t')?.textContent)).toEqual(['dois', 'três'])
-    expect(visiveis[0].className).toContain('antiga')
-    expect(visiveis[1].className).not.toContain('antiga')
+    const linhas = [...container.querySelectorAll('.q-linha-da-fala')]
+    expect(linhas.map((l) => l.querySelector('.q-t')?.textContent)).toEqual(['um', 'dois', 'três'])
+    expect(linhas.map((l) => l.classList.contains('atual'))).toEqual([false, false, true])
+    expect(container.querySelectorAll('.q-fala.antiga')).toHaveLength(2)
   })
 
   it('sem tradução ainda, o original ocupa o lugar grande (nada de linha vazia)', () => {
@@ -55,7 +57,7 @@ describe('LegendaAoVivoDoQuest', () => {
     expect(screen.getByText(/Ouvindo/)).toBeTruthy()
   })
 
-  it('tocar numa fala entrega a fala e o idioma dela (o detectado, ou o do conteúdo)', () => {
+  it('tocar numa fala, ou em Opções, entrega a fala e o idioma dela (o detectado, ou o do conteúdo)', () => {
     const aoTocar = vi.fn()
     const falas = [fala('a', 'hola', 'olá', 'es'), fala('b', 'bye', 'tchau')]
     const { container } = render(
@@ -64,11 +66,43 @@ describe('LegendaAoVivoDoQuest', () => {
     const botoes = container.querySelectorAll('.q-fala')
     fireEvent.click(botoes[0])
     fireEvent.click(botoes[1])
+    fireEvent.click(screen.getAllByRole('button', { name: 'Opções da fala' })[0])
     expect(aoTocar.mock.calls.map(([f, lang]) => [f.id, lang])).toEqual([
       ['a', 'es'],
       ['b', 'en'],
+      ['a', 'es'],
     ])
     expect((container.querySelector('.q-leg') as HTMLElement).style.getPropertyValue('--q-escala')).toBe('1.5')
+  })
+
+  it('"Ouvir de novo" só aparece na fala que tem áudio guardado, e toca essa fala', () => {
+    const aoOuvir = vi.fn()
+    const falas = [fala('a', 'one', 'um'), fala('b', 'two', 'dois')]
+    render(
+      <LegendaAoVivoDoQuest
+        falas={falas}
+        escala={1}
+        idiomaPadrao="en"
+        aoTocar={() => {}}
+        temAudio={(id) => id === 'b'}
+        aoOuvir={aoOuvir}
+      />,
+    )
+    const ouvir = screen.getAllByRole('button', { name: 'Ouvir de novo' })
+    expect(ouvir).toHaveLength(1)
+    fireEvent.click(ouvir[0])
+    expect(aoOuvir.mock.calls[0][0].id).toBe('b')
+    expect(screen.getAllByRole('button', { name: 'Opções da fala' })).toHaveLength(2)
+  })
+})
+
+describe('a fonte do Quest', () => {
+  it('de fábrica são OS DOIS; a escolha fica guardada; valor estranho volta ao padrão', () => {
+    expect(lerFonteDoQuest()).toBe('ambos')
+    guardarFonteDoQuest('mic')
+    expect(lerFonteDoQuest()).toBe('mic')
+    localStorage.setItem('babel.quest.fonte', 'qualquer')
+    expect(lerFonteDoQuest()).toBe('ambos')
   })
 })
 

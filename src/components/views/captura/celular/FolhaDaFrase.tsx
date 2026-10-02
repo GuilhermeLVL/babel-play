@@ -64,6 +64,7 @@ export function palavrasDaFrase(texto: string): string[] {
 export default function FolhaDaFrase({
   fala,
   aoOuvir,
+  audioReal,
   aoTocarPalavra,
   ehNova,
   aoPraticar,
@@ -72,6 +73,11 @@ export default function FolhaDaFrase({
 }: {
   fala: FalaTocada;
   aoOuvir: (texto: string, lang: string, lenta: boolean) => void;
+  /**
+   * Toca o áudio REAL da fala (`lib/captura/audioDasFalas`). Presente onde não há voz de leitura (o
+   * Quest) e a fala foi guardada: "Ouvir" e "Ouvir devagar" repetem a voz original, em vez de sumirem.
+   */
+  audioReal?: (lenta: boolean) => void;
   aoTocarPalavra: (palavra: string) => void;
   ehNova?: (palavra: string) => boolean;
   aoPraticar?: () => void;
@@ -104,15 +110,28 @@ export default function FolhaDaFrase({
         </p>
       )}
       <div className="folha-grade">
-        <button type="button" data-precisa="voz" className="folha-acao pri" onClick={() => aoOuvir(fala.texto, fala.lang, false)}>
+        <button
+          type="button"
+          data-precisa={audioReal ? undefined : 'voz'}
+          data-sfx={audioReal ? 'none' : undefined}
+          className="folha-acao pri"
+          onClick={() => (audioReal ? audioReal(false) : aoOuvir(fala.texto, fala.lang, false))}
+        >
           <Volume2 aria-hidden /> {t('Ouvir')}
         </button>
-        <button type="button" data-precisa="voz" className="folha-acao" onClick={() => aoOuvir(fala.texto, fala.lang, true)}>
+        <button
+          type="button"
+          data-precisa={audioReal ? undefined : 'voz'}
+          data-sfx={audioReal ? 'none' : undefined}
+          className="folha-acao"
+          onClick={() => (audioReal ? audioReal(true) : aoOuvir(fala.texto, fala.lang, true))}
+        >
           <Snail aria-hidden /> {t('Ouvir devagar')}
         </button>
         {temTraducao && fala.langDaTraducao && (
           <button
             type="button"
+            data-precisa="voz"
             className="folha-acao"
             onClick={() => aoOuvir(fala.traducao, fala.langDaTraducao!, false)}
           >

@@ -51,6 +51,30 @@ export function useQuestNovo(): boolean {
   return useSyncExternalStore(assinar, questNovo, () => false);
 }
 
+/**
+ * DE ONDE VEM O SOM NO QUEST. De fábrica, OS DOIS (pedido do dono em 01/10/2026: o som do headset e o
+ * microfone juntos); a escolha da pessoa fica guardada neste aparelho.
+ */
+export type FonteGuardadaDoQuest = 'headset' | 'mic' | 'ambos';
+export const CHAVE_DA_FONTE_DO_QUEST = 'babel.quest.fonte';
+
+export function lerFonteDoQuest(): FonteGuardadaDoQuest {
+  try {
+    const v = localStorage.getItem(CHAVE_DA_FONTE_DO_QUEST);
+    return v === 'headset' || v === 'mic' || v === 'ambos' ? v : 'ambos';
+  } catch {
+    return 'ambos';
+  }
+}
+
+export function guardarFonteDoQuest(fonte: FonteGuardadaDoQuest): void {
+  try {
+    localStorage.setItem(CHAVE_DA_FONTE_DO_QUEST, fonte);
+  } catch {
+    /* sem armazenamento: vale só nesta visita */
+  }
+}
+
 /** Os passos do tamanho da legenda ao vivo (diretriz da Meta: três ou mais, de 50% a 200%). */
 export const ESCALAS_DA_LEGENDA = [0.75, 1, 1.25, 1.5, 2] as const;
 export const CHAVE_DA_ESCALA_DA_LEGENDA = 'babel.quest.legenda';

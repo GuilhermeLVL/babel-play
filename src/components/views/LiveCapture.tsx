@@ -87,6 +87,12 @@ import {
   classificarFalhaDoMic,
   plataformaDoNavegador,
 } from '../../lib/captura/ajudaDoMicrofone';
+import {
+  ligarAudioDasFalas,
+  limparAudioDasFalas,
+  temAudioDaFala,
+  tocarAudioDaFala,
+} from '../../lib/captura/audioDasFalas';
 import { avisoDoPreparo } from '../../lib/captura/avisoDoPreparo';
 // Ciclo da sessão: começar, retomar, parar e salvar (falas, áudio e vocabulário).
 import { baixarCaptura } from '../../lib/captura/baixarCaptura';
@@ -143,7 +149,9 @@ import { classificarDispositivo, dispositivoDaRota, lerSinaisDoDispositivo } fro
 import { recursosDoAparelho } from '../../lib/dispositivo/recursos';
 import {
   ESCALAS_DA_LEGENDA,
+  guardarFonteDoQuest,
   lerEscalaDaLegenda,
+  lerFonteDoQuest,
   mudarEscalaDaLegenda,
   telaNovaDoQuest,
 } from '../../lib/dispositivo/telaNovaDoQuest';
@@ -639,7 +647,11 @@ export default function LiveCapture({
      o microfone é a ÚNICA fonte: ele já nasce ligado, senão o "Iniciar" nasceria desabilitado sem motivo
      aparente. Clicar em Iniciar continua sendo o gesto deliberado que abre o microfone. Pelo PERFIL, e
      não pela API: no Quest de verdade a API existe, e o microfone nascia desligado. */
-  const [micEnabled, setMicEnabled] = useState(() => !perfilDoAparelho.capturaDoSistema);
+  /* NO QUEST a fonte é uma escolha de três (som do headset, microfone, os dois), guardada no aparelho
+     e com "os dois" de fábrica: o microfone nasce conforme ela. */
+  const [micEnabled, setMicEnabled] = useState(() =>
+    perfilDoAparelho.tipo === 'quest' ? lerFonteDoQuest() !== 'headset' : !perfilDoAparelho.capturaDoSistema,
+  );
   /** Ligou o mic no meio da sessão e o navegador ainda está perguntando pela permissão. */
   const [micAbrindo, setMicAbrindo] = useState(false);
   /**
@@ -705,7 +717,7 @@ export default function LiveCapture({
    */
   /* A FONTE NO QUEST: "Som do headset" compartilha a visão com o áudio; "Microfone" capta a voz, sem
      compartilhar nada; "Os dois" faz as duas coisas (conversa sobre um vídeo, aula com perguntas). */
-  const [fonteDoQuest, setFonteDoQuest] = useState<FonteDoQuest>('headset');
+  const [fonteDoQuest, setFonteDoQuest] = useState<FonteDoQuest>(lerFonteDoQuest);
   const systemEnabled: boolean =
     perfilDoAparelho.capturaDoSistema && !(perfilDoAparelho.tipo === 'quest' && fonteDoQuest === 'mic');
   // COMO capturar o áudio do sistema: 'display' = compartilhar aba/tela (getDisplayMedia; zero
@@ -2795,8 +2807,20 @@ export default function LiveCapture({
   /** Sem `speechSynthesis` (o Quest): a conversa do intérprete é só em texto, e a tela diz isso. */
   const semVozDeLeitura = !recursosDoAparelho(perfilDoAparelho).vozDeLeitura;
   const [escalaDaLegenda, setEscalaDaLegenda] = useState(lerEscalaDaLegenda);
+  /* "OUVIR" NO QUEST é o áudio REAL da fala (o headset não tem voz de leitura): o pipeline guarda o
+     trecho de cada fala enquanto a tela nova está em uso, e uma captura nova começa sem os da anterior. */
+  useEffect(() => {
+    ligarAudioDasFalas(aoVivoNoQuest);
+    return () => ligarAudioDasFalas(false);
+  }, [aoVivoNoQuest]);
+  const semFalasNaTela = speechSegments.length === 0;
+  useEffect(() => {
+    if (isRecording && semFalasNaTela) limparAudioDasFalas();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- só na virada para "gravando"
+  }, [isRecording]);
   const escolherFonteDoQuest = (fonte: FonteDoQuest) => {
     setFonteDoQuest(fonte);
+    guardarFonteDoQuest(fonte);
     setMicEnabled(fonte !== 'headset');
     setCaptureScenario(cenarioDasFontes(fonte !== 'headset', fonte !== 'mic'));
   };
@@ -3061,6 +3085,8 @@ export default function LiveCapture({
               escala={escalaDaLegenda}
               idiomaPadrao={captureScenario === 'mic' ? sourceLang : targetLang}
               aoTocar={tocarFala}
+              temAudio={temAudioDaFala}
+              aoOuvir={(fala) => tocarAudioDaFala(fala.id)}
             />
           ) : (
             <>
@@ -3126,6 +3152,11 @@ export default function LiveCapture({
         <FolhaDaFrase
           fala={falaTocada}
           aoOuvir={ouvirNaLegenda}
+          audioReal={
+            aoVivoNoQuest && temAudioDaFala(falaTocada.id)
+              ? (lenta) => tocarAudioDaFala(falaTocada.id, { lenta })
+              : undefined
+          }
           ehNova={ehNovaNoCelular(falaTocada.lang)}
           aoPraticar={praticarNoCelular}
           aoTocarPalavra={(palavra) =>

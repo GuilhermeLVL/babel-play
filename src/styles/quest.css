@@ -19,6 +19,8 @@ html[data-quest-novo='true'] {
   --q-acento-2: color-mix(in srgb, var(--accent) 82%, #fff);
   --q-sobre-acento: var(--accent-contrast, #fff);
   --q-suave: var(--accent-soft);
+  /* Sem a barra de abas do celular (o trilho é quem navega): nada de reserva para ela embaixo. */
+  --shell-inset-bottom: 0px;
   --q-toque: 120ms cubic-bezier(0.2, 0.8, 0.2, 1);
   --q-cor: 160ms ease;
 }
@@ -772,13 +774,24 @@ html[data-quest-novo='true'] [role='dialog']:not(.int):not(.q-mais) :is(.label-m
     grid-template-columns: minmax(0, 1fr);
     padding: 18px;
   }
-  /* Compacto ao vivo: só a fala atual e dois controles (tempo, A+ e Encerrar). */
-  .quest-vivo .q-fala.antiga,
+  /* Compacto ao vivo: o histórico continua (rolável), com Ouvir e Opções; na faixa ficam o tempo,
+     A+ e Encerrar. */
   .quest-vivo .q-faixa .q-ctl:not(.pri):not(.q-fica) {
     display: none;
   }
-  .quest-vivo .q-leg {
-    padding: 18px 20px 12px;
+  .quest-vivo .q-historico {
+    padding: 12px 10px 8px;
+  }
+  .quest-vivo .q-linha-da-fala {
+    padding-left: 8px;
+    gap: 6px;
+  }
+  .quest-vivo .q-acoes-da-fala {
+    gap: 4px;
+  }
+  .quest-vivo .q-acoes-da-fala .q-ctl {
+    min-width: 48px;
+    min-height: 48px;
   }
   .quest-vivo .q-faixa {
     margin: 0 12px 12px;

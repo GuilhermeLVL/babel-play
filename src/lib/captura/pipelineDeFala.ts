@@ -42,6 +42,7 @@ import { embedUtterance } from '../speakerId';
 import { isTtsActive } from '../tts';
 import { classificarVazamento, type Intervalo } from '../vazamento';
 import { setterNoQuadro } from './agendarNoQuadro';
+import { guardarAudioDaFala } from './audioDasFalas';
 import type { PistasDoIdioma } from './interpreteAutomatico';
 import { umModeloDeCadaVez } from './memoriaDosModelos';
 import { disponibilidadeDaSondaParaIdioma, escolherMotorDoMic, webSpeechBipaAoReligar } from './motorDoMicrofone';
@@ -638,6 +639,8 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       // Daqui até o resultado do final, nenhum parcial desta fala decodifica nem traduz.
       lastPartialTextRef.current.set(seq, FALA_FECHADA);
       clog('enunciado', source, '(seq', seq, ') →', pcm.length, 'amostras @', sr, 'Hz, decode final');
+      // O áudio real da fala, para "Ouvir" onde não há voz de leitura (só guarda quando ligado).
+      guardarAudioDaFala(uttId, pcm, sr);
       setSpeechSegments((prev) =>
         prev.some((s) => s.id === uttId)
           ? prev

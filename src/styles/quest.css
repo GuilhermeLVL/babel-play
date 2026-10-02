@@ -34,7 +34,8 @@ html[data-quest-novo='true'][data-theme='babel']:not(.dark) {
 /* ── A CASCA: trilho de ícones no lugar do menu de 220 px ─────────────────────────────────────── */
 .q-trilho {
   flex: none;
-  width: 96px;
+  /* 108 px: cabe "Personalizar" e "Estatísticas" em 14 px, numa linha (eram 96 com cinco destinos). */
+  width: 108px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -51,8 +52,9 @@ html[data-quest-novo='true'][data-theme='babel']:not(.dark) {
   flex: none;
 }
 .q-item {
-  width: 80px;
+  width: 96px;
   min-height: 64px;
+  flex: none;
   padding: 6px 2px;
   border: 2px solid transparent;
   border-radius: 16px;
@@ -149,6 +151,21 @@ html[data-quest-novo='true']:has(.quest-vivo) .q-trilho {
 .q-faixa.q-faixa-do-mais {
   flex-wrap: wrap;
   border-radius: 24px;
+}
+/* O destino que pede conta diz isso antes do toque (um cadeado e uma linha, sem apagar o alvo). */
+.q-tile .q-pede-conta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 15px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.q-tile .q-pede-conta svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
 }
 .q-conta-do-mais {
   display: flex;
@@ -1433,8 +1450,13 @@ html[data-quest-novo='true'] :is(.folha-acao, .folha-palavras button):focus-visi
   .q-item > span {
     display: none;
   }
+  /* Com sete destinos e "Mais", cada um divide a largura da janela mínima (500 px) sem descer do
+     alvo de 48 px. */
   .q-item {
-    width: 60px;
+    flex: 1 1 0;
+    width: auto;
+    min-width: 48px;
+    max-width: 72px;
     min-height: 60px;
   }
   .q-item.q-mais-botao {

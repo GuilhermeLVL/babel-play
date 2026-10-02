@@ -50,10 +50,19 @@ describe('TrilhoDoQuest', () => {
     return { ir, ...r }
   }
 
-  it('cinco destinos e "Mais", com o destino atual marcado', () => {
+  it('sete destinos e "Mais", com o destino atual marcado', () => {
     const { container } = montar('play')
     const itens = [...container.querySelectorAll('.q-trilho .q-item')]
-    expect(itens.map((i) => i.textContent)).toEqual(['Início', 'Capturar', 'Intérprete', 'Jogar', 'Biblioteca', 'Mais'])
+    expect(itens.map((i) => i.textContent)).toEqual([
+      'Início',
+      'Capturar',
+      'Intérprete',
+      'Jogar',
+      'Biblioteca',
+      'Vocabulário',
+      'Estatísticas',
+      'Mais',
+    ])
     expect(container.querySelector('.q-item[aria-current="page"]')?.textContent).toBe('Jogar')
   })
 
@@ -63,14 +72,14 @@ describe('TrilhoDoQuest', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Mais' }))
     const painel = screen.getByRole('dialog')
     expect(painel.textContent).toContain('Ajustes')
-    expect(painel.textContent).toContain('Vocabulário')
+    expect(painel.textContent).toContain('Personalizar')
     expect(painel.textContent).toContain('Diagnóstico do aparelho')
     fireEvent.click(screen.getByRole('button', { name: 'Ajustes' }))
     expect(ir).toHaveBeenCalledWith('settings')
     expect(screen.queryByRole('dialog')).toBeNull()
   })
 
-  it('sem conta, a Biblioteca (que só abriria o convite) sai do trilho e fica em "Mais"', () => {
+  it('sem conta, Biblioteca e Vocabulário (que só abririam o convite) ficam em "Mais"; entram Estatísticas e Personalizar', () => {
     const { container } = render(
       <TrilhoDoQuest
         activeView="hub"
@@ -84,9 +93,10 @@ describe('TrilhoDoQuest', () => {
       />,
     )
     const itens = [...container.querySelectorAll('.q-trilho .q-item')].map((i) => i.textContent)
-    expect(itens).toEqual(['Início', 'Capturar', 'Intérprete', 'Jogar', 'Mais'])
+    expect(itens).toEqual(['Início', 'Capturar', 'Intérprete', 'Jogar', 'Estatísticas', 'Personalizar', 'Mais'])
     fireEvent.click(screen.getByRole('button', { name: 'Mais' }))
     expect(screen.getByRole('dialog').textContent).toContain('Biblioteca')
+    expect(screen.getByRole('dialog').textContent).toContain('Vocabulário')
   })
 
   it('numa tela que só existe no "Mais", é o "Mais" que fica marcado', () => {

@@ -11,6 +11,7 @@ import {
   Ellipsis,
   HardDrive,
   LifeBuoy,
+  Lock,
   LogIn,
   LogOut,
   Moon,
@@ -43,18 +44,25 @@ import { marcarLida, marcarTodasLidas, naoLidas, quando } from '../../lib/notifi
 import { authRequired } from '../../lib/supabase';
 import { usePerfil } from '../../lib/usePerfil';
 import type { ViewType } from '../../types';
+import { exigeConta } from '../conta/exigeConta';
 import { useListaDeNotificacoes } from './CentralDeNotificacoes';
 import { type AgeProfileType, NAV_ITEMS, navLabel } from './navItems';
 import { MarcaBabel } from './ShellBits';
 
-/** Os cinco destinos do trilho (decisão do dono na maquete de 01/10/2026). O resto mora em "Mais". */
-const NO_TRILHO: ViewType[] = ['hub', 'capture', 'interprete', 'play', 'library'];
 /**
- * SEM CONTA (e no site sem servidor), a Biblioteca abre só o cartão "isto precisa de conta": no trilho
- * ela seria um destino de primeira linha que não funciona. Ela continua no menu, em "Mais" (a regra da
- * casa é mostrar e explicar, nunca esconder), e o trilho fica com o que roda inteiro no aparelho.
+ * OS DESTINOS DO TRILHO. A maquete de 01/10/2026 tinha cinco; o dono pediu mais (02/10): o que se usa
+ * toda semana fica a um toque, sem passar pelo painel "Mais". São sete, que é o que cabe na altura
+ * padrão da janela (670 px) com alvos de 64 px: os quatro de fazer (Início, Capturar, Intérprete,
+ * Jogar), os dois de guardar (Biblioteca, Vocabulário) e o de acompanhar (Estatísticas).
  */
-const NO_TRILHO_SEM_CONTA: ViewType[] = ['hub', 'capture', 'interprete', 'play'];
+const NO_TRILHO: ViewType[] = ['hub', 'capture', 'interprete', 'play', 'library', 'metrics', 'estatisticas'];
+/**
+ * SEM CONTA (e no site sem servidor), Biblioteca e Vocabulário abrem só o cartão "isto precisa de
+ * conta": no trilho seriam destinos de primeira linha que não funcionam. Continuam no menu, em "Mais"
+ * (a regra da casa é mostrar e explicar, nunca esconder), e o lugar deles fica com o que roda inteiro
+ * no aparelho: Estatísticas e Personalizar.
+ */
+const NO_TRILHO_SEM_CONTA: ViewType[] = ['hub', 'capture', 'interprete', 'play', 'estatisticas', 'loja'];
 
 interface TrilhoDoQuestProps {
   activeView: ViewType;
@@ -75,8 +83,8 @@ interface TrilhoDoQuestProps {
 /**
  * O MENU NO META QUEST — um trilho de ícones no lugar do menu de 220 px com dez itens.
  *
- * Cinco destinos com alvo de 64 px e rótulo curto; o resto (Vocabulário, Estatísticas, Personalizar,
- * Sobre, Ajustes, perfil, ajuda, diagnóstico) e os dois interruptores que o rodapé do menu tinha
+ * Os destinos de uso frequente com alvo de 64 px e rótulo curto; o resto (Personalizar, Planos, Sobre,
+ * Ajustes, perfil, ajuda, diagnóstico) e os dois interruptores que o rodapé do menu tinha
  * (claro/escuro e som) ficam num painel no centro da tela, aberto por "Mais". Nada abre por hover e
  * nada desliza pela lateral. Com a janela estreita (ao lado de um jogo), o trilho deita embaixo.
  *
@@ -149,6 +157,7 @@ export default function TrilhoDoQuest({
     if (dado) onChangeView(id, dado);
     else onChangeView(id);
   };
+  const avisoDeConta = semServidor ? t('Na versão completa') : t('Pede conta');
   const proximaVibracao = () =>
     guardarVibracaoDoQuest(VIBRACOES_DO_QUEST[(VIBRACOES_DO_QUEST.indexOf(vibracao) + 1) % VIBRACOES_DO_QUEST.length]);
 
@@ -294,7 +303,17 @@ export default function TrilhoDoQuest({
                       <span className="q-ic">
                         <Icone aria-hidden />
                       </span>
-                      <b>{navLabel(item, ageProfile)}</b>
+                      {/* Sem conta, o destino abre o cartão "pede conta": dito aqui, antes do toque. */}
+                      {semConta && exigeConta(item.id) ? (
+                        <span>
+                          <b>{navLabel(item, ageProfile)}</b>
+                          <small className="q-d q-pede-conta">
+                            <Lock aria-hidden /> {avisoDeConta}
+                          </small>
+                        </span>
+                      ) : (
+                        <b>{navLabel(item, ageProfile)}</b>
+                      )}
                     </button>
                   );
                 })}
@@ -302,7 +321,16 @@ export default function TrilhoDoQuest({
                   <span className="q-ic">
                     <UserRound aria-hidden />
                   </span>
-                  <b>{t('Seu perfil')}</b>
+                  {semConta ? (
+                    <span>
+                      <b>{t('Seu perfil')}</b>
+                      <small className="q-d q-pede-conta">
+                        <Lock aria-hidden /> {avisoDeConta}
+                      </small>
+                    </span>
+                  ) : (
+                    <b>{t('Seu perfil')}</b>
+                  )}
                 </button>
                 <button type="button" className="q-tile em-linha" onClick={() => ir('ajuda')}>
                   <span className="q-ic">

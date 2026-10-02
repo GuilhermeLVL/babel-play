@@ -90,6 +90,7 @@ import {
 import {
   ligarAudioDasFalas,
   limparAudioDasFalas,
+  pararAudioDasFalas,
   temAudioDaFala,
   tocarAudioDaFala,
 } from '../../lib/captura/audioDasFalas';
@@ -174,7 +175,7 @@ import {
 import { baseLang, langLabel, langLabelNaUI, mtCoverage, toBcp47 } from '../../lib/languages';
 import { lazyComRecarga } from '../../lib/lazyComRecarga';
 import { setNavGuard } from '../../lib/navGuard';
-import { nuvemDoQuestExiste } from '../../lib/nuvemDoQuest';
+import { nuvemDoQuestAtiva, nuvemDoQuestExiste } from '../../lib/nuvemDoQuest';
 import { OrdemDasTraducoes } from '../../lib/ordemDaTraducao';
 import { usePalavrasAprendidas } from '../../lib/palavrasAprendidas';
 import { destinoDaTraducao, PerfilAdaptativoDeIdioma } from '../../lib/perfilDeIdioma';
@@ -2655,7 +2656,10 @@ export default function LiveCapture({
           : pecasDoInicio.tradutores.reduce((s, m) => s + falta(m.id, m.mb), 0),
       limiteDeDownloadMb: perfilDoAparelho.confirmarDownloadAcimaDeMb,
       downloadJaConfirmado: downloadConfirmadoRef.current,
-      modoNuvem: getProviderMode() === 'cloud',
+      /* A NUVEM DO SITE LIGADA (aparelho leve, `nuvemDoQuest.ts`) também é nuvem: a transcrição e a
+         tradução vêm dela na mesma viagem, e nada é baixado antes de começar. Sem isto o intérprete no
+         Quest pedia 224 MB (Whisper e os dois tradutores) e carregava tudo nos 3 núcleos do headset. */
+      modoNuvem: getProviderMode() === 'cloud' || nuvemDoQuestAtiva(),
     });
   };
   /** O que a folha do início começa quando a pessoa confirma: a captura ou o intérprete. */
@@ -3087,6 +3091,8 @@ export default function LiveCapture({
               aoTocar={tocarFala}
               temAudio={temAudioDaFala}
               aoOuvir={(fala) => tocarAudioDaFala(fala.id)}
+              aoPararAudio={pararAudioDasFalas}
+              mostrarFonte={micEnabled && systemEnabled}
             />
           ) : (
             <>
@@ -3157,6 +3163,7 @@ export default function LiveCapture({
               ? (lenta) => tocarAudioDaFala(falaTocada.id, { lenta })
               : undefined
           }
+          semPratica={noQuest}
           ehNova={ehNovaNoCelular(falaTocada.lang)}
           aoPraticar={praticarNoCelular}
           aoTocarPalavra={(palavra) =>
@@ -3751,10 +3758,15 @@ export default function LiveCapture({
               idiomas={{ meu: sourceLang, outro: targetLang }}
               possivel={interpretePossivel}
               abrindo={abrindoCaptura}
-              aviso={avisoDoPreparo(modelPrep)}
+              aviso={
+                aoVivoNoQuest && nuvemDoQuestAtiva()
+                  ? t('A transcrição e a tradução vêm pela nuvem: não há nada para baixar.')
+                  : avisoDoPreparo(modelPrep)
+              }
               automatico={automaticoDoInterprete}
               noQuest={aoVivoNoQuest}
               semVoz={semVozDeLeitura}
+              avisos={nuvemDoQuestExiste() ? <NuvemDoQuest gravando={isRecording} /> : undefined}
               aoConhecerOPremium={conhecerOPremium}
               aoComecar={entrarNoInterprete}
               aoEscolherIdiomas={() => setIdiomasAbertos(true)}

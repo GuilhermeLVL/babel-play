@@ -920,6 +920,75 @@ body:has(.cel) .fab {
 .q-fala:active {
   background: color-mix(in srgb, var(--q-acento, var(--accent)) 14%, transparent);
 }
+/* De quem é a fala e a que horas: pequeno, acima do texto. */
+.q-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font: 700 14px/1 var(--font-mono, monospace);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+.q-meta svg {
+  width: 16px;
+  height: 16px;
+}
+/* A sua fala tem a marca do tema na borda; a do headset, não. Cor E ícone, nunca só a cor. */
+.q-linha-da-fala[data-fonte='mic'] {
+  box-shadow: inset 4px 0 0 var(--q-acento, var(--accent));
+}
+.q-linha-da-fala[data-fonte='mic'] .q-meta {
+  color: var(--accent-ink, var(--ink));
+}
+/* A fala acabou e o texto ainda não chegou: três pontos, sem pular a tela quando ele chega. */
+.q-transcrevendo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  padding: 10px 20px;
+  font: 600 18px/1.3 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+.q-pontos {
+  display: inline-flex;
+  gap: 5px;
+}
+.q-pontos i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--q-acento, var(--accent));
+  animation: q-ponto 1.2s ease-in-out infinite;
+}
+.q-pontos i:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.q-pontos i:nth-child(3) {
+  animation-delay: 0.3s;
+}
+@keyframes q-ponto {
+  0%,
+  60%,
+  100% {
+    opacity: 0.3;
+    transform: none;
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-4px);
+  }
+}
+/* O som entrando, ao lado do relógio. */
+.q-tempo .cel-ondas {
+  height: 22px;
+  margin-left: 6px;
+}
+.q-tempo .cel-ondas i {
+  width: 4px;
+  background: var(--q-acento, var(--accent));
+}
 .q-o {
   font: 600 calc(18px * var(--q-escala, 1)) / 1.3 var(--font-body, inherit);
   color: var(--ink-muted);
@@ -975,7 +1044,8 @@ body:has(.cel) .fab {
 }
 /* A faixa de controles (`.q-faixa`, `.q-ctl`) mora em `styles/quest.css`: outras telas do headset a usam. */
 @media (prefers-reduced-motion: reduce) {
-  .q-linha-da-fala.atual {
+  .q-linha-da-fala.atual,
+  .q-pontos i {
     animation: none;
   }
 }

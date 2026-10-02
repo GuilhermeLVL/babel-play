@@ -683,13 +683,17 @@ async function startCaptureFromStream(
       if (next) {
         /* Descarta o enunciado EM CURSO. Mutar no meio de uma frase deixaria um parcial
            pendurado na tela para sempre — o VAD nunca fecharia um segmento que agora só
-           recebe silêncio. */
+           recebe silêncio.
+           SÓ SE HÁ UM EM CURSO. O intérprete fecha o microfone logo depois do FIM de cada fala, com o
+           decode final dela ainda a caminho: avisar "misfire" do `currentSeq` aí apagava da tela a fala
+           que tinha acabado de terminar, e a tradução nunca aparecia (achado em 01/10/2026). */
+        const emCurso = speaking;
         speaking = false;
         speechStartTs = 0;
         resetUtterance();
         espelho.reiniciar();
         cancelarEspeculacao();
-        cb.onMisfire?.(currentSeq);
+        if (emCurso) cb.onMisfire?.(currentSeq);
         cb.onLevel?.(0);
       }
       vlog(label, next ? 'MUDO (faixa desabilitada, gravação segue)' : 'ATIVO');

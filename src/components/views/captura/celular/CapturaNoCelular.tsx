@@ -158,6 +158,8 @@ export default function CapturaNoCelular({
           <span className="q-tempo" aria-label={t('Gravando há {tempo}', { tempo })}>
             <span className="cel-ponto" aria-hidden />
             <span className="tn">{tempo}</span>
+            {/* O som entrando: sem isto, silêncio na legenda não diz se é o vídeo calado ou a fonte muda. */}
+            {ondas}
           </span>
           <button type="button" className="q-ctl pri" onClick={aoParar} data-sfx="none" data-testid="encerrar-no-quest">
             <i aria-hidden className="q-quadrado" /> {t('Encerrar')}
@@ -364,7 +366,7 @@ export default function CapturaNoCelular({
               aria-label={retomar ? t('Continuar captura') : t('Iniciar captura')}
               data-testid="comecar-no-quest"
             >
-              {abrindo ? <Loader2 aria-hidden className="animate-spin" /> : <Play aria-hidden />}
+              {abrindo ? <Loader2 aria-hidden className="animate-spin" /> : <Play aria-hidden fill="currentColor" />}
             </button>
             <b aria-hidden>
               {abrindo

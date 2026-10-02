@@ -13,7 +13,7 @@ import { direcaoDoLado, ESTADO_INICIAL, type IdiomasDoInterprete } from '../../.
 import type { LadoDoInterprete, SpeechSegment } from '../../../../lib/captura/tiposDaFala';
 import { t } from '../../../../lib/i18n';
 import { langLabel } from '../../../../lib/languages';
-import { nativeTts } from '../../../../lib/tts';
+import { nativeTts, type TtsEngine } from '../../../../lib/tts';
 import { tempoAteAVoz } from '../../../../lib/voz/tempoAteAVoz';
 import { criarVozDaNuvem, destravarVozDaNuvem, type VozDaNuvem } from '../../../../lib/voz/vozDaNuvem';
 
@@ -21,6 +21,15 @@ import { criarVozDaNuvem, destravarVozDaNuvem, type VozDaNuvem } from '../../../
 export type FalaDoInterprete = Pick<SpeechSegment, 'id' | 'originalText' | 'translatedText' | 'isPartial' | 'lado'>;
 
 const ESTADO_DA_TELA: EstadoDoControle = { ...ESTADO_INICIAL, falando: null };
+
+/**
+ * SEM VOZ DE LEITURA (o Quest): um motor que não fala e avisa o fim na hora. Sem ele a fila esperava o
+ * prazo de uma fala que nunca começa, com a tela dizendo "Lendo a tradução" e o próximo toque atrasado.
+ */
+const MOTOR_SEM_VOZ: TtsEngine = {
+  speak: (_texto, opcoes) => queueMicrotask(() => opcoes?.onEnd?.()),
+  cancel: () => {},
+};
 
 const outro = (lado: LadoDoInterprete): LadoDoInterprete => (lado === 'meu' ? 'outro' : 'meu');
 
@@ -135,6 +144,8 @@ export default function ModoInterprete({
   const [estado, setEstado] = useState<EstadoDoControle>(ESTADO_DA_TELA);
   const velocidadeRef = useRef(velocidade);
   velocidadeRef.current = velocidade;
+  const semVozRef = useRef(semVoz);
+  semVozRef.current = semVoz;
 
   useEffect(() => {
     const voz = vozNaturalDisponivel ? criarVozDaNuvem() : null;
@@ -145,8 +156,8 @@ export default function ModoInterprete({
         abrir: () => microfoneRef.current.abrir(),
         fechar: () => microfoneRef.current.fechar(),
       },
-      motor: () => voz ?? nativeTts,
-      nomeDoMotor: () => voz?.motorDaUltimaFala() ?? 'voz-do-aparelho',
+      motor: () => (semVozRef.current ? MOTOR_SEM_VOZ : (voz ?? nativeTts)),
+      nomeDoMotor: () => (semVozRef.current ? 'sem-voz' : (voz?.motorDaUltimaFala() ?? 'voz-do-aparelho')),
       ...(voz ? { destravarVoz: destravarVozDaNuvem } : {}),
       ...(velocidadeInicial && velocidadeInicial !== 1 ? { opcoesDeFala: { rate: velocidadeInicial } } : {}),
       aoMudar: setEstado,
@@ -272,6 +283,7 @@ export default function ModoInterprete({
         data-testid={`interprete-${lado}`}
       >
         <p className="int-idioma" lang={direcao.fala}>
+          {layout === 'quest' && <span className="int-quem">{lado === 'meu' ? t('Você') : t('A outra pessoa')}</span>}
           {nome}
         </p>
         <div className="int-frase" aria-live="polite">

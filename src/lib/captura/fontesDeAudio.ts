@@ -226,10 +226,22 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
      conhecida depois que a captura abriu (ver `prepareModels`). */
   /** Sem parciais na tela (Quest) ou na nuvem do site: o corte curto é o que faz o texto aparecer. */
   const semParcial = (): boolean => perfilDoDispositivo().tipo === 'quest' || nuvemDoQuestAtiva();
+  /* NO INTÉRPRETE o fim da fala FECHA o microfone e passa a vez: o corte curto (4 s) e a pausa curta
+     (500 ms) da legenda de vídeo cortariam a frase da pessoa no meio. Ali vale o teto da nuvem (a frase
+     inteira) e a pausa de sempre. */
+  const noInterprete = (): boolean => !!deps.direcaoDoMicrofone?.() || !!deps.interpreteAutomatico?.();
   const opcoesDeCaptura: OpcoesDeCaptura = {
-    ...(perfilDoDispositivo().tipo === 'quest' ? { redencaoMs: 500 } : {}),
+    get redencaoMs() {
+      return perfilDoDispositivo().tipo === 'quest' && !noInterprete() ? 500 : undefined;
+    },
     maxSpeechMs: () =>
-      semParcial() ? MAX_SPEECH_MS_SEM_PARCIAL : finalNaNuvem?.() ? MAX_SPEECH_MS_NUVEM : MAX_SPEECH_MS_LOCAL,
+      noInterprete()
+        ? MAX_SPEECH_MS_NUVEM
+        : semParcial()
+          ? MAX_SPEECH_MS_SEM_PARCIAL
+          : finalNaNuvem?.()
+            ? MAX_SPEECH_MS_NUVEM
+            : MAX_SPEECH_MS_LOCAL,
   };
 
   // Inicia a captura do áudio do sistema/aba: pede a fonte (gesto do usuário) e prepara o modelo.

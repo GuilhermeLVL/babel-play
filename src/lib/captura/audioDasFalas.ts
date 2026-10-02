@@ -28,7 +28,17 @@ interface AudioGuardado {
 const guardados = new Map<string, AudioGuardado>();
 let bytes = 0;
 let ligado = false;
-let tocando: { audio: HTMLAudioElement; url: string; fimDoEco: () => void } | null = null;
+let tocando: { id: string; audio: HTMLAudioElement; url: string; fimDoEco: () => void } | null = null;
+const ouvintes = new Set<() => void>();
+const avisar = () => ouvintes.forEach((f) => f());
+
+/** A fala cujo áudio está tocando agora (`null` = nenhuma): o botão dela vira "parar". */
+export const falaTocando = (): string | null => tocando?.id ?? null;
+
+export function aoMudarAudioDasFalas(aoMudar: () => void): () => void {
+  ouvintes.add(aoMudar);
+  return () => ouvintes.delete(aoMudar);
+}
 
 export function ligarAudioDasFalas(sim: boolean): void {
   ligado = sim;
@@ -73,6 +83,7 @@ export function pararAudioDasFalas(): void {
   }
   URL.revokeObjectURL(url);
   fimDoEco();
+  avisar();
 }
 
 /**
@@ -88,8 +99,9 @@ export function tocarAudioDaFala(id: string, opcoes: { lenta?: boolean } = {}): 
   const url = URL.createObjectURL(encodeWav(flutuante, guardado.sr));
   const audio = new Audio(url);
   audio.playbackRate = opcoes.lenta ? 0.7 : 1;
-  const esta = { audio, url, fimDoEco: marcarFalaExterna() };
+  const esta = { id, audio, url, fimDoEco: marcarFalaExterna() };
   tocando = esta;
+  avisar();
   const terminar = () => {
     if (tocando === esta) pararAudioDasFalas();
   };

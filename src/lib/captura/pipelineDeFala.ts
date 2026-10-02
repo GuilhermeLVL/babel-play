@@ -1515,6 +1515,10 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     const de = baseLang(sourceLangRef.current || '');
     const para = baseLang(targetLangRef.current || '');
     if (!de || !para || de === para || getProviderMode() === 'cloud') return;
+    /* Na nuvem do site (aparelho leve) a tradução volta junto com a transcrição: o tradutor local (os
+       DOIS sentidos, no intérprete: ~550 MB de memória) não carrega. Se a nuvem falhar, a cascata o
+       busca na hora, como reserva. */
+    if (nuvemDoQuestAtiva()) return;
     /* NO INTÉRPRETE, OS DOIS SENTIDOS: a fala do outro lado volta traduzida para o seu idioma, e sem a
        volta pronta a primeira frase dele esperava o download do tradutor em silêncio ("tocando o outro
        lado e falando, não aconteceu nada", relato do dono, 30/09). Um de cada vez (memória), a ida

@@ -15,11 +15,13 @@
  * Por isso `setMuted` desabilita a FAIXA e deixa tudo o mais de pé. Estes testes prendem
  * exatamente isso: a faixa muda, o gravador não.
  */
-import { beforeEach,describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('@ricky0123/vad-web', () => ({
   MicVAD: { new: vi.fn(async () => ({ start: vi.fn(), pause: vi.fn(), destroy: vi.fn() })) },
 }))
+
+import { MicVAD } from '@ricky0123/vad-web'
 
 import { startMicCapture } from '../src/gateway/capture/systemAudio'
 
@@ -31,8 +33,14 @@ class FakeRecorder {
   state = 'inactive'
   ondataavailable: ((e: unknown) => void) | null = null
   onstop: (() => void) | null = null
-  start() { this.state = 'recording'; FakeRecorder.ultima = this }
-  stop() { this.state = 'inactive'; this.onstop?.() }
+  start() {
+    this.state = 'recording'
+    FakeRecorder.ultima = this
+  }
+  stop() {
+    this.state = 'inactive'
+    this.onstop?.()
+  }
 }
 
 function faixaFalsa() {
@@ -97,9 +105,8 @@ describe('mudo do microfone', () => {
     await captura.stop()
   })
 
-  it('mutar no meio de uma frase descarta o enunciado em curso', async () => {
-    /* Sem isto o parcial ficaria pendurado na tela para sempre: o VAD nunca fecharia um
-       segmento que, a partir do mudo, só recebe silêncio. */
+  /** Abre a captura e devolve os callbacks que o VAD recebeu, para simular início e fim de fala. */
+  async function capturaComVad() {
     const faixa = faixaFalsa()
     const stream = {
       getAudioTracks: () => [faixa],
@@ -110,7 +117,21 @@ describe('mudo do microfone', () => {
       value: { getUserMedia: vi.fn(async () => stream) },
     })
     const onMisfire = vi.fn()
-    const captura = await startMicCapture(undefined, { onUtterance: vi.fn(), onMisfire } as never)
+    const onUtterance = vi.fn()
+    const captura = await startMicCapture(undefined, { onUtterance, onMisfire } as never)
+    const chamadas = (MicVAD.new as unknown as ReturnType<typeof vi.fn>).mock.calls
+    const vad = chamadas[chamadas.length - 1][0] as {
+      onSpeechStart: () => void
+      onSpeechEnd: (audio: Float32Array) => void
+    }
+    return { captura, vad, onMisfire, onUtterance }
+  }
+
+  it('mutar no meio de uma frase descarta o enunciado em curso', async () => {
+    /* Sem isto o parcial ficaria pendurado na tela para sempre: o VAD nunca fecharia um
+       segmento que, a partir do mudo, só recebe silêncio. */
+    const { captura, vad, onMisfire } = await capturaComVad()
+    vad.onSpeechStart()
 
     captura.setMuted(true)
     expect(onMisfire).toHaveBeenCalledTimes(1)
@@ -119,6 +140,27 @@ describe('mudo do microfone', () => {
     captura.setMuted(false)
     expect(onMisfire).toHaveBeenCalledTimes(1)
 
+    await captura.stop()
+  })
+
+  it('mutar DEPOIS do fim da fala não descarta a fala que acabou de terminar', async () => {
+    /* O intérprete fecha o microfone logo depois do fim de cada fala, com o decode final dela ainda a
+       caminho. Avisar "misfire" aí apagava a fala da tela e a tradução nunca aparecia (01/10/2026). */
+    const { captura, vad, onMisfire, onUtterance } = await capturaComVad()
+    vad.onSpeechStart()
+    vad.onSpeechEnd(new Float32Array(16000))
+    expect(onUtterance).toHaveBeenCalledTimes(1)
+
+    captura.setMuted(true)
+    expect(onMisfire).not.toHaveBeenCalled()
+
+    await captura.stop()
+  })
+
+  it('mutar sem ninguém ter falado não descarta nada', async () => {
+    const { captura, onMisfire } = await capturaComVad()
+    captura.setMuted(true)
+    expect(onMisfire).not.toHaveBeenCalled()
     await captura.stop()
   })
 })

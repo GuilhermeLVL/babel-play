@@ -9,6 +9,7 @@ import {
   Smartphone,
   Volume2,
 } from 'lucide-react';
+import type { ReactNode } from 'react';
 
 import { t } from '../../../../lib/i18n';
 import { langLabel } from '../../../../lib/languages';
@@ -34,6 +35,7 @@ export default function PaginaDoInterprete({
   automatico = 'oculto',
   noQuest = false,
   semVoz = false,
+  avisos,
   aoConhecerOPremium,
   aoComecar,
   aoEscolherIdiomas,
@@ -52,6 +54,8 @@ export default function PaginaDoInterprete({
   noQuest?: boolean;
   /** O aparelho não tem voz de leitura: a tradução é só em texto, e a tela não promete voz. */
   semVoz?: boolean;
+  /** O cartão da nuvem do aparelho leve (`NuvemDoQuest`): no headset, é ela que faz a conversa andar. */
+  avisos?: ReactNode;
   /** Abre os Planos (ausente no perfil protegido: nada de oferta). */
   aoConhecerOPremium?: () => void;
   aoComecar: () => void;
@@ -108,6 +112,7 @@ export default function PaginaDoInterprete({
           </button>
           {lado(t('A outra pessoa fala'), idiomas.outro)}
         </div>
+        {avisos}
         <div className="q-meio">
           <ol className="q-passos" aria-label={t('Como funciona')}>
             <li>

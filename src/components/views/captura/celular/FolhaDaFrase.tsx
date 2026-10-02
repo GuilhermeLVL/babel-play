@@ -65,6 +65,7 @@ export default function FolhaDaFrase({
   fala,
   aoOuvir,
   audioReal,
+  semPratica = false,
   aoTocarPalavra,
   ehNova,
   aoPraticar,
@@ -78,6 +79,8 @@ export default function FolhaDaFrase({
    * Quest) e a fala foi guardada: "Ouvir" e "Ouvir devagar" repetem a voz original, em vez de sumirem.
    */
   audioReal?: (lenta: boolean) => void;
+  /** Sem "Repetir eu": a nota da repetição usa o reconhecimento de voz do navegador, que o Quest não tem. */
+  semPratica?: boolean;
   aoTocarPalavra: (palavra: string) => void;
   ehNova?: (palavra: string) => boolean;
   aoPraticar?: () => void;
@@ -138,17 +141,19 @@ export default function FolhaDaFrase({
             <Languages aria-hidden /> {t('Ouvir tradução')}
           </button>
         )}
-        <button
-          type="button"
-          className="folha-acao"
-          aria-pressed={praticando}
-          onClick={() => {
-            if (!praticando) aoPraticar?.();
-            setPraticando((v) => !v);
-          }}
-        >
-          <Mic aria-hidden /> {t('Repetir eu')}
-        </button>
+        {!semPratica && (
+          <button
+            type="button"
+            className="folha-acao"
+            aria-pressed={praticando}
+            onClick={() => {
+              if (!praticando) aoPraticar?.();
+              setPraticando((v) => !v);
+            }}
+          >
+            <Mic aria-hidden /> {t('Repetir eu')}
+          </button>
+        )}
         <button type="button" className="folha-acao" onClick={copiar}>
           <Copy aria-hidden /> {t('Copiar')}
         </button>

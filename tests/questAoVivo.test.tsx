@@ -75,6 +75,37 @@ describe('LegendaAoVivoDoQuest', () => {
     expect((container.querySelector('.q-leg') as HTMLElement).style.getPropertyValue('--q-escala')).toBe('1.5')
   })
 
+  it('fala que ainda não tem texto não vira uma linha de "…": aparece "Transcrevendo…"', () => {
+    const pendente = { ...fala('p', '', '…'), isPartial: true }
+    const { container } = render(
+      <LegendaAoVivoDoQuest
+        falas={[fala('a', 'one', 'um'), pendente]}
+        escala={1}
+        idiomaPadrao="en"
+        aoTocar={() => {}}
+      />,
+    )
+    expect(container.querySelectorAll('.q-linha-da-fala')).toHaveLength(1)
+    expect(screen.getByText('Transcrevendo…')).toBeTruthy()
+  })
+
+  it('com as duas fontes ligadas, cada fala diz de quem é', () => {
+    const minha = { ...fala('m', 'oi', 'hi'), source: 'mic' as const }
+    const { container } = render(
+      <LegendaAoVivoDoQuest
+        falas={[fala('a', 'one', 'um'), minha]}
+        escala={1}
+        idiomaPadrao="en"
+        aoTocar={() => {}}
+        mostrarFonte
+      />,
+    )
+    const metas = [...container.querySelectorAll('.q-meta')].map((m) => m.textContent)
+    expect(metas[0]).toContain('Som do headset')
+    expect(metas[1]).toContain('Você')
+    expect(container.querySelectorAll('.q-linha-da-fala')[1].getAttribute('data-fonte')).toBe('mic')
+  })
+
   it('"Ouvir de novo" só aparece na fala que tem áudio guardado, e toca essa fala', () => {
     const aoOuvir = vi.fn()
     const falas = [fala('a', 'one', 'um'), fala('b', 'two', 'dois')]

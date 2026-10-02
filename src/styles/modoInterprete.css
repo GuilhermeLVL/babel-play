@@ -321,7 +321,16 @@
   gap: 12px;
 }
 .int[data-layout='quest'] .int-idioma {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
   font-size: 14px;
+}
+.int-quem {
+  font: 800 20px/1 var(--font-display, inherit);
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--int-tinta);
 }
 .int[data-layout='quest'] .int-traducao {
   font-size: clamp(26px, 2.5vw, 38px);

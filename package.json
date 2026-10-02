@@ -57,6 +57,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx server/db/migrate.ts",
     "dev:local": "node subir-dev.mjs",
+    "vitrine": "node scripts/vitrine/subir.mjs",
     "backup": "node scripts/backup.mjs",
     "prepare": "husky"
   },

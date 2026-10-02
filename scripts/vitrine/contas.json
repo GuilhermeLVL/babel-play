@@ -1,0 +1,115 @@
+[
+  {
+    "email": "nova@vitrine.test",
+    "id": "00000000-0000-4000-8000-00000000b001",
+    "estado": "nova",
+    "rotulo": "Conta recém-criada",
+    "rota": "/",
+    "oQueVer": "Primeiro acesso: apresentação, pergunta da idade, Início vazio. O teste de 14 dias só aparece depois de informar a idade."
+  },
+  {
+    "email": "gratis@vitrine.test",
+    "id": "00000000-0000-4000-8000-00000000b002",
+    "estado": "gratis",
+    "rotulo": "Grátis",
+    "rota": "/plano",
+    "oQueVer": "Planos com o teste de 14 dias disponível, travas \"Conhecer o Premium\" (Nuance, intérprete automático, tutor), cartão de planos no Início."
+  },
+  {
+    "email": "teste@vitrine.test",
+    "id": "00000000-0000-4000-8000-00000000b003",
+    "estado": "teste",
+    "rotulo": "Teste de 14 dias em curso",
+    "rota": "/plano",
+    "oQueVer": "Faixa \"Premium · teste\" com a data do fim (faltam 9 dias), recursos do Premium liberados, convite para assinar."
+  },
+  {
+    "email": "teste-vencido@vitrine.test",
+    "id": "00000000-0000-4000-8000-00000000b004",
+    "estado": "teste-vencido",
+    "rotulo": "Teste vencido",
+    "rota": "/plano",
+    "oQueVer": "Voltou ao Grátis sozinha; o teste aparece como já usado e não é oferecido de novo."
+  },
+  {
+    "email": "recente@vitrine.test",
+    "id": "00000000-0000-4000-8000-00000000b005",
+    "estado": "mensal-recente",
+    "rotulo": "Premium mensal, assinou há 2 dias",
+    "rota": "/plano/assinatura",
+    "oQueVer": "Dentro dos 7 dias de arrependimento: cancelar devolve o valor e o acesso termina na hora, com protocolo."
+  },
+  {
+    "email": "mensal@vitrine.test",
+    "id": "00000000-0000-4000-8000-00000000b006",
+    "estado": "mensal",
+    "rotulo": "Premium mensal",
+    "rota": "/plano/assinatura",
+    "oQueVer": "Sua assinatura com próxima cobrança e faturas; cancelar mantém o acesso até o fim do período pago. Consumo do mês com uso moderado."
+  },
+  {
+    "email": "anual@vitrine.test",
+    "id": "00000000-0000-4000-8000-00000000b007",
+    "estado": "anual",
+    "rotulo": "Premium anual à vista",
+    "rota": "/plano/assinatura",
+    "oQueVer": "\"Premium · anual\", vale até daqui a uns dez meses, renova sozinho."
+  },
+  {
+    "email": "parcelado@vitrine.test",
+    "id": "00000000-0000-4000-8000-00000000b008",
+    "estado": "parcelado",
+    "rotulo": "Premium anual em 12x",
+    "rota": "/plano/assinatura",
+    "oQueVer": "\"Premium · anual em 12x\", as doze parcelas como faturas, sem renovação automática."
+  },
+  {
+    "email": "atrasado@vitrine.test",
+    "id": "00000000-0000-4000-8000-00000000b009",
+    "estado": "atrasado",
+    "rotulo": "Pagamento atrasado",
+    "rota": "/",
+    "oQueVer": "Faixa de pagamento atrasado em todas as telas; acesso mantido por mais 3 dias de tolerância."
+  },
+  {
+    "email": "cancelada@vitrine.test",
+    "id": "00000000-0000-4000-8000-00000000b00a",
+    "estado": "cancelada",
+    "rotulo": "Cancelada, com acesso até o fim",
+    "rota": "/plano/assinatura",
+    "oQueVer": "Assinatura cancelada que ainda vale por 12 dias; opção de voltar a assinar."
+  },
+  {
+    "email": "teto-do-dia@vitrine.test",
+    "id": "00000000-0000-4000-8000-00000000b00b",
+    "estado": "teto-do-dia",
+    "rotulo": "Premium no teto de hoje",
+    "rota": "/plano",
+    "oQueVer": "As 2 h de nuvem de hoje acabaram: a captura avisa uma vez e a legenda segue no aparelho. Consumo do mês ainda com folga."
+  },
+  {
+    "email": "teto-do-mes@vitrine.test",
+    "id": "00000000-0000-4000-8000-00000000b00c",
+    "estado": "teto-do-mes",
+    "rotulo": "Premium no teto do mês",
+    "rota": "/plano",
+    "oQueVer": "As 40 h de nuvem do mês acabaram: medidor cheio em Consumo do mês e recusa da nuvem na captura."
+  },
+  {
+    "email": "menor@vitrine.test",
+    "id": "00000000-0000-4000-8000-00000000b00d",
+    "estado": "menor",
+    "rotulo": "Menor de 16 aguardando o responsável",
+    "rota": "/",
+    "oQueVer": "Perfil protegido: sem oferta de venda, nuvem bloqueada até o responsável aceitar o convite (enviado a responsavel@vitrine.test)."
+  },
+  {
+    "email": "admin@vitrine.test",
+    "id": "00000000-0000-4000-8000-00000000b00e",
+    "estado": "admin",
+    "rotulo": "Administrador (com 2FA)",
+    "rota": "/",
+    "doisFatores": true,
+    "oQueVer": "Papel admin com Premium concedido sem cobrança. Tem verificação em duas etapas: o código é 123456."
+  }
+]

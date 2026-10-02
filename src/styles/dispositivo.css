@@ -93,6 +93,35 @@ html[data-dispositivo='quest'] :is(.btn, .folha-acao, .cel-ib, .cel-chip) {
 html[data-dispositivo='quest'] nav :is(a, button) {
   min-height: var(--alvo-min);
 }
+/* QUEST: as duas telas que podem aparecer ANTES de o CSS do headset chegar (ele vem com o trilho): a
+   espera de uma tela e a falha de uma tela. Lidas de longe, com alvos de 56 px. */
+html[data-dispositivo='quest'] .carregando-da-tela {
+  font-size: 18px;
+  font-weight: 700;
+}
+html[data-dispositivo='quest'] .erro-da-tela > div {
+  max-width: 620px;
+  padding: 32px;
+  border-radius: 24px;
+}
+html[data-dispositivo='quest'] .erro-da-tela h1 {
+  font-size: 28px;
+  line-height: 1.15;
+}
+html[data-dispositivo='quest'] .erro-da-tela p {
+  font-size: 17px;
+  line-height: 1.45;
+}
+html[data-dispositivo='quest'] .erro-da-tela :is(.label-mono, code) {
+  font-size: 14px;
+}
+html[data-dispositivo='quest'] .erro-da-tela button {
+  min-height: 56px;
+  padding: 0 22px;
+  border-radius: 999px;
+  font-size: 17px;
+}
+
 /* A captura enxuta (a do celular) numa janela larga de headset: uma coluna centrada, texto maior. */
 html[data-dispositivo='quest'] .cel {
   width: 100%;

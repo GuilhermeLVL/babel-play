@@ -1,17 +1,21 @@
 import type { ItemOutcome, ResultadoDitado, RoundReport } from '@core';
 import { conferirDitado, pontuarRodada, scorePronunciation, scoreRound } from '@core';
-import { Mic, Play, SkipForward, Square, Turtle } from 'lucide-react';
+import { Mic, MicOff, Play, SkipForward, Square, Turtle } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { palavrasDaFrase } from '../../core/minigames/palavrasDaFrase';
 import { celebrar } from '../../lib/comemoracao';
+import { perfilDoDispositivo } from '../../lib/dispositivo/perfil';
+import { recursosDoAparelho } from '../../lib/dispositivo/recursos';
 import { criarFalante } from '../../lib/falante';
+import { t } from '../../lib/i18n';
 import { pontosDoElemento } from '../../lib/juice';
 import { speechErrorMessage } from '../../lib/mediaErrors';
 import type { AgeProfileType } from '../../lib/profile';
 import { toast } from '../Toast';
 import { useRodada } from './casca/CascaDaRodada';
 import HudDaRodada from './casca/HudDaRodada';
+import { SemVozNoQuest, useQuestNovo, useVozNoJogo } from './noQuest';
 
 /**
  * KARAOKÊ DA FALA — a frase real toca com as palavras acendendo em sincronia; você fala junto e
@@ -54,7 +58,9 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish }: K
     setFaseEstado(f);
   };
   /** Os relógios do "Ouvir" — cancelados quando a gravação começa, senão a derrubam ao vencer. */
-  const relogiosDoOuvirRef = useRef<{ passo?: ReturnType<typeof setInterval>; fim?: ReturnType<typeof setTimeout> }>({});
+  const relogiosDoOuvirRef = useRef<{ passo?: ReturnType<typeof setInterval>; fim?: ReturnType<typeof setTimeout> }>(
+    {},
+  );
   const pararRelogiosDoOuvir = () => {
     clearInterval(relogiosDoOuvirRef.current.passo);
     clearTimeout(relogiosDoOuvirRef.current.fim);
@@ -74,9 +80,20 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish }: K
   const fala = falas[indice];
   const palavras = fala ? palavrasDaFrase(fala.texto, fala.lang) : [];
 
+  /* NO QUEST o navegador não reconhece fala: o jogo não dá nota ali, e diz isso no lugar do botão de
+     falar (o lobby já o mostra apagado; por aqui só chega quem veio da tela completa). O som é o clipe
+     da gravação ou a voz do site, quando ela lê o idioma da fala. */
+  const questNovo = useQuestNovo();
+  const semNotaAqui = useMemo(
+    () => questNovo && !recursosDoAparelho(perfilDoDispositivo()).reconhecimentoDoNavegador,
+    [questNovo],
+  );
+  const haVoz = useVozNoJogo(fala?.lang);
+  const temSom = !!audioUrl || haVoz;
+
   const falante = useMemo(() => criarFalante(audioRef, audioUrl), [audioUrl]);
   const ouvir = (velocidade = 1) => {
-    if (!fala || !falante.disponivel) return;
+    if (!fala || !falante.disponivel || !temSom) return;
     pararRelogiosDoOuvir();
     setFase('ouvindo');
     setPalavraAtiva(-1);
@@ -102,7 +119,7 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish }: K
   };
 
   const gravar = () => {
-    if (!ativo) return;
+    if (!ativo || semNotaAqui) return;
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SR) {
       setSemReconhecimento(true);
@@ -278,7 +295,7 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish }: K
         progresso={indice / falas.length}
       />
 
-      <div className="w-full max-w-2xl flex flex-col items-center gap-6">
+      <div data-qj="karaoke" className="w-full max-w-2xl flex flex-col items-center gap-6">
         {/* A FRASE: acende em sincronia com o áudio enquanto se ouve e, DEPOIS de falar, vira o
             resultado, cada palavra com o próprio veredito. É a mesma frase servindo aos dois
             momentos, em vez de um segundo bloco repetindo o texto embaixo. */}
@@ -315,26 +332,35 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish }: K
 
         {fala.traducao && <p className="text-[13px] text-ink-muted text-center -mt-2">{fala.traducao}</p>}
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => ouvir(1)}
-            disabled={fase === 'gravando'}
-            className="py-3 px-5 rounded-xl bg-canvas border border-border-subtle text-ink font-bold text-[13px] hover:border-accent disabled:opacity-40 cursor-pointer flex items-center gap-2"
-          >
-            <Play className="w-4 h-4" /> {ageProfile === 'senior' ? 'Ouvir a fala' : 'Ouvir'}
-          </button>
-          <button
-            data-tour="devagar"
-            onClick={() => ouvir(0.6)}
-            disabled={fase === 'gravando'}
-            className="py-3 px-4 rounded-xl bg-canvas border border-border-subtle text-ink-muted font-bold text-[13px] hover:border-accent hover:text-ink disabled:opacity-40 cursor-pointer flex items-center gap-1.5"
-            title="Toca a mesma fala mais devagar, sem mudar o tom da voz"
-          >
-            <Turtle className="w-4 h-4" /> devagar
-          </button>
+        {!temSom && <SemVozNoQuest idioma={fala.lang} />}
 
-          {fase === 'gravando' ? (
+        <div className="flex items-center gap-3" data-qp="acoes">
+          {temSom && (
+            <>
+              <button
+                data-qp="acao"
+                onClick={() => ouvir(1)}
+                disabled={fase === 'gravando'}
+                className="py-3 px-5 rounded-xl bg-canvas border border-border-subtle text-ink font-bold text-[13px] hover:border-accent disabled:opacity-40 cursor-pointer flex items-center gap-2"
+              >
+                <Play className="w-4 h-4" /> {ageProfile === 'senior' ? 'Ouvir a fala' : 'Ouvir'}
+              </button>
+              <button
+                data-tour="devagar"
+                data-qp="acao"
+                onClick={() => ouvir(0.6)}
+                disabled={fase === 'gravando'}
+                className="py-3 px-4 rounded-xl bg-canvas border border-border-subtle text-ink-muted font-bold text-[13px] hover:border-accent hover:text-ink disabled:opacity-40 cursor-pointer flex items-center gap-1.5"
+                title="Toca a mesma fala mais devagar, sem mudar o tom da voz"
+              >
+                <Turtle className="w-4 h-4" /> devagar
+              </button>
+            </>
+          )}
+
+          {semNotaAqui ? null : fase === 'gravando' ? (
             <button
+              data-qp="acao-pri"
               onClick={parar}
               className="py-3 px-6 rounded-xl bg-error text-white font-bold text-[13px] shadow-btn cursor-pointer flex items-center gap-2"
             >
@@ -343,6 +369,7 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish }: K
           ) : (
             <button
               data-tour="falar"
+              data-qp="acao-pri"
               onClick={gravar}
               className="py-3 px-6 rounded-xl bg-accent hover:bg-accent-ink text-white font-bold text-[13px] shadow-btn cursor-pointer flex items-center gap-2"
             >
@@ -350,6 +377,19 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish }: K
             </button>
           )}
         </div>
+
+        {/* O motivo, dito no lugar do botão: nota de pronúncia inventada seria pior que nenhuma. */}
+        {semNotaAqui && (
+          <p className="qj-sem-voz" role="note" data-testid="karaoke-sem-nota">
+            <MicOff aria-hidden />
+            <span>
+              {t('O headset não avalia a pronúncia.')}{' '}
+              {temSom
+                ? t('Ouça, repita em voz alta e siga para a próxima.')
+                : t('Leia em voz alta e siga para a próxima.')}
+            </span>
+          </p>
+        )}
 
         {fase === 'gravando' && (
           <p className="flex items-center gap-2 text-[13px] text-accent font-bold">
@@ -399,6 +439,7 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish }: K
         )}
 
         <button
+          data-qp="acao"
           onClick={() => proxima()}
           className="py-2.5 px-5 rounded-xl bg-surface border border-border-subtle text-ink font-bold text-[13px] hover:border-accent cursor-pointer flex items-center gap-1.5"
         >

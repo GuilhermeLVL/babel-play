@@ -1,7 +1,7 @@
 import '../../../../styles/modoInterprete.css';
 
 import { ArrowUpDown, AudioLines, Loader2, Lock, Mic, RotateCcw, Square, Volume2, VolumeX, X } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 
 import {
   type ControleDoInterprete,
@@ -16,6 +16,14 @@ import { langLabel } from '../../../../lib/languages';
 import { nativeTts, type TtsEngine } from '../../../../lib/tts';
 import { tempoAteAVoz } from '../../../../lib/voz/tempoAteAVoz';
 import { criarVozDaNuvem, destravarVozDaNuvem, type VozDaNuvem } from '../../../../lib/voz/vozDaNuvem';
+import {
+  aoMudarIdiomasDaVozDoQuest,
+  atualizarIdiomasDaVozDoQuest,
+  criarVozDoQuest,
+  idiomasDaVozDoQuest,
+  MOTOR_MUDO,
+  vozDoQuestFala,
+} from '../../../../lib/voz/vozDoQuest';
 
 /** A fala, no que a tela precisa. */
 export type FalaDoInterprete = Pick<SpeechSegment, 'id' | 'originalText' | 'translatedText' | 'isPartial' | 'lado'>;
@@ -23,13 +31,11 @@ export type FalaDoInterprete = Pick<SpeechSegment, 'id' | 'originalText' | 'tran
 const ESTADO_DA_TELA: EstadoDoControle = { ...ESTADO_INICIAL, falando: null };
 
 /**
- * SEM VOZ DE LEITURA (o Quest): um motor que não fala e avisa o fim na hora. Sem ele a fila esperava o
- * prazo de uma fala que nunca começa, com a tela dizendo "Lendo a tradução" e o próximo toque atrasado.
+ * SEM VOZ DE LEITURA (o Quest sem a nuvem): um motor que não fala e avisa o fim na hora. Sem ele a fila
+ * esperava o prazo de uma fala que nunca começa, com a tela dizendo "Lendo a tradução" e o próximo
+ * toque atrasado.
  */
-const MOTOR_SEM_VOZ: TtsEngine = {
-  speak: (_texto, opcoes) => queueMicrotask(() => opcoes?.onEnd?.()),
-  cancel: () => {},
-};
+const MOTOR_SEM_VOZ: TtsEngine = MOTOR_MUDO;
 
 const outro = (lado: LadoDoInterprete): LadoDoInterprete => (lado === 'meu' ? 'outro' : 'meu');
 
@@ -102,6 +108,7 @@ export default function ModoInterprete({
   velocidade,
   layout,
   semVoz = false,
+  vozDoSite = false,
   abrindo,
   aviso,
   automatico = 'oculto',
@@ -118,6 +125,11 @@ export default function ModoInterprete({
   layout: 'celular' | 'computador' | 'quest';
   /** O aparelho não tem voz de leitura (`recursosDoAparelho`): a conversa é só em texto. */
   semVoz?: boolean;
+  /**
+   * A voz do site (`/quest/tts`) está ligada: no aparelho sem voz, é ela que lê a tradução, nos idiomas
+   * que tem. O lado cujo idioma ela não lê continua em texto.
+   */
+  vozDoSite?: boolean;
   /** O microfone está abrindo (a permissão, o modelo): o botão de quem fala mostra a espera. */
   abrindo?: boolean;
   /**
@@ -146,9 +158,22 @@ export default function ModoInterprete({
   velocidadeRef.current = velocidade;
   const semVozRef = useRef(semVoz);
   semVozRef.current = semVoz;
+  /* A VOZ DO SITE só entra onde a do aparelho não toca: com voz nativa, o aparelho lê sem ir à rede. */
+  const comVozDoSite = semVoz && vozDoSite;
+  /* A lista de idiomas com voz pode crescer (o GET da função responde depois): a tela acompanha. */
+  useSyncExternalStore(
+    aoMudarIdiomasDaVozDoQuest,
+    () => idiomasDaVozDoQuest().join(),
+    () => '',
+  );
+  useEffect(() => {
+    if (comVozDoSite) void atualizarIdiomasDaVozDoQuest();
+  }, [comVozDoSite]);
+  /** Este idioma não é lido em voz alta aqui: a tradução dele fica em texto. */
+  const mudo = (idioma: string) => semVoz && !(comVozDoSite && vozDoQuestFala(idioma));
 
   useEffect(() => {
-    const voz = vozNaturalDisponivel ? criarVozDaNuvem() : null;
+    const voz = comVozDoSite ? criarVozDoQuest() : vozNaturalDisponivel ? criarVozDaNuvem() : null;
     const velocidadeInicial = velocidadeRef.current;
     const controle = criarControleDoInterprete({
       idiomas: () => idiomasRef.current,
@@ -156,8 +181,15 @@ export default function ModoInterprete({
         abrir: () => microfoneRef.current.abrir(),
         fechar: () => microfoneRef.current.fechar(),
       },
-      motor: () => (semVozRef.current ? MOTOR_SEM_VOZ : (voz ?? nativeTts)),
-      nomeDoMotor: () => (semVozRef.current ? 'sem-voz' : (voz?.motorDaUltimaFala() ?? 'voz-do-aparelho')),
+      motor: () => voz ?? (semVozRef.current ? MOTOR_SEM_VOZ : nativeTts),
+      nomeDoMotor: () =>
+        comVozDoSite
+          ? voz?.motorDaUltimaFala() === 'voz-da-nuvem'
+            ? 'voz-do-site'
+            : 'sem-voz'
+          : semVozRef.current
+            ? 'sem-voz'
+            : (voz?.motorDaUltimaFala() ?? 'voz-do-aparelho'),
       ...(voz ? { destravarVoz: destravarVozDaNuvem } : {}),
       ...(velocidadeInicial && velocidadeInicial !== 1 ? { opcoesDeFala: { rate: velocidadeInicial } } : {}),
       aoMudar: setEstado,
@@ -173,7 +205,7 @@ export default function ModoInterprete({
       controle.sair();
       if (controleRef.current === controle) controleRef.current = null;
     };
-  }, [vozNaturalDisponivel, registrarPonte]);
+  }, [vozNaturalDisponivel, comVozDoSite, registrarPonte]);
   const atual = estado;
 
   /* O MODO. Quem tem o automático começa nele (decisão do dono), a menos que tenha escolhido o toque
@@ -256,7 +288,23 @@ export default function ModoInterprete({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `controle` só lê o ref
   }, [layout]);
 
-  const vozNatural = !!vozRef.current && vozRef.current.motorDaUltimaFala() === 'voz-da-nuvem';
+  const vozNatural = !comVozDoSite && !!vozRef.current && vozRef.current.motorDaUltimaFala() === 'voz-da-nuvem';
+  /* O que a faixa do meio diz da voz, no aparelho sem voz própria: quem é lido e quem fica em texto. */
+  const idiomaDoLado = (lado: LadoDoInterprete) => direcaoDoLado(lado, idiomas, atual.trocados).fala;
+  const mudos = (['meu', 'outro'] as const).filter((l) => mudo(idiomaDoLado(l)));
+  const rotuloDaVoz =
+    mudos.length === 2
+      ? t('Tradução em texto neste aparelho')
+      : mudos.length === 1
+        ? t('Voz em {comVoz} · {semVoz} em texto', {
+            comVoz: langLabel(idiomaDoLado(outro(mudos[0]))),
+            semVoz: langLabel(idiomaDoLado(mudos[0])),
+          })
+        : comVozDoSite
+          ? t('Voz do site')
+          : vozNatural
+            ? t('Voz natural · Premium')
+            : t('Voz do aparelho');
   /** Lado a lado (computador e Quest); no celular, frente a frente com a metade de cima virada. */
   const ladoALado = layout !== 'celular';
   const computador = layout === 'computador';
@@ -273,6 +321,10 @@ export default function ModoInterprete({
     const vozParaMim = !!atual.falando && atual.falando.lado === outro(lado);
     const minhaAoVivo = ouvindo ? ultimaDoLado(falas, lado, true) : undefined;
     const atalho = lado === 'meu' ? '1' : '2';
+    /* Quem está deste lado OUVE no idioma dele: sem voz para esse idioma, a tradução fica em texto. */
+    const semVozAqui = mudo(direcao.fala);
+    /* E o que ESTE lado fala é lido para o outro, no idioma do outro. */
+    const semVozParaOOutro = mudo(idiomaDoLado(outro(lado)));
     return (
       <section
         className="int-metade"
@@ -300,7 +352,7 @@ export default function ModoInterprete({
             </>
           ) : (
             <p className="int-dica">
-              {semVoz
+              {semVozParaOOutro
                 ? noAutomatico
                   ? t('Toque em Ouvir e conversem. O app reconhece quem fala qual idioma e mostra a tradução.')
                   : t('Toque em Falar e fale. A tradução aparece do outro lado, em texto.')
@@ -319,12 +371,12 @@ export default function ModoInterprete({
                 : t('Ouvindo…')
             : traduzindo
               ? t('Traduzindo…')
-              : vozParaMim
+              : vozParaMim && !semVozAqui
                 ? t('Lendo a tradução')
                 : ''}
         </p>
         <div className="int-acoes">
-          {!semVoz && (vozParaMim || (atual.fase === 'parado' && doOutro)) && (
+          {!semVozAqui && (vozParaMim || (atual.fase === 'parado' && doOutro)) && (
             <button
               type="button"
               className="int-ib"
@@ -385,7 +437,7 @@ export default function ModoInterprete({
               {computador && <kbd aria-hidden>{atalho}</kbd>}
             </button>
           )}
-          {!semVoz && vozParaMim && (
+          {!semVozAqui && vozParaMim && (
             <button type="button" className="int-ib" onClick={() => controle.pararVoz()} aria-label={t('Parar a voz')}>
               <VolumeX aria-hidden />
               <span>{t('Parar voz')}</span>
@@ -435,26 +487,9 @@ export default function ModoInterprete({
           )}
         </div>
         <div className="int-centro">
-          <span
-            className="int-voz"
-            data-natural={vozNatural || undefined}
-            data-testid="voz-em-uso"
-            title={
-              semVoz
-                ? t('Tradução em texto neste aparelho')
-                : vozNatural
-                  ? t('Voz natural · Premium')
-                  : t('Voz do aparelho')
-            }
-          >
-            {semVoz ? <VolumeX aria-hidden /> : <Volume2 aria-hidden />}
-            <span className="int-voz-txt">
-              {semVoz
-                ? t('Tradução em texto neste aparelho')
-                : vozNatural
-                  ? t('Voz natural · Premium')
-                  : t('Voz do aparelho')}
-            </span>
+          <span className="int-voz" data-natural={vozNatural || undefined} data-testid="voz-em-uso" title={rotuloDaVoz}>
+            {mudos.length === 2 ? <VolumeX aria-hidden /> : <Volume2 aria-hidden />}
+            <span className="int-voz-txt">{rotuloDaVoz}</span>
           </span>
           <span className="int-aviso" role="status" data-testid="aviso-do-interprete">
             {avisoDaTela ?? aviso ?? ''}

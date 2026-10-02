@@ -92,7 +92,7 @@ async function lerSegundos(kv, chave) {
 }
 
 /** Soma `segundos` em blocos de 60 s, com probabilidade proporcional (ver o cabeçalho). */
-async function somar(kv, chave, atual, segundos, sorteio = Math.random) {
+export async function somar(kv, chave, atual, segundos, sorteio = Math.random) {
   const inteiros = Math.floor(segundos / BLOCO_S);
   const resto = (segundos % BLOCO_S) / BLOCO_S;
   const blocos = inteiros + (sorteio() < resto ? 1 : 0);
@@ -173,10 +173,13 @@ const NOME_DO_IDIOMA = {
   no: 'norwegian',
   ca: 'catalan',
 };
-const base = (codigo) =>
-  String(codigo || '')
+/** `nb` e `nn` (o norueguês do app) são o `no` do m2m100: sem isto o norueguês ficava sem tradução. */
+const base = (codigo) => {
+  const b = String(codigo || '')
     .toLowerCase()
     .split('-')[0];
+  return b === 'nb' || b === 'nn' ? 'no' : b;
+};
 
 /** Traduz `texto` de `de` para `para` (códigos ISO). `null` se não deu: o aparelho traduz sozinho. */
 export async function traduzir(env, texto, de, para) {

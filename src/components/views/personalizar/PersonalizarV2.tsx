@@ -1,9 +1,10 @@
 import { Award, Map as MapIcon, Shirt, ShoppingBag, Sprout, Trophy } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 
 import type { MaestriaNoServidor } from '../../../data/api';
 import { useCarteira } from '../../../lib/carteira';
 import { contarConquistas } from '../../../lib/conquistas';
+import { useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
 import { edicaoEstatica } from '../../../lib/edicaoEstatica';
 import { type ContextoDeEquipar, estaEquipado } from '../../../lib/galeria/equipar';
 import { estadoDaColecao } from '../../../lib/galeria/progressao';
@@ -17,7 +18,7 @@ import { useTemporada } from '../../../lib/temporada';
 import CartaoDeConvite from '../../conta/CartaoDeConvite';
 import MolduraETitulo from '../../perfil/MolduraETitulo';
 import { toast } from '../../Toast';
-import { Abas, CabecalhoDeTela, PainelDeAba, Tela } from '../../ui';
+import { Abas, CabecalhoDeTela, type ItemDeAba, PainelDeAba, Tela } from '../../ui';
 import Conquistas from '../Conquistas';
 import CabecalhoDeTemporada from '../loja/CabecalhoDeTemporada';
 import type { LojaProps } from '../loja/propsDaLoja';
@@ -26,6 +27,7 @@ import PainelDeMaestria from '../maestria/PainelDeMaestria';
 import PasseDeTemporada from '../passe/PasseDeTemporada';
 import Personalizar from '../Personalizar';
 import PainelDePrevia, { FaixaDoTemaEmPrevia, TIPOS_COM_PREVIA, usePreviaAoVivo } from './PainelDePrevia';
+import CascaDePersonalizarNoQuest from './quest/CascaDePersonalizarNoQuest';
 
 /**
  * PERSONALIZAR EM CINCO ABAS (recompensas v2, Task 5.4 — spec 10.3), no mesmo molde de cartões:
@@ -106,6 +108,96 @@ export default function PersonalizarV2({
   );
   const painelDePrevia = <PainelDePrevia previa={previa} aoParar={parar} />;
 
+  /* AS ABAS E O MIOLO DE CADA UMA, ditos uma vez: a tela de sempre e a do headset mostram os mesmos. */
+  const questNovo = useQuestNovo();
+  const itensDeAba: ItemDeAba[] = [
+    { id: 'colecao', rotulo: t('Coleção'), icone: <Shirt aria-hidden />, contagem: colecao.possuidos.length },
+    { id: 'maestria', rotulo: t('Maestria'), icone: <Award aria-hidden />, contagem: `${comNivel}/18` },
+    { id: 'temporada', rotulo: t('Temporada'), icone: <MapIcon aria-hidden /> },
+    {
+      id: 'conquistas',
+      rotulo: t('Conquistas'),
+      icone: <Trophy aria-hidden />,
+      contagem: `${conquistas.feitas}/${conquistas.total}`,
+    },
+    { id: 'loja', rotulo: t('Loja'), icone: <ShoppingBag aria-hidden /> },
+  ];
+  const miolo: Record<AbaDaLojaV2, ReactNode> = {
+    colecao: (
+      <Personalizar
+        theme={theme}
+        setTheme={setTheme}
+        fonte={fonte}
+        setFonte={setFonte}
+        nivel={nivel}
+        saldo={saldo}
+        ageProfile={ageProfile}
+        setAgeProfile={setAgeProfile}
+        menuPosition={menuPosition}
+        setMenuPosition={setMenuPosition}
+        onOpenStudio={onOpenStudio}
+        onIrParaLoja={() => setAba('loja')}
+        onIrParaPasse={() => setAba('temporada')}
+        onIrParaConquistas={() => setAba('conquistas')}
+        topo={painelDePrevia}
+        aoPrever={prever}
+        itemEmPrevia={previa.itemId}
+        tiposComPrevia={TIPOS_COM_PREVIA}
+      />
+    ),
+    maestria: semConta ? convite : <PainelDeMaestria jogos={maestria} />,
+    temporada: semConta ? (
+      convite
+    ) : (
+      <section className="secao">
+        <CabecalhoDeTemporada
+          estado={temporada}
+          saldo={saldo}
+          carteira={carteira}
+          aoComprarCreditos={mostrarCreditos ? () => setAba('loja') : undefined}
+        />
+        <div style={{ marginTop: 16 }}>
+          <PasseDeTemporada temporada={temporada} ctxEquipar={ctxEquipar} equipadoAtual={equipadoAtual} protegido={protegido} />
+        </div>
+      </section>
+    ),
+    conquistas: semConta ? convite : <Conquistas progress={progress} ctx={ctxConquistas} />,
+    loja: semConta ? (
+      convite
+    ) : (
+      <>
+        <PainelDePrevia previa={previa} aoParar={parar} soEmPrevia />
+        <VitrineV2
+          nivel={nivel}
+          saldo={saldo}
+          carteira={carteira}
+          mostrarCreditos={mostrarCreditos}
+          ctxEquipar={ctxEquipar}
+          equipadoAtual={equipadoAtual}
+          aoPrever={prever}
+          itemEmPrevia={previa.itemId}
+          tiposComPrevia={TIPOS_COM_PREVIA}
+          aoMudar={aoMudar}
+        />
+      </>
+    ),
+  };
+
+  /* NO META QUEST (telas novas): o cabeçalho e as abas do desenho do headset; o miolo é o mesmo. */
+  if (questNovo)
+    return (
+      <CascaDePersonalizarNoQuest
+        saldo={saldo}
+        moldura={<MolduraETitulo nivel={nivel} tamanho={44} />}
+        abas={itensDeAba}
+        ativa={aba}
+        aoTrocar={setAba}
+        faixa={<FaixaDoTemaEmPrevia previa={previa} aoParar={parar} />}
+      >
+        {miolo[aba]}
+      </CascaDePersonalizarNoQuest>
+    );
+
   return (
     <Tela largura="larga">
       <CabecalhoDeTela
@@ -125,98 +217,29 @@ export default function PersonalizarV2({
             </span>
           </span>
         }
-        abas={
-          <Abas
-            rotuloDoGrupo={t('Seções de Personalizar')}
-            ativo={aba}
-            aoTrocar={setAba}
-            itens={[
-              { id: 'colecao', rotulo: t('Coleção'), icone: <Shirt aria-hidden />, contagem: colecao.possuidos.length },
-              { id: 'maestria', rotulo: t('Maestria'), icone: <Award aria-hidden />, contagem: `${comNivel}/18` },
-              { id: 'temporada', rotulo: t('Temporada'), icone: <MapIcon aria-hidden /> },
-              {
-                id: 'conquistas',
-                rotulo: t('Conquistas'),
-                icone: <Trophy aria-hidden />,
-                contagem: `${conquistas.feitas}/${conquistas.total}`,
-              },
-              { id: 'loja', rotulo: t('Loja'), icone: <ShoppingBag aria-hidden /> },
-            ]}
-          />
-        }
+        abas={<Abas rotuloDoGrupo={t('Seções de Personalizar')} ativo={aba} aoTrocar={setAba} itens={itensDeAba} />}
       />
 
       <FaixaDoTemaEmPrevia previa={previa} aoParar={parar} />
 
       <PainelDeAba id="colecao" ativo={aba}>
-        <Personalizar
-          theme={theme}
-          setTheme={setTheme}
-          fonte={fonte}
-          setFonte={setFonte}
-          nivel={nivel}
-          saldo={saldo}
-          ageProfile={ageProfile}
-          setAgeProfile={setAgeProfile}
-          menuPosition={menuPosition}
-          setMenuPosition={setMenuPosition}
-          onOpenStudio={onOpenStudio}
-          onIrParaLoja={() => setAba('loja')}
-          onIrParaPasse={() => setAba('temporada')}
-          onIrParaConquistas={() => setAba('conquistas')}
-          topo={painelDePrevia}
-          aoPrever={prever}
-          itemEmPrevia={previa.itemId}
-          tiposComPrevia={TIPOS_COM_PREVIA}
-        />
+        {miolo.colecao}
       </PainelDeAba>
 
       <PainelDeAba id="maestria" ativo={aba}>
-        {semConta ? convite : <PainelDeMaestria jogos={maestria} />}
+        {miolo.maestria}
       </PainelDeAba>
 
       <PainelDeAba id="temporada" ativo={aba}>
-        {semConta ? (
-          convite
-        ) : (
-          <section className="secao">
-            <CabecalhoDeTemporada
-              estado={temporada}
-              saldo={saldo}
-              carteira={carteira}
-              aoComprarCreditos={mostrarCreditos ? () => setAba('loja') : undefined}
-            />
-            <div style={{ marginTop: 16 }}>
-              <PasseDeTemporada temporada={temporada} ctxEquipar={ctxEquipar} equipadoAtual={equipadoAtual} protegido={protegido} />
-            </div>
-          </section>
-        )}
+        {miolo.temporada}
       </PainelDeAba>
 
       <PainelDeAba id="conquistas" ativo={aba}>
-        {semConta ? convite : <Conquistas progress={progress} ctx={ctxConquistas} />}
+        {miolo.conquistas}
       </PainelDeAba>
 
       <PainelDeAba id="loja" ativo={aba}>
-        {semConta ? (
-          convite
-        ) : (
-          <>
-            <PainelDePrevia previa={previa} aoParar={parar} soEmPrevia />
-            <VitrineV2
-              nivel={nivel}
-              saldo={saldo}
-              carteira={carteira}
-              mostrarCreditos={mostrarCreditos}
-              ctxEquipar={ctxEquipar}
-              equipadoAtual={equipadoAtual}
-              aoPrever={prever}
-              itemEmPrevia={previa.itemId}
-              tiposComPrevia={TIPOS_COM_PREVIA}
-              aoMudar={aoMudar}
-            />
-          </>
-        )}
+        {miolo.loja}
       </PainelDeAba>
     </Tela>
   );

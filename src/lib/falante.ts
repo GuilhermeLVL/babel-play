@@ -20,6 +20,7 @@
 import { toast } from '../components/Toast';
 import { mediaErrorMessage } from './mediaErrors';
 import { cancelSpeech, falar, isTtsSupported } from './tts';
+import { haAlgumaVoz } from './voz/haVoz';
 
 /** O que se pede para ouvir. `startMs`/`endMs` só existem quando o item veio de uma gravação. */
 interface ItemAudivel {
@@ -59,7 +60,9 @@ export function criarFalante(
   audioUrl: string | undefined,
 ): Falante {
   const temGravacao = !!audioUrl;
-  const temVoz = isTtsSupported();
+  /* A API existir não basta: no Quest ela existe sem voz nenhuma, e o jogo prometia um som que não
+     vinha. Vale a voz do aparelho ou a do site (`lib/voz/haVoz.ts`). */
+  const temVoz = isTtsSupported() && haAlgumaVoz();
   let pararEm: number | null = null;
   /* Uma vez por falante: o <audio> reemite `error` a cada `load()`, e repetir o mesmo aviso a cada
      clique seria tão inútil quanto não avisar. */

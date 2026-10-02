@@ -40,6 +40,28 @@ O que conferir com o headset na cabeça, e contar no chat:
 A emulação (Chromium com o perfil do Quest, a 1280 × 670 e 500 × 495) confere medidas
 e rolagem, mas não a legibilidade a um metro de distância: essa só o aparelho responde.
 
+## 0.2. A voz do intérprete e a resposta ao apontar (02/10/2026)
+
+O navegador do Quest tem a API de voz e nenhuma voz instalada. A tradução do intérprete passou a ser
+lida pela função `/quest/tts` do próprio site (Workers AI), **só com "Usar a nuvem" ligado**, em inglês,
+espanhol, francês, chinês, japonês e coreano. O português fica em texto até existir o segredo
+`DEEPINFRA_API_KEY` no Pages (antes de criá-lo: conferir a retenção no contrato da DeepInfra,
+`docs/lgpd/operadores.md`).
+
+O que conferir no headset, depois do deploy:
+
+1. **Intérprete, português ↔ inglês, nuvem ligada.** Fale em português: a outra pessoa tem de OUVIR a
+   tradução em inglês. A faixa do meio diz "Voz em English · Português em texto". Quanto tempo leva
+   entre parar de falar e a voz começar? A voz soa natural o bastante?
+2. **Repetir** e **Parar voz** do lado que ouve.
+3. **Japonês e coreano**: o código de idioma que o modelo aceita não pôde ser conferido sem o deploy
+   (a função tenta `jp`/`kr` e depois `ja`/`ko`). Se a voz ler japonês com sotaque de outro idioma, avise.
+4. **Vibração ao apontar** (Mais → "Vibração ao apontar: forte"): o controle pulsa quando o raio entra
+   num botão? E no clique? Em Ajustes → Aparência há o teste com Suave e Forte. Se não vibrar, o app
+   toca um tique bem baixo no lugar; diga qual dos dois aconteceu.
+5. **Efeito ao apontar**: o alvo cresce um pouco, ganha anel e o ícone acende; nos cartões grandes, um
+   brilho segue o raio. Algum deles incomoda ou atrasa?
+
 ## 1. Preparar (uma vez)
 
 1. No app Meta Horizon do celular: **Dispositivos → o seu Quest → Configurações do headset → Modo

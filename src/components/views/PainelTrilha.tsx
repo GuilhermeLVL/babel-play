@@ -1,12 +1,22 @@
+import '../../styles/questJogarTelas.css';
+
 import {
-type CefrLevel,
-chaveDaPalavra,
-  type DadoTrilha, etapaAtual,   etapasDoNivel, nivelSugerido, posicaoNaTrilha,
-progressoDasEtapas,   progressoDaTrilha, } from '@core';
-import { Check,GraduationCap } from 'lucide-react';
-import React, { useMemo } from 'react';
+  type CefrLevel,
+  chaveDaPalavra,
+  type DadoTrilha,
+  etapaAtual,
+  etapasDoNivel,
+  nivelSugerido,
+  posicaoNaTrilha,
+  progressoDasEtapas,
+  progressoDaTrilha,
+} from '@core';
+import { Check, ChevronDown, ChevronUp, GraduationCap } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
 
 import { rotuloDaEtapa } from '../../core/learning/trilha';
+import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
+import { numero, t } from '../../lib/i18n';
 import { langLabelNaUI } from '../../lib/languages';
 import type { AgeProfileType } from '../../lib/profile';
 import type { VocabCard } from '../../types';
@@ -42,9 +52,14 @@ interface PainelTrilhaProps {
 }
 
 export default function PainelTrilha({
-  dado, deck, ageProfile, nivel, onEscolherNivel, nativo, paresDeGlosa,
+  dado,
+  deck,
+  ageProfile,
+  nivel,
+  onEscolherNivel,
+  nativo,
+  paresDeGlosa,
 }: PainelTrilhaProps) {
-
   /**
    * QUANTAS DESTE NÍVEL JÁ ESTÃO NA SUA REVISÃO.
    *
@@ -54,11 +69,12 @@ export default function PainelTrilha({
    * jogo falavam de coisas diferentes.
    */
   const jogaveisDaTrilha = useMemo(
-    () => new Set(
-      /* `daTrilha` — o filtro por `sourceSessionId` nunca casava e este painel anunciava 0% para
+    () =>
+      new Set(
+        /* `daTrilha` — o filtro por `sourceSessionId` nunca casava e este painel anunciava 0% para
          sempre, mesmo para quem já tinha errado dezenas de palavras da trilha. */
-      deck.filter(c => c.daTrilha).map(c => chaveDaPalavra(c.word)),
-    ),
+        deck.filter((c) => c.daTrilha).map((c) => chaveDaPalavra(c.word)),
+      ),
     [deck],
   );
 
@@ -66,7 +82,7 @@ export default function PainelTrilha({
   const sugerido = useMemo(() => nivelSugerido(progresso), [progresso]);
   const nivelAtivo = nivel ?? sugerido;
 
-  const doNivel = progresso.find(p => p.nivel === nivelAtivo);
+  const doNivel = progresso.find((p) => p.nivel === nivelAtivo);
   const porFrequencia = dado.escala === 'frequencia';
   const rotulo = (n: CefrLevel) => rotuloDaEtapa(n, dado.escala);
 
@@ -76,7 +92,7 @@ export default function PainelTrilha({
 
   const pctComTraducao = useMemo(() => {
     const pares = Object.values(dado.niveis).flat();
-    const com = pares.filter(p => !!p?.[1]).length;
+    const com = pares.filter((p) => !!p?.[1]).length;
     return pares.length ? Math.round((com / pares.length) * 100) : 0;
   }, [dado]);
 
@@ -88,6 +104,153 @@ export default function PainelTrilha({
   );
   const posicao = useMemo(() => posicaoNaTrilha(etapas), [etapas]);
   const etapa = useMemo(() => etapaAtual(etapas) ?? etapas[etapas.length - 1]?.etapa ?? null, [etapas]);
+
+  /* META QUEST (segunda rodada, 01/10/2026): no lobby do headset a trilha é UMA linha (o nível, a
+     etapa e quantas palavras), que abre no lugar o painel inteiro: os níveis como alvos grandes com a
+     barra de cada um, o caminho dentro do nível e a procedência. Os números são os calculados acima. */
+  const questNovo = useQuestNovo();
+  const [aberto, setAberto] = useState(false);
+  if (questNovo) {
+    const doRecorte = (n: CefrLevel) => (porFrequencia ? t('da faixa {n}', { n: rotulo(n) }) : t('do {n}', { n }));
+    return (
+      <section className="qj-trilha" data-testid="trilha-do-quest">
+        <button type="button" className="q-linha" aria-expanded={aberto} onClick={() => setAberto((v) => !v)}>
+          <span className="q-ic" aria-hidden>
+            <GraduationCap />
+          </span>
+          <span>
+            <b>
+              {ageProfile === 'kids' ? t('Palavras para aprender') : t('Trilha de vocabulário')}
+              {nivelAtivo ? ` · ${rotulo(nivelAtivo)}` : ''}
+            </b>
+            <small>
+              {[
+                doNivel && nivelAtivo
+                  ? t('{n} palavras {recorte} prontas para jogar', {
+                      n: numero(doNivel.total),
+                      recorte: doRecorte(nivelAtivo),
+                    })
+                  : null,
+                posicao ? t('Etapa {atual} de {total}', { atual: posicao.atual, total: posicao.total }) : null,
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+            </small>
+          </span>
+          <span className="q-fim" aria-hidden>
+            {aberto ? <ChevronUp /> : <ChevronDown />}
+          </span>
+        </button>
+
+        {aberto && (
+          <div className="q-cartao">
+            <p className="qj-nota">
+              {porFrequencia
+                ? t('Palavras ordenadas por frequência de uso, das mais comuns às mais raras.')
+                : ageProfile === 'senior'
+                  ? t('Palavras escolhidas por nível, para você não depender só do que gravou.')
+                  : t('Vocabulário curado por nível, o que falta no que você captura.')}
+            </p>
+
+            <div className="q-grade qj-niveis" role="radiogroup" aria-label={t('Nível da trilha')}>
+              {progresso.map((p) => {
+                const ativo = p.nivel === nivelAtivo;
+                const completo = p.pct >= 80;
+                return (
+                  <button
+                    key={p.nivel}
+                    type="button"
+                    className="q-tile qj-nivel"
+                    role="radio"
+                    aria-checked={ativo}
+                    onClick={() => onEscolherNivel(p.nivel)}
+                  >
+                    <span className="qj-nivel-topo">
+                      <b>{rotulo(p.nivel)}</b>
+                      {completo ? (
+                        <span className="q-tag">
+                          <Check aria-hidden /> {t('feito')}
+                        </span>
+                      ) : p.nivel === sugerido && !ativo ? (
+                        <span className="q-tag">{t('Aqui')}</span>
+                      ) : (
+                        <span className="q-tag off">{p.pct}%</span>
+                      )}
+                    </span>
+                    <span className="q-barra" aria-hidden>
+                      <span style={{ width: `${p.pct}%` }} />
+                    </span>
+                    <span className="q-d">
+                      {t('{ja} de {total} palavras', { ja: numero(p.jaTem), total: numero(p.total) })}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {doNivel && nivelAtivo && (
+              <p className="q-texto">
+                {t('{n} palavras {recorte} prontas para jogar', {
+                  n: numero(doNivel.total),
+                  recorte: doRecorte(nivelAtivo),
+                })}
+                {doNivel.jaTem > 0 && ` · ${t('{n} já na sua revisão', { n: numero(doNivel.jaTem) })}`}
+              </p>
+            )}
+
+            {posicao && etapa && (
+              <div className="qj-etapas">
+                <p className="q-rotulo">
+                  {t('Etapa {atual} de {total}', { atual: posicao.atual, total: posicao.total })}
+                  <span> · {etapa.subtitulo}</span>
+                </p>
+                <ol
+                  aria-label={t('Progresso {recorte}: etapa {atual} de {total}', {
+                    recorte: nivelAtivo ? doRecorte(nivelAtivo) : '',
+                    atual: posicao.atual,
+                    total: posicao.total,
+                  })}
+                >
+                  {etapas.map((p) => (
+                    <li
+                      key={p.etapa.id}
+                      data-estado={p.estado}
+                      aria-current={p.estado === 'atual' ? 'step' : undefined}
+                    />
+                  ))}
+                </ol>
+              </div>
+            )}
+
+            {!temTraducao && (
+              <div className="q-aviso qj-alerta">
+                <span>
+                  {t('Esta trilha ainda não tem tradução para {idioma}', { idioma: langLabelNaUI(nativo) })}
+                  {paresDeGlosa.length > 0 &&
+                    ` (${t('só para {idiomas}', { idiomas: paresDeGlosa.map(langLabelNaUI).join(', ') })})`}
+                  .{' '}
+                  {t(
+                    'Você pode praticar a escrita das palavras, mas os jogos de par ficam de fora e nada entra na sua revisão.',
+                  )}
+                </span>
+              </div>
+            )}
+
+            <p className="qj-nota">
+              {porFrequencia
+                ? t(
+                    'As faixas vêm da frequência das palavras num corpus público, não de níveis do CEFR: a faixa 1 traz as mais comuns. As traduções vêm de dicionários abertos e cobrem {pct}% desta trilha. Sem tradução, a palavra aparece nos jogos de escrita, mas não nos de par.',
+                    { pct: pctComTraducao },
+                  )
+                : t(
+                    'Nível e tradução vêm de listas públicas curadas, embutidas no app, nada é traduzido na hora. Palavra sem tradução conferida ficou de fora, então os níveis avançados têm menos.',
+                  )}
+            </p>
+          </div>
+        )}
+      </section>
+    );
+  }
 
   return (
     <section className="card-panel bg-surface p-4 mb-6 flex flex-col gap-3">
@@ -108,7 +271,7 @@ export default function PainelTrilha({
       {/* OS NÍVEIS, com o quanto de cada um já está no baralho. Sem esse número a escolha de
           nível é chute; com ele, a trilha vira trilha. */}
       <div className="flex flex-wrap gap-1.5">
-        {progresso.map(p => {
+        {progresso.map((p) => {
           const ativo = p.nivel === nivelAtivo;
           const completo = p.pct >= 80;
           return (
@@ -129,7 +292,10 @@ export default function PainelTrilha({
               </span>
               <span className="block text-[10px] text-ink-muted font-mono">{p.pct}%</span>
               <span className="block h-1 w-12 bg-canvas rounded-full mt-1 overflow-hidden">
-                <span className={`block h-full rounded-full ${completo ? 'bg-good' : 'bg-accent'}`} style={{ width: `${p.pct}%` }} />
+                <span
+                  className={`block h-full rounded-full ${completo ? 'bg-good' : 'bg-accent'}`}
+                  style={{ width: `${p.pct}%` }}
+                />
               </span>
             </button>
           );
@@ -138,7 +304,8 @@ export default function PainelTrilha({
 
       {doNivel && (
         <p className="text-[12.5px] text-ink">
-          <b className="text-accent">{doNivel.total}</b> palavras {porFrequencia ? `da faixa ${rotulo(nivelAtivo!)}` : `do ${nivelAtivo}`} prontas para jogar
+          <b className="text-accent">{doNivel.total}</b> palavras{' '}
+          {porFrequencia ? `da faixa ${rotulo(nivelAtivo!)}` : `do ${nivelAtivo}`} prontas para jogar
           {doNivel.jaTem > 0 && <span className="text-ink-muted"> · {doNivel.jaTem} já na sua revisão</span>}
         </p>
       )}
@@ -162,16 +329,17 @@ export default function PainelTrilha({
 
           {/* Um traço por etapa: feitas em verde, a atual em destaque, as futuras apagadas. A
               contagem exata está escrita acima, a régua serve para ver a distância de relance. */}
-          <ol className="flex flex-wrap gap-1" aria-label={`Progresso ${porFrequencia ? `da faixa ${rotulo(nivelAtivo!)}` : `do ${nivelAtivo}`}: etapa ${posicao.atual} de ${posicao.total}`}>
-            {etapas.map(p => (
+          <ol
+            className="flex flex-wrap gap-1"
+            aria-label={`Progresso ${porFrequencia ? `da faixa ${rotulo(nivelAtivo!)}` : `do ${nivelAtivo}`}: etapa ${posicao.atual} de ${posicao.total}`}
+          >
+            {etapas.map((p) => (
               <li
                 key={p.etapa.id}
                 title={`${p.etapa.nome}, ${p.jaTem} de ${p.total} no seu caderno`}
                 aria-current={p.estado === 'atual' ? 'step' : undefined}
                 className={`h-1.5 rounded-full ${
-                  p.estado === 'feita' ? 'w-5 bg-good'
-                    : p.estado === 'atual' ? 'w-8 bg-accent'
-                      : 'w-5 bg-surface-hover'
+                  p.estado === 'feita' ? 'w-5 bg-good' : p.estado === 'atual' ? 'w-8 bg-accent' : 'w-5 bg-surface-hover'
                 }`}
               />
             ))}
@@ -192,22 +360,25 @@ export default function PainelTrilha({
       {!temTraducao && (
         <p className="text-[12px] text-ink bg-warn-soft border border-warn/30 rounded-xl px-3 py-2">
           Esta trilha ainda não tem tradução para <b>{langLabelNaUI(nativo)}</b>
-          {paresDeGlosa.length > 0 && <> — só para {paresDeGlosa.map(langLabelNaUI).join(', ')}</>}.
-          Você pode praticar a escrita das palavras, mas os jogos de par ficam de fora e nada entra
-          na sua revisão.
+          {paresDeGlosa.length > 0 && <> — só para {paresDeGlosa.map(langLabelNaUI).join(', ')}</>}. Você pode praticar
+          a escrita das palavras, mas os jogos de par ficam de fora e nada entra na sua revisão.
         </p>
       )}
 
       <p className="text-[11px] text-ink-faint leading-relaxed">
-        {porFrequencia
-          ? <>As faixas vêm da frequência das palavras num corpus público, não de níveis do CEFR:
-              a faixa 1 traz as mais comuns. As traduções vêm de dicionários abertos e cobrem
-              {' '}<b className="text-ink-muted">{pctComTraducao}%</b> desta trilha — sem tradução,
-              a palavra aparece nos jogos de escrita, mas não nos de par.</>
-          : <>Nível e tradução vêm de listas públicas curadas, embutidas no app, nada é traduzido na
-              hora. Palavra sem tradução conferida ficou de fora, então os níveis avançados têm menos.</>}
+        {porFrequencia ? (
+          <>
+            As faixas vêm da frequência das palavras num corpus público, não de níveis do CEFR: a faixa 1 traz as mais
+            comuns. As traduções vêm de dicionários abertos e cobrem <b className="text-ink-muted">{pctComTraducao}%</b>{' '}
+            desta trilha — sem tradução, a palavra aparece nos jogos de escrita, mas não nos de par.
+          </>
+        ) : (
+          <>
+            Nível e tradução vêm de listas públicas curadas, embutidas no app, nada é traduzido na hora. Palavra sem
+            tradução conferida ficou de fora, então os níveis avançados têm menos.
+          </>
+        )}
       </p>
-
     </section>
   );
 }

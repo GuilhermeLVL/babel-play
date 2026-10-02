@@ -1,17 +1,19 @@
-import type { CefrLevel,EscolhaDaPratica, EscopoDeGravacoes, OrigemDaPratica } from '@core';
-import { Check as IconeCheck, FileAudio,Flame, Globe, GraduationCap, Layers, Mic, X } from 'lucide-react';
+import type { CefrLevel, EscolhaDaPratica, EscopoDeGravacoes, OrigemDaPratica } from '@core';
+import { Check as IconeCheck, FileAudio, Flame, Globe, GraduationCap, Layers, Mic, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
-import { type EscalaDaTrilha,nomeDaEscala, rotuloDaEtapa } from '../../core/learning/trilha';
+import { type EscalaDaTrilha, nomeDaEscala, rotuloDaEtapa } from '../../core/learning/trilha';
 import { idiomaInicialDaSala } from '../../core/minigames/source';
 import { empilharCamada } from '../../lib/camadasDeEscape';
+import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { numero, t, tp } from '../../lib/i18n';
 import { langLabelNaUI } from '../../lib/languages';
 import type { AgeProfileType } from '../../lib/profile';
 import { T } from '../../lib/T';
 import LangPicker from '../LangPicker';
 import { Segmentado } from '../ui';
-import CoberturaDosIdiomas from './CoberturaDosIdiomas';
+import { OpcoesDoQuest } from '../views/play/quest/pecasDoQuest';
+import CoberturaDosIdiomas, { TabelaDaCobertura } from './CoberturaDosIdiomas';
 
 /**
  * A SALA DE ESCOLHA — o que você vai jogar, decidido antes de a tela encher de cartas.
@@ -78,7 +80,15 @@ interface SalaProps {
 }
 
 export default function SalaDeEscolha({
-  escolhaAtual, idiomas, gravacoes, trilhaDe, prefetchTrilha, dificeis, ageProfile, aoConfirmar, aoFechar,
+  escolhaAtual,
+  idiomas,
+  gravacoes,
+  trilhaDe,
+  prefetchTrilha,
+  dificeis,
+  ageProfile,
+  aoConfirmar,
+  aoFechar,
 }: SalaProps) {
   const [lang, setLangEstado] = useState(() => idiomaInicialDaSala(escolhaAtual, idiomas));
   /** A pessoa já escolheu o idioma nesta sala? Então a regra de abertura não mexe mais nele. */
@@ -92,6 +102,9 @@ export default function SalaDeEscolha({
   const [sessionId, setSessionId] = useState(escolhaAtual.sessionId);
   const [nivel, setNivel] = useState<CefrLevel | undefined>(escolhaAtual.nivel);
   const [trocandoIdioma, setTrocandoIdioma] = useState(false);
+  /* META QUEST: "O que cada idioma tem" abre e fecha num botão (no computador é um `<details>`). */
+  const questNovo = useQuestNovo();
+  const [verCobertura, setVerCobertura] = useState(false);
 
   const botaoJogar = useRef<HTMLButtonElement | null>(null);
   const dialogo = useRef<HTMLDivElement | null>(null);
@@ -164,19 +177,285 @@ export default function SalaDeEscolha({
     if (!focaveis?.length) return;
     const primeiro = focaveis[0];
     const ultimo = focaveis[focaveis.length - 1];
-    if (e.shiftKey && document.activeElement === primeiro) { e.preventDefault(); ultimo.focus(); }
-    else if (!e.shiftKey && document.activeElement === ultimo) { e.preventDefault(); primeiro.focus(); }
+    if (e.shiftKey && document.activeElement === primeiro) {
+      e.preventDefault();
+      ultimo.focus();
+    } else if (!e.shiftKey && document.activeElement === ultimo) {
+      e.preventDefault();
+      primeiro.focus();
+    }
   }
 
-  const doIdioma = idiomas.find(i => i.lang === lang);
+  const doIdioma = idiomas.find((i) => i.lang === lang);
   /* O número do rodapé é o que a escolha ATUAL oferece — não um total genérico. É a única forma de
      a pessoa perceber, antes de confirmar, que escolheu um recorte vazio. */
   const quantasPromete = origem === 'trilha' ? totalDaTrilha : (doIdioma?.jogaveis ?? 0);
 
-  const gravacaoEscolhida = gravacoes.find(g => g.id === sessionId);
+  const gravacaoEscolhida = gravacoes.find((g) => g.id === sessionId);
 
   function confirmar() {
     aoConfirmar({ origem, escopo, lang, sessionId, nivel });
+  }
+
+  /* META QUEST (segunda rodada, 01/10/2026): a mesma sala, no centro, com uma decisão por seção e as
+     opções em pílulas grandes. O motivo de cada opção travada é escrito abaixo do grupo, e o pé com o
+     único botão principal fica à vista enquanto o miolo rola. Estado, foco e Esc são os de sempre. */
+  if (questNovo) {
+    const tituloDaEscala = t('{escala} da trilha', { escala: t(nomeDaEscala(escala)) });
+    return (
+      <div
+        className="q-mais-fundo"
+        onMouseDown={(e) => {
+          if (e.target === e.currentTarget) aoFechar();
+        }}
+      >
+        <div
+          ref={dialogo}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="sala-titulo"
+          onKeyDown={aoTabular}
+          className="q-mais qj qj-sala"
+        >
+          <div className="q-cab">
+            <div>
+              <p className="q-sobre">{t('Antes de jogar')}</p>
+              <h2 id="sala-titulo">
+                {ageProfile === 'kids' ? t('Com o que você quer jogar?') : t('O que você vai praticar')}
+              </h2>
+            </div>
+            <button type="button" className="q-ctl" aria-label={t('Fechar sem mudar nada')} onClick={aoFechar}>
+              <X aria-hidden />
+            </button>
+          </div>
+
+          <div className="qj-sala-corpo">
+            <section className="q-secao" data-secao="idioma">
+              <header>
+                <div>
+                  <h3>{t('Idioma')}</h3>
+                  <p>{t('A contagem é de palavras prontas para jogar, não do que está guardado.')}</p>
+                </div>
+              </header>
+              {idiomas.length > 0 ? (
+                <OpcoesDoQuest
+                  rotulo={t('Idioma que você vai praticar')}
+                  exclusiva
+                  valor={[lang]}
+                  aoTrocar={(l) => {
+                    setLang(l);
+                    setNivel(undefined);
+                  }}
+                  opcoes={idiomas.map((i) => ({
+                    id: i.lang,
+                    rotulo: langLabelNaUI(i.lang),
+                    contagem: i.jogaveis,
+                    motivoBloqueio:
+                      i.jogaveis === 0
+                        ? t(
+                            'você tem {total} palavras neste idioma, mas nenhuma com tradução, sem ela os jogos de par não montam',
+                            { total: i.total },
+                          )
+                        : undefined,
+                  }))}
+                />
+              ) : (
+                <p className="qj-nota">{t('Ainda não há palavras no seu caderno.')}</p>
+              )}
+              <div className="q-acoes">
+                <button
+                  type="button"
+                  className="q-chip"
+                  aria-expanded={trocandoIdioma}
+                  onClick={() => setTrocandoIdioma((v) => !v)}
+                >
+                  <Globe aria-hidden />
+                  {trocandoIdioma ? t('Esconder a lista completa') : t('Escolher outro idioma')}
+                </button>
+                <button
+                  type="button"
+                  className="q-chip"
+                  aria-expanded={verCobertura}
+                  onClick={() => setVerCobertura((v) => !v)}
+                >
+                  <Layers aria-hidden />
+                  {t('O que cada idioma tem')}
+                </button>
+              </div>
+              {trocandoIdioma && (
+                <div className="qj-idiomas-todos">
+                  <LangPicker
+                    id="sala-idioma"
+                    ariaLabel={t('Escolher outro idioma')}
+                    block
+                    value={lang}
+                    onPick={({ code }) => {
+                      if (code) {
+                        setLang(code);
+                        setNivel(undefined);
+                        setTrocandoIdioma(false);
+                      }
+                    }}
+                  />
+                </div>
+              )}
+              {verCobertura && (
+                <>
+                  <TabelaDaCobertura baralho={idiomas} />
+                  <p className="qj-nota">
+                    {t(
+                      'Sem trilha, o idioma joga com o que você gravou ou importou. A voz depende do seu sistema: sem ela, os jogos de escuta ficam de fora até você gravar a sua.',
+                    )}
+                  </p>
+                </>
+              )}
+            </section>
+
+            <section className="q-secao" data-secao="origem">
+              <header>
+                <div>
+                  <h3>{t('De onde vêm as palavras')}</h3>
+                </div>
+              </header>
+              <OpcoesDoQuest
+                rotulo={t('De onde vêm as palavras')}
+                exclusiva
+                valor={[origem]}
+                aoTrocar={(o) => setOrigem(o as OrigemDaPratica)}
+                opcoes={[
+                  {
+                    id: 'gravacoes',
+                    rotulo: ageProfile === 'kids' ? t('O que eu gravei') : t('Minhas gravações'),
+                    icone: <Mic aria-hidden />,
+                    contagem: doIdioma?.jogaveis ?? 0,
+                  },
+                  {
+                    id: 'trilha',
+                    rotulo: t('Trilha'),
+                    icone: <GraduationCap aria-hidden />,
+                    contagem: temTrilha ? totalDaTrilha : undefined,
+                    motivoBloqueio: temTrilha
+                      ? undefined
+                      : t('ainda não existe trilha em {idioma}', { idioma: langLabelNaUI(lang) }),
+                  },
+                  {
+                    id: 'dificeis',
+                    rotulo: ageProfile === 'kids' ? t('As que eu mais erro') : t('Palavras difíceis'),
+                    icone: <Flame aria-hidden />,
+                    contagem: dificeis >= 4 ? dificeis : undefined,
+                    motivoBloqueio:
+                      dificeis >= 4
+                        ? undefined
+                        : t('revise mais um pouco — o ranking de difíceis ainda não tem material para uma rodada'),
+                  },
+                ]}
+              />
+            </section>
+
+            {origem === 'gravacoes' ? (
+              <section className="q-secao" data-secao="gravacoes">
+                <header>
+                  <div>
+                    <h3>{t('Quais gravações')}</h3>
+                  </div>
+                </header>
+                <OpcoesDoQuest
+                  rotulo={t('Quais gravações entram')}
+                  exclusiva
+                  valor={[escopo]}
+                  aoTrocar={(e) => setEscopo(e as EscopoDeGravacoes)}
+                  opcoes={[
+                    { id: 'todas', rotulo: t('Todas as gravações'), icone: <Layers aria-hidden /> },
+                    {
+                      id: 'uma',
+                      rotulo: t('Uma gravação'),
+                      icone: <FileAudio aria-hidden />,
+                      motivoBloqueio: gravacoes.length ? undefined : t('você ainda não tem gravações salvas'),
+                    },
+                  ]}
+                />
+                {escopo === 'uma' && gravacoes.length > 0 && (
+                  <div className="q-lista" role="group" aria-label={t('Gravações')}>
+                    {gravacoes.map((g) => (
+                      <button
+                        key={g.id}
+                        type="button"
+                        className="q-linha"
+                        aria-pressed={sessionId === g.id}
+                        onClick={() => setSessionId(g.id)}
+                      >
+                        <span className="q-ic" aria-hidden>
+                          <FileAudio />
+                        </span>
+                        <span>
+                          <b>{g.title}</b>
+                        </span>
+                        {/* Sem áudio, três jogos ficam de fora: dito ANTES da escolha. */}
+                        {!g.audioUrl && <span className="q-fim">{t('sem áudio')}</span>}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </section>
+            ) : origem === 'trilha' ? (
+              <section className="q-secao" data-secao="trilha">
+                <header>
+                  <div>
+                    <h3>{tituloDaEscala}</h3>
+                    <p>
+                      {nivel
+                        ? t('{escala} {etapa}: a trilha combinada tem {total} palavras no total.', {
+                            escala: t(nomeDaEscala(escala)),
+                            etapa: rotuloDaEtapa(nivel, escala),
+                            total: numero(totalDaTrilha),
+                          })
+                        : t('Sem escolher, a trilha joga com {faixas} de uma vez.', {
+                            faixas: porFrequencia ? t('todas as faixas') : t('todos os níveis'),
+                          })}
+                    </p>
+                  </div>
+                </header>
+                <OpcoesDoQuest
+                  rotulo={tituloDaEscala}
+                  exclusiva
+                  valor={nivel ? [nivel] : []}
+                  aoTrocar={(n) => setNivel(n as CefrLevel)}
+                  opcoes={niveisDaTrilha.map((n) => ({
+                    id: n,
+                    rotulo: rotuloDaEtapa(n, escala),
+                    contagem: tamanhoDoNivel?.[n],
+                  }))}
+                />
+                {porFrequencia && (
+                  <p className="qj-nota">
+                    {t('Faixas por frequência de uso, não níveis do CEFR — a 1 traz as palavras mais comuns.')}
+                  </p>
+                )}
+              </section>
+            ) : null}
+          </div>
+
+          <div className="qj-sala-pe">
+            <p className="qj-total">
+              {quantasPromete > 0 ? (
+                <>
+                  <b>{numero(quantasPromete)}</b> {tp(quantasPromete, 'palavra pronta', 'palavras prontas')}
+                  {origem === 'gravacoes' && escopo === 'uma' && gravacaoEscolhida && (
+                    <span> · {gravacaoEscolhida.title}</span>
+                  )}
+                </>
+              ) : (
+                <span className="qj-total-aviso">{t('Esta escolha não tem palavras prontas ainda.')}</span>
+              )}
+            </p>
+            <button ref={botaoJogar} type="button" className="q-ctl pri" onClick={confirmar}>
+              <IconeCheck aria-hidden />
+              {ageProfile === 'kids' ? t('Usar estas!') : t('Usar estas palavras')}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -187,7 +466,9 @@ export default function SalaDeEscolha({
        o crescimento só desce o que vem abaixo dele. */
     <div
       className="fixed inset-0 z-[45] flex items-start justify-center p-4 pt-[6vh] bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
-      onMouseDown={(e) => { if (e.target === e.currentTarget) aoFechar(); }}
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) aoFechar();
+      }}
     >
       <div
         ref={dialogo}
@@ -218,7 +499,6 @@ export default function SalaDeEscolha({
             é o que substitui a mistura antiga de respiros (space-y-5 fora, mb-2 e mt-2 espalhados
             dentro de cada bloco), que fazia o modal crescer sem que a altura extra ajudasse a ler. */}
         <div className="p-5 space-y-4">
-
           {/* ── IDIOMA ──────────────────────────────────────────────────────────────────────
               A contagem é de palavras JOGÁVEIS, não do que está guardado. Antes dava para
               escolher um idioma com centenas de cartões e cair numa tela sem jogo nenhum,
@@ -231,30 +511,40 @@ export default function SalaDeEscolha({
             {/* A altura de UMA fileira de pílulas fica reservada: os chips só existem depois de
                 `fetchDeck` voltar, e sem a reserva a chegada deles empurrava o resto do diálogo. */}
             <div className="min-h-[30px]">
-            {idiomas.length > 0 ? (
-              <Segmentado
-                rotuloDoGrupo={t('Idioma que você vai praticar')}
-                valor={[lang]}
-                aoTrocar={(l) => { setLang(l); setNivel(undefined); }}
-                opcoes={idiomas.map(i => ({
-                  id: i.lang,
-                  rotulo: langLabelNaUI(i.lang),
-                  contagem: i.jogaveis,
-                  dica: t('{prontas} prontas para jogo de par, de {total} no idioma', { prontas: i.jogaveis, total: i.total }),
-                  motivoBloqueio: i.jogaveis === 0
-                    ? t('você tem {total} palavras neste idioma, mas nenhuma com tradução, sem ela os jogos de par não montam', { total: i.total })
-                    : undefined,
-                }))}
-              />
-            ) : (
-              <p className="text-[13px] text-ink-muted">{t('Ainda não há palavras no seu caderno.')}</p>
-            )}
+              {idiomas.length > 0 ? (
+                <Segmentado
+                  rotuloDoGrupo={t('Idioma que você vai praticar')}
+                  valor={[lang]}
+                  aoTrocar={(l) => {
+                    setLang(l);
+                    setNivel(undefined);
+                  }}
+                  opcoes={idiomas.map((i) => ({
+                    id: i.lang,
+                    rotulo: langLabelNaUI(i.lang),
+                    contagem: i.jogaveis,
+                    dica: t('{prontas} prontas para jogo de par, de {total} no idioma', {
+                      prontas: i.jogaveis,
+                      total: i.total,
+                    }),
+                    motivoBloqueio:
+                      i.jogaveis === 0
+                        ? t(
+                            'você tem {total} palavras neste idioma, mas nenhuma com tradução, sem ela os jogos de par não montam',
+                            { total: i.total },
+                          )
+                        : undefined,
+                  }))}
+                />
+              ) : (
+                <p className="text-[13px] text-ink-muted">{t('Ainda não há palavras no seu caderno.')}</p>
+              )}
             </div>
 
             {/* A saída para quem quer um idioma que o baralho ainda não tem. Sem ela, a lista
                 fechada viraria uma prisão para quem está começando. */}
             <button
-              onClick={() => setTrocandoIdioma(v => !v)}
+              onClick={() => setTrocandoIdioma((v) => !v)}
               className="text-[12px] text-ink-muted hover:text-accent-ink underline decoration-dotted underline-offset-4 mt-2 cursor-pointer min-h-6 inline-flex items-center"
             >
               {trocandoIdioma ? t('esconder a lista completa') : t('escolher outro idioma')}
@@ -266,7 +556,13 @@ export default function SalaDeEscolha({
                   ariaLabel={t('Escolher outro idioma')}
                   block
                   value={lang}
-                  onPick={({ code }) => { if (code) { setLang(code); setNivel(undefined); setTrocandoIdioma(false); } }}
+                  onPick={({ code }) => {
+                    if (code) {
+                      setLang(code);
+                      setNivel(undefined);
+                      setTrocandoIdioma(false);
+                    }
+                  }}
                 />
               </div>
             )}
@@ -299,7 +595,9 @@ export default function SalaDeEscolha({
                   icone: <GraduationCap className="w-3.5 h-3.5" aria-hidden />,
                   contagem: temTrilha ? totalDaTrilha : undefined,
                   tom: 'good',
-                  motivoBloqueio: temTrilha ? undefined : t('ainda não existe trilha em {idioma}', { idioma: langLabelNaUI(lang) }),
+                  motivoBloqueio: temTrilha
+                    ? undefined
+                    : t('ainda não existe trilha em {idioma}', { idioma: langLabelNaUI(lang) }),
                 },
                 // O ranking do servidor como fonte (progresso-de-idioma 2.3): as palavras que
                 // você mais ERRA, na ordem da dor. Aparece sempre; sem material, diz o porquê.
@@ -309,7 +607,10 @@ export default function SalaDeEscolha({
                   icone: <Flame className="w-3.5 h-3.5" aria-hidden />,
                   contagem: dificeis >= 4 ? dificeis : undefined,
                   tom: 'warn',
-                  motivoBloqueio: dificeis >= 4 ? undefined : t('revise mais um pouco — o ranking de difíceis ainda não tem material para uma rodada'),
+                  motivoBloqueio:
+                    dificeis >= 4
+                      ? undefined
+                      : t('revise mais um pouco — o ranking de difíceis ainda não tem material para uma rodada'),
                 },
               ]}
             />
@@ -327,7 +628,11 @@ export default function SalaDeEscolha({
                 valor={[escopo]}
                 aoTrocar={(e) => setEscopo(e as EscopoDeGravacoes)}
                 opcoes={[
-                  { id: 'todas', rotulo: t('Todas as gravações'), icone: <Layers className="w-3.5 h-3.5" aria-hidden /> },
+                  {
+                    id: 'todas',
+                    rotulo: t('Todas as gravações'),
+                    icone: <Layers className="w-3.5 h-3.5" aria-hidden />,
+                  },
                   {
                     id: 'uma',
                     rotulo: t('Uma gravação'),
@@ -341,28 +646,30 @@ export default function SalaDeEscolha({
                   primeira pintura, e sem a reserva ela empurrava o rodapé inteiro para baixo. */}
               {escopo === 'uma' && (
                 <div className="mt-2 min-h-[76px]">
-                {gravacoes.length > 0 && (
-                <ul className="flex flex-col gap-1 max-h-48 overflow-y-auto custom-scrollbar">
-                  {gravacoes.map(g => (
-                    <li key={g.id}>
-                      <button
-                        onClick={() => setSessionId(g.id)}
-                        aria-pressed={sessionId === g.id}
-                        className={`w-full text-start px-2.5 py-2 rounded-lg text-[12.5px] cursor-pointer flex items-center gap-2 ${
-                          sessionId === g.id ? 'bg-accent-soft text-accent-ink font-bold' : 'text-ink hover:bg-surface-hover'
-                        }`}
-                        title={g.title}
-                      >
-                        <FileAudio className="w-3.5 h-3.5 shrink-0 text-ink-faint" aria-hidden />
-                        <span className="truncate flex-1">{g.title}</span>
-                        {/* Sem áudio, três jogos ficam de fora. Dizer ANTES evita a escolha que
+                  {gravacoes.length > 0 && (
+                    <ul className="flex flex-col gap-1 max-h-48 overflow-y-auto custom-scrollbar">
+                      {gravacoes.map((g) => (
+                        <li key={g.id}>
+                          <button
+                            onClick={() => setSessionId(g.id)}
+                            aria-pressed={sessionId === g.id}
+                            className={`w-full text-start px-2.5 py-2 rounded-lg text-[12.5px] cursor-pointer flex items-center gap-2 ${
+                              sessionId === g.id
+                                ? 'bg-accent-soft text-accent-ink font-bold'
+                                : 'text-ink hover:bg-surface-hover'
+                            }`}
+                            title={g.title}
+                          >
+                            <FileAudio className="w-3.5 h-3.5 shrink-0 text-ink-faint" aria-hidden />
+                            <span className="truncate flex-1">{g.title}</span>
+                            {/* Sem áudio, três jogos ficam de fora. Dizer ANTES evita a escolha que
                             leva a cartas bloqueadas. */}
-                        {!g.audioUrl && <span className="badge-tag shrink-0">{t('sem áudio')}</span>}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-                )}
+                            {!g.audioUrl && <span className="badge-tag shrink-0">{t('sem áudio')}</span>}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               )}
             </section>
@@ -378,16 +685,28 @@ export default function SalaDeEscolha({
                 aoTrocar={(n) => setNivel(n as CefrLevel)}
                 /* Cada etapa com o SEU tamanho: escolher "B2" sem saber se ali há 60 ou 600
                    palavras é escolher às cegas, e a gaveta do lobby já mostrava esse número. */
-                opcoes={niveisDaTrilha.map(n => ({
-                  id: n, rotulo: rotuloDaEtapa(n, escala), contagem: tamanhoDoNivel?.[n],
+                opcoes={niveisDaTrilha.map((n) => ({
+                  id: n,
+                  rotulo: rotuloDaEtapa(n, escala),
+                  contagem: tamanhoDoNivel?.[n],
                 }))}
               />
               <p className="text-[11.5px] text-ink-faint mt-2">
-                {nivel
-                  ? <T txt="{escala} <b>{etapa}</b> — a trilha combinada tem <b>{total}</b> palavras no total."
-                       tags={{ b: <b className="text-ink-muted tabular-nums" /> }}
-                       val={{ escala: t(nomeDaEscala(escala)), etapa: rotuloDaEtapa(nivel, escala), total: numero(totalDaTrilha) }} />
-                  : t('Sem escolher, a trilha joga com {faixas} de uma vez.', { faixas: porFrequencia ? t('todas as faixas') : t('todos os níveis') })}
+                {nivel ? (
+                  <T
+                    txt="{escala} <b>{etapa}</b> — a trilha combinada tem <b>{total}</b> palavras no total."
+                    tags={{ b: <b className="text-ink-muted tabular-nums" /> }}
+                    val={{
+                      escala: t(nomeDaEscala(escala)),
+                      etapa: rotuloDaEtapa(nivel, escala),
+                      total: numero(totalDaTrilha),
+                    }}
+                  />
+                ) : (
+                  t('Sem escolher, a trilha joga com {faixas} de uma vez.', {
+                    faixas: porFrequencia ? t('todas as faixas') : t('todos os níveis'),
+                  })
+                )}
               </p>
               {/* A promessa da tela tem de bater com o que o dado é: faixa de corpus não é CEFR. */}
               {porFrequencia && (

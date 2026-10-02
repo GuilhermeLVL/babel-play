@@ -4,6 +4,7 @@ import { Coins, Infinity as Infinito, Plus, Sparkles, Sprout } from 'lucide-reac
 
 import type { TemporadaNoServidor } from '../../../data/api';
 import type { Carteira } from '../../../lib/carteira';
+import { useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
 import { palavraDeNivel } from '../../../lib/galeria/textos';
 import { t } from '../../../lib/i18n';
 
@@ -82,6 +83,47 @@ export default function CabecalhoDeTemporada({
   const atual = estado?.temporada ?? null;
   /* A temporada em curso ou a próxima; `null` sem nenhuma anunciada. */
   const temporada = atual ?? estado?.proxima ?? null;
+  const questNovo = useQuestNovo();
+
+  /* NO META QUEST (telas novas): o mesmo conteúdo nas peças do desenho do headset. As duas carteiras são
+     pílulas de 48 px; a de Créditos é o próprio botão de comprar (o "+" de 20 px não é um alvo no Quest). */
+  if (questNovo)
+    return (
+      <section className="q-secao">
+        <header>
+          <div>
+            <h2>
+              {temporada ? t('Temporada {n} · {nome}', { n: temporada.numero, nome: temporada.nome }) : t('Temporada')}
+            </h2>
+            <p>{t('o que você ganha não expira')}</p>
+          </div>
+          <span className="q-chip qp-seeds">
+            <Sprout aria-hidden />
+            <b className="tn">{saldo}</b> Seeds
+          </span>
+          {carteira.disponivel &&
+            (aoComprarCreditos ? (
+              <button
+                type="button"
+                className="q-chip qp-creditos"
+                onClick={aoComprarCreditos}
+                aria-label="Comprar Créditos"
+              >
+                <Coins aria-hidden />
+                {/* Enquanto o servidor não responde é "—", nunca 0: zero é uma afirmação. */}
+                <b className="tn">{carteira.creditos ?? '—'}</b> Créditos
+                <Plus aria-hidden />
+              </button>
+            ) : (
+              <span className="q-chip qp-creditos">
+                <Coins aria-hidden />
+                <b className="tn">{carteira.creditos ?? '—'}</b> Créditos
+              </span>
+            ))}
+        </header>
+        {atual && estado && <BarraDaTemporada xp={estado.xp} nivel={estado.nivel} temporadaId={atual.id} quest />}
+      </section>
+    );
 
   return (
     <section className="space-y-4">
@@ -143,13 +185,64 @@ export default function CabecalhoDeTemporada({
   );
 }
 
-function BarraDaTemporada({ xp, nivel, temporadaId }: { xp: number; nivel: number; temporadaId: string }) {
+function BarraDaTemporada({
+  xp,
+  nivel,
+  temporadaId,
+  quest = false,
+}: {
+  xp: number;
+  nivel: number;
+  temporadaId: string;
+  /** No headset: as mesmas contas, nas peças do desenho novo. */
+  quest?: boolean;
+}) {
   const completa = nivel >= NIVEIS_DA_TEMPORADA;
   const noNivel = completa ? XP_POR_NIVEL_DA_TEMPORADA : Math.max(0, xp - nivel * XP_POR_NIVEL_DA_TEMPORADA);
   const pct = Math.min(100, Math.round((noNivel / XP_POR_NIVEL_DA_TEMPORADA) * 100));
   const proxima = proximaCasa(nivel, temporadaId);
   const palavra = palavraDeNivel();
   const seguinte = Math.min(NIVEIS_DA_TEMPORADA, nivel + 1);
+  const progresso = completa
+    ? t('trilha completa')
+    : t('{xp} / {total} XP · faltam {falta} XP', {
+        xp: noNivel,
+        total: XP_POR_NIVEL_DA_TEMPORADA,
+        falta: XP_POR_NIVEL_DA_TEMPORADA - noNivel,
+      });
+  if (quest)
+    return (
+      <div className="q-cartao qp-nivel-da-temporada">
+        <div className="qp-cracha" data-testid="nivel-da-temporada">
+          <b>{nivel}</b>
+          <span>{palavra}</span>
+        </div>
+        <div className="qp-pilha">
+          <div className="qp-nivel-linha">
+            <b>{t('{palavra} {n} da temporada', { palavra, n: nivel })}</b>
+            <span className="q-rotulo">{progresso}</span>
+          </div>
+          <div
+            className="q-barra"
+            role="progressbar"
+            aria-valuenow={pct}
+            aria-valuemax={100}
+            aria-label={t('Progresso para o nível {n} da temporada', { n: seguinte })}
+          >
+            <span style={{ width: `${pct}%` }} />
+          </div>
+          <p className="qp-nota">
+            {proxima && (
+              <span data-testid="proxima-da-temporada">
+                {t('a seguir: {item}, no nível {n} da temporada', { item: proxima.rotulo, n: proxima.nivel })}
+                {' · '}
+              </span>
+            )}
+            {t('sobe com o XP de estudo ganho na temporada')}
+          </p>
+        </div>
+      </div>
+    );
   return (
     <div className="rounded-2xl border border-border-subtle bg-surface p-4">
       <div className="flex items-center gap-4">
@@ -172,15 +265,7 @@ function BarraDaTemporada({ xp, nivel, temporadaId }: { xp: number; nivel: numbe
                 </span>
               )}
             </span>
-            <span className="font-mono text-[12px] text-ink-muted tabular-nums">
-              {completa
-                ? t('trilha completa')
-                : t('{xp} / {total} XP · faltam {falta} XP', {
-                    xp: noNivel,
-                    total: XP_POR_NIVEL_DA_TEMPORADA,
-                    falta: XP_POR_NIVEL_DA_TEMPORADA - noNivel,
-                  })}
-            </span>
+            <span className="font-mono text-[12px] text-ink-muted tabular-nums">{progresso}</span>
           </div>
           <div
             className="h-3 rounded-full bg-canvas border border-border-subtle overflow-hidden"

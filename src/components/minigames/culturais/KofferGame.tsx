@@ -7,10 +7,10 @@ import { celebrar } from '../../../lib/comemoracao';
 import { t } from '../../../lib/i18n';
 import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
-import { falar } from '../../../lib/tts';
 import AvisoDaJogada from '../casca/AvisoDaJogada';
 import { useRodada } from '../casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from '../casca/HudDaRodada';
+import { falarNoJogo as falar } from '../noQuest';
 
 /**
  * A MALA CUMULATIVA — "Ich packe meinen Koffer" jogado com as palavras do baralho.
@@ -260,7 +260,7 @@ export default function KofferGame({ items, ageProfile, onFinish, onExit }: Koff
         }
       />
 
-      <div className="flex flex-col items-center justify-center gap-6 w-full max-w-3xl mx-auto">
+      <div data-qj="koffer" className="flex flex-col items-center justify-center gap-6 w-full max-w-3xl mx-auto">
         {/* A MALA */}
         <div
           data-tour="mala"
@@ -319,10 +319,20 @@ export default function KofferGame({ items, ageProfile, onFinish, onExit }: Koff
                 ))}
               </ol>
               {perdida ? (
-                <AvisoDaJogada tom="erro" rotulo={t('Acabaram as vidas. Nesta posição estava:')} resposta={perdida.answer} lang={perdida.lang} />
+                <AvisoDaJogada
+                  tom="erro"
+                  rotulo={t('Acabaram as vidas. Nesta posição estava:')}
+                  resposta={perdida.answer}
+                  lang={perdida.lang}
+                />
               ) : (
                 errou && (
-                  <p className="text-sm font-bold text-error-ink px-3 py-1.5 rounded-xl bg-error-soft">
+                  <p
+                    role="status"
+                    data-qp="veredito"
+                    data-estado="errado"
+                    className="text-sm font-bold text-error-ink px-3 py-1.5 rounded-xl bg-error-soft"
+                  >
                     {t('Não foi esta. A ordem conta, e a tentativa custou uma vida.')}
                   </p>
                 )
@@ -341,6 +351,7 @@ export default function KofferGame({ items, ageProfile, onFinish, onExit }: Koff
               <button
                 key={it.answer}
                 data-palavra={it.answer}
+                data-qp="peca-alta"
                 onClick={(e) => tocar(it, e.currentTarget)}
                 disabled={fase !== 'lembrando' || encerrado}
                 dir={direcaoDoTexto(it.lang)}

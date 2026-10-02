@@ -26,10 +26,10 @@ import {
 import { direcaoDoTexto } from '../../lib/languages';
 import type { AgeProfileType } from '../../lib/profile';
 import { play } from '../../lib/soundFx';
-import { falar } from '../../lib/tts';
 import { botaoDaAlternativa, useAtalhosDasAlternativas } from './casca/atalhos';
 import { useRodada } from './casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda } from './casca/HudDaRodada';
+import { falarNoJogo as falar } from './noQuest';
 
 /**
  * DUELO RELÂMPAGO — a revisão cronometrada, agora em "ARCADE DE BRINQUEDO" (v2, 2026-08-27).
@@ -180,10 +180,7 @@ export default function BlitzGame({ items, ageProfile, onFinish }: BlitzGameProp
       // 2. Velocidade: um segundo número, defasado, para não colidir com o primeiro.
       if (ganho.velocidade > 0 && el) {
         const r = el.getBoundingClientRect();
-        setTimeout(
-          () => pontosFlutuantes('rápido +' + ganho.velocidade, r.left + r.width * 0.75, r.top, 'bom'),
-          140,
-        );
+        setTimeout(() => pontosFlutuantes('rápido +' + ganho.velocidade, r.left + r.width * 0.75, r.top, 'bom'), 140);
       }
       // 3. Tempo de volta: o anel "engole" um pulso e o relógio ganha um "+2s". Só sem dica.
       const segundos = comDica ? 0 : bonusDeTempo(ms);
@@ -311,6 +308,7 @@ export default function BlitzGame({ items, ageProfile, onFinish }: BlitzGameProp
       <div
         ref={palcoRef}
         key={'e' + erroPulso}
+        data-qj="blitz"
         className={`flex-1 flex flex-col items-center justify-center gap-7 max-w-xl mx-auto w-full relative min-h-0 py-2 ${
           fever ? 'blitz-fever' : ''
         } ${erroPulso > 0 ? 'blitz-erro' : ''}`}

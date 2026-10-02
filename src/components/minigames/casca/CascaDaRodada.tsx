@@ -13,9 +13,12 @@ import {
 } from 'react';
 
 import { definirJogoEmCurso } from '../../../lib/comemoracao';
+import { useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
+import { numero, t } from '../../../lib/i18n';
 import { contagem321, entradaDeCamera } from '../../../lib/juice';
 import type { AgeProfileType } from '../../../lib/profile';
 import { CabecalhoDeTela, IconeEmBloco, Tela } from '../../ui';
+import { InterruptorDoQuest } from '../../views/play/quest/pecasDoQuest';
 import ComoSeJoga from '../ComoSeJoga';
 
 /**
@@ -267,6 +270,88 @@ function DialogoDePausa({
     d.addEventListener('cancel', aoCancelar);
     return () => d.removeEventListener('cancel', aoCancelar);
   }, []);
+
+  /* META QUEST (segunda rodada, 01/10/2026): a mesma pausa e a mesma confirmação, nas peças do headset.
+     "Continuar" é o único botão principal; os sons viram um ajuste em linha com o interruptor grande; a
+     dica de atalho de teclado não aparece (o headset não tem teclado físico). */
+  const questNovo = useQuestNovo();
+  if (questNovo) {
+    return (
+      <dialog ref={ref} className="m-auto qj qj-painel qj-pausa" aria-labelledby={idTitulo}>
+        {passo === 'menu' ? (
+          <>
+            <div className="dlg-cab">
+              <span className="q-ic" aria-hidden>
+                <Pause />
+              </span>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <p className="q-sobre">{t('Rodada em pausa')}</p>
+                <h2 id={idTitulo}>{titulo}</h2>
+                <p className="qj-nota">
+                  {t('{pontos} pontos · {acertos} acertos · o relógio parou', {
+                    pontos: numero(placar.pontos),
+                    acertos: placar.acertos,
+                  })}
+                </p>
+              </div>
+            </div>
+            <div className="dlg-corpo qj-painel-corpo">
+              <button type="button" className="q-ctl pri bloco" autoFocus onClick={aoContinuar}>
+                <Play aria-hidden /> {t('Continuar')}
+              </button>
+              <button type="button" className="q-ctl bloco" onClick={aoRecomecar}>
+                <RotateCcw aria-hidden /> {t('Recomeçar')}
+              </button>
+              <button type="button" className="q-ctl bloco" onClick={aoComoSeJoga}>
+                <CircleHelp aria-hidden /> {t('Como se joga')}
+              </button>
+              {som && (
+                <div className="q-ajuste">
+                  <div>
+                    <b>
+                      <Volume2 aria-hidden /> {t('Sons')}
+                    </b>
+                    <small>{t('Liga e desliga os sons do app inteiro.')}</small>
+                  </div>
+                  <InterruptorDoQuest ligado={som.ligado} aoTrocar={som.alternar} rotulo={t('Sons do jogo')} />
+                </div>
+              )}
+              <button type="button" className="q-ctl bloco perigo" onClick={aoPedirSair}>
+                <LogOut aria-hidden /> {t('Sair da rodada')}
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="dlg-cab">
+              <span className="q-ic" aria-hidden>
+                <DoorOpen />
+              </span>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <h2 id={idTitulo}>{t('Sair sem terminar?')}</h2>
+                <p className="qj-nota">
+                  {t(
+                    'Esta rodada não conta para a revisão nem para os recordes. As palavras continuam no seu caderno.',
+                  )}
+                </p>
+              </div>
+              <button type="button" className="x" aria-label={t('Fechar')} onClick={aoContinuar}>
+                <X aria-hidden />
+              </button>
+            </div>
+            <div className="dlg-pe">
+              <button type="button" className="q-ctl" autoFocus onClick={aoVoltarAoMenu}>
+                {t('Continuar jogando')}
+              </button>
+              <button type="button" className="q-ctl perigo" onClick={aoSair}>
+                <LogOut aria-hidden /> {t('Sair da rodada')}
+              </button>
+            </div>
+          </>
+        )}
+      </dialog>
+    );
+  }
 
   return (
     <dialog ref={ref} className="m-auto" aria-labelledby={idTitulo}>

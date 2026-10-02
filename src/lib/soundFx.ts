@@ -24,6 +24,7 @@ import type { ThemeType } from './appearance';
 export type SoundEvent =
   // ── Navegação e chrome
   | 'click'        // botão genérico, o mais discreto de todos
+  | 'apontar'      // o ponteiro entrou num alvo (só no headset sem vibração): quase inaudível
   | 'nav'          // trocou de tela ou de aba
   | 'open'         // overlay abriu
   | 'close'        // overlay fechou
@@ -170,6 +171,8 @@ interface EventShape {
  */
 export const EVENTS: Record<SoundEvent, EventShape> = {
   click:       { steps: [0],              dur: 0.04, stagger: 0,     gain: 0.5, slide: 0.7 },
+  /* Toca a cada alvo por onde o ponteiro passa: um quarto do volume do `click`, e mais curto. */
+  apontar:     { steps: [12],             dur: 0.02, stagger: 0,     gain: 0.14 },
   nav:         { steps: [0, 7],           dur: 0.05, stagger: 0.03,  gain: 0.62 },
   open:        { steps: [-7, 0],          dur: 0.07, stagger: 0.035, gain: 0.6 },
   close:       { steps: [0, -7],          dur: 0.065, stagger: 0.03, gain: 0.55 },
@@ -266,7 +269,8 @@ export function play(event: SoundEvent, opts: { transpose?: number } = {}): void
   if (soundMuted) { cancelPendingGeneric(); return; }
 
   // Um som pedido diretamente é sempre mais específico que o `click` que o delegado agendou.
-  cancelPendingGeneric();
+  // (Menos o `apontar`: passar por cima do vizinho logo depois de clicar não cala o clique.)
+  if (event !== 'apontar') cancelPendingGeneric();
 
   const agora = typeof performance !== 'undefined' ? performance.now() : 0;
   const anterior = lastPlayed.get(event);

@@ -6,10 +6,10 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { celebrar } from '../../../lib/comemoracao';
 import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
-import { falar } from '../../../lib/tts';
 import { botaoDaAlternativa, useAtalhosDasAlternativas } from '../casca/atalhos';
 import { useRodada } from '../casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from '../casca/HudDaRodada';
+import { falarNoJogo as falar, useQuestNovo, useVozNoJogo } from '../noQuest';
 
 /**
  * VITENDAWILI — o enigma é a SUA PRÓPRIA FRASE com a palavra apagada.
@@ -88,6 +88,11 @@ export default function VitendawiliGame({ items, ageProfile, onFinish, onExit }:
   const [indice, setIndice] = useState(0);
   const [eliminadas, setEliminadas] = useState<string[]>([]);
   const [encerrado, setEncerrado] = useState(false);
+  /* NO QUEST a palavra certa fica marcada (cor e ícone) no instante antes do próximo enigma, e a errada
+     ganha o ícone além do risco. "Ouvir" só aparece com voz para o idioma da frase: o enigma está
+     sempre escrito. */
+  const questNovo = useQuestNovo();
+  const [acertada, setAcertada] = useState<string | null>(null);
 
   const outcomesRef = useRef<ItemOutcome[]>([]);
   const inicioRodadaRef = useRef(Date.now());
@@ -96,6 +101,7 @@ export default function VitendawiliGame({ items, ageProfile, onFinish, onExit }:
   const palcoRef = useRef<HTMLDivElement | null>(null);
 
   const atual = rodada[indice];
+  const haVoz = useVozNoJogo(atual?.item.lang);
 
   const alternativas = useMemo(() => {
     if (!atual) return [];
@@ -111,6 +117,7 @@ export default function VitendawiliGame({ items, ageProfile, onFinish, onExit }:
   useEffect(() => {
     if (!suficiente || !atual) return;
     setEliminadas([]);
+    setAcertada(null);
     inicioEnigmaRef.current = Date.now();
     narrarComPausa(atual.enigma, atual.item.lang);
   }, [atual, suficiente]);
@@ -150,6 +157,7 @@ export default function VitendawiliGame({ items, ageProfile, onFinish, onExit }:
     const p = recontar(outcomesRef.current);
     celebrar({ tipo: 'acerto', combo: p.sequencia, el, pontos: p.ganho });
     falar(atual.item.answer, atual.item.lang);
+    setAcertada(palavra);
 
     if (indice + 1 >= rodada.length) {
       finalizar(outcomesRef.current);
@@ -184,16 +192,22 @@ export default function VitendawiliGame({ items, ageProfile, onFinish, onExit }:
         rotulo={`Enigma ${indice + 1} de ${rodada.length}`}
         progresso={indice / Math.max(1, rodada.length)}
         ajudas={
-          <BotaoDeAjuda
-            icone={Volume2}
-            rotulo="Ouvir"
-            disabled={encerrado}
-            onClick={() => narrarComPausa(atual.enigma, atual.item.lang)}
-          />
+          haVoz ? (
+            <BotaoDeAjuda
+              icone={Volume2}
+              rotulo="Ouvir"
+              disabled={encerrado}
+              onClick={() => narrarComPausa(atual.enigma, atual.item.lang)}
+            />
+          ) : undefined
         }
       />
 
-      <div ref={palcoRef} className="flex flex-col items-center justify-center gap-7 w-full max-w-2xl mx-auto">
+      <div
+        ref={palcoRef}
+        data-qj="vitendawili"
+        className="flex flex-col items-center justify-center gap-7 w-full max-w-2xl mx-auto"
+      >
         <p
           data-tour="enigma"
           dir={dir}
@@ -212,9 +226,11 @@ export default function VitendawiliGame({ items, ageProfile, onFinish, onExit }:
         <div data-tour="alternativas" className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
           {alternativas.map((palavra, posicao) => {
             const fora = eliminadas.includes(palavra);
+            const certa = questNovo && acertada === palavra;
             return (
               <button
                 key={palavra}
+                data-estado={certa ? 'certo' : fora ? 'errado' : undefined}
                 onClick={(e) => escolher(palavra, e.currentTarget)}
                 disabled={fora || encerrado}
                 aria-keyshortcuts={String(posicao + 1)}
@@ -222,9 +238,11 @@ export default function VitendawiliGame({ items, ageProfile, onFinish, onExit }:
                 className={`rounded-2xl border-2 font-display font-black transition-colors ${
                   alvoGrande ? 'py-6 text-2xl' : 'py-5 text-xl'
                 } ${
-                  fora
-                    ? 'border-border-subtle bg-surface text-ink-faint line-through cursor-not-allowed'
-                    : 'border-border-subtle bg-surface text-ink hover:border-accent hover:bg-accent-soft/30 cursor-pointer'
+                  certa
+                    ? 'border-good bg-good-soft text-good-ink'
+                    : fora
+                      ? 'border-border-subtle bg-surface text-ink-faint line-through cursor-not-allowed'
+                      : 'border-border-subtle bg-surface text-ink hover:border-accent hover:bg-accent-soft/30 cursor-pointer'
                 }`}
               >
                 {palavra}

@@ -4,10 +4,12 @@ import { Check, Link2 } from 'lucide-react';
 import React, { useRef, useState } from 'react';
 
 import { celebrar } from '../../lib/comemoracao';
+import { t } from '../../lib/i18n';
 import { multiplicador, pontosDoElemento } from '../../lib/juice';
 import type { AgeProfileType } from '../../lib/profile';
 import { useRodada } from './casca/CascaDaRodada';
 import HudDaRodada from './casca/HudDaRodada';
+import { useQuestNovo, VereditoNoQuest } from './noQuest';
 
 /**
  * CAÇA-CONECTORES — marcar as palavras que amarram as ideias da frase.
@@ -38,6 +40,8 @@ export default function ConectoresGame({ rodadas, ageProfile, onFinish }: Conect
 
   const rodada = rodadas[indice];
   const LIMIAR = 70;
+  /* No Quest cada palavra é uma peça de 56 px, e o resultado de cada uma vem com ícone além da cor. */
+  const questNovo = useQuestNovo();
 
   const alternar = (i: number) => {
     if (conferido) return;
@@ -118,8 +122,8 @@ export default function ConectoresGame({ rodadas, ageProfile, onFinish }: Conect
         progresso={indice / rodadas.length}
       />
 
-      <div ref={palcoRef} className="w-full max-w-2xl mx-auto flex flex-col items-center gap-5">
-        <p className="flex items-center gap-2 text-[13px] text-ink-muted text-center">
+      <div ref={palcoRef} data-qj="conectores" className="w-full max-w-2xl mx-auto flex flex-col items-center gap-5">
+        <p className="flex items-center gap-2 text-[13px] text-ink-muted text-center" data-qp="apoio">
           <Link2 className="w-4 h-4 text-accent shrink-0" aria-hidden />
           {ageProfile === 'senior'
             ? 'Toque nas palavras que ligam uma ideia à outra.'
@@ -128,12 +132,25 @@ export default function ConectoresGame({ rodadas, ageProfile, onFinish }: Conect
 
         {/* A FRASE, palavra por palavra clicável. */}
         <p data-tour="frase-conectores" className="flex flex-wrap justify-center gap-x-1.5 gap-y-2 text-center">
-          {rodada.tokens.map((t, i) => {
+          {rodada.tokens.map((palavra, i) => {
             const marcado = marcados.has(i);
             const eraAlvo = rodada.alvos.includes(i);
             return (
               <button
                 key={i}
+                data-qp="peca"
+                data-estado={
+                  conferido
+                    ? eraAlvo && marcado
+                      ? 'certo'
+                      : eraAlvo
+                        ? 'faltou'
+                        : marcado
+                          ? 'errado'
+                          : undefined
+                    : undefined
+                }
+                aria-pressed={conferido ? undefined : marcado}
                 onClick={() => alternar(i)}
                 disabled={!!conferido}
                 className={`px-2.5 py-1.5 rounded-lg font-display font-bold text-[16px] transition-all ${
@@ -152,7 +169,7 @@ export default function ConectoresGame({ rodadas, ageProfile, onFinish }: Conect
                       : 'text-ink hover:bg-surface-hover cursor-pointer'
                 }`}
               >
-                {t}
+                {palavra}
               </button>
             );
           })}
@@ -164,6 +181,11 @@ export default function ConectoresGame({ rodadas, ageProfile, onFinish }: Conect
 
         {conferido ? (
           <div className="flex flex-col items-center gap-1 animate-in fade-in">
+            {questNovo && (
+              <VereditoNoQuest certo={conferido.f1 >= LIMIAR}>
+                {conferido.f1 >= LIMIAR ? t('Passou!') : t('Ainda não: precisa de 70 pontos.')}
+              </VereditoNoQuest>
+            )}
             <p className="font-display font-black text-lg text-ink">{conferido.f1} pontos de precisão</p>
             <p className="text-[12px] text-ink-muted">
               {conferido.certos} {conferido.certos === 1 ? 'certo' : 'certos'}
@@ -174,6 +196,7 @@ export default function ConectoresGame({ rodadas, ageProfile, onFinish }: Conect
         ) : (
           <button
             data-tour="conferir"
+            data-qp="acao-pri"
             onClick={conferir}
             className="py-3 px-6 rounded-xl bg-accent hover:bg-accent-ink text-white font-bold text-[14px] shadow-btn cursor-pointer flex items-center gap-2"
           >

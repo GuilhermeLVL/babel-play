@@ -3,12 +3,14 @@ import { Archive, Check, CircleAlert, ListChecks, Loader2, PartyPopper, Pencil }
 import React, { useMemo, useState } from 'react';
 
 import { updateCard } from '../../data/api';
-import { numero } from '../../lib/i18n';
+import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
+import { numero, t } from '../../lib/i18n';
 import { langLabel } from '../../lib/languages';
 import type { AgeProfileType } from '../../lib/profile';
 import type { VocabCard } from '../../types';
 import { toast } from '../Toast';
 import { CabecalhoDeTela, IconeEmBloco, Tela, TituloDeSecao } from '../ui';
+import { VoltarDoQuest } from './play/quest/pecasDoQuest';
 
 /**
  * CURADORIA — o que ficou de fora das rodadas, e o que fazer com isso.
@@ -73,6 +75,7 @@ export default function CuradoriaBaralho({ triagem, idioma, ageProfile, onVoltar
   const [editando, setEditando] = useState<string | null>(null);
   const [rascunho, setRascunho] = useState('');
   const [ocupado, setOcupado] = useState<string | null>(null);
+  const questNovo = useQuestNovo();
 
   const pendentes = useMemo(() => triagem.fora.filter((f) => !resolvidos.has(f.card.id)), [triagem.fora, resolvidos]);
   const contagem = useMemo(() => contarPorMotivo(pendentes), [pendentes]);
@@ -192,6 +195,186 @@ export default function CuradoriaBaralho({ triagem, idioma, ageProfile, onVoltar
   };
 
   const total = triagem.usaveis.length + pendentes.length;
+
+  /* META QUEST (segunda rodada, 01/10/2026): a mesma curadoria nas peças do headset. Cada palavra é
+     uma linha com as três ações ESCRITAS (editar, arquivar, está certo): no headset não há dica ao
+     parar o ponteiro, então ícone sozinho não diz o que faz. As ações são as mesmas funções acima. */
+  if (questNovo) {
+    return (
+      <div className="q-palco qj qj-tela quest-curadoria" data-testid="curadoria-do-quest">
+        <div className="q-cab">
+          <VoltarDoQuest rotulo={t('Voltar para Jogar')} aoClicar={onVoltar} />
+          <div>
+            <p className="q-sobre">{t('Curadoria do baralho')}</p>
+            <h1>{ageProfile === 'kids' ? t('Arrumar as palavras') : t('Palavras que ficaram de fora')}</h1>
+          </div>
+        </div>
+        <p className="qj-nota">
+          {t(
+            'Elas não entram nos jogos por um motivo que dá para consertar em um toque. Nada é apagado: arquivar só tira dos jogos.',
+          )}
+        </p>
+
+        <div className="q-grade g4">
+          <div className="q-num" data-tom="bom">
+            <b>{numero(triagem.usaveis.length)}</b>
+            <span>{t('Prontas para jogar')}</span>
+          </div>
+          <div className="q-num" data-tom="alerta">
+            <b>{numero(pendentes.length)}</b>
+            <span>{t('Separadas aqui')}</span>
+          </div>
+          <div className="q-num">
+            <b>{numero(triagem.outroIdioma.length)}</b>
+            <span>
+              {t('Em outro idioma')}
+              {/* No computador isto é uma dica ao parar o ponteiro; aqui fica escrito. */}
+              <small className="qj-nota-curta">
+                {t('Estão certas, só não são de {idioma}', { idioma: langLabel(idioma) || t('este idioma') })}
+              </small>
+            </span>
+          </div>
+          <div className="q-num" data-tom="acento">
+            <b>{total > 0 ? `${Math.round((triagem.usaveis.length / total) * 100)}%` : '—'}</b>
+            <span>{t('Do baralho joga')}</span>
+          </div>
+        </div>
+
+        {pendentes.length === 0 ? (
+          <div className="q-vazio">
+            <span className="q-ic" aria-hidden>
+              <PartyPopper />
+            </span>
+            <h2>{t('Nada para revisar')}</h2>
+            <p>{t('Todas as palavras do baralho entram nos jogos.')}</p>
+            <button type="button" className="q-ctl pri" onClick={onVoltar}>
+              {t('Voltar aos jogos')}
+            </button>
+          </div>
+        ) : (
+          grupos.map(({ motivo, itens }) => (
+            <section key={motivo} className="q-secao" data-motivo={motivo}>
+              <header>
+                <div>
+                  <h2>
+                    {t(ROTULO_MOTIVO[motivo].titulo)} <span className="qj-n">{numero(contagem[motivo])}</span>
+                  </h2>
+                  <p>{t(ROTULO_MOTIVO[motivo].conserto)}</p>
+                </div>
+                {itens.length >= 3 && (
+                  <button
+                    type="button"
+                    className="q-ctl"
+                    onClick={() => void arquivarGrupo(motivo, itens)}
+                    disabled={ocupado === `grupo:${motivo}`}
+                  >
+                    {ocupado === `grupo:${motivo}` ? (
+                      <>
+                        <Loader2 className="animate-spin" aria-hidden /> {t('Arquivando…')}
+                      </>
+                    ) : (
+                      <>
+                        <Archive aria-hidden /> {t('Arquivar as {n}', { n: numero(itens.length) })}
+                      </>
+                    )}
+                  </button>
+                )}
+              </header>
+
+              <ul className="qj-lista">
+                {itens.slice(0, 40).map(({ card }: CartaoFora) => (
+                  <li key={card.id} className="q-ajuste">
+                    <div>
+                      <b>{card.word}</b>
+                      <small>{card.translation || t('sem tradução')}</small>
+                    </div>
+                    {editando === card.id ? (
+                      <form
+                        className="qj-edicao"
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          void salvarTraducao(card);
+                        }}
+                      >
+                        <label className="q-campo">
+                          <span>{t('Tradução curta de {palavra}', { palavra: card.word })}</span>
+                          <input
+                            id={`cur-in-${card.id}`}
+                            autoFocus
+                            value={rascunho}
+                            onChange={(e) => setRascunho(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Escape') {
+                                setEditando(null);
+                                setRascunho('');
+                              }
+                            }}
+                            placeholder={t('tradução curta')}
+                          />
+                        </label>
+                        <span className="q-acoes">
+                          <button type="submit" className="q-ctl" disabled={ocupado === card.id}>
+                            <Check aria-hidden /> {t('Salvar')}
+                          </button>
+                          <button
+                            type="button"
+                            className="q-ctl"
+                            onClick={() => {
+                              setEditando(null);
+                              setRascunho('');
+                            }}
+                          >
+                            {t('Cancelar')}
+                          </button>
+                        </span>
+                      </form>
+                    ) : (
+                      <span className="q-acoes">
+                        <button
+                          type="button"
+                          className="q-ctl"
+                          onClick={() => {
+                            setEditando(card.id);
+                            setRascunho(card.translation || '');
+                          }}
+                          aria-label={t('Editar a tradução de {palavra}', { palavra: card.word })}
+                        >
+                          <Pencil aria-hidden /> {t('Editar')}
+                        </button>
+                        <button
+                          type="button"
+                          className="q-ctl"
+                          onClick={() => void arquivar(card)}
+                          disabled={ocupado === card.id}
+                          aria-label={t('Arquivar {palavra}', { palavra: card.word })}
+                        >
+                          <Archive aria-hidden /> {t('Arquivar')}
+                        </button>
+                        <button
+                          type="button"
+                          className="q-ctl"
+                          onClick={() => void manter(card)}
+                          aria-label={t('{palavra} está certo assim', { palavra: card.word })}
+                        >
+                          <Check aria-hidden /> {t('Está certo')}
+                        </button>
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+
+              {itens.length > 40 && (
+                <p className="qj-nota">
+                  {t('Mostrando 40 de {n}. Resolva estas e as próximas aparecem.', { n: numero(itens.length) })}
+                </p>
+              )}
+            </section>
+          ))
+        )}
+      </div>
+    );
+  }
 
   /* Marcação do protótipo aprovado (`T.curadoria` em docs/prototipos/consistencia-telas.html): o
      cabeçalho, os quatro ladrilhos do saldo e um `.cartao.p5.secao` por motivo, com o conserto

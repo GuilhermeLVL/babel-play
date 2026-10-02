@@ -44,6 +44,17 @@ em MEMÓRIA de até 10 min (sem quem pediu; a chave é um hash), e os contadores
 de caracteres. A política de privacidade precisa ganhar a voz natural na lista de tratamentos antes de
 ligar a flag.
 
+**Voz do site estático no aparelho sem voz (02/10/2026):** na edição estática (Pages), o Meta Quest não
+tem voz de leitura, e a tradução do intérprete é lida pela função `functions/quest/tts.js`. O TEXTO da
+tradução (até 600 caracteres por fala) vai ao **Workers AI da Cloudflare** (MeloTTS: inglês, espanhol,
+francês, chinês, japonês, coreano), só com o consentimento de nuvem dado na tela, e volta como áudio.
+Nada é gravado: o KV guarda só os segundos contados da cota, por hash diário do IP. É o mesmo operador
+e a mesma base da transcrição do site (`functions/quest/stt.js`); o texto de consentimento da tela
+(`NuvemDoQuest.tsx`) passou a citar a leitura em voz alta. Os demais idiomas (o português entre eles)
+só saem se o dono criar o segredo `DEEPINFRA_API_KEY` no Pages: aí vale a linha da DeepInfra acima, com
+a mesma pendência (confirmar a retenção no contrato ANTES de criar o segredo). Sem clonagem: o pedido
+leva só texto, modelo, formato e idioma.
+
 ## O que a política de privacidade precisa refletir
 
 `public/privacidade.html` (última atualização 13/09) ainda cita o **Google Gemini** como provedor do

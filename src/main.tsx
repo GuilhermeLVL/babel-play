@@ -35,6 +35,11 @@ bootTheme();
 // Perfil do aparelho por capacidade (Quest, celular, desktop): `<html data-dispositivo data-modo-leve>`.
 marcarDispositivoNoDocumento();
 marcarQuestNovoNoDocumento();
+// No aparelho sem voz de leitura (o Quest), `speak()` vai à voz do site quando a nuvem está ligada.
+// Por `import()`: só o headset baixa o motor, e o JS inicial de todo mundo não cresce.
+if (document.documentElement.dataset.semVoz === 'true') {
+  void import('./lib/voz/haVoz').then((m) => m.instalarVozDoSite());
+}
 // E4 — erro de runtime do navegador deixou de morrer no console: window.onerror e
 // unhandledrejection reportam ao diário do servidor (só erro; nenhum dado do usuário).
 instalarRelatorioDeErros();

@@ -2,9 +2,12 @@ import type { MinigameId } from '@core';
 import { LifeBuoy, Play, TriangleAlert, X } from 'lucide-react';
 import { useId, useRef } from 'react';
 
+import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
+import { t } from '../../lib/i18n';
 import type { AgeProfileType } from '../../lib/profile';
 import { DialogoBase } from '../ui/Dialogo';
 import { IconePixel } from '../views/play/IconesPixel';
+import { fecharPainelDe, PainelDoQuest } from '../views/play/quest/pecasDoQuest';
 
 /**
  * COMO SE JOGA — a explicação que aparece ANTES da primeira rodada de cada jogo.
@@ -314,7 +317,68 @@ export default function ComoSeJoga({ jogo, titulo, ageProfile, onJogar, onFechar
   const conteudo = COMO_SE_JOGA[jogo];
   const idTitulo = useId();
   const ref = useRef<HTMLDialogElement>(null);
+  const questNovo = useQuestNovo();
   if (!conteudo) return null;
+
+  /* META QUEST: a mesma ficha, no painel do headset. Os passos numerados em linhas grandes, cada
+     ajuda com o preço dela numa etiqueta, e o que o jogo não mede numa faixa de aviso. */
+  if (questNovo) {
+    return (
+      <PainelDoQuest
+        sobre={t('Como se joga')}
+        titulo={titulo}
+        aoFechar={onFechar}
+        classe="qj-como"
+        pe={
+          <>
+            <button type="button" className="q-ctl" onClick={(e) => fecharPainelDe(e.currentTarget)}>
+              {t('Agora não')}
+            </button>
+            <button type="button" className="q-ctl pri" data-autofocus onClick={onJogar}>
+              <Play aria-hidden /> {ageProfile === 'kids' ? t('Bora jogar!') : t('Começar')}
+            </button>
+          </>
+        }
+      >
+        <section className="q-secao">
+          <p className="q-rotulo">{t('O que treina')}</p>
+          <p className="q-texto">{t(conteudo.treina)}</p>
+        </section>
+        <section className="q-secao">
+          <p className="q-rotulo">{t('Como jogar')}</p>
+          <ol className="q-passos">
+            {conteudo.passos.map((p, i) => (
+              <li key={i}>
+                <span aria-hidden>{i + 1}</span>
+                <span>{t(p)}</span>
+              </li>
+            ))}
+          </ol>
+        </section>
+        <section className="q-secao">
+          <p className="q-rotulo">{t('O que você tem aí')}</p>
+          <ul className="qj-ajudas">
+            {conteudo.ajudas.map((a, i) => (
+              <li key={i}>
+                <LifeBuoy aria-hidden />
+                <span>{t(a.o_que)}</span>
+                <span className={`q-tag${a.custo ? '' : ' off'}`}>{a.custo ? t(a.custo) : t('de graça')}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+        <section className="q-secao">
+          <p className="q-rotulo">{t('Como conta na sua memória')}</p>
+          <p className="q-texto">{t(conteudo.avaliacao)}</p>
+        </section>
+        <div className="q-aviso qj-alerta">
+          <span>
+            <TriangleAlert aria-hidden /> <b>{t('O que este jogo não mede.')}</b> {t(conteudo.limites)}
+          </span>
+        </div>
+      </PainelDoQuest>
+    );
+  }
 
   return (
     <DialogoBase classe="medio" rotuloId={idTitulo} aoFechar={onFechar} refDialogo={ref}>

@@ -38,6 +38,7 @@ import {
 import { Fragment, type ReactNode, useMemo, useState } from 'react';
 
 import { celebrarEscolha } from '../../../lib/comemoracao';
+import { useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
 import { comprarPecaComSeeds } from '../../../lib/galeria/comprarPeca';
 import { cromaEquipado } from '../../../lib/galeria/cromas';
 import { type ContextoDeEquipar, equiparItem, equipavel } from '../../../lib/galeria/equipar';
@@ -59,7 +60,7 @@ import {
 import { possuidos } from '../../../lib/loja';
 import MiniaturaDoItem from '../../MiniaturaDoItem';
 import { toast } from '../../Toast';
-import { TituloDeSecao } from '../../ui';
+import { Dialogo, fecharDialogoDe, TituloDeSecao } from '../../ui';
 import EditorDoItem, { temPersonalizacao } from './EditorDoItem';
 
 /**
@@ -169,6 +170,16 @@ function PaletaDupla({ claro, escuro }: { claro: string[]; escuro: string[] }) {
   );
 }
 
+const DESC_DOS_PERFIS = 'Um visual inteiro de uma vez: tema, fonte, partículas, emojis, cursor e rastro.';
+
+/** Uma seção a mais no seletor do headset, vinda de quem monta o inventário (a acessibilidade). */
+export interface SecaoExtraDoInventario {
+  id: string;
+  titulo: string;
+  icone: LucideIcon;
+  conteudo: ReactNode;
+}
+
 interface ItemDoLoadout {
   chave: string;
   rotulo: string;
@@ -196,6 +207,8 @@ export default function Inventario({
   aoPrever,
   itemEmPrevia,
   tiposComPrevia,
+  aoRenomearPerfilPara,
+  secoesExtras,
 }: {
   nivel: number;
   saldo: number;
@@ -229,7 +242,21 @@ export default function Inventario({
   itemEmPrevia?: string | null;
   /** Os tipos que têm prévia. */
   tiposComPrevia?: ReadonlySet<string>;
+  /**
+   * NO HEADSET: renomear com o nome já digitado num diálogo com campo (o teclado do sistema sobe nele),
+   * no lugar do `prompt` nativo de `aoRenomearPerfil`.
+   */
+  aoRenomearPerfilPara?: (p: Perfil, nome: string) => void;
+  /** NO HEADSET: seções a mais no seletor (a acessibilidade, que na tela de sempre fica abaixo do inventário). */
+  secoesExtras?: SecaoExtraDoInventario[];
 }) {
+  /* No Meta Quest (telas novas): uma seção por vez, escolhida num seletor, no lugar da página comprida. */
+  const questNovo = useQuestNovo();
+  const [secaoQ, setSecaoQ] = useState('temas');
+  const [renomeando, setRenomeando] = useState<Perfil | null>(null);
+  const [nomeEmEdicao, setNomeEmEdicao] = useState('');
+  /** Apagar pede um segundo toque no headset: o raio erra mais do que o mouse. */
+  const [apagando, setApagando] = useState<string | null>(null);
   /* O ACERVO INTEIRO, e não só o meu. `false` é o padrão porque a pergunta mais frequente na
      tela de Personalizar continua sendo "o que eu tenho". */
   const [verTudo, setVerTudo] = useState(false);
@@ -437,7 +464,7 @@ export default function Inventario({
         {/* O EDITOR DA PEÇA (paletas, pack próprio, croma) só aparece onde há o que editar. */}
         {liberado && temPersonalizacao(i) && (
           <button type="button" className="link editar" onClick={() => setEditando(i)}>
-            <Pencil aria-hidden /> personalizar
+            <Pencil aria-hidden /> {questNovo ? t('Personalizar') : 'personalizar'}
           </button>
         )}
       </article>
@@ -450,6 +477,266 @@ export default function Inventario({
       <ArrowRight aria-hidden />
     </button>
   );
+
+  /** O cartão de um perfil: a prévia, o nome, o que falta liberar e as ações. */
+  const cartaoDoPerfil = (p: Perfil) => {
+    const falta = faltaDoPerfil(p);
+    const cores = coresDoPerfil(p);
+    return (
+      <article key={p.id} className="cartao peca" onDoubleClick={(e) => aoAplicarPerfil(p, e.currentTarget)}>
+        <div className="vis" aria-hidden>
+          {cores ? <Paleta cores={cores} /> : <IconeDoPerfilDesenhado perfil={p} lado={28} />}
+        </div>
+        <h3 className="linha" style={{ gap: 6 }}>
+          {cores && <IconeDoPerfilDesenhado perfil={p} lado={16} />}
+          {p.nome}
+        </h3>
+        <p>{p.desc}</p>
+        {(p.proprio || falta.length > 0) && (
+          <span className="label-mono">
+            {[
+              p.proprio && 'seu',
+              falta.length > 0 && `falta liberar ${falta.length === 1 ? '1 peça' : `${falta.length} peças`}`,
+            ]
+              .filter(Boolean)
+              .join(' · ')}
+          </span>
+        )}
+        {/* Trancado o botão continua clicável de propósito: `aoAplicarPerfil` diz
+            EXATAMENTE o que falta liberar. Um botão morto não diria nada. */}
+        <button
+          type="button"
+          className="btn btn-outline bloco"
+          onClick={(e) => {
+            aoAplicarPerfil(p, e.currentTarget);
+            rerender();
+          }}
+        >
+          {falta.length ? 'Faltam peças' : 'Aplicar perfil'}
+        </button>
+        {p.proprio && (
+          <span className="linha" style={{ gap: 14 }}>
+            <button
+              type="button"
+              className="link editar"
+              onClick={() => {
+                if (questNovo && aoRenomearPerfilPara) {
+                  setNomeEmEdicao(p.nome);
+                  setRenomeando(p);
+                  return;
+                }
+                aoRenomearPerfil(p);
+                rerender();
+              }}
+            >
+              <Pencil aria-hidden /> {questNovo ? t('Renomear') : 'renomear'}
+            </button>
+            <button
+              type="button"
+              className="link editar"
+              aria-pressed={questNovo && apagando === p.id ? true : undefined}
+              onClick={() => {
+                // No headset, o primeiro toque pergunta e o segundo apaga.
+                if (questNovo && apagando !== p.id) {
+                  setApagando(p.id);
+                  return;
+                }
+                setApagando(null);
+                aoApagarPerfil(p);
+                rerender();
+              }}
+            >
+              <Trash2 aria-hidden />{' '}
+              {questNovo ? (apagando === p.id ? t('Toque de novo para apagar') : t('Apagar')) : 'apagar'}
+            </button>
+          </span>
+        )}
+      </article>
+    );
+  };
+
+  const editor = editando && (
+    <EditorDoItem
+      item={editando}
+      nivel={nivel}
+      saldo={saldo}
+      setTheme={ctx.setTheme}
+      onIrParaLoja={onIrParaLoja}
+      aoFechar={() => {
+        setEditando(null);
+        rerender();
+      }}
+      aoEquipar={() => equipar(editando)}
+      aoComprar={rerender}
+    />
+  );
+
+  if (questNovo) {
+    /* AS SEÇÕES DO SELETOR: as de peça que têm o que mostrar (a primeira aparece mesmo vazia, como na tela
+       de sempre), os perfis e as que vêm de fora. */
+    const dePecas = SECOES.map((sec) => ({ ...sec, lista: daSecao(sec.tipos) })).filter(
+      (sec, k) => sec.lista.length > 0 || k === 0,
+    );
+    const seletor = [
+      ...dePecas.map((sec) => ({
+        id: sec.id,
+        titulo: sec.titulo,
+        Icone: sec.icone,
+        n: sec.lista.length as number | null,
+      })),
+      { id: 'perfis', titulo: 'Perfis', Icone: Wand2, n: perfis.length as number | null },
+      ...(secoesExtras ?? []).map((x) => ({ id: x.id, titulo: x.titulo, Icone: x.icone, n: null as number | null })),
+    ];
+    const ativa = seletor.some((x) => x.id === secaoQ) ? secaoQ : seletor[0].id;
+    const dePeca = dePecas.find((sec) => sec.id === ativa);
+    const extra = secoesExtras?.find((x) => x.id === ativa);
+    const faltam = colecao.compraveis.length + colecao.porNivel.length;
+    return (
+      <>
+        <section className="qp-equipados" aria-label={t('O que está equipado')}>
+          {loadout.map(({ chave, rotulo, valor, icone: Icone }) => (
+            <span key={chave} className="qp-equip">
+              <span className="q-ic">
+                <Icone aria-hidden />
+              </span>
+              <span>
+                <small>{rotulo}</small>
+                <b>{valor}</b>
+              </span>
+            </span>
+          ))}
+        </section>
+
+        <div className="q-secao">
+          <header>
+            <div>
+              <h2>{verTudo ? t('Tudo o que existe') : t('O que é seu')}</h2>
+              <p>
+                {verTudo
+                  ? t('O acervo inteiro: o que falta aparece com cadeado e diz como se consegue.')
+                  : t('Escolha uma seção. Cada peça mostra a prévia, o que ela é e o botão de equipar.')}
+              </p>
+            </div>
+            <button type="button" className="q-chip" aria-pressed={verTudo} onClick={() => setVerTudo(!verTudo)}>
+              {verTudo ? `Ver só o meu acervo (${meus.length})` : `Ver tudo que existe (${CATALOGO_DA_LOJA.length})`}
+              <ArrowRight aria-hidden />
+            </button>
+          </header>
+          <div className="q-abas q-seg qp-secoes" role="group" aria-label={t('Seções da coleção')}>
+            {seletor.map(({ id, titulo, Icone, n }) => (
+              <button
+                key={id}
+                type="button"
+                className="q-aba"
+                aria-pressed={id === ativa}
+                onClick={() => setSecaoQ(id)}
+              >
+                <Icone aria-hidden /> {titulo}
+                {n !== null && <span className="n">{n}</span>}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {dePeca && (
+          <section className="qp-pilha" data-secao-do-inventario={dePeca.id} aria-label={dePeca.titulo}>
+            {dePeca.lista.length ? (
+              <div className="gauto">
+                {dePeca.lista.map((i) => (
+                  <Fragment key={i.id}>{peca(i)}</Fragment>
+                ))}
+              </div>
+            ) : (
+              <p className="q-texto">{t('Nenhum tema seu ainda.')}</p>
+            )}
+            <div className="q-aviso" role="note">
+              <span>
+                {t('Faltam {n} peças na Loja e {m} só por conquista.', { n: faltam, m: colecao.porConquista.length })}
+              </span>
+              <button type="button" className="q-ctl" onClick={onIrParaLoja}>
+                <ShoppingBag aria-hidden /> {t('Ir à Loja')}
+              </button>
+            </div>
+          </section>
+        )}
+
+        {ativa === 'perfis' && (
+          <section className="q-secao" data-secao-do-inventario="perfis">
+            <header>
+              <div>
+                <h3>Perfis</h3>
+                <p>{DESC_DOS_PERFIS}</p>
+              </div>
+              {acaoDosPerfis}
+            </header>
+            <div className="qp-salvar">
+              <label className="q-campo">
+                <span>{t('Nome do perfil')}</span>
+                <input
+                  value={nomeNovo}
+                  onChange={(e) => setNomeNovo(e.target.value)}
+                  placeholder="Nome para salvar o visual de agora"
+                />
+              </label>
+              <button
+                type="button"
+                className="q-ctl"
+                onClick={() => {
+                  aoSalvarPerfil(nomeNovo);
+                  setNomeNovo('');
+                  rerender();
+                }}
+              >
+                <Save aria-hidden /> Salvar este visual
+              </button>
+            </div>
+            <div className="gauto">{perfis.map(cartaoDoPerfil)}</div>
+          </section>
+        )}
+
+        {extra && (
+          <div className="qp-pilha" data-secao-do-inventario={extra.id}>
+            {extra.conteudo}
+          </div>
+        )}
+
+        {editor}
+
+        {renomeando && aoRenomearPerfilPara && (
+          <Dialogo
+            icone={Pencil}
+            titulo={t('Renomear o perfil')}
+            sub={renomeando.nome}
+            aoFechar={() => setRenomeando(null)}
+          >
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                aoRenomearPerfilPara(renomeando, nomeEmEdicao);
+                setRenomeando(null);
+                rerender();
+              }}
+            >
+              <div className="dlg-corpo">
+                <label className="q-campo">
+                  <span>{t('Novo nome')}</span>
+                  <input data-autofocus value={nomeEmEdicao} onChange={(e) => setNomeEmEdicao(e.target.value)} />
+                </label>
+              </div>
+              <div className="dlg-pe">
+                <button type="button" className="btn btn-outline" onClick={(e) => fecharDialogoDe(e.currentTarget)}>
+                  {t('Cancelar')}
+                </button>
+                <button type="submit" className="btn btn-solid">
+                  <Check aria-hidden /> {t('Salvar')}
+                </button>
+              </div>
+            </form>
+          </Dialogo>
+        )}
+      </>
+    );
+  }
 
   return (
     <>
@@ -490,12 +777,7 @@ export default function Inventario({
       {/* ── PERFIS: um visual inteiro de uma vez. Salvar mora AQUI: guardar o visual atual é uma
              ação sobre perfis, e é nesta seção que ela é procurada. */}
       <section className="secao">
-        <TituloDeSecao
-          icone={Wand2}
-          titulo="Perfis"
-          desc="Um visual inteiro de uma vez: tema, fonte, partículas, emojis, cursor e rastro."
-          direita={acaoDosPerfis}
-        />
+        <TituloDeSecao icone={Wand2} titulo="Perfis" desc={DESC_DOS_PERFIS} direita={acaoDosPerfis} />
         <div className="linha" style={{ gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
           <input
             className="campo"
@@ -517,70 +799,7 @@ export default function Inventario({
             <Save aria-hidden /> Salvar este visual
           </button>
         </div>
-        <div className="gauto">
-          {perfis.map((p) => {
-            const falta = faltaDoPerfil(p);
-            const cores = coresDoPerfil(p);
-            return (
-              <article key={p.id} className="cartao peca" onDoubleClick={(e) => aoAplicarPerfil(p, e.currentTarget)}>
-                <div className="vis" aria-hidden>
-                  {cores ? <Paleta cores={cores} /> : <IconeDoPerfilDesenhado perfil={p} lado={28} />}
-                </div>
-                <h3 className="linha" style={{ gap: 6 }}>
-                  {cores && <IconeDoPerfilDesenhado perfil={p} lado={16} />}
-                  {p.nome}
-                </h3>
-                <p>{p.desc}</p>
-                {(p.proprio || falta.length > 0) && (
-                  <span className="label-mono">
-                    {[
-                      p.proprio && 'seu',
-                      falta.length > 0 && `falta liberar ${falta.length === 1 ? '1 peça' : `${falta.length} peças`}`,
-                    ]
-                      .filter(Boolean)
-                      .join(' · ')}
-                  </span>
-                )}
-                {/* Trancado o botão continua clicável de propósito: `aoAplicarPerfil` diz
-                    EXATAMENTE o que falta liberar. Um botão morto não diria nada. */}
-                <button
-                  type="button"
-                  className="btn btn-outline bloco"
-                  onClick={(e) => {
-                    aoAplicarPerfil(p, e.currentTarget);
-                    rerender();
-                  }}
-                >
-                  {falta.length ? 'Faltam peças' : 'Aplicar perfil'}
-                </button>
-                {p.proprio && (
-                  <span className="linha" style={{ gap: 14 }}>
-                    <button
-                      type="button"
-                      className="link editar"
-                      onClick={() => {
-                        aoRenomearPerfil(p);
-                        rerender();
-                      }}
-                    >
-                      <Pencil aria-hidden /> renomear
-                    </button>
-                    <button
-                      type="button"
-                      className="link editar"
-                      onClick={() => {
-                        aoApagarPerfil(p);
-                        rerender();
-                      }}
-                    >
-                      <Trash2 aria-hidden /> apagar
-                    </button>
-                  </span>
-                )}
-              </article>
-            );
-          })}
-        </div>
+        <div className="gauto">{perfis.map(cartaoDoPerfil)}</div>
       </section>
 
       {/* ── O QUE FALTA — atalho honesto: o acervo mostra o que é seu, e diz onde vê o resto ── */}
@@ -593,21 +812,7 @@ export default function Inventario({
         </button>
       </p>
 
-      {editando && (
-        <EditorDoItem
-          item={editando}
-          nivel={nivel}
-          saldo={saldo}
-          setTheme={ctx.setTheme}
-          onIrParaLoja={onIrParaLoja}
-          aoFechar={() => {
-            setEditando(null);
-            rerender();
-          }}
-          aoEquipar={() => equipar(editando)}
-          aoComprar={rerender}
-        />
-      )}
+      {editor}
     </>
   );
 }

@@ -1,9 +1,10 @@
 /*
  * JOGAR NO META QUEST: por dentro dos jogos (maquete de 01/10/2026, telas 6, 7 e 13).
  *
- * O lobby usa as peças de `quest.css` (`.q-palco`, `.q-tile`…) e não precisa de regra própria. Aqui
- * fica o que acontece DEPOIS do clique: a casca da rodada, o placar e os tabuleiros. Tudo é só
- * apresentação por cima da marcação que os jogos já têm; nenhuma regra de jogo mora aqui.
+ * O lobby e as telas em volta dos jogos (fonte, antessala, fim da rodada, recordes, mapa, curadoria,
+ * pausa) usam as peças de `quest.css` e têm o próprio arquivo, `questJogarTelas.css`. Aqui fica o que
+ * acontece DEPOIS do clique: a casca da rodada, o placar e os tabuleiros. Tudo é só apresentação por
+ * cima da marcação que os jogos já têm; nenhuma regra de jogo mora aqui.
  *
  * Toda regra começa em `html[data-quest-novo='true']`: computador, celular e o Quest com a chave
  * desligada nunca passam por este arquivo.
@@ -376,62 +377,9 @@ html[data-quest-novo='true'] .palco-jogo .carta.errou::after {
   mask-image: var(--qj-errado);
 }
 
-/* ── A PAUSA E A CONFIRMAÇÃO DE SAÍDA (o `<dialog>` da casca, irmão da tela do jogo) ──────────── */
-html[data-quest-novo='true'] .rolagem:has(.palco-jogo) ~ dialog {
-  width: min(600px, calc(100% - 32px));
-}
-html[data-quest-novo='true'] .rolagem:has(.palco-jogo) ~ dialog .btn {
-  min-height: 60px;
-  font-size: 17px;
-}
-html[data-quest-novo='true'] .rolagem:has(.palco-jogo) ~ dialog .btn svg {
-  width: 22px;
-  height: 22px;
-}
-html[data-quest-novo='true'] .rolagem:has(.palco-jogo) ~ dialog .pausa h2 {
-  font-size: 26px;
-}
-html[data-quest-novo='true'] .rolagem:has(.palco-jogo) ~ dialog .dlg-cab h2 {
-  font-size: 22px;
-}
-html[data-quest-novo='true'] .rolagem:has(.palco-jogo) ~ dialog .label-mono {
-  font-size: 14px;
-}
-/* Os textos de apoio têm 12 e 13 px escritos na marcação. */
-html[data-quest-novo='true'] .rolagem:has(.palco-jogo) ~ dialog .mut {
-  font-size: 18px !important;
-  line-height: 1.4;
-}
-html[data-quest-novo='true'] .rolagem:has(.palco-jogo) ~ dialog .op-linha b {
-  font-size: 18px;
-}
-html[data-quest-novo='true'] .rolagem:has(.palco-jogo) ~ dialog .dlg-cab .x {
-  width: 48px;
-  height: 48px;
-}
-/* O interruptor dos sons: maior, e com a área de toque passando dos 48 px. */
-html[data-quest-novo='true'] .rolagem:has(.palco-jogo) ~ dialog .interruptor {
-  width: 64px;
-  height: 36px;
-}
-html[data-quest-novo='true'] .rolagem:has(.palco-jogo) ~ dialog .interruptor::before {
-  content: '';
-  position: absolute;
-  inset: -8px -4px;
-}
-html[data-quest-novo='true'] .rolagem:has(.palco-jogo) ~ dialog .interruptor span {
-  top: 4px;
-  left: 4px;
-  width: 28px;
-  height: 28px;
-}
-html[data-quest-novo='true'] .rolagem:has(.palco-jogo) ~ dialog .interruptor.on span {
-  transform: translateX(28px);
-}
-html[data-quest-novo='true'] .rolagem:has(.palco-jogo) ~ dialog :is(.btn, .x, .interruptor):focus-visible {
-  outline: 3px solid var(--q-acento);
-  outline-offset: 3px;
-}
+/* ── A PAUSA E A CONFIRMAÇÃO DE SAÍDA ─────────────────────────────────────────────────────────────
+   No headset a pausa é desenhada com as peças `.q-*` (o ramo `useQuestNovo()` de `CascaDaRodada.tsx`);
+   as medidas dela moram em `questJogarTelas.css` (`.qj-pausa`). */
 
 /* ── JANELA ESTREITA (o Quest deixa encolher até 500 × 495) ───────────────────────────────────── */
 @media (max-width: 720px) {
@@ -464,8 +412,7 @@ html[data-quest-novo='true'] .rolagem:has(.palco-jogo) ~ dialog :is(.btn, .x, .i
 /* ── SEM MOVIMENTO: quem pede menos animação recebe tudo instantâneo ──────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   html[data-quest-novo='true'] .palco-jogo :is(button, .hud-progresso span, .combo),
-  html[data-quest-novo='true'] .tela:has(.palco-jogo) :is(.voltar, .cab-acoes .btn),
-  html[data-quest-novo='true'] .rolagem:has(.palco-jogo) ~ dialog :is(.btn, .interruptor, .interruptor span) {
+  html[data-quest-novo='true'] .tela:has(.palco-jogo) :is(.voltar, .cab-acoes .btn) {
     transition: none;
   }
   html[data-quest-novo='true'] .palco-jogo button:active,

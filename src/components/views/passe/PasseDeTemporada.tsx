@@ -14,6 +14,7 @@ import { CalendarClock, Check, Crown, Lock, Sprout, Star } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 import type { TemporadaNoServidor } from '../../../data/api';
+import { useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
 import { type ContextoDeEquipar, equiparItem, equipavel } from '../../../lib/galeria/equipar';
 import { data, t } from '../../../lib/i18n';
 import { COR_DA_RARIDADE, estadoDoItem, type ItemDaLoja } from '../../../lib/loja';
@@ -62,6 +63,9 @@ export default function PasseDeTemporada({
   const [pagina, setPagina] = useState(trechoDoNivel);
   const [, force] = useState(0);
   useEffect(() => setPagina(trechoDoNivel), [trechoDoNivel]);
+  /* No Meta Quest (telas novas): os trechos em pílulas de 52 px e as casas maiores (`questPersonalizar.css`,
+     `.qp-passe`). A trilha, os toques e os avisos são os mesmos. */
+  const questNovo = useQuestNovo();
 
   const colunas = useMemo(
     () =>
@@ -111,7 +115,7 @@ export default function PasseDeTemporada({
   };
 
   return (
-    <div className="space-y-4" data-testid="temporada">
+    <div className={questNovo ? 'space-y-4 qp-passe' : 'space-y-4'} data-testid="temporada">
       <FaixaDaTemporada estado={estado} protegido={protegido} />
 
       {exibida && (
@@ -119,20 +123,36 @@ export default function PasseDeTemporada({
           {/* ── PAGINAÇÃO POR TRECHO — o trecho ainda não alcançado continua visitável: ver antes
                  de ter é metade da graça de uma temporada. ── */}
           <div className="flex items-center gap-1.5 flex-wrap" role="group" aria-label={t('Trechos da temporada')}>
-            {[1, 2, 3].map((p) => (
-              <button
-                key={p}
-                onClick={() => setPagina(p)}
-                aria-current={pagina === p}
-                className={`px-2.5 py-1.5 rounded-lg border font-mono font-bold text-[11.5px] cursor-pointer ${
-                  pagina === p
-                    ? 'bg-accent border-accent text-accent-contrast'
-                    : 'bg-surface border-border-subtle text-ink-muted hover:text-ink'
-                } ${nivel < (p - 1) * 10 + 1 && pagina !== p ? 'opacity-45' : ''}`}
-              >
-                {(p - 1) * 10 + 1}–{p * 10}
-              </button>
-            ))}
+            {questNovo ? (
+              <span className="q-abas q-seg">
+                {[1, 2, 3].map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    className="q-aba"
+                    aria-pressed={pagina === p}
+                    onClick={() => setPagina(p)}
+                  >
+                    {(p - 1) * 10 + 1}–{p * 10}
+                  </button>
+                ))}
+              </span>
+            ) : (
+              [1, 2, 3].map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setPagina(p)}
+                  aria-current={pagina === p}
+                  className={`px-2.5 py-1.5 rounded-lg border font-mono font-bold text-[11.5px] cursor-pointer ${
+                    pagina === p
+                      ? 'bg-accent border-accent text-accent-contrast'
+                      : 'bg-surface border-border-subtle text-ink-muted hover:text-ink'
+                  } ${nivel < (p - 1) * 10 + 1 && pagina !== p ? 'opacity-45' : ''}`}
+                >
+                  {(p - 1) * 10 + 1}–{p * 10}
+                </button>
+              ))
+            )}
             {atual && (
               <span className="ms-auto text-[11.5px] text-ink-muted">
                 {nivel >= NIVEIS_DA_TEMPORADA
@@ -148,7 +168,9 @@ export default function PasseDeTemporada({
 
           <div className="flex gap-3">
             {/* As duas fileiras nomeadas. Some no celular: lá o próprio cartão diz de que fileira é. */}
-            <div className="shrink-0 hidden sm:flex flex-col gap-2.5 pt-[34px] w-[84px]">
+            <div
+              className={`shrink-0 hidden sm:flex flex-col gap-2.5 pt-[34px] w-[84px]${questNovo ? ' qp-fileiras' : ''}`}
+            >
               <div className="h-[168px] rounded-xl border border-border-subtle bg-surface flex flex-col items-center justify-center gap-1.5 text-[10px] font-black uppercase tracking-[0.1em] text-ink-muted text-center px-2">
                 <Check className="w-4 h-4 text-good" aria-hidden />
                 {t('Grátis')}

@@ -213,7 +213,11 @@ export default function TabooGame({ items, ageProfile, onFinish, onExit }: Taboo
         }
       />
 
-      <div ref={palcoRef} className="flex flex-col items-center justify-center gap-6 max-w-2xl mx-auto w-full">
+      <div
+        ref={palcoRef}
+        data-qj="taboo"
+        className="flex flex-col items-center justify-center gap-6 max-w-2xl mx-auto w-full"
+      >
         <div data-tour="alvo" className="w-full rounded-2xl border-2 border-border-subtle bg-surface p-5 sm:p-6">
           <div className="flex items-center justify-between mb-3">
             <p className="label-mono">
@@ -224,7 +228,11 @@ export default function TabooGame({ items, ageProfile, onFinish, onExit }: Taboo
               {riscadas.length} proibida{riscadas.length === 1 ? '' : 's'}
             </span>
           </div>
-          <p dir={direcaoDoTexto(carta.item.lang)} className="text-[17px] sm:text-[19px] leading-relaxed text-ink">
+          <p
+            dir={direcaoDoTexto(carta.item.lang)}
+            data-qp="leitura"
+            className="text-[17px] sm:text-[19px] leading-relaxed text-ink"
+          >
             {pedacos.map((p, i) =>
               riscadas.includes(p.toLowerCase()) ? (
                 <s key={i} className="text-ink-faint decoration-error decoration-2">

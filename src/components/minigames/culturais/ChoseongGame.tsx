@@ -8,10 +8,10 @@ import { t } from '../../../lib/i18n';
 import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
 import { play } from '../../../lib/soundFx';
-import { falar } from '../../../lib/tts';
 import AvisoDaJogada from '../casca/AvisoDaJogada';
 import { useRodada } from '../casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from '../casca/HudDaRodada';
+import { falarNoJogo as falar, useQuestNovo, VereditoNoQuest } from '../noQuest';
 
 /**
  * CHOSEONG — as consoantes ficam à vista, as vogais somem, e a pessoa escreve a palavra a partir
@@ -64,6 +64,10 @@ export default function ChoseongGame({ items, ageProfile, onFinish, onExit }: Ch
   const [acabou, setAcabou] = useState(false);
   /** O tempo acabou nesta palavra: ela fica à vista antes da próxima (QA dos jogos, 2026-09-26). */
   const [revelada, setRevelada] = useState(false);
+  /* No Quest a tentativa errada também é dita em texto (fora dele, o tremor e o som bastam). As vogais
+     são teclas na tela: não há campo, e o teclado do sistema não precisa subir. */
+  const questNovo = useQuestNovo();
+  const [errouAgora, setErrouAgora] = useState(false);
 
   const outcomesRef = useRef<ItemOutcome[]>([]);
   const inicioRodadaRef = useRef(Date.now());
@@ -124,6 +128,7 @@ export default function ChoseongGame({ items, ageProfile, onFinish, onExit }: Ch
     comDicaRef.current = false;
     respondidoRef.current = false;
     setRevelada(false);
+    setErrouAgora(false);
     setLetras(enigma.alvo.split('').map((c, i) => (enigma.ocultas.has(i) ? '' : c)));
     setRelogio({ palavra: indice, segundos: SEGUNDOS[ageProfile] });
   }, [indice, enigma, ageProfile]);
@@ -165,6 +170,7 @@ export default function ChoseongGame({ items, ageProfile, onFinish, onExit }: Ch
       }
       tentativasRef.current += 1;
       celebrar({ tipo: 'erro', el: palcoRef.current });
+      setErrouAgora(true);
       setLetras(enigma.alvo.split('').map((c, i) => (enigma.ocultas.has(i) ? '' : c)));
     },
     [enigma, registrar, avancar],
@@ -178,6 +184,7 @@ export default function ChoseongGame({ items, ageProfile, onFinish, onExit }: Ch
       const novas = [...letras];
       novas[vazio] = char;
       play('click');
+      setErrouAgora(false);
       setLetras(novas);
       if (!novas.some((l, i) => !l && enigma.ocultas.has(i))) conferir(novas);
     },
@@ -246,7 +253,7 @@ export default function ChoseongGame({ items, ageProfile, onFinish, onExit }: Ch
         ajudas={<BotaoDeAjuda icone={Lightbulb} rotulo="Abrir uma vogal" resta={dicasRestantes} onClick={usarDica} />}
       />
 
-      <div className="flex flex-col items-center justify-center gap-6 w-full max-w-2xl mx-auto">
+      <div data-qj="choseong" className="flex flex-col items-center justify-center gap-6 w-full max-w-2xl mx-auto">
         <p data-tour="pista" className="text-base sm:text-lg font-bold text-ink text-center">
           {enigma?.item.prompt}
         </p>
@@ -254,6 +261,7 @@ export default function ChoseongGame({ items, ageProfile, onFinish, onExit }: Ch
         <div
           dir={direcaoDoTexto(enigma?.item.lang)}
           lang={enigma?.item.lang}
+          data-qp="casas"
           className="flex flex-wrap justify-center gap-2 sm:gap-3"
         >
           {letras.map((letra, i) => {
@@ -280,6 +288,7 @@ export default function ChoseongGame({ items, ageProfile, onFinish, onExit }: Ch
           {VOGAIS.map((v) => (
             <button
               key={v}
+              data-qp="tecla"
               onClick={() => escrever(v)}
               className="px-4 py-3 rounded-xl border border-border-subtle bg-surface hover:border-accent hover:bg-accent-soft hover:text-accent-ink font-display font-black text-lg shadow-card active:scale-95 transition-all cursor-pointer"
             >
@@ -287,6 +296,7 @@ export default function ChoseongGame({ items, ageProfile, onFinish, onExit }: Ch
             </button>
           ))}
           <button
+            data-qp="tecla"
             onClick={apagar}
             aria-label="Apagar a última vogal"
             className="px-4 py-3 rounded-xl border border-border-subtle bg-surface-hover hover:bg-border-subtle text-ink-muted hover:text-ink shadow-card active:scale-95 transition-all cursor-pointer"
@@ -294,6 +304,10 @@ export default function ChoseongGame({ items, ageProfile, onFinish, onExit }: Ch
             <Delete className="w-5 h-5" />
           </button>
         </div>
+
+        {questNovo && errouAgora && !revelada && (
+          <VereditoNoQuest certo={false}>{t('Não é essa. As vogais voltaram: tente de novo.')}</VereditoNoQuest>
+        )}
 
         {revelada && enigma && (
           <AvisoDaJogada

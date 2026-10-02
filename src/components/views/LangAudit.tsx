@@ -18,6 +18,8 @@ import { AlertTriangle, ArrowRight, Ban, CheckCircle2, HelpCircle, Loader2, Scan
 import { useState } from 'react';
 
 import { fetchAllUtterances, fetchDeck, relabelCards, relabelUtterances } from '../../data/api';
+import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
+import { t, tp } from '../../lib/i18n';
 import { auditDeck, type AuditReport, auditUtterances, type LangFinding, targetFor } from '../../lib/langAudit';
 import { fetchLangConfig, type LangConfig } from '../../lib/langConfig';
 import { baseLang, knownShorts, langLabel } from '../../lib/languages';
@@ -169,6 +171,55 @@ function Evidence({ finding, emptyMsg }: { finding: LangFinding; emptyMsg: strin
   );
 }
 
+/* ── As mesmas três peças, nas medidas do headset (texto de corpo, sem itálico, campo de 60 px) ── */
+function SeletorDoQuest({
+  value,
+  onChange,
+  placeholder,
+  rotulo,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+  rotulo: string;
+}) {
+  return (
+    <select
+      className="q-campo q-aud-seletor"
+      aria-label={rotulo}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+    >
+      <option value="">{placeholder}</option>
+      {SHORTS.map((s) => (
+        <option key={s} value={s}>
+          {langLabel(s)}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+function ParAtualDoQuest({ current }: { current: LangFinding['current'] }) {
+  const src = current.srcLang ? langLabel(current.srcLang) : '-';
+  const tgt = current.tgtLang ? langLabel(current.tgtLang) : '-';
+  return (
+    <span className="q-aud-par">
+      {src} → {tgt}
+    </span>
+  );
+}
+
+function EvidenciaDoQuest({ finding, emptyMsg }: { finding: LangFinding; emptyMsg: string }) {
+  return (
+    <>
+      <b>{finding.word}</b>
+      <p className="q-aud-frase">{finding.sentence ? `“${finding.sentence}”` : emptyMsg}</p>
+      <p className="q-aju-nota">{finding.reason}</p>
+    </>
+  );
+}
+
 const chaveDoResumo = (m: Mode) => `babel.auditoriaDeIdioma.${m}`;
 
 function lerResumo(m: Mode): string | null {
@@ -201,6 +252,7 @@ function resumoDe(m: Mode, total: number, fora: number): string {
 }
 
 export default function LangAudit() {
+  const questNovo = useQuestNovo();
   const [mode, setMode] = useState<Mode>('cards');
   const [running, setRunning] = useState(false);
   const [applying, setApplying] = useState(false);
@@ -342,6 +394,246 @@ export default function LangAudit() {
   const ambiguous = findings.filter((f) => f.verdict === 'ambiguo');
   const noSignal = findings.filter((f) => f.verdict === 'sem-sinal');
   const counts = report?.counts;
+
+  /* QUEST: o mesmo fluxo (conferir, decidir item a item, aplicar com confirmação), com um controle
+     grande por item: interruptor para "corrigir este", seletor para o idioma. */
+  if (questNovo) {
+    const desmarcar = (id: string) =>
+      setChecked((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    const traduzPara = (src: string) =>
+      src && cfg ? (
+        <span className="q-aud-par">
+          {t('traduz para {idioma}', { idioma: langLabel(targetFor(baseLang(src), cfg)) })}
+        </span>
+      ) : null;
+    return (
+      <section className="q-secao" data-testid="auditoria-de-idioma">
+        <header>
+          <div>
+            <h2>{t('Auditoria de idioma')}</h2>
+            <p>{t('Confere se as palavras do seu caderno estão mesmo no idioma certo.')}</p>
+          </div>
+          {/* O MESMO reparo sobre as transcrições: na tela de sempre é um link embaixo do cartão. */}
+          <div className="q-abas q-seg" role="group" aria-label={t('O que conferir')}>
+            <button
+              type="button"
+              className="q-aba"
+              aria-pressed={mode === 'cards'}
+              disabled={running || applying}
+              onClick={() => switchMode('cards')}
+            >
+              {t('Palavras do caderno')}
+            </button>
+            <button
+              type="button"
+              className="q-aba"
+              aria-pressed={mode === 'utterances'}
+              disabled={running || applying}
+              onClick={() => switchMode('utterances')}
+            >
+              {t('Falas das transcrições')}
+            </button>
+          </div>
+        </header>
+
+        <div className="q-ajuste">
+          <div>
+            <b>{copy.headerTitle}</b>
+            <small>{resumo ?? `${copy.headerIntro} ${t('Nada é alterado sem a sua confirmação.')}`}</small>
+          </div>
+          <button type="button" className="q-ctl" onClick={() => void run()} disabled={running || applying}>
+            {running ? <Loader2 className="gira" aria-hidden /> : <ScanSearch aria-hidden />}
+            {running
+              ? t('Conferindo…')
+              : resumo || report || deckSize === 0
+                ? t('Conferir de novo')
+                : t('Conferir agora')}
+          </button>
+        </div>
+
+        {running && (
+          <div className="q-aju-espera" role="status">
+            <Loader2 className="gira" aria-hidden />
+            <span>
+              {deckSize != null ? copy.analyzing(deckSize) : t('Carregando os dados e a sua configuração de idiomas…')}
+            </span>
+          </div>
+        )}
+
+        {!running && deckSize === 0 && (
+          <p className="q-aju-nota" role="status">
+            {copy.emptyMsg}
+          </p>
+        )}
+
+        {!running && report && (
+          <>
+            <div className="q-grade g4">
+              <div className="q-num tom-bom">
+                <b>{counts?.ok ?? 0}</b>
+                <span>{copy.chip.ok}</span>
+              </div>
+              <div className="q-num tom-erro">
+                <b>{counts?.confiante ?? 0}</b>
+                <span>{copy.chip.fix}</span>
+              </div>
+              <div className="q-num tom-aviso">
+                <b>{counts?.ambiguo ?? 0}</b>
+                <span>{copy.chip.amb}</span>
+              </div>
+              <div className="q-num">
+                <b>{counts?.['sem-sinal'] ?? 0}</b>
+                <span>{copy.chip.none}</span>
+              </div>
+            </div>
+
+            {confident.length > 0 && (
+              <div className="q-cartao">
+                <h3>
+                  <AlertTriangle aria-hidden /> {t('Correções propostas ({n})', { n: confident.length })}
+                </h3>
+                <p className="q-aju-nota">{copy.proposedIntro}</p>
+                <ul className="q-aud-lista">
+                  {confident.map((f) => (
+                    <li key={f.cardId} className="q-aud-item">
+                      <div>
+                        <EvidenciaDoQuest finding={f} emptyMsg={copy.emptyEvidence} />
+                        <div className="q-aud-linha">
+                          <ParAtualDoQuest current={f.current} />
+                          <ArrowRight aria-hidden />
+                          <span className="q-tag">
+                            {langLabel(f.proposed!.srcLang)} → {langLabel(f.proposed!.tgtLang)}
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        className="q-interruptor"
+                        role="switch"
+                        aria-checked={checked.has(f.cardId)}
+                        aria-label={copy.ariaFix(f.word)}
+                        onClick={() => toggle(f.cardId)}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {ambiguous.length > 0 && (
+              <div className="q-cartao">
+                <h3>
+                  <HelpCircle aria-hidden /> {t('Precisam da sua decisão ({n})', { n: ambiguous.length })}
+                </h3>
+                <p className="q-aju-nota">{copy.ambiguousIntro}</p>
+                <ul className="q-aud-lista">
+                  {ambiguous.map((f) => {
+                    const src = srcFor(f);
+                    return (
+                      <li key={f.cardId} className="q-aud-item">
+                        <div>
+                          <EvidenciaDoQuest finding={f} emptyMsg={copy.emptyEvidence} />
+                          <div className="q-aud-linha">
+                            <ParAtualDoQuest current={f.current} />
+                            <ArrowRight aria-hidden />
+                            <SeletorDoQuest
+                              value={src}
+                              rotulo={t('Idioma de "{palavra}"', { palavra: f.word })}
+                              placeholder={t('Escolher idioma…')}
+                              onChange={(v) => {
+                                setManual((m) => ({ ...m, [f.cardId]: v }));
+                                // Sem idioma escolhido não há o que gravar: desmarca sozinho.
+                                if (!v) desmarcar(f.cardId);
+                              }}
+                            />
+                            {traduzPara(src)}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          className="q-interruptor"
+                          role="switch"
+                          aria-checked={checked.has(f.cardId)}
+                          aria-label={copy.ariaFix(f.word)}
+                          disabled={!src}
+                          onClick={() => toggle(f.cardId)}
+                        />
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+
+            {noSignal.length > 0 && (
+              <div className="q-cartao">
+                <h3>
+                  <Ban aria-hidden /> {t('Sem como saber ({n})', { n: noSignal.length })}
+                </h3>
+                <p className="q-aju-nota">{copy.noSignalIntro}</p>
+                <ul className="q-aud-lista">
+                  {noSignal.map((f) => (
+                    <li key={f.cardId} className="q-aud-item">
+                      <div>
+                        <EvidenciaDoQuest finding={f} emptyMsg={copy.emptyEvidence} />
+                        <div className="q-aud-linha">
+                          <ParAtualDoQuest current={f.current} />
+                          <SeletorDoQuest
+                            value={manual[f.cardId] ?? ''}
+                            rotulo={t('Idioma de "{palavra}"', { palavra: f.word })}
+                            placeholder={t('Manter como está')}
+                            onChange={(v) => setManual((m) => ({ ...m, [f.cardId]: v }))}
+                          />
+                          {traduzPara(manual[f.cardId] ?? '')}
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {(counts?.ok ?? 0) > 0 && (
+              <details className="q-aju-detalhe">
+                <summary>
+                  <CheckCircle2 aria-hidden /> {copy.okLine(counts?.ok ?? 0)}
+                </summary>
+                <ul className="q-aud-certos">
+                  {findings
+                    .filter((f) => f.verdict === 'ok')
+                    .map((f) => (
+                      <li key={f.cardId} className="q-tag">
+                        {f.word}
+                      </li>
+                    ))}
+                </ul>
+              </details>
+            )}
+
+            <div className="q-ajuste">
+              <div>
+                <b>{pending.length === 0 ? copy.applyIdle : copy.willWrite(pending.length)}</b>
+                <small>{t('Nada é gravado sem a sua confirmação.')}</small>
+              </div>
+              <button
+                type="button"
+                className="q-ctl pri"
+                onClick={() => void apply()}
+                disabled={!pending.length || applying || running}
+              >
+                {applying ? <Loader2 className="gira" aria-hidden /> : <CheckCircle2 aria-hidden />}
+                {applying ? t('Gravando…') : tp(pending.length, 'Aplicar {n} correção', 'Aplicar {n} correções')}
+              </button>
+            </div>
+          </>
+        )}
+      </section>
+    );
+  }
 
   return (
     <section className="secao">

@@ -1,3 +1,6 @@
+/* No Quest (telas novas), o texto legal sobe ao piso do headset (`questInstitucional.css`). */
+import '../../../styles/questInstitucional.css';
+
 import { Download, FileText, Shield } from 'lucide-react';
 import { Fragment } from 'react';
 

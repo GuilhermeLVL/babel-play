@@ -1,15 +1,16 @@
 import type { ItemOutcome, MinigameItem, RoundReport } from '@core';
 import { MINIGAMES, scoreRound } from '@core';
-import { Check, PenLine, Shuffle, Volume2 } from 'lucide-react';
+import { Check, PenLine, Shuffle, Volume2, X } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { vazaResposta } from '../../../core/learning/pistaDeJogo';
 import { celebrar } from '../../../lib/comemoracao';
+import { t } from '../../../lib/i18n';
 import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
-import { falar } from '../../../lib/tts';
 import { useRodada } from '../casca/CascaDaRodada';
 import HudDaRodada, { usePlacarDaRodada } from '../casca/HudDaRodada';
+import { falarNoJogo as falar, useQuestNovo, useVozNoJogo } from '../noQuest';
 
 /**
  * CADAVRE EXQUIS — quatro palavras da leva, UMA frase sua que use as quatro.
@@ -43,6 +44,11 @@ export default function CadavreExquisGame({ items, ageProfile, onFinish, onExit 
   const [reserva, setReserva] = useState(PALAVRAS);
   const [frase, setFrase] = useState('');
   const [resultado, setResultado] = useState<RoundReport | null>(null);
+  /* NO QUEST a frase é escrita com o teclado do sistema, que sobe quando a pessoa toca no campo. Os
+     botões de ouvir só aparecem com voz para o idioma do baralho, e a palavra que ficou de fora da
+     frase ganha um ícone além da cor. */
+  const questNovo = useQuestNovo();
+  const haVoz = useVozNoJogo(leva[0]?.lang);
 
   const inicioRef = useRef(Date.now());
   const palcoRef = useRef<HTMLDivElement | null>(null);
@@ -102,13 +108,19 @@ export default function CadavreExquisGame({ items, ageProfile, onFinish, onExit 
         progresso={resultado ? 1 : 0}
       />
 
-      <div ref={palcoRef} className="flex flex-col items-center justify-center gap-6 max-w-2xl mx-auto w-full">
+      <div
+        ref={palcoRef}
+        data-qj="cadavre"
+        className="flex flex-col items-center justify-center gap-6 max-w-2xl mx-auto w-full"
+      >
         <div data-tour="palavras" className="w-full grid grid-cols-2 gap-3">
           {leva.map((it, i) => {
             const conferida = resultado ? usadas[i] : null;
             return (
               <div
                 key={it.answer + i}
+                data-qp="palavra"
+                data-estado={conferida === null ? undefined : conferida ? 'certo' : 'errado'}
                 className={`p-4 rounded-2xl border-2 flex flex-col items-start gap-1 ${
                   conferida === null
                     ? 'border-border-subtle bg-surface'
@@ -124,18 +136,25 @@ export default function CadavreExquisGame({ items, ageProfile, onFinish, onExit 
                   {conferida === true && (
                     <Check className="w-4 h-4 text-good-ink shrink-0" aria-label="usada na frase" />
                   )}
-                  <button
-                    onClick={() => falar(it.answer, it.lang)}
-                    className="ml-auto p-1 rounded-full hover:bg-surface-hover text-accent cursor-pointer shrink-0"
-                    title="Ouvir a palavra"
-                    aria-label={`Ouvir ${it.answer}`}
-                  >
-                    <Volume2 className="w-4 h-4" />
-                  </button>
+                  {questNovo && conferida === false && (
+                    <X className="w-4 h-4 text-ink-muted shrink-0" aria-label={t('ficou de fora da frase')} />
+                  )}
+                  {haVoz && (
+                    <button
+                      data-qp="icone"
+                      onClick={() => falar(it.answer, it.lang)}
+                      className="ml-auto p-1 rounded-full hover:bg-surface-hover text-accent cursor-pointer shrink-0"
+                      title="Ouvir a palavra"
+                      aria-label={`Ouvir ${it.answer}`}
+                    >
+                      <Volume2 className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
                 <span className="text-[12px] text-ink-muted">{it.prompt}</span>
                 {!resultado && reserva < items.length && (
                   <button
+                    data-qp="acao"
                     onClick={() => trocar(i)}
                     className="mt-1 flex items-center gap-1 text-[11px] font-bold text-accent-ink hover:underline cursor-pointer"
                   >
@@ -157,14 +176,18 @@ export default function CadavreExquisGame({ items, ageProfile, onFinish, onExit 
             </p>
             <textarea
               data-tour="frase"
+              data-qp="campo"
+              {...(questNovo ? { autoCapitalize: 'sentences', autoCorrect: 'off', spellCheck: false } : null)}
               value={frase}
               onChange={(e) => setFrase(e.target.value)}
-              rows={ageProfile === 'senior' ? 5 : 3}
+              rows={questNovo ? 2 : ageProfile === 'senior' ? 5 : 3}
               placeholder="A sua frase pode ser absurda — só precisa usar as quatro."
               aria-label="Sua frase"
               className="w-full p-4 rounded-2xl border-2 border-border-subtle bg-surface text-ink text-[16px] focus:border-accent focus:outline-none"
             />
+            {questNovo && <p data-qp="apoio">{t('Toque no campo para abrir o teclado do headset.')}</p>}
             <button
+              data-qp="acao-pri"
               onClick={conferir}
               disabled={!frase.trim()}
               className="btn-ink w-full justify-center cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
@@ -179,23 +202,32 @@ export default function CadavreExquisGame({ items, ageProfile, onFinish, onExit 
             <p dir={direcaoDoTexto(leva[0].lang)} className="text-[17px] font-bold text-ink">
               {frase}
             </p>
-            <div className="flex items-center justify-center gap-2 mt-3">
-              <button
-                onClick={() => falar(frase, leva[0].lang)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface-hover text-[12px] font-bold text-ink cursor-pointer"
-              >
-                <Volume2 className="w-4 h-4 text-accent" aria-hidden />
-                Ouvir
-              </button>
-            </div>
+            {haVoz && (
+              <div className="flex items-center justify-center gap-2 mt-3">
+                <button
+                  data-qp="acao"
+                  onClick={() => falar(frase, leva[0].lang)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface-hover text-[12px] font-bold text-ink cursor-pointer"
+                >
+                  <Volume2 className="w-4 h-4 text-accent" aria-hidden />
+                  Ouvir
+                </button>
+              </div>
+            )}
             <p className="text-[13px] text-ink-muted mt-4">
               palavras usadas:{' '}
               <b className="text-ink">
                 {resultado.items.filter((o) => o.correct).length}/{resultado.items.length}
               </b>
             </p>
-            <p className="text-[11.5px] text-ink-faint mt-1">Produção livre: esta rodada não agenda revisão.</p>
-            <button onClick={() => onFinish(resultado)} className="btn-ink w-full justify-center mt-5 cursor-pointer">
+            <p className="text-[11.5px] text-ink-faint mt-1" data-qp="apoio">
+              Produção livre: esta rodada não agenda revisão.
+            </p>
+            <button
+              data-qp="acao-pri"
+              onClick={() => onFinish(resultado)}
+              className="btn-ink w-full justify-center mt-5 cursor-pointer"
+            >
               Continuar
             </button>
           </div>

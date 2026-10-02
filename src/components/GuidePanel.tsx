@@ -6,7 +6,12 @@
  * Os TEXTOS são os do protótipo (decisão do dono, 24/09) e passam por `t()`: o catálogo de i18n
  * tem as mesmas frases. O tamanho do modelo no "Bom saber" vem de quem abre (a Captura sabe qual
  * modelo vai usar); sem ele, a frase sai sem o número.
+ *
+ * No Quest (telas novas), a marcação é a mesma: `questBase.css` dá as medidas ao diálogo e aos botões,
+ * e `questInstitucional.css` sobe os textos dos cartões e do "Bom saber" ao piso do headset.
  */
+import '../styles/questInstitucional.css';
+
 import type { LucideIcon } from 'lucide-react';
 import { BookOpen, CircleHelp, LifeBuoy, MessageCircle, Mic, MonitorPlay, PictureInPicture2, Plus } from 'lucide-react';
 

@@ -190,6 +190,7 @@ import { type PracticeSeed, type Sentence, toSentences } from '../../lib/sentenc
 import { play } from '../../lib/soundFx';
 import { T } from '../../lib/T';
 import { aoMudarVozes, hasVoiceFor, isTtsSupported, vozesCarregadas } from '../../lib/tts';
+import { aparelhoTemVoz, haVozPara } from '../../lib/voz/haVoz';
 import type { Recording, VocabCard } from '../../types';
 import { LangFlag } from '../LangFlag';
 import AntessalaDaRodada from '../minigames/AntessalaDaRodada';
@@ -435,7 +436,7 @@ export default function Play({
      ao «Trocar», e o resumo acima dela já diz o que está valendo sem precisar abrir nada. */
   const [seletorAberto, setSeletorAberto] = useState(false);
   /* META QUEST com as telas novas ligadas: o lobby vira a grade de `play/quest/LobbyDoQuest` e a
-     Memória joga com menos pares. "Tela completa" devolve o lobby de sempre só nesta visita. */
+     Memória joga com menos pares. "Tela de sempre" devolve o lobby do computador só nesta visita. */
   const questNovo = useQuestNovo();
   const [lobbyCompletoNoQuest, setLobbyCompletoNoQuest] = useState(false);
   /** "O que cada idioma tem", dentro da gaveta: a tabela abre e fecha no próprio botão. */
@@ -1135,7 +1136,9 @@ export default function Play({
 
     const gravacao = await salvarRodada({
       melhorSequencia: pontos.melhorSequencia,
-      duracaoMs: Number.isFinite(report.durationMs) ? Math.min(86_400_000, Math.max(0, Math.round(report.durationMs))) : undefined,
+      duracaoMs: Number.isFinite(report.durationMs)
+        ? Math.min(86_400_000, Math.max(0, Math.round(report.durationMs)))
+        : undefined,
       roundId,
       exerciseKind: report.gameId,
       origem,
@@ -2139,13 +2142,21 @@ export default function Play({
    * original. Por isso o `!vozesCarregadas()` no meio da conta, e o efeito que refaz a pergunta
    * quando a lista chega.
    */
-  const [temVoz, setTemVoz] = useState(() => isTtsSupported());
+  const [temVoz, setTemVoz] = useState(() => (aparelhoTemVoz() ? isTtsSupported() : haVozPara(fonte.lang)));
   useEffect(() => {
     /* Estado e não `useMemo`: a lista de vozes é mutável e vive FORA do React. Um memo com um
        contador de dependência fingiria uma relação que não existe (e o lint acusa, com razão);
        aqui a resposta é recalculada nos dois momentos em que ela pode mudar — quando o idioma
        da prática muda, e quando o navegador finalmente entrega as vozes. */
-    const avaliar = () => setTemVoz(isTtsSupported() && (!vozesCarregadas() || hasVoiceFor(fonte.lang)));
+    /* No aparelho SEM voz própria (o Quest: a API existe, sem voz nenhuma) quem responde é a voz do
+       site, por idioma (`lib/voz/haVoz.ts`). Sem isto a lista vazia valia como "ainda não sei", e os
+       jogos de ouvir abriam mudos. */
+    const avaliar = () =>
+      setTemVoz(
+        aparelhoTemVoz()
+          ? isTtsSupported() && (!vozesCarregadas() || hasVoiceFor(fonte.lang))
+          : haVozPara(fonte.lang),
+      );
     avaliar();
     return aoMudarVozes(avaliar);
   }, [fonte.lang]);
@@ -2638,6 +2649,21 @@ export default function Play({
           >
             <Globe aria-hidden /> {t('O que cada idioma tem')}
           </button>
+          {/* META QUEST: a sala "O que você vai praticar" continua a um toque, para quem quer um
+              idioma que o baralho ainda não tem (na tela de sempre ela só abre na primeira visita). */}
+          {questNovo && fontesOferecidas.length > 1 && (
+            <button
+              type="button"
+              className="btn btn-outline peq"
+              onClick={() => {
+                setSeletorAberto(false);
+                setVendoMapa(false);
+                setSalaAberta(true);
+              }}
+            >
+              <Languages aria-hidden /> {t('Praticar outro idioma')}
+            </button>
+          )}
         </>
       }
       /* O app oferece 28 idiomas e não entrega 28 experiências iguais: a tabela diz o que
@@ -3397,6 +3423,28 @@ export default function Play({
     ) : null;
 
   if (deck === null && !erro) {
+    /* META QUEST: a espera tem a forma do que vai chegar (o cabeçalho, as abas e a grade de cartões). */
+    if (questNovo && !embutido && !lobbyCompletoNoQuest) {
+      return (
+        <>
+          {sala}
+          <div className="q-palco qj quest-jogar" aria-busy="true" data-testid="lobby-do-quest-carregando">
+            <div className="q-cab">
+              <div>
+                <p className="q-sobre">{t('Carregando o seu material')}</p>
+                <h1>{t('Jogar')}</h1>
+              </div>
+            </div>
+            <div className="q-esqueleto qj-esqueleto-abas" aria-hidden />
+            <div className="q-grade g4" aria-hidden>
+              {Array.from({ length: 8 }, (_, i) => (
+                <div key={i} className="q-esqueleto qj-esqueleto-jogo" />
+              ))}
+            </div>
+          </div>
+        </>
+      );
+    }
     return (
       <div className={embutido ? '' : 'flex-1 overflow-y-auto custom-scrollbar p-6 lg:p-10'}>
         {sala}
@@ -3587,27 +3635,102 @@ export default function Play({
     );
   };
 
-  /* META QUEST (maquete de 01/10/2026, tela 5): a grade de cartões grandes no lugar do lobby. A
-     escolha da fonte continua sendo a sala de sempre (o chip a abre) e "Tela completa" devolve este
-     lobby inteiro. Dentro de uma sessão (`embutido`) nada muda. */
+  /* META QUEST (maquete de 01/10/2026, tela 5; completa na segunda rodada): a grade de cartões grandes
+     no lugar do lobby, com TODAS as funções dele. O estado é o deste componente (a aba, a busca, a
+     habilidade, a ordem, a prévia, a sugestão, o diagnóstico); `LobbyDoQuest` só apresenta. O chip da
+     fonte abre a mesma gaveta de sempre, e "Tela de sempre" (em Opções) devolve o lobby do computador
+     nesta visita. Dentro de uma sessão (`embutido`) nada muda. */
   if (questNovo && !embutido && !lobbyCompletoNoQuest) {
     const semAcervo = tamanhoDoBaralho < menorMinimo && fonte.id !== 'trilha';
     return (
       <>
         {sala}
+        {fichaDoComo}
+        {verRecordes && <Recordes ageProfile={ageProfile} onFechar={() => setVerRecordes(false)} />}
+        {/* A fonte: a mesma gaveta de sempre (as seis facetas e "Trazer ou gerenciar"), sem a faixa. */}
+        {seletorAberto && seletorDaFonte(true)}
         <LobbyDoQuest
-          jogos={listaDeJogos}
+          jogos={jogosClassicosFiltrados}
           ageProfile={ageProfile}
           naTrilha={fonte.id === 'trilha'}
           palavras={acervoDaFonte.length}
           fonte={[fonte.lang ? langLabelNaUI(fonte.lang) : '', nomeCurtoDaFonte].filter(Boolean).join(' · ')}
           notaDoBloqueio={notaDoJogo}
+          /* A voz de leitura é conferida no idioma do baralho (`jogosNoQuest`, `VozParaOQuest`). */
+          voz={{ idioma: fonte.lang || undefined }}
           aoJogar={(j) => {
             play('select');
             pedirParaJogar(j);
           }}
-          aoTrocarFonte={fontesOferecidas.length > 1 ? () => setSalaAberta(true) : undefined}
+          aoTrocarFonte={fontesOferecidas.length > 1 ? () => setSeletorAberto(true) : undefined}
           aoVerTelaCompleta={() => setLobbyCompletoNoQuest(true)}
+          aoPartidaRapida={partidaRapida}
+          categoria={categoriaAtiva}
+          aoTrocarCategoria={(id) => {
+            setCategoriaAtiva(id);
+            play('select');
+          }}
+          contagens={{
+            todos: listaDeJogos.length,
+            classicos: listaDeJogos.filter((j) => CLASSICOS.has(j.id)).length,
+            favoritos: ordem.fixados.length,
+          }}
+          busca={buscaJogos}
+          aoBuscar={setBuscaJogos}
+          habilidade={filtroHabilidade}
+          aoTrocarHabilidade={(id) => {
+            setFiltroHabilidade(id);
+            play('select');
+          }}
+          aoLimparFiltros={() => {
+            setBuscaJogos('');
+            setFiltroHabilidade('todas');
+            setCategoriaAtiva('todos');
+          }}
+          favoritos={ordem.fixados}
+          aoFavoritar={(j) => mexerNaOrdem(alternarFixado(ordem, j.id))}
+          aoComoSeJoga={(j) => setExplicando(j.id)}
+          previa={!pularSempre}
+          aoTrocarPrevia={(ligada) => mudarPularSempre(!ligada)}
+          ordem={ordenados}
+          aoMover={(j, direcao) => mexerNaOrdem(mover(ordem, idsVisiveis, j.id, direcao))}
+          sugestao={semAcervo ? null : sugestao}
+          aoOutraSugestao={() => setIndiceDaSugestao((n) => n + 1)}
+          aoVerRecordes={() => setVerRecordes(true)}
+          aoVerMapa={() => setVendoMapa(true)}
+          curadoria={fonteIncluiAnki ? { n: triagem.fora.length, aoAbrir: () => setCurando(true) } : undefined}
+          diagnostico={{
+            ligado: detalhes,
+            aoTrocar: alternarDetalhes,
+            itens: [
+              { icone: Check, texto: t('{n} no idioma', { n: numero(contagem.total) }) },
+              { icone: Languages, texto: t('{n} com tradução', { n: numero(pistas.comTraducao.length) }) },
+              { icone: Quote, texto: t('{n} só com frase', { n: numero(pistas.soComFrase.length) }) },
+              ...(coreOnly(ageProfile)
+                ? []
+                : [{ icone: Globe, texto: t('{n} em outro idioma', { n: numero(triagem.outroIdioma.length) }) }]),
+              { icone: Filter, texto: t('{n} fora do recorte', { n: numero(triagem.fora.length) }) },
+              { icone: CircleDashed, texto: t('{n} nunca caíram', { n: numero(nuncaCairam) }) },
+            ],
+          }}
+          portaDoJogo={(j) => {
+            const porta = comoDesbloquear(j.estado, contextoDoDesbloqueio);
+            return porta ? { rotulo: porta.rotulo, aoAbrir: () => abrirPorta(porta) } : null;
+          }}
+          correnteEncerrada={ultimaCorrente}
+          trilha={
+            fonte.id === 'trilha' && trilha ? (
+              <PainelTrilha
+                dado={trilha}
+                deck={deck ?? []}
+                ageProfile={ageProfile}
+                nivel={fonte.nivel}
+                onEscolherNivel={(n: CefrLevel) => setFonte((f) => ({ ...f, nivel: n }))}
+                nativo={idiomaNativo}
+                paresDeGlosa={entradaDaTrilha?.glosas ?? []}
+              />
+            ) : undefined
+          }
           aviso={
             erro
               ? { texto: t('Não consegui carregar o seu baralho: {erro}', { erro }) }
@@ -3675,14 +3798,22 @@ export default function Play({
             }
             className="mb-5"
             acoes={
-              <button
-                type="button"
-                onClick={partidaRapida}
-                className="btn btn-solid"
-                title={t('Sorteia um jogo aleatório dentre os disponíveis e inicia imediatamente')}
-              >
-                <Zap aria-hidden /> {t('Partida rápida')}
-              </button>
+              <>
+                {/* META QUEST: quem pediu a "Tela de sempre" em Opções volta à tela do headset por aqui. */}
+                {questNovo && lobbyCompletoNoQuest && (
+                  <button type="button" className="btn btn-outline" onClick={() => setLobbyCompletoNoQuest(false)}>
+                    <ChevronLeft aria-hidden /> {t('Tela do headset')}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={partidaRapida}
+                  className="btn btn-solid"
+                  title={t('Sorteia um jogo aleatório dentre os disponíveis e inicia imediatamente')}
+                >
+                  <Zap aria-hidden /> {t('Partida rápida')}
+                </button>
+              </>
             }
             abas={
               tamanhoDoBaralho < menorMinimo && fonte.id !== 'trilha' ? undefined : (

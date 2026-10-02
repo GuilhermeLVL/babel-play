@@ -24,12 +24,15 @@ import { useEffect, useMemo, useState } from 'react';
 
 import type { EstrategiaDaUI, FaixaDificuldade } from '../../core/minigames/composicao';
 import { fetchRecordes, type RecordeDoJogo } from '../../data/api';
+import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { eventosVistos, todosOsEventos } from '../../lib/eventosDeJogo';
 import { proximaRecompensa } from '../../lib/galeria/progressao';
+import { numero as formatar, t, tp } from '../../lib/i18n';
 import type { AgeProfileType } from '../../lib/profile';
 import BarraDeMaestria from '../maestria/BarraDeMaestria';
 import { CabecalhoDeTela, Tela, TituloDeSecao } from '../ui';
 import { IconePixel } from '../views/play/IconesPixel';
+import { InterruptorDoQuest, OpcoesDoQuest, VoltarDoQuest } from '../views/play/quest/pecasDoQuest';
 import { Segmentos } from '../views/vocab/Dialogo';
 import { regraDaRodada } from './casca/regras';
 import { COMO_SE_JOGA } from './ComoSeJoga';
@@ -212,6 +215,10 @@ export default function AntessalaDaRodada({
   const [recorde, setRecorde] = useState<RecordeDoJogo | null>(null);
   const [paginaDeFases, setPaginaDeFases] = useState(0);
   const [nivelAberto, setNivelAberto] = useState(false);
+  /* META QUEST: o desenho do headset (ver o ramo antes do `return`), e "Como funciona a repetição"
+     num botão que abre e fecha (no computador é um `<details>`). */
+  const questNovo = useQuestNovo();
+  const [regrasAbertas, setRegrasAbertas] = useState(false);
   useEffect(() => {
     setPaginaDeFases(0);
   }, [gameId]);
@@ -336,6 +343,553 @@ export default function AntessalaDaRodada({
   const paginas = fases?.length ? Math.ceil(fases.length / FASES_POR_PAGINA) : 0;
   const pagina = Math.min(paginaDeFases, Math.max(0, paginas - 1));
   const daPagina = fases?.slice(pagina * FASES_POR_PAGINA, pagina * FASES_POR_PAGINA + FASES_POR_PAGINA) ?? [];
+
+  /* ── META QUEST (segunda rodada, 01/10/2026) ─────────────────────────────────────────────────────
+     A mesma antessala nas peças do headset: o que o jogo treina e os quatro números lado a lado, nível
+     e foco numa linha de ajuste, "Por que estas?" com os motivos em pílulas e a lista numa tabela de
+     linhas altas, as fases com "Repetir" por linha. As ações ficam FIXAS na faixa de baixo, com um único
+     botão principal (Jogar), para não se perderem quando o miolo rola. Tudo o que aparece é o que foi
+     calculado acima; os motivos que no computador moram no `title` aqui são escritos. */
+  if (questNovo) {
+    const nomeCurto = titulo.split(/[:(]/)[0].trim();
+    const rotuloDaFaixa = (id: string) => t(FAIXAS.find((f) => f.id === id)?.rotulo ?? id);
+    const rotuloDoFoco = (id: string) => t(ESTRATEGIAS.find(([e]) => e === id)?.[1] ?? id);
+    return (
+      <div className="qj qj-coluna" data-testid="antessala-do-quest">
+        <div className="q-palco tela qj-tela quest-ante">
+          <div className="q-cab">
+            <VoltarDoQuest rotulo={t('Voltar para Jogar')} aoClicar={onSair} />
+            <div>
+              <p className="q-sobre">{t('Antes de começar')}</p>
+              <h1>{titulo}</h1>
+            </div>
+            {onComoSeJoga && (
+              <button type="button" className="q-chip" aria-haspopup="dialog" onClick={onComoSeJoga}>
+                <CircleHelp aria-hidden /> {t('Como se joga')}
+              </button>
+            )}
+          </div>
+
+          <div className="qj-chips">
+            <span className="q-chip">{tp(itens.length, '{n} item na rodada', '{n} itens na rodada')}</span>
+            {fonte?.rotulo && <span className="q-chip">{fonte.rotulo}</span>}
+            {fonte?.idioma && <span className="q-chip">{fonte.idioma}</span>}
+            <span className="q-chip">{duracao || t('rodada curta')}</span>
+            {etapa && <span className="q-chip">{etapa}</span>}
+          </div>
+
+          <div className="qj-ante-topo">
+            <section className="q-cartao qj-heroi">
+              <span className="qj-arte" aria-hidden>
+                {gameId && <IconePixel id={gameId as MinigameId} className="" />}
+              </span>
+              <div>
+                <p className="q-rotulo">{t('Treina')}</p>
+                <h2>{t(como?.treina ?? 'Reconhecer e lembrar palavras.')}</h2>
+                <p className="qj-nota">{regraDaRodada(gameId)}</p>
+              </div>
+            </section>
+            <div className="q-grade g2 qj-saldo">
+              <div className="q-num">
+                <b>{saldo.total}</b>
+                <span>{t(rotuloTotal[ageProfile])}</span>
+              </div>
+              <div className="q-num" data-tom="acento">
+                <b>{saldo.novos}</b>
+                <span>{t(rotuloNovos[ageProfile])}</span>
+              </div>
+              <div className="q-num" data-tom="bom">
+                <b>{saldo.vistos}</b>
+                <span>{t(rotuloVistos[ageProfile])}</span>
+              </div>
+              <div className="q-num" data-tom="alerta">
+                <b>{saldo.devidos}</b>
+                <span>{t(rotuloVencidos[ageProfile])}</span>
+              </div>
+            </div>
+          </div>
+
+          {maestria && gameId && (
+            <section className="q-cartao">
+              <BarraDeMaestria jogo={gameId as MinigameId} pontos={maestria.pontos} />
+            </section>
+          )}
+
+          {/* NÍVEL · FOCO: recolhido, dizendo o que está valendo. Só nos jogos de palavra. */}
+          {filtroDificuldade && (
+            <section className="q-secao" data-secao="nivel">
+              <div className="q-ajuste">
+                <div>
+                  <b>
+                    {t('Nível: {nivel} · foco: {foco}', {
+                      nivel: (() => {
+                        const escolhidas = FAIXAS.filter((f) => filtroDificuldade.faixas.includes(f.id));
+                        if (escolhidas.length && escolhidas.length < FAIXAS.length)
+                          return escolhidas.map((f) => t(f.rotulo)).join(', ');
+                        if (auto) return t('{faixa} (automático)', { faixa: rotuloDaFaixa(auto.faixa) });
+                        return t('Todos');
+                      })(),
+                      foco: rotuloDoFoco(filtroDificuldade.estrategia),
+                    })}
+                  </b>
+                  {auto && filtroDificuldade.estrategia === 'auto' && (
+                    <small>
+                      {t('Auto escolheu {faixa}: {motivo}', {
+                        faixa: rotuloDaFaixa(auto.faixa).toLowerCase(),
+                        motivo: auto.motivo,
+                      })}
+                    </small>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  className="q-ctl"
+                  aria-expanded={nivelAberto}
+                  onClick={() => setNivelAberto((v) => !v)}
+                >
+                  <SlidersHorizontal aria-hidden /> {nivelAberto ? t('Fechar') : t('Trocar')}
+                </button>
+              </div>
+              {nivelAberto && (
+                <div className="q-cartao">
+                  <div className="q-secao">
+                    <p className="q-rotulo">{t('Nível')}</p>
+                    <OpcoesDoQuest
+                      rotulo={t('Dificuldade das palavras desta rodada')}
+                      valor={filtroDificuldade.faixas}
+                      aoTrocar={(f) => filtroDificuldade.aoTrocarFaixa(f as FaixaDeDificuldade)}
+                      opcoes={FAIXAS.map((f) => {
+                        const n = filtroDificuldade.disponivelPorFaixa[f.id];
+                        const nome = t(f.rotulo).toLowerCase();
+                        return {
+                          id: f.id,
+                          rotulo: t(f.rotulo),
+                          contagem: n,
+                          motivoBloqueio:
+                            n === 0
+                              ? t('nenhuma palavra de nível {nivel} neste recorte', { nivel: nome })
+                              : n < filtroDificuldade.minimoDoJogo
+                                ? t('só {n} de nível {nivel}; este jogo precisa de {minimo}', {
+                                    n,
+                                    nivel: nome,
+                                    minimo: filtroDificuldade.minimoDoJogo,
+                                  })
+                                : undefined,
+                        };
+                      })}
+                    />
+                  </div>
+                  <div className="q-secao">
+                    <p className="q-rotulo">{t('Foco')}</p>
+                    <OpcoesDoQuest
+                      rotulo={t('Foco da rodada')}
+                      exclusiva
+                      valor={[filtroDificuldade.estrategia]}
+                      aoTrocar={(e) => filtroDificuldade.aoTrocarEstrategia(e as Estrategia)}
+                      opcoes={ESTRATEGIAS.map(([id, rotulo]) => ({ id, rotulo: t(rotulo) }))}
+                    />
+                    {filtroDificuldade.origemDaComposicao === 'fallback-local' && (
+                      <p className="qj-nota">{t('Seleção montada no seu dispositivo (sem conexão com o servidor).')}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* SEU PROGRESSO NESTE JOGO: só com histórico. */}
+          {recorde && progresso && (
+            <section className="q-cartao" data-secao="progresso">
+              <div className="qj-entre">
+                <div>
+                  <p className="q-rotulo">{t('Seu progresso neste jogo')}</p>
+                  <h2>{t('Nível {n} no {jogo}', { n: progresso.nivel, jogo: nomeCurto })}</h2>
+                </div>
+                <span className="qj-nota">
+                  {[
+                    t('melhor {n}', { n: formatar(recorde.melhorPontos) }),
+                    (recorde.melhorCombo ?? 0) > 0 ? t('combo ×{n}', { n: recorde.melhorCombo ?? 0 }) : null,
+                    recorde.precisao != null ? `${recorde.precisao}%` : null,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </span>
+              </div>
+              <div
+                className="q-barra"
+                role="progressbar"
+                aria-label={t('Progresso do nível')}
+                aria-valuenow={progresso.noNivel}
+                aria-valuemax={progresso.porNivel}
+              >
+                <span style={{ width: `${progresso.pct}%` }} />
+              </div>
+              <p className="qj-nota">
+                {[
+                  t('{n} de {total} rodadas para o nível {proximo}', {
+                    n: progresso.noNivel,
+                    total: progresso.porNivel,
+                    proximo: progresso.nivel + 1,
+                  }),
+                  proxima
+                    ? t('próxima recompensa: {nome} no nível {nivel}', {
+                        nome: proxima.destaque.nome,
+                        nivel: proxima.nivel,
+                      })
+                    : null,
+                  tp(recorde.rodadas, '{n} rodada jogada', '{n} rodadas jogadas'),
+                  pctVocab != null ? t('{n}% do vocabulário já enfrentado', { n: pctVocab }) : null,
+                  t('eventos raros: {a}/{b}', { a: vistos, b: totalEventos }),
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </p>
+            </section>
+          )}
+
+          {vazia ? (
+            <div className="q-vazio">
+              <span className="q-ic" aria-hidden>
+                <Shuffle />
+              </span>
+              <h2>{t('Rodada vazia')}</h2>
+              <p>{t(txtVazia[ageProfile])}</p>
+            </div>
+          ) : (
+            <section className="q-secao" data-secao="porque">
+              <header>
+                <div>
+                  <h2>{t('Por que estas?')}</h2>
+                </div>
+              </header>
+              <div className="qj-chips">
+                {porMotivo.errando > 0 && (
+                  <span className="q-chip" data-tom="alerta">
+                    <RotateCcw aria-hidden />{' '}
+                    {tp(porMotivo.errando, '{n} voltando porque você errou', '{n} voltando porque você errou')}
+                  </span>
+                )}
+                {saldo.devidos > 0 && (
+                  <span className="q-chip" data-tom="acento">
+                    <Target aria-hidden /> {tp(saldo.devidos, '{n} vencida', '{n} vencidas')}
+                  </span>
+                )}
+                {saldo.novos > 0 && (
+                  <span className="q-chip">
+                    <Sparkle aria-hidden /> {tp(saldo.novos, '{n} nova', '{n} novas')}
+                  </span>
+                )}
+                {porMotivo.aprendendo > 0 && (
+                  <span className="q-chip" data-tom="bom">
+                    <Check aria-hidden /> {t('{n} em aprendizado', { n: porMotivo.aprendendo })}
+                  </span>
+                )}
+                {porMotivo.firmes > 0 && (
+                  <span className="q-chip">
+                    {tp(porMotivo.firmes, '{n} firme (completando)', '{n} firmes (completando)')}
+                  </span>
+                )}
+                {repetidos > 0 && (
+                  <span className="q-chip" data-tom={repetidos === saldo.total ? 'alerta' : undefined}>
+                    <History aria-hidden />{' '}
+                    {repetidos === saldo.total ? t('rodada repetida') : tp(repetidos, '{n} repete', '{n} repetem')}
+                  </span>
+                )}
+              </div>
+              {/* A DENÚNCIA DA REPETIÇÃO, em número. */}
+              {repetidos > 0 && (
+                <p className="qj-nota">
+                  {tp(
+                    repetidos,
+                    '{n} item de {total} já caiu na sua última rodada deste jogo',
+                    '{n} itens de {total} já caíram na sua última rodada deste jogo',
+                    { total: saldo.total },
+                  )}
+                  {repetidos === saldo.total ? t(', é a mesma rodada.') : '.'}
+                </p>
+              )}
+              {auto && filtroDificuldade && filtroDificuldade.faixas.length > 0 && (
+                <p className="qj-nota">
+                  <b>{t('No automático seria:')}</b> {auto.motivo}
+                </p>
+              )}
+              {diagnosticoTermo && Object.values(diagnosticoTermo.foraPor).some((n) => n > 0) && (
+                <p className="qj-nota">
+                  {t('Fora do Termo:')}{' '}
+                  {Object.entries(diagnosticoTermo.foraPor)
+                    .filter(([, n]) => n > 0)
+                    .map(
+                      ([k, n]) =>
+                        `${n} ${t(k === 'hifen-ou-espaco' ? 'com hífen/espaço' : k === 'curta' ? 'curtas demais' : k === 'longa' ? 'longas demais' : 'sem pista útil')}`,
+                    )
+                    .join(' · ')}
+                  .
+                </p>
+              )}
+              {leeches && leeches.length > 0 && (
+                <div className="q-aviso qj-alerta">
+                  <span>
+                    <b>{tp(leeches.length, '{n} palavra difícil para você', '{n} palavras difíceis para você')}.</b>{' '}
+                    {t(
+                      'Saíram da rotação depois de {n} erros seguidos. Voltam numa rodada só delas, com ajuda liberada.',
+                      { n: LEECH_APOS },
+                    )}
+                  </span>
+                  {onResgate && (
+                    <button type="button" className="q-ctl" onClick={onResgate}>
+                      <LifeBuoy aria-hidden /> {t('Rodada de resgate')}
+                    </button>
+                  )}
+                </div>
+              )}
+              <div className="q-acoes">
+                {listaInforma && (
+                  <button
+                    type="button"
+                    className="q-chip"
+                    aria-expanded={itensAbertos}
+                    onClick={() => setItensAbertos((v) => !v)}
+                  >
+                    {itensAbertos ? <ChevronUp aria-hidden /> : <ChevronDown aria-hidden />}
+                    {itensAbertos
+                      ? tp(itens.length, 'Esconder o item', 'Esconder os {n} itens')
+                      : tp(itens.length, 'Ver o item', 'Ver os {n} itens')}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="q-chip"
+                  aria-expanded={regrasAbertas}
+                  onClick={() => setRegrasAbertas((v) => !v)}
+                >
+                  <CircleHelp aria-hidden /> {t('Como funciona a repetição e a dificuldade')}
+                </button>
+              </div>
+              {regrasAbertas && (
+                <ul className="qj-regras">
+                  <li>
+                    {t('Cada palavra ou frase tem uma memória única em todos os jogos: nova → em aprendizado → firme.')}
+                  </li>
+                  <li>
+                    {t(
+                      'Errou? Ela volta espaçada: 1º erro em {a} rodadas, 2º seguido em {b}, 3º só no dia seguinte. Um acerto zera a contagem.',
+                      { a: JANELAS_DE_RETORNO[0], b: JANELAS_DE_RETORNO[1] },
+                    )}
+                  </li>
+                  <li>
+                    {t(
+                      '{n} erros seguidos marcam a palavra como difícil para você: ela sai do sorteio comum e volta na rodada de resgate.',
+                      { n: LEECH_APOS },
+                    )}
+                  </li>
+                  <li>{t('Cada rodada garante pelo menos 30% de itens novos; vencidas no agendador vêm antes.')}</li>
+                  <li>
+                    {t(
+                      'Cada jogo tem a própria rotação: o mesmo acervo não rende as mesmas palavras em todos os jogos no mesmo dia.',
+                    )}
+                  </li>
+                  <li>
+                    {t(
+                      'Dificuldade automática mira {min}-{max}% de acerto: sobe ou desce um degrau a cada {n} rodadas. Os chips de nível assumem o controle quando você quiser.',
+                      { min: ALVO_MIN, max: ALVO_MAX, n: JANELA_DE_RODADAS },
+                    )}
+                  </li>
+                </ul>
+              )}
+              {listaInforma ? (
+                itensAbertos && (
+                  <>
+                    <div className="q-tabela-caixa" tabIndex={0} role="region" aria-label={t('Itens da rodada')}>
+                      <table className="q-tabela">
+                        <thead>
+                          <tr>
+                            <th>{t('Item')}</th>
+                            <th>{t('Última vez')}</th>
+                            <th>{t('Estado')}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {visiveis.map((item) => {
+                            const selo = seloDoItem(item.ref, historico, vencidos);
+                            const quando = quandoCaiu(historico.get(item.ref)?.ultimaEm);
+                            const motivo = estados?.get(item.ref)?.motivo;
+                            const apoio = [
+                              item.pista,
+                              item.forma && item.forma !== item.titulo ? item.forma : null,
+                              item.cefr,
+                              motivo && motivo !== 'já viu' && motivo !== 'nova para você' ? motivo : null,
+                            ]
+                              .filter(Boolean)
+                              .join(' · ');
+                            return (
+                              <tr key={item.ref}>
+                                <td className="qj-item">
+                                  <b>{item.titulo}</b>
+                                  {apoio && <small>{apoio}</small>}
+                                </td>
+                                <td>{quando ? t(quando) : t('nunca caiu')}</td>
+                                <td>
+                                  <span className="q-tag" data-tom={selo.tom}>
+                                    {t(selo.texto)}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                    {itens.length > MAX_VISIVEL && (
+                      <p className="qj-nota">
+                        {t('mostrando {n} de {total}, o resto entra na mesma rodada', {
+                          n: MAX_VISIVEL,
+                          total: itens.length,
+                        })}
+                      </p>
+                    )}
+                  </>
+                )
+              ) : (
+                /* Este jogo esconde o conteúdo por definição e não há histórico para diferenciar as linhas. */
+                <p className="qj-nota">
+                  {faixaDeTamanho
+                    ? t('{n} {coisas}, de {min} a {max} {unidade}', {
+                        n: itens.length,
+                        coisas: faixaDeTamanho.unidade === 'palavras' ? t('falas') : t('palavras'),
+                        min: faixaDeTamanho.min,
+                        max: faixaDeTamanho.max,
+                        unidade: t(faixaDeTamanho.unidade),
+                      })
+                    : tp(itens.length, '{n} item', '{n} itens')}
+                  {saldo.novos === itens.length ? t(', todas inéditas para você.') : '.'}{' '}
+                  {t('Este jogo esconde o conteúdo até você jogar: mostrar aqui entregaria a resposta.')}
+                </p>
+              )}
+            </section>
+          )}
+
+          {/* SUAS FASES: cada linha rejoga os itens exatos daquela rodada. */}
+          {fases && fases.length > 0 && onJogarFase && (
+            <section className="q-secao" data-secao="fases">
+              <header>
+                <div>
+                  <h2>{t('Suas fases neste jogo')}</h2>
+                  <p>{t('"Repetir" joga a fase de novo com exatamente as mesmas palavras.')}</p>
+                </div>
+                {paginas > 1 && (
+                  <nav className="q-acoes" aria-label={t('Páginas das fases')}>
+                    <button
+                      type="button"
+                      className="q-ctl"
+                      onClick={() => setPaginaDeFases((p) => Math.max(0, p - 1))}
+                      disabled={pagina === 0}
+                      aria-label={t('Página anterior')}
+                    >
+                      <ChevronLeft aria-hidden />
+                    </button>
+                    <span className="q-tempo" aria-live="polite">
+                      {pagina + 1} / {paginas}
+                    </span>
+                    <button
+                      type="button"
+                      className="q-ctl"
+                      onClick={() => setPaginaDeFases((p) => Math.min(paginas - 1, p + 1))}
+                      disabled={pagina >= paginas - 1}
+                      aria-label={t('Próxima página')}
+                    >
+                      <ChevronRight aria-hidden />
+                    </button>
+                  </nav>
+                )}
+              </header>
+              <div className="q-tabela-caixa" tabIndex={0} role="region" aria-label={t('Fases jogadas')}>
+                <table className="q-tabela">
+                  <thead>
+                    <tr>
+                      <th>{t('Fase')}</th>
+                      <th>{t('Pontos')}</th>
+                      <th>{t('Estrelas')}</th>
+                      <th>{t('Quando')}</th>
+                      <th>{t('O que caiu')}</th>
+                      <th>
+                        <span className="sr">{t('Repetir')}</span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {daPagina.map((f, idx) => {
+                      const ordemDaFase = fases.length - (pagina * FASES_POR_PAGINA + idx);
+                      const amostra = amostraDaFase?.(f.refs);
+                      const podeRejogar = f.refs.length > 0;
+                      const quando = quandoCaiu(f.quando);
+                      return (
+                        <tr key={f.roundId}>
+                          <td>{ordemDaFase}</td>
+                          <td>
+                            <b>{f.pontos ? formatar(f.pontos) : '—'}</b>
+                          </td>
+                          <td
+                            className="qj-estrelas"
+                            aria-label={t('{n} de 3 estrelas ({pct}% de acerto)', { n: f.estrelas, pct: f.precisao })}
+                          >
+                            {'★'.repeat(f.estrelas)}
+                            <span aria-hidden>{'★'.repeat(3 - f.estrelas)}</span>
+                          </td>
+                          <td>{quando ? t(quando) : '—'}</td>
+                          <td className="qj-item">
+                            {amostra && amostra.textos.length > 0 ? (
+                              <>
+                                {amostra.textos.join(', ')}
+                                {amostra.total > amostra.textos.length && ` +${amostra.total - amostra.textos.length}`}
+                              </>
+                            ) : (
+                              t('{a} de {b} nesta fase', { a: f.acertos, b: f.total })
+                            )}
+                            {/* O motivo do botão desligado é escrito (no computador ele mora no `title`). */}
+                            {!podeRejogar && <small>{t('Esta rodada antiga não guardou as palavras')}</small>}
+                          </td>
+                          <td>
+                            <button
+                              type="button"
+                              className="q-ctl"
+                              onClick={() => onJogarFase(f.refs)}
+                              disabled={!podeRejogar}
+                              aria-label={t('Repetir a fase {n}', { n: ordemDaFase })}
+                            >
+                              <RotateCcw aria-hidden /> {t('Repetir')}
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
+        </div>
+
+        <div className="q-faixa" role="toolbar" aria-label={t('Ações da rodada')}>
+          <span className="qj-faixa-ajuste">
+            <InterruptorDoQuest ligado={pularSempre} aoTrocar={onMudarPularSempre} rotulo={t(txtPular[ageProfile])} />
+            <span aria-hidden>{t(txtPular[ageProfile])}</span>
+          </span>
+          <span className="q-espaco" />
+          {onRepetir && (
+            <button type="button" className="q-ctl" onClick={onRepetir}>
+              <RotateCcw aria-hidden /> {t(txtRepetir[ageProfile])}
+            </button>
+          )}
+          <button type="button" className="q-ctl" onClick={onTrocar}>
+            <Shuffle aria-hidden /> {t(txtTrocar[ageProfile])}
+          </button>
+          <button type="button" className="q-ctl pri" onClick={onJogar} disabled={vazia}>
+            <Play aria-hidden /> {t(txtJogar[ageProfile])}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <Tela largura="larga">

@@ -13,7 +13,12 @@
 import type { PerfilDoDispositivo } from './perfil';
 
 export interface RecursosDoAparelho {
-  /** `speechSynthesis` existe: os botões "Ouvir", o narrador e a voz do intérprete falam. */
+  /**
+   * O APARELHO tem voz de leitura que toca: os botões "Ouvir", o narrador e a voz do intérprete falam.
+   * No Quest a API `speechSynthesis` existe e não traz voz nenhuma (o app mandava ler e nada tocava,
+   * 01/10/2026): ali só conta se a lista de vozes tiver alguma. A voz do site (`lib/voz/vozDoQuest.ts`)
+   * é outra coisa e entra por cima disto.
+   */
   vozDeLeitura: boolean;
   /** O reconhecimento de voz do navegador (Web Speech) existe e funciona aqui. No Quest, não. */
   reconhecimentoDoNavegador: boolean;
@@ -32,7 +37,22 @@ export interface RecursosDoAparelho {
   capturaEnxuta: boolean;
 }
 
-type Escopo = { speechSynthesis?: unknown; SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown };
+type Escopo = {
+  speechSynthesis?: { getVoices?: () => unknown[] } | null;
+  SpeechRecognition?: unknown;
+  webkitSpeechRecognition?: unknown;
+};
+
+/** No Quest, a API sem vozes não fala. Fora dele a lista chega atrasada (`voiceschanged`): vale a API. */
+function temVozQueToca(g: Escopo, quest: boolean): boolean {
+  if (g.speechSynthesis == null) return false;
+  if (!quest) return true;
+  try {
+    return (g.speechSynthesis.getVoices?.() ?? []).length > 0;
+  } catch {
+    return false;
+  }
+}
 
 export function recursosDoAparelho(
   perfil: Pick<PerfilDoDispositivo, 'tipo' | 'capturaDoSistema'>,
@@ -42,7 +62,7 @@ export function recursosDoAparelho(
   const quest = perfil.tipo === 'quest';
   const celular = perfil.tipo.startsWith('celular');
   return {
-    vozDeLeitura: g.speechSynthesis != null,
+    vozDeLeitura: temVozQueToca(g, quest),
     reconhecimentoDoNavegador: !quest && !!(g.SpeechRecognition || g.webkitSpeechRecognition),
     janelaFlutuante: 'documentPictureInPicture' in g,
     somDoSistema: perfil.capturaDoSistema,

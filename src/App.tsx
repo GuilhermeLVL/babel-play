@@ -506,6 +506,7 @@ export default function App() {
             <TrilhoDoQuest
               activeView={viewDoMenu}
               onChangeView={navigateTo}
+              aoBuscar={() => setBuscaAberta(true)}
               ageProfile={ageProfile}
               semConta={anonimo}
               darkMode={darkMode}
@@ -561,7 +562,11 @@ export default function App() {
             </Suspense>
           )}
           <Suspense
-            fallback={<div className="flex-1 flex items-center justify-center text-ink-muted text-sm">Carregando…</div>}
+            fallback={
+              <div className="carregando-da-tela flex-1 flex items-center justify-center text-ink-muted text-sm">
+                Carregando…
+              </div>
+            }
           >
             {/* Na edição estática, Estatísticas roda inteira no servidor em memória e a tela abaixo
                 já monta sem conta — o cartão por cima dela só contradiria o que aparece. */}
@@ -578,6 +583,7 @@ export default function App() {
                 recordings={recordings}
                 progress={progress}
                 metrics={metrics}
+                missoes={missoes}
                 semConta={anonimo}
               />
             )}
@@ -630,7 +636,10 @@ export default function App() {
               />
             )}
             {activeView === 'analysis' && !anonimo && analiseAberta.tipo === 'carregando' && (
-              <div className="flex flex-1 items-center justify-center p-10 text-ink-muted text-sm" role="status">
+              <div
+                className="carregando-da-tela flex flex-1 items-center justify-center p-10 text-ink-muted text-sm"
+                role="status"
+              >
                 {t('Carregando…')}
               </div>
             )}

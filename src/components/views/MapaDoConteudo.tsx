@@ -1,9 +1,11 @@
 import { Check, GraduationCap, List, Map as MapIcon, Search, SlidersHorizontal } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
-import { data, numero, t } from '../../lib/i18n';
+import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
+import { data, numero, t, tp } from '../../lib/i18n';
 import type { AgeProfileType } from '../../lib/profile';
 import { CabecalhoDeTela, IconeEmBloco, Tela, TituloDeSecao } from '../ui';
+import { OpcoesDoQuest, VoltarDoQuest } from './play/quest/pecasDoQuest';
 
 /**
  * MAPA DO CONTEÚDO — o que já caiu, o que nunca caiu, o que eu errei.
@@ -162,6 +164,7 @@ export default function MapaDoConteudo({
   onTrocarFonte,
 }: MapaProps) {
   const [filtro, setFiltro] = useState<Filtro>('todos');
+  const questNovo = useQuestNovo();
 
   /**
    * Estado calculado UMA vez por item e reaproveitado pelo saldo, pelas contagens dos filtros e
@@ -265,6 +268,172 @@ export default function MapaDoConteudo({
     pro: 'Troque o filtro acima.',
     senior: 'Nada aqui com este filtro. Escolha outro acima.',
   };
+
+  /* META QUEST (segunda rodada, 01/10/2026): o mesmo mapa nas peças do headset. Os cinco números no
+     alto, os níveis da trilha como cartões que são alvos, os filtros em pílulas e a lista numa tabela
+     de linhas altas. Os números, o filtro e a ordem são os calculados acima. */
+  if (questNovo) {
+    return (
+      <div className="q-palco qj qj-tela quest-mapa" data-testid="mapa-do-quest">
+        <div className="q-cab">
+          <VoltarDoQuest rotulo={t('Voltar para Jogar')} aoClicar={onVoltar} />
+          <div>
+            <p className="q-sobre">{t('Mapa do conteúdo')}</p>
+            <h1>{titulo}</h1>
+          </div>
+          {onTrocarFonte && (
+            <button type="button" className="q-chip" aria-haspopup="dialog" onClick={onTrocarFonte}>
+              <SlidersHorizontal aria-hidden /> {t('Trocar a fonte')}
+            </button>
+          )}
+        </div>
+        <p className="qj-nota">{t(subtitulo[ageProfile])}</p>
+
+        <div className="q-grade qj-g5">
+          {(
+            [
+              [rotuloTotal, saldo.total, ''],
+              [rotuloNunca, saldo.nunca, ''],
+              [rotuloVistos, saldo.jaCairam, 'bom'],
+              [rotuloErros, saldo.porEstado.errado, 'alerta'],
+              [rotuloVencidos, saldo.porEstado.vencido, 'acento'],
+            ] as const
+          ).map(([rotulo, n, tom]) => (
+            <div key={rotulo.pro} className="q-num" data-tom={tom || undefined}>
+              <b>{numero(n)}</b>
+              <span>{maiuscula(t(rotulo[ageProfile]))}</span>
+            </div>
+          ))}
+        </div>
+
+        {(saldo.total > 0 || typeof historicoDesde === 'number') && (
+          <p className="qj-nota">
+            {saldo.total > 0 &&
+              t('{pct}% {cobertura} numa rodada.', { pct: saldo.pct, cobertura: t(rotuloCobertura[ageProfile]) })}
+            {typeof historicoDesde === 'number' &&
+              ` ${t('O registro do que caiu em cada rodada começou em {data}.', { data: data(new Date(historicoDesde)) })}`}
+          </p>
+        )}
+
+        {niveis && niveis.length > 0 && onEscolherNivel && (
+          <section className="q-secao">
+            <header>
+              <div>
+                <h2>{t('Níveis da trilha')}</h2>
+                <p>{t('Um nível fica completo quando 80% das palavras já caíram numa rodada.')}</p>
+              </div>
+            </header>
+            <div className="q-grade qj-niveis" role="radiogroup" aria-label={t('Nível da trilha')}>
+              {niveis.map((n) => {
+                const completo = n.pct >= 80;
+                return (
+                  <button
+                    key={n.nivel}
+                    type="button"
+                    className="q-tile qj-nivel"
+                    role="radio"
+                    aria-checked={n.nivel === nivelAtivo}
+                    onClick={() => onEscolherNivel(n.nivel)}
+                  >
+                    <span className="qj-nivel-topo">
+                      <b>{n.nivel}</b>
+                      {completo ? (
+                        <span className="q-tag">
+                          <Check aria-hidden /> {t('feito')}
+                        </span>
+                      ) : (
+                        <span className="q-tag off">{n.pct}%</span>
+                      )}
+                    </span>
+                    <span className="q-barra" aria-hidden>
+                      <span style={{ width: `${n.pct}%` }} />
+                    </span>
+                    <span className="q-d">
+                      {t('{ja} de {total} palavras já caíram', { ja: numero(n.jaCairam), total: numero(n.total) })}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        <section className="q-secao">
+          <header>
+            <div>
+              <h2>{t('Palavras do conjunto')}</h2>
+              <p>
+                {t('Mostrando {n} de {total}', { n: numero(visiveis.length), total: numero(saldo.total) })}
+                {ordenados.length > MAX_VISIVEL ? `. ${t('Filtre para ver o resto.')}` : ''}
+              </p>
+            </div>
+          </header>
+          {/* Filtro que daria zero continua na tela, desligado e mostrando o 0. */}
+          <OpcoesDoQuest
+            rotulo={t('Filtrar o mapa')}
+            exclusiva
+            motivos={false}
+            valor={[filtro]}
+            aoTrocar={(f) => setFiltro(f as Filtro)}
+            opcoes={FILTROS.map((f) => ({
+              id: f,
+              rotulo: maiuscula(t(ROTULO_FILTRO[f][ageProfile])),
+              contagem: contagemDoFiltro[f],
+              motivoBloqueio: contagemDoFiltro[f] === 0 ? t('nenhum item neste grupo') : undefined,
+            }))}
+          />
+
+          {saldo.total === 0 ? (
+            <div className="q-vazio">
+              <span className="q-ic" aria-hidden>
+                <Search />
+              </span>
+              <h3>{t('Nada a mapear')}</h3>
+              <p>{t(txtVazio[ageProfile])}</p>
+            </div>
+          ) : visiveis.length === 0 ? (
+            <div className="q-vazio">
+              <span className="q-ic" aria-hidden>
+                <Search />
+              </span>
+              <h3>{t('Nenhum item satisfaz este filtro')}</h3>
+              <p>{t(txtFiltroVazio[ageProfile])}</p>
+            </div>
+          ) : (
+            <div className="q-tabela-caixa" tabIndex={0} role="region" aria-label={t('Palavras do conjunto')}>
+              <table className="q-tabela">
+                <thead>
+                  <tr>
+                    <th>{t('Item')}</th>
+                    <th>{t('Caiu')}</th>
+                    <th>{t('Erros')}</th>
+                    <th>{t('Estado')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visiveis.map(({ it, estado }) => (
+                    <tr key={it.ref}>
+                      <td className="qj-item">
+                        <b>{it.titulo}</b>
+                        {it.pista && <small>{it.pista}</small>}
+                      </td>
+                      <td>{tp(it.vezes, '{n} vez', '{n} vezes')}</td>
+                      <td>{it.erros}</td>
+                      <td>
+                        <span className="q-tag" data-tom={SELO[estado].variante}>
+                          {t(SELO[estado].texto)}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      </div>
+    );
+  }
 
   /* Marcação do protótipo aprovado (`T.mapa` em docs/prototipos/consistencia-telas.html): o
      cabeçalho com "Mapa do conteúdo", os cinco ladrilhos do saldo, a linha de cobertura, os níveis

@@ -11,6 +11,7 @@ import { getSttQuality, routeStt, tamanhoDoDownloadMb } from '../gateway/sttRout
 import { consentiuNuvem } from '../lib/consentimentoDeNuvem';
 import { dispositivoDaRota, perfilDoDispositivo } from '../lib/dispositivo/perfil';
 import type { SondaDoAparelho } from '../lib/dispositivo/sonda';
+import { useQuestNovo } from '../lib/dispositivo/telaNovaDoQuest';
 import { useSondaGuardada } from '../lib/dispositivo/useSondaGuardada';
 import { edicaoEstatica } from '../lib/edicaoEstatica';
 import { t } from '../lib/i18n';
@@ -91,6 +92,7 @@ export default function AiEnginePanel({
   onSelect?: (id: string) => void;
   bloqueados?: string[];
 } = {}) {
+  const questNovo = useQuestNovo();
   const [internoId, setInternoId] = useState<string>(
     () => localStorage.getItem(PROFILE_STORAGE_KEY) ?? DEFAULT_PROFILE_ID,
   );
@@ -181,6 +183,189 @@ export default function AiEnginePanel({
   };
 
   const bloqueadaNuvem = bloqueados.includes('cloud-quality');
+
+  /* QUEST: as mesmas duas opções como cartões-alvo, a IA do computador num interruptor, e o detalhe
+     (o que este jeito faz, o teste ao vivo) recolhido atrás de um alvo de 60 px. */
+  if (questNovo)
+    return (
+      <>
+        <section className="q-secao">
+          <header>
+            <div>
+              <h2>{t('Onde as contas rodam')}</h2>
+              <p>{t('Você pode mudar quando quiser. A escolha vale para transcrição e tradução.')}</p>
+            </div>
+          </header>
+          <div className={edicaoEstatica() ? 'q-grade' : 'q-grade g2'}>
+            <button
+              type="button"
+              className="q-tile q-aju-opcao"
+              aria-pressed={!nuvem}
+              onClick={() => void escolherAparelho(activeId === 'local-private' ? 'local-private' : 'free-web')}
+            >
+              <span className="q-ic">
+                <Cpu aria-hidden />
+              </span>
+              <b>{t('Rodar no seu aparelho')}</b>
+              <span className="q-aju-tags">
+                <span className="q-tag">{t('Grátis · privado')}</span>
+                {!nuvem && <span className="q-tag">{t('Em uso')}</span>}
+              </span>
+              <span className="q-d">
+                {mb
+                  ? t(
+                      'Baixa o modelo ({mb} MB, uma vez só, com barra de progresso) e roda 100% offline. Sem chave e sem custo.',
+                      { mb },
+                    )
+                  : t(
+                      'Baixa o modelo (uma vez só, com barra de progresso) e roda 100% offline. Sem chave e sem custo.',
+                    )}
+              </span>
+            </button>
+            {/* Edição estática: a chave ficaria cifrada no SERVIDOR, que ela não tem: sem a opção. */}
+            {!edicaoEstatica() && (
+              <button
+                type="button"
+                className="q-tile q-aju-opcao"
+                aria-pressed={nuvem}
+                disabled={bloqueadaNuvem}
+                onClick={() => void escolherNuvem()}
+              >
+                <span className="q-ic">
+                  <KeyRound aria-hidden />
+                </span>
+                <b>{t('Usar a sua chave (nuvem)')}</b>
+                <span className="q-aju-tags">
+                  <span className="q-tag">{bloqueadaNuvem ? t('Premium') : t('Sua chave')}</span>
+                  {nuvem && <span className="q-tag">{t('Em uso')}</span>}
+                </span>
+                <span className="q-d">
+                  {t(
+                    'OpenAI, Groq, OpenRouter… Melhor qualidade, sem baixar modelo. A chave fica cifrada no servidor.',
+                  )}
+                  {bloqueadaNuvem && ` ${t('Disponível no plano Premium.')}`}
+                </span>
+              </button>
+            )}
+          </div>
+          <div className="q-ajustes">
+            {!nuvem && (
+              <div className="q-ajuste">
+                <div>
+                  <b>{t('Usar também a IA do computador')}</b>
+                  <small>{t('Ollama ou LM Studio na sua rede, para explicar e corrigir.')}</small>
+                </div>
+                <button
+                  type="button"
+                  className="q-interruptor"
+                  role="switch"
+                  aria-checked={activeId === 'local-private'}
+                  aria-label={t('Usar também a IA do computador')}
+                  onClick={() => void escolherAparelho(activeId === 'local-private' ? 'free-web' : 'local-private')}
+                />
+              </div>
+            )}
+            {nuvem && (
+              <div className="q-ajuste">
+                <div>
+                  <b>{t('Chave de API')}</b>
+                  <small>{t('A chave fica cifrada no servidor e nunca volta ao navegador.')}</small>
+                </div>
+                <button type="button" className="q-ctl" onClick={() => setPedindoChave(true)}>
+                  <KeyRound aria-hidden /> {t('Trocar a chave')}
+                </button>
+              </div>
+            )}
+          </div>
+        </section>
+
+        <details className="q-aju-detalhe">
+          <summary>
+            <ListChecks aria-hidden /> {t('Ver o que este jeito consegue fazer e testar uma tradução')}
+          </summary>
+          <section className="q-secao">
+            <header>
+              <div>
+                <h3>{t('O que este jeito consegue fazer')}</h3>
+              </div>
+            </header>
+            <div className="q-ajustes">
+              {CAPS.map((cap) => {
+                const meta = CAPACIDADE[cap];
+                const motor = bindingLabel(cap);
+                const atende = motor !== '-';
+                return (
+                  <div key={cap} className="q-ajuste">
+                    <div>
+                      <b>{t(meta.titulo)}</b>
+                      <small>{t(meta.onde)}</small>
+                    </div>
+                    {atende && <span className="q-aud-par">{motor}</span>}
+                    <span className={atende ? 'q-tag' : 'q-tag off'}>
+                      {atende ? t('funciona aqui') : t('não dá neste jeito')}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+
+          <section className="q-secao">
+            <header>
+              <div>
+                <h3>{t('Testar antes de confiar')}</h3>
+                <p>
+                  {t(
+                    'Traduza uma frase agora (inglês → português) e veja o que este jeito devolve. Nada é salvo no seu caderno.',
+                  )}
+                </p>
+              </div>
+            </header>
+            <div className="q-cartao">
+              <label className="q-campo">
+                <span>{t('Frase em inglês')}</span>
+                <textarea
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  rows={2}
+                  aria-label={t('Texto em inglês para testar a tradução ao vivo')}
+                />
+              </label>
+              <div className="q-acoes">
+                <button
+                  type="button"
+                  className="q-ctl"
+                  onClick={runTest}
+                  disabled={status === 'loading' || !text.trim()}
+                >
+                  {status === 'loading' ? <Loader2 className="gira" aria-hidden /> : <Zap aria-hidden />}
+                  {status === 'loading' ? t('Traduzindo…') : t('Traduzir pelo gateway')}
+                </button>
+                <span className="q-aud-par">{t('perfil: {nome}', { nome: profile.name })}</span>
+              </div>
+              {result && (
+                <div className="q-aju-resultado" role="status">
+                  <span className="q-rotulo">{t('Resultado · motor: {motor}', { motor: result.engine })}</span>
+                  <p>{result.text}</p>
+                </div>
+              )}
+              {status === 'error' && (
+                <div className="q-aju-resultado erro" role="alert">
+                  <span className="q-rotulo">
+                    <AlertTriangle aria-hidden /> {t('Falhou')}
+                  </span>
+                  <p>{error}</p>
+                </div>
+              )}
+            </div>
+          </section>
+        </details>
+
+        {pedindoChave && (
+          <DialogoDaChave aoFechar={() => setPedindoChave(false)} aoSalvar={(id) => void usarNuvem(id)} />
+        )}
+      </>
+    );
 
   return (
     <>

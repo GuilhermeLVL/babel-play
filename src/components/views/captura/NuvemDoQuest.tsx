@@ -76,18 +76,20 @@ export default function NuvemDoQuest({ gravando, aoVivo = false }: { gravando: b
               : restam != null
                 ? `Restam cerca de ${restam} min hoje. Depois disso, a legenda segue feita neste aparelho.`
                 : 'São 15 min por dia; depois disso, a legenda segue feita neste aparelho.'}{' '}
-            O áudio de cada fala vai à Cloudflare só para ser transcrito; nada é guardado.
+            O áudio e o texto de cada fala vão à Cloudflare só para transcrever e ler em voz alta; nada é guardado.
           </>
         ) : (
           <>
-            <b>Este aparelho é lento para transcrever sozinho.</b> Com a nuvem (15 min por dia, grátis), o áudio de cada
-            fala vai à Cloudflare só para ser transcrito, nada é guardado, e a legenda chega bem mais rápido.
+            <b>Este aparelho é lento para transcrever sozinho.</b> Com a nuvem (15 min por dia, grátis), a legenda chega
+            bem mais rápido e a tradução pode ser lida em voz alta. O áudio e o texto de cada fala vão à Cloudflare só
+            para isso; nada é guardado.
           </>
         )}
       </span>
       <button
         type="button"
         className={consentiu ? 'btn btn-outline peq' : 'btn btn-solid peq'}
+        style={{ flex: 'none' }}
         disabled={gravando}
         onClick={() => void (consentiu ? mudarConsentimento('nuvem', false) : autorizar())}
       >

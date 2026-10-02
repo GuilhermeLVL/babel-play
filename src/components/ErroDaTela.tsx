@@ -29,7 +29,7 @@ export default class ErroDaTela extends React.Component<{ children: React.ReactN
   render() {
     if (!this.state.erro) return this.props.children;
     return (
-      <div className="min-h-screen w-full flex items-center justify-center bg-canvas p-6" role="alert">
+      <div className="erro-da-tela min-h-screen w-full flex items-center justify-center bg-canvas p-6" role="alert">
         <div className="card-panel bg-surface max-w-md w-full p-6 text-center">
           <p className="label-mono mb-2">Algo deu errado</p>
           <h1 className="font-display font-black text-xl text-ink">Esta tela não conseguiu abrir</h1>

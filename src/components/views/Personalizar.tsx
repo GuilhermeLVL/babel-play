@@ -1,8 +1,9 @@
-import { Accessibility, Eye, Gamepad2, Palette, PanelLeft, Sparkles, Type, Undo2, Zap } from 'lucide-react';
+import { Accessibility, Check, Eye, Gamepad2, Palette, PanelLeft, Sparkles, Type, Undo2, Zap } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 
 import { applyCustomColors, FONTE_OPTIONS, type FonteType, THEME_OPTIONS, type ThemeType } from '../../lib/appearance';
 import { celebrarEscolha } from '../../lib/comemoracao';
+import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { acessoAoEstilo, faltaParaOPerfil } from '../../lib/galeria/acesso';
 import { estaEquipado } from '../../lib/galeria/equipar';
 import { gravarPaletaAtiva, lerPaletaAtiva, type Paleta, paletaPorId } from '../../lib/galeria/paletas';
@@ -68,6 +69,23 @@ const POSICAO_DO_MENU: Record<MenuPositionType, string> = {
   bottom: 'Embaixo',
 };
 
+/* Os três perfis de exibição: os mesmos na tela de sempre e na do headset. */
+const PERFIS_DE_EXIBICAO = [
+  {
+    id: 'kids' as const,
+    icon: Gamepad2,
+    label: 'Kids / Gamer',
+    desc: 'Missões, recompensas e linguagem de jogo.',
+  },
+  { id: 'pro' as const, icon: Zap, label: 'Produtividade', desc: 'Densidade alta e vocabulário técnico.' },
+  {
+    id: 'senior' as const,
+    icon: Eye,
+    label: 'Leitura ampliada',
+    desc: 'Passo a passo, alvos de 48px e mais respiro.',
+  },
+];
+
 export default function Personalizar({
   theme,
   setTheme,
@@ -91,6 +109,9 @@ export default function Personalizar({
   const [, force] = useState(0);
   const rerender = () => force((n) => n + 1);
   const saldoAgora = saldo;
+  /* No Meta Quest (telas novas) o inventário mostra uma seção por vez, e o que mora aqui embaixo (a letra
+     e o perfil de exibição) entra nele como mais uma seção, com as peças do desenho do headset. */
+  const questNovo = useQuestNovo();
 
   const paletaAtiva = lerPaletaAtiva();
   const estiloDaPaleta = (id: string) => paletaPorId(id)?.estilo;
@@ -153,14 +174,18 @@ export default function Personalizar({
     rerender();
   };
 
-  const renomear = (p: Perfil) => {
-    // prompt nativo: um campo, teclado-acessível, sem estado novo — suficiente para um nome.
-    const nome = window.prompt(`Novo nome para "${p.nome}":`, p.nome);
-    if (nome === null) return;
+  /** Grava o nome novo. No headset o nome vem de um diálogo com campo (o teclado do sistema sobe nele). */
+  const renomearPara = (p: Perfil, nome: string) => {
     if (renomearPerfil(p.id, nome)) {
       toast.ok(`Perfil renomeado para "${nome.trim()}".`);
       rerender();
     } else toast.warn('O nome não pode ficar vazio.');
+  };
+  const renomear = (p: Perfil) => {
+    // prompt nativo: um campo, teclado-acessível, sem estado novo — suficiente para um nome.
+    const nome = window.prompt(`Novo nome para "${p.nome}":`, p.nome);
+    if (nome === null) return;
+    renomearPara(p, nome);
   };
 
   const temaNome =
@@ -170,55 +195,172 @@ export default function Personalizar({
   /* Meus perfis primeiro: o que a pessoa montou vale mais do que o que veio de fábrica. */
   const perfis = [...perfisSalvos(), ...PRESETS];
 
-  return (
+  /* ACESSIBILIDADE NO HEADSET: a letra e o perfil de exibição em linhas de 72 px. A posição do menu não
+     vira controle: no Quest o menu é o trilho, e a tela diz isso em vez de oferecer um botão sem efeito. */
+  const acessibilidadeNoQuest = questNovo ? (
     <>
-      {topo}
-      <Inventario
-        nivel={nivel}
-        saldo={saldoAgora}
-        ctx={{ setTheme, setFonte, setMenuPosition, onOpenStudio, nivel, saldo: saldoAgora }}
-        equipadoAtual={(i) => estaEquipado(i, { theme, fonte, menuPosition })}
-        /* Os do protótipo, na ordem dele (Tema, Partículas, Fonte, Menu). Cursor e Emojis saíram nas
-           recompensas v2. O rastro equipado aparece no próprio cartão, com "Equipado". */
-        loadout={[
-          { chave: 'tema', rotulo: 'Tema', valor: temaNome, icone: Palette },
-          {
-            chave: 'particulas',
-            rotulo: 'Partículas',
-            valor: PARTICULAS_OPTIONS.find((o) => o.id === readParticulas())?.name ?? '—',
-            icone: Sparkles,
-          },
-          {
-            chave: 'fonte',
-            rotulo: 'Fonte',
-            valor: FONTE_OPTIONS.find((f) => f.id === fonte)?.name ?? fonte,
-            icone: Type,
-          },
-          { chave: 'menu', rotulo: 'Menu', valor: POSICAO_DO_MENU[menuPosition] ?? menuPosition, icone: PanelLeft },
-        ]}
-        onIrParaLoja={onIrParaLoja}
-        onIrParaPasse={onIrParaPasse}
-        onIrParaConquistas={onIrParaConquistas}
-        aoMudar={rerender}
-        perfis={perfis}
-        faltaDoPerfil={(p) => faltaParaOPerfil(p, ctxAcesso)}
-        aoAplicarPerfil={aplicarPerfil}
-        aoRenomearPerfil={renomear}
-        aoApagarPerfil={(p) => {
-          apagarPerfil(p.id);
-          rerender();
-        }}
-        aoSalvarPerfil={salvarAtual}
-        aoPrever={aoPrever}
-        itemEmPrevia={itemEmPrevia}
-        tiposComPrevia={tiposComPrevia}
-        /* DIREITO, não recompensa: desfazer o visual nunca depende de nível nem de Seeds. */
-        acaoDosPerfis={
+      <section className="q-secao" data-bloco="acessibilidade-e-layout">
+        <header>
+          <div>
+            <h3>{t('Letra')}</h3>
+            <p>{t('A letra é sua desde o começo: não custa Seeds nem pede nível.')}</p>
+          </div>
+        </header>
+        <div className="q-grade g3">
+          {FONTE_OPTIONS.map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              className="q-linha"
+              aria-pressed={fonte === f.id}
+              onClick={() => setFonte(f.id)}
+            >
+              <span>
+                <b>{f.name}</b>
+                <small>{f.desc}</small>
+              </span>
+              {fonte === f.id && (
+                <span className="q-fim">
+                  <Check aria-hidden />
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      </section>
+      <div className="q-aviso" role="note" data-testid="menu-no-quest">
+        <span>
+          {t(
+            'No headset o menu é o trilho de ícones, sempre no mesmo lugar. A posição do menu ({posicao}) vale no computador e no celular.',
+            { posicao: POSICAO_DO_MENU[menuPosition] ?? menuPosition },
+          )}
+        </span>
+      </div>
+      <section className="q-secao">
+        <header>
+          <div>
+            <h3>{t('Perfil de exibição')}</h3>
+            <p>
+              {t(
+                'Muda a linguagem e a densidade das telas. Não muda o tema nem esconde recurso nenhum. Isto é acessibilidade: sempre grátis.',
+              )}
+            </p>
+          </div>
+        </header>
+        <div className="q-grade g3">
+          {PERFIS_DE_EXIBICAO.map((opt) => (
+            <button
+              key={opt.id}
+              type="button"
+              className="q-linha"
+              aria-pressed={ageProfile === opt.id}
+              onClick={() => setAgeProfile(opt.id)}
+            >
+              <span className="q-ic">
+                <opt.icon aria-hidden />
+              </span>
+              <span>
+                <b>{opt.label}</b>
+                <small>{opt.desc}</small>
+              </span>
+              {ageProfile === opt.id && (
+                <span className="q-fim">
+                  <Check aria-hidden />
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      </section>
+    </>
+  ) : null;
+
+  const inventario = (
+    <Inventario
+      nivel={nivel}
+      saldo={saldoAgora}
+      ctx={{ setTheme, setFonte, setMenuPosition, onOpenStudio, nivel, saldo: saldoAgora }}
+      equipadoAtual={(i) => estaEquipado(i, { theme, fonte, menuPosition })}
+      /* Os do protótipo, na ordem dele (Tema, Partículas, Fonte, Menu). Cursor e Emojis saíram nas
+         recompensas v2. O rastro equipado aparece no próprio cartão, com "Equipado". */
+      loadout={[
+        { chave: 'tema', rotulo: 'Tema', valor: temaNome, icone: Palette },
+        {
+          chave: 'particulas',
+          rotulo: 'Partículas',
+          valor: PARTICULAS_OPTIONS.find((o) => o.id === readParticulas())?.name ?? '—',
+          icone: Sparkles,
+        },
+        {
+          chave: 'fonte',
+          rotulo: 'Fonte',
+          valor: FONTE_OPTIONS.find((f) => f.id === fonte)?.name ?? fonte,
+          icone: Type,
+        },
+        {
+          chave: 'menu',
+          rotulo: 'Menu',
+          // No headset o menu é o trilho de ícones: a posição escolhida não vale ali.
+          valor: questNovo ? t('Trilho do headset') : (POSICAO_DO_MENU[menuPosition] ?? menuPosition),
+          icone: PanelLeft,
+        },
+      ]}
+      onIrParaLoja={onIrParaLoja}
+      onIrParaPasse={onIrParaPasse}
+      onIrParaConquistas={onIrParaConquistas}
+      aoMudar={rerender}
+      perfis={perfis}
+      faltaDoPerfil={(p) => faltaParaOPerfil(p, ctxAcesso)}
+      aoAplicarPerfil={aplicarPerfil}
+      aoRenomearPerfil={renomear}
+      aoApagarPerfil={(p) => {
+        apagarPerfil(p.id);
+        rerender();
+      }}
+      aoSalvarPerfil={salvarAtual}
+      aoPrever={aoPrever}
+      itemEmPrevia={itemEmPrevia}
+      tiposComPrevia={tiposComPrevia}
+      /* DIREITO, não recompensa: desfazer o visual nunca depende de nível nem de Seeds. */
+      acaoDosPerfis={
+        questNovo ? (
+          <button type="button" className="q-chip" onClick={voltarAoOriginal}>
+            <Undo2 aria-hidden /> {t('Voltar ao visual original')}
+          </button>
+        ) : (
           <button type="button" className="link" onClick={voltarAoOriginal}>
             <Undo2 aria-hidden /> Voltar ao visual original
           </button>
-        }
-      />
+        )
+      }
+      aoRenomearPerfilPara={questNovo ? renomearPara : undefined}
+      secoesExtras={
+        questNovo
+          ? [
+              {
+                id: 'acessibilidade',
+                titulo: t('Acessibilidade'),
+                icone: Accessibility,
+                conteudo: acessibilidadeNoQuest,
+              },
+            ]
+          : undefined
+      }
+    />
+  );
+
+  if (questNovo)
+    return (
+      <>
+        {topo}
+        {inventario}
+      </>
+    );
+
+  return (
+    <>
+      {topo}
+      {inventario}
 
       {/* ── ACESSIBILIDADE E LAYOUT (recompensas v2, 27/09): letra e posição do menu saíram do
              catálogo. São legibilidade e layout — livres desde o nível 1, sem preço e sem cadeado. ── */}
@@ -285,21 +427,7 @@ export default function Personalizar({
           }
         />
         <div className="g3">
-          {[
-            {
-              id: 'kids' as const,
-              icon: Gamepad2,
-              label: 'Kids / Gamer',
-              desc: 'Missões, recompensas e linguagem de jogo.',
-            },
-            { id: 'pro' as const, icon: Zap, label: 'Produtividade', desc: 'Densidade alta e vocabulário técnico.' },
-            {
-              id: 'senior' as const,
-              icon: Eye,
-              label: 'Leitura ampliada',
-              desc: 'Passo a passo, alvos de 48px e mais respiro.',
-            },
-          ].map((opt) => (
+          {PERFIS_DE_EXIBICAO.map((opt) => (
             <button
               key={opt.id}
               type="button"

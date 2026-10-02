@@ -2808,7 +2808,8 @@ export default function LiveCapture({
      Atrás da chave de `/diagnostico` (`telaNovaDoQuest`): desligada, volta a gravação de antes. */
   const [telaNova] = useState(telaNovaDoQuest);
   const aoVivoNoQuest = noQuest && telaNova;
-  /** Sem `speechSynthesis` (o Quest): a conversa do intérprete é só em texto, e a tela diz isso. */
+  /** Sem voz que toque no aparelho (o Quest: a API existe, sem voz nenhuma). Com a nuvem ligada, a voz
+      do site lê a tradução nos idiomas que tem (`vozDoQuest.ts`); o resto fica em texto. */
   const semVozDeLeitura = !recursosDoAparelho(perfilDoAparelho).vozDeLeitura;
   const [escalaDaLegenda, setEscalaDaLegenda] = useState(lerEscalaDaLegenda);
   /* "OUVIR" NO QUEST é o áudio REAL da fala (o headset não tem voz de leitura): o pipeline guarda o
@@ -3766,6 +3767,7 @@ export default function LiveCapture({
               automatico={automaticoDoInterprete}
               noQuest={aoVivoNoQuest}
               semVoz={semVozDeLeitura}
+              vozDoSite={nuvemDoQuestAtiva()}
               avisos={nuvemDoQuestExiste() ? <NuvemDoQuest gravando={isRecording} /> : undefined}
               aoConhecerOPremium={conhecerOPremium}
               aoComecar={entrarNoInterprete}
@@ -4625,6 +4627,7 @@ export default function LiveCapture({
             velocidade={ttsSpeed}
             layout={aoVivoNoQuest ? 'quest' : capturaEnxuta ? 'celular' : 'computador'}
             semVoz={semVozDeLeitura}
+            vozDoSite={nuvemDoQuestAtiva()}
             abrindo={micAbrindo}
             aviso={avisoDoPreparo(modelPrep)}
             automatico={automaticoDoInterprete}

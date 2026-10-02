@@ -1,0 +1,818 @@
+/*
+ * A PELE DO HEADSET SOBRE AS PEÇAS DE SEMPRE (01/10/2026, segunda rodada do Quest).
+ *
+ * As telas que ainda usam as peças do protótipo (`.tela`, `.cab`, `.cartao`, `.btn`, `.campo`, `.abas`,
+ * `.seg`, `.check`, `.interruptor`, `.vazio`, `<dialog>`, `.toast`) ganham aqui as MEDIDAS e o
+ * ACABAMENTO do desenho do headset, sem trocar uma linha de marcação: nenhuma função some, e o que
+ * ainda não foi redesenhado tela a tela já é legível a um metro e responde ao ponteiro.
+ *
+ * As mesmas regras de `quest.css`: só tokens do tema, alvo ≥ 56 px, texto ≥ 14 px (corpo 17 a 18),
+ * movimento curto e no lugar. Carregado junto do trilho (`TrilhoDoQuest.tsx`): só existe no Quest com
+ * as telas novas, fora do CSS inicial.
+ *
+ * O ESCOPO é `:is(.tela, .q-palco, .quest-pronto, dialog, .toast)`: o palco dos jogos (`questJogar.css`), a captura
+ * (`capturaNoCelular.css`) e o intérprete têm as próprias regras e não passam por aqui.
+ */
+
+/* ── A TRANSIÇÃO QUE O MODO DESEMPENHO CORTAVA ───────────────────────────────────────────────────
+   O modo desempenho liga sozinho no headset e zerava também a transição de 120 ms que diz "este alvo
+   respondeu ao ponteiro". O corte de PINTURA continua (desfoque, sombra composta); o que é acionável
+   volta a ter a transição curta de `transform`, cor e borda. Animação em laço segue cortada, e quem
+   pediu menos movimento (o sistema ou o interruptor de Ajustes) continua sem nenhum. */
+@media (prefers-reduced-motion: no-preference) {
+  html[data-quest-novo='true']
+    body.performance-mode:not(.animations-off)
+    :is(
+      button,
+      a[href],
+      label,
+      summary,
+      input,
+      select,
+      textarea,
+      [role='button'],
+      [role='tab'],
+      [role='switch'],
+      [role='option'],
+      .q-tile,
+      .q-linha,
+      .q-ic,
+      .q-fim,
+      .cartao.clicavel,
+      .toast,
+      button svg
+    ),
+  html[data-quest-novo='true'] body.performance-mode:not(.animations-off) :is(button, .q-tile, .q-linha)::before,
+  html[data-quest-novo='true'] body.performance-mode:not(.animations-off) :is(button, .q-tile, .q-linha)::after {
+    transition-duration: 140ms !important;
+  }
+}
+
+/* ── A TELA ───────────────────────────────────────────────────────────────────────────────────── */
+html[data-quest-novo='true'] .tela {
+  max-width: none;
+  padding: 26px clamp(18px, 2.6vw, 34px) 30px;
+  font-size: 17px;
+  line-height: 1.45;
+}
+html[data-quest-novo='true'] .tela .cab {
+  margin-bottom: 22px;
+}
+html[data-quest-novo='true'] .tela .cab h1 {
+  font: 900 32px/1.05 var(--font-display, inherit);
+  letter-spacing: -0.01em;
+  margin: 6px 0;
+  text-wrap: balance;
+}
+html[data-quest-novo='true'] .tela .cab .sub {
+  font-size: 17px;
+  line-height: 1.45;
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .sobrancelha {
+  font-size: 14px;
+  letter-spacing: 0.08em;
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .sobrancelha svg {
+  width: 18px;
+  height: 18px;
+}
+html[data-quest-novo='true'] .tela .cab .abas {
+  margin-top: 18px;
+}
+html[data-quest-novo='true'] .tela .secao {
+  margin-top: 30px;
+}
+html[data-quest-novo='true'] .tela .tsec :is(h2, h3) {
+  font: 800 22px/1.2 var(--font-display, inherit);
+}
+html[data-quest-novo='true'] .tela .tsec .desc {
+  font-size: 16px;
+}
+html[data-quest-novo='true'] .tela .tsec-t svg {
+  width: 24px;
+  height: 24px;
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .voltar {
+  min-height: 56px;
+  margin: 0 0 6px;
+  padding: 0 18px 0 12px;
+  gap: 8px;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  font: 700 16px/1 var(--font-body, inherit);
+  color: var(--ink);
+  background: var(--surface);
+  transition:
+    transform var(--q-toque),
+    border-color var(--q-cor);
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .voltar:hover {
+  border-color: var(--q-acento);
+  transform: scale(1.03);
+}
+
+/* ── SUPERFÍCIES ──────────────────────────────────────────────────────────────────────────────── */
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .cartao:not(.escuro) {
+  border: 1.5px solid var(--border-subtle);
+  border-radius: 20px;
+  box-shadow: none;
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .cartao.escuro {
+  border-radius: 20px;
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .cartao.clicavel:hover {
+  border-color: var(--q-acento);
+  background: color-mix(in srgb, var(--q-acento) 7%, var(--surface));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--q-acento) 28%, transparent);
+  transform: scale(1.012);
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .cartao.clicavel:active {
+  transform: scale(0.985);
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .ib {
+  width: 52px;
+  height: 52px;
+  border-radius: 15px;
+  box-shadow: none;
+  transition:
+    transform var(--q-toque),
+    background-color var(--q-cor),
+    color var(--q-cor);
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .ib svg {
+  width: 24px;
+  height: 24px;
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .cartao.clicavel:hover .ib {
+  transform: scale(1.06);
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .ladrilho {
+  padding: 18px;
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .ladrilho .v {
+  font: 900 33px/1 var(--font-display, inherit);
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .ladrilhos {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) :is(.g2, .g3, .gauto) {
+  gap: 16px;
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .gauto {
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .barra {
+  height: 12px;
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .aviso-info {
+  padding: 14px 18px;
+  border-width: 1.5px;
+  border-radius: 18px;
+  gap: 14px;
+  font-size: 16px;
+  line-height: 1.4;
+  color: var(--ink);
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .aviso-info > svg {
+  width: 22px;
+  height: 22px;
+  flex: none;
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .vazio {
+  gap: 14px;
+  padding: 32px 24px;
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .vazio h3 {
+  font: 900 24px/1.15 var(--font-display, inherit);
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .vazio p {
+  font-size: 17px;
+  line-height: 1.45;
+}
+
+/* O ESTADO VAZIO de sempre (`ui/Vazio.tsx`, também o cartão "disponível na versão completa"): o fundo
+   rebaixado no lugar da moldura tracejada, título e causa lidos de longe, e as saídas com 56 px. */
+html[data-quest-novo='true'] .vazio-de-tela {
+  padding: 34px 28px;
+  border: 0;
+  border-radius: 24px;
+  background: var(--surface-sunken);
+  box-shadow: none;
+}
+html[data-quest-novo='true'] .vazio-de-tela.max-w-xl {
+  max-width: 680px;
+}
+html[data-quest-novo='true'] .vazio-de-tela .vazio-icone {
+  width: 64px;
+  height: 64px;
+  border: 0;
+  border-radius: 20px;
+  background: var(--q-suave);
+  color: var(--ink);
+}
+html[data-quest-novo='true'] .vazio-de-tela h3 {
+  font: 900 26px/1.15 var(--font-display, inherit);
+  text-wrap: balance;
+}
+html[data-quest-novo='true'] .vazio-de-tela p {
+  max-width: 48ch;
+  margin-top: 10px;
+  font-size: 18px !important;
+  line-height: 1.45;
+}
+html[data-quest-novo='true'] .vazio-de-tela > div:last-child {
+  gap: 12px;
+  margin-top: 22px;
+}
+/* Os botões das telas de antes do protótipo (`btn-solid` / `btn-outline` sem `.btn`). */
+html[data-quest-novo='true'] :is(.btn-solid, .btn-outline):not(.btn) {
+  min-height: 56px;
+  padding: 0 22px;
+  border-radius: 999px;
+  border-width: 2px;
+  gap: 10px;
+  font: 700 17px/1 var(--font-body, inherit);
+  box-shadow: none;
+  transition:
+    transform var(--q-toque),
+    border-color var(--q-cor),
+    background-color var(--q-cor),
+    box-shadow var(--q-cor);
+}
+html[data-quest-novo='true'] :is(.btn-solid, .btn-outline):not(.btn) svg {
+  width: 20px;
+  height: 20px;
+}
+html[data-quest-novo='true'] .btn-solid:not(.btn) {
+  border-color: transparent;
+  background: linear-gradient(160deg, var(--q-acento-2), var(--q-acento));
+  color: var(--q-sobre-acento);
+}
+html[data-quest-novo='true'] .btn-outline:not(.btn) {
+  background: var(--surface);
+  border-color: var(--border-subtle);
+  color: var(--ink);
+}
+html[data-quest-novo='true'] :is(.btn-solid, .btn-outline):not(.btn):not(:disabled):hover {
+  transform: scale(1.04);
+  filter: none;
+}
+html[data-quest-novo='true'] .btn-solid:not(.btn):not(:disabled):hover {
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--q-acento) 35%, transparent);
+}
+html[data-quest-novo='true'] .btn-outline:not(.btn):not(:disabled):hover {
+  border-color: var(--q-acento);
+}
+html[data-quest-novo='true'] :is(.btn-solid, .btn-outline):not(.btn):not(:disabled):active {
+  transform: scale(0.96);
+}
+html[data-quest-novo='true'] :is(.btn-solid, .btn-outline):not(.btn):focus-visible {
+  outline: 3px solid var(--q-acento);
+  outline-offset: 3px;
+}
+html[data-quest-novo='true'] .carregando-da-tela {
+  gap: 12px;
+  font: 700 18px/1.3 var(--font-body, inherit);
+}
+
+/* ── ALVOS ────────────────────────────────────────────────────────────────────────────────────── */
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .btn {
+  min-height: 56px;
+  padding: 0 22px;
+  border-radius: 999px;
+  border-width: 2px;
+  font: 700 17px/1 var(--font-body, inherit);
+  gap: 10px;
+  box-shadow: none;
+  filter: none;
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .btn.peq {
+  min-height: 56px;
+  padding: 0 18px;
+  font-size: 16px;
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .btn.grande {
+  min-height: 64px;
+  padding: 0 30px;
+  font-size: 19px;
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .btn.icone {
+  min-width: 56px;
+  padding: 0;
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .btn svg {
+  width: 20px;
+  height: 20px;
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .btn-solid {
+  border-color: transparent;
+  background: linear-gradient(160deg, var(--q-acento-2), var(--q-acento));
+  color: var(--q-sobre-acento);
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .btn-outline {
+  background: var(--surface);
+  border-color: var(--border-subtle);
+  color: var(--ink);
+  font-weight: 700;
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .btn:not([disabled]):hover {
+  transform: scale(1.04);
+  filter: none;
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .btn-solid:not([disabled]):hover {
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--q-acento) 35%, transparent);
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .btn-outline:not([disabled]):hover {
+  border-color: var(--q-acento);
+  background: color-mix(in srgb, var(--q-acento) 10%, var(--surface));
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .btn:not([disabled]):active {
+  transform: scale(0.96);
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog, .toast) .link {
+  min-height: 48px;
+  font: 700 16px/1.2 var(--font-body, inherit);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-thickness: 2px;
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog, .toast) .link svg {
+  width: 18px;
+  height: 18px;
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .pill {
+  min-height: 56px;
+  padding: 0 20px;
+  border-width: 2px;
+  font: 700 16px/1 var(--font-body, inherit);
+  color: var(--ink);
+  transition:
+    transform var(--q-toque),
+    border-color var(--q-cor),
+    background-color var(--q-cor);
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .pill svg {
+  width: 18px;
+  height: 18px;
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .pill:not([disabled]):hover {
+  border-color: var(--q-acento);
+  transform: scale(1.04);
+}
+html[data-quest-novo='true']
+  :is(.tela, .q-palco, .quest-pronto, dialog)
+  .pill:is([aria-pressed='true'], [aria-selected='true']) {
+  background: var(--q-suave);
+  border-color: var(--q-acento);
+  color: var(--ink);
+  box-shadow: none;
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) :is(.label-mono, .badge) {
+  font-size: 14px;
+  letter-spacing: 0.06em;
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .badge {
+  padding: 6px 12px;
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .badge svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Abas e escolha entre poucos: as pílulas do desenho novo, com a escolhida dita pela cor e pela borda. */
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .abas {
+  gap: 8px;
+  border-bottom: 0;
+  padding-bottom: 2px;
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .aba {
+  min-height: 56px;
+  padding: 0 22px;
+  margin: 0;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  font: 700 17px/1 var(--font-body, inherit);
+  transition:
+    transform var(--q-toque),
+    border-color var(--q-cor),
+    background-color var(--q-cor),
+    color var(--q-cor);
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .aba::after {
+  display: none;
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .aba svg {
+  width: 20px;
+  height: 20px;
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .aba:hover {
+  border-color: var(--q-acento);
+  background: none;
+  transform: scale(1.04);
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .aba[aria-selected='true'] {
+  background: var(--q-suave);
+  border-color: var(--q-acento);
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .seg {
+  padding: 4px;
+  border-width: 1.5px;
+  border-radius: 999px;
+  gap: 4px;
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .seg button {
+  min-height: 52px;
+  padding: 0 18px;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  font: 700 16px/1 var(--font-body, inherit);
+  transition:
+    transform var(--q-toque),
+    border-color var(--q-cor),
+    background-color var(--q-cor);
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .seg button:hover {
+  border-color: var(--q-acento);
+  color: var(--ink);
+}
+html[data-quest-novo='true']
+  :is(.tela, .q-palco, .quest-pronto, dialog)
+  .seg
+  button:is([aria-pressed='true'], [aria-checked='true']) {
+  background: var(--q-suave);
+  border-color: var(--q-acento);
+  color: var(--ink);
+  box-shadow: none;
+}
+
+/* Campos: grandes, e o teclado do sistema sobe sozinho no foco. */
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .campo {
+  min-height: 60px;
+  padding: 0 18px;
+  border-width: 1.5px;
+  border-radius: 16px;
+  background-color: var(--surface);
+  font-size: 18px;
+  box-shadow: none;
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) textarea.campo {
+  padding-block: 14px;
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) select.campo {
+  padding-right: 48px;
+  background-position: right 18px center;
+  background-size: 20px;
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .campo:hover {
+  border-color: var(--q-acento);
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .campo:focus {
+  border-color: var(--q-acento);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--q-acento) 40%, transparent);
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .campo.num {
+  width: 120px;
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .busca svg {
+  left: 18px;
+  width: 20px;
+  height: 20px;
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .busca .campo {
+  padding-left: 50px;
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .check {
+  min-height: 56px;
+  gap: 14px;
+  font-size: 17px;
+  color: var(--ink);
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .check input {
+  width: 28px;
+  height: 28px;
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) input[type='range'] {
+  min-height: 48px;
+  accent-color: var(--q-acento);
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .interruptor {
+  width: 68px;
+  height: 40px;
+  outline-offset: 8px;
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .interruptor span {
+  top: 5px;
+  left: 5px;
+  width: 30px;
+  height: 30px;
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .interruptor.on span {
+  transform: translateX(28px);
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .interruptor:hover {
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--q-acento) 35%, transparent);
+}
+/* O alvo de 56 px do interruptor de 40: a área de toque cresce para fora dele. */
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .interruptor::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+}
+html[data-quest-novo='true']
+  :is(.tela, .q-palco, .quest-pronto, dialog)
+  :is(button, a[href], .pill, .aba, .campo, .interruptor):focus-visible {
+  outline: 3px solid var(--q-acento);
+  outline-offset: 3px;
+}
+
+/* Tabelas das telas de sempre: linhas altas e letra de corpo. */
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) table {
+  font-size: 16px;
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) th {
+  font-size: 14px;
+  padding-block: 14px;
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) td {
+  padding-block: 14px;
+}
+
+/* O PISO DO TEXTO. As telas de sempre escrevem o tamanho na própria linha (`style={{ fontSize: 12.5 }}`)
+   ou em classe do Tailwind; no headset nada de corpo fica abaixo de 15 px, e rótulo, de 14. */
+html[data-quest-novo='true']
+  :is(.tela, .q-palco, .quest-pronto, dialog, .toast)
+  :is(
+    [style*='font-size: 8'],
+    [style*='font-size: 9'],
+    [style*='px var(--font'][style*=' 8'],
+    [style*=' 9px '],
+    [style*=' 9.5px '],
+    [style*=' 10px '],
+    [style*=' 10.5px '],
+    [style*=' 11px '],
+    [style*=' 11.5px '],
+    [style*=' 12px '],
+    [style*=' 12.5px '],
+    [style*=' 13px '],
+    [style*=' 13.5px '],
+    [class*='text-[8'],
+    [style*='font-size: 10'],
+    [style*='font-size: 11'],
+    [style*='font-size: 12'],
+    [style*='font-size: 13'],
+    .text-xs,
+    [class*='text-[9'],
+    [class*='text-[10'],
+    [class*='text-[11'],
+    [class*='text-[12'],
+    [class*='text-[13']
+  ) {
+  font-size: 15px !important;
+  line-height: 1.4;
+}
+html[data-quest-novo='true']
+  :is(.tela, .q-palco, .quest-pronto, dialog)
+  :is([style*='font-size: 14'], .text-sm, [class*='text-[14']) {
+  font-size: 16px !important;
+}
+html[data-quest-novo='true']
+  :is(.tela, .q-palco, .quest-pronto, dialog)
+  :is(small, .mut):not([style*='font-size'], [class*='text-']) {
+  font-size: max(15px, 1em);
+}
+
+/* ── DIÁLOGOS (`<dialog>` nativo de `ui/Dialogo.tsx`) ─────────────────────────────────────────────
+   No centro, largos, com o fechar de 56 px. Nada desliza pela lateral. */
+html[data-quest-novo='true'] dialog:not(.q-mais) {
+  width: min(760px, calc(100vw - 48px));
+  max-height: calc(100vh - 48px);
+  border: 1.5px solid var(--border-subtle);
+  border-radius: 24px;
+  box-shadow: none;
+  font-size: 17px;
+  line-height: 1.45;
+}
+html[data-quest-novo='true'] dialog.largo {
+  width: min(1040px, calc(100vw - 48px));
+}
+html[data-quest-novo='true'] dialog::backdrop {
+  background: color-mix(in srgb, #000 55%, transparent);
+  backdrop-filter: none;
+}
+html[data-quest-novo='true'] dialog .dlg-cab {
+  align-items: center;
+  gap: 16px;
+  padding: 22px 24px 18px;
+  border-bottom-width: 1.5px;
+  background: none;
+}
+html[data-quest-novo='true'] dialog .dlg-cab h2 {
+  font: 900 26px/1.1 var(--font-display, inherit);
+  text-wrap: balance;
+}
+html[data-quest-novo='true'] dialog .dlg-cab .x {
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background: var(--canvas);
+  color: var(--ink);
+  transition:
+    transform var(--q-toque),
+    border-color var(--q-cor);
+}
+html[data-quest-novo='true'] dialog .dlg-cab .x svg {
+  width: 22px;
+  height: 22px;
+}
+html[data-quest-novo='true'] dialog .dlg-cab .x:hover {
+  border-color: var(--q-acento);
+  transform: scale(1.06);
+}
+html[data-quest-novo='true'] dialog .dlg-corpo {
+  padding: 20px 24px;
+}
+html[data-quest-novo='true'] dialog .dlg-pe {
+  gap: 12px;
+  padding: 16px 24px 22px;
+  border-top-width: 1.5px;
+  background: none;
+  flex-wrap: wrap;
+  border-radius: 0 0 24px 24px;
+}
+html[data-quest-novo='true'] dialog :is(button, a[href], select):not(.interruptor, .x, .q-interruptor) {
+  min-height: 56px;
+}
+
+/* ── A BUSCA (`BuscaGlobal`, a paleta de comandos): aberta pelo painel "Mais" ─────────────────────── */
+html[data-quest-novo='true'] dialog.paleta-cmd {
+  width: min(820px, calc(100vw - 48px));
+  margin-top: 6vh;
+  border-radius: 24px;
+}
+html[data-quest-novo='true'] .cmd-busca {
+  gap: 14px;
+  padding: 18px 22px;
+  border-bottom-width: 1.5px;
+}
+html[data-quest-novo='true'] .cmd-busca svg {
+  width: 24px;
+  height: 24px;
+}
+html[data-quest-novo='true'] .cmd-busca input {
+  min-height: 56px;
+  font: 600 20px/1.2 var(--font-body, inherit);
+}
+/* Sem teclado físico, as dicas de tecla não dizem nada: o rodapé e o "Esc" somem. */
+html[data-quest-novo='true'] :is(.cmd-pe, .cmd-busca kbd) {
+  display: none;
+}
+html[data-quest-novo='true'] .cmd-lista {
+  padding: 8px 12px 14px;
+}
+html[data-quest-novo='true'] .cmd-grupo {
+  padding: 14px 12px 8px;
+  font-size: 14px;
+  letter-spacing: 0.08em;
+}
+html[data-quest-novo='true'] .cmd-item {
+  min-height: 64px;
+  padding: 0 14px;
+  gap: 14px;
+  border: 2px solid transparent;
+  border-radius: 16px;
+  font-size: 18px;
+  transition:
+    transform var(--q-toque),
+    border-color var(--q-cor),
+    background-color var(--q-cor);
+}
+html[data-quest-novo='true'] .cmd-item:hover {
+  border-color: var(--q-acento);
+  background: color-mix(in srgb, var(--q-acento) 8%, transparent);
+}
+html[data-quest-novo='true'] .cmd-item.foco {
+  background: var(--q-suave);
+  box-shadow: none;
+  border-color: var(--q-acento);
+}
+html[data-quest-novo='true'] .cmd-ico {
+  width: 44px;
+  height: 44px;
+  border-radius: 13px;
+}
+html[data-quest-novo='true'] .cmd-ico svg {
+  width: 22px;
+  height: 22px;
+}
+html[data-quest-novo='true'] .cmd-item:hover .cmd-ico {
+  background: var(--q-acento);
+  color: var(--q-sobre-acento);
+}
+html[data-quest-novo='true'] .cmd-meta {
+  font-size: 15px;
+}
+html[data-quest-novo='true'] .cmd-enter svg {
+  width: 20px;
+  height: 20px;
+}
+html[data-quest-novo='true'] .cmd-vazio {
+  padding: 36px 20px;
+  font-size: 17px;
+}
+html[data-quest-novo='true'] .cmd-vazio b {
+  font-size: 22px;
+}
+
+/* ── O AVISO (`.toast`): no alto, ao centro, lido de longe ───────────────────────────────────────── */
+html[data-quest-novo='true'] .toast {
+  left: 50%;
+  right: auto;
+  top: 20px;
+  max-width: min(640px, calc(100vw - 48px));
+  padding: 14px 20px;
+  gap: 12px;
+  border-radius: 18px;
+  font: 700 17px/1.35 var(--font-body, inherit);
+  box-shadow: none;
+  transform: translate(-50%, -8px);
+}
+html[data-quest-novo='true'] .toast.on {
+  transform: translate(-50%, 0);
+}
+html[data-quest-novo='true'] .toast > svg {
+  width: 22px;
+  height: 22px;
+}
+html[data-quest-novo='true'] .toast small {
+  font-size: 14px !important;
+}
+html[data-quest-novo='true'] .toast .link {
+  min-height: 48px;
+  min-width: 48px;
+  padding: 0 10px;
+  justify-content: center;
+}
+html[data-quest-novo='true'] .toast .link svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* ── ROLAGEM: a barra larga o bastante para o raio pegar ─────────────────────────────────────────── */
+html[data-quest-novo='true'] :is(.tela, .q-palco, .q-mais, dialog, .rolagem)::-webkit-scrollbar {
+  width: 14px;
+  height: 14px;
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .q-mais, dialog, .rolagem)::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background: color-mix(in srgb, var(--ink) 34%, transparent);
+  background-clip: padding-box;
+}
+html[data-quest-novo='true'] :is(.tela, .q-palco, .q-mais, dialog, .rolagem)::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--q-acento) 70%, transparent);
+  background-clip: padding-box;
+}
+
+/* ── JANELA ESTREITA ──────────────────────────────────────────────────────────────────────────── */
+@media (max-width: 720px) {
+  html[data-quest-novo='true'] .tela {
+    padding: 18px 16px 22px;
+  }
+  html[data-quest-novo='true'] .tela .cab h1 {
+    font-size: 26px;
+  }
+  html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) :is(.g2, .g3) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .abas {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+  html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .aba {
+    padding: 0 16px;
+    font-size: 16px;
+  }
+  html[data-quest-novo='true'] dialog:not(.q-mais) {
+    width: calc(100vw - 20px);
+    max-height: calc(100vh - 20px);
+  }
+  html[data-quest-novo='true'] dialog .dlg-cab h2 {
+    font-size: 22px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-quest-novo='true']
+    :is(.tela, .q-palco, .quest-pronto, dialog)
+    :is(.btn, .pill, .aba, .seg button, .voltar, .ib, .cartao.clicavel),
+  html[data-quest-novo='true'] dialog .dlg-cab .x {
+    transition: none;
+  }
+  html[data-quest-novo='true']
+    :is(.tela, .q-palco, .quest-pronto, dialog)
+    :is(.btn, .pill, .aba, .voltar, .cartao.clicavel, .dlg-cab .x):hover {
+    transform: none;
+  }
+}

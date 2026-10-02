@@ -1,9 +1,11 @@
 import { Check, ChevronRight, SlidersHorizontal as SlidersIcon, X } from 'lucide-react';
 import { type ReactNode, useId, useRef } from 'react';
 
+import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { numero, t, tp } from '../../lib/i18n';
 import { DialogoBase } from '../ui/Dialogo';
 import IconeEmBloco from '../ui/IconeEmBloco';
+import { fecharPainelDe, OpcoesDoQuest, PainelDoQuest } from '../views/play/quest/pecasDoQuest';
 
 /**
  * O SELETOR DE CONTEÚDO — a faixa escura "Jogando com…" e a GAVETA "O que você vai praticar".
@@ -78,6 +80,60 @@ function SeletorDeConteudo({
   /* Fechar pela gaveta (Esc nativo, "x", "Pronto") sempre passa pelo `close` do `<dialog>`, e é
      ele que avisa a tela: um caminho só, sem o risco de alternar duas vezes. */
   const fechar = () => gaveta.current?.close();
+  const questNovo = useQuestNovo();
+
+  /* META QUEST: a mesma escolha, num painel que abre no centro (nada desliza pela lateral), com as
+     opções em pílulas grandes e o motivo de cada opção travada ESCRITO (não há hover no headset). A
+     faixa "Jogando com" continua a de sempre: no lobby do headset quem abre o painel é o chip da fonte. */
+  const painelDoQuest = () => (
+    <PainelDoQuest
+      largo
+      icone={SlidersIcon}
+      titulo={t('O que você vai praticar')}
+      sub={t('A escolha fica salva para as próximas rodadas.')}
+      aoFechar={aoAlternar}
+      classe="qj-fonte"
+      pe={
+        <>
+          <span className="qj-total tn" aria-live="polite">
+            <b>{numero(total)}</b> {t('no recorte')}
+            {avisoDeVazio && <span className="qj-total-aviso">{avisoDeVazio}</span>}
+          </span>
+          <button type="button" className="q-ctl" onClick={aoLimpar}>
+            {t('Limpar tudo')}
+          </button>
+          <button type="button" className="q-ctl pri" onClick={(e) => fecharPainelDe(e.currentTarget)}>
+            <Check aria-hidden /> {t('Pronto')}
+          </button>
+        </>
+      }
+    >
+      {facetasVisiveis.map((faceta) => (
+        <section key={faceta.id} className="q-secao" data-faceta={faceta.id}>
+          <header>
+            <div>
+              <h3>{faceta.rotulo}</h3>
+              {faceta.ajuda && <p>{faceta.ajuda}</p>}
+            </div>
+          </header>
+          <OpcoesDoQuest
+            rotulo={faceta.rotulo}
+            exclusiva={faceta.exclusiva}
+            opcoes={faceta.opcoes}
+            valor={faceta.valor}
+            aoTrocar={faceta.aoTrocar}
+          />
+        </section>
+      ))}
+      {acoes && (
+        <section className="q-cartao fundo">
+          <p className="q-rotulo">{t('Trazer ou gerenciar')}</p>
+          <div className="q-acoes">{acoes}</div>
+          {detalheDasAcoes}
+        </section>
+      )}
+    </PainelDoQuest>
+  );
 
   return (
     <div>
@@ -111,7 +167,8 @@ function SeletorDeConteudo({
         </section>
       )}
 
-      {aberta && (
+      {aberta && questNovo && painelDoQuest()}
+      {aberta && !questNovo && (
         <DialogoBase classe="gaveta" rotuloId={idTitulo} aoFechar={aoAlternar} refDialogo={gaveta}>
           <div className="dlg-cab">
             <IconeEmBloco icone={SlidersIcon} />

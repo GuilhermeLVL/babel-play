@@ -1,10 +1,16 @@
 import { Check, ChevronDown, Search, Sparkles } from 'lucide-react';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
+import { useQuestNovo } from '../lib/dispositivo/telaNovaDoQuest';
 import { langMatches, LANGUAGES } from '../lib/languages';
+import { lazyComRecarga } from '../lib/lazyComRecarga';
 import { usePosicaoFlutuante } from '../lib/posicaoFlutuante';
 import { LangFlag } from './LangFlag';
+
+/* A apresentação do headset (gatilho de 60 px e a lista num diálogo no centro). Por `import()`: este
+   seletor mora em várias telas, e só o Quest com as telas novas baixa o desenho e o CSS dele. */
+const SeletorDeIdiomaDoQuest = lazyComRecarga(() => import('./views/ajustes/quest/SeletorDeIdiomaDoQuest'));
 
 /**
  * SELETOR DE IDIOMA com bandeira NA LISTA.
@@ -65,6 +71,8 @@ export default function LangPicker({
   ariaLabel,
   className = '',
 }: LangPickerProps) {
+  // No Quest (telas novas ligadas) a lista abre num diálogo no centro; o estado é o mesmo daqui.
+  const questNovo = useQuestNovo();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [activeIdx, setActiveIdx] = useState(0);
@@ -91,7 +99,7 @@ export default function LangPicker({
    * posição mora em `lib/posicaoFlutuante`, compartilhada com os outros menus do app, porque este
    * defeito apareceu duas vezes em telas diferentes.
    */
-  const caixa = usePosicaoFlutuante(open, triggerRef, {
+  const caixa = usePosicaoFlutuante(open && !questNovo, triggerRef, {
     largura: block ? 'ancora' : 288, // 288 = w-72
     alturaEstimada: 300,
   });
@@ -141,7 +149,8 @@ export default function LangPicker({
 
   // Clique fora / perda de foco fecha (sem engolir cliques dentro do popup).
   useEffect(() => {
-    if (!open) return;
+    // No Quest quem fecha é o próprio diálogo (o X, o Esc): não há "clique fora" a vigiar.
+    if (!open || questNovo) return;
     const onDown = (e: MouseEvent) => {
       const alvo = e.target as Node;
       // O popup vive no `body`, então NÃO é descendente da raiz: sem checá-lo também, clicar
@@ -151,7 +160,7 @@ export default function LangPicker({
     };
     document.addEventListener('mousedown', onDown);
     return () => document.removeEventListener('mousedown', onDown);
-  }, [open]);
+  }, [open, questNovo]);
 
   const choose = (opt: { key: string; code?: string; isAuto?: boolean }) => {
     onPick(opt.isAuto ? { auto: true } : { auto: false, code: opt.code });
@@ -199,6 +208,32 @@ export default function LangPicker({
       if (opt) choose(opt);
     }
   };
+
+  if (questNovo)
+    return (
+      <Suspense
+        fallback={<span aria-hidden className={block ? 'block w-full' : 'inline-block'} style={{ minHeight: 60 }} />}
+      >
+        <SeletorDeIdiomaDoQuest
+          id={id}
+          ariaLabel={ariaLabel}
+          block={block}
+          accent={accent}
+          auto={auto}
+          value={value}
+          rotuloEscolhido={selectedLabel}
+          chaveEscolhida={selectedKey}
+          aberto={open}
+          aoAbrir={() => setOpen(true)}
+          aoFechar={() => setOpen(false)}
+          busca={query}
+          aoBuscar={setQuery}
+          opcoes={options}
+          aoEscolher={choose}
+          className={className}
+        />
+      </Suspense>
+    );
 
   return (
     <div ref={rootRef} className={`relative ${block ? 'w-full' : 'inline-block'} ${className}`}>

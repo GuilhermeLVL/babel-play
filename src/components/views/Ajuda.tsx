@@ -2,9 +2,11 @@ import { BookOpen, Cpu, Github, Keyboard, LifeBuoy, Mail, MessageCircle, Mic, Se
 import React, { useEffect, useMemo, useState } from 'react';
 
 import { CRIADOR, preenchido } from '../../lib/criador';
+import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import GuidePanel from '../GuidePanel';
 import { CabecalhoDeTela, Dialogo, IconeEmBloco, Tela, TituloDeSecao } from '../ui';
+import AjudaDoQuest from './ajuda/quest/AjudaDoQuest';
 
 /**
  * AJUDA E SUPORTE — a tela do protótipo aprovado (`T.ajuda`).
@@ -49,6 +51,7 @@ function LinhaDeAtalho({ teclas, desc }: { teclas: string[]; desc: string }) {
 type Status = 'verificando' | 'ok' | 'problema';
 
 export default function Ajuda() {
+  const questNovo = useQuestNovo();
   const [guiaAberto, setGuiaAberto] = useState(false);
   const [atalhosAbertos, setAtalhosAbertos] = useState(false);
   const [busca, setBusca] = useState('');
@@ -77,6 +80,50 @@ export default function Ajuda() {
     { href: CRIADOR.email, rotulo: 'E-mail', Icone: Mail },
     { href: CRIADOR.github, rotulo: 'GitHub', Icone: Github },
   ].filter((c) => preenchido(c.href));
+
+  /* O guia rápido e o diálogo de atalhos: os mesmos na tela de sempre e na do headset. */
+  const dialogos = (
+    <>
+      {guiaAberto && <GuidePanel onClose={() => setGuiaAberto(false)} sub="Seis coisas que dá para fazer no app." />}
+      {atalhosAbertos && (
+        <Dialogo
+          icone={Keyboard}
+          titulo="Atalhos de teclado"
+          sub="Funcionam em qualquer tela, fora de campos de texto."
+          largura=""
+          aoFechar={() => setAtalhosAbertos(false)}
+        >
+          <div className="dlg-corpo">
+            {ATALHOS.map(([teclas, desc]) => (
+              <LinhaDeAtalho key={desc} teclas={teclas} desc={desc} />
+            ))}
+          </div>
+        </Dialogo>
+      )}
+    </>
+  );
+
+  /* QUEST: a mesma busca, os mesmos artigos e canais, numa janela só (`AjudaDoQuest`). */
+  if (questNovo)
+    return (
+      <>
+        <AjudaDoQuest
+          busca={busca}
+          aoBuscar={setBusca}
+          artigos={artigos}
+          canais={canais.map(({ href, rotulo, Icone }) => ({
+            rotulo,
+            Icone,
+            href: href.includes('@') && !href.startsWith('http') ? `mailto:${href}` : href,
+            externo: href.startsWith('http'),
+          }))}
+          estado={semServidor ? null : status}
+          aoAbrirGuia={() => setGuiaAberto(true)}
+          aoAbrirAtalhos={() => setAtalhosAbertos(true)}
+        />
+        {dialogos}
+      </>
+    );
 
   return (
     <Tela largura="estreita">
@@ -191,22 +238,7 @@ export default function Ajuda() {
         </section>
       )}
 
-      {guiaAberto && <GuidePanel onClose={() => setGuiaAberto(false)} sub="Seis coisas que dá para fazer no app." />}
-      {atalhosAbertos && (
-        <Dialogo
-          icone={Keyboard}
-          titulo="Atalhos de teclado"
-          sub="Funcionam em qualquer tela, fora de campos de texto."
-          largura=""
-          aoFechar={() => setAtalhosAbertos(false)}
-        >
-          <div className="dlg-corpo">
-            {ATALHOS.map(([teclas, desc]) => (
-              <LinhaDeAtalho key={desc} teclas={teclas} desc={desc} />
-            ))}
-          </div>
-        </Dialogo>
-      )}
+      {dialogos}
     </Tela>
   );
 }

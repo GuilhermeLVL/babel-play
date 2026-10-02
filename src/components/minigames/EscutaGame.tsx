@@ -5,11 +5,13 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { celebrar } from '../../lib/comemoracao';
 import { criarFalante } from '../../lib/falante';
+import { t } from '../../lib/i18n';
 import { multiplicador, pontosDoElemento } from '../../lib/juice';
 import type { AgeProfileType } from '../../lib/profile';
 import { botaoDaAlternativa, useAtalhosDasAlternativas } from './casca/atalhos';
 import { useRodada } from './casca/CascaDaRodada';
 import HudDaRodada from './casca/HudDaRodada';
+import { SemVozNoQuest, useQuestNovo, useVozNoJogo, VereditoNoQuest } from './noQuest';
 
 /**
  * QUAL FOI? — ouvir um trecho real e escolher a legenda certa.
@@ -44,9 +46,15 @@ export default function EscutaGame({ rodadas, audioUrl, ageProfile: _ageProfile,
 
   const rodada = rodadas[indice];
 
+  /* NO QUEST o som é o clipe da gravação ou, sem ela, a voz do site, que só lê alguns idiomas. Sem
+     nenhum dos dois o botão de ouvir não aparece: a rodada segue pela tradução escrita. */
+  const questNovo = useQuestNovo();
+  const haVoz = useVozNoJogo(rodada?.correta.lang);
+  const temSom = !!audioUrl || haVoz;
+
   const falante = useMemo(() => criarFalante(audioRef, audioUrl), [audioUrl]);
   const ouvir = (velocidade = 1) => {
-    if (!rodada || !falante.disponivel) return;
+    if (!rodada || !falante.disponivel || !temSom) return;
     falante.ouvir(
       {
         texto: rodada.correta.text,
@@ -166,29 +174,49 @@ export default function EscutaGame({ rodadas, audioUrl, ageProfile: _ageProfile,
         rotulo={`Fala ${indice + 1} de ${rodadas.length}`}
         progresso={indice / rodadas.length}
       />
-      <div ref={palcoRef} className="w-full max-w-2xl mx-auto flex flex-col items-center gap-6">
+      <div ref={palcoRef} data-qj="escuta" className="w-full max-w-2xl mx-auto flex flex-col items-center gap-6">
         {/* O BOTÃO DE OUVIR é o centro da tela: é o que a pessoa veio fazer aqui. */}
-        <div className="flex items-center gap-3">
-          <button
-            data-tour="ouvir"
-            onClick={() => ouvir(1)}
-            className={`py-4 px-8 rounded-2xl bg-accent hover:bg-accent-ink text-white font-bold text-[15px] shadow-btn cursor-pointer flex items-center gap-2.5 transition-transform ${
-              tocando ? 'scale-105' : ''
-            }`}
-          >
-            {tocando ? <RotateCcw className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5" />}
-            {tocando ? 'tocando…' : 'Ouvir de novo'}
-          </button>
-          <button
-            data-tour="devagar"
-            onClick={() => ouvir(0.6)}
-            className="py-4 px-4 rounded-2xl bg-canvas border border-border-subtle text-ink-muted hover:text-ink hover:border-accent font-bold text-[13px] cursor-pointer flex items-center gap-1.5"
-            title="Toca mais devagar, sem mudar o tom da voz"
-          >
-            <Turtle className="w-4 h-4" /> devagar
-          </button>
-        </div>
-        <p className="text-[12px] text-ink-faint">Ouça quantas vezes quiser, isso não tira ponto.</p>
+        {!temSom ? (
+          <div data-qp="sem-som">
+            <SemVozNoQuest idioma={rodada.correta.lang} />
+            {rodada.correta.translation ? (
+              <>
+                <p data-qp="apoio">{t('Escolha a fala que quer dizer:')}</p>
+                <p data-qp="enunciado">{rodada.correta.translation}</p>
+              </>
+            ) : (
+              <p data-qp="apoio">{t('Sem som e sem tradução, esta fala fica no palpite. Escolha uma para seguir.')}</p>
+            )}
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center gap-3" data-qp="acoes">
+              <button
+                data-tour="ouvir"
+                data-qp="acao-pri"
+                onClick={() => ouvir(1)}
+                className={`py-4 px-8 rounded-2xl bg-accent hover:bg-accent-ink text-white font-bold text-[15px] shadow-btn cursor-pointer flex items-center gap-2.5 transition-transform ${
+                  tocando ? 'scale-105' : ''
+                }`}
+              >
+                {tocando ? <RotateCcw className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5" />}
+                {tocando ? 'tocando…' : 'Ouvir de novo'}
+              </button>
+              <button
+                data-tour="devagar"
+                data-qp="acao"
+                onClick={() => ouvir(0.6)}
+                className="py-4 px-4 rounded-2xl bg-canvas border border-border-subtle text-ink-muted hover:text-ink hover:border-accent font-bold text-[13px] cursor-pointer flex items-center gap-1.5"
+                title="Toca mais devagar, sem mudar o tom da voz"
+              >
+                <Turtle className="w-4 h-4" /> devagar
+              </button>
+            </div>
+            <p className="text-[12px] text-ink-faint" data-qp="apoio">
+              Ouça quantas vezes quiser, isso não tira ponto.
+            </p>
+          </>
+        )}
 
         {/* AS ALTERNATIVAS */}
         <div data-tour="alternativas" className="w-full flex flex-col gap-2">
@@ -218,8 +246,15 @@ export default function EscutaGame({ rodadas, audioUrl, ageProfile: _ageProfile,
           })}
         </div>
 
+        {/* No headset o veredito também vem escrito: a cor sozinha não conta. */}
+        {questNovo && escolhido !== null && (
+          <VereditoNoQuest certo={escolhido === rodada.correta.id}>
+            {escolhido === rodada.correta.id ? t('Certo!') : t('Não era essa. A certa está marcada.')}
+          </VereditoNoQuest>
+        )}
+
         {/* A tradução só aparece DEPOIS: antes, ela entregaria a resposta. */}
-        {escolhido !== null && rodada.correta.translation && (
+        {escolhido !== null && temSom && rodada.correta.translation && (
           <p className="text-[13px] text-ink-muted text-center animate-in fade-in">{rodada.correta.translation}</p>
         )}
       </div>

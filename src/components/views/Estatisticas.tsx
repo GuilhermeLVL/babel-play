@@ -24,10 +24,13 @@ import React, { type ReactNode, useEffect, useMemo, useState } from 'react';
 
 import type { AppMetrics } from '../../data/api';
 import { type ExerciseResultRow, fetchDeck, fetchExerciseResults } from '../../data/api';
+import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
+import { t, tp } from '../../lib/i18n';
 import { usePreferencias } from '../../lib/preferencias';
 import type { VocabCard } from '../../types';
 import { CabecalhoDeTela, Tela } from '../ui';
 import MetaDeNivel from './estatisticas/MetaDeNivel';
+import EstatisticasDoQuest, { type PainelDoQuest } from './estatisticas/quest/EstatisticasDoQuest';
 
 /**
  * ESTATÍSTICAS — a tela do protótipo aprovado (`T.estatisticas`), sobre dado REAL.
@@ -134,6 +137,7 @@ function GraficoDeBarras<T>({
   unidade,
   altura = 180,
   meta,
+  q,
 }: {
   rotuloDoGrafico: string;
   dados: T[];
@@ -143,17 +147,27 @@ function GraficoDeBarras<T>({
   altura?: number;
   /** A meta (a linha tracejada); a barra que a alcança fica mais escura. */
   meta?: number;
+  /**
+   * No headset: a largura medida da caixa, em px. O desenho passa a valer 1 unidade = 1 px (rótulo de
+   * 14 px de verdade), com margens maiores e o valor escrito em cima da barra, porque lá não há hover.
+   */
+  q?: number;
 }) {
-  const W = 480,
-    H = Math.round(altura * 0.8),
-    m = { t: 14, r: 6, b: 24, l: 30 },
+  const W = q ?? 480,
+    H = q ? 210 : Math.round(altura * 0.8),
+    m = q ? { t: 28, r: 8, b: 34, l: 46 } : { t: 14, r: 6, b: 24, l: 30 },
     iw = W - m.l - m.r,
     ih = H - m.t - m.b;
   const max = Math.max(1, meta ?? 0, ...dados.map(valor)) * 1.15;
   const bw = iw / Math.max(1, dados.length),
-    gap = Math.min(6, bw * 0.28);
+    gap = Math.min(q ? 10 : 6, bw * 0.28);
   const y = (v: number) => m.t + ih - (v / max) * ih;
-  const passo = Math.ceil(dados.length / 7);
+  // No headset cabe um rótulo a cada ~76 px; com mais de 7 barras o rótulo é a data, não o dia da semana.
+  const passo = q ? Math.ceil(dados.length / Math.max(2, Math.floor(iw / 76))) : Math.ceil(dados.length / 7);
+  const rotuloDoEixo = (d: T) => {
+    const partes = rotulo(d).split(' · ');
+    return partes[q && dados.length > 7 ? partes.length - 1 : 0];
+  };
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="grafico-svg" role="img" aria-label={rotuloDoGrafico}>
       {[0, 0.5, 1].map((f) => {
@@ -161,7 +175,7 @@ function GraficoDeBarras<T>({
         return (
           <g key={f}>
             <line x1={m.l} x2={W - m.r} y1={y(v)} y2={y(v)} className="g-grade" />
-            <text x={m.l - 6} y={y(v) + 4} className="g-eixo" textAnchor="end">
+            <text x={m.l - (q ? 10 : 6)} y={y(v) + (q ? 5 : 4)} className="g-eixo" textAnchor="end">
               {v}
             </text>
           </g>
@@ -184,9 +198,15 @@ function GraficoDeBarras<T>({
                 style={meta ? undefined : { fill: 'var(--accent)' }}
               />
             )}
+            {/* Poucas barras no headset: o valor vai escrito em cima (lá a dica do hover não existe). */}
+            {q && dados.length <= 14 && v > 0 && (
+              <text x={x + w / 2} y={y(v) - 7} className="g-eixo forte" textAnchor="middle">
+                {v}
+              </text>
+            )}
             {i % passo === 0 && (
-              <text x={x + w / 2} y={H - 8} className="g-eixo" textAnchor="middle">
-                {rotulo(d).split(' · ')[0]}
+              <text x={x + w / 2} y={H - (q ? 10 : 8)} className="g-eixo" textAnchor="middle">
+                {rotuloDoEixo(d)}
               </text>
             )}
           </g>
@@ -204,10 +224,10 @@ function GraficoDeBarras<T>({
   );
 }
 
-function GraficoDeLinha({ dados }: { dados: Dia[] }) {
-  const W = 480,
-    H = 170,
-    m = { t: 22, r: 10, b: 24, l: 34 },
+function GraficoDeLinha({ dados, q }: { dados: Dia[]; /** No headset: a largura medida, em px. */ q?: number }) {
+  const W = q ?? 480,
+    H = q ? 210 : 170,
+    m = q ? { t: 30, r: 14, b: 34, l: 54 } : { t: 22, r: 10, b: 24, l: 34 },
     iw = W - m.l - m.r,
     ih = H - m.t - m.b;
   const vs = dados.map((d) => d.total);
@@ -217,7 +237,7 @@ function GraficoDeLinha({ dados }: { dados: Dia[] }) {
   const x = (i: number) => m.l + (i / Math.max(1, dados.length - 1)) * iw,
     y = (v: number) => m.t + ih - ((v - min) / faixa) * ih;
   const pts = dados.map((d, i) => `${x(i).toFixed(1)},${y(d.total).toFixed(1)}`);
-  const passo = Math.ceil(dados.length / 5);
+  const passo = q ? Math.ceil(dados.length / Math.max(2, Math.floor(iw / 96))) : Math.ceil(dados.length / 5);
   const ultimo = vs[vs.length - 1];
   return (
     <svg
@@ -229,7 +249,7 @@ function GraficoDeLinha({ dados }: { dados: Dia[] }) {
       {[min, (min + max) / 2, max].map((v, k) => (
         <g key={k}>
           <line x1={m.l} x2={W - m.r} y1={y(v)} y2={y(v)} className="g-grade" />
-          <text x={m.l - 6} y={y(v) + 4} className="g-eixo" textAnchor="end">
+          <text x={m.l - (q ? 10 : 6)} y={y(v) + (q ? 5 : 4)} className="g-eixo" textAnchor="end">
             {Math.round(v)}
           </text>
         </g>
@@ -239,8 +259,13 @@ function GraficoDeLinha({ dados }: { dados: Dia[] }) {
         className="g-area"
       />
       <polyline points={pts.join(' ')} className="g-linha" />
-      <circle cx={x(dados.length - 1)} cy={y(ultimo)} r="5" className="g-ponto" />
-      <text x={x(dados.length - 1) - 8} y={y(ultimo) - 10} className="g-eixo forte" textAnchor="end">
+      <circle cx={x(dados.length - 1)} cy={y(ultimo)} r={q ? '7' : '5'} className="g-ponto" />
+      <text
+        x={x(dados.length - 1) - (q ? 12 : 8)}
+        y={y(ultimo) - (q ? 13 : 10)}
+        className="g-eixo forte"
+        textAnchor="end"
+      >
         {ultimo} palavras
       </text>
       {dados.map((d, i) => (
@@ -251,7 +276,7 @@ function GraficoDeLinha({ dados }: { dados: Dia[] }) {
       ))}
       {dados.map((d, i) =>
         i % passo === 0 ? (
-          <text key={`e${i}`} x={x(i)} y={H - 8} className="g-eixo" textAnchor="middle">
+          <text key={`e${i}`} x={x(i)} y={H - (q ? 10 : 8)} className="g-eixo" textAnchor="middle">
             {fmtD(d.d)}
           </text>
         ) : null,
@@ -260,27 +285,29 @@ function GraficoDeLinha({ dados }: { dados: Dia[] }) {
   );
 }
 
-function Calendario({ dias }: { dias: Dia[] }) {
+function Calendario({ dias, q }: { dias: Dia[]; /** No headset: células de 22 px, 1 unidade = 1 px. */ q?: boolean }) {
   const ult = dias.slice(-84),
-    cel = 14,
-    g = 3,
+    cel = q ? 22 : 14,
+    g = q ? 4 : 3,
+    esq = q ? 46 : 34,
+    topo = q ? 24 : 18,
     ini = ult[0].d.getDay();
   const nivel = (m: number) => (m === 0 ? 0 : m < 8 ? 1 : m < 15 ? 2 : m < 22 ? 3 : 4);
   const semanas = Math.ceil((ult.length + ini) / 7);
-  const W = 34 + semanas * (cel + g),
-    H = 7 * (cel + g) + 22;
+  const W = esq + semanas * (cel + g),
+    H = 7 * (cel + g) + topo + 4;
   let mesAnterior = -1;
   return (
     <>
       <svg
         viewBox={`0 0 ${W} ${H}`}
-        style={{ maxWidth: Math.round(W * 1.35) }}
+        style={q ? { width: W, maxWidth: '100%' } : { maxWidth: Math.round(W * 1.35) }}
         className="grafico-svg cal"
         role="img"
         aria-label="Calendário de atividade das últimas 12 semanas"
       >
         {['seg', 'qua', 'sex'].map((t, k) => (
-          <text key={t} x="0" y={22 + (k * 2 + 1) * (cel + g) + cel - 3} className="g-eixo">
+          <text key={t} x="0" y={topo + 4 + (k * 2 + 1) * (cel + g) + cel - (q ? 9 : 3)} className="g-eixo">
             {t}
           </text>
         ))}
@@ -291,11 +318,11 @@ function Calendario({ dias }: { dias: Dia[] }) {
           return (
             <rect
               key={i}
-              x={34 + c * (cel + g)}
-              y={18 + r * (cel + g)}
+              x={esq + c * (cel + g)}
+              y={topo + r * (cel + g)}
               width={cel}
               height={cel}
-              rx="3"
+              rx={q ? '5' : '3'}
               className={`g-cel n${nivel(x.min)}`}
             >
               <title>{`${DIA_SEM[x.d.getDay()]}, ${fmtD(x.d)}: ${x.min ? `${x.min} min` : x.respostas ? 'menos de 1 min' : 'sem estudo'}`}</title>
@@ -307,7 +334,7 @@ function Calendario({ dias }: { dias: Dia[] }) {
           if (!d || d.d.getMonth() === mesAnterior) return null;
           mesAnterior = d.d.getMonth();
           return (
-            <text key={`m${c}`} x={34 + c * (cel + g)} y="10" className="g-eixo">
+            <text key={`m${c}`} x={esq + c * (cel + g)} y={q ? '14' : '10'} className="g-eixo">
               {MES[d.d.getMonth()]}
             </text>
           );
@@ -440,6 +467,9 @@ export default function Estatisticas({ metrics, onChangeView }: EstatisticasProp
   const [cartoes, setCartoes] = useState<VocabCard[] | null>(null);
   const [menuExportar, setMenuExportar] = useState(false);
   const { metaMin } = usePreferencias();
+  /* No Meta Quest com as telas novas, a mesma tela em outro arranjo (`EstatisticasDoQuest`): os dados,
+     o período e as ações são os daqui. */
+  const questNovo = useQuestNovo();
   // O menu fecha no clique fora e no Esc, como o `.menu-midia` do protótipo.
   useEffect(() => {
     if (!menuExportar) return;
@@ -585,7 +615,24 @@ export default function Estatisticas({ metrics, onChangeView }: EstatisticasProp
     </>
   );
 
+  const imprimir = () => window.setTimeout(() => window.print(), 50);
+
   if (!dias) {
+    if (questNovo)
+      return (
+        <EstatisticasDoQuest
+          carregando
+          periodo={periodo}
+          aoTrocarPeriodo={setPeriodo}
+          intervalo={null}
+          kpis={[]}
+          paineis={[]}
+          semEstudo={false}
+          aoExportarCsv={exportarCsv}
+          aoImprimir={imprimir}
+          aoPraticar={() => onChangeView('play')}
+        />
+      );
     return (
       <Tela largura="larga">
         {cabecalho}
@@ -668,6 +715,139 @@ export default function Estatisticas({ metrics, onChangeView }: EstatisticasProp
   const pico = previsao.reduce((m, x) => (x.n > m.n ? x : m), previsao[0] ?? { d: new Date(), n: 0 });
   const maisFraco = acertoPorJogo[acertoPorJogo.length - 1];
 
+  /* As linhas das tabelas equivalentes: as mesmas na tela de sempre e na do headset. */
+  const linhasDeMinutos: (string | number)[][] = agrupado.map((d) => [d.rotulo.replace(' · ', ', '), d.min]);
+  const linhasDoCaderno: (string | number)[][] = at.map((d) => [fmtD(d.d), d.total, d.novas ? `+${d.novas}` : '—']);
+  const linhasDoCalendario: (string | number)[][] = dias
+    .slice(-84)
+    .map((d) => [`${DIA_SEM[d.d.getDay()]}, ${fmtD(d.d)}`, d.min || (d.respostas ? '< 1' : '—')]);
+  const linhasDaPrevisao: (string | number)[][] = previsao.map((d) => [`${DIA_SEM[d.d.getDay()]}, ${fmtD(d.d)}`, d.n]);
+  const linhasDosJogos: (string | number)[][] = acertoPorJogo.map(([r, v]) => [r, `${v}%`]);
+
+  if (questNovo) {
+    const paineis: PainelDoQuest[] = [
+      {
+        id: 'minutos',
+        Icone: Clock,
+        aba: t('Minutos'),
+        titulo: periodo === 90 ? t('Minutos por semana') : t('Minutos por dia'),
+        desc:
+          periodo === 90
+            ? t(
+                'A linha tracejada é a sua meta de {n} min por dia, vezes 7 na semana. Barras mais escuras bateram a meta.',
+                {
+                  n: metaMin,
+                },
+              )
+            : t('A linha tracejada é a sua meta de {n} min por dia. Barras mais escuras bateram a meta.', {
+                n: metaMin,
+              }),
+        grafico: (largura) => (
+          <GraficoDeBarras
+            rotuloDoGrafico="Minutos de estudo"
+            dados={agrupado}
+            rotulo={(d) => d.rotulo}
+            valor={(d) => d.min}
+            unidade="min"
+            meta={periodo === 90 ? metaMin * 7 : metaMin}
+            q={largura}
+          />
+        ),
+        cab: [t('Data'), t('Minutos')],
+        linhas: linhasDeMinutos,
+      },
+      {
+        id: 'vocab',
+        Icone: BookOpen,
+        aba: t('Palavras'),
+        titulo: t('Palavras no caderno'),
+        desc: t('O total acumulado. Cada degrau é um dia com palavras novas.'),
+        grafico: (largura) => <GraficoDeLinha dados={at} q={largura} />,
+        cab: [t('Data'), t('Total'), t('Novas')],
+        linhas: linhasDoCaderno,
+      },
+      {
+        id: 'calendario',
+        Icone: CalendarDays,
+        aba: t('Calendário'),
+        titulo: t('Calendário de atividade'),
+        desc: t('Últimas 12 semanas. Quanto mais escuro, mais minutos no dia.'),
+        grafico: () => <Calendario dias={dias} q />,
+        cab: [t('Data'), t('Minutos')],
+        linhas: linhasDoCalendario,
+      },
+      {
+        id: 'previsao',
+        Icone: CalendarClock,
+        aba: t('Revisões'),
+        titulo: t('Revisões nos próximos 7 dias'),
+        desc: t('Quantas palavras voltam para revisão em cada dia, pela repetição espaçada.'),
+        grafico: (largura) => (
+          <GraficoDeBarras
+            rotuloDoGrafico="Previsão de revisões"
+            dados={previsao}
+            rotulo={(d) => `${DIA_SEM[d.d.getDay()]} · ${fmtD(d.d)}`}
+            valor={(d) => d.n}
+            unidade="palavras"
+            q={largura}
+          />
+        ),
+        cab: [t('Dia'), t('Palavras')],
+        linhas: linhasDaPrevisao,
+        nota:
+          pico.n > 0
+            ? tp(
+                pico.n,
+                'Pico na {dia}: {n} palavra. Revisar um pouco antes suaviza a semana.',
+                'Pico na {dia}: {n} palavras. Revisar um pouco antes suaviza a semana.',
+                { dia: DIA_SEM[pico.d.getDay()] },
+              )
+            : undefined,
+      },
+      {
+        id: 'jogos',
+        Icone: Gamepad2,
+        aba: t('Jogos'),
+        titulo: t('Acerto por jogo'),
+        desc: t('Onde você vai melhor e onde vale praticar mais.'),
+        grafico: () => <BarrasHorizontais dados={acertoPorJogo} unidade="%" max={100} />,
+        vazio: acertoPorJogo.length ? undefined : t('Nenhuma rodada registrada ainda.'),
+        cab: [t('Jogo'), t('Acerto')],
+        linhas: linhasDosJogos,
+        nota: maisFraco ? t('Mais fraco: {jogo}.', { jogo: maisFraco[0] }) : undefined,
+        acao: maisFraco ? { rotulo: t('Praticar agora'), aoTocar: () => onChangeView('play') } : undefined,
+      },
+      {
+        id: 'niveis',
+        Icone: GraduationCap,
+        aba: t('Níveis'),
+        titulo: t('Palavras por nível'),
+        desc: t('Nível CEFR das palavras do seu caderno (estimativa quando fora da lista curada).'),
+        grafico: () => (
+          <BarrasHorizontais dados={porNivel} unidade="palavras" max={Math.max(...porNivel.map(([, n]) => n))} />
+        ),
+        vazio: porNivel.length ? undefined : t('Sem palavras no caderno ainda.'),
+        cab: [t('Nível'), t('Palavras')],
+        linhas: porNivel,
+      },
+      { id: 'meta', Icone: Target, aba: t('Meta'), conteudo: <MetaDeNivel metrics={metrics} /> },
+    ];
+    return (
+      <EstatisticasDoQuest
+        carregando={false}
+        periodo={periodo}
+        aoTrocarPeriodo={setPeriodo}
+        intervalo={`${fmtD(dias[90 - periodo].d)} a ${fmtD(dias[89].d)} de ${dias[89].d.getFullYear()}`}
+        kpis={kpis.map(([Icone, rotulo, valor, variacao, sub, un]) => ({ Icone, rotulo, valor, variacao, sub, un }))}
+        paineis={paineis}
+        semEstudo={dias[89].total === 0 && dias.every((d) => d.respostas === 0)}
+        aoExportarCsv={exportarCsv}
+        aoImprimir={imprimir}
+        aoPraticar={() => onChangeView('play')}
+      />
+    );
+  }
+
   return (
     <Tela largura="larga">
       {cabecalho}
@@ -701,9 +881,7 @@ export default function Estatisticas({ metrics, onChangeView }: EstatisticasProp
               meta={periodo === 90 ? metaMin * 7 : metaMin}
             />
           }
-          tabela={
-            <Tabela cab={['Data', 'Minutos']} linhas={agrupado.map((d) => [d.rotulo.replace(' · ', ', '), d.min])} />
-          }
+          tabela={<Tabela cab={['Data', 'Minutos']} linhas={linhasDeMinutos} />}
         />
         <CartaoDeGrafico
           id="vocab"
@@ -711,12 +889,7 @@ export default function Estatisticas({ metrics, onChangeView }: EstatisticasProp
           titulo="Palavras no caderno"
           desc="O total acumulado. Cada degrau é um dia com palavras novas."
           grafico={<GraficoDeLinha dados={at} />}
-          tabela={
-            <Tabela
-              cab={['Data', 'Total', 'Novas']}
-              linhas={at.map((d) => [fmtD(d.d), d.total, d.novas ? `+${d.novas}` : '—'])}
-            />
-          }
+          tabela={<Tabela cab={['Data', 'Total', 'Novas']} linhas={linhasDoCaderno} />}
         />
         <CartaoDeGrafico
           id="calendario"
@@ -724,14 +897,7 @@ export default function Estatisticas({ metrics, onChangeView }: EstatisticasProp
           titulo="Calendário de atividade"
           desc="Últimas 12 semanas. Quanto mais escuro, mais minutos no dia."
           grafico={<Calendario dias={dias} />}
-          tabela={
-            <Tabela
-              cab={['Data', 'Minutos']}
-              linhas={dias
-                .slice(-84)
-                .map((d) => [`${DIA_SEM[d.d.getDay()]}, ${fmtD(d.d)}`, d.min || (d.respostas ? '< 1' : '—')])}
-            />
-          }
+          tabela={<Tabela cab={['Data', 'Minutos']} linhas={linhasDoCalendario} />}
         />
         <CartaoDeGrafico
           id="previsao"
@@ -748,12 +914,7 @@ export default function Estatisticas({ metrics, onChangeView }: EstatisticasProp
               altura={160}
             />
           }
-          tabela={
-            <Tabela
-              cab={['Dia', 'Palavras']}
-              linhas={previsao.map((d) => [`${DIA_SEM[d.d.getDay()]}, ${fmtD(d.d)}`, d.n])}
-            />
-          }
+          tabela={<Tabela cab={['Dia', 'Palavras']} linhas={linhasDaPrevisao} />}
           extra={
             pico.n > 0 ? (
               <p className="mut" style={{ fontSize: 12.5, marginTop: 8 }}>
@@ -776,7 +937,7 @@ export default function Estatisticas({ metrics, onChangeView }: EstatisticasProp
               <p className="mut">Nenhuma rodada registrada ainda.</p>
             )
           }
-          tabela={<Tabela cab={['Jogo', 'Acerto']} linhas={acertoPorJogo.map(([r, v]) => [r, `${v}%`])} />}
+          tabela={<Tabela cab={['Jogo', 'Acerto']} linhas={linhasDosJogos} />}
           extra={
             maisFraco ? (
               <p className="mut" style={{ fontSize: 12.5, marginTop: 10 }}>

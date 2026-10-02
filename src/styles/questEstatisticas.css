@@ -1,0 +1,186 @@
+/*
+ * ESTATÍSTICAS NO META QUEST (segunda rodada do desenho do headset, 01/10/2026).
+ *
+ * Só vale com `<html data-quest-novo="true">`. As peças comuns (`.q-palco`, `.q-cab`, `.q-abas`, `.q-num`,
+ * `.q-cartao`, `.q-tabela`, `.q-aviso`…) moram em `quest.css`; aqui fica só o que é desta tela: a fileira
+ * de cinco números, o painel de um gráfico por vez e as medidas dos gráficos em SVG.
+ *
+ * Os gráficos são desenhados na largura medida da caixa (1 unidade = 1 px): o rótulo tem 14 px de
+ * verdade na janela padrão (1280 × 670) e na mínima (500 × 495), e os traços são mais grossos.
+ */
+
+/* "Exportar" fica sobre o fundo da tela: ganha superfície e borda para ler como botão. */
+html[data-quest-novo='true'] .qe .q-cab .q-ctl {
+  background: var(--surface);
+  border-color: var(--border-subtle);
+}
+html[data-quest-novo='true'] .qe .q-cab .q-ctl:hover {
+  border-color: var(--q-acento);
+}
+
+/* ── Os cinco números do período ──────────────────────────────────────────────────────────────── */
+html[data-quest-novo='true'] .qe-kpis {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 16px;
+}
+html[data-quest-novo='true'] .qe-kpi {
+  padding: 14px 16px;
+  gap: 6px;
+  align-content: start;
+}
+html[data-quest-novo='true'] .qe-kpi .q-rotulo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font: 700 14px/1.15 var(--font-mono, monospace);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+html[data-quest-novo='true'] .qe-kpi .q-rotulo svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+html[data-quest-novo='true'] .qe-kpi b {
+  font-size: 30px;
+}
+html[data-quest-novo='true'] .qe-kpi .q-delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: 700 14px/1.2 var(--font-body, inherit);
+}
+html[data-quest-novo='true'] .qe-kpi .q-delta span {
+  font: inherit;
+  color: inherit;
+}
+html[data-quest-novo='true'] .qe-kpi .q-delta svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+/* ── Um gráfico por vez ───────────────────────────────────────────────────────────────────────── */
+html[data-quest-novo='true'] .qe-painel {
+  gap: 16px;
+}
+html[data-quest-novo='true'] .qe-grafico {
+  min-width: 0;
+}
+html[data-quest-novo='true'] .qe .grafico-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+html[data-quest-novo='true'] .qe .g-eixo {
+  font: 600 14px var(--font-body, inherit);
+}
+html[data-quest-novo='true'] .qe .g-eixo.forte {
+  font-weight: 800;
+}
+html[data-quest-novo='true'] .qe .g-grade {
+  stroke-width: 1.5;
+}
+html[data-quest-novo='true'] .qe .g-meta {
+  stroke-width: 2.5;
+  stroke-dasharray: 8 6;
+}
+html[data-quest-novo='true'] .qe .g-linha {
+  stroke-width: 4;
+}
+html[data-quest-novo='true'] .qe .g-ponto {
+  stroke-width: 3;
+}
+html[data-quest-novo='true'] .qe .legenda-cal {
+  justify-content: flex-start;
+  gap: 6px;
+  margin-top: 12px;
+  font-size: 14px;
+}
+html[data-quest-novo='true'] .qe .g-cel-leg {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+}
+html[data-quest-novo='true'] .qe .hbarras {
+  gap: 14px;
+}
+html[data-quest-novo='true'] .qe .hbarra {
+  grid-template-columns: minmax(140px, 34%) 1fr 64px;
+  gap: 14px;
+  min-height: 28px;
+  font: 600 17px/1.3 var(--font-body, inherit);
+}
+html[data-quest-novo='true'] .qe .hb-trilho {
+  height: 14px;
+}
+html[data-quest-novo='true'] .qe .hbarra b {
+  font-weight: 800;
+}
+html[data-quest-novo='true'] .qe-tabela {
+  max-height: 320px;
+  overflow: auto;
+}
+html[data-quest-novo='true'] .qe-tabela thead th {
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+}
+html[data-quest-novo='true'] .qe-sem-linhas {
+  padding: 16px 18px;
+}
+html[data-quest-novo='true'] .qe-vazio {
+  padding: 28px 0;
+  color: var(--ink-muted);
+}
+html[data-quest-novo='true'] .qe-espera {
+  display: grid;
+  gap: 20px;
+}
+
+/* A meta de nível: três medidas lado a lado, cada uma com a barra e a frase do que foi medido. */
+html[data-quest-novo='true'] .qe-medida b {
+  font: 800 22px/1.1 var(--font-display, inherit);
+  font-variant-numeric: tabular-nums;
+}
+html[data-quest-novo='true'] .qe-medida p {
+  margin: 0;
+  font: 600 16px/1.4 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+
+/* ── Janela média e estreita ──────────────────────────────────────────────────────────────────── */
+@media (max-width: 1100px) {
+  html[data-quest-novo='true'] .qe-kpis {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  /* As abas quebram de linha em vez de rolar para o lado: todas à vista. */
+  html[data-quest-novo='true'] .qe-abas {
+    flex-wrap: wrap;
+    overflow: visible;
+    border-radius: 30px;
+    align-self: stretch;
+  }
+}
+@media (max-width: 720px) {
+  html[data-quest-novo='true'] .qe-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  html[data-quest-novo='true'] .qe-kpi b {
+    font-size: 26px;
+  }
+  html[data-quest-novo='true'] .qe-painel {
+    padding: 16px;
+  }
+  html[data-quest-novo='true'] .qe .hbarra {
+    grid-template-columns: minmax(96px, 40%) 1fr 56px;
+    font-size: 16px;
+  }
+  html[data-quest-novo='true'] .qe .q-aviso {
+    flex-wrap: wrap;
+  }
+}

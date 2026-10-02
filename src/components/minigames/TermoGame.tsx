@@ -15,17 +15,18 @@ import {
   scoreRound,
   TENTATIVAS_POR_MODO,
 } from '@core';
-import { Check, ChevronRight, Delete, Lightbulb, Volume2, WandSparkles } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, Delete, Lightbulb, Volume2, WandSparkles } from 'lucide-react';
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { celebrar } from '../../lib/comemoracao';
+import { t } from '../../lib/i18n';
 import { multiplicador, pontosDoElemento } from '../../lib/juice';
 import type { AgeProfileType } from '../../lib/profile';
 import { play } from '../../lib/soundFx';
-import { falar } from '../../lib/tts';
 import { toast } from '../Toast';
 import { useRodada } from './casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda } from './casca/HudDaRodada';
+import { falarNoJogo as falar, useQuestNovo, useVozNoJogo } from './noQuest';
 
 /**
  * SOLETRAR — o jogo de escrever a palavra a partir do significado, em degraus.
@@ -58,6 +59,35 @@ interface TermoGameProps {
 
 const LINHAS_TECLADO = ['QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM'];
 
+/**
+ * O TERMO NO META QUEST. Não há teclado físico: quem escreve é o teclado NA TELA, com teclas de 56 px.
+ *
+ *  · Janela larga (o padrão do headset, 1280 px): os tabuleiros à esquerda e o teclado à direita, os dois
+ *    à vista ao mesmo tempo. Empilhados, como no computador, o teclado de 56 px empurrava o tabuleiro
+ *    para fora da janela de 670 px de altura.
+ *  · Janela estreita (até o mínimo de 500 px): empilhados, a página rola, e o teclado vira sete colunas
+ *    (dez teclas de 48 px não cabem em 444 px).
+ *
+ * A casa só é um alvo quando tem 48 px ou mais. Menor que isso (dois e quatro tabuleiros) ela é só
+ * letra, e o cursor anda pelas duas teclas "casa anterior / casa seguinte" do teclado.
+ */
+const LARGURA_LADO_A_LADO = 1000;
+const CASA_APONTAVEL = 48;
+/** Lado a lado a altura manda (o teclado não disputa a coluna); o piso é o da letra legível. */
+const GEOMETRIA_NO_QUEST_LADO: typeof GEOMETRIA_DO_PROTOTIPO = {
+  ...GEOMETRIA_DO_PROTOTIPO,
+  pisoAltura: 32,
+  minimo: 28,
+  maximo: 60,
+};
+/** Empilhado a página rola: a casa fica do tamanho de um alvo sempre que a largura deixa. */
+const GEOMETRIA_NO_QUEST_EMPILHADO: typeof GEOMETRIA_DO_PROTOTIPO = {
+  ...GEOMETRIA_DO_PROTOTIPO,
+  pisoAltura: CASA_APONTAVEL,
+  minimo: 28,
+  maximo: 60,
+};
+
 export default function TermoGame({ rodadas, ageProfile, onFinish }: TermoGameProps) {
   /** A casca diz quando a rodada anda: na contagem e na pausa o teclado não escreve. */
   const { ativo } = useRodada();
@@ -70,6 +100,9 @@ export default function TermoGame({ rodadas, ageProfile, onFinish }: TermoGamePr
    * também a barra de navegação de baixo.
    */
   const [alturaDaRaiz, setAlturaDaRaiz] = useState<number | undefined>(undefined);
+  /** O headset com as telas novas, e se a janela é larga o bastante para tabuleiro e teclado lado a lado. */
+  const questNovo = useQuestNovo();
+  const [ladoALado, setLadoALado] = useState(false);
   /** Os degraus desta partida: 1 tabuleiro, depois 2, depois 4 — até onde as palavras derem. */
   const grupos = useMemo(() => montarEscada(rodadas, planoDaEscada(rodadas.length)), [rodadas]);
 
@@ -92,6 +125,15 @@ export default function TermoGame({ rodadas, ageProfile, onFinish }: TermoGamePr
       const r = raizRef.current;
       if (!r) return;
       const topo = r.getBoundingClientRect().top;
+      if (questNovo) {
+        const lado = window.innerWidth >= LARGURA_LADO_A_LADO;
+        setLadoALado(lado);
+        /* Lado a lado o palco tem a altura da janela (nada rola); empilhado, a altura é a do conteúdo
+           e quem rola é a página. */
+        setAlturaDaRaiz(lado ? Math.max(380, Math.round(window.innerHeight - topo - 40)) : undefined);
+        return;
+      }
+      setLadoALado(false);
       const celular = window.innerWidth < 768;
       const embaixo = celular ? 96 : 40;
       /* No celular o topo (cabeçalho + placar com as ajudas) come metade da janela: com um piso
@@ -101,13 +143,13 @@ export default function TermoGame({ rodadas, ageProfile, onFinish }: TermoGamePr
     };
     medirRaiz();
     // a entrada de câmera escala o palco por meio segundo: mede de novo quando ela assenta
-    const t = window.setTimeout(medirRaiz, 620);
+    const depois = window.setTimeout(medirRaiz, 620);
     window.addEventListener('resize', medirRaiz);
     return () => {
-      window.clearTimeout(t);
+      window.clearTimeout(depois);
       window.removeEventListener('resize', medirRaiz);
     };
-  }, []);
+  }, [questNovo]);
 
   useLayoutEffect(() => {
     const raiz = raizRef.current;
@@ -123,15 +165,22 @@ export default function TermoGame({ rodadas, ageProfile, onFinish }: TermoGamePr
            grade começava 88px abaixo do que a conta supunha. A área rolável É o orçamento. */
             /* O teclado mora na mesma área, logo abaixo dos tabuleiros: sai do orçamento a altura
            MEDIDA dele e os 16px de margem de `.tabs-termo`. */
-            altura: (areaRef.current?.clientHeight ?? 0) - (tecladoRef.current?.offsetHeight ?? 0) - 16,
+            /* No headset: lado a lado o teclado mora na outra coluna e a área inteira é do
+           tabuleiro; empilhado a página rola, e a altura não aperta nada (vale o piso). */
+            altura: questNovo
+              ? ladoALado
+                ? (areaRef.current?.clientHeight ?? 0)
+                : 0
+              : (areaRef.current?.clientHeight ?? 0) - (tecladoRef.current?.offsetHeight ?? 0) - 16,
             tabuleiros: nTabuleiros,
             colunas,
             linhas: maxTentativas,
             /* O `header` de cada `.tab-termo` (24px + 6 de folga); com a frase de contexto embaixo
-           da pista, mais uma linha e meia. */
-            cabecalho: temContexto ? 64 : 30,
+           da pista, mais uma linha e meia. No headset a pista tem 17 px e pode ocupar duas linhas
+           (`styles/questJogos.css`), e a frase de contexto tem 15 px. */
+            cabecalho: questNovo ? (temContexto ? 104 : 56) : temContexto ? 64 : 30,
           },
-          GEOMETRIA_DO_PROTOTIPO,
+          questNovo ? (ladoALado ? GEOMETRIA_NO_QUEST_LADO : GEOMETRIA_NO_QUEST_EMPILHADO) : GEOMETRIA_DO_PROTOTIPO,
         ),
       );
       /* A MOLDURA VEM DA CONTA, não de uma classe. Se o padding vivesse só no CSS, ele cobraria
@@ -147,7 +196,7 @@ export default function TermoGame({ rodadas, ageProfile, onFinish }: TermoGamePr
       ro.disconnect();
       window.removeEventListener('resize', medir);
     };
-  }, [nTabuleiros, colunas, maxTentativas, temContexto]);
+  }, [nTabuleiros, colunas, maxTentativas, temContexto, questNovo, ladoALado, alturaDaRaiz]);
 
   const tamanho = grupo?.[0]?.resposta.length ?? 5;
 
@@ -581,6 +630,16 @@ export default function TermoGame({ rodadas, ageProfile, onFinish }: TermoGamePr
     return () => window.removeEventListener('keydown', onKey);
   });
 
+  /* "Ouvir" só aparece no headset quando há voz para o idioma da palavra (fora dele, como sempre). */
+  const haVoz = useVozNoJogo(
+    grupo?.[
+      Math.max(
+        0,
+        resolvidos.findIndex((r) => !r),
+      )
+    ]?.lang,
+  );
+
   if (!grupo) return null;
 
   // O nome do degrau acompanha o da carta no lobby: ver "Termo" depois de clicar em "Escrever a
@@ -655,10 +714,120 @@ export default function TermoGame({ rodadas, ageProfile, onFinish }: TermoGamePr
   const totalDePalavras = grupos.reduce((s, g) => s + g.length, 0);
   const jaPassadas = grupos.slice(0, grupoIdx).reduce((s, g) => s + g.length, 0) + resolvidos.filter(Boolean).length;
 
+  /** A casa em digitação é um alvo? Fora do headset, sempre; nele, só com 48 px ou mais. */
+  const casasApontaveis = !questNovo || layout.celula >= CASA_APONTAVEL;
+
+  /* A ESCADA — `.escada-termo` do protótipo: os degraus do plano, o feito em verde, o da vez
+          em destaque, e o tamanho/tentativas do degrau à direita. */
+  const escada = (
+    <div className="escada-termo shrink-0" aria-label={`degrau ${grupoIdx + 1} de ${grupos.length}`}>
+      {plano.map((d, i) => (
+        <React.Fragment key={i}>
+          {i > 0 && (
+            <i aria-hidden="true">
+              <ChevronRight />
+            </i>
+          )}
+          <span className={i < grupoIdx ? 'feito' : i === grupoIdx ? 'vez' : ''}>{nomeDe(d)}</span>
+        </React.Fragment>
+      ))}
+      <small className="mut">
+        {colunas} letras · {maxTentativas} tentativas
+      </small>
+    </div>
+  );
+
+  /* TECLADO — `.teclado` do protótipo, logo abaixo dos tabuleiros (a folga de 16px é a
+          margem de `.tabs-termo`). Com um tabuleiro a tecla pinta inteira; com dois ou quatro,
+          cada tecla leva uma marquinha por tabuleiro (`.k-marcas`) e só apaga quando a letra está
+          fora de TODOS os abertos. */
+  const teclado = (
+    <div ref={tecladoRef} data-tour="teclado" className="teclado w-full" role="group" aria-label="Teclado">
+      {LINHAS_TECLADO.map((linha, i) => (
+        <div key={linha} className="fila">
+          {i === 2 && (
+            <button type="button" className="largo" onClick={enviar} disabled={fimDoGrupo} aria-label="Enviar palpite">
+              Enviar
+            </button>
+          )}
+          {linha.split('').map((letra) => {
+            if (nTabuleiros === 1) {
+              const e = tecladoPorTab[0]?.[letra];
+              return (
+                <button
+                  type="button"
+                  key={letra}
+                  className={e ? CLASSE[e] : ''}
+                  onClick={() => digitar(letra)}
+                  aria-label={`${letra}${e ? `, ${ROTULO[e]}` : ''}`}
+                >
+                  {letra}
+                </button>
+              );
+            }
+            const todas = grupo.every((_, k) => resolvidos[k] || tecladoPorTab[k]?.[letra] === 'ausente');
+            return (
+              <button
+                type="button"
+                key={letra}
+                className={`multi ${todas ? 'fora' : ''}`}
+                onClick={() => digitar(letra)}
+                aria-label={letra}
+              >
+                {letra}
+                <span className={`k-marcas q${nTabuleiros}`} aria-hidden="true">
+                  {grupo.map((_, k) => {
+                    const e = tecladoPorTab[k]?.[letra];
+                    return <i key={k} className={resolvidos[k] ? 'feito' : e ? CLASSE[e] : ''} />;
+                  })}
+                </span>
+              </button>
+            );
+          })}
+          {i === 2 && (
+            <button type="button" className="largo" onClick={apagar} aria-label="Apagar letra">
+              <Delete aria-hidden />
+            </button>
+          )}
+        </div>
+      ))}
+      {/* SÓ NO HEADSET: o cursor anda por duas teclas. No computador são as setas do teclado
+                  físico; aqui a casa pequena não é um alvo, e a grande continua sendo. */}
+      {questNovo && (
+        <div className="fila qj-setas">
+          <button
+            type="button"
+            className="largo"
+            disabled={fimDoGrupo}
+            onClick={() => irPara(cursorRef.current - 1)}
+            aria-label={t('Casa anterior')}
+          >
+            <ChevronLeft aria-hidden /> {t('Casa')}
+          </button>
+          <button
+            type="button"
+            className="largo"
+            disabled={fimDoGrupo}
+            onClick={() => irPara(cursorRef.current + 1)}
+            aria-label={t('Casa seguinte')}
+          >
+            {t('Casa')} <ChevronRight aria-hidden />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+
   /* A CASCA COMUM desenha o cabeçalho, a pausa e a contagem; aqui ficam o placar comum e a escada,
      os tabuleiros e o teclado do Termo, que são dele. */
   return (
-    <div ref={raizRef} className="flex flex-col" style={{ height: alturaDaRaiz }}>
+    <div
+      ref={raizRef}
+      data-qj="termo"
+      data-lado={ladoALado ? 'true' : undefined}
+      className="flex flex-col"
+      style={{ height: alturaDaRaiz }}
+    >
       <HudDaRodada
         pontos={pontos}
         sequencia={sequencia}
@@ -667,13 +836,15 @@ export default function TermoGame({ rodadas, ageProfile, onFinish }: TermoGamePr
         progresso={jaPassadas / Math.max(1, totalDePalavras)}
         ajudas={
           <>
-            <BotaoDeAjuda
-              icone={Volume2}
-              rotulo="Ouvir"
-              disabled={fimDoGrupo}
-              onClick={ouvirPalavra}
-              title="Ouvir pronúncia nativa"
-            />
+            {haVoz && (
+              <BotaoDeAjuda
+                icone={Volume2}
+                rotulo="Ouvir"
+                disabled={fimDoGrupo}
+                onClick={ouvirPalavra}
+                title="Ouvir pronúncia nativa"
+              />
+            )}
             <BotaoDeAjuda
               icone={Lightbulb}
               rotulo="Uma letra"
@@ -694,23 +865,7 @@ export default function TermoGame({ rodadas, ageProfile, onFinish }: TermoGamePr
       />
 
       <div className="w-full flex-1 min-h-0 flex flex-col items-center gap-1">
-        {/* A ESCADA — `.escada-termo` do protótipo: os degraus do plano, o feito em verde, o da vez
-          em destaque, e o tamanho/tentativas do degrau à direita. */}
-        <div className="escada-termo shrink-0" aria-label={`degrau ${grupoIdx + 1} de ${grupos.length}`}>
-          {plano.map((d, i) => (
-            <React.Fragment key={i}>
-              {i > 0 && (
-                <i aria-hidden="true">
-                  <ChevronRight />
-                </i>
-              )}
-              <span className={i < grupoIdx ? 'feito' : i === grupoIdx ? 'vez' : ''}>{nomeDe(d)}</span>
-            </React.Fragment>
-          ))}
-          <small className="mut">
-            {colunas} letras · {maxTentativas} tentativas
-          </small>
-        </div>
+        {!ladoALado && escada}
 
         {/* OS TABULEIROS — `.tabs-termo` > `.tab-termo`, cada um com A SUA pista no `header`.
           As pistas já moraram num bloco separado no topo, e com quatro tabuleiros ninguém sabia
@@ -775,6 +930,7 @@ export default function TermoGame({ rodadas, ageProfile, onFinish }: TermoGamePr
                       {!resolvido && !fimDoGrupo && r.contexto && (
                         <p
                           className="mut"
+                          data-qp="contexto"
                           style={{
                             fontSize: 11.5,
                             fontStyle: 'italic',
@@ -819,29 +975,33 @@ export default function TermoGame({ rodadas, ageProfile, onFinish }: TermoGamePr
                                 const letra = atual[col];
                                 const noCursor = col === cursor;
                                 const ehFantasma = !!letra && (!!rev[col] || !!certas[col]);
-                                return (
-                                  <button
-                                    key={col}
-                                    type="button"
-                                    onClick={() => irPara(col)}
-                                    aria-label={`Posição ${col + 1}${letra ? `, letra ${letra}` : ', vazia'}`}
-                                    className={`letra ${letra ? 'cheia' : ''} ${letra && col === pop ? 'pop' : ''}`}
-                                    style={{
-                                      ...estilo,
-                                      cursor: 'pointer',
-                                      ...(noCursor
-                                        ? {
-                                            borderColor: 'var(--accent)',
-                                            boxShadow: '0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent)',
-                                          }
-                                        : null),
-                                      ...(ehFantasma
-                                        ? { color: rev[col] ? 'var(--warn-ink)' : 'var(--ink-muted)' }
-                                        : null),
-                                    }}
-                                  >
+                                /* No headset a casa menor que um alvo não é botão: é só a letra, e o
+                                   cursor anda pelas teclas "casa anterior / casa seguinte". */
+                                const daCasa = {
+                                  'aria-label': `Posição ${col + 1}${letra ? `, letra ${letra}` : ', vazia'}`,
+                                  className: `letra ${letra ? 'cheia' : ''} ${letra && col === pop ? 'pop' : ''}`,
+                                  style: {
+                                    ...estilo,
+                                    ...(casasApontaveis ? { cursor: 'pointer' } : null),
+                                    ...(noCursor
+                                      ? {
+                                          borderColor: 'var(--accent)',
+                                          boxShadow: '0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent)',
+                                        }
+                                      : null),
+                                    ...(ehFantasma
+                                      ? { color: rev[col] ? 'var(--warn-ink)' : 'var(--ink-muted)' }
+                                      : null),
+                                  } as React.CSSProperties,
+                                };
+                                return casasApontaveis ? (
+                                  <button key={col} type="button" onClick={() => irPara(col)} {...daCasa}>
                                     {letra}
                                   </button>
+                                ) : (
+                                  <span key={col} role="gridcell" aria-current={noCursor || undefined} {...daCasa}>
+                                    {letra}
+                                  </span>
                                 );
                               })}
                             </div>
@@ -854,66 +1014,15 @@ export default function TermoGame({ rodadas, ageProfile, onFinish }: TermoGamePr
               </div>
             </div>
 
-            {/* TECLADO — `.teclado` do protótipo, logo abaixo dos tabuleiros (a folga de 16px é a
-          margem de `.tabs-termo`). Com um tabuleiro a tecla pinta inteira; com dois ou quatro,
-          cada tecla leva uma marquinha por tabuleiro (`.k-marcas`) e só apaga quando a letra está
-          fora de TODOS os abertos. */}
-            <div ref={tecladoRef} data-tour="teclado" className="teclado w-full" role="group" aria-label="Teclado">
-              {LINHAS_TECLADO.map((linha, i) => (
-                <div key={linha} className="fila">
-                  {i === 2 && (
-                    <button
-                      type="button"
-                      className="largo"
-                      onClick={enviar}
-                      disabled={fimDoGrupo}
-                      aria-label="Enviar palpite"
-                    >
-                      Enviar
-                    </button>
-                  )}
-                  {linha.split('').map((letra) => {
-                    if (nTabuleiros === 1) {
-                      const e = tecladoPorTab[0]?.[letra];
-                      return (
-                        <button
-                          type="button"
-                          key={letra}
-                          className={e ? CLASSE[e] : ''}
-                          onClick={() => digitar(letra)}
-                          aria-label={`${letra}${e ? `, ${ROTULO[e]}` : ''}`}
-                        >
-                          {letra}
-                        </button>
-                      );
-                    }
-                    const todas = grupo.every((_, k) => resolvidos[k] || tecladoPorTab[k]?.[letra] === 'ausente');
-                    return (
-                      <button
-                        type="button"
-                        key={letra}
-                        className={`multi ${todas ? 'fora' : ''}`}
-                        onClick={() => digitar(letra)}
-                        aria-label={letra}
-                      >
-                        {letra}
-                        <span className={`k-marcas q${nTabuleiros}`} aria-hidden="true">
-                          {grupo.map((_, k) => {
-                            const e = tecladoPorTab[k]?.[letra];
-                            return <i key={k} className={resolvidos[k] ? 'feito' : e ? CLASSE[e] : ''} />;
-                          })}
-                        </span>
-                      </button>
-                    );
-                  })}
-                  {i === 2 && (
-                    <button type="button" className="largo" onClick={apagar} aria-label="Apagar letra">
-                      <Delete aria-hidden />
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
+            {/* No headset a escada acompanha o teclado na coluna da direita (janela larga). */}
+            {questNovo ? (
+              <div className="qj-termo-lado">
+                {ladoALado && escada}
+                {teclado}
+              </div>
+            ) : (
+              teclado
+            )}
           </div>
         </div>
       </div>

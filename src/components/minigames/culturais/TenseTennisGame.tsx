@@ -9,10 +9,10 @@ import { t } from '../../../lib/i18n';
 import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
 import { play } from '../../../lib/soundFx';
-import { falar } from '../../../lib/tts';
 import AvisoDaJogada from '../casca/AvisoDaJogada';
 import { useRodada } from '../casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from '../casca/HudDaRodada';
+import { falarNoJogo as falar, useQuestNovo } from '../noQuest';
 
 /**
  * TÊNIS — o rali cronometrado. A bola traz a PISTA, você devolve escrevendo a palavra, e cada
@@ -55,6 +55,9 @@ export default function TenseTennisGame({ items, ageProfile, onFinish, onExit }:
   /** O que a tela diz da devolução: "Fora! Era…", "Certo! Com acento…", "Também vale…". */
   const [aviso, setAviso] = useState<{ tom: 'erro' | 'certo'; rotulo: string; resposta: string } | null>(null);
   const [acabou, setAcabou] = useState(false);
+  /* NO QUEST quem escreve é o teclado do sistema, que sobe quando a pessoa toca no campo. O campo não
+     é desligado entre uma bola e outra: desligá-lo tiraria o foco e fecharia o teclado a cada jogada. */
+  const questNovo = useQuestNovo();
 
   const outcomesRef = useRef<ItemOutcome[]>([]);
   const inicioRodadaRef = useRef(Date.now());
@@ -137,7 +140,10 @@ export default function TenseTennisGame({ items, ageProfile, onFinish, onExit }:
     }
     if (tempo <= 2) play('tick');
     if (!ativo) return; // o relógio para na contagem e na pausa
-    const tique = setTimeout(() => setRelogio((r) => (r.bola === indice ? { ...r, segundos: r.segundos - 1 } : r)), 1000);
+    const tique = setTimeout(
+      () => setRelogio((r) => (r.bola === indice ? { ...r, segundos: r.segundos - 1 } : r)),
+      1000,
+    );
     return () => clearTimeout(tique);
   }, [relogio, ativo, tempo, indice, acabou, item, registrar, avancar]);
 
@@ -197,18 +203,26 @@ export default function TenseTennisGame({ items, ageProfile, onFinish, onExit }:
         ajudas={<BotaoDeAjuda icone={Lightbulb} rotulo="Primeira letra" resta={dicasRestantes} onClick={usarDica} />}
       />
 
-      <div ref={quadraRef} className="flex flex-col items-center justify-center gap-6 w-full max-w-2xl mx-auto">
+      <div
+        ref={quadraRef}
+        data-qj="tenis"
+        className="flex flex-col items-center justify-center gap-6 w-full max-w-2xl mx-auto"
+      >
         <div
           data-tour="bola"
           className="w-full rounded-3xl border-2 border-border-subtle bg-surface shadow-card px-6 py-8 text-center"
         >
           <span className="text-xs font-mono uppercase tracking-widest text-ink-muted">Bola em jogo</span>
-          <p className="mt-3 font-display font-black text-2xl sm:text-3xl text-ink">{item?.prompt}</p>
+          <p data-qp="enunciado" className="mt-3 font-display font-black text-2xl sm:text-3xl text-ink">
+            {item?.prompt}
+          </p>
         </div>
 
-        <div className="w-full flex flex-col sm:flex-row gap-3">
+        <div className="w-full flex flex-col sm:flex-row gap-3" data-qp="linha-de-campo">
           <input
             ref={entradaRef}
+            data-qp="campo"
+            {...(questNovo ? { enterKeyHint: 'send' as const, autoCapitalize: 'none', autoCorrect: 'off' } : null)}
             value={escrito}
             onChange={(e) => setEscrito(e.target.value)}
             onKeyDown={(e) => {
@@ -217,7 +231,7 @@ export default function TenseTennisGame({ items, ageProfile, onFinish, onExit }:
                 devolver();
               }
             }}
-            disabled={acabou || respondidoRef.current}
+            disabled={questNovo ? acabou : acabou || respondidoRef.current}
             dir={direcaoDoTexto(item?.lang)}
             lang={item?.lang}
             autoComplete="off"
@@ -227,6 +241,7 @@ export default function TenseTennisGame({ items, ageProfile, onFinish, onExit }:
             className="flex-1 px-4 py-3 rounded-2xl border-2 border-border-subtle bg-surface text-ink text-lg font-display font-bold placeholder:text-ink-faint focus:border-accent focus:outline-none"
           />
           <button
+            data-qp="acao-pri"
             onClick={devolver}
             disabled={acabou || !escrito.trim()}
             className="px-6 py-3 rounded-2xl bg-accent text-accent-contrast font-black shadow-card hover:opacity-95 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
@@ -234,6 +249,8 @@ export default function TenseTennisGame({ items, ageProfile, onFinish, onExit }:
             Devolver
           </button>
         </div>
+
+        {questNovo && !aviso && <p data-qp="apoio">{t('Toque no campo para abrir o teclado do headset.')}</p>}
 
         {aviso && <AvisoDaJogada tom={aviso.tom} rotulo={aviso.rotulo} resposta={aviso.resposta} lang={item?.lang} />}
       </div>

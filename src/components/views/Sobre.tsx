@@ -36,12 +36,14 @@ import {
 import { useState } from 'react';
 
 import { CRIADOR, preenchido } from '../../lib/criador';
+import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { t } from '../../lib/i18n';
 import { ATRIBUICAO_TATOEBA } from '../../lib/traducao/atribuicaoTatoeba';
 import { VERSAO_DO_APP } from '../../lib/versao';
 import { CabecalhoDeTela, IconeEmBloco, Tela, TituloDeSecao } from '../ui';
 import DialogoLegal, { type Documento } from './sobre/DialogoLegal';
+import SobreDoQuest from './sobre/quest/SobreDoQuest';
 
 /** As redes na ordem do protótipo; a primeira preenchida é o botão cheio. */
 const REDES: Array<{ href: string; icone: LucideIcon; rotulo: string }> = [
@@ -90,6 +92,7 @@ const hrefDe = (v: string) => (v.includes('@') && !v.startsWith('http') ? `mailt
 const FATOS = ['Grátis para aprender', 'Código aberto', 'Roda no seu computador', 'Seus dados ficam com você'];
 
 export default function Sobre({ onVerPlanos }: { onVerPlanos?: (view: string) => void } = {}) {
+  const questNovo = useQuestNovo();
   const [copiado, setCopiado] = useState(false);
   const [semFoto, setSemFoto] = useState(false);
   const [legal, setLegal] = useState<Documento | null>(null);
@@ -129,6 +132,26 @@ export default function Sobre({ onVerPlanos }: { onVerPlanos?: (view: string) =>
           },
         ]),
   ];
+
+  /* QUEST: o mesmo conteúdo em quatro abas (`SobreDoQuest`); o diálogo legal é o de sempre. */
+  if (questNovo)
+    return (
+      <>
+        <SobreDoQuest
+          redes={redes.map((r) => ({ ...r, href: hrefDe(r.href) }))}
+          fatos={FATOS}
+          ajudas={ajudas.map((a) => ({ ...a, href: a.href && preenchido(a.href) ? a.href : undefined }))}
+          dadosAbertos={DADOS_ABERTOS}
+          pix={preenchido(CRIADOR.pix) ? CRIADOR.pix : null}
+          copiado={copiado}
+          aoCopiarPix={() => void copiarPix()}
+          semFoto={semFoto}
+          aoFalharAFoto={() => setSemFoto(true)}
+          aoAbrirLegal={setLegal}
+        />
+        {legal && <DialogoLegal doc={legal} aoFechar={() => setLegal(null)} />}
+      </>
+    );
 
   return (
     <Tela largura="estreita">

@@ -1,0 +1,421 @@
+/*
+ * SOBRE, AJUDA, DIAGNÓSTICO E 404 NO META QUEST (segunda rodada do headset, 01/10/2026).
+ *
+ * As peças comuns (`.q-palco`, `.q-cab`, `.q-abas`, `.q-secao`, `.q-cartao`, `.q-tile`, `.q-linha`,
+ * `.q-ajuste`, `.q-campo`, `.q-vazio`, `.q-faixa`, `.q-ctl`…) e os tokens moram em `quest.css`; aqui
+ * fica só o que é destas telas: a lista de medidas (`.q-dados`), o cartão de quem faz o app, a faixa
+ * fixa do diagnóstico e os três diálogos de leitura (guia rápido, atalhos, política e termos).
+ *
+ * As mesmas regras: só tokens do tema, alvo ≥ 56 px (o principal ≥ 60), corpo de 17 a 18 px e nada
+ * abaixo de 14, sem itálico, movimento curto e no lugar. Onde uma regra daqui ajusta uma peça de
+ * `quest.css`, ela leva uma classe a mais: a ordem em que os arquivos chegam não decide nada.
+ */
+
+/* ── O QUE AS QUATRO TELAS TÊM EM COMUM ───────────────────────────────────────────────────────── */
+.q-inst-painel {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  min-width: 0;
+}
+.q-inst-painel[hidden] {
+  display: none;
+}
+.q-inst-painel:focus-visible {
+  outline: 3px solid var(--q-acento);
+  outline-offset: 6px;
+  border-radius: 12px;
+}
+/* Abas que não cabem numa linha quebram: rolar para o lado com o raio é ruim. */
+@media (max-width: 1180px) {
+  .q-inst > .q-abas {
+    flex-wrap: wrap;
+    align-self: stretch;
+    border-radius: 28px;
+    overflow: visible;
+  }
+}
+.q-inst a:is(.q-ctl, .q-tile, .q-linha) {
+  text-decoration: none;
+}
+.q-inst-nota {
+  margin: 0;
+  font: 600 16px/1.45 var(--font-body, inherit);
+  color: var(--ink-muted);
+  max-width: 72ch;
+}
+.q-inst .q-cartao :is(h2, h3) {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font: 800 20px/1.25 var(--font-display, inherit);
+  text-wrap: balance;
+}
+.q-inst .q-cartao :is(h2, h3) > svg {
+  width: 24px;
+  height: 24px;
+  flex: none;
+}
+.q-inst .q-cartao > .q-ctl {
+  justify-self: start;
+}
+.q-inst .q-fim svg {
+  width: 22px;
+  height: 22px;
+}
+.q-inst .q-aviso.q-inst-alerta {
+  margin: 0;
+  background: color-mix(in srgb, var(--warn) 22%, var(--surface));
+  overflow-wrap: anywhere;
+}
+.q-inst .q-aviso svg {
+  width: 22px;
+  height: 22px;
+  vertical-align: -5px;
+  margin-right: 6px;
+}
+.q-inst .q-vazio.q-inst-vazio {
+  flex: none;
+  min-height: 0;
+  padding: 26px;
+}
+.q-inst .q-vazio h1 {
+  margin: 0;
+  font: 900 32px/1.1 var(--font-display, inherit);
+  text-wrap: balance;
+}
+.q-inst .q-vazio .q-sobre {
+  margin: 0;
+}
+.q-inst .q-vazio .q-acoes {
+  justify-content: center;
+  margin-top: 6px;
+}
+
+/* Uma lista de medidas: o que é à esquerda, o valor em destaque à direita. */
+.q-dados {
+  margin: 0;
+  display: grid;
+  border: 1.5px solid var(--border-subtle);
+  border-radius: 18px;
+  background: var(--surface);
+  overflow: hidden;
+}
+.q-dados.duas {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.q-cartao .q-dados {
+  background: var(--canvas);
+}
+.q-dado {
+  min-height: 56px;
+  margin-bottom: -1.5px;
+  padding: 10px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  border-bottom: 1.5px solid var(--border-subtle);
+}
+.q-dados.duas .q-dado:nth-child(odd) {
+  border-right: 1.5px solid var(--border-subtle);
+}
+.q-dado dt {
+  font: 600 16px/1.3 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+.q-dado dd {
+  flex: 1 1 180px;
+  margin: 0;
+  font: 800 17px/1.3 var(--font-display, inherit);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+/* ── SOBRE ────────────────────────────────────────────────────────────────────────────────────── */
+.q-cartao.q-sobre-heroi {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 26px;
+  padding: 26px;
+}
+.q-sobre-heroi > div:last-child {
+  display: grid;
+  gap: 14px;
+}
+.q-inst .q-sobre-heroi h2 {
+  font: 900 28px/1.1 var(--font-display, inherit);
+}
+.q-avatar {
+  width: 132px;
+  height: 132px;
+  padding: 5px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  flex: none;
+  background: linear-gradient(160deg, var(--q-acento-2), var(--q-acento));
+  color: var(--q-sobre-acento);
+  font: 900 52px/1 var(--font-display, inherit);
+}
+.q-avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid var(--surface);
+}
+.q-inst-fatos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.q-inst-fatos .q-chip svg {
+  color: var(--good-ink, var(--good));
+}
+.q-inst-painel.q-inst-duas {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 26px;
+}
+.q-inst-painel.q-inst-duas[hidden] {
+  display: none;
+}
+.q-inst .q-texto b {
+  font-weight: 800;
+}
+.q-cartao.q-citacao {
+  margin: 0;
+  padding: 26px;
+  gap: 14px;
+}
+.q-citacao > svg {
+  width: 30px;
+  height: 30px;
+  color: var(--accent-ink, var(--q-acento));
+}
+.q-citacao blockquote {
+  margin: 0;
+  font: 800 23px/1.3 var(--font-display, inherit);
+  text-wrap: balance;
+}
+.q-inst code {
+  font: 600 16px/1.4 var(--font-mono, monospace);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.q-inst .q-cartao > .q-ic + b {
+  font: 800 20px/1.15 var(--font-display, inherit);
+}
+
+/* ── AJUDA ────────────────────────────────────────────────────────────────────────────────────── */
+.q-inst .q-chip.q-estado {
+  min-height: 48px;
+  padding-block: 8px;
+  white-space: normal;
+  line-height: 1.25;
+}
+.q-inst .q-chip.q-estado i {
+  flex: none;
+}
+.q-inst .q-chip.q-estado.problema i {
+  background: var(--error, #b3261e);
+}
+.q-inst .q-chip.q-estado.verificando i {
+  background: var(--ink-muted);
+}
+.q-grade.q-inst-par {
+  align-items: stretch;
+}
+.q-inst-par > .q-linha b {
+  white-space: normal;
+}
+
+/* ── DIAGNÓSTICO: o que está rodando e "Copiar" sempre à vista ────────────────────────────────── */
+.q-palco.q-diag {
+  padding-bottom: 0;
+}
+.q-palco.q-diag > .q-faixa {
+  position: sticky;
+  bottom: 18px;
+  z-index: 2;
+  margin: auto 0 18px;
+  /* O que rola por trás não aparece em volta da faixa. */
+  box-shadow:
+    0 0 0 10px var(--canvas),
+    0 20px 0 10px var(--canvas);
+}
+.q-diag-estado {
+  flex: 1 1 200px;
+  min-width: 0;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font: 700 16px/1.3 var(--font-body, inherit);
+  color: var(--ink);
+}
+.q-diag-estado svg {
+  width: 22px;
+  height: 22px;
+  flex: none;
+}
+.q-diag .q-faixa .q-espaco {
+  flex: 0 0 0;
+}
+.q-diag .gira {
+  width: 22px;
+  height: 22px;
+}
+.q-diag-resultado {
+  display: grid;
+  gap: 12px;
+}
+.q-diag-modelos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.q-diag-modelos > li {
+  min-height: 60px;
+  padding: 10px 18px;
+  border: 1.5px solid var(--border-subtle);
+  border-radius: 16px;
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  font: 600 17px/1.35 var(--font-body, inherit);
+  overflow-wrap: anywhere;
+}
+.q-diag-modelos .q-tag {
+  flex: none;
+}
+.q-diag-modelos > li[data-veredicto='folga'] .q-tag {
+  background: color-mix(in srgb, var(--good) 28%, var(--surface));
+}
+.q-diag-modelos > li[data-veredicto='justo'] .q-tag {
+  background: color-mix(in srgb, var(--warn) 30%, var(--surface));
+}
+.q-diag-modelos > li:is([data-veredicto='lento'], [data-veredicto='falhou']) .q-tag {
+  background: color-mix(in srgb, var(--error) 24%, var(--surface));
+}
+textarea.q-campo.q-diag-json {
+  min-height: 250px;
+  padding: 14px 18px;
+  font: 500 14px/1.5 var(--font-mono, monospace);
+}
+
+/* ── OS DIÁLOGOS DE LEITURA (guia rápido, atalhos, política e termos) ─────────────────────────────
+   `questBase.css` já dá as medidas ao `<dialog>`, aos botões e aos cartões. Falta só o texto que
+   estes três escrevem em classe própria e ficava abaixo do piso do headset. */
+html[data-quest-novo='true'] dialog .g-guia {
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+html[data-quest-novo='true'] dialog .g-guia h3 {
+  margin-top: 12px;
+  font: 800 19px/1.25 var(--font-display, inherit);
+}
+html[data-quest-novo='true'] dialog .g-guia p {
+  margin-top: 6px;
+  font-size: 16px;
+  line-height: 1.4;
+}
+html[data-quest-novo='true'] dialog .bom-saber {
+  gap: 8px;
+  font-size: 16px;
+  line-height: 1.45;
+  color: var(--ink);
+}
+html[data-quest-novo='true'] dialog .texto-legal h3 {
+  margin: 22px 0 6px;
+  font: 800 20px/1.25 var(--font-display, inherit);
+}
+html[data-quest-novo='true'] dialog .texto-legal h3:first-child {
+  margin-top: 0;
+}
+html[data-quest-novo='true'] dialog .texto-legal p {
+  font-size: 17px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+html[data-quest-novo='true'] dialog .atalho {
+  gap: 16px;
+  padding: 14px 0;
+  font-size: 17px;
+}
+html[data-quest-novo='true'] dialog .atalho kbd {
+  min-width: 36px;
+  padding: 6px 10px;
+  font-size: 15px;
+}
+html[data-quest-novo='true'] dialog .rola-dlg {
+  max-height: min(56vh, 620px);
+}
+
+/* ── JANELAS MENORES ──────────────────────────────────────────────────────────────────────────── */
+@media (max-width: 1020px) {
+  .q-inst-painel.q-inst-duas {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .q-palco.q-diag > .q-faixa {
+    flex-wrap: wrap;
+    border-radius: 28px;
+  }
+}
+@media (max-width: 720px) {
+  .q-inst-painel {
+    gap: 18px;
+  }
+  .q-dados.duas {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .q-dados.duas .q-dado:nth-child(odd) {
+    border-right: 0;
+  }
+  .q-dado {
+    padding: 10px 14px;
+  }
+  .q-cartao.q-sobre-heroi {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: start;
+    gap: 16px;
+    padding: 20px;
+  }
+  .q-avatar {
+    width: 88px;
+    height: 88px;
+    font-size: 36px;
+  }
+  .q-inst .q-sobre-heroi h2 {
+    font-size: 24px;
+  }
+  .q-citacao blockquote {
+    font-size: 20px;
+  }
+  .q-inst .q-vazio h1 {
+    font-size: 26px;
+  }
+  .q-palco.q-diag > .q-faixa {
+    bottom: 12px;
+    margin-bottom: 12px;
+  }
+  .q-palco.q-diag > .q-faixa .q-ctl.pri {
+    flex: 1 1 100%;
+  }
+  textarea.q-campo.q-diag-json {
+    min-height: 200px;
+  }
+}

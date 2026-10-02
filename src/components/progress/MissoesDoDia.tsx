@@ -16,14 +16,15 @@ import { Barra, IconeEmBloco, TituloDeSecao } from '../ui';
  * Sem estado (ainda carregando, ou a rota falhou), o cartão não aparece: progresso inventado é pior
  * do que cartão nenhum.
  */
-const ICONE: Record<Missao['tipo'], LucideIcon> = {
+export const ICONE_DA_MISSAO: Record<Missao['tipo'], LucideIcon> = {
   revisar: Target,
   palavras: Sprout,
   rodadaBoa: Star,
   jogoNovo: Gamepad2,
 };
 
-function rotulo(m: Missao): string {
+/** O texto de uma missão (o cartão de sempre e o Início do headset dizem a mesma frase). */
+export function rotuloDaMissao(m: Missao): string {
   switch (m.tipo) {
     case 'revisar':
       return tp(m.alvo, 'Revise {n} palavra', 'Revise {n} palavras');
@@ -75,9 +76,9 @@ export default function MissoesDoDia({
           const atual = Math.min(m.atual, m.alvo);
           return (
             <li key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 12 }} data-missao={m.tipo}>
-              <IconeEmBloco icone={feita ? CheckCircle2 : ICONE[m.tipo]} tom={feita ? 'good' : 'accent'} />
+              <IconeEmBloco icone={feita ? CheckCircle2 : ICONE_DA_MISSAO[m.tipo]} tom={feita ? 'good' : 'accent'} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: 13.5, fontWeight: 700 }}>{rotulo(m)}</p>
+                <p style={{ fontSize: 13.5, fontWeight: 700 }}>{rotuloDaMissao(m)}</p>
                 <Barra
                   pct={(atual / m.alvo) * 100}
                   tom={feita ? 'good' : 'accent'}

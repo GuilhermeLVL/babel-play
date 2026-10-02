@@ -2,6 +2,7 @@ import { Copy, Languages, Mic, Snail, Volume2 } from 'lucide-react';
 import { lazy, Suspense, useState } from 'react';
 
 import { t } from '../../../../lib/i18n';
+import { haVozPara } from '../../../../lib/voz/haVoz';
 import { toast } from '../../../Toast';
 import FolhaDeBaixo from './FolhaDeBaixo';
 
@@ -91,6 +92,9 @@ export default function FolhaDaFrase({
   const [praticando, setPraticando] = useState(false);
   const palavras = palavrasDaFrase(fala.texto);
   const temTraducao = !!fala.traducao && fala.traducao !== '…';
+  /* Há voz para o idioma da fala (a do aparelho, ou a do site no aparelho sem voz)? Sem ela e sem o
+     áudio real, o botão some (`data-precisa`), em vez de ficar sem fazer nada. */
+  const vozDoOriginal = haVozPara(fala.lang);
 
   const copiar = () => {
     const texto = fala.traducao ? `${fala.texto}\n${fala.traducao}` : fala.texto;
@@ -115,7 +119,7 @@ export default function FolhaDaFrase({
       <div className="folha-grade">
         <button
           type="button"
-          data-precisa={audioReal ? undefined : 'voz'}
+          data-precisa={audioReal || vozDoOriginal ? undefined : 'voz'}
           data-sfx={audioReal ? 'none' : undefined}
           className="folha-acao pri"
           onClick={() => (audioReal ? audioReal(false) : aoOuvir(fala.texto, fala.lang, false))}
@@ -124,7 +128,7 @@ export default function FolhaDaFrase({
         </button>
         <button
           type="button"
-          data-precisa={audioReal ? undefined : 'voz'}
+          data-precisa={audioReal || vozDoOriginal ? undefined : 'voz'}
           data-sfx={audioReal ? 'none' : undefined}
           className="folha-acao"
           onClick={() => (audioReal ? audioReal(true) : aoOuvir(fala.texto, fala.lang, true))}
@@ -134,7 +138,7 @@ export default function FolhaDaFrase({
         {temTraducao && fala.langDaTraducao && (
           <button
             type="button"
-            data-precisa="voz"
+            data-precisa={haVozPara(fala.langDaTraducao) ? undefined : 'voz'}
             className="folha-acao"
             onClick={() => aoOuvir(fala.traducao, fala.langDaTraducao!, false)}
           >

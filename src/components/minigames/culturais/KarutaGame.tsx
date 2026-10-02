@@ -8,11 +8,12 @@ import { idiomaDaInterface, t } from '../../../lib/i18n';
 import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
 import { play } from '../../../lib/soundFx';
-import { falar, hasVoiceFor, isTtsSupported, vozesCarregadas } from '../../../lib/tts';
+import { hasVoiceFor, isTtsSupported, vozesCarregadas } from '../../../lib/tts';
 import { botaoDaAlternativa, useAtalhosDasAlternativas } from '../casca/atalhos';
 import AvisoDaJogada from '../casca/AvisoDaJogada';
 import { useRodada } from '../casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from '../casca/HudDaRodada';
+import { falarNoJogo as falar, useQuestNovo, useVozNoJogo } from '../noQuest';
 
 /**
  * KARUTA — o narrador declama a PISTA e as cartas na mesa trazem as palavras candidatas.
@@ -97,7 +98,14 @@ export default function KarutaGame({ items, ageProfile, onFinish, onExit }: Karu
    * no idioma da pista, a fala é omitida (`falar` avisa em vez de ler com voz estrangeira) e a
    * rodada ficava insolúvel: nada falado, nada escrito.
    */
-  const semVozParaAPista = !isTtsSupported() || (vozesCarregadas() && !hasVoiceFor(idiomaDaFala));
+  /* NO QUEST a conta é outra: o navegador tem a API de voz e NENHUMA voz, e a lista nunca "chega".
+     Ali quem responde é `haVozPara` (a voz do site lê alguns idiomas com a nuvem ligada). Sem voz
+     para o idioma da pista, ela aparece escrita, sem custar dica, e "Ouvir de novo" não aparece. */
+  const questNovo = useQuestNovo();
+  const haVozDaPista = useVozNoJogo(idiomaDaFala);
+  const semVozParaAPista = questNovo
+    ? !haVozDaPista
+    : !isTtsSupported() || (vozesCarregadas() && !hasVoiceFor(idiomaDaFala));
   const pistaVisivel = semVozParaAPista || pistaAberta;
 
   const narrar = useCallback(() => {
@@ -176,7 +184,10 @@ export default function KarutaGame({ items, ageProfile, onFinish, onExit }: Karu
     }
     if (tempo <= 3) play('tick');
     if (!ativo) return; // o relógio para na contagem e na pausa
-    const tique = setTimeout(() => setRelogio((r) => (r.carta === indice ? { ...r, segundos: r.segundos - 1 } : r)), 1000);
+    const tique = setTimeout(
+      () => setRelogio((r) => (r.carta === indice ? { ...r, segundos: r.segundos - 1 } : r)),
+      1000,
+    );
     return () => clearTimeout(tique);
   }, [relogio, ativo, tempo, indice, acabou, item, registrar, avancar]);
 
@@ -225,7 +236,9 @@ export default function KarutaGame({ items, ageProfile, onFinish, onExit }: Karu
         pouco={tempo <= 3}
         ajudas={
           <>
-            <BotaoDeAjuda icone={Volume2} rotulo={t('Ouvir de novo')} data-tour="placar" onClick={narrar} />
+            {!(questNovo && semVozParaAPista) && (
+              <BotaoDeAjuda icone={Volume2} rotulo={t('Ouvir de novo')} data-tour="placar" onClick={narrar} />
+            )}
             {!semVozParaAPista && (
               <BotaoDeAjuda
                 icone={Eye}
@@ -242,7 +255,11 @@ export default function KarutaGame({ items, ageProfile, onFinish, onExit }: Karu
         }
       />
 
-      <div className="px-6 py-3 border-b border-border-subtle bg-surface/60 flex items-center justify-between gap-3">
+      <div
+        data-qj="karuta"
+        data-qp="faixa-da-pista"
+        className="px-6 py-3 border-b border-border-subtle bg-surface/60 flex items-center justify-between gap-3"
+      >
         {/* Sem voz para a pista o jogo seria insolúvel: aí a pista aparece escrita. Com voz, ler é
             uma dica que a pessoa pede. */}
         {pistaVisivel ? (

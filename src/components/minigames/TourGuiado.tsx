@@ -1,5 +1,10 @@
-import { ArrowRight,Hand, Keyboard, MousePointerClick, X } from 'lucide-react';
+import '../../styles/questJogarTelas.css';
+
+import { ArrowRight, Hand, Keyboard, MousePointerClick, X } from 'lucide-react';
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+
+import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
+import { t } from '../../lib/i18n';
 
 /**
  * TOUR GUIADO — a explicação que acontece NA TELA, sobre o jogo de verdade.
@@ -48,6 +53,7 @@ export default function TourGuiado({ passos, titulo, onFim }: TourGuiadoProps) {
   const [i, setI] = useState(0);
   const [caixa, setCaixa] = useState<DOMRect | null>(null);
   const cartaoRef = useRef<HTMLDivElement | null>(null);
+  const questNovo = useQuestNovo();
 
   const passo = passos[i];
 
@@ -64,17 +70,22 @@ export default function TourGuiado({ passos, titulo, onFim }: TourGuiadoProps) {
 
   // Mede antes de pintar (evita o destaque aparecer um quadro no lugar errado) e pula passo órfão.
   useLayoutEffect(() => {
-    if (!passo) { onFim(); return; }
+    if (!passo) {
+      onFim();
+      return;
+    }
     if (!medir()) {
       // Alvo ausente: passa adiante. Se era o último, encerra.
-      if (i + 1 < passos.length) setI(n => n + 1);
+      if (i + 1 < passos.length) setI((n) => n + 1);
       else onFim();
     }
   }, [i, passo, medir, passos.length, onFim]);
 
   // O alvo se move: rolagem, mudança de tamanho, animação de entrada do próprio jogo.
   useEffect(() => {
-    const remedir = () => { medir(); };
+    const remedir = () => {
+      medir();
+    };
     window.addEventListener('resize', remedir);
     window.addEventListener('scroll', remedir, true);
     const t = window.setInterval(remedir, 400); // pega layout que assenta depois (fontes, imagens)
@@ -86,14 +97,20 @@ export default function TourGuiado({ passos, titulo, onFim }: TourGuiadoProps) {
   }, [medir]);
 
   const avancar = useCallback(() => {
-    if (i + 1 < passos.length) setI(n => n + 1);
+    if (i + 1 < passos.length) setI((n) => n + 1);
     else onFim();
   }, [i, passos.length, onFim]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { onFim(); return; }
-      if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowRight') { e.preventDefault(); avancar(); }
+      if (e.key === 'Escape') {
+        onFim();
+        return;
+      }
+      if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowRight') {
+        e.preventDefault();
+        avancar();
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -110,12 +127,19 @@ export default function TourGuiado({ passos, titulo, onFim }: TourGuiadoProps) {
 
   /* O CARTÃO vai ABAIXO do alvo quando cabe, e acima quando não cabe — senão ele sai da tela em
      alvos que ficam no pé (o teclado do Termo, o botão de conferir). O mesmo para as laterais. */
-  const alturaCartao = cartaoRef.current?.offsetHeight ?? 120;
+  /* META QUEST: o cartão é mais largo e mais alto (texto de 18 px, botões de 60 px). */
+  const alturaCartao = cartaoRef.current?.offsetHeight ?? (questNovo ? 220 : 120);
   const cabeAbaixo = buraco.top + buraco.height + alturaCartao + 16 < window.innerHeight;
-  const topoCartao = cabeAbaixo
-    ? buraco.top + buraco.height + 12
-    : Math.max(12, buraco.top - alturaCartao - 12);
-  const larguraCartao = Math.min(340, window.innerWidth - 24);
+  /* Preso à janela nos dois sentidos: com a janela baixa (500 × 495 no headset) o cartão "abaixo do
+     alvo" passava do pé da tela, e "Pular a explicação" ficava fora do alcance. */
+  const topoCartao = Math.max(
+    12,
+    Math.min(
+      window.innerHeight - alturaCartao - 12,
+      cabeAbaixo ? buraco.top + buraco.height + 12 : buraco.top - alturaCartao - 12,
+    ),
+  );
+  const larguraCartao = Math.min(questNovo ? 480 : 340, window.innerWidth - 24);
   const esquerdaCartao = Math.max(
     12,
     Math.min(window.innerWidth - larguraCartao - 12, caixa.left + caixa.width / 2 - larguraCartao / 2),
@@ -154,43 +178,82 @@ export default function TourGuiado({ passos, titulo, onFim }: TourGuiadoProps) {
         <Gesto className="w-5 h-5 text-accent babel-tour-gesto relative" />
       </span>
 
-      {/* A FRASE */}
-      <div
-        ref={cartaoRef}
-        className="absolute card-panel bg-surface p-4 shadow-card animate-in fade-in duration-200"
-        style={{ top: topoCartao, left: esquerdaCartao, width: larguraCartao }}
-      >
-        <div className="flex items-start justify-between gap-3 mb-2">
-          <span className="label-mono">{i + 1} de {passos.length}</span>
-          <button
-            onClick={onFim}
-            className="p-1 -m-1 rounded text-ink-faint hover:text-ink cursor-pointer"
-            aria-label="Pular a explicação"
-          >
-            <X className="w-4 h-4" />
-          </button>
+      {/* A FRASE. No Meta Quest, o mesmo cartão com as peças do headset: a frase em 18 px, "Pular" e
+          "Próximo" como alvos de 60 px (não há Enter nem seta para avançar sem teclado). */}
+      {questNovo ? (
+        <div
+          ref={cartaoRef}
+          className="qj-tour"
+          style={{ top: topoCartao, left: esquerdaCartao, width: larguraCartao }}
+        >
+          <p className="q-rotulo">{t('Passo {n} de {total}', { n: i + 1, total: passos.length })}</p>
+          <p className="q-texto">{t(passo.texto)}</p>
+          <div className="qj-tour-pe">
+            <button type="button" className="q-ctl" onClick={onFim}>
+              {t('Pular a explicação')}
+            </button>
+            <span className="qj-tour-pontos" aria-hidden>
+              {passos.map((_, n) => (
+                <i key={n} data-estado={n === i ? 'atual' : n < i ? 'feito' : 'falta'} />
+              ))}
+            </span>
+            <button type="button" className="q-ctl pri" onClick={avancar}>
+              {i + 1 < passos.length ? (
+                <>
+                  {t('Próximo')} <ArrowRight aria-hidden />
+                </>
+              ) : (
+                t('Jogar')
+              )}
+            </button>
+          </div>
         </div>
+      ) : (
+        <div
+          ref={cartaoRef}
+          className="absolute card-panel bg-surface p-4 shadow-card animate-in fade-in duration-200"
+          style={{ top: topoCartao, left: esquerdaCartao, width: larguraCartao }}
+        >
+          <div className="flex items-start justify-between gap-3 mb-2">
+            <span className="label-mono">
+              {i + 1} de {passos.length}
+            </span>
+            <button
+              onClick={onFim}
+              className="p-1 -m-1 rounded text-ink-faint hover:text-ink cursor-pointer"
+              aria-label="Pular a explicação"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
 
-        <p className="text-[14px] text-ink leading-snug mb-3">{passo.texto}</p>
+          <p className="text-[14px] text-ink leading-snug mb-3">{passo.texto}</p>
 
-        <div className="flex items-center gap-2">
-          {/* Os pontinhos dão a noção de "falta pouco" — é o que segura quem ia pular. */}
-          <span className="flex items-center gap-1 flex-1" aria-hidden>
-            {passos.map((_, n) => (
-              <span
-                key={n}
-                className={`h-1 rounded-full transition-all ${n === i ? 'w-4 bg-accent' : n < i ? 'w-1.5 bg-good' : 'w-1.5 bg-border-subtle'}`}
-              />
-            ))}
-          </span>
-          <button
-            onClick={avancar}
-            className="py-2 px-4 rounded-lg bg-accent hover:bg-accent-ink text-white font-bold text-[13px] cursor-pointer flex items-center gap-1.5"
-          >
-            {i + 1 < passos.length ? <>Próximo <ArrowRight className="w-3.5 h-3.5" /></> : 'Jogar'}
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Os pontinhos dão a noção de "falta pouco" — é o que segura quem ia pular. */}
+            <span className="flex items-center gap-1 flex-1" aria-hidden>
+              {passos.map((_, n) => (
+                <span
+                  key={n}
+                  className={`h-1 rounded-full transition-all ${n === i ? 'w-4 bg-accent' : n < i ? 'w-1.5 bg-good' : 'w-1.5 bg-border-subtle'}`}
+                />
+              ))}
+            </span>
+            <button
+              onClick={avancar}
+              className="py-2 px-4 rounded-lg bg-accent hover:bg-accent-ink text-white font-bold text-[13px] cursor-pointer flex items-center gap-1.5"
+            >
+              {i + 1 < passos.length ? (
+                <>
+                  Próximo <ArrowRight className="w-3.5 h-3.5" />
+                </>
+              ) : (
+                'Jogar'
+              )}
+            </button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

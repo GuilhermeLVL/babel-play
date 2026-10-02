@@ -8,11 +8,11 @@ import { celebrar } from '../../../lib/comemoracao';
 import { t } from '../../../lib/i18n';
 import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
-import { falar } from '../../../lib/tts';
 import { botaoDaAlternativa, useAtalhosDasAlternativas } from '../casca/atalhos';
 import AvisoDaJogada from '../casca/AvisoDaJogada';
 import { useRodada } from '../casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from '../casca/HudDaRodada';
+import { falarNoJogo as falar, useVozNoJogo } from '../noQuest';
 
 /**
  * SHIRITORI — a corrente encadeia pela última letra, e a corrente é O SEU BARALHO.
@@ -37,6 +37,8 @@ export default function ShiritoriGame({ items, ageProfile, onFinish, onExit }: S
   const { ativo } = useRodada();
   const [placar, recontar] = usePlacarDaRodada('shiritori');
   const corrente = useMemo(() => montarCorrente(items), [items]);
+  /* No Quest "ouvir a palavra" só aparece com voz para o idioma do baralho: a palavra está escrita. */
+  const haVoz = useVozNoJogo(corrente?.inicio.lang);
 
   const [idx, setIdx] = useState(0);
   const [erradas, setErradas] = useState<string[]>([]);
@@ -151,12 +153,16 @@ export default function ShiritoriGame({ items, ageProfile, onFinish, onExit }: S
         }
       />
 
-      <div ref={palcoRef} className="flex flex-col items-center justify-center gap-7 max-w-2xl mx-auto w-full">
+      <div
+        ref={palcoRef}
+        data-qj="shiritori"
+        className="flex flex-col items-center justify-center gap-7 max-w-2xl mx-auto w-full"
+      >
         <div data-tour="corrente" className="w-full rounded-2xl border border-border-subtle bg-surface p-4">
           <p className="label-mono mb-3">
             A corrente até aqui ({jaNaCorrente.length} de {corrente.passos.length + 1})
           </p>
-          <div className="flex items-center gap-2 overflow-x-auto pb-1">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1" data-qp="elos">
             {jaNaCorrente.map((elo, i) => (
               <React.Fragment key={elo.answer + i}>
                 {i > 0 && <ArrowRight className="w-4 h-4 text-ink-faint shrink-0" aria-hidden />}
@@ -175,6 +181,7 @@ export default function ShiritoriGame({ items, ageProfile, onFinish, onExit }: S
           <p className="label-mono mb-2">Palavra na ponta</p>
           <p
             dir={direcaoDoTexto(anterior.lang)}
+            data-qp="ponta"
             className="font-display font-black text-4xl sm:text-5xl text-ink tracking-wide"
           >
             {anterior.answer.slice(0, -1)}
@@ -182,14 +189,17 @@ export default function ShiritoriGame({ items, ageProfile, onFinish, onExit }: S
           </p>
           <div className="flex items-center justify-center gap-2 mt-2">
             <span className="text-[13px] text-ink-muted">{anterior.prompt}</span>
-            <button
-              onClick={() => falar(anterior.answer, anterior.lang)}
-              className="p-1.5 rounded-full hover:bg-surface-hover text-accent cursor-pointer"
-              title="Ouvir a palavra"
-              aria-label="Ouvir a palavra"
-            >
-              <Volume2 className="w-4 h-4" />
-            </button>
+            {haVoz && (
+              <button
+                data-qp="icone"
+                onClick={() => falar(anterior.answer, anterior.lang)}
+                className="p-1.5 rounded-full hover:bg-surface-hover text-accent cursor-pointer"
+                title="Ouvir a palavra"
+                aria-label="Ouvir a palavra"
+              >
+                <Volume2 className="w-4 h-4" />
+              </button>
+            )}
           </div>
           {letraVisivel && (
             <p className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-accent-soft text-accent-ink text-[13px] font-bold">
@@ -226,6 +236,7 @@ export default function ShiritoriGame({ items, ageProfile, onFinish, onExit }: S
                   }
                 }}
                 disabled={riscada || !!revelado}
+                data-estado={certaRevelada ? 'certo' : riscada ? 'errado' : undefined}
                 aria-keyshortcuts={String(posicao + 1)}
                 dir={direcaoDoTexto(passo.item.lang)}
                 className={`py-4 px-4 rounded-2xl border-2 font-bold text-[16px] transition-colors ${
@@ -242,7 +253,12 @@ export default function ShiritoriGame({ items, ageProfile, onFinish, onExit }: S
           })}
         </div>
         {revelado && (
-          <AvisoDaJogada tom="erro" rotulo={t('O tempo acabou. O elo era:')} resposta={revelado} lang={passo.item.lang} />
+          <AvisoDaJogada
+            tom="erro"
+            rotulo={t('O tempo acabou. O elo era:')}
+            resposta={revelado}
+            lang={passo.item.lang}
+          />
         )}
       </div>
     </>

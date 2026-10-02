@@ -17,6 +17,7 @@ import { Suspense, useEffect, useRef, useState } from 'react';
 import { fetchSettings, saveSettings } from '../../data/api';
 import { DEFAULT_PROFILE_ID } from '../../gateway/profiles';
 import type { ThemeType } from '../../lib/appearance';
+import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { getEntitlements, onPlanChange } from '../../lib/entitlements';
 import { idiomasAbaixoDoPiso, t } from '../../lib/i18n';
 import { irPara } from '../../lib/irPara';
@@ -41,6 +42,7 @@ import AbaConta from './ajustes/AbaConta';
 import AbaNotificacoes from './ajustes/AbaNotificacoes';
 import AbaPrivacidade from './ajustes/AbaPrivacidade';
 import { Linha } from './ajustes/Linha';
+import AjustesDoQuest from './ajustes/quest/AjustesDoQuest';
 import LangAudit from './LangAudit';
 
 /* O painel da Tradução Nuance (D6 da Fase D): registro padrão, variantes e glossário, por `import()`. */
@@ -139,6 +141,8 @@ export default function Settings({
   performanceMode,
   togglePerformanceMode,
 }: SettingsProps) {
+  // No Quest (telas novas ligadas) a apresentação é `AjustesDoQuest`; o estado e a gravação são estes.
+  const questNovo = useQuestNovo();
   const [langCfg, setLangCfg] = useState<LangConfig>(DEFAULT_LANG_CONFIG);
   const [activeProfileId, setActiveProfileId] = useState<string>(
     () => localStorage.getItem(PROFILE_STORAGE_KEY) ?? DEFAULT_PROFILE_ID,
@@ -216,24 +220,51 @@ export default function Settings({
     }
   };
 
+  const sobrancelha =
+    ageProfile === 'kids'
+      ? t('Ajustes do jogador')
+      : ageProfile === 'senior'
+        ? t('Painel de opções')
+        : t('Preferências do app');
+  const titulo =
+    ageProfile === 'kids' ? t('Ajustes do jogo') : ageProfile === 'senior' ? t('Ajustes do aplicativo') : t('Ajustes');
+
+  /* QUEST: as mesmas seis abas e os mesmos ajustes, no desenho do headset (`AjustesDoQuest`). */
+  if (questNovo)
+    return (
+      <AjustesDoQuest
+        sobrancelha={sobrancelha}
+        titulo={titulo}
+        abas={ABAS.map((a) => ({ ...a, rotulo: t(a.rotulo) }))}
+        aba={aba}
+        aoTrocarAba={setAba}
+        erro={saveError}
+        idiomas={langCfg}
+        aoMudarIdioma={(mudanca) => void changeLang(mudanca)}
+        escuro={darkMode}
+        aoEscolherEscuro={(escuro) => definirEscuro(escuro, darkMode, setDarkMode)}
+        tamanhos={TAMANHOS}
+        fontScale={fontScale}
+        setFontScale={setFontScale}
+        animationsEnabled={animationsEnabled}
+        toggleAnimations={toggleAnimations}
+        soundEnabled={soundEnabled}
+        toggleSound={toggleSound}
+        performanceMode={performanceMode}
+        togglePerformanceMode={togglePerformanceMode}
+        perfilDeIa={activeProfileId}
+        aoMudarPerfilDeIa={(id) => void changeProfile(id)}
+        perfisBloqueados={entitlements.managedCloudStt ? [] : ['cloud-quality']}
+        onReplayTour={onReplayTour}
+      />
+    );
+
   return (
     <Tela largura="estreita">
       <CabecalhoDeTela
         icone={ageProfile === 'kids' ? Gamepad2 : ageProfile === 'senior' ? Eye : Zap}
-        sobrancelha={
-          ageProfile === 'kids'
-            ? t('Ajustes do jogador')
-            : ageProfile === 'senior'
-              ? t('Painel de opções')
-              : t('Preferências do app')
-        }
-        titulo={
-          ageProfile === 'kids'
-            ? t('Ajustes do jogo')
-            : ageProfile === 'senior'
-              ? t('Ajustes do aplicativo')
-              : t('Ajustes')
-        }
+        sobrancelha={sobrancelha}
+        titulo={titulo}
         sub={
           ageProfile === 'kids'
             ? t('Escolha os idiomas que você quer praticar e personalize o visual do seu jogo.')

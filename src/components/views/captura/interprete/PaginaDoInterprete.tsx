@@ -9,10 +9,16 @@ import {
   Smartphone,
   Volume2,
 } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { type ReactNode, useEffect, useSyncExternalStore } from 'react';
 
 import { t } from '../../../../lib/i18n';
 import { langLabel } from '../../../../lib/languages';
+import {
+  aoMudarIdiomasDaVozDoQuest,
+  atualizarIdiomasDaVozDoQuest,
+  idiomasDaVozDoQuest,
+  vozDoQuestFala,
+} from '../../../../lib/voz/vozDoQuest';
 import { LangFlag } from '../../../LangFlag';
 import { CabecalhoDeTela, IconeEmBloco } from '../../../ui';
 import type { AutomaticoNoPlano } from './ModoInterprete';
@@ -35,6 +41,7 @@ export default function PaginaDoInterprete({
   automatico = 'oculto',
   noQuest = false,
   semVoz = false,
+  vozDoSite = false,
   avisos,
   aoConhecerOPremium,
   aoComecar,
@@ -54,6 +61,8 @@ export default function PaginaDoInterprete({
   noQuest?: boolean;
   /** O aparelho não tem voz de leitura: a tradução é só em texto, e a tela não promete voz. */
   semVoz?: boolean;
+  /** A voz do site está ligada: no aparelho sem voz, ela lê a tradução nos idiomas que tem. */
+  vozDoSite?: boolean;
   /** O cartão da nuvem do aparelho leve (`NuvemDoQuest`): no headset, é ela que faz a conversa andar. */
   avisos?: ReactNode;
   /** Abre os Planos (ausente no perfil protegido: nada de oferta). */
@@ -62,6 +71,17 @@ export default function PaginaDoInterprete({
   aoEscolherIdiomas: () => void;
   aoInverter: () => void;
 }) {
+  const comVozDoSite = semVoz && vozDoSite;
+  useSyncExternalStore(
+    aoMudarIdiomasDaVozDoQuest,
+    () => idiomasDaVozDoQuest().join(),
+    () => '',
+  );
+  useEffect(() => {
+    if (comVozDoSite) void atualizarIdiomasDaVozDoQuest();
+  }, [comVozDoSite]);
+  /** Os idiomas da conversa que NÃO são lidos em voz alta neste aparelho. */
+  const emTexto = semVoz ? [idiomas.meu, idiomas.outro].filter((i) => !(comVozDoSite && vozDoQuestFala(i))) : [];
   const campo = (rotulo: string, codigo: string) => (
     <button type="button" className="campo-idioma" onClick={aoEscolherIdiomas}>
       <span className="label-mono">{rotulo}</span>
@@ -103,7 +123,12 @@ export default function PaginaDoInterprete({
             <p className="q-sobre">{t('Conversa frente a frente')}</p>
             <h1>{t('Intérprete')}</h1>
           </div>
-          {semVoz && <span className="q-chip">{t('Tradução em texto neste aparelho')}</span>}
+          {emTexto.length === 2 && <span className="q-chip">{t('Tradução em texto neste aparelho')}</span>}
+          {emTexto.length === 1 && (
+            <span className="q-chip">
+              {t('Voz só em {idioma}', { idioma: langLabel(emTexto[0] === idiomas.meu ? idiomas.outro : idiomas.meu) })}
+            </span>
+          )}
         </div>
         <div className="q-par">
           {lado(t('Você fala'), idiomas.meu)}
@@ -125,9 +150,17 @@ export default function PaginaDoInterprete({
             </li>
             <li>
               <span aria-hidden>3</span>
-              {semVoz
+              {emTexto.length === 2
                 ? t('Cada pessoa toca o seu lado e fala. A tradução aparece em texto do outro lado.')
-                : t('Cada pessoa toca o seu lado e fala. A tradução é lida em voz alta para a outra.')}
+                : emTexto.length === 1
+                  ? t(
+                      'Cada pessoa toca o seu lado e fala. A tradução é lida em voz alta em {comVoz}; em {semVoz}, aparece em texto.',
+                      {
+                        comVoz: langLabel(emTexto[0] === idiomas.meu ? idiomas.outro : idiomas.meu),
+                        semVoz: langLabel(emTexto[0]),
+                      },
+                    )
+                  : t('Cada pessoa toca o seu lado e fala. A tradução é lida em voz alta para a outra.')}
             </li>
             <li className="q-nota" role="status">
               <span aria-hidden>

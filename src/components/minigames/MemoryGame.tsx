@@ -11,9 +11,11 @@ import { direcaoDoTexto } from '../../lib/languages';
 import { classeDoCartao, type EstadoDoCartao, lerPeleDeCartao } from '../../lib/pelesDeCartao';
 import type { AgeProfileType } from '../../lib/profile';
 import { play } from '../../lib/soundFx';
-import { falar } from '../../lib/tts';
 import { useRodada } from './casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda } from './casca/HudDaRodada';
+/* No Quest a mesa (4 × 3, cartas grandes, ícone de certo e errado) vem de `styles/questJogar.css`; daqui
+   só muda a fala, que não toca quando o aparelho não tem voz para o idioma da palavra. */
+import { falarNoJogo as falar } from './noQuest';
 
 interface MemoryGameProps {
   items: MinigameItem[];

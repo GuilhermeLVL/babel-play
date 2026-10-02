@@ -36,12 +36,14 @@ const EVENTOS = new Set<string>([
   'success', 'error', 'recordStart', 'recordStop', 'levelUp'
 ]);
 
+/** O que a app trata como ACIONÁVEL (o som do clique e a resposta ao apontar leem daqui). */
+export const SELETOR_DO_ACIONAVEL =
+  'button, a[href], [role="button"], [role="tab"], [role="switch"], [role="option"], [data-sfx], input[type="checkbox"], input[type="radio"], label[for]';
+
 /** O alvo clicado pode ser um `<svg>` dentro do botão — sobe até achar o que é acionável. */
-function acionavel(alvo: EventTarget | null): HTMLElement | null {
+export function acionavel(alvo: EventTarget | null): HTMLElement | null {
   if (!(alvo instanceof Element)) return null;
-  const el = alvo.closest<HTMLElement>(
-    'button, a[href], [role="button"], [role="tab"], [role="switch"], [role="option"], [data-sfx], input[type="checkbox"], input[type="radio"], label[for]'
-  );
+  const el = alvo.closest<HTMLElement>(SELETOR_DO_ACIONAVEL);
   return el ?? null;
 }
 

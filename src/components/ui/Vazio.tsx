@@ -55,11 +55,11 @@ export default function Vazio({ icone, titulo, explicacao, acao, acaoSecundaria,
      de um card comum. Trocar por `card-panel border-dashed` engrossaria a moldura em todo vazio. */
   return (
     <div
-      className={`card-panel p-10 bg-surface border border-dashed border-border-subtle flex flex-col items-center text-center ${className}`}
+      className={`vazio-de-tela card-panel p-10 bg-surface border border-dashed border-border-subtle flex flex-col items-center text-center ${className}`}
     >
       {icone && (
         <div
-          className="w-14 h-14 rounded-full bg-canvas border border-border-subtle flex items-center justify-center mb-4 text-ink-faint"
+          className="vazio-icone w-14 h-14 rounded-full bg-canvas border border-border-subtle flex items-center justify-center mb-4 text-ink-faint"
           aria-hidden
         >
           {icone}

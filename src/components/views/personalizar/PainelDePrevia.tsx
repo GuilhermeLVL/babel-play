@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { ThemeType } from '../../../lib/appearance';
 import { tocarPreviaDoEfeito } from '../../../lib/comemoracao';
+import { useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
 import { lerEstiloDeLegenda } from '../../../lib/estilosDeLegenda';
 import { t } from '../../../lib/i18n';
 import type { ItemDaLoja } from '../../../lib/loja';
@@ -109,7 +110,18 @@ export function usePreviaAoVivo(temaEquipado: ThemeType) {
 
 /** A faixa do tema em prévia: aparece em qualquer aba enquanto o app está pintado com ele. */
 export function FaixaDoTemaEmPrevia({ previa, aoParar }: { previa: EstadoDaPrevia; aoParar: () => void }) {
+  const questNovo = useQuestNovo();
   if (!previa.tema) return null;
+  // No headset: a faixa de aviso do desenho novo, com a única ação dela num alvo de 60 px.
+  if (questNovo)
+    return (
+      <div className="q-aviso" role="status" data-testid="tema-em-previa">
+        <span>{t('Prévia do tema {nome}: só nesta tela, nada foi equipado.', { nome: previa.tema.nome })}</span>
+        <button type="button" className="q-ctl" onClick={aoParar}>
+          <Undo2 aria-hidden /> {t('Parar prévia')}
+        </button>
+      </div>
+    );
   return (
     <div className="cartao p5 entre" role="status" data-testid="tema-em-previa" style={{ gap: 12, flexWrap: 'wrap', marginTop: 14 }}>
       <span className="linha" style={{ gap: 8 }}>

@@ -1,12 +1,41 @@
 /* O CSS das telas do Quest chega junto com o trilho (que só o headset baixa): fora do CSS inicial de
    todo mundo, e sempre presente quando as telas novas estão ligadas, porque o trilho está sempre montado. */
 import '../../styles/quest.css';
+/* E as medidas do headset sobre as peças de sempre (`.tela`, `.btn`, `<dialog>`, `.toast`…). */
+import '../../styles/questBase.css';
 
-import { Activity, Ellipsis, LifeBuoy, Moon, Sun, UserRound, Volume2, VolumeX, X } from 'lucide-react';
+import {
+  Activity,
+  Bell,
+  BellOff,
+  Ellipsis,
+  HardDrive,
+  LifeBuoy,
+  Moon,
+  Search,
+  Settings,
+  Sun,
+  UserRound,
+  Vibrate,
+  VibrateOff,
+  Volume2,
+  VolumeX,
+  X,
+} from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
+import { instalarRespostaAoApontar } from '../../lib/dispositivo/respostaAoApontar';
+import {
+  guardarVibracaoDoQuest,
+  useVibracaoDoQuest,
+  type VibracaoDoQuest,
+  VIBRACOES_DO_QUEST,
+} from '../../lib/dispositivo/telaNovaDoQuest';
+import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { t } from '../../lib/i18n';
+import { marcarLida, marcarTodasLidas, naoLidas, quando } from '../../lib/notificacoes';
 import type { ViewType } from '../../types';
+import { useListaDeNotificacoes } from './CentralDeNotificacoes';
 import { type AgeProfileType, NAV_ITEMS, navLabel } from './navItems';
 import { MarcaBabel } from './ShellBits';
 
@@ -21,7 +50,9 @@ const NO_TRILHO_SEM_CONTA: ViewType[] = ['hub', 'capture', 'interprete', 'play']
 
 interface TrilhoDoQuestProps {
   activeView: ViewType;
-  onChangeView: (view: ViewType) => void;
+  onChangeView: (view: ViewType, dado?: Record<string, string>) => void;
+  /** Abre a busca global (o trilho não tem o cabeçalho que a trazia). Ausente = sem o botão. */
+  aoBuscar?: () => void;
   ageProfile: AgeProfileType;
   /** Quem está sem conta: o que exige conta sai do trilho e fica em "Mais". */
   semConta?: boolean;
@@ -38,10 +69,21 @@ interface TrilhoDoQuestProps {
  * Sobre, Ajustes, perfil, ajuda, diagnóstico) e os dois interruptores que o rodapé do menu tinha
  * (claro/escuro e som) ficam num painel no centro da tela, aberto por "Mais". Nada abre por hover e
  * nada desliza pela lateral. Com a janela estreita (ao lado de um jogo), o trilho deita embaixo.
+ *
+ * O painel "Mais" também guarda o que o cabeçalho de sempre trazia e a primeira versão do trilho tinha
+ * deixado de fora: a BUSCA, os AVISOS (o sino, com a contagem no próprio botão "Mais") e o que esta
+ * edição é ("edição de demonstração", o texto do menu da conta). E a vibração do controle ao apontar.
  */
+const ROTULO_DA_VIBRACAO: Record<VibracaoDoQuest, () => string> = {
+  desligada: () => t('Vibração ao apontar: desligada'),
+  suave: () => t('Vibração ao apontar: suave'),
+  forte: () => t('Vibração ao apontar: forte'),
+};
+
 export default function TrilhoDoQuest({
   activeView,
   onChangeView,
+  aoBuscar,
   ageProfile,
   semConta = false,
   darkMode,
@@ -50,6 +92,13 @@ export default function TrilhoDoQuest({
   toggleSound,
 }: TrilhoDoQuestProps) {
   const [maisAberto, setMaisAberto] = useState(false);
+  const [aba, setAba] = useState<'destinos' | 'avisos'>('destinos');
+  const avisos = useListaDeNotificacoes();
+  const novos = naoLidas(avisos);
+  const vibracao = useVibracaoDoQuest();
+  /* A resposta ao apontar (pulso no controle, brilho que segue o ponteiro) vive enquanto o trilho
+     vive: só no Quest com as telas novas, e sai junto se a chave for desligada em `/diagnostico`. */
+  useEffect(() => instalarRespostaAoApontar(), []);
   const noTrilho = semConta ? NO_TRILHO_SEM_CONTA : NO_TRILHO;
   const principais = noTrilho.map((id) => NAV_ITEMS.find((i) => i.id === id)).filter((i) => !!i);
   const outros = NAV_ITEMS.filter((i) => !noTrilho.includes(i.id));
@@ -57,16 +106,22 @@ export default function TrilhoDoQuest({
 
   useEffect(() => setMaisAberto(false), [activeView]);
   useEffect(() => {
+    if (!maisAberto) setAba('destinos');
+  }, [maisAberto]);
+  useEffect(() => {
     if (!maisAberto) return;
     const aoTeclar = (e: KeyboardEvent) => e.key === 'Escape' && setMaisAberto(false);
     window.addEventListener('keydown', aoTeclar);
     return () => window.removeEventListener('keydown', aoTeclar);
   }, [maisAberto]);
 
-  const ir = (id: ViewType) => {
+  const ir = (id: ViewType, dado?: Record<string, string>) => {
     setMaisAberto(false);
-    onChangeView(id);
+    if (dado) onChangeView(id, dado);
+    else onChangeView(id);
   };
+  const proximaVibracao = () =>
+    guardarVibracaoDoQuest(VIBRACOES_DO_QUEST[(VIBRACOES_DO_QUEST.indexOf(vibracao) + 1) % VIBRACOES_DO_QUEST.length]);
 
   return (
     <>
@@ -97,6 +152,11 @@ export default function TrilhoDoQuest({
         >
           <Ellipsis aria-hidden />
           <span>{t('Mais')}</span>
+          {novos > 0 && (
+            <i className="q-contagem" aria-label={t('{n} não lidas', { n: novos })}>
+              {novos}
+            </i>
+          )}
         </button>
       </nav>
 
@@ -105,48 +165,131 @@ export default function TrilhoDoQuest({
           <div className="q-mais" role="dialog" aria-modal="true" aria-label={t('Mais destinos')}>
             <div className="q-cab">
               <h2>{t('Mais')}</h2>
+              {aoBuscar && (
+                <button
+                  type="button"
+                  className="q-ctl"
+                  onClick={() => {
+                    setMaisAberto(false);
+                    aoBuscar();
+                  }}
+                >
+                  <Search aria-hidden />
+                  {t('Buscar')}
+                </button>
+              )}
               <button type="button" className="q-ctl" onClick={() => setMaisAberto(false)} aria-label={t('Fechar')}>
                 <X aria-hidden />
               </button>
             </div>
-            <div className="q-grade g3">
-              {outros.map((item) => {
-                const Icone = item.icon;
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    className="q-tile em-linha"
-                    onClick={() => ir(item.id)}
-                    aria-current={activeView === item.id ? 'page' : undefined}
-                  >
-                    <span className="q-ic">
-                      <Icone aria-hidden />
-                    </span>
-                    <b>{navLabel(item, ageProfile)}</b>
-                  </button>
-                );
-              })}
-              <button type="button" className="q-tile em-linha" onClick={() => ir('profile')}>
-                <span className="q-ic">
-                  <UserRound aria-hidden />
-                </span>
-                <b>{t('Seu perfil')}</b>
+            <div className="q-abas" role="tablist" aria-label={t('O que mostrar')}>
+              <button
+                type="button"
+                role="tab"
+                className="q-aba"
+                aria-selected={aba === 'destinos'}
+                onClick={() => setAba('destinos')}
+              >
+                {t('Destinos')}
               </button>
-              <button type="button" className="q-tile em-linha" onClick={() => ir('ajuda')}>
-                <span className="q-ic">
-                  <LifeBuoy aria-hidden />
-                </span>
-                <b>{t('Ajuda e suporte')}</b>
-              </button>
-              <button type="button" className="q-tile em-linha" onClick={() => ir('diagnostico')}>
-                <span className="q-ic">
-                  <Activity aria-hidden />
-                </span>
-                <b>{t('Diagnóstico do aparelho')}</b>
+              <button
+                type="button"
+                role="tab"
+                className="q-aba"
+                aria-selected={aba === 'avisos'}
+                onClick={() => setAba('avisos')}
+              >
+                <Bell aria-hidden />
+                {t('Avisos')}
+                {novos > 0 && <span className="n">{novos}</span>}
               </button>
             </div>
-            <div className="q-faixa" style={{ margin: 0 }}>
+            {aba === 'avisos' && (
+              <div className="q-lista" role="tabpanel" aria-label={t('Avisos')} data-testid="avisos-no-quest">
+                {avisos.length === 0 ? (
+                  <div className="q-vazio" style={{ minHeight: 200 }}>
+                    <span className="q-ic">
+                      <BellOff aria-hidden />
+                    </span>
+                    <h3>{t('Nada por aqui')}</h3>
+                    <p>{t('Avisos de revisão, conquistas e sessões salvas aparecem aqui.')}</p>
+                  </div>
+                ) : (
+                  avisos.map((a) => (
+                    <button
+                      key={a.id}
+                      type="button"
+                      className="q-linha"
+                      aria-pressed={!a.lida}
+                      onClick={() => {
+                        marcarLida(a.id);
+                        ir(a.ir as ViewType, a.dado);
+                      }}
+                    >
+                      <span className="q-ic">
+                        <Bell aria-hidden />
+                      </span>
+                      <span>
+                        <b>{a.titulo}</b>
+                        <small>{a.detalhe}</small>
+                      </span>
+                      <span className="q-fim">{quando(a.em)}</span>
+                    </button>
+                  ))
+                )}
+                <div className="q-acoes">
+                  {novos > 0 && (
+                    <button type="button" className="q-ctl" onClick={() => marcarTodasLidas()}>
+                      {t('Marcar todas como lidas')}
+                    </button>
+                  )}
+                  <button type="button" className="q-ctl" onClick={() => ir('settings', { aba: 'notificacoes' })}>
+                    <Settings aria-hidden />
+                    {t('Preferências de notificação')}
+                  </button>
+                </div>
+              </div>
+            )}
+            {aba === 'destinos' && (
+              <div className="q-grade g3" role="tabpanel" aria-label={t('Destinos')}>
+                {outros.map((item) => {
+                  const Icone = item.icon;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className="q-tile em-linha"
+                      onClick={() => ir(item.id)}
+                      aria-current={activeView === item.id ? 'page' : undefined}
+                    >
+                      <span className="q-ic">
+                        <Icone aria-hidden />
+                      </span>
+                      <b>{navLabel(item, ageProfile)}</b>
+                    </button>
+                  );
+                })}
+                <button type="button" className="q-tile em-linha" onClick={() => ir('profile')}>
+                  <span className="q-ic">
+                    <UserRound aria-hidden />
+                  </span>
+                  <b>{t('Seu perfil')}</b>
+                </button>
+                <button type="button" className="q-tile em-linha" onClick={() => ir('ajuda')}>
+                  <span className="q-ic">
+                    <LifeBuoy aria-hidden />
+                  </span>
+                  <b>{t('Ajuda e suporte')}</b>
+                </button>
+                <button type="button" className="q-tile em-linha" onClick={() => ir('diagnostico')}>
+                  <span className="q-ic">
+                    <Activity aria-hidden />
+                  </span>
+                  <b>{t('Diagnóstico do aparelho')}</b>
+                </button>
+              </div>
+            )}
+            <div className="q-faixa q-faixa-do-mais" style={{ margin: 0 }}>
               <button type="button" className="q-ctl" onClick={toggleDarkMode}>
                 {darkMode ? <Moon aria-hidden /> : <Sun aria-hidden />}
                 {darkMode ? t('Tema escuro') : t('Tema claro')}
@@ -155,7 +298,17 @@ export default function TrilhoDoQuest({
                 {soundEnabled ? <Volume2 aria-hidden /> : <VolumeX aria-hidden />}
                 {soundEnabled ? t('Som dos toques: ligado') : t('Som dos toques: desligado')}
               </button>
+              <button type="button" className="q-ctl" onClick={proximaVibracao} data-testid="vibracao-do-quest">
+                {vibracao === 'desligada' ? <VibrateOff aria-hidden /> : <Vibrate aria-hidden />}
+                {ROTULO_DA_VIBRACAO[vibracao]()}
+              </button>
             </div>
+            {edicaoEstatica() && (
+              <p className="q-rodape-do-mais">
+                <HardDrive aria-hidden />
+                {t('edição de demonstração · dados só neste navegador')}
+              </p>
+            )}
           </div>
         </div>
       )}

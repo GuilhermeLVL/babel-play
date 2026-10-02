@@ -1,0 +1,652 @@
+/*
+ * AJUSTES NO META QUEST (segunda rodada do headset, 01/10/2026).
+ *
+ * As peças comuns (`.q-palco`, `.q-cab`, `.q-abas`, `.q-secao`, `.q-ajuste`, `.q-interruptor`,
+ * `.q-campo`, `.q-ctl`, `.q-tile`, `.q-tabela`…) e os tokens (`--q-acento`, `--q-suave`, `--q-toque`,
+ * `--q-cor`) moram em `quest.css`; aqui fica só o que é de Ajustes: a pilha de ajustes, o seletor de
+ * idioma em diálogo, a matriz de avisos, a auditoria de idioma e os diálogos da conta e da chave.
+ *
+ * As mesmas regras: só tokens do tema, alvo ≥ 56 px (o principal ≥ 60), corpo de 17 a 18 px e nada
+ * abaixo de 14, sem itálico, movimento curto e no lugar. Onde uma regra daqui ajusta uma peça de
+ * `quest.css`, ela leva uma classe a mais: a ordem em que os arquivos chegam não decide nada.
+ */
+
+/* ── A TELA: abas que não se escondem, painel em coluna ───────────────────────────────────────── */
+.q-aju-painel {
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+  min-width: 0;
+}
+.q-aju-painel:focus-visible {
+  outline: 3px solid var(--q-acento);
+  outline-offset: 6px;
+  border-radius: 12px;
+}
+/* Seis abas: quando não cabem numa linha, quebram. Rolar para o lado com o raio é ruim. */
+@media (max-width: 1180px) {
+  .q-aju > .q-abas {
+    flex-wrap: wrap;
+    align-self: stretch;
+    border-radius: 28px;
+    overflow: visible;
+  }
+}
+.q-aju .q-aba:disabled {
+  opacity: 0.45;
+  cursor: default;
+  transform: none;
+}
+.q-aju .q-aba:disabled:hover {
+  border-color: transparent;
+  color: var(--ink-muted);
+}
+.q-aju .q-aba.q-aju-letra {
+  min-width: 56px;
+  justify-content: center;
+  font: 800 18px/1 var(--font-display, inherit);
+}
+.q-aju a.q-ctl {
+  text-decoration: none;
+}
+.q-aju .q-secao h3,
+.q-aju .q-cartao h3 {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font: 800 19px/1.25 var(--font-display, inherit);
+}
+.q-aju .q-cartao h3 svg {
+  width: 22px;
+  height: 22px;
+  flex: none;
+}
+
+/* Um ajuste por linha, empilhados. */
+.q-ajustes {
+  display: grid;
+  gap: 12px;
+}
+.q-aju .q-ajuste > .q-abas {
+  flex: none;
+  max-width: 100%;
+}
+.q-aju .q-ajuste small.q-aju-atencao {
+  color: var(--warn-ink, var(--warn));
+  font-weight: 700;
+}
+.q-aju .q-ajuste small.q-aju-prova {
+  color: var(--ink);
+  min-height: 1.35em;
+}
+.q-aju-nota {
+  margin: 0;
+  font: 600 15px/1.4 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+.q-aju .q-aviso svg {
+  width: 22px;
+  height: 22px;
+  vertical-align: -5px;
+  margin-right: 6px;
+}
+.q-aju .q-aviso.q-aju-alerta {
+  background: color-mix(in srgb, var(--warn) 22%, var(--surface));
+}
+/* A espera de uma ação (conferindo, preparando o arquivo): na mesma caixa do que vai chegar. */
+.q-aju-espera {
+  min-height: 72px;
+  padding: 12px 18px;
+  border-radius: 18px;
+  background: var(--surface-sunken);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font: 700 17px/1.35 var(--font-body, inherit);
+  color: var(--ink);
+}
+.q-aju-espera svg {
+  width: 24px;
+  height: 24px;
+  flex: none;
+}
+
+/* ── O SELETOR DE IDIOMA: gatilho de 60 px, lista num diálogo no centro ───────────────────────── */
+.q-seletor {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 60px;
+  max-width: 100%;
+  padding: 0 16px;
+  border: 1.5px solid var(--border-subtle);
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--ink);
+  font: 700 18px/1.2 var(--font-body, inherit);
+  cursor: pointer;
+  transition:
+    transform var(--q-toque),
+    border-color var(--q-cor),
+    background-color var(--q-cor);
+}
+.q-seletor.bloco {
+  display: flex;
+  width: 100%;
+}
+.q-ajuste > .q-seletor.bloco {
+  flex: 0 1 340px;
+  width: auto;
+}
+.q-seletor.acento {
+  background: var(--q-suave);
+  border-color: var(--q-acento);
+}
+.q-seletor:hover {
+  border-color: var(--q-acento);
+  background: color-mix(in srgb, var(--q-acento) 10%, var(--surface));
+  transform: scale(1.02);
+}
+.q-seletor:active {
+  transform: scale(0.97);
+}
+.q-seletor:focus-visible {
+  outline: 3px solid var(--q-acento);
+  outline-offset: 3px;
+}
+.q-seletor > svg {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  color: var(--ink-muted);
+}
+.q-seletor-valor {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.q-seletor-valor > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.q-seletor-valor > svg {
+  width: 24px;
+  height: 24px;
+  flex: none;
+  color: var(--q-acento);
+}
+:is(.q-seletor, .q-opcao) .q-bandeira {
+  width: 30px;
+  height: 20px;
+  flex: none;
+  border-radius: 3px;
+  font-size: 11px;
+}
+.q-seletor-corpo {
+  display: grid;
+  gap: 16px;
+}
+.q-seletor-lista {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 8px;
+  max-height: min(48vh, 420px);
+  overflow-y: auto;
+  padding: 4px;
+}
+.q-opcao {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  min-height: 60px;
+  padding: 0 14px;
+  border: 2px solid transparent;
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--ink);
+  font: 700 17px/1.2 var(--font-body, inherit);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    transform var(--q-toque),
+    border-color var(--q-cor),
+    background-color var(--q-cor);
+}
+.q-opcao > span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.q-opcao > svg {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  color: var(--q-acento);
+}
+.q-opcao:hover {
+  border-color: var(--q-acento);
+  background: color-mix(in srgb, var(--q-acento) 10%, var(--surface));
+}
+.q-opcao:active {
+  transform: scale(0.97);
+}
+.q-opcao:focus-visible {
+  outline: 3px solid var(--q-acento);
+  outline-offset: 2px;
+}
+.q-opcao[aria-selected='true'] {
+  background: var(--q-suave);
+  border-color: var(--q-acento);
+}
+
+/* ── IDIOMAS: glossário e auditoria ───────────────────────────────────────────────────────────── */
+.q-aju-itens {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+}
+.q-aju-itens > li {
+  min-height: 72px;
+  padding: 6px 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border-top: 1.5px solid var(--border-subtle);
+  font: 600 17px/1.35 var(--font-body, inherit);
+}
+.q-aju-itens > li > span {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.q-aju-itens small {
+  font: 600 14px/1 var(--font-mono, monospace);
+  color: var(--ink-muted);
+}
+.q-aju .q-num.tom-bom b {
+  color: var(--good-ink, var(--good));
+}
+.q-aju .q-num.tom-erro b {
+  color: var(--error-ink, var(--error));
+}
+.q-aju .q-num.tom-aviso b {
+  color: var(--warn-ink, var(--warn));
+}
+.q-aud-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.q-aud-item {
+  padding: 14px 16px;
+  border: 1.5px solid var(--border-subtle);
+  border-radius: 16px;
+  background: var(--canvas);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.q-aud-item > div {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+.q-aud-item b {
+  font: 800 19px/1.2 var(--font-display, inherit);
+  overflow-wrap: anywhere;
+}
+.q-aud-frase {
+  margin: 0;
+  font: 600 17px/1.4 var(--font-body, inherit);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.q-aud-linha {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 4px;
+}
+.q-aud-linha > svg {
+  width: 20px;
+  height: 20px;
+  color: var(--ink-muted);
+}
+.q-aud-par {
+  font: 600 15px/1.3 var(--font-mono, monospace);
+  color: var(--ink-muted);
+  overflow-wrap: anywhere;
+}
+select.q-campo.q-aud-seletor,
+select.q-campo.q-aju-hora {
+  width: auto;
+  min-width: 150px;
+  max-width: 100%;
+  padding-right: 14px;
+}
+.q-aud-certos {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.q-aju .q-aud-certos .q-tag {
+  text-transform: none;
+  letter-spacing: 0;
+  font: 700 15px/1 var(--font-body, inherit);
+}
+.q-aju .q-interruptor:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* O que fica recolhido (os itens já certos, o detalhe do processamento): o resumo é um alvo de 60 px. */
+.q-aju-detalhe {
+  border: 1.5px solid var(--border-subtle);
+  border-radius: 18px;
+  background: var(--surface);
+}
+.q-aju-detalhe > summary {
+  min-height: 60px;
+  padding: 0 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-radius: 16px;
+  font: 700 17px/1.3 var(--font-body, inherit);
+  color: var(--ink);
+  cursor: pointer;
+  list-style: none;
+  transition: background-color var(--q-cor);
+}
+.q-aju-detalhe > summary::-webkit-details-marker {
+  display: none;
+}
+.q-aju-detalhe > summary::after {
+  content: '';
+  width: 10px;
+  height: 10px;
+  margin-left: auto;
+  flex: none;
+  border-right: 3px solid var(--ink-muted);
+  border-bottom: 3px solid var(--ink-muted);
+  transform: rotate(45deg);
+  transition: transform var(--q-toque);
+}
+.q-aju-detalhe[open] > summary::after {
+  transform: rotate(-135deg);
+}
+.q-aju-detalhe > summary:hover {
+  background: color-mix(in srgb, var(--q-acento) 10%, transparent);
+}
+.q-aju-detalhe > summary:focus-visible {
+  outline: 3px solid var(--q-acento);
+  outline-offset: 3px;
+}
+.q-aju-detalhe > summary svg {
+  width: 22px;
+  height: 22px;
+  flex: none;
+}
+.q-aju-detalhe[open] {
+  padding-bottom: 18px;
+}
+.q-aju-detalhe > :not(summary) {
+  margin: 14px 18px 0;
+}
+.q-aju-detalhe > .q-secao + .q-secao {
+  margin-top: 26px;
+}
+.q-aju-detalhe .q-ajuste {
+  background: var(--canvas);
+}
+
+/* ── NOTIFICAÇÕES: a matriz tipo × canal ──────────────────────────────────────────────────────── */
+.q-tabela.q-aju-matriz :is(th, td):not(:first-child) {
+  width: 120px;
+  text-align: center;
+}
+.q-tabela.q-aju-matriz td {
+  padding: 8px 12px;
+}
+.q-tabela.q-aju-matriz tbody th {
+  padding: 12px 18px;
+  border-top: 1.5px solid var(--border-subtle);
+  font: 700 17px/1.3 var(--font-body, inherit);
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink);
+  white-space: normal;
+}
+.q-aju-matriz tbody th > span {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.q-aju-matriz tbody th svg {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  color: var(--ink-muted);
+}
+
+/* ── PROCESSAMENTO: as duas opções como cartões-alvo ──────────────────────────────────────────── */
+.q-tile.q-aju-opcao {
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 14px;
+  align-items: center;
+}
+.q-tile.q-aju-opcao > .q-ic {
+  grid-row: 1;
+}
+.q-tile.q-aju-opcao > :is(.q-aju-tags, .q-d) {
+  grid-column: 1 / -1;
+}
+.q-tile.q-aju-opcao[aria-pressed='true'] {
+  background: var(--q-suave);
+  border-color: var(--q-acento);
+  box-shadow: inset 0 0 0 1.5px var(--q-acento);
+}
+.q-aju-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.q-aju-resultado {
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: var(--surface-sunken);
+  display: grid;
+  gap: 8px;
+}
+.q-aju-resultado p {
+  margin: 0;
+  font: 600 18px/1.4 var(--font-body, inherit);
+  overflow-wrap: anywhere;
+}
+.q-aju-resultado.erro {
+  background: color-mix(in srgb, var(--error) 14%, var(--surface));
+}
+.q-aju-resultado .q-rotulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  line-height: 1.3;
+}
+.q-aju-resultado .q-rotulo svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* ── PRIVACIDADE E CONTA ──────────────────────────────────────────────────────────────────────── */
+.q-aju-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+  font: 600 17px/1.4 var(--font-body, inherit);
+}
+.q-aju-lista > li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.q-aju-lista > li > svg {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  margin-top: 1px;
+  color: var(--good-ink, var(--good));
+}
+.q-aju-lista.q-aju-atividade > li > svg {
+  color: var(--ink-muted);
+}
+.q-aju-lista.q-aju-atividade > li > span {
+  flex: 1;
+  min-width: 0;
+}
+.q-aju-lista.q-aju-atividade small {
+  flex: none;
+  font: 600 14px/1.6 var(--font-mono, monospace);
+  color: var(--ink-muted);
+}
+.q-ajuste.q-aju-aparelho > .q-ic {
+  flex: none;
+}
+.q-ajuste.q-aju-aparelho > div {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+.q-aju .q-ajuste .q-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+.q-aju .q-ajuste .q-tag svg {
+  width: 16px;
+  height: 16px;
+}
+.q-ajuste.q-aju-perigo {
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--error) 45%, var(--border-subtle));
+}
+.q-ajuste.q-aju-perigo b {
+  color: var(--error-ink, var(--error));
+}
+
+/* ── OS DIÁLOGOS DE AJUSTES (a chave, e-mail, senha, 2FA, excluir, o resumo da semana) ────────────
+   `questBase.css` já dá as medidas a `.btn`, `.campo`, `.seg` e ao próprio `<dialog>`. Falta só o
+   que estes formulários escrevem em classe própria e ficava abaixo do piso do texto. */
+html[data-quest-novo='true'] dialog .form-l {
+  gap: 8px;
+  margin-bottom: 18px;
+}
+html[data-quest-novo='true'] dialog .form-l label {
+  font: 700 16px/1.3 var(--font-body, inherit);
+}
+html[data-quest-novo='true'] dialog .erro-auth {
+  padding: 14px 16px;
+  border-radius: 14px;
+  font: 700 16px/1.4 var(--font-body, inherit);
+}
+html[data-quest-novo='true'] dialog :is(.requisitos, .lista-x) {
+  display: grid;
+  gap: 10px;
+  font-size: 16px;
+  line-height: 1.4;
+}
+html[data-quest-novo='true'] dialog :is(.requisitos, .lista-x, .erro-auth) svg {
+  width: 20px;
+  height: 20px;
+  flex: none;
+}
+html[data-quest-novo='true'] dialog .forca small {
+  font-size: 15px;
+}
+html[data-quest-novo='true'] dialog .forca-barras i {
+  height: 8px;
+}
+html[data-quest-novo='true'] dialog .chave {
+  padding: 12px 14px;
+  font-size: 18px;
+  overflow-wrap: anywhere;
+}
+html[data-quest-novo='true'] dialog .relatorio p {
+  font-size: 17px;
+  line-height: 1.45;
+}
+html[data-quest-novo='true'] dialog .relatorio .var {
+  font-size: 14px;
+}
+html[data-quest-novo='true'] dialog .gira {
+  width: 22px;
+  height: 22px;
+}
+
+/* ── JANELA ESTREITA (500 × 495) ──────────────────────────────────────────────────────────────── */
+@media (max-width: 720px) {
+  .q-aju-painel {
+    gap: 22px;
+  }
+  .q-ajuste > .q-seletor.bloco {
+    flex: 1 1 100%;
+  }
+  .q-aud-item {
+    flex-wrap: wrap;
+  }
+  .q-tabela.q-aju-matriz :is(th, td):not(:first-child) {
+    width: 96px;
+    padding-inline: 6px;
+  }
+  .q-tabela.q-aju-matriz tbody th {
+    padding: 12px;
+    font-size: 16px;
+  }
+  .q-aju-matriz tbody th svg {
+    display: none;
+  }
+  .q-seletor-lista {
+    grid-template-columns: minmax(0, 1fr);
+    max-height: 44vh;
+  }
+  .q-aju-lista.q-aju-atividade > li {
+    flex-wrap: wrap;
+  }
+}
+
+/* Janela baixa: a lista de idiomas encolhe para o diálogo caber sem rolar por fora. */
+@media (max-height: 560px) {
+  .q-seletor-lista {
+    max-height: 32vh;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .q-seletor,
+  .q-opcao,
+  .q-aju-detalhe > summary,
+  .q-aju-detalhe > summary::after {
+    transition: none;
+  }
+  .q-seletor:hover,
+  .q-seletor:active,
+  .q-opcao:active {
+    transform: none;
+  }
+}

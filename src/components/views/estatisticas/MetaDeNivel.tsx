@@ -2,6 +2,7 @@ import { Target } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 import { type AppMetrics, fetchSettings, patchUiSettings } from '../../../data/api';
+import { useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
 import { t } from '../../../lib/i18n';
 import { ehBaixaConfianca } from '../../Honestidade';
 import { TituloDeSecao } from '../../ui';
@@ -30,15 +31,29 @@ function Medida({
   pct,
   tom,
   texto,
+  quest = false,
 }: {
   rotulo: string;
   valor: string;
   pct: number;
   tom: 'accent' | 'good' | 'neutro';
   texto: string;
+  /** No headset: o mesmo conteúdo nas peças do desenho novo (`.q-cartao`, `.q-barra`). */
+  quest?: boolean;
 }) {
   // Acento: o degradê do próprio `.barra span`; os outros tons trocam só a cor.
   const cor = tom === 'good' ? 'var(--good)' : tom === 'neutro' ? 'var(--border-strong)' : undefined;
+  if (quest)
+    return (
+      <div className="q-cartao fundo qe-medida">
+        <span className="q-rotulo">{rotulo}</span>
+        <b>{valor}</b>
+        <div className="q-barra" aria-hidden>
+          <span style={{ width: `${Math.max(0, Math.min(100, pct))}%`, background: cor }} />
+        </div>
+        <p>{texto}</p>
+      </div>
+    );
   return (
     <div>
       <div className="entre" style={{ gap: 8 }}>
@@ -58,6 +73,7 @@ function Medida({
 }
 
 export default function MetaDeNivel({ metrics }: { metrics: AppMetrics | null }) {
+  const questNovo = useQuestNovo();
   const [nivel, setNivel] = useState<Nivel>('C1');
   const carregado = useRef(false);
   useEffect(() => {
@@ -89,12 +105,70 @@ export default function MetaDeNivel({ metrics }: { metrics: AppMetrics | null })
   const noAlvo = dist.filter((l) => (ORDEM_CEFR[l.level] ?? 0) >= ORDEM_CEFR[nivel]).reduce((s, l) => s + l.count, 0);
   const aderencia = total > 0 ? Math.round((noAlvo / total) * 100) : null;
 
+  const descricao = t('Escolha um nível-alvo. O alvo é declarado; o que aparece embaixo foi medido nas suas sessões.');
+  const medidas = (
+    <>
+      <Medida
+        quest={questNovo}
+        rotulo={t('Ritmo de fala')}
+        valor={ppm != null ? `${ppm} / ${alvo} ppm` : `— / ${alvo} ppm`}
+        pct={ppm != null ? (ppm / alvo) * 100 : 0}
+        tom="accent"
+        texto={
+          ppm != null
+            ? `${t('Medido: {n} ppm', { n: ppm })}${estimativa ? ` ${t('(estimativa, poucas sessões)')}` : ''}.`
+            : t('Sem fala capturada suficiente para medir o seu ritmo.')
+        }
+      />
+      <Medida
+        quest={questNovo}
+        rotulo={t('Vocabulário no nível-alvo')}
+        valor={aderencia != null ? `${aderencia}%` : '—'}
+        pct={aderencia ?? 0}
+        tom="good"
+        texto={
+          aderencia != null
+            ? t('{pct}% do seu caderno está em {nivel} ou acima.', { pct: aderencia, nivel })
+            : t('Sem palavras no caderno para medir a aderência ao nível {n}.', { n: nivel })
+        }
+      />
+      <Medida
+        quest={questNovo}
+        rotulo={t('Clareza e concisão')}
+        valor={t('sem agregado')}
+        pct={0}
+        tom="neutro"
+        texto={t('Os vícios de linguagem são contados em cada sessão. O total entre sessões ainda não existe.')}
+      />
+    </>
+  );
+
+  if (questNovo)
+    return (
+      <section className="q-secao" aria-labelledby="meta-nivel-t" data-testid="meta-de-nivel-no-quest">
+        <header>
+          <div>
+            <h2 id="meta-nivel-t">{t('Meta de nível')}</h2>
+            <p>{descricao}</p>
+          </div>
+          <div className="q-abas q-seg" role="group" aria-label={t('Nível-alvo')}>
+            {NIVEIS.map((n) => (
+              <button key={n} type="button" className="q-aba" aria-pressed={nivel === n} onClick={() => escolher(n)}>
+                {t(ROTULO[n])}
+              </button>
+            ))}
+          </div>
+        </header>
+        <div className="q-grade g3">{medidas}</div>
+      </section>
+    );
+
   return (
     <section className="cartao p5 secao" aria-labelledby="meta-nivel-t">
       <TituloDeSecao
         icone={Target}
         titulo={<span id="meta-nivel-t">{t('Meta de nível')}</span>}
-        desc={t('Escolha um nível-alvo. O alvo é declarado; o que aparece embaixo foi medido nas suas sessões.')}
+        desc={descricao}
         direita={
           <div className="seg" role="radiogroup" aria-label={t('Nível-alvo')}>
             {NIVEIS.map((n) => (
@@ -106,35 +180,7 @@ export default function MetaDeNivel({ metrics }: { metrics: AppMetrics | null })
         }
       />
       <div className="g3" style={{ marginTop: 16 }}>
-        <Medida
-          rotulo={t('Ritmo de fala')}
-          valor={ppm != null ? `${ppm} / ${alvo} ppm` : `— / ${alvo} ppm`}
-          pct={ppm != null ? (ppm / alvo) * 100 : 0}
-          tom="accent"
-          texto={
-            ppm != null
-              ? `${t('Medido: {n} ppm', { n: ppm })}${estimativa ? ` ${t('(estimativa, poucas sessões)')}` : ''}.`
-              : t('Sem fala capturada suficiente para medir o seu ritmo.')
-          }
-        />
-        <Medida
-          rotulo={t('Vocabulário no nível-alvo')}
-          valor={aderencia != null ? `${aderencia}%` : '—'}
-          pct={aderencia ?? 0}
-          tom="good"
-          texto={
-            aderencia != null
-              ? t('{pct}% do seu caderno está em {nivel} ou acima.', { pct: aderencia, nivel })
-              : t('Sem palavras no caderno para medir a aderência ao nível {n}.', { n: nivel })
-          }
-        />
-        <Medida
-          rotulo={t('Clareza e concisão')}
-          valor={t('sem agregado')}
-          pct={0}
-          tom="neutro"
-          texto={t('Os vícios de linguagem são contados em cada sessão. O total entre sessões ainda não existe.')}
-        />
+        {medidas}
       </div>
     </section>
   );

@@ -9,9 +9,9 @@ import { t } from '../../lib/i18n';
 import { multiplicador, pontosDoElemento } from '../../lib/juice';
 import type { AgeProfileType } from '../../lib/profile';
 import { play } from '../../lib/soundFx';
-import { falar } from '../../lib/tts';
 import { useRodada } from './casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda } from './casca/HudDaRodada';
+import { falarNoJogo as falar, useQuestNovo, useVozNoJogo, VereditoNoQuest } from './noQuest';
 
 /**
  * FRASE EMBARALHADA — reordenar as palavras de uma frase real da sua sessão.
@@ -42,6 +42,10 @@ export default function ScrambleGame({ rodadas, ageProfile, onFinish }: Scramble
   const jaFinalizouRef = useRef(false);
 
   const rodada = rodadas[indice];
+  /* No Quest as palavras são peças de 56 px; "Ouvir" só aparece com voz para o idioma da frase (o
+     significado está sempre escrito), e o acerto também vem dito em texto. */
+  const questNovo = useQuestNovo();
+  const haVoz = useVozNoJogo(rodada?.lang);
   const disponiveis = rodada ? rodada.embaralhada.map((_, i) => i).filter((i) => !montada.includes(i)) : [];
   const completa = rodada && montada.length === rodada.embaralhada.length;
 
@@ -172,7 +176,7 @@ export default function ScrambleGame({ rodadas, ageProfile, onFinish }: Scramble
         progresso={indice / rodadas.length}
         ajudas={
           <>
-            {rodada.lang && (
+            {rodada.lang && haVoz && (
               <BotaoDeAjuda
                 icone={Volume2}
                 rotulo="Ouvir"
@@ -192,19 +196,25 @@ export default function ScrambleGame({ rodadas, ageProfile, onFinish }: Scramble
         }
       />
 
-      <div ref={palcoRef} className="w-full max-w-2xl mx-auto flex flex-col gap-5">
+      <div ref={palcoRef} data-qj="scramble" className="w-full max-w-2xl mx-auto flex flex-col gap-5">
         {/* O SIGNIFICADO guia a ordem — sem ele o jogo vira tentativa e erro. */}
         <div className="text-center">
           <p className="label-mono mb-1">
             {ageProfile === 'senior' ? 'Monte a frase que quer dizer' : 'Esta frase significa'}
           </p>
-          <p data-tour="traducao" className="font-display font-extrabold text-[17px] text-accent-ink leading-snug">
+          <p
+            data-tour="traducao"
+            data-qp="enunciado"
+            className="font-display font-extrabold text-[17px] text-accent-ink leading-snug"
+          >
             {rodada.traducao}
           </p>
         </div>
 
         {/* A LINHA que a pessoa monta */}
         <div
+          data-qp="linha"
+          data-estado={conferido === 'certo' ? 'certo' : conferido === 'errado' ? 'errado' : undefined}
           className={`min-h-[4.5rem] rounded-2xl border-2 border-dashed p-3 flex flex-wrap gap-2 items-start content-start transition-all ${
             conferido === 'certo'
               ? 'border-good bg-good-soft/30 shadow-md ring-2 ring-good/20'
@@ -223,6 +233,8 @@ export default function ScrambleGame({ rodadas, ageProfile, onFinish }: Scramble
           {montada.map((idx, pos) => (
             <button
               key={`${idx}-${pos}`}
+              data-qp="peca"
+              data-posta="true"
               onClick={() => {
                 play('click');
                 setMontada((m) => m.filter((_, k) => k !== pos));
@@ -237,6 +249,12 @@ export default function ScrambleGame({ rodadas, ageProfile, onFinish }: Scramble
         </div>
 
         {/* Feedback PARCIAL: diz quantas estão no lugar, sem entregar quais. */}
+        {/* No headset o acerto vem escrito (fora dele, a borda verde e o som). E como tirar uma palavra
+            da linha fica dito: o `title` só aparece com o ponteiro parado. */}
+        {questNovo && conferido === 'certo' && <VereditoNoQuest certo>{t('Frase certa!')}</VereditoNoQuest>}
+        {questNovo && !conferido && montada.length > 0 && (
+          <p data-qp="apoio">{t('Toque numa palavra da linha para tirá-la.')}</p>
+        )}
         {conferido === 'errado' && (
           <p className="text-center text-[13px] text-warn-ink animate-in fade-in font-bold">
             {acertosParciais > 0
@@ -250,6 +268,7 @@ export default function ScrambleGame({ rodadas, ageProfile, onFinish }: Scramble
           {disponiveis.map((i) => (
             <button
               key={i}
+              data-qp="peca"
               onClick={() => {
                 play('add');
                 falar(rodada.embaralhada[i], rodada.lang);
@@ -263,8 +282,9 @@ export default function ScrambleGame({ rodadas, ageProfile, onFinish }: Scramble
           ))}
         </div>
 
-        <div className="flex items-center justify-center gap-3">
+        <div className="flex items-center justify-center gap-3" data-qp="acoes">
           <button
+            data-qp="acao"
             onClick={() => {
               play('click');
               setMontada([]);
@@ -278,6 +298,7 @@ export default function ScrambleGame({ rodadas, ageProfile, onFinish }: Scramble
           </button>
           <button
             data-tour="conferir"
+            data-qp="acao-pri"
             onClick={(e) => conferir(e.currentTarget)}
             disabled={!completa || conferido === 'certo'}
             className="py-2.5 px-6 rounded-xl bg-accent hover:bg-accent-ink text-white font-bold text-[13px] shadow-btn disabled:opacity-40 cursor-pointer flex items-center gap-1.5 active:scale-95 transition-all"
@@ -287,6 +308,7 @@ export default function ScrambleGame({ rodadas, ageProfile, onFinish }: Scramble
         </div>
 
         <button
+          data-qp="acao"
           onClick={desistir}
           className="text-[11px] text-ink-faint hover:text-warn-ink underline cursor-pointer mx-auto"
         >

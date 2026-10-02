@@ -1,0 +1,520 @@
+/*
+ * PERSONALIZAR NO META QUEST (segunda rodada do desenho do headset, 01/10/2026): coleção, maestria,
+ * temporada, conquistas e loja, nas duas variantes da tela (a das recompensas v2 e a clássica).
+ *
+ * Só vale com `<html data-quest-novo="true">`. A casca (`CascaDePersonalizarNoQuest`) usa as peças de
+ * `quest.css`; o miolo de cada aba leva a classe `tela`, que é o escopo de `questBase.css` (botões, pílulas,
+ * campos e o piso do texto nas medidas do headset). Aqui fica:
+ *   1. a casca e as peças novas desta tela (`.qp-*`);
+ *   2. a pele do headset sobre os cartões de sempre que moram nas abas (`.cartao.peca`, `.cartao.conq`, a
+ *      trilha da temporada, a compra de Créditos), onde `questBase.css` não alcança: texto com tamanho
+ *      escrito em classe própria, alvos pequenos e grades apertadas;
+ *   3. o editor da peça (`dialog.qp-editor`), que abre no centro por um portal, fora da casca.
+ *
+ * O prefixo comprido (`html… .qp .tela`) é de propósito: precisa ganhar das regras de `questBase.css`.
+ */
+
+/* ── 1. A CASCA ───────────────────────────────────────────────────────────────────────────────── */
+html[data-quest-novo='true'] .qp .tela.qp-miolo {
+  position: static;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  animation: none;
+}
+html[data-quest-novo='true'] .qp-pilha {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+html[data-quest-novo='true'] .qp-pilha > * {
+  min-width: 0;
+}
+/* A distância entre blocos é a da pilha: a margem das seções de sempre sai. */
+html[data-quest-novo='true'] .qp .tela .secao,
+html[data-quest-novo='true'] .qp .tela .cartao.secao {
+  margin-top: 0;
+  margin-bottom: 0 !important;
+}
+html[data-quest-novo='true'] .qp .q-cab .badge {
+  padding: 6px 12px;
+  font-size: 14px;
+  letter-spacing: 0.06em;
+}
+html[data-quest-novo='true'] .qp .q-cab .q-chip svg {
+  color: var(--good, #3f9b56);
+}
+/* O seletor de seções (coleção, desafios, pilares): pílulas que quebram de linha, todas à vista. */
+html[data-quest-novo='true'] .qp-secoes {
+  flex-wrap: wrap;
+  overflow: visible;
+  border-radius: 30px;
+}
+
+/* O que está equipado: quatro fichas com o ícone, o nome da vaga e o que está nela. */
+html[data-quest-novo='true'] .qp-equipados {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+html[data-quest-novo='true'] .qp-equip {
+  min-width: 0;
+  min-height: 72px;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1.5px solid var(--border-subtle);
+  border-radius: 18px;
+  background: var(--surface);
+}
+html[data-quest-novo='true'] .qp-equip > span:last-child {
+  min-width: 0;
+}
+html[data-quest-novo='true'] .qp .tela .qp-equip small {
+  display: block;
+  font: 700 14px/1 var(--font-mono, monospace);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+html[data-quest-novo='true'] .qp-equip b {
+  display: block;
+  margin-top: 5px;
+  font: 800 18px/1.2 var(--font-display, inherit);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Salvar o visual de agora como perfil: o campo e o botão na mesma linha. */
+html[data-quest-novo='true'] .qp-salvar {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+html[data-quest-novo='true'] .qp-salvar .q-campo {
+  flex: 1 1 280px;
+}
+html[data-quest-novo='true'] .qp-salvar .q-ctl {
+  background: var(--surface);
+  border-color: var(--border-subtle);
+}
+
+/* A temporada: o crachá do nível e a barra. */
+html[data-quest-novo='true'] .qp .q-chip.qp-seeds svg {
+  color: var(--good, #3f9b56);
+}
+html[data-quest-novo='true'] .qp .q-chip.qp-creditos svg:first-child {
+  color: var(--premium, var(--q-acento));
+}
+html[data-quest-novo='true'] .qp-nivel-da-temporada {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 18px;
+}
+html[data-quest-novo='true'] .qp-nivel-da-temporada .qp-pilha {
+  gap: 10px;
+}
+html[data-quest-novo='true'] .qp-cracha {
+  width: 84px;
+  height: 84px;
+  border-radius: 22px;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 4px;
+  background: linear-gradient(160deg, var(--q-acento-2), var(--q-acento));
+  color: var(--q-sobre-acento);
+}
+html[data-quest-novo='true'] .qp-cracha b {
+  font: 900 34px/1 var(--font-display, inherit);
+  font-variant-numeric: tabular-nums;
+}
+html[data-quest-novo='true'] .qp-cracha span {
+  font: 800 14px/1 var(--font-mono, monospace);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+html[data-quest-novo='true'] .qp-nivel-linha {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 16px;
+  flex-wrap: wrap;
+}
+html[data-quest-novo='true'] .qp-nivel-linha b {
+  font: 800 20px/1.2 var(--font-display, inherit);
+}
+html[data-quest-novo='true'] .qp-nota {
+  margin: 0;
+  font: 600 16px/1.4 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+
+/* ── 2. A PELE SOBRE OS CARTÕES DE SEMPRE ─────────────────────────────────────────────────────── */
+/* A peça (coleção, loja, perfis): a prévia, o nome, o que ela é, e as ações em alvos de 56 a 60 px. */
+html[data-quest-novo='true'] .qp .tela .peca {
+  padding: 18px;
+  gap: 12px;
+}
+html[data-quest-novo='true'] .qp .tela .peca .vis {
+  height: 88px;
+  border-radius: 14px;
+}
+html[data-quest-novo='true'] .qp .tela .peca h3 {
+  font: 800 19px/1.2 var(--font-display, inherit);
+}
+html[data-quest-novo='true'] .qp .tela .peca h3 svg {
+  width: 18px !important; /* 13 px vêm escritos no elemento */
+  height: 18px !important;
+}
+html[data-quest-novo='true'] .qp .tela .peca p {
+  font-size: 16px;
+  line-height: 1.4;
+}
+/* A linha do preço traz `font: 600 11.5px` escrito no elemento. */
+html[data-quest-novo='true'] .qp .tela :is(.peca, .conq) > .entre {
+  font-size: 16px !important;
+}
+html[data-quest-novo='true'] .qp .tela .peca > .entre svg {
+  width: 18px !important;
+  height: 18px !important;
+}
+html[data-quest-novo='true'] .qp .tela .peca .btn.bloco {
+  width: 100%;
+  min-height: 60px;
+}
+/* "Ver prévia", "Personalizar", "Renomear", "Apagar": eram links de 13 px; no headset, botões de 56 px. */
+html[data-quest-novo='true'] .qp .tela .peca .link.editar {
+  align-self: stretch;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 56px;
+  padding: 0 18px;
+  border: 2px solid var(--border-subtle);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    transform var(--q-toque),
+    border-color var(--q-cor),
+    background-color var(--q-cor);
+}
+html[data-quest-novo='true'] .qp .tela .peca .link.editar:hover {
+  border-color: var(--q-acento);
+  background: color-mix(in srgb, var(--q-acento) 10%, var(--surface));
+  transform: scale(1.03);
+}
+html[data-quest-novo='true'] .qp .tela .peca .link.editar:active {
+  transform: scale(0.97);
+}
+html[data-quest-novo='true'] .qp .tela .peca .link.editar[aria-pressed='true'] {
+  border-color: var(--q-acento);
+  background: var(--q-suave);
+}
+html[data-quest-novo='true'] .qp .tela .peca > .linha {
+  gap: 10px !important; /* 14 px vêm escritos no elemento */
+  flex-wrap: wrap;
+}
+html[data-quest-novo='true'] .qp .tela .peca > .linha .link.editar {
+  flex: 1 1 140px;
+}
+html[data-quest-novo='true'] .qp .tela .tag-par svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Títulos de seção em `h3` (as prateleiras da loja) e os dois cartões de moeda. */
+html[data-quest-novo='true'] .qp .tela .tsec h3 {
+  font: 800 20px/1.2 var(--font-display, inherit);
+}
+html[data-quest-novo='true'] .qp .tela .cartao.p5 > .entre > h3 {
+  font-size: 18px !important; /* 15 px vêm escritos no elemento */
+}
+html[data-quest-novo='true'] .qp .tela .cartao.p5 > .entre > h3 svg {
+  width: 20px !important;
+  height: 20px !important;
+}
+
+/* As conquistas e a maestria. */
+html[data-quest-novo='true'] .qp .tela .conq {
+  padding: 18px;
+  gap: 12px;
+}
+html[data-quest-novo='true'] .qp .tela .conq h3 {
+  font: 800 18px/1.25 var(--font-display, inherit);
+}
+html[data-quest-novo='true'] .qp .tela .conq p {
+  font-size: 16px;
+  line-height: 1.4;
+}
+html[data-quest-novo='true'] .qp .tela .conq .ib {
+  width: 52px;
+  height: 52px;
+  border-radius: 15px;
+}
+html[data-quest-novo='true'] .qp .tela .meta {
+  font-size: 15px;
+}
+html[data-quest-novo='true'] .qp .tela .meta svg {
+  width: 18px;
+  height: 18px;
+}
+html[data-quest-novo='true'] .qp .tela [data-maestria-jogo] h3 {
+  font-size: 18px !important; /* 14,5 px vêm escritos no elemento */
+}
+html[data-quest-novo='true'] .qp .tela [data-maestria-jogo] svg {
+  width: 22px !important;
+  height: 22px !important;
+}
+html[data-quest-novo='true'] .qp .tela [data-maestria-jogo] p svg {
+  width: 16px !important;
+  height: 16px !important;
+}
+
+/* Texto com tamanho escrito em classe que o piso de `questBase.css` não cobre (8 e 8,5 px). */
+html[data-quest-novo='true'] .qp .tela [class*='text-[8'],
+html[data-quest-novo='true'] dialog.qp-editor [class*='text-[8'] {
+  font-size: 14px !important;
+  line-height: 1.2;
+}
+
+/* A TRILHA DA TEMPORADA: colunas mais largas, casas mais altas e o trancado ainda legível. */
+html[data-quest-novo='true'] .qp-passe [id^='temporada-nivel-'] {
+  width: 176px;
+}
+html[data-quest-novo='true'] .qp-passe [id^='temporada-nivel-'] > p {
+  height: 36px;
+  font-size: 17px;
+}
+html[data-quest-novo='true'] .qp-passe [id^='temporada-nivel-'] > :is(button, div) {
+  height: 200px;
+  border-radius: 18px;
+}
+html[data-quest-novo='true'] .qp-passe [id^='temporada-nivel-'] > button {
+  transition:
+    transform var(--q-toque),
+    box-shadow var(--q-cor);
+}
+html[data-quest-novo='true'] .qp-passe [id^='temporada-nivel-'] > button:hover {
+  transform: scale(1.03);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--q-acento) 35%, transparent);
+}
+html[data-quest-novo='true'] .qp-passe [id^='temporada-nivel-'] > button:active {
+  transform: scale(0.97);
+}
+html[data-quest-novo='true'] .qp-passe [id^='temporada-nivel-'] > button:focus-visible {
+  outline: 3px solid var(--q-acento);
+  outline-offset: 3px;
+}
+html[data-quest-novo='true'] .qp-passe .opacity-40 {
+  opacity: 0.62;
+}
+html[data-quest-novo='true'] .qp-passe .qp-fileiras {
+  width: 128px;
+  padding-top: 46px; /* a altura do número do nível (36) e o vão (10) */
+}
+html[data-quest-novo='true'] .qp-passe .qp-fileiras > div {
+  height: 200px;
+  border-radius: 18px;
+}
+html[data-quest-novo='true'] .qp-passe .qp-fileiras svg {
+  width: 22px;
+  height: 22px;
+}
+html[data-quest-novo='true'] .qp-passe [data-testid='faixa-da-temporada'] {
+  min-height: 48px;
+  padding: 8px 18px;
+  font-size: 16px !important;
+  color: var(--ink);
+}
+html[data-quest-novo='true'] .qp-passe [data-testid='faixa-da-temporada'] svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* A COMPRA DE CRÉDITOS (os botões e campos dela não usam `.btn` nem `.campo`). */
+html[data-quest-novo='true'] .qp .tela [data-testid='comprar-creditos'] button {
+  min-height: 56px;
+}
+html[data-quest-novo='true'] .qp .tela [data-testid='comprar-creditos'] button[aria-pressed] {
+  padding: 16px;
+  border-radius: 18px;
+}
+html[data-quest-novo='true'] .qp .tela [data-testid='comprar-creditos'] :is(.btn-solid, .btn-outline) {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 60px;
+  padding: 0 24px;
+  border-radius: 999px;
+  font: 700 17px/1 var(--font-body, inherit);
+}
+html[data-quest-novo='true'] .qp .tela [data-testid='comprar-creditos'] input {
+  min-height: 60px;
+  padding: 0 18px;
+  border-width: 1.5px;
+  border-radius: 16px;
+  font-size: 18px !important;
+}
+html[data-quest-novo='true'] .qp .tela [data-testid='comprar-creditos'] svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* ── 3. O EDITOR DA PEÇA (cores livres, cromas, paletas, forma do rastro) ─────────────────────── */
+html[data-quest-novo='true'] dialog.qp-editor .g-cores {
+  gap: 12px;
+}
+html[data-quest-novo='true'] dialog.qp-editor .cor-campo {
+  min-height: 76px;
+  padding: 10px 14px;
+  gap: 14px;
+  border-width: 1.5px;
+  border-radius: 16px;
+  transition: border-color var(--q-cor);
+}
+html[data-quest-novo='true'] dialog.qp-editor .cor-campo:hover {
+  border-color: var(--q-acento);
+}
+html[data-quest-novo='true'] dialog.qp-editor .cor-campo input {
+  width: 56px;
+  height: 56px;
+  cursor: pointer;
+}
+html[data-quest-novo='true'] dialog.qp-editor .cor-campo b {
+  font-size: 17px;
+}
+html[data-quest-novo='true'] dialog.qp-editor .cor-campo code {
+  font-size: 14px;
+}
+html[data-quest-novo='true'] dialog.qp-editor .previa-tema b {
+  font-size: 18px;
+}
+html[data-quest-novo='true'] dialog.qp-editor .previa-tema span {
+  padding: 12px 18px;
+  font-size: 16px;
+}
+/* Os cromas: quadros de 104 px, a cor inteira, o nome em 14 px e o selo (seu, preço, conquista, Passe). */
+html[data-quest-novo='true'] dialog.qp-editor .grid {
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)) !important;
+  gap: 10px;
+}
+html[data-quest-novo='true'] dialog.qp-editor .grid > button {
+  min-height: 96px;
+  padding: 8px;
+  border-radius: 16px;
+}
+html[data-quest-novo='true'] dialog.qp-editor .grid > button .h-7 {
+  height: 40px;
+}
+html[data-quest-novo='true'] dialog.qp-editor .grid > button :is(.w-3, .w-2\.5) {
+  width: 16px;
+  height: 16px;
+}
+html[data-quest-novo='true'] dialog.qp-editor .grid > button .h-3 {
+  height: 18px;
+}
+/* As paletas prontas: a mesma grade, mais larga, numa caixa que rola. */
+html[data-quest-novo='true'] dialog.qp-editor .grid[class*='max-h-'] {
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important;
+  max-height: 24rem;
+}
+html[data-quest-novo='true'] dialog.qp-editor .grid[class*='max-h-'] > button {
+  padding: 0;
+}
+/* A busca de paletas e os filtros de estilo. */
+html[data-quest-novo='true'] dialog.qp-editor label.relative input {
+  min-height: 60px;
+  padding-left: 48px;
+  border-width: 1.5px;
+  border-radius: 16px;
+  font-size: 18px !important;
+}
+html[data-quest-novo='true'] dialog.qp-editor label.relative > svg {
+  left: 16px;
+  width: 20px;
+  height: 20px;
+}
+html[data-quest-novo='true'] dialog.qp-editor .flex.flex-wrap.gap-1 {
+  gap: 8px;
+}
+html[data-quest-novo='true'] dialog.qp-editor .flex.flex-wrap.gap-1 > button {
+  padding: 0 18px;
+  border-width: 2px;
+  border-radius: 999px;
+  font-size: 16px !important;
+}
+html[data-quest-novo='true'] dialog.qp-editor .flex.flex-wrap.gap-1 > button svg {
+  width: 16px;
+  height: 16px;
+}
+html[data-quest-novo='true'] dialog.qp-editor .dlg-pe .link {
+  min-height: 56px;
+}
+
+/* ── JANELA MÉDIA E ESTREITA ──────────────────────────────────────────────────────────────────── */
+@media (max-width: 1100px) {
+  /* As abas quebram de linha em vez de rolar para o lado: todas à vista. */
+  html[data-quest-novo='true'] .qp-abas {
+    flex-wrap: wrap;
+    overflow: visible;
+    border-radius: 30px;
+    align-self: stretch;
+  }
+  html[data-quest-novo='true'] .qp-equipados {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 720px) {
+  html[data-quest-novo='true'] .qp .tela.qp-miolo {
+    padding: 0;
+  }
+  html[data-quest-novo='true'] .qp .tela .gauto {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  html[data-quest-novo='true'] .qp-equip {
+    padding: 8px 12px;
+    gap: 10px;
+  }
+  html[data-quest-novo='true'] .qp-equip .q-ic {
+    width: 40px;
+    height: 40px;
+  }
+  html[data-quest-novo='true'] .qp-equip b {
+    font-size: 16px;
+  }
+  html[data-quest-novo='true'] .qp-nivel-da-temporada {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  html[data-quest-novo='true'] .qp .q-aviso {
+    flex-wrap: wrap;
+  }
+  html[data-quest-novo='true'] .qp-passe [id^='temporada-nivel-'] {
+    width: 160px;
+  }
+  html[data-quest-novo='true'] dialog.qp-editor .g-cores {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-quest-novo='true'] .qp .tela .peca .link.editar,
+  html[data-quest-novo='true'] .qp-passe [id^='temporada-nivel-'] > button {
+    transition: none;
+  }
+  html[data-quest-novo='true'] .qp .tela .peca .link.editar:hover,
+  html[data-quest-novo='true'] .qp-passe [id^='temporada-nivel-'] > button:hover {
+    transform: none;
+  }
+}

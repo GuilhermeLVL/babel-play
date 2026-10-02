@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 
 import { gastarSeeds } from '../../../data/api';
 import { applyCustomColors, readCustomColors, THEME_OPTIONS, type ThemeType } from '../../../lib/appearance';
+import { useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
 import {
   type Croma,
   cromaEquipado,
@@ -83,6 +84,9 @@ export default function EditorDoItem({
 }: Props) {
   const [, force] = useState(0);
   const rerender = () => force((n) => n + 1);
+  /* No Meta Quest (telas novas): o mesmo diálogo, largo, com os cromas e as paletas em alvos grandes
+     (`questPersonalizar.css`, `.qp-editor`) e sem o desfoque do fundo, que custa caro no headset. */
+  const questNovo = useQuestNovo();
   const dlgRef = useRef<HTMLDialogElement>(null);
   /* Esc fecha, e o foco entra no diálogo ao abrir (sem showModal: ver o comentário do return). */
   const fecharRef = useRef(aoFechar);
@@ -269,7 +273,11 @@ export default function EditorDoItem({
   return createPortal(
     <div
       className="fixed inset-0 z-[70] flex items-center justify-center"
-      style={{ background: 'color-mix(in srgb,#1b140e 58%,transparent)', backdropFilter: 'blur(4px) saturate(.9)' }}
+      style={
+        questNovo
+          ? { background: 'color-mix(in srgb,#000 55%,transparent)' }
+          : { background: 'color-mix(in srgb,#1b140e 58%,transparent)', backdropFilter: 'blur(4px) saturate(.9)' }
+      }
       onClick={(e) => {
         if (e.target === e.currentTarget) aoFechar();
       }}
@@ -278,7 +286,7 @@ export default function EditorDoItem({
         ref={dlgRef}
         open
         tabIndex={-1}
-        className="medio"
+        className={questNovo ? 'largo qp-editor' : 'medio'}
         aria-modal="true"
         aria-labelledby="dlg-editor-titulo"
         style={{ position: 'relative', margin: 0, maxHeight: 'calc(100% - 40px)', overflowY: 'auto' }}

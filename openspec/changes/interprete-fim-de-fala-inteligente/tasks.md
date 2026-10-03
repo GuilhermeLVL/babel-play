@@ -1,0 +1,36 @@
+## 0. Pré-requisito
+
+- [ ] 0.1 Fechar a tarefa 7.8 de `modo-interprete` (automático com áudio real: falas curtas, eco com o microfone reaberto, rua barulhenta) e registrar o resultado
+
+## 1. Medir primeiro (sem mudar comportamento)
+
+- [ ] 1.1 Estender `captureMetrics.ts` com `etapas`, `motor` e `custoEstimado` por fala e agregado por sessão; testes
+- [ ] 1.2 Mostrar p50/p95 e custo no `/diagnostico`; telemetria só com metadados
+- [ ] 1.3 Registrar a linha de base atual do intérprete (p50/p95 até a voz) no relatório da bancada
+
+## 2. Fim de fala inteligente
+
+- [ ] 2.1 Criar `scripts/eval-fala/bancada/fim-de-fala.mjs` (WER, fragmentos por fala, tempo até o fechamento, custo) e rodar a linha de base de 800 ms
+- [ ] 2.2 Criar `src/gateway/capture/pisoDoSilencio.ts` (média móvel, limites 250–600 ms), puro, com teste escrito antes
+- [ ] 2.3 Criar `src/gateway/capture/fimDeFala.ts`: worker ONNX do Smart Turn v3, janela de 8 s, queda segura e motivo; ativo estático no build
+- [ ] 2.4 Ligar em `systemAudio.ts`: silêncio candidato (~300 ms) → modelo → fechar ou esperar até o teto; chave `babel.interprete.fimInteligente`
+- [ ] 2.5 Definir a lista de idiomas aprovados pela bancada (FLEURS) e a queda para 800 ms fora dela
+- [ ] 2.6 Rodar a bancada com IC 95% pareado; aplicar o portão (WER, fragmentos, custo ≤ 1,08×, p50 −400 ms) e só então propor o padrão
+
+## 3. Tradução parcial estável
+
+- [ ] 3.1 Criar `src/lib/captura/parcialEstavel.ts` (duas leituras iguais, fronteira de oração, janela de 1,2 s), puro, com teste
+- [ ] 3.2 Ligar em `pipelineDeFala.ts` e `traducaoDaFala.ts`: só local no Grátis, teto de custo na nuvem; mostrar em cinza na tela (usa a lista da Fase 1)
+- [ ] 3.3 Garantir que o parcial traduzido nunca entra na fila de voz
+
+## 4. Voz por frase e aquecimento
+
+- [ ] 4.1 Partir a tradução em frases (`Intl.Segmenter`) e enfileirar por índice em `filaDeFala.ts`; testes de ordem e cancelamento
+- [ ] 4.2 Síntese paralela (limite 2) e prazos por frase em `vozDaNuvem.ts`, com queda para a voz do aparelho
+- [ ] 4.3 `aquecerInterprete()` ao abrir `/interprete` (VAD, modelo de turno, `destravarVozDaNuvem`)
+
+## 5. Verificação
+
+- [ ] 5.1 Typecheck e testes dos arquivos tocados; atualizar `tests/e2e/modo-interprete.e2e.ts` (meta `tts_inicio`)
+- [ ] 5.2 Conferir com fala real no celular e no computador (pausa para pensar, frase curta, fone e alto-falante)
+- [ ] 5.3 Atualizar `docs/auditoria/eval/bancada-2026-09.md` com os números e a decisão do portão

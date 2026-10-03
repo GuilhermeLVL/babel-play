@@ -4,7 +4,7 @@ import { aoMudarChave, CHAVES_DE_TESTE, chaveLigada, gravarChave } from '../../.
 import { t } from '../../../../lib/i18n';
 
 /**
- * OS TESTES DO INTÉRPRETE (Intérprete v3), no : um botão por recurso novo, desligado de
+ * OS TESTES DO INTÉRPRETE (Intérprete v3), no `/diagnostico`: um botão por recurso novo, desligado de
  * fábrica. Liga, abra o intérprete e toque um vídeo ou entre numa conversa; desliga e volta ao de antes.
  */
 export default function TestesDoInterprete() {

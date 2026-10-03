@@ -111,6 +111,31 @@ describe('criarControleDoInterprete', () => {
     expect(controle.estado().falando).toBeNull()
   })
 
+  it('o medidor por etapa recebe VAD, STT, tradução e o início da voz, só números e motor', () => {
+    const etapa = vi.fn()
+    const { controle } = montar({
+      registrarEtapa: etapa,
+      etapasDaFala: () => ({ stt: { ms: 400, motor: 'groq-whisper', audioMs: 3000 }, mt: { ms: 700, motor: 'server-llm-mt' } }),
+    })
+    controle.tocar('meu')
+    controle.aoFimDaFala({ segId: 's1', source: 'mic', lado: 'meu' })
+    controle.aoTraduzirFinal(traduzida('s1', 'good morning'))
+    expect(etapa).toHaveBeenCalledWith('s1', 'vad', 800, 'vad-fixo')
+    expect(etapa).toHaveBeenCalledWith('s1', 'stt', 400, 'groq-whisper', 3000)
+    expect(etapa).toHaveBeenCalledWith('s1', 'mt', 700, 'server-llm-mt')
+    expect(etapa).toHaveBeenCalledWith('s1', 'tts', 0, 'voz-do-aparelho')
+    expect(JSON.stringify(etapa.mock.calls)).not.toMatch(/good morning/)
+  })
+
+  it('a fala sem tradução não registra etapa nenhuma', () => {
+    const etapa = vi.fn()
+    const { controle } = montar({ registrarEtapa: etapa })
+    controle.tocar('meu')
+    controle.aoFimDaFala({ segId: 's1', source: 'mic', lado: 'meu' })
+    controle.aoTraduzirFinal({ ...traduzida('s1', ''), resultado: 'sem-traducao' })
+    expect(etapa).not.toHaveBeenCalled()
+  })
+
   it('a fala do outro lado é lida no meu idioma', () => {
     const { controle, voz } = montar()
     controle.tocar('outro')

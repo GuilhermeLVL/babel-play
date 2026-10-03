@@ -22,7 +22,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { encodeWav } from '../../gateway/audio/wav';
 import { CHAVE_DA_ULTIMA_CAPTURA } from '../../gateway/capture/captureMetrics';
-import { lerUltimoDoInterprete } from '../../lib/voz/tempoAteAVoz';
+import { descreverEtapas, lerUltimoDoInterprete } from '../../lib/voz/tempoAteAVoz';
 import TestesDoInterprete from './captura/interprete/TestesDoInterprete';
 import { medirBenchmark, type PontuacaoDoBenchmark } from '../../lib/dispositivo/benchmark';
 import {
@@ -380,6 +380,12 @@ export default function Diagnostico() {
   const [nuvem, setNuvem] = useState<ResultadoDaNuvem | null>(null);
   const [ultima] = useState<UltimaCaptura | null>(lerUltimaCaptura);
   const [ultimoInterprete] = useState(lerUltimoDoInterprete);
+  const etapasDoInterprete = ultimoInterprete ? descreverEtapas(ultimoInterprete) : null;
+  /* O custo cobre só o STT de nuvem: tradução e voz não têm preço de tabela no código, e o texto diz isso. */
+  const custoDoInterprete =
+    ultimoInterprete?.custoUsd !== undefined
+      ? t('cerca de US$ {usd}, só a transcrição na nuvem', { usd: ultimoInterprete.custoUsd.toFixed(4) })
+      : null;
   const [telaNova, setTelaNova] = useState(telaNovaDoQuest);
   const [vibracao, setVibracao] = useState<ResultadoDaVibracao | null>(null);
   const [chaveDeDono, setChaveDeDono] = useState(() => {
@@ -861,6 +867,8 @@ export default function Diagnostico() {
                     })}
                   />
                 )}
+                {etapasDoInterprete && <Dado rotulo={t('Intérprete: tempo de cada etapa')} valor={etapasDoInterprete} />}
+                {custoDoInterprete && <Dado rotulo={t('Intérprete: custo estimado')} valor={custoDoInterprete} />}
                 <Dado
                   rotulo={t('Nuvem usada')}
                   valor={t('{min} min de fala, cerca de US$ {usd}', {
@@ -1256,6 +1264,8 @@ export default function Diagnostico() {
                     })}
                 />
               )}
+              {etapasDoInterprete && <Linha rotulo={t('Intérprete: tempo de cada etapa')} valor={etapasDoInterprete} />}
+              {custoDoInterprete && <Linha rotulo={t('Intérprete: custo estimado')} valor={custoDoInterprete} />}
               <Linha
                 rotulo={t('Nuvem usada')}
                 valor={t('{min} min de fala, cerca de US$ {usd}', {

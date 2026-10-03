@@ -4,9 +4,9 @@
 
 ## 1. Medir primeiro (sem mudar comportamento)
 
-- [ ] 1.1 Estender `captureMetrics.ts` com `etapas`, `motor` e `custoEstimado` por fala e agregado por sessão; testes
+- [x] 1.1 Estender `captureMetrics.ts` com `etapas`, `motor` e `custoEstimado` por fala e agregado por sessão; testes (STT e tradução por fala em `captureMetrics`; agregado p50/p95, motor e custo em `tempoAteAVoz`; o VAD entra com a espera NOMINAL de 800 ms, não medida; custo só do STT de nuvem)
 - [x] 1.2a (parte feita) O tempo do fim da fala até a voz (p50/p95 por motor) fica guardado ao fechar o intérprete (`tempoAteAVoz.guardar`) e aparece no `/diagnostico`
-- [ ] 1.2b Mostrar também o tempo de cada etapa (VAD, STT, tradução) e o custo da conversa; telemetria só com metadados
+- [x] 1.2b Mostrar também o tempo de cada etapa (VAD, STT, tradução) e o custo da conversa; telemetria só com metadados (só local: o contrato `v: 1` não mudou e nada vai ao servidor)
 - [ ] 1.3 Registrar a linha de base atual do intérprete (p50/p95 até a voz) no relatório da bancada
 
 ## 2. Fim de fala inteligente

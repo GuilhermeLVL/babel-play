@@ -479,7 +479,17 @@ export default function Analysis({
    * PURA com teste próprio (`tests/metricasDaSessao.test.ts`). A ordem dos hooks é a mesma: o
    * bloco era contíguo e foi movido como bloco.
    */
-  const { stats, realWpm, realLongPauses, realVicios, realSilencio, topKeywords } = useMetricasDaSessao({
+  const {
+    stats,
+    realWpm,
+    realLongPauses,
+    realVicios,
+    realSilencio,
+    realMonologue,
+    realSobreposicao,
+    topKeywords,
+    fullTranscriptText,
+  } = useMetricasDaSessao({
     realUtterances,
     sentences,
     parsedSentences,
@@ -862,6 +872,33 @@ export default function Analysis({
         ppm: realWpm,
         pausasLongas: realLongPauses,
         vicios: realVicios.palavras > 0 ? realVicios.total : null,
+      }}
+      dados={{
+        sessao: {
+          id: recording.id,
+          titulo: recording.title,
+          tipo: recording.type,
+          data: recording.date,
+          duracao: recording.durationStr,
+          idiomaOrigem: sessionLangs?.src || ttsLang,
+          idiomaDestino: sessionLangs?.tgt || langConfig.studying,
+        },
+        falas: parsedSentences.map((f) => ({ ...f, polida: f.id ? polidaDaFala.get(f.id) : undefined })),
+        falasCruas: realUtterances as UtteranceRow[],
+        textoCompleto: fullTranscriptText,
+        idioma: ttsLang,
+        estatisticas: stats,
+        metricas: {
+          ppm: realWpm,
+          pausasLongas: realLongPauses,
+          vicios: realVicios.palavras > 0 ? realVicios : null,
+          silencio: realSilencio,
+          monologoMs: realMonologue,
+          sobreposicao: realSobreposicao,
+          palavrasChave: topKeywords,
+          ritmoPorFalante,
+        },
+        cartoes: vocabCards,
       }}
       aoFechar={() => setShowExportModal(false)}
     />

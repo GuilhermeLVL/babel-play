@@ -51,6 +51,10 @@ interface InicioDoQuestProps {
   semConta?: boolean;
   /** O perfil de exibição (kids, pro, sênior): muda a linguagem do cabeçalho, como no Início de sempre. */
   ageProfile?: AgeProfileType;
+  /** A lista de sessões ainda não respondeu: o vazio "Nenhuma sessão ainda" não pode piscar antes dela (CLS). */
+  carregandoSessoes?: boolean;
+  /** As missões ainda não responderam: reserva o lugar do bloco para o que vem abaixo não pular (CLS). */
+  missoesPendentes?: boolean;
 }
 
 const saudacao = (hora: number): string =>
@@ -77,6 +81,8 @@ export default function InicioDoQuest({
   missoes = null,
   semConta = false,
   ageProfile = 'pro',
+  carregandoSessoes = false,
+  missoesPendentes = false,
 }: InicioDoQuestProps) {
   const vencidas = Math.min(metrics?.dueToday ?? 0, TAMANHO_DA_SESSAO);
   const [tipo, setTipo] = useState<TipoDeSessao>('all');
@@ -228,6 +234,7 @@ export default function InicioDoQuest({
       )}
 
       {/* AS MISSÕES DO DIA: o progresso que o servidor contou. Fechadas as três, é o ponto de parada. */}
+      {missoesPendentes && !semConta && !missoes && <div className="q-missoes-reserva" aria-hidden="true" />}
       {listaDeMissoes.length > 0 && missoes && (
         <section className="q-secao" aria-label={t('Missões do dia')} data-testid="missoes-no-inicio">
           <header>
@@ -293,7 +300,7 @@ export default function InicioDoQuest({
       {!edicaoEstatica() && <CardDePlanos onVerPlanos={() => onChangeView('planos')} />}
 
       {/* AS SESSÕES RECENTES: as seis últimas, com o filtro por tipo; o resto, na Biblioteca. */}
-      {!semConta && sessoes.length === 0 && (
+      {!semConta && !carregandoSessoes && sessoes.length === 0 && (
         <section className="q-secao" aria-label={t('Sessões recentes')} data-testid="recentes-no-inicio">
           <div className="q-vazio" style={{ minHeight: 200 }}>
             <span className="q-ic">

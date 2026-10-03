@@ -62,7 +62,7 @@ const CHEIO = { usados: 95, teto: 100 }
 it('armazenamento >90% aparece mesmo com o anúncio comum dispensado há muito tempo', async () => {
   localStorage.setItem('babel.card_planos_dispensado', '1')
   await montar('free', CHEIO)
-  expect(screen.getByTestId('card-de-planos').textContent).toContain('90%')
+  expect(screen.getByTestId('card-de-planos').textContent).toContain('quase cheio')
 })
 
 it('armazenamento >90%: dispensar RESPEITA a dispensa (não volta no próximo render)', async () => {

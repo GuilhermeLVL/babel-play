@@ -213,7 +213,7 @@ import SeletorDeConteudo from '../minigames/SeletorDeConteudo';
 import TermoGame from '../minigames/TermoGame';
 import TourGuiado from '../minigames/TourGuiado';
 import { toast } from '../Toast';
-import { Abas, CabecalhoDeTela, IconeEmBloco, TituloDeSecao } from '../ui';
+import { Abas, CabecalhoDeTela, IconeEmBloco, Tela as MolduraDaTela, TituloDeSecao } from '../ui';
 import CuradoriaBaralho from './CuradoriaBaralho';
 
 /**
@@ -3494,8 +3494,8 @@ export default function Play({
         </>
       );
     }
-    return (
-      <div className={embutido ? '' : 'flex-1 overflow-y-auto custom-scrollbar p-6 lg:p-10'}>
+    const esqueleto = (
+      <>
         {sala}
         <div className="h-24 rounded-2xl bg-surface border border-border-subtle animate-pulse mb-6" aria-hidden />
         <div className="grid gap-3 sm:grid-cols-3">
@@ -3507,8 +3507,12 @@ export default function Play({
             />
           ))}
         </div>
-      </div>
+      </>
     );
+    /* Fora da sessão, a espera usa a MESMA moldura da tela pronta (`Tela`: `.rolagem` > `.tela.larga`).
+       Com um `p-6` próprio ela nascia inset 24 px e, ao chegar o baralho, a tela saltava para a margem
+       dela: CLS de 0,16 no celular. */
+    return embutido ? <div>{esqueleto}</div> : <MolduraDaTela largura="larga">{esqueleto}</MolduraDaTela>;
   }
 
   /* Os dois grupos do protótipo, já filtrados por aba, habilidade e busca. */

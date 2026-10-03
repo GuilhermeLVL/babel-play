@@ -34,6 +34,21 @@ entram como **% de degradação**, acompanhada à parte.
 | CLS                                                            | < 0,1                                                 | idem                                                        |
 | INP                                                            | < 200 ms                                              | `scripts/perf/telas/medir-telas.mjs` (Event Timing por interação, celular médio, CPU 4×/6×) |
 
+### Medido em 03/10/2026 (build de produção, `scripts/perf/frontend.mjs --execucoes=3`, Lighthouse 13)
+
+Mediana de 3 execuções (a de celular em 4G lento simulado oscila: algumas falham no Chrome sem cabeçalho).
+CLS do Lighthouse, antes -> depois das correções de salto de layout:
+
+| Rota      | Celular: nota | Celular: LCP | Celular: TBT | Celular: CLS    | Desktop: nota | Desktop: LCP | Desktop: CLS    |
+| --------- | ------------- | ------------ | ------------ | --------------- | ------------- | ------------ | --------------- |
+| /         | 70 -> 73      | 5,5 -> 4,6 s | 223 -> 273 ms | 0 -> 0         | 94 -> 96      | 1,3 s        | 0,090 -> 0      |
+| /capturar | 62 -> 62      | 10,4 s       | 185 -> 211 ms | 0 -> 0         | 87 -> 87      | 2,3 s        | 0 -> 0          |
+| /jogar    | 45 -> 52      | 10,4 s       | 531 -> 597 ms | 0,163 -> 0     | 84 -> 86      | 2,3 s        | 0,098 -> 0      |
+| /planos   | 64 -> 64      | 6,1 s        | 351 -> 347 ms | 0 -> 0         | 95 -> 95      | 1,4 s        | 0 -> 0          |
+
+O LCP e a nota de celular seguem acima da meta (< 2,5 s): o custo é execução de JS (`vendor-react` e as telas
+sob demanda) em CPU 4x mais lenta, não rede nem fonte. Sem número novo de campo (p75): continua sem dados de produção.
+
 ## O que os SLOs NÃO dizem
 
 - **Capacidade.** Estar dentro do SLO numa máquina local não é estar dentro no Fly: a `shared-cpu-1x`

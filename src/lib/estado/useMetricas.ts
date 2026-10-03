@@ -18,6 +18,8 @@ export interface EstadoDasMetricas {
   progress: DerivedProgress;
   /** As missões do dia, do servidor. `null` até chegarem (ou se a rota falhar). */
   missoes: EstadoDasMissoes | null;
+  /** `true` até a PRIMEIRA resposta das missões (ou a falha das métricas): a tela reserva o lugar do bloco (CLS). */
+  missoesPendentes: boolean;
   setVersaoDasMetricas: Dispatch<SetStateAction<number>>;
 }
 
@@ -32,6 +34,8 @@ export interface EstadoDasMetricas {
 export function useMetricas(quantidadeDeSessoes: number): EstadoDasMetricas {
   const [metrics, setMetrics] = useState<AppMetrics | null>(null);
   const [recordes, setRecordes] = useState<RecordeDoJogo[]>([]);
+  const [metricasFalharam, setMetricasFalharam] = useState(false);
+  const [missoesRespondidas, setMissoesRespondidas] = useState(false);
   /* ECONOMIA v2: além da lista de sessões, uma rodada gravada, uma presença ou um crédito de
      conquista também envelhecem as métricas — quem faz isso dispara `babel:metricas-mudaram`. */
   const [versaoDasMetricas, setVersaoDasMetricas] = useState(0);
@@ -47,6 +51,7 @@ export function useMetricas(quantidadeDeSessoes: number): EstadoDasMetricas {
       .then(([m, rs]) => {
         if (!alive) return;
         setMetrics(m);
+        setMetricasFalharam(false);
         setRecordes(rs);
         /* B4: o servidor é a fonte da posse da Loja. COM CONTA ele SUBSTITUI o espelho local
            (01/09): a união de antes preservava a compra offline e, junto com ela, qualquer id
@@ -56,7 +61,7 @@ export function useMetricas(quantidadeDeSessoes: number): EstadoDasMetricas {
         hidratarPosse(m?.itensComprados, comConta);
         hidratarCromas(m?.cromasComprados, comConta);
       })
-      .catch(() => { if (alive) setMetrics(null); });
+      .catch(() => { if (alive) { setMetrics(null); setMetricasFalharam(true); } });
     return () => { alive = false; };
   }, [quantidadeDeSessoes, versaoDasMetricas]);
 
@@ -91,6 +96,7 @@ export function useMetricas(quantidadeDeSessoes: number): EstadoDasMetricas {
     void lerMissoes().then(async (estado) => {
       if (!alive) return;
       setMissoes(estado);
+      setMissoesRespondidas(true);
       const r = await reivindicarMetaDoDia(estado);
       if (!alive || !r) return;
       toast.ok(t('Meta do dia concluída: +{n} Seeds', { n: r.seeds }));
@@ -99,5 +105,6 @@ export function useMetricas(quantidadeDeSessoes: number): EstadoDasMetricas {
     return () => { alive = false; };
   }, [metrics]);
 
-  return { metrics, recordes, progress, missoes, setVersaoDasMetricas };
+  const missoesPendentes = !missoesRespondidas && !metricasFalharam;
+  return { metrics, recordes, progress, missoes, missoesPendentes, setVersaoDasMetricas };
 }

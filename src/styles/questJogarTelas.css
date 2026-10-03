@@ -459,6 +459,10 @@ html[data-quest-novo='true'] dialog.qj-painel[open] {
 /* ── A SALA "O QUE VOCÊ VAI PRATICAR" ─────────────────────────────────────────────────────────── */
 .q-mais.qj-sala {
   width: min(960px, 100%);
+  /* Centrada na janela, a sala crescia dos dois lados quando as contagens chegavam (663 -> 739 px):
+     CLS. A altura mínima é a de com o material já carregado; com pouca janela, o `max-height: 100%`
+     de `.q-mais` manda como antes. */
+  min-height: min(739px, 100%);
   padding: 0;
   gap: 0;
   overflow: hidden;

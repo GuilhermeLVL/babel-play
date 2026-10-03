@@ -38,9 +38,22 @@ interface HubProps {
   metrics: AppMetrics | null;
   /** As missões do dia, do servidor (`GET /api/metrics/missoes`). `null` = ainda não chegaram. */
   missoes?: EstadoDasMissoes | null;
+  /** A lista de sessões ainda não respondeu: o vazio "Nenhuma sessão ainda" não pode piscar antes dela (CLS). */
+  carregandoSessoes?: boolean;
+  /** As missões ainda não responderam: reserva o lugar do cartão para o que vem abaixo não pular (CLS). */
+  missoesPendentes?: boolean;
 }
 
-export default function Hub({ onChangeView, recordings, ageProfile = 'pro', progress, metrics, missoes = null }: HubProps) {
+export default function Hub({
+  onChangeView,
+  recordings,
+  ageProfile = 'pro',
+  progress,
+  metrics,
+  missoes = null,
+  carregandoSessoes = false,
+  missoesPendentes = false,
+}: HubProps) {
   const ir = (view: string, data?: unknown) => onChangeView(view, data as never);
   const [filterCategory, setFilterCategory] = useState<'all' | 'video' | 'audio' | 'document'>('all');
 
@@ -181,6 +194,7 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
       {/* AS MISSÕES DO DIA (recompensas v2, onda 5): substituem as "missões" antigas, que eram as
           três frentes do app. Mesmo desenho de cartão; ponto de parada explícito quando fecham. */}
       <MissoesDoDia estado={missoes} className="secao" style={{ marginTop: 14 }} />
+      {missoesPendentes && !missoes && <div className="missoes-reserva" style={{ marginTop: 14 }} aria-hidden="true" />}
 
       {/* "Ver estatísticas detalhadas" leva à tela Estatísticas (decisão do dono, 24/09). O bloco
           inline que abria aqui saiu; a meta de nível foi junto para Estatísticas. */}
@@ -254,7 +268,7 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
           />
 
           <div role="tabpanel" id={`painel-${filterCategory}`} aria-labelledby={`aba-${filterCategory}`}>
-            {filteredRecs.length === 0 ? (
+            {filteredRecs.length === 0 && carregandoSessoes ? null : filteredRecs.length === 0 ? (
               <Vazio
                 className="mt-3.5"
                 icone={<Headphones className="w-7 h-7" />}

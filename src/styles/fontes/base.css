@@ -2,6 +2,19 @@
    Gerado a partir dos pacotes @fontsource (somente subsets latin e latin-ext), servido do próprio site.
    Sem Google Fonts: nenhum IP de visitante sai daqui. Ver docs/lgpd/operadores.md. */
 
+/* Reserva de métrica para a IBM Plex Mono (chega depois do primeiro desenho, `font-display: swap`).
+   Courier New tem o MESMO avanço (0,6 em) e, com as alturas abaixo (as da Plex Mono: 1025/-275/0 em 1000),
+   o texto em monoespaçada ocupa o mesmo espaço antes e depois da troca: sem salto de layout (CLS).
+   Onde não há Courier New, cai no `monospace` do sistema, como antes. */
+@font-face {
+  font-family: 'IBM Plex Mono Fallback';
+  src: local('Courier New'), local('CourierNewPSMT'), local('Courier');
+  size-adjust: 100%;
+  ascent-override: 102.5%;
+  descent-override: 27.5%;
+  line-gap-override: 0%;
+}
+
 @font-face {
   font-family: 'Inter';
   font-style: normal;

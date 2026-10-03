@@ -139,7 +139,7 @@
 
     --font-display-val: "Archivo", sans-serif;
     --font-body-val: "Inter", sans-serif;
-    --font-mono-val: "IBM Plex Mono", monospace;
+    --font-mono-val: "IBM Plex Mono", "IBM Plex Mono Fallback", monospace;
     --radius-card: 16px;
     --radius-btn: 12px;
     --border-width-card: 2px;
@@ -216,7 +216,7 @@
 
     --font-display-val: "Archivo", sans-serif;
     --font-body-val: "Inter", sans-serif;
-    --font-mono-val: "IBM Plex Mono", monospace;
+    --font-mono-val: "IBM Plex Mono", "IBM Plex Mono Fallback", monospace;
     --radius-card: 16px;
     --radius-btn: 12px;
     --border-width-card: 2px;
@@ -264,7 +264,7 @@
 
     --font-display-val: "Archivo", sans-serif;
     --font-body-val: "Inter", sans-serif;
-    --font-mono-val: "IBM Plex Mono", monospace;
+    --font-mono-val: "IBM Plex Mono", "IBM Plex Mono Fallback", monospace;
     --radius-card: 16px;
     --radius-btn: 12px;
     --border-width-card: 2px;
@@ -345,7 +345,7 @@
     --radius-card: 16px; --radius-btn: 12px;
     --font-display-val: 'Archivo', system-ui, sans-serif;
     --font-body-val: 'Inter', system-ui, sans-serif;
-    --font-mono-val: 'IBM Plex Mono', ui-monospace, monospace;
+    --font-mono-val: 'IBM Plex Mono', 'IBM Plex Mono Fallback', ui-monospace, monospace;
     --shadow-card-val: inset 0 1px 0 rgba(255,255,255,0.6), 0 2px 6px rgba(11,26,22,0.08);
     --shadow-btn-val: 0 1px 2px rgba(11,26,22,0.12);
     --shadow-btn-hover-val: 0 2px 6px rgba(13,148,136,0.25);
@@ -457,7 +457,7 @@
 
     --font-display-val: "Inter", sans-serif;
     --font-body-val: "Inter", sans-serif;
-    --font-mono-val: "IBM Plex Mono", monospace;
+    --font-mono-val: "IBM Plex Mono", "IBM Plex Mono Fallback", monospace;
     --radius-card: 12px;
     --radius-btn: 8px;
     --border-width-card: 1px;
@@ -497,7 +497,7 @@
 
     --font-display-val: "Inter", sans-serif;
     --font-body-val: "Inter", sans-serif;
-    --font-mono-val: "IBM Plex Mono", monospace;
+    --font-mono-val: "IBM Plex Mono", "IBM Plex Mono Fallback", monospace;
     --radius-card: 12px;
     --radius-btn: 8px;
     --border-width-card: 1px;
@@ -624,7 +624,7 @@
 
     --font-display-val: "Archivo", sans-serif;
     --font-body-val: "Inter", sans-serif;
-    --font-mono-val: "IBM Plex Mono", monospace;
+    --font-mono-val: "IBM Plex Mono", "IBM Plex Mono Fallback", monospace;
     --radius-card: 20px;
     --radius-btn: 14px;
     --border-width-card: 1px;
@@ -665,7 +665,7 @@
 
     --font-display-val: "Inter", sans-serif;
     --font-body-val: "Inter", sans-serif;
-    --font-mono-val: "IBM Plex Mono", monospace;
+    --font-mono-val: "IBM Plex Mono", "IBM Plex Mono Fallback", monospace;
     --radius-card: 24px;
     --radius-btn: 16px;
     --border-width-card: 2px;
@@ -704,7 +704,7 @@
 
     --font-display-val: "Inter", sans-serif;
     --font-body-val: "Inter", sans-serif;
-    --font-mono-val: "IBM Plex Mono", monospace;
+    --font-mono-val: "IBM Plex Mono", "IBM Plex Mono Fallback", monospace;
     --radius-card: 24px;
     --radius-btn: 16px;
     --border-width-card: 2px;
@@ -828,7 +828,7 @@
 
     --font-display-val: "Archivo", sans-serif;
     --font-body-val: "Inter", sans-serif;
-    --font-mono-val: "IBM Plex Mono", monospace;
+    --font-mono-val: "IBM Plex Mono", "IBM Plex Mono Fallback", monospace;
     /* Os cantos de Personalizar → Editar o tema (`applyCustomColors`); sem escolha, os de sempre. */
     --radius-card: var(--custom-r-card, 16px);
     --radius-btn: var(--custom-r-btn, 12px);
@@ -1664,8 +1664,8 @@ body.animations-off .hover\:-translate-y-1:hover {
 }
 
 [data-fonte="mono"] {
-  --font-display-val: 'JetBrains Mono', 'IBM Plex Mono', monospace;
-  --font-body-val: 'JetBrains Mono', 'IBM Plex Mono', monospace;
+  --font-display-val: 'JetBrains Mono', 'IBM Plex Mono', 'IBM Plex Mono Fallback', monospace;
+  --font-body-val: 'JetBrains Mono', 'IBM Plex Mono', 'IBM Plex Mono Fallback', monospace;
 }
 
 [data-fonte="cyber"] {
@@ -1864,3 +1864,21 @@ svg.lucide { flex-shrink: 0; }
 .indicador-de-salvamento svg { width: 16px; height: 16px; flex-shrink: 0; color: var(--accent-ink); }
 .indicador-de-salvamento.warn { border-color: color-mix(in srgb, var(--warn) 40%, var(--border-subtle)); }
 .indicador-de-salvamento.warn svg { color: var(--warn-ink); }
+
+/* RESERVA DO TRILHO DO QUEST (App.tsx). O trilho e o `quest.css` dele chegam num chunk à parte; até
+   lá o <main> nascia com a largura toda e saltava 108 px (CLS 0,08 no desktop). Mesmas medidas do
+   `.q-trilho` e da janela estreita (<= 720 px: vira barra de baixo, 74 px). */
+.q-trilho-reserva { flex: none; width: 108px; background: var(--surface); border-right: 1.5px solid var(--border-subtle); }
+@media (max-width: 720px) {
+  .q-casca:has(> .q-trilho-reserva) { flex-direction: column-reverse; }
+  .q-trilho-reserva { width: 100%; min-height: 74px; border-right: 0; border-top: 1.5px solid var(--border-subtle); }
+}
+
+/* RESERVA DAS MISSÕES DO DIA (Hub e Início do Quest): o cartão chega depois das métricas e empurrava
+   tudo o que vem abaixo (CLS 0,04 e 0,07). Alturas medidas do cartão: 262 (Hub) e 209 (Quest) no
+   desktop, 304 no celular. */
+.missoes-reserva { min-height: 262px; }
+.q-missoes-reserva { min-height: 209px; }
+@media (max-width: 720px) {
+  .missoes-reserva, .q-missoes-reserva { min-height: 304px; }
+}

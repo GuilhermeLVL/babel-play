@@ -221,7 +221,9 @@ export default function App() {
       .finally(() => setGravacoesCarregadas(true));
   }, [restrita]);
 
-  const { metrics, recordes, progress, missoes, setVersaoDasMetricas } = useMetricas(recordings.length);
+  const { metrics, recordes, progress, missoes, missoesPendentes, setVersaoDasMetricas } = useMetricas(
+    recordings.length,
+  );
 
   const { ctxConquistas, filaDeRecompensas, setFilaDeRecompensas, lojaAba, setLojaAba, abrirEstudio, equiparCtx } =
     useRecompensas({
@@ -517,7 +519,10 @@ export default function App() {
 
       <div className={`flex-1 flex min-h-0 w-full${questNovo ? ' q-casca' : ''}`}>
         {questNovo ? (
-          <Suspense fallback={null}>
+          /* O trilho é um chunk à parte: sem reservar o lugar dele, o <main> nascia com a largura toda e
+             saltava 108 px quando o trilho chegava (CLS 0,08 em toda tela do desktop). A reserva (`index.css`)
+             tem as mesmas medidas do trilho, na janela larga e na estreita. */
+          <Suspense fallback={<div className="q-trilho-reserva" aria-hidden="true" />}>
             <TrilhoDoQuest
               activeView={viewDoMenu}
               /* O mesmo caminho do cabeçalho de sempre: é ele que abre Ajustes na aba pedida (o botão
@@ -604,6 +609,8 @@ export default function App() {
                 missoes={missoes}
                 semConta={anonimo}
                 ageProfile={ageProfile}
+                carregandoSessoes={!gravacoesCarregadas}
+                missoesPendentes={missoesPendentes}
               />
             )}
             {activeView === 'hub' && !questNovo && (
@@ -614,6 +621,8 @@ export default function App() {
                 progress={progress}
                 metrics={metrics}
                 missoes={missoes}
+                carregandoSessoes={!gravacoesCarregadas}
+                missoesPendentes={missoesPendentes}
               />
             )}
             {/* O Intérprete é a MESMA captura (o pipeline, as fontes, o salvar), aberta na tela de

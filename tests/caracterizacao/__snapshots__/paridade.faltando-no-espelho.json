@@ -50,15 +50,13 @@
       "espelho": 200
     },
     "faltamNoEspelho": [
-      "[].addedAt",
       "[].baralhosAnki",
       "[].cefrSource",
       "[].daAnki",
       "[].daTrilha",
       "[].difficultyScore",
       "[].firstSeenAt",
-      "[].lastSeenAt",
-      "[].phonetics"
+      "[].lastSeenAt"
     ]
   },
   "GET /api/vocab/pagina?limite=10": {

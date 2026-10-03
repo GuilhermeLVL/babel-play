@@ -2,7 +2,6 @@
   "status": 200,
   "forma": [
     {
-      "addedAt": "number",
       "back": "string",
       "baralhosAnki": [],
       "box": "number",
@@ -24,7 +23,6 @@
       "lastReview": "null",
       "lastSeenAt": "number",
       "occurrences": "number",
-      "phonetics": "null",
       "reps": "null",
       "sentence": "string",
       "sessionId": "null",

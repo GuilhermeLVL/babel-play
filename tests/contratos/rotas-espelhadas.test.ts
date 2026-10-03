@@ -59,6 +59,8 @@ const SO_COM_CONTA: Record<string, string> = {
     'telemetria anônima de qualidade da captura; sem servidor não há para onde mandar, e o cliente descarta em silêncio',
   '/api/flags':
     'feature flags (Fase 6b): PASSA DIRETO (está em `PASSAM_DIRETO`) porque é pública e quem decide o que está ligado é o operador, no servidor — um espelho local responderia sempre "desligado"',
+  '/api/admin':
+    'tela de administração: só existe com conta de papel admin (e 2FA); a edição estática nem mostra o item de menu, e o servidor efêmero não tem papéis, planos nem cobrança para administrar',
   '/api/audio':
     'captura do áudio do sistema por WASAPI: PASSA DIRETO (está em `PASSAM_DIRETO`) porque depende de um dispositivo da máquina, e só existe no self-host',
 }

@@ -235,9 +235,16 @@ export type CartaoParaCliente = {
 }
 
 /** `COLUNAS_DO_CARTAO` para a leitura compacta: a mesma lista, na mesma ordem, pelo nome no banco. */
-const COLUNAS_COMPACTAS_DO_CARTAO: ColunaCompacta[] = Object.entries(COLUNAS_DO_CARTAO).map(([chave, coluna]) =>
-  coluna.columnType === 'SQLiteText' ? ([chave, coluna.name, 'texto'] as const) : ([chave, coluna.name] as const),
-)
+/* DUAS CHAVES FICAM DE FORA DO BARALHO NA REDE (desempenho 03/10/2026, ~6% do corpo): `phonetics` (o
+   cliente a sobrescreve com '' em `rowToVocabCard`; a fonética vem do verbete) e `addedAt` (só a
+   ORDEM do servidor a usa; nenhuma tela lê). `get`/PATCH continuam devolvendo-as, e o cliente
+   tolera a ausência (os dois campos já eram opcionais para ele). */
+const CHAVES_FORA_DO_BARALHO = new Set(['phonetics', 'addedAt'])
+const COLUNAS_COMPACTAS_DO_CARTAO: ColunaCompacta[] = Object.entries(COLUNAS_DO_CARTAO)
+  .filter(([chave]) => !CHAVES_FORA_DO_BARALHO.has(chave))
+  .map(([chave, coluna]) =>
+    coluna.columnType === 'SQLiteText' ? ([chave, coluna.name, 'texto'] as const) : ([chave, coluna.name] as const),
+  )
 
 export const vocabRepo = {
   /**
@@ -257,7 +264,11 @@ export const vocabRepo = {
    */
   async list(
     userId: UserId,
-  ): Promise<Array<CartaoParaCliente & { daTrilha: boolean; daAnki: boolean; baralhosAnki: string[] }>> {
+  ): Promise<
+    Array<
+      Omit<CartaoParaCliente, 'phonetics' | 'addedAt'> & { daTrilha: boolean; daAnki: boolean; baralhosAnki: string[] }
+    >
+  > {
     /* `daAnki` VIAJA PELA MESMA RAZÃO QUE `daTrilha`, e a falta dele custava o baralho inteiro: a
        régua de qualidade tem dois perfis (fala capturada × material curado) e o CLIENTE reavalia
        cada cartão antes da rodada. Sem a marca, ele aplicava o teto de 42 caracteres da captura a
@@ -267,7 +278,7 @@ export const vocabRepo = {
        ordem, mas serializadas pelo SQLite numa célula só — o driver montando um objeto por linha era
        o grosso dos 133 ms de CPU desta rota. Ver `server/db/leituraCompacta.ts`. */
     const [cartoes, daTrilha, daAnki] = await Promise.all([
-      lerCompacto<CartaoParaCliente>(COLUNAS_COMPACTAS_DO_CARTAO, {
+      lerCompacto<Omit<CartaoParaCliente, 'phonetics' | 'addedAt'>>(COLUNAS_COMPACTAS_DO_CARTAO, {
         tabela: 'vocab_cards',
         onde: sql`user_id = ${userId} AND deleted_at IS NULL`,
         ordem: 'added_at DESC',
@@ -1159,14 +1170,30 @@ export const vocabRepo = {
     const linhas = await db
       .select({ id: vocabCards.id, word: vocabCards.word })
       .from(vocabCards)
-      .where(and(eq(vocabCards.userId, userId), inArray(vocabCards.id, validos.map((it) => it.id))))
+      .where(
+        and(
+          eq(vocabCards.userId, userId),
+          inArray(
+            vocabCards.id,
+            validos.map((it) => it.id),
+          ),
+        ),
+      )
     const palavraDe = new Map(linhas.map((l) => [l.id, l.word]))
-    const chaveNova = new Map(validos.filter((it) => palavraDe.has(it.id)).map((it) => [it.id, chaveDedup(palavraDe.get(it.id)!, it.srcLang)]))
+    const chaveNova = new Map(
+      validos.filter((it) => palavraDe.has(it.id)).map((it) => [it.id, chaveDedup(palavraDe.get(it.id)!, it.srcLang)]),
+    )
     const ocupadas = chaveNova.size
       ? await db
           .select({ id: vocabCards.id, normKey: vocabCards.normKey })
           .from(vocabCards)
-          .where(and(eq(vocabCards.userId, userId), isNull(vocabCards.deletedAt), inArray(vocabCards.normKey, [...chaveNova.values()])))
+          .where(
+            and(
+              eq(vocabCards.userId, userId),
+              isNull(vocabCards.deletedAt),
+              inArray(vocabCards.normKey, [...chaveNova.values()]),
+            ),
+          )
       : []
     const donoDaChave = new Map<string | null, string>(ocupadas.map((o) => [o.normKey, o.id]))
     // Era um UPDATE por item num laço — até 5.000 idas ao banco por requisição (15 s medidos no

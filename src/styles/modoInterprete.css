@@ -601,6 +601,32 @@
   line-height: 1.35;
   color: var(--int-mut);
 }
+/* "Eles" falaram o MEU idioma: não há tradução, e o que foi dito é o que eu leio. */
+.int-bolha[data-lado='outro'][data-sem-traducao] .int-bolha-fala {
+  font: 700 clamp(16px, 4.4vw, 20px) / 1.3 var(--font-body);
+  color: inherit;
+}
+/* O idioma medido da fala (conversa virtual com detecção). */
+.int-bolha-idioma {
+  align-self: flex-start;
+  font: 600 10.5px / 1 var(--font-body);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--int-mut);
+}
+.int-idiomas {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--int-mut);
+}
+.int-idiomas > span {
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--int-linha);
+}
 .int-conversa-acoes {
   display: flex;
   justify-content: space-around;

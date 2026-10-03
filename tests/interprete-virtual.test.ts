@@ -38,8 +38,21 @@ function falasFalsas() {
   return { set, ler: () => estado }
 }
 
-function montar(o: { virtual: boolean; cenario?: string; autoDetect?: boolean }) {
-  const transcribePcm = vi.fn(async () => ({ text: 'Where is the station?', engine: 'whisper-local' }))
+function montar(o: {
+  virtual: boolean
+  cenario?: string
+  autoDetect?: boolean
+  detecta?: boolean
+  /** O que o motor devolve a cada transcrição, na ordem (idioma medido, texto). */
+  falas?: Array<{ language: string; text: string }>
+}) {
+  const respostas = [...(o.falas ?? [])]
+  const transcribePcm = vi.fn(async () => {
+    const r = respostas.shift()
+    return r
+      ? { text: r.text, language: r.language, confiancaDoIdioma: 0.95, engine: 'whisper-local' }
+      : { text: 'Where is the station?', engine: 'whisper-local' }
+  })
   const translateSegment = vi.fn()
   const aoFimDaFala = vi.fn()
   const falas = falasFalsas()
@@ -100,6 +113,7 @@ function montar(o: { virtual: boolean; cenario?: string; autoDetect?: boolean })
     direcaoDoMicrofone: () => null,
     aoFimDaFala,
     interpreteVirtual: () => o.virtual,
+    virtualDetectaIdioma: () => !!o.detecta,
   }
   const p = criarPipelineDeFala(deps as never)
   return { p, transcribePcm, translateSegment, aoFimDaFala, falas }
@@ -171,5 +185,67 @@ describe('conversa virtual: a direção é fixa por fonte', () => {
     m.p.sysHandlers.onSpeechStart(1)
     m.p.micHandlers.onSpeechStart(1)
     expect(m.falas.ler()).toHaveLength(0)
+  })
+})
+
+describe('conversa virtual com detecção de idioma', () => {
+  const FALA_LONGA = new Float32Array(16000 * 4)
+
+  it('"Eles" sem dica de idioma: o motor mede e a tradução parte do idioma medido', async () => {
+    const m = montar({ virtual: true, detecta: true, falas: [{ language: 'es', text: 'Donde esta la estacion?' }] })
+    m.p.sysHandlers.onSpeechStart(1)
+    m.p.sysHandlers.onUtterance(FALA_LONGA, 16000, 1)
+    await esperar()
+    await esperar()
+    expect(m.transcribePcm).toHaveBeenCalledWith(FALA_LONGA, 16000, expect.objectContaining({ languageHint: '' }))
+    expect(m.translateSegment).toHaveBeenCalledWith('sys-1', 'Donde esta la estacion?', 'es', 'pt', { falada: true })
+    expect(m.falas.ler()[0]).toMatchObject({ lado: 'outro', lang: 'es', paraLang: 'pt', semTraducao: false })
+  })
+
+  it('várias pessoas em idiomas diferentes, e a minha resposta vai para o último idioma ouvido', async () => {
+    const m = montar({
+      virtual: true,
+      detecta: true,
+      falas: [
+        { language: 'en', text: 'Hello everyone' },
+        { language: 'fr', text: 'Bonjour a tous, comment allez-vous' },
+        { language: 'pt', text: 'Estou bem, obrigado' },
+      ],
+    })
+    m.p.sysHandlers.onSpeechStart(1)
+    m.p.sysHandlers.onUtterance(FALA_LONGA, 16000, 1)
+    await esperar()
+    await esperar()
+    m.p.sysHandlers.onSpeechStart(2)
+    m.p.sysHandlers.onUtterance(FALA_LONGA, 16000, 2)
+    await esperar()
+    await esperar()
+    expect(m.translateSegment).toHaveBeenLastCalledWith('sys-2', expect.any(String), 'fr', 'pt', { falada: true })
+    /* Eu respondo: o microfone traduz do meu idioma para o francês, o de quem falou por último. */
+    m.p.micHandlers.onSpeechStart(1)
+    expect(m.p.micHandlers.querParcial).toBeDefined()
+    m.p.micHandlers.onUtterance(FALA_LONGA, 16000, 1)
+    await esperar()
+    await esperar()
+    expect(m.translateSegment).toHaveBeenLastCalledWith(`mic-${MIC + 1}`, 'Estou bem, obrigado', 'pt', 'fr', {
+      falada: true,
+    })
+  })
+
+  it('"Eles" falam o meu idioma: a fala fica sem tradução', async () => {
+    const m = montar({ virtual: true, detecta: true, falas: [{ language: 'pt', text: 'Bom dia, pessoal' }] })
+    m.p.sysHandlers.onSpeechStart(1)
+    m.p.sysHandlers.onUtterance(FALA_LONGA, 16000, 1)
+    await esperar()
+    await esperar()
+    expect(m.falas.ler()[0]).toMatchObject({ lang: 'pt', semTraducao: true, translatedText: '' })
+  })
+
+  it('desligada a detecção, a direção fixa de antes continua valendo', async () => {
+    const m = montar({ virtual: true, detecta: false, falas: [{ language: 'es', text: 'Hola' }] })
+    m.p.sysHandlers.onSpeechStart(1)
+    m.p.sysHandlers.onUtterance(PCM, 16000, 1)
+    await esperar()
+    expect(m.transcribePcm).toHaveBeenCalledWith(PCM, 16000, expect.objectContaining({ languageHint: 'en' }))
   })
 })

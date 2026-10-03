@@ -179,9 +179,12 @@ export function ConversaEmBolhas({
   fim,
   aoEditar,
   aoGuardar,
+  rotulo,
 }: {
   historico: Historico;
   total: number;
+  /** O idioma que a bolha mostra como etiqueta (conversa virtual com detecção); sem ele, nenhuma. */
+  rotulo?: (item: ItemDoHistorico) => string | null;
   aoVerMais: () => void;
   aoEditar?: (item: ItemDoHistorico) => void;
   aoGuardar?: (item: ItemDoHistorico) => void;
@@ -215,7 +218,17 @@ export function ConversaEmBolhas({
           const langFala = idiomaDaFala(item);
           const langTrad = idiomaDaTraducao(item);
           return (
-            <div key={item.id} className="int-bolha" data-lado={item.lado}>
+            <div
+              key={item.id}
+              className="int-bolha"
+              data-lado={item.lado}
+              data-sem-traducao={(item.lado === 'outro' && !item.traducao && !item.traduzindo) || undefined}
+            >
+              {rotulo?.(item) && (
+                <span className="int-bolha-idioma" data-testid="bolha-idioma">
+                  {rotulo(item)}
+                </span>
+              )}
               <TextoTocavel
                 texto={item.original}
                 lang={langFala}

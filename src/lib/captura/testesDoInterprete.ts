@@ -65,3 +65,25 @@ export function aoMudarChave(cb: (id: string, ligada: boolean) => void): () => v
   window.addEventListener(EVENTO, ouvinte);
   return () => window.removeEventListener(EVENTO, ouvinte);
 }
+
+/**
+ * DETECTAR O IDIOMA na conversa virtual (escolha da pessoa, não chave de teste): "Eles" podem falar idiomas
+ * diferentes, medidos fala a fala. Ligada por padrão; só o valor `nao` desliga. Neste aparelho.
+ */
+const CHAVE_DETECTAR_NA_VIRTUAL = 'babel.interprete.virtualDetectar';
+
+export function detectarIdiomaNaVirtual(): boolean {
+  try {
+    return localStorage.getItem(CHAVE_DETECTAR_NA_VIRTUAL) !== 'nao';
+  } catch {
+    return true;
+  }
+}
+
+export function gravarDetectarIdiomaNaVirtual(ligado: boolean): void {
+  try {
+    localStorage.setItem(CHAVE_DETECTAR_NA_VIRTUAL, ligado ? 'sim' : 'nao');
+  } catch {
+    /* sem armazenamento: vale até recarregar */
+  }
+}

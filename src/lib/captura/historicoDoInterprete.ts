@@ -10,7 +10,7 @@ import type { LadoDoInterprete, SpeechSegment } from './tiposDaFala';
 
 /** A fala, no que o histórico precisa (o mesmo recorte que a tela do intérprete recebe). */
 export type FalaDoHistorico = Pick<SpeechSegment, 'id' | 'originalText' | 'translatedText'> &
-  Partial<Pick<SpeechSegment, 'isPartial' | 'lado'>>;
+  Partial<Pick<SpeechSegment, 'isPartial' | 'lado' | 'lang' | 'paraLang' | 'semTraducao'>>;
 
 export interface ItemDoHistorico {
   id: string;
@@ -27,6 +27,9 @@ export interface ItemDoHistorico {
   secundario: string;
   /** A tradução ainda não chegou. */
   traduzindo: boolean;
+  /** Os idiomas medidos desta fala e da tradução (conversa virtual com detecção); ausentes = os da configuração. */
+  idioma?: string;
+  idiomaDaTraducao?: string;
 }
 
 export interface Historico {
@@ -76,7 +79,7 @@ export function historicoDoInterprete(
     }
     const propria = f.lado === lado;
     const traducao = f.translatedText?.trim() ?? '';
-    const traduzindo = !propria && (!traducao || traducao === SEM_TRADUCAO);
+    const traduzindo = !propria && !f.semTraducao && (!traducao || traducao === SEM_TRADUCAO);
     const item: ItemDoHistorico = {
       id: f.id,
       lado: f.lado,
@@ -86,6 +89,8 @@ export function historicoDoInterprete(
       texto: propria ? f.originalText : traduzindo ? SEM_TRADUCAO : f.translatedText,
       secundario: propria ? '' : f.originalText,
       traduzindo,
+      ...(f.lang ? { idioma: f.lang } : {}),
+      ...(f.paraLang ? { idiomaDaTraducao: f.paraLang } : {}),
     };
     todos.push(item);
     if (!propria) destaque = item;

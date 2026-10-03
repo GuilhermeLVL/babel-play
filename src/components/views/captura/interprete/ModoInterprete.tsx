@@ -52,6 +52,7 @@ import type { AoOuvirTrecho, TrechoEmLeitura } from './TextoTocavel';
 
 /** A fala, no que a tela precisa. */
 export type FalaDoInterprete = Pick<SpeechSegment, 'id' | 'originalText' | 'translatedText' | 'isPartial' | 'lado'> &
+  Partial<Pick<SpeechSegment, 'lang' | 'paraLang' | 'semTraducao'>> &
   Partial<Pick<SpeechSegment, 'timestamp'>>;
 
 /** Uma frase que a pessoa quer guardar para estudar (a folha da frase da captura a abre). */

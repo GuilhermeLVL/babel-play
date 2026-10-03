@@ -287,3 +287,37 @@ describe('PaginaDoInterprete: a entrada da conversa virtual', () => {
     expect((screen.getByTestId('abrir-conversa-virtual') as HTMLButtonElement).disabled).toBe(true)
   })
 })
+
+describe('conversa virtual: detectar idioma', () => {
+  const falasEmVariosIdiomas: FalaDoInterprete[] = [
+    { id: 'sys-1', lado: 'outro', originalText: 'Donde esta la estacion?', translatedText: 'Onde fica a estação?', lang: 'es', paraLang: 'pt' },
+    { id: 'sys-2', lado: 'outro', originalText: 'Bonjour a tous', translatedText: 'Bom dia a todos', lang: 'fr', paraLang: 'pt' },
+    { id: 'sys-3', lado: 'outro', originalText: 'Bom dia, pessoal', translatedText: '', lang: 'pt', paraLang: 'pt', semTraducao: true },
+  ]
+
+  it('vem ligado e mostra o idioma de cada fala e os idiomas ouvidos', () => {
+    montar({ falas: falasEmVariosIdiomas })
+    expect(screen.getByTestId('detectar-idioma').getAttribute('aria-pressed')).toBe('true')
+    expect(screen.getAllByTestId('bolha-idioma')).toHaveLength(3)
+    const ouvidos = screen.getByTestId('idiomas-ouvidos').textContent ?? ''
+    expect(ouvidos).toMatch(/Espa/)
+    expect(ouvidos).toMatch(/Fran/)
+  })
+
+  it('a fala no meu idioma aparece sem "…" de tradução pendente', () => {
+    montar({ falas: falasEmVariosIdiomas })
+    const bolhas = screen.getByTestId('int-bolhas').querySelectorAll('.int-bolha')
+    expect(bolhas[2].textContent).not.toContain('…')
+    expect(bolhas[2].getAttribute('data-sem-traducao')).toBe('true')
+  })
+
+  it('desligar grava a escolha, avisa a captura e tira as etiquetas', () => {
+    const aoDetectarIdioma = vi.fn()
+    montar({ falas: falasEmVariosIdiomas, extra: { aoDetectarIdioma } })
+    fireEvent.click(screen.getByTestId('detectar-idioma'))
+    expect(aoDetectarIdioma).toHaveBeenCalledWith(false)
+    expect(localStorage.getItem('babel.interprete.virtualDetectar')).toBe('nao')
+    expect(screen.queryAllByTestId('bolha-idioma')).toHaveLength(0)
+    expect(screen.queryByTestId('idiomas-ouvidos')).toBeNull()
+  })
+})

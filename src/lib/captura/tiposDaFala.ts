@@ -45,6 +45,12 @@ export interface SpeechSegment {
    * direção — as duas pessoas falam no mesmo microfone. Ausente fora do intérprete.
    */
   lado?: LadoDoInterprete;
+  /**
+   * CONVERSA VIRTUAL com detecção de idioma: o idioma para o qual esta fala foi traduzida (ISO-639-1; o `lang`
+   * é o dela) e se ela nem precisou de tradução porque já estava no idioma de quem lê.
+   */
+  paraLang?: string;
+  semTraducao?: boolean;
 }
 
 // `VocabWord` agora vive em `src/types.ts` — é o contrato compartilhado do <VocabularyPanel/>,

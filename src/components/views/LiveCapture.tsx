@@ -139,7 +139,7 @@ import {
 } from '../../lib/captura/tiposDaFala';
 import { descartarRascunho, tentarDeNovo } from '../../lib/captura/trabalhoDeSalvar';
 // Relógio da sessão + pipeline de MT (retradução de degradados incluída).
-import { chaveLigada } from '../../lib/captura/testesDoInterprete';
+import { chaveLigada, detectarIdiomaNaVirtual } from '../../lib/captura/testesDoInterprete';
 import { criarRelogioDaSessao, criarTraducaoDaFala } from '../../lib/captura/traducaoDaFala';
 import { modoDeTraducao, type PedidoSobDemanda } from '../../lib/captura/traducaoSobDemanda';
 import { usePalavrasConhecidas } from '../../lib/captura/usePalavrasConhecidas';
@@ -792,6 +792,8 @@ export default function LiveCapture({
   const [virtualAberta, setVirtualAberta] = useState(false);
   const interpreteVirtualRef = useRef(false);
   const virtualComMicRef = useRef(false);
+  /* "Detectar idioma" na conversa virtual (a tela o liga e desliga; o pipeline lê a cada fala). */
+  const virtualDetectaRef = useRef(detectarIdiomaNaVirtual());
   const ponteDoInterpreteRef = useRef<PonteDoInterprete | null>(null);
   const registrarPonteDoInterprete = useCallback((p: PonteDoInterprete | null) => {
     ponteDoInterpreteRef.current = p;
@@ -1375,6 +1377,7 @@ export default function LiveCapture({
     interpreteAutomatico: () => ponteDoInterpreteRef.current?.automatico() ?? false,
     ladoDaFalaAutomatica: (segId, pistas) => ponteDoInterpreteRef.current?.ladoDaFala(segId, pistas) ?? null,
     interpreteVirtual: () => interpreteVirtualRef.current,
+    virtualDetectaIdioma: () => virtualDetectaRef.current,
   });
 
   /* A faixa da nuvem de alívio, a mesma no celular e no desktop. Aceita, a rota passa à nuvem na hora
@@ -4709,6 +4712,9 @@ export default function LiveCapture({
             aoGuardar={(f) =>
               setFalaTocada({ id: f.id, texto: f.texto, traducao: f.traducao, lang: f.lang, langDaTraducao: f.langDaTraducao })
             }
+            aoDetectarIdioma={(ligado) => {
+              virtualDetectaRef.current = ligado;
+            }}
             aoSair={sairDoInterprete}
           />
         </Suspense>

@@ -44,6 +44,7 @@ import { classificarVazamento, type Intervalo } from '../vazamento';
 import { setterNoQuadro } from './agendarNoQuadro';
 import { guardarAudioDaFala } from './audioDasFalas';
 import { direcaoDoLado as direcaoDeUmLado } from './interprete';
+import { decidirNaVirtual, ESTADO_DA_VIRTUAL, type EstadoDaVirtual } from './idiomasDaConversaVirtual';
 import type { PistasDoIdioma } from './interpreteAutomatico';
 import { umModeloDeCadaVez } from './memoriaDosModelos';
 import { criarTradutorDeParciais, type TradutorDeParciais } from './parcialEstavel';
@@ -236,6 +237,12 @@ export interface DepsDoPipelineDeFala {
    * intérprete poder lê-las.
    */
   interpreteVirtual?: () => boolean;
+  /**
+   * Na conversa virtual, o idioma de CADA fala é medido pelo áudio (`idiomasDaConversaVirtual.ts`) em vez de
+   * fixo: "Eles" podem falar idiomas diferentes, e a minha resposta vai para o idioma de quem falou por
+   * último. Desligado, vale a direção fixa por fonte.
+   */
+  virtualDetectaIdioma?: () => boolean;
 }
 
 export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
@@ -291,6 +298,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     interpreteAutomatico,
     ladoDaFalaAutomatica,
     interpreteVirtual,
+    virtualDetectaIdioma,
   } = deps;
 
   /* UM SETSTATE POR QUADRO ("Grátis sem travar", A1; ver `agendarNoQuadro.ts`). O que chega em
@@ -359,6 +367,8 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
   // O `seq` do VAD começa em 1 em CADA fonte; deslocamos o do mic (+MIC_SEQ_OFFSET) para que
   // as chaves (seqToSegment/capMetrics) nunca colidam quando as duas fontes rodam juntas.
   const MIC_SEQ_OFFSET = 1_000_000;
+  /** CONVERSA VIRTUAL com detecção: os idiomas já ouvidos de "Eles" (as duas fontes o compartilham). */
+  let idiomasDaVirtual: EstadoDaVirtual = ESTADO_DA_VIRTUAL;
   /** A reserva local desta captura (`reservaLocal.ts`): parciais locais ligados? Quem solta o ouvinte da falha? */
   const reservaLocal: { parciaisLocais: boolean; soltar: (() => void) | null } = { parciaisLocais: true, soltar: null };
   const makeCaptureHandlers = (source: CapSource) => {
@@ -372,11 +382,19 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
        meio de uma fala não a vira — a dica do final e a tradução seguem o idioma de quem começou. */
     const direcoesPorSeq = new Map<number, DirecaoDaFala>();
     const virtual = (): boolean => captureScenarioRef.current === 'interprete' && !!interpreteVirtual?.();
+    const virtualDetecta = (): boolean => !!virtualDetectaIdioma?.();
     const direcaoDoLado = (seq?: number): DirecaoDaFala | null => {
       if (captureScenarioRef.current !== 'interprete') return null;
       /* CONVERSA VIRTUAL: a fonte diz o lado (o sistema é o outro, o microfone sou eu). */
       if (virtual()) {
-        return direcaoDeUmLado(isSys ? 'outro' : 'meu', { meu: sourceLangRef.current, outro: targetLangRef.current });
+        const par = { meu: sourceLangRef.current, outro: targetLangRef.current };
+        if (virtualDetecta()) {
+          /* DETECÇÃO: "Eles" não têm idioma fixo (o motor mede, fala a fala); a minha fala vai para o idioma
+             de quem falou por último. */
+          if (isSys) return { ...direcaoDeUmLado('outro', par), de: '' };
+          return direcaoDeUmLado('meu', { meu: par.meu, outro: idiomasDaVirtual.ultimoDeles ?? par.outro });
+        }
+        return direcaoDeUmLado(isSys ? 'outro' : 'meu', par);
       }
       if (isSys) return null;
       return (seq !== undefined ? direcoesPorSeq.get(seq) : undefined) ?? direcaoDoMicrofone?.() ?? null;
@@ -455,6 +473,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       if (!modelReadyRef.current) return; // modelo ainda baixando → não cria balão vazio
       const uttId = `${idPrefix}-${seq}`;
       seqToSegmentRef.current.set(seq, uttId);
+      if (!virtual()) idiomasDaVirtual = ESTADO_DA_VIRTUAL; // sessão nova: não herda os idiomas da anterior
       const doLado = direcaoDoLado();
       if (doLado) direcoesPorSeq.set(seq, doLado);
       capMetrics.start(seq, source);
@@ -1010,6 +1029,51 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
             return true;
           };
 
+          if (virtual() && virtualDetecta()) {
+            /* CONVERSA VIRTUAL COM DETECÇÃO: o idioma medido nesta fala diz de onde traduzir; "Eles" podem
+               trocar de idioma de uma fala para outra, e a minha resposta segue o último. */
+            const idiomas = { meu: baseLang(sourceLangRef.current), outro: baseLang(targetLangRef.current) };
+            void (async () => {
+              let idiomaDoTexto = '';
+              const conhecidos = [idiomas.meu, idiomas.outro, ...idiomasDaVirtual.ouvidos];
+              if (!idiomaDoMotor || !conhecidos.includes(idiomaDoMotor)) {
+                try {
+                  idiomaDoTexto = baseLang((await detectLanguage(clean))?.lang || '');
+                } catch {
+                  /* '' = o detector não soube */
+                }
+              }
+              const d = decidirNaVirtual(
+                isSys ? 'eles' : 'voce',
+                {
+                  idiomaDoMotor,
+                  ...(confiancaDoIdioma !== undefined ? { confianca: confiancaDoIdioma } : {}),
+                  idiomaDoTexto,
+                  audioMs,
+                },
+                idiomas,
+                idiomasDaVirtual,
+              );
+              idiomasDaVirtual = d.estado;
+              clog('conversa virtual:', isSys ? 'Eles' : 'Você', 'em', d.de, '→', d.para, d.palpite ? '(palpite)' : '');
+              setSpeechSegments((prev) =>
+                prev.map((s) =>
+                  s.id === uttId
+                    ? {
+                        ...s,
+                        lang: d.de,
+                        paraLang: d.para,
+                        semTraducao: d.semTraducao,
+                        words: wordsFromText(clean, d.de),
+                        translatedText: d.semTraducao ? '' : marcadorDeTraducao(d.de, d.para),
+                      }
+                    : s,
+                ),
+              );
+              translateSegment(uttId, clean, d.de, d.para, { falada: true });
+            })();
+            return;
+          }
           if (falaAutomatica && ladoDaFalaAutomatica) {
             /* AUTOMÁTICO DO INTÉRPRETE: o idioma medido diz o lado. O detector de TEXTO só entra quando
                o do motor não é um dos dois da conversa (fala curta: o Whisper troca idiomas vizinhos). */

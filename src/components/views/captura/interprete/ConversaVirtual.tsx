@@ -1,6 +1,6 @@
 import '../../../../styles/modoInterprete.css';
 
-import { Download, Headphones, Loader2, Mic, MicOff, Monitor, Volume2, VolumeX, X } from 'lucide-react';
+import { Download, Headphones, Languages, Loader2, Mic, MicOff, Monitor, Volume2, VolumeX, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { type PonteDoInterprete, VELOCIDADE_LENTA } from '../../../../lib/captura/controleDoInterprete';
@@ -13,10 +13,11 @@ import {
 } from '../../../../lib/captura/historicoDoInterprete';
 import { direcaoDoLado, type IdiomasDoInterprete } from '../../../../lib/captura/interprete';
 import { ESTADO_DO_AUTOMATICO } from '../../../../lib/captura/interpreteAutomatico';
+import { detectarIdiomaNaVirtual, gravarDetectarIdiomaNaVirtual } from '../../../../lib/captura/testesDoInterprete';
 import type { LadoDoInterprete } from '../../../../lib/captura/tiposDaFala';
 import type { TraducaoFinal } from '../../../../lib/captura/traducaoDaFala';
 import { t } from '../../../../lib/i18n';
-import { langLabel } from '../../../../lib/languages';
+import { langLabel, toBcp47 } from '../../../../lib/languages';
 import { nativeTts } from '../../../../lib/tts';
 import { criarFilaDeFala, type FilaDeFala } from '../../../../lib/voz/filaDeFala';
 import { criarVozDaNuvem, destravarVozDaNuvem } from '../../../../lib/voz/vozDaNuvem';
@@ -54,6 +55,7 @@ export default function ConversaVirtual({
   aviso,
   aoCorrigirFala,
   aoGuardar,
+  aoDetectarIdioma,
   aoSair,
 }: {
   idiomas: IdiomasDoInterprete;
@@ -72,6 +74,8 @@ export default function ConversaVirtual({
   aviso?: string | null;
   aoCorrigirFala?: (id: string, texto: string, direcao: { de: string; para: string }) => void;
   aoGuardar?: (frase: FraseParaGuardar) => void;
+  /** A pessoa ligou ou desligou "Detectar idioma": a captura passa a medir o idioma de cada fala (ou a usar o fixo). */
+  aoDetectarIdioma?: (ligado: boolean) => void;
   aoSair: () => void;
 }) {
   const idiomasRef = useRef(idiomas);
@@ -112,6 +116,16 @@ export default function ConversaVirtual({
       if (filaRef.current === fila) filaRef.current = null;
     };
   }, [vozNaturalDisponivel]);
+
+  /* DETECTAR IDIOMA: "Eles" podem falar idiomas diferentes; cada fala é medida e a minha resposta vai para o
+     idioma de quem falou por último. Ligado por padrão; desligado, valem os dois idiomas escolhidos. */
+  const [detectar, setDetectar] = useState(detectarIdiomaNaVirtual);
+  const alternarDetectar = () => {
+    const ligar = !detectar;
+    gravarDetectarIdiomaNaVirtual(ligar);
+    setDetectar(ligar);
+    aoDetectarIdioma?.(ligar);
+  };
 
   const falaDe = useCallback((lado: LadoDoInterprete) => direcaoDoLado(lado, idiomasRef.current).fala, []);
 
@@ -178,6 +192,12 @@ export default function ConversaVirtual({
     [falas],
   );
   const historico = historicoDoInterprete(falas, 'meu', { janela });
+  /* Os idiomas que "Eles" já falaram nesta conversa, na ordem em que apareceram (com detecção). */
+  const idiomasOuvidos = useMemo(() => {
+    const vistos: string[] = [];
+    for (const f of falas) if (f.lado === 'outro' && f.lang && !vistos.includes(f.lang)) vistos.push(f.lang);
+    return vistos;
+  }, [falas]);
   const dizendoAgora = [...falas].reverse().find((f) => f.lado === 'outro' && f.isPartial && f.originalText.trim());
   const fim = dizendoAgora ? (
     <p className="int-ao-vivo" lang={falaDe('outro')} data-testid="eles-dizendo">
@@ -193,9 +213,18 @@ export default function ConversaVirtual({
 
   /* CORRIGIR e GUARDAR, como na tela frente a frente. */
   const [edicao, setEdicao] = useState<{ item: ItemDoHistorico; lang: string; de: string; para: string } | null>(null);
+  /** Os idiomas desta fala: os medidos (com detecção) ou, na falta deles, os dos dois lados escolhidos. */
+  const idiomaDaFala = (item: ItemDoHistorico) => (item.idioma ? toBcp47(item.idioma) : falaDe(item.lado));
+  const idiomaDaTraducao = (item: ItemDoHistorico) =>
+    item.idiomaDaTraducao ? toBcp47(item.idiomaDaTraducao) : falaDe(item.lado === 'meu' ? 'outro' : 'meu');
   const editar = (item: ItemDoHistorico) => {
     const d = direcaoDoLado(item.lado, idiomasRef.current);
-    setEdicao({ item, lang: d.fala, de: d.de, para: d.para });
+    setEdicao({
+      item,
+      lang: idiomaDaFala(item),
+      de: item.idioma ?? d.de,
+      para: item.idiomaDaTraducao ?? d.para,
+    });
   };
   const guardar = (item: ItemDoHistorico) => {
     const outro: LadoDoInterprete = item.lado === 'meu' ? 'outro' : 'meu';
@@ -203,8 +232,8 @@ export default function ConversaVirtual({
       id: item.id,
       texto: item.original,
       traducao: item.traducao,
-      lang: falaDe(item.lado),
-      langDaTraducao: falaDe(outro),
+      lang: idiomaDaFala(item),
+      langDaTraducao: idiomaDaTraducao(item),
     });
   };
   const exportar = () => {
@@ -266,6 +295,17 @@ export default function ConversaVirtual({
             {lerEmVozAlta ? <Volume2 aria-hidden /> : <VolumeX aria-hidden />}
             <span>{lerEmVozAlta ? t('Lendo em voz alta') : t('Só legenda')}</span>
           </button>
+          <button
+            type="button"
+            className="int-modo"
+            onClick={alternarDetectar}
+            aria-pressed={detectar}
+            aria-label={t('Detectar o idioma de cada fala')}
+            data-testid="detectar-idioma"
+          >
+            <Languages aria-hidden />
+            <span>{detectar ? t('Detectando idiomas') : t('Idiomas fixos')}</span>
+          </button>
           <span className="int-aviso" role="status" data-testid="aviso-do-interprete">
             {avisoDaTela ?? aviso ?? ''}
           </span>
@@ -276,6 +316,13 @@ export default function ConversaVirtual({
       </div>
       <section className="int-conversa" aria-label={t('Conversa')} data-testid="interprete-conversa">
         <div className="int-conversa-topo">
+          {detectar && idiomasOuvidos.length > 0 && (
+            <span className="int-idiomas" data-testid="idiomas-ouvidos" aria-label={t('Idiomas ouvidos de Eles')}>
+              {idiomasOuvidos.map((l) => (
+                <span key={l}>{langLabel(toBcp47(l))}</span>
+              ))}
+            </span>
+          )}
           <span className="int-nota-fone">
             <Headphones aria-hidden /> {t('De fone, o microfone não ouve o que toca no computador.')}
           </span>
@@ -290,8 +337,11 @@ export default function ConversaVirtual({
           historico={historico}
           total={totalDeFinais}
           aoVerMais={() => setJanela((j) => subirJanela(j, totalDeFinais))}
-          idiomaDaFala={(item) => falaDe(item.lado)}
-          idiomaDaTraducao={(item) => falaDe(item.lado === 'meu' ? 'outro' : 'meu')}
+          idiomaDaFala={idiomaDaFala}
+          idiomaDaTraducao={idiomaDaTraducao}
+          {...(detectar
+            ? { rotulo: (item: ItemDoHistorico) => (item.idioma ? langLabel(toBcp47(item.idioma)) : null) }
+            : {})}
           mudo={() => false}
           lendo={lendo}
           aoOuvir={ouvirTrecho}

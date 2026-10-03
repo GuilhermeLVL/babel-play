@@ -333,3 +333,76 @@ describe('automático: o controle ouve a conversa sem ninguém tocar em lado', (
     expect(m.controle.automatico()).toBe(false)
   })
 })
+
+describe('ouvirTrecho (Intérprete v3, Fase 1)', () => {
+  const pistas = (idiomaDoMotor: string) => ({ idiomaDoMotor, idiomaDoTexto: '', audioMs: 3000 })
+
+  it('lê o trecho no idioma pedido, sem mexer na fase da conversa', () => {
+    const { controle, voz, destravar, registrar } = montar()
+    expect(controle.ouvirTrecho('arroz', 'pt-BR')).toBe('lendo')
+    expect(destravar).toHaveBeenCalledTimes(1)
+    expect(voz.falas).toHaveLength(1)
+    expect(voz.falas[0].texto).toBe('arroz')
+    expect(voz.falas[0].opts.lang).toBe('pt-BR')
+    expect(controle.estado().fase).toBe('parado')
+    expect(registrar).not.toHaveBeenCalled()
+    voz.terminar()
+    expect(controle.estado().fase).toBe('parado')
+  })
+
+  it('com o microfone aberto, ignora o toque e diz por quê', () => {
+    const { controle, voz } = montar()
+    controle.tocar('meu')
+    expect(controle.ouvirTrecho('arroz', 'pt-BR')).toBe('ouvindo')
+    expect(voz.falas).toHaveLength(0)
+    expect(controle.estado().fase).toBe('ouvindo')
+  })
+
+  it('no automático também ignora enquanto escuta', () => {
+    const { controle, voz } = montar()
+    controle.ouvir()
+    expect(controle.ouvirTrecho('arroz', 'pt-BR')).toBe('ouvindo')
+    expect(voz.falas).toHaveLength(0)
+  })
+
+  it('corta a leitura da tradução e lê o trecho; o Repetir segue lendo a tradução', () => {
+    const { controle, voz } = montar()
+    controle.tocar('meu')
+    controle.aoFimDaFala({ segId: 's1', source: 'mic', lado: 'meu' })
+    controle.aoTraduzirFinal(traduzida('s1', 'good morning'))
+    expect(voz.falas.map((f) => f.texto)).toEqual(['good morning'])
+    expect(controle.ouvirTrecho('rice', 'en-US', { lento: true })).toBe('lendo')
+    expect(voz.falas.map((f) => f.texto)).toEqual(['good morning', 'rice'])
+    expect(voz.falas[1].opts.rate).toBe(0.7)
+    voz.terminar()
+    expect(controle.estado().fase).toBe('parado')
+    controle.repetir()
+    expect(voz.falas.at(-1)?.texto).toBe('good morning')
+  })
+
+  it('no automático, cortar a tradução para ler o trecho NÃO reabre o microfone no meio da leitura', () => {
+    const { controle, voz, abrir } = montar()
+    controle.ouvir()
+    controle.aoFimDaFala({ segId: 's1', source: 'mic', lado: 'meu' })
+    controle.ladoDaFala('s1', pistas('pt'))
+    controle.aoTraduzirFinal(traduzida('s1', 'good morning'))
+    const aberturas = abrir.mock.calls.length
+    controle.ouvirTrecho('rice', 'en-US')
+    expect(abrir.mock.calls.length).toBe(aberturas)
+    voz.terminar()
+    expect(abrir.mock.calls.length).toBe(aberturas + 1)
+  })
+
+  it('depois de sair não lê nada', () => {
+    const { controle, voz } = montar()
+    controle.sair()
+    expect(controle.ouvirTrecho('arroz', 'pt-BR')).toBe('ignorado')
+    expect(voz.falas).toHaveLength(0)
+  })
+
+  it('texto vazio não lê', () => {
+    const { controle, voz } = montar()
+    expect(controle.ouvirTrecho('   ', 'pt-BR')).toBe('ignorado')
+    expect(voz.falas).toHaveLength(0)
+  })
+})

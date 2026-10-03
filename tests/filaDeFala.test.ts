@@ -294,3 +294,35 @@ describe('aoMudar', () => {
     expect(fila.enfileirar(item('b'))).toBe(false)
   })
 })
+
+describe('trecho tocado (Intérprete v3, Fase 1)', () => {
+  it('um item manual não vira o "último": o Repetir continua lendo a tradução', () => {
+    const { fila, m } = montar()
+    fila.enfileirar(item('traducao'))
+    m.comecar()
+    m.terminar()
+    fila.enfileirar(item('palavra', { manual: true }))
+    m.comecar()
+    m.terminar()
+    expect(fila.estado().ultimo?.id).toBe('traducao')
+    expect(fila.repetir()).toBe(true)
+    expect(m.falados().at(-1)).toBe('texto traducao')
+  })
+
+  it('um item manual não entra na métrica do tempo até a voz', () => {
+    const { fila, m, inicios } = montar()
+    fila.enfileirar(item('palavra', { manual: true }))
+    m.comecar()
+    expect(inicios).toEqual([])
+  })
+
+  it('a velocidade do item vence a da fila (modo lento)', () => {
+    const { fila, m } = montar({ opcoesDeFala: { rate: 1.1 } })
+    fila.enfileirar(item('lento', { manual: true, velocidade: 0.7 }))
+    expect(m.motor.pedidos[0].opts.rate).toBe(0.7)
+    m.comecar()
+    m.terminar()
+    fila.enfileirar(item('normal'))
+    expect(m.motor.pedidos[1].opts.rate).toBe(1.1)
+  })
+})

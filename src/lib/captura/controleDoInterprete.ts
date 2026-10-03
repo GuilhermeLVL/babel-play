@@ -82,6 +82,12 @@ export interface ControleDoInterprete {
   aoTraduzirFinal(final: TraducaoFinal): void;
   repetir(): void;
   pararVoz(): void;
+  /**
+   * TOQUE NO TEXTO (Intérprete v3): lê uma palavra ou frase que a pessoa tocou, no idioma DELA. Corta a
+   * voz em curso e lê o trecho pela mesma fila (o guarda de eco vale), sem mexer na fase da conversa.
+   * Com o microfone aberto devolve `'ouvindo'` e não lê nada: seria o eco do próprio app entrando na fala.
+   */
+  ouvirTrecho(texto: string, lang: string, opcoes?: { lento?: boolean }): 'lendo' | 'ouvindo' | 'ignorado';
   trocarLados(): void;
   /** Para tudo e desliga: nada mais é lido. */
   sair(): void;
@@ -103,6 +109,9 @@ export type PonteDoInterprete = Pick<
   'direcao' | 'aoFimDaFala' | 'aoTraduzirFinal' | 'idiomasDaConversa' | 'microfoneFalhou' | 'automatico' | 'ladoDaFala'
 >;
 
+/** O modo lento do toque: a mesma velocidade da captura (`ouvirNaLegenda`). */
+export const VELOCIDADE_LENTA = 0.7;
+
 const relogioPadrao = (): number => (typeof performance !== 'undefined' ? performance.now() : Date.now());
 const outroLado = (lado: LadoDoInterprete): LadoDoInterprete => (lado === 'meu' ? 'outro' : 'meu');
 
@@ -119,6 +128,9 @@ export function criarControleDoInterprete(o: OpcoesDoControle): ControleDoInterp
   const traducoes = new Map<string, TraducaoFinal>();
   let desligado = false;
   let falando: ItemDeFala | null = null;
+  /** Cortar a voz para ler um trecho tocado não é "fim da voz": o automático não reabre o microfone. */
+  let cortandoParaTrecho = false;
+  let trechos = 0;
 
   const estado = (): EstadoDoControle => ({ ...maquina.estado(), falando });
   const avisar = () => {
@@ -134,7 +146,7 @@ export function criarControleDoInterprete(o: OpcoesDoControle): ControleDoInterp
     aoIniciar: (_item, espera) => registrarTempo(espera, o.nomeDoMotor()),
     aoMudar: (f) => {
       falando = f.falando;
-      if (!f.falando && f.espera.length === 0) maquina.enviar({ tipo: 'fimDaVoz' });
+      if (!f.falando && f.espera.length === 0 && !cortandoParaTrecho) maquina.enviar({ tipo: 'fimDaVoz' });
       avisar();
     },
   });
@@ -262,6 +274,25 @@ export function criarControleDoInterprete(o: OpcoesDoControle): ControleDoInterp
     aoTraduzirFinal,
     repetir: () => void (desligado || maquina.enviar({ tipo: 'repetir' })),
     pararVoz: () => void (desligado || maquina.enviar({ tipo: 'pararVoz' })),
+    ouvirTrecho(texto, lang, opcoes = {}) {
+      if (desligado || !texto.trim()) return 'ignorado';
+      if (maquina.estado().fase === 'ouvindo') return 'ouvindo';
+      destravar();
+      cortandoParaTrecho = true;
+      try {
+        fila.parar();
+      } finally {
+        cortandoParaTrecho = false;
+      }
+      fila.enfileirar({
+        id: `trecho-${++trechos}`,
+        texto,
+        lang,
+        manual: true,
+        ...(opcoes.lento ? { velocidade: VELOCIDADE_LENTA } : {}),
+      });
+      return 'lendo';
+    },
     trocarLados: () => void (desligado || maquina.enviar({ tipo: 'trocarLados' })),
     sair() {
       if (desligado) return;

@@ -20,6 +20,7 @@ já existe** (memória `feedback-design-consistencia-nao-reinventar`).
 **Non-Goals:**
 - Mudar VAD, STT, MT ou TTS (Fase 2). Vozes por falante (Fase 3). Captura do PC (Fase 4).
 - Pinyin/romanização ao tocar (ideia de modo "ensino"): fica para depois, só se a folha da palavra já a trouxer.
+- Nível do microfone e tamanho de letra ajustável: dependem de dados que a captura não entrega à tela; etapa própria.
 - Gravar áudio da conversa; só texto, como hoje.
 
 ## Decisions
@@ -42,8 +43,9 @@ já existe** (memória `feedback-design-consistencia-nao-reinventar`).
 6. **Corrigir = editar o original e refazer a tradução.** Nova ação da ponte, `corrigirFala(id, texto)`: atualiza o
    segmento em `speechSegments`, chama `traducaoDaFala` e substitui a tradução; não lê em voz alta sozinha. A
    sessão salva a versão corrigida. Sem rede, a edição vale e a tradução fica "pendente" com botão de tentar de novo.
-7. **Favoritar e exportar reaproveitam.** Favoritar abre `FolhaDaPalavra`/`FolhaDaFrase` já existentes. Exportar chama
-   o relatório da sessão com o cenário `interprete`, incluindo as correções.
+7. **Guardar e exportar reaproveitam.** A estrela abre a `FolhaDaFrase` já existente (de lá, as palavras abrem a
+   `FolhaDaPalavra`), sem o "Falar eu" dentro do intérprete. Exportar gera o Markdown da conversa no aparelho
+   (`exportarConversa.ts`, puro); o relatório em PDF continua sendo o da sessão salva, na Análise.
 8. **Estados da faixa** mapeados 1:1 dos estados da máquina (`interprete.ts`): ouvindo, reconheci, traduzindo, lendo,
    parado. Nada de estado novo na máquina.
 

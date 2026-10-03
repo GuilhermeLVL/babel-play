@@ -2722,6 +2722,21 @@ export default function LiveCapture({
     setInterpreteAberto(false);
     handleStopRecording();
   };
+  /**
+   * CORRIGIR UMA FALA do intérprete (Intérprete v3): o texto novo substitui o reconhecido e a tradução é
+   * refeita na direção de quem falou. A tradução de uma correção não é lida em voz alta (o aviso do final
+   * já foi dado uma vez por fala), e o número do pedido deixa só a última correção valer.
+   */
+  const corrigirFalaDoInterprete = (id: string, texto: string, direcao: { de: string; para: string }) => {
+    const limpo = texto.trim();
+    if (!limpo) return;
+    setSpeechSegments((prev) =>
+      prev.map((seg) =>
+        seg.id === id ? { ...seg, originalText: limpo, translatedText: '…', traducaoPendente: undefined } : seg,
+      ),
+    );
+    void translateSegment(id, limpo, direcao.de, direcao.para, { falada: true, pedida: true });
+  };
   /** "Continuar gravando" do Encerrar: numa sessão do intérprete, a tela volta. */
   const continuarGravando = () => {
     handleCancelStop();
@@ -3172,7 +3187,7 @@ export default function LiveCapture({
               ? (lenta) => tocarAudioDaFala(falaTocada.id, { lenta })
               : undefined
           }
-          semPratica={noQuest}
+          semPratica={noQuest || interpreteAberto}
           ehNova={ehNovaNoCelular(falaTocada.lang)}
           aoPraticar={praticarNoCelular}
           aoTocarPalavra={(palavra) =>
@@ -3191,6 +3206,7 @@ export default function LiveCapture({
           aoOuvir={ouvirNaLegenda}
           aoSalvar={salvarNaLegenda}
           aoPraticar={praticarNoCelular}
+          semPratica={interpreteAberto}
           aoVoltar={palavraTocada.daFrase ? () => setPalavraTocada(null) : undefined}
           aoFechar={fecharFolhasDoCelular}
           nuance={nuanceDaPalavra(palavraTocada.lang)}
@@ -4639,6 +4655,10 @@ export default function LiveCapture({
             abrindo={micAbrindo}
             aviso={avisoDoPreparo(modelPrep)}
             automatico={automaticoDoInterprete}
+            aoCorrigirFala={corrigirFalaDoInterprete}
+            aoGuardar={(f) =>
+              setFalaTocada({ id: f.id, texto: f.texto, traducao: f.traducao, lang: f.lang, langDaTraducao: f.langDaTraducao })
+            }
             aoSair={sairDoInterprete}
           />
         </Suspense>

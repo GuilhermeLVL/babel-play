@@ -1,7 +1,20 @@
 import '../../../../styles/modoInterprete.css';
 
-import { ArrowUpDown, AudioLines, Loader2, Lock, Mic, RotateCcw, Square, Volume2, VolumeX, X } from 'lucide-react';
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import {
+  ArrowUpDown,
+  AudioLines,
+  Loader2,
+  Download,
+  Lock,
+  MessagesSquare,
+  Mic,
+  RotateCcw,
+  Square,
+  Volume2,
+  VolumeX,
+  X,
+} from 'lucide-react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 
 import {
   type ControleDoInterprete,
@@ -9,6 +22,13 @@ import {
   type EstadoDoControle,
   type PonteDoInterprete,
 } from '../../../../lib/captura/controleDoInterprete';
+import { baixarTexto, conversaEmMarkdown, nomeDoArquivoDaConversa } from '../../../../lib/captura/exportarConversa';
+import {
+  historicoDoInterprete,
+  type ItemDoHistorico,
+  JANELA_DO_HISTORICO,
+  subirJanela,
+} from '../../../../lib/captura/historicoDoInterprete';
 import { direcaoDoLado, ESTADO_INICIAL, type IdiomasDoInterprete } from '../../../../lib/captura/interprete';
 import type { LadoDoInterprete, SpeechSegment } from '../../../../lib/captura/tiposDaFala';
 import { t } from '../../../../lib/i18n';
@@ -24,9 +44,22 @@ import {
   MOTOR_MUDO,
   vozDoQuestFala,
 } from '../../../../lib/voz/vozDoQuest';
+import FolhaDeEdicao from './FolhaDeEdicao';
+import { ConversaEmBolhas, ListaDaMetade } from './ListaDoHistorico';
+import type { AoOuvirTrecho, TrechoEmLeitura } from './TextoTocavel';
 
 /** A fala, no que a tela precisa. */
-export type FalaDoInterprete = Pick<SpeechSegment, 'id' | 'originalText' | 'translatedText' | 'isPartial' | 'lado'>;
+export type FalaDoInterprete = Pick<SpeechSegment, 'id' | 'originalText' | 'translatedText' | 'isPartial' | 'lado'> &
+  Partial<Pick<SpeechSegment, 'timestamp'>>;
+
+/** Uma frase que a pessoa quer guardar para estudar (a folha da frase da captura a abre). */
+export interface FraseParaGuardar {
+  id: string;
+  texto: string;
+  traducao: string;
+  lang: string;
+  langDaTraducao: string;
+}
 
 const ESTADO_DA_TELA: EstadoDoControle = { ...ESTADO_INICIAL, falando: null };
 
@@ -47,6 +80,25 @@ export type ModoDaConversa = 'automatico' | 'toque';
  */
 export type AutomaticoNoPlano = 'disponivel' | 'premium' | 'oculto';
 
+/** Como a conversa é desenhada: frente a frente (o padrão) ou em lista única ("Conversa"). */
+export type TelaDoInterprete = 'frente' | 'conversa';
+const CHAVE_DA_TELA = 'babel.interprete.tela';
+function telaGuardada(): TelaDoInterprete | null {
+  try {
+    const v = localStorage.getItem(CHAVE_DA_TELA);
+    return v === 'frente' || v === 'conversa' ? v : null;
+  } catch {
+    return null;
+  }
+}
+function guardarTela(tela: TelaDoInterprete) {
+  try {
+    localStorage.setItem(CHAVE_DA_TELA, tela);
+  } catch {
+    /* sem armazenamento: a escolha vale só nesta tela */
+  }
+}
+
 /* A última escolha da pessoa, neste aparelho. Conveniência: sem armazenamento, vale o padrão. */
 const CHAVE_DO_MODO = 'babel.interprete.modo';
 function modoGuardado(): ModoDaConversa | null {
@@ -63,15 +115,6 @@ function guardarModo(modo: ModoDaConversa) {
   } catch {
     /* sem armazenamento: a escolha vale só nesta tela */
   }
-}
-
-/** A última fala de um lado (a que a metade do OUTRO mostra traduzida). */
-function ultimaDoLado(falas: ReadonlyArray<FalaDoInterprete>, lado: LadoDoInterprete, parcial: boolean) {
-  for (let i = falas.length - 1; i >= 0; i--) {
-    const f = falas[i];
-    if (f.lado === lado && !!f.isPartial === parcial && f.originalText.trim()) return f;
-  }
-  return undefined;
 }
 
 /**
@@ -112,6 +155,8 @@ export default function ModoInterprete({
   abrindo,
   aviso,
   automatico = 'oculto',
+  aoCorrigirFala,
+  aoGuardar,
   aoSair,
   aoFalharMicrofone,
 }: {
@@ -139,6 +184,13 @@ export default function ModoInterprete({
   aviso?: string | null;
   /** O modo automático nesta conta (o entitlement `interpreteAutomatico`). Ausente = não aparece. */
   automatico?: AutomaticoNoPlano;
+  /**
+   * CORRIGIR o que foi reconhecido: a captura troca o texto da fala e refaz a tradução na direção de
+   * quem falou. Ausente = a tela não oferece a correção.
+   */
+  aoCorrigirFala?: (id: string, texto: string, direcao: { de: string; para: string }) => void;
+  /** GUARDAR uma frase para estudar. Ausente = a tela não oferece a estrela. */
+  aoGuardar?: (frase: FraseParaGuardar) => void;
   aoSair: () => void;
   aoFalharMicrofone?: (erro: unknown) => void;
 }) {
@@ -207,6 +259,22 @@ export default function ModoInterprete({
     };
   }, [vozNaturalDisponivel, comVozDoSite, registrarPonte]);
   const atual = estado;
+  const atualRef = useRef(atual);
+  atualRef.current = atual;
+
+  /* A TELA e a JANELA do histórico (50 falas; "ver mais" sobe de 50 em 50). */
+  const [tela, setTela] = useState<TelaDoInterprete>(() => telaGuardada() ?? 'frente');
+  const alternarTela = () => {
+    const nova: TelaDoInterprete = tela === 'frente' ? 'conversa' : 'frente';
+    setTela(nova);
+    guardarTela(nova);
+  };
+  const [janela, setJanela] = useState(JANELA_DO_HISTORICO);
+  const totalDeFinais = useMemo(
+    () => falas.filter((f) => f.lado && !f.isPartial && f.originalText.trim()).length,
+    [falas],
+  );
+  const verMais = () => setJanela((j) => subirJanela(j, totalDeFinais));
 
   /* O MODO. Quem tem o automático começa nele (decisão do dono), a menos que tenha escolhido o toque
      da última vez. Sem ele no plano, é sempre por toque. */
@@ -241,6 +309,41 @@ export default function ModoInterprete({
     if (!c) return;
     if (c.estado().automatico) c.parar();
     else c.ouvir();
+  };
+
+  /** O trecho que a voz lê por causa de um toque (a palavra fica marcada enquanto é lida). */
+  const lendo: TrechoEmLeitura | null = atual.falando?.manual
+    ? { texto: atual.falando.texto, lang: atual.falando.lang }
+    : null;
+  /** TOQUE NO TEXTO: ouve a palavra ou a frase; com o microfone aberto, a tela diz por que não. */
+  const ouvirTrecho: AoOuvirTrecho = (texto, lang, opcoes) => {
+    const r = controleRef.current?.ouvirTrecho(texto, lang, opcoes);
+    if (r === 'ouvindo') setAvisoDaTela(t('Espere a escuta terminar para ouvir'));
+  };
+
+  /** CORRIGIR A FALA: a folha aberta (a fala, o idioma em que foi dita e a direção da tradução). */
+  const [edicao, setEdicao] = useState<{ item: ItemDoHistorico; lang: string; de: string; para: string } | null>(null);
+  const editar = (item: ItemDoHistorico) => {
+    const d = direcaoDoLado(item.lado, idiomas, atualRef.current.trocados);
+    setEdicao({ item, lang: d.fala, de: d.de, para: d.para });
+  };
+  const guardar = (item: ItemDoHistorico) => {
+    const falou = direcaoDoLado(item.lado, idiomas, atualRef.current.trocados);
+    const ouviu = direcaoDoLado(outro(item.lado), idiomas, atualRef.current.trocados);
+    aoGuardar?.({ id: item.id, texto: item.original, traducao: item.traducao, lang: falou.fala, langDaTraducao: ouviu.fala });
+  };
+  /** EXPORTAR: o Markdown da conversa, baixado no aparelho (nada sai dele). */
+  const exportar = () => {
+    const titulo = t('Conversa de {data}', { data: new Date().toLocaleDateString() });
+    const md = conversaEmMarkdown(falas, {
+      titulo,
+      rotulos: { meu: t('Você'), outro: t('A outra pessoa') },
+      idiomas: {
+        meu: langLabel(direcaoDoLado('meu', idiomas, atualRef.current.trocados).fala),
+        outro: langLabel(direcaoDoLado('outro', idiomas, atualRef.current.trocados).fala),
+      },
+    });
+    baixarTexto(nomeDoArquivoDaConversa(titulo), md);
   };
 
   const controle = {
@@ -309,141 +412,212 @@ export default function ModoInterprete({
   const ladoALado = layout !== 'celular';
   const computador = layout === 'computador';
 
-  const metade = (lado: LadoDoInterprete) => {
+  /** O que cada lado precisa para se desenhar, igual nas duas telas (frente a frente e conversa). */
+  const dadosDoLado = (lado: LadoDoInterprete) => {
     const direcao = direcaoDoLado(lado, idiomas, atual.trocados);
-    const nome = langLabel(direcao.fala);
-    const doOutro = ultimaDoLado(falas, outro(lado), false);
+    const historico = historicoDoInterprete(falas, lado, { janela });
     /* No automático a escuta não é de um lado: as duas metades dizem o mesmo, cada uma virada para
        quem a lê. */
     const escutando = atual.automatico && atual.fase === 'ouvindo';
     const ouvindo = !atual.automatico && atual.fase === 'ouvindo' && atual.lado === lado;
-    const traduzindo = atual.fase === 'traduzindo' && (atual.automatico || atual.lado === lado);
-    const vozParaMim = !!atual.falando && atual.falando.lado === outro(lado);
-    const minhaAoVivo = ouvindo ? ultimaDoLado(falas, lado, true) : undefined;
-    const atalho = lado === 'meu' ? '1' : '2';
-    /* Quem está deste lado OUVE no idioma dele: sem voz para esse idioma, a tradução fica em texto. */
-    const semVozAqui = mudo(direcao.fala);
-    /* E o que ESTE lado fala é lido para o outro, no idioma do outro. */
-    const semVozParaOOutro = mudo(idiomaDoLado(outro(lado)));
+    return {
+      lado,
+      direcao,
+      nome: langLabel(direcao.fala),
+      historico,
+      doOutro: historico.destaque,
+      escutando,
+      ouvindo,
+      traduzindo: atual.fase === 'traduzindo' && (atual.automatico || atual.lado === lado),
+      vozParaMim: !!atual.falando && !atual.falando.manual && atual.falando.lado === outro(lado),
+      minhaAoVivo: ouvindo ? historico.parcial : undefined,
+      atalho: lado === 'meu' ? '1' : '2',
+      /* Quem está deste lado OUVE no idioma dele: sem voz para esse idioma, a tradução fica em texto. */
+      semVozAqui: mudo(direcao.fala),
+      /* E o que ESTE lado fala é lido para o outro, no idioma do outro. */
+      semVozParaOOutro: mudo(idiomaDoLado(outro(lado))),
+    };
+  };
+  type DadosDoLado = ReturnType<typeof dadosDoLado>;
+
+  /** A dica de começo, enquanto ninguém falou, no que a voz promete neste aparelho. */
+  const dicaDeComeco = (d: DadosDoLado) =>
+    d.semVozParaOOutro
+      ? noAutomatico
+        ? t('Toque em Ouvir e conversem. O app reconhece quem fala qual idioma e mostra a tradução.')
+        : t('Toque em Falar e fale. A tradução aparece do outro lado, em texto.')
+      : noAutomatico
+        ? t('Toque em Ouvir e conversem. O app reconhece quem fala qual idioma e lê a tradução em voz alta.')
+        : t('Toque em Falar e fale. A tradução aparece do outro lado e é lida em voz alta.');
+
+  /** O que a lista mostra depois da última fala: a minha fala em andamento, em cinza, ou a dica de começo. */
+  const fimDaLista = (d: DadosDoLado) =>
+    d.minhaAoVivo ? (
+      <p className="int-ao-vivo" lang={d.direcao.fala}>
+        {d.minhaAoVivo.texto}
+      </p>
+    ) : d.historico.itens.length === 0 ? (
+      <p className="int-dica">{dicaDeComeco(d)}</p>
+    ) : null;
+
+  /** A linha de estado de um lado (Ouvindo, Traduzindo, Lendo a tradução). */
+  const statusDoLado = (d: DadosDoLado) =>
+    d.ouvindo || d.escutando
+      ? abrindo
+        ? t('Abrindo o microfone…')
+        : d.escutando
+          ? t('Ouvindo a conversa…')
+          : t('Ouvindo…')
+      : d.traduzindo
+        ? t('Traduzindo…')
+        : d.vozParaMim && !d.semVozAqui
+          ? t('Lendo a tradução')
+          : '';
+
+  /** Os botões de um lado: Repetir, Falar (ou Ouvir a conversa) e Parar voz. */
+  const acoesDoLado = (d: DadosDoLado) => (
+    <div className="int-acoes">
+      {!d.semVozAqui && (d.vozParaMim || (atual.fase === 'parado' && d.doOutro)) && (
+        <button type="button" className="int-ib" onClick={() => controle.repetir()} aria-label={t('Repetir a tradução')}>
+          <RotateCcw aria-hidden />
+          <span>{t('Repetir')}</span>
+          {computador && <kbd>R</kbd>}
+        </button>
+      )}
+      {noAutomatico ? (
+        /* O botão único do automático fica na metade de quem segura o aparelho; a outra pessoa só fala. */
+        d.lado === 'meu' && (
+          <button
+            type="button"
+            className="int-falar"
+            data-ouvindo={d.escutando || undefined}
+            onClick={alternarEscuta}
+            aria-pressed={atual.automatico}
+            aria-label={atual.automatico ? t('Parar de ouvir a conversa') : t('Ouvir a conversa')}
+            data-sfx="none"
+            data-testid="ouvir-a-conversa"
+          >
+            {atual.automatico ? (
+              d.escutando && abrindo ? (
+                <Loader2 aria-hidden className="animate-spin" />
+              ) : (
+                <Square aria-hidden />
+              )
+            ) : (
+              <AudioLines aria-hidden />
+            )}
+            <span aria-hidden>{atual.automatico ? t('Parar') : t('Ouvir')}</span>
+            {computador && <kbd aria-hidden>1</kbd>}
+          </button>
+        )
+      ) : (
+        <button
+          type="button"
+          className="int-falar"
+          data-ouvindo={d.ouvindo || undefined}
+          onClick={() => controle.tocar(d.lado)}
+          aria-pressed={d.ouvindo}
+          aria-label={d.ouvindo ? t('Parar de ouvir') : t('Falar em {idioma}', { idioma: d.nome })}
+          data-sfx="none"
+        >
+          {d.ouvindo ? (
+            abrindo ? (
+              <Loader2 aria-hidden className="animate-spin" />
+            ) : (
+              <Square aria-hidden />
+            )
+          ) : (
+            <Mic aria-hidden />
+          )}
+          <span aria-hidden>{d.ouvindo ? t('Parar') : t('Falar')}</span>
+          {computador && <kbd aria-hidden>{d.atalho}</kbd>}
+        </button>
+      )}
+      {!d.semVozAqui && d.vozParaMim && (
+        <button type="button" className="int-ib" onClick={() => controle.pararVoz()} aria-label={t('Parar a voz')}>
+          <VolumeX aria-hidden />
+          <span>{t('Parar voz')}</span>
+          {computador && <kbd>P</kbd>}
+        </button>
+      )}
+    </div>
+  );
+
+  const metade = (lado: LadoDoInterprete) => {
+    const d = dadosDoLado(lado);
+    const direcaoDoOutro = direcaoDoLado(outro(lado), idiomas, atual.trocados);
     return (
       <section
         className="int-metade"
         data-lado={lado}
         data-virada={!ladoALado && lado === 'outro' ? true : undefined}
-        data-ouvindo={ouvindo || escutando || undefined}
-        aria-label={t('Lado de quem fala {idioma}', { idioma: nome })}
+        data-ouvindo={d.ouvindo || d.escutando || undefined}
+        aria-label={t('Lado de quem fala {idioma}', { idioma: d.nome })}
         data-testid={`interprete-${lado}`}
       >
-        <p className="int-idioma" lang={direcao.fala}>
+        <p className="int-idioma" lang={d.direcao.fala}>
           {layout === 'quest' && <span className="int-quem">{lado === 'meu' ? t('Você') : t('A outra pessoa')}</span>}
-          {nome}
+          {d.nome}
         </p>
-        <div className="int-frase" aria-live="polite">
-          {minhaAoVivo ? (
-            <p className="int-ao-vivo" lang={direcao.fala}>
-              {minhaAoVivo.originalText}
-            </p>
-          ) : doOutro ? (
-            <>
-              <p className="int-traducao" lang={direcao.fala}>
-                {doOutro.translatedText && doOutro.translatedText !== '…' ? doOutro.translatedText : '…'}
-              </p>
-              <p className="int-original">{doOutro.originalText}</p>
-            </>
-          ) : (
-            <p className="int-dica">
-              {semVozParaOOutro
-                ? noAutomatico
-                  ? t('Toque em Ouvir e conversem. O app reconhece quem fala qual idioma e mostra a tradução.')
-                  : t('Toque em Falar e fale. A tradução aparece do outro lado, em texto.')
-                : noAutomatico
-                  ? t('Toque em Ouvir e conversem. O app reconhece quem fala qual idioma e lê a tradução em voz alta.')
-                  : t('Toque em Falar e fale. A tradução aparece do outro lado e é lida em voz alta.')}
-            </p>
-          )}
-        </div>
+        <ListaDaMetade
+          historico={d.historico}
+          total={totalDeFinais}
+          aoVerMais={verMais}
+          idiomaDoItem={(_item, texto) => (texto === 'principal' ? d.direcao.fala : direcaoDoOutro.fala)}
+          mudo={mudo}
+          lendo={lendo}
+          aoOuvir={ouvirTrecho}
+          fim={fimDaLista(d)}
+          {...(aoCorrigirFala ? { aoEditar: editar } : {})}
+          {...(aoGuardar ? { aoGuardar: guardar } : {})}
+        />
         <p className="int-status" role="status">
-          {ouvindo || escutando
-            ? abrindo
-              ? t('Abrindo o microfone…')
-              : escutando
-                ? t('Ouvindo a conversa…')
-                : t('Ouvindo…')
-            : traduzindo
-              ? t('Traduzindo…')
-              : vozParaMim && !semVozAqui
-                ? t('Lendo a tradução')
-                : ''}
+          {statusDoLado(d)}
         </p>
-        <div className="int-acoes">
-          {!semVozAqui && (vozParaMim || (atual.fase === 'parado' && doOutro)) && (
-            <button
-              type="button"
-              className="int-ib"
-              onClick={() => controle.repetir()}
-              aria-label={t('Repetir a tradução')}
-            >
-              <RotateCcw aria-hidden />
-              <span>{t('Repetir')}</span>
-              {computador && <kbd>R</kbd>}
+        {acoesDoLado(d)}
+      </section>
+    );
+  };
+
+  /** A TELA "CONVERSA": uma lista única, na orientação normal, e os dois botões de falar embaixo. */
+  const conversa = () => {
+    const meu = dadosDoLado('meu');
+    const dele = dadosDoLado('outro');
+    return (
+      <section className="int-conversa" aria-label={t('Conversa')} data-testid="interprete-conversa">
+        {totalDeFinais > 0 && (
+          <div className="int-conversa-topo">
+            <button type="button" className="int-modo" onClick={exportar} data-testid="exportar-conversa">
+              <Download aria-hidden />
+              <span>{t('Exportar')}</span>
             </button>
-          )}
-          {noAutomatico ? (
-            /* O botão único do automático fica na metade de quem segura o aparelho; a outra pessoa só fala. */
-            lado === 'meu' && (
-              <button
-                type="button"
-                className="int-falar"
-                data-ouvindo={escutando || undefined}
-                onClick={alternarEscuta}
-                aria-pressed={atual.automatico}
-                aria-label={atual.automatico ? t('Parar de ouvir a conversa') : t('Ouvir a conversa')}
-                data-sfx="none"
-                data-testid="ouvir-a-conversa"
-              >
-                {atual.automatico ? (
-                  escutando && abrindo ? (
-                    <Loader2 aria-hidden className="animate-spin" />
-                  ) : (
-                    <Square aria-hidden />
-                  )
-                ) : (
-                  <AudioLines aria-hidden />
-                )}
-                <span aria-hidden>{atual.automatico ? t('Parar') : t('Ouvir')}</span>
-                {computador && <kbd aria-hidden>1</kbd>}
-              </button>
-            )
-          ) : (
-            <button
-              type="button"
-              className="int-falar"
-              data-ouvindo={ouvindo || undefined}
-              onClick={() => controle.tocar(lado)}
-              aria-pressed={ouvindo}
-              aria-label={ouvindo ? t('Parar de ouvir') : t('Falar em {idioma}', { idioma: nome })}
-              data-sfx="none"
-            >
-              {ouvindo ? (
-                abrindo ? (
-                  <Loader2 aria-hidden className="animate-spin" />
-                ) : (
-                  <Square aria-hidden />
-                )
-              ) : (
-                <Mic aria-hidden />
-              )}
-              <span aria-hidden>{ouvindo ? t('Parar') : t('Falar')}</span>
-              {computador && <kbd aria-hidden>{atalho}</kbd>}
-            </button>
-          )}
-          {!semVozAqui && vozParaMim && (
-            <button type="button" className="int-ib" onClick={() => controle.pararVoz()} aria-label={t('Parar a voz')}>
-              <VolumeX aria-hidden />
-              <span>{t('Parar voz')}</span>
-              {computador && <kbd>P</kbd>}
-            </button>
-          )}
+          </div>
+        )}
+        <ConversaEmBolhas
+          historico={meu.historico}
+          total={totalDeFinais}
+          aoVerMais={verMais}
+          idiomaDaFala={(item) => direcaoDoLado(item.lado, idiomas, atual.trocados).fala}
+          idiomaDaTraducao={(item) => direcaoDoLado(outro(item.lado), idiomas, atual.trocados).fala}
+          mudo={mudo}
+          lendo={lendo}
+          aoOuvir={ouvirTrecho}
+          fim={fimDaLista(meu)}
+          {...(aoCorrigirFala ? { aoEditar: editar } : {})}
+          {...(aoGuardar ? { aoGuardar: guardar } : {})}
+        />
+        <p className="int-status" role="status">
+          {statusDoLado(meu.ouvindo || meu.escutando || meu.traduzindo || meu.vozParaMim ? meu : dele)}
+        </p>
+        <div className="int-conversa-acoes">
+          {[dele, meu].map((d) => (
+            <div key={d.lado} className="int-conversa-lado" data-lado={d.lado}>
+              <p className="int-idioma" lang={d.direcao.fala}>
+                {d.nome}
+              </p>
+              {acoesDoLado(d)}
+            </div>
+          ))}
         </div>
       </section>
     );
@@ -453,6 +627,7 @@ export default function ModoInterprete({
     <div
       className="int"
       data-layout={layout}
+      data-tela={tela}
       role="dialog"
       aria-modal="true"
       aria-label={t('Modo intérprete')}
@@ -460,7 +635,7 @@ export default function ModoInterprete({
       data-fase={atual.fase}
       data-modo={modo}
     >
-      {ladoALado ? metade('meu') : metade('outro')}
+      {tela === 'conversa' ? null : ladoALado ? metade('meu') : metade('outro')}
       <div className="int-faixa" data-com-modo={automatico !== 'oculto' || undefined}>
         <div className="int-esq">
           <button
@@ -485,6 +660,19 @@ export default function ModoInterprete({
               <span aria-hidden>{t('Automático')}</span>
             </button>
           )}
+          <button
+            type="button"
+            className="int-modo"
+            onClick={alternarTela}
+            aria-pressed={tela === 'conversa'}
+            aria-label={t('Ver a conversa em lista')}
+            data-testid="tela-conversa"
+          >
+            <MessagesSquare aria-hidden />
+            <span className="int-modo-txt" aria-hidden>
+              {t('Conversa')}
+            </span>
+          </button>
         </div>
         <div className="int-centro">
           <span className="int-voz" data-natural={vozNatural || undefined} data-testid="voz-em-uso" title={rotuloDaVoz}>
@@ -499,7 +687,18 @@ export default function ModoInterprete({
           <X aria-hidden />
         </button>
       </div>
-      {ladoALado ? metade('outro') : metade('meu')}
+      {tela === 'conversa' ? conversa() : ladoALado ? metade('outro') : metade('meu')}
+      {edicao && (
+        <FolhaDeEdicao
+          texto={edicao.item.original}
+          lang={edicao.lang}
+          aoCancelar={() => setEdicao(null)}
+          aoConfirmar={(novo) => {
+            aoCorrigirFala?.(edicao.item.id, novo, { de: edicao.de, para: edicao.para });
+            setEdicao(null);
+          }}
+        />
+      )}
     </div>
   );
 }

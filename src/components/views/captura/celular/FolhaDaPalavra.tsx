@@ -40,6 +40,7 @@ export default function FolhaDaPalavra({
   aoSalvar,
   aoVoltar,
   aoPraticar,
+  semPratica = false,
   aoFechar,
   nuance,
 }: {
@@ -53,6 +54,8 @@ export default function FolhaDaPalavra({
   aoVoltar?: () => void;
   /** A prática vai abrir o microfone: quem chama emudece a captura antes (ver `FolhaDaFrase`). */
   aoPraticar?: () => void;
+  /** Sem o "Falar eu": a prática abriria o microfone, e o intérprete já o usa (Intérprete v3). */
+  semPratica?: boolean;
   aoFechar: () => void;
   /** "Sempre traduzir assim" (D3). Ausente = a folha de sempre, sem o glossário. */
   nuance?: NuanceNaFolhaDaPalavra;
@@ -145,17 +148,19 @@ export default function FolhaDaPalavra({
         </p>
       )}
       <div className="folha-grade">
-        <button
-          type="button"
-          className="folha-acao"
-          aria-pressed={praticando}
-          onClick={() => {
-            if (!praticando) aoPraticar?.();
-            setPraticando((v) => !v);
-          }}
-        >
-          <Mic aria-hidden /> {t('Falar eu')}
-        </button>
+        {!semPratica && (
+          <button
+            type="button"
+            className="folha-acao"
+            aria-pressed={praticando}
+            onClick={() => {
+              if (!praticando) aoPraticar?.();
+              setPraticando((v) => !v);
+            }}
+          >
+            <Mic aria-hidden /> {t('Falar eu')}
+          </button>
+        )}
         <button type="button" className="folha-acao pri" disabled={salvando} onClick={() => void salvar()}>
           <BookmarkPlus aria-hidden /> {t('Guardar')}
         </button>

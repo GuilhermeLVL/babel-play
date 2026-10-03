@@ -3,7 +3,7 @@
 ### Requirement: Ouvir uma palavra ou frase tocando
 
 Tocar numa palavra ou numa frase do histórico, do original ou da tradução, SHALL ler o trecho em voz alta no idioma
-do próprio trecho. O idioma MUST vir da palavra (como em `examineWord`), e não do lado da tela. A leitura MUST passar
+do próprio trecho. O idioma MUST ser o do próprio trecho (o idioma em que a fala foi dita ou o da tradução dela), e não o do lado da tela em que ele aparece. A leitura MUST passar
 pela fila de fala e pelo guarda de eco. Quando o aparelho não tem voz para o idioma, a tela MUST avisar, como já
 acontece nas demais telas.
 
@@ -24,8 +24,8 @@ acontece nas demais telas.
 
 ### Requirement: Modo lento
 
-A leitura de um trecho tocado SHALL poder ser repetida em modo lento (0,7×), no mesmo gesto que o modo lento da
-captura (toque longo ou botão "devagar").
+A leitura de um trecho tocado SHALL poder ser repetida em modo lento (0,7×), pelo botão "devagar" (caracol) ao lado de
+cada frase, a mesma velocidade do modo lento da captura.
 
 #### Scenario: Devagar
 

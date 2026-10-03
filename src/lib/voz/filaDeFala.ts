@@ -43,6 +43,13 @@ export interface ItemDeFala {
   criadoEm?: number;
   /** De que lado veio a fala original (o intérprete mostra a voz na metade do outro). */
   lado?: LadoDoInterprete;
+  /**
+   * TOQUE NO TEXTO (Intérprete v3): uma palavra ou frase que a pessoa tocou para ouvir. Não é a tradução
+   * de uma fala: não vira o "último" do Repetir e não entra na métrica `tts_inicio`.
+   */
+  manual?: boolean;
+  /** Velocidade só deste item (o modo lento do toque); vence a da fila. */
+  velocidade?: number;
 }
 
 export type MotivoDoDescarte =
@@ -172,7 +179,7 @@ export function criarFilaDeFala(o: OpcoesDaFila): FilaDeFala {
   const falar = (item: ItemDeFala, repeticao: boolean) => {
     const minhaVez = ++vez;
     falando = item;
-    ultimo = item;
+    if (!item.manual) ultimo = item;
     let comecou = false;
     pararRelogio();
     relogioDaVez = setTimeout(() => {
@@ -195,11 +202,12 @@ export function criarFilaDeFala(o: OpcoesDaFila): FilaDeFala {
       pararRelogio();
       /* Começou: o prazo agora é o da fala inteira — um `onend` que nunca vem não prende a fila. */
       relogioDaVez = setTimeout(() => encerrarVez(minhaVez), prazoDaFalaMs(item.texto));
-      if (!repeticao) o.aoIniciar?.(item, Math.max(0, idade(item)));
+      if (!repeticao && !item.manual) o.aoIniciar?.(item, Math.max(0, idade(item)));
     };
     try {
       o.motor().speak(item.texto, {
         ...o.opcoesDeFala,
+        ...(item.velocidade ? { rate: item.velocidade } : {}),
         lang: item.lang,
         onStart: aoComecar,
         onEnd: () => encerrarVez(minhaVez),

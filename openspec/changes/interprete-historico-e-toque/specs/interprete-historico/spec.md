@@ -2,15 +2,16 @@
 
 ### Requirement: Histórico da conversa em cada metade
 
-Cada metade do intérprete SHALL mostrar a frase atual em destaque e, acima dela, as frases anteriores do mesmo
-idioma, menores e esmaecidas, em ordem cronológica. A lista MUST ter rolagem própria e MUST começar presa no fim.
+Cada metade do intérprete SHALL mostrar a conversa no idioma dela, em ordem cronológica: as falas do outro traduzidas
+(com o original pequeno embaixo) e as falas dela no original. A última fala do outro MUST aparecer em destaque e as
+anteriores menores e esmaecidas. A lista MUST ter rolagem própria e MUST começar presa no fim.
 A tela MUST desenhar no máximo 50 itens por vez e MUST oferecer "ver mais" para subir a janela. O histórico completo
 MUST continuar disponível para salvar e exportar.
 
 #### Scenario: Frases anteriores continuam visíveis
 
 - **WHEN** a conversa tem cinco frases finais e chega a sexta
-- **THEN** a sexta aparece em destaque e as cinco anteriores aparecem menores acima dela, na ordem em que ocorreram
+- **THEN** a sexta aparece em destaque e as cinco anteriores aparecem menores acima dela, na ordem em que ocorreram, cada uma no idioma da metade
 
 #### Scenario: Conversa longa
 
@@ -57,10 +58,10 @@ continuar sendo o padrão.
 
 ### Requirement: Estado visível e acabamento
 
-A faixa de estado SHALL dizer, em uma palavra, em que ponto a conversa está: ouvindo, reconheci, traduzindo, lendo ou
-parado, na mesma ordem da máquina de estados. Enquanto o microfone está aberto, a tela MUST mostrar o nível de
-entrada. Falhas (sem permissão de microfone, sem rede, tradução que estourou o prazo) MUST dizer o que houve e
-oferecer uma ação. A tela MUST permitir aumentar o tamanho da letra e MUST manter contraste legível.
+A linha de estado SHALL dizer em que ponto a conversa está (ouvindo, traduzindo, lendo a tradução ou parado), na mesma
+ordem da máquina de estados, sem criar estado novo. Falhas (sem permissão de microfone, sem rede, tradução que estourou o
+prazo) MUST dizer o que houve e oferecer uma ação. A tela MUST manter contraste legível. O nível do microfone e o
+tamanho da letra ajustável ficam para uma etapa própria (dependem de dados que a captura ainda não entrega à tela).
 
 #### Scenario: Microfone negado
 
@@ -70,4 +71,4 @@ oferecer uma ação. A tela MUST permitir aumentar o tamanho da letra e MUST man
 #### Scenario: Tradução estourou o prazo
 
 - **WHEN** a tradução passa do prazo
-- **THEN** a frase aparece com o original entre parênteses e um botão para tentar de novo
+- **THEN** a frase aparece com o original entre parênteses, como a captura já faz, e a tradução é refeita quando o tradutor volta

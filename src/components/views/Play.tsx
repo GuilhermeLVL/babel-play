@@ -195,26 +195,16 @@ import { aoMudarVozes, hasVoiceFor, isTtsSupported, vozesCarregadas } from '../.
 import { aparelhoTemVoz, haVozPara } from '../../lib/voz/haVoz';
 import type { Recording, VocabCard } from '../../types';
 import { LangFlag } from '../LangFlag';
-import AntessalaDaRodada from '../minigames/AntessalaDaRodada';
 import { familiaDoJogo, FAMILIAS, tomDoJogo } from '../minigames/ArteDosJogos';
-import CascaDaRodada from '../minigames/casca/CascaDaRodada';
 import { unidadeDaRodada } from '../minigames/casca/regras';
 import { TabelaDaCobertura } from '../minigames/CoberturaDosIdiomas';
-import ComoSeJoga from '../minigames/ComoSeJoga';
-import ConectoresGame from '../minigames/ConectoresGame';
-import DitadoGame from '../minigames/DitadoGame';
-import EscutaGame from '../minigames/EscutaGame';
-import KaraokeGame, { type FalaKaraoke } from '../minigames/KaraokeGame';
+import type { FalaKaraoke } from '../minigames/KaraokeGame';
 import { jaFezTour, marcarTourFeito, PASSOS_DOS_JOGOS } from '../minigames/passosDosJogos';
-import ResultadoDaRodada, { type ItemDaRodada } from '../minigames/ResultadoDaRodada';
+import type { ItemDaRodada } from '../minigames/ResultadoDaRodada';
 import SalaDeEscolha from '../minigames/SalaDeEscolha';
-import ScrambleGame from '../minigames/ScrambleGame';
 import SeletorDeConteudo from '../minigames/SeletorDeConteudo';
-import TermoGame from '../minigames/TermoGame';
-import TourGuiado from '../minigames/TourGuiado';
 import { toast } from '../Toast';
 import { Abas, CabecalhoDeTela, IconeEmBloco, Tela as MolduraDaTela, TituloDeSecao } from '../ui';
-import CuradoriaBaralho from './CuradoriaBaralho';
 
 /**
  * A tela de baralhos Anki SOB DEMANDA (Fase 4 da prontidão). Ela só aparece quando a pessoa abre
@@ -223,13 +213,30 @@ import CuradoriaBaralho from './CuradoriaBaralho';
  * `lazyComRecarga`, como as outras telas, para sobreviver a um deploy.
  */
 const BaralhoAnki = lazyComRecarga(() => import('./BaralhoAnki'));
-import MapaDoConteudo from './MapaDoConteudo';
+/* Telas que só abrem por clique (o mapa, a curadoria, os recordes): fora do chunk do
+   lobby, pelo mesmo motivo — e do mesmo jeito, `lazyComRecarga` dentro de um `Suspense`. */
+const MapaDoConteudo = lazyComRecarga(() => import('./MapaDoConteudo'));
+const CuradoriaBaralho = lazyComRecarga(() => import('./CuradoriaBaralho'));
+const Recordes = lazyComRecarga(() => import('./play/Recordes'));
 import PainelTrilha from './PainelTrilha';
 import { IconePixel } from './play/IconesPixel';
 import { descricaoDoJogo, JOGOS, type JogoUI, tituloDoJogo } from './play/jogos';
+import {
+  AntessalaDaRodada,
+  CascaDaRodada,
+  ComoSeJoga,
+  ConectoresGame,
+  DitadoGame,
+  EscutaGame,
+  KaraokeGame,
+  precarregarJogo,
+  ResultadoDaRodada,
+  ScrambleGame,
+  TermoGame,
+  TourGuiado,
+} from './play/jogosSobDemanda';
 import { jogosQueAbremNoQuest, rodadaParaOQuest } from './play/quest/jogosNoQuest';
 import LobbyDoQuest from './play/quest/LobbyDoQuest';
-import Recordes from './play/Recordes';
 import { TELA_DO_JOGO } from './play/telaDoJogo';
 
 /**
@@ -683,6 +690,11 @@ export default function Play({
   const [explicando, setExplicando] = useState<MinigameId | null>(null);
   /** A rodada montada esperando decisão. `null` = ninguém pediu para jogar. */
   const [antessala, setAntessala] = useState<RodadaPronta | null>(null);
+  /* Quem abre a antessala vai jogar: baixa o tabuleiro enquanto lê a prévia (`jogosSobDemanda.ts`). */
+  const jogoDaAntessala = antessala?.jogo;
+  useEffect(() => {
+    if (jogoDaAntessala) precarregarJogo(jogoDaAntessala);
+  }, [jogoDaAntessala]);
   /**
    * "Começar direto, sem a prévia" — inicializado do `localStorage` NA PRIMEIRA RENDERIZAÇÃO.
    *
@@ -2571,14 +2583,16 @@ export default function Play({
     if (!embutido)
       return (
         <>
-          {n}
-          {aoLado}
+          <Suspense fallback={null}>{n}</Suspense>
+          <Suspense fallback={null}>{aoLado}</Suspense>
         </>
       );
     return createPortal(
       <>
-        <div className="fixed inset-0 z-[35] flex flex-col bg-canvas">{n}</div>
-        {aoLado}
+        <div className="fixed inset-0 z-[35] flex flex-col bg-canvas">
+          <Suspense fallback={null}>{n}</Suspense>
+        </div>
+        <Suspense fallback={null}>{aoLado}</Suspense>
       </>,
       document.body,
     );
@@ -3699,7 +3713,11 @@ export default function Play({
       <>
         {sala}
         {fichaDoComo}
-        {verRecordes && <Recordes ageProfile={ageProfile} onFechar={() => setVerRecordes(false)} />}
+        {verRecordes && (
+          <Suspense fallback={null}>
+            <Recordes ageProfile={ageProfile} onFechar={() => setVerRecordes(false)} />
+          </Suspense>
+        )}
         {/* A fonte: a mesma gaveta de sempre (as seis facetas e "Trazer ou gerenciar"), sem a faixa. */}
         {seletorAberto && seletorDaFonte(true)}
         <LobbyDoQuest
@@ -3990,7 +4008,11 @@ export default function Play({
           distribuição por cota, não de carona no redesenho visual. */}
         {!embutido && fontesOferecidas.length > 1 && <div className="mb-4">{seletorDaFonte()}</div>}
 
-        {verRecordes && <Recordes ageProfile={ageProfile} onFechar={() => setVerRecordes(false)} />}
+        {verRecordes && (
+          <Suspense fallback={null}>
+            <Recordes ageProfile={ageProfile} onFechar={() => setVerRecordes(false)} />
+          </Suspense>
+        )}
 
         {/* ── DIAGNÓSTICO TÉCNICO EXPANSÍVEL (ativado pelo botão de gráfico da barra de acervo) ── */}
         {detalhes && (

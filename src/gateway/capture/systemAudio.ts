@@ -1,4 +1,4 @@
-import { MicVAD } from '@ricky0123/vad-web';
+import type { MicVAD } from '@ricky0123/vad-web';
 
 import { apiFetch } from '../../data/api';
 import { marcarAberturaDoVad } from '../../lib/captura/vigiaDoMainThread';
@@ -8,6 +8,24 @@ import { criarFimDeFala } from './fimDeFala';
 import { pararGravador } from './pararGravador';
 import { criarPisoDoSilencio } from './pisoDoSilencio';
 import { TAXA_DE_BITS_DA_GRAVACAO } from './taxaDeBits';
+
+/**
+ * O VAD (`@ricky0123/vad-web` + `onnxruntime-web`, ~92 KB gzip) SOB DEMANDA. O import estático o
+ * puxava junto com a tela de captura inteira, e o Lighthouse mobile o listava como JS não usado
+ * (87 KB) na carga de `/capturar`: ele só roda em "Iniciar". A abertura da captura chama
+ * `aquecerVad()` ANTES de pedir o microfone/tela, e o download corre durante o diálogo de permissão.
+ */
+let vadWeb: Promise<typeof import('@ricky0123/vad-web')> | null = null;
+function carregarVad(): Promise<typeof import('@ricky0123/vad-web')> {
+  vadWeb ??= import('@ricky0123/vad-web').catch((e) => {
+    vadWeb = null; // uma falha de rede não pode ficar guardada
+    throw e;
+  });
+  return vadWeb;
+}
+function aquecerVad(): void {
+  carregarVad().catch(() => {});
+}
 
 // Logger de diagnóstico da captura de sistema/VAD (observabilidade no console do navegador).
 const vlog = (...a: any[]) => console.log('%c[cap:vad]', 'color:#0369A1;font-weight:bold', ...a);
@@ -594,6 +612,7 @@ async function startCaptureFromStream(
      e o vigia do regulador não o conta (`vigiaDoMainThread.ts`). */
   const inicioDoVad = performance.now();
   try {
+    const { MicVAD } = await carregarVad();
     vad = await MicVAD.new({
       baseAssetPath: '/',
       onnxWASMBasePath: '/',
@@ -849,6 +868,7 @@ export async function startSystemAudioCapture(
   cb: SystemAudioCallbacks,
   opcoes?: OpcoesDeCaptura,
 ): Promise<AudioCapture> {
+  aquecerVad();
   try {
     let stream: MediaStream;
     try {
@@ -927,6 +947,7 @@ export async function startMicCapture(
   cb: SystemAudioCallbacks,
   opcoes?: OpcoesDeCaptura,
 ): Promise<AudioCapture> {
+  aquecerVad();
   try {
     let stream: MediaStream;
     try {
@@ -982,6 +1003,7 @@ export async function startSystemLoopbackCapture(
   cb: SystemAudioCallbacks,
   opcoes?: OpcoesDeCaptura,
 ): Promise<AudioCapture> {
+  aquecerVad();
   try {
     let stream: MediaStream;
     try {
@@ -1046,6 +1068,7 @@ export async function startServerLoopbackCapture(
   cb: SystemAudioCallbacks,
   opcoes?: OpcoesDeCaptura,
 ): Promise<AudioCapture> {
+  aquecerVad();
   try {
     const resp = await apiFetch('/api/audio/loopback/stream', { timeoutMs: 24 * 3_600_000 });
     if (!resp.ok || !resp.body) {

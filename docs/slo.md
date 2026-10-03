@@ -49,6 +49,37 @@ CLS do Lighthouse, antes -> depois das correções de salto de layout:
 O LCP e a nota de celular seguem acima da meta (< 2,5 s): o custo é execução de JS (`vendor-react` e as telas
 sob demanda) em CPU 4x mais lenta, não rede nem fonte. Sem número novo de campo (p75): continua sem dados de produção.
 
+### Execução de JS sob demanda (03/10/2026, Lighthouse 13 mobile, build completo, 3-4 execuções por rota)
+
+Três cortes de JS que a tela não precisa no primeiro instante, cada um medido antes e depois:
+
+1. `/capturar`: `@ricky0123/vad-web` + `onnxruntime-web` (92 KB gzip) saíram do chunk da tela e entram por
+   `import()` quando se abre a captura (`gateway/capture/systemAudio.ts`, `aquecerVad()` roda antes do diálogo
+   de permissão). JS não usado do Lighthouse: 181 KB / 1210 ms -> 94 KB / 620 ms; nota 62 -> 66, TBT 234 -> 162 ms.
+2. `/jogar`: os 18 tabuleiros, a antessala, a casca, o resultado, o tour, "Como se joga", o mapa, a curadoria e
+   os recordes viraram chunks próprios (`views/play/jogosSobDemanda.ts`, `telaDoJogo.ts`; o tabuleiro é baixado
+   ao abrir a antessala). `Play` 380 KB / 113 KB gzip -> 182 KB / 57 KB gzip. JS não usado: 102 KB / 800 ms ->
+   58 KB / 440 ms; bytes totais 1235 -> 1166 KB. Nota e TBT sem mudança mensurável (a nota de `/jogar` é dominada
+   pela carga de 3.000 cartões e dezenas de `seeds/creditar` no banco de teste, não por bundle).
+3. `App.tsx`: o canvas de partículas (`ParticleCanvas` + `motorDeParticulas`) desce por `usePedacoDoQuest`
+   fora do modo leve. JS inicial da edição estática 179,7 -> 175,8 KB gzip (teto 180); do build completo
+   171,3 -> 167,8 KB gzip.
+
+| Rota      | Nota antes -> depois | LCP antes -> depois | TBT antes -> depois  |
+| --------- | -------------------- | ------------------- | -------------------- |
+| /         | 68-73 -> 70          | 4,6-5,5 -> 5,2 s    | 223-434 -> 275 ms    |
+| /capturar | 62 -> 64             | 10,6 -> 10,0 s      | 234 -> 199 ms        |
+| /jogar    | 53 -> 54             | 10,6 -> 9,5 s       | 525 -> 505 ms        |
+| /planos   | 63 -> 64             | 6,1 s -> 6,1 s      | 387 -> 332 ms        |
+
+O ruído entre execuções é de +-3 pontos de nota e +-100 ms de TBT (o mesmo build deu `/` com TBT 239 e 434): só o
+corte 1 sai do ruído. CSS inicial inalterado (303,5 KB bruto, 54,6 KB gzip): os sete arquivos importados em
+`main.tsx` são todos globais; nenhuma folha de tela sob demanda entra no inicial.
+
+**Rejeitado por medida:** adiar para depois do `load` o pedido de `RecompensaDesbloqueada` e `HostDeOfertas`
+(pareciam disputar banda no 1º segundo): `/jogar` TBT 533 -> 639 ms, sem ganho de LCP nem nota; e abrir
+`EncerrarSessao`/`AjudaDoMicrofone`/`FolhaDeOpcoes` etc. sob demanda em `LiveCapture` (-5 KB gzip, nota sem mudança).
+
 ## O que os SLOs NÃO dizem
 
 - **Capacidade.** Estar dentro do SLO numa máquina local não é estar dentro no Fly: a `shared-cpu-1x`

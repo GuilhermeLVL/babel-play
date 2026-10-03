@@ -64,11 +64,14 @@ const carregarGateDeConta = () => import('./components/conta/GateDeConta');
    `useCommandPalette`, e a lista de destinos, o filtro e os ícones não precisam estar no pacote inicial. */
 const carregarBuscaGlobal = () => import('./components/BuscaGlobal');
 const carregarHostDeOfertas = () => import('./components/ofertas/HostDeOfertas');
+/* O canvas de partículas (o motor do laço e o canvas, ~19 KB de fonte) desce logo depois da primeira
+   pintura: é decoração e confirmação de gesto, não precisa estar no pacote inicial (teto de 180 KB gzip).
+   Por `usePedacoDoQuest`: se o chunk não chegar, não há partícula e a página NÃO recarrega. */
+const carregarParticulas = () => import('./components/ParticleCanvas');
 import { aceitarAnonimo, exigeConta, porta } from './components/conta/exigeConta';
 import { usePedacoDoQuest } from './components/conta/quest/usePedacoDoQuest';
 import FloatingScoreLayer from './components/FloatingScoreLayer';
 import IndicadorDeSalvamento from './components/IndicadorDeSalvamento';
-import ParticleCanvas from './components/ParticleCanvas';
 import MobileNav from './components/shell/MobileNav';
 import MobileTopBar from './components/shell/MobileTopBar';
 import StudioHeader from './components/StudioHeader';
@@ -173,6 +176,7 @@ export default function App() {
     setDarkMode,
     setAgeProfileState,
   } = useAparencia();
+  const { Componente: ParticleCanvas } = usePedacoDoQuest(carregarParticulas, !performanceMode);
   const { Componente: BuscaGlobal } = usePedacoDoQuest(carregarBuscaGlobal, buscaAberta);
 
   useEffect(() => {
@@ -552,7 +556,7 @@ export default function App() {
               celular fraco): o componente nem monta. Ele já devolvia `null` inativo; não montar deixa
               explícito aqui que partícula não existe no modo leve (o Quest é limitado por fill-rate,
               diretriz da Meta). O agente de telas cuida do resto dos efeitos. */}
-          {!performanceMode && (
+          {!performanceMode && ParticleCanvas && (
             <ParticleCanvas
               enabled={animationsEnabled}
               performanceMode={performanceMode}

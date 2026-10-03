@@ -1,36 +1,27 @@
 import type { MinigameId } from '../../../core/minigames/types';
-import BlitzGame from '../../minigames/BlitzGame';
-import BaoGame from '../../minigames/culturais/BaoGame';
-import CadavreExquisGame from '../../minigames/culturais/CadavreExquisGame';
-import ChoseongGame from '../../minigames/culturais/ChoseongGame';
-import KarutaGame from '../../minigames/culturais/KarutaGame';
-import KofferGame from '../../minigames/culturais/KofferGame';
-import ShiritoriGame from '../../minigames/culturais/ShiritoriGame';
-import TabooGame from '../../minigames/culturais/TabooGame';
-import TenseTennisGame from '../../minigames/culturais/TenseTennisGame';
-import VitendawiliGame from '../../minigames/culturais/VitendawiliGame';
-import MemoryGame from '../../minigames/MemoryGame';
-import WordSearchGame from '../../minigames/WordSearchGame';
+import { lazyComRecarga } from '../../../lib/lazyComRecarga';
 import type { TelaDoJogo } from './componentesDosJogos';
 
+/* Cada tabuleiro é um chunk próprio, baixado ao abrir a antessala (`precarregarJogo`, em
+   `jogosSobDemanda.ts`) — não vai mais junto com o lobby do `/jogar`. */
 /** `null` = o jogo tem tela propria fora deste caminho (rodadas de frase/audio, montadas antes). */
 export const TELA_DO_JOGO: Record<MinigameId, TelaDoJogo> = {
-  memory: MemoryGame,
-  wordsearch: WordSearchGame,
-  blitz: BlitzGame,
+  memory: lazyComRecarga(() => import('../../minigames/MemoryGame')),
+  wordsearch: lazyComRecarga(() => import('../../minigames/WordSearchGame')),
+  blitz: lazyComRecarga(() => import('../../minigames/BlitzGame')),
   termo: null,
   scramble: null,
   karaoke: null,
   escuta: null,
   ditado: null,
   conectores: null,
-  karuta: KarutaGame,
-  choseong: ChoseongGame,
-  tenis: TenseTennisGame,
-  koffer: KofferGame,
-  bao: BaoGame,
-  vitendawili: VitendawiliGame,
-  shiritori: ShiritoriGame,
-  cadavre: CadavreExquisGame,
-  taboo: TabooGame,
+  karuta: lazyComRecarga(() => import('../../minigames/culturais/KarutaGame')),
+  choseong: lazyComRecarga(() => import('../../minigames/culturais/ChoseongGame')),
+  tenis: lazyComRecarga(() => import('../../minigames/culturais/TenseTennisGame')),
+  koffer: lazyComRecarga(() => import('../../minigames/culturais/KofferGame')),
+  bao: lazyComRecarga(() => import('../../minigames/culturais/BaoGame')),
+  vitendawili: lazyComRecarga(() => import('../../minigames/culturais/VitendawiliGame')),
+  shiritori: lazyComRecarga(() => import('../../minigames/culturais/ShiritoriGame')),
+  cadavre: lazyComRecarga(() => import('../../minigames/culturais/CadavreExquisGame')),
+  taboo: lazyComRecarga(() => import('../../minigames/culturais/TabooGame')),
 };

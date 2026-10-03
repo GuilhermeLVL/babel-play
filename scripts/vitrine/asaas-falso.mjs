@@ -339,18 +339,20 @@ const ROTULO_DO_STATUS = {
   CHARGEBACK_REQUESTED: 'em contestação',
 }
 
-function painel() {
+/* O desenho do app vem pela URL (`?desenho=novo|antigo`, `src/lib/dispositivo/telaNovaDoQuest.ts`) e
+   fica guardado no navegador. A vitrine abre no desenho NOVO; o painel troca com um clique. */
+function painel(desenho = 'novo') {
   /* O "entrar como" sempre cai na RAIZ do app: a sessão chega no fragmento da URL, e numa rota
      interna o roteador reescreve o endereço antes de o cliente de login ler o fragmento. A tela do
      rótulo fica num segundo botão, para depois de entrar. */
   const entrar = (c) =>
-    `${SUPABASE}/vitrine/entrar?email=${encodeURIComponent(c.email)}&para=${encodeURIComponent(`${APP}/`)}`
+    `${SUPABASE}/vitrine/entrar?email=${encodeURIComponent(c.email)}&para=${encodeURIComponent(`${APP}/?desenho=${desenho}`)}`
   const contas = CONTAS.map(
     (c) => `<div class="linha">
       <div><b>${escapar(c.rotulo)}</b> <code>${escapar(c.email)}</code><small>${escapar(c.oQueVer)}</small></div>
       <div class="acoes">
         <a class="botao pri" href="${escapar(entrar(c))}" target="babel-vitrine">Entrar</a>
-        ${c.rota && c.rota !== '/' ? `<a class="botao" href="${escapar(APP + c.rota)}" target="babel-vitrine">Abrir ${escapar(c.rota)}</a>` : ''}
+        ${c.rota && c.rota !== '/' ? `<a class="botao" href="${escapar(`${APP}${c.rota}?desenho=${desenho}`)}" target="babel-vitrine">Abrir ${escapar(c.rota)}</a>` : ''}
       </div>
     </div>`,
   ).join('')
@@ -381,6 +383,7 @@ function painel() {
       <header style="display:grid;gap:8px">
         <h1>Vitrine do Babel Play</h1>
         <p>O app completo rodando nesta máquina, com login e cobrança de mentira. Cada conta abaixo está num estado diferente de plano; um clique entra nela. Nada aqui fala com Supabase, Asaas ou e-mail de verdade.</p>
+        <p>Desenho: ${desenho === 'novo' ? '<b>novo</b> · <a href="/?desenho=antigo">trocar para o antigo</a>' : '<b>antigo</b> · <a href="/">trocar para o novo</a>'}. Vale para o próximo Entrar.</p>
         <div class="aviso">App em <a href="${escapar(APP)}" target="babel-vitrine">${escapar(APP)}</a>. Clique em Entrar e, com a conta aberta, no segundo botão para ir direto à tela do rótulo. Para trocar de conta, entre em outra: a sessão anterior é substituída. Criar conta pela tela de login também funciona (qualquer e-mail, sem confirmação).</div>
       </header>
       <section><h2>Contas prontas</h2><div class="lista">${contas}</div></section>
@@ -423,7 +426,8 @@ const servidor = http.createServer(async (req, res) => {
   try {
     if (p.startsWith('/v3/')) return await api(req, res, p.slice(3), url)
 
-    if (p === '/' && req.method === 'GET') return html(res, 200, painel())
+    if (p === '/' && req.method === 'GET')
+      return html(res, 200, painel(url.searchParams.get('desenho') === 'antigo' ? 'antigo' : 'novo'))
 
     const f = /^\/fatura\/([^/]+)(\/pagar)?$/.exec(p)
     if (f) {

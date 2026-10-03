@@ -82,6 +82,7 @@
     "loopback-capture": "^2.0.0",
     "lucide-react": "^0.546.0",
     "mammoth": "^1.12.0",
+    "onnxruntime-web": "1.26.0-dev.20260416-b7804b056c",
     "pdfjs-dist": "^6.1.200",
     "prom-client": "^15.1.3",
     "react": "^19.0.1",

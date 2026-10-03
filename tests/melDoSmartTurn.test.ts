@@ -6,7 +6,7 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import { featuresDoSmartTurn, JANELA_AMOSTRAS, QUADROS_MEL, BINS_MEL } from '../src/gateway/capture/melDoSmartTurn'
+import { BINS_MEL, featuresDoSmartTurn, JANELA_AMOSTRAS, QUADROS_MEL } from '../src/gateway/capture/melDoSmartTurn'
 import referencia from './fixtures/smartTurnMel.json'
 
 /** A mesma onda do gerador Python: LCG de 32 bits + duas senoides com envelope. */
@@ -18,7 +18,7 @@ function onda(n: number): Float32Array {
     const ruido = (s / 4294967296 - 0.5) * 0.1
     const env = 0.5 + 0.5 * Math.sin(((2 * Math.PI * i) / 16000) * 1.3)
     const v =
-      0.3 * Math.sin(((2 * Math.PI * 220 * i) / 16000)) * env + 0.1 * Math.sin((2 * Math.PI * 1870 * i) / 16000) + ruido
+      0.3 * Math.sin((2 * Math.PI * 220 * i) / 16000) * env + 0.1 * Math.sin((2 * Math.PI * 1870 * i) / 16000) + ruido
     out[i] = v
   }
   return out

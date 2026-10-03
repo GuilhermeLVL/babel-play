@@ -4,7 +4,9 @@ import { apiFetch } from '../../data/api';
 import { marcarAberturaDoVad } from '../../lib/captura/vigiaDoMainThread';
 import { ortDoVadNumaThread } from '../../lib/dispositivo/orcamentoDeThreads';
 import { ehPrefixo, EspelhoDoVad } from './espelhoDoVad';
+import { criarFimDeFala } from './fimDeFala';
 import { pararGravador } from './pararGravador';
+import { criarPisoDoSilencio } from './pisoDoSilencio';
 import { TAXA_DE_BITS_DA_GRAVACAO } from './taxaDeBits';
 
 // Logger de diagnóstico da captura de sistema/VAD (observabilidade no console do navegador).
@@ -99,6 +101,17 @@ export interface OpcoesDeCaptura {
    * 'suspended' e a captura não recebe um quadro. A captura passa a ser a dona: o `stop` o fecha.
    */
   audioContext?: AudioContext;
+  /**
+   * FIM DE FALA INTELIGENTE (chave `fimInteligente`, desligada de fábrica). Com `ligado()` verdadeiro, ao chegar
+   * o silêncio candidato (o piso, ~300 ms) o modelo de turno recebe o áudio da fala e, se disser "completa",
+   * a fala fecha na hora — sem esperar os 800 ms. Qualquer outra resposta, ou falha, deixa o VAD fixo valer.
+   * `ligado` e `idiomas` são funções porque a chave e o idioma mudam com a captura aberta.
+   */
+  fimDeFala?: {
+    ligado: () => boolean;
+    /** Os idiomas da conversa (todos precisam estar na lista aprovada). */
+    idiomas: () => readonly string[];
+  };
 }
 
 // Escolhe um container/codec de áudio suportado pelo MediaRecorder deste navegador.
@@ -470,12 +483,71 @@ async function startCaptureFromStream(
     redemptionMs: opcoes.redencaoMs ?? REDENCAO_MS,
     preSpeechPadMs: PRE_FALA_MS,
     especulativoMs: ESPECULATIVO_MS,
+    ...(opcoes.fimDeFala
+      ? {
+          consultaMs: () => piso.valor(),
+          aoVoltarDaPausa: (ms: number) => {
+            piso.registrarPausa(ms);
+            pausaDeAgora++;
+          },
+          aoConsultar: () => perguntarAoModelo(),
+        }
+      : {}),
   });
+  /* FIM INTELIGENTE. O piso acompanha as pausas desta pessoa nesta captura (sessão). `pausaDeAgora` muda a cada
+     pausa que termina: uma resposta do modelo só vale para a pausa em que foi pedida. */
+  const piso = criarPisoDoSilencio();
+  let pausaDeAgora = 0;
+  // Um modelo (e um worker, criado só quando preciso) por captura: mic e sistema abertos juntos não se atrapalham.
+  const modeloDeTurno = opcoes.fimDeFala ? criarFimDeFala() : null;
   let especulacao: { seq: number; janela: Float32Array; handle: EspeculacaoDoFinal } | null = null;
   const cancelarEspeculacao = (): void => {
     especulacao?.handle.cancelar();
     especulacao = null;
   };
+
+  /* FECHAR AGORA, sem esperar a redenção. É o mesmo gesto do corte forçado: `pause()` entrega a fala em curso
+     (`submitUserSpeechOnPause`) e `start()` volta a ouvir. A fala que CONTINUA depois de uma resposta "incompleta"
+     não passa por aqui: o segmento segue aberto e a continuação entra na MESMA fala (mesmo seq). */
+  const fecharAgora = (): void => {
+    if (forcingCut) return;
+    forcingCut = true;
+    Promise.resolve(vad.pause())
+      .then(() => (paused ? undefined : vad.start()))
+      .catch(() => {})
+      .finally(() => {
+        forcingCut = false;
+      });
+  };
+
+  function perguntarAoModelo(): void {
+    const fim = opcoes.fimDeFala;
+    if (!fim || !fim.ligado() || !speaking || muted || paused || forcingCut) return;
+    const seq = currentSeq;
+    const pausa = pausaDeAgora;
+    const silencioNaConsulta = espelho.silencioMs;
+    // O áudio da fala até agora, com o silêncio: o modelo olha os últimos 8 s e a cauda diz que a pessoa parou.
+    const janela = espelho.janela();
+    void modeloDeTurno!.consultar(janela, fim.idiomas()).then((v) => {
+      // Só vale na MESMA pausa: se a pessoa voltou a falar (ou a fala já fechou), a resposta é velha.
+      const aindaVale =
+        speaking &&
+        !muted &&
+        !paused &&
+        currentSeq === seq &&
+        pausaDeAgora === pausa &&
+        espelho.silencioMs >= silencioNaConsulta;
+      vlog(
+        label,
+        'fim de fala →',
+        v.motivo,
+        v.p !== undefined ? v.p.toFixed(2) : '',
+        v.fechar ? 'fecha' : 'espera',
+        aindaVale ? '' : '(velha)',
+      );
+      if (v.fechar && aindaVale) fecharAgora();
+    });
+  }
 
   const resetUtterance = (): void => {
     frameChunks = [];
@@ -629,6 +701,9 @@ async function startCaptureFromStream(
   }
 
   vad.start();
+  /* AQUECIMENTO do modelo de turno junto da abertura do VAD: baixa e prepara o ONNX sem enviar áudio nenhum.
+     Desligada a chave, nada é carregado. */
+  if (opcoes.fimDeFala?.ligado()) void modeloDeTurno?.aquecer();
   marcarAberturaDoVad(inicioDoVad, performance.now());
   vlog(label, 'VAD iniciado ✓');
 
@@ -731,6 +806,10 @@ async function startCaptureFromStream(
     },
     async stop(): Promise<Blob | null> {
       clearInterval(partialTimer);
+      if (modeloDeTurno) {
+        vlog(label, 'fim de fala: motivos da sessão', JSON.stringify(modeloDeTurno.motivos()));
+        modeloDeTurno.fechar();
+      }
       speaking = false;
       // Finaliza a gravação ANTES de parar as faixas (senão perde o último chunk).
       let blob: Blob | null = null;

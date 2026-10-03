@@ -51,6 +51,9 @@
   Cache-Control: public, max-age=31536000, immutable
 /silero_vad_*
   Cache-Control: public, max-age=31536000, immutable
+# O modelo de fim de fala (Smart Turn v3.2, 8 MB): a versão está no nome do arquivo, então não muda sob o mesmo caminho.
+/smart-turn/*
+  Cache-Control: public, max-age=31536000, immutable
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
 # Bergamot (A9b, `scripts/baixar-modelos-bergamot.mjs`): o motor em `motor-<versão>/` e o modelo em

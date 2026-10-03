@@ -17,9 +17,10 @@
  *     leu — a voz da nuvem pode recuar para a do aparelho no meio da conversa;
  *   - O MICROFONE QUE NÃO ABRE (permissão, ocupado) devolve a conversa a "parado".
  */
+import { capMetrics, type EtapasDaFala } from '../../gateway/capture/captureMetrics';
 import { type SpeakOptions, type TtsEngine } from '../tts';
 import { criarFilaDeFala, type ItemDeFala } from '../voz/filaDeFala';
-import { tempoAteAVoz } from '../voz/tempoAteAVoz';
+import { type EtapaDoInterprete, tempoAteAVoz } from '../voz/tempoAteAVoz';
 import {
   criarInterprete,
   direcaoDoLado,
@@ -55,6 +56,10 @@ export interface OpcoesDoControle {
   destravarVoz?: () => void;
   /** A métrica `tts_inicio`. Padrão: `tempoAteAVoz.registrar`. */
   registrarTempo?: (ms: number, motor: string) => void;
+  /** O medidor por etapa (VAD, STT, tradução, voz). Padrão: `tempoAteAVoz.etapa`. */
+  registrarEtapa?: (segId: string, etapa: EtapaDoInterprete, ms: number, motor: string, audioMs?: number) => void;
+  /** O STT e a tradução já medidos da fala (padrão: `capMetrics.etapasDaFala`). */
+  etapasDaFala?: (segId: string) => EtapasDaFala | undefined;
   /** O relógio (ms) — o mesmo da fila, para o `criadoEm`. */
   agora?: () => number;
   opcoesDeFala?: Pick<SpeakOptions, 'rate' | 'pitch' | 'voiceName'>;
@@ -112,12 +117,26 @@ export type PonteDoInterprete = Pick<
 /** O modo lento do toque: a mesma velocidade da captura (`ouvirNaLegenda`). */
 export const VELOCIDADE_LENTA = 0.7;
 
+/**
+ * A espera do VAD para fechar a fala: o silêncio fixo do Silero (`REDENCAO_MS`, `systemAudio.ts`). É o valor
+ * NOMINAL, não uma medição por fala — o VAD de hoje não informa o instante real do último som. Quando o fim
+ * de fala inteligente informar, o medidor recebe o valor medido no lugar deste (mesma etapa `vad`).
+ */
+const ESPERA_NOMINAL_DO_VAD_MS = 800;
+
 const relogioPadrao = (): number => (typeof performance !== 'undefined' ? performance.now() : Date.now());
 const outroLado = (lado: LadoDoInterprete): LadoDoInterprete => (lado === 'meu' ? 'outro' : 'meu');
 
 export function criarControleDoInterprete(o: OpcoesDoControle): ControleDoInterprete {
   const agora = o.agora ?? relogioPadrao;
   const registrarTempo = o.registrarTempo ?? ((ms: number, motor: string) => tempoAteAVoz.registrar(ms, motor));
+  const registrarEtapa =
+    o.registrarEtapa ??
+    ((segId: string, etapa: EtapaDoInterprete, ms: number, motor: string, audioMs?: number) =>
+      tempoAteAVoz.etapa(segId, etapa, ms, motor, audioMs));
+  const etapasDaFala = o.etapasDaFala ?? ((segId: string) => capMetrics.etapasDaFala(segId));
+  /** Quando a tradução de cada fala entrou na fila de voz: dali até o `onStart` é a etapa `tts`. */
+  const enfileiradoEm = new Map<string, number>();
 
   /** Por fala: quando ela terminou e de que lado veio (`null` no automático, até o idioma ser medido). */
   const fins = new Map<string, { em: number; lado: LadoDoInterprete | null }>();
@@ -143,7 +162,14 @@ export function criarControleDoInterprete(o: OpcoesDoControle): ControleDoInterp
     motor: o.motor,
     agora,
     ...(o.opcoesDeFala ? { opcoesDeFala: o.opcoesDeFala } : {}),
-    aoIniciar: (_item, espera) => registrarTempo(espera, o.nomeDoMotor()),
+    aoIniciar: (item, espera) => {
+      const motor = o.nomeDoMotor();
+      registrarTempo(espera, motor);
+      const em = enfileiradoEm.get(item.id);
+      enfileiradoEm.delete(item.id);
+      if (em !== undefined) registrarEtapa(item.id, 'tts', Math.max(0, agora() - em), motor);
+    },
+    aoDescartar: (item) => void enfileiradoEm.delete(item.id),
     aoMudar: (f) => {
       falando = f.falando;
       if (!f.falando && f.espera.length === 0 && !cortandoParaTrecho) maquina.enviar({ tipo: 'fimDaVoz' });
@@ -160,9 +186,20 @@ export function criarControleDoInterprete(o: OpcoesDoControle): ControleDoInterp
     decisoes.delete(segId);
     const lado = decisao?.lado ?? fim?.lado ?? maquina.estado().lado ?? 'meu';
     const lang = decisao?.fala ?? direcaoDoLado(outroLado(lado), o.idiomas(), maquina.estado().trocados).fala;
+    /* O instante de entrada vem ANTES de enfileirar: a voz pode começar dentro da própria chamada. */
+    if (t?.traducao) enfileiradoEm.set(segId, agora());
     const entrou =
       !!t?.traducao &&
       fila.enfileirar({ id: segId, texto: t.traducao, lang, lado, ...(fim ? { criadoEm: fim.em } : {}) });
+    if (!entrou) enfileiradoEm.delete(segId);
+    if (entrou) {
+      /* O MEDIDOR POR ETAPA: STT e tradução já medidos pela captura, o VAD nominal e, daqui, o início
+         da voz. Só números e nomes de motor. */
+      const e = etapasDaFala(segId);
+      registrarEtapa(segId, 'vad', ESPERA_NOMINAL_DO_VAD_MS, 'vad-fixo');
+      if (e?.stt) registrarEtapa(segId, 'stt', e.stt.ms, e.stt.motor, e.stt.audioMs);
+      if (e?.mt) registrarEtapa(segId, 'mt', e.mt.ms, e.mt.motor);
+    }
     if (!entrou && !fila.ocupada()) depois(() => maquina.enviar({ tipo: 'fimDaVoz' }));
   };
 
@@ -300,6 +337,7 @@ export function criarControleDoInterprete(o: OpcoesDoControle): ControleDoInterp
       desligado = true;
       fila.destruir();
       fins.clear();
+      enfileiradoEm.clear();
       decisoes.clear();
       traducoes.clear();
       falando = null;

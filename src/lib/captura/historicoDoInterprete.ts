@@ -38,6 +38,11 @@ export interface Historico {
   destaque?: ItemDoHistorico;
   /** A fala em andamento desta metade (só a dela). */
   parcial?: { id: string; texto: string };
+  /**
+   * A fala em andamento do OUTRO lado, já traduzida (chave `parcialTraduzido`): aparece em cinza, nunca é lida
+   * em voz alta e some quando o final chega. Só existe com `opcoes.parcialDoOutro`.
+   */
+  parcialDoOutro?: { id: string; texto: string };
 }
 
 export const JANELA_DO_HISTORICO = 50;
@@ -51,17 +56,22 @@ export const subirJanela = (janela: number, total: number): number =>
 export function historicoDoInterprete(
   falas: ReadonlyArray<FalaDoHistorico>,
   lado: LadoDoInterprete,
-  opcoes: { janela?: number } = {},
+  opcoes: { janela?: number; parcialDoOutro?: boolean } = {},
 ): Historico {
   const janela = Math.max(1, opcoes.janela ?? JANELA_DO_HISTORICO);
   const todos: ItemDoHistorico[] = [];
   let destaque: ItemDoHistorico | undefined;
   let parcial: Historico['parcial'];
+  let parcialDoOutro: Historico['parcialDoOutro'];
 
   for (const f of falas) {
     if (!f.lado || !f.originalText.trim()) continue;
     if (f.isPartial) {
       if (f.lado === lado) parcial = { id: f.id, texto: f.originalText };
+      else if (opcoes.parcialDoOutro) {
+        const traducao = f.translatedText?.trim() ?? '';
+        if (traducao && traducao !== SEM_TRADUCAO) parcialDoOutro = { id: f.id, texto: traducao };
+      }
       continue;
     }
     const propria = f.lado === lado;
@@ -87,5 +97,6 @@ export function historicoDoInterprete(
     escondidas: todos.length - itens.length,
     ...(destaque ? { destaque } : {}),
     ...(parcial ? { parcial } : {}),
+    ...(parcialDoOutro ? { parcialDoOutro } : {}),
   };
 }

@@ -10,7 +10,13 @@
  *   criarFilaDeFala({ …, aoIniciar: (item, espera) => tempoAteAVoz.registrar(espera, voz.motorDaUltimaFala()) })
  */
 
+import { MOTOR_DA_NUVEM, PRECO_DA_NUVEM_USD_POR_MIN } from '../../gateway/capture/captureMetrics';
+
 const TETO_DE_AMOSTRAS = 200;
+
+/** As etapas entre o fim da fala e a voz, na ordem em que acontecem. */
+export type EtapaDoInterprete = 'vad' | 'stt' | 'mt' | 'tts';
+const ETAPAS_DO_INTERPRETE: readonly EtapaDoInterprete[] = ['vad', 'stt', 'mt', 'tts'];
 
 /** Onde o resumo da última conversa fica guardado (só números), para o `/diagnostico` mostrar. */
 export const CHAVE_DO_ULTIMO_INTERPRETE = 'babel.ultimoInterprete';
@@ -22,12 +28,24 @@ export interface ResumoDoTempo {
   amostras: number;
 }
 
+interface ResumoDaEtapa extends ResumoDoTempo {
+  motores: string[];
+}
+
 export interface ResumoDoTempoAteAVoz extends ResumoDoTempo {
   motores: string[];
   porMotor: Record<string, ResumoDoTempo>;
+  /** p50/p95 de cada etapa (VAD, STT, tradução, início da voz). Ausente sem nenhuma amostra. */
+  etapas?: Partial<Record<EtapaDoInterprete, ResumoDaEtapa>>;
+  /** Custo estimado da conversa em US$; ausente sem nenhum STT medido. */
+  custoUsd?: number;
+  /** O que o custo cobre: só o STT de nuvem (tradução e voz não têm preço de tabela no código). */
+  custoCobre?: 'stt';
 }
 
 const amostras: { ms: number; motor: string }[] = [];
+/** Uma amostra por fala e etapa (`${etapa}|${segId}`): repetir a mesma fala substitui, não duplica. */
+const etapas = new Map<string, { etapa: EtapaDoInterprete; ms: number; motor: string; audioMs?: number }>();
 
 function resumir(xs: number[]): ResumoDoTempo {
   const s = [...xs].sort((a, b) => a - b);
@@ -43,16 +61,42 @@ export const tempoAteAVoz = {
     if (amostras.length > TETO_DE_AMOSTRAS) amostras.shift();
   },
 
+  /**
+   * O tempo de UMA etapa de UMA fala (`segId` = id do balão) e quem a fez. `audioMs` (só do STT) dá o
+   * custo da nuvem. Só números e nomes de motor: nenhum texto da fala passa por aqui.
+   */
+  etapa(segId: string, etapa: EtapaDoInterprete, ms: number, motor: string, audioMs?: number): void {
+    if (!Number.isFinite(ms) || ms < 0) return;
+    etapas.set(`${etapa}|${segId}`, {
+      etapa,
+      ms: Math.round(ms),
+      motor: motor || 'desconhecido',
+      ...(audioMs && audioMs > 0 ? { audioMs } : {}),
+    });
+    if (etapas.size > TETO_DE_AMOSTRAS * ETAPAS_DO_INTERPRETE.length) etapas.delete(etapas.keys().next().value as string);
+  },
+
   /** p50/p95/média de todas e por motor; `null` sem amostra (nunca um zero inventado). */
   resumo(): ResumoDoTempoAteAVoz | null {
     if (!amostras.length) return null;
     const motores = [...new Set(amostras.map((a) => a.motor))];
+    const porEtapa: Partial<Record<EtapaDoInterprete, ResumoDaEtapa>> = {};
+    for (const nome of ETAPAS_DO_INTERPRETE) {
+      const dela = [...etapas.values()].filter((e) => e.etapa === nome);
+      if (dela.length) porEtapa[nome] = { ...resumir(dela.map((e) => e.ms)), motores: [...new Set(dela.map((e) => e.motor))] };
+    }
+    const stts = [...etapas.values()].filter((e) => e.etapa === 'stt');
+    const minutosNaNuvem = stts.filter((e) => e.motor === MOTOR_DA_NUVEM).reduce((s, e) => s + (e.audioMs ?? 0), 0) / 60000;
     return {
       ...resumir(amostras.map((a) => a.ms)),
       motores,
       porMotor: Object.fromEntries(
         motores.map((m) => [m, resumir(amostras.filter((a) => a.motor === m).map((a) => a.ms))]),
       ),
+      ...(Object.keys(porEtapa).length ? { etapas: porEtapa } : {}),
+      ...(stts.length
+        ? { custoUsd: Math.round(minutosNaNuvem * PRECO_DA_NUVEM_USD_POR_MIN * 1e6) / 1e6, custoCobre: 'stt' as const }
+        : {}),
     };
   },
 
@@ -73,6 +117,7 @@ export const tempoAteAVoz = {
   /** Zera (começo de uma sessão do intérprete). */
   zerar(): void {
     amostras.length = 0;
+    etapas.clear();
   },
 };
 
@@ -84,6 +129,25 @@ export function lerUltimoDoInterprete(): (ResumoDoTempoAteAVoz & { quando: numbe
   } catch {
     return null;
   }
+}
+
+const ROTULO_DA_ETAPA: Record<EtapaDoInterprete, string> = {
+  vad: 'espera do VAD',
+  stt: 'transcrição',
+  mt: 'tradução',
+  tts: 'início da voz',
+};
+
+/**
+ * As etapas do resumo em uma linha para o `/diagnostico`: "espera do VAD 800/800 ms (vad-fixo) · transcrição …",
+ * cada uma como p50/p95 e o(s) motor(es). `null` sem etapa. Só números e nomes de motor.
+ */
+export function descreverEtapas(r: Pick<ResumoDoTempoAteAVoz, 'etapas'>): string | null {
+  const partes = ETAPAS_DO_INTERPRETE.flatMap((nome) => {
+    const e = r.etapas?.[nome];
+    return e ? [`${ROTULO_DA_ETAPA[nome]} ${e.p50}/${e.p95} ms (${e.motores.join(', ')})`] : [];
+  });
+  return partes.length ? partes.join(' · ') : null;
 }
 
 // O gancho do e2e (E6) e da inspeção manual, como o `__capSummary` da captura.

@@ -39,6 +39,23 @@ export interface UtteranceMetric {
 
 const RING_MAX = 200;
 
+/**
+ * As etapas medidas de UMA fala, por id do balão (`mic-3`, `sys-7`): quanto o STT e a tradução levaram e
+ * quem os fez. Só números e nomes de motor, nunca texto. O intérprete lê daqui (`etapasDaFala`) quando a
+ * voz começa e junta ao tempo até a voz (`tempoAteAVoz.ts`); a nuvem do STT é a única com custo conhecido.
+ */
+export interface EtapasDaFala {
+  stt?: { ms: number; motor: string; audioMs?: number };
+  mt?: { ms: number; motor: string };
+}
+const etapasPorFala = new Map<string, EtapasDaFala>();
+
+function guardarEtapa<K extends keyof EtapasDaFala>(id: string, etapa: K, valor: NonNullable<EtapasDaFala[K]>): void {
+  etapasPorFala.set(id, { ...etapasPorFala.get(id), [etapa]: valor });
+  // Teto: a mais antiga sai (o Map guarda a ordem de inserção).
+  if (etapasPorFala.size > RING_MAX) etapasPorFala.delete(etapasPorFala.keys().next().value as string);
+}
+
 /** O adaptador de nuvem do STT (`groqWhisper.ts`): o único que custa por minuto. */
 export const MOTOR_DA_NUVEM = 'groq-whisper';
 /**
@@ -162,6 +179,19 @@ export const capMetrics = {
     if (m.tFirstPartial !== undefined) empurrar(lote.primeiroParcialMs, m.tFirstPartial - m.tSpeechStart);
     if (m.decodeMs && m.audioMs) empurrar(lote.rtf, m.decodeMs / m.audioMs);
     if (info.engine) motorStt = info.engine;
+    // O id do balão é `<sys|mic>-<seq>` (o `seq` do mic já vem deslocado; ver `pipelineDeFala.ts`).
+    if (m.tSpeechEnd !== undefined) {
+      guardarEtapa(`${m.source === 'system' ? 'sys' : 'mic'}-${seq}`, 'stt', {
+        ms: Math.round(m.tFinalDone - m.tSpeechEnd),
+        motor: info.engine || 'desconhecido',
+        ...(info.audioMs ? { audioMs: info.audioMs } : {}),
+      });
+    }
+  },
+
+  /** As etapas medidas da fala `id` (STT e tradução), ou `undefined`. Sem texto. */
+  etapasDaFala(id: string): EtapasDaFala | undefined {
+    return etapasPorFala.get(id);
   },
 
   /** O motor de STT devolveu texto e o filtro de alucinação o esvaziou (ver `alucinacao.ts`). */
@@ -199,7 +229,8 @@ export const capMetrics = {
   },
 
   /** Registra a latência de uma tradução (ms) + engine que a atendeu. */
-  mt(ms: number, engine: string): void {
+  mt(ms: number, engine: string, segId?: string): void {
+    if (segId) guardarEtapa(segId, 'mt', { ms, motor: engine });
     mtSamples.push({ ms, engine });
     if (mtSamples.length > RING_MAX) mtSamples.shift();
     empurrar(lote.mtMs, ms);
@@ -216,6 +247,7 @@ export const capMetrics = {
     inflight.clear();
     ring.length = 0;
     mtSamples.length = 0;
+    etapasPorFala.clear();
     zerarLote();
     motorStt = '';
     motorMt = '';

@@ -507,7 +507,8 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
           const atual = ordemMtRef.current.encerrar(segId, selo);
           // Parcial sem tradutor local pronto: nada foi traduzido, nada a medir nem a avisar.
           if (parcial && !translated) return;
-          capMetrics.mt(Math.round(performance.now() - mtT0), engine || 'mt');
+          // O id do balão só vai com o FINAL: a tradução parcial não é a que o intérprete lê.
+          capMetrics.mt(Math.round(performance.now() - mtT0), engine || 'mt', parcial ? undefined : segId);
           // O parcial nunca vai à nuvem: vir do motor local é o esperado, não degradação.
           if (!parcial) avisarSeDegradou(engine, opts?.falada === true || nuvemPrimeiro);
           if (!translated) {

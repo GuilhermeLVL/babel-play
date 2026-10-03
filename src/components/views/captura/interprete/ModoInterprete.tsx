@@ -35,6 +35,8 @@ import { t } from '../../../../lib/i18n';
 import { langLabel } from '../../../../lib/languages';
 import { nativeTts, type TtsEngine } from '../../../../lib/tts';
 import { tempoAteAVoz } from '../../../../lib/voz/tempoAteAVoz';
+import { chaveLigada } from '../../../../lib/captura/testesDoInterprete';
+import { aquecerInterprete } from '../../../../lib/voz/aquecimentoDoInterprete';
 import { criarVozDaNuvem, destravarVozDaNuvem, type VozDaNuvem } from '../../../../lib/voz/vozDaNuvem';
 import {
   aoMudarIdiomasDaVozDoQuest,
@@ -252,6 +254,7 @@ export default function ModoInterprete({
     tempoAteAVoz.zerar();
     registrarPonte(controle);
     setEstado(controle.estado());
+    if (voz) aquecerInterprete(); // libera o áudio da voz da nuvem antes do 1º toque (chave vozPorFrase)
     return () => {
       registrarPonte(null);
       controle.sair();
@@ -417,7 +420,7 @@ export default function ModoInterprete({
   /** O que cada lado precisa para se desenhar, igual nas duas telas (frente a frente e conversa). */
   const dadosDoLado = (lado: LadoDoInterprete) => {
     const direcao = direcaoDoLado(lado, idiomas, atual.trocados);
-    const historico = historicoDoInterprete(falas, lado, { janela });
+    const historico = historicoDoInterprete(falas, lado, { janela, parcialDoOutro: chaveLigada('parcialTraduzido') });
     /* No automático a escuta não é de um lado: as duas metades dizem o mesmo, cada uma virada para
        quem a lê. */
     const escutando = atual.automatico && atual.fase === 'ouvindo';

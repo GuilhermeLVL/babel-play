@@ -7,7 +7,7 @@
 # Node 22 é o que o CI fixa (.github/workflows/ci.yml).
 
 # ─── build ────────────────────────────────────────────────────────────────────
-FROM node:22-slim AS build
+FROM node:26-slim AS build
 WORKDIR /app
 
 # Camada de dependências separada do código: só reinstala quando o lock muda.
@@ -94,7 +94,7 @@ RUN set -eu; \
     /usr/local/bin/litestream version
 
 # ─── runtime ──────────────────────────────────────────────────────────────────
-FROM node:22-slim AS runtime
+FROM node:26-slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 

@@ -209,6 +209,7 @@ import { CabecalhoDeTela, Dialogo, fecharDialogoDe } from '../ui';
 import VocabularyPanel from '../VocabularyPanel';
 import AjudaDoMicrofone from './captura/AjudaDoMicrofone';
 import AvisoDoTradutorLocal from './captura/AvisoDoTradutorLocal';
+import AvisoDoUsoDoDia from './captura/AvisoDoUsoDoDia';
 import CapturaNaoSalva from './captura/CapturaNaoSalva';
 import type { FonteDoQuest } from './captura/celular/CapturaNoCelular';
 import CapturaNoCelular from './captura/celular/CapturaNoCelular';
@@ -1971,6 +1972,10 @@ export default function LiveCapture({
         aoCriarConta={onEntrar}
         aoApagarGravacao={apagarGravacaoAntiga}
       />
+    ) : !isRecording && !abrindoCaptura ? (
+      /* O uso justo do DIA perto do fim: um recado só na captura PARADA (nunca durante a captura nem a
+         rodada), uma vez por dia — `lib/avisoDoUsoDoDia`. */
+      <AvisoDoUsoDoDia />
     ) : null;
 
   // Colar imagem (Ctrl+V) como capa enquanto o modal de encerramento está aberto.

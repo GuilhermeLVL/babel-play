@@ -28,6 +28,7 @@ import {
 import React, { useEffect, useState } from 'react';
 
 import { tetoAnonimoDa } from '../../core/tetoAnonimo';
+import { ehAdmin } from '../../lib/admin';
 import * as auth from '../../lib/auth';
 import { perfilDoDispositivo } from '../../lib/dispositivo/perfil';
 import {
@@ -49,7 +50,7 @@ import { usePerfil } from '../../lib/usePerfil';
 import type { ViewType } from '../../types';
 import { exigeConta } from '../conta/exigeConta';
 import { useListaDeNotificacoes } from './CentralDeNotificacoes';
-import { type AgeProfileType, NAV_ITEMS, navLabel } from './navItems';
+import { type AgeProfileType, ITEM_ADMIN, NAV_ITEMS, navLabel } from './navItems';
 import { MarcaBabel } from './ShellBits';
 
 /**
@@ -156,7 +157,7 @@ export default function TrilhoDoQuest({
   useEffect(() => instalarRespostaAoApontar(), []);
   const noTrilho = semConta ? NO_TRILHO_SEM_CONTA : NO_TRILHO;
   const principais = noTrilho.map((id) => NAV_ITEMS.find((i) => i.id === id)).filter((i) => !!i);
-  const outros = NAV_ITEMS.filter((i) => !noTrilho.includes(i.id));
+  const outros = [...NAV_ITEMS.filter((i) => !noTrilho.includes(i.id)), ...(ehAdmin(perfil) ? [ITEM_ADMIN] : [])];
   const foraDoTrilho = !noTrilho.includes(activeView);
 
   useEffect(() => setMaisAberto(false), [activeView]);

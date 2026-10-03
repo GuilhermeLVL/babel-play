@@ -3,7 +3,7 @@ import { type ComponentType, useEffect, useState } from 'react';
 /**
  * O RAMO DO QUEST QUE CHEGA SOB DEMANDA, SEM NUNCA RECARREGAR A PÁGINA.
  *
- * Cinco componentes do pacote inicial (`GateDeConta`, `PerguntaDeIdade`, `CartaoDeOferta`,
+ * Quatro componentes do pacote inicial (`PerguntaDeIdade`, `CartaoDeOferta`,
  * `AvisoDeConta`, `CardDePlanos`) têm o desenho do headset num arquivo à parte, para o CSS do Quest
  * não entrar no CSS inicial. `lazyComRecarga` não serve para eles: quando o pedaço não chega (aba
  * aberta de antes de um deploy, rede caída) ele RECARREGA a página, e um banner que aparece sozinho

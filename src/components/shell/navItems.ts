@@ -10,6 +10,7 @@ import {
   type LucideIcon,
   Mic,
   Settings as SettingsIcon,
+  ShieldCheck,
   Shirt,
 } from 'lucide-react';
 
@@ -144,6 +145,21 @@ const TODOS_OS_ITENS: NavItemDef[] = [
     secondary: true,
   },
 ];
+
+/**
+ * A ADMINISTRAÇÃO (`/admin`) — o item que só o papel admin vê.
+ *
+ * Fica FORA de `NAV_ITEMS` de propósito: aquela lista é o menu de todo mundo (e várias telas a leem
+ * para achar o nome de uma view). Quem desenha o menu acrescenta este item ao grupo "Mais" SÓ
+ * quando `useEhAdmin()` diz que sim. Esconder é conforto: a decisão real é do servidor (403).
+ */
+export const ITEM_ADMIN: NavItemDef = {
+  id: 'admin',
+  icon: ShieldCheck,
+  short: 'Administração',
+  labels: { kids: 'Administração', pro: 'Administração', senior: 'Administração' },
+  secondary: true,
+};
 
 /**
  * O rótulo, já no idioma da interface.

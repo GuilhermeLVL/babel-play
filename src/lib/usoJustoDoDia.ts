@@ -43,6 +43,11 @@ function lerAvisado(): string | null {
   return avisadoEm;
 }
 
+/** O recado do 429 já foi dado HOJE (neste aparelho e nesta aba)? Quem avisa por outro caminho não o repete. */
+export function jaAvisouUsoJustoHoje(agora: number = Date.now()): boolean {
+  return lerAvisado() === hoje(agora);
+}
+
 /** Registra quem quer saber (a captura aberta). Devolve a função que solta. */
 export function aoUsoJustoDoDia(ouvinte: Ouvinte): () => void {
   ouvintes.add(ouvinte);

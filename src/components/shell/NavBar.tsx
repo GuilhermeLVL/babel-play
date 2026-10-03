@@ -1,9 +1,10 @@
 import React from 'react';
 
+import { useEhAdmin } from '../../lib/adminAcesso';
 import type { DerivedProgress } from '../../lib/progress';
 import type { ViewType } from '../../types';
 import ControlCluster, { type ControlClusterProps } from './ControlCluster';
-import { type AgeProfileType,NAV_ITEMS, navLabel } from './navItems';
+import { type AgeProfileType, ITEM_ADMIN, NAV_ITEMS, navLabel } from './navItems';
 import { Brand } from './ShellBits';
 
 interface NavBarProps {
@@ -24,6 +25,7 @@ interface NavBarProps {
  * de quem mais precisa de espaço — justamente o público sênior.
  */
 export default function NavBar({ activeView, onChangeView, ageProfile, edge, controls }: NavBarProps) {
+  const ehAdmin = useEhAdmin();
   return (
     <header
       /* `data-shell` marca a MOLDURA. O Modo Desempenho precisa tornar estas superfícies opacas
@@ -39,7 +41,7 @@ export default function NavBar({ activeView, onChangeView, ageProfile, edge, con
       <Brand compact />
 
       <nav aria-label="Navegação principal" className="hidden md:flex items-center gap-0.5 min-w-0 flex-1 justify-center">
-        {NAV_ITEMS.map((item) => {
+        {(ehAdmin ? [...NAV_ITEMS, ITEM_ADMIN] : NAV_ITEMS).map((item) => {
           const isActive = activeView === item.id;
           const Icon = item.icon;
           // UM rótulo, o do perfil. Ter `aria-label="Praticar"` num botão escrito "Sessão" deixa o

@@ -98,11 +98,15 @@ function motivoDaResposta(res: Response, data: Record<string, unknown>): string 
   const erro = typeof data.error === 'string' ? data.error : undefined;
 
   if (code === 'quota_exceeded') {
-    return '**Você usou toda a IA de nuvem do seu plano neste mês.** Ela volta no dia 1º; a tradução e a transcrição locais continuam funcionando.';
+    return t(
+      '**Você usou toda a IA de nuvem do seu plano neste mês.** Ela volta no dia 1º; a tradução e a transcrição locais continuam funcionando.',
+    );
   }
   /* O uso justo do dia (matriz v2): é "hoje já deu", não "assine" — nenhuma venda a quem já assina. */
   if (code === 'uso_justo_do_dia') {
-    return '**A nuvem descansa até amanhã.** Você chegou ao uso justo de IA de nuvem de hoje; o tutor volta amanhã, e a tradução e a transcrição seguem no aparelho.';
+    return t(
+      '**A nuvem descansa até amanhã.** Você chegou ao uso justo de IA de nuvem de hoje; o tutor volta amanhã, e a tradução e a transcrição seguem no aparelho.',
+    );
   }
   if (
     reason === 'managed_requires_plan' ||
@@ -110,27 +114,32 @@ function motivoDaResposta(res: Response, data: Record<string, unknown>): string 
     res.status === 402 ||
     code === 'plano_insuficiente'
   ) {
-    return '**O tutor de IA faz parte dos planos pagos.** Você pode assinar em Ajustes → Plano.';
+    /* O destino é a tela Planos (`/plano`): Ajustes não tem aba de plano. O link é interno. */
+    return t('**O tutor de IA faz parte dos planos pagos.** Veja como assinar na tela [Planos](/plano).');
   }
   if (res.status === 503 || reason === 'nuvem_indisponivel') {
     // O servidor diz o motivo (IA desligada, orçamento do mês, contador fora do ar): mostrar é honesto.
-    return `**A IA de nuvem está indisponível agora.** ${erro ?? 'Tente de novo em alguns minutos.'}`;
+    return `${t('**A IA de nuvem está indisponível agora.**')} ${erro ?? t('Tente de novo em alguns minutos.')}`;
   }
   if (res.status === 413 || code === 'payload_grande') {
-    return '**O texto ficou grande demais para uma pergunta só.** Selecione um trecho menor da tela e tente de novo.';
+    return t(
+      '**O texto ficou grande demais para uma pergunta só.** Selecione um trecho menor da tela e tente de novo.',
+    );
   }
   if (res.status === 429 || code === 'rate_limit') {
-    return '**Muitas perguntas em pouco tempo.** Espere alguns segundos e tente de novo.';
+    return t('**Muitas perguntas em pouco tempo.** Espere alguns segundos e tente de novo.');
   }
   if (data.unavailable || reason === 'no_local_model') {
-    return '**IA local indisponível.** Instale o Ollama em [ollama.com](https://ollama.com) e rode `ollama run llama3.2` no terminal para ativar o tutor. Depois disso, é só me perguntar de novo!';
+    return t(
+      '**IA local indisponível.** Instale o Ollama em [ollama.com](https://ollama.com) e rode `ollama run llama3.2` no terminal para ativar o tutor. Depois disso, é só me perguntar de novo!',
+    );
   }
   if (!res.ok) {
     // Erro que a tela não conhece: mostrar o que o servidor disse é melhor que inventar um motivo.
-    return `**Não consegui responder agora.** ${erro ?? `O servidor respondeu ${res.status}.`}`;
+    return `${t('**Não consegui responder agora.**')} ${erro ?? t('O servidor respondeu {status}.', { status: res.status })}`;
   }
   if (!data.text) {
-    return '**Não veio resposta do modelo.** Tente perguntar de novo.';
+    return t('**Não veio resposta do modelo.** Tente perguntar de novo.');
   }
   return null;
 }
@@ -590,7 +599,9 @@ export default function IChat({
     if (!consentiuNuvem()) {
       responderNaConversa(id, {
         de: 'ia',
-        txt: '**O tutor usa IA de nuvem, e você ainda não autorizou.** Autorize em Ajustes → Privacidade → "Usar IA de nuvem" e pergunte de novo.',
+        txt: t(
+          '**O tutor usa IA de nuvem, e você ainda não autorizou.** Autorize em Ajustes → Privacidade → "Usar IA de nuvem" e pergunte de novo.',
+        ),
         erro: true,
       });
       return;
@@ -621,7 +632,7 @@ export default function IChat({
     } catch {
       responderNaConversa(id, {
         de: 'ia',
-        txt: '**Não consegui falar com o servidor agora.** Verifique a conexão e tente de novo.',
+        txt: t('**Não consegui falar com o servidor agora.** Verifique a conexão e tente de novo.'),
         erro: true,
       });
     }

@@ -15,6 +15,9 @@ import CartaoDeConvite from '../src/components/conta/CartaoDeConvite'
 import { motivoDoGate } from '../src/components/conta/exigeConta'
 import GateDeConta from '../src/components/conta/GateDeConta'
 import { urlDoAppCompleto } from '../src/lib/edicaoEstatica'
+import { prepararDialogoNoJsdom } from './_dialogoNoJsdom'
+
+prepararDialogoNoJsdom()
 
 afterEach(cleanup)
 

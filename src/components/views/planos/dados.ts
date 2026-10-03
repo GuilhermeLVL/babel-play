@@ -144,6 +144,16 @@ export const textoDoItem = (i: ItemDoPlano): string => t(i.texto, i.vars);
 /** A nota do item (o uso justo), ou `null`. */
 export const notaDoItem = (i: ItemDoPlano): string | null => (i.nota ? t(i.nota, i.vars) : null);
 
+/**
+ * O TEXTO DO USO JUSTO do Premium ("até 2 h de nuvem por dia e 40 h por mês; passando disso, a legenda
+ * segue no aparelho"): o MESMO do item "Nuvem sem limite no dia a dia" dos planos, para o medidor do
+ * dia (Consumo) dizer exatamente o que o cartão de planos disse, com as horas da matriz.
+ */
+export const notaDoUsoJusto = (): string => {
+  const item = PLANOS.find((p) => p.id === 'premium')?.itens.find((i) => i.nota);
+  return item ? (notaDoItem(item) ?? '') : '';
+};
+
 /** A frase com a nota entre parênteses — para as listas corridas (confirmação, cancelamento). */
 export function itemCompleto(i: ItemDoPlano): string {
   const nota = notaDoItem(i);

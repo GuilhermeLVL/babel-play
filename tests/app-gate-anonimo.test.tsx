@@ -19,6 +19,9 @@ import CartaoDeConvite from '../src/components/conta/CartaoDeConvite'
 import { EXIGE_CONTA, exigeConta, porta } from '../src/components/conta/exigeConta'
 import GateDeConta from '../src/components/conta/GateDeConta'
 import Login from '../src/components/Login'
+import { prepararDialogoNoJsdom } from './_dialogoNoJsdom'
+
+prepararDialogoNoJsdom()
 
 afterEach(cleanup)
 
@@ -79,10 +82,11 @@ describe('as telas do gate', () => {
     render(<GateDeConta aberto motivo="Importar do YouTube precisa de conta." onFechar={fechar} onEntrar={entrar} />)
     const dialogo = screen.getByRole('dialog')
     expect(dialogo.textContent).toContain('Importar do YouTube precisa de conta.')
-    fireEvent.keyDown(document, { key: 'Escape' })
-    expect(fechar).toHaveBeenCalledTimes(1)
     fireEvent.click(screen.getByRole('button', { name: 'Entrar ou criar conta' }))
     expect(entrar).toHaveBeenCalledTimes(1)
+    // O Esc é do <dialog> nativo: fecha e dispara `close`.
+    ;(dialogo as HTMLDialogElement).close()
+    expect(fechar).toHaveBeenCalledTimes(1)
   })
 
   it('fechado, o gate não renderiza nada', () => {

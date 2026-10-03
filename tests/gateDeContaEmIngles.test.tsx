@@ -16,6 +16,9 @@ import CartaoDeConvite from '../src/components/conta/CartaoDeConvite'
 import { CONVITE, motivoDoGate } from '../src/components/conta/exigeConta'
 import GateDeConta from '../src/components/conta/GateDeConta'
 import { registrarCatalogo, usarIdioma } from '../src/lib/i18n'
+import { prepararDialogoNoJsdom } from './_dialogoNoJsdom'
+
+prepararDialogoNoJsdom()
 
 /** Palavras que só aparecem no português destas telas. */
 const PORTUGUES = /\b(conta|Entrar|Continuar sem|precisa|Isto|você|sua|seu|navegador)\b/i

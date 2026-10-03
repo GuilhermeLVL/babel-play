@@ -32,13 +32,13 @@ export default function Etapas({ passos, atual }: { passos: string[]; atual: num
     );
 
   return (
-    <ol className="stepper" aria-label="Etapas">
+    <ol className="stepper" aria-label={t('Etapas')}>
       {passos.map((passo, i) => (
         <Fragment key={passo}>
           {i > 0 && <li className="traco" aria-hidden />}
           <li className={atual === i ? 'on' : atual > i ? 'feito' : ''} aria-current={atual === i ? 'step' : undefined}>
             <span>{atual > i ? <Check aria-hidden /> : i + 1}</span>
-            {passo}
+            {t(passo)}
           </li>
         </Fragment>
       ))}

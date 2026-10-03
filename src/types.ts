@@ -188,4 +188,6 @@ export type ViewType =
   | 'ajuda'
   /** O diagnóstico do aparelho (`/diagnostico`): o que o navegador entrega, medido nele. */
   | 'diagnostico'
+  /** A administração do dono (`/admin`): só para a conta com papel admin; o servidor decide de verdade. */
+  | 'admin'
   | 'naoencontrado';

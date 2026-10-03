@@ -68,7 +68,17 @@ import AbasDoQuest from './ajustes/quest/AbasDoQuest';
 import Assinado from './planos/Assinado';
 import Cancelar from './planos/Cancelar';
 import Checkout from './planos/Checkout';
-import { horasDoAlivio, irAjuda, irSub, notaDoItem, type Plano, PLANO_NOME, PLANOS, textoDoItem } from './planos/dados';
+import {
+  horasDoAlivio,
+  irAjuda,
+  irSub,
+  notaDoItem,
+  notaDoUsoJusto,
+  type Plano,
+  PLANO_NOME,
+  PLANOS,
+  textoDoItem,
+} from './planos/dados';
 import { DialogoCiclo, DialogoFatura, DialogoPagamento, DialogoPausar } from './planos/DialogosDaAssinatura';
 import FaixaDaConta from './planos/FaixaDaConta';
 import { entrarParaAssinar, useSemConta, useVendaAberta } from './planos/funil';
@@ -690,21 +700,27 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
   const semTeto = !!uso && uso.chamadas.teto === null;
   const mb = (bytes: number) => `${numero(Math.round(bytes / 1_048_576))} MB`;
   const arm = entitlements.armazenamento;
-  const consumo: [LucideIcon, string, string, number | null, string][] = uso
+  /* Cada linha: ícone, título, valor, fração do teto (`null` = sem teto), a unidade, e se é do DIA. As
+     unidades passam por `t()` aqui, no ponto de uso (a lista é montada a cada render, no idioma da tela). */
+  type LinhaDeConsumo = [LucideIcon, string, string, number | null, string, boolean];
+  const de = (valor: string) => t('de {valor}', { valor });
+  const consumo: LinhaDeConsumo[] = uso
     ? [
         [
           Clock,
           'Áudio transcrito na nuvem',
           duracaoLegivel(uso.segundosDeAudio.usado),
           fracao(uso.segundosDeAudio),
-          uso.segundosDeAudio.teto === null ? 'de áudio' : `de ${duracaoLegivel(uso.segundosDeAudio.teto)}`,
+          uso.segundosDeAudio.teto === null ? t('de áudio') : de(duracaoLegivel(uso.segundosDeAudio.teto)),
+          false,
         ],
         [
           Languages,
           'Chamadas à IA de nuvem',
           numero(uso.chamadas.usado),
           fracao(uso.chamadas),
-          uso.chamadas.teto === null ? 'chamadas' : `de ${numero(uso.chamadas.teto)}`,
+          uso.chamadas.teto === null ? t('chamadas') : de(numero(uso.chamadas.teto)),
+          false,
         ],
         /* Os tokens viraram TETO na Fase 2 do lançamento (antes só eram contados): a linha mostra o
            limite como as outras, em vez de "registrados só para acompanhar custo". */
@@ -713,7 +729,8 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
           'Tokens de IA (tradução e tutor)',
           numero(uso.tokensDeLlm.usado),
           fracao(uso.tokensDeLlm),
-          uso.tokensDeLlm.teto === null ? 'tokens' : `de ${numero(uso.tokensDeLlm.teto)}`,
+          uso.tokensDeLlm.teto === null ? t('tokens') : de(numero(uso.tokensDeLlm.teto)),
+          false,
         ],
         ...(arm
           ? [
@@ -722,12 +739,40 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
                 'Armazenamento',
                 mb(arm.usados),
                 fracao({ usado: arm.usados, teto: arm.teto }),
-                arm.teto === null ? 'usados' : `de ${mb(arm.teto)}`,
-              ] as [LucideIcon, string, string, number | null, string],
+                arm.teto === null ? t('usados') : de(mb(arm.teto)),
+                false,
+              ] as LinhaDeConsumo,
+            ]
+          : []),
+        /* HOJE (o uso justo do dia, matriz v2): o servidor manda `hoje` só para plano com teto no dia
+           (o Premium). Ao lado dos do mês, com o mesmo medidor; a nota do uso justo vem junto, abaixo. */
+        ...(uso.hoje
+          ? [
+              [
+                Clock,
+                'Nuvem hoje',
+                duracaoLegivel(uso.hoje.segundosDeAudio.usado),
+                fracao(uso.hoje.segundosDeAudio),
+                uso.hoje.segundosDeAudio.teto === null
+                  ? t('de áudio')
+                  : de(duracaoLegivel(uso.hoje.segundosDeAudio.teto)),
+                true,
+              ] as LinhaDeConsumo,
+              [
+                Languages,
+                'IA hoje (tradução e tutor)',
+                numero(uso.hoje.tokensDeLlm.usado),
+                fracao(uso.hoje.tokensDeLlm),
+                uso.hoje.tokensDeLlm.teto === null ? t('tokens') : de(numero(uso.hoje.tokensDeLlm.teto)),
+                true,
+              ] as LinhaDeConsumo,
             ]
           : []),
       ]
     : [];
+  /* A nota do uso justo, com a primeira letra em maiúscula (nos planos ela é a legenda de um item). */
+  const notaDoDia = uso?.hoje ? notaDoUsoJusto() : '';
+  const notaDoDiaTexto = notaDoDia ? notaDoDia.charAt(0).toLocaleUpperCase() + notaDoDia.slice(1) : '';
 
   const selfhost = conta.estado === 'selfhost';
 
@@ -1054,38 +1099,53 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
             </div>
           ) : (
             <>
-              <div className="q-grade g2">
-                {consumo.map(([I, titulo, valor, f, unidade]) => (
-                  <div key={titulo} className="q-cartao qc-consumo">
-                    <div className="qc-consumo-titulo">
-                      <span className="q-ic">
-                        <I aria-hidden />
-                      </span>
-                      <h3>{t(titulo)}</h3>
-                    </div>
-                    <div className="qc-consumo-valor">
-                      <b>{valor}</b>
-                      <span>
-                        {unidade} · {f === null ? t('sem limite') : t('do limite do plano')}
-                      </span>
-                    </div>
-                    {/* Sem teto NÃO vira barra vazia: uma barra a 0 pareceria "nada usado". */}
-                    {f !== null && (
-                      <div
-                        className="q-barra"
-                        role="progressbar"
-                        aria-valuenow={Math.round(f * 100)}
-                        aria-valuemin={0}
-                        aria-valuemax={100}
-                        aria-label={t(titulo)}
-                        aria-valuetext={`${valor} ${unidade}`}
-                      >
-                        <span style={{ width: `${Math.max(0, Math.min(1, f)) * 100}%` }} />
-                      </div>
+              {/* O mês primeiro; o DIA (uso justo) logo abaixo, com o mesmo medidor. */}
+              {[false, true].map((doDia) => {
+                const linhas = consumo.filter((l) => l[5] === doDia);
+                if (!linhas.length) return null;
+                return (
+                  <section key={String(doDia)} className="q-secao">
+                    {doDia && (
+                      <header>
+                        <h3>{t('Hoje')}</h3>
+                      </header>
                     )}
-                  </div>
-                ))}
-              </div>
+                    <div className="q-grade g2">
+                      {linhas.map(([I, titulo, valor, f, unidade, dia]) => (
+                        <div key={titulo} className="q-cartao qc-consumo">
+                          <div className="qc-consumo-titulo">
+                            <span className="q-ic">
+                              <I aria-hidden />
+                            </span>
+                            <h3>{t(titulo)}</h3>
+                          </div>
+                          <div className="qc-consumo-valor">
+                            <b>{valor}</b>
+                            <span>
+                              {unidade} ·{' '}
+                              {f === null ? t('sem limite') : dia ? t('do limite de hoje') : t('do limite do plano')}
+                            </span>
+                          </div>
+                          {/* Sem teto NÃO vira barra vazia: uma barra a 0 pareceria "nada usado". */}
+                          {f !== null && (
+                            <div
+                              className="q-barra"
+                              role="progressbar"
+                              aria-valuenow={Math.round(f * 100)}
+                              aria-valuemin={0}
+                              aria-valuemax={100}
+                              aria-label={t(titulo)}
+                              aria-valuetext={`${valor} ${unidade}`}
+                            >
+                              <span style={{ width: `${Math.max(0, Math.min(1, f)) * 100}%` }} />
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                );
+              })}
               <div className="q-cartao fundo qc-janela">
                 <span className="q-ic">{semTeto ? <Infinito aria-hidden /> : <Gauge aria-hidden />}</span>
                 <div>
@@ -1099,6 +1159,11 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
                           'Zera na virada do mês. Transcrição, tradução e tutor dividem o limite de chamadas: cada fala transcrita e traduzida usa duas. Tradução e tutor também dividem o limite de tokens. A cota de transcrição conta os segundos reais de fala.',
                         )}
                   </p>
+                  {notaDoDiaTexto && (
+                    <p data-testid="uso-justo-do-dia">
+                      {notaDoDiaTexto}. {t('O uso do dia zera à meia-noite, no fuso da sua conta.')}
+                    </p>
+                  )}
                   {uso.iaDeNuvem && !uso.iaDeNuvem.disponivel && uso.iaDeNuvem.mensagem && (
                     <p role="status">{uso.iaDeNuvem.mensagem}</p>
                   )}
@@ -1266,63 +1331,88 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
           <div className="cartao">
             <div className="vazio">
               <IconeEmBloco icone={Gauge} />
-              <h3>Carregando…</h3>
-              <p>Buscando os contadores deste mês no servidor.</p>
+              <h3>{t('Carregando…')}</h3>
+              <p>{t('Buscando os contadores deste mês no servidor.')}</p>
             </div>
           </div>
         ) : !uso ? (
           <div className="cartao">
             <div className="vazio">
               <IconeEmBloco icone={Gauge} tom="warn" />
-              <h3>Consumo indisponível</h3>
+              <h3>{t('Consumo indisponível')}</h3>
               <p>
-                Não consegui falar com o servidor agora. Isto NÃO significa consumo zero — significa que não sei o
-                número.
+                {t(
+                  'Não consegui falar com o servidor agora. Isto NÃO significa consumo zero — significa que não sei o número.',
+                )}
               </p>
             </div>
           </div>
         ) : (
           <>
-            <div className="ladrilhos">
-              {consumo.map(([I, titulo, valor, f, unidade]) => (
-                <div key={titulo} className="cartao p5 consumo">
-                  <TituloDeSecao icone={I} titulo={<span style={{ fontWeight: 700 }}>{titulo}</span>} nivel="h3" />
-                  <div className="linha" style={{ alignItems: 'baseline', gap: 6 }}>
-                    <b className="tn" style={{ font: '900 28px var(--font-display)' }}>
-                      {valor}
-                    </b>
-                    <span className="mut">
-                      {unidade} · {f === null ? 'sem limite' : 'do limite do plano'}
-                    </span>
-                  </div>
-                  {/* Sem teto NÃO vira barra vazia: uma barra a 0 pareceria "nada usado". O nome
+            {/* O mês primeiro; o DIA (uso justo) logo abaixo, com o mesmo medidor. */}
+            {[false, true].map((doDia) => {
+              const linhas = consumo.filter((l) => l[5] === doDia);
+              if (!linhas.length) return null;
+              return (
+                <div key={String(doDia)} className="pilha" style={doDia ? { marginTop: 18 } : undefined}>
+                  {doDia && <span className="label-mono">{t('Hoje')}</span>}
+                  <div className="ladrilhos">
+                    {linhas.map(([I, titulo, valor, f, unidade, dia]) => (
+                      <div key={titulo} className="cartao p5 consumo">
+                        <TituloDeSecao
+                          icone={I}
+                          titulo={<span style={{ fontWeight: 700 }}>{t(titulo)}</span>}
+                          nivel="h3"
+                        />
+                        <div className="linha" style={{ alignItems: 'baseline', gap: 6 }}>
+                          <b className="tn" style={{ font: '900 28px var(--font-display)' }}>
+                            {valor}
+                          </b>
+                          <span className="mut">
+                            {unidade} ·{' '}
+                            {f === null ? t('sem limite') : dia ? t('do limite de hoje') : t('do limite do plano')}
+                          </span>
+                        </div>
+                        {/* Sem teto NÃO vira barra vazia: uma barra a 0 pareceria "nada usado". O nome
                       acessível diz o número, não uma porcentagem (a barra já anuncia o valor). */}
-                  {f !== null && (
-                    <div
-                      className="barra"
-                      style={{ marginTop: 12 }}
-                      role="progressbar"
-                      aria-valuenow={Math.round(f * 100)}
-                      aria-valuemin={0}
-                      aria-valuemax={100}
-                      aria-label={titulo}
-                      aria-valuetext={`${valor} ${unidade}`}
-                    >
-                      <span style={{ width: `${f * 100}%` }} />
-                    </div>
-                  )}
+                        {f !== null && (
+                          <div
+                            className="barra"
+                            style={{ marginTop: 12 }}
+                            role="progressbar"
+                            aria-valuenow={Math.round(f * 100)}
+                            aria-valuemin={0}
+                            aria-valuemax={100}
+                            aria-label={t(titulo)}
+                            aria-valuetext={`${valor} ${unidade}`}
+                          >
+                            <span style={{ width: `${f * 100}%` }} />
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              ))}
-            </div>
+              );
+            })}
             <div className="cartao secao">
               <div className="vazio">
                 <IconeEmBloco icone={semTeto ? Infinito : Gauge} />
-                <h3>{semTeto ? 'No self-host não há cota' : `Janela ${uso.janela}`}</h3>
+                <h3>{semTeto ? t('No self-host não há cota') : t('Janela {janela}', { janela: uso.janela })}</h3>
                 <p>
                   {semTeto
-                    ? 'Os números acima são só para você acompanhar; o custo da IA de nuvem é seu, pela sua própria chave. Os limites valem nos planos em nuvem.'
-                    : 'Zera na virada do mês. Transcrição, tradução e tutor dividem o limite de chamadas: cada fala transcrita e traduzida usa duas. Tradução e tutor também dividem o limite de tokens. A cota de transcrição conta os segundos reais de fala.'}
+                    ? t(
+                        'Os números acima são só para você acompanhar; o custo da IA de nuvem é seu, pela sua própria chave. Os limites valem nos planos em nuvem.',
+                      )
+                    : t(
+                        'Zera na virada do mês. Transcrição, tradução e tutor dividem o limite de chamadas: cada fala transcrita e traduzida usa duas. Tradução e tutor também dividem o limite de tokens. A cota de transcrição conta os segundos reais de fala.',
+                      )}
                 </p>
+                {notaDoDiaTexto && (
+                  <p data-testid="uso-justo-do-dia">
+                    {notaDoDiaTexto}. {t('O uso do dia zera à meia-noite, no fuso da sua conta.')}
+                  </p>
+                )}
                 {/* O portão GLOBAL (chave de emergência ou orçamento do mês): sem esta linha, a nuvem
                     fechada parecia defeito do plano do assinante. */}
                 {uso.iaDeNuvem && !uso.iaDeNuvem.disponivel && uso.iaDeNuvem.mensagem && (

@@ -23,6 +23,7 @@ const Estatisticas = lazyComRecarga(() => import('./components/views/Estatistica
 const Ajuda = lazyComRecarga(() => import('./components/views/Ajuda'));
 const Diagnostico = lazyComRecarga(() => import('./components/views/Diagnostico'));
 const NaoEncontrado = lazyComRecarga(() => import('./components/views/NaoEncontrado'));
+const Admin = lazyComRecarga(() => import('./components/views/Admin'));
 const Loja = lazyComRecarga(() => import('./components/views/Loja'));
 // As telas do Meta Quest: só o headset as baixa.
 const TrilhoDoQuest = lazyComRecarga(() => import('./components/shell/TrilhoDoQuest'));
@@ -52,14 +53,21 @@ const AvisoDePagamentoAtrasado = lazyComRecarga(() => import('./components/conta
 // quando há dados no aparelho para subir depois de um login.
 const AvisoDoResponsavel = lazyComRecarga(() => import('./components/conta/AvisoDoResponsavel'));
 const ModalDeMigracao = lazyComRecarga(() => import('./components/conta/ModalDeMigracao'));
-import BuscaGlobal from './components/BuscaGlobal';
-import CartaoDeConvite from './components/conta/CartaoDeConvite';
+// Fora do pacote inicial (teto de 180 KB gzip): a pergunta da idade e o convite SUBSTITUEM a tela, como
+// o login; o gate de conta e o host das ofertas aparecem POR CIMA do que a pessoa faz, e um chunk que
+// falha não pode recarregar a página no meio de uma captura. Estes dois descem por `usePedacoDoQuest`
+// (a falha é só um estado: nada aparece e nada recarrega; o resto do app já degrada sozinho).
+const PerguntaDeIdade = lazyComRecarga(() => import('./components/conta/PerguntaDeIdade'));
+const CartaoDeConvite = lazyComRecarga(() => import('./components/conta/CartaoDeConvite'));
+const carregarGateDeConta = () => import('./components/conta/GateDeConta');
+/* A busca global (Ctrl+K) só desce quando abre pela primeira vez: o atalho e o estado vivem em
+   `useCommandPalette`, e a lista de destinos, o filtro e os ícones não precisam estar no pacote inicial. */
+const carregarBuscaGlobal = () => import('./components/BuscaGlobal');
+const carregarHostDeOfertas = () => import('./components/ofertas/HostDeOfertas');
 import { aceitarAnonimo, exigeConta, porta } from './components/conta/exigeConta';
-import GateDeConta from './components/conta/GateDeConta';
-import PerguntaDeIdade from './components/conta/PerguntaDeIdade';
+import { usePedacoDoQuest } from './components/conta/quest/usePedacoDoQuest';
 import FloatingScoreLayer from './components/FloatingScoreLayer';
 import IndicadorDeSalvamento from './components/IndicadorDeSalvamento';
-import HostDeOfertas from './components/ofertas/HostDeOfertas';
 import ParticleCanvas from './components/ParticleCanvas';
 import MobileNav from './components/shell/MobileNav';
 import MobileTopBar from './components/shell/MobileTopBar';
@@ -131,6 +139,10 @@ export default function App() {
     setMigracao,
     fecharGate,
   } = useGateDeConta({ adiarMigracao: emCheckout });
+  /* O gate só desce quando o evento `babel_exige_conta` abre (gate !== null); o host das ofertas
+     desce já no primeiro desenho, porque escuta eventos desde o começo. */
+  const { Componente: GateDeConta } = usePedacoDoQuest(carregarGateDeConta, gate !== null);
+  const { Componente: HostDeOfertas } = usePedacoDoQuest(carregarHostDeOfertas, !edicaoEstatica());
 
   const {
     theme,
@@ -161,6 +173,7 @@ export default function App() {
     setDarkMode,
     setAgeProfileState,
   } = useAparencia();
+  const { Componente: BuscaGlobal } = usePedacoDoQuest(carregarBuscaGlobal, buscaAberta);
 
   useEffect(() => {
     void carregarRecompensaDesbloqueada().catch(() => undefined);
@@ -387,7 +400,9 @@ export default function App() {
   if (authRequired && idDaConta && protecao && !protecao.nascimentoInformado && !emCheckout) {
     return (
       <>
-        <PerguntaDeIdade aoConcluir={() => void carregarProtecao()} />
+        <Suspense fallback={null}>
+          <PerguntaDeIdade aoConcluir={() => void carregarProtecao()} />
+        </Suspense>
         <Toaster />
       </>
     );
@@ -704,6 +719,9 @@ export default function App() {
             )}
             {activeView === 'ajuda' && <Ajuda />}
             {activeView === 'diagnostico' && <Diagnostico />}
+            {activeView === 'admin' && (
+              <Admin onChangeView={(v) => navigateTo(v as ViewType)} onBuscar={() => setBuscaAberta(true)} />
+            )}
             {activeView === 'naoencontrado' && (
               <NaoEncontrado onChangeView={(v) => navigateTo(v as ViewType)} onBuscar={() => setBuscaAberta(true)} />
             )}
@@ -783,15 +801,17 @@ export default function App() {
           É o que elimina o maior atrito da app, antes, para praticar um trecho, o usuário tinha de
           sair da tela, achar a Central de Exercícios (que nem view de primeiro nível era) e ainda
           assim o exercício rodava num texto fixo, não no dele. Agora o conteúdo vai até o exercício. */}
-        <GateDeConta
-          aberto={gate !== null}
-          motivo={gate ?? ''}
-          onFechar={fecharGate}
-          onEntrar={() => {
-            fecharGate();
-            setPedindoLogin(true);
-          }}
-        />
+        {GateDeConta && (
+          <GateDeConta
+            aberto={gate !== null}
+            motivo={gate ?? ''}
+            onFechar={fecharGate}
+            onEntrar={() => {
+              fecharGate();
+              setPedindoLogin(true);
+            }}
+          />
+        )}
         {migracao && (
           <Suspense fallback={null}>
             <ModalDeMigracao
@@ -862,16 +882,18 @@ export default function App() {
           posições de menu montam shells diferentes, e um diálogo que muda de dono conforme a
           posição escolhida seria quatro comportamentos para manter. O gatilho visual mora no
           `ControlCluster`, que é a peça que todas elas compartilham. */}
-      <BuscaGlobal
-        aberta={buscaAberta}
-        aoFechar={() => setBuscaAberta(false)}
-        recordings={recordings}
-        aoNavegar={navigateTo}
-        vencidasAgora={metrics?.dueToday ?? null}
-        escuro={darkMode}
-        aoAlternarTema={toggleDarkMode}
-        perfil={ageProfile}
-      />
+      {BuscaGlobal && (
+        <BuscaGlobal
+          aberta={buscaAberta}
+          aoFechar={() => setBuscaAberta(false)}
+          recordings={recordings}
+          aoNavegar={navigateTo}
+          vencidasAgora={metrics?.dueToday ?? null}
+          escuro={darkMode}
+          aoAlternarTema={toggleDarkMode}
+          perfil={ageProfile}
+        />
+      )}
 
       {/* Host único dos avisos e das confirmações. Sem ele, `toast()` e `askConfirm()` não têm onde
           aparecer, e os erros voltam a ser invisíveis, que é o bug que eles existem para corrigir. */}
@@ -880,7 +902,7 @@ export default function App() {
       {/* Host único das ofertas de planos (Fase 8): banner, aviso de cota e modal, um por vez, nunca
           sobre captura, rodada ou outra celebração. Ver `components/ofertas/HostDeOfertas`. */}
       {/* Edição estática: não há plano nem conta a oferecer — o host nem monta. */}
-      {!edicaoEstatica() && (
+      {!edicaoEstatica() && HostDeOfertas && (
         <HostDeOfertas aoEntrar={() => setPedindoLogin(true)} aoVerPlanos={() => navigateTo('planos')} />
       )}
     </div>

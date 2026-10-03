@@ -37,6 +37,7 @@ import { createSession, deleteSession, fetchSessions, patchSessionMeta, updateSe
 import { noHeadset, useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { getEntitlements, onPlanChange } from '../../lib/entitlements';
 import { numero } from '../../lib/i18n';
+import { t } from '../../lib/i18n';
 import {
   type Entrada,
   type FonteDeImportacao,
@@ -46,6 +47,7 @@ import {
 } from '../../lib/import/filaDeImportacao';
 import { fetchLangConfig } from '../../lib/langConfig';
 import { usePosicaoFlutuante } from '../../lib/posicaoFlutuante';
+import { T } from '../../lib/T';
 import { Recording } from '../../types';
 import EditablePanel from '../EditablePanel';
 import { toast } from '../Toast';
@@ -532,19 +534,21 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
           </div>
 
           {showImport && (
-            <section className="cartao p6 importar entra" aria-label="Importar para análise">
+            <section className="cartao p6 importar entra" aria-label={t('Importar para análise')}>
               <div className="entre">
                 <div className="tsec-t">
                   <Plus aria-hidden />
-                  <h2 style={{ fontSize: 18, fontWeight: 700 }}>Importar para análise</h2>
+                  <h2 style={{ fontSize: 18, fontWeight: 700 }}>{t('Importar para análise')}</h2>
                 </div>
                 <button type="button" className="btn btn-outline peq" onClick={fecharImportar}>
-                  Cancelar
+                  {t('Cancelar')}
                 </button>
               </div>
               <p className="mut" style={{ fontSize: 13, margin: '6px 0 16px', maxWidth: '72ch' }}>
-                Vídeo do YouTube, documento, artigo da web ou áudio local: vira uma sessão com transcrição e
-                vocabulário. O idioma é <b style={{ color: 'var(--ink)' }}>detectado do conteúdo</b>, nunca inventado.
+                <T
+                  txt="Vídeo do YouTube, documento, artigo da web ou áudio local: vira uma sessão com transcrição e vocabulário. O idioma é <b>detectado do conteúdo</b>, nunca inventado."
+                  tags={{ b: <b style={{ color: 'var(--ink)' }} /> }}
+                />
               </p>
               <div className="fontes">
                 {FONTES.map((f) => (
@@ -567,7 +571,7 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
                           <>
                             {' '}
                             <span className="badge warn" style={{ marginLeft: 4 }}>
-                              Self-host
+                              {t('Self-host')}
                             </span>
                           </>
                         )}
@@ -595,8 +599,10 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
                     <div className="aviso-info" style={{ flex: 1 }}>
                       <Lock aria-hidden />
                       <span>
-                        Importar do YouTube só existe no <b style={{ color: 'var(--ink)' }}>self-host</b>: o download
-                        roda no servidor de quem hospeda. Aqui, toque o vídeo e use Capturar com o áudio do sistema.
+                        <T
+                          txt="Importar do YouTube só existe no <b>self-host</b>: o download roda no servidor de quem hospeda. Aqui, toque o vídeo e use Capturar com o áudio do sistema."
+                          tags={{ b: <b style={{ color: 'var(--ink)' }} /> }}
+                        />
                       </span>
                     </div>
                   ) : importSource === 'youtube' || importSource === 'web' ? (

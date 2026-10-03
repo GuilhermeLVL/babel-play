@@ -813,22 +813,20 @@ describe('Cancelar no Quest', () => {
 
 /* ═════════════════════════════════════════ AVISOS ═════════════════════════════════════════ */
 describe('Os avisos de conta no Quest', () => {
-  it('"Isto precisa de conta": no centro, com as três saídas; o Esc fecha', async () => {
+  it('"Isto precisa de conta": o Dialogo do app, com as três saídas; o Esc fecha', async () => {
     const aoFechar = vi.fn()
     const aoEntrar = vi.fn()
     render(<GateDeConta aberto motivo="Importar precisa de conta." onFechar={aoFechar} onEntrar={aoEntrar} />)
-    // Entre o toque e a chegada do desenho do headset, a tela responde: uma espera visível.
-    expect(screen.getByRole('status').textContent).toContain('Carregando…')
     const caixa = await screen.findByRole('dialog', { name: 'Isto precisa de conta' })
-    expect(caixa.className).toContain('qc-caixa')
+    expect(caixa.tagName).toBe('DIALOG')
     expect(caixa.textContent).toContain('Importar precisa de conta.')
     await waitFor(() => expect(document.activeElement).toBe(botao('Entrar ou criar conta')))
     fireEvent.click(botao('Entrar ou criar conta'))
     expect(aoEntrar).toHaveBeenCalledTimes(1)
     fireEvent.click(botao('Continuar sem conta'))
+    expect(aoFechar).toHaveBeenCalledTimes(1)
     fireEvent.click(botao('Fechar'))
-    fireEvent.keyDown(document, { key: 'Escape' })
-    expect(aoFechar).toHaveBeenCalledTimes(3)
+    await waitFor(() => expect(aoFechar).toHaveBeenCalledTimes(2))
   })
 
   it('"Isto precisa de conta" na edição estática: informa e a única saída é fechar', async () => {
@@ -843,14 +841,16 @@ describe('Os avisos de conta no Quest', () => {
     expect(aoFechar).toHaveBeenCalledTimes(1)
   })
 
-  it('fechado, o aviso não existe; fora do Quest, o modal de sempre', () => {
+  it('fechado, o aviso não existe; aberto, é o mesmo nos dois desenhos', () => {
     const { container, rerender } = render(
       <GateDeConta aberto={false} motivo="" onFechar={() => {}} onEntrar={() => {}} />,
     )
     expect(container.firstChild).toBeNull()
+    rerender(<GateDeConta aberto motivo="x" onFechar={() => {}} onEntrar={() => {}} />)
+    const noQuest = screen.getByRole('dialog').outerHTML
     quest.ligado = false
     rerender(<GateDeConta aberto motivo="x" onFechar={() => {}} onEntrar={() => {}} />)
-    expect(screen.getByRole('dialog').className).toContain('card-panel')
+    expect(screen.getByRole('dialog').outerHTML).toBe(noQuest)
   })
 
   it('o aviso por marco de uso: as duas saídas e a dispensa', async () => {
@@ -1010,7 +1010,6 @@ describe('Quando o desenho do headset não chega', () => {
     vi.resetModules()
   })
   afterEach(() => {
-    vi.doUnmock('../src/components/conta/quest/GateDeContaDoQuest')
     vi.doUnmock('../src/components/conta/quest/FaixaDeAvisoDoQuest')
     vi.doUnmock('../src/components/ofertas/quest/CartaoDeOfertaDoQuest')
   })
@@ -1018,9 +1017,8 @@ describe('Quando o desenho do headset não chega', () => {
     throw new Error('Failed to fetch dynamically imported module')
   }
 
-  it('nenhum dos cinco usa o `lazy` que recarrega a página quando o arquivo falha', () => {
+  it('nenhum dos quatro usa o `lazy` que recarrega a página quando o arquivo falha', () => {
     for (const arquivo of [
-      'src/components/conta/GateDeConta.tsx',
       'src/components/conta/PerguntaDeIdade.tsx',
       'src/components/conta/AvisoDeConta.tsx',
       'src/components/CardDePlanos.tsx',
@@ -1030,17 +1028,6 @@ describe('Quando o desenho do headset não chega', () => {
       expect(fonte, arquivo).not.toContain('lazyComRecarga')
       expect(fonte, arquivo).toContain('usePedacoDoQuest')
     }
-  })
-
-  it('"Isto precisa de conta" cai no aviso de sempre, com as mesmas saídas', async () => {
-    vi.doMock('../src/components/conta/quest/GateDeContaDoQuest', falhar)
-    const { default: Gate } = await import('../src/components/conta/GateDeConta')
-    const aoEntrar = vi.fn()
-    render(<Gate aberto motivo="Importar precisa de conta." onFechar={() => {}} onEntrar={aoEntrar} />)
-    const caixa = await screen.findByRole('dialog', { name: 'Isto precisa de conta' })
-    expect(caixa.className).toContain('card-panel')
-    fireEvent.click(botao('Entrar ou criar conta'))
-    expect(aoEntrar).toHaveBeenCalledTimes(1)
   })
 
   it('a oferta cai no cartão de sempre, e o Esc continua dispensando', async () => {

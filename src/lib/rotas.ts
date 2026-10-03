@@ -35,6 +35,7 @@ export type ViewDeRota =
   | 'estatisticas'
   | 'ajuda'
   | 'diagnostico'
+  | 'admin'
   | 'naoencontrado';
 
 /** As duas áreas clássicas de Personalizar (sem a flag `recompensas_v2`). */
@@ -93,6 +94,7 @@ const SEGMENTO: Record<Exclude<ViewDeRota, 'analysis'>, string> = {
   estatisticas: 'estatisticas',
   ajuda: 'ajuda',
   diagnostico: 'diagnostico',
+  admin: 'admin',
   naoencontrado: 'nao-encontrado',
 };
 

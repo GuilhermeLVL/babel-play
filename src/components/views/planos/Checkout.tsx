@@ -479,7 +479,7 @@ export default function Checkout({
     <section className="cartao p6">
       <TesteDoPremium teste={status?.teste} beneficiario={beneficiario} />
       <fieldset className="escolha">
-        <legend className="label-mono">Plano</legend>
+        <legend className="label-mono">{t('Plano')}</legend>
         <div className="opcoes">
           {PLANOS_PAGOS.map((id) => (
             <button
@@ -514,7 +514,7 @@ export default function Checkout({
         </div>
       </fieldset>
       <fieldset className="escolha">
-        <legend className="label-mono">Como você quer pagar</legend>
+        <legend className="label-mono">{t('Como você quer pagar')}</legend>
         <div className="opcoes">
           {FORMAS_DE_ASSINAR.map((f) => {
             const x = textosDaForma(plano, f);
@@ -545,7 +545,7 @@ export default function Checkout({
       </fieldset>
       <div className="linha" style={{ justifyContent: 'flex-end', marginTop: 8 }}>
         <button type="button" className="btn btn-solid" onClick={() => irPasso(2)}>
-          <ArrowRight aria-hidden /> Ir para o pagamento
+          <ArrowRight aria-hidden /> {t('Ir para o pagamento')}
         </button>
       </div>
     </section>
@@ -554,34 +554,36 @@ export default function Checkout({
   const aguardando = link && (
     <div className="entra">
       <p className="aguarda">
-        <LoaderCircle className="gira" aria-hidden /> Aguardando a confirmação do pagamento…
+        <LoaderCircle className="gira" aria-hidden /> {t('Aguardando a confirmação do pagamento…')}
       </p>
       <p className="mut" style={{ fontSize: 13.5, margin: '4px 0 10px' }}>
-        Abrimos a página de pagamento do Asaas numa nova aba. Assim que o pagamento confirmar, o {P} libera sozinho e
-        esta tela avança. Boleto pode levar até 2 dias úteis.
+        {t(
+          'Abrimos a página de pagamento do Asaas numa nova aba. Assim que o pagamento confirmar, o {plano} libera sozinho e esta tela avança. Boleto pode levar até 2 dias úteis.',
+          { plano: P },
+        )}
       </p>
       <button type="button" className="link" onClick={() => window.open(link, '_blank', 'noopener')}>
-        Abrir a página de pagamento de novo
+        {t('Abrir a página de pagamento de novo')}
       </button>
     </div>
   );
 
-  const rotuloPagar = link ? 'Aguardando o pagamento…' : ocupado ? 'Processando…' : daForma.pagar;
+  const rotuloPagar = link ? t('Aguardando o pagamento…') : ocupado ? t('Processando…') : daForma.pagar;
 
   const passo2 = bloqueio ? (
     <section className="cartao p6">
       <div className="vazio">
         <IconeEmBloco icone={semConta ? UserRound : CreditCard} />
-        <h3>{bloqueio[0]}</h3>
-        <p>{bloqueio[1]}</p>
+        <h3>{t(bloqueio[0])}</h3>
+        <p>{t(bloqueio[1])}</p>
       </div>
       <div className="linha" style={{ justifyContent: 'space-between', gap: 10, marginTop: 16, flexWrap: 'wrap' }}>
         <button type="button" className="btn btn-outline" onClick={() => irPasso(1)}>
-          <ArrowLeft aria-hidden /> Voltar
+          <ArrowLeft aria-hidden /> {t('Voltar')}
         </button>
         {temAssinatura(conta.estado) && (
           <button type="button" className="btn btn-solid" onClick={() => irSub('assinatura')}>
-            Ver minha assinatura
+            {t('Ver minha assinatura')}
           </button>
         )}
         {bloqueio[0] === 'Entre na sua conta para assinar' && (
@@ -597,10 +599,12 @@ export default function Checkout({
         <p className="aviso-info" style={{ marginBottom: 12 }}>
           <UserRound aria-hidden />
           <span>
-            Você está assinando para <b>{beneficiario.nome ?? 'a conta vinculada a você'}</b>, como responsável. O plano
-            vale na conta dele.{' '}
+            <T
+              txt="Você está assinando para <b>{nome}</b>, como responsável. O plano vale na conta dele."
+              val={{ nome: beneficiario.nome ?? t('a conta vinculada a você') }}
+            />{' '}
             <button type="button" className="link" onClick={assinarParaMim} disabled={!!link}>
-              Assinar para mim
+              {t('Assinar para mim')}
             </button>
           </span>
         </p>
@@ -614,23 +618,27 @@ export default function Checkout({
               {t('Você escolhe Pix, cartão ou boleto na página segura do Asaas.')}
             </p>
             <p className="nota-seg">
-              <Lock aria-hidden /> O número do cartão você digita na página segura do Asaas, que abre quando você
-              continuar. O Babel Play não vê nem guarda esses dados.
+              <Lock aria-hidden />{' '}
+              {t(
+                'O número do cartão você digita na página segura do Asaas, que abre quando você continuar. O Babel Play não vê nem guarda esses dados.',
+              )}
             </p>
           </>
         )}
       </div>
       <div className="grid-form" style={{ marginTop: 6 }}>
-        {campo('nome', 'Nome completo', 'Como está no documento', { autoComplete: 'name', readOnly: !!link })}
-        {campo('cpf', 'CPF', '000.000.000-00', { inputMode: 'numeric', maxLength: 14, readOnly: !!link })}
-        {campo('email', 'E-mail para o recibo', 'voce@exemplo.com', {
+        {campo('nome', t('Nome completo'), t('Como está no documento'), { autoComplete: 'name', readOnly: !!link })}
+        {campo('cpf', t('CPF'), '000.000.000-00', { inputMode: 'numeric', maxLength: 14, readOnly: !!link })}
+        {campo('email', t('E-mail para o recibo'), t('voce@exemplo.com'), {
           type: 'email',
           autoComplete: 'email',
           readOnly: !!link,
         })}
       </div>
       <p className="mut" style={{ fontSize: 12, marginTop: -6 }}>
-        O CPF é exigido para emitir a cobrança. Ele vai direto para o processador de pagamento, não fica no nosso banco.
+        {t(
+          'O CPF é exigido para emitir a cobrança. Ele vai direto para o processador de pagamento, não fica no nosso banco.',
+        )}
       </p>
       {pedirIdade && (
         <div className="entra" style={{ marginTop: 12 }}>
@@ -673,7 +681,7 @@ export default function Checkout({
       )}
       <div className="linha" style={{ justifyContent: 'space-between', gap: 10, marginTop: 16, flexWrap: 'wrap' }}>
         <button type="button" className="btn btn-outline" onClick={() => irPasso(1)} disabled={!!link}>
-          <ArrowLeft aria-hidden /> Voltar
+          <ArrowLeft aria-hidden /> {t('Voltar')}
         </button>
         <button
           type="button"
@@ -688,9 +696,10 @@ export default function Checkout({
         {/* O que cada forma AUTORIZA. Depois dos 7 dias, o anual e o 12x não devolvem o proporcional do
             ano: é o padrão que o dono aprovou para o C5, a validar com o jurídico (C9). */}
         {forma === 'mensal' ? (
-          <>
-            Ao assinar, você autoriza a cobrança de <b>{brl(preco)}</b> por mês, renovada todo mês até você cancelar.
-          </>
+          <T
+            txt="Ao assinar, você autoriza a cobrança de <b>{preco}</b> por mês, renovada todo mês até você cancelar."
+            val={{ preco: brl(preco) }}
+          />
         ) : forma === 'anual' ? (
           t(
             'Ao assinar, você autoriza a cobrança de {preco} por ano, renovada todo ano até você cancelar. Depois dos 7 dias, cancelar para a renovação e o acesso vale até o fim do ano pago, sem reembolso proporcional.',
@@ -702,19 +711,17 @@ export default function Checkout({
             { n: parcelasDoAnual(plano).quantidade, total: brl(precoAnual(plano)) },
           )
         )}{' '}
-        Cancele quando quiser em Planos → Sua assinatura. Você tem <b>7 dias</b> para desistir com reembolso integral
-        (CDC, art. 49). Veja os{' '}
-        <a className="link" href="/termos.html" target="_blank" rel="noopener">
-          Termos de uso
-        </a>
-        .
+        <T
+          txt="Cancele quando quiser em Planos → Sua assinatura. Você tem <b>7 dias</b> para desistir com reembolso integral (CDC, art. 49). Veja os <termos>Termos de uso</termos>."
+          tags={{ termos: <a className="link" href="/termos.html" target="_blank" rel="noopener" /> }}
+        />
       </p>
     </section>
   );
 
   const resumo = (
-    <aside className="cartao p6 resumo-pedido" aria-label="Resumo do pedido">
-      <span className="label-mono">Resumo</span>
+    <aside className="cartao p6 resumo-pedido" aria-label={t('Resumo do pedido')}>
+      <span className="label-mono">{t('Resumo')}</span>
       <div className="linha" style={{ gap: 12, marginTop: 10 }}>
         <IconeEmBloco icone={PLANO_ICO[plano]} />
         <div>
@@ -736,7 +743,7 @@ export default function Checkout({
           </div>
         ) : (
           <div className="total">
-            <dt>Total hoje</dt>
+            <dt>{t('Total hoje')}</dt>
             <dd className="tn">{daForma.linha[1]}</dd>
           </div>
         )}
@@ -747,14 +754,14 @@ export default function Checkout({
       {/* No lugar do cupom do protótipo (não há cupom no servidor): onde o pagamento acontece. */}
       <div className="cupom">
         <p className="mut renova">
-          <Lock aria-hidden style={{ width: 14, height: 14 }} /> Você paga na página segura do Asaas
+          <Lock aria-hidden style={{ width: 14, height: 14 }} /> {t('Você paga na página segura do Asaas')}
         </p>
       </div>
       <ul className="lista-check garantias">
         {[
-          '7 dias para desistir, com reembolso',
-          'Cancele quando quiser, em poucos cliques',
-          'Pagamento processado com segurança',
+          t('7 dias para desistir, com reembolso'),
+          t('Cancele quando quiser, em poucos cliques'),
+          t('Pagamento processado com segurança'),
         ].map((x) => (
           <li key={x}>
             <Check aria-hidden />
@@ -1128,11 +1135,11 @@ export default function Checkout({
   return (
     <Tela largura="larga">
       <CabecalhoDeTela
-        voltar={{ rotulo: 'Planos', aoClicar: () => irSub(null) }}
-        sobrancelha="Assinatura"
+        voltar={{ rotulo: t('Planos'), aoClicar: () => irSub(null) }}
+        sobrancelha={t('Assinatura')}
         icone={Lock}
-        titulo={`Assinar o ${P}`}
-        sub="Dois passos. Você vê o total e como a cobrança se renova antes de pagar."
+        titulo={t('Assinar o {plano}', { plano: P })}
+        sub={t('Dois passos. Você vê o total e como a cobrança se renova antes de pagar.')}
       />
       <Etapas passos={['Plano e período', 'Pagamento']} atual={passo - 1} />
       <div className="checkout-grade">

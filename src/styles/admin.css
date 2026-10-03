@@ -1,0 +1,401 @@
+/*
+ * ADMINISTRAÇÃO (`/admin`). Só tokens do tema (`--ink`, `--surface`, `--border-subtle`, `--good`,
+ * `--warn`, `--error`, `--q-acento`). As peças comuns (`.q-palco`, `.q-cab`, `.q-abas`, `.q-secao`,
+ * `.q-tabela`, `.q-num`, `.q-ctl`, `.q-vazio`, `.q-interruptor`) vêm de `quest.css`; o desenho de sempre usa
+ * `ui/` e o protótipo. Aqui ficam só os ajustes da tela: o que as duas famílias não trazem.
+ * Importado por `views/Admin.tsx`, nunca por `main.tsx` (o CSS inicial tem orçamento).
+ */
+
+.ad-painel {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  min-width: 0;
+}
+.ad-secao {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+.ad-secao-cab {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.ad-secao-cab > div:first-child {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+.ad-secao-cab h2 {
+  margin: 0;
+}
+.ad-h2 {
+  font: 800 16px/1.2 var(--font-display, inherit);
+  color: var(--ink);
+}
+.ad-secao-cab p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink-muted);
+}
+.ad-secao-acoes {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Números de resumo */
+.ad-grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 12px;
+}
+.ad-kpi small {
+  font: 600 14px/1.3 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+.ad-kpi[data-tom='good'] b {
+  color: var(--good, inherit);
+}
+.ad-kpi[data-tom='warn'] b {
+  color: var(--warn, inherit);
+}
+.ad-kpi[data-tom='error'] b {
+  color: var(--error, inherit);
+}
+.ad-barra {
+  margin-top: 4px;
+}
+.ad-linha-de-estado {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 0;
+}
+
+/* Texto de apoio, ids e etiquetas */
+.ad-nota {
+  display: block;
+  margin-top: 2px;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--ink-muted);
+}
+.ad-id {
+  display: block;
+  font: 600 12.5px/1.35 var(--font-mono, monospace);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+.ad-tag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1.5px solid var(--border-subtle);
+  font: 700 12px/1.2 var(--font-body, inherit);
+  color: var(--ink-muted);
+  background: var(--surface);
+}
+.ad-tag-bom {
+  color: var(--good, var(--ink));
+  border-color: color-mix(in srgb, var(--good, currentColor) 45%, var(--border-subtle));
+}
+.ad-tag-atencao {
+  color: var(--warn, var(--ink));
+  border-color: color-mix(in srgb, var(--warn, currentColor) 45%, var(--border-subtle));
+}
+.ad-tag-erro {
+  color: var(--error, var(--ink));
+  border-color: color-mix(in srgb, var(--error, currentColor) 45%, var(--border-subtle));
+}
+
+/* Botões do desenho de sempre (o `.q-ctl` do novo já vem pronto) */
+.ad-btn {
+  min-height: 36px;
+  padding: 0 14px;
+  white-space: nowrap;
+}
+.ad-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.ad-btn.ad-perigo {
+  color: var(--error, inherit);
+}
+
+/* Busca */
+.ad-busca {
+  display: grid;
+  gap: 6px;
+  max-width: 560px;
+}
+.ad-rotulo {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-muted);
+}
+.ad-busca-caixa {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ad-busca-caixa > svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  color: var(--ink-muted);
+}
+.ad-busca-caixa > input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Tabela do desenho de sempre */
+.ad-caixa {
+  overflow-x: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  background: var(--surface);
+}
+.ad-tabela {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  color: var(--ink);
+}
+.ad-tabela th {
+  padding: 10px 14px;
+  text-align: left;
+  font: 700 11px/1 var(--font-mono, monospace);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+.ad-tabela td {
+  padding: 12px 14px;
+  border-top: 1px solid var(--border-subtle);
+  vertical-align: top;
+}
+.ad-tabela-lista td b {
+  display: block;
+}
+.ad-linha-escolhida td {
+  background: color-mix(in srgb, var(--q-acento, var(--accent, currentColor)) 8%, transparent);
+}
+.ad-acao-da-linha {
+  text-align: right;
+  white-space: nowrap;
+}
+.ad-detalhes summary {
+  cursor: pointer;
+  font-size: 12.5px;
+  color: var(--ink-muted);
+}
+.ad-detalhes pre {
+  margin: 6px 0 0;
+  max-width: 70ch;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: 500 12px/1.4 var(--font-mono, monospace);
+  color: var(--ink-muted);
+}
+
+/* A conta escolhida */
+.ad-detalhe {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  border: 1.5px solid var(--border-subtle);
+  border-radius: 16px;
+  background: var(--surface);
+}
+.ad-dados {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 12px 20px;
+}
+.ad-dados dt {
+  font: 700 11px/1 var(--font-mono, monospace);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin-bottom: 4px;
+}
+.ad-dados dd {
+  margin: 0;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.ad-acoes {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.ad-aviso-proprio {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ad-aviso-proprio > svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+
+/* Flags */
+.ad-flags {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ad-flag {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 14px 16px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  background: var(--surface);
+}
+.ad-flag > div:first-child {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+.ad-flag b {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.ad-flag small {
+  display: block;
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--ink-muted);
+}
+.ad-flag small.ad-nota {
+  font-size: 12px;
+}
+
+/* Estados */
+.ad-carregando {
+  padding: 28px;
+  text-align: center;
+  color: var(--ink-muted);
+}
+.ad-vazio {
+  min-height: 160px;
+}
+
+/* ── O desenho novo: corpo de 17 px e alvos de 56 px ── */
+.q-admin {
+  font-size: 17px;
+}
+.q-admin .ad-nota {
+  font-size: 15px;
+}
+.q-admin .ad-id {
+  font-size: 15px;
+}
+.q-admin .ad-tag {
+  min-height: 32px;
+  padding: 4px 14px;
+  font-size: 14px;
+}
+.q-admin .ad-secao-cab p {
+  font-size: 16px;
+}
+.q-admin .ad-dados dd {
+  font-size: 17px;
+}
+.q-admin .ad-dados dt {
+  font-size: 14px;
+}
+.q-admin .ad-flag small {
+  font-size: 16px;
+}
+.q-admin .ad-flag small.ad-nota {
+  font-size: 15px;
+}
+.q-admin .ad-busca-caixa input {
+  min-height: 56px;
+}
+.q-admin .ad-detalhes summary,
+.q-admin .ad-detalhes pre {
+  font-size: 15px;
+}
+.q-admin .ad-acao-da-linha .q-ctl {
+  white-space: nowrap;
+}
+
+/* ── A tabela que vira lista: estreita, cada linha vira um cartão e cada célula leva o rótulo ── */
+@media (max-width: 760px) {
+  .ad-caixa-lista {
+    overflow: visible;
+    border: 0;
+    background: none;
+  }
+  .ad-tabela-lista,
+  .ad-tabela-lista tbody,
+  .ad-tabela-lista tr,
+  .ad-tabela-lista td {
+    display: block;
+    width: 100%;
+  }
+  .ad-tabela-lista thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .ad-tabela-lista tr {
+    margin-bottom: 12px;
+    border: 1.5px solid var(--border-subtle);
+    border-radius: 16px;
+    background: var(--surface);
+    overflow: hidden;
+  }
+  .ad-tabela-lista td {
+    display: grid;
+    grid-template-columns: minmax(84px, 34%) 1fr;
+    gap: 10px;
+    border-top: 1px solid var(--border-subtle);
+    padding: 10px 14px;
+    text-align: left;
+  }
+  .ad-tabela-lista td:first-child {
+    border-top: 0;
+  }
+  .ad-tabela-lista td[data-rotulo]::before {
+    content: attr(data-rotulo);
+    font: 700 11px/1.4 var(--font-mono, monospace);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+  }
+  .ad-tabela-lista td.ad-acao-da-linha {
+    display: flex;
+    justify-content: flex-end;
+  }
+  .q-admin .ad-tabela-lista td[data-rotulo]::before {
+    font-size: 13px;
+  }
+}

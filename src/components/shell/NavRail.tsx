@@ -1,11 +1,12 @@
 import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
+import { useEhAdmin } from '../../lib/adminAcesso';
 import { t } from '../../lib/i18n';
 import type { DerivedProgress } from '../../lib/progress';
 import type { ViewType } from '../../types';
 import ControlCluster, { type ControlClusterProps } from './ControlCluster';
-import { type AgeProfileType, NAV_ITEMS, navLabel } from './navItems';
+import { type AgeProfileType, ITEM_ADMIN, NAV_ITEMS, navLabel } from './navItems';
 import { MarcaBabel } from './ShellBits';
 
 const COLLAPSE_KEY = 'babel.rail_collapsed';
@@ -28,6 +29,7 @@ interface NavRailProps {
  * resolvido aqui, e a largura é em `px` para não inflar junto com a escala de fonte.
  */
 export default function NavRail({ activeView, onChangeView, ageProfile, side, controls }: NavRailProps) {
+  const ehAdmin = useEhAdmin();
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem(COLLAPSE_KEY) === 'true');
 
   const toggle = useCallback(() => {
@@ -152,6 +154,7 @@ export default function NavRail({ activeView, onChangeView, ageProfile, side, co
           {t('Mais')}
         </div>
         {NAV_ITEMS.filter((item) => item.secondary).map(renderItem)}
+        {ehAdmin && renderItem(ITEM_ADMIN)}
       </nav>
 
       <div className="rail-pe">

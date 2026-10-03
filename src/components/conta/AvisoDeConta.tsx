@@ -118,7 +118,7 @@ export default function AvisoDeConta({ metrics, onEntrar }: { metrics: AppMetric
       </div>
       <button
         onClick={dispensar}
-        aria-label="Dispensar aviso"
+        aria-label={t('Dispensar aviso')}
         className="shrink-0 text-ink-faint hover:text-ink cursor-pointer"
       >
         <X className="w-4 h-4" aria-hidden />

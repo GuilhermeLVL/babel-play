@@ -2,6 +2,7 @@ import type { LucideIcon } from 'lucide-react';
 import { X } from 'lucide-react';
 import { type ReactNode, type RefObject, useEffect, useId, useRef } from 'react';
 
+import { t } from '../../lib/i18n';
 import IconeEmBloco, { type TomDoIcone } from './IconeEmBloco';
 
 /**
@@ -130,7 +131,7 @@ export default function Dialogo({
             </p>
           )}
         </div>
-        <button type="button" className="x" aria-label="Fechar" onClick={() => ref.current?.close()}>
+        <button type="button" className="x" aria-label={t('Fechar')} onClick={() => ref.current?.close()}>
           <X aria-hidden />
         </button>
       </div>

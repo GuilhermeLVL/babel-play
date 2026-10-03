@@ -90,7 +90,7 @@ export default function AbaDados() {
     setErroExport('');
     const ok = await baixarMeusDados();
     setExportando(false);
-    if (!ok) setErroExport('Não consegui gerar o arquivo agora. Tente de novo em instantes.');
+    if (!ok) setErroExport(t('Não consegui gerar o arquivo agora. Tente de novo em instantes.'));
   }
 
   /* QUEST: as mesmas duas linhas (onde ficam, baixar uma cópia) e o mesmo erro, nas peças do headset. */
@@ -138,26 +138,27 @@ export default function AbaDados() {
 
   return (
     <section>
-      <TituloDeSecao icone={ShieldCheck} titulo="Seus dados" />
+      <TituloDeSecao icone={ShieldCheck} titulo={t('Seus dados')} />
       <div className="cartao">
         {/* Sem login, é isto que responde "e a minha conta?": não há senha nem sessão. */}
         {!authRequired && (
           <div className="ajuste">
-            <h3>Onde ficam</h3>
+            <h3>{t('Onde ficam')}</h3>
             <p className="mut" style={{ margin: 0 }}>
-              Este app está rodando no seu computador, sem login. Não há senha nem sessão para gerenciar: seus dados
-              ficam neste dispositivo.
+              {t(
+                'Este app está rodando no seu computador, sem login. Não há senha nem sessão para gerenciar: seus dados ficam neste dispositivo.',
+              )}
             </p>
           </div>
         )}
         <div className="ajuste ajuste-l">
           <div>
-            <h3>Baixar uma cópia</h3>
-            <p className="mut">Tudo o que o app guarda sobre você.</p>
+            <h3>{t('Baixar uma cópia')}</h3>
+            <p className="mut">{t('Tudo o que o app guarda sobre você.')}</p>
           </div>
           <button type="button" onClick={() => void baixar()} disabled={exportando} className="btn btn-outline">
             {exportando ? <Loader2 className="gira" aria-hidden /> : <Download aria-hidden />}{' '}
-            {exportando ? 'Preparando…' : 'Baixar'}
+            {exportando ? t('Preparando…') : t('Baixar')}
           </button>
         </div>
       </div>

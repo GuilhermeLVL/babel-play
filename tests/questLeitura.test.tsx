@@ -506,26 +506,33 @@ describe('A leitura no computador com o desenho novo', () => {
 })
 
 describe('A leitura no Quest: desenho livre', () => {
-  it('o modo de desenho troca a dica pelas ferramentas e passa o raio para a tela de desenho', async () => {
+  it('o modo de desenho troca a dica pela barra de ferramentas e liga a tela de desenho', async () => {
     const { container, botao, frases } = await montar()
-    const tela = () => container.querySelector<HTMLCanvasElement>('canvas.ql-tela-de-desenho')!
-    expect(tela().style.pointerEvents).toBe('none')
-    expect(container.querySelector('.ql-desenho')).toBeNull()
+    // A tela de desenho é a `canvas.desenho-tela`; `data-ativo` diz se ela recebe o ponteiro.
+    const tela = () => container.querySelector<HTMLCanvasElement>('canvas.desenho-tela')!
+    expect(tela().getAttribute('data-ativo')).toBe('false')
+    expect(screen.queryByRole('group', { name: 'Ferramentas de desenho' })).toBeNull()
 
     fireEvent.click(botao(/Desenho livre/))
     expect(botao(/Desenho livre/).getAttribute('aria-pressed')).toBe('true')
-    expect(tela().style.pointerEvents).toBe('auto')
+    expect(tela().getAttribute('data-ativo')).toBe('true')
     expect(container.querySelector('.ql-texto')?.className).toContain('desenhando')
     const ferramentas = within(screen.getByRole('group', { name: 'Ferramenta de desenho' })).getAllByRole('button')
-    expect(ferramentas.map((f) => f.textContent?.trim())).toEqual(['Caneta', 'Marca-texto', 'Borracha'])
-    fireEvent.click(ferramentas[1])
-    expect(ferramentas[1].getAttribute('aria-pressed')).toBe('true')
+    expect(ferramentas.map((f) => f.textContent?.trim())).toEqual([
+      'Caneta',
+      'Caneta-tinteiro',
+      'Pincel',
+      'Marca-texto',
+      'Borracha',
+    ])
+    fireEvent.click(ferramentas[3])
+    expect(ferramentas[3].getAttribute('aria-pressed')).toBe('true')
     expect(botao(/Limpar tudo/)).toBeTruthy()
 
     // Desenhando, a frase não abre as opções.
     fireEvent.click(frases()[0])
     expect(screen.queryByRole('dialog')).toBeNull()
     fireEvent.click(botao(/Modo interativo/))
-    expect(tela().style.pointerEvents).toBe('none')
+    expect(tela().getAttribute('data-ativo')).toBe('false')
   })
 })

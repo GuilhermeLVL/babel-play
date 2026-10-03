@@ -70,19 +70,22 @@ export default function NuvemDoQuest({ gravando, aoVivo = false }: { gravando: b
       <span style={{ flex: 1 }}>
         {consentiu ? (
           <>
-            <b>Legenda pela nuvem: ligada.</b>{' '}
+            <b>{t('Legenda pela nuvem: ligada.')}</b>{' '}
             {restam === 0
-              ? 'A cota de hoje acabou: a legenda segue feita neste aparelho e a nuvem volta amanhã.'
+              ? t('A cota de hoje acabou: a legenda segue feita neste aparelho e a nuvem volta amanhã.')
               : restam != null
-                ? `Restam cerca de ${restam} min hoje. Depois disso, a legenda segue feita neste aparelho.`
-                : 'São 15 min por dia; depois disso, a legenda segue feita neste aparelho.'}{' '}
-            O áudio e o texto de cada fala vão à Cloudflare só para transcrever e ler em voz alta; nada é guardado.
+                ? t('Restam cerca de {n} min hoje. Depois disso, a legenda segue feita neste aparelho.', { n: restam })
+                : t('São 15 min por dia; depois disso, a legenda segue feita neste aparelho.')}{' '}
+            {t(
+              'O áudio e o texto de cada fala vão à Cloudflare só para transcrever e ler em voz alta; nada é guardado.',
+            )}
           </>
         ) : (
           <>
-            <b>Este aparelho é lento para transcrever sozinho.</b> Com a nuvem (15 min por dia, grátis), a legenda chega
-            bem mais rápido e a tradução pode ser lida em voz alta. O áudio e o texto de cada fala vão à Cloudflare só
-            para isso; nada é guardado.
+            <b>{t('Este aparelho é lento para transcrever sozinho.')}</b>{' '}
+            {t(
+              'Com a nuvem (15 min por dia, grátis), a legenda chega bem mais rápido e a tradução pode ser lida em voz alta. O áudio e o texto de cada fala vão à Cloudflare só para isso; nada é guardado.',
+            )}
           </>
         )}
       </span>
@@ -93,7 +96,7 @@ export default function NuvemDoQuest({ gravando, aoVivo = false }: { gravando: b
         disabled={gravando}
         onClick={() => void (consentiu ? mudarConsentimento('nuvem', false) : autorizar())}
       >
-        {consentiu ? 'Desligar' : 'Usar a nuvem'}
+        {consentiu ? t('Desligar') : t('Usar a nuvem')}
       </button>
     </div>
   );

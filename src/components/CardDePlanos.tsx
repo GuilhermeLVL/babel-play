@@ -137,20 +137,24 @@ export default function CardDePlanos({ onVerPlanos }: { onVerPlanos: () => void 
     >
       <Sparkles className="w-4 h-4 text-accent-ink shrink-0" aria-hidden />
       <p className="text-[13px] text-ink flex-1 min-w-0">
+        {/* As mesmas frases do desenho do headset (as chaves do catálogo são as mesmas nos dois). */}
         {quotaApertada ? (
           <>
-            Seu armazenamento passou de 90%. Os planos pagos (a partir de <strong>R$ {preco}/mês</strong>) dão mais
-            espaço — ou apague sessões antigas.
+            <strong>{t('Seu armazenamento passou de 90%')}</strong>.{' '}
+            {t('Os planos pagos (a partir de {moeda} {preco}/mês) dão mais espaço. Ou apague sessões antigas.', {
+              moeda: 'R$',
+              preco,
+            })}
           </>
         ) : (
           <>
-            <strong>Planos a partir de R$ {preco}/mês</strong> — tradução com IA de nuvem e mais armazenamento. Você
-            está no Grátis, que continua inteiro.
+            <strong>{t('Planos a partir de {moeda} {preco}/mês', { moeda: 'R$', preco })}</strong>.{' '}
+            {t('Tradução com IA de nuvem e mais armazenamento. Você está no Grátis, que continua inteiro.')}
           </>
         )}
       </p>
       <button onClick={onVerPlanos} className="btn-outline shrink-0">
-        Ver planos
+        {t('Ver planos')}
       </button>
       {quotaApertada && (
         <button
@@ -166,8 +170,8 @@ export default function CardDePlanos({ onVerPlanos }: { onVerPlanos: () => void 
       )}
       <button
         onClick={dispensar}
-        aria-label="Dispensar este aviso de planos"
-        title="Dispensar"
+        aria-label={t('Dispensar este aviso de planos')}
+        title={t('Dispensar')}
         className="w-7 h-7 rounded-lg text-ink-faint hover:bg-surface-hover hover:text-ink flex items-center justify-center cursor-pointer shrink-0"
       >
         <X className="w-3.5 h-3.5" aria-hidden />

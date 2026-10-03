@@ -1,9 +1,10 @@
 import { Ellipsis, LifeBuoy, UserRound } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
+import { useEhAdmin } from '../../lib/adminAcesso';
 import { t } from '../../lib/i18n';
 import type { ViewType } from '../../types';
-import { type AgeProfileType, itensDaDock, itensDaFolhaMais, navLabel } from './navItems';
+import { type AgeProfileType, ITEM_ADMIN, itensDaDock, itensDaFolhaMais, navLabel } from './navItems';
 
 interface MobileNavProps {
   activeView: ViewType;
@@ -20,7 +21,8 @@ interface MobileNavProps {
 export default function MobileNav({ activeView, onChangeView, ageProfile }: MobileNavProps) {
   const [maisAberto, setMaisAberto] = useState(false);
   const principais = itensDaDock();
-  const secundarios = itensDaFolhaMais();
+  const ehAdmin = useEhAdmin();
+  const secundarios = ehAdmin ? [...itensDaFolhaMais(), ITEM_ADMIN] : itensDaFolhaMais();
   const secundarioAtivo =
     secundarios.some((i) => i.id === activeView) || activeView === 'profile' || activeView === 'ajuda';
 

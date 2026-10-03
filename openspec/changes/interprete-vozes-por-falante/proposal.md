@@ -1,3 +1,5 @@
+> **BACKLOG (decisão do dono, 02/10/2026):** não implementar agora. Vozes selecionáveis exigem Qwen3-TTS (US$ 20/1M) ou Chirp 3 HD (US$ 30/1M), 20 a 30 vezes o Chatterbox (US$ 1/1M). Retomar quando houver clientes pagantes e planos melhores. Nada aqui bloqueia as outras fases.
+
 > **Fase 3 de 6 do "Intérprete v3".** Independente da Fase 2; usa o histórico da Fase 1 só para mostrar a voz de cada fala.
 > Plano: `C:\Users\Guilh\.claude\plans\faca-um-brain-storm-temporal-crystal.md`.
 > **Decisão do dono (02/10/2026):** voz parecida pelo **gênero e faixa de tom aproximados, sem clonar a voz de ninguém.**

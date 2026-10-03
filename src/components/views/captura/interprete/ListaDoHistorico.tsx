@@ -142,6 +142,13 @@ export function ListaDaMetade({
             </div>
           );
         })}
+        {/* A tradução PARCIAL de quem fala (chave `parcialTraduzido`): cinza, sem toque para ouvir e nunca lida;
+            some quando o final chega e entra na lista como fala normal. */}
+        {historico.parcialDoOutro && (
+          <div className="int-item int-parcial-outro" data-testid="int-parcial-outro">
+            <p className="int-hist-texto">{historico.parcialDoOutro.texto}</p>
+          </div>
+        )}
         {fim}
       </div>
       {!presa && (

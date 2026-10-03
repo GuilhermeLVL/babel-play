@@ -437,6 +437,13 @@
   align-items: flex-end;
   text-align: end;
 }
+/* A tradução parcial de quem ainda fala: cinza e fraca, até o final chegar. */
+.int-parcial-outro,
+.int-parcial-outro .int-hist-texto {
+  color: var(--int-mut);
+  opacity: 0.8;
+  font-style: italic;
+}
 .int-hist-texto {
   margin: 0;
   font: 700 clamp(15px, 4.2vw, 19px) / 1.3 var(--font-body);

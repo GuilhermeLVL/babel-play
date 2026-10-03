@@ -20,9 +20,9 @@
 
 ## 3. Tradução parcial estável
 
-- [ ] 3.1 Criar `src/lib/captura/parcialEstavel.ts` (duas leituras iguais, fronteira de oração, janela de 1,2 s), puro, com teste
-- [ ] 3.2 Ligar em `pipelineDeFala.ts` e `traducaoDaFala.ts`: só local no Grátis, teto de custo na nuvem; mostrar em cinza na tela (usa a lista da Fase 1)
-- [ ] 3.3 Garantir que o parcial traduzido nunca entra na fila de voz
+- [x] 3.1 Criar `src/lib/captura/parcialEstavel.ts` (duas leituras iguais, fronteira de oração, janela de 1,2 s), puro, com teste
+- [x] 3.2 Ligar em `pipelineDeFala.ts` e `traducaoDaFala.ts`: só local no Grátis, teto de custo na nuvem; mostrar em cinza na tela (usa a lista da Fase 1) (ligado atrás da chave `parcialTraduzido`; parcial sempre local, nunca à nuvem; não validado com áudio ao vivo)
+- [x] 3.3 Garantir que o parcial traduzido nunca entra na fila de voz
 
 ## 4. Voz por frase e aquecimento
 

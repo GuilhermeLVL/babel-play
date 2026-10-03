@@ -45,6 +45,8 @@ import { setterNoQuadro } from './agendarNoQuadro';
 import { guardarAudioDaFala } from './audioDasFalas';
 import type { PistasDoIdioma } from './interpreteAutomatico';
 import { umModeloDeCadaVez } from './memoriaDosModelos';
+import { criarTradutorDeParciais, type TradutorDeParciais } from './parcialEstavel';
+import { chaveLigada } from './testesDoInterprete';
 import { disponibilidadeDaSondaParaIdioma, escolherMotorDoMic, webSpeechBipaAoReligar } from './motorDoMicrofone';
 import { preparoConcluido, semPacotePendente } from './pacotesNativos';
 import { type EfeitosDoRegulador, escadaDeModelos, type ReguladorDaCaptura } from './reguladorDaCaptura';
@@ -74,6 +76,17 @@ const manterPacotes = (s: ModelPrepState | null): Pick<ModelPrepState, 'nativos'
  * o final responde, como qualquer entrada dele.
  */
 export const FALA_FECHADA = '\u0000fala-fechada';
+
+/**
+ * O tradutor de parciais é UM por tela (a fábrica do pipeline roda a cada render e perderia o estado e o
+ * teto da sessão), então mora num WeakMap chaveado pelo mapa de parciais da tela, que é estável.
+ */
+const tradutoresDeParciais = new WeakMap<object, TradutorDeParciais>();
+function tradutorDeParciais(chave: { current: Map<number, string> }): TradutorDeParciais {
+  let t = tradutoresDeParciais.get(chave);
+  if (!t) tradutoresDeParciais.set(chave, (t = criarTradutorDeParciais()));
+  return t;
+}
 
 /** O espaçamento padrão entre parciais — o mesmo 1,1 s da captura (`PARTIAL_INTERVAL_MS`, `systemAudio.ts`). */
 const INTERVALO_DOS_PARCIAIS_MS = 1100;
@@ -353,6 +366,9 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       if (isSys || captureScenarioRef.current !== 'interprete') return null;
       return (seq !== undefined ? direcoesPorSeq.get(seq) : undefined) ?? direcaoDoMicrofone?.() ?? null;
     };
+    /** A tradução parcial estável vale agora? Só o microfone do intérprete, com a chave ligada. */
+    const parcialEstavelLigado = (): boolean =>
+      !isSys && captureScenarioRef.current === 'interprete' && chaveLigada('parcialTraduzido');
     /** O automático do intérprete vale para esta fonte agora? (Só o microfone, e só sem lado tocado.) */
     const automaticoDoInterprete = (): boolean =>
       !isSys && captureScenarioRef.current === 'interprete' && !!interpreteAutomatico?.();
@@ -456,6 +472,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       const id = seqToSegmentRef.current.get(seq);
       seqToSegmentRef.current.delete(seq);
       lastPartialTextRef.current.delete(seq);
+      if (id) tradutorDeParciais(lastPartialTextRef).encerrar(id);
       capMetrics.drop(seq);
       if (id) setSpeechSegments((prev) => prev.filter((s) => s.id !== id));
     };
@@ -555,7 +572,18 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
           capMetrics.partial(seq);
           // No quadro seguinte, junto com o que mais chegar nele (ver `falasNoQuadro`).
           falasNoQuadro((prev) => prev.map((s) => (s.id === uttId && s.isPartial ? { ...s, originalText: clean } : s)));
-          if (lastPartialTextRef.current.get(seq) !== clean) {
+          /* TRADUÇÃO PARCIAL ESTÁVEL (chave `parcialTraduzido`, só no intérprete): traduz o trecho só
+             quando duas leituras seguidas coincidem numa fronteira de oração, 1 vez por 1,2 s. Desligada, o
+             caminho abaixo é o de sempre. O parcial segue `descartarSeOcupado` (local, nunca à nuvem) e
+             nunca avisa o final: a voz só lê o que o final traduz. */
+          const estavel = parcialEstavelLigado()
+            ? tradutorDeParciais(lastPartialTextRef).ler(uttId, clean, performance.now())
+            : undefined;
+          if (estavel !== undefined) {
+            lastPartialTextRef.current.set(seq, clean);
+            if (estavel !== null)
+              translateSegment(uttId, estavel, from, to, { descartarSeOcupado: true, falada: !isSys });
+          } else if (lastPartialTextRef.current.get(seq) !== clean) {
             lastPartialTextRef.current.set(seq, clean);
             // `descartarSeOcupado`: já há tradução em voo para este balão → não pede outra. Cada
             // refinamento do parcial custava uma chamada de MT que o refinamento seguinte jogava
@@ -799,6 +827,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
           );
           seqToSegmentRef.current.delete(seq);
           lastPartialTextRef.current.delete(seq);
+          tradutorDeParciais(lastPartialTextRef).encerrar(uttId);
           /* REGULADOR: só o final LOCAL mede o aparelho (o da nuvem mede a rede). A latência é a
              do fim da fala ao texto — o decode mais a espera na fila, como no `capMetrics`. */
           if (reguladorRef && engine !== 'groq-whisper' && audioMs > 0) {

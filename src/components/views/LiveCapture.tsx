@@ -139,6 +139,7 @@ import {
 } from '../../lib/captura/tiposDaFala';
 import { descartarRascunho, tentarDeNovo } from '../../lib/captura/trabalhoDeSalvar';
 // Relógio da sessão + pipeline de MT (retradução de degradados incluída).
+import { chaveLigada } from '../../lib/captura/testesDoInterprete';
 import { criarRelogioDaSessao, criarTraducaoDaFala } from '../../lib/captura/traducaoDaFala';
 import { modoDeTraducao, type PedidoSobDemanda } from '../../lib/captura/traducaoSobDemanda';
 import { usePalavrasConhecidas } from '../../lib/captura/usePalavrasConhecidas';
@@ -241,6 +242,7 @@ import type { AutomaticoNoPlano } from './captura/interprete/ModoInterprete';
 
 const ModoInterprete = lazyComRecarga(() => import('./captura/interprete/ModoInterprete'));
 const PaginaDoInterprete = lazyComRecarga(() => import('./captura/interprete/PaginaDoInterprete'));
+const ConversaVirtual = lazyComRecarga(() => import('./captura/interprete/ConversaVirtual'));
 
 export default function LiveCapture({
   onSave,
@@ -784,6 +786,12 @@ export default function LiveCapture({
      da tela aberta; sem tela, ela é `null` e nada muda. */
   const [interpreteAberto, setInterpreteAberto] = useState(false);
   const sessaoDoInterpreteRef = useRef(false);
+  /* A CONVERSA VIRTUAL (Intérprete v3, Fase 4): em vez da tela dividida, a lista em bolhas com o áudio do
+     computador ("Eles") e o microfone ("Você") juntos, direção fixa por fonte. `virtualComMicRef`: de fone,
+     o microfone também traduz; sem fone, só o computador. */
+  const [virtualAberta, setVirtualAberta] = useState(false);
+  const interpreteVirtualRef = useRef(false);
+  const virtualComMicRef = useRef(false);
   const ponteDoInterpreteRef = useRef<PonteDoInterprete | null>(null);
   const registrarPonteDoInterprete = useCallback((p: PonteDoInterprete | null) => {
     ponteDoInterpreteRef.current = p;
@@ -1366,6 +1374,7 @@ export default function LiveCapture({
     /* O AUTOMÁTICO do intérprete: sem lado tocado, o final vem sem dica e o idioma medido diz o lado. */
     interpreteAutomatico: () => ponteDoInterpreteRef.current?.automatico() ?? false,
     ladoDaFalaAutomatica: (segId, pistas) => ponteDoInterpreteRef.current?.ladoDaFala(segId, pistas) ?? null,
+    interpreteVirtual: () => interpreteVirtualRef.current,
   });
 
   /* A faixa da nuvem de alívio, a mesma no celular e no desktop. Aceita, a rota passa à nuvem na hora
@@ -1824,7 +1833,8 @@ export default function LiveCapture({
     aoAtualizarGravacao: (r) => onRecordingsChange?.((lista) => lista.map((x) => (x.id === r.id ? r : x))),
     tetoAtingido,
     aoTetoAtingido: avisarTeto,
-    soNoToque: () => sessaoDoInterpreteRef.current,
+    soNoToque: () => sessaoDoInterpreteRef.current && !interpreteVirtualRef.current,
+    micNoInicio: () => (interpreteVirtualRef.current ? virtualComMicRef.current : undefined),
     cenarioDaSessao: () => (sessaoDoInterpreteRef.current ? 'interprete' : undefined),
   });
 
@@ -2663,11 +2673,14 @@ export default function LiveCapture({
     });
   };
   /** O que a folha do início começa quando a pessoa confirma: a captura ou o intérprete. */
-  const acaoDoInicioRef = useRef<'captura' | 'interprete'>('captura');
+  const acaoDoInicioRef = useRef<'captura' | 'interprete' | 'virtual'>('captura');
   /** Começa AGORA — sempre de dentro de um toque (Iniciar, a folha, a ajuda do microfone). */
   const comecarCaptura = () => {
     if (acaoDoInicioRef.current === 'interprete') return abrirOInterprete();
+    if (acaoDoInicioRef.current === 'virtual') return abrirConversaVirtual();
     sessaoDoInterpreteRef.current = false;
+    interpreteVirtualRef.current = false;
+    setVirtualAberta(false);
     if (!micEnabled && !systemEnabled) return handleStartOrResume(); // o aviso "Selecione ao menos uma fonte"
     setFalhaDoMic(null);
     // Dentro do gesto, antes de qualquer `await`: no iPhone, o áudio criado depois pode ficar mudo.
@@ -2692,6 +2705,8 @@ export default function LiveCapture({
   const abrirOInterprete = () => {
     acaoDoInicioRef.current = 'captura';
     sessaoDoInterpreteRef.current = true;
+    interpreteVirtualRef.current = false;
+    setVirtualAberta(false);
     setFalhaDoMic(null);
     if (!micEnabled) marcarMicrofone(true);
     /* O cenário já, e não no efeito do próximo render: o tradutor abaixo prepara os DOIS sentidos
@@ -2717,6 +2732,43 @@ export default function LiveCapture({
     }
     abrirOInterprete();
   };
+  /**
+   * A CONVERSA VIRTUAL: começa de dentro do toque (o seletor da aba ou tela com áudio exige o gesto). As
+   * duas fontes abrem juntas (`soNoToque` falso): o áudio do computador sempre, e o microfone só de fone.
+   */
+  const abrirConversaVirtual = () => {
+    acaoDoInicioRef.current = 'captura';
+    sessaoDoInterpreteRef.current = true;
+    interpreteVirtualRef.current = true;
+    setVirtualAberta(true);
+    setFalhaDoMic(null);
+    if (virtualComMicRef.current) {
+      if (!micEnabled) marcarMicrofone(true);
+      abrirContextoDoClique();
+    } else if (micEnabled) {
+      marcarMicrofone(false);
+    }
+    captureScenarioRef.current = 'interprete';
+    prepararTradutorDaFala();
+    setInterpreteAberto(true);
+    handleStartOrResume();
+    if (isRecordingRef.current) setIsRecording(true);
+  };
+  /** A entrada da conversa virtual (já com o aviso aceito na página): a mesma folha do início, se houver o que decidir. */
+  const entrarNaConversaVirtual = ({ comMicrofone }: { comMicrofone: boolean }) => {
+    if (abrindoCaptura || isRecordingRef.current || !interpretePossivel) return;
+    if (tetoAtingido && !resumeId) return avisarTeto();
+    virtualComMicRef.current = comMicrofone;
+    acaoDoInicioRef.current = 'virtual';
+    const passo = planoDoInicio(escolhaDoMic, { micEnabled: comMicrofone, systemEnabled: true }, true);
+    if (passo.tipo === 'folha') {
+      setFolhaDoInicio(passo);
+      return;
+    }
+    abrirConversaVirtual();
+  };
+  const micLigadoRef = useRef(micEnabled);
+  micLigadoRef.current = micEnabled;
   /** Sair da tela: o Encerrar de sempre (salvar ou descartar), ou nada, se ninguém falou. */
   const sairDoInterprete = () => {
     setInterpreteAberto(false);
@@ -3795,6 +3847,9 @@ export default function LiveCapture({
               avisos={nuvemDoQuestExiste() ? <NuvemDoQuest gravando={isRecording} /> : undefined}
               aoConhecerOPremium={conhecerOPremium}
               aoComecar={entrarNoInterprete}
+              {...(chaveLigada('virtual') && systemEnabled && !aoVivoNoQuest && !capturaEnxuta
+                ? { aoComecarVirtual: entrarNaConversaVirtual }
+                : {})}
               aoEscolherIdiomas={() => setIdiomasAbertos(true)}
               aoInverter={() => {
                 langTouchedRef.current = true;
@@ -4633,7 +4688,32 @@ export default function LiveCapture({
       )}
 
       {/* --- O MODO INTÉRPRETE (E3): por cima da captura; os diálogos (`showModal`) ficam acima dele --- */}
-      {interpreteAberto && (
+      {interpreteAberto && virtualAberta && (
+        <Suspense fallback={null}>
+          <ConversaVirtual
+            idiomas={{ meu: sourceLang, outro: targetLang }}
+            falas={speechSegments}
+            registrarPonte={registrarPonteDoInterprete}
+            fontes={{
+              sistemaAtivo: () => !!systemCaptureRef.current,
+              microfoneAtivo: () => micLigadoRef.current && (!!micCaptureRef.current || !!webSpeechRef.current),
+            }}
+            abrirSistema={() => void handleStartSystemCapture()}
+            alternarMicrofone={alternarMicrofone}
+            vozNaturalDisponivel={getEntitlements().vozNatural && flagLigada(FLAG_VOZ_NATURAL)}
+            velocidade={ttsSpeed}
+            layout="computador"
+            abrindo={micAbrindo}
+            aviso={avisoDoPreparo(modelPrep)}
+            aoCorrigirFala={corrigirFalaDoInterprete}
+            aoGuardar={(f) =>
+              setFalaTocada({ id: f.id, texto: f.texto, traducao: f.traducao, lang: f.lang, langDaTraducao: f.langDaTraducao })
+            }
+            aoSair={sairDoInterprete}
+          />
+        </Suspense>
+      )}
+      {interpreteAberto && !virtualAberta && (
         <Suspense fallback={null}>
           <ModoInterprete
             idiomas={{ meu: sourceLang, outro: targetLang }}

@@ -168,3 +168,37 @@ describe('a sessão do intérprete', () => {
     expect(api.patchSessionMeta).not.toHaveBeenCalled()
   })
 })
+
+describe('conversa virtual (Intérprete v3, Fase 4): as duas fontes abrem ao começar', () => {
+  const comecar = (ciclo: { handleStartOrResume: () => void }) => ciclo.handleStartOrResume()
+
+  it('abre o áudio do computador e, de fone, o microfone', () => {
+    const { ciclo, deps } = montar({ soNoToque: () => false, micNoInicio: () => true })
+    comecar(ciclo)
+    expect(deps.handleStartSystemCapture).toHaveBeenCalledTimes(1)
+    expect(deps.startMic).toHaveBeenCalledTimes(1)
+  })
+
+  it('sem fone, o microfone não abre (a decisão da conversa vence o estado da tela)', () => {
+    const { ciclo, deps } = montar({ soNoToque: () => false, micNoInicio: () => false })
+    comecar(ciclo)
+    expect(deps.handleStartSystemCapture).toHaveBeenCalledTimes(1)
+    expect(deps.startMic).not.toHaveBeenCalled()
+  })
+
+  it('sem a decisão da conversa, vale o microfone da tela, como sempre', () => {
+    const { ciclo, deps } = montar({ soNoToque: () => false, micEnabled: true })
+    comecar(ciclo)
+    expect(deps.startMic).toHaveBeenCalledTimes(1)
+    const sem = montar({ soNoToque: () => false, micEnabled: false })
+    comecar(sem.ciclo)
+    expect(sem.deps.startMic).not.toHaveBeenCalled()
+  })
+
+  it('no intérprete frente a frente nada abre sozinho, mesmo com a decisão virtual', () => {
+    const { ciclo, deps } = montar({ soNoToque: () => true, micNoInicio: () => true })
+    comecar(ciclo)
+    expect(deps.startMic).not.toHaveBeenCalled()
+    expect(deps.handleStartSystemCapture).not.toHaveBeenCalled()
+  })
+})

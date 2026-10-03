@@ -6,10 +6,11 @@ import {
   Loader2,
   Lock,
   Mic,
+  Monitor,
   Smartphone,
   Volume2,
 } from 'lucide-react';
-import { type ReactNode, useEffect, useSyncExternalStore } from 'react';
+import { type ReactNode, useEffect, useState, useSyncExternalStore } from 'react';
 
 import { t } from '../../../../lib/i18n';
 import { langLabel } from '../../../../lib/languages';
@@ -45,6 +46,7 @@ export default function PaginaDoInterprete({
   avisos,
   aoConhecerOPremium,
   aoComecar,
+  aoComecarVirtual,
   aoEscolherIdiomas,
   aoInverter,
 }: {
@@ -68,10 +70,19 @@ export default function PaginaDoInterprete({
   /** Abre os Planos (ausente no perfil protegido: nada de oferta). */
   aoConhecerOPremium?: () => void;
   aoComecar: () => void;
+  /**
+   * A CONVERSA VIRTUAL (Intérprete v3): traduz o áudio do computador (vídeo, Discord, jogo, chamada) e o
+   * microfone, sem tocar em lado. Ausente = a opção não aparece (chave desligada, ou aparelho sem áudio do
+   * computador). Pede o aviso de consentimento e, opcionalmente, o microfone ligado (de fone).
+   */
+  aoComecarVirtual?: (opcoes: { comMicrofone: boolean }) => void;
   aoEscolherIdiomas: () => void;
   aoInverter: () => void;
 }) {
   const comVozDoSite = semVoz && vozDoSite;
+  const [virtualAberta, setVirtualAberta] = useState(false);
+  const [aceitou, setAceitou] = useState(false);
+  const [deFone, setDeFone] = useState(false);
   useSyncExternalStore(
     aoMudarIdiomasDaVozDoQuest,
     () => idiomasDaVozDoQuest().join(),
@@ -253,6 +264,54 @@ export default function PaginaDoInterprete({
             {abrindo ? t('Abrindo o microfone…') : t('Começar conversa')}
           </button>
         </div>
+        {aoComecarVirtual && (
+          <div className="estudio-acoes" data-testid="conversa-virtual-entrada">
+            <button
+              type="button"
+              className="btn btn-outline"
+              aria-expanded={virtualAberta}
+              onClick={() => setVirtualAberta((v) => !v)}
+              disabled={!possivel || abrindo}
+              data-testid="abrir-conversa-virtual"
+            >
+              <Monitor aria-hidden /> {t('Conversa virtual')}
+            </button>
+            {virtualAberta && (
+              <div className="virtual-painel" data-testid="painel-conversa-virtual">
+                <p className="mut" style={{ fontSize: 13 }}>
+                  {t(
+                    'Traduz o áudio do computador (vídeo, Discord, jogo, chamada) para você ler, e a sua voz para a outra pessoa. Você escolhe a aba ou a tela com áudio.',
+                  )}
+                </p>
+                <label>
+                  <input type="checkbox" checked={aceitou} onChange={(e) => setAceitou(e.target.checked)} />
+                  <span>
+                    {t(
+                      'Tenho 18 anos ou mais e vou avisar quem estiver na conversa de que ela está sendo traduzida. Nada é gravado.',
+                    )}
+                  </span>
+                </label>
+                <label>
+                  <input type="checkbox" checked={deFone} onChange={(e) => setDeFone(e.target.checked)} />
+                  <span>
+                    {t(
+                      'Estou de fone: o microfone também traduz o que eu falo. Sem fone, ele fica desligado para não ouvir o computador.',
+                    )}
+                  </span>
+                </label>
+                <button
+                  type="button"
+                  className="btn btn-solid"
+                  disabled={!aceitou}
+                  onClick={() => aoComecarVirtual({ comMicrofone: deFone })}
+                  data-testid="comecar-conversa-virtual"
+                >
+                  {t('Começar conversa virtual')}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
         <p className="mut orientacao-da-captura" style={{ fontSize: 12.5, marginTop: 6 }} role="status">
           {!possivel
             ? t('Escolha dois idiomas diferentes: um para você, outro para a outra pessoa.')

@@ -43,6 +43,7 @@ import { isTtsActive } from '../tts';
 import { classificarVazamento, type Intervalo } from '../vazamento';
 import { setterNoQuadro } from './agendarNoQuadro';
 import { guardarAudioDaFala } from './audioDasFalas';
+import { direcaoDoLado as direcaoDeUmLado } from './interprete';
 import type { PistasDoIdioma } from './interpreteAutomatico';
 import { umModeloDeCadaVez } from './memoriaDosModelos';
 import { disponibilidadeDaSondaParaIdioma, escolherMotorDoMic, webSpeechBipaAoReligar } from './motorDoMicrofone';
@@ -215,6 +216,13 @@ export interface DepsDoPipelineDeFala {
     segId: string,
     pistas: PistasDoIdioma,
   ) => { lado: LadoDoInterprete; de: string; para: string } | null;
+  /**
+   * A CONVERSA VIRTUAL do intérprete (Fase 4): o áudio do computador ("Eles") e o microfone ("Você") rodam
+   * juntos e a direção é FIXA por fonte — o sistema é o outro (idioma dele → o meu), o microfone sou eu
+   * (o meu → o dele) —, sem alternar turnos nem medir idioma. As duas traduções são "faladas", para o
+   * intérprete poder lê-las.
+   */
+  interpreteVirtual?: () => boolean;
 }
 
 export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
@@ -269,6 +277,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     aoFimDaFala,
     interpreteAutomatico,
     ladoDaFalaAutomatica,
+    interpreteVirtual,
   } = deps;
 
   /* UM SETSTATE POR QUADRO ("Grátis sem travar", A1; ver `agendarNoQuadro.ts`). O que chega em
@@ -349,10 +358,18 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     /* O LADO DE CADA FALA no modo intérprete: a direção de quando ela COMEÇOU. Tocar o outro lado no
        meio de uma fala não a vira — a dica do final e a tradução seguem o idioma de quem começou. */
     const direcoesPorSeq = new Map<number, DirecaoDaFala>();
+    const virtual = (): boolean => captureScenarioRef.current === 'interprete' && !!interpreteVirtual?.();
     const direcaoDoLado = (seq?: number): DirecaoDaFala | null => {
-      if (isSys || captureScenarioRef.current !== 'interprete') return null;
+      if (captureScenarioRef.current !== 'interprete') return null;
+      /* CONVERSA VIRTUAL: a fonte diz o lado (o sistema é o outro, o microfone sou eu). */
+      if (virtual()) {
+        return direcaoDeUmLado(isSys ? 'outro' : 'meu', { meu: sourceLangRef.current, outro: targetLangRef.current });
+      }
+      if (isSys) return null;
       return (seq !== undefined ? direcoesPorSeq.get(seq) : undefined) ?? direcaoDoMicrofone?.() ?? null;
     };
+    /** A tradução desta fonte é "falada" (o intérprete pode lê-la)? O microfone sempre; o sistema, na conversa virtual. */
+    const faladaDaFonte = (): boolean => !isSys || virtual();
     /** O automático do intérprete vale para esta fonte agora? (Só o microfone, e só sem lado tocado.) */
     const automaticoDoInterprete = (): boolean =>
       !isSys && captureScenarioRef.current === 'interprete' && !!interpreteAutomatico?.();
@@ -560,7 +577,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
             // `descartarSeOcupado`: já há tradução em voo para este balão → não pede outra. Cada
             // refinamento do parcial custava uma chamada de MT que o refinamento seguinte jogava
             // fora; o final sempre traduz, então nenhuma legenda deixa de existir por causa disto.
-            translateSegment(uttId, clean, from, to, { descartarSeOcupado: true, falada: !isSys });
+            translateSegment(uttId, clean, from, to, { descartarSeOcupado: true, falada: faladaDaFonte() });
           }
         })
         .catch(() => {
@@ -1012,7 +1029,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
               });
               return;
             }
-            translateSegment(uttId, clean, from, to, { falada: !isSys });
+            translateSegment(uttId, clean, from, to, { falada: faladaDaFonte() });
             return;
           }
           /* SUA fala no "Detectar" também vira contexto: é o idioma MEDIDO desta fala que os parciais da
@@ -1025,7 +1042,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
              a tradução parte na hora e a observação corre por fora. */
           const origemConhecida = idiomaDoMotor || idiomaObservadoRef.current;
           if (origemConhecida) {
-            translateSegment(uttId, clean, origemConhecida, to, { falada: !isSys });
+            translateSegment(uttId, clean, origemConhecida, to, { falada: faladaDaFonte() });
             void observarIdioma().then((d) => {
               if (d && d !== idiomaDoMotor) {
                 setSpeechSegments((prev) => prev.map((s) => (s.id === uttId ? { ...s, lang: d } : s)));
@@ -1035,7 +1052,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
           }
           void observarIdioma().then((d) => {
             if (d) setSpeechSegments((prev) => prev.map((s) => (s.id === uttId ? { ...s, lang: d } : s)));
-            translateSegment(uttId, clean, d, to, { falada: !isSys });
+            translateSegment(uttId, clean, d, to, { falada: faladaDaFonte() });
           });
         })
         .catch((err) => {

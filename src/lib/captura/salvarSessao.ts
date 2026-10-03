@@ -134,6 +134,13 @@ export interface DepsDeSalvarSessao {
    * diz quem fala.
    */
   soNoToque?: () => boolean;
+  /**
+   * A CONVERSA VIRTUAL (Intérprete v3): com `soNoToque` falso, as duas fontes abrem ao começar (o áudio do
+   * computador e o microfone). Esta decisão diz se o microfone entra (de fone) ou não (sem fone, para ele
+   * não ouvir o computador), por cima do estado da tela, que ainda é o do render anterior. `undefined` =
+   * vale o `micEnabled` da tela, como sempre.
+   */
+  micNoInicio?: () => boolean | undefined;
   /** O cenário que vai ao `meta` da sessão salva (`scenario: interprete`). */
   cenarioDaSessao?: () => 'interprete' | undefined;
 }
@@ -302,7 +309,7 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
       ]);
     if (!resuming) setTimer(0);
     if (soToque) return; // o intérprete abre o microfone no toque de um lado
-    if (micEnabled) void startMic();
+    if (deps.micNoInicio?.() ?? micEnabled) void startMic();
     if (systemEnabled) void handleStartSystemCapture();
   };
 

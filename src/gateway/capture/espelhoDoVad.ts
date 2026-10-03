@@ -29,6 +29,15 @@ export interface OpcoesDoEspelho {
   preSpeechPadMs: number;
   /** Silêncio (dentro da redenção) a partir do qual a janela especulativa é entregue. */
   especulativoMs: number;
+  /**
+   * FIM DE FALA INTELIGENTE: o silêncio candidato, em ms (o piso de `pisoDoSilencio.ts`). Função, não número:
+   * o piso anda com a pessoa e é lido a cada pausa. Sem ela, o espelho não consulta ninguém.
+   */
+  consultaMs?: () => number;
+  /** O silêncio chegou ao candidato (uma vez por pausa): hora de perguntar ao modelo de turno. */
+  aoConsultar?: () => void;
+  /** Uma pausa DENTRO da fala terminou com a pessoa voltando a falar (duração em ms): alimenta o piso. */
+  aoVoltarDaPausa?: (ms: number) => void;
 }
 
 export type EventoDoEspelho = 'especular' | 'cancelar' | null;
@@ -39,6 +48,10 @@ export class EspelhoDoVad {
   private contador = 0;
   /** A janela especulativa já foi entregue nesta pausa (e ainda vale)? */
   private especulou = false;
+  /** Já se consultou o modelo nesta pausa? (uma consulta por pausa) */
+  private consultou = false;
+  /** Duração de um quadro (ms), do último visto — a pausa se mede em quadros. */
+  private msPorQuadro = 0;
 
   constructor(private readonly opcoes: OpcoesDoEspelho) {}
 
@@ -58,8 +71,12 @@ export class EspelhoDoVad {
     let evento: EventoDoEspelho = null;
     this.buffer.push(frame);
     const ehFala = prob >= positiveSpeechThreshold;
+    this.msPorQuadro = frame.length / 16;
     if (ehFala) {
+      // Uma pausa de dentro da fala acabou: a pessoa voltou antes da redenção.
+      if (this.falando && this.contador > 0) this.opcoes.aoVoltarDaPausa?.(this.contador * this.msPorQuadro);
       this.contador = 0;
+      this.consultou = false;
       if (this.especulou) {
         this.especulou = false;
         evento = 'cancelar';
@@ -77,12 +94,22 @@ export class EspelhoDoVad {
         this.especulou = true;
         evento = 'especular';
       }
+      const consulta = this.opcoes.consultaMs;
+      if (consulta && !this.consultou && this.contador >= this.quadros(consulta(), frame.length)) {
+        this.consultou = true;
+        this.opcoes.aoConsultar?.();
+      }
     }
     if (!this.falando) {
       const max = this.quadros(preSpeechPadMs, frame.length);
       while (this.buffer.length > max) this.buffer.shift();
     }
     return evento;
+  }
+
+  /** Silêncio acumulado na pausa de agora (ms); 0 quando se está falando. */
+  get silencioMs(): number {
+    return this.contador * this.msPorQuadro;
   }
 
   /** O áudio que o VAD entregaria se fechasse agora (pré-fala + fala + silêncio até aqui). */
@@ -104,6 +131,7 @@ export class EspelhoDoVad {
     this.falando = false;
     this.contador = 0;
     this.especulou = false;
+    this.consultou = false;
   }
 }
 

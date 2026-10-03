@@ -42,6 +42,9 @@ export interface NarradorDoPlayer {
   podeFalar: (lang: string) => boolean;
 }
 
+/** Quanto o Smart Slow-Mo desacelera uma fala com palavra difícil, em relação à velocidade escolhida. */
+const FATOR_DO_SLOW_MO = 0.8;
+
 /** Tudo que o player precisa da tela — por parâmetro, sem contexto novo. */
 export interface DepsDoPlayerDaSessao {
   parsedSentences: FalaDaAnalise[];
@@ -68,7 +71,8 @@ export interface DepsDoPlayerDaSessao {
   setActiveSentenceIndex: Dispatch<SetStateAction<number>>;
   setSeekNonce: Dispatch<SetStateAction<number>>;
   setIsPlaying: Dispatch<SetStateAction<boolean>>;
-  setPlaybackSpeed: Dispatch<SetStateAction<number>>;
+  /** Já não é usado aqui (o Slow-Mo desacelera por cima da escolha); fica para quem ainda o passa. */
+  setPlaybackSpeed?: Dispatch<SetStateAction<number>>;
   setAudioDuration: Dispatch<SetStateAction<number>>;
   setPeaks: Dispatch<SetStateAction<number[]>>;
   setShadowingSentenceIndex: Dispatch<SetStateAction<number | null>>;
@@ -86,7 +90,7 @@ export function usePlayerDaSessao(deps: DepsDoPlayerDaSessao) {
     activeSentenceIndex,
     currentTime,
     isPlaying,
-    playbackSpeed,
+    playbackSpeed: velocidadeEscolhida,
     loopMode,
     autoSlowEnabled,
     ttsLang,
@@ -96,12 +100,24 @@ export function usePlayerDaSessao(deps: DepsDoPlayerDaSessao) {
     setActiveSentenceIndex,
     setSeekNonce,
     setIsPlaying,
-    setPlaybackSpeed,
     setAudioDuration,
     setPeaks,
     setShadowingSentenceIndex,
     narrador = null,
   } = deps;
+  /* O Smart Slow-Mo NÃO SOBRESCREVE a velocidade que a pessoa escolheu (0,75× / 1× / 1,25×): ele
+     desacelera por cima dela, só nas falas com palavra difícil. Antes ele gravava 0,8 ou 1,0 direto em
+     `playbackSpeed`, e com o Slow-Mo ligado o seletor de velocidade parecia quebrado: cada clique era
+     desfeito na fala seguinte. */
+  const falaComPalavraDificil =
+    autoSlowEnabled &&
+    activeSentenceIndex !== -1 &&
+    activeSentenceIndex < parsedSentences.length &&
+    sentenceHasComplexWord(parsedSentences[activeSentenceIndex].original);
+  const playbackSpeed = falaComPalavraDificil
+    ? Math.max(0.5, velocidadeEscolhida * FATOR_DO_SLOW_MO)
+    : velocidadeEscolhida;
+
   // O motor mais recente, sem re-disparar a narração a cada render da tela.
   const narradorRef = React.useRef(narrador);
   narradorRef.current = narrador;
@@ -357,16 +373,6 @@ export function usePlayerDaSessao(deps: DepsDoPlayerDaSessao) {
       alive = false;
     };
   }, [hasRealAudio, audioSrc, setPeaks]);
-
-  // Auto-slow down on complex sentences
-  React.useEffect(() => {
-    if (!autoSlowEnabled || activeSentenceIndex === -1 || activeSentenceIndex >= parsedSentences.length) {
-      return;
-    }
-    // BL-01: heurística REAL (palavra longa/polissilábica) no lugar de 4 palavras hardcoded.
-    const text = parsedSentences[activeSentenceIndex].original;
-    setPlaybackSpeed(sentenceHasComplexWord(text) ? 0.8 : 1.0);
-  }, [activeSentenceIndex, autoSlowEnabled, parsedSentences, setPlaybackSpeed]);
 
   return { seekTo, playFrom };
 }

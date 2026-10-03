@@ -96,10 +96,10 @@ export async function autorizarNuvemSePedir(page: Page, onde = page.locator('bod
  * então a tela só conta como livre depois de duas conferências seguidas sem nada por cima.
  */
 export async function chegarEm(page: Page, alvo: Locator) {
-  /* "Pular apresentação" leva ao último passo ("Como você quer rodar a IA?"), que fecha em "Começar"
-     com o padrão (rodar local). */
+  /* "Pular apresentação" leva ao último passo ("Por padrão, tudo no seu dispositivo"), que fecha em
+     "Começar" com o padrão (rodar local). */
   const pular = page.getByRole('button', { name: 'Pular apresentação' })
-  const comecar = page.getByRole('dialog', { name: 'Como você quer rodar a IA?' }).getByRole('button', {
+  const comecar = page.getByRole('dialog', { name: 'Por padrão, tudo no seu dispositivo' }).getByRole('button', {
     name: 'Começar',
   })
   const resgatar = page.locator('dialog[open]:has(.recompensa)').getByRole('button', { name: 'Resgatar e continuar' })

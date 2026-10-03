@@ -84,4 +84,17 @@ describe('paleta de comandos', () => {
     expect(bloqueado.run).not.toHaveBeenCalled()
     expect(screen.getByText('precisa do plano Pro')).toBeTruthy()
   })
+
+  it('Esc no campo fecha, sem depender do cancel nativo do <dialog>', () => {
+    const { onClose, campo } = abrir()
+    fireEvent.keyDown(campo, { key: 'Escape' })
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it('clicar fora da caixa (no fundo do <dialog>) fecha', () => {
+    const { onClose } = abrir()
+    const dlg = screen.getByRole('dialog') as HTMLDialogElement
+    fireEvent.click(dlg)
+    expect(onClose).toHaveBeenCalled()
+  })
 })

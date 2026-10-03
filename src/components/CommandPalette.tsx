@@ -120,8 +120,18 @@ function Paleta({ onClose, commands, placeholder = 'Buscar exercício…', suges
   };
 
   return (
-    <DialogoBase classe="paleta-cmd" rotulo="Busca" aoFechar={onClose}>
-      <div className="cmd">
+    <DialogoBase classe="paleta-cmd" rotulo="Busca" aoFechar={onClose} fecharNoFundo>
+      {/* Esc fecha também por aqui, sem esperar o `cancel` nativo: em alguns navegadores ele não
+          dispara quando o diálogo abriu sem gesto do teclado ou do mouse (atalho, foco no corpo). */}
+      <div
+        className="cmd"
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') {
+            e.preventDefault();
+            onClose();
+          }
+        }}
+      >
         <div className="cmd-busca">
           <Search aria-hidden />
           <label className="sr" htmlFor="cmd-q">

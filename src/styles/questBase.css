@@ -362,7 +362,7 @@ html[data-quest-novo='true'] :is(.tela, .q-palco, .quest-pronto, dialog) .pill:n
 }
 html[data-quest-novo='true']
   :is(.tela, .q-palco, .quest-pronto, dialog)
-  .pill:is([aria-pressed='true'], [aria-selected='true']) {
+  .pill:is([aria-pressed='true'], [aria-selected='true'], [aria-checked='true']) {
   background: var(--q-suave);
   border-color: var(--q-acento);
   color: var(--ink);

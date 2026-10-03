@@ -79,7 +79,7 @@ test('edição estática: telas principais sem /api, sem erro, sem login nem pla
   const pular = page.getByRole('button', { name: 'Pular apresentação' })
   if (await pular.isVisible().catch(() => false)) {
     await pular.click()
-    await expect(page.getByRole('radio', { name: /Usar minha chave/ })).toHaveCount(0)
+    await expect(page.getByRole('radio', { name: /Usar minha chave/ })).toHaveCount(0) // o passo da IA não existe mais
     await page.getByRole('button', { name: /Começar/ }).click()
     await expect(page.getByRole('main')).toBeVisible()
   }

@@ -1,0 +1,244 @@
+/*
+ * A BARRA DO DESENHO LIVRE e a tela de desenho (Leitura). Importado só por `BarraDeDesenho.tsx`
+ * (nunca por `main.tsx`: o CSS inicial tem teto). As peças base são as do app: `.seg`, `.campo`,
+ * `.btn` no desenho de sempre; `.q-abas`, `.q-campo`, `.q-ctl` no desenho novo.
+ */
+
+/* A tela por cima do texto acompanha o cartão (o bitmap é medido pelo pai, em `useDesenhoLivre`). */
+.desenho-tela {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  border-radius: inherit;
+  pointer-events: none;
+}
+/* Só com uma ferramenta ligada o canvas pega o toque; fora dela a rolagem do texto segue normal. */
+.desenho-tela[data-ativo='true'] {
+  pointer-events: auto;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.desenho-barra {
+  display: grid;
+  gap: 12px;
+  flex-basis: 100%;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  background: var(--surface);
+}
+.desenho-barra.q {
+  gap: 16px;
+  padding: 16px;
+  border-width: 1.5px;
+  border-radius: 20px;
+}
+.desenho-linha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px 16px;
+  min-width: 0;
+}
+.desenho-barra .seg,
+.desenho-barra .q-abas {
+  max-width: 100%;
+  flex-wrap: wrap;
+}
+.desenho-barra .seg button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.desenho-barra .seg svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* ── cores ── */
+.desenho-cores {
+  align-items: center;
+}
+.desenho-amostras {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+}
+.desenho-amostras > :is(.label-mono, .desenho-rotulo) {
+  margin-inline-end: 8px;
+}
+.desenho-amostra {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+}
+.desenho-cor {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 30%, transparent);
+  transition: transform 120ms ease;
+}
+.desenho-amostra:hover .desenho-cor {
+  transform: scale(1.1);
+}
+.desenho-amostra[aria-pressed='true'] {
+  box-shadow:
+    0 0 0 2px var(--surface),
+    0 0 0 4px var(--accent);
+}
+.desenho-amostra:focus-visible,
+.desenho-barra input:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+.desenho-rgb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px 10px;
+}
+.desenho-campo {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.desenho-rgb .desenho-campo input[type='number'] {
+  width: 76px;
+  min-height: 42px;
+}
+.desenho-rgb .desenho-campo input[type='text'] {
+  width: 108px;
+  min-height: 42px;
+  font-family: var(--font-mono, monospace);
+}
+.desenho-seletor {
+  width: 56px;
+  height: 42px;
+  padding: 2px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background: var(--canvas);
+  cursor: pointer;
+}
+.desenho-rotulo.q {
+  font: 700 14px/1 var(--font-mono, monospace);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+/* ── grossura, opacidade e a pré-visualização ── */
+.desenho-grossura {
+  align-items: center;
+}
+.desenho-controle {
+  display: grid;
+  gap: 6px;
+  min-width: 160px;
+  flex: 1 1 180px;
+  max-width: 320px;
+}
+.desenho-controle input[type='range'] {
+  width: 100%;
+  min-height: 32px;
+  accent-color: var(--accent);
+}
+.desenho-valor {
+  margin-inline-start: 6px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.desenho-previa {
+  width: 176px;
+  height: 56px;
+  flex: none;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  color: var(--ink-muted);
+  /* Metade clara, metade escura: um traço branco ou preto aparece em pelo menos uma metade. */
+  background: linear-gradient(90deg, var(--canvas) 50%, color-mix(in srgb, var(--ink) 78%, var(--canvas)) 50%);
+}
+.desenho-nome-tipo {
+  font-size: 12.5px;
+}
+
+/* ── ações ── */
+.desenho-acoes {
+  align-items: center;
+}
+.desenho-dica {
+  font-size: 12.5px;
+}
+.desenho-barra .desenho-perigo {
+  color: var(--error-ink, var(--error));
+}
+.desenho-barra .btn svg {
+  width: 14px;
+  height: 14px;
+}
+.desenho-barra.q .desenho-dica {
+  font-size: 15px;
+}
+.desenho-barra.q .q-ctl {
+  min-height: 56px;
+}
+.desenho-barra.q .desenho-campo input[type='number'],
+.desenho-barra.q .desenho-campo input[type='text'] {
+  min-height: 56px;
+  font-size: 18px;
+  padding-inline: 12px;
+}
+.desenho-barra.q .desenho-rgb .desenho-campo input[type='number'] {
+  width: 104px;
+}
+.desenho-barra.q .desenho-rgb .desenho-campo input[type='text'] {
+  width: 140px;
+}
+.desenho-barra.q .desenho-amostra {
+  width: 44px;
+  height: 44px;
+}
+.desenho-barra.q .desenho-cor {
+  width: 30px;
+  height: 30px;
+}
+.desenho-barra.q .desenho-seletor {
+  height: 56px;
+  width: 72px;
+}
+
+/* ── celular e toque: alvos de pelo menos 44 px ── */
+@media (pointer: coarse), (max-width: 640px) {
+  .desenho-amostra {
+    width: 44px;
+    height: 44px;
+  }
+  .desenho-barra .seg button,
+  .desenho-barra .btn,
+  .desenho-barra .desenho-campo input,
+  .desenho-seletor {
+    min-height: 44px;
+  }
+  .desenho-controle input[type='range'] {
+    min-height: 44px;
+  }
+  .desenho-rgb .desenho-campo input[type='number'] {
+    width: 84px;
+  }
+  .desenho-previa {
+    width: 100%;
+    max-width: 220px;
+  }
+}

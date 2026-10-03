@@ -14,7 +14,6 @@ import {
   MousePointerClick,
   NotebookPen,
   Pause,
-  Pen,
   PenTool,
   Play,
   PlayCircle,
@@ -27,7 +26,6 @@ import {
   SpellCheck,
   Square,
   StickyNote,
-  Trash2,
   Volume2,
   X,
 } from 'lucide-react';
@@ -75,6 +73,8 @@ import { toast } from '../Toast';
 import TokensClicaveis, { ehPalavraDeConteudo } from '../TokensClicaveis';
 import { Dialogo, fecharDialogoDe, IconeEmBloco, TituloDeSecao } from '../ui';
 import VocabularyPanel from '../VocabularyPanel';
+import BarraDeDesenho from './leitura/BarraDeDesenho';
+import { useDesenhoLivre } from './leitura/useDesenhoLivre';
 
 /**
  * LEITURA INTELIGENTE — modos do narrador.
@@ -432,101 +432,16 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
     }
   }, [annotations]);
 
-  // Freehand Canvas Drawing States
+  /* O DESENHO LIVRE: o motor (traços, desfazer, preferências, guardar por sessão) mora em
+     `leitura/useDesenhoLivre`; a barra, em `leitura/BarraDeDesenho`. */
   const [isDrawModeActive, setIsDrawModeActive] = useState(false);
-  const [drawTool, setDrawTool] = useState<'pen' | 'highlighter' | 'eraser'>('pen');
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const isDrawingRef = useRef(false);
-
-  /* Redimensionar o canvas APAGA o que estava nele: o desenho é guardado antes e redesenhado
-     depois (o protótipo guarda em `E.desenho`). */
-  const syncCanvasSize = () => {
-    const canvas = canvasRef.current;
-    const container = canvas?.parentElement;
-    if (canvas && container) {
-      const antes = canvas.width && canvas.height ? canvas.toDataURL() : null;
-      canvas.width = container.scrollWidth;
-      canvas.height = container.scrollHeight;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        if (antes) {
-          const img = new Image();
-          img.onload = () => ctx.drawImage(img, 0, 0);
-          img.src = antes;
-        }
-      }
-    }
-  };
-
-  // Sync size on mode activation or screen resize
-  useEffect(() => {
-    if (isDrawModeActive) {
-      const t = setTimeout(() => {
-        syncCanvasSize();
-      }, 150);
-      window.addEventListener('resize', syncCanvasSize);
-      return () => {
-        clearTimeout(t);
-        window.removeEventListener('resize', syncCanvasSize);
-      };
-    }
-  }, [isDrawModeActive, fontSize, viewMode]);
-
-  const startDrawing = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    isDrawingRef.current = true;
-    canvas.setPointerCapture(e.pointerId);
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-
-    // Caneta no destaque (3 px), marca-texto no âmbar translúcido (16 px), borracha larga (22 px).
-    const cor = getComputedStyle(document.documentElement)
-      .getPropertyValue(drawTool === 'highlighter' ? '--warn' : '--accent')
-      .trim();
-    ctx.globalCompositeOperation = drawTool === 'eraser' ? 'destination-out' : 'source-over';
-    ctx.globalAlpha = drawTool === 'highlighter' ? 0.35 : 1;
-    ctx.strokeStyle = cor || '#E8542B';
-    ctx.lineWidth = drawTool === 'highlighter' ? 16 : drawTool === 'eraser' ? 22 : 3;
-  };
-
-  const draw = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    if (!isDrawingRef.current) return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    ctx.lineTo(x, y);
-    ctx.stroke();
-  };
-
-  const stopDrawing = () => {
-    isDrawingRef.current = false;
-  };
-
-  const clearCanvas = () => {
-    const canvas = canvasRef.current;
-    if (canvas) {
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-      }
-    }
-  };
+  const desenho = useDesenhoLivre({
+    sessionId: recording?.id,
+    canvasRef,
+    ativo: isDrawModeActive,
+    remedir: [fontSize, viewMode],
+  });
 
   // Audio Recording States
   /** A frase que recebe o comentário em áudio ("Áudio" da Anotação semântica). */
@@ -1340,35 +1255,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
 
         {isDrawModeActive ? (
           <div className="q-acoes ql-desenho">
-            <div className="q-abas q-seg" role="group" aria-label={t('Ferramenta de desenho')}>
-              {(
-                [
-                  ['pen', t('Caneta'), Pen],
-                  ['highlighter', t('Marca-texto'), Highlighter],
-                  ['eraser', t('Borracha'), Eraser],
-                ] as const
-              ).map(([v, r, Icone]) => (
-                <button
-                  key={v}
-                  type="button"
-                  className="q-aba"
-                  aria-pressed={drawTool === v}
-                  onClick={() => setDrawTool(v)}
-                >
-                  <Icone aria-hidden /> {r}
-                </button>
-              ))}
-            </div>
-            <button
-              type="button"
-              className="q-ctl perigo"
-              onClick={() => {
-                clearCanvas();
-                toast.info(t('Desenhos apagados'));
-              }}
-            >
-              <Trash2 aria-hidden /> {t('Limpar tudo')}
-            </button>
+            <BarraDeDesenho desenho={desenho} questNovo />
           </div>
         ) : (
           total > 0 && (
@@ -1389,13 +1276,10 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
           {/* Desenho livre por cima do texto */}
           <canvas
             ref={canvasRef}
-            className="ql-tela-de-desenho"
-            onPointerDown={startDrawing}
-            onPointerMove={draw}
-            onPointerUp={stopDrawing}
-            onPointerCancel={stopDrawing}
+            className="desenho-tela"
+            data-ativo={isDrawModeActive}
+            {...desenho.handlers}
             aria-label={t('Área de desenho')}
-            style={{ pointerEvents: isDrawModeActive ? 'auto' : 'none' }}
           />
           {total === 0 ? (
             transcriptLoaded ? (
@@ -2163,31 +2047,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
             </button>
           </div>
           {isDrawModeActive ? (
-            <>
-              <div className="seg" role="group" aria-label="Ferramenta de desenho">
-                {(
-                  [
-                    ['pen', 'Caneta', Pen],
-                    ['highlighter', 'Marca-texto', Highlighter],
-                    ['eraser', 'Borracha', Eraser],
-                  ] as const
-                ).map(([v, r, Icone]) => (
-                  <button key={v} type="button" aria-pressed={drawTool === v} onClick={() => setDrawTool(v)}>
-                    <Icone aria-hidden style={{ width: 14, height: 14 }} /> {r}
-                  </button>
-                ))}
-              </div>
-              <button
-                type="button"
-                className="btn btn-outline peq"
-                onClick={() => {
-                  clearCanvas();
-                  toast.info('Desenhos apagados');
-                }}
-              >
-                <Trash2 aria-hidden /> Limpar tudo
-              </button>
-            </>
+            <BarraDeDesenho desenho={desenho} questNovo={false} />
           ) : (
             <span className="mut" style={{ fontSize: 12.5 }}>
               Clique numa frase para anotar: vocabulário, gramática, expressão ou dúvida.
@@ -2212,18 +2072,10 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
             {/* Desenho livre por cima do texto */}
             <canvas
               ref={canvasRef}
-              onPointerDown={startDrawing}
-              onPointerMove={draw}
-              onPointerUp={stopDrawing}
-              onPointerCancel={stopDrawing}
-              aria-label="Área de desenho"
-              style={{
-                position: 'absolute',
-                inset: 0,
-                zIndex: 2,
-                pointerEvents: isDrawModeActive ? 'auto' : 'none',
-                cursor: isDrawModeActive ? 'crosshair' : 'default',
-              }}
+              className="desenho-tela"
+              data-ativo={isDrawModeActive}
+              {...desenho.handlers}
+              aria-label={t('Área de desenho')}
             />
             {fraseEscolhida !== null && !isDrawModeActive && (
               <div className="escolha-nota cartao entra" role="group" aria-label="Anotar a frase">

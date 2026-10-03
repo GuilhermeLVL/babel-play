@@ -134,3 +134,53 @@ Tudo em `main`, com testes:
 - **O token do Hugging Face não tem permissão de inferência.** Por isso Gemma 3 e Qwen3 235B não foram medidos por lá.
 - **Ampliar o gold de conversa** de 60 casos para 300 ou mais. Ele decidiu duas trocas, e o IC ainda é largo (±0,03).
 - **Latência medida em WebGPU real** (Whisper small em pt) num computador do público-alvo. O headless desta máquina não expõe GPU.
+
+## Fim de fala inteligente (Smart Turn v3.2), 03/10/2026
+
+Pergunta: um modelo de turno (Smart Turn v3.2 CPU int8, 8 MB, ONNX) decide melhor que o silêncio fixo de 800 ms quando a frase acabou? Script: `bancada/fim-de-fala.mjs`, corpus: FLEURS (`baixar-fim-de-fala.py`), 100 falas em pt e en e 30 em es, zh e ja (40 nas rodadas de en com limiar 0,9). O áudio do corpus não vai para o git.
+
+**O que cada medida faz.** (A) Modelo sozinho: fala completa + 300 ms de silêncio, contra a mesma fala cortada numa queda de energia (fronteira de palavra) e contra o ponto de uma pausa natural da fala (288 ms reais de silêncio do Silero). (B) De ponta a ponta, sem STT: o Silero + `FrameProcessor` do navegador sobre cada fala, natural e com uma pausa de 500 ou 700 ms no meio, com silêncio fixo de 800 ms e com o fim inteligente (espelho do VAD → consulta com os últimos 8 s → `pause()`/`resume()`). O custo de nuvem é Σ max(10 s, trecho), em razão do silêncio fixo. IC 95% por bootstrap pareado.
+
+**Falsos "completa" nas pausas naturais (o erro que parte a frase) e AUC, limiar 0,7:**
+
+| Idioma | AUC (pausa) | Falsos "completa" | Completas reconhecidas |
+| ------ | ----------- | ----------------- | ---------------------- |
+| pt     | 0,71        | 74% [68–80]       | 96%                    |
+| en     | 0,87        | 33% [24–43]       | 90%                    |
+| es     | 0,87        | 71% [58–83]       | 100%                   |
+| zh     | 0,62        | 87% [76–97]       | 100%                   |
+| ja     | 0,75        | 83% [71–93]       | 100%                   |
+
+Com limiar 0,9 em en: 24–31% de falsos "completa", 85% das completas reconhecidas. O limiar mais alto troca ganho por segurança, e nenhum deixa o erro perto de zero sem perder metade das completas (0,98 em en: 3% de falsos, 50% reconhecidas).
+
+**Fechamento de ponta a ponta (fragmentos por fala; espera depois da última palavra, p50; custo de nuvem ÷ custo do fixo):**
+
+| Idioma, limiar, latência assumida | Condição  | Fragmentos fixo → inteligente (Δ IC95) | Espera p50 fixo → int | Custo                  |
+| --------------------------------- | --------- | -------------------------------------- | --------------------- | ---------------------- |
+| pt, 0,7, 100 ms                   | natural   | 1,24 → 2,13 (+0,89 [0,74; 1,07])       | 748 → 460 ms          | 1,53×                  |
+| pt, 0,7, 100 ms                   | pausa 700 | 1,77 → 2,71 (+0,94 [0,77; 1,13])       | 816 → 432 ms          | 1,48×                  |
+| en, 0,7, 100 ms                   | natural   | 1,08 → 1,27 (+0,19 [0,08; 0,31])       | 940 → 652 ms          | 1,12×                  |
+| en, 0,7, 100 ms                   | pausa 700 | 1,41 → 1,99 (+0,58 [0,47; 0,69])       | 1008 → 528 ms         | 1,37×                  |
+| es, 0,7, 100 ms                   | natural   | 1,07 → 1,53 (+0,47 [0,23; 0,73])       | 748 → 460 ms          | 1,26×                  |
+| zh, 0,7, 100 ms                   | natural   | 1,07 → 1,67 (+0,60 [0,33; 0,90])       | 748 → 460 ms          | 1,47×                  |
+| ja, 0,7, 100 ms                   | natural   | 1,27 → 1,80 (+0,53 [0,30; 0,77])       | 748 → 460 ms          | 1,33×                  |
+| **en, 0,9, 250 ms**               | natural   | 1,07 → 1,15 (+0,07 [0,00; 0,20])       | 940 → 748 ms          | **1,04×** [0,99; 1,10] |
+| en, 0,9, 250 ms                   | pausa 500 | 1,25 → 1,40 (+0,15 [0,03; 0,28])       | 920 → 728 ms          | 1,09×                  |
+| en, 0,9, 250 ms                   | pausa 700 | 1,38 → 1,85 (+0,47 [0,33; 0,63])       | 1008 → 720 ms         | 1,31×                  |
+
+(o "fixo" mede a espera acima de 800 ms porque os quadros do Silero têm 96 ms e a fala natural do FLEURS traz silêncio de fim de gravação.)
+
+**Tempo por consulta.** Node, 1 thread: mel (JS) 48–53 ms p50 e modelo 55–62 ms p50 (p95 ≤ 85 ms). No Chromium headless, pelo worker com onnxruntime-web (1 thread de WASM): carga do modelo 1,7 s e ~230–320 ms da mensagem à resposta. Esse tempo entra na espera: a fala só fecha depois dele.
+
+**Decisão do portão: REPROVADO. A chave continua desligada.**
+
+- O modelo reconhece quase toda fala completa, mas também diz "completa" em pausas de meio de frase na maior parte dos casos desta leitura (FLEURS é fala lida, com pausas de vírgula de entonação final). Cada falso "completa" parte a frase: fragmentos por fala sobem em todos os idiomas, mais que o IC de 95% pareado admite, e o custo de nuvem passa de 1,08× em todos menos em en com limiar 0,9.
+- O p50 até a voz melhora 190 a 290 ms, não os 400 ms do portão (e a consulta ao modelo custa ~250 ms no navegador).
+- Só **en com limiar 0,9** chega perto (Δ fragmentos +0,07 com IC encostando em zero; custo 1,04×). Por isso `IDIOMAS_APROVADOS = ['en']` e `LIMIAR_DE_FIM_DE_FALA = 0,9`: é a lista **liberada para o teste do dono**, não uma aprovação para virar padrão. pt, es, zh e ja ficam no silêncio fixo de 800 ms.
+
+**O que esta bancada NÃO mediu:**
+
+- **WER** com silêncio fixo contra inteligente (sem STT neste script; é a próxima rodada, com `stt.mjs`). O WER do fixo de 800 ms continua sendo 18,0% em pt.
+- **Fala de conversa de verdade** (o FLEURS é lido e curto). O Smart Turn foi treinado em conversa; a medida aqui provavelmente subestima o modelo em en. Um áudio de entrevista ou vídeo do YouTube é o teste que falta.
+- ko e fr (o modelo cobre; não há corpus aqui) e limiares 0,9 em es, zh, ja.
+- O tempo da inferência em WebGPU/WASM com várias threads, e no aparelho do dono.

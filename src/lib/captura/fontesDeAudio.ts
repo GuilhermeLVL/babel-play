@@ -38,6 +38,7 @@ import { type EscolhaDoMic, resolverMotorDoMic } from './motorDoMicrofone';
 import { criarProgressoDosPacotesNativos } from './pacotesNativos';
 import type { OpcoesDaPreparacao } from './pipelineDeFala';
 import { segmentosDaWebSpeech } from './segmentosDaWebSpeech';
+import { chaveLigada } from './testesDoInterprete';
 import { clog, type DirecaoDaFala, type FimDaFala, type HandlersDaFonte, type SpeechSegment } from './tiposDaFala';
 import type { OpcoesDeTraducao } from './traducaoDaFala';
 import {
@@ -231,6 +232,13 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
      inteira) e a pausa de sempre. */
   const noInterprete = (): boolean => !!deps.direcaoDoMicrofone?.() || !!deps.interpreteAutomatico?.();
   const opcoesDeCaptura: OpcoesDeCaptura = {
+    /* FIM DE FALA INTELIGENTE: atrás da chave de teste (desligada de fábrica) e fora do Quest, onde a
+       pausa de 500 ms e a falta de parcial pedem outra medida. Todos os idiomas da conversa precisam estar na
+       lista que a bancada aprovou; senão vale o silêncio fixo. */
+    fimDeFala: {
+      ligado: () => chaveLigada('fimInteligente') && perfilDoDispositivo().tipo !== 'quest',
+      idiomas: () => deps.idiomasDaConversa?.() ?? [sourceLangRef.current],
+    },
     get redencaoMs() {
       return perfilDoDispositivo().tipo === 'quest' && !noInterprete() ? 500 : undefined;
     },

@@ -6,6 +6,7 @@
     "src/gateway/adapters/bergamotWorker.ts",
     "src/gateway/adapters/whisperWorker.ts",
     "src/lib/speakerIdWorker.ts",
+    "src/gateway/capture/fimDeFalaWorker.ts",
     "tests/**/*.{test,spec}.{ts,tsx}",
     "tests/e2e/**/*.e2e.ts",
     "tests/harness/**/*.ts",

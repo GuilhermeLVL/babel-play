@@ -125,3 +125,65 @@ describe('ehPrefixo', () => {
     expect(ehPrefixo(new Float32Array([]), new Float32Array([1]))).toBe(false)
   })
 })
+
+describe('EspelhoDoVad: consulta do modelo de turno e pausas da pessoa (fim de fala inteligente)', () => {
+  const frame = () => new Float32Array(QUADRO)
+  function criar(consultaMs: () => number) {
+    const consultas: number[] = []
+    const pausas: number[] = []
+    const espelho = new EspelhoDoVad({
+      ...OPCOES,
+      especulativoMs: 450,
+      consultaMs,
+      aoConsultar: () => consultas.push(espelho.silencioMs),
+      aoVoltarDaPausa: (ms) => pausas.push(ms),
+    })
+    const alimentar = (probs: number[]) => probs.forEach((p) => espelho.quadro(p, frame()))
+    return { espelho, consultas, pausas, alimentar }
+  }
+
+  it('consulta UMA vez por pausa, quando o silêncio chega ao piso (300 ms = 3 quadros de 96 ms)', () => {
+    const { consultas, alimentar } = criar(() => 300)
+    alimentar([...fala(10), ...silencio(6)])
+    expect(consultas).toEqual([3 * 96])
+  })
+
+  it('uma segunda pausa na mesma fala consulta de novo', () => {
+    const { consultas, alimentar } = criar(() => 300)
+    alimentar([...fala(6), ...silencio(4), ...fala(5), ...silencio(4)])
+    expect(consultas).toHaveLength(2)
+  })
+
+  it('lê o piso a cada pausa (função), porque ele anda com a pessoa', () => {
+    let piso = 300
+    const { consultas, alimentar } = criar(() => piso)
+    alimentar([...fala(6), ...silencio(5)])
+    piso = 600 // 6 quadros
+    alimentar([...fala(5), ...silencio(7)])
+    expect(consultas).toEqual([3 * 96, 6 * 96])
+  })
+
+  it('não consulta fora de fala (silêncio puro) nem quando o piso alcança a redenção', () => {
+    const a = criar(() => 300)
+    a.alimentar(silencio(20))
+    expect(a.consultas).toHaveLength(0)
+    const b = criar(() => 800) // 8 quadros = a redenção: o VAD fecha antes
+    b.alimentar([...fala(6), ...silencio(12)])
+    expect(b.consultas).toHaveLength(0)
+  })
+
+  it('avisa a duração da pausa que terminou com a pessoa voltando a falar', () => {
+    const { pausas, alimentar } = criar(() => 300)
+    alimentar([...silencio(3), ...fala(6), ...silencio(5), ...fala(4)])
+    // O silêncio antes da 1ª fala e o do fim (redenção) não são pausas da pessoa; a do meio é: 5 quadros.
+    expect(pausas).toEqual([5 * 96])
+    alimentar([...silencio(10), ...fala(3)])
+    expect(pausas).toEqual([5 * 96])
+  })
+
+  it('sem os callbacks, o comportamento de antes (nada quebra)', () => {
+    const espelho = new EspelhoDoVad({ ...OPCOES, especulativoMs: 450 })
+    for (const p of [...fala(5), ...silencio(6), ...fala(2)]) espelho.quadro(p, frame())
+    expect(espelho.silencioMs).toBe(0)
+  })
+})

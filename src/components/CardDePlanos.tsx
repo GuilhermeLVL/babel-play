@@ -97,7 +97,7 @@ export default function CardDePlanos({ onVerPlanos }: { onVerPlanos: () => void 
         tom={quotaApertada ? 'alerta' : 'acento'}
         titulo={
           quotaApertada
-            ? t('Seu armazenamento passou de 90%')
+            ? t('Seu armazenamento está quase cheio')
             : t('Planos a partir de {moeda} {preco}/mês', { moeda: 'R$', preco })
         }
         texto={
@@ -140,7 +140,7 @@ export default function CardDePlanos({ onVerPlanos }: { onVerPlanos: () => void 
         {/* As mesmas frases do desenho do headset (as chaves do catálogo são as mesmas nos dois). */}
         {quotaApertada ? (
           <>
-            <strong>{t('Seu armazenamento passou de 90%')}</strong>.{' '}
+            <strong>{t('Seu armazenamento está quase cheio')}</strong>.{' '}
             {t('Os planos pagos (a partir de {moeda} {preco}/mês) dão mais espaço. Ou apague sessões antigas.', {
               moeda: 'R$',
               preco,

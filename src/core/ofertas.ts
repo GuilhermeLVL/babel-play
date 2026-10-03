@@ -116,7 +116,7 @@ export const GATILHOS_FUNCIONAIS: readonly GatilhoDeOferta[] = Object.freeze([
     momento: 'cota_proxima',
     componente: 'aviso_cota',
     titulo: 'Sua cota de IA de nuvem está perto do fim',
-    texto: 'Você já usou mais de 80% da cota deste mês. Quando ela acabar, o app segue com os motores locais.',
+    texto: 'Você já usou quase toda a cota deste mês. Quando ela acabar, o app segue com os motores locais.',
     cta: 'Ver planos',
     maxPorDia: 1,
     maxPorSemana: 2,

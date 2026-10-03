@@ -834,7 +834,6 @@
   "A tradução e a transcrição locais continuam funcionando. A cota volta no dia 1º.": "Local translation and transcription keep working. The quota resets on the 1st.",
   "Ver planos": "See plans",
   "Sua cota de IA de nuvem está perto do fim": "Your cloud AI quota is almost used up",
-  "Você já usou mais de 80% da cota deste mês. Quando ela acabar, o app segue com os motores locais.": "You have used over 80% of this month's quota. When it runs out, the app keeps going with the local engines.",
   "Não mostrar novamente": "Don't show again",
   "Dispensar aviso": "Dismiss notice",
   "Fechar": "Close",
@@ -2601,7 +2600,6 @@
   "Conquistas": "Achievements",
   "Como ganhar": "How to earn",
   "Como subir de nível": "How to level up",
-  "Seu armazenamento passou de 90%": "Your storage is over 90%",
   "Planos a partir de {moeda} {preco}/mês": "Plans from {moeda} {preco}/month",
   "Os planos pagos (a partir de {moeda} {preco}/mês) dão mais espaço. Ou apague sessões antigas.": "Paid plans (from {moeda} {preco}/month) give you more space. Or delete old sessions.",
   "Tradução com IA de nuvem e mais armazenamento. Você está no Grátis, que continua inteiro.": "Cloud AI translation and more storage. You are on Free, which stays complete.",
@@ -3699,5 +3697,7 @@
   "Papel: admin": "Role: admin",
   "Ativas": "Active",
   "Suspensas": "Suspended",
-  "Não foi possível carregar": "Could not load"
+  "Não foi possível carregar": "Could not load",
+  "Seu armazenamento está quase cheio": "Your storage is almost full",
+  "Você já usou quase toda a cota deste mês. Quando ela acabar, o app segue com os motores locais.": "You have used almost all of this month's quota. When it runs out, the app keeps going with the local engines."
 }

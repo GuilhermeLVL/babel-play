@@ -701,5 +701,7 @@
   "Papel: admin": "Rol: admin",
   "Ativas": "Activas",
   "Suspensas": "Suspendidas",
-  "Não foi possível carregar": "No se pudo cargar"
+  "Não foi possível carregar": "No se pudo cargar",
+  "Seu armazenamento está quase cheio": "Tu almacenamiento está casi lleno",
+  "Você já usou quase toda a cota deste mês. Quando ela acabar, o app segue com os motores locais.": "Ya usaste casi toda la cuota de este mes. Cuando se agote, la app sigue con los motores locales."
 }

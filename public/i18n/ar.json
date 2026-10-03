@@ -720,5 +720,7 @@
   "Papel: admin": "الدور: مسؤول",
   "Ativas": "النشطة",
   "Suspensas": "الموقوفة",
-  "Não foi possível carregar": "تعذّر التحميل"
+  "Não foi possível carregar": "تعذّر التحميل",
+  "Seu armazenamento está quase cheio": "مساحة التخزين لديك شبه ممتلئة",
+  "Você já usou quase toda a cota deste mês. Quando ela acabar, o app segue com os motores locais.": "لقد استهلكت معظم حصة هذا الشهر. عند نفادها يستمر التطبيق بالمحركات المحلية."
 }

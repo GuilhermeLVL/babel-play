@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * O AQUECIMENTO ao abrir o intérprete (task 4.3): libera o áudio da voz da nuvem antes do primeiro toque,
  * sem enviar áudio nem texto. Só com a chave `vozPorFrase` ligada; desligada, nada muda.
@@ -26,7 +27,8 @@ describe('aquecerInterprete', () => {
     expect(() => aquecerInterprete({ ligado: () => true, destravar })).not.toThrow()
   })
 
-  it('por padrão a chave é a `vozPorFrase` do /diagnostico (desligada de fábrica)', () => {
+  it('por padrão a chave é a `vozPorFrase` do /diagnostico (desligada pelo dono)', () => {
+    localStorage.setItem('babel.interprete.vozPorFrase', 'nao')
     expect(aquecerInterprete()).toBe(false)
   })
 })

@@ -1,8 +1,8 @@
 /**
  * AS CHAVES DE TESTE DO INTÉRPRETE (Intérprete v3) — recursos novos que mexem no caminho da fala e que
- * ainda não foram medidos em conversa de verdade. Nascem DESLIGADOS; o dono liga no `/diagnostico`
- * ("Testes do intérprete") e confere com áudio real (um vídeo tocando, o Discord, um jogo). Valem só
- * neste aparelho (localStorage); sem armazenamento, ficam desligadas. Só o valor `sim` liga.
+ * ainda não foram medidos em conversa de verdade. Nascem LIGADAS (liberadas para o dono testar na tela);
+ * quem quiser desliga no `/diagnostico` ("Testes do intérprete"). Valem só neste aparelho
+ * (localStorage); sem armazenamento, ficam ligadas. Só o valor `nao` desliga.
  */
 export interface ChaveDeTeste {
   id: string;
@@ -40,17 +40,16 @@ const EVENTO = 'babel-chave-interprete';
 /** A chave está ligada neste aparelho? */
 export function chaveLigada(id: string): boolean {
   try {
-    return localStorage.getItem(nomeDaChave(id)) === 'sim';
+    return localStorage.getItem(nomeDaChave(id)) !== 'nao';
   } catch {
-    return false;
+    return true;
   }
 }
 
 /** Liga ou desliga a chave e avisa quem escuta (a tela e o motor leem o valor novo na hora). */
 export function gravarChave(id: string, ligada: boolean): void {
   try {
-    if (ligada) localStorage.setItem(nomeDaChave(id), 'sim');
-    else localStorage.removeItem(nomeDaChave(id));
+    localStorage.setItem(nomeDaChave(id), ligada ? 'sim' : 'nao');
   } catch {
     /* sem armazenamento: a chave vale só até recarregar */
   }

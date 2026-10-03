@@ -72,6 +72,8 @@ const BLOCO_S = 60;
 const SEM_GRAVAR_MAX_S = 2 * BLOCO_S;
 /** Todo pedido aceito custa ao menos isto: mil pedidos de duas letras não saem de graça. */
 const CUSTO_MINIMO_S = 0.5;
+/** Caracteres (entrada + saída da tradução) que valem um segundo da cota de fala; `mt.js` usa o mesmo. */
+export const CARACTERES_POR_SEGUNDO = 60;
 const DOIS_DIAS_S = 2 * 24 * 60 * 60;
 
 /* O RITMO POR VISITANTE. Uso real: uma fala a cada 3 a 5 s, mais a voz da tradução e, às vezes, uma
@@ -576,11 +578,13 @@ export async function onRequestPost({ request, env }) {
     const idiomaDaFala = String(r?.transcription_info?.language ?? r?.language ?? '') || idioma;
     const ms = Date.now() - inicio;
     /* A TRADUÇÃO NA MESMA VIAGEM (`x-traduzir-para`): o aparelho fraco não paga o tradutor local, e a
-       legenda traduzida chega junto com a transcrição, sem uma segunda ida à rede. Ela vai no custo da
-       fala (a cota é contada em segundos de fala); a tradução AVULSA é cobrada em `mt.js`. */
+       legenda traduzida chega junto com a transcrição, sem uma segunda ida à rede. A tradução custa cota
+       (~30 % dos neurônios da fala): soma-se à fala, em segundos, pela mesma conversão do `mt.js`
+       (entrada + saída ÷ `CARACTERES_POR_SEGUNDO`). Tradutor que falha não cobra a tradução. */
     const para = base(request.headers.get('x-traduzir-para'));
     const inicioDaTraducao = Date.now();
     const translation = texto && para ? await traduzir(env, texto, idiomaDaFala, para) : null;
+    if (translation) vez.acertar(segundos + (texto.length + translation.length) / CARACTERES_POR_SEGUNDO);
     return json({
       text: texto,
       language: idiomaDaFala,

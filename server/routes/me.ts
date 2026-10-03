@@ -3,6 +3,7 @@ import { Router } from 'express'
 import { z } from 'zod'
 
 import { diaNoFuso } from '../../src/core/learning/economia'
+import { billingEventsRepo } from '../db/repositories/billingEvents'
 import { contaRepo } from '../db/repositories/conta'
 import { idadesRepo } from '../db/repositories/idades'
 import { perfilRepo } from '../db/repositories/perfil'
@@ -299,6 +300,19 @@ meRouter.delete('/', async (req, res) => {
      primeiro, e quem tinha o 12x apagava a conta sem passar por `encerrarAssinatura` — perdia o
      estorno do arrependimento dentro dos 7 dias, e a fatura em aberto de um checkout não pago
      continuava pagável no Asaas. Qualquer um dos dois ids é cobrança no provedor. */
+  /* O REEMBOLSO PENDENTE NÃO SE APAGA. Se o Asaas recusou o estorno do arrependimento, o pedido está
+     em `billing_events` (`nao-aplicado`, fila do admin) e a exclusão apagaria essa linha junto com a
+     conta — o reembolso manual se perderia. Enquanto houver pendência, nada é apagado. */
+  const ESTORNO_PENDENTE = {
+    error:
+      'seu reembolso ainda está sendo processado; exclua a conta depois que ele concluir, ou fale com o suporte. Nada foi apagado.',
+    code: 'estorno_pendente',
+  }
+  if ((await billingEventsRepo.estornosPendentesDoUsuario(req.userId)).length > 0) {
+    res.status(409).json(ESTORNO_PENDENTE)
+    return
+  }
+
   let assinatura: { cancelada: boolean; arrependimento?: unknown } = { cancelada: false }
   const sub = await subscriptionsRepo.getActive(req.userId)
   if (sub?.providerSubscriptionId || sub?.providerInstallmentId) {
@@ -314,6 +328,11 @@ meRouter.delete('/', async (req, res) => {
       const r = await encerrarAssinatura(req.userId, { requestId: req.requestId })
       // `semAssinatura` = a linha tinha um id, mas não um fluxo que se encerre lá: nada foi cancelado.
       assinatura = { cancelada: !r.semAssinatura, ...(r.arrependimento ? { arrependimento: r.arrependimento } : {}) }
+      // O estorno desta mesma chamada falhou: a pendência acabou de nascer e não pode ser apagada.
+      if (r.arrependimento && !r.arrependimento.estornado) {
+        res.status(409).json(ESTORNO_PENDENTE)
+        return
+      }
     } catch (err) {
       res.status(502).json({
         error: `não consegui cancelar a sua assinatura no provedor de pagamento, então nada foi apagado — tente de novo em alguns minutos (${erroDeRota(err, { event: 'me_excluir_cancelamento_falhou', requestId: req.requestId })})`,

@@ -22,11 +22,11 @@ import { comIdentidade, ehTokenAnonimo } from './contextoDeConvidado'
 import { log } from './logger'
 
 /** A auth é exigida? `=1` liga, `=0` desliga; sem valor, liga só em produção. */
-export function authRequired(): boolean {
-  const flag = process.env.AUTH_REQUIRED
+export function authRequired(env: NodeJS.ProcessEnv = process.env): boolean {
+  const flag = env.AUTH_REQUIRED
   if (flag === '1') return true
   if (flag === '0') return false
-  return process.env.NODE_ENV === 'production'
+  return env.NODE_ENV === 'production'
 }
 
 /**
@@ -39,8 +39,8 @@ export function authRequired(): boolean {
  * NODE_ENV=production. Ela continua possível com uma SEGUNDA escolha explícita, `SELF_HOST=1`: o
  * que o GAP-003 fecha é o `AUTH_REQUIRED=0` esquecido sozinho, não a instalação declarada.
  */
-export function erroDeAuthEmProducao(): string | null {
-  if (process.env.NODE_ENV === 'production' && !authRequired() && process.env.SELF_HOST !== '1') {
+export function erroDeAuthEmProducao(env: NodeJS.ProcessEnv = process.env): string | null {
+  if (env.NODE_ENV === 'production' && !authRequired(env) && env.SELF_HOST !== '1') {
     return 'AUTH_REQUIRED=1 é obrigatório em produção (NODE_ENV=production): recusando subir com autenticação desligada — seria acesso total ao app sem login. Para uma instalação pessoal sem login, declare também SELF_HOST=1.'
   }
   return null

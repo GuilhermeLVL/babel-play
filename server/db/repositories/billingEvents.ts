@@ -17,7 +17,7 @@
  * status e datas: `reduzirPayload` é uma lista de campos PERMITIDOS aplicada dentro de
  * `marcarSeNovo`, a única porta de escrita, para nenhum chamador conseguir gravar o corpo cru.
  */
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 
 import { db } from '../db'
 import { billingEvents } from '../schema'
@@ -117,6 +117,18 @@ export const billingEventsRepo = {
       event: billingEvents.event, userId: billingEvents.userId, providerRef: billingEvents.providerRef,
       motivo: billingEvents.motivo,
     }).from(billingEvents).where(eq(billingEvents.estado, 'nao-aplicado')).orderBy(billingEvents.createdAt)
+  },
+
+  /**
+   * Os estornos de arrependimento deste titular que o Asaas recusou e continuam na fila do admin.
+   * A exclusão da conta apaga as linhas do titular (inclusive estas): sem esta consulta, o reembolso
+   * manual pendente se perderia junto.
+   */
+  async estornosPendentesDoUsuario(userId: string) {
+    return db.select({ id: billingEvents.id }).from(billingEvents).where(and(
+      eq(billingEvents.userId, userId), eq(billingEvents.estado, 'nao-aplicado'),
+      eq(billingEvents.event, 'ESTORNO_ARREPENDIMENTO'),
+    ))
   },
 
   /**

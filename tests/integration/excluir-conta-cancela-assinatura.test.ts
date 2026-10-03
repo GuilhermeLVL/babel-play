@@ -206,6 +206,61 @@ describe('DELETE /api/me com o anual em 12x (parcelamento, sem `providerSubscrip
   })
 })
 
+describe('DELETE /api/me com reembolso pendente (estorno do arrependimento que o Asaas recusou)', () => {
+  it('estorno que falha NESTA chamada: 409 estorno_pendente, nada é apagado e a pendência continua na fila', async () => {
+    await assinanteDo12x('u-del-pend-agora', 'ins_pend_agora')
+    asaasDoParcelamento(parcelas('ins_pend_agora', 'CONFIRMED', hoje()), { estorno: 400 })
+    const res = mockRes()
+    await handler()(req('u-del-pend-agora'), res)
+
+    expect(res.statusCode).toBe(409)
+    expect(res.body.code).toBe('estorno_pendente')
+    expect(res.body.error).toMatch(/reembolso ainda está sendo processado/i)
+    const { billingEventsRepo } = (await h.load('../../server/db/repositories/billingEvents')) as any
+    const fila = await billingEventsRepo.listarPendentes()
+    expect(fila.map((l: any) => l.id)).toContain('arrependimento:parcelamento:ins_pend_agora')
+  })
+
+  it('pendência de uma tentativa anterior: 409 sem falar com o Asaas e sem apagar a conta', async () => {
+    const { billingEventsRepo } = (await h.load('../../server/db/repositories/billingEvents')) as any
+    await users.ensure(asUserId('u-del-pend-antes'))
+    await billingEventsRepo.marcarSeNovo(
+      'arrependimento:pay_antes',
+      'asaas',
+      'ESTORNO_ARREPENDIMENTO',
+      'u-del-pend-antes',
+      'pay_antes',
+      { id: 'arrependimento:pay_antes', event: 'ESTORNO_ARREPENDIMENTO', payment: { id: 'pay_antes', value: 29 } },
+    )
+    await billingEventsRepo.registrarResultado('arrependimento:pay_antes', 'nao-aplicado', 'saldo insuficiente')
+    const f = vi.spyOn(globalThis, 'fetch')
+    const res = mockRes()
+    await handler()(req('u-del-pend-antes'), res)
+
+    expect(res.statusCode).toBe(409)
+    expect(res.body.code).toBe('estorno_pendente')
+    expect(f).not.toHaveBeenCalled()
+    expect(await billingEventsRepo.ler('arrependimento:pay_antes'), 'a pendência não foi apagada').toBeDefined()
+  })
+
+  it('estorno já aplicado não bloqueia: a conta é apagada', async () => {
+    const { billingEventsRepo } = (await h.load('../../server/db/repositories/billingEvents')) as any
+    await users.ensure(asUserId('u-del-pend-ok'))
+    await billingEventsRepo.marcarSeNovo(
+      'arrependimento:pay_ok',
+      'asaas',
+      'ESTORNO_ARREPENDIMENTO',
+      'u-del-pend-ok',
+      'pay_ok',
+      { id: 'arrependimento:pay_ok', event: 'ESTORNO_ARREPENDIMENTO', payment: { id: 'pay_ok', value: 29 } },
+    )
+    await billingEventsRepo.registrarResultado('arrependimento:pay_ok', 'aplicado', null)
+    const res = mockRes()
+    await handler()(req('u-del-pend-ok'), res)
+    expect(res.statusCode).toBe(200)
+  })
+})
+
 describe('DELETE /api/me com assinatura', () => {
   it('cancela no Asaas antes de apagar', async () => {
     await assinante('u-del-ok', 'sub_del_ok')

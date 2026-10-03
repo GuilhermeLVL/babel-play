@@ -17,11 +17,9 @@
  * para cobrir esses: uma frase de 60 letras e a tradução dela gastam 2 s da cota, e o texto máximo,
  * 20 s.
  */
-import { entrar, json, mesmaOrigem, traduzir } from './stt.js';
+import { CARACTERES_POR_SEGUNDO, entrar, json, mesmaOrigem, traduzir } from './stt.js';
 
 const MAX_CARACTERES = 600;
-/** Caracteres (entrada + saída) que valem um segundo da cota de fala. */
-const CARACTERES_POR_SEGUNDO = 60;
 
 export async function onRequestPost({ request, env }) {
   if (!env.AI || !env.LIMITES) return json({ code: 'sem_nuvem' }, 501);

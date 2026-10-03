@@ -59,6 +59,7 @@
     "dev:local": "node subir-dev.mjs",
     "vitrine": "node scripts/vitrine/subir.mjs",
     "backup": "node scripts/backup.mjs",
+    "preflight": "node scripts/preflight-producao.mjs",
     "prepare": "husky"
   },
   "dependencies": {

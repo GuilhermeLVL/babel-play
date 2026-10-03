@@ -248,6 +248,44 @@ describe('GET /quest/stt', () => {
   })
 })
 
+describe('a tradução da mesma viagem do STT custa cota', () => {
+  const iaLonga = (traducao = 'b'.repeat(300)) => ({
+    run: vi.fn(async (modelo: string) =>
+      modelo.includes('whisper')
+        ? { text: 'a'.repeat(300), transcription_info: { language: 'en' } }
+        : { translated_text: traducao },
+    ),
+  })
+
+  it('soma fala + (entrada + saída da tradução) na mesma conversão da rota /quest/mt', async () => {
+    const env = { AI: iaLonga(), LIMITES: kvFalso() }
+    const r = await onRequestPost({ request: pedido(wav(3), { 'x-traduzir-para': 'pt' }), env })
+    expect(r.status).toBe(200)
+    // 3 s de fala + 600 caracteres entre ida e volta (10 s) = 13 s; sem somar a tradução seriam 3 s.
+    expect(await restanteDe(env)).toBe(887)
+    expect(((await r.json()) as { restante: number }).restante).toBe(887)
+  })
+
+  it('sem tradução (sem cabeçalho ou tradutor falhou), só a fala é cobrada', async () => {
+    const sem = { AI: iaLonga(), LIMITES: kvFalso() }
+    await onRequestPost({ request: pedido(wav(3)), env: sem })
+    expect(await restanteDe(sem)).toBe(897)
+
+    const falha = {
+      AI: {
+        run: vi.fn(async (modelo: string) => {
+          if (modelo.includes('whisper')) return { text: 'a'.repeat(300), transcription_info: { language: 'en' } }
+          throw new Error('boom')
+        }),
+      },
+      LIMITES: kvFalso(),
+    }
+    _reiniciarMemoriaDaCota()
+    await onRequestPost({ request: pedido(wav(3), { 'x-traduzir-para': 'pt' }), env: falha })
+    expect(await restanteDe(falha)).toBe(897)
+  })
+})
+
 describe('a tradução avulsa custa cota (furo 1)', () => {
   const tradutor = () => ({ run: vi.fn(async () => ({ translated_text: 'b'.repeat(300) })) })
   const texto = (corpo: unknown) =>

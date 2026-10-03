@@ -338,6 +338,13 @@ export function useHidratacaoDeAjustes(alvos: AlvosDaHidratacao): void {
   useEffect(() => {
     fetchSettings()
       .then((s) => {
+        /* `fetchSettings` NÃO lança: recusa (403 `responsavel_pendente` do menor restrito) ou rede fora
+           = `null`. Isso não é "nunca fez a apresentação": reabri-la a cada acesso era o bug (o
+           `onboarded` nem grava, a escrita também é recusada). Segue como o `catch` abaixo. */
+        if (!s) {
+          setOnboarded(true);
+          return;
+        }
         let ui: any;
         try {
           ui = s?.ui ? JSON.parse(s.ui) : null;

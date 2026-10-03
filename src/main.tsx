@@ -1,3 +1,7 @@
+/* Inter, Archivo, IBM Plex Mono e Silkscreen, do próprio site: o subset latin entra no CSS inicial; o
+   latin-ext (@font-face com unicode-range, mais pesado) vem logo depois, fora do CSS inicial — o
+   navegador só baixa o arquivo se aparecer um caractere estendido. */
+import './styles/fontes/base.css';
 import './index.css';
 /* Os 6 temas completos das recompensas v2 (paleta, fonte de título, textura, fundo, HUD). Logo
    depois do index.css: os dois falam na mesma camada `base`, e o tema vem por último. */
@@ -56,3 +60,5 @@ createRoot(document.getElementById('root')!).render(
     </ErroDaTela>
   </StrictMode>,
 );
+
+void import('./styles/fontes/base-ext.css');

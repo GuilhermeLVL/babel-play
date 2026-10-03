@@ -1,6 +1,6 @@
-/* As fontes do Google vêm do <link> do index.html, não mais de um @import aqui: o @import só era
-   descoberto depois que este CSS chegava, e a folha do Google descia em série (auditoria de
-   performance do frontend, 26/09/2026; tests/fontes-no-html.test.ts). */
+/* As fontes são do próprio site (pacotes @fontsource): as de base em styles/fontes/base.css, importado
+   em main.tsx; as de tema, sob demanda em lib/fontesDosTemas.ts. Nada vem do Google (LGPD; ver
+   tests/fontes-no-html.test.ts). */
 @import "tailwindcss";
 
 @theme {

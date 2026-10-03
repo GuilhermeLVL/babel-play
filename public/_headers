@@ -29,7 +29,7 @@
 #                api.mymemory.translated.net     a tradução de reserva (src/gateway/adapters/mymemory.ts)
 #                localhost:11434, 127.0.0.1:11434  o Ollama local de quem o tem (src/gateway/profiles.ts)
 #   img-src      https: — a capa escolhida no Openverse fica com a URL original, de qualquer acervo
-#   style-src    fonts.googleapis.com, font-src fonts.gstatic.com — a folha de fontes do index.html;
+#   style-src    só 'self': as fontes são do próprio site (font-src 'self'), sem Google Fonts (LGPD);
 #                'unsafe-inline' pelos estilos em linha do React e de termos/privacidade
 # PARA FAZER VALER: publicar assim, usar o site (captura, tradução, jogos, dicionário, o Quest) com
 # o console aberto e, sem nenhum aviso "[Report Only]", trocar o nome do cabeçalho para
@@ -41,7 +41,7 @@
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: microphone=(self), display-capture=(self), camera=(), geolocation=(), payment=(), usb=(), midi=()
-  Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' 'wasm-unsafe-eval' blob:; worker-src 'self' blob:; connect-src 'self' blob: data: https://huggingface.co https://*.huggingface.co https://*.hf.co https://cdn.jsdelivr.net https://*.wiktionary.org https://api.openverse.org https://api.mymemory.translated.net http://localhost:11434 http://127.0.0.1:11434; img-src 'self' https: data: blob:; media-src 'self' blob: data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; object-src 'none'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'
+  Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' 'wasm-unsafe-eval' blob:; worker-src 'self' blob:; connect-src 'self' blob: data: https://huggingface.co https://*.huggingface.co https://*.hf.co https://cdn.jsdelivr.net https://*.wiktionary.org https://api.openverse.org https://api.mymemory.translated.net http://localhost:11434 http://127.0.0.1:11434; img-src 'self' https: data: blob:; media-src 'self' blob: data:; style-src 'self' 'unsafe-inline'; font-src 'self'; object-src 'none'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'
 
 # Página avulsa de diagnóstico de áudio, com o script em linha: fica fora do relato da CSP.
 /diagnostico-audio.html

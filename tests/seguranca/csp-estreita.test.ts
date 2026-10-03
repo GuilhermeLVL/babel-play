@@ -68,11 +68,12 @@ describe('diretivasDeCsp', () => {
     expect(c.some((x) => x.includes('nao-e-url'))).toBe(false)
   })
 
-  it('as fontes do Google entram em style-src e font-src, e em nada mais', () => {
+  it('as fontes são do próprio site: font-src só self e nenhuma origem do Google em lugar nenhum', () => {
     const d = diretivasDeCsp(env({}))
-    expect(d.styleSrc).toContain('https://fonts.googleapis.com')
-    expect(d.fontSrc).toContain('https://fonts.gstatic.com')
-    expect(d.connectSrc).not.toContain('https://fonts.googleapis.com')
+    expect(d.fontSrc).toEqual(["'self'"])
+    expect(d.styleSrc).toEqual(["'self'", "'unsafe-inline'"])
+    for (const lista of Object.values(d))
+      expect((lista as string[]).some((x) => /fonts.(googleapis|gstatic).com/.test(x))).toBe(false)
   })
 
   it('script-src continua sem host externo e sem unsafe-eval', () => {

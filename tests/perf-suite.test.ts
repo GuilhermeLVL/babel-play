@@ -156,7 +156,7 @@ describe('orçamento do bundle e pré-compressão (frontend)', () => {
     })
   })
 
-  it('folha de outra origem (as fontes do Google no index.html) não é do bundle e fica fora da conta', () => {
+  it('folha de outra origem (qualquer <link> https fora do bundle) não é do bundle e fica fora da conta', () => {
     const html = `<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter&amp;display=swap" />
       <script type="module" crossorigin src="/assets/index-A.js"></script>
       <link rel="stylesheet" crossorigin href="/assets/index-C.css">`

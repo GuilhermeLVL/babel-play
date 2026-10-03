@@ -20,6 +20,7 @@ import {
   readCustomColors,
   type ThemeType,
 } from './appearance';
+import { carregarFontesDaFonte, carregarFontesDoTema } from './fontesDosTemas';
 import { applyParticulas, readParticulas } from './particulas';
 import { setSoundFonte, setSoundTheme } from './soundFx';
 
@@ -59,6 +60,7 @@ export function readFonte(): FonteType {
  */
 export function applyFonte(fonte: FonteType): void {
   document.documentElement.setAttribute('data-fonte', fonte);
+  carregarFontesDaFonte(fonte);
   setSoundFonte(fonte);
 }
 
@@ -123,6 +125,7 @@ export function readDarkMode(): boolean {
 export function applyTheme(theme: ThemeType): void {
   const root = document.documentElement;
   root.setAttribute('data-theme', theme);
+  carregarFontesDoTema(theme);
   // O kit sonoro acompanha o tema. Fica AQUI, no único ponto que já aplica o tema, para não
   // existir um segundo lugar capaz de dessincronizar som e paleta (ver lib/soundFx).
   setSoundTheme(theme);

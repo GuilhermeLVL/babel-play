@@ -34,7 +34,6 @@ A retenção e a região são as que se configura no painel; o que depende de li
 | **Sentry** (erros)                                                     | mensagem técnica redigida, tela, id da requisição (T06)                                                                                                                                                                                                                    | EUA ou **UE** (escolher na criação da organização)                 | 30 dias (Developer)                                                                                                                        | DPA em sentry.io/legal/dpa                                                                                                                                              | **Security & Privacy → "Prevent Storing of IP Addresses"** e **"Data Scrubber" ligados**; alerta de cota                                                       | [ ]   |
 | **Langfuse** (custo/latência de IA)                                    | telemetria técnica PSEUDONIMIZADA de cada chamada de IA: pseudônimo do usuário (HMAC com sal do servidor), plano, função, provedor, modelo, tokens/segundos de áudio, custo, latência, status, se é perfil de menor (T11). **Sem** texto, áudio, e-mail, IP ou id em claro | **UE** (`cloud.langfuse.com`); empresa na Alemanha (Langfuse GmbH) | **configurar no projeto** (Settings → Data retention; sugerido 90 dias)                                                                    | DPA do Langfuse (langfuse.com/security; aceite/assinatura pelo painel ou suporte); Brasil → UE também é transferência internacional: pedir as cláusulas da Res. 19/2024 | projeto na região **EU**; **data retention** configurada; **2FA** na organização; `LANGFUSE_CONTEUDO` nunca em produção (o servidor recusa)                    | [ ]   |
 | **UptimeRobot** (disponibilidade)                                      | nenhum dado pessoal (só sondas em /api/ready e o heartbeat) (T09)                                                                                                                                                                                                          | UE                                                                 | —                                                                                                                                          | termos padrão (não trata dado pessoal)                                                                                                                                  | —                                                                                                                                                              | [ ]   |
-| **Google Fonts** (fontes da interface)                                 | IP e user-agent de quem abre o app                                                                                                                                                                                                                                         | EUA                                                                | conforme a política do Google Fonts                                                                                                        | não há DPA para uso gratuito                                                                                                                                            | **pendente:** hospedar as fontes no próprio domínio e tirar `fonts.googleapis.com` da CSP (`src/index.css`, `server/http/csp.ts`) — elimina esta transferência | [ ]   |
 
 **Voz natural do intérprete (30/09/2026, E4 da Fase E):** a rota `POST /api/ai/tts` nasce com a flag
 `voz_natural` DESLIGADA (migração 0046). A retenção do provedor está marcada "a confirmar com o contrato
@@ -61,12 +60,18 @@ leva só texto, modelo, formato e idioma.
 cita o Gemini** nem fala em "maiores de 18 anos": descreve o perfil protegido dos menores de 18, o vínculo
 com o responsável abaixo de 16 e o consentimento específico abaixo de 12, e nomeia Supabase, Groq,
 OpenRouter (reserva, retenção zero), Asaas e Langfuse. **Ainda não nomeia** Fly.io, Cloudflare/R2, Resend,
-Sentry, Google Fonts nem a DeepInfra/Workers AI (voz) — é o que falta ela ganhar, a partir desta tabela.
+Sentry nem a DeepInfra/Workers AI (voz) — é o que falta ela ganhar, a partir desta tabela.
 
 **Langfuse (25/09/2026):** a política ganhou a seção de telemetria técnica pseudonimizada e a nota
 sobre o reconhecimento de voz do navegador (Web Speech). Pseudônimo não é anonimização (LGPD art.
 13, §4º e art. 12, §2º): o dado continua pessoal para nós, que temos o sal — por isso o Langfuse
 entra como operador, com DPA, e não como "dado anônimo fora da LGPD".
+
+**Google Fonts — RESOLVIDO (03/10/2026):** as fontes da interface passaram a ser servidas pelo próprio site (pacotes
+`@fontsource`, subsets latin e latin-ext, emitidos em `/assets`). O `index.html` não pede mais nada a
+`fonts.googleapis.com`/`fonts.gstatic.com`, e a CSP (`server/http/csp.ts` e `public/_headers`) fecha `font-src` em
+`'self'`. Nenhum IP ou user-agent de visitante vai ao Google por causa das fontes; a linha saiu da tabela e a
+política de privacidade não precisa citá-lo. `tests/fontes-no-html.test.ts` impede a volta.
 
 ## Decisão pendente do dono: os e-mails de cobrança do Asaas
 

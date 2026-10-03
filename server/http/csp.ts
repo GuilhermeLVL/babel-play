@@ -40,9 +40,9 @@
  * pode estar em qualquer acervo (Flickr, Wikimedia, museus). Fechar `img-src` apagaria capas já
  * gravadas. Imagem é conteúdo passivo; o canal de exfiltração que importa é `connect-src`.
  *
- * As fontes do Google entram em `style-src`/`font-src`: o `index.html` pede a folha de
- * `fonts.googleapis.com` (era um `@import` em `src/index.css` até 26/09/2026), e a CSP anterior (`style-src 'self' 'unsafe-inline'`) a bloqueava em
- * produção — o app caía na fonte do sistema sem ninguém notar, porque em dev a CSP só relata.
+ * As fontes são do próprio site (pacotes `@fontsource`, emitidos em `/assets` pelo build): `font-src` é só
+ * `'self'` e `style-src` não abre nenhuma origem de folha. O Google Fonts saiu em 03/10/2026 — pedir as
+ * fontes a ele entregava o IP de cada visitante ao Google (LGPD, docs/lgpd/operadores.md).
  */
 
 /** O que o `helmet` recebe em `contentSecurityPolicy.directives`. */
@@ -116,8 +116,8 @@ export function diretivasDeCsp(env: NodeJS.ProcessEnv = process.env): DiretivasD
     connectSrc: conexoes,
     imgSrc: ["'self'", 'https:', 'data:', 'blob:'],
     mediaSrc: ["'self'", 'blob:', 'data:'],
-    styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
-    fontSrc: ["'self'", 'data:', 'https://fonts.gstatic.com'],
+    styleSrc: ["'self'", "'unsafe-inline'"],
+    fontSrc: ["'self'"],
     objectSrc: ["'none'"],
     frameAncestors: ["'self'"],
     baseUri: ["'self'"],

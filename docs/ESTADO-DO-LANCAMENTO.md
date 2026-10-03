@@ -50,7 +50,7 @@ este documento e o código divergirem, **o código vence** (`src/core/planos.ts`
 | 7      | Saneamento dos documentos (este arquivo).                                                                                                                                                           |
 
 Também de código, achado no saneamento: `public/privacidade.html` ainda não nomeia Fly.io, Cloudflare/R2,
-Resend, Sentry, Google Fonts nem a voz (DeepInfra/Workers AI) — ver [operadores.md](lgpd/operadores.md).
+Resend, Sentry nem a voz (DeepInfra/Workers AI) — ver [operadores.md](lgpd/operadores.md).
 
 ### Dono
 

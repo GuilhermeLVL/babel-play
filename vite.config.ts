@@ -9,6 +9,7 @@ import { defineConfig, loadEnv, type Plugin } from 'vite'
 
 import { bergamotNoPublic } from './scripts/baixar-modelos-bergamot.mjs'
 import { preCarregarEfemeroNaEdicaoEstatica } from './scripts/vite/preCarregarEfemero'
+import { preCarregarFontes } from './scripts/vite/preCarregarFontes'
 import { precomprimir } from './scripts/vite/precomprimir'
 import { aplicarUrlPublica } from './scripts/vite/urlPublica'
 import { montarVersao } from './server/lib/versao'
@@ -134,6 +135,7 @@ export default defineConfig(({ mode }) => {
       versaoNoBuild(versao),
       // Edição estática: o servidor em memória vem como modulepreload (sem cascata no arranque).
       preCarregarEfemeroNaEdicaoEstatica(env.VITE_EDICAO_ESTATICA === '1' || process.env.VITE_EDICAO_ESTATICA === '1'),
+      preCarregarFontes(),
       precomprimir(),
     ],
     resolve: {

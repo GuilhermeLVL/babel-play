@@ -23,6 +23,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { encodeWav } from '../../gateway/audio/wav';
 import { CHAVE_DA_ULTIMA_CAPTURA } from '../../gateway/capture/captureMetrics';
 import { lerUltimoDoInterprete } from '../../lib/voz/tempoAteAVoz';
+import TestesDoInterprete from './captura/interprete/TestesDoInterprete';
 import { medirBenchmark, type PontuacaoDoBenchmark } from '../../lib/dispositivo/benchmark';
 import {
   coletarSinaisDoDiagnostico,
@@ -1264,6 +1265,17 @@ export default function Diagnostico() {
               />
             </>
           )}
+        </div>
+      </section>
+
+      <section className="secao" data-testid="diagnostico-testes-do-interprete">
+        <TituloDeSecao
+          icone={Timer}
+          titulo="Testes do intérprete"
+          desc="Recursos novos do intérprete, desligados de fábrica. Ligue um, teste com um vídeo ou uma conversa, e desligue se algo sair errado."
+        />
+        <div className="cartao p5">
+          <TestesDoInterprete />
         </div>
       </section>
 

@@ -1,0 +1,1256 @@
+{
+  "geradoEm": "2026-10-03T03:56:17.397Z",
+  "commit": "a00b23bc",
+  "modelo": "public/smart-turn/smart-turn-v3.2-cpu.onnx",
+  "limiar": 0.7,
+  "tetoMs": 800,
+  "latenciaMs": 100,
+  "idiomas": {
+    "es": {
+      "falas": 30,
+      "modelo": {
+        "corte": {
+          "completas": 30,
+          "incompletasEmFronteiraClara": 60,
+          "incompletasTotal": 60,
+          "auc": 0.8888888888888888,
+          "porLimiar": [
+            {
+              "limiar": 0.3,
+              "acuracia": {
+                "valor": 0.4222222222222222,
+                "ic95": [
+                  0.32222222222222224,
+                  0.5224999999999997
+                ]
+              },
+              "falsaCompleta": {
+                "valor": 0.8666666666666667,
+                "ic95": [
+                  0.7666666666666667,
+                  0.95
+                ]
+              },
+              "completaReconhecida": {
+                "valor": 1,
+                "ic95": [
+                  1,
+                  1
+                ]
+              }
+            },
+            {
+              "limiar": 0.5,
+              "acuracia": {
+                "valor": 0.45555555555555555,
+                "ic95": [
+                  0.35555555555555557,
+                  0.5555555555555556
+                ]
+              },
+              "falsaCompleta": {
+                "valor": 0.8166666666666667,
+                "ic95": [
+                  0.7166666666666667,
+                  0.9166666666666666
+                ]
+              },
+              "completaReconhecida": {
+                "valor": 1,
+                "ic95": [
+                  1,
+                  1
+                ]
+              }
+            },
+            {
+              "limiar": 0.7,
+              "acuracia": {
+                "valor": 0.4777777777777778,
+                "ic95": [
+                  0.37777777777777777,
+                  0.5777777777777777
+                ]
+              },
+              "falsaCompleta": {
+                "valor": 0.7833333333333333,
+                "ic95": [
+                  0.6833333333333333,
+                  0.8833333333333333
+                ]
+              },
+              "completaReconhecida": {
+                "valor": 1,
+                "ic95": [
+                  1,
+                  1
+                ]
+              }
+            },
+            {
+              "limiar": 0.8,
+              "acuracia": {
+                "valor": 0.4888888888888889,
+                "ic95": [
+                  0.3888888888888889,
+                  0.5888888888888889
+                ]
+              },
+              "falsaCompleta": {
+                "valor": 0.7666666666666667,
+                "ic95": [
+                  0.6666666666666666,
+                  0.8666666666666667
+                ]
+              },
+              "completaReconhecida": {
+                "valor": 1,
+                "ic95": [
+                  1,
+                  1
+                ]
+              }
+            },
+            {
+              "limiar": 0.9,
+              "acuracia": {
+                "valor": 0.5555555555555556,
+                "ic95": [
+                  0.4444444444444444,
+                  0.6555555555555556
+                ]
+              },
+              "falsaCompleta": {
+                "valor": 0.6666666666666666,
+                "ic95": [
+                  0.55,
+                  0.7833333333333333
+                ]
+              },
+              "completaReconhecida": {
+                "valor": 1,
+                "ic95": [
+                  1,
+                  1
+                ]
+              }
+            }
+          ]
+        },
+        "pausaNatural": {
+          "completas": 30,
+          "incompletasEmFronteiraClara": 48,
+          "incompletasTotal": 48,
+          "auc": 0.8663194444444444,
+          "porLimiar": [
+            {
+              "limiar": 0.3,
+              "acuracia": {
+                "valor": 0.47435897435897434,
+                "ic95": [
+                  0.3717948717948718,
+                  0.5897435897435898
+                ]
+              },
+              "falsaCompleta": {
+                "valor": 0.8541666666666666,
+                "ic95": [
+                  0.75,
+                  0.9375
+                ]
+              },
+              "completaReconhecida": {
+                "valor": 1,
+                "ic95": [
+                  1,
+                  1
+                ]
+              }
+            },
+            {
+              "limiar": 0.5,
+              "acuracia": {
+                "valor": 0.5256410256410257,
+                "ic95": [
+                  0.4230769230769231,
+                  0.6285256410256407
+                ]
+              },
+              "falsaCompleta": {
+                "valor": 0.7708333333333334,
+                "ic95": [
+                  0.6458333333333334,
+                  0.875
+                ]
+              },
+              "completaReconhecida": {
+                "valor": 1,
+                "ic95": [
+                  1,
+                  1
+                ]
+              }
+            },
+            {
+              "limiar": 0.7,
+              "acuracia": {
+                "valor": 0.5641025641025641,
+                "ic95": [
+                  0.46153846153846156,
+                  0.6666666666666666
+                ]
+              },
+              "falsaCompleta": {
+                "valor": 0.7083333333333334,
+                "ic95": [
+                  0.5833333333333334,
+                  0.8333333333333334
+                ]
+              },
+              "completaReconhecida": {
+                "valor": 1,
+                "ic95": [
+                  1,
+                  1
+                ]
+              }
+            },
+            {
+              "limiar": 0.8,
+              "acuracia": {
+                "valor": 0.5897435897435898,
+                "ic95": [
+                  0.48717948717948717,
+                  0.6923076923076923
+                ]
+              },
+              "falsaCompleta": {
+                "valor": 0.6666666666666666,
+                "ic95": [
+                  0.5208333333333334,
+                  0.7916666666666666
+                ]
+              },
+              "completaReconhecida": {
+                "valor": 1,
+                "ic95": [
+                  1,
+                  1
+                ]
+              }
+            },
+            {
+              "limiar": 0.9,
+              "acuracia": {
+                "valor": 0.6153846153846154,
+                "ic95": [
+                  0.5128205128205128,
+                  0.717948717948718
+                ]
+              },
+              "falsaCompleta": {
+                "valor": 0.625,
+                "ic95": [
+                  0.4994791666666667,
+                  0.75
+                ]
+              },
+              "completaReconhecida": {
+                "valor": 1,
+                "ic95": [
+                  1,
+                  1
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "fechamento": {
+        "natural": {
+          "falas": 30,
+          "fragmentosPorFala": {
+            "fixo": {
+              "valor": 1.0666666666666667,
+              "ic95": [
+                1,
+                1.1666666666666667
+              ]
+            },
+            "inteligente": {
+              "valor": 1.5333333333333334,
+              "ic95": [
+                1.2666666666666666,
+                1.8333333333333333
+              ]
+            },
+            "diferencaIntMenosFixo": {
+              "valor": 0.4666666666666667,
+              "ic95": [
+                0.23333333333333334,
+                0.7333333333333333
+              ]
+            }
+          },
+          "esperaAposUltimaPalavraMs": {
+            "fixoP50P95": [
+              748,
+              1036
+            ],
+            "inteligenteP50P95": [
+              460,
+              556
+            ],
+            "diferencaMediaIntMenosFixo": {
+              "valor": -342.4,
+              "ic95": [
+                -403.2,
+                -304
+              ]
+            }
+          },
+          "custoDeNuvemRazao": {
+            "valor": 1.2603846639451202,
+            "ic95": [
+              1.1203778940619096,
+              1.4066013954315397
+            ]
+          }
+        },
+        "pausa500": {
+          "falas": 30,
+          "fragmentosPorFala": {
+            "fixo": {
+              "valor": 1.4666666666666666,
+              "ic95": [
+                1.2666666666666666,
+                1.6666666666666667
+              ]
+            },
+            "inteligente": {
+              "valor": 2.033333333333333,
+              "ic95": [
+                1.7,
+                2.4
+              ]
+            },
+            "diferencaIntMenosFixo": {
+              "valor": 0.5666666666666667,
+              "ic95": [
+                0.3,
+                0.9
+              ]
+            }
+          },
+          "esperaAposUltimaPalavraMs": {
+            "fixoP50P95": [
+              824,
+              1016
+            ],
+            "inteligenteP50P95": [
+              440,
+              536
+            ],
+            "diferencaMediaIntMenosFixo": {
+              "valor": -348.8,
+              "ic95": [
+                -425.6,
+                -307.2
+              ]
+            }
+          },
+          "custoDeNuvemRazao": {
+            "valor": 1.3109660217406167,
+            "ic95": [
+              1.1735086990714552,
+              1.4712085214629858
+            ]
+          }
+        },
+        "pausa700": {
+          "falas": 30,
+          "fragmentosPorFala": {
+            "fixo": {
+              "valor": 1.5666666666666667,
+              "ic95": [
+                1.4,
+                1.7333333333333334
+              ]
+            },
+            "inteligente": {
+              "valor": 2.2,
+              "ic95": [
+                1.8991666666666667,
+                2.5008333333333326
+              ]
+            },
+            "diferencaIntMenosFixo": {
+              "valor": 0.6333333333333333,
+              "ic95": [
+                0.36666666666666664,
+                0.9
+              ]
+            }
+          },
+          "esperaAposUltimaPalavraMs": {
+            "fixoP50P95": [
+              816,
+              1008
+            ],
+            "inteligenteP50P95": [
+              528,
+              528
+            ],
+            "diferencaMediaIntMenosFixo": {
+              "valor": -332.8,
+              "ic95": [
+                -403.2,
+                -294.4
+              ]
+            }
+          },
+          "custoDeNuvemRazao": {
+            "valor": 1.354261845712048,
+            "ic95": [
+              1.2117565115541473,
+              1.5193897892656476
+            ]
+          }
+        }
+      }
+    },
+    "zh": {
+      "falas": 30,
+      "modelo": {
+        "corte": {
+          "completas": 30,
+          "incompletasEmFronteiraClara": 58,
+          "incompletasTotal": 60,
+          "auc": 0.6810344827586207,
+          "porLimiar": [
+            {
+              "limiar": 0.3,
+              "acuracia": {
+                "valor": 0.3977272727272727,
+                "ic95": [
+                  0.29545454545454547,
+                  0.5002840909090907
+                ]
+              },
+              "falsaCompleta": {
+                "valor": 0.9137931034482759,
+                "ic95": [
+                  0.8448275862068966,
+                  0.9827586206896551
+                ]
+              },
+              "completaReconhecida": {
+                "valor": 1,
+                "ic95": [
+                  1,
+                  1
+                ]
+              }
+            },
+            {
+              "limiar": 0.5,
+              "acuracia": {
+                "valor": 0.4090909090909091,
+                "ic95": [
+                  0.3068181818181818,
+                  0.5227272727272727
+                ]
+              },
+              "falsaCompleta": {
+                "valor": 0.896551724137931,
+                "ic95": [
+                  0.8103448275862069,
+                  0.9655172413793104
+                ]
+              },
+              "completaReconhecida": {
+                "valor": 1,
+                "ic95": [
+                  1,
+                  1
+                ]
+              }
+            },
+            {
+              "limiar": 0.7,
+              "acuracia": {
+                "valor": 0.42045454545454547,
+                "ic95": [
+                  0.3181818181818182,
+                  0.5340909090909091
+                ]
+              },
+              "falsaCompleta": {
+                "valor": 0.8793103448275862,
+                "ic95": [
+                  0.7931034482758621,
+                  0.9482758620689655
+                ]
+              },
+              "completaReconhecida": {
+                "valor": 1,
+                "ic95": [
+                  1,
+                  1
+                ]
+              }
+            },
+            {
+              "limiar": 0.8,
+              "acuracia": {
+                "valor": 0.4772727272727273,
+                "ic95": [
+                  0.375,
+                  0.5909090909090909
+                ]
+              },
+              "falsaCompleta": {
+                "valor": 0.7931034482758621,
+                "ic95": [
+                  0.6896551724137931,
+                  0.896551724137931
+                ]
+              },
+              "completaReconhecida": {
+                "valor": 1,
+                "ic95": [
+                  1,
+                  1
+                ]
+              }
+            },
+            {
+              "limiar": 0.9,
+              "acuracia": {
+                "valor": 0.5113636363636364,
+                "ic95": [
+                  0.4090909090909091,
+                  0.6139204545454543
+                ]
+              },
+              "falsaCompleta": {
+                "valor": 0.7413793103448276,
+                "ic95": [
+                  0.6379310344827587,
+                  0.8448275862068966
+                ]
+              },
+              "completaReconhecida": {
+                "valor": 1,
+                "ic95": [
+                  1,
+                  1
+                ]
+              }
+            }
+          ]
+        },
+        "pausaNatural": {
+          "completas": 30,
+          "incompletasEmFronteiraClara": 38,
+          "incompletasTotal": 38,
+          "auc": 0.6206140350877193,
+          "porLimiar": [
+            {
+              "limiar": 0.3,
+              "acuracia": {
+                "valor": 0.4852941176470588,
+                "ic95": [
+                  0.36764705882352944,
+                  0.5882352941176471
+                ]
+              },
+              "falsaCompleta": {
+                "valor": 0.9210526315789473,
+                "ic95": [
+                  0.8157894736842105,
+                  1
+                ]
+              },
+              "completaReconhecida": {
+                "valor": 1,
+                "ic95": [
+                  1,
+                  1
+                ]
+              }
+            },
+            {
+              "limiar": 0.5,
+              "acuracia": {
+                "valor": 0.5,
+                "ic95": [
+                  0.38235294117647056,
+                  0.6029411764705882
+                ]
+              },
+              "falsaCompleta": {
+                "valor": 0.8947368421052632,
+                "ic95": [
+                  0.7894736842105263,
+                  0.9736842105263158
+                ]
+              },
+              "completaReconhecida": {
+                "valor": 1,
+                "ic95": [
+                  1,
+                  1
+                ]
+              }
+            },
+            {
+              "limiar": 0.7,
+              "acuracia": {
+                "valor": 0.5147058823529411,
+                "ic95": [
+                  0.39705882352941174,
+                  0.6176470588235294
+                ]
+              },
+              "falsaCompleta": {
+                "valor": 0.868421052631579,
+                "ic95": [
+                  0.7625000000000001,
+                  0.9736842105263158
+                ]
+              },
+              "completaReconhecida": {
+                "valor": 1,
+                "ic95": [
+                  1,
+                  1
+                ]
+              }
+            },
+            {
+              "limiar": 0.8,
+              "acuracia": {
+                "valor": 0.5294117647058824,
+                "ic95": [
+                  0.4117647058823529,
+                  0.6470588235294118
+                ]
+              },
+              "falsaCompleta": {
+                "valor": 0.8421052631578947,
+                "ic95": [
+                  0.7105263157894737,
+                  0.9473684210526315
+                ]
+              },
+              "completaReconhecida": {
+                "valor": 1,
+                "ic95": [
+                  1,
+                  1
+                ]
+              }
+            },
+            {
+              "limiar": 0.9,
+              "acuracia": {
+                "valor": 0.5588235294117647,
+                "ic95": [
+                  0.4411764705882353,
+                  0.6764705882352942
+                ]
+              },
+              "falsaCompleta": {
+                "valor": 0.7894736842105263,
+                "ic95": [
+                  0.6578947368421053,
+                  0.8947368421052632
+                ]
+              },
+              "completaReconhecida": {
+                "valor": 1,
+                "ic95": [
+                  1,
+                  1
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "fechamento": {
+        "natural": {
+          "falas": 30,
+          "fragmentosPorFala": {
+            "fixo": {
+              "valor": 1.0666666666666667,
+              "ic95": [
+                1,
+                1.1666666666666667
+              ]
+            },
+            "inteligente": {
+              "valor": 1.6666666666666667,
+              "ic95": [
+                1.3666666666666667,
+                2.033333333333333
+              ]
+            },
+            "diferencaIntMenosFixo": {
+              "valor": 0.6,
+              "ic95": [
+                0.3333333333333333,
+                0.9
+              ]
+            }
+          },
+          "esperaAposUltimaPalavraMs": {
+            "fixoP50P95": [
+              748,
+              844
+            ],
+            "inteligenteP50P95": [
+              460,
+              844
+            ],
+            "diferencaMediaIntMenosFixo": {
+              "valor": -320,
+              "ic95": [
+                -348.8,
+                -288
+              ]
+            }
+          },
+          "custoDeNuvemRazao": {
+            "valor": 1.4726910237388724,
+            "ic95": [
+              1.2575870719066788,
+              1.716828658805591
+            ]
+          }
+        },
+        "pausa500": {
+          "falas": 30,
+          "fragmentosPorFala": {
+            "fixo": {
+              "valor": 1.4333333333333333,
+              "ic95": [
+                1.2333333333333334,
+                1.6666666666666667
+              ]
+            },
+            "inteligente": {
+              "valor": 2.1666666666666665,
+              "ic95": [
+                1.8,
+                2.566666666666667
+              ]
+            },
+            "diferencaIntMenosFixo": {
+              "valor": 0.7333333333333333,
+              "ic95": [
+                0.43333333333333335,
+                1.0008333333333326
+              ]
+            }
+          },
+          "esperaAposUltimaPalavraMs": {
+            "fixoP50P95": [
+              824,
+              1016
+            ],
+            "inteligenteP50P95": [
+              440,
+              632
+            ],
+            "diferencaMediaIntMenosFixo": {
+              "valor": -348.8,
+              "ic95": [
+                -390.4,
+                -313.6
+              ]
+            }
+          },
+          "custoDeNuvemRazao": {
+            "valor": 1.4726899827288429,
+            "ic95": [
+              1.2966171257603014,
+              1.64946500114683
+            ]
+          }
+        },
+        "pausa700": {
+          "falas": 30,
+          "fragmentosPorFala": {
+            "fixo": {
+              "valor": 1.6,
+              "ic95": [
+                1.4324999999999999,
+                1.8
+              ]
+            },
+            "inteligente": {
+              "valor": 2.433333333333333,
+              "ic95": [
+                2.1666666666666665,
+                2.7666666666666666
+              ]
+            },
+            "diferencaIntMenosFixo": {
+              "valor": 0.8333333333333334,
+              "ic95": [
+                0.6,
+                1.1
+              ]
+            }
+          },
+          "esperaAposUltimaPalavraMs": {
+            "fixoP50P95": [
+              816,
+              1008
+            ],
+            "inteligenteP50P95": [
+              432,
+              624
+            ],
+            "diferencaMediaIntMenosFixo": {
+              "valor": -361.6,
+              "ic95": [
+                -400,
+                -329.6
+              ]
+            }
+          },
+          "custoDeNuvemRazao": {
+            "valor": 1.4964608729846638,
+            "ic95": [
+              1.357538789947322,
+              1.6790872810432158
+            ]
+          }
+        }
+      }
+    },
+    "ja": {
+      "falas": 30,
+      "modelo": {
+        "corte": {
+          "completas": 30,
+          "incompletasEmFronteiraClara": 38,
+          "incompletasTotal": 60,
+          "auc": 0.781140350877193,
+          "porLimiar": [
+            {
+              "limiar": 0.3,
+              "acuracia": {
+                "valor": 0.6176470588235294,
+                "ic95": [
+                  0.5,
+                  0.7352941176470589
+                ]
+              },
+              "falsaCompleta": {
+                "valor": 0.6842105263157895,
+                "ic95": [
+                  0.5526315789473685,
+                  0.8157894736842105
+                ]
+              },
+              "completaReconhecida": {
+                "valor": 1,
+                "ic95": [
+                  1,
+                  1
+                ]
+              }
+            },
+            {
+              "limiar": 0.5,
+              "acuracia": {
+                "valor": 0.6323529411764706,
+                "ic95": [
+                  0.5147058823529411,
+                  0.7352941176470589
+                ]
+              },
+              "falsaCompleta": {
+                "valor": 0.6578947368421053,
+                "ic95": [
+                  0.5,
+                  0.7894736842105263
+                ]
+              },
+              "completaReconhecida": {
+                "valor": 1,
+                "ic95": [
+                  1,
+                  1
+                ]
+              }
+            },
+            {
+              "limiar": 0.7,
+              "acuracia": {
+                "valor": 0.6764705882352942,
+                "ic95": [
+                  0.5588235294117647,
+                  0.7794117647058824
+                ]
+              },
+              "falsaCompleta": {
+                "valor": 0.5789473684210527,
+                "ic95": [
+                  0.44671052631578956,
+                  0.7368421052631579
+                ]
+              },
+              "completaReconhecida": {
+                "valor": 1,
+                "ic95": [
+                  1,
+                  1
+                ]
+              }
+            },
+            {
+              "limiar": 0.8,
+              "acuracia": {
+                "valor": 0.6764705882352942,
+                "ic95": [
+                  0.5588235294117647,
+                  0.7794117647058824
+                ]
+              },
+              "falsaCompleta": {
+                "valor": 0.5789473684210527,
+                "ic95": [
+                  0.44671052631578956,
+                  0.7368421052631579
+                ]
+              },
+              "completaReconhecida": {
+                "valor": 1,
+                "ic95": [
+                  1,
+                  1
+                ]
+              }
+            },
+            {
+              "limiar": 0.9,
+              "acuracia": {
+                "valor": 0.7205882352941176,
+                "ic95": [
+                  0.6176470588235294,
+                  0.8235294117647058
+                ]
+              },
+              "falsaCompleta": {
+                "valor": 0.5,
+                "ic95": [
+                  0.34210526315789475,
+                  0.6578947368421053
+                ]
+              },
+              "completaReconhecida": {
+                "valor": 1,
+                "ic95": [
+                  1,
+                  1
+                ]
+              }
+            }
+          ]
+        },
+        "pausaNatural": {
+          "completas": 30,
+          "incompletasEmFronteiraClara": 41,
+          "incompletasTotal": 41,
+          "auc": 0.7532520325203252,
+          "porLimiar": [
+            {
+              "limiar": 0.3,
+              "acuracia": {
+                "valor": 0.4647887323943662,
+                "ic95": [
+                  0.352112676056338,
+                  0.5774647887323944
+                ]
+              },
+              "falsaCompleta": {
+                "valor": 0.926829268292683,
+                "ic95": [
+                  0.8292682926829268,
+                  1
+                ]
+              },
+              "completaReconhecida": {
+                "valor": 1,
+                "ic95": [
+                  1,
+                  1
+                ]
+              }
+            },
+            {
+              "limiar": 0.5,
+              "acuracia": {
+                "valor": 0.4788732394366197,
+                "ic95": [
+                  0.36619718309859156,
+                  0.5915492957746479
+                ]
+              },
+              "falsaCompleta": {
+                "valor": 0.9024390243902439,
+                "ic95": [
+                  0.8048780487804879,
+                  0.975609756097561
+                ]
+              },
+              "completaReconhecida": {
+                "valor": 1,
+                "ic95": [
+                  1,
+                  1
+                ]
+              }
+            },
+            {
+              "limiar": 0.7,
+              "acuracia": {
+                "valor": 0.5211267605633803,
+                "ic95": [
+                  0.4084507042253521,
+                  0.6338028169014085
+                ]
+              },
+              "falsaCompleta": {
+                "valor": 0.8292682926829268,
+                "ic95": [
+                  0.7073170731707317,
+                  0.926829268292683
+                ]
+              },
+              "completaReconhecida": {
+                "valor": 1,
+                "ic95": [
+                  1,
+                  1
+                ]
+              }
+            },
+            {
+              "limiar": 0.8,
+              "acuracia": {
+                "valor": 0.5352112676056338,
+                "ic95": [
+                  0.4225352112676056,
+                  0.647887323943662
+                ]
+              },
+              "falsaCompleta": {
+                "valor": 0.8048780487804879,
+                "ic95": [
+                  0.6829268292682927,
+                  0.926829268292683
+                ]
+              },
+              "completaReconhecida": {
+                "valor": 1,
+                "ic95": [
+                  1,
+                  1
+                ]
+              }
+            },
+            {
+              "limiar": 0.9,
+              "acuracia": {
+                "valor": 0.5633802816901409,
+                "ic95": [
+                  0.4507042253521127,
+                  0.676056338028169
+                ]
+              },
+              "falsaCompleta": {
+                "valor": 0.7560975609756098,
+                "ic95": [
+                  0.6341463414634146,
+                  0.8780487804878049
+                ]
+              },
+              "completaReconhecida": {
+                "valor": 1,
+                "ic95": [
+                  1,
+                  1
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "fechamento": {
+        "natural": {
+          "falas": 30,
+          "fragmentosPorFala": {
+            "fixo": {
+              "valor": 1.2666666666666666,
+              "ic95": [
+                1.1333333333333333,
+                1.4333333333333333
+              ]
+            },
+            "inteligente": {
+              "valor": 1.8,
+              "ic95": [
+                1.5,
+                2.1
+              ]
+            },
+            "diferencaIntMenosFixo": {
+              "valor": 0.5333333333333333,
+              "ic95": [
+                0.3,
+                0.7666666666666667
+              ]
+            }
+          },
+          "esperaAposUltimaPalavraMs": {
+            "fixoP50P95": [
+              748,
+              844
+            ],
+            "inteligenteP50P95": [
+              460,
+              3244
+            ],
+            "diferencaMediaIntMenosFixo": {
+              "valor": 300.8,
+              "ic95": [
+                -76.88,
+                716.8799999999999
+              ]
+            }
+          },
+          "custoDeNuvemRazao": {
+            "valor": 1.3295330313915352,
+            "ic95": [
+              1.178792650714211,
+              1.4854029310043613
+            ]
+          }
+        },
+        "pausa500": {
+          "falas": 30,
+          "fragmentosPorFala": {
+            "fixo": {
+              "valor": 1.4666666666666666,
+              "ic95": [
+                1.2666666666666666,
+                1.7
+              ]
+            },
+            "inteligente": {
+              "valor": 2.3,
+              "ic95": [
+                1.9666666666666666,
+                2.634166666666666
+              ]
+            },
+            "diferencaIntMenosFixo": {
+              "valor": 0.8333333333333334,
+              "ic95": [
+                0.5333333333333333,
+                1.1333333333333333
+              ]
+            }
+          },
+          "esperaAposUltimaPalavraMs": {
+            "fixoP50P95": [
+              824,
+              1304
+            ],
+            "inteligenteP50P95": [
+              440,
+              3416
+            ],
+            "diferencaMediaIntMenosFixo": {
+              "valor": 252.8,
+              "ic95": [
+                -128.07999999999998,
+                627.28
+              ]
+            }
+          },
+          "custoDeNuvemRazao": {
+            "valor": 1.4827208274822754,
+            "ic95": [
+              1.309974587671147,
+              1.6721342532649586
+            ]
+          }
+        },
+        "pausa700": {
+          "falas": 30,
+          "fragmentosPorFala": {
+            "fixo": {
+              "valor": 1.6333333333333333,
+              "ic95": [
+                1.4333333333333333,
+                1.8333333333333333
+              ]
+            },
+            "inteligente": {
+              "valor": 2.433333333333333,
+              "ic95": [
+                2.1333333333333333,
+                2.7666666666666666
+              ]
+            },
+            "diferencaIntMenosFixo": {
+              "valor": 0.8,
+              "ic95": [
+                0.5333333333333333,
+                1.0666666666666667
+              ]
+            }
+          },
+          "esperaAposUltimaPalavraMs": {
+            "fixoP50P95": [
+              816,
+              1296
+            ],
+            "inteligenteP50P95": [
+              528,
+              3408
+            ],
+            "diferencaMediaIntMenosFixo": {
+              "valor": 467.2,
+              "ic95": [
+                38.4,
+                899.28
+              ]
+            }
+          },
+          "custoDeNuvemRazao": {
+            "valor": 1.4294762333509268,
+            "ic95": [
+              1.2838332962459462,
+              1.5855138786974685
+            ]
+          }
+        }
+      }
+    }
+  },
+  "tempoPorConsultaMs": {
+    "consultas": 1324,
+    "melP50": 53.02980000000389,
+    "melP95": 77.6299999999992,
+    "inferenciaP50": 62.084499999997206,
+    "inferenciaP95": 84.31580000000031
+  }
+}

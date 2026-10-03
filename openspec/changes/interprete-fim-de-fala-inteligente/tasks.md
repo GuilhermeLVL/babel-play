@@ -11,12 +11,12 @@
 
 ## 2. Fim de fala inteligente
 
-- [ ] 2.1 Criar `scripts/eval-fala/bancada/fim-de-fala.mjs` (WER, fragmentos por fala, tempo até o fechamento, custo) e rodar a linha de base de 800 ms
-- [ ] 2.2 Criar `src/gateway/capture/pisoDoSilencio.ts` (média móvel, limites 250–600 ms), puro, com teste escrito antes
-- [ ] 2.3 Criar `src/gateway/capture/fimDeFala.ts`: worker ONNX do Smart Turn v3, janela de 8 s, queda segura e motivo; ativo estático no build
-- [ ] 2.4 Ligar em `systemAudio.ts`: silêncio candidato (~300 ms) → modelo → fechar ou esperar até o teto; chave `babel.interprete.fimInteligente`
-- [ ] 2.5 Definir a lista de idiomas aprovados pela bancada (FLEURS) e a queda para 800 ms fora dela
-- [ ] 2.6 Rodar a bancada com IC 95% pareado; aplicar o portão (WER, fragmentos, custo ≤ 1,08×, p50 −400 ms) e só então propor o padrão
+- [ ] 2.1 Criar `scripts/eval-fala/bancada/fim-de-fala.mjs` (WER, fragmentos por fala, tempo até o fechamento, custo) e rodar a linha de base de 800 ms — feito SEM o WER (fragmentos, espera e custo medidos contra o fixo de 800 ms; falta rodar com STT)
+- [x] 2.2 Criar `src/gateway/capture/pisoDoSilencio.ts` (média móvel, limites 250–600 ms), puro, com teste escrito antes
+- [x] 2.3 Criar `src/gateway/capture/fimDeFala.ts`: worker ONNX do Smart Turn v3, janela de 8 s, queda segura e motivo; ativo estático no build (conferido no Chromium: carrega e responde)
+- [ ] 2.4 Ligar em `systemAudio.ts`: silêncio candidato (~300 ms) → modelo → fechar ou esperar até o teto; chave `babel.interprete.fimInteligente` — implementado e coberto por testes de unidade; falta conferir com áudio real
+- [x] 2.5 Definir a lista de idiomas aprovados pela bancada (FLEURS) e a queda para 800 ms fora dela (só `en`, liberado para teste; nenhum idioma passou o portão)
+- [ ] 2.6 Rodar a bancada com IC 95% pareado; aplicar o portão (WER, fragmentos, custo ≤ 1,08×, p50 −400 ms) e só então propor o padrão — rodada feita em 03/10/2026: REPROVADO (fragmentos e p50), chave segue desligada; WER ainda não medido (ver `bancada-2026-09.md`)
 
 ## 3. Tradução parcial estável
 

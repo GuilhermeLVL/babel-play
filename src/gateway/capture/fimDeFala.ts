@@ -37,11 +37,18 @@ export interface WorkerDeFimDeFala {
 /** Onde o app serve o modelo (`public/smart-turn/`, publicado pelo build da edição estática). */
 const URL_DO_MODELO = '/smart-turn/smart-turn-v3.2-cpu.onnx';
 
-/** `p >= LIMIAR` fecha a fala. Escolhido na bancada: acima disto o custo de uma frase partida supera o ganho. */
-export const LIMIAR_DE_FIM_DE_FALA = 0.7;
+/**
+ * `p >= LIMIAR` fecha a fala. 0,9 na bancada de 03/10/2026: com 0,7 o modelo partia frases em todos os idiomas
+ * (fragmentos por fala +0,2 a +0,9); com 0,9 em en o custo de nuvem fica em 1,04× e os fragmentos a +0,07.
+ */
+export const LIMIAR_DE_FIM_DE_FALA = 0.9;
 
-/** Idiomas em que a bancada aprovou o modelo (código base de dois caracteres). Fora deles, VAD fixo. */
-export const IDIOMAS_APROVADOS: readonly string[] = ['pt', 'en'];
+/**
+ * Idiomas LIBERADOS PARA O TESTE (chave `fimInteligente`). Nenhum passou o portão de virar padrão (ver
+ * `docs/auditoria/eval/bancada-2026-09.md`): en foi o único que chegou perto, com limiar 0,9. Fora da lista
+ * (pt, es, zh, ja…), VAD fixo de 800 ms.
+ */
+export const IDIOMAS_APROVADOS: readonly string[] = ['en'];
 
 /** Passou de tanto sem resposta, o VAD fixo manda (a inferência leva dezenas de ms; isto é só a trava). */
 const PRAZO_PADRAO_MS = 1500;

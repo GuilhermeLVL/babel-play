@@ -12,6 +12,9 @@
 
 const TETO_DE_AMOSTRAS = 200;
 
+/** Onde o resumo da última conversa fica guardado (só números), para o `/diagnostico` mostrar. */
+export const CHAVE_DO_ULTIMO_INTERPRETE = 'babel.ultimoInterprete';
+
 export interface ResumoDoTempo {
   p50: number;
   p95: number;
@@ -53,11 +56,35 @@ export const tempoAteAVoz = {
     };
   },
 
+  /**
+   * Guarda o resumo da conversa que acabou (só números), para o `/diagnostico`. Sem amostra, não guarda;
+   * sem armazenamento (modo privado), segue sem guardar.
+   */
+  guardar(quando: number = Date.now()): void {
+    const resumo = tempoAteAVoz.resumo();
+    if (!resumo) return;
+    try {
+      localStorage.setItem(CHAVE_DO_ULTIMO_INTERPRETE, JSON.stringify({ quando, ...resumo }));
+    } catch {
+      /* sem armazenamento */
+    }
+  },
+
   /** Zera (começo de uma sessão do intérprete). */
   zerar(): void {
     amostras.length = 0;
   },
 };
+
+/** O resumo da última conversa do intérprete neste aparelho, ou `null`. */
+export function lerUltimoDoInterprete(): (ResumoDoTempoAteAVoz & { quando: number }) | null {
+  try {
+    const bruto = localStorage.getItem(CHAVE_DO_ULTIMO_INTERPRETE);
+    return bruto ? (JSON.parse(bruto) as ResumoDoTempoAteAVoz & { quando: number }) : null;
+  } catch {
+    return null;
+  }
+}
 
 // O gancho do e2e (E6) e da inspeção manual, como o `__capSummary` da captura.
 if (typeof window !== 'undefined') {

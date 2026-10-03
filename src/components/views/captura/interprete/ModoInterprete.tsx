@@ -255,6 +255,8 @@ export default function ModoInterprete({
     return () => {
       registrarPonte(null);
       controle.sair();
+      /* O tempo até a voz desta conversa fica no aparelho (só números) para o /diagnostico. */
+      tempoAteAVoz.guardar();
       if (controleRef.current === controle) controleRef.current = null;
     };
   }, [vozNaturalDisponivel, comVozDoSite, registrarPonte]);

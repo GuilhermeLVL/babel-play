@@ -22,6 +22,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { encodeWav } from '../../gateway/audio/wav';
 import { CHAVE_DA_ULTIMA_CAPTURA } from '../../gateway/capture/captureMetrics';
+import { lerUltimoDoInterprete } from '../../lib/voz/tempoAteAVoz';
 import { medirBenchmark, type PontuacaoDoBenchmark } from '../../lib/dispositivo/benchmark';
 import {
   coletarSinaisDoDiagnostico,
@@ -377,6 +378,7 @@ export default function Diagnostico() {
   const [modelos, setModelos] = useState<ResultadoDoModelo[]>([]);
   const [nuvem, setNuvem] = useState<ResultadoDaNuvem | null>(null);
   const [ultima] = useState<UltimaCaptura | null>(lerUltimaCaptura);
+  const [ultimoInterprete] = useState(lerUltimoDoInterprete);
   const [telaNova, setTelaNova] = useState(telaNovaDoQuest);
   const [vibracao, setVibracao] = useState<ResultadoDaVibracao | null>(null);
   const [chaveDeDono, setChaveDeDono] = useState(() => {
@@ -848,6 +850,16 @@ export default function Diagnostico() {
                   }
                 />
                 <Dado rotulo={t('Maior fila de falas esperando')} valor={ultima.maxQueueDepth} />
+                {ultimoInterprete && (
+                  <Dado
+                    rotulo={t('Intérprete: do fim da fala à voz')}
+                    valor={t('{p50} ms na metade das falas, {p95} ms nas piores, em {n} falas', {
+                      p50: ultimoInterprete.p50,
+                      p95: ultimoInterprete.p95,
+                      n: ultimoInterprete.amostras,
+                    })}
+                  />
+                )}
                 <Dado
                   rotulo={t('Nuvem usada')}
                   valor={t('{min} min de fala, cerca de US$ {usd}', {
@@ -1233,6 +1245,16 @@ export default function Diagnostico() {
                 }
               />
               <Linha rotulo={t('Maior fila de falas esperando')} valor={ultima.maxQueueDepth} />
+              {ultimoInterprete && (
+                <Linha
+                  rotulo={t('Intérprete: do fim da fala à voz')}
+                  valor={t('{p50} ms na metade das falas, {p95} ms nas piores, em {n} falas', {
+                      p50: ultimoInterprete.p50,
+                      p95: ultimoInterprete.p95,
+                      n: ultimoInterprete.amostras,
+                    })}
+                />
+              )}
               <Linha
                 rotulo={t('Nuvem usada')}
                 valor={t('{min} min de fala, cerca de US$ {usd}', {

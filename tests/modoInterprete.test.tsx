@@ -449,3 +449,22 @@ describe('ModoInterprete: corrigir, guardar e exportar', () => {
     expect(screen.queryByTestId('exportar-conversa')).toBeNull()
   })
 })
+
+describe('ModoInterprete: medidor da conversa', () => {
+  it('ao sair, guarda o resumo do tempo até a voz para o /diagnostico (só números)', async () => {
+    const { tempoAteAVoz, lerUltimoDoInterprete } = await import('../src/lib/voz/tempoAteAVoz')
+    localStorage.clear()
+    const { unmount } = montar()
+    tempoAteAVoz.registrar(1400, 'voz-do-aparelho')
+    unmount()
+    expect(lerUltimoDoInterprete()).toMatchObject({ amostras: 1, p50: 1400 })
+  })
+
+  it('sem nenhuma fala lida, não guarda nada', async () => {
+    const { lerUltimoDoInterprete } = await import('../src/lib/voz/tempoAteAVoz')
+    localStorage.clear()
+    const { unmount } = montar()
+    unmount()
+    expect(lerUltimoDoInterprete()).toBeNull()
+  })
+})

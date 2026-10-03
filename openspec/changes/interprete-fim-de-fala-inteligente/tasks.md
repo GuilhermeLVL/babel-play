@@ -26,9 +26,9 @@
 
 ## 4. Voz por frase e aquecimento
 
-- [ ] 4.1 Partir a tradução em frases (`Intl.Segmenter`) e enfileirar por índice em `filaDeFala.ts`; testes de ordem e cancelamento
-- [ ] 4.2 Síntese paralela (limite 2) e prazos por frase em `vozDaNuvem.ts`, com queda para a voz do aparelho
-- [ ] 4.3 `aquecerInterprete()` ao abrir `/interprete` (VAD, modelo de turno, `destravarVozDaNuvem`)
+- [x] 4.1 Partir a tradução em frases (`Intl.Segmenter`) e enfileirar por índice em `filaDeFala.ts`; testes de ordem e cancelamento (feito dentro de `vozDaNuvem.ts`: a ordem é garantida pelo próprio motor; a fila `filaDeFala.ts` não mudou)
+- [x] 4.2 Síntese paralela (limite 2) e prazos por frase em `vozDaNuvem.ts`, com queda para a voz do aparelho
+- [x] 4.3 `aquecerInterprete()` ao abrir `/interprete` (hoje só `destravarVozDaNuvem`; VAD e modelo de turno ainda não existem para aquecer)
 
 ## 5. Verificação
 

@@ -83,6 +83,7 @@ function montar(respostas: Array<Response | Error | 'pendurar'>, o: { falhaAoToc
     voz: 'Kore',
   })
   const cb = () => ({ onStart: vi.fn(), onEnd: vi.fn(), onError: vi.fn() })
+  vozesAbertas.push(voz)
   return { voz, reserva, tocador, pedidos, buscar, cb }
 }
 
@@ -246,5 +247,245 @@ describe('cancelar', () => {
     m.voz.cancel()
     expect(m.tocador.parar).toHaveBeenCalled()
     expect(m.voz.isSpeaking?.()).toBe(false)
+  })
+})
+
+/* ───────────────────────── VOZ POR FRASE (chave `vozPorFrase`, tasks 4.1–4.2) ───────────────────────── */
+
+const F1 = 'The train was very full today.'
+const F2 = 'Can you help me find a taxi?'
+const F3 = 'I really need to get home soon.'
+const TEXTO = `${F1} ${F2} ${F3}`
+const varias = async () => {
+  for (let i = 0; i < 5; i++) await esperar()
+}
+
+/** Toda voz criada aqui é cancelada no fim do teste: o guarda de eco é global e um áudio no ar vazaria para o seguinte. */
+const vozesAbertas: Array<{ cancel: () => void }> = []
+afterEach(() => {
+  for (const v of vozesAbertas.splice(0)) v.cancel()
+})
+
+/** Voz com a chave ligada: cada pedido fica PENDENTE até o teste responder; cada áudio tem o próprio reprodutor. */
+function montarPorFrase(o: { porFrase?: boolean; prazoMs?: number } = {}) {
+  const reserva = reservaFalsa()
+  const reprodutores: Array<{ parar: ReturnType<typeof vi.fn>; fim: () => void; erro: () => void }> = []
+  const tocador = (_blob: Blob): ReprodutorDaVoz => {
+    const p = { parar: vi.fn(), fim: () => {}, erro: () => {} }
+    reprodutores.push(p)
+    return {
+      tocar: () => Promise.resolve(),
+      parar: p.parar,
+      aoTerminar: (cb) => {
+        p.fim = cb
+      },
+      aoFalhar: (cb) => {
+        p.erro = cb
+      },
+    }
+  }
+  const pedidos: string[] = []
+  const sinais: Record<string, AbortSignal | undefined> = {}
+  const pendentes = new Map<string, { ok: (r: Response) => void; no: (e: unknown) => void }>()
+  const buscar = vi.fn(
+    (_caminho: string, init: RequestInit) =>
+      new Promise<Response>((ok, no) => {
+        const texto = (JSON.parse(String(init.body)) as { texto: string }).texto
+        pedidos.push(texto)
+        sinais[texto] = init.signal ?? undefined
+        pendentes.set(texto, { ok, no })
+        init.signal?.addEventListener('abort', () => no(new DOMException('abortado', 'AbortError')))
+      }),
+  )
+  const voz = criarVozDaNuvem({
+    reserva: reserva.motor,
+    buscar,
+    tocador,
+    agora: () => agora,
+    porFrase: () => o.porFrase ?? true,
+    ...(o.prazoMs ? { prazoMs: o.prazoMs } : {}),
+  })
+  vozesAbertas.push(voz)
+  const responder = (texto: string, r: Response = audio()) => pendentes.get(texto)?.ok(r)
+  const cb = () => ({ onStart: vi.fn(), onEnd: vi.fn(), onError: vi.fn() })
+  return { voz, reserva, reprodutores, pedidos, sinais, buscar, responder, cb }
+}
+
+describe('voz por frase', () => {
+  it('a primeira frase toca sem esperar as outras ficarem prontas', async () => {
+    const m = montarPorFrase()
+    const c = m.cb()
+    m.voz.speak(TEXTO, { lang: 'en-US', ...c })
+    await varias()
+    expect(m.pedidos).toEqual([F1, F2]) // no máximo 2 em voo; a terceira espera
+    m.responder(F1)
+    await varias()
+    expect(m.reprodutores).toHaveLength(1)
+    expect(c.onStart).toHaveBeenCalledTimes(1)
+  })
+
+  it('no máximo 2 sínteses em voo: a terceira só é pedida quando uma acaba', async () => {
+    const m = montarPorFrase()
+    m.voz.speak(TEXTO, { lang: 'en-US', ...m.cb() })
+    await varias()
+    expect(m.buscar).toHaveBeenCalledTimes(2)
+    m.responder(F2)
+    await varias()
+    expect(m.pedidos).toEqual([F1, F2, F3])
+  })
+
+  it('a segunda pronta antes da primeira espera e toca DEPOIS dela, na ordem', async () => {
+    const m = montarPorFrase()
+    const c = m.cb()
+    m.voz.speak(TEXTO, { lang: 'en-US', ...c })
+    await varias()
+    m.responder(F2)
+    await varias()
+    expect(m.reprodutores).toHaveLength(0)
+    m.responder(F1)
+    await varias()
+    expect(m.reprodutores).toHaveLength(1)
+    m.reprodutores[0].fim()
+    await varias()
+    expect(m.reprodutores).toHaveLength(2)
+  })
+
+  it('onStart só da primeira, onEnd só da última (a fila não percebe a diferença)', async () => {
+    const m = montarPorFrase()
+    const c = m.cb()
+    m.voz.speak(TEXTO, { lang: 'en-US', ...c })
+    await varias()
+    m.responder(F1)
+    m.responder(F2)
+    await varias()
+    m.responder(F3)
+    await varias()
+    m.reprodutores[0].fim()
+    await varias()
+    m.reprodutores[1].fim()
+    await varias()
+    expect(c.onEnd).not.toHaveBeenCalled()
+    expect(c.onStart).toHaveBeenCalledTimes(1)
+    m.reprodutores[2].fim()
+    expect(c.onEnd).toHaveBeenCalledTimes(1)
+    expect(m.voz.isSpeaking?.()).toBe(false)
+  })
+
+  it('o guarda de eco vale enquanto toca e some ao cancelar', async () => {
+    const m = montarPorFrase()
+    m.voz.speak(TEXTO, { lang: 'en-US', ...m.cb() })
+    await varias()
+    m.responder(F1)
+    await varias()
+    expect(isTtsActive()).toBe(true)
+    m.voz.cancel()
+    expect(isTtsActive(0)).toBe(false)
+  })
+
+  it('barge-in na segunda frase: para o áudio, aborta o resto e a terceira nunca é lida', async () => {
+    const m = montarPorFrase()
+    const c = m.cb()
+    m.voz.speak(TEXTO, { lang: 'en-US', ...c })
+    await varias()
+    m.responder(F1)
+    m.responder(F2)
+    await varias()
+    m.reprodutores[0].fim()
+    await varias()
+    expect(m.reprodutores).toHaveLength(2)
+    m.voz.cancel()
+    expect(m.reprodutores[1].parar).toHaveBeenCalled()
+    m.responder(F3)
+    await varias()
+    expect(m.reprodutores).toHaveLength(2)
+    expect(m.reserva.falas).toHaveLength(0)
+    expect(c.onEnd).not.toHaveBeenCalled()
+    expect(m.sinais[F3]?.aborted).toBe(true)
+  })
+
+  it('nuvem falha na segunda: o aparelho lê a segunda, em ordem, e a terceira segue na nuvem', async () => {
+    const m = montarPorFrase()
+    const c = m.cb()
+    m.voz.speak(TEXTO, { lang: 'en-US', ...c })
+    await varias()
+    m.responder(F2, falha(502))
+    m.responder(F1)
+    await varias()
+    m.reprodutores[0].fim()
+    await varias()
+    expect(m.reserva.falas.map((f) => f.texto)).toEqual([F2])
+    expect(m.reserva.falas[0].opts.onStart).toBeUndefined()
+    m.responder(F3)
+    await varias()
+    expect(m.reprodutores).toHaveLength(1) // a terceira espera a segunda (do aparelho) terminar
+    m.reserva.falas[0].opts.onEnd?.()
+    await varias()
+    expect(m.reprodutores).toHaveLength(2)
+    m.reprodutores[1].fim()
+    expect(c.onEnd).toHaveBeenCalledTimes(1)
+    expect(c.onStart).toHaveBeenCalledTimes(1)
+  })
+
+  it('prazo POR frase: a que estoura cai para a voz do aparelho, sem repetir a que já foi lida', async () => {
+    vi.useFakeTimers()
+    const m = montarPorFrase({ prazoMs: 6_000 })
+    const c = m.cb()
+    m.voz.speak(`${F1} ${F2}`, { lang: 'en-US', ...c })
+    await vi.advanceTimersByTimeAsync(10)
+    m.responder(F1)
+    await vi.advanceTimersByTimeAsync(10)
+    expect(m.reprodutores).toHaveLength(1)
+    await vi.advanceTimersByTimeAsync(6_100)
+    expect(m.sinais[F2]?.aborted).toBe(true)
+    m.reprodutores[0].fim()
+    await vi.advanceTimersByTimeAsync(10)
+    expect(m.reserva.falas.map((f) => f.texto)).toEqual([F2])
+    expect(c.onStart).toHaveBeenCalledTimes(1)
+  })
+
+  it('402 na primeira: a pausa vale para as próximas frases, que vão direto ao aparelho', async () => {
+    const m = montarPorFrase()
+    m.voz.speak(TEXTO, { lang: 'en-US', ...m.cb() })
+    await varias()
+    m.responder(F1, falha(402, {}, 'exige_voz_natural'))
+    await varias()
+    expect(m.pedidos).toEqual([F1, F2]) // a terceira nem foi pedida
+    expect(m.reserva.falas.map((f) => f.texto)).toEqual([F1])
+  })
+
+  it('com a chave desligada, o texto inteiro vai num pedido só (igual a hoje)', async () => {
+    const m = montarPorFrase({ porFrase: false })
+    m.voz.speak(TEXTO, { lang: 'en-US', ...m.cb() })
+    await varias()
+    expect(m.pedidos).toEqual([TEXTO])
+  })
+
+  it('uma frase só, mesmo com a chave ligada: um pedido, comportamento de sempre', async () => {
+    const m = montarPorFrase()
+    const c = m.cb()
+    m.voz.speak(F1, { lang: 'en-US', ...c })
+    await varias()
+    expect(m.pedidos).toEqual([F1])
+    m.responder(F1)
+    await varias()
+    expect(c.onStart).toHaveBeenCalledTimes(1)
+    m.reprodutores[0].fim()
+    expect(c.onEnd).toHaveBeenCalledTimes(1)
+  })
+
+  it('Repetir o mesmo texto não pede as frases de novo', async () => {
+    const m = montarPorFrase()
+    m.voz.speak(`${F1} ${F2}`, { lang: 'en-US', ...m.cb() })
+    await varias()
+    m.responder(F1)
+    m.responder(F2)
+    await varias()
+    m.reprodutores[0].fim()
+    await varias()
+    m.reprodutores[1].fim()
+    m.voz.speak(`${F1} ${F2}`, { lang: 'en-US', ...m.cb() })
+    await varias()
+    expect(m.buscar).toHaveBeenCalledTimes(2)
+    expect(m.reprodutores).toHaveLength(3)
   })
 })

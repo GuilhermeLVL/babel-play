@@ -25,7 +25,9 @@
  */
 import { ROTA_DA_VOZ_NATURAL } from '../../core/vozNatural';
 import { apiFetch } from '../../data/funil';
+import { chaveLigada } from '../captura/testesDoInterprete';
 import { marcarFalaExterna, nativeTts, type SpeakOptions, type TtsEngine } from '../tts';
+import { partirEmFrases } from './frasesDaVoz';
 
 /** Quanto a nuvem tem para devolver o áudio antes de a voz do aparelho assumir. */
 export const PRAZO_DA_VOZ_DA_NUVEM_MS = 6_000;
@@ -56,7 +58,19 @@ export interface OpcoesDaVozDaNuvem {
   agora?: () => number;
   /** A nuvem não serviu e a voz do aparelho leu (para o log e a telemetria da tela). */
   aoRecuar?: (motivo: MotivoDoRecuo) => void;
+  /**
+   * A VOZ POR FRASE está ligada? Lido a cada fala. Padrão: a chave de teste `vozPorFrase` do
+   * `/diagnostico` (desligada de fábrica). Ligada, uma tradução de várias frases é sintetizada frase a
+   * frase (2 em voo) e a primeira começa a tocar sem esperar as outras.
+   */
+  porFrase?: () => boolean;
 }
+
+/** Sínteses simultâneas na voz por frase: mais que isto só disputa a rede e atrasa a primeira. */
+const SINTESES_EM_VOO = 2;
+
+/** O que um pedido de síntese devolveu: o áudio, ou o motivo de a voz do aparelho ler no lugar. */
+type ResultadoDaSintese = { audio: Blob } | { recuo: MotivoDoRecuo };
 
 export type MotivoDoRecuo =
   | 'pausada'
@@ -148,13 +162,22 @@ export function criarVozDaNuvem(o: OpcoesDaVozDaNuvem = {}): VozDaNuvem {
 
   /** A fala em curso: callbacks de uma fala cancelada ou substituída são ignorados. */
   let vez = 0;
-  let pedido: AbortController | null = null;
+  /** Os pedidos em voo (um na fala de sempre; até `SINTESES_EM_VOO` na voz por frase). */
+  const pedidos = new Set<AbortController>();
   let tocando: ReprodutorDaVoz | null = null;
   let soltarEco: (() => void) | null = null;
   let pausadaAte = 0;
   const idiomasSemVoz = new Set<string>();
-  let ultimo: { chave: string; audio: Blob } | null = null;
+  /* O Repetir não pede de novo: os áudios da ÚLTIMA fala (um por frase) ficam em memória, e uma fala
+     de texto diferente os troca. */
+  const cacheDeAudio = new Map<string, Blob>();
+  let textoDoCache = '';
   let motor: MotorDaVoz = 'voz-da-nuvem';
+  const abortarPedidos = () => {
+    for (const p of pedidos) p.abort();
+    pedidos.clear();
+  };
+  const porFrase = o.porFrase ?? (() => chaveLigada('vozPorFrase'));
 
   const pararAudio = () => {
     tocando?.parar();
@@ -237,15 +260,21 @@ export function criarVozDaNuvem(o: OpcoesDaVozDaNuvem = {}): VozDaNuvem {
     opts.onStart?.();
   };
 
-  const falar = async (minha: number, texto: string, opts: SpeakOptions) => {
+  /**
+   * O áudio de UM texto: do cache (o Repetir), ou pedido ao servidor com o prazo da nuvem; `{ recuo }` =
+   * a voz do aparelho lê no lugar, e `null` = a fala foi cancelada ou trocada (ninguém lê nada). Cada
+   * pedido leva o PRÓPRIO controle e o PRÓPRIO prazo — na voz por frase, o prazo é por frase.
+   */
+  const obter = async (minha: number, texto: string, opts: SpeakOptions): Promise<ResultadoDaSintese | null> => {
     const idioma = opts.lang;
     const chave = `${idioma}\u0000${texto}`;
-    if (ultimo?.chave === chave) return tocar(minha, ultimo.audio, texto, opts);
-    if (agora() < pausadaAte) return recuar(minha, texto, opts, 'pausada');
-    if (idiomasSemVoz.has(idioma)) return recuar(minha, texto, opts, 'sem-voz');
+    const guardado = cacheDeAudio.get(chave);
+    if (guardado) return { audio: guardado };
+    if (agora() < pausadaAte) return { recuo: 'pausada' };
+    if (idiomasSemVoz.has(idioma)) return { recuo: 'sem-voz' };
 
     const controle = new AbortController();
-    pedido = controle;
+    pedidos.add(controle);
     let estourou = false;
     const relogio = setTimeout(() => {
       estourou = true;
@@ -266,38 +295,122 @@ export function criarVozDaNuvem(o: OpcoesDaVozDaNuvem = {}): VozDaNuvem {
       });
     } catch {
       clearTimeout(relogio);
-      return recuar(minha, texto, opts, estourou ? 'prazo' : 'rede');
+      pedidos.delete(controle);
+      return minha !== vez ? null : { recuo: estourou ? 'prazo' : 'rede' };
     }
     clearTimeout(relogio);
-    if (minha !== vez) return;
-    if (!res.ok) return recuar(minha, texto, opts, await lerRecusa(res, idioma));
+    pedidos.delete(controle);
+    if (minha !== vez) return null;
+    if (!res.ok) return { recuo: await lerRecusa(res, idioma) };
     let audio: Blob;
     try {
       audio = await res.blob();
     } catch {
-      return recuar(minha, texto, opts, 'rede');
+      return minha !== vez ? null : { recuo: 'rede' };
     }
-    if (minha !== vez) return;
-    if (!audio.size) return recuar(minha, texto, opts, 'servidor');
-    ultimo = { chave, audio };
-    return tocar(minha, audio, texto, opts);
+    if (minha !== vez) return null;
+    if (!audio.size) return { recuo: 'servidor' };
+    cacheDeAudio.set(chave, audio);
+    return { audio };
+  };
+
+  /** A fala de sempre: um pedido, um áudio. */
+  const falar = async (minha: number, texto: string, opts: SpeakOptions) => {
+    const r = await obter(minha, texto, opts);
+    if (!r || minha !== vez) return;
+    if ('recuo' in r) return recuar(minha, texto, opts, r.recuo);
+    return tocar(minha, r.audio, texto, opts);
+  };
+
+  /**
+   * A VOZ POR FRASE: as sínteses saem em paralelo (`SINTESES_EM_VOO`), mas o som é SEMPRE na ordem do
+   * texto — a segunda pronta antes da primeira espera. Cada frase tem o prazo da nuvem e a própria
+   * queda para a voz do aparelho (a que falha é lida pelo aparelho, no lugar, e as outras seguem na
+   * nuvem). Para quem chamou é UMA fala: `onStart` só da primeira, `onEnd` só da última.
+   */
+  const falarPorFrases = (minha: number, frases: string[], opts: SpeakOptions) => {
+    const n = frases.length;
+    const prontas: Array<ResultadoDaSintese | undefined> = new Array(n);
+    let proximaAPedir = 0;
+    let emVoo = 0;
+    let daVez = 0;
+    let tocandoUma = false;
+
+    const emFrase = (i: number): SpeakOptions => ({
+      ...opts,
+      onStart: i === 0 ? opts.onStart : undefined,
+      onEnd:
+        i === n - 1
+          ? opts.onEnd
+          : () => {
+              if (minha !== vez) return;
+              tocandoUma = false;
+              daVez = i + 1;
+              tocarAVez();
+            },
+      /* Erro no meio: a fala acaba aqui — as frases que faltam não são lidas depois de a fila seguir. */
+      onError: () => {
+        if (minha !== vez) return;
+        vez++;
+        abortarPedidos();
+        opts.onError?.();
+      },
+    });
+
+    function tocarAVez(): void {
+      if (minha !== vez || tocandoUma || daVez >= n) return;
+      const r = prontas[daVez];
+      if (!r) return; // a da vez ainda não está pronta: as outras esperam
+      tocandoUma = true;
+      const i = daVez;
+      if ('recuo' in r) recuar(minha, frases[i], emFrase(i), r.recuo);
+      else void tocar(minha, r.audio, frases[i], emFrase(i));
+    }
+
+    function pedirMais(): void {
+      while (minha === vez && emVoo < SINTESES_EM_VOO && proximaAPedir < n) {
+        const i = proximaAPedir++;
+        emVoo++;
+        void obter(minha, frases[i], opts)
+          .catch((): ResultadoDaSintese => ({ recuo: 'rede' }))
+          .then((r) => {
+            emVoo--;
+            if (!r || minha !== vez) return;
+            prontas[i] = r;
+            pedirMais();
+            tocarAVez();
+          });
+      }
+    }
+    pedirMais();
   };
 
   return {
     speak(texto: string, opts?: SpeakOptions) {
       if (!texto?.trim() || !opts) return;
       const minha = ++vez;
-      pedido?.abort();
-      pedido = null;
+      abortarPedidos();
       pararAudio();
       /* Só cala a reserva se ela fala: o `cancel()` do nativo reabre a cauda do guarda de eco. */
       if (reserva.isSpeaking?.() !== false) reserva.cancel();
+      if (texto !== textoDoCache) {
+        cacheDeAudio.clear();
+        textoDoCache = texto;
+      }
+      const frases = porFrase() ? partirEmFrases(texto, opts.lang) : [texto];
+      if (frases.length > 1) {
+        try {
+          falarPorFrases(minha, frases, opts);
+        } catch {
+          recuar(minha, texto, opts, 'rede');
+        }
+        return;
+      }
       void falar(minha, texto, opts).catch(() => recuar(minha, texto, opts, 'rede'));
     },
     cancel() {
       vez++;
-      pedido?.abort();
-      pedido = null;
+      abortarPedidos();
       pararAudio();
       reserva.cancel();
     },

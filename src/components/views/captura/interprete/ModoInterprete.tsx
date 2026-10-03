@@ -35,6 +35,7 @@ import { t } from '../../../../lib/i18n';
 import { langLabel } from '../../../../lib/languages';
 import { nativeTts, type TtsEngine } from '../../../../lib/tts';
 import { tempoAteAVoz } from '../../../../lib/voz/tempoAteAVoz';
+import { aquecerInterprete } from '../../../../lib/voz/aquecimentoDoInterprete';
 import { criarVozDaNuvem, destravarVozDaNuvem, type VozDaNuvem } from '../../../../lib/voz/vozDaNuvem';
 import {
   aoMudarIdiomasDaVozDoQuest,
@@ -252,6 +253,7 @@ export default function ModoInterprete({
     tempoAteAVoz.zerar();
     registrarPonte(controle);
     setEstado(controle.estado());
+    if (voz) aquecerInterprete(); // libera o áudio da voz da nuvem antes do 1º toque (chave vozPorFrase)
     return () => {
       registrarPonte(null);
       controle.sair();

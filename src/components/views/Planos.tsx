@@ -363,7 +363,9 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
   const recarregarStatus = useCallback(() => {
     void carregarStatusDeBilling().then(setStatus);
   }, []);
-  useEffect(recarregarStatus, [recarregarStatus]);
+  /* Relido quando o PLANO muda e a cada troca de sub-tela: o checkout é uma sub-tela DESTA tela, então o
+     estado lido ao montar era o de antes de pagar, e "Sua assinatura" abria sem data ("Acesso até —"). */
+  useEffect(recarregarStatus, [recarregarStatus, entitlements.plan, sub]);
 
   useEffect(() => {
     let vivo = true;

@@ -1,0 +1,105 @@
+# Babel Play no Fly.io — STAGING, sem domínio próprio (docs/STAGING.md, "Sem domínio próprio").
+#
+# Cópia do `fly.toml` da produção com quatro diferenças, todas porque aqui NÃO há Cloudflare na frente e
+# o endereço é o próprio `babel-play-staging.fly.dev`:
+#   - `app` e `SENTRY_ENVIRONMENT` do staging;
+#   - `TRUST_PROXY = "1"`: só o proxy do Fly entre o visitante e o app. Com 2, o limitador por IP
+#     confiaria num salto que não existe e o visitante escolheria o próprio IP;
+#   - volume de 1 GB (só contas de teste);
+#   - `ORIGEM_SEGREDO` NÃO pode estar nos segredos: com ele, `server/http/origemProtegida.ts` responde
+#     403 a quem chega direto no fly.dev, que aqui é o único caminho.
+#
+# Deploy (os `VITE_*` são públicos por desenho e entram no build):
+#   fly deploy -c fly.staging.toml --build-arg VITE_SUPABASE_URL=... --build-arg VITE_SUPABASE_ANON_KEY=...
+# Mudou algo no `fly.toml` da produção? Repita aqui: os dois arquivos só diferem nos pontos acima.
+
+app = "babel-play-staging"
+primary_region = "gru"
+
+# 30 s entre o SIGTERM e o SIGKILL. A conta: o Node drena por até DESLIGAMENTO_TIMEOUT_MS (20 s,
+# abaixo) e faz o checkpoint do WAL; depois o Litestream — que é o processo principal e repassou o
+# sinal — faz a última sincronização com o R2 e sai. O padrão do Fly (5 s) cortaria as duas coisas.
+kill_signal = "SIGTERM"
+kill_timeout = 30
+
+# SEM `[deploy] release_command` de propósito: as migrações já rodam no BOOT, antes do `listen`
+# (server.ts, `aplicarMigrations()`), e o boot aborta se elas falharem. Um release_command rodaria
+# numa máquina EFÊMERA sem o volume /data — migraria um banco que não é o de produção e ainda
+# deixaria o deploy verde. A segurança de "não servir com schema velho" é o /api/ready (checks abaixo).
+
+[build]
+  # O workflow de deploy usa `fly deploy --image <tag>`; este bloco vale para `fly deploy` local.
+  dockerfile = "Dockerfile"
+
+[env]
+  NODE_ENV = "production"
+  AUTH_REQUIRED = "1"
+  # Sem Cloudflare na frente: só o proxy do Fly é confiável (ver o cabeçalho deste arquivo).
+  TRUST_PROXY = "1"
+  HOST = "0.0.0.0"
+  PORT = "3000"
+  DATABASE_URL = "file:/data/babel.db"
+  AUDIO_DIR = "/data/audio"
+  DESLIGAMENTO_TIMEOUT_MS = "20000"
+  BACKUP_DIARIO = "1"
+  BACKUP_HORA_UTC = "6"
+  SENTRY_ENVIRONMENT = "staging"
+  # Métricas Prometheus (Fase 5 de prontidão). O `/metrics` sai da porta pública e vai para a porta
+  # interna 9091, que o bloco `[metrics]` abaixo manda o Fly raspar. Não é segredo: é configuração.
+  METRICS_ENABLED = "1"
+  METRICS_PORTA_INTERNA = "9091"
+  # Isolamento de origem (COOP + COEP credentialless + Document-Isolation-Policy) sai LIGADO sem
+  # variável nenhuma: é o que dá threads ao WASM do Whisper no aparelho. Só defina
+  # CROSS_ORIGIN_ISOLATION = "dip" (ou "0") se um recurso de terceiro quebrar — server/http/isolamento.ts.
+
+[[mounts]]
+  source = "babel_dados"
+  destination = "/data"
+  # Aviso quando o volume passar de 80%; o banco, o WAL, a cópia temporária do snapshot diário e o
+  # estado local do Litestream moram todos aqui.
+  initial_size = "1gb"
+  auto_extend_size_threshold = 80
+  auto_extend_size_increment = "1gb"
+  auto_extend_size_limit = "10gb"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  # SEMPRE LIGADA. Com auto-stop, a primeira requisição depois de um tempo parado espera o boot
+  # (migrações + Litestream restore check): o webhook do Asaas tem timeout curto e reentrega com
+  # atraso, e o usuário vê a tela girar. Uma máquina de 1 GB ligada o mês inteiro é o custo fixo.
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 200
+    hard_limit = 250
+
+  # PRONTIDÃO, não vivacidade: /api/ready diz "consigo atender" (banco, migrações aplicadas, boot).
+  # O Fly tira do roteamento a máquina que responde 503. O R2 NÃO reprova (ADR 0009): fora do ar,
+  # o ready segue 200 com `armazenamento: 'indisponivel'` — com uma máquina só, reprovar derrubaria
+  # o site inteiro por causa do áudio. `grace_period` cobre o boot
+  # com restauração do Litestream num volume novo.
+  [[http_service.checks]]
+    grace_period = "60s"
+    interval = "15s"
+    method = "GET"
+    path = "/api/ready"
+    timeout = "5s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "1gb"
+
+# MÉTRICAS — o Prometheus gerenciado do Fly raspa esta porta a cada 15 s e guarda ~15 dias
+# (fly.io/docs/monitoring/metrics, consultada em 25/09/2026). A doc NÃO tem campo de autenticação
+# (só `port` e `path`), então o `/metrics` desta porta é SEM token — e é seguro porque a 9091 NÃO está
+# em `[http_service]` nem em `[[services]]`: o proxy do Fly só encaminha as portas publicadas, e esta
+# fica alcançável só por dentro da VM. Na porta pública (3000) o `/metrics` nem é montado. NUNCA
+# publique a 9091 num `[[services]]` (tests/integration/fly-metricas.test.ts cobra isso).
+# Painel: fly-metrics.net (Grafana gerenciado). Regras de alerta e painel versionados em ops/.
+[metrics]
+  port = 9091
+  path = "/metrics"

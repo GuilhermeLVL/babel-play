@@ -19,6 +19,36 @@ Comandos: PowerShell, **uma linha por vez**, na pasta do projeto, **na mesma jan
 
 ---
 
+## Sem domínio próprio (o staging no endereço do Fly)
+
+Enquanto não houver domínio no Cloudflare, o staging sobe em `https://babel-play-staging.fly.dev`, **sem
+Cloudflare na frente**. Use o [`fly.staging.toml`](../fly.staging.toml) e troque quatro coisas nos
+passos abaixo:
+
+- `TRUST_PROXY=1` (só o proxy do Fly). Com 2, o limitador por IP confiaria num salto que não existe.
+- **Não defina `ORIGEM_SEGREDO`**: com ele o servidor responde 403 a quem chega direto no `fly.dev`,
+  que aqui é o único caminho. O preflight avisa a ausência; é o esperado.
+- `APP_URL=https://babel-play-staging.fly.dev`; no Supabase, a Redirect URL é
+  `https://babel-play-staging.fly.dev/auth/callback`; no Asaas, o webhook é
+  `https://babel-play-staging.fly.dev/api/billing/webhook/asaas`.
+- Pule o passo 8 (certificado, DNS e regra de cabeçalho). A primeira conferência é só
+  `https://babel-play-staging.fly.dev/api/ready` = 200.
+
+O **R2 precisa estar habilitado** na conta do Cloudflare (painel → R2) antes de criar os buckets: com as
+quatro `LITESTREAM_*` definidas, o container restaura e replica o banco no boot, e sem o bucket ele não sobe.
+
+O token de conta do Cloudflare (`CLOUDFLARE_API_TOKEN`) **não** entra no arquivo importado para o Fly:
+o servidor lê `CLOUDFLARE_*` como perna de IA. Ele fica num arquivo à parte (`.env.infra`).
+
+Deploy local, com as duas variáveis públicas no build (lidas do arquivo, sem digitá-las):
+
+```powershell
+$v = Get-Content "$HOME\segredos\babel\.env.staging" | ConvertFrom-StringData
+fly deploy -c fly.staging.toml --build-arg "VITE_SUPABASE_URL=$($v.VITE_SUPABASE_URL)" --build-arg "VITE_SUPABASE_ANON_KEY=$($v.VITE_SUPABASE_ANON_KEY)"
+```
+
+Ficam para quando houver domínio: WAF, a regra de rate limit, o bloqueio do `fly.dev`, o Google e o captcha.
+
 ## 1. O terminal
 
 ```powershell

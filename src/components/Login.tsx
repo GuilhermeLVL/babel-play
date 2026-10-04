@@ -299,7 +299,7 @@ export default function Login({ onContinuarSemConta }: LoginProps = {}) {
           <>
             <p className="qen-divisor">{t('ou')}</p>
             <div className="qen-acoes par">
-              {configurado && (
+              {configurado && auth.googleLigado() && (
                 <button type="button" onClick={() => social('google')} disabled={carregando} className="qen-botao">
                   {t('Continuar com Google')}
                 </button>
@@ -350,7 +350,7 @@ export default function Login({ onContinuarSemConta }: LoginProps = {}) {
         </p>
       )}
 
-      {configurado && modo !== 'forgot' && (
+      {configurado && auth.googleLigado() && modo !== 'forgot' && (
         <>
           <div className="grid gap-2">
             <button

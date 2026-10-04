@@ -115,6 +115,15 @@ async function sessaoAnonimaAtiva(): Promise<boolean> {
   }
 }
 
+export const EMAIL_JA_CADASTRADO = 'email_ja_cadastrado';
+const EMAIL_JA_TEM_CONTA = 'Este e-mail já tem conta. Entre com a sua senha ou use "Esqueci" para definir uma nova.';
+
+/**
+ * O BOTÃO DO GOOGLE só aparece se o provedor estiver ligado no Supabase do build. `VITE_LOGIN_GOOGLE=0`
+ * o esconde (clicar com o provedor desligado cai numa página de erro crua do Supabase).
+ */
+export const googleLigado = (): boolean => import.meta.env.VITE_LOGIN_GOOGLE !== '0';
+
 /**
  * Criar conta. Sem sessão de volta → verificação por e-mail pendente.
  *
@@ -134,6 +143,11 @@ export async function signUpEmail(email: string, password: string, options?: Opc
   const { data, error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo, ...options } });
   // Captcha recusado: a mensagem do Supabase passa como veio, e a porta a reconhece pela palavra.
   if (error) return { ok: false, message: mensagemDoErroDeSenha(error) };
+  /* E-MAIL QUE JÁ TEM CONTA: com a confirmação por e-mail ligada o Supabase responde "sucesso" e não
+     manda nada; o sinal é o usuário vir sem identidades. Dizer "confirme pelo link" deixava a pessoa
+     esperando um e-mail que nunca chega. */
+  if (data.user && data.user.identities?.length === 0)
+    return { ok: false, code: EMAIL_JA_CADASTRADO, message: t(EMAIL_JA_TEM_CONTA) };
   if (!data.session) return { ok: true, needsEmailConfirm: true };
   return { ok: true };
 }

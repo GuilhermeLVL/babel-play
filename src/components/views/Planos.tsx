@@ -375,7 +375,10 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
     return () => {
       vivo = false;
     };
-  }, []);
+    /* Relido quando o PLANO muda (assinou, começou o teste, cancelou) e a cada abertura da aba: lido só
+       ao montar, o consumo continuava com os tetos do plano de antes ("não incluído" para quem acabou de
+       virar Premium) até a pessoa recarregar a página. */
+  }, [entitlements.plan, entitlements.teste?.terminaEm, abaLocal]);
 
   const meuPlano = entitlements.plan;
   const conta = estadoDaConta(meuPlano, status, Date.now(), entitlements.teste);

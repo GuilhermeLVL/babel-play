@@ -41,7 +41,9 @@ kill_timeout = 30
   DATABASE_URL = "file:/data/babel.db"
   AUDIO_DIR = "/data/audio"
   DESLIGAMENTO_TIMEOUT_MS = "20000"
-  BACKUP_DIARIO = "1"
+  # Sem bucket (R2/Tigris) neste MVP: o snapshot diário não tem para onde ir. O backup é o snapshot
+  # automático do VOLUME que o Fly faz todo dia (5 dias de retenção).
+  BACKUP_DIARIO = "0"
   BACKUP_HORA_UTC = "6"
   SENTRY_ENVIRONMENT = "staging"
   # Métricas Prometheus (Fase 5 de prontidão). O `/metrics` sai da porta pública e vai para a porta
@@ -65,12 +67,13 @@ kill_timeout = 30
 [http_service]
   internal_port = 3000
   force_https = true
-  # SEMPRE LIGADA. Com auto-stop, a primeira requisição depois de um tempo parado espera o boot
-  # (migrações + Litestream restore check): o webhook do Asaas tem timeout curto e reentrega com
-  # atraso, e o usuário vê a tela girar. Uma máquina de 1 GB ligada o mês inteiro é o custo fixo.
-  auto_stop_machines = "off"
+  # MVP DE BAIXO CUSTO: a máquina DORME sem tráfego e acorda na primeira requisição (o Fly cobra só o
+  # tempo ligado). O preço é a primeira visita depois de um tempo parado esperar o boot (alguns
+  # segundos) e o webhook do Asaas poder estourar o tempo na primeira tentativa: ele reentrega, e o
+  # evento é idempotente. Na produção com assinantes, volte para "off" e min 1 (fly.toml).
+  auto_stop_machines = "stop"
   auto_start_machines = true
-  min_machines_running = 1
+  min_machines_running = 0
 
   [http_service.concurrency]
     type = "requests"
@@ -91,7 +94,9 @@ kill_timeout = 30
 
 [[vm]]
   size = "shared-cpu-1x"
-  memory = "1gb"
+  # 512 MB: o servidor fica em ~340 MB no pico medido (uploads em streaming). Se o Fly matar por
+  # falta de memória, suba para "1gb".
+  memory = "512mb"
 
 # MÉTRICAS — o Prometheus gerenciado do Fly raspa esta porta a cada 15 s e guarda ~15 dias
 # (fly.io/docs/monitoring/metrics, consultada em 25/09/2026). A doc NÃO tem campo de autenticação

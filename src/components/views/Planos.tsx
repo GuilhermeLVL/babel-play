@@ -722,7 +722,9 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
   /* Cada linha: ícone, título, valor, fração do teto (`null` = sem teto), a unidade, e se é do DIA. As
      unidades passam por `t()` aqui, no ponto de uso (a lista é montada a cada render, no idioma da tela). */
   type LinhaDeConsumo = [LucideIcon, string, string, number | null, string, boolean];
-  const de = (valor: string) => t('de {valor}', { valor });
+  /* TETO ZERO não é "sem limite": é o que o plano não inclui (a nuvem no Grátis). Antes saía "0 de 0 · sem limite". */
+  const foraDoPlano = t('não incluído no seu plano');
+  const de = (valor: string, teto?: number | null) => (teto === 0 ? foraDoPlano : t('de {valor}', { valor }));
   const consumo: LinhaDeConsumo[] = uso
     ? [
         [
@@ -730,7 +732,9 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
           'Áudio transcrito na nuvem',
           duracaoLegivel(uso.segundosDeAudio.usado),
           fracao(uso.segundosDeAudio),
-          uso.segundosDeAudio.teto === null ? t('de áudio') : de(duracaoLegivel(uso.segundosDeAudio.teto)),
+          uso.segundosDeAudio.teto === null
+            ? t('de áudio')
+            : de(duracaoLegivel(uso.segundosDeAudio.teto), uso.segundosDeAudio.teto),
           false,
         ],
         [
@@ -738,7 +742,7 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
           'Chamadas à IA de nuvem',
           numero(uso.chamadas.usado),
           fracao(uso.chamadas),
-          uso.chamadas.teto === null ? t('chamadas') : de(numero(uso.chamadas.teto)),
+          uso.chamadas.teto === null ? t('chamadas') : de(numero(uso.chamadas.teto), uso.chamadas.teto),
           false,
         ],
         /* Os tokens viraram TETO na Fase 2 do lançamento (antes só eram contados): a linha mostra o
@@ -748,7 +752,7 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
           'Tokens de IA (tradução e tutor)',
           numero(uso.tokensDeLlm.usado),
           fracao(uso.tokensDeLlm),
-          uso.tokensDeLlm.teto === null ? t('tokens') : de(numero(uso.tokensDeLlm.teto)),
+          uso.tokensDeLlm.teto === null ? t('tokens') : de(numero(uso.tokensDeLlm.teto), uso.tokensDeLlm.teto),
           false,
         ],
         ...(arm
@@ -1141,8 +1145,9 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
                           <div className="qc-consumo-valor">
                             <b>{valor}</b>
                             <span>
-                              {unidade} ·{' '}
-                              {f === null ? t('sem limite') : dia ? t('do limite de hoje') : t('do limite do plano')}
+                              {unidade}
+                              {unidade !== foraDoPlano &&
+                                ` · ${f === null ? t('sem limite') : dia ? t('do limite de hoje') : t('do limite do plano')}`}
                             </span>
                           </div>
                           {/* Sem teto NÃO vira barra vazia: uma barra a 0 pareceria "nada usado". */}
@@ -1388,8 +1393,9 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
                             {valor}
                           </b>
                           <span className="mut">
-                            {unidade} ·{' '}
-                            {f === null ? t('sem limite') : dia ? t('do limite de hoje') : t('do limite do plano')}
+                            {unidade}
+                            {unidade !== foraDoPlano &&
+                              ` · ${f === null ? t('sem limite') : dia ? t('do limite de hoje') : t('do limite do plano')}`}
                           </span>
                         </div>
                         {/* Sem teto NÃO vira barra vazia: uma barra a 0 pareceria "nada usado". O nome

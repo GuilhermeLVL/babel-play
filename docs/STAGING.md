@@ -44,7 +44,7 @@ Deploy local, com as duas variáveis públicas no build (lidas do arquivo, sem d
 
 ```powershell
 $v = Get-Content "$HOME\segredos\babel\.env.staging" | ConvertFrom-StringData
-fly deploy -c fly.staging.toml --build-arg "VITE_SUPABASE_URL=$($v.VITE_SUPABASE_URL)" --build-arg "VITE_SUPABASE_ANON_KEY=$($v.VITE_SUPABASE_ANON_KEY)"
+fly deploy -c fly.staging.toml --build-arg "VITE_SUPABASE_URL=$($v.VITE_SUPABASE_URL)" --build-arg "VITE_SUPABASE_ANON_KEY=$($v.VITE_SUPABASE_ANON_KEY)" --build-arg VITE_DESENHO_NOVO_PADRAO=1
 ```
 
 Ficam para quando houver domínio: WAF, a regra de rate limit, o bloqueio do `fly.dev`, o Google e o captcha.

@@ -181,6 +181,18 @@ describe('conferirProducao: o que AVISA', () => {
     expect(a.find((x) => x.nome === 'SIGNUP_ENABLED')?.texto).toMatch(/ABERTO/)
   })
 
+  it('ANUAL_ENABLED aparece como ABERTO ou FECHADO, só para informar: nunca bloqueia', () => {
+    const aberto = conferirProducao(completo())
+    expect(nivelDe(aberto, 'ANUAL_ENABLED')).toEqual(['AVISA'])
+    expect(aberto.find((x) => x.nome === 'ANUAL_ENABLED')?.texto).toMatch(/ABERTO/)
+    expect(resumir(aberto).podeSubir).toBe(true)
+
+    const fechado = conferirProducao({ ...completo(), ANUAL_ENABLED: '0' })
+    expect(nivelDe(fechado, 'ANUAL_ENABLED')).toEqual(['OK'])
+    expect(fechado.find((x) => x.nome === 'ANUAL_ENABLED')?.texto).toMatch(/FECHADO/)
+    expect(resumir(fechado).podeSubir).toBe(true)
+  })
+
   it('capacidades ausentes: S3, Litestream, LLM, reserva, orçamento, e-mail, Sentry, captcha', () => {
     const v = completo()
     for (const n of Object.keys(v)) {

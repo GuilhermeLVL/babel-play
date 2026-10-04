@@ -18,17 +18,22 @@ import type { NextFunction, Request, Response } from 'express'
 
 import { usersRepo } from '../db/repositories/users'
 import { authRequired } from './auth'
-import { cadastroLigado, checkoutLigado } from './config'
+import { anualLigado, cadastroLigado, checkoutLigado } from './config'
 import { responderErro } from './respostaDeErro'
 
 export const MENSAGEM_CHECKOUT_DESLIGADO =
   'As assinaturas e compras estão pausadas temporariamente. Quem já assina continua com tudo; tente de novo mais tarde.'
 export const MENSAGEM_CADASTRO_FECHADO =
   'O cadastro de contas novas está pausado temporariamente. Você pode continuar usando o app sem conta, no seu aparelho.'
+/** `ANUAL_ENABLED=0`: o anual (à vista e 12x) ainda não é vendido; o mensal segue. */
+export const MENSAGEM_ANUAL_INDISPONIVEL = 'O plano anual ainda não está à venda. Você pode assinar o mensal.'
 
-/** O que a tela de login e a de planos precisam saber antes de oferecer a porta. Público. */
-export function estadoDaAbertura(): { cadastro: boolean; checkout: boolean } {
-  return { cadastro: cadastroLigado(), checkout: checkoutLigado() }
+/**
+ * O que a tela de login e a de planos precisam saber antes de oferecer a porta. Público. `anual` diz
+ * se o plano anual está à venda (`ANUAL_ENABLED`): desligado, a tela mostra só o mensal.
+ */
+export function estadoDaAbertura(): { cadastro: boolean; checkout: boolean; anual: boolean } {
+  return { cadastro: cadastroLigado(), checkout: checkoutLigado(), anual: anualLigado() }
 }
 
 export function abertura(_req: Request, res: Response): void {

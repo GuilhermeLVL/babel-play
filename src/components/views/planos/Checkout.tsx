@@ -51,7 +51,7 @@ import { T } from '../../../lib/T';
 import { CabecalhoDeTela, IconeEmBloco, Tela } from '../../ui';
 import { irSub, PLANO_ICO, PLANO_NOME } from './dados';
 import Etapas, { rolarAoTopo } from './Etapas';
-import { entrarParaAssinar, useSemConta, useVendaAberta } from './funil';
+import { entrarParaAssinar, useAnualAVenda, useSemConta, useVendaAberta } from './funil';
 
 /**
  * CHECKOUT — `T.checkout` do protótipo aprovado: dois passos, com o resumo sempre visível.
@@ -257,7 +257,7 @@ function impedimento(
   plan: Plan,
   conta: Conta,
   status: StatusDeBilling | null,
-  extra: { vendaAberta: boolean; menor: boolean; paraOutro: boolean; semConta: boolean } = {
+  extra: { vendaAberta: boolean; menor: boolean; paraOutro: boolean; semConta: boolean; anualAVenda?: boolean } = {
     vendaAberta: true,
     menor: false,
     paraOutro: false,
@@ -289,9 +289,11 @@ function impedimento(
   if (temAssinatura(conta.estado) && !extra.paraOutro)
     return [
       'Você já tem uma assinatura',
-      t(
-        'Para passar do mensal para o anual (ou o contrário), veja Planos → Sua assinatura: a troca é no fim do período, sem pagar duas vezes.',
-      ),
+      extra.anualAVenda === false
+        ? t('Para ver ou mudar a sua assinatura, abra Planos → Sua assinatura.')
+        : t(
+            'Para passar do mensal para o anual (ou o contrário), veja Planos → Sua assinatura: a troca é no fim do período, sem pagar duas vezes.',
+          ),
     ];
   return null;
 }
@@ -316,7 +318,15 @@ export default function Checkout({
   aoEntrar?: () => void;
 }) {
   const [passo, setPasso] = useState<1 | 2>(1);
-  const [forma, setForma] = useState<FormaDeAssinar>(formaInicial);
+  /* `ANUAL_ENABLED=0` (o MVP vende só o mensal): as formas do anual somem, e quem chegou com o anual
+     escolhido (a aba lembra) paga o mensal. O servidor recusa o anual de todo jeito (503
+     `anual_indisponivel`): essa recusa também vale como "desligado" aqui. */
+  const anualNoCliente = useAnualAVenda();
+  const [anualRecusado, setAnualRecusado] = useState(false);
+  const anualAVenda = anualNoCliente && !anualRecusado;
+  const [formaEscolhida, setForma] = useState<FormaDeAssinar>(formaInicial);
+  const forma: FormaDeAssinar = anualAVenda ? formaEscolhida : 'mensal';
+  const formas: readonly FormaDeAssinar[] = anualAVenda ? FORMAS_DE_ASSINAR : ['mensal'];
   const [campos, setCampos] = useState<Record<Campo, string>>({ nome: '', cpf: '', email: '' });
   const [erros, setErros] = useState<Partial<Record<Campo, string>>>({});
   const [ocupado, setOcupado] = useState(false);
@@ -345,7 +355,13 @@ export default function Checkout({
   const P = PLANO_NOME[plano];
   const menor = recusa === 'menor' || (!!protecao && protecao.faixa !== 'adulto' && protecao.nascimentoInformado);
   const vendaAberta = vendaAbertaNoCliente && recusa !== 'pausada';
-  const bloqueio = impedimento(plan, conta, status, { vendaAberta, menor, paraOutro: !!beneficiario, semConta });
+  const bloqueio = impedimento(plan, conta, status, {
+    vendaAberta,
+    menor,
+    paraOutro: !!beneficiario,
+    semConta,
+    anualAVenda,
+  });
   const assinarParaMim = () => {
     definirBeneficiario(null);
     setBeneficiario(null);
@@ -444,6 +460,9 @@ export default function Checkout({
       setRecusa(r.codigo === 'checkout_desligado' ? 'pausada' : 'menor');
       return;
     }
+    /* O servidor desligou o anual depois que a tela abriu: a forma volta ao mensal, e a frase dele
+       ("O plano anual ainda não está à venda. Você pode assinar o mensal.") fica à vista. */
+    if (r.codigo === 'anual_indisponivel') setAnualRecusado(true);
     if (!r.link) {
       setErroServidor(r.erro ?? 'A assinatura foi criada, mas o link de pagamento não veio. Tente de novo.');
       return;
@@ -516,7 +535,7 @@ export default function Checkout({
       <fieldset className="escolha">
         <legend className="label-mono">{t('Como você quer pagar')}</legend>
         <div className="opcoes">
-          {FORMAS_DE_ASSINAR.map((f) => {
+          {formas.map((f) => {
             const x = textosDaForma(plano, f);
             return (
               <button
@@ -849,7 +868,7 @@ export default function Checkout({
         <fieldset className="qc-escolha">
           <legend>{t('Como você quer pagar')}</legend>
           <div className="qc-opcoes">
-            {FORMAS_DE_ASSINAR.map((f) => {
+            {formas.map((f) => {
               const x = textosDaForma(plano, f);
               return (
                 <button

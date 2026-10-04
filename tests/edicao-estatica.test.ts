@@ -98,7 +98,7 @@ describe('edição estática ligada', () => {
 
   it('abertura e ranking não saem para a rede', async () => {
     const { lerAbertura } = await import('../src/data/rotas/idade')
-    await expect(lerAbertura()).resolves.toEqual({ cadastro: false, checkout: false })
+    await expect(lerAbertura()).resolves.toEqual({ cadastro: false, checkout: false, anual: true })
     const ranking = await import('../src/lib/ranking')
     await expect(ranking.lerRanking('blitz')).resolves.toBeNull()
     ranking.salvarApelido('alguem')

@@ -200,6 +200,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
       'teto de gasto ESTIMADO por conta Grátis no mês com a nuvem de alívio (A10), em US$. Padrão US$ 0,13 (FRANQUIA_DE_ALIVIO em src/core/planos.ts: cobre as 3 h de transcrição). 0 fecha o alívio para todos',
   },
   {
+    nome: 'ANUAL_ENABLED',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'chave de venda do plano ANUAL (à vista e em 12x): `0` tira o anual da tela e faz `/api/billing/assinar` recusar `ciclo: anual` (503 `anual_indisponivel`); o mensal e o teste seguem, e quem já tem o anual não é afetado. O MVP sobe com `0` até o jurídico validar os Termos §3–§4. Ausente = ligada',
+  },
+  {
     nome: 'APP_URL',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
@@ -1372,6 +1379,18 @@ export function checkoutLigado(env: NodeJS.ProcessEnv = process.env): boolean {
 /** O CADASTRO de contas novas está aberto? `SIGNUP_ENABLED=0` fecha. Ausente = aberto. */
 export function cadastroLigado(env: NodeJS.ProcessEnv = process.env): boolean {
   const v = env.SIGNUP_ENABLED?.trim().toLowerCase()
+  return !(v === '0' || v === 'false')
+}
+
+/**
+ * O plano ANUAL (à vista e em 12x) está à venda? `ANUAL_ENABLED=0` (ou `false`) o tira da tela e do
+ * `/assinar`; o mensal e o teste de 14 dias seguem. Não é chave de emergência, é de LANÇAMENTO: o MVP
+ * sobe só com o mensal até o jurídico validar os Termos §3–§4. Ausente = ligado, para nenhum contrato
+ * de antes mudar. Só fecha a VENDA: quem já tem o anual segue com ele, e o webhook continua
+ * concedendo o ano a um pagamento anual que chegar. Lida em tempo de chamada.
+ */
+export function anualLigado(env: NodeJS.ProcessEnv = process.env): boolean {
+  const v = env.ANUAL_ENABLED?.trim().toLowerCase()
   return !(v === '0' || v === 'false')
 }
 

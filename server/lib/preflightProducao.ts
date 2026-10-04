@@ -22,6 +22,7 @@ import { parse } from 'dotenv'
 import { erroDoRegistroDeIa } from '../ai/registroDeProvedores'
 import { authRequired, erroDeAuthEmProducao } from './auth'
 import {
+  anualLigado,
   cadastroLigado,
   checkoutLigado,
   conferirConfiguracao,
@@ -222,6 +223,15 @@ export function conferirProducao(arquivo: NodeJS.ProcessEnv): Achado[] {
     } else {
       ok(nome, 'FECHADO (=0), como no primeiro deploy')
     }
+  }
+  /* A venda do ANUAL: só informa (nunca bloqueia, e aberta não é erro) — é decisão de lançamento. */
+  if (anualLigado(env)) {
+    avisa(
+      'ANUAL_ENABLED',
+      'ABERTO (ausente ou diferente de 0): o anual, à vista e em 12x, está à venda — o MVP sobe com =0 até o jurídico validar os Termos §3–§4',
+    )
+  } else {
+    ok('ANUAL_ENABLED', 'FECHADO (=0): só o mensal e o teste de 14 dias à venda, como no MVP')
   }
 
   /* ─────────── mídia e backup ─────────── */

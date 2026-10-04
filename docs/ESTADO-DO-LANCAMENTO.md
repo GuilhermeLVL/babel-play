@@ -64,6 +64,9 @@ Resend, Sentry nem a voz (DeepInfra/Workers AI) — ver [operadores.md](lgpd/ope
 
 - **Advogado: Termos §3–§4** (anual, 12x, teste, uso justo, cancelamento sem reembolso proporcional depois dos
   7 dias) — `public/termos.html` está marcado "texto a validar". Sem isso, não abrir a venda do anual.
+  Por isso **o MVP sobe com `ANUAL_ENABLED=0`**: vende só o mensal (R$ 19,90) e o teste de 14 dias; o anual,
+  à vista e em 12x, some da tela e o servidor o recusa (503 `anual_indisponivel`) até a validação. Quem já
+  tem o anual não é afetado (`anualLigado` em `server/lib/config.ts`, [STAGING.md §5](STAGING.md)).
 - Política de privacidade com a lista completa de operadores (item de código acima) e as cláusulas-padrão da
   ANPD nos DPAs ([operadores.md](lgpd/operadores.md)).
 

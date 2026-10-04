@@ -132,17 +132,21 @@ export async function aceitarConvite(dados: {
  * sessão (a tela de login), por isso fora do funil — que, sem conta, responderia pelo servidor em
  * memória, e ele não sabe das chaves do servidor de verdade. Falha = abertas (o servidor ainda
  * recusa se estiverem fechadas; a tela só deixaria de avisar antes).
+ *
+ * `anual` é a venda do plano anual (`ANUAL_ENABLED`): `false` tira o anual de Planos e do checkout.
+ * Ausente na resposta (servidor de antes da chave) = à venda.
  */
-export async function lerAbertura(): Promise<{ cadastro: boolean; checkout: boolean }> {
+export async function lerAbertura(): Promise<{ cadastro: boolean; checkout: boolean; anual: boolean }> {
   // Edição estática: não há cadastro nem cobrança — e nenhum servidor para perguntar.
-  if (edicaoEstatica()) return { cadastro: false, checkout: false }
+  if (edicaoEstatica()) return { cadastro: false, checkout: false, anual: true }
+  const abertas = { cadastro: true, checkout: true, anual: true }
   try {
     // ast-grep-ignore: fetch-fora-do-funil — rota pública lida antes de existir sessão (ver acima).
     const r = await fetch('/api/abertura', { headers: { accept: 'application/json' } })
-    if (!r.ok) return { cadastro: true, checkout: true }
-    const c = (await r.json()) as { cadastro?: unknown; checkout?: unknown }
-    return { cadastro: c.cadastro !== false, checkout: c.checkout !== false }
+    if (!r.ok) return abertas
+    const c = (await r.json()) as { cadastro?: unknown; checkout?: unknown; anual?: unknown }
+    return { cadastro: c.cadastro !== false, checkout: c.checkout !== false, anual: c.anual !== false }
   } catch {
-    return { cadastro: true, checkout: true }
+    return abertas
   }
 }

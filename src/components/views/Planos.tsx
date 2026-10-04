@@ -81,7 +81,7 @@ import {
 } from './planos/dados';
 import { DialogoCiclo, DialogoFatura, DialogoPagamento, DialogoPausar } from './planos/DialogosDaAssinatura';
 import FaixaDaConta from './planos/FaixaDaConta';
-import { entrarParaAssinar, useSemConta, useVendaAberta } from './planos/funil';
+import { entrarParaAssinar, useAnualAVenda, useSemConta, useVendaAberta } from './planos/funil';
 import SuaAssinatura, { type DialogoDaAssinatura, metodoAtual } from './planos/SuaAssinatura';
 
 /**
@@ -195,12 +195,16 @@ function CelulaDaTabela({ x }: { x: Celula }) {
  * As perguntas do protótipo, com as respostas que o app cumpre (os números da matriz). A troca de
  * ciclo responde o caminho de hoje; o cancelamento do anual e do 12x diz o padrão do dono, a validar
  * com o jurídico (C9).
+ *
+ * `anualAVenda === false` (`ANUAL_ENABLED=0`, o MVP só com o mensal): saem as duas perguntas do anual,
+ * e as respostas de cancelar e de arrependimento ficam sem as frases do anual e do 12x — a tela não
+ * promete o que o servidor não vende.
  */
-function perguntas(): [string, string][] {
+function perguntas(anualAVenda: boolean): [string, string][] {
   const e = economiaDoAnual('premium');
   const dias = DIAS_DO_TESTE_PREMIUM;
-  return [
-    [
+  const todas: ([string, string] | false)[] = [
+    anualAVenda && [
       t('Qual a diferença entre mensal e anual?'),
       t(
         'No mensal, você paga {mensal} todo mês e cancela quando quiser. No anual, paga {anual} por ano, à vista (Pix, boleto ou cartão, renovando sozinho em um ano) ou em 12x no cartão (sem renovação automática), e economiza {economia}: o equivalente a {meses} meses grátis.',
@@ -232,7 +236,7 @@ function perguntas(): [string, string][] {
         'É a tradução do Premium que olha o jeito de dizer. Ao tocar numa frase, você vê outras formas de dizer e escolhe entre formal e informal; a tradução segue a variante que você escolher (português do Brasil ou de Portugal, espanhol da América Latina ou da Espanha) e o seu glossário. A legenda ao vivo usa a Tradução rápida, nos dois planos.',
       ),
     ],
-    [
+    anualAVenda && [
       t('Posso passar do mensal para o anual?'),
       t(
         'Pode, sem pagar duas vezes. Em Planos → Sua assinatura, cancele a renovação do mensal: você continua com o Premium até o fim do mês pago e, nesse dia, assina o anual aqui. Nos primeiros 7 dias, cancelar devolve o valor inteiro e você já pode assinar o anual na hora.',
@@ -240,21 +244,30 @@ function perguntas(): [string, string][] {
     ],
     [
       t('Posso cancelar quando quiser?'),
-      t(
-        'Sim, em Planos → Sua assinatura, em poucos cliques. A renovação para na hora e você mantém o acesso até o último dia do período já pago; seus dados continuam salvos. No anual e no 12x, depois dos 7 dias não há reembolso proporcional: o acesso vale até o fim do ano pago, e as parcelas do 12x seguem no cartão.',
-      ),
+      anualAVenda
+        ? t(
+            'Sim, em Planos → Sua assinatura, em poucos cliques. A renovação para na hora e você mantém o acesso até o último dia do período já pago; seus dados continuam salvos. No anual e no 12x, depois dos 7 dias não há reembolso proporcional: o acesso vale até o fim do ano pago, e as parcelas do 12x seguem no cartão.',
+          )
+        : t(
+            'Sim, em Planos → Sua assinatura, em poucos cliques. A renovação para na hora e você mantém o acesso até o último dia do período já pago; seus dados continuam salvos.',
+          ),
     ],
     [
       t('E se eu me arrepender?'),
-      t(
-        'Nos primeiros 7 dias depois do primeiro pagamento, cancelar em Planos → Sua assinatura devolve o valor inteiro, no mesmo meio de pagamento (CDC, art. 49), sem precisar pedir a ninguém: no anual, o ano inteiro; no 12x, o parcelamento inteiro. A tela confirma o pedido na hora, com protocolo, e o acesso ao plano termina ali.',
-      ),
+      anualAVenda
+        ? t(
+            'Nos primeiros 7 dias depois do primeiro pagamento, cancelar em Planos → Sua assinatura devolve o valor inteiro, no mesmo meio de pagamento (CDC, art. 49), sem precisar pedir a ninguém: no anual, o ano inteiro; no 12x, o parcelamento inteiro. A tela confirma o pedido na hora, com protocolo, e o acesso ao plano termina ali.',
+          )
+        : t(
+            'Nos primeiros 7 dias depois do primeiro pagamento, cancelar em Planos → Sua assinatura devolve o valor inteiro, no mesmo meio de pagamento (CDC, art. 49), sem precisar pedir a ninguém. A tela confirma o pedido na hora, com protocolo, e o acesso ao plano termina ali.',
+          ),
     ],
     [
       t('O que é o self-host?'),
       t('É o Babel Play rodando no seu próprio computador. Ali tudo fica liberado e não há cota.'),
     ],
   ];
+  return todas.filter((x): x is [string, string] => !!x);
 }
 
 const CHAVE_DO_CHECKOUT = CHAVE_DO_PLANO_DO_CHECKOUT;
@@ -370,6 +383,10 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
   const formaAtual = assina ? formaDaConta(conta) : null;
   const semConta = useSemConta(meuPlano);
   const vendaAberta = useVendaAberta();
+  /* `ANUAL_ENABLED=0` no servidor: o MVP vende só o mensal e o teste. Some o seletor, o preço do ano e
+     as frases do anual; quem JÁ assina o anual continua vendo o plano dele como é. */
+  const anualAVenda = useAnualAVenda();
+  const jaTemOAnual = formaAtual === 'anual' || formaAtual === 'anual_12x';
 
   /* Quem assina o anual abre no anual (o cartão dele diz "Seu plano"), até mexer no seletor. */
   useEffect(() => {
@@ -446,7 +463,9 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
         />
       )}
       {dialogo === 'pausar' && <DialogoPausar conta={conta} aoFechar={() => setDialogo(null)} />}
-      {dialogo === 'ciclo' && <DialogoCiclo conta={conta} aoFechar={() => setDialogo(null)} />}
+      {dialogo === 'ciclo' && (anualAVenda || jaTemOAnual) && (
+        <DialogoCiclo conta={conta} aoFechar={() => setDialogo(null)} />
+      )}
       {typeof dialogo === 'object' && <DialogoFatura fatura={dialogo.fatura} aoFechar={() => setDialogo(null)} />}
     </>
   );
@@ -488,7 +507,7 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
   const menor =
     (teste?.estado === 'indisponivel' && teste.motivo === 'perfil_protegido') ||
     (!!protecao && protecao.nascimentoInformado && protecao.faixa !== 'adulto');
-  const anual = periodo === 'anual';
+  const anual = periodo === 'anual' && (anualAVenda || jaTemOAnual);
   const economia = economiaDoAnual('premium');
 
   const assinar = (p: Plano) => {
@@ -934,7 +953,7 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
                 'Do microfone ou do som do computador, a legenda aparece nos dois idiomas enquanto você ouve. Estudar e jogar é igual nos dois planos.',
               )}
             </p>
-            {!selfhost && (
+            {!selfhost && anualAVenda && (
               <div className="q-abas q-seg qc-quebra" role="radiogroup" aria-label={t('Período de cobrança')}>
                 <button
                   type="button"
@@ -1046,7 +1065,7 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
               </div>
             </header>
             <div className="qc-pilha">
-              {perguntas().map(([q, r], i) => (
+              {perguntas(anualAVenda).map(([q, r], i) => (
                 <details key={q} className="qc-faq" open={i === 0}>
                   <summary>
                     <span>{q}</span>
@@ -1220,7 +1239,7 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
               'Do microfone ou do som do computador, a legenda aparece nos dois idiomas enquanto você ouve. Estudar e jogar é igual nos dois planos.',
             )}
           </p>
-          {!selfhost && (
+          {!selfhost && anualAVenda && (
             <div className="seg periodo" role="radiogroup" aria-label={t('Período de cobrança')}>
               <button type="button" role="radio" aria-checked={!anual} onClick={() => trocarPeriodo('mensal')}>
                 {t('Mensal')}
@@ -1301,7 +1320,7 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
         <section className="secao">
           <TituloDeSecao icone={CircleHelp} titulo={t('Perguntas frequentes')} />
           <div className="faq">
-            {perguntas().map(([q, r], i) => (
+            {perguntas(anualAVenda).map(([q, r], i) => (
               <details key={q} className="cartao" open={i === 0}>
                 <summary>
                   {q}

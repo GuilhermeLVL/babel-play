@@ -42,7 +42,7 @@ const PUBLICAS_POR_DESENHO: Record<string, string> = {
   'POST /api/metricas/ofertas':
     'o funil de conversão das ofertas de planos (Fase 8): evento, gatilho, componente, plano atual/sugerido e variante — nenhum id de pessoa. Precisa funcionar sem conta (a conversão convidado → conta é a que mais importa) e ficar antes do auth garante que não conhece identidade. Mesmo corpo de 8 KB e balde por IP de `/api/metricas`; labels de alfabeto fechado; nada é gravado.',
   'GET /api/abertura':
-    'as chaves de emergência CHECKOUT_ENABLED/SIGNUP_ENABLED, lidas pela tela de login ANTES de existir sessão (para esconder "Criar conta" com o cadastro fechado). Responde só dois booleanos, sem dado de ninguém.',
+    'as chaves de emergência CHECKOUT_ENABLED/SIGNUP_ENABLED, lidas pela tela de login ANTES de existir sessão (para esconder "Criar conta" com o cadastro fechado). Responde só três booleanos (cadastro, checkout e a venda do anual, `ANUAL_ENABLED`), sem dado de ninguém.',
   'GET /api/flags':
     'feature flags (Fase 6b), lidas também por quem não tem conta (servidor em memória do modo anônimo, convidado da Fase 7). Token opcional só escolhe o plano; sai o resultado avaliado (ligada + payload), nunca regras, listas de ids ou percentual. Balde próprio por IP no modo público.',
 }

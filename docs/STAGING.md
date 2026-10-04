@@ -115,6 +115,7 @@ TRUST_PROXY=2
 AUTH_REQUIRED=1
 SIGNUP_ENABLED=0
 CHECKOUT_ENABLED=0
+ANUAL_ENABLED=0
 APP_URL=https://staging.SEU-DOMINIO.com.br
 SUPABASE_URL=troque-url-do-projeto
 SUPABASE_SERVICE_ROLE_KEY=troque-cole-aqui
@@ -162,6 +163,13 @@ desligada) e o que está **OK**, e nunca imprime um valor. O arquivo dentro do r
 Código de saída 0 = nada bloqueia. **Corrija todo BLOQUEIA e repita até passar.** No staging é
 esperado um AVISA em `ASAAS_BASE_URL` ("sandbox em produção?"): é o sandbox, de propósito. Os
 `SIGNUP_ENABLED`/`CHECKOUT_ENABLED` aparecem como **FECHADO** (OK).
+
+`ANUAL_ENABLED=0` também aparece como **FECHADO** (OK): o MVP sobe vendendo **só o mensal e o teste de
+14 dias**, porque o anual (à vista e em 12x) depende de o jurídico validar os Termos §3–§4. Com `0`, o
+anual some da tela de Planos e do checkout e `/api/billing/assinar` recusa `ciclo: anual` (503
+`anual_indisponivel`); quem já tem o anual não é afetado. Ausente ou `1` = anual à venda (o preflight
+mostra **ABERTO** como AVISA, que não bloqueia). Esta chave **não** é ligada no passo 9: fica em `0` no
+staging e na produção até o jurídico liberar.
 
 ## 6. Os segredos no Fly
 

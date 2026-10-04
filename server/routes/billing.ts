@@ -25,7 +25,7 @@ import { creditsRepo } from '../db/repositories/credits'
 import { subscriptionsRepo } from '../db/repositories/subscriptions'
 import { type TestePremium, testesPremiumRepo } from '../db/repositories/testesPremium'
 import { vinculosRepo } from '../db/repositories/vinculos'
-import { MENSAGEM_CHECKOUT_DESLIGADO } from '../lib/abertura'
+import { MENSAGEM_ANUAL_INDISPONIVEL, MENSAGEM_CHECKOUT_DESLIGADO } from '../lib/abertura'
 import {
   asaasConfigurado,
   buscarAssinatura,
@@ -41,7 +41,7 @@ import {
 import { authRequired, emailDaRequisicao } from '../lib/auth'
 import { asUserId, type UserId } from '../lib/authContext'
 import { aplicarEvento, eventoSchema, providerRefDoEvento, referenciaDoEvento } from '../lib/billingEventos'
-import { checkoutLigado } from '../lib/config'
+import { anualLigado, checkoutLigado } from '../lib/config'
 import { encerrarAssinatura } from '../lib/encerramentoDeAssinatura'
 import { erroDeRota } from '../lib/erroDeRota'
 import { ehAdultoDeclarado } from '../lib/idade'
@@ -332,6 +332,13 @@ billingRouter.post('/assinar', async (req, res) => {
     return
   }
   const { ciclo, meio } = dados
+  /* `ANUAL_ENABLED=0` (o MVP vende só o mensal até o jurídico validar os Termos §3–§4): o anual, à
+     vista ou em 12x, é recusado AQUI, antes de qualquer conversa com o Asaas. Só a venda nova fecha —
+     status, faturas, cancelamento e webhook de quem já tem o anual não passam por esta rota. */
+  if (ciclo === 'anual' && !anualLigado()) {
+    responderErro(res, 503, MENSAGEM_ANUAL_INDISPONIVEL, 'anual_indisponivel')
+    return
+  }
   /* O PIX AUTOMÁTICO é uma API de autorização à parte, e em produção exige conta PJ com CNPJ ativo há
      seis meses ou mais (sondagem do C5, `openspec/changes/planos-v2/design.md`). Enquanto a conta do
      serviço não for elegível, ele não é oferecido — e o servidor diz isso, em vez de cair noutro meio. */

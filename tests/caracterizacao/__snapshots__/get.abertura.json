@@ -1,6 +1,7 @@
 {
   "status": 200,
   "forma": {
+    "anual": "boolean",
     "cadastro": "boolean",
     "checkout": "boolean"
   }

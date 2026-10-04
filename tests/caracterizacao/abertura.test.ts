@@ -22,33 +22,39 @@ describe('GET /api/abertura (modo publico)', () => {
   afterEach(() => {
     delete process.env.CHECKOUT_ENABLED
     delete process.env.SIGNUP_ENABLED
+    delete process.env.ANUAL_ENABLED
   })
   afterAll(async () => {
     await s.encerrar()
   })
 
-  it('e publica: 200 sem token, sem cache, e as duas portas nascem abertas', async () => {
+  it('e publica: 200 sem token, sem cache, e as portas nascem abertas (o anual tambem)', async () => {
     const r = await s.get('/api/abertura')
     expect(r.status).toBe(200)
     expect(r.headers.get('cache-control')).toBe('no-store')
-    expect(await r.clone().json()).toEqual({ cadastro: true, checkout: true })
+    expect(await r.clone().json()).toEqual({ cadastro: true, checkout: true, anual: true })
     await expect(JSON.stringify(await resposta(r), null, 2)).toMatchFileSnapshot('__snapshots__/get.abertura.json')
   })
 
   it('CHECKOUT_ENABLED=0 fecha so a venda', async () => {
     process.env.CHECKOUT_ENABLED = '0'
-    expect(await (await s.get('/api/abertura')).json()).toEqual({ cadastro: true, checkout: false })
+    expect(await (await s.get('/api/abertura')).json()).toEqual({ cadastro: true, checkout: false, anual: true })
   })
 
   it('SIGNUP_ENABLED=false fecha so o cadastro', async () => {
     process.env.SIGNUP_ENABLED = 'false'
-    expect(await (await s.get('/api/abertura')).json()).toEqual({ cadastro: false, checkout: true })
+    expect(await (await s.get('/api/abertura')).json()).toEqual({ cadastro: false, checkout: true, anual: true })
+  })
+
+  it('ANUAL_ENABLED=0 tira so o anual da venda (cadastro e checkout seguem abertos)', async () => {
+    process.env.ANUAL_ENABLED = '0'
+    expect(await (await s.get('/api/abertura')).json()).toEqual({ cadastro: true, checkout: true, anual: false })
   })
 
   it('qualquer outro valor deixa a porta aberta (so 0/false fecham)', async () => {
     process.env.CHECKOUT_ENABLED = '1'
     process.env.SIGNUP_ENABLED = 'sim'
-    expect(await (await s.get('/api/abertura')).json()).toEqual({ cadastro: true, checkout: true })
+    expect(await (await s.get('/api/abertura')).json()).toEqual({ cadastro: true, checkout: true, anual: true })
   })
 
   it('a leitura e em tempo de chamada: fechar e reabrir sem reiniciar', async () => {

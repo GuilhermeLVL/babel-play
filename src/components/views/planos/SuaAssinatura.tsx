@@ -30,6 +30,7 @@ import { t } from '../../../lib/i18n';
 import { IconeEmBloco, TituloDeSecao } from '../../ui';
 import { PLANO_ICO, PLANO_NOME } from './dados';
 import FaixaDaConta from './FaixaDaConta';
+import { useAnualAVenda } from './funil';
 
 /**
  * SUA ASSINATURA — a aba de Planos para quem assina (`abaSuaAssinatura()` do protótipo).
@@ -86,6 +87,9 @@ export default function SuaAssinatura({
   aoReativar: () => void;
 }) {
   const questNovo = useQuestNovo();
+  /* `ANUAL_ENABLED=0`: o anual não está à venda, então o mensal não tem para onde "passar". Quem JÁ
+     tem o anual não muda: o "Passar para o mensal" dele continua. */
+  const anualAVenda = useAnualAVenda();
   const e = conta.estado;
   const plano = conta.plano ?? 'premium';
   const p = PLANO_NOME[plano];
@@ -116,7 +120,7 @@ export default function SuaAssinatura({
           t('Passar para o anual'),
           t('Economize {valor} por ano.', { valor: brl(economiaDoAnual(plano).reais) }),
           'ciclo',
-          e === 'ativa',
+          e === 'ativa' && anualAVenda,
         ]
       : [
           CalendarRange,

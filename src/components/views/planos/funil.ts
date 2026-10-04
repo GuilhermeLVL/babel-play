@@ -50,6 +50,48 @@ export function useVendaAberta(): boolean {
 }
 
 /**
+ * O ANUAL ESTÁ À VENDA? `ANUAL_ENABLED=0` no servidor (lida em `/api/abertura`) tira o anual, à vista
+ * e em 12x, de Planos, do checkout e de Sua assinatura: o MVP vende só o mensal e o teste. Ausente na
+ * resposta, falha de rede e edição estática = à venda, como sempre foi (o servidor recusa de todo
+ * jeito: 503 `anual_indisponivel`).
+ *
+ * A última resposta fica guardada no aparelho: a tela abre já sem o anual, em vez de mostrá-lo por
+ * um instante até a rede responder.
+ */
+const CHAVE_DO_ANUAL_FORA = 'babel.anualForaDeVenda';
+function anualConhecido(): boolean {
+  try {
+    return localStorage.getItem(CHAVE_DO_ANUAL_FORA) !== '1';
+  } catch {
+    return true;
+  }
+}
+function lembrarAnual(aVenda: boolean): void {
+  try {
+    if (aVenda) localStorage.removeItem(CHAVE_DO_ANUAL_FORA);
+    else localStorage.setItem(CHAVE_DO_ANUAL_FORA, '1');
+  } catch {
+    /* sem armazenamento: só não lembra entre visitas */
+  }
+}
+export function useAnualAVenda(): boolean {
+  const [aVenda, setAVenda] = useState(anualConhecido);
+  useEffect(() => {
+    let vivo = true;
+    void lerAbertura().then((a) => {
+      // `!== false`: resposta sem o campo (servidor de antes da chave) é o anual à venda.
+      const v = a.anual !== false;
+      lembrarAnual(v);
+      if (vivo) setAVenda(v);
+    });
+    return () => {
+      vivo = false;
+    };
+  }, []);
+  return aVenda;
+}
+
+/**
  * Sem conta: guarda "eu ia assinar o X" (`lib/intencaoDeLogin`) e abre o login. Quem termina o
  * login volta ao checkout com o plano escolhido, mesmo pelo Google ou pela aba da confirmação.
  */

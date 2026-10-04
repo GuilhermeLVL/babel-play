@@ -39,11 +39,23 @@ export function definirTelaNovaDoQuest(ligada: boolean): void {
  */
 export const CHAVE_DO_DESENHO_NOVO_NO_COMPUTADOR = 'babel.desenhoNovo';
 
+/**
+ * O PADRÃO DE FÁBRICA vem do build: `VITE_DESENHO_NOVO_PADRAO=1` faz o desenho novo ser o que abre no
+ * computador (o servidor completo sobe assim); sem a variável, continua desligado. Com o padrão ligado,
+ * desligar grava `nao`, porque apagar a chave devolveria o padrão.
+ */
+const DESENHO_NOVO_DE_FABRICA = import.meta.env.VITE_DESENHO_NOVO_PADRAO === '1';
+
+function desligarDesenhoNovo(): void {
+  if (DESENHO_NOVO_DE_FABRICA) localStorage.setItem(CHAVE_DO_DESENHO_NOVO_NO_COMPUTADOR, 'nao');
+  else localStorage.removeItem(CHAVE_DO_DESENHO_NOVO_NO_COMPUTADOR);
+}
+
 if (typeof window !== 'undefined') {
   try {
     const pedido = new URLSearchParams(window.location.search).get('desenho');
     if (pedido === 'novo') localStorage.setItem(CHAVE_DO_DESENHO_NOVO_NO_COMPUTADOR, 'sim');
-    else if (pedido === 'antigo') localStorage.removeItem(CHAVE_DO_DESENHO_NOVO_NO_COMPUTADOR);
+    else if (pedido === 'antigo') desligarDesenhoNovo();
   } catch {
     /* sem armazenamento: vale o padrão */
   }
@@ -51,16 +63,17 @@ if (typeof window !== 'undefined') {
 
 export function desenhoNovoNoComputador(): boolean {
   try {
-    return localStorage.getItem(CHAVE_DO_DESENHO_NOVO_NO_COMPUTADOR) === 'sim';
+    const guardado = localStorage.getItem(CHAVE_DO_DESENHO_NOVO_NO_COMPUTADOR);
+    return guardado === null ? DESENHO_NOVO_DE_FABRICA : guardado === 'sim';
   } catch {
-    return false;
+    return DESENHO_NOVO_DE_FABRICA;
   }
 }
 
 export function definirDesenhoNovoNoComputador(ligado: boolean): void {
   try {
     if (ligado) localStorage.setItem(CHAVE_DO_DESENHO_NOVO_NO_COMPUTADOR, 'sim');
-    else localStorage.removeItem(CHAVE_DO_DESENHO_NOVO_NO_COMPUTADOR);
+    else desligarDesenhoNovo();
   } catch {
     /* sem armazenamento: vale o padrão */
   }

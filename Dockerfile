@@ -47,6 +47,9 @@ ARG VITE_BERGAMOT_MODELOS_URL
 ARG VITE_SENTRY_DSN
 # Fase 7 (opcional): a chave PÚBLICA do Cloudflare Turnstile — o captcha do convidado com nuvem.
 ARG VITE_TURNSTILE_SITE_KEY
+# O desenho novo (o do headset) como padrão no computador; `?desenho=antigo` devolve o de antes.
+ARG VITE_DESENHO_NOVO_PADRAO
+ENV VITE_DESENHO_NOVO_PADRAO=$VITE_DESENHO_NOVO_PADRAO
 ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL \
     VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY \
     VITE_AUTH_REQUIRED=$VITE_AUTH_REQUIRED \

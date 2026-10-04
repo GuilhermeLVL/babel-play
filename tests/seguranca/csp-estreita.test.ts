@@ -68,9 +68,9 @@ describe('diretivasDeCsp', () => {
     expect(c.some((x) => x.includes('nao-e-url'))).toBe(false)
   })
 
-  it('as fontes são do próprio site: font-src só self e nenhuma origem do Google em lugar nenhum', () => {
+  it('as fontes são do próprio site: font-src só self (e data:, das faces embutidas) e nenhuma origem do Google em lugar nenhum', () => {
     const d = diretivasDeCsp(env({}))
-    expect(d.fontSrc).toEqual(["'self'"])
+    expect(d.fontSrc).toEqual(["'self'", 'data:'])
     expect(d.styleSrc).toEqual(["'self'", "'unsafe-inline'"])
     for (const lista of Object.values(d))
       expect((lista as string[]).some((x) => /fonts.(googleapis|gstatic).com/.test(x))).toBe(false)

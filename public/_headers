@@ -41,7 +41,7 @@
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: microphone=(self), display-capture=(self), camera=(), geolocation=(), payment=(), usb=(), midi=()
-  Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' 'wasm-unsafe-eval' blob:; worker-src 'self' blob:; connect-src 'self' blob: data: https://huggingface.co https://*.huggingface.co https://*.hf.co https://cdn.jsdelivr.net https://*.wiktionary.org https://api.openverse.org https://api.mymemory.translated.net http://localhost:11434 http://127.0.0.1:11434; img-src 'self' https: data: blob:; media-src 'self' blob: data:; style-src 'self' 'unsafe-inline'; font-src 'self'; object-src 'none'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'
+  Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' 'wasm-unsafe-eval' blob:; worker-src 'self' blob:; connect-src 'self' blob: data: https://huggingface.co https://*.huggingface.co https://*.hf.co https://cdn.jsdelivr.net https://*.wiktionary.org https://api.openverse.org https://api.mymemory.translated.net http://localhost:11434 http://127.0.0.1:11434; img-src 'self' https: data: blob:; media-src 'self' blob: data:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; object-src 'none'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'
 
 # Página avulsa de diagnóstico de áudio, com o script em linha: fica fora do relato da CSP.
 /diagnostico-audio.html

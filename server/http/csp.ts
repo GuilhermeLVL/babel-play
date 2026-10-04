@@ -117,7 +117,9 @@ export function diretivasDeCsp(env: NodeJS.ProcessEnv = process.env): DiretivasD
     imgSrc: ["'self'", 'https:', 'data:', 'blob:'],
     mediaSrc: ["'self'", 'blob:', 'data:'],
     styleSrc: ["'self'", "'unsafe-inline'"],
-    fontSrc: ["'self'"],
+    // `data:`: o Vite embute no CSS as faces pequenas (Silkscreen, < 4 KB) como data URI; sem isto o
+    // navegador as recusa e a marca cai na fonte de reserva (visto no staging, 03/10/2026).
+    fontSrc: ["'self'", 'data:'],
     objectSrc: ["'none'"],
     frameAncestors: ["'self'"],
     baseUri: ["'self'"],

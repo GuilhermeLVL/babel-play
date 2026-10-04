@@ -43,6 +43,10 @@ const CODIGO_INVALIDO = 'Código inválido. Tente de novo.';
 
 const naoConfigurado = () => ({ ok: false, message: t(NOT_CONFIGURED) });
 
+/** O código do erro do Supabase; falha de rede (sem resposta) vira `sem_rede`. As frases moram em `authPorta`. */
+const codigoDe = (error: { code?: string; name?: string }): string | undefined =>
+  error.name === 'AuthRetryableFetchError' ? 'sem_rede' : error.code;
+
 /**
  * CAPTCHA (Cloudflare Turnstile). Com a proteção ligada no painel do Supabase, é o servidor DELE que
  * confere a resposta do desafio; o cliente só a manda em `options.captchaToken` ao entrar, criar
@@ -97,7 +101,7 @@ function retornoDaConfirmacao(): string | undefined {
 export async function signInEmail(email: string, password: string, options?: OpcoesDeCaptcha): Promise<AuthResult> {
   if (!supabase) return naoConfigurado();
   const { error } = await supabase.auth.signInWithPassword({ email, password, options });
-  return error ? { ok: false, message: t(INVALID_CREDS), code: error.code } : { ok: true };
+  return error ? { ok: false, message: t(INVALID_CREDS), code: codigoDe(error) } : { ok: true };
 }
 
 /**
@@ -142,7 +146,7 @@ export async function signUpEmail(email: string, password: string, options?: Opc
   }
   const { data, error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo, ...options } });
   // Captcha recusado: a mensagem do Supabase passa como veio, e a porta a reconhece pela palavra.
-  if (error) return { ok: false, message: mensagemDoErroDeSenha(error) };
+  if (error) return { ok: false, message: mensagemDoErroDeSenha(error), code: codigoDe(error) };
   /* E-MAIL QUE JÁ TEM CONTA: com a confirmação por e-mail ligada o Supabase responde "sucesso" e não
      manda nada; o sinal é o usuário vir sem identidades. Dizer "confirme pelo link" deixava a pessoa
      esperando um e-mail que nunca chega. */
@@ -177,8 +181,8 @@ export async function signInWithProvider(provider: AuthProvider, redirectTo?: st
 /**
  * Recuperação de senha. SEMPRE devolve ok+genérico (não revela se o e-mail existe) — menos quando
  * o CAPTCHA é recusado: aí nada foi enviado para ninguém, a recusa não diz nada sobre o e-mail, e
- * responder "enviamos um link" seria mentira. É o ÚNICO caso de `ok: false` aqui, e nenhum código
- * de erro sai desta função.
+ * responder "enviamos um link" seria mentira. É o ÚNICO caso de `ok: false` aqui. O `code` só sai
+ * para o que não diz nada sobre o e-mail: limite de envio e falha de rede (a porta avisa e não finge).
  */
 export async function sendPasswordReset(
   email: string,
@@ -188,11 +192,13 @@ export async function sendPasswordReset(
   if (!supabase) return naoConfigurado();
   let code: string | undefined;
   try {
-    code = (await supabase.auth.resetPasswordForEmail(email, { redirectTo, ...options })).error?.code;
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo, ...options });
+    code = error ? codigoDe(error) : undefined;
   } catch {
-    /* silencioso de propósito: anti-enumeração */
+    code = 'sem_rede';
   }
-  return { ok: code !== 'captcha_failed', message: t(RESET_SENT) };
+  const avisavel = code === 'over_email_send_rate_limit' || code === 'over_request_rate_limit' || code === 'sem_rede';
+  return { ok: code !== 'captcha_failed', message: t(RESET_SENT), ...(avisavel ? { code } : {}) };
 }
 
 /** Define a nova senha (a partir do link de recuperação, ou em Conta). */

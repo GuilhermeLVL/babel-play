@@ -135,12 +135,23 @@ describe('Login no Quest', () => {
     expect(screen.getByRole('alert').textContent).toMatch(/8 caracteres/)
     expect(auth.signUpEmail).not.toHaveBeenCalled()
 
+    // As duas senhas precisam coincidir antes de ir ao servidor.
     fireEvent.change(campo('Senha'), { target: { value: 'senha-forte-1' } })
+    fireEvent.change(campo('Confirmar senha'), { target: { value: 'senha-forte-2' } })
+    await enviar(campo('Senha'))
+    expect(screen.getByRole('alert').textContent).toMatch(/não coincidem/)
+    expect(auth.signUpEmail).not.toHaveBeenCalled()
+
+    fireEvent.change(campo('Confirmar senha'), { target: { value: 'senha-forte-1' } })
     await enviar(campo('Senha'))
     expect(auth.signUpEmail).toHaveBeenCalledWith('ana@exemplo.com', 'senha-forte-1')
+    // O painel "confira seu e-mail": para onde foi, o reenvio com espera e a volta.
+    expect(screen.getByRole('heading', { level: 1, name: 'Confira seu e-mail' })).toBeTruthy()
     expect(screen.getByRole('status').textContent).toMatch(/Confirme pelo link/)
+    expect(screen.getByText('ana@exemplo.com')).toBeTruthy()
+    expect((screen.getByRole('button', { name: /Reenviar em/ }) as HTMLButtonElement).disabled).toBe(true)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Entrar' }))
+    fireEvent.click(screen.getByRole('button', { name: /Voltar ao login/ }))
     expect(screen.getByRole('heading', { level: 1, name: 'Entrar' })).toBeTruthy()
   })
 

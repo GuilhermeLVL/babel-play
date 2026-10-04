@@ -170,11 +170,13 @@ describe('a porta de login em outro idioma', () => {
     expect(queEscaparam()).toEqual([])
 
     fireEvent.change(senha, { target: { value: 'senha-forte-123' } })
+    fireEvent.change(screen.getByLabelText(px('Confirmar senha')), { target: { value: 'senha-forte-123' } })
     await act(async () => {
       fireEvent.submit(senha.closest('form')!)
     })
     expect(screen.getByRole('status')).toBeTruthy()
-    expect(queEscaparam()).toEqual([])
+    // O painel "confira seu e-mail" mostra o endereço digitado: é dado da pessoa, não frase nossa.
+    expect(queEscaparam().filter((texto) => texto !== 'a@x.com')).toEqual([])
   })
 
   it('esqueci a senha: o painel da marca, o formulário e o aviso do link enviado', async () => {
@@ -191,7 +193,8 @@ describe('a porta de login em outro idioma', () => {
     expect(screen.getByRole('status').textContent).toBe(
       px('Se existir uma conta com esse e-mail, enviamos um link de recuperação.'),
     )
-    expect(queEscaparam()).toEqual([])
+    // O painel "confira seu e-mail" mostra o endereço digitado: é dado da pessoa, não frase nossa.
+    expect(queEscaparam().filter((texto) => texto !== 'a@x.com')).toEqual([])
   })
 
   it('cadastro pausado: a explicação no lugar do "Criar uma conta"', async () => {

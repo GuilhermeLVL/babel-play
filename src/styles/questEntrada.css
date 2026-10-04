@@ -514,6 +514,66 @@ html[data-quest-novo='true'][data-theme='babel']:not(.dark) {
   }
 }
 
+/* As saídas de uma mensagem (entrar, recuperar, reenviar): links em linha, abaixo da frase. */
+.qen-saidas {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+}
+/* Os requisitos da senha nova: marcam enquanto a pessoa digita. */
+.qen-requisitos {
+  margin: -6px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+  font: 600 15px/1.35 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+.qen-requisitos li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.qen-requisitos svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+.qen-requisitos li[data-ok='true'] {
+  color: var(--good-ink, var(--ink));
+}
+.qen-caps {
+  margin: 6px 0 0;
+  font: 700 15px/1.35 var(--font-body, inherit);
+  color: var(--warn-ink, var(--ink));
+}
+/* "Lembrar meu e-mail": uma linha discreta, com a caixa de 24 px. */
+.qen-lembrar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  font: 600 16px/1.35 var(--font-body, inherit);
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+.qen-lembrar input {
+  width: 24px;
+  height: 24px;
+  flex: none;
+  accent-color: var(--q-acento);
+  cursor: pointer;
+}
+.qen-nota.qen-nota-esq {
+  text-align: start;
+}
+.qen-nota strong {
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
 /* ── RODAPÉ, TEXTO LEGAL, CONFIRMAÇÕES ───────────────────────────────────────────────────────── */
 .qen-rodape {
   margin: 0;

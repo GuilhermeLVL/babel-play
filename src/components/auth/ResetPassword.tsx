@@ -13,6 +13,7 @@ import { t } from '../../lib/i18n';
 import { T } from '../../lib/T';
 import AuthShell from './AuthShell';
 import PasswordField from './PasswordField';
+import { RequisitosDaSenha } from './PecasDaPorta';
 import CascaDeEntradaDoQuest from './quest/CascaDeEntradaDoQuest';
 
 export default function ResetPassword({ onDone }: { onDone: () => void }) {
@@ -46,6 +47,12 @@ export default function ResetPassword({ onDone }: { onDone: () => void }) {
     onDone(); // a sessão de recuperação já é válida → o App carrega logado
   }
 
+  /** Desistir: a sessão temporária do link é encerrada e a porta de login volta, com a senha de antes. */
+  async function cancelar() {
+    await auth.signOut();
+    onDone();
+  }
+
   /* QUEST: os mesmos dois campos, o erro e o aviso, nas medidas do headset (`questEntrada.css`). */
   if (questNovo)
     return (
@@ -74,6 +81,7 @@ export default function ResetPassword({ onDone }: { onDone: () => void }) {
               placeholder={t('mínimo {n} caracteres', { n: auth.SENHA_MINIMA })}
             />
           </div>
+          <RequisitosDaSenha senha={senha} minimo={auth.SENHA_MINIMA} quest />
           <div className="qen-campo">
             <label htmlFor="reset-confirma">{t('Confirmar senha')}</label>
             <PasswordField
@@ -105,6 +113,11 @@ export default function ResetPassword({ onDone }: { onDone: () => void }) {
             {carregando ? t('Aguarde…') : t('Redefinir senha')}
           </button>
         </form>
+        <p className="qen-rodape">
+          <button type="button" className="qen-link" onClick={cancelar}>
+            {t('Cancelar e voltar ao login')}
+          </button>
+        </p>
       </CascaDeEntradaDoQuest>
     );
 
@@ -130,6 +143,7 @@ export default function ResetPassword({ onDone }: { onDone: () => void }) {
             placeholder={t('mínimo {n} caracteres', { n: auth.SENHA_MINIMA })}
           />
         </div>
+        <RequisitosDaSenha senha={senha} minimo={auth.SENHA_MINIMA} quest={false} />
         <div>
           <label htmlFor="reset-confirma" className="mb-1 block text-xs font-medium text-ink-muted">
             {t('Confirmar senha')}
@@ -160,6 +174,11 @@ export default function ResetPassword({ onDone }: { onDone: () => void }) {
           {carregando ? t('Aguarde…') : t('Redefinir senha')}
         </button>
       </form>
+      <div className="mt-6 border-t border-border-subtle pt-5 text-center text-xs text-ink-muted">
+        <button type="button" onClick={cancelar} className="font-medium text-accent-ink underline underline-offset-2">
+          {t('Cancelar e voltar ao login')}
+        </button>
+      </div>
     </AuthShell>
   );
 }

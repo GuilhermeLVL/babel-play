@@ -94,6 +94,9 @@ function preencher(frase = FRASE) {
   fireEvent.change(screen.getByLabelText('E-mail'), { target: { value: EMAIL } })
   const campo = screen.queryByLabelText('Senha')
   if (campo) fireEvent.change(campo, { target: { value: frase } })
+  // Criar conta pede a senha duas vezes.
+  const confirma = screen.queryByLabelText('Confirmar senha')
+  if (confirma) fireEvent.change(confirma, { target: { value: frase } })
 }
 async function enviar() {
   await act(async () => {

@@ -85,7 +85,13 @@ export default function Ajuda() {
     [termo],
   );
   const canais = [
-    { href: CRIADOR.email, rotulo: 'E-mail', Icone: Mail },
+    /* "Falar com o suporte" (pausar, nota fiscal, trocar o cartão) cai aqui: sem e-mail próprio do
+       criador, vale o contato que a política de privacidade já publica, para o botão nunca dar no vazio. */
+    {
+      href: preenchido(CRIADOR.email) ? CRIADOR.email : CRIADOR.contatoDePrivacidade,
+      rotulo: 'E-mail',
+      Icone: Mail,
+    },
     { href: CRIADOR.github, rotulo: 'GitHub', Icone: Github },
   ].filter((c) => preenchido(c.href));
 

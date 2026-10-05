@@ -98,7 +98,7 @@ export const PLANOS: Plano[] = [
       { icone: Languages, texto: 'Tradução rápida ao vivo, no seu aparelho, sem limite' },
       {
         icone: Cloud,
-        texto: '{horas} h por mês de nuvem grátis para aparelho fraco',
+        texto: 'Até {horas} h por mês de nuvem grátis para aparelho fraco, quando disponível',
         vars: { horas: horasDoAlivio() },
       },
       { icone: ShieldCheck, texto: 'Na legenda do aparelho, o que você fala não sai dele' },

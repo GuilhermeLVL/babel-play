@@ -1369,7 +1369,6 @@
   "Tradução rápida ao vivo": "Fast live translation",
   "Tradução Nuance: outras formas, formal ou informal, variantes e glossário": "Nuance Translation: other phrasings, formal or informal, variants and glossary",
   "Nuvem de transcrição e tradução": "Cloud transcription and translation",
-  "{horas} h por mês, para aparelho fraco": "{horas} h per month, for low-end devices",
   "sem limite no dia a dia": "unlimited for everyday use",
   "No Premium, uso justo: até {dia} h de nuvem por dia e {mes} h por mês; passando disso, a legenda segue no aparelho": "On Premium, fair use: up to {dia} h of cloud per day and {mes} h per month; beyond that, captions continue on the device",
   "Tutor de IA (iChat)": "AI tutor (iChat)",
@@ -1512,7 +1511,6 @@
   "Depois dos 7 dias, as parcelas que faltam seguem no cartão.": "After the first 7 days, the remaining installments stay on the card.",
   "Para ver a legenda bilíngue ao vivo no seu aparelho, sem pagar nada.": "To see live bilingual captions on your device, without paying anything.",
   "Tradução rápida ao vivo, no seu aparelho, sem limite": "Fast live translation, on your device, unlimited",
-  "{horas} h por mês de nuvem grátis para aparelho fraco": "{horas} h per month of free cloud for low-end devices",
   "Na legenda do aparelho, o que você fala não sai dele": "With on-device captions, what you say never leaves it",
   "Os modelos do aparelho ({tamanho}) baixam uma vez": "The on-device models ({tamanho}) download once",
   "{espaco} para sessões": "{espaco} for sessions",
@@ -3729,5 +3727,7 @@
   "Reenviar e-mail de confirmação": "Resend confirmation email",
   "Cancelar e voltar ao login": "Cancel and go back to sign in",
   "Caps Lock está ligado.": "Caps Lock is on.",
-  "não incluído no seu plano": "not included in your plan"
+  "não incluído no seu plano": "not included in your plan",
+  "Até {horas} h por mês de nuvem grátis para aparelho fraco, quando disponível": "Up to {horas} h per month of free cloud for slow devices, when available",
+  "até {horas} h por mês, para aparelho fraco, quando disponível": "up to {horas} h per month, for slow devices, when available"
 }

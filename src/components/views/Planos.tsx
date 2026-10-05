@@ -144,7 +144,10 @@ function comparativo(): [grupo: string, linhas: Linha[]][] {
            A nota do uso justo fica NA MESMA LINHA do "sem limite" (CDC). */
         [
           t('Nuvem de transcrição e tradução'),
-          [t('{horas} h por mês, para aparelho fraco', { horas: horasDoAlivio() }), t('sem limite no dia a dia')],
+          [
+            t('até {horas} h por mês, para aparelho fraco, quando disponível', { horas: horasDoAlivio() }),
+            t('sem limite no dia a dia'),
+          ],
           t(
             'No Premium, uso justo: até {dia} h de nuvem por dia e {mes} h por mês; passando disso, a legenda segue no aparelho',
             usoJusto(),

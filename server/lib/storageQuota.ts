@@ -14,7 +14,7 @@
  * reescreve o contador a partir do disco quando se quiser conferir.
  */
 import { randomUUID } from 'node:crypto'
-import { statSync } from 'node:fs'
+import { statfsSync, statSync } from 'node:fs'
 import path from 'node:path'
 
 import { and, eq, lte, sql } from 'drizzle-orm'
@@ -23,7 +23,7 @@ import { definicaoDoPlano, type PlanoEfetivo } from '../../src/core/planos'
 import { db } from '../db/db'
 import { sessionsRepo } from '../db/repositories/sessions'
 import { usageCounters } from '../db/schema'
-import { armazenamentoDoAmbiente } from './armazenamento'
+import { armazenamentoDoAmbiente, configDoS3 } from './armazenamento'
 import type { UserId } from './authContext'
 import { getPlanForUser } from './entitlements'
 import { log } from './logger'
@@ -160,9 +160,30 @@ async function reservaAtomica(userId: UserId, bytes: number, cap: number): Promi
  * RESERVA `bytes` — chame ANTES de o arquivo tocar o disco. `bytes` negativo (reupload menor)
  * devolve espaço. Plano vem de `getPlanForUser`; `settings.ui.plan` nunca é consultado.
  */
+/**
+ * FOLGA DO VOLUME. Sem S3 o áudio mora no MESMO volume do banco, e o teto é por conta: várias contas
+ * dentro do teto enchem o disco e derrubam o SQLite junto. Abaixo desta folga o upload é recusado
+ * (`indisponivel`) e o resto do app segue. Com S3, ou sem `AUDIO_DIR` legível, não se aplica.
+ */
+const FOLGA_MINIMA_DO_VOLUME = 200 * 1024 * 1024
+
+export function volumeSemFolga(bytes: number, env: NodeJS.ProcessEnv = process.env): boolean {
+  if (configDoS3(env) || !env.AUDIO_DIR) return false
+  try {
+    const s = statfsSync(env.AUDIO_DIR)
+    return s.bavail * s.bsize - bytes < FOLGA_MINIMA_DO_VOLUME
+  } catch {
+    return false
+  }
+}
+
 export async function reservarArmazenamento(userId: UserId, bytes: number): Promise<ResultadoDeCota> {
   const b = Math.ceil(bytes)
   try {
+    if (b > 0 && volumeSemFolga(b)) {
+      log('error', { event: 'storage_volume_sem_folga' })
+      return { ok: false, capBytes: 0, usadoBytes: 0, motivo: 'indisponivel' }
+    }
     const cap = capDeArmazenamento(await getPlanForUser(userId))
     if (!Number.isFinite(cap)) return { ok: true, capBytes: cap, usadoBytes: 0 } // selfhost: nem contabiliza
     if (b <= 0) {

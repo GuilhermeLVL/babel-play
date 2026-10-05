@@ -280,6 +280,17 @@ export function conferirProducao(arquivo: NodeJS.ProcessEnv): Achado[] {
   if (!temRegistro && !preenchida(env, 'GROQ_API_KEY') && !preenchida(env, 'STT_API_KEY')) {
     avisa('GROQ_API_KEY, STT_API_KEY', 'ausentes (e sem IA_PROVEDORES): a transcrição de nuvem responde 501')
   }
+  /* VENDA ABERTA SEM IA: o Premium é Tradução Nuance, nuvem e tutor. Sem provedor nenhum, quem paga
+     recebe o Grátis. Em produção isso trava; no sandbox do Asaas (staging) só avisa. */
+  const semIa =
+    !temRegistro && estadoLlm !== 'completo' && !preenchida(env, 'GROQ_API_KEY') && !preenchida(env, 'STT_API_KEY')
+  if (semIa && checkoutLigado(env)) {
+    const sandbox = /sandbox/i.test(env.ASAAS_BASE_URL ?? '')
+    ;(sandbox ? avisa : bloqueia)(
+      'CHECKOUT_ENABLED',
+      'venda aberta sem IA de nuvem: o assinante paga e recebe o Grátis. Configure GROQ_API_KEY ou feche a venda',
+    )
+  }
   for (const nome of ['AI_BUDGET_USD_MONTH', 'AI_BUDGET_USD_DAY'] as const) {
     const bruto = (env[nome] ?? '').trim()
     if (!bruto) {

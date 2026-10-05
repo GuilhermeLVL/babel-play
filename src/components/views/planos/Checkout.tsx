@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
-import { armazenamentoEmTexto, horasDeTranscricao, horasDoUsoJusto } from '../../../core/planos';
+import { horasDeTranscricao, horasDoUsoJusto } from '../../../core/planos';
 import { declararNascimento, ehFalha } from '../../../data/rotas/idade';
 import {
   type Beneficiario,
@@ -515,11 +515,10 @@ export default function Checkout({
                 {/* O "sem limite" com a nota do uso justo AO LADO (CDC), o dia e o mês das quotas. */}
                 <p>
                   {t(
-                    'Tradução Nuance e nuvem sem limite no dia a dia (uso justo: até {dia} h de nuvem por dia e {mes} h por mês; passando disso, a legenda segue no aparelho), {espaco} para sessões',
+                    'Tradução Nuance e nuvem sem limite no dia a dia (uso justo: até {dia} h de nuvem por dia e {mes} h por mês; passando disso, a legenda segue no aparelho)',
                     {
                       dia: horasDoUsoJusto(id) ?? 0,
                       mes: horasDeTranscricao(id) ?? 0,
-                      espaco: armazenamentoEmTexto(id),
                     },
                   )}
                 </p>
@@ -847,11 +846,10 @@ export default function Checkout({
                     {/* O "sem limite" com a nota do uso justo AO LADO (CDC), o dia e o mês das quotas. */}
                     <small>
                       {t(
-                        'Tradução Nuance e nuvem sem limite no dia a dia (uso justo: até {dia} h de nuvem por dia e {mes} h por mês; passando disso, a legenda segue no aparelho), {espaco} para sessões',
+                        'Tradução Nuance e nuvem sem limite no dia a dia (uso justo: até {dia} h de nuvem por dia e {mes} h por mês; passando disso, a legenda segue no aparelho)',
                         {
                           dia: horasDoUsoJusto(id) ?? 0,
                           mes: horasDeTranscricao(id) ?? 0,
-                          espaco: armazenamentoEmTexto(id),
                         },
                       )}
                     </small>

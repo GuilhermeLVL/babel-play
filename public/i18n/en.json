@@ -1442,7 +1442,6 @@
   "Depois disso, volta para o Grátis, sem cobrança.": "After that, you go back to Free, with no charge.",
   "Seguem no cartão": "Stay on the card",
   "Para passar do mensal para o anual (ou o contrário), veja Planos → Sua assinatura: a troca é no fim do período, sem pagar duas vezes.": "To switch from monthly to yearly (or the other way around), see Plans → Your subscription: the switch happens at the end of the period, without paying twice.",
-  "Tradução Nuance e nuvem sem limite no dia a dia (uso justo: até {dia} h de nuvem por dia e {mes} h por mês; passando disso, a legenda segue no aparelho), {espaco} para sessões": "Nuance Translation and cloud unlimited for everyday use (fair use: up to {dia} h of cloud per day and {mes} h per month; beyond that, captions continue on the device), {espaco} for sessions",
   "/mês": "/month",
   "/ano": "/year",
   "No anual em 12x, as parcelas são do cartão que você usou no pagamento. Para trocar de cartão no meio do parcelamento, fale com o suporte.": "On the yearly plan in 12 installments, the installments are on the card you used to pay. To change cards in the middle of the installment plan, contact support.",
@@ -3729,5 +3728,6 @@
   "Caps Lock está ligado.": "Caps Lock is on.",
   "não incluído no seu plano": "not included in your plan",
   "Até {horas} h por mês de nuvem grátis para aparelho fraco, quando disponível": "Up to {horas} h per month of free cloud for slow devices, when available",
-  "até {horas} h por mês, para aparelho fraco, quando disponível": "up to {horas} h per month, for slow devices, when available"
+  "até {horas} h por mês, para aparelho fraco, quando disponível": "up to {horas} h per month, for slow devices, when available",
+  "Tradução Nuance e nuvem sem limite no dia a dia (uso justo: até {dia} h de nuvem por dia e {mes} h por mês; passando disso, a legenda segue no aparelho)": "Nuance Translation and cloud unlimited for everyday use (fair use: up to {dia} h of cloud per day and {mes} h per month; beyond that, captions continue on the device)"
 }

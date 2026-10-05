@@ -119,8 +119,9 @@ describe('a matriz v2', () => {
     expect(q.tokensDia!).toBeLessThanOrEqual(q.tokensMes!)
   })
 
-  it('ninguém do Pro perde espaço: o Premium guarda 5 GB', () => {
-    expect(PLAN_MATRIX.premium.quotas.armazenamentoMb).toBe(5_000)
+  // MVP (04/10/2026): o Premium não vende espaço enquanto o áudio dividir o volume com o banco.
+  it('o Premium não vende espaço: o teto de armazenamento é o do Grátis', () => {
+    expect(PLAN_MATRIX.premium.quotas.armazenamentoMb).toBe(PLAN_MATRIX.free.quotas.armazenamentoMb)
   })
 
   it('YouTube não é vendido: no modo hospedado a rota responde 403', () => {

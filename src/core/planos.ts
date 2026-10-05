@@ -192,7 +192,10 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       chamadasMes: 50_000,
       sttSegundosMes: 144_000,
       tokensMes: 6_000_000,
-      armazenamentoMb: 5_000,
+      /* MVP (04/10/2026, decisão do dono): o Premium NÃO vende espaço. Sem armazenamento externo o áudio
+         divide com o banco um volume de 1 a 10 GB, e dois assinantes com 5 GB cheios o enchiam. O teto é
+         o mesmo do Grátis; volta a subir quando houver bucket (S3_*) e a oferta voltar à tela. */
+      armazenamentoMb: 500,
       sttSegundosDia: 7_200,
       tokensDia: 300_000,
       /* A VOZ NATURAL (E4 da Fase E). Chatterbox Multilingual na DeepInfra: US$ 1,00 por 1M de caracteres

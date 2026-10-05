@@ -77,4 +77,4 @@ Uma única conta com mensalidade: o Fly. O resto é grátis ou cobrado só quand
    Asaas, confirmação de e-mail desligada no Supabase.
 3. **Só com clientes pagando:** domínio, envio de e-mail, cópia de segurança fora do Fly, Supabase Pro.
 
-Com uma venda e meia por mês o servidor já se paga.
+Com duas assinaturas por mês o servidor já se paga.

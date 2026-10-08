@@ -20,10 +20,11 @@
  */
 import type { LucideIcon } from 'lucide-react';
 import { VolumeX, X } from 'lucide-react';
-import { useCallback, useEffect, useId, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 
 import { t } from '../lib/i18n';
 import { langLabelNaUI } from '../lib/languages';
+import { soltarEstilosDoArrasto, useArrastarParaFora } from '../lib/movimento/useArrastarParaFora';
 import { play } from '../lib/soundFx';
 import { aoFaltarVoz } from '../lib/tts';
 import { DialogoBase } from './ui/Dialogo';
@@ -116,9 +117,12 @@ export const toast = {
 aoFaltarVoz((lang) => {
   push(
     'info',
-    t('Sem voz de {idioma} neste aparelho, a leitura foi pulada. Instale uma voz nas configurações de fala do sistema.', {
-      idioma: langLabelNaUI(lang),
-    }),
+    t(
+      'Sem voz de {idioma} neste aparelho, a leitura foi pulada. Instale uma voz nas configurações de fala do sistema.',
+      {
+        idioma: langLabelNaUI(lang),
+      },
+    ),
     { icone: VolumeX, duration: 5000 },
   );
 });
@@ -166,15 +170,30 @@ function closeConfirm(ok: boolean) {
  * como no protótipo: o próximo entra quando o atual sai. Erro fica até ser dispensado (tem o "x").
  */
 function AvisoAtual({ item }: { item: ToastItem | undefined }) {
+  const caixa = useRef<HTMLDivElement>(null);
+  /* O aviso se arrasta para fora (`useArrastarParaFora`): solto com o gesto indo para a direita, sai;
+     senão volta com mola. Só na faixa rica do movimento; fora dela os gestos não fazem nada. */
+  const { segurando, gestos } = useArrastarParaFora(() => item && dismissToast(item.id), !!item);
+
+  /* Com o dedo em cima o relógio para: ninguém perde um aviso que está lendo. Solto, recomeça. */
   useEffect(() => {
-    if (!item?.duration) return;
+    if (!item?.duration || segurando) return;
     const id = item.id;
     const t = window.setTimeout(() => dismissToast(id), item.duration);
     return () => window.clearTimeout(t);
-  }, [item?.id, item?.duration]);
+  }, [item?.id, item?.duration, segurando]);
+
+  /* A caixa é a mesma de um aviso para o outro: o próximo não herda o arrasto do anterior. */
+  useEffect(() => soltarEstilosDoArrasto(caixa.current), [item?.id]);
 
   return (
-    <div className={`toast ${item ? 'on' : ''}`} role={item?.kind === 'error' ? 'alert' : 'status'} aria-live="polite">
+    <div
+      ref={caixa}
+      className={`toast ${item ? 'on' : ''}`}
+      role={item?.kind === 'error' ? 'alert' : 'status'}
+      aria-live="polite"
+      {...gestos}
+    >
       {item && (
         <>
           {item.icone && <item.icone size={14} aria-hidden style={{ flex: 'none' }} />}

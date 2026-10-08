@@ -28,8 +28,60 @@ html[data-quest-novo='true'] {
 }
 @supports (transition-timing-function: linear(0, 1)) {
   html[data-quest-novo='true'] {
-    --q-mola: linear(0, 0.134, 0.421, 0.725, 0.963, 1.106, 1.16, 1.152, 1.11, 1.059, 1.017, 0.988, 0.975, 0.974, 0.98, 0.988, 0.995, 1.001, 1.004, 1.004, 1.004, 1.002, 1.001, 1, 1);
-    --q-mola-suave: linear(0, 0.066, 0.214, 0.392, 0.565, 0.714, 0.832, 0.919, 0.977, 1.013, 1.031, 1.038, 1.037, 1.032, 1.026, 1.019, 1.013, 1.008, 1.004, 1.002, 1, 0.999, 0.999, 0.999, 1);
+    --q-mola: linear(
+      0,
+      0.134,
+      0.421,
+      0.725,
+      0.963,
+      1.106,
+      1.16,
+      1.152,
+      1.11,
+      1.059,
+      1.017,
+      0.988,
+      0.975,
+      0.974,
+      0.98,
+      0.988,
+      0.995,
+      1.001,
+      1.004,
+      1.004,
+      1.004,
+      1.002,
+      1.001,
+      1,
+      1
+    );
+    --q-mola-suave: linear(
+      0,
+      0.066,
+      0.214,
+      0.392,
+      0.565,
+      0.714,
+      0.832,
+      0.919,
+      0.977,
+      1.013,
+      1.031,
+      1.038,
+      1.037,
+      1.032,
+      1.026,
+      1.019,
+      1.013,
+      1.008,
+      1.004,
+      1.002,
+      1,
+      0.999,
+      0.999,
+      0.999,
+      1
+    );
   }
 }
 
@@ -126,6 +178,20 @@ html[data-quest-novo='true'][data-movimento='rico'] .q-palco[data-entrada='casca
   from {
     opacity: 0;
     transform: translateY(18px) scale(0.985);
+  }
+}
+
+/* ---- O painel nasce do toque (`src/lib/movimento/nascerDoToque.ts`) ------------------------
+   Só o painel marcado anima: quem abre pelo teclado não ganha a marca e aparece na hora.
+   `scale` e não `transform`: há diálogo centrado por `transform`, e ele não pode sair do lugar. */
+html[data-quest-novo='true'][data-movimento='rico']
+  :is(.q-mais, dialog, [role='dialog'], [role='alertdialog'])[data-nasce] {
+  animation: q-nasce var(--q-dur-painel) var(--q-mola-suave) backwards;
+}
+@keyframes q-nasce {
+  from {
+    opacity: 0;
+    scale: 0.86;
   }
 }
 

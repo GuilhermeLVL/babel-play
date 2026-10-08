@@ -24,9 +24,12 @@ Fonte de cada item: o painel "Auditoria" de `docs/prototipos/polimento-movimento
 - [x] 1.3 Troca de tela: a que entra sobe em cascata na primeira visita
       (`src/lib/movimento/entradaDasTelas.ts`). A SAÍDA da tela anterior fica de fora: as telas trocam
       por desmontar e montar, e segurar a desmontagem pede mexer em `useNavegacao`; avaliar depois
-- [ ] 1.4 Painel "Mais": nasce do botão, segue o dedo, fecha por arremesso
-- [ ] 1.5 Diálogos e folhas: mesma entrada e saída; no celular, folha de baixo
-- [ ] 1.6 Aviso (toast): arrasta para fora; o tempo pausa com o dedo em cima
+- [x] 1.4 Painel "Mais": nasce do botão que o abriu (`src/lib/movimento/nascerDoToque.ts`). Seguir o dedo
+      e fechar por arremesso são da folha de baixo do celular: ficam com a fase 7
+- [x] 1.5 Diálogos: nascem do ponto tocado, pelo mesmo instalador (`<dialog>`, `role="dialog"`). A saída
+      animada e a folha de baixo ficam com a fase 7
+- [x] 1.6 Aviso (toast): arrasta para fora e volta com mola; o tempo para com o dedo em cima
+      (`src/lib/movimento/useArrastarParaFora.ts`, usado em `Toast.tsx`)
 - [x] 1.7 Tema claro/escuro: a cor nova se abre em círculo a partir do toque
       (`src/lib/movimento/revelar.ts`, usado em `useAparencia.ts`). Trocar de TEMA (equipar) ainda troca
       na hora: `setTheme` é chamado de lugares onde `flushSync` não pode
@@ -34,7 +37,7 @@ Fonte de cada item: o painel "Auditoria" de `docs/prototipos/polimento-movimento
       interruptor "Vibração" em Ajustes → Aparência, só onde o aparelho vibra; a chave cala também a
       vibração dos efeitos de jogo (`juice.ts`). O som dos toques já existia. No desenho novo o
       interruptor entra com a fase 7 (hoje ele não roda em aparelho que vibra pela página)
-- [ ] 1.9 Busca por teclado abre sem animação
+- [x] 1.9 O que abre pelo teclado não anima: uma tecla apaga o toque guardado (`nascerDoToque.ts`)
 - [ ] 1.10 Testes de `questCasca` e os e2e de fumaça atualizados
 
 ## 2. Jogar sem frustração

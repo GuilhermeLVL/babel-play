@@ -57,8 +57,10 @@ describe('as curvas de mola', () => {
 
   it('as molas do CSS são as que o código gera, e o arquivo só vale no desenho novo', () => {
     const css = readFileSync('src/styles/questMovimento.css', 'utf8')
-    expect(css).toContain(`--q-mola: ${MOLA};`)
-    expect(css).toContain(`--q-mola-suave: ${MOLA_SUAVE};`)
+    /* O formatador quebra a lista em várias linhas; a comparação ignora os espaços. */
+    const corrido = css.replace(/\s+/g, ' ').replace(/\( /g, '(').replace(/ \)/g, ')')
+    expect(corrido).toContain(`--q-mola: ${MOLA};`)
+    expect(corrido).toContain(`--q-mola-suave: ${MOLA_SUAVE};`)
     const semComentario = css.replace(/\/\*[\s\S]*?\*\//g, '')
     const fora: string[] = []
     for (const [, seletores] of semComentario.matchAll(/([^{}]+)\{/g)) {

@@ -34,7 +34,7 @@ Decisões do dono:
 | Jogos 6. As 18 cenas | §6 | **em curso: 1 de 18.** Rali refeito do zero e conferido contra o protótipo: mesmas medidas em 14 peças (arena 780 × 600, placar, quadra, raquetes, rede, placa, casas de 46 × 51, campo), bola de 8 s linear, letra errada sai em 380 ms, Enter devolve, bola que cai, +10 s dá ar à bola. Faltam 17, a Mala primeiro |
 | Jogos 7. Miniaturas do lobby | §7 | **feito** e conferido: 18 miniaturas do protótipo, mesmas medidas (cena de 112 px, cartão de 262 × 331) |
 | Jogos 8. Fim de rodada | §8 | aberto |
-| D. Telas | D1… | aberto |
+| D. Telas | D1… | **em curso.** Feito: D1 selo do plano no Início (conferido na tela, mesma altura e borda) e D45 linha "Planos e Premium" no Mais. No app os textos seguem o plano de verdade: quem já assina lê "Premium" e "Você está no Premium" (o protótipo só tem Grátis e teste). Não aparecem no site sem servidor, onde não há plano a assinar. O resto, aberto. |
 | E. Celular | E… | aberto |
 | F. Tema Água | F… | começado: cores e pontas do tema; falta a cena inteira |
 

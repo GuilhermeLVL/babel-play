@@ -3746,5 +3746,14 @@
   "O começo está certo: {n} palavras ficam. As outras voltam para baixo.": "The start is right: {n} words stay. The others go back down.",
   "Ainda não. A primeira palavra é outra: todas voltam para baixo.": "Not yet. The first word is a different one: they all go back down.",
   "{acertos} de {total} palavras no lugar. Ouça de novo e corrija: você tem mais uma tentativa.": "{acertos} of {total} words in place. Listen again and fix it: you have one more try.",
-  "Placar do rali": "Rally score"
+  "Placar do rali": "Rally score",
+  "Grátis · Ver planos": "Free · See plans",
+  "Premium · em teste": "Premium · on trial",
+  "Planos e Premium": "Plans and Premium",
+  "Você está no Grátis · teste o Premium por 14 dias, sem cartão": "You are on Free · try Premium for 14 days, no card needed",
+  "Você está no Premium": "You are on Premium",
+  "Premium em teste · {n} dias": {
+    "one": "Premium on trial · {n} day",
+    "other": "Premium on trial · {n} days"
+  }
 }

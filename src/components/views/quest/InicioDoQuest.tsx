@@ -13,6 +13,7 @@ import {
   ListChecks,
   Mic,
   Snowflake,
+  Sparkles,
   Sprout,
   Upload,
   Youtube,
@@ -21,6 +22,7 @@ import React, { useState } from 'react';
 
 import type { AppMetrics } from '../../../data/api';
 import { edicaoEstatica } from '../../../lib/edicaoEstatica';
+import { getEntitlements } from '../../../lib/entitlements';
 import { proximaRecompensa } from '../../../lib/galeria/progressao';
 import { numero, t, tp } from '../../../lib/i18n';
 import type { AgeProfileType } from '../../../lib/profile';
@@ -59,6 +61,13 @@ interface InicioDoQuestProps {
 
 const saudacao = (hora: number): string =>
   hora < 5 ? t('Boa noite') : hora < 12 ? t('Bom dia') : hora < 18 ? t('Boa tarde') : t('Boa noite');
+
+/** O que o selo do plano diz: os dois textos do protótipo, e "Premium" para quem já assina. */
+const rotuloDoPlano = (): string => {
+  const { plan, teste } = getEntitlements();
+  if (plan === 'free' || plan === 'anonimo') return t('Grátis · Ver planos');
+  return teste ? t('Premium · em teste') : t('Premium');
+};
 
 const iconeDaSessao = (tipo: Recording['type']) =>
   tipo === 'video' ? Youtube : tipo === 'document' ? FileText : Headphones;
@@ -124,6 +133,18 @@ export default function InicioDoQuest({
             <Flame aria-hidden />
             {tp(progress.streakDays, '{n} dia seguido', '{n} dias seguidos')}
           </span>
+        )}
+        {/* O SELO DO PLANO (`telas2.js:136-139`): quem quer ver os planos não depende de uma oferta
+            aparecer. No site sem servidor não há plano a assinar, e o selo não aparece. */}
+        {!edicaoEstatica() && (
+          <button
+            type="button"
+            className="q-chip px-plano-chip"
+            onClick={() => onChangeView('planos')}
+            data-testid="plano-no-inicio"
+          >
+            <Sparkles aria-hidden /> {rotuloDoPlano()}
+          </button>
         )}
       </div>
 

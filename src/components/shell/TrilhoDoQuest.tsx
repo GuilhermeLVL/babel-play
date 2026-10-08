@@ -10,6 +10,7 @@ import {
   Activity,
   Bell,
   BellOff,
+  ChevronRight,
   Ellipsis,
   HardDrive,
   LifeBuoy,
@@ -19,6 +20,7 @@ import {
   Moon,
   Search,
   Settings,
+  Sparkles,
   Sun,
   UserRound,
   Vibrate,
@@ -43,8 +45,9 @@ import { recursosDoAparelho } from '../../lib/dispositivo/recursos';
 import { instalarRespostaAoApontar } from '../../lib/dispositivo/respostaAoApontar';
 import { noHeadset } from '../../lib/dispositivo/telaNovaDoQuest';
 import { edicaoEstatica } from '../../lib/edicaoEstatica';
+import { getEntitlements } from '../../lib/entitlements';
 import { useFlag } from '../../lib/flags';
-import { t } from '../../lib/i18n';
+import { t, tp } from '../../lib/i18n';
 import { aoMudarIdentidade, estaAnonimo } from '../../lib/identidade';
 import { instalarMarcaDeMovimento } from '../../lib/movimento/animar';
 import { instalarOrigemDoToque } from '../../lib/movimento/revelar';
@@ -114,6 +117,15 @@ interface TrilhoDoQuestProps {
 /** A tecla do atalho da busca como este teclado a escreve (⌘ no Mac, Ctrl nos outros). */
 const teclaDaBusca = (): string =>
   typeof navigator !== 'undefined' && /Mac|iPhone|iPad/i.test(navigator.platform ?? '') ? '⌘ K' : 'Ctrl K';
+
+/** A frase da entrada "Planos e Premium": as duas do protótipo, com os dias que de fato restam do teste. */
+const fraseDoPlano = (): string => {
+  const { plan, teste } = getEntitlements();
+  if (plan === 'free' || plan === 'anonimo') return t('Você está no Grátis · teste o Premium por 14 dias, sem cartão');
+  if (!teste) return t('Você está no Premium');
+  const dias = Math.max(1, Math.ceil((teste.terminaEm - Date.now()) / 86_400_000));
+  return tp(dias, 'Premium em teste · {n} dia', 'Premium em teste · {n} dias');
+};
 
 const ROTULO_DA_VIBRACAO: Record<VibracaoDoQuest, () => string> = {
   desligada: () => t('Vibração ao apontar: desligada'),
@@ -412,6 +424,27 @@ export default function TrilhoDoQuest({
                   </button>
                 )}
               </div>
+            )}
+            {/* PLANOS E PREMIUM, entrada fixa (`telas2.js:119-124`): só na aba dos destinos, e não no site
+                sem servidor, onde não há plano a assinar. */}
+            {aba === 'destinos' && !semServidor && (
+              <button
+                type="button"
+                className="q-linha px-entrada-premium"
+                onClick={() => ir('planos')}
+                data-testid="planos-no-mais"
+              >
+                <span className="q-ic">
+                  <Sparkles aria-hidden />
+                </span>
+                <span>
+                  <b>{t('Planos e Premium')}</b>
+                  <small>{fraseDoPlano()}</small>
+                </span>
+                <span className="q-fim">
+                  <ChevronRight aria-hidden />
+                </span>
+              </button>
             )}
             <div className="q-faixa q-faixa-do-mais" style={{ margin: 0 }}>
               <button type="button" className="q-ctl" onClick={toggleDarkMode}>

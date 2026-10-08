@@ -200,6 +200,9 @@ export default defineConfig(({ mode }) => {
       exclude: ['@huggingface/transformers'],
     },
     server: {
+      /* WORKTREE COM `node_modules` EM JUNÇÃO: o Vite resolve a junção para a pasta de verdade, que
+         fica fora da raiz, e recusava (403) as fontes do @fontsource. A pasta real entra na lista. */
+      fs: { allow: [__dirname, fs.realpathSync(path.join(__dirname, 'node_modules'))] },
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
       hmr: process.env.DISABLE_HMR !== 'true',
       watch: process.env.DISABLE_HMR === 'true' ? null : {},

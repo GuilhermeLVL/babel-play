@@ -7,7 +7,7 @@
  *
  * Itens da lista `fidelidade/casca-e-telas.md`: B5–B19.
  */
-import { anima, limpar, MOLA, polido, reduz } from './base';
+import { anima, EVENTO_DOS_ESTILOS, limpar, MOLA, polido, reduz } from './base';
 
 const $ = <T extends HTMLElement = HTMLElement>(s: string, r: ParentNode = document) => r.querySelector<T>(s);
 const $$ = <T extends HTMLElement = HTMLElement>(s: string, r: ParentNode = document) => [...r.querySelectorAll<T>(s)];
@@ -406,6 +406,7 @@ export function instalarTelas(): () => void {
   window.addEventListener('keydown', aoTeclar, { capture: true });
   window.addEventListener('pointerdown', aoApontar, { capture: true, passive: true });
   document.fonts?.ready.then(reposicionar).catch(() => undefined);
+  document.addEventListener(EVENTO_DOS_ESTILOS, reposicionar);
   pedir();
 
   return () => {
@@ -416,6 +417,7 @@ export function instalarTelas(): () => void {
     itemDoTrilho = null;
     document.removeEventListener('scroll', aoRolar, { capture: true });
     window.removeEventListener('resize', aoRedimensionar);
+    document.removeEventListener(EVENTO_DOS_ESTILOS, reposicionar);
     window.removeEventListener('keydown', aoTeclar, { capture: true });
     window.removeEventListener('pointerdown', aoApontar, { capture: true });
     if (pedido) cancelAnimationFrame(pedido);

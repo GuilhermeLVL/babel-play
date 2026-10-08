@@ -517,6 +517,17 @@ describe('a casca no computador com o desenho novo', () => {
     expect(ir).toHaveBeenLastCalledWith('ajuda')
   })
 
+  it('painel Mais: Planos e Premium é uma entrada fixa, antes dos interruptores (telas2.js:119-124)', () => {
+    const { ir } = montar()
+    fireEvent.click(screen.getByRole('button', { name: 'Mais' }))
+    const entrada = screen.getByTestId('planos-no-mais')
+    expect(entrada.className).toContain('px-entrada-premium')
+    expect(entrada.querySelector('b')?.textContent).toBe('Planos e Premium')
+    expect(entrada.nextElementSibling?.className).toContain('q-faixa-do-mais')
+    fireEvent.click(entrada)
+    expect(ir).toHaveBeenLastCalledWith('planos')
+  })
+
   it('sem quem abra a busca, o trilho não inventa o botão', () => {
     montar({ aoBuscar: undefined })
     expect(screen.queryByTestId('busca-no-trilho')).toBeNull()

@@ -43,7 +43,8 @@ const ARQUIVOS = {
     { de: 131, ate: Infinity, adiado: 'bloco D: planos e nuance' },
   ],
   'telas2.css': [
-    { de: 1, ate: 248, adiado: 'bloco D: Intérprete, Personalizar, Planos, Ajuda' },
+    { de: 1, ate: 36, adiado: 'bloco D: Planos' },
+    { de: 40, ate: 248, adiado: 'bloco D: Intérprete, Personalizar, Planos, Ajuda' },
     { de: 273, ate: Infinity, adiado: 'bloco D: Personalizar e Temporada na janela estreita' },
   ],
   'telas3.css': [{ de: 7, ate: Infinity, adiado: 'bloco D: Sessão, trilha da temporada e acertos' }],

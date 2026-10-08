@@ -60,6 +60,8 @@ export interface OpcoesDoAnima {
 
 /** `anima()` de `prototipo.js:55-61`: 240 ms, `EO`, `fill: backwards`. */
 export function anima(el: Element, quadros: Keyframe[], o: OpcoesDoAnima = {}): Animation {
+  /* Onde o navegador não anima por este caminho, a peça fica no estado final e quem espera segue. */
+  if (typeof el.animate !== 'function') return PARADA;
   return el.animate(quadros, {
     duration: o.d ?? 240,
     delay: o.atraso ?? 0,
@@ -68,9 +70,18 @@ export function anima(el: Element, quadros: Keyframe[], o: OpcoesDoAnima = {}): 
   });
 }
 
+/** A animação que já acabou: o que `anima` devolve onde não há como animar. */
+const PARADA = {
+  finished: Promise.resolve(),
+  cancel: () => undefined,
+  pause: () => undefined,
+  play: () => undefined,
+  finish: () => undefined,
+} as unknown as Animation;
+
 /** `limpar()` de `prototipo.js:64-68`: cancela as animações do elemento e engole a rejeição. */
 export function limpar(el: Element): void {
-  for (const a of el.getAnimations()) {
+  for (const a of el.getAnimations?.() ?? []) {
     a.finished.catch(() => undefined);
     a.cancel();
   }
@@ -125,6 +136,9 @@ export function aplicarAcess(): void {
   }
 }
 
+/** Avisa que o CSS da camada entrou: as medidas tiradas antes dele não valem mais. */
+export const EVENTO_DOS_ESTILOS = 'px:estilos';
+
 export function instalarPolimento(): () => void {
   const raiz = html();
   const marcar = () => {
@@ -135,7 +149,16 @@ export function instalarPolimento(): () => void {
   raiz.style.setProperty('--px-mola-suave', MOLA_SUAVE);
   marcar();
   /* O CSS chega um instante depois: as regras de preferência são acertadas quando ele entra. */
-  void import('./estilos').then(() => requestAnimationFrame(aplicarAcess));
+  void import('./estilos')
+    .then(() =>
+      requestAnimationFrame(() => {
+        aplicarAcess();
+        /* Quem mediu a tela antes de o CSS chegar (a pílula do trilho) mede de novo. */
+        document.dispatchEvent(new Event(EVENTO_DOS_ESTILOS));
+      }),
+    )
+    /* Sem o CSS a camada só não enfeita: a tela continua inteira. */
+    .catch(() => undefined);
   const observador = new MutationObserver(marcar);
   observador.observe(document.body, { attributes: true, attributeFilter: ['class'] });
   return () => {

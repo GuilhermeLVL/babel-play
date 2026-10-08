@@ -1,7 +1,11 @@
 /* GERADO por scripts/polimento/trazer-css.mjs a partir de telas2.css do protótipo de polimento.
    NÃO EDITAR À MÃO: mude a tabela do script e gere de novo. As regras são as do protótipo, sem
    reescrita; valem sob html[data-px='on'], a marca que src/lib/polimento/base.ts põe. */
-/* [telas2.css:1-248] ADIADO até portar: bloco D: Intérprete, Personalizar, Planos, Ajuda */
+/* [telas2.css:1-36] ADIADO até portar: bloco D: Planos */
+.px-entrada-premium { border-color: color-mix(in srgb, var(--q-acento) 55%, var(--border-subtle)); background: linear-gradient(100deg, color-mix(in srgb, var(--q-acento) 14%, var(--surface)), var(--surface) 70%); }
+.px-entrada-premium .q-fim svg { width: 20px; height: 20px; }
+html[data-px='on'] .px-plano-chip { border-color: color-mix(in srgb, var(--q-acento) 50%, var(--border-subtle)); }
+/* [telas2.css:40-248] ADIADO até portar: bloco D: Intérprete, Personalizar, Planos, Ajuda */
 /* ---- Diálogos nativos (submenus do Jogar e do Capturar) ---------------------------- */
 html[data-px='on'] dialog:not(.paleta-cmd):not(.folha-de-baixo)::backdrop {
   background: rgb(0 0 0 / 0.38);

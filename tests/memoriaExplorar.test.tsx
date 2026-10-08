@@ -55,7 +55,7 @@ beforeEach(() => {
   relatorio = null
   localStorage.clear()
   vi.useFakeTimers({ shouldAdvanceTime: false })
-  render(<MemoryGame items={itens} ageProfile="pro" onFinish={(r) => (relatorio = r)} />)
+  render(<MemoryGame items={itens} ageProfile="pro" onFinish={(r) => (relatorio = r)} onExit={() => undefined} />)
 })
 afterEach(() => {
   cleanup()

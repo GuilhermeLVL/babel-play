@@ -134,4 +134,16 @@ describe('BaoGame — o tabuleiro monta a palavra dos items', () => {
     expect(onFinish).not.toHaveBeenCalled()
     expect(container.querySelector('[data-tour="tabuleiro"]')).toBeNull()
   })
+
+  it('a cova errada desmarca sozinha, e o aviso escrito continua', () => {
+    const items = itens()
+    render(<BaoGame items={items} ageProfile="pro" onFinish={() => {}} onExit={() => {}} />)
+    const palavra = items[0].answer
+    const errada = covas().find((b) => !palavra.startsWith(b.textContent ?? ''))!
+    fireEvent.click(errada)
+    expect(errada.dataset.estado).toBe('errado')
+    avancar(700)
+    expect(errada.dataset.estado).toBeUndefined()
+    expect(document.querySelector('[data-qp="veredito"]')?.textContent).toMatch(/Restam/)
+  })
 })

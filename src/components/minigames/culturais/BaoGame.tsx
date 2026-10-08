@@ -74,6 +74,9 @@ function embaralharPecas(pecas: string[]): string[] {
   return [...pecas.slice(1), pecas[0]];
 }
 
+/** Quanto tempo a cova errada fica marcada antes de voltar ao normal. */
+const MARCA_DO_ERRO_MS = 700;
+
 export default function BaoGame({ items, ageProfile, onFinish, onExit }: BaoGameProps) {
   /** A casca diz quando a rodada anda (fora da contagem 3-2-1 e da pausa); o placar do HUD sai dos resultados. */
   const { ativo } = useRodada();
@@ -93,6 +96,8 @@ export default function BaoGame({ items, ageProfile, onFinish, onExit }: BaoGame
   const [semeadas, setSemeadas] = useState<number[]>([]);
   const [erros, setErros] = useState(0);
   const [covaErrada, setCovaErrada] = useState<number | null>(null);
+  /** A cova que está com a marca de erro agora. Some sozinha; o aviso escrito (`covaErrada`) fica. */
+  const [covaMarcada, setCovaMarcada] = useState<number | null>(null);
   const [encerrado, setEncerrado] = useState(false);
   const [dicaUsada, setDicaUsada] = useState(false);
   /** Os toques acabaram nesta palavra: ela aparece inteira antes da próxima (QA dos jogos, 2026-09-26). */
@@ -164,6 +169,7 @@ export default function BaoGame({ items, ageProfile, onFinish, onExit }: BaoGame
         setSemeadas([]);
         setErros(0);
         setCovaErrada(null);
+        setCovaMarcada(null);
         setRevelada(false);
         dicaUsadaRef.current = false;
         palavraFechadaRef.current = false;
@@ -186,12 +192,17 @@ export default function BaoGame({ items, ageProfile, onFinish, onExit }: BaoGame
       const total = erros + 1;
       setErros(total);
       setCovaErrada(posicaoDaCova);
+      /* A COVA DESMARCA SOZINHA: a marca de erro ficava acesa até o próximo acerto, e uma cova vermelha
+         parada lê como "esta não serve nunca", quando ela só não era a da vez. */
+      setCovaMarcada(posicaoDaCova);
+      setTimeout(() => setCovaMarcada((c) => (c === posicaoDaCova ? null : c)), MARCA_DO_ERRO_MS);
       celebrar({ tipo: 'erro', el });
       if (total >= errosTolerados) encerrarPalavra(false, total);
       return;
     }
 
     setCovaErrada(null);
+    setCovaMarcada(null);
     const agora = [...semeadas, posicaoDaCova];
     setSemeadas(agora);
     if (agora.length >= pecas.length) {
@@ -276,7 +287,7 @@ export default function BaoGame({ items, ageProfile, onFinish, onExit }: BaoGame
                   key={i}
                   data-tour={i === 0 ? 'cova' : undefined}
                   data-qp="peca-alta"
-                  data-estado={jaSemeada ? 'certo' : covaErrada === i ? 'errado' : undefined}
+                  data-estado={jaSemeada ? 'certo' : covaMarcada === i ? 'errado' : undefined}
                   onClick={(e) => semear(i, e.currentTarget)}
                   disabled={jaSemeada || encerrado}
                   dir={direcaoDoTexto(item.lang)}
@@ -285,7 +296,7 @@ export default function BaoGame({ items, ageProfile, onFinish, onExit }: BaoGame
                   } ${
                     jaSemeada
                       ? 'border-good bg-good-soft text-good-ink cursor-not-allowed'
-                      : covaErrada === i
+                      : covaMarcada === i
                         ? 'border-error bg-error-soft text-error-ink'
                         : 'border-border-subtle bg-surface-hover text-ink hover:border-accent hover:bg-accent-soft/30 cursor-pointer'
                   }`}

@@ -31,6 +31,7 @@ import ResumoDaPratica from '../progress/ResumoDaPratica';
 import { Tela, TituloDeSecao } from '../ui';
 import { IconePixel } from '../views/play/IconesPixel';
 import { unidadeDaRodada } from './casca/regras';
+import SugestaoDeNivel from './casca/SugestaoDeNivel';
 import EnvioAoRanking from './EnvioAoRanking';
 
 /**
@@ -501,6 +502,9 @@ export default function ResultadoDaRodada({
             </>
           )}
 
+          {/* O nível certo para a próxima: só depois de revelar, quando a pessoa já viu como foi. */}
+          {revelado && <SugestaoDeNivel jogo={report.gameId} precisao={resumo.precisao} aoRepetir={onRepetir} />}
+
           {/* O ranking do Duelo mora no fim COMUM: só nos jogos com ranking. */}
           {temRanking(report.gameId) && (
             <EnvioAoRanking
@@ -835,6 +839,7 @@ export default function ResultadoDaRodada({
             {/* Recompensas v2 (spec 10.2): as missões do dia e a ofensiva, o mesmo bloco do fim da
                 revisão. Lidas depois de revelar: a rodada já foi gravada. */}
             <ResumoDaPratica />
+            <SugestaoDeNivel jogo={report.gameId} precisao={resumo.precisao} aoRepetir={onRepetir} />
             {!semMaterial && (
               <button type="button" className="btn btn-solid bloco" onClick={onContinuar}>
                 <Sparkles aria-hidden /> {ageProfile === 'kids' ? 'Bora de novo!' : 'Mais uma'} · palavras novas

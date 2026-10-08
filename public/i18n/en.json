@@ -3740,5 +3740,9 @@
   "Mostra a resposta e passa para a próxima.": "Shows the answer and moves on to the next one.",
   "conta como não lembrei": "counts as not remembered",
   "A resposta era:": "The answer was:",
-  "O elo era:": "The link was:"
+  "O elo era:": "The link was:",
+  "Pronto: a próxima rodada deste jogo vem no {nivel}.": "Done: the next round of this game will be on {nivel}.",
+  "Foi puxado desta vez. No {nivel} o jogo aperta menos.": "That was a tough one. On {nivel} the game eases up.",
+  "Rodada sem erro. No {nivel} o jogo aperta mais.": "No mistakes this round. On {nivel} the game pushes harder.",
+  "Jogar no {nivel}": "Play on {nivel}"
 }

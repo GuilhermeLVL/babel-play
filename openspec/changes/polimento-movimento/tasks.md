@@ -60,7 +60,9 @@ Fonte de cada item: o painel "Auditoria" de `docs/prototipos/polimento-movimento
       e a ficha "Como se joga" na antessala e na pausa: as três telas do protótipo seriam uma terceira
       explicação. Entrou o que faltava: o botão "Como se joga" no alto do jogo, a um toque, que para o
       relógio. Falta (se o dono quiser): rever o passo a passo guiado a partir da ficha
-- [ ] 2.6 Tela de fim: sugere descer ou subir o nível
+- [x] 2.6 Tela de fim: abaixo de 50% de acerto oferece um degrau abaixo; com 100%, um acima
+      (`casca/SugestaoDeNivel.tsx`, regra em `sugestaoDeNivel`). Aceitar joga de novo as mesmas palavras
+      no nível novo. Conferido no app (Rali no Médio com 0%: "Jogar no Fácil" recomeça com 9 s)
 - [ ] 2.7 Menos atrito, um jogo por commit: Termo (linha pré-preenchida), Frase embaralhada (as
       erradas voltam), Choseong (só a vogal errada sai), Rali (a letra errada some), Ditado
       (segunda chance), Bao (a cova desmarca), Memória (explorar não é errar)

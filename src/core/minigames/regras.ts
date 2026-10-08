@@ -104,5 +104,20 @@ export function resumoDasRegras(jogo: MinigameId, perfil: PerfilDeIdade, nivel: 
   return { segundos: segundosDoJogo(jogo, perfil, nivel), vidas: vidasDoJogo(jogo, perfil, nivel), ajudas };
 }
 
+/** Abaixo desta precisão (em %) a rodada foi puxada demais para o nível em que foi jogada. */
+export const PRECISAO_PARA_DESCER = 50;
+
+/**
+ * O nível que o fim da rodada OFERECE, ou `null` se o atual está bom: um degrau abaixo para quem errou
+ * mais da metade, um acima para quem não errou nada. Sempre um degrau só, e só uma oferta.
+ */
+export function sugestaoDeNivel(jogo: MinigameId, nivel: NivelDoJogo, precisao: number): NivelDoJogo | null {
+  if (!jogoTemNiveis(jogo)) return null;
+  const i = NIVEIS_DO_JOGO.indexOf(nivel);
+  if (precisao < PRECISAO_PARA_DESCER) return NIVEIS_DO_JOGO[i - 1] ?? null;
+  if (precisao >= 100) return NIVEIS_DO_JOGO[i + 1] ?? null;
+  return null;
+}
+
 /** Só para o teste que trava "o Médio é a regra de sempre". */
 export const REGRAS_DE_BASE: Readonly<Partial<Record<MinigameId, RegrasDeBase>>> = BASE;

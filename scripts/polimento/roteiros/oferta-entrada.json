@@ -1,0 +1,58 @@
+{
+  "nome": "oferta-entrada",
+  "largura": 1280,
+  "altura": 960,
+  "props": [
+    "borderTopStyle",
+    "alignItems",
+    "gridTemplateColumns",
+    "maxWidth",
+    "marginTop",
+    "marginBottom",
+    "order",
+    "textAlign",
+    "justifyContent",
+    "flexDirection",
+    "overflowX",
+    "height",
+    "width",
+    "bottom",
+    "translate",
+    "whiteSpace",
+    "flexWrap",
+    "verticalAlign"
+  ],
+  "app": {
+    "caminho": "/",
+    "guardar": {
+      "babel.px.planoDeProva": "free"
+    },
+    "passos": [
+      {
+        "js": "(() => { const f = window.fetch; window.__teste = 'disponivel'; window.fetch = (u, o) => { const s = String(u && u.url ? u.url : u); const j = (c) => Promise.resolve(new Response(JSON.stringify(c), { status: 200, headers: { 'Content-Type': 'application/json' } })); const fim = Date.now() + 14 * 864e5 - 60000; if (s.includes('/api/billing/teste')) { window.__teste = 'ativo'; return j({ teste: { terminaEm: fim } }); } if (s.includes('/api/billing/status')) return j({ configurado: true, assinatura: null, teste: window.__teste === 'ativo' ? { estado: 'ativo', dias: 14, iniciadoEm: Date.now(), terminaEm: fim } : { estado: 'disponivel', dias: 14 } }); if (s.includes('/api/me/uso')) return j({ plano: 'free', janela: '2026-10', chamadas: { usado: 0, teto: 0 }, segundosDeAudio: { usado: 2520, teto: 10800 }, tokensDeLlm: { usado: 0, teto: 0 }, iaDeNuvem: { disponivel: true, motivo: null, mensagem: null }, alivio: null, hoje: null }); return f(u, o); }; })()"
+      },
+      {
+        "js": "(() => { sessionStorage.setItem('babel.ofertas.sessao', JSON.stringify({ inicio: Date.now() - 600000, promocionais: 0 })); localStorage.setItem('babel.ofertas.teste', JSON.stringify({ em: Date.now(), estado: 'disponivel' })); localStorage.removeItem('babel.ofertas.historico'); })()"
+      }
+    ]
+  },
+  "proto": {
+    "passos": []
+  },
+  "seletores": [
+    ".q-trilho"
+  ],
+  "gravar": {
+    "app": [
+      {
+        "js": "(async () => { for (let i = 0; i < 16 && !document.querySelector('.qc-oferta'); i++) { window.dispatchEvent(new CustomEvent('babel:oferta', { detail: { momento: 'conquista' } })); await new Promise((r) => setTimeout(r, 500)); } })()"
+      }
+    ],
+    "proto": [
+      {
+        "clicar": "[data-px-acao='oferta']"
+      }
+    ],
+    "espera": 1500
+  }
+}

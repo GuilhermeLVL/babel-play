@@ -1,0 +1,85 @@
+{
+  "nome": "planos-em-teste-celular",
+  "largura": 390,
+  "altura": 844,
+  "app": {
+    "caminho": "/",
+    "guardar": {
+      "babel.px.planoDeProva": "free"
+    },
+    "passos": [
+      {
+        "js": "(() => { const f = window.fetch; window.__teste = 'disponivel'; window.fetch = (u, o) => { const s = String(u && u.url ? u.url : u); const j = (c) => Promise.resolve(new Response(JSON.stringify(c), { status: 200, headers: { 'Content-Type': 'application/json' } })); const fim = Date.now() + 14 * 864e5 - 60000; if (s.includes('/api/billing/teste')) { window.__teste = 'ativo'; return j({ teste: { terminaEm: fim } }); } if (s.includes('/api/billing/status')) return j({ configurado: true, assinatura: null, teste: window.__teste === 'ativo' ? { estado: 'ativo', dias: 14, iniciadoEm: Date.now(), terminaEm: fim } : { estado: 'disponivel', dias: 14 } }); if (s.includes('/api/me/uso')) return j({ plano: 'free', janela: '2026-10', chamadas: { usado: 0, teto: 0 }, segundosDeAudio: { usado: 2520, teto: 10800 }, tokensDeLlm: { usado: 0, teto: 0 }, iaDeNuvem: { disponivel: true, motivo: null, mensagem: null }, alivio: null, hoje: null }); return f(u, o); }; })()"
+      },
+      {
+        "clicar": "[data-testid='plano-no-inicio']"
+      },
+      {
+        "esperar": 2500
+      },
+      {
+        "clicar": ".px-premium > .q-ctl.pri"
+      },
+      {
+        "esperar": 2500
+      },
+      {
+        "clicar": ".px-abas-planos .q-aba >> text=Planos"
+      },
+      {
+        "esperar": 1500
+      }
+    ]
+  },
+  "proto": {
+    "passos": [
+      {
+        "clicar": ".px-plano-chip"
+      },
+      {
+        "esperar": 2500
+      },
+      {
+        "clicar": ".px-premium > .q-ctl.pri"
+      },
+      {
+        "esperar": 2500
+      },
+      {
+        "clicar": ".px-abas-planos .q-aba >> text=Planos"
+      },
+      {
+        "esperar": 1500
+      }
+    ]
+  },
+  "seletores": [
+    ".px-plano:not(.px-premium)",
+    ".px-plano:not(.px-premium) .q-rotulo",
+    ".px-plano:not(.px-premium) ul",
+    ".px-premium",
+    ".px-premium .q-rotulo .q-tag",
+    ".px-premium > .q-ctl",
+    ".px-premium .px-nota"
+  ],
+  "props": [
+    "borderTopStyle",
+    "alignItems",
+    "gridTemplateColumns",
+    "maxWidth",
+    "marginTop",
+    "marginBottom",
+    "order",
+    "textAlign",
+    "justifyContent",
+    "flexDirection",
+    "overflowX",
+    "height",
+    "width",
+    "bottom",
+    "translate",
+    "whiteSpace",
+    "flexWrap",
+    "verticalAlign"
+  ]
+}

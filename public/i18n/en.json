@@ -3818,5 +3818,42 @@
   "{n} vidas": {
     "one": "{n} life",
     "other": "{n} lives"
+  },
+  "Seu plano: {plano}": "Your plan: {plano}",
+  "Legenda bilíngue ao vivo, no aparelho, sem limite": "Live bilingual captions, on your device, unlimited",
+  "Nuvem: até {horas} h por mês, para aparelho fraco, quando disponível": "Cloud: up to {horas} h per month, for low-end devices, when available",
+  "Legenda bilíngue ao vivo, no aparelho": "Live bilingual captions, on your device",
+  "Transcrição e tradução na nuvem": "Cloud transcription and translation",
+  "até {horas} h por mês": "up to {horas} h per month",
+  "sem limite no dia a dia*": "unlimited day to day*",
+  "cada um toca o seu lado": "each person taps their side",
+  "automático": "automatic",
+  "* uso justo: até {dia} h de nuvem por dia e {mes} h por mês; passando disso, a legenda segue no aparelho.": "* fair use: up to {dia} h of cloud per day and {mes} h per month; beyond that, captions continue on your device.",
+  "O teste cobra sozinho no fim?": "Does the trial charge automatically at the end?",
+  "Não. São {dias} dias, sem cartão. No fim, a conta volta ao Grátis sozinha e nada é cobrado.": "No. It's {dias} days, no card. At the end, the account goes back to Free by itself and nothing is charged.",
+  "Posso cancelar?": "Can I cancel?",
+  "Pode, quando quiser. E há 7 dias para desistir com reembolso.": "Yes, whenever you want. And you have 7 days to change your mind with a refund.",
+  "O Grátis tem limite?": "Does Free have a limit?",
+  "A legenda no aparelho não tem limite. A nuvem grátis é de até {horas} h por mês, para aparelho fraco, quando disponível.": "On-device captions have no limit. The free cloud is up to {horas} h per month, for low-end devices, when available.",
+  "O que é \"uso justo\"?": "What is \"fair use\"?",
+  "Até {dia} h de nuvem por dia e {mes} h por mês. Passando disso, a legenda segue no aparelho.": "Up to {dia} h of cloud per day and {mes} h per month. Beyond that, captions continue on your device.",
+  "Você está no Grátis": "You're on Free",
+  "Premium, em teste": "Premium, on trial",
+  "Ele continua inteiro: legenda no aparelho sem limite, jogos, vocabulário e revisão.": "It stays complete: unlimited on-device captions, games, vocabulary and review.",
+  "Quando quiser ir além, o Premium tem teste de {dias} dias, sem cartão.": "When you want to go further, Premium has a {dias}-day trial, no card.",
+  "Comparar os planos": "Compare plans",
+  "{valor} do limite do plano": "{valor} of the plan limit",
+  "{valor} do limite de hoje": "{valor} of today's limit",
+  "Chamadas e tokens de IA de nuvem fazem parte do Premium. A legenda no aparelho continua sem limite.": "Cloud AI calls and tokens are part of Premium. On-device captions stay unlimited.",
+  "Premium ativado por {dias} dias. Sem cartão; no fim volta ao Grátis sozinho.": "Premium activated for {dias} days. No card; at the end it goes back to Free by itself.",
+  "Sugestão de plano": "Plan suggestion",
+  "Combinado: esta sugestão não aparece mais.": "Got it: this suggestion won't show again.",
+  "O teste termina em {n} dias.": {
+    "one": "The trial ends in {n} day.",
+    "other": "The trial ends in {n} days."
+  },
+  "Seu teste termina em {n} dias. Depois dele a conta volta ao Grátis sozinha e nada é cobrado.": {
+    "one": "Your trial ends in {n} day. After it, the account goes back to Free by itself and nothing is charged.",
+    "other": "Your trial ends in {n} days. After it, the account goes back to Free by itself and nothing is charged."
   }
 }

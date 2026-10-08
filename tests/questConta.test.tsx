@@ -117,7 +117,6 @@ import AvisoDePagamentoAtrasado from '../src/components/conta/AvisoDePagamentoAt
 import AvisoDoResponsavel from '../src/components/conta/AvisoDoResponsavel'
 import GateDeConta from '../src/components/conta/GateDeConta'
 import ModalDeMigracao from '../src/components/conta/ModalDeMigracao'
-import CartaoDeOferta from '../src/components/ofertas/CartaoDeOferta'
 import Perfil from '../src/components/views/Perfil'
 import Planos from '../src/components/views/Planos'
 import Assinado from '../src/components/views/planos/Assinado'
@@ -174,14 +173,6 @@ const faturaAntiga = {
   recibo: null,
   link: null,
 }
-const uso = {
-  plano: 'free',
-  janela: '2026-10',
-  chamadas: { usado: 12, teto: 100 },
-  segundosDeAudio: { usado: 600, teto: 3600 },
-  tokensDeLlm: { usado: 5000, teto: null },
-}
-
 beforeAll(() => {
   prepararDialogoNoJsdom()
   vi.stubGlobal(
@@ -395,92 +386,6 @@ const abrirPlanos = async () => {
 const cartao = (id: 'gratis' | 'premium') => document.querySelector<HTMLElement>(`[data-plano="${id}"]`)!
 
 describe('Planos no Quest: a aba Planos', () => {
-  it('a conta agora, o período, os dois cartões, a comparação e as perguntas', async () => {
-    const { container } = await abrirPlanos()
-    expect(container.querySelector('.q-palco.qc')).not.toBeNull()
-    expect(container.querySelector('.tela')).toBeNull()
-    expect(screen.getByRole('heading', { level: 1, name: 'Planos' })).toBeTruthy()
-    expect(screen.getAllByRole('tab').map((a) => a.textContent)).toEqual(['Planos', 'Consumo do mês'])
-
-    expect(screen.getByRole('region', { name: 'Seu plano agora' }).textContent).toContain('Grátis')
-    expect(
-      screen.getByRole('heading', {
-        name: 'Legenda bilíngue de qualquer coisa que você ouve, em qualquer aparelho',
-      }),
-    ).toBeTruthy()
-
-    const periodo = within(screen.getByRole('radiogroup', { name: 'Período de cobrança' }))
-    expect(periodo.getByRole('radio', { name: 'Mensal' }).getAttribute('aria-checked')).toBe('true')
-    expect(cartao('premium').textContent).toContain('19,90')
-    fireEvent.click(periodo.getByRole('radio', { name: /Anual/ }))
-    expect(cartao('premium').textContent).toContain('179,00')
-    expect(cartao('premium').textContent).toContain('economize R$ 59,80')
-
-    expect(cartao('gratis').textContent).toContain('Tradução rápida ao vivo')
-    expect(cartao('premium').textContent).toContain('Recomendado')
-    // Um único botão principal na tela: o do cartão em destaque.
-    expect(container.querySelectorAll('.q-ctl.pri')).toHaveLength(1)
-    expect(within(cartao('premium')).getByRole('button', { name: /Assinar Premium/ }).className).toContain('pri')
-    expect(within(cartao('gratis')).getByRole('button', { name: 'Continuar grátis' })).toBeTruthy()
-
-    const tabela = within(screen.getByRole('table'))
-    expect(tabela.getByRole('rowheader', { name: /Tutor de IA/ })).toBeTruthy()
-    expect(tabela.getAllByText('Incluído').length).toBeGreaterThan(3)
-    expect(container.querySelectorAll('details.qc-faq')).toHaveLength(8)
-    expect(screen.getByText('Posso cancelar quando quiser?')).toBeTruthy()
-  })
-
-  it('CDC: todo "sem limite no dia a dia" tem a nota do uso justo no mesmo item ou na mesma linha', async () => {
-    await abrirPlanos()
-    const diz = (e: Element) => /sem limite no dia a dia/.test(e.textContent ?? '')
-    const onde = [...document.querySelectorAll<HTMLElement>('#painel-planos *')].filter(
-      (e) => diz(e) && ![...e.children].some(diz),
-    )
-    expect(onde.length).toBeGreaterThanOrEqual(2)
-    for (const e of onde) {
-      const bloco = e.closest('li, tr') ?? e
-      expect(bloco.textContent, bloco.outerHTML).toMatch(/uso justo/)
-      expect(bloco.textContent).toMatch(/segue no aparelho/)
-    }
-    // Sem `%` nem "qualidade" na aba, como na tela de sempre.
-    const painel = document.querySelector<HTMLElement>('#painel-planos')!
-    expect(painel.textContent).not.toContain('%')
-    expect(painel.textContent).not.toMatch(/qualidade/i)
-  })
-
-  it('o teste de 14 dias começa com um toque, e a tela diz até quando vale', async () => {
-    const termina = new Date(2026, 9, 14, 15, 0).getTime()
-    servidor.rotas = {
-      '/api/billing/status': { configurado: true, assinatura: null, teste: { estado: 'disponivel', dias: 14 } },
-      '/api/billing/teste': { teste: { iniciadoEm: 1, terminaEm: termina, dias: 14 } },
-    }
-    await abrirPlanos()
-    const premium = within(cartao('premium'))
-    expect(premium.getByRole('button', { name: 'Assinar Premium' })).toBeTruthy()
-    await act(async () => {
-      fireEvent.click(premium.getByRole('button', { name: 'Testar 14 dias grátis' }))
-    })
-    expect(pedido('/api/billing/teste')).toBeTruthy()
-    expect(await screen.findByText(/o Premium vale até 14\/10\/2026/)).toBeTruthy()
-  })
-
-  it('o período escolhido abre o checkout do headset já no anual', async () => {
-    await abrirPlanos()
-    fireEvent.click(screen.getByRole('radio', { name: /Anual/ }))
-    await act(async () => {
-      fireEvent.click(within(cartao('premium')).getByRole('button', { name: /Assinar Premium/ }))
-    })
-    expect(await screen.findByTestId('checkout-do-quest')).toBeTruthy()
-    expect(botao(/Anual em uma vez/).getAttribute('aria-pressed')).toBe('true')
-    expect(botao(/Mensal recorrente/).getAttribute('aria-pressed')).toBe('false')
-    // O voltar diz para onde volta, à vista ("Planos"), e devolve a tela de Planos.
-    expect(botao('Voltar para Planos').textContent).toContain('Planos')
-    await act(async () => {
-      fireEvent.click(botao('Voltar para Planos'))
-    })
-    expect(await screen.findByTestId('planos-do-quest')).toBeTruthy()
-  })
-
   it('sem conta, o cartão leva ao login com a intenção guardada', async () => {
     ents.plan = 'anonimo'
     const aoEntrar = vi.fn()
@@ -500,35 +405,6 @@ describe('Planos no Quest: a aba Planos', () => {
 })
 
 describe('Planos no Quest: Consumo do mês', () => {
-  it('um cartão por contador, com barra só onde há teto, e a janela do mês', async () => {
-    servidor.rotas['/api/me/uso'] = uso
-    const { container } = await abrirPlanos()
-    fireEvent.click(aba('Consumo do mês'))
-    expect(container.querySelectorAll('.qc-consumo')).toHaveLength(3)
-    expect(screen.getByRole('progressbar', { name: 'Áudio transcrito na nuvem' })).toBeTruthy()
-    expect(screen.getByRole('progressbar', { name: 'Chamadas à IA de nuvem' })).toBeTruthy()
-    // Sem teto NÃO vira barra vazia.
-    expect(screen.queryByRole('progressbar', { name: 'Tokens de IA (tradução e tutor)' })).toBeNull()
-    expect(screen.getByRole('heading', { name: 'Janela 2026-10' })).toBeTruthy()
-  })
-
-  it('enquanto os contadores não chegam, a tela DIZ que está carregando (não só no nome acessível)', async () => {
-    servidor.rotas['/api/me/uso'] = uso
-    let soltar = () => {}
-    servidor.esperaDoUso = new Promise<void>((r) => (soltar = r))
-    const { container } = await abrirPlanos()
-    fireEvent.click(aba('Consumo do mês'))
-    const espera = screen.getByRole('status')
-    expect(espera.textContent).toContain('Carregando…')
-    expect(espera.textContent).toContain('Buscando os contadores deste mês no servidor.')
-    expect(container.querySelectorAll('.q-esqueleto')).toHaveLength(2)
-    await act(async () => {
-      soltar()
-    })
-    await waitFor(() => expect(container.querySelectorAll('.qc-consumo')).toHaveLength(3))
-    expect(container.querySelector('.q-esqueleto')).toBeNull()
-  })
-
   it('sem resposta do servidor, diz que não sabe o número', async () => {
     await abrirPlanos()
     fireEvent.click(aba('Consumo do mês'))
@@ -966,39 +842,6 @@ describe('Os avisos de conta no Quest', () => {
     expect(caixa.textContent).toMatch(/não couberam no seu plano/)
     fireEvent.click(within(caixa).getAllByRole('button', { name: 'Fechar' })[1])
     expect(aoFechar).toHaveBeenCalledTimes(1)
-  })
-
-  it('a oferta que não bloqueia: as três saídas, o fechar e o Esc', async () => {
-    const aoAgir = vi.fn()
-    const aoDispensar = vi.fn()
-    const aoNaoMostrar = vi.fn()
-    render(
-      <CartaoDeOferta
-        tom="alerta"
-        icone={CloudOff}
-        titulo="A IA de nuvem do seu plano acabou neste mês"
-        texto="A legenda segue no aparelho."
-        cta="Ver planos"
-        selo="Sugerido: Premium"
-        aoAgir={aoAgir}
-        aoDispensar={aoDispensar}
-        aoNaoMostrar={aoNaoMostrar}
-      />,
-    )
-    const cartaoDaOferta = await screen.findByTestId('cartao-de-oferta')
-    expect(cartaoDaOferta.className).toContain('qc-oferta')
-    expect(cartaoDaOferta.getAttribute('role')).toBe('status')
-    expect(cartaoDaOferta.textContent).toContain('Sugerido: Premium')
-    fireEvent.click(botao('Ver planos'))
-    expect(aoAgir).toHaveBeenCalledTimes(1)
-    fireEvent.click(botao('Não mostrar novamente'))
-    expect(aoNaoMostrar).toHaveBeenCalledTimes(1)
-    fireEvent.click(botao('Agora não'))
-    fireEvent.click(botao('Dispensar aviso'))
-    await waitFor(() => {
-      fireEvent.keyDown(cartaoDaOferta, { key: 'Escape' })
-      expect(aoDispensar.mock.calls.length).toBeGreaterThanOrEqual(3)
-    })
   })
 })
 

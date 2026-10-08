@@ -1,4 +1,4 @@
-import { Cloud, CloudOff, Gauge, Hourglass, type LucideIcon, Sparkles, Trophy } from 'lucide-react';
+import { BookOpen, Cloud, CloudOff, Gauge, Hourglass, type LucideIcon, Sparkles, Trophy } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { PlanoDaFlag } from '../../core/flags';
@@ -10,6 +10,7 @@ import {
   resolverTextoRemoto,
 } from '../../core/ofertas';
 import { DIAS_DO_TESTE_PREMIUM, PLAN_MATRIX, precoDoPlano } from '../../core/planos';
+import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { onPlanChange } from '../../lib/entitlements';
 import { ehConfigDeOfertas, useConfigRemota, useFlag } from '../../lib/flags';
 import { estadoDeIdentidade } from '../../lib/identidade';
@@ -40,6 +41,7 @@ import {
 import { decidirOferta, type DecisaoDeOferta, type EstadoDaTela } from '../../lib/ofertas/motor';
 import { pessoaDaOferta, planoDaOferta } from '../../lib/ofertas/plano';
 import { verificarTeste } from '../../lib/ofertas/teste';
+import { planoDeProva } from '../../lib/polimento/planos';
 import { capturaAtiva } from '../../lib/sessaoDeCaptura';
 import { useI18n } from '../../lib/useI18n';
 import CartaoDeOferta from './CartaoDeOferta';
@@ -109,6 +111,7 @@ export default function HostDeOfertas({ aoEntrar, aoVerPlanos }: { aoEntrar: () 
   const flagLigada = useFlag('oferta_planos');
   const config = useConfigRemota('oferta_planos', OFERTAS_PADRAO, ehConfigDeOfertas);
   const [atual, setAtual] = useState<OfertaNaTela | null>(null);
+  const questNovo = useQuestNovo();
 
   /* Refs: o ouvinte do evento é registrado uma vez e precisa ler o valor MAIS recente. */
   const flagRef = useRef(flagLigada);
@@ -125,7 +128,8 @@ export default function HostDeOfertas({ aoEntrar, aoVerPlanos }: { aoEntrar: () 
 
   const avaliar = useCallback((momento: MomentoDeOferta, fase?: string) => {
     if (atualRef.current) return; // uma oferta por vez
-    const plano = planoDaOferta();
+    /* Na bancada (só em desenvolvimento) a oferta pode ser vista como o Grátis a vê: `planoDeProva`. */
+    const plano = planoDeProva() ?? planoDaOferta();
     const agora = Date.now();
     const decisao = decidirOferta({
       momento,
@@ -258,7 +262,8 @@ export default function HostDeOfertas({ aoEntrar, aoVerPlanos }: { aoEntrar: () 
     sugerido === 'nenhum' && !informativoDoTeste ? t('Ver consumo do mês') : resolverTextoRemoto(g.cta, idioma, t);
   const selo = seloDoPlano(sugerido, t);
   const props = {
-    icone: ICONE[momento],
+    /* No desenho novo o fim de sessão traz o livro aberto (`OFERTAS`, `telas.js:480`). */
+    icone: questNovo && momento === 'fim_de_sessao' ? BookOpen : ICONE[momento],
     titulo,
     texto,
     cta,

@@ -63,12 +63,15 @@ export default function CartaoDeOferta({
     const aoTeclar = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.stopPropagation();
-        aoDispensar();
+        /* No desenho novo o Esc sai como o fechar: a oferta desce antes de sumir (`sairOferta`). */
+        const fechar = questNovo ? el.querySelector<HTMLElement>('.qc-fechar') : null;
+        if (fechar) fechar.click();
+        else aoDispensar();
       }
     };
     el.addEventListener('keydown', aoTeclar);
     return () => el.removeEventListener('keydown', aoTeclar);
-  }, [aoDispensar, montado, doQuest.falhou]);
+  }, [aoDispensar, montado, doQuest.falhou, questNovo]);
 
   /* QUEST: o mesmo cartão, com as mesmas três saídas, nas medidas do headset. O arquivo desce só no
      Quest (o host das ofertas mora no pacote inicial; o CSS do headset fica fora dele). */

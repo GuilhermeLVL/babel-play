@@ -14,16 +14,27 @@ import {
   Languages,
   ListChecks,
   LoaderCircle,
+  Lock,
   type LucideIcon,
   Receipt,
   ShieldCheck,
+  Sparkles,
   Star,
   Table2,
   Target,
   TriangleAlert,
   UserRound,
 } from 'lucide-react';
-import { type CSSProperties, useCallback, useEffect, useRef, useState } from 'react';
+import {
+  type CSSProperties,
+  type KeyboardEvent,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 
 import { armazenamentoEmTexto, DIAS_DO_TESTE_PREMIUM, horasDeTranscricao, horasDoUsoJusto } from '../../core/planos';
 import {
@@ -50,21 +61,22 @@ import {
 } from '../../lib/assinatura';
 import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { carregarEntitlements, getEntitlements, onPlanChange, PLAN_LABELS } from '../../lib/entitlements';
-import { numero, t } from '../../lib/i18n';
+import { numero, t, tp } from '../../lib/i18n';
 import { consumirDestaqueEmPlanos } from '../../lib/ofertas/destaque';
+import { alternarPergunta, festejarTeste, planoDeProva, repintarPlanos } from '../../lib/polimento/planos';
 import { estadoDaProtecao } from '../../lib/protecaoDoMenor';
 import {
   esquecerPlanosTelaDoBoot,
   EVENTO_SUBTELA_DE_PLANOS,
   lerPlanosTelaDoBoot,
   lerUrlAtual,
+  navegarPara,
   publicarUrl,
   type SubTelaDePlanos,
 } from '../../lib/rotas';
 import { carregarUso, duracaoLegivel, fracao, type UsoDoMes } from '../../lib/uso';
 import { toast } from '../Toast';
 import { Abas, CabecalhoDeTela, IconeEmBloco, PainelDeAba, Tela, TituloDeSecao } from '../ui';
-import AbasDoQuest from './ajustes/quest/AbasDoQuest';
 import Assinado from './planos/Assinado';
 import Cancelar from './planos/Cancelar';
 import Checkout from './planos/Checkout';
@@ -121,6 +133,8 @@ import SuaAssinatura, { type DialogoDaAssinatura, metodoAtual } from './planos/S
  */
 
 type Periodo = 'mensal' | 'anual';
+/** No desenho novo "Sua assinatura" é aba de todos (`telas2.js:102`); no antigo, só de quem assina. */
+type AbaDePlanos = 'planos' | 'assinatura' | 'consumo';
 type Celula = 'ok' | 'nao' | string;
 
 /** Uma linha do comparativo: rótulo, um valor por plano (Grátis, Premium) e a nota ao lado. */
@@ -306,7 +320,7 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
   const [uso, setUso] = useState<UsoDoMes | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [sub, setSub] = useState<SubTelaDePlanos | null>(() => lerUrlAtual().planosTela ?? lerPlanosTelaDoBoot());
-  const [abaLocal, setAbaLocal] = useState<'planos' | 'consumo'>('planos');
+  const [abaLocal, setAbaLocal] = useState<AbaDePlanos>('planos');
   const [planoDoCheckout, setPlanoDoCheckout] = useState<PlanoPago>(planoGuardado);
   const [formaDoCheckout, setFormaDoCheckout] = useState<FormaDeAssinar>(() => formaGuardadaDoCheckout() ?? 'mensal');
   /* O PERÍODO do seletor. Abre no que a aba escolheu por último; quem assina o anual o vê no anual
@@ -340,9 +354,10 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
     return () => window.removeEventListener(EVENTO_SUBTELA_DE_PLANOS, ler);
   }, []);
   useEffect(() => {
-    if (!sugerido) return;
+    /* No desenho novo a oferta só abre a tela (`telas.js:513`): sem destaque e sem rolar até o cartão. */
+    if (!sugerido || questNovo) return;
     document.querySelector(`[data-plano="${sugerido}"]`)?.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
-  }, [sugerido]);
+  }, [sugerido, questNovo]);
 
   useEffect(() => onPlanChange(() => setEntitlements(getEntitlements())), []);
 
@@ -385,7 +400,8 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
        virar Premium) até a pessoa recarregar a página. */
   }, [entitlements.plan, entitlements.teste?.terminaEm, abaLocal]);
 
-  const meuPlano = entitlements.plan;
+  /* Na bancada (só em desenvolvimento) a tela pode ser vista como o Grátis a vê: `planoDeProva`. */
+  const meuPlano = planoDeProva() ?? entitlements.plan;
   const conta = estadoDaConta(meuPlano, status, Date.now(), entitlements.teste);
   const assina = temAssinatura(conta.estado);
   const formaAtual = assina ? formaDaConta(conta) : null;
@@ -455,6 +471,18 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
       return;
     }
     setTesteFeito(r.terminaEm);
+    if (questNovo) {
+      /* `ativarTeste()` de `telas2.js:108-117`: a tela vai para "Sua assinatura", o aviso confirma e cai
+         o confete. Os cadeados (Nuance, intérprete automático) abrem com os entitlements relidos abaixo. */
+      dirDaAba.current = 1;
+      setAbaLocal('assinatura');
+      toast.ok(
+        t('Premium ativado por {dias} dias. Sem cartão; no fim volta ao Grátis sozinho.', {
+          dias: status?.teste?.dias ?? DIAS_DO_TESTE_PREMIUM,
+        }),
+      );
+      festejarTeste();
+    }
     await carregarEntitlements();
     recarregarStatus();
   };
@@ -478,6 +506,18 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
     </>
   );
 
+  /* A TROCA DE ABA do desenho novo (`repintar`, `telas2.js:10-25`): o miolo entra pelo lado. */
+  const dirDaAba = useRef(1);
+  const refDasAbas = useRef<HTMLDivElement>(null);
+  const abaNaTela = sub === 'assinatura' && assina ? 'assinatura' : abaLocal;
+  const abaAnterior = useRef(abaNaTela);
+  useLayoutEffect(() => {
+    if (abaAnterior.current === abaNaTela) return;
+    abaAnterior.current = abaNaTela;
+    repintarPlanos(refDasAbas.current, dirDaAba.current);
+    dirDaAba.current = 1;
+  }, [abaNaTela]);
+
   /* ── Sub-telas ── */
   if (sub === 'assinar')
     return (
@@ -496,13 +536,14 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
     return <Cancelar conta={conta} faturas={faturas} aoCancelado={recarregarStatus} aoReativar={reativar} />;
 
   /* A aba "Sua assinatura" só existe para quem assina (como no protótipo). */
-  const aba = sub === 'assinatura' && assina ? 'assinatura' : abaLocal;
+  const aba = abaNaTela;
   const trocarAba = (id: string) => {
-    if (id === 'assinatura') {
+    /* Quem assina tem endereço para a aba (`/plano/assinatura`); para os outros ela é só desta tela. */
+    if (id === 'assinatura' && assina) {
       irSub('assinatura');
       return;
     }
-    setAbaLocal(id as 'planos' | 'consumo');
+    setAbaLocal(id as AbaDePlanos);
     if (sub === 'assinatura') irSub(null);
   };
 
@@ -515,7 +556,12 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
   const menor =
     (teste?.estado === 'indisponivel' && teste.motivo === 'perfil_protegido') ||
     (!!protecao && protecao.nascimentoInformado && protecao.faixa !== 'adulto');
-  const anual = periodo === 'anual' && (anualAVenda || jaTemOAnual);
+  /* O desenho novo não tem o seletor de período (`telas2.js:60-73`): o cartão é o mensal, e só quem JÁ
+     assina o anual vê o ano (é o plano dele). */
+  const anual = questNovo ? jaTemOAnual : periodo === 'anual' && (anualAVenda || jaTemOAnual);
+  /* O servidor deixa esta pessoa começar o teste agora (as mesmas condições do botão, em `cta`). */
+  const podeTestar =
+    !assina && vendaAberta && !menor && !semConta && teste?.estado === 'disponivel' && testeFeito === null;
   const economia = economiaDoAnual('premium');
 
   const assinar = (p: Plano) => {
@@ -807,303 +853,352 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
 
   const selfhost = conta.estado === 'selfhost';
 
-  /* ── QUEST ─────────────────────────────────────────────────────────────────────────────────────
-     As mesmas três abas e tudo o que cada uma tem, no desenho do headset. Só marcação: o botão de cada
-     cartão (`cta`), o preço (`preco`), o comparativo, as perguntas e os contadores são os de cima. UM
-     botão principal na tela (o do cartão em destaque); os outros são de contorno. */
+  /* ── O DESENHO NOVO: A TELA DE PLANOS DO PROTÓTIPO (`telas2.js:39-117`) ─────────────────────────
+     A marcação é a de `htmlDosPlanos()`: cabeçalho com o selo do plano, três abas sempre à vista e o
+     miolo solto no palco (sem painel em volta: é o que a camada anima). Os NÚMEROS são do app: preço e
+     horas da matriz, o estado da conta e o consumo do servidor. O botão de cada cartão continua sendo
+     o de `cta()`: venda pausada, perfil protegido, sem conta e assinante têm o rótulo de sempre. */
   if (questNovo) {
-    const cartaoDoQuest = (p: Plano) => {
-      const atual = assina && p.id === conta.plano;
-      const testando = emTeste && p.id === 'premium';
-      const Icone = p.icone;
-      const c = cta(p);
-      const pr = preco(p);
-      const IconeDaAcao = c.ocupado ? LoaderCircle : c.icone;
-      const sugeridoAqui = sugerido === p.id && !atual;
+    const premium = PLANOS.find((p) => p.id === 'premium')!;
+    const c = cta(premium);
+    /* Quem acabou de tocar em "Testar" já está em teste, antes de o servidor responder de novo. */
+    const testando = emTeste || testeFeito !== null;
+    const fimDoTeste = testeFeito ?? conta.valeAte;
+    const diasQueFaltam =
+      fimDoTeste === null
+        ? (teste?.dias ?? DIAS_DO_TESTE_PREMIUM)
+        : Math.max(1, Math.ceil((fimDoTeste - Date.now()) / 86_400_000));
+    const noGratis = conta.estado === 'gratis' && !testando;
+    const nomeDoGratis = meuPlano === 'anonimo' ? t(PLAN_LABELS[meuPlano]) : t('Grátis');
+    const seloDoPlano = testando
+      ? t('Premium · em teste')
+      : t('Seu plano: {plano}', {
+          plano: selfhost ? 'Self-host' : assina && conta.plano ? PLANO_NOME[conta.plano] : nomeDoGratis,
+        });
+    const IconeDoPlano = noGratis ? UserRound : Sparkles;
+    const justo = usoJusto();
+    const item = (texto: string, nota?: string | null) => (
+      <li key={texto}>
+        <Check aria-hidden />
+        <span>
+          {texto}
+          {/* A nota do uso justo AO LADO do "sem limite", no mesmo item (CDC). */}
+          {nota && <small>{nota}</small>}
+        </span>
+      </li>
+    );
+    const sim = (
+      <span className="px-sim">
+        <Check aria-hidden />
+        <span className="sr">{t('Incluído')}</span>
+      </span>
+    );
+    const nao = (
+      <span className="px-nao">
+        —<span className="sr">{t('Não incluído')}</span>
+      </span>
+    );
+    /* `TABELA` de `telas2.js:43-52`, com as horas e o espaço da matriz. */
+    const tabela: [string, ReactNode, ReactNode][] = [
+      [t('Legenda bilíngue ao vivo, no aparelho'), t('sem limite'), t('sem limite')],
+      [t('Tradução rápida ao vivo'), sim, sim],
+      [t('Tradução Nuance'), nao, sim],
+      [
+        t('Transcrição e tradução na nuvem'),
+        t('até {horas} h por mês', { horas: horasDoAlivio() }),
+        t('sem limite no dia a dia*'),
+      ],
+      [t('Tutor de IA (iChat)'), nao, sim],
+      [t('Intérprete'), t('cada um toca o seu lado'), t('automático')],
+      [t('Jogos, vocabulário e revisão'), sim, sim],
+      [t('Armazenamento'), armazenamentoEmTexto('free'), armazenamentoEmTexto('premium')],
+    ];
+    /* `FAQ` de `telas2.js:53-58`, com os números da matriz. */
+    const faq: [string, string][] = [
+      [
+        t('O teste cobra sozinho no fim?'),
+        t('Não. São {dias} dias, sem cartão. No fim, a conta volta ao Grátis sozinha e nada é cobrado.', {
+          dias: teste?.dias ?? DIAS_DO_TESTE_PREMIUM,
+        }),
+      ],
+      [t('Posso cancelar?'), t('Pode, quando quiser. E há 7 dias para desistir com reembolso.')],
+      [
+        t('O Grátis tem limite?'),
+        t(
+          'A legenda no aparelho não tem limite. A nuvem grátis é de até {horas} h por mês, para aparelho fraco, quando disponível.',
+          { horas: horasDoAlivio() },
+        ),
+      ],
+      [
+        t('O que é "uso justo"?'),
+        t('Até {dia} h de nuvem por dia e {mes} h por mês. Passando disso, a legenda segue no aparelho.', justo),
+      ],
+    ];
+    const irAba = (id: AbaDePlanos, dir: number) => {
+      dirDaAba.current = dir;
+      trocarAba(id);
+    };
+    const ordemDasAbas = ['planos', 'assinatura', 'consumo'] as const;
+    const aoTeclarNaAba = (e: KeyboardEvent<HTMLButtonElement>, indice: number) => {
+      const passo = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+      if (!passo && e.key !== 'Home' && e.key !== 'End') return;
+      e.preventDefault();
+      const n = ordemDasAbas.length;
+      const destino = e.key === 'Home' ? 0 : e.key === 'End' ? n - 1 : (indice + passo + n) % n;
+      irAba(ordemDasAbas[destino], 1);
+      (e.currentTarget.parentElement?.querySelectorAll('.q-aba')[destino] as HTMLElement | undefined)?.focus();
+    };
+    const rotuloDaAba = { planos: t('Planos'), assinatura: t('Sua assinatura'), consumo: t('Consumo do mês') };
+
+    /* Os botões do Premium: os de `cta()`, com a forma do protótipo (`telas2.js:71`). */
+    const principalDoPremium = (
+      <button type="button" className={`q-ctl${c.solido ? ' pri' : ''}`} disabled={c.off || c.ocupado} onClick={c.acao}>
+        {c.ocupado && <LoaderCircle className="qc-gira" aria-hidden />}
+        {c.rot}
+      </button>
+    );
+    const notaDoPremium =
+      c.nota ??
+      (testando
+        ? tp(
+            diasQueFaltam,
+            'Seu teste termina em {n} dia. Depois dele a conta volta ao Grátis sozinha e nada é cobrado.',
+            'Seu teste termina em {n} dias. Depois dele a conta volta ao Grátis sozinha e nada é cobrado.',
+          )
+        : null);
+
+    /* ── Consumo: os contadores do servidor na forma de `telas2.js:89-97`. ── */
+    const semIaDeNuvem = !!uso && uso.chamadas.teto === 0 && uso.tokensDeLlm.teto === 0;
+    const cartaoDeConsumo = ([, titulo, valor, f, unidade, dia]: LinhaDeConsumo) => {
+      const fora = unidade === foraDoPlano;
+      const pct = f === null ? null : Math.round(Math.max(0, Math.min(1, f)) * 100);
       return (
-        <article
-          key={p.id}
-          data-plano={p.id}
-          className={`q-cartao qc-plano${p.destaque ? ' qc-destaque' : ''}${sugeridoAqui ? ' qc-sugerido' : ''}`}
-          aria-label={p.nome}
-        >
-          <div className="qc-plano-topo">
-            <span className="q-ic">
-              <Icone aria-hidden />
-            </span>
-            <div>
-              <h2>{p.nome}</h2>
-              <p>{t(p.tag)}</p>
-            </div>
-            <div className="qc-selos">
-              {p.destaque && (
-                <span className="q-tag">
-                  <Star aria-hidden /> {t('Recomendado')}
-                </span>
-              )}
-              {sugeridoAqui && !testando && (
-                <span className="q-tag">
-                  <Target aria-hidden /> {t('Sugerido para você')}
-                </span>
-              )}
-              {atual && (
-                <span className="q-tag qc-bom">
-                  <Check aria-hidden /> {t('Seu plano')}
-                </span>
-              )}
-              {testando && (
-                <span className="q-tag qc-bom">
-                  <Hourglass aria-hidden /> {t('Em teste')}
-                </span>
-              )}
-            </div>
-          </div>
-          <div className="qc-preco">
-            <span className="qc-moeda">R$</span>
-            <b>{pr.valor}</b>
-            <span className="qc-per">{pr.per}</span>
-          </div>
-          <p className="qc-nota">{pr.cobranca}</p>
-          <p className="q-texto">{t(p.para)}</p>
-          {testeFeito !== null && p.id === 'premium' ? (
-            <p className="qc-ok" role="status">
-              <Hourglass aria-hidden />
-              <span>
-                {t('Pronto: o Premium vale até {data}. No fim a conta volta ao Grátis sozinha, e nada é cobrado.', {
-                  data: dataCurta(testeFeito),
-                })}
-              </span>
-            </p>
-          ) : (
-            <button
-              type="button"
-              className={`q-ctl bloco${c.solido ? ' pri' : ''}`}
-              disabled={c.off || c.ocupado}
-              onClick={c.acao}
+        <div key={titulo} className="q-cartao q-num px-consumo">
+          <span className="q-rotulo">{t(titulo)}</span>
+          <b>{fora ? '—' : valor}</b>
+          {/* Sem teto NÃO vira barra vazia: uma barra a 0 pareceria "nada usado". */}
+          {!fora && pct !== null && (
+            <span
+              className="q-barra"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={pct}
+              aria-label={t(titulo)}
+              aria-valuetext={`${valor} ${unidade}`}
             >
-              {IconeDaAcao && <IconeDaAcao className={c.ocupado ? 'qc-gira' : undefined} aria-hidden />}
-              {c.rot}
-              {c.solido && !IconeDaAcao && <ArrowRight aria-hidden />}
-            </button>
-          )}
-          {c.secundario && (
-            <button type="button" className="q-ctl bloco" onClick={c.secundario.acao}>
-              {c.secundario.rot}
-            </button>
-          )}
-          {c.nota && (
-            <p className="qc-nota">
-              {menor && p.id === 'premium' && <UserRound aria-hidden />}
-              {c.nota}
-            </p>
-          )}
-          {testeErro && p.id === 'premium' && (
-            <p className="qc-erro" role="alert">
-              <TriangleAlert aria-hidden />
-              <span>{testeErro}</span>
-            </p>
-          )}
-          <div className="qc-inclui">
-            <span className="q-rotulo">
-              {p.base ? t('Tudo do {plano}, e:', { plano: p.base }) : t('O que você tem')}
+              <span style={{ width: `${Math.max(pct, 2)}%` }} />
             </span>
-            <ul className="qc-lista qc-neutra">
-              {p.itens.map((item) => {
-                const I = item.icone;
-                const nota = notaDoItem(item);
-                return (
-                  <li key={item.texto}>
-                    <I aria-hidden />
-                    <span>
-                      {textoDoItem(item)}
-                      {/* A nota do uso justo AO LADO do "sem limite", no mesmo item (CDC). */}
-                      {nota && <small>{nota}</small>}
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        </article>
+          )}
+          <span>
+            {fora
+              ? foraDoPlano
+              : f === null
+                ? t('sem limite')
+                : dia
+                  ? t('{valor} do limite de hoje', { valor: unidade })
+                  : t('{valor} do limite do plano', { valor: unidade })}
+          </span>
+        </div>
       );
     };
 
     return (
-      <div className="q-palco qc" data-testid="planos-do-quest">
+      <div className="q-palco px-planos-tela" data-testid="planos-do-quest">
         <header className="q-cab">
           <div>
-            <p className="q-sobre">{t('Assinatura')}</p>
-            <h1>{t('Planos')}</h1>
-            <p className="qc-sub">{t('O que cada plano inclui, a sua assinatura e o consumo do mês.')}</p>
+            <p className="q-sobre">{t('Planos')}</p>
+            <h1>{t(TITULO_DA_TELA)}</h1>
           </div>
+          <span className="q-chip px-meu-plano">
+            <IconeDoPlano aria-hidden /> {seloDoPlano}
+          </span>
         </header>
+        <div className="q-abas px-abas-planos" role="tablist" aria-label={t('Planos')} ref={refDasAbas}>
+          {ordemDasAbas.map((id, i) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              className="q-aba"
+              aria-selected={aba === id}
+              tabIndex={aba === id ? 0 : -1}
+              onClick={() => irAba(id, 1)}
+              onKeyDown={(e) => aoTeclarNaAba(e, i)}
+            >
+              {rotuloDaAba[id]}
+            </button>
+          ))}
+        </div>
 
-        <AbasDoQuest
-          itens={[
-            { id: 'planos', rotulo: t('Planos'), icone: <ListChecks aria-hidden /> },
-            ...(assina ? [{ id: 'assinatura', rotulo: t('Sua assinatura'), icone: <Receipt aria-hidden /> }] : []),
-            { id: 'consumo', rotulo: t('Consumo do mês'), icone: <Gauge aria-hidden /> },
-          ]}
-          ativo={aba}
-          aoTrocar={trocarAba}
-          rotuloDoGrupo={t('Seções de Planos')}
-        />
-
-        <PainelDeAba id="planos" ativo={aba} className="qc-painel">
-          <FaixaDaConta
-            conta={conta}
-            rotuloGratis={meuPlano === 'anonimo' ? t(PLAN_LABELS[meuPlano]) : t('Grátis')}
-            aoGerenciar={() => irSub('assinatura')}
-            aoAtualizarPagamento={() => setDialogo('pagamento')}
-            aoReativar={reativar}
-          />
-
-          <div className="qc-produto">
-            <h2>{t(TITULO_DA_TELA)}</h2>
-            <p>
-              {t(
-                'Do microfone ou do som do computador, a legenda aparece nos dois idiomas enquanto você ouve. Estudar e jogar é igual nos dois planos.',
-              )}
+        {aba === 'planos' && (
+          <>
+            <div className="q-grade g2 px-planos-grade">
+              <section className="q-cartao px-plano" data-plano="gratis">
+                <p className="q-rotulo">{noGratis ? t('Seu plano') : ' '}</p>
+                <h3>{nomeDoGratis}</h3>
+                <p className="px-preco">
+                  <b>R$ 0</b>
+                  <span>{t('para sempre')}</span>
+                </p>
+                <p className="q-d">{t('Sem cartão, sem conta.')}</p>
+                <ul>
+                  {item(t('Legenda bilíngue ao vivo, no aparelho, sem limite'))}
+                  {item(t('Tradução rápida ao vivo'))}
+                  {item(t('Jogos, vocabulário e revisão'))}
+                  {item(
+                    t('Nuvem: até {horas} h por mês, para aparelho fraco, quando disponível', {
+                      horas: horasDoAlivio(),
+                    }),
+                  )}
+                </ul>
+                {noGratis && (
+                  <button type="button" className="q-ctl" onClick={() => navegarPara({ view: 'hub' })}>
+                    {t('Continuar grátis')}
+                  </button>
+                )}
+              </section>
+              <section className="q-cartao px-plano px-premium" data-plano="premium">
+                <p className="q-rotulo">
+                  <span className="q-tag">{testando ? t('Em teste') : assina ? t('Seu plano') : t('Recomendado')}</span>{' '}
+                  {t(premium.tag)}
+                </p>
+                <h3>{premium.nome}</h3>
+                <p className="px-preco">
+                  <b>{brl(anual ? precoAnual('premium') : precoMensal('premium'))}</b>
+                  <span>{anual ? t('por ano') : t('por mês')}</span>
+                </p>
+                <p className="q-d">{t(premium.para)}</p>
+                <p className="px-tudo">{t('Tudo do {plano}, e:', { plano: premium.base ?? '' })}</p>
+                <ul>{premium.itens.map((i) => item(textoDoItem(i), notaDoItem(i)))}</ul>
+                {principalDoPremium}
+                {c.secundario && (
+                  <button type="button" className="q-ctl" onClick={c.secundario.acao}>
+                    {c.secundario.rot}
+                  </button>
+                )}
+                {notaDoPremium && <p className="px-nota">{notaDoPremium}</p>}
+                {testeErro && (
+                  <p className="qc-erro" role="alert">
+                    <TriangleAlert aria-hidden />
+                    <span>{testeErro}</span>
+                  </p>
+                )}
+              </section>
+            </div>
+            <p className="px-garantia">
+              <Lock aria-hidden /> {t('Pagamento seguro · 7 dias para desistir com reembolso · cancele quando quiser')}
             </p>
-            {!selfhost && anualAVenda && (
-              <div className="q-abas q-seg qc-quebra" role="radiogroup" aria-label={t('Período de cobrança')}>
-                <button
-                  type="button"
-                  className="q-aba"
-                  role="radio"
-                  aria-checked={!anual}
-                  onClick={() => trocarPeriodo('mensal')}
-                >
-                  {t('Mensal')}
-                </button>
-                <button
-                  type="button"
-                  className="q-aba"
-                  role="radio"
-                  aria-checked={anual}
-                  onClick={() => trocarPeriodo('anual')}
-                >
-                  {t('Anual')}{' '}
-                  <span className="q-tag qc-bom">{t('equivale a {n} meses grátis', { n: economia.meses })}</span>
-                </button>
-              </div>
-            )}
-          </div>
-
-          <div className="qc-planos">{PLANOS.map(cartaoDoQuest)}</div>
-          <p className="qc-garantia">
-            <ShieldCheck aria-hidden />
-            {t('Pagamento seguro · 7 dias para desistir com reembolso · cancele quando quiser')}
-          </p>
-
-          <section className="q-secao">
-            <header>
-              <div>
-                <h2>{t('Comparar em detalhe')}</h2>
-                <p>{t('Tudo o que cada plano inclui, lado a lado.')}</p>
-              </div>
-            </header>
-            <div className="q-tabela-caixa" role="region" aria-label={t('Comparação completa')} tabIndex={0}>
-              <table className="q-tabela qc-compara">
-                <thead>
-                  <tr>
-                    <th scope="col">
-                      <span className="sr">{t('Recurso')}</span>
-                    </th>
-                    {PLANOS.map((p) => {
-                      const I = p.icone;
-                      return (
-                        <th key={p.id} scope="col" className={p.destaque ? 'qc-coluna-destaque' : undefined}>
-                          <span>
-                            <I aria-hidden />
-                            {p.nome}
-                          </span>
-                          <small>
-                            {p.id === 'gratis'
-                              ? brl(0)
-                              : anual
-                                ? t('{preco}/ano', { preco: brl(precoAnual('premium')) })
-                                : t('{preco}/mês', { preco: brl(precoMensal('premium')) })}
-                          </small>
-                        </th>
-                      );
-                    })}
-                  </tr>
-                </thead>
-                {comparativo().map(([grupo, linhas]) => (
-                  <tbody key={grupo}>
-                    <tr className="qc-grupo-da-tabela">
-                      <th colSpan={PLANOS.length + 1} scope="colgroup">
-                        {grupo}
-                      </th>
+            <section className="q-secao">
+              <header>
+                <div>
+                  <h2>{t('Comparar em detalhe')}</h2>
+                </div>
+              </header>
+              <div className="q-tabela-caixa">
+                <table className="q-tabela px-compara">
+                  <thead>
+                    <tr>
+                      <th scope="col">&nbsp;</th>
+                      <th scope="col">{nomeDoGratis}</th>
+                      <th scope="col">{premium.nome}</th>
                     </tr>
-                    {linhas.map(([rotulo, valores, nota]) => (
+                  </thead>
+                  <tbody>
+                    {tabela.map(([rotulo, g, pr]) => (
                       <tr key={rotulo}>
-                        <th scope="row">
-                          {rotulo}
-                          {nota && <small>{nota}</small>}
-                        </th>
-                        {valores.map((x, k) => (
-                          <td key={k} className={PLANOS[k].destaque ? 'qc-coluna-destaque' : undefined}>
-                            {x === 'ok' ? (
-                              <>
-                                <Check aria-hidden />
-                                <span className="sr">{t('Incluído')}</span>
-                              </>
-                            ) : x === 'nao' ? (
-                              <>
-                                <span className="qc-nao" aria-hidden>
-                                  —
-                                </span>
-                                <span className="sr">{t('Não incluído')}</span>
-                              </>
-                            ) : (
-                              <b>{x}</b>
-                            )}
-                          </td>
-                        ))}
+                        <th scope="row">{rotulo}</th>
+                        <td>{g}</td>
+                        <td>{pr}</td>
                       </tr>
                     ))}
                   </tbody>
-                ))}
-              </table>
-            </div>
-          </section>
-
-          <section className="q-secao">
-            <header>
-              <div>
-                <h2>{t('Perguntas frequentes')}</h2>
+                </table>
               </div>
-            </header>
-            <div className="qc-pilha">
-              {perguntas(anualAVenda).map(([q, r], i) => (
-                <details key={q} className="qc-faq" open={i === 0}>
-                  <summary>
-                    <span>{q}</span>
-                    <ChevronDown aria-hidden />
-                  </summary>
-                  <p>{r}</p>
-                </details>
-              ))}
-            </div>
-          </section>
-        </PainelDeAba>
+              <p className="px-nota">
+                {t(
+                  '* uso justo: até {dia} h de nuvem por dia e {mes} h por mês; passando disso, a legenda segue no aparelho.',
+                  justo,
+                )}
+              </p>
+            </section>
+            <section className="q-secao">
+              <header>
+                <div>
+                  <h2>{t('Perguntas frequentes')}</h2>
+                </div>
+              </header>
+              {/* O clique é do <summary>, que o teclado já aciona; aqui só a altura é animada. */}
+              <div className="px-faq" onClick={alternarPergunta}>
+                {faq.map(([q, r]) => (
+                  <details key={q} className="q-cartao">
+                    <summary>
+                      {q}
+                      <ChevronDown aria-hidden />
+                    </summary>
+                    <p>{r}</p>
+                  </details>
+                ))}
+              </div>
+            </section>
+          </>
+        )}
 
-        <PainelDeAba id="assinatura" ativo={aba} className="qc-painel">
-          <SuaAssinatura
-            conta={conta}
-            faturas={faturas}
-            carregandoFaturas={carregandoFaturas}
-            abrir={setDialogo}
-            aoCancelar={() => irSub('cancelar')}
-            aoTentarDeNovo={(f) => window.open(f.link!, '_blank', 'noopener')}
-            aoReativar={reativar}
-          />
-        </PainelDeAba>
+        {aba === 'assinatura' &&
+          (assina ? (
+            <SuaAssinatura
+              conta={conta}
+              faturas={faturas}
+              carregandoFaturas={carregandoFaturas}
+              abrir={setDialogo}
+              aoCancelar={() => irSub('cancelar')}
+              aoTentarDeNovo={(f) => window.open(f.link!, '_blank', 'noopener')}
+              aoReativar={reativar}
+            />
+          ) : (
+            <section className="q-cartao px-assinatura">
+              <span className="q-ic">
+                <IconeDoPlano aria-hidden />
+              </span>
+              <div>
+                <p className="q-rotulo">{t('Sua assinatura')}</p>
+                <h2>{selfhost ? 'Self-host' : testando ? t('Premium, em teste') : t('Você está no Grátis')}</h2>
+                <p className="q-d">
+                  {selfhost
+                    ? t('É o Babel Play rodando no seu próprio computador. Ali tudo fica liberado e não há cota.')
+                    : testando
+                      ? `${tp(diasQueFaltam, 'O teste termina em {n} dia.', 'O teste termina em {n} dias.')} ${t(
+                          'Depois dele a conta volta ao Grátis sozinha e nada é cobrado. A legenda no aparelho continua sem limite.',
+                        )}`
+                      : `${t('Ele continua inteiro: legenda no aparelho sem limite, jogos, vocabulário e revisão.')}${
+                          podeTestar
+                            ? ` ${t('Quando quiser ir além, o Premium tem teste de {dias} dias, sem cartão.', {
+                                dias: teste?.dias ?? DIAS_DO_TESTE_PREMIUM,
+                              })}`
+                            : ''
+                        }`}
+                </p>
+                <div className="q-acoes">
+                  {/* Só o botão principal (`telas2.js:88`): assinar direto fica no cartão do Premium. */}
+                  {!selfhost && principalDoPremium}
+                  {!testando && (
+                    <button type="button" className="q-ctl" onClick={() => irAba('planos', -1)}>
+                      {t('Comparar os planos')}
+                    </button>
+                  )}
+                </div>
+                {testeErro && (
+                  <p className="qc-erro" role="alert">
+                    <TriangleAlert aria-hidden />
+                    <span>{testeErro}</span>
+                  </p>
+                )}
+              </div>
+            </section>
+          ))}
 
-        <PainelDeAba id="consumo" ativo={aba} className="qc-painel">
-          {carregando ? (
+        {aba === 'consumo' &&
+          (carregando ? (
             <>
               <div className="qc-espera" role="status">
                 <LoaderCircle aria-hidden />
@@ -1130,80 +1225,29 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
             </div>
           ) : (
             <>
-              {/* O mês primeiro; o DIA (uso justo) logo abaixo, com o mesmo medidor. */}
-              {[false, true].map((doDia) => {
-                const linhas = consumo.filter((l) => l[5] === doDia);
-                if (!linhas.length) return null;
-                return (
-                  <section key={String(doDia)} className="q-secao">
-                    {doDia && (
-                      <header>
-                        <h3>{t('Hoje')}</h3>
-                      </header>
+              <div className="q-grade g2">{consumo.map(cartaoDeConsumo)}</div>
+              {semIaDeNuvem && (
+                <div className="q-aviso">
+                  <span>
+                    <Lock aria-hidden />{' '}
+                    {t(
+                      'Chamadas e tokens de IA de nuvem fazem parte do Premium. A legenda no aparelho continua sem limite.',
                     )}
-                    <div className="q-grade g2">
-                      {linhas.map(([I, titulo, valor, f, unidade, dia]) => (
-                        <div key={titulo} className="q-cartao qc-consumo">
-                          <div className="qc-consumo-titulo">
-                            <span className="q-ic">
-                              <I aria-hidden />
-                            </span>
-                            <h3>{t(titulo)}</h3>
-                          </div>
-                          <div className="qc-consumo-valor">
-                            <b>{valor}</b>
-                            <span>
-                              {unidade}
-                              {unidade !== foraDoPlano &&
-                                ` · ${f === null ? t('sem limite') : dia ? t('do limite de hoje') : t('do limite do plano')}`}
-                            </span>
-                          </div>
-                          {/* Sem teto NÃO vira barra vazia: uma barra a 0 pareceria "nada usado". */}
-                          {f !== null && (
-                            <div
-                              className="q-barra"
-                              role="progressbar"
-                              aria-valuenow={Math.round(f * 100)}
-                              aria-valuemin={0}
-                              aria-valuemax={100}
-                              aria-label={t(titulo)}
-                              aria-valuetext={`${valor} ${unidade}`}
-                            >
-                              <span style={{ width: `${Math.max(0, Math.min(1, f)) * 100}%` }} />
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </section>
-                );
-              })}
-              <div className="q-cartao fundo qc-janela">
-                <span className="q-ic">{semTeto ? <Infinito aria-hidden /> : <Gauge aria-hidden />}</span>
-                <div>
-                  <h3>{semTeto ? t('No self-host não há cota') : t('Janela {janela}', { janela: uso.janela })}</h3>
-                  <p>
-                    {semTeto
-                      ? t(
-                          'Os números acima são só para você acompanhar; o custo da IA de nuvem é seu, pela sua própria chave. Os limites valem nos planos em nuvem.',
-                        )
-                      : t(
-                          'Zera na virada do mês. Transcrição, tradução e tutor dividem o limite de chamadas: cada fala transcrita e traduzida usa duas. Tradução e tutor também dividem o limite de tokens. A cota de transcrição conta os segundos reais de fala.',
-                        )}
-                  </p>
-                  {notaDoDiaTexto && (
-                    <p data-testid="uso-justo-do-dia">
-                      {notaDoDiaTexto}. {t('O uso do dia zera à meia-noite, no fuso da sua conta.')}
-                    </p>
-                  )}
-                  {uso.iaDeNuvem && !uso.iaDeNuvem.disponivel && uso.iaDeNuvem.mensagem && (
-                    <p role="status">{uso.iaDeNuvem.mensagem}</p>
-                  )}
+                  </span>
+                  <button type="button" className="q-ctl" onClick={() => irAba('planos', -1)}>
+                    {t('Ver planos')}
+                  </button>
                 </div>
-              </div>
+              )}
+              {/* O portão GLOBAL da nuvem (chave de emergência ou orçamento do mês): sem esta linha, a
+                  nuvem fechada parecia defeito do plano. */}
+              {uso.iaDeNuvem && !uso.iaDeNuvem.disponivel && uso.iaDeNuvem.mensagem && (
+                <div className="q-aviso" role="status">
+                  <span>{uso.iaDeNuvem.mensagem}</span>
+                </div>
+              )}
             </>
-          )}
-        </PainelDeAba>
+          ))}
         {dialogos}
       </div>
     );

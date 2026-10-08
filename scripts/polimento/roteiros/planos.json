@@ -1,0 +1,105 @@
+{
+  "nome": "planos",
+  "largura": 1280,
+  "altura": 960,
+  "app": {
+    "caminho": "/",
+    "guardar": {
+      "babel.px.planoDeProva": "free"
+    },
+    "passos": [
+      {
+        "js": "(() => { const f = window.fetch; window.__teste = 'disponivel'; window.fetch = (u, o) => { const s = String(u && u.url ? u.url : u); const j = (c) => Promise.resolve(new Response(JSON.stringify(c), { status: 200, headers: { 'Content-Type': 'application/json' } })); const fim = Date.now() + 14 * 864e5 - 60000; if (s.includes('/api/billing/teste')) { window.__teste = 'ativo'; return j({ teste: { terminaEm: fim } }); } if (s.includes('/api/billing/status')) return j({ configurado: true, assinatura: null, teste: window.__teste === 'ativo' ? { estado: 'ativo', dias: 14, iniciadoEm: Date.now(), terminaEm: fim } : { estado: 'disponivel', dias: 14 } }); if (s.includes('/api/me/uso')) return j({ plano: 'free', janela: '2026-10', chamadas: { usado: 0, teto: 0 }, segundosDeAudio: { usado: 2520, teto: 10800 }, tokensDeLlm: { usado: 0, teto: 0 }, iaDeNuvem: { disponivel: true, motivo: null, mensagem: null }, alivio: null, hoje: null }); return f(u, o); }; })()"
+      },
+      {
+        "clicar": "[data-testid='plano-no-inicio']"
+      },
+      {
+        "esperar": 2500
+      }
+    ]
+  },
+  "proto": {
+    "passos": [
+      {
+        "clicar": ".px-plano-chip"
+      },
+      {
+        "esperar": 2500
+      }
+    ]
+  },
+  "seletores": [
+    ".px-planos-tela",
+    ".px-planos-tela .q-cab",
+    ".px-planos-tela .q-cab h1",
+    ".px-planos-tela .q-cab .q-sobre",
+    ".px-meu-plano",
+    ".px-meu-plano svg",
+    ".px-abas-planos",
+    ".px-abas-planos .q-aba",
+    ".px-abas-planos .px-pilula",
+    ".px-planos-grade",
+    ".px-plano:not(.px-premium)",
+    ".px-plano:not(.px-premium) .q-rotulo",
+    ".px-plano:not(.px-premium) h3",
+    ".px-plano:not(.px-premium) .px-preco",
+    ".px-plano:not(.px-premium) .px-preco b",
+    ".px-plano:not(.px-premium) .px-preco span",
+    ".px-plano:not(.px-premium) .q-d",
+    ".px-plano:not(.px-premium) ul",
+    ".px-plano:not(.px-premium) li",
+    ".px-plano:not(.px-premium) li svg",
+    ".px-plano:not(.px-premium) > .q-ctl",
+    ".px-premium",
+    ".px-premium .q-rotulo",
+    ".px-premium .q-rotulo .q-tag",
+    ".px-premium h3",
+    ".px-premium .px-preco",
+    ".px-premium .px-preco b",
+    ".px-premium .px-preco span",
+    ".px-premium .q-d",
+    ".px-premium .px-tudo",
+    ".px-premium ul",
+    ".px-premium li",
+    ".px-premium li small",
+    ".px-premium > .q-ctl.pri",
+    ".px-premium > .q-ctl:not(.pri)",
+    ".px-premium .px-nota",
+    ".px-garantia",
+    ".px-garantia svg"
+  ],
+  "props": [
+    "borderTopStyle",
+    "alignItems",
+    "gridTemplateColumns",
+    "maxWidth",
+    "marginTop",
+    "marginBottom",
+    "order",
+    "textAlign",
+    "justifyContent",
+    "flexDirection",
+    "overflowX",
+    "height",
+    "width",
+    "bottom",
+    "translate",
+    "whiteSpace",
+    "flexWrap",
+    "verticalAlign"
+  ],
+  "gravar": {
+    "app": [
+      {
+        "clicar": ".px-abas-planos .q-aba >> text=Consumo do mês"
+      }
+    ],
+    "proto": [
+      {
+        "clicar": ".px-abas-planos .q-aba >> text=Consumo do mês"
+      }
+    ],
+    "espera": 1200
+  }
+}

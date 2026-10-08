@@ -68,3 +68,12 @@ protótipo **não é portado**; fica anotado aqui, para ele decidir depois o que
 | Vitendawili | Narração em duas falas com silêncio na lacuna | `VitendawiliGame.tsx` | Agora uma fala só; no acerto fala a frase inteira |
 | Shiritori | Botão "Ouvir a palavra" na ponta, aviso "O tempo acabou. O elo era: X" | `ShiritoriGame.tsx` |  |
 | Cadavre | "Trocar" a palavra por uma de reserva, ouvir cada palavra, painel "A sua frase", ícones de usada e não usada | `CadavreExquisGame.tsx` |  |
+| Planos | **Seletor Mensal / Anual**, "equivale a N meses grátis", preço riscado com "economize R$ X" | `Planos.tsx` | **Atenção, é venda:** o cartão agora é sempre o mensal |
+| Planos | **As 8 perguntas frequentes auditadas** (CDC art. 49, menores de 18, detalhes do cancelamento, mensal × anual) | `Planos.tsx` | **Atenção, é texto legal:** ficaram as 4 do protótipo, que a especificação chama de rascunho |
+| Planos | Faixa da conta no alto, parágrafo de apresentação, sobrancelha "Assinatura" | `Planos.tsx` (`FaixaDaConta`) | Para quem assina continua dentro de "Sua assinatura" |
+| Planos | Ícone do plano, selo e contorno "Sugerido para você", rolagem até o cartão sugerido | `Planos.tsx` | Vinha da oferta |
+| Planos | Itens do Grátis: "o que você fala não sai dele", tamanho dos modelos, espaço para sessões | `Planos.tsx` |  |
+| Planos | Botões "Volta sozinho no fim do teste" e "Voltar ao Grátis"; aviso "o Premium vale até {data}" | `Planos.tsx` | Cancelar continua em "Sua assinatura" |
+| Planos | Comparação: grupos, preço no cabeçalho, linha "Sua própria chave de IA (BYOK)" | `Planos.tsx` | A nota do uso justo virou asterisco e rodapé |
+| Planos | Consumo: ícones, seção "Hoje", cartão da janela do mês, frase "o uso do dia zera à meia-noite" | `Planos.tsx` |  |
+| Oferta | Selo abaixo do texto e o rótulo "Dispensar aviso" | `CartaoDeOfertaDoQuest.tsx` | Virou "Fechar" |

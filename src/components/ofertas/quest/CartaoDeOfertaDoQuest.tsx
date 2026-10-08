@@ -1,20 +1,27 @@
 import '../../../styles/questConta.css';
+import '../../../styles/polimentoPlanos.css';
 
 import type { LucideIcon } from 'lucide-react';
 import { X } from 'lucide-react';
-import { useId } from 'react';
+import { useCallback, useLayoutEffect, useRef } from 'react';
 
 import { t } from '../../../lib/i18n';
+import { entrarOferta, sairOferta } from '../../../lib/polimento/planos';
+import { toast } from '../../Toast';
 
 /**
- * A OFERTA QUE NÃO BLOQUEIA, NO META QUEST: o banner e o aviso de cota de `CartaoDeOferta`, embaixo e
- * ao centro, com as três saídas de sempre em alvos de 60 px (a ação, "Agora não", "Não mostrar
- * novamente") e o fechar de 56.
+ * A OFERTA QUE NÃO BLOQUEIA, NO DESENHO NOVO — `oferta()` do protótipo (`telas.js:495-519`): o
+ * `aside.qc-oferta` embaixo e ao centro, com o ícone, o selo do que se sugere acima do título, o
+ * fechar e as três saídas de sempre (a ação, "Agora não", "Não mostrar novamente").
  *
- * Continua sem prender o foco e sem escurecer a tela: é um `status`. No headset de janela estreita o
- * trilho deita embaixo, e o cartão sobe para não ficar atrás dele (`questConta.css`).
+ * O MOVIMENTO é o do protótipo: sobe em 680 ms na mola suave, o ícone gira para o lugar e os textos
+ * vêm em fila (`entrarOferta`); qualquer saída a desce em 280 ms antes de ela sair da tela
+ * (`sairOferta`).
  *
- * Só apresentação: quando aparece, o Esc e o que cada saída registra continuam em `CartaoDeOferta` e
+ * Continua sem prender o foco e sem escurecer a tela. No celular o trilho deita embaixo, e o cartão
+ * sobe para não ficar atrás dele (`polimento/telas.css`).
+ *
+ * Só apresentação: QUANDO aparece, o Esc e o que cada saída registra continuam em `CartaoDeOferta` e
  * no `HostDeOfertas`, que carregam este arquivo sob demanda (eles moram no pacote inicial).
  */
 export default function CartaoDeOfertaDoQuest({
@@ -41,12 +48,37 @@ export default function CartaoDeOfertaDoQuest({
   aoDispensar: () => void;
   aoNaoMostrar: () => void;
 }) {
-  const idTitulo = useId();
+  const ref = useRef<HTMLElement | null>(null);
+  const saindo = useRef(false);
+  const guardar = useCallback(
+    (el: HTMLElement | null) => {
+      ref.current = el;
+      aoMontar(el);
+    },
+    [aoMontar],
+  );
+  /* A entrada (`telas.js:516-518`), antes da primeira pintura: a oferta não pisca no lugar. */
+  useLayoutEffect(() => {
+    if (ref.current) entrarOferta(ref.current);
+  }, []);
+  /* `fecharOferta()` (`telas.js:484-492`): toda saída desce primeiro; só a primeira vale. */
+  const sair = (depois: () => void) => () => {
+    if (saindo.current) return;
+    saindo.current = true;
+    sairOferta(ref.current, depois);
+  };
+  const naoMostrar = () => {
+    if (saindo.current) return;
+    /* `telas.js:511` */
+    toast.info(t('Combinado: esta sugestão não aparece mais.'));
+    sair(aoNaoMostrar)();
+  };
+
   return (
-    <section
-      ref={aoMontar}
-      role="status"
-      aria-labelledby={idTitulo}
+    <aside
+      ref={guardar}
+      role="complementary"
+      aria-label={t('Sugestão de plano')}
       data-testid="cartao-de-oferta"
       className={tom === 'alerta' ? 'qc-oferta qc-alerta' : 'qc-oferta'}
     >
@@ -54,24 +86,24 @@ export default function CartaoDeOfertaDoQuest({
         <Icone />
       </span>
       <div className="qc-oferta-texto">
-        <b id={idTitulo}>{titulo}</b>
+        {selo && <span className="q-tag">{selo}</span>}
+        <b>{titulo}</b>
         <p>{texto}</p>
-        {selo && <span className="q-tag qc-livre">{selo}</span>}
       </div>
-      <button type="button" className="qc-fechar" aria-label={t('Dispensar aviso')} onClick={aoDispensar}>
+      <button type="button" className="q-ctl qc-fechar" aria-label={t('Fechar')} onClick={sair(aoDispensar)}>
         <X aria-hidden />
       </button>
       <div className="q-acoes">
-        <button type="button" className="q-ctl pri" onClick={aoAgir}>
+        <button type="button" className="q-ctl pri" onClick={sair(aoAgir)}>
           {cta}
         </button>
-        <button type="button" className="q-ctl" onClick={aoDispensar}>
+        <button type="button" className="q-ctl" onClick={sair(aoDispensar)}>
           {t('Agora não')}
         </button>
-        <button type="button" className="q-ctl" onClick={aoNaoMostrar}>
+        <button type="button" className="q-ctl" onClick={naoMostrar}>
           {t('Não mostrar novamente')}
         </button>
       </div>
-    </section>
+    </aside>
   );
 }

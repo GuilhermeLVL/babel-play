@@ -1,0 +1,91 @@
+{
+  "nome": "planos-consumo-celular",
+  "largura": 390,
+  "altura": 844,
+  "app": {
+    "caminho": "/",
+    "guardar": {
+      "babel.px.planoDeProva": "free"
+    },
+    "passos": [
+      {
+        "js": "(() => { const f = window.fetch; window.__teste = 'disponivel'; window.fetch = (u, o) => { const s = String(u && u.url ? u.url : u); const j = (c) => Promise.resolve(new Response(JSON.stringify(c), { status: 200, headers: { 'Content-Type': 'application/json' } })); const fim = Date.now() + 14 * 864e5 - 60000; if (s.includes('/api/billing/teste')) { window.__teste = 'ativo'; return j({ teste: { terminaEm: fim } }); } if (s.includes('/api/billing/status')) return j({ configurado: true, assinatura: null, teste: window.__teste === 'ativo' ? { estado: 'ativo', dias: 14, iniciadoEm: Date.now(), terminaEm: fim } : { estado: 'disponivel', dias: 14 } }); if (s.includes('/api/me/uso')) return j({ plano: 'free', janela: '2026-10', chamadas: { usado: 0, teto: 0 }, segundosDeAudio: { usado: 2520, teto: 10800 }, tokensDeLlm: { usado: 0, teto: 0 }, iaDeNuvem: { disponivel: true, motivo: null, mensagem: null }, alivio: null, hoje: null }); return f(u, o); }; })()"
+      },
+      {
+        "clicar": "[data-testid='plano-no-inicio']"
+      },
+      {
+        "esperar": 2500
+      },
+      {
+        "clicar": ".px-abas-planos .q-aba >> text=Consumo do mês"
+      },
+      {
+        "esperar": 1800
+      }
+    ]
+  },
+  "proto": {
+    "passos": [
+      {
+        "clicar": ".px-plano-chip"
+      },
+      {
+        "esperar": 2500
+      },
+      {
+        "clicar": ".px-abas-planos .q-aba >> text=Consumo do mês"
+      },
+      {
+        "esperar": 1800
+      }
+    ]
+  },
+  "seletores": [
+    ".px-abas-planos .q-aba[aria-selected=\"true\"]",
+    ".px-planos-tela > .q-grade",
+    ".px-consumo",
+    ".px-consumo .q-rotulo",
+    ".px-consumo b",
+    ".px-consumo .q-barra",
+    ".px-consumo .q-barra > span",
+    ".px-consumo > span:last-child",
+    ".px-planos-tela > .q-aviso",
+    ".px-planos-tela > .q-aviso > span",
+    ".px-planos-tela > .q-aviso svg",
+    ".px-planos-tela > .q-aviso .q-ctl"
+  ],
+  "props": [
+    "borderTopStyle",
+    "alignItems",
+    "gridTemplateColumns",
+    "maxWidth",
+    "marginTop",
+    "marginBottom",
+    "order",
+    "textAlign",
+    "justifyContent",
+    "flexDirection",
+    "overflowX",
+    "height",
+    "width",
+    "bottom",
+    "translate",
+    "whiteSpace",
+    "flexWrap",
+    "verticalAlign"
+  ],
+  "gravar": {
+    "app": [
+      {
+        "texto": "Ver planos"
+      }
+    ],
+    "proto": [
+      {
+        "texto": "Ver planos"
+      }
+    ],
+    "espera": 1200
+  }
+}

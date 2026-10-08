@@ -1,0 +1,11 @@
+/* A OFERTA DO DESENHO NOVO (`telas.js:503`): o fechar é `button.q-ctl.qc-fechar`.
+
+   No protótipo `.qc-fechar` vem depois de `.q-ctl` na folha e ganha as três medidas abaixo. No app as
+   duas regras moram em arquivos que chegam sob demanda (`quest.css`, `questConta.css`), têm o mesmo
+   peso e a ordem de chegada varia: às vezes o fechar saía com 60 px e recuo de botão comum. Aqui o
+   resultado do protótipo fica fixo, qualquer que seja a ordem. */
+.qc-oferta .q-ctl.qc-fechar {
+  min-width: 56px;
+  padding: 0;
+  display: grid;
+}

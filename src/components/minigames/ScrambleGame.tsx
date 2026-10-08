@@ -1,11 +1,11 @@
 import type { ItemOutcome, RodadaFrase, RoundReport } from '@core';
-import { acertosPosicionais, checkOrder, scoreRound } from '@core';
+import { checkOrder, scoreRound } from '@core';
 import { Check, Eraser, Lightbulb, Volume2 } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 
 import { juntarPalavras } from '../../core/minigames/palavrasDaFrase';
 import { celebrar } from '../../lib/comemoracao';
-import { t } from '../../lib/i18n';
+import { t, tp } from '../../lib/i18n';
 import { multiplicador, pontosDoElemento } from '../../lib/juice';
 import type { AgeProfileType } from '../../lib/profile';
 import { play } from '../../lib/soundFx';
@@ -22,6 +22,13 @@ interface ScrambleGameProps {
   ageProfile: AgeProfileType;
   onFinish: (report: RoundReport) => void;
   onExit: () => void;
+}
+
+/** Quantas palavras do COMEÇO da linha já estão no lugar: é o que fica quando a conferência erra. */
+function comecoCerto(montada: number[], rodada: { embaralhada: string[]; correta: string[] }): number {
+  let n = 0;
+  while (n < montada.length && rodada.embaralhada[montada[n]] === rodada.correta[n]) n++;
+  return n;
 }
 
 export default function ScrambleGame({ rodadas, ageProfile, onFinish }: ScrambleGameProps) {
@@ -108,7 +115,12 @@ export default function ScrambleGame({ rodadas, ageProfile, onFinish }: Scramble
     pontosDoElemento('Ordem incorreta', el, 'ruim');
     setConferido('errado');
     tentativasRef.current++;
-    setTimeout(() => setConferido(null), 1400);
+    /* AS ERRADAS VOLTAM SOZINHAS. Antes a linha ficava cheia e a pessoa tirava palavra por palavra para
+       tentar de novo. Agora o começo que já está certo fica, e o resto volta para as peças. */
+    setTimeout(() => {
+      setConferido(null);
+      setMontada((m) => m.slice(0, comecoCerto(m, rodada)));
+    }, 1400);
   };
 
   const desistir = () => {
@@ -154,13 +166,7 @@ export default function ScrambleGame({ rodadas, ageProfile, onFinish }: Scramble
 
   if (!rodada) return null;
 
-  const acertosParciais =
-    conferido === 'errado'
-      ? acertosPosicionais(
-          montada.map((i) => rodada.embaralhada[i]),
-          rodada.correta,
-        )
-      : 0;
+  const noComeco = conferido === 'errado' ? comecoCerto(montada, rodada) : 0;
 
   /* A CASCA COMUM desenha o cabeçalho, a pausa e a contagem; aqui ficam o placar comum e o palco
      da Frase embaralhada, que é dele. */
@@ -249,7 +255,6 @@ export default function ScrambleGame({ rodadas, ageProfile, onFinish }: Scramble
           ))}
         </div>
 
-        {/* Feedback PARCIAL: diz quantas estão no lugar, sem entregar quais. */}
         {/* No headset o acerto vem escrito (fora dele, a borda verde e o som). E como tirar uma palavra
             da linha fica dito: o `title` só aparece com o ponteiro parado. */}
         {questNovo && conferido === 'certo' && <VereditoNoQuest certo>{t('Frase certa!')}</VereditoNoQuest>}
@@ -258,9 +263,14 @@ export default function ScrambleGame({ rodadas, ageProfile, onFinish }: Scramble
         )}
         {conferido === 'errado' && (
           <p className="text-center text-[13px] text-warn-ink animate-in fade-in font-bold">
-            {acertosParciais > 0
-              ? `${acertosParciais} ${acertosParciais === 1 ? 'palavra está' : 'palavras estão'} no lugar certo, continue.`
-              : 'Ainda não. Tente começar por outra palavra.'}
+            {/* O que fica e o que volta, dito antes de acontecer. */}
+            {noComeco > 0
+              ? tp(
+                  noComeco,
+                  'O começo está certo: {n} palavra fica. As outras voltam para baixo.',
+                  'O começo está certo: {n} palavras ficam. As outras voltam para baixo.',
+                )
+              : t('Ainda não. A primeira palavra é outra: todas voltam para baixo.')}
           </p>
         )}
 

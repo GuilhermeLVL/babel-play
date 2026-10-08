@@ -3744,5 +3744,8 @@
   "Foi puxado desta vez. No {nivel} o jogo aperta menos.": "That was a tough one. On {nivel} the game eases up.",
   "Rodada sem erro. No {nivel} o jogo aperta mais.": "No mistakes this round. On {nivel} the game pushes harder.",
   "Jogar no {nivel}": "Play on {nivel}",
-  "Não é essa. As vogais certas ficaram: troque as outras.": "Not that one. The right vowels stayed: change the others."
+  "Não é essa. As vogais certas ficaram: troque as outras.": "Not that one. The right vowels stayed: change the others.",
+  "O começo está certo: {n} palavra fica. As outras voltam para baixo.": "The start is right: {n} word stays. The others go back down.",
+  "O começo está certo: {n} palavras ficam. As outras voltam para baixo.": "The start is right: {n} words stay. The others go back down.",
+  "Ainda não. A primeira palavra é outra: todas voltam para baixo.": "Not yet. The first word is a different one: they all go back down."
 }

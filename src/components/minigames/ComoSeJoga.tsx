@@ -135,7 +135,7 @@ export const COMO_SE_JOGA: Record<MinigameId, ConteudoComoSeJoga> = {
     passos: [
       'Leia o significado da frase, que fica visível de propósito.',
       'Clique nas palavras na ordem certa; clicar de novo devolve a palavra.',
-      'Confira. Se errar, o jogo diz quantas estão no lugar, sem dizer quais.',
+      'Confira. Se errar, o começo que já está certo fica e as outras palavras voltam sozinhas.',
     ],
     avaliacao:
       'Este jogo usa falas da sua gravação, que não têm cartão no baralho. Por isso ele não mexe na sua agenda de revisão, vale pelos pontos e pela prática.',

@@ -468,6 +468,7 @@
   "ainda não revisada": "[áíñdá ñãö révíšádá ·······]",
   "Ainda não: precisa de 70 pontos.": "[Áíñdá ñãö: préçíšá dé 70 pöñtöš. ·············]",
   "Ainda não: precisa de 80% das palavras.": "[Áíñdá ñãö: préçíšá dé 80% dáš pálávráš. ················]",
+  "Ainda não. A primeira palavra é outra: todas voltam para baixo.": "[Áíñdá ñãö. Á príméírá pálávrá é öütrá: tödáš völtám párá báíxö. ·························]",
   "Ainda vencem {n} palavras agora.": {
     "one": "[Áíñdá véñçém {n} pálávráš ágörá. ·············]",
     "other": "[Áíñdá véñçém {n} pálávráš ágörá. ·············]"
@@ -2235,6 +2236,8 @@
   "O bipe vem do Android: ele religa o reconhecimento a cada frase. No modo Privado, o microfone abre uma vez só.": "[Ö bípé vém dö Áñdröíd: élé rélígá ö réçöñhéçíméñtö á çádá frášé. Ñö mödö Prívádö, ö míçröföñé ábré ümá véž šó. ············································]",
   "O cadastro de contas novas está pausado no momento.": "[Ö çádáštrö dé çöñtáš ñöváš éštá páüšádö ñö möméñtö. ····················]",
   "O cadastro de contas novas está pausado temporariamente. Você pode usar o app sem conta, no seu aparelho.": "[Ö çádáštrö dé çöñtáš ñöváš éštá páüšádö témpöráríáméñté. Vöçê pödé üšár ö ápp šém çöñtá, ñö šéü ápárélhö. ··········································]",
+  "O começo está certo: {n} palavra fica. As outras voltam para baixo.": "[Ö çöméçö éštá çértö: {n} pálávrá fíçá. Áš öütráš völtám párá báíxö. ···························]",
+  "O começo está certo: {n} palavras ficam. As outras voltam para baixo.": "[Ö çöméçö éštá çértö: {n} pálávráš fíçám. Áš öütráš völtám párá báíxö. ····························]",
   "O contato ainda não foi configurado nesta instalação. Quando houver, ele aparece aqui e na tela Sobre.": "[Ö çöñtátö áíñdá ñãö föí çöñfígürádö ñéštá íñštáláçãö. Qüáñdö höüvér, élé ápáréçé áqüí é ñá télá Šöbré. ·········································]",
   "O controle dá um pulso curto quando o raio chega a algo que dá para acionar.": "[Ö çöñtrölé dá üm pülšö çürtö qüáñdö ö ráíö çhégá á álgö qüé dá párá áçíöñár. ······························]",
   "O controle recusou o pulso: o app usa um som bem baixo no lugar.": "[Ö çöñtrölé réçüšöü ö pülšö: ö ápp üšá üm šöm bém báíxö ñö lügár. ··························]",

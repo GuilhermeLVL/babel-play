@@ -82,7 +82,7 @@ export const PASSOS_DOS_JOGOS: Record<MinigameId, PassoTour[]> = {
     },
     {
       alvo: '[data-tour="conferir"]',
-      texto: 'Se errar, eu digo QUANTAS estão no lugar, sem dizer quais.',
+      texto: 'Se errar, o começo que já está certo fica e as outras palavras voltam sozinhas.',
       gesto: 'clique',
     },
     {

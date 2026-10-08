@@ -1,0 +1,29 @@
+/* A PARTE DO APP na camada de polimento: o que no protótipo era estrutura da página dele
+   (polimento.css:7-33) e aqui precisa caber na casca de verdade. Os valores são os mesmos. */
+
+/* A tela vive dentro de `.px-tela` (App.tsx): é ela que sai e entra na troca de tela
+   (polimento.css:8-15). */
+.px-tela {
+  flex: 1 1 0;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  transform-origin: 50% 40%;
+}
+.px-borda {
+  display: none;
+}
+
+/* Tokens de movimento (polimento.css:27-32). No app não há câmera lenta: o multiplicador é 1. */
+html {
+  --px-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --px-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --px-ease-gaveta: cubic-bezier(0.32, 0.72, 0, 1);
+  --px-k: 1;
+}
+
+/* A pílula sem a camada ligada não aparece (polimento.css:138). */
+html:not([data-px='on']) .px-pilula {
+  display: none;
+}

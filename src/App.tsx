@@ -588,226 +588,231 @@ export default function App() {
               <AvisoDePagamentoAtrasado />
             </Suspense>
           )}
-          <Suspense
-            fallback={
-              <div className="carregando-da-tela flex-1 flex items-center justify-center text-ink-muted text-sm">
-                Carregando…
-              </div>
-            }
-          >
-            {/* Na edição estática, Estatísticas roda inteira no servidor em memória e a tela abaixo
-                já monta sem conta — o cartão por cima dela só contradiria o que aparece. */}
-            {anonimo && exigeConta(activeView) && !(edicaoEstatica() && activeView === 'estatisticas') && (
-              <CartaoDeConvite
-                view={activeView}
-                onEntrar={() => setPedindoLogin(true)}
-                onVoltar={() => setActiveView('hub')}
-              />
-            )}
-            {activeView === 'hub' && questNovo && (
-              <InicioDoQuest
-                onChangeView={navigateTo}
-                recordings={recordings}
-                progress={progress}
-                metrics={metrics}
-                missoes={missoes}
-                semConta={anonimo}
-                ageProfile={ageProfile}
-                carregandoSessoes={!gravacoesCarregadas}
-                missoesPendentes={missoesPendentes}
-              />
-            )}
-            {activeView === 'hub' && !questNovo && (
-              <Hub
-                onChangeView={navigateTo}
-                recordings={recordings}
-                ageProfile={ageProfile}
-                progress={progress}
-                metrics={metrics}
-                missoes={missoes}
-                carregandoSessoes={!gravacoesCarregadas}
-                missoesPendentes={missoesPendentes}
-              />
-            )}
-            {/* O Intérprete é a MESMA captura (o pipeline, as fontes, o salvar), aberta na tela de
-                começar a conversa. A `key` separa as duas: trocar de uma para a outra começa do zero. */}
-            {(activeView === 'capture' || activeView === 'interprete') && (
-              <LiveCapture
-                key={activeView}
-                entrada={activeView === 'interprete' ? 'interprete' : 'captura'}
-                onSave={handleSaveRecording}
-                onTranscriptChange={setLiveTranscription}
-                resumingRecordingId={activeView === 'capture' ? resumingRecordingId : null}
-                recordings={recordings}
-                onRecordingsChange={setRecordings}
-                onChangeView={navigateTo}
-                onEntrar={() => setPedindoLogin(true)}
-                ageProfile={ageProfile}
-              />
-            )}
-            {activeView === 'library' && !anonimo && (
-              <Library
-                onChangeView={navigateTo}
-                recordings={recordings}
-                onRecordingsChange={setRecordings}
-                ageProfile={ageProfile}
-              />
-            )}
-            {/* `selectedRecordingId` e NÃO `selectedRecording`: este último cai na gravação mais
-              recente quando não há id, e o filtro de sessão ligaria sozinho sem ninguém pedir. */}
-            {activeView === 'play' && (
-              <Play
-                onChangeView={navigateTo}
-                ageProfile={ageProfile}
-                progress={progress}
-                metrics={metrics}
-                recording={selectedRecordingId ? selectedRecording : null}
-                seed={practiceSeed}
-                soundEnabled={soundEnabled}
-                toggleSound={toggleSound}
-              />
-            )}
-            {activeView === 'analysis' && !anonimo && analiseAberta.tipo === 'carregando' && (
-              <div
-                className="carregando-da-tela flex flex-1 items-center justify-center p-10 text-ink-muted text-sm"
-                role="status"
-              >
-                {t('Carregando…')}
-              </div>
-            )}
-            {activeView === 'analysis' &&
-              !anonimo &&
-              (analiseAberta.tipo === 'nao-encontrada' || analiseAberta.tipo === 'vazia') && (
-                <div className="tela">
-                  <Vazio
-                    titulo={
-                      analiseAberta.tipo === 'vazia' ? t('Nenhuma sessão ainda') : t('Não encontramos esta sessão')
-                    }
-                    explicacao={
-                      analiseAberta.tipo === 'vazia'
-                        ? t('Capture uma aula, um vídeo ou uma conversa, e a análise aparece aqui.')
-                        : t('Ela pode ter sido apagada, ou ser de outra conta. As suas sessões estão na Biblioteca.')
-                    }
-                    acao={{ rotulo: t('Ir para a Biblioteca'), aoClicar: () => navigateTo('library') }}
-                  />
+          {/* A CAMADA DE POLIMENTO (desenho novo): a borda de rolagem e a tela que sai e entra na troca
+              (`src/lib/polimento/telas.ts`). Fora do desenho novo o invólucro não existe para o layout. */}
+          {questNovo && <div className="px-borda" aria-hidden="true" />}
+          <div className={questNovo ? 'px-tela' : 'contents'}>
+            <Suspense
+              fallback={
+                <div className="carregando-da-tela flex-1 flex items-center justify-center text-ink-muted text-sm">
+                  Carregando…
                 </div>
-              )}
-            {activeView === 'analysis' && !anonimo && analiseAberta.tipo === 'sessao' && (
-              <Analysis
-                onChangeView={navigateTo}
-                recording={analiseAberta.gravacao}
-                allRecordings={recordings}
-                subTab={analysisSubTab}
-                onSubTabChange={setAnalysisSubTab}
-                practiceSeed={practiceSeed}
-                onSeedConsumed={() => setPracticeSeed(null)}
-                ageProfile={ageProfile}
-                /* A aba "Jogos" da sessão monta o mesmo lobby do `<Play>` acima; os números têm de vir
-                 da MESMA fonte, senão nível/ofensiva apareceriam diferentes nas duas telas. */
-                progress={progress}
-                metrics={metrics}
-              />
-            )}
-            {activeView === 'metrics' && !anonimo && (
-              <Metrics recordings={recordings} onChangeView={navigateTo} ageProfile={ageProfile} metrics={metrics} />
-            )}
-
-            {activeView === 'profile' && !anonimo && <Perfil progress={progress} ageProfile={ageProfile} />}
-            {/* Plano e consumo. Diferente do Perfil, aparece TAMBÉM sem conta: é justamente
-              quem não tem conta que precisa saber o que um plano daria. */}
-            {/* Edição estática (sem servidor): não há plano a assinar. Quem chega por URL (/plano)
-                vê o mesmo cartão honesto das telas que só existem na versão completa. */}
-            {activeView === 'planos' &&
-              (edicaoEstatica() ? (
+              }
+            >
+              {/* Na edição estática, Estatísticas roda inteira no servidor em memória e a tela abaixo
+                já monta sem conta — o cartão por cima dela só contradiria o que aparece. */}
+              {anonimo && exigeConta(activeView) && !(edicaoEstatica() && activeView === 'estatisticas') && (
                 <CartaoDeConvite
-                  view="planos"
-                  onEntrar={() => setActiveView('hub')}
+                  view={activeView}
+                  onEntrar={() => setPedindoLogin(true)}
                   onVoltar={() => setActiveView('hub')}
                 />
-              ) : (
-                <Planos onEntrar={() => navigateTo('login')} />
-              ))}
-            {activeView === 'estatisticas' && (
-              <Estatisticas metrics={metrics} onChangeView={(v) => navigateTo(v as ViewType)} />
-            )}
-            {activeView === 'ajuda' && <Ajuda />}
-            {activeView === 'diagnostico' && <Diagnostico />}
-            {activeView === 'admin' && (
-              <Admin onChangeView={(v) => navigateTo(v as ViewType)} onBuscar={() => setBuscaAberta(true)} />
-            )}
-            {activeView === 'naoencontrado' && (
-              <NaoEncontrado onChangeView={(v) => navigateTo(v as ViewType)} onBuscar={() => setBuscaAberta(true)} />
-            )}
-            {activeView === 'sobre' && <Sobre onVerPlanos={(v) => navigateTo(v)} />}
-            {activeView === 'loja' && (
-              <Loja
-                ctxConquistas={ctxConquistas}
-                progress={progress}
-                theme={theme}
-                setTheme={setTheme}
-                fonte={fonte}
-                setFonte={setFonte}
-                menuPosition={menuPosition}
-                setMenuPosition={setMenuPosition}
-                onOpenStudio={abrirEstudio}
-                ageProfile={ageProfile}
-                setAgeProfile={setAgeProfile}
-                abaInicial={lojaAba}
-                onEntrar={() => setPedindoLogin(true)}
-                aoTrocarDeAba={setLojaAba}
-                equiparCtx={equiparCtx}
-              />
-            )}
-            {/* v3: recompensa entregue na hora — em qualquer tela, esperando a rodada fechar. O modal
+              )}
+              {activeView === 'hub' && questNovo && (
+                <InicioDoQuest
+                  onChangeView={navigateTo}
+                  recordings={recordings}
+                  progress={progress}
+                  metrics={metrics}
+                  missoes={missoes}
+                  semConta={anonimo}
+                  ageProfile={ageProfile}
+                  carregandoSessoes={!gravacoesCarregadas}
+                  missoesPendentes={missoesPendentes}
+                />
+              )}
+              {activeView === 'hub' && !questNovo && (
+                <Hub
+                  onChangeView={navigateTo}
+                  recordings={recordings}
+                  ageProfile={ageProfile}
+                  progress={progress}
+                  metrics={metrics}
+                  missoes={missoes}
+                  carregandoSessoes={!gravacoesCarregadas}
+                  missoesPendentes={missoesPendentes}
+                />
+              )}
+              {/* O Intérprete é a MESMA captura (o pipeline, as fontes, o salvar), aberta na tela de
+                começar a conversa. A `key` separa as duas: trocar de uma para a outra começa do zero. */}
+              {(activeView === 'capture' || activeView === 'interprete') && (
+                <LiveCapture
+                  key={activeView}
+                  entrada={activeView === 'interprete' ? 'interprete' : 'captura'}
+                  onSave={handleSaveRecording}
+                  onTranscriptChange={setLiveTranscription}
+                  resumingRecordingId={activeView === 'capture' ? resumingRecordingId : null}
+                  recordings={recordings}
+                  onRecordingsChange={setRecordings}
+                  onChangeView={navigateTo}
+                  onEntrar={() => setPedindoLogin(true)}
+                  ageProfile={ageProfile}
+                />
+              )}
+              {activeView === 'library' && !anonimo && (
+                <Library
+                  onChangeView={navigateTo}
+                  recordings={recordings}
+                  onRecordingsChange={setRecordings}
+                  ageProfile={ageProfile}
+                />
+              )}
+              {/* `selectedRecordingId` e NÃO `selectedRecording`: este último cai na gravação mais
+              recente quando não há id, e o filtro de sessão ligaria sozinho sem ninguém pedir. */}
+              {activeView === 'play' && (
+                <Play
+                  onChangeView={navigateTo}
+                  ageProfile={ageProfile}
+                  progress={progress}
+                  metrics={metrics}
+                  recording={selectedRecordingId ? selectedRecording : null}
+                  seed={practiceSeed}
+                  soundEnabled={soundEnabled}
+                  toggleSound={toggleSound}
+                />
+              )}
+              {activeView === 'analysis' && !anonimo && analiseAberta.tipo === 'carregando' && (
+                <div
+                  className="carregando-da-tela flex flex-1 items-center justify-center p-10 text-ink-muted text-sm"
+                  role="status"
+                >
+                  {t('Carregando…')}
+                </div>
+              )}
+              {activeView === 'analysis' &&
+                !anonimo &&
+                (analiseAberta.tipo === 'nao-encontrada' || analiseAberta.tipo === 'vazia') && (
+                  <div className="tela">
+                    <Vazio
+                      titulo={
+                        analiseAberta.tipo === 'vazia' ? t('Nenhuma sessão ainda') : t('Não encontramos esta sessão')
+                      }
+                      explicacao={
+                        analiseAberta.tipo === 'vazia'
+                          ? t('Capture uma aula, um vídeo ou uma conversa, e a análise aparece aqui.')
+                          : t('Ela pode ter sido apagada, ou ser de outra conta. As suas sessões estão na Biblioteca.')
+                      }
+                      acao={{ rotulo: t('Ir para a Biblioteca'), aoClicar: () => navigateTo('library') }}
+                    />
+                  </div>
+                )}
+              {activeView === 'analysis' && !anonimo && analiseAberta.tipo === 'sessao' && (
+                <Analysis
+                  onChangeView={navigateTo}
+                  recording={analiseAberta.gravacao}
+                  allRecordings={recordings}
+                  subTab={analysisSubTab}
+                  onSubTabChange={setAnalysisSubTab}
+                  practiceSeed={practiceSeed}
+                  onSeedConsumed={() => setPracticeSeed(null)}
+                  ageProfile={ageProfile}
+                  /* A aba "Jogos" da sessão monta o mesmo lobby do `<Play>` acima; os números têm de vir
+                 da MESMA fonte, senão nível/ofensiva apareceriam diferentes nas duas telas. */
+                  progress={progress}
+                  metrics={metrics}
+                />
+              )}
+              {activeView === 'metrics' && !anonimo && (
+                <Metrics recordings={recordings} onChangeView={navigateTo} ageProfile={ageProfile} metrics={metrics} />
+              )}
+
+              {activeView === 'profile' && !anonimo && <Perfil progress={progress} ageProfile={ageProfile} />}
+              {/* Plano e consumo. Diferente do Perfil, aparece TAMBÉM sem conta: é justamente
+              quem não tem conta que precisa saber o que um plano daria. */}
+              {/* Edição estática (sem servidor): não há plano a assinar. Quem chega por URL (/plano)
+                vê o mesmo cartão honesto das telas que só existem na versão completa. */}
+              {activeView === 'planos' &&
+                (edicaoEstatica() ? (
+                  <CartaoDeConvite
+                    view="planos"
+                    onEntrar={() => setActiveView('hub')}
+                    onVoltar={() => setActiveView('hub')}
+                  />
+                ) : (
+                  <Planos onEntrar={() => navigateTo('login')} />
+                ))}
+              {activeView === 'estatisticas' && (
+                <Estatisticas metrics={metrics} onChangeView={(v) => navigateTo(v as ViewType)} />
+              )}
+              {activeView === 'ajuda' && <Ajuda />}
+              {activeView === 'diagnostico' && <Diagnostico />}
+              {activeView === 'admin' && (
+                <Admin onChangeView={(v) => navigateTo(v as ViewType)} onBuscar={() => setBuscaAberta(true)} />
+              )}
+              {activeView === 'naoencontrado' && (
+                <NaoEncontrado onChangeView={(v) => navigateTo(v as ViewType)} onBuscar={() => setBuscaAberta(true)} />
+              )}
+              {activeView === 'sobre' && <Sobre onVerPlanos={(v) => navigateTo(v)} />}
+              {activeView === 'loja' && (
+                <Loja
+                  ctxConquistas={ctxConquistas}
+                  progress={progress}
+                  theme={theme}
+                  setTheme={setTheme}
+                  fonte={fonte}
+                  setFonte={setFonte}
+                  menuPosition={menuPosition}
+                  setMenuPosition={setMenuPosition}
+                  onOpenStudio={abrirEstudio}
+                  ageProfile={ageProfile}
+                  setAgeProfile={setAgeProfile}
+                  abaInicial={lojaAba}
+                  onEntrar={() => setPedindoLogin(true)}
+                  aoTrocarDeAba={setLojaAba}
+                  equiparCtx={equiparCtx}
+                />
+              )}
+              {/* v3: recompensa entregue na hora — em qualquer tela, esperando a rodada fechar. O modal
                 vem sob demanda (só existe com fila), num Suspense próprio: carregar o chunk dele não
                 pode trocar a tela inteira pelo fallback. */}
-            {filaDeRecompensas.length > 0 && (
-              <Suspense fallback={null}>
-                <RecompensaDesbloqueada
-                  fila={filaDeRecompensas}
-                  onEquipar={(item) => equiparItem(item, equiparCtx)}
-                  onFechar={(r) => {
-                    setFilaDeRecompensas((f) => tirarDaFila(f, r));
-                    /* Conquista relevante (Fase 8): a oferta vem DEPOIS da celebração fechar, nunca sobre
+              {filaDeRecompensas.length > 0 && (
+                <Suspense fallback={null}>
+                  <RecompensaDesbloqueada
+                    fila={filaDeRecompensas}
+                    onEquipar={(item) => equiparItem(item, equiparCtx)}
+                    onFechar={(r) => {
+                      setFilaDeRecompensas((f) => tirarDaFila(f, r));
+                      /* Conquista relevante (Fase 8): a oferta vem DEPOIS da celebração fechar, nunca sobre
                        ela — e o host ainda espera se houver outra recompensa na fila (diálogo aberto). */
-                    if (r.tipo === 'conquista') dispararOferta('conquista', { id: r.id });
-                  }}
-                  onVerPersonalizar={() => navigateTo('loja', { aba: 'personalizar' })}
-                />
-              </Suspense>
-            )}
-            {activeView === 'settings' && (
-              <Settings
-                theme={theme}
-                darkMode={darkMode}
-                onOpenStudio={abrirEstudio}
-                onReplayTour={() => setOnboarded(false)}
-                onAbrirSobre={() => setActiveView('sobre')}
-                onChangeView={navigateTo}
-                /* Claro/escuro de Ajustes → Aparência pelo MESMO dono da preferência (o toggle
+                      if (r.tipo === 'conquista') dispararOferta('conquista', { id: r.id });
+                    }}
+                    onVerPersonalizar={() => navigateTo('loja', { aba: 'personalizar' })}
+                  />
+                </Suspense>
+              )}
+              {activeView === 'settings' && (
+                <Settings
+                  theme={theme}
+                  darkMode={darkMode}
+                  onOpenStudio={abrirEstudio}
+                  onReplayTour={() => setOnboarded(false)}
+                  onAbrirSobre={() => setActiveView('sobre')}
+                  onChangeView={navigateTo}
+                  /* Claro/escuro de Ajustes → Aparência pelo MESMO dono da preferência (o toggle
                    persiste; o setter cru de estado não gravaria). */
-                setDarkMode={(escuro) => {
-                  if (escuro !== darkMode) toggleDarkMode();
-                }}
-                abaInicial={abaDosAjustes}
-                /* Era 99 enquanto as métricas não chegavam: um clique rápido nos Ajustes abria tudo
+                  setDarkMode={(escuro) => {
+                    if (escuro !== darkMode) toggleDarkMode();
+                  }}
+                  abaInicial={abaDosAjustes}
+                  /* Era 99 enquanto as métricas não chegavam: um clique rápido nos Ajustes abria tudo
                  como nível 99. Sem métrica, nível 1 — a régua nunca é generosa por engano. */
-                nivel={progress.available ? progress.level : 1}
-                ageProfile={ageProfile}
-                setAgeProfile={setAgeProfile}
-                menuPosition={menuPosition}
-                setMenuPosition={setMenuPosition}
-                fontScale={fontScale}
-                setFontScale={setFontScale}
-                soundEnabled={soundEnabled}
-                toggleSound={toggleSound}
-                animationsEnabled={animationsEnabled}
-                toggleAnimations={toggleAnimations}
-                performanceMode={performanceMode}
-                togglePerformanceMode={togglePerformanceMode}
-              />
-            )}
-          </Suspense>
+                  nivel={progress.available ? progress.level : 1}
+                  ageProfile={ageProfile}
+                  setAgeProfile={setAgeProfile}
+                  menuPosition={menuPosition}
+                  setMenuPosition={setMenuPosition}
+                  fontScale={fontScale}
+                  setFontScale={setFontScale}
+                  soundEnabled={soundEnabled}
+                  toggleSound={toggleSound}
+                  animationsEnabled={animationsEnabled}
+                  toggleAnimations={toggleAnimations}
+                  performanceMode={performanceMode}
+                  togglePerformanceMode={togglePerformanceMode}
+                />
+              )}
+            </Suspense>
+          </div>
         </main>
 
         {/* Menu de prática GLOBAL: selecione texto em qualquer tela → botão direito → praticar.

@@ -1,0 +1,244 @@
+/* GERADO por scripts/polimento/trazer-css.mjs a partir de polimento.css do protótipo de polimento.
+   NÃO EDITAR À MÃO: mude a tabela do script e gere de novo. As regras são as do protótipo, sem
+   reescrita; valem sob html[data-px='on'], a marca que src/lib/polimento/base.ts põe. */
+/* ============================================================================
+   Camada de polimento — só vale com html[data-px="on"].
+   Tudo aqui é ADITIVO sobre o CSS de produção (que vem inteiro, sem edição,
+   no bloco anterior). Desligar a chave devolve o app exatamente como está hoje.
+   ============================================================================ */
+
+/* [polimento.css:7-24] não vem: estrutura da página do protótipo; a do app está em polimento-app.css */
+
+/* [polimento.css:26-33] não vem: tokens de movimento e câmera lenta: estão em polimento-app.css, com --px-k fixo em 1 */
+
+/* ---- 1. Tipografia: tracking por tamanho, quebra equilibrada, números ---- */
+html[data-px='on'] body {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+html[data-px='on'] :is(.q-cab :is(h1, h2), .cab h1, .q-vazio :is(h2, h3), .vazio h3) {
+  letter-spacing: -0.022em;
+  text-wrap-style: balance; /* só o estilo: o atalho text-wrap desfaz white-space: nowrap */
+}
+html[data-px='on'] :is(.q-secao :is(h2, h3), .q-tile b, .q-linha b, .q-cartao b, .estudio-topo h2) {
+  letter-spacing: -0.012em;
+}
+html[data-px='on'] :is(.q-d, .q-secao p, .sub, .q-texto, .q-linha small) {
+  text-wrap-style: pretty;
+}
+html[data-px='on'] :is(.q-rotulo, .q-chip, .q-num, .tn, .q-contagem, .q-aba .n, .hud b, .combo, .q-linha b) {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- 2. Profundidade: sombra em camadas no lugar de só borda -------------- */
+html[data-px='on'] :is(.q-tile, .q-cartao, .q-linha):not(.apagado):not(.fundo) {
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.55),
+    0 1px 2px rgb(38 36 31 / 0.05),
+    0 8px 18px -12px rgb(38 36 31 / 0.22);
+}
+html[data-px='on'].dark :is(.q-tile, .q-cartao, .q-linha):not(.apagado):not(.fundo) {
+  box-shadow:
+    inset 0 1px 0 rgb(255 240 220 / 0.05),
+    0 1px 2px rgb(0 0 0 / 0.35),
+    0 10px 22px -12px rgb(0 0 0 / 0.65);
+}
+html[data-px='on'] .q-tile.pri {
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.32),
+    0 1px 2px rgb(38 36 31 / 0.1),
+    0 18px 34px -18px color-mix(in srgb, var(--q-acento) 80%, transparent);
+}
+html[data-px='on'] button:is(.q-tile, .q-linha):not(.apagado):not(:disabled) {
+  transition:
+    transform calc(180ms * var(--px-k)) var(--px-ease-out),
+    box-shadow calc(180ms * var(--px-k)) var(--px-ease-out),
+    border-color 0.16s ease,
+    background-color 0.16s ease;
+}
+html[data-px='on'] .q-ic {
+  transition: transform calc(220ms * var(--px-k)) var(--px-ease-out);
+}
+/* Elevação só onde existe mouse de verdade: no toque o hover "gruda". */
+@media (hover: hover) and (pointer: fine) {
+  html[data-px='on'] button:is(.q-tile, .q-linha):not(.apagado):not(:disabled):hover {
+    transform: translateY(-2px);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.6),
+      0 2px 4px rgb(38 36 31 / 0.06),
+      0 18px 32px -16px rgb(38 36 31 / 0.34);
+  }
+  html[data-px='on'].dark button:is(.q-tile, .q-linha):not(.apagado):not(:disabled):hover {
+    box-shadow:
+      inset 0 1px 0 rgb(255 240 220 / 0.07),
+      0 2px 4px rgb(0 0 0 / 0.4),
+      0 20px 36px -16px rgb(0 0 0 / 0.8);
+  }
+  html[data-px='on'] button.q-tile.pri:not(:disabled):hover {
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.4),
+      0 0 0 4px color-mix(in srgb, var(--q-acento) 28%, transparent),
+      0 24px 40px -18px color-mix(in srgb, var(--q-acento) 90%, transparent);
+  }
+  html[data-px='on'] button:is(.q-tile, .q-linha):not(.apagado):hover .q-ic {
+    transform: scale(1.06) rotate(-3deg);
+  }
+}
+/* Superfície grande aperta menos que botão pequeno (0,96 num cartão parece afundar). */
+html[data-px='on'] button:is(.q-tile, .q-linha):not(.apagado):not(:disabled):active {
+  transform: scale(0.985);
+  transition-duration: calc(100ms * var(--px-k)), calc(100ms * var(--px-k)), 0.16s, 0.16s;
+}
+
+/* ---- 3. Abas e trilho: a pílula desliza, não teleporta -------------------- */
+html[data-px='on'] .q-abas.px-com-pilula { position: relative; }
+html[data-px='on'] .q-abas.px-com-pilula > .q-aba { position: relative; z-index: 1; }
+html[data-px='on'] .q-abas.px-com-pilula > .q-aba:is([aria-selected='true'], [aria-checked='true']) {
+  background: transparent;
+  border-color: transparent;
+}
+html[data-px='on'] .px-pilula {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 0;
+  box-sizing: border-box;
+  border: 2px solid var(--q-acento, var(--accent));
+  border-radius: 999px;
+  background: var(--q-suave);
+  pointer-events: none;
+  will-change: transform, width;
+  transition:
+    transform calc(300ms * var(--px-k)) var(--px-ease-gaveta),
+    width calc(300ms * var(--px-k)) var(--px-ease-gaveta),
+    height calc(300ms * var(--px-k)) var(--px-ease-gaveta),
+    opacity 0.15s ease;
+}
+html:not([data-px='on']) .px-pilula { display: none; }
+
+html[data-px='on'] .q-trilho { position: relative; }
+/* Buscar e Mais são sticky em produção: não trocar o position deles. */
+html[data-px='on'] .q-trilho > .q-item { z-index: 1; }
+html[data-px='on'] .q-trilho > .q-item[aria-current='page'] {
+  background: transparent;
+  border-color: transparent;
+}
+html[data-px='on'] .q-trilho > .px-pilula { border-radius: 16px; }
+
+/* [polimento.css:149-192] ADIADO até portar: B20–B25 painéis: material, véu e tela de trás */
+
+/* ---- 5. Borda de rolagem: o conteúdo some num degradê, não num corte ------ */
+html[data-px='on'] .px-borda {
+  display: block;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 30px;
+  z-index: 5;
+  pointer-events: none;
+  background: linear-gradient(var(--canvas), color-mix(in srgb, var(--canvas) 0%, transparent));
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+html[data-px='on'] main[data-px-rolou] .px-borda { opacity: 1; }
+
+/* ---- 6. Entradas de tela ficam por conta do JS (cascata curta) ------------ */
+html[data-px='on'] .px-tela :is(.q-palco, .tela.entra) { animation: none; }
+
+/* ---- 7. Interruptor: curva de gaveta e o botão estica ao pressionar ------- */
+html[data-px='on'] .q-interruptor::after {
+  transition:
+    transform calc(260ms * var(--px-k)) var(--px-ease-gaveta),
+    width calc(180ms * var(--px-k)) var(--px-ease-out);
+}
+html[data-px='on'] .q-interruptor::before {
+  transition:
+    background-color calc(220ms * var(--px-k)) ease,
+    box-shadow 0.16s ease;
+}
+html[data-px='on'] .q-interruptor:active::after { width: 36px; }
+html[data-px='on'] .q-interruptor[aria-checked='true']:active::after { transform: translate(24px); }
+
+/* [polimento.css:227-260] ADIADO até portar: B31–B33 toast */
+
+/* ---- 9. Barras de progresso: enchem uma vez, com a curva certa ------------ */
+html[data-px='on'] .q-barra > span,
+html[data-px='on'] .hud-progresso > span {
+  transition: width calc(600ms * var(--px-k)) var(--px-ease-out);
+}
+html[data-px='on'] .q-cartao .q-ic {
+  transition:
+    transform calc(220ms * var(--px-k)) var(--px-ease-out),
+    background-color calc(260ms * var(--px-k)) ease,
+    color calc(260ms * var(--px-k)) ease;
+}
+html[data-px='on'] .q-cartao.px-feita .q-ic {
+  background: var(--good, #3f9b56);
+  color: #fff;
+}
+html[data-px='on'] .q-cartao.px-feita .q-barra > span { background: var(--good, #3f9b56); }
+html[data-px='on'] .q-cartao { transition: border-color calc(300ms * var(--px-k)) ease; }
+html[data-px='on'] .q-cartao.px-feita { border-color: color-mix(in srgb, var(--good, #3f9b56) 55%, var(--border-subtle)); }
+.px-mais-um {
+  position: absolute;
+  z-index: 60;
+  pointer-events: none;
+  font: 800 15px/1 var(--font-mono, monospace);
+  color: var(--good-ink, #2f7a43);
+  white-space: nowrap;
+}
+
+/* [polimento.css:289-302] ADIADO até portar: jogos §6.1 Memória (giro da carta) */
+
+/* ---- 11. Troca de tema: crossfade, não corte ------------------------------ */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: calc(280ms * var(--px-k));
+  animation-timing-function: ease;
+}
+
+/* ---- 12. Quem pediu menos movimento recebe menos movimento ---------------- */
+@media (prefers-reduced-motion: reduce) {
+  html[data-px='on'] button:is(.q-tile, .q-linha):hover,
+  html[data-px='on'] button:is(.q-tile, .q-linha):active,
+  html[data-px='on'] button:is(.q-tile, .q-linha):hover .q-ic,
+  html[data-px='on'] .px-recuado .px-tela {
+    transform: none !important;
+  }
+  html[data-px='on'] .px-pilula,
+  html[data-px='on'] .q-interruptor::after {
+    transition-duration: 0.01ms;
+  }
+  html[data-px='on'] .toast,
+  html[data-px='on'] .toast:not(.on) {
+    transform: none;
+    opacity: 0;
+    transition: opacity 0.2s ease, visibility 0s linear 0.2s;
+  }
+  html[data-px='on'] .toast.on { opacity: 1; transition-delay: 0s; }
+  ::view-transition-old(root),
+  ::view-transition-new(root) { animation-duration: 0.01ms; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  html[data-px='on'] .q-mais {
+    background: var(--canvas);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  html[data-px='on'] .q-mais-fundo::before {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: color-mix(in srgb, #000 55%, transparent);
+  }
+}
+@media (prefers-contrast: more) {
+  html[data-px='on'] .q-mais {
+    background: var(--canvas);
+    border-color: var(--ink);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+/* [polimento.css:354-506] não vem: barra do protótipo e painel da auditoria */

@@ -47,11 +47,11 @@ import { useFlag } from '../../lib/flags';
 import { t } from '../../lib/i18n';
 import { aoMudarIdentidade, estaAnonimo } from '../../lib/identidade';
 import { instalarMarcaDeMovimento } from '../../lib/movimento/animar';
-import { instalarEntradaDasTelas } from '../../lib/movimento/entradaDasTelas';
 import { instalarNascerDoToque } from '../../lib/movimento/nascerDoToque';
-import { instalarPilulaDasAbas } from '../../lib/movimento/pilulaDasAbas';
 import { instalarOrigemDoToque } from '../../lib/movimento/revelar';
 import { marcarLida, marcarTodasLidas, naoLidas, quando } from '../../lib/notificacoes';
+import { instalarPolimento } from '../../lib/polimento/base';
+import { instalarTelas } from '../../lib/polimento/telas';
 import { authRequired } from '../../lib/supabase';
 import { usePerfil } from '../../lib/usePerfil';
 import type { ViewType } from '../../types';
@@ -166,9 +166,9 @@ export default function TrilhoDoQuest({
      também vive enquanto o trilho vive. */
   useEffect(() => instalarMarcaDeMovimento(), []);
   /* E a pílula que desliza entre as abas, em todas as `.q-abas` da tela. */
-  useEffect(() => instalarPilulaDasAbas(), []);
+  useEffect(() => instalarPolimento(), []);
+  useEffect(() => instalarTelas(), []);
   /* A cascata da primeira visita de cada tela, e o ponto de onde a troca de tema se abre. */
-  useEffect(() => instalarEntradaDasTelas(), []);
   useEffect(() => instalarOrigemDoToque(), []);
   /* Os painéis (o "Mais", os diálogos) crescem a partir do botão que os abriu. */
   useEffect(() => instalarNascerDoToque(), []);
@@ -208,6 +208,8 @@ export default function TrilhoDoQuest({
               key={item.id}
               type="button"
               className="q-item"
+              /* A camada de polimento acha o destino por aqui (a pílula responde no toque). */
+              data-px-rota={item.id}
               onClick={() => ir(item.id)}
               aria-current={activeView === item.id ? 'page' : undefined}
             >

@@ -7,6 +7,7 @@ import { aoMudarIdentidade } from '../identidade';
 import { consumirIntencao } from '../intencaoDeLogin';
 import { askNavGuard } from '../navGuard';
 import { lembrarPlanoDoCheckout } from '../planoDoCheckout';
+import { trocarDeTela } from '../polimento/telas';
 import {
   estadoDaIntencao,
   type EstadoDeRota,
@@ -95,7 +96,14 @@ export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
     doNavigate(view, data);
   };
 
+  /* A troca passa pela camada de polimento: a tela de antes sai antes de a nova entrar. Fora do
+     desenho novo (ou com as animações desligadas) ela chama `aplicar` na hora. */
   const doNavigate = (view: string, data?: any) => {
+    const destino = view === 'study' || view === 'reading' ? 'analysis' : view;
+    trocarDeTela(destino, activeView, () => aplicarNavegacao(view, data));
+  };
+
+  const aplicarNavegacao = (view: string, data?: any) => {
     if (view === 'study') {
       setActiveView('analysis');
       setAnalysisSubTab('study');

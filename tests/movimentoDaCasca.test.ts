@@ -1,28 +1,16 @@
 // @vitest-environment jsdom
 /**
- * O MOVIMENTO DA CASCA: a cascata da primeira visita de cada tela
- * (`src/lib/movimento/entradaDasTelas.ts`) e a troca de tema que se abre em círculo
- * (`src/lib/movimento/revelar.ts`). As duas só existem na faixa rica; fora dela a tela surge e a cor
- * troca como sempre.
+ * O MOVIMENTO DA CASCA: a troca de tema que se abre em círculo (`src/lib/movimento/revelar.ts`).
+ * A entrada das telas passou para `tests/polimentoTelas.test.ts` (porte do protótipo).
  */
-import { readFileSync } from 'node:fs'
-
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const movimento = vi.hoisted(() => ({ rico: true }))
 vi.mock('../src/lib/movimento/animar', () => ({ movimentoRico: () => movimento.rico }))
 
-import { instalarEntradaDasTelas } from '../src/lib/movimento/entradaDasTelas'
 import { instalarOrigemDoToque, raioAteOCanto, revelarEmCirculo } from '../src/lib/movimento/revelar'
 
 const microtarefa = () => new Promise((r) => setTimeout(r, 0))
-
-function tela(classe: string, titulo: string) {
-  const palco = document.createElement('div')
-  palco.className = `q-palco ${classe}`
-  palco.innerHTML = `<header><h1>${titulo}</h1></header><section></section>`
-  return palco
-}
 
 let desinstalar: (() => void) | undefined
 
@@ -36,65 +24,6 @@ afterEach(() => {
   desinstalar = undefined
   delete document.documentElement.dataset.questNovo
   document.documentElement.classList.remove('q-vt')
-})
-
-describe('a entrada das telas', () => {
-  it('a primeira visita ganha a cascata; a volta à mesma tela, não', async () => {
-    desinstalar = instalarEntradaDasTelas()
-    const jogar = tela('qj', 'Jogar')
-    document.body.append(jogar)
-    await microtarefa()
-    expect(jogar.getAttribute('data-entrada')).toBe('cascata')
-
-    jogar.remove()
-    const deNovo = tela('qj', 'Jogar')
-    document.body.append(deNovo)
-    await microtarefa()
-    expect(deNovo.hasAttribute('data-entrada')).toBe(false)
-
-    const outra = tela('qe', 'Estatísticas')
-    document.body.append(outra)
-    await microtarefa()
-    expect(outra.getAttribute('data-entrada')).toBe('cascata')
-  })
-
-  it('acha o palco que chega dentro de outro elemento', async () => {
-    desinstalar = instalarEntradaDasTelas()
-    const casca = document.createElement('div')
-    const palco = tela('qb', 'Biblioteca')
-    casca.append(palco)
-    document.body.append(casca)
-    await microtarefa()
-    expect(palco.getAttribute('data-entrada')).toBe('cascata')
-  })
-
-  it('a tela que já estava montada conta como vista, e na faixa contida ninguém ganha cascata', async () => {
-    const jaEstava = tela('qi', 'Início')
-    document.body.append(jaEstava)
-    desinstalar = instalarEntradaDasTelas()
-    jaEstava.remove()
-    const volta = tela('qi', 'Início')
-    document.body.append(volta)
-    await microtarefa()
-    expect(volta.hasAttribute('data-entrada')).toBe(false)
-
-    movimento.rico = false
-    const contida = tela('qa', 'Ajustes')
-    document.body.append(contida)
-    await microtarefa()
-    expect(contida.hasAttribute('data-entrada')).toBe(false)
-  })
-
-  it('o CSS da cascata só anima na faixa rica e só mexe em opacidade e transform', () => {
-    const css = readFileSync('src/styles/questMovimento.css', 'utf8')
-    const quadros = css.match(/@keyframes q-entra \{[\s\S]*?\n\}/)?.[0] ?? ''
-    expect(quadros).toContain('opacity')
-    expect(quadros).toContain('transform')
-    expect(quadros).not.toMatch(/\b(top|left|width|height|margin|padding)\s*:/)
-    for (const linha of css.split('\n').filter((l) => l.includes("[data-entrada='cascata']"))) {
-      expect(linha).toContain("[data-movimento='rico']")
-    }
-  })
 })
 
 describe('a revelação em círculo', () => {

@@ -23,8 +23,8 @@ Decisões do dono:
 
 | Bloco | Itens | Estado |
 |---|---|---|
-| A. Fundamentos | A1–A14 | aberto |
-| B. Casca: movimento | B1–B49 | aberto (as fases 1.x cobriram parte, de forma aproximada; refazer) |
+| A. Fundamentos | A1–A14 | **em curso.** Feito: A1–A4, A8 (curvas e molas de 45 pontos em `src/lib/polimento/base.ts`), A11 e A12 (tipografia e sombras: `polimento.css` trazido sem reescrita). Aberto: A5–A7, A9, A10, A13, A14 |
+| B. Casca: movimento | B1–B49 | **em curso.** Feito e conferido contra o protótipo (mesmas durações, curvas e quadros lidos nas duas páginas): B5–B8 pílula das abas e do trilho e salto do ícone; B9–B11 saída de tela; B12–B16 entrada (título por palavra, sobrancelha, cascata, revelação na rolagem, teclado sem animação); B17 aba primária pelo lado; B19 borda de rolagem. Vieram pelo CSS, ainda sem prova lado a lado: B1, B3, B4, B42–B47. Aberto: B2, B18, B20–B41, B48, B49 |
 | C. Sentidos | C1–C12 | aberto |
 | Jogos 1. Casca da partida | `jogos.md` §1 | aberto |
 | Jogos 2. Níveis por jogo | §2 | aberto (hoje: fator uniforme em 10 jogos) |
@@ -43,3 +43,7 @@ Decisões do dono:
 | O quê | Protótipo | App | Por quê |
 |---|---|---|---|
 | Verde do tema Água claro (`--good`) | `#1F8A5B` | `#1E8758` | Texto branco sobre ele dava 4,33:1; o mínimo de leitura é 4,5:1. Diferença invisível a olho. |
+| Câmera lenta e chave "Polido × Atual" | botões da barra do protótipo | não existem; "Polido" é o interruptor Animações do app | Eram ferramentas da página de demonstração, não do app. |
+| Tela de carregamento | não existe (dados fixos) | o esqueleto aparece sem cerimônia e a entrada toca quando o conteúdo chega | O app busca dados de verdade; animar o esqueleto e depois o conteúdo tocaria a entrada duas vezes. |
+| Troca presa à animação | a troca espera a animação de saída terminar | espera, mas um relógio de 400 ms garante a troca | Numa aba em segundo plano o navegador congela animações; no app a navegação não pode travar. |
+| Telas de dentro do Jogar (lobby, antessala, rodada, fim) | saem com a animação de saída | só entram; ainda não saem | Elas trocam dentro de `Play.tsx`, fora da navegação. **Aberto**, não é decisão: falta portar. |

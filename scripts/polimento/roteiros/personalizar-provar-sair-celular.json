@@ -1,0 +1,76 @@
+{
+  "nome": "personalizar-provar-sair-celular",
+  "largura": 390,
+  "altura": 844,
+  "app": {
+    "caminho": "/",
+    "passos": [
+      {
+        "rolar": ".q-trilho .q-item"
+      },
+      {
+        "esperar": 600
+      },
+      {
+        "js": "window.dispatchEvent(new PointerEvent('pointerdown')); [...document.querySelectorAll('.q-trilho .q-item')].find((b) => /Personalizar/.test(b.textContent)).click()"
+      },
+      {
+        "esperar": 6000
+      },
+      {
+        "clicar": ".px-temas-grade .px-tema:nth-child(2)"
+      },
+      {
+        "esperar": 1800
+      },
+      {
+        "js": "[...document.querySelectorAll('.q-trilho .q-item')].find((b) => /Início/.test(b.textContent)).click()"
+      },
+      {
+        "esperar": 2500
+      }
+    ]
+  },
+  "proto": {
+    "passos": [
+      {
+        "rolar": ".q-trilho .q-item"
+      },
+      {
+        "esperar": 600
+      },
+      {
+        "js": "window.dispatchEvent(new PointerEvent('pointerdown')); [...document.querySelectorAll('.q-trilho .q-item')].find((b) => /Personalizar/.test(b.textContent)).click()"
+      },
+      {
+        "esperar": 6000
+      },
+      {
+        "clicar": ".px-temas-grade .px-tema:nth-child(2)"
+      },
+      {
+        "esperar": 1800
+      },
+      {
+        "js": "[...document.querySelectorAll('.q-trilho .q-item')].find((b) => /Início/.test(b.textContent)).click()"
+      },
+      {
+        "esperar": 2500
+      }
+    ]
+  },
+  "props": [
+    "marginTop",
+    "marginBottom",
+    "alignItems",
+    "justifyContent",
+    "flexGrow",
+    "maxWidth",
+    "borderTopStyle",
+    "textTransform"
+  ],
+  "seletores": [
+    ".q-trilho",
+    ".q-cab h1"
+  ]
+}

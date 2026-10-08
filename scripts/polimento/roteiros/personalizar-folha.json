@@ -1,0 +1,15 @@
+{
+  "nome": "personalizar-folha",
+  "app": {
+    "caminho": "/",
+    "passos": [
+      { "rolar": ".q-trilho .q-item" },
+      { "clicar": ".q-trilho .q-item >> text=Personalizar" },
+      { "esperar": 5000 },
+      { "js": "document.querySelectorAll('.q-grade.g4 > .q-linha')[1].click()" },
+      { "esperar": 2000 }
+    ]
+  },
+  "proto": { "passos": [] },
+  "seletores": ["dialog[open]"]
+}

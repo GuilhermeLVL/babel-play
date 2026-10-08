@@ -9,7 +9,8 @@ import type { AgeProfileType, MenuPositionType } from '../../shell/navItems';
 export interface LojaProps {
   progress: DerivedProgress;
   theme: ThemeType;
-  setTheme: (t: ThemeType) => void;
+  /** `semCirculo`: a troca sem o círculo (o tema já está pintado pela prévia). */
+  setTheme: (t: ThemeType, opcoes?: { semCirculo?: boolean }) => void;
   fonte: FonteType;
   setFonte: (f: FonteType) => void;
   menuPosition: MenuPositionType;

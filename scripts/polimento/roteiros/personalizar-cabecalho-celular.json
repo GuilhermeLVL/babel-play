@@ -1,0 +1,76 @@
+{
+  "nome": "personalizar-cabecalho-celular",
+  "largura": 390,
+  "altura": 844,
+  "app": {
+    "caminho": "/",
+    "passos": [
+      {
+        "rolar": ".q-trilho .q-item"
+      },
+      {
+        "esperar": 600
+      },
+      {
+        "js": "window.dispatchEvent(new PointerEvent('pointerdown')); [...document.querySelectorAll('.q-trilho .q-item')].find((b) => /Personalizar/.test(b.textContent)).click()"
+      },
+      {
+        "esperar": 6000
+      }
+    ]
+  },
+  "proto": {
+    "passos": [
+      {
+        "rolar": ".q-trilho .q-item"
+      },
+      {
+        "esperar": 600
+      },
+      {
+        "js": "window.dispatchEvent(new PointerEvent('pointerdown')); [...document.querySelectorAll('.q-trilho .q-item')].find((b) => /Personalizar/.test(b.textContent)).click()"
+      },
+      {
+        "esperar": 6000
+      }
+    ]
+  },
+  "props": [
+    "marginTop",
+    "marginBottom",
+    "alignItems",
+    "justifyContent",
+    "flexGrow",
+    "maxWidth",
+    "borderTopStyle",
+    "textTransform"
+  ],
+  "seletores": [
+    ".q-palco",
+    ".q-cab",
+    ".q-cab > div",
+    ".q-cab h1",
+    ".q-sobre",
+    ".px-seeds",
+    ".px-seeds svg",
+    ".px-seeds span",
+    ".qp-abas",
+    ".qp-abas .q-aba",
+    ".qp-abas .q-aba svg",
+    ".qp-abas .q-aba .n",
+    ".qp-abas .q-aba[aria-selected=true]"
+  ],
+  "gravar": {
+    "app": [
+      {
+        "js": "[...document.querySelectorAll('.qp-abas .q-aba')].find((b) => /Temporada/.test(b.textContent)).click()"
+      }
+    ],
+    "proto": [
+      {
+        "js": "[...document.querySelectorAll('.qp-abas .q-aba')].find((b) => /Temporada/.test(b.textContent)).click()"
+      }
+    ],
+    "espera": 1600
+  }
+}

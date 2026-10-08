@@ -22,7 +22,7 @@ const MENU_POSITIONS: readonly MenuPositionType[] = ['top', 'bottom', 'left', 'r
 
 export interface EstadoDaAparencia {
   theme: ThemeType;
-  setTheme: (next: ThemeType) => void;
+  setTheme: (next: ThemeType, o?: { semCirculo?: boolean }) => void;
   fonte: FonteType;
   setFonte: (next: FonteType) => void;
   darkMode: boolean;
@@ -279,8 +279,14 @@ export function useAparencia(): EstadoDaAparencia {
   /* A PELE NOVA SE ABRE EM CÍRCULO a partir do toque, em 800 ms (`telas2.js:27-37`). Quem chama pode
      estar no meio de um render, onde `flushSync` não cabe: a transição espera dois quadros, o tempo de
      o React levar a pele nova ao documento. */
-  const setTheme = (next: ThemeType) => {
+  const setTheme = (next: ThemeType, o: { semCirculo?: boolean } = {}) => {
     if (next === theme) return;
+    /* Equipar o tema que já está pintado na tela pela prévia não repete o círculo (`telas2.js:409-428`). */
+    if (o.semCirculo) {
+      setThemeState(next);
+      persistTheme({ theme: next });
+      return;
+    }
     revelarEmCirculo(async () => {
       setThemeState(next);
       persistTheme({ theme: next });

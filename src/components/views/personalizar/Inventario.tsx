@@ -209,6 +209,7 @@ export default function Inventario({
   tiposComPrevia,
   aoRenomearPerfilPara,
   secoesExtras,
+  secaoInicial,
 }: {
   nivel: number;
   saldo: number;
@@ -249,10 +250,12 @@ export default function Inventario({
   aoRenomearPerfilPara?: (p: Perfil, nome: string) => void;
   /** NO HEADSET: seções a mais no seletor (a acessibilidade, que na tela de sempre fica abaixo do inventário). */
   secoesExtras?: SecaoExtraDoInventario[];
+  /** No desenho novo: a seção em que o inventário abre (a folha "Meu visual" abre na da linha tocada). */
+  secaoInicial?: string;
 }) {
   /* No Meta Quest (telas novas): uma seção por vez, escolhida num seletor, no lugar da página comprida. */
   const questNovo = useQuestNovo();
-  const [secaoQ, setSecaoQ] = useState('temas');
+  const [secaoQ, setSecaoQ] = useState(secaoInicial ?? 'temas');
   const [renomeando, setRenomeando] = useState<Perfil | null>(null);
   const [nomeEmEdicao, setNomeEmEdicao] = useState('');
   /** Apagar pede um segundo toque no headset: o raio erra mais do que o mouse. */

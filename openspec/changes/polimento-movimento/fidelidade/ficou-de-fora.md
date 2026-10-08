@@ -77,3 +77,10 @@ protótipo **não é portado**; fica anotado aqui, para ele decidir depois o que
 | Planos | Comparação: grupos, preço no cabeçalho, linha "Sua própria chave de IA (BYOK)" | `Planos.tsx` | A nota do uso justo virou asterisco e rodapé |
 | Planos | Consumo: ícones, seção "Hoje", cartão da janela do mês, frase "o uso do dia zera à meia-noite" | `Planos.tsx` |  |
 | Oferta | Selo abaixo do texto e o rótulo "Dispensar aviso" | `CartaoDeOfertaDoQuest.tsx` | Virou "Fechar" |
+| Personalizar | Inventário por seção na própria tela (Efeitos, Legendas, Cartões, Efeitos de jogo, Moldura e título, Capacidades, Perfis, Acessibilidade) | `Personalizar.tsx`, `Inventario.tsx` | **Continua funcionando**: abre numa folha ao tocar nas linhas Tema, Partículas, Fonte e Menu da Coleção |
+| Personalizar | Moldura e título de perfil no cabeçalho | `CascaDePersonalizarNoQuest` | Continuam equipáveis na folha, mas não aparecem no alto |
+| Personalizar | Legenda e cartão de exemplo com a pele real; faixa "Prévia do tema… Parar prévia"; descrição de cada tema | `PainelDePrevia.tsx` | A vitrine agora é o exemplo fixo do protótipo |
+| Temporada | Pílulas de Seeds e Créditos, miniatura do item em cada casa, selo de canto, paginação por trecho | `PasseDeTemporada.tsx` | Agora é uma trilha só, que rola |
+| Loja | Carteira e prateleira de Créditos na tela | `VitrineV2.tsx`, `ComprarCreditos.tsx` | **Continua funcionando**: abre numa folha ao tocar no selo de Seeds do cabeçalho |
+| Loja | "Em destaque", prateleiras "Dá para levar agora / Ainda não", "Ver todas as regras", rodapé sobre as Seeds | `Loja.tsx` (clássica) |  |
+| Conquistas | Partes "Como ganhar" e "Como subir" dos Desafios | `Loja.tsx` (clássica) |  |

@@ -1,0 +1,87 @@
+{
+  "nome": "personalizar-colecao",
+  "app": {
+    "caminho": "/",
+    "passos": [
+      {
+        "rolar": ".q-trilho .q-item"
+      },
+      {
+        "esperar": 600
+      },
+      {
+        "js": "window.dispatchEvent(new PointerEvent('pointerdown')); [...document.querySelectorAll('.q-trilho .q-item')].find((b) => /Personalizar/.test(b.textContent)).click()"
+      },
+      {
+        "esperar": 6000
+      }
+    ]
+  },
+  "proto": {
+    "passos": [
+      {
+        "rolar": ".q-trilho .q-item"
+      },
+      {
+        "esperar": 600
+      },
+      {
+        "js": "window.dispatchEvent(new PointerEvent('pointerdown')); [...document.querySelectorAll('.q-trilho .q-item')].find((b) => /Personalizar/.test(b.textContent)).click()"
+      },
+      {
+        "esperar": 6000
+      }
+    ]
+  },
+  "props": [
+    "marginTop",
+    "marginBottom",
+    "alignItems",
+    "justifyContent",
+    "flexGrow",
+    "maxWidth",
+    "borderTopStyle",
+    "textTransform"
+  ],
+  "seletores": [
+    ".q-palco",
+    ".px-atelie",
+    ".px-vitrine",
+    ".px-vitrine > .q-rotulo",
+    ".px-vitrine-tela",
+    ".px-vitrine-leg",
+    ".px-vitrine-leg b",
+    ".px-vitrine-leg u",
+    ".px-vitrine-leg i",
+    ".px-vitrine-cartoes",
+    ".px-vitrine-cartoes span",
+    ".px-vitrine-cartoes .ap",
+    ".px-vitrine-cartoes .do",
+    ".px-vitrine-barra",
+    ".px-vitrine-barra i",
+    ".px-vitrine-pe",
+    ".px-vitrine-pe > div",
+    ".px-vitrine-pe .q-rotulo",
+    ".px-vitrine-pe b",
+    ".px-vitrine-pe .q-tag",
+    ".px-vitrine-pe .q-tag svg",
+    ".px-temas",
+    ".px-temas > header",
+    ".px-temas h2",
+    ".px-temas header p",
+    ".px-temas-grade",
+    ".px-tema",
+    ".px-tema[aria-pressed=true]",
+    ".px-amostra",
+    ".px-amostra i",
+    ".px-amostra i:nth-child(3)",
+    ".px-tema b",
+    ".px-tema .q-d",
+    ".q-grade.g4",
+    ".q-grade.g4 .q-linha",
+    ".q-grade.g4 .q-linha .q-ic",
+    ".q-grade.g4 .q-linha .q-ic svg",
+    ".q-grade.g4 .q-linha b",
+    ".q-grade.g4 .q-linha small"
+  ]
+}

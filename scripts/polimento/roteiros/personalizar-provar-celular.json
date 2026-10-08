@@ -1,0 +1,65 @@
+{
+  "nome": "personalizar-provar-celular",
+  "largura": 390,
+  "altura": 844,
+  "app": {
+    "caminho": "/",
+    "passos": [
+      {
+        "rolar": ".q-trilho .q-item"
+      },
+      {
+        "esperar": 600
+      },
+      {
+        "js": "window.dispatchEvent(new PointerEvent('pointerdown')); [...document.querySelectorAll('.q-trilho .q-item')].find((b) => /Personalizar/.test(b.textContent)).click()"
+      },
+      {
+        "esperar": 6000
+      }
+    ]
+  },
+  "proto": {
+    "passos": [
+      {
+        "rolar": ".q-trilho .q-item"
+      },
+      {
+        "esperar": 600
+      },
+      {
+        "js": "window.dispatchEvent(new PointerEvent('pointerdown')); [...document.querySelectorAll('.q-trilho .q-item')].find((b) => /Personalizar/.test(b.textContent)).click()"
+      },
+      {
+        "esperar": 6000
+      }
+    ]
+  },
+  "props": [
+    "marginTop",
+    "marginBottom",
+    "alignItems",
+    "justifyContent",
+    "flexGrow",
+    "maxWidth",
+    "borderTopStyle",
+    "textTransform"
+  ],
+  "seletores": [
+    ".px-vitrine",
+    ".px-tema"
+  ],
+  "gravar": {
+    "app": [
+      {
+        "clicar": ".px-temas-grade .px-tema:nth-child(2)"
+      }
+    ],
+    "proto": [
+      {
+        "clicar": ".px-temas-grade .px-tema:nth-child(2)"
+      }
+    ],
+    "espera": 1800
+  }
+}

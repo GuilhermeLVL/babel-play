@@ -209,7 +209,7 @@ const CHAVE_DA_PROVA = 'babel.px.planoDeProva';
  * Cercada por `import.meta.env.DEV`, como `liberacaoDev.ts`: num build de produção devolve `null`
  * antes de olhar o armazenamento. Muda só o que a tela DESENHA; quem concede plano é o servidor.
  */
-export function planoDeProva(): Plan | null {
+export function planoDeProva(): 'free' | null {
   const env = (import.meta as unknown as { env?: Record<string, unknown> }).env;
   if (!env?.DEV) return null;
   try {

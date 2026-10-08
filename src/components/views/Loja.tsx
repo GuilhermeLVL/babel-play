@@ -54,6 +54,7 @@ import type { LojaProps } from './loja/propsDaLoja';
 import PasseDeTemporada from './passe/PasseDeTemporada';
 import Personalizar from './Personalizar';
 import PersonalizarV2 from './personalizar/PersonalizarV2';
+import PersonalizarDoPrototipo from './personalizar/polimento/PersonalizarDoPrototipo';
 import CascaDePersonalizarNoQuest from './personalizar/quest/CascaDePersonalizarNoQuest';
 
 
@@ -84,6 +85,10 @@ const LINHA_DE_PRECO = { font: '600 11.5px var(--font-mono)', color: 'var(--ink-
  * Loja); sem ela, a tela clássica de duas áreas continua exatamente como era.
  */
 export default function Loja(props: LojaProps) {
+  /* NO DESENHO NOVO a tela é a do protótipo aprovado (`fidelidade/casca-e-telas.md`, 4.6): as cinco
+     abas, com Coleção, Temporada e Loja redesenhadas. O desenho de sempre continua como era. */
+  const novo = useQuestNovo();
+  if (novo) return <PersonalizarDoPrototipo {...props} />;
   return recompensasV2Ligadas() ? <PersonalizarV2 {...props} /> : <LojaClassica {...props} />;
 }
 

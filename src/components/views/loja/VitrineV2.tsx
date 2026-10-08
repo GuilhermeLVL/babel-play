@@ -60,6 +60,7 @@ export default function VitrineV2({
   itemEmPrevia,
   tiposComPrevia,
   aoMudar,
+  soCreditos = false,
 }: {
   nivel: number;
   saldo: number;
@@ -73,6 +74,8 @@ export default function VitrineV2({
   tiposComPrevia: ReadonlySet<string>;
   /** Algo mudou (compra, equipar): a tela de fora relê saldo e posse. */
   aoMudar: () => void;
+  /** No desenho novo: só a parte dos Créditos (a de Seeds é a Loja do protótipo). */
+  soCreditos?: boolean;
 }) {
   const [filtro, setFiltro] = useState<Filtro>('tudo');
   const [comprando, setComprando] = useState<string | null>(null);
@@ -271,8 +274,8 @@ export default function VitrineV2({
 
   return (
     <section className="secao" data-testid="vitrine-v2">
-      <div className={mostrarCreditos ? 'g2' : undefined}>
-        <div className="cartao p5">
+      <div className={mostrarCreditos && !soCreditos ? 'g2' : undefined}>
+        <div className="cartao p5" hidden={soCreditos}>
           <div className="entre">
             <h3 className="linha" style={{ gap: 8, fontSize: 15, fontWeight: 800 }}>
               <Sprout aria-hidden style={{ width: 16, height: 16, color: 'var(--good)' }} /> Seeds
@@ -318,7 +321,7 @@ export default function VitrineV2({
         ))}
       </div>
 
-      <div style={{ marginTop: 22 }}>
+      <div style={{ marginTop: 22 }} hidden={soCreditos}>
         <TituloDeSecao
           nivel="h3"
           icone={Sprout}
@@ -326,7 +329,7 @@ export default function VitrineV2({
           desc={t('A mais barata primeiro. Nada aqui expira.')}
         />
       </div>
-      {deSeeds.length ? (
+      {soCreditos ? null : deSeeds.length ? (
         <div className="gauto">
           {deSeeds.map((i) => (
             <Fragment key={i.id}>{cartaoDeSeeds(i)}</Fragment>
@@ -358,7 +361,7 @@ export default function VitrineV2({
         </>
       )}
 
-      <p className="mut" style={{ fontSize: 12.5, marginTop: 18 }}>
+      <p className="mut" style={{ fontSize: 12.5, marginTop: 18 }} hidden={soCreditos}>
         {t('Seeds se ganham fazendo:')}{' '}
         {REGRAS.filter((r) => r.seeds > 0)
           .slice(0, 4)

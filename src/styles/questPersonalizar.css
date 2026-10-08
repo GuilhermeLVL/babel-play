@@ -15,6 +15,19 @@
  */
 
 /* ── 1. A CASCA ───────────────────────────────────────────────────────────────────────────────── */
+/* O palco como o protótipo o capturou de produção: lá a classe `.qp` da folha da palavra
+   (`questSessao.css`) também pegava neste palco e fazia dele uma grade com `align-items: start`. O
+   desenho aprovado foi feito em cima disso (os blocos de Coleção, Temporada e Loja têm a largura do
+   conteúdo), então a regra passa a morar aqui, sem depender de a outra folha ter sido carregada. */
+html[data-quest-novo='true'] .q-palco.qp {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+}
+/* Da mesma colisão: os parágrafos do palco sem margem (`.qp :is(p, ul)` de `questSessao.css`). */
+html[data-quest-novo='true'] .q-palco.qp :is(p, ul) {
+  margin: 0;
+}
 html[data-quest-novo='true'] .qp .tela.qp-miolo {
   position: static;
   max-width: none;
@@ -522,5 +535,16 @@ html[data-quest-novo='true'] dialog.qp-editor .dlg-pe .link {
   html[data-quest-novo='true'] .qp .tela .peca .link.editar:hover,
   html[data-quest-novo='true'] .qp-passe [id^='temporada-nivel-'] > button:hover {
     transform: none;
+  }
+}
+
+/* ── NO CELULAR, COM A CAMADA DE POLIMENTO ────────────────────────────────────────────────────────
+   No protótipo as abas rolam de lado numa linha só (`celular.css:229`). Esta folha chega depois da
+   camada (vem com a tela), e a regra "as abas quebram de linha" de cima ganharia por ordem: aqui ela
+   cede, com os mesmos valores da camada. */
+@media (max-width: 720px) {
+  html[data-px='on'][data-quest-novo='true'] .qp-abas {
+    flex-wrap: nowrap;
+    overflow-x: auto;
   }
 }

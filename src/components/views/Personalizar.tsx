@@ -60,6 +60,8 @@ interface PersonalizarProps {
   itemEmPrevia?: string | null;
   tiposComPrevia?: ReadonlySet<string>;
   topo?: ReactNode;
+  /** No desenho novo: a seção em que o inventário abre. */
+  secaoInicial?: string;
 }
 
 const POSICAO_DO_MENU: Record<MenuPositionType, string> = {
@@ -105,6 +107,7 @@ export default function Personalizar({
   itemEmPrevia,
   tiposComPrevia,
   topo,
+  secaoInicial,
 }: PersonalizarProps) {
   const [, force] = useState(0);
   const rerender = () => force((n) => n + 1);
@@ -346,6 +349,7 @@ export default function Personalizar({
         )
       }
       aoRenomearPerfilPara={questNovo ? renomearPara : undefined}
+      secaoInicial={secaoInicial}
       secoesExtras={
         questNovo
           ? [

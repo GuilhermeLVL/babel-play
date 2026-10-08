@@ -1,0 +1,26 @@
+{
+  "nome": "inicio",
+  "app": { "caminho": "/" },
+  "proto": {},
+  "seletores": [
+    ".q-trilho",
+    ".q-trilho .q-item",
+    ".q-trilho .px-pilula",
+    ".q-cab h1",
+    ".q-cab .q-sobre",
+    ".px-plano-chip",
+    ".q-grade.g3.q-cresce",
+    ".q-tile.pri",
+    ".q-tile.pri .q-ic",
+    ".q-tile:not(.pri)",
+    ".q-tile b",
+    ".q-tile .q-d",
+    "[data-testid='progresso-no-inicio']",
+    ".q-barra"
+  ],
+  "gravar": {
+    "app": [{ "clicar": ".q-trilho .q-item >> text=Jogar" }],
+    "proto": [{ "clicar": ".q-trilho .q-item >> text=Jogar" }],
+    "espera": 1500
+  }
+}

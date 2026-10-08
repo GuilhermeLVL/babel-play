@@ -7,4 +7,124 @@
 /* Selo com ícone: ícone e texto na mesma linha. */
 .q-tag:has(svg) { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
 .q-tag svg { width: 14px; height: 14px; flex: 0 0 auto; }
-/* [telas3.css:7-128] ADIADO até portar: bloco D: Sessão, trilha da temporada e acertos */
+
+/* ---- Sessão ------------------------------------------------------------------ */
+.px-sessao .w { border-radius: 5px; transition: color 0.22s ease, background-color 0.22s ease; }
+.px-sessao .w.dita { color: var(--q-acento); }
+html[data-px='on'] .px-sessao .w.dita { background: color-mix(in srgb, var(--q-acento) 16%, transparent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--q-acento) 16%, transparent); }
+html[data-px='on'] .px-sessao :is(.qs-fala, .ql-frase) { transition: background-color 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease; }
+.px-player { position: sticky; bottom: 0; z-index: 3; margin: 12px 0 0; }
+html[data-px='on'] .px-player {
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  backdrop-filter: blur(18px) saturate(160%);
+  box-shadow: 0 18px 40px -16px rgb(0 0 0 / 0.4);
+}
+.px-trilho-do-player { flex: 1 1 80px; min-width: 40px; height: 8px; border-radius: 99px; background: var(--surface-sunken); overflow: hidden; }
+.px-trilho-do-player .qs-posicao { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--q-acento-2, var(--q-acento)), var(--q-acento)); transition: width calc(500ms * var(--px-k)) var(--px-ease-out); }
+.px-nuvem { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: baseline; font-weight: 800; font-family: var(--font-display, inherit); }
+.px-nuvem span:nth-child(3n) { color: var(--q-acento); }
+.px-sessao .qs-falante { display: grid; grid-template-columns: 60px 1fr auto; align-items: center; gap: 12px; padding: 6px 0; }
+
+/* ---- Trilha inteira ------------------------------------------------------------- */
+.px-trilha { scroll-snap-type: none; }
+.px-trilha-rotulos { background: var(--canvas); box-shadow: 14px 0 14px -8px var(--canvas); padding-left: 2px; }
+.px-premio { --rar: var(--ink-muted); }
+.px-premio.r-raro { --rar: #4f86e8; }
+.px-premio.r-epico { --rar: #a260ee; }
+.px-premio.r-lendario { --rar: #e9a918; }
+.px-premio:not(.vazio) { border-top: 3px solid var(--rar); }
+.px-premio:not(.feito) small { color: var(--rar); }
+.px-degrau.ultimo .px-premio:not(.vazio) { box-shadow: 0 0 0 3px color-mix(in srgb, var(--rar) 30%, transparent), 0 14px 28px -12px var(--rar); }
+.px-degrau.ultimo .px-no { border-color: #e9a918; }
+.px-final { border-color: color-mix(in srgb, #e9a918 60%, var(--border-subtle)); background: linear-gradient(100deg, color-mix(in srgb, #e9a918 14%, var(--surface)), var(--surface) 70%); }
+.px-final .q-ic { color: #c98a00; }
+.px-final .q-fim { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.px-final .q-fim svg { width: 18px; height: 18px; }
+@media (hover: hover) and (pointer: fine) { html[data-px='on'] .px-premio:not(.vazio):hover { transform: translateY(-4px) scale(1.04); border-color: var(--rar); } }
+@media (max-width: 720px) {
+  html[data-px='on'] .px-player { bottom: 92px; flex-wrap: wrap; border-radius: 22px; }
+  html[data-px='on'] .px-player > .q-ctl:not(.pri):not([data-px]) { display: none; }
+  html[data-px='on'] .px-sessao .q-cab > .q-chip { display: none; }
+  html[data-px='on'] .px-sessao .qs-acoes-da-fala { flex-direction: column; }
+  html[data-px='on'] .px-final .q-fim { display: none; }
+}
+
+/* O Personalizar de produção é uma grade de linhas fixas; o redesenho tem mais blocos e precisa empilhar e rolar. */
+html .q-palco.px-personalizar { display: flex !important; flex-direction: column !important; }
+html .q-palco.px-personalizar > * { flex: 0 0 auto; min-height: auto; }
+/* Player próprio do protótipo: uma linha só (a classe real .qs-player espera outra marcação). */
+.px-player { display: flex; flex-direction: row; align-items: center; gap: 10px; flex-wrap: nowrap; }
+.px-player > .q-ctl { flex: 0 0 auto; width: auto; }
+@media (max-width: 720px) {
+  /* Sessão no celular: cabeçalho numa linha, filtros em faixa que rola, player preso acima da barra. */
+  html[data-px='on'] .px-sessao .q-cab { flex-wrap: nowrap; align-items: flex-start; }
+  html[data-px='on'] .px-sessao .qs-sub { display: none; }
+  html[data-px='on'] .px-sessao .q-cab > .q-ctl:last-child { font-size: 0; gap: 0; padding: 0 12px; min-width: 44px; justify-content: center; }
+  html[data-px='on'] .px-sessao .q-cab > .q-ctl:last-child svg { width: 20px; height: 20px; }
+  html[data-px='on'] .px-sessao :is(.qs-barra, .ql-barra) { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: -16px; padding-inline: 16px; }
+  html[data-px='on'] .px-sessao :is(.qs-barra, .ql-barra) > * { flex: 0 0 auto; }
+  html[data-px='on'] .q-palco.px-sessao { padding-bottom: 200px; }
+  html[data-px='on'] .px-sessao .px-player { position: fixed; left: 12px; right: 12px; bottom: 92px; z-index: 20; margin: 0; padding: 8px 10px; }
+  html[data-px='on'] .px-sessao .px-player .px-onde { flex: 1 1 100%; text-align: center; font-size: 12px; }
+  html[data-px='on'] .px-sessao .px-player > .q-ctl { min-height: 46px; }
+  /* Biblioteca: o painel da gravação cabe na largura. */
+  html[data-px='on'] .q-bib-det { min-width: 0; overflow: hidden; }
+  html[data-px='on'] .q-bib-acoes, html[data-px='on'] .q-bib-acoes > *, html[data-px='on'] .q-bib-acoes .q-ctl { min-width: 0; max-width: 100%; }
+  html[data-px='on'] .q-bib-acoes .q-acoes > .q-ctl { flex: 1 1 140px; }
+}
+
+/* ---- Rodada 7: captura pronta (celular abre direto na tela de uso) ---------------- */
+.px-vivo-topo { display: flex; align-items: center; gap: 8px; padding: 14px 16px 4px; }
+.px-vivo-topo .q-chip { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.px-vivo-topo .q-chip svg:last-child { width: 16px; height: 16px; }
+.px-vivo-topo .q-ctl { flex: 0 0 auto; min-width: 48px; padding: 0 12px; }
+.px-pronto-miolo { margin: auto; display: grid; justify-items: center; gap: 12px; padding: 24px; text-align: center; max-width: 34ch; }
+.px-pronto-miolo .q-ic { width: 84px; height: 84px; border-radius: 26px; }
+.px-pronto-miolo .q-ic svg { width: 38px; height: 38px; }
+.px-pronto-miolo h2 { margin: 6px 0 0; font: 900 26px/1.1 var(--font-display, inherit); letter-spacing: -0.02em; }
+.px-pronto-miolo p { margin: 0; color: var(--ink-muted); font-weight: 600; line-height: 1.4; }
+.px-pronto .q-historico { display: flex; }
+.px-pronto .cel-ponto { animation: none !important; opacity: 0.4; }
+.px-int-idioma { min-height: 32px !important; padding: 0 8px !important; vertical-align: middle; }
+.px-int-idioma svg { width: 16px; height: 16px; }
+@media (max-width: 720px) {
+  /* Enquanto não está gravando, a barra de navegação continua lá: dá para sair sem gravar nada. */
+  html[data-px='on'] .q-casca:has(.px-pronto) .q-trilho { display: flex !important; }
+  html[data-px='on'] .px-pronto .q-faixa { margin-bottom: 100px; justify-content: center; }
+  html[data-px='on'] .px-pronto .q-faixa .q-ctl.pri { flex: 1 1 auto; justify-content: center; min-height: 60px; font-size: 18px; }
+  html[data-px='on'] .px-pronto .q-faixa .q-tempo, html[data-px='on'] .px-pronto .q-faixa .q-fica { display: none; }
+  html[data-px='on'] .px-pronto-miolo .q-ic { position: relative; }
+  html[data-px='on'] .px-pronto-miolo .q-ic::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    border: 2px solid var(--q-acento);
+    animation: px-anel calc(2.4s * var(--px-k)) var(--px-ease-out) infinite;
+  }
+}
+@media (max-width: 720px) {
+  html[data-px='on'] .px-pronto .q-faixa .q-espaco { display: none; }
+}
+
+/* ---- Rodada 9 ----------------------------------------------------------------------
+   Personalizar em produção é uma grade (.qp). A barra de abas é uma área de rolagem,
+   e numa grade com altura fixa a linha dela encolhia para 12 px: o conteúdo subia por
+   cima das abas (Maestria, Conquistas). As linhas passam a ter a altura do conteúdo. */
+html .q-palco.qp { grid-template-rows: max-content max-content; grid-auto-rows: max-content; align-content: start; }
+/* Trilha da temporada: os rótulos fixos viram um cartão de verdade, não um retângulo solto. */
+.px-trilha { gap: 0; padding-left: 0; }
+.px-trilha-rotulos {
+  align-self: stretch;
+  width: 112px;
+  margin-right: 12px;
+  padding: 0 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: 12px 0 22px -14px rgb(0 0 0 / 0.35);
+}
+@media (max-width: 720px) {
+  html[data-px='on'] .px-trilha-rotulos { width: 74px; padding: 0 8px; margin-right: 8px; }
+}

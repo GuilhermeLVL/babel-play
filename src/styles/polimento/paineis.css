@@ -1,0 +1,110 @@
+/* GERADO por scripts/polimento/trazer-css.mjs a partir de paineis.css do protótipo de polimento.
+   NÃO EDITAR À MÃO: mude a tabela do script e gere de novo. As regras são as do protótipo, sem
+   reescrita; valem sob html[data-px='on'], a marca que src/lib/polimento/base.ts põe. */
+/* ============================================================================
+   Rodada 8 — painéis de ajuste no celular e entrada direta em todo aparelho.
+   ============================================================================ */
+/* Captura pronta: a navegação continua à vista até a gravação começar (em qualquer tamanho). */
+html[data-px='on'] .q-casca:has(.px-pronto) .q-trilho { display: flex !important; }
+.px-vivo-topo .px-so-largo { display: inline-flex; }
+.px-vivo-topo [role='switch'][aria-checked='false'] { opacity: 0.5; }
+@media (max-width: 720px) {
+  .px-vivo-topo .px-so-largo { display: none; }
+  /* Painéis de ajuste viram folha de baixo, de ponta a ponta. */
+  html[data-px='on'] dialog:not(.paleta-cmd):not(.folha-de-baixo) {
+    width: 100%;
+    max-width: 100%;
+    max-height: 92dvh;
+    margin: auto 0 0;
+    border-radius: 28px 28px 0 0;
+    border-bottom: 0;
+    flex-direction: column;
+  }
+  html[data-px='on'] dialog:not(.paleta-cmd):not(.folha-de-baixo)[open] { display: flex; }
+  /* Cabeçalho: ícone pequeno, título numa linha larga, fechar à direita. */
+  html[data-px='on'] dialog .dlg-cab { align-items: center; gap: 10px; padding: 18px 16px 12px; flex: 0 0 auto; }
+  html[data-px='on'] dialog .dlg-cab > :is(.ib, .q-ic) { width: 38px; height: 38px; flex: 0 0 auto; }
+  html[data-px='on'] dialog .dlg-cab > div { flex: 1 1 0; min-width: 0; }
+  html[data-px='on'] dialog .dlg-cab h2 { font-size: 19px; line-height: 1.15; text-wrap-style: balance; }
+  html[data-px='on'] dialog .dlg-cab :is(p, .qj-nota, .mut) { font-size: 13.5px; line-height: 1.3; margin: 2px 0 0; }
+  html[data-px='on'] dialog .dlg-cab .x { flex: 0 0 auto; }
+  html[data-px='on'] dialog .dlg-corpo { padding: 12px 16px; flex: 1 1 auto; min-height: 0; max-height: none; overflow-y: auto; overflow-x: hidden; }
+  html[data-px='on'] dialog .dlg-pe { padding: 10px 16px max(14px, env(safe-area-inset-bottom)); flex: 0 0 auto; align-items: center; justify-content: space-between; border-top: 1px solid var(--border-subtle); }
+  /* Linha de ajuste: o texto em cima, o controle embaixo ocupando a largura. Lado a lado não cabe. */
+  html[data-px='on'] dialog :is(.op-linha, .q-ajuste) { flex-direction: column; align-items: stretch; gap: 10px; }
+  html[data-px='on'] dialog :is(.op-linha, .q-ajuste) > * { min-width: 0; max-width: 100%; }
+  html[data-px='on'] dialog .op-ctrl { display: flex; }
+  html[data-px='on'] dialog .op-ctrl > * { flex: 1 1 auto; min-width: 0; max-width: 100%; }
+  html[data-px='on'] dialog .seg { display: flex; width: 100%; }
+  html[data-px='on'] dialog .seg button { flex: 1 1 0; min-width: 0; min-height: 44px; padding: 4px 8px; white-space: normal; line-height: 1.15; }
+  html[data-px='on'] dialog :is(select, input:not([type='checkbox']):not([type='radio']):not([type='range']), .campo) { width: 100%; min-width: 0; max-width: 100%; }
+  html[data-px='on'] dialog .badge { white-space: normal; max-width: 100%; }
+  /* Interruptor é pequeno: esse fica ao lado do texto. */
+  html[data-px='on'] dialog :is(.op-linha, .q-ajuste):has(.q-interruptor, [role='switch'], input[type='checkbox']) { flex-direction: row; align-items: center; }
+  html[data-px='on'] dialog :is(.op-linha, .q-ajuste):has(.q-interruptor, [role='switch'], input[type='checkbox']) > :first-child { flex: 1 1 0; }
+  html[data-px='on'] dialog :is(.op-linha, .q-ajuste):has(.q-interruptor, [role='switch'], input[type='checkbox']) > :last-child { flex: 0 0 auto; }
+  html[data-px='on'] dialog .dlg-corpo * { overflow-wrap: anywhere; }
+  html[data-px='on'] dialog .q-abas { flex-wrap: wrap; overflow: visible; border-radius: 22px; }
+  html[data-px='on'] dialog .q-abas > .q-aba { flex: 1 1 auto; justify-content: center; }
+  html[data-px='on'] dialog .q-linha { min-width: 0; }
+}
+
+/* ---- Intérprete no tema claro -----------------------------------------------------
+   Em produção a conversa é sempre escura (as cores partem de --ink), mesmo com o app
+   no tema claro. Aqui ela acompanha o tema: no claro, superfícies claras e texto escuro. */
+html[data-px='on']:not(.dark) .px-int {
+  --int-escuro: var(--canvas);
+  --int-escuro-2: var(--surface);
+  --int-linha: var(--border-subtle);
+  --int-tinta: var(--ink);
+  --int-mut: var(--ink-muted);
+  --int-acento: color-mix(in srgb, var(--accent) 72%, var(--ink));
+}
+html[data-px='on']:not(.dark) .px-int .int-faixa { background: var(--surface-sunken); }
+html[data-px='on']:not(.dark) .px-int .int-metade {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 12%, var(--canvas)) 0%, var(--canvas) 62%);
+}
+html[data-px='on']:not(.dark) .px-int :is(.int-ib, .int-modo, .int-voz) {
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.6), 0 1px 2px rgb(38 36 31 / 0.08);
+}
+html[data-px='on']:not(.dark) .px-int .int-bolha[data-lado='meu'] { background: color-mix(in srgb, var(--accent) 14%, var(--surface)); }
+@media (max-width: 720px) {
+  /* Faixa do meio do intérprete: cinco controles em 390 px precisam de respiro igual. */
+  html[data-px='on'] .px-int .int-faixa { gap: 6px; padding: 8px; }
+  html[data-px='on'] .px-int .int-esq { display: flex; gap: 6px; min-width: 0; }
+  html[data-px='on'] .px-int .int-voz { padding: 0 10px; }
+  html[data-px='on'] .px-int .int-modo-txt, html[data-px='on'] .px-int .int-voz-txt { display: none; }
+}
+
+/* ---- Intérprete: o aviso (ex.: "o automático faz parte do Premium") ganha linha própria.
+   Dentro da coluna do meio ele era espremido até quebrar letra por letra. */
+.px-int .int-faixa { flex-wrap: wrap; }
+.px-int .int-centro:has(.int-aviso:not(:empty)) {
+  order: 9;
+  flex: 1 1 100%;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px 12px;
+  padding: 6px 4px 2px;
+}
+.px-int .int-centro:has(.int-aviso:not(:empty)) .int-voz { display: none; }
+.px-int .int-aviso {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 62ch;
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: break-word;
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.35;
+}
+.px-int .int-aviso:empty { display: none; }
+/* Em tela larga o conteúdo de cada metade fica numa coluna central, não colado na borda. */
+@media (min-width: 900px) {
+  .px-int .int-metade { padding-inline: max(24px, calc((100% - 980px) / 2)); }
+  .px-int .int-traducao { font-size: 40px; }
+  .px-int :is(.int-original, .int-ao-vivo, .int-dica) { font-size: 17px; }
+}

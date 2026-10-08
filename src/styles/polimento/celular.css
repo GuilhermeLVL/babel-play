@@ -1,0 +1,297 @@
+/* GERADO por scripts/polimento/trazer-css.mjs a partir de celular.css do protótipo de polimento.
+   NÃO EDITAR À MÃO: mude a tabela do script e gere de novo. As regras são as do protótipo, sem
+   reescrita; valem sob html[data-px='on'], a marca que src/lib/polimento/base.ts põe. */
+/* ============================================================================
+   Rodada 3 — celular (até 720 px, o mesmo corte que o app já usa).
+   Em produção o desenho novo no celular só empilha tudo em uma coluna e
+   espreme os oito ícones do trilho numa barra sem rótulo. Aqui:
+   barra flutuante de 5 destinos com Capturar no centro, painéis que sobem
+   de baixo e podem ser arrastados, grades de 2 colunas e carrosséis.
+   ============================================================================ */
+@media (max-width: 720px) {
+  /* ---- Barra de navegação -------------------------------------------------- */
+  html[data-px='on'] .q-casca { position: relative; }
+  html[data-px='on'] .q-trilho {
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: max(12px, env(safe-area-inset-bottom));
+    z-index: 30;
+    width: auto;
+    height: 68px;
+    padding: 6px 8px;
+    gap: 2px;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid color-mix(in srgb, var(--border-subtle) 70%, transparent);
+    border-radius: 26px;
+    background: color-mix(in srgb, var(--surface) 78%, transparent);
+    -webkit-backdrop-filter: blur(22px) saturate(170%);
+    backdrop-filter: blur(22px) saturate(170%);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.5),
+      0 18px 40px -14px rgb(0 0 0 / 0.45);
+    overflow: visible;
+  }
+  html[data-px='on'].dark .q-trilho { box-shadow: inset 0 1px 0 rgb(255 240 220 / 0.07), 0 18px 40px -12px rgb(0 0 0 / 0.8); }
+  html[data-px='on'] .q-trilho > .q-item {
+    flex: 1 1 0;
+    max-width: none;
+    min-width: 0;
+    min-height: 54px;
+    padding: 4px 0;
+    gap: 3px;
+    border: 0;
+    border-radius: 18px;
+    background: none;
+    box-shadow: none;
+  }
+  html[data-px='on'] .q-trilho > .q-item > span:not(.q-tecla) {
+    display: block;
+    font: 700 10.5px/1 var(--font-body, inherit);
+    letter-spacing: 0.01em;
+  }
+  html[data-px='on'] .q-trilho > .q-item svg { width: 22px; height: 22px; }
+  html[data-px='on'] .q-trilho > .q-item[aria-current='page'] { color: var(--q-acento); }
+  /* Ordem: Início · Jogar · [Capturar] · Intérprete · Mais. Estatísticas, Personalizar e Buscar vão para o Mais. */
+  html[data-px='on'] .q-trilho > .q-item:nth-of-type(1) { order: 1; }
+  html[data-px='on'] .q-trilho > .q-item:nth-of-type(4) { order: 2; }
+  html[data-px='on'] .q-trilho > .q-item:nth-of-type(2) { order: 3; }
+  html[data-px='on'] .q-trilho > .q-item:nth-of-type(3) { order: 4; }
+  html[data-px='on'] .q-trilho > .q-item:nth-of-type(8) { order: 5; }
+  html[data-px='on'] .q-trilho > .q-item:is(:nth-of-type(5), :nth-of-type(6), :nth-of-type(7)) { display: none; }
+  /* Capturar: o botão que mais importa fica no centro, maior e elevado. */
+  html[data-px='on'] .q-trilho > .q-item:nth-of-type(2) {
+    flex: 0 0 62px;
+    height: 62px;
+    min-height: 62px;
+    margin: -22px 6px 0;
+    border-radius: 50%;
+    color: var(--q-sobre-acento, #fff);
+    background: linear-gradient(160deg, var(--q-acento-2, var(--q-acento)), var(--q-acento));
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.35),
+      0 0 0 5px color-mix(in srgb, var(--canvas) 90%, transparent),
+      0 14px 24px -8px color-mix(in srgb, var(--q-acento) 80%, transparent);
+  }
+  html[data-px='on'] .q-trilho > .q-item:nth-of-type(2) > span { display: none; }
+  html[data-px='on'] .q-trilho > .q-item:nth-of-type(2) svg { width: 26px; height: 26px; }
+  html[data-px='on'] .q-trilho > .q-item:nth-of-type(2)[aria-current='page'] {
+    color: var(--q-sobre-acento, #fff);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.35),
+      0 0 0 5px color-mix(in srgb, var(--q-acento) 30%, var(--canvas)),
+      0 14px 24px -8px color-mix(in srgb, var(--q-acento) 80%, transparent);
+  }
+  html[data-px='on'] .q-trilho > .px-pilula {
+    border: 0;
+    border-radius: 18px;
+    box-shadow: none;
+  }
+  html[data-px='on'] .q-trilho:has(> .q-item:nth-of-type(2)[aria-current='page']) > .px-pilula { opacity: 0 !important; }
+  html[data-px='on'] .q-trilho .q-contagem { top: 0; right: 14%; min-width: 18px; height: 18px; font-size: 11px; }
+
+  /* ---- Conteúdo: respiro para a barra e nada de rolagem lateral ------------ */
+  html[data-px='on'] :is(.q-palco, .rolagem) {
+    overflow-x: hidden;
+    padding-bottom: 112px;
+    scroll-padding-bottom: 112px;
+  }
+  html[data-px='on'] .q-palco { gap: 16px; }
+  html[data-px='on'] .q-cab :is(h1, h2) { font-size: 28px; }
+
+  /* ---- Início --------------------------------------------------------------- */
+  html[data-px='on'] .q-grade.g3.q-cresce { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  html[data-px='on'] .q-grade.g3.q-cresce > .q-tile.pri { grid-column: 1 / -1; min-height: 148px; }
+  html[data-px='on'] .q-grade.g3.q-cresce > .q-tile:not(.pri) { padding: 16px; }
+  html[data-px='on'] .q-grade.g3.q-cresce > .q-tile:not(.pri) b { font-size: 18px; }
+  html[data-px='on'] .q-grade.g3.q-cresce > .q-tile:not(.pri) .q-d { font-size: 14px; }
+  html[data-px='on'] button.q-linha[data-testid='progresso-no-inicio'] {
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 16px;
+  }
+  html[data-px='on'] button.q-linha[data-testid='progresso-no-inicio'] > span:nth-child(2) { flex: 1 1 calc(100% - 62px); }
+  html[data-px='on'] button.q-linha[data-testid='progresso-no-inicio'] > .q-fim { margin-left: auto; }
+  /* Missões viram carrossel: a próxima aparece na beirada e convida o dedo. */
+  html[data-px='on'] [data-testid='missoes-no-inicio'] > .q-grade,
+  html[data-px='on'] .qe-kpis {
+    display: flex;
+    gap: 12px;
+    margin-inline: -16px;
+    padding: 4px 16px 10px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    overscroll-behavior-x: contain;
+  }
+  html[data-px='on'] [data-testid='missoes-no-inicio'] > .q-grade > * { flex: 0 0 78%; scroll-snap-align: center; }
+  html[data-px='on'] .qe-kpis > * { flex: 0 0 46%; scroll-snap-align: start; }
+
+  /* ---- Jogar ---------------------------------------------------------------- */
+  html[data-px='on'] .quest-jogar .q-cab > :is(.q-chip, .q-ctl) { flex: 1 1 0; justify-content: center; min-width: 0; }
+  html[data-px='on'] .qj-ferramentas {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+    margin-inline: -16px;
+    padding-inline: 16px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  html[data-px='on'] .qj-ferramentas > * { flex: 0 0 auto; }
+  html[data-px='on'] .qj-ferramentas > .q-espaco { display: none; }
+  html[data-px='on'] .qj-ferramentas > .q-abas { align-self: auto; overflow: visible; }
+  html[data-px='on'] .qj-sugestao-linha { flex-wrap: wrap; }
+  html[data-px='on'] .qj-sugestao .q-acoes { width: 100%; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  html[data-px='on'] .qj-sugestao .q-acoes > * { flex: 0 0 auto; }
+  html[data-px='on'] .qj-sugestao .q-acoes > [data-sugestao] { order: -1; }
+  html[data-px='on'] .quest-jogar .q-grade.g4 { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  html[data-px='on'] .quest-jogar .q-grade.g4 .q-tile { padding: 14px; gap: 8px; height: 100%; }
+  html[data-px='on'] .quest-jogar .q-grade.g4 .q-tile b { font-size: 16px; }
+  html[data-px='on'] .quest-jogar .q-grade.g4 .q-tile .q-d { display: none; }
+  html[data-px='on'] .quest-jogar .q-grade.g4 .qj-conta { font-size: 12px; }
+
+  /* ---- Estatísticas / abas -------------------------------------------------- */
+  html[data-px='on'] .q-aviso { flex-direction: column; align-items: stretch; gap: 12px; padding: 16px; }
+  html[data-px='on'] .q-aviso > .q-ctl { justify-content: center; }
+  html[data-px='on'] .qe .q-cab > .q-abas { flex: 1 1 auto; }
+  html[data-px='on'] .q-palco > .q-abas,
+  html[data-px='on'] .q-palco > * > .q-abas:not(.q-seg) {
+    margin-inline: -16px;
+    padding-inline: 16px;
+    border-radius: 0;
+    border-inline: 0;
+    background: none;
+    border: 0;
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 16px, #000 calc(100% - 28px), transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 16px, #000 calc(100% - 28px), transparent);
+  }
+
+  /* ---- Painéis sobem de baixo e podem ser arrastados ------------------------ */
+  html[data-px='on'] .q-mais-fundo { place-items: end center; padding: 0; }
+  html[data-px='on'] .q-mais {
+    width: 100%;
+    max-height: 90%;
+    padding: 30px 16px max(20px, env(safe-area-inset-bottom));
+    gap: 14px;
+    border-radius: 30px 30px 0 0;
+    border-bottom: 0;
+    touch-action: pan-y;
+  }
+  html[data-px='on'] .q-mais::before {
+    content: '';
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    width: 40px;
+    height: 5px;
+    margin-left: -20px;
+    border-radius: 99px;
+    background: color-mix(in srgb, var(--ink) 28%, transparent);
+  }
+  html[data-px='on'] .q-mais > .q-cab {
+    flex-wrap: nowrap;
+    touch-action: none;
+    cursor: grab;
+  }
+  html[data-px='on'] .q-mais > .q-cab > :first-child { flex: 1 1 auto; }
+  html[data-px='on'] .q-mais .q-grade.g3 { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  html[data-px='on'] .q-mais .q-tile.em-linha { padding: 12px; gap: 10px; }
+  html[data-px='on'] .q-mais .q-tile.em-linha b { font-size: 16px; }
+  html[data-px='on'] .q-mais .q-tile .q-pede-conta { font-size: 12px; }
+  html[data-px='on'] .q-mais-fundo.px-arrastando::before { transition: none; opacity: var(--px-prog, 1); }
+  html[data-px='on'] .px-recuado .px-tela { transform: scale(0.9) translateY(-8px); }
+
+  /* ---- Jogo da memória ------------------------------------------------------- */
+  html[data-px='on'] .tela:has(.palco-jogo) .cab h1 { font-size: 20px; white-space: normal; }
+  html[data-px='on'] .tela:has(.palco-jogo) .sobrancelha { white-space: nowrap; }
+  html[data-px='on'] .palco-jogo .tabuleiro { grid-template-columns: repeat(4, 1fr) !important; gap: 8px; }
+  html[data-px='on'] .palco-jogo .carta {
+    aspect-ratio: 1 / 1.08;
+    min-height: 0;
+    padding: 4px;
+    border-radius: 14px;
+    font-size: 13px;
+  }
+
+  /* ---- Toast ocupa a largura -------------------------------------------------- */
+  html[data-px='on'] .toast { left: 12px; right: 12px; top: max(12px, env(safe-area-inset-top)); max-width: none; width: auto; }
+}
+
+/* ============================================================================
+   Rodada 5 — passada de correção no celular (sobreposição, texto vazando, espaço)
+   ============================================================================ */
+/* A conversa do intérprete ocupa a tela toda: a barra de navegação sai (nos dois tamanhos). */
+html[data-px='on'] .q-casca:has(.px-int) .q-trilho { display: none; }
+@media (max-width: 720px) {
+  /* Abas: sempre uma linha só, que rola de lado. Empilhar gastava meia tela. */
+  html[data-px='on'] .q-abas { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; max-width: 100%; align-self: stretch; }
+  html[data-px='on'] .q-abas > .q-aba { flex: 0 0 auto; min-height: 46px; padding: 0 14px; font-size: 15px; }
+  /* Cabeçalho: título e selo na mesma linha quando cabem. */
+  html[data-px='on'] .q-cab { gap: 10px; }
+  html[data-px='on'] .q-cab > :first-child { flex: 1 1 150px; }
+  html[data-px='on'] .q-cab > :is(.q-chip, .q-ctl) { min-height: 44px; }
+  /* Jogo: voltar e pausar em cima, título inteiro embaixo (antes quebrava letra por letra). */
+  html[data-px='on'] .tela:has(.palco-jogo) .cab { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px; }
+  html[data-px='on'] .tela:has(.palco-jogo) .cab-linha { display: contents; }
+  html[data-px='on'] .tela:has(.palco-jogo) .cab-acoes { margin-left: auto; display: flex; gap: 6px; }
+  html[data-px='on'] .tela:has(.palco-jogo) .cab-texto { order: 3; flex: 1 1 100%; min-width: 0; }
+  html[data-px='on'] .tela:has(.palco-jogo) .cab-acoes [data-acao='recomecar'] { font-size: 0; gap: 0; }
+  html[data-px='on'] .tela:has(.palco-jogo) .cab-acoes [data-acao='recomecar'] svg { width: 18px; height: 18px; }
+  html[data-px='on'] .palco-jogo .hud { flex-wrap: wrap; gap: 8px 12px; }
+  /* Jogar: a sugestão não vaza do cartão. */
+  html[data-px='on'] .qj-sugestao { overflow: hidden; }
+  html[data-px='on'] .qj-sugestao-linha { min-width: 0; gap: 12px; }
+  html[data-px='on'] .qj-sugestao-texto small { white-space: normal; overflow-wrap: anywhere; }
+  /* Cartões e linhas: nada estoura a largura. */
+  html[data-px='on'] :is(.q-cartao, .q-linha, .q-tile, .q-aviso) { min-width: 0; max-width: 100%; }
+  html[data-px='on'] .q-linha > span:not(.q-ic):not(.q-fim) { min-width: 0; overflow-wrap: anywhere; }
+  html[data-px='on'] .q-palco :is(h1, h2, h3, b, p, small) { overflow-wrap: anywhere; }
+}
+
+/* ---- Rodada 5, segunda leva --------------------------------------------------- */
+.px-tato-ios { position: fixed; left: -99px; width: 1px; height: 1px; opacity: 0; pointer-events: none; overflow: hidden; }
+.px-moldura { transition: transform 0.18s ease-out; transform-style: preserve-3d; }
+.px-luz.giro { transition: none; }
+@media (max-width: 720px) {
+  /* A barra sai do caminho quando a pessoa rola para ler e volta quando ela sobe. */
+  html[data-px='on'] .q-trilho { transition: transform calc(480ms * var(--px-k)) var(--px-mola-suave); }
+  html[data-px='on'] .q-trilho.px-some { transform: translateY(150%); }
+  /* Ajustes: rótulo em cima, controle embaixo, quando os dois não cabem lado a lado. */
+  html[data-px='on'] .q-ajuste { flex-wrap: wrap; gap: 10px; }
+  html[data-px='on'] .q-ajuste > div:first-child { flex: 1 1 200px; min-width: 0; }
+  html[data-px='on'] .q-palco > *, html[data-px='on'] .q-secao, html[data-px='on'] .q-secao > * { min-width: 0; max-width: 100%; }
+  html[data-px='on'] .q-campo :is(select, input) { min-width: 0; max-width: 100%; }
+  /* Capturar: botões em duas colunas e nada passa da borda do cartão. */
+  html[data-px='on'] .cartao.estudio .btn { max-width: 100%; min-width: 0; }
+  html[data-px='on'] .cartao.estudio .btn > span, html[data-px='on'] .cartao.estudio .btn { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  html[data-px='on'] .cartao.estudio .estudio-acoes, html[data-px='on'] .cartao.estudio .linha { display: flex; flex-wrap: wrap; gap: 8px; }
+  /* Loja: a carteira vira uma faixa curta. */
+  html[data-px='on'] .px-carteira { flex-wrap: nowrap; gap: 12px; padding: 14px; }
+  html[data-px='on'] .px-carteira .q-ic { width: 46px; height: 46px; border-radius: 14px; }
+  html[data-px='on'] .px-carteira .q-d { display: none; }
+  html[data-px='on'] .px-saldo { font-size: 32px; }
+  html[data-px='on'] .px-carteira > .q-ctl { flex: 0 0 auto; padding: 0 14px; font-size: 14px; }
+  html[data-px='on'] .px-loja { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  html[data-px='on'] .px-item { padding: 12px; gap: 8px; }
+  html[data-px='on'] .px-item .px-arte { height: 84px; }
+  html[data-px='on'] .px-item h3 { font-size: 16px; }
+  html[data-px='on'] .px-item .q-d { display: none; }
+  html[data-px='on'] .px-item .q-rotulo { font-size: 10px; flex-wrap: wrap; gap: 4px; }
+  html[data-px='on'] .px-item-pe > .q-ctl { flex: 1 1 100%; justify-content: center; min-height: 42px; font-size: 14px; padding: 0 10px; }
+  html[data-px='on'] .px-arte-leg b { font-size: 12px; }
+  html[data-px='on'] .px-arte-leg i { font-size: 11px; }
+  /* Temporada: rótulos da trilha mais estreitos. */
+  html[data-px='on'] .px-trilha-rotulos { width: 66px; font-size: 12.5px; }
+  html[data-px='on'] .px-trilha-rotulos small { display: none; }
+  html[data-px='on'] .px-temas-grade { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+/* Loja no celular: o conteúdo do cartão nunca passa da largura do cartão. */
+.px-item { grid-template-columns: minmax(0, 1fr); overflow: hidden; }
+.px-item > *, .px-item-pe > * { min-width: 0; max-width: 100%; }
+@media (max-width: 720px) {
+  html[data-px='on'] .px-segurar > span:last-child { white-space: normal; text-align: center; line-height: 1.15; font-size: 13.5px; }
+  html[data-px='on'] .px-arte-pixel { scale: 0.8; }
+  html[data-px='on'] .px-arte-cartao { scale: 0.85; }
+}

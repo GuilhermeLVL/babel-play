@@ -13,16 +13,16 @@
  * (senão a peça ficaria pela metade: por exemplo, o véu do painel nasce transparente e é o JS que o
  * acende). Cada trecho adiado está na tabela abaixo, com o item da lista `fidelidade/` que o destrava.
  */
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-const origem = process.argv[2];
+const origem = process.argv[2]
 if (!origem) {
-  console.error('Diga a pasta do protótipo (polimento-movimento-src).');
-  process.exit(1);
+  console.error('Diga a pasta do protótipo (polimento-movimento-src).')
+  process.exit(1)
 }
-const destino = join(dirname(fileURLToPath(import.meta.url)), '../../src/styles/polimento');
+const destino = join(dirname(fileURLToPath(import.meta.url)), '../../src/styles/polimento')
 
 /** Linhas a tirar de cada arquivo (1 = primeira, inclusivas). `adiado`: entra quando o item for portado. */
 const ARQUIVOS = {
@@ -36,48 +36,44 @@ const ARQUIVOS = {
     { de: 215, ate: 245, motivo: 'barra do protótipo: demonstração e legenda' },
     { de: 252, ate: 314, motivo: 'molduras de aparelho do protótipo' },
   ],
-  /* Dos arquivos de TELAS vem, por enquanto, só o que é da casca. O resto entra com cada tela (bloco D). */
-  'telas.css': [
-    { de: 1, ate: 36, adiado: 'bloco D: Capturar ao vivo, folhas da frase e da palavra' },
-    { de: 44, ate: 129, adiado: 'bloco D: legendas flutuantes, oferta, planos' },
-    { de: 131, ate: Infinity, adiado: 'bloco D: planos e nuance' },
-  ],
-  'telas2.css': [
-    { de: 1, ate: 36, adiado: 'bloco D: Planos' },
-    { de: 40, ate: 248, adiado: 'bloco D: Intérprete, Personalizar, Planos, Ajuda' },
-    { de: 273, ate: Infinity, adiado: 'bloco D: Personalizar e Temporada na janela estreita' },
-  ],
-  'telas3.css': [{ de: 7, ate: Infinity, adiado: 'bloco D: Sessão, trilha da temporada e acertos' }],
+  /* Tudo o que é de tela, de celular e do tema Água vem inteiro desde o plano de 08/10/2026 (todas as
+     telas idênticas ao protótipo): a marcação e o comportamento de cada tela são portados em seguida. */
+  'celular.css': [],
+  'telas.css': [],
+  'telas2.css': [],
+  'telas3.css': [],
+  'paineis.css': [],
   /* Os jogos e as miniaturas vêm inteiros: as classes são só deles (`pj-`, `rl-`, `ml-`, `mm-`, `px-mini`). */
   'minis.css': [],
   'jogos.css': [],
   'jogos3.css': [],
   'jogos4.css': [],
-};
+  'agua.css': [],
+}
 
-mkdirSync(destino, { recursive: true });
+mkdirSync(destino, { recursive: true })
 for (const [nome, cortes] of Object.entries(ARQUIVOS)) {
-  const linhas = readFileSync(join(origem, nome), 'utf8').replace(/\r\n/g, '\n').split('\n');
-  const fora = (n) => cortes.find((c) => n >= c.de && n <= c.ate);
-  const corpo = [];
-  let ultimo = null;
+  const linhas = readFileSync(join(origem, nome), 'utf8').replace(/\r\n/g, '\n').split('\n')
+  const fora = (n) => cortes.find((c) => n >= c.de && n <= c.ate)
+  const corpo = []
+  let ultimo = null
   linhas.forEach((linha, i) => {
-    const corte = fora(i + 1);
+    const corte = fora(i + 1)
     if (!corte) {
-      corpo.push(linha);
-      ultimo = null;
+      corpo.push(linha)
+      ultimo = null
     } else if (corte !== ultimo) {
-      const ate = corte.ate === Infinity ? linhas.length : corte.ate;
+      const ate = corte.ate === Infinity ? linhas.length : corte.ate
       corpo.push(
         `/* [${nome}:${corte.de}-${ate}] ${corte.adiado ? 'ADIADO até portar: ' + corte.adiado : 'não vem: ' + corte.motivo} */`,
-      );
-      ultimo = corte;
+      )
+      ultimo = corte
     }
-  });
+  })
   const cabecalho =
     `/* GERADO por scripts/polimento/trazer-css.mjs a partir de ${nome} do protótipo de polimento.\n` +
     `   NÃO EDITAR À MÃO: mude a tabela do script e gere de novo. As regras são as do protótipo, sem\n` +
-    `   reescrita; valem sob html[data-px='on'], a marca que src/lib/polimento/base.ts põe. */\n`;
-  writeFileSync(join(destino, nome), cabecalho + corpo.join('\n').trimEnd() + '\n');
-  console.log(nome, linhas.length, '→', corpo.length, 'linhas');
+    `   reescrita; valem sob html[data-px='on'], a marca que src/lib/polimento/base.ts põe. */\n`
+  writeFileSync(join(destino, nome), cabecalho + corpo.join('\n').trimEnd() + '\n')
+  console.log(nome, linhas.length, '→', corpo.length, 'linhas')
 }

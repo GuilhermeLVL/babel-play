@@ -1,7 +1,42 @@
 /* GERADO por scripts/polimento/trazer-css.mjs a partir de telas.css do protótipo de polimento.
    NÃO EDITAR À MÃO: mude a tabela do script e gere de novo. As regras são as do protótipo, sem
    reescrita; valem sob html[data-px='on'], a marca que src/lib/polimento/base.ts põe. */
-/* [telas.css:1-36] ADIADO até portar: bloco D: Capturar ao vivo, folhas da frase e da palavra */
+/* ============================================================================
+   Rodada 3 — estilos das telas montadas no protótipo (captura ao vivo, folhas,
+   legendas flutuantes, Biblioteca, Planos, ofertas). O grosso vem do CSS de
+   produção; aqui fica só o que a proposta acrescenta.
+   ============================================================================ */
+
+/* ---- Captura ao vivo ------------------------------------------------------- */
+.px-vivo { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
+.px-vivo .cel-conversa { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
+.px-vivo .q-leg { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
+.px-vivo .q-historico { flex: 1 1 0; min-height: 0; overflow-y: auto; }
+.px-vivo .q-t > span { display: inline-block; white-space: pre; }
+html[data-px='on'] .px-vivo .q-linha-da-fala { animation: none; transition: opacity 0.4s ease, background-color 0.3s ease; }
+html[data-px='on'] .px-vivo .q-linha-da-fala:not(.atual) { opacity: 0.62; }
+html[data-px='on'] .px-vivo .q-linha-da-fala:not(.atual):hover { opacity: 1; }
+@keyframes px-ao-vivo {
+  0% { box-shadow: 0 0 0 0 rgb(240 78 35 / 0.7); }
+  70%, 100% { box-shadow: 0 0 0 9px rgb(240 78 35 / 0); }
+}
+html[data-px='on'] .px-vivo .cel-ponto { animation: px-ao-vivo calc(1.4s * var(--px-k)) ease-out infinite; }
+
+/* ---- Folha da frase: convite da Nuance (cadeado à vista, nada escondido) ---- */
+.px-nuance { align-items: flex-start; margin-block: 4px; }
+.px-nuance b { display: flex; align-items: center; gap: 8px; }
+.px-nuance b svg { width: 18px; height: 18px; }
+.px-nuance > span { display: grid; gap: 6px; font-size: 15px; font-weight: 600; }
+.px-nuance-previa { filter: blur(4.5px); opacity: 0.75; user-select: none; }
+.px-nuance-previa i {
+  font: 700 11px/1 var(--font-mono, monospace);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-style: normal;
+  padding: 3px 6px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--ink) 12%, transparent);
+}
 .folha-voltar { justify-self: start; }
 html[data-px='on'] dialog.folha-de-baixo[open] { animation: none; }
 html[data-px='on'] dialog.folha-de-baixo::backdrop {
@@ -9,6 +44,93 @@ html[data-px='on'] dialog.folha-de-baixo::backdrop {
   -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
 }
-/* [telas.css:44-129] ADIADO até portar: bloco D: legendas flutuantes, oferta, planos */
+html[data-px='on'] .folha-palavras button { transition: transform calc(320ms * var(--px-k)) var(--px-mola), background-color 0.16s ease, border-color 0.16s ease; }
+
+/* ---- Legendas flutuantes ---------------------------------------------------- */
+.leg-flut .leg-corpo { display: grid; gap: 8px; padding: 10px 14px 14px; }
+.leg-flut .leg-barra .leg-tit { display: inline-flex; align-items: center; gap: 6px; }
+.leg-flut .leg-barra svg { width: 16px; height: 16px; }
+html[data-px='on'] .leg-flut {
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  backdrop-filter: blur(20px) saturate(160%);
+  background: rgb(20 18 16 / 0.82);
+  border: 1px solid rgb(255 255 255 / 0.12);
+  box-shadow: 0 24px 50px -16px rgb(0 0 0 / 0.7);
+  transition: scale calc(260ms * var(--px-k)) var(--px-mola-suave), box-shadow 0.25s ease;
+  user-select: none;
+}
+html[data-px='on'] .leg-flut .leg-barra { cursor: grab; }
+html[data-px='on'] .leg-flut.px-pegou { scale: 1.04; box-shadow: 0 40px 70px -18px rgb(0 0 0 / 0.85); }
+html[data-px='on'] .leg-flut.px-pegou .leg-barra { cursor: grabbing; }
+html[data-px='on'] .leg-flut .leg-fala { transition: opacity 0.4s ease; }
+
+/* ---- Planos ------------------------------------------------------------------ */
+.q-mais.px-planos { width: min(1000px, 100%); }
+.px-planos .q-cab h2 { font-size: 24px; line-height: 1.15; max-width: 22ch; }
+.px-plano { align-content: start; gap: 12px; position: relative; }
+.px-plano h3 { margin: 0; font: 900 26px/1 var(--font-display, inherit); }
+.px-plano .q-rotulo { display: flex; align-items: center; gap: 8px; margin: 0; }
+.px-preco { margin: 0; display: flex; align-items: baseline; gap: 8px; }
+.px-preco b { font: 900 40px/1 var(--font-display, inherit); letter-spacing: -0.02em; }
+.px-preco span { color: var(--ink-muted); font-weight: 600; }
+.px-plano .q-d, .px-tudo, .px-nota { margin: 0; color: var(--ink-muted); font-weight: 600; }
+.px-tudo { color: var(--ink); font-weight: 800; }
+.px-nota { font-size: 13.5px; }
+.px-plano ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.px-plano li { display: flex; gap: 10px; align-items: flex-start; font-weight: 600; line-height: 1.35; }
+.px-plano li svg { flex: 0 0 auto; width: 20px; height: 20px; margin-top: 1px; color: var(--good, #3f9b56); }
+.px-plano li small { display: block; margin-top: 3px; font-size: 12.5px; color: var(--ink-muted); }
+.px-plano > .q-ctl { justify-content: center; }
+.px-premium { border-color: var(--q-acento); border-width: 2px; }
+.px-garantia { margin: 0; display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--ink-muted); font-weight: 600; font-size: 14px; text-align: center; }
+.px-garantia svg { width: 16px; height: 16px; flex: 0 0 auto; }
+/* Polido: o cartão do Premium ganha uma borda de luz que gira devagar. */
+@property --px-ang { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+@keyframes px-gira { to { --px-ang: 360deg; } }
+html[data-px='on'] .px-premium {
+  border-color: transparent;
+  background:
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    conic-gradient(from var(--px-ang), var(--q-acento), #ffc27a, var(--q-acento) 40%, color-mix(in srgb, var(--q-acento) 30%, transparent) 60%, var(--q-acento)) border-box;
+  animation: px-gira calc(5s * var(--px-k)) linear infinite;
+  box-shadow: 0 30px 60px -30px color-mix(in srgb, var(--q-acento) 90%, transparent);
+}
+html[data-px='on'] .qc-oferta {
+  animation: none;
+  box-shadow: 0 30px 60px -20px rgb(0 0 0 / 0.5), inset 0 1px 0 rgb(255 255 255 / 0.5);
+}
+.qc-oferta-texto .q-tag { justify-self: start; }
+
+@media (max-width: 720px) {
+  html[data-px='on'] .qc-oferta { bottom: 96px; padding: 14px; grid-template-columns: auto minmax(0, 1fr) auto; }
+  html[data-px='on'] .qc-oferta .q-acoes { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  html[data-px='on'] .qc-oferta .q-acoes > * { flex: 0 0 auto; }
+  .px-planos .q-cab h2 { font-size: 20px; }
+  html[data-px='on'] .px-planos-grade { grid-template-columns: minmax(0, 1fr); }
+  html[data-px='on'] .px-planos-grade > .px-premium { order: -1; }
+  html[data-px='on'] .px-vivo .q-t { font-size: 22px; line-height: 1.2; }
+  html[data-px='on'] .px-vivo .q-o { font-size: 15px; }
+  html[data-px='on'] .qc-oferta { width: calc(100% - 24px); grid-template-columns: minmax(0, 1fr) auto; }
+  html[data-px='on'] .qc-oferta > .q-ic { display: none; }
+  html[data-px='on'] .qc-oferta-texto .q-tag { white-space: normal; line-height: 1.3; }
+  html[data-px='on'] .qc-oferta-texto p { font-size: 15px; }
+  /* Biblioteca: lista em cima, a gravação escolhida logo abaixo. */
+  html[data-px='on'] .q-bib-corpo { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  html[data-px='on'] .q-bib .q-linha .q-fim { display: none; }
+  /* Acertos da primeira passada no celular */
+  html[data-px='on'] .quest-jogar .q-cab > :first-child { flex: 1 1 100%; }
+  html[data-px='on'] .qj-sugestao-texto { flex: 1 1 60%; min-width: 0; }
+  html[data-px='on'] .qj-sugestao-texto small { white-space: normal; }
+  html[data-px='on'] .q-mais { overflow-x: hidden; }
+  html[data-px='on'] .q-mais .q-tile.em-linha { min-width: 0; }
+  html[data-px='on'] .q-mais .q-tile.em-linha .q-ic { width: 38px; height: 38px; border-radius: 11px; }
+  html[data-px='on'] .q-mais .q-tile.em-linha b { font-size: 15px; overflow-wrap: anywhere; }
+  html[data-px='on'] .q-mais .q-tile .q-pede-conta { font-size: 0; }
+  html[data-px='on'] .q-mais .q-tile .q-pede-conta svg { width: 14px; height: 14px; }
+}
+
+/* Acertos depois de ver na tela */
 dialog.folha-de-baixo { margin-inline: auto; }
-/* [telas.css:131-134] ADIADO até portar: bloco D: planos e nuance */
+.px-planos-grade { align-items: start; }
+
+.px-nuance-previa.nitida { filter: none; opacity: 1; user-select: auto; }

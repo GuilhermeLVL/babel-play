@@ -24,7 +24,7 @@ import { useCallback, useEffect, useId, useRef, useState } from 'react';
 
 import { t } from '../lib/i18n';
 import { langLabelNaUI } from '../lib/languages';
-import { soltarEstilosDoArrasto, useArrastarParaFora } from '../lib/movimento/useArrastarParaFora';
+import { useAviso } from '../lib/polimento/useAviso';
 import { play } from '../lib/soundFx';
 import { aoFaltarVoz } from '../lib/tts';
 import { DialogoBase } from './ui/Dialogo';
@@ -91,7 +91,8 @@ function push(kind: ToastKind, message: string, opts: ToastOptions = {}): number
     icone: opts.icone,
     // Erro fica até o usuário dispensar: se some sozinho, volta a ser invisível — que é o bug que
     // este módulo existe para corrigir.
-    duration: opts.duration ?? (kind === 'error' ? 0 : 2600),
+    /* 3400 ms: a vida do aviso no protótipo (`prototipo.js:688`). */
+    duration: opts.duration ?? (kind === 'error' ? 0 : 3400),
   };
   items = [...items, item];
   emit();
@@ -171,20 +172,9 @@ function closeConfirm(ok: boolean) {
  */
 function AvisoAtual({ item }: { item: ToastItem | undefined }) {
   const caixa = useRef<HTMLDivElement>(null);
-  /* O aviso se arrasta para fora (`useArrastarParaFora`): solto com o gesto indo para a direita, sai;
-     senão volta com mola. Só na faixa rica do movimento; fora dela os gestos não fazem nada. */
-  const { segurando, gestos } = useArrastarParaFora(() => item && dismissToast(item.id), !!item);
-
-  /* Com o dedo em cima o relógio para: ninguém perde um aviso que está lendo. Solto, recomeça. */
-  useEffect(() => {
-    if (!item?.duration || segurando) return;
-    const id = item.id;
-    const t = window.setTimeout(() => dismissToast(id), item.duration);
-    return () => window.clearTimeout(t);
-  }, [item?.id, item?.duration, segurando]);
-
-  /* A caixa é a mesma de um aviso para o outro: o próximo não herda o arrasto do anterior. */
-  useEffect(() => soltarEstilosDoArrasto(caixa.current), [item?.id]);
+  /* A vida do aviso, a pausa com o ponteiro em cima e o arrasto para dispensar são os do protótipo
+     (`src/lib/polimento/useAviso.ts`, porte de `prototipo.js:681-751`). */
+  const gestos = useAviso(caixa, item?.id, item?.duration ?? 0, () => item && dismissToast(item.id));
 
   return (
     <div

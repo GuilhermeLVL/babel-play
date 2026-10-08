@@ -7,7 +7,22 @@
    --px-mola e --px-mola-suave são molas de verdade (linear()), geradas no JS.
    ============================================================================ */
 
-/* [efeitos.css:7-22] ADIADO até portar: B36 aura que segue o ponteiro */
+/* ---- Fundo vivo: aura que segue o ponteiro -------------------------------- */
+.px-aura { display: none; }
+html[data-px='on'] .px-aura {
+  display: block;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 620px;
+  height: 620px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+  will-change: transform;
+  background: radial-gradient(circle, color-mix(in srgb, var(--q-acento, var(--accent)) 26%, transparent), transparent 62%);
+}
+html[data-px='on'] .px-tela { position: relative; z-index: 1; }
 
 /* ---- Título: palavra por palavra ------------------------------------------ */
 .px-pal {
@@ -184,7 +199,12 @@ html[data-px='on'] .q-interruptor::after {
     transform calc(460ms * var(--px-k)) var(--px-mola),
     width calc(200ms * var(--px-k)) var(--px-ease-out);
 }
-/* [efeitos.css:199-204] ADIADO até portar: B31 toast com mola */
+html[data-px='on'] .toast.on {
+  transition:
+    transform calc(620ms * var(--px-k)) var(--px-mola),
+    opacity calc(200ms * var(--px-k)) ease,
+    visibility 0s;
+}
 
 /* ---- Tema: a cor nova se abre em círculo a partir do clique ---------------- */
 html.px-vt::view-transition-old(root),
@@ -203,4 +223,7 @@ html.px-vt::view-transition-new(root) { z-index: 1; }
 }
 
 /* [efeitos.css:252-314] não vem: molduras de aparelho do protótipo */
-/* [efeitos.css:315-318] ADIADO até portar: B36 aura no escuro */
+/* No escuro a aura fica mais fraca, para não lavar a tela. */
+html[data-px='on'].dark .px-aura {
+  background: radial-gradient(circle, color-mix(in srgb, var(--q-acento, var(--accent)) 13%, transparent), transparent 60%);
+}

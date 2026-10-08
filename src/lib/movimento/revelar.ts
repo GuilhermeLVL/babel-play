@@ -36,7 +36,7 @@ export function raioAteOCanto(x: number, y: number, largura: number, altura: num
  * Roda `muda` (que precisa trocar o DOM de forma síncrona) e revela o resultado em círculo.
  * `duracao` em ms.
  */
-export function revelarEmCirculo(muda: () => void, duracao = 800): void {
+export function revelarEmCirculo(muda: () => void | Promise<void>, duracao = 800): void {
   const doc = document as DocumentoComTransicao;
   const raiz = document.documentElement;
   if (typeof doc.startViewTransition !== 'function' || raiz.dataset.questNovo !== 'true' || !movimentoRico()) {

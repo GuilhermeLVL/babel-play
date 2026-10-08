@@ -13,14 +13,18 @@
  * Fora disso continua valendo a regra de sempre: transição curta, no lugar. Nada aqui a desliga.
  * O CSS lê a marca `<html data-movimento="rico|contido">`; o código pergunta a `movimentoRico()`.
  */
-import { EVENTO_REDUZIR_EFEITOS, reduzirEfeitos } from '../dispositivo/perfil';
-import { noHeadset } from '../dispositivo/telaNovaDoQuest';
+import { EVENTO_REDUZIR_EFEITOS } from '../dispositivo/perfil';
+import { reduz } from '../polimento/base';
 import { SAIDA } from './mola';
-import { movimentoReduzido } from './reduzido';
 
+/**
+ * DESDE 08/10/2026 (passada de fidelidade) o movimento rico vale em TODO aparelho, inclusive no headset e
+ * no modo leve: é decisão do dono, que quer o desenho do protótipo por inteiro. Só o desliga quem
+ * desligou as animações no app, ou quem pediu menos movimento ao sistema e não as religou.
+ */
 export function movimentoRico(): boolean {
   if (typeof document === 'undefined') return false;
-  return !noHeadset() && !reduzirEfeitos() && !movimentoReduzido();
+  return !document.body.classList.contains('animations-off') && !reduz();
 }
 
 function marcar(): void {

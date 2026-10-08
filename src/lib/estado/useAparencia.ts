@@ -272,9 +272,16 @@ export function useAparencia(): EstadoDaAparencia {
     if (new URLSearchParams(location.search).get('liberar') === '1') ativarLiberacaoTotal(true);
   }, []);
 
+  /* A PELE NOVA SE ABRE EM CÍRCULO a partir do toque, em 800 ms (`telas2.js:27-37`). Quem chama pode
+     estar no meio de um render, onde `flushSync` não cabe: a transição espera dois quadros, o tempo de
+     o React levar a pele nova ao documento. */
   const setTheme = (next: ThemeType) => {
-    setThemeState(next);
-    persistTheme({ theme: next });
+    if (next === theme) return;
+    revelarEmCirculo(async () => {
+      setThemeState(next);
+      persistTheme({ theme: next });
+      await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+    }, 800);
   };
   const setFonte = (next: FonteType) => {
     setFonteState(next);
@@ -292,6 +299,8 @@ export function useAparencia(): EstadoDaAparencia {
           return next;
         }),
       ),
+      /* 850 ms: a troca de claro e escuro do protótipo (`prototipo.js:770`). */
+      850,
     );
   };
 

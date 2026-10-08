@@ -111,12 +111,13 @@ describe('onde o movimento rico vale', () => {
     expect(movimentoRico()).toBe(true)
   })
 
-  it('não vale no headset, no modo leve nem com as animações desligadas', () => {
+  /* Passada de fidelidade (08/10/2026): o dono quer o desenho do protótipo em todo aparelho. */
+  it('vale também no headset e no modo leve; só não vale com as animações desligadas', () => {
     aparelho.tipo = 'quest'
-    expect(movimentoRico()).toBe(false)
+    expect(movimentoRico()).toBe(true)
     aparelho.tipo = 'desktop-com-gpu'
     aparelho.leve = true
-    expect(movimentoRico()).toBe(false)
+    expect(movimentoRico()).toBe(true)
     aparelho.leve = false
     document.body.className = 'animations-off'
     expect(movimentoRico()).toBe(false)
@@ -133,7 +134,8 @@ describe('onde o movimento rico vale', () => {
     document.body.className = 'animations-on'
     aparelho.leve = true
     window.dispatchEvent(new Event(EVENTO_REDUZIR_EFEITOS))
-    expect(document.documentElement.dataset.movimento).toBe('contido')
+    await new Promise((r) => setTimeout(r, 0))
+    expect(document.documentElement.dataset.movimento).toBe('rico')
 
     desinstalar()
     expect(document.documentElement.dataset.movimento).toBeUndefined()
@@ -159,7 +161,7 @@ describe('animar', () => {
 
   it('não toca no elemento quando o movimento rico não vale', () => {
     const { el, animate } = comAnimate()
-    aparelho.tipo = 'quest'
+    document.body.className = 'animations-off'
     expect(animar(el, [{ opacity: 0 }, { opacity: 1 }])).toBeNull()
     expect(animate).not.toHaveBeenCalled()
   })

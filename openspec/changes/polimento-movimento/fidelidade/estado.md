@@ -26,13 +26,13 @@ Decisões do dono:
 | A. Fundamentos | A1–A14 | **em curso.** Feito: A1–A4, A8 (curvas e molas de 45 pontos em `src/lib/polimento/base.ts`), A11 e A12 (tipografia e sombras: `polimento.css` trazido sem reescrita). A13 (refino do computador) e A14 (selo com ícone), conferidos em Estatísticas: sete medidas iguais nas duas páginas (título 34 px, abas rebaixadas, bordas de 1 px, pílula, cartão, espaçamento). Aberto: A5–A7, A9, A10 |
 | B. Casca: movimento | B1–B49 | **em curso.** Feito e conferido contra o protótipo (mesmas durações, curvas, quadros e estilos lidos nas duas páginas): B2 onda no toque; B5–B8 pílula e salto do ícone; B9–B11 saída de tela; B12–B16 entrada; B17 aba primária; B19 borda de rolagem; B20–B26 painel Mais (entrada, cascata, véu, vidro, tela de trás, saída, troca de aba com altura, folha de baixo com arrasto); B34 claro/escuro em círculo (850 ms); B36 aura; B37 luz no cartão; B38 inclinação 3D. Feito, conferido só por teste: B31–B33 toast (vida de 3400 ms, pausa, arrasto 45 px / 0,11 px/ms); B35 troca de pele em círculo (800 ms). Vieram pelo CSS, sem prova lado a lado: B1, B3, B4, B42–B47. B27, B28 e B30 feitos e lidos no app (diálogo: entrada de 560 ms a partir do botão, filhos 420 ms com 140 + 45·i, saída de 200 ms em 0,94; busca: 480 ms só por clique, pelo teclado não anima; o foco volta ao botão); B29 veio pelo CSS. Aberto: B18, B39–B41 (partículas com paralaxe, rajada, confete: o app tem motor próprio), B48, B49 |
 | C. Sentidos | C1–C12 | aberto |
-| Jogos 1. Casca da partida | `jogos.md` §1 | aberto |
+| Jogos 1. Casca da partida | `jogos.md` §1 | **em curso.** Feito: o cabeçalho (selo de nível colorido que abre a troca, "Como se joga", Recomeçar escondido, sem Pausar na tela) e a contagem 3-2-1 só no Duelo. Aberto: a instrução no alto do palco, o retorno de acerto e erro (vinheta, texto que sobe, selo de combo), o HUD conferido medida a medida |
 | Jogos 2. Níveis por jogo | §2 | aberto (hoje: fator uniforme em 10 jogos) |
 | Jogos 3. Ajudas | §3 | aberto (hoje: "Ver resposta" é desistir; falta o Duelo no "+10 s") |
-| Jogos 4. Explicação em três telas | §4 | aberto (não feita) |
+| Jogos 4. Explicação em três telas | §4 | **feito** e conferido contra o protótipo no Rali (mesma caixa de 540 px, mesmas medidas internas, mesmos textos nas três telas; entrada 560 ms e saída 280 ms). Abre na primeira partida, pelo "Como se joga" e pelo selo; trocar o nível recomeça a rodada. Textos dos 18 jogos extraídos do protótipo rodando |
 | Jogos 5. Menos atrito | §5 | conferir os 5 feitos e completar |
 | Jogos 6. As 18 cenas | §6 | aberto (Rali e Mala: refazer do zero) |
-| Jogos 7. Miniaturas do lobby | §7 | aberto (hoje: cenas paradas minhas) |
+| Jogos 7. Miniaturas do lobby | §7 | **feito** e conferido: 18 miniaturas do protótipo, mesmas medidas (cena de 112 px, cartão de 262 × 331) |
 | Jogos 8. Fim de rodada | §8 | aberto |
 | D. Telas | D1… | aberto |
 | E. Celular | E… | aberto |

@@ -924,7 +924,8 @@ export default function Play({
   };
 
   const comecar = (pronta: RodadaPronta) => {
-    if (!jaFezTour(pronta.jogo)) setTourDe(pronta.jogo);
+    /* No desenho novo a primeira partida abre a explicação em três telas, na casca da rodada. */
+    if (!questNovo && !jaFezTour(pronta.jogo)) setTourDe(pronta.jogo);
     setResultado(null);
     setAntessala(null);
     setSemMaterial(false);

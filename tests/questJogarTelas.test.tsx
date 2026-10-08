@@ -814,6 +814,8 @@ describe('o painel da trilha no Quest', () => {
   })
 })
 
+/* Passada de fidelidade: no desenho novo o cabeçalho do jogo é o do protótipo, sem o botão Pausar. A pausa
+   continua existindo e abre pelo Esc (e pelo P). */
 describe('a pausa da rodada no Quest', () => {
   const montar = () => {
     const acoes = { onRecomecar: vi.fn(), onSair: vi.fn(), alternar: vi.fn() }
@@ -836,7 +838,7 @@ describe('a pausa da rodada no Quest', () => {
 
   it('continuar é o único principal; som, recomeçar e "como se joga" estão na pausa', () => {
     const acoes = montar()
-    fireEvent.click(botao(/Pausar/))
+    fireEvent.keyDown(window, { key: 'Escape' })
     const pausa = screen.getByRole('dialog')
     expect(principais(pausa)).toEqual(['Continuar'])
     fireEvent.click(within(pausa).getByRole('switch', { name: 'Sons do jogo' }))
@@ -844,14 +846,14 @@ describe('a pausa da rodada no Quest', () => {
     fireEvent.click(within(pausa).getByRole('button', { name: /Recomeçar/ }))
     expect(acoes.onRecomecar).toHaveBeenCalledTimes(1)
 
-    fireEvent.click(botao(/Pausar/))
+    fireEvent.keyDown(window, { key: 'Escape' })
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /Como se joga/ }))
     expect(screen.getByRole('dialog').textContent).toContain('O que treina')
   })
 
   it('sair pede confirmação, e dá para desistir de sair', () => {
     const acoes = montar()
-    fireEvent.click(botao(/Pausar/))
+    fireEvent.keyDown(window, { key: 'Escape' })
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /Sair da rodada/ }))
     expect(screen.getByRole('heading', { name: 'Sair sem terminar?' })).toBeTruthy()
     expect(acoes.onSair).not.toHaveBeenCalled()
@@ -864,7 +866,7 @@ describe('a pausa da rodada no Quest', () => {
 
   it('no headset a pausa não fala em atalho de teclado', () => {
     montar()
-    fireEvent.click(botao(/Pausar/))
+    fireEvent.keyDown(window, { key: 'Escape' })
     expect(screen.getByRole('dialog').querySelector('kbd')).toBeNull()
   })
 })

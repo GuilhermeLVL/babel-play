@@ -1,5 +1,5 @@
 import type { MinigameId } from '@core';
-import { CircleHelp, DoorOpen, Gamepad2, LogOut, Pause, Play, RotateCcw, Volume2, X } from 'lucide-react';
+import { CircleHelp, DoorOpen, Gamepad2, Gauge, LogOut, Pause, Play, RotateCcw, Volume2, X } from 'lucide-react';
 import {
   createContext,
   type ReactNode,
@@ -24,6 +24,9 @@ import type { AgeProfileType } from '../../../lib/profile';
 import { CabecalhoDeTela, IconeEmBloco, Tela } from '../../ui';
 import { InterruptorDoQuest } from '../../views/play/quest/pecasDoQuest';
 import ComoSeJoga from '../ComoSeJoga';
+import { jaFezTour, marcarTourFeito } from '../passosDosJogos';
+import ExplicacaoDoJogo from '../polimento/ExplicacaoDoJogo';
+import { jogoTemNiveisNoDesenho } from '../polimento/textos';
 import SeletorDeNivel, { nomeDoNivel } from './SeletorDeNivel';
 
 /**
@@ -112,6 +115,11 @@ export default function CascaDaRodada({
   const [pronto, setPronto] = useState(false);
   const [passo, setPasso] = useState<Passo>(null);
   const [explicando, setExplicando] = useState(false);
+  /* DESENHO NOVO: a explicação em três telas do protótipo (`polimento/ExplicacaoDoJogo.tsx`). Abre
+     sozinha na primeira partida de cada jogo, antes de o relógio andar; `pagina` 2 é a dos níveis. */
+  const questNovo = useQuestNovo();
+  const [onb, setOnb] = useState<{ pagina: 0 | 2; primeira: boolean } | null>(null);
+  const [primeiraVez] = useState(() => questNovo && !jaFezTour(jogo));
 
   /* O JOGO EM CURSO para o motor de comemoração (recompensas v2, onda 3): o acerto e o combo não
      dizem de que jogo vieram, e o efeito de maestria equipado só vale no jogo de origem. */
@@ -124,6 +132,22 @@ export default function CascaDaRodada({
      então a rodada recomeçada também conta 3-2-1. */
   useEffect(() => {
     let vivo = true;
+    /* NO DESENHO NOVO, como no protótipo: a contagem 3-2-1 é só do Duelo (`jogos.js:283-295`); os
+       outros jogos começam direto. E na primeira partida a explicação vem antes (`jogos4.js:246-253`). */
+    if (questNovo) {
+      if (primeiraVez) {
+        marcarTourFeito(jogo);
+        const t = window.setTimeout(() => vivo && setOnb({ pagina: 0, primeira: true }), 450);
+        return () => {
+          vivo = false;
+          window.clearTimeout(t);
+        };
+      }
+      if (jogo !== 'blitz') {
+        setPronto(true);
+        return;
+      }
+    }
     entradaDeCamera(palcoRef.current);
     void contagem321('Vai!', palcoRef.current).then(() => {
       if (vivo) setPronto(true);
@@ -131,7 +155,18 @@ export default function CascaDaRodada({
     return () => {
       vivo = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  /** A explicação fechou: recomeça se o nível mudou; senão a rodada segue (ou começa, na primeira vez). */
+  const aoFecharOnb = (mudouONivel: boolean) => {
+    const eraPrimeira = onb?.primeira;
+    setOnb(null);
+    if (mudouONivel) return onRecomecar();
+    if (!eraPrimeira || pronto) return;
+    if (jogo !== 'blitz') return setPronto(true);
+    void contagem321('Vai!', palcoRef.current).then(() => setPronto(true));
+  };
 
   const pausar = useCallback(() => setPasso('menu'), []);
   const continuar = useCallback(() => setPasso(null), []);
@@ -139,7 +174,7 @@ export default function CascaDaRodada({
   // Esc ou P pausam; com a pausa aberta, P continua (o Esc do <dialog> nativo já fecha).
   useEffect(() => {
     const aoTeclar = (e: KeyboardEvent) => {
-      if (explicando || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (explicando || onb || e.ctrlKey || e.metaKey || e.altKey) return;
       const p = pausaComP && (e.key === 'p' || e.key === 'P');
       if (passo) {
         if (p && passo === 'menu') {
@@ -155,11 +190,11 @@ export default function CascaDaRodada({
     };
     window.addEventListener('keydown', aoTeclar);
     return () => window.removeEventListener('keydown', aoTeclar);
-  }, [passo, explicando, pausar, continuar, pausaComP]);
+  }, [passo, explicando, onb, pausar, continuar, pausaComP]);
 
   const estado = useMemo<EstadoDaRodada>(
-    () => ({ ativo: pronto && !passo && !explicando, pausado: !!passo || explicando, placar }),
-    [pronto, passo, explicando],
+    () => ({ ativo: pronto && !passo && !explicando && !onb, pausado: !!passo || explicando || !!onb, placar }),
+    [pronto, passo, explicando, onb],
   );
 
   return (
@@ -167,32 +202,64 @@ export default function CascaDaRodada({
       <Tela largura="larga">
         <CabecalhoDeTela
           voltar={{ rotulo: 'Jogar', aoClicar: () => setPasso('sair') }}
-          sobrancelha={`Rodada · ${total} ${unidade}${nivel !== 'medio' && jogoTemNiveis(jogo) ? ` · ${nomeDoNivel(nivel)}` : ''}`}
+          sobrancelha={`Rodada · ${total} ${unidade}${!questNovo && nivel !== 'medio' && jogoTemNiveis(jogo) ? ` · ${nomeDoNivel(nivel)}` : ''}`}
           icone={Gamepad2}
           titulo={titulo}
           acoes={
-            <>
-              {/* A EXPLICAÇÃO A UM TOQUE, sem passar pela pausa: quem não entendeu a regra no meio da
-                  rodada não sabe que ela mora atrás de "Pausar". Abrir para o relógio, como a pausa. */}
-              <button
-                type="button"
-                className="btn btn-outline peq"
-                data-acao="como"
-                aria-label={t('Como se joga')}
-                title={t('Como se joga')}
-                onClick={() => setExplicando(true)}
-              >
-                <CircleHelp aria-hidden />
-              </button>
-              <button type="button" className="btn btn-outline peq" aria-keyshortcuts="Escape" onClick={pausar}>
-                <Pause aria-hidden /> Pausar
-              </button>
-              {/* `data-acao`: no Quest o topo fica com a saída e a pausa; recomeçar está dentro da pausa
-                  (`styles/questJogar.css`). */}
-              <button type="button" className="btn btn-outline peq" data-acao="recomecar" onClick={onRecomecar}>
-                <RotateCcw aria-hidden /> Recomeçar
-              </button>
-            </>
+            questNovo ? (
+              /* O CABEÇALHO DO PROTÓTIPO (`jogos.js:123-141`, `jogos4.js:95-99`): o selo do nível, que abre a
+                 troca; "Como se joga"; e "Recomeçar", que o desenho novo já escondia. Sem "Pausar" na tela:
+                 Esc e P continuam pausando. */
+              <>
+                {jogoTemNiveisNoDesenho(jogo) && (
+                  <button
+                    type="button"
+                    className="btn btn-outline peq pj-nivel"
+                    data-pj="nivel"
+                    data-nivel={nivel}
+                    aria-label={`Nível de dificuldade: ${nomeDoNivel(nivel)}. Toque para trocar`}
+                    onClick={() => setOnb({ pagina: 2, primeira: false })}
+                  >
+                    <Gauge aria-hidden /> {nomeDoNivel(nivel)}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="btn btn-outline peq"
+                  data-pj="como"
+                  aria-label="Como se joga"
+                  onClick={() => setOnb({ pagina: 0, primeira: false })}
+                >
+                  <CircleHelp aria-hidden /> Como se joga
+                </button>
+                <button type="button" className="btn btn-outline peq" data-acao="recomecar" onClick={onRecomecar}>
+                  <RotateCcw aria-hidden /> Recomeçar
+                </button>
+              </>
+            ) : (
+              <>
+                {/* A EXPLICAÇÃO A UM TOQUE, sem passar pela pausa: quem não entendeu a regra no meio da
+                    rodada não sabe que ela mora atrás de "Pausar". Abrir para o relógio, como a pausa. */}
+                <button
+                  type="button"
+                  className="btn btn-outline peq"
+                  data-acao="como"
+                  aria-label={t('Como se joga')}
+                  title={t('Como se joga')}
+                  onClick={() => setExplicando(true)}
+                >
+                  <CircleHelp aria-hidden />
+                </button>
+                <button type="button" className="btn btn-outline peq" aria-keyshortcuts="Escape" onClick={pausar}>
+                  <Pause aria-hidden /> Pausar
+                </button>
+                {/* `data-acao`: no Quest o topo fica com a saída e a pausa; recomeçar está dentro da pausa
+                    (`styles/questJogar.css`). */}
+                <button type="button" className="btn btn-outline peq" data-acao="recomecar" onClick={onRecomecar}>
+                  <RotateCcw aria-hidden /> Recomeçar
+                </button>
+              </>
+            )
           }
         />
         <section
@@ -231,6 +298,7 @@ export default function CascaDaRodada({
           }}
         />
       )}
+      {onb && <ExplicacaoDoJogo jogo={jogo} pagina={onb.pagina} primeira={onb.primeira} aoFechar={aoFecharOnb} />}
       {explicando && (
         <ComoSeJoga
           jogo={jogo}

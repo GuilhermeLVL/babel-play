@@ -30,7 +30,25 @@ const ehFolha = (d: Element) => d.classList.contains('folha-de-baixo');
 function entrar(d: HTMLDialogElement): void {
   if (abertos.has(d) || saindo.has(d)) return;
   abertos.add(d);
-  if (!polido() || reduz() || ehFolha(d)) return;
+  if (!polido() || reduz()) return;
+  if (ehFolha(d)) {
+    /* `folhaDeBaixo()` de `telas.js:180-186`: a folha sobe de baixo e o conteúdo vem em cascata. */
+    anima(d, [{ transform: 'translateY(100%)' }, { transform: 'translateY(0)' }], { d: 560, e: MOLA_SUAVE });
+    $$('.folha-corpo > *, .folha-acao, .folha-palavras button', d).forEach((x, i) =>
+      anima(
+        x,
+        [
+          { opacity: 0, transform: 'translateY(16px)' },
+          { opacity: 1, transform: 'translateY(0)' },
+        ],
+        {
+          d: 420,
+          atraso: 120 + Math.min(i, 14) * 30,
+        },
+      ),
+    );
+    return;
+  }
   if (ehBusca(d)) {
     if (ultimaTecla > ultimoPonteiro) return; /* aberta pelo teclado: não anima */
     anima(
@@ -104,11 +122,16 @@ function entrar(d: HTMLDialogElement): void {
   );
 }
 
+const duracaoDaSaida = (d: Element) => (ehFolha(d) ? 280 : celular() ? 300 : 200);
+
 /** A animação de saída de `fecharDialogo()` (`telas2.js:484-491`), a partir de `de` ms já corridos. */
 function animarSaida(d: HTMLDialogElement, de = 0): Animation {
-  const a = celular()
-    ? anima(d, [{ transform: 'translateY(100%)' }], { d: 300, e: EG, fill: 'forwards' })
-    : anima(d, [{ opacity: 0, transform: 'scale(0.94)', filter: 'blur(6px)' }], { d: 200, fill: 'forwards' });
+  const a = ehFolha(d)
+    ? /* `fecharFolhaDeBaixo()` de `telas.js:171`. */
+      anima(d, [{ transform: 'translateY(100%)' }], { d: 280, e: EG, fill: 'forwards' })
+    : celular()
+      ? anima(d, [{ transform: 'translateY(100%)' }], { d: 300, e: EG, fill: 'forwards' })
+      : anima(d, [{ opacity: 0, transform: 'scale(0.94)', filter: 'blur(6px)' }], { d: 200, fill: 'forwards' });
   if (de > 0) a.currentTime = de;
   return a;
 }
@@ -135,12 +158,12 @@ function reabrir(d: HTMLDialogElement): boolean {
 function sair(d: HTMLDialogElement): void {
   abertos.delete(d);
   if (fechandoDeVez.delete(d)) return;
-  if (saindo.has(d) || !polido() || reduz() || ehBusca(d) || ehFolha(d) || !d.isConnected) return;
+  if (saindo.has(d) || !polido() || reduz() || ehBusca(d) || !d.isConnected) return;
   /* Ao fechar, o navegador devolve o foco a quem abriu o diálogo. Reabrir para a saída o leva embora:
      no fim ele volta para o último elemento que teve o foco FORA de um diálogo. */
   const foco = focoDeFora;
   if (!reabrir(d)) return;
-  const ms = celular() ? 300 : 200;
+  const ms = duracaoDaSaida(d);
   saindo.set(d, { inicio: performance.now(), ms, foco });
   d.style.pointerEvents = 'none';
   d.setAttribute('aria-hidden', 'true');
@@ -171,9 +194,9 @@ function segurar(d: HTMLDialogElement, pai: Node, antesDe: Node | null): void {
   let s = saindo.get(d);
   if (!s) {
     /* Saiu do documento ainda aberto (o app o desmontou sem fechar): a saída começa agora. */
-    if (!abertos.has(d) || !polido() || reduz() || ehBusca(d) || ehFolha(d)) return;
+    if (!abertos.has(d) || !polido() || reduz() || ehBusca(d)) return;
     abertos.delete(d);
-    s = { inicio: performance.now(), ms: celular() ? 300 : 200, foco: focoDeFora };
+    s = { inicio: performance.now(), ms: duracaoDaSaida(d), foco: focoDeFora };
     saindo.set(d, s);
     d.style.pointerEvents = 'none';
     d.setAttribute('aria-hidden', 'true');

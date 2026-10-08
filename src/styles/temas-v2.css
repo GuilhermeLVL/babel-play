@@ -540,31 +540,121 @@
     --anel: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent);
     --hud-combo-tinta: var(--accent-contrast);
   }
+  /* ÁGUA (polimento, fase 5): a tela vista de dentro d'água. As cores valem em qualquer tela e modo;
+     a cena viva (superfície, bolhas, inclinação) é um módulo à parte, só no movimento rico
+     (`src/lib/temas/cenaDaAgua.ts`). Aqui o fundo continua CSS puro, como nos outros temas. */
+  [data-theme="agua"] {
+    color-scheme: light;
+    --canvas: #D3EDF3;
+    --surface: #F2FBFD;
+    --surface-hover: #E3F4F8;
+    --surface-sunken: #BFDFE8;
+    --ink: #0B2A3B;
+    --ink-muted: #3F6274;
+    --ink-faint: #47697B;
+    --ink-contrast: #E9F8FB;
+    --border-subtle: #A9D0DC;
+    --border-strong: #7FB4C4;
+    --accent: #0A7EA4;
+    --accent-soft: #CDEAF3;
+    --accent-ink: #086A8B;
+    --accent-contrast: #FFFFFF;
+    --good: #1E8758;
+    --good-soft: #D2EEE1;
+    --good-ink: #17714A;
+    --good-contrast: #FFFFFF;
+    --warn: #B7791F;
+    --warn-soft: #F1E6CC;
+    --warn-ink: #8A5A12;
+    --warn-contrast: #000000;
+    --rare: #5B62C9;
+    --rare-soft: #DDE0F6;
+    --rare-ink: #4A51B5;
+    --error: #C2413A;
+    --error-soft: #F6DDDA;
+    --error-ink: #A8322C;
+    --error-contrast: #FFFFFF;
+    --epic: #8A3F9A;
+    --epic-soft: #EBDDF0;
+    --epic-ink: #7A3489;
+    --font-display-val: "Baloo 2", "Nunito", sans-serif;
+    --anel: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent);
+    --radius-card: 24px;
+    --radius-btn: 20px;
+    --r-card: 24px;
+    --r-btn: 20px;
+    --textura: radial-gradient(circle, transparent 0 2.2px, color-mix(in srgb, var(--surface) 55%, transparent) 2.6px 3.4px, transparent 3.8px);
+    --textura-tam: 64px 64px;
+    --fundo-animado: linear-gradient(180deg, color-mix(in srgb, var(--surface) 80%, transparent) 0%, transparent 46%, color-mix(in srgb, var(--accent) 22%, transparent) 100%);
+    --hud-trilho: color-mix(in srgb, var(--accent) 14%, var(--surface));
+    --hud-barra: linear-gradient(90deg, var(--accent), var(--rare));
+    --hud-combo: color-mix(in srgb, var(--accent) 12%, var(--surface));
+    --hud-combo-quente: linear-gradient(135deg, var(--rare), var(--accent));
+    --hud-combo-tinta: #FFFFFF;
+    --hud-raio: 20px;
+  }
+  [data-theme="agua"].dark, .dark [data-theme="agua"], [data-theme="agua"] [class*="dark"] {
+    color-scheme: dark;
+    --canvas: #06141D;
+    --surface: #0E2634;
+    --surface-hover: #153344;
+    --surface-sunken: #040E15;
+    --ink: #DDF3F8;
+    --ink-muted: #8FB3C2;
+    --ink-faint: #86AABA;
+    --ink-contrast: #06141D;
+    --border-subtle: #1E4052;
+    --border-strong: #2F5B70;
+    --accent: #4FD3EA;
+    --accent-soft: #12384A;
+    --accent-ink: #6FDDF0;
+    --accent-contrast: #04202B;
+    --good: #5FD6A0;
+    --good-soft: #143A2E;
+    --good-ink: #5FD6A0;
+    --good-contrast: #06241A;
+    --warn: #F0C26B;
+    --warn-soft: #3A3620;
+    --warn-ink: #F0C26B;
+    --warn-contrast: #2E2410;
+    --rare: #A9AFFF;
+    --rare-soft: #252C55;
+    --rare-ink: #A9AFFF;
+    --error: #FF8E86;
+    --error-soft: #40242A;
+    --error-ink: #FF8E86;
+    --error-contrast: #381F1D;
+    --epic: #E3A3F0;
+    --epic-soft: #3A2542;
+    --epic-ink: #E3A3F0;
+    --anel: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent);
+    --hud-combo-tinta: var(--accent-contrast);
+  }
 }
 
 /* CAMADA PRÓPRIA, declarada depois das do Tailwind: a cor da raiz e do <main> vem de
    `.bg-canvas` (camada utilities), que ganharia de qualquer regra em `base`. */
 @layer tema-fundo {
   /* O fundo dos temas completos aparece atrás do app: a raiz e o <main> deixam de pintar a cor. */
-  html:is([data-theme="radio"], [data-theme="papel"], [data-theme="neon"], [data-theme="fliperama"], [data-theme="jardim"], [data-theme="observatorio"]) :is([data-raiz-do-app], [data-raiz-do-app] main.bg-canvas) {
+  html:is([data-theme="radio"], [data-theme="papel"], [data-theme="neon"], [data-theme="fliperama"], [data-theme="jardim"], [data-theme="observatorio"], [data-theme="agua"]) :is([data-raiz-do-app], [data-raiz-do-app] main.bg-canvas) {
     background-color: transparent;
   }
-  html:is([data-theme="radio"], [data-theme="papel"], [data-theme="neon"], [data-theme="fliperama"], [data-theme="jardim"], [data-theme="observatorio"]) body::before,
-  html:is([data-theme="radio"], [data-theme="papel"], [data-theme="neon"], [data-theme="fliperama"], [data-theme="jardim"], [data-theme="observatorio"]) body::after {
+  html:is([data-theme="radio"], [data-theme="papel"], [data-theme="neon"], [data-theme="fliperama"], [data-theme="jardim"], [data-theme="observatorio"], [data-theme="agua"]) body::before,
+  html:is([data-theme="radio"], [data-theme="papel"], [data-theme="neon"], [data-theme="fliperama"], [data-theme="jardim"], [data-theme="observatorio"], [data-theme="agua"]) body::after {
     content: '';
     position: fixed;
     pointer-events: none;
     z-index: -1;
   }
   /* Fundo animado: maior que a tela, só desliza e gira um pouco (transform = compositor). */
-  html:is([data-theme="radio"], [data-theme="papel"], [data-theme="neon"], [data-theme="fliperama"], [data-theme="jardim"], [data-theme="observatorio"]) body::before {
+  html:is([data-theme="radio"], [data-theme="papel"], [data-theme="neon"], [data-theme="fliperama"], [data-theme="jardim"], [data-theme="observatorio"], [data-theme="agua"]) body::before {
     inset: -12%;
     background-image: var(--fundo-animado);
     animation: fundo-do-tema 48s ease-in-out infinite alternate;
     will-change: transform;
   }
   /* Textura: parada, presa à tela. */
-  html:is([data-theme="radio"], [data-theme="papel"], [data-theme="neon"], [data-theme="fliperama"], [data-theme="jardim"], [data-theme="observatorio"]) body::after {
+  html:is([data-theme="radio"], [data-theme="papel"], [data-theme="neon"], [data-theme="fliperama"], [data-theme="jardim"], [data-theme="observatorio"], [data-theme="agua"]) body::after {
     inset: 0;
     background-image: var(--textura);
     background-size: var(--textura-tam, auto);

@@ -1,3 +1,6 @@
+> **08/10/2026: passada de fidelidade.** As fases 0 a 4 abaixo foram entregues de forma aproximada e estão
+> sendo refeitas contra o protótipo. O estado que vale é o de `fidelidade/estado.md`.
+
 # Tarefas
 
 Fonte de cada item: o painel "Auditoria" de `docs/prototipos/polimento-movimento.html` (rodadas 1 a 16).

@@ -135,6 +135,8 @@ const THEME_VOICES: Record<ThemeType, ThemeVoice> = {
   jardim: { wave: 'sine',     root: 3,   decay: 1.8,  gain: 0.95, errorWave: 'triangle' },
   // Observatório: coro distante — triangular grave, cauda muito longa.
   observatorio: { wave: 'triangle', root: -8, decay: 2.3, gain: 0.85, errorWave: 'sine' },
+  // Água: gota caindo — senoide aguda, curta e redonda; erro abafado, como som debaixo d'água.
+  agua: { wave: 'sine', root: 7, decay: 0.75, gain: 0.85, errorWave: 'sine' },
 };
 
 /** O timbre de um tema (o pacote de sons que ele traz). Tema desconhecido cai no neutro. */

@@ -85,6 +85,7 @@ const VALID_THEMES: readonly ThemeType[] = [
   'fliperama',
   'jardim',
   'observatorio',
+  'agua',
 ];
 
 /**

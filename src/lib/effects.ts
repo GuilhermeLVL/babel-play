@@ -168,6 +168,8 @@ export const PARTICLE_PRESETS: Record<ThemeType, ParticlePreset> = {
   // Jardim: pólen grande e mole, oscilando.
   jardim: { ambientCount: 14, size: [1.4, 3], driftX: 0.05, driftY: -0.06, wobble: 1.2, wobbleSpeed: 0.012, alpha: [0.12, 0.34], glow: false, colorToken: '--good' },
   // Observatório: estrelas lentas, com brilho.
+  // Água: bolhas de ar subindo e oscilando.
+  agua: { ambientCount: 12, size: [1.4, 3.2], driftX: 0.03, driftY: -0.2, wobble: 1, wobbleSpeed: 0.02, alpha: [0.12, 0.38], glow: false, colorToken: '--accent' },
   observatorio: { ambientCount: 20, size: [0.8, 2], driftX: 0.04, driftY: 0.02, wobble: 0.2, wobbleSpeed: 0.006, alpha: [0.14, 0.5], glow: true, colorToken: '--accent' },
 };
 
@@ -184,6 +186,7 @@ export const FORMA_DO_TEMA: Partial<Record<ThemeType, FormaParticula>> = {
   fliperama: 'pixel',
   jardim: 'coracao',
   observatorio: 'cometa',
+  agua: 'circulo',
 };
 
 /** A forma do tema em vigor no documento, ou `undefined` (sem tema com forma, ou skin escolhida). */

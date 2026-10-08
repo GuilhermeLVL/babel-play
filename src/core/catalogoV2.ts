@@ -55,6 +55,17 @@ export const TEMAS_V2: ItemDaLoja[] = [
     previa: ['#E8F0E1', '#F9FCF4', '#2E7D4F', '#1C291D'],
   },
   {
+    id: 'tema-agua',
+    tipo: 'tema',
+    alvo: 'agua',
+    nome: 'Água',
+    desc: 'A tela vista de dentro d’água. A superfície balança quando você inclina o aparelho, e cada toque faz uma onda.',
+    raridade: 'epico',
+    nivel: NIVEL_SO_SEEDS,
+    precoSeeds: 2800,
+    previa: ['#D3EDF3', '#F2FBFD', '#0A7EA4', '#0B2A3B'],
+  },
+  {
     id: 'tema-neon',
     tipo: 'tema',
     alvo: 'neon',

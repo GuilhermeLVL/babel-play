@@ -23,7 +23,8 @@ export type ThemeType =
   | 'neon'
   | 'fliperama'
   | 'jardim'
-  | 'observatorio';
+  | 'observatorio'
+  | 'agua';
 
 export interface CustomColors {
   canvas: string;
@@ -207,6 +208,12 @@ export const THEME_OPTIONS: ThemeOption[] = [
     name: 'Observatório',
     desc: 'Céu de estrelas, azul profundo e títulos finos.',
     swatches: { canvas: '#E7EBF3', surface: '#F8FAFD', accent: '#3543A8', ink: '#131A2C' },
+  },
+  {
+    id: 'agua',
+    name: 'Água',
+    desc: 'A tela vista de dentro d’água: a superfície balança quando você inclina o aparelho.',
+    swatches: { canvas: '#D3EDF3', surface: '#F2FBFD', accent: '#0A7EA4', ink: '#0B2A3B' },
   },
   {
     id: 'custom',

@@ -30,6 +30,7 @@ export const FONTES_POR_TEMA: Readonly<Record<string, readonly Pacote[]>> = {
   papel: ['merriweather'],
   neon: ['orbitron'],
   jardim: ['arredondada'],
+  agua: ['arredondada'],
 };
 
 /** Fonte (`data-fonte`) → pacotes. `padrao`, `pixel` e `display` usam só as de base. */

@@ -23,7 +23,7 @@ import { CATALOGO_DA_LOJA, estadoDoItem, soPorSeeds, vitrineDoProximoNivel } fro
 import { vozDoTema } from '../src/lib/soundFx'
 import { coerceTheme } from '../src/lib/theme'
 
-const TEMAS_NOVOS = ['radio', 'papel', 'neon', 'fliperama', 'jardim', 'observatorio'] as const
+const TEMAS_NOVOS = ['radio', 'papel', 'neon', 'fliperama', 'jardim', 'observatorio', 'agua'] as const
 const TEMAS_ANTIGOS = ['babel', 'linear', 'vercel', 'mochi', 'notion', 'premium', 'aurora', 'custom'] as const
 
 const raiz = process.cwd()

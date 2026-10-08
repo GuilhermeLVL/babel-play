@@ -139,7 +139,7 @@ describe('todo par de texto/fundo de todo tema passa WCAG AA', () => {
     const temas = new Set(paletas.map((p) => p.rotulo.split(' ')[0]))
     for (const t of ['babel', 'linear', 'vercel', 'mochi', 'notion', 'premium']) expect(temas).toContain(t)
     // Os temas completos das recompensas v2 (onda 4), nos dois modos.
-    for (const t of ['radio', 'papel', 'neon', 'fliperama', 'jardim', 'observatorio']) {
+    for (const t of ['radio', 'papel', 'neon', 'fliperama', 'jardim', 'observatorio', 'agua']) {
       expect(paletas.map((p) => p.rotulo)).toContain(`${t} claro`)
       expect(paletas.map((p) => p.rotulo)).toContain(`${t} escuro`)
     }

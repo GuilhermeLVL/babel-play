@@ -21,4 +21,5 @@ export const PAR_DO_TEMA: Record<string, { claro: [string, string, string]; escu
   fliperama: { claro: ['#FFFFFF', '#E6ECF6', '#D1143A'], escuro: ['#14192C', '#0A0D19', '#FFD23F'] },
   jardim: { claro: ['#F9FCF4', '#E8F0E1', '#2E7D4F'], escuro: ['#17231A', '#0F1912', '#7FD18F'] },
   observatorio: { claro: ['#F8FAFD', '#E7EBF3', '#3543A8'], escuro: ['#0F1426', '#070A16', '#A3ACFF'] },
+  agua: { claro: ['#F2FBFD', '#D3EDF3', '#0A7EA4'], escuro: ['#0E2634', '#06141D', '#4FD3EA'] },
 };

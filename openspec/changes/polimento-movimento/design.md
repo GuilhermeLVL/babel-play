@@ -1,3 +1,7 @@
+> **SUBSTITUÍDO em 08/10/2026.** O dono rejeitou a leitura abaixo ("o protótipo exagera; as regras do app
+> vencem"). Vale a regra de `fidelidade/estado.md`: o protótipo é a especificação, item por item. O que este
+> arquivo diz em contrário não vale mais; fica como registro do que foi tentado.
+
 ## Context
 
 A fonte é o protótipo `docs/prototipos/polimento-movimento.html` (um arquivo só, gerado; o botão

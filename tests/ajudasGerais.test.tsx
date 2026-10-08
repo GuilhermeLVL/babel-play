@@ -61,13 +61,13 @@ afterEach(() => {
 })
 
 describe('a ajuda de tempo na tabela de regras', () => {
-  it('vale nos jogos com relógio por jogada, duas vezes no Médio; o Duelo fica fora', () => {
-    for (const jogo of ['karuta', 'choseong', 'tenis', 'shiritori', 'taboo'] as const) {
+  it('vale nos jogos com relógio, duas vezes no Médio; no protótipo o Duelo também tem (jogos4.js:67)', () => {
+    for (const jogo of ['blitz', 'karuta', 'choseong', 'tenis', 'shiritori', 'taboo'] as const) {
       expect(ajudasDoJogo(jogo, 'tempo', 'medio'), jogo).toBe(2)
       expect(ajudasDoJogo(jogo, 'tempo', 'facil'), jogo).toBe(3)
       expect(ajudasDoJogo(jogo, 'tempo', 'dificil'), jogo).toBe(1)
     }
-    expect(ajudasDoJogo('blitz', 'tempo', 'medio')).toBe(0)
+    expect(ajudasDoJogo('memory', 'tempo', 'medio')).toBe(0)
     expect(SEGUNDOS_A_MAIS).toBe(10)
   })
 })

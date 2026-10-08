@@ -1,0 +1,374 @@
+import '../../../../styles/modoInterprete.css';
+
+import {
+  ArrowUpDown,
+  ChevronDown,
+  Download,
+  Languages,
+  ListChecks,
+  Lock,
+  Mic,
+  Monitor,
+  RotateCcw,
+  Volume2,
+  VolumeX,
+  X,
+} from 'lucide-react';
+import { type ReactNode, useEffect, useLayoutEffect, useRef } from 'react';
+
+import type { LadoDoInterprete } from '../../../../lib/captura/tiposDaFala';
+import { t } from '../../../../lib/i18n';
+import {
+  entradaDaConversa,
+  entradaDasBolhas,
+  palavraNova,
+  topoDasMetades,
+  traducaoChegou,
+  trocaDeLados,
+} from '../../../../lib/polimento/interprete';
+
+/** O que a metade mostra no meio: a dica de começo, a fala de quem está nela, ou a tradução do outro. */
+export type FraseDaMetade =
+  | { tipo: 'dica'; texto: string }
+  | { tipo: 'fala'; texto: string; lang: string; aoVivo: boolean }
+  | { tipo: 'traducao'; id: string; traducao: string; original: string; lang: string; langDoOriginal: string };
+
+export interface MetadeDaConversa {
+  /** O lado do MOTOR: `outro` é a metade de cima, `meu` a de baixo (quem segura o aparelho). */
+  lado: LadoDoInterprete;
+  /** De quem é a metade: ao trocar os lados, é ela que muda de lugar (`telas2.js:573-576`). */
+  dono: LadoDoInterprete;
+  lang: string;
+  nome: string;
+  frase: FraseDaMetade;
+  status: string;
+  /** O botão grande: o rótulo ("Falar", "Parar", "Ouvir") e se o microfone está aberto por ele. */
+  rotulo: string;
+  rotuloParaLeitor: string;
+  ouvindo: boolean;
+  aoFalar: () => void;
+  /** Sem voz de leitura para o idioma desta metade: "Repetir" e "Parar voz" não têm o que fazer. */
+  semVoz: boolean;
+}
+
+export interface BolhaDaConversa {
+  id: string;
+  dono: LadoDoInterprete;
+  fala: string;
+  traducao: string;
+}
+
+const quem = (dono: LadoDoInterprete) => (dono === 'meu' ? t('Você') : t('A outra pessoa'));
+
+/** Uma palavra da fala em andamento: entra sozinha quando aparece (`telas2.js:202-206`). */
+function Palavra({ texto, animar }: { texto: string; animar: boolean }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    if (animar && ref.current) palavraNova(ref.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- só na chegada da palavra
+  }, []);
+  return (
+    <span className="int-w" ref={ref}>
+      {texto + ' '}
+    </span>
+  );
+}
+
+/**
+ * A CONVERSA DO INTÉRPRETE COMO NO PROTÓTIPO (`telas2.js:161-182`, `direto.js:68-74`): duas metades, a de
+ * cima virada para a outra pessoa, e a faixa no meio. Em todo aparelho, e acompanhando o tema claro.
+ *
+ * Só desenha: quem decide o que cada metade diz é a tela pronta (`PaginaDoInterprete`) ou a conversa em
+ * curso (`ModoInterprete`), com o motor de sempre.
+ */
+export default function ConversaDoPrototipo({
+  cima,
+  baixo,
+  automatico,
+  lista,
+  voz,
+  aviso,
+  aoConhecerOPremium,
+  aoTrocarLados,
+  aoVirtual,
+  aoEscolherIdioma,
+  aoRepetir,
+  aoPararVoz,
+  aoSair,
+  comEntrada = false,
+  emDialogo = false,
+  fase,
+  testid = 'modo-interprete',
+  children,
+}: {
+  cima: MetadeDaConversa;
+  baixo: MetadeDaConversa;
+  /** O botão "Automático": ausente onde não há plano que o tenha; com cadeado para quem não o tem. */
+  automatico?: { ligado: boolean; comCadeado: boolean; aoTocar: (botao: HTMLElement) => void };
+  lista: { aberta: boolean; bolhas: BolhaDaConversa[]; aoAlternar: () => void; aoExportar: () => void };
+  voz: { rotulo: string; natural: boolean; muda: boolean };
+  aviso: string;
+  /** Com o aviso do cadeado na tela: o botão que leva aos Planos. */
+  aoConhecerOPremium?: (() => void) | undefined;
+  aoTrocarLados: () => void;
+  aoVirtual?: (() => void) | undefined;
+  aoEscolherIdioma?: (() => void) | undefined;
+  aoRepetir?: (() => void) | undefined;
+  aoPararVoz?: (() => void) | undefined;
+  aoSair: () => void;
+  /** A tela acabou de abrir pelo menu: metades, faixa e botões entram (`telas2.js:275-278`). */
+  comEntrada?: boolean;
+  /** A conversa em curso cobre a captura: é um diálogo para quem usa leitor de tela. */
+  emDialogo?: boolean;
+  fase?: string | undefined;
+  testid?: string;
+  children?: ReactNode;
+}) {
+  const raiz = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (comEntrada && raiz.current) entradaDaConversa(raiz.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- só ao abrir
+  }, []);
+
+  /* TROCAR OS LADOS: mede antes do toque e, com as metades já no lugar novo, cada uma parte de onde estava. */
+  const antes = useRef<Map<string, number> | null>(null);
+  const trocar = () => {
+    if (raiz.current) antes.current = topoDasMetades(raiz.current);
+    aoTrocarLados();
+  };
+  useLayoutEffect(() => {
+    const de = antes.current;
+    antes.current = null;
+    if (de && raiz.current) trocaDeLados(raiz.current, de);
+  }, [cima.dono]);
+
+  /* A TRADUÇÃO CHEGOU do lado de quem escuta: uma vez por fala, e não para a que já estava na tela. */
+  const idDaTraducao = (m: MetadeDaConversa) => (m.frase.tipo === 'traducao' ? m.frase.id : '');
+  const vistas = useRef<Record<string, string>>({ [cima.dono]: idDaTraducao(cima), [baixo.dono]: idDaTraducao(baixo) });
+  const tirarMarca = useRef<Record<string, () => void>>({});
+  const idDeCima = idDaTraducao(cima);
+  const idDeBaixo = idDaTraducao(baixo);
+  useEffect(() => {
+    for (const m of [cima, baixo]) {
+      const id = idDaTraducao(m);
+      if (!id || vistas.current[m.dono] === id) continue;
+      vistas.current[m.dono] = id;
+      const el = raiz.current?.querySelector<HTMLElement>(`.int-metade[data-lado="${m.dono}"]`);
+      if (!el || !raiz.current) continue;
+      tirarMarca.current[m.dono]?.();
+      tirarMarca.current[m.dono] = traducaoChegou(raiz.current, el);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- só quando a fala em destaque muda
+  }, [idDeCima, idDeBaixo]);
+  useEffect(
+    () => () => {
+      for (const tirar of Object.values(tirarMarca.current)) tirar();
+    },
+    [],
+  );
+
+  /* A LISTA abriu: as bolhas entram pelo lado de quem falou (`telas2.js:256`). */
+  useEffect(() => {
+    if (lista.aberta && raiz.current) entradaDasBolhas(raiz.current);
+  }, [lista.aberta]);
+
+  const frase = (m: MetadeDaConversa) => {
+    const f = m.frase;
+    if (f.tipo === 'dica') return <p className="int-dica">{f.texto}</p>;
+    if (f.tipo === 'fala')
+      return (
+        <p className="int-ao-vivo" lang={f.lang}>
+          {f.texto
+            .split(' ')
+            .filter(Boolean)
+            .map((p, i) => (
+              <Palavra key={i} texto={p} animar={f.aoVivo} />
+            ))}
+        </p>
+      );
+    return (
+      <>
+        <p className="int-traducao" lang={f.lang}>
+          {f.traducao}
+        </p>
+        {f.original && (
+          <p className="int-original" lang={f.langDoOriginal}>
+            {f.original}
+          </p>
+        )}
+      </>
+    );
+  };
+
+  const metade = (m: MetadeDaConversa, virada: boolean) => (
+    <section
+      key={m.dono}
+      className="int-metade"
+      data-lado={m.dono}
+      data-virada={virada ? '' : undefined}
+      hidden={lista.aberta}
+      aria-label={t('Lado de quem fala {idioma}', { idioma: m.nome })}
+      data-testid={`interprete-${m.lado}`}
+    >
+      <p className="int-idioma">
+        <span className="int-quem">{quem(m.dono)}</span>
+        {' · '}
+        {m.nome}
+        {aoEscolherIdioma && (
+          <>
+            {' '}
+            <button
+              type="button"
+              className="int-modo px-int-idioma"
+              aria-label={t('Trocar este idioma')}
+              onClick={aoEscolherIdioma}
+            >
+              <ChevronDown aria-hidden />
+            </button>
+          </>
+        )}
+      </p>
+      <div className="int-frase" aria-live="polite">
+        {frase(m)}
+      </div>
+      <p className="int-status" role="status">
+        {m.status}
+      </p>
+      <div className="int-acoes">
+        {!m.semVoz && (
+          <button type="button" className="int-ib" aria-label={t('Repetir a tradução')} onClick={aoRepetir}>
+            <RotateCcw aria-hidden />
+            <span>{t('Repetir')}</span>
+          </button>
+        )}
+        <button
+          type="button"
+          className="int-falar"
+          data-ouvindo={m.ouvindo ? '' : undefined}
+          aria-pressed={m.ouvindo}
+          aria-label={m.rotuloParaLeitor}
+          onClick={m.aoFalar}
+          data-sfx="none"
+          data-testid={`falar-${m.lado}`}
+        >
+          <Mic aria-hidden />
+          <span aria-hidden>{m.rotulo}</span>
+        </button>
+        {!m.semVoz && (
+          <button type="button" className="int-ib" aria-label={t('Parar a voz')} onClick={aoPararVoz}>
+            <Volume2 aria-hidden />
+            <span>{t('Parar voz')}</span>
+          </button>
+        )}
+      </div>
+    </section>
+  );
+
+  return (
+    <div
+      ref={raiz}
+      className="int px-int"
+      aria-label={t('Modo intérprete')}
+      {...(emDialogo ? { role: 'dialog', 'aria-modal': true } : {})}
+      data-testid={testid}
+      data-fase={fase}
+    >
+      {metade(cima, true)}
+      <div key="faixa" className="int-faixa" data-com-modo="">
+        <div className="int-esq">
+          <button type="button" className="int-ib peq" aria-label={t('Trocar os lados')} onClick={trocar}>
+            <ArrowUpDown aria-hidden />
+          </button>
+          {automatico && (
+            <button
+              type="button"
+              className="int-modo"
+              aria-pressed={automatico.ligado}
+              aria-label={t('Modo automático: o app reconhece quem fala qual idioma')}
+              onClick={(e) => automatico.aoTocar(e.currentTarget)}
+              data-testid="modo-automatico"
+            >
+              {automatico.comCadeado ? <Lock aria-hidden /> : <Languages aria-hidden />}
+              <span aria-hidden>{t('Automático')}</span>
+            </button>
+          )}
+          <button
+            type="button"
+            className="int-modo"
+            aria-pressed={lista.aberta}
+            aria-label={t('Ver a conversa em lista')}
+            onClick={lista.aoAlternar}
+            data-testid="tela-conversa"
+          >
+            <ListChecks aria-hidden />
+            <span className="int-modo-txt" aria-hidden>
+              {t('Conversa')}
+            </span>
+          </button>
+          {aoVirtual && (
+            <button
+              type="button"
+              className="int-modo"
+              aria-label={t('Conversa virtual: traduzir uma chamada')}
+              onClick={aoVirtual}
+              data-testid="abrir-conversa-virtual"
+            >
+              <Monitor aria-hidden />
+              <span className="int-modo-txt" aria-hidden>
+                {t('Virtual')}
+              </span>
+            </button>
+          )}
+        </div>
+        <div className="int-centro">
+          <span
+            className="int-voz"
+            data-natural={voz.natural ? '' : undefined}
+            data-testid="voz-em-uso"
+            title={voz.rotulo}
+          >
+            {voz.muda ? <VolumeX aria-hidden /> : <Volume2 aria-hidden />}
+            <span className="int-voz-txt">{voz.rotulo}</span>
+          </span>
+          <span className="int-aviso" role="status" data-testid="aviso-do-interprete">
+            {aviso}
+          </span>
+          {aoConhecerOPremium && (
+            <button type="button" className="int-modo px-int-conhecer" onClick={aoConhecerOPremium}>
+              {t('Conhecer o Premium')}
+            </button>
+          )}
+        </div>
+        <button type="button" className="int-ib peq" aria-label={t('Sair do modo intérprete')} onClick={aoSair}>
+          <X aria-hidden />
+        </button>
+      </div>
+      {lista.aberta && (
+        <section key="lista" className="int-conversa" aria-label={t('Conversa')} data-testid="interprete-conversa">
+          <div className="int-conversa-topo">
+            <button type="button" className="int-modo" onClick={lista.aoExportar} data-testid="exportar-conversa">
+              <Download aria-hidden />
+              <span>{t('Exportar')}</span>
+            </button>
+          </div>
+          <div className="int-bolhas">
+            {lista.bolhas.length ? (
+              lista.bolhas.map((b) => (
+                <div key={b.id} className="int-bolha" data-lado={b.dono}>
+                  <p className="int-bolha-idioma">{quem(b.dono)}</p>
+                  <p className="int-bolha-fala">{b.fala}</p>
+                  <p className="int-bolha-trad">{b.traducao}</p>
+                </div>
+              ))
+            ) : (
+              <p className="int-dica">{t('A conversa aparece aqui conforme vocês falam.')}</p>
+            )}
+          </div>
+        </section>
+      )}
+      {metade(baixo, false)}
+      {children}
+    </div>
+  );
+}

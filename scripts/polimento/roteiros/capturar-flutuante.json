@@ -1,0 +1,122 @@
+{
+  "nome": "capturar-flutuante",
+  "largura": 1280,
+  "altura": 960,
+  "app": {
+    "caminho": "/",
+    "passos": [
+      {
+        "js": "Promise.all([import('/src/lib/theme.ts').then((m) => m.applyDarkMode(false)), import('/src/lib/i18n.ts').then((m) => m.usarIdioma('pt-BR'))])"
+      },
+      {
+        "js": "delete Window.prototype.documentPictureInPicture; delete window.documentPictureInPicture"
+      },
+      {
+        "esperar": 800
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "js": "[...document.querySelectorAll('.q-trilho .q-item')].find((b) => /Captur/.test(b.textContent)).click()"
+      },
+      {
+        "esperar": 9000
+      },
+      {
+        "js": "new Promise((ok) => { const i = setInterval(() => { if (window.__simFalas) { clearInterval(i); ok(window.__simFalas(['So, are we still shipping the roadmap today?', 'Then let’s celebrate after the release.'])); } }, 250); })"
+      },
+      {
+        "esperar": 2000
+      },
+      {
+        "js": "document.querySelector('[data-px=\"flutuante\"]').click()"
+      },
+      {
+        "esperar": 2500
+      },
+      {
+        "js": "Promise.all([import('/src/lib/theme.ts').then((m) => m.applyDarkMode(false)), import('/src/lib/i18n.ts').then((m) => m.usarIdioma('pt-BR'))])"
+      },
+      {
+        "esperar": 600
+      }
+    ]
+  },
+  "proto": {
+    "passos": [
+      {
+        "clicar": ".q-trilho .q-item >> text=Capturar"
+      },
+      {
+        "esperar": 1500
+      },
+      {
+        "js": "document.querySelector('[data-px=\"iniciar\"]').click()"
+      },
+      {
+        "esperar": 34000
+      },
+      {
+        "js": "document.querySelector('[data-px=\"flutuante\"]').click()"
+      },
+      {
+        "esperar": 2500
+      }
+    ]
+  },
+  "props": [
+    "scale",
+    "cursor",
+    "userSelect",
+    "width",
+    "left",
+    "top",
+    "right",
+    "bottom",
+    "zIndex",
+    "touchAction"
+  ],
+  "seletores": [
+    "#leg-flut",
+    "#leg-flut .leg-barra",
+    "#leg-flut .leg-barra > *",
+    "#leg-flut .leg-tit",
+    "#leg-flut .leg-tit svg",
+    "#leg-flut .leg-barra button:not(.leg-tit)",
+    "#leg-flut .leg-barra button:not(.leg-tit) svg",
+    "#leg-flut .leg-corpo",
+    "#leg-flut .leg-fala",
+    "#leg-flut .leg-fala.atual",
+    "#leg-flut .leg-o",
+    "#leg-flut .leg-t"
+  ],
+  "gravar": {
+    "app": [
+      {
+        "js": "document.querySelector('#leg-flut [data-px=\"fechar\"]').click()"
+      },
+      {
+        "esperar": 700
+      },
+      {
+        "js": "document.querySelector('[data-px=\"flutuante\"]').click()"
+      }
+    ],
+    "proto": [
+      {
+        "js": "document.querySelector('#leg-flut [data-px=\"fechar\"]').click()"
+      },
+      {
+        "esperar": 700
+      },
+      {
+        "js": "document.querySelector('[data-px=\"flutuante\"]').click()"
+      }
+    ],
+    "espera": 1500
+  }
+}

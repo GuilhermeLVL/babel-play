@@ -12,7 +12,7 @@ import {
   useState,
 } from 'react';
 
-import { jogoTemNiveis } from '../../../core/minigames/regras';
+import { jogoTemNiveis, type NivelDoJogo } from '../../../core/minigames/regras';
 import { definirJogoEmCurso } from '../../../lib/comemoracao';
 import { perfilDoDispositivo } from '../../../lib/dispositivo/perfil';
 import { recursosDoAparelho } from '../../../lib/dispositivo/recursos';
@@ -20,6 +20,7 @@ import { useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
 import { numero, t } from '../../../lib/i18n';
 import { useNivelDoJogo } from '../../../lib/jogos/nivelDoJogo';
 import { contagem321, entradaDeCamera } from '../../../lib/juice';
+import { limparRetorno } from '../../../lib/polimento/jogos';
 import type { AgeProfileType } from '../../../lib/profile';
 import { CabecalhoDeTela, IconeEmBloco, Tela } from '../../ui';
 import { InterruptorDoQuest } from '../../views/play/quest/pecasDoQuest';
@@ -27,6 +28,7 @@ import ComoSeJoga from '../ComoSeJoga';
 import { jaFezTour, marcarTourFeito } from '../passosDosJogos';
 import ExplicacaoDoJogo from '../polimento/ExplicacaoDoJogo';
 import { jogoTemNiveisNoDesenho, unidadeNoDesenho } from '../polimento/textos';
+import { ICONE_DO_JOGO } from './iconesDosJogos';
 import SeletorDeNivel, { nomeDoNivel } from './SeletorDeNivel';
 
 /**
@@ -54,6 +56,9 @@ interface EstadoDaRodada {
   pausado: boolean;
   /** O HUD escreve aqui o placar que a pausa mostra ("120 pontos · 4 acertos"). */
   placar: { current: { pontos: number; acertos: number } };
+  /** O jogo e o nível desta rodada: o placar soma por eles o bônus do Difícil. Ausentes fora da casca. */
+  jogo?: MinigameId;
+  nivel?: NivelDoJogo;
 }
 
 const RODADA_SOLTA: EstadoDaRodada = { ativo: true, pausado: false, placar: { current: { pontos: 0, acertos: 0 } } };
@@ -86,6 +91,12 @@ interface CascaDaRodadaProps {
   pausaComP?: boolean;
   /** O som do app (soundEnabled/toggleSound do App): o interruptor "Sons" da pausa. */
   som?: { ligado: boolean; alternar: () => void };
+  /**
+   * A RODADA ACABOU (desenho novo): o palco mostra a tela de fim no lugar do tabuleiro, como o `pjFim`
+   * do protótipo (`jogos.js:296-328`). O cabeçalho continua; "Jogar" volta direto (não há rodada a
+   * perder), Esc não pausa, e o palco ganha `.pj-acabou`, que esconde as ajudas e a instrução.
+   */
+  acabou?: boolean;
   /** Tela cheia de largura para tabuleiros que precisam (padrão `larga`, como no protótipo). */
   children: ReactNode;
 }
@@ -106,6 +117,7 @@ export default function CascaDaRodada({
   onSair,
   pausaComP = true,
   som,
+  acabou = false,
   children,
 }: CascaDaRodadaProps) {
   const palcoRef = useRef<HTMLElement | null>(null);
@@ -127,6 +139,8 @@ export default function CascaDaRodada({
     definirJogoEmCurso(jogo);
     return () => definirJogoEmCurso(null);
   }, [jogo]);
+  /* Ao sair da rodada nada fica pendurado na tela (`encerrarPartida`, `jogos.js:157`). */
+  useEffect(() => limparRetorno, []);
 
   /* A contagem roda uma vez por montagem — "Recomeçar" remonta a casca (chave nova em Play.tsx),
      então a rodada recomeçada também conta 3-2-1. */
@@ -174,7 +188,7 @@ export default function CascaDaRodada({
   // Esc ou P pausam; com a pausa aberta, P continua (o Esc do <dialog> nativo já fecha).
   useEffect(() => {
     const aoTeclar = (e: KeyboardEvent) => {
-      if (explicando || onb || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (acabou || explicando || onb || e.ctrlKey || e.metaKey || e.altKey) return;
       const p = pausaComP && (e.key === 'p' || e.key === 'P');
       if (passo) {
         if (p && passo === 'menu') {
@@ -190,20 +204,27 @@ export default function CascaDaRodada({
     };
     window.addEventListener('keydown', aoTeclar);
     return () => window.removeEventListener('keydown', aoTeclar);
-  }, [passo, explicando, onb, pausar, continuar, pausaComP]);
+  }, [passo, explicando, onb, pausar, continuar, pausaComP, acabou]);
 
   const estado = useMemo<EstadoDaRodada>(
-    () => ({ ativo: pronto && !passo && !explicando && !onb, pausado: !!passo || explicando || !!onb, placar }),
-    [pronto, passo, explicando, onb],
+    () => ({
+      ativo: pronto && !passo && !explicando && !onb && !acabou,
+      pausado: !!passo || explicando || !!onb,
+      placar,
+      jogo,
+      nivel,
+    }),
+    [pronto, passo, explicando, onb, acabou, jogo, nivel],
   );
 
   return (
     <Contexto.Provider value={estado}>
       <Tela largura="larga">
         <CabecalhoDeTela
-          voltar={{ rotulo: 'Jogar', aoClicar: () => setPasso('sair') }}
+          voltar={{ rotulo: 'Jogar', aoClicar: () => (acabou ? onSair() : setPasso('sair')) }}
           sobrancelha={`Rodada · ${total} ${questNovo ? unidadeNoDesenho(jogo, unidade) : unidade}${!questNovo && nivel !== 'medio' && jogoTemNiveis(jogo) ? ` · ${nomeDoNivel(nivel)}` : ''}`}
-          icone={Gamepad2}
+          /* No desenho novo a sobrancelha traz o ícone do próprio jogo (`jogos.js:128`). */
+          icone={questNovo ? ICONE_DO_JOGO[jogo] : Gamepad2}
           titulo={titulo}
           acoes={
             questNovo ? (
@@ -265,11 +286,11 @@ export default function CascaDaRodada({
         <section
           ref={palcoRef}
           /* No desenho novo o palco é o do protótipo (`section.palco-jogo.px-partida[data-qj]`, `jogos.js:130`). */
-          className={questNovo ? 'palco-jogo px-partida' : 'palco-jogo'}
+          className={questNovo ? `palco-jogo px-partida${acabou ? ' pj-acabou' : ''}` : 'palco-jogo'}
           data-qj={questNovo ? jogo : undefined}
           id="palco"
-          aria-busy={!pronto}
-          style={pronto ? undefined : { pointerEvents: 'none' }}
+          aria-busy={!pronto && !acabou}
+          style={pronto || acabou ? undefined : { pointerEvents: 'none' }}
         >
           {children}
         </section>

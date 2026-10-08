@@ -1,0 +1,104 @@
+{
+  "nome": "capturar-frase",
+  "largura": 1280,
+  "altura": 960,
+  "app": {
+    "caminho": "/",
+    "passos": [
+      {
+        "js": "Promise.all([import('/src/lib/theme.ts').then((m) => m.applyDarkMode(false)), import('/src/lib/i18n.ts').then((m) => m.usarIdioma('pt-BR'))])"
+      },
+      {
+        "esperar": 800
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "js": "[...document.querySelectorAll('.q-trilho .q-item')].find((b) => /Captur/.test(b.textContent)).click()"
+      },
+      {
+        "esperar": 9000
+      },
+      {
+        "js": "new Promise((ok) => { const i = setInterval(() => { if (window.__simFalas) { clearInterval(i); ok(window.__simFalas(['So, are we still shipping the roadmap today?', 'We ship it today, but the dashboard needs one more review.'])); } }, 250); })"
+      },
+      {
+        "esperar": 2000
+      },
+      {
+        "js": "document.querySelector('.q-linha-da-fala .q-fala').click()"
+      },
+      {
+        "esperar": 2500
+      },
+      {
+        "js": "Promise.all([import('/src/lib/theme.ts').then((m) => m.applyDarkMode(false)), import('/src/lib/i18n.ts').then((m) => m.usarIdioma('pt-BR'))])"
+      },
+      {
+        "esperar": 600
+      }
+    ]
+  },
+  "proto": {
+    "passos": [
+      {
+        "clicar": ".q-trilho .q-item >> text=Capturar"
+      },
+      {
+        "esperar": 1500
+      },
+      {
+        "js": "document.querySelector('[data-px=\"iniciar\"]').click()"
+      },
+      {
+        "esperar": 9500
+      },
+      {
+        "js": "document.querySelector('.q-linha-da-fala .q-fala').click()"
+      },
+      {
+        "esperar": 2500
+      }
+    ]
+  },
+  "seletores": [
+    "dialog.folha-de-baixo.folha-da-frase",
+    "dialog.folha-de-baixo .folha-pega",
+    "dialog.folha-de-baixo .folha-corpo",
+    "dialog.folha-de-baixo .folha-corpo > *",
+    ".folha-frase",
+    ".folha-frase-trad",
+    ".folha-grade",
+    ".folha-acao",
+    ".folha-acao.pri",
+    ".folha-acao svg",
+    ".px-nuance",
+    ".px-nuance > span",
+    ".px-nuance b",
+    ".px-nuance b svg",
+    ".px-nuance-previa",
+    ".px-nuance-previa i",
+    ".px-nuance .q-ctl",
+    ".folha-rotulo",
+    ".folha-palavras",
+    ".folha-palavras button",
+    ".folha-palavras button[data-nova]"
+  ],
+  "gravar": {
+    "app": [
+      {
+        "js": "[...document.querySelectorAll('.folha-palavras button')].find((b) => b.textContent === 'shipping').click()"
+      }
+    ],
+    "proto": [
+      {
+        "js": "[...document.querySelectorAll('.folha-palavras button')].find((b) => b.textContent === 'shipping').click()"
+      }
+    ],
+    "espera": 1800
+  }
+}

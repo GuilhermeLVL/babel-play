@@ -374,7 +374,13 @@ describe('a antessala no Quest', () => {
   })
 })
 
-describe('o fim da rodada no Quest', () => {
+/**
+ * O FIM DA RODADA NO DESENHO NOVO é a tela do protótipo (`pjFim`, `jogos.js:296-328`), dentro do palco.
+ * A regra "nenhuma função some" cedeu aqui por decisão do dono (08/10/2026): o protótipo manda na tela,
+ * e a raspadinha, o recorde, o resumo dos erros, o ranking e "trocar mantendo o combo" saíram dela.
+ * Os números continuam os da rodada, e as três saídas chamam o que a tela de antes chamava.
+ */
+describe('o fim da rodada no desenho novo', () => {
   const report = {
     gameId: 'memory' as const,
     items: [
@@ -388,7 +394,14 @@ describe('o fim da rodada no Quest', () => {
   }
   const itens = report.items.map((o) => ({ ...o, back: `trad-${o.itemRef}` }))
   const montar = (extra: Partial<React.ComponentProps<typeof ResultadoDaRodada>> = {}) => {
-    const acoes = { onContinuar: vi.fn(), onRepetir: vi.fn(), onRefazerErradas: vi.fn(), onDone: vi.fn() }
+    const acoes = {
+      onContinuar: vi.fn(),
+      onRepetir: vi.fn(),
+      onRefazerErradas: vi.fn(),
+      onDone: vi.fn(),
+      onProximo: vi.fn(),
+      onJogarDeNovo: vi.fn(),
+    }
     const tela = render(
       <ResultadoDaRodada
         report={report as never}
@@ -400,6 +413,8 @@ describe('o fim da rodada no Quest', () => {
         onPularVez={null}
         custoPular={40}
         saldoSeeds={0}
+        total={4}
+        proximo="wordsearch"
         {...acoes}
         {...extra}
       />,
@@ -407,70 +422,58 @@ describe('o fim da rodada no Quest', () => {
     return { ...tela, ...acoes }
   }
 
-  it('antes de revelar, o único botão principal é revelar; os números são os da rodada', () => {
+  it('a marcação é a do protótipo, com os números da rodada', () => {
     const t = montar()
-    expect(screen.getByRole('heading', { name: '3 de 4 pares' })).toBeTruthy()
-    expect(screen.getByRole('img', { name: '2 de 3 estrelas (75% de acerto)' })).toBeTruthy()
-    expect([...t.container.querySelectorAll('.qj-fim .q-num span')].map((s) => s.textContent)).toEqual([
-      'Pontos',
-      'Precisão',
-      'Tempo',
-      'Melhor sequência',
+    const fim = t.container.querySelector('.pj-miolo > .fim') as HTMLElement
+    expect(fim.querySelector('.label-mono')?.textContent).toBe('Rodada concluída · Memória')
+    expect(fim.querySelector('h2')?.textContent).toBe('Boa rodada')
+    expect(screen.getByRole('img', { name: '2 de 3 estrelas' })).toBeTruthy()
+    expect(fim.querySelectorAll('.estrelas-fim span.on').length).toBe(2)
+    expect([...fim.querySelectorAll('.fim-numeros > div')].map((d) => d.textContent)).toEqual([
+      'Acertos3 de 4',
+      'Tempo0:42',
+      'Pontos150',
+      'Melhor combo×2',
     ])
-    expect(t.container.textContent).toContain('seu recorde: 400')
-    expect(principais()).toEqual(['Revelar a recompensa'])
-    expect(screen.queryByRole('button', { name: /Voltar aos jogos/ })).toBeNull()
+    expect(fim.querySelector('.carimbo')).toBeNull()
+    expect(fim.querySelector('.xp-fim b')?.textContent).toBe('+10 XP')
+    /* O placar da rodada continua no palco, acima da tela de fim. */
+    expect(t.container.querySelector('.hud [data-pj="rotulo"]')?.textContent).toBe('4 de 4 pares')
+    /* O que o protótipo não mostra saiu. */
+    expect(t.container.textContent).not.toContain('seu recorde')
+    expect(t.container.querySelector('.raspa, canvas, [data-secao="resumo"]')).toBeNull()
   })
 
-  it('depois de revelar: mais uma (principal), de novo, o que escapou e voltar', () => {
+  it('as três saídas, na ordem do protótipo, chamam o que devem', () => {
     const t = montar()
-    fireEvent.click(botao('Revelar a recompensa'))
-    expect(screen.getByLabelText(/Recompensa revelada: mais 10 XP e 3 seeds/)).toBeTruthy()
-    expect(principais()).toEqual(['Mais uma, com palavras novas'])
-    fireEvent.click(botao(/Mais uma/))
-    fireEvent.click(botao(/De novo/))
-    fireEvent.click(botao(/Voltar aos jogos/))
-    expect(t.onContinuar).toHaveBeenCalledTimes(1)
-    expect(t.onRepetir).toHaveBeenCalledTimes(1)
+    const acoes = [...t.container.querySelectorAll('.pj-fim-acoes > button')]
+    expect(acoes.map((b) => b.textContent?.trim())).toEqual([
+      'Próximo jogo: Caça-palavras',
+      'Jogar de novo',
+      'Voltar aos jogos',
+    ])
+    acoes.forEach((b) => fireEvent.click(b))
+    expect(t.onProximo).toHaveBeenCalledWith('wordsearch')
+    expect(t.onJogarDeNovo).toHaveBeenCalledTimes(1)
     expect(t.onDone).toHaveBeenCalledTimes(1)
-
-    fireEvent.click(botao(/Ver o que escapou/))
-    const resumo = t.container.querySelector('[data-secao="resumo"]') as HTMLElement
-    expect(resumo.textContent).toContain('trad-d')
-    fireEvent.click(within(resumo).getByRole('button', { name: 'Refazer só a errada' }))
-    expect(t.onRefazerErradas.mock.calls[0][0].map((e: { itemRef: string }) => e.itemRef)).toEqual(['d'])
-    expect(resumo.textContent).not.toContain('trad-a')
-    fireEvent.click(within(resumo).getByRole('button', { name: 'Acertou (3)' }))
-    expect(resumo.textContent).toContain('trad-a')
   })
 
-  it('tocar na raspadinha também revela', () => {
-    montar()
-    fireEvent.click(screen.getByRole('button', { name: 'Raspe para revelar a recompensa' }))
-    expect(botao(/Voltar aos jogos/)).toBeTruthy()
+  it('sem outro jogo para abrir, "Próximo jogo" não aparece', () => {
+    const t = montar({ proximo: null })
+    expect(t.container.querySelector('[data-pj="proximo"]')).toBeNull()
   })
 
-  it('com combo vivo, trocar mantendo o combo fica à vista; sem saldo, diz quanto custa', () => {
-    const onPularVez = vi.fn()
-    const sequencia = { rodadas: 3, pontos: 500, precisao: 90, combo: 4, melhorSequencia: 6 } as never
-    const t = montar({ sequencia, onPularVez })
-    fireEvent.click(botao('Revelar a recompensa'))
-    fireEvent.click(within(t.container.querySelector('[data-secao="pular"]') as HTMLElement).getByRole('button'))
-    expect(onPularVez).toHaveBeenCalledTimes(1)
-    cleanup()
-    const semSaldo = montar({ sequencia, onPularVez: null, saldoSeeds: 12 })
-    fireEvent.click(botao('Revelar a recompensa'))
-    expect(semSaldo.container.querySelector('[data-secao="pular"]')?.textContent).toContain(
-      'Custa 40 seeds, e você tem 12.',
-    )
+  it('rodada sem erro: três estrelas, "Rodada perfeita" e o carimbo', () => {
+    const perfeita = { ...report, items: report.items.map((o) => ({ ...o, correct: true, attempts: 1 })) }
+    const t = montar({ report: perfeita as never })
+    expect(t.container.querySelector('.fim h2')?.textContent).toBe('Rodada perfeita')
+    expect(t.container.querySelector('.carimbo')?.textContent).toContain('sem nenhum erro')
   })
 
-  it('rodada que não foi gravada: diz que nada foi creditado; sem material, não oferece "mais uma"', () => {
-    montar({ gravacao: 'falhou', semMaterial: true })
-    fireEvent.click(botao('Revelar a recompensa'))
-    expect(screen.getAllByText('Não foi possível salvar — nada foi creditado').length).toBeGreaterThan(0)
-    expect(screen.queryByRole('button', { name: /Mais uma/ })).toBeNull()
-    expect(screen.getByRole('status').textContent).toContain('Acabaram as palavras elegíveis')
+  it('rodada que não foi gravada: diz que nada foi creditado no lugar do XP', () => {
+    const t = montar({ gravacao: 'falhou' })
+    expect(screen.getByRole('status').textContent).toContain('Não foi possível salvar — nada foi creditado')
+    expect(t.container.textContent).not.toContain('+10 XP')
   })
 })
 
@@ -502,19 +505,17 @@ describe('o que muda de jeito no headset é dito do jeito do headset', () => {
   })
 
   it('o tour usa a frase do headset quando o passo tem uma', () => {
-    const medida = vi
-      .spyOn(Element.prototype, 'getBoundingClientRect')
-      .mockReturnValue({
-        top: 100,
-        left: 100,
-        width: 200,
-        height: 60,
-        right: 300,
-        bottom: 160,
-        x: 100,
-        y: 100,
-        toJSON: () => ({}),
-      })
+    const medida = vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
+      top: 100,
+      left: 100,
+      width: 200,
+      height: 60,
+      right: 300,
+      bottom: 160,
+      x: 100,
+      y: 100,
+      toJSON: () => ({}),
+    })
     try {
       render(
         <>

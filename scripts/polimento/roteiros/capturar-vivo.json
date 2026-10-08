@@ -1,0 +1,91 @@
+{
+  "nome": "capturar-vivo",
+  "largura": 1280,
+  "altura": 960,
+  "app": {
+    "caminho": "/",
+    "passos": [
+      {
+        "js": "Promise.all([import('/src/lib/theme.ts').then((m) => m.applyDarkMode(false)), import('/src/lib/i18n.ts').then((m) => m.usarIdioma('pt-BR'))])"
+      },
+      {
+        "esperar": 800
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "js": "[...document.querySelectorAll('.q-trilho .q-item')].find((b) => /Captur/.test(b.textContent)).click()"
+      },
+      {
+        "esperar": 9000
+      },
+      {
+        "js": "new Promise((ok) => { const i = setInterval(() => { if (window.__simFalas) { clearInterval(i); ok(window.__simFalas(['So, are we still shipping the roadmap today?', 'We ship it today, but the dashboard needs one more review.', 'Fair enough. Can you walk me through the changes?', 'Sure. We rewrote the onboarding and cut the loading time in half.', 'That is a big deal. Customers were complaining about it.', 'Then let us celebrate after the release.'])); } }, 250); })"
+      },
+      {
+        "esperar": 2500
+      },
+      {
+        "js": "document.querySelectorAll('.px-vivo > :not(.px-vivo-topo):not(.cel-conversa):not(.q-faixa)').forEach((e) => e.remove())"
+      },
+      {
+        "js": "Promise.all([import('/src/lib/theme.ts').then((m) => m.applyDarkMode(false)), import('/src/lib/i18n.ts').then((m) => m.usarIdioma('pt-BR'))])"
+      },
+      {
+        "esperar": 600
+      },
+      {
+        "js": "document.querySelector('.px-vivo').classList.remove('px-parada')"
+      },
+      {
+        "esperar": 400
+      }
+    ]
+  },
+  "proto": {
+    "passos": [
+      {
+        "clicar": ".q-trilho .q-item >> text=Capturar"
+      },
+      {
+        "esperar": 1500
+      },
+      {
+        "js": "document.querySelector('[data-px=\"iniciar\"]').click()"
+      },
+      {
+        "esperar": 34000
+      }
+    ]
+  },
+  "seletores": [
+    ".px-vivo",
+    ".px-vivo-topo",
+    ".px-vivo .cel-conversa",
+    ".px-vivo .q-leg",
+    ".px-vivo .q-historico",
+    ".q-linha-da-fala",
+    ".q-linha-da-fala.atual",
+    ".q-linha-da-fala:not(.atual)",
+    ".q-linha-da-fala .q-fala",
+    ".q-linha-da-fala .q-meta",
+    ".q-linha-da-fala .q-meta .tn",
+    ".q-linha-da-fala:not(.atual) .q-o",
+    ".q-linha-da-fala:not(.atual) .q-t",
+    ".q-linha-da-fala.atual .q-o",
+    ".q-linha-da-fala.atual .q-t",
+    ".q-acoes-da-fala",
+    ".q-acoes-da-fala .q-ctl",
+    ".q-acoes-da-fala .q-ctl svg",
+    ".q-linha-da-fala.atual .q-acoes-da-fala .q-ctl",
+    ".px-vivo .q-faixa",
+    ".px-vivo .q-tempo",
+    ".px-vivo .q-ctl.pri",
+    ".px-vivo .q-faixa .q-ctl:not(.pri)"
+  ],
+  "nota": "No app as falas entram por window.__simFalas (sem microfone) e a tela fica PARADA; tirar .px-parada devolve o desenho de gravando (sem a navegação), que é o que o protótipo mostra. O botão principal continua \"Iniciar captura\"."
+}

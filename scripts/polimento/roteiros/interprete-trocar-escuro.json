@@ -1,0 +1,67 @@
+{
+  "nome": "interprete-trocar-escuro",
+  "largura": 1280,
+  "altura": 960,
+  "app": {
+    "caminho": "/",
+    "guardar": {
+      "babel.interprete.modo": "toque",
+      "babel.interprete.virtual": "sim"
+    },
+    "passos": [
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "js": "import('/src/lib/i18n.ts').then((m) => m.usarIdioma('pt'))"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "js": "import('/src/lib/theme.ts').then((m) => m.applyDarkMode(true))"
+      },
+      {
+        "clicar": ".q-trilho .q-item >> text=Intérprete"
+      },
+      {
+        "esperar": 2500
+      }
+    ]
+  },
+  "proto": {
+    "passos": [
+      {
+        "texto": "Tema"
+      },
+      {
+        "clicar": ".q-trilho .q-item >> text=Intérprete"
+      },
+      {
+        "esperar": 2500
+      }
+    ]
+  },
+  "seletores": [
+    ".int-metade",
+    ".int-metade[data-virada]",
+    ".int-metade[data-virada] .int-quem",
+    ".int-faixa"
+  ],
+  "gravar": {
+    "app": [
+      {
+        "clicar": "[aria-label='Trocar os lados']"
+      }
+    ],
+    "proto": [
+      {
+        "clicar": "[aria-label='Trocar os lados']"
+      }
+    ],
+    "espera": 1200
+  }
+}

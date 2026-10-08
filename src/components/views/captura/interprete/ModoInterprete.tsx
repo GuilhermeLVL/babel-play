@@ -14,7 +14,7 @@ import {
   VolumeX,
   X,
 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 
 import {
   type ControleDoInterprete,
@@ -32,8 +32,10 @@ import {
 import { direcaoDoLado, ESTADO_INICIAL, type IdiomasDoInterprete } from '../../../../lib/captura/interprete';
 import { chaveLigada } from '../../../../lib/captura/testesDoInterprete';
 import type { LadoDoInterprete, SpeechSegment } from '../../../../lib/captura/tiposDaFala';
+import { useQuestNovo } from '../../../../lib/dispositivo/telaNovaDoQuest';
 import { t } from '../../../../lib/i18n';
 import { langLabel } from '../../../../lib/languages';
+import { estadoDaTela, mudarEstadoDaTela, tomarPedidoDaConversa, tremer } from '../../../../lib/polimento/interprete';
 import { nativeTts, type TtsEngine } from '../../../../lib/tts';
 import { aquecerInterprete } from '../../../../lib/voz/aquecimentoDoInterprete';
 import { tempoAteAVoz } from '../../../../lib/voz/tempoAteAVoz';
@@ -46,8 +48,10 @@ import {
   MOTOR_MUDO,
   vozDoQuestFala,
 } from '../../../../lib/voz/vozDoQuest';
+import ConversaDoPrototipo, { type FraseDaMetade, type MetadeDaConversa } from './ConversaDoPrototipo';
 import FolhaDeEdicao from './FolhaDeEdicao';
 import { ConversaEmBolhas, ListaDaMetade } from './ListaDoHistorico';
+import { guardarModo, type ModoDaConversa, modoGuardado } from './modoDaConversa';
 import type { AoOuvirTrecho, TrechoEmLeitura } from './TextoTocavel';
 
 /** A fala, no que a tela precisa. */
@@ -75,8 +79,7 @@ const MOTOR_SEM_VOZ: TtsEngine = MOTOR_MUDO;
 
 const outro = (lado: LadoDoInterprete): LadoDoInterprete => (lado === 'meu' ? 'outro' : 'meu');
 
-/** Como a conversa anda: o app ouve e reconhece quem fala (automático), ou cada um toca a sua metade. */
-export type ModoDaConversa = 'automatico' | 'toque';
+export type { ModoDaConversa };
 /**
  * O automático NESTA conta: `disponivel` (o plano o tem), `premium` (não tem: o botão aparece com
  * cadeado e diz de que plano é) ou `oculto` (o site sem servidor, o perfil protegido: nem aparece).
@@ -97,24 +100,6 @@ function telaGuardada(): TelaDoInterprete | null {
 function guardarTela(tela: TelaDoInterprete) {
   try {
     localStorage.setItem(CHAVE_DA_TELA, tela);
-  } catch {
-    /* sem armazenamento: a escolha vale só nesta tela */
-  }
-}
-
-/* A última escolha da pessoa, neste aparelho. Conveniência: sem armazenamento, vale o padrão. */
-const CHAVE_DO_MODO = 'babel.interprete.modo';
-function modoGuardado(): ModoDaConversa | null {
-  try {
-    const v = localStorage.getItem(CHAVE_DO_MODO);
-    return v === 'automatico' || v === 'toque' ? v : null;
-  } catch {
-    return null;
-  }
-}
-function guardarModo(modo: ModoDaConversa) {
-  try {
-    localStorage.setItem(CHAVE_DO_MODO, modo);
   } catch {
     /* sem armazenamento: a escolha vale só nesta tela */
   }
@@ -162,6 +147,9 @@ export default function ModoInterprete({
   aoGuardar,
   aoSair,
   aoFalharMicrofone,
+  aoEscolherIdiomas,
+  aoConhecerOPremium,
+  comVirtual = false,
 }: {
   idiomas: IdiomasDoInterprete;
   falas: ReadonlyArray<FalaDoInterprete>;
@@ -196,7 +184,17 @@ export default function ModoInterprete({
   aoGuardar?: (frase: FraseParaGuardar) => void;
   aoSair: () => void;
   aoFalharMicrofone?: (erro: unknown) => void;
+  /** DESENHO NOVO: o botão de cada metade que abre a escolha dos idiomas (`direto.js:73`). */
+  aoEscolherIdiomas?: (() => void) | undefined;
+  /** DESENHO NOVO: os Planos, a partir do aviso do cadeado (ausente no perfil protegido). */
+  aoConhecerOPremium?: (() => void) | undefined;
+  /** DESENHO NOVO: a conversa virtual existe neste aparelho; "Virtual" leva ao preparo dela. */
+  comVirtual?: boolean;
 }) {
+  /** O desenho novo: a tela do protótipo, em todo aparelho (`ConversaDoPrototipo`). */
+  const novo = useQuestNovo();
+  const novoRef = useRef(novo);
+  novoRef.current = novo;
   const idiomasRef = useRef(idiomas);
   idiomasRef.current = idiomas;
   const microfoneRef = useRef(microfone);
@@ -208,7 +206,10 @@ export default function ModoInterprete({
      novo — um controle criado no render seria desligado na primeira desmontagem e ficaria morto. */
   const controleRef = useRef<ControleDoInterprete | null>(null);
   const vozRef = useRef<VozDaNuvem | null>(null);
-  const [estado, setEstado] = useState<EstadoDoControle>(ESTADO_DA_TELA);
+  /* No desenho novo os lados podem ter sido trocados na tela pronta: a conversa já abre assim. */
+  const [estado, setEstado] = useState<EstadoDoControle>(() =>
+    novo && estadoDaTela().trocados ? { ...ESTADO_DA_TELA, trocados: true } : ESTADO_DA_TELA,
+  );
   const velocidadeRef = useRef(velocidade);
   velocidadeRef.current = velocidade;
   const semVozRef = useRef(semVoz);
@@ -254,6 +255,7 @@ export default function ModoInterprete({
     vozRef.current = voz;
     tempoAteAVoz.zerar();
     registrarPonte(controle);
+    if (novoRef.current && estadoDaTela().trocados && !controle.estado().trocados) controle.trocarLados();
     setEstado(controle.estado());
     if (voz) aquecerInterprete(); // libera o áudio da voz da nuvem antes do 1º toque (chave vozPorFrase)
     return () => {
@@ -268,12 +270,33 @@ export default function ModoInterprete({
   const atualRef = useRef(atual);
   atualRef.current = atual;
 
+  /* DESENHO NOVO: a conversa abre direto (`direto.js:8-14`). A tela pronta fica por baixo e se esconde
+     enquanto esta está na frente; o toque que a abriu (um lado, ou a escuta do automático) começa aqui. */
+  useLayoutEffect(() => {
+    if (!novo) return;
+    mudarEstadoDaTela({ emCurso: true });
+    return () => mudarEstadoDaTela({ emCurso: false });
+  }, [novo]);
+  useEffect(() => {
+    if (!novo) return;
+    /* Depois do efeito que cria o controle (e da segunda montagem do StrictMode). */
+    const relogio = setTimeout(() => {
+      const c = controleRef.current;
+      const pedido = tomarPedidoDaConversa();
+      if (!c || !pedido) return;
+      if (pedido === 'ouvir') c.ouvir();
+      else c.tocar(pedido);
+    }, 0);
+    return () => clearTimeout(relogio);
+  }, [novo]);
+
   /* A TELA e a JANELA do histórico (50 falas; "ver mais" sobe de 50 em 50). */
-  const [tela, setTela] = useState<TelaDoInterprete>(() => telaGuardada() ?? 'frente');
+  const [tela, setTela] = useState<TelaDoInterprete>(() => (novo ? 'frente' : (telaGuardada() ?? 'frente')));
   const alternarTela = () => {
     const nova: TelaDoInterprete = tela === 'frente' ? 'conversa' : 'frente';
     setTela(nova);
-    guardarTela(nova);
+    /* No desenho novo a conversa abre sempre nas duas metades (`telas2.js:170-182`). */
+    if (!novo) guardarTela(nova);
   };
   const [janela, setJanela] = useState(JANELA_DO_HISTORICO);
   const totalDeFinais = useMemo(
@@ -292,6 +315,8 @@ export default function ModoInterprete({
   }, [automatico]);
   /** O aviso da própria tela (o cadeado do automático), por alguns segundos. */
   const [avisoDaTela, setAvisoDaTela] = useState<string | null>(null);
+  /** DESENHO NOVO: o aviso do cadeado fica na tela, com o botão dos Planos (`telas2.js:260-262`). */
+  const [cadeado, setCadeado] = useState(false);
   useEffect(() => {
     if (!avisoDaTela) return;
     const relogio = setTimeout(() => setAvisoDaTela(null), 7000);
@@ -336,7 +361,13 @@ export default function ModoInterprete({
   const guardar = (item: ItemDoHistorico) => {
     const falou = direcaoDoLado(item.lado, idiomas, atualRef.current.trocados);
     const ouviu = direcaoDoLado(outro(item.lado), idiomas, atualRef.current.trocados);
-    aoGuardar?.({ id: item.id, texto: item.original, traducao: item.traducao, lang: falou.fala, langDaTraducao: ouviu.fala });
+    aoGuardar?.({
+      id: item.id,
+      texto: item.original,
+      traducao: item.traducao,
+      lang: falou.fala,
+      langDaTraducao: ouviu.fala,
+    });
   };
   /** EXPORTAR: o Markdown da conversa, baixado no aparelho (nada sai dele). */
   const exportar = () => {
@@ -364,10 +395,16 @@ export default function ModoInterprete({
     controle.sair();
     aoSair();
   };
+  /** DESENHO NOVO: sem nada dito, o X volta para a tela de origem (`direto.js:94`) assim que a sessão
+      encerra (quem navega é a tela pronta, que fica por baixo); com falas, o Encerrar decide antes. */
+  const sairDaTela = () => {
+    if (novo && totalDeFinais === 0) mudarEstadoDaTela({ depois: 'voltar' });
+    sair();
+  };
 
   /* OS ATALHOS do computador. No celular não há teclado a ouvir. */
-  const sairRef = useRef(sair);
-  sairRef.current = sair;
+  const sairRef = useRef(sairDaTela);
+  sairRef.current = sairDaTela;
   const noAutomaticoRef = useRef(noAutomatico);
   noAutomaticoRef.current = noAutomatico;
   const alternarEscutaRef = useRef(alternarEscuta);
@@ -484,7 +521,12 @@ export default function ModoInterprete({
   const acoesDoLado = (d: DadosDoLado) => (
     <div className="int-acoes">
       {!d.semVozAqui && (d.vozParaMim || (atual.fase === 'parado' && d.doOutro)) && (
-        <button type="button" className="int-ib" onClick={() => controle.repetir()} aria-label={t('Repetir a tradução')}>
+        <button
+          type="button"
+          className="int-ib"
+          onClick={() => controle.repetir()}
+          aria-label={t('Repetir a tradução')}
+        >
           <RotateCcw aria-hidden />
           <span>{t('Repetir')}</span>
           {computador && <kbd>R</kbd>}
@@ -628,6 +670,134 @@ export default function ModoInterprete({
       </section>
     );
   };
+
+  if (novo) {
+    const tudo = historicoDoInterprete(falas, 'meu', { janela: Number.MAX_SAFE_INTEGER });
+    const donoDe = (lado: LadoDoInterprete): LadoDoInterprete => (atual.trocados ? outro(lado) : lado);
+    const metadeNova = (lado: LadoDoInterprete): MetadeDaConversa => {
+      const d = dadosDoLado(lado);
+      const direcaoDoOutro = direcaoDoLado(outro(lado), idiomas, atual.trocados);
+      /* O que fica no meio da metade (`telas2.js:198-217`): a fala de quem está nela enquanto fala e
+         depois de falar; a tradução do outro quando ela chega; no começo, a dica. */
+      let frase: FraseDaMetade = { tipo: 'dica', texto: dicaDeComeco(d) };
+      if (d.minhaAoVivo) frase = { tipo: 'fala', texto: d.minhaAoVivo.texto, lang: d.direcao.fala, aoVivo: true };
+      else
+        for (let i = d.historico.itens.length - 1; i >= 0; i--) {
+          const item = d.historico.itens[i];
+          if (item.traduzindo) continue;
+          frase = item.propria
+            ? { tipo: 'fala', texto: item.original, lang: d.direcao.fala, aoVivo: false }
+            : {
+                tipo: 'traducao',
+                id: item.id,
+                traducao: item.traducao.trim() ? item.traducao : item.original,
+                original: item.traducao.trim() ? item.original : '',
+                lang: d.direcao.fala,
+                langDoOriginal: direcaoDoOutro.fala,
+              };
+          break;
+        }
+      return {
+        lado,
+        dono: donoDe(lado),
+        lang: d.direcao.fala,
+        nome: d.nome,
+        frase,
+        status: statusDoLado(d),
+        rotulo: noAutomatico ? (atual.automatico ? t('Parar') : t('Ouvir')) : d.ouvindo ? t('Parar') : t('Falar'),
+        rotuloParaLeitor: noAutomatico
+          ? atual.automatico
+            ? t('Parar de ouvir a conversa')
+            : t('Ouvir a conversa')
+          : d.ouvindo
+            ? t('Parar de ouvir')
+            : t('Falar em {idioma}', { idioma: d.nome }),
+        ouvindo: noAutomatico ? d.escutando : d.ouvindo,
+        aoFalar: noAutomatico ? alternarEscuta : () => controle.tocar(lado),
+        semVoz: d.semVozAqui,
+      };
+    };
+    const avisoDoCadeado = cadeado && automatico === 'premium';
+    return (
+      <ConversaDoPrototipo
+        cima={metadeNova('outro')}
+        baixo={metadeNova('meu')}
+        {...(automatico !== 'oculto'
+          ? {
+              automatico: {
+                ligado: noAutomatico,
+                comCadeado: automatico === 'premium',
+                aoTocar: (botao: HTMLElement) => {
+                  if (automatico !== 'disponivel') {
+                    setCadeado(true);
+                    tremer(botao);
+                    return;
+                  }
+                  trocarModo();
+                },
+              },
+            }
+          : {})}
+        lista={{
+          aberta: tela === 'conversa',
+          bolhas: tudo.itens.map((item) => ({
+            id: item.id,
+            dono: donoDe(item.lado),
+            fala: item.original,
+            traducao: item.traduzindo ? '…' : item.traducao,
+          })),
+          aoAlternar: alternarTela,
+          aoExportar: () => {
+            if (totalDeFinais > 0) exportar();
+          },
+        }}
+        voz={{ rotulo: rotuloDaVoz, natural: vozNatural, muda: mudos.length === 2 }}
+        aviso={
+          avisoDaTela ??
+          aviso ??
+          (avisoDoCadeado
+            ? t('O modo automático faz parte do Premium: o app reconhece sozinho quem fala qual idioma.')
+            : noAutomatico
+              ? t('Automático ligado: é só conversar. O app reconhece quem fala qual idioma.')
+              : '')
+        }
+        aoConhecerOPremium={
+          avisoDoCadeado && !avisoDaTela && !aviso && aoConhecerOPremium && totalDeFinais === 0
+            ? () => {
+                mudarEstadoDaTela({ depois: 'planos' });
+                sair();
+              }
+            : undefined
+        }
+        aoTrocarLados={() => {
+          mudarEstadoDaTela({ trocados: !atual.trocados });
+          controle.trocarLados();
+        }}
+        aoVirtual={
+          comVirtual
+            ? () => {
+                sair();
+                mudarEstadoDaTela({ preparoVirtual: true });
+              }
+            : undefined
+        }
+        aoEscolherIdioma={
+          aoEscolherIdiomas
+            ? () => {
+                /* Trocar o idioma no meio de uma fala fecha o microfone: o idioma novo começa do zero. */
+                if (controleRef.current && controleRef.current.estado().fase !== 'parado') controleRef.current.parar();
+                aoEscolherIdiomas();
+              }
+            : undefined
+        }
+        aoRepetir={() => controle.repetir()}
+        aoPararVoz={() => controle.pararVoz()}
+        aoSair={sairDaTela}
+        emDialogo
+        fase={atual.fase}
+      />
+    );
+  }
 
   return (
     <div

@@ -265,7 +265,20 @@ html[data-px='on'] .q-cartao.px-feita { border-color: color-mix(in srgb, var(--g
   white-space: nowrap;
 }
 
-/* [polimento.css:289-302] ADIADO até portar: jogos §6.1 Memória (giro da carta) */
+/* ---- 10. Jogo da memória ------------------------------------------------- */
+html[data-px='on'] .tabuleiro .carta,
+html[data-px='on'] .carta.virada,
+html[data-px='on'] .carta.par {
+  animation: none;
+}
+html[data-px='on'] .tabuleiro .carta {
+  transition:
+    background-color calc(200ms * var(--px-k)) ease,
+    border-color calc(200ms * var(--px-k)) ease,
+    box-shadow calc(260ms * var(--px-k)) ease,
+    color calc(200ms * var(--px-k)) ease;
+  will-change: transform;
+}
 
 /* ---- 11. Troca de tema: crossfade, não corte ------------------------------ */
 ::view-transition-old(root),

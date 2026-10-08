@@ -1,0 +1,67 @@
+{
+  "nome": "interprete-trocar-celular-escuro",
+  "largura": 390,
+  "altura": 844,
+  "app": {
+    "caminho": "/",
+    "guardar": {
+      "babel.interprete.modo": "toque",
+      "babel.interprete.virtual": "sim"
+    },
+    "passos": [
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "js": "import('/src/lib/i18n.ts').then((m) => m.usarIdioma('pt'))"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "js": "import('/src/lib/theme.ts').then((m) => m.applyDarkMode(true))"
+      },
+      {
+        "js": "[...document.querySelectorAll('.q-trilho .q-item')].find((b) => /Intérprete/.test(b.textContent)).click()"
+      },
+      {
+        "esperar": 2500
+      }
+    ]
+  },
+  "proto": {
+    "passos": [
+      {
+        "texto": "Tema"
+      },
+      {
+        "js": "[...document.querySelectorAll('.q-trilho .q-item')].find((b) => /Intérprete/.test(b.textContent)).click()"
+      },
+      {
+        "esperar": 2500
+      }
+    ]
+  },
+  "seletores": [
+    ".int-metade",
+    ".int-metade[data-virada]",
+    ".int-metade[data-virada] .int-quem",
+    ".int-faixa"
+  ],
+  "gravar": {
+    "app": [
+      {
+        "clicar": "[aria-label='Trocar os lados']"
+      }
+    ],
+    "proto": [
+      {
+        "clicar": "[aria-label='Trocar os lados']"
+      }
+    ],
+    "espera": 1200
+  }
+}

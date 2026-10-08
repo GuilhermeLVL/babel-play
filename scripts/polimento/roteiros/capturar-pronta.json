@@ -1,0 +1,110 @@
+{
+  "nome": "capturar-pronta",
+  "largura": 1280,
+  "altura": 960,
+  "app": {
+    "caminho": "/",
+    "passos": [
+      {
+        "js": "Promise.all([import('/src/lib/theme.ts').then((m) => m.applyDarkMode(false)), import('/src/lib/i18n.ts').then((m) => m.usarIdioma('pt-BR'))])"
+      },
+      {
+        "esperar": 800
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "js": "[...document.querySelectorAll('.q-trilho .q-item')].find((b) => /Captur/.test(b.textContent)).click()"
+      },
+      {
+        "esperar": 6000
+      },
+      {
+        "js": "document.querySelectorAll('.px-vivo > :not(.px-vivo-topo):not(.cel-conversa):not(.q-faixa)').forEach((e) => e.remove())"
+      },
+      {
+        "js": "Promise.all([import('/src/lib/theme.ts').then((m) => m.applyDarkMode(false)), import('/src/lib/i18n.ts').then((m) => m.usarIdioma('pt-BR'))])"
+      },
+      {
+        "esperar": 600
+      }
+    ]
+  },
+  "proto": {
+    "passos": [
+      {
+        "clicar": ".q-trilho .q-item >> text=Capturar"
+      },
+      {
+        "esperar": 2000
+      }
+    ]
+  },
+  "seletores": [
+    ".px-vivo.px-pronto",
+    ".px-vivo-topo",
+    ".px-vivo-topo > *",
+    ".px-vivo-topo .q-chip",
+    ".px-vivo-topo .q-chip svg",
+    ".px-vivo-topo .q-chip svg:last-child",
+    ".px-vivo-topo .px-so-largo",
+    ".px-vivo-topo .q-espaco",
+    ".px-vivo-topo .q-ctl",
+    ".px-vivo-topo .q-ctl svg",
+    ".px-vivo-topo [role='switch']",
+    ".px-vivo .cel-conversa",
+    ".px-vivo .q-leg",
+    ".px-vivo .q-historico",
+    ".px-pronto-miolo",
+    ".px-pronto-miolo .q-ic",
+    ".px-pronto-miolo .q-ic svg",
+    ".px-pronto-miolo h2",
+    ".px-pronto-miolo p",
+    ".px-vivo .q-faixa",
+    ".px-vivo .q-faixa > *",
+    ".px-vivo .q-tempo",
+    ".px-vivo .cel-ponto",
+    ".px-vivo .q-tempo .tn",
+    ".px-vivo .q-ctl.pri",
+    ".px-vivo .q-ctl.pri svg",
+    ".px-vivo .q-faixa .q-ctl:not(.pri)",
+    ".px-vivo .q-faixa .q-espaco",
+    ".px-vivo .q-faixa .q-fica",
+    ".q-trilho"
+  ],
+  "gravar": {
+    "app": [
+      {
+        "js": "[...document.querySelectorAll('.q-trilho .q-item')].find((b) => /Início|Home/.test(b.textContent)).click()"
+      },
+      {
+        "esperar": 1500
+      },
+      {
+        "js": "window.__anim.length = 0"
+      },
+      {
+        "js": "[...document.querySelectorAll('.q-trilho .q-item')].find((b) => /Captur/.test(b.textContent)).click()"
+      }
+    ],
+    "proto": [
+      {
+        "js": "[...document.querySelectorAll('.q-trilho .q-item')].find((b) => /Início/.test(b.textContent)).click()"
+      },
+      {
+        "esperar": 1500
+      },
+      {
+        "js": "window.__anim.length = 0"
+      },
+      {
+        "js": "[...document.querySelectorAll('.q-trilho .q-item')].find((b) => /Capturar/.test(b.textContent)).click()"
+      }
+    ],
+    "espera": 2500
+  }
+}

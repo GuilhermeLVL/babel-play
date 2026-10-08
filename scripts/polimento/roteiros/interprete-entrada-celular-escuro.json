@@ -1,0 +1,52 @@
+{
+  "nome": "interprete-entrada-celular-escuro",
+  "largura": 390,
+  "altura": 844,
+  "app": {
+    "caminho": "/",
+    "guardar": {
+      "babel.interprete.modo": "toque",
+      "babel.interprete.virtual": "sim"
+    },
+    "passos": [
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "js": "import('/src/lib/i18n.ts').then((m) => m.usarIdioma('pt'))"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "js": "import('/src/lib/theme.ts').then((m) => m.applyDarkMode(true))"
+      }
+    ]
+  },
+  "proto": {
+    "passos": [
+      {
+        "texto": "Tema"
+      }
+    ]
+  },
+  "seletores": [
+    ".q-trilho .q-item"
+  ],
+  "gravar": {
+    "app": [
+      {
+        "js": "[...document.querySelectorAll('.q-trilho .q-item')].find((b) => /Intérprete/.test(b.textContent)).click()"
+      }
+    ],
+    "proto": [
+      {
+        "js": "[...document.querySelectorAll('.q-trilho .q-item')].find((b) => /Intérprete/.test(b.textContent)).click()"
+      }
+    ],
+    "espera": 2500
+  }
+}

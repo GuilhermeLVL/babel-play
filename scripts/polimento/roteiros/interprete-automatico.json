@@ -1,0 +1,80 @@
+{
+  "nome": "interprete-automatico",
+  "largura": 1280,
+  "altura": 960,
+  "app": {
+    "caminho": "/",
+    "guardar": {
+      "babel.interprete.modo": "toque",
+      "babel.interprete.virtual": "sim"
+    },
+    "passos": [
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "js": "import('/src/lib/i18n.ts').then((m) => m.usarIdioma('pt'))"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "js": "import('/src/lib/theme.ts').then((m) => m.applyDarkMode(false))"
+      },
+      {
+        "clicar": ".q-trilho .q-item >> text=Intérprete"
+      },
+      {
+        "esperar": 2500
+      },
+      {
+        "clicar": "[aria-label^='Modo automático']"
+      },
+      {
+        "esperar": 300
+      }
+    ],
+    "depois": 100
+  },
+  "proto": {
+    "passos": [
+      {
+        "js": "document.querySelector(\"[data-px='planos']\").click()"
+      },
+      {
+        "esperar": 900
+      },
+      {
+        "js": "document.querySelector(\"[data-px='teste']\").click()"
+      },
+      {
+        "esperar": 900
+      },
+      {
+        "clicar": ".q-trilho .q-item >> text=Intérprete"
+      },
+      {
+        "esperar": 2500
+      },
+      {
+        "clicar": "[aria-label^='Modo automático']"
+      },
+      {
+        "esperar": 300
+      }
+    ],
+    "depois": 100
+  },
+  "seletores": [
+    ".int-faixa",
+    ".int-esq",
+    ".int-centro",
+    ".int-aviso",
+    ".int-voz",
+    "[aria-label^='Modo automático']",
+    "[aria-label='Sair do modo intérprete']"
+  ]
+}

@@ -1,0 +1,100 @@
+{
+  "nome": "jogos-pulso",
+  "largura": 1280,
+  "altura": 960,
+  "app": {
+    "caminho": "/?ui=pt",
+    "guardar": {
+      "babel_tour_tenis": "1"
+    },
+    "passos": [
+      {
+        "js": "import('/src/lib/theme.ts').then((m) => m.applyDarkMode(false))"
+      },
+      {
+        "esperar": 800
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "clicar": ".q-trilho .q-item >> text=Jogar"
+      },
+      {
+        "esperar": 2500
+      },
+      {
+        "clicar": "button:has-text('Trilha')"
+      },
+      {
+        "esperar": 1200
+      },
+      {
+        "clicar": "button:has-text('Usar estas palavras')"
+      },
+      {
+        "esperar": 2000
+      },
+      {
+        "clicar": ".q-tile[data-jogo='tenis']"
+      },
+      {
+        "esperar": 1500
+      },
+      {
+        "js": "(() => { for (const k of ['q', 'Enter']) document.body.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true })); })()"
+      },
+      {
+        "esperar": 2600
+      },
+      {
+        "js": "(() => { for (const k of ['q', 'Enter']) document.body.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true })); })()"
+      }
+    ],
+    "depois": 250
+  },
+  "proto": {
+    "busca": "?jogo=tenis",
+    "passos": [
+      {
+        "esperar": 800
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 1500
+      },
+      {
+        "js": "(() => { for (const k of ['q', 'Enter']) document.body.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true })); })()"
+      },
+      {
+        "esperar": 2600
+      },
+      {
+        "js": "(() => { for (const k of ['q', 'Enter']) document.body.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true })); })()"
+      }
+    ],
+    "depois": 250
+  },
+  "seletores": [
+    ".ajuda-jogo.pj-chama",
+    ".ganho:not(.good):not(.erro)",
+    ".hud-ajudas .ajuda-jogo"
+  ]
+}

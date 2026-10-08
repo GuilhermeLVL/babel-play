@@ -1,4 +1,4 @@
-import { type ReactNode, useId, useRef } from 'react';
+import { type ReactNode, type RefObject, useId, useRef } from 'react';
 
 import { t } from '../../../../lib/i18n';
 import { DialogoBase } from '../../../ui';
@@ -21,6 +21,8 @@ export default function FolhaDeBaixo({
   tituloVisivel = true,
   aoFechar,
   classe = '',
+  doPrototipo = false,
+  refDaFolha,
   children,
 }: {
   titulo: ReactNode;
@@ -28,9 +30,17 @@ export default function FolhaDeBaixo({
   tituloVisivel?: boolean;
   aoFechar: () => void;
   classe?: string;
+  /**
+   * A folha do protótipo de polimento (`folhaDeBaixo()` de `telas.js:173-188`): a pega é só um traço,
+   * o nome vai em `aria-label` e quem anima a subida e a descida é `lib/polimento/dialogos.ts`.
+   */
+  doPrototipo?: boolean;
+  /** O `<dialog>` da folha, para quem precisa animá-lo. */
+  refDaFolha?: RefObject<HTMLDialogElement | null>;
   children: ReactNode;
 }) {
-  const ref = useRef<HTMLDialogElement>(null);
+  const proprio = useRef<HTMLDialogElement>(null);
+  const ref = refDaFolha ?? proprio;
   const idTitulo = useId();
   const arrasto = useRef<{ y0: number; dy: number } | null>(null);
 
@@ -43,8 +53,29 @@ export default function FolhaDeBaixo({
     if (a && a.dy > ARRASTO_QUE_FECHA_PX) caixa.close();
   };
 
+  if (doPrototipo) {
+    return (
+      <DialogoBase
+        classe={`folha-de-baixo ${classe}`}
+        rotulo={typeof titulo === 'string' ? titulo : t('Ações')}
+        aoFechar={aoFechar}
+        refDialogo={ref}
+        fecharNoFundo
+      >
+        <span className="folha-pega" aria-hidden />
+        <div className="folha-corpo">{children}</div>
+      </DialogoBase>
+    );
+  }
+
   return (
-    <DialogoBase classe={`folha-de-baixo ${classe}`} rotuloId={idTitulo} aoFechar={aoFechar} refDialogo={ref} fecharNoFundo>
+    <DialogoBase
+      classe={`folha-de-baixo ${classe}`}
+      rotuloId={idTitulo}
+      aoFechar={aoFechar}
+      refDialogo={ref}
+      fecharNoFundo
+    >
       <div
         className="folha-pega"
         role="button"

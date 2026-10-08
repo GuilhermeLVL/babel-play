@@ -10,10 +10,22 @@ import {
   Smartphone,
   Volume2,
 } from 'lucide-react';
-import { type ReactNode, useEffect, useState, useSyncExternalStore } from 'react';
+import { type ReactNode, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 
+import { abrirContextoDoClique } from '../../../../lib/captura/contextoDoClique';
+import type { LadoDoInterprete } from '../../../../lib/captura/tiposDaFala';
+import { useQuestNovo } from '../../../../lib/dispositivo/telaNovaDoQuest';
 import { t } from '../../../../lib/i18n';
 import { langLabel } from '../../../../lib/languages';
+import {
+  aoMudarEstadoDaTela,
+  distanciaDoPar,
+  estadoDaTela,
+  inverterEmArco,
+  mudarEstadoDaTela,
+  pedirConversa,
+  tremer,
+} from '../../../../lib/polimento/interprete';
 import {
   aoMudarIdiomasDaVozDoQuest,
   atualizarIdiomasDaVozDoQuest,
@@ -22,34 +34,11 @@ import {
 } from '../../../../lib/voz/vozDoQuest';
 import { LangFlag } from '../../../LangFlag';
 import { CabecalhoDeTela, IconeEmBloco } from '../../../ui';
+import ConversaDoPrototipo, { type MetadeDaConversa } from './ConversaDoPrototipo';
+import { guardarModo, type ModoDaConversa, modoGuardado } from './modoDaConversa';
 import type { AutomaticoNoPlano } from './ModoInterprete';
 
-/**
- * A TELA DO INTÉRPRETE NO MENU (pedido do dono, 30/09: no cabeçalho da captura, o botão passava
- * despercebido). É a porta de entrada da conversa frente a frente: os dois idiomas, o botão grande de
- * começar e o preparo dos dois lados. Tocar em "Começar conversa" abre a tela dividida
- * (`ModoInterprete`), e sair dela volta para cá.
- *
- * No visual da Captura, sem inventar peça nova: o cabeçalho de tela, o cartão escuro do estúdio com o
- * par de idiomas (`.par-idiomas` / `.campo-idioma`, os do diálogo de idiomas) e os três passos do
- * estado vazio (`.vazio` > `.passo`). Chega por `import()`: fora do JS inicial.
- */
-export default function PaginaDoInterprete({
-  idiomas,
-  possivel,
-  abrindo,
-  aviso,
-  automatico = 'oculto',
-  noQuest = false,
-  semVoz = false,
-  vozDoSite = false,
-  avisos,
-  aoConhecerOPremium,
-  aoComecar,
-  aoComecarVirtual,
-  aoEscolherIdiomas,
-  aoInverter,
-}: {
+interface PropsDaPagina {
   idiomas: { meu: string; outro: string };
   /** Dois idiomas diferentes: sem isso não há conversa a traduzir. */
   possivel: boolean;
@@ -68,7 +57,7 @@ export default function PaginaDoInterprete({
   /** O cartão da nuvem do aparelho leve (`NuvemDoQuest`): no headset, é ela que faz a conversa andar. */
   avisos?: ReactNode;
   /** Abre os Planos (ausente no perfil protegido: nada de oferta). */
-  aoConhecerOPremium?: () => void;
+  aoConhecerOPremium?: (() => void) | undefined;
   aoComecar: () => void;
   /**
    * A CONVERSA VIRTUAL (Intérprete v3): traduz o áudio do computador (vídeo, Discord, jogo, chamada) e o
@@ -78,9 +67,221 @@ export default function PaginaDoInterprete({
   aoComecarVirtual?: (opcoes: { comMicrofone: boolean }) => void;
   aoEscolherIdiomas: () => void;
   aoInverter: () => void;
-}) {
+  /** DESENHO NOVO: o X da conversa volta para a tela de onde a pessoa veio (`direto.js:94`). */
+  aoVoltar?: (() => void) | undefined;
+  /** DESENHO NOVO: esta tela é só o preparo da conversa virtual (`direto.js:89-93`), já aberto. */
+  preparoVirtual?: boolean;
+}
+
+/**
+ * NO DESENHO NOVO o Intérprete abre DIRETO NA CONVERSA (`direto.js:8-14`), em todo aparelho: a tela de
+ * começar deixa de ser um toque a mais e só continua existindo como preparo da conversa virtual.
+ */
+export default function PaginaDoInterprete(props: PropsDaPagina) {
+  const novo = useQuestNovo();
+  return novo ? <ConversaPronta {...props} /> : <PaginaDeEntrada {...props} />;
+}
+
+/** O tempo de a captura encerrar uma sessão vazia antes de a tela seguir para a origem ou os Planos. */
+const ESPERA_DA_VOLTA = 400;
+
+const outroLado = (lado: LadoDoInterprete): LadoDoInterprete => (lado === 'meu' ? 'outro' : 'meu');
+
+/**
+ * A CONVERSA PRONTA: a mesma tela da conversa em curso (`ConversaDoPrototipo`), parada. Nada é aberto
+ * ao chegar: o primeiro toque em "Falar" começa a sessão (a folha do início, o teto, o microfone são os
+ * de sempre) e a conversa em curso, que monta por cima, já começa ouvindo aquele lado.
+ */
+function ConversaPronta(props: PropsDaPagina) {
+  const {
+    idiomas,
+    possivel,
+    aviso,
+    automatico = 'oculto',
+    semVoz = false,
+    vozDoSite = false,
+    aoConhecerOPremium,
+    aoComecar,
+    aoComecarVirtual,
+    aoEscolherIdiomas,
+    aoVoltar,
+  } = props;
+  const tela = useSyncExternalStore(aoMudarEstadoDaTela, estadoDaTela, estadoDaTela);
+  /* Sair da tela esquece os lados trocados e o preparo pedido: a próxima visita começa do desenho. */
+  useEffect(() => () => mudarEstadoDaTela({ trocados: false, preparoVirtual: false, depois: null }), []);
+  /* O X (ou "Conhecer o Premium") de uma conversa em que ninguém falou: a sessão encerra e a tela
+     segue para onde foi pedido. A captura segura a navegação enquanto ainda fecha o microfone; o
+     intervalo deixa isso terminar. */
+  const saidas = useRef({ voltar: aoVoltar, planos: aoConhecerOPremium });
+  saidas.current = { voltar: aoVoltar, planos: aoConhecerOPremium };
+  useEffect(() => {
+    const destino = tela.depois;
+    if (tela.emCurso || !destino) return;
+    const relogio = setTimeout(() => {
+      mudarEstadoDaTela({ depois: null });
+      saidas.current[destino]?.();
+    }, ESPERA_DA_VOLTA);
+    return () => clearTimeout(relogio);
+  }, [tela.emCurso, tela.depois]);
   const comVozDoSite = semVoz && vozDoSite;
-  const [virtualAberta, setVirtualAberta] = useState(false);
+  useSyncExternalStore(
+    aoMudarIdiomasDaVozDoQuest,
+    () => idiomasDaVozDoQuest().join(),
+    () => '',
+  );
+  useEffect(() => {
+    if (comVozDoSite) void atualizarIdiomasDaVozDoQuest();
+  }, [comVozDoSite]);
+  const mudo = (idioma: string) => semVoz && !(comVozDoSite && vozDoQuestFala(idioma));
+
+  const [lista, setLista] = useState(false);
+  const [cadeado, setCadeado] = useState(false);
+  const [modo, setModo] = useState<ModoDaConversa>(() =>
+    automatico === 'disponivel' ? (modoGuardado() ?? 'automatico') : 'toque',
+  );
+  useEffect(() => {
+    if (automatico !== 'disponivel') setModo('toque');
+  }, [automatico]);
+  const noAutomatico = modo === 'automatico';
+
+  /* O preparo da conversa virtual: a tela de entrada de produção, com o painel já aberto. */
+  if (tela.preparoVirtual && aoComecarVirtual)
+    return <PaginaDeEntrada {...props} preparoVirtual aoComecar={() => mudarEstadoDaTela({ preparoVirtual: false })} />;
+
+  const idiomaDe = (dono: LadoDoInterprete) => (dono === 'meu' ? idiomas.meu : idiomas.outro);
+  const mudos = (['meu', 'outro'] as const).filter((l) => mudo(idiomaDe(l)));
+  const rotuloDaVoz =
+    mudos.length === 2
+      ? t('Tradução em texto neste aparelho')
+      : mudos.length === 1
+        ? t('Voz em {comVoz} · {semVoz} em texto', {
+            comVoz: langLabel(idiomaDe(outroLado(mudos[0]))),
+            semVoz: langLabel(idiomaDe(mudos[0])),
+          })
+        : comVozDoSite
+          ? t('Voz do site')
+          : t('Voz do aparelho');
+
+  const metade = (lado: LadoDoInterprete): MetadeDaConversa => {
+    const dono = tela.trocados ? outroLado(lado) : lado;
+    const lang = idiomaDe(dono);
+    const nome = langLabel(lang);
+    const semVozParaOOutro = mudo(idiomaDe(outroLado(dono)));
+    return {
+      lado,
+      dono,
+      lang,
+      nome,
+      frase: {
+        tipo: 'dica',
+        texto: semVozParaOOutro
+          ? noAutomatico
+            ? t('Toque em Ouvir e conversem. O app reconhece quem fala qual idioma e mostra a tradução.')
+            : t('Toque em Falar e fale. A tradução aparece do outro lado, em texto.')
+          : noAutomatico
+            ? t('Toque em Ouvir e conversem. O app reconhece quem fala qual idioma e lê a tradução em voz alta.')
+            : t('Toque em Falar e fale. A tradução aparece do outro lado e é lida em voz alta.'),
+      },
+      status: '',
+      rotulo: noAutomatico ? t('Ouvir') : t('Falar'),
+      rotuloParaLeitor: noAutomatico ? t('Ouvir a conversa') : t('Falar em {idioma}', { idioma: nome }),
+      ouvindo: false,
+      aoFalar: () => {
+        /* Dentro do toque, antes de qualquer espera: no iPhone, o áudio criado depois fica mudo. */
+        abrirContextoDoClique();
+        pedirConversa(noAutomatico ? 'ouvir' : lado);
+        aoComecar();
+      },
+      semVoz: mudo(lang),
+    };
+  };
+  const avisoDoCadeado = cadeado && automatico === 'premium';
+
+  return (
+    <div style={{ display: tela.emCurso ? 'none' : 'contents' }} data-testid="pagina-do-interprete">
+      <ConversaDoPrototipo
+        cima={metade('outro')}
+        baixo={metade('meu')}
+        {...(automatico !== 'oculto'
+          ? {
+              automatico: {
+                ligado: noAutomatico,
+                comCadeado: automatico === 'premium',
+                aoTocar: (botao: HTMLElement) => {
+                  if (automatico !== 'disponivel') {
+                    setCadeado(true);
+                    tremer(botao);
+                    return;
+                  }
+                  const novoModo: ModoDaConversa = noAutomatico ? 'toque' : 'automatico';
+                  setModo(novoModo);
+                  guardarModo(novoModo);
+                },
+              },
+            }
+          : {})}
+        lista={{ aberta: lista, bolhas: [], aoAlternar: () => setLista((v) => !v), aoExportar: () => undefined }}
+        voz={{ rotulo: rotuloDaVoz, natural: false, muda: mudos.length === 2 }}
+        aviso={
+          !possivel
+            ? t('Escolha dois idiomas diferentes: um para você, outro para a outra pessoa.')
+            : (aviso ??
+              (avisoDoCadeado
+                ? t('O modo automático faz parte do Premium: o app reconhece sozinho quem fala qual idioma.')
+                : noAutomatico
+                  ? t('Automático ligado: é só conversar. O app reconhece quem fala qual idioma.')
+                  : ''))
+        }
+        aoConhecerOPremium={avisoDoCadeado && possivel && !aviso ? aoConhecerOPremium : undefined}
+        aoTrocarLados={() => mudarEstadoDaTela({ trocados: !tela.trocados })}
+        aoVirtual={aoComecarVirtual ? () => mudarEstadoDaTela({ preparoVirtual: true }) : undefined}
+        aoEscolherIdioma={aoEscolherIdiomas}
+        aoSair={() => aoVoltar?.()}
+        comEntrada
+        testid="conversa-pronta"
+      />
+    </div>
+  );
+}
+
+/**
+ * A TELA DO INTÉRPRETE NO MENU (pedido do dono, 30/09: no cabeçalho da captura, o botão passava
+ * despercebido). É a porta de entrada da conversa frente a frente: os dois idiomas, o botão grande de
+ * começar e o preparo dos dois lados. Tocar em "Começar conversa" abre a tela dividida
+ * (`ModoInterprete`), e sair dela volta para cá.
+ *
+ * No visual da Captura, sem inventar peça nova: o cabeçalho de tela, o cartão escuro do estúdio com o
+ * par de idiomas (`.par-idiomas` / `.campo-idioma`, os do diálogo de idiomas) e os três passos do
+ * estado vazio (`.vazio` > `.passo`). Chega por `import()`: fora do JS inicial.
+ */
+function PaginaDeEntrada({
+  idiomas,
+  possivel,
+  abrindo,
+  aviso,
+  automatico = 'oculto',
+  noQuest = false,
+  semVoz = false,
+  vozDoSite = false,
+  avisos,
+  aoConhecerOPremium,
+  aoComecar,
+  aoComecarVirtual,
+  aoEscolherIdiomas,
+  aoInverter,
+  preparoVirtual = false,
+}: PropsDaPagina) {
+  const comVozDoSite = semVoz && vozDoSite;
+  const [virtualAberta, setVirtualAberta] = useState(preparoVirtual);
+  /* INVERTER EM ARCO (`prototipo.js:1096-1130`, só no desenho novo): a distância é medida antes de os
+     textos trocarem; com eles já trocados, cada um atravessa até o lugar novo. */
+  const raiz = useRef<HTMLDivElement>(null);
+  const arco = useRef<{ botao: HTMLElement; dx: number } | null>(null);
+  useLayoutEffect(() => {
+    const a = arco.current;
+    arco.current = null;
+    if (a && raiz.current) inverterEmArco(a.botao, raiz.current, a.dx);
+  }, [idiomas.meu, idiomas.outro]);
   const [aceitou, setAceitou] = useState(false);
   const [deFone, setDeFone] = useState(false);
   useSyncExternalStore(
@@ -226,7 +427,7 @@ export default function PaginaDoInterprete({
   }
 
   return (
-    <div className="tela larga entra" data-testid="pagina-do-interprete">
+    <div className="tela larga entra" data-testid="pagina-do-interprete" ref={raiz}>
       <CabecalhoDeTela
         icone={Languages}
         sobrancelha={t('Conversa frente a frente')}
@@ -246,7 +447,11 @@ export default function PaginaDoInterprete({
             type="button"
             className="btn btn-outline icone"
             aria-label={t('Inverter os idiomas')}
-            onClick={aoInverter}
+            onClick={(e) => {
+              if (preparoVirtual && raiz.current)
+                arco.current = { botao: e.currentTarget, dx: distanciaDoPar(raiz.current) };
+              aoInverter();
+            }}
           >
             <ArrowLeftRight aria-hidden />
           </button>

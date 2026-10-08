@@ -1,0 +1,104 @@
+{
+  "nome": "jogos-acerto",
+  "largura": 1280,
+  "altura": 960,
+  "app": {
+    "caminho": "/?ui=pt",
+    "guardar": {
+      "babel_tour_tenis": "1"
+    },
+    "passos": [
+      {
+        "js": "import('/src/lib/theme.ts').then((m) => m.applyDarkMode(false))"
+      },
+      {
+        "esperar": 800
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "clicar": ".q-trilho .q-item >> text=Jogar"
+      },
+      {
+        "esperar": 2500
+      },
+      {
+        "clicar": "button:has-text('Trilha')"
+      },
+      {
+        "esperar": 1200
+      },
+      {
+        "clicar": "button:has-text('Usar estas palavras')"
+      },
+      {
+        "esperar": 2000
+      },
+      {
+        "clicar": ".q-tile[data-jogo='tenis']"
+      },
+      {
+        "esperar": 1500
+      },
+      {
+        "clicar": "[data-ajuda='resposta']"
+      },
+      {
+        "esperar": 400
+      },
+      {
+        "js": "(() => { const w = document.querySelector('.pj-resp b').textContent.trim(); for (const c of w) if (/[a-zà-ÿ]/i.test(c)) document.body.dispatchEvent(new KeyboardEvent('keydown', { key: c.toLowerCase(), bubbles: true })); })()"
+      }
+    ],
+    "depois": 200
+  },
+  "proto": {
+    "busca": "?jogo=tenis",
+    "passos": [
+      {
+        "esperar": 800
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 1500
+      },
+      {
+        "clicar": "[data-ajuda='resposta']"
+      },
+      {
+        "esperar": 400
+      },
+      {
+        "js": "(() => { const w = document.querySelector('.pj-resp b').textContent.trim(); for (const c of w) if (/[a-zà-ÿ]/i.test(c)) document.body.dispatchEvent(new KeyboardEvent('keydown', { key: c.toLowerCase(), bubbles: true })); })()"
+      }
+    ],
+    "depois": 200
+  },
+  "seletores": [
+    ".fx-vinheta.acerto",
+    ".ganho.good",
+    "[data-pj='pontos']",
+    ".combo",
+    "[data-pj='rotulo']",
+    ".pj-resp",
+    "[data-ajuda='resposta']"
+  ]
+}

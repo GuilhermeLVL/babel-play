@@ -1,0 +1,82 @@
+{
+  "nome": "interprete-virtual-celular",
+  "largura": 390,
+  "altura": 844,
+  "app": {
+    "caminho": "/",
+    "guardar": {
+      "babel.interprete.modo": "toque",
+      "babel.interprete.virtual": "sim"
+    },
+    "passos": [
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "js": "import('/src/lib/i18n.ts').then((m) => m.usarIdioma('pt'))"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "js": "import('/src/lib/theme.ts').then((m) => m.applyDarkMode(false))"
+      },
+      {
+        "js": "[...document.querySelectorAll('.q-trilho .q-item')].find((b) => /Intérprete/.test(b.textContent)).click()"
+      },
+      {
+        "esperar": 2500
+      },
+      {
+        "clicar": "[aria-label^='Conversa virtual']"
+      },
+      {
+        "esperar": 2000
+      }
+    ]
+  },
+  "proto": {
+    "passos": [
+      {
+        "js": "[...document.querySelectorAll('.q-trilho .q-item')].find((b) => /Intérprete/.test(b.textContent)).click()"
+      },
+      {
+        "esperar": 2500
+      },
+      {
+        "clicar": "[aria-label^='Conversa virtual']"
+      },
+      {
+        "esperar": 2000
+      }
+    ]
+  },
+  "seletores": [
+    ".q-trilho",
+    ".cartao.escuro.estudio",
+    ".par-idiomas",
+    ".campo-idioma",
+    ".campo-idioma .v",
+    "[aria-label='Inverter os idiomas']",
+    "[data-testid='comecar-conversa']",
+    "[data-testid='abrir-conversa-virtual']",
+    "[data-testid='painel-conversa-virtual']",
+    "[data-testid='comecar-conversa-virtual']"
+  ],
+  "gravar": {
+    "app": [
+      {
+        "clicar": "[aria-label='Inverter os idiomas']"
+      }
+    ],
+    "proto": [
+      {
+        "clicar": "[aria-label='Inverter os idiomas']"
+      }
+    ],
+    "espera": 1200
+  }
+}

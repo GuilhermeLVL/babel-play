@@ -1,0 +1,66 @@
+{
+  "nome": "interprete-lista-celular",
+  "largura": 390,
+  "altura": 844,
+  "app": {
+    "caminho": "/",
+    "guardar": {
+      "babel.interprete.modo": "toque",
+      "babel.interprete.virtual": "sim"
+    },
+    "passos": [
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "js": "import('/src/lib/i18n.ts').then((m) => m.usarIdioma('pt'))"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "js": "import('/src/lib/theme.ts').then((m) => m.applyDarkMode(false))"
+      },
+      {
+        "js": "[...document.querySelectorAll('.q-trilho .q-item')].find((b) => /Intérprete/.test(b.textContent)).click()"
+      },
+      {
+        "esperar": 2500
+      },
+      {
+        "clicar": "[aria-label='Ver a conversa em lista']"
+      },
+      {
+        "esperar": 600
+      }
+    ]
+  },
+  "proto": {
+    "passos": [
+      {
+        "js": "[...document.querySelectorAll('.q-trilho .q-item')].find((b) => /Intérprete/.test(b.textContent)).click()"
+      },
+      {
+        "esperar": 2500
+      },
+      {
+        "clicar": "[aria-label='Ver a conversa em lista']"
+      },
+      {
+        "esperar": 600
+      }
+    ]
+  },
+  "seletores": [
+    ".int-conversa",
+    ".int-conversa-topo",
+    ".int-conversa-topo .int-modo",
+    ".int-bolhas",
+    ".int-conversa .int-dica",
+    ".int-faixa",
+    "[aria-label='Ver a conversa em lista']"
+  ]
+}

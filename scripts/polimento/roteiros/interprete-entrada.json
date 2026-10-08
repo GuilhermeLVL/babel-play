@@ -1,0 +1,48 @@
+{
+  "nome": "interprete-entrada",
+  "largura": 1280,
+  "altura": 960,
+  "app": {
+    "caminho": "/",
+    "guardar": {
+      "babel.interprete.modo": "toque",
+      "babel.interprete.virtual": "sim"
+    },
+    "passos": [
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "js": "import('/src/lib/i18n.ts').then((m) => m.usarIdioma('pt'))"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "js": "import('/src/lib/theme.ts').then((m) => m.applyDarkMode(false))"
+      }
+    ]
+  },
+  "proto": {
+    "passos": []
+  },
+  "seletores": [
+    ".q-trilho .q-item"
+  ],
+  "gravar": {
+    "app": [
+      {
+        "clicar": ".q-trilho .q-item >> text=Intérprete"
+      }
+    ],
+    "proto": [
+      {
+        "clicar": ".q-trilho .q-item >> text=Intérprete"
+      }
+    ],
+    "espera": 2500
+  }
+}

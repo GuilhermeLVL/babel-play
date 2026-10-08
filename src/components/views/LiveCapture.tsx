@@ -156,7 +156,7 @@ import {
   mudarEscalaDaLegenda,
 } from '../../lib/dispositivo/preferenciasDoQuest';
 import { recursosDoAparelho } from '../../lib/dispositivo/recursos';
-import { telaNovaDoQuest } from '../../lib/dispositivo/telaNovaDoQuest';
+import { telaNovaDoQuest, useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { useSondaGuardada } from '../../lib/dispositivo/useSondaGuardada';
 import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { getEntitlements } from '../../lib/entitlements';
@@ -211,21 +211,25 @@ import AjudaDoMicrofone from './captura/AjudaDoMicrofone';
 import AvisoDoTradutorLocal from './captura/AvisoDoTradutorLocal';
 import AvisoDoUsoDoDia from './captura/AvisoDoUsoDoDia';
 import CapturaNaoSalva from './captura/CapturaNaoSalva';
+import CapturaDoPrototipo from './captura/celular/CapturaDoPrototipo';
 import type { FonteDoQuest } from './captura/celular/CapturaNoCelular';
 import CapturaNoCelular from './captura/celular/CapturaNoCelular';
 import FolhaDaFrase, { type FalaTocada, type NuanceNaFolhaDaFrase } from './captura/celular/FolhaDaFrase';
 import FolhaDaPalavra, { type NuanceNaFolhaDaPalavra } from './captura/celular/FolhaDaPalavra';
 import FolhaDeOpcoes from './captura/celular/FolhaDeOpcoes';
+import FolhasDoPrototipo from './captura/celular/FolhasDoPrototipo';
 // Subcomponentes locais da captura (um arquivo por componente, em `views/captura/`).
 import EncerrarSessao from './captura/EncerrarSessao';
 import EscolhaDoMicrofone from './captura/EscolhaDoMicrofone';
 import IdiomasDaSessao, { type Lado } from './captura/IdiomasDaSessao';
+import LegendaFlutuanteDoPrototipo from './captura/legendas/LegendaFlutuanteDoPrototipo';
 import LegendasFlutuantes, { type LegendaAoVivo } from './captura/LegendasFlutuantes';
 import ModeloNoDispositivo, { type ModeloDaCaptura } from './captura/ModeloNoDispositivo';
 import ModoDesempenho from './captura/ModoDesempenho';
 import NuvemDoQuest from './captura/NuvemDoQuest';
 import OndasDoNivel from './captura/OndasDoNivel';
 import EncerrarNoQuest from './captura/quest/EncerrarNoQuest';
+import HistoricoDoPrototipo from './captura/quest/HistoricoDoPrototipo';
 import LegendaAoVivoDoQuest from './captura/quest/LegendaAoVivoDoQuest';
 import ResumoDaSessaoNoQuest from './captura/quest/ResumoDaSessaoNoQuest';
 import TranscriptVisualSettings, { TEMA } from './captura/TranscriptVisualSettings';
@@ -2883,6 +2887,10 @@ export default function LiveCapture({
      Atrás da chave de `/diagnostico` (`telaNovaDoQuest`): desligada, volta a gravação de antes. */
   const [telaNova] = useState(telaNovaDoQuest);
   const aoVivoNoQuest = noQuest && telaNova;
+  /* O DESENHO NOVO (headset com a chave ligada, computador com o desenho novo): Capturar é a tela do
+     protótipo de polimento, que abre PRONTA em todo aparelho (`direto.js:1-67`). Só a apresentação
+     muda; desligado, as telas de antes ficam como estavam. */
+  const desenhoNovo = useQuestNovo();
   /** Sem voz que toque no aparelho (o Quest: a API existe, sem voz nenhuma). Com a nuvem ligada, a voz
       do site lê a tradução nos idiomas que tem (`vozDoQuest.ts`); o resto fica em texto. */
   const semVozDeLeitura = !recursosDoAparelho(perfilDoAparelho).vozDeLeitura;
@@ -3320,6 +3328,172 @@ export default function LiveCapture({
       )}
     </>
   );
+
+  /* ═══════════════ CAPTURAR NO DESENHO NOVO (o protótipo de polimento, itens D6–D18) ═══════════════
+     A mesma captura (o mesmo `iniciarCaptura`, o mesmo `handleStopRecording`, as mesmas falas), na
+     marcação do protótipo: tela pronta, legenda ao vivo, folha da frase e folha da palavra. */
+  const alternarFlutuante = () => {
+    const abrir = !showOverlay;
+    setShowOverlay(abrir);
+    toast.info(
+      abrir
+        ? isDocumentPiPSupported()
+          ? t('Legendas flutuantes abertas: a janelinha fica por cima de tudo')
+          : t('Legendas flutuantes abertas nesta tela (a janela por cima de tudo precisa do Chrome ou do Edge)')
+        : t('Legendas flutuantes fechadas'),
+    );
+  };
+  const palavraGuardada = (palavra: string) => {
+    const p = palavra.toLocaleLowerCase();
+    return aprendidas.has(p) || addedWords.some((w) => w.toLocaleLowerCase() === p);
+  };
+  const parPorExtenso = `${parResumido.auto ? t('Detectar') : langLabel(parResumido.de)} → ${langLabel(parResumido.para)}`;
+  const telaDoPrototipo = !desenhoNovo
+    ? null
+    : (resumoNoQuest ?? (
+        <>
+          <CapturaDoPrototipo
+            gravando={isRecording}
+            temFalas={speechSegments.length > 0}
+            abrindo={abrindoCaptura}
+            tempo={formatTime(timer)}
+            par={parPorExtenso}
+            parCurto={`${siglaDoLado(parResumido.auto, parResumido.de)} → ${siglaDoLado(false, parResumido.para)}`}
+            modelo={
+              transcricaoNoNavegador
+                ? t('Reconhecimento do navegador')
+                : mbDoModelo
+                  ? t('Modelo local · {mb} MB', { mb: mbDoModelo })
+                  : t('Modelo local')
+            }
+            micLigado={micEnabled}
+            micAbrindo={micAbrindo}
+            aoAlternarMic={alternarMicrofone}
+            podeIniciar={micEnabled || systemEnabled}
+            aoIniciar={() => (tetoAtingido && !resumeId ? avisarTeto() : iniciarCaptura())}
+            aoParar={handleStopRecording}
+            aoAbrirIdiomas={() => setIdiomasAbertos(true)}
+            aoAbrirModelo={() => setModeloAberto(true)}
+            aoAbrirAjustes={() => (noQuest ? setOpcoesAbertas(true) : setShowConfigPanel(true))}
+            aoAbrirAjuda={() => setShowGuide(true)}
+            aoFlutuante={noQuest ? undefined : alternarFlutuante}
+            letra={{
+              menor: () => setEscalaDaLegenda((e) => mudarEscalaDaLegenda(e, -1)),
+              maior: () => setEscalaDaLegenda((e) => mudarEscalaDaLegenda(e, 1)),
+              noMinimo: escalaDaLegenda <= ESCALAS_DA_LEGENDA[0],
+              noMaximo: escalaDaLegenda >= ESCALAS_DA_LEGENDA[ESCALAS_DA_LEGENDA.length - 1],
+            }}
+            avisos={
+              <>
+                <AvisoDeNuvemSemConsentimento />
+                {nuvemDoQuestExiste() && <NuvemDoQuest gravando={isRecording} aoVivo={aoVivoNoQuest} />}
+                {faixaDaNuvemDeAlivio}
+                {tradutorLocalFalhou && (
+                  <AvisoDoTradutorLocal
+                    aoAutorizar={() => {
+                      setTradutorLocalFalhou(false);
+                      retraduzirDegradados();
+                    }}
+                    aoFechar={() => setTradutorLocalFalhou(false)}
+                  />
+                )}
+                {avisoDoFim}
+                {avisoDePermissao}
+                {avisoDoBipe}
+                {modelPrep && !preparoConcluido(modelPrep) && (
+                  <div style={{ margin: '10px 16px 0' }}>
+                    <ModelPrepPanel state={modelPrep} onRetry={prepareModels} compact />
+                  </div>
+                )}
+              </>
+            }
+            legenda={
+              <HistoricoDoPrototipo
+                falas={speechSegments}
+                escala={escalaDaLegenda}
+                idiomaPadrao={captureScenario === 'mic' ? sourceLang : targetLang}
+                idiomaDaTraducao={(lang) => toBcp47(destinoDaFala(lang)) || destinoDaFala(lang)}
+                aoTocar={tocarFala}
+                aoOuvir={(fala, lang) =>
+                  temAudioDaFala(fala.id) ? tocarAudioDaFala(fala.id) : ouvirNaLegenda(fala.originalText, lang, false)
+                }
+                aoPararAudio={pararAudioDasFalas}
+              />
+            }
+          />
+          {(falaTocada || palavraTocada) && (
+            <FolhasDoPrototipo
+              fala={falaTocada}
+              palavra={palavraTocada}
+              aoOuvir={ouvirNaLegenda}
+              audioReal={
+                falaTocada && aoVivoNoQuest && temAudioDaFala(falaTocada.id)
+                  ? (lenta) => tocarAudioDaFala(falaTocada.id, { lenta })
+                  : undefined
+              }
+              semPratica={noQuest || interpreteAberto}
+              ehNova={falaTocada ? ehNovaNoCelular(falaTocada.lang) : undefined}
+              guardada={palavraGuardada}
+              aoPraticar={praticarNoCelular}
+              aoTocarPalavra={(palavra) =>
+                falaTocada &&
+                setPalavraTocada({ palavra, frase: falaTocada.texto, lang: falaTocada.lang, daFrase: falaTocada })
+              }
+              aoVoltar={palavraTocada?.daFrase ? () => setPalavraTocada(null) : undefined}
+              aoConsultar={consultarNaLegenda}
+              aoSalvar={salvarNaLegenda}
+              aoFechar={fecharFolhasDoCelular}
+              nuance={falaTocada ? nuanceDaFrase(falaTocada) : undefined}
+            />
+          )}
+          {opcoesAbertas && (
+            <FolhaDeOpcoes
+              modo={modoDoMic}
+              par={parPorExtenso}
+              telaAcesa={telaAcesaSuportada() ? { ligada: telaAcesaLigada, trocar: setTelaAcesaLigada } : null}
+              aoTrocarModo={
+                podeTrocarModo && !isRecording
+                  ? () => {
+                      setOpcoesAbertas(false);
+                      setTrocandoModo(true);
+                    }
+                  : undefined
+              }
+              aoAbrirIdiomas={() => {
+                setOpcoesAbertas(false);
+                setIdiomasAbertos(true);
+              }}
+              aoAbrirVisual={() => {
+                setOpcoesAbertas(false);
+                setShowConfigPanel(true);
+              }}
+              aoFocoCheio={() => {
+                setOpcoesAbertas(false);
+                setIsFocusMode(true);
+              }}
+              aoAbrirModelos={() => {
+                setOpcoesAbertas(false);
+                setModeloAberto(true);
+              }}
+              aoAbrirAjuda={() => {
+                setOpcoesAbertas(false);
+                setShowGuide(true);
+              }}
+              aoFechar={() => setOpcoesAbertas(false)}
+            />
+          )}
+          {trocandoModo && (
+            <EscolhaDoMicrofone
+              mb={mbDoMicPrivado}
+              aoEscolher={(e) => {
+                trocarEscolhaDoMic(e);
+                setTrocandoModo(false);
+              }}
+              aoFechar={() => setTrocandoModo(false)}
+            />
+          )}
+        </>
+      ));
 
   return (
     <div className="flex-1 flex flex-col h-full bg-canvas text-ink overflow-hidden relative font-body">
@@ -3859,6 +4033,7 @@ export default function LiveCapture({
                 ? { aoComecarVirtual: entrarNaConversaVirtual }
                 : {})}
               aoEscolherIdiomas={() => setIdiomasAbertos(true)}
+              aoVoltar={() => onChangeView?.('hub')}
               aoInverter={() => {
                 langTouchedRef.current = true;
                 const fonte = sourceLang;
@@ -3868,6 +4043,8 @@ export default function LiveCapture({
             />
           </Suspense>
         </div>
+      ) : desenhoNovo ? (
+        telaDoPrototipo
       ) : capturaEnxuta ? (
         telaDoCelular
       ) : (
@@ -4751,6 +4928,9 @@ export default function LiveCapture({
               setFalaTocada({ id: f.id, texto: f.texto, traducao: f.traducao, lang: f.lang, langDaTraducao: f.langDaTraducao })
             }
             aoSair={sairDoInterprete}
+            aoEscolherIdiomas={() => setIdiomasAbertos(true)}
+            aoConhecerOPremium={conhecerOPremium}
+            comVirtual={chaveLigada('virtual') && systemEnabled && !aoVivoNoQuest && !capturaEnxuta}
           />
         </Suspense>
       )}
@@ -4871,6 +5051,14 @@ export default function LiveCapture({
             aoFechar={() => setShowOverlay(false)}
           />
         </DocumentPiP>
+      ) : desenhoNovo ? (
+        /* Sem a janela sempre-no-topo, no desenho novo: a janelinha do protótipo, que se arrasta e se joga. */
+        <LegendaFlutuanteDoPrototipo
+          aberta={showOverlay}
+          falas={legendasAoVivo}
+          idiomaDaTraducao={(lang) => (lang ? toBcp47(destinoDaFala(lang)) || destinoDaFala(lang) : undefined)}
+          aoFechar={() => setShowOverlay(false)}
+        />
       ) : (
         showOverlay && (
           <LegendasFlutuantes

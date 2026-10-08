@@ -1,0 +1,78 @@
+{
+  "nome": "interprete-cadeado",
+  "largura": 1280,
+  "altura": 960,
+  "app": {
+    "caminho": "/",
+    "passos": [
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "js": "import('/src/lib/i18n.ts').then((m) => m.usarIdioma('pt'))"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "js": "import('/src/lib/theme.ts').then((m) => m.applyDarkMode(false))"
+      },
+      {
+        "clicar": ".q-trilho .q-item >> text=Intérprete"
+      },
+      {
+        "esperar": 2500
+      },
+      {
+        "clicar": "[aria-label^='Modo automático']"
+      },
+      {
+        "esperar": 700
+      }
+    ]
+  },
+  "proto": {
+    "passos": [
+      {
+        "clicar": ".q-trilho .q-item >> text=Intérprete"
+      },
+      {
+        "esperar": 2500
+      },
+      {
+        "clicar": "[aria-label^='Modo automático']"
+      },
+      {
+        "esperar": 700
+      }
+    ]
+  },
+  "seletores": [
+    ".int-faixa",
+    ".int-esq",
+    ".int-centro",
+    ".int-aviso",
+    ".int-voz",
+    ".px-int-conhecer",
+    "[aria-label^='Modo automático']",
+    "[aria-label^='Modo automático'] svg",
+    "[aria-label='Sair do modo intérprete']",
+    ".int-metade"
+  ],
+  "gravar": {
+    "app": [
+      {
+        "clicar": "[aria-label^='Modo automático']"
+      }
+    ],
+    "proto": [
+      {
+        "clicar": "[aria-label^='Modo automático']"
+      }
+    ],
+    "espera": 700
+  }
+}

@@ -164,7 +164,7 @@ export default function RaliDoPrototipo({ items, onFinish, onExit }: Props) {
       finalizou.current = true;
       setAcabou(true);
       const todos = outcomes.current;
-      depois(1100, () =>
+      depois(900, () =>
         onFinish({
           gameId: 'tenis',
           items: todos,

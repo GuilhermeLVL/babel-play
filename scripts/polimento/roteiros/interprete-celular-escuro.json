@@ -1,0 +1,82 @@
+{
+  "nome": "interprete-celular-escuro",
+  "largura": 390,
+  "altura": 844,
+  "app": {
+    "caminho": "/",
+    "guardar": {
+      "babel.interprete.modo": "toque",
+      "babel.interprete.virtual": "sim"
+    },
+    "passos": [
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "js": "import('/src/lib/i18n.ts').then((m) => m.usarIdioma('pt'))"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "js": "import('/src/lib/theme.ts').then((m) => m.applyDarkMode(true))"
+      },
+      {
+        "js": "[...document.querySelectorAll('.q-trilho .q-item')].find((b) => /Intérprete/.test(b.textContent)).click()"
+      },
+      {
+        "esperar": 2500
+      }
+    ]
+  },
+  "proto": {
+    "passos": [
+      {
+        "texto": "Tema"
+      },
+      {
+        "js": "[...document.querySelectorAll('.q-trilho .q-item')].find((b) => /Intérprete/.test(b.textContent)).click()"
+      },
+      {
+        "esperar": 2500
+      }
+    ]
+  },
+  "seletores": [
+    ".int.px-int",
+    ".int-metade[data-lado='outro']",
+    ".int-metade[data-lado='meu']",
+    ".int-metade[data-lado='outro'] .int-idioma",
+    ".int-metade[data-lado='meu'] .int-idioma",
+    ".int-quem",
+    ".px-int-idioma",
+    ".px-int-idioma svg",
+    ".int-frase",
+    ".int-dica",
+    ".int-status",
+    ".int-acoes",
+    ".int-acoes .int-ib",
+    ".int-acoes .int-ib svg",
+    ".int-falar",
+    ".int-falar svg",
+    ".int-falar span",
+    ".int-faixa",
+    ".int-esq",
+    ".int-esq > *",
+    "[aria-label='Trocar os lados']",
+    "[aria-label='Trocar os lados'] svg",
+    ".int-esq .int-modo",
+    ".int-esq .int-modo svg",
+    ".int-centro",
+    ".int-voz",
+    ".int-voz svg",
+    ".int-voz-txt",
+    ".int-modo-txt",
+    ".int-aviso",
+    "[aria-label='Sair do modo intérprete']",
+    ".q-trilho"
+  ]
+}

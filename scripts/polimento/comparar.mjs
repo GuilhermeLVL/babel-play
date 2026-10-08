@@ -13,6 +13,7 @@
  *     "proto": { "busca": "?jogo=tenis", "passos": [ ...passos ] },
  *     "seletores": [".q-cab h1", { "app": ".a", "proto": ".b", "nome": "titulo" }],
  *     "props": ["fontSize"],            // além das de sempre (ver PROPS)
+ *     "escuro": true,                 // tema escuro (o padrão é o claro)
  *     "gravar": { "app": [ ...passos ], "proto": [ ...passos ], "espera": 900 } }
  *   passo: { "clicar": "seletor" } | { "texto": "rótulo visível" } | { "esperar": ms }
  *        | { "js": "expressão" } | { "tecla": "Escape" } | { "rolar": "seletor" }
@@ -21,6 +22,8 @@
  * (largura × altura, tolerância de 1 px), estilos computados e as animações disparadas em `gravar`
  * (duração, atraso, curva, quadros). Sai com código 1 se houver diferença.
  */
+/* As funções passadas a `page.evaluate`/`addInitScript` rodam no navegador. */
+/* global window, document, Element, getComputedStyle, sessionStorage, localStorage */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -91,6 +94,9 @@ const GRAVADOR = () => {
   }
 }
 
+/** A interface em português, qualquer que seja o idioma gravado na conta (`?ui=`, `langConfig.ts`). */
+const comPortugues = (url) => (/[?&]ui=/.test(url) ? url : url + (url.includes('?') ? '&' : '?') + 'ui=pt')
+
 async function passo(page, p) {
   if (p.clicar) await page.locator(p.clicar).first().click({ timeout: 8000 })
   else if (p.texto) await page.getByText(p.texto, { exact: true }).first().click({ timeout: 8000 })
@@ -117,10 +123,30 @@ async function lado(browser, qual) {
       for (const [k, v] of Object.entries(g)) localStorage.setItem(k, v)
     }, guardar)
   }
+  if (qual === 'app') {
+    /* A CONTA LOCAL é uma só, dividida com o dono e com os outros agentes: a prova não pode depender do
+       que ficou gravado nela nem gravar nela. As configurações chegam sempre iguais (português para
+       inglês, tema do roteiro) e nenhuma escrita de configuração sai daqui. */
+    await contexto.route('**/api/settings', async (rota) => {
+      if (rota.request().method() !== 'GET')
+        return rota.fulfill({ status: 200, contentType: 'application/json', body: '{}' })
+      const resposta = await rota.fetch()
+      const corpo = await resposta.json().catch(() => null)
+      if (!corpo || typeof corpo.ui !== 'string') return rota.fulfill({ response: resposta })
+      const ui = { ...JSON.parse(corpo.ui), darkMode: !!roteiro.escuro, captureSourceLang: 'en-US' }
+      await rota.fulfill({ response: resposta, json: { ...corpo, targetLanguage: 'pt', ui: JSON.stringify(ui) } })
+    })
+  }
   const page = await contexto.newPage()
-  await page.goto(qual === 'app' ? APP + (r.caminho || '/') : PROTO + (r.busca || ''), { waitUntil: 'load' })
+  await page.goto(qual === 'app' ? comPortugues(APP + (r.caminho || '/')) : PROTO + (r.busca || ''), { waitUntil: 'load' })
   await page.bringToFront()
   await page.waitForTimeout(r.assentar ?? 2500)
+  /* A conta local pode ter um aviso na fila ("Conquista feita"): ele engoliria o primeiro clique. */
+  if (qual === 'app')
+    for (let i = 0; i < 4 && (await page.locator('dialog[open]').count()); i++) {
+      await page.keyboard.press('Escape')
+      await page.waitForTimeout(350)
+    }
   for (const p of r.passos || []) await passo(page, p)
   await page.waitForTimeout(r.depois ?? 1200)
 

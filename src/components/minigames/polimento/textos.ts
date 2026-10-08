@@ -57,6 +57,85 @@ export function vezesDaAjuda(ajuda: AjudaNoTexto, nivel: NivelDoJogo): number | 
   return Math.max(1, Number(noMedio[1]) + { facil: 1, medio: 0, dificil: -1 }[nivel]);
 }
 
+/** A ordem dos jogos (`ORDEM_JOGOS`, `jogos.js:116`): é ela que decide o "Próximo jogo" da tela de fim. */
+export const ORDEM_DOS_JOGOS: readonly MinigameId[] = [
+  'memory',
+  'wordsearch',
+  'termo',
+  'scramble',
+  'blitz',
+  'karuta',
+  'choseong',
+  'tenis',
+  'koffer',
+  'bao',
+  'vitendawili',
+  'shiritori',
+  'cadavre',
+  'taboo',
+  'karaoke',
+  'escuta',
+  'ditado',
+  'conectores',
+];
+
+/** O nome curto de cada jogo (`curto` em cada `JOGOS[id]`; `jogos.js:309` para a Memória). */
+const CURTO: Record<MinigameId, string> = {
+  memory: 'Memória',
+  wordsearch: 'Caça-palavras',
+  termo: 'Termo',
+  scramble: 'Frase embaralhada',
+  blitz: 'Duelo relâmpago',
+  karuta: 'Karuta',
+  choseong: 'Choseong',
+  tenis: 'Rali',
+  koffer: 'Mala',
+  bao: 'Bao',
+  vitendawili: 'Vitendawili',
+  shiritori: 'Shiritori',
+  cadavre: 'Cadavre exquis',
+  taboo: 'Tabu',
+  karaoke: 'Karaokê',
+  escuta: 'Qual foi a fala?',
+  ditado: 'Ditado',
+  conectores: 'Caça-conectores',
+};
+
+export const nomeCurtoDoJogo = (jogo: MinigameId): string => CURTO[jogo] ?? jogo;
+
+/**
+ * Os jogos que vêm depois deste, na ordem do protótipo e dando a volta (`jogos.js:308`). A tela de fim
+ * oferece o primeiro que a pessoa pode jogar agora: no app um jogo pode estar sem material.
+ */
+export function jogosSeguintes(jogo: MinigameId): MinigameId[] {
+  const i = ORDEM_DOS_JOGOS.indexOf(jogo);
+  return ORDEM_DOS_JOGOS.map((_, k) => ORDEM_DOS_JOGOS[(i + 1 + k) % ORDEM_DOS_JOGOS.length]).filter((j) => j !== jogo);
+}
+
+/** O que o placar conta em cada jogo (`unidade` em cada `JOGOS[id]`): "3 de 8 bolas", "2 de 6 pares". */
+const UNIDADE: Record<MinigameId, string> = {
+  memory: 'pares',
+  wordsearch: 'palavras',
+  termo: 'palavras',
+  scramble: 'frases',
+  blitz: 'palavras',
+  karuta: 'cartas',
+  choseong: 'palavras',
+  tenis: 'bolas',
+  koffer: 'níveis',
+  bao: 'palavras',
+  vitendawili: 'enigmas',
+  shiritori: 'elos',
+  cadavre: 'palavras',
+  taboo: 'cartas',
+  karaoke: 'falas',
+  escuta: 'falas',
+  ditado: 'falas',
+  conectores: 'frases',
+};
+
+export const unidadeDoPlacar = (jogo: MinigameId): string => UNIDADE[jogo] ?? 'palavras';
+
 /** A unidade da rodada como o protótipo a chama ("Rodada · 8 bolas"): bolas, cartas, pares, elos… */
 export function unidadeNoDesenho(jogo: MinigameId, reserva: string): string {
   return /^Rodada · \d+ (.+)$/.exec(TEXTOS[jogo]?.rodada ?? '')?.[1] ?? reserva;

@@ -3,6 +3,9 @@
  * AS REGRAS POR NÍVEL (`src/core/minigames/regras.ts`) e o nível que a pessoa escolheu
  * (`src/lib/jogos/nivelDoJogo.ts`). O que não pode quebrar: no Médio cada jogo tem exatamente os
  * números de sempre; o Fácil nunca aperta mais que o Médio, nem o Difícil menos.
+ *
+ * Estas são as regras do DESENHO ANTIGO (o fator igual para todos, por perfil). A tabela de níveis do
+ * protótipo, que o desenho novo usa, é travada em `tests/polimentoJogos.test.tsx`.
  */
 import { beforeEach, describe, expect, it } from 'vitest'
 
@@ -57,7 +60,9 @@ describe('as regras por nível', () => {
         }
         for (const qual of Object.keys(m.ajudas)) {
           expect(f.ajudas[qual]).toBeGreaterThan(m.ajudas[qual])
-          expect(d.ajudas[qual]).toBeLessThan(m.ajudas[qual])
+          /* "Ver resposta" é 2, 1 e 1 (jogos4.js:76): no Difícil não desce abaixo de uma. */
+          if (qual === 'resposta') expect(d.ajudas[qual]).toBe(m.ajudas[qual])
+          else expect(d.ajudas[qual]).toBeLessThan(m.ajudas[qual])
         }
       }
     }

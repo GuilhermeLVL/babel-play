@@ -1,0 +1,109 @@
+{
+  "nome": "capturar-palavra",
+  "largura": 1280,
+  "altura": 960,
+  "app": {
+    "caminho": "/",
+    "passos": [
+      {
+        "js": "Promise.all([import('/src/lib/theme.ts').then((m) => m.applyDarkMode(false)), import('/src/lib/i18n.ts').then((m) => m.usarIdioma('pt-BR'))])"
+      },
+      {
+        "esperar": 800
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "js": "[...document.querySelectorAll('.q-trilho .q-item')].find((b) => /Captur/.test(b.textContent)).click()"
+      },
+      {
+        "esperar": 9000
+      },
+      {
+        "js": "new Promise((ok) => { const i = setInterval(() => { if (window.__simFalas) { clearInterval(i); ok(window.__simFalas(['So, are we still shipping the roadmap today?', 'We ship it today, but the dashboard needs one more review.'])); } }, 250); })"
+      },
+      {
+        "esperar": 2000
+      },
+      {
+        "js": "document.querySelectorAll('.q-linha-da-fala .q-fala')[1].click()"
+      },
+      {
+        "esperar": 2000
+      },
+      {
+        "js": "[...document.querySelectorAll('.folha-palavras button')].find((b) => b.textContent === 'dashboard').click()"
+      },
+      {
+        "esperar": 4000
+      },
+      {
+        "js": "Promise.all([import('/src/lib/theme.ts').then((m) => m.applyDarkMode(false)), import('/src/lib/i18n.ts').then((m) => m.usarIdioma('pt-BR'))])"
+      },
+      {
+        "esperar": 600
+      }
+    ]
+  },
+  "proto": {
+    "passos": [
+      {
+        "clicar": ".q-trilho .q-item >> text=Capturar"
+      },
+      {
+        "esperar": 1500
+      },
+      {
+        "js": "document.querySelector('[data-px=\"iniciar\"]').click()"
+      },
+      {
+        "esperar": 9500
+      },
+      {
+        "js": "document.querySelectorAll('.q-linha-da-fala .q-fala')[1].click()"
+      },
+      {
+        "esperar": 2000
+      },
+      {
+        "js": "[...document.querySelectorAll('.folha-palavras button')].find((b) => b.textContent === 'dashboard').click()"
+      },
+      {
+        "esperar": 30000
+      }
+    ]
+  },
+  "seletores": [
+    "dialog.folha-de-baixo.folha-da-palavra",
+    "dialog.folha-de-baixo .folha-pega",
+    "dialog.folha-de-baixo .folha-corpo",
+    "dialog.folha-de-baixo .folha-corpo > *",
+    ".folha-voltar",
+    ".folha-voltar svg",
+    ".folha-pal",
+    ".folha-ipa",
+    ".folha-glosa",
+    ".folha-grade",
+    ".folha-acao",
+    ".folha-acao.pri",
+    ".folha-acao svg",
+    ".folha-status"
+  ],
+  "gravar": {
+    "app": [
+      {
+        "js": "document.querySelector('[data-px=\"guardar\"]').click()"
+      }
+    ],
+    "proto": [
+      {
+        "js": "document.querySelector('[data-px=\"guardar\"]').click()"
+      }
+    ],
+    "espera": 4000
+  }
+}

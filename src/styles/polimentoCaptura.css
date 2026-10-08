@@ -1,0 +1,25 @@
+/*
+ * CAPTURAR NO DESENHO NOVO: o que a tela do protótipo de polimento precisa e o CSS trazido dele
+ * (`src/styles/polimento/*`) não traz. Tudo dentro de `.px-vivo`
+ * (`views/captura/celular/CapturaDoPrototipo.tsx`).
+ */
+
+/* A navegação só some enquanto GRAVA. O protótipo a devolve na tela pronta com uma regra que depende
+   da camada ligada (`paineis.css:5`); com as animações desligadas no app essa regra não vale, e a
+   pessoa ficaria em Capturar sem ter por onde sair. O mesmo vale parada com falas na tela
+   (`.px-parada`), estado que o protótipo não tem. */
+html[data-quest-novo='true'] .q-casca:has(.px-pronto, .px-parada) .q-trilho {
+  display: flex !important;
+}
+/* Os avisos da captura (nuvem sem consentimento, permissão, bipe) sobre o fundo da tela nova, que é o
+   do tema: a regra da gravação antiga (`.cel-gravando > .aviso-info`) os pinta para o fundo escuro, e
+   no tema claro o texto sumia. */
+.cel.px-vivo > .aviso-info {
+  color: var(--ink);
+  border-color: var(--border-subtle);
+}
+/* Parada, o ponto do relógio não pulsa (como na tela pronta, `telas3.css:88`). */
+.px-parada .cel-ponto {
+  animation: none !important;
+  opacity: 0.4;
+}

@@ -288,9 +288,18 @@ function chegou(tela: HTMLElement): void {
   olheiro?.disconnect();
   limpar(tela);
   if (!polido() || de?.tipo === 'teclado') return;
-  /* A rodada do jogo só revela o título (`prototipo.js:273-274`). */
-  if ($('.palco-jogo', tela)) revelarTitulo(tela);
-  else entrar(tela, de?.dir ?? 1);
+  /* Só a tela `jogo` antiga do protótipo ficava no título (`prototipo.js:273`); a partida entra inteira. */
+  entrar(tela, de?.dir ?? 1);
+}
+
+/**
+ * As telas de dentro do Jogar (lobby, antessala, rodada, fim) trocam fora da navegação: quem as troca
+ * (`sairDaTelaDoJogar`, `jogos.ts`) avisa de que lado a próxima entra.
+ */
+export function anunciarChegada(dir: number): void {
+  if (chegando) clearTimeout(chegando.solta);
+  const solta = window.setTimeout(() => (chegando = null), 4000);
+  chegando = { dir, tipo: 'clique', solta };
 }
 
 /* ---- Aba primária: o painel entra pelo lado (`prototipo.js:362-380`) ----------------------------- */

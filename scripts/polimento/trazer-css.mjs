@@ -29,7 +29,6 @@ const ARQUIVOS = {
   'polimento.css': [
     { de: 7, ate: 24, motivo: 'estrutura da página do protótipo; a do app está em polimento-app.css' },
     { de: 26, ate: 33, motivo: 'tokens de movimento e câmera lenta: estão em polimento-app.css, com --px-k fixo em 1' },
-    { de: 289, ate: 302, adiado: 'jogos §6.1 Memória (giro da carta)' },
     { de: 354, ate: Infinity, motivo: 'barra do protótipo e painel da auditoria' },
   ],
   'efeitos.css': [

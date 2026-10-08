@@ -1,0 +1,100 @@
+{
+  "nome": "jogos-palco",
+  "largura": 1280,
+  "altura": 960,
+  "app": {
+    "caminho": "/?ui=pt",
+    "guardar": {
+      "babel_tour_tenis": "1"
+    },
+    "passos": [
+      {
+        "js": "import('/src/lib/theme.ts').then((m) => m.applyDarkMode(false))"
+      },
+      {
+        "esperar": 800
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "clicar": ".q-trilho .q-item >> text=Jogar"
+      },
+      {
+        "esperar": 2500
+      },
+      {
+        "clicar": "button:has-text('Trilha')"
+      },
+      {
+        "esperar": 1200
+      },
+      {
+        "clicar": "button:has-text('Usar estas palavras')"
+      },
+      {
+        "esperar": 2000
+      },
+      {
+        "clicar": ".q-tile[data-jogo='tenis']"
+      }
+    ],
+    "depois": 1500
+  },
+  "proto": {
+    "busca": "?jogo=tenis",
+    "passos": [
+      {
+        "esperar": 800
+      },
+      {
+        "tecla": "Escape"
+      }
+    ],
+    "depois": 1500
+  },
+  "seletores": [
+    ".cab",
+    ".cab .voltar",
+    ".cab .sobrancelha",
+    ".cab .sobrancelha svg",
+    ".cab h1",
+    ".cab-acoes",
+    ".cab-acoes .pj-nivel",
+    ".cab-acoes [data-pj='como']",
+    ".palco-jogo",
+    ".hud",
+    ".hud-bloco",
+    ".hud-bloco small",
+    "[data-pj='pontos']",
+    "[data-pj='rotulo']",
+    "[data-pj='relogio']",
+    ".pj-progresso",
+    ".hud-tempo",
+    ".hud-ajudas",
+    ".hud-ajudas .ajuda-jogo",
+    "[data-ajuda='letra']",
+    "[data-ajuda='tempo']",
+    "[data-ajuda='resposta']",
+    ".ajuda-jogo .n",
+    ".combo",
+    ".combo em",
+    ".pj-instr",
+    ".pj-miolo"
+  ]
+}

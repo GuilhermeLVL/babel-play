@@ -1,0 +1,247 @@
+{
+  "nome": "jogos-fim",
+  "largura": 1280,
+  "altura": 960,
+  "app": {
+    "caminho": "/?ui=pt",
+    "guardar": {
+      "babel_tour_tenis": "1"
+    },
+    "passos": [
+      {
+        "js": "import('/src/lib/theme.ts').then((m) => m.applyDarkMode(false))"
+      },
+      {
+        "esperar": 800
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "clicar": ".q-trilho .q-item >> text=Jogar"
+      },
+      {
+        "esperar": 2500
+      },
+      {
+        "clicar": "button:has-text('Trilha')"
+      },
+      {
+        "esperar": 1200
+      },
+      {
+        "clicar": "button:has-text('Usar estas palavras')"
+      },
+      {
+        "esperar": 2000
+      },
+      {
+        "clicar": ".q-tile[data-jogo='tenis']"
+      },
+      {
+        "esperar": 1500
+      },
+      {
+        "js": "(() => { const T = (k) => document.body.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true })); T('q'); T('Enter'); })()"
+      },
+      {
+        "esperar": 2400
+      },
+      {
+        "js": "(() => { const T = (k) => document.body.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true })); T('q'); T('Enter'); })()"
+      },
+      {
+        "esperar": 2400
+      },
+      {
+        "js": "(() => { const T = (k) => document.body.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true })); T('q'); T('Enter'); })()"
+      },
+      {
+        "esperar": 2400
+      },
+      {
+        "js": "(() => { const T = (k) => document.body.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true })); T('q'); T('Enter'); })()"
+      },
+      {
+        "esperar": 2400
+      },
+      {
+        "js": "(() => { const T = (k) => document.body.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true })); const el = document.querySelector('.rl-arena'); let f = el[Object.keys(el).find((k) => k.startsWith('__reactFiber'))]; while (f && !(f.memoizedProps && f.memoizedProps.items)) f = f.return; const w = f.memoizedProps.items[parseInt(document.querySelector('[data-pj=rotulo]').textContent, 10)].answer; for (const c of w) if (/[a-zà-ÿ]/i.test(c)) T(c.toLowerCase()); })()"
+      },
+      {
+        "esperar": 1300
+      },
+      {
+        "js": "(() => { const T = (k) => document.body.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true })); T('q'); T('Enter'); })()"
+      },
+      {
+        "esperar": 2400
+      },
+      {
+        "js": "(() => { const T = (k) => document.body.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true })); const el = document.querySelector('.rl-arena'); let f = el[Object.keys(el).find((k) => k.startsWith('__reactFiber'))]; while (f && !(f.memoizedProps && f.memoizedProps.items)) f = f.return; const w = f.memoizedProps.items[parseInt(document.querySelector('[data-pj=rotulo]').textContent, 10)].answer; for (const c of w) if (/[a-zà-ÿ]/i.test(c)) T(c.toLowerCase()); })()"
+      },
+      {
+        "esperar": 1300
+      },
+      {
+        "js": "(() => { const T = (k) => document.body.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true })); T('q'); T('Enter'); })()"
+      },
+      {
+        "esperar": 2400
+      },
+      {
+        "js": "(() => { const T = (k) => document.body.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true })); T('q'); T('Enter'); })()"
+      },
+      {
+        "esperar": 2400
+      },
+      {
+        "js": "(() => { const T = (k) => document.body.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true })); T('q'); T('Enter'); })()"
+      },
+      {
+        "esperar": 2400
+      },
+      {
+        "esperar": 2500
+      }
+    ],
+    "depois": 1500
+  },
+  "proto": {
+    "busca": "?jogo=tenis",
+    "passos": [
+      {
+        "esperar": 800
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 1500
+      },
+      {
+        "js": "(() => { const T = (k) => document.body.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true })); T('q'); T('Enter'); })()"
+      },
+      {
+        "esperar": 2400
+      },
+      {
+        "clicar": "[data-ajuda='tempo']"
+      },
+      {
+        "js": "(() => { const T = (k) => document.body.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true })); T('q'); T('Enter'); })()"
+      },
+      {
+        "esperar": 2400
+      },
+      {
+        "clicar": "[data-ajuda='tempo']"
+      },
+      {
+        "js": "(() => { const T = (k) => document.body.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true })); T('q'); T('Enter'); })()"
+      },
+      {
+        "esperar": 2400
+      },
+      {
+        "clicar": "[data-ajuda='resposta']"
+      },
+      {
+        "js": "(() => { const T = (k) => document.body.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true })); T('q'); T('Enter'); })()"
+      },
+      {
+        "esperar": 2400
+      },
+      {
+        "js": "(() => { const T = (k) => document.body.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true })); const M = { tempestade: 'storm', prateleira: 'shelf', toalha: 'towel', costa: 'coast', derramar: 'spill', medicina: 'medicine', 'ódio': 'hate', 'fêmea': 'female', ponte: 'bridge', nuvem: 'cloud', sonho: 'dream', luz: 'light', terra: 'earth', rio: 'river', 'pão': 'bread', janela: 'window' }; const w = M[document.querySelector('.rl-pista b').textContent.trim()]; for (const c of w) T(c); })()"
+      },
+      {
+        "esperar": 1300
+      },
+      {
+        "js": "(() => { const T = (k) => document.body.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true })); T('q'); T('Enter'); })()"
+      },
+      {
+        "esperar": 2400
+      },
+      {
+        "js": "(() => { const T = (k) => document.body.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true })); const M = { tempestade: 'storm', prateleira: 'shelf', toalha: 'towel', costa: 'coast', derramar: 'spill', medicina: 'medicine', 'ódio': 'hate', 'fêmea': 'female', ponte: 'bridge', nuvem: 'cloud', sonho: 'dream', luz: 'light', terra: 'earth', rio: 'river', 'pão': 'bread', janela: 'window' }; const w = M[document.querySelector('.rl-pista b').textContent.trim()]; for (const c of w) T(c); })()"
+      },
+      {
+        "esperar": 1300
+      },
+      {
+        "js": "(() => { const T = (k) => document.body.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true })); T('q'); T('Enter'); })()"
+      },
+      {
+        "esperar": 2400
+      },
+      {
+        "esperar": 2500
+      }
+    ],
+    "depois": 1500
+  },
+  "seletores": [
+    ".cab",
+    ".cab-acoes",
+    ".palco-jogo",
+    ".hud",
+    "[data-pj='pontos']",
+    "[data-pj='rotulo']",
+    ".hud-ajudas",
+    ".pj-instr",
+    ".pj-miolo",
+    ".fim",
+    ".fim .label-mono",
+    ".fim h2",
+    ".estrelas-fim",
+    ".estrelas-fim span",
+    ".estrelas-fim svg",
+    ".fim-numeros",
+    ".fim-numeros div",
+    ".fim-numeros small",
+    ".fim-numeros b",
+    ".carimbo",
+    ".xp-fim",
+    ".xp-fim .entre",
+    ".xp-fim b",
+    ".xp-fim .mut",
+    ".xp-fim .hud-progresso",
+    ".pj-fim-acoes",
+    ".pj-sugere",
+    ".pj-sugere svg",
+    "[data-pj='proximo']",
+    ".pj-fim-acoes [data-acao='recomecar']",
+    "[data-pj='jogos']",
+    ".estrelas-fim span:nth-child(3)"
+  ],
+  "gravar": {
+    "app": [
+      {
+        "clicar": "[data-pj='jogos']"
+      }
+    ],
+    "proto": [
+      {
+        "clicar": "[data-pj='jogos']"
+      }
+    ],
+    "espera": 1600
+  }
+}

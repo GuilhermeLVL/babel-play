@@ -20,7 +20,6 @@ import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { burstFromElement } from '../../lib/effects';
 import { eventosCondicionais } from '../../lib/eventosDeJogo';
 import { proximaRecompensa } from '../../lib/galeria/progressao';
-import { numero, t, tp } from '../../lib/i18n';
 import { contarAte, executarEfeito, flashDeTela, pontosDoElemento, tremor } from '../../lib/juice';
 import type { AgeProfileType } from '../../lib/profile';
 import type { DerivedProgress } from '../../lib/progress';
@@ -30,6 +29,7 @@ import BarraDeMaestria from '../maestria/BarraDeMaestria';
 import ResumoDaPratica from '../progress/ResumoDaPratica';
 import { Tela, TituloDeSecao } from '../ui';
 import { IconePixel } from '../views/play/IconesPixel';
+import FimDaRodada from './casca/FimDaRodada';
 import { unidadeDaRodada } from './casca/regras';
 import SugestaoDeNivel from './casca/SugestaoDeNivel';
 import EnvioAoRanking from './EnvioAoRanking';
@@ -106,6 +106,14 @@ interface ResultadoDaRodadaProps {
    * nada foi creditado em vez de anunciar o que não entrou (exibido = creditado). Ausente = ok.
    */
   gravacao?: 'pendente' | 'ok' | 'falhou';
+  /* ── Só o desenho novo (a tela de fim do protótipo, `casca/FimDaRodada.tsx`) ── */
+  /** Quantos itens a rodada tinha: o "8 de 8 bolas" do placar, que continua na tela. */
+  total?: number;
+  /** O jogo seguinte que dá para abrir agora ("Próximo jogo: …"); `null` esconde o botão. */
+  proximo?: MinigameId | null;
+  onProximo?: (jogo: MinigameId) => void;
+  /** "Jogar de novo": outra rodada deste jogo. */
+  onJogarDeNovo?: () => void;
 }
 
 /** Fração raspada a partir da qual o resto é revelado sozinho (a do protótipo). */
@@ -130,6 +138,10 @@ export default function ResultadoDaRodada({
   onVerProgressao,
   maestria,
   gravacao = 'ok',
+  total,
+  proximo,
+  onProximo,
+  onJogarDeNovo,
 }: ResultadoDaRodadaProps) {
   const naoCreditou = gravacao === 'falhou';
   const resumo = summarize(report);
@@ -167,7 +179,8 @@ export default function ResultadoDaRodada({
      cada, os pontos sobem e o recorde ganha o flash. Com movimento reduzido, `lib/juice` zera tudo. */
   useEffect(() => {
     const timers: number[] = [];
-    const on = fimRef.current?.querySelectorAll<HTMLElement>('.estrelas-fim span.on') ?? [];
+    /* No desenho novo as estrelas caem só pelo CSS e os pontos não sobem (`jogos.js:312-318`). */
+    const on = questNovo ? [] : (fimRef.current?.querySelectorAll<HTMLElement>('.estrelas-fim span.on') ?? []);
     on.forEach((s, i) =>
       timers.push(
         window.setTimeout(
@@ -180,11 +193,12 @@ export default function ResultadoDaRodada({
         ),
       ),
     );
-    timers.push(window.setTimeout(() => void contarAte(pontosRef.current, report.score, { dur: 900 }), 1200));
+    if (!questNovo)
+      timers.push(window.setTimeout(() => void contarAte(pontosRef.current, report.score, { dur: 900 }), 1200));
     if (bateuRecorde)
       timers.push(
         window.setTimeout(() => {
-          flashDeTela();
+          if (!questNovo) flashDeTela();
           celebrar({ tipo: 'recorde', el: carimboRef.current });
           /* O EVENTO "fogos" (recorde) — um dos onze do Colecionador. Saía só da tela de fim
              própria do Duelo; com um fim só para todos, é aqui que ele acontece. */
@@ -282,383 +296,23 @@ export default function ResultadoDaRodada({
   const certas = itens.filter((i) => i.correct);
   const nRodadas = sequencia?.rodadas ?? 1;
 
-  /* ── META QUEST (segunda rodada, 01/10/2026) ─────────────────────────────────────────────────────
-     O mesmo fim de rodada nas peças do headset: estrelas, os quatro números, o recorde, a maestria e a
-     raspadinha (que continua raspável com o ponteiro, e revela num toque). As saídas ficam FIXAS na
-     faixa de baixo com UM botão principal por momento: "Revelar a recompensa" antes, "Mais uma" depois.
-     Os números, a festa e as ações são os calculados acima; nada é recontado aqui. */
+  /* ── DESENHO NOVO: a tela de fim do protótipo (`pjFim`, `jogos.js:296-328`) ───────────────────────────
+     Mora DENTRO do palco da rodada (`Play.tsx` mantém a casca montada, com `acabou`), no lugar do
+     tabuleiro. O que esta tela mostrava a mais e o protótipo não mostra saiu do desenho novo: a
+     raspadinha, o recorde, a maestria, o resumo dos erros, o ranking, "trocar mantendo o combo" e a
+     próxima recompensa. Os números continuam os da rodada (`casca/FimDaRodada.tsx`). */
   if (questNovo) {
-    const nomeCurto = jogo.split(/[:(]/)[0].trim();
     return (
-      <div className="qj qj-coluna" data-testid="resultado-do-quest">
-        <div className="q-palco tela qj-tela quest-fim">
-          <section ref={fimRef} className="qj-fim" id="fim">
-            <p className="q-sobre">
-              <span className="mini-arte" aria-hidden>
-                <IconePixel id={report.gameId as MinigameId} className="" />
-              </span>
-              {ageProfile === 'senior' ? t('Fim da rodada') : t('Rodada concluída')} · {nomeCurto}
-            </p>
-            <div
-              className="estrelas-fim"
-              role="img"
-              aria-label={t('{n} de 3 estrelas ({pct}% de acerto)', { n: estrelas, pct: resumo.precisao })}
-            >
-              {[0, 1, 2].map((i) => (
-                <span key={i} className={i < estrelas ? 'on' : ''} style={{ ['--i' as string]: i }} aria-hidden>
-                  ★
-                </span>
-              ))}
-            </div>
-            <h1>{t('{acertos} de {total} {unidade}', { acertos: resumo.acertos, total: resumo.total, unidade })}</h1>
-
-            <div className="q-grade g4">
-              <div className="q-num">
-                <b ref={pontosRef}>0</b>
-                <span>{t('Pontos')}</span>
-              </div>
-              <div className="q-num">
-                <b>{resumo.precisao}%</b>
-                <span>{t('Precisão')}</span>
-              </div>
-              <div className="q-num">
-                <b>{t('{n} s', { n: segundos })}</b>
-                <span>{t('Tempo')}</span>
-              </div>
-              <div className="q-num">
-                <b>{melhorSequencia}</b>
-                <span>{t('Melhor sequência')}</span>
-              </div>
-            </div>
-
-            {bateuRecorde ? (
-              <p className="qj-recorde">
-                <span ref={carimboRef} className="q-chip" data-tom="alerta">
-                  <Trophy aria-hidden /> {t('Novo recorde')}
-                </span>
-                <span className="qj-nota">{t('antes: {n}', { n: numero(recorde ?? 0) })}</span>
-              </p>
-            ) : (
-              recorde !== null &&
-              recorde > 0 && (
-                <p className="qj-nota">
-                  {t('seu recorde: {n}', { n: numero(recorde) })}
-                  {pontosDaCorrente < recorde && ` · ${t('faltam {n} pts', { n: numero(recorde - pontosDaCorrente) })}`}
-                </p>
-              )
-            )}
-
-            {maestria && !naoCreditou && (
-              <div className="q-cartao qj-maestria">
-                <BarraDeMaestria jogo={report.gameId} pontos={maestria.pontosAntes} ganho={maestria.ganho} />
-              </div>
-            )}
-
-            <div
-              ref={raspaRef}
-              className={`raspa ${revelado ? 'revelada' : ''}`}
-              role="button"
-              tabIndex={0}
-              aria-label={
-                revelado
-                  ? naoCreditou
-                    ? t('Não foi possível salvar — nada foi creditado')
-                    : t('Recompensa revelada: mais {xp} XP e {seeds} seeds', { xp: resumo.xp, seeds })
-                  : t('Raspe para revelar a recompensa')
-              }
-              onClick={() => {
-                if (!raspouRef.current) revelar();
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  revelar();
-                }
-              }}
-            >
-              {naoCreditou ? (
-                <div className="premio" data-rodada-nao-creditada>
-                  <b>{t('Não foi possível salvar — nada foi creditado')}</b>
-                  <small>{t('O placar vale; Seeds, XP, baú e maestria desta rodada não entraram.')}</small>
-                </div>
-              ) : (
-                <div className="premio" data-seeds-da-rodada={seeds} data-xp-da-rodada={resumo.xp}>
-                  <b>+{resumo.xp} XP</b>
-                  {seeds > 0 && (
-                    <span className="q-chip" data-tom="bom">
-                      <Sprout aria-hidden /> +{seeds} Seeds
-                    </span>
-                  )}
-                </div>
-              )}
-              <div className="capa-raspa" aria-hidden>
-                <span>
-                  <Sparkles aria-hidden /> {t('Raspe aqui')}
-                </span>
-              </div>
-              {!revelado && (
-                <canvas
-                  ref={canvasRef}
-                  aria-hidden
-                  onPointerDown={(e) => {
-                    raspandoRef.current = true;
-                    raspouRef.current = true;
-                    e.currentTarget.setPointerCapture?.(e.pointerId);
-                    raspar(e.clientX, e.clientY);
-                  }}
-                  onPointerMove={(e) => {
-                    if (raspandoRef.current) raspar(e.clientX, e.clientY);
-                  }}
-                  onPointerUp={() => {
-                    raspandoRef.current = false;
-                  }}
-                />
-              )}
-            </div>
-          </section>
-
-          {revelado && (
-            <>
-              {progress?.available && (
-                <section className="q-cartao" data-secao="nivel">
-                  <div className="qj-entre">
-                    <b>{t('Nível {n}', { n: progress.level })}</b>
-                    <span className="qj-nota">
-                      {t('{a} de {b} XP', { a: numero(progress.xpIntoLevel), b: numero(progress.xpForLevel) })}
-                    </span>
-                  </div>
-                  <div
-                    className="q-barra"
-                    role="progressbar"
-                    aria-label={t('XP do nível')}
-                    aria-valuenow={progress.xpIntoLevel}
-                    aria-valuemax={progress.xpForLevel}
-                  >
-                    <span style={{ width: `${progress.levelPct}%` }} />
-                  </div>
-                </section>
-              )}
-              <p className="qj-nota qj-centro">
-                {[
-                  tp(nRodadas, '{n} rodada seguida', '{n} rodadas seguidas'),
-                  t('multiplicador chegou a ×{n}', { n: multiplicador(melhorSequencia) }),
-                  sequencia && sequencia.combo >= 3
-                    ? t('combo ×{n} continua na próxima', { n: sequencia.combo })
-                    : null,
-                ]
-                  .filter(Boolean)
-                  .join(' · ')}
-              </p>
-              {/* As missões do dia e a ofensiva: o mesmo bloco do fim da revisão. */}
-              <ResumoDaPratica />
-              {/* O GASTO DAS SEEDS só existe com combo a proteger. Saldo curto: a opção fica dita. */}
-              {sequencia && sequencia.combo >= 3 && (
-                <div className="q-ajuste" data-secao="pular">
-                  <div>
-                    <b>{t('Trocar mantendo o combo')}</b>
-                    <small>
-                      {onPularVez
-                        ? t('Troca as palavras e mantém o combo ×{combo}. Custa {custo} seeds.', {
-                            combo: sequencia.combo,
-                            custo: custoPular,
-                          })
-                        : t('Custa {custo} seeds, e você tem {saldo}.', {
-                            custo: custoPular,
-                            saldo: numero(saldoSeeds),
-                          })}
-                    </small>
-                  </div>
-                  {onPularVez && (
-                    <button type="button" className="q-ctl" onClick={onPularVez}>
-                      <Sprout aria-hidden /> {t('{n} seeds', { n: custoPular })}
-                    </button>
-                  )}
-                </div>
-              )}
-              {semMaterial && (
-                <div className="q-aviso" role="status">
-                  <span>
-                    {t(
-                      'Acabaram as palavras elegíveis desta fonte por agora. Volte aos jogos para trocar de fonte, ou repita estas mesmas.',
-                    )}
-                  </span>
-                </div>
-              )}
-              {proxima && (
-                <div className="q-aviso" data-secao="recompensa">
-                  <span>
-                    {t('Próxima recompensa: {nome} no nível {nivel}', {
-                      nome: proxima.destaque.nome,
-                      nivel: proxima.nivel,
-                    })}
-                  </span>
-                  {onVerProgressao && (
-                    <button type="button" className="q-ctl" onClick={onVerProgressao}>
-                      {t('Ver recompensas')}
-                    </button>
-                  )}
-                </div>
-              )}
-            </>
-          )}
-
-          {/* O nível certo para a próxima: só depois de revelar, quando a pessoa já viu como foi. */}
-          {revelado && <SugestaoDeNivel jogo={report.gameId} precisao={resumo.precisao} aoRepetir={onRepetir} />}
-
-          {/* O ranking do Duelo mora no fim COMUM: só nos jogos com ranking. */}
-          {temRanking(report.gameId) && (
-            <EnvioAoRanking
-              jogo={report.gameId}
-              pontos={pontosDaCorrente}
-              combo={Math.max(melhorSequencia, sequencia?.melhorSequencia ?? 0)}
-            />
-          )}
-
-          {resumoAberto && (
-            <section className="q-secao" data-secao="resumo" ref={resumoRef}>
-              <header>
-                <div>
-                  <h2>{t('O que aconteceu na rodada')}</h2>
-                  <p>
-                    {[
-                      tp(resumo.acertos, '{n} acerto', '{n} acertos'),
-                      t('{n} s', { n: segundos }),
-                      `+${resumo.xp} XP`,
-                    ].join(' · ')}
-                  </p>
-                </div>
-                {erradas.length > 0 && (
-                  <button type="button" className="q-ctl" onClick={() => onRefazerErradas(erradas)}>
-                    <RotateCcw aria-hidden /> {tp(erradas.length, 'Refazer só a errada', 'Refazer só as {n} erradas')}
-                  </button>
-                )}
-              </header>
-              {erradas.length ? (
-                <div className="q-tabela-caixa" tabIndex={0} role="region" aria-label={t('O que você errou')}>
-                  <table className="q-tabela">
-                    <thead>
-                      <tr>
-                        <th>{tp(erradas.length, 'Errou ({n})', 'Errou ({n})')}</th>
-                        <th>{t('Detalhes')}</th>
-                        <th>{t('Estado')}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {erradas.map((i, n) => (
-                        <tr key={`${i.itemRef ?? ''}-${n}`}>
-                          <td className="qj-item">
-                            <b>{i.itemRef}</b>
-                            <small>{i.back || t('sem tradução')}</small>
-                          </td>
-                          <td>
-                            {[
-                              i.cefrLevel,
-                              i.attempts > 1 ? t('{n} tentativas', { n: i.attempts }) : null,
-                              i.hinted ? t('com dica') : null,
-                              t('volta na revisão'),
-                            ]
-                              .filter(Boolean)
-                              .join(' · ')}
-                          </td>
-                          <td>
-                            <span className="q-tag" data-tom="alerta">
-                              {t('errei')}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <p className="q-texto">
-                  <PartyPopper aria-hidden /> {t('Nenhum erro nesta rodada.')}
-                  {resumo.precisao >= 80 ? ` ${t('Pronto para subir para o difícil.')}` : ''}
-                </p>
-              )}
-              {certas.length > 0 && (
-                <>
-                  <div className="q-acoes">
-                    <button
-                      type="button"
-                      className="q-chip"
-                      aria-expanded={acertosAbertos}
-                      onClick={() => setAcertosAbertos((v) => !v)}
-                    >
-                      {acertosAbertos ? <ChevronUp aria-hidden /> : <ChevronDown aria-hidden />}
-                      {t('Acertou ({n})', { n: certas.length })}
-                    </button>
-                  </div>
-                  {acertosAbertos && (
-                    <div className="q-tabela-caixa" tabIndex={0} role="region" aria-label={t('O que você acertou')}>
-                      <table className="q-tabela">
-                        <tbody>
-                          {certas.map((i, n) => (
-                            <tr key={`${i.itemRef ?? ''}-${n}`}>
-                              <td className="qj-item">
-                                <b>{i.itemRef}</b>
-                                {i.back && <small>{i.back}</small>}
-                              </td>
-                              <td>
-                                {[i.cefrLevel, i.attempts <= 1 && !i.hinted ? t('de primeira') : null]
-                                  .filter(Boolean)
-                                  .join(' · ')}
-                              </td>
-                              <td>
-                                <span className="q-tag" data-tom="bom">
-                                  {t('acertei')}
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </>
-              )}
-            </section>
-          )}
-        </div>
-
-        <div className="q-faixa" role="toolbar" aria-label={t('Depois da rodada')}>
-          {revelado ? (
-            <>
-              <button type="button" className="q-ctl" onClick={onDone}>
-                <ArrowLeft aria-hidden /> {t('Voltar aos jogos')}
-              </button>
-              <span className="q-espaco" />
-              <button
-                type="button"
-                className="q-ctl"
-                aria-expanded={resumoAberto}
-                onClick={() => setResumoAberto((v) => !v)}
-              >
-                <List aria-hidden /> {ageProfile === 'kids' ? t('O que eu errei') : t('Ver o que escapou')}
-              </button>
-              {onRepetir && (
-                <button type="button" className="q-ctl" onClick={onRepetir}>
-                  <RotateCcw aria-hidden /> {estrelas < 3 ? t('De novo, pelas 3 estrelas') : t('De novo, estas')}
-                </button>
-              )}
-              {!semMaterial && (
-                <button type="button" className="q-ctl pri" onClick={onContinuar}>
-                  <Sparkles aria-hidden />{' '}
-                  {ageProfile === 'kids' ? t('Bora de novo! Palavras novas') : t('Mais uma, com palavras novas')}
-                </button>
-              )}
-            </>
-          ) : (
-            <>
-              <span className="qj-faixa-texto">{t('Raspe o cartão com o ponteiro, ou revele de uma vez.')}</span>
-              <span className="q-espaco" />
-              <button type="button" className="q-ctl pri" onClick={revelar}>
-                <Sparkles aria-hidden /> {t('Revelar a recompensa')}
-              </button>
-            </>
-          )}
-        </div>
-      </div>
+      <FimDaRodada
+        report={report}
+        total={total ?? report.items.length}
+        progress={progress}
+        gravacao={gravacao}
+        proximo={proximo ?? null}
+        aoProximo={onProximo ?? (() => undefined)}
+        aoJogarDeNovo={onJogarDeNovo ?? onRepetir ?? onContinuar}
+        aoVoltar={onDone}
+      />
     );
   }
 

@@ -5,12 +5,23 @@ import { createContext, type ReactNode, useCallback, useContext, useEffect, useI
 
 import { SEQUENCIA_FEVER } from '../../../core/minigames/blitzRegras';
 import { multiplicador } from '../../../core/minigames/grade';
+import { pontosComBonus } from '../../../core/minigames/regras';
 import { celebrar } from '../../../lib/comemoracao';
 /* Direto do arquivo, e não do índice: a constante não tem DOM nem áudio. */
 import { EVENTO_DA_JOGADA } from '../../../lib/comemoracao/intensidade';
 import { useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
 import { t } from '../../../lib/i18n';
 import { contarAte, tremor } from '../../../lib/juice';
+import { contar, MOLA, polido } from '../../../lib/polimento/base';
+import {
+  chamarAjuda,
+  ERROS_ATE_O_PULSO,
+  flutuar,
+  retornoDeCombo,
+  retornoDeErro,
+  textoDoGanho,
+  vinheta,
+} from '../../../lib/polimento/jogos';
 import { useRodada } from './CascaDaRodada';
 
 /**
@@ -29,6 +40,10 @@ import { useRodada } from './CascaDaRodada';
  */
 /** Depois de quantos erros seguidos as ajudas se anunciam. */
 export const ERROS_ATE_O_SOCORRO = 2;
+/** Quanto o aviso do acerto e os pontos novos esperam um pelo outro, em ms. */
+const ESPERA_DO_GANHO = 400;
+/** O elemento que o motor do app pôs para tremer agora (`tremor`, em `lib/juice`). */
+const TREMENDO = '.palco-jogo [data-tremendo="1"], .palco-jogo[data-tremendo="1"]';
 
 function rotuloDaSequencia(seq: number, comFever: boolean): string {
   return comFever && seq >= SEQUENCIA_FEVER
@@ -97,32 +112,66 @@ export default function HudDaRodada({
   tourDoTempo,
   tour,
 }: HudDaRodadaProps) {
-  const { placar } = useRodada();
-  placar.current = { pontos, acertos };
+  const { placar, jogo, nivel } = useRodada();
+  const questNovo = useQuestNovo();
+  /* No desenho novo o placar mostra o bônus do Difícil: 5 pontos a mais por acerto (`jogos4.js:117-122`).
+     O jogo continua mandando os pontos de base; quem soma é a casca (`core/minigames/regras.ts`). */
+  const mostrados = questNovo && jogo && nivel ? pontosComBonus(jogo, nivel, pontos, acertos) : pontos;
+  placar.current = { pontos: mostrados, acertos };
   const ptsRef = useRef<HTMLElement | null>(null);
-  const anterior = useRef(pontos);
+  const anterior = useRef(mostrados);
   const comboRef = useRef<HTMLSpanElement | null>(null);
+  const ajudasRef = useRef<HTMLDivElement | null>(null);
   const mult = multDoJogo ?? multiplicador(sequencia);
   const multAnterior = useRef(mult);
+  const multAgora = useRef(mult);
+  multAgora.current = mult;
+
+  /* O "+N ×M" QUE SOBE NO ACERTO (`pjAcerto`, `jogos.js:236`). O aviso do acerto e os pontos novos chegam
+     por caminhos diferentes (o jogo avisa na hora; os pontos vêm no desenho seguinte), em qualquer ordem:
+     quem chegar primeiro espera o outro por um instante. */
+  const acertoAEspera = useRef<{ el: Element | null; ate: number } | null>(null);
+  const ganhoAEspera = useRef<{ valor: number; ate: number } | null>(null);
 
   // O número sobe do valor anterior até o novo, em vez de saltar.
   useEffect(() => {
     const de = anterior.current;
-    anterior.current = pontos;
-    if (de !== pontos) void contarAte(ptsRef.current, pontos, { de, dur: 350 });
-  }, [pontos]);
+    anterior.current = mostrados;
+    if (de === mostrados) return;
+    if (!questNovo) {
+      void contarAte(ptsRef.current, mostrados, { de, dur: 350 });
+      return;
+    }
+    /* `pjHud`, `jogos.js:176`: 420 ms na curva cúbica de `contar`. */
+    const el = ptsRef.current;
+    if (el) {
+      if (polido()) contar((v) => (el.textContent = String(v)), de, mostrados, 420);
+      else el.textContent = String(mostrados);
+    }
+    const ganho = mostrados - de;
+    if (ganho <= 0) return;
+    const agora = performance.now();
+    const acerto = acertoAEspera.current;
+    acertoAEspera.current = null;
+    if (acerto && agora <= acerto.ate) flutuar(acerto.el, textoDoGanho(ganho, multAgora.current), 'good');
+    else ganhoAEspera.current = { valor: ganho, ate: agora + ESPERA_DO_GANHO };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- só a mudança dos pontos interessa
+  }, [mostrados]);
   /* O multiplicador SUBIU de degrau: é o evento `combo` do motor de comemoração, disparado aqui —
      o único lugar que vê o multiplicador de todos os jogos — em vez de cada jogo repetir a conta.
-     Caiu (errou, usou ajuda): só o tranco, sem festa. */
+     Caiu (errou, usou ajuda): só o tranco, sem festa. No desenho novo é o do protótipo
+     (`pjHud`, `jogos.js:189-193`): o selo "Combo ×N", a vinheta e o salto do combo; a queda não treme. */
   useEffect(() => {
     const antes = multAnterior.current;
     multAnterior.current = mult;
-    if (mult > antes && mult > 1) celebrar({ tipo: 'combo', multiplicador: mult, el: comboRef.current });
-    else if (mult !== antes) tremor(comboRef.current, 3);
+    if (mult > antes && mult > 1) {
+      celebrar({ tipo: 'combo', multiplicador: mult, el: comboRef.current });
+      if (questNovo) retornoDeCombo(mult, comboRef.current, MOLA);
+    } else if (mult !== antes && !questNovo) tremor(comboRef.current, 3);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- só a mudança do multiplicador interessa
   }, [mult]);
 
   /* META QUEST: as ajudas se apresentam aqui, e o "?" abre o que cada uma faz e o que custa. */
-  const questNovo = useQuestNovo();
   const [notasDasAjudas, setNotasDasAjudas] = useState<Record<string, { rotulo: string; nota: string }>>({});
   const [ajudasExplicadas, setAjudasExplicadas] = useState(false);
   const registrarAjuda = useCallback<RegistroDeAjuda>((id, ajuda) => {
@@ -148,15 +197,45 @@ export default function HudDaRodada({
   const [socorro, setSocorro] = useState(false);
   useEffect(() => {
     const aoJogar = (e: Event) => {
-      errosSeguidos.current = (e as CustomEvent<string>).detail === 'erro' ? errosSeguidos.current + 1 : 0;
-      setSocorro(errosSeguidos.current >= ERROS_ATE_O_SOCORRO);
+      /* O aviso diz só "acerto" ou "erro"; quando trouxer também o elemento da jogada, ele é usado. */
+      const detalhe = (e as CustomEvent<string | { tipo: string; el?: Element | null }>).detail;
+      const tipo = typeof detalhe === 'string' ? detalhe : detalhe?.tipo;
+      const el = typeof detalhe === 'string' ? null : (detalhe?.el ?? null);
+      errosSeguidos.current = tipo === 'erro' ? errosSeguidos.current + 1 : 0;
+      if (!questNovo) {
+        setSocorro(errosSeguidos.current >= ERROS_ATE_O_SOCORRO);
+        return;
+      }
+      /* O RETORNO DO PROTÓTIPO (`pjAcerto` e `pjErro`, `jogos.js:224-250`; `jogos4.js:117-137`). */
+      if (tipo === 'acerto') {
+        vinheta('acerto');
+        const agora = performance.now();
+        const ganho = ganhoAEspera.current;
+        ganhoAEspera.current = null;
+        if (ganho && agora <= ganho.ate) flutuar(el, textoDoGanho(ganho.valor, multAgora.current), 'good');
+        else acertoAEspera.current = { el, ate: agora + ESPERA_DO_GANHO };
+        return;
+      }
+      if (tipo !== 'erro') return;
+      const seguidos = errosSeguidos.current;
+      /* Um instante depois: enquanto o aviso não traz o elemento, quem treme é o que o motor do app acabou
+         de marcar como "tremendo" (`lib/juice`), que é o elemento que o jogo apontou. */
+      queueMicrotask(() => {
+        retornoDeErro(el ?? document.querySelector(TREMENDO));
+        /* No segundo erro seguido, e só nele, o jogo aponta uma ajuda (`jogos4.js:127-136`). */
+        if (seguidos === ERROS_ATE_O_PULSO) chamarAjuda(ajudasRef.current);
+      });
     };
     window.addEventListener(EVENTO_DA_JOGADA, aoJogar);
     return () => window.removeEventListener(EVENTO_DA_JOGADA, aoJogar);
-  }, []);
+  }, [questNovo]);
   const socorroAtendido = () => {
     errosSeguidos.current = 0;
     setSocorro(false);
+  };
+  /* No protótipo só o "+10 s" e o "Ver resposta" zeram a conta dos erros seguidos (`jogos4.js:178`). */
+  const ajudaGeralUsada = (e: React.MouseEvent) => {
+    if ((e.target as Element).closest?.('[data-ajuda="tempo"], [data-ajuda="resposta"]')) errosSeguidos.current = 0;
   };
 
   const pct = Math.round(Math.max(0, Math.min(1, progresso)) * 100);
@@ -170,7 +249,7 @@ export default function HudDaRodada({
         <div className="hud-bloco">
           <small>Pontos</small>
           <b ref={ptsRef} className="tn" data-pj="pontos">
-            {pontos}
+            {mostrados}
           </b>
         </div>
         <div>
@@ -199,7 +278,7 @@ export default function HudDaRodada({
             </div>
           )}
         </div>
-        <div className="hud-ajudas" data-socorro={socorro || undefined} onClickCapture={socorroAtendido}>
+        <div ref={ajudasRef} className="hud-ajudas" onClickCapture={ajudaGeralUsada}>
           {ajudas}
         </div>
         <span
@@ -207,10 +286,11 @@ export default function HudDaRodada({
           className={`combo ${mult > 1 ? 'quente' : ''}`}
           aria-label={`Multiplicador ${mult}, ${sequencia} seguidas`}
         >
-          {mult > 1 && <Flame className="combo-chama" aria-hidden />}
+          {/* A ordem e o `em` sempre presente são os de `pjHud` (`jogos.js:188`). */}
           <small>×</small>
           {mult}
-          {sequencia > 1 && <em>{sequencia} seguidas</em>}
+          <em>{sequencia > 1 ? `${sequencia} seguidas` : ''}</em>
+          {mult > 1 && <Flame className="combo-chama" aria-hidden />}
         </span>
       </div>
     );

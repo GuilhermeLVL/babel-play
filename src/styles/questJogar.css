@@ -454,3 +454,34 @@ html[data-quest-novo='true'] .palco-jogo .carta.errou::after {
     transform: none;
   }
 }
+
+/* ---- O "+N" que sobe no acerto é o do protótipo (`.ganho`, `lib/polimento/jogos.ts`) ----
+   O motor de comemoração do app também solta o número dele (`FloatingScoreLayer`, `[data-flutuante]`).
+   Enquanto houver uma partida do desenho novo na tela esse some, para o ganho não subir duas vezes. */
+html[data-quest-novo='true']:has(.px-partida) [data-flutuante] {
+  display: none;
+}
+
+/* ---- O placar COMO O PROTÓTIPO O MOSTRA (`polimento-movimento.html`, medido com o comparador) ----
+   A captura de produção que virou o protótipo perdeu os atalhos `font:` com variável (`.hud-bloco b`,
+   `.combo em`): lá os pontos saem na fonte do corpo, em 700, com a entrelinha do corpo, e o "N seguidas"
+   herda a fonte do combo. É o que o dono viu e aprovou, então a partida do desenho novo segue igual.
+   O rótulo ("3 de 8 bolas") fica com os 16 px da linha, sem o corte de 15 px dos textos miúdos. */
+html[data-px='on'] .px-partida .hud-bloco b {
+  font-family: inherit;
+  font-weight: 700;
+  line-height: inherit;
+}
+html[data-px='on'] .px-partida .combo em {
+  font-family: inherit;
+  font-weight: inherit;
+}
+html[data-px='on'] .px-partida .hud .entre .mut {
+  font-size: 16px;
+  line-height: 1.45;
+}
+/* A estrela apagada da tela de fim não se mexe no protótipo (a captura perdeu a animação de base
+   `estala`; só a estrela acesa cai, com `estrela-cai`). */
+html[data-px='on'] .px-partida .fim .estrelas-fim span:not(.on) {
+  animation: none;
+}

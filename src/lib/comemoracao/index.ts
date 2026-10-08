@@ -293,7 +293,8 @@ function executar(ev: EventoDeComemoracao, plano: PlanoDeComemoracao): void {
 export function celebrar(ev: EventoDeComemoracao): void {
   if (typeof window === 'undefined') return;
   if (ev.tipo === 'acerto' || ev.tipo === 'erro') {
-    window.dispatchEvent(new CustomEvent(EVENTO_DA_JOGADA, { detail: ev.tipo }));
+    /* O aviso leva o elemento da jogada: é dele que o "+N" sobe e é ele que treme (`jogos.js`). */
+    window.dispatchEvent(new CustomEvent(EVENTO_DA_JOGADA, { detail: { tipo: ev.tipo, el: ev.el ?? null } }));
   }
   try {
     const plano = planoDeComemoracao(ev, {

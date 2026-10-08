@@ -185,6 +185,7 @@ import {
 } from '../../lib/ordemDosJogos';
 import { contarPassada } from '../../lib/passadasDoPipeline';
 import { estadoDoCartao } from '../../lib/pelesDeCartao';
+import { sairDaTelaDoJogar, type TelaDoJogar } from '../../lib/polimento/jogos';
 import { type AgeProfileType, coreOnly } from '../../lib/profile';
 import type { DerivedProgress } from '../../lib/progress';
 import { consumirQueryDoBoot, lerUrlAtual, publicarQueryDoJogar } from '../../lib/rotas';
@@ -200,6 +201,7 @@ import { unidadeDaRodada } from '../minigames/casca/regras';
 import { TabelaDaCobertura } from '../minigames/CoberturaDosIdiomas';
 import type { FalaKaraoke } from '../minigames/KaraokeGame';
 import { jaFezTour, marcarTourFeito, PASSOS_DOS_JOGOS } from '../minigames/passosDosJogos';
+import { jogosSeguintes } from '../minigames/polimento/textos';
 import type { ItemDaRodada } from '../minigames/ResultadoDaRodada';
 import SalaDeEscolha from '../minigames/SalaDeEscolha';
 import SeletorDeConteudo from '../minigames/SeletorDeConteudo';
@@ -640,6 +642,17 @@ export default function Play({
   const [rodadaDitado, setRodadaDitado] = useState<RodadaDitado[] | null>(null);
   const [rodadaConectores, setRodadaConectores] = useState<RodadaConectores[] | null>(null);
   const [resultado, setResultado] = useState<RoundReport | null>(null);
+  /** "Recomeçar" e toda rodada nova remontam a casca e o jogo (chave nova). */
+  const [chaveDaRodada, setChaveDaRodada] = useState(0);
+  /** Quantos itens tinha a rodada que acabou: o placar continua na tela de fim do desenho novo. */
+  const [totalDoFim, setTotalDoFim] = useState(0);
+  /**
+   * DESENHO NOVO: as telas de dentro do Jogar (lobby, antessala, rodada, fim) SAEM com a animação de
+   * saída de tela do protótipo antes de trocar (`prototipo.js:233-252`, em `lib/polimento/jogos.ts`).
+   * Embutido na Análise o jogo abre por cima, num portal: lá não há tela a sair.
+   */
+  const trocarTela = (de: TelaDoJogar, para: TelaDoJogar, trocar: () => void) =>
+    questNovo && !embutido ? sairDaTelaDoJogar(de, para, trocar) : trocar();
   /* v3 — RODADA EM CURSO marca o body (`data-jogo-ativo`): o modal de recompensa (App) espera
      `babel:rodada-fechou` em vez de cobrir a partida. Fechar a rodada dispara o evento. */
   const emRodada =
@@ -891,7 +904,7 @@ export default function Play({
    * O tour da primeira vez só entra quando a partida começa de fato: disparado aqui, ele
    * apontaria para elementos do jogo que ainda não estão na tela.
    */
-  const pedirParaJogar = (carta: Pick<JogoUI, 'id'>, forcarAntessala = false) => {
+  const pedirParaJogar = (carta: Pick<JogoUI, 'id'>, forcarAntessala = false, de: TelaDoJogar = 'jogar') => {
     const pronta = montarRodada(carta.id);
     /**
      * CLIQUE MORTO NUNCA MAIS.
@@ -911,16 +924,16 @@ export default function Play({
     }
     /* Voltar ao lobby e clicar de novo é corrente NOVA. Sem isto, sair no meio e reentrar mais
        tarde continuaria somando num placar que a pessoa já considera encerrado. */
-    setSequencia(null);
+    const direto = pularSempre && !forcarAntessala;
+    trocarTela(de, direto ? 'partida' : 'antessala', () => {
+      setSequencia(null);
+      if (direto) comecar(pronta);
+      else setAntessala(pronta);
+    });
     /* A FONTE DA VERDADE É O ESTADO, não o `localStorage`.
        Antes esta linha lia `pularAntessala()` direto do storage enquanto o checkbox espelhava
        `pularSempre`, dois leitores da mesma preferência, que discordavam por um render sempre que
-       ela mudava. Agora o storage é só persistência; quem decide é o estado. */
-    if (pularSempre && !forcarAntessala) {
-      comecar(pronta);
-      return;
-    }
-    setAntessala(pronta);
+       ela mudava. Agora o storage é só persistência; quem decide é o estado (`direto`, acima). */
   };
 
   const comecar = (pronta: RodadaPronta) => {
@@ -930,6 +943,9 @@ export default function Play({
     setAntessala(null);
     setSemMaterial(false);
     setUltimaCorrente(null); // começou outra: a pílula da anterior sai da tela
+    /* Rodada nova, casca nova: no desenho novo a casca da rodada anterior continua montada na tela de
+       fim, e sem a chave nova a contagem e a explicação não recomeçariam. */
+    setChaveDaRodada((k) => k + 1);
     pronta.aplicar();
   };
 
@@ -971,6 +987,20 @@ export default function Play({
     setResultado(null);
     encerrarCorrente();
     setSemMaterial(false);
+  };
+
+  /**
+   * "JOGAR DE NOVO" da tela de fim do desenho novo (`data-acao="recomecar"`, `jogos.js:318, 369`): outra
+   * rodada deste jogo. Palavras novas enquanto houver; acabou o material, as mesmas; e se nem isso der,
+   * a pessoa fica sabendo em vez de o botão não fazer nada.
+   */
+  const jogarDeNovo = () => {
+    if (!resultado) return;
+    const nova =
+      montarRodada(resultado.gameId, null, undefined, new Set<string>(sequencia?.vistosNaSequencia ?? [])) ??
+      (refsDoResultado.length ? montarRodada(resultado.gameId, null, new Set(refsDoResultado)) : null);
+    if (nova) comecar(nova);
+    else toast.warn(t('Acabaram as palavras elegíveis desta fonte por agora. Volte aos jogos para trocar de fonte.'));
   };
 
   /**
@@ -1038,6 +1068,16 @@ export default function Play({
    */
   const aoTerminar = async (report: RoundReport) => {
     setResultado(report);
+    setTotalDoFim(
+      rodada?.itens.length ??
+        rodadaTermo?.length ??
+        rodadaFrase?.length ??
+        rodadaKaraoke?.length ??
+        rodadaEscuta?.length ??
+        rodadaDitado?.length ??
+        rodadaConectores?.length ??
+        report.items.length,
+    );
     setGravacaoDaRodada('pendente');
     setRodada(null);
     setRodadaTermo(null);
@@ -2517,8 +2557,14 @@ export default function Play({
    * "Recomeçar" remonta a casca e o jogo (chave nova) com os MESMOS itens. No Termo o P é letra,
    * então só o Esc pausa.
    */
-  const [chaveDaRodada, setChaveDaRodada] = useState(0);
-  const naCasca = (tela: React.ReactNode, jogo: MinigameId, total: number, sair: () => void) => {
+  const naCasca = (
+    tela: React.ReactNode,
+    jogo: MinigameId,
+    total: number,
+    sair: () => void,
+    /** DESENHO NOVO: a rodada acabou e o palco mostra a tela de fim; "Recomeçar" vira "jogar de novo". */
+    fim?: { jogarDeNovo: () => void },
+  ) => {
     const j = JOGOS.find((x) => x.id === jogo);
     const unidade = unidadeDaRodada(jogo);
     return (
@@ -2529,9 +2575,11 @@ export default function Play({
         total={total}
         unidade={unidade}
         ageProfile={ageProfile}
-        onRecomecar={() => setChaveDaRodada((k) => k + 1)}
+        onRecomecar={fim ? fim.jogarDeNovo : () => setChaveDaRodada((k) => k + 1)}
         onSair={sair}
-        pausaComP={jogo !== 'termo'}
+        acabou={!!fim}
+        /* No Rali do desenho novo a letra vale mesmo com o campo sem foco: lá o P também é letra. */
+        pausaComP={jogo !== 'termo' && !(questNovo && jogo === 'tenis')}
         som={soundEnabled !== undefined && toggleSound ? { ligado: soundEnabled, alternar: toggleSound } : undefined}
       >
         {tela}
@@ -3086,7 +3134,7 @@ export default function Play({
         }
         diagnosticoTermo={antessala.jogo === 'termo' ? diagnosticoTermo(acervoDaFonte) : null}
         etapa={fonte.id === 'trilha' && etapaDaTrilha ? etapaDaTrilha.nome : null}
-        onJogar={() => comecar(antessala)}
+        onJogar={() => trocarTela('antessala', 'partida', () => comecar(antessala))}
         onTrocar={() => {
           const naTela = new Set<string>(antessala.previa.map((i) => i.ref));
           const nova = montarRodada(antessala.jogo, null, undefined, naTela);
@@ -3100,7 +3148,7 @@ export default function Play({
               }
             : null
         }
-        onSair={() => setAntessala(null)}
+        onSair={() => trocarTela('antessala', 'jogar', () => setAntessala(null))}
         onComoSeJoga={() => setExplicando(antessala.jogo)}
         pularSempre={pularSempre}
         onMudarPularSempre={mudarPularSempre}
@@ -3130,10 +3178,11 @@ export default function Play({
    * parcial, e mudar isso são nove componentes noutra entrega. O que o placar tinha somado até
    * aqui aparece uma última vez na pílula do lobby, para o número não ser apagado em silêncio.
    */
-  const sairDaRodada = (limpar: () => void) => () => {
-    limpar();
-    encerrarCorrente();
-  };
+  const sairDaRodada = (limpar: () => void) => () =>
+    trocarTela('partida', 'jogar', () => {
+      limpar();
+      encerrarCorrente();
+    });
 
   // Rodada em curso ou recompensa a revelar ocupam a tela inteira — jogo não divide atenção.
   if (rodadaTermo) {
@@ -3258,6 +3307,12 @@ export default function Play({
      `exercise_results`) e nunca mostrado — continua aqui, com tradução e nível do baralho. */
   if (resultado) {
     const porRef = new Map((deck ?? []).map((c) => [String(c.word).toLowerCase(), c]));
+    /* "Próximo jogo" (`jogos.js:308`): o seguinte na ordem do protótipo que dá para abrir agora. */
+    const proximoJogo =
+      jogosSeguintes(resultado.gameId).find((id) => {
+        const j = listaDeJogos.find((x) => x.id === id);
+        return !!j?.estado.ok && (!abremNoHeadset || abremNoHeadset.has(id));
+      }) ?? null;
     const itensResumo: ItemDaRodada[] = resultado.items.map((o) => {
       const c = porRef.get(String(o.itemRef).toLowerCase());
       return {
@@ -3272,7 +3327,7 @@ export default function Play({
         occurrences: (c as { occurrences?: number | null } | undefined)?.occurrences ?? null,
       };
     });
-    return telaCheia(
+    const telaDoFim = (
       <ResultadoDaRodada
         report={resultado}
         jogo={((j) => (j ? tituloDoJogo(j, ageProfile) : resultado.gameId))(
@@ -3296,7 +3351,7 @@ export default function Play({
           if (nova) setAntessala(nova);
           else continuarSequencia();
         }}
-        onDone={sairDaSequencia}
+        onDone={questNovo ? () => trocarTela('partida', 'jogar', sairDaSequencia) : sairDaSequencia}
         semMaterial={semMaterial}
         onPularVez={saldoSeeds >= CUSTO_PULAR && !gastando ? pularVez : null}
         custoPular={CUSTO_PULAR}
@@ -3304,8 +3359,27 @@ export default function Play({
         onVerProgressao={() => onChangeView('loja', { aba: 'progressao' })}
         maestria={maestriaDaRodada}
         gravacao={gravacaoDaRodada}
-      />,
+        total={totalDoFim}
+        proximo={proximoJogo}
+        onProximo={(id) => pedirParaJogar({ id }, false, 'partida')}
+        onJogarDeNovo={jogarDeNovo}
+      />
     );
+    /* DESENHO NOVO: a tela de fim mora DENTRO do palco, com o cabeçalho e o placar da rodada ainda na
+       tela, como o `pjFim` do protótipo (`jogos.js:296-328`). A casca é a MESMA da rodada (mesma chave,
+       mesmo lugar na árvore): ela não remonta, e por isso a tela não "entra" de novo. */
+    if (questNovo)
+      return comTour(
+        naCasca(
+          <Suspense fallback={null}>{telaDoFim}</Suspense>,
+          resultado.gameId,
+          totalDoFim,
+          () => trocarTela('partida', 'jogar', sairDaSequencia),
+          { jogarDeNovo },
+        ),
+        resultado.gameId,
+      );
+    return telaCheia(telaDoFim);
   }
   /* "Como se joga" (o "?" da carta) abre POR CIMA do lobby, como o `dialogoComo()` do protótipo:
      é um `<dialog>` modal, que vive na camada do topo e não precisa de portal nem de tela própria. */

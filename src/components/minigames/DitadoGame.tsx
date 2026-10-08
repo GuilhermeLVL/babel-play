@@ -9,6 +9,7 @@ import { criarFalante } from '../../lib/falante';
 import { t } from '../../lib/i18n';
 import { multiplicador, pontosDoElemento } from '../../lib/juice';
 import type { AgeProfileType } from '../../lib/profile';
+import AvisoDaJogada from './casca/AvisoDaJogada';
 import { useRodada } from './casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda } from './casca/HudDaRodada';
 import { SemVozNoQuest, useQuestNovo, useSemTecladoFisico, useVozNoJogo, VereditoNoQuest } from './noQuest';
@@ -48,6 +49,14 @@ export default function DitadoGame({ rodadas, audioUrl, ageProfile, onFinish }: 
   const [dicas, setDicas] = useState(0);
   const [pontos, setPontos] = useState(0);
   const [sequencia, setSequencia] = useState(0);
+  /**
+   * A SEGUNDA CHANCE. A primeira conferência abaixo do limiar não fecha a fala: o texto fica no campo,
+   * a fala toca de novo e a pessoa corrige. Só a segunda conferência vale. Antes um erro de digitação
+   * numa frase de dez palavras encerrava a fala na hora, sem chance de consertar o que ela já tinha
+   * ouvido certo. A correção palavra a palavra continua só no fim: mostrá-la antes entregaria a resposta.
+   */
+  const [segundaChance, setSegundaChance] = useState<{ acertos: number; total: number } | null>(null);
+  const tentativaRef = useRef(1);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const pararRef = useRef<number | null>(null);
@@ -131,7 +140,7 @@ export default function DitadoGame({ rodadas, audioUrl, ageProfile, onFinish }: 
       // há como mostrar o que já veio, repetir a rodada nem evitar que ela se repita.
       ...(rodada.fala.id ? { itemRef: rodada.fala.id } : {}),
       correct: certo,
-      attempts: 1,
+      attempts: tentativaRef.current,
       ms: Date.now() - inicioItemRef.current,
       hinted: dicas > 0,
       revealed: pulou,
@@ -173,6 +182,8 @@ export default function DitadoGame({ rodadas, audioUrl, ageProfile, onFinish }: 
         setIndice((i) => i + 1);
         setTexto('');
         setConferido(null);
+        setSegundaChance(null);
+        tentativaRef.current = 1;
         setDicas(0);
         inicioItemRef.current = Date.now();
       },
@@ -183,6 +194,14 @@ export default function DitadoGame({ rodadas, audioUrl, ageProfile, onFinish }: 
   const conferir = () => {
     if (!rodada || conferido || !ativo) return;
     const r = conferirDitado(rodada.fala.text, texto, rodada.fala.lang);
+    if (r.precisao < LIMIAR && tentativaRef.current === 1) {
+      tentativaRef.current = 2;
+      setSegundaChance({ acertos: r.acertos, total: r.total });
+      ouvir(1);
+      if (!semTeclado) entradaRef.current?.focus();
+      return;
+    }
+    setSegundaChance(null);
     setConferido(r);
     avancar(r, false);
   };
@@ -304,6 +323,16 @@ export default function DitadoGame({ rodadas, audioUrl, ageProfile, onFinish }: 
 
         {/* Só onde quem escreve é o teclado do sistema: com teclado físico o campo já está com o foco. */}
         {semTeclado && !conferido && <p data-qp="apoio">{t('Toque no campo para abrir o teclado do headset.')}</p>}
+
+        {segundaChance && !conferido && (
+          <AvisoDaJogada
+            tom="aviso"
+            rotulo={t('{acertos} de {total} palavras no lugar. Ouça de novo e corrija: você tem mais uma tentativa.', {
+              acertos: segundaChance.acertos,
+              total: segundaChance.total,
+            })}
+          />
+        )}
 
         {/* A CORREÇÃO PALAVRA A PALAVRA — o que o exercício antigo não fazia e que é o que ensina. */}
         {conferido && (

@@ -193,7 +193,8 @@ export const COMO_SE_JOGA: Record<MinigameId, ConteudoComoSeJoga> = {
     passos: [
       'Ouça o trecho (ele toca sozinho ao começar).',
       'Escreva o que você entendeu na linha.',
-      'Confira: a correção mostra cada palavra, e o que você escreveu no lugar.',
+      'Confira. Abaixo de 80% você ganha uma segunda tentativa: ouça de novo e corrija.',
+      'No fim a correção mostra cada palavra, e o que você escreveu no lugar.',
     ],
     avaliacao:
       'A conferência é palavra a palavra, não uma porcentagem solta, você vê exatamente onde errou. Acerto a partir de 80% das palavras.',

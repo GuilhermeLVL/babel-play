@@ -18,7 +18,8 @@ Fonte de cada item: o painel "Auditoria" de `docs/prototipos/polimento-movimento
 ## 1. A casca se mexe
 
 - [ ] 1.1 Toque: o botão afunda e volta com mola (`.q-tile`, `.q-ctl`, `.q-botao`, `.q-item`, `.q-aba`)
-- [ ] 1.2 Abas: a pílula desliza de uma aba para a outra (`.q-abas`)
+- [x] 1.2 Abas: a pílula desliza de uma aba para a outra (`.q-abas`): `src/lib/movimento/pilulaDasAbas.ts`,
+      instalada com o trilho; conferida no app rodando (Jogar, desenho novo no computador)
 - [ ] 1.3 Troca de tela: a que sai some rápido, a que entra sobe em cascata na primeira visita
 - [ ] 1.4 Painel "Mais": nasce do botão, segue o dedo, fecha por arremesso
 - [ ] 1.5 Diálogos e folhas: mesma entrada e saída; no celular, folha de baixo

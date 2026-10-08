@@ -47,6 +47,7 @@ import { useFlag } from '../../lib/flags';
 import { t } from '../../lib/i18n';
 import { aoMudarIdentidade, estaAnonimo } from '../../lib/identidade';
 import { instalarMarcaDeMovimento } from '../../lib/movimento/animar';
+import { instalarPilulaDasAbas } from '../../lib/movimento/pilulaDasAbas';
 import { marcarLida, marcarTodasLidas, naoLidas, quando } from '../../lib/notificacoes';
 import { authRequired } from '../../lib/supabase';
 import { usePerfil } from '../../lib/usePerfil';
@@ -161,6 +162,8 @@ export default function TrilhoDoQuest({
   /* A marca `data-movimento` (rico no computador e no celular, contido no headset e no modo leve)
      também vive enquanto o trilho vive. */
   useEffect(() => instalarMarcaDeMovimento(), []);
+  /* E a pílula que desliza entre as abas, em todas as `.q-abas` da tela. */
+  useEffect(() => instalarPilulaDasAbas(), []);
   const noTrilho = semConta ? NO_TRILHO_SEM_CONTA : NO_TRILHO;
   const principais = noTrilho.map((id) => NAV_ITEMS.find((i) => i.id === id)).filter((i) => !!i);
   const outros = [...NAV_ITEMS.filter((i) => !noTrilho.includes(i.id)), ...(ehAdmin(perfil) ? [ITEM_ADMIN] : [])];

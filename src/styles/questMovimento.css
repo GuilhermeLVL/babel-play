@@ -32,3 +32,41 @@ html[data-quest-novo='true'] {
     --q-mola-suave: linear(0, 0.066, 0.214, 0.392, 0.565, 0.714, 0.832, 0.919, 0.977, 1.013, 1.031, 1.038, 1.037, 1.032, 1.026, 1.019, 1.013, 1.008, 1.004, 1.002, 1, 0.999, 0.999, 0.999, 1);
   }
 }
+
+/* ---- A pílula das abas (`src/lib/movimento/pilulaDasAbas.ts`) ------------------------------
+   Quando há pílula, é ela que carrega o fundo e a borda da aba escolhida, e desliza entre as abas. */
+html[data-quest-novo='true'][data-movimento='rico'] .q-abas[data-pilula] {
+  position: relative;
+}
+html[data-quest-novo='true'][data-movimento='rico'] .q-abas[data-pilula] > .q-aba {
+  position: relative;
+  z-index: 1;
+}
+html[data-quest-novo='true'][data-movimento='rico']
+  .q-abas[data-pilula]
+  > .q-aba:is([aria-selected='true'], [aria-pressed='true'], [aria-current='page'], [aria-checked='true']) {
+  background: none;
+  border-color: transparent;
+}
+html[data-quest-novo='true'][data-movimento='rico'] .q-pilula {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 0;
+  box-sizing: border-box;
+  border-radius: 999px;
+  background: var(--q-suave);
+  border: 2px solid var(--q-acento);
+  pointer-events: none;
+  transition:
+    transform var(--q-dur-painel) var(--q-mola-suave),
+    width var(--q-dur-painel) var(--q-mola-suave),
+    height var(--q-dur-painel) var(--q-mola-suave);
+}
+html[data-quest-novo='true'][data-movimento='rico'] .q-pilula[data-pousando] {
+  transition: none;
+}
+/* Sem a faixa rica a pílula não deve existir; se sobrar uma por um instante, ela não aparece. */
+html[data-quest-novo='true']:not([data-movimento='rico']) .q-pilula {
+  display: none;
+}

@@ -454,35 +454,3 @@ html[data-quest-novo='true'] .palco-jogo .carta.errou::after {
     transform: none;
   }
 }
-
-/* ── A CENA DO JOGO no cartão do lobby (`ArteDosJogos.tsx`) ───────────────────────────────────────
-   Uma faixa no alto do cartão, na cor do fundo (a arte usa a superfície elevada para o "vazio").
-   Parada de fábrica. Com movimento rico e ponteiro de verdade, a cena se aproxima um pouco ao
-   apontar; nada se mexe sozinho numa grade de dezoito cartões. */
-html[data-quest-novo='true'] .quest-jogar .qj-cena {
-  display: block;
-  justify-self: stretch;
-  height: 92px;
-  margin: -4px -6px 4px;
-  padding: 8px 10px;
-  border-radius: 14px;
-  background: var(--canvas);
-  overflow: hidden;
-}
-html[data-quest-novo='true'] .quest-jogar .qj-cena svg {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-html[data-quest-novo='true'] .quest-jogar .q-tile.apagado .qj-cena {
-  opacity: 0.45;
-  filter: grayscale(1);
-}
-@media (hover: hover) and (pointer: fine) {
-  html[data-quest-novo='true'][data-movimento='rico'] .quest-jogar .qj-cena svg {
-    transition: scale var(--q-dur-toque, 180ms) var(--q-saida, ease-out);
-  }
-  html[data-quest-novo='true'][data-movimento='rico'] .quest-jogar .q-tile:not(:disabled):hover .qj-cena svg {
-    scale: 1.06;
-  }
-}

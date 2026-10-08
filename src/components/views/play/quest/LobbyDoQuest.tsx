@@ -29,7 +29,8 @@ import { noHeadset } from '../../../../lib/dispositivo/telaNovaDoQuest';
 import { numero, t, tp } from '../../../../lib/i18n';
 import type { AgeProfileType } from '../../../../lib/profile';
 import { aoMudarIdiomasDaVozDoQuest } from '../../../../lib/voz/vozDoQuest';
-import ArteDoJogo, { FAMILIAS, tomDoJogo } from '../../../minigames/ArteDosJogos';
+import { FAMILIAS, tomDoJogo } from '../../../minigames/ArteDosJogos';
+import MiniDoJogo from '../../../minigames/polimento/MiniDoJogo';
 import { descricaoDoJogo, type JogoUI, tituloDoJogo } from '../jogos';
 import { type JogoParaOQuest, type TileDoQuest, tilesDoQuest, type VozParaOQuest } from './jogosNoQuest';
 import { fecharPainelDe, InterruptorDoQuest, OpcoesDoQuest, PainelDoQuest } from './pecasDoQuest';
@@ -256,17 +257,14 @@ export default function LobbyDoQuest<J extends JogoDoLobby>({
       <div key={jogo.chave} className="qj-jogo" data-grupo={grupo}>
         <button
           type="button"
-          className={`q-tile${apagado ? ' apagado' : ''}`}
+          className={`q-tile px-com-mini${apagado ? ' apagado' : ''}`}
           data-jogo={jogo.id}
           data-grupo={grupo}
           disabled={apagado}
           onClick={() => aoJogar(jogo)}
         >
-          {/* A CENA DO JOGO: a mecânica desenhada, para o cartão ser reconhecido antes de ser lido.
-              Enfeite para o leitor de tela (o nome vem logo abaixo). */}
-          <span className="qj-cena" aria-hidden>
-            <ArteDoJogo jogo={jogo.id} />
-          </span>
+          {/* A MINIATURA do protótipo (`minis.js:37-50`): a cena do jogo no alto do cartão, na cor do grupo. */}
+          <MiniDoJogo jogo={jogo.id} cor={tomDoJogo(jogo.id)} />
           <span className="qj-jogo-topo">
             <i className="qj-ponto" style={{ background: tomDoJogo(jogo.id) }} aria-hidden />
             <span className={`q-tag${apagado || grupo === 'teclado' ? ' off' : ''}`}>{tag}</span>

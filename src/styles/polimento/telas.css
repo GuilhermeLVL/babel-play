@@ -1,0 +1,14 @@
+/* GERADO por scripts/polimento/trazer-css.mjs a partir de telas.css do protótipo de polimento.
+   NÃO EDITAR À MÃO: mude a tabela do script e gere de novo. As regras são as do protótipo, sem
+   reescrita; valem sob html[data-px='on'], a marca que src/lib/polimento/base.ts põe. */
+/* [telas.css:1-36] ADIADO até portar: bloco D: Capturar ao vivo, folhas da frase e da palavra */
+.folha-voltar { justify-self: start; }
+html[data-px='on'] dialog.folha-de-baixo[open] { animation: none; }
+html[data-px='on'] dialog.folha-de-baixo::backdrop {
+  background: rgb(0 0 0 / 0.4);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+/* [telas.css:44-129] ADIADO até portar: bloco D: legendas flutuantes, oferta, planos */
+dialog.folha-de-baixo { margin-inline: auto; }
+/* [telas.css:131-134] ADIADO até portar: bloco D: planos e nuance */

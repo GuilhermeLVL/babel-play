@@ -1,0 +1,1000 @@
+{
+  "memory": {
+    "titulo": "Memória: palavra e tradução",
+    "instr": "Vire duas cartas por vez e feche os pares: a palavra e a tradução dela.",
+    "treina": "ligar a palavra ao significado, e lembrar onde cada uma está.",
+    "passos": [
+      "Toque em duas cartas para virá-las.",
+      "Se forem a palavra e a tradução dela, o par fica aberto. Se não, as duas fecham sozinhas: guarde onde estavam.",
+      "Espiar mostra todas as cartas por um instante. Feche todos os pares para terminar."
+    ],
+    "niveis": [
+      [
+        "facil",
+        "6 pares, cartas abertas por mais tempo e 3 espiadas"
+      ],
+      [
+        "medio",
+        "A regra normal do jogo"
+      ],
+      [
+        "dificil",
+        "As cartas fecham rápido e só há 1 espiada. Cada acerto vale 5 pontos a mais"
+      ]
+    ],
+    "ajudas": [
+      {
+        "nome": "Espiar",
+        "resto": " · 2 por rodada",
+        "txt": null,
+        "custo": "zera o combo"
+      }
+    ],
+    "paragrafos": [
+      "O nível vale só para este jogo. Travou? Depois de dois erros seguidos o jogo aponta uma ajuda. E o que você errar sai sozinho: não precisa apagar."
+    ],
+    "mini": "<i class=\"mm-carta\">?</i><i class=\"mm-carta ok\" style=\"--i:1\">sol</i><i class=\"mm-carta ok\" style=\"--i:2\">sun</i><i class=\"mm-carta\">?</i>",
+    "rodada": "Rodada · pares de palavra e tradução",
+    "instrPalco": "Vire duas cartas por vez e feche os pares: a palavra e a tradução dela.",
+    "ajudasHud": [
+      [
+        "espiar",
+        "Espiar2",
+        "Conta como dica: zera o combo"
+      ]
+    ],
+    "selo": true
+  },
+  "wordsearch": {
+    "titulo": "Caça-palavras por definição",
+    "instr": "A lista mostra o significado, não a palavra. Lembre dela e arraste o dedo sobre as letras.",
+    "treina": "lembrar a palavra antes de vê-la, partindo só da tradução.",
+    "passos": [
+      "Leia uma pista da lista e lembre da palavra em inglês.",
+      "Arraste sobre as letras: na horizontal, na vertical ou na diagonal.",
+      "Travou? O Radar faz as duas pontas de uma palavra piscarem."
+    ],
+    "niveis": [
+      [
+        "facil",
+        "Só na horizontal e na vertical, e a pista mostra a primeira letra"
+      ],
+      [
+        "medio",
+        "A regra normal do jogo"
+      ],
+      [
+        "dificil",
+        "Palavras também de trás para a frente. Cada acerto vale 5 pontos a mais"
+      ]
+    ],
+    "ajudas": [
+      {
+        "nome": "Radar",
+        "resto": " · 3 por rodada",
+        "txt": null,
+        "custo": "de graça"
+      },
+      {
+        "nome": "Ver resposta",
+        "resto": " · 1 por rodada",
+        "txt": "Mostra a resposta por um instante. O acerto vale só o mínimo.",
+        "custo": "zera o combo"
+      }
+    ],
+    "paragrafos": [
+      "O nível vale só para este jogo. Travou? Depois de dois erros seguidos o jogo aponta uma ajuda. E o que você errar sai sozinho: não precisa apagar."
+    ],
+    "mini": "<span class=\"mm-grade\"><i class=\"mm-l \" style=\"--i:0\">M</i><i class=\"mm-l \" style=\"--i:1\">R</i><i class=\"mm-l achou\" style=\"--i:2\">C</i><i class=\"mm-l achou\" style=\"--i:3\">A</i><i class=\"mm-l achou\" style=\"--i:4\">S</i><i class=\"mm-l achou\" style=\"--i:5\">A</i><i class=\"mm-l \" style=\"--i:6\">P</i><i class=\"mm-l \" style=\"--i:7\">T</i><i class=\"mm-l \" style=\"--i:8\">L</i><i class=\"mm-l \" style=\"--i:9\">U</i><i class=\"mm-l \" style=\"--i:10\">A</i><i class=\"mm-l \" style=\"--i:11\">E</i><i class=\"mm-l \" style=\"--i:12\">O</i><i class=\"mm-l \" style=\"--i:13\">S</i><i class=\"mm-l \" style=\"--i:14\">O</i><i class=\"mm-l \" style=\"--i:15\">L</i><i class=\"mm-l \" style=\"--i:16\">K</i><i class=\"mm-l \" style=\"--i:17\">V</i></span>",
+    "rodada": "Rodada · 5 palavras",
+    "instrPalco": "A lista mostra o significado, não a palavra. Lembre dela e arraste o dedo sobre as letras.",
+    "ajudasHud": [
+      [
+        "radar",
+        "Radar3",
+        "De graça"
+      ],
+      [
+        "resposta",
+        "Ver resposta1",
+        "Conta como dica: zera o combo"
+      ]
+    ],
+    "selo": true
+  },
+  "termo": {
+    "titulo": "Soletrar (Termo)",
+    "instr": "A pista é o significado. Escreva a palavra; as cores dizem quais letras estão certas.",
+    "treina": "a grafia: lembrar a palavra letra por letra a partir do significado.",
+    "passos": [
+      "Leia a pista e escreva uma palavra de 5 letras. Enter envia.",
+      "Verde: letra no lugar certo. Amarelo: existe, mas em outro lugar. Cinza: não tem.",
+      "Acertou? A escada sobe: no degrau seguinte são duas palavras ao mesmo tempo, com o mesmo palpite."
+    ],
+    "niveis": [
+      [
+        "facil",
+        "8 tentativas e a primeira letra já vem"
+      ],
+      [
+        "medio",
+        "A regra normal do jogo"
+      ],
+      [
+        "dificil",
+        "5 tentativas. Cada acerto vale 5 pontos a mais"
+      ]
+    ],
+    "ajudas": [
+      {
+        "nome": "Dica",
+        "resto": " · 2 por rodada",
+        "txt": null,
+        "custo": "zera o combo"
+      },
+      {
+        "nome": "Ouvir",
+        "resto": "",
+        "txt": null,
+        "custo": "de graça"
+      },
+      {
+        "nome": "Ver resposta",
+        "resto": " · 1 por rodada",
+        "txt": "Mostra a resposta por um instante. O acerto vale só o mínimo.",
+        "custo": "zera o combo"
+      }
+    ],
+    "paragrafos": [
+      "O nível vale só para este jogo. Travou? Depois de dois erros seguidos o jogo aponta uma ajuda. E o que você errar sai sozinho: não precisa apagar."
+    ],
+    "mini": "<span class=\"mm-termo\"><i class=\"mm-l x\" style=\"--i:0\">P</i><i class=\"mm-l y\" style=\"--i:1\">O</i><i class=\"mm-l x\" style=\"--i:2\">R</i><i class=\"mm-l x\" style=\"--i:3\">T</i><i class=\"mm-l g\" style=\"--i:4\">A</i><i class=\"mm-l g\" style=\"--i:0\">C</i><i class=\"mm-l g\" style=\"--i:1\">A</i><i class=\"mm-l g\" style=\"--i:2\">S</i><i class=\"mm-l g\" style=\"--i:3\">A</i><i class=\"mm-l g\" style=\"--i:4\">S</i></span>",
+    "rodada": "Escada · 3 palavras",
+    "instrPalco": "A pista é o significado. Escreva a palavra; as cores dizem quais letras estão certas.",
+    "ajudasHud": [
+      [
+        "letra",
+        "Dica2",
+        "Conta como dica: zera o combo"
+      ],
+      [
+        "ouvir",
+        "Ouvir",
+        "De graça"
+      ],
+      [
+        "resposta",
+        "Ver resposta1",
+        "Conta como dica: zera o combo"
+      ]
+    ],
+    "selo": true
+  },
+  "scramble": {
+    "titulo": "Frase embaralhada",
+    "instr": "Uma frase real, fora de ordem. Toque nas palavras na ordem certa e confira.",
+    "treina": "a ordem das palavras numa frase de verdade.",
+    "passos": [
+      "Leia o que a frase significa.",
+      "Toque nas palavras na ordem certa. Tocar numa palavra da linha devolve.",
+      "Com todas na linha, toque em Conferir. A Dica encaixa a próxima palavra."
+    ],
+    "niveis": [
+      [
+        "facil",
+        "A primeira palavra já vem no lugar"
+      ],
+      [
+        "medio",
+        "A regra normal do jogo"
+      ],
+      [
+        "dificil",
+        "Não diz quantas palavras estão certas. Cada acerto vale 5 pontos a mais"
+      ]
+    ],
+    "ajudas": [
+      {
+        "nome": "Dica",
+        "resto": " · 3 por rodada",
+        "txt": null,
+        "custo": "zera o combo"
+      },
+      {
+        "nome": "Ouvir",
+        "resto": "",
+        "txt": null,
+        "custo": "de graça"
+      },
+      {
+        "nome": "Ver resposta",
+        "resto": " · 1 por rodada",
+        "txt": "Mostra a resposta por um instante. O acerto vale só o mínimo.",
+        "custo": "zera o combo"
+      }
+    ],
+    "paragrafos": [
+      "O nível vale só para este jogo. Travou? Depois de dois erros seguidos o jogo aponta uma ajuda. E o que você errar sai sozinho: não precisa apagar."
+    ],
+    "mini": "<i class=\"mm-chip e1\">today</i><i class=\"mm-chip e2\">We</i><i class=\"mm-chip e3\">ship</i>",
+    "rodada": "Rodada · 4 frases",
+    "instrPalco": "Uma frase real, fora de ordem. Toque nas palavras na ordem certa e confira.",
+    "ajudasHud": [
+      [
+        "dica",
+        "Dica3",
+        "Conta como dica: zera o combo"
+      ],
+      [
+        "ouvir",
+        "Ouvir",
+        "De graça"
+      ],
+      [
+        "resposta",
+        "Ver resposta1",
+        "Conta como dica: zera o combo"
+      ]
+    ],
+    "selo": true
+  },
+  "blitz": {
+    "titulo": "Duelo relâmpago (contra o tempo)",
+    "instr": "Sessenta segundos. Acerto rápido devolve tempo; erro tira 2 segundos.",
+    "treina": "reconhecer rápido: o significado puxa a palavra sem pensar.",
+    "passos": [
+      "Aparece o significado e quatro alternativas. Toque na palavra certa (ou use as teclas 1 a 4).",
+      "Acertar em até 1,5 s devolve 2 s ao relógio. Errar tira 2 s.",
+      "Oito acertos seguidos ligam o FEVER: tudo vale em dobro."
+    ],
+    "niveis": [
+      [
+        "facil",
+        "90 segundos e 3 alternativas"
+      ],
+      [
+        "medio",
+        "A regra normal do jogo"
+      ],
+      [
+        "dificil",
+        "45 segundos. Cada acerto vale 5 pontos a mais"
+      ]
+    ],
+    "ajudas": [
+      {
+        "nome": "Cortar 2",
+        "resto": " · 2 por rodada",
+        "txt": null,
+        "custo": "zera o combo"
+      },
+      {
+        "nome": "+10 s",
+        "resto": " · 2 por rodada",
+        "txt": "Devolve 10 segundos ao relógio.",
+        "custo": "de graça"
+      },
+      {
+        "nome": "Ver resposta",
+        "resto": " · 1 por rodada",
+        "txt": "Mostra a resposta por um instante. O acerto vale só o mínimo.",
+        "custo": "zera o combo"
+      }
+    ],
+    "paragrafos": [
+      "O nível vale só para este jogo. Travou? Depois de dois erros seguidos o jogo aponta uma ajuda. E o que você errar sai sozinho: não precisa apagar."
+    ],
+    "mini": "<span class=\"mm-raio\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-zap\" aria-hidden=\"true\"><path d=\"M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z\"></path></svg></span><span class=\"mm-coluna\"><span class=\"mm-tempo\"><i></i></span><span class=\"mm-linha-chips\"><i class=\"mm-chip ok\">sol</i><i class=\"mm-chip\">lua</i></span></span><b class=\"mm-combo\">×3</b>",
+    "rodada": "Rodada · 60 segundos",
+    "instrPalco": "Sessenta segundos. Acerto rápido devolve tempo; erro tira 2 segundos.",
+    "ajudasHud": [
+      [
+        "cortar",
+        "Cortar 22",
+        "Conta como dica: zera o combo"
+      ],
+      [
+        "tempo",
+        "+10 s2",
+        "De graça"
+      ],
+      [
+        "resposta",
+        "Ver resposta1",
+        "Conta como dica: zera o combo"
+      ]
+    ],
+    "selo": true
+  },
+  "karuta": {
+    "titulo": "Karuta: ouça e pegue a carta",
+    "instr": "O narrador diz o significado. Toque na palavra que ele descreve antes de o tempo acabar.",
+    "treina": "entender de ouvido e achar a palavra escrita.",
+    "passos": [
+      "O narrador fala o significado de uma das cartas da mesa.",
+      "Toque na carta certa antes de o relógio zerar (8 segundos por carta).",
+      "Tocou errado? A carta pisca em vermelho e você pode tentar outra."
+    ],
+    "niveis": [
+      [
+        "facil",
+        "4 cartas na mesa e 12 segundos por carta"
+      ],
+      [
+        "medio",
+        "A regra normal do jogo"
+      ],
+      [
+        "dificil",
+        "6 segundos por carta. Cada acerto vale 5 pontos a mais"
+      ]
+    ],
+    "ajudas": [
+      {
+        "nome": "Ouvir de novo",
+        "resto": "",
+        "txt": null,
+        "custo": "de graça"
+      },
+      {
+        "nome": "+10 s",
+        "resto": " · 2 por rodada",
+        "txt": "Devolve 10 segundos ao relógio.",
+        "custo": "de graça"
+      },
+      {
+        "nome": "Ver resposta",
+        "resto": " · 1 por rodada",
+        "txt": "Mostra a resposta por um instante. O acerto vale só o mínimo.",
+        "custo": "zera o combo"
+      }
+    ],
+    "paragrafos": [
+      "O nível vale só para este jogo. Travou? Depois de dois erros seguidos o jogo aponta uma ajuda. E o que você errar sai sozinho: não precisa apagar."
+    ],
+    "mini": "<span class=\"mm-som\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-volume2 lucide-volume-2\" aria-hidden=\"true\"><path d=\"M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z\"></path><path d=\"M16 9a5 5 0 0 1 0 6\"></path><path d=\"M19.364 18.364a9 9 0 0 0 0-12.728\"></path></svg></span><i class=\"mm-carta clara\">lua</i><i class=\"mm-carta clara pega\">sol</i><i class=\"mm-carta clara\">mar</i>",
+    "rodada": "Rodada · 6 cartas",
+    "instrPalco": "O narrador diz o significado. Toque na palavra que ele descreve antes de o tempo acabar.",
+    "ajudasHud": [
+      [
+        "ouvir",
+        "Ouvir de novo",
+        "De graça"
+      ],
+      [
+        "tempo",
+        "+10 s2",
+        "De graça"
+      ],
+      [
+        "resposta",
+        "Ver resposta1",
+        "Conta como dica: zera o combo"
+      ]
+    ],
+    "selo": true
+  },
+  "choseong": {
+    "titulo": "Choseong: consoantes à vista",
+    "instr": "As consoantes já estão na mesa. Complete as vogais.",
+    "treina": "a grafia das vogais, que é onde mais se erra.",
+    "passos": [
+      "A palavra aparece só com as consoantes; as vogais são caixas vazias.",
+      "Toque em A, E, I, O, U na ordem para preencher. O apagar desfaz a última.",
+      "Ao preencher a última caixa, a palavra é conferida sozinha. São 15 segundos por palavra."
+    ],
+    "niveis": [
+      [
+        "facil",
+        "A primeira vogal já vem aberta; 22 segundos"
+      ],
+      [
+        "medio",
+        "A regra normal do jogo"
+      ],
+      [
+        "dificil",
+        "11 segundos por palavra. Cada acerto vale 5 pontos a mais"
+      ]
+    ],
+    "ajudas": [
+      {
+        "nome": "Abrir uma vogal",
+        "resto": " · 2 por rodada",
+        "txt": null,
+        "custo": "zera o combo"
+      },
+      {
+        "nome": "+10 s",
+        "resto": " · 2 por rodada",
+        "txt": "Devolve 10 segundos ao relógio.",
+        "custo": "de graça"
+      },
+      {
+        "nome": "Ver resposta",
+        "resto": " · 1 por rodada",
+        "txt": "Mostra a resposta por um instante. O acerto vale só o mínimo.",
+        "custo": "zera o combo"
+      }
+    ],
+    "paragrafos": [
+      "O nível vale só para este jogo. Travou? Depois de dois erros seguidos o jogo aponta uma ajuda. E o que você errar sai sozinho: não precisa apagar."
+    ],
+    "mini": "<span class=\"mm-termo uma\"><i class=\"mm-l g\" style=\"--i:0\">C</i><i class=\"mm-l vogal\" style=\"--i:1\">A</i><i class=\"mm-l g\" style=\"--i:2\">S</i><i class=\"mm-l vogal\" style=\"--i:3\">A</i></span>",
+    "rodada": "Rodada · 6 palavras",
+    "instrPalco": "As consoantes já estão na mesa. Complete as vogais.",
+    "ajudasHud": [
+      [
+        "vogal",
+        "Abrir uma vogal2",
+        "Conta como dica: zera o combo"
+      ],
+      [
+        "tempo",
+        "+10 s2",
+        "De graça"
+      ],
+      [
+        "resposta",
+        "Ver resposta1",
+        "Conta como dica: zera o combo"
+      ]
+    ],
+    "selo": true
+  },
+  "tenis": {
+    "titulo": "Rali cronometrado",
+    "instr": "A bola vem com o significado. Escreva a palavra em inglês antes de ela cair: completou certo, a raquete devolve.",
+    "treina": "escrever a palavra de memória, sob pressão de tempo.",
+    "passos": [
+      "O adversário saca. A placa no alto diz o significado da palavra.",
+      "Escreva a palavra em inglês. Cada letra certa acende em verde; ao completar, a sua raquete devolve sozinha.",
+      "Cada devolução aumenta o rali e a bola seguinte vem mais rápida. Se ela cair, o ponto é do adversário e o rali zera."
+    ],
+    "niveis": [
+      [
+        "facil",
+        "Bola lenta (11 s) e a primeira letra já vem"
+      ],
+      [
+        "medio",
+        "A regra normal do jogo"
+      ],
+      [
+        "dificil",
+        "Bola rápida (6 s). Cada acerto vale 5 pontos a mais"
+      ]
+    ],
+    "ajudas": [
+      {
+        "nome": "Primeira letra",
+        "resto": " · 2 por rodada",
+        "txt": null,
+        "custo": "zera o combo"
+      },
+      {
+        "nome": "+10 s",
+        "resto": " · 2 por rodada",
+        "txt": "Devolve 10 segundos ao relógio.",
+        "custo": "de graça"
+      },
+      {
+        "nome": "Ver resposta",
+        "resto": " · 1 por rodada",
+        "txt": "Mostra a resposta por um instante. O acerto vale só o mínimo.",
+        "custo": "zera o combo"
+      }
+    ],
+    "paragrafos": [
+      "O nível vale só para este jogo. Travou? Depois de dois erros seguidos o jogo aponta uma ajuda. E o que você errar sai sozinho: não precisa apagar."
+    ],
+    "mini": "<span class=\"mq\"><i class=\"mq-chao\"></i><i class=\"mq-raq a\"></i><i class=\"mq-rede\"></i><i class=\"mq-bola\"></i><i class=\"mq-raq b\"></i><i class=\"mm-chip mq-chip\">word</i></span>",
+    "rodada": "Rodada · 8 bolas",
+    "instrPalco": "A bola vem com o significado. Escreva a palavra em inglês antes de ela cair: completou certo, a raquete devolve.",
+    "ajudasHud": [
+      [
+        "letra",
+        "Primeira letra2",
+        "Conta como dica: zera o combo"
+      ],
+      [
+        "tempo",
+        "+10 s2",
+        "De graça"
+      ],
+      [
+        "resposta",
+        "Ver resposta1",
+        "Conta como dica: zera o combo"
+      ]
+    ],
+    "selo": true
+  },
+  "koffer": {
+    "titulo": "Mala cumulativa de memória",
+    "instr": "A cada nível entra uma palavra. Reconstrua a mala na ordem em que ela foi feita.",
+    "treina": "a memória de curto prazo: guardar várias palavras em ordem.",
+    "passos": [
+      "A mala abre e uma palavra nova entra no próximo compartimento. Guarde a ordem.",
+      "A mala fecha. Toque nas etiquetas na ordem em que as palavras entraram.",
+      "Cada nível refeito ganha um adesivo de viagem e avança a rota. Cada erro custa uma vida; Espiar reabre a mala, uma vez por nível."
+    ],
+    "niveis": [
+      [
+        "facil",
+        "4 vidas e mais tempo para olhar a mala"
+      ],
+      [
+        "medio",
+        "A regra normal do jogo"
+      ],
+      [
+        "dificil",
+        "2 vidas, menos tempo e etiquetas sem tradução. Cada acerto vale 5 pontos a mais"
+      ]
+    ],
+    "ajudas": [
+      {
+        "nome": "Espiar",
+        "resto": "",
+        "txt": null,
+        "custo": "zera o combo"
+      }
+    ],
+    "paragrafos": [
+      "O nível vale só para este jogo. Travou? Depois de dois erros seguidos o jogo aponta uma ajuda. E o que você errar sai sozinho: não precisa apagar."
+    ],
+    "mini": "<span class=\"mk\"><i class=\"mk-alca\"></i><span class=\"mk-corpo\"><i class=\"mm-chip\">sol</i><i class=\"mm-chip\">mar</i><i class=\"mm-chip\">lua</i></span><i class=\"mk-tampa\"></i></span>",
+    "rodada": "Rodada · 5 níveis",
+    "instrPalco": "A cada nível entra uma palavra. Reconstrua a mala na ordem em que ela foi feita.",
+    "ajudasHud": [
+      [
+        "espiar",
+        "Espiar",
+        "Conta como dica: zera o combo"
+      ]
+    ],
+    "selo": true
+  },
+  "bao": {
+    "titulo": "Bao: semeie os pedaços",
+    "instr": "As covas trazem os pedaços da palavra fora de ordem. Semeie na ordem certa.",
+    "treina": "montar a palavra por pedaços, na ordem em que se escreve.",
+    "passos": [
+      "A pista diz o significado. A palavra está partida em pedaços, um em cada cova.",
+      "Toque nas covas na ordem que remonta a palavra.",
+      "São 3 erros por palavra. A Dica semeia o próximo pedaço, uma vez por palavra."
+    ],
+    "niveis": [
+      [
+        "facil",
+        "4 erros por palavra"
+      ],
+      [
+        "medio",
+        "A regra normal do jogo"
+      ],
+      [
+        "dificil",
+        "2 erros por palavra. Cada acerto vale 5 pontos a mais"
+      ]
+    ],
+    "ajudas": [
+      {
+        "nome": "Dica",
+        "resto": "",
+        "txt": null,
+        "custo": "zera o combo"
+      },
+      {
+        "nome": "Ver resposta",
+        "resto": " · 1 por rodada",
+        "txt": "Mostra a resposta por um instante. O acerto vale só o mínimo.",
+        "custo": "zera o combo"
+      }
+    ],
+    "paragrafos": [
+      "O nível vale só para este jogo. Travou? Depois de dois erros seguidos o jogo aponta uma ajuda. E o que você errar sai sozinho: não precisa apagar."
+    ],
+    "mini": "<span class=\"mm-bao\"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><b class=\"mm-semente\"></b></span>",
+    "rodada": "Rodada · 4 palavras",
+    "instrPalco": "As covas trazem os pedaços da palavra fora de ordem. Semeie na ordem certa.",
+    "ajudasHud": [
+      [
+        "dica",
+        "Dica",
+        "Conta como dica: zera o combo"
+      ],
+      [
+        "resposta",
+        "Ver resposta1",
+        "Conta como dica: zera o combo"
+      ]
+    ],
+    "selo": true
+  },
+  "vitendawili": {
+    "titulo": "Vitendawili: a frase com lacuna",
+    "instr": "O enigma é uma frase sua com a palavra apagada. Qual palavra a fecha?",
+    "treina": "usar a palavra no contexto de uma frase sua.",
+    "passos": [
+      "A frase aparece com um traço no lugar de uma palavra.",
+      "Escolha, entre as quatro, a palavra que fecha a frase.",
+      "Errou? A alternativa é riscada e você tenta de novo. Ouvir não custa nada."
+    ],
+    "niveis": [
+      [
+        "facil",
+        "3 alternativas e a tradução da frase"
+      ],
+      [
+        "medio",
+        "A regra normal do jogo"
+      ],
+      [
+        "dificil",
+        "Uma tentativa só por enigma. Cada acerto vale 5 pontos a mais"
+      ]
+    ],
+    "ajudas": [
+      {
+        "nome": "Ouvir",
+        "resto": "",
+        "txt": null,
+        "custo": "de graça"
+      },
+      {
+        "nome": "Ver resposta",
+        "resto": " · 1 por rodada",
+        "txt": "Mostra a resposta por um instante. O acerto vale só o mínimo.",
+        "custo": "zera o combo"
+      }
+    ],
+    "paragrafos": [
+      "O nível vale só para este jogo. Travou? Depois de dois erros seguidos o jogo aponta uma ajuda. E o que você errar sai sozinho: não precisa apagar."
+    ],
+    "mini": "<span class=\"mm-frase\">We <i class=\"mm-lacuna\"><i class=\"mm-chip ok\">ship</i></i> it today</span>",
+    "rodada": "Rodada · 5 enigmas",
+    "instrPalco": "O enigma é uma frase sua com a palavra apagada. Qual palavra a fecha?",
+    "ajudasHud": [
+      [
+        "ouvir",
+        "Ouvir",
+        "De graça"
+      ],
+      [
+        "resposta",
+        "Ver resposta1",
+        "Conta como dica: zera o combo"
+      ]
+    ],
+    "selo": true
+  },
+  "shiritori": {
+    "titulo": "Shiritori: encadeie pela última letra",
+    "instr": "Cada palavra começa com a última letra da anterior.",
+    "treina": "a primeira e a última letra de cada palavra.",
+    "passos": [
+      "A palavra na ponta da corrente tem a última letra em destaque.",
+      "Escolha, entre as três, a palavra que começa com essa letra.",
+      "São 15 segundos por elo. Ver a letra não custa nada."
+    ],
+    "niveis": [
+      [
+        "facil",
+        "A letra exigida já aparece; 22 segundos"
+      ],
+      [
+        "medio",
+        "A regra normal do jogo"
+      ],
+      [
+        "dificil",
+        "11 segundos por elo. Cada acerto vale 5 pontos a mais"
+      ]
+    ],
+    "ajudas": [
+      {
+        "nome": "Ver a letra",
+        "resto": "",
+        "txt": null,
+        "custo": "de graça"
+      },
+      {
+        "nome": "+10 s",
+        "resto": " · 2 por rodada",
+        "txt": "Devolve 10 segundos ao relógio.",
+        "custo": "de graça"
+      },
+      {
+        "nome": "Ver resposta",
+        "resto": " · 1 por rodada",
+        "txt": "Mostra a resposta por um instante. O acerto vale só o mínimo.",
+        "custo": "zera o combo"
+      }
+    ],
+    "paragrafos": [
+      "O nível vale só para este jogo. Travou? Depois de dois erros seguidos o jogo aponta uma ajuda. E o que você errar sai sozinho: não precisa apagar."
+    ],
+    "mini": "<span class=\"mm-elo\">cas<b>a</b></span><i class=\"mm-seta\"></i><span class=\"mm-elo\" style=\"--i:1\"><b>a</b>mo<b>r</b></span><i class=\"mm-seta\"></i><span class=\"mm-elo\" style=\"--i:2\"><b>r</b>io</span>",
+    "rodada": "Rodada · 6 elos",
+    "instrPalco": "Cada palavra começa com a última letra da anterior.",
+    "ajudasHud": [
+      [
+        "letra",
+        "Ver a letra",
+        "De graça"
+      ],
+      [
+        "tempo",
+        "+10 s2",
+        "De graça"
+      ],
+      [
+        "resposta",
+        "Ver resposta1",
+        "Conta como dica: zera o combo"
+      ]
+    ],
+    "selo": true
+  },
+  "cadavre": {
+    "titulo": "Cadavre exquis: produção livre",
+    "instr": "Uma frase sua com as quatro palavras. Não conta para a revisão.",
+    "treina": "produção livre: usar as palavras numa frase inventada por você.",
+    "passos": [
+      "Você recebe quatro palavras da leva.",
+      "Escreva uma única frase, em inglês, que use as quatro. Pode ser absurda.",
+      "Ao conferir, as palavras usadas ficam verdes. Esta rodada não agenda revisão."
+    ],
+    "niveis": [],
+    "ajudas": [],
+    "paragrafos": [
+      "Este jogo não tem níveis: é produção livre, sem certo ou errado contra o relógio.",
+      "O nível vale só para este jogo. Travou? Depois de dois erros seguidos o jogo aponta uma ajuda. E o que você errar sai sozinho: não precisa apagar."
+    ],
+    "mini": "<span class=\"mm-coluna\"><span class=\"mm-linha-chips\"><i class=\"mm-chip\">sol</i><i class=\"mm-chip\">mar</i><i class=\"mm-chip\">rio</i><i class=\"mm-chip\">lua</i></span><span class=\"mm-escrita\"><i></i></span></span>",
+    "rodada": "Rodada · 4 palavras",
+    "instrPalco": "Uma frase sua com as quatro palavras. Não conta para a revisão.",
+    "ajudasHud": [],
+    "selo": false
+  },
+  "taboo": {
+    "titulo": "Tabu: a definição sem os termos óbvios",
+    "instr": "A definição vem sem os termos mais óbvios. Descubra a palavra.",
+    "treina": "chegar à palavra pela definição, sem as pistas fáceis.",
+    "passos": [
+      "A definição aparece com os termos mais óbvios riscados.",
+      "Escolha a palavra entre as quatro. É uma tentativa só por carta, com 30 segundos.",
+      "Liberar 1 devolve uma das palavras riscadas (sobra sempre pelo menos uma)."
+    ],
+    "niveis": [
+      [
+        "facil",
+        "Uma palavra proibida a menos; 45 segundos"
+      ],
+      [
+        "medio",
+        "A regra normal do jogo"
+      ],
+      [
+        "dificil",
+        "22 segundos por carta. Cada acerto vale 5 pontos a mais"
+      ]
+    ],
+    "ajudas": [
+      {
+        "nome": "Liberar 1",
+        "resto": "",
+        "txt": null,
+        "custo": "zera o combo"
+      },
+      {
+        "nome": "+10 s",
+        "resto": " · 2 por rodada",
+        "txt": "Devolve 10 segundos ao relógio.",
+        "custo": "de graça"
+      },
+      {
+        "nome": "Ver resposta",
+        "resto": " · 1 por rodada",
+        "txt": "Mostra a resposta por um instante. O acerto vale só o mínimo.",
+        "custo": "zera o combo"
+      }
+    ],
+    "paragrafos": [
+      "O nível vale só para este jogo. Travou? Depois de dois erros seguidos o jogo aponta uma ajuda. E o que você errar sai sozinho: não precisa apagar."
+    ],
+    "mini": "<span class=\"mm-tabu\"><s>casa</s><s>lar</s><s>morar</s><b>?</b></span>",
+    "rodada": "Rodada · 5 cartas",
+    "instrPalco": "A definição vem sem os termos mais óbvios. Descubra a palavra.",
+    "ajudasHud": [
+      [
+        "liberar",
+        "Liberar 1",
+        "Conta como dica: zera o combo"
+      ],
+      [
+        "tempo",
+        "+10 s2",
+        "De graça"
+      ],
+      [
+        "resposta",
+        "Ver resposta1",
+        "Conta como dica: zera o combo"
+      ]
+    ],
+    "selo": true
+  },
+  "karaoke": {
+    "titulo": "Karaokê da fala",
+    "instr": "Ouça a fala, repita em voz alta e receba a nota, palavra por palavra.",
+    "treina": "pronúncia e ritmo: repetir a fala em voz alta.",
+    "passos": [
+      "Toque em Ouvir: as palavras acendem no ritmo da voz. Devagar toca a 60% da velocidade.",
+      "Toque em Falar agora e repita a frase.",
+      "A nota mostra quais palavras saíram bem e quais escaparam. Dá para regravar."
+    ],
+    "niveis": [],
+    "ajudas": [],
+    "paragrafos": [
+      "Este jogo não tem níveis: é produção livre, sem certo ou errado contra o relógio.",
+      "O nível vale só para este jogo. Travou? Depois de dois erros seguidos o jogo aponta uma ajuda. E o que você errar sai sozinho: não precisa apagar."
+    ],
+    "mini": "<span class=\"mm-som grande\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-mic\" aria-hidden=\"true\"><path d=\"M12 19v3\"></path><path d=\"M19 10v2a7 7 0 0 1-14 0v-2\"></path><rect x=\"9\" y=\"2\" width=\"6\" height=\"13\" rx=\"3\"></rect></svg></span><span class=\"mm-eq\"><i style=\"--i:3\"></i><i style=\"--i:0\"></i><i style=\"--i:3\"></i><i style=\"--i:4\"></i><i style=\"--i:4\"></i><i style=\"--i:1\"></i><i style=\"--i:3\"></i></span><b class=\"mm-nota\">92</b>",
+    "rodada": "Rodada · 4 falas",
+    "instrPalco": "Ouça a fala, repita em voz alta e receba a nota, palavra por palavra.",
+    "ajudasHud": [],
+    "selo": false
+  },
+  "escuta": {
+    "titulo": "Qual foi a fala? (escuta)",
+    "instr": "Ouça quantas vezes quiser, isso não tira ponto. Depois escolha o que foi dito.",
+    "treina": "o ouvido: separar palavras de som parecido.",
+    "passos": [
+      "A fala toca sozinha. Dá para ouvir de novo e também devagar.",
+      "As alternativas são parecidas: muda uma palavra de som próximo.",
+      "Toque na fala que você ouviu. A tradução aparece depois da resposta."
+    ],
+    "niveis": [
+      [
+        "facil",
+        "3 alternativas"
+      ],
+      [
+        "medio",
+        "A regra normal do jogo"
+      ],
+      [
+        "dificil",
+        "Sem o botão de ouvir devagar. Cada acerto vale 5 pontos a mais"
+      ]
+    ],
+    "ajudas": [
+      {
+        "nome": "Ver resposta",
+        "resto": " · 1 por rodada",
+        "txt": "Mostra a resposta por um instante. O acerto vale só o mínimo.",
+        "custo": "zera o combo"
+      }
+    ],
+    "paragrafos": [
+      "O nível vale só para este jogo. Travou? Depois de dois erros seguidos o jogo aponta uma ajuda. E o que você errar sai sozinho: não precisa apagar."
+    ],
+    "mini": "<span class=\"mm-som\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-volume2 lucide-volume-2\" aria-hidden=\"true\"><path d=\"M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z\"></path><path d=\"M16 9a5 5 0 0 1 0 6\"></path><path d=\"M19.364 18.364a9 9 0 0 0 0-12.728\"></path></svg></span><i class=\"mm-chip ok pulsa\">ship</i><i class=\"mm-chip\">sheep</i>",
+    "rodada": "Rodada · 4 falas",
+    "instrPalco": "Ouça quantas vezes quiser, isso não tira ponto. Depois escolha o que foi dito.",
+    "ajudasHud": [
+      [
+        "resposta",
+        "Ver resposta1",
+        "Conta como dica: zera o combo"
+      ]
+    ],
+    "selo": true
+  },
+  "ditado": {
+    "titulo": "Ditado",
+    "instr": "Escute com atenção e escreva o que ouviu. Acento e pontuação não contam.",
+    "treina": "ouvir e escrever: do som para a grafia.",
+    "passos": [
+      "A fala toca sozinha. Ouça de novo ou devagar quantas vezes quiser.",
+      "Escreva o que ouviu e toque em Conferir (ou Enter).",
+      "A correção mostra palavra por palavra. Com 80% ou mais, conta como acerto."
+    ],
+    "niveis": [
+      [
+        "facil",
+        "Vale com 70% e há segunda chance"
+      ],
+      [
+        "medio",
+        "A regra normal do jogo"
+      ],
+      [
+        "dificil",
+        "Precisa de 90%, sem segunda chance. Cada acerto vale 5 pontos a mais"
+      ]
+    ],
+    "ajudas": [
+      {
+        "nome": "Dica",
+        "resto": " · 3 por rodada",
+        "txt": null,
+        "custo": "zera o combo"
+      },
+      {
+        "nome": "Ver resposta",
+        "resto": " · 1 por rodada",
+        "txt": "Mostra a resposta por um instante. O acerto vale só o mínimo.",
+        "custo": "zera o combo"
+      }
+    ],
+    "paragrafos": [
+      "O nível vale só para este jogo. Travou? Depois de dois erros seguidos o jogo aponta uma ajuda. E o que você errar sai sozinho: não precisa apagar."
+    ],
+    "mini": "<span class=\"mm-eq\"><i style=\"--i:3\"></i><i style=\"--i:3\"></i><i style=\"--i:3\"></i><i style=\"--i:2\"></i></span><span class=\"mm-termo uma dita\"><i class=\"mm-l g\" style=\"--i:0\">C</i><i class=\"mm-l g\" style=\"--i:1\">A</i><i class=\"mm-l g\" style=\"--i:2\">S</i><i class=\"mm-l g\" style=\"--i:3\">A</i><i class=\"mm-cursor\"></i></span>",
+    "rodada": "Rodada · 4 falas",
+    "instrPalco": "Escute com atenção e escreva o que ouviu. Acento e pontuação não contam.",
+    "ajudasHud": [
+      [
+        "palavra",
+        "Dica3",
+        "Conta como dica: zera o combo"
+      ],
+      [
+        "resposta",
+        "Ver resposta1",
+        "Conta como dica: zera o combo"
+      ]
+    ],
+    "selo": true
+  },
+  "conectores": {
+    "titulo": "Caça-conectores",
+    "instr": "Marque as palavras que amarram as ideias, as que mudam o rumo da frase.",
+    "treina": "as palavras que ligam as ideias (but, because, so…).",
+    "passos": [
+      "Cada palavra da frase é um botão. Toque nas que ligam uma ideia à outra (but, because, so…).",
+      "Pode marcar e desmarcar à vontade antes de conferir.",
+      "A nota pesa igual deixar passar e marcar à toa. Com 70 ou mais, conta como acerto."
+    ],
+    "niveis": [
+      [
+        "facil",
+        "A tela diz quantos conectores procurar"
+      ],
+      [
+        "medio",
+        "A regra normal do jogo"
+      ],
+      [
+        "dificil",
+        "Precisa de 80 pontos de precisão. Cada acerto vale 5 pontos a mais"
+      ]
+    ],
+    "ajudas": [
+      {
+        "nome": "Ver resposta",
+        "resto": " · 1 por rodada",
+        "txt": "Mostra a resposta por um instante. O acerto vale só o mínimo.",
+        "custo": "zera o combo"
+      }
+    ],
+    "paragrafos": [
+      "O nível vale só para este jogo. Travou? Depois de dois erros seguidos o jogo aponta uma ajuda. E o que você errar sai sozinho: não precisa apagar."
+    ],
+    "mini": "<span class=\"mm-frase\">We ship <i class=\"mm-chip ok pulsa\">but</i> later</span>",
+    "rodada": "Rodada · 4 frases",
+    "instrPalco": "Marque as palavras que amarram as ideias, as que mudam o rumo da frase.",
+    "ajudasHud": [
+      [
+        "resposta",
+        "Ver resposta1",
+        "Conta como dica: zera o combo"
+      ]
+    ],
+    "selo": true
+  }
+}

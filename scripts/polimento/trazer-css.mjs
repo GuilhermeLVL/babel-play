@@ -37,11 +37,21 @@ const ARQUIVOS = {
     { de: 252, ate: 314, motivo: 'molduras de aparelho do protótipo' },
   ],
   /* Dos arquivos de TELAS vem, por enquanto, só o que é da casca. O resto entra com cada tela (bloco D). */
+  'telas.css': [
+    { de: 1, ate: 36, adiado: 'bloco D: Capturar ao vivo, folhas da frase e da palavra' },
+    { de: 44, ate: 129, adiado: 'bloco D: legendas flutuantes, oferta, planos' },
+    { de: 131, ate: Infinity, adiado: 'bloco D: planos e nuance' },
+  ],
   'telas2.css': [
     { de: 1, ate: 248, adiado: 'bloco D: Intérprete, Personalizar, Planos, Ajuda' },
     { de: 273, ate: Infinity, adiado: 'bloco D: Personalizar e Temporada na janela estreita' },
   ],
   'telas3.css': [{ de: 7, ate: Infinity, adiado: 'bloco D: Sessão, trilha da temporada e acertos' }],
+  /* Os jogos e as miniaturas vêm inteiros: as classes são só deles (`pj-`, `rl-`, `ml-`, `mm-`, `px-mini`). */
+  'minis.css': [],
+  'jogos.css': [],
+  'jogos3.css': [],
+  'jogos4.css': [],
 };
 
 mkdirSync(destino, { recursive: true });

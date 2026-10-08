@@ -3,8 +3,10 @@ import { chaveDoTermo, MINIGAMES, scoreRound } from '@core';
 import { Delete, Lightbulb } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { ajudasDoJogo, segundosDoJogo } from '../../../core/minigames/regras';
 import { celebrar } from '../../../lib/comemoracao';
 import { t } from '../../../lib/i18n';
+import { useNivelDoJogo } from '../../../lib/jogos/nivelDoJogo';
 import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
 import { play } from '../../../lib/soundFx';
@@ -27,8 +29,6 @@ interface ChoseongGameProps {
 }
 
 const VOGAIS = ['A', 'E', 'I', 'O', 'U'];
-/** Segundos por palavra, por perfil. */
-const SEGUNDOS: Record<AgeProfileType, number> = { kids: 18, pro: 15, senior: 22 };
 
 interface Enigma {
   item: MinigameItem;
@@ -58,9 +58,11 @@ export default function ChoseongGame({ items, ageProfile, onFinish, onExit }: Ch
   const [letras, setLetras] = useState<string[]>([]);
   /* O relógio declara de que palavra ele é: sem isso o zero da palavra anterior sobrevive um
      render à troca e dá a seguinte por perdida na hora, com um outcome de ms zero. */
-  const [relogio, setRelogio] = useState({ palavra: 0, segundos: SEGUNDOS[ageProfile] });
-  const tempo = relogio.palavra === indice ? relogio.segundos : SEGUNDOS[ageProfile];
-  const [dicasRestantes, setDicasRestantes] = useState(2);
+  const nivel = useNivelDoJogo('choseong');
+  const segundos = segundosDoJogo('choseong', ageProfile, nivel) ?? 15;
+  const [relogio, setRelogio] = useState({ palavra: 0, segundos: segundos });
+  const tempo = relogio.palavra === indice ? relogio.segundos : segundos;
+  const [dicasRestantes, setDicasRestantes] = useState(() => ajudasDoJogo('choseong', 'vogal', nivel));
   const [acabou, setAcabou] = useState(false);
   /** O tempo acabou nesta palavra: ela fica à vista antes da próxima (QA dos jogos, 2026-09-26). */
   const [revelada, setRevelada] = useState(false);
@@ -130,8 +132,8 @@ export default function ChoseongGame({ items, ageProfile, onFinish, onExit }: Ch
     setRevelada(false);
     setErrouAgora(false);
     setLetras(enigma.alvo.split('').map((c, i) => (enigma.ocultas.has(i) ? '' : c)));
-    setRelogio({ palavra: indice, segundos: SEGUNDOS[ageProfile] });
-  }, [indice, enigma, ageProfile]);
+    setRelogio({ palavra: indice, segundos });
+  }, [indice, enigma, segundos]);
 
   useEffect(() => {
     if (acabou || !enigma || respondidoRef.current) return;
@@ -248,7 +250,7 @@ export default function ChoseongGame({ items, ageProfile, onFinish, onExit }: Ch
         acertos={placar.acertos}
         rotulo={`Palavra ${indice + 1} de ${enigmas.length}`}
         tempo={tempo}
-        progresso={tempo / SEGUNDOS[ageProfile]}
+        progresso={tempo / segundos}
         pouco={tempo <= 3}
         ajudas={<BotaoDeAjuda icone={Lightbulb} rotulo="Abrir uma vogal" resta={dicasRestantes} onClick={usarDica} />}
       />

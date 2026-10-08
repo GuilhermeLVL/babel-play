@@ -4,8 +4,10 @@ import { AlertTriangle, Lightbulb } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { mascararResposta } from '../../../core/learning/pistaDeJogo';
+import { segundosDoJogo } from '../../../core/minigames/regras';
 import { celebrar } from '../../../lib/comemoracao';
 import { t } from '../../../lib/i18n';
+import { useNivelDoJogo } from '../../../lib/jogos/nivelDoJogo';
 import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
 import { useAtalhosDasAlternativas } from '../casca/atalhos';
@@ -32,7 +34,6 @@ interface TabooGameProps {
   onExit: () => void;
 }
 
-const SEGUNDOS: Record<AgeProfileType, number> = { kids: 35, pro: 30, senior: 45 };
 /** Quantos termos são riscados por carta. Mais que isto e não sobra definição para ler. */
 const PROIBIDAS_POR_CARTA = 3;
 
@@ -76,7 +77,9 @@ export default function TabooGame({ items, ageProfile, onFinish, onExit }: Taboo
 
   const [idx, setIdx] = useState(0);
   const [liberadas, setLiberadas] = useState<string[]>([]);
-  const [restante, setRestante] = useState(SEGUNDOS[ageProfile]);
+  const nivel = useNivelDoJogo('taboo');
+  const segundos = segundosDoJogo('taboo', ageProfile, nivel) ?? 30;
+  const [restante, setRestante] = useState(segundos);
   const [resultado, setResultado] = useState<RoundReport | null>(null);
   /**
    * A carta respondida (ou vencida pelo tempo) fica na tela um instante com a certa marcada — antes
@@ -120,7 +123,7 @@ export default function TabooGame({ items, ageProfile, onFinish, onExit }: Taboo
     setIdx(idx + 1);
     setLiberadas([]);
     setRevelando(null);
-    setRestante(SEGUNDOS[ageProfile]);
+    setRestante(segundos);
     inicioCartaRef.current = Date.now();
   };
 
@@ -201,7 +204,7 @@ export default function TabooGame({ items, ageProfile, onFinish, onExit }: Taboo
         acertos={placar.acertos}
         rotulo={`Carta ${idx + 1} de ${cartas.length}`}
         tempo={restante}
-        progresso={restante / SEGUNDOS[ageProfile]}
+        progresso={restante / segundos}
         pouco={restante <= 5}
         ajudas={
           <BotaoDeAjuda

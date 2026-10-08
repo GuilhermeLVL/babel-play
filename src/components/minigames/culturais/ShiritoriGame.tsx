@@ -3,9 +3,11 @@ import { scoreRound } from '@core';
 import { ArrowRight, Lightbulb, Link2, Volume2 } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
+import { segundosDoJogo } from '../../../core/minigames/regras';
 import { montarCorrente } from '../../../core/minigames/shiritori';
 import { celebrar } from '../../../lib/comemoracao';
 import { t } from '../../../lib/i18n';
+import { useNivelDoJogo } from '../../../lib/jogos/nivelDoJogo';
 import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
 import { botaoDaAlternativa, useAtalhosDasAlternativas } from '../casca/atalhos';
@@ -29,9 +31,6 @@ interface ShiritoriGameProps {
   onExit: () => void;
 }
 
-/** Segundos por elo. O sênior tem mais tempo para ler a corrente inteira antes de escolher. */
-const SEGUNDOS: Record<AgeProfileType, number> = { kids: 20, pro: 15, senior: 25 };
-
 export default function ShiritoriGame({ items, ageProfile, onFinish, onExit }: ShiritoriGameProps) {
   /** A casca diz quando a rodada anda (fora da contagem 3-2-1 e da pausa); o placar do HUD sai dos resultados. */
   const { ativo } = useRodada();
@@ -44,7 +43,9 @@ export default function ShiritoriGame({ items, ageProfile, onFinish, onExit }: S
   const [erradas, setErradas] = useState<string[]>([]);
   const [tentativas, setTentativas] = useState(1);
   const [letraVisivel, setLetraVisivel] = useState(false);
-  const [restante, setRestante] = useState(SEGUNDOS[ageProfile]);
+  const nivel = useNivelDoJogo('shiritori');
+  const segundos = segundosDoJogo('shiritori', ageProfile, nivel) ?? 15;
+  const [restante, setRestante] = useState(segundos);
   const [resultado, setResultado] = useState<RoundReport | null>(null);
   /** O tempo deste elo acabou: o elo certo aparece antes do próximo (QA dos jogos, 2026-09-26). */
   const [revelado, setRevelado] = useState<string | null>(null);
@@ -88,7 +89,7 @@ export default function ShiritoriGame({ items, ageProfile, onFinish, onExit }: S
     setTentativas(1);
     setLetraVisivel(false);
     setRevelado(null);
-    setRestante(SEGUNDOS[ageProfile]);
+    setRestante(segundos);
     inicioPassoRef.current = Date.now();
     return placarNovo;
   };
@@ -141,7 +142,7 @@ export default function ShiritoriGame({ items, ageProfile, onFinish, onExit }: S
         acertos={placar.acertos}
         rotulo={`Elo ${idx + 1} de ${corrente.passos.length}`}
         tempo={restante}
-        progresso={restante / SEGUNDOS[ageProfile]}
+        progresso={restante / segundos}
         pouco={restante <= 5}
         ajudas={
           <BotaoDeAjuda

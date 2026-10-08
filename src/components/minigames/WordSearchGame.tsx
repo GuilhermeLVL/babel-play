@@ -3,8 +3,10 @@ import { buildGrid, cellsBetween, letrasNaGrade, matchSelection, scoreRound, sho
 import { Check, Eraser, Eye, Highlighter, Lightbulb, Radar } from 'lucide-react';
 import React, { useMemo, useRef, useState } from 'react';
 
+import { ajudasDoJogo } from '../../core/minigames/regras';
 import { celebrar } from '../../lib/comemoracao';
 import { t, tp } from '../../lib/i18n';
+import { useNivelDoJogo } from '../../lib/jogos/nivelDoJogo';
 import { multiplicador, pontosDoElemento } from '../../lib/juice';
 import type { AgeProfileType } from '../../lib/profile';
 import { useRodada } from './casca/CascaDaRodada';
@@ -41,7 +43,8 @@ export default function WordSearchGame({ items, ageProfile, onFinish }: WordSear
   const [dicaAcesa, setDicaAcesa] = useState<Celula | null>(null);
   /** As duas pontas que o radar está fazendo pulsar, e a direção a anunciar. */
   const [pontas, setPontas] = useState<Celula[]>([]);
-  const [radaresRestantes, setRadaresRestantes] = useState(3);
+  const nivel = useNivelDoJogo('wordsearch');
+  const [radaresRestantes, setRadaresRestantes] = useState(() => ajudasDoJogo('wordsearch', 'radar', nivel));
   const [direcaoDica, setDirecaoDica] = useState<string>('');
   /** O que o campo de destaque tem digitado. Só letras entram (ver `letrasDestacadas`). */
   const [destaque, setDestaque] = useState('');

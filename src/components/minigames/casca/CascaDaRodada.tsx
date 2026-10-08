@@ -12,16 +12,19 @@ import {
   useState,
 } from 'react';
 
+import { jogoTemNiveis } from '../../../core/minigames/regras';
 import { definirJogoEmCurso } from '../../../lib/comemoracao';
 import { perfilDoDispositivo } from '../../../lib/dispositivo/perfil';
 import { recursosDoAparelho } from '../../../lib/dispositivo/recursos';
 import { useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
 import { numero, t } from '../../../lib/i18n';
+import { useNivelDoJogo } from '../../../lib/jogos/nivelDoJogo';
 import { contagem321, entradaDeCamera } from '../../../lib/juice';
 import type { AgeProfileType } from '../../../lib/profile';
 import { CabecalhoDeTela, IconeEmBloco, Tela } from '../../ui';
 import { InterruptorDoQuest } from '../../views/play/quest/pecasDoQuest';
 import ComoSeJoga from '../ComoSeJoga';
+import SeletorDeNivel, { nomeDoNivel } from './SeletorDeNivel';
 
 /**
  * A CASCA COMUM DA RODADA — a moldura que TODOS os jogos vestem (`T.jogo` do protótipo aprovado).
@@ -103,6 +106,8 @@ export default function CascaDaRodada({
   children,
 }: CascaDaRodadaProps) {
   const palcoRef = useRef<HTMLElement | null>(null);
+  /* O nível desta rodada (Fácil, Médio, Difícil): aparece no cabeçalho quando não é o de sempre. */
+  const nivel = useNivelDoJogo(jogo);
   const placar = useRef({ pontos: 0, acertos: 0 });
   const [pronto, setPronto] = useState(false);
   const [passo, setPasso] = useState<Passo>(null);
@@ -162,7 +167,7 @@ export default function CascaDaRodada({
       <Tela largura="larga">
         <CabecalhoDeTela
           voltar={{ rotulo: 'Jogar', aoClicar: () => setPasso('sair') }}
-          sobrancelha={`Rodada · ${total} ${unidade}`}
+          sobrancelha={`Rodada · ${total} ${unidade}${nivel !== 'medio' && jogoTemNiveis(jogo) ? ` · ${nomeDoNivel(nivel)}` : ''}`}
           icone={Gamepad2}
           titulo={titulo}
           acoes={
@@ -191,6 +196,7 @@ export default function CascaDaRodada({
 
       {passo && (
         <DialogoDePausa
+          jogo={jogo}
           passo={passo}
           pausaComP={pausaComP}
           som={som}
@@ -231,6 +237,7 @@ export default function CascaDaRodada({
  * `showModal()` prende o foco e deixa o fundo inerte; Esc fecha e volta ao jogo.
  */
 function DialogoDePausa({
+  jogo,
   passo,
   pausaComP,
   som,
@@ -243,6 +250,7 @@ function DialogoDePausa({
   aoVoltarAoMenu,
   aoSair,
 }: {
+  jogo: MinigameId;
   passo: 'menu' | 'sair';
   pausaComP: boolean;
   som?: { ligado: boolean; alternar: () => void };
@@ -309,6 +317,7 @@ function DialogoDePausa({
               <button type="button" className="q-ctl bloco" onClick={aoComoSeJoga}>
                 <CircleHelp aria-hidden /> {t('Como se joga')}
               </button>
+              <SeletorDeNivel jogo={jogo} aoTrocar={aoRecomecar} />
               {som && (
                 <div className="q-ajuste">
                   <div>
@@ -392,6 +401,7 @@ function DialogoDePausa({
             <button type="button" className="btn btn-outline bloco" onClick={aoComoSeJoga}>
               <CircleHelp aria-hidden /> Como se joga
             </button>
+            <SeletorDeNivel jogo={jogo} aoTrocar={aoRecomecar} />
             {som && (
               <div className="op-linha" style={{ padding: '6px 4px' }}>
                 <b>

@@ -5,7 +5,9 @@ import { scoreRound } from '@core';
 import { Eye } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
+import { ajudasDoJogo } from '../../core/minigames/regras';
 import { celebrar } from '../../lib/comemoracao';
+import { useNivelDoJogo } from '../../lib/jogos/nivelDoJogo';
 import { multiplicador, pontosDoElemento } from '../../lib/juice';
 import { direcaoDoTexto } from '../../lib/languages';
 import { classeDoCartao, type EstadoDoCartao, lerPeleDeCartao } from '../../lib/pelesDeCartao';
@@ -78,7 +80,8 @@ export default function MemoryGame({ items, ageProfile: _ageProfile, onFinish, e
   const mesaRef = useRef<HTMLDivElement | null>(null);
 
   const total = items.length;
-  const ESPIADAS = 2; // duas por rodada: ajuda quem travou, sem virar o jogo inteiro
+  const nivel = useNivelDoJogo('memory');
+  const ESPIADAS = ajudasDoJogo('memory', 'espiar', nivel); // duas por rodada no Médio: ajuda quem travou, sem virar o jogo inteiro
 
   // Rodada terminada: celebra com confetes 3D e monta o relatório uma única vez.
   const jaFinalizouRef = useRef(false);

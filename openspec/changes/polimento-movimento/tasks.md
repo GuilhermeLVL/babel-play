@@ -42,8 +42,12 @@ Fonte de cada item: o painel "Auditoria" de `docs/prototipos/polimento-movimento
 
 ## 2. Jogar sem frustração
 
-- [ ] 2.1 Tabela de regras por jogo e por nível em `src/core/minigames/` (o Médio não muda nada)
-- [ ] 2.2 Nível por jogo, guardado no aparelho; selo no cabeçalho da rodada
+- [x] 2.1 Tabela de regras por jogo e por nível: `src/core/minigames/regras.ts` (tempo, vidas, tempo à
+      vista, ajudas), lida por dez jogos; o Médio são os números de sempre (`tests/regrasDosJogos.test.ts`)
+- [x] 2.2 Nível por jogo, guardado no aparelho (`src/lib/jogos/nivelDoJogo.ts`); escolhido na pausa
+      (`casca/SeletorDeNivel.tsx`), e trocar recomeça a rodada; o cabeçalho diz o nível quando não é o
+      Médio. Conferido no app rodando (Karuta: 8 s no Médio, 12 s no Fácil).
+      Falta: o que muda além dos números (primeira letra dada, menos alternativas), jogo a jogo
 - [ ] 2.3 Ajudas gerais: "+10 s" (jogos com relógio) e "Ver resposta" (`hinted`)
 - [ ] 2.4 Depois de dois erros seguidos, a ajuda disponível pulsa
 - [ ] 2.5 Explicação em três telas na primeira partida e pelo botão "Como se joga"; a rodada pausa

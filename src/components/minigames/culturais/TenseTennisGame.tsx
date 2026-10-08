@@ -3,9 +3,11 @@ import { MINIGAMES, scoreRound } from '@core';
 import { Lightbulb } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
+import { ajudasDoJogo, segundosDoJogo } from '../../../core/minigames/regras';
 import { conferirResposta } from '../../../core/minigames/resposta';
 import { celebrar } from '../../../lib/comemoracao';
 import { t } from '../../../lib/i18n';
+import { useNivelDoJogo } from '../../../lib/jogos/nivelDoJogo';
 import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
 import { play } from '../../../lib/soundFx';
@@ -30,8 +32,6 @@ interface TenseTennisGameProps {
   onExit: () => void;
 }
 
-/** Segundos da PRIMEIRA devolução, por perfil. */
-const SAQUE: Record<AgeProfileType, number> = { kids: 8, pro: 6, senior: 9 };
 /** No Meta Quest o saque vale três vezes mais: lá se digita apontando no teclado do sistema. */
 const SAQUE_NO_QUEST = 3;
 /** O rali encurta um segundo por devolução certa, mas nunca abaixo da metade do saque. */
@@ -53,7 +53,8 @@ export default function TenseTennisGame({ items, ageProfile, onFinish, onExit }:
      É do APARELHO, não do desenho: no computador com o desenho novo há teclado físico e o saque é o de
      sempre. */
   const semTeclado = useSemTecladoFisico();
-  const base = SAQUE[ageProfile] * (semTeclado ? SAQUE_NO_QUEST : 1);
+  const nivel = useNivelDoJogo('tenis');
+  const base = (segundosDoJogo('tenis', ageProfile, nivel) ?? 6) * (semTeclado ? SAQUE_NO_QUEST : 1);
 
   const [indice, setIndice] = useState(0);
   const [rali, setRali] = useState(0);
@@ -62,7 +63,7 @@ export default function TenseTennisGame({ items, ageProfile, onFinish, onExit }:
   const [relogio, setRelogio] = useState({ bola: 0, segundos: base });
   const tempo = relogio.bola === indice ? relogio.segundos : segundosDaJogada(base, rali);
   const [escrito, setEscrito] = useState('');
-  const [dicasRestantes, setDicasRestantes] = useState(2);
+  const [dicasRestantes, setDicasRestantes] = useState(() => ajudasDoJogo('tenis', 'letra', nivel));
   /** O que a tela diz da devolução: "Fora! Era…", "Certo! Com acento…", "Também vale…". */
   const [aviso, setAviso] = useState<{ tom: 'erro' | 'certo'; rotulo: string; resposta: string } | null>(null);
   const [acabou, setAcabou] = useState(false);

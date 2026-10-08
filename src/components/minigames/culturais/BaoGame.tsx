@@ -3,8 +3,10 @@ import { MINIGAMES, scoreRound } from '@core';
 import { Check, Lightbulb, Sprout } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
+import { vidasDoJogo } from '../../../core/minigames/regras';
 import { celebrar } from '../../../lib/comemoracao';
 import { t } from '../../../lib/i18n';
+import { useNivelDoJogo } from '../../../lib/jogos/nivelDoJogo';
 import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
 import AvisoDaJogada from '../casca/AvisoDaJogada';
@@ -39,8 +41,6 @@ const MAX_PECAS = 6;
 const LETRAS_POR_PECA = 2.5;
 /** Palavra curta demais não tem o que remontar. */
 const MIN_LETRAS = 3;
-/** Toques errados tolerados por palavra antes de a palavra ser dada por não lembrada. */
-const ERROS_POR_PALAVRA: Record<AgeProfileType, number> = { kids: 4, pro: 3, senior: 4 };
 
 /** Parte a palavra em blocos contíguos de tamanho quase igual. */
 function partirPalavra(palavra: string): string[] {
@@ -77,6 +77,9 @@ function embaralharPecas(pecas: string[]): string[] {
 export default function BaoGame({ items, ageProfile, onFinish, onExit }: BaoGameProps) {
   /** A casca diz quando a rodada anda (fora da contagem 3-2-1 e da pausa); o placar do HUD sai dos resultados. */
   const { ativo } = useRodada();
+  const nivel = useNivelDoJogo('bao');
+  /** Toques errados tolerados por palavra antes de a palavra ser dada por não lembrada. */
+  const errosTolerados = vidasDoJogo('bao', ageProfile, nivel) ?? 3;
   const [placar, recontar] = usePlacarDaRodada('bao');
   const def = MINIGAMES.bao;
 
@@ -184,7 +187,7 @@ export default function BaoGame({ items, ageProfile, onFinish, onExit }: BaoGame
       setErros(total);
       setCovaErrada(posicaoDaCova);
       celebrar({ tipo: 'erro', el });
-      if (total >= ERROS_POR_PALAVRA[ageProfile]) encerrarPalavra(false, total);
+      if (total >= errosTolerados) encerrarPalavra(false, total);
       return;
     }
 
@@ -309,7 +312,7 @@ export default function BaoGame({ items, ageProfile, onFinish, onExit }: BaoGame
                 className="text-sm font-bold text-error-ink px-3 py-1.5 rounded-xl bg-error-soft"
               >
                 {t('Este pedaço não abre a palavra aqui. Restam {n}.', {
-                  n: Math.max(0, ERROS_POR_PALAVRA[ageProfile] - erros),
+                  n: Math.max(0, errosTolerados - erros),
                 })}
               </p>
             )

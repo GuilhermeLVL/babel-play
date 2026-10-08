@@ -12,8 +12,10 @@ import {
   rotuloDaSequencia,
   SEQUENCIA_FEVER,
 } from '../../core/minigames/blitzRegras';
+import { ajudasDoJogo, segundosDoJogo } from '../../core/minigames/regras';
 import { celebrar } from '../../lib/comemoracao';
 import { eventosCondicionais } from '../../lib/eventosDeJogo';
+import { useNivelDoJogo } from '../../lib/jogos/nivelDoJogo';
 import {
   executarEfeito,
   multiplicador,
@@ -59,13 +61,12 @@ interface BlitzGameProps {
   onExit: () => void;
 }
 
-/** Segundos por rodada, por perfil. */
-const DURACAO: Record<AgeProfileType, number> = { kids: 60, pro: 60, senior: 90 };
 /** Segundos finais em que o relógio marca cada segundo com um toque. */
 const CONTAGEM_FINAL_S = 10;
 
 export default function BlitzGame({ items, ageProfile, onFinish }: BlitzGameProps) {
-  const duracao = DURACAO[ageProfile];
+  const nivel = useNivelDoJogo('blitz');
+  const duracao = segundosDoJogo('blitz', ageProfile, nivel) ?? 60;
   /** A casca diz se a rodada anda: durante a contagem 3-2-1 e na pausa, o relógio para. */
   const { ativo } = useRodada();
   const [indice, setIndice] = useState(0);
@@ -76,7 +77,7 @@ export default function BlitzGame({ items, ageProfile, onFinish }: BlitzGameProp
   const [acertos, setAcertos] = useState(0);
   /** Alternativas cortadas pela dica NESTE item (zera ao trocar de item). */
   const [cortadas, setCortadas] = useState<string[]>([]);
-  const [cortesRestantes, setCortesRestantes] = useState(2);
+  const [cortesRestantes, setCortesRestantes] = useState(() => ajudasDoJogo('blitz', 'cortar', nivel));
   /** Efeitos transitórios (classes CSS de 0,3–0,7 s); contadores para re-disparar. */
   const [erroPulso, setErroPulso] = useState(0);
   const [ondas, setOndas] = useState<number[]>([]);

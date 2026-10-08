@@ -3,8 +3,10 @@ import { distractorsFor, MINIGAMES, scoreRound } from '@core';
 import { Eye, Volume2 } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { segundosDoJogo } from '../../../core/minigames/regras';
 import { celebrar } from '../../../lib/comemoracao';
 import { idiomaDaInterface, t } from '../../../lib/i18n';
+import { useNivelDoJogo } from '../../../lib/jogos/nivelDoJogo';
 import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
 import { play } from '../../../lib/soundFx';
@@ -30,8 +32,6 @@ interface KarutaGameProps {
   onExit: () => void;
 }
 
-/** Segundos para varrer a mesa, por perfil. */
-const SEGUNDOS: Record<AgeProfileType, number> = { kids: 12, pro: 8, senior: 14 };
 /** Teto de cartas na mesa: acima disso a varredura vira sorte. */
 const CARTAS_NA_MESA = 6;
 
@@ -59,8 +59,10 @@ export default function KarutaGame({ items, ageProfile, onFinish, onExit }: Karu
    * porque o `setTempo` do reset só chega no render seguinte — dava a carta NOVA por perdida na
    * hora, com um outcome de ms zero. Amarrar o relógio ao índice fecha a janela.
    */
-  const [relogio, setRelogio] = useState({ carta: 0, segundos: SEGUNDOS[ageProfile] });
-  const tempo = relogio.carta === indice ? relogio.segundos : SEGUNDOS[ageProfile];
+  const nivel = useNivelDoJogo('karuta');
+  const segundos = segundosDoJogo('karuta', ageProfile, nivel) ?? 8;
+  const [relogio, setRelogio] = useState({ carta: 0, segundos: segundos });
+  const tempo = relogio.carta === indice ? relogio.segundos : segundos;
   const [acertada, setAcertada] = useState<string | null>(null);
   const [errada, setErrada] = useState<string | null>(null);
   const [acabou, setAcabou] = useState(false);
@@ -165,9 +167,9 @@ export default function KarutaGame({ items, ageProfile, onFinish, onExit }: Karu
     setErrada(null);
     setRevelada(null);
     setPistaAberta(false);
-    setRelogio({ carta: indice, segundos: SEGUNDOS[ageProfile] });
+    setRelogio({ carta: indice, segundos });
     narrar();
-  }, [indice, item, ageProfile, narrar]);
+  }, [indice, item, segundos, narrar]);
 
   // O relógio da carta. Um `setTimeout` por segundo, como no Duelo.
   useEffect(() => {
@@ -233,7 +235,7 @@ export default function KarutaGame({ items, ageProfile, onFinish, onExit }: Karu
         acertos={placar.acertos}
         rotulo={`Carta ${indice + 1} de ${items.length}`}
         tempo={tempo}
-        progresso={tempo / SEGUNDOS[ageProfile]}
+        progresso={tempo / segundos}
         pouco={tempo <= 3}
         ajudas={
           <>

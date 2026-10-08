@@ -3,8 +3,10 @@ import { MINIGAMES, scoreRound } from '@core';
 import { Briefcase, Check, Eye, Lock, Unlock } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
+import { tempoAVistaDoJogo, vidasDoJogo } from '../../../core/minigames/regras';
 import { celebrar } from '../../../lib/comemoracao';
 import { t } from '../../../lib/i18n';
+import { useNivelDoJogo } from '../../../lib/jogos/nivelDoJogo';
 import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
 import AvisoDaJogada from '../casca/AvisoDaJogada';
@@ -31,9 +33,6 @@ interface KofferGameProps {
   onExit: () => void;
 }
 
-/** Quanto tempo a mala fica aberta mostrando a palavra nova, por perfil (ms). */
-const TEMPO_ABERTA: Record<AgeProfileType, number> = { kids: 2600, pro: 2000, senior: 3000 };
-const VIDAS: Record<AgeProfileType, number> = { kids: 4, pro: 3, senior: 4 };
 /** A espiada mostra a mala por este tempo e marca `hinted` em tudo que for cobrado no nível. */
 const TEMPO_ESPIADA = 1200;
 
@@ -77,7 +76,10 @@ export default function KofferGame({ items, ageProfile, onFinish, onExit }: Koff
   const [nivel, setNivel] = useState(1);
   const [fase, setFase] = useState<'entrando' | 'lembrando'>('entrando');
   const [posicao, setPosicao] = useState(0);
-  const [vidas, setVidas] = useState(VIDAS[ageProfile]);
+  /* `nivel` neste jogo já é o nível da mala (quantas palavras ela tem); o da dificuldade tem outro nome. */
+  const dificuldade = useNivelDoJogo('koffer');
+  const tempoAberta = tempoAVistaDoJogo('koffer', ageProfile, dificuldade) ?? 2000;
+  const [vidas, setVidas] = useState(() => vidasDoJogo('koffer', ageProfile, dificuldade) ?? 3);
   const [espiando, setEspiando] = useState(false);
   const [errou, setErrou] = useState(false);
   const [encerrado, setEncerrado] = useState(false);
@@ -90,7 +92,7 @@ export default function KofferGame({ items, ageProfile, onFinish, onExit }: Koff
   const espiouNoNivelRef = useRef(false);
   const encerradoRef = useRef(false);
   /** Quanto falta de mala aberta NESTE nível — o relógio só anda com a rodada ativa. */
-  const abertaRestanteRef = useRef(TEMPO_ABERTA[ageProfile]);
+  const abertaRestanteRef = useRef(tempoAberta);
   /** O nível cuja palavra nova já foi falada (a fala espera a contagem acabar). */
   const faladoNoNivelRef = useRef(0);
   /** Acabaram as vidas: a palavra que era a certa naquela posição, para a pessoa sair sabendo. */
@@ -149,8 +151,8 @@ export default function KofferGame({ items, ageProfile, onFinish, onExit }: Koff
     setErrou(false);
     setPalheta(embaralhar(rodada));
     espiouNoNivelRef.current = false;
-    abertaRestanteRef.current = TEMPO_ABERTA[ageProfile];
-  }, [nivel, suficiente, rodada, ageProfile]);
+    abertaRestanteRef.current = tempoAberta;
+  }, [nivel, suficiente, rodada, tempoAberta]);
 
   /**
    * …e o tempo de mala aberta só corre com a RODADA ATIVA (QA dos jogos, 2026-09-26). O primeiro

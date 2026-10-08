@@ -1,0 +1,10 @@
+/* GERADO por scripts/polimento/trazer-css.mjs a partir de telas3.css do protótipo de polimento.
+   NÃO EDITAR À MÃO: mude a tabela do script e gere de novo. As regras são as do protótipo, sem
+   reescrita; valem sob html[data-px='on'], a marca que src/lib/polimento/base.ts põe. */
+/* ============================================================================
+   Rodada 6 — sessão aberta, trilha inteira da temporada e acertos.
+   ============================================================================ */
+/* Selo com ícone: ícone e texto na mesma linha. */
+.q-tag:has(svg) { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.q-tag svg { width: 14px; height: 14px; flex: 0 0 auto; }
+/* [telas3.css:7-128] ADIADO até portar: bloco D: Sessão, trilha da temporada e acertos */

@@ -36,6 +36,12 @@ const ARQUIVOS = {
     { de: 215, ate: 245, motivo: 'barra do protótipo: demonstração e legenda' },
     { de: 252, ate: 314, motivo: 'molduras de aparelho do protótipo' },
   ],
+  /* Dos arquivos de TELAS vem, por enquanto, só o que é da casca. O resto entra com cada tela (bloco D). */
+  'telas2.css': [
+    { de: 1, ate: 248, adiado: 'bloco D: Intérprete, Personalizar, Planos, Ajuda' },
+    { de: 273, ate: Infinity, adiado: 'bloco D: Personalizar e Temporada na janela estreita' },
+  ],
+  'telas3.css': [{ de: 7, ate: Infinity, adiado: 'bloco D: Sessão, trilha da temporada e acertos' }],
 };
 
 mkdirSync(destino, { recursive: true });

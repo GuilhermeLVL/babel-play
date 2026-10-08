@@ -63,11 +63,20 @@ Fonte de cada item: o painel "Auditoria" de `docs/prototipos/polimento-movimento
 - [x] 2.6 Tela de fim: abaixo de 50% de acerto oferece um degrau abaixo; com 100%, um acima
       (`casca/SugestaoDeNivel.tsx`, regra em `sugestaoDeNivel`). Aceitar joga de novo as mesmas palavras
       no nível novo. Conferido no app (Rali no Médio com 0%: "Jogar no Fácil" recomeça com 9 s)
-- [ ] 2.7 Menos atrito, um jogo por commit: Termo (linha pré-preenchida), Frase embaralhada (as
-      erradas voltam), Choseong (só a vogal errada sai), Rali (a letra errada some), Ditado
-      (segunda chance), Bao (a cova desmarca), Memória (explorar não é errar)
-- [ ] 2.8 Retorno de acerto e erro igual em todos os jogos; combo só cresce quando sobe
-- [ ] 2.9 Testes e e2e dos jogos atualizados
+- [x] 2.7 Menos atrito, um jogo por commit:
+      - Choseong: só a vogal errada sai, as certas ficam
+      - Frase embaralhada: o começo certo fica, as outras palavras voltam sozinhas
+      - Memória: explorar não é errar (só conta quando o par da primeira carta já tinha aparecido);
+        muda também a nota de revisão, que antes caía por cartas nunca vistas
+      - Bao: a cova errada desmarca em 700 ms; o aviso escrito continua
+      - Ditado: segunda chance antes de fechar a fala; a correção só aparece no fim
+      - Termo: nada a fazer, a linha seguinte já nasce com as letras descobertas
+        (`linhaInicial`)
+      - Rali: não se aplica, no app a devolução é escrita livre e conferida de uma vez
+- [x] 2.8 Retorno de acerto e erro igual em todos os jogos: já era assim no app (todo jogo fala com
+      `celebrar`, e o combo só comemora quando o multiplicador sobe, em `HudDaRodada`). Nada a mudar
+- [ ] 2.9 Testes de componente feitos em cada item. Falta o e2e dos jogos, que depende da CI voltar
+      a passar na `main` (login duplicado no `e2e-publico`)
 
 ## 3. Miniaturas
 

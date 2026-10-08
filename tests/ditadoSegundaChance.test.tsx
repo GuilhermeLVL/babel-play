@@ -8,7 +8,7 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { RodadaDitado, RoundReport } from '../src/core/minigames/types'
+import type { RodadaDitado, RoundReport } from '../src/core'
 
 vi.mock('../src/lib/juice', () => ({
   contarAte: vi.fn(async () => {}),

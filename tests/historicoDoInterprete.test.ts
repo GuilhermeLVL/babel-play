@@ -9,10 +9,10 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  type FalaDoHistorico,
   historicoDoInterprete,
   JANELA_DO_HISTORICO,
   subirJanela,
-  type FalaDoHistorico,
 } from '../src/lib/captura/historicoDoInterprete'
 
 const fala = (id: string, lado: 'meu' | 'outro', original: string, traducao = '', extra: Partial<FalaDoHistorico> = {}) => ({

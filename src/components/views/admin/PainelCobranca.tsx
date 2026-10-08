@@ -42,15 +42,16 @@ export default function PainelCobranca({ aoPedirCodigo }: { aoPedirCodigo: () =>
     const r = await reprocessar(id);
     setOcupado(null);
     if (r.ok) {
-      const d = desfechoDe(r.dados);
+      const d = desfechoDe(r.dados as ResultadoDoReprocesso);
       setDesfechos((atual) => ({ ...atual, [id]: d }));
       (d.tom === 'bom' ? toast.ok : toast.info)(d.texto);
       fila.recarregar();
     } else if (r.segundoFator) {
       aoPedirCodigo();
     } else {
-      setDesfechos((atual) => ({ ...atual, [id]: { tom: 'erro', texto: r.erro } }));
-      toast.error(r.erro);
+      const erro = r.erro ?? '';
+      setDesfechos((atual) => ({ ...atual, [id]: { tom: 'erro', texto: erro } }));
+      toast.error(erro);
     }
   };
 

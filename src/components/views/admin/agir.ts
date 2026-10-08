@@ -25,7 +25,7 @@ export async function agir<T>(p: PedidoDeAcao<T>): Promise<Resposta<T> | null> {
   } else if (r.segundoFator) {
     p.aoPedirCodigo();
   } else {
-    toast.error(r.erro);
+    toast.error(r.erro ?? '');
   }
   return r;
 }

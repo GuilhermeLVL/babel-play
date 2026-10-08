@@ -3,8 +3,8 @@ import '../../../../styles/modoInterprete.css';
 import {
   ArrowUpDown,
   AudioLines,
-  Loader2,
   Download,
+  Loader2,
   Lock,
   MessagesSquare,
   Mic,
@@ -30,13 +30,13 @@ import {
   subirJanela,
 } from '../../../../lib/captura/historicoDoInterprete';
 import { direcaoDoLado, ESTADO_INICIAL, type IdiomasDoInterprete } from '../../../../lib/captura/interprete';
+import { chaveLigada } from '../../../../lib/captura/testesDoInterprete';
 import type { LadoDoInterprete, SpeechSegment } from '../../../../lib/captura/tiposDaFala';
 import { t } from '../../../../lib/i18n';
 import { langLabel } from '../../../../lib/languages';
 import { nativeTts, type TtsEngine } from '../../../../lib/tts';
-import { tempoAteAVoz } from '../../../../lib/voz/tempoAteAVoz';
-import { chaveLigada } from '../../../../lib/captura/testesDoInterprete';
 import { aquecerInterprete } from '../../../../lib/voz/aquecimentoDoInterprete';
+import { tempoAteAVoz } from '../../../../lib/voz/tempoAteAVoz';
 import { criarVozDaNuvem, destravarVozDaNuvem, type VozDaNuvem } from '../../../../lib/voz/vozDaNuvem';
 import {
   aoMudarIdiomasDaVozDoQuest,

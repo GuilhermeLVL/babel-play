@@ -69,7 +69,7 @@ export default function PainelFlags({ aoPedirCodigo }: { aoPedirCodigo: () => vo
         } else if (r.segundoFator) {
           aoPedirCodigo();
         } else {
-          toast.error(r.erro);
+          toast.error(r.erro ?? '');
         }
       }
     } finally {

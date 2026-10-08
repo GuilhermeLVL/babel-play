@@ -22,8 +22,6 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { encodeWav } from '../../gateway/audio/wav';
 import { CHAVE_DA_ULTIMA_CAPTURA } from '../../gateway/capture/captureMetrics';
-import { descreverEtapas, lerUltimoDoInterprete } from '../../lib/voz/tempoAteAVoz';
-import TestesDoInterprete from './captura/interprete/TestesDoInterprete';
 import { medirBenchmark, type PontuacaoDoBenchmark } from '../../lib/dispositivo/benchmark';
 import {
   coletarSinaisDoDiagnostico,
@@ -44,9 +42,11 @@ import { definirTelaNovaDoQuest, telaNovaDoQuest, useQuestNovo } from '../../lib
 import { t } from '../../lib/i18n';
 import { irPara } from '../../lib/irPara';
 import { cabecalhoDoDono, CHAVE_DO_DONO_NO_APARELHO, ENDPOINT_DA_NUVEM_DO_QUEST } from '../../lib/nuvemDoQuest';
+import { descreverEtapas, lerUltimoDoInterprete } from '../../lib/voz/tempoAteAVoz';
 import { CabecalhoDeTela, Tela, TituloDeSecao } from '../ui';
 import AbasDoQuest from './ajustes/quest/AbasDoQuest';
 import { type NivelDaProva, textoDaProva, tocarSomDoApontar } from './ajustes/quest/vibracao';
+import TestesDoInterprete from './captura/interprete/TestesDoInterprete';
 
 /**
  * DIAGNÓSTICO DO APARELHO (`/diagnostico`) — o que ESTE aparelho entrega, medido nele mesmo.

@@ -43,16 +43,16 @@ import { isTtsActive } from '../tts';
 import { classificarVazamento, type Intervalo } from '../vazamento';
 import { setterNoQuadro } from './agendarNoQuadro';
 import { guardarAudioDaFala } from './audioDasFalas';
-import { direcaoDoLado as direcaoDeUmLado } from './interprete';
 import { decidirNaVirtual, ESTADO_DA_VIRTUAL, type EstadoDaVirtual } from './idiomasDaConversaVirtual';
+import { direcaoDoLado as direcaoDeUmLado } from './interprete';
 import type { PistasDoIdioma } from './interpreteAutomatico';
 import { umModeloDeCadaVez } from './memoriaDosModelos';
-import { criarTradutorDeParciais, type TradutorDeParciais } from './parcialEstavel';
-import { chaveLigada } from './testesDoInterprete';
 import { disponibilidadeDaSondaParaIdioma, escolherMotorDoMic, webSpeechBipaAoReligar } from './motorDoMicrofone';
 import { preparoConcluido, semPacotePendente } from './pacotesNativos';
+import { criarTradutorDeParciais, type TradutorDeParciais } from './parcialEstavel';
 import { type EfeitosDoRegulador, escadaDeModelos, type ReguladorDaCaptura } from './reguladorDaCaptura';
 import { planoDaReservaLocal } from './reservaLocal';
+import { chaveLigada } from './testesDoInterprete';
 import {
   type CaptureScenario,
   clog,

@@ -227,7 +227,6 @@ export default function ConversaVirtual({
     });
   };
   const guardar = (item: ItemDoHistorico) => {
-    const outro: LadoDoInterprete = item.lado === 'meu' ? 'outro' : 'meu';
     aoGuardar?.({
       id: item.id,
       texto: item.original,

@@ -125,6 +125,8 @@ import { criarSalvarSessao, type EstadoDaIdentificacaoDeVoz } from '../../lib/ca
 // Produtor ÚNICO de palavra/cartão: o idioma vem da FRASE de onde a palavra saiu e a direção da
 // tradução é decidida pelo idioma DA PALAVRA (não pelo par da sessão).
 import { telaAcesaSuportada, usePreferenciaDeTelaAcesa, useTelaAcesa } from '../../lib/captura/telaAcesa';
+// Relógio da sessão + pipeline de MT (retradução de degradados incluída).
+import { chaveLigada, detectarIdiomaNaVirtual } from '../../lib/captura/testesDoInterprete';
 // Tipos e helpers de fala + o logger da captura (`lib/captura/tiposDaFala.ts`).
 import {
   type CaptureScenario,
@@ -138,8 +140,6 @@ import {
   wordsFromText,
 } from '../../lib/captura/tiposDaFala';
 import { descartarRascunho, tentarDeNovo } from '../../lib/captura/trabalhoDeSalvar';
-// Relógio da sessão + pipeline de MT (retradução de degradados incluída).
-import { chaveLigada, detectarIdiomaNaVirtual } from '../../lib/captura/testesDoInterprete';
 import { criarRelogioDaSessao, criarTraducaoDaFala } from '../../lib/captura/traducaoDaFala';
 import { modoDeTraducao, type PedidoSobDemanda } from '../../lib/captura/traducaoSobDemanda';
 import { usePalavrasConhecidas } from '../../lib/captura/usePalavrasConhecidas';

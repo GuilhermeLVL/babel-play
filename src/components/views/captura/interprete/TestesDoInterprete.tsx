@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-import { aoMudarChave, CHAVES_DE_TESTE, chaveLigada, gravarChave } from '../../../../lib/captura/testesDoInterprete';
+import { aoMudarChave, chaveLigada, CHAVES_DE_TESTE, gravarChave } from '../../../../lib/captura/testesDoInterprete';
 import { t } from '../../../../lib/i18n';
 
 /**

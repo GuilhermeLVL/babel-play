@@ -519,7 +519,7 @@ describe('origem (furo 4): barra outro SITE no navegador, não é controle de ab
       { 'sec-fetch-site': 'cross-site' },
       { 'sec-fetch-site': 'same-site' },
       { origin: 'https://outro.site' },
-    ]) {
+    ] as Record<string, string>[]) {
       const r = await onRequestGet({ request: consulta(cabecalhos), env })
       expect(r.status).toBe(403)
       expect(await r.json()).toEqual({ code: 'origem' })
@@ -528,7 +528,7 @@ describe('origem (furo 4): barra outro SITE no navegador, não é controle de ab
 
   it('GET do próprio site passa: `Sec-Fetch-Site: same-origin`, `Origin` igual, ou nenhum dos dois', async () => {
     const env = { AI: ia(), LIMITES: kvFalso() }
-    for (const cabecalhos of [{ 'sec-fetch-site': 'same-origin' }, { origin: ORIGEM }, {}]) {
+    for (const cabecalhos of [{ 'sec-fetch-site': 'same-origin' }, { origin: ORIGEM }, {}] as Record<string, string>[]) {
       expect((await onRequestGet({ request: consulta(cabecalhos), env })).status).toBe(200)
     }
   })

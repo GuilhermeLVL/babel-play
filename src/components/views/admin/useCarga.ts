@@ -34,14 +34,14 @@ export function useCarga<T>(carregar: () => Promise<Resposta<T>>, aoPedirCodigo:
       if (!vivo) return;
       setAtualizando(false);
       if (r.ok) {
-        setDados(r.dados);
+        setDados(r.dados ?? null);
         setErro('');
         setEstado('ok');
         return;
       }
       if (r.segundoFator) funcao.current.aoPedirCodigo();
       setDados(null);
-      setErro(r.erro);
+      setErro(r.erro ?? '');
       setEstado('erro');
     });
     return () => {

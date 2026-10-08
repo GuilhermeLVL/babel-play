@@ -5,7 +5,7 @@
  */
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import { CHAVES_DE_TESTE, chaveLigada, gravarChave } from '../src/lib/captura/testesDoInterprete'
+import { chaveLigada, CHAVES_DE_TESTE, gravarChave } from '../src/lib/captura/testesDoInterprete'
 
 beforeEach(() => localStorage.clear())
 
@@ -51,8 +51,10 @@ describe('testesDoInterprete', () => {
   it('avisa quem escuta quando uma chave muda', () => {
     const id = CHAVES_DE_TESTE[0].id
     const vistos: string[] = []
-    window.addEventListener('babel-chave-interprete', ((e: CustomEvent<{ id: string; ligada: boolean }>) =>
-      vistos.push(`${e.detail.id}:${e.detail.ligada}`)) as EventListener)
+    window.addEventListener('babel-chave-interprete', (e: Event) => {
+      const { id: qual, ligada } = (e as CustomEvent<{ id: string; ligada: boolean }>).detail
+      vistos.push(`${qual}:${ligada}`)
+    })
     gravarChave(id, true)
     expect(vistos).toContain(`${id}:true`)
   })

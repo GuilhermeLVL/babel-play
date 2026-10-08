@@ -14,8 +14,8 @@ vi.mock('../src/lib/dispositivo/perfil', async (original) => {
   return { ...real, perfilDoDispositivo: () => ({ ...real.perfilDoDispositivo(), tipo: aparelho.tipo }) }
 })
 
-import { alvoSobOPonteiro, instalarRespostaAoApontar, provarVibracao } from '../src/lib/dispositivo/respostaAoApontar'
 import { guardarVibracaoDoQuest, lerVibracaoDoQuest } from '../src/lib/dispositivo/preferenciasDoQuest'
+import { alvoSobOPonteiro, instalarRespostaAoApontar, provarVibracao } from '../src/lib/dispositivo/respostaAoApontar'
 import { play } from '../src/lib/soundFx'
 
 type Efeito = { duration: number; strongMagnitude: number; weakMagnitude: number }

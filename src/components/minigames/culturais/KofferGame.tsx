@@ -12,7 +12,7 @@ import type { AgeProfileType } from '../../../lib/profile';
 import AvisoDaJogada from '../casca/AvisoDaJogada';
 import { useRodada } from '../casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from '../casca/HudDaRodada';
-import { falarNoJogo as falar } from '../noQuest';
+import { falarNoJogo as falar, useQuestNovo } from '../noQuest';
 
 /**
  * A MALA CUMULATIVA — "Ich packe meinen Koffer" jogado com as palavras do baralho.
@@ -55,6 +55,8 @@ function embaralhar<T>(xs: T[]): T[] {
 export default function KofferGame({ items, ageProfile, onFinish, onExit }: KofferGameProps) {
   /** A casca diz quando a rodada anda (fora da contagem 3-2-1 e da pausa); o placar do HUD sai dos resultados. */
   const { ativo } = useRodada();
+  /* A CENA DA MALA (desenho novo): a rota dos níveis, a alça e a tampa que levanta quando a mala abre. */
+  const questNovo = useQuestNovo();
   const [placar, recontar] = usePlacarDaRodada('koffer');
   const def = MINIGAMES.koffer;
 
@@ -263,12 +265,28 @@ export default function KofferGame({ items, ageProfile, onFinish, onExit }: Koff
       />
 
       <div data-qj="koffer" className="flex flex-col items-center justify-center gap-6 w-full max-w-3xl mx-auto">
+        {/* A ROTA: uma parada por nível, como as etiquetas de uma viagem. Enfeite: o nível já está
+            escrito no placar. */}
+        {questNovo && (
+          <ol className="qm-rota" aria-hidden>
+            {rodada.map((_, i) => (
+              <li key={i} data-estado={i + 1 < nivel ? 'feito' : i + 1 === nivel ? 'agora' : undefined} />
+            ))}
+          </ol>
+        )}
         {/* A MALA */}
         <div
           data-tour="mala"
+          data-mala={questNovo ? (malaAberta ? 'aberta' : 'fechada') : undefined}
           ref={malaRef}
           className="w-full rounded-2xl border-2 border-border-subtle bg-surface p-5 sm:p-7 shadow-card"
         >
+          {questNovo && (
+            <>
+              <i className="qm-tampa" aria-hidden />
+              <i className="qm-alca" aria-hidden />
+            </>
+          )}
           <div className="flex items-center justify-between pb-3 mb-4 border-b border-border-subtle">
             <span className="flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-ink-muted font-bold">
               <Briefcase className="w-4 h-4 text-accent" />

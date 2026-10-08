@@ -1022,3 +1022,197 @@ html[data-quest-novo='true'] .palco-jogo [data-qp='faixa-da-pista'] [data-tour='
   font: 900 30px/1.15 var(--font-display, inherit);
   text-wrap: balance;
 }
+
+/* ══ A CENA DO RALI (polimento, fase 4) ═══════════════════════════════════════════════════════════
+   O placar da partida e a quadra. A bola é o relógio: `--t` vai de 1 (saque) a 0 (caiu). */
+html[data-quest-novo='true'] .palco-jogo .qr-placar {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 8px 22px;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface);
+}
+html[data-quest-novo='true'] .palco-jogo .qr-placar span {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+html[data-quest-novo='true'] .palco-jogo .qr-placar small {
+  font: 700 13px var(--font-mono, monospace);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+html[data-quest-novo='true'] .palco-jogo .qr-placar b {
+  font: 900 30px/1 var(--font-display, inherit);
+  color: var(--ink);
+}
+html[data-quest-novo='true'] .palco-jogo .qr-placar span:first-child b {
+  color: var(--q-acento);
+}
+html[data-quest-novo='true'] .palco-jogo .qr-placar i {
+  font-style: normal;
+  color: var(--ink-faint, var(--ink-muted));
+}
+/* A quadra: o piso liso e a linha de fundo, tudo com os tokens do tema. */
+html[data-quest-novo='true'] .palco-jogo [data-qj='tenis'] [data-quadra] {
+  position: relative;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--q-acento) 4%, var(--surface));
+  /* A linha de fundo da quadra, por dentro da borda. */
+  box-shadow: inset 0 0 0 7px color-mix(in srgb, var(--q-acento) 4%, var(--surface)), inset 0 0 0 9px color-mix(in srgb, var(--ink-muted) 28%, transparent);
+}
+html[data-quest-novo='true'] .palco-jogo .qr-pista {
+  position: relative;
+  height: 74px;
+  margin: 14px -6px -14px;
+  border-bottom: 3px solid color-mix(in srgb, var(--ink-muted) 45%, transparent);
+}
+html[data-quest-novo='true'] .palco-jogo .qr-rede {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 4px;
+  height: 30px;
+  margin-left: -2px;
+  border-radius: 2px 2px 0 0;
+  background: repeating-linear-gradient(to bottom, var(--ink-muted) 0 4px, transparent 4px 7px);
+}
+html[data-quest-novo='true'] .palco-jogo .qr-bola {
+  position: absolute;
+  bottom: 4px;
+  /* Do lado do Babel (direita) para o seu (esquerda), com o arco mais alto em cima da rede. */
+  left: calc(6% + var(--t) * 88%);
+  width: 22px;
+  height: 22px;
+  margin-left: -11px;
+  border-radius: 50%;
+  background: var(--warn);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--warn) 22%, transparent);
+  translate: 0 calc(sin(var(--t) * 3.14159) * -44px);
+}
+html[data-quest-novo='true'] .palco-jogo .qr-pista[data-pouco] .qr-bola {
+  background: var(--error);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--error) 26%, transparent);
+}
+/* No movimento rico a bola desliza de um segundo ao outro; no contido ela anda aos saltos. */
+html[data-quest-novo='true'][data-movimento='rico'] .palco-jogo .qr-bola {
+  transition:
+    left 1s linear,
+    translate 1s linear;
+}
+
+/* ══ A CENA DA MALA (polimento, fase 4) ═══════════════════════════════════════════════════════════
+   A rota dos níveis, a alça e a tampa. Fechada, a tampa é só a borda de cima; aberta, ela levanta. */
+html[data-quest-novo='true'] .palco-jogo .qm-rota {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+html[data-quest-novo='true'] .palco-jogo .qm-rota li {
+  position: relative;
+  width: 16px;
+  height: 16px;
+  margin-left: 30px;
+  border-radius: 50%;
+  border: 2px solid var(--border-subtle);
+  background: var(--surface);
+}
+html[data-quest-novo='true'] .palco-jogo .qm-rota li:first-child {
+  margin-left: 0;
+}
+html[data-quest-novo='true'] .palco-jogo .qm-rota li:not(:first-child)::before {
+  content: '';
+  position: absolute;
+  right: 100%;
+  top: 50%;
+  width: 30px;
+  border-top: 2px dashed var(--border-subtle);
+}
+html[data-quest-novo='true'] .palco-jogo .qm-rota li[data-estado='feito'] {
+  border-color: var(--q-acento);
+  background: var(--q-acento);
+}
+html[data-quest-novo='true'] .palco-jogo .qm-rota li[data-estado='feito']::before,
+html[data-quest-novo='true'] .palco-jogo .qm-rota li[data-estado='agora']::before {
+  border-top: 2px solid var(--q-acento);
+}
+html[data-quest-novo='true'] .palco-jogo .qm-rota li[data-estado='agora'] {
+  border-color: var(--q-acento);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--q-acento) 22%, transparent);
+}
+html[data-quest-novo='true'] .palco-jogo [data-qj='koffer'] [data-mala] {
+  position: relative;
+  margin-top: 62px;
+  border-width: 3px;
+  border-color: color-mix(in srgb, var(--q-acento) 55%, var(--border-subtle));
+  border-radius: 26px;
+  /* As duas cintas da mala, por trás do conteúdo. */
+  background:
+    linear-gradient(to right, transparent 13%, color-mix(in srgb, var(--q-acento) 9%, transparent) 13% 16%, transparent 16% 84%, color-mix(in srgb, var(--q-acento) 9%, transparent) 84% 87%, transparent 87%),
+    var(--surface);
+  perspective: 900px;
+}
+html[data-quest-novo='true'] .palco-jogo .qm-tampa {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: calc(100% + 1px);
+  height: 46px;
+  border: 3px solid color-mix(in srgb, var(--q-acento) 55%, var(--border-subtle));
+  border-bottom: 0;
+  border-radius: 20px 20px 0 0;
+  background: color-mix(in srgb, var(--q-acento) 7%, var(--surface));
+  transform-origin: bottom;
+  transform: rotateX(86deg);
+  opacity: 0;
+}
+html[data-quest-novo='true'] .palco-jogo [data-mala='aberta'] .qm-tampa {
+  transform: rotateX(18deg);
+  opacity: 1;
+}
+html[data-quest-novo='true'] .palco-jogo .qm-alca {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 2px);
+  width: 120px;
+  height: 26px;
+  margin-left: -60px;
+  border: 6px solid var(--ink-muted);
+  border-bottom: 0;
+  border-radius: 16px 16px 0 0;
+}
+html[data-quest-novo='true'] .palco-jogo [data-mala='aberta'] .qm-alca {
+  translate: 0 -40px;
+}
+html[data-quest-novo='true'][data-movimento='rico'] .palco-jogo .qm-tampa {
+  transition:
+    transform var(--q-dur-painel, 320ms) var(--q-mola-suave, ease-out),
+    opacity 120ms linear;
+}
+html[data-quest-novo='true'][data-movimento='rico'] .palco-jogo .qm-alca {
+  transition: translate var(--q-dur-painel, 320ms) var(--q-mola-suave, ease-out);
+}
+/* As palavras guardadas viram ETIQUETAS de bagagem: o furo à esquerda e o número da ordem. */
+html[data-quest-novo='true'] .palco-jogo [data-qj='koffer'] [data-mala] ol > li {
+  position: relative;
+  padding-left: 30px;
+  border-radius: 8px 14px 14px 8px;
+}
+html[data-quest-novo='true'] .palco-jogo [data-qj='koffer'] [data-mala] ol > li::before {
+  content: '';
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  margin-top: -4.5px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  opacity: 0.45;
+}

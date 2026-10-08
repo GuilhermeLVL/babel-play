@@ -90,8 +90,11 @@ Fonte de cada item: o painel "Auditoria" de `docs/prototipos/polimento-movimento
 
 ## 4. Rali e Mala
 
-- [ ] 4.1 Rali: quadra, bola como relógio, caixas por letra, placar Você × Babel
-- [ ] 4.2 Mala: tampa que abre e fecha, etiquetas, adesivos, rota dos níveis
+- [x] 4.1 Rali (desenho novo): placar Você × Babel e a quadra com a bola como relógio (sai do lado do
+      Babel, passa a rede na metade do tempo, fica vermelha no fim). Sem caixas por letra, de propósito:
+      o app aceita sinônimo de outro tamanho e as caixas diriam um tamanho só
+- [x] 4.2 Mala (desenho novo): rota dos níveis, alça, tampa que levanta quando a mala abre, palavras
+      como etiquetas de bagagem. Sem adesivos (enfeite sem função). Conferido no app, tema escuro
 
 ## 5. Tema Água
 

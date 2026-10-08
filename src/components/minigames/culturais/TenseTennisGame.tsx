@@ -241,14 +241,46 @@ export default function TenseTennisGame({ items, ageProfile, onFinish, onExit }:
         data-qj="tenis"
         className="flex flex-col items-center justify-center gap-6 w-full max-w-2xl mx-auto"
       >
+        {/* A CENA DO RALI (desenho novo): o placar da partida e a quadra. A BOLA É O RELÓGIO: sai do lado
+            do Babel, passa a rede na metade do tempo e cai do seu lado quando ele acaba. É enfeite para o
+            leitor de tela, que já tem o tempo no placar comum. Sem caixas por letra, de propósito: o app
+            aceita sinônimo de outro tamanho, e as caixas diriam um tamanho só. */}
+        {questNovo && (
+          <div className="qr-placar" role="group" aria-label={t('Placar do rali')}>
+            <span>
+              <small>{t('Você')}</small>
+              <b className="tn">{placar.acertos}</b>
+            </span>
+            <i aria-hidden>×</i>
+            <span>
+              <small>Babel</small>
+              <b className="tn">{Math.max(0, indice - placar.acertos)}</b>
+            </span>
+          </div>
+        )}
         <div
           data-tour="bola"
+          data-quadra={questNovo || undefined}
           className="w-full rounded-3xl border-2 border-border-subtle bg-surface shadow-card px-6 py-8 text-center"
         >
           <span className="text-xs font-mono uppercase tracking-widest text-ink-muted">Bola em jogo</span>
           <p data-qp="enunciado" className="mt-3 font-display font-black text-2xl sm:text-3xl text-ink">
             {item?.prompt}
           </p>
+          {questNovo && (
+            <div className="qr-pista" aria-hidden data-pouco={tempo <= 2 || undefined}>
+              <i className="qr-rede" />
+              <i
+                key={indice}
+                className="qr-bola"
+                style={
+                  {
+                    '--t': Math.max(0, Math.min(1, tempo / Math.max(1, segundosDaJogada(base, rali)))),
+                  } as React.CSSProperties
+                }
+              />
+            </div>
+          )}
         </div>
 
         <div className="w-full flex flex-col sm:flex-row gap-3" data-qp="linha-de-campo">

@@ -34,11 +34,14 @@ function medir(g: HTMLElement): Caixa | null {
   if (!a) return null;
   const rg = g.getBoundingClientRect();
   const ra = a.getBoundingClientRect();
+  /* No protótipo a pílula é medida ANTES de o painel começar a crescer. No app a medida pode cair no
+     meio da animação (o painel está em escala 0,55): a conta desfaz a escala para dar o mesmo número. */
+  const k = g.offsetWidth && rg.width ? rg.width / g.offsetWidth : 1;
   return {
-    x: ra.left - rg.left - g.clientLeft + g.scrollLeft,
-    y: ra.top - rg.top - g.clientTop + g.scrollTop,
-    w: ra.width,
-    h: ra.height,
+    x: (ra.left - rg.left) / k - g.clientLeft + g.scrollLeft,
+    y: (ra.top - rg.top) / k - g.clientTop + g.scrollTop,
+    w: ra.width / k,
+    h: ra.height / k,
   };
 }
 

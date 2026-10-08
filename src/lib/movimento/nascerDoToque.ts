@@ -13,7 +13,8 @@
 import { movimentoRico } from './animar';
 
 /** O que conta como painel: o "Mais", o `<dialog>` nativo e quem se declara diálogo. */
-const PAINEL = ".q-mais, dialog, [role='dialog'], [role='alertdialog']";
+/* O painel Mais saiu daqui: quem o anima é o porte do protótipo (src/lib/polimento/folha.ts). */
+const PAINEL = "dialog, [role='dialog']:not(.q-mais), [role='alertdialog']";
 /** Um painel que aparece mais de 700 ms depois do toque não foi aberto por ele. */
 const JANELA_MS = 700;
 

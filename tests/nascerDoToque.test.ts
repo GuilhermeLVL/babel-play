@@ -16,7 +16,7 @@ const microtarefa = () => new Promise((r) => setTimeout(r, 0))
 const tocar = (clientX: number, clientY: number) =>
   window.dispatchEvent(Object.assign(new Event('pointerdown'), { clientX, clientY }))
 
-function painel(marcacao = '<div class="q-mais" role="dialog"></div>') {
+function painel(marcacao = '<div class="qj-painel" role="dialog"></div>') {
   const caixa = document.createElement('div')
   caixa.innerHTML = marcacao
   const el = caixa.firstElementChild as HTMLElement

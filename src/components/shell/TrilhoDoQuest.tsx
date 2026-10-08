@@ -51,6 +51,7 @@ import { instalarNascerDoToque } from '../../lib/movimento/nascerDoToque';
 import { instalarOrigemDoToque } from '../../lib/movimento/revelar';
 import { marcarLida, marcarTodasLidas, naoLidas, quando } from '../../lib/notificacoes';
 import { instalarPolimento } from '../../lib/polimento/base';
+import { instalarFolhas } from '../../lib/polimento/folha';
 import { instalarTelas } from '../../lib/polimento/telas';
 import { authRequired } from '../../lib/supabase';
 import { usePerfil } from '../../lib/usePerfil';
@@ -168,6 +169,7 @@ export default function TrilhoDoQuest({
   /* E a pílula que desliza entre as abas, em todas as `.q-abas` da tela. */
   useEffect(() => instalarPolimento(), []);
   useEffect(() => instalarTelas(), []);
+  useEffect(() => instalarFolhas(), []);
   /* A cascata da primeira visita de cada tela, e o ponto de onde a troca de tema se abre. */
   useEffect(() => instalarOrigemDoToque(), []);
   /* Os painéis (o "Mais", os diálogos) crescem a partir do botão que os abriu. */

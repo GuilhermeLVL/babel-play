@@ -93,17 +93,49 @@ export function contar(pinta: (v: number) => void, de: number, ate: number, ms =
  * (`prototipo.js:49-53`) e carrega o CSS trazido do protótipo. O CSS vem num pedaço à parte, depois
  * da primeira pintura, para não entrar no orçamento do CSS inicial. Devolve como desligar.
  */
+/** As regras `@media` de preferência do sistema, com o texto original guardado para devolver. */
+const originais = new WeakMap<CSSMediaRule, string>();
+
+/**
+ * `aplicarAcess()` de `prototipo.js:26-33`: as regras `prefers-reduced-*` e `prefers-contrast` da
+ * camada só valem quando a pessoa NÃO ligou as animações de propósito no app.
+ *
+ * É a mesma regra que o app já tinha para o movimento (`body.animations-on` vence o sistema), agora
+ * também para a transparência: um Windows com "efeitos de transparência" desligado deixaria os painéis
+ * opacos, diferentes do desenho, sem a pessoa ter pedido isso ao app. Com as animações ligadas no app
+ * a camada é a do protótipo; desligadas, a camada inteira sai.
+ */
+export function aplicarAcess(): void {
+  const segue = !document.body.classList.contains('animations-on');
+  const visitar = (regras: CSSRuleList) => {
+    for (const r of regras) {
+      if (!(r instanceof CSSMediaRule)) continue;
+      const texto = originais.get(r) ?? r.media.mediaText;
+      if (!/prefers-(reduced|contrast)/.test(texto) || !r.cssText.includes('data-px')) continue;
+      originais.set(r, texto);
+      r.media.mediaText = segue ? texto : 'not all';
+    }
+  };
+  for (const folha of document.styleSheets) {
+    try {
+      visitar(folha.cssRules);
+    } catch {
+      /* folha de outra origem: não é da camada */
+    }
+  }
+}
+
 export function instalarPolimento(): () => void {
   const raiz = html();
   const marcar = () => {
     raiz.dataset.px = document.body.classList.contains('animations-off') ? 'off' : 'on';
+    aplicarAcess();
   };
   raiz.style.setProperty('--px-mola', MOLA);
   raiz.style.setProperty('--px-mola-suave', MOLA_SUAVE);
   marcar();
-  void import('../../styles/polimento/polimento-app.css');
-  void import('../../styles/polimento/polimento.css');
-  void import('../../styles/polimento/efeitos.css');
+  /* O CSS chega um instante depois: as regras de preferência são acertadas quando ele entra. */
+  void import('./estilos').then(() => requestAnimationFrame(aplicarAcess));
   const observador = new MutationObserver(marcar);
   observador.observe(document.body, { attributes: true, attributeFilter: ['class'] });
   return () => {

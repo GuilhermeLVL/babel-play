@@ -125,7 +125,50 @@ html[data-px='on'] .q-trilho > .q-item[aria-current='page'] {
 }
 html[data-px='on'] .q-trilho > .px-pilula { border-radius: 16px; }
 
-/* [polimento.css:149-192] ADIADO até portar: B20–B25 painéis: material, véu e tela de trás */
+/* ---- 4. Painéis ("Mais", "O que você vai praticar"): material e origem ---- */
+html[data-px='on'] .q-mais-fundo {
+  animation: none;
+  background: transparent;
+}
+html[data-px='on'] .q-mais-fundo::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, #000 40%, transparent);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  backdrop-filter: blur(10px) saturate(140%);
+  opacity: 0;
+  transition: opacity calc(240ms * var(--px-k)) ease;
+}
+html[data-px='on'] .q-mais-fundo.px-aberto::before { opacity: 1; }
+html[data-px='on'] .q-mais-fundo.px-saindo::before {
+  opacity: 0;
+  transition-duration: calc(160ms * var(--px-k));
+}
+html[data-px='on'] .q-mais {
+  position: relative;
+  z-index: 1;
+  background: color-mix(in srgb, var(--canvas) 86%, transparent);
+  -webkit-backdrop-filter: blur(28px) saturate(170%);
+  backdrop-filter: blur(28px) saturate(170%);
+  border-color: color-mix(in srgb, var(--border-subtle) 70%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.55),
+    0 0 0 1px rgb(0 0 0 / 0.04),
+    0 34px 80px -24px rgb(0 0 0 / 0.5);
+  will-change: transform, opacity;
+}
+html[data-px='on'].dark .q-mais {
+  box-shadow:
+    inset 0 1px 0 rgb(255 240 220 / 0.08),
+    0 0 0 1px rgb(0 0 0 / 0.3),
+    0 34px 80px -20px rgb(0 0 0 / 0.8);
+}
+/* O que está atrás recua um pouco: o painel passa a "estar na frente". */
+html[data-px='on'] .px-tela {
+  transition: transform calc(340ms * var(--px-k)) var(--px-ease-gaveta);
+}
+html[data-px='on'] .px-recuado .px-tela { transform: scale(0.985); }
 
 /* ---- 5. Borda de rolagem: o conteúdo some num degradê, não num corte ------ */
 html[data-px='on'] .px-borda {

@@ -19,7 +19,19 @@
 }
 .px-pal > span { display: inline-block; will-change: transform; }
 
-/* [efeitos.css:34-46] ADIADO até portar: B25 tela de trás recua */
+/* ---- A tela de trás vira um cartão quando um painel abre ------------------ */
+html[data-px='on'] .px-tela {
+  transition:
+    transform calc(560ms * var(--px-k)) var(--px-mola-suave),
+    filter calc(360ms * var(--px-k)) ease,
+    border-radius calc(360ms * var(--px-k)) ease;
+}
+html[data-px='on'] .px-recuado .px-tela {
+  transform: scale(0.93);
+  filter: blur(3px) saturate(0.85);
+  border-radius: 28px;
+  overflow: hidden;
+}
 
 /* ---- Pílulas com mola ------------------------------------------------------ */
 html[data-px='on'] .px-pilula {

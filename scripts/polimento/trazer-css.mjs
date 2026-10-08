@@ -29,14 +29,12 @@ const ARQUIVOS = {
   'polimento.css': [
     { de: 7, ate: 24, motivo: 'estrutura da página do protótipo; a do app está em polimento-app.css' },
     { de: 26, ate: 33, motivo: 'tokens de movimento e câmera lenta: estão em polimento-app.css, com --px-k fixo em 1' },
-    { de: 149, ate: 192, adiado: 'B20–B25 painéis: material, véu e tela de trás' },
     { de: 227, ate: 260, adiado: 'B31–B33 toast' },
     { de: 289, ate: 302, adiado: 'jogos §6.1 Memória (giro da carta)' },
     { de: 354, ate: Infinity, motivo: 'barra do protótipo e painel da auditoria' },
   ],
   'efeitos.css': [
     { de: 7, ate: 22, adiado: 'B36 aura que segue o ponteiro' },
-    { de: 34, ate: 46, adiado: 'B25 tela de trás recua' },
     { de: 199, ate: 204, adiado: 'B31 toast com mola' },
     { de: 215, ate: 245, motivo: 'barra do protótipo: demonstração e legenda' },
     { de: 252, ate: 314, motivo: 'molduras de aparelho do protótipo' },
